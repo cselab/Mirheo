@@ -292,85 +292,15 @@ void forces_dpd_cuda(float * const _xp, float * const _yp, float * const _zp,
 
     cudaFreeHost(consumed);
     
-    const bool check = false;
-    if (!check)
-    {
-	copy(xp.begin(), xp.end(), _xp);
-	copy(yp.begin(), yp.end(), _yp);
-	copy(zp.begin(), zp.end(), _zp);
+    copy(xp.begin(), xp.end(), _xp);
+    copy(yp.begin(), yp.end(), _yp);
+    copy(zp.begin(), zp.end(), _zp);
 	
-	copy(xv.begin(), xv.end(), _xv);
-	copy(yv.begin(), yv.end(), _yv);
-	copy(zv.begin(), zv.end(), _zv);
+    copy(xv.begin(), xv.end(), _xv);
+    copy(yv.begin(), yv.end(), _yv);
+    copy(zv.begin(), zv.end(), _zv);
 
-	copy(xa.begin(), xa.end(), _xa);
-	copy(ya.begin(), ya.end(), _ya);
-	copy(za.begin(), za.end(), _za);
-    }
-    else
-    {
-	for(int i = 0; i < np; ++i)
-	{
-	    _xa[i] = _ya[i] = _za[i] = 0;
-	}
-	
-	for(int i = 0; i < np; ++i)
-	{
-	    printf("computing p %d\n", i);
-	    for(int j = i + 1; j < np; ++j)
-	    {
-		float xr = _xp[i] - _xp[j];
-		float yr = _yp[i] - _yp[j];
-		float zr = _zp[i] - _zp[j];
-				
-		xr -= c.XL * floor(0.5f + xr / c.XL);
-		yr -= c.YL * floor(0.5f + yr / c.YL);
-		zr -= c.ZL * floor(0.5f + zr / c.ZL);
-
-		float rij = sqrtf(xr * xr + yr * yr + zr * zr);
-
-		xr /= rij;
-		yr /= rij;
-		zr /= rij;
-		    
-		float fc = max((float)0, aij * (1 - rij / rc));
-		float wr = max((float)0, 1 - rij / rc);
-		float wd = wr * wr;
-
-		float rdotv = xr * (_xv[i] - _xv[j]) + yr * (_yv[i] - _yv[j]) + zr * (_zv[i] - _zv[j]);
-		float gij = 1;//dgauss(gen) / sqrt(dt);
-		
-		float xf = (fc - gamma * wd * rdotv + sigma * wr * gij) * xr;
-		float yf = (fc - gamma * wd * rdotv + sigma * wr * gij) * yr;
-		float zf = (fc - gamma * wd * rdotv + sigma * wr * gij) * zr;
-
-		assert(!isnan(xf));
-		assert(!isnan(yf));
-		assert(!isnan(zf));
-		
-		_xa[i] += xf;
-		_ya[i] += yf;
-		_za[i] += zf;
-		
-		_xa[j] -= xf;
-		_ya[j] -= yf;
-		_za[j] -= zf;
-	    }
-	}
-
-	for(int i = 0; i < np; ++i)
-	{
-	    const int mypid = pids[i];
-	    printf("gpu: pid %d -> %d, %f %f %f\n", i, mypid, (float)xp[i], (float)yp[i], (float)zp[i]);
-	       
-	    printf("ref: pid %d -> p %f %f %f\n", mypid, _xp[mypid], _yp[mypid], _zp[mypid]);
-	    printf("gpu: force %f %f %f, ref: force %f %f %f\n", (float)xa[i], (float)ya[i], (float)za[i], _xa[mypid], _ya[mypid], _za[mypid]);
-
-	    assert(fabs(xa[i] - _xa[mypid]) < 1e-5);
-	    assert(fabs(ya[i] - _ya[mypid]) < 1e-5);
-	    assert(fabs(za[i] - _za[mypid]) < 1e-5);
-	}
-
-	sleep(1);
-    }   
+    copy(xa.begin(), xa.end(), _xa);
+    copy(ya.begin(), ya.end(), _ya);
+    copy(za.begin(), za.end(), _za);
 }

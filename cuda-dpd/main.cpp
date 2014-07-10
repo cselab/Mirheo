@@ -41,14 +41,15 @@ int main()
 
     const int Nm = 3;
     const int n = L * L * L * Nm;
-    real gamma = 45;
-    real sigma = 3;
-    real aij = 2.5;
-    real rc = 1;
-    bool cuda = true;
+    const real gamma = 45;
+    const real sigma = 3;
+    const real aij = 2.5;
+    const real rc = 1;
+    const bool cuda = true;
+    const real dt = 0.02;
+    const real tend = 10;
     
     vector<real> xp(n), yp(n), zp(n), xv(n), yv(n), zv(n), xa(n), ya(n), za(n);
-
     
     for(int i = 0; i < n; ++i)
     {
@@ -61,10 +62,6 @@ int main()
 	xp[i] = -L * 0.5f + drand48() * L;
 	yp[i] = -L * 0.5f + drand48() * L;
 	zp[i] = -L * 0.5f + drand48() * L;
-//	xp[i] = -L * 0.5 + xcid + 0.5;//  + 0.5 * (drand48() - 0.5);
-//	yp[i] = -L * 0.5 + ycid + 0.5;//  + 0.5 * (drand48() - 0.5);
-//	zp[i] = -L * 0.5 + zcid + 0.5;//  + 0.5 * (drand48() - 0.5);
-	
     }
     
     auto _diag = [&](FILE * f, float t)
@@ -106,16 +103,14 @@ int main()
     std::random_device rd;
     std::mt19937 gen(rd());
     std::normal_distribution<> dgauss(0, 1);
-    
-    const real dt = 0.02;
- 
+
     auto _f = [&]()
 	{
 	    if (cuda)
 	    {
 		vector<int> order(n);
 		vector<float> rsamples(n * 50);
-
+		
 		for(auto& e : rsamples)
 		    e = dgauss(gen);
 		
@@ -127,7 +122,7 @@ int main()
 		    rc, L, L, L, aij, gamma, sigma, 1./sqrt(dt),
 		    &rsamples.front(), rsamples.size());
 		
-		return ;
+		return;
 	    }
 
 	    fill(xa.begin(), xa.end(), 0);
@@ -186,7 +181,6 @@ int main()
 
     FILE * fdiag = fopen("diag.txt", "w");
 
-    const real tend = 10;
     const size_t nt = (int)(tend / dt);
 
     for(int it = 0; it < nt; ++it)
