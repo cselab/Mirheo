@@ -53,7 +53,8 @@ __global__ void _gather(const float * input, const int * indices, float * output
 	output[tid] = input[indices[tid]];
 }
 
-__device__ void _cellcell(const int s1, const int e1, const int s2, const int e2, const bool self, const int sr)
+__device__ void _cellcell(const int s1, const int e1, const int s2, const int e2, const bool self, const int sr,
+			  float * const xa, float * const ya, float * const za)
 {
     if (threadIdx.x + threadIdx.y == 0)
     {
@@ -94,13 +95,13 @@ __device__ void _cellcell(const int s1, const int e1, const int s2, const int e2
 		assert(!isnan(yf));
 		assert(!isnan(zf));
 
-		info.xa[i] += xf;
-		info.ya[i] += yf;
-		info.za[i] += zf;
-
-		info.xa[j] -= xf;
-		info.ya[j] -= yf;
-		info.za[j] -= zf;
+		xa[i] += xf;
+		ya[i] += yf;
+		za[i] += zf;
+		 
+		xa[j] -= xf;
+		ya[j] -= yf;
+		za[j] -= zf;
 	    }
     }
 }
@@ -122,13 +123,14 @@ __constant__ int edgeslutcount[4] = {8, 3, 2, 1};
 __constant__ int edgeslutstart[4] = {0, 8, 11, 13};
 __constant__ int edgeslut[14] = {0, 1, 2, 3, 4, 5, 6, 7, 2, 4, 6, 4, 5, 4};
 
-__global__ void _dpd_forces(const int xoffset, const int yoffset, const int zoffset, int * consumed)
+__global__ void _dpd_forces(float * tmp, int * consumed)
 {
-    if (blockIdx.x % 2 != xoffset ||
-	blockIdx.y % 2 != yoffset ||
-	blockIdx.z % 2 != zoffset)
-	return;
+    const int idbuf = (blockIdx.x & 1) | ((blockIdx.y & 1) << 1) | ((blockIdx.z & 1) << 2);
 
+    float * const xa = tmp + info.np * (idbuf + 8 * 0);
+    float * const ya = tmp + info.np * (idbuf + 8 * 1);
+    float * const za = tmp + info.np * (idbuf + 8 * 2);
+    
     const bool master = threadIdx.x + threadIdx.y == 0;
 
     __shared__ volatile int offsetrsamples;
@@ -159,8 +161,32 @@ __global__ void _dpd_forces(const int xoffset, const int yoffset, const int zoff
 	    if (offsetrsamples + rconsumption >= info.nsamples)
 		return;
 	    
-	    _cellcell(s1, e1, s2, e2, cid1 == cid2, offsetrsamples);
+	    _cellcell(s1, e1, s2, e2, cid1 == cid2, offsetrsamples, xa, ya, za);
 	}
+    }
+}
+
+__global__ void _reduce(float * tmp)
+{
+    const int pid = threadIdx.x + blockDim.x * blockIdx.x;
+
+    if (pid < info.np)
+    {
+	float xa = 0;
+	for(int idbuf = 0; idbuf < 8; ++idbuf)
+	    xa += tmp[pid + info.np * (idbuf + 8 * 0)];
+
+	float ya = 0;
+	for(int idbuf = 0; idbuf < 8; ++idbuf)
+	    ya += tmp[pid + info.np * (idbuf + 8 * 1)];
+	
+	float za = 0;	
+    	for(int idbuf = 0; idbuf < 8; ++idbuf)
+	    za += tmp[pid + info.np * (idbuf + 8 * 2)];
+
+	info.xa[pid] = xa;
+	info.ya[pid] = ya;
+	info.za[pid] = za;
     }
 }
 
@@ -401,15 +427,21 @@ void forces_dpd_cuda(float * const _xp, float * const _yp, float * const _zp,
     *consumed = 0;
     
     {
+	float * tmp;
+
+	CUDA_CHECK(cudaMalloc(&tmp, sizeof(float) * np * 24));
+	CUDA_CHECK(cudaMemset(tmp, 0, sizeof(float) * np * 24));
+	
 	int * dconsumed = NULL;
 	cudaHostGetDevicePointer(&dconsumed, consumed, 0);
     
-	for(int code = 0; code < 8; ++code)
-	    _dpd_forces<<<dim3(c.nx, c.ny, c.nz), dim3(8, 8, 1)>>>(code & 1, (code >> 1) & 1, (code >> 2) & 1, dconsumed);
-
+	_dpd_forces<<<dim3(c.nx, c.ny, c.nz), dim3(1, 1, 1)>>>(tmp, dconsumed);
+	_reduce<<<(np + 127) / 128, 128>>>(tmp);
+	
 	CUDA_CHECK(cudaPeekAtLastError());
 	CUDA_CHECK(cudaThreadSynchronize());
-	  
+	CUDA_CHECK(cudaFree(tmp));
+	
 	if (*consumed >= nsamples)
 	{
 	    printf("done with code %d: consumed: %d\n", 7, *consumed);

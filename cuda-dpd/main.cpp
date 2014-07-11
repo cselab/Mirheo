@@ -191,7 +191,7 @@ int main()
 
     for(int it = 0; it < nt; ++it)
     {
-	if (it % 1 == 0)
+	if (it % 10 == 0)
 	{
 	    float t = it * dt;
 	    _diag(fdiag, t);
