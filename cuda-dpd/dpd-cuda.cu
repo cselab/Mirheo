@@ -53,7 +53,7 @@ __global__ void _gather(const float * input, const int * indices, float * output
 	output[tid] = input[indices[tid]];
 }
 
-__device__ void _cellcell(const int s1, const int e1, const int s2, const int e2, const bool self, const int sr,
+__device__ void _cellcell_scalar(const int s1, const int e1, const int s2, const int e2, const bool self, const int sr,
 			  float * const xa, float * const ya, float * const za)
 {
     if (threadIdx.x + threadIdx.y == 0)
@@ -105,6 +105,138 @@ __device__ void _cellcell(const int s1, const int e1, const int s2, const int e2
     }
 }
 
+__device__ void _cellcell(const int ss1, const int e1, const int ss2, const int e2, const bool self, const int sr,
+			  float * const xa, float * const ya, float * const za)
+{
+    const int bs = 8;
+    assert(bs == blockDim.x);
+    assert(bs == blockDim.y);
+    assert(1 == blockDim.z);
+    
+    __shared__ float xp1[bs], xp2[bs], yp1[bs], yp2[bs], zp1[bs], zp2[bs];
+    __shared__ float xv1[bs], xv2[bs], yv1[bs], yv2[bs], zv1[bs], zv2[bs];
+    __shared__ float xf[bs][bs], yf[bs][bs], zf[bs][bs];
+
+    const int lx = threadIdx.x;
+    const int ly = threadIdx.y;
+    const int l = lx + bs * ly;
+    
+    for(int s1 = ss1; s1 < e1; s1 += bs)
+    {	
+	if (s1 + l < min(e1, s1 + bs))
+	{
+	    assert(l < bs);
+	    xp1[l] = info.xp[s1 + l];
+	    yp1[l] = info.yp[s1 + l];
+	    zp1[l] = info.zp[s1 + l];
+	
+	    xv1[l] = info.xv[s1 + l];
+	    yv1[l] = info.yv[s1 + l];
+	    zv1[l] = info.zv[s1 + l];
+	}
+
+	for(int s2 = ss2; s2 < e2; s2 += bs)
+	{
+	    if (s2 + l < min(e2, s2 + bs))
+	    {
+		assert(l < bs);
+		xp2[l] = info.xp[s2 + l];
+		yp2[l] = info.yp[s2 + l];
+		zp2[l] = info.zp[s2 + l];
+	
+		xv2[l] = info.xv[s2 + l];
+		yv2[l] = info.yv[s2 + l];
+		zv2[l] = info.zv[s2 + l];
+	    }
+
+	    __syncthreads();
+
+	    xf[ly][lx] = yf[ly][lx] = zf[ly][lx] = 0;
+
+	    if(s1 + ly < e1 && s2 + lx < e2 && (!self || s2 + lx > s1 + ly))
+	    {
+		float xr = xp1[ly] - xp2[lx];
+		float yr = yp1[ly] - yp2[lx];
+		float zr = zp1[ly] - zp2[lx];
+				
+		xr -= info.XL * floorf(0.5f + xr / info.XL);
+		yr -= info.YL * floorf(0.5f + yr / info.YL);
+		zr -= info.ZL * floorf(0.5f + zr / info.ZL);
+
+		const float rij2 = xr * xr + yr * yr + zr * zr;
+		const float invrij = rsqrtf(rij2);
+		const float rij = rij2 * invrij;
+		const float wr = max((float)0, 1 - rij * info.invrc);
+	
+		xr *= invrij;
+		yr *= invrij;
+		zr *= invrij;
+
+		const float rdotv = xr * (xv1[ly] - xv2[lx]) + yr * (yv1[ly] - yv2[lx]) + zr * (zv1[ly] - zv2[lx]);
+
+		int entry;
+		{
+		    const int r = (ly + s1 - ss1);
+		    const int c = (lx + s2 - ss2);
+		    const int R = e2 - ss2;
+
+		    entry = self ? c - (r + 1) + (r * (2 * R - 1 - r)) / 2 : c + R * r;
+		}
+		
+		const float myrandnr = info.rsamples[(info.rsamples_start + sr + entry) % info.nsamples];
+#if 0
+		assert(myrandnr != -313);
+		info.rsamples[(info.rsamples_start + sr + entry) % info.nsamples] = -313;
+#endif
+
+		const float strength = (info.aij - info.gamma * wr * rdotv + info.sigmaf * myrandnr) * wr;
+	
+		xf[ly][lx] = strength * xr;
+		yf[ly][lx] = strength * yr;
+		zf[ly][lx] = strength * zr;
+	    }
+
+	    __syncthreads();
+
+	    if (s1 + l < min(s1 + bs, e1))
+	    {
+		float tx = 0, ty = 0, tz = 0;
+	
+		const int n = min(bs, e2 - s2);
+		for(int i = 0; i < n; ++i)
+		{
+		    assert(i < bs && l < bs);
+		    tx += xf[l][i];
+		    ty += yf[l][i];
+		    tz += zf[l][i];
+		}
+
+		xa[s1 + l] += tx;
+		ya[s1 + l] += ty;
+		za[s1 + l] += tz;
+	    }
+
+	    if (s2 + l < min(s2 + bs, e2))
+	    {
+		float tx = 0, ty = 0, tz = 0;
+	
+		const int n = min(bs, e1 - s1);
+		for(int i = 0; i < n; ++i)
+		{
+		    assert(i < bs && l < bs);
+		    tx += xf[i][l];
+		    ty += yf[i][l];
+		    tz += zf[i][l];
+		}
+
+		xa[s2 + l] -= tx;
+		ya[s2 + l] -= ty;
+		za[s2 + l] -= tz;
+	    }
+	}
+    }
+}
+
 __device__ int _cid(int shiftcode)
 {
     int3 indx = make_int3(blockIdx.x + (shiftcode & 1),
@@ -151,7 +283,7 @@ __global__ void _dpd_forces(float * tmp, int * consumed)
 
 	    const bool self = cid1 == cid2;
 	    const int rconsumption = self ? (e1 - s1) * (e1 - s1 - 1) / 2 : (e1 - s1) * (e2 - s2); 
-
+	  
 	    if(master)
 		offsetrsamples = atomicAdd(consumed, rconsumption);
 
@@ -159,8 +291,11 @@ __global__ void _dpd_forces(float * tmp, int * consumed)
 
 	    if (offsetrsamples + rconsumption >= info.nsamples)
 		return;
-	    
-	    _cellcell(s1, e1, s2, e2, cid1 == cid2, offsetrsamples, xa, ya, za);
+#if 1	    
+	    _cellcell(s1, e1, s2, e2, self, offsetrsamples, xa, ya, za);
+#else
+	    _cellcell_scalar(s1, e1, s2, e2, self, offsetrsamples, xa, ya, za);
+#endif
 	}
     }
 }
@@ -337,10 +472,8 @@ void forces_dpd_cuda(float * const _xp, float * const _yp, float * const _zp,
     static RRingBuffer * rrbuf = NULL;
 
     if (rrbuf == NULL)
-	rrbuf = new RRingBuffer(50 * np);
+	rrbuf = new RRingBuffer(50 * np * 3);
      
-   
-	
     int nx = (int)ceil(XL / rc);
     int ny = (int)ceil(YL / rc);
     int nz = (int)ceil(ZL / rc);
@@ -436,11 +569,14 @@ void forces_dpd_cuda(float * const _xp, float * const _yp, float * const _zp,
 	int * dconsumed = NULL;
 	cudaHostGetDevicePointer(&dconsumed, consumed, 0);
     
-	_dpd_forces<<<dim3(c.nx, c.ny, c.nz), dim3(1, 1, 1)>>>(tmp, dconsumed);
+	_dpd_forces<<<dim3(c.nx, c.ny, c.nz), dim3(8, 8, 1)>>>(tmp, dconsumed);
+
+	CUDA_CHECK(cudaPeekAtLastError());
+		
 	_reduce<<<(np + 127) / 128, 128>>>(tmp);
 	
 	CUDA_CHECK(cudaPeekAtLastError());
-	CUDA_CHECK(cudaThreadSynchronize());
+	
 	CUDA_CHECK(cudaFree(tmp));
 	
 	if (*consumed >= nsamples)
