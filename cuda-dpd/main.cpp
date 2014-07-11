@@ -46,6 +46,7 @@ int main()
     const real aij = 2.5;
     const real rc = 1;
     const bool cuda = true;
+    const bool curand = true;
     const real dt = 0.02;
     const real tend = 10;
     
@@ -96,7 +97,8 @@ int main()
 	    for(int i = 0; i < n; ++i)
 	    {
 		x[i] += f * v[i];
-		x[i] -= L * floor(x[i] / L + 0.5);
+		x[i] -= L * floor((x[i] + 0.5 * L) / L);
+		
 	    }
 	};
     
@@ -108,19 +110,23 @@ int main()
 	{
 	    if (cuda)
 	    {
-		vector<int> order(n);
-		vector<float> rsamples(n * 50);
-		
-		for(auto& e : rsamples)
-		    e = dgauss(gen);
-		
+		vector<float> rsamples;
+
+		if (!curand)
+		{
+		    rsamples.resize(n * 50);
+		    
+		    for(auto& e : rsamples)
+			e = dgauss(gen);
+		}
+			
 		forces_dpd_cuda(
 		    &xp.front(), &yp.front(), &zp.front(),
 		    &xv.front(), &yv.front(), &zv.front(),
 		    &xa.front(), &ya.front(), &za.front(),
-		    &order.front(), n,
+		    NULL, n,
 		    rc, L, L, L, aij, gamma, sigma, 1./sqrt(dt),
-		    &rsamples.front(), rsamples.size());
+		    curand ? nullptr : &rsamples.front(), rsamples.size());
 		
 		return;
 	    }

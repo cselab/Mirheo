@@ -3,7 +3,7 @@
 
 struct InfoDPD
 {
-    int nx, ny, nz, np, nsamples;
+    int nx, ny, nz, np, nsamples, rsamples_start;
     float XL, YL, ZL;
     float xstart, ystart, zstart, rc, aij, gamma, sigma, invsqrtdt;
     float * xp, *yp, *zp, *xv, *yv, *zv, *xa, *ya, *za, *rsamples;
@@ -19,13 +19,27 @@ __global__ void pid2code(int * codes, int * pids)
     if (pid >= info.np)
 	return;
 
-    const int ix = (int)((info.xp[pid] - info.xstart) / info.rc);
-    const int iy = (int)((info.yp[pid] - info.ystart) / info.rc);
-    const int iz = (int)((info.zp[pid] - info.zstart) / info.rc);
+    const float x = (info.xp[pid] - info.xstart) / info.rc;
+    const float y = (info.yp[pid] - info.ystart) / info.rc;
+    const float z = (info.zp[pid] - info.zstart) / info.rc;
     
+    int ix = (int)floor(x);
+    int iy = (int)floor(y);
+    int iz = (int)floor(z);
+    
+    if( !(ix >= 0 && ix < info.nx) ||
+	!(iy >= 0 && iy < info.ny) ||
+	!(iz >= 0 && iz < info.nz))
+	printf("pid %d: oops %f %f %f -> %d %d %d\n", pid, x, y, z, ix, iy, iz);
+#if 0 
     assert(ix >= 0 && ix < info.nx);
     assert(iy >= 0 && iy < info.ny);
     assert(iz >= 0 && iz < info.nz);
+#else
+    ix = max(0, min(info.nx - 1, ix));
+    iy = max(0, min(info.ny - 1, iy));
+    iz = max(0, min(info.nz - 1, iz));
+#endif
     
     codes[pid] = ix + info.nx * (iy + info.nx * iz);
     pids[pid] = pid;
@@ -39,7 +53,7 @@ __global__ void _gather(const float * input, const int * indices, float * output
 	output[tid] = input[indices[tid]];
 }
 
-__device__ void _ccfc(const int s1, const int e1, const int s2, const int e2, const bool self, const int sr)
+__device__ void _cellcell(const int s1, const int e1, const int s2, const int e2, const bool self, const int sr)
 {
     if (threadIdx.x + threadIdx.y == 0)
     {
@@ -65,7 +79,12 @@ __device__ void _ccfc(const int s1, const int e1, const int s2, const int e2, co
 		float wd = wr * wr;
 
 		float rdotv = xr * (info.xv[i] - info.xv[j]) + yr * (info.yv[i] - info.yv[j]) + zr * (info.zv[i] - info.zv[j]);
-		float gij = info.rsamples[sr + c] * info.invsqrtdt;
+		float myrandnr = info.rsamples[(info.rsamples_start + sr + c) % info.nsamples];
+		float gij = myrandnr * info.invsqrtdt;
+#if 0
+		assert(myrandnr != -313);
+		info.rsamples[(info.rsamples_start + sr + c) % info.nsamples] = -313;
+#endif
 		
 		float xf = (fc - info.gamma * wd * rdotv + info.sigma * wr * gij) * xr;
 		float yf = (fc - info.gamma * wd * rdotv + info.sigma * wr * gij) * yr;
@@ -103,7 +122,7 @@ __constant__ int edgeslutcount[4] = {8, 3, 2, 1};
 __constant__ int edgeslutstart[4] = {0, 8, 11, 13};
 __constant__ int edgeslut[14] = {0, 1, 2, 3, 4, 5, 6, 7, 2, 4, 6, 4, 5, 4};
 
-__global__ void _fc(const int xoffset, const int yoffset, const int zoffset, int * consumed)
+__global__ void _dpd_forces(const int xoffset, const int yoffset, const int zoffset, int * consumed)
 {
     if (blockIdx.x % 2 != xoffset ||
 	blockIdx.y % 2 != yoffset ||
@@ -140,12 +159,14 @@ __global__ void _fc(const int xoffset, const int yoffset, const int zoffset, int
 	    if (offsetrsamples + rconsumption >= info.nsamples)
 		return;
 	    
-	    _ccfc(s1, e1, s2, e2, cid1 == cid2, offsetrsamples);
+	    _cellcell(s1, e1, s2, e2, cid1 == cid2, offsetrsamples);
 	}
     }
 }
 
 #include <unistd.h>
+
+#include <curand.h>
 
 #include <thrust/host_vector.h>
 #include <thrust/device_vector.h>
@@ -161,6 +182,7 @@ inline void cudaAssert(cudaError_t code, const char *file, int line, bool abort=
     if (code != cudaSuccess) 
     {
 	fprintf(stderr,"GPUassert: %s %s %d\n", cudaGetErrorString(code), file, line);
+	sleep(5);
 	if (abort) exit(code);
     }
 }
@@ -177,6 +199,87 @@ void _reorder(device_vector<float>& v, device_vector<int>& indx)
     CUDA_CHECK(cudaThreadSynchronize());
 }
 
+class RRingBuffer
+{
+    const int n;
+    int s, c, olds;
+    float * drsamples;
+    curandGenerator_t prng;
+
+protected:
+
+    void _refill(int s, int e)
+	{
+	    assert(e > s && e <= n);
+	    
+	    const int multiple = 2;
+
+	    s = s - (s % multiple);
+	    e = e + (multiple - (e % multiple));
+	    e = min(e, n);
+	    
+	    curandStatus_t res;
+	    res = curandGenerateNormal(prng, drsamples + s, e - s, 0, 1);
+	    assert(res == CURAND_STATUS_SUCCESS);
+	}
+    
+public:
+
+    RRingBuffer(const int n): n(n), s(0), olds(0), c(0)
+	{
+	    curandStatus_t res;
+	    res = curandCreateGenerator(&prng, CURAND_RNG_PSEUDO_DEFAULT);
+	    //we could try CURAND_RNG_PSEUDO_MTGP32 or CURAND_RNG_PSEUDO_MT19937
+	    
+	    assert(res == CURAND_STATUS_SUCCESS);
+	    res = curandSetPseudoRandomGeneratorSeed(prng, 1234ULL);
+	    assert(res == CURAND_STATUS_SUCCESS);
+	    
+	    CUDA_CHECK(cudaMalloc(&drsamples, sizeof(float) * n));
+
+	    update(n);
+	    assert(s == 0);
+	}
+
+    ~RRingBuffer()
+	{
+	    CUDA_CHECK(cudaFree(drsamples));
+	    curandStatus_t res = curandDestroyGenerator(prng);
+	    assert(res == CURAND_STATUS_SUCCESS);
+	}
+    
+    void update(const int consumed)
+	{
+	    assert(consumed >= 0 && consumed <= n);
+
+	    c += consumed;
+	    assert(c >= 0 && c <= n);
+	    
+	    if (c > 0.45 * n)
+	    {
+		const int c1 = min(olds + c, n) - olds;
+	    
+		if (c1 > 0)
+		    _refill(olds, olds + c1);
+
+		const int c2 = c - c1;
+
+		if (c2 > 0)
+		    _refill(0, c2);
+	    
+		olds = (olds + c) % n;
+		s = olds;
+		c = 0;
+	    }
+	    else
+		s = (olds + c) % n;
+	}
+
+    int start() const { return s; }
+    float * buffer() const { return drsamples; }
+    int nsamples() const { return n; }
+};
+
 void forces_dpd_cuda(float * const _xp, float * const _yp, float * const _zp,
 		     float * const _xv, float * const _yv, float * const _zv,
 		     float * const _xa, float * const _ya, float * const _za,
@@ -187,9 +290,10 @@ void forces_dpd_cuda(float * const _xp, float * const _yp, float * const _zp,
 		     const float gamma,
 		     const float sigma,
 		     const float invsqrtdt,
-   		     float * const _rsamples, const int nsamples)
+		     float * const _rsamples, int nsamples)
 {
     static bool initialized = false;
+
     if (!initialized)
     {
 	cudaDeviceProp prop;
@@ -204,12 +308,13 @@ void forces_dpd_cuda(float * const _xp, float * const _yp, float * const _zp,
 
 	initialized = true;
     }
-	
-    int * consumed = NULL, * dconsumed = NULL;
-    cudaHostAlloc((void **)&consumed, sizeof(int), cudaHostAllocMapped);
-    assert(consumed != NULL);
-    *consumed = 0;
-    cudaHostGetDevicePointer(&dconsumed, consumed, 0);
+
+    static RRingBuffer * rrbuf = NULL;
+
+    if (rrbuf == NULL)
+	rrbuf = new RRingBuffer(50 * np);
+     
+   
 	
     int nx = (int)ceil(XL / rc);
     int ny = (int)ceil(YL / rc);
@@ -219,7 +324,7 @@ void forces_dpd_cuda(float * const _xp, float * const _yp, float * const _zp,
     device_vector<int> starts(ncells + 1);
     
     device_vector<float> xp(_xp, _xp + np), yp(_yp, _yp + np), zp(_zp, _zp + np),
-	xv(_xv, _xv + np), yv(_yv, _yv + np), zv(_zv, _zv + np), rsamples(_rsamples, _rsamples + nsamples);
+	xv(_xv, _xv + np), yv(_yv, _yv + np), zv(_zv, _zv + np);	
 
     device_vector<float> xa(np), ya(np), za(np);
     fill(xa.begin(), xa.end(), 0);
@@ -231,7 +336,6 @@ void forces_dpd_cuda(float * const _xp, float * const _yp, float * const _zp,
     c.ny = ny;
     c.nz = nz;
     c.np = np;
-    c.nsamples = nsamples;
     c.XL = XL;
     c.YL = YL;
     c.ZL = ZL;
@@ -252,7 +356,23 @@ void forces_dpd_cuda(float * const _xp, float * const _yp, float * const _zp,
     c.xa = _ptr(xa);
     c.ya = _ptr(ya);
     c.za = _ptr(za);
-    c.rsamples = _ptr(rsamples);
+    c.nsamples = rrbuf->nsamples();
+    c.rsamples = rrbuf->buffer();
+    c.rsamples_start = rrbuf->start();
+
+    device_vector<float> rsamples;
+    if (_rsamples != NULL)
+    {
+	rsamples.resize(nsamples);
+	copy(_rsamples, _rsamples + nsamples, rsamples.begin());
+
+	c.nsamples = nsamples;
+	c.rsamples = _ptr(rsamples);
+	c.rsamples_start = 0;
+    }
+    else
+	nsamples = rrbuf->nsamples();
+    
     c.starts = _ptr(starts);
     
     CUDA_CHECK(cudaMemcpyToSymbol(info, &c, sizeof(c)));
@@ -275,21 +395,34 @@ void forces_dpd_cuda(float * const _xp, float * const _yp, float * const _zp,
 
     lower_bound(codes.begin(), codes.end(), cids.begin(), cids.end(), starts.begin());
 
-    for(int code = 0; code < 8; ++code)
+    int * consumed = NULL;
+    cudaHostAlloc((void **)&consumed, sizeof(int), cudaHostAllocMapped);
+    assert(consumed != NULL);
+    *consumed = 0;
+    
     {
-	_fc<<<dim3(c.nx, c.ny, c.nz), dim3(8, 8, 1)>>>(code & 1, (code >> 1) & 1, (code >> 2) & 1, dconsumed);
-	
+	int * dconsumed = NULL;
+	cudaHostGetDevicePointer(&dconsumed, consumed, 0);
+    
+	for(int code = 0; code < 8; ++code)
+	    _dpd_forces<<<dim3(c.nx, c.ny, c.nz), dim3(8, 8, 1)>>>(code & 1, (code >> 1) & 1, (code >> 2) & 1, dconsumed);
+
 	CUDA_CHECK(cudaPeekAtLastError());
 	CUDA_CHECK(cudaThreadSynchronize());
-
+	  
 	if (*consumed >= nsamples)
 	{
-	    printf("done with code %d: consumed: %d\n", code, *consumed);
+	    printf("done with code %d: consumed: %d\n", 7, *consumed);
 	    printf("not a nice situation.\n");
 	    abort();
 	}
+
+	//printf("consumed: %d\n", *consumed);
     }
 
+    if (_rsamples == NULL)
+	rrbuf->update(*consumed);
+    
     cudaFreeHost(consumed);
     
     copy(xp.begin(), xp.end(), _xp);
@@ -303,4 +436,7 @@ void forces_dpd_cuda(float * const _xp, float * const _yp, float * const _zp,
     copy(xa.begin(), xa.end(), _xa);
     copy(ya.begin(), ya.end(), _ya);
     copy(za.begin(), za.end(), _za);
+
+    if (order != NULL)
+	copy(pids.begin(), pids.end(), order);
 }
