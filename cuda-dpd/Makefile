@@ -1,5 +1,5 @@
 override CXXFLAGS += -g -O2 -std=c++11 
-NVCCFLAGS = -arch=compute_30 -g -O3
+NVCCFLAGS = -arch=compute_30 -g -O3 
 NVCC = nvcc
 
 test: main.cpp dpd-cuda.o

@@ -5,7 +5,7 @@ struct InfoDPD
 {
     int nx, ny, nz, np, nsamples, rsamples_start;
     float XL, YL, ZL;
-    float xstart, ystart, zstart, rc, aij, gamma, sigma, invsqrtdt;
+    float xstart, ystart, zstart, rc, invrc, aij, gamma, sigma, invsqrtdt, sigmaf;
     float * xp, *yp, *zp, *xv, *yv, *zv, *xa, *ya, *za, *rsamples;
     int * starts;
 };
@@ -65,31 +65,30 @@ __device__ void _cellcell(const int s1, const int e1, const int s2, const int e2
 		float yr = info.yp[i] - info.yp[j];
 		float zr = info.zp[i] - info.zp[j];
 				
-		xr -= info.XL * floor(0.5f + xr / info.XL);
-		yr -= info.YL * floor(0.5f + yr / info.YL);
-		zr -= info.ZL * floor(0.5f + zr / info.ZL);
+		xr -= info.XL * floorf(0.5f + xr / info.XL);
+		yr -= info.YL * floorf(0.5f + yr / info.YL);
+		zr -= info.ZL * floorf(0.5f + zr / info.ZL);
 
-		float rij = sqrtf(xr * xr + yr * yr + zr * zr);
+		const float rij2 = xr * xr + yr * yr + zr * zr;
+		const float invrij = rsqrtf(rij2);
+		const float rij = rij2 * invrij;
+		const float wr = max((float)0, 1 - rij * info.invrc);
+	
+		xr *= invrij;
+		yr *= invrij;
+		zr *= invrij;
 
-		xr /= rij;
-		yr /= rij;
-		zr /= rij;
-		    
-		float fc = max((float)0, info.aij * (1 - rij / info.rc));
-		float wr = max((float)0, 1 - rij / info.rc);
-		float wd = wr * wr;
-
-		float rdotv = xr * (info.xv[i] - info.xv[j]) + yr * (info.yv[i] - info.yv[j]) + zr * (info.zv[i] - info.zv[j]);
-		float myrandnr = info.rsamples[(info.rsamples_start + sr + c) % info.nsamples];
-		float gij = myrandnr * info.invsqrtdt;
+		const float rdotv = xr * (info.xv[i] - info.xv[j]) + yr * (info.yv[i] - info.yv[j]) + zr * (info.zv[i] - info.zv[j]);
+		const float myrandnr = info.rsamples[(info.rsamples_start + sr + c) % info.nsamples];
 #if 0
 		assert(myrandnr != -313);
 		info.rsamples[(info.rsamples_start + sr + c) % info.nsamples] = -313;
 #endif
-		
-		float xf = (fc - info.gamma * wd * rdotv + info.sigma * wr * gij) * xr;
-		float yf = (fc - info.gamma * wd * rdotv + info.sigma * wr * gij) * yr;
-		float zf = (fc - info.gamma * wd * rdotv + info.sigma * wr * gij) * zr;
+
+		const float strength = (info.aij - info.gamma * wr * rdotv + info.sigmaf * myrandnr) * wr;
+		const float xf = strength * xr;
+		const float yf = strength * yr;
+		const float zf = strength * zr;
 
 		assert(!isnan(xf));
 		assert(!isnan(yf));
@@ -369,10 +368,12 @@ void forces_dpd_cuda(float * const _xp, float * const _yp, float * const _zp,
     c.ystart = -YL * 0.5; 
     c.zstart = -ZL * 0.5; 
     c.rc = rc;
+    c.invrc = 1.f / rc;
     c.aij = aij;
     c.gamma = gamma;
     c.sigma = sigma;
     c.invsqrtdt = invsqrtdt;
+    c.sigmaf = sigma * invsqrtdt;
     c.xp = _ptr(xp);
     c.yp = _ptr(yp);
     c.zp = _ptr(zp);
