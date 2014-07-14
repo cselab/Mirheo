@@ -20,7 +20,9 @@
 using namespace std;
 using namespace ArgumentParser;
 
-string Saver::folder("");
+#define TYPES 2
+
+template<int N> string Saver<N>::folder("");
 
 int main (int argc, char **argv)
 {
@@ -28,14 +30,14 @@ int main (int argc, char **argv)
 	double temp, gamma, alpha, cutRad, dt, endTime, L;
 	string folder = "res/";
 
-	n       = 100;
-	gamma   = 1;
+	n       = 1000;
+	gamma   = 45;
 	alpha   = 0.1;
-	cutRad  = -1;
+	cutRad  = 2;
 	dt      = 1e-3;
-	endTime = 1;
-	L       = 2;
-    temp    = 1;
+	endTime = 10;
+	L       = 7;
+    temp    = 0.1;
 	
 	vector<OptionStruct> vopts =
 	{
@@ -47,6 +49,7 @@ int main (int argc, char **argv)
 		{'b', "temp",       DOUBLE, "Temperature",             &temp},
 		{'a', "alpha",      DOUBLE, "Alpha",                   &alpha},
 		{'g', "gamma",      DOUBLE, "Gamma",                   &gamma},
+		{'r', "folder",     STRING, "Result folder",           &folder},
 	};
 	
     Parser parser(vopts);
@@ -58,23 +61,24 @@ int main (int argc, char **argv)
 		printf("Cut-off is automatically set to %f\n", cutRad);
 	}
 	
-	Saver::makedir(folder + "/");
-	SaveEnergy       *enSaver   = new SaveEnergy      ("nrg.txt");
-	SavePos          *posSaver  = new SavePos         ("pos.xyz");
-	SaveLinMom       *linSaver  = new SaveLinMom      ("lin.txt");
-	SaveAngMom		 *angSaver  = new SaveAngMom	  ("ang.txt");
-	SaveCenterOfMass *massSaver = new SaveCenterOfMass("mass.txt");
-	SaveTiming       *timeSaver = new SaveTiming      (&cout);
-    SaveTemperature  *tempSaver = new SaveTemperature (&cout);
-	
-	Simulation simulation(n, temp, 1, alpha, gamma, cutRad, dt, L);
-//	simulation.registerSaver(enSaver, 100);
+	Saver<TYPES>::makedir(folder + "/");
+//	SaveEnergy       *enSaver   = new SaveEnergy      ("nrg.txt");
+	Saver<TYPES>     *posSaver  = new SavePos<TYPES>         ("pos.xyz");
+	Saver<TYPES>     *linSaver  = new SaveLinMom<TYPES>      ("lin.txt");
+//	SaveAngMom		 *angSaver  = new SaveAngMom	  ("ang.txt");
+//	SaveCenterOfMass *massSaver = new SaveCenterOfMass("mass.txt");
+	Saver<TYPES>     *timeSaver = new SaveTiming<TYPES>      (&cout);
+    Saver<TYPES>     *tempSaver = new SaveTemperature<TYPES> ("temp.txt");
+
+    vector<int> nums = {n, 125};
+	Simulation<TYPES> simulation(nums, temp, 1, alpha, gamma, cutRad, dt, L);
+////	simulation.registerSaver(enSaver, 100);
 	simulation.registerSaver(posSaver, 100);
 	simulation.registerSaver(linSaver, 100);
-//	simulation.registerSaver(angSaver, 100);
-//	simulation.registerSaver(massSaver, 100);
-	simulation.registerSaver(timeSaver, 100);
-    simulation.registerSaver(tempSaver, 100);
+////	simulation.registerSaver(angSaver, 100);
+////	simulation.registerSaver(massSaver, 100);
+	simulation.registerSaver(timeSaver, 500);
+    simulation.registerSaver(tempSaver, 10);
 	simulation.profiler.millisec();
 	
 	iters = ceil(endTime / dt);

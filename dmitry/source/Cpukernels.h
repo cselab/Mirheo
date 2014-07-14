@@ -12,6 +12,7 @@
 
 #include "CellList.h"
 #include "Potential.h"
+#include "Particles.h"
 
 inline void _allocate(Particles* part)
 {
@@ -46,6 +47,12 @@ inline void _K1(double *y, double *x, int n, double a) // BLAS lev 1: axpy
 		y[i] += a * x[i];
 }
 
+inline void _nuscal(double *y, double *x, int n) // y[i] = y[i] / x[i]
+{
+	for (int i=0; i<n; i++)
+		y[i] /= x[i];
+}
+
 /*inline double _periodize(double val, double l, double l_2)
 {
   	const double vlow  = val - l_2;	
@@ -67,117 +74,225 @@ inline double _periodize(double val, double l, double l_2)
 	return val;
 }
 
-void _K2(Particles* part, DPD* potential, double L)
+namespace detail
 {
-	_fill(part->ax, part->n, 0);
-	_fill(part->ay, part->n, 0);
-	_fill(part->az, part->n, 0);
-	
-	double fx, fy, fz;
-	double dx, dy, dz;
-    double vx, vy, vz;
-	double L_2 = 0.5*L;
+    
+    template<int offset>
+    struct UnrollerInternal
+    {
+        template<typename Action>
+        static void step(Action& act, int i)
+        {
+            act(i + offset - 1);
+            UnrollerInternal<offset - 1>::step(act, i);
+        }
+    };
+    
+    template<>
+    struct UnrollerInternal<0> {
+        template<typename Action>
+        static void step(Action& act, size_t i) {
+        }
+    };
 
-	for (int i=0; i<part->n; i++)
-	{
-		for (int j = i+1; j<part->n; j++)
-		{
-			dx = _periodize(part->x[j] - part->x[i], L, L_2);
-			dy = _periodize(part->y[j] - part->y[i], L, L_2);
-			dz = _periodize(part->z[j] - part->z[i], L, L_2);
+    
+    //UnrollerP: loops over given size, partial unrolled
+    template<int chunk = 8>
+    struct UnrollerP {
+        template<typename Action>
+        static void step(int start, int end, Action act)
+        {
+            int i = start;
+            for (; i < end - chunk; i += chunk)
+                UnrollerInternal<chunk>::step(act, i);
             
-            vx = part->vx[j] - part->vx[i];
-            vy = part->vy[j] - part->vy[i];
-            vz = part->vz[j] - part->vz[i];
-			
-			potential->F(dx, dy, dz,  vx, vy, vz,  fx, fy, fz);
-			
-			part->ax[i] += fx;
-			part->ay[i] += fy;
-			part->az[i] += fz;
-			
-			part->ax[j] -= fx;
-			part->ay[j] -= fy;
-			part->az[j] -= fz;
-		}
-		
-		const double m_1 = 1.0 / part->m[i];
-		part->ax[i] *= m_1;
-		part->ay[i] *= m_1;
-		part->az[i] *= m_1;
-	}
+            for (; i < end; ++i)
+                act(i);
+        }
+    };
+
+    
+    struct parameters
+    {
+        static Particles** part;
+        static double L;
+        static Cells<Particles>** cells;
+    };
+    
+    template<int a, int b>
+    struct N2K2 : parameters
+    {
+        void operator()()
+        {
+            double fx, fy, fz;
+            double dx, dy, dz;
+            double vx, vy, vz;
+            double L_2 = 0.5*L;
+            
+            for (int i = 0; i<part[a]->n; i++)
+            {
+                //UnrollerP<>::step( ((a == b) ? i+1 : 0), part[b]->n, [&] (int j)
+                for (int j = ((a == b) ? i+1 : 0); j<part[b]->n; j++)
+                {
+                    dx = _periodize(part[b]->x[j] - part[a]->x[i], L, L_2);
+                    dy = _periodize(part[b]->y[j] - part[a]->y[i], L, L_2);
+                    dz = _periodize(part[b]->z[j] - part[a]->z[i], L, L_2);
+                    
+                    vx = part[b]->vx[j] - part[a]->vx[i];
+                    vy = part[b]->vy[j] - part[a]->vy[i];
+                    vz = part[b]->vz[j] - part[a]->vz[i];
+                    
+                    force<a, b>(dx, dy, dz,  vx, vy, vz,  fx, fy, fz);
+                    
+                    part[a]->ax[i] += fx;
+                    part[a]->ay[i] += fy;
+                    part[a]->az[i] += fz;
+                    
+                    part[b]->ax[j] -= fx;
+                    part[b]->ay[j] -= fy;
+                    part[b]->az[j] -= fz;
+                }
+            }
+        }
+
+    };
+    
+    
+    template<int a, int b>
+    struct CellK2 : parameters
+    {
+        void operator()()
+        {
+            int origIJ[3];
+            int ij[3], sh[3];
+            double xAdd[3];
+
+            double fx, fy, fz;
+
+            // Loop over all the particles
+            for (int i=0; i<part[a]->n; i++)
+            {
+                double x = part[a]->x[i];
+                double y = part[a]->y[i];
+                double z = part[a]->z[i];
+
+                // Get id of the cell and its coordinates
+                int cid = cells[a]->which(x, y, z);
+                cells[a]->getCellIJByInd(cid, origIJ);
+
+                // Loop over all the 27 neighboring cells
+                for (sh[0]=-1; sh[0]<=1; sh[0]++)
+                    for (sh[1]=-1; sh[1]<=1; sh[1]++)
+                        for (sh[2]=-1; sh[2]<=1; sh[2]++)
+                        {
+                            // Resolve periodicity
+                            for (int k=0; k<3; k++)
+                                ij[k] = origIJ[k] + sh[k];
+
+                            cells[a]->correct(ij, xAdd);
+
+                            cid = cells[a]->getCellIndByIJ(ij);
+                            int begin = cells[b]->pstart[cid];
+                            int end   = cells[b]->pstart[cid+1];
+
+                            for (int j=begin; j<end; j++)
+                            {
+                                int neigh = cells[b]->pobjids[j];
+                                if (a != b || i > neigh)
+                                {
+                                    double dx = part[b]->x[neigh] + xAdd[0] - x;
+                                    double dy = part[b]->y[neigh] + xAdd[1] - y;
+                                    double dz = part[b]->z[neigh] + xAdd[2] - z;
+
+                                    double vx = part[b]->vx[neigh] - part[a]->vx[i];
+                                    double vy = part[b]->vy[neigh] - part[a]->vy[i];
+                                    double vz = part[b]->vz[neigh] - part[a]->vz[i];
+                                    
+                                    force<a, b>(dx, dy, dz,  vx, vy, vz,  fx, fy, fz);
+                                    //if (a != b && fz > 0.001) printf("%f\n", fz);
+                                    
+                                    part[a]->ax[i] += fx;
+                                    part[a]->ay[i] += fy;
+                                    part[a]->az[i] += fz;
+                                    
+                                    part[b]->ax[neigh] -= fx;
+                                    part[b]->ay[neigh] -= fy;
+                                    part[b]->az[neigh] -= fz;
+                                }
+                            }
+                        }
+            }
+        }
+    };
+
+
 }
 
-void _K2(Particles* part, DPD* potential, Cells<Particles>* cells, double L)
-{
-	int origIJ[3];
-	int ij[3], sh[3];
-	double xAdd[3];
-	
-	_fill(part->ax, part->n, 0);
-	_fill(part->ay, part->n, 0);
-	_fill(part->az, part->n, 0);
-	
-	double fx, fy, fz;
-	
-	// Loop over all the particles
-	for (int i=0; i<part->n; i++)
-	{
-		double x = part->x[i];
-		double y = part->y[i];
-		double z = part->z[i];
 
-		// Get id of the cell and its coordinates
-		int cid = cells->which(x, y, z);
-		cells->getCellIJByInd(cid, origIJ);
-		
-		// Loop over all the 27 neighboring cells
-		for (sh[0]=-1; sh[0]<=1; sh[0]++)
-			for (sh[1]=-1; sh[1]<=1; sh[1]++)
-				for (sh[2]=-1; sh[2]<=1; sh[2]++)
-				{
-					// Resolve periodicity
-					for (int k=0; k<3; k++)
-						ij[k] = origIJ[k] + sh[k];
 
-					cells->correct(ij, xAdd);
-						
-					cid = cells->getCellIndByIJ(ij);
-					int begin = cells->pstart[cid];
-					int end   = cells->pstart[cid+1];
-					
-					for (int j=begin; j<end; j++)
-					{
-						int neigh = cells->pobjids[j];
-						if (i > neigh)
-						{
-							double dx = part->x[neigh] + xAdd[0] - x;
-							double dy = part->y[neigh] + xAdd[1] - y;
-							double dz = part->z[neigh] + xAdd[2] - z;
-							
-                            double vx = part->vx[neigh] - part->vx[i];
-                            double vy = part->vy[neigh] - part->vy[i];
-                            double vz = part->vz[neigh] - part->vz[i];
-                            
-                            potential->F(dx, dy, dz,  vx, vy, vz,  fx, fy, fz);
-							
-							part->ax[i] += fx;
-							part->ay[i] += fy;
-							part->az[i] += fz;
-                            
-                            part->ax[neigh] -= fx;
-							part->ay[neigh] -= fy;
-							part->az[neigh] -= fz;
-						}
-					}
-				}
-		
-		const double m_1 = 1.0 / part->m[i];
-		part->ax[i] *= m_1;
-		part->ay[i] *= m_1;
-		part->az[i] *= m_1;
-	}
-}
+
+//template<int a, int b>
+//void _K2(Particles* part, DPD* potential, Cells<Particles>* cells, double L)
+//{
+//	int origIJ[3];
+//	int ij[3], sh[3];
+//	double xAdd[3];
+//	
+//	double fx, fy, fz;
+//	
+//	// Loop over all the particles
+//	for (int i=0; i<part->n; i++)
+//	{
+//		double x = part->x[i];
+//		double y = part->y[i];
+//		double z = part->z[i];
+//
+//		// Get id of the cell and its coordinates
+//		int cid = cells->which(x, y, z);
+//		cells->getCellIJByInd(cid, origIJ);
+//		
+//		// Loop over all the 27 neighboring cells
+//		for (sh[0]=-1; sh[0]<=1; sh[0]++)
+//			for (sh[1]=-1; sh[1]<=1; sh[1]++)
+//				for (sh[2]=-1; sh[2]<=1; sh[2]++)
+//				{
+//					// Resolve periodicity
+//					for (int k=0; k<3; k++)
+//						ij[k] = origIJ[k] + sh[k];
+//
+//					cells->correct(ij, xAdd);
+//						
+//					cid = cells->getCellIndByIJ(ij);
+//					int begin = cells->pstart[cid];
+//					int end   = cells->pstart[cid+1];
+//					
+//					for (int j=begin; j<end; j++)
+//					{
+//						int neigh = cells->pobjids[j];
+//						if (i > neigh)
+//						{
+//							double dx = part->x[neigh] + xAdd[0] - x;
+//							double dy = part->y[neigh] + xAdd[1] - y;
+//							double dz = part->z[neigh] + xAdd[2] - z;
+//							
+//                            double vx = part->vx[neigh] - part->vx[i];
+//                            double vy = part->vy[neigh] - part->vy[i];
+//                            double vz = part->vz[neigh] - part->vz[i];
+//                            
+//                            force<a, b>(dx, dy, dz,  vx, vy, vz,  fx, fy, fz);
+//							
+//							part->ax[i] += fx;
+//							part->ay[i] += fy;
+//							part->az[i] += fz;
+//                            
+//                            part->ax[neigh] -= fx;
+//							part->ay[neigh] -= fy;
+//							part->az[neigh] -= fz;
+//						}
+//					}
+//				}
+//    }
+//}
 
 void _normalize(double *x, double n, double x0, double xmax)
 {
@@ -196,79 +311,6 @@ double _kineticNrg(Particles* part)
 		res += part->m[i] * (part->vx[i]*part->vx[i] +
 							 part->vy[i]*part->vy[i] +
 							 part->vz[i]*part->vz[i]);
-	return res*0.5;
-}
-
-double _potentialNrg(Particles* part, DPD* potential, double L)
-{
-	double res = 0;
-	double L_2 = 0.5*L;
-	double dx, dy, dz;
-	
-	for (int i=0; i<part->n; i++)
-	{				
-		for (int j=i+1; j<part->n; j++)
-		{
-			dx = _periodize(part->x[j] - part->x[i], L, L_2);
-			dy = _periodize(part->y[j] - part->y[i], L, L_2);
-			dz = _periodize(part->z[j] - part->z[i], L, L_2);
-			
-			res += potential->V(dx, dy, dz);
-		}
-		
-	}
-	return res;
-}
-
-double _potentialNrg(Particles* part, DPD* potential, Cells<Particles>* cells, double L)
-{
-	int origIJ[3];
-	int ij[3], sh[3];
-	double xAdd[3];
-	
-	double res = 0;
-	
-	// Loop over all the particles
-	for (int i=0; i<part->n; i++)
-	{
-		double x = part->x[i];
-		double y = part->y[i];
-		double z = part->z[i];
-
-		// Get id of the cell and its coordinates
-		int cid = cells->which(x, y, z);
-		cells->getCellIJByInd(cid, origIJ);
-		
-		// Loop over all the 27 neighboring cells
-		for (sh[0]=-1; sh[0]<=1; sh[0]++)
-			for (sh[1]=-1; sh[1]<=1; sh[1]++)
-				for (sh[2]=-1; sh[2]<=1; sh[2]++)
-				{
-					// Resolve periodicity
-					for (int k=0; k<3; k++)
-						ij[k] = origIJ[k] + sh[k];
-
-					cells->correct(ij, xAdd);
-					
-					cid = cells->getCellIndByIJ(ij);
-					int begin = cells->start[cid];
-					int end   = cells->start[cid+1];
-					
-					for (int j=begin; j<end; j++)
-					{
-						int neigh = cells->objids[j];
-						if (i != neigh)
-						{
-							double dx = part->x[neigh] + xAdd[0] - x;
-							double dy = part->y[neigh] + xAdd[1] - y;
-							double dz = part->z[neigh] + xAdd[2] - z;
-							
-							res += potential->V(dx, dy, dz);
-						}
-					}
-				}
-	}
-	
 	return res*0.5;
 }
 
