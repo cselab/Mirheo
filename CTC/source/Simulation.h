@@ -233,32 +233,20 @@ Simulation<N>::Simulation(vector<int> num, double temp, vector<double> rCut, dou
     uniform_real_distribution<double> utheta(0, M_PI);
 
     
-    setLattice(part[1]->x, part[1]->y, part[1]->z, 3.04, part[1]->n);
+    if (N>0) setLattice(part[1]->x, part[1]->y, part[1]->z, 3.04, part[1]->n);
     
-    for (int i=0; i<num[0]; i++)
-    {
-        double r = u0(gen);
-        double phi = uphi(gen);
-        double theta = utheta(gen);
-        
-        part[0]->x[i] = r * sin(theta) * cos(phi);
-        part[0]->y[i] = r * sin(theta) * sin(phi);
-        part[0]->z[i] = r * cos(theta);
-    }
+//    for (int i=0; i<num[0]; i++)
+//    {
+//        double r = u0(gen);
+//        double phi = uphi(gen);
+//        double theta = utheta(gen);
+//        
+//        part[0]->x[i] = r * sin(theta) * cos(phi);
+//        part[0]->y[i] = r * sin(theta) * sin(phi);
+//        part[0]->z[i] = r * cos(theta);
+//    }
 
-    
-    if (N > 10)
-        for (int i=0; i<num[1]; i++)
-        {
-            double r = u1(gen);
-            double phi = uphi(gen);
-            double theta = utheta(gen);
-            
-            part[1]->x[i] = r * sin(theta) * cos(phi);
-            part[1]->y[i] = r * sin(theta) * sin(phi);
-            part[1]->z[i] = r * cos(theta);
-        }
-
+    setLattice(part[0]->x, part[0]->y, part[0]->z, L, part[0]->n);
 
     // Initialize cell list if we need it
 #ifdef MD_USE_CELLLIST

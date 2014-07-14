@@ -64,11 +64,11 @@ __host__ __device__ inline void DPD::F(const double dx, const double dy, const d
     double IrI = sqrt(r2);
     double wr_IrI = w(IrI) / IrI;
 	   
-    double fc = alpha * wr_IrI;
-    double fd = -gamma * wr_IrI * wr_IrI * (dx*vx + dy*vy + dz*vz);   // !!! minus
-    double fr = sigma * wr_IrI * norm(gen);
+    //double fc = alpha;
+    double fd = -gamma * wr_IrI * (dx*vx + dy*vy + dz*vz);   // !!! minus
+    double fr = sigma * norm(gen);
     
-    double fAbs = -(fc + fd + fr);
+    double fAbs = -(alpha + fd + fr) * wr_IrI;
     fx = fAbs * dx;
 	fy = fAbs * dy;
 	fz = fAbs * dz;

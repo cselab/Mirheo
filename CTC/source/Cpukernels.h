@@ -159,6 +159,7 @@ namespace Forces
                             int begin = cells[b]->pstart[cid];
                             int end   = cells[b]->pstart[cid+1];
 
+                            //Unroll::UnrollerP<>::step( begin, end, [&] (int j)
                             for (int j=begin; j<end; j++)
                             {
                                 int neigh = cells[b]->pobjids[j];
@@ -167,7 +168,10 @@ namespace Forces
                                     double dx = part[b]->x[neigh] + xAdd[0] - x;
                                     double dy = part[b]->y[neigh] + xAdd[1] - y;
                                     double dz = part[b]->z[neigh] + xAdd[2] - z;
-
+                                    
+                                    if (dx*dx+dy*dy+dz*dz < 1)
+                                    {
+                                    
                                     double vx = part[b]->vx[neigh] - part[a]->vx[i];
                                     double vy = part[b]->vy[neigh] - part[a]->vy[i];
                                     double vz = part[b]->vz[neigh] - part[a]->vz[i];
@@ -181,6 +185,7 @@ namespace Forces
                                     part[b]->ax[neigh] -= fx;
                                     part[b]->ay[neigh] -= fy;
                                     part[b]->az[neigh] -= fz;
+                                    }
                                 }
                             }
                         }

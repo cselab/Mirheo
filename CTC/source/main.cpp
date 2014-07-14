@@ -28,7 +28,7 @@ int ErrorHandling::debugLvl;
 int ErrorHandling::rank;
 
 
-#define TYPES 2
+#define TYPES 1
 
 template<int N> string Saver<N>::folder("");
 
