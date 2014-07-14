@@ -6,9 +6,9 @@
 //  Copyright (c) 2014 Dmitry Alexeev. All rights reserved.
 //
 
-#ifndef CTC_Particles_h
-#define CTC_Particles_h
+#pragma once
 
+#include "Misc.h"
 
 //**********************************************************************************************************************
 // Particles
@@ -24,6 +24,3 @@ struct Particles
 	double *tmp;
 	int n;
 };
-
-
-#endif

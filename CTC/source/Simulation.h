@@ -32,7 +32,6 @@
 #endif
 
 using namespace std;
-using namespace detail;
 
 template <int N>
 class Saver;
@@ -64,11 +63,11 @@ template<int ibeg, int iend, int jbeg, int jend>
 struct Unroller2 {
     static void step() {
 #ifdef MD_USE_CELLLIST
-        CellK2<ibeg, jbeg> k2;
+        Forces::_Cells<ibeg, jbeg> force;
 #else
-        N2K2<ibeg, jbeg> k2;
+        Forces::_N2<ibeg, jbeg> force;
 #endif
-        k2();
+        force();
         Unroller2<ibeg, iend, jbeg+1, jend>::step();
     }
 };
@@ -90,10 +89,10 @@ struct Unroller2<iend, iend, jend, jend> {
 // Simulation
 //**********************************************************************************************************************
 
-Particles** parameters::part;
-double parameters::L;
+Particles** Forces::Arguments::part;
+double Forces::Arguments::L;
 #ifdef MD_USE_CELLLIST
-Cells<Particles>** parameters::cells;
+Cells<Particles>** Forces::Arguments::cells;
 #endif
 
 template<int N>
@@ -106,7 +105,6 @@ private:
 	double L;
 	
 	Particles* part[N];
-	DPD*	potential;
 	list<Saver<N>*>	savers;
 	
 #ifdef MD_USE_CELLLIST
@@ -118,7 +116,7 @@ private:
 public:
 	Profiler profiler;
 
-	Simulation (vector<int>, double, double, double, double, double, double, double);
+	Simulation (vector<int>, double, double, double, double);
 	void setLattice(double *x, double *y, double *z, double l, int n);
 	
 	double Ktot(int = -1);
@@ -154,6 +152,13 @@ public:
 	Saver (ostream* cOut) : file((ofstream*)cOut) { opened = false; }
 	Saver (string fname)
 	{
+        if (fname == "screen")
+        {
+            file = (ofstream*)&cout;
+            opened = false;
+            return;
+        }
+        
 		file = new ofstream((this->folder+fname).c_str());
         opened = true;
 	}
@@ -197,12 +202,9 @@ inline void Saver<N>::setEnsemble(Simulation<N>* e)
 //**********************************************************************************************************************
 
 template<int N>
-Simulation<N>::Simulation(vector<int> num, double temp, double mass, double alpha, double gamma, double rCut, double deltat, double len)
+Simulation<N>::Simulation(vector<int> num, double temp, double rCut, double deltat, double len)
 {
     // Various initializations
-	
-	potential = new DPD(alpha, gamma, temp, rCut, deltat);
-	
 	dt		  = deltat;
 	L		  = len;
 	
@@ -273,15 +275,15 @@ Simulation<N>::Simulation(vector<int> num, double temp, double mass, double alph
         _fill(part[type]->vy, part[type]->n, 0);
         _fill(part[type]->vz, part[type]->n, 0);
         
-        _fill(part[type]->m, part[type]->n, mass);
+        _fill(part[type]->m, part[type]->n, 1);
     }
     
     //_fill(part[0]->vz, part[0]->n, 0.5);
     
-    parameters::part = part;
-    parameters::L = L;
+    Forces::Arguments::part = part;
+    Forces::Arguments::L = L;
 #ifdef MD_USE_CELLLIST
-    parameters::cells = cells;
+    Forces::Arguments::cells = cells;
 #endif
 }
 
@@ -404,13 +406,13 @@ void Simulation<N>::velocityVerlet()
 {
     auto prep = [&](int type)
     {
-        _K1(part[type]->vx, part[type]->ax,part[type]->n, dt*0.5);
-        _K1(part[type]->vy, part[type]->ay,part[type]->n, dt*0.5);
-        _K1(part[type]->vz, part[type]->az,part[type]->n, dt*0.5);
+        _axpy(part[type]->vx, part[type]->ax,part[type]->n, dt*0.5);
+        _axpy(part[type]->vy, part[type]->ay,part[type]->n, dt*0.5);
+        _axpy(part[type]->vz, part[type]->az,part[type]->n, dt*0.5);
         
-        _K1(part[type]->x, part[type]->vx,part[type]->n, dt);
-        _K1(part[type]->y, part[type]->vy,part[type]->n, dt);
-        _K1(part[type]->z, part[type]->vz,part[type]->n, dt);
+        _axpy(part[type]->x, part[type]->vx,part[type]->n, dt);
+        _axpy(part[type]->y, part[type]->vy,part[type]->n, dt);
+        _axpy(part[type]->z, part[type]->vz,part[type]->n, dt);
         
         _normalize(part[type]->x,part[type]->n, x0, xmax);
         _normalize(part[type]->y,part[type]->n, y0, ymax);
@@ -450,9 +452,9 @@ void Simulation<N>::velocityVerlet()
         _nuscal(part[type]->ay, part[type]->m, part[type]->n);
         _nuscal(part[type]->az, part[type]->m, part[type]->n);
         
-        _K1(part[type]->vx, part[type]->ax, part[type]->n, dt*0.5);
-        _K1(part[type]->vy, part[type]->ay, part[type]->n, dt*0.5);
-        _K1(part[type]->vz, part[type]->az, part[type]->n, dt*0.5);
+        _axpy(part[type]->vx, part[type]->ax, part[type]->n, dt*0.5);
+        _axpy(part[type]->vy, part[type]->ay, part[type]->n, dt*0.5);
+        _axpy(part[type]->vz, part[type]->az, part[type]->n, dt*0.5);
         
     };
     
@@ -477,9 +479,12 @@ void Simulation<N>::runOneStep()
 template<int N>
 void Simulation<N>::registerSaver(Saver<N>* saver, int period)
 {
-	saver->setEnsemble(this);
-	saver->setPeriod(period);
-	savers.push_back(saver);
+    if (period > 0)
+    {
+        saver->setEnsemble(this);
+        saver->setPeriod(period);
+        savers.push_back(saver);
+    }
 }
 
 

@@ -41,7 +41,7 @@ inline void _scal(double *y, int n, double factor)
 		y[i] *= factor;
 }
 
-inline void _K1(double *y, double *x, int n, double a) // BLAS lev 1: axpy
+inline void _axpy(double *y, double *x, int n, double a)
 {
 	for (int i=0; i<n; i++)
 		y[i] += a * x[i];
@@ -74,45 +74,9 @@ inline double _periodize(double val, double l, double l_2)
 	return val;
 }
 
-namespace detail
+namespace Forces
 {
-    
-    template<int offset>
-    struct UnrollerInternal
-    {
-        template<typename Action>
-        static void step(Action& act, int i)
-        {
-            act(i + offset - 1);
-            UnrollerInternal<offset - 1>::step(act, i);
-        }
-    };
-    
-    template<>
-    struct UnrollerInternal<0> {
-        template<typename Action>
-        static void step(Action& act, size_t i) {
-        }
-    };
-
-    
-    //UnrollerP: loops over given size, partial unrolled
-    template<int chunk = 8>
-    struct UnrollerP {
-        template<typename Action>
-        static void step(int start, int end, Action act)
-        {
-            int i = start;
-            for (; i < end - chunk; i += chunk)
-                UnrollerInternal<chunk>::step(act, i);
-            
-            for (; i < end; ++i)
-                act(i);
-        }
-    };
-
-    
-    struct parameters
+    struct Arguments
     {
         static Particles** part;
         static double L;
@@ -120,7 +84,7 @@ namespace detail
     };
     
     template<int a, int b>
-    struct N2K2 : parameters
+    struct _N2 : Arguments
     {
         void operator()()
         {
@@ -159,7 +123,7 @@ namespace detail
     
     
     template<int a, int b>
-    struct CellK2 : parameters
+    struct _Cells : Arguments
     {
         void operator()()
         {
@@ -228,71 +192,6 @@ namespace detail
 
 }
 
-
-
-
-//template<int a, int b>
-//void _K2(Particles* part, DPD* potential, Cells<Particles>* cells, double L)
-//{
-//	int origIJ[3];
-//	int ij[3], sh[3];
-//	double xAdd[3];
-//	
-//	double fx, fy, fz;
-//	
-//	// Loop over all the particles
-//	for (int i=0; i<part->n; i++)
-//	{
-//		double x = part->x[i];
-//		double y = part->y[i];
-//		double z = part->z[i];
-//
-//		// Get id of the cell and its coordinates
-//		int cid = cells->which(x, y, z);
-//		cells->getCellIJByInd(cid, origIJ);
-//		
-//		// Loop over all the 27 neighboring cells
-//		for (sh[0]=-1; sh[0]<=1; sh[0]++)
-//			for (sh[1]=-1; sh[1]<=1; sh[1]++)
-//				for (sh[2]=-1; sh[2]<=1; sh[2]++)
-//				{
-//					// Resolve periodicity
-//					for (int k=0; k<3; k++)
-//						ij[k] = origIJ[k] + sh[k];
-//
-//					cells->correct(ij, xAdd);
-//						
-//					cid = cells->getCellIndByIJ(ij);
-//					int begin = cells->pstart[cid];
-//					int end   = cells->pstart[cid+1];
-//					
-//					for (int j=begin; j<end; j++)
-//					{
-//						int neigh = cells->pobjids[j];
-//						if (i > neigh)
-//						{
-//							double dx = part->x[neigh] + xAdd[0] - x;
-//							double dy = part->y[neigh] + xAdd[1] - y;
-//							double dz = part->z[neigh] + xAdd[2] - z;
-//							
-//                            double vx = part->vx[neigh] - part->vx[i];
-//                            double vy = part->vy[neigh] - part->vy[i];
-//                            double vz = part->vz[neigh] - part->vz[i];
-//                            
-//                            force<a, b>(dx, dy, dz,  vx, vy, vz,  fx, fy, fz);
-//							
-//							part->ax[i] += fx;
-//							part->ay[i] += fy;
-//							part->az[i] += fz;
-//                            
-//                            part->ax[neigh] -= fx;
-//							part->ay[neigh] -= fy;
-//							part->az[neigh] -= fz;
-//						}
-//					}
-//				}
-//    }
-//}
 
 void _normalize(double *x, double n, double x0, double xmax)
 {

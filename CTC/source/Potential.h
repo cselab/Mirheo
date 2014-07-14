@@ -12,6 +12,8 @@
 #include "thrust/detail/config.h"
 #include <random>
 
+#include "Misc.h"
+
 using namespace std;
 
 //**********************************************************************************************************************
@@ -139,8 +141,8 @@ __host__ __device__ inline void SEM::F(const double dx, const double dy, const d
 
 template<int a, int b>
 void force(const double rx, const double ry, const double rz,
-             const double vx, const double vy, const double vz,
-             double& fx,      double& fy,      double& fz)
+           const double vx, const double vy, const double vz,
+           double& fx,      double& fy,      double& fz)
 {
 }
 
@@ -149,7 +151,13 @@ void force<0, 0>(const double rx, const double ry, const double rz,
                    const double vx, const double vy, const double vz,
                    double& fx,      double& fy,      double& fz)
 {
-    static const DPD dpd(2.5, 45, 0.1, 1, 1e-3);
+    static const double aij   = configParser->getf("DPD-DPD", "aij",    2.5);
+    static const double gamma = configParser->getf("DPD-DPD", "gamma",  45);
+    static const double temp  = configParser->getf("Basic",   "temp",   0.1);
+    static const double rCut  = configParser->getf("DPD-DPD", "rCut",   1);
+    static const double dt    = configParser->getf("Basic",   "dt",     0.001);
+    
+    static const DPD dpd(aij, gamma, temp, rCut, dt);
     
     dpd.F(rx, ry, rz,  vx, vy, vz,  fx, fy, fz);
 }
@@ -159,7 +167,13 @@ void force<0, 1>(const double rx, const double ry, const double rz,
                    const double vx, const double vy, const double vz,
                    double& fx,      double& fy,      double& fz)
 {
-    static const DPD dpd(3.5, 45, 0.1, 1, 1e-3);
+    static const double aij   = configParser->getf("DPD-SEM", "aij",    3.5);
+    static const double gamma = configParser->getf("DPD-SEM", "gamma",  45);
+    static const double temp  = configParser->getf("Basic",   "temp",   0.1);
+    static const double rCut  = configParser->getf("DPD-SEM", "rCut",   1);
+    static const double dt    = configParser->getf("Basic",   "dt",     0.001);
+
+    static const DPD dpd(aij, gamma, temp, rCut, dt);
 
     dpd.F(rx, ry, rz,  vx, vy, vz,  fx, fy, fz);
 }
@@ -169,7 +183,16 @@ void force<1, 1>(const double rx, const double ry, const double rz,
                    const double vx, const double vy, const double vz,
                    double& fx,      double& fy,      double& fz)
 {
-    static const SEM sem(600, 0.1, 1, 1e-3,  0.14, 0.5, 0.76);
+    static const double gamma = configParser->getf("SEM-SEM", "gamma",  600);
+    static const double temp  = configParser->getf("Basic",   "temp",   0.1);
+    static const double rCut  = configParser->getf("SEM-SEM", "rCut",   1);
+    static const double dt    = configParser->getf("Basic",   "dt",     0.001);
+    static const double u0    = configParser->getf("SEM-SEM", "u0",     0.14);
+    static const double rho   = configParser->getf("SEM-SEM", "rho",    0.5);
+    static const double req   = configParser->getf("SEM-SEM", "req",    0.76);
+
+
+    static const SEM sem(gamma, temp, rCut, dt,  u0, rho, req);
     
     sem.F(rx, ry, rz,  vx, vy, vz,  fx, fy, fz);
 }

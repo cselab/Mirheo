@@ -11,6 +11,7 @@
 		12D063F4196C27CC00CB2791 /* ArgumentParser.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 12D060F1196C27CB00CB2791 /* ArgumentParser.cpp */; };
 		12D063F5196C27CC00CB2791 /* Profiler.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 12D060F8196C27CB00CB2791 /* Profiler.cpp */; };
 		12D063F9196C27E500CB2791 /* main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 12D063F8196C27E500CB2791 /* main.cpp */; };
+		12D064051973D04F00CB2791 /* minIni.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 12D064031973D04F00CB2791 /* minIni.cpp */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -763,6 +764,10 @@
 		12D063F3196C27CC00CB2791 /* timer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = timer.h; path = source/timer.h; sourceTree = "<group>"; };
 		12D063F8196C27E500CB2791 /* main.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = main.cpp; path = source/main.cpp; sourceTree = "<group>"; };
 		12D063FA196D8EB300CB2791 /* Particles.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = Particles.h; path = source/Particles.h; sourceTree = "<group>"; };
+		12D064011973D04F00CB2791 /* ErrorHandling.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = ErrorHandling.h; path = source/ErrorHandling.h; sourceTree = "<group>"; };
+		12D064021973D04F00CB2791 /* minGlue.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = minGlue.h; path = source/minGlue.h; sourceTree = "<group>"; };
+		12D064031973D04F00CB2791 /* minIni.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = minIni.cpp; path = source/minIni.cpp; sourceTree = "<group>"; };
+		12D064041973D04F00CB2791 /* minIni.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = minIni.h; path = source/minIni.h; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -795,6 +800,8 @@
 		12D05DCE196C265100CB2791 /* CTC */ = {
 			isa = PBXGroup;
 			children = (
+				12D064011973D04F00CB2791 /* ErrorHandling.h */,
+				12D063FF1973CD2100CB2791 /* IniParser */,
 				12D060F1196C27CB00CB2791 /* ArgumentParser.cpp */,
 				12D060F2196C27CB00CB2791 /* ArgumentParser.h */,
 				12D060F3196C27CB00CB2791 /* CellList.h */,
@@ -1831,6 +1838,16 @@
 			path = detail;
 			sourceTree = "<group>";
 		};
+		12D063FF1973CD2100CB2791 /* IniParser */ = {
+			isa = PBXGroup;
+			children = (
+				12D064021973D04F00CB2791 /* minGlue.h */,
+				12D064031973D04F00CB2791 /* minIni.cpp */,
+				12D064041973D04F00CB2791 /* minIni.h */,
+			);
+			name = IniParser;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -1883,6 +1900,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				12D063F5196C27CC00CB2791 /* Profiler.cpp in Sources */,
+				12D064051973D04F00CB2791 /* minIni.cpp in Sources */,
 				12D063F9196C27E500CB2791 /* main.cpp in Sources */,
 				12D063F4196C27CC00CB2791 /* ArgumentParser.cpp in Sources */,
 			);

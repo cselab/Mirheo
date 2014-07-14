@@ -97,7 +97,7 @@ string Profiler::printStat()
 			longest = it->first.length();
 	}
 
-	double factor;
+	double factor = 1e-6;
 	string unit;
 	if (mode == SEC) 
 	{

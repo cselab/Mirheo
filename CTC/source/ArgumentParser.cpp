@@ -97,6 +97,10 @@ namespace ArgumentParser
 				case DOUBLE:
 					*((double*)myOpt.value) = atof(optarg);
 					break;
+                    
+                case CHAR:
+					*((char*)myOpt.value) = optarg[0];
+					break;
 					
 				case STRING:
 					*((string*)myOpt.value) = optarg;
@@ -126,6 +130,10 @@ namespace ArgumentParser
 					
 				case DOUBLE:
 					printf("%f", *((double*)myOpt.value));
+					break;
+                    
+                case CHAR:
+					printf("%c", *((char*)myOpt.value));
 					break;
 					
 				case STRING:

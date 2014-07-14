@@ -66,33 +66,35 @@ public:
 	}
 };
 
-//class SaveAngMom: public Saver
-//{
-//public:
-//	SaveAngMom(ostream* o)		  : Saver(o) {};
-//	SaveAngMom(string fname)	  : Saver(fname) {};
-//	
-//	void exec()
-//	{
-//		double Lx, Ly, Lz;
-//		my->angMomentum(Lx, Ly, Lz);
-//		(*file) << Lx << " " << Ly << " " << Lz << endl;
-//	}	
-//};
-//
-//class SaveCenterOfMass: public Saver
-//{
-//public:
-//	SaveCenterOfMass(ostream* o)	  : Saver(o) {};
-//	SaveCenterOfMass(string fname)	  : Saver(fname) {};
-//	
-//	void exec()
-//	{
-//		double Mx, My, Mz;
-//		my->centerOfMass(Mx, My, Mz);
-//		(*file) << Mx << " " << My << " " << Mz << endl;
-//	}	
-//};
+template<int N>
+class SaveAngMom: public Saver<N>
+{
+public:
+	SaveAngMom(ostream* o)		  : Saver<N>(o) {};
+	SaveAngMom(string fname)	  : Saver<N>(fname) {};
+	
+	void exec()
+	{
+		double Lx, Ly, Lz;
+		this->my->angMomentum(Lx, Ly, Lz);
+		(*this->file) << Lx << " " << Ly << " " << Lz << endl;
+	}	
+};
+
+template<int N>
+class SaveCenterOfMass: public Saver<N>
+{
+public:
+	SaveCenterOfMass(ostream* o)	  : Saver<N>(o) {};
+	SaveCenterOfMass(string fname)	  : Saver<N>(fname) {};
+	
+	void exec()
+	{
+		double Mx, My, Mz;
+		this->my->centerOfMass(Mx, My, Mz);
+		(*this->file) << Mx << " " << My << " " << Mz << endl;
+	}	
+};
 
 template<int N>
 class SavePos: public Saver<N>
