@@ -38,7 +38,7 @@ public:
 
 inline DPD::DPD(double alpha, double gamma, double temp, double rCut, double dt, int seed = 0):
 alpha(alpha), gamma(gamma), temp(temp), rCut(rCut), rCut2(rCut * rCut),
-gen(seed), norm(0, 1), sigma(sqrt(2 * gamma * temp)), dt_1(1.0/sqrt(dt))
+gen(seed), norm(0, 1), sigma(sqrt(2 * gamma * temp / dt)), dt_1(1.0/sqrt(dt))
 {
 }
 
@@ -62,12 +62,11 @@ __host__ __device__ inline void DPD::F(const double dx, const double dy, const d
 	}
 	
     double IrI = sqrt(r2);
-    double IrI_1 = 1.0 / IrI;
+    double wr_IrI = w(IrI) / IrI;
 	   
-    double wr = w(IrI);
-    double fc = alpha * wr * IrI_1;
-    double fd = -gamma * wr * wr * (dx*vx + dy*vy + dz*vz) / r2;   // !!! minus
-    double fr = sigma * wr * norm(gen) * IrI_1 * dt_1;
+    double fc = alpha * wr_IrI;
+    double fd = -gamma * wr_IrI * wr_IrI * (dx*vx + dy*vy + dz*vz);   // !!! minus
+    double fr = sigma * wr_IrI * norm(gen);
     
     double fAbs = -(fc + fd + fr);
     fx = fAbs * dx;
@@ -124,14 +123,12 @@ __host__ __device__ inline void SEM::F(const double dx, const double dy, const d
 	}
 	
     double IrI = sqrt(r2);
-    double IrI_1 = 1.0 / IrI;
-    
-    double wr = w(IrI);
-    
+    double wr_IrI = w(IrI) / IrI;
+        
     double exponent = exp(rho * (1 - r2/req2));
     double fc = -2*u0 * exponent * (1 - exponent);
-    double fd = -gamma * wr * wr * (dx*vx + dy*vy + dz*vz) / r2;   // !!! minus
-    double fr = sigma * wr * norm(gen) * IrI_1 * dt_1;
+    double fd = -gamma * wr_IrI * wr_IrI * (dx*vx + dy*vy + dz*vz);   // !!! minus
+    double fr = sigma * wr_IrI * norm(gen) * dt_1;
     
     double fAbs = -(fc + fd + fr);
     fx = fAbs * dx;

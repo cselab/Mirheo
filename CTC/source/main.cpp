@@ -35,7 +35,7 @@ template<int N> string Saver<N>::folder("");
 int main (int argc, char **argv)
 {
     string folder = "res/";
-    string config = "config.ini";
+    string config = "/Users/alexeedm/Documents/projects/CTC/CTC/makefiles/config.ini";
     debugLvl = 2;
 	
 	vector<OptionStruct> vopts =
@@ -60,17 +60,20 @@ int main (int argc, char **argv)
 	Saver<TYPES>     *timeSaver = new SaveTiming<TYPES>      (configParser->gets("Savers", "timingFile", "screen"));
     Saver<TYPES>     *tempSaver = new SaveTemperature<TYPES> (configParser->gets("Savers", "temperatureFile", "temp.txt"));
 
-    int n0 = configParser->geti("Particles", "Ndpd", 3500);
-    int n1 = configParser->geti("Particles", "Nsem", 125);
+    int n0       = configParser->geti("Particles", "Ndpd", 3500);
+    int n1       = configParser->geti("Particles", "Nsem", 125);
+    double rCut0 = configParser->getf("Particles", "cutdpd", 1);
+    double rCut1 = configParser->getf("Particles", "cutsem", 2.5);
+    
     double temp = configParser->getf("Basic", "temperature", 0.1);
-    double rCut = configParser->getf("Basic", "cutoff", 2.5);
     double dt   = configParser->getf("Basic", "dt", 0.001);
     double L    = configParser->getf("Basic", "L",  10);
     double end  = configParser->getf("Basic", "endTime",  100);
 
     
-    vector<int> nums = {n0, n1};
-	Simulation<TYPES> simulation(nums, temp, rCut, dt, L);
+    vector<int>    nums  = {n0, n1};
+    vector<double> rCuts = {rCut0, rCut1};
+	Simulation<TYPES> simulation(nums, temp, rCuts, dt, L);
 	simulation.registerSaver(enSaver,   configParser->geti("Savers", "energyPeriod", 100));
 	simulation.registerSaver(posSaver,  configParser->geti("Savers", "positionPeriod", 100));
 	simulation.registerSaver(linSaver,  configParser->geti("Savers", "linMomentumPeriod", 100));

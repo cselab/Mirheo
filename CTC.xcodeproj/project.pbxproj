@@ -768,6 +768,7 @@
 		12D064021973D04F00CB2791 /* minGlue.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = minGlue.h; path = source/minGlue.h; sourceTree = "<group>"; };
 		12D064031973D04F00CB2791 /* minIni.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = minIni.cpp; path = source/minIni.cpp; sourceTree = "<group>"; };
 		12D064041973D04F00CB2791 /* minIni.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = minIni.h; path = source/minIni.h; sourceTree = "<group>"; };
+		12D06406197405E300CB2791 /* config.ini */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = config.ini; path = makefiles/config.ini; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -800,6 +801,7 @@
 		12D05DCE196C265100CB2791 /* CTC */ = {
 			isa = PBXGroup;
 			children = (
+				12D06406197405E300CB2791 /* config.ini */,
 				12D064011973D04F00CB2791 /* ErrorHandling.h */,
 				12D063FF1973CD2100CB2791 /* IniParser */,
 				12D060F1196C27CB00CB2791 /* ArgumentParser.cpp */,
@@ -1948,6 +1950,7 @@
 				);
 				MACOSX_DEPLOYMENT_TARGET = 10.9;
 				ONLY_ACTIVE_ARCH = YES;
+				OTHER_CPLUSPLUSFLAGS = "$(OTHER_CFLAGS)";
 				SDKROOT = macosx;
 				USER_HEADER_SEARCH_PATHS = "";
 			};
@@ -1987,6 +1990,7 @@
 					"$(PROJECT_DIR)/CTC/source",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 10.9;
+				OTHER_CPLUSPLUSFLAGS = "$(OTHER_CFLAGS)";
 				SDKROOT = macosx;
 				USER_HEADER_SEARCH_PATHS = "";
 			};
@@ -2000,7 +2004,10 @@
 					/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include,
 					./,
 				);
-				OTHER_CPLUSPLUSFLAGS = "-DTHRUST_DEVICE_SYSTEM=THRUST_DEVICE_SYSTEM_CPP";
+				OTHER_CPLUSPLUSFLAGS = (
+					"-DMD_USE_CELLLIST",
+					"-DTHRUST_DEVICE_SYSTEM=THRUST_DEVICE_SYSTEM_CPP",
+				);
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = Debug;
@@ -2013,7 +2020,10 @@
 					/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include,
 					./,
 				);
-				OTHER_CPLUSPLUSFLAGS = "-DTHRUST_DEVICE_SYSTEM=THRUST_DEVICE_SYSTEM_CPP";
+				OTHER_CPLUSPLUSFLAGS = (
+					"-DMD_USE_CELLLIST",
+					"-DTHRUST_DEVICE_SYSTEM=THRUST_DEVICE_SYSTEM_CPP",
+				);
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = Release;

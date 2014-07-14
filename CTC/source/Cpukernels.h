@@ -141,8 +141,8 @@ namespace Forces
                 double z = part[a]->z[i];
 
                 // Get id of the cell and its coordinates
-                int cid = cells[a]->which(x, y, z);
-                cells[a]->getCellIJByInd(cid, origIJ);
+                int cid = cells[b]->which(x, y, z);
+                cells[b]->getCellIJByInd(cid, origIJ);
 
                 // Loop over all the 27 neighboring cells
                 for (sh[0]=-1; sh[0]<=1; sh[0]++)
@@ -153,9 +153,9 @@ namespace Forces
                             for (int k=0; k<3; k++)
                                 ij[k] = origIJ[k] + sh[k];
 
-                            cells[a]->correct(ij, xAdd);
+                            cells[b]->correct(ij, xAdd);
 
-                            cid = cells[a]->getCellIndByIJ(ij);
+                            cid = cells[b]->getCellIndByIJ(ij);
                             int begin = cells[b]->pstart[cid];
                             int end   = cells[b]->pstart[cid+1];
 
@@ -173,7 +173,6 @@ namespace Forces
                                     double vz = part[b]->vz[neigh] - part[a]->vz[i];
                                     
                                     force<a, b>(dx, dy, dz,  vx, vy, vz,  fx, fy, fz);
-                                    //if (a != b && fz > 0.001) printf("%f\n", fz);
                                     
                                     part[a]->ax[i] += fx;
                                     part[a]->ay[i] += fy;

@@ -116,7 +116,7 @@ private:
 public:
 	Profiler profiler;
 
-	Simulation (vector<int>, double, double, double, double);
+	Simulation (vector<int>, double, vector<double>, double, double);
 	void setLattice(double *x, double *y, double *z, double l, int n);
 	
 	double Ktot(int = -1);
@@ -202,7 +202,7 @@ inline void Saver<N>::setEnsemble(Simulation<N>* e)
 //**********************************************************************************************************************
 
 template<int N>
-Simulation<N>::Simulation(vector<int> num, double temp, double rCut, double deltat, double len)
+Simulation<N>::Simulation(vector<int> num, double temp, vector<double> rCut, double deltat, double len)
 {
     // Various initializations
 	dt		  = deltat;
@@ -266,7 +266,7 @@ Simulation<N>::Simulation(vector<int> num, double temp, double rCut, double delt
     double higher[3] = {xmax, ymax, zmax};
     
     for (int type=0; type<N; type++)
-        cells[type] = new Cells<Particles>(part[type], part[type]->n, rCut, lower, higher);
+        cells[type] = new Cells<Particles>(part[type], part[type]->n, rCut[type], lower, higher);
 #endif
     
     for (int type=0; type<N; type++)

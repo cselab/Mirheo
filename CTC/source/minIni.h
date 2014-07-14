@@ -90,21 +90,21 @@ int  ini_browse(INI_CALLBACK Callback, const void *UserData, const mTCHAR *Filen
 
     std::string gets(const std::string& Section, const std::string& Key, const std::string& DefValue="") const
       {
-        char buffer[INI_BUFFERSIZE];
+        static char* buffer = new char[INI_BUFFERSIZE];
         ini_gets(Section.c_str(), Key.c_str(), DefValue.c_str(), buffer, INI_BUFFERSIZE, iniFilename.c_str());
         return buffer;
       }
 
     std::string getsection(int idx) const
       {
-        char buffer[INI_BUFFERSIZE];
+        static char* buffer = new char[INI_BUFFERSIZE];
         ini_getsection(idx, buffer, INI_BUFFERSIZE, iniFilename.c_str());
         return buffer;
       }
 
     std::string getkey(const std::string& Section, int idx) const
       {
-        char buffer[INI_BUFFERSIZE];
+        static char* buffer = new char[INI_BUFFERSIZE];
         ini_getkey(Section.c_str(), idx, buffer, INI_BUFFERSIZE, iniFilename.c_str());
         return buffer;
       }
