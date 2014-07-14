@@ -5,11 +5,13 @@
 
 #include <algorithm>
 #include <vector>
-#include <random>
+#include <tuple>
+
+#include "dpd-cuda.h"
 
 using namespace std;
 
-typedef double real;
+typedef float real;
 
 void vmd_xyz(const char * path, real * xs, real * ys, real * zs, const int n, bool append)
 {
@@ -35,20 +37,29 @@ void vmd_xyz(const char * path, real * xs, real * ys, real * zs, const int n, bo
 
 int main()
 {
-    real L = 10;
-
-    const int Nm = 3;
-    const int n = L * L * L * Nm;
-    
+    int XL = 10;
+    int YL = 10;
+    int ZL = 10;
+    const int rho = 3;
+    const int n = XL * YL * ZL * rho;
+    const real gamma = 4.5;
+    const real sigma = 3;
+    const real aij = 25;
+    const real rc = 1;
+    const real dt = 0.02;
+    const real tend = 100;
+    const int steps_per_dump = 50;
     vector<real> xp(n), yp(n), zp(n), xv(n), yv(n), zv(n), xa(n), ya(n), za(n);
-
+    
     for(int i = 0; i < n; ++i)
     {
-	xp[i] = -L * 0.5 + drand48() * L;
-	yp[i] = -L * 0.5 + drand48() * L;
-	zp[i] = -L * 0.5 + drand48() * L; 
+	xp[i] = -XL * 0.5 + drand48() * XL;
+	yp[i] = -YL * 0.5 + drand48() * YL;
+	zp[i] = -ZL * 0.5 + drand48() * ZL;
     }
-    
+
+    vector< tuple<real, int> > xvprofile(100);
+    		
     auto _diag = [&](FILE * f, float t)
 	{
 	    real sv2 = 0, xm = 0, ym = 0, zm = 0;
@@ -68,6 +79,28 @@ int main()
 		fprintf(f, "TIME\tkBT\tX-MOMENTUM\tY-MOMENTUM\tZ-MOMENTUM\n");
 
 	    fprintf(f, "%s %+e\t%+e\t%+e\t%+e\t%+e\n", (f == stdout ? "DIAG:" : ""), t, T, xm, ym, zm);
+
+	    if (t > tend * 0.5)
+	    {
+		const int nbins = xvprofile.size();
+		const real h = XL / (double)xvprofile.size();
+		
+		for(int i = 0; i < n; ++i)
+		{
+		    const int idbin = (nbins + (int)((xp[i] + 0.5 * XL) / h)) % nbins;
+		    
+		    auto bin = xvprofile[idbin];
+
+		    xvprofile[idbin] = make_tuple(get<0>(bin) + yv[i], get<1>(bin) + 1);
+		}
+
+		FILE * f = fopen("yv-profile.dat", "w");
+		int c = 0;
+		for(auto e :xvprofile)
+		    fprintf(f, "%e %e\n", h * c++ - 0.5 * XL, get<0>(e) / max(1, get<1>(e)));
+		
+		fclose(f);
+	    }
 	};
     
     auto _up = [=](vector<real>& x, vector<real>& v, real f)
@@ -76,84 +109,36 @@ int main()
 		x[i] += f * v[i];
 	};
 
-    auto _up_enforce = [=](vector<real>& x, vector<real>& v, real f)
+    auto _up_enforce = [=](vector<real>& x, vector<real>& v, real f, real L)
 	{
 	    for(int i = 0; i < n; ++i)
 	    {
 		x[i] += f * v[i];
-		x[i] -= L * floor(x[i] / L + 0.5);
+		x[i] -= L * floor((x[i] + 0.5 * L) / L);
+		
 	    }
 	};
-    
-    std::random_device rd;
-    std::mt19937 gen(rd());
-    std::normal_distribution<> dgauss(0, 1);
-    
-    const real dt = 0.02;
- 
+
     auto _f = [&]()
 	{
-	    real gamma = 45;
-	    real sigma = 3;
-	    real aij = 2.5;
+	    forces_dpd_cuda(
+		    &xp.front(), &yp.front(), &zp.front(),
+		    &xv.front(), &yv.front(), &zv.front(),
+		    &xa.front(), &ya.front(), &za.front(),
+		    nullptr, n,
+		    rc, XL, YL, ZL, aij, gamma, sigma, 1./sqrt(dt),
+		    nullptr, 0);
 
-	    fill(xa.begin(), xa.end(), 0);
-	    fill(ya.begin(), ya.end(), 0);
-	    fill(za.begin(), za.end(), 0);
-	    
 	    for(int i = 0; i < n; ++i)
-	    {
-		for(int j = i + 1; j < n; ++j)
-		{
-		    real xr = xp[i] - xp[j];
-		    real yr = yp[i] - yp[j];
-		    real zr = zp[i] - zp[j];
-
-		    xr -= L * floor(0.5 + xr / L);
-		    yr -= L * floor(0.5 + yr / L);
-		    zr -= L * floor(0.5 + zr / L);
-
-		    real rij = sqrt(xr * xr + yr * yr + zr * zr);
-
-		    xr /= rij;
-		    yr /= rij;
-		    zr /= rij;
-		
-		    real rc = 1; 
-		    real fc = max((real)0, aij * (1 - rij / rc));
-
-		    real wr = max((real)0, 1 - rij / rc);
-		    real wd = wr * wr;
-
-		    real rdotv = xr * (xv[i] - xv[j]) + yr * (yv[i] - yv[j]) + zr * (zv[i] - zv[j]);
-		    real gij = dgauss(gen) / sqrt(dt);
-		
-		    real xf = (fc - gamma * wd * rdotv + sigma * wr * gij) * xr;
-		    real yf = (fc - gamma * wd * rdotv + sigma * wr * gij) * yr;
-		    real zf = (fc - gamma * wd * rdotv + sigma * wr * gij) * zr;
-
-		    assert(!::isnan(xf));
-		    assert(!::isnan(yf));
-		    assert(!::isnan(zf));
-
-		    xa[i] += xf;
-		    ya[i] += yf;
-		    za[i] += zf;
-
-		    xa[j] -= xf;
-		    ya[j] -= yf;
-		    za[j] -= zf;
-		}
-	    }
+		ya[i] += 0.1 * (2 * (xp[i] > 0) - 1);
 	};
-
+    
     _f();
 
     vmd_xyz("ic.xyz", &xp.front(), &yp.front(), &zp.front(), n, false);
 
     FILE * fdiag = fopen("diag.txt", "w");
 
-    const real tend = 10;
     const size_t nt = (int)(tend / dt);
 
     for(int it = 0; it < nt; ++it)
@@ -169,9 +154,9 @@ int main()
 	_up(yv, ya, dt * 0.5);
 	_up(zv, za, dt * 0.5);
 
-	_up_enforce(xp, xv, dt);
-	_up_enforce(yp, yv, dt);
-	_up_enforce(zp, zv, dt);
+	_up_enforce(xp, xv, dt, XL);
+	_up_enforce(yp, yv, dt, YL);
+	_up_enforce(zp, zv, dt, ZL);
 	
 	_f();
 
@@ -179,7 +164,7 @@ int main()
 	_up(yv, ya, dt * 0.5);
 	_up(zv, za, dt * 0.5);
 	
-	if (it % 30 == 0)
+	if (it % steps_per_dump == 0)
 	    vmd_xyz("evolution.xyz", &xp.front(), &yp.front(), &zp.front(), n, it > 0);
     }
 
