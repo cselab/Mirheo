@@ -231,7 +231,7 @@ Simulation<N>::Simulation(vector<int> num, double temp, double mass, double alph
     uniform_real_distribution<double> utheta(0, M_PI);
 
     
-    setLattice(part[1]->x, part[1]->y, part[1]->z, 5, part[1]->n);
+    setLattice(part[1]->x, part[1]->y, part[1]->z, 3.04, part[1]->n);
     
     for (int i=0; i<num[0]; i++)
     {
@@ -442,7 +442,7 @@ void Simulation<N>::velocityVerlet()
     profiler.stop();
     
     for (int i=0; i<part[0]->n; i++)
-        part[0]->az[i] += (part[0]->x[i] > 0) ? 0.1 : -0.1;
+        part[0]->az[i] += (part[0]->x[i] > 0) ? 0.02 : -0.02;
 
     auto fin = [&](int type)
     {
@@ -468,8 +468,9 @@ void Simulation<N>::runOneStep()
 	}
 	
 	if (step == 0)
-        Unroller2<0, N, 0, N>::step();	step++;
-	
+        Unroller2<0, N, 0, N>::step();
+
+	step++;
 	velocityVerlet();
 }
 

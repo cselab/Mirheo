@@ -159,7 +159,7 @@ void force<0, 1>(const double rx, const double ry, const double rz,
                    const double vx, const double vy, const double vz,
                    double& fx,      double& fy,      double& fz)
 {
-    static const DPD dpd(3.5, 0, 0.1, 1, 1e-3);
+    static const DPD dpd(3.5, 45, 0.1, 1, 1e-3);
 
     dpd.F(rx, ry, rz,  vx, vy, vz,  fx, fy, fz);
 }
@@ -169,7 +169,7 @@ void force<1, 1>(const double rx, const double ry, const double rz,
                    const double vx, const double vy, const double vz,
                    double& fx,      double& fy,      double& fz)
 {
-    static const SEM sem(70, 0.1, 1, 1e-3,  5, 1, 0.75);
+    static const SEM sem(600, 0.1, 1, 1e-3,  0.14, 0.5, 0.76);
     
     sem.F(rx, ry, rz,  vx, vy, vz,  fx, fy, fz);
 }
