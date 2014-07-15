@@ -51,18 +51,25 @@ int main()
     const real tend = 10;
     
     vector<real> xp(n), yp(n), zp(n), xv(n), yv(n), zv(n), xa(n), ya(n), za(n);
-    
+    srand48(6516L);
     for(int i = 0; i < n; ++i)
     {
-	const int cid = i / 3;
+	const int cid = i / Nm;
 	
 	const int xcid = cid % (int)L;
 	const int ycid = (cid / (int) L) % (int)L;
 	const int zcid = (cid / (int) L / (int) L) % (int)L;
+
+#if 1
+	xp[i] = -L * 0.5f +  drand48() * L;
+	yp[i] = -L * 0.5f +  drand48() * L;
+	zp[i] = -L * 0.5f +  drand48() * L;
 	
-	xp[i] = -L * 0.5f + drand48() * L;
-	yp[i] = -L * 0.5f + drand48() * L;
-	zp[i] = -L * 0.5f + drand48() * L;
+#else
+	xp[i] = -L * 0.5f + xcid + 0.5+ 0.15 * (1 - 2 * drand48() );
+	yp[i] = -L * 0.5f + ycid + 0.5+ 0.15 * (1 - 2 * drand48() );
+	zp[i] = -L * 0.5f + zcid + 0.5+ 0.15 * (1 - 2 * drand48() );
+#endif
     }
     
     auto _diag = [&](FILE * f, float t)

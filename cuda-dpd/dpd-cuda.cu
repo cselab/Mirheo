@@ -54,9 +54,54 @@ __global__ void _gather(const float * input, const int * indices, float * output
 }
 
 const int xbs = 16;
+const int xbs_l = 3;//floor(log2((float)xbs)) -1;
 const int ybs = 4;
+const int ybs_l = 1;//floor(log2((float)ybs)) -1;
 const int xts = xbs;
 const int yts = 8;
+
+template <bool vertical>
+__device__ float3 _reduce(float3 val)
+{
+    assert(blockDim.x == xbs);
+    assert(blockDim.y == ybs);
+
+    __shared__ float buf[3][ybs][xbs];
+
+    const int tx = threadIdx.x;
+    const int ty = threadIdx.y;
+    
+    buf[0][ty][tx] = val.x;
+    buf[1][ty][tx] = val.y;
+    buf[2][ty][tx] = val.z;
+
+    __syncthreads();
+
+    if (vertical)
+	for(int l = ybs_l; l >= 0; --l)
+	{
+	    const int L = 1 << l;
+	    
+	    if (ty < L && ty + L < ybs)
+		for(int c = 0; c < 3; ++c)
+		    buf[c][ty][tx] += buf[c][ty + L][tx];
+
+	    __syncthreads();
+	}
+    else
+	for(int l = xbs_l; l >= 0; --l)
+	{
+	    const int L = 1 << l;
+	    
+	    if (tx < L && tx + L < xbs)
+		for(int c = 0; c < 3; ++c)
+		    buf[c][ty][tx] += buf[c][ty][tx + L];
+	    
+	    __syncthreads();
+	}	
+    
+    return make_float3(buf[0][ty][tx], buf[1][ty][tx], buf[2][ty][tx]);
+}
 
 __device__ void _ftable(
     float p1[3][yts], float p2[3][xts], float v1[3][yts], float v2[3][xts],
@@ -69,9 +114,6 @@ __device__ void _ftable(
     assert(blockDim.x == xbs && xbs == xts);
     assert(blockDim.y == ybs);
 
-    if (threadIdx.x == 0 && threadIdx.y == 0)\
-	printf("calling ftable for %d %d %d\n", blockIdx.x, blockIdx.y, blockIdx.z);
-    
     __shared__ float forces[3][yts][xts];
 
     const int lx = threadIdx.x;
@@ -112,7 +154,7 @@ __device__ void _ftable(
 #endif
 
 		const float strength = (info.aij - info.gamma * wr * rdotv + info.sigmaf * myrandnr) * wr;
-#if 1
+#if 0
 		forces[0][ly][lx] = rij2 < 1;
 		forces[1][ly][lx] = 0;
 		forces[2][ly][lx] = 0;
@@ -126,6 +168,28 @@ __device__ void _ftable(
 
     __syncthreads();
 
+#if 1
+    {
+	float3 v = make_float3(0, 0, 0);
+
+	if (lx < np2)
+	    for(int iy = threadIdx.y; iy < np1; iy += blockDim.y)
+	    {
+		v.x += forces[0][iy][lx];
+		v.y += forces[1][iy][lx];
+		v.z += forces[2][iy][lx];
+	    }
+
+	v = _reduce<true>(v);
+	
+	if (lx < np2 && threadIdx.y == 0)
+	    {
+		a2[0][lx] = v.x;
+		a2[1][lx] = v.y;
+		a2[2][lx] = v.z;
+	    }
+    }
+#else
     if (threadIdx.y == 0 && lx < np2)
     {
 	a2[0][lx] = a2[1][lx] = a2[2][lx] = 0;
@@ -138,24 +202,49 @@ __device__ void _ftable(
 	    a2[2][lx] += forces[2][iy][lx];
 	}
     }
+#endif
 
+#if 1
+    {
+	for(int ly = threadIdx.y, base = 0; base < np1; base += blockDim.y, ly += blockDim.y)
+	{
+	    float3 h = make_float3(0, 0, 0);       
+	
+	    if (lx < np2 && ly < np1)
+		h = make_float3(forces[0][ly][lx],
+				forces[1][ly][lx],
+				forces[2][ly][lx]);
+
+	    h = _reduce<false>(h);
+
+	    if (lx == 0 && ly < np1)
+	    {
+		a1[0][ly] += h.x;
+		a1[1][ly] += h.y;
+		a1[2][ly] += h.z;
+	    }
+	}
+    }
+#else
     if (lx == 0)
 	for(int ly = threadIdx.y; ly < np1; ly += blockDim.y)
 	{
 	    for(int ix = 0; ix < np2; ++ix)
 	    {
 #if 1
+
 		assert(ix < np2 && ly < np1);
 		a1[0][ly] += forces[0][ly][ix];
 		a1[1][ly] += forces[1][ly][ix];
 		a1[2][ly] += forces[2][ly][ix];
 #else
-		a1[0][ly] -= forces[0][ly][ix];
-		a1[1][ly] -= forces[1][ly][ix];
-		a1[2][ly] -= forces[2][ly][ix];
+		a1[0][ly] += forces[0][ly][ix];
+		a1[1][ly] += forces[1][ly][ix];
+		a1[2][ly] += forces[2][ly][ix];
 #endif
 	    }
 	}
+#endif
 }
 
 __device__ void _cellcells(const int p1start, const int p1count, const int p2start[4], const int p2counts[4],
@@ -169,17 +258,30 @@ __device__ void _cellcells(const int p1start, const int p1count, const int p2sta
 
     const int lx = threadIdx.x;
     const int ly = threadIdx.y;
+    const int l = lx + blockDim.x * ly;
 
     const bool master = lx + ly == 0;
 
-    __shared__ int scan[5];
+    __shared__  int scan[5];
 
+#if 1
+    if (l < 5)
+    {
+	int s = 0;
+	
+	for(int i = 0; i < 4; ++i)
+	    s += p2counts[i] * (i < l);
+		
+	    scan[l] = s;
+    }
+#else
     if (master)
     {
 	scan[0] = 0;
 	for(int i = 1; i < 5; ++i)
 	    scan[i] = scan[i - 1] + p2counts[i - 1];
     }
+#endif
 
     __syncthreads();
 
@@ -188,7 +290,23 @@ __device__ void _cellcells(const int p1start, const int p1count, const int p2sta
     for(int ty = 0; ty < p1count; ty += yts)
     {
 	const int np1 = min(yts, p1count - ty);
-	
+
+#if 1
+	if (l < np1)
+	{
+	    const int s = ty + l;
+	    
+	    p1[0][l] = info.xp[p1start + s];
+	    p1[1][l] = info.yp[p1start + s];
+	    p1[2][l] = info.zp[p1start + s];
+
+	    v1[0][l] = info.xv[p1start + s];
+	    v1[1][l] = info.yv[p1start + s];
+	    v1[2][l] = info.zv[p1start + s];
+
+	    a1[0][l] = a1[1][l] = a1[2][l] = 0;
+	}
+#else
 	if (master)
 	    for(int s = ty, d = 0; d < np1; ++s, ++d)
 	    {
@@ -203,6 +321,7 @@ __device__ void _cellcells(const int p1start, const int p1count, const int p2sta
 
 		a1[0][d] = a1[1][d] = a1[2][d] = 0;
 	    }
+#endif
 	
 	for(int tx = 0; tx < p2count; tx += xts)
 	{
@@ -210,7 +329,22 @@ __device__ void _cellcells(const int p1start, const int p1count, const int p2sta
 	    
 	    if (self && !(tx + xts - 1 > ty))
 	    	continue;
-	    
+#if 1
+	    if (l < np2)
+	    {
+		const int s = tx + l;
+		const int entry = (s >= scan[1]) + (s >= scan[2]) + (s >= scan[3]);
+		const int pid = s - scan[entry] + p2start[entry];
+		
+		p2[0][lx] = info.xp[pid];
+		p2[1][lx] = info.yp[pid];
+		p2[2][lx] = info.zp[pid];
+		      
+		v2[0][lx] = info.xv[pid];
+		v2[1][lx] = info.yv[pid];
+		v2[2][lx] = info.zv[pid];
+	    }
+#else
 	    if (master)
 		for(int s = tx, d = 0; d < np2; ++s, ++d)
 		{
@@ -228,16 +362,25 @@ __device__ void _cellcells(const int p1start, const int p1count, const int p2sta
 		    v2[1][d] = info.yv[pid];
 		    v2[2][d] = info.zv[pid];
 		}
+#endif
 
 	    __syncthreads();
 
 	    _ftable(p1, p2, v1, v2, np1, np2, self ? ty - tx : - p1count, rsamples_start, a1, a2);
 
-	    __syncthreads();
-	    
-	    if (master)
-		rsamples_start += np1 * np2;
-
+	    rsamples_start += np1 * np2;
+#if 1
+	    if (l < np2 && ly == 0)
+	    {
+		const int d = tx + lx;
+		const int entry = (d >= scan[1]) + (d >= scan[2]) + (d >= scan[3]);
+		const int pid = d - scan[entry] + p2start[entry];
+		
+		xa[pid] -= a2[0][l];
+		ya[pid] -= a2[1][l]; 
+		za[pid] -= a2[2][l];
+	    }
+#else
 	    if (master)
 		for(int s = 0, d = tx; s < np2; ++s, ++d)
 		{
@@ -251,8 +394,18 @@ __device__ void _cellcells(const int p1start, const int p1count, const int p2sta
 		    ya[pid] += a2[1][s]; 
 		    za[pid] += a2[2][s]; 
 		}
+#endif
 	}
 
+#if 1
+	if (l < np1)
+	{
+	    const int d = l + ty;
+	    xa[p1start + d] += a1[0][l];
+	    ya[p1start + d] += a1[1][l];
+	    za[p1start + d] += a1[2][l];
+	}
+#else
 	if (master)
 	    for(int s = 0, d = ty; s < np1; ++s, ++d)
 	    {
@@ -261,6 +414,7 @@ __device__ void _cellcells(const int p1start, const int p1count, const int p2sta
 		ya[p1start + d] += a1[1][s];
 		za[p1start + d] += a1[2][s];
 	    }
+#endif
     }
 }
 
@@ -290,6 +444,7 @@ __global__ void _dpd_forces(float * tmp, int * consumed)
     float * const za = tmp + info.np * (idbuf + 8 * 2);
     
     const bool master = threadIdx.x + threadIdx.y == 0;
+    const int l = threadIdx.x + blockDim.x * threadIdx.y;
    
     __shared__ int offsetrsamples, rconsumption;
     __shared__ int p2starts[4], p2counts[4];
@@ -303,6 +458,36 @@ __global__ void _dpd_forces(float * tmp, int * consumed)
 	const int nentries = edgeslutcount[i];
 	const int entrystart = edgeslutstart[i];
 
+#if 1
+	if (master)
+	    rconsumption = 0;
+	
+	//__syncthreads();
+	
+	if (l < 4)
+	    if (l < nentries)
+	    {
+		const int cid2 = _cid(edgeslut[l + entrystart]);
+		assert(!(cid1 == cid2) || i == 0 && l == 0);
+
+		const int s2 = info.starts[cid2];
+		const int e2 = info.starts[cid2 + 1];
+	     		
+		p2starts[l] = s2;
+		p2counts[l] = e2 - s2;
+
+		atomicAdd(&rconsumption, (e1 - s1) * (e2 - s2));
+		
+	    }
+	    else
+		p2starts[l] = p2counts[l] = 0;
+		
+	//__syncthreads();
+
+	if (master)
+	    offsetrsamples = atomicAdd(consumed, rconsumption);
+	    
+#else
 	if (master)
 	{
 	    rconsumption = 0;
@@ -325,6 +510,7 @@ __global__ void _dpd_forces(float * tmp, int * consumed)
 	    
 	    offsetrsamples = atomicAdd(consumed, rconsumption);
 	}
+#endif
 
 	__syncthreads();
 
@@ -607,6 +793,7 @@ void forces_dpd_cuda(float * const _xp, float * const _yp, float * const _zp,
 	cudaHostGetDevicePointer(&dconsumed, consumed, 0);
     
 	_dpd_forces<<<dim3(c.nx, c.ny, c.nz), dim3(xbs, ybs, 1)>>>(tmp, dconsumed);
+	//_dpd_forces<<<dim3(1,1,1), dim3(xbs, ybs, 1)>>>(tmp, dconsumed);
 	
 	CUDA_CHECK(cudaPeekAtLastError());
 
@@ -626,7 +813,7 @@ void forces_dpd_cuda(float * const _xp, float * const _yp, float * const _zp,
 	//printf("consumed: %d\n", *consumed);
     }
 
-#if 1
+#if 0
     CUDA_CHECK(cudaThreadSynchronize());
     for(int i = 0; i < np; ++i)
 	;//assert((float)xa[i] > 0);
