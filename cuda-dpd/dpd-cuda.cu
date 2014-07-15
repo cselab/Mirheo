@@ -1,6 +1,10 @@
 #include <cstdio>
 #include <cassert>
 
+//#define _CHECK_
+#define _FAT_
+#define _TEXTURES_
+
 struct InfoDPD
 {
     int nx, ny, nz, np, nsamples, rsamples_start;
@@ -12,6 +16,61 @@ struct InfoDPD
 
 __constant__ InfoDPD info;
 
+#if 0
+const int depth = 10;
+__device__ int encode(int ix, int iy, int iz) 
+{
+    int idx = 0;
+        
+    for(int counter = 0; counter < depth; ++counter)
+    {
+	const int bitmask = 1 << counter;
+	const int idx0 = ix&bitmask;
+	const int idx1 = iy&bitmask;
+	const int idx2 = iz&bitmask;
+            
+	idx |= ((idx0<<2*counter) | (idx1<<(2*counter+1)) | (idx2<<(2*counter+2)));
+    }
+        
+    return idx; 
+}
+	
+__device__ int3 decode(int code)
+{
+    int ix = 0, iy = 0, iz = 0;
+        
+    for(int counter = 0; counter < depth; ++counter)
+    {
+	const int bitmask_x = 1 << (counter*3+0);
+	const int bitmask_y = 1 << (counter*3+1);
+	const int bitmask_z = 1 << (counter*3+2);
+	
+	ix |= (code&bitmask_x)>>2*counter;
+	iy |= (code&bitmask_y)>>(2*counter+1);
+	iz |= (code&bitmask_z)>>(2*counter+2);
+	    
+    }
+    return make_int3(ix, iy, iz);
+}
+#else
+__device__ int encode(int ix, int iy, int iz) 
+{
+    const int retval = ix + info.nx * (iy + iz * info.ny);
+
+    assert(retval < info.nx * info.ny * info.nz && retval>=0);
+
+    return retval; 
+}
+	
+__device__ int3 decode(int code)
+{
+    const int ix = code % info.nx;
+    const int iy = (code / info.nx) % info.ny;
+    const int iz = (code / info.nx/info.ny);
+
+    return make_int3(ix, iy, iz);
+}
+#endif
 __global__ void pid2code(int * codes, int * pids)
 {
     const int pid = threadIdx.x + blockDim.x * blockIdx.x;
@@ -41,7 +100,7 @@ __global__ void pid2code(int * codes, int * pids)
     iz = max(0, min(info.nz - 1, iz));
 #endif
     
-    codes[pid] = ix + info.nx * (iy + info.nx * iz);
+    codes[pid] = encode(ix, iy, iz);//ix + info.nx * (iy + info.nx * iz);
     pids[pid] = pid;
 };
 
@@ -55,10 +114,10 @@ __global__ void _gather(const float * input, const int * indices, float * output
 
 const int xbs = 16;
 const int xbs_l = 3;//floor(log2((float)xbs)) -1;
-const int ybs = 4;
+const int ybs = 3;
 const int ybs_l = 1;//floor(log2((float)ybs)) -1;
 const int xts = xbs;
-const int yts = 8;
+const int yts = 6;
 
 template <bool vertical>
 __device__ float3 _reduce(float3 val)
@@ -148,13 +207,13 @@ __device__ void _ftable(
 
 		int entry = lx + np2 * ly;
 		const float myrandnr = info.rsamples[(info.rsamples_start + rsamples_start + entry) % info.nsamples];
-#if 1
+#if 0
 		assert(myrandnr != -313);
 		info.rsamples[(info.rsamples_start + rsamples_start + entry) % info.nsamples] = -313;
 #endif
 
 		const float strength = (info.aij - info.gamma * wr * rdotv + info.sigmaf * myrandnr) * wr;
-#if 0
+#ifdef _CHECK_
 		forces[0][ly][lx] = rij2 < 1;
 		forces[1][ly][lx] = 0;
 		forces[2][ly][lx] = 0;
@@ -168,7 +227,6 @@ __device__ void _ftable(
 
     __syncthreads();
 
-#if 1
     {
 	float3 v = make_float3(0, 0, 0);
 
@@ -183,28 +241,13 @@ __device__ void _ftable(
 	v = _reduce<true>(v);
 	
 	if (lx < np2 && threadIdx.y == 0)
-	    {
-		a2[0][lx] = v.x;
-		a2[1][lx] = v.y;
-		a2[2][lx] = v.z;
-	    }
-    }
-#else
-    if (threadIdx.y == 0 && lx < np2)
-    {
-	a2[0][lx] = a2[1][lx] = a2[2][lx] = 0;
-	
-	for(int iy = 0; iy < np1; ++iy)
 	{
-	    assert(lx < np2 && iy < np1);
-	    a2[0][lx] += forces[0][iy][lx];
-	    a2[1][lx] += forces[1][iy][lx];
-	    a2[2][lx] += forces[2][iy][lx];
+	    a2[0][lx] = v.x;
+	    a2[1][lx] = v.y;
+	    a2[2][lx] = v.z;
 	}
     }
-#endif
 
-#if 1
     {
 	for(int ly = threadIdx.y, base = 0; base < np1; base += blockDim.y, ly += blockDim.y)
 	{
@@ -225,31 +268,13 @@ __device__ void _ftable(
 	    }
 	}
     }
-#else
-    if (lx == 0)
-	for(int ly = threadIdx.y; ly < np1; ly += blockDim.y)
-	{
-	    for(int ix = 0; ix < np2; ++ix)
-	    {
-#if 1
-
-		assert(ix < np2 && ly < np1);
-		a1[0][ly] += forces[0][ly][ix];
-		a1[1][ly] += forces[1][ly][ix];
-		a1[2][ly] += forces[2][ly][ix];
-#else
-		a1[0][ly] += forces[0][ly][ix];
-		a1[1][ly] += forces[1][ly][ix];
-		a1[2][ly] += forces[2][ly][ix];
-#endif
-	    }
-	}
-#endif
 }
 
+texture<float, cudaTextureType1D> texXP, texYP, texZP, texXV, texYV, texZV;
+
 __device__ void _cellcells(const int p1start, const int p1count, const int p2start[4], const int p2counts[4],
-				 const bool self, int rsamples_start,
-				 float * const xa, float * const ya, float * const za)
+			   const bool self, int rsamples_start,
+			   float * const xa, float * const ya, float * const za)
 { 
     __shared__ float
 	p1[3][yts], p2[3][xts],
@@ -264,7 +289,6 @@ __device__ void _cellcells(const int p1start, const int p1count, const int p2sta
 
     __shared__  int scan[5];
 
-#if 1
     if (l < 5)
     {
 	int s = 0;
@@ -272,16 +296,8 @@ __device__ void _cellcells(const int p1start, const int p1count, const int p2sta
 	for(int i = 0; i < 4; ++i)
 	    s += p2counts[i] * (i < l);
 		
-	    scan[l] = s;
+	scan[l] = s;
     }
-#else
-    if (master)
-    {
-	scan[0] = 0;
-	for(int i = 1; i < 5; ++i)
-	    scan[i] = scan[i - 1] + p2counts[i - 1];
-    }
-#endif
 
     __syncthreads();
 
@@ -291,37 +307,29 @@ __device__ void _cellcells(const int p1start, const int p1count, const int p2sta
     {
 	const int np1 = min(yts, p1count - ty);
 
-#if 1
 	if (l < np1)
 	{
 	    const int s = ty + l;
-	    
+
+#ifdef _TEXTURES_ 
+	    p1[0][l] =tex1Dfetch(texXP, p1start + s);
+	    p1[1][l] =tex1Dfetch(texYP, p1start + s);
+	    p1[2][l] =tex1Dfetch(texZP, p1start + s);
+
+	    v1[0][l] =tex1Dfetch(texXV, p1start + s);
+	    v1[1][l] =tex1Dfetch(texYV, p1start + s);
+	    v1[2][l] =tex1Dfetch(texZV, p1start + s);
+#else
 	    p1[0][l] = info.xp[p1start + s];
 	    p1[1][l] = info.yp[p1start + s];
 	    p1[2][l] = info.zp[p1start + s];
-
+	    
 	    v1[0][l] = info.xv[p1start + s];
 	    v1[1][l] = info.yv[p1start + s];
 	    v1[2][l] = info.zv[p1start + s];
-
+#endif
 	    a1[0][l] = a1[1][l] = a1[2][l] = 0;
 	}
-#else
-	if (master)
-	    for(int s = ty, d = 0; d < np1; ++s, ++d)
-	    {
-		assert(d < yts);
-		p1[0][d] = info.xp[p1start + s];
-		p1[1][d] = info.yp[p1start + s];
-		p1[2][d] = info.zp[p1start + s];
-
-		v1[0][d] = info.xv[p1start + s];
-		v1[1][d] = info.yv[p1start + s];
-		v1[2][d] = info.zv[p1start + s];
-
-		a1[0][d] = a1[1][d] = a1[2][d] = 0;
-	    }
-#endif
 	
 	for(int tx = 0; tx < p2count; tx += xts)
 	{
@@ -329,75 +337,55 @@ __device__ void _cellcells(const int p1start, const int p1count, const int p2sta
 	    
 	    if (self && !(tx + xts - 1 > ty))
 	    	continue;
-#if 1
+
 	    if (l < np2)
 	    {
 		const int s = tx + l;
 		const int entry = (s >= scan[1]) + (s >= scan[2]) + (s >= scan[3]);
 		const int pid = s - scan[entry] + p2start[entry];
-		
+
+#ifdef _TEXTURES_
+		p2[0][lx] = tex1Dfetch(texXP, pid);
+		p2[1][lx] = tex1Dfetch(texYP, pid);
+		p2[2][lx] = tex1Dfetch(texZP, pid);
+
+		v2[0][lx] = tex1Dfetch(texXV, pid);
+		v2[1][lx] = tex1Dfetch(texYV, pid);
+		v2[2][lx] = tex1Dfetch(texZV, pid);
+#else
 		p2[0][lx] = info.xp[pid];
 		p2[1][lx] = info.yp[pid];
 		p2[2][lx] = info.zp[pid];
-		      
+		
 		v2[0][lx] = info.xv[pid];
 		v2[1][lx] = info.yv[pid];
 		v2[2][lx] = info.zv[pid];
-	    }
-#else
-	    if (master)
-		for(int s = tx, d = 0; d < np2; ++s, ++d)
-		{
-		    assert(d < xts);
-		    const int entry = (s >= scan[1]) + (s >= scan[2]) + (s >= scan[3]);
-		    assert(scan[entry + 1] > s && s >= scan[entry]);
-
-		    const int pid = s - scan[entry] + p2start[entry];
-
-		    p2[0][d] = info.xp[pid];
-		    p2[1][d] = info.yp[pid];
-		    p2[2][d] = info.zp[pid];
-		      		
-		    v2[0][d] = info.xv[pid];
-		    v2[1][d] = info.yv[pid];
-		    v2[2][d] = info.zv[pid];
-		}
 #endif
+	    }
 
 	    __syncthreads();
 
 	    _ftable(p1, p2, v1, v2, np1, np2, self ? ty - tx : - p1count, rsamples_start, a1, a2);
 
 	    rsamples_start += np1 * np2;
-#if 1
+
 	    if (l < np2 && ly == 0)
 	    {
 		const int d = tx + lx;
 		const int entry = (d >= scan[1]) + (d >= scan[2]) + (d >= scan[3]);
 		const int pid = d - scan[entry] + p2start[entry];
-		
+#ifdef _CHECK_
+		xa[pid] += a2[0][l];
+		ya[pid] += a2[1][l]; 
+		za[pid] += a2[2][l];
+#else
 		xa[pid] -= a2[0][l];
 		ya[pid] -= a2[1][l]; 
 		za[pid] -= a2[2][l];
-	    }
-#else
-	    if (master)
-		for(int s = 0, d = tx; s < np2; ++s, ++d)
-		{
-		    assert(s < xts);
-		    const int entry = (d >= scan[1]) + (d >= scan[2]) + (d >= scan[3]);
-		    assert(scan[entry + 1] > d && d >= scan[entry]);
-
-		    const int pid = d - scan[entry] + p2start[entry];
-
-		    xa[pid] += a2[0][s];
-		    ya[pid] += a2[1][s]; 
-		    za[pid] += a2[2][s]; 
-		}
 #endif
+	    }
 	}
 
-#if 1
 	if (l < np1)
 	{
 	    const int d = l + ty;
@@ -405,64 +393,77 @@ __device__ void _cellcells(const int p1start, const int p1count, const int p2sta
 	    ya[p1start + d] += a1[1][l];
 	    za[p1start + d] += a1[2][l];
 	}
-#else
-	if (master)
-	    for(int s = 0, d = ty; s < np1; ++s, ++d)
-	    {
-		assert(s < yts);
-		xa[p1start + d] += a1[0][s];
-		ya[p1start + d] += a1[1][s];
-		za[p1start + d] += a1[2][s];
-	    }
-#endif
     }
 }
 
 __device__ int _cid(int shiftcode)
 {
-    int3 indx = make_int3(blockIdx.x + (shiftcode & 1),
-			  blockIdx.y + ((shiftcode >> 1) & 1),
-			  blockIdx.z + ((shiftcode >> 2) & 1));
-
+#ifdef _FAT_
+    int3 indx = decode(blockIdx.x / 4 + info.nx * (blockIdx.y + info.ny * blockIdx.z));
+#else
+    int3 indx = decode(blockIdx.x + info.nx * (blockIdx.y + info.ny * blockIdx.z));
+#endif
+	    
+    indx.x += (shiftcode & 1);
+    indx.y += ((shiftcode >> 1) & 1);
+    indx.z += ((shiftcode >> 2) & 1);
+	    
     indx.x = (indx.x + info.nx) % info.nx;
     indx.y = (indx.y + info.ny) % info.ny;
     indx.z = (indx.z + info.nz) % info.nz;
 
-    return indx.x + info.nx * (indx.y + info.ny * indx.z);
+    return encode(indx.x, indx.y, indx.z);
 }
 
 __constant__ int edgeslutcount[4] = {4, 4, 3, 3};
 __constant__ int edgeslutstart[4] = {0, 4, 8, 11};
 __constant__ int edgeslut[14] = {0, 1, 2, 7, 2, 4, 6, 7, 4, 5, 7, 4, 0, 7};
 
+texture<int, cudaTextureType1D> texStart;
+
 __global__ void _dpd_forces(float * tmp, int * consumed)
 {
+#ifdef _FAT_
+    const int idpass = blockIdx.x % 4;
+    const int xcid = blockIdx.x / 4;
+    
+    const int idbuf = idpass + 4 * ((xcid & 1) | ((blockIdx.y & 1) << 1) | ((blockIdx.z & 1) << 2));
+
+    float * const xa = tmp + info.np * (idbuf + 32 * 0);
+    float * const ya = tmp + info.np * (idbuf + 32 * 1);
+    float * const za = tmp + info.np * (idbuf + 32 * 2);
+#else
     const int idbuf = (blockIdx.x & 1) | ((blockIdx.y & 1) << 1) | ((blockIdx.z & 1) << 2);
 
     float * const xa = tmp + info.np * (idbuf + 8 * 0);
     float * const ya = tmp + info.np * (idbuf + 8 * 1);
     float * const za = tmp + info.np * (idbuf + 8 * 2);
+#endif
     
     const bool master = threadIdx.x + threadIdx.y == 0;
     const int l = threadIdx.x + blockDim.x * threadIdx.y;
    
     __shared__ int offsetrsamples, rconsumption;
     __shared__ int p2starts[4], p2counts[4];
-    
+
+#ifndef _FAT_
     for(int i = 0; i < 4; ++i)
+#else
+	const int i = idpass;
+#endif
     {
 	const int cid1 = _cid(i);
-	const int s1 = info.starts[cid1];
-	const int e1 = info.starts[cid1 + 1];
+	
+	const int s1 = tex1Dfetch(texStart, cid1);
+	const int e1 = tex1Dfetch(texStart, cid1 + 1);
 	
 	const int nentries = edgeslutcount[i];
 	const int entrystart = edgeslutstart[i];
 
-#if 1
 	if (master)
 	    rconsumption = 0;
 	
-	//__syncthreads();
+	assert(4 < warpSize);
 	
 	if (l < 4)
 	    if (l < nentries)
@@ -470,8 +471,8 @@ __global__ void _dpd_forces(float * tmp, int * consumed)
 		const int cid2 = _cid(edgeslut[l + entrystart]);
 		assert(!(cid1 == cid2) || i == 0 && l == 0);
 
-		const int s2 = info.starts[cid2];
-		const int e2 = info.starts[cid2 + 1];
+		const int s2 = tex1Dfetch(texStart, cid2);
+		const int e2 = tex1Dfetch(texStart, cid2 + 1);
 	     		
 		p2starts[l] = s2;
 		p2counts[l] = e2 - s2;
@@ -482,40 +483,13 @@ __global__ void _dpd_forces(float * tmp, int * consumed)
 	    else
 		p2starts[l] = p2counts[l] = 0;
 		
-	//__syncthreads();
-
 	if (master)
 	    offsetrsamples = atomicAdd(consumed, rconsumption);
 	    
-#else
-	if (master)
-	{
-	    rconsumption = 0;
-	    for(int j = 0; j < nentries; ++j)
-	    {
-		const int cid2 = _cid(edgeslut[j + entrystart]);
-		assert(!(cid1 == cid2) || i == 0 && j == 0);
-
-		const int s2 = info.starts[cid2];
-		const int e2 = info.starts[cid2 + 1];
-	     		
-		p2starts[j] = s2;
-		p2counts[j] = e2 - s2;
-
-		rconsumption += (e1 - s1) * (e2 - s2); 
-	    }
-
-	    for(int j = nentries; j < 4; ++j)
-		p2starts[j] = p2counts[j] = 0;
-	    
-	    offsetrsamples = atomicAdd(consumed, rconsumption);
-	}
-#endif
-
 	__syncthreads();
 
 	if (offsetrsamples + rconsumption >= info.nsamples)
-	//running out of samples. this is bad.
+	    //running out of samples. this is bad.
 	    return;
 
 	_cellcells(s1, e1 - s1, p2starts, p2counts, i == 0, offsetrsamples, xa, ya, za);
@@ -528,17 +502,22 @@ __global__ void _reduce(float * tmp)
 
     if (pid < info.np)
     {
+#ifdef _FAT_
+	const int nbufs = 32;
+#else
+	const int nbufs = 8;
+#endif
 	float xa = 0;
-	for(int idbuf = 0; idbuf < 8; ++idbuf)
-	    xa += tmp[pid + info.np * (idbuf + 8 * 0)];
+	for(int idbuf = 0; idbuf < nbufs ; ++idbuf)
+	    xa += tmp[pid + info.np * (idbuf + nbufs * 0)];
 
 	float ya = 0;
-	for(int idbuf = 0; idbuf < 8; ++idbuf)
-	    ya += tmp[pid + info.np * (idbuf + 8 * 1)];
+	for(int idbuf = 0; idbuf < nbufs; ++idbuf)
+	    ya += tmp[pid + info.np * (idbuf + nbufs * 1)];
 	
 	float za = 0;	
-    	for(int idbuf = 0; idbuf < 8; ++idbuf)
-	    za += tmp[pid + info.np * (idbuf + 8 * 2)];
+    	for(int idbuf = 0; idbuf < nbufs; ++idbuf)
+	    za += tmp[pid + info.np * (idbuf + nbufs * 2)];
 
 	info.xa[pid] = xa;
 	info.ya[pid] = ya;
@@ -663,6 +642,96 @@ public:
     int nsamples() const { return n; }
 };
 
+struct SetupTexs
+{
+    SetupTexs()
+	{
+	    cudaChannelFormatDesc fmt =  cudaCreateChannelDesc(32, 0, 0, 0, cudaChannelFormatKindSigned);
+	    texStart.channelDesc = fmt;
+	    texStart.filterMode = cudaFilterModePoint;
+	    texStart.mipmapFilterMode = cudaFilterModePoint;
+	    texStart.normalized = 0;
+	    
+	    fmt =  cudaCreateChannelDesc(32, 0, 0, 0, cudaChannelFormatKindFloat);
+	    texXP.channelDesc = fmt;
+	    texXP.filterMode = cudaFilterModePoint;
+	    texXP.mipmapFilterMode = cudaFilterModePoint;
+	    texXP.normalized = 0;
+	    
+	    texYP.channelDesc = fmt;
+	    texYP.filterMode = cudaFilterModePoint;
+	    texYP.mipmapFilterMode = cudaFilterModePoint;
+	    texYP.normalized = 0;
+	    
+	    texZP.channelDesc = fmt;
+	    texZP.filterMode = cudaFilterModePoint;
+	    texZP.mipmapFilterMode = cudaFilterModePoint;
+	    texZP.normalized = 0;
+	    
+	    texXV.channelDesc = fmt;
+	    texXV.filterMode = cudaFilterModePoint;
+	    texXV.mipmapFilterMode = cudaFilterModePoint;
+	    texXV.normalized = 0;
+	    
+	    texYV.channelDesc = fmt;
+	    texYV.filterMode = cudaFilterModePoint;
+	    texYV.mipmapFilterMode = cudaFilterModePoint;
+	    texYV.normalized = 0;
+	    
+	    texZV.channelDesc = fmt;
+	    texZV.filterMode = cudaFilterModePoint;
+	    texZV.mipmapFilterMode = cudaFilterModePoint;
+	    texZV.normalized = 0;
+	}
+} setuptexs;
+
+struct ProfileComputation
+{
+    int count;
+    float tf, tr, tt;
+    cudaEvent_t evstart, evforce, evreduce;
+
+    ProfileComputation(): count(0), tf(0), tr(0), tt(0)
+	{
+	    CUDA_CHECK(cudaEventCreate(&evstart));
+	    CUDA_CHECK(cudaEventCreate(&evforce));
+	    CUDA_CHECK(cudaEventCreate(&evreduce));
+	}
+
+    ~ProfileComputation()
+	{
+	    CUDA_CHECK(cudaEventDestroy(evstart));
+	    CUDA_CHECK(cudaEventDestroy(evforce));
+	    CUDA_CHECK(cudaEventDestroy(evreduce));
+	}
+
+    void start() { CUDA_CHECK(cudaEventRecord(evstart));  }
+    void force() { CUDA_CHECK(cudaEventRecord(evforce));  }
+    void reduce() { CUDA_CHECK(cudaEventRecord(evreduce)); }
+    
+    void stop()
+	{
+	    
+	    CUDA_CHECK(cudaEventSynchronize(evreduce));
+	    float tforce, treduce, ttotal;
+	    CUDA_CHECK(cudaEventElapsedTime(&tforce, evstart, evforce));
+	    CUDA_CHECK(cudaEventElapsedTime(&treduce, evforce, evreduce));
+	    CUDA_CHECK(cudaEventElapsedTime(&ttotal, evstart, evreduce));
+	    
+	    tf += tforce;
+	    tr += treduce;
+	    tt += ttotal;
+	    count++;
+	    
+	    if (count % 100 == 0)
+	    {
+		printf("times: %.2f ms %.2f ms -> F %.1f%%\n", tf/count, tr/count, tf/tt * 100);
+	    }
+	}
+} ;
+
+ProfileComputation * _myprof;
+
 void forces_dpd_cuda(float * const _xp, float * const _yp, float * const _zp,
 		     float * const _xv, float * const _yv, float * const _zv,
 		     float * const _xa, float * const _ya, float * const _za,
@@ -696,6 +765,11 @@ void forces_dpd_cuda(float * const _xp, float * const _yp, float * const _zp,
 
     if (rrbuf == NULL)
 	rrbuf = new RRingBuffer(50 * np * 3);
+
+    if (_myprof == NULL)
+	_myprof = new ProfileComputation();
+
+    ProfileComputation& myprof = *_myprof;
      
     int nx = (int)ceil(XL / rc);
     int ny = (int)ceil(YL / rc);
@@ -774,6 +848,7 @@ void forces_dpd_cuda(float * const _xp, float * const _yp, float * const _zp,
     _reorder(zv, pids);
     
     device_vector<int> cids(ncells + 1);
+    //createseq<<<ncells
     sequence(cids.begin(), cids.end());
 
     lower_bound(codes.begin(), codes.end(), cids.begin(), cids.end(), starts.begin());
@@ -784,21 +859,43 @@ void forces_dpd_cuda(float * const _xp, float * const _yp, float * const _zp,
     *consumed = 0;
     
     {
+	size_t textureoffset = 0;
+	cudaChannelFormatDesc fmt =  cudaCreateChannelDesc(32, 0, 0, 0, cudaChannelFormatKindSigned);
+	cudaBindTexture(&textureoffset, &texStart, c.starts, &fmt, sizeof(int) * (ncells + 1));
+	fmt =  cudaCreateChannelDesc(32, 0, 0, 0, cudaChannelFormatKindFloat);
+	cudaBindTexture(&textureoffset, &texXP, c.xp, &fmt, sizeof(float) * (np));
+	cudaBindTexture(&textureoffset, &texYP, c.yp, &fmt, sizeof(float) * (np));
+	cudaBindTexture(&textureoffset, &texZP, c.zp, &fmt, sizeof(float) * (np));
+	cudaBindTexture(&textureoffset, &texXV, c.xv, &fmt, sizeof(float) * (np));
+	cudaBindTexture(&textureoffset, &texYV, c.yv, &fmt, sizeof(float) * (np));
+	cudaBindTexture(&textureoffset, &texZV, c.zv, &fmt, sizeof(float) * (np));
+
 	float * tmp;
 
-	CUDA_CHECK(cudaMalloc(&tmp, sizeof(float) * np * 24));
-	CUDA_CHECK(cudaMemset(tmp, 0, sizeof(float) * np * 24));
+#ifdef _FAT_
+	const int nreplica = 96;
+#else
+	const int nreplica = 24;
+#endif
+	CUDA_CHECK(cudaMalloc(&tmp, sizeof(float) * np * nreplica));
+	CUDA_CHECK(cudaMemset(tmp, 0, sizeof(float) * np * nreplica));
 	
 	int * dconsumed = NULL;
 	cudaHostGetDevicePointer(&dconsumed, consumed, 0);
-    
-	_dpd_forces<<<dim3(c.nx, c.ny, c.nz), dim3(xbs, ybs, 1)>>>(tmp, dconsumed);
-	//_dpd_forces<<<dim3(1,1,1), dim3(xbs, ybs, 1)>>>(tmp, dconsumed);
+
+	myprof.start();
 	
+#ifdef _FAT_
+	_dpd_forces<<<dim3(4 * c.nx, c.ny, c.nz), dim3(xbs, ybs, 1)>>>(tmp, dconsumed);
+#else
+	_dpd_forces<<<dim3(c.nx, c.ny, c.nz), dim3(xbs, ybs, 1)>>>(tmp, dconsumed);
+#endif
+
+	myprof.force();
 	CUDA_CHECK(cudaPeekAtLastError());
 
 	_reduce<<<(np + 127) / 128, 128>>>(tmp);
-	
+	myprof.reduce();
 	CUDA_CHECK(cudaPeekAtLastError());
 	
 	CUDA_CHECK(cudaFree(tmp));
@@ -813,7 +910,9 @@ void forces_dpd_cuda(float * const _xp, float * const _yp, float * const _zp,
 	//printf("consumed: %d\n", *consumed);
     }
 
-#if 0
+    myprof.stop();
+    
+#ifdef _CHECK_
     CUDA_CHECK(cudaThreadSynchronize());
     for(int i = 0; i < np; ++i)
 	;//assert((float)xa[i] > 0);
