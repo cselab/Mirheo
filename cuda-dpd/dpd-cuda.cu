@@ -1,15 +1,17 @@
 #include <cstdio>
 #include <cassert>
 
-#define _CHECK_
+//#define _CHECK_
 //#define _FAT_
-//#define _TEXTURES_
+#define _TEXTURES_
 
 struct InfoDPD
 {
-    int nx, ny, nz, np, nsamples, rsamples_start;
-    float XL, YL, ZL;
-    float xstart, ystart, zstart,  invrc, aij, gamma, sigmaf;
+    int3 ncells;
+    int np, nsamples, rsamples_start;
+    float3 domainsize, domainstart;
+    float invrc, aij, gamma, sigmaf;
+    
     float *xyzuvw, *axayaz, *rsamples;
     int * starts;
 };
@@ -55,18 +57,18 @@ __device__ int3 decode(int code)
 #else
 __device__ int encode(int ix, int iy, int iz) 
 {
-    const int retval = ix + info.nx * (iy + iz * info.ny);
+    const int retval = ix + info.ncells.x * (iy + iz * info.ncells.y);
 
-    assert(retval < info.nx * info.ny * info.nz && retval>=0);
+    assert(retval < info.ncells.x * info.ncells.y * info.ncells.z && retval>=0);
 
     return retval; 
 }
 	
 __device__ int3 decode(int code)
 {
-    const int ix = code % info.nx;
-    const int iy = (code / info.nx) % info.ny;
-    const int iz = (code / info.nx/info.ny);
+    const int ix = code % info.ncells.x;
+    const int iy = (code / info.ncells.x) % info.ncells.y;
+    const int iz = (code / info.ncells.x/info.ncells.y);
 
     return make_int3(ix, iy, iz);
 }
@@ -78,33 +80,31 @@ __global__ void pid2code(int * codes, int * pids)
     if (pid >= info.np)
 	return;
 
-    const float x = (info.xyzuvw[0 + 6 * pid] - info.xstart) * info.invrc;
-    const float y = (info.xyzuvw[1 + 6 * pid] - info.ystart) * info.invrc;
-    const float z = (info.xyzuvw[2 + 6 * pid] - info.zstart) * info.invrc;
+    const float x = (info.xyzuvw[0 + 6 * pid] - info.domainstart.x) * info.invrc;
+    const float y = (info.xyzuvw[1 + 6 * pid] - info.domainstart.y) * info.invrc;
+    const float z = (info.xyzuvw[2 + 6 * pid] - info.domainstart.z) * info.invrc;
     
     int ix = (int)floor(x);
     int iy = (int)floor(y);
     int iz = (int)floor(z);
     
-    if( !(ix >= 0 && ix < info.nx) ||
-	!(iy >= 0 && iy < info.ny) ||
-	!(iz >= 0 && iz < info.nz))
+    if( !(ix >= 0 && ix < info.ncells.x) ||
+	!(iy >= 0 && iy < info.ncells.y) ||
+	!(iz >= 0 && iz < info.ncells.z))
 	printf("pid %d: oops %f %f %f -> %d %d %d\n", pid, x, y, z, ix, iy, iz);
 #if 0 
-    assert(ix >= 0 && ix < info.nx);
-    assert(iy >= 0 && iy < info.ny);
-    assert(iz >= 0 && iz < info.nz);
+    assert(ix >= 0 && ix < info.ncells.x);
+    assert(iy >= 0 && iy < info.ncells.y);
+    assert(iz >= 0 && iz < info.ncells.z);
 #else
-    ix = max(0, min(info.nx - 1, ix));
-    iy = max(0, min(info.ny - 1, iy));
-    iz = max(0, min(info.nz - 1, iz));
+    ix = max(0, min(info.ncells.x - 1, ix));
+    iy = max(0, min(info.ncells.y - 1, iy));
+    iz = max(0, min(info.ncells.z - 1, iz));
 #endif
     
-    codes[pid] = encode(ix, iy, iz);//ix + info.nx * (iy + info.nx * iz);
+    codes[pid] = encode(ix, iy, iz);//ix + info.ncells.x * (iy + info.ncells.x * iz);
     pids[pid] = pid;
 };
-
-
 
 const int xbs = 16;
 const int xbs_l = 3;//floor(log2((float)xbs)) -1;
@@ -184,9 +184,9 @@ __device__ void _ftable(
 		float yr = p1[1][ly] - p2[1][lx];
 		float zr = p1[2][ly] - p2[2][lx];
 				
-		xr -= info.XL * floorf(0.5f + xr / info.XL);
-		yr -= info.YL * floorf(0.5f + yr / info.YL);
-		zr -= info.ZL * floorf(0.5f + zr / info.ZL);
+		xr -= info.domainsize.x * floorf(0.5f + xr / info.domainsize.x);
+		yr -= info.domainsize.y * floorf(0.5f + yr / info.domainsize.y);
+		zr -= info.domainsize.z * floorf(0.5f + zr / info.domainsize.z);
 
 		const float rij2 = xr * xr + yr * yr + zr * zr;
 		const float invrij = rsqrtf(rij2);
@@ -264,7 +264,7 @@ __device__ void _ftable(
     }
 }
 
-texture<float, cudaTextureType1D> texParticles;//, texYP, texZP, texXV, texYV, texZV;
+texture<float, cudaTextureType1D> texParticles;
 
 __device__ void _cellcells(const int p1start, const int p1count, const int p2start[4], const int p2counts[4],
 			   const bool self, int rsamples_start,
@@ -275,8 +275,6 @@ __device__ void _cellcells(const int p1start, const int p1count, const int p2sta
     const int lx = threadIdx.x;
     const int ly = threadIdx.y;
     const int l = lx + blockDim.x * ly;
-
-    const bool master = lx + ly == 0;
 
     __shared__  int scan[5];
 
@@ -301,8 +299,12 @@ __device__ void _cellcells(const int p1start, const int p1count, const int p2sta
 	assert(blockDim.x * blockDim.y >= np1 * 6);
 
 	if (l < np1 * 6)
+#ifdef _TEXTURES_
+	    pva1[l % 6][l / 6] = tex1Dfetch(texParticles, 6 * (p1start + ty) + l);
+#else
 	    pva1[l % 6][l / 6] = info.xyzuvw[6 * (p1start + ty) + l];
-
+#endif
+	
 	if (l < np1 * 3)
 	    pva1[6 + (l % 3)][l / 3] = 0;
 	
@@ -320,8 +322,11 @@ __device__ void _cellcells(const int p1start, const int p1count, const int p2sta
 		const int c = i % 6;
 		const int entry = (s >= scan[1]) + (s >= scan[2]) + (s >= scan[3]);
 		const int pid = s - scan[entry] + p2start[entry];
-
+#ifdef _TEXTURES_
+		pva2[c][d] = tex1Dfetch(texParticles, c + 6 * pid);
+#else
 		pva2[c][d] = info.xyzuvw[c + 6 * pid];
+#endif
 	    }
 
 	    __syncthreads();
@@ -357,18 +362,18 @@ __device__ void _cellcells(const int p1start, const int p1count, const int p2sta
 __device__ int _cid(int shiftcode)
 {
 #ifdef _FAT_
-    int3 indx = decode(blockIdx.x / 4 + info.nx * (blockIdx.y + info.ny * blockIdx.z));
+    int3 indx = decode(blockIdx.x / 4 + info.ncells.x * (blockIdx.y + info.ncells.y * blockIdx.z));
 #else
-    int3 indx = decode(blockIdx.x + info.nx * (blockIdx.y + info.ny * blockIdx.z));
+    int3 indx = decode(blockIdx.x + info.ncells.x * (blockIdx.y + info.ncells.y * blockIdx.z));
 #endif
 	    
     indx.x += (shiftcode & 1);
     indx.y += ((shiftcode >> 1) & 1);
     indx.z += ((shiftcode >> 2) & 1);
 	    
-    indx.x = (indx.x + info.nx) % info.nx;
-    indx.y = (indx.y + info.ny) % info.ny;
-    indx.z = (indx.z + info.nz) % info.nz;
+    indx.x = (indx.x + info.ncells.x) % info.ncells.x;
+    indx.y = (indx.y + info.ncells.y) % info.ncells.y;
+    indx.z = (indx.z + info.ncells.z) % info.ncells.z;
 
     return encode(indx.x, indx.y, indx.z);
 }
@@ -387,9 +392,7 @@ __global__ void _dpd_forces(float * tmp, int * consumed)
     
     const int idbuf = idpass + 4 * ((xcid & 1) | ((blockIdx.y & 1) << 1) | ((blockIdx.z & 1) << 2));
 
-    float * const xa = tmp + info.np * (idbuf + 32 * 0);
-    float * const ya = tmp + info.np * (idbuf + 32 * 1);
-    float * const za = tmp + info.np * (idbuf + 32 * 2);
+    float * const axayaz = tmp + 3 * info.np * idbuf;
 #else
     const int idbuf = (blockIdx.x & 1) | ((blockIdx.y & 1) << 1) | ((blockIdx.z & 1) << 2);
 
@@ -730,16 +733,10 @@ void forces_dpd_cuda(/*float * const _xp, float * const _yp, float * const _zp,
     device_vector<float> xyzuvw(_xyzuvw, _xyzuvw + np * 6), axayaz(np * 3);
     
     InfoDPD c;
-    c.nx = nx;
-    c.ny = ny;
-    c.nz = nz;
+    c.ncells = make_int3(nx, ny, nz);
     c.np = np;
-    c.XL = XL;
-    c.YL = YL;
-    c.ZL = ZL;
-    c.xstart = -XL * 0.5; 
-    c.ystart = -YL * 0.5; 
-    c.zstart = -ZL * 0.5; 
+    c.domainsize = make_float3(XL, YL, ZL);
+    c.domainstart = make_float3(-XL * 0.5, -YL * 0.5, -ZL * 0.5);
     c.invrc = 1.f / rc;
     c.aij = aij;
     c.gamma = gamma;
@@ -808,9 +805,9 @@ void forces_dpd_cuda(/*float * const _xp, float * const _yp, float * const _zp,
 	myprof.start();
 	
 #ifdef _FAT_
-	_dpd_forces<<<dim3(4 * c.nx, c.ny, c.nz), dim3(xbs, ybs, 1)>>>(tmp, dconsumed);
+	_dpd_forces<<<dim3(c.ncells.x * 4, c.ncells.y, c.ncells.z), dim3(xbs, ybs, 1)>>>(tmp, dconsumed);
 #else
-	_dpd_forces<<<dim3(c.nx, c.ny, c.nz), dim3(xbs, ybs, 1)>>>(tmp, dconsumed);
+	_dpd_forces<<<dim3(c.ncells.x, c.ncells.y, c.ncells.z), dim3(xbs, ybs, 1)>>>(tmp, dconsumed);
 #endif
 
 	myprof.force();
@@ -861,9 +858,9 @@ void forces_dpd_cuda(/*float * const _xp, float * const _yp, float * const _zp,
 	    float yr = _xyzuvw[1 + 6 * pid] - _xyzuvw[1 + 6 * j];
 	    float zr = _xyzuvw[2 + 6 * pid] - _xyzuvw[2 + 6 * j];
 
-	    xr -= c.XL *  ::floor(0.5f + xr / c.XL);
-	    yr -= c.YL *  ::floor(0.5f + yr / c.YL);
-	    zr -= c.ZL *  ::floor(0.5f + zr / c.ZL);
+	    xr -= c.domainsize.x *  ::floor(0.5f + xr / c.domainsize.x);
+	    yr -= c.domainsize.y *  ::floor(0.5f + yr / c.domainsize.y);
+	    zr -= c.domainsize.z *  ::floor(0.5f + zr / c.domainsize.z);
 
 	    const float rij2 = xr * xr + yr * yr + zr * zr;
 	    

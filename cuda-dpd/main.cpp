@@ -13,7 +13,7 @@ using namespace std;
 
 typedef float real;
 
-void vmd_xyz(const char * path, real * xs, real * ys, real * zs, const int n, bool append)
+void vmd_xyz(const char * path, real * xyzuvw, const int n, bool append)
 {
     FILE * f = fopen(path, append ? "a" : "w");
 
@@ -28,7 +28,10 @@ void vmd_xyz(const char * path, real * xs, real * ys, real * zs, const int n, bo
     fprintf(f, "mymolecule\n");
     
     for(int i = 0; i < n; ++i)
-	fprintf(f, "1 %f %f %f\n", xs[i], ys[i], zs[i]);
+	fprintf(f, "1 %f %f %f\n",
+		xyzuvw[0 + 6 * i],
+		xyzuvw[1 + 6 * i],
+		xyzuvw[2 + 6 * i]);
     
     fclose(f);
 
@@ -50,7 +53,8 @@ int main()
     const real dt = 0.02;
     const real tend = 10;
     
-    vector<real> xp(n), yp(n), zp(n), xv(n), yv(n), zv(n), xa(n), ya(n), za(n);
+    vector<real> xyzuvw(6 * n), axayaz(3 * n);
+    
     srand48(6516L);
     for(int i = 0; i < n; ++i)
     {
@@ -61,10 +65,9 @@ int main()
 	const int zcid = (cid / (int) L / (int) L) % (int)L;
 
 #if 1
-	xp[i] = -L * 0.5f +  drand48() * L;
-	yp[i] = -L * 0.5f +  drand48() * L;
-	zp[i] = -L * 0.5f +  drand48() * L;
-	
+	xyzuvw[0 + 6 * i] = -L * 0.5f +  drand48() * L;
+	xyzuvw[1 + 6 * i] = -L * 0.5f +  drand48() * L;
+	xyzuvw[2 + 6 * i] = -L * 0.5f +  drand48() * L;
 #else
 	xp[i] = -L * 0.5f + xcid + 0.5+ 0.15 * (1 - 2 * drand48() );
 	yp[i] = -L * 0.5f + ycid + 0.5+ 0.15 * (1 - 2 * drand48() );
@@ -78,11 +81,11 @@ int main()
 	    
 	    for(int i = 0; i < n; ++i)
 	    {
-		sv2 += xv[i] * xv[i] + yv[i] * yv[i] + zv[i] * zv[i];
-		
-		xm += xv[i];
-		ym += yv[i];
-		zm += zv[i];
+		sv2 += xyzuvw[3 + 6 * i] * xyzuvw[3 + 6 * i] + xyzuvw[4 + 6 * i] * xyzuvw[4 + 6 * i] + xyzuvw[5 + 6 * i] * xyzuvw[5 + 6 * i];
+			
+		xm += xyzuvw[3 + 6 * i];
+		ym += xyzuvw[4 + 6 * i];
+		zm += xyzuvw[5 + 6 * i];
 	    }
 
 	    real T = 0.5 * sv2 / (n * 3. / 2);
@@ -93,12 +96,38 @@ int main()
 	    fprintf(f, "%s %+e\t%+e\t%+e\t%+e\t%+e\n", (f == stdout ? "DIAG:" : ""), t, T, xm, ym, zm);
 	};
     
-    auto _up = [=](vector<real>& x, vector<real>& v, real f)
+    auto _up_x = [&](real f)
 	{
 	    for(int i = 0; i < n; ++i)
-		x[i] += f * v[i];
+	    {
+		xyzuvw[0 + 6 * i] += f * xyzuvw[3 + 6 * i];
+		xyzuvw[1 + 6 * i] += f * xyzuvw[4 + 6 * i];
+		xyzuvw[2 + 6 * i] += f * xyzuvw[5 + 6 * i];
+	    }
+
+	    for(int i = 0; i < n; ++i)
+	    {
+		xyzuvw[0 + 6 * i] -= L * floor((xyzuvw[0 + 6 * i] + 0.5 * L) / L);
+		xyzuvw[1 + 6 * i] -= L * floor((xyzuvw[1 + 6 * i] + 0.5 * L) / L);
+		xyzuvw[2 + 6 * i] -= L * floor((xyzuvw[2 + 6 * i] + 0.5 * L) / L);
+
+		assert(xyzuvw[0 + 6 * i] * 2  >= -L && xyzuvw[0 + 6 * i] * 2 < L); 
+		assert(xyzuvw[1 + 6 * i] * 2  >= -L && xyzuvw[1 + 6 * i] * 2 < L); 
+		assert(xyzuvw[2 + 6 * i] * 2  >= -L && xyzuvw[2 + 6 * i] * 2 < L); 
+	    }
 	};
 
+    
+    auto _up_v = [&](real f)
+	{
+	    for(int i = 0; i < n; ++i)
+	    {
+		xyzuvw[3 + 6 * i] += f * axayaz[0 + 3 * i];
+		xyzuvw[4 + 6 * i] += f * axayaz[1 + 3 * i];
+		xyzuvw[5 + 6 * i] += f * axayaz[2 + 3 * i];
+	    }
+	};
+    
     auto _up_enforce = [=](vector<real>& x, vector<real>& v, real f)
 	{
 	    for(int i = 0; i < n; ++i)
@@ -128,9 +157,8 @@ int main()
 		}
 			
 		forces_dpd_cuda(
-		    &xp.front(), &yp.front(), &zp.front(),
-		    &xv.front(), &yv.front(), &zv.front(),
-		    &xa.front(), &ya.front(), &za.front(),
+		    &xyzuvw.front(),
+		    &axayaz.front(),
 		    NULL, n,
 		    rc, L, L, L, aij, gamma, sigma, 1./sqrt(dt),
 		    curand ? nullptr : &rsamples.front(), rsamples.size());
@@ -138,17 +166,15 @@ int main()
 		return;
 	    }
 
-	    fill(xa.begin(), xa.end(), 0);
-	    fill(ya.begin(), ya.end(), 0);
-	    fill(za.begin(), za.end(), 0);
+	    fill(axayaz.begin(), axayaz.end(), 0);
 	    
 	    for(int i = 0; i < n; ++i)
 	    {
 		for(int j = i + 1; j < n; ++j)
 		{
-		    real xr = xp[i] - xp[j];
-		    real yr = yp[i] - yp[j];
-		    real zr = zp[i] - zp[j];
+		    real xr = xyzuvw[0 + 6 * i] - xyzuvw[0 + 6 * j];
+		    real yr = xyzuvw[1 + 6 * i] - xyzuvw[1 + 6 * j];
+		    real zr = xyzuvw[2 + 6 * i] - xyzuvw[2 + 6 * j];
 
 		    xr -= L * floor(0.5 + xr / L);
 		    yr -= L * floor(0.5 + yr / L);
@@ -166,7 +192,11 @@ int main()
 		    real wr = max((real)0, 1 - rij / rc);
 		    real wd = wr * wr;
 
-		    real rdotv = xr * (xv[i] - xv[j]) + yr * (yv[i] - yv[j]) + zr * (zv[i] - zv[j]);
+		    real rdotv =
+			xr * (xyzuvw[3 + 6 * i] - xyzuvw[3 + 6 * j]) +
+			yr * (xyzuvw[4 + 6 * i] - xyzuvw[4 + 6 * j]) +
+			zr * (xyzuvw[5 + 6 * i] - xyzuvw[5 + 6 * j]);
+		    
 		    real gij = dgauss(gen) / sqrt(dt);
 		
 		    real xf = (fc - gamma * wd * rdotv + sigma * wr * gij) * xr;
@@ -177,20 +207,20 @@ int main()
 		    assert(!::isnan(yf));
 		    assert(!::isnan(zf));
 
-		    xa[i] += xf;
-		    ya[i] += yf;
-		    za[i] += zf;
+		    axayaz[0 + 3 * i] += xf;
+		    axayaz[1 + 3 * i] += yf;
+		    axayaz[2 + 3 * i] += zf;
 
-		    xa[j] -= xf;
-		    ya[j] -= yf;
-		    za[j] -= zf;
+		    axayaz[0 + 3 * j] -= xf;
+		    axayaz[1 + 3 * j] -= yf;
+		    axayaz[2 + 3 * j] -= zf;
 		}
 	    }
 	};
     
     _f();
 
-    vmd_xyz("ic.xyz", &xp.front(), &yp.front(), &zp.front(), n, false);
+    vmd_xyz("ic.xyz", &xyzuvw.front(), n, false);
 
     FILE * fdiag = fopen("diag.txt", "w");
 
@@ -205,22 +235,16 @@ int main()
 	    _diag(stdout, t);
 	}
 		
-	_up(xv, xa, dt * 0.5);
-	_up(yv, ya, dt * 0.5);
-	_up(zv, za, dt * 0.5);
+	_up_v(dt * 0.5);
 
-	_up_enforce(xp, xv, dt);
-	_up_enforce(yp, yv, dt);
-	_up_enforce(zp, zv, dt);
+	_up_x(dt);
 	
 	_f();
-
-	_up(xv, xa, dt * 0.5);
-	_up(yv, ya, dt * 0.5);
-	_up(zv, za, dt * 0.5);
+	
+	_up_v(dt * 0.5);
 	
 	if (it % 30 == 0)
-	    vmd_xyz("evolution.xyz", &xp.front(), &yp.front(), &zp.front(), n, it > 0);
+	    vmd_xyz("evolution.xyz", &xyzuvw.front(), n, it > 0);
     }
 
     fclose(fdiag);
