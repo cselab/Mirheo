@@ -1,16 +1,16 @@
 #include <cstdio>
 #include <cassert>
 
-//#define _CHECK_
-#define _FAT_
-#define _TEXTURES_
+#define _CHECK_
+//#define _FAT_
+//#define _TEXTURES_
 
 struct InfoDPD
 {
     int nx, ny, nz, np, nsamples, rsamples_start;
     float XL, YL, ZL;
-    float xstart, ystart, zstart, rc, invrc, aij, gamma, sigma, invsqrtdt, sigmaf;
-    float * xp, *yp, *zp, *xv, *yv, *zv, *xa, *ya, *za, *rsamples;
+    float xstart, ystart, zstart,  invrc, aij, gamma, sigmaf;
+    float *xyzuvw, *axayaz, *rsamples;
     int * starts;
 };
 
@@ -78,9 +78,9 @@ __global__ void pid2code(int * codes, int * pids)
     if (pid >= info.np)
 	return;
 
-    const float x = (info.xp[pid] - info.xstart) / info.rc;
-    const float y = (info.yp[pid] - info.ystart) / info.rc;
-    const float z = (info.zp[pid] - info.zstart) / info.rc;
+    const float x = (info.xyzuvw[0 + 6 * pid] - info.xstart) * info.invrc;
+    const float y = (info.xyzuvw[1 + 6 * pid] - info.ystart) * info.invrc;
+    const float z = (info.xyzuvw[2 + 6 * pid] - info.zstart) * info.invrc;
     
     int ix = (int)floor(x);
     int iy = (int)floor(y);
@@ -104,13 +104,7 @@ __global__ void pid2code(int * codes, int * pids)
     pids[pid] = pid;
 };
 
-__global__ void _gather(const float * input, const int * indices, float * output, const int n)
-{
-    const int tid = threadIdx.x + blockDim.x * blockIdx.x;
 
-    if (tid < n)
-	output[tid] = input[indices[tid]];
-}
 
 const int xbs = 16;
 const int xbs_l = 3;//floor(log2((float)xbs)) -1;
@@ -270,16 +264,13 @@ __device__ void _ftable(
     }
 }
 
-texture<float, cudaTextureType1D> texXP, texYP, texZP, texXV, texYV, texZV;
+texture<float, cudaTextureType1D> texParticles;//, texYP, texZP, texXV, texYV, texZV;
 
 __device__ void _cellcells(const int p1start, const int p1count, const int p2start[4], const int p2counts[4],
 			   const bool self, int rsamples_start,
-			   float * const xa, float * const ya, float * const za)
-{ 
-    __shared__ float
-	p1[3][yts], p2[3][xts],
-	v1[3][yts], v2[3][xts],
-	a1[3][yts], a2[3][xts];
+			   float * const axayaz)
+{
+    __shared__ float pva1[9][yts], pva2[9][xts];
 
     const int lx = threadIdx.x;
     const int ly = threadIdx.y;
@@ -307,92 +298,59 @@ __device__ void _cellcells(const int p1start, const int p1count, const int p2sta
     {
 	const int np1 = min(yts, p1count - ty);
 
-	if (l < np1)
-	{
-	    const int s = ty + l;
+	assert(blockDim.x * blockDim.y >= np1 * 6);
 
-#ifdef _TEXTURES_ 
-	    p1[0][l] =tex1Dfetch(texXP, p1start + s);
-	    p1[1][l] =tex1Dfetch(texYP, p1start + s);
-	    p1[2][l] =tex1Dfetch(texZP, p1start + s);
+	if (l < np1 * 6)
+	    pva1[l % 6][l / 6] = info.xyzuvw[6 * (p1start + ty) + l];
 
-	    v1[0][l] =tex1Dfetch(texXV, p1start + s);
-	    v1[1][l] =tex1Dfetch(texYV, p1start + s);
-	    v1[2][l] =tex1Dfetch(texZV, p1start + s);
-#else
-	    p1[0][l] = info.xp[p1start + s];
-	    p1[1][l] = info.yp[p1start + s];
-	    p1[2][l] = info.zp[p1start + s];
-	    
-	    v1[0][l] = info.xv[p1start + s];
-	    v1[1][l] = info.yv[p1start + s];
-	    v1[2][l] = info.zv[p1start + s];
-#endif
-	    a1[0][l] = a1[1][l] = a1[2][l] = 0;
-	}
+	if (l < np1 * 3)
+	    pva1[6 + (l % 3)][l / 3] = 0;
 	
 	for(int tx = 0; tx < p2count; tx += xts)
 	{
 	    const int np2 = min(xts, p2count - tx);
 	    
 	    if (self && !(tx + xts - 1 > ty))
-	    	continue;
+		continue;
 
-	    if (l < np2)
+	    for(int i = l; i < np2 * 6; i += blockDim.x * blockDim.y)
 	    {
-		const int s = tx + l;
+		const int d = i / 6;
+		const int s = tx + d;
+		const int c = i % 6;
 		const int entry = (s >= scan[1]) + (s >= scan[2]) + (s >= scan[3]);
 		const int pid = s - scan[entry] + p2start[entry];
 
-#ifdef _TEXTURES_
-		p2[0][lx] = tex1Dfetch(texXP, pid);
-		p2[1][lx] = tex1Dfetch(texYP, pid);
-		p2[2][lx] = tex1Dfetch(texZP, pid);
-
-		v2[0][lx] = tex1Dfetch(texXV, pid);
-		v2[1][lx] = tex1Dfetch(texYV, pid);
-		v2[2][lx] = tex1Dfetch(texZV, pid);
-#else
-		p2[0][lx] = info.xp[pid];
-		p2[1][lx] = info.yp[pid];
-		p2[2][lx] = info.zp[pid];
-		
-		v2[0][lx] = info.xv[pid];
-		v2[1][lx] = info.yv[pid];
-		v2[2][lx] = info.zv[pid];
-#endif
+		pva2[c][d] = info.xyzuvw[c + 6 * pid];
 	    }
 
 	    __syncthreads();
 
-	    _ftable(p1, p2, v1, v2, np1, np2, self ? ty - tx : - p1count, rsamples_start, a1, a2);
+	    _ftable(pva1, pva2, &pva1[3], &pva2[3], np1, np2, self ? ty - tx : - p1count, rsamples_start, &pva1[6], &pva2[6]);
 
 	    rsamples_start += np1 * np2;
 
-	    if (l < np2 && ly == 0)
+	    assert(blockDim.x * blockDim.y >= np2 * 3);
+		
+	    if (l < np2 * 3)
 	    {
-		const int d = tx + lx;
+		const int s = l / 3;
+		const int d = tx + s;
+		const int c = l % 3;
 		const int entry = (d >= scan[1]) + (d >= scan[2]) + (d >= scan[3]);
 		const int pid = d - scan[entry] + p2start[entry];
 #ifdef _CHECK_
-		xa[pid] += a2[0][l];
-		ya[pid] += a2[1][l]; 
-		za[pid] += a2[2][l];
+		axayaz[c + 3 * pid] += pva2[6 + c][s];
 #else
-		xa[pid] -= a2[0][l];
-		ya[pid] -= a2[1][l]; 
-		za[pid] -= a2[2][l];
+		axayaz[c + 3 * pid] -= pva2[6 + c][s];
 #endif
-	    }
+	    }	    
 	}
 
-	if (l < np1)
-	{
-	    const int d = l + ty;
-	    xa[p1start + d] += a1[0][l];
-	    ya[p1start + d] += a1[1][l];
-	    za[p1start + d] += a1[2][l];
-	}
+	assert(np1 * 3 <= blockDim.x * blockDim.y);
+	
+	if (l < np1 * 3)
+	    axayaz[l + 3 * (p1start + ty)] += pva1[6 + (l % 3)][l / 3];
     }
 }
 
@@ -435,9 +393,7 @@ __global__ void _dpd_forces(float * tmp, int * consumed)
 #else
     const int idbuf = (blockIdx.x & 1) | ((blockIdx.y & 1) << 1) | ((blockIdx.z & 1) << 2);
 
-    float * const xa = tmp + info.np * (idbuf + 8 * 0);
-    float * const ya = tmp + info.np * (idbuf + 8 * 1);
-    float * const za = tmp + info.np * (idbuf + 8 * 2);
+    float * const axayaz = tmp + 3 * info.np * idbuf;
 #endif
     
     const bool master = threadIdx.x + threadIdx.y == 0;
@@ -492,37 +448,53 @@ __global__ void _dpd_forces(float * tmp, int * consumed)
 	    //running out of samples. this is bad.
 	    return;
 
-	_cellcells(s1, e1 - s1, p2starts, p2counts, i == 0, offsetrsamples, xa, ya, za);
+	_cellcells(s1, e1 - s1, p2starts, p2counts, i == 0, offsetrsamples, axayaz);
     }
 }
 
 __global__ void _reduce(float * tmp)
 {
-    const int pid = threadIdx.x + blockDim.x * blockIdx.x;
+    assert(gridDim.x * blockDim.x >= info.np);
+    
+    const int tid = threadIdx.x + blockDim.x * blockIdx.x;
 
-    if (pid < info.np)
+    if (tid < info.np * 3)
     {
 #ifdef _FAT_
 	const int nbufs = 32;
 #else
 	const int nbufs = 8;
 #endif
-	float xa = 0;
+	float s = 0;
 	for(int idbuf = 0; idbuf < nbufs ; ++idbuf)
-	    xa += tmp[pid + info.np * (idbuf + nbufs * 0)];
-
-	float ya = 0;
-	for(int idbuf = 0; idbuf < nbufs; ++idbuf)
-	    ya += tmp[pid + info.np * (idbuf + nbufs * 1)];
+	    s += tmp[tid + 3 * info.np * idbuf];
 	
-	float za = 0;	
-    	for(int idbuf = 0; idbuf < nbufs; ++idbuf)
-	    za += tmp[pid + info.np * (idbuf + nbufs * 2)];
-
-	info.xa[pid] = xa;
-	info.ya[pid] = ya;
-	info.za[pid] = za;
+	info.axayaz[tid] = s;
     }
+}
+
+/*
+__global__ void aggregate()
+{
+    const int pid = threadIdx.x + blockDim.x * blockIdx.x;
+
+    if (pid < info.np)
+    {
+	info.xyzuvw[6 * pid + 0] = info.xp[pid];
+	info.xyzuvw[6 * pid + 1] = info.yp[pid];
+	info.xyzuvw[6 * pid + 2] = info.zp[pid];
+	info.xyzuvw[6 * pid + 3] = info.xv[pid];
+	info.xyzuvw[6 * pid + 4] = info.yv[pid];
+	info.xyzuvw[6 * pid + 5] = info.zv[pid];
+    }
+}*/
+
+__global__ void _gather(const float * input, const int * indices, float * output, const int n)
+{
+    const int tid = threadIdx.x + blockDim.x * blockIdx.x;
+    
+    if (tid < n)
+	output[tid] = input[(tid % 6) + 6 * indices[tid / 6]];
 }
 
 #include <cmath>
@@ -553,6 +525,7 @@ template<typename T> T * _ptr(device_vector<T>& v) { return raw_pointer_cast(v.d
 
 void _reorder(device_vector<float>& v, device_vector<int>& indx)
 {
+    assert(v.size() == 6 * indx.size());
     device_vector<float> tmp(v.begin(), v.end());
    
     _gather<<<(v.size() + 127) / 128, 128>>>(_ptr(tmp), _ptr(indx), _ptr(v), v.size());
@@ -653,35 +626,10 @@ struct SetupTexs
 	    texStart.normalized = 0;
 	    
 	    fmt =  cudaCreateChannelDesc(32, 0, 0, 0, cudaChannelFormatKindFloat);
-	    texXP.channelDesc = fmt;
-	    texXP.filterMode = cudaFilterModePoint;
-	    texXP.mipmapFilterMode = cudaFilterModePoint;
-	    texXP.normalized = 0;
-	    
-	    texYP.channelDesc = fmt;
-	    texYP.filterMode = cudaFilterModePoint;
-	    texYP.mipmapFilterMode = cudaFilterModePoint;
-	    texYP.normalized = 0;
-	    
-	    texZP.channelDesc = fmt;
-	    texZP.filterMode = cudaFilterModePoint;
-	    texZP.mipmapFilterMode = cudaFilterModePoint;
-	    texZP.normalized = 0;
-	    
-	    texXV.channelDesc = fmt;
-	    texXV.filterMode = cudaFilterModePoint;
-	    texXV.mipmapFilterMode = cudaFilterModePoint;
-	    texXV.normalized = 0;
-	    
-	    texYV.channelDesc = fmt;
-	    texYV.filterMode = cudaFilterModePoint;
-	    texYV.mipmapFilterMode = cudaFilterModePoint;
-	    texYV.normalized = 0;
-	    
-	    texZV.channelDesc = fmt;
-	    texZV.filterMode = cudaFilterModePoint;
-	    texZV.mipmapFilterMode = cudaFilterModePoint;
-	    texZV.normalized = 0;
+	    texParticles.channelDesc = fmt;
+	    texParticles.filterMode = cudaFilterModePoint;
+	    texParticles.mipmapFilterMode = cudaFilterModePoint;
+	    texParticles.normalized = 0;
 	}
 } setuptexs;
 
@@ -732,9 +680,11 @@ struct ProfileComputation
 
 ProfileComputation * _myprof;
 
-void forces_dpd_cuda(float * const _xp, float * const _yp, float * const _zp,
-		     float * const _xv, float * const _yv, float * const _zv,
-		     float * const _xa, float * const _ya, float * const _za,
+void forces_dpd_cuda(/*float * const _xp, float * const _yp, float * const _zp,
+		       float * const _xv, float * const _yv, float * const _zv,*/
+    float * const _xyzuvw,
+		     float * const _axayaz, 
+		     //float * const _xa, float * const _ya, float * const _za,
 		     int * const order, const int np,
 		     const float rc,
 		     const float XL, const float YL, const float ZL,
@@ -777,14 +727,7 @@ void forces_dpd_cuda(float * const _xp, float * const _yp, float * const _zp,
     const int ncells = nx * ny * nz;
     
     device_vector<int> starts(ncells + 1);
-    
-    device_vector<float> xp(_xp, _xp + np), yp(_yp, _yp + np), zp(_zp, _zp + np),
-	xv(_xv, _xv + np), yv(_yv, _yv + np), zv(_zv, _zv + np);	
-
-    device_vector<float> xa(np), ya(np), za(np);
-    fill(xa.begin(), xa.end(), 0);
-    fill(ya.begin(), ya.end(), 0);
-    fill(za.begin(), za.end(), 0);
+    device_vector<float> xyzuvw(_xyzuvw, _xyzuvw + np * 6), axayaz(np * 3);
     
     InfoDPD c;
     c.nx = nx;
@@ -797,22 +740,12 @@ void forces_dpd_cuda(float * const _xp, float * const _yp, float * const _zp,
     c.xstart = -XL * 0.5; 
     c.ystart = -YL * 0.5; 
     c.zstart = -ZL * 0.5; 
-    c.rc = rc;
     c.invrc = 1.f / rc;
     c.aij = aij;
     c.gamma = gamma;
-    c.sigma = sigma;
-    c.invsqrtdt = invsqrtdt;
     c.sigmaf = sigma * invsqrtdt;
-    c.xp = _ptr(xp);
-    c.yp = _ptr(yp);
-    c.zp = _ptr(zp);
-    c.xv = _ptr(xv);
-    c.yv = _ptr(yv);
-    c.zv = _ptr(zv);
-    c.xa = _ptr(xa);
-    c.ya = _ptr(ya);
-    c.za = _ptr(za);
+    c.xyzuvw = _ptr(xyzuvw);
+    c.axayaz = _ptr(axayaz);
     c.nsamples = rrbuf->nsamples();
     c.rsamples = rrbuf->buffer();
     c.rsamples_start = rrbuf->start();
@@ -838,14 +771,8 @@ void forces_dpd_cuda(float * const _xp, float * const _yp, float * const _zp,
     pid2code<<<(np + 127) / 128, 128>>>(_ptr(codes), _ptr(pids));
 
     sort_by_key(codes.begin(), codes.end(), pids.begin());
-
-    _reorder(xp, pids);
-    _reorder(yp, pids);
-    _reorder(zp, pids);
     
-    _reorder(xv, pids);
-    _reorder(yv, pids);
-    _reorder(zv, pids);
+    _reorder(xyzuvw, pids);
     
     device_vector<int> cids(ncells + 1);
     //createseq<<<ncells
@@ -863,12 +790,7 @@ void forces_dpd_cuda(float * const _xp, float * const _yp, float * const _zp,
 	cudaChannelFormatDesc fmt =  cudaCreateChannelDesc(32, 0, 0, 0, cudaChannelFormatKindSigned);
 	cudaBindTexture(&textureoffset, &texStart, c.starts, &fmt, sizeof(int) * (ncells + 1));
 	fmt =  cudaCreateChannelDesc(32, 0, 0, 0, cudaChannelFormatKindFloat);
-	cudaBindTexture(&textureoffset, &texXP, c.xp, &fmt, sizeof(float) * (np));
-	cudaBindTexture(&textureoffset, &texYP, c.yp, &fmt, sizeof(float) * (np));
-	cudaBindTexture(&textureoffset, &texZP, c.zp, &fmt, sizeof(float) * (np));
-	cudaBindTexture(&textureoffset, &texXV, c.xv, &fmt, sizeof(float) * (np));
-	cudaBindTexture(&textureoffset, &texYV, c.yv, &fmt, sizeof(float) * (np));
-	cudaBindTexture(&textureoffset, &texZV, c.zv, &fmt, sizeof(float) * (np));
+	cudaBindTexture(&textureoffset, &texParticles, c.xyzuvw, &fmt, sizeof(float) * 6 * np);
 
 	float * tmp;
 
@@ -894,7 +816,7 @@ void forces_dpd_cuda(float * const _xp, float * const _yp, float * const _zp,
 	myprof.force();
 	CUDA_CHECK(cudaPeekAtLastError());
 
-	_reduce<<<(np + 127) / 128, 128>>>(tmp);
+	_reduce<<<(3 * np + 127) / 128, 128>>>(tmp);
 	myprof.reduce();
 	CUDA_CHECK(cudaPeekAtLastError());
 	
@@ -904,7 +826,7 @@ void forces_dpd_cuda(float * const _xp, float * const _yp, float * const _zp,
 	{
 	    printf("done with code %d: consumed: %d\n", 7, *consumed);
 	    printf("not a nice situation.\n");
-	    abort();
+	    //abort();
 	}
 
 	//printf("consumed: %d\n", *consumed);
@@ -921,13 +843,13 @@ void forces_dpd_cuda(float * const _xp, float * const _yp, float * const _zp,
     
     for(int i = 0; i < np; ++i)
     {
-	printf("pid %d -> %f %f %f\n", i, (float)xa[i], (float)ya[i], (float)za[i]);
+	printf("pid %d -> %f %f %f\n", i, (float)axayaz[0 + 3 * i], (float)axayaz[1 + 3* i], (float)axayaz[2 + 3 *i]);
 
 	int cnt = 0;
 	const int pid = pids[i];
 
-	printf("devi coords are %f %f %f\n", (float)xp[i], (float)yp[i], (float)zp[i]);
-	printf("host coords are %f %f %f\n", (float)_xp[pid], (float)_yp[pid], (float)_zp[pid]);
+	printf("devi coords are %f %f %f\n", (float)xyzuvw[0 + 6 * i], (float)xyzuvw[1 + 6 * i], (float)xyzuvw[2 + 6 * i]);
+	printf("host coords are %f %f %f\n", (float)_xyzuvw[0 + 6 * pid], (float)_xyzuvw[1 + 6 * pid], (float)_xyzuvw[2 + 6 * pid]);
 	
 	
 	for(int j = 0; j < np; ++j)
@@ -935,9 +857,9 @@ void forces_dpd_cuda(float * const _xp, float * const _yp, float * const _zp,
 	    if (pid == j)
 		continue;
  
-	    float xr = _xp[pid] - _xp[j];
-	    float yr = _yp[pid] - _yp[j];
-	    float zr = _zp[pid] - _zp[j];
+	    float xr = _xyzuvw[0 + 6 * pid] - _xyzuvw[0 + 6 * j];
+	    float yr = _xyzuvw[1 + 6 * pid] - _xyzuvw[1 + 6 * j];
+	    float zr = _xyzuvw[2 + 6 * pid] - _xyzuvw[2 + 6 * j];
 
 	    xr -= c.XL *  ::floor(0.5f + xr / c.XL);
 	    yr -= c.YL *  ::floor(0.5f + yr / c.YL);
@@ -948,8 +870,8 @@ void forces_dpd_cuda(float * const _xp, float * const _yp, float * const _zp,
 
 	    cnt += rij2 < 1;
 	}
-	printf("i found %d host interactions and with cuda i found %d\n", cnt, (int)xa[i]);
-	assert(cnt == (float)xa[i]);
+	printf("i found %d host interactions and with cuda i found %d\n", cnt, (int)axayaz[0 + 3 * i]);
+	assert(cnt == (float)axayaz[0 + 3 * i]);
 
 	//sleep(3);
     }
@@ -964,17 +886,19 @@ void forces_dpd_cuda(float * const _xp, float * const _yp, float * const _zp,
     
     cudaFreeHost(consumed);
     
-    copy(xp.begin(), xp.end(), _xp);
+    /*copy(xp.begin(), xp.end(), _xp);
     copy(yp.begin(), yp.end(), _yp);
     copy(zp.begin(), zp.end(), _zp);
 	
     copy(xv.begin(), xv.end(), _xv);
     copy(yv.begin(), yv.end(), _yv);
-    copy(zv.begin(), zv.end(), _zv);
+    copy(zv.begin(), zv.end(), _zv);*/
 
-    copy(xa.begin(), xa.end(), _xa);
-    copy(ya.begin(), ya.end(), _ya);
-    copy(za.begin(), za.end(), _za);
+    /*copy(xa.begin(), xa.end(), _xa);
+      copy(ya.begin(), ya.end(), _ya);
+      copy(za.begin(), za.end(), _za);*/
+    copy(xyzuvw.begin(), xyzuvw.end(), _xyzuvw);
+    copy(axayaz.begin(), axayaz.end(), _axayaz);
 
     if (order != NULL)
 	copy(pids.begin(), pids.end(), order);
