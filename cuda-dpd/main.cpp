@@ -7,7 +7,7 @@
 #include <vector>
 #include <random>
 
-#include "dpd-cuda.h"
+#include "cuda-dpd.h"
 
 using namespace std;
 
@@ -40,7 +40,7 @@ void vmd_xyz(const char * path, real * xyzuvw, const int n, bool append)
 
 int main()
 {
-    real L = 10;
+    real L = 20;
 
     const int Nm = 3;
     const int n = L * L * L * Nm;
@@ -51,7 +51,7 @@ int main()
     const bool cuda = true;
     const bool curand = true;
     const real dt = 0.02;
-    const real tend = 10;
+    const real tend = 3;
     
     vector<real> xyzuvw(6 * n), axayaz(3 * n);
     
@@ -111,9 +111,9 @@ int main()
 		xyzuvw[1 + 6 * i] -= L * floor((xyzuvw[1 + 6 * i] + 0.5 * L) / L);
 		xyzuvw[2 + 6 * i] -= L * floor((xyzuvw[2 + 6 * i] + 0.5 * L) / L);
 
-		assert(xyzuvw[0 + 6 * i] * 2  >= -L && xyzuvw[0 + 6 * i] * 2 < L); 
-		assert(xyzuvw[1 + 6 * i] * 2  >= -L && xyzuvw[1 + 6 * i] * 2 < L); 
-		assert(xyzuvw[2 + 6 * i] * 2  >= -L && xyzuvw[2 + 6 * i] * 2 < L); 
+		//assert(xyzuvw[0 + 6 * i] * 2  >= -L && xyzuvw[0 + 6 * i] * 2 < L); 
+		//assert(xyzuvw[1 + 6 * i] * 2  >= -L && xyzuvw[1 + 6 * i] * 2 < L); 
+		//assert(xyzuvw[2 + 6 * i] * 2  >= -L && xyzuvw[2 + 6 * i] * 2 < L); 
 	    }
 	};
 

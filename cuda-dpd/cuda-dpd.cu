@@ -1,9 +1,11 @@
 #include <cstdio>
 #include <cassert>
 
-//#define _CHECK_
-//#define _FAT_
+#define _CHECK_
+#define _FAT_
 #define _TEXTURES_
+
+const int collapsefactor = 1;
 
 struct InfoDPD
 {
@@ -73,6 +75,7 @@ __device__ int3 decode(int code)
     return make_int3(ix, iy, iz);
 }
 #endif
+
 __global__ void pid2code(int * codes, int * pids)
 {
     const int pid = threadIdx.x + blockDim.x * blockIdx.x;
@@ -80,9 +83,9 @@ __global__ void pid2code(int * codes, int * pids)
     if (pid >= info.np)
 	return;
 
-    const float x = (info.xyzuvw[0 + 6 * pid] - info.domainstart.x) * info.invrc;
-    const float y = (info.xyzuvw[1 + 6 * pid] - info.domainstart.y) * info.invrc;
-    const float z = (info.xyzuvw[2 + 6 * pid] - info.domainstart.z) * info.invrc;
+    const float x = (info.xyzuvw[0 + 6 * pid] - info.domainstart.x) * info.invrc / collapsefactor;
+    const float y = (info.xyzuvw[1 + 6 * pid] - info.domainstart.y) * info.invrc / collapsefactor;
+    const float z = (info.xyzuvw[2 + 6 * pid] - info.domainstart.z) * info.invrc / collapsefactor;
     
     int ix = (int)floor(x);
     int iy = (int)floor(y);
@@ -111,7 +114,7 @@ const int xbs_l = 3;//floor(log2((float)xbs)) -1;
 const int ybs = 3;
 const int ybs_l = 1;//floor(log2((float)ybs)) -1;
 const int xts = xbs;
-const int yts = 6;
+const int yts = 3;
 
 template <bool vertical>
 __device__ float3 _reduce(float3 val)
@@ -476,22 +479,6 @@ __global__ void _reduce(float * tmp)
     }
 }
 
-/*
-__global__ void aggregate()
-{
-    const int pid = threadIdx.x + blockDim.x * blockIdx.x;
-
-    if (pid < info.np)
-    {
-	info.xyzuvw[6 * pid + 0] = info.xp[pid];
-	info.xyzuvw[6 * pid + 1] = info.yp[pid];
-	info.xyzuvw[6 * pid + 2] = info.zp[pid];
-	info.xyzuvw[6 * pid + 3] = info.xv[pid];
-	info.xyzuvw[6 * pid + 4] = info.yv[pid];
-	info.xyzuvw[6 * pid + 5] = info.zv[pid];
-    }
-}*/
-
 __global__ void _gather(const float * input, const int * indices, float * output, const int n)
 {
     const int tid = threadIdx.x + blockDim.x * blockIdx.x;
@@ -503,13 +490,13 @@ __global__ void _gather(const float * input, const int * indices, float * output
 #include <cmath>
 #include <unistd.h>
 
-#include <curand.h>
-
 #include <thrust/host_vector.h>
 #include <thrust/device_vector.h>
 #include <thrust/sequence.h>
 #include <thrust/sort.h>
 #include <thrust/binary_search.h>
+
+#include "rring-buffer.h"
 
 using namespace thrust;
 
@@ -537,105 +524,6 @@ void _reorder(device_vector<float>& v, device_vector<int>& indx)
     CUDA_CHECK(cudaThreadSynchronize());
 }
 
-class RRingBuffer
-{
-    const int n;
-    int s, c, olds;
-    float * drsamples;
-    curandGenerator_t prng;
-
-protected:
-
-    void _refill(int s, int e)
-	{
-	    assert(e > s && e <= n);
-	    
-	    const int multiple = 2;
-
-	    s = s - (s % multiple);
-	    e = e + (multiple - (e % multiple));
-	    e = min(e, n);
-	    
-	    curandStatus_t res;
-	    res = curandGenerateNormal(prng, drsamples + s, e - s, 0, 1);
-	    assert(res == CURAND_STATUS_SUCCESS);
-	}
-    
-public:
-
-    RRingBuffer(const int n): n(n), s(0), olds(0), c(0)
-	{
-	    curandStatus_t res;
-	    res = curandCreateGenerator(&prng, CURAND_RNG_PSEUDO_DEFAULT);
-	    //we could try CURAND_RNG_PSEUDO_MTGP32 or CURAND_RNG_PSEUDO_MT19937
-	    
-	    assert(res == CURAND_STATUS_SUCCESS);
-	    res = curandSetPseudoRandomGeneratorSeed(prng, 1234ULL);
-	    assert(res == CURAND_STATUS_SUCCESS);
-	    
-	    CUDA_CHECK(cudaMalloc(&drsamples, sizeof(float) * n));
-
-	    update(n);
-	    assert(s == 0);
-	}
-
-    ~RRingBuffer()
-	{
-	    CUDA_CHECK(cudaFree(drsamples));
-	    curandStatus_t res = curandDestroyGenerator(prng);
-	    assert(res == CURAND_STATUS_SUCCESS);
-	}
-    
-    void update(const int consumed)
-	{
-	    assert(consumed >= 0 && consumed <= n);
-
-	    c += consumed;
-	    assert(c >= 0 && c <= n);
-	    
-	    if (c > 0.45 * n)
-	    {
-		const int c1 = min(olds + c, n) - olds;
-	    
-		if (c1 > 0)
-		    _refill(olds, olds + c1);
-
-		const int c2 = c - c1;
-
-		if (c2 > 0)
-		    _refill(0, c2);
-	    
-		olds = (olds + c) % n;
-		s = olds;
-		c = 0;
-	    }
-	    else
-		s = (olds + c) % n;
-	}
-
-    int start() const { return s; }
-    float * buffer() const { return drsamples; }
-    int nsamples() const { return n; }
-};
-
-struct SetupTexs
-{
-    SetupTexs()
-	{
-	    cudaChannelFormatDesc fmt =  cudaCreateChannelDesc(32, 0, 0, 0, cudaChannelFormatKindSigned);
-	    texStart.channelDesc = fmt;
-	    texStart.filterMode = cudaFilterModePoint;
-	    texStart.mipmapFilterMode = cudaFilterModePoint;
-	    texStart.normalized = 0;
-	    
-	    fmt =  cudaCreateChannelDesc(32, 0, 0, 0, cudaChannelFormatKindFloat);
-	    texParticles.channelDesc = fmt;
-	    texParticles.filterMode = cudaFilterModePoint;
-	    texParticles.mipmapFilterMode = cudaFilterModePoint;
-	    texParticles.normalized = 0;
-	}
-} setuptexs;
-
 struct ProfileComputation
 {
     int count;
@@ -660,7 +548,7 @@ struct ProfileComputation
     void force() { CUDA_CHECK(cudaEventRecord(evforce));  }
     void reduce() { CUDA_CHECK(cudaEventRecord(evreduce)); }
     
-    void stop()
+    void report()
 	{
 	    
 	    CUDA_CHECK(cudaEventSynchronize(evreduce));
@@ -681,13 +569,10 @@ struct ProfileComputation
 	}
 } ;
 
-ProfileComputation * _myprof;
+ProfileComputation * myprof = NULL;
+RRingBuffer * rrbuf = NULL;
 
-void forces_dpd_cuda(/*float * const _xp, float * const _yp, float * const _zp,
-		       float * const _xv, float * const _yv, float * const _zv,*/
-    float * const _xyzuvw,
-		     float * const _axayaz, 
-		     //float * const _xa, float * const _ya, float * const _za,
+void forces_dpd_cuda(float * const _xyzuvw, float * const _axayaz,
 		     int * const order, const int np,
 		     const float rc,
 		     const float XL, const float YL, const float ZL,
@@ -714,19 +599,17 @@ void forces_dpd_cuda(/*float * const _xp, float * const _yp, float * const _zp,
 	initialized = true;
     }
 
-    static RRingBuffer * rrbuf = NULL;
 
     if (rrbuf == NULL)
 	rrbuf = new RRingBuffer(50 * np * 3);
 
-    if (_myprof == NULL)
-	_myprof = new ProfileComputation();
+    if (myprof == NULL)
+	myprof = new ProfileComputation();
 
-    ProfileComputation& myprof = *_myprof;
-     
-    int nx = (int)ceil(XL / rc);
-    int ny = (int)ceil(YL / rc);
-    int nz = (int)ceil(ZL / rc);
+    
+    int nx = (int)ceil(XL / (collapsefactor *rc));
+    int ny = (int)ceil(YL / (collapsefactor *rc));
+    int nz = (int)ceil(ZL / (collapsefactor *rc));
     const int ncells = nx * ny * nz;
     
     device_vector<int> starts(ncells + 1);
@@ -785,8 +668,17 @@ void forces_dpd_cuda(/*float * const _xp, float * const _yp, float * const _zp,
     {
 	size_t textureoffset = 0;
 	cudaChannelFormatDesc fmt =  cudaCreateChannelDesc(32, 0, 0, 0, cudaChannelFormatKindSigned);
+	texStart.channelDesc = fmt;
+	texStart.filterMode = cudaFilterModePoint;
+	texStart.mipmapFilterMode = cudaFilterModePoint;
+	texStart.normalized = 0;
 	cudaBindTexture(&textureoffset, &texStart, c.starts, &fmt, sizeof(int) * (ncells + 1));
+	
 	fmt =  cudaCreateChannelDesc(32, 0, 0, 0, cudaChannelFormatKindFloat);
+	texParticles.channelDesc = fmt;
+	texParticles.filterMode = cudaFilterModePoint;
+	texParticles.mipmapFilterMode = cudaFilterModePoint;
+	texParticles.normalized = 0;
 	cudaBindTexture(&textureoffset, &texParticles, c.xyzuvw, &fmt, sizeof(float) * 6 * np);
 
 	float * tmp;
@@ -802,7 +694,7 @@ void forces_dpd_cuda(/*float * const _xp, float * const _yp, float * const _zp,
 	int * dconsumed = NULL;
 	cudaHostGetDevicePointer(&dconsumed, consumed, 0);
 
-	myprof.start();
+	myprof->start();
 	
 #ifdef _FAT_
 	_dpd_forces<<<dim3(c.ncells.x * 4, c.ncells.y, c.ncells.z), dim3(xbs, ybs, 1)>>>(tmp, dconsumed);
@@ -810,11 +702,11 @@ void forces_dpd_cuda(/*float * const _xp, float * const _yp, float * const _zp,
 	_dpd_forces<<<dim3(c.ncells.x, c.ncells.y, c.ncells.z), dim3(xbs, ybs, 1)>>>(tmp, dconsumed);
 #endif
 
-	myprof.force();
+	myprof->force();
 	CUDA_CHECK(cudaPeekAtLastError());
 
 	_reduce<<<(3 * np + 127) / 128, 128>>>(tmp);
-	myprof.reduce();
+	myprof->reduce();
 	CUDA_CHECK(cudaPeekAtLastError());
 	
 	CUDA_CHECK(cudaFree(tmp));
@@ -823,13 +715,11 @@ void forces_dpd_cuda(/*float * const _xp, float * const _yp, float * const _zp,
 	{
 	    printf("done with code %d: consumed: %d\n", 7, *consumed);
 	    printf("not a nice situation.\n");
-	    //abort();
+	    abort();
 	}
-
-	//printf("consumed: %d\n", *consumed);
     }
-
-    myprof.stop();
+	
+    myprof->report();
     
 #ifdef _CHECK_
     CUDA_CHECK(cudaThreadSynchronize());
@@ -876,24 +766,12 @@ void forces_dpd_cuda(/*float * const _xp, float * const _yp, float * const _zp,
     sleep(1);
     exit(0);
 #endif
-
 	
     if (_rsamples == NULL)
 	rrbuf->update(*consumed);
     
     cudaFreeHost(consumed);
-    
-    /*copy(xp.begin(), xp.end(), _xp);
-    copy(yp.begin(), yp.end(), _yp);
-    copy(zp.begin(), zp.end(), _zp);
-	
-    copy(xv.begin(), xv.end(), _xv);
-    copy(yv.begin(), yv.end(), _yv);
-    copy(zv.begin(), zv.end(), _zv);*/
-
-    /*copy(xa.begin(), xa.end(), _xa);
-      copy(ya.begin(), ya.end(), _ya);
-      copy(za.begin(), za.end(), _za);*/
+   
     copy(xyzuvw.begin(), xyzuvw.end(), _xyzuvw);
     copy(axayaz.begin(), axayaz.end(), _axayaz);
 
