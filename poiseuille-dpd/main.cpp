@@ -97,7 +97,7 @@ int main()
 		FILE * f = fopen("yv-profile.dat", "w");
 		int c = 0;
 		for(auto e :xvprofile)
-		    fprintf(f, "%e %e\n", h * c++ - 0.5 * XL, get<0>(e) / max(1, get<1>(e)));
+		    fprintf(f, "%e %e\n", h * (0.5 + c++) - 0.5 * XL, get<0>(e) / max(1, get<1>(e)));
 		
 		fclose(f);
 	    }

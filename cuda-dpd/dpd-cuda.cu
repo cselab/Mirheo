@@ -17,7 +17,7 @@ struct InfoDPD
 __constant__ InfoDPD info;
 
 #if 0
-const int depth = 10;
+const int depth = 4;
 __device__ int encode(int ix, int iy, int iz) 
 {
     int idx = 0;
