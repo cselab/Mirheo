@@ -17,10 +17,12 @@
 //**********************************************************************************************************************
 struct Particles
 {
-	double *x,  *y,  *z;
-	double *vx, *vy, *vz;
-	double *ax, *ay, *az;
-	double *m;
-	double *tmp;
+	real *x,  *y,  *z;
+	real *vx, *vy, *vz;
+	real *ax, *ay, *az;
+	real *m;
+	real *tmp;
+    
+    int *label;
 	int n;
 };

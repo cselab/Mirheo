@@ -13,6 +13,7 @@
 #include <cstdio>
 
 #include "ArgumentParser.h"
+#include "Misc.h"
 
 namespace ArgumentParser
 {
@@ -95,7 +96,7 @@ namespace ArgumentParser
 					break;
 					
 				case DOUBLE:
-					*((double*)myOpt.value) = atof(optarg);
+					*((real*)myOpt.value) = atof(optarg);
 					break;
                     
                 case CHAR:
@@ -129,7 +130,7 @@ namespace ArgumentParser
 					break;
 					
 				case DOUBLE:
-					printf("%f", *((double*)myOpt.value));
+					printf("%f", *((real*)myOpt.value));
 					break;
                     
                 case CHAR:

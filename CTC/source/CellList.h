@@ -20,6 +20,8 @@
 #include "thrust/device_vector.h"
 #include "thrust/binary_search.h"
 
+#include "Misc.h"
+
 #define Dims 3
 
 struct GenerateKeys;
@@ -30,9 +32,9 @@ public:
 	int n0, n1, n2;
 	int nTot;
 	
-	double xLow0, xLow1, xLow2, xHigh0, xHigh1, xHigh2;
-	double h0, h1, h2;
-	double l0, l1, l2;
+	real xLow0, xLow1, xLow2, xHigh0, xHigh1, xHigh2;
+	real h0, h1, h2;
+	real l0, l1, l2;
 	int mult0, mult1, mult2;
 
 	int* pcellids;
@@ -41,11 +43,11 @@ public:
 	
 public:
 	
-	inline CellsInfo(double, double[Dims], double[Dims]);
+	inline CellsInfo(real, real[Dims], real[Dims]);
 	__host__ __device__ inline int  getCellIndByIJ(int[Dims]);
 	__host__ __device__ inline void getCellIJByInd(int, int[Dims]);
-	__host__ __device__ inline int  which(double x0, double x1, double x2);
-	__host__ __device__ inline void correct(int *ij, double *xAdd);
+	__host__ __device__ inline int  which(real x0, real x1, real x2);
+	__host__ __device__ inline void correct(int *ij, real *xAdd);
 };	
 
 // Cells for objects described as Structure of Arrays in Objects
@@ -63,7 +65,7 @@ public:
 	GenerateKeys* genKeys;
 	
 public:
-	Cells(Objects*, int, double, double[Dims], double[Dims]);
+	Cells(Objects*, int, real, real[Dims], real[Dims]);
 	
 	void migrate();
 };
@@ -73,7 +75,7 @@ struct GenerateKeys
 	CellsInfo cells;
 	
 	GenerateKeys(CellsInfo cells) : cells(cells) {};
-	__host__ __device__ int operator()(thrust::tuple<double, double, double> coo)
+	__host__ __device__ int operator()(thrust::tuple<real, real, real> coo)
 	{
 		return cells.which(thrust::get<0>(coo),
 				           thrust::get<1>(coo),
@@ -81,7 +83,7 @@ struct GenerateKeys
 	}
 };
 
-inline CellsInfo::CellsInfo(double size, double low[Dims], double high[Dims])
+inline CellsInfo::CellsInfo(real size, real low[Dims], real high[Dims])
 {
 	nTot = 1;
 
@@ -142,7 +144,7 @@ __host__ __device__ inline void CellsInfo::getCellIJByInd(int id, int ij[Dims])
 	id = id % mult2;
 }
 
-__host__ __device__ inline int CellsInfo::which(double x0, double x1, double x2)
+__host__ __device__ inline int CellsInfo::which(real x0, real x1, real x2)
 {
 	int ij[Dims];
 	
@@ -163,7 +165,7 @@ __host__ __device__ inline int CellsInfo::which(double x0, double x1, double x2)
 }
 
 // Modify cell coordinates and compute real coordinate corrections
-__host__ __device__ inline void CellsInfo::correct(int *ij, double *xAdd)
+__host__ __device__ inline void CellsInfo::correct(int *ij, real *xAdd)
 {
 	xAdd[0] = xAdd[1] = xAdd[2] = 0;
 	// 0
@@ -207,7 +209,7 @@ __host__ __device__ inline void CellsInfo::correct(int *ij, double *xAdd)
 }
 
 template <typename Object>
-Cells<Object>::Cells(Object* obj, int nObj, double size, double low[Dims], double high[Dims]):
+Cells<Object>::Cells(Object* obj, int nObj, real size, real low[Dims], real high[Dims]):
 objects(obj), nObj(nObj), CellsInfo(size, low, high)
 {
 	start.resize(this->nTot + 1);
@@ -227,9 +229,9 @@ template <typename Object>
 void Cells<Object>::migrate()
 {
 	// Wrap the arrays with thrust vectors
-	thrust::device_ptr<double> xptr = thrust::device_pointer_cast(this->objects->x);
-	thrust::device_ptr<double> yptr = thrust::device_pointer_cast(this->objects->y);
-	thrust::device_ptr<double> zptr = thrust::device_pointer_cast(this->objects->z);
+	thrust::device_ptr<real> xptr = thrust::device_pointer_cast(this->objects->x);
+	thrust::device_ptr<real> yptr = thrust::device_pointer_cast(this->objects->y);
+	thrust::device_ptr<real> zptr = thrust::device_pointer_cast(this->objects->z);
 	
 	// Calculate index of a cell where a particle is situated
 	thrust::transform(thrust::make_zip_iterator(thrust::make_tuple(xptr, yptr, zptr)),

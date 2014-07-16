@@ -16,6 +16,8 @@
 #include "thrust/transform_reduce.h"
 #include "thrust/reduce.h"
 
+#include "Misc.h"
+
 // Error checking on gpu
 #define gpuErrchk(ans) { gpuAssert((ans), __FILE__, __LINE__); }
 inline void gpuAssert(cudaError_t code, char *file, int line, bool abort=true)
@@ -52,7 +54,7 @@ inline void calculateThreadsBlocksIters(int& threads, int& blocks, int& iters, i
 inline void _allocate(Particles* part)
 {
 	int n = part->n;
-	int nBytes = n * sizeof(double);
+	int nBytes = n * sizeof(real);
 	
 	gpuErrchk( cudaMalloc((void**)&part->x,  nBytes) );
 	gpuErrchk( cudaMalloc((void**)&part->y,  nBytes) );
@@ -68,21 +70,21 @@ inline void _allocate(Particles* part)
 	gpuErrchk( cudaMalloc((void**)&part->tmp,nBytes) );
 }
 
-inline void _copy(double *src, double* dest, int n)
+inline void _copy(real *src, real* dest, int n)
 {
-	gpuErrchk( cudaMemcpy(dest, src, n * sizeof(double), cudaMemcpyHostToDevice) );
+	gpuErrchk( cudaMemcpy(dest, src, n * sizeof(real), cudaMemcpyHostToDevice) );
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 /// Short various functions
 ////////////////////////////////////////////////////////////////////////////////
-inline void _fill(double* x, int n, double val)
+inline void _fill(real* x, int n, real val)
 {
 	thrust::fill_n(thrust::device_pointer_cast(x), n, val);
 	gpuErrchk( cudaPeekAtLastError() );
 }
 
-__global__ void _scal_kernel(double *x, double factor, int n, int start = 0)
+__global__ void _scal_kernel(real *x, real factor, int n, int start = 0)
 {
 	const int gid = threadIdx.x + blockDim.x*blockIdx.x + start;
 	if (gid >= n) return;
@@ -90,7 +92,7 @@ __global__ void _scal_kernel(double *x, double factor, int n, int start = 0)
 	x[gid]  *= factor;
 }
 
-inline void _scal(double *x, int n, double factor)
+inline void _scal(real *x, int n, real factor)
 {
 	int threads, blocks, iters, stride;
 	calculateThreadsBlocksIters(threads, blocks, iters, n);
@@ -104,7 +106,7 @@ inline void _scal(double *x, int n, double factor)
 ////////////////////////////////////////////////////////////////////////////////
 /// K1
 ////////////////////////////////////////////////////////////////////////////////
-__global__ void _K1_kernel(double *y, double *x, int n, double a, int start = 0)
+__global__ void _K1_kernel(real *y, real *x, int n, real a, int start = 0)
 {
 	const int gid = threadIdx.x + blockDim.x*blockIdx.x + start;
 	if (gid >= n) return;
@@ -112,7 +114,7 @@ __global__ void _K1_kernel(double *y, double *x, int n, double a, int start = 0)
 	y[gid] += a * x[gid];
 }
 
-inline void _K1(double *y, double *x, int n, double a) // BLAS lev 1: axpy
+inline void _K1(real *y, real *x, int n, real a) // BLAS lev 1: axpy
 {
 	int threads, blocks, iters, stride;
 	calculateThreadsBlocksIters(threads, blocks, iters, n);
@@ -130,7 +132,7 @@ inline void _K1(double *y, double *x, int n, double a) // BLAS lev 1: axpy
 /// One thread per particle
 /// Each interaction is calculated twice
 ////////////////////////////////////////////////////////////////////////////////
-__host__ __device__ inline double _periodize(double val, double l, double l_2)
+__host__ __device__ inline real _periodize(real val, real l, real l_2)
 {
 	if (val > l_2)
 		return val - l;
@@ -139,22 +141,22 @@ __host__ __device__ inline double _periodize(double val, double l, double l_2)
 	return val;
 }
 
-__global__ void _K2_kernel(Particles part, int n, LennardJones potential, double L, double L_2, int start = 0)
+__global__ void _K2_kernel(Particles part, int n, LennardJones potential, real L, real L_2, int start = 0)
 {
 	const int gid = threadIdx.x + blockDim.x*blockIdx.x + start;
 	if (gid >= n) return;
 	
-	double x = part.x[gid];
-	double y = part.y[gid];
-	double z = part.z[gid];
-	double fx, fy, fz;
-	double ax = 0, ay = 0, az = 0;
+	real x = part.x[gid];
+	real y = part.y[gid];
+	real z = part.z[gid];
+	real fx, fy, fz;
+	real ax = 0, ay = 0, az = 0;
 	
 	for (int j = gid+1; j<n; j++)
 	{
-		double dx = _periodize(part.x[j] - x, L, L_2);
-		double dy = _periodize(part.y[j] - y, L, L_2);
-		double dz = _periodize(part.z[j] - z, L, L_2);
+		real dx = _periodize(part.x[j] - x, L, L_2);
+		real dy = _periodize(part.y[j] - y, L, L_2);
+		real dz = _periodize(part.z[j] - z, L, L_2);
 		
 		potential.F(dx, dy, dz,  fx, fy, fz);
 		
@@ -165,9 +167,9 @@ __global__ void _K2_kernel(Particles part, int n, LennardJones potential, double
 	
 	for (int j=0; j<gid; j++)
 	{
-		double dx = _periodize(part.x[j] - x, L, L_2);
-		double dy = _periodize(part.y[j] - y, L, L_2);
-		double dz = _periodize(part.z[j] - z, L, L_2);
+		real dx = _periodize(part.x[j] - x, L, L_2);
+		real dy = _periodize(part.y[j] - y, L, L_2);
+		real dz = _periodize(part.z[j] - z, L, L_2);
 		
 		potential.F(dx, dy, dz,  fx, fy, fz);
 		
@@ -176,16 +178,16 @@ __global__ void _K2_kernel(Particles part, int n, LennardJones potential, double
 		az += fz;
 	}
 	
-	const double m_1 = 1.0 / part.m[gid];
+	const real m_1 = 1.0 / part.m[gid];
 	part.ax[gid] = ax * m_1;
 	part.ay[gid] = ay * m_1;
 	part.az[gid] = az * m_1;
 	
 }
 
-void _K2(Particles* part, LennardJones* potential, double L)
+void _K2(Particles* part, LennardJones* potential, real L)
 {
-	double L_2 = 0.5*L;
+	real L_2 = 0.5*L;
 	int threads, blocks, iters, stride;
 	calculateThreadsBlocksIters(threads, blocks, iters, part->n);
 	stride = threads*blocks;
@@ -205,17 +207,17 @@ void _K2(Particles* part, LennardJones* potential, double L)
 __global__ void _K2_kernel(Particles part, int n, LennardJones potential, CellsInfo cells, int start = 0)
 {
 	int ij[3], origIJ[3];
-	double xAdd[3];
+	real xAdd[3];
 	
 	const int gid = threadIdx.x + blockDim.x*blockIdx.x + start;
 	if (gid >= n) return;
 	
-	double x = part.x[gid];
-	double y = part.y[gid];
-	double z = part.z[gid];
+	real x = part.x[gid];
+	real y = part.y[gid];
+	real z = part.z[gid];
 	
-	double fx, fy, fz;
-	double ax = 0, ay = 0, az = 0;
+	real fx, fy, fz;
+	real ax = 0, ay = 0, az = 0;
 	
 	// Get id of the cell where the particle is situated and its coordinates
 	int cid = cells.which(x, y, z);
@@ -246,9 +248,9 @@ __global__ void _K2_kernel(Particles part, int n, LennardJones potential, CellsI
 			int neigh = cells.pobjids[j];
 			if (gid != neigh)
 			{
-				double dx = part.x[neigh] + xAdd[0] - x;
-				double dy = part.y[neigh] + xAdd[1] - y;
-				double dz = part.z[neigh] + xAdd[2] - z;
+				real dx = part.x[neigh] + xAdd[0] - x;
+				real dy = part.y[neigh] + xAdd[1] - y;
+				real dz = part.z[neigh] + xAdd[2] - z;
 				
 				potential.F(dx, dy, dz,
 							fx, fy, fz);
@@ -260,13 +262,13 @@ __global__ void _K2_kernel(Particles part, int n, LennardJones potential, CellsI
 		}
 	}
 	
-	const double m_1 = 1.0 / part.m[gid];
+	const real m_1 = 1.0 / part.m[gid];
 	part.ax[gid] = m_1 * ax;
 	part.ay[gid] = m_1 * ay;
 	part.az[gid] = m_1 * az;
 }
 
-void _K2(Particles* part, LennardJones* potential, Cells<Particles>* cells, double L)
+void _K2(Particles* part, LennardJones* potential, Cells<Particles>* cells, real L)
 {
 	int threads, blocks, iters, stride;
 	calculateThreadsBlocksIters(threads, blocks, iters, part->n);
@@ -280,7 +282,7 @@ void _K2(Particles* part, LennardJones* potential, Cells<Particles>* cells, doub
 ////////////////////////////////////////////////////////////////////////////////
 /// Normalization kernel. Maintains periodicity
 ////////////////////////////////////////////////////////////////////////////////
-__global__ void _normalize_kernel(double *x, int n, double x0, double xmax, int start = 0)
+__global__ void _normalize_kernel(real *x, int n, real x0, real xmax, int start = 0)
 {
 	const int gid = threadIdx.x + blockDim.x*blockIdx.x + start;
 	if (gid >= n) return;
@@ -289,7 +291,7 @@ __global__ void _normalize_kernel(double *x, int n, double x0, double xmax, int 
 	if (x[gid] < x0)   x[gid] += xmax - x0;
 }
 
-inline void _normalize(double *x, double n, double x0, double xmax)
+inline void _normalize(real *x, real n, real x0, real xmax)
 {
 	int threads, blocks, iters, stride;
 	calculateThreadsBlocksIters(threads, blocks, iters, n);
@@ -304,30 +306,30 @@ inline void _normalize(double *x, double n, double x0, double xmax)
 ////////////////////////////////////////////////////////////////////////////////
 /// Kinetic energy computation
 ////////////////////////////////////////////////////////////////////////////////
-struct Nrg : public unary_function<thrust::tuple<double, double, double, double>, double>
+struct Nrg : public unary_function<thrust::tuple<real, real, real, real>, real>
 {
-	__host__ __device__ double operator() (thrust::tuple<double, double, double, double> val)
+	__host__ __device__ real operator() (thrust::tuple<real, real, real, real> val)
 	{
-		double vx = thrust::get<0>(val);
-		double vy = thrust::get<1>(val);
-		double vz = thrust::get<2>(val);
-		double m  = thrust::get<3>(val);
+		real vx = thrust::get<0>(val);
+		real vy = thrust::get<1>(val);
+		real vz = thrust::get<2>(val);
+		real m  = thrust::get<3>(val);
 		
 		return m * (vx*vx + vy*vy + vz*vz);
 	}
 };
 
-double _kineticNrg(Particles* part)
+real _kineticNrg(Particles* part)
 {
-	thrust::device_ptr<double> pvx(part->vx);
-	thrust::device_ptr<double> pvy(part->vy);
-	thrust::device_ptr<double> pvz(part->vz);
-	thrust::device_ptr<double> pm (part->m);
-	double n = part->n;
+	thrust::device_ptr<real> pvx(part->vx);
+	thrust::device_ptr<real> pvy(part->vy);
+	thrust::device_ptr<real> pvz(part->vz);
+	thrust::device_ptr<real> pm (part->m);
+	real n = part->n;
 
-	double res = 0.5 * thrust::transform_reduce(make_zip_iterator(make_tuple(pvx,     pvy,     pvz,     pm)),
+	real res = 0.5 * thrust::transform_reduce(make_zip_iterator(make_tuple(pvx,     pvy,     pvz,     pm)),
 												make_zip_iterator(make_tuple(pvx + n, pvy + n, pvz + n, pm + n)),
-												Nrg(), 0.0, thrust::plus<double>());
+												Nrg(), 0.0, thrust::plus<real>());
 	gpuErrchk( cudaPeekAtLastError() );
 	return res;
 }
@@ -337,30 +339,30 @@ double _kineticNrg(Particles* part)
 /// Potential energy computation
 /// No cells
 ////////////////////////////////////////////////////////////////////////////////
-__global__ void _potentialNrg_kernel(Particles part, int n, LennardJones potential, double L, double L_2, int start = 0)
+__global__ void _potentialNrg_kernel(Particles part, int n, LennardJones potential, real L, real L_2, int start = 0)
 {
 	const int gid = threadIdx.x + blockDim.x*blockIdx.x + start;
 	if (gid >= n) return;
 	
-	double x = part.x[gid];
-	double y = part.y[gid];
-	double z = part.z[gid];
-	double res = 0;
+	real x = part.x[gid];
+	real y = part.y[gid];
+	real z = part.z[gid];
+	real res = 0;
 
 	for (int j = gid+1; j<n; j++)
 	{
-		double dx = _periodize(part.x[j] - x, L, L_2);
-		double dy = _periodize(part.y[j] - y, L, L_2);
-		double dz = _periodize(part.z[j] - z, L, L_2);
+		real dx = _periodize(part.x[j] - x, L, L_2);
+		real dy = _periodize(part.y[j] - y, L, L_2);
+		real dz = _periodize(part.z[j] - z, L, L_2);
 		
 		res += potential.V(dx, dy, dz);
 	}
 	
 	for (int j=0; j<gid; j++)
 	{
-		double dx = _periodize(part.x[j] - x, L, L_2);
-		double dy = _periodize(part.y[j] - y, L, L_2);
-		double dz = _periodize(part.z[j] - z, L, L_2);
+		real dx = _periodize(part.x[j] - x, L, L_2);
+		real dy = _periodize(part.y[j] - y, L, L_2);
+		real dz = _periodize(part.z[j] - z, L, L_2);
 		
 		res += potential.V(dx, dy, dz);
 	}
@@ -368,9 +370,9 @@ __global__ void _potentialNrg_kernel(Particles part, int n, LennardJones potenti
 	part.tmp[gid] = res;
 }
 
-double _potentialNrg(Particles* part, LennardJones* potential, double L)
+real _potentialNrg(Particles* part, LennardJones* potential, real L)
 {
-	double L_2 = 0.5*L;
+	real L_2 = 0.5*L;
 	
 	int threads, blocks, iters, stride;
 	calculateThreadsBlocksIters(threads, blocks, iters, part->n);
@@ -381,8 +383,8 @@ double _potentialNrg(Particles* part, LennardJones* potential, double L)
 	
 	gpuErrchk( cudaPeekAtLastError() );
 	
-	thrust::device_ptr<double> ptmp(part->tmp);
-	double res = 0.5 * thrust::reduce(ptmp, ptmp + part->n, 0.0);
+	thrust::device_ptr<real> ptmp(part->tmp);
+	real res = 0.5 * thrust::reduce(ptmp, ptmp + part->n, 0.0);
 	gpuErrchk( cudaPeekAtLastError() );
 	return res;
 }
@@ -395,15 +397,15 @@ double _potentialNrg(Particles* part, LennardJones* potential, double L)
 __global__ void _potentialNrg_kernel(Particles part, int n, LennardJones potential, CellsInfo cells, int start = 0)
 {
 	int ij[3], origIJ[3];
-	double xAdd[3];
+	real xAdd[3];
 	
 	const int gid = threadIdx.x + blockDim.x*blockIdx.x + start;
 	if (gid >= n) return;
 	
-	double x = part.x[gid];
-	double y = part.y[gid];
-	double z = part.z[gid];
-	double res = 0;
+	real x = part.x[gid];
+	real y = part.y[gid];
+	real z = part.z[gid];
+	real res = 0;
 	
 	// Get id of the cell where the particle is situated and its coordinates
 	int cid = cells.which(x, y, z);
@@ -436,9 +438,9 @@ __global__ void _potentialNrg_kernel(Particles part, int n, LennardJones potenti
 			int neigh = cells.pobjids[j];
 			if (gid != neigh)
 			{
-				double dx = part.x[neigh] + xAdd[0] - x;
-				double dy = part.y[neigh] + xAdd[1] - y;
-				double dz = part.z[neigh] + xAdd[2] - z;
+				real dx = part.x[neigh] + xAdd[0] - x;
+				real dy = part.y[neigh] + xAdd[1] - y;
+				real dz = part.z[neigh] + xAdd[2] - z;
 				
 				res += potential.V(dx, dy, dz);
 			}
@@ -448,7 +450,7 @@ __global__ void _potentialNrg_kernel(Particles part, int n, LennardJones potenti
 	part.tmp[gid] = res;
 }
 
-double _potentialNrg(Particles* part, LennardJones* potential, Cells<Particles>* cells, double L)
+real _potentialNrg(Particles* part, LennardJones* potential, Cells<Particles>* cells, real L)
 {
 	int threads, blocks, iters, stride;
 	calculateThreadsBlocksIters(threads, blocks, iters, part->n);
@@ -459,8 +461,8 @@ double _potentialNrg(Particles* part, LennardJones* potential, Cells<Particles>*
 	
 	gpuErrchk( cudaPeekAtLastError() );
 	
-	thrust::device_ptr<double> ptmp(part->tmp);
-	double res = 0.5 * thrust::reduce(ptmp, ptmp + part->n, 0.0);
+	thrust::device_ptr<real> ptmp(part->tmp);
+	real res = 0.5 * thrust::reduce(ptmp, ptmp + part->n, 0.0);
 	gpuErrchk( cudaPeekAtLastError() );
 	return res;
 }
@@ -468,50 +470,50 @@ double _potentialNrg(Particles* part, LennardJones* potential, Cells<Particles>*
 ////////////////////////////////////////////////////////////////////////////////
 /// Linear momentum
 ////////////////////////////////////////////////////////////////////////////////
-struct Momentum : public unary_function<thrust::tuple<double, double>, double>
+struct Momentum : public unary_function<thrust::tuple<real, real>, real>
 {
-	__host__ __device__ double operator() (thrust::tuple<double, double> val)
+	__host__ __device__ real operator() (thrust::tuple<real, real> val)
 	{
-		double v = thrust::get<0>(val);
-		double m = thrust::get<1>(val);
+		real v = thrust::get<0>(val);
+		real m = thrust::get<1>(val);
 		
 		return m * v;
 	}
 };
 
 
-void _linMomentum(Particles* part, double &px, double &py, double &pz)
+void _linMomentum(Particles* part, real &px, real &py, real &pz)
 {
-	thrust::device_ptr<double> pvx(part->vx);
-	thrust::device_ptr<double> pvy(part->vy);
-	thrust::device_ptr<double> pvz(part->vz);
-	thrust::device_ptr<double> pm (part->m);
-	double n = part->n;
+	thrust::device_ptr<real> pvx(part->vx);
+	thrust::device_ptr<real> pvy(part->vy);
+	thrust::device_ptr<real> pvz(part->vz);
+	thrust::device_ptr<real> pm (part->m);
+	real n = part->n;
 	
 	px = thrust::transform_reduce(make_zip_iterator(make_tuple(pvx, pm)),
 								  make_zip_iterator(make_tuple(pvx + n, pm + n)),
-								  Momentum(), 0.0, thrust::plus<double>());
+								  Momentum(), 0.0, thrust::plus<real>());
 	gpuErrchk( cudaPeekAtLastError() );
 	
 	py = thrust::transform_reduce(make_zip_iterator(make_tuple(pvy, pm)),
 								  make_zip_iterator(make_tuple(pvy + n, pm + n)),
-								  Momentum(), 0.0, thrust::plus<double>());
+								  Momentum(), 0.0, thrust::plus<real>());
 	gpuErrchk( cudaPeekAtLastError() );
 	
 	pz = thrust::transform_reduce(make_zip_iterator(make_tuple(pvz, pm)),
 								  make_zip_iterator(make_tuple(pvz + n, pm + n)),
-								  Momentum(), 0.0, thrust::plus<double>());
+								  Momentum(), 0.0, thrust::plus<real>());
 	gpuErrchk( cudaPeekAtLastError() );
 }
 
 
-void _angMomentum(Particles* part, double& Lx, double& Ly, double& Lz)
+void _angMomentum(Particles* part, real& Lx, real& Ly, real& Lz)
 {
 	Lx = Ly = Lz = 0;
 }
 
 
-void _centerOfMass(Particles* part, double& mx, double& my, double& mz)
+void _centerOfMass(Particles* part, real& mx, real& my, real& mz)
 {
 	mx = my = mz = 0;
 }

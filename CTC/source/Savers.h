@@ -11,6 +11,7 @@
 
 #include "timer.h"
 #include "Simulation.h"
+#include "Misc.h"
 
 using namespace std;
 
@@ -23,9 +24,9 @@ public:
 	
 	void exec()
 	{
-		//double V = my->Vtot();
-        double V = 0;
-		double K = this->my->Ktot();
+		//real V = my->Vtot();
+        real V = 0;
+		real K = this->my->Ktot();
 		(*this->file) << V << " " << K << " " << V+K << endl;
         this->file->flush();
 	}
@@ -44,7 +45,7 @@ public:
         for (int type = 0; type < N; type++)
             tot += this->my->getParticles()[type]->n;
         
-		double K = this->my->Ktot();
+		real K = this->my->Ktot();
 		(*this->file) << K * 0.6666666666666666 / tot  << endl;
         this->file->flush();
 	}
@@ -59,7 +60,7 @@ public:
 	
 	void exec()
 	{
-		double px, py, pz;
+		real px, py, pz;
 		this->my->linMomentum(px, py, pz);
 		(*this->file) << px << " " << py << " " << pz << endl;
         this->file->flush();
@@ -75,7 +76,7 @@ public:
 	
 	void exec()
 	{
-		double Lx, Ly, Lz;
+		real Lx, Ly, Lz;
 		this->my->angMomentum(Lx, Ly, Lz);
 		(*this->file) << Lx << " " << Ly << " " << Lz << endl;
 	}	
@@ -90,7 +91,7 @@ public:
 	
 	void exec()
 	{
-		double Mx, My, Mz;
+		real Mx, My, Mz;
 		this->my->centerOfMass(Mx, My, Mz);
 		(*this->file) << Mx << " " << My << " " << Mz << endl;
 	}	
@@ -106,7 +107,7 @@ public:
 	void exec()
 	{
         static const char* atoms = "HONCBFPSKYI";
-#ifndef __CUDACC__
+#ifndef __MD_USE_CUDA__
 		Particles** p = this->my->getParticles();
 		
         int tot = 0;

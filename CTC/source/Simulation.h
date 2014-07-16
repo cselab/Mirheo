@@ -25,7 +25,7 @@
 #include "CellList.h"
 #endif
 
-#ifdef __CUDACC__
+#ifdef __MD_USE_CUDA__
 #include "Gpukernels.h"
 #else
 #include "Cpukernels.h"
@@ -90,7 +90,7 @@ struct Unroller2<iend, iend, jend, jend> {
 //**********************************************************************************************************************
 
 Particles** Forces::Arguments::part;
-double Forces::Arguments::L;
+real Forces::Arguments::L;
 #ifdef MD_USE_CELLLIST
 Cells<Particles>** Forces::Arguments::cells;
 #endif
@@ -100,9 +100,9 @@ class Simulation
 {
 private:
 	int    step;
-	double x0, y0, z0, xmax, ymax, zmax;
-	double dt;
-	double L;
+	real x0, y0, z0, xmax, ymax, zmax;
+	real dt;
+	real L;
 	
 	Particles* part[N];
 	list<Saver<N>*>	savers;
@@ -116,18 +116,18 @@ private:
 public:
 	Profiler profiler;
 
-	Simulation (vector<int>, double, vector<double>, double, double);
-	void setLattice(double *x, double *y, double *z, double l, int n);
+	Simulation (vector<int>, real, vector<real>, real, real);
+	void setLattice(real *x, real *y, real *z, real lx, real ly, real lz, int n);
 	
-	double Ktot(int = -1);
-	void linMomentum (double& px, double& py, double& pz, int = -1);
-	void angMomentum (double& px, double& py, double& pz, int = -1);
-	void centerOfMass(double& mx, double& my, double& mz, int = -1);
+	real Ktot(int = -1);
+	void linMomentum (real& px, real& py, real& pz, int = -1);
+	void angMomentum (real& px, real& py, real& pz, int = -1);
+	void centerOfMass(real& mx, real& my, real& mz, int = -1);
 	
 	inline int getIter() { return step; }
 	inline Particles** getParticles() { return part; }
 	
-	void getPositions(int&, double*, double*);
+	void getPositions(int&, real*, real*);
 	void registerSaver(Saver<N>*, int);
 	void runOneStep();
 };
@@ -202,7 +202,7 @@ inline void Saver<N>::setEnsemble(Simulation<N>* e)
 //**********************************************************************************************************************
 
 template<int N>
-Simulation<N>::Simulation(vector<int> num, double temp, vector<double> rCut, double deltat, double len)
+Simulation<N>::Simulation(vector<int> num, real temp, vector<real> rCut, real deltat, real len)
 {
     // Various initializations
 	dt		  = deltat;
@@ -227,31 +227,32 @@ Simulation<N>::Simulation(vector<int> num, double temp, vector<double> rCut, dou
 
     // Initial conditions for positions and velocities
 	mt19937 gen;
-    uniform_real_distribution<double> u1(0, 0.25*L);
-    uniform_real_distribution<double> u0(0.4*L, 0.5*L);
-    uniform_real_distribution<double> uphi(0, 2*M_PI);
-    uniform_real_distribution<double> utheta(0, M_PI);
+    uniform_real_distribution<real> u1(0, 0.25*L);
+    uniform_real_distribution<real> u0(0.4*L, 0.5*L);
+    uniform_real_distribution<real> uphi(0, 2*M_PI);
+    uniform_real_distribution<real> utheta(0, M_PI);
 
     
-    if (N>0) setLattice(part[1]->x, part[1]->y, part[1]->z, 3.04, part[1]->n);
+    if (N>1) setLattice(part[1]->x, part[1]->y, part[1]->z, 7, 3.5, 7, part[1]->n);
+
     
 //    for (int i=0; i<num[0]; i++)
 //    {
-//        double r = u0(gen);
-//        double phi = uphi(gen);
-//        double theta = utheta(gen);
+//        real r = u0(gen);
+//        real phi = uphi(gen);
+//        real theta = utheta(gen);
 //        
 //        part[0]->x[i] = r * sin(theta) * cos(phi);
 //        part[0]->y[i] = r * sin(theta) * sin(phi);
 //        part[0]->z[i] = r * cos(theta);
 //    }
 
-    setLattice(part[0]->x, part[0]->y, part[0]->z, L, part[0]->n);
+    setLattice(part[0]->x, part[0]->y, part[0]->z, L, L, L, part[0]->n);
 
     // Initialize cell list if we need it
 #ifdef MD_USE_CELLLIST
-    double lower[3]  = {x0,   y0,   z0};
-    double higher[3] = {xmax, ymax, zmax};
+    real lower[3]  = {x0,   y0,   z0};
+    real higher[3] = {xmax, ymax, zmax};
     
     for (int type=0; type<N; type++)
         cells[type] = new Cells<Particles>(part[type], part[type]->n, rCut[type], lower, higher);
@@ -259,11 +260,12 @@ Simulation<N>::Simulation(vector<int> num, double temp, vector<double> rCut, dou
     
     for (int type=0; type<N; type++)
     {
-        _fill(part[type]->vx, part[type]->n, 0);
-        _fill(part[type]->vy, part[type]->n, 0);
-        _fill(part[type]->vz, part[type]->n, 0);
+        _fill(part[type]->vx, part[type]->n, 0.0);
+        _fill(part[type]->vy, part[type]->n, 0.0);
+        _fill(part[type]->vz, part[type]->n, 0.0);
         
-        _fill(part[type]->m, part[type]->n, 1);
+        _fill(part[type]->m, part[type]->n, 1.0);
+        _fill(part[type]->label, part[type]->n, 0);
     }
     
     //_fill(part[0]->vz, part[0]->n, 0.5);
@@ -276,10 +278,12 @@ Simulation<N>::Simulation(vector<int> num, double temp, vector<double> rCut, dou
 }
 
 template<int N>
-void Simulation<N>::setLattice(double *x, double *y, double *z, double l, int n)
+void Simulation<N>::setLattice(real *x, real *y, real *z, real lx, real ly, real lz, int n)
 {
-	int nAlongDim = ceil(pow(n, 1.0/3.0));
-	double h = l / (nAlongDim + 1);
+	real h = pow(lx*ly*lz/n, 1.0/3);
+    int nx = ceil(lx/h);
+    int ny = ceil(ly/h);
+    int nz = ceil((real)n/(nx*ny));
 	
 	int i=1;
 	int j=1;
@@ -287,18 +291,18 @@ void Simulation<N>::setLattice(double *x, double *y, double *z, double l, int n)
 	
 	for (int tot=0; tot<n; tot++)
 	{
-		x[tot] = i*h - l/2;
-		y[tot] = j*h - l/2;
-		z[tot] = k*h - l/2;
+		x[tot] = i*h - lx/2;
+		y[tot] = j*h - ly/2;
+		z[tot] = k*h - lz/2;
 		
 		i++;
-		if (i > nAlongDim)
+		if (i > nx)
 		{
 			j++;
 			i = 1;
 		}
 		
-		if (j > nAlongDim)
+		if (j > ny)
 		{
 			k++;
 			j = 1;
@@ -307,9 +311,9 @@ void Simulation<N>::setLattice(double *x, double *y, double *z, double l, int n)
 }
 
 template<int N>
-double Simulation<N>::Ktot(int type)
+real Simulation<N>::Ktot(int type)
 {
-    double res = 0;
+    real res = 0;
     
     if (type < 0)
     {
@@ -324,9 +328,9 @@ double Simulation<N>::Ktot(int type)
 }
 
 template<int N>
-void Simulation<N>::linMomentum(double& px, double& py, double& pz, int type)
+void Simulation<N>::linMomentum(real& px, real& py, real& pz, int type)
 {
-    double _px = 0, _py = 0, _pz = 0;
+    real _px = 0, _py = 0, _pz = 0;
     px = py = pz = 0;
     
 	if (type < 0)
@@ -346,9 +350,9 @@ void Simulation<N>::linMomentum(double& px, double& py, double& pz, int type)
 }
 
 template<int N>
-void Simulation<N>::angMomentum(double& Lx, double& Ly, double& Lz, int type)
+void Simulation<N>::angMomentum(real& Lx, real& Ly, real& Lz, int type)
 {
-    double _Lx = 0, _Ly = 0, _Lz = 0;
+    real _Lx = 0, _Ly = 0, _Lz = 0;
     Lx = Ly = Lz = 0;
     
 	if (type < 0)
@@ -368,9 +372,9 @@ void Simulation<N>::angMomentum(double& Lx, double& Ly, double& Lz, int type)
 }
 
 template<int N>
-void Simulation<N>::centerOfMass(double& mx, double& my, double& mz, int type)
+void Simulation<N>::centerOfMass(real& mx, real& my, real& mz, int type)
 {
-    double _mx = 0, _my = 0, _mz = 0;
+    real _mx = 0, _my = 0, _mz = 0;
     mx = my = mz = 0;
     
 	if (type < 0)
@@ -389,9 +393,60 @@ void Simulation<N>::centerOfMass(double& mx, double& my, double& mz, int type)
     }
 }
 
+
+inline void lowbound(real* x, real* v, int n, real dt, real lim)
+{
+    for (int i=0; i<n; i++)
+        if (x[i] < lim)
+        {
+            x[i] = lim + lim - x[i];
+            v[i] = -v[i];
+        }
+}
+
+inline void highbound(real* x, real* v, int n, real dt, real lim)
+{
+    for (int i=0; i<n; i++)
+        if (x[i] > lim)
+        {
+            x[i] = lim - (x[i] - lim);
+            v[i] = -v[i];
+        }
+}
+
+inline void addForce(real* x, real* ax, int* labels, int n, real F, int label)
+{
+    real totF = 0;
+    int num = 0;
+    
+    for (int i=0; i<n; i++)
+        if (labels[i] == label)
+        {
+            num++;
+            totF += ax[i];
+        }
+    
+    real appliedF = totF / num + F;
+    
+    for (int i=0; i<n; i++)
+        if (labels[i] == label)
+            ax[i] = appliedF;
+}
+
+inline void fix(real* a, int* labels, int n, real dt, int label)
+{
+    for (int i=0; i<n; i++)
+        if (labels[i] == label)
+            a[i] = 0;
+}
+
 template<int N>
 void Simulation<N>::velocityVerlet()
 {
+    static bool fixed = false;
+    
+    const real begin = 200;
+    
     auto prep = [&](int type)
     {
         _axpy(part[type]->vx, part[type]->ax,part[type]->n, dt*0.5);
@@ -405,15 +460,43 @@ void Simulation<N>::velocityVerlet()
         _normalize(part[type]->x,part[type]->n, x0, xmax);
         _normalize(part[type]->y,part[type]->n, y0, ymax);
         _normalize(part[type]->z,part[type]->n, z0, zmax);
-
-        _fill(part[type]->ax,part[type]->n, 0);
-        _fill(part[type]->ay,part[type]->n, 0);
-        _fill(part[type]->az,part[type]->n, 0);
+        
+        _fill(part[type]->ax,part[type]->n, 0.0);
+        _fill(part[type]->ay,part[type]->n, 0.0);
+        _fill(part[type]->az,part[type]->n, 0.0);
     };
     
     profiler.start("K1");
     Unroller<0, N>::step(prep);
-    profiler.stop("K1");
+    profiler.stop();
+    
+    if (dt*step < begin)
+    {
+        lowbound(part[1]->y, part[1]->vy, part[1]->n, dt,  -1.2);
+        highbound(part[1]->y, part[1]->vy, part[1]->n, dt, 2.2);
+    }
+    else
+    {
+        if (!fixed)
+        {
+            for (int i=0; i<part[1]->n; i++)
+            {
+                if (part[1]->y[i] > 1.9) part[1]->label[i] = 2;
+                if (part[1]->y[i] < -0.9) part[1]->label[i] = 1;
+            }
+            
+            fix(part[1]->vx, part[1]->label, part[1]->n, dt,  1);
+            fix(part[1]->vy, part[1]->label, part[1]->n, dt,  1);
+            fix(part[1]->vz, part[1]->label, part[1]->n, dt,  1);
+            
+            fix(part[1]->vx, part[1]->label, part[1]->n, dt,  2);
+            fix(part[1]->vy, part[1]->label, part[1]->n, dt,  2);
+            fix(part[1]->vz, part[1]->label, part[1]->n, dt,  2);
+            
+            fixed = true;
+        }
+    }
+
 
 #ifdef MD_USE_CELLLIST
     auto docells = [&](int type)
@@ -425,14 +508,25 @@ void Simulation<N>::velocityVerlet()
     Unroller<0, N>::step(docells);
     profiler.stop();
 #endif
-
     
     profiler.start("K2");
     Unroller2<0, N, 0, N>::step();
     profiler.stop();
     
-    for (int i=0; i<part[0]->n; i++)
-        part[0]->az[i] += (part[0]->x[i] > 0) ? 0.02 : -0.02;
+    if (dt*step >= begin)
+    {
+        fix(part[1]->ax, part[1]->label, part[1]->n, dt,  2);
+        //fix(part[1]->ay, part[1]->label, part[1]->n, dt,  2);
+        addForce(part[1]->y, part[1]->ay, part[1]->label, part[1]->n, 10, 2);
+        fix(part[1]->az, part[1]->label, part[1]->n, dt,  2);
+        
+        fix(part[1]->ax, part[1]->label, part[1]->n, dt,  1);
+        fix(part[1]->ay, part[1]->label, part[1]->n, dt,  1);
+        fix(part[1]->az, part[1]->label, part[1]->n, dt,  1);
+    }
+    
+//    for (int i=0; i<part[0]->n; i++)
+//        part[0]->az[i] += (part[0]->x[i] > 0) ? 0.02 : -0.02;
 
     auto fin = [&](int type)
     {
@@ -452,10 +546,12 @@ void Simulation<N>::velocityVerlet()
 template<int N>
 void Simulation<N>::runOneStep()
 {
+    profiler.start("Other");
 	for (typename list<Saver<N>*>::iterator it = savers.begin(), end = savers.end(); it != end; ++it)
 	{
 		if ((step % (*it)->getPeriod()) == 0) (*it)->exec();
 	}
+    profiler.stop();
 	
 	if (step == 0)
         Unroller2<0, N, 0, N>::step();

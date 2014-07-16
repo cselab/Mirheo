@@ -14,58 +14,63 @@
 #include "Potential.h"
 #include "Particles.h"
 
+#include "Misc.h"
+
 inline void _allocate(Particles* part)
 {
 	int n = part->n;
-	part->x  = new double[n];
-	part->y  = new double[n];
-	part->z  = new double[n];
-	part->vx = new double[n];
-	part->vy = new double[n];
-	part->vz = new double[n];
-	part->ax = new double[n];
-	part->ay = new double[n];
-	part->az = new double[n];
-	part->m  = new double[n];
+	part->x  = new real[n];
+	part->y  = new real[n];
+	part->z  = new real[n];
+	part->vx = new real[n];
+	part->vy = new real[n];
+	part->vz = new real[n];
+	part->ax = new real[n];
+	part->ay = new real[n];
+	part->az = new real[n];
+	part->m  = new real[n];
+    
+    part->label = new int[n];
 }
 
-inline void _fill(double* x, int n, double val)
+template<typename T>
+inline void _fill(T* x, int n, T val)
 {
 	for (int i=0; i<n; i++)
 		x[i] = val;
 }
 
-inline void _scal(double *y, int n, double factor)
+inline void _scal(real *y, int n, real factor)
 {
 	for (int i=0; i<n; i++)
 		y[i] *= factor;
 }
 
-inline void _axpy(double *y, double *x, int n, double a)
+inline void _axpy(real *y, real *x, int n, real a)
 {
 	for (int i=0; i<n; i++)
 		y[i] += a * x[i];
 }
 
-inline void _nuscal(double *y, double *x, int n) // y[i] = y[i] / x[i]
+inline void _nuscal(real *y, real *x, int n) // y[i] = y[i] / x[i]
 {
 	for (int i=0; i<n; i++)
 		y[i] /= x[i];
 }
 
-/*inline double _periodize(double val, double l, double l_2)
+/*inline real _periodize(real val, real l, real l_2)
 {
-  	const double vlow  = val - l_2;	
+  	const real vlow  = val - l_2;	
 	val = vlow  - copysign(l_2, vlow);  // val > l_2  ? val - l : val
 	
-	const double vhigh = val + l_2;
+	const real vhigh = val + l_2;
 	val = vhigh - copysign(l_2, vhigh); // val < -l_2 ? val + l : val
 
 	return val;
 }*/
 
 
-inline double _periodize(double val, double l, double l_2)
+inline real _periodize(real val, real l, real l_2)
 {
 	if (val > l_2)
 		return val - l;
@@ -79,7 +84,7 @@ namespace Forces
     struct Arguments
     {
         static Particles** part;
-        static double L;
+        static real L;
         static Cells<Particles>** cells;
     };
     
@@ -88,10 +93,10 @@ namespace Forces
     {
         void operator()()
         {
-            double fx, fy, fz;
-            double dx, dy, dz;
-            double vx, vy, vz;
-            double L_2 = 0.5*L;
+            real fx, fy, fz;
+            real dx, dy, dz;
+            real vx, vy, vz;
+            real L_2 = 0.5*L;
             
             for (int i = 0; i<part[a]->n; i++)
             {
@@ -129,16 +134,16 @@ namespace Forces
         {
             int origIJ[3];
             int ij[3], sh[3];
-            double xAdd[3];
+            real xAdd[3];
 
-            double fx, fy, fz;
+            real fx, fy, fz;
 
             // Loop over all the particles
             for (int i=0; i<part[a]->n; i++)
             {
-                double x = part[a]->x[i];
-                double y = part[a]->y[i];
-                double z = part[a]->z[i];
+                real x = part[a]->x[i];
+                real y = part[a]->y[i];
+                real z = part[a]->z[i];
 
                 // Get id of the cell and its coordinates
                 int cid = cells[b]->which(x, y, z);
@@ -165,16 +170,13 @@ namespace Forces
                                 int neigh = cells[b]->pobjids[j];
                                 if (a != b || i > neigh)
                                 {
-                                    double dx = part[b]->x[neigh] + xAdd[0] - x;
-                                    double dy = part[b]->y[neigh] + xAdd[1] - y;
-                                    double dz = part[b]->z[neigh] + xAdd[2] - z;
+                                    real dx = part[b]->x[neigh] + xAdd[0] - x;
+                                    real dy = part[b]->y[neigh] + xAdd[1] - y;
+                                    real dz = part[b]->z[neigh] + xAdd[2] - z;
                                     
-                                    if (dx*dx+dy*dy+dz*dz < 1)
-                                    {
-                                    
-                                    double vx = part[b]->vx[neigh] - part[a]->vx[i];
-                                    double vy = part[b]->vy[neigh] - part[a]->vy[i];
-                                    double vz = part[b]->vz[neigh] - part[a]->vz[i];
+                                    real vx = part[b]->vx[neigh] - part[a]->vx[i];
+                                    real vy = part[b]->vy[neigh] - part[a]->vy[i];
+                                    real vz = part[b]->vz[neigh] - part[a]->vz[i];
                                     
                                     force<a, b>(dx, dy, dz,  vx, vy, vz,  fx, fy, fz);
                                     
@@ -185,7 +187,6 @@ namespace Forces
                                     part[b]->ax[neigh] -= fx;
                                     part[b]->ay[neigh] -= fy;
                                     part[b]->az[neigh] -= fz;
-                                    }
                                 }
                             }
                         }
@@ -197,7 +198,7 @@ namespace Forces
 }
 
 
-void _normalize(double *x, double n, double x0, double xmax)
+void _normalize(real *x, real n, real x0, real xmax)
 {
 	for (int i=0; i<n; i++)
 	{
@@ -206,9 +207,9 @@ void _normalize(double *x, double n, double x0, double xmax)
 	}
 }
 
-double _kineticNrg(Particles* part)
+real _kineticNrg(Particles* part)
 {
-	double res = 0;	
+	real res = 0;	
 	
 	for (int i=0; i<part->n; i++)
 		res += part->m[i] * (part->vx[i]*part->vx[i] +
@@ -217,7 +218,7 @@ double _kineticNrg(Particles* part)
 	return res*0.5;
 }
 
-void _linMomentum(Particles* part, double& px, double& py, double& pz)
+void _linMomentum(Particles* part, real& px, real& py, real& pz)
 {
 	px = py = pz = 0;
 	
@@ -229,19 +230,19 @@ void _linMomentum(Particles* part, double& px, double& py, double& pz)
 	}
 }
 
-inline void cross(double  ax, double  ay, double  az,
-				  double  bx, double  by, double  bz,
-				  double& rx, double& ry, double& rz)
+inline void cross(real  ax, real  ay, real  az,
+				  real  bx, real  by, real  bz,
+				  real& rx, real& ry, real& rz)
 {
 	rx = ay*bz - az*by;
 	ry = az*bx - ax*bz;
 	rz = ax*by - ay*bx;
 }
 
-void _angMomentum(Particles* part, double& Lx, double& Ly, double& Lz)
+void _angMomentum(Particles* part, real& Lx, real& Ly, real& Lz)
 {
 	Lx = Ly = Lz = 0;
-	double lx, ly, lz;
+	real lx, ly, lz;
 	
 	for (int i=0; i<part->n; i++)
 	{
@@ -255,9 +256,9 @@ void _angMomentum(Particles* part, double& Lx, double& Ly, double& Lz)
 }
 
 
-void _centerOfMass(Particles* part, double& mx, double& my, double& mz)
+void _centerOfMass(Particles* part, real& mx, real& my, real& mz)
 {
-	double totM = 0;
+	real totM = 0;
 	mx = my = mz = 0;
 	
 	for (int i=0; i<part->n; i++)

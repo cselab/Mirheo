@@ -27,8 +27,10 @@ using namespace ErrorHandling;
 int ErrorHandling::debugLvl;
 int ErrorHandling::rank;
 
+minIni *configParser;
 
-#define TYPES 1
+
+#define TYPES 2
 
 template<int N> string Saver<N>::folder("");
 
@@ -41,7 +43,7 @@ int main (int argc, char **argv)
 	vector<OptionStruct> vopts =
 	{
         {'f', "folder",     STRING, "Result folder",      &folder},
-        {'d', "debug",      INT,    "DebigLvl",           &debugLvl},
+        {'d', "debug",      INT,    "DebugLvl",           &debugLvl},
         {'c', "config",     STRING, "Config file",        &config},
 	};
 	
@@ -62,17 +64,17 @@ int main (int argc, char **argv)
 
     int n0       = configParser->geti("Particles", "Ndpd", 3500);
     int n1       = configParser->geti("Particles", "Nsem", 125);
-    double rCut0 = configParser->getf("Particles", "cutdpd", 1);
-    double rCut1 = configParser->getf("Particles", "cutsem", 2.5);
+    real rCut0 = configParser->getf("Particles", "cutdpd", 1);
+    real rCut1 = configParser->getf("Particles", "cutsem", 2.5);
     
-    double temp = configParser->getf("Basic", "temperature", 0.1);
-    double dt   = configParser->getf("Basic", "dt", 0.001);
-    double L    = configParser->getf("Basic", "L",  10);
-    double end  = configParser->getf("Basic", "endTime",  100);
+    real temp = configParser->getf("Basic", "temperature", 0.1);
+    real dt   = configParser->getf("Basic", "dt", 0.001);
+    real L    = configParser->getf("Basic", "L",  10);
+    real end  = configParser->getf("Basic", "endTime",  100);
 
     
     vector<int>    nums  = {n0, n1};
-    vector<double> rCuts = {rCut0, rCut1};
+    vector<real> rCuts = {rCut0, rCut1};
 	Simulation<TYPES> simulation(nums, temp, rCuts, dt, L);
 	simulation.registerSaver(enSaver,   configParser->geti("Savers", "energyPeriod", 100));
 	simulation.registerSaver(posSaver,  configParser->geti("Savers", "positionPeriod", 100));

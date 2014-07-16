@@ -14,7 +14,7 @@
 
 inline void synchro()
 {
-#ifdef __CUDACC__
+#ifdef __MD_USE_CUDA__
 	cudaThreadSynchronize();
 #endif
 }

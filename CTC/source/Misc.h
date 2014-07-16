@@ -17,7 +17,7 @@
 
 typedef double real;
 
-minIni *configParser;
+extern minIni *configParser;
 
 namespace Unroll
 {
