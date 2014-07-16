@@ -232,6 +232,24 @@ void stupidLoad(Particles** part, string fname)
     info("Read %d entries\n", i);
 }
 
+template<typename T>
+T mymax(T* arr, int n)
+{
+    T res = arr[0];
+    for (int i=1; i<n; i++)
+        if (res < arr[i]) res = arr[i];
+    return res;
+}
+
+template<typename T>
+T mymin(T* arr, int n)
+{
+    T res = arr[0];
+    for (int i=1; i<n; i++)
+        if (res > arr[i]) res = arr[i];
+    return res;
+}
+
 template<int N>
 Simulation<N>::Simulation(vector<int> num, real temp, vector<real> rCut, real deltat, real len)
 {
@@ -264,24 +282,32 @@ Simulation<N>::Simulation(vector<int> num, real temp, vector<real> rCut, real de
     uniform_real_distribution<real> utheta(0, M_PI*0.75);
 
     
-    if (N>1) setLattice(part[1]->x, part[1]->y, part[1]->z, 4.8, 4.8, 4.8, part[1]->n);
-
+    //if (N>1) setLattice(part[1]->x, part[1]->y, part[1]->z, 4.8, 4.8, 4.8, part[1]->n);
+    stupidLoad(part, "dump.txt");
+    
+    double xl = mymin(part[1]->x, part[1]->n);
+    double xh = mymax(part[1]->x, part[1]->n);
+    
+    double yl = mymin(part[1]->y, part[1]->n);
+    double yh = mymax(part[1]->y, part[1]->n);
+    
+    double zl = mymin(part[1]->z, part[1]->n);
+    double zh = mymax(part[1]->z, part[1]->n);
+    
     
     for (int i=0; i<num[0]; i++)
     {
-        real r = u0(gen);
-        real phi = uphi(gen);
-        real theta = utheta(gen);
-        
-        part[0]->x[i] = r * sin(theta) * cos(phi);
-        part[0]->y[i] = r * sin(theta) * sin(phi);
-        part[0]->z[i] = r * cos(theta);
+        do
+        {
+            part[0]->x[i] = u1(gen);
+            part[0]->y[i] = u1(gen);
+            part[0]->z[i] = u1(gen);
+        } while (xl < part[0]->x[i] && part[0]->x[i] < xh &&
+                 yl < part[0]->y[i] && part[0]->y[i] < yh &&
+                 zl < part[0]->z[i] && part[0]->z[i] < zh);
     }
 
     //setLattice(part[0]->x, part[0]->y, part[0]->z, L, L, L, part[0]->n);
-    
-    stupidLoad(part, "dump.txt");
-
     // Initialize cell list if we need it
 #ifdef MD_USE_CELLLIST
     real lower[3]  = {x0,   y0,   z0};
