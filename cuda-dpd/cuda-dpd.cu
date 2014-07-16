@@ -1,7 +1,7 @@
 #include <cstdio>
 #include <cassert>
 
-#define _CHECK_
+//#define _CHECK_
 #define _FAT_
 #define _TEXTURES_
 
@@ -13,7 +13,6 @@ struct InfoDPD
     int np, nsamples, rsamples_start;
     float3 domainsize, domainstart;
     float invrc, aij, gamma, sigmaf;
-    
     float *xyzuvw, *axayaz, *rsamples;
     int * starts;
 };
@@ -105,16 +104,16 @@ __global__ void pid2code(int * codes, int * pids)
     iz = max(0, min(info.ncells.z - 1, iz));
 #endif
     
-    codes[pid] = encode(ix, iy, iz);//ix + info.ncells.x * (iy + info.ncells.x * iz);
+    codes[pid] = encode(ix, iy, iz);
     pids[pid] = pid;
 };
 
 const int xbs = 16;
-const int xbs_l = 3;//floor(log2((float)xbs)) -1;
-const int ybs = 3;
-const int ybs_l = 1;//floor(log2((float)ybs)) -1;
+const int xbs_l = 3;
+const int ybs = 4;
+const int ybs_l = 1;
 const int xts = xbs;
-const int yts = 3;
+const int yts = 4;
 
 template <bool vertical>
 __device__ float3 _reduce(float3 val)
@@ -415,7 +414,6 @@ __global__ void _dpd_forces(float * tmp, int * consumed)
 #endif
     {
 	const int cid1 = _cid(i);
-	
 	const int s1 = tex1Dfetch(texStart, cid1);
 	const int e1 = tex1Dfetch(texStart, cid1 + 1);
 	
@@ -440,7 +438,6 @@ __global__ void _dpd_forces(float * tmp, int * consumed)
 		p2counts[l] = e2 - s2;
 
 		atomicAdd(&rconsumption, (e1 - s1) * (e2 - s2));
-		
 	    }
 	    else
 		p2starts[l] = p2counts[l] = 0;
@@ -451,7 +448,6 @@ __global__ void _dpd_forces(float * tmp, int * consumed)
 	__syncthreads();
 
 	if (offsetrsamples + rconsumption >= info.nsamples)
-	    //running out of samples. this is bad.
 	    return;
 
 	_cellcells(s1, e1 - s1, p2starts, p2counts, i == 0, offsetrsamples, axayaz);
@@ -496,6 +492,7 @@ __global__ void _gather(const float * input, const int * indices, float * output
 #include <thrust/sort.h>
 #include <thrust/binary_search.h>
 
+#include "profiler-dpd.h"
 #include "rring-buffer.h"
 
 using namespace thrust;
@@ -513,63 +510,7 @@ inline void cudaAssert(cudaError_t code, const char *file, int line, bool abort=
 
 template<typename T> T * _ptr(device_vector<T>& v) { return raw_pointer_cast(v.data()); }
 
-void _reorder(device_vector<float>& v, device_vector<int>& indx)
-{
-    assert(v.size() == 6 * indx.size());
-    device_vector<float> tmp(v.begin(), v.end());
-   
-    _gather<<<(v.size() + 127) / 128, 128>>>(_ptr(tmp), _ptr(indx), _ptr(v), v.size());
-
-    CUDA_CHECK(cudaPeekAtLastError());
-    CUDA_CHECK(cudaThreadSynchronize());
-}
-
-struct ProfileComputation
-{
-    int count;
-    float tf, tr, tt;
-    cudaEvent_t evstart, evforce, evreduce;
-
-    ProfileComputation(): count(0), tf(0), tr(0), tt(0)
-	{
-	    CUDA_CHECK(cudaEventCreate(&evstart));
-	    CUDA_CHECK(cudaEventCreate(&evforce));
-	    CUDA_CHECK(cudaEventCreate(&evreduce));
-	}
-
-    ~ProfileComputation()
-	{
-	    CUDA_CHECK(cudaEventDestroy(evstart));
-	    CUDA_CHECK(cudaEventDestroy(evforce));
-	    CUDA_CHECK(cudaEventDestroy(evreduce));
-	}
-
-    void start() { CUDA_CHECK(cudaEventRecord(evstart));  }
-    void force() { CUDA_CHECK(cudaEventRecord(evforce));  }
-    void reduce() { CUDA_CHECK(cudaEventRecord(evreduce)); }
-    
-    void report()
-	{
-	    
-	    CUDA_CHECK(cudaEventSynchronize(evreduce));
-	    float tforce, treduce, ttotal;
-	    CUDA_CHECK(cudaEventElapsedTime(&tforce, evstart, evforce));
-	    CUDA_CHECK(cudaEventElapsedTime(&treduce, evforce, evreduce));
-	    CUDA_CHECK(cudaEventElapsedTime(&ttotal, evstart, evreduce));
-	    
-	    tf += tforce;
-	    tr += treduce;
-	    tt += ttotal;
-	    count++;
-	    
-	    if (count % 100 == 0)
-	    {
-		printf("times: %.2f ms %.2f ms -> F %.1f%%\n", tf/count, tr/count, tf/tt * 100);
-	    }
-	}
-} ;
-
-ProfileComputation * myprof = NULL;
+ProfilerDPD * myprof = NULL;
 RRingBuffer * rrbuf = NULL;
 
 void forces_dpd_cuda(float * const _xyzuvw, float * const _axayaz,
@@ -599,13 +540,11 @@ void forces_dpd_cuda(float * const _xyzuvw, float * const _axayaz,
 	initialized = true;
     }
 
-
     if (rrbuf == NULL)
-	rrbuf = new RRingBuffer(50 * np * 3);
+	rrbuf = new RRingBuffer(50 * np * 3 * collapsefactor * collapsefactor * collapsefactor);
 
     if (myprof == NULL)
-	myprof = new ProfileComputation();
-
+	myprof = new ProfilerDPD();
     
     int nx = (int)ceil(XL / (collapsefactor *rc));
     int ny = (int)ceil(YL / (collapsefactor *rc));
@@ -651,11 +590,14 @@ void forces_dpd_cuda(float * const _xyzuvw, float * const _axayaz,
     pid2code<<<(np + 127) / 128, 128>>>(_ptr(codes), _ptr(pids));
 
     sort_by_key(codes.begin(), codes.end(), pids.begin());
-    
-    _reorder(xyzuvw, pids);
+
+    {
+	device_vector<float> tmp(xyzuvw.begin(), xyzuvw.end());
+	_gather<<<(6 * np + 127) / 128, 128>>>(_ptr(tmp), _ptr(pids), _ptr(xyzuvw), 6 * np);
+	CUDA_CHECK(cudaPeekAtLastError());
+    }
     
     device_vector<int> cids(ncells + 1);
-    //createseq<<<ncells
     sequence(cids.begin(), cids.end());
 
     lower_bound(codes.begin(), codes.end(), cids.begin(), cids.end(), starts.begin());
@@ -721,12 +663,19 @@ void forces_dpd_cuda(float * const _xyzuvw, float * const _axayaz,
 	
     myprof->report();
     
-#ifdef _CHECK_
-    CUDA_CHECK(cudaThreadSynchronize());
-    for(int i = 0; i < np; ++i)
-	;//assert((float)xa[i] > 0);
+    if (_rsamples == NULL)
+	rrbuf->update(*consumed);
+    
+    cudaFreeHost(consumed);
+   
+    copy(xyzuvw.begin(), xyzuvw.end(), _xyzuvw);
+    copy(axayaz.begin(), axayaz.end(), _axayaz);
 
-    //printf("positivity test passed\n");
+    if (order != NULL)
+	copy(pids.begin(), pids.end(), order);
+
+    #ifdef _CHECK_
+    CUDA_CHECK(cudaThreadSynchronize());
     
     for(int i = 0; i < np; ++i)
     {
@@ -737,7 +686,6 @@ void forces_dpd_cuda(float * const _xyzuvw, float * const _axayaz,
 
 	printf("devi coords are %f %f %f\n", (float)xyzuvw[0 + 6 * i], (float)xyzuvw[1 + 6 * i], (float)xyzuvw[2 + 6 * i]);
 	printf("host coords are %f %f %f\n", (float)_xyzuvw[0 + 6 * pid], (float)_xyzuvw[1 + 6 * pid], (float)_xyzuvw[2 + 6 * pid]);
-	
 	
 	for(int j = 0; j < np; ++j)
 	{
@@ -759,22 +707,61 @@ void forces_dpd_cuda(float * const _xyzuvw, float * const _axayaz,
 	}
 	printf("i found %d host interactions and with cuda i found %d\n", cnt, (int)axayaz[0 + 3 * i]);
 	assert(cnt == (float)axayaz[0 + 3 * i]);
-
-	//sleep(3);
     }
+    
     printf("test done.\n");
     sleep(1);
     exit(0);
 #endif
-	
-    if (_rsamples == NULL)
-	rrbuf->update(*consumed);
-    
-    cudaFreeHost(consumed);
-   
-    copy(xyzuvw.begin(), xyzuvw.end(), _xyzuvw);
-    copy(axayaz.begin(), axayaz.end(), _axayaz);
+}
 
-    if (order != NULL)
-	copy(pids.begin(), pids.end(), order);
+void forces_dpd_cuda(float * const xp, float * const yp, float * const zp,
+		     float * const xv, float * const yv, float * const zv,
+		     float * const xa, float * const ya, float * const za,
+		     int * const order, const int np,
+		     const float rc,
+		     const float LX, const float LY, const float LZ,
+		     const float aij,
+		     const float gamma,
+		     const float sigma,
+		     const float invsqrtdt,
+		     float * const rsamples, int nsamples)
+{
+    float * pv = new float[6 * np];
+
+    for(int i = 0; i < np; ++i)
+    {
+	pv[0 + 6 * i] = xp[i];
+	pv[1 + 6 * i] = yp[i];
+	pv[2 + 6 * i] = zp[i];
+	pv[3 + 6 * i] = xv[i];
+	pv[4 + 6 * i] = yv[i];
+	pv[5 + 6 * i] = zv[i];
+    }
+
+    float * a = new float[3 * np];
+    
+    forces_dpd_cuda(pv, a, order, np, rc, LX, LY, LZ,
+		    aij, gamma, sigma, invsqrtdt, rsamples,  nsamples);
+
+    for(int i = 0; i < np; ++i)
+    {
+	xp[i] = pv[0 + 6 * i]; 
+	yp[i] = pv[1 + 6 * i]; 
+	zp[i] = pv[2 + 6 * i]; 
+	xv[i] = pv[3 + 6 * i]; 
+	yv[i] = pv[4 + 6 * i]; 
+	zv[i] = pv[5 + 6 * i];
+    }
+
+    delete [] pv;
+     
+    for(int i = 0; i < np; ++i)
+    {
+	xa[i] = a[0 + 3 * i];
+	ya[i] = a[1 + 3 * i];
+	za[i] = a[2 + 3 * i];
+    }
+
+    delete [] a;
 }

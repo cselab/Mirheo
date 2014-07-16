@@ -7,7 +7,7 @@
 #include <vector>
 #include <tuple>
 
-#include "dpd-cuda.h"
+#include "cuda-dpd.h"
 
 using namespace std;
 
@@ -40,15 +40,15 @@ int main()
     int XL = 10;
     int YL = 10;
     int ZL = 10;
-    const int rho = 6;
+    const int rho = 3;
     const int n = XL * YL * ZL * rho;
-    const real gamma = 20.25;
-    const real sigma = 4.5;
-    const real aij = 75. / rho * 0.5;
+    const real gamma = 4.5;
+    const real sigma = 3;
+    const real aij = 25;
     const real rc = 1;
-    const real dt = 0.001;
-    const real tend = 1000;
-    const int steps_per_dump = 200;
+    const real dt = 0.02;
+    const real tend = 100;
+    const int steps_per_dump = 50;
     vector<real> xp(n), yp(n), zp(n), xv(n), yv(n), zv(n), xa(n), ya(n), za(n);
     
     for(int i = 0; i < n; ++i)
@@ -121,7 +121,7 @@ int main()
 
     auto _f = [&]()
 	{
-	    forces_dpd_cuda(
+	      forces_dpd_cuda(
 		    &xp.front(), &yp.front(), &zp.front(),
 		    &xv.front(), &yv.front(), &zv.front(),
 		    &xa.front(), &ya.front(), &za.front(),
@@ -130,7 +130,7 @@ int main()
 		    nullptr, 0);
 
 	    for(int i = 0; i < n; ++i)
-		ya[i] += 0.055 * (2 * (xp[i] > 0) - 1);
+		ya[i] += 0.1 * (2 * (xp[i] > 0) - 1);
 	};
     
     _f();
