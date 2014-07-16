@@ -15,6 +15,7 @@
 #include <sys/stat.h>
 #include <errno.h>
 #include <string>
+#include <assert.h>
 
 #include "Particles.h"
 #include "Profiler.h"
@@ -112,6 +113,10 @@ private:
 #endif
 		
 	void velocityVerlet();
+    void RK2();
+    
+    template<int type>
+    void integrate();
 	
 public:
 	Profiler profiler;
@@ -201,6 +206,32 @@ inline void Saver<N>::setEnsemble(Simulation<N>* e)
 // Simulation implementation
 //**********************************************************************************************************************
 
+void stupidLoad(Particles** part, string fname)
+{
+    // "HONCBFPSKYI"
+    static int mapping[256];
+    mapping['H'] = 0;
+    mapping['O'] = 1;
+    mapping['N'] = 2;
+    mapping['C'] = 3;
+    mapping['B'] = 4;
+    
+    ifstream in(fname);
+    
+    assert(in.good());
+    char dummy;
+    
+    int i=0;
+    while (in.good())
+    {
+        in >> dummy;
+        in >> part[mapping[dummy]]->x[i] >> part[mapping[dummy]]->y[i] >> part[mapping[dummy]]->z[i];
+        i++;
+    }
+    in.close();
+    info("Read %d entries\n", i);
+}
+
 template<int N>
 Simulation<N>::Simulation(vector<int> num, real temp, vector<real> rCut, real deltat, real len)
 {
@@ -227,27 +258,29 @@ Simulation<N>::Simulation(vector<int> num, real temp, vector<real> rCut, real de
 
     // Initial conditions for positions and velocities
 	mt19937 gen;
-    uniform_real_distribution<real> u1(0, 0.25*L);
-    uniform_real_distribution<real> u0(0.4*L, 0.5*L);
+    uniform_real_distribution<real> u1(-0.5*L, 0.5*L);
+    uniform_real_distribution<real> u0(0.35*L, 0.5*L);
     uniform_real_distribution<real> uphi(0, 2*M_PI);
-    uniform_real_distribution<real> utheta(0, M_PI);
+    uniform_real_distribution<real> utheta(0, M_PI*0.75);
 
     
-    if (N>1) setLattice(part[1]->x, part[1]->y, part[1]->z, 7, 3.5, 7, part[1]->n);
+    if (N>1) setLattice(part[1]->x, part[1]->y, part[1]->z, 4.8, 4.8, 4.8, part[1]->n);
 
     
-//    for (int i=0; i<num[0]; i++)
-//    {
-//        real r = u0(gen);
-//        real phi = uphi(gen);
-//        real theta = utheta(gen);
-//        
-//        part[0]->x[i] = r * sin(theta) * cos(phi);
-//        part[0]->y[i] = r * sin(theta) * sin(phi);
-//        part[0]->z[i] = r * cos(theta);
-//    }
+    for (int i=0; i<num[0]; i++)
+    {
+        real r = u0(gen);
+        real phi = uphi(gen);
+        real theta = utheta(gen);
+        
+        part[0]->x[i] = r * sin(theta) * cos(phi);
+        part[0]->y[i] = r * sin(theta) * sin(phi);
+        part[0]->z[i] = r * cos(theta);
+    }
 
-    setLattice(part[0]->x, part[0]->y, part[0]->z, L, L, L, part[0]->n);
+    //setLattice(part[0]->x, part[0]->y, part[0]->z, L, L, L, part[0]->n);
+    
+    stupidLoad(part, "dump.txt");
 
     // Initialize cell list if we need it
 #ifdef MD_USE_CELLLIST
@@ -426,6 +459,8 @@ inline void addForce(real* x, real* ax, int* labels, int n, real F, int label)
             totF += ax[i];
         }
     
+    debug("Total force on the plate: %.5f, over %d atoms\n", totF, num);
+    
     real appliedF = totF / num + F;
     
     for (int i=0; i<n; i++)
@@ -445,7 +480,7 @@ void Simulation<N>::velocityVerlet()
 {
     static bool fixed = false;
     
-    const real begin = 200;
+    const real begin = 50000;
     
     auto prep = [&](int type)
     {
@@ -472,8 +507,8 @@ void Simulation<N>::velocityVerlet()
     
     if (dt*step < begin)
     {
-        lowbound(part[1]->y, part[1]->vy, part[1]->n, dt,  -1.2);
-        highbound(part[1]->y, part[1]->vy, part[1]->n, dt, 2.2);
+        //lowbound(part[1]->y, part[1]->vy, part[1]->n, dt,  -1.2);
+        //highbound(part[1]->y, part[1]->vy, part[1]->n, dt, 2.2);
     }
     else
     {
@@ -517,7 +552,7 @@ void Simulation<N>::velocityVerlet()
     {
         fix(part[1]->ax, part[1]->label, part[1]->n, dt,  2);
         //fix(part[1]->ay, part[1]->label, part[1]->n, dt,  2);
-        addForce(part[1]->y, part[1]->ay, part[1]->label, part[1]->n, 10, 2);
+        addForce(part[1]->y, part[1]->ay, part[1]->label, part[1]->n, 0.1, 2);
         fix(part[1]->az, part[1]->label, part[1]->n, dt,  2);
         
         fix(part[1]->ax, part[1]->label, part[1]->n, dt,  1);

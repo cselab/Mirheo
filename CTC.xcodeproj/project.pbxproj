@@ -779,6 +779,7 @@
 		12D0640D1974191000CB2791 /* Makefile */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.make; path = Makefile; sourceTree = "<group>"; };
 		12D0640F1974191000CB2791 /* Makefile */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.make; path = Makefile; sourceTree = "<group>"; };
 		12D064101974191000CB2791 /* Makefile */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.make; name = Makefile; path = makefiles/Makefile; sourceTree = "<group>"; };
+		12D064161976C94900CB2791 /* dump.txt */ = {isa = PBXFileReference; lastKnownFileType = text; name = dump.txt; path = makefiles/dump.txt; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -1863,6 +1864,7 @@
 		12D06407197418B900CB2791 /* makefiles */ = {
 			isa = PBXGroup;
 			children = (
+				12D064161976C94900CB2791 /* dump.txt */,
 				12D064081974191000CB2791 /* cpu_cell */,
 				12D0640A1974191000CB2791 /* cpu_generic */,
 				12D0640C1974191000CB2791 /* gpu_cell */,

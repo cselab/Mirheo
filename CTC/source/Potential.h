@@ -122,13 +122,13 @@ __host__ __device__ inline void SEM::F(const real dx, const real dy, const real 
     real wr_IrI = w(IrI) / IrI;
         
     real exponent = exp(rho * (1 - r2/req2));
-    real fc = -2*u0 * exponent * (1 - exponent);
+    real fc = -4*u0*rho/req2 * exponent * (1 - exponent);
     real fd = -gamma * wr_IrI * wr_IrI * (dx*vx + dy*vy + dz*vz);   // !!! minus
     real fr = sigma * D * wr_IrI * norm(gen) * dt_1;
     
     real fAbs = -(fc + fd + fr);
     
-    debug("%f     %f\n", IrI, fAbs);
+    debug2("%f     %f\n", IrI, fAbs);
     
     fx = fAbs * dx;
 	fy = fAbs * dy;
