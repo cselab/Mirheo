@@ -248,8 +248,8 @@ void Cells<Object>::migrate()
 	thrust::device_ptr<real> zptr = thrust::device_pointer_cast(zhost);
 	
 	// Calculate index of a cell where a particle is situated
-	thrust::transform(make_zip_iterator(make_tuple(xptr, yptr, zptr)),
-					  make_zip_iterator(make_tuple(xptr + this->nObj, yptr + this->nObj, zptr + this->nObj)),
+	thrust::transform(thrust::make_zip_iterator(thrust::make_tuple(xptr, yptr, zptr)),
+					  thrust::make_zip_iterator(thrust::make_tuple(xptr + this->nObj, yptr + this->nObj, zptr + this->nObj)),
 					  cellids.begin(), *genKeys);	
 	
 	// Rearrange in such a way, that particles in the same cell are close

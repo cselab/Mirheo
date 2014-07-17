@@ -326,7 +326,7 @@ namespace Forces
 }
 
 
-void _normalize(real *x, real n, real xlo, real xhi, int sh=0)
+void _normalize(real *x, int n, real xlo, real xhi, int sh=0)
 {
     real len = xhi - xlo;
 	for (int i=0; i<n; i++)
