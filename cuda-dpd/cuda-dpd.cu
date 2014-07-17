@@ -1,10 +1,7 @@
 #include <cstdio>
 #include <cassert>
 
-//#define _CHECK_
-//#define _FAT_
-
-#define _TEXTURES_
+#define _CHECK_
 
 const int collapsefactor = 1;
 
@@ -19,7 +16,7 @@ struct InfoDPD
 };
 
 __constant__ InfoDPD info;
-
+ 
 #if 0
 const int depth = 4;
 __device__ int encode(int ix, int iy, int iz) 
@@ -112,8 +109,8 @@ __global__ void pid2code(int * codes, int * pids)
 const int xbs = 16;
 const int xts = xbs;
 const int xbs_l = 3;
-const int ybs = 4;
-const int yts = 4;
+const int ybs = 6;
+const int yts = 6;
 const int ybs_l = 2;
 
 template <bool vertical>
@@ -269,8 +266,8 @@ __device__ void _ftable(
 
 texture<float, cudaTextureType1D> texParticles;
 
-__device__ void _cellcells(const int p1start, const int p1count, const int p2start[4], const int p2counts[4],
-			   const bool self, int rsamples_start,
+__device__ void _cellcells(const int p1start, const int p1count, const int p2start[4], const int p2scan[4],
+			   const int maxnp1, const int maxnp2, const bool self, int rsamples_start,
 			   float * const axayaz)
 {
     __shared__ float pva1[9][yts], pva2[9][xts];
@@ -278,58 +275,38 @@ __device__ void _cellcells(const int p1start, const int p1count, const int p2sta
     const int lx = threadIdx.x;
     const int ly = threadIdx.y;
     const int l = lx + blockDim.x * ly;
+    const int BS = blockDim.x * blockDim.y;
 
-    __shared__  int scan[5];
-
-    if (l < 5)
-    {
-	int s = 0;
-	
-	for(int i = 0; i < 4; ++i)
-	    s += p2counts[i] * (i < l);
-		
-	scan[l] = s;
-    }
-
-    __syncthreads();
-
-    const int p2count = scan[4];
+    const int p2count = p2scan[3];
+    assert(p2count >= 0);
     
-    for(int ty = 0; ty < p1count; ty += yts)
+    for(int ty = 0; ty < maxnp1; ty += yts)
     {
 	const int np1 = min(yts, p1count - ty);
 
-	assert(blockDim.x * blockDim.y >= np1 * 6);
+	assert(BS >= np1 * 6);
 
 	if (l < np1 * 6)
-#ifdef _TEXTURES_
 	    pva1[l % 6][l / 6] = tex1Dfetch(texParticles, 6 * (p1start + ty) + l);
-#else
-	    pva1[l % 6][l / 6] = info.xyzuvw[6 * (p1start + ty) + l];
-#endif
 	
 	if (l < np1 * 3)
 	    pva1[6 + (l % 3)][l / 3] = 0;
 	
-	for(int tx = 0; tx < p2count; tx += xts)
+	for(int tx = 0; tx < maxnp2; tx += xts)
 	{
 	    const int np2 = min(xts, p2count - tx);
+	    		
+	    assert(np2 * 6 <= BS);
 	    
-	    if (self && !(tx + xts - 1 > ty))
-		continue;
-
-	    for(int i = l; i < np2 * 6; i += blockDim.x * blockDim.y)
+	    if (l < np2 * 6)
 	    {
-		const int d = i / 6;
+		const int d = l / 6;
 		const int s = tx + d;
-		const int c = i % 6;
-		const int entry = (s >= scan[1]) + (s >= scan[2]) + (s >= scan[3]);
-		const int pid = s - scan[entry] + p2start[entry];
-#ifdef _TEXTURES_
+		const int c = l % 6;
+		const int entry = (s >= p2scan[0]) + (s >= p2scan[1]) + (s >= p2scan[2]);
+		const int pid = s - (entry ? p2scan[entry - 1] : 0) + p2start[entry];
+
 		pva2[c][d] = tex1Dfetch(texParticles, c + 6 * pid);
-#else
-		pva2[c][d] = info.xyzuvw[c + 6 * pid];
-#endif
 	    }
 
 	    __syncthreads();
@@ -338,15 +315,15 @@ __device__ void _cellcells(const int p1start, const int p1count, const int p2sta
 
 	    rsamples_start += np1 * np2;
 
-	    assert(blockDim.x * blockDim.y >= np2 * 3);
+	    assert(BS >= np2 * 3);
 		
 	    if (l < np2 * 3)
 	    {
 		const int s = l / 3;
 		const int d = tx + s;
 		const int c = l % 3;
-		const int entry = (d >= scan[1]) + (d >= scan[2]) + (d >= scan[3]);
-		const int pid = d - scan[entry] + p2start[entry];
+		const int entry = (d >= p2scan[0]) + (d >= p2scan[1]) + (d >= p2scan[2]);
+		const int pid = d - (entry ? p2scan[entry - 1] : 0) + p2start[entry];
 #ifdef _CHECK_
 		axayaz[c + 3 * pid] += pva2[6 + c][s];
 #else
@@ -355,7 +332,7 @@ __device__ void _cellcells(const int p1start, const int p1count, const int p2sta
 	    }	    
 	}
 
-	assert(np1 * 3 <= blockDim.x * blockDim.y);
+	assert(np1 * 3 <= BS);
 	
 	if (l < np1 * 3)
 	    axayaz[l + 3 * (p1start + ty)] += pva1[6 + (l % 3)][l / 3];
@@ -364,11 +341,7 @@ __device__ void _cellcells(const int p1start, const int p1count, const int p2sta
 
 __device__ int _cid(int shiftcode)
 {
-#ifdef _FAT_
-    int3 indx = decode(blockIdx.x / 4 + info.ncells.x * (blockIdx.y + info.ncells.y * blockIdx.z));
-#else
     int3 indx = decode(blockIdx.x + info.ncells.x * (blockIdx.y + info.ncells.y * blockIdx.z));
-#endif
 	    
     indx.x += (shiftcode & 1);
     indx.y += ((shiftcode >> 1) & 1);
@@ -389,70 +362,84 @@ texture<int, cudaTextureType1D> texStart;
 
 __global__ void _dpd_forces(float * tmp, int * consumed)
 {
-#ifdef _FAT_
-    const int idpass = blockIdx.x % 4;
-    const int xcid = blockIdx.x / 4;
-    
-    const int idbuf = idpass + 4 * ((xcid & 1) | ((blockIdx.y & 1) << 1) | ((blockIdx.z & 1) << 2));
-
-    float * const axayaz = tmp + 3 * info.np * idbuf;
-#else
     const int idbuf = (blockIdx.x & 1) | ((blockIdx.y & 1) << 1) | ((blockIdx.z & 1) << 2);
-
     float * const axayaz = tmp + 3 * info.np * idbuf;
-#endif
     
     const bool master = threadIdx.x + threadIdx.y == 0;
     const int l = threadIdx.x + blockDim.x * threadIdx.y;
-   
-    __shared__ int offsetrsamples, rconsumption;
-    __shared__ int p2starts[4], p2counts[4];
 
-#ifndef _FAT_
-    for(int i = 0; i < 4; ++i)
-#else
-	const int i = idpass;
-#endif
+    __shared__ int offsetrsamples, rconsumption, maxnp1, maxnp2;
+    __shared__ int p1starts[4], p1counts[4];
+    __shared__ int p2starts[4][4], p2scans[4][4];
+
+    if (master)
+	rconsumption = 0;
+
+    if (l < 4 * 4)
     {
-	const int cid1 = _cid(i);
-	const int s1 = tex1Dfetch(texStart, cid1);
-	const int e1 = tex1Dfetch(texStart, cid1 + 1);
-	
-	const int nentries = edgeslutcount[i];
-	const int entrystart = edgeslutstart[i];
+	const int i = l / 4;
+	const int j = l % 4;
 
-	if (master)
-	    rconsumption = 0;
-	
-	assert(4 < warpSize);
-	
-	if (l < 4)
-	    if (l < nentries)
-	    {
-		const int cid2 = _cid(edgeslut[l + entrystart]);
-		assert(!(cid1 == cid2) || i == 0 && l == 0);
-
-		const int s2 = tex1Dfetch(texStart, cid2);
-		const int e2 = tex1Dfetch(texStart, cid2 + 1);
-	     		
-		p2starts[l] = s2;
-		p2counts[l] = e2 - s2;
-
-		atomicAdd(&rconsumption, (e1 - s1) * (e2 - s2));
-	    }
-	    else
-		p2starts[l] = p2counts[l] = 0;
+	if (j == 0)
+	{
+	    const int cid1 = _cid(i);
+	    p1starts[i] = tex1Dfetch(texStart, cid1);
+	    p1counts[i] = tex1Dfetch(texStart, cid1 + 1);
+	}
 		
-	if (master)
-	    offsetrsamples = atomicAdd(consumed, rconsumption);
+	if (j < edgeslutcount[i])
+	{
+	    const int cid2 = _cid(edgeslut[j + edgeslutstart[i]]);
 	    
-	__syncthreads();
+	    p2starts[i][j] = tex1Dfetch(texStart, cid2);
+	    p2scans[i][j] = tex1Dfetch(texStart, cid2 + 1);
+	}
+	else
+	    p2scans[i][j] = p2starts[i][j] = 0;
 
-	if (offsetrsamples + rconsumption >= info.nsamples)
-	    return;
-
-	_cellcells(s1, e1 - s1, p2starts, p2counts, i == 0, offsetrsamples, axayaz);
+	if (j == 0)
+	    p1counts[i] -= p1starts[i];
+	
+	int myp1count = __shfl(p1counts[i], i * 4 + 0);
+	myp1count = max(myp1count, __shfl_xor(myp1count, 8));
+	myp1count = max(myp1count, __shfl_xor(myp1count, 4));
+	
+	if (master)
+	    maxnp1 = myp1count;
+			
+	int entryscan = p2scans[i][j] - p2starts[i][j];
+	
+	entryscan += (j >= 1) * __shfl_up(entryscan, 1);
+	entryscan += (j >= 2) * __shfl_up(entryscan, 2);
+	p2scans[i][j] = entryscan;
+	
+	const int r0 = entryscan * p1counts[i];
+	const int e1m = __shfl_xor(entryscan, 4);
+	const int e1r = __shfl_xor(r0, 4);
+	const int m1 = max(entryscan, e1m);
+	const int r1 = r0 + e1r;
+	const int e2m = __shfl_xor(m1, 8);
+	const int e2r = __shfl_xor(r1, 8);
+	const int m2 = max(m1, e2m);
+	const int r2 = r1 + e2r;
+	
+	if (l == 3)
+	{
+	    maxnp2 = m2;
+	    rconsumption = r2;
+	    offsetrsamples = atomicAdd(consumed, rconsumption);
+	}
     }
+
+    __syncthreads();    
+    
+    if (offsetrsamples + rconsumption >= info.nsamples)
+	return;
+
+    _cellcells(p1starts[0], p1counts[0], p2starts[0], p2scans[0], maxnp1, maxnp2, true, offsetrsamples, axayaz);
+    _cellcells(p1starts[1], p1counts[1], p2starts[1], p2scans[1], maxnp1, maxnp2, false, offsetrsamples, axayaz);
+    _cellcells(p1starts[2], p1counts[2], p2starts[2], p2scans[2], maxnp1, maxnp2, false , offsetrsamples, axayaz);
+    _cellcells(p1starts[3], p1counts[3], p2starts[3], p2scans[3], maxnp1, maxnp2, false , offsetrsamples, axayaz);
 }
 
 __global__ void _reduce(float * tmp)
@@ -463,11 +450,8 @@ __global__ void _reduce(float * tmp)
 
     if (tid < info.np * 3)
     {
-#ifdef _FAT_
-	const int nbufs = 32;
-#else
 	const int nbufs = 8;
-#endif
+
 	float s = 0;
 	for(int idbuf = 0; idbuf < nbufs ; ++idbuf)
 	    s += tmp[tid + 3 * info.np * idbuf];
@@ -634,11 +618,8 @@ void forces_dpd_cuda(float * const _xyzuvw, float * const _axayaz,
 
 	float * tmp;
 
-#ifdef _FAT_
-	const int nreplica = 96;
-#else
 	const int nreplica = 24;
-#endif
+
 	CUDA_CHECK(cudaMalloc(&tmp, sizeof(float) * np * nreplica));
 	CUDA_CHECK(cudaMemset(tmp, 0, sizeof(float) * np * nreplica));
 	
@@ -647,11 +628,7 @@ void forces_dpd_cuda(float * const _xyzuvw, float * const _axayaz,
 
 	myprof->start();
 	
-#ifdef _FAT_
-	_dpd_forces<<<dim3(c.ncells.x * 4, c.ncells.y, c.ncells.z), dim3(xbs, ybs, 1)>>>(tmp, dconsumed);
-#else
 	_dpd_forces<<<dim3(c.ncells.x, c.ncells.y, c.ncells.z), dim3(xbs, ybs, 1)>>>(tmp, dconsumed);
-#endif
 
 	myprof->force();
 	CUDA_CHECK(cudaPeekAtLastError());

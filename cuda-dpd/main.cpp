@@ -113,9 +113,10 @@ int main()
     std::mt19937 gen(rd());
     std::normal_distribution<> dgauss(0, 1);
 
+    int cnt = 0;
     auto _f = [&]()
 	{
-	    if (cuda)
+	    if (cuda)// && cnt++ >= 5)
 	    {
 		vector<float> rsamples;
 
