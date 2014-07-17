@@ -28,6 +28,11 @@ inline void _allocate(Particles* part)
 	part->ax = new real[n];
 	part->ay = new real[n];
 	part->az = new real[n];
+    
+    part->bx = new real[n];
+	part->by = new real[n];
+	part->bz = new real[n];
+    
 	part->m  = new real[n];
     
     part->label = new int[n];
@@ -70,12 +75,12 @@ inline void _nuscal(real *y, real *x, int n) // y[i] = y[i] / x[i]
 }*/
 
 
-inline real _periodize(real val, real l, real l_2)
+inline real _periodize(real val, real lo, real hi, real size)
 {
-	if (val > l_2)
-		return val - l;
-	if (val < -l_2)
-		return val + l;
+	if (val > hi)
+		return val - size;
+	if (val < lo)
+		return val + size;
 	return val;
 }
 
@@ -84,8 +89,9 @@ namespace Forces
     struct Arguments
     {
         static Particles** part;
-        static real L;
+        static real xlo, xhi, ylo, yhi, zlo, zhi;
         static Cells<Particles>** cells;
+        static vector<real> rCuts;
     };
     
     template<int a, int b>
@@ -96,16 +102,21 @@ namespace Forces
             real fx, fy, fz;
             real dx, dy, dz;
             real vx, vy, vz;
-            real L_2 = 0.5*L;
+            
+            if (part[a]->n <= 0 || part[b]->n <= 0) return;
+            
+            real sizex = xhi - xlo;
+            real sizey = yhi - yhi;
+            real sizez = zhi - zlo;
             
             for (int i = 0; i<part[a]->n; i++)
             {
                 //UnrollerP<>::step( ((a == b) ? i+1 : 0), part[b]->n, [&] (int j)
                 for (int j = ((a == b) ? i+1 : 0); j<part[b]->n; j++)
                 {
-                    dx = _periodize(part[b]->x[j] - part[a]->x[i], L, L_2);
-                    dy = _periodize(part[b]->y[j] - part[a]->y[i], L, L_2);
-                    dz = _periodize(part[b]->z[j] - part[a]->z[i], L, L_2);
+                    dx = _periodize(part[b]->x[j] - part[a]->x[i], xlo, xhi, sizex);
+                    dy = _periodize(part[b]->y[j] - part[a]->y[i], ylo, yhi, sizey);
+                    dz = _periodize(part[b]->z[j] - part[a]->z[i], zlo, zhi, sizez);
                     
                     vx = part[b]->vx[j] - part[a]->vx[i];
                     vy = part[b]->vy[j] - part[a]->vy[i];
@@ -137,6 +148,8 @@ namespace Forces
             real xAdd[3];
 
             real fx, fy, fz;
+            
+            if (part[a]->n <= 0 || part[b]->n <= 0) return;
 
             // Loop over all the particles
             for (int i=0; i<part[a]->n; i++)
@@ -170,6 +183,8 @@ namespace Forces
                                 int neigh = cells[b]->pobjids[j];
                                 if (a != b || i > neigh)
                                 {
+                                    debug("%d %d\n", i, neigh);
+
                                     real dx = part[b]->x[neigh] + xAdd[0] - x;
                                     real dy = part[b]->y[neigh] + xAdd[1] - y;
                                     real dz = part[b]->z[neigh] + xAdd[2] - z;
@@ -193,6 +208,127 @@ namespace Forces
             }
         }
     };
+    
+    
+    template<int a, int b>
+    struct _Cells1 : Arguments
+    {
+        static const int stride = 2;
+        void exec(int sx, int sy, int sz)
+        {
+            int ij[3];
+            real xAdd[3];
+            
+            Cells<Particles>& c = *cells[a];
+            real rCut2 = rCuts[a] * rCuts[a];
+            real fx, fy, fz;
+            
+            if (part[a]->n <= 0 || part[b]->n <= 0) return;
+            
+#pragma omp parallel for collapse(3)
+            for (int ix=sx; ix<c.n0; ix+=stride)
+                for (int iy=sy; iy<c.n1; iy+=stride)
+                    for (int iz=sz; iz<c.n2; iz+=stride)
+                    {
+                        const int origIJ[3] = {ix, iy, iz};
+                        int srcId = c.getCellIndByIJ(origIJ);
+                        
+                        int srcBegin = c.pstart[srcId];
+                        int srcEnd   = c.pstart[srcId+1];
+                        
+                        // All but self-self
+                        for (int neigh = 0; neigh < 13; neigh++)
+                        {
+                            const int sh[3] = {neigh / 9 - 1, (neigh / 3) % 3 - 1, neigh % 3 - 1};
+                            
+                            // Resolve periodicity
+                            for (int k=0; k<3; k++)
+                                ij[k] = origIJ[k] + sh[k];
+                            
+                            cells[a]->correct(ij, xAdd);
+                            
+                            int dstId    = c.getCellIndByIJ(ij);
+                            int dstBegin = c.pstart[dstId];
+                            int dstEnd   = c.pstart[dstId+1];
+                            
+                            for (int j=srcBegin; j<srcEnd; j++)
+                            {
+                                int src = c.pobjids[j];
+                                for (int k=dstBegin; k<dstEnd; k++)
+                                {
+                                    int dst = c.pobjids[k];
+                                    //debug("%d %d\n", src, dst);
+
+                                    const real dx = part[a]->x[dst] + xAdd[0] - part[a]->x[src];
+                                    const real dy = part[a]->y[dst] + xAdd[1] - part[a]->y[src];
+                                    const real dz = part[a]->z[dst] + xAdd[2] - part[a]->z[src];
+                                    
+                                    const real r2 = dx*dx + dy*dy + dz*dz;
+                                    if (r2 < rCut2)
+                                    {
+                                        real vx = part[a]->vx[dst] - part[a]->vx[src];
+                                        real vy = part[a]->vy[dst] - part[a]->vy[src];
+                                        real vz = part[a]->vz[dst] - part[a]->vz[src];
+                                        
+                                        force<a, b>(dx, dy, dz,  vx, vy, vz,  fx, fy, fz);
+                                        
+                                        part[a]->bx[src] += fx;
+                                        part[a]->by[src] += fy;
+                                        part[a]->bz[src] += fz;
+                                        
+                                        part[a]->bx[dst] -= fx;
+                                        part[a]->by[dst] -= fy;
+                                        part[a]->bz[dst] -= fz;
+                                    }
+                                }
+                            }
+                        }
+                        
+                        // And now self-self
+                        for (int j=srcBegin; j<srcEnd; j++)
+                        {
+                            int src = c.pobjids[j];
+                            for (int k=j+1; k<srcEnd; k++)
+                            {
+                                int dst = c.pobjids[k];
+                                debug("%d %d\n", src, dst);
+
+                                
+                                const real dx = part[a]->x[dst] - part[a]->x[src];
+                                const real dy = part[a]->y[dst] - part[a]->y[src];
+                                const real dz = part[a]->z[dst] - part[a]->z[src];
+                                
+                                const real r2 = dx*dx + dy*dy + dz*dz;
+                                if (r2 < rCut2)
+                                {
+                                    real vx = part[a]->vx[dst] - part[a]->vx[src];
+                                    real vy = part[a]->vy[dst] - part[a]->vy[src];
+                                    real vz = part[a]->vz[dst] - part[a]->vz[src];
+                                    
+                                    force<a, b>(dx, dy, dz,  vx, vy, vz,  fx, fy, fz);
+                                    
+                                    part[a]->bx[src] += fx;
+                                    part[a]->by[src] += fy;
+                                    part[a]->bz[src] += fz;
+                                    
+                                    part[a]->bx[dst] -= fx;
+                                    part[a]->by[dst] -= fy;
+                                    part[a]->bz[dst] -= fz;
+                                }
+                            }
+                        }
+                    }
+        }
+        
+        void operator()()
+        {
+            for (int i=0; i<stride; i++)
+                for (int j=0; j<stride; j++)
+                    for (int k=0; k<stride; k++)
+                        exec(i, j, k);
+        }
+    };
+
 
 
 }

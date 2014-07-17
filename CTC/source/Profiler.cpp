@@ -124,6 +124,8 @@ string Profiler::printStat()
 			<< fixed << setprecision(3) << setw(20) << it->second.total * factor / it->second.iterations
 			<< fixed << setprecision(1) << setw(20) << it->second.total / total * 100 / it->second.iterations << endl;
 	}
+    
+    timings.clear();
 	
 	return out.str();
 }

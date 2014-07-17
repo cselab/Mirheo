@@ -44,7 +44,7 @@ public:
 public:
 	
 	inline CellsInfo(real, real[Dims], real[Dims]);
-	__host__ __device__ inline int  getCellIndByIJ(int[Dims]);
+	__host__ __device__ inline int  getCellIndByIJ(const int[Dims]);
 	__host__ __device__ inline void getCellIJByInd(int, int[Dims]);
 	__host__ __device__ inline int  which(real x0, real x1, real x2);
 	__host__ __device__ inline void correct(int *ij, real *xAdd);
@@ -125,7 +125,7 @@ inline CellsInfo::CellsInfo(real size, real low[Dims], real high[Dims])
 	mult0 = mult1 * n0;
 }
 
-__host__ __device__ inline int CellsInfo::getCellIndByIJ(int ij[Dims])
+__host__ __device__ inline int CellsInfo::getCellIndByIJ(const int ij[Dims])
 {
 	int res = mult0*ij[0] + mult1*ij[1] + mult2*ij[2];
 	

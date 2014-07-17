@@ -12,14 +12,13 @@
 
 //**********************************************************************************************************************
 // Particles
-//
-// Structure of arrays is used for efficient the computations
 //**********************************************************************************************************************
 struct Particles
 {
 	real *x,  *y,  *z;
 	real *vx, *vy, *vz;
 	real *ax, *ay, *az;
+	real *bx, *by, *bz; // olala
 	real *m;
 	real *tmp;
     

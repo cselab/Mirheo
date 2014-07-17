@@ -107,7 +107,6 @@ public:
 	void exec()
 	{
         static const char* atoms = "HONCBFPSKYI";
-#ifndef __MD_USE_CUDA__
 		Particles** p = this->my->getParticles();
 		
         int tot = 0;
@@ -121,7 +120,50 @@ public:
             for (int i = 0; i < p[type]->n; i++)
                 *this->file << atoms[type] << " " << p[type]->x[i] << " " << p[type]->y[i] << " " << p[type]->z[i] << endl;
 		this->file->flush();
-#endif
+	}
+};
+
+template<int N>
+class SaveRestart: public Saver<N>
+{
+    string fname;
+    int spaceOddity;
+    bool continuous;
+    
+public:
+	SaveRestart (string fname, bool continuous = false) :
+        fname(fname), spaceOddity(0), continuous(continuous) {};
+    
+	void exec()
+	{
+        Particles** p = this->my->getParticles();
+        ofstream out((this->folder + fname + to_string(spaceOddity)).c_str(), ios::out | ios::binary);
+		
+        if (continuous)
+            spaceOddity++;
+        else
+            spaceOddity = spaceOddity ? 0 : 1;
+        
+        int n = N;
+        out.write((char*)&n, sizeof(int));
+        
+        for (int i = 0; i<N; i++)
+        {
+            out.write((char*)&p[i]->n, sizeof(int));
+            
+            out.write((char*)p[i]->x,  p[i]->n*sizeof(real));
+            out.write((char*)p[i]->y,  p[i]->n*sizeof(real));
+            out.write((char*)p[i]->z,  p[i]->n*sizeof(real));
+
+            out.write((char*)p[i]->vx, p[i]->n*sizeof(real));
+            out.write((char*)p[i]->vy, p[i]->n*sizeof(real));
+            out.write((char*)p[i]->vz, p[i]->n*sizeof(real));
+            
+            out.write((char*)p[i]->m,  p[i]->n*sizeof(real));
+            
+            out.write((char*)p[i]->label, p[i]->n*sizeof(int));
+        }
+        out.close();
 	}
 };
 

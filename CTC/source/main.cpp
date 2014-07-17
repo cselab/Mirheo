@@ -37,7 +37,7 @@ template<int N> string Saver<N>::folder("");
 int main (int argc, char **argv)
 {
     string folder = "res/";
-    string config = "/Users/alexeedm/Documents/projects/CTC/CTC/makefiles/config.ini";
+    string config = "/Users/alexeedm/Documents/projects/CTC/CTC/makefiles/100relax.ini";
     debugLvl = 2;
 	
 	vector<OptionStruct> vopts =
@@ -61,6 +61,7 @@ int main (int argc, char **argv)
 	Saver<TYPES>     *massSaver = new SaveCenterOfMass<TYPES>(configParser->gets("Savers", "COMFile", "com.txt"));
 	Saver<TYPES>     *timeSaver = new SaveTiming<TYPES>      (configParser->gets("Savers", "timingFile", "screen"));
     Saver<TYPES>     *tempSaver = new SaveTemperature<TYPES> (configParser->gets("Savers", "temperatureFile", "temp.txt"));
+    Saver<TYPES>     *restarter = new SaveRestart<TYPES>     (configParser->gets("Savers", "restartFile", "restart"));
 
     int n0       = configParser->geti("Particles", "Ndpd", 3500);
     int n1       = configParser->geti("Particles", "Nsem", 125);
@@ -69,13 +70,19 @@ int main (int argc, char **argv)
     
     real temp = configParser->getf("Basic", "temperature", 0.1);
     real dt   = configParser->getf("Basic", "dt", 0.001);
-    real L    = configParser->getf("Basic", "L",  10);
     real end  = configParser->getf("Basic", "endTime",  100);
 
     
-    vector<int>    nums  = {n0, n1};
+    vector<int>  nums  = {n0, n1};
     vector<real> rCuts = {rCut0, rCut1};
-	Simulation<TYPES> simulation(nums, temp, rCuts, dt, L);
+	Simulation<TYPES> simulation(dt);
+    
+    string restartFile = configParser->gets("Basic", "restartFrom", "none");
+    if (restartFile == "none")
+        simulation.setIC(nums, rCuts);
+    else
+        simulation.loadRestart(restartFile, rCuts);
+    
 	simulation.registerSaver(enSaver,   configParser->geti("Savers", "energyPeriod", 100));
 	simulation.registerSaver(posSaver,  configParser->geti("Savers", "positionPeriod", 100));
 	simulation.registerSaver(linSaver,  configParser->geti("Savers", "linMomentumPeriod", 100));
@@ -83,6 +90,7 @@ int main (int argc, char **argv)
 	simulation.registerSaver(massSaver, configParser->geti("Savers", "COMPeriod", 100));
 	simulation.registerSaver(timeSaver, configParser->geti("Savers", "timingPeriod", 100));
     simulation.registerSaver(tempSaver, configParser->geti("Savers", "temperaturePeriod", 100));
+    simulation.registerSaver(restarter, configParser->geti("Savers", "restartPeriod", 1000));
 	simulation.profiler.millisec();
 	
 	int iters = ceil(end / dt);
