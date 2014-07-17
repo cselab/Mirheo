@@ -12,6 +12,7 @@
 #include "timer.h"
 #include "Simulation.h"
 #include "Misc.h"
+#include "Particles.h"
 
 using namespace std;
 
@@ -118,7 +119,7 @@ public:
 		
         for (int type = 0; type < N; type++)
             for (int i = 0; i < p[type]->n; i++)
-                *this->file << atoms[type] << " " << p[type]->x[i] << " " << p[type]->y[i] << " " << p[type]->z[i] << endl;
+                *this->file << atoms[type] << " " << p[type]->x(i) << " " << p[type]->y(i) << " " << p[type]->z(i) << endl;
 		this->file->flush();
 	}
 };
@@ -151,13 +152,8 @@ public:
         {
             out.write((char*)&p[i]->n, sizeof(int));
             
-            out.write((char*)p[i]->x,  p[i]->n*sizeof(real));
-            out.write((char*)p[i]->y,  p[i]->n*sizeof(real));
-            out.write((char*)p[i]->z,  p[i]->n*sizeof(real));
-
-            out.write((char*)p[i]->vx, p[i]->n*sizeof(real));
-            out.write((char*)p[i]->vy, p[i]->n*sizeof(real));
-            out.write((char*)p[i]->vz, p[i]->n*sizeof(real));
+            out.write((char*)p[i]->xdata,  3*p[i]->n*sizeof(real));
+            out.write((char*)p[i]->vdata,  3*p[i]->n*sizeof(real));
             
             out.write((char*)p[i]->m,  p[i]->n*sizeof(real));
             

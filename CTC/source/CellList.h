@@ -44,7 +44,7 @@ public:
 public:
 	
 	inline CellsInfo(real, real[Dims], real[Dims]);
-	__host__ __device__ inline int  getCellIndByIJ(const int[Dims]);
+	__host__ __device__ inline int  getCellIndByIJ(int[Dims]);
 	__host__ __device__ inline void getCellIJByInd(int, int[Dims]);
 	__host__ __device__ inline int  which(real x0, real x1, real x2);
 	__host__ __device__ inline void correct(int *ij, real *xAdd);
@@ -54,6 +54,10 @@ public:
 template <typename Objects>
 class Cells : public CellsInfo
 {
+    real *xhost;
+    real *yhost;
+    real *zhost;
+    
 public:
 	Objects* objects;
 	int      nObj;
@@ -125,7 +129,7 @@ inline CellsInfo::CellsInfo(real size, real low[Dims], real high[Dims])
 	mult0 = mult1 * n0;
 }
 
-__host__ __device__ inline int CellsInfo::getCellIndByIJ(const int ij[Dims])
+__host__ __device__ inline int CellsInfo::getCellIndByIJ(int ij[Dims])
 {
 	int res = mult0*ij[0] + mult1*ij[1] + mult2*ij[2];
 	
@@ -219,6 +223,10 @@ objects(obj), nObj(nObj), CellsInfo(size, low, high)
 	this->pstart   = raw_pointer_cast(&start[0]);
 	this->pobjids  = raw_pointer_cast(&objids[0]);
 	this->pcellids = raw_pointer_cast(&cellids[0]);
+    
+    xhost = new real[this->nObj];
+    yhost = new real[this->nObj];
+    zhost = new real[this->nObj];
 	
 	genKeys = new GenerateKeys(*this);
 	
@@ -228,18 +236,24 @@ objects(obj), nObj(nObj), CellsInfo(size, low, high)
 template <typename Object>
 void Cells<Object>::migrate()
 {
+    for (int i=0; i<this->nObj; i++)
+    {
+        xhost[i] = this->objects->xdata[3*i+0];
+        yhost[i] = this->objects->xdata[3*i+1];
+        zhost[i] = this->objects->xdata[3*i+2];
+    }
 	// Wrap the arrays with thrust vectors
-	thrust::device_ptr<real> xptr = thrust::device_pointer_cast(this->objects->x);
-	thrust::device_ptr<real> yptr = thrust::device_pointer_cast(this->objects->y);
-	thrust::device_ptr<real> zptr = thrust::device_pointer_cast(this->objects->z);
+	thrust::device_ptr<real> xptr = thrust::device_pointer_cast(xhost);
+	thrust::device_ptr<real> yptr = thrust::device_pointer_cast(yhost);
+	thrust::device_ptr<real> zptr = thrust::device_pointer_cast(zhost);
 	
 	// Calculate index of a cell where a particle is situated
-	thrust::transform(thrust::make_zip_iterator(thrust::make_tuple(xptr, yptr, zptr)),
-					  thrust::make_zip_iterator(thrust::make_tuple(xptr + this->nObj, yptr + this->nObj, zptr + this->nObj)),
+	thrust::transform(make_zip_iterator(make_tuple(xptr, yptr, zptr)),
+					  make_zip_iterator(make_tuple(xptr + this->nObj, yptr + this->nObj, zptr + this->nObj)),
 					  cellids.begin(), *genKeys);	
 	
 	// Rearrange in such a way, that particles in the same cell are close
-	thrust::sequence(objids.begin(), objids.end(), 0);
+	thrust::sequence(objids.begin(), objids.end(), 0);		
 	thrust::sort_by_key(cellids.begin(), cellids.end(), objids.begin());
 	
 	

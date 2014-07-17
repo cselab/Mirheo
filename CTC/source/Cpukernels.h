@@ -19,20 +19,10 @@
 inline void _allocate(Particles* part)
 {
 	int n = part->n;
-	part->x  = new real[n];
-	part->y  = new real[n];
-	part->z  = new real[n];
-	part->vx = new real[n];
-	part->vy = new real[n];
-	part->vz = new real[n];
-	part->ax = new real[n];
-	part->ay = new real[n];
-	part->az = new real[n];
-    
-    part->bx = new real[n];
-	part->by = new real[n];
-	part->bz = new real[n];
-    
+	part->xdata  = new real[3*n];
+	part->vdata  = new real[3*n];
+	part->adata  = new real[3*n];
+	   
 	part->m  = new real[n];
     
     part->label = new int[n];
@@ -60,7 +50,7 @@ inline void _axpy(real *y, real *x, int n, real a)
 inline void _nuscal(real *y, real *x, int n) // y[i] = y[i] / x[i]
 {
 	for (int i=0; i<n; i++)
-		y[i] /= x[i];
+		y[i] /= x[i/3];
 }
 
 /*inline real _periodize(real val, real l, real l_2)
@@ -114,23 +104,23 @@ namespace Forces
                 //UnrollerP<>::step( ((a == b) ? i+1 : 0), part[b]->n, [&] (int j)
                 for (int j = ((a == b) ? i+1 : 0); j<part[b]->n; j++)
                 {
-                    dx = _periodize(part[b]->x[j] - part[a]->x[i], xlo, xhi, sizex);
-                    dy = _periodize(part[b]->y[j] - part[a]->y[i], ylo, yhi, sizey);
-                    dz = _periodize(part[b]->z[j] - part[a]->z[i], zlo, zhi, sizez);
+                    dx = _periodize(part[b]->x(j) - part[a]->x(i), xlo, xhi, sizex);
+                    dy = _periodize(part[b]->y(j) - part[a]->y(i), ylo, yhi, sizey);
+                    dz = _periodize(part[b]->z(j) - part[a]->z(i), zlo, zhi, sizez);
                     
-                    vx = part[b]->vx[j] - part[a]->vx[i];
-                    vy = part[b]->vy[j] - part[a]->vy[i];
-                    vz = part[b]->vz[j] - part[a]->vz[i];
+                    vx = part[b]->vx(j) - part[a]->vx(i);
+                    vy = part[b]->vy(j) - part[a]->vy(i);
+                    vz = part[b]->vz(j) - part[a]->vz(i);
                     
                     force<a, b>(dx, dy, dz,  vx, vy, vz,  fx, fy, fz);
                     
-                    part[a]->ax[i] += fx;
-                    part[a]->ay[i] += fy;
-                    part[a]->az[i] += fz;
+                    part[a]->ax(i) += fx;
+                    part[a]->ay(i) += fy;
+                    part[a]->az(i) += fz;
                     
-                    part[b]->ax[j] -= fx;
-                    part[b]->ay[j] -= fy;
-                    part[b]->az[j] -= fz;
+                    part[b]->ax(j) -= fx;
+                    part[b]->ay(j) -= fy;
+                    part[b]->az(j) -= fz;
                 }
             }
         }
@@ -154,9 +144,9 @@ namespace Forces
             // Loop over all the particles
             for (int i=0; i<part[a]->n; i++)
             {
-                real x = part[a]->x[i];
-                real y = part[a]->y[i];
-                real z = part[a]->z[i];
+                real x = part[a]->x(i);
+                real y = part[a]->y(i);
+                real z = part[a]->z(i);
 
                 // Get id of the cell and its coordinates
                 int cid = cells[b]->which(x, y, z);
@@ -185,23 +175,23 @@ namespace Forces
                                 {
                                     debug("%d %d\n", i, neigh);
 
-                                    real dx = part[b]->x[neigh] + xAdd[0] - x;
-                                    real dy = part[b]->y[neigh] + xAdd[1] - y;
-                                    real dz = part[b]->z[neigh] + xAdd[2] - z;
+                                    real dx = part[b]->x(neigh) + xAdd[0] - x;
+                                    real dy = part[b]->y(neigh) + xAdd[1] - y;
+                                    real dz = part[b]->z(neigh) + xAdd[2] - z;
                                     
-                                    real vx = part[b]->vx[neigh] - part[a]->vx[i];
-                                    real vy = part[b]->vy[neigh] - part[a]->vy[i];
-                                    real vz = part[b]->vz[neigh] - part[a]->vz[i];
+                                    real vx = part[b]->vx(neigh) - part[a]->vx(i);
+                                    real vy = part[b]->vy(neigh) - part[a]->vy(i);
+                                    real vz = part[b]->vz(neigh) - part[a]->vz(i);
                                     
                                     force<a, b>(dx, dy, dz,  vx, vy, vz,  fx, fy, fz);
                                     
-                                    part[a]->ax[i] += fx;
-                                    part[a]->ay[i] += fy;
-                                    part[a]->az[i] += fz;
+                                    part[a]->ax(i) += fx;
+                                    part[a]->ay(i) += fy;
+                                    part[a]->az(i) += fz;
                                     
-                                    part[b]->ax[neigh] -= fx;
-                                    part[b]->ay[neigh] -= fy;
-                                    part[b]->az[neigh] -= fz;
+                                    part[b]->ax(neigh) -= fx;
+                                    part[b]->ay(neigh) -= fy;
+                                    part[b]->az(neigh) -= fz;
                                 }
                             }
                         }
@@ -216,16 +206,18 @@ namespace Forces
         static const int stride = 2;
         void exec(int sx, int sy, int sz)
         {
-            Cells<Particles>& c = *cells[a];
             real rCut2 = rCuts[a] * rCuts[a];
             
             if (part[a]->n <= 0 || part[b]->n <= 0) return;
             
-#pragma omp parallel for collapse(3)
-            for (int ix=sx; ix<c.n0; ix+=stride)
-                for (int iy=sy; iy<c.n1; iy+=stride)
-                    for (int iz=sz; iz<c.n2; iz+=stride)
+//#pragma omp parallel for collapse(3)
+            for (int ix=sx; ix<cells[a]->n0; ix+=stride)
+                for (int iy=sy; iy<cells[a]->n1; iy+=stride)
+                    for (int iz=sz; iz<cells[a]->n2; iz+=stride)
+#pragma omp task
                     {
+                        Cells<Particles>& c = *cells[a];
+
                         int ij[3];
                         real xAdd[3];
                         real fx, fy, fz;
@@ -258,26 +250,26 @@ namespace Forces
                                 {
                                     int dst = c.pobjids[k];
 
-                                    const real dx = part[a]->x[dst] + xAdd[0] - part[a]->x[src];
-                                    const real dy = part[a]->y[dst] + xAdd[1] - part[a]->y[src];
-                                    const real dz = part[a]->z[dst] + xAdd[2] - part[a]->z[src];
+                                    const real dx = part[a]->x(dst) + xAdd[0] - part[a]->x(src);
+                                    const real dy = part[a]->y(dst) + xAdd[1] - part[a]->y(src);
+                                    const real dz = part[a]->z(dst) + xAdd[2] - part[a]->z(src);
                                     
                                     const real r2 = dx*dx + dy*dy + dz*dz;
                                     if (r2 < rCut2)
                                     {
-                                        real vx = part[a]->vx[dst] - part[a]->vx[src];
-                                        real vy = part[a]->vy[dst] - part[a]->vy[src];
-                                        real vz = part[a]->vz[dst] - part[a]->vz[src];
+                                        real vx = part[a]->vx(dst) - part[a]->vx(src);
+                                        real vy = part[a]->vy(dst) - part[a]->vy(src);
+                                        real vz = part[a]->vz(dst) - part[a]->vz(src);
                                         
                                         force<a, b>(dx, dy, dz,  vx, vy, vz,  fx, fy, fz);
 
-                                        part[a]->bx[src] += fx;
-                                        part[a]->by[src] += fy;
-                                        part[a]->bz[src] += fz;
+                                        part[a]->ax(src) += fx;
+                                        part[a]->ay(src) += fy;
+                                        part[a]->az(src) += fz;
                                         
-                                        part[a]->bx[dst] -= fx;
-                                        part[a]->by[dst] -= fy;
-                                        part[a]->bz[dst] -= fz;
+                                        part[a]->ax(dst) -= fx;
+                                        part[a]->ay(dst) -= fy;
+                                        part[a]->az(dst) -= fz;
                                     }
                                 }
                             }
@@ -293,30 +285,31 @@ namespace Forces
                                 debug("%d %d\n", src, dst);
 
                                 
-                                const real dx = part[a]->x[dst] - part[a]->x[src];
-                                const real dy = part[a]->y[dst] - part[a]->y[src];
-                                const real dz = part[a]->z[dst] - part[a]->z[src];
+                                const real dx = part[a]->x(dst) - part[a]->x(src);
+                                const real dy = part[a]->y(dst) - part[a]->y(src);
+                                const real dz = part[a]->z(dst) - part[a]->z(src);
                                 
                                 const real r2 = dx*dx + dy*dy + dz*dz;
                                 if (r2 < rCut2)
                                 {
-                                    real vx = part[a]->vx[dst] - part[a]->vx[src];
-                                    real vy = part[a]->vy[dst] - part[a]->vy[src];
-                                    real vz = part[a]->vz[dst] - part[a]->vz[src];
+                                    real vx = part[a]->vx(dst) - part[a]->vx(src);
+                                    real vy = part[a]->vy(dst) - part[a]->vy(src);
+                                    real vz = part[a]->vz(dst) - part[a]->vz(src);
                                     
                                     force<a, b>(dx, dy, dz,  vx, vy, vz,  fx, fy, fz);
                                     
-                                    part[a]->bx[src] += fx;
-                                    part[a]->by[src] += fy;
-                                    part[a]->bz[src] += fz;
+                                    part[a]->ax(src) += fx;
+                                    part[a]->ay(src) += fy;
+                                    part[a]->az(src) += fz;
                                     
-                                    part[a]->bx[dst] -= fx;
-                                    part[a]->by[dst] -= fy;
-                                    part[a]->bz[dst] -= fz;
+                                    part[a]->ax(dst) -= fx;
+                                    part[a]->ay(dst) -= fy;
+                                    part[a]->az(dst) -= fz;
                                 }
                             }
                         }
                     }
+            #pragma omp taskwait
         }
         
         void operator()()
@@ -333,12 +326,14 @@ namespace Forces
 }
 
 
-void _normalize(real *x, real n, real x0, real xmax)
+void _normalize(real *x, real n, real xlo, real xhi, int sh=0)
 {
+    real len = xhi - xlo;
 	for (int i=0; i<n; i++)
 	{
-		if (x[i] > xmax) x[i] -= xmax - x0;
-		if (x[i] < x0)   x[i] += xmax - x0;
+        int ind = 3*i + sh;
+		if (x[ind] > xhi) x[ind] -= len;
+		if (x[ind] < xlo) x[ind] += len;
 	}
 }
 
@@ -347,9 +342,9 @@ real _kineticNrg(Particles* part)
 	real res = 0;	
 	
 	for (int i=0; i<part->n; i++)
-		res += part->m[i] * (part->vx[i]*part->vx[i] +
-							 part->vy[i]*part->vy[i] +
-							 part->vz[i]*part->vz[i]);
+		res += part->m[i] * (part->vx(i)*part->vx(i) +
+							 part->vy(i)*part->vy(i) +
+							 part->vz(i)*part->vz(i));
 	return res*0.5;
 }
 
@@ -359,9 +354,9 @@ void _linMomentum(Particles* part, real& px, real& py, real& pz)
 	
 	for (int i=0; i<part->n; i++)
 	{
-		px += part->m[i] * part->vx[i];
-		py += part->m[i] * part->vy[i];
-		pz += part->m[i] * part->vz[i];
+		px += part->m[i] * part->vx(i);
+		py += part->m[i] * part->vy(i);
+		pz += part->m[i] * part->vz(i);
 	}
 }
 
@@ -381,8 +376,8 @@ void _angMomentum(Particles* part, real& Lx, real& Ly, real& Lz)
 	
 	for (int i=0; i<part->n; i++)
 	{
-		cross(part->x[i],  part->y[i],  part->z[i],
-			  part->vx[i], part->vy[i], part->vz[i], 
+		cross(part->x(i),  part->y(i),  part->z(i),
+			  part->vx(i), part->vy(i), part->vz(i),
 			  lx,          ly,          lz);
 		Lx += part->m[i] * lx;
 		Ly += part->m[i] * ly;
@@ -398,9 +393,9 @@ void _centerOfMass(Particles* part, real& mx, real& my, real& mz)
 	
 	for (int i=0; i<part->n; i++)
 	{
-		mx += part->m[i] * part->x[i];
-		my += part->m[i] * part->y[i];
-		mz += part->m[i] * part->z[i];
+		mx += part->m[i] * part->x(i);
+		my += part->m[i] * part->y(i);
+		mz += part->m[i] * part->z(i);
 		
 		totM += part->m[i];
 	}

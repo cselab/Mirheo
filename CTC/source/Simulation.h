@@ -156,7 +156,7 @@ public:
 	Profiler profiler;
 
 	Simulation (real);
-	void setLattice(real *x, real *y, real *z, real lx, real ly, real lz, int n);
+	void setLattice(Particles* p, real lx, real ly, real lz, int n);
     void setIC(vector<int>, vector<real>);
     void loadRestart(string fname, vector<real>);
 	
@@ -263,7 +263,7 @@ void stupidLoad(Particles** part, string fname)
     while (in.good())
     {
         in >> dummy;
-        in >> part[mapping[dummy]]->x[i] >> part[mapping[dummy]]->y[i] >> part[mapping[dummy]]->z[i];
+        in >> part[mapping[dummy]]->x(i) >> part[mapping[dummy]]->y(i) >> part[mapping[dummy]]->z(i);
         i++;
     }
     in.close();
@@ -334,29 +334,29 @@ void Simulation<N>::setIC(vector<int> num, vector<real> rCuts)
     uniform_real_distribution<real> utheta(0, M_PI*0.75);
     
     
-    if (N>1) setLattice(part[1]->x, part[1]->y, part[1]->z, 8, 8, 8, part[1]->n);
+    if (N>1) setLattice(part[1], 8, 8, 8, part[1]->n);
     //stupidLoad(part, "/Users/alexeedm/Documents/projects/CTC/CTC/makefiles/dump.txt");
     
-    double xl = mymin(part[1]->x, part[1]->n);
-    double xh = mymax(part[1]->x, part[1]->n);
+    double xl = xlo;//mymin(part[1]->x, part[1]->n);
+    double xh = xhi;//mymax(part[1]->x, part[1]->n);
     
-    double yl = mymin(part[1]->y, part[1]->n);
-    double yh = mymax(part[1]->y, part[1]->n);
+    double yl = ylo;//mymin(part[1]->y, part[1]->n);
+    double yh = yhi;//mymax(part[1]->y, part[1]->n);
     
-    double zl = mymin(part[1]->z, part[1]->n);
-    double zh = mymax(part[1]->z, part[1]->n);
+    double zl = zlo;//mymin(part[1]->z, part[1]->n);
+    double zh = zhi;//mymax(part[1]->z, part[1]->n);
     
     
     for (int i=0; i<num[0]; i++)
     {
         do
         {
-            part[0]->x[i] = ux(gen);
-            part[0]->y[i] = uy(gen);
-            part[0]->z[i] = uz(gen);
-        } while (xl < part[0]->x[i] && part[0]->x[i] < xh &&
-                 yl < part[0]->y[i] && part[0]->y[i] < yh &&
-                 zl < part[0]->z[i] && part[0]->z[i] < zh);
+            part[0]->x(i) = ux(gen);
+            part[0]->y(i) = uy(gen);
+            part[0]->z(i) = uz(gen);
+        } while (xl < part[0]->x(i) && part[0]->x(i) < xh &&
+                 yl < part[0]->y(i) && part[0]->y(i) < yh &&
+                 zl < part[0]->z(i) && part[0]->z(i) < zh);
     }
     
     //setLattice(part[0]->x, part[0]->y, part[0]->z, L, L, L, part[0]->n);
@@ -373,13 +373,8 @@ void Simulation<N>::setIC(vector<int> num, vector<real> rCuts)
     
     for (int type=0; type<N; type++)
     {
-        _fill(part[type]->vx, part[type]->n, (real)0.0);
-        _fill(part[type]->vy, part[type]->n, (real)0.0);
-        _fill(part[type]->vz, part[type]->n, (real)0.0);
-        
-        _fill(part[type]->ax,part[type]->n, (real)0.0);
-        _fill(part[type]->ay,part[type]->n, (real)0.0);
-        _fill(part[type]->az,part[type]->n, (real)0.0);
+        _fill(part[type]->vdata, 3*part[type]->n, (real)0.0);
+        _fill(part[type]->adata, 3*part[type]->n, (real)0.0);
         
         _fill(part[type]->m, part[type]->n, (real)1.0);
         _fill(part[type]->label, part[type]->n, 0);
@@ -409,25 +404,14 @@ void Simulation<N>::loadRestart(string fname, vector<real> rCuts)
         part[i]->n = n;
         _allocate(part[i]);
         
-        in.read((char*)part[i]->x,  n*sizeof(real));
-        in.read((char*)part[i]->y,  n*sizeof(real));
-        in.read((char*)part[i]->z,  n*sizeof(real));
-        
-        in.read((char*)part[i]->vx, n*sizeof(real));
-        in.read((char*)part[i]->vy, n*sizeof(real));
-        in.read((char*)part[i]->vz, n*sizeof(real));
+        in.read((char*)part[i]->xdata,  3*n*sizeof(real));
+        in.read((char*)part[i]->vdata,  3*n*sizeof(real));
         
         in.read((char*)part[i]->m,  n*sizeof(real));
         in.read((char*)part[i]->label, n*sizeof(int));
         
-        _fill(part[i]->ax,part[i]->n, (real)0.0);
-        _fill(part[i]->ay,part[i]->n, (real)0.0);
-        _fill(part[i]->az,part[i]->n, (real)0.0);
-        
-        _fill(part[i]->bx,part[i]->n, (real)0.0);
-        _fill(part[i]->by,part[i]->n, (real)0.0);
-        _fill(part[i]->bz,part[i]->n, (real)0.0);
-                
+        _fill(part[i]->adata, 3*part[i]->n, (real)0.0);
+
 #ifdef MD_USE_CELLLIST
         if (part[i]->n > 0) cells[i] = new Cells<Particles>(part[i], part[i]->n, rCuts[i], lower, higher);
         else cells[i] = NULL;
@@ -440,7 +424,7 @@ void Simulation<N>::loadRestart(string fname, vector<real> rCuts)
 }
 
 template<int N>
-void Simulation<N>::setLattice(real *x, real *y, real *z, real lx, real ly, real lz, int n)
+void Simulation<N>::setLattice(Particles* p, real lx, real ly, real lz, int n)
 {
 	real h = pow(lx*ly*lz/n, 1.0/3);
     int nx = ceil(lx/h);
@@ -453,9 +437,9 @@ void Simulation<N>::setLattice(real *x, real *y, real *z, real lx, real ly, real
 	
 	for (int tot=0; tot<n; tot++)
 	{
-		x[tot] = i*h - lx/2;
-		y[tot] = j*h - ly/2;
-		z[tot] = k*h - lz/2;
+		p->x(tot) = i*h - lx/2;
+		p->y(tot) = j*h - ly/2;
+		p->z(tot) = k*h - lz/2;
 		
 		i++;
 		if (i > nx)
@@ -560,21 +544,14 @@ void Simulation<N>::velocityVerlet()
 {
     auto prep = [&](int type)
     {
-        _axpy(part[type]->vx, part[type]->ax,part[type]->n, dt*0.5);
-        _axpy(part[type]->vy, part[type]->ay,part[type]->n, dt*0.5);
-        _axpy(part[type]->vz, part[type]->az,part[type]->n, dt*0.5);
+        _axpy(part[type]->vdata, part[type]->adata, 3*part[type]->n, dt*0.5);
+        _axpy(part[type]->xdata, part[type]->vdata, 3*part[type]->n, dt);
         
-        _axpy(part[type]->x, part[type]->vx,part[type]->n, dt);
-        _axpy(part[type]->y, part[type]->vy,part[type]->n, dt);
-        _axpy(part[type]->z, part[type]->vz,part[type]->n, dt);
+        _normalize(part[type]->xdata, part[type]->n, xlo, xhi, 0);
+        _normalize(part[type]->xdata, part[type]->n, ylo, yhi, 1);
+        _normalize(part[type]->xdata, part[type]->n, zlo, zhi, 2);
         
-        _normalize(part[type]->x,part[type]->n, xlo, xhi);
-        _normalize(part[type]->y,part[type]->n, ylo, yhi);
-        _normalize(part[type]->z,part[type]->n, zlo, zhi);
-        
-        _fill(part[type]->ax,part[type]->n, (real)0.0);
-        _fill(part[type]->ay,part[type]->n, (real)0.0);
-        _fill(part[type]->az,part[type]->n, (real)0.0);
+        _fill(part[type]->adata, 3*part[type]->n, (real)0.0);
     };
     
     profiler.start("K1");
@@ -592,9 +569,9 @@ void Simulation<N>::velocityVerlet()
     profiler.stop();
 #endif
     
-    //profiler.start("K2");
-    //Unroller2<0, N, 0, N>::step();
-    //profiler.stop();
+//    profiler.start("K2");
+//    Unroller2<0, N, 0, N>::step();
+//    profiler.stop();
 
     profiler.start("K3");
     Unroller3<0, N, 0, N>::step();
@@ -602,14 +579,8 @@ void Simulation<N>::velocityVerlet()
 
     auto fin = [&](int type)
     {
-        _nuscal(part[type]->ax, part[type]->m, part[type]->n);
-        _nuscal(part[type]->ay, part[type]->m, part[type]->n);
-        _nuscal(part[type]->az, part[type]->m, part[type]->n);
-        
-        _axpy(part[type]->vx, part[type]->ax, part[type]->n, dt*0.5);
-        _axpy(part[type]->vy, part[type]->ay, part[type]->n, dt*0.5);
-        _axpy(part[type]->vz, part[type]->az, part[type]->n, dt*0.5);
-        
+        _nuscal(part[type]->adata, part[type]->m,       part[type]->n);
+        _axpy(part[type]->vdata,   part[type]->adata, 3*part[type]->n, dt*0.5);
     };
     
     Unroller<0, N>::step(fin);
@@ -627,21 +598,21 @@ void Simulation<N>::runOneStep()
 	
 	if (step == 0)
     {
-        Unroller2<0, N, 0, N>::step();
-        debug("\n\n\n\n\n\n\n");
+        //Unroller2<0, N, 0, N>::step();
+        //debug("\n\n\n\n\n\n\n");
         Unroller3<0, N, 0, N>::step();
         
-        for (int i = 0; i< part[1]->n; i++)
-        {
-            if (fabs(part[1]->ax[i] - part[1]->bx[i]) > 1e-5)
-                warn("X, i = %3i:  %.6f   instead of  %.6f !!\n", i, part[1]->bx[i], part[1]->ax[i]);
-            
-            if (fabs(part[1]->ay[i] - part[1]->by[i]) > 1e-5)
-                warn("Y, i = %3i:  %.6f   instead of  %.6f !!\n", i, part[1]->by[i], part[1]->ay[i]);
-            
-            if (fabs(part[1]->az[i] - part[1]->bz[i]) > 1e-5)
-                warn("Z, i = %3i:  %.6f   instead of  %.6f !!\n", i, part[1]->bz[i], part[1]->az[i]);
-        }
+//        for (int i = 0; i< part[1]->n; i++)
+//        {
+//            if (fabs(part[1]->ax[i] - part[1]->bx[i]) > 1e-5)
+//                warn("X, i = %3i:  %.6f   instead of  %.6f !!\n", i, part[1]->bx[i], part[1]->ax[i]);
+//            
+//            if (fabs(part[1]->ay[i] - part[1]->by[i]) > 1e-5)
+//                warn("Y, i = %3i:  %.6f   instead of  %.6f !!\n", i, part[1]->by[i], part[1]->ay[i]);
+//            
+//            if (fabs(part[1]->az[i] - part[1]->bz[i]) > 1e-5)
+//                warn("Z, i = %3i:  %.6f   instead of  %.6f !!\n", i, part[1]->bz[i], part[1]->az[i]);
+//        }
     }
     
 	step++;

@@ -15,11 +15,19 @@
 //**********************************************************************************************************************
 struct Particles
 {
-	real *x,  *y,  *z;
-	real *vx, *vy, *vz;
-	real *ax, *ay, *az;
-	real *bx, *by, *bz; // olala
-	real *m;
+    real *xdata, *vdata, *adata;
+    
+    inline real& x (const int i) {return xdata[3*i + 0];}
+    inline real& y (const int i) {return xdata[3*i + 1];}
+    inline real& z (const int i) {return xdata[3*i + 2];}
+    inline real& vx(const int i) {return xdata[3*i + 0];}
+    inline real& vy(const int i) {return xdata[3*i + 1];}
+    inline real& vz(const int i) {return xdata[3*i + 2];}
+    inline real& ax(const int i) {return xdata[3*i + 0];}
+    inline real& ay(const int i) {return xdata[3*i + 1];}
+    inline real& az(const int i) {return xdata[3*i + 2];}
+    
+    real *m;
 	real *tmp;
     
     int *label;
