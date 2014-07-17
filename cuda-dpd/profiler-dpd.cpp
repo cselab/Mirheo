@@ -1,5 +1,8 @@
+#include <cstdlib>
 #include <cstdio>
 #include <unistd.h>
+
+#include <cuda_profiler_api.h>
 
 #include "profiler-dpd.h"
 
@@ -14,7 +17,15 @@ inline void cudaAssert(cudaError_t code, const char *file, int line, bool abort=
     }
 }
 
-ProfilerDPD::ProfilerDPD(): count(0), tf(0), tr(0), tt(0)
+void ProfilerDPD::start()
+{
+    if (nvprof)
+	CUDA_CHECK(cudaProfilerStart());
+    
+    CUDA_CHECK(cudaEventRecord(evstart));
+}
+
+ProfilerDPD::ProfilerDPD(bool nvprof): count(0), tf(0), tr(0), tt(0), nvprof(nvprof)
 {
     CUDA_CHECK(cudaEventCreate(&evstart));
     CUDA_CHECK(cudaEventCreate(&evforce));
@@ -49,6 +60,10 @@ void ProfilerDPD::_flush(bool init)
 void ProfilerDPD::report()
 {
     CUDA_CHECK(cudaEventSynchronize(evreduce));
+
+    if (nvprof)
+	CUDA_CHECK(cudaProfilerStop());
+    
     float tforce, treduce, ttotal;
     CUDA_CHECK(cudaEventElapsedTime(&tforce, evstart, evforce));
     CUDA_CHECK(cudaEventElapsedTime(&treduce, evforce, evreduce));

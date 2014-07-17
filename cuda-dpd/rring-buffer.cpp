@@ -1,4 +1,7 @@
 #include <cassert>
+#include <algorithm>
+
+using namespace std;
 
 #include "rring-buffer.h"
 

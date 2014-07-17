@@ -1,6 +1,16 @@
-override CXXFLAGS += -g -O2 -std=c++11 
-NVCCFLAGS = -arch=compute_30 -g -Xcompiler -fpic -O4
-#-O4 -DNDEBUG
+override CXXFLAGS += -g -O2 -std=c++11 -I/usr/local/cuda-5.5/include/
+
+NVCCFLAGS = -arch=compute_30 -Xptxas -dlcm=cg -O4 -Xcompiler -fpic
+
+ifeq "$(profile)" "1"
+NVCCFLAGS += -lineinfo -D_PROFILE_ -g
+endif
+
+ifneq "$(debug)" "1"
+NVCCFLAGS += -DNDEBUG
+else
+NVCCFLAGS += -g
+endif
 
 NVCC = nvcc
 
@@ -13,11 +23,11 @@ libcuda-dpd.so: cuda-dpd.o rring-buffer.o profiler-dpd.o
 cuda-dpd.o: cuda-dpd.cu cuda-dpd.h
 	$(NVCC) $(NVCCFLAGS) -c cuda-dpd.cu
 
-rring-buffer.o: rring-buffer.cu rring-buffer.h
-	$(NVCC) $(NVCCFLAGS) -c rring-buffer.cu
+rring-buffer.o: rring-buffer.cpp rring-buffer.h
+	$(CXX) $(CXXFLAGS) -c rring-buffer.cpp
 
-profiler-dpd.o:	profiler-dpd.cu profiler-dpd.h
-	$(NVCC) $(NVCCFLAGS) -c profiler-dpd.cu
+profiler-dpd.o:	profiler-dpd.cpp profiler-dpd.h
+	$(CXX) $(CXXFLAGS) -c profiler-dpd.cpp
 
 clean:
 	rm -f test libcuda-dpd.so *.o 

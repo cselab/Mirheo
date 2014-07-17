@@ -2,7 +2,8 @@
 #include <cassert>
 
 //#define _CHECK_
-#define _FAT_
+//#define _FAT_
+
 #define _TEXTURES_
 
 const int collapsefactor = 1;
@@ -109,11 +110,11 @@ __global__ void pid2code(int * codes, int * pids)
 };
 
 const int xbs = 16;
+const int xts = xbs;
 const int xbs_l = 3;
 const int ybs = 4;
-const int ybs_l = 1;
-const int xts = xbs;
 const int yts = 4;
+const int ybs_l = 2;
 
 template <bool vertical>
 __device__ float3 _reduce(float3 val)
@@ -535,7 +536,11 @@ void forces_dpd_cuda(float * const _xyzuvw, float * const _axayaz,
 	    abort();
 	}
 	else
+	{
 	    cudaSetDeviceFlags(cudaDeviceMapHost);
+	    cudaDeviceSetCacheConfig (cudaFuncCachePreferShared);
+	    //cudaDeviceSetCacheConfig(cudaFuncCachePreferL1);
+	}
 
 	initialized = true;
     }
@@ -544,7 +549,11 @@ void forces_dpd_cuda(float * const _xyzuvw, float * const _axayaz,
 	rrbuf = new RRingBuffer(50 * np * 3 * collapsefactor * collapsefactor * collapsefactor);
 
     if (myprof == NULL)
-	myprof = new ProfilerDPD();
+#ifdef _PROFILE_
+	myprof = new ProfilerDPD(true);
+#else
+    myprof = new ProfilerDPD(false);
+#endif
     
     int nx = (int)ceil(XL / (collapsefactor *rc));
     int ny = (int)ceil(YL / (collapsefactor *rc));
@@ -674,7 +683,7 @@ void forces_dpd_cuda(float * const _xyzuvw, float * const _axayaz,
     if (order != NULL)
 	copy(pids.begin(), pids.end(), order);
 
-    #ifdef _CHECK_
+#ifdef _CHECK_
     CUDA_CHECK(cudaThreadSynchronize());
     
     for(int i = 0; i < np; ++i)
@@ -682,19 +691,19 @@ void forces_dpd_cuda(float * const _xyzuvw, float * const _axayaz,
 	printf("pid %d -> %f %f %f\n", i, (float)axayaz[0 + 3 * i], (float)axayaz[1 + 3* i], (float)axayaz[2 + 3 *i]);
 
 	int cnt = 0;
-	const int pid = pids[i];
+	//const int pid = pids[i];
 
 	printf("devi coords are %f %f %f\n", (float)xyzuvw[0 + 6 * i], (float)xyzuvw[1 + 6 * i], (float)xyzuvw[2 + 6 * i]);
-	printf("host coords are %f %f %f\n", (float)_xyzuvw[0 + 6 * pid], (float)_xyzuvw[1 + 6 * pid], (float)_xyzuvw[2 + 6 * pid]);
+	printf("host coords are %f %f %f\n", (float)_xyzuvw[0 + 6 * i], (float)_xyzuvw[1 + 6 * i], (float)_xyzuvw[2 + 6 * i]);
 	
 	for(int j = 0; j < np; ++j)
 	{
-	    if (pid == j)
+	    if (i == j)
 		continue;
  
-	    float xr = _xyzuvw[0 + 6 * pid] - _xyzuvw[0 + 6 * j];
-	    float yr = _xyzuvw[1 + 6 * pid] - _xyzuvw[1 + 6 * j];
-	    float zr = _xyzuvw[2 + 6 * pid] - _xyzuvw[2 + 6 * j];
+	    float xr = _xyzuvw[0 + 6 *i] - _xyzuvw[0 + 6 * j];
+	    float yr = _xyzuvw[1 + 6 *i] - _xyzuvw[1 + 6 * j];
+	    float zr = _xyzuvw[2 + 6 *i] - _xyzuvw[2 + 6 * j];
 
 	    xr -= c.domainsize.x *  ::floor(0.5f + xr / c.domainsize.x);
 	    yr -= c.domainsize.y *  ::floor(0.5f + yr / c.domainsize.y);
