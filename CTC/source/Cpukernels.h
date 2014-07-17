@@ -216,12 +216,8 @@ namespace Forces
         static const int stride = 2;
         void exec(int sx, int sy, int sz)
         {
-            int ij[3];
-            real xAdd[3];
-            
             Cells<Particles>& c = *cells[a];
             real rCut2 = rCuts[a] * rCuts[a];
-            real fx, fy, fz;
             
             if (part[a]->n <= 0 || part[b]->n <= 0) return;
             
@@ -230,7 +226,11 @@ namespace Forces
                 for (int iy=sy; iy<c.n1; iy+=stride)
                     for (int iz=sz; iz<c.n2; iz+=stride)
                     {
-                        const int origIJ[3] = {ix, iy, iz};
+                        int ij[3];
+                        real xAdd[3];
+                        real fx, fy, fz;
+                        
+                        int origIJ[3] = {ix, iy, iz};
                         int srcId = c.getCellIndByIJ(origIJ);
                         
                         int srcBegin = c.pstart[srcId];
@@ -245,7 +245,7 @@ namespace Forces
                             for (int k=0; k<3; k++)
                                 ij[k] = origIJ[k] + sh[k];
                             
-                            cells[a]->correct(ij, xAdd);
+                            c.correct(ij, xAdd);
                             
                             int dstId    = c.getCellIndByIJ(ij);
                             int dstBegin = c.pstart[dstId];
@@ -257,7 +257,6 @@ namespace Forces
                                 for (int k=dstBegin; k<dstEnd; k++)
                                 {
                                     int dst = c.pobjids[k];
-                                    //debug("%d %d\n", src, dst);
 
                                     const real dx = part[a]->x[dst] + xAdd[0] - part[a]->x[src];
                                     const real dy = part[a]->y[dst] + xAdd[1] - part[a]->y[src];
@@ -271,7 +270,7 @@ namespace Forces
                                         real vz = part[a]->vz[dst] - part[a]->vz[src];
                                         
                                         force<a, b>(dx, dy, dz,  vx, vy, vz,  fx, fy, fz);
-                                        
+
                                         part[a]->bx[src] += fx;
                                         part[a]->by[src] += fy;
                                         part[a]->bz[src] += fz;

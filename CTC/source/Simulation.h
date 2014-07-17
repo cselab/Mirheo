@@ -373,15 +373,15 @@ void Simulation<N>::setIC(vector<int> num, vector<real> rCuts)
     
     for (int type=0; type<N; type++)
     {
-        _fill(part[type]->vx, part[type]->n, 0.0);
-        _fill(part[type]->vy, part[type]->n, 0.0);
-        _fill(part[type]->vz, part[type]->n, 0.0);
+        _fill(part[type]->vx, part[type]->n, (real)0.0);
+        _fill(part[type]->vy, part[type]->n, (real)0.0);
+        _fill(part[type]->vz, part[type]->n, (real)0.0);
         
-        _fill(part[type]->ax,part[type]->n, 0.0);
-        _fill(part[type]->ay,part[type]->n, 0.0);
-        _fill(part[type]->az,part[type]->n, 0.0);
+        _fill(part[type]->ax,part[type]->n, (real)0.0);
+        _fill(part[type]->ay,part[type]->n, (real)0.0);
+        _fill(part[type]->az,part[type]->n, (real)0.0);
         
-        _fill(part[type]->m, part[type]->n, 1.0);
+        _fill(part[type]->m, part[type]->n, (real)1.0);
         _fill(part[type]->label, part[type]->n, 0);
     }
     
@@ -420,13 +420,13 @@ void Simulation<N>::loadRestart(string fname, vector<real> rCuts)
         in.read((char*)part[i]->m,  n*sizeof(real));
         in.read((char*)part[i]->label, n*sizeof(int));
         
-        _fill(part[i]->ax,part[i]->n, 0.0);
-        _fill(part[i]->ay,part[i]->n, 0.0);
-        _fill(part[i]->az,part[i]->n, 0.0);
+        _fill(part[i]->ax,part[i]->n, (real)0.0);
+        _fill(part[i]->ay,part[i]->n, (real)0.0);
+        _fill(part[i]->az,part[i]->n, (real)0.0);
         
-        _fill(part[i]->bx,part[i]->n, 0.0);
-        _fill(part[i]->by,part[i]->n, 0.0);
-        _fill(part[i]->bz,part[i]->n, 0.0);
+        _fill(part[i]->bx,part[i]->n, (real)0.0);
+        _fill(part[i]->by,part[i]->n, (real)0.0);
+        _fill(part[i]->bz,part[i]->n, (real)0.0);
                 
 #ifdef MD_USE_CELLLIST
         if (part[i]->n > 0) cells[i] = new Cells<Particles>(part[i], part[i]->n, rCuts[i], lower, higher);
@@ -572,9 +572,9 @@ void Simulation<N>::velocityVerlet()
         _normalize(part[type]->y,part[type]->n, ylo, yhi);
         _normalize(part[type]->z,part[type]->n, zlo, zhi);
         
-        _fill(part[type]->ax,part[type]->n, 0.0);
-        _fill(part[type]->ay,part[type]->n, 0.0);
-        _fill(part[type]->az,part[type]->n, 0.0);
+        _fill(part[type]->ax,part[type]->n, (real)0.0);
+        _fill(part[type]->ay,part[type]->n, (real)0.0);
+        _fill(part[type]->az,part[type]->n, (real)0.0);
     };
     
     profiler.start("K1");
@@ -633,13 +633,13 @@ void Simulation<N>::runOneStep()
         
         for (int i = 0; i< part[1]->n; i++)
         {
-            if (fabs(part[1]->ax[i] - part[1]->bx[i]) > 1e-8)
+            if (fabs(part[1]->ax[i] - part[1]->bx[i]) > 1e-5)
                 warn("X, i = %3i:  %.6f   instead of  %.6f !!\n", i, part[1]->bx[i], part[1]->ax[i]);
             
-            if (fabs(part[1]->ay[i] - part[1]->by[i]) > 1e-8)
+            if (fabs(part[1]->ay[i] - part[1]->by[i]) > 1e-5)
                 warn("Y, i = %3i:  %.6f   instead of  %.6f !!\n", i, part[1]->by[i], part[1]->ay[i]);
             
-            if (fabs(part[1]->az[i] - part[1]->bz[i]) > 1e-8)
+            if (fabs(part[1]->az[i] - part[1]->bz[i]) > 1e-5)
                 warn("Z, i = %3i:  %.6f   instead of  %.6f !!\n", i, part[1]->bz[i], part[1]->az[i]);
         }
     }
