@@ -48,7 +48,7 @@ int main()
     const bool cuda = true;
     const bool curand = true;
     const real dt = 0.02;
-    const real tend = 10;
+    const real tend = 3;
     
     vector<real> xp(n), yp(n), zp(n), xv(n), yv(n), zv(n), xa(n), ya(n), za(n);
     srand48(6516L);
