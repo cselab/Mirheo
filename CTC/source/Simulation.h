@@ -569,9 +569,9 @@ void Simulation<N>::velocityVerlet()
     profiler.stop();
 #endif
     
-    profiler.start("K2");
-    Unroller2<0, N, 0, N>::step();
-    profiler.stop();
+//    profiler.start("K2");
+//    Unroller2<0, N, 0, N>::step();
+//    profiler.stop();
 
     profiler.start("K3");
     Unroller3<0, N, 0, N>::step();
@@ -598,21 +598,21 @@ void Simulation<N>::runOneStep()
 	
 	if (step == 0)
     {
-        //Unroller2<0, N, 0, N>::step();
-        //debug("\n\n\n\n\n\n\n");
+        Unroller2<0, N, 0, N>::step();
+        debug("\n\n\n\n\n\n\n");
         Unroller3<0, N, 0, N>::step();
         
-//        for (int i = 0; i< part[1]->n; i++)
-//        {
-//            if (fabs(part[1]->ax[i] - part[1]->bx[i]) > 1e-5)
-//                warn("X, i = %3i:  %.6f   instead of  %.6f !!\n", i, part[1]->bx[i], part[1]->ax[i]);
-//            
-//            if (fabs(part[1]->ay[i] - part[1]->by[i]) > 1e-5)
-//                warn("Y, i = %3i:  %.6f   instead of  %.6f !!\n", i, part[1]->by[i], part[1]->ay[i]);
-//            
-//            if (fabs(part[1]->az[i] - part[1]->bz[i]) > 1e-5)
-//                warn("Z, i = %3i:  %.6f   instead of  %.6f !!\n", i, part[1]->bz[i], part[1]->az[i]);
-//        }
+        for (int i = 0; i< part[1]->n; i++)
+        {
+            if (fabs(part[1]->ax(i) - part[1]->bx(i)) > 1e-5)
+                warn("X, i = %3i:  %.6f   instead of  %.6f !!\n", i, part[1]->bx(i), part[1]->ax(i));
+            
+            if (fabs(part[1]->ay(i) - part[1]->by(i)) > 1e-5)
+                warn("Y, i = %3i:  %.6f   instead of  %.6f !!\n", i, part[1]->by(i), part[1]->ay(i));
+            
+            if (fabs(part[1]->az(i) - part[1]->bz(i)) > 1e-5)
+                warn("Z, i = %3i:  %.6f   instead of  %.6f !!\n", i, part[1]->bz(i), part[1]->az(i));
+        }
     }
     
 	step++;

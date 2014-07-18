@@ -22,6 +22,7 @@ inline void _allocate(Particles* part)
 	part->xdata  = new real[3*n];
 	part->vdata  = new real[3*n];
 	part->adata  = new real[3*n];
+	part->bdata  = new real[3*n];
 	   
 	part->m  = new real[n];
     
@@ -203,14 +204,15 @@ namespace Forces
     template<int a, int b>
     struct _Cells1 : Arguments
     {
-        static const int stride = 1;
-        void exec(int sx, int sy, int sz)
+        static const int stride = 2;
+        
+        template<bool myself>
+        inline void exec(int sx, int sy, int sz, vector<vector<int>> pass, real* res)
         {
             real rCut2 = rCuts[a] * rCuts[a];
             
             if (part[a]->n <= 0 || part[b]->n <= 0) return;
             
-//#pragma omp parallel for collapse(3)
             for (int ix=sx; ix<cells[a]->n0; ix+=stride)
                 for (int iy=sy; iy<cells[a]->n1; iy+=stride)
                     for (int iz=sz; iz<cells[a]->n2; iz+=stride)
@@ -228,13 +230,11 @@ namespace Forces
                         int srcEnd   = c.pstart[srcId+1];
                         
                         // All but self-self
-                        for (int neigh = 0; neigh < 13; neigh++)
+                        for (int neigh = 0; neigh < pass.size(); neigh++)
                         {
-                            const int sh[3] = {neigh / 9 - 1, (neigh / 3) % 3 - 1, neigh % 3 - 1};
-                            
                             // Resolve periodicity
                             for (int k=0; k<3; k++)
-                                ij[k] = origIJ[k] + sh[k];
+                                ij[k] = origIJ[k] + pass[neigh][k];
                             
                             c.correct(ij, xAdd);
                             
@@ -262,64 +262,112 @@ namespace Forces
                                         
                                         force<a, b>(dx, dy, dz,  vx, vy, vz,  fx, fy, fz);
 
-                                        part[a]->ax(src) += fx;
-                                        part[a]->ay(src) += fy;
-                                        part[a]->az(src) += fz;
+                                        res[3*src + 0] += fx;
+                                        res[3*src + 1] += fy;
+                                        res[3*src + 2] += fz;
                                         
-                                        part[a]->ax(dst) -= fx;
-                                        part[a]->ay(dst) -= fy;
-                                        part[a]->az(dst) -= fz;
+                                        res[3*dst + 0] -= fx;
+                                        res[3*dst + 1] -= fy;
+                                        res[3*dst + 2] -= fz;
                                     }
                                 }
                             }
                         }
                         
                         // And now self-self
-                        for (int j=srcBegin; j<srcEnd; j++)
-                        {
-                            int src = c.pobjids[j];
-                            for (int k=j+1; k<srcEnd; k++)
+                        if (myself)
+                            for (int j=srcBegin; j<srcEnd; j++)
                             {
-                                int dst = c.pobjids[k];
-                                debug("%d %d\n", src, dst);
-
-                                
-                                const real dx = part[a]->x(dst) - part[a]->x(src);
-                                const real dy = part[a]->y(dst) - part[a]->y(src);
-                                const real dz = part[a]->z(dst) - part[a]->z(src);
-                                
-                                const real r2 = dx*dx + dy*dy + dz*dz;
-                                if (r2 < rCut2)
+                                int src = c.pobjids[j];
+                                for (int k=j+1; k<srcEnd; k++)
                                 {
-                                    real vx = part[a]->vx(dst) - part[a]->vx(src);
-                                    real vy = part[a]->vy(dst) - part[a]->vy(src);
-                                    real vz = part[a]->vz(dst) - part[a]->vz(src);
+                                    int dst = c.pobjids[k];
+                                    debug("%d %d\n", src, dst);
+
                                     
-                                    force<a, b>(dx, dy, dz,  vx, vy, vz,  fx, fy, fz);
+                                    const real dx = part[a]->x(dst) - part[a]->x(src);
+                                    const real dy = part[a]->y(dst) - part[a]->y(src);
+                                    const real dz = part[a]->z(dst) - part[a]->z(src);
                                     
-                                    part[a]->ax(src) += fx;
-                                    part[a]->ay(src) += fy;
-                                    part[a]->az(src) += fz;
-                                    
-                                    part[a]->ax(dst) -= fx;
-                                    part[a]->ay(dst) -= fy;
-                                    part[a]->az(dst) -= fz;
+                                    const real r2 = dx*dx + dy*dy + dz*dz;
+                                    if (r2 < rCut2)
+                                    {
+                                        real vx = part[a]->vx(dst) - part[a]->vx(src);
+                                        real vy = part[a]->vy(dst) - part[a]->vy(src);
+                                        real vz = part[a]->vz(dst) - part[a]->vz(src);
+                                        
+                                        force<a, b>(dx, dy, dz,  vx, vy, vz,  fx, fy, fz);
+                                        
+                                        res[3*src + 0] += fx;
+                                        res[3*src + 1] += fy;
+                                        res[3*src + 2] += fz;
+                                        
+                                        res[3*dst + 0] -= fx;
+                                        res[3*dst + 1] -= fy;
+                                        res[3*dst + 2] -= fz;                                    }
                                 }
                             }
-                        }
                     }
         }
         
         void operator()()
         {
+            const static vector<vector<int>> pass1 = { {-1, -1, -1}, {-1, -1,  0}, {-1,  0, -1}, {-1,  0,  0}, { 0, -1, -1}, { 0, -1,  0}, { 0,  0, -1} };
+            const static vector<vector<int>> pass2 = { {-1, -1,  1}, {-1,  0,  1}, {-1,  1, -1}, {-1,  1,  0}, {-1,  1,  1}, { 0, -1,  1} };
+            static real** buffer;
+            static bool init = false;
+            
+            if (!init)
+            {
+                buffer = new real*[8];
+                for (int i=0; i<8; i++)
+                    buffer[i] = new real[3*part[a]->n];
+                
+                init = true;
+            }
+            
+            for (int i=0; i<8; i++)
+                for (int j=0; j<3*part[a]->n; j++)
+                    buffer[i][j] = 0;
+            
+#pragma omp parallel
+{
+#pragma omp for
             for (int i=0; i<stride; i++)
                 for (int j=0; j<stride; j++)
                     for (int k=0; k<stride; k++)
-                        exec(i, j, k);
+                    {
+#pragma omp task
+                        exec<false>(i, j, k, pass1, buffer[i*4+j*2+k]);
+                    }
+#pragma omp taskwait
+    
+#pragma omp for
+            for (int i=0; i<stride; i++)
+                for (int j=0; j<stride; j++)
+                    for (int k=0; k<stride; k++)
+                    {
+#pragma omp task
+                        exec<true>(i, j, k, pass2, buffer[i*4+j*2+k]);
+                    }
+}
+    
+
+            for (int j=0; j<3*part[a]->n; j++)
+            {
+                buffer[0][j] += buffer[1][j];
+                buffer[2][j] += buffer[3][j];
+                buffer[4][j] += buffer[5][j];
+                buffer[6][j] += buffer[7][j];
+                
+                buffer[0][j] += buffer[2][j];
+                buffer[4][j] += buffer[6][j];
+
+                part[a]->bdata[j] = buffer[0][j] + buffer[4][j];
+            }
+
         }
     };
-
-
 
 }
 

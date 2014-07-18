@@ -15,7 +15,7 @@
 //**********************************************************************************************************************
 struct Particles
 {
-    real *xdata, *vdata, *adata;
+    real *xdata, *vdata, *adata, *bdata;
     
     inline real& x (const int i) {return xdata[3*i + 0];}
     inline real& y (const int i) {return xdata[3*i + 1];}
@@ -26,6 +26,10 @@ struct Particles
     inline real& ax(const int i) {return adata[3*i + 0];}
     inline real& ay(const int i) {return adata[3*i + 1];}
     inline real& az(const int i) {return adata[3*i + 2];}
+    
+    inline real& bx(const int i) {return bdata[3*i + 0];} // olala
+    inline real& by(const int i) {return bdata[3*i + 1];}
+    inline real& bz(const int i) {return bdata[3*i + 2];}
     
     real *m;
 	real *tmp;
