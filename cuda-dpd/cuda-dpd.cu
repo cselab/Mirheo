@@ -278,28 +278,35 @@ __device__ void _cellscells(const int p1start[4], const int p1count[4], const in
     for(int ty = 0; ty < maxnp1; ty += yts)
     {
 	int np1[4];
+	
+#pragma unroll
 	for(int i = 0; i < 4; ++i)
 	    np1[i] = min(yts, p1count[i] - ty);
-
+	
+#pragma unroll
 	for(int i = 0; i < 4; ++i)
 	    assert(BS >= np1[i] * 6);
 
 	float pva1contrib[4];
+#pragma unroll
 	for(int i = 0; i < 4; ++i)
 	    if (l < np1[i] * 6)
 		pva1contrib[i] = tex1Dfetch(texParticles, 6 * (p1start[i] + ty) + l);
 
 	float pva1result[4];
+#pragma unroll
 	for(int i = 0; i < 4; ++i)
 	    pva1result[i] = 0;
 	
 	for(int tx = 0; tx < maxnp2; tx += xts)
 	{
 	    int np2[4];
+#pragma unroll
 	    for(int i = 0; i < 4; ++i)
 		np2[i] = min(xts, p2scan[i][3] - tx);
 
 	    float pva2contrib[4];
+#pragma unroll
 	    for(int i = 0; i < 4; ++i)
 	    	if (l < np2[i] * 6)
 		{
@@ -314,6 +321,7 @@ __device__ void _cellscells(const int p1start[4], const int p1count[4], const in
 
 	    float pva2result[4];
 	   
+#pragma unroll
 	    for(int i = 0; i < 4; ++i)
 	    {
 		if (l < np1[i] * 6)
@@ -343,7 +351,8 @@ __device__ void _cellscells(const int p1start[4], const int p1count[4], const in
 		__syncthreads();
 	    }
 	    
-	     for(int i = 0; i < 4; ++i)
+#pragma unroll
+	    for(int i = 0; i < 4; ++i)
 	    {
 		if (l < np2[i] * 3)
 		{
@@ -362,14 +371,17 @@ __device__ void _cellscells(const int p1start[4], const int p1count[4], const in
 	    }
 	}
 
+#pragma unroll
 	for(int i = 0; i < 4; ++i)
 	    assert(np1[i] * 3 <= BS);
 
 	float oldval[4];
+#pragma unroll
 	for(int i = 0; i < 4; ++i)
 	    if (l < np1[i] * 3)
 		oldval[i] = axayaz[l + 3 * (p1start[i] + ty)];
 
+#pragma unroll
 	for(int i = 0; i < 4; ++i)
 	    if (l < np1[i] * 3)
 		axayaz[l + 3 * (p1start[i] + ty)] = pva1result[i] + oldval[i];

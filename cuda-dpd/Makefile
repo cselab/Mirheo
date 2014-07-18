@@ -1,6 +1,6 @@
 override CXXFLAGS += -g -O2 -std=c++11 -I/usr/local/cuda-5.5/include/
 
-NVCCFLAGS = -arch=compute_30 -Xptxas -dlcm=cg -O4 -Xcompiler -fpic
+NVCCFLAGS = -arch=compute_30  -O4 -Xcompiler -fpic -code=sm_30
 
 ifeq "$(profile)" "1"
 NVCCFLAGS += -lineinfo -D_PROFILE_ -g
