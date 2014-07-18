@@ -1,7 +1,7 @@
 #include <cstdio>
 #include <cassert>
 
-#define _CHECK_
+//#define _CHECK_
 
 const int collapsefactor = 1;
 
@@ -266,76 +266,113 @@ __device__ void _ftable(
 
 texture<float, cudaTextureType1D> texParticles;
 
-__device__ void _cellcells(const int p1start, const int p1count, const int p2start[4], const int p2scan[4],
-			   const int maxnp1, const int maxnp2, const bool self, int rsamples_start,
-			   float * const axayaz)
+__device__ void _cellscells(const int p1start[4], const int p1count[4], const int p2start[4][4], const int p2scan[4][4],
+			    const int maxnp1, const int maxnp2, const bool self, int rsamples_start,
+			    float * const axayaz)
 {
     __shared__ float pva1[9][yts], pva2[9][xts];
 
-    const int lx = threadIdx.x;
-    const int ly = threadIdx.y;
-    const int l = lx + blockDim.x * ly;
+    const int l = threadIdx.x + blockDim.x * threadIdx.y;
     const int BS = blockDim.x * blockDim.y;
-
-    const int p2count = p2scan[3];
-    assert(p2count >= 0);
-    
+      
     for(int ty = 0; ty < maxnp1; ty += yts)
     {
-	const int np1 = min(yts, p1count - ty);
+	int np1[4];
+	for(int i = 0; i < 4; ++i)
+	    np1[i] = min(yts, p1count[i] - ty);
 
-	assert(BS >= np1 * 6);
+	for(int i = 0; i < 4; ++i)
+	    assert(BS >= np1[i] * 6);
 
-	if (l < np1 * 6)
-	    pva1[l % 6][l / 6] = tex1Dfetch(texParticles, 6 * (p1start + ty) + l);
-	
-	if (l < np1 * 3)
-	    pva1[6 + (l % 3)][l / 3] = 0;
+	float pva1contrib[4];
+	for(int i = 0; i < 4; ++i)
+	    if (l < np1[i] * 6)
+		pva1contrib[i] = tex1Dfetch(texParticles, 6 * (p1start[i] + ty) + l);
+
+	float pva1result[4];
+	for(int i = 0; i < 4; ++i)
+	    pva1result[i] = 0;
 	
 	for(int tx = 0; tx < maxnp2; tx += xts)
 	{
-	    const int np2 = min(xts, p2count - tx);
-	    		
-	    assert(np2 * 6 <= BS);
+	    int np2[4];
+	    for(int i = 0; i < 4; ++i)
+		np2[i] = min(xts, p2scan[i][3] - tx);
+
+	    float pva2contrib[4];
+	    for(int i = 0; i < 4; ++i)
+	    	if (l < np2[i] * 6)
+		{
+		    const int d = l / 6;
+		    const int s = tx + d;
+		    const int c = l % 6;
+		    const int entry = (s >= p2scan[i][0]) + (s >= p2scan[i][1]) + (s >= p2scan[i][2]);
+		    const int pid = s - (entry ? p2scan[i][entry - 1] : 0) + p2start[i][entry];
+
+		    pva2contrib[i] = tex1Dfetch(texParticles, c + 6 * pid);
+		}
+
+	    float pva2result[4];
+	   
+	    for(int i = 0; i < 4; ++i)
+	    {
+		if (l < np1[i] * 6)
+		    pva1[l % 6][l / 6] = pva1contrib[i];
+
+		if (l < np1[i] * 3)
+		    pva1[6 + (l % 3)][l / 3] = pva1result[i];
 	    
-	    if (l < np2 * 6)
-	    {
-		const int d = l / 6;
-		const int s = tx + d;
-		const int c = l % 6;
-		const int entry = (s >= p2scan[0]) + (s >= p2scan[1]) + (s >= p2scan[2]);
-		const int pid = s - (entry ? p2scan[entry - 1] : 0) + p2start[entry];
+		assert(np2[i] * 6 <= BS);
+		assert(BS >= np2[i] * 3);
+	   
+		if (l < np2[i] * 6)
+		    pva2[l % 6][l / 6] = pva2contrib[i];
 
-		pva2[c][d] = tex1Dfetch(texParticles, c + 6 * pid);
-	    }
+		__syncthreads();
 
-	    __syncthreads();
+		_ftable(pva1, pva2, &pva1[3], &pva2[3], np1[i], np2[i], i == 0 ? ty - tx : -30000, rsamples_start, &pva1[6], &pva2[6]);
+	
+		rsamples_start += np1[i] * np2[i];
 
-	    _ftable(pva1, pva2, &pva1[3], &pva2[3], np1, np2, self ? ty - tx : - p1count, rsamples_start, &pva1[6], &pva2[6]);
+		if (l < np1[i] * 3)
+		     pva1result[i] = pva1[6 + (l % 3)][l / 3];
 
-	    rsamples_start += np1 * np2;
-
-	    assert(BS >= np2 * 3);
+		if (l < np2[i] * 3)
+		     pva2result[i] = pva2[6 + (l % 3)][l / 3];
 		
-	    if (l < np2 * 3)
+		__syncthreads();
+	    }
+	    
+	     for(int i = 0; i < 4; ++i)
 	    {
-		const int s = l / 3;
-		const int d = tx + s;
-		const int c = l % 3;
-		const int entry = (d >= p2scan[0]) + (d >= p2scan[1]) + (d >= p2scan[2]);
-		const int pid = d - (entry ? p2scan[entry - 1] : 0) + p2start[entry];
+		if (l < np2[i] * 3)
+		{
+		    const int s = l / 3;
+		    const int d = tx + s;
+		    const int c = l % 3;
+		    const int entry = (d >= p2scan[i][0]) + (d >= p2scan[i][1]) + (d >= p2scan[i][2]);
+		    const int pid = d - (entry ? p2scan[i][entry - 1] : 0) + p2start[i][entry];
 #ifdef _CHECK_
-		axayaz[c + 3 * pid] += pva2[6 + c][s];
+		    atomicAdd(axayaz + c + 3 * pid, pva2result[i]); //axayaz[c + 3 * pid] += pva2result[i];
 #else
-		axayaz[c + 3 * pid] -= pva2[6 + c][s];
+		    atomicAdd(axayaz + c + 3 * pid, -pva2result[i]); //axayaz[c + 3 * pid] -= pva2result[i];
 #endif
-	    }	    
+		}
+		//	__syncthreads();
+	    }
 	}
 
-	assert(np1 * 3 <= BS);
-	
-	if (l < np1 * 3)
-	    axayaz[l + 3 * (p1start + ty)] += pva1[6 + (l % 3)][l / 3];
+	for(int i = 0; i < 4; ++i)
+	    assert(np1[i] * 3 <= BS);
+
+	float oldval[4];
+	for(int i = 0; i < 4; ++i)
+	    if (l < np1[i] * 3)
+		oldval[i] = axayaz[l + 3 * (p1start[i] + ty)];
+
+	for(int i = 0; i < 4; ++i)
+	    if (l < np1[i] * 3)
+		axayaz[l + 3 * (p1start[i] + ty)] = pva1result[i] + oldval[i];
     }
 }
 
@@ -435,11 +472,12 @@ __global__ void _dpd_forces(float * tmp, int * consumed)
     
     if (offsetrsamples + rconsumption >= info.nsamples)
 	return;
-
-    _cellcells(p1starts[0], p1counts[0], p2starts[0], p2scans[0], maxnp1, maxnp2, true, offsetrsamples, axayaz);
-    _cellcells(p1starts[1], p1counts[1], p2starts[1], p2scans[1], maxnp1, maxnp2, false, offsetrsamples, axayaz);
-    _cellcells(p1starts[2], p1counts[2], p2starts[2], p2scans[2], maxnp1, maxnp2, false , offsetrsamples, axayaz);
-    _cellcells(p1starts[3], p1counts[3], p2starts[3], p2scans[3], maxnp1, maxnp2, false , offsetrsamples, axayaz);
+    
+    _cellscells(p1starts, p1counts, p2starts, p2scans, maxnp1, maxnp2, true, offsetrsamples, axayaz);
+    /*  _cellcells(p1starts[0], p1counts[0], p2starts[0], p2scans[0], maxnp1, maxnp2, true, offsetrsamples, axayaz);
+	_cellcells(p1starts[1], p1counts[1], p2starts[1], p2scans[1], maxnp1, maxnp2, false, offsetrsamples, axayaz);
+	_cellcells(p1starts[2], p1counts[2], p2starts[2], p2scans[2], maxnp1, maxnp2, false , offsetrsamples, axayaz);
+	_cellcells(p1starts[3], p1counts[3], p2starts[3], p2scans[3], maxnp1, maxnp2, false , offsetrsamples, axayaz);*/
 }
 
 __global__ void _reduce(float * tmp)
