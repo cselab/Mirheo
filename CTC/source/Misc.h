@@ -15,7 +15,7 @@
 
 #pragma once
 
-typedef float real;
+typedef double real;
 
 extern minIni *configParser;
 

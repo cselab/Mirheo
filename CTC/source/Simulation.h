@@ -337,14 +337,14 @@ void Simulation<N>::setIC(vector<int> num, vector<real> rCuts)
     if (N>1) setLattice(part[1], 8, 8, 8, part[1]->n);
     //stupidLoad(part, "/Users/alexeedm/Documents/projects/CTC/CTC/makefiles/dump.txt");
     
-    double xl = xlo;//mymin(part[1]->x, part[1]->n);
-    double xh = xhi;//mymax(part[1]->x, part[1]->n);
+    double xl = 0;//mymin(part[1]->x, part[1]->n);
+    double xh = 0;//mymax(part[1]->x, part[1]->n);
     
-    double yl = ylo;//mymin(part[1]->y, part[1]->n);
-    double yh = yhi;//mymax(part[1]->y, part[1]->n);
+    double yl = 0;//mymin(part[1]->y, part[1]->n);
+    double yh = 0;//mymax(part[1]->y, part[1]->n);
     
-    double zl = zlo;//mymin(part[1]->z, part[1]->n);
-    double zh = zhi;//mymax(part[1]->z, part[1]->n);
+    double zl = 0;//mymin(part[1]->z, part[1]->n);
+    double zh = 0;//mymax(part[1]->z, part[1]->n);
     
     
     for (int i=0; i<num[0]; i++)
@@ -569,9 +569,9 @@ void Simulation<N>::velocityVerlet()
     profiler.stop();
 #endif
     
-//    profiler.start("K2");
-//    Unroller2<0, N, 0, N>::step();
-//    profiler.stop();
+    profiler.start("K2");
+    Unroller2<0, N, 0, N>::step();
+    profiler.stop();
 
     profiler.start("K3");
     Unroller3<0, N, 0, N>::step();

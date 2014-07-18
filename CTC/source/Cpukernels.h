@@ -203,7 +203,7 @@ namespace Forces
     template<int a, int b>
     struct _Cells1 : Arguments
     {
-        static const int stride = 2;
+        static const int stride = 1;
         void exec(int sx, int sy, int sz)
         {
             real rCut2 = rCuts[a] * rCuts[a];
@@ -214,7 +214,6 @@ namespace Forces
             for (int ix=sx; ix<cells[a]->n0; ix+=stride)
                 for (int iy=sy; iy<cells[a]->n1; iy+=stride)
                     for (int iz=sz; iz<cells[a]->n2; iz+=stride)
-#pragma omp task
                     {
                         Cells<Particles>& c = *cells[a];
 
@@ -309,7 +308,6 @@ namespace Forces
                             }
                         }
                     }
-            #pragma omp taskwait
         }
         
         void operator()()
