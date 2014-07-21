@@ -636,7 +636,7 @@ void Simulation<N>::velocityVerlet()
     if (dt*step > 100)
     {
         walls[1]->fix();
-        walls[0]->addF(0.1);
+        walls[0]->addF(configParser->getf("Basic", "applyF", 0));
     }
     
     auto fin = [&](int type)
