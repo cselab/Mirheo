@@ -4,7 +4,7 @@
 //#define _CHECK_
 
 const int collapsefactor = 1;
-
+ 
 struct InfoDPD
 {
     int3 ncells;
@@ -17,41 +17,43 @@ struct InfoDPD
 
 __constant__ InfoDPD info;
  
-#if 0
-const int depth = 4;
-__device__ int encode(int ix, int iy, int iz) 
+#if 1
+// The following encoding/decoding was taken from
+// http://fgiesen.wordpress.com/2009/12/13/decoding-morton-codes/
+// "Insert" two 0 bits after each of the 10 low bits of x
+__device__ uint Part1By2(uint x)
 {
-    int idx = 0;
-        
-    for(int counter = 0; counter < depth; ++counter)
-    {
-	const int bitmask = 1 << counter;
-	const int idx0 = ix&bitmask;
-	const int idx1 = iy&bitmask;
-	const int idx2 = iz&bitmask;
-            
-	idx |= ((idx0<<2*counter) | (idx1<<(2*counter+1)) | (idx2<<(2*counter+2)));
-    }
-        
-    return idx; 
+  x &= 0x000003ff;                  // x = ---- ---- ---- ---- ---- --98 7654 3210
+  x = (x ^ (x << 16)) & 0xff0000ff; // x = ---- --98 ---- ---- ---- ---- 7654 3210
+  x = (x ^ (x <<  8)) & 0x0300f00f; // x = ---- --98 ---- ---- 7654 ---- ---- 3210
+  x = (x ^ (x <<  4)) & 0x030c30c3; // x = ---- --98 ---- 76-- --54 ---- 32-- --10
+  x = (x ^ (x <<  2)) & 0x09249249; // x = ---- 9--8 --7- -6-- 5--4 --3- -2-- 1--0
+  return x;
+} 
+
+// Inverse of Part1By2 - "delete" all bits not at positions divisible by 3
+__device__ uint Compact1By2(uint x)
+{
+  x &= 0x09249249;                  // x = ---- 9--8 --7- -6-- 5--4 --3- -2-- 1--0
+  x = (x ^ (x >>  2)) & 0x030c30c3; // x = ---- --98 ---- 76-- --54 ---- 32-- --10
+  x = (x ^ (x >>  4)) & 0x0300f00f; // x = ---- --98 ---- ---- 7654 ---- ---- 3210
+  x = (x ^ (x >>  8)) & 0xff0000ff; // x = ---- --98 ---- ---- ---- ---- 7654 3210
+  x = (x ^ (x >> 16)) & 0x000003ff; // x = ---- ---- ---- ---- ---- --98 7654 3210
+  return x;
 }
-	
+
+__device__ int encode(int x, int y, int z) 
+{
+  return (Part1By2(z) << 2) + (Part1By2(y) << 1) + Part1By2(x);
+}
+
 __device__ int3 decode(int code)
 {
-    int ix = 0, iy = 0, iz = 0;
-        
-    for(int counter = 0; counter < depth; ++counter)
-    {
-	const int bitmask_x = 1 << (counter*3+0);
-	const int bitmask_y = 1 << (counter*3+1);
-	const int bitmask_z = 1 << (counter*3+2);
-	
-	ix |= (code&bitmask_x)>>2*counter;
-	iy |= (code&bitmask_y)>>(2*counter+1);
-	iz |= (code&bitmask_z)>>(2*counter+2);
-	    
-    }
-    return make_int3(ix, iy, iz);
+    return make_int3(
+	Compact1By2(code >> 0),
+	Compact1By2(code >> 1),
+	Compact1By2(code >> 2)
+	);
 }
 #else
 __device__ int encode(int ix, int iy, int iz) 
@@ -92,15 +94,10 @@ __global__ void pid2code(int * codes, int * pids)
 	!(iy >= 0 && iy < info.ncells.y) ||
 	!(iz >= 0 && iz < info.ncells.z))
 	printf("pid %d: oops %f %f %f -> %d %d %d\n", pid, x, y, z, ix, iy, iz);
-#if 0 
-    assert(ix >= 0 && ix < info.ncells.x);
-    assert(iy >= 0 && iy < info.ncells.y);
-    assert(iz >= 0 && iz < info.ncells.z);
-#else
+
     ix = max(0, min(info.ncells.x - 1, ix));
     iy = max(0, min(info.ncells.y - 1, iy));
     iz = max(0, min(info.ncells.z - 1, iz));
-#endif
     
     codes[pid] = encode(ix, iy, iz);
     pids[pid] = pid;
@@ -320,14 +317,11 @@ __device__ void _cellscells(const int p1start[4], const int p1count[4], const in
 		    const int entry = (d >= p2scan[i][0]) + (d >= p2scan[i][1]) + (d >= p2scan[i][2]);
 		    const int pid = d - (entry ? p2scan[i][entry - 1] : 0) + p2start[i][entry];
 #ifdef _CHECK_
-		    //  if (pva2result[i] != 0)
-			atomicAdd(axayaz + c + 3 * pid, pva2result[i]); //axayaz[c + 3 * pid] += pva2result[i];
+		    atomicAdd(axayaz + c + 3 * pid, pva2result[i]);
 #else
-			//if (pva2result[i] != 0)
-			atomicAdd(axayaz + c + 3 * pid, -pva2result[i]); //axayaz[c + 3 * pid] -= pva2result[i];
+		    atomicAdd(axayaz + c + 3 * pid, -pva2result[i]);
 #endif
 		}
-		//	__syncthreads();
 	    }
 	}
 
@@ -350,7 +344,7 @@ __device__ void _cellscells(const int p1start[4], const int p1count[4], const in
 
 __device__ int _cid(int shiftcode)
 {
-    int3 indx = decode(blockIdx.x + info.ncells.x * (blockIdx.y + info.ncells.y * blockIdx.z));
+    int3 indx = make_int3(blockIdx.x, blockIdx.y, blockIdx.z); 
 	    
     indx.x += (shiftcode & 1);
     indx.y += ((shiftcode >> 1) & 1);
@@ -360,14 +354,14 @@ __device__ int _cid(int shiftcode)
     indx.y = (indx.y + info.ncells.y) % info.ncells.y;
     indx.z = (indx.z + info.ncells.z) % info.ncells.z;
 
-    return encode(indx.x, indx.y, indx.z);
+    return indx.x + info.ncells.x * (indx.y + info.ncells.y * indx.z);//encode(indx.x, indx.y, indx.z);
 }
 
 __constant__ int edgeslutcount[4] = {4, 4, 3, 3};
 __constant__ int edgeslutstart[4] = {0, 4, 8, 11};
 __constant__ int edgeslut[14] = {0, 1, 2, 7, 2, 4, 6, 7, 4, 5, 7, 4, 0, 7};
 
-texture<int, cudaTextureType1D> texStart;
+texture<int, cudaTextureType1D> texStart, texEnd;
 
 __global__ void _dpd_forces(float * tmp, int * consumed)
 {
@@ -393,7 +387,9 @@ __global__ void _dpd_forces(float * tmp, int * consumed)
 	{
 	    const int cid1 = _cid(i);
 	    p1starts[i] = tex1Dfetch(texStart, cid1);
-	    p1counts[i] = tex1Dfetch(texStart, cid1 + 1);
+	    p1counts[i] = tex1Dfetch(texEnd, cid1);
+	    
+	    assert( tex1Dfetch(texEnd, cid1) - tex1Dfetch(texStart, cid1) >= 0);
 	}
 		
 	if (j < edgeslutcount[i])
@@ -401,7 +397,9 @@ __global__ void _dpd_forces(float * tmp, int * consumed)
 	    const int cid2 = _cid(edgeslut[j + edgeslutstart[i]]);
 	    
 	    p2starts[i][j] = tex1Dfetch(texStart, cid2);
-	    p2scans[i][j] = tex1Dfetch(texStart, cid2 + 1);
+	    p2scans[i][j] = tex1Dfetch(texEnd, cid2);
+
+	    assert( tex1Dfetch(texEnd, cid2) - tex1Dfetch(texStart, cid2) >= 0);
 	}
 	else
 	    p2scans[i][j] = p2starts[i][j] = 0;
@@ -441,6 +439,7 @@ __global__ void _dpd_forces(float * tmp, int * consumed)
     }
 
     __syncthreads();    
+
     
     if (offsetrsamples + rconsumption >= info.nsamples)
 	return;
@@ -472,6 +471,23 @@ __global__ void _gather(const float * input, const int * indices, float * output
     
     if (tid < n)
 	output[tid] = input[(tid % 6) + 6 * indices[tid / 6]];
+}
+
+__global__ void _generate_cids(int * cids, const int ncells, const int offset)
+{
+    const int tid = threadIdx.x + blockDim.x * blockIdx.x;
+
+    if (tid < ncells)
+    {
+	const int xcid = tid % info.ncells.x;
+	const int ycid = (tid / info.ncells.x) % info.ncells.y;
+	const int zcid = (tid / info.ncells.x / info.ncells.y) % info.ncells.z;
+
+	cids[tid] = encode(xcid, ycid, zcid) + offset;
+    }
+    else
+	if (tid == ncells)
+	    cids[tid] = 0x7fffffff;
 }
 
 #include <cmath>
@@ -526,12 +542,8 @@ void forces_dpd_cuda(float * const _xyzuvw, float * const _axayaz,
 	    abort();
 	}
 	else
-	{
 	    cudaSetDeviceFlags(cudaDeviceMapHost);
-	    cudaDeviceSetCacheConfig (cudaFuncCachePreferShared);
-	    //cudaDeviceSetCacheConfig(cudaFuncCachePreferL1);
-	}
-
+	   
 	initialized = true;
     }
 
@@ -550,7 +562,7 @@ void forces_dpd_cuda(float * const _xyzuvw, float * const _axayaz,
     int nz = (int)ceil(ZL / (collapsefactor *rc));
     const int ncells = nx * ny * nz;
     
-    device_vector<int> starts(ncells + 1);
+    device_vector<int> starts(ncells + 1), ends(ncells + 1);
     device_vector<float> xyzuvw(_xyzuvw, _xyzuvw + np * 6), axayaz(np * 3);
     
     InfoDPD c;
@@ -596,10 +608,12 @@ void forces_dpd_cuda(float * const _xyzuvw, float * const _axayaz,
 	CUDA_CHECK(cudaPeekAtLastError());
     }
     
-    device_vector<int> cids(ncells + 1);
-    sequence(cids.begin(), cids.end());
-
+    device_vector<int> cids(ncells + 1), cidsp1(ncells + 1);
+    _generate_cids<<< (cids.size() + 127) / 128, 128>>>(_ptr(cids), ncells, 0);
+    _generate_cids<<< (cidsp1.size() + 127) / 128, 128>>>(_ptr(cidsp1), ncells, 1);
+        
     lower_bound(codes.begin(), codes.end(), cids.begin(), cids.end(), starts.begin());
+    lower_bound(codes.begin(), codes.end(), cidsp1.begin(), cidsp1.end(), ends.begin());
 
     int * consumed = NULL;
     cudaHostAlloc((void **)&consumed, sizeof(int), cudaHostAllocMapped);
@@ -614,6 +628,12 @@ void forces_dpd_cuda(float * const _xyzuvw, float * const _axayaz,
 	texStart.mipmapFilterMode = cudaFilterModePoint;
 	texStart.normalized = 0;
 	cudaBindTexture(&textureoffset, &texStart, c.starts, &fmt, sizeof(int) * (ncells + 1));
+
+	texEnd.channelDesc = fmt;
+	texEnd.filterMode = cudaFilterModePoint;
+	texEnd.mipmapFilterMode = cudaFilterModePoint;
+	texEnd.normalized = 0;
+	cudaBindTexture(&textureoffset, &texEnd, _ptr(ends), &fmt, sizeof(int) * (ncells + 1));
 	
 	fmt =  cudaCreateChannelDesc(32, 0, 0, 0, cudaChannelFormatKindFloat);
 	texParticles.channelDesc = fmt;
@@ -674,8 +694,7 @@ void forces_dpd_cuda(float * const _xyzuvw, float * const _axayaz,
 	printf("pid %d -> %f %f %f\n", i, (float)axayaz[0 + 3 * i], (float)axayaz[1 + 3* i], (float)axayaz[2 + 3 *i]);
 
 	int cnt = 0;
-	//const int pid = pids[i];
-
+	
 	printf("devi coords are %f %f %f\n", (float)xyzuvw[0 + 6 * i], (float)xyzuvw[1 + 6 * i], (float)xyzuvw[2 + 6 * i]);
 	printf("host coords are %f %f %f\n", (float)_xyzuvw[0 + 6 * i], (float)_xyzuvw[1 + 6 * i], (float)_xyzuvw[2 + 6 * i]);
 	

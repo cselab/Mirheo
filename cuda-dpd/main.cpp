@@ -39,7 +39,7 @@ int main()
 {
     real L = 20;
 
-    const int Nm = 3;
+    const int Nm = 10;
     const int n = L * L * L * Nm;
     const real gamma = 45;
     const real sigma = 3;
