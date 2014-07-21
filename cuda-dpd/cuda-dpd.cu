@@ -12,96 +12,11 @@ struct InfoDPD
     float3 domainsize, domainstart;
     float invrc, aij, gamma, sigmaf;
     float *xyzuvw, *axayaz, *rsamples;
-    int * starts;
 };
 
 __constant__ InfoDPD info;
  
-#if 1
-// The following encoding/decoding was taken from
-// http://fgiesen.wordpress.com/2009/12/13/decoding-morton-codes/
-// "Insert" two 0 bits after each of the 10 low bits of x
-__device__ uint Part1By2(uint x)
-{
-  x &= 0x000003ff;                  // x = ---- ---- ---- ---- ---- --98 7654 3210
-  x = (x ^ (x << 16)) & 0xff0000ff; // x = ---- --98 ---- ---- ---- ---- 7654 3210
-  x = (x ^ (x <<  8)) & 0x0300f00f; // x = ---- --98 ---- ---- 7654 ---- ---- 3210
-  x = (x ^ (x <<  4)) & 0x030c30c3; // x = ---- --98 ---- 76-- --54 ---- 32-- --10
-  x = (x ^ (x <<  2)) & 0x09249249; // x = ---- 9--8 --7- -6-- 5--4 --3- -2-- 1--0
-  return x;
-} 
-
-// Inverse of Part1By2 - "delete" all bits not at positions divisible by 3
-__device__ uint Compact1By2(uint x)
-{
-  x &= 0x09249249;                  // x = ---- 9--8 --7- -6-- 5--4 --3- -2-- 1--0
-  x = (x ^ (x >>  2)) & 0x030c30c3; // x = ---- --98 ---- 76-- --54 ---- 32-- --10
-  x = (x ^ (x >>  4)) & 0x0300f00f; // x = ---- --98 ---- ---- 7654 ---- ---- 3210
-  x = (x ^ (x >>  8)) & 0xff0000ff; // x = ---- --98 ---- ---- ---- ---- 7654 3210
-  x = (x ^ (x >> 16)) & 0x000003ff; // x = ---- ---- ---- ---- ---- --98 7654 3210
-  return x;
-}
-
-__device__ int encode(int x, int y, int z) 
-{
-  return (Part1By2(z) << 2) + (Part1By2(y) << 1) + Part1By2(x);
-}
-
-__device__ int3 decode(int code)
-{
-    return make_int3(
-	Compact1By2(code >> 0),
-	Compact1By2(code >> 1),
-	Compact1By2(code >> 2)
-	);
-}
-#else
-__device__ int encode(int ix, int iy, int iz) 
-{
-    const int retval = ix + info.ncells.x * (iy + iz * info.ncells.y);
-
-    assert(retval < info.ncells.x * info.ncells.y * info.ncells.z && retval>=0);
-
-    return retval; 
-}
-	
-__device__ int3 decode(int code)
-{
-    const int ix = code % info.ncells.x;
-    const int iy = (code / info.ncells.x) % info.ncells.y;
-    const int iz = (code / info.ncells.x/info.ncells.y);
-
-    return make_int3(ix, iy, iz);
-}
-#endif
-
-__global__ void pid2code(int * codes, int * pids)
-{
-    const int pid = threadIdx.x + blockDim.x * blockIdx.x;
-
-    if (pid >= info.np)
-	return;
-
-    const float x = (info.xyzuvw[0 + 6 * pid] - info.domainstart.x) * info.invrc / collapsefactor;
-    const float y = (info.xyzuvw[1 + 6 * pid] - info.domainstart.y) * info.invrc / collapsefactor;
-    const float z = (info.xyzuvw[2 + 6 * pid] - info.domainstart.z) * info.invrc / collapsefactor;
-    
-    int ix = (int)floor(x);
-    int iy = (int)floor(y);
-    int iz = (int)floor(z);
-    
-    if( !(ix >= 0 && ix < info.ncells.x) ||
-	!(iy >= 0 && iy < info.ncells.y) ||
-	!(iz >= 0 && iz < info.ncells.z))
-	printf("pid %d: oops %f %f %f -> %d %d %d\n", pid, x, y, z, ix, iy, iz);
-
-    ix = max(0, min(info.ncells.x - 1, ix));
-    iy = max(0, min(info.ncells.y - 1, iy));
-    iz = max(0, min(info.ncells.z - 1, iz));
-    
-    codes[pid] = encode(ix, iy, iz);
-    pids[pid] = pid;
-};
+#include "cell-lists.h"
 
 const int xbs = 16;
 const int ybs = 6;
@@ -465,44 +380,14 @@ __global__ void _reduce(float * tmp)
     }
 }
 
-__global__ void _gather(const float * input, const int * indices, float * output, const int n)
-{
-    const int tid = threadIdx.x + blockDim.x * blockIdx.x;
-    
-    if (tid < n)
-	output[tid] = input[(tid % 6) + 6 * indices[tid / 6]];
-}
-
-__global__ void _generate_cids(int * cids, const int ncells, const int offset)
-{
-    const int tid = threadIdx.x + blockDim.x * blockIdx.x;
-
-    if (tid < ncells)
-    {
-	const int xcid = tid % info.ncells.x;
-	const int ycid = (tid / info.ncells.x) % info.ncells.y;
-	const int zcid = (tid / info.ncells.x / info.ncells.y) % info.ncells.z;
-
-	cids[tid] = encode(xcid, ycid, zcid) + offset;
-    }
-    else
-	if (tid == ncells)
-	    cids[tid] = 0x7fffffff;
-}
-
 #include <cmath>
 #include <unistd.h>
 
-#include <thrust/host_vector.h>
 #include <thrust/device_vector.h>
-#include <thrust/sequence.h>
-#include <thrust/sort.h>
-#include <thrust/binary_search.h>
+using namespace thrust;
 
 #include "profiler-dpd.h"
 #include "rring-buffer.h"
-
-using namespace thrust;
 
 #define CUDA_CHECK(ans) do { cudaAssert((ans), __FILE__, __LINE__); } while(0)
 inline void cudaAssert(cudaError_t code, const char *file, int line, bool abort=true)
@@ -561,8 +446,7 @@ void forces_dpd_cuda(float * const _xyzuvw, float * const _axayaz,
     int ny = (int)ceil(YL / (collapsefactor *rc));
     int nz = (int)ceil(ZL / (collapsefactor *rc));
     const int ncells = nx * ny * nz;
-    
-    device_vector<int> starts(ncells + 1), ends(ncells + 1);
+        
     device_vector<float> xyzuvw(_xyzuvw, _xyzuvw + np * 6), axayaz(np * 3);
     
     InfoDPD c;
@@ -593,28 +477,13 @@ void forces_dpd_cuda(float * const _xyzuvw, float * const _axayaz,
     else
 	nsamples = rrbuf->nsamples();
     
-    c.starts = _ptr(starts);
-    
     CUDA_CHECK(cudaMemcpyToSymbol(info, &c, sizeof(c)));
 
-    device_vector<int> codes(np), pids(np);
-    pid2code<<<(np + 127) / 128, 128>>>(_ptr(codes), _ptr(pids));
-
-    sort_by_key(codes.begin(), codes.end(), pids.begin());
-
-    {
-	device_vector<float> tmp(xyzuvw.begin(), xyzuvw.end());
-	_gather<<<(6 * np + 127) / 128, 128>>>(_ptr(tmp), _ptr(pids), _ptr(xyzuvw), 6 * np);
-	CUDA_CHECK(cudaPeekAtLastError());
-    }
-    
-    device_vector<int> cids(ncells + 1), cidsp1(ncells + 1);
-    _generate_cids<<< (cids.size() + 127) / 128, 128>>>(_ptr(cids), ncells, 0);
-    _generate_cids<<< (cidsp1.size() + 127) / 128, 128>>>(_ptr(cidsp1), ncells, 1);
-        
-    lower_bound(codes.begin(), codes.end(), cids.begin(), cids.end(), starts.begin());
-    lower_bound(codes.begin(), codes.end(), cidsp1.begin(), cidsp1.end(), ends.begin());
-
+    device_vector<int> starts(ncells + 1), ends(ncells + 1);
+    build_clists(_ptr(xyzuvw), np, rc, c.ncells.x, c.ncells.y, c.ncells.z,
+		 c.domainstart.x, c.domainstart.y, c.domainstart.z,
+		 order, _ptr(starts), _ptr(ends));
+	
     int * consumed = NULL;
     cudaHostAlloc((void **)&consumed, sizeof(int), cudaHostAllocMapped);
     assert(consumed != NULL);
@@ -627,7 +496,7 @@ void forces_dpd_cuda(float * const _xyzuvw, float * const _axayaz,
 	texStart.filterMode = cudaFilterModePoint;
 	texStart.mipmapFilterMode = cudaFilterModePoint;
 	texStart.normalized = 0;
-	cudaBindTexture(&textureoffset, &texStart, c.starts, &fmt, sizeof(int) * (ncells + 1));
+	cudaBindTexture(&textureoffset, &texStart, _ptr(starts), &fmt, sizeof(int) * (ncells + 1));
 
 	texEnd.channelDesc = fmt;
 	texEnd.filterMode = cudaFilterModePoint;
@@ -682,10 +551,7 @@ void forces_dpd_cuda(float * const _xyzuvw, float * const _axayaz,
    
     copy(xyzuvw.begin(), xyzuvw.end(), _xyzuvw);
     copy(axayaz.begin(), axayaz.end(), _axayaz);
-
-    if (order != NULL)
-	copy(pids.begin(), pids.end(), order);
-
+    
 #ifdef _CHECK_
     CUDA_CHECK(cudaThreadSynchronize());
     

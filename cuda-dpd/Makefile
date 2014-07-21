@@ -15,8 +15,8 @@ endif
 
 NVCC = nvcc
 
-test: main.cpp cuda-dpd.o rring-buffer.o profiler-dpd.o
-	$(CXX) $(CXXFLAGS) main.cpp cuda-dpd.o rring-buffer.o profiler-dpd.o -L/usr/local/cuda-5.5/lib64/ -lcudart -lcurand -o test
+test: main.cpp cuda-dpd.o rring-buffer.o profiler-dpd.o cell-lists.o
+	$(CXX) $(CXXFLAGS) main.cpp cuda-dpd.o rring-buffer.o profiler-dpd.o cell-lists.o -L/usr/local/cuda-5.5/lib64/ -lcudart -lcurand -o test
 
 libcuda-dpd.so: cuda-dpd.o rring-buffer.o profiler-dpd.o
 	$(CXX) $(CXXFLAGS) -shared $^ -o libcuda-dpd.so -L/usr/local/cuda-5.5/lib64/ -lcudart -lcurand
@@ -29,6 +29,9 @@ rring-buffer.o: rring-buffer.cpp rring-buffer.h
 
 profiler-dpd.o:	profiler-dpd.cpp profiler-dpd.h
 	$(CXX) $(CXXFLAGS) -c profiler-dpd.cpp
+
+cell-lists.o: cell-lists.cu cell-lists.h
+	$(NVCC) $(NVCCFLAGS) -c cell-lists.cu
 
 clean:
 	rm -f test libcuda-dpd.so *.o 
