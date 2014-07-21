@@ -48,7 +48,7 @@ int main()
     const bool cuda = true;
     const bool curand = true;
     const real dt = 0.02;
-    const real tend = 3;
+    const real tend = 10;
     
     vector<real> xp(n), yp(n), zp(n), xv(n), yv(n), zv(n), xa(n), ya(n), za(n);
     srand48(6516L);
@@ -60,15 +60,15 @@ int main()
 	const int ycid = (cid / (int) L) % (int)L;
 	const int zcid = (cid / (int) L / (int) L) % (int)L;
 
-#if 1
+#if 0
 	xp[i] = -L * 0.5f +  drand48() * L;
 	yp[i] = -L * 0.5f +  drand48() * L;
 	zp[i] = -L * 0.5f +  drand48() * L;
 	
 #else
-	xp[i] = -L * 0.5f + xcid + 0.5+ 0.15 * (1 - 2 * drand48() );
-	yp[i] = -L * 0.5f + ycid + 0.5+ 0.15 * (1 - 2 * drand48() );
-	zp[i] = -L * 0.5f + zcid + 0.5+ 0.15 * (1 - 2 * drand48() );
+	xp[i] = -L * 0.5f + xcid + 0.5+ 0.015 * (1 - 2 * drand48() );
+	yp[i] = -L * 0.5f + ycid + 0.5+ 0.015 * (1 - 2 * drand48() );
+	zp[i] = -L * 0.5f + zcid + 0.5+ 0.015 * (1 - 2 * drand48() );
 #endif
     }
     
@@ -199,11 +199,12 @@ int main()
 
     for(int it = 0; it < nt; ++it)
     {
-	if (it % 30 == 0)
+	//const double dt = 0;
+	if (it % 1 == 0)
 	{
 	    float t = it * dt;
 	    _diag(fdiag, t);
-	    _diag(stdout, t);
+	    //  _diag(stdout, t);
 	}
 		
 	_up(xv, xa, dt * 0.5);

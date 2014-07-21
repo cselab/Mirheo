@@ -21,7 +21,8 @@ void ProfilerDPD::start()
 {
     if (nvprof)
 	CUDA_CHECK(cudaProfilerStart());
-    
+
+    CUDA_CHECK(cudaThreadSynchronize());
     CUDA_CHECK(cudaEventRecord(evstart));
 }
 

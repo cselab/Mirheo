@@ -71,13 +71,13 @@ __device__ void _ftable(
 	if (valid)
 	{
 #ifdef _CHECK_
-	xmyforce = (rij2 < 1);
-	ymyforce = 0;
-	zmyforce = 0;
+	    xmyforce = (rij2 < 1);
+	    ymyforce = 0;
+	    zmyforce = 0;
 #else		    
-	xmyforce = strength * xr;
-	ymyforce = strength * yr;
-	zmyforce = strength * zr;
+	    xmyforce = strength * xr;
+	    ymyforce = strength * yr;
+	    zmyforce = strength * zr;
 #endif
 	}
     }
@@ -213,10 +213,10 @@ __device__ void _cellscells(const int p1start[4], const int p1count[4], const in
 		rsamples_start += np1[i] * np2[i];
 
 		if (l < np1[i] * 3)
-		     pva1result[i] += pva1[6 + (l % 3)][l / 3];
+		    pva1result[i] += pva1[6 + (l % 3)][l / 3];
 		
 		if (l < np2[i] * 3)
-		     pva2result[i] = pva2[6 + (l % 3)][l / 3];
+		    pva2result[i] = pva2[6 + (l % 3)][l / 3];
 		
 		__syncthreads();
 	    }
@@ -380,6 +380,191 @@ __global__ void _reduce(float * tmp)
     }
 }
 
+__device__ float saru(unsigned int seed1, unsigned int seed2, unsigned int seed3)
+{
+    seed3 ^= (seed1<<7)^(seed2>>6);
+    seed2 += (seed1>>4)^(seed3>>15);
+    seed1 ^= (seed2<<9)+(seed3<<8);
+    seed3 ^= 0xA5366B4D*((seed2>>11) ^ (seed1<<1));
+    seed2 += 0x72BE1579*((seed1<<4)  ^ (seed3>>16));
+    seed1 ^= 0X3F38A6ED*((seed3>>5)  ^ (((signed int)seed2)>>22));
+    seed2 += seed1*seed3;
+    seed1 += seed3 ^ (seed2>>2);
+    seed2 ^= ((signed int)seed2)>>17;
+    
+    int state  = 0x79dedea3*(seed1^(((signed int)seed1)>>14));
+    int wstate = (state + seed2) ^ (((signed int)state)>>8);
+    state  = state + (wstate*(wstate^0xdddf97f5));
+    wstate = 0xABCB96F7 + (wstate>>1);
+    
+    state  = 0x4beb5d59*state + 0x2600e1f7;             // LCG
+    wstate = wstate + 0x8009d14b + ((((signed int)wstate)>>31)&0xda879add); // OWS
+    
+    unsigned int v = (state ^ (state>>26))+wstate;
+    unsigned int r = (v^(v>>20))*0x6957f5a7;
+    
+    double res = r / (4294967295.0f);
+    return res;
+}
+
+#define _XPASSES_ 1 
+#define _YPASSES_ 4
+#define _XBS_ 32 
+#define _XCPB_ 2
+#define _YCPB_ 2
+#define _ZCPB_ 1
+#define _CPB_ (_XCPB_ * _YCPB_ * _ZCPB_)
+__global__ void _dpd_forces_saru(int idtimestep)
+{
+    assert(warpSize == _XBS_);
+    assert(blockDim.x == _XBS_ && blockDim.y == _CPB_ && blockDim.z == 1);
+    assert(_YPASSES_ * 3 <= warpSize);
+
+    const int tid = threadIdx.x;
+    const int wid = threadIdx.y;
+     
+    __shared__ int volatile starts[_CPB_][32], scan[_CPB_][32];
+
+    int mycount = 0; 
+    if (tid < 27)
+    {
+	const int dx = (1 + tid) % 3;
+	const int dy = (1 + (tid / 3)) % 3;
+	const int dz = (1 + (tid / 9)) % 3;
+
+	const int xcid = (blockIdx.x * _XCPB_ + ((threadIdx.y) % _XCPB_) + dx - 1 + info.ncells.x) % info.ncells.x;
+	const int ycid = (blockIdx.y * _YCPB_ + ((threadIdx.y / _XCPB_) % _YCPB_) + dy - 1 + info.ncells.y) % info.ncells.y;
+	const int zcid = (blockIdx.z * _ZCPB_ + ((threadIdx.y / (_XCPB_ * _YCPB_)) % _ZCPB_) + dz - 1 + info.ncells.z) % info.ncells.z;
+	const int cid = xcid + info.ncells.x * (ycid + info.ncells.y * zcid);
+
+	starts[wid][tid] = tex1Dfetch(texStart, cid);
+	mycount = tex1Dfetch(texEnd, cid) - starts[wid][tid];
+    }
+
+#pragma unroll
+    for(int L = 1; L < 32; L <<= 1)
+	mycount += (tid >= L) * __shfl_up(mycount, L) ;
+
+    if (tid < 27)
+	scan[wid][tid] = mycount;
+
+    const int dststart = starts[wid][0];
+    const int nsrc = scan[wid][26], ndst = scan[wid][0];
+    
+    float f[3][_YPASSES_];
+    __shared__ volatile float dpv[_CPB_][_YPASSES_][6], spv[_CPB_][_XPASSES_][6][_XBS_];
+    __shared__ volatile int spid[_CPB_][_XPASSES_][_XBS_];
+    
+    for(int d = 0; d < ndst; d += _YPASSES_)
+    {
+	const int np1 = min(ndst - d, _YPASSES_);
+	
+	for(int i = tid; i < np1 * 6 ; i += _XBS_)
+	    dpv[wid][i / 6][i % 6] = info.xyzuvw[i + 6 * (d + dststart)];
+
+#pragma unroll
+	for(int c = 0; c < 3; ++c)
+#pragma unroll
+	    for(int yp = 0; yp < _YPASSES_; ++yp)
+		f[c][yp] = 0;
+	
+	for(int s = 0; s < nsrc; s += _XBS_ * _XPASSES_)
+	{
+	    const int np2 = min(nsrc - s, _XBS_ * _XPASSES_);
+
+	    for(int i = tid; i < np2 * 6; i += _XBS_)
+	    {
+		const int pid = s + i / 6;
+		const int key9 = 9 * (pid >= scan[wid][8]) + 9 * (pid >= scan[wid][17]);
+		const int key3 = 3 * (pid >= scan[wid][key9 + 2]) + 3 * (pid >= scan[wid][key9 + 5]);
+		const int key1 = (pid >= scan[wid][key9 + key3]) + (pid >= scan[wid][key9 + key3 + 1]);
+		const int key = key9 + key3 + key1;
+		assert(pid >= (key ? scan[wid][key - 1] : 0) && pid < scan[wid][key]);
+		
+		const int localid = pid - s;
+		const int c = i % 6;
+		const int myspid = starts[wid][key] + pid - (key ? scan[wid][key - 1] : 0);
+		spv[wid][localid / _XBS_][c][localid % _XBS_] = info.xyzuvw[c + 6 * myspid];
+
+		if (c == 0)
+		    spid[wid][localid / _XBS_][localid % _XBS_] = myspid;
+	    }
+
+#pragma unroll
+	    for(int xp = 0; xp < _XPASSES_; ++xp)
+#pragma unroll
+		for(int yp = 0; yp < _YPASSES_; ++yp)
+		{
+		    const float xpos = dpv[wid][yp][0];
+		    const float ypos = dpv[wid][yp][1];
+		    const float zpos = dpv[wid][yp][2];
+		    const float xvel = dpv[wid][yp][3];
+		    const float yvel = dpv[wid][yp][4];
+		    const float zvel = dpv[wid][yp][5];
+		
+		    float xforce = f[0][yp];
+		    float yforce = f[1][yp];
+		    float zforce = f[2][yp];
+			    
+		    float xr = xpos - spv[wid][xp][0][tid];
+		    float yr = ypos - spv[wid][xp][1][tid];
+		    float zr = zpos - spv[wid][xp][2][tid];
+		
+		    xr -= info.domainsize.x * floorf(0.5f + xr / info.domainsize.x);
+		    yr -= info.domainsize.y * floorf(0.5f + yr / info.domainsize.y);
+		    zr -= info.domainsize.z * floorf(0.5f + zr / info.domainsize.z);
+
+		    const float rij2 = xr * xr + yr * yr + zr * zr;
+		    const float invrij = rsqrtf(rij2);
+		    const float rij = rij2 * invrij;
+		    const float wr = max((float)0, 1 - rij * info.invrc);
+		
+		    xr *= invrij;
+		    yr *= invrij;
+		    zr *= invrij;
+		
+		    const float rdotv =
+			xr * (xvel - spv[wid][xp][3][tid]) +
+			yr * (yvel - spv[wid][xp][4][tid]) +
+			zr * (zvel - spv[wid][xp][5][tid]);
+
+		    const int gd = dststart + d + yp;
+		    const int gs = spid[wid][xp][tid];
+		    const float mysaru = saru(min(gs, gd), max(gs, gd), idtimestep);
+		    const float myrandnr = 3.4641016151377544f * mysaru - 1.7320508075688772f;
+		    const float strength = (info.aij - info.gamma * wr * rdotv + info.sigmaf * myrandnr) * wr;
+		
+		    const bool valid = (d + yp != s + tid + _XBS_ * xp) && (yp < np1) && (tid + _XBS_ * xp < np2);
+		    if (valid)
+		    {
+#ifdef _CHECK_
+			f[0][yp] = xforce + (rij2 < 1);
+			f[1][yp] = yforce + wr;
+			f[2][yp] = zforce + 0;
+#else		    	  
+			f[0][yp] = xforce + strength * xr;
+			f[1][yp] = yforce + strength * yr;
+			f[2][yp] = zforce + strength * zr;
+#endif
+		    }
+	     	} //end for yp
+	} //end for s
+
+#pragma unroll
+	for(int L = 16; L > 0; L >>=1)
+#pragma unroll
+	    for(int yp = 0; yp < _YPASSES_; ++yp)
+#pragma unroll
+		for(int c = 0; c < 3; ++c)
+		    f[c][yp] += __shfl_xor(f[c][yp], L);
+
+	const float fcontrib = f[tid % 3][tid / 3];
+	
+	if (tid < np1 * 3)
+	    info.axayaz[tid + 3 * (dststart + d)] = fcontrib;
+    } //end for d
+}
+
 #include <cmath>
 #include <unistd.h>
 
@@ -483,12 +668,7 @@ void forces_dpd_cuda(float * const _xyzuvw, float * const _axayaz,
     build_clists(_ptr(xyzuvw), np, rc, c.ncells.x, c.ncells.y, c.ncells.z,
 		 c.domainstart.x, c.domainstart.y, c.domainstart.z,
 		 order, _ptr(starts), _ptr(ends));
-	
-    int * consumed = NULL;
-    cudaHostAlloc((void **)&consumed, sizeof(int), cudaHostAllocMapped);
-    assert(consumed != NULL);
-    *consumed = 0;
-    
+
     {
 	size_t textureoffset = 0;
 	cudaChannelFormatDesc fmt =  cudaCreateChannelDesc(32, 0, 0, 0, cudaChannelFormatKindSigned);
@@ -510,7 +690,32 @@ void forces_dpd_cuda(float * const _xyzuvw, float * const _axayaz,
 	texParticles.mipmapFilterMode = cudaFilterModePoint;
 	texParticles.normalized = 0;
 	cudaBindTexture(&textureoffset, &texParticles, c.xyzuvw, &fmt, sizeof(float) * 6 * np);
+    }
+    
+    int * consumed = NULL;
+    cudaHostAlloc((void **)&consumed, sizeof(int), cudaHostAllocMapped);
+    assert(consumed != NULL);
+    *consumed = 0;
 
+     if (true)
+     {
+	myprof->start();
+
+	static int tid = 0;
+
+	_dpd_forces_saru<<<dim3(c.ncells.x / _XCPB_,
+				c.ncells.y / _YCPB_,
+				c.ncells.z / _ZCPB_), dim3(32, _CPB_)>>>(tid);
+
+	++tid;
+
+	CUDA_CHECK(cudaPeekAtLastError());
+	
+	myprof->force();
+	myprof->reduce();
+    }
+    else
+    {
 	float * tmp;
 
 	const int nreplica = 24;
@@ -560,7 +765,7 @@ void forces_dpd_cuda(float * const _xyzuvw, float * const _axayaz,
 	printf("pid %d -> %f %f %f\n", i, (float)axayaz[0 + 3 * i], (float)axayaz[1 + 3* i], (float)axayaz[2 + 3 *i]);
 
 	int cnt = 0;
-	
+	float fc = 0;
 	printf("devi coords are %f %f %f\n", (float)xyzuvw[0 + 6 * i], (float)xyzuvw[1 + 6 * i], (float)xyzuvw[2 + 6 * i]);
 	printf("host coords are %f %f %f\n", (float)_xyzuvw[0 + 6 * i], (float)_xyzuvw[1 + 6 * i], (float)_xyzuvw[2 + 6 * i]);
 	
@@ -578,12 +783,21 @@ void forces_dpd_cuda(float * const _xyzuvw, float * const _axayaz,
 	    zr -= c.domainsize.z *  ::floor(0.5f + zr / c.domainsize.z);
 
 	    const float rij2 = xr * xr + yr * yr + zr * zr;
-	    
+	    const float invrij = rsqrtf(rij2);
+	    const float rij = rij2 * invrij;
+	    const float wr = max((float)0, 1 - rij * c.invrc);
+	
+	    const bool collision =  rij2 < 1;
 
-	    cnt += rij2 < 1;
+	    if (collision)
+		fc += wr;//	printf("ref p %d colliding with %d\n", i, j);
+	    
+	    cnt += collision;
 	}
 	printf("i found %d host interactions and with cuda i found %d\n", cnt, (int)axayaz[0 + 3 * i]);
 	assert(cnt == (float)axayaz[0 + 3 * i]);
+	printf("fc aij ref %f vs cuda %e\n", fc,  (float)axayaz[1 + 3 * i]);
+	assert(fabs(fc - (float)axayaz[1 + 3 * i]) < 1e-4);
     }
     
     printf("test done.\n");
