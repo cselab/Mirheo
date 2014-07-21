@@ -7,7 +7,7 @@ config ?= release
 ifeq "$(config)" "debug"
 CPPFLAGS+= -O0
 else ifeq "$(config)" "release"
-CPPFLAGS += -O3  -ftree-vectorize
+CPPFLAGS += -O3 -fno-tree-vectorize
 else
 CPPFLAGS += -O1
 endif

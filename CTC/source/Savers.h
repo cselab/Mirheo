@@ -125,6 +125,23 @@ public:
 };
 
 template<int N>
+class SaveStrain: public Saver<N>
+{
+public:
+	SaveStrain(ostream* o)		   : Saver<N>(o) {};
+	SaveStrain(string fname)	   : Saver<N>(fname) {};
+	
+	void exec()
+	{
+        real diff = fabs(this->my->walls[0]->z - this->my->walls[1]->z);
+        
+		*this->file << this->my->getIter() << " " << this->my->walls[0]->z << " " << this->my->walls[1]->z << " " << diff << endl;
+        this->file->flush();
+	}
+};
+
+
+template<int N>
 class SaveRestart: public Saver<N>
 {
     string fname;

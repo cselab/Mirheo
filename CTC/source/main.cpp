@@ -62,6 +62,7 @@ int main (int argc, char **argv)
 	Saver<TYPES>     *timeSaver = new SaveTiming<TYPES>      (configParser->gets("Savers", "timingFile", "screen"));
     Saver<TYPES>     *tempSaver = new SaveTemperature<TYPES> (configParser->gets("Savers", "temperatureFile", "temp.txt"));
     Saver<TYPES>     *restarter = new SaveRestart<TYPES>     (configParser->gets("Savers", "restartFile", "restart"));
+    Saver<TYPES>     *strSaver  = new SaveStrain<TYPES>      (configParser->gets("Savers", "strainFile", "strain.txt"));
 
     int n0       = configParser->geti("Particles", "Ndpd", 3500);
     int n1       = configParser->geti("Particles", "Nsem", 125);
@@ -91,6 +92,7 @@ int main (int argc, char **argv)
 	simulation.registerSaver(timeSaver, configParser->geti("Savers", "timingPeriod", 100));
     simulation.registerSaver(tempSaver, configParser->geti("Savers", "temperaturePeriod", 100));
     simulation.registerSaver(restarter, configParser->geti("Savers", "restartPeriod", 1000));
+    simulation.registerSaver(strSaver,  configParser->geti("Savers", "strainPeriod", 100));
 	simulation.profiler.millisec();
 	
 	int iters = ceil(end / dt);

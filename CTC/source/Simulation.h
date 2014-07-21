@@ -62,59 +62,31 @@ struct Unroller<End, End, Step> {
 
 template<int ibeg, int iend, int jbeg, int jend>
 struct Unroller2 {
-    static void step() {
+    static void step(Profiler& p) {
 #ifdef MD_USE_CELLLIST
         Forces::_Cells<ibeg, jbeg> force;
 #else
         Forces::_N2<ibeg, jbeg> force;
 #endif
+        p.start("Forces " + to_string(ibeg) + " <-> " + to_string(jbeg));
         force();
-        Unroller2<ibeg, iend, jbeg+1, jend>::step();
+        p.stop();
+        Unroller2<ibeg, iend, jbeg+1, jend>::step(p);
     }
 };
 
 template<int ibeg, int iend, int jend>
 struct Unroller2<ibeg, iend, jend, jend> {
-    static void step() {
-        Unroller2<ibeg+1, iend, ibeg+1, jend>::step();
+    static void step(Profiler& p) {
+        Unroller2<ibeg+1, iend, ibeg+1, jend>::step(p);
     }
 };
 
 template<int iend, int jend>
 struct Unroller2<iend, iend, jend, jend> {
-    static void step() {
+    static void step(Profiler& p) {
     }
 };
-
-
-
-
-template<int ibeg, int iend, int jbeg, int jend>
-struct Unroller3 {
-    static void step() {
-#ifdef MD_USE_CELLLIST
-        Forces::_Cells1<ibeg, jbeg> force;
-#else
-        Forces::_N2<ibeg, jbeg> force;
-#endif
-        force();
-        Unroller3<ibeg, iend, jbeg+1, jend>::step();
-    }
-};
-
-template<int ibeg, int iend, int jend>
-struct Unroller3<ibeg, iend, jend, jend> {
-    static void step() {
-        Unroller3<ibeg+1, iend, ibeg+1, jend>::step();
-    }
-};
-
-template<int iend, int jend>
-struct Unroller3<iend, iend, jend, jend> {
-    static void step() {
-    }
-};
-
 
 //**********************************************************************************************************************
 // Simulation
@@ -132,6 +104,72 @@ real Forces::Arguments::zhi;
 Cells<Particles>** Forces::Arguments::cells;
 #endif
 
+
+struct LJwallz
+{
+    real z;
+    real v;
+    real a;
+    const real mass = 1;
+    
+    LJwallz(real z, real v):z(z), v(v), a(0) {};
+    
+    void VVpre(real dt)
+    {
+        v += a * dt*0.5;
+        z += v * dt;
+    }
+    
+    void VVpost(real dt)
+    {
+        v += a * dt*0.5;
+    }
+    
+    void force(Particles* part)
+    {
+        static const real rCut  = 2;
+        static const real sigma = 0.5;
+        static const real eps   = 0.001;
+        
+        a = 0;
+        for (int i = 0; i<part->n; i++)
+        {
+            if (fabs(part->z(i) - z) < rCut)
+            {
+                real r = fabs(part->z(i) - z);
+                real s_r = sigma / r;
+                real s_r2 = s_r*s_r;
+                real f5 = s_r*s_r2*s_r2; // 5
+                
+                real f11 = s_r*f5*f5;    // 11
+                
+                real f = eps * 1/(sigma*sigma) * (3*f5 - f11) * (part->z(i) - z);
+                part->az(i) -= f / part->m[i];
+                a += f / mass;
+                a -= 0.01*v;
+                
+                if (f > 100) info("wall: %.5f,   part %.5f,   r: %.4f   f5: %.4f  f11: %.4f\n", z, part->z(i), r, 3*f5, f11);
+            }
+        }
+        
+        //info("%.5f   %.5f   %.5f\n", z, v, a);
+    }
+    
+    void fix()
+    {
+        a = 0;
+        v = 0;
+    }
+    
+    void addF(real f)
+    {
+        a += f/mass;
+    }
+    
+};
+
+
+
 template<int N>
 class Simulation
 {
@@ -142,7 +180,7 @@ private:
 	
 	Particles* part[N];
 	list<Saver<N>*>	savers;
-	
+    
 #ifdef MD_USE_CELLLIST
 	Cells<Particles>* cells[N];
 #endif
@@ -154,6 +192,8 @@ private:
 	
 public:
 	Profiler profiler;
+    
+    vector<LJwallz*> walls;
 
 	Simulation (real);
 	void setLattice(Particles* p, real lx, real ly, real lz, int n);
@@ -411,6 +451,7 @@ void Simulation<N>::loadRestart(string fname, vector<real> rCuts)
         in.read((char*)part[i]->label, n*sizeof(int));
         
         _fill(part[i]->adata, 3*part[i]->n, (real)0.0);
+        _fill(part[i]->vdata, 3*part[i]->n, (real)0.0); // !!!
 
 #ifdef MD_USE_CELLLIST
         if (part[i]->n > 0) cells[i] = new Cells<Particles>(part[i], part[i]->n, rCuts[i], lower, higher);
@@ -421,6 +462,18 @@ void Simulation<N>::loadRestart(string fname, vector<real> rCuts)
     in.close();
     
     Forces::Arguments::rCuts = rCuts;
+    
+    real zmax = -1000;
+    real zmin =  1000;
+    for (int i = 0; i<part[1]->n; i++)
+    {
+        zmax = max(zmax, part[1]->z(i));
+        zmin = min(zmin, part[1]->z(i));
+    }
+    
+    // !!!
+    walls.push_back(new LJwallz(3.45142, 0.000));
+    walls.push_back(new LJwallz(-2.77443, -0.000));
 }
 
 template<int N>
@@ -554,7 +607,11 @@ void Simulation<N>::velocityVerlet()
         _fill(part[type]->adata, 3*part[type]->n, (real)0.0);
     };
     
-    profiler.start("K1");
+    profiler.start("Integration");
+    for (auto w : walls)
+    {
+        w->VVpre(dt);
+    }
     Unroller<0, N>::step(prep);
     profiler.stop();
   
@@ -569,14 +626,19 @@ void Simulation<N>::velocityVerlet()
     profiler.stop();
 #endif
     
-//    profiler.start("K2");
-//    Unroller2<0, N, 0, N>::step();
-//    profiler.stop();
-
-    profiler.start("K3");
-    Unroller3<0, N, 0, N>::step();
-    profiler.stop();
-
+    Unroller2<0, N, 0, N>::step(profiler);
+    
+    for (auto w : walls)
+    {
+        w->force(part[1]);
+    }
+    
+    if (dt*step > 100)
+    {
+        walls[1]->fix();
+        walls[0]->addF(0.1);
+    }
+    
     auto fin = [&](int type)
     {
         _nuscal(part[type]->adata, part[type]->m,       part[type]->n);
@@ -584,6 +646,11 @@ void Simulation<N>::velocityVerlet()
     };
     
     Unroller<0, N>::step(fin);
+    
+    for (auto w : walls)
+    {
+        w->VVpost(dt);
+    }
 }
 
 template<int N>
@@ -598,21 +665,21 @@ void Simulation<N>::runOneStep()
 	
 	if (step == 0)
     {
-        Unroller2<0, N, 0, N>::step();
-        debug("\n\n\n\n\n\n\n");
-        Unroller3<0, N, 0, N>::step();
-        
-        for (int i = 0; i< part[1]->n; i++)
-        {
-            if (fabs(part[1]->ax(i) - part[1]->bx(i)) > 1e-5)
-                warn("X, i = %3i:  %.6f   instead of  %.6f !!\n", i, part[1]->bx(i), part[1]->ax(i));
-            
-            if (fabs(part[1]->ay(i) - part[1]->by(i)) > 1e-5)
-                warn("Y, i = %3i:  %.6f   instead of  %.6f !!\n", i, part[1]->by(i), part[1]->ay(i));
-            
-            if (fabs(part[1]->az(i) - part[1]->bz(i)) > 1e-5)
-                warn("Z, i = %3i:  %.6f   instead of  %.6f !!\n", i, part[1]->bz(i), part[1]->az(i));
-        }
+        Unroller2<0, N, 0, N>::step(profiler);
+//        debug("\n\n\n\n\n\n\n");
+//        Unroller3<0, N, 0, N>::step();
+//        
+//        for (int i = 0; i< part[1]->n; i++)
+//        {
+//            if (fabs(part[1]->ax(i) - part[1]->bx(i)) > 1e-5)
+//                warn("X, i = %3i:  %.6f   instead of  %.6f !!\n", i, part[1]->bx(i), part[1]->ax(i));
+//            
+//            if (fabs(part[1]->ay(i) - part[1]->by(i)) > 1e-5)
+//                warn("Y, i = %3i:  %.6f   instead of  %.6f !!\n", i, part[1]->by(i), part[1]->ay(i));
+//            
+//            if (fabs(part[1]->az(i) - part[1]->bz(i)) > 1e-5)
+//                warn("Z, i = %3i:  %.6f   instead of  %.6f !!\n", i, part[1]->bz(i), part[1]->az(i));
+//        }
     }
     
 	step++;

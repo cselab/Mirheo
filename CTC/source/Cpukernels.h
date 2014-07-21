@@ -201,17 +201,17 @@ namespace Forces
     };
     
     
-    template<int a, int b>
-    struct _Cells1 : Arguments
+    template<int a>
+    struct _Cells<a, a> : Arguments
     {
         static const int stride = 2;
         
         template<bool myself>
-        inline void exec(int sx, int sy, int sz, vector<vector<int>> pass, real* res)
+        void exec(int sx, int sy, int sz, vector<vector<int>> pass, real* res) const
         {
             real rCut2 = rCuts[a] * rCuts[a];
             
-            if (part[a]->n <= 0 || part[b]->n <= 0) return;
+            if (part[a]->n <= 0) return;
             
             for (int ix=sx; ix<cells[a]->n0; ix+=stride)
                 for (int iy=sy; iy<cells[a]->n1; iy+=stride)
@@ -260,7 +260,7 @@ namespace Forces
                                         real vy = part[a]->vy(dst) - part[a]->vy(src);
                                         real vz = part[a]->vz(dst) - part[a]->vz(src);
                                         
-                                        force<a, b>(dx, dy, dz,  vx, vy, vz,  fx, fy, fz);
+                                        force<a, a>(dx, dy, dz,  vx, vy, vz,  fx, fy, fz);
 
                                         res[3*src + 0] += fx;
                                         res[3*src + 1] += fy;
@@ -296,7 +296,7 @@ namespace Forces
                                         real vy = part[a]->vy(dst) - part[a]->vy(src);
                                         real vz = part[a]->vz(dst) - part[a]->vz(src);
                                         
-                                        force<a, b>(dx, dy, dz,  vx, vy, vz,  fx, fy, fz);
+                                        force<a, a>(dx, dy, dz,  vx, vy, vz,  fx, fy, fz);
                                         
                                         res[3*src + 0] += fx;
                                         res[3*src + 1] += fy;
@@ -330,28 +330,21 @@ namespace Forces
                 for (int j=0; j<3*part[a]->n; j++)
                     buffer[i][j] = 0;
             
-#pragma omp parallel
-{
-#pragma omp for
+#pragma omp parallel for collapse(3)
             for (int i=0; i<stride; i++)
                 for (int j=0; j<stride; j++)
                     for (int k=0; k<stride; k++)
                     {
-#pragma omp task
-                        exec<false>(i, j, k, pass1, buffer[i*4+j*2+k]);
+                        exec<false>(i, j, k, pass1, buffer[4*i + 2*j + k]);
                     }
-#pragma omp taskwait
-    
-#pragma omp for
+            
+#pragma omp parallel for collapse(3)
             for (int i=0; i<stride; i++)
                 for (int j=0; j<stride; j++)
                     for (int k=0; k<stride; k++)
                     {
-#pragma omp task
-                        exec<true>(i, j, k, pass2, buffer[i*4+j*2+k]);
+                        exec<true>(i, j, k, pass2, buffer[4*i + 2*j + k]);
                     }
-}
-    
 
             for (int j=0; j<3*part[a]->n; j++)
             {
@@ -363,7 +356,7 @@ namespace Forces
                 buffer[0][j] += buffer[2][j];
                 buffer[4][j] += buffer[6][j];
 
-                part[a]->bdata[j] = buffer[0][j] + buffer[4][j];
+                part[a]->adata[j] = buffer[0][j] + buffer[4][j];
             }
 
         }
