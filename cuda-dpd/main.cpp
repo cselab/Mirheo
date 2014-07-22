@@ -37,7 +37,7 @@ void vmd_xyz(const char * path, real * xs, real * ys, real * zs, const int n, bo
 
 int main()
 {
-    real L = 10;
+    real L = 20;
 
     const int Nm = 3;
     const int n = L * L * L * Nm;
@@ -48,7 +48,7 @@ int main()
     const bool cuda = true;
     const bool curand = true;
     const real dt = 0.02;
-    const real tend = 10;
+    const real tend = 3;
     
     vector<real> xp(n), yp(n), zp(n), xv(n), yv(n), zv(n), xa(n), ya(n), za(n);
     srand48(6516L);
@@ -200,11 +200,11 @@ int main()
     for(int it = 0; it < nt; ++it)
     {
 	//const double dt = 0;
-	if (it % 1 == 0)
+	if (it % 30 == 0)
 	{
 	    float t = it * dt;
 	    _diag(fdiag, t);
-	    //  _diag(stdout, t);
+	      _diag(stdout, t);
 	}
 		
 	_up(xv, xa, dt * 0.5);

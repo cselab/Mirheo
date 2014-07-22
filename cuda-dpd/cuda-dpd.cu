@@ -407,20 +407,24 @@ __device__ float saru(unsigned int seed1, unsigned int seed2, unsigned int seed3
     return res;
 }
 
-#define _XPASSES_ 1 
-#define _YPASSES_ 4
-#define _XBS_ 32 
+#define _XPASSES_ 1  
+#define _YPASSES_ 1
+#define _XPASS_SIZE_ 8
+#define _SLOTS_ (32 / _XPASS_SIZE_)
+#define _YPASS_SIZE_ _SLOTS_
 #define _XCPB_ 2
 #define _YCPB_ 2
 #define _ZCPB_ 1
 #define _CPB_ (_XCPB_ * _YCPB_ * _ZCPB_)
 __global__ void _dpd_forces_saru(int idtimestep)
 {
-    assert(warpSize == _XBS_);
-    assert(blockDim.x == _XBS_ && blockDim.y == _CPB_ && blockDim.z == 1);
-    assert(_YPASSES_ * 3 <= warpSize);
+    assert(warpSize == _XPASS_SIZE_ * _YPASS_SIZE_);
+    assert(blockDim.x == warpSize && blockDim.y == _CPB_ && blockDim.z == 1);
+    assert(_YPASSES_ * _YPASS_SIZE_ * 3 <= warpSize);
 
     const int tid = threadIdx.x;
+    const int subtid = tid % _XPASS_SIZE_;
+    const int slot = tid / _XPASS_SIZE_;
     const int wid = threadIdx.y;
      
     __shared__ int volatile starts[_CPB_][32], scan[_CPB_][32];
@@ -451,16 +455,16 @@ __global__ void _dpd_forces_saru(int idtimestep)
     const int dststart = starts[wid][0];
     const int nsrc = scan[wid][26], ndst = scan[wid][0];
     
-    float f[3][_YPASSES_];
-    __shared__ volatile float dpv[_CPB_][_YPASSES_][6], spv[_CPB_][_XPASSES_][6][_XBS_];
-    __shared__ volatile int spid[_CPB_][_XPASSES_][_XBS_];
+    float f[3][_YPASSES_ * _YPASS_SIZE_];
+    __shared__ volatile float dpv[_CPB_][_YPASSES_ * _YPASS_SIZE_][6], spv[_CPB_][_XPASSES_][6][_XPASS_SIZE_];
+    __shared__ volatile int spid[_CPB_][_XPASSES_][_XPASS_SIZE_];
     
-    for(int d = 0; d < ndst; d += _YPASSES_)
+    for(int d = 0; d < ndst; d += _YPASSES_ * _YPASS_SIZE_)
     {
-	const int np1 = min(ndst - d, _YPASSES_);
+	const int np1 = min(ndst - d, _YPASSES_ * _YPASS_SIZE_);
 	
-	for(int i = tid; i < np1 * 6 ; i += _XBS_)
-	    dpv[wid][i / 6][i % 6] = info.xyzuvw[i + 6 * (d + dststart)];
+	for(int i = tid; i < np1 * 6 ; i += warpSize)
+	    dpv[wid][i / 6][i % 6] = tex1Dfetch(texParticles, i + 6 * (d + dststart));
 
 #pragma unroll
 	for(int c = 0; c < 3; ++c)
@@ -468,11 +472,11 @@ __global__ void _dpd_forces_saru(int idtimestep)
 	    for(int yp = 0; yp < _YPASSES_; ++yp)
 		f[c][yp] = 0;
 	
-	for(int s = 0; s < nsrc; s += _XBS_ * _XPASSES_)
+	for(int s = 0; s < nsrc; s += _XPASS_SIZE_ * _XPASSES_)
 	{
-	    const int np2 = min(nsrc - s, _XBS_ * _XPASSES_);
+	    const int np2 = min(nsrc - s, _XPASS_SIZE_ * _XPASSES_);
 
-	    for(int i = tid; i < np2 * 6; i += _XBS_)
+	    for(int i = tid; i < np2 * 6; i += warpSize)
 	    {
 		const int pid = s + i / 6;
 		const int key9 = 9 * (pid >= scan[wid][8]) + 9 * (pid >= scan[wid][17]);
@@ -484,10 +488,10 @@ __global__ void _dpd_forces_saru(int idtimestep)
 		const int localid = pid - s;
 		const int c = i % 6;
 		const int myspid = starts[wid][key] + pid - (key ? scan[wid][key - 1] : 0);
-		spv[wid][localid / _XBS_][c][localid % _XBS_] = info.xyzuvw[c + 6 * myspid];
-
+		spv[wid][localid / _XPASS_SIZE_][c][localid % _XPASS_SIZE_] = tex1Dfetch(texParticles, c + 6 * myspid);
+				
 		if (c == 0)
-		    spid[wid][localid / _XBS_][localid % _XBS_] = myspid;
+		    spid[wid][localid / _XPASS_SIZE_][localid % _XPASS_SIZE_] = myspid;
 	    }
 
 #pragma unroll
@@ -495,20 +499,21 @@ __global__ void _dpd_forces_saru(int idtimestep)
 #pragma unroll
 		for(int yp = 0; yp < _YPASSES_; ++yp)
 		{
-		    const float xpos = dpv[wid][yp][0];
-		    const float ypos = dpv[wid][yp][1];
-		    const float zpos = dpv[wid][yp][2];
-		    const float xvel = dpv[wid][yp][3];
-		    const float yvel = dpv[wid][yp][4];
-		    const float zvel = dpv[wid][yp][5];
+		    const int ldpid = _SLOTS_ * yp + slot;
+		    const float xpos = dpv[wid][ldpid][0];
+		    const float ypos = dpv[wid][ldpid][1];
+		    const float zpos = dpv[wid][ldpid][2];
+		    const float xvel = dpv[wid][ldpid][3];
+		    const float yvel = dpv[wid][ldpid][4];
+		    const float zvel = dpv[wid][ldpid][5];
 		
 		    float xforce = f[0][yp];
 		    float yforce = f[1][yp];
 		    float zforce = f[2][yp];
 			    
-		    float xr = xpos - spv[wid][xp][0][tid];
-		    float yr = ypos - spv[wid][xp][1][tid];
-		    float zr = zpos - spv[wid][xp][2][tid];
+		    float xr = xpos - spv[wid][xp][0][subtid];
+		    float yr = ypos - spv[wid][xp][1][subtid];
+		    float zr = zpos - spv[wid][xp][2][subtid];
 		
 		    xr -= info.domainsize.x * floorf(0.5f + xr / info.domainsize.x);
 		    yr -= info.domainsize.y * floorf(0.5f + yr / info.domainsize.y);
@@ -524,17 +529,18 @@ __global__ void _dpd_forces_saru(int idtimestep)
 		    zr *= invrij;
 		
 		    const float rdotv =
-			xr * (xvel - spv[wid][xp][3][tid]) +
-			yr * (yvel - spv[wid][xp][4][tid]) +
-			zr * (zvel - spv[wid][xp][5][tid]);
+			xr * (xvel - spv[wid][xp][3][subtid]) +
+			yr * (yvel - spv[wid][xp][4][subtid]) +
+			zr * (zvel - spv[wid][xp][5][subtid]);
 
-		    const int gd = dststart + d + yp;
-		    const int gs = spid[wid][xp][tid];
+		    
+		    const int gd = dststart + d + ldpid;
+		    const int gs = spid[wid][xp][subtid];
 		    const float mysaru = saru(min(gs, gd), max(gs, gd), idtimestep);
 		    const float myrandnr = 3.4641016151377544f * mysaru - 1.7320508075688772f;
 		    const float strength = (info.aij - info.gamma * wr * rdotv + info.sigmaf * myrandnr) * wr;
 		
-		    const bool valid = (d + yp != s + tid + _XBS_ * xp) && (yp < np1) && (tid + _XBS_ * xp < np2);
+		    const bool valid = (d + ldpid != s + subtid + _XPASS_SIZE_ * xp) && (ldpid < np1) && (subtid + _XPASS_SIZE_ * xp < np2);
 		    if (valid)
 		    {
 #ifdef _CHECK_
@@ -551,17 +557,24 @@ __global__ void _dpd_forces_saru(int idtimestep)
 	} //end for s
 
 #pragma unroll
-	for(int L = 16; L > 0; L >>=1)
+	for(int L = _XPASS_SIZE_ / 2; L > 0; L >>=1)
 #pragma unroll
 	    for(int yp = 0; yp < _YPASSES_; ++yp)
 #pragma unroll
 		for(int c = 0; c < 3; ++c)
 		    f[c][yp] += __shfl_xor(f[c][yp], L);
 
-	const float fcontrib = f[tid % 3][tid / 3];
-	
-	if (tid < np1 * 3)
-	    info.axayaz[tid + 3 * (dststart + d)] = fcontrib;
+	const float fcontrib = f[subtid % 3][subtid / 3];
+	const int pass = subtid / 3;
+	if (slot + _SLOTS_ * pass < np1)
+	{
+	  
+	    const int dstpid = dststart + d + slot + _SLOTS_ * pass;
+	    const int c =  (subtid % 3);
+
+	    info.axayaz[c + 3 * dstpid] = fcontrib;
+	    //printf("tid %d: dst %d -> f %f (np1 is %d)\n", tid, c + 3 * (slot + 2 * pass), fcontrib, np1);
+	}
     } //end for d
 }
 
@@ -613,7 +626,9 @@ void forces_dpd_cuda(float * const _xyzuvw, float * const _axayaz,
 	}
 	else
 	    cudaSetDeviceFlags(cudaDeviceMapHost);
-	   
+
+//	CUDA_CHECK(cudaDeviceSetCacheConfig(cudaFuncCachePreferL1));  
+	
 	initialized = true;
     }
 
@@ -707,6 +722,10 @@ void forces_dpd_cuda(float * const _xyzuvw, float * const _axayaz,
 				c.ncells.y / _YCPB_,
 				c.ncells.z / _ZCPB_), dim3(32, _CPB_)>>>(tid);
 
+/*	_dpd_forces_saru<<<dim3(1,
+				1,
+				1), dim3(32, _CPB_)>>>(tid);
+*/
 	++tid;
 
 	CUDA_CHECK(cudaPeekAtLastError());
