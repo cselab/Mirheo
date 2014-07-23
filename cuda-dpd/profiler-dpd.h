@@ -5,21 +5,20 @@
 
 class ProfilerDPD
 {
-    bool nvprof;
     int count;
-    float tf, tr, tt;
-    cudaEvent_t evstart, evforce, evreduce;
-    std::vector<double> tfs, trs;
+    float tf;
+    cudaEvent_t evstart, evforce;
+    std::vector<double> tfs;
 
     void _flush(bool init = false);
     
 public:
     
-    ProfilerDPD(bool nvprof);
+    ProfilerDPD();
     ~ProfilerDPD();
 
     void start();
     void force() { cudaEventRecord(evforce); }
-    void reduce() { cudaEventRecord(evreduce); }
     void report();
-} ;
+};
+

@@ -5,6 +5,7 @@ NVCCFLAGS = -arch=compute_30  -Xcompiler -fpic -code=sm_30  -O4
 #NVCCFLAGS += -Xptxas -v,-abi=yes
 NVCCFLAGS += -Xptxas -dlcm=cg
 NVCCFLAGS += --maxrregcount 30
+NVCCFLAGS += --use_fast_math
 
 
 ifeq "$(profile)" "1"
@@ -19,17 +20,14 @@ endif
 
 NVCC = nvcc
 
-test: main.cpp cuda-dpd.o rring-buffer.o profiler-dpd.o cell-lists.o
-	$(CXX) $(CXXFLAGS) main.cpp cuda-dpd.o rring-buffer.o profiler-dpd.o cell-lists.o -L/usr/local/cuda-5.5/lib64/ -lcudart -lcurand -o test
+test: main.cpp cuda-dpd.o profiler-dpd.o cell-lists.o
+	$(CXX) $(CXXFLAGS) main.cpp cuda-dpd.o profiler-dpd.o cell-lists.o -L/usr/local/cuda-5.5/lib64/ -lcudart -lcurand -o test
 
-libcuda-dpd.so: cuda-dpd.o rring-buffer.o profiler-dpd.o
+libcuda-dpd.so: cuda-dpd.o cell-lists.o profiler-dpd.o
 	$(CXX) $(CXXFLAGS) -shared $^ -o libcuda-dpd.so -L/usr/local/cuda-5.5/lib64/ -lcudart -lcurand
 
 cuda-dpd.o: cuda-dpd.cu cuda-dpd.h
 	$(NVCC) $(NVCCFLAGS) -c cuda-dpd.cu
-
-rring-buffer.o: rring-buffer.cpp rring-buffer.h
-	$(CXX) $(CXXFLAGS) -c rring-buffer.cpp
 
 profiler-dpd.o:	profiler-dpd.cpp profiler-dpd.h
 	$(CXX) $(CXXFLAGS) -c profiler-dpd.cpp

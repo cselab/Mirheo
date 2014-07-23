@@ -7,8 +7,7 @@ void forces_dpd_cuda(float * const xyzuvw,
 		     const float a,
 		     const float gamma,
 		     const float sigma,
-		     const float invsqrtdt,
-		     float * const rsamples, int nsamples);
+		     const float invsqrtdt);
 
 void forces_dpd_cuda(float * const xp, float * const yp, float * const zp,
 		     float * const xv, float * const yv, float * const zv,
@@ -19,5 +18,4 @@ void forces_dpd_cuda(float * const xp, float * const yp, float * const zp,
 		     const float a,
 		     const float gamma,
 		     const float sigma,
-		     const float invsqrtdt,
-		     float * const rsamples, int nsamples);
+		     const float invsqrtdt);

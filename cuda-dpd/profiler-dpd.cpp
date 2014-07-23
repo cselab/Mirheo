@@ -19,19 +19,19 @@ inline void cudaAssert(cudaError_t code, const char *file, int line, bool abort=
 
 void ProfilerDPD::start()
 {
-    if (nvprof)
+#ifdef _PROFILE_
 	CUDA_CHECK(cudaProfilerStart());
-
+#endif
+	
     CUDA_CHECK(cudaThreadSynchronize());
     CUDA_CHECK(cudaEventRecord(evstart));
 }
 
-ProfilerDPD::ProfilerDPD(bool nvprof): count(0), tf(0), tr(0), tt(0), nvprof(nvprof)
+ProfilerDPD::ProfilerDPD(): count(0), tf(0)
 {
     CUDA_CHECK(cudaEventCreate(&evstart));
     CUDA_CHECK(cudaEventCreate(&evforce));
-    CUDA_CHECK(cudaEventCreate(&evreduce));
-
+    
     _flush(true);
 }
 
@@ -39,7 +39,6 @@ ProfilerDPD::~ProfilerDPD()
 {
     CUDA_CHECK(cudaEventDestroy(evstart));
     CUDA_CHECK(cudaEventDestroy(evforce));
-    CUDA_CHECK(cudaEventDestroy(evreduce));
 }
 
 void ProfilerDPD::_flush(bool init)
@@ -50,38 +49,32 @@ void ProfilerDPD::_flush(bool init)
 	fprintf(f, "STEP ID\tFORCECOMP[s]\tREDUCE[s]\n");
     
     for(int i = 0; i < tfs.size(); ++i)
-	fprintf(f, "%d\t%e\t%e\n", i + count, 1e-3 * tfs[i], 1e-3 * trs[i]);
+	fprintf(f, "%d\t%e\n", i + count, 1e-3 * tfs[i]);
 
     tfs.clear();
-    trs.clear();
-    
+        
     fclose(f);
 }
     
 void ProfilerDPD::report()
 {
-    CUDA_CHECK(cudaEventSynchronize(evreduce));
+    CUDA_CHECK(cudaEventSynchronize(evforce));
 
-    if (nvprof)
+#ifdef _PROFILE_
 	CUDA_CHECK(cudaProfilerStop());
-    
-    float tforce, treduce, ttotal;
+#endif
+	
+    float tforce;
     CUDA_CHECK(cudaEventElapsedTime(&tforce, evstart, evforce));
-    CUDA_CHECK(cudaEventElapsedTime(&treduce, evforce, evreduce));
-    CUDA_CHECK(cudaEventElapsedTime(&ttotal, evstart, evreduce));
-	    
+    	    
     tf += tforce;
-    tr += treduce;
-    tt += ttotal;
-
     tfs.push_back(tforce);
-    trs.push_back(treduce);
     
     count++;
 	    
     if (count % 100 == 0)
     {
-	printf("times: %.2f ms %.2f ms -> F %.1f%%\n", tf/count, tr/count, tf/tt * 100);
+	printf("dpd-profiler: force: %.2f ms\n", tf/count);
 	_flush();
     }
 }
