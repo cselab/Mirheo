@@ -12,11 +12,8 @@
 		12D063F5196C27CC00CB2791 /* Profiler.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 12D060F8196C27CB00CB2791 /* Profiler.cpp */; };
 		12D063F9196C27E500CB2791 /* main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 12D063F8196C27E500CB2791 /* main.cpp */; };
 		12D064051973D04F00CB2791 /* minIni.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 12D064031973D04F00CB2791 /* minIni.cpp */; };
-		12D064111974191000CB2791 /* Makefile in Sources */ = {isa = PBXBuildFile; fileRef = 12D064091974191000CB2791 /* Makefile */; };
-		12D064121974191000CB2791 /* Makefile in Sources */ = {isa = PBXBuildFile; fileRef = 12D0640B1974191000CB2791 /* Makefile */; };
-		12D064131974191000CB2791 /* Makefile in Sources */ = {isa = PBXBuildFile; fileRef = 12D0640D1974191000CB2791 /* Makefile */; };
-		12D064141974191000CB2791 /* Makefile in Sources */ = {isa = PBXBuildFile; fileRef = 12D0640F1974191000CB2791 /* Makefile */; };
-		12D064151974191000CB2791 /* Makefile in Sources */ = {isa = PBXBuildFile; fileRef = 12D064101974191000CB2791 /* Makefile */; };
+		12D06428197FBB1900CB2791 /* Simulation.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 12D06427197FBB1900CB2791 /* Simulation.cpp */; };
+		12ED7E81197FBD6F00993AEE /* Interaction.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 12ED7E80197FBD6F00993AEE /* Interaction.cpp */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -41,7 +38,7 @@
 		12D060F4196C27CB00CB2791 /* Cpukernels.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Cpukernels.h; path = source/Cpukernels.h; sourceTree = "<group>"; };
 		12D060F5196C27CB00CB2791 /* Gpukernels.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Gpukernels.h; path = source/Gpukernels.h; sourceTree = "<group>"; };
 		12D060F6196C27CB00CB2791 /* Misc.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Misc.h; path = source/Misc.h; sourceTree = "<group>"; };
-		12D060F7196C27CB00CB2791 /* Potential.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Potential.h; path = source/Potential.h; sourceTree = "<group>"; };
+		12D060F7196C27CB00CB2791 /* Interaction.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Interaction.h; path = source/Interaction.h; sourceTree = "<group>"; };
 		12D060F8196C27CB00CB2791 /* Profiler.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Profiler.cpp; path = source/Profiler.cpp; sourceTree = "<group>"; };
 		12D060F9196C27CB00CB2791 /* Profiler.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Profiler.h; path = source/Profiler.h; sourceTree = "<group>"; };
 		12D060FB196C27CB00CB2791 /* Savers.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Savers.h; path = source/Savers.h; sourceTree = "<group>"; };
@@ -780,6 +777,8 @@
 		12D0640F1974191000CB2791 /* Makefile */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.make; path = Makefile; sourceTree = "<group>"; };
 		12D064101974191000CB2791 /* Makefile */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.make; name = Makefile; path = makefiles/Makefile; sourceTree = "<group>"; };
 		12D064161976C94900CB2791 /* dump.txt */ = {isa = PBXFileReference; lastKnownFileType = text; name = dump.txt; path = makefiles/dump.txt; sourceTree = "<group>"; };
+		12D06427197FBB1900CB2791 /* Simulation.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Simulation.cpp; path = source/Simulation.cpp; sourceTree = "<group>"; };
+		12ED7E80197FBD6F00993AEE /* Interaction.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Interaction.cpp; path = source/Interaction.cpp; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -822,12 +821,14 @@
 				12D060F5196C27CB00CB2791 /* Gpukernels.h */,
 				12D060F6196C27CB00CB2791 /* Misc.h */,
 				12D063FA196D8EB300CB2791 /* Particles.h */,
-				12D060F7196C27CB00CB2791 /* Potential.h */,
+				12D060F7196C27CB00CB2791 /* Interaction.h */,
+				12ED7E80197FBD6F00993AEE /* Interaction.cpp */,
 				12D060F8196C27CB00CB2791 /* Profiler.cpp */,
 				12D060F9196C27CB00CB2791 /* Profiler.h */,
 				12D063F8196C27E500CB2791 /* main.cpp */,
 				12D060FB196C27CB00CB2791 /* Savers.h */,
 				12D060FD196C27CB00CB2791 /* Simulation.h */,
+				12D06427197FBB1900CB2791 /* Simulation.cpp */,
 				12D060FE196C27CB00CB2791 /* thrust */,
 				12D063F3196C27CC00CB2791 /* timer.h */,
 				12D05DD1196C265100CB2791 /* CTC.1 */,
@@ -1962,14 +1963,11 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				12D064151974191000CB2791 /* Makefile in Sources */,
-				12D064121974191000CB2791 /* Makefile in Sources */,
-				12D064111974191000CB2791 /* Makefile in Sources */,
+				12ED7E81197FBD6F00993AEE /* Interaction.cpp in Sources */,
 				12D063F5196C27CC00CB2791 /* Profiler.cpp in Sources */,
 				12D064051973D04F00CB2791 /* minIni.cpp in Sources */,
 				12D063F9196C27E500CB2791 /* main.cpp in Sources */,
-				12D064131974191000CB2791 /* Makefile in Sources */,
-				12D064141974191000CB2791 /* Makefile in Sources */,
+				12D06428197FBB1900CB2791 /* Simulation.cpp in Sources */,
 				12D063F4196C27CC00CB2791 /* ArgumentParser.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -2113,6 +2111,7 @@
 				12D05DD7196C265100CB2791 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
 	};

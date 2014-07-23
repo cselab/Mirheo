@@ -1,6 +1,6 @@
 CC = g++
 NVCC = nvcc
-CPPFLAGS+= -g -std=c++11 -ftree-vectorize -funroll-loops -Wno-unknown-pragmas -Wno-reorder -Wno-comment -Wno-deprecated
+CPPFLAGS+= -g -std=c++11 -fnotree-vectorize -funroll-loops -Wno-unknown-pragmas -Wno-reorder -Wno-comment -Wno-deprecated
 
 viz ?= 0
 config ?= release

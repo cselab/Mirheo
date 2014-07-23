@@ -1,15 +1,15 @@
 CC = g++
 NVCC = nvcc
-CPPFLAGS+= -fopenmp -g -std=c++11 -Wno-unknown-pragmas -Wno-reorder -Wno-comment -Wno-deprecated
+CPPFLAGS+= -fopenmp -std=c++11 -Wno-unknown-pragmas -Wno-reorder -Wno-comment -Wno-deprecated
 
 config ?= release
 
 ifeq "$(config)" "debug"
-CPPFLAGS+= -O0
+CPPFLAGS+= -O0 -g
 else ifeq "$(config)" "release"
-CPPFLAGS += -O3 -fno-tree-vectorize
+CPPFLAGS += -O3 -fno-tree-vectorize -funroll-loops
 else
-CPPFLAGS += -O1
+CPPFLAGS += -O1 -g
 endif
 
 #OPENMP_FLAG= -fopenmp

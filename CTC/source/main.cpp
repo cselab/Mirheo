@@ -29,15 +29,12 @@ int ErrorHandling::rank;
 
 minIni *configParser;
 
-
-#define TYPES 2
-
-template<int N> string Saver<N>::folder("");
+string Saver::folder("");
 
 int main (int argc, char **argv)
 {
     string folder = "res/";
-    string config = "/Users/alexeedm/Documents/projects/CTC/CTC/makefiles/100relax.ini";
+    string config = "/Users/alexeedm/Documents/projects/CTC/CTC/makefiles/config.ini";
     debugLvl = 2;
 	
 	vector<OptionStruct> vopts =
@@ -53,46 +50,41 @@ int main (int argc, char **argv)
     configParser = new minIni(config);
     folder = configParser->gets("Savers", "resFolder", folder);
 	
-	Saver<TYPES>::makedir(folder + "/");
-	Saver<TYPES>     *enSaver   = new SaveEnergy<TYPES>      (configParser->gets("Savers", "energyFile", "nrg.txt"));
-	Saver<TYPES>     *posSaver  = new SavePos<TYPES>         (configParser->gets("Savers", "positionFile", "pos.xyz"));
-	Saver<TYPES>     *linSaver  = new SaveLinMom<TYPES>      (configParser->gets("Savers", "linMomentumFile", "lin.txt"));
-	Saver<TYPES> 	 *angSaver  = new SaveAngMom<TYPES>	     (configParser->gets("Savers", "angMomentumFile", "ang.txt"));
-	Saver<TYPES>     *massSaver = new SaveCenterOfMass<TYPES>(configParser->gets("Savers", "COMFile", "com.txt"));
-	Saver<TYPES>     *timeSaver = new SaveTiming<TYPES>      (configParser->gets("Savers", "timingFile", "screen"));
-    Saver<TYPES>     *tempSaver = new SaveTemperature<TYPES> (configParser->gets("Savers", "temperatureFile", "temp.txt"));
-    Saver<TYPES>     *restarter = new SaveRestart<TYPES>     (configParser->gets("Savers", "restartFile", "restart"));
-    Saver<TYPES>     *strSaver  = new SaveStrain<TYPES>      (configParser->gets("Savers", "strainFile", "strain.txt"));
+	Saver::makedir(folder + "/");
+	Saver *enSaver   = new SaveEnergy      (configParser->gets("Savers", "energyFile", "nrg.txt"));
+	Saver *posSaver  = new SavePos         (configParser->gets("Savers", "positionFile", "pos.xyz"));
+	Saver *linSaver  = new SaveLinMom      (configParser->gets("Savers", "linMomentumFile", "lin.txt"));
+	Saver *angSaver  = new SaveAngMom	   (configParser->gets("Savers", "angMomentumFile", "ang.txt"));
+	Saver *massSaver = new SaveCenterOfMass(configParser->gets("Savers", "COMFile", "com.txt"));
+	Saver *timeSaver = new SaveTiming      (configParser->gets("Savers", "timingFile", "screen"));
+    Saver *tempSaver = new SaveTemperature (configParser->gets("Savers", "temperatureFile", "temp.txt"));
+    Saver *restarter = new SaveRestart     (configParser->gets("Savers", "restartFile", "restart"));
+    Saver *strSaver  = new SaveStrain      (configParser->gets("Savers", "strainFile", "strain.txt"));
 
-    int n0       = configParser->geti("Particles", "Ndpd", 3500);
-    int n1       = configParser->geti("Particles", "Nsem", 125);
-    real rCut0 = configParser->getf("Particles", "cutdpd", 1);
-    real rCut1 = configParser->getf("Particles", "cutsem", 2.5);
     
     real temp = configParser->getf("Basic", "temperature", 0.1);
     real dt   = configParser->getf("Basic", "dt", 0.001);
     real end  = configParser->getf("Basic", "endTime",  100);
 
     
-    vector<int>  nums  = {n0, n1};
-    vector<real> rCuts = {rCut0, rCut1};
-	Simulation<TYPES> simulation(dt);
+    int nTypes = configParser->geti("Particles", "types", 2);
+	Simulation simulation(nTypes, dt);
     
     string restartFile = configParser->gets("Basic", "restartFrom", "none");
     if (restartFile == "none")
-        simulation.setIC(nums, rCuts);
+        simulation.setIC();
     else
-        simulation.loadRestart(restartFile, rCuts);
+        simulation.loadRestart(restartFile);
     
-	simulation.registerSaver(enSaver,   configParser->geti("Savers", "energyPeriod", 100));
-	simulation.registerSaver(posSaver,  configParser->geti("Savers", "positionPeriod", 100));
-	simulation.registerSaver(linSaver,  configParser->geti("Savers", "linMomentumPeriod", 100));
-	simulation.registerSaver(angSaver,  configParser->geti("Savers", "angMomentumPeriod", 100));
-	simulation.registerSaver(massSaver, configParser->geti("Savers", "COMPeriod", 100));
-	simulation.registerSaver(timeSaver, configParser->geti("Savers", "timingPeriod", 100));
-    simulation.registerSaver(tempSaver, configParser->geti("Savers", "temperaturePeriod", 100));
-    simulation.registerSaver(restarter, configParser->geti("Savers", "restartPeriod", 1000));
-    simulation.registerSaver(strSaver,  configParser->geti("Savers", "strainPeriod", 100));
+	simulation.registerSaver(enSaver,   configParser->geti("Savers", "energyPeriod", 0));
+	simulation.registerSaver(posSaver,  configParser->geti("Savers", "positionPeriod", 0));
+	simulation.registerSaver(linSaver,  configParser->geti("Savers", "linMomentumPeriod", 0));
+	simulation.registerSaver(angSaver,  configParser->geti("Savers", "angMomentumPeriod", 0));
+	simulation.registerSaver(massSaver, configParser->geti("Savers", "COMPeriod", 0));
+	simulation.registerSaver(timeSaver, configParser->geti("Savers", "timingPeriod", 0));
+    simulation.registerSaver(tempSaver, configParser->geti("Savers", "temperaturePeriod", 0));
+    simulation.registerSaver(restarter, configParser->geti("Savers", "restartPeriod", 0));
+    simulation.registerSaver(strSaver,  configParser->geti("Savers", "strainPeriod", 0));
 	simulation.profiler.millisec();
 	
 	int iters = ceil(end / dt);

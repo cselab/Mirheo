@@ -10,18 +10,63 @@
 #pragma once
 
 #include "timer.h"
-#include "Simulation.h"
+//#include "Simulation.h"
 #include "Misc.h"
 #include "Particles.h"
 
 using namespace std;
 
-template<int N>
-class SaveEnergy: public Saver<N>
+class Simulation;
+
+class Saver
 {
 public:
-	SaveEnergy(ostream* o)		  : Saver<N>(o) {};
-	SaveEnergy(string fname)	  : Saver<N>(fname) {};
+    static string folder;
+    
+protected:
+	int period;
+	ofstream* file;
+	Simulation* my;
+    
+    bool opened;
+	
+public:
+	Saver (ostream* cOut) : file((ofstream*)cOut) { opened = false; }
+	Saver (string fname)
+	{
+        if (fname == "screen")
+        {
+            file = (ofstream*)&cout;
+            opened = false;
+            return;
+        }
+        
+		file = new ofstream((this->folder+fname).c_str());
+        opened = true;
+	}
+	Saver (){};
+    ~Saver () { if (!opened) file->close(); }
+	
+	inline  void setEnsemble(Simulation* e) { my = e; }
+	inline  void setPeriod(int p)           { period = p; }
+	inline  int  getPeriod()                { return period; }
+	
+	inline static bool makedir(string name)
+	{
+		folder = name;
+		if (mkdir(folder.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH) != 0 && errno != EEXIST) return false;
+		return true;
+	}
+	
+	virtual void exec() = 0;
+};
+
+
+class SaveEnergy: public Saver
+{
+public:
+	SaveEnergy(ostream* o)		  : Saver(o) {};
+	SaveEnergy(string fname)	  : Saver(fname) {};
 	
 	void exec()
 	{
@@ -33,16 +78,17 @@ public:
 	}
 };
 
-template<int N>
-class SaveTemperature: public Saver<N>
+class SaveTemperature: public Saver
 {
 public:
-	SaveTemperature(ostream* o)		  : Saver<N>(o) {};
-	SaveTemperature(string fname)	  : Saver<N>(fname) {};
+	SaveTemperature(ostream* o)		  : Saver(o) {};
+	SaveTemperature(string fname)	  : Saver(fname) {};
 	
 	void exec()
 	{
         int tot = 0;
+        int N = this->my->getNTypes();
+
         for (int type = 0; type < N; type++)
             tot += this->my->getParticles()[type]->n;
         
@@ -52,12 +98,11 @@ public:
 	}
 };
 
-template<int N>
-class SaveLinMom: public Saver<N>
+class SaveLinMom: public Saver
 {
 public:
-	SaveLinMom(ostream* o)		  : Saver<N>(o) {};
-	SaveLinMom(string fname)	  : Saver<N>(fname) {};
+	SaveLinMom(ostream* o)		  : Saver(o) {};
+	SaveLinMom(string fname)	  : Saver(fname) {};
 	
 	void exec()
 	{
@@ -68,12 +113,11 @@ public:
 	}
 };
 
-template<int N>
-class SaveAngMom: public Saver<N>
+class SaveAngMom: public Saver
 {
 public:
-	SaveAngMom(ostream* o)		  : Saver<N>(o) {};
-	SaveAngMom(string fname)	  : Saver<N>(fname) {};
+	SaveAngMom(ostream* o)		  : Saver(o) {};
+	SaveAngMom(string fname)	  : Saver(fname) {};
 	
 	void exec()
 	{
@@ -83,12 +127,11 @@ public:
 	}	
 };
 
-template<int N>
-class SaveCenterOfMass: public Saver<N>
+class SaveCenterOfMass: public Saver
 {
 public:
-	SaveCenterOfMass(ostream* o)	  : Saver<N>(o) {};
-	SaveCenterOfMass(string fname)	  : Saver<N>(fname) {};
+	SaveCenterOfMass(ostream* o)	  : Saver(o) {};
+	SaveCenterOfMass(string fname)	  : Saver(fname) {};
 	
 	void exec()
 	{
@@ -98,12 +141,11 @@ public:
 	}	
 };
 
-template<int N>
-class SavePos: public Saver<N>
+class SavePos: public Saver
 {
 public:
-	SavePos(ostream* o)		   : Saver<N>(o) {};
-	SavePos(string fname)	   : Saver<N>(fname) {};
+	SavePos(ostream* o)		   : Saver(o) {};
+	SavePos(string fname)	   : Saver(fname) {};
 	
 	void exec()
 	{
@@ -111,6 +153,8 @@ public:
 		Particles** p = this->my->getParticles();
 		
         int tot = 0;
+        int N = this->my->getNTypes();
+
         for (int type = 0; type < N; type++)
             tot += p[type]->n;
         
@@ -124,12 +168,11 @@ public:
 	}
 };
 
-template<int N>
-class SaveStrain: public Saver<N>
+class SaveStrain: public Saver
 {
 public:
-	SaveStrain(ostream* o)		   : Saver<N>(o) {};
-	SaveStrain(string fname)	   : Saver<N>(fname) {};
+	SaveStrain(ostream* o)		   : Saver(o) {};
+	SaveStrain(string fname)	   : Saver(fname) {};
 	
 	void exec()
 	{
@@ -141,8 +184,7 @@ public:
 };
 
 
-template<int N>
-class SaveRestart: public Saver<N>
+class SaveRestart: public Saver
 {
     string fname;
     int spaceOddity;
@@ -162,8 +204,8 @@ public:
         else
             spaceOddity = spaceOddity ? 0 : 1;
         
-        int n = N;
-        out.write((char*)&n, sizeof(int));
+        int N = this->my->getNTypes();
+        out.write((char*)&N, sizeof(int));
         
         for (int i = 0; i<N; i++)
         {
@@ -180,15 +222,14 @@ public:
 	}
 };
 
-template<int N>
-class SaveTiming: public Saver<N>
+class SaveTiming: public Saver
 {
 private:
 	Timer t;
 	
 public:
-	SaveTiming(ostream* o)		  : Saver<N>(o) {};
-	SaveTiming(string fname)	  : Saver<N>(fname) {};
+	SaveTiming(ostream* o)		  : Saver(o) {};
+	SaveTiming(string fname)	  : Saver(fname) {};
 	
 	
 	void exec()
@@ -202,6 +243,30 @@ public:
 	}
 };
 
+
+class SaveRdf: public Saver
+{
+private:
+	Timer t;
+    real* bins;
+    int nBins;
+    real h;
+	
+public:
+	SaveRdf(ostream* o)		  : Saver(o)     { h = 0.05; nBins = 50; bins = new real [nBins]; };
+	SaveRdf(string fname)	  : Saver(fname) { h = 0.05; nBins = 50; bins = new real [nBins]; };
+	
+	
+	void exec()
+	{
+		if (this->my->getIter() < this->period) t.start();
+		else
+		{
+			*this->file << this->my->profiler.printStat() << endl;
+            this->file->flush();
+		}
+	}
+};
 
 
 
