@@ -51,12 +51,12 @@ texture<int, cudaTextureType1D> texStart, texEnd;
 #define _XCPB_ 2
 #define _YCPB_ 2
 #define _ZCPB_ 2
-#define _CPB_ (_XCPB_ * _YCPB_ * _ZCPB_)
+#define CPB (_XCPB_ * _YCPB_ * _ZCPB_)
 
 __global__ void _dpd_forces_saru(int idtimestep)
 {
     assert(warpSize == COLS * ROWS);
-    assert(blockDim.x == warpSize && blockDim.y == _CPB_ && blockDim.z == 1);
+    assert(blockDim.x == warpSize && blockDim.y == CPB && blockDim.z == 1);
     assert(ROWS * 3 <= warpSize);
 
     const int tid = threadIdx.x;
@@ -64,7 +64,7 @@ __global__ void _dpd_forces_saru(int idtimestep)
     const int slot = tid / COLS;
     const int wid = threadIdx.y;
      
-    __shared__ int volatile starts[_CPB_][32], scan[_CPB_][32];
+    __shared__ int volatile starts[CPB][32], scan[CPB][32];
 
     int mycount = 0; 
     if (tid < 27)
@@ -93,8 +93,8 @@ __global__ void _dpd_forces_saru(int idtimestep)
     const int nsrc = scan[wid][26], ndst = scan[wid][0];
     
     float f[3];
-    __shared__ volatile float dpv[_CPB_][ROWS][6], spv[_CPB_][6][COLS];
-    __shared__ volatile int spid[_CPB_][COLS];
+    __shared__ volatile float dpv[CPB][ROWS][6], spv[CPB][6][COLS];
+    __shared__ volatile int spid[CPB][COLS];
     
     for(int d = 0; d < ndst; d += ROWS)
     {
@@ -291,7 +291,7 @@ void forces_dpd_cuda(float * const _xyzuvw, float * const _axayaz,
 
     _dpd_forces_saru<<<dim3(c.ncells.x / _XCPB_,
 			    c.ncells.y / _YCPB_,
-			    c.ncells.z / _ZCPB_), dim3(32, _CPB_)>>>(tid);
+			    c.ncells.z / _ZCPB_), dim3(32, CPB)>>>(tid);
 
     ++tid;
 
