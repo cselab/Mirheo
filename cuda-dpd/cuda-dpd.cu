@@ -50,10 +50,11 @@ texture<int, cudaTextureType1D> texStart, texEnd;
 #define ROWS (32 / COLS)
 #define _XCPB_ 2
 #define _YCPB_ 2
-#define _ZCPB_ 2
+#define _ZCPB_ 1
 #define CPB (_XCPB_ * _YCPB_ * _ZCPB_)
 
-__global__ void _dpd_forces_saru(int idtimestep)
+__global__ __launch_bounds__(32 * CPB, 8) 
+void _dpd_forces_saru(int idtimestep)
 {
     assert(warpSize == COLS * ROWS);
     assert(blockDim.x == warpSize && blockDim.y == CPB && blockDim.z == 1);
@@ -106,9 +107,7 @@ __global__ void _dpd_forces_saru(int idtimestep)
 		dpv[wid][i][2 * c + 1] = tmp.y;
 	    }
 
-	float f[3];
-	for(int c = 0; c < 3; ++c)
-		f[c] = 0;
+	float f[3] = {0, 0, 0};
 
 	for(int s = 0; s < nsrc; s += COLS)
 	{
