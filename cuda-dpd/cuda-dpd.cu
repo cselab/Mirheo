@@ -43,7 +43,7 @@ struct InfoDPD
 
 __constant__ InfoDPD info;
  
-texture<float, cudaTextureType1D> texParticles;
+texture<float2, cudaTextureType1D> texParticles;
 texture<int, cudaTextureType1D> texStart, texEnd;
 
 #define COLS 8
@@ -93,15 +93,20 @@ __global__ void _dpd_forces_saru(int idtimestep)
     const int nsrc = scan[wid][26], ndst = scan[wid][0];
     
     float f[3];
-    __shared__ volatile float dpv[CPB][ROWS][6], spv[CPB][6][COLS];
+    __shared__ volatile float dpv[CPB][ROWS][6], spv[CPB][COLS][6];
     __shared__ volatile int spid[CPB][COLS];
     
     for(int d = 0; d < ndst; d += ROWS)
     {
 	const int np1 = min(ndst - d, ROWS);
 	
-	for(int i = tid; i < np1 * 6 ; i += warpSize)
-	    dpv[wid][i / 6][i % 6] = tex1Dfetch(texParticles, i + 6 * (d + dststart));
+	for(int i = tid; i < np1 ; i += warpSize)
+	    for(int c = 0; c < 3; ++c)
+	    {
+		float2 tmp = tex1Dfetch(texParticles, c + 3 * (d + dststart + i));;
+		dpv[wid][i][2 * c + 0] = tmp.x;
+		dpv[wid][i][2 * c + 1] = tmp.y;
+	    }
 
 #pragma unroll
 	for(int c = 0; c < 3; ++c)
@@ -110,10 +115,10 @@ __global__ void _dpd_forces_saru(int idtimestep)
 	for(int s = 0; s < nsrc; s += COLS)
 	{
 	    const int np2 = min(nsrc - s, COLS);
-
-	    for(int i = tid; i < np2 * 6; i += warpSize)
+  
+	    for(int i = tid; i < np2; i += warpSize)
 	    {
-		const int pid = s + i / 6;
+		const int pid = s + i;
 		const int key9 = 9 * (pid >= scan[wid][8]) + 9 * (pid >= scan[wid][17]);
 		const int key3 = 3 * (pid >= scan[wid][key9 + 2]) + 3 * (pid >= scan[wid][key9 + 5]);
 		const int key1 = (pid >= scan[wid][key9 + key3]) + (pid >= scan[wid][key9 + key3 + 1]);
@@ -121,12 +126,16 @@ __global__ void _dpd_forces_saru(int idtimestep)
 		assert(pid >= (key ? scan[wid][key - 1] : 0) && pid < scan[wid][key]);
 		
 		const int localid = pid - s;
-		const int c = i % 6;
+		
 		const int myspid = starts[wid][key] + pid - (key ? scan[wid][key - 1] : 0);
-		spv[wid][c][localid % COLS] = tex1Dfetch(texParticles, c + 6 * myspid);
-				
-		if (c == 0)
-		    spid[wid][localid % COLS] = myspid;
+		for(int c = 0; c < 3; ++c)
+		{
+		    float2 tmp = tex1Dfetch(texParticles, c + 3 * myspid);
+		    spv[wid][localid % COLS][2 * c + 0] = tmp.x;
+		    spv[wid][localid % COLS][2 * c + 1] = tmp.y;
+		}		
+	
+		spid[wid][localid % COLS] =  myspid;
 	    }
 
 	    
@@ -135,9 +144,9 @@ __global__ void _dpd_forces_saru(int idtimestep)
 		const float yforce = f[1];
 		const float zforce = f[2];
 			    
-		const float xdiff = dpv[wid][slot][0] - spv[wid][0][subtid];
-		const float ydiff = dpv[wid][slot][1] - spv[wid][1][subtid];
-		const float zdiff = dpv[wid][slot][2] - spv[wid][2][subtid];
+		const float xdiff = dpv[wid][slot][0] - spv[wid][subtid][0];
+		const float ydiff = dpv[wid][slot][1] - spv[wid][subtid][1];
+		const float zdiff = dpv[wid][slot][2] - spv[wid][subtid][2];
 
 		const float _xr = xdiff - info.domainsize.x * floorf(0.5f + xdiff * info.invdomainsize.x);
 		const float _yr = ydiff - info.domainsize.y * floorf(0.5f + ydiff * info.invdomainsize.y);
@@ -152,10 +161,10 @@ __global__ void _dpd_forces_saru(int idtimestep)
 		const float yr = _yr * invrij;
 		const float zr = _zr * invrij;
 		
-		const float rdotv =
-		    xr * (dpv[wid][slot][3] - spv[wid][3][subtid]) +
-		    yr * (dpv[wid][slot][4] - spv[wid][4][subtid]) +
-		    zr * (dpv[wid][slot][5] - spv[wid][5][subtid]);
+		const float rdotv = 
+		    xr * (dpv[wid][slot][3] - spv[wid][subtid][3]) +
+		    yr * (dpv[wid][slot][4] - spv[wid][subtid][4]) +
+		    zr * (dpv[wid][slot][5] - spv[wid][subtid][5]);
 		    
 		const int gd = dststart + d + slot;
 		const int gs = spid[wid][subtid];
@@ -277,7 +286,7 @@ void forces_dpd_cuda(float * const _xyzuvw, float * const _axayaz,
 	texEnd.normalized = 0;
 	cudaBindTexture(&textureoffset, &texEnd, _ptr(ends), &fmt, sizeof(int) * (ncells + 1));
 	
-	fmt =  cudaCreateChannelDesc(32, 0, 0, 0, cudaChannelFormatKindFloat);
+	fmt = cudaCreateChannelDesc<float2>();
 	texParticles.channelDesc = fmt;
 	texParticles.filterMode = cudaFilterModePoint;
 	texParticles.mipmapFilterMode = cudaFilterModePoint;

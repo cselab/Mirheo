@@ -46,7 +46,7 @@ int main()
     const real aij = 2.5;
     const real rc = 1;
     const bool cuda = true;
-        const real dt = 0.02;
+    const real dt = 0.02;
     const real tend = 3;
     
     vector<real> xp(n), yp(n), zp(n), xv(n), yv(n), zv(n), xa(n), ya(n), za(n);
