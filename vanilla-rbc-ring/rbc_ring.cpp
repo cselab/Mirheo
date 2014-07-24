@@ -12,7 +12,6 @@
 
 #include <algorithm>
 #include <vector>
-#include <random>
 #include <cmath>
 
 using namespace std;
@@ -34,7 +33,7 @@ vector<real> xp(natoms), yp(natoms), zp(natoms),
 // dpd parameters
 const real dtime = 0.001;
 const real kbT = 0.1;
-const size_t timeEnd = 1000;
+const size_t timeEnd = 500;
 
 const real a0 = 500.0, gamma0 = 4.5, cut = 1.2, cutsq = cut * cut, kPower = 0.25,
     sigma = sqrt(2.0 * kbT * gamma0);
@@ -51,9 +50,50 @@ const real theta = M_PI - 2.0 * M_PI / natomsPerRing;
 const size_t outEvery = 50;
 const real ringRadius = 1.0;
 
+#ifdef NEWTONIAN
+#include <random>
 std::random_device rd;
 std::mt19937 gen(rd());
 std::normal_distribution<> dgauss(0, 1);
+
+real getGRand(size_t, size_t, size_t)
+{
+  return dgauss(gen);
+}
+#else
+real saru(unsigned int seed1, unsigned int seed2, unsigned int seed3)
+{
+    seed3 ^= (seed1<<7)^(seed2>>6);
+    seed2 += (seed1>>4)^(seed3>>15);
+    seed1 ^= (seed2<<9)+(seed3<<8);
+    seed3 ^= 0xA5366B4D*((seed2>>11) ^ (seed1<<1));
+    seed2 += 0x72BE1579*((seed1<<4)  ^ (seed3>>16));
+    seed1 ^= 0X3F38A6ED*((seed3>>5)  ^ (((signed int)seed2)>>22));
+    seed2 += seed1*seed3;
+    seed1 += seed3 ^ (seed2>>2);
+    seed2 ^= ((signed int)seed2)>>17;
+
+    int state  = 0x79dedea3*(seed1^(((signed int)seed1)>>14));
+    int wstate = (state + seed2) ^ (((signed int)state)>>8);
+    state  = state + (wstate*(wstate^0xdddf97f5));
+    wstate = 0xABCB96F7 + (wstate>>1);
+
+    state  = 0x4beb5d59*state + 0x2600e1f7; // LCG
+    wstate = wstate + 0x8009d14b + ((((signed int)wstate)>>31)&0xda879add); // OWS
+
+    unsigned int v = (state ^ (state>>26))+wstate;
+    unsigned int r = (v^(v>>20))*0x6957f5a7;
+
+    real res = r / (4294967295.0);
+    return res;
+}
+
+real getGRand(size_t i, size_t j, size_t idtimestep)
+{
+  const real mysaru = saru(min(i, j), max(i, j), idtimestep);
+  return 3.464101615 * mysaru - 1.732050807;
+}
+#endif
 
 // might be opened by OVITO and xmovie
 void lammps_dump(const char* path, real* xs, real* ys, real* zs, const size_t natoms, size_t timestep, real boxLength)
@@ -179,13 +219,18 @@ void minImage(real* delta)
 }
 
 // forces computations splitted by the type
-void calcDpdForces()
+void calcDpdForces(size_t timeStep)
 {
   real dtinvsqrt = 1.0 / sqrt(dtime);
   for (size_t i = 0; i < natoms; ++i)
   {
+#ifdef NEWTONIAN
     for (size_t j = i + 1; j < natoms; ++j)
+#else
+    for (size_t j = 0; j < natoms; ++j)
+#endif
     {
+      if (i == j) continue;
       real del[] = {xp[i] - xp[j], yp[i] - yp[j], zp[i] - zp[j]};
       minImage(del);
 
@@ -197,7 +242,7 @@ void calcDpdForces()
         real delv[] = {xv[i] - xv[j], yv[i] - yv[j], zv[i] - zv[j]};
 
         real dot = innerProd(del, delv);
-        real randnum = dgauss(gen);
+        real randnum = getGRand(i, j, timeStep);
 
         // conservative force = a0 * wd
         // drag force = -gamma * wd^2 * (delx dot delv) / r
@@ -213,9 +258,11 @@ void calcDpdForces()
         ya[i] += del[1] * fpair;
         za[i] += del[2] * fpair;
 
+#ifdef NEWTONIAN
         xa[j] -= del[0] * fpair;
         ya[j] -= del[1] * fpair;
         za[j] -= del[2] * fpair;
+#endif
       }
     }
   }
@@ -327,13 +374,13 @@ void addDrivingForce()
   std::for_each(ya.begin(), ya.end(), [&](real& in) { in += drivingForceY; });
 }
 
-void computeForces()
+void computeForces(size_t timeStep)
 {
   fill(xa.begin(), xa.end(), 0.0);
   fill(ya.begin(), ya.end(), 0.0);
   fill(za.begin(), za.end(), 0.0);
 
-  calcDpdForces();
+  calcDpdForces(timeStep);
   calcBondForcesWLC();
   calcAngleForcesBend();
 
@@ -401,7 +448,7 @@ int main()
     if (timeStep % outEvery == 0)
       lammps_dump("evolution.dump", &xp.front(), &yp.front(), &zp.front(), natoms, timeStep, boxLength);
 
-    computeForces();
+    computeForces(timeStep);
 
     up(xv, xa, dtime * 0.5);
     up(yv, ya, dtime * 0.5);
