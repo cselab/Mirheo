@@ -12,24 +12,33 @@
 
 #include <algorithm>
 #include <vector>
-#include <random>
+//#include <random>
 #include <cmath>
+
+// cuda headers
+#include <thrust/reduce.h>
+#include <thrust/sequence.h>
+#include <thrust/host_vector.h>
+#include <thrust/device_vector.h>
 
 using namespace std;
 
-typedef double real;
+typedef float real;
+
+typedef thrust::host_vector<real> hvector;
+typedef thrust::device_vector<real> dvector;
 
 // global variables
-real boxLength = 10.0;
+const real boxLength = 10.0;
 
 const size_t nrings = 5;
 const size_t natomsPerRing = 10;
 const size_t nfluidAtoms = boxLength * boxLength * boxLength; // density 1
 const size_t natoms = nrings * natomsPerRing + nfluidAtoms;
 
-vector<real> xp(natoms), yp(natoms), zp(natoms),
-             xv(natoms), yv(natoms), zv(natoms),
-             xa(natoms), ya(natoms), za(natoms);
+hvector xp(natoms), yp(natoms), zp(natoms),
+        xv(natoms), yv(natoms), zv(natoms),
+        xa(natoms), ya(natoms), za(natoms);
 
 // dpd parameters
 const real dtime = 0.001;
@@ -48,13 +57,16 @@ const real kbend = 50.0 * kbT;
 const real theta = M_PI - 2.0 * M_PI / natomsPerRing;
 
 // misc parameters
-const size_t outEvery = 50;
+const size_t outEvery = 100;
 const real ringRadius = 1.0;
 
-std::random_device rd;
-std::mt19937 gen(rd());
-std::normal_distribution<> dgauss(0, 1);
+// nvcc I use don't know c++11, need something else
+//std::random_device rd;
+//std::mt19937 gen(rd());
+//std::normal_distribution<> dgauss(0, 1);
 
+
+// **** aux routines ******
 // might be opened by OVITO and xmovie
 void lammps_dump(const char* path, real* xs, real* ys, real* zs, const size_t natoms, size_t timestep, real boxLength)
 {
@@ -85,7 +97,8 @@ void lammps_dump(const char* path, real* xs, real* ys, real* zs, const size_t na
   fclose(f);
 }
 
-void dump_xyz(const char * path, real * xs, real * ys, real * zs, const int n, bool append)
+void dump_force(const char* path,  const hvector& xs, const hvector& ys,
+                const hvector& zs, const int n, bool append)
 {
     FILE * f = fopen(path, append ? "a" : "w");
     if (f == NULL)
@@ -106,6 +119,26 @@ void dump_xyz(const char * path, real * xs, real * ys, real * zs, const int n, b
     printf("vmd_xyz: wrote to <%s>\n", path);
 }
 
+real innerProd(const real* v1, const real* v2)
+{
+  return v1[0] * v2[0] + v1[1] * v2[1] + v1[2] * v2[2];
+}
+
+real norm2(const real* v)
+{
+  return v[0] * v[0] + v[1] * v[1] + v[2] * v[2];
+}
+
+// delta is difference between coordinates of particles in a bond
+void minImage(real* delta)
+{
+  for (size_t i = 0; i < 3; ++i)
+    if (fabs(delta[i]) > 0.5 * boxLength) {
+      if (delta[i] < 0.0) delta[i] += boxLength;
+      else delta[i] -= boxLength;
+    }
+}
+
 // set up coordinates
 void getRandPoint(real& x, real& y, real& z)
 {
@@ -114,6 +147,13 @@ void getRandPoint(real& x, real& y, real& z)
    z = drand48() * boxLength - boxLength/2.0;
 }
 
+bool areEqual(const real& left, const real& right)
+{
+    const real tolerance = 1e-2;
+    return fabs(left - right) < tolerance;
+}
+
+// **** initialization *****
 void addRing(size_t indRing)
 {
   real cmass[3];
@@ -141,13 +181,13 @@ void initPositions()
 
 // didn't what to use lambdas because of old version of gdb
 // naive integration
-void up(vector<real>& x, vector<real>& v, real coef)
+void up(hvector& x, hvector& v, real coef)
 {
   for (size_t i = 0; i < natoms; ++i)
     x[i] += coef * v[i];
 };
 
-void up_enforce(vector<real>& x, vector<real>& v, real coef)
+void up_enforce(hvector& x, hvector& v, real coef)
 {
   for (size_t i = 0; i < natoms; ++i)
   {
@@ -156,31 +196,10 @@ void up_enforce(vector<real>& x, vector<real>& v, real coef)
   }
 };
 
-// aux routines
-
-real innerProd(const real* v1, const real* v2)
-{
-  return v1[0] * v2[0] + v1[1] * v2[1] + v1[2] * v2[2];
-}
-
-real norm2(const real* v)
-{
-  return v[0] * v[0] + v[1] * v[1] + v[2] * v[2];
-}
-
-// delta is difference between coordinates of particles in a bond
-void minImage(real* delta)
-{
-  for (size_t i = 0; i < 3; ++i)
-    if (fabs(delta[i]) > 0.5 * boxLength) {
-      if (delta[i] < 0.0) delta[i] += boxLength;
-      else delta[i] -= boxLength;
-    }
-}
-
 // forces computations splitted by the type
 void calcDpdForces()
 {
+  /*
   real dtinvsqrt = 1.0 / sqrt(dtime);
   for (size_t i = 0; i < natoms; ++i)
   {
@@ -218,7 +237,7 @@ void calcDpdForces()
         za[j] -= del[2] * fpair;
       }
     }
-  }
+  }*/
 }
 
 // f_wlc(x) = -0.25KbT/p*((1 - x)^-2 + 4x - 1),
@@ -323,15 +342,15 @@ void addStretchForce()
 
 void addDrivingForce()
 {
-  real drivingForceY = 100.0;
-  std::for_each(ya.begin(), ya.end(), [&](real& in) { in += drivingForceY; });
+  //real drivingForceY = 100.0;
+  //std::for_each(ya.begin(), ya.end(), [&](real& in) { in += drivingForceY; });
 }
 
 void computeForces()
 {
-  fill(xa.begin(), xa.end(), 0.0);
-  fill(ya.begin(), ya.end(), 0.0);
-  fill(za.begin(), za.end(), 0.0);
+  thrust::fill(xa.begin(), xa.end(), 0.0);
+  thrust::fill(ya.begin(), ya.end(), 0.0);
+  thrust::fill(za.begin(), za.end(), 0.0);
 
   calcDpdForces();
   calcBondForcesWLC();
@@ -341,7 +360,180 @@ void computeForces()
   addDrivingForce();
 }
 
-void pbcPerAtomsPerDim(size_t ind, vector<real>& coord)
+// ******* CUDA code *********
+// NumBlocks is Nrings, NThreadsPerblock == NparticlesPerRing
+
+inline __device__ float d_dot(float* a, float* b)
+{
+    return a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+}
+
+inline __device__ float d_length(float* v)
+{
+    return sqrtf(d_dot(v, v));
+}
+
+__device__ void d_minImage(float* delta, float boxLength)
+{
+  for (size_t i = 0; i < 3; ++i)
+    if (fabs(delta[i]) > 0.5 * boxLength) {
+      if (delta[i] < 0.0) delta[i] += boxLength;
+      else delta[i] -= boxLength;
+    }
+}
+
+__global__ void kernelBonds(float* d_xp, float* d_yp, float* d_zp, float* d_xa, float* d_ya, float* d_za, int natoms)
+{
+  int tid = blockIdx.x * blockDim.x + threadIdx.x;
+  size_t indRing = blockIdx.x;
+  size_t indLocal = threadIdx.x;
+
+  if (tid > natoms) return;
+
+  size_t i1 = natomsPerRing * indRing + indLocal;
+  size_t i2 = natomsPerRing * indRing + (indLocal + 1) % natomsPerRing;
+  float del[] = {d_xp[i1] - d_xp[i2], d_yp[i1] - d_yp[i2], d_zp[i1] - d_zp[i2]};
+  d_minImage(del, boxLength);
+
+  real rsq = d_dot(del, del);
+  real lsq = lmax * lmax;
+  if (rsq > lsq) { //0.9025 is from the FNS_SFO_2006
+    //std::cerr << "WORM bond too long: " << timestep << " " << sqrt(rsq) << std::endl;
+    // TODO how to call assert from CUDA?
+    //assert(false); // debug me
+  }
+
+  float rdl = sqrtf(rsq / lsq); //rij/l
+
+  float fbond = 1.0 / ( (1.0 - rdl) * (1.0 - rdl) ) + 4.0 * rdl - 1.0;
+
+   //0.25kbT/lambda[..]
+  fbond *= -0.25 * kbT / lambda;
+
+  // finally modify forces
+  d_xa[i1] += del[0] * fbond;
+  d_ya[i1] += del[1] * fbond;
+  d_za[i1] += del[2] * fbond;
+
+  d_xa[i2] -= del[0] * fbond;
+  d_ya[i2] -= del[1] * fbond;
+  d_za[i2] -= del[2] * fbond;
+}
+
+void cuda_calcBondForcesWLC(dvector& d_xp, dvector& d_yp, dvector& d_zp, dvector& d_xa, dvector& d_ya, dvector& d_za)
+{
+  int nThreadsPerBlock = natomsPerRing;
+  int nBlocks = nrings;
+
+  kernelBonds<<< nBlocks, nThreadsPerBlock >>>(
+      thrust::raw_pointer_cast(&d_xp[0]), thrust::raw_pointer_cast(&d_yp[0]), thrust::raw_pointer_cast(&d_zp[0]),
+      thrust::raw_pointer_cast(&d_xa[0]), thrust::raw_pointer_cast(&d_ya[0]), thrust::raw_pointer_cast(&d_za[0]),
+      nrings * natomsPerRing);
+}
+
+__global__ void kernelAngles(float* d_xp, float* d_yp, float* d_zp, float* d_xa, float* d_ya, float* d_za, int natoms)
+{
+  int tid = blockIdx.x * blockDim.x + threadIdx.x;
+  size_t indRing = blockIdx.x;
+  size_t indLocal = threadIdx.x;
+
+  if (tid > natoms) return;
+
+  size_t i1 = natomsPerRing * indRing + indLocal;
+  size_t i2 = natomsPerRing * indRing + (indLocal + 1) % natomsPerRing;
+  size_t i3 = natomsPerRing * indRing + (indLocal + 2) % natomsPerRing;
+
+  // 1st bond
+  float del1[] = {d_xp[i1] - d_xp[i2], d_yp[i1] - d_yp[i2], d_zp[i1] - d_zp[i2]};
+  d_minImage(del1, boxLength);
+  float rsq1 = d_dot(del1, del1);
+  float r1 = sqrtf(rsq1);
+
+  // 2nd bond
+  float del2[] = {d_xp[i3] - d_xp[i2], d_yp[i3] - d_yp[i2], d_zp[i3] - d_zp[i2]};
+  d_minImage(del2, boxLength);
+  float rsq2 = d_dot(del2, del2);
+  float r2 = sqrtf(rsq2);
+
+  // c = cosine of angle
+  float c = del1[0] * del2[0] + del1[1] * del2[1] + del1[2] * del2[2];
+  c /= r1 * r2;
+  if (c > 1.0) c = 1.0;
+  if (c < -1.0) c = -1.0;
+  c *= -1.0;
+
+  float a11 = kbend * c / rsq1;
+  float a12 = -kbend / (r1 * r2);
+  float a22 = kbend * c / rsq2;
+
+  float f1[] = {a11 * del1[0] + a12 * del2[0], a11 * del1[1] + a12 * del2[1], a11 * del1[2] + a12 * del2[2]};
+  float f3[] = {a22 * del2[0] + a12 * del1[0], a22 * del2[1] + a12 * del1[1], a22 * del2[2] + a12 * del1[2]};
+
+  // apply force to each of 3 atoms
+  d_xa[i1] += f1[0];
+  d_ya[i1] += f1[1];
+  d_za[i1] += f1[2];
+
+  d_xa[i2] -= f1[0] + f3[0];
+  d_ya[i2] -= f1[1] + f3[1];
+  d_za[i2] -= f1[2] + f3[2];
+
+  d_xa[i3] += f3[0];
+  d_ya[i3] += f3[1];
+  d_za[i3] += f3[2];
+}
+
+void cuda_calcAngleForcesBend(dvector& d_xp, dvector& d_yp, dvector& d_zp, dvector& d_xa, dvector& d_ya, dvector& d_za)
+{
+  int nThreadsPerBlock = natomsPerRing;
+  int nBlocks = nrings;
+
+  kernelAngles<<< nBlocks, nThreadsPerBlock >>>(
+      thrust::raw_pointer_cast(&d_xp[0]), thrust::raw_pointer_cast(&d_yp[0]), thrust::raw_pointer_cast(&d_zp[0]),
+      thrust::raw_pointer_cast(&d_xa[0]), thrust::raw_pointer_cast(&d_ya[0]), thrust::raw_pointer_cast(&d_za[0]),
+      nrings * natomsPerRing);
+}
+
+void cuda_computeForces()
+{
+  // for consistency use h_ prefix for host, d_ for device in this routine
+  dvector d_xa(natoms), d_ya(natoms), d_za(natoms);
+
+  thrust::fill(d_xa.begin(), d_xa.end(), 0.0);
+  thrust::fill(d_ya.begin(), d_ya.end(), 0.0);
+  thrust::fill(d_za.begin(), d_za.end(), 0.0);
+
+  dvector d_xp(xp), d_yp(yp), d_zp(zp);
+
+  //cuda_calcDpdForces();
+  cuda_calcBondForcesWLC(d_xp, d_yp, d_zp, d_xa, d_ya, d_za);
+  cuda_calcAngleForcesBend(d_xp, d_yp, d_zp, d_xa, d_ya, d_za);
+
+  thrust::fill(xa.begin(), xa.end(), 0.0);
+  thrust::fill(ya.begin(), ya.end(), 0.0);
+  thrust::fill(za.begin(), za.end(), 0.0);
+  calcBondForcesWLC();
+  calcAngleForcesBend();
+
+  // check that computations are correct
+  thrust::host_vector<real> h_xa(d_xa), h_ya(d_ya), h_za(d_za);
+  for (size_t i = 0; i < natoms; ++i) {
+    if (!areEqual(xa[i], h_xa[i]) ||
+        !areEqual(ya[i], h_ya[i])||
+        !areEqual(za[i], h_za[i])) {
+
+        dump_force("force-cpu.txt", xa, ya, za, natoms, false);
+        dump_force("force-gpu.txt", h_xa, h_ya, h_za, natoms, false);
+        std::cout << i << "| diff=" << fabs(xa[i] - h_xa[i]) << " " << fabs(ya[i] - h_ya[i]) 
+            << " " << fabs(za[i] - h_za[i]) << std::endl;
+        abort();
+    }
+  }
+}
+
+// ****************************
+
+void pbcPerAtomsPerDim(size_t ind, hvector& coord)
 {
   real boxlo = -0.5 * boxLength;
   real boxhi = 0.5 * boxLength;
@@ -401,7 +593,7 @@ int main()
     if (timeStep % outEvery == 0)
       lammps_dump("evolution.dump", &xp.front(), &yp.front(), &zp.front(), natoms, timeStep, boxLength);
 
-    computeForces();
+    cuda_computeForces();
 
     up(xv, xa, dtime * 0.5);
     up(yv, ya, dtime * 0.5);
