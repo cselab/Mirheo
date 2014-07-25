@@ -18,15 +18,17 @@ using namespace std;
 
 typedef double real;
 
+typedef std::vector<real> hvector;
+
 // global variables
-real boxLength = 10.0;
+const real boxLength = 10.0;
 
 const size_t nrings = 5;
 const size_t natomsPerRing = 10;
 const size_t nfluidAtoms = boxLength * boxLength * boxLength; // density 1
 const size_t natoms = nrings * natomsPerRing + nfluidAtoms;
 
-vector<real> xp(natoms), yp(natoms), zp(natoms),
+hvector xp(natoms), yp(natoms), zp(natoms),
              xv(natoms), yv(natoms), zv(natoms),
              xa(natoms), ya(natoms), za(natoms);
 
@@ -125,7 +127,8 @@ void lammps_dump(const char* path, real* xs, real* ys, real* zs, const size_t na
   fclose(f);
 }
 
-void dump_xyz(const char * path, real * xs, real * ys, real * zs, const int n, bool append)
+void dump_force(const char* path,  const hvector& xs, const hvector& ys,
+                const hvector& zs, const int n, bool append)
 {
     FILE * f = fopen(path, append ? "a" : "w");
     if (f == NULL)
@@ -146,6 +149,35 @@ void dump_xyz(const char * path, real * xs, real * ys, real * zs, const int n, b
     printf("vmd_xyz: wrote to <%s>\n", path);
 }
 
+real innerProd(const real* v1, const real* v2)
+{
+  return v1[0] * v2[0] + v1[1] * v2[1] + v1[2] * v2[2];
+}
+
+real norm2(const real* v)
+{
+  return v[0] * v[0] + v[1] * v[1] + v[2] * v[2];
+}
+
+struct SaxpyOp {
+  const real m_coeff;
+  SaxpyOp(real coeff) : m_coeff(coeff) {}
+  /*__host__ __device__*/ real operator()(const real& x, const real& y) const
+  {
+    return m_coeff * x + y;
+  }
+};
+
+// delta is difference between coordinates of particles in a bond
+void minImage(real* delta)
+{
+  for (size_t i = 0; i < 3; ++i)
+    if (fabs(delta[i]) > 0.5 * boxLength) {
+      if (delta[i] < 0.0) delta[i] += boxLength;
+      else delta[i] -= boxLength;
+    }
+}
+
 // set up coordinates
 void getRandPoint(real& x, real& y, real& z)
 {
@@ -154,6 +186,13 @@ void getRandPoint(real& x, real& y, real& z)
    z = drand48() * boxLength - boxLength/2.0;
 }
 
+bool areEqual(const real& left, const real& right)
+{
+    const real tolerance = 1e-2;
+    return fabs(left - right) < tolerance;
+}
+
+// **** initialization *****
 void addRing(size_t indRing)
 {
   real cmass[3];
@@ -177,45 +216,6 @@ void initPositions()
   for (size_t i = nrings * natomsPerRing; i < natoms; ++i) {
     getRandPoint(xp[i], yp[i], zp[i]);
   }
-}
-
-// didn't what to use lambdas because of old version of gdb
-// naive integration
-void up(vector<real>& x, vector<real>& v, real coef)
-{
-  for (size_t i = 0; i < natoms; ++i)
-    x[i] += coef * v[i];
-};
-
-void up_enforce(vector<real>& x, vector<real>& v, real coef)
-{
-  for (size_t i = 0; i < natoms; ++i)
-  {
-    x[i] += coef * v[i];
-    //don't care about pbc
-  }
-};
-
-// aux routines
-
-real innerProd(const real* v1, const real* v2)
-{
-  return v1[0] * v2[0] + v1[1] * v2[1] + v1[2] * v2[2];
-}
-
-real norm2(const real* v)
-{
-  return v[0] * v[0] + v[1] * v[1] + v[2] * v[2];
-}
-
-// delta is difference between coordinates of particles in a bond
-void minImage(real* delta)
-{
-  for (size_t i = 0; i < 3; ++i)
-    if (fabs(delta[i]) > 0.5 * boxLength) {
-      if (delta[i] < 0.0) delta[i] += boxLength;
-      else delta[i] -= boxLength;
-    }
 }
 
 // forces computations splitted by the type
@@ -436,13 +436,14 @@ int main()
       //printStatistics(fstat, timeStep);
     }
 
-    up(xv, xa, dtime * 0.5);
-    up(yv, ya, dtime * 0.5);
-    up(zv, za, dtime * 0.5);
+    // initial integration of velocity-verlet
+    std::transform(xa.begin(), xa.end(), xv.begin(), xv.begin(), SaxpyOp(dtime * 0.5));
+    std::transform(ya.begin(), ya.end(), yv.begin(), yv.begin(), SaxpyOp(dtime * 0.5));
+    std::transform(za.begin(), za.end(), zv.begin(), zv.begin(), SaxpyOp(dtime * 0.5));
 
-    up_enforce(xp, xv, dtime);
-    up_enforce(yp, yv, dtime);
-    up_enforce(zp, zv, dtime);
+    std::transform(xv.begin(), xv.end(), xp.begin(), xp.begin(), SaxpyOp(dtime));
+    std::transform(yv.begin(), yv.end(), yp.begin(), yp.begin(), SaxpyOp(dtime));
+    std::transform(zv.begin(), zv.end(), zp.begin(), zp.begin(), SaxpyOp(dtime));
 
     pbc();
     if (timeStep % outEvery == 0)
@@ -450,9 +451,10 @@ int main()
 
     computeForces(timeStep);
 
-    up(xv, xa, dtime * 0.5);
-    up(yv, ya, dtime * 0.5);
-    up(zv, za, dtime * 0.5);
+    //final integration of velocity-verlet
+    std::transform(xa.begin(), xa.end(), xv.begin(), xv.begin(), SaxpyOp(dtime * 0.5));
+    std::transform(ya.begin(), ya.end(), yv.begin(), yv.begin(), SaxpyOp(dtime * 0.5));
+    std::transform(za.begin(), za.end(), zv.begin(), zv.begin(), SaxpyOp(dtime * 0.5));
   }
 
   fclose(fstat);
