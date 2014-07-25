@@ -44,7 +44,7 @@ struct InfoDPD
 __constant__ InfoDPD info;
  
 texture<float2, cudaTextureType1D> texParticles;
-texture<int, cudaTextureType1D> texStart, texEnd;
+texture<int, cudaTextureType1D> texStart, texCount;
 
 #define COLS 8
 #define ROWS (32 / COLS)
@@ -53,7 +53,7 @@ texture<int, cudaTextureType1D> texStart, texEnd;
 #define _ZCPB_ 1
 #define CPB (_XCPB_ * _YCPB_ * _ZCPB_)
 
-__global__ __launch_bounds__(32 * CPB, 8) 
+__global__ __launch_bounds__(32 * CPB, 16) 
 void _dpd_forces_saru(int idtimestep)
 {
     assert(warpSize == COLS * ROWS);
@@ -80,7 +80,7 @@ void _dpd_forces_saru(int idtimestep)
 	const int cid = xcid + info.ncells.x * (ycid + info.ncells.y * zcid);
 
 	starts[wid][tid] = tex1Dfetch(texStart, cid);
-	mycount = tex1Dfetch(texEnd, cid) - starts[wid][tid];
+	mycount = tex1Dfetch(texCount, cid);
     }
 
     for(int L = 1; L < 32; L <<= 1)
@@ -91,58 +91,44 @@ void _dpd_forces_saru(int idtimestep)
 
     const int dststart = starts[wid][0];
     const int nsrc = scan[wid][26], ndst = scan[wid][0];
-    
-    __shared__ volatile float dpv[CPB][ROWS][6], spv[CPB][COLS][6];
-    __shared__ volatile int spid[CPB][COLS];
-
+ 
     for(int d = 0; d < ndst; d += ROWS)
     {
 	const int np1 = min(ndst - d, ROWS);
-	
-	for(int i = tid; i < np1 ; i += warpSize)
-	    for(int c = 0; c < 3; ++c)
-	    {
-		float2 tmp = tex1Dfetch(texParticles, c + 3 * (d + dststart + i));;
-		dpv[wid][i][2 * c + 0] = tmp.x;
-		dpv[wid][i][2 * c + 1] = tmp.y;
-	    }
 
+	const int dpid = dststart + d + slot;
+	const int entry = 3 * dpid;
+	float2 dtmp0 = tex1Dfetch(texParticles, entry);
+	float2 dtmp1 = tex1Dfetch(texParticles, entry + 1);
+	float2 dtmp2 = tex1Dfetch(texParticles, entry + 2);
+	
 	float f[3] = {0, 0, 0};
 
 	for(int s = 0; s < nsrc; s += COLS)
 	{
 	    const int np2 = min(nsrc - s, COLS);
   
-	    for(int i = tid; i < np2; i += warpSize)
-	    {
-		const int pid = s + i;
-		const int key9 = 9 * (pid >= scan[wid][8]) + 9 * (pid >= scan[wid][17]);
-		const int key3 = 3 * (pid >= scan[wid][key9 + 2]) + 3 * (pid >= scan[wid][key9 + 5]);
-		const int key1 = (pid >= scan[wid][key9 + key3]) + (pid >= scan[wid][key9 + key3 + 1]);
-		const int key = key9 + key3 + key1;
-		assert(pid >= (key ? scan[wid][key - 1] : 0) && pid < scan[wid][key]);
-		
-		const int localid = pid - s;
-		
-		const int myspid = starts[wid][key] + pid - (key ? scan[wid][key - 1] : 0);
-		for(int c = 0; c < 3; ++c)
-		{
-		    float2 tmp = tex1Dfetch(texParticles, c + 3 * myspid);
-		    spv[wid][localid % COLS][2 * c + 0] = tmp.x;
-		    spv[wid][localid % COLS][2 * c + 1] = tmp.y;
-		}		
-	
-		spid[wid][localid % COLS] =  myspid;
-	    }
+	    const int pid = s + subtid;
+	    const int key9 = 9 * (pid >= scan[wid][8]) + 9 * (pid >= scan[wid][17]);
+	    const int key3 = 3 * (pid >= scan[wid][key9 + 2]) + 3 * (pid >= scan[wid][key9 + 5]);
+	    const int key1 = (pid >= scan[wid][key9 + key3]) + (pid >= scan[wid][key9 + key3 + 1]);
+	    const int key = key9 + key3 + key1;
+	    assert(subtid >= np2 || pid >= (key ? scan[wid][key - 1] : 0) && pid < scan[wid][key]);
+
+	    const int spid = starts[wid][key] + pid - (key ? scan[wid][key - 1] : 0);
+	    const int sentry = 3 * spid;
+	    const float2 stmp0 = tex1Dfetch(texParticles, sentry);
+	    const float2 stmp1 = tex1Dfetch(texParticles, sentry + 1);
+	    const float2 stmp2 = tex1Dfetch(texParticles, sentry + 2);
 	    
-	    {		
+	    {
 		const float xforce = f[0];
 		const float yforce = f[1];
 		const float zforce = f[2];
 			    
-		const float xdiff = dpv[wid][slot][0] - spv[wid][subtid][0];
-		const float ydiff = dpv[wid][slot][1] - spv[wid][subtid][1];
-		const float zdiff = dpv[wid][slot][2] - spv[wid][subtid][2];
+		const float xdiff = dtmp0.x - stmp0.x;
+		const float ydiff = dtmp0.y - stmp0.y;
+		const float zdiff = dtmp1.x - stmp1.x;
 
 		const float _xr = xdiff - info.domainsize.x * floorf(0.5f + xdiff * info.invdomainsize.x);
 		const float _yr = ydiff - info.domainsize.y * floorf(0.5f + ydiff * info.invdomainsize.y);
@@ -158,13 +144,11 @@ void _dpd_forces_saru(int idtimestep)
 		const float zr = _zr * invrij;
 		
 		const float rdotv = 
-		    xr * (dpv[wid][slot][3] - spv[wid][subtid][3]) +
-		    yr * (dpv[wid][slot][4] - spv[wid][subtid][4]) +
-		    zr * (dpv[wid][slot][5] - spv[wid][subtid][5]);
-		    
-		const int gd = dststart + d + slot;
-		const int gs = spid[wid][subtid];
-		const float mysaru = saru(min(gs, gd), max(gs, gd), idtimestep);
+		    xr * (dtmp1.y - stmp1.y) +
+		    yr * (dtmp2.x - stmp2.x) +
+		    zr * (dtmp2.y - stmp2.y);
+		  
+		const float mysaru = saru(min(spid, dpid), max(spid, dpid), idtimestep);
 		const float myrandnr = 3.464101615f * mysaru - 1.732050807f;
 		 
 		const float strength = (info.aij - info.gamma * wr * rdotv + info.sigmaf * myrandnr) * wr;
@@ -256,7 +240,7 @@ void forces_dpd_cuda(float * const _xyzuvw, float * const _axayaz,
         
     CUDA_CHECK(cudaMemcpyToSymbol(info, &c, sizeof(c)));
 
-    device_vector<int> starts(ncells + 1), ends(ncells + 1);
+    device_vector<int> starts(ncells), ends(ncells);
     build_clists(_ptr(xyzuvw), np, rc, c.ncells.x, c.ncells.y, c.ncells.z,
 		 c.domainstart.x, c.domainstart.y, c.domainstart.z,
 		 order, _ptr(starts), _ptr(ends));
@@ -268,13 +252,13 @@ void forces_dpd_cuda(float * const _xyzuvw, float * const _axayaz,
 	texStart.filterMode = cudaFilterModePoint;
 	texStart.mipmapFilterMode = cudaFilterModePoint;
 	texStart.normalized = 0;
-	cudaBindTexture(&textureoffset, &texStart, _ptr(starts), &fmt, sizeof(int) * (ncells + 1));
+	cudaBindTexture(&textureoffset, &texStart, _ptr(starts), &fmt, sizeof(int) * (ncells));
 
-	texEnd.channelDesc = fmt;
-	texEnd.filterMode = cudaFilterModePoint;
-	texEnd.mipmapFilterMode = cudaFilterModePoint;
-	texEnd.normalized = 0;
-	cudaBindTexture(&textureoffset, &texEnd, _ptr(ends), &fmt, sizeof(int) * (ncells + 1));
+	texCount.channelDesc = fmt;
+	texCount.filterMode = cudaFilterModePoint;
+	texCount.mipmapFilterMode = cudaFilterModePoint;
+	texCount.normalized = 0;
+	cudaBindTexture(&textureoffset, &texCount, _ptr(ends), &fmt, sizeof(int) * (ncells));
 	
 	fmt = cudaCreateChannelDesc<float2>();
 	texParticles.channelDesc = fmt;

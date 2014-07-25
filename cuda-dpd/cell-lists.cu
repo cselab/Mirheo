@@ -119,9 +119,15 @@ __global__ void _generate_cids(int * cids, const int ntotcells, const int offset
 
 	cids[tid] = encode(xcid, ycid, zcid) + offset;
     }
-    else
-	if (tid == ntotcells)
-	    cids[tid] = 0x7fffffff;
+}
+
+__global__
+void _count_particles(const int * const cellsstart, int * const cellscount, const int ncells)
+{
+    const int tid = threadIdx.x + blockDim.x * blockIdx.x;
+
+    if (tid < ncells)
+	cellscount[tid] -= cellsstart[tid];
 }
 
 #include <thrust/host_vector.h>
@@ -136,7 +142,7 @@ template<typename T> T * _ptr(device_vector<T>& v) { return raw_pointer_cast(v.d
 void build_clists(float * const xyzuvw, int np, const float rc,
 		  const int xcells, const int ycells, const int zcells,
 		  const float xstart, const float ystart, const float zstart,
-		  int * const order, int * startcell, int * endcell)
+		  int * const order, int * cellsstart, int * cellscount)
 {
     device_vector<int> codes(np), pids(np);
     pid2code<<<(np + 127) / 128, 128>>>(_ptr(codes), _ptr(pids), np, xyzuvw, make_int3(xcells, ycells, zcells), make_float3(xstart, ystart, zstart), 1./rc);
@@ -152,12 +158,14 @@ void build_clists(float * const xyzuvw, int np, const float rc,
     }
    
     const int ncells = xcells * ycells * zcells;
-    device_vector<int> cids(ncells + 1), cidsp1(ncells + 1);
+    device_vector<int> cids(ncells), cidsp1(ncells);
     
     _generate_cids<<< (cids.size() + 127) / 128, 128>>>(_ptr(cids), ncells, 0,  make_int3(xcells, ycells, zcells));
     _generate_cids<<< (cidsp1.size() + 127) / 128, 128>>>(_ptr(cidsp1), ncells, 1, make_int3(xcells, ycells, zcells) );
 	
-    lower_bound(codes.begin(), codes.end(), cids.begin(), cids.end(), device_ptr<int>(startcell));
-    lower_bound(codes.begin(), codes.end(), cidsp1.begin(), cidsp1.end(), device_ptr<int>(endcell));
+    lower_bound(codes.begin(), codes.end(), cids.begin(), cids.end(), device_ptr<int>(cellsstart));
+    lower_bound(codes.begin(), codes.end(), cidsp1.begin(), cidsp1.end(), device_ptr<int>(cellscount));
+
+    _count_particles<<<(ncells + 127) / 128, 128>>> (cellsstart, cellscount, ncells);
 }
 

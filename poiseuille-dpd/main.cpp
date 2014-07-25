@@ -126,8 +126,7 @@ int main()
 		    &xv.front(), &yv.front(), &zv.front(),
 		    &xa.front(), &ya.front(), &za.front(),
 		    nullptr, n,
-		    rc, XL, YL, ZL, aij, gamma, sigma, 1./sqrt(dt),
-		    nullptr, 0);
+		    rc, XL, YL, ZL, aij, gamma, sigma, 1./sqrt(dt));
 
 	    for(int i = 0; i < n; ++i)
 		ya[i] += 0.1 * (2 * (xp[i] > 0) - 1);
