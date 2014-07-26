@@ -423,6 +423,10 @@ void computeDiams()
 
 int main()
 {
+  real ff = getGRand(0,1,0);
+  real ff2 = getGRand(0,1,0);
+  real ff3 = getGRand(1,0,0);
+
   std::cout << "Started computing" << std::endl;
   initPositions();
   FILE * fstat = fopen("diag.txt", "w");
