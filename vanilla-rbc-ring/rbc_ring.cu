@@ -29,23 +29,20 @@ typedef thrust::device_vector<real> dvector;
 // global variables
 const real boxLength = 5.0;
 
-const size_t nrings = 0;
+// dpd code works only if natoms = 2^N
+const size_t nrings = 16;
 const size_t natomsPerRing = 10;
-const size_t nfluidAtoms = 128;//boxLength * boxLength * boxLength; // density 1
+const size_t nfluidAtoms = 352;//boxLength * boxLength * boxLength; // density 1
 const size_t natoms = nrings * natomsPerRing + nfluidAtoms;
 
 hvector xp(natoms), yp(natoms), zp(natoms),
         xv(natoms), yv(natoms), zv(natoms),
         xa(natoms), ya(natoms), za(natoms);
-/*
-dvector d_xa(natoms), d_ya(natoms), d_za(natoms),
-        d_xp(natoms), d_yp(natoms), d_zp(natoms),
-        d_xv(natoms), d_yv(natoms), d_zv(natoms);
-*/
+
 // dpd parameters
 const real dtime = 0.001;
 const real kbT = 0.1;
-const size_t timeEnd = 10;
+const size_t timeEnd = 100;
 
 const real a0 = 500.0, gamma0 = 4.5, cut = 1.2, cutsq = cut * cut, kPower = 0.25,
     sigma = 0.9486; //sqrt(2.0 * kbT * gamma0);
@@ -114,8 +111,6 @@ __device__ real d_getGRand(size_t i, size_t j, size_t idtimestep)
   return 3.464101615 * mysaru - 1.732050807;
 }
 #endif
-
-
 
 // **** aux routines ******
 // might be opened by OVITO and xmovie
@@ -441,13 +436,14 @@ __device__ void d_minImage(float* delta, float boxLength)
 
 __global__ void kernelBonds(float* d_xp, float* d_yp, float* d_zp, float* d_xa, float* d_ya, float* d_za, int natoms)
 {
+  extern __shared__ float3 s_df[];
   int tid = blockIdx.x * blockDim.x + threadIdx.x;
   size_t indRing = blockIdx.x;
   size_t indLocal = threadIdx.x;
 
   if (tid > natoms) return;
 
-  size_t i1 = natomsPerRing * indRing + indLocal;
+  size_t i1 = natomsPerRing * indRing + indLocal; //tid
   size_t i2 = natomsPerRing * indRing + (indLocal + 1) % natomsPerRing;
   float del[] = {d_xp[i1] - d_xp[i2], d_yp[i1] - d_yp[i2], d_zp[i1] - d_zp[i2]};
   d_minImage(del, boxLength);
@@ -467,14 +463,13 @@ __global__ void kernelBonds(float* d_xp, float* d_yp, float* d_zp, float* d_xa, 
    //0.25kbT/lambda[..]
   fbond *= -0.25 * kbT / lambda;
 
-  // finally modify forces
-  d_xa[i1] += del[0] * fbond;
-  d_ya[i1] += del[1] * fbond;
-  d_za[i1] += del[2] * fbond;
-
-  d_xa[i2] -= del[0] * fbond;
-  d_ya[i2] -= del[1] * fbond;
-  d_za[i2] -= del[2] * fbond;
+  s_df[indLocal] = make_float3(del[0] * fbond, del[1] * fbond, del[2] * fbond);
+  __syncthreads();
+  
+  size_t j = (indLocal + 9) % 10;
+  d_xa[i1] += s_df[indLocal].x - s_df[j].x;
+  d_ya[i1] += s_df[indLocal].y - s_df[j].y;
+  d_za[i1] += s_df[indLocal].z - s_df[j].z;
 }
 
 void cuda_calcBondForcesWLC(dvector& d_xp, dvector& d_yp, dvector& d_zp, dvector& d_xa, dvector& d_ya, dvector& d_za)
@@ -482,7 +477,7 @@ void cuda_calcBondForcesWLC(dvector& d_xp, dvector& d_yp, dvector& d_zp, dvector
   int nThreadsPerBlock = natomsPerRing;
   int nBlocks = nrings;
 
-  kernelBonds<<< nBlocks, nThreadsPerBlock >>>(
+  kernelBonds<<< nBlocks, nThreadsPerBlock, sizeof(float3) * nThreadsPerBlock >>>(
       GET_RAW(d_xp), GET_RAW(d_yp), GET_RAW(d_zp),
       GET_RAW(d_xa), GET_RAW(d_ya), GET_RAW(d_za),
       nrings * natomsPerRing);
@@ -490,6 +485,7 @@ void cuda_calcBondForcesWLC(dvector& d_xp, dvector& d_yp, dvector& d_zp, dvector
 
 __global__ void kernelAngles(float* d_xp, float* d_yp, float* d_zp, float* d_xa, float* d_ya, float* d_za, int natoms)
 {
+  extern __shared__ float3 s_df[];
   int tid = blockIdx.x * blockDim.x + threadIdx.x;
   size_t indRing = blockIdx.x;
   size_t indLocal = threadIdx.x;
@@ -523,21 +519,16 @@ __global__ void kernelAngles(float* d_xp, float* d_yp, float* d_zp, float* d_xa,
   float a12 = -kbend / (r1 * r2);
   float a22 = kbend * c / rsq2;
 
-  float f1[] = {a11 * del1[0] + a12 * del2[0], a11 * del1[1] + a12 * del2[1], a11 * del1[2] + a12 * del2[2]};
-  float f3[] = {a22 * del2[0] + a12 * del1[0], a22 * del2[1] + a12 * del1[1], a22 * del2[2] + a12 * del1[2]};
+  // there are two forces, so one is stored in the first part, another in the second
+  s_df[indLocal] = make_float3(a11 * del1[0] + a12 * del2[0], a11 * del1[1] + a12 * del2[1], a11 * del1[2] + a12 * del2[2]);
+  s_df[indLocal + blockDim.x] = make_float3(a22 * del2[0] + a12 * del1[0], a22 * del2[1] + a12 * del1[1], a22 * del2[2] + a12 * del1[2]);
+  __syncthreads();
 
-  // apply force to each of 3 atoms
-  d_xa[i1] += f1[0];
-  d_ya[i1] += f1[1];
-  d_za[i1] += f1[2];
+  size_t j = (indLocal + 8) % 10, k = (indLocal + 9) % 10;
 
-  d_xa[i2] -= f1[0] + f3[0];
-  d_ya[i2] -= f1[1] + f3[1];
-  d_za[i2] -= f1[2] + f3[2];
-
-  d_xa[i3] += f3[0];
-  d_ya[i3] += f3[1];
-  d_za[i3] += f3[2];
+  d_xa[i1] += s_df[indLocal].x + s_df[ blockDim.x + j].x - (s_df[k].x + s_df[ blockDim.x + k ].x);
+  d_ya[i1] += s_df[indLocal].y + s_df[ blockDim.x + j].y - (s_df[k].y + s_df[ blockDim.x + k ].y);
+  d_za[i1] += s_df[indLocal].z + s_df[ blockDim.x + j].z - (s_df[k].z + s_df[ blockDim.x + k ].z);
 }
 
 void cuda_calcAngleForcesBend(dvector& d_xp, dvector& d_yp, dvector& d_zp, dvector& d_xa, dvector& d_ya, dvector& d_za)
@@ -545,7 +536,7 @@ void cuda_calcAngleForcesBend(dvector& d_xp, dvector& d_yp, dvector& d_zp, dvect
   int nThreadsPerBlock = natomsPerRing;
   int nBlocks = nrings;
 
-  kernelAngles<<< nBlocks, nThreadsPerBlock >>>(
+  kernelAngles<<< nBlocks, nThreadsPerBlock, 2 * sizeof(float3) * nThreadsPerBlock >>>(
       GET_RAW(d_xp), GET_RAW(d_yp), GET_RAW(d_zp),
       GET_RAW(d_xa), GET_RAW(d_ya), GET_RAW(d_za),
       nrings * natomsPerRing);
@@ -613,9 +604,9 @@ __global__ void kernelDPDpair(float* d_xp, float* d_yp, float* d_zp,
   }
 
   if (threadIdx.x == 0) {
-    d_xa[i] = s_df[0].x;
-    d_ya[i] = s_df[0].y;
-    d_za[i] = s_df[0].z;
+    d_xa[i] += s_df[0].x;
+    d_ya[i] += s_df[0].y;
+    d_za[i] += s_df[0].z;
   }
 }
 
@@ -623,7 +614,7 @@ void cuda_calcDpdForces(dvector& d_xp, dvector& d_yp, dvector& d_zp,
                         dvector& d_xv, dvector& d_yv, dvector& d_zv,
                         dvector& d_xa, dvector& d_ya, dvector& d_za, size_t timeStep)
 {
-  // TODO natoms per block - don't think it is a good idea, just for try
+  // TODO natoms per block - don't think it is a good idea, just to try
   int nThreadsPerBlock = natoms;
   int nBlocks = natoms;
 
@@ -636,12 +627,9 @@ void cuda_calcDpdForces(dvector& d_xp, dvector& d_yp, dvector& d_zp,
 
 void cuda_computeForces(size_t timeStep)
 {
-  //dvector d_xa(natoms), d_ya(natoms), d_za(natoms);
-
   dvector d_xa(natoms), d_ya(natoms), d_za(natoms),
-        d_xp(natoms), d_yp(natoms), d_zp(natoms),
-        d_xv(natoms), d_yv(natoms), d_zv(natoms);
-
+          d_xp(natoms), d_yp(natoms), d_zp(natoms),
+          d_xv(natoms), d_yv(natoms), d_zv(natoms);
 
   thrust::fill(d_xa.begin(), d_xa.end(), 0.0);
   thrust::fill(d_ya.begin(), d_ya.end(), 0.0);
@@ -652,17 +640,20 @@ void cuda_computeForces(size_t timeStep)
 
   cuda_calcDpdForces(d_xp, d_yp, d_zp, d_xv, d_yv, d_zv,
       d_xa, d_ya, d_za, timeStep);
-  //cuda_calcBondForcesWLC(d_xp, d_yp, d_zp, d_xa, d_ya, d_za);
-  //cuda_calcAngleForcesBend(d_xp, d_yp, d_zp, d_xa, d_ya, d_za);
-
+  cudaDeviceSynchronize();
+  cuda_calcBondForcesWLC(d_xp, d_yp, d_zp, d_xa, d_ya, d_za);
+  cudaDeviceSynchronize();  
+  cuda_calcAngleForcesBend(d_xp, d_yp, d_zp, d_xa, d_ya, d_za);
+  cudaDeviceSynchronize();
+  
   thrust::fill(xa.begin(), xa.end(), 0.0);
   thrust::fill(ya.begin(), ya.end(), 0.0);
   thrust::fill(za.begin(), za.end(), 0.0);
   
-//to check xa = d_xa; ya =d_ya; za = d_za;  
+  //to check that xa == d_xa; ya == d_ya; za == d_za;  
   calcDpdForces(timeStep);
-  //calcBondForcesWLC();
-  //calcAngleForcesBend();
+  calcBondForcesWLC();
+  calcAngleForcesBend();
 
   // check that computations are correct
   thrust::host_vector<real> h_xa(d_xa), h_ya(d_ya), h_za(d_za);
