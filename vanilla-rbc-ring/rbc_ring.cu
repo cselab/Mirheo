@@ -31,7 +31,7 @@ const real boxLength = 5.0;
 
 const size_t nrings = 0;
 const size_t natomsPerRing = 10;
-const size_t nfluidAtoms = boxLength * boxLength * boxLength; // density 1
+const size_t nfluidAtoms = 128;//boxLength * boxLength * boxLength; // density 1
 const size_t natoms = nrings * natomsPerRing + nfluidAtoms;
 
 hvector xp(natoms), yp(natoms), zp(natoms),
@@ -276,8 +276,8 @@ void calcDpdForces(size_t timeStep)
         // random force = sigma * wd * rnd * dtinvsqrt;
         real wd = pow(1.0 - r/cut, kPower);
         double fpair = a0 * (1.0 - r/cut);
-        //fpair -= gamma0 * wd * wd * dot * rinv;
-        //fpair += sigma * wd * randnum * dtinvsqrt;
+        fpair -= gamma0 * wd * wd * dot * rinv;
+        fpair += sigma * wd * randnum * dtinvsqrt;
         fpair *= rinv;
 
         // finally modify forces
@@ -562,13 +562,15 @@ __global__ void kernelDPDpair(float* d_xp, float* d_yp, float* d_zp,
 
   if (tid > natoms * natoms) return;
 
+  extern __shared__ float3 s_df[];
+
   real dtinvsqrt = 1.0 / sqrtf(dtime);
-  if (i == j) return;
   float del[] = {d_xp[i] - d_xp[j], d_yp[i] - d_yp[j], d_zp[i] - d_zp[j]};
   d_minImage(del, boxLength);
 
   real rsq = d_dot(del, del);
-  if (rsq < cutsq)
+  float3 df = make_float3(0.0f, 0.0f, 0.0f);
+  if (rsq < cutsq && i != j)
   {
     float r = sqrtf(rsq);
     float rinv = 1.0 / r;
@@ -582,14 +584,38 @@ __global__ void kernelDPDpair(float* d_xp, float* d_yp, float* d_zp,
     // random force = sigma * wd * rnd * dtinvsqrt;
     float wd = powf(1.0 - r/cut, kPower);
     float fpair = a0 * (1.0 - r/cut);
-    //fpair -= gamma0 * wd * wd * dot * rinv;
-    //fpair += sigma * wd * randnum * dtinvsqrt;
+    fpair -= gamma0 * wd * wd * dot * rinv;
+    fpair += sigma * wd * randnum * dtinvsqrt;
     fpair *= rinv;
 
-    // finally modify forces
-    d_xa[i] += del[0] * fpair;
-    d_ya[i] += del[1] * fpair;
-    d_za[i] += del[2] * fpair;
+    df.x = del[0] * fpair;
+    df.y = del[1] * fpair;
+    df.z = del[2] * fpair;
+    // slow method just to check
+    //atomicAdd(&d_xa[i], del[0] * fpair);
+    //atomicAdd(&d_ya[i], del[1] * fpair);
+    //atomicAdd(&d_za[i], del[2] * fpair);
+  }
+  s_df[j] = df;
+  __syncthreads();
+
+  // f[i] = sum{j}(df[j]);)
+  // for reductions, threadsPerBlock must be a power of 2
+  int k = blockDim.x/2;
+  while (k != 0) {
+    if (threadIdx.x < k) {
+      s_df[threadIdx.x].x += s_df[threadIdx.x + k].x;
+      s_df[threadIdx.x].y += s_df[threadIdx.x + k].y;
+      s_df[threadIdx.x].z += s_df[threadIdx.x + k].z;
+    }
+    __syncthreads();
+    k /= 2;
+  }
+
+  if (threadIdx.x == 0) {
+    d_xa[i] = s_df[0].x;
+    d_ya[i] = s_df[0].y;
+    d_za[i] = s_df[0].z;
   }
 }
 
@@ -601,7 +627,7 @@ void cuda_calcDpdForces(dvector& d_xp, dvector& d_yp, dvector& d_zp,
   int nThreadsPerBlock = natoms;
   int nBlocks = natoms;
 
-  kernelDPDpair<<< nBlocks, nThreadsPerBlock >>>(
+  kernelDPDpair<<< nBlocks, nThreadsPerBlock, sizeof(float3) * nThreadsPerBlock  >>>(
       GET_RAW(d_xp), GET_RAW(d_yp), GET_RAW(d_zp),
       GET_RAW(d_xv), GET_RAW(d_yv), GET_RAW(d_zv),
       GET_RAW(d_xa), GET_RAW(d_ya), GET_RAW(d_za),
