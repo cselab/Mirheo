@@ -12,7 +12,6 @@
 
 #include <algorithm>
 #include <vector>
-//#include <random>
 #include <cmath>
 
 // cuda headers
@@ -22,6 +21,7 @@
 #include <thrust/device_vector.h>
 
 typedef float real;
+typedef unsigned int sizeType;
 
 typedef thrust::host_vector<real> hvector;
 typedef thrust::device_vector<real> dvector;
@@ -175,6 +175,15 @@ real norm2(const real* v)
   return v[0] * v[0] + v[1] * v[1] + v[2] * v[2];
 }
 
+struct SaxpyOp {
+  const real m_coeff;
+  SaxpyOp(real coeff) : m_coeff(coeff) {}
+  __host__ __device__ real operator()(const real& x, const real& y) const
+  {
+    return m_coeff * x + y;
+  }
+};
+
 // delta is difference between coordinates of particles in a bond
 void minImage(real* delta)
 {
@@ -224,21 +233,6 @@ void initPositions()
     getRandPoint(xp[i], yp[i], zp[i]);
   }
 }
-
-void up(hvector& x, hvector& v, real coef)
-{
-  for (size_t i = 0; i < natoms; ++i)
-    x[i] += coef * v[i];
-};
-
-void up_enforce(hvector& x, hvector& v, real coef)
-{
-  for (size_t i = 0; i < natoms; ++i)
-  {
-    x[i] += coef * v[i];
-    //don't care about pbc
-  }
-};
 
 // forces computations splitted by the type
 void calcDpdForces(size_t timeStep)
@@ -434,7 +428,7 @@ __device__ void d_minImage(float* delta, float boxLength)
     }
 }
 
-__global__ void kernelBonds(float* d_xp, float* d_yp, float* d_zp, float* d_xa, float* d_ya, float* d_za, int natoms)
+__global__ void kernelBonds(const float* d_xp, const float* d_yp, const float* d_zp, float* d_xa, float* d_ya, float* d_za, int natoms)
 {
   extern __shared__ float3 s_df[];
   int tid = blockIdx.x * blockDim.x + threadIdx.x;
@@ -472,7 +466,7 @@ __global__ void kernelBonds(float* d_xp, float* d_yp, float* d_zp, float* d_xa, 
   d_za[i1] += s_df[indLocal].z - s_df[j].z;
 }
 
-void cuda_calcBondForcesWLC(dvector& d_xp, dvector& d_yp, dvector& d_zp, dvector& d_xa, dvector& d_ya, dvector& d_za)
+void cuda_calcBondForcesWLC(const dvector& d_xp, const dvector& d_yp, const dvector& d_zp, dvector& d_xa, dvector& d_ya, dvector& d_za)
 {
   int nThreadsPerBlock = natomsPerRing;
   int nBlocks = nrings;
@@ -483,7 +477,8 @@ void cuda_calcBondForcesWLC(dvector& d_xp, dvector& d_yp, dvector& d_zp, dvector
       nrings * natomsPerRing);
 }
 
-__global__ void kernelAngles(float* d_xp, float* d_yp, float* d_zp, float* d_xa, float* d_ya, float* d_za, int natoms)
+__global__ void kernelAngles(const float* d_xp, const float* d_yp, const float* d_zp, 
+                             float* d_xa, float* d_ya, float* d_za, int natoms)
 {
   extern __shared__ float3 s_df[];
   int tid = blockIdx.x * blockDim.x + threadIdx.x;
@@ -531,7 +526,8 @@ __global__ void kernelAngles(float* d_xp, float* d_yp, float* d_zp, float* d_xa,
   d_za[i1] += s_df[indLocal].z + s_df[ blockDim.x + j].z - (s_df[k].z + s_df[ blockDim.x + k ].z);
 }
 
-void cuda_calcAngleForcesBend(dvector& d_xp, dvector& d_yp, dvector& d_zp, dvector& d_xa, dvector& d_ya, dvector& d_za)
+void cuda_calcAngleForcesBend(const dvector& d_xp, const dvector& d_yp, const dvector& d_zp, 
+                              dvector& d_xa, dvector& d_ya, dvector& d_za)
 {
   int nThreadsPerBlock = natomsPerRing;
   int nBlocks = nrings;
@@ -543,9 +539,9 @@ void cuda_calcAngleForcesBend(dvector& d_xp, dvector& d_yp, dvector& d_zp, dvect
 }
 
 // forces computations splitted by the type
-__global__ void kernelDPDpair(float* d_xp, float* d_yp, float* d_zp,
-                   float* d_xv, float* d_yv, float* d_zv,
-                   float* d_xa, float* d_ya, float* d_za, int natoms, size_t timeStep)
+__global__ void kernelDPDpair(const float* d_xp, const float* d_yp, const float* d_zp,
+                              const float* d_xv, const float* d_yv, const float* d_zv,
+                              float* d_xa, float* d_ya, float* d_za, int natoms, size_t timeStep)
 {
   int tid = blockIdx.x * blockDim.x + threadIdx.x;
   size_t i = blockIdx.x;
@@ -610,8 +606,8 @@ __global__ void kernelDPDpair(float* d_xp, float* d_yp, float* d_zp,
   }
 }
 
-void cuda_calcDpdForces(dvector& d_xp, dvector& d_yp, dvector& d_zp,
-                        dvector& d_xv, dvector& d_yv, dvector& d_zv,
+void cuda_calcDpdForces(const dvector& d_xp, const dvector& d_yp, const dvector& d_zp,
+                        const dvector& d_xv, const dvector& d_yv, const dvector& d_zv,
                         dvector& d_xa, dvector& d_ya, dvector& d_za, size_t timeStep)
 {
   // TODO natoms per block - don't think it is a good idea, just to try
@@ -625,7 +621,7 @@ void cuda_calcDpdForces(dvector& d_xp, dvector& d_yp, dvector& d_zp,
       natoms, timeStep);
 }
 
-void cuda_computeForces(size_t timeStep)
+void cuda_computeForcesCheck(size_t timeStep)
 {
   dvector d_xa(natoms), d_ya(natoms), d_za(natoms),
           d_xp(natoms), d_yp(natoms), d_zp(natoms),
@@ -671,27 +667,119 @@ void cuda_computeForces(size_t timeStep)
   }
 }
 
-// *******************************************************
-
-void pbcPerAtomsPerDim(size_t ind, hvector& coord)
+void cuda_computeForces(
+    const dvector& d_xp, const dvector& d_yp, const dvector& d_zp,
+    const dvector& d_xv, const dvector& d_yv, const dvector& d_zv, 
+    dvector& d_xa, dvector& d_ya, dvector& d_za, size_t timeStep)
 {
+  thrust::fill(d_xa.begin(), d_xa.end(), 0.0);
+  thrust::fill(d_ya.begin(), d_ya.end(), 0.0);
+  thrust::fill(d_za.begin(), d_za.end(), 0.0);
+
+  cuda_calcDpdForces(d_xp, d_yp, d_zp, d_xv, d_yv, d_zv,
+      d_xa, d_ya, d_za, timeStep);
+  cudaDeviceSynchronize();
+  cuda_calcBondForcesWLC(d_xp, d_yp, d_zp, d_xa, d_ya, d_za);
+  cudaDeviceSynchronize();  
+  cuda_calcAngleForcesBend(d_xp, d_yp, d_zp, d_xa, d_ya, d_za);
+  cudaDeviceSynchronize(); 
+}
+
+// initial integration of velocity-verlet
+void cuda_initialIntegrate(dvector& d_xp, dvector& d_yp, dvector& d_zp,
+                           dvector& d_xv, dvector& d_yv, dvector& d_zv, 
+                           const dvector& d_xa, const dvector& d_ya, const dvector& d_za)
+{
+  thrust::transform(d_xa.begin(), d_xa.end(), d_xv.begin(), d_xv.begin(), SaxpyOp(dtime * 0.5));
+  thrust::transform(d_ya.begin(), d_ya.end(), d_yv.begin(), d_yv.begin(), SaxpyOp(dtime * 0.5));
+  thrust::transform(d_za.begin(), d_za.end(), d_zv.begin(), d_zv.begin(), SaxpyOp(dtime * 0.5));
+
+  thrust::transform(d_xv.begin(), d_xv.end(), d_xp.begin(), d_xp.begin(), SaxpyOp(dtime));
+  thrust::transform(d_yv.begin(), d_yv.end(), d_yp.begin(), d_yp.begin(), SaxpyOp(dtime));
+  thrust::transform(d_zv.begin(), d_zv.end(), d_zp.begin(), d_zp.begin(), SaxpyOp(dtime));
+}
+
+//final integration of velocity-verlet
+void cuda_finalIntegrate(dvector& d_xv, dvector& d_yv, dvector& d_zv, 
+                         const dvector& d_xa, const dvector& d_ya, const dvector& d_za)
+{
+  thrust::transform(d_xa.begin(), d_xa.end(), d_xv.begin(), d_xv.begin(), SaxpyOp(dtime * 0.5));
+  thrust::transform(d_ya.begin(), d_ya.end(), d_yv.begin(), d_yv.begin(), SaxpyOp(dtime * 0.5));
+  thrust::transform(d_za.begin(), d_za.end(), d_zv.begin(), d_zv.begin(), SaxpyOp(dtime * 0.5));
+}
+
+using namespace std;
+struct PbcOp {
+  __host__ __device__ void operator()(real& coord) const
+  {
+    real boxlo = -0.5 * boxLength;
+    real boxhi = 0.5 * boxLength;
+    if (coord < boxlo) {
+      coord += boxLength;
+    }
+    if (coord >= boxhi) {
+      coord -= boxLength;
+      coord = max(coord, boxlo);
+    }
+  }
+};
+
+void cuda_pbc(dvector& xp, dvector& yp, dvector& zp)
+{
+  PbcOp op;
+  thrust::for_each(xp.begin(), xp.end(), op);
+  thrust::for_each(yp.begin(), yp.end(), op);
+  thrust::for_each(zp.begin(), zp.end(), op);
+
+  // check that it works
   real boxlo = -0.5 * boxLength;
   real boxhi = 0.5 * boxLength;
-  if (coord[ind] < boxlo) {
-    coord[ind] += boxLength;
+  for (size_t i = 0; i < natoms; ++i) {
+    if (xp[i] < boxlo || xp[i] >= boxhi ||
+        yp[i] < boxlo || yp[i] >= boxhi ||
+        zp[i] < boxlo || zp[i] >= boxhi)
+      assert(false);
   }
-  if (coord[ind] >= boxhi) {
-    coord[ind] -= boxLength;
-    coord[ind] = std::max(coord[ind], boxlo);
-  }
+}
+
+
+// *******************************************************
+
+// initial integration of velocity-verlet
+void initialIntegrate()
+{
+  std::transform(xa.begin(), xa.end(), xv.begin(), xv.begin(), SaxpyOp(dtime * 0.5));
+  std::transform(ya.begin(), ya.end(), yv.begin(), yv.begin(), SaxpyOp(dtime * 0.5));
+  std::transform(za.begin(), za.end(), zv.begin(), zv.begin(), SaxpyOp(dtime * 0.5));
+
+  std::transform(xv.begin(), xv.end(), xp.begin(), xp.begin(), SaxpyOp(dtime));
+  std::transform(yv.begin(), yv.end(), yp.begin(), yp.begin(), SaxpyOp(dtime));
+  std::transform(zv.begin(), zv.end(), zp.begin(), zp.begin(), SaxpyOp(dtime));
+}
+
+//final integration of velocity-verlet
+void finalIntegrate()
+{
+  std::transform(xa.begin(), xa.end(), xv.begin(), xv.begin(), SaxpyOp(dtime * 0.5));
+  std::transform(ya.begin(), ya.end(), yv.begin(), yv.begin(), SaxpyOp(dtime * 0.5));
+  std::transform(za.begin(), za.end(), zv.begin(), zv.begin(), SaxpyOp(dtime * 0.5));
 }
 
 void pbc()
 {
+  PbcOp op;
+  std::for_each(xp.begin(), xp.end(), op);
+  std::for_each(yp.begin(), yp.end(), op);
+  std::for_each(zp.begin(), zp.end(), op);
+
+  // check that it works
+  real boxlo = -0.5 * boxLength;
+  real boxhi = 0.5 * boxLength;
   for (size_t i = 0; i < natoms; ++i) {
-    pbcPerAtomsPerDim(i, xp);
-    pbcPerAtomsPerDim(i, yp);
-    pbcPerAtomsPerDim(i, zp);
+    if (xp[i] < boxlo || xp[i] >= boxhi ||
+        yp[i] < boxlo || yp[i] >= boxhi ||
+        zp[i] < boxlo || zp[i] >= boxhi)
+      assert(false);
   }
 }
 
@@ -712,6 +800,13 @@ int main()
   initPositions();
   FILE * fstat = fopen("diag.txt", "w");
 
+  dvector d_xp(natoms), d_yp(natoms), d_zp(natoms),
+          d_xv(natoms), d_yv(natoms), d_zv(natoms),
+          d_xa(natoms), d_ya(natoms), d_za(natoms);
+  
+  d_xp = xp; d_yp = yp; d_zp = zp;
+  d_xv = xv; d_yv = yv; d_zv = zv;
+  
   for (size_t timeStep = 0; timeStep < timeEnd; ++timeStep)
   {
     if (timeStep % outEvery == 0)
@@ -721,23 +816,21 @@ int main()
       //printStatistics(fstat, timeStep);
     }
 
-    up(xv, xa, dtime * 0.5);
-    up(yv, ya, dtime * 0.5);
-    up(zv, za, dtime * 0.5);
-
-    up_enforce(xp, xv, dtime);
-    up_enforce(yp, yv, dtime);
-    up_enforce(zp, zv, dtime);
-
-    pbc();
-    if (timeStep % outEvery == 0)
+    cuda_initialIntegrate(d_xp, d_yp, d_zp,
+                          d_xv, d_yv, d_zv,
+                          d_xa, d_ya, d_za);
+    cuda_pbc(d_xp, d_yp, d_zp);
+    if (timeStep % outEvery == 0) {
+      xp = d_xp; yp = d_yp; zp = d_zp;
       lammps_dump("evolution.dump", &xp.front(), &yp.front(), &zp.front(), natoms, timeStep, boxLength);
+    }
 
-    cuda_computeForces(timeStep);
+    cuda_computeForces(d_xp, d_yp, d_zp,
+                       d_xv, d_yv, d_zv,
+                       d_xa, d_ya, d_za, timeStep);
 
-    up(xv, xa, dtime * 0.5);
-    up(yv, ya, dtime * 0.5);
-    up(zv, za, dtime * 0.5);
+    cuda_finalIntegrate(d_xv, d_yv, d_zv,
+                        d_xa, d_ya, d_za);
   }
 
   fclose(fstat);
