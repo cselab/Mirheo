@@ -23,9 +23,9 @@ typedef std::vector<real> hvector;
 // global variables
 const real boxLength = 10.0;
 
-const size_t nrings = 5;
+const size_t nrings = 1;
 const size_t natomsPerRing = 10;
-const size_t nfluidAtoms = boxLength * boxLength * boxLength; // density 1
+const size_t nfluidAtoms = 1000;//boxLength * boxLength * boxLength; // density 1
 const size_t natoms = nrings * natomsPerRing + nfluidAtoms;
 
 hvector xp(natoms), yp(natoms), zp(natoms),
@@ -35,7 +35,7 @@ hvector xp(natoms), yp(natoms), zp(natoms),
 // dpd parameters
 const real dtime = 0.001;
 const real kbT = 0.1;
-const size_t timeEnd = 500;
+const size_t timeEnd = 100;
 
 const real a0 = 500.0, gamma0 = 4.5, cut = 1.2, cutsq = cut * cut, kPower = 0.25,
     sigma = sqrt(2.0 * kbT * gamma0);
@@ -90,9 +90,9 @@ real saru(unsigned int seed1, unsigned int seed2, unsigned int seed3)
     return res;
 }
 
-real getGRand(size_t i, size_t j, size_t idtimestep)
+real h_getGRand(size_t i, size_t j, size_t idtimestep)
 {
-  const real mysaru = saru(min(i, j), max(i, j), idtimestep);
+  const real mysaru = saru(std::min(i, j), std::max(i, j), idtimestep);
   return 3.464101615 * mysaru - 1.732050807;
 }
 #endif
@@ -242,7 +242,7 @@ void calcDpdForces(size_t timeStep)
         real delv[] = {xv[i] - xv[j], yv[i] - yv[j], zv[i] - zv[j]};
 
         real dot = innerProd(del, delv);
-        real randnum = getGRand(i, j, timeStep);
+        real randnum = h_getGRand(i, j, timeStep);
 
         // conservative force = a0 * wd
         // drag force = -gamma * wd^2 * (delx dot delv) / r
@@ -380,33 +380,64 @@ void computeForces(size_t timeStep)
   fill(ya.begin(), ya.end(), 0.0);
   fill(za.begin(), za.end(), 0.0);
 
-  calcDpdForces(timeStep);
-  calcBondForcesWLC();
+  //calcDpdForces(timeStep);
+  //calcBondForcesWLC();
   calcAngleForcesBend();
 
   //addStretchForce();
-  addDrivingForce();
+  //addDrivingForce();
 }
 
-void pbcPerAtomsPerDim(size_t ind, vector<real>& coord)
+// initial integration of velocity-verlet
+void initialIntegrate()
 {
-  real boxlo = -0.5 * boxLength;
-  real boxhi = 0.5 * boxLength;
-  if (coord[ind] < boxlo) {
-    coord[ind] += boxLength;
-  }
-  if (coord[ind] >= boxhi) {
-    coord[ind] -= boxLength;
-    coord[ind] = std::max(coord[ind], boxlo);
-  }
+  std::transform(xa.begin(), xa.end(), xv.begin(), xv.begin(), SaxpyOp(dtime * 0.5));
+  std::transform(ya.begin(), ya.end(), yv.begin(), yv.begin(), SaxpyOp(dtime * 0.5));
+  std::transform(za.begin(), za.end(), zv.begin(), zv.begin(), SaxpyOp(dtime * 0.5));
+
+  std::transform(xv.begin(), xv.end(), xp.begin(), xp.begin(), SaxpyOp(dtime));
+  std::transform(yv.begin(), yv.end(), yp.begin(), yp.begin(), SaxpyOp(dtime));
+  std::transform(zv.begin(), zv.end(), zp.begin(), zp.begin(), SaxpyOp(dtime));
 }
+
+//final integration of velocity-verlet
+void finalIntegrate()
+{
+  std::transform(xa.begin(), xa.end(), xv.begin(), xv.begin(), SaxpyOp(dtime * 0.5));
+  std::transform(ya.begin(), ya.end(), yv.begin(), yv.begin(), SaxpyOp(dtime * 0.5));
+  std::transform(za.begin(), za.end(), zv.begin(), zv.begin(), SaxpyOp(dtime * 0.5));
+}
+
+struct PbcOp {
+  /*__host__ __device__*/ void operator()(real& coord) const
+  {
+    real boxlo = -0.5 * boxLength;
+    real boxhi = 0.5 * boxLength;
+    if (coord < boxlo) {
+      coord += boxLength;
+    }
+    if (coord >= boxhi) {
+      coord -= boxLength;
+      coord = max(coord, boxlo);
+    }
+  }
+};
 
 void pbc()
 {
+  PbcOp op;
+  std::for_each(xp.begin(), xp.end(), op);
+  std::for_each(yp.begin(), yp.end(), op);
+  std::for_each(zp.begin(), zp.end(), op);
+
+  // check that it works
+  real boxlo = -0.5 * boxLength;
+  real boxhi = 0.5 * boxLength;
   for (size_t i = 0; i < natoms; ++i) {
-    pbcPerAtomsPerDim(i, xp);
-    pbcPerAtomsPerDim(i, yp);
-    pbcPerAtomsPerDim(i, zp);
+    if (xp[i] < boxlo || xp[i] >= boxhi ||
+        yp[i] < boxlo || yp[i] >= boxhi ||
+        zp[i] < boxlo || zp[i] >= boxhi)
+      assert(false);
   }
 }
 
@@ -423,10 +454,6 @@ void computeDiams()
 
 int main()
 {
-  real ff = getGRand(0,1,0);
-  real ff2 = getGRand(0,1,0);
-  real ff3 = getGRand(1,0,0);
-
   std::cout << "Started computing" << std::endl;
   initPositions();
   FILE * fstat = fopen("diag.txt", "w");
@@ -440,25 +467,14 @@ int main()
       //printStatistics(fstat, timeStep);
     }
 
-    // initial integration of velocity-verlet
-    std::transform(xa.begin(), xa.end(), xv.begin(), xv.begin(), SaxpyOp(dtime * 0.5));
-    std::transform(ya.begin(), ya.end(), yv.begin(), yv.begin(), SaxpyOp(dtime * 0.5));
-    std::transform(za.begin(), za.end(), zv.begin(), zv.begin(), SaxpyOp(dtime * 0.5));
-
-    std::transform(xv.begin(), xv.end(), xp.begin(), xp.begin(), SaxpyOp(dtime));
-    std::transform(yv.begin(), yv.end(), yp.begin(), yp.begin(), SaxpyOp(dtime));
-    std::transform(zv.begin(), zv.end(), zp.begin(), zp.begin(), SaxpyOp(dtime));
-
+    initialIntegrate();
     pbc();
     if (timeStep % outEvery == 0)
       lammps_dump("evolution.dump", &xp.front(), &yp.front(), &zp.front(), natoms, timeStep, boxLength);
 
     computeForces(timeStep);
 
-    //final integration of velocity-verlet
-    std::transform(xa.begin(), xa.end(), xv.begin(), xv.begin(), SaxpyOp(dtime * 0.5));
-    std::transform(ya.begin(), ya.end(), yv.begin(), yv.begin(), SaxpyOp(dtime * 0.5));
-    std::transform(za.begin(), za.end(), zv.begin(), zv.begin(), SaxpyOp(dtime * 0.5));
+    finalIntegrate();
   }
 
   fclose(fstat);
