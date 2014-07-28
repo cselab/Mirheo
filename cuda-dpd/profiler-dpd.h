@@ -11,11 +11,15 @@ class ProfilerDPD
     std::vector<double> tfs;
 
     void _flush(bool init = false);
-    
-public:
-    
+
     ProfilerDPD();
     ~ProfilerDPD();
+    
+public:
+
+    static ProfilerDPD * st;
+    
+    static ProfilerDPD& singletone();
 
     void start();
     void force() { cudaEventRecord(evforce); }

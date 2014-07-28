@@ -46,8 +46,9 @@ int main()
     const real aij = 2.5;
     const real rc = 1;
     const bool cuda = true;
+    const bool bipartite = true;
     const real dt = 0.02;
-    const real tend = 3;
+    const real tend = 20;//0.08 * 20;
     
     vector<real> xp(n), yp(n), zp(n), xv(n), yv(n), zv(n), xa(n), ya(n), za(n);
     srand48(6516L);
@@ -59,7 +60,7 @@ int main()
 	const int ycid = (cid / (int) L) % (int)L;
 	const int zcid = (cid / (int) L / (int) L) % (int)L;
 
-#if 0
+#if 1
 	xp[i] = -L * 0.5f +  drand48() * L;
 	yp[i] = -L * 0.5f +  drand48() * L;
 	zp[i] = -L * 0.5f +  drand48() * L;
@@ -115,14 +116,48 @@ int main()
     int cnt = 0;
     auto _f = [&]()
 	{
-	    if (cuda)// && cnt++ >= 5)
+	    fill(xa.begin(), xa.end(), 0);
+	    fill(ya.begin(), ya.end(), 0);
+	    fill(za.begin(), za.end(), 0);
+	      
+	    if (cuda) 
 	    {
-		forces_dpd_cuda(
-		    &xp.front(), &yp.front(), &zp.front(),
-		    &xv.front(), &yv.front(), &zv.front(),
-		    &xa.front(), &ya.front(), &za.front(),
-		    NULL, n,
-		    rc, L, L, L, aij, gamma, sigma, 1./sqrt(dt));
+		if (!bipartite)
+		    forces_dpd_cuda(
+			&xp.front(), &yp.front(), &zp.front(),
+			&xv.front(), &yv.front(), &zv.front(),
+			&xa.front(), &ya.front(), &za.front(),
+			n,
+			rc, L, L, L, aij, gamma, sigma, 1./sqrt(dt));
+		else
+		{
+		    const int pivot = (int)(drand48() * xp.size());
+		    		    
+		    forces_dpd_cuda_bipartite(
+			&xp.front(), &yp.front(), &zp.front(),
+			&xv.front(), &yv.front(), &zv.front(),
+			&xa.front(), &ya.front(), &za.front(),
+			pivot, 0,
+			&xp.front() + pivot, &yp.front() + pivot, &zp.front() + pivot,
+			&xv.front() + pivot, &yv.front() + pivot, &zv.front() + pivot,
+			&xa.front() + pivot, &ya.front() + pivot, &za.front() + pivot,
+			n - pivot, pivot,
+			rc, L, L, L, aij, gamma, sigma, 1./sqrt(dt));
+
+		      forces_dpd_cuda(
+			&xp.front(), &yp.front(), &zp.front(),
+			&xv.front(), &yv.front(), &zv.front(),
+			&xa.front(), &ya.front(), &za.front(),
+			pivot,
+			rc, L, L, L, aij, gamma, sigma, 1./sqrt(dt));
+
+		      forces_dpd_cuda(
+			  &xp.front() + pivot, &yp.front() + pivot, &zp.front() + pivot,
+			  &xv.front() + pivot, &yv.front() + pivot, &zv.front() + pivot,
+			  &xa.front() + pivot, &ya.front() + pivot, &za.front() + pivot,
+			  n - pivot,
+			  rc, L, L, L, aij, gamma, sigma, 1./sqrt(dt));
+		}
 		
 		return;
 	    }

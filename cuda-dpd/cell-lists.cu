@@ -1,5 +1,7 @@
 #include <cstdio>
+#include <cassert>
 #include <unistd.h>
+
 #include "cell-lists.h"
 
 #if 1
@@ -27,12 +29,12 @@ __device__ uint inline Compact1By2(uint x)
     return x;
 }
 
-__device__ int inline encode(int x, int y, int z) 
+__device__ int inline encode(int x, int y, int z, int3 ncells) 
 {
     return (Part1By2(z) << 2) + (Part1By2(y) << 1) + Part1By2(x);
 }
 
-__device__ int3 inline decode(int code)
+__device__ int3 inline decode(int code, int3 ncells)
 {
     return make_int3(
 	Compact1By2(code >> 0),
@@ -41,20 +43,20 @@ __device__ int3 inline decode(int code)
 	);
 }
 #else
-__device__ int encode(int ix, int iy, int iz) 
+__device__ int encode(int ix, int iy, int iz, int3 ncells) 
 {
-    const int retval = ix + info.ncells.x * (iy + iz * info.ncells.y);
+    const int retval = ix + ncells.x * (iy + iz * ncells.y);
 
-    assert(retval < info.ncells.x * info.ncells.y * info.ncells.z && retval>=0);
+    assert(retval < ncells.x * ncells.y * ncells.z && retval>=0);
 
     return retval; 
 }
 	
-__device__ int3 decode(int code)
+__device__ int3 decode(int code, int3 ncells)
 {
-    const int ix = code % info.ncells.x;
-    const int iy = (code / info.ncells.x) % info.ncells.y;
-    const int iz = (code / info.ncells.x/info.ncells.y);
+    const int ix = code % ncells.x;
+    const int iy = (code / ncells.x) % ncells.y;
+    const int iz = (code / ncells.x/ ncells.y);
 
     return make_int3(ix, iy, iz);
 }
@@ -95,7 +97,7 @@ __global__ void pid2code(int * codes, int * pids, const int np, const float * xy
     iy = max(0, min(ncells.y - 1, iy));
     iz = max(0, min(ncells.z - 1, iz));
     
-    codes[pid] = encode(ix, iy, iz);
+    codes[pid] = encode(ix, iy, iz, ncells);
     pids[pid] = pid;
 };
 
@@ -117,7 +119,7 @@ __global__ void _generate_cids(int * cids, const int ntotcells, const int offset
 	const int ycid = (tid / ncells.x) % ncells.y;
 	const int zcid = (tid / ncells.x / ncells.y) % ncells.z;
 
-	cids[tid] = encode(xcid, ycid, zcid) + offset;
+	cids[tid] = encode(xcid, ycid, zcid, ncells) + offset;
     }
 }
 
@@ -130,10 +132,22 @@ void _count_particles(const int * const cellsstart, int * const cellscount, cons
 	cellscount[tid] -= cellsstart[tid];
 }
 
+
+struct is_gzero
+{
+  __host__ __device__
+  bool operator()(const int &x)
+  {
+    return  x > 0;
+  }
+};
+
 #include <thrust/host_vector.h>
 #include <thrust/device_vector.h>
 #include <thrust/sort.h>
 #include <thrust/binary_search.h>
+#include <thrust/copy.h>
+#include <thrust/iterator/counting_iterator.h>
 
 using namespace thrust;
 
@@ -142,7 +156,7 @@ template<typename T> T * _ptr(device_vector<T>& v) { return raw_pointer_cast(v.d
 void build_clists(float * const xyzuvw, int np, const float rc,
 		  const int xcells, const int ycells, const int zcells,
 		  const float xstart, const float ystart, const float zstart,
-		  int * const order, int * cellsstart, int * cellscount)
+		  int * const order, int * cellsstart, int * cellscount, std::pair<int, int *> * nonemptycells)
 {
     device_vector<int> codes(np), pids(np);
     pid2code<<<(np + 127) / 128, 128>>>(_ptr(codes), _ptr(pids), np, xyzuvw, make_int3(xcells, ycells, zcells), make_float3(xstart, ystart, zstart), 1./rc);
@@ -167,5 +181,19 @@ void build_clists(float * const xyzuvw, int np, const float rc,
     lower_bound(codes.begin(), codes.end(), cidsp1.begin(), cidsp1.end(), device_ptr<int>(cellscount));
 
     _count_particles<<<(ncells + 127) / 128, 128>>> (cellsstart, cellscount, ncells);
+
+    if (nonemptycells != NULL)
+    {
+	assert(nonemptycells->second != NULL);
+	
+	const int nonempties = copy_if(counting_iterator<int>(0), counting_iterator<int>(ncells), 
+				       device_ptr<int>(cellscount), device_ptr<int>(nonemptycells->second), is_gzero())
+	    - device_ptr<int>(nonemptycells->second);
+	
+	nonemptycells->first = nonempties;
+    }
+
+    if (order != NULL)
+	copy(pids.begin(), pids.end(), order);
 }
 

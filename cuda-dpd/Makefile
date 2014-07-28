@@ -21,14 +21,17 @@ endif
 
 NVCC = nvcc
 
-test: main.cpp cuda-dpd.o profiler-dpd.o cell-lists.o
-	$(CXX) $(CXXFLAGS) main.cpp cuda-dpd.o profiler-dpd.o cell-lists.o -L/usr/local/cuda-5.5/lib64/ -lcudart -lcurand -o test
+test: main.cpp cuda-dpd.o cuda-dpd-bipartite.o profiler-dpd.o cell-lists.o
+	$(CXX) $(CXXFLAGS) main.cpp cuda-dpd.o cuda-dpd-bipartite.o profiler-dpd.o cell-lists.o -L/usr/local/cuda-5.5/lib64/ -lcudart -lcurand -o test
 
 libcuda-dpd.so: cuda-dpd.o cell-lists.o profiler-dpd.o
 	$(CXX) $(CXXFLAGS) -shared $^ -o libcuda-dpd.so -L/usr/local/cuda-5.5/lib64/ -lcudart -lcurand
 
 cuda-dpd.o: cuda-dpd.cu cuda-dpd.h
 	$(NVCC) $(NVCCFLAGS) -c cuda-dpd.cu
+
+cuda-dpd-bipartite.o: cuda-dpd-bipartite.cu cuda-dpd.h
+	$(NVCC) $(NVCCFLAGS) -c cuda-dpd-bipartite.cu
 
 profiler-dpd.o:	profiler-dpd.cpp profiler-dpd.h
 	$(CXX) $(CXXFLAGS) -c profiler-dpd.cpp

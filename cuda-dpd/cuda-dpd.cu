@@ -1,7 +1,8 @@
 #include <cstdio>
 #include <cassert>
 
-__device__ float saru(unsigned int seed1, unsigned int seed2, unsigned int seed3)
+__device__
+__forceinline__ float saru(unsigned int seed1, unsigned int seed2, unsigned int seed3)
 {
     seed3 ^= (seed1<<7)^(seed2>>6);
     seed2 += (seed1>>4)^(seed3>>15);
@@ -35,17 +36,12 @@ __device__ float saru(unsigned int seed1, unsigned int seed2, unsigned int seed3
 struct InfoDPD
 {
     int3 ncells;
-    int np;
     float3 domainsize, invdomainsize, domainstart;
     float invrc, aij, gamma, sigmaf;
-    float *xyzuvw, *axayaz;
 };
 
 __constant__ InfoDPD info;
  
-texture<float2, cudaTextureType1D> texParticles;
-texture<int, cudaTextureType1D> texStart, texCount;
-
 #define COLS 8
 #define ROWS (32 / COLS)
 #define _XCPB_ 2
@@ -54,13 +50,15 @@ texture<int, cudaTextureType1D> texStart, texCount;
 #define CPB (_XCPB_ * _YCPB_ * _ZCPB_)
 
 __global__ __launch_bounds__(32 * CPB, 16) 
-void _dpd_forces_saru(int idtimestep)
+    void _dpd_forces_saru(float * const axayaz,
+			  const int idtimestep, 
+			  cudaTextureObject_t texStart, cudaTextureObject_t texCount, cudaTextureObject_t texParticles)
 {
     assert(warpSize == COLS * ROWS);
     assert(blockDim.x == warpSize && blockDim.y == CPB && blockDim.z == 1);
     assert(ROWS * 3 <= warpSize);
 
-    const int tid = threadIdx.x;
+    const int tid = threadIdx.x; 
     const int subtid = tid % COLS;
     const int slot = tid / COLS;
     const int wid = threadIdx.y;
@@ -79,8 +77,8 @@ void _dpd_forces_saru(int idtimestep)
 	const int zcid = (blockIdx.z * _ZCPB_ + ((threadIdx.y / (_XCPB_ * _YCPB_)) % _ZCPB_) + dz - 1 + info.ncells.z) % info.ncells.z;
 	const int cid = xcid + info.ncells.x * (ycid + info.ncells.y * zcid);
 
-	starts[wid][tid] = tex1Dfetch(texStart, cid);
-	mycount = tex1Dfetch(texCount, cid);
+	starts[wid][tid] = tex1Dfetch<int>(texStart, cid);
+	mycount = tex1Dfetch<int>(texCount, cid);
     }
 
     for(int L = 1; L < 32; L <<= 1)
@@ -98,9 +96,9 @@ void _dpd_forces_saru(int idtimestep)
 
 	const int dpid = dststart + d + slot;
 	const int entry = 3 * dpid;
-	float2 dtmp0 = tex1Dfetch(texParticles, entry);
-	float2 dtmp1 = tex1Dfetch(texParticles, entry + 1);
-	float2 dtmp2 = tex1Dfetch(texParticles, entry + 2);
+	float2 dtmp0 = tex1Dfetch<float2>(texParticles, entry);
+	float2 dtmp1 = tex1Dfetch<float2>(texParticles, entry + 1);
+	float2 dtmp2 = tex1Dfetch<float2>(texParticles, entry + 2);
 	
 	float f[3] = {0, 0, 0};
 
@@ -117,9 +115,9 @@ void _dpd_forces_saru(int idtimestep)
 
 	    const int spid = starts[wid][key] + pid - (key ? scan[wid][key - 1] : 0);
 	    const int sentry = 3 * spid;
-	    const float2 stmp0 = tex1Dfetch(texParticles, sentry);
-	    const float2 stmp1 = tex1Dfetch(texParticles, sentry + 1);
-	    const float2 stmp2 = tex1Dfetch(texParticles, sentry + 2);
+	    const float2 stmp0 = tex1Dfetch<float2>(texParticles, sentry);
+	    const float2 stmp1 = tex1Dfetch<float2>(texParticles, sentry + 1);
+	    const float2 stmp2 = tex1Dfetch<float2>(texParticles, sentry + 2);
 	    
 	    {
 		const float xforce = f[0];
@@ -170,15 +168,15 @@ void _dpd_forces_saru(int idtimestep)
 	}
 	
 	for(int L = COLS / 2; L > 0; L >>=1)
-		for(int c = 0; c < 3; ++c)
-		    f[c] += __shfl_xor(f[c], L);
+	    for(int c = 0; c < 3; ++c)
+		f[c] += __shfl_xor(f[c], L);
 
 	const float fcontrib = f[subtid % 3];
 	const int dstpid = dststart + d + slot;
 	const int c = (subtid % 3);
 
 	if (slot < np1)
-	    info.axayaz[c + 3 * dstpid] = fcontrib;
+	    axayaz[c + 3 * dstpid] = fcontrib;
     }
 }
 
@@ -204,7 +202,40 @@ inline void cudaAssert(cudaError_t code, const char *file, int line, bool abort=
 
 template<typename T> T * _ptr(device_vector<T>& v) { return raw_pointer_cast(v.data()); }
 
-ProfilerDPD * myprof = NULL;
+struct TextureWrap
+{
+    cudaTextureObject_t texObj;
+
+    template<typename ElementType>
+    TextureWrap(ElementType * data, const int n):
+	texObj(0)
+	{
+	    struct cudaResourceDesc resDesc;
+	    memset(&resDesc, 0, sizeof(resDesc));
+	    resDesc.resType = cudaResourceTypeLinear;
+	    resDesc.res.linear.devPtr = data;
+	    resDesc.res.linear.sizeInBytes = n * sizeof(ElementType);
+	    resDesc.res.linear.desc = cudaCreateChannelDesc<ElementType>();
+    
+	    struct cudaTextureDesc texDesc;
+	    memset(&texDesc, 0, sizeof(texDesc));
+	    texDesc.addressMode[0]   = cudaAddressModeWrap;
+	    texDesc.addressMode[1]   = cudaAddressModeWrap;
+	    texDesc.filterMode       = cudaFilterModePoint;
+	    texDesc.readMode         = cudaReadModeElementType;
+	    texDesc.normalizedCoords = 1;
+
+	    texObj = 0;
+	    CUDA_CHECK(cudaCreateTextureObject(&texObj, &resDesc, &texDesc, NULL));
+	}
+
+    ~TextureWrap()
+	{
+	    CUDA_CHECK(cudaDestroyTextureObject(texObj));
+	}
+};
+
+int tid = 0;
 
 void forces_dpd_cuda(float * const _xyzuvw, float * const _axayaz,
 		     int * const order, const int np,
@@ -214,10 +245,7 @@ void forces_dpd_cuda(float * const _xyzuvw, float * const _axayaz,
 		     const float gamma,
 		     const float sigma,
 		     const float invsqrtdt)
-{
-    if (myprof == NULL)
-	myprof = new ProfilerDPD();
-    
+{  
     int nx = (int)ceil(XL / rc);
     int ny = (int)ceil(YL / rc);
     int nz = (int)ceil(ZL / rc);
@@ -227,7 +255,6 @@ void forces_dpd_cuda(float * const _xyzuvw, float * const _axayaz,
     
     InfoDPD c;
     c.ncells = make_int3(nx, ny, nz);
-    c.np = np;
     c.domainsize = make_float3(XL, YL, ZL);
     c.invdomainsize = make_float3(1 / XL, 1 / YL, 1 / ZL);
     c.domainstart = make_float3(-XL * 0.5, -YL * 0.5, -ZL * 0.5);
@@ -235,67 +262,53 @@ void forces_dpd_cuda(float * const _xyzuvw, float * const _axayaz,
     c.aij = aij;
     c.gamma = gamma;
     c.sigmaf = sigma * invsqrtdt;
-    c.xyzuvw = _ptr(xyzuvw);
-    c.axayaz = _ptr(axayaz);
         
     CUDA_CHECK(cudaMemcpyToSymbol(info, &c, sizeof(c)));
 
-    device_vector<int> starts(ncells), ends(ncells);
+    device_vector<int> starts(ncells), counts(ncells);
     build_clists(_ptr(xyzuvw), np, rc, c.ncells.x, c.ncells.y, c.ncells.z,
 		 c.domainstart.x, c.domainstart.y, c.domainstart.z,
-		 order, _ptr(starts), _ptr(ends));
+		 order, _ptr(starts), _ptr(counts), NULL);
 
-    {
-	size_t textureoffset = 0;
-	cudaChannelFormatDesc fmt =  cudaCreateChannelDesc(32, 0, 0, 0, cudaChannelFormatKindSigned);
-	texStart.channelDesc = fmt;
-	texStart.filterMode = cudaFilterModePoint;
-	texStart.mipmapFilterMode = cudaFilterModePoint;
-	texStart.normalized = 0;
-	cudaBindTexture(&textureoffset, &texStart, _ptr(starts), &fmt, sizeof(int) * (ncells));
-
-	texCount.channelDesc = fmt;
-	texCount.filterMode = cudaFilterModePoint;
-	texCount.mipmapFilterMode = cudaFilterModePoint;
-	texCount.normalized = 0;
-	cudaBindTexture(&textureoffset, &texCount, _ptr(ends), &fmt, sizeof(int) * (ncells));
-	
-	fmt = cudaCreateChannelDesc<float2>();
-	texParticles.channelDesc = fmt;
-	texParticles.filterMode = cudaFilterModePoint;
-	texParticles.mipmapFilterMode = cudaFilterModePoint;
-	texParticles.normalized = 0;
-	cudaBindTexture(&textureoffset, &texParticles, c.xyzuvw, &fmt, sizeof(float) * 6 * np);
-    }
+    TextureWrap texStart(_ptr(starts), ncells), texCount(_ptr(counts), ncells);
+    TextureWrap texParticles((float2*)_ptr(xyzuvw), 3 * np);
     
-    myprof->start();
-
-    static int tid = 0;
-
+    ProfilerDPD::singletone().start();
+    
     _dpd_forces_saru<<<dim3(c.ncells.x / _XCPB_,
 			    c.ncells.y / _YCPB_,
-			    c.ncells.z / _ZCPB_), dim3(32, CPB)>>>(tid);
+			    c.ncells.z / _ZCPB_), dim3(32, CPB)>>>(_ptr(axayaz), tid, texStart.texObj, texCount.texObj, texParticles.texObj);
 
     ++tid;
 
     CUDA_CHECK(cudaPeekAtLastError());
 	
-    myprof->force();	
-    myprof->report();
+    ProfilerDPD::singletone().force();	
+    ProfilerDPD::singletone().report();
     
-    copy(xyzuvw.begin(), xyzuvw.end(), _xyzuvw);
-    copy(axayaz.begin(), axayaz.end(), _axayaz);
-    
+    {
+	const int np3 = np * 3;
+	
+	std::vector<float> olda(_axayaz, _axayaz + np3);
+	
+	copy(axayaz.begin(), axayaz.end(), _axayaz);
+	
+#pragma omp parallel for 
+	for(int i = 0; i < np3; ++i)
+	    _axayaz[i] += olda[i];
+    }
+     
 #ifdef _CHECK_
     CUDA_CHECK(cudaThreadSynchronize());
     
-    for(int i = 0; i < np; ++i)
-    {
-	printf("pid %d -> %f %f %f\n", i, (float)axayaz[0 + 3 * i], (float)axayaz[1 + 3* i], (float)axayaz[2 + 3 *i]);
+    for(int ii = 0; ii < np; ++ii)
+    { 
+	printf("pid %d -> %f %f %f\n", ii, (float)axayaz[0 + 3 * ii], (float)axayaz[1 + 3* ii], (float)axayaz[2 + 3 *ii]);
 
 	int cnt = 0;
 	float fc = 0;
-	printf("devi coords are %f %f %f\n", (float)xyzuvw[0 + 6 * i], (float)xyzuvw[1 + 6 * i], (float)xyzuvw[2 + 6 * i]);
+	const int i = order[ii];
+	printf("devi coords are %f %f %f\n", (float)xyzuvw[0 + 6 * ii], (float)xyzuvw[1 + 6 * ii], (float)xyzuvw[2 + 6 * ii]);
 	printf("host coords are %f %f %f\n", (float)_xyzuvw[0 + 6 * i], (float)_xyzuvw[1 + 6 * i], (float)_xyzuvw[2 + 6 * i]);
 	
 	for(int j = 0; j < np; ++j)
@@ -323,10 +336,10 @@ void forces_dpd_cuda(float * const _xyzuvw, float * const _axayaz,
 	    
 	    cnt += collision;
 	}
-	printf("i found %d host interactions and with cuda i found %d\n", cnt, (int)axayaz[0 + 3 * i]);
-	assert(cnt == (float)axayaz[0 + 3 * i]);
-	printf("fc aij ref %f vs cuda %e\n", fc,  (float)axayaz[1 + 3 * i]);
-	assert(fabs(fc - (float)axayaz[1 + 3 * i]) < 1e-4);
+	printf("i found %d host interactions and with cuda i found %d\n", cnt, (int)axayaz[0 + 3 * ii]);
+	assert(cnt == (float)axayaz[0 + 3 * ii]);
+	printf("fc aij ref %f vs cuda %e\n", fc,  (float)axayaz[1 + 3 * ii]);
+	assert(fabs(fc - (float)axayaz[1 + 3 * ii]) < 1e-4);
     }
     
     printf("test done.\n");
@@ -338,7 +351,7 @@ void forces_dpd_cuda(float * const _xyzuvw, float * const _axayaz,
 void forces_dpd_cuda(float * const xp, float * const yp, float * const zp,
 		     float * const xv, float * const yv, float * const zv,
 		     float * const xa, float * const ya, float * const za,
-		     int * const order, const int np,
+		     const int np,
 		     const float rc,
 		     const float LX, const float LY, const float LZ,
 		     const float aij,
@@ -359,28 +372,23 @@ void forces_dpd_cuda(float * const xp, float * const yp, float * const zp,
     }
 
     float * a = new float[3 * np];
+    memset(a, 0, sizeof(float) * 3 * np);
+
+    int * order = new int [np];
     
     forces_dpd_cuda(pv, a, order, np, rc, LX, LY, LZ,
 		    aij, gamma, sigma, invsqrtdt);
-
-    for(int i = 0; i < np; ++i)
-    {
-	xp[i] = pv[0 + 6 * i]; 
-	yp[i] = pv[1 + 6 * i]; 
-	zp[i] = pv[2 + 6 * i]; 
-	xv[i] = pv[3 + 6 * i]; 
-	yv[i] = pv[4 + 6 * i]; 
-	zv[i] = pv[5 + 6 * i];
-    }
-
+    
     delete [] pv;
      
     for(int i = 0; i < np; ++i)
     {
-	xa[i] = a[0 + 3 * i];
-	ya[i] = a[1 + 3 * i];
-	za[i] = a[2 + 3 * i];
+	xa[order[i]] += a[0 + 3 * i];
+	ya[order[i]] += a[1 + 3 * i];
+	za[order[i]] += a[2 + 3 * i];
     }
 
     delete [] a;
+
+    delete [] order;
 }
