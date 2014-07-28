@@ -40,27 +40,26 @@ int main()
     //np,  rc,  LX, LY, LZ,  gamma, temp, dt,   u0,    rho,  req, D
     //1e3, 1.0, 10, 10, 10,  80,    0.1,  0.01, 0.001, 1.5,  0.85, 0.0001
     
-    real L = 10;
+    real L = 20;
 
-    const int Nm = 1;
+    const float Nm = .25;
     const int n = L * L * L * Nm;
-    const real rc = 1;
-    const real gamma = 80, temp = 0.1, dt = 0.01, u0 = 0.001, rho = 1.5, req = 0.85, D = .0001;
-    const real aij = 2.5;
+    const real rcutoff = 2.5;
+    const real gamma = 80, temp = 0.1, dt = 0.01, u0 = 0.001, rho = 1.5, req = 0.85, D = .0001, rc = 1;
     const bool cuda = true;
-    const real tend = 200;//0.08 * 20;
+    const real tend = 1000;//200;//0.08 * 20;
     
     vector<real> xp(n), yp(n), zp(n), xv(n), yv(n), zv(n), xa(n), ya(n), za(n);
     srand48(6516L);
     for(int i = 0; i < n; ++i)
     {
-	const int cid = i / Nm;
+/*	const int cid = i / Nm;
 	
 	const int xcid = cid % (int)L;
 	const int ycid = (cid / (int) L) % (int)L;
-	const int zcid = (cid / (int) L / (int) L) % (int)L;
+	const int zcid = (cid / (int) L / (int) L) % (int)L;*/
 
-#if 0
+#if 1
 	xp[i] = -L * 0.5f +  drand48() * L;
 	yp[i] = -L * 0.5f +  drand48() * L;
 	zp[i] = -L * 0.5f +  drand48() * L;
@@ -127,7 +126,7 @@ int main()
 		    &xv.front(), &yv.front(), &zv.front(),
 		    &xa.front(), &ya.front(), &za.front(),
 		    n, 
-		    rc, L, L, L, gamma, temp, dt, u0, rho, req, D);
+		    rc, L, L, L, gamma, temp, dt, u0, rho, req, D, rc);
 	    }
 	    else
 		abort();

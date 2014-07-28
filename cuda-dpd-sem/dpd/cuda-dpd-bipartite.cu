@@ -327,17 +327,16 @@ void forces_dpd_cuda_bipartite(float * const _xyzuvw1, float * const _axayaz1, i
 	texParticles2.texObj, texParticles1.texObj, nonemptycells2.second, nonemptycells2.first, gp2id_start, gp1id_start);
     
     CUDA_CHECK(cudaPeekAtLastError());
-    tid += 2;
+    tid += 2;  
 
     ProfilerDPD::singletone().force();	
     ProfilerDPD::singletone().report();
-
-    CUDA_CHECK(cudaStreamDestroy(stream1));
-    CUDA_CHECK(cudaStreamDestroy(stream2));
-    
+ 
     copy(axayaz1.begin(), axayaz1.end(), _axayaz1);
     copy(axayaz2.begin(), axayaz2.end(), _axayaz2);
 
+    CUDA_CHECK(cudaStreamDestroy(stream1));
+    CUDA_CHECK(cudaStreamDestroy(stream2));
 #ifdef _CHECK_
     printf("hello check: np1 %d np2: %d\n", np1, np2);
     printf("nonempty in p1: %d\n", nonemptycells1.first);

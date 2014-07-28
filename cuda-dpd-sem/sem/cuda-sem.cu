@@ -150,7 +150,7 @@ __global__ __launch_bounds__(32 * CPB, 16)
 		const float myrandnr = 3.464101615f * mysaru - 1.732050807f;
 
 		const float e = info.A1 * expf(rij2 * info.A2);
-		const float strength = (info.A0 * e * (1 - e) - info.gamma * wr * rdotv + info.B0 * myrandnr) * wr;
+		const float strength = -info.A0 * e * (1 - e) + (- info.gamma * wr * rdotv + info.B0 * myrandnr) * wr;
 		const bool valid = (d + slot != s + subtid) && (slot < np1) && (subtid < np2);
 		
 		if (valid)
@@ -240,13 +240,13 @@ int tid = 0;
 
 void forces_sem_cuda(float * const _xyzuvw, float * const _axayaz,
 		     int * const order, const int np,
-		     const float rc,
+		     const float rcutoff,
 		     const float XL, const float YL, const float ZL,
-		     const double gamma, const double temp, const double dt, const double u0, const double rho, const double req, const double D)
+		     const double gamma, const double temp, const double dt, const double u0, const double rho, const double req, const double D, const float rc)
 {  
-    int nx = (int)ceil(XL / rc);
-    int ny = (int)ceil(YL / rc);
-    int nz = (int)ceil(ZL / rc);
+    int nx = (int)ceil(XL / rcutoff);
+    int ny = (int)ceil(YL / rcutoff);
+    int nz = (int)ceil(ZL / rcutoff);
     const int ncells = nx * ny * nz;
         
     device_vector<float> xyzuvw(_xyzuvw, _xyzuvw + np * 6), axayaz(np * 3);
@@ -256,7 +256,7 @@ void forces_sem_cuda(float * const _xyzuvw, float * const _axayaz,
     c.domainsize = make_float3(XL, YL, ZL);
     c.invdomainsize = make_float3(1 / XL, 1 / YL, 1 / ZL);
     c.domainstart = make_float3(-XL * 0.5, -YL * 0.5, -ZL * 0.5);
-    c.invrc = 1.f / rc;
+    c.invrc = 1.f / rc; 
     c.A0 = 4 * u0 * rho / (req * req);
     c.A1 = exp(rho);
     c.A2 = -1 / (req * req);
@@ -266,7 +266,7 @@ void forces_sem_cuda(float * const _xyzuvw, float * const _axayaz,
     CUDA_CHECK(cudaMemcpyToSymbol(info, &c, sizeof(c)));
 
     device_vector<int> starts(ncells), counts(ncells);
-    build_clists(_ptr(xyzuvw), np, rc, c.ncells.x, c.ncells.y, c.ncells.z,
+    build_clists(_ptr(xyzuvw), np, rcutoff, c.ncells.x, c.ncells.y, c.ncells.z,
 		 c.domainstart.x, c.domainstart.y, c.domainstart.z,
 		 order, _ptr(starts), _ptr(counts), NULL);
 
@@ -352,9 +352,9 @@ void forces_sem_cuda(float * const xp, float * const yp, float * const zp,
 		     float * const xv, float * const yv, float * const zv,
 		     float * const xa, float * const ya, float * const za,
 		     const int np,
-		     const float rc,
+		     const float rcutoff,
 		     const float LX, const float LY, const float LZ,
-		     const double gamma, const double temp, const double dt, const double u0, const double rho, const double req, const double D)
+		     const double gamma, const double temp, const double dt, const double u0, const double rho, const double req, const double D, const double rc)
 {
     float * pv = new float[6 * np];
 
@@ -373,8 +373,8 @@ void forces_sem_cuda(float * const xp, float * const yp, float * const zp,
 
     int * order = new int [np];
     
-    forces_sem_cuda(pv, a, order, np, rc, LX, LY, LZ,
-		    gamma, temp, dt, u0, rho, req, D);
+    forces_sem_cuda(pv, a, order, np, rcutoff, LX, LY, LZ,
+		    gamma, temp, dt, u0, rho, req, D, rc);
     
     delete [] pv;
      
