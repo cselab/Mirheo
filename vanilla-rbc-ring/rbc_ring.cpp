@@ -17,25 +17,38 @@
 using namespace std;
 
 typedef double real;
+typedef size_t sizeType;
 
 typedef std::vector<real> hvector;
 
-// global variables
+// ************ global variables *****************
 const real boxLength = 10.0;
 
-const size_t nrings = 1;
-const size_t natomsPerRing = 10;
-const size_t nfluidAtoms = 1000;//boxLength * boxLength * boxLength; // density 1
-const size_t natoms = nrings * natomsPerRing + nfluidAtoms;
+const sizeType nrings = 0;
+const sizeType natomsPerRing = 10;
+const sizeType nFreeFluidAtoms = 2700;//for sphere 2900; //for tube 590;
+const sizeType nFrozenFluidAtoms = 300;//for sphere 100; //for tube 564;
+const sizeType nfluidAtoms = nFreeFluidAtoms + nFrozenFluidAtoms;
+
+const sizeType nFreeParticles = nrings * natomsPerRing + nFreeFluidAtoms; // only free particles are integrated
+const sizeType natoms = nrings * natomsPerRing + nfluidAtoms;
 
 hvector xp(natoms), yp(natoms), zp(natoms),
-             xv(natoms), yv(natoms), zv(natoms),
-             xa(natoms), ya(natoms), za(natoms);
+       xv(natoms), yv(natoms), zv(natoms),
+       xa(natoms), ya(natoms), za(natoms);
+
+// 0 for rings
+// 1 for free fluid
+// 2 for frozen atoms
+// For the sake of force calculation first [0, nrings * natomsPerRing) particles
+// are for rings, the next N is for free fluid, and the last part - for frozen atoms
+// since they should not participate in the integration
+std::vector<sizeType> type(natoms);
 
 // dpd parameters
 const real dtime = 0.001;
 const real kbT = 0.1;
-const size_t timeEnd = 100;
+const sizeType timeEnd = 100;
 
 const real a0 = 500.0, gamma0 = 4.5, cut = 1.2, cutsq = cut * cut, kPower = 0.25,
     sigma = sqrt(2.0 * kbT * gamma0);
@@ -49,7 +62,7 @@ const real kbend = 50.0 * kbT;
 const real theta = M_PI - 2.0 * M_PI / natomsPerRing;
 
 // misc parameters
-const size_t outEvery = 50;
+const size_t outEvery = 10;
 const real ringRadius = 1.0;
 
 #ifdef NEWTONIAN
@@ -120,8 +133,7 @@ void lammps_dump(const char* path, real* xs, real* ys, real* zs, const size_t na
   // positions <ID> <type> <x> <y> <z>
   // free particles have type 2, while rings 1
   for (size_t i = 0; i < natoms; ++i) {
-    int type = i > nrings * natomsPerRing ? 2 : 1;
-    fprintf(f, "%lu %d %g %g %g\n", i, type, xs[i], ys[i], zs[i]);
+    fprintf(f, "%lu %lu %g %g %g\n", i, type[i], xs[i], ys[i], zs[i]);
   }
 
   fclose(f);
@@ -192,22 +204,270 @@ bool areEqual(const real& left, const real& right)
     return fabs(left - right) < tolerance;
 }
 
+/**
+ * All-together code just to show the concept
+ */
+class LevelSetBB
+{
+  enum GeomType
+  {
+    cylinder,
+    outSphere,
+    betweenPlanes,
+    planesAndSphere
+  };
+
+  enum IntersectStatus
+  {
+    inside,
+    onsurface,
+    outside
+  };
+
+  struct Box
+  {
+    const real low[3];
+    const real top[3];
+    Box()
+    : low{-boxLength/2.0, -boxLength/2.0, -boxLength/2.0},
+      top{boxLength/2.0, boxLength/2.0, boxLength/2.0}
+    {}
+  } m_box;
+
+  const real localTolerance = 0;
+
+  GeomType m_geomType;
+  hvector m_lsValuesNew, m_lsValuesOld;
+  hvector m_xpOld, m_ypOld, m_zpOld; // buffer for the old positions
+
+public:
+  LevelSetBB() : m_geomType(planesAndSphere)
+  {
+  }
+
+  static real lsCylinder(real xp, real yp, real zp, real radius)
+  {
+    return (sqrt(xp * xp + yp * yp) - radius);
+  }
+
+  static bool isInsideCylinder(real xp, real yp, real zp, real radius)
+  {
+    return lsCylinder(xp, yp, zp, radius) < 0;
+  }
+
+  static real lsOutsideSphere(real xp, real yp, real zp, real radius)
+  {
+    return (radius - sqrt(xp * xp + yp * yp + zp * zp));
+  }
+
+  static bool isOutsideSphere(real xp, real yp, real zp, real radius)
+  {
+    return lsOutsideSphere(xp, yp, zp, radius) < 0;
+  }
+
+  // two planes: p1=(x1,0,0), n1=(1,0,0); p2=(x2,0,0), n1=(-1,0,0)
+  // ls for a plane distToPlane = (point - pointOnPlane) * normal;
+  static real lsBetwenPlanes(real xp, real yp, real zp, real x1, real x2)
+  {
+    real d1 = (xp - x1);
+    real d2 = -1.0 * (xp - x2);
+    return -std::min(d1, d2);
+  }
+
+  static bool isBetwenPlanes(real xp, real yp, real zp, real x1, real x2)
+  {
+    return lsBetwenPlanes(xp, yp, zp, x1, x2) < 0;
+  }
+
+  // two planes: p1=(x1,0,0), n1=(1,0,0); p2=(x2,0,0), n1=(-1,0,0)
+  // ls for a plane distToPlane = (point - pointOnPlane) * normal;
+  static real lsBetwenPlanesAndSphere(real xp, real yp, real zp)
+  {
+    real radius = 2.0;
+    real x1 = -4.5;
+    real x2 = 4.5;
+    real d1 = lsBetwenPlanes(xp, yp, zp, x1, x2);
+    real d2 = lsOutsideSphere(xp, yp, zp, radius);
+    return std::max(d1, d2);
+  }
+
+  static bool isBetwenPlanesAndSphere(real xp, real yp, real zp)
+  {
+    return lsBetwenPlanesAndSphere(xp, yp, zp) < 0;
+  }
+
+  void run(hvector& xp, hvector& yp, hvector& zp, hvector& xv, hvector& yv, hvector& zv)
+  {
+    if (m_lsValuesOld.size() == 0) //called first time
+    {
+      m_lsValuesNew.resize(xp.size(), 0.0);
+      precomputeLSvalues(xp, yp, zp);
+      saveOldValues(xp, yp, zp);
+      assert(m_lsValuesOld.size() != 0);
+      return;
+    }
+
+    precomputeLSvalues(xp, yp, zp);
+    for (size_t i = 0; i < natoms; i++) {
+      real distNew = m_lsValuesNew[i];
+
+      //if it is from out of the LS domain if the LS domain is smaller than the whole thing
+      if (std::isinf(distNew))
+        continue;
+      if (checkPoint(distNew) == outside) {
+        //turn velocity backward
+        xv[i] *= -1.0; yv[i] *= -1.0; zv[i] *= -1.0;
+
+        real distOld = m_lsValuesOld[i];
+        if (std::isinf(distOld)) //if it is from out of the LS domain
+          continue;
+
+        IntersectStatus prevIntSt = checkPoint(distOld);
+        if (prevIntSt == inside || prevIntSt == onsurface) {
+          distOld = fabs(distOld);
+          distNew = fabs(distNew);
+          // x_refl = x_old + scale * (x_new - x_old)
+          real scale = (distOld - distNew)/(distOld + distNew);
+          real pOld[3];
+          getOldPosition(i, pOld);
+          real xdif[] = {xp[i] - pOld[0], yp[i] - pOld[1], zp[i] - pOld[2]};
+
+          xdif[0] *= scale; xdif[1] *= scale; xdif[2] *= scale;
+
+          xp[i] = pOld[0] + xdif[0];
+          yp[i] = pOld[1] + xdif[1];
+          zp[i] = pOld[2] + xdif[2];
+        }
+      }
+    }
+    saveOldValues(xp, yp, zp);
+
+    /* check that all free particles are inside
+    for (size_t i = 0; i < nFreeParticles; i++) {
+      if (!isInsideCylinder(xp[i], yp[i], zp[i], 2.5))
+      {
+        std::cout << i << ", " << xp[i] << ", " << yp[i] << ", " << sqrt(xp[i]*xp[i] + yp[i]*yp[i]) - 2.5 << std::endl;
+      }
+    }
+
+    for (size_t i = 0; i < nFreeParticles; i++) {
+      if (!isOutsideSphere(xp[i], yp[i], zp[i], 2.0))
+      {
+        std::cout << i << ", " << xp[i] << ", " << yp[i] << ", " << sqrt(xp[i]*xp[i] + yp[i]*yp[i] + zp[i]*zp[i]) - 2.0 << std::endl;
+      }
+    }*/
+
+    real radius = 2.0;
+    real x1 = -4.5;
+    real x2 = 4.5;
+    for (size_t i = 0; i < nFreeParticles; i++) {
+      bool d1 = isBetwenPlanes(xp[i], yp[i], zp[i], x1, x2);
+      bool d2 = isOutsideSphere(xp[i], yp[i], zp[i], radius);
+      if (!d1 || !d2))
+      {
+        std::cout << i << ", " << xp[i] << ", " << yp[i] << std::endl;
+      }
+    }
+  }
+
+private:
+  void precomputeLSvalues(const hvector& xp, const hvector& yp, const hvector& zp)
+  {
+    if (m_geomType == cylinder) {
+      real m_radius = 2.5;
+      for (size_t i = 0; i < natoms; ++i) {
+        if (isInsideBB(xp[i], yp[i], zp[i]))
+          m_lsValuesNew[i] = lsCylinder(xp[i], yp[i], zp[i], m_radius);
+        else {
+          m_lsValuesNew[i] = -std::numeric_limits<real>::infinity();
+        }
+      }
+    } else if (m_geomType == outSphere) {
+      // sign is inverted
+      real m_radius = 2.0;
+      for (size_t i = 0; i < natoms; ++i) {
+        if (isInsideBB(xp[i], yp[i], zp[i]))
+          m_lsValuesNew[i] = lsOutsideSphere(xp[i], yp[i], zp[i], m_radius);
+        else {
+          m_lsValuesNew[i] = std::numeric_limits<real>::infinity();
+        }
+      }
+    } else if (m_geomType == betweenPlanes) {
+      for (size_t i = 0; i < natoms; ++i) {
+        if (isInsideBB(xp[i], yp[i], zp[i]))
+          m_lsValuesNew[i] = lsBetwenPlanes(xp[i], yp[i], zp[i], -4.5, 4.5);
+        else {
+          m_lsValuesNew[i] = -std::numeric_limits<real>::infinity();
+        }
+      }
+    } else if (m_geomType == planesAndSphere) {
+      for (size_t i = 0; i < natoms; ++i) {
+        if (isInsideBB(xp[i], yp[i], zp[i]))
+          m_lsValuesNew[i] = lsBetwenPlanesAndSphere(xp[i], yp[i], zp[i]);
+        else {
+          m_lsValuesNew[i] = -std::numeric_limits<real>::infinity();
+        }
+      }
+    } else {
+      std::cout << "Only cylinder is supported for now\n";
+    }
+  }
+
+  IntersectStatus checkPoint(double diff)
+  {
+    if (diff > localTolerance)
+      return outside;
+    else if (diff < -localTolerance)
+      return inside;
+
+    return onsurface;
+  }
+
+  void getOldPosition(size_t index, real* pOld)
+  {
+    // there are two options - compute or use buffer with saved positions
+    //pOld[0] = xp - dtime * xv; pOld[1] = yp - dtime * yv; pOld[2] = zp - dtime * zv;
+    // for now do the second way around
+    pOld[0] = m_xpOld[index];
+    pOld[1] = m_ypOld[index];
+    pOld[2] = m_zpOld[index];
+  }
+
+  bool isInsideBB(const real x, const real y, const real z) const
+  {
+    if (x >= m_box.low[0] && x <= m_box.top[0]
+     && y >= m_box.low[1] && y <= m_box.top[1]
+     && z >= m_box.low[2] && z <= m_box.top[2])
+      return true;
+    return false;
+  }
+
+  void saveOldValues(const hvector& xp, const hvector& yp, const hvector& zp)
+  {
+    m_lsValuesOld = m_lsValuesNew;
+    m_xpOld = xp;
+    m_ypOld = yp;
+    m_zpOld = zp;
+  }
+};
+
 // **** initialization *****
 void addRing(size_t indRing)
 {
   real cmass[3];
   getRandPoint(cmass[0], cmass[1], cmass[2]);
 
-  for (size_t indLocal = 0; indLocal < natomsPerRing; ++indLocal) {
-    size_t i = natomsPerRing * indRing + indLocal;
+  for (sizeType indLocal = 0; indLocal < natomsPerRing; ++indLocal) {
+    sizeType i = natomsPerRing * indRing + indLocal;
     real angle = 2.0 * M_PI / natomsPerRing * i;
     xp[i] = ringRadius * cos(angle) + cmass[0];
     yp[i] = ringRadius * sin(angle) + cmass[1];
     zp[i] = cmass[2];
+    type[i] = 0;
   }
 }
 
-void initPositions()
+void initPositionsCube()
 {
   for (size_t indRing = 0; indRing < nrings; ++indRing) {
     addRing(indRing);
@@ -218,11 +478,81 @@ void initPositions()
   }
 }
 
+void initPositionsFlowInTube()
+{
+  real radius = 2.5;
+
+  for (sizeType i = nrings * natomsPerRing; i < nFreeFluidAtoms;)
+  {
+    getRandPoint(xp[i], yp[i], zp[i]);
+    if (LevelSetBB::isInsideCylinder(xp[i], yp[i], zp[i], radius)) {
+      type[i] = 1;
+      ++i;
+    }
+  }
+
+  for (sizeType i = nFreeFluidAtoms; i < natoms;)
+  {
+    getRandPoint(xp[i], yp[i], zp[i]);
+    if (!LevelSetBB::isInsideCylinder(xp[i], yp[i], zp[i], radius) &&
+        LevelSetBB::isInsideCylinder(xp[i], yp[i], zp[i], radius + 1.0)) {
+      type[i] = 2;
+      ++i;
+    }
+  }
+}
+
+void initPositionsOutSphere()
+{
+  real radius = 2.0;
+
+  for (sizeType i = nrings * natomsPerRing; i < nFreeFluidAtoms;)
+  {
+    getRandPoint(xp[i], yp[i], zp[i]);
+    if (LevelSetBB::isOutsideSphere(xp[i], yp[i], zp[i], radius)) {
+      type[i] = 1;
+      ++i;
+    }
+  }
+
+  for (sizeType i = nFreeFluidAtoms; i < natoms;)
+  {
+    getRandPoint(xp[i], yp[i], zp[i]);
+    if (!LevelSetBB::isOutsideSphere(xp[i], yp[i], zp[i], radius)) {
+      type[i] = 2;
+      ++i;
+    }
+  }
+}
+
+void initPositionsBetweenPlanesAndSphere()
+{
+  //real x1 = -4.5, x2 = 4.5;
+
+  for (sizeType i = nrings * natomsPerRing; i < nFreeFluidAtoms;)
+  {
+    getRandPoint(xp[i], yp[i], zp[i]);
+    if (LevelSetBB::isBetwenPlanesAndSphere(xp[i], yp[i], zp[i])) {
+      type[i] = 1;
+      ++i;
+    }
+  }
+
+  for (sizeType i = nFreeFluidAtoms; i < natoms;)
+  {
+    getRandPoint(xp[i], yp[i], zp[i]);
+    if (!LevelSetBB::isBetwenPlanesAndSphere(xp[i], yp[i], zp[i])) {
+      type[i] = 2;
+      ++i;
+    }
+  }
+}
+
 // forces computations splitted by the type
 void calcDpdForces(size_t timeStep)
 {
   real dtinvsqrt = 1.0 / sqrt(dtime);
-  for (size_t i = 0; i < natoms; ++i)
+  for (sizeType i = 0; i < natoms; ++i)
   {
 #ifdef NEWTONIAN
     for (size_t j = i + 1; j < natoms; ++j)
@@ -258,6 +588,7 @@ void calcDpdForces(size_t timeStep)
         ya[i] += del[1] * fpair;
         za[i] += del[2] * fpair;
 
+        assert(!std::isnan(xa[i]) && !std::isnan(ya[i]) && !std::isnan(za[i]));
 #ifdef NEWTONIAN
         xa[j] -= del[0] * fpair;
         ya[j] -= del[1] * fpair;
@@ -376,13 +707,13 @@ void addDrivingForce()
 
 void computeForces(size_t timeStep)
 {
-  fill(xa.begin(), xa.end(), 0.0);
-  fill(ya.begin(), ya.end(), 0.0);
-  fill(za.begin(), za.end(), 0.0);
+  std::fill(xa.begin(), xa.end(), 0.0);
+  std::fill(ya.begin(), ya.end(), 0.0);
+  std::fill(za.begin(), za.end(), 0.0);
 
-  //calcDpdForces(timeStep);
+  calcDpdForces(timeStep);
   //calcBondForcesWLC();
-  calcAngleForcesBend();
+  //calcAngleForcesBend();
 
   //addStretchForce();
   //addDrivingForce();
@@ -391,21 +722,21 @@ void computeForces(size_t timeStep)
 // initial integration of velocity-verlet
 void initialIntegrate()
 {
-  std::transform(xa.begin(), xa.end(), xv.begin(), xv.begin(), SaxpyOp(dtime * 0.5));
-  std::transform(ya.begin(), ya.end(), yv.begin(), yv.begin(), SaxpyOp(dtime * 0.5));
-  std::transform(za.begin(), za.end(), zv.begin(), zv.begin(), SaxpyOp(dtime * 0.5));
+  std::transform(xa.begin(), xa.begin() + nFreeParticles, xv.begin(), xv.begin(), SaxpyOp(dtime * 0.5));
+  std::transform(ya.begin(), ya.begin() + nFreeParticles, yv.begin(), yv.begin(), SaxpyOp(dtime * 0.5));
+  std::transform(za.begin(), za.begin() + nFreeParticles, zv.begin(), zv.begin(), SaxpyOp(dtime * 0.5));
 
-  std::transform(xv.begin(), xv.end(), xp.begin(), xp.begin(), SaxpyOp(dtime));
-  std::transform(yv.begin(), yv.end(), yp.begin(), yp.begin(), SaxpyOp(dtime));
-  std::transform(zv.begin(), zv.end(), zp.begin(), zp.begin(), SaxpyOp(dtime));
+  std::transform(xv.begin(), xv.begin() + nFreeParticles, xp.begin(), xp.begin(), SaxpyOp(dtime));
+  std::transform(yv.begin(), yv.begin() + nFreeParticles, yp.begin(), yp.begin(), SaxpyOp(dtime));
+  std::transform(zv.begin(), zv.begin() + nFreeParticles, zp.begin(), zp.begin(), SaxpyOp(dtime));
 }
 
 //final integration of velocity-verlet
 void finalIntegrate()
 {
-  std::transform(xa.begin(), xa.end(), xv.begin(), xv.begin(), SaxpyOp(dtime * 0.5));
-  std::transform(ya.begin(), ya.end(), yv.begin(), yv.begin(), SaxpyOp(dtime * 0.5));
-  std::transform(za.begin(), za.end(), zv.begin(), zv.begin(), SaxpyOp(dtime * 0.5));
+  std::transform(xa.begin(), xa.begin() + nFreeParticles, xv.begin(), xv.begin(), SaxpyOp(dtime * 0.5));
+  std::transform(ya.begin(), ya.begin() + nFreeParticles, yv.begin(), yv.begin(), SaxpyOp(dtime * 0.5));
+  std::transform(za.begin(), za.begin() + nFreeParticles, zv.begin(), zv.begin(), SaxpyOp(dtime * 0.5));
 }
 
 struct PbcOp {
@@ -455,9 +786,14 @@ void computeDiams()
 int main()
 {
   std::cout << "Started computing" << std::endl;
-  initPositions();
   FILE * fstat = fopen("diag.txt", "w");
 
+  initPositionsBetweenPlanesAndSphere();
+  std::fill(xv.begin(), xv.end(), 0.0);
+  std::fill(yv.begin(), yv.end(), 0.0);
+  std::fill(zv.begin(), zv.end(), 0.0);
+
+  LevelSetBB lsbb;
   for (size_t timeStep = 0; timeStep < timeEnd; ++timeStep)
   {
     if (timeStep % outEvery == 0)
@@ -469,12 +805,18 @@ int main()
 
     initialIntegrate();
     pbc();
+    lsbb.run(xp, yp, zp, xv, yv, zv);
     if (timeStep % outEvery == 0)
       lammps_dump("evolution.dump", &xp.front(), &yp.front(), &zp.front(), natoms, timeStep, boxLength);
 
     computeForces(timeStep);
 
     finalIntegrate();
+
+    // check that no nan produced
+    for (size_t i = 0; i < natoms; i++)
+      if (std::isnan(xp[i]) || std::isnan(yp[i]) || std::isnan(zp[i]))
+        assert(false);
   }
 
   fclose(fstat);
