@@ -131,7 +131,7 @@ int main()
 			rc, L, L, L, aij, gamma, sigma, 1./sqrt(dt));
 		else
 		{
-		    const int pivot = (int)(drand48() * xp.size());
+		    const int pivot = n  * 0.5;//(int)(drand48() * xp.size());
 		    		    
 		    forces_dpd_cuda_bipartite(
 			&xp.front(), &yp.front(), &zp.front(),
@@ -223,7 +223,7 @@ int main()
     for(int it = 0; it < nt; ++it)
     {
 	//const double dt = 0;
-	if (it % 30 == 0)
+	if (it % 1 == 0)
 	{
 	    float t = it * dt;
 	    _diag(fdiag, t);

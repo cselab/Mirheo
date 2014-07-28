@@ -186,8 +186,8 @@ __global__ __launch_bounds__(32 * CPB, 16)
 #include <thrust/device_vector.h>
 using namespace thrust;
 
-#include "profiler-dpd.h"
-#include "cell-lists.h"
+#include "../profiler-dpd.h"
+#include "../cell-lists.h"
 
 #define CUDA_CHECK(ans) do { cudaAssert((ans), __FILE__, __LINE__); } while(0)
 inline void cudaAssert(cudaError_t code, const char *file, int line, bool abort=true)

@@ -198,8 +198,8 @@ __global__ __launch_bounds__(32 * CPB, 16)
 #include <thrust/device_vector.h>
 
 #include "cuda-dpd.h"
-#include "profiler-dpd.h"
-#include "cell-lists.h"
+#include "../profiler-dpd.h"
+#include "../cell-lists.h"
 
 using namespace thrust;
 

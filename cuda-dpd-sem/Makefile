@@ -7,7 +7,6 @@ NVCCFLAGS += -Xptxas -dlcm=cg
 NVCCFLAGS += --maxrregcount 30
 NVCCFLAGS += --use_fast_math
 
-
 ifeq "$(profile)" "1"
 NVCCFLAGS += -lineinfo -D_PROFILE_ -g
 CXXFLAGS += -D_PROFILE_
@@ -21,18 +20,6 @@ endif
 
 NVCC = nvcc
 
-test: main.cpp cuda-dpd.o cuda-dpd-bipartite.o profiler-dpd.o cell-lists.o
-	$(CXX) $(CXXFLAGS) main.cpp cuda-dpd.o cuda-dpd-bipartite.o profiler-dpd.o cell-lists.o -L/usr/local/cuda-5.5/lib64/ -lcudart -lcurand -o test
-
-libcuda-dpd.so: cuda-dpd.o cell-lists.o profiler-dpd.o
-	$(CXX) $(CXXFLAGS) -shared $^ -o libcuda-dpd.so -L/usr/local/cuda-5.5/lib64/ -lcudart -lcurand
-
-cuda-dpd.o: cuda-dpd.cu cuda-dpd.h
-	$(NVCC) $(NVCCFLAGS) -c cuda-dpd.cu
-
-cuda-dpd-bipartite.o: cuda-dpd-bipartite.cu cuda-dpd.h
-	$(NVCC) $(NVCCFLAGS) -c cuda-dpd-bipartite.cu
-
 profiler-dpd.o:	profiler-dpd.cpp profiler-dpd.h
 	$(CXX) $(CXXFLAGS) -c profiler-dpd.cpp
 
@@ -40,6 +27,8 @@ cell-lists.o: cell-lists.cu cell-lists.h
 	$(NVCC) $(NVCCFLAGS) -c cell-lists.cu
 
 clean:
-	rm -f test libcuda-dpd.so *.o 
+	rm -f test *.o
 
-.PHONY = clean
+subclean: clean
+
+.PHONY = clean subclean
