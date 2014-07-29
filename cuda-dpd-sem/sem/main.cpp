@@ -113,7 +113,7 @@ int main()
 		    &xv.front(), &yv.front(), &zv.front(),
 		    &xa.front(), &ya.front(), &za.front(),
 		    n, 
-		    rc, L, L, L, gamma, temp, dt, u0, rho, req, D, rc);
+		    rcutoff, L, L, L, gamma, temp, dt, u0, rho, req, D, rc);
 	    }
 	    else
 		abort();
