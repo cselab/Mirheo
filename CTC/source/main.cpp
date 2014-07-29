@@ -34,7 +34,7 @@ string Saver::folder("");
 int main (int argc, char **argv)
 {
     string folder = "res/";
-    string config = "/Users/alexeedm/Documents/projects/CTC/CTC/makefiles/config.ini";
+    string config = "/Users/alexeedm/Documents/projects/CTC/CTC/makefiles/100relax.ini";
     debugLvl = 2;
 	
 	vector<OptionStruct> vopts =
@@ -60,6 +60,7 @@ int main (int argc, char **argv)
     Saver *tempSaver = new SaveTemperature (configParser->gets("Savers", "temperatureFile", "temp.txt"));
     Saver *restarter = new SaveRestart     (configParser->gets("Savers", "restartFile", "restart"));
     Saver *strSaver  = new SaveStrain      (configParser->gets("Savers", "strainFile", "strain.txt"));
+    Saver *rdfSaver  = new SaveRdf         (configParser->gets("Savers", "rdfFile", "rdf.txt"), configParser->geti("Savers", "rdfPrnPeriod"));
 
     
     real temp = configParser->getf("Basic", "temperature", 0.1);
@@ -85,6 +86,7 @@ int main (int argc, char **argv)
     simulation.registerSaver(tempSaver, configParser->geti("Savers", "temperaturePeriod", 0));
     simulation.registerSaver(restarter, configParser->geti("Savers", "restartPeriod", 0));
     simulation.registerSaver(strSaver,  configParser->geti("Savers", "strainPeriod", 0));
+    simulation.registerSaver(rdfSaver,  configParser->geti("Savers", "rdfPeriod", 0));
 	simulation.profiler.millisec();
 	
 	int iters = ceil(end / dt);

@@ -55,7 +55,7 @@ struct LJwallz
     {
         static const real rCut  = 2;
         static const real sigma = 0.15;
-        static const real eps   = 0.01;
+        static const real eps   = 0.02;
         
         a = 0;
         for (int i = 0; i<part->n; i++)
@@ -137,6 +137,7 @@ public:
 	void getPositions(int&, real*, real*);
 	void registerSaver(Saver*, int);
 	void runOneStep();
+    void rdf(int a, real* bins, real h, int nBins);
 };
 
 

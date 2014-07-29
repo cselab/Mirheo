@@ -131,7 +131,7 @@ inline CellsInfo::CellsInfo(real size, real low[Dims], real high[Dims])
 
 __host__ __device__ inline int CellsInfo::getCellIndByIJ(int ij[Dims])
 {
-	int res = mult0*ij[0] + mult1*ij[1] + mult2*ij[2];
+	int res = mult0*ij[0] + mult1*ij[1] + ij[2];
 	
 	return res;
 }

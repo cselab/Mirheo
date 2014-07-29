@@ -136,7 +136,7 @@ inline void _centerOfMass(Particles* part, real& mx, real& my, real& mz)
 
 template<typename Interactor>
 inline void exec(Particles** part, Cells<Particles> &cellsA, Cells<Particles> &cellsB, int a, int b, Interactor &inter,
-                 int sx, int sy, int sz, vector<vector<int>> pass, real* res)
+                 int sx, int sy, int sz, vector<vector<int>> pass, real* res, int t)
 {
     static const int stride = 2;
     
@@ -186,7 +186,7 @@ inline void exec(Particles** part, Cells<Particles> &cellsA, Cells<Particles> &c
                                 real vy = part[b]->vy(dst) - part[a]->vy(src);
                                 real vz = part[b]->vz(dst) - part[a]->vz(src);
                                 
-                                inter.F(dx, dy, dz,  vx, vy, vz,  r2,  fx, fy, fz);
+                                inter.F(dx, dy, dz,  vx, vy, vz,  r2,  fx, fy, fz,  src, dst, t);
                                 
                                 part[a]->x(src) += fx;
                                 part[a]->x(src) += fy;
@@ -204,7 +204,7 @@ inline void exec(Particles** part, Cells<Particles> &cellsA, Cells<Particles> &c
 
 template<typename Interactor>
 inline void exec(Particles** part, Cells<Particles> &cellsA, int a, Interactor &inter,
-                 int sx, int sy, int sz, vector<vector<int>> pass, real* res, bool myself)
+                 int sx, int sy, int sz, vector<vector<int>> pass, real* res, int t, bool myself)
 {
     static const int stride = 2;
     
@@ -254,7 +254,7 @@ inline void exec(Particles** part, Cells<Particles> &cellsA, int a, Interactor &
                                 real vy = part[a]->vy(dst) - part[a]->vy(src);
                                 real vz = part[a]->vz(dst) - part[a]->vz(src);
                                 
-                                inter.F(dx, dy, dz,  vx, vy, vz,  r2,  fx, fy, fz);
+                                inter.F(dx, dy, dz,  vx, vy, vz,  r2,  fx, fy, fz,  src, dst, t);
                                 
                                 res[3*src + 0] += fx;
                                 res[3*src + 1] += fy;
@@ -288,7 +288,7 @@ inline void exec(Particles** part, Cells<Particles> &cellsA, int a, Interactor &
                                 real vy = part[a]->vy(dst) - part[a]->vy(src);
                                 real vz = part[a]->vz(dst) - part[a]->vz(src);
                                 
-                                inter.F(dx, dy, dz,  vx, vy, vz,  r2,  fx, fy, fz);
+                                inter.F(dx, dy, dz,  vx, vy, vz,  r2,  fx, fy, fz,  src, dst, t);
                                 
                                 res[3*src + 0] += fx;
                                 res[3*src + 1] += fy;
@@ -306,7 +306,7 @@ inline void exec(Particles** part, Cells<Particles> &cellsA, int a, Interactor &
 
 
 template<typename Interactor>
-void _cpuForces(Particles** part, Cells<Particles>*** cells, int a, int b, Interactor &inter)
+void _cpuForces(Particles** part, Cells<Particles>*** cells, int a, int b, Interactor &inter, int time)
 {
     static const int stride = 2;
 
@@ -329,7 +329,7 @@ void _cpuForces(Particles** part, Cells<Particles>*** cells, int a, int b, Inter
         for (int j=0; j<stride; j++)
             for (int k=0; k<stride; k++)
             {
-                exec(part, *cells[a][b], *cells[b][a], a, b, inter, i, j, k, pass1, buffer[4*i + 2*j + k]);
+                exec(part, *cells[a][b], *cells[b][a], a, b, inter, i, j, k, pass1, buffer[4*i + 2*j + k], time);
             }
     
 #pragma omp parallel for collapse(3)
@@ -337,7 +337,7 @@ void _cpuForces(Particles** part, Cells<Particles>*** cells, int a, int b, Inter
         for (int j=0; j<stride; j++)
             for (int k=0; k<stride; k++)
             {
-                exec(part, *cells[a][b], *cells[b][a], a, b, inter, i, j, k, pass2, buffer[4*i + 2*j + k]);
+                exec(part, *cells[a][b], *cells[b][a], a, b, inter, i, j, k, pass2, buffer[4*i + 2*j + k], time);
             }
     
     for (int j=0; j<3*part[a]->n; j++)
@@ -359,7 +359,7 @@ void _cpuForces(Particles** part, Cells<Particles>*** cells, int a, int b, Inter
 }
 
 template<typename Interactor>
-void _cpuForces(Particles** part, Cells<Particles>*** cells, int a, Interactor &inter)
+void _cpuForces(Particles** part, Cells<Particles>*** cells, int a, Interactor &inter, int time)
 {
     static const int stride = 2;
 
@@ -382,7 +382,7 @@ void _cpuForces(Particles** part, Cells<Particles>*** cells, int a, Interactor &
         for (int j=0; j<stride; j++)
             for (int k=0; k<stride; k++)
             {
-                exec(part, *cells[a][a], a, inter, i, j, k, pass1, buffer[4*i + 2*j + k], false);
+                exec(part, *cells[a][a], a, inter, i, j, k, pass1, buffer[4*i + 2*j + k], time, false);
             }
     
 #pragma omp parallel for collapse(3)
@@ -390,7 +390,7 @@ void _cpuForces(Particles** part, Cells<Particles>*** cells, int a, Interactor &
         for (int j=0; j<stride; j++)
             for (int k=0; k<stride; k++)
             {
-                exec(part, *cells[a][a], a, inter, i, j, k, pass2, buffer[4*i + 2*j + k], true);
+                exec(part, *cells[a][a], a, inter, i, j, k, pass2, buffer[4*i + 2*j + k], time, true);
             }
     
     for (int j=0; j<3*part[a]->n; j++)
@@ -412,16 +412,17 @@ void _cpuForces(Particles** part, Cells<Particles>*** cells, int a, Interactor &
 }
 
 template<typename Interactor>
-void cpuForces(Particles** part, Cells<Particles>*** cells, int a, int b, Interactor &inter)
+void computeForces(Particles** part, Cells<Particles>*** cells, int a, int b, Interactor &inter, int time)
 {
-    if (a == b) _cpuForces(part, cells, a, inter);
-    else        _cpuForces(part, cells, a, b, inter);
+    if (a == b) _cpuForces(part, cells, a, inter, time);
+    else        _cpuForces(part, cells, a, b, inter, time);
 }
 
 
-inline void rdf(Particles** part, Cells<Particles>*** cells, int a, real* bins, real h, int nBins, real vol)
+inline void _rdf(Particles** part, Cells<Particles>*** cells, int a, real* bins, real h, int nBins, real vol)
 {
     real dens = part[a]->n / vol;
+    for (int i = 0; i<nBins; i++) bins[i] = 0;
     
     for (int ix=0; ix<cells[a][a]->n0; ix++)
         for (int iy=0; iy<cells[a][a]->n1; iy++)
@@ -437,9 +438,10 @@ inline void rdf(Particles** part, Cells<Particles>*** cells, int a, real* bins, 
                 int srcEnd   = cells[a][a]->pstart[srcId+1];
                 
                 // All but self-self
-                for (int neigh = 0; neigh < 26; neigh++)
+                for (int neigh = 0; neigh < 27; neigh++)
                 {
-                    const int sh[3] = {neigh / 9, (neigh / 3) % 3, neigh % 3};
+                    if (neigh == 13) continue;
+                    const int sh[3] = {neigh / 9 - 1, (neigh / 3) % 3 - 1, neigh % 3 - 1};
                     // Resolve periodicity
                     for (int k=0; k<3; k++)
                         ij[k] = origIJ[k] + sh[k];
@@ -462,8 +464,8 @@ inline void rdf(Particles** part, Cells<Particles>*** cells, int a, real* bins, 
                             const real dy = part[a]->y(dst) + xAdd[1] - part[a]->y(src);
                             const real dz = part[a]->z(dst) + xAdd[2] - part[a]->z(src);
                             
-                            const real r2 = dx*dx + dy*dy + dz*dz;
-                            int bin = (int) (r2 / h);
+                            const real r = sqrt(dx*dx + dy*dy + dz*dz);
+                            int bin = (int) (r / h);
                             if (bin < nBins) bins[bin]++;
                         }
                     }
@@ -481,8 +483,8 @@ inline void rdf(Particles** part, Cells<Particles>*** cells, int a, real* bins, 
                         const real dy = part[a]->y(dst) - part[a]->y(src);
                         const real dz = part[a]->z(dst) - part[a]->z(src);
                         
-                        const real r2 = dx*dx + dy*dy + dz*dz;
-                        int bin = (int) (r2 / h);
+                        const real r = sqrt(dx*dx + dy*dy + dz*dz);
+                        int bin = (int) (r / h);
                         if (bin < nBins) bins[bin]++;
                     }
                 }

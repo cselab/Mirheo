@@ -81,7 +81,7 @@ void Simulation::setIC()
     uniform_real_distribution<real> utheta(0, M_PI*0.75);
     
     
-    if (nTypes>1) setLattice(part[1], 8, 8, 8, part[1]->n);
+    if (nTypes>1) setLattice(part[1], 15, 15, 15, part[1]->n);
     //stupidLoad(part, "/Users/alexeedm/Documents/projects/CTC/CTC/makefiles/dump.txt");
     
     double xl = 0;//mymin(part[1]->x, part[1]->n);
@@ -157,9 +157,10 @@ void Simulation::loadRestart(string fname)
         zmin = min(zmin, part[1]->z(i));
     }
     
-    // !!!
-    walls.push_back(new LJwallz(3.1373, 0.000));
-    walls.push_back(new LJwallz(-2.46965, -0.000));
+    // !!! 3.31661 -2.64321
+    // 3.31299 -2.63933
+    walls.push_back(new LJwallz(configParser->getf("Plates", "topz",  1e9), configParser->getf("Plates", "topv", 0)));
+    walls.push_back(new LJwallz(configParser->getf("Plates", "botz", -1e9), configParser->getf("Plates", "botv", 0)));
     
     evaluator = new InteractionTable(nTypes, part, profiler, xlo, xhi, ylo, yhi, zlo, zhi);
 }
@@ -275,6 +276,12 @@ void Simulation::centerOfMass(real& mx, real& my, real& mz, int type)
     }
 }
 
+void Simulation::rdf(int a, real* bins, real h, int nBins)
+{
+    _rdf(part, evaluator->cells, a, bins, h, nBins, (xhi - xlo)*(yhi - ylo)*(zhi - zlo));
+}
+
+
 void Simulation::velocityVerlet()
 {
     profiler.start("Pre-force");
@@ -302,7 +309,7 @@ void Simulation::velocityVerlet()
     evaluator->doCells();
     profiler.stop();
     
-    evaluator->evalForces();
+    evaluator->evalForces(step);
     
     profiler.start("Post-force");
     {
@@ -311,10 +318,10 @@ void Simulation::velocityVerlet()
             w->force(part[1]);
         }
         
-        if (dt*step > configParser->getf("Basic", "startF", 0))
+        if (dt*step > configParser->getf("Plates", "startF", 1e9))
         {
             walls[1]->fix();
-            walls[0]->addF(configParser->getf("Basic", "applyF", 0));
+            walls[0]->addF(configParser->getf("Plates", "applyF", 0));
         }
         
         for (int type = 0; type < nTypes; type++)
@@ -341,7 +348,7 @@ void Simulation::runOneStep()
     profiler.stop();
 	
 	if (step == 0)
-        evaluator->evalForces();
+        evaluator->evalForces(step);
     
 	step++;
 	velocityVerlet();

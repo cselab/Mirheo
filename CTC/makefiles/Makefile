@@ -1,57 +1,73 @@
+CC = g++
+NVCC = nvcc
+CPPFLAGS+= -fopenmp -std=c++11 -Wno-unknown-pragmas -Wno-reorder -Wno-comment -Wno-deprecated
+NVCCFLAGS+= -arch=sm_35
+
 config ?= release
 
-.DEFAULT_GOAL := all
+ifeq "$(config)" "debug"
+CPPFLAGS+= -O0 -g
+NVCCFLAGS+= -lineinfo -O0
+else ifeq "$(config)" "release"
+CPPFLAGS += -O3 -g -fno-tree-vectorize -funroll-loops -DNDEBUG
+NVCCFLAGS+= -O4 
+else
+CPPFLAGS += -O1 -g
+NVCCFLAGS+= -lineinfo -O2
+endif
 
-.PHONY: md md_cell md_gpu md_gpu_cell clean clean_md clean_md_cell clean_md_gpu clean_md_gpu_cell
- 
-all: md md_cell md_gpu md_gpu_cell 
-   
-md:
-	$(MAKE) -C cpu_generic config="$(config)" extra="$(extra)"
-	cp cpu_generic/$@ ./$@
-	
-md_cell:
-	$(MAKE) -C cpu_cell config=$(config) extra="$(extra)"
-	cp cpu_cell/$@ ./$@
+LIBS += #-lstdc++
+OS = $(shell uname)
+ifneq "$(OS)" "Darwin"
+LIBS += -lrt
+endif
 
-md_gpu:
-	$(MAKE) -C gpu_generic config=$(config) extra="$(extra)"
-	cp gpu_generic/$@ ./$@
-	
-md_gpu_cell:
-	$(MAKE) -C gpu_cell config=$(config) extra="$(extra)" 
-	cp gpu_cell/$@ ./$@ 
+GPULIBS+= -lstdc++ -lcuda -lcudart
 
-clean_md:
-	rm -f cpu_generic/*.o
-	rm -f cpu_generic/*.s
-	rm -f cpu_generic/*.d
-	rm -f cpu_generic/*.cpp
-	rm -f cpu_generic/*.cu
-	rm -f md cpu_generic/md
-	
-clean_md_cell:
-	rm -f cpu_cell/*.o
-	rm -f cpu_cell/*.s
-	rm -f cpu_cell/*.d
-	rm -f cpu_cell/*.cpp
-	rm -f cpu_cell/*.cu
-	rm -f md_cell cpu_cell/md_cell
-	
-clean_md_gpu:
-	rm -f gpu_generic/*.o
-	rm -f gpu_generic/*.s
-	rm -f gpu_generic/*.d
-	rm -f gpu_generic/*.cpp
-	rm -f gpu_generic/*.cu
-	rm -f md_gpu gpu_generic/md_gpu
-	
-clean_md_gpu_cell:
-	rm -f gpu_cell/*.o
-	rm -f gpu_cell/*.s
-	rm -f gpu_cell/*.d
-	rm -f gpu_cell/*.cpp
-	rm -f gpu_cell/*.cu
-	rm -f md_gpu_cell gpu_cell/md_gpu_cell
+THRUST_TARGET_CPU = -DTHRUST_DEVICE_SYSTEM=THRUST_DEVICE_BACKEND_OMP
+THRUST_TARGET_GPU = -DTHRUST_DEVICE_SYSTEM=THRUST_DEVICE_BACKEND_CUDA
 
-clean: clean_md clean_md_cell clean_md_gpu clean_md_gpu_cell
+DIRS = ../source/
+CPP_CUDA_FILES = $(DIRS)Interaction.cpp
+CPP_FILES = $(filter-out $(CPP_CUDA_FILES), $(wildcard $(DIRS:%/=%/*.cpp)))
+OBJ_FILES = $(notdir $(CPP_FILES:.cpp=.o))
+CUDA_OBJ_FILES = $(notdir $(CPP_CUDA_FILES:.cpp=.cudaobj))
+CPP_OBJ_FILES = $(notdir $(CPP_CUDA_FILES:.cpp=.o))
+INCLUDES += -I$(DIRS)
+
+	
+.DEFAULT_GOAL := ctc
+.PHONY: clean
+
+ifneq "$(MAKECMDGOALS)" "clean"
+-include $(notdir $(patsubst %.cpp,%.d,$(wildcard $(DIRS:%/=%/*.cpp))))
+endif
+
+vpath %.cpp %.h %.cu $(DIRS)
+
+clean:
+	rm -f *.o
+	rm -f *.d
+	rm -f *.cudaobj
+	rm -f ctc
+	rm -f ctcgpu
+    
+ctc: $(OBJ_FILES) $(CPP_OBJ_FILES)
+	$(CC) $^  $(LIBS) -fopenmp -o $@
+	
+ctcgpu: $(OBJ_FILES) $(CUDA_OBJ_FILES)
+	$(CC) $(GPULIBS) $^ -o $@
+
+$(OBJ_FILES):%.o:%.cpp
+	$(CC)  $(CPPFLAGS) $(THRUST_TARGET_CPU) $(INCLUDES) -c $< -o $@
+	
+$(CPP_OBJ_FILES):%.o:%.cpp
+	$(CC)  $(CPPFLAGS) $(THRUST_TARGET_CPU) $(INCLUDES) -c $< -o $@
+	
+$(CUDA_OBJ_FILES):%.cudaobj:%.cpp
+	cp $< $(<:.cpp=.cu)
+	$(NVCC) $(NVCCFLAGS) $(THRUST_TARGET_GPU) $(INCLUDES) -c $(<:.cpp=.cu) -o $@
+	
+%.d: %.cpp
+	$(CC)  $(CPPFLAGS) $(THRUST_TARGET_CPU) -MM $< > $*.d
+	

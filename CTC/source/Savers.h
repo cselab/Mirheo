@@ -249,22 +249,53 @@ class SaveRdf: public Saver
 private:
 	Timer t;
     real* bins;
+    real* totBins;
     int nBins;
     real h;
+    int total;
+    int prnPeriod;
 	
 public:
-	SaveRdf(ostream* o)		  : Saver(o)     { h = 0.05; nBins = 50; bins = new real [nBins]; };
-	SaveRdf(string fname)	  : Saver(fname) { h = 0.05; nBins = 50; bins = new real [nBins]; };
-	
-	
+	SaveRdf(ostream* o, int prnPeriod) : Saver(o), prnPeriod(prnPeriod)
+    {
+        h = 0.005;
+        nBins = 2.0 / h;
+        bins = new real [nBins];
+        totBins = new real [nBins];
+        for (int i=0; i<nBins; i++)
+            totBins[i] = 0;
+        total = 0;
+    };
+    
+	SaveRdf(string fname, int prnPeriod) : Saver(fname), prnPeriod(prnPeriod)
+    {
+        h = 0.005;
+        nBins = 2.0 / h;
+        bins = new real [nBins];
+        totBins = new real [nBins];
+        for (int i=0; i<nBins; i++)
+            totBins[i] = 0;
+        total = 0;
+    };
+    
 	void exec()
 	{
-		if (this->my->getIter() < this->period) t.start();
-		else
-		{
-			*this->file << this->my->profiler.printStat() << endl;
+        this->my->rdf(1, bins, h, nBins);
+        total++;
+        
+        
+        for (int i=0; i<nBins; i++)
+            totBins[i] += bins[i];
+        
+        if ( (this->my->getIter() % prnPeriod) == 0 )
+        {
+            *this->file << "Iteration  " << this->my->getIter() << endl;
+            for (int i=0; i<nBins; i++)
+                *this->file << i*h << "  " << totBins[i]/total << endl;
+            
+            *this->file << endl;
             this->file->flush();
-		}
+        }
 	}
 };
 
