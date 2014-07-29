@@ -1,5 +1,7 @@
 #include <cassert>
 
+#include "../saru.cuh"
+
 struct InfoDPD
 {
     int3 ncells;
@@ -8,34 +10,6 @@ struct InfoDPD
 };
 
 __constant__ InfoDPD info;
-
-__device__
-__forceinline__ float saru(unsigned int seed1, unsigned int seed2, unsigned int seed3)
-{
-    seed3 ^= (seed1<<7)^(seed2>>6);
-    seed2 += (seed1>>4)^(seed3>>15);
-    seed1 ^= (seed2<<9)+(seed3<<8);
-    seed3 ^= 0xA5366B4D*((seed2>>11) ^ (seed1<<1));
-    seed2 += 0x72BE1579*((seed1<<4)  ^ (seed3>>16));
-    seed1 ^= 0X3F38A6ED*((seed3>>5)  ^ (((signed int)seed2)>>22));
-    seed2 += seed1*seed3;
-    seed1 += seed3 ^ (seed2>>2);
-    seed2 ^= ((signed int)seed2)>>17;
-    
-    int state  = 0x79dedea3*(seed1^(((signed int)seed1)>>14));
-    int wstate = (state + seed2) ^ (((signed int)state)>>8);
-    state  = state + (wstate*(wstate^0xdddf97f5));
-    wstate = 0xABCB96F7 + (wstate>>1);
-    
-    state  = 0x4beb5d59*state + 0x2600e1f7; // LCG
-    wstate = wstate + 0x8009d14b + ((((signed int)wstate)>>31)&0xda879add); // OWS
-    
-    unsigned int v = (state ^ (state>>26))+wstate;
-    unsigned int r = (v^(v>>20))*0x6957f5a7;
-    
-    double res = r / (4294967295.0f);
-    return res;
-}
 
 
 #ifndef NDEBUG
@@ -200,56 +174,9 @@ __global__ __launch_bounds__(32 * CPB, 16)
 #include "cuda-dpd.h"
 #include "../profiler-dpd.h"
 #include "../cell-lists.h"
+#include "../hacks.h"
 
 using namespace thrust;
-
-#define CUDA_CHECK(ans) do { cudaAssert((ans), __FILE__, __LINE__); } while(0)
-inline void cudaAssert(cudaError_t code, const char *file, int line, bool abort=true)
-{
-    if (code != cudaSuccess) 
-    {
-	fprintf(stderr,"GPUassert: %s %s %d\n", cudaGetErrorString(code), file, line);
-	sleep(5);
-	if (abort) exit(code);
-    }
-}
-
-template<typename T> T * _ptr(device_vector<T>& v) { return raw_pointer_cast(v.data()); }
-
-struct TextureWrap
-{
-    cudaTextureObject_t texObj;
-
-    template<typename ElementType>
-    TextureWrap(ElementType * data, const int n):
-	texObj(0)
-	{
-	    struct cudaResourceDesc resDesc;
-	    memset(&resDesc, 0, sizeof(resDesc));
-	    resDesc.resType = cudaResourceTypeLinear;
-	    resDesc.res.linear.devPtr = data;
-	    resDesc.res.linear.sizeInBytes = n * sizeof(ElementType);
-	    resDesc.res.linear.desc = cudaCreateChannelDesc<ElementType>();
-    
-	    struct cudaTextureDesc texDesc;
-	    memset(&texDesc, 0, sizeof(texDesc));
-	    texDesc.addressMode[0]   = cudaAddressModeWrap;
-	    texDesc.addressMode[1]   = cudaAddressModeWrap;
-	    texDesc.filterMode       = cudaFilterModePoint;
-	    texDesc.readMode         = cudaReadModeElementType;
-	    texDesc.normalizedCoords = 1;
-
-	    texObj = 0;
-	    CUDA_CHECK(cudaCreateTextureObject(&texObj, &resDesc, &texDesc, NULL));
-	}
-
-    ~TextureWrap()
-	{
-	    CUDA_CHECK(cudaDestroyTextureObject(texObj));
-	}
-};
-
-extern int tid;
 
 void forces_dpd_cuda_bipartite(float * const _xyzuvw1, float * const _axayaz1, int * const order1, const int np1, const int gp1id_start,
 			       float * const _xyzuvw2, float * const _axayaz2, int * const order2, const int np2, const int gp2id_start,
@@ -317,17 +244,17 @@ void forces_dpd_cuda_bipartite(float * const _xyzuvw1, float * const _axayaz1, i
     ProfilerDPD::singletone().start();
 
     _dpd_forces_saru<<<(nonemptycells1.first + CPB - 1) / CPB, dim3(32, CPB), 0, stream1>>>(
-	_ptr(axayaz1), tid, texStart1.texObj, texCount1.texObj, texStart2.texObj, texCount2.texObj,
+	_ptr(axayaz1), saru_tid, texStart1.texObj, texCount1.texObj, texStart2.texObj, texCount2.texObj,
 	texParticles1.texObj, texParticles2.texObj, nonemptycells1.second, nonemptycells1.first, gp1id_start, gp2id_start);
     
     CUDA_CHECK(cudaPeekAtLastError());
     
     _dpd_forces_saru<<<(nonemptycells2.first + CPB - 1) / CPB, dim3(32, CPB), 0, stream2>>>(
-	_ptr(axayaz2), tid, texStart2.texObj, texCount2.texObj, texStart1.texObj, texCount1.texObj,
+	_ptr(axayaz2), saru_tid, texStart2.texObj, texCount2.texObj, texStart1.texObj, texCount1.texObj,
 	texParticles2.texObj, texParticles1.texObj, nonemptycells2.second, nonemptycells2.first, gp2id_start, gp1id_start);
     
     CUDA_CHECK(cudaPeekAtLastError());
-    tid += 2;  
+    saru_tid += 1;  
 
     ProfilerDPD::singletone().force();	
     ProfilerDPD::singletone().report();
@@ -337,6 +264,7 @@ void forces_dpd_cuda_bipartite(float * const _xyzuvw1, float * const _axayaz1, i
 
     CUDA_CHECK(cudaStreamDestroy(stream1));
     CUDA_CHECK(cudaStreamDestroy(stream2));
+    
 #ifdef _CHECK_
     printf("hello check: np1 %d np2: %d\n", np1, np2);
     printf("nonempty in p1: %d\n", nonemptycells1.first);

@@ -47,28 +47,15 @@ int main()
     const real rcutoff = 2.5;
     const real gamma = 80, temp = 0.1, dt = 0.01, u0 = 0.001, rho = 1.5, req = 0.85, D = .0001, rc = 1;
     const bool cuda = true;
-    const real tend = 1000;//200;//0.08 * 20;
+    const real tend = 250;//200;//0.08 * 20;
     
     vector<real> xp(n), yp(n), zp(n), xv(n), yv(n), zv(n), xa(n), ya(n), za(n);
     srand48(6516L);
     for(int i = 0; i < n; ++i)
     {
-/*	const int cid = i / Nm;
-	
-	const int xcid = cid % (int)L;
-	const int ycid = (cid / (int) L) % (int)L;
-	const int zcid = (cid / (int) L / (int) L) % (int)L;*/
-
-#if 1
 	xp[i] = -L * 0.5f +  drand48() * L;
 	yp[i] = -L * 0.5f +  drand48() * L;
-	zp[i] = -L * 0.5f +  drand48() * L;
-	
-#else
-	xp[i] = -L * 0.5f + xcid + 0.5+ 0.015 * (1 - 2 * drand48() );
-	yp[i] = -L * 0.5f + ycid + 0.5+ 0.015 * (1 - 2 * drand48() );
-	zp[i] = -L * 0.5f + zcid + 0.5+ 0.015 * (1 - 2 * drand48() );
-#endif
+	zp[i] = -L * 0.5f +  drand48() * L;	
     }
     
     auto _diag = [&](FILE * f, float t)

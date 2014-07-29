@@ -1,33 +1,7 @@
 #include <cstdio>
 #include <cassert>
 
-__device__
-__forceinline__ float saru(unsigned int seed1, unsigned int seed2, unsigned int seed3)
-{
-    seed3 ^= (seed1<<7)^(seed2>>6);
-    seed2 += (seed1>>4)^(seed3>>15);
-    seed1 ^= (seed2<<9)+(seed3<<8);
-    seed3 ^= 0xA5366B4D*((seed2>>11) ^ (seed1<<1));
-    seed2 += 0x72BE1579*((seed1<<4)  ^ (seed3>>16));
-    seed1 ^= 0X3F38A6ED*((seed3>>5)  ^ (((signed int)seed2)>>22));
-    seed2 += seed1*seed3;
-    seed1 += seed3 ^ (seed2>>2);
-    seed2 ^= ((signed int)seed2)>>17;
-    
-    int state  = 0x79dedea3*(seed1^(((signed int)seed1)>>14));
-    int wstate = (state + seed2) ^ (((signed int)state)>>8);
-    state  = state + (wstate*(wstate^0xdddf97f5));
-    wstate = 0xABCB96F7 + (wstate>>1);
-    
-    state  = 0x4beb5d59*state + 0x2600e1f7; // LCG
-    wstate = wstate + 0x8009d14b + ((((signed int)wstate)>>31)&0xda879add); // OWS
-    
-    unsigned int v = (state ^ (state>>26))+wstate;
-    unsigned int r = (v^(v>>20))*0x6957f5a7;
-    
-    double res = r / (4294967295.0f);
-    return res;
-}
+#include "../saru.cuh"
 
 #ifndef NDEBUG
 #define _CHECK_
@@ -188,54 +162,7 @@ using namespace thrust;
 
 #include "../profiler-dpd.h"
 #include "../cell-lists.h"
-
-#define CUDA_CHECK(ans) do { cudaAssert((ans), __FILE__, __LINE__); } while(0)
-inline void cudaAssert(cudaError_t code, const char *file, int line, bool abort=true)
-{
-    if (code != cudaSuccess) 
-    {
-	fprintf(stderr,"GPUassert: %s %s %d\n", cudaGetErrorString(code), file, line);
-	sleep(5);
-	if (abort) exit(code);
-    }
-}
-
-template<typename T> T * _ptr(device_vector<T>& v) { return raw_pointer_cast(v.data()); }
-
-struct TextureWrap
-{
-    cudaTextureObject_t texObj;
-
-    template<typename ElementType>
-    TextureWrap(ElementType * data, const int n):
-	texObj(0)
-	{
-	    struct cudaResourceDesc resDesc;
-	    memset(&resDesc, 0, sizeof(resDesc));
-	    resDesc.resType = cudaResourceTypeLinear;
-	    resDesc.res.linear.devPtr = data;
-	    resDesc.res.linear.sizeInBytes = n * sizeof(ElementType);
-	    resDesc.res.linear.desc = cudaCreateChannelDesc<ElementType>();
-    
-	    struct cudaTextureDesc texDesc;
-	    memset(&texDesc, 0, sizeof(texDesc));
-	    texDesc.addressMode[0]   = cudaAddressModeWrap;
-	    texDesc.addressMode[1]   = cudaAddressModeWrap;
-	    texDesc.filterMode       = cudaFilterModePoint;
-	    texDesc.readMode         = cudaReadModeElementType;
-	    texDesc.normalizedCoords = 1;
-
-	    texObj = 0;
-	    CUDA_CHECK(cudaCreateTextureObject(&texObj, &resDesc, &texDesc, NULL));
-	}
-
-    ~TextureWrap()
-	{
-	    CUDA_CHECK(cudaDestroyTextureObject(texObj));
-	}
-};
-
-int tid = 0;
+#include "../hacks.h"
 
 void forces_dpd_cuda(float * const _xyzuvw, float * const _axayaz,
 		     int * const order, const int np,
@@ -277,26 +204,16 @@ void forces_dpd_cuda(float * const _xyzuvw, float * const _axayaz,
     
     _dpd_forces_saru<<<dim3(c.ncells.x / _XCPB_,
 			    c.ncells.y / _YCPB_,
-			    c.ncells.z / _ZCPB_), dim3(32, CPB)>>>(_ptr(axayaz), tid, texStart.texObj, texCount.texObj, texParticles.texObj);
+			    c.ncells.z / _ZCPB_), dim3(32, CPB)>>>(_ptr(axayaz), saru_tid, texStart.texObj, texCount.texObj, texParticles.texObj);
 
-    ++tid;
+    ++saru_tid;
 
     CUDA_CHECK(cudaPeekAtLastError());
 	
     ProfilerDPD::singletone().force();	
     ProfilerDPD::singletone().report();
-    
-    {
-	const int np3 = np * 3;
-	
-	std::vector<float> olda(_axayaz, _axayaz + np3);
-	
-	copy(axayaz.begin(), axayaz.end(), _axayaz);
-	
-#pragma omp parallel for 
-	for(int i = 0; i < np3; ++i)
-	    _axayaz[i] += olda[i];
-    }
+
+    copy(axayaz.begin(), axayaz.end(), _axayaz);
      
 #ifdef _CHECK_
     CUDA_CHECK(cudaThreadSynchronize());
@@ -313,7 +230,7 @@ void forces_dpd_cuda(float * const _xyzuvw, float * const _axayaz,
 	
 	for(int j = 0; j < np; ++j)
 	{
-	    if (i == j)
+	    if (i == j) 
 		continue;
  
 	    float xr = _xyzuvw[0 + 6 *i] - _xyzuvw[0 + 6 * j];
