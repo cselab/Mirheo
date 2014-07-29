@@ -159,7 +159,7 @@ __global__ __launch_bounds__(32 * CPB, 16)
 		    yr * (dtmp2.x - stmp2.x) +
 		    zr * (dtmp2.y - stmp2.y);
 	
-		const float mysaru = saru(min(gspid, gdpid), max(spid, dpid), idtimestep);
+		const float mysaru = saru(min(gspid, gdpid), max(gspid, gdpid), idtimestep);
 		const float myrandnr = 3.464101615f * mysaru - 1.732050807f;
 		 
 		const float strength = (info.aij - info.gamma * wr * rdotv + info.sigmaf * myrandnr) * wr;
