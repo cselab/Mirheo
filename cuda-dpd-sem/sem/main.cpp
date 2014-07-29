@@ -94,29 +94,20 @@ int main()
 		
 	    }
 	};
-    
-    std::random_device rd;
-    std::mt19937 gen(rd());
-    std::normal_distribution<> dgauss(0, 1);
 
-    int cnt = 0;
+    int cnt = 0; 
     auto _f = [&]()
 	{
 	    fill(xa.begin(), xa.end(), 0);
 	    fill(ya.begin(), ya.end(), 0);
 	    fill(za.begin(), za.end(), 0);
-	      
-	    if (cuda) 
-	    {
-		forces_sem_cuda(
-		    &xp.front(), &yp.front(), &zp.front(),
-		    &xv.front(), &yv.front(), &zv.front(),
-		    &xa.front(), &ya.front(), &za.front(),
-		    n, 
-		    rcutoff, L, L, L, gamma, temp, dt, u0, rho, req, D, rc);
-	    }
-	    else
-		abort();
+	      	  
+	    forces_sem_cuda(
+		&xp.front(), &yp.front(), &zp.front(),
+		&xv.front(), &yv.front(), &zv.front(),
+		&xa.front(), &ya.front(), &za.front(),
+		n, 
+		rcutoff, L, L, L, gamma, temp, dt, u0, rho, req, D, rc);
 	};
     
     _f();

@@ -168,19 +168,18 @@ using namespace thrust;
 #include "../cell-lists.h"
 #include "../hacks.h"
 
-void forces_sem_cuda(float * const _xyzuvw, float * const _axayaz,
+void forces_sem_cuda_nohost(
+    float *  device_xyzuvw, float * device_axayaz,
 		     int * const order, const int np,
 		     const float rcutoff,
 		     const float XL, const float YL, const float ZL,
-		     const double gamma, const double temp, const double dt, const double u0, const double rho, const double req, const double D, const float rc)
+		     const double gamma, const double temp, const double dt, const double u0, const double rho, const double req, const double D, const double rc)
 {  
     int nx = (int)ceil(XL / rcutoff);
     int ny = (int)ceil(YL / rcutoff);
     int nz = (int)ceil(ZL / rcutoff);
     const int ncells = nx * ny * nz;
         
-    device_vector<float> xyzuvw(_xyzuvw, _xyzuvw + np * 6), axayaz(np * 3);
-    
     InfoSEM c;
     c.ncells = make_int3(nx, ny, nz);
     c.domainsize = make_float3(XL, YL, ZL);
@@ -196,18 +195,18 @@ void forces_sem_cuda(float * const _xyzuvw, float * const _axayaz,
     CUDA_CHECK(cudaMemcpyToSymbol(info, &c, sizeof(c)));
 
     device_vector<int> starts(ncells), counts(ncells);
-    build_clists(_ptr(xyzuvw), np, rcutoff, c.ncells.x, c.ncells.y, c.ncells.z,
+    build_clists(device_xyzuvw, np, rcutoff, c.ncells.x, c.ncells.y, c.ncells.z,
 		 c.domainstart.x, c.domainstart.y, c.domainstart.z,
 		 order, _ptr(starts), _ptr(counts), NULL);
 
     TextureWrap texStart(_ptr(starts), ncells), texCount(_ptr(counts), ncells);
-    TextureWrap texParticles((float2*)_ptr(xyzuvw), 3 * np);
+    TextureWrap texParticles((float2*)device_xyzuvw, 3 * np);
     
     ProfilerDPD::singletone().start();
     
     _sem_forces_saru<<<dim3(c.ncells.x / _XCPB_,
 			    c.ncells.y / _YCPB_,
-			    c.ncells.z / _ZCPB_), dim3(32, CPB)>>>(_ptr(axayaz), saru_tid, texStart.texObj, texCount.texObj, texParticles.texObj);
+			    c.ncells.z / _ZCPB_), dim3(32, CPB)>>>( device_axayaz, saru_tid, texStart.texObj, texCount.texObj, texParticles.texObj);
 
     ++saru_tid;
 
@@ -215,10 +214,10 @@ void forces_sem_cuda(float * const _xyzuvw, float * const _axayaz,
 	
     ProfilerDPD::singletone().force();	
     ProfilerDPD::singletone().report();
-    	
-    copy(axayaz.begin(), axayaz.end(), _axayaz);
- 
+     
 #ifdef _CHECK_
+    host_vector<float> axayaz(device_axayaz, device_axayaz + np * 3), _xyzuvw(device_xyzuvw, device_xyzuvw + np * 6);
+    
     CUDA_CHECK(cudaThreadSynchronize());
     
     for(int ii = 0; ii < np; ++ii)
@@ -228,7 +227,7 @@ void forces_sem_cuda(float * const _xyzuvw, float * const _axayaz,
 	int cnt = 0;
 	float fc = 0;
 	const int i = order[ii];
-	printf("devi coords are %f %f %f\n", (float)xyzuvw[0 + 6 * ii], (float)xyzuvw[1 + 6 * ii], (float)xyzuvw[2 + 6 * ii]);
+	//printf("devi coords are %f %f %f\n", (float)xyzuvw[0 + 6 * ii], (float)xyzuvw[1 + 6 * ii], (float)xyzuvw[2 + 6 * ii]);
 	printf("host coords are %f %f %f\n", (float)_xyzuvw[0 + 6 * i], (float)_xyzuvw[1 + 6 * i], (float)_xyzuvw[2 + 6 * i]);
 	
 	for(int j = 0; j < np; ++j)
@@ -292,10 +291,14 @@ void forces_sem_cuda(float * const xp, float * const yp, float * const zp,
     memset(a, 0, sizeof(float) * 3 * np);
 
     int * order = new int [np];
-    
-    forces_sem_cuda(pv, a, order, np, rcutoff, LX, LY, LZ,
+
+    device_vector<float> xyzuvw(pv, pv + np * 6),  axayaz(np * 3);
+	
+    forces_sem_cuda_nohost(_ptr(xyzuvw), _ptr(axayaz), order, np, rcutoff, LX, LY, LZ,
 		    gamma, temp, dt, u0, rho, req, D, rc);
-    
+
+    copy(axayaz.begin(), axayaz.end(), a);
+	
     delete [] pv;
      
     for(int i = 0; i < np; ++i)
