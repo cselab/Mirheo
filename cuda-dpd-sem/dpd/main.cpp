@@ -7,7 +7,7 @@
 #include <vector>
 #include <random>
 
-#include "dpd-cuda.h"
+#include "cuda-dpd.h"
 
 using namespace std;
 
@@ -37,7 +37,7 @@ void vmd_xyz(const char * path, real * xs, real * ys, real * zs, const int n, bo
 
 int main()
 {
-    real L = 10;
+    real L = 20;
 
     const int Nm = 3;
     const int n = L * L * L * Nm;
@@ -46,23 +46,30 @@ int main()
     const real aij = 2.5;
     const real rc = 1;
     const bool cuda = true;
-    const bool curand = true;
+    const bool bipartite = true;
     const real dt = 0.02;
-    const real tend = 10;
+    const real tend = 20;//0.08 * 20;
     
     vector<real> xp(n), yp(n), zp(n), xv(n), yv(n), zv(n), xa(n), ya(n), za(n);
-    
+    srand48(6516L);
     for(int i = 0; i < n; ++i)
     {
-	const int cid = i / 3;
+	const int cid = i / Nm;
 	
 	const int xcid = cid % (int)L;
 	const int ycid = (cid / (int) L) % (int)L;
 	const int zcid = (cid / (int) L / (int) L) % (int)L;
+
+#if 1
+	xp[i] = -L * 0.5f +  drand48() * L;
+	yp[i] = -L * 0.5f +  drand48() * L;
+	zp[i] = -L * 0.5f +  drand48() * L;
 	
-	xp[i] = -L * 0.5f + drand48() * L;
-	yp[i] = -L * 0.5f + drand48() * L;
-	zp[i] = -L * 0.5f + drand48() * L;
+#else
+	xp[i] = -L * 0.5f + xcid + 0.5+ 0.015 * (1 - 2 * drand48() );
+	yp[i] = -L * 0.5f + ycid + 0.5+ 0.015 * (1 - 2 * drand48() );
+	zp[i] = -L * 0.5f + zcid + 0.5+ 0.015 * (1 - 2 * drand48() );
+#endif
     }
     
     auto _diag = [&](FILE * f, float t)
@@ -106,27 +113,51 @@ int main()
     std::mt19937 gen(rd());
     std::normal_distribution<> dgauss(0, 1);
 
+    int cnt = 0;
     auto _f = [&]()
 	{
-	    if (cuda)
+	    fill(xa.begin(), xa.end(), 0);
+	    fill(ya.begin(), ya.end(), 0);
+	    fill(za.begin(), za.end(), 0);
+	      
+	    if (cuda) 
 	    {
-		vector<float> rsamples;
-
-		if (!curand)
+		if (!bipartite)
+		    forces_dpd_cuda(
+			&xp.front(), &yp.front(), &zp.front(),
+			&xv.front(), &yv.front(), &zv.front(),
+			&xa.front(), &ya.front(), &za.front(),
+			n,
+			rc, L, L, L, aij, gamma, sigma, 1./sqrt(dt));
+		else
 		{
-		    rsamples.resize(n * 50);
-		    
-		    for(auto& e : rsamples)
-			e = dgauss(gen);
+		    const int pivot = n  * 0.5;//(int)(drand48() * xp.size());
+		    		    
+		    forces_dpd_cuda_bipartite(
+			&xp.front(), &yp.front(), &zp.front(),
+			&xv.front(), &yv.front(), &zv.front(),
+			&xa.front(), &ya.front(), &za.front(),
+			pivot, 0,
+			&xp.front() + pivot, &yp.front() + pivot, &zp.front() + pivot,
+			&xv.front() + pivot, &yv.front() + pivot, &zv.front() + pivot,
+			&xa.front() + pivot, &ya.front() + pivot, &za.front() + pivot,
+			n - pivot, pivot,
+			rc, L, L, L, aij, gamma, sigma, 1./sqrt(dt));
+
+		      forces_dpd_cuda(
+			&xp.front(), &yp.front(), &zp.front(),
+			&xv.front(), &yv.front(), &zv.front(),
+			&xa.front(), &ya.front(), &za.front(),
+			pivot,
+			rc, L, L, L, aij, gamma, sigma, 1./sqrt(dt));
+
+		      forces_dpd_cuda(
+			  &xp.front() + pivot, &yp.front() + pivot, &zp.front() + pivot,
+			  &xv.front() + pivot, &yv.front() + pivot, &zv.front() + pivot,
+			  &xa.front() + pivot, &ya.front() + pivot, &za.front() + pivot,
+			  n - pivot,
+			  rc, L, L, L, aij, gamma, sigma, 1./sqrt(dt));
 		}
-			
-		forces_dpd_cuda(
-		    &xp.front(), &yp.front(), &zp.front(),
-		    &xv.front(), &yv.front(), &zv.front(),
-		    &xa.front(), &ya.front(), &za.front(),
-		    NULL, n,
-		    rc, L, L, L, aij, gamma, sigma, 1./sqrt(dt),
-		    curand ? nullptr : &rsamples.front(), rsamples.size());
 		
 		return;
 	    }
@@ -191,11 +222,12 @@ int main()
 
     for(int it = 0; it < nt; ++it)
     {
-	if (it % 10 == 0)
+	//const double dt = 0;
+	if (it % 1 == 0)
 	{
 	    float t = it * dt;
 	    _diag(fdiag, t);
-	    _diag(stdout, t);
+	      _diag(stdout, t);
 	}
 		
 	_up(xv, xa, dt * 0.5);
