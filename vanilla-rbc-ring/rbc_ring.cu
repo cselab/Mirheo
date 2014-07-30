@@ -30,9 +30,9 @@ typedef thrust::device_vector<real> dvector;
 const real boxLength = 5.0;
 
 // dpd code works only if natoms = 2^N
-const size_t nrings = 16;
+const size_t nrings = 1;
 const size_t natomsPerRing = 10;
-const size_t nfluidAtoms = 352;//boxLength * boxLength * boxLength; // density 1
+const size_t nfluidAtoms = 0; // boxLength * boxLength * boxLength; // density 1
 const size_t natoms = nrings * natomsPerRing + nfluidAtoms;
 
 hvector xp(natoms), yp(natoms), zp(natoms),
@@ -41,6 +41,7 @@ hvector xp(natoms), yp(natoms), zp(natoms),
 
 // dpd parameters
 const real dtime = 0.001;
+const real dtinvsqrt = 31.6227766017; //1.0 / sqrtf(dtime);
 const real kbT = 0.1;
 const size_t timeEnd = 100;
 
@@ -538,6 +539,76 @@ void cuda_calcAngleForcesBend(const dvector& d_xp, const dvector& d_yp, const dv
       nrings * natomsPerRing);
 }
 
+__device__ void kernelDPDPairCore(sizeType i, sizeType j, sizeType timeStep, 
+                                  const float3 pi, const float3 pj, 
+                                  const float3 vi, const float3 vj, float* res)
+{
+  real del[] = {pi.x - pj.x, pi.y - pj.y, pi.z - pj.z};
+  d_minImage(del, boxLength);
+
+  real rsq = d_dot(del, del);
+  if (rsq < cutsq)
+  {
+    real r = sqrtf(rsq);
+    real rinv = 1.0 / r;
+    real delv[] = {vi.x - vj.x, vi.y - vj.y, vi.z - vj.z};
+
+    real dot = d_dot(del, delv);
+    real randnum = d_getGRand(i, j, timeStep);
+
+    // conservative force = a0 * wd
+    // drag force = -gamma * wd^2 * (delx dot delv) / r
+    // random force = sigma * wd * rnd * dtinvsqrt;
+    real wd = powf(1.0 - r/cut, kPower);
+    real fpair = a0 * (1.0 - r/cut);
+    fpair -= gamma0 * wd * wd * dot * rinv;
+    fpair += sigma * wd * randnum * dtinvsqrt;
+    fpair *= rinv;
+
+    res[0] = del[0] * fpair;
+    res[1] = del[1] * fpair;
+    res[2] = del[2] * fpair;
+  }
+}
+
+__global__ void kernelDPDRingInter(const float* d_xp, const float* d_yp, const float* d_zp,
+                              const float* d_xv, const float* d_yv, const float* d_zv,
+                              float* d_xa, float* d_ya, float* d_za, int natoms, size_t timeStep)
+{
+  int tid = blockIdx.x * blockDim.x + threadIdx.x;
+  if (tid > natoms * natoms) return;
+
+  sizeType i = tid % 10;
+  
+  float df[] = {0.0, 0.0, 0.0};
+  float dfBuf[3];
+  float3 pi = make_float3(d_xp[i], d_yp[i], d_zp[i]);
+  float3 vi = make_float3(d_xv[i], d_yv[i], d_zv[i]);  
+  for (sizeType j = tid / 10; j < 10; j += 3) 
+  {
+    float3 pj = make_float3(d_xp[j], d_yp[j], d_zp[j]);
+    float3 vj = make_float3(d_xv[j], d_yv[j], d_zv[j]);
+    if (i == j || i > 9 || j > 9)
+      continue;
+
+    kernelDPDPairCore(i, j, timeStep, pi, pj, vi, vj, dfBuf);
+    df[0] += dfBuf[0]; df[1] += dfBuf[1]; df[2] += dfBuf[2];
+  }
+  
+  sizeType laneid =  threadIdx.x % 32;
+
+  for (sizeType i = 0; i < 3; ++i) {
+    df[i] += __shfl(df[i], laneid + 10);
+    df[i] += __shfl(df[i], laneid + 20);
+  }
+  
+  if (laneid < 10) {
+    d_xa[i] += df[0];
+    d_ya[i] += df[1];
+    d_za[i] += df[2];
+  }
+}
+
 // forces computations splitted by the type
 __global__ void kernelDPDpair(const float* d_xp, const float* d_yp, const float* d_zp,
                               const float* d_xv, const float* d_yv, const float* d_zv,
@@ -551,39 +622,14 @@ __global__ void kernelDPDpair(const float* d_xp, const float* d_yp, const float*
 
   extern __shared__ float3 s_df[];
 
-  real dtinvsqrt = 1.0 / sqrtf(dtime);
-  float del[] = {d_xp[i] - d_xp[j], d_yp[i] - d_yp[j], d_zp[i] - d_zp[j]};
-  d_minImage(del, boxLength);
-
-  real rsq = d_dot(del, del);
-  float3 df = make_float3(0.0f, 0.0f, 0.0f);
-  if (rsq < cutsq && i != j)
-  {
-    float r = sqrtf(rsq);
-    float rinv = 1.0 / r;
-    float delv[] = {d_xv[i] - d_xv[j], d_yv[i] - d_yv[j], d_zv[i] - d_zv[j]};
-
-    float dot = d_dot(del, delv);
-    float randnum = d_getGRand(i, j, timeStep);
-
-    // conservative force = a0 * wd
-    // drag force = -gamma * wd^2 * (delx dot delv) / r
-    // random force = sigma * wd * rnd * dtinvsqrt;
-    float wd = powf(1.0 - r/cut, kPower);
-    float fpair = a0 * (1.0 - r/cut);
-    fpair -= gamma0 * wd * wd * dot * rinv;
-    fpair += sigma * wd * randnum * dtinvsqrt;
-    fpair *= rinv;
-
-    df.x = del[0] * fpair;
-    df.y = del[1] * fpair;
-    df.z = del[2] * fpair;
-    // slow method just to check
-    //atomicAdd(&d_xa[i], del[0] * fpair);
-    //atomicAdd(&d_ya[i], del[1] * fpair);
-    //atomicAdd(&d_za[i], del[2] * fpair);
-  }
-  s_df[j] = df;
+  float3 pi = make_float3(d_xp[i], d_yp[i], d_zp[i]);
+  float3 vi = make_float3(d_xv[i], d_yv[i], d_zv[i]);
+  float3 pj = make_float3(d_xp[j], d_yp[j], d_zp[j]);
+  float3 vj = make_float3(d_xv[j], d_yv[j], d_zv[j]);  
+  float  res[] = {0.0, 0.0, 0.0};
+  if (i != j)
+    kernelDPDPairCore(i, j, timeStep, pi, pj, vi, vj, res);
+  s_df[j].x = res[0]; s_df[j].y = res[1]; s_df[j].z = res[2];
   __syncthreads();
 
   // f[i] = sum{j}(df[j]);)
@@ -614,7 +660,7 @@ void cuda_calcDpdForces(const dvector& d_xp, const dvector& d_yp, const dvector&
   int nThreadsPerBlock = natoms;
   int nBlocks = natoms;
 
-  kernelDPDpair<<< nBlocks, nThreadsPerBlock, sizeof(float3) * nThreadsPerBlock  >>>(
+  kernelDPDRingInter<<< nBlocks, nThreadsPerBlock >>>(
       GET_RAW(d_xp), GET_RAW(d_yp), GET_RAW(d_zp),
       GET_RAW(d_xv), GET_RAW(d_yv), GET_RAW(d_zv),
       GET_RAW(d_xa), GET_RAW(d_ya), GET_RAW(d_za),
@@ -637,10 +683,10 @@ void cuda_computeForcesCheck(size_t timeStep)
   cuda_calcDpdForces(d_xp, d_yp, d_zp, d_xv, d_yv, d_zv,
       d_xa, d_ya, d_za, timeStep);
   cudaDeviceSynchronize();
-  cuda_calcBondForcesWLC(d_xp, d_yp, d_zp, d_xa, d_ya, d_za);
-  cudaDeviceSynchronize();  
-  cuda_calcAngleForcesBend(d_xp, d_yp, d_zp, d_xa, d_ya, d_za);
-  cudaDeviceSynchronize();
+  //cuda_calcBondForcesWLC(d_xp, d_yp, d_zp, d_xa, d_ya, d_za);
+  //cudaDeviceSynchronize();  
+  //cuda_calcAngleForcesBend(d_xp, d_yp, d_zp, d_xa, d_ya, d_za);
+  //cudaDeviceSynchronize();
   
   thrust::fill(xa.begin(), xa.end(), 0.0);
   thrust::fill(ya.begin(), ya.end(), 0.0);
@@ -648,8 +694,8 @@ void cuda_computeForcesCheck(size_t timeStep)
   
   //to check that xa == d_xa; ya == d_ya; za == d_za;  
   calcDpdForces(timeStep);
-  calcBondForcesWLC();
-  calcAngleForcesBend();
+  //calcBondForcesWLC();
+  //calcAngleForcesBend();
 
   // check that computations are correct
   thrust::host_vector<real> h_xa(d_xa), h_ya(d_ya), h_za(d_za);
@@ -800,12 +846,12 @@ int main()
   initPositions();
   FILE * fstat = fopen("diag.txt", "w");
 
-  dvector d_xp(natoms), d_yp(natoms), d_zp(natoms),
-          d_xv(natoms), d_yv(natoms), d_zv(natoms),
-          d_xa(natoms), d_ya(natoms), d_za(natoms);
+  //dvector d_xp(natoms), d_yp(natoms), d_zp(natoms),
+  //        d_xv(natoms), d_yv(natoms), d_zv(natoms),
+  //        d_xa(natoms), d_ya(natoms), d_za(natoms);
   
-  d_xp = xp; d_yp = yp; d_zp = zp;
-  d_xv = xv; d_yv = yv; d_zv = zv;
+  //d_xp = xp; d_yp = yp; d_zp = zp;
+  //d_xv = xv; d_yv = yv; d_zv = zv;
   
   for (size_t timeStep = 0; timeStep < timeEnd; ++timeStep)
   {
@@ -816,21 +862,21 @@ int main()
       //printStatistics(fstat, timeStep);
     }
 
-    cuda_initialIntegrate(d_xp, d_yp, d_zp,
+    initialIntegrate(/*d_xp, d_yp, d_zp,
                           d_xv, d_yv, d_zv,
-                          d_xa, d_ya, d_za);
-    cuda_pbc(d_xp, d_yp, d_zp);
+                          d_xa, d_ya, d_za*/);
+    pbc(/*d_xp, d_yp, d_zp*/);
     if (timeStep % outEvery == 0) {
-      xp = d_xp; yp = d_yp; zp = d_zp;
+      //xp = d_xp; yp = d_yp; zp = d_zp;
       lammps_dump("evolution.dump", &xp.front(), &yp.front(), &zp.front(), natoms, timeStep, boxLength);
     }
 
-    cuda_computeForces(d_xp, d_yp, d_zp,
+    cuda_computeForcesCheck(/*d_xp, d_yp, d_zp,
                        d_xv, d_yv, d_zv,
-                       d_xa, d_ya, d_za, timeStep);
+                       d_xa, d_ya, d_za,*/ timeStep);
 
-    cuda_finalIntegrate(d_xv, d_yv, d_zv,
-                        d_xa, d_ya, d_za);
+    finalIntegrate(/*d_xv, d_yv, d_zv,
+                        d_xa, d_ya, d_za*/);
   }
 
   fclose(fstat);
