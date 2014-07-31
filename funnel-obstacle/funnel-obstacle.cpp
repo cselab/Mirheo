@@ -11,7 +11,6 @@
 #include <cmath>
 #include <cstdio>
 #include <cassert>
-
 #include <algorithm>
 #include <vector>
 #include <limits>
@@ -19,13 +18,6 @@
 typedef std::vector< std::pair<float, float> >::const_iterator RIterator;
 
 namespace {
-  // functions parameters are hidden
-  float boxLength = 10.0;
-  size_t gridSize = 64;
-  size_t obstacleDetalization = 2000;
-
-  float leftBottom[] = {-boxLength/2, -boxLength/2};
-
   float x2y(float x, float y0)
   {
     return x * x - y0;
@@ -52,23 +44,19 @@ namespace {
   }
 }
 
-FunnelObstacle::FunnelObstacle()
-:  m_yPlaneUp(0), m_yPlaneDown(0.0), m_y0(0.0)
+FunnelObstacle::FunnelObstacle(const float plength, const float domainLength)
+:  m_yPlaneUp(0), m_yPlaneDown(0.0), m_y0(0.0), m_domainLength(domainLength),
+   m_gridSize(64), m_obstacleDetalization(2000)
 {
-}
+  float hy = (m_domainLength - plength) / 2;
+  m_yPlaneUp = m_domainLength/2 - hy;
+  m_y0 = fabs(-m_domainLength/2 + hy);
 
-FunnelObstacle::FunnelObstacle(const float plength)
-:  m_yPlaneUp(0), m_yPlaneDown(0.0), m_y0(0.0)
-{
-  float hy = (boxLength - plength) / 2;
-  m_yPlaneUp = boxLength/2 - hy;
-  m_y0 = fabs(-boxLength/2 + hy);
-
-  float h = boxLength / gridSize;
+  float h = m_domainLength / m_gridSize;
   initInterface();
-  for (size_t iy = 0; iy < gridSize; ++iy) {
-    for (size_t ix = 0; ix < gridSize; ++ix) {
-      float point[] = {ix * h + leftBottom[0], iy * h + leftBottom[1]};
+  for (size_t iy = 0; iy < m_gridSize; ++iy) {
+    for (size_t ix = 0; ix < m_gridSize; ++ix) {
+      float point[] = {ix * h - m_domainLength/2.0, iy * h - m_domainLength/2.0};
       float dist = calcDist(point[0], point[1]);
       assert(!std::isnan(dist));
       m_grid.data[iy][ix] = dist;
@@ -76,12 +64,13 @@ FunnelObstacle::FunnelObstacle(const float plength)
   }
 }
 
-FunnelObstacle::FunnelObstacle(const float plength, const std::string& fileName)
-:  m_yPlaneUp(0), m_yPlaneDown(0.0), m_y0(0.0)
+FunnelObstacle::FunnelObstacle(const float plength, const float domainLength, const std::string& fileName)
+:  m_yPlaneUp(0), m_yPlaneDown(0.0), m_y0(0.0), m_domainLength(domainLength),
+   m_gridSize(64), m_obstacleDetalization(2000)
 {
-  float hy = (boxLength - plength) / 2;
-  m_yPlaneUp = boxLength/2 - hy;
-  m_y0 = fabs(-boxLength/2 + hy);
+  float hy = (m_domainLength - plength) / 2;
+  m_yPlaneUp = m_domainLength/2 - hy;
+  m_y0 = fabs(-m_domainLength/2 + hy);
 
   read(fileName);
 }
@@ -95,11 +84,12 @@ bool FunnelObstacle::isInside(const float x, const float y) const
 
 std::pair<bool, float> FunnelObstacle::sample(const float x, const float y) const
 {
-  float h = boxLength / (gridSize - 1.0);
+  assert(insideBB(x, y));
+  float h = m_domainLength / (m_gridSize - 1.0);
 
   // shift origin to the left bottom of the BB
-  float xShift = x + boxLength/2;
-  float yShift = y + boxLength/2;
+  float xShift = x + m_domainLength/2;
+  float yShift = y + m_domainLength/2;
   assert(xShift >= 0.0 && xShift >= 0.0);
 
   size_t ix, iy;
@@ -119,7 +109,7 @@ std::pair<bool, float> FunnelObstacle::sample(const float x, const float y) cons
     }
   }
 
-  assert(iminX < gridSize && iminY < gridSize);
+  assert(iminX < m_gridSize && iminY < m_gridSize);
   float dist = m_grid.data[iminY][iminX];
 
   return std::pair<bool, float>(dist < 0.0, fabs(dist));
@@ -127,7 +117,7 @@ std::pair<bool, float> FunnelObstacle::sample(const float x, const float y) cons
 
 void FunnelObstacle::initInterface()
 {
-  size_t szForEvery = obstacleDetalization / 2;
+  size_t szForEvery = m_obstacleDetalization / 2;
   float h = 2.0 * y2x(m_yPlaneUp, m_y0) / szForEvery;
   for (size_t ix = 0; ix < szForEvery; ++ix) {
     float x = ix * h - y2x(m_yPlaneUp, m_y0);
@@ -140,7 +130,7 @@ void FunnelObstacle::initInterface()
     m_interface.push_back(mkUpLine(x, m_y0));
   }
 
-  assert(m_interface.size() == obstacleDetalization);
+  assert(m_interface.size() == m_obstacleDetalization);
 }
 
 float FunnelObstacle::calcDist(const float x, const float y) const
@@ -158,7 +148,7 @@ float FunnelObstacle::calcDist(const float x, const float y) const
 
 bool FunnelObstacle::insideBB(const float x, const float y) const
 {
-  float half = boxLength / 2.0;
+  float half = m_domainLength / 2.0;
   if (x >= -half && x <= half
    && y >= -half && y <= half)
     return true;
@@ -175,8 +165,8 @@ void FunnelObstacle::write(const std::string& fileName) const
     abort();
   }
 
-  for (size_t iy = 0; iy < gridSize; ++iy) {
-    for (size_t ix = 0; ix < gridSize; ++ix) {
+  for (size_t iy = 0; iy < m_gridSize; ++iy) {
+    for (size_t ix = 0; ix < m_gridSize; ++ix) {
       fprintf(f, "   %e", m_grid.data[iy][ix]);
     }
     fprintf(f, "\n");
@@ -194,8 +184,8 @@ void FunnelObstacle::read(const std::string& fileName)
     abort();
   }
 
-  for (size_t iy = 0; iy < gridSize; ++iy) {
-    for (size_t ix = 0; ix < gridSize; ++ix) {
+  for (size_t iy = 0; iy < m_gridSize; ++iy) {
+    for (size_t ix = 0; ix < m_gridSize; ++ix) {
       float val;
       int result  = fscanf(f, "   %e", &val);
       assert(result == 1);
@@ -211,8 +201,8 @@ bool FunnelObstacle::operator== (const FunnelObstacle& another)
   if (m_yPlaneUp != another.m_yPlaneUp || m_yPlaneDown != another.m_yPlaneDown || m_y0 != another.m_y0)
     return false;
 
-  for (size_t iy = 0; iy < gridSize; ++iy)
-    for (size_t ix = 0; ix < gridSize; ++ix)
+  for (size_t iy = 0; iy < m_gridSize; ++iy)
+    for (size_t ix = 0; ix < m_gridSize; ++ix)
       if (fabs(m_grid.data[iy][ix] - another.m_grid.data[iy][ix]) > 1e-4)
         return false;
   return true;

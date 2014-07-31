@@ -18,22 +18,22 @@
 void checkReadWrite()
 {
   std::string inputFileName = "bla.dat";
-  FunnelObstacle fo(8.0f);
+  FunnelObstacle fo(32.0f, 40.0f);
   fo.write(inputFileName);
 
-  FunnelObstacle fIn(8.0f, inputFileName);
+  FunnelObstacle fIn(32.0f, 40.0f, inputFileName);
   assert(fIn == fo);
  //to be done
 }
 
-void checkFind()
+void checkFind1()
 {
-  FunnelObstacle fo(8.0f);
+  FunnelObstacle fo(8.0f, 10.0f);
 
   // pick up some points
   const float eps = 0.1;
   const float my0 = -4.0;
-  const float yPlaneUp = 4.0;
+  //const float yPlaneUp = 4.0;
   assert(fo.sample(0, my0).second < eps);
   assert(fo.isInside(0, my0 + 1) == true);
   assert(fo.isInside(0, my0 - 1) == false);
@@ -58,11 +58,49 @@ void checkFind()
     if (y < -4.1 || y >= 4.1)
       assert(!fo.isInside(x, y));
   }
+}
 
-  /* not accurate for now
+void checkFind2()
+{
+  float domainLength = 40.0f;
+  FunnelObstacle fo(32.0f, domainLength);
+
+  // pick up some points
+  const float eps = domainLength / 64;
+  const float my0 = -16.0;
+  //const float yPlaneUp = 4.0;
+  assert(fo.sample(0, my0).second < eps);
+  assert(fo.isInside(0, my0 + 1) == true);
+  assert(fo.isInside(0, my0 - 1) == false);
+
   // check on the points from the border
-  szForEvery = 20;
-  h = 2.0 * sqrtf(yPlaneUp - my0) / szForEvery;
+  size_t szForEvery = 20;
+  float h = domainLength / szForEvery;
+  for (size_t ix = 0; ix < szForEvery; ++ix) {
+    float x = ix * h - domainLength/2;
+    float y = 0.0;
+    if (x > -3.9 && x <= 3.9)
+      assert(fo.isInside(x, y));
+    if (x < -4.1 || x >= 4.1)
+      assert(!fo.isInside(x, y));
+  }
+
+  for (size_t iy = 0; iy < szForEvery; ++iy) {
+    float y = iy * h - domainLength/2;
+    float x = 0.0;
+    if (y > -15.9 && y <= 15.9)
+      assert(fo.isInside(x, y));
+    if (y < -16.1 || y >= 16.1)
+      assert(!fo.isInside(x, y));
+  }
+}
+
+void checkSample()
+{
+  /*
+  // check on the points from the border
+  size_t szForEvery = 20;
+  size_t h = 2.0 * sqrtf(yPlaneUp - my0) / szForEvery;
   for (size_t ix = 0; ix < szForEvery; ++ix) {
     float x = ix * h - sqrtf(yPlaneUp - my0);
     float y = x*x + my0;
@@ -72,7 +110,10 @@ void checkFind()
   }*/
 }
 
+
 int main()
 {
   checkReadWrite();
+  checkFind1();
+  checkFind2();
 }

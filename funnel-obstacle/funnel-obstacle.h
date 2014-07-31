@@ -20,7 +20,8 @@ class FunnelObstacle
   };
   Grid m_grid;
 
-  float m_yPlaneUp, m_yPlaneDown, m_y0;
+  float m_yPlaneUp, m_yPlaneDown, m_y0, m_domainLength;
+  const size_t m_gridSize, m_obstacleDetalization;
 
   std::vector< std::pair <float, float> > m_interface;
   void initInterface();
@@ -36,9 +37,8 @@ class FunnelObstacle
 
 public:
 
-  FunnelObstacle();
-  FunnelObstacle(const float plength);
-  FunnelObstacle(const float plength, const std::string& fileName);
+  FunnelObstacle(const float plength, const float domainLength);
+  FunnelObstacle(const float plength, const float domainLength, const std::string& fileName);
 
   bool isInside(const float x, const float y) const;
   std::pair<bool, float> sample(const float x, const float y) const;
