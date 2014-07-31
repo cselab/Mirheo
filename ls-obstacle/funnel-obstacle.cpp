@@ -52,7 +52,13 @@ namespace {
   }
 }
 
+FunnelObstacle::FunnelObstacle()
+:  m_yPlaneUp(0), m_yPlaneDown(0.0), m_y0(0.0)
+{
+}
+
 FunnelObstacle::FunnelObstacle(const float plength)
+:  m_yPlaneUp(0), m_yPlaneDown(0.0), m_y0(0.0)
 {
   float hy = (boxLength - plength) / 2;
   m_yPlaneUp = boxLength/2 - hy;
@@ -68,6 +74,16 @@ FunnelObstacle::FunnelObstacle(const float plength)
       m_grid.data[iy][ix] = dist;
     }
   }
+}
+
+FunnelObstacle::FunnelObstacle(const float plength, const std::string& fileName)
+:  m_yPlaneUp(0), m_yPlaneDown(0.0), m_y0(0.0)
+{
+  float hy = (boxLength - plength) / 2;
+  m_yPlaneUp = boxLength/2 - hy;
+  m_y0 = fabs(-boxLength/2 + hy);
+
+  read(fileName);
 }
 
 bool FunnelObstacle::isInside(const float x, const float y) const
@@ -190,3 +206,14 @@ void FunnelObstacle::read(const std::string& fileName)
   fclose(f);
 }
 
+bool FunnelObstacle::operator== (const FunnelObstacle& another)
+{
+  if (m_yPlaneUp != another.m_yPlaneUp || m_yPlaneDown != another.m_yPlaneDown || m_y0 != another.m_y0)
+    return false;
+
+  for (size_t iy = 0; iy < gridSize; ++iy)
+    for (size_t ix = 0; ix < gridSize; ++ix)
+      if (fabs(m_grid.data[iy][ix] - another.m_grid.data[iy][ix]) > 1e-4)
+        return false;
+  return true;
+}

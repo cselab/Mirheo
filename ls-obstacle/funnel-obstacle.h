@@ -29,15 +29,23 @@ class FunnelObstacle
 
   bool insideBB(const float x, const float y) const;
 
+  void read(const std::string& fileName);
+
+  FunnelObstacle(const FunnelObstacle&);
+  FunnelObstacle& operator= (const FunnelObstacle&);
+
 public:
 
-  FunnelObstacle(const float length);
+  FunnelObstacle();
+  FunnelObstacle(const float plength);
+  FunnelObstacle(const float plength, const std::string& fileName);
 
   bool isInside(const float x, const float y) const;
   std::pair<bool, float> sample(const float x, const float y) const;
 
   void write(const std::string& fileName) const;
-  void read(const std::string& fileName);
+
+  bool operator== (const FunnelObstacle& another);
 };
 
 
