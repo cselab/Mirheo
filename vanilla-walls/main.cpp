@@ -7,6 +7,7 @@
 #include <string>
 
 #include "cuda-dpd.h"
+#include "funnel-obstacle.h"
 
 inline float saru(unsigned int seed1, unsigned int seed2, unsigned int seed3)
 {
@@ -424,6 +425,9 @@ struct SandwichBouncer: Bouncer
 	}
 };
 
+#if 1
+FunnelObstacle kirill(8 * 3);
+#else
 struct Kirill
 {
     bool iscolliding(const float x, const float y)
@@ -439,6 +443,8 @@ struct Kirill
 	}
     
 } kirill;
+#endif
+   
 
 struct TomatoSandwich: SandwichBouncer
 {
@@ -456,7 +462,7 @@ struct TomatoSandwich: SandwichBouncer
 		const float x = p.xp[i] - xc;
 		const float y = p.yp[i] - yc;
 #if 1
-		freeze[i] |= kirill.iscolliding(x, y);
+		freeze[i] |= kirill.isInside(x, y);
 #else
 		const float r2 = x * x + y * y;
 
@@ -485,7 +491,7 @@ struct TomatoSandwich: SandwichBouncer
 			   float& dt)
 	{
 #if 1
-	    if (!kirill.iscolliding(x, y))
+	    if (!kirill.isInside(x, y))
 		return false;
 
 	    const float xold = x - dt * u;
@@ -500,7 +506,7 @@ struct TomatoSandwich: SandwichBouncer
 		const float xcandidate = xold + tcandidate * u;
 		const float ycandidate = yold + tcandidate * v;
 		
-		 if (!kirill.iscolliding(xcandidate, ycandidate))
+		 if (!kirill.isInside(xcandidate, ycandidate))
 		     t = tcandidate;
 	    }
 
