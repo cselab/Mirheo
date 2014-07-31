@@ -9,7 +9,7 @@
 #include "Interaction.h"
 #include "CellList.h"
 
-#ifdef _CUDACC_
+#ifdef __GPU__
 #include "Gpukernels.h"
 #else
 #include "Cpukernels.h"
@@ -80,9 +80,11 @@ nTypes(nTypes), part(part), prof(prof)
 
 void InteractionTable::doCells()
 {
+#ifndef __GPU__
     for (int i=0; i<nTypes; i++)
         for (int j=0; j<nTypes; j++)
             cells[i][j]->migrate();
+#endif
 }
 
 void InteractionTable::evalForces(int step)

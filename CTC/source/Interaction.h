@@ -61,7 +61,7 @@ protected:
 //**********************************************************************************************************************
 class DPD : public Interaction
 {
-private:
+public:
 	real alpha, gamma, temp, sigma;
     real rCut, rCut2, rc;
     
@@ -73,7 +73,7 @@ public:
     
     inline bool  nonzero(real r2) { return r2 < rCut2; }
     inline void  F(const real dx, const real dy, const real dz,
-                   const real vx, const real vy, const real vz,
+                   Particles* p1, Particles* p2,
                    const real r2,
                    real& fx,      real& fy,      real& fz,
                    int i, int j, int t) const;
@@ -93,11 +93,15 @@ inline real DPD::w(real r) const
 }
 
 inline void DPD::F(const real dx, const real dy, const real dz,
-                   const real vx, const real vy, const real vz,
+                   Particles* p1, Particles* p2,
                    const real r2,
                    real& fx,      real& fy,      real& fz,
                    int i, int j, int t) const
 {
+    real vx = p1->vx(j) - p2->vx(i);
+    real vy = p1->vy(j) - p2->vy(i);
+    real vz = p1->vz(j) - p2->vz(i);
+    
     real IrI = sqrt(r2);
     real wr_IrI = w(IrI) / IrI;
 	   
@@ -117,7 +121,7 @@ inline void DPD::F(const real dx, const real dy, const real dz,
 //**********************************************************************************************************************
 class SEM : public Interaction
 {
-private:
+public:
 	real gamma, temp, sigma;
     real u0, rho, D;
     real rCut, rCut2, req_1, req_2, rc, rc2;
@@ -129,7 +133,7 @@ public:
     
     inline bool nonzero(real r2) { return r2 < rCut2; }
     inline void  F(const real dx, const real dy, const real dz,
-                   const real vx, const real vy, const real vz,
+                   Particles* p1, Particles* p2,
                    const real r2,
                    real& fx,      real& fy,      real& fz,
                    int i, int j, int t) const;
@@ -149,11 +153,15 @@ inline real SEM::w(real r) const
 }
 
 inline void SEM::F(const real dx, const real dy, const real dz,
-                   const real vx, const real vy, const real vz,
+                   Particles* p1, Particles* p2,
                    const real r2,
                    real& fx,      real& fy,      real& fz,
                    int i, int j, int t) const
 {
+    real vx = p1->vx(j) - p2->vx(i);
+    real vy = p1->vy(j) - p2->vy(i);
+    real vz = p1->vz(j) - p2->vz(i);
+
     real IrI = sqrt(r2);
     real wr_IrI = w(IrI) / IrI;
         

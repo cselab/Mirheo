@@ -209,14 +209,32 @@ public:
         
         for (int i = 0; i<N; i++)
         {
+            real *xbuf, *vbuf;
+            xbuf = new real[p[i]->n];
+            vbuf = new real[p[i]->n];
+            
+            for (int i=0; i<p[i]->n; i++)
+            {
+                xbuf[3*i + 0] = p[i]->x(i);
+                xbuf[3*i + 1] = p[i]->y(i);
+                xbuf[3*i + 2] = p[i]->z(i);
+                
+                vbuf[3*i + 0] = p[i]->vx(i);
+                vbuf[3*i + 1] = p[i]->vy(i);
+                vbuf[3*i + 2] = p[i]->vz(i);
+            }
+            
             out.write((char*)&p[i]->n, sizeof(int));
             
-            out.write((char*)p[i]->xdata,  3*p[i]->n*sizeof(real));
-            out.write((char*)p[i]->vdata,  3*p[i]->n*sizeof(real));
+            out.write((char*)xbuf,  3*p[i]->n*sizeof(real));
+            out.write((char*)vbuf,  3*p[i]->n*sizeof(real));
             
             out.write((char*)p[i]->m,  p[i]->n*sizeof(real));
             
             out.write((char*)p[i]->label, p[i]->n*sizeof(int));
+            
+            delete[] xbuf;
+            delete[] vbuf;
         }
         out.close();
 	}

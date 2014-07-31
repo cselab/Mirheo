@@ -236,16 +236,10 @@ objects(obj), nObj(nObj), CellsInfo(size, low, high)
 template <typename Object>
 void Cells<Object>::migrate()
 {
-    for (int i=0; i<this->nObj; i++)
-    {
-        xhost[i] = this->objects->xdata[3*i+0];
-        yhost[i] = this->objects->xdata[3*i+1];
-        zhost[i] = this->objects->xdata[3*i+2];
-    }
 	// Wrap the arrays with thrust vectors
-	thrust::device_ptr<real> xptr = thrust::device_pointer_cast(xhost);
-	thrust::device_ptr<real> yptr = thrust::device_pointer_cast(yhost);
-	thrust::device_ptr<real> zptr = thrust::device_pointer_cast(zhost);
+	thrust::device_ptr<real> xptr = thrust::device_pointer_cast(this->objects->xdata);
+	thrust::device_ptr<real> yptr = thrust::device_pointer_cast(this->objects->ydata);
+	thrust::device_ptr<real> zptr = thrust::device_pointer_cast(this->objects->zdata);
 	
 	// Calculate index of a cell where a particle is situated
 	thrust::transform(thrust::make_zip_iterator(thrust::make_tuple(xptr, yptr, zptr)),

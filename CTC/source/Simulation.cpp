@@ -110,8 +110,12 @@ void Simulation::setIC()
     
     for (int type=0; type<nTypes; type++)
     {
-        _fill(part[type]->vdata, 3*part[type]->n, (real)0.0);
-        _fill(part[type]->adata, 3*part[type]->n, (real)0.0);
+        _fill(part[type]->vxdata, part[type]->n, (real)0.0);
+        _fill(part[type]->vydata, part[type]->n, (real)0.0);
+        _fill(part[type]->vzdata, part[type]->n, (real)0.0);
+        _fill(part[type]->axdata, part[type]->n, (real)0.0);
+        _fill(part[type]->aydata, part[type]->n, (real)0.0);
+        _fill(part[type]->azdata, part[type]->n, (real)0.0);
         
         _fill(part[type]->m, part[type]->n, (real)1.0);
         _fill(part[type]->label, part[type]->n, 0);
@@ -137,14 +141,34 @@ void Simulation::loadRestart(string fname)
         part[i]->n = n;
         _allocate(part[i]);
         
-        in.read((char*)part[i]->xdata,  3*n*sizeof(real));
-        in.read((char*)part[i]->vdata,  3*n*sizeof(real));
+        real *xbuf, *vbuf;
+        xbuf = new real[part[i]->n];
+        vbuf = new real[part[i]->n];
+        
+        in.read((char*)xbuf,  3*n*sizeof(real));
+        in.read((char*)vbuf,  3*n*sizeof(real));
         
         in.read((char*)part[i]->m,  n*sizeof(real));
         in.read((char*)part[i]->label, n*sizeof(int));
         
-        _fill(part[i]->adata, 3*part[i]->n, (real)0.0);
-        _fill(part[i]->vdata, 3*part[i]->n, (real)0.0); // !!!
+        for (int i=0; i<part[i]->n; i++)
+        {
+            part[i]->x(i)  = xbuf[3*i + 0];
+            part[i]->y(i)  = xbuf[3*i + 1];
+            part[i]->z(i)  = xbuf[3*i + 2];
+            
+            part[i]->vx(i) = vbuf[3*i + 0];
+            part[i]->vy(i) = vbuf[3*i + 1];
+            part[i]->vz(i) = vbuf[3*i + 2];
+        }
+
+        
+        _fill(part[i]->vxdata, part[i]->n, (real)0.0);
+        _fill(part[i]->vydata, part[i]->n, (real)0.0);
+        _fill(part[i]->vzdata, part[i]->n, (real)0.0);
+        _fill(part[i]->axdata, part[i]->n, (real)0.0);
+        _fill(part[i]->aydata, part[i]->n, (real)0.0);
+        _fill(part[i]->azdata, part[i]->n, (real)0.0);
     }
     
     in.close();
@@ -293,14 +317,20 @@ void Simulation::velocityVerlet()
         
         for (int type = 0; type < nTypes; type++)
         {
-            _axpy(part[type]->vdata, part[type]->adata, 3*part[type]->n, dt*0.5);
-            _axpy(part[type]->xdata, part[type]->vdata, 3*part[type]->n, dt);
+            _axpy(part[type]->vxdata, part[type]->axdata, part[type]->n, dt*0.5);
+            _axpy(part[type]->vydata, part[type]->aydata, part[type]->n, dt*0.5);
+            _axpy(part[type]->vzdata, part[type]->azdata, part[type]->n, dt*0.5);
+            _axpy(part[type]->xdata, part[type]->vxdata, part[type]->n, dt);
+            _axpy(part[type]->ydata, part[type]->vydata, part[type]->n, dt);
+            _axpy(part[type]->zdata, part[type]->vzdata, part[type]->n, dt);
             
-            _normalize(part[type]->xdata, part[type]->n, xlo, xhi, 0);
-            _normalize(part[type]->xdata, part[type]->n, ylo, yhi, 1);
-            _normalize(part[type]->xdata, part[type]->n, zlo, zhi, 2);
+            _normalize(part[type]->xdata, part[type]->n, xlo, xhi);
+            _normalize(part[type]->ydata, part[type]->n, ylo, yhi);
+            _normalize(part[type]->zdata, part[type]->n, zlo, zhi);
             
-            _fill(part[type]->adata, 3*part[type]->n, (real)0.0);
+            _fill(part[type]->axdata, part[type]->n, (real)0.0);
+            _fill(part[type]->aydata, part[type]->n, (real)0.0);
+            _fill(part[type]->azdata, part[type]->n, (real)0.0);
         }
     }
     profiler.stop();
@@ -326,8 +356,12 @@ void Simulation::velocityVerlet()
         
         for (int type = 0; type < nTypes; type++)
         {
-            _nuscal(part[type]->adata, part[type]->m,       part[type]->n);
-            _axpy(part[type]->vdata,   part[type]->adata, 3*part[type]->n, dt*0.5);
+            _nuscal(part[type]->axdata, part[type]->m, part[type]->n);
+            _nuscal(part[type]->aydata, part[type]->m, part[type]->n);
+            _nuscal(part[type]->azdata, part[type]->m, part[type]->n);
+            _axpy(part[type]->vxdata,   part[type]->axdata, part[type]->n, dt*0.5);
+            _axpy(part[type]->vydata,   part[type]->aydata, part[type]->n, dt*0.5);
+            _axpy(part[type]->vzdata,   part[type]->azdata, part[type]->n, dt*0.5);
         }
         
         for (auto w : walls)

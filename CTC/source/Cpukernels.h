@@ -19,10 +19,15 @@ using namespace std;
 inline void _allocate(Particles* part)
 {
 	int n = part->n;
-	part->xdata  = new real[3*n];
-	part->vdata  = new real[3*n];
-	part->adata  = new real[3*n];
-	part->bdata  = new real[3*n];
+	part->xdata  = new real[n];
+	part->ydata  = new real[n];
+	part->zdata  = new real[n];
+	part->vxdata  = new real[n];
+	part->vydata  = new real[n];
+	part->vzdata  = new real[n];
+    part->axdata  = new real[n];
+	part->aydata  = new real[n];
+	part->azdata  = new real[n];
 	   
 	part->m  = new real[n];
     
@@ -54,14 +59,13 @@ inline void _nuscal(real *y, real *x, int n) // y[i] = y[i] / x[i]
 		y[i] /= x[i/3];
 }
 
-inline void _normalize(real *x, int n, real xlo, real xhi, int sh=0)
+inline void _normalize(real *x, int n, real xlo, real xhi)
 {
     real len = xhi - xlo;
 	for (int i=0; i<n; i++)
 	{
-        int ind = 3*i + sh;
-		if (x[ind] > xhi) x[ind] -= len;
-		if (x[ind] < xlo) x[ind] += len;
+		if (x[i] > xhi) x[i] -= len;
+		if (x[i] < xlo) x[i] += len;
 	}
 }
 
@@ -182,11 +186,7 @@ inline void exec(Particles** part, Cells<Particles> &cellsA, Cells<Particles> &c
                             const real r2 = dx*dx + dy*dy + dz*dz;
                             if (inter.nonzero(r2))
                             {
-                                real vx = part[b]->vx(dst) - part[a]->vx(src);
-                                real vy = part[b]->vy(dst) - part[a]->vy(src);
-                                real vz = part[b]->vz(dst) - part[a]->vz(src);
-                                
-                                inter.F(dx, dy, dz,  vx, vy, vz,  r2,  fx, fy, fz,  src, dst, t);
+                                inter.F(dx, dy, dz,  part[a], part[b],  r2,  fx, fy, fz,  src, dst, t);
                                 
                                 part[a]->x(src) += fx;
                                 part[a]->x(src) += fy;
@@ -250,11 +250,7 @@ inline void exec(Particles** part, Cells<Particles> &cellsA, int a, Interactor &
                             const real r2 = dx*dx + dy*dy + dz*dz;
                             if (inter.nonzero(r2))
                             {
-                                real vx = part[a]->vx(dst) - part[a]->vx(src);
-                                real vy = part[a]->vy(dst) - part[a]->vy(src);
-                                real vz = part[a]->vz(dst) - part[a]->vz(src);
-                                
-                                inter.F(dx, dy, dz,  vx, vy, vz,  r2,  fx, fy, fz,  src, dst, t);
+                                inter.F(dx, dy, dz,  part[a], part[a],  r2,  fx, fy, fz,  src, dst, t);
                                 
                                 res[3*src + 0] += fx;
                                 res[3*src + 1] += fy;
@@ -284,11 +280,7 @@ inline void exec(Particles** part, Cells<Particles> &cellsA, int a, Interactor &
                             const real r2 = dx*dx + dy*dy + dz*dz;
                             if (inter.nonzero(r2))
                             {
-                                real vx = part[a]->vx(dst) - part[a]->vx(src);
-                                real vy = part[a]->vy(dst) - part[a]->vy(src);
-                                real vz = part[a]->vz(dst) - part[a]->vz(src);
-                                
-                                inter.F(dx, dy, dz,  vx, vy, vz,  r2,  fx, fy, fz,  src, dst, t);
+                                inter.F(dx, dy, dz,  part[a], part[a],  r2,  fx, fy, fz,  src, dst, t);
                                 
                                 res[3*src + 0] += fx;
                                 res[3*src + 1] += fy;
@@ -350,7 +342,14 @@ void _cpuForces(Particles** part, Cells<Particles>*** cells, int a, int b, Inter
         buffer[0][j] += buffer[2][j];
         buffer[4][j] += buffer[6][j];
         
-        part[b]->adata[j] = buffer[0][j] + buffer[4][j];
+        buffer[0][j]  = buffer[0][j] + buffer[4][j];
+    }
+    
+    for (int j=0; j<part[a]->n; j++)
+    {
+        part[a]->ax(j) = buffer[0][3*j + 0];
+        part[a]->ay(j) = buffer[0][3*j + 1];
+        part[a]->az(j) = buffer[0][3*j + 2];
     }
     
     for (int i=0; i<8; i++)
@@ -403,7 +402,14 @@ void _cpuForces(Particles** part, Cells<Particles>*** cells, int a, Interactor &
         buffer[0][j] += buffer[2][j];
         buffer[4][j] += buffer[6][j];
         
-        part[a]->adata[j] = buffer[0][j] + buffer[4][j];
+        buffer[0][j]  = buffer[0][j] + buffer[4][j];
+    }
+    
+    for (int j=0; j<part[a]->n; j++)
+    {
+        part[a]->ax(j) = buffer[0][3*j + 0];
+        part[a]->ay(j) = buffer[0][3*j + 1];
+        part[a]->az(j) = buffer[0][3*j + 2];
     }
     
     for (int i=0; i<8; i++)

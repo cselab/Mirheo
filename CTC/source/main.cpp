@@ -34,7 +34,7 @@ string Saver::folder("");
 int main (int argc, char **argv)
 {
     string folder = "res/";
-    string config = "/Users/alexeedm/Documents/projects/CTC/CTC/makefiles/100relax.ini";
+    string config = "/Users/alexeedm/Documents/projects/CTC/CTC/makefiles/config.ini";
     debugLvl = 2;
 	
 	vector<OptionStruct> vopts =
