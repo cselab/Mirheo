@@ -14,7 +14,7 @@
 
 #include <algorithm>
 #include <vector>
-#include <cmath>
+#include <limits>
 
 typedef std::vector< std::pair<float, float> >::const_iterator RIterator;
 
