@@ -6,6 +6,8 @@
 #include <vector>
 #include <string>
 
+#include "cuda-dpd.h"
+
 inline float saru(unsigned int seed1, unsigned int seed2, unsigned int seed3)
 {
     seed3 ^= (seed1<<7)^(seed2>>6);
@@ -67,6 +69,27 @@ struct Particles
 	    const float sigmaf = sigma / sqrt(dt);
 	    const float aij = 2.5;
 
+#if 1
+	    if(srcxp == &xp.front())
+		forces_dpd_cuda(&xp.front(), &yp.front(), &zp.front(),
+				&xv.front(), &yv.front(), &zv.front(),
+				&xa.front(), &ya.front(), &za.front(),
+				n, 
+				1, xdomainsize, ydomainsize, zdomainsize,
+				aij,  gamma,  sigma,  1 / sqrt(dt));
+	    else
+		forces_dpd_cuda_bipartite(&xp.front(), &yp.front(), &zp.front(),
+					  &xv.front(), &yv.front(), &zv.front(),
+					  &xa.front(), &ya.front(), &za.front(),
+					  n, giddstart,
+					  srcxp,  srcyp,  srczp,
+					  srcxv,  srcyv,  srczv,
+					  NULL, NULL, NULL,
+					  nsrc, gidsstart,
+					  1, xdomainsize, ydomainsize, zdomainsize,
+					  aij,  gamma,  sigma,  1 / sqrt(dt));
+#else
+	  
 #pragma omp parallel for
 	    for(int i = 0; i < n; ++i)
 	    {
@@ -123,6 +146,7 @@ struct Particles
 	    }
 
 	    saru_tag++;
+#endif
 	}
     
     void acquire_global_id()
@@ -528,6 +552,7 @@ struct TomatoSandwich: SandwichBouncer
     
     void bounce(Particles& dest, const float _dt)
 	{
+#pragma omp parallel for
 	    for(int i = 0; i < dest.n; ++i)
 	    {
 		float x = dest.xp[i];
@@ -571,12 +596,12 @@ struct TomatoSandwich: SandwichBouncer
 
 int main()
 {
-    const float L = 10;
+    const float L = 40;
     const int Nm = 3;
     const int n = L * L * L * Nm;
 
     Particles particles(n, L);
-    particles.equilibrate(.1, 5, 0.02);
+    particles.equilibrate(.1, 10, 0.02);
 
     const float sandwich_half_width = L / 2 - 1.7;
 #if 1

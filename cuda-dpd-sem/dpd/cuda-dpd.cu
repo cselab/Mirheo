@@ -265,8 +265,8 @@ void forces_dpd_cuda(float * const _xyzuvw, float * const _axayaz,
 #endif
 }
 
-void forces_dpd_cuda(float * const xp, float * const yp, float * const zp,
-		     float * const xv, float * const yv, float * const zv,
+void forces_dpd_cuda(const float * const xp, const float * const yp, const float * const zp,
+		     const float * const xv, const float * const yv, const float * const zv,
 		     float * const xa, float * const ya, float * const za,
 		     const int np,
 		     const float rc,
