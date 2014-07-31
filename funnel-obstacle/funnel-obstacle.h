@@ -16,7 +16,7 @@ class FunnelObstacle
 {
   struct Grid
   {
-    float data[64][64]; // YX
+    float data[128][128]; // YX
   };
   Grid m_grid;
 

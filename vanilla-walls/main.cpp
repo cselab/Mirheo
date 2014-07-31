@@ -426,7 +426,7 @@ struct SandwichBouncer: Bouncer
 };
 
 #if 1
-FunnelObstacle kirill(8 * 3);
+FunnelObstacle kirill(32/2, 40);
 #else
 struct Kirill
 {
@@ -623,7 +623,7 @@ int main()
     remaining.name = "fluid";
     
     remaining.bouncer = &bouncer;
-    remaining.xg = 0.05;
+    remaining.yg = 0.05;
     remaining.steps_per_dump = 3;
     remaining.equilibrate(.1, 30, 0.02);
     printf("particles have been equilibrated");

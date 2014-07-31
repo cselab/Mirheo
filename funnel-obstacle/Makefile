@@ -1,4 +1,4 @@
-CXXFLAGS += -Ofast 
+CXXFLAGS +=  -g
 
 test:	*.cpp *.h funnel-obstacle.o
 	$(CXX) $(CXXFLAGS) funnel-obstacle.o obst-check.cpp -o test

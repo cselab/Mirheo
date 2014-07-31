@@ -46,7 +46,7 @@ namespace {
 
 FunnelObstacle::FunnelObstacle(const float plength, const float domainLength)
 :  m_yPlaneUp(0), m_yPlaneDown(0.0), m_y0(0.0), m_domainLength(domainLength),
-   m_gridSize(64), m_obstacleDetalization(2000)
+   m_gridSize(128), m_obstacleDetalization(2000)
 {
   float hy = (m_domainLength - plength) / 2;
   m_yPlaneUp = m_domainLength/2 - hy;
@@ -66,7 +66,7 @@ FunnelObstacle::FunnelObstacle(const float plength, const float domainLength)
 
 FunnelObstacle::FunnelObstacle(const float plength, const float domainLength, const std::string& fileName)
 :  m_yPlaneUp(0), m_yPlaneDown(0.0), m_y0(0.0), m_domainLength(domainLength),
-   m_gridSize(64), m_obstacleDetalization(2000)
+   m_gridSize(128), m_obstacleDetalization(2000)
 {
   float hy = (m_domainLength - plength) / 2;
   m_yPlaneUp = m_domainLength/2 - hy;
