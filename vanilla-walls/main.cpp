@@ -40,12 +40,11 @@ struct Bouncer;
 struct Particles
 {
     static int idglobal;
+    
     int n, saru_tag, myidstart, steps_per_dump = 30;
     float L, xg = 0, yg = 0, zg = 0;
     vector<float> xp, yp, zp, xv, yv, zv, xa, ya, za;
-
     Bouncer * bouncer = nullptr;
-
     string name;
 
     void _dpd_forces_bipartite(const float kBT, const double dt,
@@ -166,8 +165,7 @@ struct Particles
 
 	    fprintf(f, "%s %+e\t%+e\t%+e\t%+e\t%+e\n", (f == stdout ? "DIAG:" : ""), t, T, xm, ym, zm);
 	}
-   
-    
+       
     void vmd_xyz(const char * path, bool append = false)
 	{
 	    FILE * f = fopen(path, append ? "a" : "w");
@@ -314,7 +312,7 @@ void Particles::equilibrate(const float kBT, const double tend, const double dt)
 
 	if (bouncer != nullptr)
 	    bouncer->bounce(*this, dt);
-	
+		
 	_dpd_forces(kBT, dt);
 
 	_up(xv, xa, dt * 0.5);
@@ -334,54 +332,65 @@ struct SandwichBouncer: Bouncer
     
     SandwichBouncer( const float L):
 	Bouncer(L) { }
+
+    bool _handle_collision(float& x, float& y, float& z,
+			   float& u, float& v, float& w,
+			   float& dt)
+	{
+	    if (fabs(z) - half_width <= 0)
+		return false;
+	    
+	    const float xold = x - dt * u;
+	    const float yold = y - dt * v;
+	    const float zold = z - dt * w;
+
+	    assert(fabs(zold) - half_width <= 0);
+	    assert(fabs(w) > 0);
+
+	    const float s = 1 - 2 * signbit(w);
+	    const float t = (s * half_width - zold) / w;
+
+	    assert(t >= 0);
+	    assert(t <= dt);
+		    
+	    const float lambda = 2 * t - dt;
+		    
+	    x = xold + lambda * u;
+	    y = yold + lambda * v;
+	    z = zold + lambda * w;
+	    
+	    assert(fabs(zold + lambda * w) - half_width <= 0);
+
+	    u = -u;
+	    v = -v;
+	    w = -w;
+	    dt = dt - t;
+
+	    return true;
+	}
     
-    void bounce(Particles& dest, const float dt)
+    void bounce(Particles& dest, const float _dt)
 	{
 	    for(int i = 0; i < dest.n; ++i)
 	    {
-		const float x = dest.xp[i];
-		const float y = dest.yp[i];
-		const float z = dest.zp[i];
-		const float u = dest.xv[i];
-		const float v = dest.yv[i];
-		const float w = dest.zv[i];
+		float dt = _dt;
+		float x = dest.xp[i];
+		float y = dest.yp[i];
+		float z = dest.zp[i];
+		float u = dest.xv[i];
+		float v = dest.yv[i];
+		float w = dest.zv[i];
 		
-		if (fabs(z) - half_width > 0)
+		if ( _handle_collision(x, y, z, u, v, w, dt) )
 		{
-		    const float xold = x - dt * u;
-		    const float yold = y - dt * v;
-		    const float zold = z - dt * w;
-
-		    assert(fabs(zold) - half_width <= 0);
-		    assert(fabs(w) > 0);
-
-		    const float s = 1 - 2 * signbit(w);
-		    const float t = (s * half_width - zold) / w;
-
-		    assert(t >= 0);
-		    assert(t <= dt);
-		    
-		    const float lambda = 2 * t - dt;
-		    
-		    dest.xp[i] = xold + lambda * u;
-		    dest.yp[i] = yold + lambda * v;
-		    dest.zp[i] = zold + lambda * w;
-		    assert(fabs(zold + lambda * w) - half_width <= 0);
-
-		    dest.xv[i] = -u;
-		    dest.yv[i] = -v;
-		    dest.zv[i] = -w;
-
-		    assert(!isnan(dest.xp[i]));
-		    assert(!isnan(dest.yp[i]));
-		    assert(!isnan(dest.zp[i]));
-		    assert(!isnan(dest.xv[i]));
-		    assert(!isnan(dest.yv[i]));
-		    assert(!isnan(dest.zv[i]));
+		    dest.xp[i] = x;
+		    dest.yp[i] = y;
+		    dest.zp[i] = z;
+		    dest.xv[i] = u;
+		    dest.yv[i] = v;
+		    dest.zv[i] = w;
 		}
 	    }
-
-	    // printf("bounce done\n");
 	}
 
     void _mark(bool * const freeze, Particles p)
@@ -391,112 +400,174 @@ struct SandwichBouncer: Bouncer
 	}
 };
 
+struct Kirill
+{
+    bool iscolliding(const float x, const float y)
+	{
+	    const float xc = 0, yc = 0;
+	    const float radius2 = 4;
+	    
+	    const float r2 =
+		(x - xc) * (x - xc) +
+		(y - yc) * (y - yc) ;
+
+	    return r2 < radius2;
+	}
+    
+} kirill;
+
 struct TomatoSandwich: SandwichBouncer
 {
     float xc = 0, yc = 0, zc = 0;
-    float radius = 1;
+    float radius2 = 1;
 
-    TomatoSandwich(const float L): SandwichBouncer(L)
-	{
-	}
+    TomatoSandwich(const float L): SandwichBouncer(L) {}
 
      void _mark(bool * const freeze, Particles p)
 	{
 	    SandwichBouncer::_mark(freeze, p);
-//	    return;
-	    const float radius2 = radius * radius;
+
 	    for(int i = 0; i < p.n; ++i)
 	    {
 		const float x = p.xp[i] - xc;
 		const float y = p.yp[i] - yc;
-		const float z = p.zp[i] - zc;
-
-		const float r2 = x * x + y * y + z * z;
+#if 1
+		freeze[i] |= kirill.iscolliding(x, y);
+#else
+		const float r2 = x * x + y * y;
 
 		freeze[i] |= r2 < radius2;
+#endif
 	    }
 	}
-
-    float _qsolve(const float a, const float b, const float c)
-	{
-	    const float d = sqrt(b * b - 4 * a * c);
-
-	    const float x0 = (-b - d) / (2 * a);
-	    const float x1 = (-b + d) / (2 * a);
-
-	    assert(x0 < x1);
-	    return x0;
-	}
-
-    float _collision_time(const float _x0, const float _y0, const float _z0,
-			   const float u, const float v, const float w,
-			   const float xc, const float yc, const float zc, const float r2)
+ 
+    float _compute_collision_time(const float _x0, const float _y0,
+			  const float u, const float v, 
+			  const float xc, const float yc, const float r2)
 	{
 	    const float x0 = _x0 - xc;
 	    const float y0 = _y0 - yc;
-	    const float z0 = _z0 - zc;
-	    
-	    const float c = x0 * x0 + y0 * y0 + z0 * z0 - r2;
-	    const float b = 2 * (x0 * u + y0 * v + z0 * w);
-	    const float a = u * u + v * v + w * w;
+	    	    
+	    const float c = x0 * x0 + y0 * y0 - r2;
+	    const float b = 2 * (x0 * u + y0 * v);
+	    const float a = u * u + v * v;
+	    const float d = sqrt(b * b - 4 * a * c);
 
-	    return _qsolve(a, b, c);
+	    return (-b - d) / (2 * a);
 	}
 
-    
-
-    void bounce(Particles& dest, const float dt)
+    bool _handle_collision(float& x, float& y, float& z,
+			   float& u, float& v, float& w,
+			   float& dt)
 	{
-	    SandwichBouncer::bounce(dest, dt);
+#if 1
+	    if (!kirill.iscolliding(x, y))
+		return false;
 
-	    const float radius2 = radius * radius;
+	    const float xold = x - dt * u;
+	    const float yold = y - dt * v;
+	    const float zold = z - dt * w;
+
+	    float t = 0;
 	    
+	    for(int i = 1; i < 30; ++i)
+	    {
+		const float tcandidate = t + dt / (1 << i);
+		const float xcandidate = xold + tcandidate * u;
+		const float ycandidate = yold + tcandidate * v;
+		
+		 if (!kirill.iscolliding(xcandidate, ycandidate))
+		     t = tcandidate;
+	    }
+
+	    const float lambda = 2 * t - dt;
+		    
+	    x = xold + lambda * u;
+	    y = yold + lambda * v;
+	    z = zold + lambda * w;
+	   
+	    u  = -u;
+	    v  = -v;
+	    w  = -w;
+	    dt = dt - t;
+
+	    return true;
+	    
+#else
+	    const float r2 =
+		(x - xc) * (x - xc) +
+		(y - yc) * (y - yc) ;
+		
+	    if (r2 >= radius2)
+		return false;
+	    
+	    assert(dt > 0);
+			
+	    const float xold = x - dt * u;
+	    const float yold = y - dt * v;
+	    const float zold = z - dt * w;
+
+	    const float t = _compute_collision_time(xold, yold, u, v, xc, yc, radius2);
+	    assert(t >= 0);
+	    assert(t <= dt);
+		    
+	    const float lambda = 2 * t - dt;
+		    
+	    x = xold + lambda * u;
+	    y = yold + lambda * v;
+	    z = zold + lambda * w;
+	    
+	    u  = -u;
+	    v  = -v;
+	    w  = -w;
+	    dt = dt - t;
+
+	    return true;
+#endif
+	}
+    
+    void bounce(Particles& dest, const float _dt)
+	{
 	    for(int i = 0; i < dest.n; ++i)
 	    {
-		const float x = dest.xp[i] - xc;
-		const float y = dest.yp[i] - yc;
-		const float z = dest.zp[i] - zc;
-		const float u = dest.xv[i];
-		const float v = dest.yv[i];
-		const float w = dest.zv[i];
-
-		const float r2 = x * x + y * y + z * z;
-		
-		if (r2 < radius2)
+		float x = dest.xp[i];
+		float y = dest.yp[i];
+		float z = dest.zp[i];
+		float u = dest.xv[i];
+		float v = dest.yv[i];
+		float w = dest.zv[i];
+		float dt = _dt;
+		    
+		bool wascolliding = false, collision;
+		int passes = 0;
+		do
 		{
-		    const float xold = x - dt * u;
-		    const float yold = y - dt * v;
-		    const float zold = z - dt * w;
-
-		   
-		    const float t = _collision_time(xold, yold, zold, u, v, w, xc, yc, zc, radius2);
-		    printf("collision time %f -> xold %f %f %f v %f %f %f  xc %f %f %f r2 %f\n", t,
-			xold, yold, zold, u, v, w, xc, yc, zc, radius2);
-		    assert(t >= 0);
-		    assert(t <= dt);
+		    collision = false;
+		    collision |= SandwichBouncer::_handle_collision(x, y, z, u, v, w, dt);
+		    collision |= _handle_collision(x, y, z, u, v, w, dt);
 		    
-		    const float lambda = 2 * t - dt;
-		    
-		    dest.xp[i] = xold + lambda * u;
-		    dest.yp[i] = yold + lambda * v;
-		    dest.zp[i] = zold + lambda * w;
-		    assert(fabs(zold + lambda * w) - half_width <= 0);
+		    wascolliding |= collision;
+		    passes++;
+		}
+		while(collision);
 
-		    dest.xv[i] = -u;
-		    dest.yv[i] = -v;
-		    dest.zv[i] = -w;
-
-		    assert(!isnan(dest.xp[i]));
-		    assert(!isnan(dest.yp[i]));
-		    assert(!isnan(dest.zp[i]));
-		    assert(!isnan(dest.xv[i]));
-		    assert(!isnan(dest.yv[i]));
-		    assert(!isnan(dest.zv[i]));
+		if (passes >= 2)
+		    printf("solved a complex collision\n");
+		
+		if (wascolliding)
+		{
+		    dest.xp[i] = x;
+		    dest.yp[i] = y;
+		    dest.zp[i] = z;
+		    dest.xv[i] = u;
+		    dest.yv[i] = v;
+		    dest.zv[i] = w;
 		}
 	    }
 	}
-    
 };
+
+
 
 int main()
 {
@@ -510,7 +581,7 @@ int main()
     const float sandwich_half_width = L / 2 - 1.7;
 #if 1
     TomatoSandwich bouncer(L);
-    bouncer.radius = 2;
+    bouncer.radius2 = 4;
     bouncer.half_width = sandwich_half_width;
 #else
     SandwichBouncer bouncer(L);
@@ -523,7 +594,7 @@ int main()
     remaining.bouncer = &bouncer;
     remaining.xg = 0.05;
     remaining.steps_per_dump = 3;
-    remaining.equilibrate(.1, 100, 0.02);
+    remaining.equilibrate(.1, 30, 0.02);
     printf("particles have been equilibrated");
 }
 
