@@ -17,11 +17,11 @@
 
 void checkReadWrite()
 {
-  std::string inputFileName = "bla.dat";
-  FunnelObstacle fo(32.0f, 40.0f);
+  std::string inputFileName = "/Users/kirill/Documents/MATLAB/bla.dat";
+  FunnelObstacle fo(16.0f, 40.0f, 128);
   fo.write(inputFileName);
 
-  FunnelObstacle fIn(32.0f, 40.0f, inputFileName);
+  FunnelObstacle fIn(16.0f, 40.0f, 128, inputFileName);
   assert(fIn == fo);
  //to be done
 }
