@@ -108,7 +108,8 @@ bool FunnelObstacle::isInside(const float x, const float y) const
 std::pair<bool, float> FunnelObstacle::sample(const float x, const float y) const
 {
   assert(insideBB(x, y));
-  float h = m_domainLength / (m_grid.size(0) - 1.0);
+  float hy = m_domainLength / (m_grid.size(0) - 1.0);
+  float hx = m_domainLength / (m_grid.size(1) - 1.0);
 
   // shift origin to the left bottom of the BB
   float xShift = x + m_domainLength/2;
@@ -117,14 +118,17 @@ std::pair<bool, float> FunnelObstacle::sample(const float x, const float y) cons
 
   size_t ix, iy;
   // index_x = floor( p_x / h_x )
-  ix = static_cast<int>(xShift / h);
-  iy = static_cast<int>(yShift / h);
+  ix = static_cast<int>(xShift / hx);
+  iy = static_cast<int>(yShift / hy);
 
-  float res = std::numeric_limits<float>::infinity();
+  float d =  bilinearInterpolation(xShift, yShift, hx, hy, ix, iy);
+
+  /*float res = std::numeric_limits<float>::infinity();
   size_t iminX, iminY = 0;
   for (size_t i = 0; i < 4; ++i) {
     size_t ishX = i / 2, ishY = i % 2;
-    float d = dist(xShift, yShift, (ix + ishX)*h, (iy + ishY)*h);
+    std::cout << ishX << " " << ishY << std::endl;
+    float d = dist(xShift, yShift, (ix + ishX)*hx, (iy + ishY)*hy);
     if (res > d) {
       res = d;
       iminX = ix + ishX;
@@ -133,9 +137,9 @@ std::pair<bool, float> FunnelObstacle::sample(const float x, const float y) cons
   }
 
   assert(iminX < m_grid.size(0) && iminY < m_grid.size(1));
-  float dist = m_grid(iminY, iminX);
+  float dist2 = m_grid(iminY, iminX);*/
 
-  return std::pair<bool, float>(dist < 0.0, fabs(dist));
+  return std::pair<bool, float>(d < 0.0, fabs(d));
 }
 
 void FunnelObstacle::initInterface()
@@ -167,6 +171,18 @@ float FunnelObstacle::calcDist(const float x, const float y) const
     minDist *= -1.0;
 
   return minDist;
+}
+
+float FunnelObstacle::bilinearInterpolation(float x, float y, float hx, float hy, size_t ix, size_t iy) const
+{
+  float x1 = hx * ix, x2 = hx * (ix + 1);
+  float y1 = hy * iy, y2 = hy * (iy + 1);
+
+  float fr1 = m_grid(iy,ix) * (y2 - y) / (y2 - y1) + m_grid(iy + 1, ix) * (y - y1) / (y2 - y1);
+  float fr2 = m_grid(iy, ix + 1) * (y2 - y) / (y2 - y1) + m_grid(iy + 1, ix + 1) * (y - y1) / (y2 - y1);
+
+  float fp = fr1 * (x2 - x) /(x2 - x1) + fr2 * (x - x1) / (x2 - x1);
+  return fp;
 }
 
 bool FunnelObstacle::insideBB(const float x, const float y) const

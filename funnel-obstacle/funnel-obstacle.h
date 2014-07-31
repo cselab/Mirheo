@@ -37,7 +37,7 @@ class FunnelObstacle
   void initInterface();
 
   float calcDist(const float x, const float y) const;
-
+  float bilinearInterpolation(float x, float y, float hx, float hy, size_t i, size_t j) const;
   bool insideBB(const float x, const float y) const;
 
   void read(const std::string& fileName);
