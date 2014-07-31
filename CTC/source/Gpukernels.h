@@ -188,7 +188,10 @@ void _computeForces (Cells<Particles>* cells,
                      real* vx2, real* vy2, real* vz2,
                      real* ax2, real* ay2, real* az2,
                      int n2,
-                     Interactor inter);
+                     Interactor inter)
+{
+}
+
 
 template<>
 void _computeForces<DPD>(Cells<Particles>* cells,

@@ -142,8 +142,8 @@ void Simulation::loadRestart(string fname)
         _allocate(part[i]);
         
         real *xbuf, *vbuf;
-        xbuf = new real[part[i]->n];
-        vbuf = new real[part[i]->n];
+        xbuf = new real[3*part[i]->n];
+        vbuf = new real[3*part[i]->n];
         
         in.read((char*)xbuf,  3*n*sizeof(real));
         in.read((char*)vbuf,  3*n*sizeof(real));
@@ -151,15 +151,15 @@ void Simulation::loadRestart(string fname)
         in.read((char*)part[i]->m,  n*sizeof(real));
         in.read((char*)part[i]->label, n*sizeof(int));
         
-        for (int i=0; i<part[i]->n; i++)
+        for (int j=0; j<part[i]->n; j++)
         {
-            part[i]->x(i)  = xbuf[3*i + 0];
-            part[i]->y(i)  = xbuf[3*i + 1];
-            part[i]->z(i)  = xbuf[3*i + 2];
+            part[i]->x(j)  = xbuf[3*j + 0];
+            part[i]->y(j)  = xbuf[3*j + 1];
+            part[i]->z(j)  = xbuf[3*j + 2];
             
-            part[i]->vx(i) = vbuf[3*i + 0];
-            part[i]->vy(i) = vbuf[3*i + 1];
-            part[i]->vz(i) = vbuf[3*i + 2];
+            part[i]->vx(j) = vbuf[3*j + 0];
+            part[i]->vy(j) = vbuf[3*j + 1];
+            part[i]->vz(j) = vbuf[3*j + 2];
         }
 
         
