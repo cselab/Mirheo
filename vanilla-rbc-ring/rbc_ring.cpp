@@ -24,10 +24,10 @@ typedef std::vector<real> hvector;
 // ************ global variables *****************
 const real boxLength = 10.0;
 
-const sizeType nrings = 0;
+const sizeType nrings = 1;
 const sizeType natomsPerRing = 10;
-const sizeType nFreeFluidAtoms = 2700;//for sphere 2900; //for tube 590;
-const sizeType nFrozenFluidAtoms = 300;//for sphere 100; //for tube 564;
+const sizeType nFreeFluidAtoms = 0;//for sphere 2900; //for tube 590;
+const sizeType nFrozenFluidAtoms = 0;//for sphere 100; //for tube 564;
 const sizeType nfluidAtoms = nFreeFluidAtoms + nFrozenFluidAtoms;
 
 const sizeType nFreeParticles = nrings * natomsPerRing + nFreeFluidAtoms; // only free particles are integrated
@@ -48,7 +48,7 @@ std::vector<sizeType> type(natoms);
 // dpd parameters
 const real dtime = 0.001;
 const real kbT = 0.1;
-const sizeType timeEnd = 100;
+const sizeType timeEnd = 500;
 
 const real a0 = 500.0, gamma0 = 4.5, cut = 1.2, cutsq = cut * cut, kPower = 0.25,
     sigma = sqrt(2.0 * kbT * gamma0);
@@ -363,7 +363,7 @@ public:
     for (size_t i = 0; i < nFreeParticles; i++) {
       bool d1 = isBetwenPlanes(xp[i], yp[i], zp[i], x1, x2);
       bool d2 = isOutsideSphere(xp[i], yp[i], zp[i], radius);
-      if (!d1 || !d2))
+      if (!d1 || !d2)
       {
         std::cout << i << ", " << xp[i] << ", " << yp[i] << std::endl;
       }
@@ -712,8 +712,8 @@ void computeForces(size_t timeStep)
   std::fill(za.begin(), za.end(), 0.0);
 
   calcDpdForces(timeStep);
-  //calcBondForcesWLC();
-  //calcAngleForcesBend();
+  calcBondForcesWLC();
+  calcAngleForcesBend();
 
   //addStretchForce();
   //addDrivingForce();
@@ -788,7 +788,8 @@ int main()
   std::cout << "Started computing" << std::endl;
   FILE * fstat = fopen("diag.txt", "w");
 
-  initPositionsBetweenPlanesAndSphere();
+  //initPositionsBetweenPlanesAndSphere();
+  initPositionsCube();
   std::fill(xv.begin(), xv.end(), 0.0);
   std::fill(yv.begin(), yv.end(), 0.0);
   std::fill(zv.begin(), zv.end(), 0.0);
@@ -805,7 +806,7 @@ int main()
 
     initialIntegrate();
     pbc();
-    lsbb.run(xp, yp, zp, xv, yv, zv);
+    //lsbb.run(xp, yp, zp, xv, yv, zv);
     if (timeStep % outEvery == 0)
       lammps_dump("evolution.dump", &xp.front(), &yp.front(), &zp.front(), natoms, timeStep, boxLength);
 

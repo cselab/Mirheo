@@ -576,32 +576,34 @@ __global__ void kernelDPDRingInter(const float* d_xp, const float* d_yp, const f
                               float* d_xa, float* d_ya, float* d_za, int natoms, size_t timeStep)
 {
   int tid = blockIdx.x * blockDim.x + threadIdx.x;
-  if (tid > natoms * natoms) return;
 
   sizeType i = tid % 10;
-  
-  float df[] = {0.0, 0.0, 0.0};
-  float dfBuf[3];
-  float3 pi = make_float3(d_xp[i], d_yp[i], d_zp[i]);
-  float3 vi = make_float3(d_xv[i], d_yv[i], d_zv[i]);  
-  for (sizeType j = tid / 10; j < 10; j += 3) 
-  {
-    float3 pj = make_float3(d_xp[j], d_yp[j], d_zp[j]);
-    float3 vj = make_float3(d_xv[j], d_yv[j], d_zv[j]);
-    if (i == j || i > 9 || j > 9)
-      continue;
 
-    kernelDPDPairCore(i, j, timeStep, pi, pj, vi, vj, dfBuf);
-    df[0] += dfBuf[0]; df[1] += dfBuf[1]; df[2] += dfBuf[2];
+  float df[] = {0.0, 0.0, 0.0};
+
+ if (tid > 29) 
+  {
+    float dfBuf[3];
+    float3 pi = make_float3(d_xp[i], d_yp[i], d_zp[i]);
+    float3 vi = make_float3(d_xv[i], d_yv[i], d_zv[i]);
+    for (sizeType j = tid / 10; j < 10; j += 3)
+    {
+      float3 pj = make_float3(d_xp[j], d_yp[j], d_zp[j]);
+      float3 vj = make_float3(d_xv[j], d_yv[j], d_zv[j]);
+      if (i == j || i > 9 || j > 9)
+        continue;
+
+      kernelDPDPairCore(i, j, timeStep, pi, pj, vi, vj, dfBuf);
+      df[0] += dfBuf[0]; df[1] += dfBuf[1]; df[2] += dfBuf[2];
+    }
   }
-  
   sizeType laneid =  threadIdx.x % 32;
 
   for (sizeType i = 0; i < 3; ++i) {
     df[i] += __shfl(df[i], laneid + 10);
     df[i] += __shfl(df[i], laneid + 20);
   }
-  
+
   if (laneid < 10) {
     d_xa[i] += df[0];
     d_ya[i] += df[1];
