@@ -6,7 +6,9 @@
 #include <vector>
 #include <string>
 
+#ifdef USE_CUDA
 #include "cuda-dpd.h"
+#endif
 #include "funnel-obstacle.h"
 
 inline float saru(unsigned int seed1, unsigned int seed2, unsigned int seed3)
@@ -70,7 +72,7 @@ struct Particles
 	    const float sigmaf = sigma / sqrt(dt);
 	    const float aij = 2.5;
 
-#if 1
+#ifdef USE_CUDA
 	    if(srcxp == &xp.front())
 		forces_dpd_cuda(&xp.front(), &yp.front(), &zp.front(),
 				&xv.front(), &yv.front(), &zv.front(),
@@ -213,6 +215,39 @@ struct Particles
 	    printf("vmd_xyz: wrote to <%s>\n", path);
 	}
 
+    // might be opened by OVITO and xmovie (xwindow-based utility)
+    void lammps_dump(const char* path, size_t timestep)
+    {
+      bool append = timestep > 0;
+      FILE * f = fopen(path, append ? "a" : "w");
+
+      float boxLength = L;
+
+      if (f == NULL)
+      {
+      printf("I could not open the file <%s>\n", path);
+      printf("Aborting now.\n");
+      abort();
+      }
+
+      // header
+      fprintf(f, "ITEM: TIMESTEP\n%lu\n", timestep);
+      fprintf(f, "ITEM: NUMBER OF ATOMS\n%d\n", n);
+      fprintf(f, "ITEM: BOX BOUNDS pp pp pp\n%g %g\n%g %g\n%g %g\n",
+          -boxLength/2.0, boxLength/2.0, -boxLength/2.0, boxLength/2.0, -boxLength/2.0, boxLength/2.0);
+
+      fprintf(f, "ITEM: ATOMS id type xs ys zs\n");
+
+      // positions <ID> <type> <x> <y> <z>
+      // free particles have type 2, while rings 1
+      size_t type = 1; //skip for now
+      for (size_t i = 0; i < n; ++i) {
+        fprintf(f, "%lu %lu %g %g %g\n", i, type, xp[i], yp[i], zp[i]);
+      }
+
+      fclose(f);
+    }
+
     void _dpd_forces(const float kBT, const double dt);
     void equilibrate(const float kBT, const double tend, const double dt);
 };
@@ -311,7 +346,8 @@ void Particles::equilibrate(const float kBT, const double tend, const double dt)
     
     _dpd_forces(kBT, dt);
 
-    vmd_xyz("ic.xyz", false);
+    //vmd_xyz("ic.xyz", false);
+    lammps_dump("evolution.dump", 0);
 
     FILE * fdiag = fopen("diag-equilibrate.txt", "w");
 
@@ -345,7 +381,8 @@ void Particles::equilibrate(const float kBT, const double tend, const double dt)
 	_up(zv, za, dt * 0.5);
 	
 	if (it % steps_per_dump == 0)
-	    vmd_xyz((name == "" ? "evolution.xyz" : (name + "-evolution.xyz")).c_str(), it > 0);
+	    lammps_dump("evolution.dump", it);
+	    //vmd_xyz((name == "" ? "evolution.xyz" : (name + "-evolution.xyz")).c_str(), it, it > 0);
     }
 
     fclose(fdiag);
@@ -426,7 +463,7 @@ struct SandwichBouncer: Bouncer
 };
 
 #if 1
-FunnelObstacle kirill(32/3, 40, 128);
+FunnelObstacle kirill(5.0f, 10.0f, 64);
 #else
 struct Kirill
 {
@@ -605,12 +642,13 @@ struct TomatoSandwich: SandwichBouncer
 
 int main()
 {
-    const float L = 40;
+    const float L = 10;
     const int Nm = 3;
     const int n = L * L * L * Nm;
+    const float dt = 0.02;
 
     Particles particles(n, L);
-    particles.equilibrate(.1, 10, 0.02);
+    particles.equilibrate(.1, 1*dt, dt);
 
     const float sandwich_half_width = L / 2 - 1.7;
 #if 1
@@ -627,8 +665,8 @@ int main()
     
     remaining.bouncer = &bouncer;
     remaining.yg = 0.01;
-    remaining.steps_per_dump = 3*5;
-    remaining.equilibrate(.1, 30*3*5, 0.02);
+    remaining.steps_per_dump = 1;
+    remaining.equilibrate(.1, 1*dt, dt);
     printf("particles have been equilibrated");
 }
 
