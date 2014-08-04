@@ -21,7 +21,7 @@
 
 void checkReadWrite()
 {
-  std::string inputFileName = "/Users/kirill/Documents/MATLAB/bla.dat";
+  std::string inputFileName = "bla.dat";
   FunnelObstacle fo(16.0f, 40.0f, 128);
   fo.write(inputFileName);
 

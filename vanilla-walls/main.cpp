@@ -44,7 +44,7 @@ struct Particles
 {
     static int idglobal;
     
-    int n, saru_tag, myidstart, steps_per_dump = 30;
+    int n, saru_tag, myidstart, steps_per_dump = 100;
     float L, xg = 0, yg = 0, zg = 0;
     vector<float> xp, yp, zp, xv, yv, zv, xa, ya, za;
     Bouncer * bouncer = nullptr;
@@ -426,11 +426,11 @@ struct SandwichBouncer: Bouncer
 };
 
 #if 1
-FunnelObstacle kirill(8 * 3);
+FunnelObstacle kirill(32/3, 40, 128);
 #else
 struct Kirill
 {
-    bool iscolliding(const float x, const float y)
+    bool isInside(const float x, const float y)
 	{
 	    const float xc = 0, yc = 0;
 	    const float radius2 = 4;
@@ -579,6 +579,9 @@ struct TomatoSandwich: SandwichBouncer
 		    
 		    wascolliding |= collision;
 		    passes++;
+
+		    if (passes >= 10)
+			break;
 		}
 		while(collision);
 
@@ -623,9 +626,9 @@ int main()
     remaining.name = "fluid";
     
     remaining.bouncer = &bouncer;
-    remaining.xg = 0.05;
-    remaining.steps_per_dump = 3;
-    remaining.equilibrate(.1, 30, 0.02);
+    remaining.yg = 0.01;
+    remaining.steps_per_dump = 3*5;
+    remaining.equilibrate(.1, 30*3*5, 0.02);
     printf("particles have been equilibrated");
 }
 
