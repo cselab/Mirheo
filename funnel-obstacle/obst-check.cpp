@@ -15,6 +15,10 @@
 #include <cmath>
 #include "funnel-obstacle.h"
 
+#define printOk() do{std::cout << "Quick test " << __func__ << ": OK\n";}while(0)
+
+#define assertTrue(res) do{ if (!(res)) {std::cout << "Quick test " << __func__ << ": FAIL\n";} assert(res);}while(0)
+
 void checkReadWrite()
 {
   std::string inputFileName = "/Users/kirill/Documents/MATLAB/bla.dat";
@@ -22,7 +26,8 @@ void checkReadWrite()
   fo.write(inputFileName);
 
   FunnelObstacle fIn(16.0f, 40.0f, 128, inputFileName);
-  assert(fIn == fo);
+  assertTrue(fIn == fo);
+  printOk();
  //to be done
 }
 
@@ -34,9 +39,9 @@ void checkFind1()
   const float eps = 0.1;
   const float my0 = -4.0;
   //const float yPlaneUp = 4.0;
-  assert(fo.sample(0, my0).second < eps);
-  assert(fo.isInside(0, my0 + 1) == true);
-  assert(fo.isInside(0, my0 - 1) == false);
+  assertTrue(fo.sample(0, my0).second < eps);
+  assertTrue(fo.isInside(0, my0 + 1) == true);
+  assertTrue(fo.isInside(0, my0 - 1) == false);
 
   // check on the points from the border
   size_t szForEvery = 20;
@@ -45,19 +50,20 @@ void checkFind1()
     float x = ix * h - 5;
     float y = 0.0;
     if (x > -1.9 && x <= 1.9)
-      assert(fo.isInside(x, y));
+      assertTrue(fo.isInside(x, y));
     if (x < -2.1 || x >= 2.1)
-      assert(!fo.isInside(x, y));
+      assertTrue(!fo.isInside(x, y));
   }
 
   for (size_t iy = 0; iy < szForEvery; ++iy) {
     float y = iy * h - 5;
     float x = 0.0;
     if (y > -3.9 && y <= 3.9)
-      assert(fo.isInside(x, y));
+      assertTrue(fo.isInside(x, y));
     if (y < -4.1 || y >= 4.1)
-      assert(!fo.isInside(x, y));
+      assertTrue(!fo.isInside(x, y));
   }
+  printOk();
 }
 
 void checkFind2()
@@ -69,9 +75,9 @@ void checkFind2()
   const float eps = domainLength / 64;
   const float my0 = -16.0;
   //const float yPlaneUp = 4.0;
-  assert(fo.sample(0, my0).second < eps);
-  assert(fo.isInside(0, my0 + 1) == true);
-  assert(fo.isInside(0, my0 - 1) == false);
+  assertTrue(fo.sample(0, my0).second < eps);
+  assertTrue(fo.isInside(0, my0 + 1) == true);
+  assertTrue(fo.isInside(0, my0 - 1) == false);
 
   // check on the points from the border
   size_t szForEvery = 20;
@@ -80,19 +86,20 @@ void checkFind2()
     float x = ix * h - domainLength/2;
     float y = 0.0;
     if (x > -3.9 && x <= 3.9)
-      assert(fo.isInside(x, y));
+      assertTrue(fo.isInside(x, y));
     if (x < -4.1 || x >= 4.1)
-      assert(!fo.isInside(x, y));
+      assertTrue(!fo.isInside(x, y));
   }
 
   for (size_t iy = 0; iy < szForEvery; ++iy) {
     float y = iy * h - domainLength/2;
     float x = 0.0;
     if (y > -15.9 && y <= 15.9)
-      assert(fo.isInside(x, y));
+      assertTrue(fo.isInside(x, y));
     if (y < -16.1 || y >= 16.1)
-      assert(!fo.isInside(x, y));
+      assertTrue(!fo.isInside(x, y));
   }
+  printOk();
 }
 
 void checkSample()
