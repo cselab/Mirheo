@@ -1,8 +1,10 @@
-CXXFLAGS += -std=c++11 -g -Ofast -fopenmp -I../funnel-obstacle/
+CXXFLAGS += -std=c++11  -fopenmp -I../funnel-obstacle/ -Ofast -DNDEBUG
+#-DNDEBUG -Ofast
 
-ifeq "$(gpu)" "1"
 CUDADPD = ../cuda-dpd-sem/dpd/libcuda-dpd.so
 CXXFLAGS += -I$(dir $(CUDADPD))
+
+ifeq "$(gpu)" "1"
 CUDADPDCMD := make -C $(dir $(CUDADPD)) $(notdir $(CUDADPD)) 
 endif
 

@@ -444,7 +444,10 @@ void forces_dpd_cuda_bipartite(const float * const xp1, const float * const yp1,
     forces_dpd_cuda_bipartite(pv1, a1, order1, np1, gp1id_start,
 		    pv2, a2, order2, np2, gp2id_start,
 		    rc, LX, LY, LZ,
-		    a, gamma, sigma, invsqrtdt);
+			      a, gamma, sigma, invsqrtdt);
+
+    delete [] pv1;
+    delete [] pv2;
      
     for(int i = 0; i < np1; ++i)
     {
