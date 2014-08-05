@@ -390,6 +390,8 @@ void forces_dpd_cuda_bipartite(float * const xp1, float * const yp1, float * con
 			       const float rc, const float LX, const float LY, const float LZ,
 			       const float a, const float gamma, const float sigma, const float invsqrtdt)
 {
+	if (np1 * np2 <= 0) return;
+
     float * pv1 = new float[6 * np1];
     float * pv2 = new float[6 * np2];
 

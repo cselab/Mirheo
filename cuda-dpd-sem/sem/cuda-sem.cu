@@ -174,7 +174,9 @@ void forces_sem_cuda_nohost(
 		     const float rcutoff,
 		     const float XL, const float YL, const float ZL,
 		     const double gamma, const double temp, const double dt, const double u0, const double rho, const double req, const double D, const double rc)
-{  
+{ 
+	if (np <= 0) return;
+
     int nx = (int)ceil(XL / rcutoff);
     int ny = (int)ceil(YL / rcutoff);
     int nz = (int)ceil(ZL / rcutoff);
@@ -275,6 +277,8 @@ void forces_sem_cuda(float * const xp, float * const yp, float * const zp,
 		     const float LX, const float LY, const float LZ,
 		     const double gamma, const double temp, const double dt, const double u0, const double rho, const double req, const double D, const double rc)
 {
+	if (np <= 0) return;
+
     float * pv = new float[6 * np];
 
     for(int i = 0; i < np; ++i)
