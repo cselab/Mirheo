@@ -47,7 +47,7 @@ int main()
     const real rcutoff = 2.5;
     const real gamma = 80, temp = 0.1, dt = 0.01, u0 = 0.001, rho = 1.5, req = 0.85, D = .0001, rc = 1;
     const bool cuda = true;
-    const real tend = 250;//200;//0.08 * 20;
+    const real tend = 10;//200;//0.08 * 20;
     
     vector<real> xp(n), yp(n), zp(n), xv(n), yv(n), zv(n), xa(n), ya(n), za(n), xb(n), yb(n), zb(n);
     srand48(6516L);
@@ -106,19 +106,19 @@ int main()
 		fill(yb.begin(), yb.end(), 0);
 		fill(zb.begin(), zb.end(), 0);
 	      	  
-	    forces_sem_cuda(
-		&xp.front(), &yp.front(), &zp.front(),
-		&xv.front(), &yv.front(), &zv.front(),
-		&xa.front(), &ya.front(), &za.front(),
-		n,
-		rcutoff, L, L, L, gamma, temp, dt, u0, rho, req, D, rc);
-
-//	    forces_sem_cuda_direct(
+//	    forces_sem_cuda(
 //		&xp.front(), &yp.front(), &zp.front(),
 //		&xv.front(), &yv.front(), &zv.front(),
-//		&xb.front(), &yb.front(), &zb.front(),
+//		&xa.front(), &ya.front(), &za.front(),
 //		n,
 //		rcutoff, L, L, L, gamma, temp, dt, u0, rho, req, D, rc);
+
+	    forces_sem_cuda_direct(
+		&xp.front(), &yp.front(), &zp.front(),
+		&xv.front(), &yv.front(), &zv.front(),
+		&xb.front(), &yb.front(), &zb.front(),
+		n,
+		rcutoff, L, L, L, gamma, temp, dt, u0, rho, req, D, rc);
 
 //	    for (int i=0; i<n; i++)
 //	    {
@@ -155,7 +155,6 @@ int main()
 	_up_enforce(zp, zv, dt);
 	
 	_f();
-	exit(0);
 
 	_up(xv, xa, dt * 0.5);
 	_up(yv, ya, dt * 0.5);
