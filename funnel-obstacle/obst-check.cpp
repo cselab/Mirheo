@@ -11,6 +11,7 @@
 #include <cassert>
 
 #include <algorithm>
+#include <limits>
 #include <vector>
 #include <cmath>
 #include "funnel-obstacle.h"
@@ -22,18 +23,17 @@
 void checkFunnelObstacleReadWrite()
 {
   std::string inputFileName = "bla.dat";
-  FunnelObstacle fo(16.0f, 40.0f, 128);
+  FunnelObstacle fo(16.0f, 20.0f, 40.0f, 128, 128);
   fo.write(inputFileName);
 
-  FunnelObstacle fIn(16.0f, 40.0f, 128, inputFileName);
+  FunnelObstacle fIn(16.0f, 20.0f, 40.0f, 128, 128, inputFileName);
   assertTrue(fIn == fo);
   printOk();
- //to be done
 }
 
 void checkFunnelObstacleFind1()
 {
-  FunnelObstacle fo(8.0f, 10.0f);
+  FunnelObstacle fo(8.0f, 10.0f, 10.0f);
 
   // pick up some points
   const float eps = 0.1;
@@ -57,6 +57,43 @@ void checkFunnelObstacleFind1()
 
   for (size_t iy = 0; iy < szForEvery; ++iy) {
     float y = iy * h - 5;
+    float x = 0.0;
+    if (y > -3.9 && y <= 3.9)
+      assertTrue(fo.isInside(x, y));
+    if (y < -4.1 || y >= 4.1)
+      assertTrue(!fo.isInside(x, y));
+  }
+  printOk();
+}
+
+void checkFunnelObstaclNotSquare()
+{
+  float domainLenght[] = {5.0f, 10.0f};
+  FunnelObstacle fo(8.0f, domainLenght[0], domainLenght[1], 32, 64);
+
+  // pick up some points
+  const float eps = 0.1;
+  const float my0 = -4.0;
+  //const float yPlaneUp = 4.0;
+  assertTrue(fo.sample(0, my0).second < eps);
+  assertTrue(fo.isInside(0, my0 + 1) == true);
+  assertTrue(fo.isInside(0, my0 - 1) == false);
+
+  // check on the points from the border
+  size_t szForEvery = 20;
+  float hx = domainLenght[0] / szForEvery;
+  for (size_t ix = 0; ix < szForEvery; ++ix) {
+    float x = ix * hx - domainLenght[0]/2.0;
+    float y = 0.0;
+    if (x > -1.9 && x <= 1.9)
+      assertTrue(fo.isInside(x, y));
+    if (x < -2.1 || x >= 2.1)
+      assertTrue(!fo.isInside(x, y));
+  }
+
+  float hy = domainLenght[1] / szForEvery;
+  for (size_t iy = 0; iy < szForEvery; ++iy) {
+    float y = iy * hy - domainLenght[1]/2.0f;
     float x = 0.0;
     if (y > -3.9 && y <= 3.9)
       assertTrue(fo.isInside(x, y));
@@ -106,7 +143,7 @@ void checkObstacle(Obstacle& fo, float xc, float yc)
 void checkFunnelObstacleFind2()
 {
   float domainLength = 40.0f;
-  FunnelObstacle fo(32.0f, domainLength);
+  FunnelObstacle fo(32.0f, domainLength, domainLength);
 
   checkObstacle(fo, 0.0f, 0.0f);
 }
@@ -130,18 +167,26 @@ void checkRowFunnelObstacle()
 {
     // the behavior in simple case must be the same
     float domainLength = 40.0f;
-    RowFunnelObstacle fo(32.0f, domainLength);
+    RowFunnelObstacle fo(32.0f, domainLength, domainLength);
 
     checkObstacle(fo, 0.0f, 0.0f);
 
     //shift by period, should give the same result
     checkObstacle(fo, domainLength, 0.0f);
+
+    assertTrue(fo.getBoundingBoxIndex(0.0, 100.0f) == std::numeric_limits<int>::infinity());
+
+    assertTrue(fo.getBoundingBoxIndex(0.0, 0.0) == 0);
+
+    assertTrue(fo.getBoundingBoxIndex(25.0f, 0.0) == 1);
+    assertTrue(fo.getBoundingBoxIndex(-25.0f, 0.0) == -1);
 }
 
 int main()
 {
-  //checkFunnelObstacleReadWrite();
-  //checkFunnelObstacleFind1();
-  //checkFunnelObstacleFind2();
+  checkFunnelObstacleReadWrite();
+  checkFunnelObstacleFind1();
+  checkFunnelObstaclNotSquare();
+  checkFunnelObstacleFind2();
   checkRowFunnelObstacle();
 }

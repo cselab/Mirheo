@@ -411,7 +411,7 @@ struct Bouncer
 };
 
 #if 1
-RowFunnelObstacle funnelLS(5.0f, 10.0f, 64);
+RowFunnelObstacle funnelLS(6.0f, 4.0f, 8.0f, 64, 64);
 
 // for now assume FunnelObsatcle is global
 struct FrozenFunnel
@@ -428,7 +428,8 @@ struct FrozenFunnel
         float half_width = frozenLayer.L / 2.0 - 1.0f; // copy-paste from sandwitch
         for (int i = 0; i < p.n; ++i)
         {
-            maskFrozen[i] = (fabs(p.zp[i]) <= half_width) && funnelLS.isInside(p.xp[i], p.yp[i]);
+            int bbIndex = funnelLS.getBoundingBoxIndex(p.xp[i], p.yp[i]);
+            maskFrozen[i] = (fabs(p.zp[i]) <= half_width) && (bbIndex == 0) && funnelLS.isInside(p.xp[i], p.yp[i]);
         }
 
         Particles splittedParticles[2] = {Particles(0, p.L), Particles(0, p.L)};
@@ -814,7 +815,7 @@ struct TomatoSandwich: SandwichBouncer
 
 int main()
 {
-    const float L = 20;
+    const float L = 24;
     const int Nm = 3;
     const int n = L * L * L * Nm;
     const float dt = 0.02;
@@ -835,7 +836,7 @@ int main()
     Particles remaining0 = frFun.carve(particles);
     frFun.frozenLayer.lammps_dump("icy.dump", 0);
     Particles remaining1 = bouncer.carve(remaining0);
-    //bouncer.frozen.lammps_dump("icy.dump", 0);
+    bouncer.frozen.lammps_dump("icy2.dump", 0);
     remaining1.name = "fluid";
     
     remaining1.bouncer = &bouncer;

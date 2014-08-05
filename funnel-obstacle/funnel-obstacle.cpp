@@ -67,19 +67,22 @@ size_t Grid::size(size_t index) const
   return index == 0 ? m_n1 : m_n2;
 }
 
-FunnelObstacle::FunnelObstacle(const float plength, const float domainLength, const size_t gridResolution)
-:  m_grid(gridResolution, gridResolution), m_yPlaneUp(0), m_yPlaneDown(0.0), m_y0(0.0), m_domainLength(domainLength),
-   m_obstacleDetalization(2000)
+FunnelObstacle::FunnelObstacle(const float plength, const float domainLengthX, const float domainLengthY,
+                               const size_t gridResolutionX, const size_t gridResolutionY)
+:  m_grid(gridResolutionX, gridResolutionY), m_yPlaneUp(0), m_yPlaneDown(0.0), m_y0(0.0),
+   m_domainLength{domainLengthX, domainLengthY},
+   m_skinWidth{0.0f, 0.0f}, m_obstacleDetalization(2000)
 {
-  float hy = (m_domainLength - plength) / 2;
-  m_yPlaneUp = m_domainLength/2.0f - hy;
-  m_y0 = fabs(-m_domainLength/2.0f + hy);
+  m_skinWidth[0] = fabs(y2x(m_yPlaneUp, m_y0) - m_domainLength[0]/2.0f);
+  m_skinWidth[1] = (m_domainLength[1] - plength) / 2;
+  m_yPlaneUp = m_domainLength[1]/2.0f - m_skinWidth[1];
+  m_y0 = fabs(-m_domainLength[1]/2.0f + m_skinWidth[1]);
 
-  float h = m_domainLength / m_grid.size(0);
+  float h[] = {m_domainLength[0] / m_grid.size(1), m_domainLength[1] / m_grid.size(0)};
   initInterface();
   for (size_t iy = 0; iy < m_grid.size(0); ++iy) {
     for (size_t ix = 0; ix <  m_grid.size(1); ++ix) {
-      float point[] = {ix * h - m_domainLength/2.0f, iy * h - m_domainLength/2.0f};
+      float point[] = {ix * h[0]- m_domainLength[0]/2.0f, iy * h[1] - m_domainLength[1]/2.0f};
       float dist = calcDist(point[0], point[1]);
       assert(!std::isnan(dist));
       m_grid(iy, ix) = dist;
@@ -87,33 +90,37 @@ FunnelObstacle::FunnelObstacle(const float plength, const float domainLength, co
   }
 }
 
-FunnelObstacle::FunnelObstacle(const float plength, const float domainLength, const size_t gridResolution, const std::string& fileName)
-:  m_grid(gridResolution, gridResolution), m_yPlaneUp(0), m_yPlaneDown(0.0), m_y0(0.0), m_domainLength(domainLength),
+FunnelObstacle::FunnelObstacle(const float plength, const float domainLengthX,
+                               const float domainLengthY, const size_t gridResolutionX,
+                               const size_t gridResolutionY, const std::string& fileName)
+:  m_grid(gridResolutionX, gridResolutionY), m_yPlaneUp(0), m_yPlaneDown(0.0), m_y0(0.0),
+   m_domainLength{domainLengthX, domainLengthY},
    m_obstacleDetalization(2000)
 {
-  float hy = (m_domainLength - plength) / 2;
-  m_yPlaneUp = m_domainLength/2 - hy;
-  m_y0 = fabs(-m_domainLength/2 + hy);
+  m_skinWidth[0] = fabs(y2x(m_yPlaneUp, m_y0) - m_domainLength[0]/2.0f);
+  m_skinWidth[1] = (m_domainLength[1] - plength) / 2;
+  m_yPlaneUp = m_domainLength[1]/2.0f - m_skinWidth[1];
+  m_y0 = fabs(-m_domainLength[1]/2.0f + m_skinWidth[1]);
 
   read(fileName);
 }
 
 bool FunnelObstacle::isInside(const float x, const float y) const
 {
-  if (insideBB(x, y))
+  if (insideBoundingBox(x, y))
     return sample(x, y).first;
   return false;
 }
 
 std::pair<bool, float> FunnelObstacle::sample(const float x, const float y) const
 {
-  assert(insideBB(x, y));
-  float hy = m_domainLength / (m_grid.size(0) - 1.0);
-  float hx = m_domainLength / (m_grid.size(1) - 1.0);
+  assert(insideBoundingBox(x, y));
+  float hy = m_domainLength[1] / (m_grid.size(0) - 1.0);
+  float hx = m_domainLength[0] / (m_grid.size(1) - 1.0);
 
   // shift origin to the left bottom of the BB
-  float xShift = x + m_domainLength/2;
-  float yShift = y + m_domainLength/2;
+  float xShift = x + m_domainLength[0]/2;
+  float yShift = y + m_domainLength[1]/2;
   assert(xShift >= 0.0 && xShift >= 0.0);
 
   size_t ix, iy;
@@ -185,11 +192,10 @@ float FunnelObstacle::bilinearInterpolation(float x, float y, float hx, float hy
   return fp;
 }
 
-bool FunnelObstacle::insideBB(const float x, const float y) const
+bool FunnelObstacle::insideBoundingBox(const float x, const float y) const
 {
-  float half = m_domainLength / 2.0;
-  if (x >= -half && x <= half
-   && y >= -half && y <= half)
+  if (x >= -m_domainLength[0]/2.0 && x <= m_domainLength[0]/2.0
+   && y >= -m_domainLength[1]/2.0 && y <= m_domainLength[1]/2.0)
     return true;
   return false;
 }
@@ -237,7 +243,9 @@ void FunnelObstacle::read(const std::string& fileName)
 
 bool FunnelObstacle::operator== (const FunnelObstacle& another)
 {
-  if (m_yPlaneUp != another.m_yPlaneUp || m_yPlaneDown != another.m_yPlaneDown || m_y0 != another.m_y0)
+  if (m_yPlaneUp != another.m_yPlaneUp || m_yPlaneDown != another.m_yPlaneDown || m_y0 != another.m_y0 ||
+      m_domainLength[0] != another.m_domainLength[0] || m_skinWidth[2] != another.m_skinWidth[2] ||
+      m_obstacleDetalization != another.m_obstacleDetalization)
     return false;
 
   for (size_t iy = 0; iy < m_grid.size(0); ++iy)
@@ -249,14 +257,27 @@ bool FunnelObstacle::operator== (const FunnelObstacle& another)
 
 // **************** RowFunnelObstacle *******************
 
-RowFunnelObstacle::RowFunnelObstacle(const float plength, const float domainLength, const size_t gridResolution)
-: m_funnelObstacle(plength, domainLength, gridResolution)
+RowFunnelObstacle::RowFunnelObstacle(const float plength, const float domainLengthX, const float domainLengthY,
+                                     const size_t gridResolutionX, const size_t gridResolutionY)
+: m_funnelObstacle(plength, domainLengthX, domainLengthY, gridResolutionX, gridResolutionY)
 {}
 
 float RowFunnelObstacle::getOffset(float x) const
 {
     float h = x > 0.0f ? 0.5f : -0.5f;
     return -trunc(x / m_funnelObstacle.getDomainLength(0) + h) * m_funnelObstacle.getDomainLength(0);
+}
+
+int RowFunnelObstacle::getBoundingBoxIndex(const float x, const float y) const
+{
+    // the row center is at (0.0, 0.0), thus first check that y is in the box
+    // than find index
+    if (!m_funnelObstacle.insideBoundingBox(0.0f, y))
+        return std::numeric_limits<int>::infinity();
+
+    float h = x > 0.0f ? 0.5f : -0.5f;
+    int res =  static_cast<int>(x / m_funnelObstacle.getDomainLength(0) + h);
+    return res;
 }
 
 bool RowFunnelObstacle::isInside(const float x, const float y) const

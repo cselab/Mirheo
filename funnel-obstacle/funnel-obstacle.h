@@ -11,6 +11,7 @@
 #include <vector>
 #include <utility>
 #include <string>
+#include <cassert>
 
 class Grid
 {
@@ -30,7 +31,7 @@ class FunnelObstacle
 {
   Grid m_grid;
 
-  float m_yPlaneUp, m_yPlaneDown, m_y0, m_domainLength;
+  float m_yPlaneUp, m_yPlaneDown, m_y0, m_domainLength[2], m_skinWidth[2];
   const size_t m_obstacleDetalization;
 
   std::vector< std::pair <float, float> > m_interface;
@@ -38,7 +39,6 @@ class FunnelObstacle
 
   float calcDist(const float x, const float y) const;
   float bilinearInterpolation(float x, float y, float hx, float hy, size_t i, size_t j) const;
-  bool insideBB(const float x, const float y) const;
 
   void read(const std::string& fileName);
 
@@ -47,15 +47,29 @@ class FunnelObstacle
 
 public:
 
-  FunnelObstacle(const float plength, const float domainLength, const size_t gridResolution = 64);
-  FunnelObstacle(const float plength, const float domainLength, const size_t gridResolution, const std::string& fileName);
+  FunnelObstacle(const float plength, const float domainLengthX,
+                 const float domainLengthY, const size_t gridResolutionX = 32, const size_t gridResolutionY = 64);
+  FunnelObstacle(const float plength, const float domainLengthX,
+                 const float domainLengthY, const size_t gridResolutionX, const size_t gridResolutionY,
+                 const std::string& fileName);
 
   bool isInside(const float x, const float y) const;
   std::pair<bool, float> sample(const float x, const float y) const;
 
+  bool insideBoundingBox(const float x, const float y) const;
+
   float getDomainLength(size_t direct) const
   {
-      return m_domainLength;
+      assert(direct < 3);
+      return m_domainLength[direct];
+  }
+
+  /**
+   * the min distance from the interface to the border of bounding box
+   */
+  void getSkinWidth(float& x, float& y) const
+  {
+      x = m_skinWidth[0]; y = m_skinWidth[1];
   }
 
   void write(const std::string& fileName) const;
@@ -70,9 +84,19 @@ class RowFunnelObstacle
 {
     FunnelObstacle m_funnelObstacle;
 public:
-    RowFunnelObstacle(const float plength, const float domainLength, const size_t gridResolution = 64);
+    RowFunnelObstacle(const float plength, const float domainLengthX, const float domainLengthY,
+            size_t gridResolutionX = 32, const size_t gridResolutionY = 64);
 
+    /**
+     * return offset to shift the point into the bounding box for obstacle with index 0
+     */
     float getOffset(float x) const;
+
+    /**
+     * return bbIndex which is [-I, I] if point belongs to one
+     * of the bounding boxes for the row of obstacles, otherwise return inf
+     */
+    int getBoundingBoxIndex(const float x, const float y) const;
 
     bool isInside(const float x, const float y) const;
     std::pair<bool, float> sample(const float x, const float y) const;
