@@ -188,13 +188,15 @@ inline void exec(Particles** part, Cells<Particles> &cellsA, Cells<Particles> &c
                             {
                                 inter.F(dx, dy, dz,  part[a], part[b],  r2,  fx, fy, fz,  src, dst, t);
                                 
-                                part[a]->x(src) += fx;
-                                part[a]->x(src) += fy;
-                                part[a]->x(src) += fz;
+                                part[a]->ax(src) += fx;
+                                part[a]->ay(src) += fy;
+                                part[a]->az(src) += fz;
                                 
                                 res[3*dst + 0] -= fx;
                                 res[3*dst + 1] -= fy;
                                 res[3*dst + 2] -= fz;
+                                
+                                //printf("%d  :  %d     %f %f %f        %f %f %f\n", t, src,  dx, dy, dz,  fx, fy, fz);
                             }
                         }
                     }
@@ -207,6 +209,8 @@ inline void exec(Particles** part, Cells<Particles> &cellsA, int a, Interactor &
                  int sx, int sy, int sz, vector<vector<int>> pass, real* res, int t, bool myself)
 {
     static const int stride = 2;
+    
+    if (a == 0) return;
     
     for (int ix=sx; ix<cellsA.n0; ix+=stride)
         for (int iy=sy; iy<cellsA.n1; iy+=stride)
@@ -303,7 +307,9 @@ void _cpuForces(Particles** part, Cells<Particles>*** cells, int a, int b, Inter
     static const int stride = 2;
 
     const static vector<vector<int>> pass1 = { {-1, -1, -1}, {-1, -1,  0}, {-1,  0, -1}, {-1,  0,  0}, { 0, -1, -1}, { 0, -1,  0}, { 0,  0, -1} };
-    const static vector<vector<int>> pass2 = { {-1, -1,  1}, {-1,  0,  1}, {-1,  1, -1}, {-1,  1,  0}, {-1,  1,  1}, { 0, -1,  1} };
+    const static vector<vector<int>> pass2 = { {-1, -1,  1}, {-1,  0,  1}, {-1,  1, -1}, {-1,  1,  0}, {-1,  1,  1}, { 0, -1,  1}, { 0,  0,  0} };
+    const static vector<vector<int>> pass3 = { { 0,  0,  1}, { 0,  1,  0}, { 0,  1,  1}, { 1,  0,  0}, { 1,  0,  1}, { 1,  1,  0}, { 1,  1,  1} };
+    const static vector<vector<int>> pass4 = { { 0,  1, -1}, { 1, -1, -1}, { 1, -1,  0}, { 1, -1,  1}, { 1,  0, -1}, { 1,  1, -1} };
     real **buffer;
     
     if (part[a]->n <= 0 || part[b]->n <= 0 ) return;
@@ -332,7 +338,24 @@ void _cpuForces(Particles** part, Cells<Particles>*** cells, int a, int b, Inter
                 exec(part, *cells[a][b], *cells[b][a], a, b, inter, i, j, k, pass2, buffer[4*i + 2*j + k], time);
             }
     
-    for (int j=0; j<3*part[a]->n; j++)
+#pragma omp parallel for collapse(3)
+    for (int i=0; i<stride; i++)
+        for (int j=0; j<stride; j++)
+            for (int k=0; k<stride; k++)
+            {
+                exec(part, *cells[a][b], *cells[b][a], a, b, inter, i, j, k, pass3, buffer[4*i + 2*j + k], time);
+            }
+    
+#pragma omp parallel for collapse(3)
+    for (int i=0; i<stride; i++)
+        for (int j=0; j<stride; j++)
+            for (int k=0; k<stride; k++)
+            {
+                exec(part, *cells[a][b], *cells[b][a], a, b, inter, i, j, k, pass4, buffer[4*i + 2*j + k], time);
+            }
+
+    
+    for (int j=0; j<3*part[b]->n; j++)
     {
         buffer[0][j] += buffer[1][j];
         buffer[2][j] += buffer[3][j];
@@ -345,11 +368,11 @@ void _cpuForces(Particles** part, Cells<Particles>*** cells, int a, int b, Inter
         buffer[0][j]  = buffer[0][j] + buffer[4][j];
     }
     
-    for (int j=0; j<part[a]->n; j++)
+    for (int j=0; j<part[b]->n; j++)
     {
-        part[a]->ax(j) = buffer[0][3*j + 0];
-        part[a]->ay(j) = buffer[0][3*j + 1];
-        part[a]->az(j) = buffer[0][3*j + 2];
+        part[b]->ax(j) += buffer[0][3*j + 0];
+        part[b]->ay(j) += buffer[0][3*j + 1];
+        part[b]->az(j) += buffer[0][3*j + 2];
     }
     
     for (int i=0; i<8; i++)
@@ -407,9 +430,9 @@ void _cpuForces(Particles** part, Cells<Particles>*** cells, int a, Interactor &
     
     for (int j=0; j<part[a]->n; j++)
     {
-        part[a]->ax(j) = buffer[0][3*j + 0];
-        part[a]->ay(j) = buffer[0][3*j + 1];
-        part[a]->az(j) = buffer[0][3*j + 2];
+        part[a]->ax(j) += buffer[0][3*j + 0];
+        part[a]->ay(j) += buffer[0][3*j + 1];
+        part[a]->az(j) += buffer[0][3*j + 2];
     }
     
     for (int i=0; i<8; i++)

@@ -52,6 +52,18 @@ nTypes(nTypes), part(part), prof(prof)
                 table[i][j] = new DPD(rCut[i][j], aij, gamma, temp, rc, dt);
                 types[i][j] = INTER_DPD;
             }
+            else if (type == "dpd_rand")
+            {
+                const real aij   = configParser->getf(inttag,  "aij",    2.5);
+                const real gamma = configParser->getf(inttag,  "gamma",  45);
+                const real temp  = configParser->getf("Basic", "temp",   0.1);
+                const real rc    = configParser->getf(inttag,  "rCut",   1);
+                const real D     = configParser->getf(inttag,  "D",      1e-5);
+                const real dt    = configParser->getf("Basic", "dt",     0.001);
+                
+                table[i][j] = new DPD_Rand(rCut[i][j], aij, gamma, temp, rc, D, dt);
+                types[i][j] = INTER_DPD_RAND;
+            }
             else if (type == "sem")
             {
                 const real gamma = configParser->getf(inttag,  "gamma",  100);
@@ -102,14 +114,22 @@ void InteractionTable::evalForces(int step)
                     DPD* dpd = static_cast<DPD*>(table[i][j]);
                     computeForces(part, cells, i, j, *dpd, step);
                 }
-                    break;
-                    
+                break;
+                
+                case INTER_DPD_RAND:
+                {
+                    DPD_Rand* dpd_rand = static_cast<DPD_Rand*>(table[i][j]);
+                    computeForces(part, cells, i, j, *dpd_rand, step);
+                }
+                break;
+
+                
                 case INTER_SEM:
                 {
                     SEM* sem = static_cast<SEM*>(table[i][j]);
                     computeForces(part, cells, i, j, *sem, step);
                 }
-                    break;
+                break;
             }
             
             prof.stop();

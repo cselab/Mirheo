@@ -52,7 +52,8 @@ protected:
         unsigned int r = (v^(v>>20))*0x6957f5a7;
         
         real res = r / ((real)4294967295.0);
-        return (real)3.464101615 * res - (real)1.732050807;
+        res = (real)3.464101615 * res - (real)1.732050807;
+        return res;
     }
 };
 
@@ -98,23 +99,81 @@ inline void DPD::F(const real dx, const real dy, const real dz,
                    real& fx,      real& fy,      real& fz,
                    int i, int j, int t) const
 {
-    real vx = p1->vx(j) - p2->vx(i);
-    real vy = p1->vy(j) - p2->vy(i);
-    real vz = p1->vz(j) - p2->vz(i);
+    real vx = p2->vx(j) - p1->vx(i);
+    real vy = p2->vy(j) - p1->vy(i);
+    real vz = p2->vz(j) - p1->vz(i);
     
     real IrI = sqrt(r2);
     real wr_IrI = w(IrI) / IrI;
 	   
     //real fc = alpha;
-    real fd = -gamma * wr_IrI * (dx*vx + dy*vy + dz*vz);   // !!! minus
+    real fd = gamma * wr_IrI * (dx*vx + dy*vy + dz*vz);   // !!! minus
     real fr = sigma * Interaction::saru(min(i, j), max(i, j), t);
     
-    real fAbs = -(alpha + fd + fr) * wr_IrI;
+    real fAbs = (fd + fr - alpha) * wr_IrI;
     fx = fAbs * dx;
 	fy = fAbs * dy;
 	fz = fAbs * dz;
 }
 
+//**********************************************************************************************************************
+// DPD_Rand
+//**********************************************************************************************************************
+class DPD_Rand : public Interaction
+{
+public:
+	real alpha, gamma, temp, sigma;
+    real rCut, rCut2, rc, D;
+    
+    inline real w(real) const;
+    
+public:
+    
+    DPD_Rand(real rCut, real alpha, real gamma, real temp, real rc, real D, real dt);
+    
+    inline bool  nonzero(real r2) { return r2 < rCut2; }
+    inline void  F(const real dx, const real dy, const real dz,
+                   Particles* p1, Particles* p2,
+                   const real r2,
+                   real& fx,      real& fy,      real& fz,
+                   int i, int j, int t) const;
+};
+
+inline DPD_Rand::DPD_Rand(real rCut, real alpha, real gamma, real temp, real rc, real D, real dt):
+rCut(rCut), rCut2(rCut * rCut),
+alpha(alpha), gamma(gamma), temp(temp), rc(rc), D(D),
+sigma(sqrt(2 * gamma * temp / dt))
+{
+}
+
+inline real DPD_Rand::w(real r) const
+{
+    // Cutoff is already checked here
+    return 1.0 - r/rc;
+}
+
+inline void DPD_Rand::F(const real dx, const real dy, const real dz,
+                   Particles* p1, Particles* p2,
+                   const real r2,
+                   real& fx,      real& fy,      real& fz,
+                   int i, int j, int t) const
+{
+    real vx = p2->vx(j) - p1->vx(i);
+    real vy = p2->vy(j) - p1->vy(i);
+    real vz = p2->vz(j) - p1->vz(i);
+    
+    real IrI = sqrt(r2);
+    real wr_IrI = w(IrI) / IrI;
+    
+    //real fc = alpha;
+    real fd = gamma * wr_IrI * (dx*vx + dy*vy + dz*vz);   // !!! minus
+    real fr = D * sigma * Interaction::saru(min(i, j), max(i, j), t);
+    
+    real fAbs = (fd + fr - alpha) * wr_IrI;
+    fx = fAbs * dx;
+	fy = fAbs * dy;
+	fz = fAbs * dz;
+}
 
 //**********************************************************************************************************************
 // SEM+DPD
@@ -158,9 +217,9 @@ inline void SEM::F(const real dx, const real dy, const real dz,
                    real& fx,      real& fy,      real& fz,
                    int i, int j, int t) const
 {
-    real vx = p1->vx(j) - p2->vx(i);
-    real vy = p1->vy(j) - p2->vy(i);
-    real vz = p1->vz(j) - p2->vz(i);
+    real vx = p2->vx(j) - p1->vx(i);
+    real vy = p2->vy(j) - p1->vy(i);
+    real vz = p2->vz(j) - p1->vz(i);
 
     real IrI = sqrt(r2);
     real wr_IrI = w(IrI) / IrI;
@@ -183,7 +242,7 @@ inline void SEM::F(const real dx, const real dy, const real dz,
 //**********************************************************************************************************************
 // Interaction Table
 //**********************************************************************************************************************
-enum InterTypes { INTER_DPD, INTER_SEM };
+enum InterTypes { INTER_DPD, INTER_DPD_RAND, INTER_SEM };
 
 class InteractionTable
 {
