@@ -46,9 +46,9 @@ int main()
     const real aij = 2.5;
     const real rc = 1;
     const bool cuda = true;
-    const bool bipartite = true;
+    const bool bipartite = false;//true;
     const real dt = 0.02;
-    const real tend = 20;//0.08 * 20;
+    const real tend = 3;//20;//0.08 * 20;
     
     vector<real> xp(n), yp(n), zp(n), xv(n), yv(n), zv(n), xa(n), ya(n), za(n);
     srand48(6516L);
@@ -223,7 +223,7 @@ int main()
     for(int it = 0; it < nt; ++it)
     {
 	//const double dt = 0;
-	if (it % 1 == 0)
+	if (it % 30 == 0)
 	{
 	    float t = it * dt;
 	    _diag(fdiag, t);
@@ -249,6 +249,7 @@ int main()
     }
 
     fclose(fdiag);
-    
+
+    printf("done with %d iterations.\n", nt);	    
     return 0;
 }

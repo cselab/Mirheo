@@ -183,6 +183,8 @@ void forces_dpd_cuda_bipartite(float * const _xyzuvw1, float * const _axayaz1, i
 			       const float rc, const float XL, const float YL, const float ZL,
 			       const float aij, const float gamma, const float sigma, const float invsqrtdt)
 {
+    const bool second_partition = _axayaz2 != NULL;
+    
     int nx = (int)ceil(XL / rc);
     int ny = (int)ceil(YL / rc);
     int nz = (int)ceil(ZL / rc);
@@ -239,7 +241,8 @@ void forces_dpd_cuda_bipartite(float * const _xyzuvw1, float * const _axayaz1, i
     cudaStream_t stream1, stream2;
     
     CUDA_CHECK(cudaStreamCreate(&stream1));
-    CUDA_CHECK(cudaStreamCreate(&stream2));
+    if (second_partition)
+	CUDA_CHECK(cudaStreamCreate(&stream2));
     
     ProfilerDPD::singletone().start();
 
@@ -249,21 +252,28 @@ void forces_dpd_cuda_bipartite(float * const _xyzuvw1, float * const _axayaz1, i
     
     CUDA_CHECK(cudaPeekAtLastError());
     
-    _dpd_forces_saru<<<(nonemptycells2.first + CPB - 1) / CPB, dim3(32, CPB), 0, stream2>>>(
+    if (second_partition)
+    {
+	_dpd_forces_saru<<<(nonemptycells2.first + CPB - 1) / CPB, dim3(32, CPB), 0, stream2>>>(
 	_ptr(axayaz2), saru_tid, texStart2.texObj, texCount2.texObj, texStart1.texObj, texCount1.texObj,
 	texParticles2.texObj, texParticles1.texObj, nonemptycells2.second, nonemptycells2.first, gp2id_start, gp1id_start);
     
-    CUDA_CHECK(cudaPeekAtLastError());
+	CUDA_CHECK(cudaPeekAtLastError());
+    }
     saru_tid += 1;  
 
     ProfilerDPD::singletone().force();	
     ProfilerDPD::singletone().report();
  
     copy(axayaz1.begin(), axayaz1.end(), _axayaz1);
-    copy(axayaz2.begin(), axayaz2.end(), _axayaz2);
+
+    if (second_partition)
+	copy(axayaz2.begin(), axayaz2.end(), _axayaz2);
 
     CUDA_CHECK(cudaStreamDestroy(stream1));
-    CUDA_CHECK(cudaStreamDestroy(stream2));
+    
+    if (second_partition)
+	CUDA_CHECK(cudaStreamDestroy(stream2));
     
 #ifdef _CHECK_
     printf("hello check: np1 %d np2: %d\n", np1, np2);
@@ -379,17 +389,19 @@ void forces_dpd_cuda_bipartite(float * const _xyzuvw1, float * const _axayaz1, i
 #endif
 }
 
-void forces_dpd_cuda_bipartite(float * const xp1, float * const yp1, float * const zp1,
-			       float * const xv1, float * const yv1, float * const zv1,
-			       float * const xa1, float * const ya1, float * const za1,
-			       const int np1, const int gp1id_start,
-			       float * const xp2, float * const yp2, float * const zp2,
-			       float * const xv2, float * const yv2, float * const zv2,
-			       float * const xa2, float * const ya2, float * const za2,
+void forces_dpd_cuda_bipartite(const float * const xp1, const float * const yp1, const float * const zp1,
+			       const float * const xv1, const float * const yv1, const float * const zv1,
+			       float * const xa1, float * const ya1,  float * const za1,
+			       const int np1, const int gp1id_start,	 
+			       const float * const xp2, const float * const yp2, const float * const zp2,
+			       const float * const xv2, const float * const yv2, const float * const zv2,
+			       float * const xa2,  float * const ya2,  float * const za2,
 			       const int np2, const int gp2id_start,
 			       const float rc, const float LX, const float LY, const float LZ,
 			       const float a, const float gamma, const float sigma, const float invsqrtdt)
 {
+    const bool second_partition = xa2 != NULL && ya2 != NULL && za2 != NULL;
+    
 	if (np1 * np2 <= 0) return;
 
     float * pv1 = new float[6 * np1];
@@ -416,18 +428,28 @@ void forces_dpd_cuda_bipartite(float * const xp1, float * const yp1, float * con
     }
 
     float * a1 = new float[3 * np1];
-    float * a2 = new float[3 * np2];
+    float * a2 = NULL;
+
+    if (second_partition)
+	a2 = new float[3 * np2];
     
     memset(a1, 0, sizeof(float) * 3 * np1);
-    memset(a2, 0, sizeof(float) * 3 * np2);
+    if (second_partition)
+	memset(a2, 0, sizeof(float) * 3 * np2);
 
     int * order1 = new int [np1];
-    int * order2 = new int [np2];
+    int * order2 = NULL;
+
+    if (second_partition)
+	order2 = new int [np2];
 
     forces_dpd_cuda_bipartite(pv1, a1, order1, np1, gp1id_start,
 		    pv2, a2, order2, np2, gp2id_start,
 		    rc, LX, LY, LZ,
-		    a, gamma, sigma, invsqrtdt);
+			      a, gamma, sigma, invsqrtdt);
+
+    delete [] pv1;
+    delete [] pv2;
      
     for(int i = 0; i < np1; ++i)
     {
@@ -437,17 +459,22 @@ void forces_dpd_cuda_bipartite(float * const xp1, float * const yp1, float * con
 	ya1[order1[i]] += a1[1 + 3 * i]; 
 	za1[order1[i]] += a1[2 + 3 * i];
     }
-    
-    for(int i = 0; i < np2; ++i)
-    {
-	xa2[order2[i]] += a2[0 + 3 * i];
-	ya2[order2[i]] += a2[1 + 3 * i];
-	za2[order2[i]] += a2[2 + 3 * i];
-    }
+
+    if (second_partition)
+	for(int i = 0; i < np2; ++i)
+	{
+	    xa2[order2[i]] += a2[0 + 3 * i];
+	    ya2[order2[i]] += a2[1 + 3 * i];
+	    za2[order2[i]] += a2[2 + 3 * i];
+	}
    
     delete [] a1;
-    delete [] a2;
+
+    if (second_partition)
+	delete [] a2;
 
     delete [] order1;
-    delete [] order2;
+
+    if (second_partition)
+	delete [] order2;
 }

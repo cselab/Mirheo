@@ -191,7 +191,7 @@ int main()
 
     SimSEM sim(n, L);
        
-    sim.run(8, 0.01);
+    sim.run(250 * 4, 0.01);
     
     return 0;
 }

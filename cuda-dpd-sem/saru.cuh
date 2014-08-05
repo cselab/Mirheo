@@ -23,6 +23,6 @@ __device__ inline float saru(unsigned int seed1, unsigned int seed2, unsigned in
     unsigned int v = (state ^ (state>>26))+wstate;
     unsigned int r = (v^(v>>20))*0x6957f5a7;
     
-    double res = r / (4294967295.0f);
+    float res = r / (4294967295.0f);
     return res;
 }
