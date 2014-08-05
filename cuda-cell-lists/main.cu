@@ -27,24 +27,27 @@ __global__ void acquire_local_offset(const float * const ys,
     assert(blockDim.x == warpSize * nwarps);
 
     const int tid = threadIdx.x;
-    const int bwork = blockDim.x * ILP;
-    const int gwork = bwork * gridDim.x * ILP;
+    const int gsize = gridDim.x * blockDim.x;
     const int nhisto = ncells.y * ncells.z;
 
-    for(int i = tid ; i < nhisto; i += blockDim.x)
-	yzhisto[i] = 0;
+    const int tile = blockIdx.x * blockDim.x;
     
-    for(int tile = blockIdx.x * bwork; tile < np; tile += gwork)
+    if (tile >= np)
+	return;
+    
     {
+	for(int i = tid ; i < nhisto; i += blockDim.x)
+	    yzhisto[i] = 0;
+ 
 	float y[ILP], z[ILP];
 	for(int j = 0; j < ILP; ++j)
 	{
-	    const int g = tile + tid + j * blockDim.x;
+	    const int g = tile + tid + gsize * j;
 
 	    y[j] = z[j] = -1;
 
 	    if (g < np)
-	    {
+	    { 
 		y[j] = ys[g];
 		z[j] = zs[g];
 	    }
@@ -55,7 +58,7 @@ __global__ void acquire_local_offset(const float * const ys,
 	int entries[ILP], offset[ILP];
 	for(int j = 0; j < ILP; ++j)
 	{
-	    const int g = tile + tid + j * blockDim.x;
+	    const int g = tile + tid + gsize * j;
 	    
 	    int ycid = (int)(floor(y[j] - domainstart.y) * invrc);
 	    int zcid = (int)(floor(z[j] - domainstart.z) * invrc);
@@ -69,7 +72,7 @@ __global__ void acquire_local_offset(const float * const ys,
 	    if (g < np)
 	    {
 		entries[j] =  ycid + ncells.y * zcid;
-		offset[j] = atomicAdd(yzhisto + entries[j], 1);
+		offset[j] = (tid % 3   > 0) ? 0 : atomicAdd(yzhisto + entries[j], 1);
 	    }
 	}
 
@@ -82,7 +85,7 @@ __global__ void acquire_local_offset(const float * const ys,
 
 	for(int j = 0; j < ILP; ++j)
 	{
-	    const int g = tile + tid + j * blockDim.x;
+	    const int g = tile + tid + gsize * j;
 	    
 	    if (g < np)
 	    {
@@ -109,6 +112,7 @@ __global__ void acquire_local_offset(const float * const ys,
 	for(int i = tid ; i < nhisto; i += blockDim.x)
 	    yzhisto[i] = global_yzhisto[i];
 
+	const int bwork = blockDim.x * ILP;
 	for(int tile = 0; tile < nhisto; tile += bwork)
 	{
 	    const int n = min(bwork, nhisto - tile);
@@ -269,25 +273,32 @@ int main()
     CUDA_CHECK(cudaEventCreate(&evacquire));
     CUDA_CHECK(cudaEventCreate(&evscatter));
     CUDA_CHECK(cudaEventRecord(evstart));
-    static const int ILP = 4;
+    static const int ILP = 4; 
     
 
-    const int nblocks = (N + blocksize * ILP - 1)/ (blocksize * ILP);
+    const int nblocks = (N + blocksize * ILP - 1)/ (blocksize * ILP) ;
     acquire_local_offset<ILP><<<nblocks, blocksize, sizeof(int) * ncells.y * ncells.z>>>
 	(_ptr(yp), _ptr(zp), N, invrc, ncells, domainstart, _ptr(yzcid),  _ptr(loffsets), _ptr(yzhisto), _ptr(dyzscan));
+    CUDA_CHECK(cudaPeekAtLastError());
 
+    {
+	cudaThreadSynchronize();
+	//sleep(2);
+	//exit(0);
+    }
+    
     CUDA_CHECK(cudaEventRecord(evacquire));
 
     
-    {
+     {
 	cudaBindTexture(&textureoffset, &texScanYZ, _ptr(dyzscan), &fmt, sizeof(int) * ncells.y * ncells.z);
 	
 	scatter_data<ILP><<<(N + 256 * ILP - 1) / (256 * ILP), 256>>>(_ptr(loffsets), _ptr(yzcid), N, _ptr(outid));
-    }
+     }
     
     CUDA_CHECK(cudaEventRecord(evscatter));
     CUDA_CHECK(cudaPeekAtLastError());
-    
+     
     cudaThreadSynchronize();
 
     //sleep(.1);
@@ -312,7 +323,7 @@ int main()
 	int s = 0;
 	for(int i = 0; i < yzhisto.size(); ++i)
 	{
-	    //printf("%d reading %d ref is %d\n", i, (int)yzscan[i], (int)yzhist[i]);
+	    printf("%d reading %d ref is %d\n", i, (int)yzhisto[i], (int)yzhist[i]);
 	    assert(yzhisto[i]  == yzhist[i]);
 	    s += yzhisto[i];
 
