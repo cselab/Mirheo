@@ -92,6 +92,16 @@ public:
      */
     float getOffset(float x) const;
 
+    void getSkinWidth(float& x, float& y) const
+    {
+        m_funnelObstacle.getSkinWidth(x, y);
+    }
+
+    float getDomainLength(size_t direct) const
+    {
+        return m_funnelObstacle.getDomainLength(direct);
+    }
+
     /**
      * return bbIndex which is [-I, I] if point belongs to one
      * of the bounding boxes for the row of obstacles, otherwise return inf

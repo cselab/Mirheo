@@ -159,7 +159,7 @@ struct Particles
     void _dpd_forces_1particle(const float kBT, const double dt,
             int i,
             const float* coord, const float* vel, // float3 arrays
-            float* df, // float3 for delta{force}
+            float* df, float offsetX, // float3 for delta{force}
             const int giddstart, const int gidsstart) const
     {
         const float xinvdomainsize = 1.0f / L;
@@ -190,9 +190,9 @@ struct Particles
             if (spid == dpid)
             continue;
 
-            const float xdiff = coord[0] - xp[j];
-            const float ydiff = coord[1] - yp[j];
-            const float zdiff = coord[2] - zp[j];
+            const float xdiff = coord[0] - (xp[j] + offsetX);
+            const float ydiff = coord[1] - (yp[j] + offsetX);
+            const float zdiff = coord[2] - (zp[j] + offsetX);
 
             const float _xr = xdiff - xdomainsize * floorf(0.5f + xdiff * xinvdomainsize);
             const float _yr = ydiff - ydomainsize * floorf(0.5f + ydiff * yinvdomainsize);
@@ -411,7 +411,7 @@ struct Bouncer
 };
 
 #if 1
-RowFunnelObstacle funnelLS(6.0f, 4.0f, 8.0f, 64, 64);
+RowFunnelObstacle funnelLS(5.0f, 5.0f, 8.0f, 64, 64);
 
 // for now assume FunnelObsatcle is global
 struct FrozenFunnel
@@ -455,12 +455,31 @@ struct FrozenFunnel
 
     void computePairDPD(const float kBT, const double dt, Particles& freeParticles, int seed1) const
     {
+        float xskin, yskin;
+        float rc = 1.0;
+        funnelLS.getSkinWidth(xskin, yskin);
         for (int i = 0; i < freeParticles.n; ++i) {
             //shifted position so coord.z == origin(layer).z which is 0
             float coord[] = {freeParticles.xp[i], freeParticles.yp[i], 0.0};
+
+            // shift atom to the central box in the row
+            float offsetCoordX = funnelLS.getOffset(coord[0]);
+            coord[0] += offsetCoordX;
+
             float vel[] = {freeParticles.xv[i], freeParticles.yv[i], freeParticles.zv[i]};
             float df[] = {0.0, 0.0, 0.0};
-            frozenLayer._dpd_forces_1particle(kBT, dt, i, coord, vel, df, seed1, frozenLayer.myidstart);
+            frozenLayer._dpd_forces_1particle(kBT, dt, i, coord, vel, df, 0.0f, seed1, frozenLayer.myidstart);
+
+            float frozenOffset = funnelLS.getDomainLength(0);
+
+            if ((fabs(coord[0]  - funnelLS.getDomainLength(0)/2.0f) + xskin) < rc)
+            {
+                if (coord[0] > 0.0) {
+                    frozenLayer._dpd_forces_1particle(kBT, dt, i, coord, vel, df, frozenOffset, seed1, frozenLayer.myidstart);
+                } else {
+                    frozenLayer._dpd_forces_1particle(kBT, dt, i, coord, vel, df, -frozenOffset, seed1, frozenLayer.myidstart);
+                }
+            }
 
             freeParticles.xa[i] += df[0];
             freeParticles.ya[i] += df[1];
@@ -815,13 +834,13 @@ struct TomatoSandwich: SandwichBouncer
 
 int main()
 {
-    const float L = 24;
+    const float L = 10;
     const int Nm = 3;
     const int n = L * L * L * Nm;
     const float dt = 0.02;
 
     Particles particles(n, L);
-    particles.equilibrate(.1, 1*dt, dt);
+    particles.equilibrate(.1, 10*dt, dt);
 
     const float sandwich_half_width = L / 2 - 1.7;
 #if 1
@@ -843,7 +862,7 @@ int main()
     remaining1.frozenFunnel = &frFun;
     remaining1.yg = 0.01;
     remaining1.steps_per_dump = 1;
-    remaining1.equilibrate(.1, 1*dt, dt);
+    remaining1.equilibrate(.1, 100*dt, dt);
     printf("particles have been equilibrated");
 }
 
