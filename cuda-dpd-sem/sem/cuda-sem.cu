@@ -10,8 +10,9 @@
 struct InfoSEM
 {
     int3 ncells;
+    int  npart;
     float3 domainsize, invdomainsize, domainstart;
-    float invrc, A0, A1, A2, gamma, B0;
+    float invrc, A0, A1, A2, gamma, B0, rc2;
 };
 
 __constant__ InfoSEM info;
@@ -193,6 +194,7 @@ void forces_sem_cuda_nohost(
     c.A2 = -1 / (req * req);
     c.B0 = sqrt(2 * gamma * temp / dt) * D;
     c.gamma = gamma;
+    c.rc2 = rcutoff * rcutoff;
         
     CUDA_CHECK(cudaMemcpyToSymbol(info, &c, sizeof(c)));
 
@@ -210,7 +212,7 @@ void forces_sem_cuda_nohost(
 			    c.ncells.y / _YCPB_,
 			    c.ncells.z / _ZCPB_), dim3(32, CPB)>>>( device_axayaz, saru_tid, texStart.texObj, texCount.texObj, texParticles.texObj);
 
-    ++saru_tid;
+    //++saru_tid;
 
     CUDA_CHECK(cudaPeekAtLastError());
 	
@@ -316,3 +318,250 @@ void forces_sem_cuda(float * const xp, float * const yp, float * const zp,
 
     delete [] order;
 }
+
+//===============================================================================================
+//===============================================================================================
+
+__inline__ __device__
+float warpReduceSum(float val)
+{
+  for (int offset = warpSize/2; offset > 0; offset /= 2)
+    val += __shfl_down(val, offset);
+  return val;
+}
+
+__inline__ __device__
+float blockReduceSum(float val)
+{
+  static __shared__ float shared[32]; // Shared mem for 32 partial sums
+  int lane = threadIdx.x % warpSize;
+  int wid = threadIdx.x / warpSize;
+
+  val = warpReduceSum(val);     // Each warp performs partial reduction
+
+  if (lane==0) shared[wid]=val;	// Write reduced value to shared memory
+
+  __syncthreads();              // Wait for all partial reductions
+
+  //read from shared memory only if that warp existed
+  val = (threadIdx.x < blockDim.x / warpSize) ? shared[lane] : 0;
+
+  if (wid==0) val = warpReduceSum(val); //Final reduce within first warp
+
+  return val;
+}
+
+__global__ void _sem_forces_saru_direct(float * const axayaz, float * const xyzuvw, const int idtimestep)
+{
+	float ax, ay, az;
+
+	int dstId = blockIdx.x;
+	if (dstId >= info.npart) return;
+	int tid   = threadIdx.x;
+
+	ax = ay = az = 0;
+
+	float x  = xyzuvw[6*dstId + 0];
+	float y  = xyzuvw[6*dstId + 1];
+	float z  = xyzuvw[6*dstId + 2];
+	float vx = xyzuvw[6*dstId + 3];
+	float vy = xyzuvw[6*dstId + 4];
+	float vz = xyzuvw[6*dstId + 5];
+
+	for (int srcId = tid; srcId < info.npart; srcId += blockDim.x)
+		if (srcId != dstId)
+		{
+			float xn  = xyzuvw[6*srcId + 0];
+			float yn  = xyzuvw[6*srcId + 1];
+			float zn  = xyzuvw[6*srcId + 2];
+			float vxn = xyzuvw[6*srcId + 3];
+			float vyn = xyzuvw[6*srcId + 4];
+			float vzn = xyzuvw[6*srcId + 5];
+
+			const float xdiff = x - xn;
+			const float ydiff = y - yn;
+			const float zdiff = z - zn;
+
+			const float _xr = xdiff - info.domainsize.x * floorf(0.5f + xdiff * info.invdomainsize.x);
+			const float _yr = ydiff - info.domainsize.y * floorf(0.5f + ydiff * info.invdomainsize.y);
+			const float _zr = zdiff - info.domainsize.z * floorf(0.5f + zdiff * info.invdomainsize.z);
+
+			const float rij2 = _xr * _xr + _yr * _yr + _zr * _zr;
+
+			if (rij2 > info.rc2) continue;
+
+			const float invrij = rsqrtf(rij2);
+			const float rij = rij2 * invrij;
+			const float wr = max((float)0, 1 - rij * info.invrc);
+
+			const float xr = _xr * invrij;
+			const float yr = _yr * invrij;
+			const float zr = _zr * invrij;
+
+			const float rdotv =
+				xr * (vx - vxn) +
+				yr * (vy - vyn) +
+				zr * (vz - vzn);
+
+			const float mysaru = saru(min(srcId, dstId), max(srcId, dstId), idtimestep);
+			const float myrandnr = 3.464101615f * mysaru - 1.732050807f;
+#if 0
+			const float e = info.A1 * (1  + rij2 * info.A2);
+#else
+			const float e = info.A1 * expf(rij2 * info.A2);
+#endif
+			float strength = -info.A0 * e * (1 - e) + (- info.gamma * wr * rdotv + info.B0 * myrandnr) * wr;
+
+			ax += strength * xr;
+			ay += strength * yr;
+			az += strength * zr;
+		}
+
+	ax = blockReduceSum(ax);
+	ay = blockReduceSum(ay);
+	az = blockReduceSum(az);
+
+	if (tid == 0)
+	{
+		axayaz[3*dstId + 0] = ax;
+		axayaz[3*dstId + 1] = ay;
+		axayaz[3*dstId + 2] = az;
+	}
+}
+
+#define DIRBS 128
+void forces_sem_cuda_direct_nohost(
+			 float *  device_xyzuvw, float * device_axayaz,
+		     const int np,
+		     const float rcutoff,
+		     const float XL, const float YL, const float ZL,
+		     const double gamma, const double temp, const double dt, const double u0, const double rho, const double req, const double D, const double rc)
+{
+	if (np <= 0) return;
+
+    InfoSEM c;
+    c.domainsize = make_float3(XL, YL, ZL);
+    c.invdomainsize = make_float3(1 / XL, 1 / YL, 1 / ZL);
+    c.domainstart = make_float3(-XL * 0.5, -YL * 0.5, -ZL * 0.5);
+    c.invrc = 1.f / rc;
+    c.A0 = 4 * u0 * rho / (req * req);
+    c.A1 = exp(rho);
+    c.A2 = -1 / (req * req);
+    c.B0 = sqrt(2 * gamma * temp / dt) * D;
+    c.gamma = gamma;
+    c.npart = np;
+    c.rc2 = rcutoff * rcutoff;
+
+    CUDA_CHECK(cudaMemcpyToSymbol(info, &c, sizeof(c)));
+
+    ProfilerDPD::singletone().start();
+
+    _sem_forces_saru_direct<<<np, DIRBS>>>( device_axayaz, device_xyzuvw, saru_tid );
+
+    //++saru_tid;
+
+    CUDA_CHECK(cudaPeekAtLastError());
+
+    ProfilerDPD::singletone().force();
+    ProfilerDPD::singletone().report();
+
+#ifdef _CHECK_
+
+    host_vector<float> axayaz(device_axayaz, device_axayaz + np * 3), _xyzuvw(device_xyzuvw, device_xyzuvw + np * 6);
+    printf("HERE  %d\n", np);
+
+    CUDA_CHECK(cudaThreadSynchronize());
+
+    for(int ii = 0; ii < np; ++ii)
+    {
+	printf("pid %d -> %f %f %f\n", ii, (float)axayaz[0 + 3 * ii], (float)axayaz[1 + 3* ii], (float)axayaz[2 + 3 *ii]);
+
+	int cnt = 0;
+	float fc = 0;
+	const int i = ii;//order[ii];
+	//printf("devi coords are %f %f %f\n", (float)xyzuvw[0 + 6 * ii], (float)xyzuvw[1 + 6 * ii], (float)xyzuvw[2 + 6 * ii]);
+	printf("host coords are %f %f %f\n", (float)_xyzuvw[0 + 6 * i], (float)_xyzuvw[1 + 6 * i], (float)_xyzuvw[2 + 6 * i]);
+
+	for(int j = 0; j < np; ++j)
+	{
+	    if (i == j)
+		continue;
+
+	    float xr = _xyzuvw[0 + 6 *i] - _xyzuvw[0 + 6 * j];
+	    float yr = _xyzuvw[1 + 6 *i] - _xyzuvw[1 + 6 * j];
+	    float zr = _xyzuvw[2 + 6 *i] - _xyzuvw[2 + 6 * j];
+
+	    xr -= c.domainsize.x *  ::floor(0.5f + xr / c.domainsize.x);
+	    yr -= c.domainsize.y *  ::floor(0.5f + yr / c.domainsize.y);
+	    zr -= c.domainsize.z *  ::floor(0.5f + zr / c.domainsize.z);
+
+	    const float rij2 = xr * xr + yr * yr + zr * zr;
+	    const float invrij = rsqrtf(rij2);
+	    const float rij = rij2 * invrij;
+	    const float wr = max((float)0, 1 - rij * c.invrc);
+
+	    const bool collision =  rij2 < 1;
+
+	    if (collision)
+		fc += wr;//	printf("ref p %d colliding with %d\n", i, j);
+
+	    cnt += collision;
+	}
+	printf("i found %d host interactions and with cuda i found %d\n", cnt, (int)axayaz[0 + 3 * ii]);
+	assert(cnt == (float)axayaz[0 + 3 * ii]);
+	printf("fc aij ref %f vs cuda %e\n", fc,  (float)axayaz[1 + 3 * ii]);
+	assert(fabs(fc - (float)axayaz[1 + 3 * ii]) < 1e-4);
+    }
+
+    printf("test done.\n");
+    sleep(1);
+    exit(0);
+#endif
+}
+
+void forces_sem_cuda_direct(float * const xp, float * const yp, float * const zp,
+		     float * const xv, float * const yv, float * const zv,
+		     float * const xa, float * const ya, float * const za,
+		     const int np,
+		     const float rcutoff,
+		     const float LX, const float LY, const float LZ,
+		     const double gamma, const double temp, const double dt, const double u0, const double rho, const double req, const double D, const double rc)
+{
+	if (np <= 0) return;
+
+    float * pv = new float[6 * np];
+
+    for(int i = 0; i < np; ++i)
+    {
+	pv[0 + 6 * i] = xp[i];
+	pv[1 + 6 * i] = yp[i];
+	pv[2 + 6 * i] = zp[i];
+	pv[3 + 6 * i] = xv[i];
+	pv[4 + 6 * i] = yv[i];
+	pv[5 + 6 * i] = zv[i];
+    }
+
+    float * a = new float[3 * np];
+    memset(a, 0, sizeof(float) * 3 * np);
+
+    device_vector<float> xyzuvw(pv, pv + np * 6),  axayaz(np * 3);
+
+    forces_sem_cuda_direct_nohost(_ptr(xyzuvw), _ptr(axayaz), np, rcutoff, LX, LY, LZ,
+		    gamma, temp, dt, u0, rho, req, D, rc);
+
+    copy(axayaz.begin(), axayaz.end(), a);
+
+    for(int i = 0; i < np; ++i)
+    {
+    	xa[i] += a[0 + 3 * i];
+    	ya[i] += a[1 + 3 * i];
+    	za[i] += a[2 + 3 * i];
+    }
+
+    delete [] pv;
+    delete [] a;
+}
+
+
+
+
