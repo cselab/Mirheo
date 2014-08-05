@@ -19,7 +19,7 @@
 
 #define assertTrue(res) do{ if (!(res)) {std::cout << "Quick test " << __func__ << ": FAIL\n";} assert(res);}while(0)
 
-void checkReadWrite()
+void checkFunnelObstacleReadWrite()
 {
   std::string inputFileName = "bla.dat";
   FunnelObstacle fo(16.0f, 40.0f, 128);
@@ -31,7 +31,7 @@ void checkReadWrite()
  //to be done
 }
 
-void checkFind1()
+void checkFunnelObstacleFind1()
 {
   FunnelObstacle fo(8.0f, 10.0f);
 
@@ -66,10 +66,10 @@ void checkFind1()
   printOk();
 }
 
-void checkFind2()
+template <class Obstacle>
+void checkObstacle(Obstacle& fo, float xc, float yc)
 {
   float domainLength = 40.0f;
-  FunnelObstacle fo(32.0f, domainLength);
 
   // pick up some points
   const float eps = domainLength / 64;
@@ -83,26 +83,35 @@ void checkFind2()
   size_t szForEvery = 20;
   float h = domainLength / szForEvery;
   for (size_t ix = 0; ix < szForEvery; ++ix) {
-    float x = ix * h - domainLength/2;
-    float y = 0.0;
-    if (x > -3.9 && x <= 3.9)
+    float x = ix * h - domainLength/2 + xc;
+    float y = yc;
+    if (x > -3.9 + xc && x <= 3.9 + xc)
       assertTrue(fo.isInside(x, y));
-    if (x < -4.1 || x >= 4.1)
+    if (x < -4.1 + xc || x >= 4.1 + xc)
       assertTrue(!fo.isInside(x, y));
   }
 
   for (size_t iy = 0; iy < szForEvery; ++iy) {
-    float y = iy * h - domainLength/2;
-    float x = 0.0;
-    if (y > -15.9 && y <= 15.9)
+    float y = iy * h - domainLength/2 + yc;
+    float x = xc;
+    if (y > -15.9 + yc && y <= 15.9 + yc)
       assertTrue(fo.isInside(x, y));
-    if (y < -16.1 || y >= 16.1)
+    if (y < -16.1 + yc || y >= 16.1 + yc)
       assertTrue(!fo.isInside(x, y));
   }
   printOk();
 }
 
-void checkSample()
+
+void checkFunnelObstacleFind2()
+{
+  float domainLength = 40.0f;
+  FunnelObstacle fo(32.0f, domainLength);
+
+  checkObstacle(fo, 0.0f, 0.0f);
+}
+
+void checkFunnelObstacleSample()
 {
   /*
   // check on the points from the border
@@ -117,10 +126,22 @@ void checkSample()
   }*/
 }
 
+void checkRowFunnelObstacle()
+{
+    // the behavior in simple case must be the same
+    float domainLength = 40.0f;
+    RowFunnelObstacle fo(32.0f, domainLength);
+
+    checkObstacle(fo, 0.0f, 0.0f);
+
+    //shift by period, should give the same result
+    checkObstacle(fo, domainLength, 0.0f);
+}
 
 int main()
 {
-  checkReadWrite();
-  checkFind1();
-  checkFind2();
+  //checkFunnelObstacleReadWrite();
+  //checkFunnelObstacleFind1();
+  //checkFunnelObstacleFind2();
+  checkRowFunnelObstacle();
 }

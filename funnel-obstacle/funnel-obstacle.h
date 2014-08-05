@@ -53,10 +53,29 @@ public:
   bool isInside(const float x, const float y) const;
   std::pair<bool, float> sample(const float x, const float y) const;
 
+  float getDomainLength(size_t direct) const
+  {
+      return m_domainLength;
+  }
+
   void write(const std::string& fileName) const;
 
   bool operator== (const FunnelObstacle& another);
 };
 
+/**
+ * Row of funnel obstacles in the X direction
+ */
+class RowFunnelObstacle
+{
+    FunnelObstacle m_funnelObstacle;
+public:
+    RowFunnelObstacle(const float plength, const float domainLength, const size_t gridResolution = 64);
+
+    float getOffset(float x) const;
+
+    bool isInside(const float x, const float y) const;
+    std::pair<bool, float> sample(const float x, const float y) const;
+};
 
 #endif /* LS_OBSTACLE_H_ */

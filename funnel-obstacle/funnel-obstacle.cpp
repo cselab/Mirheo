@@ -246,3 +246,28 @@ bool FunnelObstacle::operator== (const FunnelObstacle& another)
         return false;
   return true;
 }
+
+// **************** RowFunnelObstacle *******************
+
+RowFunnelObstacle::RowFunnelObstacle(const float plength, const float domainLength, const size_t gridResolution)
+: m_funnelObstacle(plength, domainLength, gridResolution)
+{}
+
+float RowFunnelObstacle::getOffset(float x) const
+{
+    float h = x > 0.0f ? 0.5f : -0.5f;
+    return -trunc(x / m_funnelObstacle.getDomainLength(0) + h) * m_funnelObstacle.getDomainLength(0);
+}
+
+bool RowFunnelObstacle::isInside(const float x, const float y) const
+{
+    float xShifted = x + getOffset(x);
+    return m_funnelObstacle.isInside(xShifted, y);
+}
+
+std::pair<bool, float> RowFunnelObstacle::sample(const float x, const float y) const
+{
+    float xShifted = x + getOffset(x);
+    return m_funnelObstacle.sample(xShifted, y);
+}
+
