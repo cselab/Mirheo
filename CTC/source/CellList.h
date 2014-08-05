@@ -125,8 +125,8 @@ inline CellsInfo::CellsInfo(real size, real low[Dims], real high[Dims])
 	nTot *= n2;
 	
 	mult2 = 1;
-	mult1 = mult2 * n1;
-	mult0 = mult1 * n0;
+	mult1 = mult2 * n2;
+	mult0 = mult1 * n1;
 }
 
 __host__ __device__ inline int CellsInfo::getCellIndByIJ(int ij[Dims])

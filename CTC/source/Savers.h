@@ -207,31 +207,31 @@ public:
         int N = this->my->getNTypes();
         out.write((char*)&N, sizeof(int));
         
-        for (int i = 0; i<N; i++)
+        for (int type = 0; type<N; type++)
         {
             real *xbuf, *vbuf;
-            xbuf = new real[p[i]->n];
-            vbuf = new real[p[i]->n];
+            xbuf = new real[3*p[type]->n];
+            vbuf = new real[3*p[type]->n];
             
-            for (int i=0; i<p[i]->n; i++)
+            for (int i=0; i<p[type]->n; i++)
             {
-                xbuf[3*i + 0] = p[i]->x(i);
-                xbuf[3*i + 1] = p[i]->y(i);
-                xbuf[3*i + 2] = p[i]->z(i);
+                xbuf[3*i + 0] = p[type]->x(i);
+                xbuf[3*i + 1] = p[type]->y(i);
+                xbuf[3*i + 2] = p[type]->z(i);
                 
-                vbuf[3*i + 0] = p[i]->vx(i);
-                vbuf[3*i + 1] = p[i]->vy(i);
-                vbuf[3*i + 2] = p[i]->vz(i);
+                vbuf[3*i + 0] = p[type]->vx(i);
+                vbuf[3*i + 1] = p[type]->vy(i);
+                vbuf[3*i + 2] = p[type]->vz(i);
             }
             
-            out.write((char*)&p[i]->n, sizeof(int));
+            out.write((char*)&p[type]->n, sizeof(int));
             
-            out.write((char*)xbuf,  3*p[i]->n*sizeof(real));
-            out.write((char*)vbuf,  3*p[i]->n*sizeof(real));
+            out.write((char*)xbuf,  3*p[type]->n*sizeof(real));
+            out.write((char*)vbuf,  3*p[type]->n*sizeof(real));
             
-            out.write((char*)p[i]->m,  p[i]->n*sizeof(real));
+            out.write((char*)p[type]->m,  p[type]->n*sizeof(real));
             
-            out.write((char*)p[i]->label, p[i]->n*sizeof(int));
+            out.write((char*)p[type]->label, p[type]->n*sizeof(int));
             
             delete[] xbuf;
             delete[] vbuf;

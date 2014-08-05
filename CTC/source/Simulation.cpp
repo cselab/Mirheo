@@ -13,23 +13,6 @@
 //**********************************************************************************************************************
 // Simulation implementation
 //**********************************************************************************************************************
-void stupidLoad(Particles** part, string fname)
-{
-    ifstream in(fname);
-    
-    assert(in.good());
-    int type;
-    
-    int i=0;
-    while (in.good())
-    {
-        in >> type;
-        in >> part[type]->x(i) >> part[type]->y(i) >> part[type]->z(i);
-        i++;
-    }
-    in.close();
-    info("Read %d entries\n", i);
-}
 
 template<typename T>
 T mymax(T* arr, int n)
@@ -81,8 +64,9 @@ void Simulation::setIC()
     uniform_real_distribution<real> utheta(0, M_PI*0.75);
     
     
-    if (nTypes>1) setLattice(part[1], 15, 15, 15, part[1]->n);
-    //stupidLoad(part, "/Users/alexeedm/Documents/projects/CTC/CTC/makefiles/dump.txt");
+    if (nTypes>1) setLattice(part[1], 8, 8, 8, part[1]->n);
+    for (int i=0; i<part[1]->n; i++)
+        part[1]->z(i) -= 2.5;
     
     double xl = 0;//mymin(part[1]->x, part[1]->n);
     double xh = 0;//mymax(part[1]->x, part[1]->n);
@@ -94,19 +78,21 @@ void Simulation::setIC()
     double zh = 0;//mymax(part[1]->z, part[1]->n);
     
     
-    for (int i=0; i<part[0]->n; i++)
-    {
-        do
-        {
-            part[0]->x(i) = ux(gen);
-            part[0]->y(i) = uy(gen);
-            part[0]->z(i) = uz(gen);
-        } while (xl < part[0]->x(i) && part[0]->x(i) < xh &&
-                 yl < part[0]->y(i) && part[0]->y(i) < yh &&
-                 zl < part[0]->z(i) && part[0]->z(i) < zh);
-    }
+//    for (int i=0; i<part[0]->n; i++)
+//    {
+//        do
+//        {
+//            part[0]->x(i) = ux(gen);
+//            part[0]->y(i) = uy(gen);
+//            part[0]->z(i) = uz(gen);
+//        } while (xl < part[0]->x(i) && part[0]->x(i) < xh &&
+//                 yl < part[0]->y(i) && part[0]->y(i) < yh &&
+//                 zl < part[0]->z(i) && part[0]->z(i) < zh);
+//    }
     
-    //setLattice(part[0]->x, part[0]->y, part[0]->z, L, L, L, part[0]->n);
+    setLattice(part[0], 20, 20, 1.6, part[0]->n);
+    for (int i=0; i<part[0]->n; i++)
+        part[0]->z(i) -= 11;
     
     for (int type=0; type<nTypes; type++)
     {
@@ -120,6 +106,9 @@ void Simulation::setIC()
         _fill(part[type]->m, part[type]->n, (real)1.0);
         _fill(part[type]->label, part[type]->n, 0);
     }
+    
+    walls.push_back(new LJwallz(configParser->getf("Plates", "topz",  1e9), configParser->getf("Plates", "topv", 0)));
+    walls.push_back(new LJwallz(configParser->getf("Plates", "botz", -1e9), configParser->getf("Plates", "botv", 0)));
     
     evaluator = new InteractionTable(nTypes, part, profiler, xlo, xhi, ylo, yhi, zlo, zhi);
 }
@@ -324,6 +313,24 @@ void Simulation::velocityVerlet()
             _axpy(part[type]->ydata, part[type]->vydata, part[type]->n, dt);
             _axpy(part[type]->zdata, part[type]->vzdata, part[type]->n, dt);
             
+            for (int i=0; i<part[1]->n; i++)
+            {
+                if (part[1]->z(i) < -10)
+                {
+                    //part[1]->vx(i) = -part[1]->vx(i);
+                    //part[1]->vy(i) = -part[1]->vy(i);
+                    part[1]->vz(i) = -part[1]->vz(i);
+                    
+                    // fraction of the path inside
+                    real alpha = (-10 - part[1]->z(i)) / fabs(part[1]->vz(i)*dt);
+                    alpha *= 2;
+                    
+                    //part[1]->x(i) += alpha * part[1]->vx(i) * dt;
+                    //part[1]->y(i) += alpha * part[1]->vy(i) * dt;
+                    part[1]->z(i) += alpha * part[1]->vz(i) * dt;
+                }
+            }
+            
             _normalize(part[type]->xdata, part[type]->n, xlo, xhi);
             _normalize(part[type]->ydata, part[type]->n, ylo, yhi);
             _normalize(part[type]->zdata, part[type]->n, zlo, zhi);
@@ -340,6 +347,16 @@ void Simulation::velocityVerlet()
     profiler.stop();
     
     evaluator->evalForces(step);
+    
+    // fix the dpd particles
+    _fill(part[0]->axdata, part[0]->n, (real)0.0);
+    _fill(part[0]->aydata, part[0]->n, (real)0.0);
+    _fill(part[0]->azdata, part[0]->n, (real)0.0);
+    
+    // add gravity
+    if (step >= 50000)
+    for (int i = 0; i<part[1]->n; i++)
+        part[1]->az(i) -= 0.05;
     
     profiler.start("Post-force");
     {
@@ -383,6 +400,10 @@ void Simulation::runOneStep()
 	
 	if (step == 0)
         evaluator->evalForces(step);
+    
+    // fix the dpd particles
+    for (int i = 0; i<part[0]->n; i++)
+        part[0]->ax(i) = part[0]->ay(i) = part[0]->az(i) = 0;
     
 	step++;
 	velocityVerlet();
