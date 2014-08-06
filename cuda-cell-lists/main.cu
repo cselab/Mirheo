@@ -312,9 +312,9 @@ T * _ptr(device_vector<T>& v)
 
 int main()
 {
-    const int XL = 20;
-    const int YL = 20;
-    const int ZL = 20;
+    const int XL = 40;
+    const int YL = 40;
+    const int ZL = 40;
 
     const int N = 3 * XL * YL * ZL;
     const float invrc = 1;
@@ -431,7 +431,7 @@ int main()
     //cudaThreadSynchronize();
 
     {
-	static const int YCPB = 4 ;
+	static const int YCPB = 2 ;
 	cudaBindTexture(&textureoffset, &texCountYZ, _ptr(yzhisto), &fmt, sizeof(int) * ncells.y * ncells.z);
 	cudaBindTexture(&textureoffset, &texParticles, _ptr(particles_soa), &fmt, sizeof(float) * 6 * N);
 	const int bufsize = (ncells.x * 3 * 3) / 2;
@@ -546,7 +546,7 @@ int main()
 		    const int mys = s[cid];
 		    const int myc = c[cid];
 
-		    //printf("cid %d : my start and count are %d %d\n", cid, mys, myc);
+		    //intf("cid %d : my start and count are %d %d\n", cid, mys, myc);
 		    assert(mys >= 0 && mys < N);
 		    assert(myc >= 0 && myc <= N);
 
