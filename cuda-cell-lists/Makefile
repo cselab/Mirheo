@@ -1,4 +1,5 @@
-NVCCFLAGS += -arch=compute_30 -code=sm_30 -O4 -lineinfo
+#NVCCFLAGS += -arch=compute_30 -code=sm_30 -O4 -lineinfo
+NVCCFLAGS += -arch=compute_30 -code=sm_30 --use_fast_math -O4 -lineinfo
 
 ifneq "$(debug)" "1"
 NVCCFLAGS += -DNDEBUG
