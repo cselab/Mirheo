@@ -459,33 +459,36 @@ struct FrozenFunnel
         float rc = 1.0;
         funnelLS.getSkinWidth(xskin, yskin);
         for (int i = 0; i < freeParticles.n; ++i) {
-            //shifted position so coord.z == origin(layer).z which is 0
-            float coord[] = {freeParticles.xp[i], freeParticles.yp[i], 0.0};
 
-            // shift atom to the central box in the row
-            float offsetCoordX = funnelLS.getOffset(coord[0]);
-            coord[0] += offsetCoordX;
+            if (funnelLS.insideBoundingBox(freeParticles.xp[i], freeParticles.yp[i])) {
+                //shifted position so coord.z == origin(layer).z which is 0
+                float coord[] = {freeParticles.xp[i], freeParticles.yp[i], freeParticles.zp[i]};
 
-            float vel[] = {freeParticles.xv[i], freeParticles.yv[i], freeParticles.zv[i]};
-            float df[] = {0.0, 0.0, 0.0};
-            frozenLayer._dpd_forces_1particle(kBT, dt, i, coord, vel, df, 0.0f, seed1, frozenLayer.myidstart);
+                // shift atom to the central box in the row
+                float offsetCoordX = funnelLS.getOffset(coord[0]);
+                coord[0] += offsetCoordX;
 
-            float frozenOffset = funnelLS.getDomainLength(0);
+                float vel[] = {freeParticles.xv[i], freeParticles.yv[i], freeParticles.zv[i]};
+                float df[] = {0.0, 0.0, 0.0};
+                frozenLayer._dpd_forces_1particle(kBT, dt, i, coord, vel, df, 0.0f, seed1, frozenLayer.myidstart);
 
-            if ((fabs(coord[0]  - funnelLS.getDomainLength(0)/2.0f) + xskin) < rc)
-            {
-                if (coord[0] > 0.0) {
-                    frozenLayer._dpd_forces_1particle(kBT, dt, i, coord, vel, df, frozenOffset, seed1, frozenLayer.myidstart);
-                } else {
-                    frozenLayer._dpd_forces_1particle(kBT, dt, i, coord, vel, df, -frozenOffset, seed1, frozenLayer.myidstart);
+                float frozenOffset = funnelLS.getCoreDomainLength(0);
+
+                if ((fabs(coord[0]  - funnelLS.getCoreDomainLength(0)/2.0f) + xskin) < rc)
+                {
+                    if (coord[0] > 0.0) {
+                        frozenLayer._dpd_forces_1particle(kBT, dt, i, coord, vel, df, frozenOffset, seed1, frozenLayer.myidstart);
+                    } else {
+                        frozenLayer._dpd_forces_1particle(kBT, dt, i, coord, vel, df, -frozenOffset, seed1, frozenLayer.myidstart);
+                    }
                 }
+
+                freeParticles.xa[i] += df[0];
+                freeParticles.ya[i] += df[1];
+                freeParticles.za[i] += df[2];
+
+                ++frozenLayer.saru_tag;
             }
-
-            freeParticles.xa[i] += df[0];
-            freeParticles.ya[i] += df[1];
-            freeParticles.za[i] += df[2];
-
-            ++frozenLayer.saru_tag;
         }
     }
 };
@@ -852,9 +855,9 @@ int main()
     bouncer.half_width = sandwich_half_width;
 #endif
     FrozenFunnel frFun(L);
-    Particles remaining0 = frFun.carve(particles);
-    frFun.frozenLayer.lammps_dump("icy.dump", 0);
-    Particles remaining1 = bouncer.carve(remaining0);
+    //Particles remaining0 = frFun.carve(particles);
+    //frFun.frozenLayer.lammps_dump("icy.dump", 0);
+    Particles remaining1 = bouncer.carve(particles);
     bouncer.frozen.lammps_dump("icy2.dump", 0);
     remaining1.name = "fluid";
     

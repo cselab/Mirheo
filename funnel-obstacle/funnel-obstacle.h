@@ -98,9 +98,14 @@ public:
         m_funnelObstacle.getSkinWidth(x, y);
     }
 
-    float getDomainLength(size_t direct) const
+    float getCoreDomainLength(size_t direct) const
     {
         return m_funnelObstacle.getDomainLength(direct);
+    }
+
+    bool insideBoundingBox(const float x, const float y) const
+    {
+        return (abs(getBoundingBoxIndex(x, y)) <= m_nBlocks/2);
     }
 
     /**
