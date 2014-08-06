@@ -195,44 +195,55 @@ __global__ void yzscatter(const int * const localoffsets,
 texture<int, cudaTextureType1D> texCountYZ;
 texture<float, cudaTextureType1D> texParticles;
 
+template<int YCPB>
 __global__ void xgather(const int * const ids, const int np, const float invrc, const int3 ncells, const float3 domainstart,
 			int * const starts, int * const counts,
 			float * const xyzuvw, const int bufsize)
 {
-    assert(gridDim.x == 1 && gridDim.y == ncells.y && gridDim.z == ncells.z);
+    assert(gridDim.x == 1 && gridDim.y == ncells.y / YCPB && gridDim.z == ncells.z);
     assert(blockDim.x == warpSize);
+    assert(blockDim.y == YCPB);
     
-    extern __shared__ int xhisto[];
-    int * const loffset = &xhisto[ncells.x];
-    int * const reordered = loffset + bufsize;
+    extern __shared__ volatile int allhisto[];
+    volatile int * const xhisto = &allhisto[ncells.x * threadIdx.y];
+    volatile int * const loffset = &allhisto[YCPB * ncells.x + bufsize * threadIdx.y];
+    volatile int * const reordered = &allhisto[YCPB * ncells.x + bufsize * (YCPB + threadIdx.y)];
 
     const int tid = threadIdx.x;
-    const int yzcid = blockIdx.y + ncells.y * blockIdx.z;
+    const int yzcid = (threadIdx.y + YCPB * blockIdx.y) + ncells.y * blockIdx.z;
     const int start = tex1Dfetch(texScanYZ, yzcid);
     const int count = tex1Dfetch(texCountYZ, yzcid);
-
+    assert(count < bufsize);
+    
     for(int i = tid; i < count; i += warpSize)
 	xhisto[i] = 0;
-
-    __threadfence_block();
+ 
+    //g__syncthreads();
     
     for(int i = tid; i < count; i += warpSize)
     {
 	const int g = start + i;
 
-	const int id = ids[g];
+ 	const int id = ids[g];
 	const float x = tex1Dfetch(texParticles, id);
 	const int xcid = (int)(invrc * (x - domainstart.x));
-
-	const int val = atomicAdd(xhisto + xcid, 1);
+	
+	const int val = atomicAdd((int *)(xhisto + xcid), 1);
+	assert(xcid < ncells.x);
+	assert(i < bufsize);
+	
 	loffset[i] = val |  (xcid << 16);
     }
 
+    //
     __threadfence_block();
+    //g__syncthreads();
 
     for(int i = tid; i < ncells.x; i += warpSize)
 	counts[i + ncells.x * yzcid] = xhisto[i];
 
+    //g__syncthreads();
+    
     for(int base = 0; base < ncells.x; base += warpSize)
     {
 	const int n = min(warpSize, ncells.x - base);
@@ -248,31 +259,36 @@ __global__ void xgather(const int * const ids, const int np, const float invrc, 
 
 	if (tid < n)
 	    xhisto[g] = val;
-
-	__threadfence_block();
     }
 
+    //__syncthreads();
+    
     for(int i = tid; i < ncells.x; i += warpSize)
 	starts[i + ncells.x * yzcid] = start + (i == 0 ? 0 : xhisto[i - 1]);
+
+    
+    //__syncthreads();
 
     for(int i = tid; i < count; i += warpSize)
     {
 	const int entry = loffset[i];
 	const int xcid = entry >> 16;
+	assert(xcid < ncells.x);
 	const int loff = entry & 0xffff;
 
 	const int dest = (xcid == 0 ? 0 : xhisto[xcid - 1]) + loff;
 
 	reordered[dest] = ids[start + i];
     }
-
-    __threadfence_block();
-    
+//__threadfence_block();
+     
+    //  __syncthreads();
     const int nfloats = count * 6;
     for(int i = tid; i < nfloats; i += warpSize)
     {
 	const int c = i % 6;
 	const int p = reordered[i / 6];
+	assert(i / 6 < bufsize);
 	
 	xyzuvw[6 * start + i] = tex1Dfetch(texParticles, p + np * c);
     }
@@ -308,9 +324,9 @@ T * _ptr(device_vector<T>& v)
 
 int main()
 {
-    const int XL = 40;
-    const int YL = 40;
-    const int ZL = 40;
+    const int XL = 20;
+    const int YL = 20;
+    const int ZL = 20;
 
     const int N = 3 * XL * YL * ZL;
     const float invrc = 1;
@@ -427,11 +443,11 @@ int main()
     cudaThreadSynchronize();
 
     {
-	
+	static const int YCPB = 4 ;
 	cudaBindTexture(&textureoffset, &texCountYZ, _ptr(yzhisto), &fmt, sizeof(int) * ncells.y * ncells.z);
 	cudaBindTexture(&textureoffset, &texParticles, _ptr(particles_soa), &fmt, sizeof(float) * 6 * N);
 	const int bufsize = (ncells.x * 3 * 3) / 2;
-	xgather<<< dim3(1, ncells.y, ncells.z), 32, sizeof(int) * (ncells.x  + 2 * bufsize) >>>(_ptr(outid), N, invrc, ncells, domainstart, _ptr(start), _ptr(count), _ptr(xyzuvw), bufsize);
+	xgather<YCPB><<< dim3(1, ncells.y / YCPB, ncells.z), dim3(32, YCPB), sizeof(int) * (ncells.x  + 2 * bufsize) * YCPB>>>(_ptr(outid), N, invrc, ncells, domainstart, _ptr(start), _ptr(count), _ptr(xyzuvw), bufsize);
     }
 
     CUDA_CHECK(cudaEventRecord(evgather));
@@ -456,7 +472,7 @@ int main()
 
 	std::set<int> subids[ncells.y * ncells.z];
 	
-	printf("reading global histo: \n");
+	//printf("reading global histo: \n");
 	int s = 0;
 	for(int i = 0; i < yzhisto.size(); ++i)
 	{
@@ -542,7 +558,7 @@ int main()
 		    const int mys = s[cid];
 		    const int myc = c[cid];
 
-		    //intf("cid %d : my start and count are %d %d\n", cid, mys, myc);
+		    //printf("cid %d : my start and count are %d %d\n", cid, mys, myc);
 		    assert(mys >= 0 && mys < N);
 		    assert(myc >= 0 && myc <= N);
 
