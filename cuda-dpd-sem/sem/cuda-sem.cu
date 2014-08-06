@@ -216,17 +216,18 @@ void forces_sem_cuda_nohost(
     ProfilerDPD::singletone().report();
      
 #ifdef _CHECK_
-    host_vector<float> axayaz(device_axayaz, device_axayaz + np * 3), _xyzuvw(device_xyzuvw, device_xyzuvw + np * 6);
+    host_vector<float> axayaz(device_ptr<float>(device_axayaz), device_ptr<float>(device_axayaz + np * 3)),
+	_xyzuvw(device_ptr<float>(device_xyzuvw), device_ptr<float>(device_xyzuvw + np * 6));
     
     CUDA_CHECK(cudaThreadSynchronize());
     
-    for(int ii = 0; ii < np; ++ii)
+    for(int i = 0; i < np; ++i)
     { 
-	printf("pid %d -> %f %f %f\n", ii, (float)axayaz[0 + 3 * ii], (float)axayaz[1 + 3* ii], (float)axayaz[2 + 3 *ii]);
+	printf("pid %d -> %f %f %f\n", i, (float)axayaz[0 + 3 * i], (float)axayaz[1 + 3* i], (float)axayaz[2 + 3 *i]);
 
 	int cnt = 0;
 	float fc = 0;
-	const int i = order[ii];
+	//const int i = order[ii];
 	//printf("devi coords are %f %f %f\n", (float)xyzuvw[0 + 6 * ii], (float)xyzuvw[1 + 6 * ii], (float)xyzuvw[2 + 6 * ii]);
 	printf("host coords are %f %f %f\n", (float)_xyzuvw[0 + 6 * i], (float)_xyzuvw[1 + 6 * i], (float)_xyzuvw[2 + 6 * i]);
 	
@@ -255,10 +256,10 @@ void forces_sem_cuda_nohost(
 	    
 	    cnt += collision;
 	}
-	printf("i found %d host interactions and with cuda i found %d\n", cnt, (int)axayaz[0 + 3 * ii]);
-	assert(cnt == (float)axayaz[0 + 3 * ii]);
-	printf("fc aij ref %f vs cuda %e\n", fc,  (float)axayaz[1 + 3 * ii]);
-	assert(fabs(fc - (float)axayaz[1 + 3 * ii]) < 1e-4);
+	printf("i found %d host interactions and with cuda i found %d\n", cnt, (int)axayaz[0 + 3 * i]);
+	assert(cnt == (float)axayaz[0 + 3 * i]);
+	printf("fc aij ref %f vs cuda %e\n", fc,  (float)axayaz[1 + 3 * i]);
+	assert(fabs(fc - (float)axayaz[1 + 3 * i]) < 1e-4);
     }
     
     printf("test done.\n");
