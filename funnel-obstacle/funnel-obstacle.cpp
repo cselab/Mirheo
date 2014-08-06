@@ -257,9 +257,9 @@ bool FunnelObstacle::operator== (const FunnelObstacle& another)
 
 // **************** RowFunnelObstacle *******************
 
-RowFunnelObstacle::RowFunnelObstacle(const float plength, const float domainLengthX, const float domainLengthY,
+RowFunnelObstacle::RowFunnelObstacle(const float plength, size_t nBlocks, const float domainLengthX, const float domainLengthY,
                                      const size_t gridResolutionX, const size_t gridResolutionY)
-: m_funnelObstacle(plength, domainLengthX, domainLengthY, gridResolutionX, gridResolutionY)
+: m_nBlocks(nBlocks), m_funnelObstacle(plength, domainLengthX, domainLengthY, gridResolutionX, gridResolutionY)
 {}
 
 float RowFunnelObstacle::getOffset(float x) const
@@ -273,7 +273,7 @@ int RowFunnelObstacle::getBoundingBoxIndex(const float x, const float y) const
     // the row center is at (0.0, 0.0), thus first check that y is in the box
     // than find index
     if (!m_funnelObstacle.insideBoundingBox(0.0f, y))
-        return std::numeric_limits<int>::infinity();
+        return std::numeric_limits<int>::max();
 
     float h = x > 0.0f ? 0.5f : -0.5f;
     int res =  static_cast<int>(x / m_funnelObstacle.getDomainLength(0) + h);
@@ -282,12 +282,14 @@ int RowFunnelObstacle::getBoundingBoxIndex(const float x, const float y) const
 
 bool RowFunnelObstacle::isInside(const float x, const float y) const
 {
-    float xShifted = x + getOffset(x);
-    return m_funnelObstacle.isInside(xShifted, y);
+    return sample(x, y).first;
 }
 
 std::pair<bool, float> RowFunnelObstacle::sample(const float x, const float y) const
 {
+    if (abs(getBoundingBoxIndex(x, y)) > m_nBlocks/2)
+        return std::pair<bool, float>(false, std::numeric_limits<float>::infinity());
+
     float xShifted = x + getOffset(x);
     return m_funnelObstacle.sample(xShifted, y);
 }

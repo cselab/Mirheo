@@ -82,9 +82,10 @@ public:
  */
 class RowFunnelObstacle
 {
+    size_t m_nBlocks;
     FunnelObstacle m_funnelObstacle;
 public:
-    RowFunnelObstacle(const float plength, const float domainLengthX, const float domainLengthY,
+    RowFunnelObstacle(const float plength, size_t nBlocks, const float domainLengthX, const float domainLengthY,
             size_t gridResolutionX = 32, const size_t gridResolutionY = 64);
 
     /**

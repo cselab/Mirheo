@@ -411,7 +411,7 @@ struct Bouncer
 };
 
 #if 1
-RowFunnelObstacle funnelLS(5.0f, 5.0f, 8.0f, 64, 64);
+RowFunnelObstacle funnelLS(5.0f, 1, 5.0f, 8.0f, 64, 64);
 
 // for now assume FunnelObsatcle is global
 struct FrozenFunnel
@@ -831,7 +831,7 @@ struct TomatoSandwich: SandwichBouncer
 };
 
 
-
+#include <limits>
 int main()
 {
     const float L = 10;
