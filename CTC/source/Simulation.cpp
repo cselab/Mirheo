@@ -354,9 +354,9 @@ void Simulation::velocityVerlet()
     _fill(part[0]->azdata, part[0]->n, (real)0.0);
     
     // add gravity
-    if (step >= 50000)
-    for (int i = 0; i<part[1]->n; i++)
-        part[1]->az(i) -= 0.05;
+    //if (step >= 50000)
+    //for (int i = 0; i<part[1]->n; i++)
+    //   part[1]->az(i) -= 0.05;
     
     profiler.start("Post-force");
     {

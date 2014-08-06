@@ -1,6 +1,6 @@
 CC = g++
 CPPFLAGS+= -fopenmp -std=c++11 -Wno-unknown-pragmas -Wno-reorder -Wno-comment -Wno-deprecated
-GPULIBS+= -lcuda -lcudart -lcuda-dpd -lcuda-sem -L/usr/local/cuda-6.0/lib64 -L../../cuda-dpd-sem/dpd -L../../cuda-dpd-sem/sem
+GPULIBS+= -lcuda -lcudart -lcuda-dpd -lcuda-sem -L/usr/local/cuda-6.0/lib64 -L../../cuda-dpd-sem/dpd -L../../cuda-dpd-sem/sem -Wl,-rpath=../../cuda-dpd-sem/dpd -Wl,-rpath=../../cuda-dpd-sem/sem
 
 config ?= release
 
@@ -50,7 +50,7 @@ ctc: $(OBJ_FILES) $(CPP_OBJ_FILES)
 	$(CC) $^  $(LIBS) -fopenmp -o $@
 	
 ctcgpu: $(OBJ_FILES) $(CUDA_OBJ_FILES) ../../cuda-dpd-sem/dpd/libcuda-dpd.so ../../cuda-dpd-sem/sem/libcuda-sem.so
-	$(CC) $(GPULIBS) -fopenmp $^ -o $@
+	$(CC) -fopenmp $(OBJ_FILES) $(CUDA_OBJ_FILES) $(GPULIBS) -o $@
 
 ../../cuda-dpd-sem/dpd/libcuda-dpd.so:
 	make -C ../../cuda-dpd-sem/dpd libcuda-dpd.so

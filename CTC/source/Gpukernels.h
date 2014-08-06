@@ -172,7 +172,12 @@ void _computeForces<SEM>(Cells<Particles>* cells,
 {
     real dt = 2*sem.gamma*sem.temp / sem.sigma / sem.sigma;
     
+    if (n > 5000)
     forces_sem_cuda(x, y, z,  vx, vy, vz,  ax, ay, az,  n,  sem.rCut,
+                    cells->xHigh0 - cells->xLow0, cells->xHigh1 - cells->xLow1, cells->xHigh2 - cells->xLow2,
+                    sem.gamma, sem.temp, dt, sem.u0, sem.rho, 1.0/sem.req_1, sem.D, sem.rc);
+    else
+    forces_sem_cuda_direct(x, y, z,  vx, vy, vz,  ax, ay, az,  n,  sem.rCut,
                     cells->xHigh0 - cells->xLow0, cells->xHigh1 - cells->xLow1, cells->xHigh2 - cells->xLow2,
                     sem.gamma, sem.temp, dt, sem.u0, sem.rho, 1.0/sem.req_1, sem.D, sem.rc);
 }

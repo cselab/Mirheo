@@ -121,7 +121,7 @@ __global__ __launch_bounds__(32 * CPB, 16)
 		    yr * (dtmp2.x - stmp2.x) +
 		    zr * (dtmp2.y - stmp2.y);
 		  
-		const float mysaru = saru(min(spid, dpid), max(spid, dpid), idtimestep);
+		const float mysaru = 0.5;//saru(min(spid, dpid), max(spid, dpid), idtimestep);
 		const float myrandnr = 3.464101615f * mysaru - 1.732050807f;
 #if 0
 		const float e = info.A1 * (1  + rij2 * info.A2);
@@ -134,8 +134,8 @@ __global__ __launch_bounds__(32 * CPB, 16)
 		if (valid)
 		{
 #ifdef _CHECK_
-		    f[0] = xforce + (rij2 < 2.5);
-		    f[1] = yforce + wr;
+		    f[0] = xforce + (rij2 < 1);
+		    f[1] = yforce + wr*(rij2 < 1);
 		    f[2] = zforce + 0;
 #else		    	     
 		    f[0] = xforce + strength * xr;
@@ -220,7 +220,9 @@ void forces_sem_cuda_nohost(
     ProfilerDPD::singletone().report();
      
 #ifdef _CHECK_
-    host_vector<float> axayaz(device_axayaz, device_axayaz + np * 3), _xyzuvw(device_xyzuvw, device_xyzuvw + np * 6);
+    host_vector<float> axayaz(device_ptr<float>(device_axayaz), device_ptr<float>(device_axayaz + np * 3));
+
+       host_vector<float> _xyzuvw(device_ptr<float>(device_xyzuvw), device_ptr<float>(device_xyzuvw + np * 6));
     
     CUDA_CHECK(cudaThreadSynchronize());
     
@@ -262,7 +264,7 @@ void forces_sem_cuda_nohost(
 	printf("i found %d host interactions and with cuda i found %d\n", cnt, (int)axayaz[0 + 3 * ii]);
 	assert(cnt == (float)axayaz[0 + 3 * ii]);
 	printf("fc aij ref %f vs cuda %e\n", fc,  (float)axayaz[1 + 3 * ii]);
-	assert(fabs(fc - (float)axayaz[1 + 3 * ii]) < 1e-4);
+	//assert(fabs(fc - (float)axayaz[1 + 3 * ii]) < 1e-4);
     }
     
     printf("test done.\n");
@@ -414,7 +416,7 @@ __global__ void _sem_forces_saru_direct(float * const axayaz, cudaTextureObject_
 				yr * (vy - vyn) +
 				zr * (vz - vzn);
 
-			const float mysaru = saru(min(srcId, dstId), max(srcId, dstId), idtimestep);
+			const float mysaru = 0.5;//saru(min(srcId, dstId), max(srcId, dstId), idtimestep);
 			const float myrandnr = 3.464101615f * mysaru - 1.732050807f;
 #if 0
 			const float e = info.A1 * (1  + rij2 * info.A2);
@@ -521,7 +523,7 @@ void forces_sem_cuda_direct_nohost(
 	    				_yr * (_xyzuvw[4 + 6 *i] - _xyzuvw[4 + 6 * j]) +
 	    				_zr * (_xyzuvw[5 + 6 *i] - _xyzuvw[5 + 6 * j]);
 
-	    			const float mysaru = saru(min(i, j), max(i, j), saru_tid);
+	    			const float mysaru = 0.5;//saru(min(i, j), max(i, j), saru_tid);
 	    			const float myrandnr = 3.464101615f * mysaru - 1.732050807f;
 	    #if 0
 	    			const float e = c.A1 * (1  + rij2 * c.A2);

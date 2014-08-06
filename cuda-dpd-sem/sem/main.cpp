@@ -40,9 +40,9 @@ int main()
     //np,  rc,  LX, LY, LZ,  gamma, temp, dt,   u0,    rho,  req, D
     //1e3, 1.0, 10, 10, 10,  80,    0.1,  0.01, 0.001, 1.5,  0.85, 0.0001
     
-    real L = 8;
+    real L = 7;
 
-    const float Nm = 4;
+    const float Nm = 5.8;
     const int n = L * L * L * Nm;
     const real rcutoff = 2.5;
     const real gamma = 80, temp = 0.1, dt = 0.01, u0 = 0.001, rho = 1.5, req = 0.85, D = .0001, rc = 1;
@@ -106,12 +106,12 @@ int main()
 		fill(yb.begin(), yb.end(), 0);
 		fill(zb.begin(), zb.end(), 0);
 	      	  
-//	    forces_sem_cuda(
-//		&xp.front(), &yp.front(), &zp.front(),
-//		&xv.front(), &yv.front(), &zv.front(),
-//		&xa.front(), &ya.front(), &za.front(),
-//		n,
-//		rcutoff, L, L, L, gamma, temp, dt, u0, rho, req, D, rc);
+	    forces_sem_cuda(
+		&xp.front(), &yp.front(), &zp.front(),
+		&xv.front(), &yv.front(), &zv.front(),
+		&xa.front(), &ya.front(), &za.front(),
+		n,
+		rcutoff, L, L, L, gamma, temp, dt, u0, rho, req, D, rc);
 
 	    forces_sem_cuda_direct(
 		&xp.front(), &yp.front(), &zp.front(),
@@ -120,12 +120,12 @@ int main()
 		n,
 		rcutoff, L, L, L, gamma, temp, dt, u0, rho, req, D, rc);
 
-//	    for (int i=0; i<n; i++)
-//	    {
-//	    	if (true) printf("%4d:  X:  expected  %.7f,  got %.7f\n", i, xa[i], xb[i]);
-//	    	if (fabs(ya[i]-yb[i]) > 1e-7) printf("%4d:  Y:  expected  %.7f,  got %.7f\n", i, ya[i], yb[i]);
-//	    	if (fabs(za[i]-zb[i]) > 1e-7) printf("%4d:  Z:  expected  %.7f,  got %.7f\n", i, za[i], zb[i]);
-//	    }
+	    for (int i=0; i<n; i++)
+	    {
+	    	if (true) printf("%4d:  X:  expected  %.7f,  got %.7f\n", i, xa[i], xb[i]);
+	    	if (fabs(ya[i]-yb[i]) > 1e-7) printf("%4d:  Y:  expected  %.7f,  got %.7f\n", i, ya[i], yb[i]);
+	    	if (fabs(za[i]-zb[i]) > 1e-7) printf("%4d:  Z:  expected  %.7f,  got %.7f\n", i, za[i], zb[i]);
+	    }
 	};
     
     _f();
@@ -155,6 +155,7 @@ int main()
 	_up_enforce(zp, zv, dt);
 	
 	_f();
+	exit(0);
 
 	_up(xv, xa, dt * 0.5);
 	_up(yv, ya, dt * 0.5);
