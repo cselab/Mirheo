@@ -1,29 +1,24 @@
-#include <unistd.h>
 #include <cstdio>
 #include <cassert>
-#include <thrust/device_vector.h>
-#include <set>
 
-using namespace thrust;
-const int nwarps = 8*2*2;
+texture<float, cudaTextureType1D> texParticles;
 
 __device__ int  blockscount = 0;
  
-template<int ILP, int SLOTS>
-__global__ void yzhistogram(const float * const ys,
-			    const float * const zs,
-			    const int np,
+template<int ILP, int SLOTS, int WARPS>
+__global__ void yzhistogram(const int np,
 			    const float invrc, const int3 ncells, 
 			    const float3 domainstart,
 			    int * const yzcid,
 			    int * const localoffsets,
 			    int * const global_yzhisto,
-			    int * const global_yzscan)
+			    int * const global_yzscan,
+			    int * const max_yzcount)
 {
     extern __shared__ int yzhisto[];
 
     assert(blockDim.y == 1);
-    assert(blockDim.x == warpSize * nwarps);
+    assert(blockDim.x == warpSize * WARPS);
 
     const int tid = threadIdx.x;
     const int slot = tid % (SLOTS);
@@ -46,9 +41,9 @@ __global__ void yzhistogram(const float * const ys,
 	y[j] = z[j] = -1;
 
 	if (g < np)
-	{ 
-	    y[j] = ys[g];
-	    z[j] = zs[g];
+	{
+	    y[j] = tex1Dfetch(texParticles, 1 + 6 * g); 
+	    z[j] = tex1Dfetch(texParticles, 2 + 6 * g); 
 	}
     }
 
@@ -124,6 +119,36 @@ __global__ void yzhistogram(const float * const ys,
 	for(int i = tid ; i < nhisto; i += blockDim.x)
 	    yzhisto[i] = global_yzhisto[i];
 
+	if (max_yzcount != NULL)
+	{
+	    __syncthreads();
+
+	    int mymax = 0;
+	    for(int i = tid ; i < nhisto; i += blockDim.x)
+		mymax = max(yzhisto[i], mymax);
+
+	    for(int L = 16; L > 0; L >>=1)
+		mymax = max(__shfl_xor(mymax, L), mymax);
+
+	    __shared__ int maxies[WARPS];
+	
+	    if (tid % warpSize == 0)
+		maxies[tid / warpSize] = mymax;
+	
+	    __syncthreads();
+
+	    mymax = 0;
+	
+	    if (tid < WARPS)
+		mymax = maxies[tid];
+
+	    for(int L = 16; L > 0; L >>=1)
+		mymax = max(__shfl_xor(mymax, L), mymax);
+
+	    if (tid == 0)
+		*max_yzcount = mymax;
+	}
+	
 	const int bwork = blockDim.x * ILP;
 	for(int tile = 0; tile < nhisto; tile += bwork)
 	{
@@ -193,7 +218,6 @@ __global__ void yzscatter(const int * const localoffsets,
 }
 
 texture<int, cudaTextureType1D> texCountYZ;
-texture<float, cudaTextureType1D> texParticles;
 
 template<int YCPB>
 __global__ void xgather(const int * const ids, const int np, const float invrc, const int3 ncells, const float3 domainstart,
@@ -210,10 +234,17 @@ __global__ void xgather(const int * const ids, const int np, const float invrc, 
     volatile int * const reordered = &allhisto[YCPB * ncells.x + bufsize * (YCPB + threadIdx.y)];
 
     const int tid = threadIdx.x;
-    const int yzcid = (threadIdx.y + YCPB * blockIdx.y) + ncells.y * blockIdx.z;
+    const int ycid = threadIdx.y + YCPB * blockIdx.y;
+
+    if (ycid >= ncells.y)
+	return;
+    
+    const int yzcid = ycid + ncells.y * blockIdx.z;
     const int start = tex1Dfetch(texScanYZ, yzcid);
     const int count = tex1Dfetch(texCountYZ, yzcid);
-    assert(count < bufsize);
+
+    if (count >= bufsize)
+	return; //something went wrong 
     
     for(int i = tid; i < count; i += warpSize)
 	xhisto[i] = 0;
@@ -223,7 +254,9 @@ __global__ void xgather(const int * const ids, const int np, const float invrc, 
 	const int g = start + i;
 
  	const int id = ids[g];
-	const float x = tex1Dfetch(texParticles, id);
+
+	const float x = tex1Dfetch(texParticles, 6 * id);
+
 	const int xcid = (int)(invrc * (x - domainstart.x));
 	
 	const int val = atomicAdd((int *)(xhisto + xcid), 1);
@@ -232,8 +265,6 @@ __global__ void xgather(const int * const ids, const int np, const float invrc, 
 	
 	loffset[i] = val |  (xcid << 16);
     }
-
-    //__threadfence_block();
     
     for(int i = tid; i < ncells.x; i += warpSize)
 	counts[i + ncells.x * yzcid] = xhisto[i];
@@ -257,8 +288,7 @@ __global__ void xgather(const int * const ids, const int np, const float invrc, 
 
     for(int i = tid; i < ncells.x; i += warpSize)
 	starts[i + ncells.x * yzcid] = start + (i == 0 ? 0 : xhisto[i - 1]);
-
-        
+ 
     for(int i = tid; i < count; i += warpSize)
     {
 	const int entry = loffset[i];
@@ -277,11 +307,58 @@ __global__ void xgather(const int * const ids, const int np, const float invrc, 
 	const int c = i % 6;
 	const int p = reordered[i / 6];
 	assert(i / 6 < bufsize);
-	
-	xyzuvw[6 * start + i] = tex1Dfetch(texParticles, p + np * c);
+
+	xyzuvw[6 * start + i] = tex1Dfetch(texParticles, c + 6 * p);
     }
 }
-		      
+
+struct FallbackArgs
+{
+    const int *  ids;
+    int np;
+    float invrc;
+    int3 ncells;
+    float3 domainstart;
+    int *  starts;
+    int *  counts;
+    float *  xyzuvw;
+    int bufsize;
+    int * maxstripe;
+    volatile bool crash_on_failure;
+};
+
+void fallback_in_case(cudaStream_t stream,  cudaError_t status, void*  userData )
+{
+    FallbackArgs& args = *(FallbackArgs *)userData;
+    
+    if (*args.maxstripe > args.bufsize)
+    {
+	printf("Ouch .. I need to rollback. Maxstripe: %d, bufsize: %d\n", *args.maxstripe, args.bufsize);
+
+	if (args.crash_on_failure)
+	{
+	    printf("too late to recover this. Aborting now.\n");
+	    abort();
+	}
+	
+	const int bufsize = *args.maxstripe;
+	static const int YCPB = 1;
+	
+	xgather<YCPB><<< dim3(1, args.ncells.y / YCPB, args.ncells.z), dim3(32, YCPB), sizeof(int) * (args.ncells.x  + 2 * bufsize) * YCPB>>>
+	    (args.ids, args.np, args.invrc, args.ncells, args.domainstart, args.starts, args.counts, args.xyzuvw, bufsize);
+
+	cudaError_t res = cudaPeekAtLastError();
+
+	if (res != cudaSuccess)
+	{
+	    printf("I could not rollback properly. Aborting now.\n");
+	    abort();
+	}
+    }
+}
+
+#include <unistd.h>
+
 #define CUDA_CHECK(ans) do { cudaAssert((ans), __FILE__, __LINE__); } while(0)
 inline void cudaAssert(cudaError_t code, const char *file, int line, bool abort=true)
 {
@@ -292,6 +369,27 @@ inline void cudaAssert(cudaError_t code, const char *file, int line, bool abort=
 	if (abort) exit(code);
     }
 }
+
+#include <utility>
+
+void build_clists(float * const device_xyzuvw, int np, const float rc, 
+		  const int xcells, const int ycells, const int zcells,
+		  const float xdomainstart, const float ydomainstart, const float zdomainstart,
+		  int * const host_order, int * device_cellsstart, int * device_cellsend,
+		  std::pair<int, int *> * nonemptycells = NULL)
+{
+    
+}
+
+
+
+#include <thrust/device_vector.h>
+#include <set>
+
+using namespace thrust;
+//const int nwarps = 8*2*2;
+
+
 
 void myfill(device_vector<float>& d, const double ext)
 {
@@ -312,11 +410,28 @@ T * _ptr(device_vector<T>& v)
 
 int main()
 {
-    const int XL = 40;
-    const int YL = 40;
-    const int ZL = 40;
+    cudaDeviceProp prop;
+    CUDA_CHECK(cudaGetDeviceProperties(&prop, 0));
+    if (!prop.canMapHostMemory)
+    {
+	printf("Capability zero-copy not there! Aborting now.\n");
+	abort();
+    }
+    else
+  	CUDA_CHECK(cudaSetDeviceFlags(cudaDeviceMapHost));
 
-    const int N = 3 * XL * YL * ZL;
+    int * maxstripe = NULL, * dmaxstripe = NULL;
+    
+    CUDA_CHECK(cudaHostAlloc((void **)&maxstripe, sizeof(int), cudaHostAllocMapped));
+    assert(maxstripe != NULL);
+    CUDA_CHECK(cudaHostGetDevicePointer(&dmaxstripe, maxstripe, 0));
+    
+    const int XL = 20;
+    const int YL = 20;
+    const int ZL = 20;
+
+    const float densitynumber = 3;
+    const int N = densitynumber * XL * YL * ZL;
     const float invrc = 1;
     device_vector<float> xp(N), yp(N), zp(N);
     device_vector<float> xv(N), yv(N), zv(N);
@@ -341,9 +456,9 @@ int main()
 	    const int ycid = (cid / XL) % YL;
 	    const int zcid = cid / XL / YL;
 
-	    x [i] = -0.5 * XL + max(0.f, min((float)XL - 0.1, xcid + 0.5 + 2 * (drand48() - 0.5)));
-	    y [i] = -0.5 * YL + max(0.f, min((float)YL - 0.1, ycid + 0.5 + 2 * (drand48() - 0.5)));
-	    z [i] = -0.5 * ZL + max(0.f, min((float)ZL - 0.1, zcid + 0.5 + 2 * (drand48() - 0.5)));
+	    x [i] = -0.5 * XL + max(0.f, min((float)XL - 0.1, xcid + 0.5 + 3 * (drand48() - 0.5)));
+	    y [i] = -0.5 * YL + max(0.f, min((float)YL - 0.1, ycid + 0.5 + 3 * (drand48() - 0.5)));
+	    z [i] = -0.5 * ZL + max(0.f, min((float)ZL - 0.1, zcid + 0.5 + 3 * (drand48() - 0.5)));
 	}
 
 	xp = x;
@@ -359,19 +474,25 @@ int main()
     int3 ncells = make_int3((int)XL, (int)YL, (int)ZL);
     float3 domainstart = make_float3(-0.5 * XL, - 0.5 * YL, - 0.5 * ZL);
     
-
     device_vector<int> yzhisto(ncells.y * ncells.z), dyzscan(ncells.y * ncells.z);
     const int ntotcells = ncells.x * ncells.y * ncells.z;
     device_vector<int> start(ntotcells), count(ntotcells);
     device_vector<float> xyzuvw(N * 6), particles_soa(N * 6);
-
-    copy(xp.begin(), xp.end(), particles_soa.begin());
-    copy(yp.begin(), yp.end(), particles_soa.begin() + N);
-    copy(zp.begin(), zp.end(), particles_soa.begin() + 2 * N);
-    copy(xv.begin(), xv.end(), particles_soa.begin() + 3 * N);
-    copy(yv.begin(), yv.end(), particles_soa.begin() + 4 * N);
-    copy(zv.begin(), zv.end(), particles_soa.begin() + 5 * N);
-    
+    {
+	host_vector<float> _xp(xp), _yp(yp), _zp(zp), _xv(xv), _yv(yv), _zv(zv), _particles_soa(6 * N);
+	
+	for(int i = 0; i < N; ++i)
+	{
+	    _particles_soa[0 + 6 * i] = _xp[i];
+	    _particles_soa[1 + 6 * i] = _yp[i];
+	    _particles_soa[2 + 6 * i] = _zp[i];
+	    _particles_soa[3 + 6 * i] = _xv[i];
+	    _particles_soa[4 + 6 * i] = _yv[i];
+	    _particles_soa[5 + 6 * i] = _zv[i];
+	}
+	
+	particles_soa = _particles_soa;
+    }
 
     size_t textureoffset = 0;
     cudaChannelFormatDesc fmt = cudaCreateChannelDesc(32, 0, 0, 0, cudaChannelFormatKindSigned);
@@ -389,11 +510,10 @@ int main()
     texParticles.filterMode = cudaFilterModePoint;
     texParticles.mipmapFilterMode = cudaFilterModePoint;
     texParticles.normalized = 0;
-    
-    //fill(yzscan.begin(), yzscan.end(), 0);
+CUDA_CHECK(cudaBindTexture(&textureoffset, &texParticles, _ptr(particles_soa), &texParticles.channelDesc, sizeof(float) * 6 * N));
 
-    //CUDA_CHECK(cudaMemset(blockscount, 0, sizeof(int)));
-    const int blocksize = 32 * nwarps;
+    static const int WARPS = 32;
+    const int blocksize = 32 * WARPS;
     cudaEvent_t evstart, evacquire, evscatter, evgather;
     CUDA_CHECK(cudaEventCreate(&evstart));
     CUDA_CHECK(cudaEventCreate(&evacquire));
@@ -404,46 +524,56 @@ int main()
     static const int ILP = 4;
     static const int SLOTS = 3;
     
-
     const int nblocks = (N + blocksize * ILP - 1)/ (blocksize * ILP) ;
-    yzhistogram<ILP, SLOTS><<<nblocks, blocksize, sizeof(int) * ncells.y * ncells.z * SLOTS>>>
-	(_ptr(yp), _ptr(zp), N, invrc, ncells, domainstart, _ptr(yzcid),  _ptr(loffsets), _ptr(yzhisto), _ptr(dyzscan));
-    //CUDA_CHECK(cudaPeekAtLastError());
+    yzhistogram<ILP, SLOTS, WARPS><<<nblocks, blocksize, sizeof(int) * ncells.y * ncells.z * SLOTS>>>
+	(/*_ptr(yp), _ptr(zp),*/ N, invrc, ncells, domainstart, _ptr(yzcid),  _ptr(loffsets), _ptr(yzhisto), _ptr(dyzscan), dmaxstripe);
 
-    {
-	//cudaThreadSynchronize();
-	//sleep(2);
-	//exit(0);
-    }
-    
     CUDA_CHECK(cudaEventRecord(evacquire));
-
     
     {
-	cudaBindTexture(&textureoffset, &texScanYZ, _ptr(dyzscan), &fmt, sizeof(int) * ncells.y * ncells.z);
+	CUDA_CHECK(cudaBindTexture(&textureoffset, &texScanYZ, _ptr(dyzscan), &fmt, sizeof(int) * ncells.y * ncells.z));
 	
 	yzscatter<ILP><<<(N + 256 * ILP - 1) / (256 * ILP), 256>>>(_ptr(loffsets), _ptr(yzcid), N, _ptr(outid));
     }
     
     CUDA_CHECK(cudaEventRecord(evscatter));
-  
-     
-    //cudaThreadSynchronize();
 
+    const int bufsize = (ncells.x * densitynumber * 2);
     {
 	static const int YCPB = 2 ;
-	cudaBindTexture(&textureoffset, &texCountYZ, _ptr(yzhisto), &fmt, sizeof(int) * ncells.y * ncells.z);
-	cudaBindTexture(&textureoffset, &texParticles, _ptr(particles_soa), &fmt, sizeof(float) * 6 * N);
-	const int bufsize = (ncells.x * 3 * 3) / 2;
-	xgather<YCPB><<< dim3(1, ncells.y / YCPB, ncells.z), dim3(32, YCPB), sizeof(int) * (ncells.x  + 2 * bufsize) * YCPB>>>(_ptr(outid), N, invrc, ncells, domainstart, _ptr(start), _ptr(count), _ptr(xyzuvw), bufsize);
+	CUDA_CHECK(cudaBindTexture(&textureoffset, &texCountYZ, _ptr(yzhisto), &fmt, sizeof(int) * ncells.y * ncells.z));
+	
+
+	xgather<YCPB><<< dim3(1, ncells.y / YCPB, ncells.z), dim3(32, YCPB), sizeof(int) * (ncells.x  + 2 * bufsize) * YCPB>>>
+	    (_ptr(outid), N, invrc, ncells, domainstart, _ptr(start), _ptr(count), _ptr(xyzuvw), bufsize);
     }
 
-    CUDA_CHECK(cudaEventRecord(evgather));
+     
+    cudaError_t status = cudaEventQuery (evacquire);
 
+    CUDA_CHECK(cudaEventRecord(evgather));
+    
+    FallbackArgs args = {_ptr(outid), N, invrc, ncells, domainstart, _ptr(start), _ptr(count), _ptr(xyzuvw), bufsize, maxstripe, false};
+    FallbackArgs * heapargs = new FallbackArgs;
+    *heapargs = args;
+    CUDA_CHECK(cudaStreamAddCallback(0, fallback_in_case, heapargs, 0));
+    
+   
+      if (status == cudaErrorNotReady)
+    {
+	printf("guy not ready\n");
+    }
+    else
+    {
+	assert(status == cudaSuccess);
+	printf("guy READY!\n");
+    }
+    printf("submitted..\n");
     CUDA_CHECK(cudaPeekAtLastError());
     
-    //sleep(.1);
+    
 #ifndef NDEBUG
+    CUDA_CHECK(cudaThreadSynchronize());
     {
 	host_vector<float> y = yp, z = zp;
 	
@@ -494,6 +624,10 @@ int main()
 	    assert(subids[i].size() == 0);
 
 	printf("first level   verifications passed.\n");
+
+	const int mymax = *max_element(yzhist.begin(), yzhist.end());
+	printf("mymax: %d maxstripe: %d\n", mymax, *maxstripe);
+	assert(mymax == *maxstripe);
 	//assert(false);
     }
 
@@ -584,18 +718,20 @@ int main()
     CUDA_CHECK(cudaEventElapsedTime(&tgatherms, evscatter, evgather));
     float ttotalms;
     CUDA_CHECK(cudaEventElapsedTime(&ttotalms, evstart, evgather));
-    printf("nblocks %d (bs %d) -> %d blocks per sm, active warps per sm %d \n", nblocks, blocksize, nblocks / 7, 3 * nwarps);
+    printf("nblocks %d (bs %d) -> %d blocks per sm, active warps per sm %d \n", nblocks, blocksize, nblocks / 7, 3 * WARPS);
     printf("acquiring time... %f ms\n", tacquirems);
     printf("scattering time... %f ms\n", tscatterms);
     printf("gathering time... %f ms\n", tgatherms);
     printf("total time ... %f ms\n", ttotalms);
-    printf("one 2read-1write sweep should take about %.3f ms\n", 1e3 * N * 3 * 4/ (90.0 * 1024 * 1024 * 1024)); 
+    printf("one 2read-1write sweep should take about %.3f ms\n", 1e3 * N * 3 * 4/ (90.0 * 1024 * 1024 * 1024));
+    printf("maxstripe was %d and bufsize is %d\n", *maxstripe, bufsize);
  
     CUDA_CHECK(cudaEventDestroy(evstart));
     CUDA_CHECK(cudaEventDestroy(evacquire));
     
     //  sleep(3);
     printf("test is done\n");
-   
+    heapargs->crash_on_failure = true;
     return 0;
 }
+
