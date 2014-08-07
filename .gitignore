@@ -3,4 +3,4 @@
 *.a
 *.so
 *.tga
-.DS_Store
+.DS*

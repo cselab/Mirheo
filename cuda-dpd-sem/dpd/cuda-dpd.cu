@@ -276,6 +276,8 @@ void forces_dpd_cuda(const float * const xp, const float * const yp, const float
 		     const float sigma,
 		     const float invsqrtdt)
 {
+	if (np <= 0) return;
+	
     float * pv = new float[6 * np];
 
     for(int i = 0; i < np; ++i)
