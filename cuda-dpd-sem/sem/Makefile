@@ -7,7 +7,7 @@ ifeq "$(gpu-only)" "1"
 compilemain := $(NVCC) $(NVCCFLAGS) -c main.cu
 endif
 
-test-sem: main.o ../profiler-dpd.o ../cell-lists.o cuda-sem.o
+test-sem: main.o ../profiler-dpd.o ../cell-lists.o cuda-sem.o CellFactory.o
 	$(CXX) $(CXXFLAGS) $^ -L/usr/local/cuda-6.0/lib64/ -lcudart -lcurand -o test-sem
 
 libcuda-sem.so: cuda-sem.o ../cell-lists.o ../profiler-dpd.o
@@ -18,6 +18,9 @@ main.o: main.cu main.cpp
 
 cuda-sem.o: cuda-sem.cu cuda-sem.h
 	$(NVCC) $(NVCCFLAGS) -c cuda-sem.cu
+
+CellFactory.o: CellFactory.cu CellFactory.h
+	$(NVCC) $(NVCCFLAGS) -c CellFactory.cu
 
 ../%.o: 
 	make -C ../ $(@:../%=%)
