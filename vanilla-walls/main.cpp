@@ -336,13 +336,15 @@ int Particles::idglobal;
 
 struct Bouncer
 {
-    Particles frozen;
+    Particles frozen; //TODO consider moving to Sandwich
+
     Bouncer(const float L): frozen(0, L) {}
     virtual ~Bouncer() {}
     virtual void _mark(bool * const freeze, Particles p) = 0;
     virtual void bounce(Particles& dest, const float dt) = 0;
+    virtual void compute_forces(const float kBT, const double dt, Particles& freeParticles) const = 0;
     
-    Particles carve(const Particles p)
+    virtual Particles carve(const Particles& p) //TODO consider moving to Sandwich the implementation
 	{
 	    bool * const freeze = new bool[p.n];
 	    
@@ -350,27 +352,7 @@ struct Bouncer
 	    
 	    Particles partition[2] = {Particles(0, p.L), Particles(0, p.L)};
 	    
-	    for(int i = 0; i < p.n; ++i)
-	    {
-		const int slot = !freeze[i];
-		
-		partition[slot].xp.push_back(p.xp[i]);
-		partition[slot].yp.push_back(p.yp[i]);
-		partition[slot].zp.push_back(p.zp[i]);
-			  	       
-		partition[slot].xv.push_back(p.xv[i]);
-		partition[slot].yv.push_back(p.yv[i]);
-		partition[slot].zv.push_back(p.zv[i]);
-			  
-		partition[slot].xa.push_back(0);
-		partition[slot].ya.push_back(0);
-		partition[slot].za.push_back(0);
-			  
-		partition[slot].n++;
-	    }
-
-	    partition[0].acquire_global_id();
-	    partition[1].acquire_global_id();
+	    splitParticles(p, freeze, partition);
 
 	    frozen = partition[0];
 	    frozen.name = "frozen";
@@ -383,8 +365,8 @@ struct Bouncer
 	    return partition[1];
 	}
 
-    // extracted method from carve, might be used there
-    static void splitParticles(const Particles& p, const std::vector<bool>& freezeMask,
+    template<typename MaskType>
+    static void splitParticles(const Particles& p, const MaskType& freezeMask,
             Particles* partition) // Particles[2] array
     {
         for(int i = 0; i < p.n; ++i)
@@ -412,126 +394,6 @@ struct Bouncer
 };
 
 #if 1
-RowFunnelObstacle funnelLS(5.0f, 7.5f, 7.5f, 64, 64);
-
-// for now assume FunnelObsatcle is global
-struct FrozenFunnel
-{
-    const float rc = 1.0;
-    Particles frozenLayer[3]; // three layers every one is rc width
-
-    FrozenFunnel(const float boxLength)
-    : frozenLayer{Particles(0, boxLength), Particles(0, boxLength), Particles(0, boxLength)}
-    {}
-
-    Particles carveLayer(const Particles& input, size_t indLayer, float bottom, float top)
-    {
-        std::vector<bool> maskSkip(input.n, false);
-        for (int i = 0; i < input.n; ++i)
-        {
-            int bbIndex = funnelLS.getBoundingBoxIndex(input.xp[i], input.yp[i]);
-            if (bbIndex == 0 && input.zp[i] > bottom && input.zp[i] < top)
-                maskSkip[i] = true;
-        }
-        Particles splitToSkip[2] = {Particles(0, input.L), Particles(0, input.L)};
-        Bouncer::splitParticles(input, maskSkip, splitToSkip);
-
-        frozenLayer[indLayer] = splitToSkip[0];
-
-        for(int i = 0; i < frozenLayer[indLayer].n; ++i)
-            frozenLayer[indLayer].xv[i] = frozenLayer[indLayer].yv[i] = frozenLayer[indLayer].zv[i] = 0.0f;
-
-        return splitToSkip[1];
-    }
-
-    Particles carve(const Particles& p)
-    {
-        // in carving we get all particles inside the obstacle so they are not in consideration any more
-        // But we don't need all these particles for this code, we cleaned them all except layer between [-rc/2, rc/2]
-        std::vector<bool> maskFrozen(p.n);
-        // float half_width = p.L / 2.0 - 1.0f; // copy-paste from sandwitch
-        for (int i = 0; i < p.n; ++i)
-        {
-            // make holes in frozen planes for now
-            maskFrozen[i] = /*(fabs(p.zp[i]) <= half_width) &&*/ funnelLS.isInside(p.xp[i], p.yp[i]);
-        }
-
-        Particles splittedParticles[2] = {Particles(0, p.L), Particles(0, p.L)};
-        Bouncer::splitParticles(p, maskFrozen, splittedParticles);
-
-        Particles pp = carveLayer(splittedParticles[0], 0, -3.0f * rc/2.0, -rc/2.0);
-        Particles ppp = carveLayer(pp, 1, -rc/2.0, rc/2.0);
-        carveLayer(ppp, 2, rc/2.0, 3.0 * rc/2.0);
-
-        return splittedParticles[1];
-    }
-
-    void computeDPDPairForLayer(const float kBT, const double dt, int i, const float* coord,
-            const float* vel, float* df, const float offsetX, int seed1) const
-        {
-        float w = 3.0f * rc; // width of the frozen layers
-
-        float zh = coord[2] > 0.0f ? 0.5f : -0.5f;
-        float zOffset = -trunc(coord[2] / w + zh) * w;
-        // shift atom to the range [-w/2, w/2]
-        float coordShifted[] = {coord[0], coord[1], coord[2] + zOffset};
-        assert(coordShifted[2] >= -w/2.0f && coordShifted[2] <= w/2.0f);
-
-        int coreLayerIndex = trunc((coordShifted[2] + w/2)/rc);
-        if (coreLayerIndex == 3) // iff coordShifted[2] == 1.5, temporary workaround
-            coreLayerIndex = 2;
-
-        assert(coreLayerIndex >= 0 && coreLayerIndex < 3);
-
-        float layersOffsetZ[] = {0.0f, 0.0f, 0.0f};
-        if (coreLayerIndex == 0)
-            layersOffsetZ[2] = -w;
-        else if (coreLayerIndex == 2)
-            layersOffsetZ[0] = w;
-
-        for (int lInd = 0; lInd < 3; ++lInd) {
-            float layerOffset[] = {offsetX, 0.0f, layersOffsetZ[lInd]};
-            frozenLayer[ lInd ]._dpd_forces_1particle(kBT, dt, i, layerOffset, coordShifted, vel, df, seed1);
-        }
-    }
-
-    void computePairDPD(const float kBT, const double dt, Particles& freeParticles, int seed1) const
-    {
-        float xskin, yskin;
-        funnelLS.getSkinWidth(xskin, yskin);
-
-        for (int i = 0; i < freeParticles.n; ++i) {
-
-            if (funnelLS.insideBoundingBox(freeParticles.xp[i], freeParticles.yp[i])) {
-                //shifted position so coord.z == origin(layer).z which is 0
-                float coord[] = {freeParticles.xp[i], freeParticles.yp[i], freeParticles.zp[i]};
-                float vel[] = {freeParticles.xv[i], freeParticles.yv[i], freeParticles.zv[i]};
-                float df[] = {0.0, 0.0, 0.0};
-
-                // shift atom to the central box in the row
-                float offsetCoordX = funnelLS.getOffset(coord[0]);
-                coord[0] += offsetCoordX;
-
-                computeDPDPairForLayer(kBT, dt, i, coord, vel, df, 0.0f, seed1);
-
-                float frozenOffset = funnelLS.getCoreDomainLength(0);
-
-                if ((fabs(coord[0]  - funnelLS.getCoreDomainLength(0)/2.0f) + xskin) < rc)
-                {
-                    float signOfX = 1.0f - 2.0f * signbit(coord[0]);
-                    computeDPDPairForLayer(kBT, dt, i, coord, vel, df, signOfX*frozenOffset, seed1);
-                }
-
-                freeParticles.xa[i] += df[0];
-                freeParticles.ya[i] += df[1];
-                freeParticles.za[i] += df[2];
-            }
-        }
-        ++frozenLayer[0].saru_tag;
-        ++frozenLayer[1].saru_tag;
-        ++frozenLayer[2].saru_tag;
-    }
-};
 
 #else
 struct Kirill
@@ -565,16 +427,7 @@ void Particles::_dpd_forces(const float kBT, const double dt)
 			  &xv.front(), &yv.front(), &zv.front(), n, myidstart, myidstart);
 
     if (bouncer != nullptr) {
-        //bouncer->compute_forces();
-
-	Particles src = bouncer->frozen;
-	
-	_dpd_forces_bipartite(kBT, dt,
-			      &src.xp.front(), &src.yp.front(), &src.zp.front(),
-			      &src.xv.front(), &src.yv.front(), &src.zv.front(), src.n, myidstart, src.myidstart);
-    }
-    if (frozenFunnel != nullptr) {
-        frozenFunnel->computePairDPD(kBT, dt, *this, myidstart);
+        bouncer->compute_forces(kBT, dt, *this);
     }
 }
 
@@ -711,6 +564,14 @@ struct SandwichBouncer: Bouncer
 	    for(int i = 0; i < p.n; ++i)
 		freeze[i] = !(fabs(p.zp[i]) <= half_width);
 	}
+
+    void compute_forces(const float kBT, const double dt, Particles& freeParticles) const
+    {
+        freeParticles._dpd_forces_bipartite(kBT, dt,
+                      &frozen.xp.front(), &frozen.yp.front(), &frozen.zp.front(),
+                      &frozen.xv.front(), &frozen.yv.front(), &frozen.zv.front(),
+                      frozen.n, frozen.myidstart, frozen.myidstart);
+    }
 };
 
 struct TomatoSandwich: SandwichBouncer
@@ -718,9 +579,23 @@ struct TomatoSandwich: SandwichBouncer
     float xc = 0, yc = 0, zc = 0;
     float radius2 = 1;
 
-    TomatoSandwich(const float L): SandwichBouncer(L) {}
+    const float rc = 1.0;
 
-     void _mark(bool * const freeze, Particles p)
+    RowFunnelObstacle funnelLS;
+    Particles frozenLayer[3]; // three layers every one is rc width
+
+    TomatoSandwich(const float boxLength)
+    : SandwichBouncer(boxLength), funnelLS(5.0f, 10.0f, 10.0f, 64, 64),
+      frozenLayer{Particles(0, boxLength), Particles(0, boxLength), Particles(0, boxLength)}
+    {}
+
+    Particles carve(const Particles& particles)
+    {
+        Particles remaining0 = carveAllLayers(particles);
+        return SandwichBouncer::carve(remaining0);
+    }
+
+    void _mark(bool * const freeze, Particles p)
 	{
 	    SandwichBouncer::_mark(freeze, p);
 
@@ -866,17 +741,140 @@ struct TomatoSandwich: SandwichBouncer
 		}
 	    }
 	}
+
+    void compute_forces(const float kBT, const double dt, Particles& freeParticles) const
+    {
+        SandwichBouncer::compute_forces(kBT, dt, freeParticles);
+        computePairDPD(kBT, dt, freeParticles);
+    }
+
+private:
+    //dpd forces computations related methods
+    Particles carveLayer(const Particles& input, size_t indLayer, float bottom, float top);
+    Particles carveAllLayers(const Particles& p);
+    void computeDPDPairForLayer(const float kBT, const double dt, int i, const float* coord,
+                const float* vel, float* df, const float offsetX, int seed1) const;
+    void computePairDPD(const float kBT, const double dt, Particles& freeParticles) const;
 };
+
+Particles TomatoSandwich::carveLayer(const Particles& input, size_t indLayer, float bottom, float top)
+{
+    std::vector<bool> maskSkip(input.n, false);
+    for (int i = 0; i < input.n; ++i)
+    {
+        int bbIndex = funnelLS.getBoundingBoxIndex(input.xp[i], input.yp[i]);
+        if (bbIndex == 0 && input.zp[i] > bottom && input.zp[i] < top)
+            maskSkip[i] = true;
+    }
+    Particles splitToSkip[2] = {Particles(0, input.L), Particles(0, input.L)};
+    Bouncer::splitParticles(input, maskSkip, splitToSkip);
+
+    frozenLayer[indLayer] = splitToSkip[0];
+
+    for(int i = 0; i < frozenLayer[indLayer].n; ++i)
+        frozenLayer[indLayer].xv[i] = frozenLayer[indLayer].yv[i] = frozenLayer[indLayer].zv[i] = 0.0f;
+
+    return splitToSkip[1];
+}
+
+Particles TomatoSandwich::carveAllLayers(const Particles& p)
+{
+    // in carving we get all particles inside the obstacle so they are not in consideration any more
+    // But we don't need all these particles for this code, we cleaned them all except layer between [-rc/2, rc/2]
+    std::vector<bool> maskFrozen(p.n);
+    // float half_width = p.L / 2.0 - 1.0f; // copy-paste from sandwitch
+    for (int i = 0; i < p.n; ++i)
+    {
+        // make holes in frozen planes for now
+        maskFrozen[i] = /*(fabs(p.zp[i]) <= half_width) &&*/ funnelLS.isInside(p.xp[i], p.yp[i]);
+    }
+
+    Particles splittedParticles[2] = {Particles(0, p.L), Particles(0, p.L)};
+    Bouncer::splitParticles(p, maskFrozen, splittedParticles);
+
+    Particles pp = carveLayer(splittedParticles[0], 0, -3.0f * rc/2.0, -rc/2.0);
+    Particles ppp = carveLayer(pp, 1, -rc/2.0, rc/2.0);
+    carveLayer(ppp, 2, rc/2.0, 3.0 * rc/2.0);
+
+    return splittedParticles[1];
+}
+
+void TomatoSandwich::computeDPDPairForLayer(const float kBT, const double dt, int i, const float* coord,
+        const float* vel, float* df, const float offsetX, int seed1) const
+    {
+    float w = 3.0f * rc; // width of the frozen layers
+
+    float zh = coord[2] > 0.0f ? 0.5f : -0.5f;
+    float zOffset = -trunc(coord[2] / w + zh) * w;
+    // shift atom to the range [-w/2, w/2]
+    float coordShifted[] = {coord[0], coord[1], coord[2] + zOffset};
+    assert(coordShifted[2] >= -w/2.0f && coordShifted[2] <= w/2.0f);
+
+    int coreLayerIndex = trunc((coordShifted[2] + w/2)/rc);
+    if (coreLayerIndex == 3) // iff coordShifted[2] == 1.5, temporary workaround
+        coreLayerIndex = 2;
+
+    assert(coreLayerIndex >= 0 && coreLayerIndex < 3);
+
+    float layersOffsetZ[] = {0.0f, 0.0f, 0.0f};
+    if (coreLayerIndex == 0)
+        layersOffsetZ[2] = -w;
+    else if (coreLayerIndex == 2)
+        layersOffsetZ[0] = w;
+
+    for (int lInd = 0; lInd < 3; ++lInd) {
+        float layerOffset[] = {offsetX, 0.0f, layersOffsetZ[lInd]};
+        frozenLayer[ lInd ]._dpd_forces_1particle(kBT, dt, i, layerOffset, coordShifted, vel, df, seed1);
+    }
+}
+
+void TomatoSandwich::computePairDPD(const float kBT, const double dt, Particles& freeParticles) const
+{
+    int seed1 = freeParticles.myidstart;
+    float xskin, yskin;
+    funnelLS.getSkinWidth(xskin, yskin);
+
+    for (int i = 0; i < freeParticles.n; ++i) {
+
+        if (funnelLS.insideBoundingBox(freeParticles.xp[i], freeParticles.yp[i])) {
+            //shifted position so coord.z == origin(layer).z which is 0
+            float coord[] = {freeParticles.xp[i], freeParticles.yp[i], freeParticles.zp[i]};
+            float vel[] = {freeParticles.xv[i], freeParticles.yv[i], freeParticles.zv[i]};
+            float df[] = {0.0, 0.0, 0.0};
+
+            // shift atom to the central box in the row
+            float offsetCoordX = funnelLS.getOffset(coord[0]);
+            coord[0] += offsetCoordX;
+
+            computeDPDPairForLayer(kBT, dt, i, coord, vel, df, 0.0f, seed1);
+
+            float frozenOffset = funnelLS.getCoreDomainLength(0);
+
+            if ((fabs(coord[0]  - funnelLS.getCoreDomainLength(0)/2.0f) + xskin) < rc)
+            {
+                float signOfX = 1.0f - 2.0f * signbit(coord[0]);
+                computeDPDPairForLayer(kBT, dt, i, coord, vel, df, signOfX*frozenOffset, seed1);
+            }
+
+            freeParticles.xa[i] += df[0];
+            freeParticles.ya[i] += df[1];
+            freeParticles.za[i] += df[2];
+        }
+    }
+    ++frozenLayer[0].saru_tag;
+    ++frozenLayer[1].saru_tag;
+    ++frozenLayer[2].saru_tag;
+}
 
 int main()
 {
-    const float L = 15;
+    const float L = 10;
     const int Nm = 3;
     const int n = L * L * L * Nm;
     const float dt = 0.02;
 
     Particles particles(n, L);
-    particles.equilibrate(.1, 1*dt, dt);
+    particles.equilibrate(.1, 10*dt, dt);
 
     const float sandwich_half_width = L / 2 - 1.7;
 #if 1
@@ -887,20 +885,20 @@ int main()
     SandwichBouncer bouncer(L);
     bouncer.half_width = sandwich_half_width;
 #endif
-    FrozenFunnel frFun(L);
-    Particles remaining0 = frFun.carve(particles);
-    frFun.frozenLayer[0].lammps_dump("icy.dump", 0);
-    frFun.frozenLayer[1].lammps_dump("icy.dump", 1);
-    frFun.frozenLayer[2].lammps_dump("icy.dump", 2);
-    Particles remaining1 = bouncer.carve(remaining0);
+
+    Particles remaining1 = bouncer.carve(particles);
+
+    bouncer.frozenLayer[0].lammps_dump("icy.dump", 0);
+    bouncer.frozenLayer[1].lammps_dump("icy.dump", 1);
+    bouncer.frozenLayer[2].lammps_dump("icy.dump", 2);
+
     bouncer.frozen.lammps_dump("icy2.dump", 0);
     remaining1.name = "fluid";
     
     remaining1.bouncer = &bouncer;
-    remaining1.frozenFunnel = &frFun;
     remaining1.yg = 0.01;
     remaining1.steps_per_dump = 5;
-    remaining1.equilibrate(.1, 10*dt, dt);
+    remaining1.equilibrate(.1, 100*dt, dt);
     printf("particles have been equilibrated");
 }
 
