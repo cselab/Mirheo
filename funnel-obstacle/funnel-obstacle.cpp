@@ -257,9 +257,9 @@ bool FunnelObstacle::operator== (const FunnelObstacle& another)
 
 // **************** RowFunnelObstacle *******************
 
-RowFunnelObstacle::RowFunnelObstacle(const float plength, size_t nBlocks, const float domainLengthX, const float domainLengthY,
+RowFunnelObstacle::RowFunnelObstacle(const float plength, const float domainLengthX, const float domainLengthY,
                                      const size_t gridResolutionX, const size_t gridResolutionY)
-: m_nBlocks(nBlocks), m_funnelObstacle(plength, domainLengthX, domainLengthY, gridResolutionX, gridResolutionY)
+: m_funnelObstacle(plength, domainLengthX, domainLengthY, gridResolutionX, gridResolutionY)
 {}
 
 float RowFunnelObstacle::getOffset(float x) const
@@ -287,7 +287,7 @@ bool RowFunnelObstacle::isInside(const float x, const float y) const
 
 std::pair<bool, float> RowFunnelObstacle::sample(const float x, const float y) const
 {
-    if (abs(getBoundingBoxIndex(x, y)) > m_nBlocks/2)
+    if (!insideBoundingBox(x, y))
         return std::pair<bool, float>(false, std::numeric_limits<float>::infinity());
 
     float xShifted = x + getOffset(x);

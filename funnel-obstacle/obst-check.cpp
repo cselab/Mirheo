@@ -106,7 +106,7 @@ void checkFunnelObstaclNotSquare()
 template <class Obstacle>
 void checkObstacle(Obstacle& fo, float xc, float yc)
 {
-  float domainLength = 40.0f;
+  float domainLength = 39.9f;
 
   // pick up some points
   const float eps = domainLength / 64;
@@ -136,7 +136,6 @@ void checkObstacle(Obstacle& fo, float xc, float yc)
     if (y < -16.1 + yc || y >= 16.1 + yc)
       assertTrue(!fo.isInside(x, y));
   }
-  printOk();
 }
 
 
@@ -146,6 +145,7 @@ void checkFunnelObstacleFind2()
   FunnelObstacle fo(32.0f, domainLength, domainLength);
 
   checkObstacle(fo, 0.0f, 0.0f);
+  printOk();
 }
 
 void checkFunnelObstacleSample()
@@ -163,7 +163,7 @@ void checkFunnelObstacleSample()
   }*/
 }
 
-void checkRowFunnelObstacle()
+void checkRowFunnelObstacleInfLong()
 {
     // the behavior in simple case must be the same
     float domainLength = 40.0f;
@@ -174,13 +174,15 @@ void checkRowFunnelObstacle()
     //shift by period, should give the same result
     checkObstacle(fo, domainLength, 0.0f);
 
-    assertTrue(fo.getBoundingBoxIndex(0.0, 100.0f) == std::numeric_limits<int>::infinity());
+    assertTrue(fo.getBoundingBoxIndex(0.0, 100.0f) == std::numeric_limits<int>::max());
 
     assertTrue(fo.getBoundingBoxIndex(0.0, 0.0) == 0);
 
     assertTrue(fo.getBoundingBoxIndex(25.0f, 0.0) == 1);
     assertTrue(fo.getBoundingBoxIndex(-25.0f, 0.0) == -1);
+    printOk();
 }
+
 
 int main()
 {
@@ -188,5 +190,5 @@ int main()
   checkFunnelObstacleFind1();
   checkFunnelObstaclNotSquare();
   checkFunnelObstacleFind2();
-  checkRowFunnelObstacle();
+  checkRowFunnelObstacleInfLong();
 }

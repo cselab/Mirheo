@@ -412,7 +412,7 @@ struct Bouncer
 };
 
 #if 1
-RowFunnelObstacle funnelLS(5.0f, 1, 5.0f, 8.0f, 64, 64);
+RowFunnelObstacle funnelLS(5.0f, /*2,*/ 7.5f, 7.5f, 64, 64);
 
 // for now assume FunnelObsatcle is global
 struct FrozenFunnel
@@ -438,12 +438,7 @@ struct FrozenFunnel
         frozenLayer[indLayer] = splitToSkip[0];
 
         for(int i = 0; i < frozenLayer[indLayer].n; ++i)
-            frozenLayer[indLayer].xv[i] = frozenLayer[indLayer].yv[i] = frozenLayer[indLayer].zv[i] = 0.0;
-
-        // don't shift atoms to the Z origin
-        //float offsetZ = -trunc(bottom/rc + 0.5) * rc;
-        //for(int i = 0; i < frozenLayer[indLayer].n; ++i)
-        //    frozenLayer[indLayer].zp[i] += offsetZ;
+            frozenLayer[indLayer].xv[i] = frozenLayer[indLayer].yv[i] = frozenLayer[indLayer].zv[i] = 0.0f;
 
         return splitToSkip[1];
     }
@@ -498,12 +493,6 @@ struct FrozenFunnel
             float layerOffset[] = {offsetX, 0.0f, layersOffsetZ[lInd]};
             frozenLayer[ lInd ]._dpd_forces_1particle(kBT, dt, i, layerOffset, coordShifted, vel, df, seed1);
         }
-
-        // incorrect with shifts compute forces to each layer with a given offset in z-direction
-        //for (int lInd = 0; lInd < 3; ++lInd) {
-        //    float layerOffset[] = {offsetX, 0.0f, -lInd * rc};
-        //    frozenLayer[ layerInd[lInd] ]._dpd_forces_1particle(kBT, dt, i, layerOffset, coordShifted, vel, df, seed1);
-        //}
     }
 
     void computePairDPD(const float kBT, const double dt, Particles& freeParticles, int seed1) const
@@ -511,15 +500,6 @@ struct FrozenFunnel
         float xskin, yskin;
         funnelLS.getSkinWidth(xskin, yskin);
 
-        /*to debug
-        freeParticles.xp[0] = 0.0; freeParticles.yp[0] = -2.8; freeParticles.zp[0] = 0.0;
-        freeParticles.xp[1] = 0.0; freeParticles.yp[1] = -2.8; freeParticles.zp[1] = -6.0;
-        freeParticles.xp[2] = 0.0; freeParticles.yp[2] = -2.8; freeParticles.zp[2] = 6.0;
-
-        freeParticles.xv[0] = 0.0; freeParticles.yv[0] = -2.8; freeParticles.zv[0] = 0.0;
-        freeParticles.xv[1] = 0.0; freeParticles.yv[1] = -2.8; freeParticles.zv[1] = 0.0;
-        freeParticles.xv[2] = 0.0; freeParticles.yv[2] = -2.8; freeParticles.zv[2] = 0.0;
-         */
         for (int i = 0; i < freeParticles.n; ++i) {
 
             if (funnelLS.insideBoundingBox(freeParticles.xp[i], freeParticles.yp[i])) {
@@ -529,26 +509,22 @@ struct FrozenFunnel
                 float df[] = {0.0, 0.0, 0.0};
 
                 // shift atom to the central box in the row
-                //float offsetCoordX = funnelLS.getOffset(coord[0]);
-                //coord[0] += offsetCoordX;
-
-                //float layerOffset[] = {0, 0.0f, 0};
-                //frozenLayer[ 0 ]._dpd_forces_1particle(kBT, dt, i, layerOffset, coord, vel, df, seed1);
+                float offsetCoordX = funnelLS.getOffset(coord[0]);
+                coord[0] += offsetCoordX;
 
                 computeDPDPairForLayer(kBT, dt, i, coord, vel, df, 0.0f, seed1);
 
-                /*
                 float frozenOffset = funnelLS.getCoreDomainLength(0);
 
                 if ((fabs(coord[0]  - funnelLS.getCoreDomainLength(0)/2.0f) + xskin) < rc)
                 {
                     if (coord[0] > 0.0) {
-                        frozenLayer._dpd_forces_1particle(kBT, dt, i, coord, vel, df, frozenOffset, seed1, frozenLayer.myidstart);
+                        computeDPDPairForLayer(kBT, dt, i, coord, vel, df, frozenOffset, seed1);
                     } else {
-                        frozenLayer._dpd_forces_1particle(kBT, dt, i, coord, vel, df, -frozenOffset, seed1, frozenLayer.myidstart);
+                        computeDPDPairForLayer(kBT, dt, i, coord, vel, df, -frozenOffset, seed1);
                     }
                 }
-                */
+
                 freeParticles.xa[i] += df[0];
                 freeParticles.ya[i] += df[1];
                 freeParticles.za[i] += df[2];
@@ -902,13 +878,13 @@ struct TomatoSandwich: SandwichBouncer
 
 int main()
 {
-    const float L = 10;
+    const float L = 15;
     const int Nm = 3;
     const int n = L * L * L * Nm;
     const float dt = 0.02;
 
     Particles particles(n, L);
-    particles.equilibrate(.1, 10*dt, dt);
+    particles.equilibrate(.1, 1*dt, dt);
 
     const float sandwich_half_width = L / 2 - 1.7;
 #if 1
@@ -921,9 +897,9 @@ int main()
 #endif
     FrozenFunnel frFun(L);
     Particles remaining0 = frFun.carve(particles);
-    //frFun.frozenLayer[0].lammps_dump("icy.dump", 0);
-    //frFun.frozenLayer[1].lammps_dump("icy.dump", 1);
-    //frFun.frozenLayer[2].lammps_dump("icy.dump", 2);
+    frFun.frozenLayer[0].lammps_dump("icy.dump", 0);
+    frFun.frozenLayer[1].lammps_dump("icy.dump", 1);
+    frFun.frozenLayer[2].lammps_dump("icy.dump", 2);
     Particles remaining1 = bouncer.carve(remaining0);
     bouncer.frozen.lammps_dump("icy2.dump", 0);
     remaining1.name = "fluid";
@@ -931,8 +907,8 @@ int main()
     remaining1.bouncer = &bouncer;
     remaining1.frozenFunnel = &frFun;
     remaining1.yg = 0.01;
-    remaining1.steps_per_dump = 1;
-    remaining1.equilibrate(.1, 100*dt, dt);
+    remaining1.steps_per_dump = 5;
+    remaining1.equilibrate(.1, 10*dt, dt);
     printf("particles have been equilibrated");
 }
 

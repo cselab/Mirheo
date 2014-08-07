@@ -11,6 +11,7 @@
 #include <vector>
 #include <utility>
 #include <string>
+#include <limits>
 #include <cassert>
 
 class Grid
@@ -85,7 +86,7 @@ class RowFunnelObstacle
     size_t m_nBlocks;
     FunnelObstacle m_funnelObstacle;
 public:
-    RowFunnelObstacle(const float plength, size_t nBlocks, const float domainLengthX, const float domainLengthY,
+    RowFunnelObstacle(const float plength, const float domainLengthX, const float domainLengthY,
             size_t gridResolutionX = 32, const size_t gridResolutionY = 64);
 
     /**
@@ -105,7 +106,7 @@ public:
 
     bool insideBoundingBox(const float x, const float y) const
     {
-        return (abs(getBoundingBoxIndex(x, y)) <= m_nBlocks/2);
+        return (abs(getBoundingBoxIndex(x, y)) != std::numeric_limits<int>::max());
     }
 
     /**
