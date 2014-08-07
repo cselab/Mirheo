@@ -149,6 +149,16 @@ std::pair<bool, float> FunnelObstacle::sample(const float x, const float y) cons
   return std::pair<bool, float>(d < 0.0, fabs(d));
 }
 
+bool FunnelObstacle::isBetweenLayers(const float x, const float y,
+                                     const float bottom, const float up) const
+{
+    assert(bottom < up && up < std::min(m_skinWidth[0], m_skinWidth[1]));
+    std::pair<bool, float> res = sample(x, y);
+    if (!res.first) //outside
+        return res.second >= bottom && res.second <= up;
+    return false;
+}
+
 void FunnelObstacle::initInterface()
 {
   size_t szForEvery = m_obstacleDetalization / 2;
@@ -266,6 +276,16 @@ float RowFunnelObstacle::getOffset(float x) const
 {
     float h = x > 0.0f ? 0.5f : -0.5f;
     return -trunc(x / m_funnelObstacle.getDomainLength(0) + h) * m_funnelObstacle.getDomainLength(0);
+}
+
+bool RowFunnelObstacle::isBetweenLayers(const float x, const float y,
+                                     const float bottom, const float up) const
+{
+    if (!insideBoundingBox(x, y))
+        return false;
+
+    float xShifted = x + getOffset(x);
+    return m_funnelObstacle.isBetweenLayers(xShifted, y, bottom, up);
 }
 
 int RowFunnelObstacle::getBoundingBoxIndex(const float x, const float y) const

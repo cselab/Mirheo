@@ -57,6 +57,11 @@ public:
   bool isInside(const float x, const float y) const;
   std::pair<bool, float> sample(const float x, const float y) const;
 
+  /**
+   * returns is the point between levelsets isolevels with predefined values. works for points outside
+   */
+  bool isBetweenLayers(const float x, const float y, const float bottom, const float up) const;
+
   bool insideBoundingBox(const float x, const float y) const;
 
   float getDomainLength(size_t direct) const
@@ -108,6 +113,9 @@ public:
     {
         return (getBoundingBoxIndex(x, y) != std::numeric_limits<int>::max());
     }
+
+    bool isBetweenLayers(const float x, const float y,
+                                         const float bottom, const float up) const;
 
     /**
      * return bbIndex which is [-I, I] if point belongs to one
