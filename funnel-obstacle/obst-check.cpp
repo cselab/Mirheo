@@ -163,7 +163,7 @@ void checkFunnelObstacleSample()
   }*/
 }
 
-void checkRowFunnelObstacleInfLong()
+void checkRowFunnelObstacle1()
 {
     // the behavior in simple case must be the same
     float domainLength = 40.0f;
@@ -173,6 +173,7 @@ void checkRowFunnelObstacleInfLong()
 
     //shift by period, should give the same result
     checkObstacle(fo, domainLength, 0.0f);
+    checkObstacle(fo, -domainLength, 0.0f);
 
     assertTrue(fo.getBoundingBoxIndex(0.0, 100.0f) == std::numeric_limits<int>::max());
 
@@ -183,12 +184,25 @@ void checkRowFunnelObstacleInfLong()
     printOk();
 }
 
+void checkRowFunnelObstacle2()
+{
+    // the behavior in simple case must be the same
+    float domainLength = 15.0f;
+    RowFunnelObstacle funnelLS(5.0f, 7.5f, 7.5f, 64, 64);
+
+    assertTrue(funnelLS.isInside(0.0f, 0.0f));
+    assertTrue(funnelLS.isInside(-domainLength/2.0f, 0.0f));
+    assertTrue(funnelLS.isInside(domainLength/2.0f, 0.0f));
+
+    printOk();
+}
 
 int main()
 {
-  checkFunnelObstacleReadWrite();
-  checkFunnelObstacleFind1();
-  checkFunnelObstaclNotSquare();
-  checkFunnelObstacleFind2();
-  checkRowFunnelObstacleInfLong();
+  //checkFunnelObstacleReadWrite();
+  //checkFunnelObstacleFind1();
+  //checkFunnelObstaclNotSquare();
+  //checkFunnelObstacleFind2();
+  //checkRowFunnelObstacle1();
+  checkRowFunnelObstacle2();
 }

@@ -412,7 +412,7 @@ struct Bouncer
 };
 
 #if 1
-RowFunnelObstacle funnelLS(5.0f, /*2,*/ 7.5f, 7.5f, 64, 64);
+RowFunnelObstacle funnelLS(5.0f, 7.5f, 7.5f, 64, 64);
 
 // for now assume FunnelObsatcle is global
 struct FrozenFunnel
@@ -453,7 +453,7 @@ struct FrozenFunnel
         {
             int bbIndex = funnelLS.getBoundingBoxIndex(p.xp[i], p.yp[i]);
             // make holes in frozen planes for now
-            maskFrozen[i] = (fabs(p.zp[i]) <= half_width) && (bbIndex == 0) && funnelLS.isInside(p.xp[i], p.yp[i]);
+            maskFrozen[i] = (fabs(p.zp[i]) <= half_width) && funnelLS.isInside(p.xp[i], p.yp[i]);
         }
 
         Particles splittedParticles[2] = {Particles(0, p.L), Particles(0, p.L)};
@@ -518,11 +518,8 @@ struct FrozenFunnel
 
                 if ((fabs(coord[0]  - funnelLS.getCoreDomainLength(0)/2.0f) + xskin) < rc)
                 {
-                    if (coord[0] > 0.0) {
-                        computeDPDPairForLayer(kBT, dt, i, coord, vel, df, frozenOffset, seed1);
-                    } else {
-                        computeDPDPairForLayer(kBT, dt, i, coord, vel, df, -frozenOffset, seed1);
-                    }
+                    float signOfX = 1.0f - 2.0f * signbit(coord[0]);
+                    computeDPDPairForLayer(kBT, dt, i, coord, vel, df, signOfX*frozenOffset, seed1);
                 }
 
                 freeParticles.xa[i] += df[0];
@@ -578,11 +575,6 @@ void Particles::_dpd_forces(const float kBT, const double dt)
     }
     if (frozenFunnel != nullptr) {
         frozenFunnel->computePairDPD(kBT, dt, *this, myidstart);
-
-        //Particles& src = frozenFunnel->frozenLayer;
-        //_dpd_forces_bipartite(kBT, dt,
-        //                  &src.xp.front(), &src.yp.front(), &src.zp.front(),
-        //                  &src.xv.front(), &src.yv.front(), &src.zv.front(), src.n, myidstart, src.myidstart);
     }
 }
 
@@ -884,7 +876,7 @@ int main()
     const float dt = 0.02;
 
     Particles particles(n, L);
-    particles.equilibrate(.1, 100*dt, dt);
+    particles.equilibrate(.1, 1*dt, dt);
 
     const float sandwich_half_width = L / 2 - 1.7;
 #if 1
@@ -908,7 +900,7 @@ int main()
     remaining1.frozenFunnel = &frFun;
     remaining1.yg = 0.01;
     remaining1.steps_per_dump = 5;
-    remaining1.equilibrate(.1, 1000*dt, dt);
+    remaining1.equilibrate(.1, 10*dt, dt);
     printf("particles have been equilibrated");
 }
 
