@@ -429,7 +429,8 @@ struct FrozenFunnel
         std::vector<bool> maskSkip(input.n, false);
         for (int i = 0; i < input.n; ++i)
         {
-            if (input.zp[i] > bottom && input.zp[i] < top)
+            int bbIndex = funnelLS.getBoundingBoxIndex(input.xp[i], input.yp[i]);
+            if (bbIndex == 0 && input.zp[i] > bottom && input.zp[i] < top)
                 maskSkip[i] = true;
         }
         Particles splitToSkip[2] = {Particles(0, input.L), Particles(0, input.L)};
@@ -448,12 +449,11 @@ struct FrozenFunnel
         // in carving we get all particles inside the obstacle so they are not in consideration any more
         // But we don't need all these particles for this code, we cleaned them all except layer between [-rc/2, rc/2]
         std::vector<bool> maskFrozen(p.n);
-        float half_width = p.L / 2.0 - 1.0f; // copy-paste from sandwitch
+        // float half_width = p.L / 2.0 - 1.0f; // copy-paste from sandwitch
         for (int i = 0; i < p.n; ++i)
         {
-            int bbIndex = funnelLS.getBoundingBoxIndex(p.xp[i], p.yp[i]);
             // make holes in frozen planes for now
-            maskFrozen[i] = (fabs(p.zp[i]) <= half_width) && funnelLS.isInside(p.xp[i], p.yp[i]);
+            maskFrozen[i] = /*(fabs(p.zp[i]) <= half_width) &&*/ funnelLS.isInside(p.xp[i], p.yp[i]);
         }
 
         Particles splittedParticles[2] = {Particles(0, p.L), Particles(0, p.L)};
