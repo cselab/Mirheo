@@ -5,8 +5,8 @@ ifneq "$(debug)" "1"
 NVCCFLAGS += -DNDEBUG
 endif
 
-test:	main.cu
-	nvcc $(NVCCFLAGS) main.cu -o test
+test:	main.cu cell-lists-faster.cu
+	nvcc $(NVCCFLAGS) $^ -o test
 
 clean:
 	rm test
