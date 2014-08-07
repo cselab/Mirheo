@@ -18,16 +18,24 @@ else
 NVCCFLAGS += -g
 endif
 
+CELLING=cell-lists-faster.cu
+ifeq "$(legacy)" "1"
+CELLING=cell-lists.cu
+endif
+
 NVCC = nvcc
+
+test-cell-lists: test-cell-lists.cu cell-lists-faster.cu
+	$(NVCC) $(NVCCFLAGS) $^ -o test-cell-lists
 
 profiler-dpd.o:	profiler-dpd.cpp profiler-dpd.h
 	$(CXX) $(CXXFLAGS) -c profiler-dpd.cpp
 
-cell-lists.o: cell-lists.cu cell-lists.h
-	$(NVCC) $(NVCCFLAGS) -c cell-lists.cu
+cell-lists.o: $(CELLING) cell-lists.h
+	$(NVCC) $(NVCCFLAGS) -c $(CELLING) -o $@
 
 clean:
-	rm -f test *.o
+	rm -f test-cell-lists *.o
 
 subclean: clean
 

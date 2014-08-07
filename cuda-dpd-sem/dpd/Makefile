@@ -19,7 +19,8 @@ cuda-dpd-bipartite.o: cuda-dpd-bipartite.cu cuda-dpd.h
 
 clean:
 	rm -f test-dpd libcuda-dpd.so *.o
+	make -C ../ clean
 
-subclean: clean
+subclean: clean 
 
 .PHONY = clean subclean

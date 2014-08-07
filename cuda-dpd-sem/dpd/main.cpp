@@ -48,7 +48,7 @@ int main()
     const bool cuda = true;
     const bool bipartite = false;//true;
     const real dt = 0.02;
-    const real tend = 3;//20;//0.08 * 20;
+    const real tend = 20;//0.08 * 20;
     
     vector<real> xp(n), yp(n), zp(n), xv(n), yv(n), zv(n), xa(n), ya(n), za(n);
     srand48(6516L);
@@ -60,7 +60,7 @@ int main()
 	const int ycid = (cid / (int) L) % (int)L;
 	const int zcid = (cid / (int) L / (int) L) % (int)L;
 
-#if 1
+#if 0
 	xp[i] = -L * 0.5f +  drand48() * L;
 	yp[i] = -L * 0.5f +  drand48() * L;
 	zp[i] = -L * 0.5f +  drand48() * L;
@@ -214,6 +214,8 @@ int main()
     
     _f();
 
+    
+
     vmd_xyz("ic.xyz", &xp.front(), &yp.front(), &zp.front(), n, false);
 
     FILE * fdiag = fopen("diag.txt", "w");
@@ -250,6 +252,6 @@ int main()
 
     fclose(fdiag);
 
-    printf("done with %d iterations.\n", nt);	    
+    printf("done with %zd iterations.\n", nt);	    
     return 0;
 }

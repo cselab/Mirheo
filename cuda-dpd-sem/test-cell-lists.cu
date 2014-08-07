@@ -27,6 +27,8 @@ struct FailureTest
     int * maxstripe, * dmaxstripe;
 } extern failuretest;
 
+extern bool clists_perfmon;
+
 void myfill(device_vector<float>& d, const double ext)
 {
     const int N = d.size();
@@ -40,6 +42,8 @@ void myfill(device_vector<float>& d, const double ext)
 
 int main()
 {
+    clists_perfmon = true;
+    
     const int XL = 40;
     const int YL = 40;
     const int ZL = 40;
@@ -47,7 +51,7 @@ int main()
     const float densitynumber = 3;
     const int N = densitynumber * XL * YL * ZL;
     const float rc = 1;
-    const float invrc = 1 / rc;
+    
     device_vector<float> xp(N), yp(N), zp(N);
     device_vector<float> xv(N), yv(N), zv(N);
     
@@ -121,8 +125,8 @@ int main()
 	
 	for(int i = 0; i < N; ++i)
 	{
-	    int ycid = (int)(floor(y[i] - domainstart.y) * invrc);
-	    int zcid = (int)(floor(z[i] - domainstart.z) * invrc);
+	    int ycid = (int)(floor(y[i] - domainstart.y) / rc);
+	    int zcid = (int)(floor(z[i] - domainstart.z) / rc);
 
 	    const int entry = ycid + ncells.y * zcid;
 	    yzhist[entry]++;
@@ -146,8 +150,8 @@ int main()
 	
 	for(int i = 0; i < N; ++i)
 	{
-	    int ycid = (int)(floor(y[i] - domainstart.y) * invrc);
-	    int zcid = (int)(floor(z[i] - domainstart.z) * invrc);
+	    int ycid = (int)(floor(y[i] - domainstart.y) / rc);
+	    int zcid = (int)(floor(z[i] - domainstart.z) / rc);
 
 	    const int entry = ycid + ncells.y * zcid;
 

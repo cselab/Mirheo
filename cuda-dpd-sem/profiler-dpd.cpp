@@ -30,7 +30,7 @@ ProfilerDPD& ProfilerDPD::singletone()
 void ProfilerDPD::start()
 {
 #ifdef _PROFILE_
-	CUDA_CHECK(cudaProfilerStart());
+    //CUDA_CHECK(cudaProfilerStart());
 #endif
 	
     CUDA_CHECK(cudaThreadSynchronize());
@@ -71,7 +71,7 @@ void ProfilerDPD::report()
     CUDA_CHECK(cudaEventSynchronize(evforce));
 
 #ifdef _PROFILE_
-	CUDA_CHECK(cudaProfilerStop());
+    //CUDA_CHECK(cudaProfilerStop());
 #endif
 	
     float tforce;
