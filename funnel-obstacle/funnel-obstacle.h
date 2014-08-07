@@ -106,7 +106,7 @@ public:
 
     bool insideBoundingBox(const float x, const float y) const
     {
-        return (abs(getBoundingBoxIndex(x, y)) != std::numeric_limits<int>::max());
+        return (getBoundingBoxIndex(x, y) != std::numeric_limits<int>::max());
     }
 
     /**

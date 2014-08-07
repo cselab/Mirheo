@@ -884,7 +884,7 @@ int main()
     const float dt = 0.02;
 
     Particles particles(n, L);
-    particles.equilibrate(.1, 1*dt, dt);
+    particles.equilibrate(.1, 100*dt, dt);
 
     const float sandwich_half_width = L / 2 - 1.7;
 #if 1
@@ -908,7 +908,7 @@ int main()
     remaining1.frozenFunnel = &frFun;
     remaining1.yg = 0.01;
     remaining1.steps_per_dump = 5;
-    remaining1.equilibrate(.1, 10*dt, dt);
+    remaining1.equilibrate(.1, 1000*dt, dt);
     printf("particles have been equilibrated");
 }
 

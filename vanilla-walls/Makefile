@@ -1,4 +1,4 @@
-CXXFLAGS += -std=c++11  -fopenmp -I../funnel-obstacle/ -Ofast -DNDEBUG
+CXXFLAGS += -std=c++11  -fopenmp -I../funnel-obstacle/ -Ofast -DNDEBUG -DUSE_CUDA
 #-DNDEBUG -Ofast
 
 CUDADPD = ../cuda-dpd-sem/dpd/libcuda-dpd.so
