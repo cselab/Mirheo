@@ -585,7 +585,7 @@ struct TomatoSandwich: SandwichBouncer
     Particles frozenLayer[3]; // three layers every one is rc width
 
     TomatoSandwich(const float boxLength)
-    : SandwichBouncer(boxLength), funnelLS(5.0f, 10.0f, 10.0f, 64, 64),
+    : SandwichBouncer(boxLength), funnelLS(7.0f, 10.0f, 10.0f, 64, 64),
       frozenLayer{Particles(0, boxLength), Particles(0, boxLength), Particles(0, boxLength)}
     {}
 
@@ -868,13 +868,13 @@ void TomatoSandwich::computePairDPD(const float kBT, const double dt, Particles&
 
 int main()
 {
-    const float L = 10;
+    const float L = 20;
     const int Nm = 3;
     const int n = L * L * L * Nm;
     const float dt = 0.02;
 
     Particles particles(n, L);
-    particles.equilibrate(.1, 10*dt, dt);
+    particles.equilibrate(.1, 200*dt, dt);
 
     const float sandwich_half_width = L / 2 - 1.7;
 #if 1
@@ -896,9 +896,9 @@ int main()
     remaining1.name = "fluid";
     
     remaining1.bouncer = &bouncer;
-    remaining1.yg = 0.01;
+    remaining1.yg = 0.02;
     remaining1.steps_per_dump = 5;
-    remaining1.equilibrate(.1, 100*dt, dt);
+    remaining1.equilibrate(.1, 2000*dt, dt);
     printf("particles have been equilibrated");
 }
 
