@@ -837,6 +837,11 @@ void TomatoSandwich::computePairDPD(const float kBT, const double dt, Particles&
     for (int i = 0; i < freeParticles.n; ++i) {
 
         if (funnelLS.insideBoundingBox(freeParticles.xp[i], freeParticles.yp[i])) {
+
+            // not sure it gives performance improvements since bounding box usually is small enough
+            if (!funnelLS.isBetweenLayers(freeParticles.xp[i], freeParticles.yp[i], 0.0f, rc + 1e-2))
+                continue;
+
             //shifted position so coord.z == origin(layer).z which is 0
             float coord[] = {freeParticles.xp[i], freeParticles.yp[i], freeParticles.zp[i]};
             float vel[] = {freeParticles.xv[i], freeParticles.yv[i], freeParticles.zv[i]};

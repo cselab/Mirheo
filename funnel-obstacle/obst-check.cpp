@@ -187,12 +187,30 @@ void checkRowFunnelObstacle1()
 void checkRowFunnelObstacle2()
 {
     // the behavior in simple case must be the same
-    float domainLength = 15.0f;
-    RowFunnelObstacle funnelLS(5.0f, 7.5f, 7.5f, 64, 64);
+    float domainLength = 20.0f;
+    RowFunnelObstacle funnelLS(5.0f, 10.0f, 10.0f, 64, 64);
 
     assertTrue(funnelLS.isInside(0.0f, 0.0f));
     assertTrue(funnelLS.isInside(-domainLength/2.0f, 0.0f));
     assertTrue(funnelLS.isInside(domainLength/2.0f, 0.0f));
+
+    for (int i = 0; i < 4; ++i) {
+        float x = 0.0f;
+        float h = 0.5;
+        float y = -2.7f - i*h;
+        assertTrue(funnelLS.isBetweenLayers(x, y, i*h , (i+1)*h));
+    }
+
+    assertTrue(!funnelLS.isBetweenLayers(0.0, -2.6, 1, 2));
+    assertTrue(!funnelLS.isBetweenLayers(0.0, -5.5, 0, 1));
+
+    //the same for shifted
+    for (int i = 0; i < 4; ++i) {
+        float x = -domainLength/2.0f + 1e-4;
+        float h = 0.5;
+        float y = -2.7f - i*h;
+        assertTrue(funnelLS.isBetweenLayers(x, y, i*h , (i+1)*h));
+    }
 
     printOk();
 }
