@@ -319,7 +319,7 @@ void Particles::equilibrate(const float kBT, const double tend, const double dt)
 
     for(int it = 0; it < nt; ++it)
     {
-	if (it % 1 == 0)
+	if (it % steps_per_dump == 0)
 	{
 	    printf("step %d\n", it);
 	    float t = it * dt;
@@ -425,7 +425,7 @@ struct SandwichBouncer: Bouncer
 	}
 };
 
-#if 1
+#if 0
 FunnelObstacle kirill(32/3, 40, 128);
 #else
 struct Kirill
@@ -461,7 +461,7 @@ struct TomatoSandwich: SandwichBouncer
 	    {
 		const float x = p.xp[i] - xc;
 		const float y = p.yp[i] - yc;
-#if 1
+#if 0
 		freeze[i] |= kirill.isInside(x, y);
 #else
 		const float r2 = x * x + y * y;
@@ -490,7 +490,7 @@ struct TomatoSandwich: SandwichBouncer
 			   float& u, float& v, float& w,
 			   float& dt)
 	{
-#if 1
+#if 0
 	    if (!kirill.isInside(x, y))
 		return false;
 
@@ -537,7 +537,19 @@ struct TomatoSandwich: SandwichBouncer
 	    const float yold = y - dt * v;
 	    const float zold = z - dt * w;
 
+	     const float r2old =
+		(xold - xc) * (xold - xc) +
+		 (yold - yc) * (yold - yc) ;
+
+	     if (r2old < radius2)
+		 printf("r2old : %.30f\n", r2old);
+	     
+	    assert(r2old >= radius2);
+
 	    const float t = _compute_collision_time(xold, yold, u, v, xc, yc, radius2);
+	    if (t < 0)
+		printf("t is %.20e\n", t);
+	    
 	    assert(t >= 0);
 	    assert(t <= dt);
 		    
@@ -558,45 +570,70 @@ struct TomatoSandwich: SandwichBouncer
     
     void bounce(Particles& dest, const float _dt)
 	{
-#pragma omp parallel for
-	    for(int i = 0; i < dest.n; ++i)
+	    int gfailcc = 0, gokcc = 0;
+	    
+#pragma omp parallel
 	    {
-		float x = dest.xp[i];
-		float y = dest.yp[i];
-		float z = dest.zp[i];
-		float u = dest.xv[i];
-		float v = dest.yv[i];
-		float w = dest.zv[i];
-		float dt = _dt;
-		    
-		bool wascolliding = false, collision;
-		int passes = 0;
-		do
+		int failcc = 0, okcc = 0;
+
+#pragma omp for
+		for(int i = 0; i < dest.n; ++i)
 		{
-		    collision = false;
-		    collision |= SandwichBouncer::_handle_collision(x, y, z, u, v, w, dt);
-		    collision |= _handle_collision(x, y, z, u, v, w, dt);
+		    float x = dest.xp[i];
+		    float y = dest.yp[i];
+		    float z = dest.zp[i];
+		    float u = dest.xv[i];
+		    float v = dest.yv[i];
+		    float w = dest.zv[i];
+		    float dt = _dt;
 		    
-		    wascolliding |= collision;
-		    passes++;
+		    bool wascolliding = false, collision;
+		    int passes = 0;
+		    do
+		    {
+			collision = false;
+			collision |= SandwichBouncer::_handle_collision(x, y, z, u, v, w, dt);
+			collision |= _handle_collision(x, y, z, u, v, w, dt);
+		    
+			wascolliding |= collision;
+			passes++;
 
-		    if (passes >= 10)
-			break;
-		}
-		while(collision);
+			if (passes >= 100)
+			    break;
+		    }
+		    while(collision);
 
-		if (passes >= 2)
-		    printf("solved a complex collision\n");
+		    if (passes >= 2)
+			if (!collision)
+			    okcc++;//
+			else
+			    failcc++;//
 		
-		if (wascolliding)
-		{
-		    dest.xp[i] = x;
-		    dest.yp[i] = y;
-		    dest.zp[i] = z;
-		    dest.xv[i] = u;
-		    dest.yv[i] = v;
-		    dest.zv[i] = w;
+		    if (wascolliding)
+		    {
+			dest.xp[i] = x;
+			dest.yp[i] = y;
+			dest.zp[i] = z;
+			dest.xv[i] = u;
+			dest.yv[i] = v;
+			dest.zv[i] = w;
+		    }
 		}
+
+#pragma omp critical
+		{
+		    gfailcc += failcc;
+		    gokcc += okcc;
+		}
+	    }
+
+	    if (gokcc)
+		printf("successfully solved %d complex collisions\n", gokcc);
+
+	    if (gfailcc)
+	    {
+		printf("FAILED to solve %d complex collisions\n", gfailcc);
+		abort();
 	    }
 	}
 };
@@ -627,9 +664,8 @@ int main()
     
     remaining.bouncer = &bouncer;
     remaining.yg = 0.01;
-    remaining.steps_per_dump = 3*5;
+    remaining.steps_per_dump = 5;
     remaining.equilibrate(.1, 30*3*5, 0.02);
-    printf("particles have been equilibrated");
 }
 
     

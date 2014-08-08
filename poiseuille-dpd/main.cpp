@@ -3,6 +3,7 @@
 #include <cstdio>
 #include <cassert>
 
+#include <unistd.h>
 #include <algorithm>
 #include <vector>
 #include <tuple>
@@ -48,7 +49,7 @@ int main()
     const real rc = 1;
     const real dt = 0.02;
     const real tend = 100;
-    const int steps_per_dump = 50;
+    const int steps_per_dump = 1;
     vector<real> xp(n), yp(n), zp(n), xv(n), yv(n), zv(n), xa(n), ya(n), za(n);
     
     for(int i = 0; i < n; ++i)
@@ -121,11 +122,15 @@ int main()
 
     auto _f = [&]()
 	{
+	    fill(xa.begin(), xa.end(), 0);
+	    fill(ya.begin(), ya.end(), 0);
+	    fill(za.begin(), za.end(), 0);
+	    
 	      forces_dpd_cuda(
 		    &xp.front(), &yp.front(), &zp.front(),
 		    &xv.front(), &yv.front(), &zv.front(),
 		    &xa.front(), &ya.front(), &za.front(),
-		    nullptr, n,
+		    n,
 		    rc, XL, YL, ZL, aij, gamma, sigma, 1./sqrt(dt));
 
 	    for(int i = 0; i < n; ++i)
@@ -142,7 +147,7 @@ int main()
 
     for(int it = 0; it < nt; ++it)
     {
-	if (it % 50 == 0)
+	if (it % 1 == 0)
 	{
 	    float t = it * dt;
 	    _diag(fdiag, t);
@@ -165,6 +170,8 @@ int main()
 	
 	if (it % steps_per_dump == 0)
 	    vmd_xyz("evolution.xyz", &xp.front(), &yp.front(), &zp.front(), n, it > 0);
+
+	//sleep(1);
     }
 
     fclose(fdiag);

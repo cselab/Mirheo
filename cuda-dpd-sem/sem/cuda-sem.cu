@@ -168,7 +168,7 @@ using namespace thrust;
 #include "../profiler-dpd.h"
 #include "../cell-lists.h"
 #include "../hacks.h"
-
+/*
 void forces_sem_cuda_nohost(
     float *  device_xyzuvw, float * device_axayaz,
 		     int * const order, const int np,
@@ -319,7 +319,7 @@ void forces_sem_cuda(float * const xp, float * const yp, float * const zp,
 
     delete [] order;
 }
-
+*/
 //===============================================================================================
 //===============================================================================================
 

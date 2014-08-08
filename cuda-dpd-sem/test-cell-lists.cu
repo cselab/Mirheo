@@ -40,13 +40,13 @@ void myfill(device_vector<float>& d, const double ext)
     copy(v.begin(), v.end(), d.begin());
 }
 
-int main()
+void test(const int L)
 {
     clists_perfmon = true;
     
-    const int XL = 40;
-    const int YL = 40;
-    const int ZL = 40;
+    const int XL = L;
+    const int YL = L;
+    const int ZL = L;
 
     const float densitynumber = 3;
     const int N = densitynumber * XL * YL * ZL;
@@ -262,6 +262,18 @@ int main()
      printf("test is done\n");
 #endif
 
-    return 0;
+    
 }
 
+int main()
+{
+    for(int i = 0; i < 10; ++i)
+    {
+	if (i < 5)
+	    test(40);
+	else
+	    test(20);
+    }
+    
+    return 0;
+}
