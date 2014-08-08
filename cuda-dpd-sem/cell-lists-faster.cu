@@ -246,7 +246,7 @@ __global__ void xgather(const int * const ids, const int np, const float invrc, 
     if (count >= bufsize)
 	return; //something went wrong 
     
-    for(int i = tid; i < count; i += warpSize)
+    for(int i = tid; i < ncells.x; i += warpSize)
 	xhisto[i] = 0;
  
     for(int i = tid; i < count; i += warpSize)
@@ -257,7 +257,7 @@ __global__ void xgather(const int * const ids, const int np, const float invrc, 
 
 	const float x = tex1Dfetch(texParticles, 6 * id);
 
-	const int xcid = min(ncells.x - 1, max(0, (int)(invrc * (x - domainstart.x))));
+	const int xcid = min(ncells.x - 1, max(0, (int)floor(invrc * (x - domainstart.x))));
 	
 	const int val = atomicAdd((int *)(xhisto + xcid), 1);
 	assert(xcid < ncells.x);
@@ -319,30 +319,13 @@ __global__ void xgather(const int * const ids, const int np, const float invrc, 
 	    order[start + i] = reordered[i];
 }
 
-#include <unistd.h>
-
-#define CUDA_CHECK(ans) do { cudaAssert((ans), __FILE__, __LINE__); } while(0)
-inline void cudaAssert(cudaError_t code, const char *file, int line, bool abort=true)
-{
-    if (code != cudaSuccess) 
-    {
-	fprintf(stderr,"GPUassert: %s %s %d\n", cudaGetErrorString(code), file, line);
-	sleep(5);
-	if (abort) exit(code);
-    }
-}
-
 #include <thrust/device_vector.h>
 #include <thrust/copy.h>
 #include <thrust/iterator/counting_iterator.h>
 
 using namespace thrust;
 
-template<typename T>
-T * _ptr(device_vector<T>& v)
-{
-    return raw_pointer_cast(&v[0]);
-}
+#include "hacks.h"
 
 #include <utility>
 
@@ -361,7 +344,16 @@ struct FailureTest
 		abort();
 	    }
 	    else
-		CUDA_CHECK(cudaSetDeviceFlags(cudaDeviceMapHost));
+	    {
+		//CUDA_CHECK(
+	
+		cudaSetDeviceFlags(cudaDeviceMapHost);//);
+		cudaError_t status = cudaGetLastError ( );
+		cudaError_t status2 = cudaPeekAtLastError();
+
+		printf("attempting to set MapHost..status:  %d -> %d\n", status == cudaSuccess, status2 == cudaSuccess);
+		
+	    }
     
 	    CUDA_CHECK(cudaHostAlloc((void **)&maxstripe, sizeof(int), cudaHostAllocMapped));
 	    assert(maxstripe != NULL);
@@ -381,9 +373,7 @@ struct FailureTest
 	}
 
     void reset() { *maxstripe = 0; }
-} failuretest;
-
-
+} static failuretest;
 
 struct is_gzero
 {
@@ -394,7 +384,7 @@ struct is_gzero
   }
 };
 
-device_vector<int> loffsets, yzcid, outid, yzhisto, dyzscan;
+device_vector<int> loffsets, yzcid, outid, yzhisto, dyzscan, order;
 device_vector<float> xyzuvw_copy;
 
 bool clists_perfmon = false;
@@ -413,14 +403,12 @@ void build_clists(float * const device_xyzuvw, int np, const float rc,
     const int3 ncells = make_int3(xcells, ycells, zcells);
     
     const float densitynumber = np / (float)(ncells.x * ncells.y * ncells.z);
-    //printf("density number is %f\n", densitynumber);
+    //printf("density number223332 is %f\n", densitynumber);
     const int xbufsize = max(32, (int)(ncells.x * densitynumber * 2));
     
     xyzuvw_copy.resize(np * 6);
     copy(device_ptr<float>(device_xyzuvw), device_ptr<float>(device_xyzuvw + 6 * np), xyzuvw_copy.begin());
     
-    
-    device_vector<int> order;
     int * device_order = NULL;
     
     if (host_order != NULL)
@@ -463,7 +451,7 @@ void build_clists(float * const device_xyzuvw, int np, const float rc,
 
     size_t textureoffset = 0;
     CUDA_CHECK(cudaBindTexture(&textureoffset, &texParticles, _ptr(xyzuvw_copy), &texParticles.channelDesc, sizeof(float) * 6 * np));
-       
+    
     if (clists_perfmon)
 	CUDA_CHECK(cudaEventRecord(evstart));
 
@@ -489,8 +477,7 @@ void build_clists(float * const device_xyzuvw, int np, const float rc,
 	yzscatter<ILP><<<(np + 256 * ILP - 1) / (256 * ILP), 256>>>(_ptr(loffsets), _ptr(yzcid), np, _ptr(outid));
     }
 
-    if (clists_perfmon)
-	CUDA_CHECK(cudaEventRecord(evscatter));
+    
     
     {
 	static const int YCPB = 2 ;
@@ -499,7 +486,9 @@ void build_clists(float * const device_xyzuvw, int np, const float rc,
 	xgather<YCPB><<< dim3(1, ncells.y / YCPB, ncells.z), dim3(32, YCPB), sizeof(int) * (ncells.x  + 2 * xbufsize) * YCPB>>>
 	    (_ptr(outid), np, invrc, ncells, domainstart, device_cellsstart, device_cellscount, device_xyzuvw, xbufsize, device_order);
     }
-    
+
+     if (clists_perfmon)
+	CUDA_CHECK(cudaEventRecord(evscatter));
     if (!clists_robust)
     {
 	failuretest.bufsize = xbufsize;
@@ -577,4 +566,8 @@ void build_clists(float * const device_xyzuvw, int np, const float rc,
 
     if (host_order != NULL)
 	copy(order.begin(), order.end(), host_order);
+
+    CUDA_CHECK(cudaUnbindTexture(texScanYZ));
+    CUDA_CHECK(cudaUnbindTexture(texCountYZ));
+    CUDA_CHECK(cudaUnbindTexture(texParticles));
 }

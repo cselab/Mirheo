@@ -1,4 +1,5 @@
-CXXFLAGS += -std=c++11  -fopenmp -I../funnel-obstacle/ -Ofast -DNDEBUG
+CXXFLAGS += -std=c++11  -fopenmp -I../funnel-obstacle/ -g -Ofast
+#-DNDEBUG
 #-DNDEBUG -Ofast
 
 CUDADPD = ../cuda-dpd-sem/dpd/libcuda-dpd.so
@@ -11,7 +12,7 @@ endif
 test: main.cpp ../funnel-obstacle/funnel-obstacle.o
 	echo hello
 	$(CUDADPDCMD)
-	$(CXX) $(CXXFLAGS) $^ $(CUDADPD) -o test
+	$(CXX) $(CXXFLAGS) $^ -L$(dir $(CUDADPD)) -lcuda-dpd  -o test
 
 ../funnel-obstacle/funnel-obstacle.o: ../funnel-obstacle/*.cpp
 	make -C ../funnel-obstacle funnel-obstacle.o

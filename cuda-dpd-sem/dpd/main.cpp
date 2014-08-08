@@ -60,7 +60,7 @@ int main()
 	const int ycid = (cid / (int) L) % (int)L;
 	const int zcid = (cid / (int) L / (int) L) % (int)L;
 
-#if 0
+#if 1
 	xp[i] = -L * 0.5f +  drand48() * L;
 	yp[i] = -L * 0.5f +  drand48() * L;
 	zp[i] = -L * 0.5f +  drand48() * L;
@@ -246,7 +246,7 @@ int main()
 	_up(yv, ya, dt * 0.5);
 	_up(zv, za, dt * 0.5);
 	
-	if (it % 30 == 0)
+	if (it % 1 == 0)
 	    vmd_xyz("evolution.xyz", &xp.front(), &yp.front(), &zp.front(), n, it > 0);
     }
 

@@ -8,6 +8,9 @@
 
 #include "cuda-dpd.h"
 #include "funnel-obstacle.h"
+#include "cell-factory.h"
+#include "cuda-sem.h"
+
 
 inline float saru(unsigned int seed1, unsigned int seed2, unsigned int seed3)
 {
@@ -50,7 +53,7 @@ struct Particles
     Bouncer * bouncer = nullptr;
     string name;
 
-    void _dpd_forces_bipartite(const float kBT, const double dt,
+    void internal_forces_bipartite(const float kBT, const double dt,
 			       const float * const srcxp, const float * const srcyp, const float * const srczp,
 			       const float * const srcxv, const float * const srcyv, const float * const srczv,
 			       const int nsrc,
@@ -166,7 +169,9 @@ struct Particles
 	    {
 		xp[i] = -L * 0.5 + drand48() * L;
 		yp[i] = -L * 0.5 + drand48() * L;
-		zp[i] = -L * 0.5 + drand48() * L; 
+		zp[i] = -L * 0.5 + drand48() * L;
+
+		xv[i] = yv[i] = zv[i] = 0;
 	    }
 	}
     
@@ -213,7 +218,34 @@ struct Particles
 	    printf("vmd_xyz: wrote to <%s>\n", path);
 	}
 
-    void _dpd_forces(const float kBT, const double dt);
+   void _up (vector<float>& x, vector<float>& v, float f)
+	{
+	    for(int i = 0; i < n; ++i)
+		x[i] += f * v[i];
+	}
+
+    void _up_enforce(vector<float>& x, vector<float>& v, float f)
+	{
+	    for(int i = 0; i < n; ++i)
+	    {
+		x[i] += f * v[i];
+		x[i] -= L * floor(x[i] / L + 0.5);
+	    }
+	}
+
+    void update_stage1(const float dt, const int timestepid);
+
+    void update_stage2 (const float dt, const int timestepid)
+	{
+	    _up(xv, xa, dt * 0.5);
+	    _up(yv, ya, dt * 0.5);
+	    _up(zv, za, dt * 0.5);
+
+	    if (timestepid % steps_per_dump == 0)
+		vmd_xyz((name == "" ? "evolution.xyz" : (name + "-evolution.xyz")).c_str(), timestepid > 0);
+	};
+    
+    virtual void internal_forces(const float kBT, const double dt);
     void equilibrate(const float kBT, const double tend, const double dt);
 };
 
@@ -268,8 +300,8 @@ struct Bouncer
 	    return partition[1];
 	}
 };
-    
-void Particles::_dpd_forces(const float kBT, const double dt)
+
+void Particles::internal_forces(const float kBT, const double dt)
 {
     for(int i = 0; i < n; ++i)
     {
@@ -278,77 +310,64 @@ void Particles::_dpd_forces(const float kBT, const double dt)
 	za[i] = zg;
     }
     
-    _dpd_forces_bipartite(kBT, dt,
+    internal_forces_bipartite(kBT, dt,
 			  &xp.front(), &yp.front(), &zp.front(),
 			  &xv.front(), &yv.front(), &zv.front(), n, myidstart, myidstart);
 
     if (bouncer != nullptr)
     {
-	Particles src = bouncer->frozen;
+	Particles& src = bouncer->frozen;
 	
-	_dpd_forces_bipartite(kBT, dt,
+	internal_forces_bipartite(kBT, dt,
 			      &src.xp.front(), &src.yp.front(), &src.zp.front(),
 			      &src.xv.front(), &src.yv.front(), &src.zv.front(), src.n, myidstart, src.myidstart);
     }
 }
 
+void Particles::update_stage1(const float dt, const int timestepid)
+	{
+	    FILE * fdiag = fopen("diag-equilibrate.txt", timestepid > 0 ? "a" : "w");
+	    
+	    if (timestepid % steps_per_dump == 0)
+	    {
+		printf("step %d\n", timestepid);
+		float t = timestepid * dt;
+		diag(fdiag, t);
+		diag(stdout, t);
+	    }
+	    
+	    fclose(fdiag);
+		
+	    _up(xv, xa, dt * 0.5);
+	    _up(yv, ya, dt * 0.5);
+	    _up(zv, za, dt * 0.5);
+
+	    _up_enforce(xp, xv, dt);
+	    _up_enforce(yp, yv, dt);
+	    _up_enforce(zp, zv, dt);
+
+	    if (bouncer != nullptr)
+		bouncer->bounce(*this, dt);
+	};
 void Particles::equilibrate(const float kBT, const double tend, const double dt)
 {
-    auto _up  = [&](vector<float>& x, vector<float>& v, float f)
-	{
-	    for(int i = 0; i < n; ++i)
-		x[i] += f * v[i];
-	};
-
-    auto _up_enforce = [&](vector<float>& x, vector<float>& v, float f)
-	{
-	    for(int i = 0; i < n; ++i)
-	    {
-		x[i] += f * v[i];
-		x[i] -= L * floor(x[i] / L + 0.5);
-	    }
-	};
-    
-    _dpd_forces(kBT, dt);
+    internal_forces(kBT, dt);
 
     vmd_xyz("ic.xyz", false);
-
-    FILE * fdiag = fopen("diag-equilibrate.txt", "w");
 
     const size_t nt = (int)(tend / dt);
 
     for(int it = 0; it < nt; ++it)
     {
-	if (it % steps_per_dump == 0)
-	{
-	    printf("step %d\n", it);
-	    float t = it * dt;
-	    diag(fdiag, t);
-	    diag(stdout, t);
-	}
-		
-	_up(xv, xa, dt * 0.5);
-	_up(yv, ya, dt * 0.5);
-	_up(zv, za, dt * 0.5);
-
-	_up_enforce(xp, xv, dt);
-	_up_enforce(yp, yv, dt);
-	_up_enforce(zp, zv, dt);
+	update_stage1(dt, it);
 
 	if (bouncer != nullptr)
 	    bouncer->bounce(*this, dt);
 		
-	_dpd_forces(kBT, dt);
+	internal_forces(kBT, dt);
 
-	_up(xv, xa, dt * 0.5);
-	_up(yv, ya, dt * 0.5);
-	_up(zv, za, dt * 0.5);
-	
-	if (it % steps_per_dump == 0)
-	    vmd_xyz((name == "" ? "evolution.xyz" : (name + "-evolution.xyz")).c_str(), it > 0);
+	update_stage2(dt, it);
     }
-
-    fclose(fdiag);
 }
 
 struct SandwichBouncer: Bouncer
@@ -638,14 +657,107 @@ struct TomatoSandwich: SandwichBouncer
 	}
 };
 
+struct ParticlesSEM : Particles
+{
+    using Particles::Particles;//(const int n, const float L);
 
+    ParamsSEM params;
+
+    void internal_forces(const float kBT, const double dt)
+	{
+	    //abort();
+
+	    for(int i = 0; i < n; ++i)
+	    {
+		xa[i] = xg;
+		ya[i] = yg;
+		za[i] = zg;
+	    }
+
+	    
+	    /* internal_forces_bipartite(kBT, dt,
+				  &xp.front(), &yp.front(), &zp.front(),
+				  &xv.front(), &yv.front(), &zv.front(), n, myidstart, myidstart);*/
+	    
+	    forces_sem_cuda_direct( &xp.front(), &yp.front(), &zp.front(),
+				    &xv.front(), &yv.front(), &zv.front(),
+				    &xa.front(), &ya.front(), &za.front(),
+				    n, params.rcutoff, L, L, L, params.gamma, kBT, dt, params.u0, params.rho, params.req, params.D, params.rc);
+	
+	    if (bouncer != nullptr)
+	    {
+		Particles& src = bouncer->frozen;
+	
+		internal_forces_bipartite(kBT, dt,
+				      &src.xp.front(), &src.yp.front(), &src.zp.front(),
+				      &src.xv.front(), &src.yv.front(), &src.zv.front(), src.n, myidstart, src.myidstart);
+	    }
+	}
+};
+
+void interforces(Particles& dpdp, ParticlesSEM& semp, double kBT, double dt)
+{
+    const float L = dpdp.L;
+    
+    const float xdomainsize = L;
+    const float ydomainsize = L;
+    const float zdomainsize = L;
+
+    const float invrc = 1.;
+    const float gamma = 45;
+    const float sigma = sqrt(2 * gamma * kBT);
+    const float sigmaf = sigma / sqrt(dt);
+    const float aij = 2.5;
+	    
+    forces_dpd_cuda_bipartite(&dpdp.xp.front(), &dpdp.yp.front(), &dpdp.zp.front(),
+			      &dpdp.xv.front(), &dpdp.yv.front(), &dpdp.zv.front(),
+			      &dpdp.xa.front(), &dpdp.ya.front(), &dpdp.za.front(),
+			      dpdp.n, dpdp.myidstart,
+			      &semp.xp.front(), &semp.yp.front(), &semp.zp.front(),
+			      &semp.xv.front(), &semp.yv.front(), &semp.zv.front(),
+			      &semp.xa.front(), &semp.ya.front(), &semp.za.front(),
+			      semp.n, semp.myidstart,
+			      1,
+			      xdomainsize,
+			      ydomainsize,
+			      zdomainsize,
+			      aij,
+			      gamma,
+			      sigma,  1 / sqrt(dt));
+}
+
+void microfluidics_simulation(Particles& dpdp, ParticlesSEM& semp, const float kBT, const double tend, const double dt)
+{
+    dpdp.internal_forces(kBT, dt);
+    semp.internal_forces(kBT, dt);
+
+    dpdp.vmd_xyz("mf-ic-dpd.xyz", false);
+    semp.vmd_xyz("mf-ic-dpd.xyz", false);
+
+    const size_t nt = (int)(tend / dt);
+
+    for(int it = 0; it < nt; ++it)
+    {
+	dpdp.update_stage1(dt, it);
+	semp.update_stage1(dt, it);
+		
+	dpdp.internal_forces(kBT, dt);
+	semp.internal_forces(kBT, dt);
+
+	interforces(dpdp, semp, kBT, dt);
+
+	dpdp.update_stage2(dt, it);
+	semp.update_stage2(dt, it);
+    }
+}
 
 int main()
 {
+    //abort();
     const float L = 40;
     const int Nm = 3;
     const int n = L * L * L * Nm;
-
+    
     Particles particles(n, L);
     particles.equilibrate(.1, 10, 0.02);
 
@@ -665,7 +777,108 @@ int main()
     remaining.bouncer = &bouncer;
     remaining.yg = 0.01;
     remaining.steps_per_dump = 5;
-    remaining.equilibrate(.1, 30*3*5, 0.02);
+
+    const int ncellpts = 1000;
+    vector<float> cellpts(ncellpts * 3);
+    ParamsSEM semp;
+    cell_factory(ncellpts, &cellpts.front(), semp);
+
+    double com[3] = {0, 0, 0}, rmax = 0;
+    {
+	for(int i = 0; i < ncellpts; ++i)
+	    for(int c =0; c < 3; ++c)
+		com[c] += cellpts[c + 3 * i];
+	
+	for(int c =0 ; c< 3; ++c)
+	    com[c] /= ncellpts;
+
+      	for(int i = 0; i < ncellpts; ++i)
+	{
+	    double r2 = 0;
+	    for(int c =0; c < 3; ++c)
+		r2 += pow(cellpts[c + 3 * i] - com[c], 2);
+
+	    rmax = max(rmax, sqrt(r2));
+	}
+
+	double goal[3] = { 0, -10, 0};
+	
+	for(int i = 0; i < ncellpts; ++i)
+	    for(int c =0; c < 3; ++c)
+		cellpts[c + 3 * i] += goal[c] - com[c];
+
+	printf("COM: %f %f %f R %f\n", com[0], com[1], com[2], rmax);
+
+	com[0] = com[1] = com[2] = 0;
+	
+	for(int i = 0; i < ncellpts; ++i)
+	    for(int c =0; c < 3; ++c)
+		com[c] += cellpts[c + 3 * i];
+	
+	for(int c =0 ; c< 3; ++c)
+	    com[c] /= ncellpts;
+
+	printf("COM: %f %f %f R %f\n", com[0], com[1], com[2], rmax);
+	
+	//exit(0);
+    }
+    
+    ParticlesSEM cell(ncellpts, L);
+    cell.params = semp;
+    for(int i = 0; i < ncellpts; ++i)
+    {
+	cell.xp[i] = cellpts[0 + 3 * i];
+	cell.yp[i] = cellpts[1 + 3 * i];
+	cell.zp[i] = cellpts[2 + 3 * i];
+    }
+    cell.name = "cell";
+    cell.vmd_xyz("cell.xyz");
+    cell.bouncer = &bouncer;
+    cell.yg = 0.00;
+    cell.steps_per_dump = 5;
+    //cell.equilibrate(.1, 30*3*5, 0.02);
+    //exit(0);
+
+
+    Particles sys(0, L);
+    sys.name = "solvent";
+    sys.bouncer = &bouncer;
+    sys.yg = 0.01;
+    sys.steps_per_dump = 5;
+    
+    {
+	//vector<bool> mark(remainin.n);
+	
+	for(int i = 0; i < remaining.n; ++i)
+	{
+	    const double r2 =
+		pow(remaining.xp[i] - com[0], 2) +
+		pow(remaining.yp[i] - com[1], 2) +
+		pow(remaining.zp[i] - com[2], 2) ;
+
+	    if (r2 >= rmax * rmax)
+	    {
+		sys.xp.push_back(remaining.xp[i]);
+		sys.yp.push_back(remaining.yp[i]);
+		sys.zp.push_back(remaining.zp[i]);
+
+		sys.xv.push_back(remaining.xv[i]);
+		sys.yv.push_back(remaining.yv[i]);
+		sys.zv.push_back(remaining.zv[i]);
+		
+		sys.xa.push_back(0);
+		sys.ya.push_back(0);
+		sys.za.push_back(0);
+
+		sys.n++;
+	    }
+	}
+
+	sys.acquire_global_id();
+    }
+
+     microfluidics_simulation(sys, cell, .1, 30*3*5, 0.02);
+    //sys.equilibrate(.1, 30*3*5, 0.02);
 }
 
     

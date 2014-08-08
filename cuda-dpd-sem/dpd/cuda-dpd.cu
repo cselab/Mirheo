@@ -4,7 +4,7 @@
 #include "../saru.cuh"
 
 #ifndef NDEBUG
-#define _CHECK_
+//#define _CHECK_
 #endif
 
 struct InfoDPD
