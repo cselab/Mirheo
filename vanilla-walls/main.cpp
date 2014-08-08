@@ -838,7 +838,9 @@ void TomatoSandwich::computePairDPD(const float kBT, const double dt, Particles&
 
         if (funnelLS.insideBoundingBox(freeParticles.xp[i], freeParticles.yp[i])) {
 
-            // TODO check is inside levelset skin from 1 to 0
+            // not sure it gives performance improvements since bounding box usually is small enough
+            if (!funnelLS.isBetweenLayers(freeParticles.xp[i], freeParticles.yp[i], 0.0f, rc + 1e-2))
+                continue;
 
             //shifted position so coord.z == origin(layer).z which is 0
             float coord[] = {freeParticles.xp[i], freeParticles.yp[i], freeParticles.zp[i]};
@@ -899,7 +901,7 @@ int main()
     remaining1.name = "fluid";
     
     remaining1.bouncer = &bouncer;
-    remaining1.yg = 0.01;
+    remaining1.yg = 0.02;
     remaining1.steps_per_dump = 5;
     remaining1.equilibrate(.1, 10*dt, dt);
     printf("particles have been equilibrated");
