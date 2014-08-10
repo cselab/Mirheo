@@ -70,6 +70,12 @@ public:
       return m_domainLength[direct];
   }
 
+  // y coordinate of the parabola extrema
+  float getY0() const
+  {
+      return -m_y0;
+  }
+
   /**
    * the min distance from the interface to the border of bounding box
    */
@@ -107,6 +113,11 @@ public:
     float getCoreDomainLength(size_t direct) const
     {
         return m_funnelObstacle.getDomainLength(direct);
+    }
+
+    float getY0() const
+    {
+        return m_funnelObstacle.getY0();
     }
 
     bool insideBoundingBox(const float x, const float y) const
