@@ -560,12 +560,8 @@ struct TomatoSandwich: SandwichBouncer
 
     TomatoSandwich(const float boxLength)
     : SandwichBouncer(boxLength), funnelLS(7.0f, 10.0f, 10.0f, 64, 64),
-<<<<<<< HEAD
-      frozenLayer{Particles(0, boxLength), Particles(0, boxLength), Particles(0, boxLength)}
-=======
       frozenLayer{Particles(0, boxLength), Particles(0, boxLength), Particles(0, boxLength)},
       angleIndex{AngleIndex(rc, funnelLS.getY0()), AngleIndex(rc, funnelLS.getY0()), AngleIndex(rc, funnelLS.getY0())}
->>>>>>> 6c8ee08b603fdd194e1a571aa24c01b178f1e1b1
     {}
 
     Particles carve(const Particles& particles)
@@ -936,11 +932,7 @@ void TomatoSandwich::_dpd_forces_1particle(size_t layerIndex, const float kBT, c
 
 int main()
 {
-<<<<<<< HEAD
-    const float L = 20;
-=======
     const float L = 10;
->>>>>>> 6c8ee08b603fdd194e1a571aa24c01b178f1e1b1
     const int Nm = 3;
     const int n = L * L * L * Nm;
     const float dt = 0.02;
@@ -959,11 +951,10 @@ int main()
 #endif
 
     Particles remaining1 = bouncer.carve(particles);
-
+/*
     // check angle indexes
     Particles ppp[] = {Particles(0, L), Particles(0, L), Particles(0, L), Particles(0, L),
             Particles(0, L), Particles(0, L)};
-
     for (int k = 0; k < 3; ++k)
         for (int i = 0; i < bouncer.frozenLayer[k].n; ++i) {
 
@@ -978,7 +969,7 @@ int main()
 
     for (int i = 0; i < 6; ++i)
         ppp[i].lammps_dump("icy3.dump", i);
-
+*/
 
     bouncer.frozenLayer[0].lammps_dump("icy.dump", 0);
     bouncer.frozenLayer[1].lammps_dump("icy.dump", 1);
@@ -989,12 +980,8 @@ int main()
     
     remaining1.bouncer = &bouncer;
     remaining1.yg = 0.02;
-    remaining1.steps_per_dump = 5;
-<<<<<<< HEAD
+    remaining1.steps_per_dump = 10;
     remaining1.equilibrate(.1, 2000*dt, dt);
-=======
-    remaining1.equilibrate(.1, 1000*dt, dt);
->>>>>>> 6c8ee08b603fdd194e1a571aa24c01b178f1e1b1
     printf("particles have been equilibrated");
 }
 

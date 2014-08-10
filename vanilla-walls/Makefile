@@ -1,4 +1,8 @@
-CXXFLAGS += -std=c++11  -fopenmp -I../funnel-obstacle/ -Ofast -DNDEBUG -DUSE_CUDA
+.PHONY: clean
+.SUFFIXES: .o .cpp
+
+CXXFLAGS += -std=c++11  -fopenmp -I../funnel-obstacle/ -O0 -g -DUSE_CUDA
+
 #-DNDEBUG -Ofast
 
 CUDADPD = ../cuda-dpd-sem/dpd/libcuda-dpd.so
@@ -8,16 +12,14 @@ ifeq "$(gpu)" "1"
 CUDADPDCMD := make -C $(dir $(CUDADPD)) $(notdir $(CUDADPD)) 
 endif
 
-test: main.cpp ../funnel-obstacle/funnel-obstacle.o
+test: main.cpp funnel-obstacle.o
 	echo hello
 	$(CUDADPDCMD)
 	$(CXX) $(CXXFLAGS) $^ $(CUDADPD) -o test
 
-../funnel-obstacle/funnel-obstacle.o: ../funnel-obstacle/*.cpp
-	make -C ../funnel-obstacle funnel-obstacle.o
-
+%.o:%.cpp
+	$(CXX) $(CXXFLAGS) $(INCLUDES) -c $<
 
 clean:
-	rm -f test
+	rm -f test *.o *.d
 
-.PHONY = clean
