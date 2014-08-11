@@ -44,7 +44,8 @@ struct Particles
 {
     static int idglobal;
     
-    int n, saru_tag, myidstart, steps_per_dump = 100;
+    int n, myidstart, steps_per_dump = 100;
+    mutable int saru_tag;
     float L, xg = 0, yg = 0, zg = 0;
     vector<float> xp, yp, zp, xv, yv, zv, xa, ya, za;
     Bouncer * bouncer = nullptr;
@@ -150,6 +151,82 @@ struct Particles
 #endif
 	}
     
+    void _dpd_forces_1particle(const float kBT, const double dt,
+            int i, const float* offset,
+            const float* coord, const float* vel, // float3 arrays
+            float* df, // float3 for delta{force}
+            const int giddstart) const
+    {
+        const float xinvdomainsize = 1.0f / L;
+        const float yinvdomainsize = 1.0f / L;
+        const float zinvdomainsize = 1.0f / L;
+
+        const float xdomainsize = L;
+        const float ydomainsize = L;
+        const float zdomainsize = L;
+
+        const float invrc = 1.0f;
+        const float gamma = 45.0f;
+        const float sigma = sqrt(2.0f * gamma * kBT);
+        const float sigmaf = sigma / sqrt(dt);
+        const float aij = 2.5f;
+
+        float xf = 0, yf = 0, zf = 0;
+
+        const int dpid = giddstart + i; //doesn't matter since compute only i->j
+
+        for(int j = 0; j < n; ++j)
+        {
+            //if (i == 3)
+            //    std::cout << j << std::endl;
+
+            const int spid = myidstart + j;
+
+            if (spid == dpid)
+            continue;
+
+            const float xdiff = coord[0] - (xp[j] + offset[0]);
+            const float ydiff = coord[1] - (yp[j] + offset[1]);
+            const float zdiff = coord[2] - (zp[j] + offset[2]);
+
+            const float _xr = xdiff - xdomainsize * floorf(0.5f + xdiff * xinvdomainsize);
+            const float _yr = ydiff - ydomainsize * floorf(0.5f + ydiff * yinvdomainsize);
+            const float _zr = zdiff - zdomainsize * floorf(0.5f + zdiff * zinvdomainsize);
+
+            const float rij2 = _xr * _xr + _yr * _yr + _zr * _zr;
+            float invrij = 1./sqrtf(rij2);
+
+            if (rij2 == 0)
+            invrij = 100000;
+
+            const float rij = rij2 * invrij;
+            const float wr = max((float)0, 1 - rij * invrc);
+
+            const float xr = _xr * invrij;
+            const float yr = _yr * invrij;
+            const float zr = _zr * invrij;
+
+            assert(xv[j] == 0 && yv[j] == 0 && zv[j] == 0);
+            const float rdotv =
+            xr * (vel[0] - xv[j]) +
+            yr * (vel[1] - yv[j]) +
+            zr * (vel[2] - zv[j]);
+
+            const float mysaru = saru(min(spid, dpid), max(spid, dpid), saru_tag);
+            const float myrandnr = 3.464101615f * mysaru - 1.732050807f;
+
+            const float strength = (aij - gamma * wr * rdotv + sigmaf * myrandnr) * wr;
+
+            xf += strength * xr;
+            yf += strength * yr;
+            zf += strength * zr;
+        }
+
+        df[0] += xf;
+        df[1] += yf;
+        df[2] += zf;
+    }
+
     void acquire_global_id()
 	{
 	    myidstart = idglobal;
@@ -213,6 +290,39 @@ struct Particles
 	    printf("vmd_xyz: wrote to <%s>\n", path);
 	}
 
+    // might be opened by OVITO and xmovie (xwindow-based utility)
+    void lammps_dump(const char* path, size_t timestep)
+    {
+      bool append = timestep > 0;
+      FILE * f = fopen(path, append ? "a" : "w");
+
+      float boxLength = L;
+
+      if (f == NULL)
+      {
+      printf("I could not open the file <%s>\n", path);
+      printf("Aborting now.\n");
+      abort();
+      }
+
+      // header
+      fprintf(f, "ITEM: TIMESTEP\n%lu\n", timestep);
+      fprintf(f, "ITEM: NUMBER OF ATOMS\n%d\n", n);
+      fprintf(f, "ITEM: BOX BOUNDS pp pp pp\n%g %g\n%g %g\n%g %g\n",
+          -boxLength/2.0, boxLength/2.0, -boxLength/2.0, boxLength/2.0, -boxLength/2.0, boxLength/2.0);
+
+      fprintf(f, "ITEM: ATOMS id type xs ys zs\n");
+
+      // positions <ID> <type> <x> <y> <z>
+      // free particles have type 2, while rings 1
+      size_t type = 1; //skip for now
+      for (size_t i = 0; i < n; ++i) {
+        fprintf(f, "%lu %lu %g %g %g\n", i, type, xp[i], yp[i], zp[i]);
+      }
+
+      fclose(f);
+    }
+
     void _dpd_forces(const float kBT, const double dt);
     void equilibrate(const float kBT, const double tend, const double dt);
 };
@@ -223,11 +333,12 @@ struct Bouncer
 {
     Particles frozen;
     Bouncer(const float L): frozen(0, L) {}
-
+    virtual ~Bouncer() {}
     virtual void _mark(bool * const freeze, Particles p) = 0;
     virtual void bounce(Particles& dest, const float dt) = 0;
+    virtual void compute_forces(const float kBT, const double dt, Particles& freeParticles) const = 0;
     
-    Particles carve(const Particles p)
+    virtual Particles carve(const Particles& p) //TODO consider moving to Sandwich the implementation
 	{
 	    bool * const freeze = new bool[p.n];
 	    
@@ -235,27 +346,7 @@ struct Bouncer
 	    
 	    Particles partition[2] = {Particles(0, p.L), Particles(0, p.L)};
 	    
-	    for(int i = 0; i < p.n; ++i)
-	    {
-		const int slot = !freeze[i];
-		
-		partition[slot].xp.push_back(p.xp[i]);
-		partition[slot].yp.push_back(p.yp[i]);
-		partition[slot].zp.push_back(p.zp[i]);
-			  	       
-		partition[slot].xv.push_back(p.xv[i]);
-		partition[slot].yv.push_back(p.yv[i]);
-		partition[slot].zv.push_back(p.zv[i]);
-			  
-		partition[slot].xa.push_back(0);
-		partition[slot].ya.push_back(0);
-		partition[slot].za.push_back(0);
-			  
-		partition[slot].n++;
-	    }
-
-	    partition[0].acquire_global_id();
-	    partition[1].acquire_global_id();
+	    splitParticles(p, freeze, partition);
 
 	    frozen = partition[0];
 	    frozen.name = "frozen";
@@ -267,6 +358,33 @@ struct Bouncer
 	    
 	    return partition[1];
 	}
+
+    template<typename MaskType>
+    static void splitParticles(const Particles& p, const MaskType& freezeMask,
+            Particles* partition) // Particles[2] array
+    {
+        for(int i = 0; i < p.n; ++i)
+        {
+            const int slot = !freezeMask[i];
+
+            partition[slot].xp.push_back(p.xp[i]);
+            partition[slot].yp.push_back(p.yp[i]);
+            partition[slot].zp.push_back(p.zp[i]);
+
+            partition[slot].xv.push_back(p.xv[i]);
+            partition[slot].yv.push_back(p.yv[i]);
+            partition[slot].zv.push_back(p.zv[i]);
+
+            partition[slot].xa.push_back(0);
+            partition[slot].ya.push_back(0);
+            partition[slot].za.push_back(0);
+
+            partition[slot].n++;
+        }
+
+        partition[0].acquire_global_id();
+        partition[1].acquire_global_id();
+    }
 };
     
 void Particles::_dpd_forces(const float kBT, const double dt)
@@ -282,13 +400,8 @@ void Particles::_dpd_forces(const float kBT, const double dt)
 			  &xp.front(), &yp.front(), &zp.front(),
 			  &xv.front(), &yv.front(), &zv.front(), n, myidstart, myidstart);
 
-    if (bouncer != nullptr)
-    {
-	Particles src = bouncer->frozen;
-	
-	_dpd_forces_bipartite(kBT, dt,
-			      &src.xp.front(), &src.yp.front(), &src.zp.front(),
-			      &src.xv.front(), &src.yv.front(), &src.zv.front(), src.n, myidstart, src.myidstart);
+    if (bouncer != nullptr) {
+        bouncer->compute_forces(kBT, dt, *this);
     }
 }
 
@@ -423,222 +536,19 @@ struct SandwichBouncer: Bouncer
 	    for(int i = 0; i < p.n; ++i)
 		freeze[i] = !(fabs(p.zp[i]) <= half_width);
 	}
-};
 
-#if 0
-FunnelObstacle kirill(32/3, 40, 128);
-#else
-struct Kirill
-{
-    bool isInside(const float x, const float y)
-	{
-	    const float xc = 0, yc = 0;
-	    const float radius2 = 4;
-	    
-	    const float r2 =
-		(x - xc) * (x - xc) +
-		(y - yc) * (y - yc) ;
-
-	    return r2 < radius2;
-	}
-    
-} kirill;
-#endif
-   
-
-struct TomatoSandwich: SandwichBouncer
-{
-    float xc = 0, yc = 0, zc = 0;
-    float radius2 = 1;
-
-    TomatoSandwich(const float L): SandwichBouncer(L) {}
-
-     void _mark(bool * const freeze, Particles p)
-	{
-	    SandwichBouncer::_mark(freeze, p);
-
-	    for(int i = 0; i < p.n; ++i)
-	    {
-		const float x = p.xp[i] - xc;
-		const float y = p.yp[i] - yc;
-#if 0
-		freeze[i] |= kirill.isInside(x, y);
-#else
-		const float r2 = x * x + y * y;
-
-		freeze[i] |= r2 < radius2;
-#endif
-	    }
-	}
- 
-    float _compute_collision_time(const float _x0, const float _y0,
-			  const float u, const float v, 
-			  const float xc, const float yc, const float r2)
-	{
-	    const float x0 = _x0 - xc;
-	    const float y0 = _y0 - yc;
-	    	    
-	    const float c = x0 * x0 + y0 * y0 - r2;
-	    const float b = 2 * (x0 * u + y0 * v);
-	    const float a = u * u + v * v;
-	    const float d = sqrt(b * b - 4 * a * c);
-
-	    return (-b - d) / (2 * a);
-	}
-
-    bool _handle_collision(float& x, float& y, float& z,
-			   float& u, float& v, float& w,
-			   float& dt)
-	{
-#if 0
-	    if (!kirill.isInside(x, y))
-		return false;
-
-	    const float xold = x - dt * u;
-	    const float yold = y - dt * v;
-	    const float zold = z - dt * w;
-
-	    float t = 0;
-	    
-	    for(int i = 1; i < 30; ++i)
-	    {
-		const float tcandidate = t + dt / (1 << i);
-		const float xcandidate = xold + tcandidate * u;
-		const float ycandidate = yold + tcandidate * v;
-		
-		 if (!kirill.isInside(xcandidate, ycandidate))
-		     t = tcandidate;
-	    }
-
-	    const float lambda = 2 * t - dt;
-		    
-	    x = xold + lambda * u;
-	    y = yold + lambda * v;
-	    z = zold + lambda * w;
-	   
-	    u  = -u;
-	    v  = -v;
-	    w  = -w;
-	    dt = dt - t;
-
-	    return true;
-	    
-#else
-	    const float r2 =
-		(x - xc) * (x - xc) +
-		(y - yc) * (y - yc) ;
-		
-	    if (r2 >= radius2)
-		return false;
-	    
-	    assert(dt > 0);
-			
-	    const float xold = x - dt * u;
-	    const float yold = y - dt * v;
-	    const float zold = z - dt * w;
-
-	     const float r2old =
-		(xold - xc) * (xold - xc) +
-		 (yold - yc) * (yold - yc) ;
-
-	     if (r2old < radius2)
-		 printf("r2old : %.30f\n", r2old);
-	     
-	    assert(r2old >= radius2);
-
-	    const float t = _compute_collision_time(xold, yold, u, v, xc, yc, radius2);
-	    if (t < 0)
-		printf("t is %.20e\n", t);
-	    
-	    assert(t >= 0);
-	    assert(t <= dt);
-		    
-	    const float lambda = 2 * t - dt;
-		    
-	    x = xold + lambda * u;
-	    y = yold + lambda * v;
-	    z = zold + lambda * w;
-	    
-	    u  = -u;
-	    v  = -v;
-	    w  = -w;
-	    dt = dt - t;
-
-	    return true;
-#endif
-	}
-    
-    void bounce(Particles& dest, const float _dt)
-	{
-	    int gfailcc = 0, gokcc = 0;
-	    
-#pragma omp parallel
-	    {
-		int failcc = 0, okcc = 0;
-
-#pragma omp for
-		for(int i = 0; i < dest.n; ++i)
-		{
-		    float x = dest.xp[i];
-		    float y = dest.yp[i];
-		    float z = dest.zp[i];
-		    float u = dest.xv[i];
-		    float v = dest.yv[i];
-		    float w = dest.zv[i];
-		    float dt = _dt;
-		    
-		    bool wascolliding = false, collision;
-		    int passes = 0;
-		    do
-		    {
-			collision = false;
-			collision |= SandwichBouncer::_handle_collision(x, y, z, u, v, w, dt);
-			collision |= _handle_collision(x, y, z, u, v, w, dt);
-		    
-			wascolliding |= collision;
-			passes++;
-
-			if (passes >= 100)
-			    break;
-		    }
-		    while(collision);
-
-		    if (passes >= 2)
-			if (!collision)
-			    okcc++;//
-			else
-			    failcc++;//
-		
-		    if (wascolliding)
-		    {
-			dest.xp[i] = x;
-			dest.yp[i] = y;
-			dest.zp[i] = z;
-			dest.xv[i] = u;
-			dest.yv[i] = v;
-			dest.zv[i] = w;
-		    }
-		}
-
-#pragma omp critical
-		{
-		    gfailcc += failcc;
-		    gokcc += okcc;
-		}
-	    }
-
-	    if (gokcc)
-		printf("successfully solved %d complex collisions\n", gokcc);
-
-	    if (gfailcc)
-	    {
-		printf("FAILED to solve %d complex collisions\n", gfailcc);
-		abort();
-	    }
-	}
+    void compute_forces(const float kBT, const double dt, Particles& freeParticles) const
+    {
+        freeParticles._dpd_forces_bipartite(kBT, dt,
+                      &frozen.xp.front(), &frozen.yp.front(), &frozen.zp.front(),
+                      &frozen.xv.front(), &frozen.yv.front(), &frozen.zv.front(),
+                      frozen.n, frozen.myidstart, frozen.myidstart);
+    }
 };
 
 
+
+#include "funnel-bouncer.h"
 
 int main()
 {
@@ -647,7 +557,9 @@ int main()
     const int n = L * L * L * Nm;
 
     Particles particles(n, L);
+    particles.steps_per_dump = 3;
     particles.equilibrate(.1, 10, 0.02);
+    
 
     const float sandwich_half_width = L / 2 - 1.7;
 #if 1
@@ -664,8 +576,10 @@ int main()
     
     remaining.bouncer = &bouncer;
     remaining.yg = 0.01;
-    remaining.steps_per_dump = 5;
+    remaining.steps_per_dump = 3;
     remaining.equilibrate(.1, 30*3*5, 0.02);
+    printf("particles have been equilibrated");
 }
 
     
+

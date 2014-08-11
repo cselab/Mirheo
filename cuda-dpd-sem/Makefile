@@ -1,4 +1,4 @@
-CXXFLAGS += -g -O2 -std=c++11 -I/usr/local/cuda-5.5/include/ -fPIC
+CXXFLAGS += -g -O2 -std=c++11 -I/opt/nvidia/cudatoolkit/5.5.20-1.0501.7945.8.2/include -fPIC
 
 #these setting are for my gk104, for k20x pls set the right flags
 NVCCFLAGS = -arch=compute_30  -Xcompiler -fpic -code=sm_30  -O4 -g
