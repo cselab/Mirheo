@@ -256,7 +256,9 @@ void Particles::equilibrate(const float kBT, const double tend, const double dt,
 
     _dpd_forces(kBT, dt);
 
-    vmd_xyz("ic.xyz", false);
+    // don't want to have any output in this case
+    if (steps_per_dump != std::numeric_limits<int>::max())
+        vmd_xyz("ic.xyz", false);
 
     FILE * fdiag = fopen("diag-equilibrate.txt", "w");
 
@@ -264,7 +266,7 @@ void Particles::equilibrate(const float kBT, const double tend, const double dt,
 
     for(int it = 0; it < nt; ++it)
     {
-    if (it % steps_per_dump == 0)
+    if (it % steps_per_dump == 0 && it != 0)
     {
         printf("step %d\n", it);
         float t = it * dt;
@@ -292,7 +294,7 @@ void Particles::equilibrate(const float kBT, const double tend, const double dt,
     _up(yv, ya, dt * 0.5);
     _up(zv, za, dt * 0.5);
 
-    if (it % steps_per_dump == 0)
+    if (it % steps_per_dump == 0 && it != 0)
         lammps_dump("evolution.dump", it);
         //vmd_xyz((name == "" ? "evolution.xyz" : (name + "-evolution.xyz")).c_str(), it > 0);
     }

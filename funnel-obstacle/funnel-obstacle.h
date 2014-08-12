@@ -66,7 +66,7 @@ public:
 
   float getDomainLength(size_t direct) const
   {
-      assert(direct < 3);
+      assert(direct < 2);
       return m_domainLength[direct];
   }
 

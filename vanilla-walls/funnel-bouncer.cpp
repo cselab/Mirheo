@@ -356,9 +356,12 @@ Particles TomatoSandwich::carveLayer(const Particles& input, size_t indLayer, fl
     std::vector<bool> maskSkip(input.n, false);
     for (int i = 0; i < input.n; ++i)
     {
-        int bbIndex = funnelLS.getBoundingBoxIndex(input.xp[i], input.yp[i]);
-        if (bbIndex == 0 && input.zp[i] > bottom && input.zp[i] < top)
-            maskSkip[i] = true;
+        if (funnelLS.isInside(input.xp[i], input.yp[i]))
+        {
+            int bbIndex = funnelLS.getBoundingBoxIndex(input.xp[i], input.yp[i]);
+            if (bbIndex == 0 && input.zp[i] > bottom && input.zp[i] < top)
+                maskSkip[i] = true;
+        }
     }
     Particles splitToSkip[2] = {Particles(0, input.L[0]), Particles(0, input.L[0])};
     Bouncer::splitParticles(input, maskSkip, splitToSkip);
@@ -387,9 +390,14 @@ Particles TomatoSandwich::carveAllLayers(const Particles& p)
     Bouncer::splitParticles(p, maskFrozen, splittedParticles);
 
     // 2. Perform equalibration in the box for obstacle
+    size_t pNum = 3.0f * 3.0f * rc * funnelLS.getCoreDomainLength(0) * funnelLS.getCoreDomainLength(1);
+    Particles smallBox(pNum, funnelLS.getCoreDomainLength(0), funnelLS.getCoreDomainLength(1),
+            3.0f * rc);
+    smallBox.steps_per_dump = std::numeric_limits<int>::max();
+    smallBox.equilibrate(0.1, 100 * 0.02, 0.02, nullptr); //TODO move all fluid params somewhere
 
     // 3. Carve layers of frozen particles from the box
-    Particles pp = carveLayer(splittedParticles[0], 0, -3.0f * rc/2.0, -rc/2.0);
+    Particles pp = carveLayer(smallBox, 0, -3.0f * rc/2.0, -rc/2.0);
     Particles ppp = carveLayer(pp, 1, -rc/2.0, rc/2.0);
     carveLayer(ppp, 2, rc/2.0, 3.0 * rc/2.0);
 
