@@ -217,10 +217,10 @@ void checkRowFunnelObstacle2()
 
 int main()
 {
-  //checkFunnelObstacleReadWrite();
-  //checkFunnelObstacleFind1();
-  //checkFunnelObstaclNotSquare();
-  //checkFunnelObstacleFind2();
-  //checkRowFunnelObstacle1();
+  checkFunnelObstacleReadWrite();
+  checkFunnelObstacleFind1();
+  checkFunnelObstaclNotSquare();
+  checkFunnelObstacleFind2();
+  checkRowFunnelObstacle1();
   checkRowFunnelObstacle2();
 }
