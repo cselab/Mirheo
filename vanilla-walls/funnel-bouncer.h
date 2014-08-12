@@ -165,10 +165,11 @@ private:
     //dpd forces computations related methods
     Particles carveLayer(const Particles& input, size_t indLayer, float bottom, float top);
     Particles carveAllLayers(const Particles& p);
-    void computeDPDPairForLayer(const float kBT, const double dt, int i, const float* coord,
-                const float* vel, float* df, const float offsetX, int seed1) const;
+    void computeDPDPairForLayer(const float kBT, const double dt, int i,
+            const float* coord, const float* vel, float* df, const float offsetX,
+            int seed1, int frLayerSaruTagOffset) const;
     void computePairDPD(const float kBT, const double dt, Particles& freeParticles) const;
-    void _dpd_forces_1particle(size_t layerIndex, const float kBT, const double dt,
+    void dpd_forces_1particle(size_t layerIndex, const float kBT, const double dt,
             int i, const float* offset, const float* coord, const float* vel, float* df,
-            const int giddstart) const;
+            const int giddstart, const int frLayerSaruTagOffset) const;
 };

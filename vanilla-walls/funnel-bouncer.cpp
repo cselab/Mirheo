@@ -405,7 +405,7 @@ Particles TomatoSandwich::carveAllLayers(const Particles& p)
 }
 
 void TomatoSandwich::computeDPDPairForLayer(const float kBT, const double dt, int i, const float* coord,
-        const float* vel, float* df, const float offsetX, int seed1) const
+        const float* vel, float* df, const float offsetX, int seed1, int seed2Offset) const
     {
     float w = 3.0f * rc; // width of the frozen layers
 
@@ -429,7 +429,7 @@ void TomatoSandwich::computeDPDPairForLayer(const float kBT, const double dt, in
 
     for (int lInd = 0; lInd < 3; ++lInd) {
         float layerOffset[] = {offsetX, 0.0f, layersOffsetZ[lInd]};
-        _dpd_forces_1particle(lInd, kBT, dt, i, layerOffset, coordShifted, vel, df, seed1);
+        dpd_forces_1particle(lInd, kBT, dt, i, layerOffset, coordShifted, vel, df, seed1, seed2Offset);
     }
 }
 
@@ -456,14 +456,17 @@ void TomatoSandwich::computePairDPD(const float kBT, const double dt, Particles&
             float offsetCoordX = funnelLS.getOffset(coord[0]);
             coord[0] += offsetCoordX;
 
-            computeDPDPairForLayer(kBT, dt, i, coord, vel, df, 0.0f, seed1);
+            int boxInd = funnelLS.getBoundingBoxIndex(coord[0], coord[1]);
+            int frLayerSaruTagOffset = boxInd * 10; //just magic number
+
+            computeDPDPairForLayer(kBT, dt, i, coord, vel, df, 0.0f, seed1, frLayerSaruTagOffset);
 
             float frozenOffset = funnelLS.getCoreDomainLength(0);
 
             if ((fabs(coord[0]  - funnelLS.getCoreDomainLength(0)/2.0f) + xskin) < rc)
             {
                 float signOfX = 1.0f - 2.0f * signbit(coord[0]);
-                computeDPDPairForLayer(kBT, dt, i, coord, vel, df, signOfX*frozenOffset, seed1);
+                computeDPDPairForLayer(kBT, dt, i, coord, vel, df, signOfX*frozenOffset, seed1, frLayerSaruTagOffset);
             }
 
             freeParticles.xa[i] += df[0];
@@ -476,10 +479,10 @@ void TomatoSandwich::computePairDPD(const float kBT, const double dt, Particles&
     ++frozenLayer[2].saru_tag;
 }
 
-void TomatoSandwich::_dpd_forces_1particle(size_t layerIndex, const float kBT, const double dt,
+void TomatoSandwich::dpd_forces_1particle(size_t layerIndex, const float kBT, const double dt,
         int i, const float* offset,
         const float* coord, const float* vel, float* df, // float3 arrays
-        const int giddstart) const
+        const int giddstart, const int frLayerSaruTagOffset) const
 {
     const Particles& frLayer = frozenLayer[layerIndex];
 
@@ -541,7 +544,7 @@ void TomatoSandwich::_dpd_forces_1particle(size_t layerIndex, const float kBT, c
         yr * (vel[1] - frLayer.yv[j]) +
         zr * (vel[2] - frLayer.zv[j]);
 
-        const float mysaru = saru(min(spid, dpid), max(spid, dpid), frLayer.saru_tag);
+        const float mysaru = saru(min(spid, dpid), max(spid, dpid), frLayer.saru_tag + frLayerSaruTagOffset);
         const float myrandnr = 3.464101615f * mysaru - 1.732050807f;
 
         const float strength = (aij - gamma * wr * rdotv + sigmaf * myrandnr) * wr;
