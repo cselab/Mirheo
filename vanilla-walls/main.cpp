@@ -66,7 +66,7 @@ int main()
     //remaining1.bouncer = &bouncer;
     remaining1.yg = 0.02;
     remaining1.steps_per_dump = 10;
-    remaining1.equilibrate(.1, 100*dt, dt, &bouncer);
+    remaining1.equilibrate(.1, 1000*dt, dt, &bouncer);
     printf("particles have been equilibrated");
 }
 

@@ -360,7 +360,7 @@ Particles TomatoSandwich::carveLayer(const Particles& input, size_t indLayer, fl
         if (bbIndex == 0 && input.zp[i] > bottom && input.zp[i] < top)
             maskSkip[i] = true;
     }
-    Particles splitToSkip[2] = {Particles(0, input.L), Particles(0, input.L)};
+    Particles splitToSkip[2] = {Particles(0, input.L[0]), Particles(0, input.L[0])};
     Bouncer::splitParticles(input, maskSkip, splitToSkip);
 
     frozenLayer[indLayer] = splitToSkip[0];
@@ -374,8 +374,8 @@ Particles TomatoSandwich::carveLayer(const Particles& input, size_t indLayer, fl
 
 Particles TomatoSandwich::carveAllLayers(const Particles& p)
 {
-    // in carving we get all particles inside the obstacle so they are not in consideration any more
-    // But we don't need all these particles for this code, we cleaned them all except layer between [-rc/2, rc/2]
+    // 1. Inn carving we get all particles inside the obstacle
+    // so they are not in consideration any more as fluid
     std::vector<bool> maskFrozen(p.n);
     for (int i = 0; i < p.n; ++i)
     {
@@ -383,9 +383,12 @@ Particles TomatoSandwich::carveAllLayers(const Particles& p)
         maskFrozen[i] = funnelLS.isInside(p.xp[i], p.yp[i]);
     }
 
-    Particles splittedParticles[2] = {Particles(0, p.L), Particles(0, p.L)};
+    Particles splittedParticles[2] = {Particles(0, p.L[0]), Particles(0, p.L[0])};
     Bouncer::splitParticles(p, maskFrozen, splittedParticles);
 
+    // 2. Perform equalibration in the box for obstacle
+
+    // 3. Carve layers of frozen particles from the box
     Particles pp = carveLayer(splittedParticles[0], 0, -3.0f * rc/2.0, -rc/2.0);
     Particles ppp = carveLayer(pp, 1, -rc/2.0, rc/2.0);
     carveLayer(ppp, 2, rc/2.0, 3.0 * rc/2.0);
@@ -472,9 +475,9 @@ void TomatoSandwich::_dpd_forces_1particle(size_t layerIndex, const float kBT, c
 {
     const Particles& frLayer = frozenLayer[layerIndex];
 
-    const float xdomainsize = frLayer.L;
-    const float ydomainsize = frLayer.L;
-    const float zdomainsize = frLayer.L;
+    const float xdomainsize = frLayer.L[0];
+    const float ydomainsize = frLayer.L[1];
+    const float zdomainsize = frLayer.L[2];
 
     const float xinvdomainsize = 1.0f / xdomainsize;
     const float yinvdomainsize = 1.0f / xdomainsize;

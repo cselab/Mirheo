@@ -29,13 +29,13 @@ void Particles::_dpd_forces_bipartite(const float kBT, const double dt,
                const int nsrc,
                const int giddstart, const int gidsstart)
 {
-    const float xinvdomainsize = 1 / L;
-    const float yinvdomainsize = 1 / L;
-    const float zinvdomainsize = 1 / L;
+    const float xdomainsize = L[0];
+    const float ydomainsize = L[1];
+    const float zdomainsize = L[2];
 
-    const float xdomainsize = L;
-    const float ydomainsize = L;
-    const float zdomainsize = L;
+    const float xinvdomainsize = 1 / xdomainsize;
+    const float yinvdomainsize = 1 / ydomainsize;
+    const float zinvdomainsize = 1 / zdomainsize;
 
     const float invrc = 1.;
     const float gamma = 45;
@@ -129,17 +129,21 @@ void Particles::acquire_global_id()
     idglobal += n;
 }
 
-Particles::Particles (const int n, const float L):
-n(n), L(L), xp(n), yp(n), zp(n), xv(n), yv(n), zv(n), xa(n), ya(n), za(n), saru_tag(0)
+Particles::Particles (const int n, const float Lx)
+: Particles(n, Lx, Lx, Lx)
+{}
+
+Particles::Particles (const int n, const float Lx, const float Ly, const float Lz)
+    : n(n), L{Lx, Ly, Lz}, saru_tag(0), xp(n), yp(n), zp(n), xv(n), yv(n), zv(n), xa(n), ya(n), za(n)
 {
     if (n > 0)
     acquire_global_id();
 
     for(int i = 0; i < n; ++i)
     {
-    xp[i] = -L * 0.5 + drand48() * L;
-    yp[i] = -L * 0.5 + drand48() * L;
-    zp[i] = -L * 0.5 + drand48() * L;
+    xp[i] = -L[0] * 0.5 + drand48() * L[0];
+    yp[i] = -L[1] * 0.5 + drand48() * L[1];
+    zp[i] = -L[2] * 0.5 + drand48() * L[2];
     }
 }
 
@@ -192,8 +196,6 @@ void Particles::lammps_dump(const char* path, size_t timestep)
   bool append = timestep > 0;
   FILE * f = fopen(path, append ? "a" : "w");
 
-  float boxLength = L;
-
   if (f == NULL)
   {
   printf("I could not open the file <%s>\n", path);
@@ -205,14 +207,14 @@ void Particles::lammps_dump(const char* path, size_t timestep)
   fprintf(f, "ITEM: TIMESTEP\n%lu\n", timestep);
   fprintf(f, "ITEM: NUMBER OF ATOMS\n%d\n", n);
   fprintf(f, "ITEM: BOX BOUNDS pp pp pp\n%g %g\n%g %g\n%g %g\n",
-      -boxLength/2.0, boxLength/2.0, -boxLength/2.0, boxLength/2.0, -boxLength/2.0, boxLength/2.0);
+      -L[0]/2.0, L[0]/2.0, -L[1]/2.0, L[1]/2.0, -L[2]/2.0, L[2]/2.0);
 
   fprintf(f, "ITEM: ATOMS id type xs ys zs\n");
 
   // positions <ID> <type> <x> <y> <z>
   // free particles have type 2, while rings 1
   size_t type = 1; //skip for now
-  for (size_t i = 0; i < n; ++i) {
+  for (int i = 0; i < n; ++i) {
     fprintf(f, "%lu %lu %g %g %g\n", i, type, xp[i], yp[i], zp[i]);
   }
 
@@ -243,12 +245,12 @@ void Particles::equilibrate(const float kBT, const double tend, const double dt,
         x[i] += f * v[i];
     };
 
-    auto _up_enforce = [&](vector<float>& x, vector<float>& v, float f)
+    auto _up_enforce = [&](vector<float>& x, vector<float>& v, float f, float boxLength)
     {
         for(int i = 0; i < n; ++i)
         {
         x[i] += f * v[i];
-        x[i] -= L * floor(x[i] / L + 0.5);
+        x[i] -= boxLength * floor(x[i] / boxLength + 0.5);
         }
     };
 
@@ -274,9 +276,9 @@ void Particles::equilibrate(const float kBT, const double tend, const double dt,
     _up(yv, ya, dt * 0.5);
     _up(zv, za, dt * 0.5);
 
-    _up_enforce(xp, xv, dt);
-    _up_enforce(yp, yv, dt);
-    _up_enforce(zp, zv, dt);
+    _up_enforce(xp, xv, dt, L[0]);
+    _up_enforce(yp, yv, dt, L[1]);
+    _up_enforce(zp, zv, dt, L[2]);
 
     if (bouncer != nullptr)
         bouncer->bounce(*this, dt);

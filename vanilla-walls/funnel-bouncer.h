@@ -22,7 +22,7 @@ struct Bouncer
 
         _mark(freeze, p);
 
-        Particles partition[2] = {Particles(0, p.L), Particles(0, p.L)};
+        Particles partition[2] = {Particles(0, p.L[0]), Particles(0, p.L[0])};
 
         splitParticles(p, freeze, partition);
 

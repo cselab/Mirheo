@@ -46,14 +46,19 @@ struct Bouncer;
 
 struct Particles
 {
+    float L[3];
+
     static int idglobal;
 
     int n, myidstart, steps_per_dump = 100;
     mutable int saru_tag;
-    float L, xg = 0, yg = 0, zg = 0;
+    float xg = 0, yg = 0, zg = 0;
     vector<float> xp, yp, zp, xv, yv, zv, xa, ya, za;
-    //Bouncer * bouncer = nullptr;
+
     string name;
+
+    Particles (const int n, const float Lx);
+    Particles (const int n, const float Lx, const float Ly, const float Lz);
 
     void _dpd_forces_bipartite(const float kBT, const double dt,
                    const float * const srcxp, const float * const srcyp, const float * const srczp,
@@ -63,7 +68,6 @@ struct Particles
 
     void acquire_global_id();
 
-    Particles (const int n, const float L);
 
     void diag(FILE * f, float t);
 
