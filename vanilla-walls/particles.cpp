@@ -294,7 +294,7 @@ void Particles::equilibrate(const float kBT, const double tend, const double dt,
     _up(yv, ya, dt * 0.5);
     _up(zv, za, dt * 0.5);
 
-    if (it % steps_per_dump == 0 && it != 0)
+    if (it % steps_per_dump == 0)
         lammps_dump("evolution.dump", it);
         //vmd_xyz((name == "" ? "evolution.xyz" : (name + "-evolution.xyz")).c_str(), it > 0);
     }

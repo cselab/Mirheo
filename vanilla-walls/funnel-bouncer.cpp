@@ -89,7 +89,7 @@ void SandwichBouncer::compute_forces(const float kBT, const double dt, Particles
 //******************************* TomatoSandwich ***********************************
 
 TomatoSandwich::TomatoSandwich(const float boxLength)
-: SandwichBouncer(boxLength), funnelLS(7.0f, 10.0f, 10.0f, 64, 64),
+: SandwichBouncer(boxLength), funnelLS(12.0f, 10.0f, 15.0f, 64, 64), //TODO here we set up obstacle parameters, not the best place
   frozenLayer{Particles(0, boxLength), Particles(0, boxLength), Particles(0, boxLength)},
   angleIndex{AngleIndex(rc, funnelLS.getY0()), AngleIndex(rc, funnelLS.getY0()), AngleIndex(rc, funnelLS.getY0())}
 {}
