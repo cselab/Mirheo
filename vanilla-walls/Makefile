@@ -1,14 +1,24 @@
 .PHONY: clean
 .SUFFIXES: .o .cpp
 
-CXXFLAGS += -std=c++11  -fopenmp -I../funnel-obstacle/ -O0 -g -DUSE_CUDA 
-#-DNDEBUG -Ofast
+# introduced 2 options - with gpu support -DUSE_CUDA
+#					   - with gpu support and SEM -DUSE_SEM
 
-CUDADPD = ../cuda-dpd-sem/dpd/libcuda-dpd.so
-CXXFLAGS += -I$(dir $(CUDADPD))
+CXXFLAGS += -std=c++11  -fopenmp -I../funnel-obstacle/ -O0 -g 
 
 ifeq "$(gpu)" "1"
+CXXFLAGS += -DUSE_CUDA
+CXXFLAGS += -I$(dir $(CUDADPD))
+CUDADPD = ../cuda-dpd-sem/dpd/libcuda-dpd.so
 CUDADPDCMD := make -C $(dir $(CUDADPD)) $(notdir $(CUDADPD)) 
+
+ifeq "$(sem)" "1"
+CXXFLAGS += -DUSE_SEM
+CXXFLAGS += -I$(dir $(CUDASEM))
+CUDASEM = ../cuda-dpd-sem/sem/libcuda-sem.so
+CUDASEMCMD := make -C $(dir $(CUDASEM)) $(notdir $(CUDASEM))
+endif
+
 endif
 
 HEADERS = ../funnel-obstacle/funnel-obstacle.h funnel-bouncer.h particles.h
@@ -30,7 +40,8 @@ main.o: main.cpp $(HEADERS)
 
 test: $(OBJS)
 	$(CUDADPDCMD)
-	$(CXX) $(CXXFLAGS) $^ $(CUDADPD) -o $@
+	$(CUDASEMCMD)
+	$(CXX) $(CXXFLAGS) $^ $(CUDADPD) $(CUDASEM) -o $@
 
 clean:
 	rm -f test *.o *.d

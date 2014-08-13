@@ -3,10 +3,11 @@ include ../Makefile
 .DEFAULT_GOAL = test-dpd
 
 test-dpd: main.cpp cuda-dpd.o libcuda-dpd.so
-	$(CXX) $(CXXFLAGS) $^ -L/usr/local/cuda-5.5/lib64/ -lcudart -lcurand -o test-dpd
+	$(CXX) $(CXXFLAGS) $^ -L$(CUDA_HOME)/lib64/ -lcudart -lcurand -o test-dpd
 
 libcuda-dpd.so: cuda-dpd.o cuda-dpd-bipartite.o ../cell-lists.o ../profiler-dpd.o
-	$(CXX) $(CXXFLAGS) -shared $^ -o libcuda-dpd.so -L/usr/local/cuda-5.5/lib64/ -lcudart -lcurand
+	@echo "CUDA_HOME set to " $(CUDA_HOME)
+	$(CXX) $(CXXFLAGS) -shared $^ -o libcuda-dpd.so -L$(CUDA_HOME)/lib64/ -lcudart -lcurand
 
 cuda-dpd.o: cuda-dpd.cu cuda-dpd.h
 	$(NVCC) $(NVCCFLAGS) -c cuda-dpd.cu

@@ -8,10 +8,11 @@ compilemain := $(NVCC) $(NVCCFLAGS) -c main.cu
 endif
 
 test-sem: main.o libcuda-sem.so
-	$(CXX) $(CXXFLAGS) $^ -L/usr/local/cuda-5.5/lib64/ -lcudart -lcurand -o test-sem
+	$(CXX) $(CXXFLAGS) $^ -L$(CUDA_HOME)/lib64/ -lcudart -lcurand -o test-sem
 
 libcuda-sem.so: cuda-sem.o  ../profiler-dpd.o  cell-factory.o #../cell-lists.o
-	$(CXX) $(CXXFLAGS) -shared $^ -o libcuda-sem.so -L/usr/local/cuda-5.5/lib64/ -lcudart -lcurand
+	@echo "CUDA_HOME is" $(CUDA_HOME)
+	$(CXX) $(CXXFLAGS) -shared $^ -o libcuda-sem.so -L$(CUDA_HOME)/lib64/ -lcudart -lcurand
 
 main.o: main.cu main.cpp
 	$(compilemain) -c $(mainsrc)

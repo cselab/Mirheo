@@ -80,7 +80,7 @@ void SandwichBouncer::_mark(bool * const freeze, Particles p) const
 
 void SandwichBouncer::compute_forces(const float kBT, const double dt, Particles& freeParticles) const
 {
-    freeParticles._dpd_forces_bipartite(kBT, dt,
+    freeParticles.internal_forces_bipartite(kBT, dt,
                   &frozen.xp.front(), &frozen.yp.front(), &frozen.zp.front(),
                   &frozen.xv.front(), &frozen.yv.front(), &frozen.zv.front(),
                   frozen.n, frozen.myidstart, frozen.myidstart);

@@ -23,7 +23,9 @@
 
 using namespace std;
 
-void Particles::_dpd_forces_bipartite(const float kBT, const double dt,
+const std::string Particles::outFormat = "dump";
+
+void Particles::internal_forces_bipartite(const float kBT, const double dt,
                const float * const srcxp, const float * const srcyp, const float * const srczp,
                const float * const srcxv, const float * const srcyv, const float * const srczv,
                const int nsrc,
@@ -37,7 +39,7 @@ void Particles::_dpd_forces_bipartite(const float kBT, const double dt,
     const float yinvdomainsize = 1 / ydomainsize;
     const float zinvdomainsize = 1 / zdomainsize;
 
-    const float invrc = 1.;
+    const float invrc = 1.0;
     const float gamma = 45;
     const float sigma = sqrt(2 * gamma * kBT);
     const float sigmaf = sigma / sqrt(dt);
@@ -137,13 +139,15 @@ Particles::Particles (const int n, const float Lx, const float Ly, const float L
     : n(n), L{Lx, Ly, Lz}, saru_tag(0), xp(n), yp(n), zp(n), xv(n), yv(n), zv(n), xa(n), ya(n), za(n)
 {
     if (n > 0)
-    acquire_global_id();
+        acquire_global_id();
 
     for(int i = 0; i < n; ++i)
     {
-    xp[i] = -L[0] * 0.5 + drand48() * L[0];
-    yp[i] = -L[1] * 0.5 + drand48() * L[1];
-    zp[i] = -L[2] * 0.5 + drand48() * L[2];
+        xp[i] = -L[0] * 0.5 + drand48() * L[0];
+        yp[i] = -L[1] * 0.5 + drand48() * L[1];
+        zp[i] = -L[2] * 0.5 + drand48() * L[2];
+
+        xv[i] = yv[i] = zv[i] = 0;
     }
 }
 
@@ -168,7 +172,7 @@ void Particles::diag(FILE * f, float t)
     fprintf(f, "%s %+e\t%+e\t%+e\t%+e\t%+e\n", (f == stdout ? "DIAG:" : ""), t, T, xm, ym, zm);
 }
 
-void Particles::vmd_xyz(const char * path, bool append)
+void Particles::vmd_xyz(const char * path, bool append) const
 {
     FILE * f = fopen(path, append ? "a" : "w");
 
@@ -190,8 +194,83 @@ void Particles::vmd_xyz(const char * path, bool append)
     printf("vmd_xyz: wrote to <%s>\n", path);
 }
 
+void Particles::_up(vector<float>& x, vector<float>& v, float f)
+{
+    for(int i = 0; i < n; ++i)
+        x[i] += f * v[i];
+}
+
+void Particles::_up_enforce(vector<float>& x, vector<float>& v, float f, float boxLength)
+{
+    for(int i = 0; i < n; ++i)
+    {
+        x[i] += f * v[i];
+        x[i] -= boxLength * floor(x[i] / boxLength + 0.5);
+    }
+}
+
+void Particles::internal_forces(const float kBT, const double dt)
+{
+    for(int i = 0; i < n; ++i)
+    {
+        xa[i] = xg;
+        ya[i] = yg;
+        za[i] = zg;
+    }
+
+    internal_forces_bipartite(kBT, dt,
+              &xp.front(), &yp.front(), &zp.front(),
+              &xv.front(), &yv.front(), &zv.front(), n, myidstart, myidstart);
+}
+
+void Particles::update_stage1(const float dt, const int timestepid)
+{
+    FILE * fdiag = fopen("diag-equilibrate.txt", timestepid > 0 ? "a" : "w");
+
+    if (timestepid % steps_per_dump == 0)
+    {
+        printf("step %d\n", timestepid);
+        float t = timestepid * dt;
+        diag(fdiag, t);
+        diag(stdout, t);
+    }
+
+    fclose(fdiag);
+
+    _up(xv, xa, dt * 0.5);
+    _up(yv, ya, dt * 0.5);
+    _up(zv, za, dt * 0.5);
+
+    _up_enforce(xp, xv, dt, L[0]);
+    _up_enforce(yp, yv, dt, L[1]);
+    _up_enforce(zp, zv, dt, L[2]);
+}
+ 
+void Particles::update_stage2(const float dt, const int timestepid)
+{
+    _up(xv, xa, dt * 0.5);
+    _up(yv, ya, dt * 0.5);
+    _up(zv, za, dt * 0.5);
+
+    if (timestepid % steps_per_dump == 0)
+        dump((name == "" ? ("evolution." + outFormat).c_str() : (name + "-evolution." + outFormat)).c_str(), timestepid);
+        //vmd_xyz((name == "" ? "evolution.xyz" : (name + "-evolution.xyz")).c_str(), timestepid > 0);
+}
+
+void Particles::dump(const char * path, size_t timestep) const
+{
+    if (outFormat == "xyz")
+        vmd_xyz(path, timestep > 0);
+    else if (outFormat == "dump")
+        lammps_dump(path, timestep);
+    else {
+        printf("Supported output formats are xyz and dump. Your format \"%s\" is not supported.", outFormat.c_str());
+        abort();
+    }
+}
+
 // might be opened by OVITO and xmovie (xwindow-based utility)
-void Particles::lammps_dump(const char* path, size_t timestep)
+void Particles::lammps_dump(const char* path, size_t timestep) const
 {
   bool append = timestep > 0;
   FILE * f = fopen(path, append ? "a" : "w");
@@ -223,83 +302,30 @@ void Particles::lammps_dump(const char* path, size_t timestep)
 
 int Particles::idglobal;
 
-void Particles::_dpd_forces(const float kBT, const double dt)
-{
-    for(int i = 0; i < n; ++i)
-    {
-    xa[i] = xg;
-    ya[i] = yg;
-    za[i] = zg;
-    }
-
-    _dpd_forces_bipartite(kBT, dt,
-              &xp.front(), &yp.front(), &zp.front(),
-              &xv.front(), &yv.front(), &zv.front(), n, myidstart, myidstart);
-}
-
 void Particles::equilibrate(const float kBT, const double tend, const double dt, const Bouncer* bouncer)
 {
-    auto _up  = [&](vector<float>& x, vector<float>& v, float f)
-    {
-        for(int i = 0; i < n; ++i)
-        x[i] += f * v[i];
-    };
-
-    auto _up_enforce = [&](vector<float>& x, vector<float>& v, float f, float boxLength)
-    {
-        for(int i = 0; i < n; ++i)
-        {
-        x[i] += f * v[i];
-        x[i] -= boxLength * floor(x[i] / boxLength + 0.5);
-        }
-    };
-
-    _dpd_forces(kBT, dt);
+    internal_forces(kBT, dt);
 
     // don't want to have any output in this case
     if (steps_per_dump != std::numeric_limits<int>::max())
         vmd_xyz("ic.xyz", false);
 
-    FILE * fdiag = fopen("diag-equilibrate.txt", "w");
-
     const size_t nt = (int)(tend / dt);
 
     for(int it = 0; it < nt; ++it)
     {
-    if (it % steps_per_dump == 0 && it != 0)
-    {
-        printf("step %d\n", it);
-        float t = it * dt;
-        diag(fdiag, t);
-        diag(stdout, t);
+        update_stage1(dt, it);
+
+        if (bouncer != nullptr)
+            bouncer->bounce(*this, dt);
+
+        internal_forces(kBT, dt);
+
+        if (bouncer != nullptr)
+            bouncer->compute_forces(kBT, dt, *this);
+
+        update_stage2(dt, it);
     }
-
-    _up(xv, xa, dt * 0.5);
-    _up(yv, ya, dt * 0.5);
-    _up(zv, za, dt * 0.5);
-
-    _up_enforce(xp, xv, dt, L[0]);
-    _up_enforce(yp, yv, dt, L[1]);
-    _up_enforce(zp, zv, dt, L[2]);
-
-    if (bouncer != nullptr)
-        bouncer->bounce(*this, dt);
-
-    _dpd_forces(kBT, dt);
-
-    if (bouncer != nullptr)
-        bouncer->compute_forces(kBT, dt, *this);
-
-    _up(xv, xa, dt * 0.5);
-    _up(yv, ya, dt * 0.5);
-    _up(zv, za, dt * 0.5);
-
-    if (it % steps_per_dump == 0)
-        lammps_dump("evolution.dump", it);
-        //vmd_xyz((name == "" ? "evolution.xyz" : (name + "-evolution.xyz")).c_str(), it > 0);
-    }
-
-    fclose(fdiag);
 }
 
 

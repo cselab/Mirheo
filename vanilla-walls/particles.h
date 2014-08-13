@@ -46,6 +46,8 @@ struct Bouncer;
 
 struct Particles
 {
+    static const std::string outFormat;
+
     float L[3];
 
     static int idglobal;
@@ -59,23 +61,30 @@ struct Particles
 
     Particles (const int n, const float Lx);
     Particles (const int n, const float Lx, const float Ly, const float Lz);
+    virtual ~Particles() {}
 
-    void _dpd_forces_bipartite(const float kBT, const double dt,
+    void internal_forces_bipartite(const float kBT, const double dt,
                    const float * const srcxp, const float * const srcyp, const float * const srczp,
                    const float * const srcxv, const float * const srcyv, const float * const srczv,
                    const int nsrc,
                    const int giddstart, const int gidsstart);
 
     void acquire_global_id();
-
+    void _up(vector<float>& x, vector<float>& v, float f);
+    void _up_enforce(vector<float>& x, vector<float>& v, float f, float boxLength);
+    void update_stage1(const float dt, const int timestepid);
+    void update_stage2(const float dt, const int timestepid);
 
     void diag(FILE * f, float t);
 
-    void vmd_xyz(const char * path, bool append = false);
+    void dump(const char * path, size_t timestep) const;
+    void vmd_xyz(const char * path, bool append = false) const;
 
     // might be opened by OVITO and xmovie (xwindow-based utility)
-    void lammps_dump(const char* path, size_t timestep);
+    void lammps_dump(const char* path, size_t timestep) const;
 
-    void _dpd_forces(const float kBT, const double dt);
+    virtual void internal_forces(const float kBT, const double dt);
+    // possible formats are: xyz, dump
     void equilibrate(const float kBT, const double tend, const double dt, const Bouncer* bouncer);
 };
+
