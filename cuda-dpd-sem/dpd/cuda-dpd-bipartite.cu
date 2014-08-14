@@ -2,14 +2,14 @@
 
 #include "../saru.cuh"
 
-struct InfoDPD
+struct BipartiteInfoDPD
 {
     int3 ncells;
     float3 domainsize, invdomainsize, domainstart;
     float invrc, aij, gamma, sigmaf;
 };
 
-__constant__ InfoDPD info;
+__constant__ BipartiteInfoDPD bipart_info;
 
 
 #ifndef NDEBUG
@@ -39,9 +39,9 @@ __global__ __launch_bounds__(32 * CPB, 16)
 
     const int mycid = nonempty_destcells[mycidentry];
     
-    const int xmycid = mycid % info.ncells.x;
-    const int ymycid = (mycid / info.ncells.x) % info.ncells.y;
-    const int zmycid = (mycid / info.ncells.x / info.ncells.y) % info.ncells.z;
+    const int xmycid = mycid % bipart_info.ncells.x;
+    const int ymycid = (mycid / bipart_info.ncells.x) % bipart_info.ncells.y;
+    const int zmycid = (mycid / bipart_info.ncells.x / bipart_info.ncells.y) % bipart_info.ncells.z;
 
     const int tid = threadIdx.x; 
     const int subtid = tid % COLS;
@@ -57,10 +57,10 @@ __global__ __launch_bounds__(32 * CPB, 16)
 	const int dy = (1 + (tid / 3)) % 3; 
 	const int dz = (1 + (tid / 9)) % 3;
 
-	const int xcid = (xmycid + dx - 1 + info.ncells.x) % info.ncells.x;
-	const int ycid = (ymycid + dy - 1 + info.ncells.y) % info.ncells.y;
-	const int zcid = (zmycid + dz - 1 + info.ncells.z) % info.ncells.z;
-	const int cid = xcid + info.ncells.x * (ycid + info.ncells.y * zcid);
+	const int xcid = (xmycid + dx - 1 + bipart_info.ncells.x) % bipart_info.ncells.x;
+	const int ycid = (ymycid + dy - 1 + bipart_info.ncells.y) % bipart_info.ncells.y;
+	const int zcid = (zmycid + dz - 1 + bipart_info.ncells.z) % bipart_info.ncells.z;
+	const int cid = xcid + bipart_info.ncells.x * (ycid + bipart_info.ncells.y * zcid);
 
 	starts[wid][tid] = tex1Dfetch<int>(texSrcStart, cid);
 	mycount = tex1Dfetch<int>(texSrcCount, cid);
@@ -115,14 +115,14 @@ __global__ __launch_bounds__(32 * CPB, 16)
 		const float ydiff = dtmp0.y - stmp0.y;
 		const float zdiff = dtmp1.x - stmp1.x;
 
-		const float _xr = xdiff - info.domainsize.x * floorf(0.5f + xdiff * info.invdomainsize.x);
-		const float _yr = ydiff - info.domainsize.y * floorf(0.5f + ydiff * info.invdomainsize.y);
-		const float _zr = zdiff - info.domainsize.z * floorf(0.5f + zdiff * info.invdomainsize.z);
+		const float _xr = xdiff - bipart_info.domainsize.x * floorf(0.5f + xdiff * bipart_info.invdomainsize.x);
+		const float _yr = ydiff - bipart_info.domainsize.y * floorf(0.5f + ydiff * bipart_info.invdomainsize.y);
+		const float _zr = zdiff - bipart_info.domainsize.z * floorf(0.5f + zdiff * bipart_info.invdomainsize.z);
 
 		const float rij2 = _xr * _xr + _yr * _yr + _zr * _zr;
 		const float invrij = rsqrtf(rij2);
 		const float rij = rij2 * invrij;
-		const float wr = max((float)0, 1 - rij * info.invrc);
+		const float wr = max((float)0, 1 - rij * bipart_info.invrc);
 		
 		const float xr = _xr * invrij;
 		const float yr = _yr * invrij;
@@ -136,7 +136,7 @@ __global__ __launch_bounds__(32 * CPB, 16)
 		const float mysaru = saru(min(gspid, gdpid), max(gspid, gdpid), idtimestep);
 		const float myrandnr = 3.464101615f * mysaru - 1.732050807f;
 		 
-		const float strength = (info.aij - info.gamma * wr * rdotv + info.sigmaf * myrandnr) * wr;
+		const float strength = (bipart_info.aij - bipart_info.gamma * wr * rdotv + bipart_info.sigmaf * myrandnr) * wr;
 		const bool valid = (slot < np1) && (subtid < np2);
 		
 		if (valid)
@@ -203,7 +203,7 @@ void forces_dpd_cuda_bipartite(float * const _xyzuvw1, float * const _axayaz1, i
     device_vector<float> xyzuvw1(_xyzuvw1, _xyzuvw1 + np1 * 6), axayaz1(np1 * 3);
     device_vector<float> xyzuvw2(_xyzuvw2, _xyzuvw2 + np2 * 6), axayaz2(np2 * 3);
     
-    InfoDPD c;
+    BipartiteInfoDPD c;
     c.ncells = make_int3(nx, ny, nz);
     c.domainsize = make_float3(XL, YL, ZL);
     c.invdomainsize = make_float3(1 / XL, 1 / YL, 1 / ZL);
@@ -213,7 +213,7 @@ void forces_dpd_cuda_bipartite(float * const _xyzuvw1, float * const _axayaz1, i
     c.gamma = gamma;
     c.sigmaf = sigma * invsqrtdt;
         
-    CUDA_CHECK(cudaMemcpyToSymbol(info, &c, sizeof(c)));
+    CUDA_CHECK(cudaMemcpyToSymbol(bipart_info, &c, sizeof(c)));
 
     device_vector<int> starts1(ncells), ends1(ncells), nonempty1(ncells);
     device_vector<int> starts2(ncells), ends2(ncells), nonempty2(ncells);

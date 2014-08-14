@@ -403,8 +403,8 @@ void build_clists(float * const device_xyzuvw, int np, const float rc,
     const int3 ncells = make_int3(xcells, ycells, zcells);
     
     const float densitynumber = np / (float)(ncells.x * ncells.y * ncells.z);
-    //printf("density number223332 is %f\n", densitynumber);
-    const int xbufsize = max(32, (int)(ncells.x * densitynumber * 2));
+    
+    const int xbufsize = max(160, (int)(ncells.x * densitynumber * 2));
     
     xyzuvw_copy.resize(np * 6);
     copy(device_ptr<float>(device_xyzuvw), device_ptr<float>(device_xyzuvw + 6 * np), xyzuvw_copy.begin());
@@ -503,7 +503,7 @@ void build_clists(float * const device_xyzuvw, int np, const float rc,
 	    CUDA_CHECK(cudaThreadSynchronize());
 	    
 	    printf("Ooops: maxstripe %d > bufsize %d.\nRecovering now...\n", *failuretest.maxstripe, xbufsize);
-	    
+	    printf("density number223332 is %f\n", densitynumber);
 	    const int xbufsize = *failuretest.maxstripe;
 	    
 	    xgather<1><<< dim3(1, ncells.y, ncells.z), dim3(32), sizeof(int) * (ncells.x  + 2 * xbufsize)>>>

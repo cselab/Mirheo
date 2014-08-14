@@ -391,10 +391,14 @@ Particles TomatoSandwich::carveAllLayers(const Particles& p)
 
     // 2. Perform equalibration in the box for obstacle
     size_t pNum = 3.0f * 3.0f * rc * funnelLS.getCoreDomainLength(0) * funnelLS.getCoreDomainLength(1);
+    
     Particles smallBox(pNum, funnelLS.getCoreDomainLength(0), funnelLS.getCoreDomainLength(1),
-            3.0f * rc);
-    smallBox.steps_per_dump = std::numeric_limits<int>::max();
-    smallBox.equilibrate(0.1, 100 * 0.02, 0.02, nullptr); //TODO move all fluid params somewhere
+		       3.0f * rc);
+    smallBox.cuda = false;
+    smallBox.name = "kitchen";
+    printf("************L is %f %f %f\n", smallBox.L[0], smallBox.L[1], smallBox.L[2]) ;
+    //smallBox.steps_per_dump = std::numeric_limits<int>::max();
+    smallBox.equilibrate(0.1, 200 * 0.02, 0.02, nullptr); //TODO move all fluid params somewhere
 
     // 3. Carve layers of frozen particles from the box
     Particles pp = carveLayer(smallBox, 0, -3.0f * rc/2.0, -rc/2.0);
@@ -439,6 +443,7 @@ void TomatoSandwich::computePairDPD(const float kBT, const double dt, Particles&
     float xskin, yskin;
     funnelLS.getSkinWidth(xskin, yskin);
 
+#pragma omp parallel for
     for (int i = 0; i < freeParticles.n; ++i) {
 
         if (funnelLS.insideBoundingBox(freeParticles.xp[i], freeParticles.yp[i])) {
@@ -506,6 +511,7 @@ void TomatoSandwich::dpd_forces_1particle(size_t layerIndex, const float kBT, co
 
 
     int srcAngIndex = angleIndex[layerIndex].computeIndex(coord[0], coord[1]);
+
     for(int j = 0; j < frLayer.n; ++j)
     {
         if (!angleIndex[layerIndex].isClose(srcAngIndex, j)) {

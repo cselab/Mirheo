@@ -1,8 +1,9 @@
 .PHONY: clean
 .SUFFIXES: .o .cpp
 
-CXXFLAGS += -std=c++11  -fopenmp -I../funnel-obstacle/ -O0 -g -DUSE_CUDA 
-#-DNDEBUG -Ofast
+CXXFLAGS += -std=c++11  -fopenmp -I../funnel-obstacle/ -O0 -g -DUSE_CUDA
+#-pg
+CXXFLAGS += -DNDEBUG -Ofast
 
 CUDADPD = ../cuda-dpd-sem/dpd/libcuda-dpd.so
 CXXFLAGS += -I$(dir $(CUDADPD))

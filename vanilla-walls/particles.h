@@ -50,9 +50,10 @@ struct Particles
 
     static int idglobal;
 
-    int n, myidstart, steps_per_dump = 100;
+    int n, myidstart, steps_per_dump = 30;
     mutable int saru_tag;
     float xg = 0, yg = 0, zg = 0;
+    bool cuda = true;
     vector<float> xp, yp, zp, xv, yv, zv, xa, ya, za;
 
     string name;
