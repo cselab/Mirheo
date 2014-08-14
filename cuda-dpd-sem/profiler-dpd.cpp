@@ -33,7 +33,7 @@ void ProfilerDPD::start()
     //CUDA_CHECK(cudaProfilerStart());
 #endif
 	
-    CUDA_CHECK(cudaThreadSynchronize());
+    //  CUDA_CHECK(cudaThreadSynchronize());
     CUDA_CHECK(cudaEventRecord(evstart));
 }
 
