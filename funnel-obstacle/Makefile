@@ -5,3 +5,6 @@ test:	*.cpp *.h funnel-obstacle.o
 
 funnel-obstacle.o: funnel-obstacle.cpp funnel-obstacle.h
 	$(CXX) $(CXXFLAGS) -c $^
+
+clean:
+	rm -f test *.o *.d *.h.gch
