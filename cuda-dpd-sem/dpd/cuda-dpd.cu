@@ -74,7 +74,7 @@ __global__ __launch_bounds__(32 * CPB, 16)
 	float2 dtmp1 = tex1Dfetch<float2>(texParticles, entry + 1);
 	float2 dtmp2 = tex1Dfetch<float2>(texParticles, entry + 2);
 	
-	float f[3] = {0, 0, 0};
+	float xforce = 0, yforce = 0, zforce = 0;
 
 	for(int s = 0; s < nsrc; s += COLS)
 	{
@@ -94,10 +94,6 @@ __global__ __launch_bounds__(32 * CPB, 16)
 	    const float2 stmp2 = tex1Dfetch<float2>(texParticles, sentry + 2);
 	    
 	    {
-		const float xforce = f[0];
-		const float yforce = f[1];
-		const float zforce = f[2];
-			    
 		const float xdiff = dtmp0.x - stmp0.x;
 		const float ydiff = dtmp0.y - stmp0.y;
 		const float zdiff = dtmp1.x - stmp1.x;
@@ -129,25 +125,29 @@ __global__ __launch_bounds__(32 * CPB, 16)
 		if (valid)
 		{
 #ifdef _CHECK_
-		    f[0] = xforce + (rij2 < 1);
-		    f[1] = yforce + wr;
-		    f[2] = zforce + 0;
+		    xforce += (rij2 < 1);
+		    yforce += wr;
+		    zforce += 0;
 #else		    	     
-		    f[0] = xforce + strength * xr;
-		    f[1] = yforce + strength * yr;
-		    f[2] = zforce + strength * zr;
+		    xforce += strength * xr;
+		    yforce += strength * yr;
+		    zforce += strength * zr;
 #endif
 		}
 	    } 
 	}
 	
 	for(int L = COLS / 2; L > 0; L >>=1)
-	    for(int c = 0; c < 3; ++c)
-		f[c] += __shfl_xor(f[c], L);
+	{
+	    xforce += __shfl_xor(xforce, L);
+	    yforce += __shfl_xor(yforce, L);
+	    zforce += __shfl_xor(zforce, L);
+	}
 
-	const float fcontrib = f[subtid % 3];
+	const int c = (subtid % 3);       
+	const float fcontrib = (c == 0) * xforce + (c == 1) * yforce + (c == 2) * zforce;//f[subtid % 3];
 	const int dstpid = dststart + d + slot;
-	const int c = (subtid % 3);
+
 
 	if (slot < np1)
 	    axayaz[c + 3 * dstpid] = fcontrib;
