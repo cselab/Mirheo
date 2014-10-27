@@ -258,8 +258,9 @@ void forces_dpd_cuda(float * const _xyzuvw, float * const _axayaz,
 		 c.domainstart.x, c.domainstart.y, c.domainstart.z,
 		 order, fdpd_start, fdpd_count, NULL);
 
+    //TextureWrap texStart(_ptr(starts), ncells), texCount(_ptr(counts), ncells);
+    //TextureWrap texParticles((float2*)_ptr(xyzuvw), 3 * np);
     
-
     CUDA_CHECK(cudaMemcpyToSymbolAsync(info, &c, sizeof(c)));
    
     ProfilerDPD::singletone().start();
@@ -271,11 +272,13 @@ void forces_dpd_cuda(float * const _xyzuvw, float * const _axayaz,
     ++saru_tid;
 
     CUDA_CHECK(cudaPeekAtLastError());
-    
+	
     ProfilerDPD::singletone().force();	
     CUDA_CHECK(cudaMemcpy(_axayaz, fdpd_axayaz, sizeof(float) * 3 * np, cudaMemcpyDeviceToHost));
 
     ProfilerDPD::singletone().report();
+
+    //copy(axayaz.begin(), axayaz.end(), _axayaz);
      
 #ifdef _CHECK_
     CUDA_CHECK(cudaThreadSynchronize());
@@ -330,8 +333,6 @@ void forces_dpd_cuda(float * const _xyzuvw, float * const _axayaz,
 int * fdpd_order = NULL;
 float * fdpd_pv = NULL, *fdpd_a = NULL;
 
-
-
 void forces_dpd_cuda(const float * const xp, const float * const yp, const float * const zp,
 		     const float * const xv, const float * const yv, const float * const zv,
 		     float * const xa, float * const ya, float * const za,
@@ -375,10 +376,16 @@ void forces_dpd_cuda(const float * const xp, const float * const yp, const float
     forces_dpd_cuda(fdpd_pv, fdpd_a, fdpd_order, np, rc, LX, LY, LZ,
 		    aij, gamma, sigma, invsqrtdt);
     
+    //delete [] pv;
+     
     for(int i = 0; i < np; ++i)
     {
 	xa[fdpd_order[i]] += fdpd_a[0 + 3 * i];
 	ya[fdpd_order[i]] += fdpd_a[1 + 3 * i];
 	za[fdpd_order[i]] += fdpd_a[2 + 3 * i];
     }
+
+    //delete [] a;
+
+    //delete [] order;
 }
