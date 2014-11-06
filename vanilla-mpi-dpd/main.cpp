@@ -29,12 +29,13 @@ inline void mpiAssert(int code, const char *file, int line, bool abort=true)
 using namespace std;
 
 const float dt = 0.02;
-const float tend = 100;
+const float tend = 10;
 const float kBT = 0.1;
 const float gammadpd = 45;
 const float sigma = sqrt(2 * gammadpd * kBT);
 const float sigmaf = sigma / sqrt(dt);
 const float aij = 2.5;
+
 static const int tagbase_dpd_remote_interactions = 0;
 static const int tagbase_redistribute_particles = 255;
 
@@ -72,7 +73,7 @@ float saru(unsigned int seed1, unsigned int seed2, unsigned int seed3)
 //AoS - SoA conversion might be performed within the hpc kernels.
 struct Particle
 {
-    float x, y, z, u = 0, v = 0, w = 0;
+    float x[3], u[3];
 
     static bool initialized;
     static MPI_Datatype mytype;
@@ -99,7 +100,7 @@ MPI_Datatype Particle::mytype;
 //why do i need this?
 struct Acceleration
 {
-    float ax = 0, ay = 0, az = 0;
+    float a[3];
 };
 
 //local interactions deserve a kernel on their own, since they are expected to take most of the computational time.
@@ -115,9 +116,9 @@ void dpd_local_interactions(Particle * p, int n, int saru_tag, Acceleration * a)
 	    if (j == i)
 		continue;
 	    
-	    float _xr = p[i].x - p[j].x;
-	    float _yr = p[i].y - p[j].y;
-	    float _zr = p[i].z - p[j].z;
+	    float _xr = p[i].x[0] - p[j].x[0];
+	    float _yr = p[i].x[1] - p[j].x[1];
+	    float _zr = p[i].x[2] - p[j].x[2];
        		    
 	    float rij2 = _xr * _xr + _yr * _yr + _zr * _zr;
 	    float invrij = 1.f / sqrtf(rij2);
@@ -133,9 +134,9 @@ void dpd_local_interactions(Particle * p, int n, int saru_tag, Acceleration * a)
 	    float zr = _zr * invrij;
 		
 	    float rdotv = 
-		xr * (p[i].u - p[j].u) +
-		yr * (p[i].v - p[j].v) +
-		zr * (p[i].w - p[j].w);
+		xr * (p[i].u[0] - p[j].u[0]) +
+		yr * (p[i].u[1] - p[j].u[1]) +
+		zr * (p[i].u[2] - p[j].u[2]);
 	    
 	    float mysaru = saru(min(i, j), max(i, j), saru_tag);
 	    
@@ -148,9 +149,9 @@ void dpd_local_interactions(Particle * p, int n, int saru_tag, Acceleration * a)
 	    zf += strength * zr;
 	}
 
-	a[i].ax += xf;
-	a[i].ay += yf;
-	a[i].az += zf;
+	a[i].a[0] = xf;
+	a[i].a[1] = yf;
+	a[i].a[2] = zf;
     }
 }
 
@@ -162,9 +163,9 @@ void dpd_bipartite_kernel(Particle * pdst, int ndst, Particle * psrc, int nsrc, 
 
 	for(int j = 0; j < nsrc; ++j)
 	{
-	    float _xr = pdst[i].x - psrc[j].x;
-	    float _yr = pdst[i].y - psrc[j].y;
-	    float _zr = pdst[i].z - psrc[j].z;
+	    float _xr = pdst[i].x[0] - psrc[j].x[0];
+	    float _yr = pdst[i].x[1] - psrc[j].x[1];
+	    float _zr = pdst[i].x[2] - psrc[j].x[2];
 		    
 	    float rij2 = _xr * _xr + _yr * _yr + _zr * _zr;
 	    float invrij = 1.f / sqrtf(rij2);
@@ -180,9 +181,9 @@ void dpd_bipartite_kernel(Particle * pdst, int ndst, Particle * psrc, int nsrc, 
 	    float zr = _zr * invrij;
 		
 	    float rdotv = 
-		xr * (pdst[i].u - psrc[j].u) +
-		yr * (pdst[i].v - psrc[j].v) +
-		zr * (pdst[i].w - psrc[j].w);
+		xr * (pdst[i].u[0] - psrc[j].u[0]) +
+		yr * (pdst[i].u[1] - psrc[j].u[1]) +
+		zr * (pdst[i].u[2] - psrc[j].u[2]);
 	    
 	    float mysaru = saru(saru_tag1, saru_tag2, saru_mask ? i + ndst * j : j + nsrc * i);
 	    
@@ -195,9 +196,9 @@ void dpd_bipartite_kernel(Particle * pdst, int ndst, Particle * psrc, int nsrc, 
 	    zf += strength * zr;
 	}
 
-	a[i].ax += xf;
-	a[i].ay += yf;
-	a[i].az += zf;
+	a[i].a[0] = xf;
+	a[i].a[1] = yf;
+	a[i].a[2] = zf;
     }
 }
 
@@ -217,22 +218,26 @@ void dpd_remote_interactions(MPI_Comm cartcomm, Particle * p, int n, int L, int 
     {
 	int d[3] = { (i + 2) % 3 - 1, (i / 3 + 2) % 3 - 1, (i / 9 + 2) % 3 - 1 };
 
-	int halo_start[3];
+	int halo_start[3], halo_end[3];
 	for(int c = 0; c < 3; ++c)
+	{
 	    halo_start[c] = max(d[c] * L - L/2 - 1, -L/2);
-	
-	int halo_end[3];
-	for(int c = 0; c < 3; ++c)
 	    halo_end[c] = min(d[c] * L + L/2 + 1, L/2);
+	}
 	
 	for(int j = 0; j < n; ++j)
-	    if (p[j].x >= halo_start[0] && p[j].x < halo_end[0] &&
-		p[j].y >= halo_start[1] && p[j].y < halo_end[1] &&
-		p[j].z >= halo_start[2] && p[j].z < halo_end[2] )
+	{
+	    bool halo = true;
+
+	    for(int c = 0; c < 3; ++c)
+		halo &= (p[j].x[c] >= halo_start[c] && p[j].x[c] < halo_end[c]);
+
+	    if (halo)
 	    {
 		mypacks[i].push_back(p[j]);
 		myentries[i].push_back(j);
 	    }
+	}
 	
 	int coordsneighbor[3];
 	for(int c = 0; c < 3; ++c)
@@ -265,7 +270,7 @@ void dpd_remote_interactions(MPI_Comm cartcomm, Particle * p, int n, int L, int 
 	MPI_CHECK( MPI_Irecv(&srcpacks[i].front(), count, Particle::datatype(), MPI_ANY_SOURCE, tag, cartcomm, recvreq + i) );
     }
 
-    //we want to keep it simple. that's why.
+    //we want to keep it simple. that's why wait all messages.
     MPI_Status statuses[26];
     MPI_CHECK( MPI_Waitall(26, recvreq, statuses) );
     MPI_CHECK( MPI_Waitall(26, sendreq, statuses) );
@@ -304,17 +309,12 @@ void dpd_remote_interactions(MPI_Comm cartcomm, Particle * p, int n, int L, int 
 	int d[3] = { (i + 2) % 3 - 1, (i / 3 + 2) % 3 - 1, (i / 9 + 2) % 3 - 1 };
 
 	for(int j = 0; j < srcpacks[i].size(); ++j)
-	{
-	    srcpacks[i][j].x += d[0] * L;
-	    srcpacks[i][j].y += d[1] * L;
-	    srcpacks[i][j].z += d[2] * L;
-	}
+	    for(int c = 0; c < 3; ++c)
+		srcpacks[i][j].x[c] += d[c] * L;
 
 	int npack = mypacks[i].size();
 	
 	apacks[i].resize(npack);
-	for(auto& e: apacks[i])
-	    e.ax = e.ay = e.az = 0;
 	
 	dpd_bipartite_kernel(&mypacks[i].front(), npack, &srcpacks[i].front(), srcpacks[i].size(),
 			     saru_tag1, saru_tag2[i], saru_mask[i], &apacks[i].front());
@@ -328,10 +328,9 @@ void dpd_remote_interactions(MPI_Comm cartcomm, Particle * p, int n, int L, int 
 	for(int j = 0; j < mypacks[i].size() ; ++j)
 	{
 	    int entry = myentries[i][j];
-	    
-	    a[entry].ax += apacks[i][j].ax;
-	    a[entry].ay += apacks[i][j].ay;
-	    a[entry].az += apacks[i][j].az;
+
+	    for(int c = 0; c < 3; ++c)
+		a[entry].a[c] += apacks[i][j].a[c];
 	}
     }
 }
@@ -341,24 +340,19 @@ void update_stage1(Particle * p, Acceleration * a, int n, float dt)
 {
     for(int i = 0; i < n; ++i)
     {
-	p[i].u += a[i].ax * dt * 0.5;
-	p[i].v += a[i].ay * dt * 0.5;
-	p[i].w += a[i].az * dt * 0.5;
+	for(int c = 0; c < 3; ++c)
+	    p[i].u[c] += a[i].a[c] * dt * 0.5;
 
-	p[i].x += p[i].u * dt;
-	p[i].y += p[i].v * dt;
-	p[i].z += p[i].w * dt;
+	for(int c = 0; c < 3; ++c)
+	    p[i].x[c] += p[i].u[c] * dt;
     }
 }
 
 void update_stage2(Particle * p, Acceleration * a, int n, float dt)
 {
     for(int i = 0; i < n; ++i)
-    {
-	p[i].u += a[i].ax * dt * 0.5;
-	p[i].v += a[i].ay * dt * 0.5;
-	p[i].w += a[i].az * dt * 0.5;
-    }
+	for(int c = 0; c < 3; ++c)
+	    p[i].u[c] += a[i].a[c] * dt * 0.5;
 }
 
 void diagnostics(MPI_Comm comm, Particle * particles, int n, float dt, int idstep)
@@ -368,9 +362,9 @@ void diagnostics(MPI_Comm comm, Particle * particles, int n, float dt, int idste
     double p[] = {0, 0, 0};
     for(int i = 0; i < n; ++i)
     {
-	p[0] += particles[i].u;
-	p[1] += particles[i].v;
-	p[2] += particles[i].w;
+	p[0] += particles[i].u[0];
+	p[1] += particles[i].u[1];
+	p[2] += particles[i].u[2];
     }
 
     int rank;
@@ -380,13 +374,14 @@ void diagnostics(MPI_Comm comm, Particle * particles, int n, float dt, int idste
     
     double ke = 0;
     for(int i = 0; i < n; ++i)
-	ke += pow(particles[i].u, 2) + pow(particles[i].v, 2) + pow(particles[i].w, 2);
+	ke += pow(particles[i].u[0], 2) + pow(particles[i].u[1], 2) + pow(particles[i].u[2], 2);
 
     MPI_CHECK( MPI_Reduce(rank == 0 ? MPI_IN_PLACE : &ke, &ke, 1, MPI_DOUBLE, MPI_SUM, 0, comm) );
     MPI_CHECK( MPI_Reduce(rank == 0 ? MPI_IN_PLACE : &n, &n, 1, MPI_INT, MPI_SUM, 0, comm) );
     
     double kbt = 0.5 * ke / (n * 3. / 2);
-    
+
+    //output temperature and total momentum
     if (rank == 0)
     {
 	FILE * f = fopen("diag.txt", idstep ? "a" : "w");
@@ -410,7 +405,7 @@ void diagnostics(MPI_Comm comm, Particle * particles, int n, float dt, int idste
 	}
     
 	for(int i = 0; i < nlocal; ++i)
-	    ss << "1 " << particles[i].x << " " << particles[i].y << " " << particles[i].z << "\n";
+	    ss << "1 " << particles[i].x[0] << " " << particles[i].x[1] << " " << particles[i].x[2] << "\n";
 
 	string content = ss.str();
 
@@ -481,16 +476,16 @@ public:
 	    
 	    for(int i = 0; i < n; ++i)
 	    {
-		int xcode = (2 + (p[i].x >= -L/2) + (p[i].x >= L/2)) % 3;
-		int ycode = (2 + (p[i].y >= -L/2) + (p[i].y >= L/2)) % 3;
-		int zcode = (2 + (p[i].z >= -L/2) + (p[i].z >= L/2)) % 3;
-		int code = xcode + 3 * (ycode + 3 * zcode);
+		int vcode[3];
+		for(int c = 0; c < 3; ++c)
+		    vcode[c] = (2 + (p[i].x[c] >= -L/2) + (p[i].x[c] >= L/2)) % 3;
+		
+		int code = vcode[0] + 3 * (vcode[1] + 3 * vcode[2]);
 
 		myentries[code].push_back(i);
 
-		assert(p[i].x >= -L/2 - L && p[i].x < L/2 + L);
-		assert(p[i].y >= -L/2 - L && p[i].y < L/2 + L);
-		assert(p[i].z >= -L/2 - L && p[i].z < L/2 + L);
+		for(int c = 0; c < 3; ++c)
+		    assert(p[i].x[c] >= -L/2 - L && p[i].x[c] < L/2 + L);
 	    }
 	    
 	    notleaving = myentries[0].size();
@@ -509,7 +504,7 @@ public:
 	  
 	    for(int i = 1; i < 27; ++i)
 		MPI_CHECK( MPI_Issend(&tmp.front() + leaving_start[i], leaving_start[i + 1] - leaving_start[i],
-				     Particle::datatype(), rankneighbors[i], tagbase_redistribute_particles + i, cartcomm, sendreq + i) );
+				      Particle::datatype(), rankneighbors[i], tagbase_redistribute_particles + i, cartcomm, sendreq + i) );
     
 	    arriving = 0;
 	    arriving_start[0] = notleaving;
@@ -549,19 +544,17 @@ public:
 		int d[3] = { (i + 1) % 3 - 1, (i / 3 + 1) % 3 - 1, (i / 9 + 1) % 3 - 1 };
 	    
 		for(int j = arriving_start[i]; j < arriving_start[i + 1]; ++j)
-		{
-		    p[j].x -= d[0] * L;
-		    p[j].y -= d[1] * L;
-		    p[j].z -= d[2] * L;
-		}
+		    for(int c = 0; c < 3; ++c)
+			p[j].x[c] -= d[c] * L;
 	    }
 	    
 	    for(int i = 0; i < n; ++i)
-	    {	
-		int xcode = (2 + (p[i].x >= -L/2) + (p[i].x >= L/2)) % 3;
-		int ycode = (2 + (p[i].y >= -L/2) + (p[i].y >= L/2)) % 3;
-		int zcode = (2 + (p[i].z >= -L/2) + (p[i].z >= L/2)) % 3;
-		int code = xcode + 3 * (ycode + 3 * zcode);
+	    {
+		int vcode[3];
+		for(int c = 0; c < 3; ++c)
+		    vcode[c] = (2 + (p[i].x[c] >= -L/2) + (p[i].x[c] >= L/2)) % 3;
+		
+		int code = vcode[0] + 3 * (vcode[1] + 3 * vcode[2]);
 
 		assert(code == 0);
 	    }
@@ -599,11 +592,8 @@ int main(int argc, char ** argv)
     vector<Particle> particles(L * L * L * 3);
 
     for(auto& p : particles)
-    {
-	p.x = -L * 0.5 + drand48() * L;
-	p.y = -L * 0.5 + drand48() * L;
-	p.z = -L * 0.5 + drand48() * L;
-    }
+	for(int c = 0; c < 3; ++c)
+	    p.x[c] = -L * 0.5 + drand48() * L;
 
     RedistributeParticles redistribute(cartcomm, L);
     
@@ -626,7 +616,7 @@ int main(int argc, char ** argv)
     for(int it = 0; it < nsteps; ++it)
     {
 	if (rank == 0)
-	    printf("beginning of time step %d for rank %d\n", it, rank);
+	    printf("beginning of time step %d\n", it);
 	
 	update_stage1(&particles.front(), &accel.front(), particles.size(), dt);
 	
@@ -637,11 +627,8 @@ int main(int argc, char ** argv)
 
 	redistribute.stage2(&particles.front(), particles.size());
 	
-	for(auto& a : accel)
-	    a.ax = a.ay = a.az = 0;
-	
 	dpd_local_interactions(&particles.front(), particles.size(), saru_tag, &accel.front());
-	 saru_tag += nranks - rank;
+	saru_tag += nranks - rank;
 	
 	dpd_remote_interactions(cartcomm, &particles.front(), particles.size(), L, saru_tag, &accel.front());
 	saru_tag += 1 + rank;
