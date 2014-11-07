@@ -9,7 +9,7 @@
 
 using namespace std;
 
-typedef double real;
+typedef float real;
 
 void vmd_xyz(const char * path, real * xs, real * ys, real * zs, const int n, bool append)
 {
@@ -35,7 +35,7 @@ void vmd_xyz(const char * path, real * xs, real * ys, real * zs, const int n, bo
 
 int main()
 {
-    real L = 10;
+    real L = 8;
 
     const int Nm = 3;
     const int n = L * L * L * Nm;
@@ -158,7 +158,7 @@ int main()
 
     for(int it = 0; it < nt; ++it)
     {
-	if (it % 10 == 0)
+	if (it % 1 == 0)
 	{
 	    float t = it * dt;
 	    _diag(fdiag, t);

@@ -9,7 +9,8 @@ void forces_dpd_cuda(const float * const xp, const float * const yp, const float
 		     const float a,
 		     const float gamma,
 		     const float sigma,
-		     const float invsqrtdt);
+		     const float invsqrtdt,
+		     const int saru_tag = -1);
     
 void forces_dpd_cuda_bipartite(const float * const xp1, const float * const yp1, const float * const zp1,
 			       const float * const xv1, const float * const yv1, const float * const zv1,

@@ -180,7 +180,8 @@ void forces_dpd_cuda(float * const _xyzuvw, float * const _axayaz,
 		     const float aij,
 		     const float gamma,
 		     const float sigma,
-		     const float invsqrtdt)
+		     const float invsqrtdt,
+		     const int saru_tag)
 {  
     int nx = (int)ceil(XL / rc);
     int ny = (int)ceil(YL / rc);
@@ -264,6 +265,9 @@ void forces_dpd_cuda(float * const _xyzuvw, float * const _axayaz,
     CUDA_CHECK(cudaMemcpyToSymbolAsync(info, &c, sizeof(c)));
    
     ProfilerDPD::singletone().start();
+
+    if (saru_tag >= 0)
+	saru_tid = saru_tag;
     
     _dpd_forces_saru<<<dim3(c.ncells.x / _XCPB_,
 			    c.ncells.y / _YCPB_,
@@ -342,7 +346,8 @@ void forces_dpd_cuda(const float * const xp, const float * const yp, const float
 		     const float aij,
 		     const float gamma,
 		     const float sigma,
-		     const float invsqrtdt)
+		     const float invsqrtdt,
+		     const int input_saru_tag)
 {
     if (np <= 0) return;
 
@@ -374,7 +379,7 @@ void forces_dpd_cuda(const float * const xp, const float * const yp, const float
     }
 
     forces_dpd_cuda(fdpd_pv, fdpd_a, fdpd_order, np, rc, LX, LY, LZ,
-		    aij, gamma, sigma, invsqrtdt);
+		    aij, gamma, sigma, invsqrtdt, input_saru_tag);
     
     //delete [] pv;
      

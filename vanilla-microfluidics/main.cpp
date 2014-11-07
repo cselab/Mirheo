@@ -12,6 +12,7 @@
 #include "cuda-sem.h"
 
 
+
 inline float saru(unsigned int seed1, unsigned int seed2, unsigned int seed3)
 {
     seed3 ^= (seed1<<7)^(seed2>>6);
@@ -143,11 +144,7 @@ struct Particles
 	    const float ydomainsize = L;
 	    const float zdomainsize = L;
 
-	    const float invrc = 1.;
-	    const float gamma = 45;
-	    const float sigma = sqrt(2 * gamma * kBT);
-	    const float sigmaf = sigma / sqrt(dt);
-	    const float aij = 2.5;
+
 
 #if 1
 	    if(srcxp == &xp.front())
