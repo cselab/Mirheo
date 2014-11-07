@@ -6,6 +6,14 @@
 
 #include "common.h"
 
+/* the acceleration of the particles is computed by considering two type of dpd interactions:
+   - local interactions
+   - interactions with remote particles, coming from the "halo" of the adjacent subdomains
+   to achieve C/T overlap across the cluster i use the classical pattern:
+   1. perform non-blocking send and receive request of the halo particles
+   2. compute local interactions - hopefully this will overlap with step 1.
+   3. compute remote interactions
+*/
 class ComputeInteractionsDPD
 {
     MPI_Comm cartcomm;
@@ -16,9 +24,12 @@ class ComputeInteractionsDPD
 
     std::vector<Particle> mypacks[26], srcpacks[26];
     std::vector<int> myentries[26];
-    
+
+    //compute the local interactions
     void dpd_kernel(Particle * p, int n, int saru_tag,  Acceleration * a);
-    
+
+    //compute the interactions between two distinct sets of particles
+    //this is used to evaluate the remote interations
     void dpd_bipartite_kernel(Particle * pdst, int ndst, Particle * psrc, int nsrc,
 			      int saru_tag1, int saru_tag2, int saru_mask, Acceleration * a);
 
@@ -37,7 +48,9 @@ ComputeInteractionsDPD(MPI_Comm cartcomm, int L):
 	MPI_CHECK( MPI_Comm_rank(cartcomm, &myrank));
 	MPI_CHECK( MPI_Comm_size(cartcomm, &nranks));
     }
-    
+
+    //saru_tag is cumbersome, yet is at the core of the current dpd scheme.
+    //see dpd-interactions.cpp for more details
     void evaluate(int& saru_tag, Particle * p, int n, Acceleration * a)
     {
 	dpd_remote_interactions_stage1(p, n);

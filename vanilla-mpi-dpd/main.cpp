@@ -8,9 +8,11 @@
 #include <string>
 #include <sstream>
 #include <vector>
-#include <algorithm>
 
+//in common.h i define Particle and Acceleration data structures
+//as well as the global parameters for the simulation
 #include "common.h"
+
 #include "dpd-interactions.h"
 #include "redistribute-particles.h"
 
@@ -111,6 +113,15 @@ void diagnostics(MPI_Comm comm, Particle * particles, int n, float dt, int idste
     }
 }
 
+/*we run a simple dpd simulation by distributing particles to subdomains organized in a cartesian topology.
+  every subdomain is of size L and the system of reference is the center of the subdomain.
+  particles therefore lay within [-L/2, L/2]
+  a simulation steps is composed of the following stages:
+  - update of the particle position and velocity
+  - redistribute particles to the corresponding subdomains
+  - compute the acceleration (dpd interactions)
+  - update the particle velocity, compute and report total temperature and momentum
+*/
 int main(int argc, char ** argv)
 {
     int ranks[3];
@@ -139,8 +150,11 @@ int main(int argc, char ** argv)
 
     const int L = 8;
 
+    //for simplicity we consider exclusively cubic subdomains
+    //in the non-vanilla version these array will reside on the device, not on the host
     vector<Particle> particles(L * L * L * 3);
-
+    vector<Acceleration> accel(particles.size());
+    
     for(auto& p : particles)
 	for(int c = 0; c < 3; ++c)
 	    p.x[c] = -L * 0.5 + drand48() * L;
@@ -153,8 +167,8 @@ int main(int argc, char ** argv)
     for(int i = 0; i < 3; ++i)
 	domainsize[i] = L * ranks[i];
 
-    vector<Acceleration> accel(particles.size());
-
+    //saru is at the core of the current scheme used to compute the dpd interactions
+    //see dpd-interactions.{h, cpp} for more details
     int saru_tag = rank;
 
     ComputeInteractionsDPD dpd(cartcomm, L);
@@ -166,14 +180,18 @@ int main(int argc, char ** argv)
 	    printf("beginning of time step %d\n", it);
 	
 	update_stage1(&particles.front(), &accel.front(), particles.size(), dt);
-	
+
+	//send away the particles that no longer belong this subdomain
 	int newnp = redistribute.stage1(&particles.front(), particles.size());
 
+	//allocate the space for the incoming particles
 	particles.resize(newnp);
 	accel.resize(newnp);
 
+	//receive the new particles
 	redistribute.stage2(&particles.front(), particles.size());
 
+	//evaluate local and remote dpd interactions
 	dpd.evaluate(saru_tag, &particles.front(), particles.size(), &accel.front());
 
 	update_stage2(&particles.front(), &accel.front(), particles.size(), dt);

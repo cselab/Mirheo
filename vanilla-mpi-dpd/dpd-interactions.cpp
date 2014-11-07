@@ -41,12 +41,14 @@ float saru(unsigned int seed1, unsigned int seed2, unsigned int seed3)
 //local interactions deserve a kernel on their own, since they are expected to take most of the computational time.
 //saru tag is there to prevent the realization of the same random force twice between different timesteps
 void ComputeInteractionsDPD::dpd_kernel(Particle * p, int n, int saru_tag,  Acceleration * a)
-{
+{    
 #ifdef _WITHCUDA_
 
+//this is a hack: libcuda-dpd is currently accepting only SoA particles as input and output.
+//hence the this transposition. i will modify libcuda-dpd to accept AoS particles
+    
     float * x[3], *v[3], *acc[3];
 
-    //dpd-cuda for now works only on soa formats
     for(int c = 0; c < 3; ++c)
     {
 	x[c] = new float[n];
@@ -72,10 +74,13 @@ void ComputeInteractionsDPD::dpd_kernel(Particle * p, int n, int saru_tag,  Acce
 
 	for(int i = 0; i < n; ++i)
 	    a[i].a[c] = acc[c][i];
+
+	delete [] acc[c];
     }
     return;
 #endif
-    
+
+    //dummy host implementation
     for(int i = 0; i < n; ++i)
     {
 	float xf = 0, yf = 0, zf = 0;
@@ -127,6 +132,7 @@ void ComputeInteractionsDPD::dpd_kernel(Particle * p, int n, int saru_tag,  Acce
 void ComputeInteractionsDPD::dpd_bipartite_kernel(Particle * pdst, int ndst, Particle * psrc, int nsrc,
 			  int saru_tag1, int saru_tag2, int saru_mask, Acceleration * a)
 {
+    //this will be a CUDA KERNEL in the libcuda-dpd
     for(int i = 0; i < ndst; ++i)
     {
 	float xf = 0, yf = 0, zf = 0;
@@ -175,10 +181,12 @@ void ComputeInteractionsDPD::dpd_bipartite_kernel(Particle * pdst, int ndst, Par
 void ComputeInteractionsDPD::dpd_remote_interactions_stage1(Particle * p, int n)
 {
     MPI_Status statuses[26];
+    
     if (send_pending)
 	MPI_CHECK( MPI_Waitall(26, sendreq, statuses) );
 	    
-    //collect my halo particles into packs. send them to the surrounding ranks.
+    //collect my halo particles into packs.
+    //in the non-vanilla version this will be a CUDA KERNEL
     for(int i = 0; i < 26; ++i)
     {
 	int d[3] = { (i + 2) % 3 - 1, (i / 3 + 2) % 3 - 1, (i / 9 + 2) % 3 - 1 };
@@ -203,6 +211,12 @@ void ComputeInteractionsDPD::dpd_remote_interactions_stage1(Particle * p, int n)
 		myentries[i].push_back(j);
 	    }
 	}
+    }
+
+    // send them to the surrounding ranks.
+    for(int i = 0; i < 26; ++i)
+    {
+	int d[3] = { (i + 2) % 3 - 1, (i / 3 + 2) % 3 - 1, (i / 9 + 2) % 3 - 1 };
 	
 	int coordsneighbor[3];
 	for(int c = 0; c < 3; ++c)
@@ -211,6 +225,7 @@ void ComputeInteractionsDPD::dpd_remote_interactions_stage1(Particle * p, int n)
 	int dstrank;
 	MPI_CHECK( MPI_Cart_rank(cartcomm, coordsneighbor, &dstrank) );
 	
+	//in the non-vanilla version will use GPUDirect RDMA here
 	MPI_CHECK( MPI_Isend(&mypacks[i].front(), mypacks[i].size(), Particle::datatype(), dstrank,
 			     tagbase_dpd_remote_interactions + i, cartcomm, sendreq + i) );
     }
@@ -232,6 +247,7 @@ void ComputeInteractionsDPD::dpd_remote_interactions_stage1(Particle * p, int n)
 
 	srcpacks[i].resize(count);
 	
+	//in the non-vanilla version will use GPUDirect RDMA here
 	MPI_CHECK( MPI_Irecv(&srcpacks[i].front(), count, Particle::datatype(), MPI_ANY_SOURCE, tag, cartcomm, recvreq + i) );
     }
 }
@@ -242,7 +258,12 @@ void ComputeInteractionsDPD::dpd_remote_interactions_stage2(Particle * p, int n,
     MPI_Status statuses[26];
     MPI_CHECK( MPI_Waitall(26, recvreq, statuses) );
 	    
-    //compute saru tags
+    /* compute saru tags are kind of nightmare to compute:
+       we have to make sure to come up with a triple tag which is unique for each interaction in the system
+       one tag is given (saru_tag1)
+       another one is computed by considering 3d coords of the interacting ranks (saru_tag2[])
+       the remaining one is computed inside dpd_bipartite_kernel based on saru_mask[] */
+    
     int saru_tag2[26], saru_mask[26];
     for(int i = 0; i < 26; ++i)
     {
@@ -264,36 +285,40 @@ void ComputeInteractionsDPD::dpd_remote_interactions_stage2(Particle * p, int n,
 	saru_mask[i] = min(dstrank, myrank) == myrank;
     }
 
-    //compute interactions with the remote particle packs,
-    //after properly shifting them to my system of reference
-    vector<Acceleration> apacks[26];
-    for(int i = 0; i < 26; ++i)
+    /* compute interactions with the remote particle packs,
+       after properly shifting them to my system of reference
+       then update the acceleration vector
+       in the non-vanilla version this will be an orchestration of non-blocking CUDA KERNEL calls */
     {
-	int d[3] = { (i + 2) % 3 - 1, (i / 3 + 2) % 3 - 1, (i / 9 + 2) % 3 - 1 };
-
-	for(int j = 0; j < srcpacks[i].size(); ++j)
-	    for(int c = 0; c < 3; ++c)
-		srcpacks[i][j].x[c] += d[c] * L;
-
-	int npack = mypacks[i].size();
-	
-	apacks[i].resize(npack);
-	
-	dpd_bipartite_kernel(&mypacks[i].front(), npack, &srcpacks[i].front(), srcpacks[i].size(),
-			     saru_tag1, saru_tag2[i], saru_mask[i], &apacks[i].front());
-    }
-
-    //blend the freshly computed partial results to my local acceleration vector.
-    for(int i = 0; i < 26; ++i)
-    {
-	Particle * ppack = &mypacks[i].front();
-	
-	for(int j = 0; j < mypacks[i].size() ; ++j)
+	vector<Acceleration> apacks[26];
+	for(int i = 0; i < 26; ++i)
 	{
-	    int entry = myentries[i][j];
+	    int d[3] = { (i + 2) % 3 - 1, (i / 3 + 2) % 3 - 1, (i / 9 + 2) % 3 - 1 };
 
-	    for(int c = 0; c < 3; ++c)
-		a[entry].a[c] += apacks[i][j].a[c];
+	    for(int j = 0; j < srcpacks[i].size(); ++j)
+		for(int c = 0; c < 3; ++c)
+		    srcpacks[i][j].x[c] += d[c] * L;
+
+	    int npack = mypacks[i].size();
+	
+	    apacks[i].resize(npack);
+	
+	    dpd_bipartite_kernel(&mypacks[i].front(), npack, &srcpacks[i].front(), srcpacks[i].size(),
+				 saru_tag1, saru_tag2[i], saru_mask[i], &apacks[i].front());
+	}
+
+	//blend the freshly computed partial results to my local acceleration vector.
+	for(int i = 0; i < 26; ++i)
+	{
+	    Particle * ppack = &mypacks[i].front();
+	
+	    for(int j = 0; j < mypacks[i].size() ; ++j)
+	    {
+		int entry = myentries[i][j];
+
+		for(int c = 0; c < 3; ++c)
+		    a[entry].a[c] += apacks[i][j].a[c];
+	    }
 	}
     }
 

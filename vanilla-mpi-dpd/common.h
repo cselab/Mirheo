@@ -20,7 +20,7 @@ inline void mpiAssert(int code, const char *file, int line, bool abort=true)
     }
 }
 
-//AoS is the dpd currency because of the spatial locality.
+//AoS is the currency for dpd simulations (because of the spatial locality).
 //AoS - SoA conversion might be performed within the hpc kernels.
 struct Particle
 {
@@ -44,7 +44,7 @@ struct Particle
 	}
 };
 
-//why do i need this?
+//why do i need this? it is there just to make the code more readable
 struct Acceleration
 {
     float a[3];

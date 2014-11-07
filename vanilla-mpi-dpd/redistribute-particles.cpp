@@ -1,5 +1,6 @@
 #include <cassert>
 #include <vector>
+#include <algorithm>
 
 #include "redistribute-particles.h"
 
@@ -31,40 +32,52 @@ RedistributeParticles::RedistributeParticles(MPI_Comm cartcomm, int L): cartcomm
     
 int RedistributeParticles::stage1(Particle * p, int n)
 {
-    vector<int> myentries[27];
-	    
-    for(int i = 0; i < n; ++i)
+    //naive way of performing reordering of particles
+    //this will be converted into a CUDA KERNEL in the non-vanilla version
     {
-	int vcode[3];
-	for(int c = 0; c < 3; ++c)
-	    vcode[c] = (2 + (p[i].x[c] >= -L/2) + (p[i].x[c] >= L/2)) % 3;
+	vector<int> myentries[27];
+
+	for(int i = 0; i < n; ++i)
+	{
+	    int vcode[3];
+	    for(int c = 0; c < 3; ++c)
+		vcode[c] = (2 + (p[i].x[c] >= -L/2) + (p[i].x[c] >= L/2)) % 3;
 		
-	int code = vcode[0] + 3 * (vcode[1] + 3 * vcode[2]);
+	    int code = vcode[0] + 3 * (vcode[1] + 3 * vcode[2]);
 
-	myentries[code].push_back(i);
+	    myentries[code].push_back(i);
 
-	for(int c = 0; c < 3; ++c)
-	    assert(p[i].x[c] >= -L/2 - L && p[i].x[c] < L/2 + L);
-    }
+	    for(int c = 0; c < 3; ++c)
+		assert(p[i].x[c] >= -L/2 - L && p[i].x[c] < L/2 + L);
+	}
 	    
-    notleaving = myentries[0].size();
+	notleaving = myentries[0].size();
 
-    tmp.resize(n);
+	tmp.resize(n);
 	    
-    for(int i = 0, c = 0; i < 27; ++i)
-    {
-	leaving_start[i] = c;
+	for(int i = 0, c = 0; i < 27; ++i)
+	{
+	    leaving_start[i] = c;
 	
-	for(int j = 0; j < myentries[i].size(); ++j, ++c)
-	    tmp[c] = p[myentries[i][j]];
-    }
+	    for(int j = 0; j < myentries[i].size(); ++j, ++c)
+		tmp[c] = p[myentries[i][j]];
+	}
 	    
-    leaving_start[27] = n;
+	leaving_start[27] = n;
+    }
 	  
+    MPI_Status statuses[26];
+    if (pending_send)	    
+	MPI_CHECK( MPI_Waitall(26, sendreq + 1, statuses) );
+
+    //in the non-vanilla version will use GPUDirect RDMA here
     for(int i = 1; i < 27; ++i)
 	MPI_CHECK( MPI_Isend(&tmp.front() + leaving_start[i], leaving_start[i + 1] - leaving_start[i],
 			     Particle::datatype(), rankneighbors[i], tagbase_redistribute_particles + i, cartcomm, sendreq + i) );
     
+    pending_send = true;
+
+    //prepare offsets for the new particles landing in my subdomain
     arriving = 0;
     arriving_start[0] = notleaving;
     for(int i = 1; i < 27; ++i)
@@ -90,32 +103,37 @@ int RedistributeParticles::stage2(Particle * p, int n)
 
     copy(tmp.begin(), tmp.begin() + notleaving, p);
 
+    //in the non-vanilla version will use GPUDirect RDMA here
+    //and this recv requests will be moved into stage1 but the receiving buffer would be another tmp vector (tmp2)
     for(int i = 1; i < 27; ++i)
 	MPI_CHECK( MPI_Irecv(p + arriving_start[i], arriving_start[i + 1] - arriving_start[i], Particle::datatype(),
 			     MPI_ANY_SOURCE, tagbase_redistribute_particles + i, cartcomm, recvreq + i) );
 
     MPI_Status statuses[26];	    
     MPI_CHECK( MPI_Waitall(26, recvreq + 1, statuses) );
-    MPI_CHECK( MPI_Waitall(26, sendreq + 1, statuses) );
-
-    for(int i = 1; i < 27; ++i)
+    
+    //change the system of reference of the particles
+    //in the non-vanilla version this will be a CUDA KERNEL
     {
-	int d[3] = { (i + 1) % 3 - 1, (i / 3 + 1) % 3 - 1, (i / 9 + 1) % 3 - 1 };
+	for(int i = 1; i < 27; ++i)
+	{
+	    int d[3] = { (i + 1) % 3 - 1, (i / 3 + 1) % 3 - 1, (i / 9 + 1) % 3 - 1 };
 	    
-	for(int j = arriving_start[i]; j < arriving_start[i + 1]; ++j)
+	    for(int j = arriving_start[i]; j < arriving_start[i + 1]; ++j)
+		for(int c = 0; c < 3; ++c)
+		    p[j].x[c] -= d[c] * L;
+	}
+	    
+	for(int i = 0; i < n; ++i)
+	{
+	    int vcode[3];
 	    for(int c = 0; c < 3; ++c)
-		p[j].x[c] -= d[c] * L;
-    }
-	    
-    for(int i = 0; i < n; ++i)
-    {
-	int vcode[3];
-	for(int c = 0; c < 3; ++c)
-	    vcode[c] = (2 + (p[i].x[c] >= -L/2) + (p[i].x[c] >= L/2)) % 3;
+		vcode[c] = (2 + (p[i].x[c] >= -L/2) + (p[i].x[c] >= L/2)) % 3;
 		
-	int code = vcode[0] + 3 * (vcode[1] + 3 * vcode[2]);
+	    int code = vcode[0] + 3 * (vcode[1] + 3 * vcode[2]);
 
-	assert(code == 0);
+	    assert(code == 0);
+	}
     }
 }
 
