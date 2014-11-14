@@ -144,11 +144,13 @@ namespace ParticleReordering
 	__syncthreads();
 
 	if (pid < np)
+	{
 	    if (!(base[code] + offset >= 0 && base[code] + offset < np))
 	{
 	    printf("ooops reordering::stage2: code %d base[code] %d offset %d np %d\n", code, base[code], offset, np);
 	}
-	assert(base[code] + offset >= 0 && base[code] + offset < np);
+	    assert(base[code] + offset >= 0 && base[code] + offset < np);
+	}
 
 	if (pid < np)
 	    tmp[ base[code] + offset ] = p;

@@ -41,5 +41,5 @@ public:
     
     //saru_tag is cumbersome, yet is at the core of the current dpd scheme.
     //see dpd-interactions.cpp for more details
-    void evaluate(int& saru_tag, Particle * p, int n, Acceleration * a);
+    void evaluate(int& saru_tag, Particle * p, int n, Acceleration * a, int * cellsstart, int * cellscount);
 };

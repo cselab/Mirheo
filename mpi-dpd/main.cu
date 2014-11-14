@@ -16,6 +16,8 @@
 #include "dpd-interactions.h"
 #include "redistribute-particles.h"
 
+#include <cuda-dpd.h>
+
 using namespace std;
 
 //velocity verlet stages
@@ -185,7 +187,30 @@ struct ParticleArray
 	    capacity = n;
 	    
 	}
-    };
+};
+
+struct CellLists
+{
+    const int ncells, L;
+
+    int * start, * count;
+    CellLists(const int L): ncells(L * L * L), L(L)
+	{
+	    CUDA_CHECK(cudaMalloc(&start, sizeof(int) * ncells));
+	    CUDA_CHECK(cudaMalloc(&count, sizeof(int) * ncells));
+	}
+
+    void build(Particle * const p, const int n)
+	{
+	    build_clists((float * )p, n, 1, L, L, L, -L/2, -L/2, -L/2, NULL, start, count,  NULL);
+	}
+
+    ~CellLists()
+	{
+	    CUDA_CHECK(cudaFree(start));
+	    CUDA_CHECK(cudaFree(count));
+	}
+};
 
 /*we run a simple dpd simulation by distributing particles to subdomains organized in a cartesian topology.
   every subdomain is of size L and the system of reference is the center of the subdomain.
@@ -236,6 +261,8 @@ int main(int argc, char ** argv)
 
     ParticleArray particles(ic);
 
+    
+		  
     RedistributeParticles redistribute(cartcomm, L);
     
     const size_t nsteps = (int)(tend / dt);
@@ -246,7 +273,11 @@ int main(int argc, char ** argv)
 
     ComputeInteractionsDPD dpd(cartcomm, L);
 
-    dpd.evaluate(saru_tag, particles.xyzuvw, particles.size, particles.axayaz);
+    CellLists cells(L);
+    cells.build(particles.xyzuvw, particles.size);
+    
+    dpd.evaluate(saru_tag, particles.xyzuvw, particles.size, particles.axayaz,
+		 cells.start, cells.count);
     
     for(int it = 0; it < nsteps; ++it)
     {
@@ -268,10 +299,14 @@ int main(int argc, char ** argv)
 
 	//receive the new particles
 	redistribute.stage2(particles.xyzuvw, particles.size);
+
+	cells.build(particles.xyzuvw, particles.size);
+	
 	check_particles(particles.xyzuvw, particles.size, L);
 	//evaluate local and remote dpd interactions
 	check_particles(particles.xyzuvw, particles.size, L);
-	dpd.evaluate(saru_tag, particles.xyzuvw, particles.size, particles.axayaz);
+	dpd.evaluate(saru_tag, particles.xyzuvw, particles.size, particles.axayaz,
+		     cells.start, cells.count);
 
 	check_particles(particles.xyzuvw, particles.size, L);
 	update_stage2<<<(particles.size + 127) / 128, 128>>>(particles.xyzuvw, particles.axayaz, particles.size, dt);

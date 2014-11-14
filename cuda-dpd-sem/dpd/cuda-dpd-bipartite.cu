@@ -13,7 +13,7 @@ __constant__ BipartiteInfoDPD bipart_info;
 
 
 #ifndef NDEBUG
-#define _CHECK_
+//#define _CHECK_
 #endif
  
 #define COLS 8

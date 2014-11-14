@@ -96,19 +96,24 @@ void dpd_bipartite_kernel(Particle * _pdst, int ndst, Particle * _psrc, int nsrc
     delete [] pdst;
 }
 
-void ComputeInteractionsDPD::evaluate(int& saru_tag, Particle * p, int n, Acceleration * a)
+void ComputeInteractionsDPD::evaluate(int& saru_tag, Particle * p, int n, Acceleration * a, int * cellsstart, int * cellscount)
 {
+    dpd_remote_interactions_stage1(p, n);
     CUDA_CHECK(cudaMemset(a, 0xff, sizeof(Acceleration) * n));
+    
     //no overlap as long as particle reordering happens here
 
-    forces_dpd_cuda_aos((float *)p, (float *)a,
-			NULL, n, 1, L, L, L, aij, gammadpd, sigma, 1. / sqrt(dt), saru_tag, true);
+    //forces_dpd_cuda_aos((float *)p, (float *)a,
+//			NULL, n,, true);
+    forces_dpd_cuda_nohost((float *)p, (float *)a, n, 
+			   cellsstart, cellscount,
+			   1, L, L, L, aij, gammadpd, sigma, 1. / sqrt(dt), saru_tag);
 
     CUDA_CHECK(cudaThreadSynchronize());
     
     saru_tag += nranks - myrank;
 
-    dpd_remote_interactions_stage1(p, n);
+   
     dpd_remote_interactions_stage2(p, n, saru_tag, a);
     
     saru_tag += 1 + myrank;  
@@ -309,7 +314,7 @@ namespace PackingHalo
 	    const float halo_start = max(d[c] * L - L/2, -L/2 - 1);
 	    const float halo_end = min(d[c] * L + L/2, L/2 + 1);
 
-	    assert(p[pid].x[c] >= halo_start && p[pid].x[c] < halo_end);
+	    assert(p[pid].x[c] >= halo_start && p[pid].x[c] <= halo_end);
 	}
 	
 #endif
