@@ -256,12 +256,22 @@ namespace PackingHalo
 	    return;
 
         int pid = scattered_entries[ gid ];
-	scattered_entries[gid] = -1;
-	//pid = (pid + 313) % nlocal;
-	
 	assert(pid >= 0 && pid < nlocal);
 	
 	Acceleration a = aremote[gid];
+
+	for(int c = 0; c < 3; ++c)
+	    atomicAdd(&alocal[pid].a[c], a.a[c]);
+	
+#ifndef NDEBUG
+	for(int c = 0; c < 3; ++c)
+	{
+       	    if (isnan(a.a[c]))
+		printf("oouch pid %d %f\n", pid, a.a[c]);
+	    
+	    assert(!isnan(a.a[c]));
+    }
+
 	Particle p1 = plocal[pid];
 	Particle p2 = premote[gid];
 
@@ -270,15 +280,7 @@ namespace PackingHalo
 	    assert(p1.x[c] == p2.x[c]);
 	    assert(p1.x[c] == p2.x[c]);
 	}
-
-	for(int c = 0; c < 3; ++c)
-	{
-	    if (isnan(a.a[c]))
-		printf("oouch pid %d %f\n", pid, a.a[c]);
-	    
-	    assert(!isnan(a.a[c]));
-	    atomicAdd(&alocal[pid].a[c], a.a[c]);
-	}
+#endif
     }
 }
 
@@ -387,7 +389,13 @@ void ComputeInteractionsDPD::dpd_remote_interactions_stage2(Particle * p, int n,
 	int dstrank;
 	MPI_CHECK( MPI_Cart_rank(cartcomm, coordsneighbor, &dstrank) );
 
-	saru_mask[i] = min(dstrank, myrank) == myrank;
+	if (dstrank != myrank)
+	    saru_mask[i] = min(dstrank, myrank) == myrank;
+	else
+	{
+	    int alter_ego = (2 - d[0]) % 3 + 3 * ((2 - d[1]) % 3 + 3 * ((2 - d[2]) % 3));
+	    saru_mask[i] = min(i, alter_ego) == i;
+	}
     }
 
     const int nremote = send_offsets[26];

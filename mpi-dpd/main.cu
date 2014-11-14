@@ -68,8 +68,8 @@ __global__ void update_stage2_and_1(Particle * p, Acceleration * a, int n, float
 	myu += mya * dt;
 	myx += myu * dt;
 	
-	p[pid].u[c] = myu;
-	p[pid].x[c] = myx;
+	p[pid].u[c] = myu; 
+	p[pid].x[c] = myx; 
     }
 }
 
