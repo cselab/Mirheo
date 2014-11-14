@@ -5,7 +5,46 @@
 
 using namespace std;
 
-void ComputeInteractionsDPD::evaluate(int& saru_tag, Particle * p, int n, Acceleration * a, int * cellsstart, int * cellscount)
+ComputeInteractionsDPD::ComputeInteractionsDPD(MPI_Comm cartcomm, int L):
+    cartcomm(cartcomm), L(L), pending_send(false), recv_bag(NULL), recv_bag_size(0)
+{
+    assert(L % 2 == 0);
+    assert(L >= 2);
+	
+    MPI_CHECK( MPI_Comm_rank(cartcomm, &myrank));
+    MPI_CHECK( MPI_Comm_size(cartcomm, &nranks));
+	
+    MPI_CHECK( MPI_Cart_get(cartcomm, 3, dims, periods, coords) );
+	
+    for(int i = 0; i < 26; ++i)
+    {
+	int d[3] = { (i + 2) % 3 - 1, (i / 3 + 2) % 3 - 1, (i / 9 + 2) % 3 - 1 };
+
+	recv_tags[i] = tagbase_dpd_remote_interactions + (2 - d[0]) % 3 + 3 * ((2 - d[1]) % 3 + 3 * ((2 - d[2]) % 3));
+	    
+	int coordsneighbor[3];
+	for(int c = 0; c < 3; ++c)
+	    coordsneighbor[c] = coords[c] + d[c];
+	    
+	MPI_CHECK( MPI_Cart_rank(cartcomm, coordsneighbor, dstranks + i) );
+    }
+
+    CUDA_CHECK(cudaHostAlloc((void **)&sendpacks_start, sizeof(int) * 27, cudaHostAllocMapped));
+    CUDA_CHECK(cudaHostGetDevicePointer(&sendpacks_start_host, sendpacks_start, 0));
+
+    CUDA_CHECK(cudaHostAlloc((void **)&send_bag_size_required, sizeof(int), cudaHostAllocMapped));
+    CUDA_CHECK(cudaHostGetDevicePointer(&send_bag_size_required_host, send_bag_size_required, 0));
+
+    send_bag_size = L * L * 3 * 27;
+    CUDA_CHECK(cudaMalloc(&send_bag, send_bag_size * sizeof(Particle)));
+    CUDA_CHECK(cudaMalloc(&acc_remote, send_bag_size * sizeof(Acceleration)));
+
+    recv_bag_size = L * L * 3 * 27;
+    CUDA_CHECK(cudaMalloc(&recv_bag, recv_bag_size * sizeof(Particle)));
+}
+
+void ComputeInteractionsDPD::evaluate(int& saru_tag, const Particle * const p, const int n, Acceleration * const a,
+				      const int * const cellsstart, const int * const cellscount)
 {
     dpd_remote_interactions_stage1(p, n);
     
@@ -37,7 +76,7 @@ namespace PackingHalo
     }
 
     template< int work >
-    __global__ void stage1(int * packs_start, Particle * p, int np, const int L, int * bag_size_required)
+    __global__ void count(int * const packs_start, const Particle * const p, const int np, const int L, int * bag_size_required)
     {
 	assert(blockDim.x * gridDim.x * work >= np);
 	assert(blockDim.x >= 26);
@@ -116,7 +155,7 @@ namespace PackingHalo
 	}
     }
 
-    __global__ void stage2(Particle * particles, int np, const int L, Particle * bag, int bagsize)
+    __global__ void pack(const Particle * const particles, int np, const int L, Particle * const bag, const int bagsize)
     {
 	if (bagsize < requiredsize)
 	    return;
@@ -245,8 +284,9 @@ namespace PackingHalo
 	}
     }
 
-    __global__ void merge_accelerations(Acceleration * aremote, const int nremote, Acceleration * alocal, const int nlocal,
-					Particle * premote, Particle * plocal)
+    __global__ void merge_accelerations(const Acceleration * const aremote, const int nremote,
+					Acceleration * const alocal, const int nlocal,
+					const Particle * premote, const Particle * plocal)
     {
 	assert(blockDim.x * gridDim.x >= nremote);
 
@@ -285,7 +325,7 @@ namespace PackingHalo
 }
 
 #include <numeric>
-void ComputeInteractionsDPD::dpd_remote_interactions_stage1(Particle * p, int n)
+void ComputeInteractionsDPD::dpd_remote_interactions_stage1(const Particle * const p, const int n)
 {
     MPI_Status statuses[26];
     
@@ -295,14 +335,14 @@ void ComputeInteractionsDPD::dpd_remote_interactions_stage1(Particle * p, int n)
     PackingHalo::setup<<<1, 1>>>(false);
 
     if (n > 0)
-	PackingHalo::stage1<1> <<<(n + 127) / 128, 128>>> (sendpacks_start, p, n, L, send_bag_size_required);    
+	PackingHalo::count<1> <<<(n + 127) / 128, 128>>> (sendpacks_start, p, n, L, send_bag_size_required);    
     else
 	for(int i = 0; i < 27; ++i)
 	    sendpacks_start_host[i] = 0;
     
 stage2:
     if (n > 0)
-	PackingHalo::stage2 <<<(n + 127) / 128, 128>>>(p, n, L, send_bag, send_bag_size);
+	PackingHalo::pack <<<(n + 127) / 128, 128>>>(p, n, L, send_bag, send_bag_size);
 
     CUDA_CHECK(cudaPeekAtLastError());
     CUDA_CHECK(cudaThreadSynchronize());
@@ -365,7 +405,7 @@ stage2:
 			     Particle::datatype(), MPI_ANY_SOURCE, recv_tags[i], cartcomm, recvreq + i) );
 }
     
-void ComputeInteractionsDPD::dpd_remote_interactions_stage2(Particle * p, int n, int saru_tag1, Acceleration * a)
+void ComputeInteractionsDPD::dpd_remote_interactions_stage2(const Particle * const p, const int n, const int saru_tag1, Acceleration * const  a)
 {
     MPI_Status statuses[26];
     MPI_CHECK( MPI_Waitall(26, recvreq, statuses) );
@@ -430,46 +470,6 @@ void ComputeInteractionsDPD::dpd_remote_interactions_stage2(Particle * p, int n,
     CUDA_CHECK(cudaThreadSynchronize());
 
     PackingHalo::merge_accelerations<<<(nremote + 127) / 128, 128>>>(acc_remote, nremote, a, n, send_bag, p);
-}
-
-ComputeInteractionsDPD::ComputeInteractionsDPD(MPI_Comm cartcomm, int L):
-    cartcomm(cartcomm), L(L), pending_send(false), recv_bag(NULL), recv_bag_size(0)
-{
-    assert(L % 2 == 0);
-    assert(L >= 2);
-	
-    MPI_CHECK( MPI_Comm_rank(cartcomm, &myrank));
-    MPI_CHECK( MPI_Comm_size(cartcomm, &nranks));
-	
-    MPI_CHECK( MPI_Cart_get(cartcomm, 3, dims, periods, coords) );
-	
-    for(int i = 0; i < 26; ++i)
-    {
-	int d[3] = { (i + 2) % 3 - 1, (i / 3 + 2) % 3 - 1, (i / 9 + 2) % 3 - 1 };
-
-	recv_tags[i] = tagbase_dpd_remote_interactions + (2 - d[0]) % 3 + 3 * ((2 - d[1]) % 3 + 3 * ((2 - d[2]) % 3));
-	    
-	int coordsneighbor[3];
-	for(int c = 0; c < 3; ++c)
-	    coordsneighbor[c] = coords[c] + d[c];
-	    
-	MPI_CHECK( MPI_Cart_rank(cartcomm, coordsneighbor, dstranks + i) );
-    }
-
-    CUDA_CHECK(cudaHostAlloc((void **)&sendpacks_start, sizeof(int) * 27, cudaHostAllocMapped));
-    CUDA_CHECK(cudaHostGetDevicePointer(&sendpacks_start_host, sendpacks_start, 0));
-
-    CUDA_CHECK(cudaHostAlloc((void **)&send_bag_size_required, sizeof(int), cudaHostAllocMapped));
-    CUDA_CHECK(cudaHostGetDevicePointer(&send_bag_size_required_host, send_bag_size_required, 0));
-
-    send_bag_size = L * L * 3 * 27;
-    CUDA_CHECK(cudaMalloc(&send_bag, send_bag_size * sizeof(Particle)));
-    CUDA_CHECK(cudaMalloc(&acc_remote, send_bag_size * sizeof(Acceleration)));
-
-    recv_bag_size = L * L * 3 * 27;
-    CUDA_CHECK(cudaMalloc(&recv_bag, recv_bag_size * sizeof(Particle)));
-	
-    PackingHalo::setup<<<1, 1>>>(true);
 }
 
 ComputeInteractionsDPD::~ComputeInteractionsDPD()

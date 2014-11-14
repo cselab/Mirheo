@@ -43,7 +43,6 @@ float saru(unsigned int seed1, unsigned int seed2, unsigned int seed3)
 void ComputeInteractionsDPD::dpd_kernel(Particle * p, int n, int saru_tag,  Acceleration * a)
 {    
 #ifdef _WITHCUDA_
-    asdas
     vector<Acceleration> tmp(n);
     vector<int> order(n);
     
@@ -108,7 +107,6 @@ void ComputeInteractionsDPD::dpd_bipartite_kernel(Particle * pdst, int ndst, Par
 			  int saru_tag1, int saru_tag2, int saru_mask, Acceleration * a)
 {
 #ifdef _WITHCUDA_
-asdaa
     if (nsrc > 0 && ndst > 0)
 	directforces_dpd_cuda_bipartite((float *)pdst, (float *) a, ndst, (float *)psrc, nsrc, aij, gammadpd, sigma, 1. / sqrt(dt),
 					saru_tag1, saru_tag2, saru_mask);

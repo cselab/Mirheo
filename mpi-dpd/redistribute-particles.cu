@@ -34,6 +34,8 @@ RedistributeParticles::RedistributeParticles(MPI_Comm cartcomm, int L):
     CUDA_CHECK(cudaHostGetDevicePointer(&leaving_start, leaving_start_device, 0));
 }
 
+//to keep the mess under a reasonable limit i wrap the set of
+//kernels and data used for particle reordering within this namespace
 namespace ParticleReordering
 {
     __device__ int blockcount, global_histo[27];
@@ -46,7 +48,9 @@ namespace ParticleReordering
 	    global_histo[i] = 0;	
     }
 
-    __global__ void count(Particle * p, int n, int L, int * leaving_start)
+    //this kernel is computing the histograms of particles landing into which subdomain
+    //it creates a prefix sum to create global offsets (leaving_start) for the reordering (next kernel)
+    __global__ void count(const Particle * p, const int n, const int L, int * const leaving_start)
     {
 	assert(blockDim.x >= 27);
 	assert(blockDim.x * gridDim.x >= n);
@@ -103,7 +107,9 @@ namespace ParticleReordering
 	}
     }
 
-    __global__ void reorder(Particle * particles, int np, const int L, Particle * tmp)
+    //the reordering is performed by aquiring a global offset (computed by the "count" kernel)
+    //and computing a local offset. particles are written into temp
+    __global__ void reorder(const Particle * const particles, const int np, const int L, Particle * const tmp)
     {
 	assert(blockDim.x * gridDim.x >= np);
 	assert(blockDim.x >= 27);
@@ -156,9 +162,12 @@ namespace ParticleReordering
 	    tmp[ base[code] + offset ] = p;
     }
 
-    __global__ void shift(Particle * p, int np, int L, int code)
+    //particles that arrived from another subdomain must be transformed to the
+    //local system of reference of this subdomain. given the directional code i figure out the shift.
+    __global__ void shift(Particle * const p, const int np, const int L, const int code)
     {
 	assert(blockDim.x * gridDim.x >= np);
+	
 	int pid = threadIdx.x + blockDim.x * blockIdx.x;
 	
 	int d[3] = { (code + 1) % 3 - 1, (code / 3 + 1) % 3 - 1, (code / 9 + 1) % 3 - 1 };
@@ -187,7 +196,7 @@ namespace ParticleReordering
     }
 }
     
-int RedistributeParticles::stage1(Particle * p, int n)
+int RedistributeParticles::stage1(const Particle * const p, const int n)
 {
     if (tmp_size < n)
     {
@@ -203,6 +212,7 @@ int RedistributeParticles::stage1(Particle * p, int n)
     ParticleReordering::count<<<(n + 127) / 128, 128>>>(p, n, L, leaving_start_device);
     ParticleReordering::reorder<<<(n + 127) / 128, 128>>>(p, n, L, tmp);
 
+    //we need to synchronize in order to get tmp and leaving_start filled
     CUDA_CHECK(cudaPeekAtLastError());
     CUDA_CHECK(cudaThreadSynchronize());
 
@@ -214,6 +224,7 @@ int RedistributeParticles::stage1(Particle * p, int n)
     if (pending_send)	    
 	MPI_CHECK( MPI_Waitall(26, sendreq + 1, statuses) );
 
+    //cuda-aware mpi send
     for(int i = 1; i < 27; ++i)
 	MPI_CHECK( MPI_Isend(tmp + leaving_start[i], leaving_start[i + 1] - leaving_start[i],
 			     Particle::datatype(), rankneighbors[i], tagbase_redistribute_particles + i, cartcomm, sendreq + i) );
@@ -239,12 +250,13 @@ int RedistributeParticles::stage1(Particle * p, int n)
     return notleaving + arriving;
 }
 
-void RedistributeParticles::stage2(Particle * p, int n)
+void RedistributeParticles::stage2(Particle * const p, const int n)
 {
     assert(n == notleaving + arriving);
 
     CUDA_CHECK(cudaMemcpy(p, tmp, sizeof(Particle) * notleaving, cudaMemcpyDeviceToDevice));
-    
+
+    //cuda-aware mpi receive
     for(int i = 1; i < 27; ++i)
 	MPI_CHECK( MPI_Irecv(p + arriving_start[i], arriving_start[i + 1] - arriving_start[i], Particle::datatype(),
 			     MPI_ANY_SOURCE, tagbase_redistribute_particles + i, cartcomm, recvreq + i) );
@@ -252,6 +264,7 @@ void RedistributeParticles::stage2(Particle * p, int n)
     MPI_Status statuses[26];	    
     MPI_CHECK( MPI_Waitall(26, recvreq + 1, statuses) );
 
+    //we could use multiple streams - these cuda launch are small compared to n
     for(int i = 0; i < 27; ++i)
     {
 	const int count = arriving_start[i + 1] - arriving_start[i];

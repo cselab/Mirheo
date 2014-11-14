@@ -389,99 +389,108 @@ void forces_dpd_cuda_bipartite(float * const _xyzuvw1, float * const _axayaz1, i
 #endif
 }
 
-//texture<float2, cudaTextureType1D> texParticlesDBP, texSrcParticlesDBP;
+
 
 __global__
+//template<int ILP>
 void _bipartite_dpd_directforces(float * const axayaz, const int np, const int np_src,
 				 const int saru_tag1, const int saru_tag2, const bool saru_mask, const float * xyzuvw, const float * xyzuvw_src,
    const float invrc, const float aij, const float gamma, const float sigmaf)
 {
+    assert(blockDim.x == warpSize);
     assert(blockDim.x * gridDim.x >= np);
-
+    
+    const int tid = threadIdx.x;
     const int pid = threadIdx.x + blockDim.x * blockIdx.x;
+    const bool valid = pid < np;
 
-    if (pid >= np)
-	return;
+    float xp, yp, zp, up, vp, wp;
 
-    const int entry = pid * 3;
-    
-    float2 dtmp0 = make_float2(xyzuvw[0 + 6 * pid], xyzuvw[1 + 6 * pid]); //tex1Dfetch(texParticlesDBP, entry);
-    float2 dtmp1 = make_float2(xyzuvw[2 + 6 * pid], xyzuvw[3 + 6 * pid]); //tex1Dfetch(texParticlesDBP, entry + 1);
-    float2 dtmp2 = make_float2(xyzuvw[4 + 6 * pid], xyzuvw[5 + 6 * pid]); //tex1Dfetch(texParticlesDBP, entry + 2);
-
-    if (dtmp0.x != xyzuvw[0 + 6 * pid])
-	printf("ouch: tex fetch differs from ptr: %f %f np: %d nscr: %d\n", dtmp0.x, xyzuvw[0 + 6 * pid], np, np_src);
-    assert(dtmp0.x == xyzuvw[0 + 6 * pid]);
-    
-    assert(!isnan(dtmp0.x) && !isnan(dtmp0.y));
-    assert(!isnan(dtmp1.x) && !isnan(dtmp1.y));
-    assert(!isnan(dtmp2.x) && !isnan(dtmp2.y));
+    if (valid)
+    {
+	xp = xyzuvw[0 + pid * 6];
+	yp = xyzuvw[1 + pid * 6];
+	zp = xyzuvw[2 + pid * 6];
+	up = xyzuvw[3 + pid * 6];
+	vp = xyzuvw[4 + pid * 6];
+	wp = xyzuvw[5 + pid * 6];
+    }
 
     float xforce = 0, yforce = 0, zforce = 0;
     
-    for(int i = 0; i < np_src; ++i)
+    for(int s = 0; s < np_src; s += warpSize)
     {
-	const int sentry = 3 * i;
-	
-	const float2 stmp0 = make_float2(xyzuvw_src[0 + 6 * i], xyzuvw_src[1 + 6 * i]); //tex1Dfetch(texSrcParticlesDBP, sentry);
-	const float2 stmp1 = make_float2(xyzuvw_src[2 + 6 * i], xyzuvw_src[3 + 6 * i]); //tex1Dfetch(texSrcParticlesDBP, sentry + 1);
-	const float2 stmp2 = make_float2(xyzuvw_src[4 + 6 * i], xyzuvw_src[5 + 6 * i]); //tex1Dfetch(texSrcParticlesDBP, sentry + 2);
-	
-	assert(!isnan(stmp0.x) && !isnan(stmp0.y));
-	assert(!isnan(stmp1.x) && !isnan(stmp1.y));
-	assert(!isnan(stmp2.x) && !isnan(stmp2.y));
+	float my_xq, my_yq, my_zq, my_uq, my_vq, my_wq;
 
-	const float _xr = dtmp0.x - stmp0.x;
-	const float _yr = dtmp0.y - stmp0.y;
-	const float _zr = dtmp1.x - stmp1.x;
-	assert(!isnan(_xr));
-	
-	const float rij2 = _xr * _xr + _yr * _yr + _zr * _zr;
-	if (rij2 == 0)
-	    printf("oooops %f %f %f and  %f %f %f\n", dtmp0.x, dtmp0.y, dtmp1.x, stmp0.x, stmp0.y, stmp1.x);
-	
-	assert(rij2 > 0);
-	const float invrij = rsqrtf(rij2);
-	assert(!isnan(invrij));
-	 
-	const float rij = rij2 * invrij;
-	const float wr = max((float)0, 1 - rij * invrc);
-		
-	const float xr = _xr * invrij;
-	const float yr = _yr * invrij;
-	const float zr = _zr * invrij;
+	const int batchsize = min(warpSize, np_src - s);
 
-	if (isnan(xr))
+	if (tid < batchsize)
 	{
-	    printf("ooops: _xr %f invrj %f\n", _xr, invrij);
+	    my_xq = xyzuvw_src[0 + (tid + s) * 6];
+	    my_yq = xyzuvw_src[1 + (tid + s) * 6];
+	    my_zq = xyzuvw_src[2 + (tid + s) * 6];
+	    my_uq = xyzuvw_src[3 + (tid + s) * 6];
+	    my_vq = xyzuvw_src[4 + (tid + s) * 6];
+	    my_wq = xyzuvw_src[5 + (tid + s) * 6];
 	}
-	assert(!isnan(xr));
 	
-	const float rdotv = 
-	    xr * (dtmp1.y - stmp1.y) +
-	    yr * (dtmp2.x - stmp2.x) +
-	    zr * (dtmp2.y - stmp2.y);
-	assert(!isnan(xr));
-	
-	const float mysaru = saru(saru_tag1, saru_tag2, saru_mask ? pid + np * i : i + np_src * pid);
-	
-	const float myrandnr = 3.464101615f * mysaru - 1.732050807f;
+	for(int l = 0; l < batchsize; ++l)
+	{
+	    const float xq = __shfl(my_xq, l);
+	    const float yq = __shfl(my_yq, l);
+	    const float zq = __shfl(my_zq, l);
+	    const float uq = __shfl(my_uq, l);
+	    const float vq = __shfl(my_vq, l);
+	    const float wq = __shfl(my_wq, l);
+
+	    //necessary to force the execution shuffles here below
+	    __syncthreads();
+	    
+	    if (valid)
+	    {
+		const float _xr = xp - xq;
+		const float _yr = yp - yq;
+		const float _zr = zp - zq;
+		
+		const float rij2 = _xr * _xr + _yr * _yr + _zr * _zr;
+		
+		const float invrij = rsqrtf(rij2);
 		 
-	const float strength = (aij - gamma * wr * rdotv + sigmaf * myrandnr) * wr;
-	assert(!isnan(rdotv));
+		const float rij = rij2 * invrij;
+		const float wr = max((float)0, 1 - rij * invrc);
+		
+		const float xr = _xr * invrij;
+		const float yr = _yr * invrij;
+		const float zr = _zr * invrij;
+
+		const float rdotv = 
+		    xr * (up - uq) +
+		    yr * (vp - vq) +
+		    zr * (wp - wq);
+		
+		const float mysaru = saru(saru_tag1, saru_tag2, saru_mask ? pid + np * (s + l) : (s + l) + np_src * pid);
 	
-	xforce += strength * xr;
-	yforce += strength * yr;
-	zforce += strength * zr;
+		const float myrandnr = 3.464101615f * mysaru - 1.732050807f;
+		 
+		const float strength = (aij - gamma * wr * rdotv + sigmaf * myrandnr) * wr;
+
+		xforce += strength * xr;
+		yforce += strength * yr;
+		zforce += strength * zr;
+	    }
+	}
     }
 
-    assert(!isnan(xforce));
-    assert(!isnan(yforce));
-    assert(!isnan(zforce));
+    if (valid)
+    {
+	assert(!isnan(xforce));
+	assert(!isnan(yforce));
+	assert(!isnan(zforce));
     
-    axayaz[0 + 3 * pid] = xforce;
-    axayaz[1 + 3 * pid] = yforce;
-    axayaz[2 + 3 * pid] = zforce; 
+	axayaz[0 + 3 * pid] = xforce;
+	axayaz[1 + 3 * pid] = yforce;
+	axayaz[2 + 3 * pid] = zforce;
+    }
 }
 
 void directforces_dpd_cuda_bipartite_nohost(
@@ -490,54 +499,15 @@ void directforces_dpd_cuda_bipartite_nohost(
     const float aij, const float gamma, const float sigma, const float invsqrtdt,
     const int saru_tag1, const int saru_tag2, const bool sarumask)
 {
-    //printf("aij is %f\n", aij);
-    //printf("DIRECT DPD BIPARTITE %d x %d\n", np, np_src);
     if (np == 0 || np_src == 0)
     {
 	printf("warning: directforces_dpd_cuda_bipartite_nohost called with ZERO!\n");
 	return;
     }
-    //bind texParticles
-    /*{
-	texParticlesDBP.channelDesc = cudaCreateChannelDesc<float2>();
-	texParticlesDBP.filterMode = cudaFilterModePoint;
-	texParticlesDBP.mipmapFilterMode = cudaFilterModePoint;
-	texParticlesDBP.normalized = 0;
-   
-	size_t textureoffset = 0;
-	
-	CUDA_CHECK(cudaBindTexture(&textureoffset, &texParticlesDBP, xyzuvw, &texParticlesDBP.channelDesc, sizeof(float) * 6 * np));
-	printf("offset dest tex: %d\n", textureoffset);
-    }
-
-    {
-	texSrcParticlesDBP.channelDesc = cudaCreateChannelDesc<float2>();
-	texSrcParticlesDBP.filterMode = cudaFilterModePoint;
-	texSrcParticlesDBP.mipmapFilterMode = cudaFilterModePoint;
-	texSrcParticlesDBP.normalized = 0;
-   
-	size_t textureoffset = 0;
-	CUDA_CHECK(cudaBindTexture(&textureoffset, &texSrcParticlesDBP, xyzuvw_src, &texSrcParticlesDBP.channelDesc, sizeof(float) * 6 * np_src));
-	printf("offset src tex: %d\n", textureoffset);
-    }
-
-    {
-	BipartiteInfoDPD c;
-    
-	c.invrc = 1.f;
-	c.aij = aij;
-	c.gamma = gamma;
-	c.sigmaf = sigma * invsqrtdt;
-        
-	CUDA_CHECK(cudaMemcpyToSymbol(bipart_info, &c, sizeof(c)));
-    }*/
-    
-    _bipartite_dpd_directforces<<<(np + 127) / 128, 128>>>(axayaz, np, np_src, saru_tag1, saru_tag2, sarumask,
+ 
+    _bipartite_dpd_directforces<<<(np + 31) / 32, 32>>>(axayaz, np, np_src, saru_tag1, saru_tag2, sarumask,
 							   xyzuvw, xyzuvw_src, 1, aij, gamma, sigma * invsqrtdt);
-
-    //CUDA_CHECK(cudaUnbindTexture(texParticlesDBP));
-    //CUDA_CHECK(cudaUnbindTexture(texSrcParticlesDBP));
-    
+   
     CUDA_CHECK(cudaPeekAtLastError());
 }
 

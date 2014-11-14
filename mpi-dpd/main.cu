@@ -9,6 +9,8 @@
 #include <sstream>
 #include <vector>
 
+#include <cuda-dpd.h>
+
 //in common.h i define Particle and Acceleration data structures
 //as well as the global parameters for the simulation
 #include "common.h"
@@ -16,11 +18,9 @@
 #include "dpd-interactions.h"
 #include "redistribute-particles.h"
 
-#include <cuda-dpd.h>
-
 using namespace std;
 
-//velocity verlet stages
+//velocity verlet stages - first stage
 __global__ void update_stage1(Particle * p, Acceleration * a, int n, float dt)
 {
     assert(blockDim.x * gridDim.x >= n);
@@ -44,6 +44,7 @@ __global__ void update_stage1(Particle * p, Acceleration * a, int n, float dt)
 	p[pid].x[c] += p[pid].u[c] * dt;
 }
 
+//fused velocity verlet stage 2 and 1 (for the next iteration)
 __global__ void update_stage2_and_1(Particle * p, Acceleration * a, int n, float dt)
 {
     assert(blockDim.x * gridDim.x >= n);
@@ -83,9 +84,13 @@ void diagnostics(MPI_Comm comm, Particle * _particles, int n, float dt, int idst
     
     int nlocal = n;
 
+    //we fused VV stages so we need to recover the state before stage 1
     for(int i = 0; i < n; ++i)
 	for(int c = 0; c < 3; ++c)
+	{
+	    particles[i].x[c] -= dt * particles[i].u[c];
 	    particles[i].u[c] -= 0.5 * dt * acc[i].a[c];
+	}
     
     double p[] = {0, 0, 0};
     for(int i = 0; i < n; ++i)
@@ -109,7 +114,6 @@ void diagnostics(MPI_Comm comm, Particle * _particles, int n, float dt, int idst
     
     double kbt = 0.5 * ke / (n * 3. / 2);
 
-    //output temperature and total momentum
     if (rank == 0)
     {
 	FILE * f = fopen("diag.txt", idstep ? "a" : "w");
@@ -122,7 +126,6 @@ void diagnostics(MPI_Comm comm, Particle * _particles, int n, float dt, int idst
 	fclose(f);
     }
     
-    //output VMD file
     {
 	std::stringstream ss;
 
@@ -164,6 +167,7 @@ void diagnostics(MPI_Comm comm, Particle * _particles, int n, float dt, int idst
     delete [] acc;
 }
 
+//container for the gpu particles during the simulation
 struct ParticleArray
 {
     int capacity, size;
@@ -198,6 +202,10 @@ struct ParticleArray
 	}
 };
 
+//container for the cell lists, which contains only two integer vectors of size ncells.
+//the start[cell-id] array gives the entry in the particle array associated to first particle belonging to cell-id
+//count[cell-id] tells how many particles are inside cell-id.
+//building the cell lists involve a reordering of the particle array (!)
 struct CellLists
 {
     const int ncells, L;
@@ -247,8 +255,6 @@ int main(int argc, char ** argv)
     
     int periods[] = {1,1,1};
     MPI_CHECK( MPI_Cart_create(MPI_COMM_WORLD, 3, ranks, periods, 1, &cartcomm) );
-
-    const int L = 8;
     
     vector<Particle> ic(L * L * L * 3);
 
@@ -256,6 +262,8 @@ int main(int argc, char ** argv)
 	for(int c = 0; c < 3; ++c)
 	    ic[i].x[c] = -L * 0.5 + drand48() * L;
 
+    //the methods of these classes are not expected to call cudaThreadSynchronize unless really necessary
+    //(be aware of that)
     ParticleArray particles(ic);
     CellLists cells(L);		  
     RedistributeParticles redistribute(cartcomm, L);
@@ -288,7 +296,7 @@ int main(int argc, char ** argv)
 	 
 	update_stage2_and_1<<<(particles.size + 127) / 128, 128>>>(particles.xyzuvw, particles.axayaz, particles.size, dt);
 	 
-	if (it % 50 == 0)
+	if (it % 1 == 0)
 	    diagnostics(cartcomm, particles.xyzuvw, particles.size, dt, it, L, particles.axayaz);
     }
     
