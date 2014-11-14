@@ -38,7 +38,7 @@ void update_stage2(Particle * p, Acceleration * a, int n, float dt)
 	    p[i].u[c] += a[i].a[c] * dt * 0.5;
 }
 
-void diagnostics(MPI_Comm comm, Particle * particles, int n, float dt, int idstep)
+void diagnostics(MPI_Comm comm, Particle * particles, int n, float dt, int idstep, const int L)
 {
     int nlocal = n;
     
@@ -52,6 +52,9 @@ void diagnostics(MPI_Comm comm, Particle * particles, int n, float dt, int idste
 
     int rank;
     MPI_CHECK( MPI_Comm_rank(comm, &rank) );
+    
+    int dims[3], periods[3], coords[3];
+    MPI_CHECK( MPI_Cart_get(comm, 3, dims, periods, coords) );
     
     MPI_CHECK( MPI_Reduce(rank == 0 ? MPI_IN_PLACE : &p, &p, 3, MPI_DOUBLE, MPI_SUM, 0, comm) );
     
@@ -86,10 +89,13 @@ void diagnostics(MPI_Comm comm, Particle * particles, int n, float dt, int idste
 	    ss << n << "\n";
 	    ss << "dpdparticle\n";
 	}
-    
-	for(int i = 0; i < nlocal; ++i)
-	    ss << "1 " << particles[i].x[0] << " " << particles[i].x[1] << " " << particles[i].x[2] << "\n";
-
+	
+    	for(int i = 0; i < nlocal; ++i)
+	    ss << "1 "
+	       << (particles[i].x[0] + L / 2 + coords[0] * L) << " "
+	       << (particles[i].x[1] + L / 2 + coords[1] * L) << " "
+	       << (particles[i].x[2] + L / 2 + coords[2] * L) << "\n";
+	
 	string content = ss.str();
 
 	int len = content.size();
@@ -148,7 +154,7 @@ int main(int argc, char ** argv)
     int periods[] = {1,1,1};
     MPI_CHECK( MPI_Cart_create(MPI_COMM_WORLD, 3, ranks, periods, 1, &cartcomm) );
 
-    const int L = 8;
+    const int L = 24;
 
     //for simplicity we consider exclusively cubic subdomains
     //in the non-vanilla version these array will reside on the device, not on the host
@@ -196,7 +202,7 @@ int main(int argc, char ** argv)
 
 	update_stage2(&particles.front(), &accel.front(), particles.size(), dt);
 
-	diagnostics(cartcomm, &particles.front(), particles.size(), dt, it);
+	diagnostics(cartcomm, &particles.front(), particles.size(), dt, it, L);
     }
     
     MPI_CHECK( MPI_Finalize() );

@@ -65,7 +65,7 @@ struct Acceleration
     float a[3];
 };
 
-const int L = 8;
+const int L = 24;
 const float dt = 0.02;
 const float tend = 10;
 const float kBT = 0.1;

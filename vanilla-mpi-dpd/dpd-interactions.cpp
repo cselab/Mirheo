@@ -264,7 +264,13 @@ void ComputeInteractionsDPD::dpd_remote_interactions_stage2(Particle * p, int n,
 	int dstrank;
 	MPI_CHECK( MPI_Cart_rank(cartcomm, coordsneighbor, &dstrank) );
 
-	saru_mask[i] = min(dstrank, myrank) == myrank;
+	if (dstrank != myrank)
+	    saru_mask[i] = min(dstrank, myrank) == myrank;
+	else
+	{
+	    int alter_ego = (2 - d[0]) % 3 + 3 * ((2 - d[1]) % 3 + 3 * ((2 - d[2]) % 3));
+	    saru_mask[i] = min(i, alter_ego) == i;
+	}
     }
 
     /* compute interactions with the remote particle packs,
