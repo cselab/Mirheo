@@ -46,7 +46,7 @@ namespace ParticleReordering
 	    global_histo[i] = 0;	
     }
 
-    __global__ void stage1(Particle * p, int n, int L, int * leaving_start)
+    __global__ void count(Particle * p, int n, int L, int * leaving_start)
     {
 	assert(blockDim.x >= 27);
 	assert(blockDim.x * gridDim.x >= n);
@@ -103,7 +103,7 @@ namespace ParticleReordering
 	}
     }
 
-    __global__ void stage2(Particle * particles, int np, const int L, Particle * tmp)
+    __global__ void reorder(Particle * particles, int np, const int L, Particle * tmp)
     {
 	assert(blockDim.x * gridDim.x >= np);
 	assert(blockDim.x >= 27);
@@ -146,9 +146,9 @@ namespace ParticleReordering
 	if (pid < np)
 	{
 	    if (!(base[code] + offset >= 0 && base[code] + offset < np))
-	{
-	    printf("ooops reordering::stage2: code %d base[code] %d offset %d np %d\n", code, base[code], offset, np);
-	}
+	    {
+		printf("ooops reordering::stage2: code %d base[code] %d offset %d np %d\n", code, base[code], offset, np);
+	    }
 	    assert(base[code] + offset >= 0 && base[code] + offset < np);
 	}
 
@@ -156,7 +156,7 @@ namespace ParticleReordering
 	    tmp[ base[code] + offset ] = p;
     }
 
-    __global__ void stage3(Particle * p, int np, int L, int code)
+    __global__ void shift(Particle * p, int np, int L, int code)
     {
 	assert(blockDim.x * gridDim.x >= np);
 	int pid = threadIdx.x + blockDim.x * blockIdx.x;
@@ -200,19 +200,12 @@ int RedistributeParticles::stage1(Particle * p, int n)
     }
  
     ParticleReordering::setup<<<1, 1>>>();
-    ParticleReordering::stage1<<<(n + 127) / 128, 128>>>(p, n, L, leaving_start_device);
-    ParticleReordering::stage2<<<(n + 127) / 128, 128>>>(p, n, L, tmp);
+    ParticleReordering::count<<<(n + 127) / 128, 128>>>(p, n, L, leaving_start_device);
+    ParticleReordering::reorder<<<(n + 127) / 128, 128>>>(p, n, L, tmp);
 
     CUDA_CHECK(cudaPeekAtLastError());
     CUDA_CHECK(cudaThreadSynchronize());
 
-/*    printf("LEAVING OFFSETS: ");
-      for(int i = 0; i < 28; ++i)
-      printf("%d ", leaving_start[i]);
-      printf("\n");
-
-      printf("n is %d\n", n);
-*/
     assert(leaving_start[27] == n);
    
     notleaving = leaving_start[1];
@@ -242,8 +235,6 @@ int RedistributeParticles::stage1(Particle * p, int n)
     }
 	    
     arriving_start[27] = notleaving + arriving;
-
-    //printf("not leaving: %d, arriving: %d\n", notleaving, arriving);
     
     return notleaving + arriving;
 }
@@ -268,11 +259,7 @@ void RedistributeParticles::stage2(Particle * p, int n)
 	if (count == 0)
 	    continue;
 
-	//printf("RANK%d RECV %d -> %d\n", myrank, arriving_start[i], arriving_start[i + 1] - arriving_start[i]);
-	ParticleReordering::stage3<<<(count + 127) / 128, 128>>>(p + arriving_start[i], count, L, i);
+	ParticleReordering::shift<<<(count + 127) / 128, 128>>>(p + arriving_start[i], count, L, i);
     }
-
-    CUDA_CHECK(cudaPeekAtLastError());
-    CUDA_CHECK(cudaThreadSynchronize());
 }
 

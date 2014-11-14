@@ -44,7 +44,7 @@ __global__ void update_stage1(Particle * p, Acceleration * a, int n, float dt)
 	p[pid].x[c] += p[pid].u[c] * dt;
 }
 
-__global__ void update_stage2(Particle * p, Acceleration * a, int n, float dt)
+__global__ void update_stage2_and_1(Particle * p, Acceleration * a, int n, float dt)
 {
     assert(blockDim.x * gridDim.x >= n);
     
@@ -60,24 +60,37 @@ __global__ void update_stage2(Particle * p, Acceleration * a, int n, float dt)
 	assert(!isnan(a[pid].a[c]));
     
     for(int c = 0; c < 3; ++c)
-	p[pid].u[c] += a[pid].a[c] * dt * 0.5;
+    {
+	const float mya = a[pid].a[c];
+	float myu = p[pid].u[c];
+	float myx = p[pid].x[c];
+
+	myu += mya * dt;
+	myx += myu * dt;
+	
+	p[pid].u[c] = myu;
+	p[pid].x[c] = myx;
+    }
 }
 
-void diagnostics(MPI_Comm comm, Particle * _particles, int n, float dt, int idstep, int L)
+void diagnostics(MPI_Comm comm, Particle * _particles, int n, float dt, int idstep, int L, Acceleration * _acc )
 {
     Particle * particles = new Particle[n];
+    Acceleration * acc = new Acceleration[n];
 
     CUDA_CHECK(cudaMemcpy(particles, _particles, sizeof(Particle) * n, cudaMemcpyDeviceToHost));
+    CUDA_CHECK(cudaMemcpy(acc, _acc, sizeof(Acceleration) * n, cudaMemcpyDeviceToHost));
     
     int nlocal = n;
+
+    for(int i = 0; i < n; ++i)
+	for(int c = 0; c < 3; ++c)
+	    particles[i].u[c] -= 0.5 * dt * acc[i].a[c];
     
     double p[] = {0, 0, 0};
     for(int i = 0; i < n; ++i)
-    {
-	p[0] += particles[i].u[0];
-	p[1] += particles[i].u[1];
-	p[2] += particles[i].u[2];
-    }
+	for(int c = 0; c < 3; ++c)
+	    p[c] += particles[i].u[c];
 
     int rank;
     MPI_CHECK( MPI_Comm_rank(comm, &rank) );
@@ -118,8 +131,6 @@ void diagnostics(MPI_Comm comm, Particle * _particles, int n, float dt, int idst
 	    ss << n << "\n";
 	    ss << "dpdparticle\n";
 	}
-
-
     
 	for(int i = 0; i < nlocal; ++i)
 	    ss << "1 "
@@ -150,6 +161,7 @@ void diagnostics(MPI_Comm comm, Particle * _particles, int n, float dt, int idst
     }
 
     delete [] particles;
+    delete [] acc;
 }
 
 struct ParticleArray
@@ -174,8 +186,6 @@ struct ParticleArray
 	    if (capacity >= n)
 		return;
 
-	    printf("resizing to %d\n", n);
-	    
 	    if (xyzuvw != NULL)
 	    {
 		CUDA_CHECK(cudaFree(xyzuvw));
@@ -185,7 +195,6 @@ struct ParticleArray
 	    CUDA_CHECK(cudaMalloc(&xyzuvw, sizeof(Particle) * n));
 	    CUDA_CHECK(cudaMalloc(&axayaz, sizeof(Acceleration) * n));
 	    capacity = n;
-	    
 	}
 };
 
@@ -194,6 +203,7 @@ struct CellLists
     const int ncells, L;
 
     int * start, * count;
+    
     CellLists(const int L): ncells(L * L * L), L(L)
 	{
 	    CUDA_CHECK(cudaMalloc(&start, sizeof(int) * ncells));
@@ -212,15 +222,6 @@ struct CellLists
 	}
 };
 
-/*we run a simple dpd simulation by distributing particles to subdomains organized in a cartesian topology.
-  every subdomain is of size L and the system of reference is the center of the subdomain.
-  particles therefore lay within [-L/2, L/2]
-  a simulation steps is composed of the following stages:
-  - update of the particle position and velocity
-  - redistribute particles to the corresponding subdomains
-  - compute the acceleration (dpd interactions)
-  - update the particle velocity, compute and report total temperature and momentum
-*/
 int main(int argc, char ** argv)
 {
     int ranks[3];
@@ -237,8 +238,7 @@ int main(int argc, char ** argv)
     }
     
     MPI_CHECK( MPI_Init(&argc, &argv) );
-
-
+    
     int nranks, rank;
     MPI_CHECK( MPI_Comm_size(MPI_COMM_WORLD, &nranks) );
     MPI_CHECK( MPI_Comm_rank(MPI_COMM_WORLD, &rank) );
@@ -252,68 +252,44 @@ int main(int argc, char ** argv)
     
     vector<Particle> ic(L * L * L * 3);
 
-    //srand48(rank);
-    //srand48(1);
-
     for(int i = 0; i < ic.size(); ++i)
 	for(int c = 0; c < 3; ++c)
 	    ic[i].x[c] = -L * 0.5 + drand48() * L;
 
     ParticleArray particles(ic);
-
-    
-		  
+    CellLists cells(L);		  
     RedistributeParticles redistribute(cartcomm, L);
-    
-    const size_t nsteps = (int)(tend / dt);
-
-    //saru is at the core of the current scheme used to compute the dpd interactions
-    //see dpd-interactions.{h, cpp} for more details
-    int saru_tag = rank;
-
     ComputeInteractionsDPD dpd(cartcomm, L);
 
-    CellLists cells(L);
+    int saru_tag = rank;
+
     cells.build(particles.xyzuvw, particles.size);
     
-    dpd.evaluate(saru_tag, particles.xyzuvw, particles.size, particles.axayaz,
-		 cells.start, cells.count);
-    
+    dpd.evaluate(saru_tag, particles.xyzuvw, particles.size, particles.axayaz, cells.start, cells.count);
+
+    const size_t nsteps = (int)(tend / dt);
     for(int it = 0; it < nsteps; ++it)
     {
-	
 	if (rank == 0)
 	    printf("beginning of time step %d\n", it);
+	 
+	if (it == 0)
+	    update_stage1<<<(particles.size + 127) / 128, 128>>>(particles.xyzuvw, particles.axayaz, particles.size, dt);
 
-	check_particles(particles.xyzuvw, particles.size, L);
-	update_stage1<<<(particles.size + 127) / 128, 128>>>(particles.xyzuvw, particles.axayaz, particles.size, dt);
-
-	CUDA_CHECK(cudaPeekAtLastError());
-	CUDA_CHECK(cudaThreadSynchronize());
-	
-	//send away the particles that no longer belong this subdomain
 	int newnp = redistribute.stage1(particles.xyzuvw, particles.size);
-
-	//allocate the space for the incoming particles
+	
 	particles.resize(newnp);
 
-	//receive the new particles
 	redistribute.stage2(particles.xyzuvw, particles.size);
 
 	cells.build(particles.xyzuvw, particles.size);
 	
-	check_particles(particles.xyzuvw, particles.size, L);
-	//evaluate local and remote dpd interactions
-	check_particles(particles.xyzuvw, particles.size, L);
-	dpd.evaluate(saru_tag, particles.xyzuvw, particles.size, particles.axayaz,
-		     cells.start, cells.count);
-
-	check_particles(particles.xyzuvw, particles.size, L);
-	update_stage2<<<(particles.size + 127) / 128, 128>>>(particles.xyzuvw, particles.axayaz, particles.size, dt);
-
-	check_particles(particles.xyzuvw, particles.size, L);
-	diagnostics(cartcomm, particles.xyzuvw, particles.size, dt, it, L);
-		check_particles(particles.xyzuvw, particles.size, L);
+	dpd.evaluate(saru_tag, particles.xyzuvw, particles.size, particles.axayaz, cells.start, cells.count);
+	 
+	update_stage2_and_1<<<(particles.size + 127) / 128, 128>>>(particles.xyzuvw, particles.axayaz, particles.size, dt);
+	 
+	if (it % 50 == 0)
+	    diagnostics(cartcomm, particles.xyzuvw, particles.size, dt, it, L, particles.axayaz);
     }
     
     MPI_CHECK( MPI_Finalize() );

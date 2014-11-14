@@ -1,6 +1,7 @@
 NVCC=nvcc
 
 NVCCFLAGS += -g -O2 -I/opt/openmpi/include -arch sm_30
+#-DNDEBUG
 NVCCFLAGS += -D_WITHCUDA_ -I../cuda-dpd-sem/dpd -L/opt/openmpi/lib -L../cuda-dpd-sem/dpd/
 
 OBJS = main.o dpd-interactions.o redistribute-particles.o common.o 

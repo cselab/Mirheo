@@ -4,116 +4,17 @@
 #include "dpd-interactions.h"
 
 using namespace std;
-float saru(unsigned int seed1, unsigned int seed2, unsigned int seed3)
-{
-    seed3 ^= (seed1<<7)^(seed2>>6);
-    seed2 += (seed1>>4)^(seed3>>15);
-    seed1 ^= (seed2<<9)+(seed3<<8);
-    seed3 ^= 0xA5366B4D*((seed2>>11) ^ (seed1<<1));
-    seed2 += 0x72BE1579*((seed1<<4)  ^ (seed3>>16));
-    seed1 ^= 0X3F38A6ED*((seed3>>5)  ^ (((signed int)seed2)>>22));
-    seed2 += seed1*seed3;
-    seed1 += seed3 ^ (seed2>>2);
-    seed2 ^= ((signed int)seed2)>>17;
-    
-    int state  = 0x79dedea3*(seed1^(((signed int)seed1)>>14));
-    int wstate = (state + seed2) ^ (((signed int)state)>>8);
-    state  = state + (wstate*(wstate^0xdddf97f5));
-    wstate = 0xABCB96F7 + (wstate>>1);
-    
-    state  = 0x4beb5d59*state + 0x2600e1f7; // LCG
-    wstate = wstate + 0x8009d14b + ((((signed int)wstate)>>31)&0xda879add); // OWS
-    
-    unsigned int v = (state ^ (state>>26))+wstate;
-    unsigned int r = (v^(v>>20))*0x6957f5a7;
-    
-    float res = r / (4294967295.0f);
-    
-    return res;
-}
-
-void dpd_bipartite_kernel(Particle * _pdst, int ndst, Particle * _psrc, int nsrc,
-			  int saru_tag1, int saru_tag2, int saru_mask, Acceleration * _a)
-{
-    printf("hello verification\n");
-    Particle * pdst = new Particle[ndst];
-    Particle * psrc = new Particle[nsrc];
-    
-    CUDA_CHECK(cudaMemcpy(pdst, _pdst, sizeof(Particle) * ndst, cudaMemcpyDeviceToHost));
-    CUDA_CHECK(cudaMemcpy(psrc, _psrc, sizeof(Particle) * nsrc, cudaMemcpyDeviceToHost));
-
-    Acceleration * a = new Acceleration[ndst];
-    
-    //this will be a CUDA KERNEL in the libcuda-dpd
-    for(int i = 0; i < ndst; ++i)
-    {
-	float xf = 0, yf = 0, zf = 0;
-
-	for(int j = 0; j < nsrc; ++j)
-	{
-	    float _xr = pdst[i].x[0] - psrc[j].x[0];
-	    float _yr = pdst[i].x[1] - psrc[j].x[1];
-	    float _zr = pdst[i].x[2] - psrc[j].x[2];
-		    
-	    float rij2 = _xr * _xr + _yr * _yr + _zr * _zr;
-	    float invrij = 1.f / sqrtf(rij2);
-
-	    if (rij2 == 0)
-		invrij = 100000;
-	    
-	    float rij = rij2 * invrij;
-	    float wr = max((float)0, 1 - rij);
-		    
-	    float xr = _xr * invrij;
-	    float yr = _yr * invrij;
-	    float zr = _zr * invrij;
-		
-	    float rdotv = 
-		xr * (pdst[i].u[0] - psrc[j].u[0]) +
-		yr * (pdst[i].u[1] - psrc[j].u[1]) +
-		zr * (pdst[i].u[2] - psrc[j].u[2]);
-	    
-	    float mysaru = saru(saru_tag1, saru_tag2, saru_mask ? i + ndst * j : j + nsrc * i);
-	     
-	    float myrandnr = 3.464101615f * mysaru - 1.732050807f;
-		 
-	    float strength = (aij - gammadpd * wr * rdotv + sigmaf * myrandnr) * wr;
-
-	    xf += strength * xr;
-	    yf += strength * yr;
-	    zf += strength * zr;
-	}
-
-	a[i].a[0] = xf;
-	a[i].a[1] = yf;
-	a[i].a[2] = zf;
-    }
-
-    CUDA_CHECK(cudaMemcpy(_a, a, sizeof(Acceleration) * ndst, cudaMemcpyHostToDevice));
-
-    delete [] a;
-    delete [] psrc;
-    delete [] pdst;
-}
 
 void ComputeInteractionsDPD::evaluate(int& saru_tag, Particle * p, int n, Acceleration * a, int * cellsstart, int * cellscount)
 {
     dpd_remote_interactions_stage1(p, n);
-    CUDA_CHECK(cudaMemset(a, 0xff, sizeof(Acceleration) * n));
     
-    //no overlap as long as particle reordering happens here
-
-    //forces_dpd_cuda_aos((float *)p, (float *)a,
-//			NULL, n,, true);
     forces_dpd_cuda_nohost((float *)p, (float *)a, n, 
 			   cellsstart, cellscount,
 			   1, L, L, L, aij, gammadpd, sigma, 1. / sqrt(dt), saru_tag);
 
-    CUDA_CHECK(cudaThreadSynchronize());
-    
     saru_tag += nranks - myrank;
 
-   
     dpd_remote_interactions_stage2(p, n, saru_tag, a);
     
     saru_tag += 1 + myrank;  
@@ -384,8 +285,6 @@ namespace PackingHalo
 #include <numeric>
 void ComputeInteractionsDPD::dpd_remote_interactions_stage1(Particle * p, int n)
 {
-    CUDA_CHECK(cudaMemset(send_bag, 0xff, sizeof(Particle) * send_bag_size));
-	       
     MPI_Status statuses[26];
     
     if (pending_send)
@@ -459,8 +358,6 @@ stage2:
 	}
     }
 
-    MPI_CHECK(cudaMemset(recv_bag, 0xff, sizeof(Particle) * recv_bag_size));
-    
     for(int i = 0; i < 26; ++i)
 	MPI_CHECK( MPI_Irecv(recv_bag + recv_offsets[i], recv_offsets[i + 1] - recv_offsets[i],
 			     Particle::datatype(), MPI_ANY_SOURCE, recv_tags[i], cartcomm, recvreq + i) );
@@ -500,54 +397,31 @@ void ComputeInteractionsDPD::dpd_remote_interactions_stage2(Particle * p, int n,
     
     assert(nremote ==*send_bag_size_required_host);
     assert(nremote <= send_bag_size);
-    CUDA_CHECK(cudaMemset(acc_remote, 0, nremote * sizeof(Acceleration)));
-
-    //printf("checking for NANS\n");
-    check_isnan((float *)send_bag, send_offsets[26] * 6);
-    check_isnan((float *)recv_bag, recv_offsets[26] * 6);
-    check_isnan((float *)acc_remote, send_offsets[26] * 3);
-    
-    //printf("done checking\n");
 
     for(int i = 0; i < 26; ++i)
     {
 	const int nd = send_offsets[i + 1] - send_offsets[i];
 	const int ns = recv_offsets[i + 1] - recv_offsets[i];
 
-	if (ns == 0)
+	if (ns == 0 || nd == 0)
 	    continue;
-	
+
 	PackingHalo::shift_remote_particles<<<(ns + 127) / 128, 128>>>(recv_bag + recv_offsets[i], ns, L, i);
 	
-	CUDA_CHECK(cudaPeekAtLastError());
-	CUDA_CHECK(cudaThreadSynchronize());
-
-	if (nd == 0)
-	    continue;
-	
+#ifndef NDEBUG
 	PackingHalo::check_send_particles <<<(nd + 127) / 128, 128 >>>(send_bag + send_offsets[i], nd, L, i);
+#endif
 	
 	directforces_dpd_cuda_bipartite_nohost(
 	    (float *)(send_bag + send_offsets[i]), (float *)(acc_remote + send_offsets[i]), nd,
 	    (float *)(recv_bag + recv_offsets[i]), ns,
 	    aij, gammadpd, sigma, 1. / sqrt(dt), saru_tag1, saru_tag2[i], saru_mask[i]);
-
-
-/*	dpd_bipartite_kernel(  (send_bag + send_offsets[i]), nd,
-			       (recv_bag + recv_offsets[i]), ns,
-			       saru_tag1, saru_tag2[i], saru_mask[i], (acc_remote + send_offsets[i]));*/
-
-	CUDA_CHECK(cudaPeekAtLastError());
-	CUDA_CHECK(cudaThreadSynchronize());
     }
 
     CUDA_CHECK(cudaPeekAtLastError());
     CUDA_CHECK(cudaThreadSynchronize());
 
     PackingHalo::merge_accelerations<<<(nremote + 127) / 128, 128>>>(acc_remote, nremote, a, n, send_bag, p);
-
-    CUDA_CHECK(cudaPeekAtLastError());
-    CUDA_CHECK(cudaThreadSynchronize());    
 }
 
 ComputeInteractionsDPD::ComputeInteractionsDPD(MPI_Comm cartcomm, int L):
