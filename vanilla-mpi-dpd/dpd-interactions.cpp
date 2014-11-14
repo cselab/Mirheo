@@ -43,40 +43,15 @@ float saru(unsigned int seed1, unsigned int seed2, unsigned int seed3)
 void ComputeInteractionsDPD::dpd_kernel(Particle * p, int n, int saru_tag,  Acceleration * a)
 {    
 #ifdef _WITHCUDA_
-
-//this is a hack: libcuda-dpd is currently accepting only SoA particles as input and output.
-//hence the this transposition. i will modify libcuda-dpd to accept AoS particles
+    asdas
+    vector<Acceleration> tmp(n);
+    vector<int> order(n);
     
-    float * x[3], *v[3], *acc[3];
+    forces_dpd_cuda_aos((float *)p, (float *)&tmp.front(), &order.front(), n, 1, L, L, L, aij, gammadpd, sigma, 1. / sqrt(dt));
 
-    for(int c = 0; c < 3; ++c)
-    {
-	x[c] = new float[n];
-	for(int i = 0; i < n; ++i)
-	    x[c][i] = p[i].x[c];
-	
-	v[c] = new float[n];
-	for(int i = 0; i < n; ++i)
-	    v[c][i] = p[i].u[c];
-	
-	acc[c] = new float[n];
-	for(int i = 0; i < n; ++i)
-	    acc[c][i] = 0;
-    }
-    
-    forces_dpd_cuda(x[0], x[1], x[2], v[0], v[1], v[2], acc[0], acc[1], acc[2],
-		    n, 1, L, L, L, aij, gammadpd, sigma, 1. / sqrt(dt));
+    for(int i = 0; i < n; ++i)
+	a[order[i]] = tmp[i];
 
-    for(int c = 0; c < 3; ++c)
-    {
-	delete [] x[c];
-	delete [] v[c];
-
-	for(int i = 0; i < n; ++i)
-	    a[i].a[c] = acc[c][i];
-
-	delete [] acc[c];
-    }
     return;
 #endif
 
@@ -132,6 +107,15 @@ void ComputeInteractionsDPD::dpd_kernel(Particle * p, int n, int saru_tag,  Acce
 void ComputeInteractionsDPD::dpd_bipartite_kernel(Particle * pdst, int ndst, Particle * psrc, int nsrc,
 			  int saru_tag1, int saru_tag2, int saru_mask, Acceleration * a)
 {
+#ifdef _WITHCUDA_
+asdaa
+    if (nsrc > 0 && ndst > 0)
+	directforces_dpd_cuda_bipartite((float *)pdst, (float *) a, ndst, (float *)psrc, nsrc, aij, gammadpd, sigma, 1. / sqrt(dt),
+					saru_tag1, saru_tag2, saru_mask);
+
+    return ;
+#endif
+  
     //this will be a CUDA KERNEL in the libcuda-dpd
     for(int i = 0; i < ndst; ++i)
     {

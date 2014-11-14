@@ -11,13 +11,15 @@ class RedistributeParticles
 {
     MPI_Comm cartcomm;
 
-    bool pending_send = false;
+    bool pending_send;
     
     int L, myrank, dims[3], periods[3], coords[3], rankneighbors[27], domain_extent[3];
-    int leaving_start[28], arriving_start[28], notleaving, arriving;
+    int * leaving_start, *leaving_start_device, arriving_start[28], notleaving, arriving;
 
     //in the non-vanilla version this will be a device vector
-    std::vector<Particle> tmp;
+    //std::vector<Particle> tmp;
+    Particle * tmp;
+    int tmp_size;
 
     MPI_Request sendreq[27], recvreq[27];
     

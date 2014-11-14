@@ -20,7 +20,7 @@ class ComputeInteractionsDPD
     MPI_Request sendreq[26], recvreq[26];
 
     int L, myrank, nranks, dims[3], periods[3], coords[3];
-    bool send_pending;
+    bool send_pending = false;
 
     std::vector<Particle> mypacks[26], srcpacks[26];
     std::vector<int> myentries[26];
@@ -40,7 +40,7 @@ class ComputeInteractionsDPD
 public:
     
 ComputeInteractionsDPD(MPI_Comm cartcomm, int L):
-    cartcomm(cartcomm), L(L), send_pending(false)
+    cartcomm(cartcomm), L(L)
     {
 	assert(L % 2 == 0);
 	MPI_CHECK( MPI_Cart_get(cartcomm, 3, dims, periods, coords) );

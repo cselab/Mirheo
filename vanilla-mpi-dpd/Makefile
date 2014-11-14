@@ -18,7 +18,7 @@ test: $(OBJS) $(LIBCUDADPD_TARGET)
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
 libcuda-dpd: 
-	make -C ../cuda-dpd-sem/dpd libcuda-dpd.so
+	make -C ../cuda-dpd-sem/dpd libcuda-dpd.so nonperiodic=1
 
 clean:
 	rm -f test *.o

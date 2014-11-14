@@ -100,10 +100,16 @@ __global__ __launch_bounds__(32 * CPB, 16)
 		const float ydiff = dtmp0.y - stmp0.y;
 		const float zdiff = dtmp1.x - stmp1.x;
 
+#ifndef _NONPERIODIC_KERNEL_
+		asdasda
 		const float _xr = xdiff - info.domainsize.x * floorf(0.5f + xdiff * info.invdomainsize.x);
 		const float _yr = ydiff - info.domainsize.y * floorf(0.5f + ydiff * info.invdomainsize.y);
 		const float _zr = zdiff - info.domainsize.z * floorf(0.5f + zdiff * info.invdomainsize.z);
-
+#else
+		const float _xr = xdiff;
+		const float _yr = ydiff;
+		const float _zr = zdiff;
+#endif
 		const float rij2 = _xr * _xr + _yr * _yr + _zr * _zr;
 		const float invrij = rsqrtf(rij2);
 		const float rij = rij2 * invrij;
@@ -173,7 +179,7 @@ int fdpd_oldnp = 0, fdpd_oldnc = 0;
 float * fdpd_xyzuvw = NULL, * fdpd_axayaz = NULL;
 int * fdpd_start = NULL, * fdpd_count = NULL;
 
-void forces_dpd_cuda(float * const _xyzuvw, float * const _axayaz,
+void forces_dpd_cuda_aos(float * const _xyzuvw, float * const _axayaz,
 		     int * const order, const int np,
 		     const float rc,
 		     const float XL, const float YL, const float ZL,
@@ -181,8 +187,15 @@ void forces_dpd_cuda(float * const _xyzuvw, float * const _axayaz,
 		     const float gamma,
 		     const float sigma,
 		     const float invsqrtdt,
-		     const int saru_tag)
-{  
+			 const int saru_tag,
+			 const bool nohost)
+{
+    if (np == 0)
+    {
+	printf("WARNING: forces_dpd_cuda_aos called with np = %d\n", np);
+	return;
+    }
+    
     int nx = (int)ceil(XL / rc);
     int ny = (int)ceil(YL / rc);
     int nz = (int)ceil(ZL / rc);
@@ -243,7 +256,7 @@ void forces_dpd_cuda(float * const _xyzuvw, float * const _axayaz,
 	fdpd_oldnc = ncells;
     }
 
-    CUDA_CHECK(cudaMemcpyAsync(fdpd_xyzuvw, _xyzuvw, sizeof(float) * np * 6, cudaMemcpyHostToDevice));
+    CUDA_CHECK(cudaMemcpyAsync(fdpd_xyzuvw, _xyzuvw, sizeof(float) * np * 6, nohost ? cudaMemcpyDeviceToDevice : cudaMemcpyHostToDevice));
     
     InfoDPD c;
     c.ncells = make_int3(nx, ny, nz);
@@ -277,8 +290,16 @@ void forces_dpd_cuda(float * const _xyzuvw, float * const _axayaz,
 
     CUDA_CHECK(cudaPeekAtLastError());
 	
-    ProfilerDPD::singletone().force();	
-    CUDA_CHECK(cudaMemcpy(_axayaz, fdpd_axayaz, sizeof(float) * 3 * np, cudaMemcpyDeviceToHost));
+    ProfilerDPD::singletone().force();
+    
+//copy xyzuvw as well?!?
+    if (nohost)
+    {
+	CUDA_CHECK(cudaMemcpy(_xyzuvw, fdpd_xyzuvw, sizeof(float) * 6 * np, cudaMemcpyDeviceToDevice));
+	CUDA_CHECK(cudaMemcpy(_axayaz, fdpd_axayaz, sizeof(float) * 3 * np, cudaMemcpyDeviceToDevice));
+    }
+    else
+	CUDA_CHECK(cudaMemcpy(_axayaz, fdpd_axayaz, sizeof(float) * 3 * np, cudaMemcpyDeviceToHost));
 
     ProfilerDPD::singletone().report();
 
@@ -378,8 +399,8 @@ void forces_dpd_cuda(const float * const xp, const float * const yp, const float
 	fdpd_pv[5 + 6 * i] = zv[i];
     }
 
-    forces_dpd_cuda(fdpd_pv, fdpd_a, fdpd_order, np, rc, LX, LY, LZ,
-		    aij, gamma, sigma, invsqrtdt, input_saru_tag);
+    forces_dpd_cuda_aos(fdpd_pv, fdpd_a, fdpd_order, np, rc, LX, LY, LZ,
+			aij, gamma, sigma, invsqrtdt, input_saru_tag, false);
     
     //delete [] pv;
      
