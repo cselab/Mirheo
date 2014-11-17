@@ -298,7 +298,7 @@ printf("good to here\n");
 	 
 	update_stage2_and_1<<<(particles.size + 127) / 128, 128>>>(particles.xyzuvw, particles.axayaz, particles.size, dt);
 	 
-	if (it % 1 == 0)
+	if (it % 5 == 0)
 	    diagnostics(cartcomm, particles.xyzuvw, particles.size, dt, it, L, particles.axayaz);
     }
     

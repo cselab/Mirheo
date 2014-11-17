@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cuda_runtime.h>
+
 void build_clists(float * const device_xyzuvw, int np, const float rc, 
 		  const int xcells, const int ycells, const int zcells,
 		  const float xdomainstart, const float ydomainstart, const float zdomainstart,
@@ -54,10 +56,13 @@ void directforces_dpd_cuda_bipartite_nohost(
     const float * const xyzuvw, float * const axayaz, const int np,
     const float * const xyzuvw_src, const int np_src,
     const float aij, const float gamma, const float sigma, const float invsqrtdt,
-    const int saru_tag1, const int saru_tag2, const bool sarumask);
+    const int saru_tag1, const int saru_tag2, const bool sarumask, cudaStream_t stream);
+
 
 void directforces_dpd_cuda_bipartite(
     const float * const xyzuvw, float * const axayaz, const int np,
     const float * const xyzuvw_src, const int np_src,
     const float aij, const float gamma, const float sigma, const float invsqrtdt,
     const int saru_tag1, const int saru_tag2, const bool sarumask);
+
+

@@ -181,7 +181,7 @@ void forces_dpd_cuda_nohost(const float * const xyzuvw, float * const axayaz,  c
 	printf("WARNING: forces_dpd_cuda_nohost called with np = %d\n", np);
 	return;
     }
-    
+
     int nx = (int)ceil(XL / rc);
     int ny = (int)ceil(YL / rc);
     int nz = (int)ceil(ZL / rc);
@@ -267,7 +267,7 @@ void forces_dpd_cuda_aos(float * const _xyzuvw, float * const _axayaz,
 	printf("WARNING: forces_dpd_cuda_aos called with np = %d\n", np);
 	return;
     }
-    
+
     int nx = (int)ceil(XL / rc);
     int ny = (int)ceil(YL / rc);
     int nz = (int)ceil(ZL / rc);

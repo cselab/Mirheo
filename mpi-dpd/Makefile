@@ -1,11 +1,19 @@
 NVCC=nvcc
 
-NVCCFLAGS += -g -I/opt/openmpi/include -arch sm_30 -O3 -use_fast_math -lineinfo -DNDEBUG
+ARCH_VAL ?= compute_35
+CODE_VAL ?= sm_35
+
+NVCCFLAGS += -g -I/opt/openmpi/include -arch $(ARCH_VAL) -code $(CODE_VAL) -O3 -use_fast_math -lineinfo -DNDEBUG
 NVCCFLAGS += -I../cuda-dpd-sem/dpd -L/opt/openmpi/lib -L../cuda-dpd-sem/dpd/
 
 OBJS = main.o dpd-interactions.o redistribute-particles.o common.o 
-LIBS=  -lcuda-dpd -lmpichcxx -lmpich -lcudart 
-#../cuda-dpd-sem/dpd/libcuda-dpd.so
+LIBS=  -lcuda-dpd -lcudart
+
+ifneq (,$(findstring openmpi,$(shell which $(CXX))))
+	LIBS +=  -lmpi_cxx -lmpi
+else
+	LIBS += -lmpichcxx -lmpich -lcudart
+endif
 
 test: $(OBJS) libcuda-dpd
 	echo HELLO
