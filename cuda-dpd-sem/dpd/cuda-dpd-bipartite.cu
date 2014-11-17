@@ -400,7 +400,7 @@ void _bipartite_dpd_directforces(float * const axayaz, const int np, const int n
     assert(blockDim.x == warpSize);
     assert(blockDim.x * gridDim.x >= np);
     
-    const int tid = threadIdx.x;
+    const int tid = threadIdx.x % warpSize;
     const int pid = threadIdx.x + blockDim.x * blockIdx.x;
     const bool valid = pid < np;
 
