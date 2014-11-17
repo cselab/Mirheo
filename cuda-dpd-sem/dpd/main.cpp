@@ -46,9 +46,9 @@ int main()
     const real aij = 2.5;
     const real rc = 1;
     const bool cuda = true;
-    const bool bipartite = true;
+    const bool bipartite = false;
     const real dt = 0.02;
-    const real tend = 20;//0.08 * 20;
+    const real tend = 0.4;//0.08 * 20;
     
     vector<real> xp(n), yp(n), zp(n), xv(n), yv(n), zv(n), xa(n), ya(n), za(n);
     srand48(6516L);

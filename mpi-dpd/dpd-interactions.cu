@@ -41,6 +41,25 @@ ComputeInteractionsDPD::ComputeInteractionsDPD(MPI_Comm cartcomm, int L):
 
     recv_bag_size = L * L * 3 * 27;
     CUDA_CHECK(cudaMalloc(&recv_bag, recv_bag_size * sizeof(Particle)));
+
+    for(int i = 0; i < 7; ++i)
+	CUDA_CHECK(cudaStreamCreate(streams + i));
+	
+    for(int i = 0, ctr = 1; i < 26; ++i)
+    {
+	int d[3] = { (i + 2) % 3 - 1, (i / 3 + 2) % 3 - 1, (i / 9 + 2) % 3 - 1 };
+	
+	const bool isface = abs(d[0]) + abs(d[1]) + abs(d[2]) == 1;
+
+	code2stream[i] = 0;
+
+	if (isface)
+	{
+	    code2stream[i] = ctr;
+	    ctr++;
+	}
+    }
+
 }
 
 void ComputeInteractionsDPD::evaluate(int& saru_tag, const Particle * const p, const int n, Acceleration * const a,
@@ -454,16 +473,18 @@ void ComputeInteractionsDPD::dpd_remote_interactions_stage2(const Particle * con
 	if (ns == 0 || nd == 0)
 	    continue;
 
-	PackingHalo::shift_remote_particles<<<(ns + 127) / 128, 128>>>(recv_bag + recv_offsets[i], ns, L, i);
+	cudaStream_t mystream = streams[code2stream[i]];
+
+	PackingHalo::shift_remote_particles<<<(ns + 127) / 128, 128, 0, mystream>>>(recv_bag + recv_offsets[i], ns, L, i);
 	
 #ifndef NDEBUG
-	PackingHalo::check_send_particles <<<(nd + 127) / 128, 128 >>>(send_bag + send_offsets[i], nd, L, i);
+	PackingHalo::check_send_particles <<<(nd + 127) / 128, 128, 0, mystream >>>(send_bag + send_offsets[i], nd, L, i);
 #endif
 	
 	directforces_dpd_cuda_bipartite_nohost(
 	    (float *)(send_bag + send_offsets[i]), (float *)(acc_remote + send_offsets[i]), nd,
 	    (float *)(recv_bag + recv_offsets[i]), ns,
-	    aij, gammadpd, sigma, 1. / sqrt(dt), saru_tag1, saru_tag2[i], saru_mask[i]);
+	    aij, gammadpd, sigma, 1. / sqrt(dt), saru_tag1, saru_tag2[i], saru_mask[i], mystream);
     }
 
     CUDA_CHECK(cudaPeekAtLastError());
@@ -481,4 +502,7 @@ ComputeInteractionsDPD::~ComputeInteractionsDPD()
 
     CUDA_CHECK(cudaFreeHost(sendpacks_start));
     CUDA_CHECK(cudaFreeHost(send_bag_size_required));
+
+    for(int i = 0; i < 7; ++i)
+	CUDA_CHECK(cudaStreamDestroy(streams[i]));
 }

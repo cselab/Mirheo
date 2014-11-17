@@ -35,6 +35,9 @@ class ComputeInteractionsDPD
 
     //mpi-sync for the surrounding halos
     void dpd_remote_interactions_stage2(const Particle * const p, const int n, int saru_tag1, Acceleration * const a);
+
+    cudaStream_t streams[7];
+    int code2stream[26];
     
 public:
     

@@ -497,7 +497,7 @@ void directforces_dpd_cuda_bipartite_nohost(
     const float * const xyzuvw, float * const axayaz, const int np,
     const float * const xyzuvw_src, const int np_src,
     const float aij, const float gamma, const float sigma, const float invsqrtdt,
-    const int saru_tag1, const int saru_tag2, const bool sarumask)
+    const int saru_tag1, const int saru_tag2, const bool sarumask, cudaStream_t stream)
 {
     if (np == 0 || np_src == 0)
     {
@@ -505,7 +505,7 @@ void directforces_dpd_cuda_bipartite_nohost(
 	return;
     }
  
-    _bipartite_dpd_directforces<<<(np + 127) / 128, 128>>>(axayaz, np, np_src, saru_tag1, saru_tag2, sarumask,
+    _bipartite_dpd_directforces<<<(np + 127) / 128, 128, 0, stream>>>(axayaz, np, np_src, saru_tag1, saru_tag2, sarumask,
 							   xyzuvw, xyzuvw_src, 1, aij, gamma, sigma * invsqrtdt);
    
     CUDA_CHECK(cudaPeekAtLastError());
@@ -530,7 +530,7 @@ void directforces_dpd_cuda_bipartite(
     CUDA_CHECK(cudaMemset(axayaz_d, 0, sizeof(float) * 3 * np));
     
     directforces_dpd_cuda_bipartite_nohost(xyzuvw_d, axayaz_d, np, xyzuvw_src_d,  np_src,
-						aij,  gamma,  sigma, invsqrtdt, saru_tag1, saru_tag2, sarumask);
+					   aij,  gamma,  sigma, invsqrtdt, saru_tag1, saru_tag2, sarumask, 0);
 
     CUDA_CHECK( cudaMemcpy(axayaz, axayaz_d, sizeof(float) * 3 * np, cudaMemcpyDeviceToHost));
     
