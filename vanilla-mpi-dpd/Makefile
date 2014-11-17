@@ -14,11 +14,11 @@ endif
 test: $(OBJS) $(LIBCUDADPD_TARGET)
 	$(CXX) $(CXXFLAGS) $(OBJS) $(LIBCUDADPD)  -o test
 
-%.o: %.cpp %.h
+%.o: %.cpp %.h common.h
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
 libcuda-dpd: 
-	make -C ../cuda-dpd-sem/dpd libcuda-dpd.so
+	make -C ../cuda-dpd-sem/dpd libcuda-dpd.so nonperiodic=1
 
 clean:
 	rm -f test *.o

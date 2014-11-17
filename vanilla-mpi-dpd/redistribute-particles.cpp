@@ -97,7 +97,7 @@ int RedistributeParticles::stage1(Particle * p, int n)
     return notleaving + arriving;
 }
 
-int RedistributeParticles::stage2(Particle * p, int n)
+void RedistributeParticles::stage2(Particle * p, int n)
 {
     assert(n == notleaving + arriving);
 

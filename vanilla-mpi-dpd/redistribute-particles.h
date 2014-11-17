@@ -31,6 +31,6 @@ public:
     int stage1(Particle * p, int n);
 
     //waits for the mpi (containings packs of new particles) messages to arrive
-    int stage2(Particle * p, int n);
+    void stage2(Particle * p, int n);
 };
 

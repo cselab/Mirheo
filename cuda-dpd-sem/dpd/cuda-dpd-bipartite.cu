@@ -13,7 +13,7 @@ __constant__ BipartiteInfoDPD bipart_info;
 
 
 #ifndef NDEBUG
-#define _CHECK_
+//#define _CHECK_
 #endif
  
 #define COLS 8
@@ -387,6 +387,156 @@ void forces_dpd_cuda_bipartite(float * const _xyzuvw1, float * const _axayaz1, i
     sleep(1);
     exit(0);
 #endif
+}
+
+
+
+__global__
+//template<int ILP>
+void _bipartite_dpd_directforces(float * const axayaz, const int np, const int np_src,
+				 const int saru_tag1, const int saru_tag2, const bool saru_mask, const float * xyzuvw, const float * xyzuvw_src,
+   const float invrc, const float aij, const float gamma, const float sigmaf)
+{
+    assert(blockDim.x == warpSize);
+    assert(blockDim.x * gridDim.x >= np);
+    
+    const int tid = threadIdx.x;
+    const int pid = threadIdx.x + blockDim.x * blockIdx.x;
+    const bool valid = pid < np;
+
+    float xp, yp, zp, up, vp, wp;
+
+    if (valid)
+    {
+	xp = xyzuvw[0 + pid * 6];
+	yp = xyzuvw[1 + pid * 6];
+	zp = xyzuvw[2 + pid * 6];
+	up = xyzuvw[3 + pid * 6];
+	vp = xyzuvw[4 + pid * 6];
+	wp = xyzuvw[5 + pid * 6];
+    }
+
+    float xforce = 0, yforce = 0, zforce = 0;
+    
+    for(int s = 0; s < np_src; s += warpSize)
+    {
+	float my_xq, my_yq, my_zq, my_uq, my_vq, my_wq;
+
+	const int batchsize = min(warpSize, np_src - s);
+
+	if (tid < batchsize)
+	{
+	    my_xq = xyzuvw_src[0 + (tid + s) * 6];
+	    my_yq = xyzuvw_src[1 + (tid + s) * 6];
+	    my_zq = xyzuvw_src[2 + (tid + s) * 6];
+	    my_uq = xyzuvw_src[3 + (tid + s) * 6];
+	    my_vq = xyzuvw_src[4 + (tid + s) * 6];
+	    my_wq = xyzuvw_src[5 + (tid + s) * 6];
+	}
+	
+	for(int l = 0; l < batchsize; ++l)
+	{
+	    const float xq = __shfl(my_xq, l);
+	    const float yq = __shfl(my_yq, l);
+	    const float zq = __shfl(my_zq, l);
+	    const float uq = __shfl(my_uq, l);
+	    const float vq = __shfl(my_vq, l);
+	    const float wq = __shfl(my_wq, l);
+
+	    //necessary to force the execution shuffles here below
+	    __syncthreads();
+	    
+	    if (valid)
+	    {
+		const float _xr = xp - xq;
+		const float _yr = yp - yq;
+		const float _zr = zp - zq;
+		
+		const float rij2 = _xr * _xr + _yr * _yr + _zr * _zr;
+		
+		const float invrij = rsqrtf(rij2);
+		 
+		const float rij = rij2 * invrij;
+		const float wr = max((float)0, 1 - rij * invrc);
+		
+		const float xr = _xr * invrij;
+		const float yr = _yr * invrij;
+		const float zr = _zr * invrij;
+
+		const float rdotv = 
+		    xr * (up - uq) +
+		    yr * (vp - vq) +
+		    zr * (wp - wq);
+		
+		const float mysaru = saru(saru_tag1, saru_tag2, saru_mask ? pid + np * (s + l) : (s + l) + np_src * pid);
+	
+		const float myrandnr = 3.464101615f * mysaru - 1.732050807f;
+		 
+		const float strength = (aij - gamma * wr * rdotv + sigmaf * myrandnr) * wr;
+
+		xforce += strength * xr;
+		yforce += strength * yr;
+		zforce += strength * zr;
+	    }
+	}
+    }
+
+    if (valid)
+    {
+	assert(!isnan(xforce));
+	assert(!isnan(yforce));
+	assert(!isnan(zforce));
+    
+	axayaz[0 + 3 * pid] = xforce;
+	axayaz[1 + 3 * pid] = yforce;
+	axayaz[2 + 3 * pid] = zforce;
+    }
+}
+
+void directforces_dpd_cuda_bipartite_nohost(
+    const float * const xyzuvw, float * const axayaz, const int np,
+    const float * const xyzuvw_src, const int np_src,
+    const float aij, const float gamma, const float sigma, const float invsqrtdt,
+    const int saru_tag1, const int saru_tag2, const bool sarumask)
+{
+    if (np == 0 || np_src == 0)
+    {
+	printf("warning: directforces_dpd_cuda_bipartite_nohost called with ZERO!\n");
+	return;
+    }
+ 
+    _bipartite_dpd_directforces<<<(np + 31) / 32, 32>>>(axayaz, np, np_src, saru_tag1, saru_tag2, sarumask,
+							   xyzuvw, xyzuvw_src, 1, aij, gamma, sigma * invsqrtdt);
+   
+    CUDA_CHECK(cudaPeekAtLastError());
+}
+
+void directforces_dpd_cuda_bipartite(
+    const float * const xyzuvw, float * const axayaz, const int np,
+    const float * const xyzuvw_src, const int np_src,
+    const float aij, const float gamma, const float sigma, const float invsqrtdt,
+    const int saru_tag1, const int saru_tag2, const bool sarumask)
+{
+    float * xyzuvw_d = NULL;
+    CUDA_CHECK(cudaMalloc(&xyzuvw_d, sizeof(float) * 6 * np));
+    CUDA_CHECK(cudaMemcpy(xyzuvw_d, xyzuvw, sizeof(float) * 6 * np, cudaMemcpyHostToDevice));
+
+    float * xyzuvw_src_d = NULL;
+    CUDA_CHECK(cudaMalloc(&xyzuvw_src_d, sizeof(float) * 6 * np_src));
+    CUDA_CHECK(cudaMemcpy(xyzuvw_src_d, xyzuvw_src, sizeof(float) * 6 * np_src, cudaMemcpyHostToDevice));
+
+    float * axayaz_d = NULL;
+    CUDA_CHECK(cudaMalloc(&axayaz_d, sizeof(float) * 3 * np));
+    CUDA_CHECK(cudaMemset(axayaz_d, 0, sizeof(float) * 3 * np));
+    
+    directforces_dpd_cuda_bipartite_nohost(xyzuvw_d, axayaz_d, np, xyzuvw_src_d,  np_src,
+						aij,  gamma,  sigma, invsqrtdt, saru_tag1, saru_tag2, sarumask);
+
+    CUDA_CHECK( cudaMemcpy(axayaz, axayaz_d, sizeof(float) * 3 * np, cudaMemcpyDeviceToHost));
+    
+    CUDA_CHECK(cudaFree(xyzuvw_d));
+    CUDA_CHECK(cudaFree(xyzuvw_src_d));
+    CUDA_CHECK(cudaFree(axayaz_d));
 }
 
 void forces_dpd_cuda_bipartite(const float * const xp1, const float * const yp1, const float * const zp1,
