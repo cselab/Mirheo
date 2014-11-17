@@ -37,7 +37,7 @@ void vmd_xyz(const char * path, real * xs, real * ys, real * zs, const int n, bo
 
 int main()
 {
-    real L = 20;
+    real L = 40;
 
     const int Nm = 3;
     const int n = L * L * L * Nm;
@@ -60,7 +60,7 @@ int main()
 	const int ycid = (cid / (int) L) % (int)L;
 	const int zcid = (cid / (int) L / (int) L) % (int)L;
 
-#if 0
+#if 1
 	xp[i] = -L * 0.5f +  drand48() * L;
 	yp[i] = -L * 0.5f +  drand48() * L;
 	zp[i] = -L * 0.5f +  drand48() * L;

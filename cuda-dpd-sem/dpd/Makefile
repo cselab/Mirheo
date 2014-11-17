@@ -3,10 +3,10 @@ include ../Makefile
 .DEFAULT_GOAL = test-dpd
 
 test-dpd: main.cpp libcuda-dpd.so
-	$(CXX) $(CXXFLAGS) $^ -L/usr/local/cuda-5.5/lib64/ -lcudart -lcurand -o test-dpd
+	$(CXX) $(CXXFLAGS) $^  -lcudart -lcurand -o test-dpd
 
 libcuda-dpd.so: cuda-dpd.o cuda-dpd-bipartite.o ../cell-lists.o ../profiler-dpd.o
-	$(CXX) $(CXXFLAGS) -shared $^ -o libcuda-dpd.so -L/usr/local/cuda-5.5/lib64/ -lcudart -lcurand
+	$(CXX) $(CXXFLAGS) -shared $^ -o libcuda-dpd.so  -lcudart -lcurand
 
 cuda-dpd.o: cuda-dpd.cu cuda-dpd.h
 	$(NVCC) $(NVCCFLAGS) -c cuda-dpd.cu

@@ -1,7 +1,7 @@
-ARCH_VAL ?= compute_30
-CODE_VAL ?= sm_30
+ARCH_VAL ?= compute_35
+CODE_VAL ?= sm_35
 
-CXXFLAGS += -g -O2 -std=c++11 -I/usr/local/cuda-5.5/include -fPIC
+CXXFLAGS += -g -O2 -std=c++11 -fPIC
 
 #these setting are for my gk104, for k20x pls set the right flags
 NVCCFLAGS = -arch=$(ARCH_VAL) -Xcompiler -fpic -code=$(CODE_VAL)  -O4 -g
