@@ -444,7 +444,7 @@ void _bipartite_dpd_directforces(float * const axayaz, const int np, const int n
 	    const float wq = __shfl(my_wq, l);
 
 	    //necessary to force the execution shuffles here below
-	    __syncthreads();
+	    //__syncthreads();
 	    
 	    if (valid)
 	    {
@@ -505,7 +505,7 @@ void directforces_dpd_cuda_bipartite_nohost(
 	return;
     }
  
-    _bipartite_dpd_directforces<<<(np + 31) / 32, 32>>>(axayaz, np, np_src, saru_tag1, saru_tag2, sarumask,
+    _bipartite_dpd_directforces<<<(np + 127) / 128, 128>>>(axayaz, np, np_src, saru_tag1, saru_tag2, sarumask,
 							   xyzuvw, xyzuvw_src, 1, aij, gamma, sigma * invsqrtdt);
    
     CUDA_CHECK(cudaPeekAtLastError());
