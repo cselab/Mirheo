@@ -153,8 +153,8 @@ int main(int argc, char ** argv)
 {
     MPI_CHECK( MPI_Init(&argc, &argv) );
 
-    //cuda_awareness_test(MPI_COMM_WORLD);
-    cuda_awareness_test2();
+    cuda_awareness_test(MPI_COMM_WORLD);
+    //cuda_awareness_test2();
     
     MPI_Finalize();
 }
