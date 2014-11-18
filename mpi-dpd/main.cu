@@ -88,6 +88,10 @@ void diagnostics(MPI_Comm comm, Particle * _particles, int n, float dt, int idst
     for(int i = 0; i < n; ++i)
 	for(int c = 0; c < 3; ++c)
 	{
+	    assert(!isnan(particles[i].x[c]));
+	    assert(!isnan(particles[i].u[c]));
+	    assert(!isnan(acc[i].a[c]));
+	    
 	    particles[i].x[c] -= dt * particles[i].u[c];
 	    particles[i].u[c] -= 0.5 * dt * acc[i].a[c];
 	}

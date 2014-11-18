@@ -9,6 +9,7 @@
 class ComputeInteractionsDPD : public HaloExchanger
 {   
     //temporary buffer to compute accelerations in the halo
+    int acc_size;
     Acceleration * acc_remote;
 
     //cuda-sync after to wait for packing of the halo

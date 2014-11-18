@@ -1,4 +1,5 @@
 #include <cuda-dpd.h>
+
 #include "dpd-interactions.h"
 
 using namespace std;
@@ -6,7 +7,8 @@ using namespace std;
 ComputeInteractionsDPD::ComputeInteractionsDPD(MPI_Comm cartcomm, int L):
     HaloExchanger(cartcomm, L)
 {
-    CUDA_CHECK(cudaMalloc(&acc_remote, send_bag_size * sizeof(Acceleration)));
+    acc_size = send_bag_size;
+    CUDA_CHECK(cudaMalloc(&acc_remote, acc_size * sizeof(Acceleration)));
     
     for(int i = 0; i < 7; ++i)
 	CUDA_CHECK(cudaStreamCreate(streams + i));
@@ -89,6 +91,14 @@ namespace RemoteDPD
 void ComputeInteractionsDPD::dpd_remote_interactions_stage1(const Particle * const p, const int n)
 {
     HaloExchanger::pack_and_post(p, n);
+
+    if (acc_size < HaloExchanger::nof_sent_particles())
+    {
+	CUDA_CHECK(cudaFree(acc_remote));
+
+	acc_size = HaloExchanger::nof_sent_particles();
+	CUDA_CHECK(cudaMalloc(&acc_remote, sizeof(Acceleration) * acc_size));
+    }
 }
     
 void ComputeInteractionsDPD::dpd_remote_interactions_stage2(const Particle * const p, const int n, const int saru_tag1, Acceleration * const a)
@@ -122,8 +132,8 @@ void ComputeInteractionsDPD::dpd_remote_interactions_stage2(const Particle * con
 	    saru_mask[i] = min(i, alter_ego) == i;
 	}
     }
-
-        for(int i = 0; i < 26; ++i)
+    
+    for(int i = 0; i < 26; ++i)
     {
 	const int nd = send_offsets[i + 1] - send_offsets[i];
 	const int ns = recv_offsets[i + 1] - recv_offsets[i];
@@ -143,7 +153,9 @@ void ComputeInteractionsDPD::dpd_remote_interactions_stage2(const Particle * con
     CUDA_CHECK(cudaThreadSynchronize());
 
     const int nremote = HaloExchanger::nof_sent_particles();
-    RemoteDPD::merge_accelerations<<<(nremote + 127) / 128, 128>>>(acc_remote, nremote, a, n, send_bag, p, scattered_entries);
+    
+    if (nremote > 0)
+   	RemoteDPD::merge_accelerations<<<(nremote + 127) / 128, 128>>>(acc_remote, nremote, a, n, send_bag, p, scattered_entries);
 }
 
 ComputeInteractionsDPD::~ComputeInteractionsDPD()
