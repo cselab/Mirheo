@@ -1,5 +1,7 @@
 #pragma once
 
+#include <utility>
+
 #include <cuda_runtime.h>
 
 void build_clists(float * const device_xyzuvw, int np, const float rc, 

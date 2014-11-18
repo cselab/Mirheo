@@ -269,17 +269,15 @@ int main(int argc, char ** argv)
     RedistributeParticles redistribute(cartcomm, L);
     ComputeInteractionsDPD dpd(cartcomm, L);
 
-
     int saru_tag = rank;
 
     cells.build(particles.xyzuvw, particles.size);
     
     dpd.evaluate(saru_tag, particles.xyzuvw, particles.size, particles.axayaz, cells.start, cells.count);
-printf("good to here\n");
+
     const size_t nsteps = (int)(tend / dt);
     for(int it = 0; it < nsteps; ++it)
     {
-
 	if (rank == 0)
 	    printf("beginning of time step %d\n", it);
 	 
@@ -298,7 +296,7 @@ printf("good to here\n");
 	 
 	update_stage2_and_1<<<(particles.size + 127) / 128, 128>>>(particles.xyzuvw, particles.axayaz, particles.size, dt);
 	 
-	if (it % 5 == 0)
+	if (it % 1 == 0)
 	    diagnostics(cartcomm, particles.xyzuvw, particles.size, dt, it, L, particles.axayaz);
     }
     
