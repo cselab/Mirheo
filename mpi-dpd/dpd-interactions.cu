@@ -1,3 +1,4 @@
+#include <cassert>
 #include <cuda-dpd.h>
 
 #include "dpd-interactions.h"
@@ -29,6 +30,16 @@ ComputeInteractionsDPD::ComputeInteractionsDPD(MPI_Comm cartcomm, int L):
     }
 }
 
+__global__ void not_nan(float * p, const int n)
+{
+    assert(gridDim.x * blockDim.x >= n);
+
+    const int gid = threadIdx.x + blockDim.x * blockIdx.x;
+
+    if (gid < n)
+	assert(!isnan(p[gid]));
+}
+
 void ComputeInteractionsDPD::evaluate(int& saru_tag, const Particle * const p, const int n, Acceleration * const a,
 				      const int * const cellsstart, const int * const cellscount)
 {
@@ -38,6 +49,10 @@ void ComputeInteractionsDPD::evaluate(int& saru_tag, const Particle * const p, c
 			   cellsstart, cellscount,
 			   1, L, L, L, aij, gammadpd, sigma, 1. / sqrt(dt), saru_tag);
 
+#ifndef NDEBUG
+    not_nan<<< (n * 3 + 127) / 128,  128>>>((float *)a, 3 * n);
+#endif
+    
     saru_tag += nranks - myrank;
 
     dpd_remote_interactions_stage2(p, n, saru_tag, a);
@@ -50,7 +65,7 @@ namespace RemoteDPD
     __global__ void merge_accelerations(const Acceleration * const aremote, const int nremote,
 					Acceleration * const alocal, const int nlocal,
 					const Particle * premote, const Particle * plocal,
-					const int * const scattered_entries)
+					const int * const scattered_entries, int rank)
     {
 	assert(blockDim.x * gridDim.x >= nremote);
 
@@ -63,19 +78,7 @@ namespace RemoteDPD
 	assert(pid >= 0 && pid < nlocal);
 	
 	Acceleration a = aremote[gid];
-
-	for(int c = 0; c < 3; ++c)
-	    atomicAdd(&alocal[pid].a[c], a.a[c]);
-	
 #ifndef NDEBUG
-	for(int c = 0; c < 3; ++c)
-	{
-       	    if (isnan(a.a[c]))
-		printf("oouch pid %d %f\n", pid, a.a[c]);
-	    
-	    assert(!isnan(a.a[c]));
-	}
-
 	Particle p1 = plocal[pid];
 	Particle p2 = premote[gid];
 
@@ -84,7 +87,22 @@ namespace RemoteDPD
 	    assert(p1.x[c] == p2.x[c]);
 	    assert(p1.x[c] == p2.x[c]);
 	}
+	
+	for(int c = 0; c < 3; ++c)
+	{
+       	    if (isnan(a.a[c]))
+		printf("rank %d) oouch gid %d %f out of %d remote entries going to pid %d of %d particles\n", rank, gid, a.a[c], nremote, pid, nlocal);
+	    
+	    assert(!isnan(a.a[c]));
+	}
 #endif
+	for(int c = 0; c < 3; ++c)
+	{
+	    float val = atomicAdd(&alocal[pid].a[c], a.a[c]);
+	    assert(!isnan(val));
+	}
+	
+
     }
 }
 
@@ -98,6 +116,11 @@ void ComputeInteractionsDPD::dpd_remote_interactions_stage1(const Particle * con
 
 	acc_size = HaloExchanger::nof_sent_particles();
 	CUDA_CHECK(cudaMalloc(&acc_remote, sizeof(Acceleration) * acc_size));
+
+#ifndef NDEBUG
+	//fill acc entries with nan
+	CUDA_CHECK(cudaMemset(acc_remote, 0xff, sizeof(Acceleration) * acc_size));
+#endif
     }
 }
     
@@ -144,18 +167,18 @@ void ComputeInteractionsDPD::dpd_remote_interactions_stage2(const Particle * con
 	cudaStream_t mystream = streams[code2stream[i]];
 	
 	directforces_dpd_cuda_bipartite_nohost(
-	    (float *)(send_bag + send_offsets[i]), (float *)(acc_remote + send_offsets[i]), nd,
+	    (float *)(send_bag + send_offsets[i]), (float *)&acc_remote[send_offsets[i]], nd,
 	    (float *)(recv_bag + recv_offsets[i]), ns,
 	    aij, gammadpd, sigma, 1. / sqrt(dt), saru_tag1, saru_tag2[i], saru_mask[i], mystream);
     }
 
     CUDA_CHECK(cudaPeekAtLastError());
-    CUDA_CHECK(cudaThreadSynchronize());
+    CUDA_CHECK(cudaDeviceSynchronize());
 
     const int nremote = HaloExchanger::nof_sent_particles();
     
     if (nremote > 0)
-   	RemoteDPD::merge_accelerations<<<(nremote + 127) / 128, 128>>>(acc_remote, nremote, a, n, send_bag, p, scattered_entries);
+   	RemoteDPD::merge_accelerations<<<(nremote + 127) / 128, 128>>>(acc_remote, nremote, a, n, send_bag, p, scattered_entries, myrank);
 }
 
 ComputeInteractionsDPD::~ComputeInteractionsDPD()

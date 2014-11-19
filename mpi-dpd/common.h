@@ -35,6 +35,8 @@ inline void mpiAssert(int code, const char *file, int line, bool abort=true)
     }
 }
 
+#include <cuda-dpd.h>
+
 //AoS is the currency for dpd simulations (because of the spatial locality).
 //AoS - SoA conversion might be performed within the hpc kernels.
 struct Particle
@@ -76,3 +78,31 @@ const float aij = 2.5;
 
 static const int tagbase_dpd_remote_interactions = 0;
 static const int tagbase_redistribute_particles = 255;
+
+//container for the cell lists, which contains only two integer vectors of size ncells.
+//the start[cell-id] array gives the entry in the particle array associated to first particle belonging to cell-id
+//count[cell-id] tells how many particles are inside cell-id.
+//building the cell lists involve a reordering of the particle array (!)
+struct CellLists
+{
+    const int ncells, L;
+
+    int * start, * count;
+    
+    CellLists(const int L): ncells(L * L * L), L(L)
+	{
+	    CUDA_CHECK(cudaMalloc(&start, sizeof(int) * ncells));
+	    CUDA_CHECK(cudaMalloc(&count, sizeof(int) * ncells));
+	}
+
+	void build(Particle * const p, const int n)
+	{
+	    build_clists((float * )p, n, 1, L, L, L, -L/2, -L/2, -L/2, NULL, start, count,  NULL);
+	}
+	    	    
+    ~CellLists()
+	{
+	    CUDA_CHECK(cudaFree(start));
+	    CUDA_CHECK(cudaFree(count));
+	}
+};

@@ -269,8 +269,12 @@ void HaloExchanger::pack_and_post(const Particle * const p, const int n)
     if (n > 0)
 	PackingHalo::count<1> <<<(n + 127) / 128, 128>>> (sendpacks_start, p, n, L, send_bag_size_required);    
     else
+    {
 	for(int i = 0; i < 27; ++i)
 	    sendpacks_start_host[i] = 0;
+
+	send_bag_size_required_host = 0;
+    }
     
 stage2:
     if (n > 0)
@@ -383,9 +387,19 @@ int HaloExchanger::nof_sent_particles()
     return nsend;
 }
 
+void HaloExchanger::exchange(const Particle * const plocal, int nlocal, const Particle *& premote, int& nremote)
+{
+    pack_and_post(plocal, nlocal);
+    wait_for_messages();
+
+    premote = recv_bag;
+    nremote = recv_offsets[26];
+}
+
 HaloExchanger::~HaloExchanger()
 {
     CUDA_CHECK(cudaFree(send_bag));
+    CUDA_CHECK(cudaFree(scattered_entries));
     CUDA_CHECK(cudaFree(recv_bag));
     CUDA_CHECK(cudaFreeHost(sendpacks_start));
     CUDA_CHECK(cudaFreeHost(send_bag_size_required));

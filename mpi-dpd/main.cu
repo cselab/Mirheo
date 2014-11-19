@@ -9,19 +9,18 @@
 #include <sstream>
 #include <vector>
 
-#include <cuda-dpd.h>
-
 //in common.h i define Particle and Acceleration data structures
 //as well as the global parameters for the simulation
 #include "common.h"
 
 #include "dpd-interactions.h"
+#include "wall-interactions.h"
 #include "redistribute-particles.h"
 
 using namespace std;
 
 //velocity verlet stages - first stage
-__global__ void update_stage1(Particle * p, Acceleration * a, int n, float dt)
+__global__ void update_stage1(Particle * p, Acceleration * a, int n, float dt, float dpdx, float dpdy, float dpdz)
 {
     assert(blockDim.x * gridDim.x >= n);
     
@@ -36,16 +35,18 @@ __global__ void update_stage1(Particle * p, Acceleration * a, int n, float dt)
 	assert(!isnan(p[pid].u[c]));
 	assert(!isnan(a[pid].a[c]));
     }
+
+    const float gradp[3] = {dpdx, dpdy, dpdz};
     
     for(int c = 0; c < 3; ++c)
-	p[pid].u[c] += a[pid].a[c] * dt * 0.5;
+	p[pid].u[c] += (a[pid].a[c] - gradp[c]) * dt * 0.5;
     
     for(int c = 0; c < 3; ++c)
 	p[pid].x[c] += p[pid].u[c] * dt;
 }
 
 //fused velocity verlet stage 2 and 1 (for the next iteration)
-__global__ void update_stage2_and_1(Particle * p, Acceleration * a, int n, float dt)
+__global__ void update_stage2_and_1(Particle * p, Acceleration * a, int n, float dt, float dpdx, float dpdy, float dpdz)
 {
     assert(blockDim.x * gridDim.x >= n);
     
@@ -59,10 +60,12 @@ __global__ void update_stage2_and_1(Particle * p, Acceleration * a, int n, float
 
     for(int c = 0; c < 3; ++c)
 	assert(!isnan(a[pid].a[c]));
+
+    const float gradp[3] = {dpdx, dpdy, dpdz};
     
     for(int c = 0; c < 3; ++c)
     {
-	const float mya = a[pid].a[c];
+	const float mya = a[pid].a[c] - gradp[c];
 	float myu = p[pid].u[c];
 	float myx = p[pid].x[c];
 
@@ -74,7 +77,7 @@ __global__ void update_stage2_and_1(Particle * p, Acceleration * a, int n, float
     }
 }
 
-void diagnostics(MPI_Comm comm, Particle * _particles, int n, float dt, int idstep, int L, Acceleration * _acc )
+void diagnostics(MPI_Comm comm, Particle * _particles, int n, float dt, int idstep, int L, Acceleration * _acc, bool particledump)
 {
     Particle * particles = new Particle[n];
     Acceleration * acc = new Acceleration[n];
@@ -120,8 +123,10 @@ void diagnostics(MPI_Comm comm, Particle * _particles, int n, float dt, int idst
 
     if (rank == 0)
     {
-	FILE * f = fopen("diag.txt", idstep ? "a" : "w");
-
+	static bool firsttime = true;
+	FILE * f = fopen("diag.txt", firsttime ? "w" : "a");
+	firsttime = false;
+	
 	if (idstep == 0)
 	    fprintf(f, "TSTEP\tKBT\tPX\tPY\tPZ\n");
 	
@@ -129,13 +134,14 @@ void diagnostics(MPI_Comm comm, Particle * _particles, int n, float dt, int idst
 	
 	fclose(f);
     }
-    
+
+    if (particledump)
     {
 	std::stringstream ss;
 
 	if (rank == 0)
 	{
-	    ss << n << "\n";
+	    ss <<  n << "\n";
 	    ss << "dpdparticle\n";
 	}
     
@@ -153,8 +159,13 @@ void diagnostics(MPI_Comm comm, Particle * _particles, int n, float dt, int idst
 	
 	MPI_File f;
 	char fn[] = "trajectories.xyz";
-	MPI_CHECK( MPI_File_open(comm, fn, MPI_MODE_WRONLY | (idstep == 0 ? MPI_MODE_CREATE : MPI_MODE_APPEND), MPI_INFO_NULL, &f) );
+	
+	static bool firsttime = true;
 
+	MPI_CHECK( MPI_File_open(comm, fn, MPI_MODE_WRONLY | (firsttime ? MPI_MODE_CREATE : MPI_MODE_APPEND), MPI_INFO_NULL, &f) );
+
+	firsttime = false;
+	
 	if (idstep == 0)
 	    MPI_CHECK( MPI_File_set_size (f, 0));
 
@@ -206,34 +217,6 @@ struct ParticleArray
 	}
 };
 
-//container for the cell lists, which contains only two integer vectors of size ncells.
-//the start[cell-id] array gives the entry in the particle array associated to first particle belonging to cell-id
-//count[cell-id] tells how many particles are inside cell-id.
-//building the cell lists involve a reordering of the particle array (!)
-struct CellLists
-{
-    const int ncells, L;
-
-    int * start, * count;
-    
-    CellLists(const int L): ncells(L * L * L), L(L)
-	{
-	    CUDA_CHECK(cudaMalloc(&start, sizeof(int) * ncells));
-	    CUDA_CHECK(cudaMalloc(&count, sizeof(int) * ncells));
-	}
-
-    void build(Particle * const p, const int n)
-	{
-	    build_clists((float * )p, n, 1, L, L, L, -L/2, -L/2, -L/2, NULL, start, count,  NULL);
-	}
-
-    ~CellLists()
-	{
-	    CUDA_CHECK(cudaFree(start));
-	    CUDA_CHECK(cudaFree(count));
-	}
-};
-
 int main(int argc, char ** argv)
 {
     int ranks[3];
@@ -272,7 +255,8 @@ int main(int argc, char ** argv)
     CellLists cells(L);		  
     RedistributeParticles redistribute(cartcomm, L);
     ComputeInteractionsDPD dpd(cartcomm, L);
-
+    ComputeInteractionsWall * wall = NULL;
+    
     int saru_tag = rank;
 
     cells.build(particles.xyzuvw, particles.size);
@@ -280,13 +264,17 @@ int main(int argc, char ** argv)
     dpd.evaluate(saru_tag, particles.xyzuvw, particles.size, particles.axayaz, cells.start, cells.count);
 
     const size_t nsteps = (int)(tend / dt);
+
+    float grad_p[3] = {0, 0, 0};
+    
     for(int it = 0; it < nsteps; ++it)
     {
 	if (rank == 0)
 	    printf("beginning of time step %d\n", it);
 	 
 	if (it == 0)
-	    update_stage1<<<(particles.size + 127) / 128, 128>>>(particles.xyzuvw, particles.axayaz, particles.size, dt);
+	    update_stage1<<<(particles.size + 127) / 128, 128>>>(particles.xyzuvw, particles.axayaz, particles.size,
+								 dt, grad_p[0], grad_p[1], grad_p[2]);
 
 	int newnp = redistribute.stage1(particles.xyzuvw, particles.size);
 	
@@ -294,15 +282,36 @@ int main(int argc, char ** argv)
 
 	redistribute.stage2(particles.xyzuvw, particles.size);
 
+	if (it > 100 && wall == NULL)
+	{
+	    int nsurvived = 0;
+	    wall = new ComputeInteractionsWall(cartcomm, L, particles.xyzuvw, particles.size, nsurvived);
+
+	    particles.resize(nsurvived);
+
+	    grad_p[2] = -0.1;
+	}
+		
 	cells.build(particles.xyzuvw, particles.size);
 	
 	dpd.evaluate(saru_tag, particles.xyzuvw, particles.size, particles.axayaz, cells.start, cells.count);
-	 
-	update_stage2_and_1<<<(particles.size + 127) / 128, 128>>>(particles.xyzuvw, particles.axayaz, particles.size, dt);
-	 
-	if (it % 1 == 0)
-	    diagnostics(cartcomm, particles.xyzuvw, particles.size, dt, it, L, particles.axayaz);
+
+	//later it should be moved inside dpd interactions. evaluate
+	if (wall != NULL)
+	    wall->interactions(particles.xyzuvw, particles.size, particles.axayaz, cells.start, cells.count, saru_tag);
+	
+	update_stage2_and_1<<<(particles.size + 127) / 128, 128>>>(particles.xyzuvw, particles.axayaz, particles.size, dt,
+								   grad_p[0], grad_p[1], grad_p[2]);
+	
+	if (wall != NULL)
+	    wall->bounce(particles.xyzuvw, particles.size);
+		
+	if (it % 50 == 0)
+	    diagnostics(cartcomm, particles.xyzuvw, particles.size, dt, it, L, particles.axayaz, it > 100);
     }
+
+    if (wall != NULL)
+	delete wall;
     
     MPI_CHECK( MPI_Finalize() );
 

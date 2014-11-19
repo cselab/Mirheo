@@ -1,4 +1,6 @@
-NVCC=nvcc
+-include .cache.Makefile
+
+NVCC ?= nvcc
 
 ARCH_VAL ?= compute_35
 CODE_VAL ?= sm_35
@@ -6,7 +8,7 @@ CODE_VAL ?= sm_35
 NVCCFLAGS += -g -I/opt/openmpi/include -arch $(ARCH_VAL) -code $(CODE_VAL) -g -O3 -use_fast_math -lineinfo -DNDEBUG
 NVCCFLAGS += -I../cuda-dpd-sem/dpd -L/opt/openmpi/lib -L../cuda-dpd-sem/dpd/
 
-OBJS = main.o dpd-interactions.o redistribute-particles.o halo-exchanger.o common.o 
+OBJS = main.o dpd-interactions.o redistribute-particles.o halo-exchanger.o common.o wall-interactions.o
 LIBS=  -lcuda-dpd -lcudart
 
 ifneq (,$(findstring openmpi,$(shell which $(CXX))))

@@ -41,5 +41,5 @@ public:
     
     ~HaloExchanger();
 
-    //void exchange(const Particle * const plocal, int nlocal, const Particle *& premote, int nremote);
+    void exchange(const Particle * const plocal, int nlocal, const Particle *& premote, int& nremote);
 };
