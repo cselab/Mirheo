@@ -6,10 +6,12 @@
 
 using namespace std;
 
-RedistributeParticles::RedistributeParticles(MPI_Comm cartcomm, int L):
-    cartcomm(cartcomm), L(L), pending_send(false), tmp(NULL), tmp_size(0)
+RedistributeParticles::RedistributeParticles(MPI_Comm _cartcomm, int L):
+    L(L), pending_send(false), leaving_start(NULL), leaving_start_device(NULL)
 {
     assert(L % 2 == 0);
+
+    MPI_CHECK(MPI_Comm_dup(_cartcomm, &cartcomm));
 	    
     MPI_CHECK( MPI_Comm_rank(cartcomm, &myrank));
 	    
@@ -28,6 +30,14 @@ RedistributeParticles::RedistributeParticles(MPI_Comm cartcomm, int L):
 	    coordsneighbor[c] = coords[c] + d[c];
 		
 	MPI_CHECK( MPI_Cart_rank(cartcomm, coordsneighbor, rankneighbors + i) );
+
+	for(int c = 0; c < 3; ++c)
+	    coordsneighbor[c] = coords[c] - d[c];
+
+	MPI_CHECK( MPI_Cart_rank(cartcomm, coordsneighbor, anti_rankneighbors + i) );
+
+	recvbufs[i].resize(L * L * 6);
+	sendbufs[i].resize(L * L * 6);
     }
 
     CUDA_CHECK(cudaHostAlloc((void **)&leaving_start_device, sizeof(int) * 28, cudaHostAllocMapped));
@@ -69,7 +79,12 @@ namespace ParticleReordering
 	if (pid < n)
 	{
 	    for(int c = 0; c < 3; ++c)
+	    {
+		if (!(p[pid].x[c] >= -L/2 - L && p[pid].x[c] < L/2 + L))
+		    printf("wow: pid %d component %d: %f\n", pid, c, p[pid].x[c]);
+
 		assert(p[pid].x[c] >= -L/2 - L && p[pid].x[c] < L/2 + L);
+	    }
 	    
 	    int vcode[3];
 	    for(int c = 0; c < 3; ++c)
@@ -107,8 +122,6 @@ namespace ParticleReordering
 	}
     }
 
-    //the reordering is performed by aquiring a global offset (computed by the "count" kernel)
-    //and computing a local offset. particles are written into temp
     __global__ void reorder(const Particle * const particles, const int np, const int L, Particle * const tmp)
     {
 	assert(blockDim.x * gridDim.x >= np);
@@ -162,9 +175,35 @@ namespace ParticleReordering
 	    tmp[ base[code] + offset ] = p;
     }
 
-    //particles that arrived from another subdomain must be transformed to the
-    //local system of reference of this subdomain. given the directional code i figure out the shift.
-    __global__ void shift(Particle * const p, const int np, const int L, const int code)
+    __global__ void check(Particle * const p, const int np, const int L, const int refcode, const int rank)
+    {
+	assert(blockDim.x * gridDim.x >= np);
+
+	const int pid = threadIdx.x + blockDim.x * blockIdx.x;
+	
+	if (pid < np)
+	{
+	    int vcode[3];
+	    for(int c = 0; c < 3; ++c)
+		vcode[c] = (2 + (p[pid].x[c] >= -L/2) + (p[pid].x[c] >= L/2)) % 3;
+	    const int code = vcode[0] + 3 * (vcode[1] + 3 * vcode[2]);
+
+	    for(int c = 0; c < 3; ++c)
+	    {
+		if (vcode[c] == 0)
+		    assert(p[pid].x[c] >= -L/2 && p[pid].x[c] < L/2);
+		else if (vcode[c] == 1)
+		    assert(p[pid].x[c] >= L/2 && p[pid].x[c] < L + L/2);
+		else if (vcode[c] == 2)
+		    assert(p[pid].x[c] <= -L/2 && p[pid].x[c] >= -L - L/2);
+		else
+		    asm("trap;");
+	    }
+	    assert(refcode == code);
+	}
+    }
+
+    __global__ void shift(Particle * const p, const int np, const int L, const int code, const int rank)
     {
 	assert(blockDim.x * gridDim.x >= np);
 	
@@ -175,78 +214,149 @@ namespace ParticleReordering
 	if (pid >= np)
 	    return;
 	
+	Particle old = p[pid];
+	Particle pnew = p[pid];
+
 	for(int c = 0; c < 3; ++c)
-	    p[pid].x[c] -= d[c] * L;
+	    pnew.x[c] -= d[c] * L;
+
+	p[pid] = pnew;
 
 #ifndef NDEBUG
 	{
 	    int vcode[3];
 	    for(int c = 0; c < 3; ++c)
-		vcode[c] = (2 + (p[pid].x[c] >= -L/2) + (p[pid].x[c] >= L/2)) % 3;
+		vcode[c] = (2 + (pnew.x[c] >= -L/2) + (pnew.x[c] >= L/2)) % 3;
 		
 	    int newcode = vcode[0] + 3 * (vcode[1] + 3 * vcode[2]);
 
 	    if(newcode != 0)
-		printf("ouch: new code is %d %d %d arriving from code %d -> %d %d %d\n", vcode[0], vcode[1], vcode[2], code,
-		       d[0], d[1], d[2]);
+		printf("rank %d) particle %d: ouch: new code is %d %d %d arriving from code %d -> %d %d %d \np: %f %f %f (before: %f %f %f)\n", 
+		       rank,  pid, vcode[0], vcode[1], vcode[2], code,
+		       d[0], d[1], d[2], pnew.x[0], pnew.x[1], pnew.x[2],
+		       old.x[0], old.x[1], old.x[2]);
 	    
 	    assert(newcode == 0);
 	}
 #endif
     }
 }
-    
+
 int RedistributeParticles::stage1(const Particle * const p, const int n)
-{
-    if (tmp_size < n)
-    {
-	if (tmp_size > 0)
-	    CUDA_CHECK(cudaFree(tmp));
-
-	CUDA_CHECK(cudaMalloc(&tmp, sizeof(Particle) * n));
-	
-	tmp_size = n;
-    }
- 
-    ParticleReordering::setup<<<1, 1>>>();
-    ParticleReordering::count<<<(n + 127) / 128, 128>>>(p, n, L, leaving_start_device);
-    ParticleReordering::reorder<<<(n + 127) / 128, 128>>>(p, n, L, tmp);
-
-    //we need to synchronize in order to get tmp and leaving_start filled
-    CUDA_CHECK(cudaPeekAtLastError());
-    CUDA_CHECK(cudaThreadSynchronize());
-
-    assert(leaving_start[27] == n);
-   
-    notleaving = leaving_start[1];
-        
+{  
     MPI_Status statuses[26];
-    if (pending_send)	    
-	MPI_CHECK( MPI_Waitall(26, sendreq + 1, statuses) );
 
-    //cuda-aware mpi send
-    for(int i = 1; i < 27; ++i)
-	MPI_CHECK( MPI_Isend(tmp + leaving_start[i], leaving_start[i + 1] - leaving_start[i],
-			     Particle::datatype(), rankneighbors[i], tagbase_redistribute_particles + i, cartcomm, sendreq + i) );
+    if (pending_send)	    
+	MPI_CHECK( MPI_Waitall(26, sendreq, statuses) );
     
+    reordered.resize(n);
+    
+    ParticleReordering::setup<<<1, 1>>>();
+    
+    if (n > 0)
+	ParticleReordering::count<<< (n + 127) / 128, 128 >>>(p, n, L, leaving_start_device);
+    else
+	for(int i = 0; i < 28; ++i)
+	    leaving_start[i] = 0;
+    
+    if (n > 0)
+	ParticleReordering::reorder<<< (n + 127) / 128, 128 >>>(p, n, L, reordered.data);
+    
+    CUDA_CHECK(cudaPeekAtLastError());
+   
+
+#ifndef NDEBUG    
+
+    CUDA_CHECK(cudaStreamSynchronize(0));
+
+    assert(leaving_start[0] == 0);
+    assert(leaving_start[27] == n); 
+   
+    for(int i = 0; i < 27; ++i)
+    {
+	const int count = leaving_start[i + 1] - leaving_start[i];
+
+	if (count > 0)
+	    ParticleReordering::check<<< (count + 127) / 128, 128 >>>(reordered.data + leaving_start[i], count, L, i, myrank);
+
+	CUDA_CHECK(cudaStreamSynchronize(0));
+	CUDA_CHECK(cudaPeekAtLastError());
+    }
+#endif
+
+    CUDA_CHECK(cudaStreamSynchronize(0));
+
+    notleaving = leaving_start[1];
+
+    {
+	MPI_Request sendcountreq[26];
+
+	send_counts[0] = 0;
+	
+	for(int i = 1; i < 27; ++i)
+	{
+	    const int count = (leaving_start[i + 1] - leaving_start[i]);
+	    
+	    send_counts[i] = count;
+	    
+	    MPI_CHECK( MPI_Isend(send_counts + i, 1, MPI_INTEGER, rankneighbors[i],  
+				 tagbase_redistribute_particles + i + 377, cartcomm, 
+				 &sendcountreq[i-1]) );
+	}
+	
+	recv_counts[0] = notleaving;
+
+	arriving = 0;
+
+	arriving_start[0] = 0;
+
+	MPI_Status status;
+	for(int i = 1; i < 27; ++i)
+	{
+	    MPI_CHECK( MPI_Recv(recv_counts + i, 1, MPI_INTEGER, anti_rankneighbors[i], 
+				tagbase_redistribute_particles + i + 377, cartcomm, &status) );
+
+	    arriving_start[i] = notleaving + arriving;
+
+	    arriving += recv_counts[i];
+	}
+
+	arriving_start[27] = notleaving + arriving;
+	
+	MPI_Status statuses[26];	    
+	MPI_CHECK( MPI_Waitall(26, sendcountreq, statuses) );
+    }
+     
+    //cuda-aware mpi receive
+    for(int i = 1; i < 27; ++i)
+    {
+	const int count = recv_counts[i];
+	    
+	recvbufs[i].resize(count);
+	
+	MPI_CHECK( MPI_Irecv(recvbufs[i].data, count * 6, /*Particle::datatype()*/MPI_FLOAT,
+			     anti_rankneighbors[i], tagbase_redistribute_particles + i, cartcomm, 
+			     &recvreq[i-1]) );
+    }
+
+    for(int i = 1; i < 27; ++i)
+    {
+	const int count = send_counts[i];
+
+	sendbufs[i].resize(count);
+	
+	CUDA_CHECK(cudaMemcpy(sendbufs[i].data, reordered.data + leaving_start[i], 
+			      sizeof(Particle) * count, cudaMemcpyDeviceToDevice));
+    
+	MPI_CHECK( MPI_Isend(sendbufs[i].data, count * 6,
+			     MPI_FLOAT, rankneighbors[i], tagbase_redistribute_particles + i, 
+			     cartcomm, &sendreq[i-1]) );
+    }
+
+    CUDA_CHECK(cudaPeekAtLastError());
+
     pending_send = true;
 
-    arriving = 0;
-    arriving_start[0] = notleaving;
-    for(int i = 1; i < 27; ++i)
-    {
-	MPI_Status status;
-	MPI_CHECK( MPI_Probe(MPI_ANY_SOURCE, tagbase_redistribute_particles + i, cartcomm, &status) );
-		
-	int local_count;
-	MPI_CHECK( MPI_Get_count(&status, Particle::datatype(), &local_count) );
-
-	arriving_start[i] = notleaving + arriving;
-	arriving += local_count;
-    }
-	    
-    arriving_start[27] = notleaving + arriving;
-    
     return notleaving + arriving;
 }
 
@@ -254,25 +364,35 @@ void RedistributeParticles::stage2(Particle * const p, const int n)
 {
     assert(n == notleaving + arriving);
 
-    CUDA_CHECK(cudaMemcpy(p, tmp, sizeof(Particle) * notleaving, cudaMemcpyDeviceToDevice));
+    CUDA_CHECK(cudaMemcpy(p, reordered.data, sizeof(Particle) * notleaving, cudaMemcpyDeviceToDevice));
 
-    //cuda-aware mpi receive
-    for(int i = 1; i < 27; ++i)
-	MPI_CHECK( MPI_Irecv(p + arriving_start[i], arriving_start[i + 1] - arriving_start[i], Particle::datatype(),
-			     MPI_ANY_SOURCE, tagbase_redistribute_particles + i, cartcomm, recvreq + i) );
-
+    CUDA_CHECK(cudaPeekAtLastError());
+    
     MPI_Status statuses[26];	    
-    MPI_CHECK( MPI_Waitall(26, recvreq + 1, statuses) );
-
-    //we could use multiple streams - these cuda launch are small compared to n
-    for(int i = 0; i < 27; ++i)
-    {
-	const int count = arriving_start[i + 1] - arriving_start[i];
+    MPI_CHECK( MPI_Waitall(26, recvreq, statuses) );
+    
+    for(int i = 1; i < 27; ++i)
+    { 
+	const int count = recv_counts[i];
 
 	if (count == 0)
 	    continue;
 
-	ParticleReordering::shift<<<(count + 127) / 128, 128>>>(p + arriving_start[i], count, L, i);
+	CUDA_CHECK(cudaMemcpy(p + arriving_start[i], recvbufs[i].data, 
+			      sizeof(Particle) * count, cudaMemcpyDeviceToDevice));
+	
+	ParticleReordering::shift<<< (count + 127) / 128, 128 >>>(p + arriving_start[i], count, L, i, myrank);
     }
+
+    if (n > 0)
+	ParticleReordering::check<<< (n + 127) / 128, 128 >>>(p, n, L, 0, myrank);
+
+    CUDA_CHECK(cudaPeekAtLastError());
 }
 
+RedistributeParticles::~RedistributeParticles()
+{
+    CUDA_CHECK(cudaFreeHost(leaving_start_device));
+
+    MPI_CHECK(MPI_Comm_free(&cartcomm));
+}

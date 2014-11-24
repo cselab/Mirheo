@@ -397,7 +397,7 @@ void _bipartite_dpd_directforces(float * const axayaz, const int np, const int n
 				 const int saru_tag1, const int saru_tag2, const bool saru_mask, const float * xyzuvw, const float * xyzuvw_src,
    const float invrc, const float aij, const float gamma, const float sigmaf)
 {
-    assert(blockDim.x == warpSize);
+    assert(blockDim.x % warpSize == 0);
     assert(blockDim.x * gridDim.x >= np);
     
     const int tid = threadIdx.x % warpSize;
@@ -446,7 +446,7 @@ void _bipartite_dpd_directforces(float * const axayaz, const int np, const int n
 	    //necessary to force the execution shuffles here below
 	    //__syncthreads();
 	    
-	    if (valid)
+	    //if (valid)
 	    {
 		const float _xr = xp - xq;
 		const float _yr = yp - yq;
@@ -477,6 +477,10 @@ void _bipartite_dpd_directforces(float * const axayaz, const int np, const int n
 		xforce += strength * xr;
 		yforce += strength * yr;
 		zforce += strength * zr;
+
+		/*	assert(fabs(xforce) < 100);
+		assert(fabs(yforce) < 100);		
+		assert(fabs(zforce) < 100);*/
 	    }
 	}
     }
@@ -490,6 +494,11 @@ void _bipartite_dpd_directforces(float * const axayaz, const int np, const int n
 	axayaz[0 + 3 * pid] = xforce;
 	axayaz[1 + 3 * pid] = yforce;
 	axayaz[2 + 3 * pid] = zforce;
+/*
+	for(int c = 0; c < 3; ++c)
+	{
+	    assert(fabs(axayaz[c + 3 * pid]) < 100);
+	    }*/
     }
 }
 
