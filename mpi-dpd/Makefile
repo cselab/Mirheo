@@ -12,7 +12,7 @@ CXXFLAGS += -I../cuda-dpd-sem/dpd  -L../cuda-dpd-sem/dpd  -g -O3
 NVCCFLAGS += -I../cuda-dpd-sem/dpd  -L../cuda-dpd-sem/dpd 
 
 OBJS = main.o dpd-interactions.o redistribute-particles.o halo-exchanger.o common.o wall-interactions.o
-LIBS = -lcuda-dpd -lcudart
+LIBS = -lcuda-dpd -lcudart -lH5Part
 
 test: $(OBJS) libcuda-dpd
 	echo HELLO

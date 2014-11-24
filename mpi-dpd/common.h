@@ -149,3 +149,5 @@ SimpleDeviceBuffer(): capacity(0), size(0), data(NULL) { }
 	    
 	}
 };
+
+void diagnostics(MPI_Comm comm, Particle * _particles, int n, float dt, int idstep, int L, Acceleration * _acc, bool particledump);
