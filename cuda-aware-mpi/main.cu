@@ -35,8 +35,9 @@ inline void mpiAssert(int code, const char *file, int line, bool abort=true)
 
 void cuda_awareness_test(MPI_Comm comm)
 {
-    const int shift = 0;
-    const int nmessages = 1;
+    const int shift = 1;
+    const int nmessages = 27
+;
     const bool cuda = true;
     
     int myrank;
@@ -45,36 +46,39 @@ void cuda_awareness_test(MPI_Comm comm)
     int nranks;
     MPI_CHECK( MPI_Comm_size(comm, &nranks) );
     
-    printf("hello test %d\n", myrank);
+    printf("hello test %d cuda is %d\n", myrank, cuda);
 
-   
-    float * bufsend;
+
+   float * bufsend;
 
     if (cuda)
 	CUDA_CHECK(cudaMalloc(&bufsend, sizeof(float) * nmessages));
     else
 	bufsend = new float[nmessages];
     
+    
+  
+    
     printf("sending (%d)..\n", myrank);
     
     MPI_Request sendreq[nmessages];
     for(int i = 0; i < nmessages; ++i)
     	MPI_CHECK( MPI_Isend(bufsend + i, 1, MPI_FLOAT, (myrank + nranks + shift) % nranks, i, comm, sendreq + i));
+   
 
     float * bufrecv;
     if (cuda)
 	CUDA_CHECK(cudaMalloc(&bufrecv, sizeof(float) * nmessages));
     else
 	bufrecv = new float[nmessages];
-    
-    printf("receiving (%d)...\n", myrank);
+
+  printf("receiving (%d)...\n", myrank);
     
     MPI_Request recvreq[nmessages];
     
     for(int i = 0; i < nmessages; ++i)
 	MPI_CHECK( MPI_Irecv(bufrecv + i, 1, 
 			     MPI_FLOAT, (myrank + nranks - shift) % nranks, i, comm, recvreq + i) );
-    
     MPI_Status statuses[nmessages];
     MPI_CHECK( MPI_Waitall(nmessages, recvreq, statuses) );
     MPI_CHECK( MPI_Waitall(nmessages, sendreq, statuses) );

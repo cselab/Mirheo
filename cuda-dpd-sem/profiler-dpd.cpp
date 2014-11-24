@@ -17,11 +17,11 @@ inline void cudaAssert(cudaError_t code, const char *file, int line, bool abort=
     }
 }
 
-ProfilerDPD * ProfilerDPD::st = nullptr;
+ProfilerDPD * ProfilerDPD::st = NULL;
 
 ProfilerDPD& ProfilerDPD::singletone()
 {
-    if (st == nullptr)
+    if (st == NULL)
 	return *(st = new ProfilerDPD);
 
     return *st;

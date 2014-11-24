@@ -1,15 +1,22 @@
-NVCC=nvcc
+-include .cache.Makefile
 
-NVCCFLAGS += -g -I/opt/openmpi/include -arch sm_35 -O3 -use_fast_math -lineinfo -DNDEBUG
-NVCCFLAGS += -I../cuda-dpd-sem/dpd -L/opt/openmpi/lib -L../cuda-dpd-sem/dpd/
+NVCC ?= nvcc
 
-OBJS = main.o dpd-interactions.o redistribute-particles.o common.o 
-LIBS=  -lcuda-dpd -lmpichcxx -lmpich -lcudart 
-#../cuda-dpd-sem/dpd/libcuda-dpd.so
+ARCH_VAL ?= compute_35
+CODE_VAL ?= sm_35
+
+NVCCFLAGS +=  -arch $(ARCH_VAL) -code $(CODE_VAL) -O3 -use_fast_math -lineinfo -g 
+#-DNDEBUG
+CXXFLAGS += -I../cuda-dpd-sem/dpd  -L../cuda-dpd-sem/dpd  -g -O3 
+#-DNDEBUG
+NVCCFLAGS += -I../cuda-dpd-sem/dpd  -L../cuda-dpd-sem/dpd 
+
+OBJS = main.o dpd-interactions.o redistribute-particles.o halo-exchanger.o common.o wall-interactions.o
+LIBS = -lcuda-dpd -lcudart
 
 test: $(OBJS) libcuda-dpd
 	echo HELLO
-	$(NVCC) $(NVCCFLAGS) $(OBJS) $(LIBS) -o test
+	$(CXX) $(CXXFLAGS) $(OBJS) $(LIBS) -o test
 
 %.o: %.cu %.h common.h
 	$(NVCC) $(NVCCFLAGS) -c $< -o $@
@@ -18,7 +25,7 @@ main.o: main.cu common.h
 	$(NVCC) $(NVCCFLAGS) -c $< -o $@
 
 libcuda-dpd: 
-	make -C ../cuda-dpd-sem/dpd libcuda-dpd.so nonperiodic=1
+	make -C ../cuda-dpd-sem/dpd libcuda-dpd.so nonperiodic=1  CXX="$(CXX)" NVCC="$(NVCC)"
 
 clean:
 	rm -f test *.o
