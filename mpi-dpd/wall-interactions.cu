@@ -292,6 +292,19 @@ ComputeInteractionsWall::ComputeInteractionsWall(MPI_Comm cartcomm, const int L,
 
     if (solid_size > 0)
 	cells.build(solid, solid_size);
+
+    {
+	const int n = solid_local.size();
+
+	Particle * phost = new Particle[n];
+
+	CUDA_CHECK(cudaMemcpy(phost, thrust::raw_pointer_cast(&solid_local[0]), sizeof(Particle) * n, cudaMemcpyDeviceToHost));
+
+	H5PartDump solid_dump /*ha ha ha*/("solid-walls.h5part", cartcomm, L);
+	solid_dump.dump(phost, n);
+
+	delete [] phost;
+    }
 }
 
 void ComputeInteractionsWall::bounce(Particle * const p, const int n)

@@ -1,12 +1,13 @@
 #pragma once
 
-#include <cstdlib>
 #include <cstdio>
 #include <cmath>
 #include <cassert>
 
+#include <string>
+using namespace std;
+
 #include <unistd.h>
-#include <cuda_runtime.h>
 
 #define CUDA_CHECK(ans) do { cudaAssert((ans), __FILE__, __LINE__); } while(0)
 inline void cudaAssert(cudaError_t code, const char *file, int line, bool abort=true)
@@ -69,9 +70,32 @@ struct Acceleration
     float a[3];
 };
 
+
+class H5PartDump
+{
+    MPI_Comm cartcomm;
+
+    string fname;
+
+    float origin[3];
+
+    void * handler;
+
+    int tstamp;
+public:
+
+    H5PartDump(const string filename, MPI_Comm cartcomm, const int L);
+
+    void dump(Particle * host_particles, int n);
+    
+    ~H5PartDump();
+};
+
+void diagnostics(MPI_Comm comm, Particle * _particles, int n, float dt, int idstep, int L, Acceleration * _acc, bool particledump);
+
 const int L = 24;
 const float dt = 0.02;
-const float tend = 10;
+const float tend = 20;
 const float kBT = 0.1;
 const float gammadpd = 45;
 const float sigma = sqrt(2 * gammadpd * kBT);
@@ -149,5 +173,3 @@ SimpleDeviceBuffer(): capacity(0), size(0), data(NULL) { }
 	    
 	}
 };
-
-void diagnostics(MPI_Comm comm, Particle * _particles, int n, float dt, int idstep, int L, Acceleration * _acc, bool particledump);

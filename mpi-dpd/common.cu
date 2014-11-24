@@ -12,41 +12,55 @@ bool Particle::initialized = false;
 
 MPI_Datatype Particle::mytype;
 
-void h5part_dump(MPI_Comm comm, Particle * host_particles, int n, int ntotal, float dt, int idstep, float xoffset, float yoffset, float zoffset)
+H5PartDump::H5PartDump(const string fname, MPI_Comm cartcomm, const int L):
+    cartcomm(cartcomm), fname(fname), tstamp(0)
 {
-    H5PartFile * f = H5PartOpenFileParallel("trajectories.h5", H5PART_WRITE, comm);
+    int dims[3], periods[3], coords[3];
+    MPI_CHECK( MPI_Cart_get(cartcomm, 3, dims, periods, coords) );
 
-    assert(H5PartFileIsValid(f));
+    for(int c = 0; c < 3; ++c)
+	origin[c] = L / 2 + coords[c] * L;
 
-    H5PartSetStep(f, idstep);
+    H5PartFile * f = H5PartOpenFileParallel(fname.c_str(), H5PART_WRITE, cartcomm);
 
-    H5PartSetNumParticles(f, ntotal);
+    assert(f != NULL);
+
+    handler = f;
+}
+
+void H5PartDump::dump(Particle * host_particles, int n)
+{
+    H5PartFile * f = (H5PartFile *)handler;
+
+    H5PartSetStep(f, tstamp
+);
+
+    H5PartSetNumParticles(f, n);
 
     string labels[] = {"x", "y", "z"};
-
-    float offset[] = { xoffset, yoffset, zoffset };
 
     for(int c = 0; c < 3; ++c)
     {
 	vector<float> data(n);
 
 	for(int i = 0; i < n; ++i)
-	    data[i] = host_particles[i].x[c] + offset[c];
+	    data[i] = host_particles[i].x[c] + origin[c];
 
 	H5PartWriteDataFloat32(f, labels[c].c_str(), &data.front());
     }
 
+    tstamp++;
+}
+    
+H5PartDump::~H5PartDump()
+{
+    H5PartFile * f = (H5PartFile *)handler;
+
     H5PartCloseFile(f);
 }
 
-void diagnostics(MPI_Comm comm, Particle * _particles, int n, float dt, int idstep, int L, Acceleration * _acc, bool particledump)
+void diagnostics(MPI_Comm comm, Particle * particles, int n, float dt, int idstep, int L, Acceleration * acc, bool particledump)
 {
-    Particle * particles = new Particle[n];
-    Acceleration * acc = new Acceleration[n];
-
-    CUDA_CHECK(cudaMemcpy(particles, _particles, sizeof(Particle) * n, cudaMemcpyDeviceToHost));
-    CUDA_CHECK(cudaMemcpy(acc, _acc, sizeof(Acceleration) * n, cudaMemcpyDeviceToHost));
-    
     int nlocal = n;
 
     //we fused VV stages so we need to recover the state before stage 1
@@ -102,7 +116,27 @@ void diagnostics(MPI_Comm comm, Particle * _particles, int n, float dt, int idst
 
     if (particledump)
     {
-	h5part_dump(comm, particles, nlocal, n, dt, idstep, L / 2 + coords[0] * L, L / 2 + coords[1] * L, L / 2 + coords[2] * L);
+	bool filenotthere;
+	if (rank == 0)
+	    filenotthere = access( "trajectories.xyz", F_OK ) == -1;
+
+	MPI_CHECK( MPI_Bcast(&filenotthere, 1, MPI_INT, 0, comm) );
+	
+	static bool firsttime = true;
+
+	firsttime |= filenotthere;
+
+	MPI_File f;
+	char fn[] = "trajectories.xyz";
+	MPI_CHECK( MPI_File_open(comm, fn, MPI_MODE_WRONLY | (firsttime ? MPI_MODE_CREATE : MPI_MODE_APPEND), MPI_INFO_NULL, &f) );
+
+	if (firsttime)
+	    MPI_CHECK( MPI_File_set_size (f, 0));
+
+	firsttime = false;
+	
+	MPI_Offset base;
+	MPI_CHECK( MPI_File_get_position(f, &base));
 	
 	std::stringstream ss;
 
@@ -126,28 +160,10 @@ void diagnostics(MPI_Comm comm, Particle * _particles, int n, float dt, int idst
 	int offset = 0;
 	MPI_CHECK( MPI_Exscan(&len, &offset, 1, MPI_INTEGER, MPI_SUM, comm)); 
 	
-	MPI_File f;
-	char fn[] = "/scratch/daint/diegor/trajectories.xyz";
-	
-	static bool firsttime = true;
-
-	MPI_CHECK( MPI_File_open(comm, fn, MPI_MODE_WRONLY | (firsttime ? MPI_MODE_CREATE : MPI_MODE_APPEND), MPI_INFO_NULL, &f) );
-
-	if (firsttime)
-	    MPI_CHECK( MPI_File_set_size (f, 0));
-
-	firsttime = false;
-	
-	MPI_Offset base;
-	MPI_CHECK( MPI_File_get_position(f, &base));
-	
 	MPI_Status status;
 	
 	MPI_CHECK( MPI_File_write_at_all(f, base + offset, const_cast<char *>(content.c_str()), len, MPI_CHAR, &status));
 	
 	MPI_CHECK( MPI_File_close(&f));
     }
-
-    delete [] particles;
-    delete [] acc;
 }

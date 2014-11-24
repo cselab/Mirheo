@@ -176,6 +176,7 @@ int main(int argc, char ** argv)
 	
 	    //the methods of these classes are not expected to call cudaThreadSynchronize unless really necessary
 	    //(be aware of that)
+	    H5PartDump dump("trajectories.h5part", cartcomm, L);
 	    ParticleArray particles(ic);
 	    CellLists cells(L);		  
 	    RedistributeParticles redistribute(cartcomm, L);
@@ -207,7 +208,7 @@ int main(int argc, char ** argv)
 	    
 		redistribute.stage2(particles.xyzuvw, particles.size);
 
-		if (it < 100 && wall == NULL)
+		if (it > 100 && wall == NULL)
 		{
 		    int nsurvived = 0;
 		    wall = new ComputeInteractionsWall(cartcomm, L, particles.xyzuvw, particles.size, nsurvived);
@@ -215,6 +216,20 @@ int main(int argc, char ** argv)
 		    particles.resize(nsurvived);
 		    
 		    grad_p[2] = -0.1;
+
+		    if (rank == 0)
+			if( access( "trajectories.xyz", F_OK ) != -1 )
+			{
+			    const int retval = rename ("trajectories.xyz", "trajectories-equilibration.xyz");
+			    assert(retval != -1);
+			}
+
+		    if (rank == 0)
+			if( access( "trajectories.xyz", F_OK ) != -1 )
+			{
+			    const int retval = rename ("trajectories.xyz", "trajectories-equilibration.xyz");
+			    assert(retval != -1);
+			}
 		}
 
 		cells.build(particles.xyzuvw, particles.size);
@@ -233,7 +248,23 @@ int main(int argc, char ** argv)
 		    wall->bounce(particles.xyzuvw, particles.size);
 	    
 		if (it % 10 == 0)
-		    diagnostics(cartcomm, particles.xyzuvw, particles.size, dt, it, L, particles.axayaz, true);
+		{
+		    const int n = particles.size;
+
+		    Particle * p = new Particle[n];
+		    Acceleration * a = new Acceleration[n];
+
+		    CUDA_CHECK(cudaMemcpy(p, particles.xyzuvw, sizeof(Particle) * n, cudaMemcpyDeviceToHost));
+		    CUDA_CHECK(cudaMemcpy(a, particles.axayaz, sizeof(Acceleration) * n, cudaMemcpyDeviceToHost));
+		   
+		    diagnostics(cartcomm, p, n, dt, it, L, a, true);
+
+		    if (it > 100)
+			dump.dump(p, n);
+
+		    delete [] p;
+		    delete [] a;
+		}
 	    }
 	
 	    if (wall != NULL)
