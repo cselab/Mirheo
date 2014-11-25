@@ -450,7 +450,7 @@ void build_clists(float * const device_xyzuvw, int np, const float rc,
 	CUDA_CHECK(cudaMalloc(&outid, sizeof(int) * np));
 	CUDA_CHECK(cudaMalloc(&order, sizeof(int) * np));
 	size_t textureoffset = 0;
-    CUDA_CHECK(cudaBindTexture(&textureoffset, &texParticles, xyzuvw_copy, &texParticles.channelDesc, sizeof(float) * 6 * np));
+	CUDA_CHECK(cudaBindTexture(&textureoffset, &texParticles, xyzuvw_copy, &texParticles.channelDesc, sizeof(float) * 6 * np));
 	old_np = np;
     }
 

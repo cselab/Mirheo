@@ -2,7 +2,9 @@
 #include <sstream>
 #include <vector>
 
+#ifndef NO_H5PART
 #include <H5Part.h>
+#endif
 
 #include "common.h"
 
@@ -12,9 +14,11 @@ bool Particle::initialized = false;
 
 MPI_Datatype Particle::mytype;
 
+
 H5PartDump::H5PartDump(const string fname, MPI_Comm cartcomm, const int L):
     cartcomm(cartcomm), fname(fname), tstamp(0)
 {
+#ifndef NO_H5PART
     int dims[3], periods[3], coords[3];
     MPI_CHECK( MPI_Cart_get(cartcomm, 3, dims, periods, coords) );
 
@@ -25,15 +29,16 @@ H5PartDump::H5PartDump(const string fname, MPI_Comm cartcomm, const int L):
 
     assert(f != NULL);
 
-    handler = f;
+handler = f;
+#endif
 }
 
 void H5PartDump::dump(Particle * host_particles, int n)
 {
+#ifndef NO_H5PART
     H5PartFile * f = (H5PartFile *)handler;
 
-    H5PartSetStep(f, tstamp
-);
+    H5PartSetStep(f, tstamp);
 
     H5PartSetNumParticles(f, n);
 
@@ -49,14 +54,17 @@ void H5PartDump::dump(Particle * host_particles, int n)
 	H5PartWriteDataFloat32(f, labels[c].c_str(), &data.front());
     }
 
-    tstamp++;
+tstamp++;
+#endif
 }
     
 H5PartDump::~H5PartDump()
 {
+#ifndef NO_H5PART
     H5PartFile * f = (H5PartFile *)handler;
 
-    H5PartCloseFile(f);
+H5PartCloseFile(f);
+#endif
 }
 
 void diagnostics(MPI_Comm comm, Particle * particles, int n, float dt, int idstep, int L, Acceleration * acc, bool particledump)

@@ -1,10 +1,6 @@
 -include .cache.Makefile
 
-<<<<<<< Temporary merge branch 1
-NVCCFLAGS += -g -I/opt/openmpi/include -arch sm_35 -O3 -use_fast_math -lineinfo -DNDEBUG
-=======
 NVCC ?= nvcc
-
 ARCH_VAL ?= compute_35
 CODE_VAL ?= sm_35
 
@@ -15,7 +11,11 @@ CXXFLAGS += -I../cuda-dpd-sem/dpd  -L../cuda-dpd-sem/dpd  -g -O3
 NVCCFLAGS += -I../cuda-dpd-sem/dpd  -L../cuda-dpd-sem/dpd 
 
 OBJS = main.o dpd-interactions.o redistribute-particles.o halo-exchanger.o common.o wall-interactions.o
-LIBS = -lcuda-dpd -lcudart -lH5Part
+LIBS = -lcuda-dpd -lcudart 
+
+ifneq "$(h5part)" "0"
+LIBS += -lH5Part
+endif
 
 test: $(OBJS) libcuda-dpd
 	echo HELLO
