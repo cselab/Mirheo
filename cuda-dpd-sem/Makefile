@@ -4,7 +4,8 @@ CODE_VAL ?= sm_35
 CXXFLAGS += -g -O2  -fPIC
 
 #these setting are for my gk104, for k20x pls set the right flags
-NVCCFLAGS = -arch=$(ARCH_VAL) -Xcompiler -fpic -code=$(CODE_VAL)  -O4 -DNDEBUG
+NVCCFLAGS = -arch=$(ARCH_VAL) -Xcompiler -fpic -code=$(CODE_VAL)  -O4
+#-DNDEBUG
 #NVCCFLAGS += -Xptxas -v,-abi=yes
 NVCCFLAGS += --use_fast_math
 # -Xptxas -dlcm=cg -maxrregcount 32

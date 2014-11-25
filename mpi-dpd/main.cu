@@ -182,7 +182,7 @@ int main(int argc, char ** argv)
 	    RedistributeParticles redistribute(cartcomm, L);
 	    ComputeInteractionsDPD dpd(cartcomm, L);
 	    ComputeInteractionsWall * wall = NULL;
-	
+	    
 	    int saru_tag = rank;
 	
 	    cells.build(particles.xyzuvw, particles.size);
@@ -208,7 +208,7 @@ int main(int argc, char ** argv)
 	    
 		redistribute.stage2(particles.xyzuvw, particles.size);
 
-		if (it > 100 && wall == NULL)
+		if (walls && it > 100 && wall == NULL)
 		{
 		    int nsurvived = 0;
 		    wall = new ComputeInteractionsWall(cartcomm, L, particles.xyzuvw, particles.size, nsurvived);

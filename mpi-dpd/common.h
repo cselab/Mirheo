@@ -102,7 +102,8 @@ const float kBT = 0.1;
 const float gammadpd = 45;
 const float sigma = sqrt(2 * gammadpd * kBT);
 const float sigmaf = sigma / sqrt(dt);
-const float aij = 2.5; 
+const float aij = 2.5;
+const bool walls = false;
 
 static const int tagbase_dpd_remote_interactions = 0;
 static const int tagbase_redistribute_particles = 255;

@@ -28,7 +28,7 @@ main.o: main.cu common.h
 	$(NVCC) $(NVCCFLAGS) -c $< -o $@
 
 libcuda-dpd: 
-	make -C ../cuda-dpd-sem/dpd libcuda-dpd.so nonperiodic=1  CXX="$(CXX)" NVCC="$(NVCC)"
+	make -C ../cuda-dpd-sem/dpd libcuda-dpd.so nonperiodic=1  CXX="$(CXX)" NVCC="$(NVCC)" ARCH_VAL="$(ARCH_VAL)" CODE_VAL="$(CODE_VAL)"
 
 clean:
 	rm -f test *.o
