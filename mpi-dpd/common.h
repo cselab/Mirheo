@@ -5,6 +5,9 @@
 #include <cmath>
 #include <cassert>
 
+#include <string>
+using namespace std;
+
 #include <unistd.h>
 #include <cuda_runtime.h>
 
@@ -68,6 +71,29 @@ struct Acceleration
 {
     float a[3];
 };
+
+
+class H5PartDump
+{
+    MPI_Comm cartcomm;
+
+    string fname;
+
+    float origin[3];
+
+    void * handler;
+
+    int tstamp;
+public:
+
+    H5PartDump(const string filename, MPI_Comm cartcomm, const int L);
+
+    void dump(Particle * host_particles, int n);
+    
+    ~H5PartDump();
+};
+
+void diagnostics(MPI_Comm comm, Particle * _particles, int n, float dt, int idstep, int L, Acceleration * _acc, bool particledump);
 
 const int L = 24;
 const float dt = 0.02;
