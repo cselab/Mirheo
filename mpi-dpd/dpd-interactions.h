@@ -9,11 +9,11 @@
 class ComputeInteractionsDPD : public HaloExchanger
 {   
     //temporary buffer to compute accelerations in the halo
-    int acc_size;
-    Acceleration * acc_remote;
+    //int acc_size;
+    SimpleDeviceBuffer<Acceleration> acc_remote[26];
 
     //cuda-sync after to wait for packing of the halo
-    void dpd_remote_interactions_stage1(const Particle * const p, const int n);
+    void dpd_remote_interactions_stage1(const Particle * const p, const int n, const int * const cellsstart, const int * const cellscount);
 
     //mpi-sync for the surrounding halos
     void dpd_remote_interactions_stage2(const Particle * const p, const int n, int saru_tag1, Acceleration * const a);

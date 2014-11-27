@@ -275,18 +275,15 @@ ComputeInteractionsWall::ComputeInteractionsWall(MPI_Comm cartcomm, const int L,
   
     HaloExchanger halo(cartcomm, L);
 
-    const Particle * solid_remote = NULL;
-    int nremote;
+    SimpleDeviceBuffer<Particle> solid_remote = halo.exchange(thrust::raw_pointer_cast(&solid_local[0]), solid_local.size(), NULL, NULL);
 
-    halo.exchange(thrust::raw_pointer_cast(&solid_local[0]), solid_local.size(), solid_remote, nremote);
-
-    printf("receiving extra %d\n", nremote);
+    printf("receiving extra %d\n", solid_remote.size);
     
-    solid_size = solid_local.size() + nremote;
+    solid_size = solid_local.size() + solid_remote.size;
 
     CUDA_CHECK(cudaMalloc(&solid, sizeof(Particle) * solid_size));
     CUDA_CHECK(cudaMemcpy(solid, thrust::raw_pointer_cast(&solid_local[0]), sizeof(Particle) * solid_local.size(), cudaMemcpyDeviceToDevice));
-    CUDA_CHECK(cudaMemcpy(solid + solid_local.size(), solid_remote, sizeof(Particle) * nremote, cudaMemcpyDeviceToDevice));
+    CUDA_CHECK(cudaMemcpy(solid + solid_local.size(), solid_remote.data, sizeof(Particle) * solid_remote.size, cudaMemcpyDeviceToDevice));
         
     SolidWallsKernel::zero_velocity<<< (solid_size + 127) / 128, 128>>>(solid, solid_size);
 

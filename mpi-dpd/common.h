@@ -144,7 +144,7 @@ struct SimpleDeviceBuffer
     int capacity, size;
     T * data;
         
-SimpleDeviceBuffer(): capacity(0), size(0), data(NULL) { }
+SimpleDeviceBuffer(int n = 0): capacity(0), size(0), data(NULL) { resize(n);}
 
     ~SimpleDeviceBuffer()
 	{

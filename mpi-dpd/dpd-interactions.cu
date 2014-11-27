@@ -11,9 +11,6 @@ using namespace std;
 ComputeInteractionsDPD::ComputeInteractionsDPD(MPI_Comm cartcomm, int L):
     HaloExchanger(cartcomm, L)
 {
-    acc_size = send_bag.size;
-    CUDA_CHECK(cudaMalloc(&acc_remote, acc_size * sizeof(Acceleration)));
-
     for(int i = 0; i < 7; ++i)
 	CUDA_CHECK(cudaStreamCreate(streams + i));
 
@@ -36,7 +33,7 @@ ComputeInteractionsDPD::ComputeInteractionsDPD(MPI_Comm cartcomm, int L):
 void ComputeInteractionsDPD::evaluate(int& saru_tag, const Particle * const p, const int n, Acceleration * const a,
 				      const int * const cellsstart, const int * const cellscount)
 {
-    dpd_remote_interactions_stage1(p, n);
+    dpd_remote_interactions_stage1(p, n, cellsstart, cellscount);
 
     if (n > 0)
 	forces_dpd_cuda_nohost((float *)p, (float *)a, n, 
@@ -110,28 +107,18 @@ namespace RemoteDPD
 #endif
 	for(int c = 0; c < 3; ++c)
 	{
-	    float val = atomicAdd(&alocal[pid].a[c], a.a[c]);
+	    const float val = alocal[pid].a[c];
+	    
+	    alocal[pid].a[c] = val + a.a[c];
+	    
 	    assert(!isnan(val));
 	}
     }
 }
 
-void ComputeInteractionsDPD::dpd_remote_interactions_stage1(const Particle * const p, const int n)
+void ComputeInteractionsDPD::dpd_remote_interactions_stage1(const Particle * const p, const int n, const int * const cellsstart, const int * const cellscount)
 {
-    HaloExchanger::pack_and_post(p, n);
-
-    if (acc_size < HaloExchanger::nof_sent_particles())
-    {
-	CUDA_CHECK(cudaFree(acc_remote));
-
-	acc_size = HaloExchanger::nof_sent_particles();
-	CUDA_CHECK(cudaMalloc(&acc_remote, sizeof(Acceleration) * acc_size));
-
-#ifndef NDEBUG
-	//fill acc entries with nan
-	CUDA_CHECK(cudaMemset(acc_remote, 0xff, sizeof(Acceleration) * acc_size));
-#endif
-    }
+    HaloExchanger::pack_and_post(p, n, cellsstart, cellscount);
 }
 
 void ComputeInteractionsDPD::dpd_remote_interactions_stage2(const Particle * const p, const int n, const int saru_tag1, Acceleration * const a)
@@ -168,35 +155,54 @@ void ComputeInteractionsDPD::dpd_remote_interactions_stage2(const Particle * con
 
     for(int i = 0; i < 26; ++i)
     {
-	const int nd = send_offsets[i + 1] - send_offsets[i];
-	const int ns = recv_offsets[i + 1] - recv_offsets[i];
+	const int nd = sendbufs[i].size;//send_counts[i];
+	const int ns = recvbufs[i].size;//recv_counts[i];
 
-	if (nd > 0 && ns == 0)
-	    CUDA_CHECK(cudaMemset((float *)&acc_remote[send_offsets[i]], 0, nd * sizeof(Acceleration)));
+	acc_remote[i].resize(nd);
 
-	if (ns == 0 || nd == 0)
+	if (nd == 0)
 	    continue;
+	
+#ifndef NDEBUG
+	//fill acc entries with nan
+	CUDA_CHECK(cudaMemset(acc_remote[i].data, 0xff, sizeof(Acceleration) * acc_remote[i].size));
+#endif
+	
+	if (ns == 0)
+	{
+	    CUDA_CHECK(cudaMemset((float *)acc_remote[i].data, 0, nd * sizeof(Acceleration)));
+	    continue;
+	}
+	CUDA_CHECK(cudaDeviceSynchronize());
 
 	cudaStream_t mystream = streams[code2stream[i]];
 
 	directforces_dpd_cuda_bipartite_nohost(
-	    (float *)(send_bag.data + send_offsets[i]), (float *)&acc_remote[send_offsets[i]], nd,
-	    (float *)(recv_bag.data + recv_offsets[i]), ns,
+	    (float *)sendbufs[i].data, (float *)acc_remote[i].data, nd,
+	    (float *)recvbufs[i].data, ns,
 	    aij, gammadpd, sigma, 1. / sqrt(dt), saru_tag1, saru_tag2[i], saru_mask[i], mystream);
+	CUDA_CHECK(cudaPeekAtLastError());
+	CUDA_CHECK(cudaDeviceSynchronize());
     }
 
-    const int nremote = HaloExchanger::nof_sent_particles();
+    CUDA_CHECK(cudaDeviceSynchronize());
 
-    if (nremote > 0)
-	RemoteDPD::merge_accelerations<<<(nremote + 127) / 128, 128>>>(acc_remote, nremote, a, n, send_bag.data, p, scattered_entries.data, myrank);
-
+    for(int i = 0; i < 26; ++i)
+    {
+	const int nd = acc_remote[i].size;
+	
+	if (nd > 0)
+	    RemoteDPD::merge_accelerations<<<(nd + 127) / 128, 128>>>(acc_remote[i].data, nd, a, n,
+								      sendbufs[i].data, p, scattered_entries[i].data, myrank);
+	CUDA_CHECK(cudaPeekAtLastError());
+	CUDA_CHECK(cudaDeviceSynchronize());
+    }
+   
     CUDA_CHECK(cudaPeekAtLastError());
 }
 
 ComputeInteractionsDPD::~ComputeInteractionsDPD()
 {
-    CUDA_CHECK(cudaFree(acc_remote));
-
     for(int i = 0; i < 7; ++i)
 	CUDA_CHECK(cudaStreamDestroy(streams[i]));
 }
