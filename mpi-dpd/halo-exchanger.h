@@ -10,6 +10,12 @@ class HaloExchanger
     int recv_tags[26], nlocal;
     
 protected:
+    
+    struct SendHalo
+    {
+	SimpleDeviceBuffer<int> scattered_entries, cellstarts, tmpstart, tmpcount;
+	SimpleDeviceBuffer<Particle> buf;
+    } sendhalos[26];
 
     MPI_Comm cartcomm;
     int L, myrank, nranks, dims[3], periods[3], coords[3], dstranks[26];
@@ -22,9 +28,9 @@ protected:
 
     MPI_Request sendreq[26], recvreq[26];
 
-    SimpleDeviceBuffer<int> scattered_entries[26], sendcellstarts[26], tmpstart[26], tmpcount[26];
+    //SimpleDeviceBuffer<int> scattered_entries[26], sendcellstarts[26], tmpstart[26], tmpcount[26];
 
-    SimpleDeviceBuffer<Particle> sendbufs[26], recvbufs[26];
+    SimpleDeviceBuffer<Particle> /*sendbufs[26],*/  recvbufs[26];
 
     //cuda-sync after to wait for packing of the halo, mpi non-blocking
     void pack_and_post(const Particle * const p, const int n, const int * const cellsstart, const int * const cellscount);

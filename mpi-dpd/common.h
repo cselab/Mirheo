@@ -105,7 +105,6 @@ const float sigmaf = sigma / sqrt(dt);
 const float aij = 2.5;
 const bool walls = false;
 
-static const int tagbase_dpd_remote_interactions = 0;
 static const int tagbase_redistribute_particles = 255;
 
 //container for the cell lists, which contains only two integer vectors of size ncells.

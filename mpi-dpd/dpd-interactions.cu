@@ -155,7 +155,7 @@ void ComputeInteractionsDPD::dpd_remote_interactions_stage2(const Particle * con
 
     for(int i = 0; i < 26; ++i)
     {
-	const int nd = sendbufs[i].size;//send_counts[i];
+	const int nd = sendhalos[i].buf.size;//send_counts[i];
 	const int ns = recvbufs[i].size;//recv_counts[i];
 
 	acc_remote[i].resize(nd);
@@ -178,7 +178,7 @@ void ComputeInteractionsDPD::dpd_remote_interactions_stage2(const Particle * con
 	cudaStream_t mystream = streams[code2stream[i]];
 
 	directforces_dpd_cuda_bipartite_nohost(
-	    (float *)sendbufs[i].data, (float *)acc_remote[i].data, nd,
+	    (float *)sendhalos[i].buf.data, (float *)acc_remote[i].data, nd,
 	    (float *)recvbufs[i].data, ns,
 	    aij, gammadpd, sigma, 1. / sqrt(dt), saru_tag1, saru_tag2[i], saru_mask[i], mystream);
 	CUDA_CHECK(cudaPeekAtLastError());
@@ -193,7 +193,7 @@ void ComputeInteractionsDPD::dpd_remote_interactions_stage2(const Particle * con
 	
 	if (nd > 0)
 	    RemoteDPD::merge_accelerations<<<(nd + 127) / 128, 128>>>(acc_remote[i].data, nd, a, n,
-								      sendbufs[i].data, p, scattered_entries[i].data, myrank);
+								      sendhalos[i].buf.data, p, sendhalos[i].scattered_entries.data, myrank);
 	CUDA_CHECK(cudaPeekAtLastError());
 	CUDA_CHECK(cudaDeviceSynchronize());
     }

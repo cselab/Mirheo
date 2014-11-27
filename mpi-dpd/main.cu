@@ -240,7 +240,7 @@ int main(int argc, char ** argv)
 		if (wall != NULL)
 		    wall->bounce(particles.xyzuvw, particles.size);
 	    
-		if (it % 1 == 0)
+		if (it % 50 == 0)
 		{
 		    const int n = particles.size;
 

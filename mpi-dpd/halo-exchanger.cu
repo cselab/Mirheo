@@ -21,11 +21,11 @@ HaloExchanger::HaloExchanger(MPI_Comm _cartcomm, int L):  L(L)
 
     MPI_CHECK( MPI_Cart_get(cartcomm, 3, dims, periods, coords) );
 
-    for(int i = 0; i < 26; ++i)
+    for(int i = 0; i < 26; ++i) 
     {
 	int d[3] = { (i + 2) % 3 - 1, (i / 3 + 2) % 3 - 1, (i / 9 + 2) % 3 - 1 };
 
-	recv_tags[i] = tagbase_dpd_remote_interactions + (2 - d[0]) % 3 + 3 * ((2 - d[1]) % 3 + 3 * ((2 - d[2]) % 3));
+	recv_tags[i] = (2 - d[0]) % 3 + 3 * ((2 - d[1]) % 3 + 3 * ((2 - d[2]) % 3));
 
 	int coordsneighbor[3];
 	for(int c = 0; c < 3; ++c)
@@ -36,12 +36,12 @@ HaloExchanger::HaloExchanger(MPI_Comm _cartcomm, int L):  L(L)
 	const int nhalocells = pow(L, 3 - fabs(d[0]) - fabs(d[1]) - fabs(d[2]));
 	const int estimate = 2 * 3 * nhalocells;
 	recvbufs[i].resize(estimate);
-	sendbufs[i].resize(estimate);
-	scattered_entries[i].resize(estimate);
+	sendhalos[i].buf.resize(estimate);
+	sendhalos[i].scattered_entries.resize(estimate);
 	
-	sendcellstarts[i].resize(nhalocells + 1);
-	tmpcount[i].resize(nhalocells + 1);
-	tmpstart[i].resize(nhalocells + 1);
+	sendhalos[i].cellstarts.resize(nhalocells + 1);
+	sendhalos[i].tmpcount.resize(nhalocells + 1);
+	sendhalos[i].tmpstart.resize(nhalocells + 1);
     }
 
     CUDA_CHECK(cudaHostAlloc((void **)&required_send_bag_size, sizeof(int) * 26, cudaHostAllocMapped));
@@ -369,95 +369,91 @@ void HaloExchanger::pack_and_post(const Particle * const p, const int n, const i
 	    halo_size[c] = min(d[c] * L + L/2 + 1, L/2) - halo_start[c];
 	}
 
-	const int nentries = sendcellstarts[i].size;
-	assert(nentries == tmpcount[i].size);
-	assert(nentries == tmpstart[i].size);
+	const int nentries = sendhalos[i].cellstarts.size;
+	assert(nentries == sendhalos[i].tmpcount.size);
+	assert(nentries == sendhalos[i].tmpstart.size);
 	    
-	//printf("code %d: %d %d %d, nentries %d halo size %d %d %d\n", i, d[0], d[1], d[2], nentries, halo_size[0], halo_size[1], halo_size[2]);
 	assert(nentries == 1 + halo_size[0] * halo_size[1] * halo_size[2]);
 	
 	PackingHalo::count<<< (nentries + 127) / 128, 128 >>>(cellsstart, cellscount, 
 							      make_int3(halo_start[0] + L/2 , halo_start[1] + L/2, halo_start[2] + L/2),
 							      make_int3(halo_size[0], halo_size[1], halo_size[2]), L,
-							      tmpstart[i].data, tmpcount[i].data);
-	CUDA_CHECK(cudaPeekAtLastError());
-	CUDA_CHECK(cudaStreamSynchronize(0));
+							      sendhalos[i].tmpstart.data, sendhalos[i].tmpcount.data);
+    }
+    
+    CUDA_CHECK(cudaPeekAtLastError());
 
-	/*{
-	    thrust::host_vector<int> asd(thrust::device_ptr<int>(tmpcount[i].data),
-					 thrust::device_ptr<int>(tmpcount[i].data + nentries));
+    for(int i = 0; i < 26; ++i)
+	thrust::exclusive_scan(thrust::device_ptr<int>(sendhalos[i].tmpcount.data),
+			       thrust::device_ptr<int>(sendhalos[i].tmpcount.data + sendhalos[i].tmpcount.size),
+			       thrust::device_ptr<int>(sendhalos[i].cellstarts.data));
 
-	    printf("ASD:\n");
-	    for(int e = 0; e < tmpcount[i].size; ++e)
-		printf("%d ", (int)asd[e]);
-	    printf("\n");
+    CUDA_CHECK(cudaPeekAtLastError());
+  	
+    for(int pass = 0; pass < 2; ++pass)
+    {
+	bool needsync = pass == 0;
 
-
-	    }*/
-	
-	thrust::exclusive_scan(thrust::device_ptr<int>(tmpcount[i].data),
-			       thrust::device_ptr<int>(tmpcount[i].data + nentries),
-			       thrust::device_ptr<int>(sendcellstarts[i].data));
-	
-	CUDA_CHECK(cudaPeekAtLastError());
-	CUDA_CHECK(cudaStreamSynchronize(0));
-    stage2:
-	
-	PackingHalo::fill<<<nentries, 32>>>(p, n, tmpstart[i].data, tmpcount[i].data, L, sendcellstarts[i].data,
-					    sendbufs[i].data, sendbufs[i].capacity, scattered_entries[i].data, required_send_bag_size + i, i);
-
-   	CUDA_CHECK(cudaPeekAtLastError());
-	CUDA_CHECK(cudaStreamSynchronize(0));
-
-	const int nrequired = required_send_bag_size_host[i];
-/*	{
-	    thrust::host_vector<int> asd(thrust::device_ptr<int>(sendcellstarts[i].data),
-					 thrust::device_ptr<int>(sendcellstarts[i].data + nentries));
-	    // printf("nrequired: %d asd %d\n", nrequired, (int)asd[nentries - 1]);
-
-	    assert(  nrequired   ==   (int)asd[nentries - 1] );
-	    }*/
-
-	const int asd = sendbufs[i].size;
-	const int asd2 = nrequired;
-	const bool fail = sendbufs[i].capacity < nrequired;
-	
-	if (fail)
+	for(int i = 0; i < 26; ++i)
 	{
-	    printf("------------------- rank %d - code %d : oooops %d %d now: %d\n", myrank, i, asd, asd2, sendbufs[i].size);
-	    sendbufs[i].resize(nrequired);
-	    scattered_entries[i].resize(nrequired);
-	   
-	    goto stage2;
-	}
-	else
-	{
-	   sendbufs[i].size = nrequired;
-	   scattered_entries[i].size = nrequired; 
+	    bool fail = false;
+	    int nrequired;
+
+	    if (pass == 1)
+	    {
+		nrequired = required_send_bag_size_host[i];
+		fail = sendhalos[i].buf.capacity < nrequired;
+	    }
+
+	    if (pass == 0 || fail)
+	    {
+		if (fail)
+		{
+		    printf("------------------- rank %d - code %d : oops now: %d required: %d\n", myrank, i, sendhalos[i].buf.size, nrequired);
+		    sendhalos[i].buf.resize(nrequired);
+		    sendhalos[i].scattered_entries.resize(nrequired);
+		    needsync = true;
+		}
+		
+		const int nentries = sendhalos[i].cellstarts.size;
+
+		PackingHalo::fill<<<nentries, 32>>>(p, n, sendhalos[i].tmpstart.data, sendhalos[i].tmpcount.data, L, sendhalos[i].cellstarts.data,
+						    sendhalos[i].buf.data, sendhalos[i].buf.capacity, sendhalos[i].scattered_entries.data, 
+						    required_send_bag_size + i, i);
+	    }
+
+	    if (pass == 1)
+	    {
+		sendhalos[i].buf.size = nrequired;
+		sendhalos[i].scattered_entries.size = nrequired;
+	    }
 	}
 
-	//send_counts[i] = nrequired;
+	CUDA_CHECK(cudaPeekAtLastError());
 
-#ifndef NDEBUG
+	if (needsync)
+	    CUDA_CHECK(cudaStreamSynchronize(0));
+    }
 	
-    	const int nd = sendbufs[i].size;
-
-	//assert(nd == send_counts[i]);
+  #ifndef NDEBUG
+    for(int i = 0; i < 26; ++i)
+    {
+    	const int nd = sendhalos[i].buf.size;
 	
 	if (nd > 0)
-	    PackingHalo::check_send_particles<<<(nd + 127)/ 128, 128>>>(sendbufs[i].data, nd, L, i);
-#endif
-
-		CUDA_CHECK(cudaPeekAtLastError());
-		CUDA_CHECK(cudaStreamSynchronize(0));
+	    PackingHalo::check_send_particles<<<(nd + 127)/ 128, 128>>>(sendhalos[i].buf.data, nd, L, i);
     }
+
+    CUDA_CHECK(cudaStreamSynchronize(0));
+    CUDA_CHECK(cudaPeekAtLastError());
+#endif
 
     //retrieve recv_counts
     {
 	MPI_Request sendcountreq[26];
 
 	for(int i = 0; i < 26; ++i)
-	    MPI_CHECK( MPI_Isend(&sendbufs[i].size, 1, MPI_INTEGER, dstranks[i], tagbase_dpd_remote_interactions + i+ 150, cartcomm, sendcountreq + i) );
+	    MPI_CHECK( MPI_Isend(&sendhalos[i].buf.size, 1, MPI_INTEGER, dstranks[i],  i+ 150, cartcomm, sendcountreq + i) );
 	
 	MPI_Status status;
 
@@ -485,7 +481,7 @@ void HaloExchanger::pack_and_post(const Particle * const p, const int n, const i
 	if (count == 0)
 	    continue;
 
-	MPI_CHECK( MPI_Irecv(recvbufs[i].data, count * 6, /*Particle::datatype()*/ MPI_FLOAT, dstranks[i], 
+	MPI_CHECK( MPI_Irecv(recvbufs[i].data, count, Particle::datatype(), dstranks[i], 
 			     recv_tags[i], cartcomm, recvreq + nrecvreq) );	
 
 	++nrecvreq;
@@ -495,13 +491,13 @@ void HaloExchanger::pack_and_post(const Particle * const p, const int n, const i
 
     for(int i = 0; i < 26; ++i)
     {
-	const int count = sendbufs[i].size;
+	const int count = sendhalos[i].buf.size;
 
 	if (count == 0) 
 	    continue;
 
-	MPI_CHECK( MPI_Isend(sendbufs[i].data, count * 6, /*Particle::datatype()*/ MPI_FLOAT, dstranks[i], 
-			     tagbase_dpd_remote_interactions + i, cartcomm, sendreq + nsendreq) );
+	MPI_CHECK( MPI_Isend(sendhalos[i].buf.data, count, Particle::datatype(), dstranks[i], 
+			     i, cartcomm, sendreq + nsendreq) );
 
 	++nsendreq;
     }
@@ -516,14 +512,6 @@ void HaloExchanger::wait_for_messages()
 	MPI_CHECK( MPI_Waitall(nsendreq, sendreq, statuses) ); 
     }
 
-    /*for(int i = 0; i < 26; ++i)
-    {
-	const int count = recv_offsets[i + 1] - recv_offsets[i];
-
-	CUDA_CHECK(cudaMemcpy(recv_bag.data + recv_offsets[i], recvbufs[i].data,  
-			      count * sizeof(Particle), cudaMemcpyDeviceToDevice));
-    }*/
-
     for(int i = 0; i < 26; ++i)
     {
 	const int ns = recvbufs[i].size;
@@ -537,7 +525,7 @@ int HaloExchanger::nof_sent_particles()
 {
     int s = 0;
     for(int i = 0; i < 26; ++i)
-	s += sendbufs[i].size;
+	s += sendhalos[i].buf.size;
 
     return s;
 }
