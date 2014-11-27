@@ -176,3 +176,4 @@ SimpleDeviceBuffer(int n = 0): capacity(0), size(0), data(NULL) { resize(n);}
 	    
 	}
 };
+

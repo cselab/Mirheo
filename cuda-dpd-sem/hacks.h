@@ -1,6 +1,7 @@
 #pragma once
 #include <unistd.h>
 
+#ifndef CUDA_CHECK
 #define CUDA_CHECK(ans) do { cudaAssert((ans), __FILE__, __LINE__); } while(0)
 inline void cudaAssert(cudaError_t code, const char *file, int line, bool abort=true)
 {
@@ -11,6 +12,7 @@ inline void cudaAssert(cudaError_t code, const char *file, int line, bool abort=
 	if (abort) exit(code);
     }
 }
+#endif
 
 #include <thrust/device_vector.h>
 template<typename T> T * _ptr(thrust::device_vector<T>& v)
@@ -39,7 +41,7 @@ struct TextureWrap
 	    texDesc.addressMode[1]   = cudaAddressModeWrap;
 	    texDesc.filterMode       = cudaFilterModePoint;
 	    texDesc.readMode         = cudaReadModeElementType;
-	    texDesc.normalizedCoords = 1;
+	    texDesc.normalizedCoords = 0;
 
 	    texObj = 0;
 	    CUDA_CHECK(cudaCreateTextureObject(&texObj, &resDesc, &texDesc, NULL));

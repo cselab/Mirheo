@@ -65,3 +65,9 @@ void directforces_dpd_cuda_bipartite(
     const float * const xyzuvw_src, const int np_src,
     const float aij, const float gamma, const float sigma, const float invsqrtdt,
     const int saru_tag1, const int saru_tag2, const bool sarumask);
+
+void directforces_dpd_cuda_bipartite_nohost(cudaStream_t stream, const float2 * const xyzuvw, const int np, cudaTextureObject_t texDstStart,
+					    cudaTextureObject_t texSrcStart, cudaTextureObject_t texSrcParticles, const int np_src,
+					    const int3 halo_ncells,
+					    const float aij, const float gamma, const float sigmaf,
+					    const int saru_tag1, const int saru_tag2, const bool sarumask, float * const axayaz);
