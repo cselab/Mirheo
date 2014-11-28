@@ -1,10 +1,6 @@
 #include <cstring>
 #include <algorithm>
 
-#include <thrust/scan.h>
-#include <thrust/device_ptr.h>
-#include <thrust/host_vector.h>
-
 #include "halo-exchanger.h"
 
 using namespace std;
@@ -404,10 +400,13 @@ void HaloExchanger::pack_and_post(const Particle * const p, const int n, const i
     CUDA_CHECK(cudaPeekAtLastError());
 
     /* replace this exclusive scan with a lightweight home-made version */
-    for(int i = 0; i < 26; ++i)
+    /* for(int i = 0; i < 26; ++i)
 	thrust::exclusive_scan(thrust::device_ptr<int>(sendhalos[i].tmpcount.data),
 			       thrust::device_ptr<int>(sendhalos[i].tmpcount.data + sendhalos[i].tmpcount.size),
-			       thrust::device_ptr<int>(sendhalos[i].cellstarts.data));
+			       thrust::device_ptr<int>(sendhalos[i].cellstarts.data));*/
+
+    for(int i = 0; i < 26; ++i)
+	scan.exclusive(streams[code2stream[i]], (uint*)sendhalos[i].cellstarts.data, (uint*)sendhalos[i].tmpcount.data, sendhalos[i].tmpcount.size);
 
     CUDA_CHECK(cudaPeekAtLastError());
   	

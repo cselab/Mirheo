@@ -8,7 +8,7 @@ NVCCFLAGS +=  -arch $(ARCH_VAL) -code $(CODE_VAL) -O3 -use_fast_math -lineinfo -
 CXXFLAGS += -I../cuda-dpd-sem/dpd  -L../cuda-dpd-sem/dpd  -g -O3 -DNDEBUG
 NVCCFLAGS += -I../cuda-dpd-sem/dpd  -L../cuda-dpd-sem/dpd 
 
-OBJS = main.o dpd-interactions.o redistribute-particles.o halo-exchanger.o common.o wall-interactions.o
+OBJS = main.o dpd-interactions.o redistribute-particles.o halo-exchanger.o common.o wall-interactions.o scan.o
 LIBS = -lcuda-dpd -lcudart 
 
 ifneq "$(h5part)" "0"

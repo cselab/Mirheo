@@ -3,6 +3,7 @@
 #include <mpi.h>
 
 #include "common.h"
+#include "scan.h"
 
 class HaloExchanger
 {
@@ -11,6 +12,8 @@ class HaloExchanger
     
     //mpi send and recv informations
     int recv_tags[26], nlocal;
+
+    ScanEngine scan;
     
 protected:
     
