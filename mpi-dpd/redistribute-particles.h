@@ -24,6 +24,8 @@ class RedistributeParticles
     MPI_Request sendreq[27], recvreq[27];
     
     int recv_counts[27], send_counts[27];
+
+    cudaStream_t mystream;
 public:
 
     RedistributeParticles(MPI_Comm cartcomm, const int L);
