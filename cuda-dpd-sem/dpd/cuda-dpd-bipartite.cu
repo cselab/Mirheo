@@ -639,7 +639,7 @@ void forces_dpd_cuda_bipartite(const float * const xp1, const float * const yp1,
 }
 
 __global__ __launch_bounds__(32 * CPB, 16) 
-    void _dpd_forces_saru(const float2 * const xyzuvw, const int np, cudaTextureObject_t texDstStart,
+    void _dpd_bipforces_saru(const float2 * const xyzuvw, const int np, cudaTextureObject_t texDstStart,
 			  cudaTextureObject_t texSrcStart,  cudaTextureObject_t texSrcParticles, const int np_src, const int3 halo_ncells,
 			  const float aij, const float gamma, const float sigmaf,
 			  const int saru_tag1, const int saru_tag2, const bool sarumask, float * const axayaz)
@@ -781,7 +781,7 @@ __global__ __launch_bounds__(32 * CPB, 16)
     } 
 }
 
-void directforces_dpd_cuda_bipartite_nohost(cudaStream_t stream, const float2 * const xyzuvw, const int np, cudaTextureObject_t texDstStart,
+void forces_dpd_cuda_bipartite_nohost(cudaStream_t stream, const float2 * const xyzuvw, const int np, cudaTextureObject_t texDstStart,
 					    cudaTextureObject_t texSrcStart, cudaTextureObject_t texSrcParticles, const int np_src,
 					    const int3 halo_ncells,
 					    const float aij, const float gamma, const float sigmaf,
@@ -789,7 +789,7 @@ void directforces_dpd_cuda_bipartite_nohost(cudaStream_t stream, const float2 * 
 { 
     const int ncells = halo_ncells.x * halo_ncells.y * halo_ncells.z;
     
-    _dpd_forces_saru<<<(ncells + CPB - 1) / CPB, dim3(32, CPB), 0, stream>>>(
+    _dpd_bipforces_saru<<<(ncells + CPB - 1) / CPB, dim3(32, CPB), 0, stream>>>(
 	xyzuvw, np, texDstStart, texSrcStart, texSrcParticles, np_src,
 	halo_ncells, aij, gamma, sigmaf, saru_tag1, saru_tag2, sarumask,
 	axayaz);

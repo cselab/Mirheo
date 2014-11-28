@@ -2,44 +2,19 @@
 
 #include <algorithm>
 
-
 #include <cuda-dpd.h>
 
 #include "dpd-interactions.h"
 
-
-#include <../hacks.h>
-#include <thrust/device_ptr.h>
-#include <thrust/host_vector.h>
 using namespace std;
 
-ComputeInteractionsDPD::ComputeInteractionsDPD(MPI_Comm cartcomm, int L):
-    HaloExchanger(cartcomm, L)
-{
-    for(int i = 0; i < 7; ++i)
-	CUDA_CHECK(cudaStreamCreate(streams + i));
-
-    for(int i = 0, ctr = 1; i < 26; ++i)
-    {
-	int d[3] = { (i + 2) % 3 - 1, (i / 3 + 2) % 3 - 1, (i / 9 + 2) % 3 - 1 };
-
-	const bool isface = abs(d[0]) + abs(d[1]) + abs(d[2]) == 1;
-
-	code2stream[i] = 0;
-
-	if (isface)
-	{
-	    code2stream[i] = ctr;
-	    ctr++;
-	}
-    }
-}
+ComputeInteractionsDPD::ComputeInteractionsDPD(MPI_Comm cartcomm, int L): HaloExchanger(cartcomm, L) {}
 
 void ComputeInteractionsDPD::evaluate(int& saru_tag, const Particle * const p, const int n, Acceleration * const a,
 				      const int * const cellsstart, const int * const cellscount)
 {
-    dpd_remote_interactions_stage1(p, n, cellsstart, cellscount);
-
+    HaloExchanger::pack_and_post(p, n, cellsstart, cellscount);
+    
     if (n > 0)
 	forces_dpd_cuda_nohost((float *)p, (float *)a, n, 
 			       cellsstart, cellscount,
@@ -47,11 +22,10 @@ void ComputeInteractionsDPD::evaluate(int& saru_tag, const Particle * const p, c
 
     saru_tag += nranks - myrank;
 
-    dpd_remote_interactions_stage2(p, n, saru_tag, a);
+    dpd_remote_interactions(p, n, saru_tag, a);
 
     saru_tag += 1 + myrank;  
 }
-
 
 __global__ void not_nan(float * p, const int n)
 {
@@ -112,21 +86,14 @@ namespace RemoteDPD
 #endif
 	for(int c = 0; c < 3; ++c)
 	{
-	    const float val = alocal[pid].a[c];
+	    atomicAdd(& alocal[pid].a[c], a.a[c]);
 	    
-	    alocal[pid].a[c] = val + a.a[c];
-	    
-	    assert(!isnan(val));
+	    assert(!isnan(a.a[c]));
 	}
     }
 }
 
-void ComputeInteractionsDPD::dpd_remote_interactions_stage1(const Particle * const p, const int n, const int * const cellsstart, const int * const cellscount)
-{
-    HaloExchanger::pack_and_post(p, n, cellsstart, cellscount);
-}
-
-void ComputeInteractionsDPD::dpd_remote_interactions_stage2(const Particle * const p, const int n, const int saru_tag1, Acceleration * const a)
+void ComputeInteractionsDPD::dpd_remote_interactions(const Particle * const p, const int n, const int saru_tag1, Acceleration * const a)
 {
     wait_for_messages();
 
@@ -159,8 +126,8 @@ void ComputeInteractionsDPD::dpd_remote_interactions_stage2(const Particle * con
 
     for(int i = 0; i < 26; ++i)
     {
-	const int nd = sendbufs[i].size;
-	const int ns = recvbufs[i].size;
+	const int nd = sendhalos[i].buf.size;
+	const int ns = recvhalos[i].buf.size;
 
 	acc_remote[i].resize(nd);
 
@@ -171,90 +138,41 @@ void ComputeInteractionsDPD::dpd_remote_interactions_stage2(const Particle * con
 	//fill acc entries with nan
 	CUDA_CHECK(cudaMemset(acc_remote[i].data, 0xff, sizeof(Acceleration) * acc_remote[i].size));
 #endif
+	cudaStream_t mystream = streams[code2stream[i]];
 	
 	if (ns == 0)
 	{
-	    CUDA_CHECK(cudaMemset((float *)acc_remote[i].data, 0, nd * sizeof(Acceleration)));
+	    CUDA_CHECK(cudaMemsetAsync((float *)acc_remote[i].data, 0, nd * sizeof(Acceleration), mystream));
 	    continue;
 	}
-	CUDA_CHECK(cudaDeviceSynchronize());
-
-	cudaStream_t mystream = streams[code2stream[i]];
-
-	if (sendcellstarts[i].size * recvcellstarts[i].size > 1 && nd * ns > 80 * 80)
-	{
-	    TextureWrap texDC(sendcellstarts[i].data, sendcellstarts[i].size);
-	    TextureWrap texSC(recvcellstarts[i].data, recvcellstarts[i].size);
-	    TextureWrap texSP((float2*)recvbufs[i].data, recvbufs[i].size * 3);
-
-	    if (false) {
-		thrust::host_vector<int> culo(
-		    thrust::device_ptr<int>(recvcellstarts[i].data),
-		    thrust::device_ptr<int>(recvcellstarts[i].data + recvcellstarts[i].size));
-		
-		printf("recvcells: %d \n", recvcellstarts[i].size);
-		for(int e = 0; e < culo.size(); ++e)
-		    printf("%d ", culo[e]);
-		printf("\n");
-		for(int e = 1; e < culo.size(); ++e)
-		    assert(culo[e - 1] <= culo[e]);
-		
-		    
-		assert(culo.back() == recvbufs[i].size);
-	    }
-
-	    if (false){
-		thrust::host_vector<int> culo(
-		  thrust::device_ptr<int>(sendcellstarts[i].data),
-		  thrust::device_ptr<int>(sendcellstarts[i].data + sendcellstarts[i].size));
-		
-		printf("sendcells: %d \n", sendcellstarts[i].size);
-		for(int e = 0; e < culo.size(); ++e)
-		    printf("%d ", culo[e]);
-		printf("\n");
-		for(int e = 1; e < culo.size(); ++e)
-		    assert(culo[e - 1] <= culo[e]);
-		
-		    
-		assert(culo.back() == sendbufs[i].size);
-	    }
-
-	    directforces_dpd_cuda_bipartite_nohost(mystream, (float2 *)sendbufs[i].data, nd, texDC.texObj, texSC.texObj, texSP.texObj, ns,
-						   halosize[i], aij, gammadpd, sigma / sqrt(dt), saru_tag1, saru_tag2[i], saru_mask[i],
-						   (float *)acc_remote[i].data);
-
-	    CUDA_CHECK(cudaPeekAtLastError());
-	CUDA_CHECK(cudaDeviceSynchronize());
+	
+	if (sendhalos[i].cellstarts.size * recvhalos[i].cellstarts.size > 1 && nd * ns > 10 * 10)
+	{	   
+	    texDC[i].acquire(sendhalos[i].cellstarts.data, sendhalos[i].cellstarts.capacity);
+	    texSC[i].acquire(recvhalos[i].cellstarts.data, recvhalos[i].cellstarts.capacity);
+	    texSP[i].acquire((float2*)recvhalos[i].buf.data, recvhalos[i].buf.capacity * 3);
+	       
+	    forces_dpd_cuda_bipartite_nohost(mystream, (float2 *)sendhalos[i].buf.data, nd, texDC[i].texObj, texSC[i].texObj, texSP[i].texObj,
+					     ns, halosize[i], aij, gammadpd, sigma / sqrt(dt), saru_tag1, saru_tag2[i], saru_mask[i],
+					     (float *)acc_remote[i].data);
 	}
 	else
 	    directforces_dpd_cuda_bipartite_nohost(
-		(float *)sendbufs[i].data, (float *)acc_remote[i].data, nd,
-		(float *)recvbufs[i].data, ns,
+		(float *)sendhalos[i].buf.data, (float *)acc_remote[i].data, nd,
+		(float *)recvhalos[i].buf.data, ns,
 		aij, gammadpd, sigma, 1. / sqrt(dt), saru_tag1, saru_tag2[i], saru_mask[i], mystream);
-	
-	CUDA_CHECK(cudaPeekAtLastError());
-	CUDA_CHECK(cudaDeviceSynchronize());
     }
 
-    
-    CUDA_CHECK(cudaDeviceSynchronize());
+    CUDA_CHECK(cudaPeekAtLastError());
 
     for(int i = 0; i < 26; ++i)
     {
 	const int nd = acc_remote[i].size;
 	
 	if (nd > 0)
-	        RemoteDPD::merge_accelerations<<<(nd + 127) / 128, 128>>>(acc_remote[i].data, nd, a, n,
-						      sendbufs[i].data, p, scattered_entries[i].data, myrank);
-	CUDA_CHECK(cudaPeekAtLastError());
-	CUDA_CHECK(cudaDeviceSynchronize());
+	    RemoteDPD::merge_accelerations<<<(nd + 127) / 128, 128, 0, streams[code2stream[i]]>>>(acc_remote[i].data, nd, a, n,
+												  sendhalos[i].buf.data, p, sendhalos[i].scattered_entries.data, myrank);
     }
    
     CUDA_CHECK(cudaPeekAtLastError());
-}
-
-ComputeInteractionsDPD::~ComputeInteractionsDPD()
-{
-    for(int i = 0; i < 7; ++i)
-	CUDA_CHECK(cudaStreamDestroy(streams[i]));
 }

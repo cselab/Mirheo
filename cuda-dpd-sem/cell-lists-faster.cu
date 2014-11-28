@@ -449,11 +449,12 @@ void build_clists(float * const device_xyzuvw, int np, const float rc,
 	CUDA_CHECK(cudaMalloc(&yzcid, sizeof(int) * np));
 	CUDA_CHECK(cudaMalloc(&outid, sizeof(int) * np));
 	CUDA_CHECK(cudaMalloc(&order, sizeof(int) * np));
-	size_t textureoffset = 0;
-	CUDA_CHECK(cudaBindTexture(&textureoffset, &texParticles, xyzuvw_copy, &texParticles.channelDesc, sizeof(float) * 6 * np));
+
+
 	old_np = np;
     }
 
+    
     if (old_yzncells < yzncells)
     {
 	if (old_yzncells > 0)
@@ -464,13 +465,17 @@ void build_clists(float * const device_xyzuvw, int np, const float rc,
 
 	CUDA_CHECK(cudaMalloc(&dyzscan, sizeof(int) * yzncells));
 	CUDA_CHECK(cudaMalloc(&yzhisto, sizeof(int) * yzncells));
-	size_t textureoffset = 0;
-	CUDA_CHECK(cudaBindTexture(&textureoffset, &texScanYZ, dyzscan, &texScanYZ.channelDesc, sizeof(int) * ncells.y * ncells.z));
-	CUDA_CHECK(cudaBindTexture(&textureoffset, &texCountYZ, yzhisto, &texCountYZ.channelDesc, sizeof(int) * ncells.y * ncells.z));
+	
+
 
 	old_yzncells = yzncells;
     }
-    
+
+    size_t textureoffset = 0;
+    CUDA_CHECK(cudaBindTexture(&textureoffset, &texParticles, xyzuvw_copy, &texParticles.channelDesc, sizeof(float) * 6 * np));
+    CUDA_CHECK(cudaBindTexture(&textureoffset, &texScanYZ, dyzscan, &texScanYZ.channelDesc, sizeof(int) * ncells.y * ncells.z));
+    CUDA_CHECK(cudaBindTexture(&textureoffset, &texCountYZ, yzhisto, &texCountYZ.channelDesc, sizeof(int) * ncells.y * ncells.z));
+	
     failuretest.reset();
  
     CUDA_CHECK(cudaMemcpyAsync(xyzuvw_copy, device_xyzuvw, sizeof(float) * 6 * np, cudaMemcpyDeviceToDevice));
@@ -578,4 +583,8 @@ void build_clists(float * const device_xyzuvw, int np, const float rc,
 
     if (host_order != NULL)
 	CUDA_CHECK(cudaMemcpyAsync(host_order, order, sizeof(int) * np, cudaMemcpyDeviceToHost));
+
+    CUDA_CHECK(cudaUnbindTexture(texParticles));
+    CUDA_CHECK(cudaUnbindTexture(texScanYZ));
+    CUDA_CHECK(cudaUnbindTexture(texCountYZ));
 }

@@ -4,10 +4,8 @@ NVCC ?= nvcc
 ARCH_VAL ?= compute_35
 CODE_VAL ?= sm_35
 
-NVCCFLAGS +=  -arch $(ARCH_VAL) -code $(CODE_VAL) -O3 -use_fast_math -lineinfo -g 
-#-DNDEBUG
-CXXFLAGS += -I../cuda-dpd-sem/dpd  -L../cuda-dpd-sem/dpd  -g -O3 
-#-DNDEBUG
+NVCCFLAGS +=  -arch $(ARCH_VAL) -code $(CODE_VAL) -O3 -use_fast_math -lineinfo -g -DNDEBUG
+CXXFLAGS += -I../cuda-dpd-sem/dpd  -L../cuda-dpd-sem/dpd  -g -O3 -DNDEBUG
 NVCCFLAGS += -I../cuda-dpd-sem/dpd  -L../cuda-dpd-sem/dpd 
 
 OBJS = main.o dpd-interactions.o redistribute-particles.o halo-exchanger.o common.o wall-interactions.o
