@@ -262,8 +262,10 @@ int main(int argc, char ** argv)
 	
 	    if (wall != NULL)
 		delete wall;
-	}
 
+	    MPI_CHECK(MPI_Comm_free(&cartcomm));
+	}
+	
 	MPI_CHECK( MPI_Finalize() );
 	
 	if (rank == 0)

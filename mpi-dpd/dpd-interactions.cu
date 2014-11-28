@@ -2,10 +2,15 @@
 
 #include <algorithm>
 
+
 #include <cuda-dpd.h>
 
 #include "dpd-interactions.h"
 
+
+#include <../hacks.h>
+#include <thrust/device_ptr.h>
+#include <thrust/host_vector.h>
 using namespace std;
 
 ComputeInteractionsDPD::ComputeInteractionsDPD(MPI_Comm cartcomm, int L):
@@ -141,8 +146,7 @@ void ComputeInteractionsDPD::dpd_remote_interactions_stage2(const Particle * con
 
 	saru_tag2[i] = indx[0] + dims[0] * dims[0] * (indx[1] + dims[1] * dims[1] * indx[2]);
 
-	int dstrank;
-	MPI_CHECK( MPI_Cart_rank(cartcomm, coordsneighbor, &dstrank) );
+	const int dstrank = dstranks[i];
 
 	if (dstrank != myrank)
 	    saru_mask[i] = min(dstrank, myrank) == myrank;
@@ -155,8 +159,8 @@ void ComputeInteractionsDPD::dpd_remote_interactions_stage2(const Particle * con
 
     for(int i = 0; i < 26; ++i)
     {
-	const int nd = sendbufs[i].size;//send_counts[i];
-	const int ns = recvbufs[i].size;//recv_counts[i];
+	const int nd = sendbufs[i].size;
+	const int ns = recvbufs[i].size;
 
 	acc_remote[i].resize(nd);
 
@@ -177,14 +181,62 @@ void ComputeInteractionsDPD::dpd_remote_interactions_stage2(const Particle * con
 
 	cudaStream_t mystream = streams[code2stream[i]];
 
-	directforces_dpd_cuda_bipartite_nohost(
-	    (float *)sendbufs[i].data, (float *)acc_remote[i].data, nd,
-	    (float *)recvbufs[i].data, ns,
-	    aij, gammadpd, sigma, 1. / sqrt(dt), saru_tag1, saru_tag2[i], saru_mask[i], mystream);
+	if (sendcellstarts[i].size * recvcellstarts[i].size > 1 && nd * ns > 80 * 80)
+	{
+	    TextureWrap texDC(sendcellstarts[i].data, sendcellstarts[i].size);
+	    TextureWrap texSC(recvcellstarts[i].data, recvcellstarts[i].size);
+	    TextureWrap texSP((float2*)recvbufs[i].data, recvbufs[i].size * 3);
+
+	    if (false) {
+		thrust::host_vector<int> culo(
+		    thrust::device_ptr<int>(recvcellstarts[i].data),
+		    thrust::device_ptr<int>(recvcellstarts[i].data + recvcellstarts[i].size));
+		
+		printf("recvcells: %d \n", recvcellstarts[i].size);
+		for(int e = 0; e < culo.size(); ++e)
+		    printf("%d ", culo[e]);
+		printf("\n");
+		for(int e = 1; e < culo.size(); ++e)
+		    assert(culo[e - 1] <= culo[e]);
+		
+		    
+		assert(culo.back() == recvbufs[i].size);
+	    }
+
+	    if (false){
+		thrust::host_vector<int> culo(
+		  thrust::device_ptr<int>(sendcellstarts[i].data),
+		  thrust::device_ptr<int>(sendcellstarts[i].data + sendcellstarts[i].size));
+		
+		printf("sendcells: %d \n", sendcellstarts[i].size);
+		for(int e = 0; e < culo.size(); ++e)
+		    printf("%d ", culo[e]);
+		printf("\n");
+		for(int e = 1; e < culo.size(); ++e)
+		    assert(culo[e - 1] <= culo[e]);
+		
+		    
+		assert(culo.back() == sendbufs[i].size);
+	    }
+
+	    directforces_dpd_cuda_bipartite_nohost(mystream, (float2 *)sendbufs[i].data, nd, texDC.texObj, texSC.texObj, texSP.texObj, ns,
+						   halosize[i], aij, gammadpd, sigma / sqrt(dt), saru_tag1, saru_tag2[i], saru_mask[i],
+						   (float *)acc_remote[i].data);
+
+	    CUDA_CHECK(cudaPeekAtLastError());
+	CUDA_CHECK(cudaDeviceSynchronize());
+	}
+	else
+	    directforces_dpd_cuda_bipartite_nohost(
+		(float *)sendbufs[i].data, (float *)acc_remote[i].data, nd,
+		(float *)recvbufs[i].data, ns,
+		aij, gammadpd, sigma, 1. / sqrt(dt), saru_tag1, saru_tag2[i], saru_mask[i], mystream);
+	
 	CUDA_CHECK(cudaPeekAtLastError());
 	CUDA_CHECK(cudaDeviceSynchronize());
     }
 
+    
     CUDA_CHECK(cudaDeviceSynchronize());
 
     for(int i = 0; i < 26; ++i)
@@ -192,8 +244,8 @@ void ComputeInteractionsDPD::dpd_remote_interactions_stage2(const Particle * con
 	const int nd = acc_remote[i].size;
 	
 	if (nd > 0)
-	    RemoteDPD::merge_accelerations<<<(nd + 127) / 128, 128>>>(acc_remote[i].data, nd, a, n,
-								      sendbufs[i].data, p, scattered_entries[i].data, myrank);
+	        RemoteDPD::merge_accelerations<<<(nd + 127) / 128, 128>>>(acc_remote[i].data, nd, a, n,
+						      sendbufs[i].data, p, scattered_entries[i].data, myrank);
 	CUDA_CHECK(cudaPeekAtLastError());
 	CUDA_CHECK(cudaDeviceSynchronize());
     }
