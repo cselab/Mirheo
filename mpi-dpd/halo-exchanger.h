@@ -8,10 +8,9 @@
 class HaloExchanger
 {
     MPI_Comm cartcomm;
-    MPI_Request sendreq[26], recvreq[26], sendcellsreq[26], recvcellsreq[26];
+    MPI_Request sendreq[26 * 2], recvreq[26], sendcellsreq[26], recvcellsreq[26], sendcountreq[26], recvcountreq[26];
     
-    //mpi send and recv informations
-    int recv_tags[26], nlocal;
+    int recv_tags[26], recv_counts[26], nlocal;
 
     ScanEngine scan;
     
@@ -19,12 +18,14 @@ protected:
     
     struct SendHalo
     {
+	int expected;
 	SimpleDeviceBuffer<int> scattered_entries, cellstarts, tmpstart, tmpcount;
 	SimpleDeviceBuffer<Particle> buf;
     } sendhalos[26];
 
     struct RecvHalo
     {
+	int expected;
 	SimpleDeviceBuffer<int> cellstarts;
 	SimpleDeviceBuffer<Particle> buf;
     } recvhalos[26];
@@ -36,7 +37,7 @@ protected:
     int * required_send_bag_size, * required_send_bag_size_host;
         
     //plain copy of the offsets for the cpu (i speculate that reading multiple times the zero-copy entries is slower)
-    int nsendreq, nrecvreq;
+    int nsendreq;
 
     int3 halosize[26];
     

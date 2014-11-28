@@ -42,6 +42,8 @@ RedistributeParticles::RedistributeParticles(MPI_Comm _cartcomm, int L):
 
     CUDA_CHECK(cudaHostAlloc((void **)&leaving_start_device, sizeof(int) * 28, cudaHostAllocMapped));
     CUDA_CHECK(cudaHostGetDevicePointer(&leaving_start, leaving_start_device, 0));
+
+    CUDA_CHECK(cudaStreamCreate(&mystream));
 }
 
 //to keep the mess under a reasonable limit i wrap the set of
@@ -175,6 +177,7 @@ namespace ParticleReordering
 	    tmp[ base[code] + offset ] = p;
     }
 
+#ifndef NDEBUG
     __global__ void check(Particle * const p, const int np, const int L, const int refcode, const int rank)
     {
 	assert(blockDim.x * gridDim.x >= np);
@@ -186,6 +189,7 @@ namespace ParticleReordering
 	    int vcode[3];
 	    for(int c = 0; c < 3; ++c)
 		vcode[c] = (2 + (p[pid].x[c] >= -L/2) + (p[pid].x[c] >= L/2)) % 3;
+	    
 	    const int code = vcode[0] + 3 * (vcode[1] + 3 * vcode[2]);
 
 	    for(int c = 0; c < 3; ++c)
@@ -202,6 +206,7 @@ namespace ParticleReordering
 	    assert(refcode == code);
 	}
     }
+#endif
 
     __global__ void shift(Particle * const p, const int np, const int L, const int code, const int rank)
     {
@@ -213,8 +218,10 @@ namespace ParticleReordering
 
 	if (pid >= np)
 	    return;
-	
+
+#ifndef NDEBUG
 	Particle old = p[pid];
+#endif
 	Particle pnew = p[pid];
 
 	for(int c = 0; c < 3; ++c)
@@ -251,23 +258,23 @@ int RedistributeParticles::stage1(const Particle * const p, const int n)
     
     reordered.resize(n);
     
-    ParticleReordering::setup<<<1, 1>>>();
+    ParticleReordering::setup<<<1, 1, 0, mystream>>>();
     
     if (n > 0)
-	ParticleReordering::count<<< (n + 127) / 128, 128 >>>(p, n, L, leaving_start_device);
+	ParticleReordering::count<<< (n + 127) / 128, 128, 0, mystream >>>(p, n, L, leaving_start_device);
     else
 	for(int i = 0; i < 28; ++i)
 	    leaving_start[i] = 0;
     
     if (n > 0)
-	ParticleReordering::reorder<<< (n + 127) / 128, 128 >>>(p, n, L, reordered.data);
+	ParticleReordering::reorder<<< (n + 127) / 128, 128, 0, mystream >>>(p, n, L, reordered.data);
     
     CUDA_CHECK(cudaPeekAtLastError());
    
 
 #ifndef NDEBUG    
 
-    CUDA_CHECK(cudaStreamSynchronize(0));
+    CUDA_CHECK(cudaStreamSynchronize(mystream));
 
     assert(leaving_start[0] == 0);
     assert(leaving_start[27] == n); 
@@ -277,14 +284,13 @@ int RedistributeParticles::stage1(const Particle * const p, const int n)
 	const int count = leaving_start[i + 1] - leaving_start[i];
 
 	if (count > 0)
-	    ParticleReordering::check<<< (count + 127) / 128, 128 >>>(reordered.data + leaving_start[i], count, L, i, myrank);
+	    ParticleReordering::check<<< (count + 127) / 128, 128, 0, mystream >>>(reordered.data + leaving_start[i], count, L, i, myrank);
 
-	CUDA_CHECK(cudaStreamSynchronize(0));
 	CUDA_CHECK(cudaPeekAtLastError());
     }
 #endif
 
-    CUDA_CHECK(cudaStreamSynchronize(0));
+    CUDA_CHECK(cudaStreamSynchronize(mystream));
 
     notleaving = leaving_start[1];
 
@@ -345,9 +351,16 @@ int RedistributeParticles::stage1(const Particle * const p, const int n)
 
 	sendbufs[i].resize(count);
 	
-	CUDA_CHECK(cudaMemcpy(sendbufs[i].data, reordered.data + leaving_start[i], 
-			      sizeof(Particle) * count, cudaMemcpyDeviceToDevice));
+	CUDA_CHECK(cudaMemcpyAsync(sendbufs[i].data, reordered.data + leaving_start[i], 
+				   sizeof(Particle) * count, cudaMemcpyDeviceToDevice, mystream));
+    }
+
+    CUDA_CHECK(cudaStreamSynchronize(mystream));
     
+    for(int i = 1; i < 27; ++i)
+    {
+	const int count = send_counts[i];
+
 	MPI_CHECK( MPI_Isend(sendbufs[i].data, count * 6,
 			     MPI_FLOAT, rankneighbors[i], tagbase_redistribute_particles + i, 
 			     cartcomm, &sendreq[i-1]) );
@@ -378,20 +391,23 @@ void RedistributeParticles::stage2(Particle * const p, const int n)
 	if (count == 0)
 	    continue;
 
-	CUDA_CHECK(cudaMemcpy(p + arriving_start[i], recvbufs[i].data, 
-			      sizeof(Particle) * count, cudaMemcpyDeviceToDevice));
+	CUDA_CHECK(cudaMemcpyAsync(p + arriving_start[i], recvbufs[i].data, 
+				   sizeof(Particle) * count, cudaMemcpyDeviceToDevice, mystream));
 	
-	ParticleReordering::shift<<< (count + 127) / 128, 128 >>>(p + arriving_start[i], count, L, i, myrank);
+	ParticleReordering::shift<<< (count + 127) / 128, 128, 0, mystream >>>(p + arriving_start[i], count, L, i, myrank);
     }
 
+#ifndef NDEBUG
     if (n > 0)
-	ParticleReordering::check<<< (n + 127) / 128, 128 >>>(p, n, L, 0, myrank);
+	ParticleReordering::check<<< (n + 127) / 128, 128, 0, mystream >>>(p, n, L, 0, myrank);
+#endif
 
     CUDA_CHECK(cudaPeekAtLastError());
 }
 
 RedistributeParticles::~RedistributeParticles()
 {
+    CUDA_CHECK(cudaStreamDestroy(mystream));
     CUDA_CHECK(cudaFreeHost(leaving_start_device));
 
     MPI_CHECK(MPI_Comm_free(&cartcomm));

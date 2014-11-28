@@ -72,7 +72,6 @@ struct Acceleration
     float a[3];
 };
 
-
 class H5PartDump
 {
     MPI_Comm cartcomm;
@@ -172,7 +171,29 @@ SimpleDeviceBuffer(int n = 0): capacity(0), size(0), data(NULL) { resize(n);}
 #ifndef NDEBUG
 	    CUDA_CHECK(cudaMemset(data, 0, sizeof(T) * capacity));
 #endif
+	}
+
+    void preserve_resize(const int n)
+	{
+	    assert(n >= 0);
 	    
+	    T * old = data;
+	    const int oldsize = size;
+
+	    size = n;
+	    
+	    if (capacity >= n)
+		return;	    
+	    
+	    capacity = n;
+
+	    CUDA_CHECK(cudaMalloc(&data, sizeof(T) * capacity));
+	    	    
+	    if (old != NULL)
+	    {
+		CUDA_CHECK(cudaMemcpy(data, old, sizeof(T) * oldsize, cudaMemcpyDeviceToDevice));
+		CUDA_CHECK(cudaFree(old));
+	    }
 	}
 };
 
