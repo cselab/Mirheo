@@ -174,7 +174,7 @@ void forces_dpd_cuda_nohost(const float * const xyzuvw, float * const axayaz,  c
 			    const float gamma,
 			    const float sigma,
 			    const float invsqrtdt,
-			    const int saru_tag)
+			    const int saru_tag, cudaStream_t stream)
 {
     if (np == 0)
     {
@@ -229,7 +229,7 @@ void forces_dpd_cuda_nohost(const float * const xyzuvw, float * const axayaz,  c
    
     _dpd_forces_saru<<<dim3(c.ncells.x / _XCPB_,
 			    c.ncells.y / _YCPB_,
-			    c.ncells.z / _ZCPB_), dim3(32, CPB)>>>(axayaz, saru_tag);
+			    c.ncells.z / _ZCPB_), dim3(32, CPB), 0, stream>>>(axayaz, saru_tag);
 
     CUDA_CHECK(cudaPeekAtLastError());	
 }

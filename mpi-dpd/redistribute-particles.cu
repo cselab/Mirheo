@@ -6,6 +6,8 @@
 
 using namespace std;
 
+static const int tagbase_redistribute_particles = 2115;
+
 RedistributeParticles::RedistributeParticles(MPI_Comm _cartcomm, int L):
     L(L), pending_send(false), leaving_start(NULL), leaving_start_device(NULL)
 {

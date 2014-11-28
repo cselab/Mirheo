@@ -95,6 +95,8 @@ namespace RemoteDPD
 
 void ComputeInteractionsDPD::dpd_remote_interactions(const Particle * const p, const int n, const int saru_tag1, Acceleration * const a)
 {
+    CUDA_CHECK(cudaPeekAtLastError());
+    
     wait_for_messages();
 
     int saru_tag2[26];
@@ -123,6 +125,9 @@ void ComputeInteractionsDPD::dpd_remote_interactions(const Particle * const p, c
 	    saru_mask[i] = min(i, alter_ego) == i;
 	}
     }
+
+    CUDA_CHECK(cudaPeekAtLastError());
+    //CUDA_CHECK(cudaDeviceSynchronize());
 
     for(int i = 0; i < 26; ++i)
     {

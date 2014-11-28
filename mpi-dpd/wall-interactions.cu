@@ -275,7 +275,7 @@ ComputeInteractionsWall::ComputeInteractionsWall(MPI_Comm cartcomm, const int L,
   
     HaloExchanger halo(cartcomm, L);
 
-    SimpleDeviceBuffer<Particle> solid_remote = halo.exchange(thrust::raw_pointer_cast(&solid_local[0]), solid_local.size(), NULL, NULL);
+    SimpleDeviceBuffer<Particle> solid_remote = halo.exchange(thrust::raw_pointer_cast(&solid_local[0]), solid_local.size());
 
     printf("receiving extra %d\n", solid_remote.size);
     

@@ -30,7 +30,7 @@ HaloExchanger::HaloExchanger(MPI_Comm _cartcomm, int L):  L(L)
 	MPI_CHECK( MPI_Cart_rank(cartcomm, coordsneighbor, dstranks + i) );
 
 	const int nhalocells = pow(L, 3 - fabs(d[0]) - fabs(d[1]) - fabs(d[2]));
-	const int estimate = 2 * 3 * nhalocells;
+	const int estimate = max(16, 2 * 3 * nhalocells);
 
 	halosize[i].x = d[0] != 0 ? 1 : L;
 	halosize[i].y = d[1] != 0 ? 1 : L;
@@ -39,10 +39,12 @@ HaloExchanger::HaloExchanger(MPI_Comm _cartcomm, int L):  L(L)
 
 	recvhalos[i].expected = estimate;
 	recvhalos[i].buf.resize(estimate);
+	recvhalos[i].secondary.resize(estimate);
 	recvhalos[i].cellstarts.resize(nhalocells + 1);
 
 	sendhalos[i].expected = estimate;
 	sendhalos[i].buf.resize(estimate);
+	sendhalos[i].secondary.resize(estimate);
 	sendhalos[i].scattered_entries.resize(estimate);
 	sendhalos[i].cellstarts.resize(nhalocells + 1);
 	sendhalos[i].tmpcount.resize(nhalocells + 1);
@@ -142,8 +144,8 @@ namespace PackingHalo
 
 		    if (!(particles[pid].x[c] >= halo_start && particles[pid].x[c] < halo_end))
 		    {
-			printf("oooops particle %d: %e %e %e component %d not within %f , %f\n", pid, particles[pid].x[0], particles[pid].x[1], particles[pid].x[2],
-			       c, halo_start, halo_end);
+			//printf("oooops particle %d: %e %e %e component %d not within %f , %f\n", pid, 
+			//particles[pid].x[0], particles[pid].x[1], particles[pid].x[2], c, halo_start, halo_end);
 		
 		    }
 		    const float eps = 1e-5;
@@ -215,8 +217,8 @@ namespace PackingHalo
 
 	    if (!(p[pid].x[c] >= halo_start && p[pid].x[c] < halo_end))
 	    {
-		printf("oooops particle %d: %e %e %e component %d not within %f , %f\n", pid, p[pid].x[0], p[pid].x[1], p[pid].x[2],
-		       c, halo_start, halo_end);
+		//	printf("oooops particle %d: %e %e %e component %d not within %f , %f\n", pid, p[pid].x[0], p[pid].x[1], p[pid].x[2],
+		//       c, halo_start, halo_end);
 		
 	    }
 	    const float eps = 1e-5;
@@ -352,8 +354,15 @@ void HaloExchanger::pack_and_post(const Particle * const p, const int n, const i
 	
 	if (count > expected)
 	{
-	    //extra message!
-	    MPI_CHECK( MPI_Isend(sendhalos[i].buf.data + expected, count - expected, Particle::datatype(), dstranks[i], 
+	    const int difference = count - expected;
+	    printf("extra message! difference %d\n", difference);
+
+	    sendhalos[i].secondary.resize(difference);
+
+	    CUDA_CHECK( cudaMemcpy(sendhalos[i].secondary.data, sendhalos[i].buf.data + expected, 
+				   difference * sizeof(Particle), cudaMemcpyDeviceToDevice));
+
+	    MPI_CHECK( MPI_Isend(sendhalos[i].secondary.data, difference, Particle::datatype(), dstranks[i], 
 				 i + 555, cartcomm, sendreq + nsendreq) );
 
 	    ++nsendreq;
@@ -383,16 +392,18 @@ void HaloExchanger::wait_for_messages()
 	    recvhalos[i].buf.resize(count);
 	else
 	{
-	    //printf("waiting for RECV-extra message: count %d\n", count);
+	    printf("waiting for RECV-extra message: count %d expected %d\n", count, expected);
+
 	    recvhalos[i].buf.preserve_resize(count);
+	    recvhalos[i].secondary.resize(count - expected);
 
 	    MPI_Status status;
-	    //SimpleDeviceBuffer<Particle> tmp(count - expected);
 	    
-	    MPI_Recv(recvhalos[i].buf.data + expected, count - expected, Particle::datatype(), dstranks[i], 
+	    MPI_Recv(recvhalos[i].secondary.data, count - expected, Particle::datatype(), dstranks[i], 
 		     recv_tags[i] + 555, cartcomm, &status);
 
-	    //CUDA_CHECK(cudaMemcpy(, tmp.data, sizeof(Particle) * (count - expected), cudaMemcpyDeviceToDevice));
+	    CUDA_CHECK(cudaMemcpy(recvhalos[i].buf.data + expected, recvhalos[i].secondary.data,
+				  sizeof(Particle) * (count - expected), cudaMemcpyDeviceToDevice));
 	}
 		
 	const int ns = recvhalos[i].buf.size;
@@ -411,10 +422,11 @@ int HaloExchanger::nof_sent_particles()
     return s;
 }
 
-SimpleDeviceBuffer<Particle> HaloExchanger::exchange(const Particle * const plocal, int nlocal,
-						     const int * const cellsstart, const int * const cellscount)
+SimpleDeviceBuffer<Particle> HaloExchanger::exchange(Particle * const plocal, int nlocal)
 {
-    pack_and_post(plocal, nlocal, cellsstart, cellscount);
+    CellLists cells(L);	
+    cells.build(plocal, nlocal);
+    pack_and_post(plocal, nlocal, cells.start, cells.count);
     wait_for_messages();
 
     int s = 0;

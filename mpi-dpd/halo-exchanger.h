@@ -20,14 +20,14 @@ protected:
     {
 	int expected;
 	SimpleDeviceBuffer<int> scattered_entries, cellstarts, tmpstart, tmpcount;
-	SimpleDeviceBuffer<Particle> buf;
+	SimpleDeviceBuffer<Particle> buf, secondary;
     } sendhalos[26];
 
     struct RecvHalo
     {
 	int expected;
 	SimpleDeviceBuffer<int> cellstarts;
-	SimpleDeviceBuffer<Particle> buf;
+	SimpleDeviceBuffer<Particle> buf, secondary;
     } recvhalos[26];
     
    
@@ -58,5 +58,5 @@ public:
     
     ~HaloExchanger();
 
-    SimpleDeviceBuffer<Particle> exchange(const Particle * const plocal, int nlocal, const int * const cellsstart, const int * const cellscount);
+    SimpleDeviceBuffer<Particle> exchange(Particle * const plocal, int nlocal);
 };

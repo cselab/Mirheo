@@ -102,9 +102,7 @@ const float gammadpd = 45;
 const float sigma = sqrt(2 * gammadpd * kBT);
 const float sigmaf = sigma / sqrt(dt);
 const float aij = 2.5;
-const bool walls = false;
-
-static const int tagbase_redistribute_particles = 255;
+const bool walls = true;
 
 //container for the cell lists, which contains only two integer vectors of size ncells.
 //the start[cell-id] array gives the entry in the particle array associated to first particle belonging to cell-id
@@ -125,7 +123,7 @@ struct CellLists
 	void build(Particle * const p, const int n)
 	{
 	    if (n > 0)
-		build_clists((float * )p, n, 1, L, L, L, -L/2, -L/2, -L/2, NULL, start, count,  NULL);
+		build_clists((float * )p, n, 1, L, L, L, -L/2, -L/2, -L/2, NULL, start, count,  NULL, 0);
 	}
 	    	    
     ~CellLists()

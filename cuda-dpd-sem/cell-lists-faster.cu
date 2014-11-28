@@ -398,7 +398,7 @@ void build_clists(float * const device_xyzuvw, int np, const float rc,
 		  const int xcells, const int ycells, const int zcells,
 		  const float xdomainstart, const float ydomainstart, const float zdomainstart,
 		  int * const host_order, int * device_cellsstart, int * device_cellscount,
-		  std::pair<int, int *> * nonemptycells = NULL)
+		  std::pair<int, int *> * nonemptycells, cudaStream_t stream)
 {
     assert(np > 0);
     
@@ -478,8 +478,8 @@ void build_clists(float * const device_xyzuvw, int np, const float rc,
 	
     failuretest.reset();
  
-    CUDA_CHECK(cudaMemcpyAsync(xyzuvw_copy, device_xyzuvw, sizeof(float) * 6 * np, cudaMemcpyDeviceToDevice));
-    CUDA_CHECK(cudaMemsetAsync(yzhisto, 0, sizeof(int) * yzncells));
+    CUDA_CHECK(cudaMemcpyAsync(xyzuvw_copy, device_xyzuvw, sizeof(float) * 6 * np, cudaMemcpyDeviceToDevice, stream));
+    CUDA_CHECK(cudaMemsetAsync(yzhisto, 0, sizeof(int) * yzncells, stream));
     
     if (clists_perfmon)
 	CUDA_CHECK(cudaEventRecord(evstart));
@@ -492,7 +492,7 @@ void build_clists(float * const device_xyzuvw, int np, const float rc,
 	const int nblocks = (np + blocksize * ILP - 1)/ (blocksize * ILP);
 	//printf("nblocks %d (bs %d) -> %d blocks per sm, active warps per sm %d \n", nblocks, blocksize, nblocks / 7, 3 * WARPS);
 	
-	yzhistogram<ILP, SLOTS, WARPS><<<nblocks, blocksize, sizeof(int) * ncells.y * ncells.z * SLOTS>>>
+	yzhistogram<ILP, SLOTS, WARPS><<<nblocks, blocksize, sizeof(int) * ncells.y * ncells.z * SLOTS, stream>>>
 	    (np, 1 / rc, ncells, domainstart, yzcid,  loffsets, yzhisto, dyzscan, failuretest.dmaxstripe);
     }
 
@@ -500,12 +500,12 @@ void build_clists(float * const device_xyzuvw, int np, const float rc,
     
     {
 	static const int ILP = 4;
-	yzscatter<ILP><<<(np + 256 * ILP - 1) / (256 * ILP), 256>>>(loffsets, yzcid, np, outid);
+	yzscatter<ILP><<<(np + 256 * ILP - 1) / (256 * ILP), 256, 0, stream>>>(loffsets, yzcid, np, outid);
     }
 
     {
 	static const int YCPB = 2;
-	xgather<YCPB><<< dim3(1, ncells.y / YCPB, ncells.z), dim3(32, YCPB), sizeof(int) * (ncells.x  + 2 * xbufsize) * YCPB>>>
+	xgather<YCPB><<< dim3(1, ncells.y / YCPB, ncells.z), dim3(32, YCPB), sizeof(int) * (ncells.x  + 2 * xbufsize) * YCPB, stream>>>
 	    (outid, np, 1 / rc, ncells, domainstart, device_cellsstart, device_cellscount, device_xyzuvw, xbufsize, host_order == NULL ? NULL : order);
     }
 
@@ -515,7 +515,7 @@ void build_clists(float * const device_xyzuvw, int np, const float rc,
     if (!clists_robust)
     {
 	failuretest.bufsize = xbufsize;
-	CUDA_CHECK(cudaStreamAddCallback(0, failuretest.callback_crash, &failuretest, 0));
+	CUDA_CHECK(cudaStreamAddCallback(stream, failuretest.callback_crash, &failuretest, 0));
     }
     else
     {
@@ -529,7 +529,7 @@ void build_clists(float * const device_xyzuvw, int np, const float rc,
 	    printf("density number223332 is %f\n", densitynumber);
 	    const int xbufsize = *failuretest.maxstripe;
 	    
-	    xgather<1><<< dim3(1, ncells.y, ncells.z), dim3(32), sizeof(int) * (ncells.x  + 2 * xbufsize)>>>
+	    xgather<1><<< dim3(1, ncells.y, ncells.z), dim3(32), sizeof(int) * (ncells.x  + 2 * xbufsize), stream>>>
 		(outid, np, 1 / rc, ncells, domainstart, device_cellsstart, device_cellscount, device_xyzuvw, xbufsize,
 		 host_order == NULL ? NULL : order);
 

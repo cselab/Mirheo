@@ -184,7 +184,7 @@ int main(int argc, char ** argv)
 	    ComputeInteractionsWall * wall = NULL;
 	    
 	    int saru_tag = rank;
-	
+	    
 	    cells.build(particles.xyzuvw, particles.size);
 	
 	    dpd.evaluate(saru_tag, particles.xyzuvw, particles.size, particles.axayaz, cells.start, cells.count);

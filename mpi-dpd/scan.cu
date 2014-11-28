@@ -273,7 +273,7 @@ void ScanEngine::exclusive(cudaStream_t stream, uint *d_Dst, uint *d_Src, uint a
 	    }
 	    
 	    str2buf[stream]->resize((arrayLength + BFP - 1) / BFP);
-	    printf("BUF HAS %d entries\n", str2buf[stream]->size);
+	    
 	    scanExclusiveLarge(stream, d_Dst,  str2buf[stream]->data, d_Src, arrayLength);
 	}
     }
