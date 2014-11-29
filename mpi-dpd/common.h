@@ -95,8 +95,8 @@ public:
 void diagnostics(MPI_Comm comm, Particle * _particles, int n, float dt, int idstep, int L, Acceleration * _acc, bool particledump);
 
 const int L = 24;
-const float dt = 0.02;
-const float tend = 20;
+const float dt = 0.01;
+const float tend = 40;
 const float kBT = 0.1;
 const float gammadpd = 45;
 const float sigma = sqrt(2 * gammadpd * kBT);

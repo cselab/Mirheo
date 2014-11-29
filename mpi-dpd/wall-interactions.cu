@@ -205,6 +205,14 @@ namespace SolidWallsKernel
     }
 }
 
+float smoothstep(float edge0, float edge1, float x)
+{
+    // Scale, and clamp x to 0..1 range
+    x = min(1.f, max(0.f, (x - edge0)/(edge1 - edge0)));
+    // Evaluate polynomial
+    return x*x*x*(x*(x*6 - 15) + 10);
+}
+
 ComputeInteractionsWall::ComputeInteractionsWall(MPI_Comm cartcomm, const int L, Particle* const p, 
 						 const int n, int& nsurvived):
     cartcomm(cartcomm), L(L), arrSDF(NULL), solid(NULL), solid_size(0), cells(L+2)
@@ -212,16 +220,86 @@ ComputeInteractionsWall::ComputeInteractionsWall(MPI_Comm cartcomm, const int L,
     MPI_CHECK( MPI_Comm_rank(cartcomm, &myrank));
     MPI_CHECK( MPI_Cart_get(cartcomm, 3, dims, periods, coords) );
     
-    const float y_cyl = 0.5 * L * dims[1];
-    const float z_cyl = 0.5 * L * dims[2];
-    const float r_cyl = 0.125 * L * dims[1];
-    
     const int VPD = 64;
 
     float * field = new float[VPD * VPD * VPD];
 
     const double h = (L + 2) / (double)(VPD - 2);
 
+#if 1
+
+    //bifurcation
+    const float r_cyl = 0.085 * L * dims[1];
+    const float r2_cyl = r_cyl * r_cyl;
+    
+    static const int nh = 75 * 2;
+    const float dh = 1./ (nh - 1);
+    std::vector<float> xpts, ypts, zpts;
+    
+    for(int pass = 0; pass < 2; ++pass)
+	for(int i = 0; i < nh; ++i)
+	{
+	    const float S0 = 0.15;
+	    const float S1 = 0.5;
+	    const float S2 = 0.85;
+	    const float X0 = (S1 + S2) * 0.5 * dims[0] * L;
+	    const float X1 = S2 * dims[0] * L;
+	    const float Y0 = 0.5 * dims[1] * L;
+	    const float Y1 = 0.8 * dims[1] * L;
+	    const float Z0 = 0.5 * dims[2] * L;
+	    const float Z1 = (0.5 + 1 * 0.35) * dims[2] * L;
+
+	    const float lambda = i * dh;
+	    
+	    float x = lambda / S1 * X0;
+	    if (lambda > S2)
+		x = X0 + (lambda - S2) / (1 - S2) * (dims[0] * L - X0);
+	    else
+		if (lambda > S1)
+		    x = X0 + sin( (lambda - S1) / (S2 - S1) * 2 * 3.1415) * (X1 - X0);
+	   
+	    const float y = Y0 + (2 * pass -1) * smoothstep(S0, S1, min(lambda, 1 - lambda)) * (Y1 - Y0);
+
+	    float z = Z0;
+
+	    if (lambda >= S1 && lambda < S2)
+		z = 0.5 * (Z0 + Z1) - 0.5 * (Z1 - Z0) * cos( (lambda - S1) / (S2 - S1) * 2 * 3.1415);
+
+	    xpts.push_back(x);
+	    ypts.push_back(y);
+	    zpts.push_back(z);
+	}
+
+    const int npts = xpts.size();
+    
+    for(int iz = 0; iz < VPD; ++iz)
+	for(int iy = 0; iy < VPD; ++iy)
+	    for(int ix = 0; ix < VPD; ++ix)
+	    {
+		const float x = coords[0] * L - 1 + (ix + 0.5) * h;
+		const float y = coords[1] * L - 1 + (iy + 0.5) * h;
+		const float z = coords[2] * L - 1 + (iz + 0.5) * h;
+
+		float val = 1;
+		for(int i = 0; i < npts && val == 1; ++i)
+		{
+		    const float dx = x - xpts[i];
+		    const float dy = y - ypts[i];
+		    const float dz = z - zpts[i];
+
+		    if (dx * dx + dy * dy + dz * dz < r2_cyl)
+			val = -1;
+		}
+				
+		field[ix + VPD * (iy + VPD * iz)] = val;
+	    }
+#else
+
+    const float y_cyl = 0.5 * L * dims[1];
+    const float z_cyl = 0.5 * L * dims[2];
+    const float r_cyl = 0.125 * L * dims[1];
+    
+    //cylindrical pipe
     for(int iz = 0; iz < VPD; ++iz)
 	for(int iy = 0; iy < VPD; ++iy)
 	    for(int ix = 0; ix < VPD; ++ix)
@@ -234,6 +312,7 @@ ComputeInteractionsWall::ComputeInteractionsWall(MPI_Comm cartcomm, const int L,
 		
 		field[ix + VPD * (iy + VPD * iz)] = r - r_cyl;
 	    }
+#endif
     
     cudaChannelFormatDesc fmt = cudaCreateChannelDesc<float>();
     CUDA_CHECK(cudaMalloc3DArray (&arrSDF, &fmt, make_cudaExtent(VPD, VPD, VPD)));

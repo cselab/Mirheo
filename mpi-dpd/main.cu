@@ -208,14 +208,14 @@ int main(int argc, char ** argv)
 	    
 		redistribute.stage2(particles.xyzuvw, particles.size);
 
-		if (walls && it > 100 && wall == NULL)
+		if (walls && it > 500 && wall == NULL)
 		{
 		    int nsurvived = 0;
 		    wall = new ComputeInteractionsWall(cartcomm, L, particles.xyzuvw, particles.size, nsurvived);
 		    
 		    particles.resize(nsurvived);
 		    
-		    grad_p[2] = -0.1;
+		    grad_p[0] = -0.1;
 
 		    if (rank == 0)
 			if( access( "trajectories.xyz", F_OK ) != -1 )
@@ -240,7 +240,7 @@ int main(int argc, char ** argv)
 		if (wall != NULL)
 		    wall->bounce(particles.xyzuvw, particles.size);
 	    
-		if (it % 50 == 0)
+		if (it % 5 == 0)
 		{
 		    const int n = particles.size;
 
