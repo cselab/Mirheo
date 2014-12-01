@@ -51,8 +51,8 @@ HaloExchanger::HaloExchanger(MPI_Comm _cartcomm, int L):  L(L)
 	sendhalos[i].tmpstart.resize(nhalocells + 1);
     }
 
-    CUDA_CHECK(cudaHostAlloc((void **)&required_send_bag_size, sizeof(int) * 26, cudaHostAllocMapped));
-    CUDA_CHECK(cudaHostGetDevicePointer(&required_send_bag_size_host, required_send_bag_size, 0));
+    CUDA_CHECK(cudaHostAlloc((void **)&required_send_bag_size_host, sizeof(int) * 26, cudaHostAllocMapped));
+    CUDA_CHECK(cudaHostGetDevicePointer(&required_send_bag_size, required_send_bag_size_host, 0));
 
     for(int i = 0; i < 7; ++i)
 	CUDA_CHECK(cudaStreamCreate(streams + i));

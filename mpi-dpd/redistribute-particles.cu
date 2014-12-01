@@ -18,9 +18,6 @@ RedistributeParticles::RedistributeParticles(MPI_Comm _cartcomm, int L):
     MPI_CHECK( MPI_Comm_rank(cartcomm, &myrank));
 	    
     MPI_CHECK( MPI_Cart_get(cartcomm, 3, dims, periods, coords) );
-	    
-    for(int c = 0; c < 3; ++c)
-	domain_extent[c] = L * dims[c];
 
     rankneighbors[0] = myrank;
     for(int i = 1; i < 27; ++i)
@@ -42,8 +39,8 @@ RedistributeParticles::RedistributeParticles(MPI_Comm _cartcomm, int L):
 	sendbufs[i].resize(L * L * 6);
     }
 
-    CUDA_CHECK(cudaHostAlloc((void **)&leaving_start_device, sizeof(int) * 28, cudaHostAllocMapped));
-    CUDA_CHECK(cudaHostGetDevicePointer(&leaving_start, leaving_start_device, 0));
+    CUDA_CHECK(cudaHostAlloc((void **)&leaving_start, sizeof(int) * 28, cudaHostAllocMapped));
+    CUDA_CHECK(cudaHostGetDevicePointer(&leaving_start_device, leaving_start, 0));
 
     CUDA_CHECK(cudaStreamCreate(&mystream));
 }

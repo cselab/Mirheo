@@ -96,13 +96,13 @@ void diagnostics(MPI_Comm comm, Particle * _particles, int n, float dt, int idst
 
 const int L = 24;
 const float dt = 0.01;
-const float tend = 40;
+const float tend = 10;
 const float kBT = 0.1;
 const float gammadpd = 45;
 const float sigma = sqrt(2 * gammadpd * kBT);
 const float sigmaf = sigma / sqrt(dt);
 const float aij = 2.5;
-const bool walls = true;
+const bool walls = false;
 
 //container for the cell lists, which contains only two integer vectors of size ncells.
 //the start[cell-id] array gives the entry in the particle array associated to first particle belonging to cell-id
