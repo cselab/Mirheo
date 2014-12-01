@@ -92,6 +92,7 @@ public:
     ~H5PartDump();
 };
 
+void xyz_dump(MPI_Comm comm, const char * filename, const char * particlename, Particle * particles, int n, int L, bool append);
 void diagnostics(MPI_Comm comm, Particle * _particles, int n, float dt, int idstep, int L, Acceleration * _acc, bool particledump);
 
 const int L = 24;
@@ -133,20 +134,85 @@ struct CellLists
 	}
 };
 
+
 //container for the gpu particles during the simulation
 template<typename T>
 struct SimpleDeviceBuffer
 {
     int capacity, size;
+    
     T * data;
-        
+    
 SimpleDeviceBuffer(int n = 0): capacity(0), size(0), data(NULL) { resize(n);}
-
+    
     ~SimpleDeviceBuffer()
 	{
 	    if (data != NULL)
 		CUDA_CHECK(cudaFree(data));
+	    
+	    data = NULL;
+	}
+    
+    void resize(const int n)
+	{
+	    assert(n >= 0);
+	    
+	    size = n;
+	    
+	    if (capacity >= n)
+		return;
+	    
+	    if (data != NULL)
+		CUDA_CHECK(cudaFree(data));
+	    
+	    capacity = n;
+	    
+	    CUDA_CHECK(cudaMalloc(&data, sizeof(T) * capacity));
+	    
+#ifndef NDEBUG
+	    CUDA_CHECK(cudaMemset(data, 0, sizeof(T) * capacity));
+#endif
+	}
+    
+    void preserve_resize(const int n)
+	{
+	    assert(n >= 0);
+	    
+	    T * old = data;
+	    
+	    const int oldsize = size;
+	    
+	    size = n;
+	    
+	    if (capacity >= n)
+		return;
+	    
+	    capacity = n;
+	    
+	    CUDA_CHECK(cudaMalloc(&data, sizeof(T) * capacity));
+	    
+	    if (old != NULL)
+	    {
+		CUDA_CHECK(cudaMemcpy(data, old, sizeof(T) * oldsize, cudaMemcpyDeviceToDevice));
+		CUDA_CHECK(cudaFree(old));
+	    }
+	}
+};
 
+template<typename T>
+struct PinnedHostBuffer
+{
+    int capacity, size;
+    
+    T * data, * devptr;
+    
+PinnedHostBuffer(int n = 0): capacity(0), size(0), data(NULL), devptr(NULL) { resize(n);}
+
+    ~PinnedHostBuffer()
+	{
+	    if (data != NULL)
+		CUDA_CHECK(cudaFreeHost(data));
+	    
 	    data = NULL;
 	}
 
@@ -160,38 +226,12 @@ SimpleDeviceBuffer(int n = 0): capacity(0), size(0), data(NULL) { resize(n);}
 		return;	    
 
 	    if (data != NULL)
-		CUDA_CHECK(cudaFree(data));
+		CUDA_CHECK(cudaFreeHost(data));
 
 	    capacity = n;
-
-	    CUDA_CHECK(cudaMalloc(&data, sizeof(T) * capacity));
-
-#ifndef NDEBUG
-	    CUDA_CHECK(cudaMemset(data, 0, sizeof(T) * capacity));
-#endif
-	}
-
-    void preserve_resize(const int n)
-	{
-	    assert(n >= 0);
 	    
-	    T * old = data;
-	    const int oldsize = size;
-
-	    size = n;
+	    CUDA_CHECK(cudaHostAlloc(&data, sizeof(T) * capacity, cudaHostAllocMapped));
 	    
-	    if (capacity >= n)
-		return;	    
-	    
-	    capacity = n;
-
-	    CUDA_CHECK(cudaMalloc(&data, sizeof(T) * capacity));
-	    	    
-	    if (old != NULL)
-	    {
-		CUDA_CHECK(cudaMemcpy(data, old, sizeof(T) * oldsize, cudaMemcpyDeviceToDevice));
-		CUDA_CHECK(cudaFree(old));
-	    }
+	    CUDA_CHECK(cudaHostGetDevicePointer(&devptr, data, 0));
 	}
 };
-

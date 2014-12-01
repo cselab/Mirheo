@@ -91,7 +91,7 @@ namespace ParticleReordering
 	    for(int c = 0; c < 3; ++c)
 		vcode[c] = (2 + (p[pid].x[c] >= -L/2) + (p[pid].x[c] >= L/2)) % 3;
 		
-	    int code = vcode[0] + 3 * (vcode[1] + 3 * vcode[2]);
+	    const int code = vcode[0] + 3 * (vcode[1] + 3 * vcode[2]);
 
 	    atomicAdd(histo + code, 1);
 	}
@@ -163,6 +163,7 @@ namespace ParticleReordering
 
 	__syncthreads();
 
+	
 	if (pid < np)
 	{
 	    if (!(base[code] + offset >= 0 && base[code] + offset < np))
@@ -207,7 +208,7 @@ namespace ParticleReordering
     }
 #endif
 
-    __global__ void shift(Particle * const p, const int np, const int L, const int code, const int rank)
+    __global__ void shift(const Particle * const psrc, const int np, const int L, const int code, const int rank, const bool check, Particle * const pdst)
     {
 	assert(blockDim.x * gridDim.x >= np);
 	
@@ -219,16 +220,17 @@ namespace ParticleReordering
 	    return;
 
 #ifndef NDEBUG
-	Particle old = p[pid];
+	Particle old = psrc[pid];
 #endif
-	Particle pnew = p[pid];
+	Particle pnew = psrc[pid];
 
 	for(int c = 0; c < 3; ++c)
 	    pnew.x[c] -= d[c] * L;
 
-	p[pid] = pnew;
+	pdst[pid] = pnew;
 
 #ifndef NDEBUG
+	if (check)
 	{
 	    int vcode[3];
 	    for(int c = 0; c < 3; ++c)
@@ -389,11 +391,8 @@ void RedistributeParticles::stage2(Particle * const p, const int n)
 
 	if (count == 0)
 	    continue;
-
-	CUDA_CHECK(cudaMemcpyAsync(p + arriving_start[i], recvbufs[i].data, 
-				   sizeof(Particle) * count, cudaMemcpyDeviceToDevice, mystream));
 	
-	ParticleReordering::shift<<< (count + 127) / 128, 128, 0, mystream >>>(p + arriving_start[i], count, L, i, myrank);
+	ParticleReordering::shift<<< (count + 127) / 128, 128, 0, mystream >>>( recvbufs[i].data, count, L, i, myrank, true, p + arriving_start[i]);
     }
 
 #ifndef NDEBUG

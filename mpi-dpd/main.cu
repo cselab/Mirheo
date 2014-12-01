@@ -16,10 +16,16 @@
 #include "wall-interactions.h"
 #include "redistribute-particles.h"
 
+#include <rbc-cuda.h>
+
+#include "redistribute-rbcs.h"
+
 using namespace std;
 
+__constant__ float gradp[3];
+
 //velocity verlet stages - first stage
-__global__ void update_stage1(Particle * p, Acceleration * a, int n, float dt, float dpdx, float dpdy, float dpdz)
+__global__ void update_stage1(Particle * p, Acceleration * a, int n, float dt)
 {
     assert(blockDim.x * gridDim.x >= n);
     
@@ -35,8 +41,6 @@ __global__ void update_stage1(Particle * p, Acceleration * a, int n, float dt, f
 	assert(!isnan(a[pid].a[c]));
     }
 
-    const float gradp[3] = {dpdx, dpdy, dpdz};
-    
     for(int c = 0; c < 3; ++c)
 	p[pid].u[c] += (a[pid].a[c] - gradp[c]) * dt * 0.5;
     
@@ -51,7 +55,7 @@ __global__ void update_stage1(Particle * p, Acceleration * a, int n, float dt, f
 }
 
 //fused velocity verlet stage 2 and 1 (for the next iteration)
-__global__ void update_stage2_and_1(Particle * p, Acceleration * a, int n, float dt, float dpdx, float dpdy, float dpdz)
+__global__ void update_stage2_and_1(Particle * p, Acceleration * a, int n, float dt)
 {
     assert(blockDim.x * gridDim.x >= n);
     
@@ -66,8 +70,6 @@ __global__ void update_stage2_and_1(Particle * p, Acceleration * a, int n, float
     for(int c = 0; c < 3; ++c)
 	assert(!isnan(a[pid].a[c]));
 
-    const float gradp[3] = {dpdx, dpdy, dpdz};
-    
     for(int c = 0; c < 3; ++c)
     {
 	const float mya = a[pid].a[c] - gradp[c];
@@ -94,41 +96,143 @@ __global__ void update_stage2_and_1(Particle * p, Acceleration * a, int n, float
     }
 }
 
+__global__ void fake_vel(Particle * p, const int n)
+{
+    const int gid = threadIdx.x + blockDim.x * blockIdx.x;
+
+    if (gid < n)
+	for(int c = 0; c < 3; ++c)
+	    p[gid].u[c] = 3 * (c == 0);
+}
+
 
 //container for the gpu particles during the simulation
 struct ParticleArray
 {
-    int capacity, size;
+    int size;
 
-    Particle * xyzuvw;
-    Acceleration * axayaz;
+    SimpleDeviceBuffer<Particle> xyzuvw;
+    SimpleDeviceBuffer<Acceleration> axayaz;
+
+    ParticleArray() {}
     
-    ParticleArray(vector<Particle> ic):
-	capacity(0), size(0), xyzuvw(NULL), axayaz(NULL)
+    ParticleArray(vector<Particle> ic)
 	{
 	    resize(ic.size());
 
-	    CUDA_CHECK(cudaMemcpy(xyzuvw, (float*) &ic.front(), sizeof(Particle) * ic.size(), cudaMemcpyHostToDevice));
-	    CUDA_CHECK(cudaMemset(axayaz, 0, sizeof(Acceleration) * ic.size()));
+	    CUDA_CHECK(cudaMemcpy(xyzuvw.data, (float*) &ic.front(), sizeof(Particle) * ic.size(), cudaMemcpyHostToDevice));
+	    CUDA_CHECK(cudaMemset(axayaz.data, 0, sizeof(Acceleration) * ic.size()));
 	}
 
     void resize(int n)
 	{
 	    size = n;
-	    
-	    if (capacity >= n)
-		return;
 
-	    if (xyzuvw != NULL)
-	    {
-		CUDA_CHECK(cudaFree(xyzuvw));
-		CUDA_CHECK(cudaFree(axayaz));
-	    }
+	    xyzuvw.resize(n);
+	    axayaz.resize(n);
+
+	    CUDA_CHECK(cudaMemset(axayaz.data, 0, sizeof(Acceleration) * size));
+	}
+};
+
+class CollectionRBC : ParticleArray
+{
+    int nrbcs, nvertices, L;
+    
+    CudaRBC::Extent extent;
+
+public:
+    CollectionRBC(const int L): L(L), nrbcs(0)
+	{
+	    printf("hellouus\n");
 	    
-	    CUDA_CHECK(cudaMalloc(&xyzuvw, sizeof(Particle) * n));
-	    CUDA_CHECK(cudaMalloc(&axayaz, sizeof(Acceleration) * n));
-	    CUDA_CHECK(cudaMemset(axayaz, 0, sizeof(Acceleration) * n));
-	    capacity = n;
+	    CudaRBC::setup(nvertices, extent);
+	    
+	    printf("extent: %f %f %f %f %f %f\n",
+		   extent.xmax , extent.xmin,
+		   extent.ymax , extent.ymin,
+		   extent.zmax , extent.zmin);
+		   
+	}
+
+    void createone()
+	{
+	    nrbcs = 1;
+	    
+	    assert(extent.xmax - extent.xmin < L);
+	    assert(extent.ymax - extent.ymin < L);
+	    assert(extent.zmax - extent.zmin < L);
+	    
+	    resize(nrbcs);
+
+	    float transform[4][4] = { {1, 0, 0, -0.5 * (extent.xmin + extent.xmax) }, 
+				      {0, 1, 0, -0.5 * (extent.ymin + extent.ymax)}, 
+				      {0, 0, 1, -0.5 * (extent.zmin + extent.zmax)}, 
+				      {0, 0, 0, 1} };
+
+	    
+	    CudaRBC::initialize((float *)xyzuvw.data, transform);
+
+	    printf("initializing rbc...\n");
+
+	    fake_vel<<< (nvertices * nrbcs + 127) / 128, 128 >>>(xyzuvw.data, nvertices * nrbcs);
+	}
+
+    Particle * data() { return xyzuvw.data; }
+    
+    int count() { return nrbcs; }
+
+    void resize(const int count)
+	{
+	    nrbcs = count;
+
+	    ParticleArray::resize(count * nvertices);
+	}
+
+    void update(const int it)
+	{
+	    if (nrbcs == 0)
+		return;
+	    
+	    if (it < 0)
+		update_stage1<<<(xyzuvw.size + 127) / 128, 128 >>>(
+		    xyzuvw.data, axayaz.data, xyzuvw.size, dt);
+	    else
+		update_stage2_and_1<<<(xyzuvw.size + 127) / 128, 128 >>>
+		    (xyzuvw.data, axayaz.data, xyzuvw.size, dt);
+
+	}
+
+    void dump(MPI_Comm comm)
+	{
+	    static bool firsttime = true;
+	    
+	    const int n = size;
+
+	    Particle * p = new Particle[n];
+	    Acceleration * a = new Acceleration[n];
+
+	    CUDA_CHECK(cudaMemcpy(p, xyzuvw.data, sizeof(Particle) * n, cudaMemcpyDeviceToHost));
+	    CUDA_CHECK(cudaMemcpy(a, axayaz.data, sizeof(Acceleration) * n, cudaMemcpyDeviceToHost));
+		   
+	    //we fused VV stages so we need to recover the state before stage 1
+	    for(int i = 0; i < n; ++i)
+		for(int c = 0; c < 3; ++c)
+		{
+		    assert(!isnan(p[i].x[c]));
+		    assert(!isnan(p[i].u[c]));
+		    assert(!isnan(a[i].a[c]));
+	    
+		    p[i].x[c] -= dt * p[i].u[c];
+		    p[i].u[c] -= 0.5 * dt * a[i].a[c];
+		}
+
+	    xyz_dump(comm, "rbcs.xyz", "rbcparticles", p, n,  L, !firsttime);
+		    
+	    delete [] p;
+	    delete [] a;
+
+	    firsttime = false;
 	}
 };
 
@@ -182,17 +286,30 @@ int main(int argc, char ** argv)
 	    RedistributeParticles redistribute(cartcomm, L);
 	    ComputeInteractionsDPD dpd(cartcomm, L);
 	    ComputeInteractionsWall * wall = NULL;
+  CollectionRBC rbcs(L);
 	    
+	    if (rank == 0)
+		rbcs.createone();
+	    cudaStream_t stream;
+	    CUDA_CHECK(cudaStreamCreate(&stream));
+	    
+	    RedistributeRBCs redistribute_rbcs(cartcomm, L);
+	    //redistribute_rbcs.stream = stream;
 	    int saru_tag = rank;
+
+	  
+
+	    rbcs.update(-1);
 	    
-	    cells.build(particles.xyzuvw, particles.size);
-	
-	    dpd.evaluate(saru_tag, particles.xyzuvw, particles.size, particles.axayaz, cells.start, cells.count);
-	
+	    cells.build(particles.xyzuvw.data, particles.size);
+	   
+	    dpd.evaluate(saru_tag, particles.xyzuvw.data, particles.size, particles.axayaz.data, cells.start, cells.count);
+
 	    const size_t nsteps = (int)(tend / dt);
-	
-	    float grad_p[3] = {0, 0, 0};
-	
+
+	    float dpdx[3] = {0, 0, 0};
+	    CUDA_CHECK(cudaMemcpyToSymbol(gradp, dpdx, sizeof(float) * 3));
+	    
 	    for(int it = 0; it < nsteps; ++it)
 	    {
 		if (rank == 0)
@@ -200,22 +317,31 @@ int main(int argc, char ** argv)
 	    
 		if (it == 0)
 		    update_stage1<<<(particles.size + 127) / 128, 128 >>>(
-			particles.xyzuvw, particles.axayaz, particles.size, dt, grad_p[0], grad_p[1], grad_p[2]);
+			particles.xyzuvw.data, particles.axayaz.data, particles.size, dt);
 
-		int newnp = redistribute.stage1(particles.xyzuvw, particles.size);
+		int newnp = redistribute.stage1(particles.xyzuvw.data, particles.size);
 		
 		particles.resize(newnp);
 	    
-		redistribute.stage2(particles.xyzuvw, particles.size);
+		redistribute.stage2(particles.xyzuvw.data, particles.size);
+
+		int nrbcs = redistribute_rbcs.stage1(rbcs.data(), rbcs.count());
+
+		rbcs.resize(nrbcs);
+
+		redistribute_rbcs.stage2(rbcs.data(), rbcs.count());
+
+		rbcs.dump(cartcomm);
 
 		if (walls && it > 500 && wall == NULL)
 		{
 		    int nsurvived = 0;
-		    wall = new ComputeInteractionsWall(cartcomm, L, particles.xyzuvw, particles.size, nsurvived);
+		    wall = new ComputeInteractionsWall(cartcomm, L, particles.xyzuvw.data, particles.size, nsurvived);
 		    
 		    particles.resize(nsurvived);
 		    
-		    grad_p[0] = -0.1;
+		    dpdx[0] = -0.1;
+		    CUDA_CHECK(cudaMemcpyToSymbol(gradp, dpdx, sizeof(float) * 3));
 
 		    if (rank == 0)
 			if( access( "trajectories.xyz", F_OK ) != -1 )
@@ -225,20 +351,22 @@ int main(int argc, char ** argv)
 			}
 		}
 
-		cells.build(particles.xyzuvw, particles.size);
+		cells.build(particles.xyzuvw.data, particles.size);
 
-		dpd.evaluate(saru_tag, particles.xyzuvw, particles.size, particles.axayaz, cells.start, cells.count);
+		dpd.evaluate(saru_tag, particles.xyzuvw.data, particles.size, particles.axayaz.data, cells.start, cells.count);
 
 		if (wall != NULL)
-		    wall->interactions(particles.xyzuvw, particles.size, particles.axayaz, 
+		    wall->interactions(particles.xyzuvw.data, particles.size, particles.axayaz.data, 
 				       cells.start, cells.count, saru_tag);
 
 		if (particles.size > 0)
 		    update_stage2_and_1<<<(particles.size + 127) / 128, 128 >>>
-			(particles.xyzuvw, particles.axayaz, particles.size, dt, grad_p[0], grad_p[1], grad_p[2]);
+			(particles.xyzuvw.data, particles.axayaz.data, particles.size, dt);
+
+		rbcs.update(it);
 
 		if (wall != NULL)
-		    wall->bounce(particles.xyzuvw, particles.size);
+		    wall->bounce(particles.xyzuvw.data, particles.size);
 	    
 		if (it % 5 == 0)
 		{
@@ -247,9 +375,21 @@ int main(int argc, char ** argv)
 		    Particle * p = new Particle[n];
 		    Acceleration * a = new Acceleration[n];
 
-		    CUDA_CHECK(cudaMemcpy(p, particles.xyzuvw, sizeof(Particle) * n, cudaMemcpyDeviceToHost));
-		    CUDA_CHECK(cudaMemcpy(a, particles.axayaz, sizeof(Acceleration) * n, cudaMemcpyDeviceToHost));
+		    CUDA_CHECK(cudaMemcpy(p, particles.xyzuvw.data, sizeof(Particle) * n, cudaMemcpyDeviceToHost));
+		    CUDA_CHECK(cudaMemcpy(a, particles.axayaz.data, sizeof(Acceleration) * n, cudaMemcpyDeviceToHost));
 		   
+		    //we fused VV stages so we need to recover the state before stage 1
+		    for(int i = 0; i < n; ++i)
+			for(int c = 0; c < 3; ++c)
+			{
+			    assert(!isnan(p[i].x[c]));
+			    assert(!isnan(p[i].u[c]));
+			    assert(!isnan(a[i].a[c]));
+	    
+			    p[i].x[c] -= dt * p[i].u[c];
+			    p[i].u[c] -= 0.5 * dt * a[i].a[c];
+			}
+
 		    diagnostics(cartcomm, p, n, dt, it, L, a, true);
 
 		    if (it > 100)
@@ -259,6 +399,8 @@ int main(int argc, char ** argv)
 		    delete [] a;
 		}
 	    }
+
+	    CUDA_CHECK(cudaStreamDestroy(stream));
 	
 	    if (wall != NULL)
 		delete wall;

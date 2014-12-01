@@ -225,7 +225,7 @@ void forces_dpd_cuda_nohost(const float * const xyzuvw, float * const axayaz,  c
     c.gamma = gamma;
     c.sigmaf = sigma * invsqrtdt;
       
-    CUDA_CHECK(cudaMemcpyToSymbolAsync(info, &c, sizeof(c)));
+    CUDA_CHECK(cudaMemcpyToSymbolAsync(info, &c, sizeof(c), 0, cudaMemcpyHostToDevice, stream));
    
     _dpd_forces_saru<<<dim3(c.ncells.x / _XCPB_,
 			    c.ncells.y / _YCPB_,
@@ -328,7 +328,7 @@ void forces_dpd_cuda_aos(float * const _xyzuvw, float * const _axayaz,
 	fdpd_oldnc = ncells;
     }
 
-    CUDA_CHECK(cudaMemcpyAsync(fdpd_xyzuvw, _xyzuvw, sizeof(float) * np * 6, nohost ? cudaMemcpyDeviceToDevice : cudaMemcpyHostToDevice));
+    CUDA_CHECK(cudaMemcpyAsync(fdpd_xyzuvw, _xyzuvw, sizeof(float) * np * 6, nohost ? cudaMemcpyDeviceToDevice : cudaMemcpyHostToDevice, 0));
     
     InfoDPD c;
     c.ncells = make_int3(nx, ny, nz);
@@ -347,7 +347,7 @@ void forces_dpd_cuda_aos(float * const _xyzuvw, float * const _axayaz,
     //TextureWrap texStart(_ptr(starts), ncells), texCount(_ptr(counts), ncells);
     //TextureWrap texParticles((float2*)_ptr(xyzuvw), 3 * np);
     
-    CUDA_CHECK(cudaMemcpyToSymbolAsync(info, &c, sizeof(c)));
+    CUDA_CHECK(cudaMemcpyToSymbolAsync(info, &c, sizeof(c), 0));
    
     ProfilerDPD::singletone().start();
 

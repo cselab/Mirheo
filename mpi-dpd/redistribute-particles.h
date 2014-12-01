@@ -4,6 +4,12 @@
 
 #include "common.h"
 
+namespace ParticleReordering
+{
+    __global__ void shift(const Particle * const psrc, const int np, const int L, const int code,
+			  const int rank, const bool check, Particle * const pdst);
+}
+
 //pls see the vanilla version of this code for the computational patterns of this class
 class RedistributeParticles
 {
@@ -11,7 +17,7 @@ class RedistributeParticles
 
     bool pending_send;
     
-    int L, myrank, dims[3], periods[3], coords[3], rankneighbors[27], anti_rankneighbors[27], domain_extent[3];
+    int L, myrank, dims[3], periods[3], coords[3], rankneighbors[27], anti_rankneighbors[27];
     int arriving_start[28], notleaving, arriving;
 
     //gpu buffer used as receive buffer of the 26 messages
@@ -29,7 +35,9 @@ class RedistributeParticles
 public:
 
     RedistributeParticles(MPI_Comm cartcomm, const int L);
+    
     ~RedistributeParticles();
+    
     //cuda-sync inside, before sending messages to other ranks
     int stage1(const Particle * const p, const int n);
 

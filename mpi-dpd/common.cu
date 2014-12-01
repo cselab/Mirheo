@@ -67,21 +67,58 @@ H5PartCloseFile(f);
 #endif
 }
 
+void xyz_dump(MPI_Comm comm, const char * filename, const char * particlename, Particle * particles, int n, int L, bool append)
+{
+    int rank;
+    MPI_CHECK( MPI_Comm_rank(comm, &rank) );
+    
+    int dims[3], periods[3], coords[3];
+    MPI_CHECK( MPI_Cart_get(comm, 3, dims, periods, coords) );
+
+    const int nlocal = n;
+    MPI_CHECK( MPI_Reduce(rank == 0 ? MPI_IN_PLACE : &n, &n, 1, MPI_INT, MPI_SUM, 0, comm) );
+    
+    MPI_File f;
+    MPI_CHECK( MPI_File_open(comm, filename , MPI_MODE_WRONLY | (append ? MPI_MODE_APPEND : MPI_MODE_CREATE), MPI_INFO_NULL, &f) );
+
+    if (!append)
+	MPI_CHECK( MPI_File_set_size (f, 0));
+	
+    MPI_Offset base;
+    MPI_CHECK( MPI_File_get_position(f, &base));
+	
+    std::stringstream ss;
+
+    if (rank == 0)
+    {
+	ss <<  n << "\n";
+	ss << particlename << "\n";
+
+	printf("total number of particles: %d\n", n);
+    }
+    
+    for(int i = 0; i < nlocal; ++i)
+	ss << rank << " " 
+	   << (particles[i].x[0] + L / 2 + coords[0] * L) << " "
+	   << (particles[i].x[1] + L / 2 + coords[1] * L) << " "
+	   << (particles[i].x[2] + L / 2 + coords[2] * L) << "\n";
+
+    string content = ss.str();
+	
+    int len = content.size();
+    int offset = 0;
+    MPI_CHECK( MPI_Exscan(&len, &offset, 1, MPI_INTEGER, MPI_SUM, comm)); 
+	
+    MPI_Status status;
+	
+    MPI_CHECK( MPI_File_write_at_all(f, base + offset, const_cast<char *>(content.c_str()), len, MPI_CHAR, &status));
+	
+    MPI_CHECK( MPI_File_close(&f));
+}
+
 void diagnostics(MPI_Comm comm, Particle * particles, int n, float dt, int idstep, int L, Acceleration * acc, bool particledump)
 {
-    int nlocal = n;
-
-    //we fused VV stages so we need to recover the state before stage 1
-    for(int i = 0; i < n; ++i)
-	for(int c = 0; c < 3; ++c)
-	{
-	    assert(!isnan(particles[i].x[c]));
-	    assert(!isnan(particles[i].u[c]));
-	    assert(!isnan(acc[i].a[c]));
-	    
-	    particles[i].x[c] -= dt * particles[i].u[c];
-	    particles[i].u[c] -= 0.5 * dt * acc[i].a[c];
-	}
+    const int nlocal = n;
     
     double p[] = {0, 0, 0};
     for(int i = 0; i < n; ++i)
@@ -134,44 +171,8 @@ void diagnostics(MPI_Comm comm, Particle * particles, int n, float dt, int idste
 
 	firsttime |= filenotthere;
 
-	MPI_File f;
-	char fn[] = "trajectories.xyz";
-	MPI_CHECK( MPI_File_open(comm, fn, MPI_MODE_WRONLY | (firsttime ? MPI_MODE_CREATE : MPI_MODE_APPEND), MPI_INFO_NULL, &f) );
+	xyz_dump(comm, "trajectories.xyz", "dpd-particles", particles, nlocal, L, !firsttime);
 
-	if (firsttime)
-	    MPI_CHECK( MPI_File_set_size (f, 0));
-
-	firsttime = false;
-	
-	MPI_Offset base;
-	MPI_CHECK( MPI_File_get_position(f, &base));
-	
-	std::stringstream ss;
-
-	if (rank == 0)
-	{
-	    ss <<  n << "\n";
-	    ss << "dpdparticle\n";
-
-	    printf("total number of particles: %d\n", n);
-	}
-    
-	for(int i = 0; i < nlocal; ++i)
-	    ss << rank << " " 
-	       << (particles[i].x[0] + L / 2 + coords[0] * L) << " "
-	       << (particles[i].x[1] + L / 2 + coords[1] * L) << " "
-	       << (particles[i].x[2] + L / 2 + coords[2] * L) << "\n";
-
-	string content = ss.str();
-	
-	int len = content.size();
-	int offset = 0;
-	MPI_CHECK( MPI_Exscan(&len, &offset, 1, MPI_INTEGER, MPI_SUM, comm)); 
-	
-	MPI_Status status;
-	
-	MPI_CHECK( MPI_File_write_at_all(f, base + offset, const_cast<char *>(content.c_str()), len, MPI_CHAR, &status));
-	
-	MPI_CHECK( MPI_File_close(&f));
+	firsttime = false;	
     }
 }

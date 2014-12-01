@@ -582,7 +582,7 @@ void build_clists(float * const device_xyzuvw, int np, const float rc,
     }
 
     if (host_order != NULL)
-	CUDA_CHECK(cudaMemcpyAsync(host_order, order, sizeof(int) * np, cudaMemcpyDeviceToHost));
+	CUDA_CHECK(cudaMemcpyAsync(host_order, order, sizeof(int) * np, cudaMemcpyDeviceToHost, stream));
 
     CUDA_CHECK(cudaUnbindTexture(texParticles));
     CUDA_CHECK(cudaUnbindTexture(texScanYZ));
