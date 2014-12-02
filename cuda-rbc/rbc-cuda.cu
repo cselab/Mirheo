@@ -529,7 +529,8 @@ void forces_nohost(cudaStream_t stream, const float * const device_xyzuvw, float
 	}
 	else
 	{
-		gpuErrchk( cudaMalloc(&pfxfyfz, 3*warpSize*nparticles * sizeof(float)) );
+	    gpuErrchk( cudaMalloc(&pfxfyfz, 3*warpSize*nparticles * sizeof(float)) );
+	    gpuErrchk( cudaMemset(pfxfyfz, 0, 3*warpSize*nparticles * sizeof(float)) );
 		bufmap[stream] = pfxfyfz;
 	}
 
