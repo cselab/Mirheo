@@ -15,7 +15,7 @@ class RedistributeRBCs
 
     SimpleDeviceBuffer<Particle> recvbufs[27], sendbufs[27];
 
-    int nvertices, arriving, notleaving;
+    int nvertices, arriving, notleaving, nreqrecv, nreqsend;
 
     PinnedHostBuffer<CudaRBC::Extent> extents;
     

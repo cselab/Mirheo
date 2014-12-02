@@ -226,7 +226,7 @@ ComputeInteractionsWall::ComputeInteractionsWall(MPI_Comm cartcomm, const int L,
 
     const double h = (L + 2) / (double)(VPD - 2);
 
-#if 1
+#if 0
 
     //bifurcation
     const float r_cyl = 0.085 * L * dims[1];
@@ -297,9 +297,9 @@ ComputeInteractionsWall::ComputeInteractionsWall(MPI_Comm cartcomm, const int L,
 
     const float y_cyl = 0.5 * L * dims[1];
     const float z_cyl = 0.5 * L * dims[2];
-    const float r_cyl = 0.125 * L * dims[1];
+    const float r_cyl = 0.4 * L * dims[1];
     
-    //cylindrical pipe
+    //cylinder / pipe
     for(int iz = 0; iz < VPD; ++iz)
 	for(int iy = 0; iy < VPD; ++iy)
 	    for(int ix = 0; ix < VPD; ++ix)
@@ -394,6 +394,8 @@ void ComputeInteractionsWall::bounce(Particle * const p, const int n)
 void ComputeInteractionsWall::interactions(const Particle * const p, const int n, Acceleration * const acc,
 			      const int * const cellsstart, const int * const cellscount, int& saru_tag)
 {
+    //cellsstart and cellscount IGNORED for now
+    
     if (n > 0 && solid_size > 0)
 	SolidWallsKernel::interactions<<< (n + 127) / 128, 128>>>(p, n, acc, cells.start, cells.count, L,
 								  solid, solid_size, saru_tag, myrank, aij, gammadpd, sigmaf);

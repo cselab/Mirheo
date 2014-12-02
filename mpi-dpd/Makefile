@@ -10,7 +10,7 @@ CXXFLAGS += -I../cuda-dpd-sem/dpd  -L../cuda-dpd-sem/dpd  -L../cuda-rbc/ -I../cu
 #-DNDEBUG
 NVCCFLAGS += -I../cuda-dpd-sem/dpd  -L../cuda-dpd-sem/dpd  -I../cuda-rbc/ -L../cuda-rbc/
 
-OBJS = main.o dpd-interactions.o redistribute-particles.o halo-exchanger.o common.o wall-interactions.o scan.o redistribute-rbcs.o
+OBJS = main.o dpd-interactions.o redistribute-particles.o halo-exchanger.o common.o wall-interactions.o scan.o redistribute-rbcs.o rbc-interactions.o
 LIBS = -lcuda-dpd -lcuda-rbc -lcudart 
 
 ifneq "$(h5part)" "0"

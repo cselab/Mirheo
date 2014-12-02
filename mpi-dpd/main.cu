@@ -5,7 +5,6 @@
 
 #include <mpi.h>
 
-
 #include <vector>
 
 //in common.h i define Particle and Acceleration data structures
@@ -15,6 +14,7 @@
 #include "dpd-interactions.h"
 #include "wall-interactions.h"
 #include "redistribute-particles.h"
+#include "rbc-interactions.h"
 
 #include <rbc-cuda.h>
 
@@ -41,11 +41,11 @@ __global__ void update_stage1(Particle * p, Acceleration * a, int n, float dt)
 	assert(!isnan(a[pid].a[c]));
     }
 
-    for(int c = 0; c < 3; ++c)
+       for(int c = 0; c < 3; ++c)
 	p[pid].u[c] += (a[pid].a[c] - gradp[c]) * dt * 0.5;
     
-    for(int c = 0; c < 3; ++c)
-	p[pid].x[c] += p[pid].u[c] * dt;
+       for(int c = 0; c < 3; ++c)
+	   p[pid].x[c] += p[pid].u[c] * dt;
 
     for(int c = 0; c < 3; ++c)
     {
@@ -104,7 +104,6 @@ __global__ void fake_vel(Particle * p, const int n)
 	for(int c = 0; c < 3; ++c)
 	    p[gid].u[c] = 3 * (c == 0);
 }
-
 
 //container for the gpu particles during the simulation
 struct ParticleArray
@@ -170,18 +169,15 @@ public:
 				      {0, 0, 1, -0.5 * (extent.zmin + extent.zmax)}, 
 				      {0, 0, 0, 1} };
 
-	    
+	    CUDA_CHECK(cudaMemset(xyzuvw.data, 0, sizeof(Particle) * nvertices));
 	    CudaRBC::initialize((float *)xyzuvw.data, transform);
-
-	    printf("initializing rbc...\n");
-
-	    fake_vel<<< (nvertices * nrbcs + 127) / 128, 128 >>>(xyzuvw.data, nvertices * nrbcs);
 	}
 
     Particle * data() { return xyzuvw.data; }
-    
+    Acceleration * acc() { return axayaz.data; }
     int count() { return nrbcs; }
-
+    int pcount() { return nrbcs * nvertices; }
+    
     void resize(const int count)
 	{
 	    nrbcs = count;
@@ -277,7 +273,11 @@ int main(int argc, char ** argv)
 		    ic[i].x[c] = -L * 0.5 + drand48() * L;
 		    ic[i].u[c] = 0;// (drand48()*2  - 1);
 		}
-	
+
+	    float dpdx[3] = {-0.01, 0, 0};
+	    
+	    CUDA_CHECK(cudaMemcpyToSymbol(gradp, dpdx, sizeof(float) * 3));
+	    
 	    //the methods of these classes are not expected to call cudaThreadSynchronize unless really necessary
 	    //(be aware of that)
 	    H5PartDump dump("trajectories.h5part", cartcomm, L);
@@ -286,30 +286,30 @@ int main(int argc, char ** argv)
 	    RedistributeParticles redistribute(cartcomm, L);
 	    ComputeInteractionsDPD dpd(cartcomm, L);
 	    ComputeInteractionsWall * wall = NULL;
-  CollectionRBC rbcs(L);
+	    CollectionRBC rbcs(L);
 	    
-	    if (rank == 0)
+	    //if (rank == 0)
 		rbcs.createone();
+	    //exit(0);
 	    cudaStream_t stream;
 	    CUDA_CHECK(cudaStreamCreate(&stream));
 	    
 	    RedistributeRBCs redistribute_rbcs(cartcomm, L);
-	    //redistribute_rbcs.stream = stream;
+	    redistribute_rbcs.stream = stream;
 	    int saru_tag = rank;
 
-	  
+	    ComputeInteractionsRBC rbc_interactions(cartcomm, L);
 
 	    rbcs.update(-1);
 	    
 	    cells.build(particles.xyzuvw.data, particles.size);
 	   
 	    dpd.evaluate(saru_tag, particles.xyzuvw.data, particles.size, particles.axayaz.data, cells.start, cells.count);
+	    rbc_interactions.evaluate(saru_tag, particles.xyzuvw.data, particles.size, particles.axayaz.data, cells.start, cells.count,
+				      rbcs.data(), rbcs.count(), rbcs.acc());
 
 	    const size_t nsteps = (int)(tend / dt);
 
-	    float dpdx[3] = {0, 0, 0};
-	    CUDA_CHECK(cudaMemcpyToSymbol(gradp, dpdx, sizeof(float) * 3));
-	    
 	    for(int it = 0; it < nsteps; ++it)
 	    {
 		if (rank == 0)
@@ -330,8 +330,6 @@ int main(int argc, char ** argv)
 		rbcs.resize(nrbcs);
 
 		redistribute_rbcs.stage2(rbcs.data(), rbcs.count());
-
-		rbcs.dump(cartcomm);
 
 		if (walls && it > 500 && wall == NULL)
 		{
@@ -354,10 +352,18 @@ int main(int argc, char ** argv)
 		cells.build(particles.xyzuvw.data, particles.size);
 
 		dpd.evaluate(saru_tag, particles.xyzuvw.data, particles.size, particles.axayaz.data, cells.start, cells.count);
+		rbc_interactions.evaluate(saru_tag, particles.xyzuvw.data, particles.size, particles.axayaz.data, cells.start, cells.count,
+					  rbcs.data(), rbcs.count(), rbcs.acc());
 
+		//I NEED A REGISTRATION MECHANISM FOR DPD-INTERACTION AND RBC-INTERACTION
 		if (wall != NULL)
+		{
 		    wall->interactions(particles.xyzuvw.data, particles.size, particles.axayaz.data, 
 				       cells.start, cells.count, saru_tag);
+		    
+		    wall->interactions(rbcs.data(), rbcs.pcount(), rbcs.acc(), 
+				       NULL, NULL, saru_tag);
+		}
 
 		if (particles.size > 0)
 		    update_stage2_and_1<<<(particles.size + 127) / 128, 128 >>>
@@ -366,9 +372,12 @@ int main(int argc, char ** argv)
 		rbcs.update(it);
 
 		if (wall != NULL)
+		{
 		    wall->bounce(particles.xyzuvw.data, particles.size);
+		    wall->bounce(rbcs.data(), rbcs.pcount());
+		}
 	    
-		if (it % 5 == 0)
+		if (it % 50 == 0)
 		{
 		    const int n = particles.size;
 
@@ -391,7 +400,8 @@ int main(int argc, char ** argv)
 			}
 
 		    diagnostics(cartcomm, p, n, dt, it, L, a, true);
-
+		    rbcs.dump(cartcomm);
+		    
 		    if (it > 100)
 			dump.dump(p, n);
 

@@ -14,6 +14,9 @@ bool Particle::initialized = false;
 
 MPI_Datatype Particle::mytype;
 
+bool Acceleration::initialized = false;
+
+MPI_Datatype Acceleration::mytype;
 
 H5PartDump::H5PartDump(const string fname, MPI_Comm cartcomm, const int L):
     cartcomm(cartcomm), fname(fname), tstamp(0)

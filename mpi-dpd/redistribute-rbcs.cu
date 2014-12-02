@@ -98,15 +98,25 @@ int RedistributeRBCs::stage1(const Particle * const xyzuvw, const int nrbcs)
     MPI_Status statuses[26];	    
     MPI_CHECK( MPI_Waitall(26, sendcountreq, statuses) );
 
-  for(int i = 1; i < 27; ++i)
-      //TODO if (recvbufs[i].size > 0)
-	  MPI_CHECK(MPI_Irecv(recvbufs[i].data, recvbufs[i].size, Particle::datatype(),
-			      rankneighbors[i], i + 1155, cartcomm, &recvreq[i-1]));
-  
-  for(int i = 1; i < 27; ++i)
-      //TODO if (sendbufs[i].size > 0)
-	  MPI_CHECK(MPI_Isend(sendbufs[i].data, sendbufs[i].size, Particle::datatype(),
-			      rankneighbors[i], i + 1155, cartcomm, &sendreq[i-1]));
+    nreqrecv = 0;
+    for(int i = 1; i < 27; ++i)
+	if (recvbufs[i].size > 0)
+	{
+	    MPI_CHECK(MPI_Irecv(recvbufs[i].data, recvbufs[i].size, Particle::datatype(),
+				rankneighbors[i], i + 1155, cartcomm, recvreq + nreqrecv));
+
+	    ++nreqrecv;
+	}
+
+    nreqsend = 0;
+    for(int i = 1; i < 27; ++i)
+	if (sendbufs[i].size > 0)
+	{
+	    MPI_CHECK(MPI_Isend(sendbufs[i].data, sendbufs[i].size, Particle::datatype(),
+				rankneighbors[i], i + 1155, cartcomm, sendreq + nreqsend));
+
+	    ++nreqsend;
+	}
 
   //if (myrank == 1 && notleaving != 0)
       //  printf("************ ADESSO ******************************************\n");
@@ -120,8 +130,8 @@ void RedistributeRBCs::stage2(Particle * const xyzuvw, const int nrbcs)
     assert(notleaving + arriving == nrbcs);
     
     MPI_Status statuses[26];
-    MPI_CHECK(MPI_Waitall(26, recvreq, statuses) );
-    MPI_CHECK(MPI_Waitall(26, sendreq, statuses) );
+    MPI_CHECK(MPI_Waitall(nreqrecv, recvreq, statuses) );
+    MPI_CHECK(MPI_Waitall(nreqsend, sendreq, statuses) );
 
     CUDA_CHECK(cudaMemcpyAsync(xyzuvw, sendbufs[0].data, notleaving * nvertices * sizeof(Particle), cudaMemcpyDeviceToDevice, stream));
 

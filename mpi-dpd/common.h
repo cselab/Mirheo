@@ -66,10 +66,27 @@ struct Particle
 	}
 };
 
-//why do i need this? it is there just to make the code more readable
+
 struct Acceleration
 {
     float a[3];
+
+    static bool initialized;
+    static MPI_Datatype mytype;
+
+    static MPI_Datatype datatype()
+	{
+	    if (!initialized)
+	    {
+		MPI_CHECK( MPI_Type_contiguous(3, MPI_FLOAT, &mytype));
+
+		MPI_CHECK(MPI_Type_commit(&mytype));
+
+		initialized = true;
+	    }
+
+	    return mytype;
+	}
 };
 
 class H5PartDump
@@ -96,14 +113,14 @@ void xyz_dump(MPI_Comm comm, const char * filename, const char * particlename, P
 void diagnostics(MPI_Comm comm, Particle * _particles, int n, float dt, int idstep, int L, Acceleration * _acc, bool particledump);
 
 const int L = 24;
-const float dt = 0.01;
-const float tend = 10;
+const float dt = 0.001;
+const float tend = 100;
 const float kBT = 0.1;
 const float gammadpd = 45;
 const float sigma = sqrt(2 * gammadpd * kBT);
 const float sigmaf = sigma / sqrt(dt);
 const float aij = 2.5;
-const bool walls = false;
+const bool walls = true;
 
 //container for the cell lists, which contains only two integer vectors of size ncells.
 //the start[cell-id] array gives the entry in the particle array associated to first particle belonging to cell-id
