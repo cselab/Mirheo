@@ -222,8 +222,15 @@ public:
 		    p[i].x[c] -= dt * p[i].u[c];
 		    p[i].u[c] -= 0.5 * dt * a[i].a[c];
 		}
-
+	    
 	    xyz_dump(comm, "rbcs.xyz", "rbcparticles", p, n,  L, !firsttime);
+
+	    //std::vector<int> indices(3 * ntriangles)
+	    int (*indices)[3];
+	    int ntriangles;
+	    CudaRBC::get_triangle_indexing(indices, ntriangles);
+	    
+	    ply_dump(comm, "prova.ply", indices, nrbcs, ntriangles, p, nvertices, L, false);
 		    
 	    delete [] p;
 	    delete [] a;
