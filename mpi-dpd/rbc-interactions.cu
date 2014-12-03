@@ -399,7 +399,7 @@ void ComputeInteractionsRBC::pack_and_post(const Particle * const rbcs, const in
 	    reqsendp.push_back(request);
 	}
 
-    printf("done done done\n");
+//    printf("done done done\n");
 }
 
 void ComputeInteractionsRBC::evaluate(int& saru_tag,
