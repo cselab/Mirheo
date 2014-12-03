@@ -155,22 +155,29 @@ public:
 	}
 
     void createone()
-	{
-	    nrbcs = 1;
-	    
+	{	    
 	    assert(extent.xmax - extent.xmin < L);
 	    assert(extent.ymax - extent.ymin < L);
 	    assert(extent.zmax - extent.zmin < L);
+
+	    const int n = (int)(0.75 * L / (extent.zmax - extent.zmin));
 	    
-	    resize(nrbcs);
+	    const float dx = L / (float)n;
+	    
+	    resize(n);
 
-	    float transform[4][4] = { {1, 0, 0, -0.5 * (extent.xmin + extent.xmax) }, 
-				      {0, 1, 0, -0.5 * (extent.ymin + extent.ymax)}, 
-				      {0, 0, 1, -0.5 * (extent.zmin + extent.zmax)}, 
-				      {0, 0, 0, 1} };
+	    for(int i = 0; i < n; ++i)
+	    {
+		float target[3] = { (i + 0.5) * dx,  0.35 * L * (drand48() - 0.5), 0.35 * L * (drand48() - 0.5)};
 
-	    CUDA_CHECK(cudaMemset(xyzuvw.data, 0, sizeof(Particle) * nvertices));
-	    CudaRBC::initialize((float *)xyzuvw.data, transform);
+		float transform[4][4] = { {0, 0, -1, -target[0] + 0.5 * (extent.zmin + extent.zmax) }, 
+					  {0, 1, 0, target[1] -0.5 * (extent.ymin + extent.ymax)}, 
+					  {1, 0, 0, target[2] -0.5 * (extent.xmin + extent.xmax)}, 
+					  {0, 0, 0, 1} };
+
+		//CUDA_CHECK(cudaMemset(xyzuvw.data, 0, sizeof(Particle) * nvertices));
+		CudaRBC::initialize((float *)(xyzuvw.data + nvertices * i), transform);
+	    }
 	}
 
     Particle * data() { return xyzuvw.data; }
@@ -312,7 +319,7 @@ int main(int argc, char ** argv)
 
 	    for(int it = 0; it < nsteps; ++it)
 	    {
-		if (rank == 0)
+		if (rank == 0 && it % 50 == 0)
 		    printf("beginning of time step %d\n", it);
 	    
 		if (it == 0)
