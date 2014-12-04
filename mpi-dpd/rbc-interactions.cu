@@ -248,8 +248,11 @@ ComputeInteractionsRBC::ComputeInteractionsRBC(MPI_Comm _cartcomm, int L):  L(L)
 
 	MPI_CHECK( MPI_Cart_rank(cartcomm, coordsneighbor, dstranks + i) );
 
-	//const int nhalocells = pow(L, 3 - fabs(d[0]) - fabs(d[1]) - fabs(d[2]));
-	//const int estimate = max(16, 2 * 3 * nhalocells);
+	const int nhalocells = pow(L, 3 - fabs(d[0]) - fabs(d[1]) - fabs(d[2]));
+	const int estimate = 8 * nvertices;
+
+	remote[i].setup(estimate);
+	local[i].setup(estimate);
 
 	/*halosize[i].x = d[0] != 0 ? 1 : L;
 	  halosize[i].y = d[1] != 0 ? 1 : L;

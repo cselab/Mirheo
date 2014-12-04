@@ -10,6 +10,8 @@
 
 #include "wall-interactions.h"
 
+static const int MARGIN = 4;
+
 namespace SolidWallsKernel
 {
     texture<float, 3, cudaReadModeElementType> texSDF;
@@ -21,7 +23,7 @@ namespace SolidWallsKernel
 	float texcoord[3];
 	for(int c = 0; c < 3; ++c)
 	{
-	    texcoord[c] = (p[c] - (-L/2 - 1)) / (L + 2);
+	    texcoord[c] = (p[c] - (-L/2 - MARGIN)) / (L + 2 * MARGIN);
 	    assert(texcoord[c] >= 0 && texcoord[c] <= 1);
 	}
 	
@@ -107,7 +109,12 @@ namespace SolidWallsKernel
 	Particle p = particles[pid];
 
 	for(int c = 0; c < 3; ++c)
-	    assert(abs(p.x[c]) <= L/2 + 1);
+	{
+	    if (!(abs(p.x[c]) <= L/2 + MARGIN))
+		printf("bounce: ooooooooops we have %f %f %f outside %d + %d\n", p.x[0], p.x[1], p.x[2], L/2, MARGIN);
+
+	    assert(abs(p.x[c]) <= L/2 + MARGIN);
+	}
 
 	if (handle_collision(p.x[0], p.x[1], p.x[2], p.u[0], p.u[1], p.u[2], L))
 	    particles[pid] = p;
@@ -130,8 +137,9 @@ namespace SolidWallsKernel
 	int base[3];
 	for(int c = 0; c < 3; ++c)
 	{
-	    assert(p.x[c] >= -L/2 - 1);
-	    base[c] = (int)(p.x[c] - (-L/2 -1));
+	    assert(p.x[c] >= -L/2 - MARGIN);
+	    assert(p.x[c] < L/2 + MARGIN);
+	    base[c] = (int)(p.x[c] - (-L/2 - MARGIN));
 	}
 
 	const float xp = p.x[0], yp = p.x[1], zp = p.x[2];
@@ -145,13 +153,13 @@ namespace SolidWallsKernel
 	    const int ycid = base[1] + (code/3 % 3) - 1;
 	    const int zcid = base[2] + (code/9 % 3) - 1;
 
-	    if (xcid < 0 || xcid >= L + 2 ||
-		ycid < 0 || ycid >= L + 2 ||
-		zcid < 0 || zcid >= L + 2 )
+	    if (xcid < 0 || xcid >= L + 2 * MARGIN ||
+		ycid < 0 || ycid >= L + 2 * MARGIN ||
+		zcid < 0 || zcid >= L + 2 * MARGIN )
 		continue;
 			    
-	    const int cid = xcid + (L + 2) * (ycid + (L + 2) * zcid);
-	    assert(cid >= 0 && cid < (L + 2) * (L + 2) * (L + 2));
+	    const int cid = xcid + (L + 2 * MARGIN) * (ycid + (L + 2 * MARGIN) * zcid);
+	    assert(cid >= 0 && cid < (L + 2 * MARGIN) * (L + 2 * MARGIN) * (L + 2 * MARGIN));
 
 	    const int start = starts[cid];
 	    const int stop = start + counts[cid];
@@ -215,16 +223,16 @@ float smoothstep(float edge0, float edge1, float x)
 
 ComputeInteractionsWall::ComputeInteractionsWall(MPI_Comm cartcomm, const int L, Particle* const p, 
 						 const int n, int& nsurvived):
-    cartcomm(cartcomm), L(L), arrSDF(NULL), solid(NULL), solid_size(0), cells(L+2)
+    cartcomm(cartcomm), L(L), arrSDF(NULL), solid(NULL), solid_size(0), cells(L+ 2 * MARGIN)
 {
     MPI_CHECK( MPI_Comm_rank(cartcomm, &myrank));
     MPI_CHECK( MPI_Cart_get(cartcomm, 3, dims, periods, coords) );
     
-    const int VPD = 64;
+    const int VPD = 128;
 
     float * field = new float[VPD * VPD * VPD];
 
-    const double h = (L + 2) / (double)(VPD - 2);
+    const double h = (L + 2 * MARGIN) / (double)VPD;
 
 #if 0
 
@@ -276,9 +284,9 @@ ComputeInteractionsWall::ComputeInteractionsWall(MPI_Comm cartcomm, const int L,
 	for(int iy = 0; iy < VPD; ++iy)
 	    for(int ix = 0; ix < VPD; ++ix)
 	    {
-		const float x = coords[0] * L - 1 + (ix + 0.5) * h;
-		const float y = coords[1] * L - 1 + (iy + 0.5) * h;
-		const float z = coords[2] * L - 1 + (iz + 0.5) * h;
+		const float x = coords[0] * L - MARGIN + (ix + 0.5) * h;
+		const float y = coords[1] * L - MARGIN + (iy + 0.5) * h;
+		const float z = coords[2] * L - MARGIN + (iz + 0.5) * h;
 
 		float val = 1;
 		for(int i = 0; i < npts && val == 1; ++i)
@@ -305,8 +313,8 @@ ComputeInteractionsWall::ComputeInteractionsWall(MPI_Comm cartcomm, const int L,
 	    for(int ix = 0; ix < VPD; ++ix)
 	    {
 		//const float x = coords[0] * L - 1 + (ix + 0.5) * h;
-		const float y = coords[1] * L - 1 + (iy + 0.5) * h;
-		const float z = coords[2] * L - 1 + (iz + 0.5) * h;
+		const float y = coords[1] * L - MARGIN + (iy + 0.5) * h;
+		const float z = coords[2] * L - MARGIN + (iz + 0.5) * h;
 
 		const float r = sqrt(pow(y - y_cyl, 2) + pow(z - z_cyl, 2));
 		
@@ -349,14 +357,13 @@ ComputeInteractionsWall::ComputeInteractionsWall(MPI_Comm cartcomm, const int L,
     
     printf("rank %d nsurvived is %d -> %.2f%%\n", myrank, nsurvived, nsurvived * 100. /n);
 
-
     thrust::device_vector<Particle> solid_local(thrust::device_ptr<Particle>(p + nsurvived), thrust::device_ptr<Particle>(p + n));
   
     HaloExchanger halo(cartcomm, L);
 
     SimpleDeviceBuffer<Particle> solid_remote = halo.exchange(thrust::raw_pointer_cast(&solid_local[0]), solid_local.size());
 
-    printf("receiving extra %d\n", solid_remote.size);
+    printf("rank %d is receiving extra %d\n", myrank, solid_remote.size);
     
     solid_size = solid_local.size() + solid_remote.size;
 
@@ -364,7 +371,8 @@ ComputeInteractionsWall::ComputeInteractionsWall(MPI_Comm cartcomm, const int L,
     CUDA_CHECK(cudaMemcpy(solid, thrust::raw_pointer_cast(&solid_local[0]), sizeof(Particle) * solid_local.size(), cudaMemcpyDeviceToDevice));
     CUDA_CHECK(cudaMemcpy(solid + solid_local.size(), solid_remote.data, sizeof(Particle) * solid_remote.size, cudaMemcpyDeviceToDevice));
         
-    SolidWallsKernel::zero_velocity<<< (solid_size + 127) / 128, 128>>>(solid, solid_size);
+    if (solid_size > 0)
+	SolidWallsKernel::zero_velocity<<< (solid_size + 127) / 128, 128>>>(solid, solid_size);
 
     if (solid_size > 0)
 	cells.build(solid, solid_size);

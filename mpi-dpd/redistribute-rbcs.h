@@ -9,13 +9,13 @@
 class RedistributeRBCs
 {
     MPI_Comm cartcomm;
-    MPI_Request sendreq[26], recvreq[26];
+    std::vector<MPI_Request> sendreq, recvreq;
     
     int L, myrank, dims[3], periods[3], coords[3], rankneighbors[27], anti_rankneighbors[27];
 
-    SimpleDeviceBuffer<Particle> recvbufs[27], sendbufs[27];
+    PinnedHostBuffer /*SimpleDeviceBuffer*/<Particle> recvbufs[27], sendbufs[27];
 
-    int nvertices, arriving, notleaving, nreqrecv, nreqsend;
+    int nvertices, arriving, notleaving;
 
     PinnedHostBuffer<CudaRBC::Extent> extents;
     

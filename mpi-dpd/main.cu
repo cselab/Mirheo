@@ -25,7 +25,7 @@ using namespace std;
 __constant__ float gradp[3];
 
 //velocity verlet stages - first stage
-__global__ void update_stage1(Particle * p, Acceleration * a, int n, float dt)
+__global__ void update_stage1(Particle * p, Acceleration * a, int n, float dt, const bool pressure = true, const bool check = true)
 {
     assert(blockDim.x * gridDim.x >= n);
     
@@ -42,11 +42,12 @@ __global__ void update_stage1(Particle * p, Acceleration * a, int n, float dt)
     }
 
        for(int c = 0; c < 3; ++c)
-	p[pid].u[c] += (a[pid].a[c] - gradp[c]) * dt * 0.5;
+	   p[pid].u[c] += (a[pid].a[c] - (pressure ? 0 : gradp[c])) * dt * 0.5;
     
        for(int c = 0; c < 3; ++c)
 	   p[pid].x[c] += p[pid].u[c] * dt;
 
+       if (check)
     for(int c = 0; c < 3; ++c)
     {
 	assert(p[pid].x[c] >= -L -L/2);
@@ -55,7 +56,7 @@ __global__ void update_stage1(Particle * p, Acceleration * a, int n, float dt)
 }
 
 //fused velocity verlet stage 2 and 1 (for the next iteration)
-__global__ void update_stage2_and_1(Particle * p, Acceleration * a, int n, float dt)
+__global__ void update_stage2_and_1(Particle * p, Acceleration * a, int n, float dt, const bool pressure = true, const bool check = true)
 {
     assert(blockDim.x * gridDim.x >= n);
     
@@ -72,7 +73,7 @@ __global__ void update_stage2_and_1(Particle * p, Acceleration * a, int n, float
 
     for(int c = 0; c < 3; ++c)
     {
-	const float mya = a[pid].a[c] - gradp[c];
+	const float mya = a[pid].a[c] - (pressure ? gradp[c] : 0);
 	float myu = p[pid].u[c];
 	float myx = p[pid].x[c];
 
@@ -83,17 +84,18 @@ __global__ void update_stage2_and_1(Particle * p, Acceleration * a, int n, float
 	p[pid].x[c] = myx; 
     }
 
-    for(int c = 0; c < 3; ++c)
-    {
-	if (!(p[pid].x[c] >= -L -L/2) || !(p[pid].x[c] <= +L +L/2))
-	    printf("Uau: %f %f %f %f %f %f and acc %f %f %f\n", 
-		   p[pid].x[0], p[pid].x[1], p[pid].x[2], 
-		   p[pid].u[0], p[pid].u[1], p[pid].u[2],
-		   a[pid].a[0], a[pid].a[1],a[pid].a[2]);
-
-	assert(p[pid].x[c] >= -L -L/2);
-	assert(p[pid].x[c] <= +L +L/2);
-    }
+    if (check)
+	for(int c = 0; c < 3; ++c)
+	{
+	    if (!(p[pid].x[c] >= -L -L/2) || !(p[pid].x[c] <= +L +L/2))
+		printf("Uau: %f %f %f %f %f %f and acc %f %f %f\n", 
+		       p[pid].x[0], p[pid].x[1], p[pid].x[2], 
+		       p[pid].u[0], p[pid].u[1], p[pid].u[2],
+		       a[pid].a[0], a[pid].a[1],a[pid].a[2]);
+	    
+	    assert(p[pid].x[c] >= -L -L/2);
+	    assert(p[pid].x[c] <= +L +L/2);
+	}
 }
 
 __global__ void fake_vel(Particle * p, const int n)
@@ -136,11 +138,141 @@ struct ParticleArray
 
 class CollectionRBC : ParticleArray
 {
-    int nrbcs, nvertices, L;
+    int nrbcs,  L;
     
     CudaRBC::Extent extent;
 
+    struct TransformedExtent
+    {
+	float transform[4][4];
+
+	float xmin[3], xmax[3],local_xmin[3], local_xmax[3];
+       
+	void build_transform(CudaRBC::Extent extent, const int L)
+	    {
+		const float angles[3] = { 
+		    0.25 * (drand48() - 0.5) * 2 * M_PI, 
+		    M_PI * 0.5 + 0.25 * (drand48() * 2 - 1) * M_PI,
+		    0.25 * (drand48() - 0.5) * 2 * M_PI
+		};
+
+		for(int i = 0; i < 4; ++i)
+		    for(int j = 0; j < 4; ++j)
+			transform[i][j] = i == j;
+
+		for(int i = 0; i < 3; ++i)
+		    transform[i][3] = - 0.5 * (local_xmin[i] + local_xmax[i]);
+
+		for(int d = 0; d < 3; ++d)
+		{
+		    const float c = cos(angles[d]);
+		    const float s = sin(angles[d]);
+
+		    float tmp[4][4];
+
+		    for(int i = 0; i < 4; ++i)
+			for(int j = 0; j < 4; ++j)
+			    tmp[i][j] = i == j;
+
+		    if (d == 0)
+		    {
+			tmp[0][0] = tmp[1][1] = c;
+			tmp[0][1] = -(tmp[1][0] = s);
+		    } 
+		    else 
+			if (d == 1)
+			{
+			    tmp[0][0] = tmp[2][2] = c;
+			    tmp[0][2] = -(tmp[2][0] = s);
+			}
+			else
+			{  
+			    tmp[1][1] = tmp[2][2] = c;
+			    tmp[1][2] = -(tmp[2][1] = s);
+			}
+
+		    float res[4][4];
+		    for(int i = 0; i < 4; ++i)
+			for(int j = 0; j < 4; ++j)
+			{
+			    float s = 0;
+			    
+			    for(int k = 0; k < 4; ++k)
+				s += transform[i][k] * tmp[k][j];
+
+			    res[i][j] = s;
+			}
+
+		    for(int i = 0; i < 4; ++i)
+			for(int j = 0; j < 4; ++j)
+			    transform[i][j] = res[i][j];
+		}
+
+		for(int i = 0; i < 3; ++i)
+		    transform[i][3] += (drand48() - 0.5) * L;
+	    }
+
+	void apply(float x[3], float y[3])
+	    {
+		for(int i = 0; i < 3; ++i)
+		    y[i] = transform[i][0] * x[0] + transform[i][1] * x[1] + transform[i][2] * x[2] + transform[i][3];
+	    }
+
+	TransformedExtent(CudaRBC::Extent extent, const int L)
+	    {
+		local_xmin[0] = extent.xmin;
+		local_xmin[1] = extent.ymin;
+		local_xmin[2] = extent.zmin;
+		
+		local_xmax[0] = extent.xmax;
+		local_xmax[1] = extent.ymax;
+		local_xmax[2] = extent.zmax;
+	
+		build_transform(extent, L);
+
+		for(int i = 0; i < 8; ++i)
+		{
+		    const int idx[3] = { i % 2, (i/2) % 2, (i/4) % 2 };
+
+		    float local[3];
+		    for(int c = 0; c < 3; ++c)
+			local[c] = idx[c] ? local_xmax[c] : local_xmin[c];
+
+		    float world[3];
+
+		    apply(local, world);
+
+		    if (i == 0)
+			for(int c = 0; c < 3; ++c)
+			    xmin[c] = xmax[c] = world[c];
+		    else
+			for(int c = 0; c < 3; ++c)
+			{
+			    xmin[c] = min(xmin[c], world[c]);
+			    xmax[c] = max(xmax[c], world[c]);
+			}
+		}
+	    }
+
+	bool collides(const TransformedExtent a, const  float tol)
+	    {
+		int s[3], e[3];
+		for(int c = 0; c < 3; ++c)
+		{
+		    s[c] = max(xmin[c], a.xmin[c]);
+		    e[c] = min(xmax[c], a.xmax[c]);
+
+		    if (s[c] -e[c] >= tol)
+			return false;
+		}
+
+		return true;
+	    }
+    };
+
 public:
+    int nvertices;
+
     CollectionRBC(const int L): L(L), nrbcs(0)
 	{
 	    printf("hellouus\n");
@@ -159,25 +291,26 @@ public:
 	    assert(extent.xmax - extent.xmin < L);
 	    assert(extent.ymax - extent.ymin < L);
 	    assert(extent.zmax - extent.zmin < L);
-
-	    const int n = (int)(0.75 * L / (extent.zmax - extent.zmin));
 	    
-	    const float dx = L / (float)n;
+	    vector<TransformedExtent*> good;
 	    
-	    resize(n);
-
-	    for(int i = 0; i < n; ++i)
+	    for(int attempt = 0; attempt < 1000; ++attempt)
 	    {
-		float target[3] = { (i + 0.5) * dx,  0.35 * L * (drand48() - 0.5), 0.35 * L * (drand48() - 0.5)};
-
-		float transform[4][4] = { {0, 0, -1, -target[0] + 0.5 * (extent.zmin + extent.zmax) }, 
-					  {0, 1, 0, target[1] -0.5 * (extent.ymin + extent.ymax)}, 
-					  {1, 0, 0, target[2] -0.5 * (extent.xmin + extent.xmax)}, 
-					  {0, 0, 0, 1} };
-
-		//CUDA_CHECK(cudaMemset(xyzuvw.data, 0, sizeof(Particle) * nvertices));
-		CudaRBC::initialize((float *)(xyzuvw.data + nvertices * i), transform);
+		TransformedExtent* t = new TransformedExtent(extent, L);
+		
+		bool noncolliding = true;
+		for(int i = 0; i < good.size() && noncolliding; ++i)
+		    noncolliding &= !t->collides(*good[i], 0.00);
+		
+		if (noncolliding)
+		    good.push_back(t);
 	    }
+	    
+	    printf("i have %d good ones\n", good.size());
+	    resize(good.size());
+
+	    for(int i = 0; i < good.size(); ++i)
+		CudaRBC::initialize((float *)(xyzuvw.data + nvertices * i), good[i]->transform);
 	}
 
     Particle * data() { return xyzuvw.data; }
@@ -199,11 +332,36 @@ public:
 	    
 	    if (it < 0)
 		update_stage1<<<(xyzuvw.size + 127) / 128, 128 >>>(
-		    xyzuvw.data, axayaz.data, xyzuvw.size, dt);
+		    xyzuvw.data, axayaz.data, xyzuvw.size, dt, false, false);
 	    else
 		update_stage2_and_1<<<(xyzuvw.size + 127) / 128, 128 >>>
-		    (xyzuvw.data, axayaz.data, xyzuvw.size, dt);
+		    (xyzuvw.data, axayaz.data, xyzuvw.size, dt, false, false);
 
+	}
+
+    void remove(const int * const entries, const int nentries)
+	{
+	    std::vector<bool > marks(nrbcs, true);
+
+	    for(int i = 0; i < nentries; ++i)
+		marks[entries[i]] = false;
+
+	    std::vector< int > survivors;
+	    for(int i = 0; i < nrbcs; ++i)
+		if (marks[i])
+		    survivors.push_back(i);
+
+	    const int nsurvived = survivors.size();
+
+	    SimpleDeviceBuffer<Particle> survived(nvertices * nsurvived);
+
+	    for(int i = 0; i < nsurvived; ++i)
+		CUDA_CHECK(cudaMemcpy(survived.data + nvertices * i, data() + nvertices * survivors[i], 
+				      sizeof(Particle) * nvertices, cudaMemcpyDeviceToDevice));
+	    
+	    resize(nsurvived);
+
+	    CUDA_CHECK(cudaMemcpy(xyzuvw.data, survived.data, sizeof(Particle) * survived.size, cudaMemcpyDeviceToDevice));
 	}
 
     void dump(MPI_Comm comm)
@@ -331,6 +489,8 @@ int main(int argc, char ** argv)
 		particles.resize(newnp);
 	    
 		redistribute.stage2(particles.xyzuvw.data, particles.size);
+    CUDA_CHECK(cudaDeviceSynchronize());
+    CUDA_CHECK(cudaPeekAtLastError());
 
 		int nrbcs = redistribute_rbcs.stage1(rbcs.data(), rbcs.count());
 
@@ -354,13 +514,56 @@ int main(int argc, char ** argv)
 			    const int retval = rename ("trajectories.xyz", "trajectories-equilibration.xyz");
 			    assert(retval != -1);
 			}
+
+		    if (rank == 0)
+			if( access( "rbcs.xyz", F_OK ) != -1 )
+			{
+			    const int retval = rename ("rbcs.xyz", "rbcs-equilibration.xyz");
+			    assert(retval != -1);
+			}
+
+//remove those rbcs that are touching the wall
+		    {
+			SimpleDeviceBuffer<int> marks(rbcs.pcount());
+			
+			SolidWallsKernel::fill_keys<<< (rbcs.pcount() + 127) / 128, 128 >>>(rbcs.data(), rbcs.pcount(), L, marks.data);
+			
+			vector<int> tmp(marks.size);
+			CUDA_CHECK(cudaMemcpy(tmp.data(), marks.data, sizeof(int) * marks.size, cudaMemcpyDeviceToHost));
+			
+			const int nrbcs = rbcs.count();
+			const int nvertices = rbcs.nvertices;
+
+			std::vector<int> tokill;
+			for(int i = 0; i < nrbcs; ++i)
+			{
+			    bool valid = true;
+
+			    for(int j = 0; j < nvertices && valid; ++j)
+				valid &= 0 == tmp[j + nvertices * i];
+			    
+			    if (!valid)
+				tokill.push_back(i);
+			}
+
+			rbcs.remove(&tokill.front(), tokill.size());
+		    }
 		}
 
+    CUDA_CHECK(cudaDeviceSynchronize());
+    CUDA_CHECK(cudaPeekAtLastError());
+
 		cells.build(particles.xyzuvw.data, particles.size);
+    CUDA_CHECK(cudaDeviceSynchronize());
+    CUDA_CHECK(cudaPeekAtLastError());
 
 		dpd.evaluate(saru_tag, particles.xyzuvw.data, particles.size, particles.axayaz.data, cells.start, cells.count);
+    CUDA_CHECK(cudaDeviceSynchronize());
+    CUDA_CHECK(cudaPeekAtLastError());
 		rbc_interactions.evaluate(saru_tag, particles.xyzuvw.data, particles.size, particles.axayaz.data, cells.start, cells.count,
 					  rbcs.data(), rbcs.count(), rbcs.acc());
+    CUDA_CHECK(cudaDeviceSynchronize());
+    CUDA_CHECK(cudaPeekAtLastError());
 
 		//I NEED A REGISTRATION MECHANISM FOR DPD-INTERACTION AND RBC-INTERACTION
 		if (wall != NULL)
@@ -384,7 +587,7 @@ int main(int argc, char ** argv)
 		    wall->bounce(rbcs.data(), rbcs.pcount());
 		}
 	    
-		if (it % 50 == 0)
+		if (it % 100 == 0)
 		{
 		    const int n = particles.size;
 
@@ -407,7 +610,8 @@ int main(int argc, char ** argv)
 			}
 
 		    diagnostics(cartcomm, p, n, dt, it, L, a, true);
-		    rbcs.dump(cartcomm);
+		    //if (wall != NULL)
+			rbcs.dump(cartcomm);
 		    
 		    if (it > 100)
 			dump.dump(p, n);

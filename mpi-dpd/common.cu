@@ -81,6 +81,14 @@ void xyz_dump(MPI_Comm comm, const char * filename, const char * particlename, P
     const int nlocal = n;
     MPI_CHECK( MPI_Reduce(rank == 0 ? MPI_IN_PLACE : &n, &n, 1, MPI_INT, MPI_SUM, 0, comm) );
     
+    bool filenotthere;
+    if (rank == 0)
+	filenotthere = access(filename, F_OK ) == -1;
+
+    MPI_CHECK( MPI_Bcast(&filenotthere, 1, MPI_INT, 0, comm) );
+
+    append &= !filenotthere;
+
     MPI_File f;
     MPI_CHECK( MPI_File_open(comm, filename , MPI_MODE_WRONLY | (append ? MPI_MODE_APPEND : MPI_MODE_CREATE), MPI_INFO_NULL, &f) );
 
