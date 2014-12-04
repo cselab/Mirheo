@@ -168,12 +168,16 @@ public:
 
 	    for(int i = 0; i < n; ++i)
 	    {
-		float target[3] = { (i + 0.5) * dx,  0.35 * L * (drand48() - 0.5), 0.35 * L * (drand48() - 0.5)};
+		float target[3] = { (i + 0.5) * dx,  0.25 * L * (drand48() - 0.5), 0.25 * L * (drand48() - 0.5)};
 
+		
+		
 		float transform[4][4] = { {0, 0, -1, -target[0] + 0.5 * (extent.zmin + extent.zmax) }, 
 					  {0, 1, 0, target[1] -0.5 * (extent.ymin + extent.ymax)}, 
 					  {1, 0, 0, target[2] -0.5 * (extent.xmin + extent.xmax)}, 
 					  {0, 0, 0, 1} };
+
+		
 
 		//CUDA_CHECK(cudaMemset(xyzuvw.data, 0, sizeof(Particle) * nvertices));
 		CudaRBC::initialize((float *)(xyzuvw.data + nvertices * i), transform);
@@ -208,7 +212,8 @@ public:
 
     void dump(MPI_Comm comm)
 	{
-	    static bool firsttime = true;
+	    static int ctr = 0;
+	    const bool firsttime = ctr == 0;
 	    
 	    const int n = size;
 
@@ -236,13 +241,15 @@ public:
 	    int (*indices)[3];
 	    int ntriangles;
 	    CudaRBC::get_triangle_indexing(indices, ntriangles);
-	    
-	    ply_dump(comm, "prova.ply", indices, nrbcs, ntriangles, p, nvertices, L, false);
+
+	    char buf[200];
+	    sprintf(buf, "rbcs-%04d.ply", ctr);
+	    ply_dump(comm, buf, indices, nrbcs, ntriangles, p, nvertices, L, false);
 		    
 	    delete [] p;
 	    delete [] a;
 
-	    firsttime = false;
+	    ++ctr;
 	}
 };
 
