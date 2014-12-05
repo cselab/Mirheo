@@ -70,6 +70,97 @@ H5PartCloseFile(f);
 #endif
 }
 
+void _write_bytes(const void * const ptr, const int nbytes, MPI_File f, MPI_Comm comm)
+{
+    MPI_Offset base;
+    MPI_CHECK( MPI_File_get_position(f, &base));
+    
+    int offset = 0;
+    MPI_CHECK( MPI_Exscan(&nbytes, &offset, 1, MPI_INTEGER, MPI_SUM, comm)); 
+	
+    MPI_Status status;
+	
+    MPI_CHECK( MPI_File_write_at_all(f, base + offset, ptr, nbytes, MPI_CHAR, &status));
+
+    int ntotal = 0;
+    MPI_CHECK( MPI_Allreduce(&nbytes, &ntotal, 1, MPI_INT, MPI_SUM, comm) );
+    
+    MPI_CHECK( MPI_File_seek(f, ntotal, MPI_SEEK_CUR));
+}
+
+void ply_dump(MPI_Comm comm, const char * filename,
+	      int (*mesh_indices)[3], const int ninstances, const int ntriangles_per_instance,
+	      Particle * _particles, int nvertices_per_instance, int L, bool append)
+{
+    std::vector<Particle> particles(_particles, _particles + ninstances * nvertices_per_instance);
+    
+    int rank;
+    MPI_CHECK( MPI_Comm_rank(comm, &rank) );
+    
+    int dims[3], periods[3], coords[3];
+    MPI_CHECK( MPI_Cart_get(comm, 3, dims, periods, coords) );
+
+    int NPOINTS = 0;
+    const int n = particles.size();
+    MPI_CHECK( MPI_Reduce(&n, &NPOINTS, 1, MPI_INT, MPI_SUM, 0, comm) );
+
+    const int ntriangles = ntriangles_per_instance * ninstances;
+    int NTRIANGLES = 0;
+    MPI_CHECK( MPI_Reduce(&ntriangles, &NTRIANGLES, 1, MPI_INT, MPI_SUM, 0, comm) );
+    
+    MPI_File f;
+    MPI_CHECK( MPI_File_open(comm, filename , MPI_MODE_WRONLY | (append ? MPI_MODE_APPEND : MPI_MODE_CREATE), MPI_INFO_NULL, &f) );
+
+    if (!append)
+	MPI_CHECK( MPI_File_set_size (f, 0));
+	
+    std::stringstream ss;
+
+    if (rank == 0)
+    {
+	ss <<  "ply\n";
+	ss <<  "format binary_little_endian 1.0\n";
+	ss <<  "element vertex " << NPOINTS << "\n";
+	ss <<  "property float x\nproperty float y\nproperty float z\n";
+	ss <<  "property float u\nproperty float v\nproperty float w\n"; 
+	//ss <<  "property float xnormal\nproperty float ynormal\nproperty float znormal\n";
+	ss <<  "element face " << NTRIANGLES << "\n";
+	ss <<  "property list int int vertex_index\n";
+	ss <<  "end_header\n";
+    }
+    
+    string content = ss.str();
+    
+    _write_bytes(content.c_str(), content.size(), f, comm);
+    
+    for(int i = 0; i < n; ++i)
+	for(int c = 0; c < 3; ++c)
+	    particles[i].x[c] += L / 2 + coords[c] * L;
+
+    _write_bytes(&particles.front(), sizeof(Particle) * n, f, comm);
+
+    int poffset = 0;
+    
+    MPI_CHECK( MPI_Exscan(&n, &poffset, 1, MPI_INTEGER, MPI_SUM, comm));
+
+    std::vector<int> buf;
+
+    for(int j = 0; j < ninstances; ++j)
+	for(int i = 0; i < ntriangles_per_instance; ++i)
+	{
+	    int primitive[4] = { 3,
+				 poffset + nvertices_per_instance * j + mesh_indices[i][0],
+				 poffset + nvertices_per_instance * j + mesh_indices[i][1],
+				 poffset + nvertices_per_instance * j + mesh_indices[i][2] };
+	    
+	    buf.insert(buf.end(), primitive, primitive + 4);
+	}
+
+    _write_bytes(&buf.front(), sizeof(int) * buf.size(), f, comm);
+    
+    MPI_CHECK( MPI_File_close(&f));
+}
+
 void xyz_dump(MPI_Comm comm, const char * filename, const char * particlename, Particle * particles, int n, int L, bool append)
 {
     int rank;
@@ -126,6 +217,7 @@ void xyz_dump(MPI_Comm comm, const char * filename, const char * particlename, P
 	
     MPI_CHECK( MPI_File_close(&f));
 }
+
 
 void diagnostics(MPI_Comm comm, Particle * particles, int n, float dt, int idstep, int L, Acceleration * acc, bool particledump)
 {

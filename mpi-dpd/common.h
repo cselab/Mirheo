@@ -110,6 +110,8 @@ public:
 };
 
 void xyz_dump(MPI_Comm comm, const char * filename, const char * particlename, Particle * particles, int n, int L, bool append);
+void ply_dump(MPI_Comm comm, const char * filename,
+	      int (*mesh_indices)[3], const int ninstances, const int ntriangles_per_instance, Particle * _particles, int nvertices_per_instance, int L, bool append);
 void diagnostics(MPI_Comm comm, Particle * _particles, int n, float dt, int idstep, int L, Acceleration * _acc, bool particledump);
 
 const int L = 24;
@@ -142,6 +144,11 @@ struct CellLists
 	{
 	    if (n > 0)
 		build_clists((float * )p, n, 1, L, L, L, -L/2, -L/2, -L/2, NULL, start, count,  NULL, 0);
+	    else
+	    {
+		CUDA_CHECK(cudaMemset(start, 0, sizeof(int) * ncells));
+		CUDA_CHECK(cudaMemset(count, 0, sizeof(int) * ncells));
+	    }
 	}
 	    	    
     ~CellLists()

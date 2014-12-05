@@ -8,7 +8,7 @@
 
 using namespace std;
 
-ComputeInteractionsDPD::ComputeInteractionsDPD(MPI_Comm cartcomm, int L): HaloExchanger(cartcomm, L) {}
+ComputeInteractionsDPD::ComputeInteractionsDPD(MPI_Comm cartcomm, int L): HaloExchanger(cartcomm, L, 0) {}
 
 void ComputeInteractionsDPD::evaluate(int& saru_tag, const Particle * const p, const int n, Acceleration * const a,
 				      const int * const cellsstart, const int * const cellscount)

@@ -30,7 +30,7 @@ protected:
 	SimpleDeviceBuffer<Particle> buf, secondary;
     } recvhalos[26];
     
-   
+    
     int L, myrank, nranks, dims[3], periods[3], coords[3], dstranks[26];
     
     //zero-copy allocation for acquiring the message offsets in the gpu send buffer
@@ -52,11 +52,15 @@ protected:
     cudaStream_t streams[7];
     int code2stream[26];
      
+    const int basetag;
+
 public:
     
-    HaloExchanger(MPI_Comm cartcomm, int L);
+    HaloExchanger(MPI_Comm cartcomm, int L, const int basetag);
     
     ~HaloExchanger();
 
-    SimpleDeviceBuffer<Particle> exchange(Particle * const plocal, int nlocal);
+    void exchange(Particle * const plocal, int nlocal, SimpleDeviceBuffer<Particle>& result);
+
+    static HaloExchanger * halo_exchanger;
 };

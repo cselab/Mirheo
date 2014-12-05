@@ -248,13 +248,13 @@ ComputeInteractionsRBC::ComputeInteractionsRBC(MPI_Comm _cartcomm, int L):  L(L)
 
 	MPI_CHECK( MPI_Cart_rank(cartcomm, coordsneighbor, dstranks + i) );
 
-	const int nhalocells = pow(L, 3 - fabs(d[0]) - fabs(d[1]) - fabs(d[2]));
+/*	const int nhalocells = pow(L, 3 - fabs(d[0]) - fabs(d[1]) - fabs(d[2]));
 	const int estimate = 8 * nvertices;
 
 	remote[i].setup(estimate);
 	local[i].setup(estimate);
 
-	/*halosize[i].x = d[0] != 0 ? 1 : L;
+	halosize[i].x = d[0] != 0 ? 1 : L;
 	  halosize[i].y = d[1] != 0 ? 1 : L;
 	  halosize[i].z = d[2] != 0 ? 1 : L;
 	  assert(nhalocells == halosize[i].x * halosize[i].y * halosize[i].z);
@@ -365,7 +365,7 @@ void ComputeInteractionsRBC::pack_and_post(const Particle * const rbcs, const in
     {
 	for(int j = 0; j < haloreplica[i].size(); ++j)
 	    KernelsRBC::shift_send_particles<<< (nvertices + 127) / 128, 128, 0, stream>>>
-		(rbcs + nvertices * haloreplica[i][j], nvertices, L, i, local[i].state.data + nvertices * j);
+		(rbcs + nvertices * haloreplica[i][j], nvertices, L, i, local[i].state.devptr + nvertices * j);
 	 
 	CUDA_CHECK(cudaPeekAtLastError());
     }
@@ -442,7 +442,7 @@ void ComputeInteractionsRBC::evaluate(int& saru_tag,
 
 	if (count > 0)
 	    KernelsRBC::fsi_forces<<< (count + 127) / 128, 128, 0, stream >>>
-	    	(saru_tag + 26 * myrank + i, accsolvent, nparticles, remote[i].state.data, count, remote[i].result.data, L);
+	    	(saru_tag + 26 * myrank + i, accsolvent, nparticles, remote[i].state.devptr, count, remote[i].result.devptr, L);
     }
 
     saru_tag += 26 * nranks;
@@ -465,7 +465,7 @@ void ComputeInteractionsRBC::evaluate(int& saru_tag,
 
     for(int i = 0; i < 26; ++i)
 	for(int j = 0; j < haloreplica[i].size(); ++j)
-	    KernelsRBC::merge_accelerations<<< (nvertices + 127) / 128, 128 >>>(local[i].result.data + nvertices * j, nvertices,
+	    KernelsRBC::merge_accelerations<<< (nvertices + 127) / 128, 128 >>>(local[i].result.devptr + nvertices * j, nvertices,
 										accrbc + nvertices * haloreplica[i][j]);
 }
 

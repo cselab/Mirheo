@@ -5,8 +5,13 @@
 
 using namespace std;
 
-HaloExchanger::HaloExchanger(MPI_Comm _cartcomm, int L):  L(L)
+HaloExchanger * HaloExchanger::halo_exchanger = NULL;
+
+HaloExchanger::HaloExchanger(MPI_Comm _cartcomm, int L, const int basetag):  L(L), basetag(basetag)
 {
+    if (halo_exchanger == NULL)
+	halo_exchanger = this;
+
     assert(L % 2 == 0);
     assert(L >= 2);
 
@@ -128,6 +133,10 @@ namespace PackingHalo
 	{
 	    const int pid = base_src + i;
 
+	    if (!(pid < np && pid >= 0))
+	    {
+		printf("ooooooooooops: pid %d, but np %d and nsrc is %d, cell id %d\n", pid, np, nsrc, cellid);
+	    }
 	    assert(pid < np && pid >= 0);
 	    
 	    bag[base_dst + i] = particles[pid];
@@ -322,23 +331,23 @@ void HaloExchanger::pack_and_post(const Particle * const p, const int n, const i
 	assert(recvhalos[i].buf.capacity >= recvhalos[i].expected);
 	
 	MPI_CHECK( MPI_Irecv(recvhalos[i].buf.data, recvhalos[i].expected, Particle::datatype(), dstranks[i], 
-			     recv_tags[i], cartcomm, recvreq + i) );
+			     basetag + recv_tags[i], cartcomm, recvreq + i) );
     }
 
     for(int i = 0; i < 26; ++i)
 	MPI_CHECK( MPI_Irecv(recvhalos[i].cellstarts.data, recvhalos[i].cellstarts.size, MPI_INTEGER, dstranks[i],
-			     recv_tags[i] + 350, cartcomm,  recvcellsreq + i) );
+			     basetag + recv_tags[i] + 350, cartcomm,  recvcellsreq + i) );
 
     for(int i = 0; i < 26; ++i)
 	MPI_CHECK( MPI_Irecv(recv_counts + i, 1, MPI_INTEGER, dstranks[i],
-			     recv_tags[i] + 150, cartcomm, recvcountreq + i) );
+			     basetag + recv_tags[i] + 150, cartcomm, recvcountreq + i) );
      
     for(int i = 0; i < 26; ++i)
 	MPI_CHECK( MPI_Isend(sendhalos[i].cellstarts.data, sendhalos[i].cellstarts.size, MPI_INTEGER, dstranks[i],
-			     i + 350, cartcomm,  sendcellsreq + i) );
+			     basetag + i + 350, cartcomm,  sendcellsreq + i) );
 
     for(int i = 0; i < 26; ++i)
-	MPI_CHECK( MPI_Isend(&sendhalos[i].buf.size, 1, MPI_INTEGER, dstranks[i],  i + 150, cartcomm, sendcountreq + i) );
+	MPI_CHECK( MPI_Isend(&sendhalos[i].buf.size, 1, MPI_INTEGER, dstranks[i], basetag +  i + 150, cartcomm, sendcountreq + i) );
 
     nsendreq = 0;
     
@@ -348,7 +357,7 @@ void HaloExchanger::pack_and_post(const Particle * const p, const int n, const i
 	const int expected = sendhalos[i].expected;
 	
 	MPI_CHECK( MPI_Isend(sendhalos[i].buf.data, expected, Particle::datatype(), dstranks[i], 
-			     i, cartcomm, sendreq + nsendreq) );
+			    basetag +  i, cartcomm, sendreq + nsendreq) );
 
 	++nsendreq;
 	
@@ -363,7 +372,7 @@ void HaloExchanger::pack_and_post(const Particle * const p, const int n, const i
 				   difference * sizeof(Particle), cudaMemcpyDeviceToDevice));
 
 	    MPI_CHECK( MPI_Isend(sendhalos[i].secondary.data, difference, Particle::datatype(), dstranks[i], 
-				 i + 555, cartcomm, sendreq + nsendreq) );
+				 basetag + i + 555, cartcomm, sendreq + nsendreq) );
 
 	    ++nsendreq;
 	}
@@ -400,7 +409,7 @@ void HaloExchanger::wait_for_messages()
 	    MPI_Status status;
 	    
 	    MPI_Recv(recvhalos[i].secondary.data, count - expected, Particle::datatype(), dstranks[i], 
-		     recv_tags[i] + 555, cartcomm, &status);
+		     basetag + recv_tags[i] + 555, cartcomm, &status);
 
 	    CUDA_CHECK(cudaMemcpy(recvhalos[i].buf.data + expected, recvhalos[i].secondary.data,
 				  sizeof(Particle) * (count - expected), cudaMemcpyDeviceToDevice));
@@ -422,10 +431,14 @@ int HaloExchanger::nof_sent_particles()
     return s;
 }
 
-SimpleDeviceBuffer<Particle> HaloExchanger::exchange(Particle * const plocal, int nlocal)
+void HaloExchanger::exchange(Particle * const plocal, int nlocal, SimpleDeviceBuffer<Particle>& retval)
 {
+    printf("my nlocal is %d for rank %d\n", nlocal, myrank);
     CellLists cells(L);	
     cells.build(plocal, nlocal);
+    CUDA_CHECK(cudaDeviceSynchronize());
+    CUDA_CHECK(cudaPeekAtLastError());
+
     pack_and_post(plocal, nlocal, cells.start, cells.count);
     wait_for_messages();
 
@@ -433,7 +446,7 @@ SimpleDeviceBuffer<Particle> HaloExchanger::exchange(Particle * const plocal, in
     for(int i = 0; i < 26; ++i)
 	s += recvhalos[i].buf.size;
     
-    SimpleDeviceBuffer<Particle> retval(s);
+    retval.resize(s);
 
     s = 0;
     for(int i = 0; i < 26; ++i)
@@ -441,8 +454,6 @@ SimpleDeviceBuffer<Particle> HaloExchanger::exchange(Particle * const plocal, in
 	CUDA_CHECK(cudaMemcpy(retval.data + s, recvhalos[i].buf.data, recvhalos[i].buf.size * sizeof(Particle), cudaMemcpyDeviceToDevice));
 	s += recvhalos[i].buf.size;
     }
-
-    return retval;
 }
 
 HaloExchanger::~HaloExchanger()

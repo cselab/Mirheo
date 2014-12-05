@@ -29,8 +29,8 @@ RedistributeRBCs::RedistributeRBCs(MPI_Comm _cartcomm, const int L): L(L), nvert
 
 	MPI_CHECK( MPI_Cart_rank(cartcomm, coordsneighbor, anti_rankneighbors + i) );
 
-	recvbufs[i].resize(nvertices * 10);
-	sendbufs[i].resize(nvertices * 10);
+	//recvbufs[i].resize(nvertices * 10);
+	//sendbufs[i].resize(nvertices * 10);
     }
 }
 
@@ -136,6 +136,8 @@ int RedistributeRBCs::stage1(const Particle * const xyzuvw, const int nrbcs)
     //MPI_Status statuses[26];
     MPI_CHECK(MPI_Waitall(recvreq.size(), &recvreq.front(), statuses) );
     MPI_CHECK(MPI_Waitall(sendreq.size(), &sendreq.front(), statuses) );
+    recvreq.clear();
+    sendreq.clear();
 
     CUDA_CHECK(cudaDeviceSynchronize());
     CUDA_CHECK(cudaPeekAtLastError());
@@ -148,7 +150,7 @@ void RedistributeRBCs::stage2(Particle * const xyzuvw, const int nrbcs)
     assert(notleaving + arriving == nrbcs);
    
 
-    CUDA_CHECK(cudaMemcpyAsync(xyzuvw, sendbufs[0].data, notleaving * nvertices * sizeof(Particle), cudaMemcpyDeviceToDevice, stream));
+    CUDA_CHECK(cudaMemcpyAsync(xyzuvw, sendbufs[0].devptr, notleaving * nvertices * sizeof(Particle), cudaMemcpyDeviceToDevice, stream));
 
     CUDA_CHECK(cudaDeviceSynchronize());
     CUDA_CHECK(cudaPeekAtLastError());

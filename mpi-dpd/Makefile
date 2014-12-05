@@ -15,6 +15,8 @@ LIBS = -lcuda-dpd -lcuda-rbc -lcudart
 
 ifneq "$(h5part)" "0"
 LIBS += -lH5Part
+else
+
 endif
 
 test: $(OBJS) libcuda-dpd libcuda-rbc

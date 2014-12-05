@@ -4,6 +4,7 @@
 #include <cassert>
 
 #include <mpi.h>
+#include <sys/time.h>
 
 #include <vector>
 
@@ -209,7 +210,7 @@ class CollectionRBC : ParticleArray
 		}
 
 		for(int i = 0; i < 3; ++i)
-		    transform[i][3] += (drand48() - 0.5) * L;
+		    transform[i][3] += (drand48() - 0.5) * (L - 4);
 	    }
 
 	void apply(float x[3], float y[3])
@@ -291,6 +292,8 @@ public:
 	    assert(extent.xmax - extent.xmin < L);
 	    assert(extent.ymax - extent.ymin < L);
 	    assert(extent.zmax - extent.zmin < L);
+
+	    //const int n = (int)(0.75 * L / (extent.zmax - extent.zmin));
 	    
 	    vector<TransformedExtent*> good;
 	    
@@ -366,7 +369,8 @@ public:
 
     void dump(MPI_Comm comm)
 	{
-	    static bool firsttime = true;
+	    static int ctr = 0;
+	    const bool firsttime = ctr == 0;
 	    
 	    const int n = size;
 
@@ -387,15 +391,82 @@ public:
 		    p[i].x[c] -= dt * p[i].u[c];
 		    p[i].u[c] -= 0.5 * dt * a[i].a[c];
 		}
-
+	    
 	    xyz_dump(comm, "rbcs.xyz", "rbcparticles", p, n,  L, !firsttime);
+
+	    //std::vector<int> indices(3 * ntriangles)
+	    int (*indices)[3];
+	    int ntriangles;
+	    CudaRBC::get_triangle_indexing(indices, ntriangles);
+
+	    char buf[200];
+	    sprintf(buf, "ply/rbcs-%04d.ply", ctr);
+	    ply_dump(comm, buf, indices, nrbcs, ntriangles, p, nvertices, L, false);
 		    
 	    delete [] p;
 	    delete [] a;
 
-	    firsttime = false;
+	    ++ctr;
 	}
 };
+
+double mysecond()
+{
+	struct timeval tp;
+	struct timezone tzp;
+	int i;
+	
+	i = gettimeofday(&tp,&tzp);
+	return ( (double) tp.tv_sec + (double) tp.tv_usec * 1.e-6 );
+}
+
+
+#include <limits.h>
+#include <sys/resource.h>
+
+void print_memory_usage(MPI_Comm comm)
+{
+       struct rusage rusage;
+       long peak_rss;
+
+       getrusage(RUSAGE_SELF, &rusage);
+       peak_rss = rusage.ru_maxrss*1024;
+       //printf("peak resident set size = %ld bytes (%.2lf Mbytes)\n", peak_rss, peak_rss/(1024.0*1024.0));
+
+       long rss = 0;
+       FILE* fp = NULL;
+       if ( (fp = fopen( "/proc/self/statm", "r" )) == NULL ) {
+               return;
+       }
+
+       if ( fscanf( fp, "%*s%ld", &rss ) != 1 ) {
+               fclose( fp );
+               return;
+       }
+       fclose( fp );
+
+       long current_rss;
+
+       current_rss = rss * sysconf( _SC_PAGESIZE);
+       //printf("current resident set size = %ld bytes (%.2lf Mbytes)\n", current_rss, current_rss/(1024.0*1024.0));
+
+       long max_peak_rss, sum_peak_rss;
+       long max_current_rss, sum_current_rss;
+
+       MPI_Reduce(&peak_rss, &max_peak_rss, 1, MPI_LONG, MPI_MAX, 0, comm);
+       MPI_Reduce(&peak_rss, &sum_peak_rss, 1, MPI_LONG, MPI_SUM, 0, comm);
+       MPI_Reduce(&current_rss, &max_current_rss, 1, MPI_LONG, MPI_MAX, 0, comm);
+       MPI_Reduce(&current_rss, &sum_current_rss, 1, MPI_LONG, MPI_SUM, 0, comm);
+
+
+       int rank;
+       MPI_Comm_rank(comm, &rank);
+
+       if (rank == 0) {
+               printf("> peak resident set size: max = %.2lf Mbytes sum = %.2lf Mbytes\n", max_peak_rss/(1024.0*1024.0), sum_peak_rss/(1024.0*1024.0));
+               printf("> current resident set size: max = %.2lf Mbytes sum = %.2lf Mbytes\n", max_current_rss/(1024.0*1024.0), sum_current_rss/(1024.0*1024.0));
+       }
+}
 
 int main(int argc, char ** argv)
 {
@@ -477,8 +548,35 @@ int main(int argc, char ** argv)
 
 	    for(int it = 0; it < nsteps; ++it)
 	    {
-		if (rank == 0 && it % 50 == 0)
-		    printf("beginning of time step %d\n", it);
+		if (it % 50 == 0)
+		{
+		    print_memory_usage(cartcomm);
+
+		if (rank == 0)
+		{
+		    static double t0 = mysecond(), t1;
+
+		    t1 = mysecond();
+		    
+		    if (it > 0)
+			printf("beginning of time step %d (%.3e s)\n", it, t1 - t0);
+
+		    t0 = t1;
+
+		    /* {
+			FILE* status = fopen( "/proc/self/status", "r" );
+			
+			while(!feof(status))
+			{
+			    char buf[2048];
+			    
+			    fgets(buf, 2048, status);
+			    printf("/proc/self/status: %s", buf);
+			}
+			fclose(status);
+			}*/
+		}
+		}
 	    
 		if (it == 0)
 		    update_stage1<<<(particles.size + 127) / 128, 128 >>>(
@@ -500,6 +598,8 @@ int main(int argc, char ** argv)
 
 		if (walls && it > 500 && wall == NULL)
 		{
+		    MPI_Barrier(cartcomm);
+		    printf("BEGINNING %d\n", rank);
 		    int nsurvived = 0;
 		    wall = new ComputeInteractionsWall(cartcomm, L, particles.xyzuvw.data, particles.size, nsurvived);
 		    
@@ -548,22 +648,16 @@ int main(int argc, char ** argv)
 
 			rbcs.remove(&tokill.front(), tokill.size());
 		    }
+		    printf("setup done\n");
+		    MPI_Barrier(cartcomm);
 		}
 
-    CUDA_CHECK(cudaDeviceSynchronize());
-    CUDA_CHECK(cudaPeekAtLastError());
 
 		cells.build(particles.xyzuvw.data, particles.size);
-    CUDA_CHECK(cudaDeviceSynchronize());
-    CUDA_CHECK(cudaPeekAtLastError());
 
 		dpd.evaluate(saru_tag, particles.xyzuvw.data, particles.size, particles.axayaz.data, cells.start, cells.count);
-    CUDA_CHECK(cudaDeviceSynchronize());
-    CUDA_CHECK(cudaPeekAtLastError());
 		rbc_interactions.evaluate(saru_tag, particles.xyzuvw.data, particles.size, particles.axayaz.data, cells.start, cells.count,
 					  rbcs.data(), rbcs.count(), rbcs.acc());
-    CUDA_CHECK(cudaDeviceSynchronize());
-    CUDA_CHECK(cudaPeekAtLastError());
 
 		//I NEED A REGISTRATION MECHANISM FOR DPD-INTERACTION AND RBC-INTERACTION
 		if (wall != NULL)
@@ -587,7 +681,7 @@ int main(int argc, char ** argv)
 		    wall->bounce(rbcs.data(), rbcs.pcount());
 		}
 	    
-		if (it % 100 == 0)
+		if (it % 200 == 0)
 		{
 		    const int n = particles.size;
 
@@ -609,12 +703,12 @@ int main(int argc, char ** argv)
 			    p[i].u[c] -= 0.5 * dt * a[i].a[c];
 			}
 
-		    diagnostics(cartcomm, p, n, dt, it, L, a, true);
-		    //if (wall != NULL)
+		    diagnostics(cartcomm, p, n, dt, it, L, a, false);
+		    if (wall != NULL)
 			rbcs.dump(cartcomm);
 		    
-		    if (it > 100)
-			dump.dump(p, n);
+		    //if (it > 100)
+		    //dump.dump(p, n);
 
 		    delete [] p;
 		    delete [] a;
