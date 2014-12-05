@@ -1,24 +1,35 @@
 #pragma once
 
+const int L = 24;
+const float dt = 0.001;
+const float tend = 100;
+const float kBT = 0.1;
+const float gammadpd = 45;
+const float sigma = sqrt(2 * gammadpd * kBT);
+const float sigmaf = sigma / sqrt(dt);
+const float aij = 2.5;
+const bool walls = true;
+const bool pushtheflow = true;
+const bool rbcs = true;
+const bool xyz_dumps = false;
+const int steps_per_report = 100;
+
 #include <cstdlib>
 #include <cstdio>
 #include <cmath>
 #include <cassert>
 
-#include <string>
-using namespace std;
-
 #include <unistd.h>
 #include <cuda_runtime.h>
 
 #define CUDA_CHECK(ans) do { cudaAssert((ans), __FILE__, __LINE__); } while(0)
-inline void cudaAssert(cudaError_t code, const char *file, int line, bool abort=true)
+inline void cudaAssert(cudaError_t code, const char *file, int line)
 {
     if (code != cudaSuccess) 
     {
 	fprintf(stderr,"GPUassert: %s %s %d\n", cudaGetErrorString(code), file, line);
-	sleep(5);
-	if (abort) exit(code);
+	
+	abort();
     }
 }
 
@@ -39,8 +50,6 @@ inline void mpiAssert(int code, const char *file, int line, bool abort=true)
 	MPI_Abort(MPI_COMM_WORLD, code);
     }
 }
-
-#include <cuda-dpd.h>
 
 //AoS is the currency for dpd simulations (because of the spatial locality).
 //AoS - SoA conversion might be performed within the hpc kernels.
@@ -66,7 +75,6 @@ struct Particle
 	}
 };
 
-
 struct Acceleration
 {
     float a[3];
@@ -88,76 +96,6 @@ struct Acceleration
 	    return mytype;
 	}
 };
-
-class H5PartDump
-{
-    MPI_Comm cartcomm;
-
-    string fname;
-
-    float origin[3];
-
-    void * handler;
-
-    int tstamp;
-public:
-
-    H5PartDump(const string filename, MPI_Comm cartcomm, const int L);
-
-    void dump(Particle * host_particles, int n);
-    
-    ~H5PartDump();
-};
-
-void xyz_dump(MPI_Comm comm, const char * filename, const char * particlename, Particle * particles, int n, int L, bool append);
-void ply_dump(MPI_Comm comm, const char * filename,
-	      int (*mesh_indices)[3], const int ninstances, const int ntriangles_per_instance, Particle * _particles, int nvertices_per_instance, int L, bool append);
-void diagnostics(MPI_Comm comm, Particle * _particles, int n, float dt, int idstep, int L, Acceleration * _acc, bool particledump);
-
-const int L = 24;
-const float dt = 0.001;
-const float tend = 100;
-const float kBT = 0.1;
-const float gammadpd = 45;
-const float sigma = sqrt(2 * gammadpd * kBT);
-const float sigmaf = sigma / sqrt(dt);
-const float aij = 2.5;
-const bool walls = true;
-
-//container for the cell lists, which contains only two integer vectors of size ncells.
-//the start[cell-id] array gives the entry in the particle array associated to first particle belonging to cell-id
-//count[cell-id] tells how many particles are inside cell-id.
-//building the cell lists involve a reordering of the particle array (!)
-struct CellLists
-{
-    const int ncells, L;
-
-    int * start, * count;
-    
-    CellLists(const int L): ncells(L * L * L), L(L)
-	{
-	    CUDA_CHECK(cudaMalloc(&start, sizeof(int) * ncells));
-	    CUDA_CHECK(cudaMalloc(&count, sizeof(int) * ncells));
-	}
-
-	void build(Particle * const p, const int n)
-	{
-	    if (n > 0)
-		build_clists((float * )p, n, 1, L, L, L, -L/2, -L/2, -L/2, NULL, start, count,  NULL, 0);
-	    else
-	    {
-		CUDA_CHECK(cudaMemset(start, 0, sizeof(int) * ncells));
-		CUDA_CHECK(cudaMemset(count, 0, sizeof(int) * ncells));
-	    }
-	}
-	    	    
-    ~CellLists()
-	{
-	    CUDA_CHECK(cudaFree(start));
-	    CUDA_CHECK(cudaFree(count));
-	}
-};
-
 
 //container for the gpu particles during the simulation
 template<typename T>
@@ -259,3 +197,64 @@ PinnedHostBuffer(int n = 0): capacity(0), size(0), data(NULL), devptr(NULL) { re
 	    CUDA_CHECK(cudaHostGetDevicePointer(&devptr, data, 0));
 	}
 };
+
+#include <cuda-dpd.h>
+
+//container for the cell lists, which contains only two integer vectors of size ncells.
+//the start[cell-id] array gives the entry in the particle array associated to first particle belonging to cell-id
+//count[cell-id] tells how many particles are inside cell-id.
+//building the cell lists involve a reordering of the particle array (!)
+struct CellLists
+{
+    const int ncells, L;
+
+    int * start, * count;
+    
+    CellLists(const int L): ncells(L * L * L), L(L)
+	{
+	    CUDA_CHECK(cudaMalloc(&start, sizeof(int) * ncells));
+	    CUDA_CHECK(cudaMalloc(&count, sizeof(int) * ncells));
+	}
+
+    void build(Particle * const p, const int n);
+	    	    
+    ~CellLists()
+	{
+	    CUDA_CHECK(cudaFree(start));
+	    CUDA_CHECK(cudaFree(count));
+	}
+};
+
+#include <string>
+
+class H5PartDump
+{
+    MPI_Comm cartcomm;
+
+    std::string fname;
+
+    float origin[3];
+
+    void * handler;
+
+    int tstamp;
+public:
+
+    H5PartDump(const std::string filename, MPI_Comm cartcomm, const int L);
+
+    void dump(Particle * host_particles, int n);
+    
+    ~H5PartDump();
+};
+
+void xyz_dump(MPI_Comm comm, const char * filename, const char * particlename, Particle * particles, int n, int L, bool append);
+
+void ply_dump(MPI_Comm comm, const char * filename,
+	      int (*mesh_indices)[3], const int ninstances, const int ntriangles_per_instance, Particle * _particles, int nvertices_per_instance, int L, bool append);
+
+void diagnostics(MPI_Comm comm, Particle * _particles, int n, float dt, int idstep, int L, Acceleration * _acc);
+
+void report_host_memory_usage(MPI_Comm comm, FILE * foutput);
+
+
+

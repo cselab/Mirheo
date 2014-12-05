@@ -19,8 +19,8 @@ class ComputeInteractionsRBC
 
     struct
     {
-	PinnedHostBuffer /*SimpleDeviceBuffer*/<Particle> state;
-	PinnedHostBuffer /*SimpleDeviceBuffer*/<Acceleration> result;
+	PinnedHostBuffer<Particle> state;
+	PinnedHostBuffer<Acceleration> result;
 
 	void setup(int n) { state.resize(n); result.resize(n); }
 	

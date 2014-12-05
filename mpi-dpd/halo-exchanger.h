@@ -61,6 +61,4 @@ public:
     ~HaloExchanger();
 
     void exchange(Particle * const plocal, int nlocal, SimpleDeviceBuffer<Particle>& result);
-
-    static HaloExchanger * halo_exchanger;
 };

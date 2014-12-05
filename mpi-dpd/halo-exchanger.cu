@@ -5,13 +5,8 @@
 
 using namespace std;
 
-HaloExchanger * HaloExchanger::halo_exchanger = NULL;
-
 HaloExchanger::HaloExchanger(MPI_Comm _cartcomm, int L, const int basetag):  L(L), basetag(basetag)
 {
-    if (halo_exchanger == NULL)
-	halo_exchanger = this;
-
     assert(L % 2 == 0);
     assert(L >= 2);
 
@@ -433,12 +428,9 @@ int HaloExchanger::nof_sent_particles()
 
 void HaloExchanger::exchange(Particle * const plocal, int nlocal, SimpleDeviceBuffer<Particle>& retval)
 {
-    printf("my nlocal is %d for rank %d\n", nlocal, myrank);
     CellLists cells(L);	
     cells.build(plocal, nlocal);
-    CUDA_CHECK(cudaDeviceSynchronize());
-    CUDA_CHECK(cudaPeekAtLastError());
-
+   
     pack_and_post(plocal, nlocal, cells.start, cells.count);
     wait_for_messages();
 

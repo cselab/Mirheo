@@ -73,8 +73,6 @@ int RedistributeRBCs::stage1(const Particle * const xyzuvw, const int nrbcs)
 				       sizeof(Particle) * nvertices, cudaMemcpyDeviceToDevice, stream));
 
     CUDA_CHECK(cudaStreamSynchronize(stream));
-    CUDA_CHECK(cudaDeviceSynchronize());
-    CUDA_CHECK(cudaPeekAtLastError());
 
     MPI_Request sendcountreq[26];
     for(int i = 1; i < 27; ++i)
@@ -101,8 +99,6 @@ int RedistributeRBCs::stage1(const Particle * const xyzuvw, const int nrbcs)
     MPI_Status statuses[26];	    
     MPI_CHECK( MPI_Waitall(26, sendcountreq, statuses) );
 
-    CUDA_CHECK(cudaDeviceSynchronize());
-    CUDA_CHECK(cudaPeekAtLastError());
 
     for(int i = 1; i < 27; ++i)
 	if (recvbufs[i].size > 0)
@@ -115,9 +111,6 @@ int RedistributeRBCs::stage1(const Particle * const xyzuvw, const int nrbcs)
 	    recvreq.push_back(request);
 	}
 
-    CUDA_CHECK(cudaDeviceSynchronize());
-    CUDA_CHECK(cudaPeekAtLastError()); 
-
     for(int i = 1; i < 27; ++i)
 	if (sendbufs[i].size > 0)
 	{
@@ -128,19 +121,11 @@ int RedistributeRBCs::stage1(const Particle * const xyzuvw, const int nrbcs)
 
 	    sendreq.push_back(request);
 	}
-    
-    CUDA_CHECK(cudaDeviceSynchronize());
-    CUDA_CHECK(cudaPeekAtLastError());
 
- 
-    //MPI_Status statuses[26];
     MPI_CHECK(MPI_Waitall(recvreq.size(), &recvreq.front(), statuses) );
     MPI_CHECK(MPI_Waitall(sendreq.size(), &sendreq.front(), statuses) );
     recvreq.clear();
     sendreq.clear();
-
-    CUDA_CHECK(cudaDeviceSynchronize());
-    CUDA_CHECK(cudaPeekAtLastError());
 
     return notleaving + arriving;
 }
@@ -149,12 +134,8 @@ void RedistributeRBCs::stage2(Particle * const xyzuvw, const int nrbcs)
 {
     assert(notleaving + arriving == nrbcs);
    
-
     CUDA_CHECK(cudaMemcpyAsync(xyzuvw, sendbufs[0].devptr, notleaving * nvertices * sizeof(Particle), cudaMemcpyDeviceToDevice, stream));
-
-    CUDA_CHECK(cudaDeviceSynchronize());
-    CUDA_CHECK(cudaPeekAtLastError());
-
+    
     for(int i = 1, s = notleaving * nvertices; i < 27; ++i)
     {
 	const int count =  recvbufs[i].size;
@@ -162,18 +143,12 @@ void RedistributeRBCs::stage2(Particle * const xyzuvw, const int nrbcs)
 	if (count > 0)
 	    ParticleReordering::shift<<< (count + 127) / 128, 128, 0, stream >>>(recvbufs[i].devptr, count, L, i, myrank, false, xyzuvw + s);
 
-	CUDA_CHECK(cudaDeviceSynchronize());
-	CUDA_CHECK(cudaPeekAtLastError());
-
-	
-	//printf("rank%d s: %d nrbcs: %d nvrtices: %d\n", myrank, s, nrbcs, nvertices);
 	assert(s <= nrbcs * nvertices);
 
 	s += recvbufs[i].size;
     }
-    CUDA_CHECK(cudaDeviceSynchronize());
-    CUDA_CHECK(cudaPeekAtLastError());
 
+    CUDA_CHECK(cudaPeekAtLastError());
 }
 
 RedistributeRBCs::~RedistributeRBCs()

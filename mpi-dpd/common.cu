@@ -2,6 +2,11 @@
 #include <sstream>
 #include <vector>
 
+
+#include <sys/time.h>
+#include <sys/resource.h>
+
+#include <cuda-dpd.h>
 #ifndef NO_H5PART
 #include <H5Part.h>
 #endif
@@ -18,6 +23,17 @@ bool Acceleration::initialized = false;
 
 MPI_Datatype Acceleration::mytype;
 
+void CellLists::build(Particle * const p, const int n)
+{
+    if (n > 0)
+	build_clists((float * )p, n, 1, L, L, L, -L/2, -L/2, -L/2, NULL, start, count,  NULL, 0);
+    else
+    {
+	CUDA_CHECK(cudaMemset(start, 0, sizeof(int) * ncells));
+	CUDA_CHECK(cudaMemset(count, 0, sizeof(int) * ncells));
+    }
+}
+
 H5PartDump::H5PartDump(const string fname, MPI_Comm cartcomm, const int L):
     cartcomm(cartcomm), fname(fname), tstamp(0)
 {
@@ -32,7 +48,7 @@ H5PartDump::H5PartDump(const string fname, MPI_Comm cartcomm, const int L):
 
     assert(f != NULL);
 
-handler = f;
+    handler = f;
 #endif
 }
 
@@ -57,7 +73,7 @@ void H5PartDump::dump(Particle * host_particles, int n)
 	H5PartWriteDataFloat32(f, labels[c].c_str(), &data.front());
     }
 
-tstamp++;
+    tstamp++;
 #endif
 }
     
@@ -66,7 +82,7 @@ H5PartDump::~H5PartDump()
 #ifndef NO_H5PART
     H5PartFile * f = (H5PartFile *)handler;
 
-H5PartCloseFile(f);
+    H5PartCloseFile(f);
 #endif
 }
 
@@ -127,7 +143,7 @@ void ply_dump(MPI_Comm comm, const char * filename,
 	ss <<  "element face " << NTRIANGLES << "\n";
 	ss <<  "property list int int vertex_index\n";
 	ss <<  "end_header\n";
-    }
+    } 
     
     string content = ss.str();
     
@@ -218,8 +234,7 @@ void xyz_dump(MPI_Comm comm, const char * filename, const char * particlename, P
     MPI_CHECK( MPI_File_close(&f));
 }
 
-
-void diagnostics(MPI_Comm comm, Particle * particles, int n, float dt, int idstep, int L, Acceleration * acc, bool particledump)
+void diagnostics(MPI_Comm comm, Particle * particles, int n, float dt, int idstep, int L, Acceleration * acc)
 {
     const int nlocal = n;
     
@@ -262,7 +277,7 @@ void diagnostics(MPI_Comm comm, Particle * particles, int n, float dt, int idste
 	fclose(f);
     }
 
-    if (particledump)
+    if (xyz_dumps)
     {
 	bool filenotthere;
 	if (rank == 0)
@@ -279,3 +294,51 @@ void diagnostics(MPI_Comm comm, Particle * particles, int n, float dt, int idste
 	firsttime = false;	
     }
 }
+
+void report_host_memory_usage(MPI_Comm comm, FILE * foutput)
+{
+    struct rusage rusage;
+    long peak_rss;
+
+    getrusage(RUSAGE_SELF, &rusage);
+    peak_rss = rusage.ru_maxrss*1024;
+    
+    long rss = 0;
+    FILE* fp = NULL;
+    if ( (fp = fopen( "/proc/self/statm", "r" )) == NULL ) 
+    {
+	return;
+    }
+
+    if ( fscanf( fp, "%*s%ld", &rss ) != 1 )
+    {
+	fclose( fp );
+	return;
+    }
+    fclose( fp );
+
+    long current_rss;
+
+    current_rss = rss * sysconf( _SC_PAGESIZE);
+    
+    long max_peak_rss, sum_peak_rss;
+    long max_current_rss, sum_current_rss;
+
+    MPI_Reduce(&peak_rss, &max_peak_rss, 1, MPI_LONG, MPI_MAX, 0, comm);
+    MPI_Reduce(&peak_rss, &sum_peak_rss, 1, MPI_LONG, MPI_SUM, 0, comm);
+    MPI_Reduce(&current_rss, &max_current_rss, 1, MPI_LONG, MPI_MAX, 0, comm);
+    MPI_Reduce(&current_rss, &sum_current_rss, 1, MPI_LONG, MPI_SUM, 0, comm);
+
+    int rank;
+    MPI_Comm_rank(comm, &rank);
+
+    if (rank == 0)
+    {
+	fprintf(foutput, "> peak resident set size: max = %.2lf Mbytes sum = %.2lf Mbytes\n",
+		max_peak_rss/(1024.0*1024.0), sum_peak_rss/(1024.0*1024.0));
+	fprintf(foutput, "> current resident set size: max = %.2lf Mbytes sum = %.2lf Mbytes\n",
+		max_current_rss/(1024.0*1024.0), sum_current_rss/(1024.0*1024.0));
+    }
+}
+
+

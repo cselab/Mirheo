@@ -127,7 +127,6 @@ void ComputeInteractionsDPD::dpd_remote_interactions(const Particle * const p, c
     }
 
     CUDA_CHECK(cudaPeekAtLastError());
-    //CUDA_CHECK(cudaDeviceSynchronize());
 
     for(int i = 0; i < 26; ++i)
     {

@@ -359,10 +359,10 @@ ComputeInteractionsWall::ComputeInteractionsWall(MPI_Comm cartcomm, const int L,
 
     thrust::device_vector<Particle> solid_local(thrust::device_ptr<Particle>(p + nsurvived), thrust::device_ptr<Particle>(p + n));
   
-    //HaloExchanger halo(cartcomm, L, 666);
+    HaloExchanger halo(cartcomm, L, 666);
 
     SimpleDeviceBuffer<Particle> solid_remote;
-    HaloExchanger::halo_exchanger->exchange(thrust::raw_pointer_cast(&solid_local[0]), solid_local.size(), solid_remote);
+    halo.exchange(thrust::raw_pointer_cast(&solid_local[0]), solid_local.size(), solid_remote);
 
     printf("rank %d is receiving extra %d\n", myrank, solid_remote.size);
     
@@ -385,7 +385,7 @@ ComputeInteractionsWall::ComputeInteractionsWall(MPI_Comm cartcomm, const int L,
 
 	CUDA_CHECK(cudaMemcpy(phost, thrust::raw_pointer_cast(&solid_local[0]), sizeof(Particle) * n, cudaMemcpyDeviceToHost));
 
-	H5PartDump solid_dump /*ha ha ha*/("solid-walls.h5part", cartcomm, L);
+	H5PartDump solid_dump("solid-walls.h5part", cartcomm, L);
 	solid_dump.dump(phost, n);
 
 	delete [] phost;
