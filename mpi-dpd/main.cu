@@ -143,9 +143,9 @@ int main(int argc, char ** argv)
 			    assert(retval != -1);
 			}
 		    
-			if( access( "rbcscoll.xyz", F_OK ) != -1 )
+			if( access( "rbcs.xyz", F_OK ) != -1 )
 			{
-			    const int retval = rename ("rbcscoll.xyz", "rbcscoll-equilibration.xyz");
+			    const int retval = rename ("rbcs.xyz", "rbcscoll-equilibration.xyz");
 			    assert(retval != -1);
 			}
 		    }

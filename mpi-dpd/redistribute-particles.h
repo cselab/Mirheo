@@ -21,7 +21,7 @@ class RedistributeParticles
     int arriving_start[28], notleaving, arriving;
 
     //gpu buffer used as receive buffer of the 26 messages
-    SimpleDeviceBuffer<Particle> reordered, sendbufs[27], recvbufs[27];
+    PinnedHostBuffer/*SimpleDeviceBuffer*/ <Particle> reordered, sendbufs[27], recvbufs[27];
    
     //this is used for zero-copy retrieval of the mpi-send offsets of the 26 messages
     //within the gpu send buffer
