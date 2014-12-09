@@ -196,6 +196,32 @@ PinnedHostBuffer(int n = 0): capacity(0), size(0), data(NULL), devptr(NULL) { re
 	    
 	    CUDA_CHECK(cudaHostGetDevicePointer(&devptr, data, 0));
 	}
+
+    void preserve_resize(const int n)
+	{
+	    assert(n >= 0);
+	    
+	    T * old = data;
+	    
+	    const int oldsize = size;
+	    
+	    size = n;
+	    
+	    if (capacity >= n)
+		return;
+	    
+	    capacity = n;
+
+	    CUDA_CHECK(cudaHostAlloc(&data, sizeof(T) * capacity, cudaHostAllocMapped));
+	    
+	    if (old != NULL)
+	    {
+		CUDA_CHECK(cudaMemcpy(data, old, sizeof(T) * oldsize, cudaMemcpyHostToHost));
+		CUDA_CHECK(cudaFreeHost(old));
+	    }
+
+	    CUDA_CHECK(cudaHostGetDevicePointer(&devptr, data, 0));
+	}
 };
 
 #include <cuda-dpd.h>
@@ -210,7 +236,7 @@ struct CellLists
 
     int * start, * count;
     
-    CellLists(const int L): ncells(L * L * L), L(L)
+CellLists(const int L): ncells(L * L * L), L(L)
 	{
 	    CUDA_CHECK(cudaMalloc(&start, sizeof(int) * ncells));
 	    CUDA_CHECK(cudaMalloc(&count, sizeof(int) * ncells));

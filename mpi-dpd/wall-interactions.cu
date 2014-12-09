@@ -305,7 +305,7 @@ ComputeInteractionsWall::ComputeInteractionsWall(MPI_Comm cartcomm, const int L,
 
     const float y_cyl = 0.5 * L * dims[1];
     const float z_cyl = 0.5 * L * dims[2];
-    const float r_cyl = 0.4 * L * dims[1];
+    const float r_cyl = 0.45 * L * dims[1];
     
     //cylinder / pipe
     for(int iz = 0; iz < VPD; ++iz)

@@ -123,9 +123,9 @@ struct TransformedExtent
 {
     float transform[4][4];
 
-    float xmin[3], xmax[3],local_xmin[3], local_xmax[3];
+    float xmin[3], xmax[3], local_xmin[3], local_xmax[3];
        
-    void build_transform(CudaRBC::Extent extent, const int L)
+    void build_transform(CudaRBC::Extent extent, const int domain_extent[3])
 	{
 	    const float angles[3] = { 
 		0.25 * (drand48() - 0.5) * 2 * M_PI, 
@@ -186,7 +186,7 @@ struct TransformedExtent
 	    }
 
 	    for(int i = 0; i < 3; ++i)
-		transform[i][3] += (drand48() - 0.5) * (L - 4);
+		transform[i][3] += drand48() * domain_extent[i];
 	}
 
     void apply(float x[3], float y[3])
@@ -195,7 +195,12 @@ struct TransformedExtent
 		y[i] = transform[i][0] * x[0] + transform[i][1] * x[1] + transform[i][2] * x[2] + transform[i][3];
 	}
 
-    TransformedExtent(CudaRBC::Extent extent, const int L)
+    TransformedExtent()
+	{
+	    memset(this, 0xff, sizeof(*this));
+	}
+    
+    TransformedExtent(CudaRBC::Extent extent, const int domain_extent[3])
 	{
 	    local_xmin[0] = extent.xmin;
 	    local_xmin[1] = extent.ymin;
@@ -205,7 +210,7 @@ struct TransformedExtent
 	    local_xmax[1] = extent.ymax;
 	    local_xmax[2] = extent.zmax;
 	
-	    build_transform(extent, L);
+	    build_transform(extent, domain_extent);
 
 	    for(int i = 0; i < 8; ++i)
 	    {
@@ -256,40 +261,88 @@ void CollectionRBC::resize(const int count)
 }
 
     
-CollectionRBC::CollectionRBC(const int L): L(L), nrbcs(0)
+CollectionRBC::CollectionRBC(MPI_Comm cartcomm, const int L): cartcomm(cartcomm), L(L), nrbcs(0)
 {
+    MPI_CHECK(MPI_Comm_rank(cartcomm, &myrank));
+    MPI_CHECK( MPI_Cart_get(cartcomm, 3, dims, periods, coords) );
+    
     CudaRBC::Extent extent;
     CudaRBC::setup(nvertices, extent);
 
-    /*
-    printf("extent: %f %f %f %f %f %f\n",
-	   extent.xmax , extent.xmin,
-	   extent.ymax , extent.ymin,
-	   extent.zmax , extent.zmin);	   
-    */
-    
     assert(extent.xmax - extent.xmin < L);
     assert(extent.ymax - extent.ymin < L);
     assert(extent.zmax - extent.zmin < L);
 
-    vector<TransformedExtent*> good;
-	    
-    for(int attempt = 0; attempt < 1000; ++attempt)
+    vector<TransformedExtent> allrbcs;
+
+    if (myrank == 0)
     {
-	TransformedExtent* t = new TransformedExtent(extent, L);
+	bool failed = false;
+	
+	while(!failed)
+	{
+	    const int maxattempts = 100000;
+	    int attempt = 0;
+	    for(; attempt < maxattempts; ++attempt)
+	    {
+		const int domain_extent[3] = { L * dims[0], L * dims[1], L * dims[2] };
 		
-	bool noncolliding = true;
-	for(int i = 0; i < good.size() && noncolliding; ++i)
-	    noncolliding &= !t->collides(*good[i], 0.00);
+		TransformedExtent t(extent, domain_extent);
 		
-	if (noncolliding)
-	    good.push_back(t);
+		bool noncolliding = true;
+		for(int i = 0; i < allrbcs.size() && noncolliding; ++i)
+		    noncolliding &= !t.collides(allrbcs[i], 0.00);
+		
+		if (noncolliding)
+		{
+		    allrbcs.push_back(t);
+		    break;
+		}
+	    }
+
+	    failed |= attempt == maxattempts;
+	}
     }
-	    
+
+    if (myrank == 0)
+	printf("Instantiating %d RBCs...\n", (int)allrbcs.size());
+
+    int allrbcs_count = allrbcs.size();
+    MPI_CHECK(MPI_Bcast(&allrbcs_count, 1, MPI_INT, 0, cartcomm));
+
+    allrbcs.resize(allrbcs_count);
+    
+    const int nfloats_per_entry = sizeof(TransformedExtent) / sizeof(float);
+    assert( sizeof(TransformedExtent) % sizeof(float) == 0);
+
+    MPI_CHECK(MPI_Bcast(&allrbcs.front(), nfloats_per_entry * allrbcs_count, MPI_FLOAT, 0, cartcomm));
+
+    vector<TransformedExtent> good;
+
+    for(vector<TransformedExtent>::iterator it = allrbcs.begin(); it != allrbcs.end(); ++it)
+    {
+	bool inside = true;
+
+	for(int c = 0; c < 3; ++c)
+	{
+	    const float x = 0.5 * (it->xmin[c] + it->xmax[c]);
+
+	    inside &= x >= coords[c] * L && x < (coords[c] + 1) * L;
+	}
+
+	if (inside)
+	{
+	    for(int c = 0; c < 3; ++c)
+		it->transform[c][3] -= (coords[c] + 0.5) * L;
+
+	    good.push_back(*it);
+	}
+    }
+    
     resize(good.size());
 
     for(int i = 0; i < good.size(); ++i)
-	CudaRBC::initialize((float *)(xyzuvw.data + nvertices * i), good[i]->transform);
+	CudaRBC::initialize((float *)(xyzuvw.data + nvertices * i), good[i].transform);
 }
 
 void CollectionRBC::update_stage1()
