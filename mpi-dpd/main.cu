@@ -6,6 +6,7 @@
 #include <mpi.h>
 
 #include <vector>
+#include <map>
 
 #include "common.h"
 #include "containers.h"
@@ -78,10 +79,10 @@ int main(int argc, char ** argv)
 	    int saru_tag = rank;
 	    
 	    cells.build(particles.xyzuvw.data, particles.size);
-	   
-	    dpd.evaluate(saru_tag, particles.xyzuvw.data, particles.size, particles.axayaz.data, cells.start, cells.count);
+	    std::map<string, double> timings;
+	    dpd.evaluate(saru_tag, particles.xyzuvw.data, particles.size, particles.axayaz.data, cells.start, cells.count, timings);
 	    
-	    if (rbcscoll != NULL)
+	    if (rbcscoll)
 		rbc_interactions.evaluate(saru_tag, particles.xyzuvw.data, particles.size, particles.axayaz.data, cells.start, cells.count,
 					  rbcscoll->data(), rbcscoll->count(), rbcscoll->acc());
 
@@ -102,12 +103,25 @@ int main(int argc, char ** argv)
 			t1 = MPI_Wtime();
 		    
 			if (it > 0)
+			{
 			    printf("beginning of time step %d (%.3e s)\n", it, t1 - t0);
+			    printf("in more details:\n");
+			    double tt = 0;
+			    for(std::map<string, double>::iterator it = timings.begin(); it != timings.end(); ++it)
+			    {
+				printf("%s: %.3e s\n", it->first.c_str(), it->second);
+				tt += it->second;
+				it->second = 0;
+			    }
+			    printf("discrepancy: %.3e s\n", (t1 - t0) - tt);
+			}
 
 			t0 = t1;
 		    }
 		}
 	    
+		double tstart;
+
 		if (it == 0)
 		{
 		    particles.update_stage1(dpdx);
@@ -116,15 +130,19 @@ int main(int argc, char ** argv)
 			rbcscoll->update_stage1();
 		}
 
+		tstart = MPI_Wtime();
 		const int newnp = redistribute.stage1(particles.xyzuvw.data, particles.size);
 		particles.resize(newnp);
 		redistribute.stage2(particles.xyzuvw.data, particles.size);
+		timings["redistribute-particles"] += MPI_Wtime() - tstart;
 
 		if (rbcscoll)
-		{
+		{	
+		    tstart = MPI_Wtime();
 		    const int nrbcs = redistribute_rbcs.stage1(rbcscoll->data(), rbcscoll->count());
 		    rbcscoll->resize(nrbcs);
 		    redistribute_rbcs.stage2(rbcscoll->data(), rbcscoll->count());
+		    timings["redistribute-rbc"] += MPI_Wtime() - tstart;
 		}
 
 		//create the wall when it is time
@@ -182,24 +200,35 @@ int main(int argc, char ** argv)
 			dpdx[0] = -0.1;
 		}
 
+		tstart = MPI_Wtime();
 		cells.build(particles.xyzuvw.data, particles.size);
+		timings["build-cells"] += MPI_Wtime() - tstart;
 
 		//THIS IS WHERE WE WANT TO ACHIEVE 70% OF THE PEAK
 		//TODO: i need a coordinating class that performs all the local work while waiting for the communication
 		{
-		    dpd.evaluate(saru_tag, particles.xyzuvw.data, particles.size, particles.axayaz.data, cells.start, cells.count);
+		    //tstart = MPI_Wtime();
+		    dpd.evaluate(saru_tag, particles.xyzuvw.data, particles.size, particles.axayaz.data, cells.start, cells.count, timings);
+		    //timings["evaluate-dpd"] += MPI_Wtime() - tstart;
 
 		    if (rbcscoll)
+		    {
+			tstart = MPI_Wtime();
 			rbc_interactions.evaluate(saru_tag, particles.xyzuvw.data, particles.size, particles.axayaz.data,
 						  cells.start, cells.count, rbcscoll->data(), rbcscoll->count(), rbcscoll->acc());
-		
+			timings["evaluate-rbc"] += MPI_Wtime() - tstart;
+		    }
+
 		    if (wall)
 		    {
+			tstart = MPI_Wtime();
 			wall->interactions(particles.xyzuvw.data, particles.size, particles.axayaz.data, 
 					   cells.start, cells.count, saru_tag);
 
 			if (rbcscoll)
 			    wall->interactions(rbcscoll->data(), rbcscoll->pcount(), rbcscoll->acc(), NULL, NULL, saru_tag);
+
+			timings["evaluate-walls"] += MPI_Wtime() - tstart;
 		    }
 		}
 		
@@ -210,10 +239,12 @@ int main(int argc, char ** argv)
 
 		if (wall)
 		{
+		    tstart = MPI_Wtime();
 		    wall->bounce(particles.xyzuvw.data, particles.size);
 		    
 		    if (rbcscoll)
 			wall->bounce(rbcscoll->data(), rbcscoll->pcount());
+		    timings["bounce-walls"] += MPI_Wtime() - tstart;
 		}
 	    
 		if (it % steps_per_report == 0)

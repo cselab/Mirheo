@@ -4,10 +4,8 @@ NVCC ?= nvcc
 ARCH_VAL ?= compute_35
 CODE_VAL ?= sm_35
 
-NVCCFLAGS +=  -arch $(ARCH_VAL) -code $(CODE_VAL) -O3 -use_fast_math -lineinfo -g
-#-DNDEBUG
-CXXFLAGS += -L../cuda-dpd-sem/dpd -L../cuda-rbc/ -g -O3
-#-DNDEBUG
+NVCCFLAGS +=  -arch $(ARCH_VAL) -code $(CODE_VAL) -O3 -use_fast_math  -DNDEBUG
+CXXFLAGS += -L../cuda-dpd-sem/dpd -L../cuda-rbc/ -O3 -DNDEBUG
 NVCCFLAGS += -I../cuda-dpd-sem/dpd -I../cuda-rbc/
 
 OBJS = 	dpd-interactions.o \

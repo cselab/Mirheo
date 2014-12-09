@@ -11,18 +11,24 @@ using namespace std;
 ComputeInteractionsDPD::ComputeInteractionsDPD(MPI_Comm cartcomm, int L): HaloExchanger(cartcomm, L, 0) {}
 
 void ComputeInteractionsDPD::evaluate(int& saru_tag, const Particle * const p, const int n, Acceleration * const a,
-				      const int * const cellsstart, const int * const cellscount)
+				      const int * const cellsstart, const int * const cellscount, std::map<std::string, double>& timings )
 {
+    double tstart;
+    tstart = MPI_Wtime();
     HaloExchanger::pack_and_post(p, n, cellsstart, cellscount);
-    
+    timings["evaluate-dpd-packandpost"] += MPI_Wtime() - tstart;
+
+    tstart = MPI_Wtime();
     if (n > 0)
 	forces_dpd_cuda_nohost((float *)p, (float *)a, n, 
 			       cellsstart, cellscount,
 			       1, L, L, L, aij, gammadpd, sigma, 1. / sqrt(dt), saru_tag);
+    timings["evaluate-dpd-localforces"] += MPI_Wtime() - tstart;
 
     saru_tag += nranks - myrank;
-
-    dpd_remote_interactions(p, n, saru_tag, a);
+    // tstart = MPI_Wtime();
+    dpd_remote_interactions(p, n, saru_tag, a, timings);
+    //timings["evaluate-dpd-remoteforces"] += MPI_Wtime() - tstart;
 
     saru_tag += 1 + myrank;  
 }
@@ -93,12 +99,15 @@ namespace RemoteDPD
     }
 }
 
-void ComputeInteractionsDPD::dpd_remote_interactions(const Particle * const p, const int n, const int saru_tag1, Acceleration * const a)
+void ComputeInteractionsDPD::dpd_remote_interactions(const Particle * const p, const int n, const int saru_tag1, Acceleration * const a, std::map<std::string, double>& timings )
 {
     CUDA_CHECK(cudaPeekAtLastError());
-    
-    wait_for_messages();
 
+    double tstart = MPI_Wtime();
+    wait_for_messages();
+    timings["evaluate-dpd-waitformsgs"] += MPI_Wtime() - tstart;
+
+    tstart = MPI_Wtime();
     int saru_tag2[26];
     bool saru_mask[26];
     for(int i = 0; i < 26; ++i)
@@ -166,9 +175,10 @@ void ComputeInteractionsDPD::dpd_remote_interactions(const Particle * const p, c
 		(float *)recvhalos[i].buf.data, ns,
 		aij, gammadpd, sigma, 1. / sqrt(dt), saru_tag1, saru_tag2[i], saru_mask[i], mystream);
     }
+    timings["evaluate-dpd-bipartite"] += MPI_Wtime() - tstart;
 
     CUDA_CHECK(cudaPeekAtLastError());
-
+    tstart = MPI_Wtime();
     for(int i = 0; i < 26; ++i)
     {
 	const int nd = acc_remote[i].size;
@@ -179,4 +189,6 @@ void ComputeInteractionsDPD::dpd_remote_interactions(const Particle * const p, c
     }
    
     CUDA_CHECK(cudaPeekAtLastError());
+    timings["evaluate-dpd-mergeacc"] += MPI_Wtime() - tstart;
+
 }
