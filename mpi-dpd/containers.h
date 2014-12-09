@@ -22,13 +22,15 @@ struct ParticleArray
 
 class CollectionRBC : ParticleArray
 {
-    int nrbcs,  L;
+    MPI_Comm cartcomm;
+    
+    int nrbcs, L, myrank, dims[3], periods[3], coords[3];
     
 public:
     
     int nvertices;
 
-    CollectionRBC(const int L);
+    CollectionRBC(MPI_Comm cartcomm, const int L);
     
     void update_stage1();
     void update_stage2_and_1();

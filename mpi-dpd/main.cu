@@ -61,7 +61,7 @@ int main(int argc, char ** argv)
 	    CollectionRBC * rbcscoll = NULL;
 	    
 	    if (rbcs)
-		rbcscoll = new CollectionRBC(L);
+		rbcscoll = new CollectionRBC(cartcomm, L);
 	    
 	    RedistributeParticles redistribute(cartcomm, L);
 	    RedistributeRBCs redistribute_rbcs(cartcomm, L);
@@ -145,7 +145,7 @@ int main(int argc, char ** argv)
 		    
 			if( access( "rbcs.xyz", F_OK ) != -1 )
 			{
-			    const int retval = rename ("rbcs.xyz", "rbcscoll-equilibration.xyz");
+			    const int retval = rename ("rbcs.xyz", "rbcs-equilibration.xyz");
 			    assert(retval != -1);
 			}
 		    }
