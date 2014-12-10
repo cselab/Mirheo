@@ -213,13 +213,123 @@ namespace SolidWallsKernel
     }
 }
 
-float smoothstep(float edge0, float edge1, float x)
+template<int k>
+struct Bspline
 {
-    // Scale, and clamp x to 0..1 range
-    x = min(1.f, max(0.f, (x - edge0)/(edge1 - edge0)));
-    // Evaluate polynomial
-    return x*x*x*(x*(x*6 - 15) + 10);
-}
+    template<int i>
+    static float eval(float x)
+	{
+	    return
+		(x - i) / (k - 1) * Bspline<k - 1>::template eval<i>(x) +
+		(i + k - x) / (k - 1) * Bspline<k - 1>::template eval<i + 1>(x);
+	}
+};
+
+template<>
+struct Bspline<1>
+{
+    template <int i>
+    static float eval(float x)
+	{
+	    return  (float)(i) <= x && x < (float)(i + 1);
+	}
+};
+
+struct FieldSampler
+{
+    float * data, extent[3];
+    int N[3];
+
+    FieldSampler(const char * path)
+	{
+	    FILE * f = fopen(path, "rb");
+
+	    int retval;
+	    retval = fscanf(f, "%f %f %f\n", extent + 0, extent + 1, extent + 2);
+	    assert(retval == 3);
+	    retval = fscanf(f, "%d %d %d\n", N + 0, N + 1, N + 2);
+	    assert(retval == 3);
+	    
+	    const int nvoxels = N[0] * N[1] * N[2];
+	    data = new float[nvoxels];
+	    
+	    retval = fread(data, sizeof(float), nvoxels, f);
+	    assert(retval == nvoxels);
+
+	    int nvoxels_solvent = 0;
+	    for(int i = 0; i < nvoxels; ++i)
+		nvoxels_solvent += (data[i] < 0);
+
+	    fclose(f);
+	}
+    
+    void sample(const float start[3], const float spacing[3], const int nsize[3], float * output) 
+	{
+	    Bspline<4> bsp;
+
+	    for(int iz = 0; iz < nsize[2]; ++iz)
+		for(int iy = 0; iy < nsize[1]; ++iy)
+		    for(int ix = 0; ix < nsize[0]; ++ix)
+		    {
+			const float x[3] = {
+			    start[0] + ix * spacing[0],
+			    start[1] + iy * spacing[1],
+			    start[2] + iz * spacing[2]
+			};
+
+			int anchor[3];
+			for(int c = 0; c < 3; ++c)
+			    anchor[c] = (int)x[c];
+			
+			float w[3][4];
+			for(int c = 0; c < 3; ++c)
+			    for(int i = 0; i < 4; ++i)
+				w[c][i] = bsp.eval<0>(x[c] - (anchor[c] - 1 + i) + 2);
+			
+			float tmp[4][4];
+			for(int sz = 0; sz < 4; ++sz)
+			    for(int sy = 0; sy < 4; ++sy)
+			    {
+				float s = 0;
+				
+				for(int sx = 0; sx < 4; ++sx)
+				{
+				    const int l[3] = {sx, sy, sz};
+
+				    int g[3];
+				    for(int c = 0; c < 3; ++c)
+					g[c] = max(0, min(N[c] - 1, l[c] - 1 + anchor[c]));
+
+				    s += w[0][sx] * data[g[0] + N[0] * (g[1] + N[1] * g[2])];
+				}
+
+				tmp[sz][sy] = s;
+			    }
+
+			float partial[4];
+			for(int sz = 0; sz < 4; ++sz)
+			{
+			    float s = 0;
+
+			    for(int sy = 0; sy < 4; ++sy)
+				s += w[1][sy] * tmp[sz][sy];
+
+			    partial[sz] = s;
+			}
+
+			float val = 0;
+			for(int sz = 0; sz < 4; ++sz)
+			    val += w[2][sz] * partial[sz];
+					
+			output[ix + nsize[0] * (iy + nsize[1] * iz)] = val;
+		    }
+	}
+
+    ~FieldSampler()
+	{
+	    delete [] data;
+	}
+};
 
 ComputeInteractionsWall::ComputeInteractionsWall(MPI_Comm cartcomm, const int L, Particle* const p, 
 						 const int n, int& nsurvived):
@@ -232,75 +342,22 @@ ComputeInteractionsWall::ComputeInteractionsWall(MPI_Comm cartcomm, const int L,
 
     float * field = new float[VPD * VPD * VPD];
 
-    const double h = (L + 2 * MARGIN) / (double)VPD;
+    {
+	FieldSampler sampler("bifurcation.dat");
 
-#if 0
-
-    //bifurcation
-    const float r_cyl = 0.085 * L * dims[1];
-    const float r2_cyl = r_cyl * r_cyl;
-    
-    static const int nh = 75 * 2;
-    const float dh = 1./ (nh - 1);
-    std::vector<float> xpts, ypts, zpts;
-    
-    for(int pass = 0; pass < 2; ++pass)
-	for(int i = 0; i < nh; ++i)
+	float start[3], spacing[3];
+	for(int c = 0; c < 3; ++c)
 	{
-	    const float S0 = 0.15;
-	    const float S1 = 0.5;
-	    const float S2 = 0.85;
-	    const float X0 = (S1 + S2) * 0.5 * dims[0] * L;
-	    const float X1 = S2 * dims[0] * L;
-	    const float Y0 = 0.5 * dims[1] * L;
-	    const float Y1 = 0.8 * dims[1] * L;
-	    const float Z0 = 0.5 * dims[2] * L;
-	    const float Z1 = (0.5 + 1 * 0.35) * dims[2] * L;
-
-	    const float lambda = i * dh;
-	    
-	    float x = lambda / S1 * X0;
-	    if (lambda > S2)
-		x = X0 + (lambda - S2) / (1 - S2) * (dims[0] * L - X0);
-	    else
-		if (lambda > S1)
-		    x = X0 + sin( (lambda - S1) / (S2 - S1) * 2 * 3.1415) * (X1 - X0);
-	   
-	    const float y = Y0 + (2 * pass -1) * smoothstep(S0, S1, min(lambda, 1 - lambda)) * (Y1 - Y0);
-
-	    float z = Z0;
-
-	    if (lambda >= S1 && lambda < S2)
-		z = 0.5 * (Z0 + Z1) - 0.5 * (Z1 - Z0) * cos( (lambda - S1) / (S2 - S1) * 2 * 3.1415);
-
-	    xpts.push_back(x);
-	    ypts.push_back(y);
-	    zpts.push_back(z);
+	    start[c] = (coords[c] * L - MARGIN) / (float)(dims[c] * L) * sampler.N[c];
+	    spacing[c] =  sampler.N[c] * (L + 2 * MARGIN) / (float)(dims[c] * L * VPD) ;
 	}
+	
+	int size[3] = {VPD, VPD, VPD};
 
-    const int npts = xpts.size();
+	sampler.sample(start, spacing, size, field);
+    }
     
-    for(int iz = 0; iz < VPD; ++iz)
-	for(int iy = 0; iy < VPD; ++iy)
-	    for(int ix = 0; ix < VPD; ++ix)
-	    {
-		const float x = coords[0] * L - MARGIN + (ix + 0.5) * h;
-		const float y = coords[1] * L - MARGIN + (iy + 0.5) * h;
-		const float z = coords[2] * L - MARGIN + (iz + 0.5) * h;
-
-		float val = 1;
-		for(int i = 0; i < npts && val == 1; ++i)
-		{
-		    const float dx = x - xpts[i];
-		    const float dy = y - ypts[i];
-		    const float dz = z - zpts[i];
-
-		    if (dx * dx + dy * dy + dz * dz < r2_cyl)
-			val = -1;
-		}
-				
-		field[ix + VPD * (iy + VPD * iz)] = val;
-	    }
+    /*   
 #else
 
     const float y_cyl = 0.5 * L * dims[1];
@@ -321,7 +378,8 @@ ComputeInteractionsWall::ComputeInteractionsWall(MPI_Comm cartcomm, const int L,
 		field[ix + VPD * (iy + VPD * iz)] = r - r_cyl;
 	    }
 #endif
-    
+    */    
+
     cudaChannelFormatDesc fmt = cudaCreateChannelDesc<float>();
     CUDA_CHECK(cudaMalloc3DArray (&arrSDF, &fmt, make_cudaExtent(VPD, VPD, VPD)));
 
