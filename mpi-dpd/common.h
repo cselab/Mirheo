@@ -2,7 +2,7 @@
 
 const int L = 24;
 const float dt = 0.001;
-const float tend = 100;
+const float tend = 10000;
 const float kBT = 0.1;
 const float gammadpd = 45;
 const float sigma = sqrt(2 * gammadpd * kBT);
@@ -12,7 +12,7 @@ const bool walls = true;
 const bool pushtheflow = true;
 const bool rbcs = true;
 const bool xyz_dumps = false;
-const int steps_per_report = 100;
+const int steps_per_report = 1000;
 
 #include <cstdlib>
 #include <cstdio>

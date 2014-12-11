@@ -87,7 +87,10 @@ int main(int argc, char ** argv)
 					  rbcscoll->data(), rbcscoll->count(), rbcscoll->acc());
 
 	    float dpdx[3] = {0, 0, 0};
-		    
+
+	    if (!walls && pushtheflow)
+		dpdx[0] = -0.01;		    
+
 	    const size_t nsteps = (int)(tend / dt);
 
 	    for(int it = 0; it < nsteps; ++it)
@@ -146,7 +149,7 @@ int main(int argc, char ** argv)
 		}
 
 		//create the wall when it is time
-		if (walls && it > 500 && wall == NULL)
+		if (walls && it > 5000 && wall == NULL)
 		{
 		    int nsurvived = 0;
 		    wall = new ComputeInteractionsWall(cartcomm, L, particles.xyzuvw.data, particles.size, nsurvived);
@@ -197,7 +200,7 @@ int main(int argc, char ** argv)
 		    }
 
 		    if (pushtheflow)
-			dpdx[0] = -0.1;
+			dpdx[0] = -0.01;
 		}
 
 		tstart = MPI_Wtime();

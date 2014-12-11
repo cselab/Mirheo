@@ -10,7 +10,7 @@
 
 #include "wall-interactions.h"
 
-static const int MARGIN = 4;
+static const int MARGIN = 4 * 2;
 
 namespace SolidWallsKernel
 {
@@ -338,12 +338,12 @@ ComputeInteractionsWall::ComputeInteractionsWall(MPI_Comm cartcomm, const int L,
     MPI_CHECK( MPI_Comm_rank(cartcomm, &myrank));
     MPI_CHECK( MPI_Cart_get(cartcomm, 3, dims, periods, coords) );
     
-    const int VPD = 128;
+    const int VPD = 256;
 
     float * field = new float[VPD * VPD * VPD];
 
     {
-	FieldSampler sampler("bifurcation.dat");
+	FieldSampler sampler("sdf.dat");
 
 	float start[3], spacing[3];
 	for(int c = 0; c < 3; ++c)
