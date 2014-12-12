@@ -34,9 +34,6 @@ RedistributeParticles::RedistributeParticles(MPI_Comm _cartcomm, int L):
 	    coordsneighbor[c] = coords[c] - d[c];
 
 	MPI_CHECK( MPI_Cart_rank(cartcomm, coordsneighbor, anti_rankneighbors + i) );
-
-	//recvbufs[i].resize(L * L * 6);
-	//sendbufs[i].resize(L * L * 6);
     }
 
     CUDA_CHECK(cudaHostAlloc((void **)&leaving_start, sizeof(int) * 28, cudaHostAllocMapped));
@@ -252,6 +249,9 @@ namespace ParticleReordering
 
 int RedistributeParticles::stage1(const Particle * const p, const int n)
 {  
+    CUDA_CHECK(cudaPeekAtLastError());
+    CUDA_CHECK(cudaStreamSynchronize(mystream));
+
     MPI_Status statuses[26];
 
     if (pending_send)	    
@@ -268,7 +268,7 @@ int RedistributeParticles::stage1(const Particle * const p, const int n)
 	    leaving_start[i] = 0;
     
     if (n > 0)
-	ParticleReordering::reorder<<< (n + 127) / 128, 128, 0, mystream >>>(p, n, L, reordered.devptr);
+	ParticleReordering::reorder<<< (n + 127) / 128, 128, 0, mystream >>>(p, n, L, reordered.data);
     
     CUDA_CHECK(cudaPeekAtLastError());
    
@@ -285,7 +285,7 @@ int RedistributeParticles::stage1(const Particle * const p, const int n)
 	const int count = leaving_start[i + 1] - leaving_start[i];
 
 	if (count > 0)
-	    ParticleReordering::check<<< (count + 127) / 128, 128, 0, mystream >>>(reordered.devptr + leaving_start[i], count, L, i, myrank);
+	    ParticleReordering::check<<< (count + 127) / 128, 128, 0, mystream >>>(reordered.data + leaving_start[i], count, L, i, myrank);
 
 	CUDA_CHECK(cudaPeekAtLastError());
     }
@@ -352,7 +352,7 @@ int RedistributeParticles::stage1(const Particle * const p, const int n)
 
 	sendbufs[i].resize(count);
 	
-	CUDA_CHECK(cudaMemcpyAsync(sendbufs[i].devptr, reordered.devptr + leaving_start[i], 
+	CUDA_CHECK(cudaMemcpyAsync(sendbufs[i].devptr, reordered.data + leaving_start[i], 
 				   sizeof(Particle) * count, cudaMemcpyDeviceToDevice, mystream));
     }
 
@@ -378,7 +378,7 @@ void RedistributeParticles::stage2(Particle * const p, const int n)
 {
     assert(n == notleaving + arriving);
 
-    CUDA_CHECK(cudaMemcpy(p, reordered.devptr, sizeof(Particle) * notleaving, cudaMemcpyDeviceToDevice));
+    CUDA_CHECK(cudaMemcpyAsync(p, reordered.data, sizeof(Particle) * notleaving, cudaMemcpyDeviceToDevice, mystream));
 
     CUDA_CHECK(cudaPeekAtLastError());
     
@@ -398,6 +398,8 @@ void RedistributeParticles::stage2(Particle * const p, const int n)
 #ifndef NDEBUG
     if (n > 0)
 	ParticleReordering::check<<< (n + 127) / 128, 128, 0, mystream >>>(p, n, L, 0, myrank);
+
+    CUDA_CHECK(cudaStreamSynchronize(mystream));
 #endif
 
     CUDA_CHECK(cudaPeekAtLastError());

@@ -63,7 +63,7 @@ namespace SolidWallsKernel
 
     __device__ bool handle_collision(float& x, float& y, float& z, float& u, float& v, float& w, /*float& dt,*/ const int L)
     {
-	if (sdf(x, y, z, L) <= 0)
+	if (sdf(x, y, z, L) < 0)
 	    return false;
 
 	const float xold = x - dt * u;
@@ -79,7 +79,7 @@ namespace SolidWallsKernel
 	    const float ycandidate = yold + tcandidate * v;
 	    const float zcandidate = zold + tcandidate * w;
 
-	    if (sdf(xcandidate, ycandidate, zcandidate, L) <= 0)
+	    if (sdf(xcandidate, ycandidate, zcandidate, L) < 0)
 		t = tcandidate;
 	}
 

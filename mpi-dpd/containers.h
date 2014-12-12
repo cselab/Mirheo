@@ -18,9 +18,10 @@ struct ParticleArray
     void resize(int n);
     void update_stage1(const float gradpressure[3]);
     void update_stage2_and_1(const float gradpressure[3]);
+    void clear_velocity();
 };
 
-class CollectionRBC : ParticleArray
+class CollectionRBC : public ParticleArray
 {
     MPI_Comm cartcomm;
     

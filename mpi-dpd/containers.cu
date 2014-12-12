@@ -83,6 +83,19 @@ namespace ParticleKernels
 		assert(p[pid].x[c] <= +L +L/2);
 	    }
     }
+
+    __global__ void clear_velocity(Particle * const p, const int n)
+    {
+	assert(blockDim.x * gridDim.x >= n);
+    
+	const int pid = threadIdx.x + blockDim.x * blockIdx.x;
+
+	if (pid >= n)
+	    return;
+
+	for(int c = 0; c < 3; ++c)
+	    p[pid].u[c] = 0;
+    }
 }
 
 ParticleArray::ParticleArray(vector<Particle> ic)
@@ -117,6 +130,12 @@ void ParticleArray::resize(int n)
     axayaz.resize(n);
     
     CUDA_CHECK(cudaMemset(axayaz.data, 0, sizeof(Acceleration) * size));
+}
+
+void ParticleArray::clear_velocity()
+{
+    if (size)
+	ParticleKernels::clear_velocity<<<(xyzuvw.size + 127) / 128, 128 >>>(xyzuvw.data, xyzuvw.size);
 }
 
 struct TransformedExtent
@@ -185,8 +204,14 @@ struct TransformedExtent
 			transform[i][j] = res[i][j];
 	    }
 
+//we constraint the domain from [0, domain_extent] to [0.5 * maxlocalextent, domain_extent - 0.5 * maxlocal_extent) 
+//because of potentially colliding RBCs due to periodic bc
+	    float maxlocalextent = 0;
 	    for(int i = 0; i < 3; ++i)
-		transform[i][3] += drand48() * domain_extent[i];
+		maxlocalextent = max(maxlocalextent, local_xmax[i] - local_xmin[i]);
+
+	    for(int i = 0; i < 3; ++i)
+		transform[i][3] += 0.5 * maxlocalextent + drand48() * (domain_extent[i] - maxlocalextent);
 	}
 
     void apply(float x[3], float y[3])

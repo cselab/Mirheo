@@ -80,7 +80,7 @@ int main(int argc, char ** argv)
 	    
 	    cells.build(particles.xyzuvw.data, particles.size);
 	    std::map<string, double> timings;
-	    dpd.evaluate(saru_tag, particles.xyzuvw.data, particles.size, particles.axayaz.data, cells.start, cells.count, timings);
+	    dpd.evaluate(saru_tag, particles.xyzuvw.data, particles.size, particles.axayaz.data, cells.start, cells.count);
 	    
 	    if (rbcscoll)
 		rbc_interactions.evaluate(saru_tag, particles.xyzuvw.data, particles.size, particles.axayaz.data, cells.start, cells.count,
@@ -92,7 +92,7 @@ int main(int argc, char ** argv)
 		dpdx[0] = -0.01;		    
 
 	    const size_t nsteps = (int)(tend / dt);
-
+	    
 	    for(int it = 0; it < nsteps; ++it)
 	    {
 		if (it % steps_per_report == 0)
@@ -134,10 +134,14 @@ int main(int argc, char ** argv)
 		}
 
 		tstart = MPI_Wtime();
+		
 		const int newnp = redistribute.stage1(particles.xyzuvw.data, particles.size);
 		particles.resize(newnp);
 		redistribute.stage2(particles.xyzuvw.data, particles.size);
+		
 		timings["redistribute-particles"] += MPI_Wtime() - tstart;
+		
+		CUDA_CHECK(cudaPeekAtLastError());
 
 		if (rbcscoll)
 		{	
@@ -148,6 +152,11 @@ int main(int argc, char ** argv)
 		    timings["redistribute-rbc"] += MPI_Wtime() - tstart;
 		}
 
+		CUDA_CHECK(cudaPeekAtLastError());
+		
+		CUDA_CHECK(cudaStreamSynchronize(redistribute.mystream));
+		CUDA_CHECK(cudaStreamSynchronize(redistribute_rbcs.stream));
+
 		//create the wall when it is time
 		if (walls && it > 5000 && wall == NULL)
 		{
@@ -155,6 +164,7 @@ int main(int argc, char ** argv)
 		    wall = new ComputeInteractionsWall(cartcomm, L, particles.xyzuvw.data, particles.size, nsurvived);
 		    
 		    particles.resize(nsurvived);
+		    particles.clear_velocity();
 		    		    
 		    if (rank == 0)
 		    {
@@ -197,6 +207,7 @@ int main(int argc, char ** argv)
 			}
 
 			rbcscoll->remove(&tokill.front(), tokill.size());
+			rbcscoll->clear_velocity();
 		    }
 
 		    if (pushtheflow)
@@ -206,14 +217,18 @@ int main(int argc, char ** argv)
 		tstart = MPI_Wtime();
 		cells.build(particles.xyzuvw.data, particles.size);
 		timings["build-cells"] += MPI_Wtime() - tstart;
-
+		
+		CUDA_CHECK(cudaPeekAtLastError());
+		
 		//THIS IS WHERE WE WANT TO ACHIEVE 70% OF THE PEAK
 		//TODO: i need a coordinating class that performs all the local work while waiting for the communication
 		{
-		    //tstart = MPI_Wtime();
-		    dpd.evaluate(saru_tag, particles.xyzuvw.data, particles.size, particles.axayaz.data, cells.start, cells.count, timings);
-		    //timings["evaluate-dpd"] += MPI_Wtime() - tstart;
-
+		    tstart = MPI_Wtime();
+		    dpd.evaluate(saru_tag, particles.xyzuvw.data, particles.size, particles.axayaz.data, cells.start, cells.count);
+		    timings["evaluate-dpd"] += MPI_Wtime() - tstart;
+		    
+		    CUDA_CHECK(cudaPeekAtLastError());	
+		    	
 		    if (rbcscoll)
 		    {
 			tstart = MPI_Wtime();
@@ -221,6 +236,8 @@ int main(int argc, char ** argv)
 						  cells.start, cells.count, rbcscoll->data(), rbcscoll->count(), rbcscoll->acc());
 			timings["evaluate-rbc"] += MPI_Wtime() - tstart;
 		    }
+		    
+		    CUDA_CHECK(cudaPeekAtLastError());
 
 		    if (wall)
 		    {
@@ -233,9 +250,15 @@ int main(int argc, char ** argv)
 
 			timings["evaluate-walls"] += MPI_Wtime() - tstart;
 		    }
+
+		    CUDA_CHECK(cudaDeviceSynchronize());
 		}
 		
+		CUDA_CHECK(cudaPeekAtLastError());
+
 		particles.update_stage2_and_1(dpdx);
+
+		CUDA_CHECK(cudaPeekAtLastError());
 
 		if (rbcscoll)
 		    rbcscoll->update_stage2_and_1();
@@ -249,17 +272,30 @@ int main(int argc, char ** argv)
 			wall->bounce(rbcscoll->data(), rbcscoll->pcount());
 		    timings["bounce-walls"] += MPI_Wtime() - tstart;
 		}
+
+		CUDA_CHECK(cudaPeekAtLastError());
 	    
 		if (it % steps_per_report == 0)
 		{
-		    const int n = particles.size;
+		    int n = particles.size;
+
+		    if (rbcscoll)
+			n += rbcscoll->pcount();
 
 		    Particle * p = new Particle[n];
 		    Acceleration * a = new Acceleration[n];
 
-		    CUDA_CHECK(cudaMemcpy(p, particles.xyzuvw.data, sizeof(Particle) * n, cudaMemcpyDeviceToHost));
-		    CUDA_CHECK(cudaMemcpy(a, particles.axayaz.data, sizeof(Acceleration) * n, cudaMemcpyDeviceToHost));
+		    CUDA_CHECK(cudaMemcpy(p, particles.xyzuvw.data, sizeof(Particle) * particles.size, cudaMemcpyDeviceToHost));
+		    CUDA_CHECK(cudaMemcpy(a, particles.axayaz.data, sizeof(Acceleration) * particles.size, cudaMemcpyDeviceToHost));
 		   
+		    if (rbcscoll)
+		    {
+			const int start = particles.size;
+
+			CUDA_CHECK(cudaMemcpy(p + start, rbcscoll->xyzuvw.data, sizeof(Particle) * rbcscoll->pcount(), cudaMemcpyDeviceToHost));
+			CUDA_CHECK(cudaMemcpy(a + start, rbcscoll->axayaz.data, sizeof(Acceleration) * rbcscoll->pcount(), cudaMemcpyDeviceToHost));
+		    }
+
 		    //we fused VV stages so we need to recover the state before stage 1
 		    for(int i = 0; i < n; ++i)
 			for(int c = 0; c < 3; ++c)
@@ -274,7 +310,7 @@ int main(int argc, char ** argv)
 
 		    diagnostics(cartcomm, p, n, dt, it, L, a);
 		    
-		    if (rbcscoll)
+		    if (rbcscoll && it % steps_per_dump == 0)
 			rbcscoll->dump(cartcomm);
 		   
 		    delete [] p;

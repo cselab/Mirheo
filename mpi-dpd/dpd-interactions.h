@@ -68,12 +68,12 @@ class ComputeInteractionsDPD : public HaloExchanger
     SimpleDeviceBuffer<Acceleration> acc_remote[26];
 
     //mpi-sync for the surrounding halos
-    void dpd_remote_interactions(const Particle * const p, const int n, int saru_tag1, Acceleration * const a, std::map<std::string, double>& timings);
+    void dpd_remote_interactions(const Particle * const p, const int n, int saru_tag1, Acceleration * const a);
     
 public:
     
     ComputeInteractionsDPD(MPI_Comm cartcomm, int L);
 
     void evaluate(int& saru_tag, const Particle * const p, int n, Acceleration * const a,
-		  const int * const cellsstart, const int * const cellscount, std::map<std::string, double>& timings);
+		  const int * const cellsstart, const int * const cellscount);
 };

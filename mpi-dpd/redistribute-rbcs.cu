@@ -122,17 +122,19 @@ int RedistributeRBCs::stage1(const Particle * const xyzuvw, const int nrbcs)
 	    sendreq.push_back(request);
 	}
 
-    MPI_CHECK(MPI_Waitall(recvreq.size(), &recvreq.front(), statuses) );
-    MPI_CHECK(MPI_Waitall(sendreq.size(), &sendreq.front(), statuses) );
-    recvreq.clear();
-    sendreq.clear();
-
     return notleaving + arriving;
 }
 
 void RedistributeRBCs::stage2(Particle * const xyzuvw, const int nrbcs)
 {
     assert(notleaving + arriving == nrbcs);
+
+    MPI_Status statuses[26];
+    MPI_CHECK(MPI_Waitall(recvreq.size(), &recvreq.front(), statuses) );
+    MPI_CHECK(MPI_Waitall(sendreq.size(), &sendreq.front(), statuses) );
+    
+    recvreq.clear();
+    sendreq.clear();
    
     CUDA_CHECK(cudaMemcpyAsync(xyzuvw, sendbufs[0].devptr, notleaving * nvertices * sizeof(Particle), cudaMemcpyDeviceToDevice, stream));
     

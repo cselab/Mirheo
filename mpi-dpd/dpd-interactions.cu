@@ -11,46 +11,20 @@ using namespace std;
 ComputeInteractionsDPD::ComputeInteractionsDPD(MPI_Comm cartcomm, int L): HaloExchanger(cartcomm, L, 0) {}
 
 void ComputeInteractionsDPD::evaluate(int& saru_tag, const Particle * const p, const int n, Acceleration * const a,
-				      const int * const cellsstart, const int * const cellscount, std::map<std::string, double>& timings )
+				      const int * const cellsstart, const int * const cellscount)
 {
-    double tstart;
-    tstart = MPI_Wtime();
     HaloExchanger::pack_and_post(p, n, cellsstart, cellscount);
-    timings["evaluate-dpd-packandpost"] += MPI_Wtime() - tstart;
-
-    tstart = MPI_Wtime();
+    
     if (n > 0)
 	forces_dpd_cuda_nohost((float *)p, (float *)a, n, 
 			       cellsstart, cellscount,
 			       1, L, L, L, aij, gammadpd, sigma, 1. / sqrt(dt), saru_tag);
-    timings["evaluate-dpd-localforces"] += MPI_Wtime() - tstart;
-
+    
     saru_tag += nranks - myrank;
-    // tstart = MPI_Wtime();
-    dpd_remote_interactions(p, n, saru_tag, a, timings);
-    //timings["evaluate-dpd-remoteforces"] += MPI_Wtime() - tstart;
-
+    
+    dpd_remote_interactions(p, n, saru_tag, a);
+    
     saru_tag += 1 + myrank;  
-}
-
-__global__ void not_nan(float * p, const int n)
-{
-    assert(gridDim.x * blockDim.x >= n);
-
-    const int gid = threadIdx.x + blockDim.x * blockIdx.x;
-
-    if (gid < n)
-	assert(!isnan(p[gid]));
-}
-
-__global__ void fill_random(float * p, const int n)
-{
-    assert(gridDim.x * blockDim.x >= n);
-
-    const int gid = threadIdx.x + blockDim.x * blockIdx.x;
-
-    if (gid < n)
-	p[gid] = 2 * (gid % 100) * 0.01 - 1;
 }
 
 namespace RemoteDPD
@@ -99,15 +73,12 @@ namespace RemoteDPD
     }
 }
 
-void ComputeInteractionsDPD::dpd_remote_interactions(const Particle * const p, const int n, const int saru_tag1, Acceleration * const a, std::map<std::string, double>& timings )
+void ComputeInteractionsDPD::dpd_remote_interactions(const Particle * const p, const int n, const int saru_tag1, Acceleration * const a)
 {
     CUDA_CHECK(cudaPeekAtLastError());
 
-    double tstart = MPI_Wtime();
     wait_for_messages();
-    timings["evaluate-dpd-waitformsgs"] += MPI_Wtime() - tstart;
-
-    tstart = MPI_Wtime();
+    
     int saru_tag2[26];
     bool saru_mask[26];
     for(int i = 0; i < 26; ++i)
@@ -161,34 +132,31 @@ void ComputeInteractionsDPD::dpd_remote_interactions(const Particle * const p, c
 	
 	if (sendhalos[i].cellstarts.size * recvhalos[i].cellstarts.size > 1 && nd * ns > 10 * 10)
 	{	   
-	    texDC[i].acquire(sendhalos[i].cellstarts.data, sendhalos[i].cellstarts.capacity);
-	    texSC[i].acquire(recvhalos[i].cellstarts.data, recvhalos[i].cellstarts.capacity);
-	    texSP[i].acquire((float2*)recvhalos[i].buf.data, recvhalos[i].buf.capacity * 3);
+	    texDC[i].acquire(sendhalos[i].cellstarts.devptr, sendhalos[i].cellstarts.capacity);
+	    texSC[i].acquire(recvhalos[i].cellstarts.devptr, recvhalos[i].cellstarts.capacity);
+	    texSP[i].acquire((float2*)recvhalos[i].buf.devptr, recvhalos[i].buf.capacity * 3);
 	       
-	    forces_dpd_cuda_bipartite_nohost(mystream, (float2 *)sendhalos[i].buf.data, nd, texDC[i].texObj, texSC[i].texObj, texSP[i].texObj,
+	    forces_dpd_cuda_bipartite_nohost(mystream, (float2 *)sendhalos[i].buf.devptr, nd, texDC[i].texObj, texSC[i].texObj, texSP[i].texObj,
 					     ns, halosize[i], aij, gammadpd, sigma / sqrt(dt), saru_tag1, saru_tag2[i], saru_mask[i],
 					     (float *)acc_remote[i].data);
 	}
 	else
 	    directforces_dpd_cuda_bipartite_nohost(
-		(float *)sendhalos[i].buf.data, (float *)acc_remote[i].data, nd,
-		(float *)recvhalos[i].buf.data, ns,
+		(float *)sendhalos[i].buf.devptr, (float *)acc_remote[i].data, nd,
+		(float *)recvhalos[i].buf.devptr, ns,
 		aij, gammadpd, sigma, 1. / sqrt(dt), saru_tag1, saru_tag2[i], saru_mask[i], mystream);
     }
-    timings["evaluate-dpd-bipartite"] += MPI_Wtime() - tstart;
-
+    
     CUDA_CHECK(cudaPeekAtLastError());
-    tstart = MPI_Wtime();
+    
     for(int i = 0; i < 26; ++i)
     {
 	const int nd = acc_remote[i].size;
 	
 	if (nd > 0)
-	    RemoteDPD::merge_accelerations<<<(nd + 127) / 128, 128, 0, streams[code2stream[i]]>>>(acc_remote[i].data, nd, a, n,
-												  sendhalos[i].buf.data, p, sendhalos[i].scattered_entries.data, myrank);
+	    RemoteDPD::merge_accelerations<<<(nd + 127) / 128, 128, 0, streams[code2stream[i]]>>>
+		(acc_remote[i].data, nd, a, n, sendhalos[i].buf.devptr, p, sendhalos[i].scattered_entries.data, myrank);
     }
    
     CUDA_CHECK(cudaPeekAtLastError());
-    timings["evaluate-dpd-mergeacc"] += MPI_Wtime() - tstart;
-
 }

@@ -201,11 +201,11 @@ void setup(int& nvertices, Extent& host_extent)
 	params.totArea0 = 135;
 	params.totVolume0 = 94;
 	params.area0 = params.totArea0 / (float)ntriang;
-	params.ka = 945;
-	params.kd = 10;
-	params.kv = 150;
-	params.gammaT = 90;
-	params.gammaC = 30;
+	params.ka = 361.7;
+	params.kd = 0;//10;
+	params.kv = 97;
+	params.gammaT = 0; //90;
+	params.gammaC = 0; //30;
 
 	float phi = 6.9 / 180.0*M_PI;
 	params.sinTheta0 = sin(phi);

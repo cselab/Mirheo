@@ -19,7 +19,8 @@ protected:
     struct SendHalo
     {
 	int expected;
-	PinnedHostBuffer /*SimpleDeviceBuffer*/<int> scattered_entries, cellstarts, tmpstart, tmpcount;
+	SimpleDeviceBuffer<int> scattered_entries, tmpstart, tmpcount;
+	PinnedHostBuffer /*SimpleDeviceBuffer*/<int> cellstarts;
 	PinnedHostBuffer /*SimpleDeviceBuffer*/<Particle> buf, secondary;
     } sendhalos[26];
 
