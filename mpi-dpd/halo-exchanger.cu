@@ -31,7 +31,7 @@ HaloExchanger::HaloExchanger(MPI_Comm _cartcomm, int L, const int basetag):  L(L
 
 	const int nhalocells = pow(L, 3 - abs(d[0]) - abs(d[1]) - abs(d[2]));
 
-	int estimate = max(128, (int)(2 * 3 * nhalocells));
+	int estimate = 6 * nhalocells; //1;//max(128, (int)( 3 * nhalocells));
 	estimate = 32 * ((estimate + 31) / 32);
 
 	halosize[i].x = d[0] != 0 ? 1 : L;
@@ -41,12 +41,12 @@ HaloExchanger::HaloExchanger(MPI_Comm _cartcomm, int L, const int basetag):  L(L
 
 	recvhalos[i].expected = estimate;
 	recvhalos[i].buf.resize(estimate);
-	recvhalos[i].secondary.resize(estimate);
+	//recvhalos[i].secondary.resize(estimate);
 	recvhalos[i].cellstarts.resize(nhalocells + 1);
 
 	sendhalos[i].expected = estimate;
 	sendhalos[i].buf.resize(estimate);
-	sendhalos[i].secondary.resize(estimate);
+	//sendhalos[i].secondary.resize(estimate);
 	sendhalos[i].scattered_entries.resize(estimate);
 	sendhalos[i].cellstarts.resize(nhalocells + 1);
 	sendhalos[i].tmpcount.resize(nhalocells + 1);
@@ -292,7 +292,8 @@ void HaloExchanger::pack_and_post(const Particle * const p, const int n, const i
 	    {
 		if (fail)
 		{
-		    printf("------------------- rank %d - code %d : oops now: %d, expected: %d required: %d, current capacity: %d\n", myrank, i, sendhalos[i].buf.size,
+		    printf("------------------- rank %d - code %d : oops now: %d, expected: %d required: %d, current capacity: %d\n", 
+			   myrank, i, sendhalos[i].buf.size,
 			   sendhalos[i].expected, nrequired, sendhalos[i].buf.capacity);
 		    sendhalos[i].buf.resize(nrequired);
 		    sendhalos[i].scattered_entries.resize(nrequired);
@@ -373,12 +374,14 @@ void HaloExchanger::pack_and_post(const Particle * const p, const int n, const i
 	    const int difference = count - expected;
 	    printf("extra message from rank %d to rank %d! difference %d\n", myrank, dstranks[i], difference);
 
-	    sendhalos[i].secondary.resize(difference);
+	    //sendhalos[i].secondary.resize(difference);
 	    
-	    CUDA_CHECK( cudaMemcpy(sendhalos[i].secondary.devptr, sendhalos[i].buf.devptr + expected, 
-				   difference * sizeof(Particle), cudaMemcpyDeviceToDevice));
-
-	    MPI_CHECK( MPI_Isend(sendhalos[i].secondary.data, difference, Particle::datatype(), dstranks[i], 
+	    //CUDA_CHECK( cudaMemcpy(sendhalos[i].secondary.devptr, sendhalos[i].buf.devptr + expected, 
+	    //		   difference * sizeof(Particle), cudaMemcpyDeviceToDevice));
+	    //MPI_CHECK( MPI_Isend(sendhalos[i].secondary.data, difference, Particle::datatype(), dstranks[i], 
+	    //		 basetag + i + 555, cartcomm, sendreq + nsendreq) );
+	    
+	    MPI_CHECK( MPI_Isend(sendhalos[i].buf.data + expected, difference, Particle::datatype(), dstranks[i], 
 				 basetag + i + 555, cartcomm, sendreq + nsendreq) );
 
 	    ++nsendreq;
@@ -414,12 +417,16 @@ void HaloExchanger::wait_for_messages()
 		   myrank, count, expected, difference, dstranks[i]);
 	    
 	    recvhalos[i].buf.preserve_resize(count);
-	    recvhalos[i].secondary.resize(difference);
+	    //recvhalos[i].secondary.resize(difference);
 
 	    MPI_Status status;
 	    
-	    MPI_Recv(recvhalos[i].secondary.data, difference, Particle::datatype(), dstranks[i], 
+	    //MPI_Recv(recvhalos[i].secondary.data, difference, Particle::datatype(), dstranks[i], 
+	    //     basetag + recv_tags[i] + 555, cartcomm, &status);
+
+	    MPI_Recv(recvhalos[i].buf.data + expected, difference, Particle::datatype(), dstranks[i], 
 		     basetag + recv_tags[i] + 555, cartcomm, &status);
+
 	}
     }
 
@@ -429,7 +436,7 @@ void HaloExchanger::wait_for_messages()
 	MPI_CHECK( MPI_Waitall(nsendreq, sendreq, statuses) );
     }
     
-    for(int i = 0; i < 26; ++i)
+    /*for(int i = 0; i < 26; ++i)
     {
 	const int count = recv_counts[i];
 	const int expected = recvhalos[i].expected;
@@ -442,8 +449,9 @@ void HaloExchanger::wait_for_messages()
 	    CUDA_CHECK(cudaMemcpy((Particle *)(recvhalos[i].buf.devptr + expected), recvhalos[i].secondary.devptr,
 				  sizeof(Particle) * (difference), cudaMemcpyDeviceToDevice));
 	}
-    }
-	for(int i = 0; i < 26; ++i)
+	}*/
+
+    for(int i = 0; i < 26; ++i)
     {
 	const int count = recv_counts[i];
 		

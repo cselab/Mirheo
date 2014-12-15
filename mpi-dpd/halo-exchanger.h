@@ -21,14 +21,14 @@ protected:
 	int expected;
 	SimpleDeviceBuffer<int> scattered_entries, tmpstart, tmpcount;
 	PinnedHostBuffer /*SimpleDeviceBuffer*/<int> cellstarts;
-	PinnedHostBuffer /*SimpleDeviceBuffer*/<Particle> buf, secondary;
+	PinnedHostBuffer /*SimpleDeviceBuffer*/<Particle> buf; //, secondary;
     } sendhalos[26];
 
     struct RecvHalo
     {
 	int expected;
 	PinnedHostBuffer /*SimpleDeviceBuffer*/ <int> cellstarts;
-	PinnedHostBuffer /*SimpleDeviceBuffer*/ <Particle> buf, secondary;
+	PinnedHostBuffer /*SimpleDeviceBuffer*/ <Particle> buf;//, secondary;
     } recvhalos[26];
     
     

@@ -78,6 +78,8 @@ int main(int argc, char ** argv)
 
 	    int saru_tag = rank;
 	    
+	    CUDA_CHECK(cudaPeekAtLastError());
+
 	    cells.build(particles.xyzuvw.data, particles.size);
 	    std::map<string, double> timings;
 	    dpd.evaluate(saru_tag, particles.xyzuvw.data, particles.size, particles.axayaz.data, cells.start, cells.count);
@@ -107,16 +109,16 @@ int main(int argc, char ** argv)
 		    
 			if (it > 0)
 			{
-			    printf("beginning of time step %d (%.3e s)\n", it, t1 - t0);
-			    printf("in more details:\n");
+			    printf("beginning of time step %d (%.3f ms)\n", it, (t1 - t0) * 1e3 / steps_per_report);
+			    printf("in more details, per time step:\n");
 			    double tt = 0;
 			    for(std::map<string, double>::iterator it = timings.begin(); it != timings.end(); ++it)
 			    {
-				printf("%s: %.3e s\n", it->first.c_str(), it->second);
+				printf("%s: %.3f ms\n", it->first.c_str(), it->second * 1e3 / steps_per_report);
 				tt += it->second;
 				it->second = 0;
 			    }
-			    printf("discrepancy: %.3e s\n", (t1 - t0) - tt);
+			    printf("discrepancy: %.3f ms\n", ((t1 - t0) - tt) * 1e3 / steps_per_report);
 			}
 
 			t0 = t1;
@@ -271,6 +273,17 @@ int main(int argc, char ** argv)
 		    if (rbcscoll)
 			wall->bounce(rbcscoll->data(), rbcscoll->pcount());
 		    timings["bounce-walls"] += MPI_Wtime() - tstart;
+		    
+		    /*   CUDA_CHECK(cudaDeviceSynchronize());
+		    CUDA_CHECK(cudaPeekAtLastError());
+
+		    static int ctr = 0;
+		    if (rank == 0)
+			printf("ctr is %d\n", ctr);
+		    //  if (ctr == 85)
+		    //	break;
+
+			++ctr;*/
 		}
 
 		CUDA_CHECK(cudaPeekAtLastError());

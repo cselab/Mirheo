@@ -4,8 +4,10 @@ NVCC ?= nvcc
 ARCH_VAL ?= compute_35
 CODE_VAL ?= sm_35
 
-NVCCFLAGS +=  -arch $(ARCH_VAL) -code $(CODE_VAL) -O3 -use_fast_math  -DNDEBUG
-CXXFLAGS += -L../cuda-dpd-sem/dpd -L../cuda-rbc/ -O3 -DNDEBUG
+NVCCFLAGS +=  -arch $(ARCH_VAL) -code $(CODE_VAL) -O3 -use_fast_math -g 
+#-DNDEBUG
+CXXFLAGS += -L../cuda-dpd-sem/dpd -L../cuda-rbc/ -O3 -g 
+#-DNDEBUG
 NVCCFLAGS += -I../cuda-dpd-sem/dpd -I../cuda-rbc/
 
 OBJS = 	dpd-interactions.o \
@@ -36,7 +38,7 @@ test: $(OBJS) libcuda-dpd libcuda-rbc
 	$(NVCC) $(NVCCFLAGS) -M $*.cu > $*.d
 
 libcuda-dpd: 
-	make -C ../cuda-dpd-sem/dpd libcuda-dpd.so nonperiodic=1  CXX="$(CXX)" NVCC="$(NVCC)" ARCH_VAL="$(ARCH_VAL)" CODE_VAL="$(CODE_VAL)"
+	make -C ../cuda-dpd-sem/dpd libcuda-dpd.so nonperiodic=1   CXX="$(CXX)" NVCC="$(NVCC)" ARCH_VAL="$(ARCH_VAL)" CODE_VAL="$(CODE_VAL)"
 
 libcuda-rbc: 
 	make -C ../cuda-rbc/ libcuda-rbc.so  CXX="$(CXX)" NVCC="$(NVCC)" ARCH_VAL="$(ARCH_VAL)" CODE_VAL="$(CODE_VAL)"

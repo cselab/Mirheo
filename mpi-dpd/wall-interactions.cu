@@ -10,7 +10,8 @@
 
 #include "wall-interactions.h"
 
-static const int MARGIN = 4 * 2;
+static const int MARGIN = 12;
+static const int VPD = 256;
 
 namespace SolidWallsKernel
 {
@@ -18,12 +19,12 @@ namespace SolidWallsKernel
 
     __device__ float sdf(float x, float y, float z, const int L)
     {
-	float p[3] = {x, y, z};
+	double p[3] = {x, y, z};
 	
-	float texcoord[3];
+	double texcoord[3];
 	for(int c = 0; c < 3; ++c)
 	{
-	    texcoord[c] = (p[c] - (-L/2 - MARGIN)) / (L + 2 * MARGIN);
+	    texcoord[c] = (p[c] - (-L/2 - MARGIN)) / (L + 2 * MARGIN) + 0.499999 / VPD;
 	    assert(texcoord[c] >= 0 && texcoord[c] <= 1);
 	}
 	
@@ -41,7 +42,7 @@ namespace SolidWallsKernel
 
 	const Particle p = particles[pid];
 
-	key[pid] = (int)(sdf(p.x[0], p.x[1], p.x[2], L) > 0);
+	key[pid] = (int)(sdf(p.x[0], p.x[1], p.x[2], L) >= 0);
     }
 
     __global__ void zero_velocity(Particle * const dst, const int n)
@@ -61,43 +62,80 @@ namespace SolidWallsKernel
 	dst[pid] = p;
     }
 
-    __device__ bool handle_collision(float& x, float& y, float& z, float& u, float& v, float& w, /*float& dt,*/ const int L)
+    __device__ bool handle_collision(float& _x, float& _y, float& _z, float& _u, float& _v, float& _w, const int L, const int rank, const float _dt)
     {
-	if (sdf(x, y, z, L) < 0)
+	if (sdf(_x, _y, _z, L) < 0)
 	    return false;
 
-	const float xold = x - dt * u;
-	const float yold = y - dt * v;
-	const float zold = z - dt * w;
+	double dt = _dt;
+	bool ok = false;
 
-	float t = 0;
+	double x = _x, y = _y, z = _z, u = _u, v = _v, w = _w;
 
-	for(int i = 1; i < 8; ++i)
+	int ncollisions = 0;
+//	do
+	//{
+	    const double xold = x - dt * u;
+	    const double yold = y - dt * v;
+	    const double zold = z - dt * w;
+
+	    if (sdf(xold, yold, zold, L) >= 0)
+	    {
+		//printf("RANK %d collision resolution nr. %d oooops wall-interactions:handle_collision assumption failed: %f %f %f -> sdf %f\n", 
+		//     rank, ncollisions, xold, yold, zold, sdf(xold, yold, zold, L));
+		//assert(false);
+		return false;
+	    }
+	    
+	    float subdt = 0;
+	    
+	    for(int i = 1; i < 8; ++i)
+	    {
+		const double tcandidate = subdt + dt / (1 << i);
+		const double xcandidate = xold + tcandidate * u;
+		const double ycandidate = yold + tcandidate * v;
+		const double zcandidate = zold + tcandidate * w;
+		
+		if (sdf(xcandidate, ycandidate, zcandidate, L) < 0)
+		    subdt = tcandidate;
+	    }
+	    
+	    const double lambda = 2 * subdt - dt;
+	    
+	    x = xold + lambda * u;
+	    y = yold + lambda * v;
+	    z = zold + lambda * w;
+	    
+	    u  = -u;
+	    v  = -v;
+	    w  = -w;	    
+	    dt = dt - subdt;
+
+	    ok = (sdf(x, y, z, L) < 0);
+	    ++ncollisions;
+	    //} 
+//	while(!ok && ncollisions < 20);
+
+	if (!ok)
 	{
-	    const float tcandidate = t + dt / (1 << i);
-	    const float xcandidate = xold + tcandidate * u;
-	    const float ycandidate = yold + tcandidate * v;
-	    const float zcandidate = zold + tcandidate * w;
+	    //return false;
+	    //printf("RANK %d oooops after %d collision resolutions, still failed: %f %f %f -> sdf %f\n remaining dt %e", 
+	    //   rank, ncollisions, x, y, z, sdf(x, y, z, L), dt);
 
-	    if (sdf(xcandidate, ycandidate, zcandidate, L) < 0)
-		t = tcandidate;
+	    x = xold;
+	    y = yold;
+	    z = zold;
+
+	    //printf("recovering with: RANK %d oooops after %d collision resolutions, still failed: %f %f %f -> sdf %f\n remaining dt %e", 
+	    //   rank, ncollisions, x, y, z, sdf(x, y, z, L), dt);
 	}
 
-	const float lambda = 2 * t - dt;
-
-	x = xold + lambda * u;
-	y = yold + lambda * v;
-	z = zold + lambda * w;
-
-	u  = -u;
-	v  = -v;
-	w  = -w;
-	//dt = dt - t;
+	_x = x; _y = y; _z = z; _u = u; _v = v; _w = w;
 
 	return true;
     }
 
-    __global__ void bounce(Particle * const particles, const int n, const int L) //, const float dt)
+    __global__ void bounce(Particle * const particles, const int n, const int L, const int rank, const float dt)
     {
 	assert(blockDim.x * gridDim.x >= n);
 
@@ -116,7 +154,7 @@ namespace SolidWallsKernel
 	    assert(abs(p.x[c]) <= L/2 + MARGIN);
 	}
 
-	if (handle_collision(p.x[0], p.x[1], p.x[2], p.u[0], p.u[1], p.u[2], L))
+	if (handle_collision(p.x[0], p.x[1], p.x[2], p.u[0], p.u[1], p.u[2], L, rank, dt))
 	    particles[pid] = p;
     }
 
@@ -338,7 +376,7 @@ ComputeInteractionsWall::ComputeInteractionsWall(MPI_Comm cartcomm, const int L,
     MPI_CHECK( MPI_Comm_rank(cartcomm, &myrank));
     MPI_CHECK( MPI_Cart_get(cartcomm, 3, dims, periods, coords) );
     
-    const int VPD = 256;
+    //const int VPD = 256;
 
     float * field = new float[VPD * VPD * VPD];
 
@@ -357,28 +395,8 @@ ComputeInteractionsWall::ComputeInteractionsWall(MPI_Comm cartcomm, const int L,
 	sampler.sample(start, spacing, size, field);
     }
     
-    /*   
-#else
-
-    const float y_cyl = 0.5 * L * dims[1];
-    const float z_cyl = 0.5 * L * dims[2];
-    const float r_cyl = 0.45 * L * dims[1];
-    
-    //cylinder / pipe
-    for(int iz = 0; iz < VPD; ++iz)
-	for(int iy = 0; iy < VPD; ++iy)
-	    for(int ix = 0; ix < VPD; ++ix)
-	    {
-		//const float x = coords[0] * L - 1 + (ix + 0.5) * h;
-		const float y = coords[1] * L - MARGIN + (iy + 0.5) * h;
-		const float z = coords[2] * L - MARGIN + (iz + 0.5) * h;
-
-		const float r = sqrt(pow(y - y_cyl, 2) + pow(z - z_cyl, 2));
-		
-		field[ix + VPD * (iy + VPD * iz)] = r - r_cyl;
-	    }
-#endif
-    */    
+    CUDA_CHECK(cudaPeekAtLastError());
+    CUDA_CHECK(cudaDeviceSynchronize());
 
     cudaChannelFormatDesc fmt = cudaCreateChannelDesc<float>();
     CUDA_CHECK(cudaMalloc3DArray (&arrSDF, &fmt, make_cudaExtent(VPD, VPD, VPD)));
@@ -453,7 +471,7 @@ ComputeInteractionsWall::ComputeInteractionsWall(MPI_Comm cartcomm, const int L,
 void ComputeInteractionsWall::bounce(Particle * const p, const int n)
 {
     if (n > 0)
-	SolidWallsKernel::bounce<<< (n + 127) / 128, 128>>>(p, n, L);
+	SolidWallsKernel::bounce<<< (n + 127) / 128, 128>>>(p, n, L, myrank, dt);
     
     CUDA_CHECK(cudaPeekAtLastError());
 }
