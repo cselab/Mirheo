@@ -1,6 +1,7 @@
 #pragma once
 
 #include <vector>
+#include <string>
 
 #include "common.h"
 
@@ -23,16 +24,26 @@ struct ParticleArray
 
 class CollectionRBC : public ParticleArray
 {
+protected:
     MPI_Comm cartcomm;
     
     int nrbcs, L, myrank, dims[3], periods[3], coords[3];
     
+    std::string path2xyz, format4ply, path2ic;
+
+    virtual void _initialize(float *device_xyzuvw, const float (*transform)[4]);
+    
+    int (*indices)[3];
+    int ntriangles;
+
 public:
     
-    int nvertices;
+    int nvertices, dumpcounter;
 
-    CollectionRBC(MPI_Comm cartcomm, const int L);
-    
+    CollectionRBC(MPI_Comm cartcomm, const int L, const std::string path2ic = "rbcs-ic.txt");
+
+    void setup();
+
     void update_stage1();
     void update_stage2_and_1();
      

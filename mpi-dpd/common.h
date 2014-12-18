@@ -11,6 +11,7 @@ const float aij = 2.5;
 const bool walls = true;
 const bool pushtheflow = true;
 const bool rbcs = true;
+const bool ctcs = true;
 const bool xyz_dumps = false;
 const int steps_per_report = 100;
 const int steps_per_dump = 1000;

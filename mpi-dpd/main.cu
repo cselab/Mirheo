@@ -16,6 +16,8 @@
 #include "redistribute-rbcs.h"
 #include "rbc-interactions.h"
 
+#include "ctc.h"
+
 using namespace std;
 
 int main(int argc, char ** argv)
@@ -62,13 +64,26 @@ int main(int argc, char ** argv)
 	    CollectionRBC * rbcscoll = NULL;
 	    
 	    if (rbcs)
+	    {
 		rbcscoll = new CollectionRBC(cartcomm, L);
-	    
+		rbcscoll->setup();
+	    }
+
+	    CollectionCTC * ctcscoll = NULL;
+
+	    if (ctcs)
+	    {
+		ctcscoll = new CollectionCTC(cartcomm, L);
+		ctcscoll->setup();
+	    }
+
 	    RedistributeParticles redistribute(cartcomm, L);
 	    RedistributeRBCs redistribute_rbcs(cartcomm, L);
+	    RedistributeCTCs redistribute_ctcs(cartcomm, L);
 
 	    ComputeInteractionsDPD dpd(cartcomm, L);
 	    ComputeInteractionsRBC rbc_interactions(cartcomm, L);
+	    ComputeInteractionsCTC ctc_interactions(cartcomm, L);
 	    ComputeInteractionsWall * wall = NULL;
 	    
 	    cudaStream_t stream;
@@ -81,17 +96,24 @@ int main(int argc, char ** argv)
 	    CUDA_CHECK(cudaPeekAtLastError());
 
 	    cells.build(particles.xyzuvw.data, particles.size);
-	    std::map<string, double> timings;
+	    
+
 	    dpd.evaluate(saru_tag, particles.xyzuvw.data, particles.size, particles.axayaz.data, cells.start, cells.count);
 	    
 	    if (rbcscoll)
 		rbc_interactions.evaluate(saru_tag, particles.xyzuvw.data, particles.size, particles.axayaz.data, cells.start, cells.count,
 					  rbcscoll->data(), rbcscoll->count(), rbcscoll->acc());
 
+	    if (ctcscoll)
+		ctc_interactions.evaluate(saru_tag, particles.xyzuvw.data, particles.size, particles.axayaz.data, cells.start, cells.count,
+					ctcscoll->data(), ctcscoll->count(), ctcscoll->acc());
+
 	    float dpdx[3] = {0, 0, 0};
 
 	    if (!walls && pushtheflow)
 		dpdx[0] = -0.01;		    
+
+	    std::map<string, double> timings;
 
 	    const size_t nsteps = (int)(tend / dt);
 	    
@@ -133,14 +155,15 @@ int main(int argc, char ** argv)
 		    
 		    if (rbcscoll)
 			rbcscoll->update_stage1();
+
+		    if (ctcscoll)
+			ctcscoll->update_stage1();
 		}
 
 		tstart = MPI_Wtime();
-		
 		const int newnp = redistribute.stage1(particles.xyzuvw.data, particles.size);
 		particles.resize(newnp);
 		redistribute.stage2(particles.xyzuvw.data, particles.size);
-		
 		timings["redistribute-particles"] += MPI_Wtime() - tstart;
 		
 		CUDA_CHECK(cudaPeekAtLastError());
@@ -155,7 +178,18 @@ int main(int argc, char ** argv)
 		}
 
 		CUDA_CHECK(cudaPeekAtLastError());
-		
+			
+		if (ctcscoll)
+		{	
+		    tstart = MPI_Wtime();
+		    const int nctcs = redistribute_ctcs.stage1(ctcscoll->data(), ctcscoll->count());
+		    ctcscoll->resize(nctcs);
+		    redistribute_ctcs.stage2(ctcscoll->data(), ctcscoll->count());
+		    timings["redistribute-ctc"] += MPI_Wtime() - tstart;
+		}
+
+		CUDA_CHECK(cudaPeekAtLastError());
+
 		CUDA_CHECK(cudaStreamSynchronize(redistribute.mystream));
 		CUDA_CHECK(cudaStreamSynchronize(redistribute_rbcs.stream));
 
@@ -183,8 +217,10 @@ int main(int argc, char ** argv)
 			}
 		    }
 
+		    CUDA_CHECK(cudaPeekAtLastError());
+
 		    //remove Rbcscoll touching the wall
-		    if(rbcscoll)
+		    if(rbcscoll && rbcscoll->count())
 		    {
 			SimpleDeviceBuffer<int> marks(rbcscoll->pcount());
 			
@@ -212,8 +248,42 @@ int main(int argc, char ** argv)
 			rbcscoll->clear_velocity();
 		    }
 
+		    CUDA_CHECK(cudaPeekAtLastError());
+
+		    //remove ctcs     touching the wall
+		    if(ctcscoll && ctcscoll->count())
+		    {
+			SimpleDeviceBuffer<int> marks(ctcscoll->pcount());
+			
+			SolidWallsKernel::fill_keys<<< (ctcscoll->pcount() + 127) / 128, 128 >>>(ctcscoll->data(), ctcscoll->pcount(), L, 
+												 marks.data);
+			
+			vector<int> tmp(marks.size);
+			CUDA_CHECK(cudaMemcpy(tmp.data(), marks.data, sizeof(int) * marks.size, cudaMemcpyDeviceToHost));
+			
+			const int nctcs = ctcscoll->count();
+			const int nvertices = ctcscoll->nvertices;
+
+			std::vector<int> tokill;
+			for(int i = 0; i < nctcs; ++i)
+			{
+			    bool valid = true;
+
+			    for(int j = 0; j < nvertices && valid; ++j)
+				valid &= 0 == tmp[j + nvertices * i];
+			    
+			    if (!valid)
+				tokill.push_back(i);
+			}
+
+			ctcscoll->remove(&tokill.front(), tokill.size());
+			ctcscoll->clear_velocity();
+		    }
+
 		    if (pushtheflow)
 			dpdx[0] = -0.01;
+
+		    CUDA_CHECK(cudaPeekAtLastError());
 		}
 
 		tstart = MPI_Wtime();
@@ -241,6 +311,16 @@ int main(int argc, char ** argv)
 		    
 		    CUDA_CHECK(cudaPeekAtLastError());
 
+		    if (ctcscoll)
+		    {
+			tstart = MPI_Wtime();
+			ctc_interactions.evaluate(saru_tag, particles.xyzuvw.data, particles.size, particles.axayaz.data,
+						  cells.start, cells.count, ctcscoll->data(), ctcscoll->count(), ctcscoll->acc());
+			timings["evaluate-ctc"] += MPI_Wtime() - tstart;
+		    }
+		    
+		    CUDA_CHECK(cudaPeekAtLastError());
+
 		    if (wall)
 		    {
 			tstart = MPI_Wtime();
@@ -249,6 +329,9 @@ int main(int argc, char ** argv)
 
 			if (rbcscoll)
 			    wall->interactions(rbcscoll->data(), rbcscoll->pcount(), rbcscoll->acc(), NULL, NULL, saru_tag);
+
+			if (ctcscoll)
+			    wall->interactions(ctcscoll->data(), ctcscoll->pcount(), ctcscoll->acc(), NULL, NULL, saru_tag);
 
 			timings["evaluate-walls"] += MPI_Wtime() - tstart;
 		    }
@@ -265,6 +348,11 @@ int main(int argc, char ** argv)
 		if (rbcscoll)
 		    rbcscoll->update_stage2_and_1();
 
+		CUDA_CHECK(cudaPeekAtLastError());
+
+		if (ctcscoll)
+		    ctcscoll->update_stage2_and_1();
+
 		if (wall)
 		{
 		    tstart = MPI_Wtime();
@@ -272,18 +360,11 @@ int main(int argc, char ** argv)
 		    
 		    if (rbcscoll)
 			wall->bounce(rbcscoll->data(), rbcscoll->pcount());
+
+		    if (ctcscoll)
+			wall->bounce(ctcscoll->data(), ctcscoll->pcount());
+
 		    timings["bounce-walls"] += MPI_Wtime() - tstart;
-		    
-		    /*   CUDA_CHECK(cudaDeviceSynchronize());
-		    CUDA_CHECK(cudaPeekAtLastError());
-
-		    static int ctr = 0;
-		    if (rank == 0)
-			printf("ctr is %d\n", ctr);
-		    //  if (ctr == 85)
-		    //	break;
-
-			++ctr;*/
 		}
 
 		CUDA_CHECK(cudaPeekAtLastError());
@@ -295,19 +376,34 @@ int main(int argc, char ** argv)
 		    if (rbcscoll)
 			n += rbcscoll->pcount();
 
+		    if (ctcscoll)
+			n += ctcscoll->pcount();
+
 		    Particle * p = new Particle[n];
 		    Acceleration * a = new Acceleration[n];
 
 		    CUDA_CHECK(cudaMemcpy(p, particles.xyzuvw.data, sizeof(Particle) * particles.size, cudaMemcpyDeviceToHost));
 		    CUDA_CHECK(cudaMemcpy(a, particles.axayaz.data, sizeof(Acceleration) * particles.size, cudaMemcpyDeviceToHost));
 		   
+		    int start = particles.size;
+
 		    if (rbcscoll)
 		    {
-			const int start = particles.size;
-
 			CUDA_CHECK(cudaMemcpy(p + start, rbcscoll->xyzuvw.data, sizeof(Particle) * rbcscoll->pcount(), cudaMemcpyDeviceToHost));
 			CUDA_CHECK(cudaMemcpy(a + start, rbcscoll->axayaz.data, sizeof(Acceleration) * rbcscoll->pcount(), cudaMemcpyDeviceToHost));
+
+			start += rbcscoll->pcount();
 		    }
+
+		    if (ctcscoll)
+		    {
+			CUDA_CHECK(cudaMemcpy(p + start, ctcscoll->xyzuvw.data, sizeof(Particle) * ctcscoll->pcount(), cudaMemcpyDeviceToHost));
+			CUDA_CHECK(cudaMemcpy(a + start, ctcscoll->axayaz.data, sizeof(Acceleration) * ctcscoll->pcount(), cudaMemcpyDeviceToHost));
+
+			start += ctcscoll->pcount();
+		    }
+
+		    assert(start == n);
 
 		    //we fused VV stages so we need to recover the state before stage 1
 		    for(int i = 0; i < n; ++i)
@@ -325,7 +421,10 @@ int main(int argc, char ** argv)
 		    
 		    if (rbcscoll && it % steps_per_dump == 0)
 			rbcscoll->dump(cartcomm);
-		   
+		   	
+		    if (ctcscoll && it % steps_per_dump == 0)
+			ctcscoll->dump(cartcomm);
+
 		    delete [] p;
 		    delete [] a;
 		}
@@ -338,6 +437,9 @@ int main(int argc, char ** argv)
 
 	    if (rbcscoll)
 		delete rbcscoll;
+
+	    if (ctcscoll)
+		delete ctcscoll;
 
 	    MPI_CHECK(MPI_Comm_free(&cartcomm));
 	}

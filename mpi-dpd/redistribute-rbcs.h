@@ -8,6 +8,8 @@
 
 class RedistributeRBCs
 {
+protected:
+
     MPI_Comm cartcomm;
     std::vector<MPI_Request> sendreq, recvreq;
     
@@ -18,6 +20,8 @@ class RedistributeRBCs
     int nvertices, arriving, notleaving;
 
     PinnedHostBuffer<CudaRBC::Extent> extents;
+
+    virtual void _compute_extents(const Particle * const xyzuvw, const int nrbcs);
     
 public:
 

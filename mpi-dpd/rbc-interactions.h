@@ -7,6 +7,8 @@
 
 class ComputeInteractionsRBC
 {
+protected:
+
     MPI_Comm cartcomm;
 
     std::vector<MPI_Request> reqsendp, reqrecvp, reqsendacc, reqrecvacc;
@@ -28,6 +30,9 @@ class ComputeInteractionsRBC
 
     void pack_and_post(const Particle * const rbcs, const int nrbcs);
     
+    virtual void _compute_extents(const Particle * const xyzuvw, const int nrbcs);
+    virtual void _internal_forces(const Particle * const xyzuvw, const int nrbcs, Acceleration * acc);
+
     void _wait(std::vector<MPI_Request>& v)
     {
 	MPI_Status statuses[26];

@@ -181,8 +181,7 @@ namespace KernelsRBC
     }
 
     __global__ void merge_accelerations(const Acceleration * const src, const int n, Acceleration * const dst)
-    {
-	const int gid = threadIdx.x + blockDim.x * blockIdx.x;
+    {	const int gid = threadIdx.x + blockDim.x * blockIdx.x;
 
 	if (gid < n)
 	    for(int c = 0; c < 3; ++c)
@@ -220,12 +219,17 @@ ComputeInteractionsRBC::ComputeInteractionsRBC(MPI_Comm _cartcomm, int L):  L(L)
     CUDA_CHECK(cudaMemcpyToSymbol(KernelsRBC::params, &params, sizeof(KernelsRBC::ParamsFSI)));
 }
 
+void ComputeInteractionsRBC::_compute_extents(const Particle * const rbcs, const int nrbcs)
+{
+    for(int i = 0; i < nrbcs; ++i)
+	CudaRBC::extent_nohost(stream, (float *)(rbcs + nvertices * i), extents.devptr + i);
+}
+
 void ComputeInteractionsRBC::pack_and_post(const Particle * const rbcs, const int nrbcs)
 {
     extents.resize(nrbcs);
  
-    for(int i = 0; i < nrbcs; ++i)
-	CudaRBC::extent_nohost(stream, (float *)(rbcs + nvertices * i), extents.devptr + i);
+    _compute_extents(rbcs, nrbcs);
 
     CUDA_CHECK(cudaStreamSynchronize(stream));
 
@@ -320,6 +324,12 @@ void ComputeInteractionsRBC::pack_and_post(const Particle * const rbcs, const in
 	}
 }
 
+void ComputeInteractionsRBC::_internal_forces(const Particle * const rbcs, const int nrbcs, Acceleration * accrbc)
+{
+    for(int i = 0; i < nrbcs; ++i)
+	CudaRBC::forces_nohost(stream, (float *)(rbcs + nvertices * i), (float *)(accrbc + nvertices * i));
+}
+
 void ComputeInteractionsRBC::evaluate(int& saru_tag,
 				      const Particle * const solvent, const int nparticles, Acceleration * accsolvent,
 				      const int * const cellsstart_solvent, const int * const cellscount_solvent,
@@ -334,8 +344,7 @@ void ComputeInteractionsRBC::evaluate(int& saru_tag,
 	KernelsRBC::fsi_forces<<< (nrbcs * nvertices + 127) / 128, 128, 0, stream >>>
 	    (saru_tag + myrank, accsolvent, nparticles, rbcs, nrbcs * nvertices, accrbc, L);
 		
-	for(int i = 0; i < nrbcs; ++i)
-	    CudaRBC::forces_nohost(stream, (float *)(rbcs + nvertices * i), (float *)(accrbc + nvertices * i));
+	_internal_forces(rbcs, nrbcs, accrbc);
 
 	saru_tag += nranks;
     }

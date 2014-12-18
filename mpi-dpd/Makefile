@@ -6,9 +6,9 @@ CODE_VAL ?= sm_35
 
 NVCCFLAGS +=  -arch $(ARCH_VAL) -code $(CODE_VAL) -O3 -use_fast_math -g 
 #-DNDEBUG
-CXXFLAGS += -L../cuda-dpd-sem/dpd -L../cuda-rbc/ -O3 -g 
+CXXFLAGS += -L../cuda-dpd-sem/dpd -L../cuda-rbc/ -L../cuda-ctc/ -O3 -g 
 #-DNDEBUG
-NVCCFLAGS += -I../cuda-dpd-sem/dpd -I../cuda-rbc/
+NVCCFLAGS += -I../cuda-dpd-sem/dpd -I../cuda-rbc/ -I../cuda-ctc
 
 OBJS = 	dpd-interactions.o \
 	redistribute-particles.o \
@@ -19,7 +19,7 @@ OBJS = 	dpd-interactions.o \
 	containers.o \
 	main.o 
 
-LIBS = -lcuda-dpd -lcuda-rbc -lcudart 
+LIBS = -lcuda-dpd -lcuda-rbc -lcuda-ctc -lcudart 
 
 ifneq "$(h5part)" "0"
 LIBS += -lH5Part
@@ -27,7 +27,7 @@ else
 NVCCFLAGS += -DNO_H5PART
 endif
 
-test: $(OBJS) libcuda-dpd libcuda-rbc
+test: $(OBJS) libcuda-dpd libcuda-rbc libcuda-ctc
 	echo HELLO
 	$(CXX) $(CXXFLAGS) $(OBJS) $(LIBS) -o test
 
@@ -43,12 +43,16 @@ libcuda-dpd:
 libcuda-rbc: 
 	make -C ../cuda-rbc/ libcuda-rbc.so  CXX="$(CXX)" NVCC="$(NVCC)" ARCH_VAL="$(ARCH_VAL)" CODE_VAL="$(CODE_VAL)"
 
+libcuda-ctc: 
+	make -C ../cuda-ctc/ libcuda-ctc.so  CXX="$(CXX)" NVCC="$(NVCC)" ARCH_VAL="$(ARCH_VAL)" CODE_VAL="$(CODE_VAL)"
+
 clean:
 	rm -f test *.o *.d
 
 cleanall: clean
 	make -C ../cuda-dpd-sem/dpd clean
 	make -C ../cuda-rbc clean
+	make -C ../cuda-ctc clean
 
 #we want to give always a try to update the libs - too complicated to track dependecies there
-.PHONY = clean libcuda-dpd libcuda-rbc
+.PHONY = clean libcuda-dpd libcuda-rbc libcuda-ctc

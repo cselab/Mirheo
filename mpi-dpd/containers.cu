@@ -138,155 +138,21 @@ void ParticleArray::clear_velocity()
 	ParticleKernels::clear_velocity<<<(xyzuvw.size + 127) / 128, 128 >>>(xyzuvw.data, xyzuvw.size);
 }
 
-struct TransformedExtent
-{
-    float transform[4][4];
-
-    float xmin[3], xmax[3], local_xmin[3], local_xmax[3];
-       
-    void build_transform(CudaRBC::Extent extent, const int domain_extent[3])
-	{
-	    const float angles[3] = { 
-		0.25 * (drand48() - 0.5) * 2 * M_PI, 
-		M_PI * 0.5 + 0.25 * (drand48() * 2 - 1) * M_PI,
-		0.25 * (drand48() - 0.5) * 2 * M_PI
-	    };
-
-	    for(int i = 0; i < 4; ++i)
-		for(int j = 0; j < 4; ++j)
-		    transform[i][j] = i == j;
-
-	    for(int i = 0; i < 3; ++i)
-		transform[i][3] = - 0.5 * (local_xmin[i] + local_xmax[i]);
-
-	    for(int d = 0; d < 3; ++d)
-	    {
-		const float c = cos(angles[d]);
-		const float s = sin(angles[d]);
-
-		float tmp[4][4];
-
-		for(int i = 0; i < 4; ++i)
-		    for(int j = 0; j < 4; ++j)
-			tmp[i][j] = i == j;
-
-		if (d == 0)
-		{
-		    tmp[0][0] = tmp[1][1] = c;
-		    tmp[0][1] = -(tmp[1][0] = s);
-		} 
-		else 
-		    if (d == 1)
-		    {
-			tmp[0][0] = tmp[2][2] = c;
-			tmp[0][2] = -(tmp[2][0] = s);
-		    }
-		    else
-		    {  
-			tmp[1][1] = tmp[2][2] = c;
-			tmp[1][2] = -(tmp[2][1] = s);
-		    }
-
-		float res[4][4];
-		for(int i = 0; i < 4; ++i)
-		    for(int j = 0; j < 4; ++j)
-		    {
-			float s = 0;
-			    
-			for(int k = 0; k < 4; ++k)
-			    s += transform[i][k] * tmp[k][j];
-
-			res[i][j] = s;
-		    }
-
-		for(int i = 0; i < 4; ++i)
-		    for(int j = 0; j < 4; ++j)
-			transform[i][j] = res[i][j];
-	    }
-
-//we constraint the domain from [0, domain_extent] to [0.5 * maxlocalextent, domain_extent - 0.5 * maxlocal_extent) 
-//because of potentially colliding RBCs due to periodic bc
-	    float maxlocalextent = 0;
-	    for(int i = 0; i < 3; ++i)
-		maxlocalextent = max(maxlocalextent, local_xmax[i] - local_xmin[i]);
-
-	    for(int i = 0; i < 3; ++i)
-		transform[i][3] += 0.5 * maxlocalextent + drand48() * (domain_extent[i] - maxlocalextent);
-	}
-
-    void apply(float x[3], float y[3])
-	{
-	    for(int i = 0; i < 3; ++i)
-		y[i] = transform[i][0] * x[0] + transform[i][1] * x[1] + transform[i][2] * x[2] + transform[i][3];
-	}
-
-    TransformedExtent()
-	{
-	    memset(this, 0xff, sizeof(*this));
-	}
-    
-    TransformedExtent(CudaRBC::Extent extent, const int domain_extent[3])
-	{
-	    local_xmin[0] = extent.xmin;
-	    local_xmin[1] = extent.ymin;
-	    local_xmin[2] = extent.zmin;
-		
-	    local_xmax[0] = extent.xmax;
-	    local_xmax[1] = extent.ymax;
-	    local_xmax[2] = extent.zmax;
-	
-	    build_transform(extent, domain_extent);
-
-	    for(int i = 0; i < 8; ++i)
-	    {
-		const int idx[3] = { i % 2, (i/2) % 2, (i/4) % 2 };
-
-		float local[3];
-		for(int c = 0; c < 3; ++c)
-		    local[c] = idx[c] ? local_xmax[c] : local_xmin[c];
-
-		float world[3];
-
-		apply(local, world);
-
-		if (i == 0)
-		    for(int c = 0; c < 3; ++c)
-			xmin[c] = xmax[c] = world[c];
-		else
-		    for(int c = 0; c < 3; ++c)
-		    {
-			xmin[c] = min(xmin[c], world[c]);
-			xmax[c] = max(xmax[c], world[c]);
-		    }
-	    }
-	}
-
-    bool collides(const TransformedExtent a, const  float tol)
-	{
-	    int s[3], e[3];
-	    for(int c = 0; c < 3; ++c)
-	    {
-		s[c] = max(xmin[c], a.xmin[c]);
-		e[c] = min(xmax[c], a.xmax[c]);
-
-		if (s[c] -e[c] >= tol)
-		    return false;
-	    }
-
-	    return true;
-	}
-};
-
-
 void CollectionRBC::resize(const int count)
 {
     nrbcs = count;
 
     ParticleArray::resize(count * nvertices);
 }
-
     
-CollectionRBC::CollectionRBC(MPI_Comm cartcomm, const int L): cartcomm(cartcomm), L(L), nrbcs(0)
+struct TransformedExtent
+{
+    float com[3];
+    float transform[4][4];
+};
+
+CollectionRBC::CollectionRBC(MPI_Comm cartcomm, const int L, const string path2ic): 
+    cartcomm(cartcomm), L(L), nrbcs(0), path2xyz("rbcs.xyz"), format4ply("ply/rbcs-%04d.ply"), path2ic("rbcs-ic.txt"), dumpcounter(0)
 {
     MPI_CHECK(MPI_Comm_rank(cartcomm, &myrank));
     MPI_CHECK( MPI_Cart_get(cartcomm, 3, dims, periods, coords) );
@@ -298,39 +164,50 @@ CollectionRBC::CollectionRBC(MPI_Comm cartcomm, const int L): cartcomm(cartcomm)
     assert(extent.ymax - extent.ymin < L);
     assert(extent.zmax - extent.zmin < L);
 
+    CudaRBC::get_triangle_indexing(indices, ntriangles);
+}
+
+void CollectionRBC::setup()
+{
     vector<TransformedExtent> allrbcs;
 
     if (myrank == 0)
     {
-	bool failed = false;
+	//read transformed extent from file
+	FILE * f = fopen(path2ic.c_str(), "r");
+	printf("READING FROM: <%s>\n", path2ic.c_str());
+	bool isgood = true;
 	
-	while(!failed)
+	while(isgood)
 	{
-	    const int maxattempts = 100000;
-	    int attempt = 0;
-	    for(; attempt < maxattempts; ++attempt)
+	    float tmp[19];
+	    for(int c = 0; c < 19; ++c)
 	    {
-		const int domain_extent[3] = { L * dims[0], L * dims[1], L * dims[2] };
+		int retval = fscanf(f, "%f", tmp + c);
 		
-		TransformedExtent t(extent, domain_extent);
-		
-		bool noncolliding = true;
-		for(int i = 0; i < allrbcs.size() && noncolliding; ++i)
-		    noncolliding &= !t.collides(allrbcs[i], 0.00);
-		
-		if (noncolliding)
-		{
-		    allrbcs.push_back(t);
-		    break;
-		}
+		isgood &= retval == 1;
 	    }
 
-	    failed |= attempt == maxattempts;
+	    if (isgood)
+	    {
+		TransformedExtent t;
+		
+		for(int c = 0; c < 3; ++c)
+		    t.com[c] = tmp[c];
+
+		int ctr = 3;
+		for(int c = 0; c < 16; ++c, ++ctr)
+		    t.transform[c / 4][c % 4] = tmp[ctr];
+
+		allrbcs.push_back(t);
+	    }
 	}
+
+	fclose(f);
     }
 
     if (myrank == 0)
-	printf("Instantiating %d RBCs...\n", (int)allrbcs.size());
+	printf("Instantiating %d CELLs from...<%s>\n", (int)allrbcs.size(), path2ic.c_str());
 
     int allrbcs_count = allrbcs.size();
     MPI_CHECK(MPI_Bcast(&allrbcs_count, 1, MPI_INT, 0, cartcomm));
@@ -349,11 +226,7 @@ CollectionRBC::CollectionRBC(MPI_Comm cartcomm, const int L): cartcomm(cartcomm)
 	bool inside = true;
 
 	for(int c = 0; c < 3; ++c)
-	{
-	    const float x = 0.5 * (it->xmin[c] + it->xmax[c]);
-
-	    inside &= x >= coords[c] * L && x < (coords[c] + 1) * L;
-	}
+	    inside &= it->com[c] >= coords[c] * L && it->com[c] < (coords[c] + 1) * L;
 
 	if (inside)
 	{
@@ -367,7 +240,13 @@ CollectionRBC::CollectionRBC(MPI_Comm cartcomm, const int L): cartcomm(cartcomm)
     resize(good.size());
 
     for(int i = 0; i < good.size(); ++i)
-	CudaRBC::initialize((float *)(xyzuvw.data + nvertices * i), good[i].transform);
+	_initialize((float *)(xyzuvw.data + nvertices * i), good[i].transform);
+	//CudaRBC::initialize((float *)(xyzuvw.data + nvertices * i), good[i].transform);
+}
+
+void CollectionRBC::_initialize(float *device_xyzuvw, const float (*transform)[4])
+{
+    CudaRBC::initialize(device_xyzuvw, transform);
 }
 
 void CollectionRBC::update_stage1()
@@ -409,7 +288,7 @@ void CollectionRBC::remove(const int * const entries, const int nentries)
 
 void CollectionRBC::dump(MPI_Comm comm)
 {
-    static int ctr = 0;
+    int& ctr = dumpcounter;
     const bool firsttime = ctr == 0;
 	    
     const int n = size;
@@ -433,14 +312,13 @@ void CollectionRBC::dump(MPI_Comm comm)
 	}
 
     if (xyz_dumps)
-	xyz_dump(comm, "rbcs.xyz", "rbcparticles", p, n,  L, !firsttime);
+	xyz_dump(comm, path2xyz.c_str(), "cell-particles", p, n,  L, !firsttime);
 
-    int (*indices)[3];
-    int ntriangles;
-    CudaRBC::get_triangle_indexing(indices, ntriangles);
+    
+    
 
     char buf[200];
-    sprintf(buf, "ply/rbcs-%04d.ply", ctr);
+    sprintf(buf, format4ply.c_str(), ctr);
 
     if (ctr ==0)
     {

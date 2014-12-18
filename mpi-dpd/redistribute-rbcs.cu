@@ -34,12 +34,17 @@ RedistributeRBCs::RedistributeRBCs(MPI_Comm _cartcomm, const int L): L(L), nvert
     }
 }
 
+void RedistributeRBCs::_compute_extents(const Particle * const xyzuvw, const int nrbcs)
+{
+    for(int i = 0; i < nrbcs; ++i)
+	CudaRBC::extent_nohost(stream, (float *)(xyzuvw + nvertices * i), extents.devptr + i);
+}
+
 int RedistributeRBCs::stage1(const Particle * const xyzuvw, const int nrbcs)
 {
     extents.resize(nrbcs);
  
-    for(int i = 0; i < nrbcs; ++i)
-	CudaRBC::extent_nohost(stream, (float *)(xyzuvw + nvertices * i), extents.devptr + i);
+    _compute_extents(xyzuvw, nrbcs);
 
     CUDA_CHECK(cudaStreamSynchronize(stream));
    
