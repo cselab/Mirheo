@@ -45,7 +45,7 @@ vpath %.cpp %.h %.cu $(DIRS)
 clean:
 	rm -f *.cudaobj
 	rm -f *.o
-	rm -f *.d
+	rm -f *.d *.dcu
 	rm -f test-rbc
 	rm -f test-cuda-rbc
 

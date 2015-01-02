@@ -110,8 +110,50 @@ namespace PackingHalo
 	    if (gid == nsize)
 		output_start[gid] = output_count[gid] = 0;
     }
+    
+    __global__ void fill(const Particle * const particles, const int np, const int ncells,
+			 const int * const start_src, const int * const count_src,
+			 const int * const start_dst, 
+			 Particle * const bag, const int bagsize, int * const scattered_entries, int * const required_bag_size, const int code)
+    {
+	assert(sizeof(Particle) == 6 * sizeof(float));
+	assert(blockDim.x == warpSize);
 
-    __global__ void fill(const Particle * const particles, const int np,
+	const int cellid = (threadIdx.x >> 4) + 2 * blockIdx.x;
+
+	if (cellid > ncells)
+	    return;
+	
+	const int tid = threadIdx.x & 0xf;
+	
+	const int base_src = start_src[cellid];
+	const int base_dst = start_dst[cellid];
+	const int nsrc = min(count_src[cellid], bagsize - base_dst);
+	
+	const int nfloats = nsrc * 6;
+	for(int i = 2 * tid; i < nfloats; i += warpSize)
+	{
+	    const int lpid = i / 6;
+	    const int dpid = base_dst + lpid;
+	    const int spid = base_src + lpid;
+	    const int c = i % 6;
+
+	    *(float2 *)&bag[dpid].x[c] = *(float2 *)&particles[spid].x[c];
+	}
+
+	for(int lpid = tid; lpid < nsrc; lpid += warpSize / 2)
+	{
+	    const int dpid = base_dst + lpid;
+	    const int spid = base_src + lpid;
+
+	    scattered_entries[dpid] = spid;
+	}
+	
+	if (cellid == ncells)
+	    *required_bag_size = base_dst;
+    }
+    
+    __global__ void fill_v1(const Particle * const particles, const int np,
 			 const int * const start_src, const int * const count_src, const int L,
 			 const int * const start_dst, 
 			 Particle * const bag, const int bagsize, int * const scattered_entries, int * const required_bag_size, const int code)
@@ -165,7 +207,97 @@ namespace PackingHalo
 	    *required_bag_size = base_dst;
     }
 
-    __global__ void shift_recv_particles(Particle *const particles, const int n, const int L, const int code, const int rank)
+      __global__ void shift_recv_particles(Particle *const particles, const int n, const int L,
+					 const int code, const int dx, const int dy, const int dz, const int rank)
+      {
+	  assert(sizeof(Particle) == 6 * sizeof(float));
+	  assert(blockDim.x * gridDim.x >= n);
+
+	  const int base = threadIdx.x + 6 * blockDim.x * blockIdx.x;
+	  const int stop = min(base + 6 * blockDim.x, 6 * n);
+	  const int d[3] = {dx, dy, dz};
+	  
+	  for(int e = base ; e < stop; e += blockDim.x)
+	  {
+	      const int pid = e / 6;
+	      const int c = e % 6;
+
+	      if (c < 3)
+		  particles[pid].x[c] += d[c] * L;
+	  }    	  
+      }
+
+    __global__ void shift_recv_particles4(float4 * const particles4, const int n4, const int np, const int L,
+					 const int code, const int dx, const int dy, const int dz, const int rank)
+      {
+	  assert(sizeof(Particle) == 6 * sizeof(float));
+	  assert(blockDim.x * gridDim.x >= n4);
+	  assert(blockDim.x * gridDim.x >= (np * 6) / 4);
+
+	  const int gid4 = threadIdx.x + blockDim.x * blockIdx.x;
+
+	  if (gid4 >= n4)
+	      return;
+
+	  float4 t = particles4[gid4];
+
+	  float data[4] = {t.x, t.y, t.z, t.w};
+
+#pragma unroll
+	  for(int i = 0; i < 4; ++i)
+	  {
+	      const int e = i + 4 * gid4;
+	      const int c = e % 6;
+
+	      data[i] += L * (dx * (c == 0) + dy * (c == 1) + dz * (c == 2));
+	  }
+
+	  if (gid4 * 4 + 4 <= np * 6)
+	      particles4[gid4] = make_float4(data[0], data[1], data[2], data[3]);
+	  else
+	  {
+	      particles4[gid4].x = data[0];
+	      particles4[gid4].y = data[1];
+	  }
+      }
+
+#ifndef NDEBUG
+    __global__ void check_recv_particles(Particle *const particles, const int n, const int L,
+					 const int code, const int rank)
+    {
+	assert(blockDim.x * gridDim.x >= n);
+
+	const int pid = threadIdx.x + blockDim.x * blockIdx.x;
+
+	if (pid >= n)
+	    return;
+	
+	Particle myp = particles[pid];
+
+	const int d[3] = { (code + 2) % 3 - 1, (code / 3 + 2) % 3 - 1, (code / 9 + 2) % 3 - 1 };
+
+	assert(myp.x[0] <= -L / 2 || myp.x[0] >= L / 2 ||
+	       myp.x[1] <= -L / 2 || myp.x[1] >= L / 2 || 
+	       myp.x[2] <= -L / 2 || myp.x[2] >= L / 2);
+
+	for(int c = 0; c < 3; ++c)
+	{
+	    const float halo_start = max(d[c] * L - L/2, -L/2 - 1);
+	    const float halo_end = min(d[c] * L + L/2, L/2 + 1);
+	    const float eps = 1e-5;
+	    if (!(myp.x[c] >= halo_start - eps && myp.x[c] <= halo_end + eps))
+		printf("ooops RANK %d: shift_recv_particle: pid %d \npos %f %f %f vel: %f %f %f halo_start-end: %f %f\neps: %f, code %d c: %d direction %d %d %d\n",
+		       rank, pid, myp.x[0], myp.x[1], myp.x[2]
+		       ,myp.u[0], myp.u[1], myp.u[2], halo_start, halo_end, eps, code, c,
+		       d[0], d[1], d[2]);
+
+	    assert(myp.x[c] >= halo_start - eps && myp.x[c] <= halo_end + eps);
+	}
+    }
+#endif
+    
+    __global__ void shift_recv_particles_old(Particle *const particles, const int n, const int L,
+					 const int code, const int dx, const int dy, const int dz, const int rank)
     {
 	assert(blockDim.x * gridDim.x >= n);
 
@@ -180,7 +312,7 @@ namespace PackingHalo
 	for(int c = 0; c < 3; ++c)
 	    assert(myp.x[c] >= -L / 2 && myp.x[c] < L / 2);
 
-	const int d[3] = { (code + 2) % 3 - 1, (code / 3 + 2) % 3 - 1, (code / 9 + 2) % 3 - 1 };
+	const int d[3] = {dx, dy, dz}; //{ (code + 2) % 3 - 1, (code / 3 + 2) % 3 - 1, (code / 9 + 2) % 3 - 1 };
 
 	for(int c = 0; c < 3; ++c)
 	    myp.x[c] += d[c] * L;
@@ -301,10 +433,15 @@ void HaloExchanger::pack_and_post(const Particle * const p, const int n, const i
 		}
 		
 		const int nentries = sendhalos[i].cellstarts.size;
-
+#if 1
 		PackingHalo::fill<<<nentries, 32, 0, streams[code2stream[i]] >>>
+		    (p, n, nentries - 1, sendhalos[i].tmpstart.data, sendhalos[i].tmpcount.data, sendhalos[i].cellstarts.devptr,
+		     sendhalos[i].buf.devptr, sendhalos[i].buf.capacity, sendhalos[i].scattered_entries.data, required_send_bag_size + i, i);
+#else
+		PackingHalo::fill_v1<<<nentries, 32, 0, streams[code2stream[i]] >>>
 		    (p, n, sendhalos[i].tmpstart.data, sendhalos[i].tmpcount.data, L, sendhalos[i].cellstarts.devptr,
 		     sendhalos[i].buf.devptr, sendhalos[i].buf.capacity, sendhalos[i].scattered_entries.data, required_send_bag_size + i, i);
+#endif
 	    }
 
 	    if (pass == 1)
@@ -328,9 +465,11 @@ void HaloExchanger::pack_and_post(const Particle * const p, const int n, const i
 	
 	if (nd > 0)
 	    PackingHalo::check_send_particles<<<(nd + 127)/ 128, 128>>>(sendhalos[i].buf.devptr, nd, L, i);
+
+	printf("send all good\n");
     }
 
-    CUDA_CHECK(cudaStreamSynchronize(0));
+    CUDA_CHECK(cudaDeviceSynchronize());
     CUDA_CHECK(cudaPeekAtLastError());
 #endif
 
@@ -373,13 +512,6 @@ void HaloExchanger::pack_and_post(const Particle * const p, const int n, const i
 	{
 	    const int difference = count - expected;
 	    printf("extra message from rank %d to rank %d! difference %d\n", myrank, dstranks[i], difference);
-
-	    //sendhalos[i].secondary.resize(difference);
-	    
-	    //CUDA_CHECK( cudaMemcpy(sendhalos[i].secondary.devptr, sendhalos[i].buf.devptr + expected, 
-	    //		   difference * sizeof(Particle), cudaMemcpyDeviceToDevice));
-	    //MPI_CHECK( MPI_Isend(sendhalos[i].secondary.data, difference, Particle::datatype(), dstranks[i], 
-	    //		 basetag + i + 555, cartcomm, sendreq + nsendreq) );
 	    
 	    MPI_CHECK( MPI_Isend(sendhalos[i].buf.data + expected, difference, Particle::datatype(), dstranks[i], 
 				 basetag + i + 555, cartcomm, sendreq + nsendreq) );
@@ -417,12 +549,8 @@ void HaloExchanger::wait_for_messages()
 		   myrank, count, expected, difference, dstranks[i]);
 	    
 	    recvhalos[i].buf.preserve_resize(count);
-	    //recvhalos[i].secondary.resize(difference);
 
 	    MPI_Status status;
-	    
-	    //MPI_Recv(recvhalos[i].secondary.data, difference, Particle::datatype(), dstranks[i], 
-	    //     basetag + recv_tags[i] + 555, cartcomm, &status);
 
 	    MPI_Recv(recvhalos[i].buf.data + expected, difference, Particle::datatype(), dstranks[i], 
 		     basetag + recv_tags[i] + 555, cartcomm, &status);
@@ -436,30 +564,42 @@ void HaloExchanger::wait_for_messages()
 	MPI_CHECK( MPI_Waitall(nsendreq, sendreq, statuses) );
     }
     
-    /*for(int i = 0; i < 26; ++i)
+    for(int code = 0; code < 26; ++code)
     {
-	const int count = recv_counts[i];
-	const int expected = recvhalos[i].expected;
-	const int difference = count - expected;
-	
-	if (count <= expected)
-	    recvhalos[i].buf.resize(count);
-	else
-	{
-	    CUDA_CHECK(cudaMemcpy((Particle *)(recvhalos[i].buf.devptr + expected), recvhalos[i].secondary.devptr,
-				  sizeof(Particle) * (difference), cudaMemcpyDeviceToDevice));
-	}
-	}*/
-
-    for(int i = 0; i < 26; ++i)
-    {
-	const int count = recv_counts[i];
-		
+	const int count = recv_counts[code];
+#if 1
 	if (count > 0)
-	    PackingHalo::shift_recv_particles<<<(count + 127) / 128, 128, 0, streams[code2stream[i]]>>>(recvhalos[i].buf.devptr, count, L, i, myrank);	
+	{
+	    const int n4 = (count * 6 + 3) / 4;
+	    PackingHalo::shift_recv_particles4<<<(n4 + 127) / 128, 128, 0, streams[code2stream[code]]>>>(
+		(float4 *)recvhalos[code].buf.devptr, n4, count, L, code, (code + 2) % 3 - 1, (code / 3 + 2) % 3 - 1, (code / 9 + 2) % 3 - 1, myrank);
+	}
+#else
+	if (count > 0)
+	    PackingHalo::shift_recv_particles<<<(count + 127) / 128, 128, 0, streams[code2stream[code]]>>>(
+		recvhalos[code].buf.devptr, count, L, code, (code + 2) % 3 - 1, (code / 3 + 2) % 3 - 1, (code / 9 + 2) % 3 - 1, myrank);
+#endif
     }
 
     CUDA_CHECK(cudaPeekAtLastError());
+
+#ifndef NDEBUG
+    for(int code = 0; code < 26; ++code)
+    {
+	const int count = recv_counts[code];
+	
+	if (count > 0)
+	    PackingHalo::check_recv_particles<<<(count + 127) / 128, 128, 0, streams[code2stream[code]]>>>(
+		recvhalos[code].buf.devptr, count, L, code, myrank);	
+    }
+
+    CUDA_CHECK(cudaPeekAtLastError());
+    CUDA_CHECK(cudaDeviceSynchronize());
+
+    printf("all good\n");
+#endif
+    
+    
 }
 
 int HaloExchanger::nof_sent_particles()
