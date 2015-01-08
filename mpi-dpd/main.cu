@@ -114,7 +114,7 @@ int main(int argc, char ** argv)
 
 	    std::map<string, double> timings;
 
-	    const size_t nsteps = 200;//(int)(tend / dt);
+	    const size_t nsteps = (int)(tend / dt);
 	    
 	    for(int it = 0; it < nsteps; ++it)
 	    {

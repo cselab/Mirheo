@@ -110,8 +110,8 @@ void ComputeInteractionsDPD::dpd_remote_interactions(const Particle * const p, c
 
     for(int i = 0; i < 26; ++i)
     {
-	const int nd = sendhalos[i].buf.size;
-	const int ns = recvhalos[i].buf.size;
+	const int nd = sendhalos[i].dbuf.size;
+	const int ns = recvhalos[i].dbuf.size;
 
 	acc_remote[i].resize(nd);
 
@@ -130,20 +130,20 @@ void ComputeInteractionsDPD::dpd_remote_interactions(const Particle * const p, c
 	    continue;
 	}
 	
-	if (sendhalos[i].cellstarts.size * recvhalos[i].cellstarts.size > 1 && nd * ns > 10 * 10)
+	if (sendhalos[i].dcellstarts.size * recvhalos[i].dcellstarts.size > 1 && nd * ns > 10 * 10)
 	{	   
-	    texDC[i].acquire(sendhalos[i].cellstarts.devptr, sendhalos[i].cellstarts.capacity);
-	    texSC[i].acquire(recvhalos[i].cellstarts.devptr, recvhalos[i].cellstarts.capacity);
-	    texSP[i].acquire((float2*)recvhalos[i].buf.devptr, recvhalos[i].buf.capacity * 3);
+	    texDC[i].acquire(sendhalos[i].dcellstarts.data, sendhalos[i].dcellstarts.capacity);
+	    texSC[i].acquire(recvhalos[i].dcellstarts.data, recvhalos[i].dcellstarts.capacity);
+	    texSP[i].acquire((float2*)recvhalos[i].dbuf.data, recvhalos[i].dbuf.capacity * 3);
 	       
-	    forces_dpd_cuda_bipartite_nohost(mystream, (float2 *)sendhalos[i].buf.devptr, nd, texDC[i].texObj, texSC[i].texObj, texSP[i].texObj,
+	    forces_dpd_cuda_bipartite_nohost(mystream, (float2 *)sendhalos[i].dbuf.data, nd, texDC[i].texObj, texSC[i].texObj, texSP[i].texObj,
 					     ns, halosize[i], aij, gammadpd, sigma / sqrt(dt), saru_tag1, saru_tag2[i], saru_mask[i],
 					     (float *)acc_remote[i].data);
 	}
 	else
 	    directforces_dpd_cuda_bipartite_nohost(
-		(float *)sendhalos[i].buf.devptr, (float *)acc_remote[i].data, nd,
-		(float *)recvhalos[i].buf.devptr, ns,
+		(float *)sendhalos[i].dbuf.data, (float *)acc_remote[i].data, nd,
+		(float *)recvhalos[i].dbuf.data, ns,
 		aij, gammadpd, sigma, 1. / sqrt(dt), saru_tag1, saru_tag2[i], saru_mask[i], mystream);
     }
     
@@ -155,7 +155,7 @@ void ComputeInteractionsDPD::dpd_remote_interactions(const Particle * const p, c
 	
 	if (nd > 0)
 	    RemoteDPD::merge_accelerations<<<(nd + 127) / 128, 128, 0, streams[code2stream[i]]>>>
-		(acc_remote[i].data, nd, a, n, sendhalos[i].buf.devptr, p, sendhalos[i].scattered_entries.data, myrank);
+		(acc_remote[i].data, nd, a, n, sendhalos[i].dbuf.data, p, sendhalos[i].scattered_entries.data, myrank);
     }
    
     CUDA_CHECK(cudaPeekAtLastError());

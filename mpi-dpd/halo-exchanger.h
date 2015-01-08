@@ -19,16 +19,43 @@ protected:
     struct SendHalo
     {
 	int expected;
-	SimpleDeviceBuffer<int> scattered_entries, tmpstart, tmpcount;
-	PinnedHostBuffer /*SimpleDeviceBuffer*/<int> cellstarts;
-	PinnedHostBuffer /*SimpleDeviceBuffer*/<Particle> buf; //, secondary;
+	SimpleDeviceBuffer<int> scattered_entries, tmpstart, tmpcount, dcellstarts;
+	SimpleDeviceBuffer<Particle> dbuf;
+	PinnedHostBuffer<int> hcellstarts;
+	PinnedHostBuffer<Particle> hbuf;
+
+	void setup(const int estimate, const int nhalocells)
+	    {
+		expected = estimate;
+		dbuf.resize(estimate);
+		hbuf.resize(estimate);
+	 
+		scattered_entries.resize(estimate);
+		dcellstarts.resize(nhalocells + 1);
+		hcellstarts.resize(nhalocells + 1);
+		tmpcount.resize(nhalocells + 1);
+		tmpstart.resize(nhalocells + 1);
+	    }
+
     } sendhalos[26];
 
     struct RecvHalo
     {
 	int expected;
-	PinnedHostBuffer /*SimpleDeviceBuffer*/ <int> cellstarts;
-	PinnedHostBuffer /*SimpleDeviceBuffer*/ <Particle> buf;//, secondary;
+	PinnedHostBuffer<int> hcellstarts;
+	PinnedHostBuffer<Particle> hbuf;
+	SimpleDeviceBuffer<Particle> dbuf;
+	SimpleDeviceBuffer<int> dcellstarts;
+
+	void setup(const int estimate, const int nhalocells)
+	    {
+		expected = estimate;
+		hbuf.resize(estimate);
+		dbuf.resize(estimate);
+		dcellstarts.resize(nhalocells + 1);
+		hcellstarts.resize(nhalocells + 1);
+	    }
+
     } recvhalos[26];
     
     
