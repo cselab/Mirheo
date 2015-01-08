@@ -2,14 +2,14 @@
 
 const int L = 48;
 const float dt = 0.001;
-const float tend = 10000;
+const float tend = 10;
 const float kBT = 0.0945;
 const float gammadpd = 45;
 const float sigma = sqrt(2 * gammadpd * kBT);
 const float sigmaf = sigma / sqrt(dt);
 const float aij = 2.5;
 const bool walls = false;
-const bool pushtheflow = true;
+const bool pushtheflow = false;
 const bool rbcs = false;
 const bool ctcs = false;
 const bool xyz_dumps = false;
