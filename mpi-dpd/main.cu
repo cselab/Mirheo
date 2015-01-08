@@ -96,7 +96,6 @@ int main(int argc, char ** argv)
 	    CUDA_CHECK(cudaPeekAtLastError());
 
 	    cells.build(particles.xyzuvw.data, particles.size);
-	    
 
 	    dpd.evaluate(saru_tag, particles.xyzuvw.data, particles.size, particles.axayaz.data, cells.start, cells.count);
 	    
@@ -115,7 +114,7 @@ int main(int argc, char ** argv)
 
 	    std::map<string, double> timings;
 
-	    const size_t nsteps = (int)(tend / dt);
+	    const size_t nsteps = 200;//(int)(tend / dt);
 	    
 	    for(int it = 0; it < nsteps; ++it)
 	    {
@@ -189,10 +188,12 @@ int main(int argc, char ** argv)
 		}
 
 		CUDA_CHECK(cudaPeekAtLastError());
-
+		
+		tstart = MPI_Wtime();
 		CUDA_CHECK(cudaStreamSynchronize(redistribute.mystream));
 		CUDA_CHECK(cudaStreamSynchronize(redistribute_rbcs.stream));
-
+		timings["stream-synchronize"] += MPI_Wtime() - tstart;
+		
 		//create the wall when it is time
 		if (walls && it > 5000 && wall == NULL)
 		{
@@ -336,11 +337,11 @@ int main(int argc, char ** argv)
 			timings["evaluate-walls"] += MPI_Wtime() - tstart;
 		    }
 
-		    CUDA_CHECK(cudaDeviceSynchronize());
+		    //CUDA_CHECK(cudaDeviceSynchronize());
 		}
 		
 		CUDA_CHECK(cudaPeekAtLastError());
-
+		tstart = MPI_Wtime();
 		particles.update_stage2_and_1(dpdx);
 
 		CUDA_CHECK(cudaPeekAtLastError());
@@ -352,7 +353,8 @@ int main(int argc, char ** argv)
 
 		if (ctcscoll)
 		    ctcscoll->update_stage2_and_1();
-
+		timings["update"] += MPI_Wtime() - tstart;
+		
 		if (wall)
 		{
 		    tstart = MPI_Wtime();
@@ -371,6 +373,7 @@ int main(int argc, char ** argv)
 	    
 		if (it % steps_per_report == 0)
 		{
+		    tstart = MPI_Wtime();
 		    int n = particles.size;
 
 		    if (rbcscoll)
@@ -427,6 +430,8 @@ int main(int argc, char ** argv)
 
 		    delete [] p;
 		    delete [] a;
+
+		     timings["diagnostics"] += MPI_Wtime() - tstart;
 		}
 	    }
 
