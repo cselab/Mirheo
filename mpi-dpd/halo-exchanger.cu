@@ -174,40 +174,37 @@ namespace PackingHalo
 	if (cellid == ncells)
 	    *required_bag_size = base_dst;
     }
+   
+    __constant__ Particle * srcpacks[26], * dstpacks[26];
+    __constant__ int packstarts[27];
 
-    __global__ void shift_recv_particles4(const float4 * const particles4, const int n4, const int np, const int L,
-					  const int code, const int dx, const int dy, const int dz, const int rank,
-					  float4 * const dest4)
-      {
-	  assert(sizeof(Particle) == 6 * sizeof(float));
-	  assert(blockDim.x * gridDim.x >= n4);
-	  assert(blockDim.x * gridDim.x >= (np * 6) / 4);
+    __global__ void shift_recv_particles_float(const int np, const int L)
+    {
+	assert(sizeof(Particle) == 6 * sizeof(float));
+	assert(blockDim.x * gridDim.x >= np * 6);
 
-	  const int gid4 = threadIdx.x + blockDim.x * blockIdx.x;
+	const int gid = threadIdx.x + blockDim.x * blockIdx.x;
+	const int pid = gid / 6;
+	const int c = gid % 6;
 
-	  if (gid4 >= n4)
-	      return;
+	const int key9 = 9 * (pid >= packstarts[8]) + 9 * (pid >= packstarts[17]);
+	const int key3 = 3 * (pid >= packstarts[key9 + 2]) + 3 * (pid >= packstarts[key9 + 5]);
+	const int key1 = (pid >= packstarts[key9 + key3]) + (pid >= packstarts[key9 + key3 + 1]);
+	const int code = key9 + key3 + key1 - 1;
 
-	  float4 t = particles4[gid4];
+	assert(code >= 0 && code < 26);
 
-	  float data[4] = {t.x, t.y, t.z, t.w};
+	const int base = packstarts[code];
+	const int offset = pid - base;
 
-	  for(int i = 0; i < 4; ++i)
-	  {
-	      const int e = i + 4 * gid4;
-	      const int c = e % 6;
+	const float val = *(c + (float *)&srcpacks[code][offset].x[0]);
 
-	      data[i] += L * (dx * (c == 0) + dy * (c == 1) + dz * (c == 2));
-	  }
+	const int dx = (code + 2) % 3 - 1;
+	const int dy = (code / 3 + 2) % 3 - 1;
+	const int dz = (code / 9 + 2) % 3 - 1;
 
-	  if (gid4 * 4 + 4 <= np * 6)
-	      dest4[gid4] = make_float4(data[0], data[1], data[2], data[3]);
-	  else
-	  {
-	      dest4[gid4].x = data[0];
-	      dest4[gid4].y = data[1];
-	  }
-      }
+	*(c + (float *)&dstpacks[code][offset].x[0]) =  val + L * (dx * (c == 0) + dy * (c == 1) + dz * (c == 2));
+    }
 
 #ifndef NDEBUG
     __global__ void check_recv_particles(Particle *const particles, const int n, const int L,
@@ -469,24 +466,37 @@ void HaloExchanger::wait_for_messages()
 	CUDA_CHECK(cudaMemcpyAsync(recvhalos[code].dcellstarts.data, recvhalos[code].hcellstarts.devptr, sizeof(int) * recvhalos[code].hcellstarts.size, 
 				   cudaMemcpyDeviceToDevice, streams[code2stream[code]]));
 
-    
-    for(int code = 0; code < 26; ++code)
+    //shift the received particles
     {
-	const int count = recv_counts[code];
+	int packstarts[27];
+	
+	packstarts[0] = 0;
+	for(int code = 0, s = 0; code < 26; ++code)
+	    packstarts[code + 1] = (s += recv_counts[code]);
+	
+	CUDA_CHECK(cudaMemcpyToSymbolAsync(PackingHalo::packstarts, packstarts, sizeof(packstarts), 0, cudaMemcpyHostToDevice));
 
-	if (count > 0)
-	{
-	    const int n4 = (count * 6 + 3) / 4;
+	Particle * srcpacks[26];
+	for(int i = 0; i < 26; ++i)
+	    srcpacks[i] = recvhalos[i].hbuf.devptr;
 
-	    PackingHalo::shift_recv_particles4<<<(n4 + 127) / 128, 128, 0, streams[code2stream[code]]>>>(
-		(float4 *)recvhalos[code].hbuf.devptr, n4, count, L, code, (code + 2) % 3 - 1, (code / 3 + 2) % 3 - 1, 
-		(code / 9 + 2) % 3 - 1, myrank, (float4 *)recvhalos[code].dbuf.data);
-	}
+	CUDA_CHECK(cudaMemcpyToSymbolAsync(PackingHalo::srcpacks, srcpacks, sizeof(srcpacks), 0, cudaMemcpyHostToDevice));
+
+	Particle * dstpacks[26];
+	for(int i = 0; i < 26; ++i)
+	    dstpacks[i] = recvhalos[i].dbuf.data;
+
+	CUDA_CHECK(cudaMemcpyToSymbolAsync(PackingHalo::dstpacks, dstpacks, sizeof(dstpacks), 0, cudaMemcpyHostToDevice));
+
+	const int np = packstarts[26];
+
+	PackingHalo::shift_recv_particles_float<<<(np * 6 + 127) / 128, 128, 0, streams[0]>>>(np, L);
     }
 
     CUDA_CHECK(cudaPeekAtLastError());
 
 #ifndef NDEBUG
+
     for(int code = 0; code < 26; ++code)
     {
 	const int count = recv_counts[code];
@@ -497,7 +507,7 @@ void HaloExchanger::wait_for_messages()
     }
 
     CUDA_CHECK(cudaPeekAtLastError());
-    CUDA_CHECK(cudaDeviceSynchronize());
+    //CUDA_CHECK(cudaDeviceSynchronize());
 #endif
 }
 
@@ -517,7 +527,8 @@ void HaloExchanger::exchange(Particle * const plocal, int nlocal, SimpleDeviceBu
    
     pack_and_post(plocal, nlocal, cells.start, cells.count);
     wait_for_messages();
-
+    CUDA_CHECK(cudaStreamSynchronize(streams[0]));
+    
     int s = 0;
     for(int i = 0; i < 26; ++i)
 	s += recvhalos[i].hbuf.size;
