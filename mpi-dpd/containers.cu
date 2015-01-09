@@ -40,50 +40,44 @@ namespace ParticleKernels
     }
 
     __global__ void update_stage2_and_1(Particle * p, Acceleration * a, int n, float dt,
-					const float dpdx, const float dpdy, const float dpdz, const bool check = true)
+					const float dpdx, const float dpdy, const float dpdz)
     {
-	const float gradp[3] = {dpdx, dpdy, dpdz};
+	assert(blockDim.x * gridDim.x >= 3 * n);
 	
-	assert(blockDim.x * gridDim.x >= n);
-    
-	const int pid = threadIdx.x + blockDim.x * blockIdx.x;
+	const int gid = threadIdx.x + blockDim.x * blockIdx.x;
 
-	if (pid >= n)
+	if (gid >= 3 * n)
 	    return;
-
-	for(int c = 0; c < 3; ++c)
-	    assert(!isnan(p[pid].u[c]));
-
-	for(int c = 0; c < 3; ++c)
-	    assert(!isnan(a[pid].a[c]));
-
-	for(int c = 0; c < 3; ++c)
-	{
-	    const float mya = a[pid].a[c] - gradp[c];
-	    float myu = p[pid].u[c];
-	    float myx = p[pid].x[c];
-
-	    myu += mya * dt;
-	    myx += myu * dt;
 	
-	    p[pid].u[c] = myu; 
-	    p[pid].x[c] = myx; 
-	}
+	const int pid = gid / 3;
+	const int c = gid % 3;
 
-	if (check)
-	    for(int c = 0; c < 3; ++c)
+	const float gradp[3] = {dpdx, dpdy, dpdz};
+	const float mya = a[pid].a[c] - gradp[c];
+	
+	float myu = p[pid].u[c];
+	float myx = p[pid].x[c];
+	
+	myu += mya * dt;
+	myx += myu * dt;
+
+	assert(!isnan(myu) && !isnan(myx));
+	
+	p[pid].u[c] = myu;
+	p[pid].x[c] = myx;
+
+#ifndef NDEBUG
+	    if (!(myx >= -L -L/2) || !(myx <= +L +L/2))
 	    {
-		if (!(p[pid].x[c] >= -L -L/2) || !(p[pid].x[c] <= +L +L/2))
-		    printf("Uau: %f %f %f %f %f %f and acc %f %f %f\n", 
-			   p[pid].x[0], p[pid].x[1], p[pid].x[2], 
-			   p[pid].u[0], p[pid].u[1], p[pid].u[2],
-			   a[pid].a[0], a[pid].a[1],a[pid].a[2]);
-	    
-		assert(p[pid].x[c] >= -L -L/2);
-		assert(p[pid].x[c] <= +L +L/2);
+		printf("Uau: pid %d c %d: x %f u %f and a %f\n",
+		       pid, c, myx, myu, mya);
+	
+		assert(myx >= -L -L/2);
+		assert(myx <= +L +L/2);
 	    }
+#endif
     }
-
+    
     __global__ void clear_velocity(Particle * const p, const int n)
     {
 	assert(blockDim.x * gridDim.x >= n);
@@ -104,6 +98,11 @@ ParticleArray::ParticleArray(vector<Particle> ic)
 
     CUDA_CHECK(cudaMemcpy(xyzuvw.data, (float*) &ic.front(), sizeof(Particle) * ic.size(), cudaMemcpyHostToDevice));
     CUDA_CHECK(cudaMemset(axayaz.data, 0, sizeof(Acceleration) * ic.size()));
+
+    void (*upkernel)(Particle * p, Acceleration * a, int n, float dt,
+		     const float dpdx, const float dpdy, const float dpdz) = ParticleKernels::update_stage2_and_1;
+    
+    CUDA_CHECK(cudaFuncSetCacheConfig(*upkernel, cudaFuncCachePreferL1));
 }
 
 void ParticleArray::update_stage1(const float gradpressure[3])
@@ -117,9 +116,9 @@ void ParticleArray::update_stage1(const float gradpressure[3])
 void  ParticleArray::update_stage2_and_1(const float gradpressure[3])
 {
     if (size)
-	ParticleKernels::update_stage2_and_1<<<(xyzuvw.size + 127) / 128, 128 >>>
+	ParticleKernels::update_stage2_and_1<<<(xyzuvw.size * 3 + 127) / 128, 128 >>>
 	    (xyzuvw.data, axayaz.data, xyzuvw.size, dt,
-	     gradpressure[0], gradpressure[1], gradpressure[2], false);
+	     gradpressure[0], gradpressure[1], gradpressure[2]);
 }
 
 void ParticleArray::resize(int n)
