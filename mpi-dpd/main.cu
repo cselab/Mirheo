@@ -2,7 +2,7 @@
 #include <cstdio>
 #include <cmath>
 #include <cassert>
-#include <sys/stat.h>
+#include <csignal>
 #include <mpi.h>
 
 #include <vector>
@@ -20,6 +20,14 @@
 
 using namespace std;
 
+volatile sig_atomic_t graceful_exit = 0, graceful_signum = 0;
+ 
+void signal_handler(int signum)
+{
+    graceful_exit = 1;
+    graceful_signum = signum;
+}
+
 int main(int argc, char ** argv)
 {
     int ranks[3];
@@ -32,6 +40,15 @@ int main(int argc, char ** argv)
     else
     	for(int i = 0; i < 3; ++i)
 	    ranks[i] = atoi(argv[1 + i]);
+
+    //setup graceful exit
+    {
+	struct sigaction action;
+	memset(&action, 0, sizeof(struct sigaction));
+	action.sa_handler = signal_handler;
+	sigaction(SIGINT, &action, NULL);
+	sigaction(SIGTERM, &action, NULL);
+    }
 
     CUDA_CHECK(cudaSetDevice(0));
 
@@ -116,10 +133,16 @@ int main(int argc, char ** argv)
 
 	    const size_t nsteps = (int)(tend / dt);
 	    
-	    for(int it = 0; it < nsteps; ++it)
+	    for(int it = 0; it < nsteps && !graceful_exit; ++it)
 	    {
 		if (it % steps_per_report == 0)
 		{
+		    //check if we need to gracefully exit due to sigterm. do i need this?
+		    /* int exitrequest = graceful_exit;
+		    MPI_CHECK(MPI_Allreduce(MPI_IN_PLACE, &exitrequest, 1, MPI_LOGICAL, MPI_LOR, cartcomm)); 
+		    graceful_exit = exitrequest;
+		    */
+		    
 		    report_host_memory_usage(cartcomm, stdout);
 
 		    if (rank == 0)
@@ -220,7 +243,7 @@ int main(int argc, char ** argv)
 
 		    CUDA_CHECK(cudaPeekAtLastError());
 
-		    //remove Rbcscoll touching the wall
+		    //remove rbcs touching the wall
 		    if(rbcscoll && rbcscoll->count())
 		    {
 			SimpleDeviceBuffer<int> marks(rbcscoll->pcount());
@@ -251,7 +274,7 @@ int main(int argc, char ** argv)
 
 		    CUDA_CHECK(cudaPeekAtLastError());
 
-		    //remove ctcs     touching the wall
+		    //remove ctcs touching the wall
 		    if(ctcscoll && ctcscoll->count())
 		    {
 			SimpleDeviceBuffer<int> marks(ctcscoll->pcount());
@@ -435,6 +458,14 @@ int main(int argc, char ** argv)
 		}
 	    }
 
+	    if (rank == 0)
+		if (!graceful_exit)
+		    printf("simulation is done. Ciao.\n");
+		else
+		    printf("external termination request (signal %d). Bye.\n", graceful_signum);
+
+	    fflush(stdout);
+	    
 	    CUDA_CHECK(cudaStreamDestroy(stream));
 	
 	    if (wall)
@@ -448,11 +479,8 @@ int main(int argc, char ** argv)
 
 	    MPI_CHECK(MPI_Comm_free(&cartcomm));
 	}
-	
+	    
 	MPI_CHECK( MPI_Finalize() );
-	
-	if (rank == 0)
-	    printf("simulation is done. Ciao.\n");
     }
     
     CUDA_CHECK(cudaDeviceSynchronize());
