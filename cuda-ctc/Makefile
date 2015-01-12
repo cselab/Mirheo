@@ -56,9 +56,9 @@ clean:
 test-cuda-ctc: main.cudaobj ctc-cuda.cudaobj $(LIBCUDADPD)
 	$(CXX) $(GPULIBS) $^ -o $@
 
-libcuda-ctc.so: ctc-cuda.cudaobj $(LIBCUDADPD)
+libcuda-ctc.so: ctc-cuda.cudaobj
 	$(CXX) $(CXXFLAGS) -shared $^ -o $@ -L/usr/local/cuda/lib64/ -lcudart -lcurand
-	
+
 $(LIBCUDADPD):
 	make -C ../cuda-dpd-sem/dpd libcuda-dpd.so nonperiodic=1 debug=$(debug)
 
