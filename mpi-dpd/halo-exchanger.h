@@ -13,6 +13,8 @@ class HaloExchanger
     int recv_tags[26], recv_counts[26], nlocal;
 
     ScanEngine scan;
+
+    bool firstpost;
     
 protected:
     
@@ -57,8 +59,24 @@ protected:
 	    }
 
     } recvhalos[26];
-    
-    
+
+    struct LocalWorkParams
+    {
+	int saru_tag;
+	const Particle * p;
+	int n;
+	Acceleration *  a;
+	const int *  cellsstart;
+	const int *  cellscount;
+
+    LocalWorkParams(): saru_tag(-1), p(NULL), n(0), a(NULL), cellsstart(NULL), cellscount(NULL) {}
+
+    LocalWorkParams(const int saru_tag, const Particle * const p, const int n, Acceleration * const a,
+		    const int * const cellsstart, const int * const cellscount):
+	saru_tag(saru_tag), p(p), n(n), a(a), cellsstart(cellsstart), cellscount(cellscount) { }
+	
+    } localwork;
+        
     int L, myrank, nranks, dims[3], periods[3], coords[3], dstranks[26];
     
     //zero-copy allocation for acquiring the message offsets in the gpu send buffer
@@ -68,12 +86,16 @@ protected:
     int nsendreq;
 
     int3 halosize[26];
+
+    void post_expected_recv();
     
     //cuda-sync after to wait for packing of the halo, mpi non-blocking
     void pack_and_post(const Particle * const p, const int n, const int * const cellsstart, const int * const cellscount);
 
     //mpi-sync for the surrounding halos, shift particle coord to the sysref of this rank
     void wait_for_messages();
+
+    virtual void spawn_local_work() { }
     
     int nof_sent_particles();
 
