@@ -61,7 +61,24 @@ class ComputeInteractionsDPD : public HaloExchanger
 	
 	~HookedTexture() { _discard(); }
     };
-   
+
+    struct LocalWorkParams
+    {
+	int saru_tag;
+	const Particle * p;
+	int n;
+	Acceleration *  a;
+	const int *  cellsstart;
+	const int *  cellscount;
+
+    LocalWorkParams(): saru_tag(-1), p(NULL), n(0), a(NULL), cellsstart(NULL), cellscount(NULL) {}
+
+    LocalWorkParams(const int saru_tag, const Particle * const p, const int n, Acceleration * const a,
+		    const int * const cellsstart, const int * const cellscount):
+	saru_tag(saru_tag), p(p), n(n), a(a), cellsstart(cellsstart), cellscount(cellscount) { }
+	
+    } localwork;
+            
     HookedTexture texSC[26], texDC[26], texSP[26];
     
     //temporary buffer to compute accelerations in the halo
@@ -69,6 +86,8 @@ class ComputeInteractionsDPD : public HaloExchanger
 
     //mpi-sync for the surrounding halos
     void dpd_remote_interactions(const Particle * const p, const int n, int saru_tag1, Acceleration * const a);
+
+    void spawn_local_work();
     
 public:
     
