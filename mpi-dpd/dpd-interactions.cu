@@ -10,16 +10,21 @@ using namespace std;
 
 ComputeInteractionsDPD::ComputeInteractionsDPD(MPI_Comm cartcomm, int L): HaloExchanger(cartcomm, L, 0) {}
 
+void ComputeInteractionsDPD::spawn_local_work()
+{
+    if (localwork.n > 0)
+	forces_dpd_cuda_nohost((float *)localwork.p, (float *)localwork.a, localwork.n, 
+			       localwork.cellsstart, localwork.cellscount,
+			       1, L, L, L, aij, gammadpd, sigma, 1. / sqrt(dt), localwork.saru_tag);
+}
+
 void ComputeInteractionsDPD::evaluate(int& saru_tag, const Particle * const p, const int n, Acceleration * const a,
 				      const int * const cellsstart, const int * const cellscount)
 {
-    HaloExchanger::pack_and_post(p, n, cellsstart, cellscount);
+    localwork = LocalWorkParams(saru_tag, p, n, a, cellsstart, cellscount); 
     
-    if (n > 0)
-	forces_dpd_cuda_nohost((float *)p, (float *)a, n, 
-			       cellsstart, cellscount,
-			       1, L, L, L, aij, gammadpd, sigma, 1. / sqrt(dt), saru_tag);
-    
+    HaloExchanger::pack_and_post(p, n, cellsstart, cellscount); //spawn local work will be called within this function
+
     saru_tag += nranks - myrank;
     
     dpd_remote_interactions(p, n, saru_tag, a);
