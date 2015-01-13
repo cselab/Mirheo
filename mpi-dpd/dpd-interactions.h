@@ -69,6 +69,8 @@ class ComputeInteractionsDPD : public HaloExchanger
 
     //mpi-sync for the surrounding halos
     void dpd_remote_interactions(const Particle * const p, const int n, int saru_tag1, Acceleration * const a);
+
+    void spawn_local_work();
     
 public:
     
