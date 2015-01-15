@@ -113,7 +113,7 @@ void ComputeInteractionsDPD::dpd_remote_interactions(const Particle * const p, c
 
     CUDA_CHECK(cudaPeekAtLastError());
 
-    CUDA_CHECK(cudaStreamSynchronize(HaloExchanger::streams[0]));
+    //CUDA_CHECK(cudaStreamSynchronize(HaloExchanger::streams[0]));
 
     for(int i = 0; i < 26; ++i)
     {

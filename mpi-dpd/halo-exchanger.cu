@@ -255,7 +255,6 @@ namespace PackingHalo
 
 	const int d[3] = { (code + 2) % 3 - 1, (code / 3 + 2) % 3 - 1, (code / 9 + 2) % 3 - 1 };
 
-
 	for(int c = 0; c < 3; ++c)
 	{
 	    const float halo_start = max(d[c] * L - L/2 - 1, -L/2);
@@ -498,7 +497,7 @@ void HaloExchanger::wait_for_messages()
 
 	const int np = packstarts[26];
 
-	PackingHalo::shift_recv_particles_float<<<(np * 6 + 127) / 128, 128, 0, streams[0]>>>(np, L);
+	PackingHalo::shift_recv_particles_float<<<(np * 6 + 127) / 128, 128>>>(np, L);
     }
 
     CUDA_CHECK(cudaPeekAtLastError());
@@ -509,7 +508,7 @@ void HaloExchanger::wait_for_messages()
 	const int count = recv_counts[code];
 	
 	if (count > 0)
-	    PackingHalo::check_recv_particles<<<(count + 127) / 128, 128, 0, streams[0]>>>(
+	    PackingHalo::check_recv_particles<<<(count + 127) / 128, 128, 0>>>(
 		recvhalos[code].dbuf.data, count, L, code, myrank);	
     }
 
