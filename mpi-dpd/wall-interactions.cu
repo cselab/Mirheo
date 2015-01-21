@@ -310,14 +310,14 @@ struct FieldSampler
 		    for(int ix = 0; ix < nsize[0]; ++ix)
 		    {
 			const float x[3] = {
-			    start[0] + ix * spacing[0],
-			    start[1] + iy * spacing[1],
-			    start[2] + iz * spacing[2]
+			    start[0] + (ix  + 0.5f) * spacing[0] - 0.5f,
+			    start[1] + (iy  + 0.5f) * spacing[1] - 0.5f,
+			    start[2] + (iz  + 0.5f) * spacing[2] - 0.5f
 			};
 
 			int anchor[3];
 			for(int c = 0; c < 3; ++c)
-			    anchor[c] = (int)x[c];
+			    anchor[c] = (int)floor(x[c]);
 			
 			float w[3][4];
 			for(int c = 0; c < 3; ++c)
