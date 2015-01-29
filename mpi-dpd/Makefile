@@ -6,7 +6,7 @@ CODE_VAL ?= sm_35
 
 NVCCFLAGS += -I$(HDF5_DIR)/include -Xcudafe "--diag_suppress=unrecognized_gcc_pragma"
 NVCCFLAGS +=  -arch $(ARCH_VAL) -code $(CODE_VAL) -O3 -use_fast_math -g  -DNDEBUG 
-CXXFLAGS += -L../cuda-dpd-sem/dpd -L../cuda-rbc/ -L../cuda-ctc/ -O3 -g  -L$(HDF5_DIR)/lib -lhdf5
+CXXFLAGS += -L../cuda-dpd-sem/dpd -L../cuda-rbc/ -L../cuda-ctc/ -O3 -g  
 #-DNDEBUG
 NVCCFLAGS += -I../cuda-dpd-sem/dpd -I../cuda-rbc/ -I../cuda-ctc
 
@@ -22,9 +22,15 @@ OBJS = 	dpd-interactions.o \
 LIBS = -lcuda-dpd -lcuda-rbc -lcuda-ctc -lcudart 
 
 ifneq "$(h5part)" "0"
-LIBS += -lH5Part
+LIBS += -L$(HDF5_DIR)/lib -lhdf5
 else
 NVCCFLAGS += -DNO_H5PART
+endif
+
+ifneq "$(h5)" "0"
+LIBS += -lhdf5
+else
+NVCCFLAGS += -DNO_H5
 endif
 
 test: $(OBJS) libcuda-dpd libcuda-rbc libcuda-ctc

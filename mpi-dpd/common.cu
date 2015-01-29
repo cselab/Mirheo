@@ -2,7 +2,9 @@
 #include <sys/time.h>
 #include <sys/resource.h>
 
+#ifndef NO_H5
 #include <hdf5.h>
+#endif
 
 #include <string>
 #include <sstream>
@@ -341,9 +343,11 @@ void report_host_memory_usage(MPI_Comm comm, FILE * foutput)
     }
 }
 
-void write_hdf5fields(const char * const path2h5, const float * const channeldata[], const char * const * const channelnames, const int nchannels, 
-		     MPI_Comm cartcomm, const float time)
+void write_hdf5fields(const char * const path2h5,
+		      const float * const channeldata[], const char * const * const channelnames, const int nchannels, 
+		      MPI_Comm cartcomm, const float time)
 {
+#ifndef NO_H5
     int nranks[3], periods[3], myrank[3];
     MPI_CHECK( MPI_Cart_get(cartcomm, 3, nranks, periods, myrank) );
 
@@ -427,10 +431,12 @@ void write_hdf5fields(const char * const path2h5, const float * const channeldat
 	fprintf(xmf, "</Xdmf>\n");
 	fclose(xmf);
     }
+#endif // NO_H5
 }
 
 void hdf5_dump(MPI_Comm cartcomm, const Particle * const p, const int n, const int idtimestep, const float dt)
 {
+#ifndef NO_H5
     const int ncells = L * L * L;
 
     vector<float> rho(ncells), u[3];
@@ -468,10 +474,12 @@ void hdf5_dump(MPI_Comm cartcomm, const Particle * const p, const int n, const i
     float * data[] = { rho.data(), u[0].data(), u[1].data(), u[2].data() };
 
     write_hdf5fields(filepath, data, names, 4, cartcomm, idtimestep * dt);
+#endif // NO_H5
 }
 
 void hdf5_dump_conclude(MPI_Comm cartcomm, const int idtimestep, const float dt)
 {
+#ifndef NO_H5
     FILE * xmf = fopen("h5/flowfields-sequence.xmf", "w");
     assert(xmf);
 
@@ -528,4 +536,5 @@ void hdf5_dump_conclude(MPI_Comm cartcomm, const int idtimestep, const float dt)
     fprintf(xmf, " </Domain>\n");
     fprintf(xmf, "</Xdmf>\n");
     fclose(xmf);
+#endif //NO_H5
 }
