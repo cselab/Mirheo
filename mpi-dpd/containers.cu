@@ -7,10 +7,8 @@
 namespace ParticleKernels
 {
     __global__ void update_stage1(Particle * p, Acceleration * a, int n, float dt,
-				  const float dpdx, const float dpdy, const float dpdz, const bool check = true)
+				  const float driving_acceleration, const bool check = true)
     {
-	const float gradp[3] = {dpdx, dpdy, dpdz};
-	
 	assert(blockDim.x * gridDim.x >= n);
     
 	const int pid = threadIdx.x + blockDim.x * blockIdx.x;
@@ -26,7 +24,7 @@ namespace ParticleKernels
 	}
 
 	for(int c = 0; c < 3; ++c)
-	    p[pid].u[c] += (a[pid].a[c] - gradp[c]) * dt * 0.5;
+	    p[pid].u[c] += (a[pid].a[c] + (c == 0 ? driving_acceleration : 0)) * dt * 0.5;
     
 	for(int c = 0; c < 3; ++c)
 	    p[pid].x[c] += p[pid].u[c] * dt;
@@ -39,8 +37,7 @@ namespace ParticleKernels
 	    }
     }
 
-    __global__ void update_stage2_and_1(Particle * p, Acceleration * a, int n, float dt,
-					const float dpdx, const float dpdy, const float dpdz)
+    __global__ void update_stage2_and_1(Particle * p, Acceleration * a, int n, float dt, const float driving_acceleration)
     {
 	assert(blockDim.x * gridDim.x >= 3 * n);
 	
@@ -52,8 +49,7 @@ namespace ParticleKernels
 	const int pid = gid / 3;
 	const int c = gid % 3;
 
-	const float gradp[3] = {dpdx, dpdy, dpdz};
-	const float mya = a[pid].a[c] - gradp[c];
+	const float mya = a[pid].a[c] + (c == 0 ? driving_acceleration : 0);
 	
 	float myu = p[pid].u[c];
 	float myx = p[pid].x[c];
@@ -100,25 +96,23 @@ ParticleArray::ParticleArray(vector<Particle> ic)
     CUDA_CHECK(cudaMemset(axayaz.data, 0, sizeof(Acceleration) * ic.size()));
 
     void (*upkernel)(Particle * p, Acceleration * a, int n, float dt,
-		     const float dpdx, const float dpdy, const float dpdz) = ParticleKernels::update_stage2_and_1;
+		     const float da) = ParticleKernels::update_stage2_and_1;
     
     CUDA_CHECK(cudaFuncSetCacheConfig(*upkernel, cudaFuncCachePreferL1));
 }
 
-void ParticleArray::update_stage1(const float gradpressure[3])
+void ParticleArray::update_stage1(const float driving_acceleration)
 {
     if (size)
 	ParticleKernels::update_stage1<<<(xyzuvw.size + 127) / 128, 128 >>>(
-	    xyzuvw.data, axayaz.data, xyzuvw.size, dt,
-	    gradpressure[0], gradpressure[1], gradpressure[2] , false);
+	    xyzuvw.data, axayaz.data, xyzuvw.size, dt, driving_acceleration , false);
 }
 
-void  ParticleArray::update_stage2_and_1(const float gradpressure[3])
+void  ParticleArray::update_stage2_and_1(const float driving_acceleration)
 {
     if (size)
 	ParticleKernels::update_stage2_and_1<<<(xyzuvw.size * 3 + 127) / 128, 128 >>>
-	    (xyzuvw.data, axayaz.data, xyzuvw.size, dt,
-	     gradpressure[0], gradpressure[1], gradpressure[2]);
+	    (xyzuvw.data, axayaz.data, xyzuvw.size, dt, driving_acceleration);
 }
 
 void ParticleArray::resize(int n)
@@ -246,18 +240,6 @@ void CollectionRBC::setup()
 void CollectionRBC::_initialize(float *device_xyzuvw, const float (*transform)[4])
 {
     CudaRBC::initialize(device_xyzuvw, transform);
-}
-
-void CollectionRBC::update_stage1()
-{
-    const float dpdx[3] = {0, 0, 0};
-    ParticleArray::update_stage1(dpdx);
-}
-
-void CollectionRBC::update_stage2_and_1()
-{
-    const float dpdx[3] = {0, 0, 0};
-    ParticleArray::update_stage2_and_1(dpdx);
 }
 
 void CollectionRBC::remove(const int * const entries, const int nentries)

@@ -4,7 +4,7 @@
 #include <cassert>
 #include <csignal>
 #include <mpi.h>
-
+#include <errno.h>
 #include <vector>
 #include <map>
 
@@ -20,14 +20,6 @@
 
 using namespace std;
 
-volatile sig_atomic_t graceful_exit = 0, graceful_signum = 0;
- 
-void signal_handler(int signum)
-{
-    graceful_exit = 1;
-    graceful_signum = signum;
-}
-
 int main(int argc, char ** argv)
 {
     int ranks[3];
@@ -41,16 +33,20 @@ int main(int argc, char ** argv)
     	for(int i = 0; i < 3; ++i)
 	    ranks[i] = atoi(argv[1 + i]);
 
-    //setup graceful exit
-    {
-	struct sigaction action;
-	memset(&action, 0, sizeof(struct sigaction));
-	action.sa_handler = signal_handler;
-	sigaction(SIGINT, &action, NULL);
-	sigaction(SIGTERM, &action, NULL);
-    }
-
     CUDA_CHECK(cudaSetDevice(0));
+
+    sigset_t mask;
+    sigset_t orig_mask;
+    
+    sigemptyset (&mask);
+    sigaddset (&mask, SIGUSR1);
+    sigaddset (&mask, SIGINT);
+    
+    if (sigprocmask(SIG_BLOCK, &mask, &orig_mask) < 0) 
+    {
+	perror ("sigprocmask");
+	return 1;
+    }
 
     int nranks, rank;   
     
@@ -115,7 +111,7 @@ int main(int argc, char ** argv)
 	    cells.build(particles.xyzuvw.data, particles.size);
 
 	    dpd.evaluate(saru_tag, particles.xyzuvw.data, particles.size, particles.axayaz.data, cells.start, cells.count);
-	    
+    
 	    if (rbcscoll)
 		rbc_interactions.evaluate(saru_tag, particles.xyzuvw.data, particles.size, particles.axayaz.data, cells.start, cells.count,
 					  rbcscoll->data(), rbcscoll->count(), rbcscoll->acc());
@@ -124,25 +120,35 @@ int main(int argc, char ** argv)
 		ctc_interactions.evaluate(saru_tag, particles.xyzuvw.data, particles.size, particles.axayaz.data, cells.start, cells.count,
 					ctcscoll->data(), ctcscoll->count(), ctcscoll->acc());
 
-	    float dpdx[3] = {0, 0, 0};
+	    float driving_acceleration = 0;
 
 	    if (!walls && pushtheflow)
-		dpdx[0] = -0.01;		    
+		driving_acceleration = hydrostatic_a;		    
 
 	    std::map<string, double> timings;
 
 	    const size_t nsteps = (int)(tend / dt);
-	    
-	    for(int it = 0; it < nsteps && !graceful_exit; ++it)
+	    int it;
+
+	    for(it = 0; it < nsteps; ++it)
 	    {
 		if (it % steps_per_report == 0)
-		{
-		    //check if we need to gracefully exit due to sigterm. do i need this?
-		    /* int exitrequest = graceful_exit;
-		    MPI_CHECK(MPI_Allreduce(MPI_IN_PLACE, &exitrequest, 1, MPI_LOGICAL, MPI_LOR, cartcomm)); 
-		    graceful_exit = exitrequest;
-		    */
-		    
+		{ 
+		    //check for termination requests
+		    {
+			struct timespec timeout;
+			timeout.tv_sec = 0;
+			timeout.tv_nsec = 1000;
+			
+			if (sigtimedwait(&mask, NULL, &timeout) >= 0) 
+			{
+			    if (!rank)
+				printf("Got a termination request. Time to save and exit!\n");
+
+			    break;
+			}
+		    }
+
 		    report_host_memory_usage(cartcomm, stdout);
 
 		    if (rank == 0)
@@ -173,13 +179,13 @@ int main(int argc, char ** argv)
 
 		if (it == 0)
 		{
-		    particles.update_stage1(dpdx);
+		    particles.update_stage1(driving_acceleration);
 		    
 		    if (rbcscoll)
-			rbcscoll->update_stage1();
+			rbcscoll->update_stage1(driving_acceleration);
 
 		    if (ctcscoll)
-			ctcscoll->update_stage1();
+			ctcscoll->update_stage1(driving_acceleration);
 		}
 
 		tstart = MPI_Wtime();
@@ -305,7 +311,7 @@ int main(int argc, char ** argv)
 		    }
 
 		    if (pushtheflow)
-			dpdx[0] = -0.01;
+			driving_acceleration = hydrostatic_a;
 
 		    CUDA_CHECK(cudaPeekAtLastError());
 		}
@@ -364,37 +370,8 @@ int main(int argc, char ** argv)
 		}
 		
 		CUDA_CHECK(cudaPeekAtLastError());
-		tstart = MPI_Wtime();
-		particles.update_stage2_and_1(dpdx);
 
-		CUDA_CHECK(cudaPeekAtLastError());
-
-		if (rbcscoll)
-		    rbcscoll->update_stage2_and_1();
-
-		CUDA_CHECK(cudaPeekAtLastError());
-
-		if (ctcscoll)
-		    ctcscoll->update_stage2_and_1();
-		timings["update"] += MPI_Wtime() - tstart;
-		
-		if (wall)
-		{
-		    tstart = MPI_Wtime();
-		    wall->bounce(particles.xyzuvw.data, particles.size);
-		    
-		    if (rbcscoll)
-			wall->bounce(rbcscoll->data(), rbcscoll->pcount());
-
-		    if (ctcscoll)
-			wall->bounce(ctcscoll->data(), ctcscoll->pcount());
-
-		    timings["bounce-walls"] += MPI_Wtime() - tstart;
-		}
-
-		CUDA_CHECK(cudaPeekAtLastError());
-	    
-		if (it % steps_per_report == 0)
+		if (it % steps_per_dump == 0)
 		{
 		    tstart = MPI_Wtime();
 		    int n = particles.size;
@@ -431,20 +408,11 @@ int main(int argc, char ** argv)
 
 		    assert(start == n);
 
-		    //we fused VV stages so we need to recover the state before stage 1
-		    for(int i = 0; i < n; ++i)
-			for(int c = 0; c < 3; ++c)
-			{
-			    assert(!isnan(p[i].x[c]));
-			    assert(!isnan(p[i].u[c]));
-			    assert(!isnan(a[i].a[c]));
-	    
-			    p[i].x[c] -= dt * p[i].u[c];
-			    p[i].u[c] -= 0.5 * dt * a[i].a[c];
-			}
-
 		    diagnostics(cartcomm, p, n, dt, it, L, a);
 		    
+		    if (hdf5_dumps)
+			hdf5_dump(cartcomm, p, n, it, dt);
+
 		    if (rbcscoll && it % steps_per_dump == 0)
 			rbcscoll->dump(cartcomm);
 		   	
@@ -456,13 +424,43 @@ int main(int argc, char ** argv)
 
 		     timings["diagnostics"] += MPI_Wtime() - tstart;
 		}
+
+		tstart = MPI_Wtime();
+		particles.update_stage2_and_1(driving_acceleration);
+
+		CUDA_CHECK(cudaPeekAtLastError());
+
+		if (rbcscoll)
+		    rbcscoll->update_stage2_and_1(driving_acceleration);
+
+		CUDA_CHECK(cudaPeekAtLastError());
+
+		if (ctcscoll)
+		    ctcscoll->update_stage2_and_1(driving_acceleration);
+		timings["update"] += MPI_Wtime() - tstart;
+		
+		if (wall)
+		{
+		    tstart = MPI_Wtime();
+		    wall->bounce(particles.xyzuvw.data, particles.size);
+		    
+		    if (rbcscoll)
+			wall->bounce(rbcscoll->data(), rbcscoll->pcount());
+
+		    if (ctcscoll)
+			wall->bounce(ctcscoll->data(), ctcscoll->pcount());
+
+		    timings["bounce-walls"] += MPI_Wtime() - tstart;
+		}
+
+		CUDA_CHECK(cudaPeekAtLastError());
 	    }
 
 	    if (rank == 0)
-		if (!graceful_exit)
+		if (it == nsteps)
 		    printf("simulation is done. Ciao.\n");
 		else
-		    printf("external termination request (signal %d). Bye.\n", graceful_signum);
+		    printf("external termination request (signal). Bye.\n");
 
 	    fflush(stdout);
 	    
@@ -476,6 +474,9 @@ int main(int argc, char ** argv)
 
 	    if (ctcscoll)
 		delete ctcscoll;
+
+	    if (hdf5_dumps)
+		hdf5_dump_conclude(cartcomm, it, dt);
 
 	    MPI_CHECK(MPI_Comm_free(&cartcomm));
 	}

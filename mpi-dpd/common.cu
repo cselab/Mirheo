@@ -1,10 +1,12 @@
+#include <sys/stat.h>
+#include <sys/time.h>
+#include <sys/resource.h>
+
+#include <hdf5.h>
+
 #include <string>
 #include <sstream>
 #include <vector>
-
-
-#include <sys/time.h>
-#include <sys/resource.h>
 
 #include <cuda-dpd.h>
 #ifndef NO_H5PART
@@ -339,4 +341,191 @@ void report_host_memory_usage(MPI_Comm comm, FILE * foutput)
     }
 }
 
+void write_hdf5fields(const char * const path2h5, const float * const channeldata[], const char * const * const channelnames, const int nchannels, 
+		     MPI_Comm cartcomm, const float time)
+{
+    int nranks[3], periods[3], myrank[3];
+    MPI_CHECK( MPI_Cart_get(cartcomm, 3, nranks, periods, myrank) );
 
+    id_t plist_id_access = H5Pcreate(H5P_FILE_ACCESS);
+    H5Pset_fapl_mpio(plist_id_access, cartcomm, MPI_INFO_NULL);
+
+    hid_t file_id = H5Fcreate(path2h5, H5F_ACC_TRUNC, H5P_DEFAULT, plist_id_access);
+    H5Pclose(plist_id_access);
+   
+    hsize_t globalsize[4] = {nranks[2] * L, nranks[1] * L, nranks[0] * L, 1};    
+    hid_t filespace_simple = H5Screate_simple(4, globalsize, NULL);
+    
+    for(int ichannel = 0; ichannel < nchannels; ++ichannel)
+    {
+	hid_t dset_id = H5Dcreate(file_id, channelnames[ichannel], H5T_NATIVE_FLOAT, filespace_simple, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+	id_t plist_id = H5Pcreate(H5P_DATASET_XFER);
+
+	H5Pset_dxpl_mpio(plist_id, H5FD_MPIO_COLLECTIVE);
+	
+	hsize_t start[4] = { myrank[2] * L, myrank[1] * L, myrank[0] * L, 0};
+	hsize_t extent[4] = { L, L, L,  1};
+	hid_t filespace = H5Dget_space(dset_id);
+	H5Sselect_hyperslab(filespace, H5S_SELECT_SET, start, NULL, extent, NULL);
+	
+	hid_t memspace = H5Screate_simple(4, extent, NULL); 
+	herr_t status = H5Dwrite(dset_id, H5T_NATIVE_FLOAT, memspace, filespace, plist_id, channeldata[ichannel]);
+	
+	H5Sclose(memspace);
+	H5Sclose(filespace);
+	H5Pclose(plist_id);		
+	H5Dclose(dset_id);
+    }
+
+    H5Sclose(filespace_simple);
+    H5Fclose(file_id);
+
+    int rankscalar;
+    MPI_CHECK(MPI_Comm_rank(cartcomm, &rankscalar));
+
+    if (!rankscalar)
+    {
+	char wrapper[256];
+	sprintf(wrapper, "%s.xmf", string(path2h5).substr(0, string(path2h5).find_last_of(".h5") - 2).data());
+	
+	FILE * xmf = fopen(wrapper, "w");
+	assert(xmf);
+	fprintf(xmf, "<?xml version=\"1.0\" ?>\n");
+	fprintf(xmf, "<!DOCTYPE Xdmf SYSTEM \"Xdmf.dtd\" []>\n");
+	fprintf(xmf, "<Xdmf Version=\"2.0\">\n");
+	fprintf(xmf, " <Domain>\n");
+	fprintf(xmf, "   <Grid Name=\"mesh\" GridType=\"Uniform\">\n");
+	fprintf(xmf, "     <Time Value=\"%.f\"/>\n", time);
+	fprintf(xmf, "     <Topology TopologyType=\"3DCORECTMesh\" Dimensions=\"%d %d %d\"/>\n", 
+		1 + (int)globalsize[0], 1 + (int)globalsize[1], 1 + (int)globalsize[2]);
+
+	fprintf(xmf, "     <Geometry GeometryType=\"ORIGIN_DXDYDZ\">\n");
+	fprintf(xmf, "       <DataItem Name=\"Origin\" Dimensions=\"3\" NumberType=\"Float\" Precision=\"4\" Format=\"XML\">\n");
+	fprintf(xmf, "        %e %e %e\n", 0.0, 0.0, 0.0);
+	fprintf(xmf, "       </DataItem>\n");
+	fprintf(xmf, "       <DataItem Name=\"Spacing\" Dimensions=\"3\" NumberType=\"Float\" Precision=\"4\" Format=\"XML\">\n");
+
+	const float h = 1;
+	fprintf(xmf, "        %e %e %e\n", h, h, h);
+	fprintf(xmf, "       </DataItem>\n");
+	fprintf(xmf, "     </Geometry>\n");
+
+	for(int ichannel = 0; ichannel < nchannels; ++ichannel)
+	{
+	    fprintf(xmf, "     <Attribute Name=\"%s\" AttributeType=\"Scalar\" Center=\"Cell\">\n", channelnames[ichannel]);    
+	    fprintf(xmf, "       <DataItem Dimensions=\"%d %d %d 1\" NumberType=\"Float\" Precision=\"4\" Format=\"HDF\">\n", 
+		    (int)globalsize[0], (int)globalsize[1], (int)globalsize[2]);
+
+	    fprintf(xmf, "        %s:/%s\n",  string(path2h5).substr(string(path2h5).find_last_of("/") + 1).c_str(), channelnames[ichannel]);
+
+	    fprintf(xmf, "       </DataItem>\n");
+	    fprintf(xmf, "     </Attribute>\n");	
+	}
+	
+	fprintf(xmf, "   </Grid>\n");
+	fprintf(xmf, " </Domain>\n");
+	fprintf(xmf, "</Xdmf>\n");
+	fclose(xmf);
+    }
+}
+
+void hdf5_dump(MPI_Comm cartcomm, const Particle * const p, const int n, const int idtimestep, const float dt)
+{
+    const int ncells = L * L * L;
+
+    vector<float> rho(ncells), u[3];
+
+    for(int c = 0; c < 3; ++c)
+	u[c].resize(ncells);
+
+    for(int i = 0; i < n; ++i)
+    {
+	const int cellindex[3] = {
+	    (int)floor(p[i].x[0] + L / 2),
+	    (int)floor(p[i].x[1] + L / 2),
+	    (int)floor(p[i].x[2] + L / 2)
+	};
+
+	const int entry = cellindex[0] + L * (cellindex[1] + L * cellindex[2]);
+
+	rho[entry] += 1;
+
+	for(int c = 0; c < 3; ++c)
+	    u[c][entry] += p[i].u[c];
+    }
+
+    for(int c = 0; c < 3; ++c)
+	for(int i = 0; i < ncells; ++i)
+	    u[c][i] = rho[i] ? u[c][i] / rho[i] : 0;
+
+    const char * names[] = { "density", "u", "v", "w" };
+ 
+    mkdir("h5", S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+
+    char filepath[512];
+    sprintf(filepath, "h5/flowfields-%04d.h5", idtimestep / steps_per_dump);
+
+    float * data[] = { rho.data(), u[0].data(), u[1].data(), u[2].data() };
+
+    write_hdf5fields(filepath, data, names, 4, cartcomm, idtimestep * dt);
+}
+
+void hdf5_dump_conclude(MPI_Comm cartcomm, const int idtimestep, const float dt)
+{
+    FILE * xmf = fopen("h5/flowfields-sequence.xmf", "w");
+    assert(xmf);
+
+    fprintf(xmf, "<?xml version=\"1.0\" ?>\n");
+    fprintf(xmf, "<!DOCTYPE Xdmf SYSTEM \"Xdmf.dtd\" []>\n");
+    fprintf(xmf, "<Xdmf Version=\"2.0\">\n");
+    fprintf(xmf, " <Domain>\n");
+    fprintf(xmf, "   <Grid Name=\"TimeSeries\" GridType=\"Collection\" CollectionType=\"Temporal\">");
+
+    int nranks[3], periods[3], myrank[3];
+    MPI_CHECK( MPI_Cart_get(cartcomm, 3, nranks, periods, myrank) );
+
+    hsize_t globalsize[4] = {nranks[2] * L, nranks[1] * L, nranks[0] * L, 1};    
+
+    for(int it = 0; it < idtimestep; it += steps_per_dump)
+    {
+	fprintf(xmf, "   <Grid Name=\"mesh\" GridType=\"Uniform\">\n");
+	fprintf(xmf, "     <Time Value=\"%f\"/>\n", it * dt);
+	fprintf(xmf, "     <Topology TopologyType=\"3DCORECTMesh\" Dimensions=\"%d %d %d\"/>\n", 
+		1 + (int)globalsize[0], 1 + (int)globalsize[1], 1 + (int)globalsize[2]);
+    
+	fprintf(xmf, "     <Geometry GeometryType=\"ORIGIN_DXDYDZ\">\n");
+	fprintf(xmf, "       <DataItem Name=\"Origin\" Dimensions=\"3\" NumberType=\"Float\" Precision=\"4\" Format=\"XML\">\n");
+	fprintf(xmf, "        %e %e %e\n", 0.5, 0.5, 0.5);
+	fprintf(xmf, "       </DataItem>\n");
+	fprintf(xmf, "       <DataItem Name=\"Spacing\" Dimensions=\"3\" NumberType=\"Float\" Precision=\"4\" Format=\"XML\">\n");
+    
+	const float h = 1;
+	fprintf(xmf, "        %e %e %e\n", h, h, h); 
+	fprintf(xmf, "       </DataItem>\n");
+	fprintf(xmf, "     </Geometry>\n");
+    
+	const char * channelnames[] = { "density", "u", "v", "w" };
+
+	for(int ichannel = 0; ichannel < 4; ++ichannel)
+	{
+	    fprintf(xmf, "     <Attribute Name=\"%s\" AttributeType=\"Scalar\" Center=\"Cell\">\n", channelnames[ichannel]);    
+	    fprintf(xmf, "       <DataItem Dimensions=\"%d %d %d 1\" NumberType=\"Float\" Precision=\"4\" Format=\"HDF\">\n", 
+		    (int)globalsize[0], (int)globalsize[1], (int)globalsize[2]);
+
+	    char filepath[512];
+	    sprintf(filepath, "h5/flowfields-%04d.h5", it / steps_per_dump);
+
+	    fprintf(xmf, "        %s:/%s\n",  string(filepath).substr(string(filepath).find_last_of("/") + 1).c_str(), channelnames[ichannel]);
+	    
+	    fprintf(xmf, "       </DataItem>\n");
+	    fprintf(xmf, "     </Attribute>\n");	
+	}
+	
+	fprintf(xmf, "   </Grid>\n");
+    }
+
+    fprintf(xmf, "   </Grid>\n");
+    fprintf(xmf, " </Domain>\n");
+    fprintf(xmf, "</Xdmf>\n");
+    fclose(xmf);
+}

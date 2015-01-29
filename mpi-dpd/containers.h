@@ -17,8 +17,8 @@ struct ParticleArray
     ParticleArray(std::vector<Particle> ic);
 
     void resize(int n);
-    void update_stage1(const float gradpressure[3]);
-    void update_stage2_and_1(const float gradpressure[3]);
+    void update_stage1(const float driving_acceleration);
+    void update_stage2_and_1(const float driving_acceleration);
     void clear_velocity();
 };
 
@@ -43,9 +43,6 @@ public:
     CollectionRBC(MPI_Comm cartcomm, const int L, const std::string path2ic = "rbcs-ic.txt");
 
     void setup();
-
-    void update_stage1();
-    void update_stage2_and_1();
      
     Particle * data() { return xyzuvw.data; }
     Acceleration * acc() { return axayaz.data; }

@@ -1,3 +1,6 @@
+#include <sys/stat.h>
+#include <sys/types.h>
+
 #include <cmath>
 
 #include <thrust/device_vector.h>
@@ -24,7 +27,7 @@ namespace SolidWallsKernel
 	double texcoord[3];
 	for(int c = 0; c < 3; ++c)
 	{
-	    texcoord[c] = (p[c] - (-L/2 - MARGIN)) / (L + 2 * MARGIN) + 0.499999 / VPD;
+	    texcoord[c] = (p[c] - (-L/2 - MARGIN)) / (L + 2 * MARGIN);
 	    assert(texcoord[c] >= 0 && texcoord[c] <= 1);
 	}
 	
@@ -380,10 +383,10 @@ ComputeInteractionsWall::ComputeInteractionsWall(MPI_Comm cartcomm, const int L,
 
     float * field = new float[VPD * VPD * VPD];
 
-    {
-	FieldSampler sampler("sdf.dat");
+    FieldSampler sampler("sdf.dat");
 
-	float start[3], spacing[3];
+    {
+       	float start[3], spacing[3];
 	for(int c = 0; c < 3; ++c)
 	{
 	    start[c] = (coords[c] * L - MARGIN) / (float)(dims[c] * L) * sampler.N[c];
@@ -393,6 +396,29 @@ ComputeInteractionsWall::ComputeInteractionsWall(MPI_Comm cartcomm, const int L,
 	int size[3] = {VPD, VPD, VPD};
 
 	sampler.sample(start, spacing, size, field);
+    }
+
+    if (hdf5_dumps)
+    {
+	float * walldata = new float[L * L * L];
+
+	float start[3], spacing[3];
+	for(int c = 0; c < 3; ++c)
+	{
+	    start[c] = (coords[c] * L) / (float)(dims[c] * L) * sampler.N[c];
+	    spacing[c] =  sampler.N[c] / (float)(dims[c] * L) ;
+	}
+	
+	int size[3] = {L, L, L};
+
+	sampler.sample(start, spacing, size, walldata);
+
+	const char * const channelname = "wall";
+
+	mkdir("h5", S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+	write_hdf5fields("h5/walls.h5", &walldata, &channelname, 1, cartcomm, 0);
+
+	delete [] walldata;
     }
     
     CUDA_CHECK(cudaPeekAtLastError());

@@ -8,11 +8,13 @@ const float gammadpd = 45;
 const float sigma = sqrt(2 * gammadpd * kBT);
 const float sigmaf = sigma / sqrt(dt);
 const float aij = 2.5;
-const bool walls = false;
-const bool pushtheflow = false;
+const bool walls = true;
+const bool pushtheflow = true;
+const float hydrostatic_a = 0.01;
 const bool rbcs = false;
 const bool ctcs = false;
 const bool xyz_dumps = false;
+const bool hdf5_dumps = true;
 const int steps_per_report = 100;
 const int steps_per_dump = 1000;
 
@@ -285,5 +287,9 @@ void diagnostics(MPI_Comm comm, Particle * _particles, int n, float dt, int idst
 
 void report_host_memory_usage(MPI_Comm comm, FILE * foutput);
 
+void hdf5_dump(MPI_Comm cartcomm, const Particle * const p, const int n, const int idtimestep, const float dt);
 
+void write_hdf5fields(const char * const path2h5, const float * const channeldata[], const char * const * const channelnames, const int nchannels, 
+		      MPI_Comm cartcomm, const float time);
 
+void hdf5_dump_conclude(MPI_Comm cartcomm, const int idtimestep, const float dt);

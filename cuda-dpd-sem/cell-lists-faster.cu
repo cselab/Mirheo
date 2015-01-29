@@ -336,7 +336,7 @@ struct FailureTest
     int bufsize;
     int * maxstripe, * dmaxstripe;
 
-    FailureTest()
+    FailureTest() : maxstripe(NULL), dmaxstripe(NULL)
 	{
 	    cudaDeviceProp prop;
 	    CUDA_CHECK(cudaGetDeviceProperties(&prop, 0));
@@ -351,13 +351,8 @@ struct FailureTest
 		cudaError_t status = cudaGetLastError ( );
 		cudaError_t status2 = cudaPeekAtLastError();
 
-		printf("attempting to set MapHost..status:  %d -> %d\n", status == cudaSuccess, status2 == cudaSuccess);
+		//printf("attempting to set MapHost..status:  %d -> %d\n", status == cudaSuccess, status2 == cudaSuccess);
 	    }
-    
-	    CUDA_CHECK(cudaHostAlloc((void **)&maxstripe, sizeof(int), cudaHostAllocMapped));
-	    assert(maxstripe != NULL);
-	    
-	    CUDA_CHECK(cudaHostGetDevicePointer(&dmaxstripe, maxstripe, 0));
 	}
 
     static void callback_crash(cudaStream_t stream, cudaError_t status, void*  userData )
@@ -372,7 +367,18 @@ struct FailureTest
 	    }
 	}
 
-    void reset() { *maxstripe = 0; }
+    void reset() 
+	{
+	    if (maxstripe == NULL)
+	    {
+		CUDA_CHECK(cudaHostAlloc((void **)&maxstripe, sizeof(int), cudaHostAllocMapped));
+		assert(maxstripe != NULL);
+		
+		CUDA_CHECK(cudaHostGetDevicePointer(&dmaxstripe, maxstripe, 0));
+	    }
+	    
+	    *maxstripe = 0; 
+	}
 } static failuretest;
 
 struct is_gzero
