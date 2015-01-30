@@ -4,6 +4,8 @@ ifeq "$(nonperiodic)" "1"
     NVCCFLAGS += -D_NONPERIODIC_KERNEL_
 endif
 
+NVCCFLAGS += -DVISCOSITY_S_LEVEL=$(slevel)
+
 .DEFAULT_GOAL = test-dpd
 
 test-dpd: main.cpp libcuda-dpd.so
