@@ -8,13 +8,14 @@ const float gammadpd = 45;
 const float sigma = sqrt(2 * gammadpd * kBT);
 const float sigmaf = sigma / sqrt(dt);
 const float aij = 2.5;
+const float hydrostatic_a = 0.01;
 const bool walls = true;
 const bool pushtheflow = true;
-const float hydrostatic_a = 0.01;
 const bool rbcs = false;
 const bool ctcs = false;
-const bool xyz_dumps = false;
-const bool hdf5_dumps = true;
+const bool xyz_dumps = true;
+const bool hdf5field_dumps = true;
+const bool hdf5part_dumps = true;
 const int steps_per_report = 100;
 const int steps_per_dump = 1000;
 
@@ -256,40 +257,7 @@ CellLists(const int L): ncells(L * L * L), L(L)
 	}
 };
 
-#include <string>
-
-class H5PartDump
-{
-    MPI_Comm cartcomm;
-
-    std::string fname;
-
-    float origin[3];
-
-    void * handler;
-
-    int tstamp;
-public:
-
-    H5PartDump(const std::string filename, MPI_Comm cartcomm, const int L);
-
-    void dump(Particle * host_particles, int n);
-    
-    ~H5PartDump();
-};
-
-void xyz_dump(MPI_Comm comm, const char * filename, const char * particlename, Particle * particles, int n, int L, bool append);
-
-void ply_dump(MPI_Comm comm, const char * filename,
-	      int (*mesh_indices)[3], const int ninstances, const int ntriangles_per_instance, Particle * _particles, int nvertices_per_instance, int L, bool append);
 
 void diagnostics(MPI_Comm comm, Particle * _particles, int n, float dt, int idstep, int L, Acceleration * _acc);
 
 void report_host_memory_usage(MPI_Comm comm, FILE * foutput);
-
-void hdf5_dump(MPI_Comm cartcomm, const Particle * const p, const int n, const int idtimestep, const float dt);
-
-void write_hdf5fields(const char * const path2h5, const float * const channeldata[], const char * const * const channelnames, const int nchannels, 
-		      MPI_Comm cartcomm, const float time);
-
-void hdf5_dump_conclude(MPI_Comm cartcomm, const int idtimestep, const float dt);

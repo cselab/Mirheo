@@ -3,6 +3,7 @@
 #include <rbc-cuda.h>
 
 #include "containers.h"
+#include "io.h"
 	    	    
 namespace ParticleKernels
 {
@@ -293,10 +294,7 @@ void CollectionRBC::dump(MPI_Comm comm)
 	}
 
     if (xyz_dumps)
-	xyz_dump(comm, path2xyz.c_str(), "cell-particles", p, n,  L, !firsttime);
-
-    
-    
+	xyz_dump(comm, path2xyz.c_str(), "cell-particles", p, n, L, !firsttime);
 
     char buf[200];
     sprintf(buf, format4ply.c_str(), ctr);

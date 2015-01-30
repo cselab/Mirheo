@@ -9,6 +9,7 @@
 #include <map>
 
 #include "common.h"
+#include "io.h"
 #include "containers.h"
 #include "dpd-interactions.h"
 #include "wall-interactions.h"
@@ -52,17 +53,17 @@ int main(int argc, char ** argv)
     
     {
 	MPI_CHECK( MPI_Init(&argc, &argv) );
-    
-	{
-	    MPI_CHECK( MPI_Comm_size(MPI_COMM_WORLD, &nranks) );
-	    MPI_CHECK( MPI_Comm_rank(MPI_COMM_WORLD, &rank) );
 
-	    srand48(rank);
-	    
-	    MPI_Comm cartcomm;
-	    int periods[] = {1, 1, 1};	    
-	    MPI_CHECK( MPI_Cart_create(MPI_COMM_WORLD, 3, ranks, periods, 1, &cartcomm) );
+	MPI_CHECK( MPI_Comm_size(MPI_COMM_WORLD, &nranks) );
+	MPI_CHECK( MPI_Comm_rank(MPI_COMM_WORLD, &rank) );
 	
+	srand48(rank);
+	
+	MPI_Comm cartcomm;
+	int periods[] = {1, 1, 1};	    
+	MPI_CHECK( MPI_Cart_create(MPI_COMM_WORLD, 3, ranks, periods, 1, &cartcomm) );
+	
+	{
 	    vector<Particle> ic(L * L * L * 3  );
 	    
 	    for(int i = 0; i < ic.size(); ++i)
@@ -89,6 +90,9 @@ int main(int argc, char ** argv)
 		ctcscoll = new CollectionCTC(cartcomm, L);
 		ctcscoll->setup();
 	    }
+
+	    H5PartDump dump_part("allparticles.h5part", cartcomm, L);
+	    H5FieldDump dump_field(cartcomm);
 
 	    RedistributeParticles redistribute(cartcomm, L);
 	    RedistributeRBCs redistribute_rbcs(cartcomm, L);
@@ -410,8 +414,14 @@ int main(int argc, char ** argv)
 
 		    diagnostics(cartcomm, p, n, dt, it, L, a);
 		    
-		    if (hdf5_dumps)
-			hdf5_dump(cartcomm, p, n, it, dt);
+		    if (xyz_dumps)
+			xyz_dump(cartcomm, "particles.xyz", "all-particles", p, n, L, it > 0);
+		  
+		    if (hdf5part_dumps)
+			dump_part.dump(p, n);
+
+		    if (hdf5field_dumps)
+			dump_field.dump(p, n, it);
 
 		    if (rbcscoll && it % steps_per_dump == 0)
 			rbcscoll->dump(cartcomm);
@@ -474,13 +484,10 @@ int main(int argc, char ** argv)
 
 	    if (ctcscoll)
 		delete ctcscoll;
-
-	    if (hdf5_dumps)
-		hdf5_dump_conclude(cartcomm, it, dt);
-
-	    MPI_CHECK(MPI_Comm_free(&cartcomm));
 	}
-	    
+	   
+	MPI_CHECK(MPI_Comm_free(&cartcomm));
+ 
 	MPI_CHECK( MPI_Finalize() );
     }
     

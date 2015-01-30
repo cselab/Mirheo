@@ -9,8 +9,8 @@
 
 #include <../saru.cuh>
 
+#include "io.h"
 #include "halo-exchanger.h"
-
 #include "wall-interactions.h"
 
 static const int MARGIN = 12;
@@ -379,8 +379,6 @@ ComputeInteractionsWall::ComputeInteractionsWall(MPI_Comm cartcomm, const int L,
     MPI_CHECK( MPI_Comm_rank(cartcomm, &myrank));
     MPI_CHECK( MPI_Cart_get(cartcomm, 3, dims, periods, coords) );
     
-    //const int VPD = 256;
-
     float * field = new float[VPD * VPD * VPD];
 
     FieldSampler sampler("sdf.dat");
@@ -398,25 +396,23 @@ ComputeInteractionsWall::ComputeInteractionsWall(MPI_Comm cartcomm, const int L,
 	sampler.sample(start, spacing, size, field);
     }
 
-    if (hdf5_dumps)
+    if (hdf5field_dumps)
     {
 	float * walldata = new float[L * L * L];
 
 	float start[3], spacing[3];
 	for(int c = 0; c < 3; ++c)
 	{
-	    start[c] = (coords[c] * L) / (float)(dims[c] * L) * sampler.N[c];
-	    spacing[c] =  sampler.N[c] / (float)(dims[c] * L) ;
+	    start[c] = coords[c] * L / (float)(dims[c] * L) * sampler.N[c];
+	    spacing[c] = sampler.N[c] / (float)(dims[c] * L) ;
 	}
 	
 	int size[3] = {L, L, L};
 
 	sampler.sample(start, spacing, size, walldata);
 
-	const char * const channelname = "wall";
-
-	mkdir("h5", S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
-	write_hdf5fields("h5/walls.h5", &walldata, &channelname, 1, cartcomm, 0);
+	H5FieldDump dump(cartcomm);
+	dump.dump_scalarfield(walldata, "wall");
 
 	delete [] walldata;
     }

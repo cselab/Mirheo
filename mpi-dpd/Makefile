@@ -17,6 +17,7 @@ OBJS = 	dpd-interactions.o \
 	redistribute-rbcs.o \
 	rbc-interactions.o \
 	containers.o \
+	io.o \
 	main.o 
 
 LIBS = -lcuda-dpd -lcuda-rbc -lcuda-ctc -lcudart 
@@ -34,7 +35,6 @@ NVCCFLAGS += -DNO_H5
 endif
 
 test: $(OBJS) libcuda-dpd libcuda-rbc libcuda-ctc
-	echo HELLO
 	$(CXX) $(CXXFLAGS) $(OBJS) $(LIBS) -o test
 
 -include $(OBJS:.o=.d)
