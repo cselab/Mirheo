@@ -137,7 +137,7 @@ __global__ __launch_bounds__(32 * CPB, 16)
 		const float mysaru = saru(min(gspid, gdpid), max(gspid, gdpid), idtimestep);
 		const float myrandnr = 3.464101615f * mysaru - 1.732050807f;
 		 
-		const float strength = (bipart_info.aij - bipart_info.gamma * wr * rdotv + bipart_info.sigmaf * myrandnr) * wr;
+		const float strength = bipart_info.aij * argwr + (- bipart_info.gamma * wr * rdotv + bipart_info.sigmaf * myrandnr) * wr;
 		const bool valid = (slot < np1) && (subtid < np2);
 		
 		if (valid)
@@ -474,7 +474,7 @@ void _bipartite_dpd_directforces(float * const axayaz, const int np, const int n
 	
 		const float myrandnr = 3.464101615f * mysaru - 1.732050807f;
 		 
-		const float strength = (aij - gamma * wr * rdotv + sigmaf * myrandnr) * wr;
+		const float strength = aij * argwr + (- gamma * wr * rdotv + sigmaf * myrandnr) * wr;
 
 		xforce += strength * xr;
 		yforce += strength * yr;
@@ -757,7 +757,7 @@ __global__ __launch_bounds__(32 * CPB, 16)
 		const float mysaru = saru(saru_tag1, saru_tag2, sarumask ? dpid + np * spid : spid + np_src * dpid);
 		const float myrandnr = 3.464101615f * mysaru - 1.732050807f;
 		 
-		const float strength = (aij - gamma * wr * rdotv + sigmaf * myrandnr) * wr;
+		const float strength = aij * argwr + (- gamma * wr * rdotv + sigmaf * myrandnr) * wr;
 		const bool valid = (slot < np1) && (subtid < np2);
 
 		assert( (dpid >= 0 && dpid < np && spid >= 0 && spid < np_src) || ! valid); 

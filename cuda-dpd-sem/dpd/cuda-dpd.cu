@@ -128,7 +128,7 @@ __global__ __launch_bounds__(32 * CPB, 16)
 		const float mysaru = saru(min(spid, dpid), max(spid, dpid), idtimestep);
 		const float myrandnr = 3.464101615f * mysaru - 1.732050807f;
 		 
-		const float strength = (info.aij - info.gamma * wr * rdotv + info.sigmaf * myrandnr) * wr;
+		const float strength = info.aij * argwr - (info.gamma * wr * rdotv + info.sigmaf * myrandnr) * wr;
 		const bool valid = (d + slot != s + subtid) && (slot < np1) && (subtid < np2);
 		
 		if (valid)
