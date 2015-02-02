@@ -106,7 +106,7 @@ namespace KernelsRBC
 	const float mysaru = saru(saru_tag, dpid, spid);
 	const float myrandnr = 3.464101615f * mysaru - 1.732050807f;
 	
-	const float strength = (params.aij - params.gamma * wr * rdotv + params.sigmaf * myrandnr) * wr;
+	const float strength = params.aij * argwr +  (- params.gamma * wr * rdotv + params.sigmaf * myrandnr) * wr;
 	
 	xforce = strength * xr;
 	yforce = strength * yr;

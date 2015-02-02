@@ -238,7 +238,7 @@ namespace SolidWallsKernel
 	
 		const float myrandnr = 3.464101615f * mysaru - 1.732050807f;
 		 
-		const float strength = (aij - gamma * wr * rdotv + sigmaf * myrandnr) * wr;
+		const float strength = aij * argwr + (- gamma * wr * rdotv + sigmaf * myrandnr) * wr;
 
 		xforce += strength * xr;
 		yforce += strength * yr;
