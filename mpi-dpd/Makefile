@@ -64,6 +64,7 @@ clean:
 	rm -f test *.o *.d slevel.txt
 
 cleanall: clean
+	rm -f slevel.txt
 	make -C ../cuda-dpd-sem/dpd clean
 	make -C ../cuda-rbc clean
 	make -C ../cuda-ctc clean

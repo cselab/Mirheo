@@ -231,7 +231,7 @@ void H5FieldDump::_xdmf_grid(FILE * xmf, float time,
     fprintf(xmf, "   <Grid Name=\"mesh\" GridType=\"Uniform\">\n");
     fprintf(xmf, "     <Time Value=\"%.f\"/>\n", time);
     fprintf(xmf, "     <Topology TopologyType=\"3DCORECTMesh\" Dimensions=\"%d %d %d\"/>\n", 
-	    1 + (int)globalsize[0], 1 + (int)globalsize[1], 1 + (int)globalsize[2]);
+	    1 + (int)globalsize[2], 1 + (int)globalsize[1], 1 + (int)globalsize[0]);
     
     fprintf(xmf, "     <Geometry GeometryType=\"ORIGIN_DXDYDZ\">\n");
     fprintf(xmf, "       <DataItem Name=\"Origin\" Dimensions=\"3\" NumberType=\"Float\" Precision=\"4\" Format=\"XML\">\n");
@@ -248,7 +248,7 @@ void H5FieldDump::_xdmf_grid(FILE * xmf, float time,
     {
 	fprintf(xmf, "     <Attribute Name=\"%s\" AttributeType=\"Scalar\" Center=\"Cell\">\n", channelnames[ichannel]);    
 	fprintf(xmf, "       <DataItem Dimensions=\"%d %d %d 1\" NumberType=\"Float\" Precision=\"4\" Format=\"HDF\">\n", 
-		(int)globalsize[0], (int)globalsize[1], (int)globalsize[2]);
+		(int)globalsize[2], (int)globalsize[1], (int)globalsize[0]);
 	
 	fprintf(xmf, "        %s:/%s\n", h5path, channelnames[ichannel]);
 	
