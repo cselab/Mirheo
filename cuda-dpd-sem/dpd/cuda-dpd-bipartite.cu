@@ -122,8 +122,9 @@ __global__ __launch_bounds__(32 * CPB, 16)
 		const float rij2 = _xr * _xr + _yr * _yr + _zr * _zr;
 		const float invrij = rsqrtf(rij2);
 		const float rij = rij2 * invrij;
-		const float wr = max((float)0, 1 - rij * bipart_info.invrc);
-		
+		const float argwr = max((float)0, 1 - rij * bipart_info.invrc);
+		const float wr = powf(argwr, powf(0.5f, -VISCOSITY_S_LEVEL));
+
 		const float xr = _xr * invrij;
 		const float yr = _yr * invrij;
 		const float zr = _zr * invrij;
@@ -457,8 +458,9 @@ void _bipartite_dpd_directforces(float * const axayaz, const int np, const int n
 		const float invrij = rsqrtf(rij2);
 		 
 		const float rij = rij2 * invrij;
-		const float wr = max((float)0, 1 - rij * invrc);
-		
+		const float argwr = max((float)0, 1 - rij * invrc);
+		const float wr = powf(argwr, powf(0.5f, -VISCOSITY_S_LEVEL));
+
 		const float xr = _xr * invrij;
 		const float yr = _yr * invrij;
 		const float zr = _zr * invrij;
@@ -740,8 +742,9 @@ __global__ __launch_bounds__(32 * CPB, 16)
 		const float rij2 = _xr * _xr + _yr * _yr + _zr * _zr;
 		const float invrij = rsqrtf(rij2);
 		const float rij = rij2 * invrij;
-		const float wr = max((float)0, 1 - rij);
-		
+		const float argwr = max((float)0, 1 - rij);
+		const float wr = powf(argwr, powf(0.5f, -VISCOSITY_S_LEVEL));
+
 		const float xr = _xr * invrij;
 		const float yr = _yr * invrij;
 		const float zr = _zr * invrij;
