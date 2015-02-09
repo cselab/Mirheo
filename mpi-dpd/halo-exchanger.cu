@@ -558,4 +558,16 @@ HaloExchanger::~HaloExchanger()
     CUDA_CHECK(cudaFreeHost(required_send_bag_size));
 
     MPI_CHECK(MPI_Comm_free(&cartcomm));
+
+    if (!firstpost)
+    {
+	for(int i = 0; i < 26; ++i)
+	    MPI_CHECK( MPI_Cancel(recvreq + i) );
+	
+	for(int i = 0; i < 26; ++i)
+	    MPI_CHECK( MPI_Cancel(recvcellsreq + i) );
+	
+	for(int i = 0; i < 26; ++i)
+	    MPI_CHECK( MPI_Cancel(recvcountreq + i) );
+    }
 }

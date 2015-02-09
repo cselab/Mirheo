@@ -130,6 +130,50 @@ int RedistributeRBCs::stage1(const Particle * const xyzuvw, const int nrbcs)
     return notleaving + arriving;
 }
 
+namespace ParticleReorderingRBC
+{
+    __global__ void shift(const Particle * const psrc, const int np, const int L, const int code, const int rank, const bool check, Particle * const pdst)
+    {
+	assert(blockDim.x * gridDim.x >= np);
+	
+	int pid = threadIdx.x + blockDim.x * blockIdx.x;
+	
+	int d[3] = { (code + 1) % 3 - 1, (code / 3 + 1) % 3 - 1, (code / 9 + 1) % 3 - 1 };
+	
+	if (pid >= np)
+	    return;
+	
+#ifndef NDEBUG
+	Particle old = psrc[pid];
+#endif
+	Particle pnew = psrc[pid];
+
+	for(int c = 0; c < 3; ++c)
+	    pnew.x[c] -= d[c] * L;
+
+	pdst[pid] = pnew;
+
+#ifndef NDEBUG
+	if (check)
+	{
+	    int vcode[3];
+	    for(int c = 0; c < 3; ++c)
+		vcode[c] = (2 + (pnew.x[c] >= -L/2) + (pnew.x[c] >= L/2)) % 3;
+		
+	    int newcode = vcode[0] + 3 * (vcode[1] + 3 * vcode[2]);
+
+	    if(newcode != 0)
+		printf("rank %d) particle %d: ouch: new code is %d %d %d arriving from code %d -> %d %d %d \np: %f %f %f (before: %f %f %f)\n", 
+		       rank,  pid, vcode[0], vcode[1], vcode[2], code,
+		       d[0], d[1], d[2], pnew.x[0], pnew.x[1], pnew.x[2],
+		       old.x[0], old.x[1], old.x[2]);
+	    
+	    assert(newcode == 0);
+	}
+#endif
+    }
+}
+
 void RedistributeRBCs::stage2(Particle * const xyzuvw, const int nrbcs)
 {
     assert(notleaving + arriving == nrbcs);
@@ -148,7 +192,7 @@ void RedistributeRBCs::stage2(Particle * const xyzuvw, const int nrbcs)
 	const int count =  recvbufs[i].size;
 
 	if (count > 0)
-	    ParticleReordering::shift<<< (count + 127) / 128, 128, 0, stream >>>(recvbufs[i].devptr, count, L, i, myrank, false, xyzuvw + s);
+	    ParticleReorderingRBC::shift<<< (count + 127) / 128, 128, 0, stream >>>(recvbufs[i].devptr, count, L, i, myrank, false, xyzuvw + s);
 
 	assert(s <= nrbcs * nvertices);
 
