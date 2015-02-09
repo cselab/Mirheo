@@ -34,7 +34,7 @@ else
 NVCCFLAGS += -DNO_H5
 endif
 
-slevel ?= 1
+slevel ?= 0
 
 NVCCFLAGS += -DVISCOSITY_S_LEVEL=$(slevel)
 

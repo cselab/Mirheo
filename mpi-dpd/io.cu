@@ -393,6 +393,9 @@ H5FieldDump::~H5FieldDump()
 {
 #ifndef NO_H5
 
+    if (last_idtimestep == 0)
+	return;
+
     FILE * xmf = fopen("h5/flowfields-sequence.xmf", "w");
 
     assert(xmf);
