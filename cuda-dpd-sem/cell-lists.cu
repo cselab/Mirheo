@@ -156,7 +156,7 @@ template<typename T> T * _ptr(device_vector<T>& v) { return raw_pointer_cast(v.d
 void build_clists(float * const xyzuvw, int np, const float rc,
 		  const int xcells, const int ycells, const int zcells,
 		  const float xstart, const float ystart, const float zstart,
-		  int * const order, int * cellsstart, int * cellscount, std::pair<int, int *> * nonemptycells)
+		  int * const order, int * cellsstart, int * cellscount, std::pair<int, int *> * nonemptycells, cudaStream_t stream)
 {
     device_vector<int> codes(np), pids(np);
     pid2code<<<(np + 127) / 128, 128>>>(_ptr(codes), _ptr(pids), np, xyzuvw, make_int3(xcells, ycells, zcells), make_float3(xstart, ystart, zstart), 1./rc);

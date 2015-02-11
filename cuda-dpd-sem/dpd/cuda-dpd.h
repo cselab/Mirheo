@@ -8,7 +8,7 @@ void build_clists(float * const device_xyzuvw, int np, const float rc,
 		  const int xcells, const int ycells, const int zcells,
 		  const float xdomainstart, const float ydomainstart, const float zdomainstart,
 		  int * const host_order, int * device_cellsstart, int * device_cellscount,
-		  std::pair<int, int *> * nonemptycells);
+		  std::pair<int, int *> * nonemptycells, cudaStream_t stream);
 
 void forces_dpd_cuda_nohost(const float * const _xyzuvw, float * const _axayaz,  const int np,
 			    const int * const cellsstart, const int * const cellscount, 
@@ -18,7 +18,8 @@ void forces_dpd_cuda_nohost(const float * const _xyzuvw, float * const _axayaz, 
 			    const float gamma,
 			    const float sigma,
 			    const float invsqrtdt,
-			    const int saru_tag);		  
+			    const int saru_tag,
+			    cudaStream_t stream = 0);		  
 
 void forces_dpd_cuda(const float * const xp, const float * const yp, const float * const zp,
 		     const float * const xv, const float * const yv, const float * const zv,
@@ -65,3 +66,9 @@ void directforces_dpd_cuda_bipartite(
     const float * const xyzuvw_src, const int np_src,
     const float aij, const float gamma, const float sigma, const float invsqrtdt,
     const int saru_tag1, const int saru_tag2, const bool sarumask);
+
+void forces_dpd_cuda_bipartite_nohost(cudaStream_t stream, const float2 * const xyzuvw, const int np, cudaTextureObject_t texDstStart,
+				      cudaTextureObject_t texSrcStart, cudaTextureObject_t texSrcParticles, const int np_src,
+				      const int3 halo_ncells,
+				      const float aij, const float gamma, const float sigmaf,
+				      const int saru_tag1, const int saru_tag2, const bool sarumask, float * const axayaz);

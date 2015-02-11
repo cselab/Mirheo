@@ -1,5 +1,24 @@
 #pragma once
 
+const int L = 48;
+const float dt = 0.001;
+const float tend = 10;
+const float kBT = 0.0945;
+const float gammadpd = 45;
+const float sigma = sqrt(2 * gammadpd * kBT);
+const float sigmaf = sigma / sqrt(dt);
+const float aij = 2.5;
+const float hydrostatic_a = 0.01;
+const bool walls = true;
+const bool pushtheflow = true;
+const bool rbcs = false;
+const bool ctcs = false;
+const bool xyz_dumps = true;
+const bool hdf5field_dumps = true;
+const bool hdf5part_dumps = true;
+const int steps_per_report = 100;
+const int steps_per_dump = 1000;
+
 #include <cstdlib>
 #include <cstdio>
 #include <cmath>
@@ -9,13 +28,13 @@
 #include <cuda_runtime.h>
 
 #define CUDA_CHECK(ans) do { cudaAssert((ans), __FILE__, __LINE__); } while(0)
-inline void cudaAssert(cudaError_t code, const char *file, int line, bool abort=true)
+inline void cudaAssert(cudaError_t code, const char *file, int line)
 {
     if (code != cudaSuccess) 
     {
 	fprintf(stderr,"GPUassert: %s %s %d\n", cudaGetErrorString(code), file, line);
-	sleep(5);
-	if (abort) exit(code);
+	
+	abort();
     }
 }
 
@@ -36,8 +55,6 @@ inline void mpiAssert(int code, const char *file, int line, bool abort=true)
 	MPI_Abort(MPI_COMM_WORLD, code);
     }
 }
-
-#include <cuda-dpd.h>
 
 //AoS is the currency for dpd simulations (because of the spatial locality).
 //AoS - SoA conversion might be performed within the hpc kernels.
@@ -63,50 +80,25 @@ struct Particle
 	}
 };
 
-//why do i need this? it is there just to make the code more readable
 struct Acceleration
 {
     float a[3];
-};
 
-const int L = 24;
-const float dt = 0.02;
-const float tend = 20;
-const float kBT = 0.1;
-const float gammadpd = 45;
-const float sigma = sqrt(2 * gammadpd * kBT);
-const float sigmaf = sigma / sqrt(dt);
-const float aij = 2.5; 
+    static bool initialized;
+    static MPI_Datatype mytype;
 
-static const int tagbase_dpd_remote_interactions = 0;
-static const int tagbase_redistribute_particles = 255;
-
-//container for the cell lists, which contains only two integer vectors of size ncells.
-//the start[cell-id] array gives the entry in the particle array associated to first particle belonging to cell-id
-//count[cell-id] tells how many particles are inside cell-id.
-//building the cell lists involve a reordering of the particle array (!)
-struct CellLists
-{
-    const int ncells, L;
-
-    int * start, * count;
-    
-    CellLists(const int L): ncells(L * L * L), L(L)
+    static MPI_Datatype datatype()
 	{
-	    CUDA_CHECK(cudaMalloc(&start, sizeof(int) * ncells));
-	    CUDA_CHECK(cudaMalloc(&count, sizeof(int) * ncells));
-	}
+	    if (!initialized)
+	    {
+		MPI_CHECK( MPI_Type_contiguous(3, MPI_FLOAT, &mytype));
 
-	void build(Particle * const p, const int n)
-	{
-	    if (n > 0)
-		build_clists((float * )p, n, 1, L, L, L, -L/2, -L/2, -L/2, NULL, start, count,  NULL);
-	}
-	    	    
-    ~CellLists()
-	{
-	    CUDA_CHECK(cudaFree(start));
-	    CUDA_CHECK(cudaFree(count));
+		MPI_CHECK(MPI_Type_commit(&mytype));
+
+		initialized = true;
+	    }
+
+	    return mytype;
 	}
 };
 
@@ -115,15 +107,79 @@ template<typename T>
 struct SimpleDeviceBuffer
 {
     int capacity, size;
+    
     T * data;
-        
-SimpleDeviceBuffer(): capacity(0), size(0), data(NULL) { }
-
+    
+SimpleDeviceBuffer(int n = 0): capacity(0), size(0), data(NULL) { resize(n);}
+    
     ~SimpleDeviceBuffer()
 	{
 	    if (data != NULL)
 		CUDA_CHECK(cudaFree(data));
+	    
+	    data = NULL;
+	}
+    
+    void resize(const int n)
+	{
+	    assert(n >= 0);
+	    
+	    size = n;
+	    
+	    if (capacity >= n)
+		return;
+	    
+	    if (data != NULL)
+		CUDA_CHECK(cudaFree(data));
+	    
+	    capacity = n;
+	    
+	    CUDA_CHECK(cudaMalloc(&data, sizeof(T) * capacity));
+	    
+#ifndef NDEBUG
+	    CUDA_CHECK(cudaMemset(data, 0, sizeof(T) * capacity));
+#endif
+	}
+    
+    void preserve_resize(const int n)
+	{
+	    assert(n >= 0);
+	    
+	    T * old = data;
+	    
+	    const int oldsize = size;
+	    
+	    size = n;
+	    
+	    if (capacity >= n)
+		return;
+	    
+	    capacity = n;
+	    
+	    CUDA_CHECK(cudaMalloc(&data, sizeof(T) * capacity));
+	    
+	    if (old != NULL)
+	    {
+		CUDA_CHECK(cudaMemcpy(data, old, sizeof(T) * oldsize, cudaMemcpyDeviceToDevice));
+		CUDA_CHECK(cudaFree(old));
+	    }
+	}
+};
 
+template<typename T>
+struct PinnedHostBuffer
+{
+    int capacity, size;
+    
+    T * data, * devptr;
+    
+PinnedHostBuffer(int n = 0): capacity(0), size(0), data(NULL), devptr(NULL) { resize(n);}
+
+    ~PinnedHostBuffer()
+	{
+	    if (data != NULL)
+		CUDA_CHECK(cudaFreeHost(data));
+	    
 	    data = NULL;
 	}
 
@@ -137,15 +193,71 @@ SimpleDeviceBuffer(): capacity(0), size(0), data(NULL) { }
 		return;	    
 
 	    if (data != NULL)
-		CUDA_CHECK(cudaFree(data));
+		CUDA_CHECK(cudaFreeHost(data));
 
 	    capacity = n;
-
-	    CUDA_CHECK(cudaMalloc(&data, sizeof(T) * capacity));
-
-#ifndef NDEBUG
-	    CUDA_CHECK(cudaMemset(data, 0, sizeof(T) * capacity));
-#endif
 	    
+	    CUDA_CHECK(cudaHostAlloc(&data, sizeof(T) * capacity, cudaHostAllocMapped));
+	    
+	    CUDA_CHECK(cudaHostGetDevicePointer(&devptr, data, 0));
+	}
+
+    void preserve_resize(const int n)
+	{
+	    assert(n >= 0);
+	    
+	    T * old = data;
+	    
+	    const int oldsize = size;
+	    
+	    size = n;
+	    
+	    if (capacity >= n)
+		return;
+	    
+	    capacity = n;
+
+	    data = NULL;
+	    CUDA_CHECK(cudaHostAlloc(&data, sizeof(T) * capacity, cudaHostAllocMapped));
+	    
+	    if (old != NULL)
+	    {
+		CUDA_CHECK(cudaMemcpy(data, old, sizeof(T) * oldsize, cudaMemcpyHostToHost));
+		CUDA_CHECK(cudaFreeHost(old));
+	    }
+
+	    CUDA_CHECK(cudaHostGetDevicePointer(&devptr, data, 0));
 	}
 };
+
+#include <cuda-dpd.h>
+
+//container for the cell lists, which contains only two integer vectors of size ncells.
+//the start[cell-id] array gives the entry in the particle array associated to first particle belonging to cell-id
+//count[cell-id] tells how many particles are inside cell-id.
+//building the cell lists involve a reordering of the particle array (!)
+struct CellLists
+{
+    const int ncells, L;
+
+    int * start, * count;
+    
+CellLists(const int L): ncells(L * L * L), L(L)
+	{
+	    CUDA_CHECK(cudaMalloc(&start, sizeof(int) * ncells));
+	    CUDA_CHECK(cudaMalloc(&count, sizeof(int) * ncells));
+	}
+
+    void build(Particle * const p, const int n);
+	    	    
+    ~CellLists()
+	{
+	    CUDA_CHECK(cudaFree(start));
+	    CUDA_CHECK(cudaFree(count));
+	}
+};
+
+
+void diagnostics(MPI_Comm comm, Particle * _particles, int n, float dt, int idstep, int L, Acceleration * _acc);
+
+void report_host_memory_usage(MPI_Comm comm, FILE * foutput);

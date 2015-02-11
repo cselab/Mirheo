@@ -1,3 +1,6 @@
+#include <sys/stat.h>
+#include <sys/types.h>
+
 #include <cmath>
 
 #include <thrust/device_vector.h>
@@ -6,9 +9,12 @@
 
 #include <../saru.cuh>
 
+#include "io.h"
 #include "halo-exchanger.h"
-
 #include "wall-interactions.h"
+
+static const int MARGIN = 12;
+static const int VPD = 256;
 
 namespace SolidWallsKernel
 {
@@ -16,12 +22,12 @@ namespace SolidWallsKernel
 
     __device__ float sdf(float x, float y, float z, const int L)
     {
-	float p[3] = {x, y, z};
+	double p[3] = {x, y, z};
 	
-	float texcoord[3];
+	double texcoord[3];
 	for(int c = 0; c < 3; ++c)
 	{
-	    texcoord[c] = (p[c] - (-L/2 - 1)) / (L + 2);
+	    texcoord[c] = (p[c] - (-L/2 - MARGIN)) / (L + 2 * MARGIN);
 	    assert(texcoord[c] >= 0 && texcoord[c] <= 1);
 	}
 	
@@ -39,7 +45,7 @@ namespace SolidWallsKernel
 
 	const Particle p = particles[pid];
 
-	key[pid] = (int)(sdf(p.x[0], p.x[1], p.x[2], L) > 0);
+	key[pid] = (int)(sdf(p.x[0], p.x[1], p.x[2], L) >= 0);
     }
 
     __global__ void zero_velocity(Particle * const dst, const int n)
@@ -59,43 +65,80 @@ namespace SolidWallsKernel
 	dst[pid] = p;
     }
 
-    __device__ bool handle_collision(float& x, float& y, float& z, float& u, float& v, float& w, /*float& dt,*/ const int L)
+    __device__ bool handle_collision(float& _x, float& _y, float& _z, float& _u, float& _v, float& _w, const int L, const int rank, const float _dt)
     {
-	if (sdf(x, y, z, L) <= 0)
+	if (sdf(_x, _y, _z, L) < 0)
 	    return false;
 
-	const float xold = x - dt * u;
-	const float yold = y - dt * v;
-	const float zold = z - dt * w;
+	double dt = _dt;
+	bool ok = false;
 
-	float t = 0;
+	double x = _x, y = _y, z = _z, u = _u, v = _v, w = _w;
 
-	for(int i = 1; i < 8; ++i)
+	int ncollisions = 0;
+//	do
+	//{
+	    const double xold = x - dt * u;
+	    const double yold = y - dt * v;
+	    const double zold = z - dt * w;
+
+	    if (sdf(xold, yold, zold, L) >= 0)
+	    {
+		//printf("RANK %d collision resolution nr. %d oooops wall-interactions:handle_collision assumption failed: %f %f %f -> sdf %f\n", 
+		//     rank, ncollisions, xold, yold, zold, sdf(xold, yold, zold, L));
+		//assert(false);
+		return false;
+	    }
+	    
+	    float subdt = 0;
+	    
+	    for(int i = 1; i < 8; ++i)
+	    {
+		const double tcandidate = subdt + dt / (1 << i);
+		const double xcandidate = xold + tcandidate * u;
+		const double ycandidate = yold + tcandidate * v;
+		const double zcandidate = zold + tcandidate * w;
+		
+		if (sdf(xcandidate, ycandidate, zcandidate, L) < 0)
+		    subdt = tcandidate;
+	    }
+	    
+	    const double lambda = 2 * subdt - dt;
+	    
+	    x = xold + lambda * u;
+	    y = yold + lambda * v;
+	    z = zold + lambda * w;
+	    
+	    u  = -u;
+	    v  = -v;
+	    w  = -w;	    
+	    dt = dt - subdt;
+
+	    ok = (sdf(x, y, z, L) < 0);
+	    ++ncollisions;
+	    //} 
+//	while(!ok && ncollisions < 20);
+
+	if (!ok)
 	{
-	    const float tcandidate = t + dt / (1 << i);
-	    const float xcandidate = xold + tcandidate * u;
-	    const float ycandidate = yold + tcandidate * v;
-	    const float zcandidate = zold + tcandidate * w;
+	    //return false;
+	    //printf("RANK %d oooops after %d collision resolutions, still failed: %f %f %f -> sdf %f\n remaining dt %e", 
+	    //   rank, ncollisions, x, y, z, sdf(x, y, z, L), dt);
 
-	    if (sdf(xcandidate, ycandidate, zcandidate, L) <= 0)
-		t = tcandidate;
+	    x = xold;
+	    y = yold;
+	    z = zold;
+
+	    //printf("recovering with: RANK %d oooops after %d collision resolutions, still failed: %f %f %f -> sdf %f\n remaining dt %e", 
+	    //   rank, ncollisions, x, y, z, sdf(x, y, z, L), dt);
 	}
 
-	const float lambda = 2 * t - dt;
-
-	x = xold + lambda * u;
-	y = yold + lambda * v;
-	z = zold + lambda * w;
-
-	u  = -u;
-	v  = -v;
-	w  = -w;
-	//dt = dt - t;
+	_x = x; _y = y; _z = z; _u = u; _v = v; _w = w;
 
 	return true;
     }
 
-    __global__ void bounce(Particle * const particles, const int n, const int L) //, const float dt)
+    __global__ void bounce(Particle * const particles, const int n, const int L, const int rank, const float dt)
     {
 	assert(blockDim.x * gridDim.x >= n);
 
@@ -107,9 +150,14 @@ namespace SolidWallsKernel
 	Particle p = particles[pid];
 
 	for(int c = 0; c < 3; ++c)
-	    assert(abs(p.x[c]) <= L/2 + 1);
+	{
+	    if (!(abs(p.x[c]) <= L/2 + MARGIN))
+		printf("bounce: ooooooooops we have %f %f %f outside %d + %d\n", p.x[0], p.x[1], p.x[2], L/2, MARGIN);
 
-	if (handle_collision(p.x[0], p.x[1], p.x[2], p.u[0], p.u[1], p.u[2], L))
+	    assert(abs(p.x[c]) <= L/2 + MARGIN);
+	}
+
+	if (handle_collision(p.x[0], p.x[1], p.x[2], p.u[0], p.u[1], p.u[2], L, rank, dt))
 	    particles[pid] = p;
     }
 
@@ -130,8 +178,9 @@ namespace SolidWallsKernel
 	int base[3];
 	for(int c = 0; c < 3; ++c)
 	{
-	    assert(p.x[c] >= -L/2 - 1);
-	    base[c] = (int)(p.x[c] - (-L/2 -1));
+	    assert(p.x[c] >= -L/2 - MARGIN);
+	    assert(p.x[c] < L/2 + MARGIN);
+	    base[c] = (int)(p.x[c] - (-L/2 - MARGIN));
 	}
 
 	const float xp = p.x[0], yp = p.x[1], zp = p.x[2];
@@ -145,13 +194,13 @@ namespace SolidWallsKernel
 	    const int ycid = base[1] + (code/3 % 3) - 1;
 	    const int zcid = base[2] + (code/9 % 3) - 1;
 
-	    if (xcid < 0 || xcid >= L + 2 ||
-		ycid < 0 || ycid >= L + 2 ||
-		zcid < 0 || zcid >= L + 2 )
+	    if (xcid < 0 || xcid >= L + 2 * MARGIN ||
+		ycid < 0 || ycid >= L + 2 * MARGIN ||
+		zcid < 0 || zcid >= L + 2 * MARGIN )
 		continue;
 			    
-	    const int cid = xcid + (L + 2) * (ycid + (L + 2) * zcid);
-	    assert(cid >= 0 && cid < (L + 2) * (L + 2) * (L + 2));
+	    const int cid = xcid + (L + 2 * MARGIN) * (ycid + (L + 2 * MARGIN) * zcid);
+	    assert(cid >= 0 && cid < (L + 2 * MARGIN) * (L + 2 * MARGIN) * (L + 2 * MARGIN));
 
 	    const int start = starts[cid];
 	    const int stop = start + counts[cid];
@@ -173,8 +222,9 @@ namespace SolidWallsKernel
 		const float invrij = rsqrtf(rij2);
 		 
 		const float rij = rij2 * invrij;
-		const float wr = max((float)0, 1 - rij);
-		
+		const float argwr = max((float)0, 1 - rij);
+		const float wr = powf(argwr, powf(0.5f, -VISCOSITY_S_LEVEL));
+
 		const float xr = _xr * invrij;
 		const float yr = _yr * invrij;
 		const float zr = _zr * invrij;
@@ -188,7 +238,7 @@ namespace SolidWallsKernel
 	
 		const float myrandnr = 3.464101615f * mysaru - 1.732050807f;
 		 
-		const float strength = (aij - gamma * wr * rdotv + sigmaf * myrandnr) * wr;
+		const float strength = aij * argwr + (- gamma * wr * rdotv + sigmaf * myrandnr) * wr;
 
 		xforce += strength * xr;
 		yforce += strength * yr;
@@ -205,36 +255,172 @@ namespace SolidWallsKernel
     }
 }
 
+template<int k>
+struct Bspline
+{
+    template<int i>
+    static float eval(float x)
+	{
+	    return
+		(x - i) / (k - 1) * Bspline<k - 1>::template eval<i>(x) +
+		(i + k - x) / (k - 1) * Bspline<k - 1>::template eval<i + 1>(x);
+	}
+};
+
+template<>
+struct Bspline<1>
+{
+    template <int i>
+    static float eval(float x)
+	{
+	    return  (float)(i) <= x && x < (float)(i + 1);
+	}
+};
+
+struct FieldSampler
+{
+    float * data, extent[3];
+    int N[3];
+
+    FieldSampler(const char * path)
+	{
+	    FILE * f = fopen(path, "rb");
+
+	    int retval;
+	    retval = fscanf(f, "%f %f %f\n", extent + 0, extent + 1, extent + 2);
+	    assert(retval == 3);
+	    retval = fscanf(f, "%d %d %d\n", N + 0, N + 1, N + 2);
+	    assert(retval == 3);
+	    
+	    const int nvoxels = N[0] * N[1] * N[2];
+	    data = new float[nvoxels];
+	    
+	    retval = fread(data, sizeof(float), nvoxels, f);
+	    assert(retval == nvoxels);
+
+	    int nvoxels_solvent = 0;
+	    for(int i = 0; i < nvoxels; ++i)
+		nvoxels_solvent += (data[i] < 0);
+
+	    fclose(f);
+	}
+    
+    void sample(const float start[3], const float spacing[3], const int nsize[3], float * output) 
+	{
+	    Bspline<4> bsp;
+
+	    for(int iz = 0; iz < nsize[2]; ++iz)
+		for(int iy = 0; iy < nsize[1]; ++iy)
+		    for(int ix = 0; ix < nsize[0]; ++ix)
+		    {
+			const float x[3] = {
+			    start[0] + (ix  + 0.5f) * spacing[0] - 0.5f,
+			    start[1] + (iy  + 0.5f) * spacing[1] - 0.5f,
+			    start[2] + (iz  + 0.5f) * spacing[2] - 0.5f
+			};
+
+			int anchor[3];
+			for(int c = 0; c < 3; ++c)
+			    anchor[c] = (int)floor(x[c]);
+			
+			float w[3][4];
+			for(int c = 0; c < 3; ++c)
+			    for(int i = 0; i < 4; ++i)
+				w[c][i] = bsp.eval<0>(x[c] - (anchor[c] - 1 + i) + 2);
+			
+			float tmp[4][4];
+			for(int sz = 0; sz < 4; ++sz)
+			    for(int sy = 0; sy < 4; ++sy)
+			    {
+				float s = 0;
+				
+				for(int sx = 0; sx < 4; ++sx)
+				{
+				    const int l[3] = {sx, sy, sz};
+
+				    int g[3];
+				    for(int c = 0; c < 3; ++c)
+					g[c] = max(0, min(N[c] - 1, l[c] - 1 + anchor[c]));
+
+				    s += w[0][sx] * data[g[0] + N[0] * (g[1] + N[1] * g[2])];
+				}
+
+				tmp[sz][sy] = s;
+			    }
+
+			float partial[4];
+			for(int sz = 0; sz < 4; ++sz)
+			{
+			    float s = 0;
+
+			    for(int sy = 0; sy < 4; ++sy)
+				s += w[1][sy] * tmp[sz][sy];
+
+			    partial[sz] = s;
+			}
+
+			float val = 0;
+			for(int sz = 0; sz < 4; ++sz)
+			    val += w[2][sz] * partial[sz];
+					
+			output[ix + nsize[0] * (iy + nsize[1] * iz)] = val;
+		    }
+	}
+
+    ~FieldSampler()
+	{
+	    delete [] data;
+	}
+};
+
 ComputeInteractionsWall::ComputeInteractionsWall(MPI_Comm cartcomm, const int L, Particle* const p, 
 						 const int n, int& nsurvived):
-    cartcomm(cartcomm), L(L), arrSDF(NULL), solid(NULL), solid_size(0), cells(L+2)
+    cartcomm(cartcomm), L(L), arrSDF(NULL), solid(NULL), solid_size(0), cells(L+ 2 * MARGIN)
 {
     MPI_CHECK( MPI_Comm_rank(cartcomm, &myrank));
     MPI_CHECK( MPI_Cart_get(cartcomm, 3, dims, periods, coords) );
     
-    const float y_cyl = 0.5 * L * dims[1];
-    const float z_cyl = 0.5 * L * dims[2];
-    const float r_cyl = 0.125 * L * dims[1];
-    
-    const int VPD = 64;
-
     float * field = new float[VPD * VPD * VPD];
 
-    const double h = (L + 2) / (double)(VPD - 2);
+    FieldSampler sampler("sdf.dat");
 
-    for(int iz = 0; iz < VPD; ++iz)
-	for(int iy = 0; iy < VPD; ++iy)
-	    for(int ix = 0; ix < VPD; ++ix)
-	    {
-		//const float x = coords[0] * L - 1 + (ix + 0.5) * h;
-		const float y = coords[1] * L - 1 + (iy + 0.5) * h;
-		const float z = coords[2] * L - 1 + (iz + 0.5) * h;
+    {
+       	float start[3], spacing[3];
+	for(int c = 0; c < 3; ++c)
+	{
+	    start[c] = (coords[c] * L - MARGIN) / (float)(dims[c] * L) * sampler.N[c];
+	    spacing[c] =  sampler.N[c] * (L + 2 * MARGIN) / (float)(dims[c] * L * VPD) ;
+	}
+	
+	int size[3] = {VPD, VPD, VPD};
 
-		const float r = sqrt(pow(y - y_cyl, 2) + pow(z - z_cyl, 2));
-		
-		field[ix + VPD * (iy + VPD * iz)] = r - r_cyl;
-	    }
+	sampler.sample(start, spacing, size, field);
+    }
+
+    if (hdf5field_dumps)
+    {
+	float * walldata = new float[L * L * L];
+
+	float start[3], spacing[3];
+	for(int c = 0; c < 3; ++c)
+	{
+	    start[c] = coords[c] * L / (float)(dims[c] * L) * sampler.N[c];
+	    spacing[c] = sampler.N[c] / (float)(dims[c] * L) ;
+	}
+	
+	int size[3] = {L, L, L};
+
+	sampler.sample(start, spacing, size, walldata);
+
+	H5FieldDump dump(cartcomm);
+	dump.dump_scalarfield(walldata, "wall");
+
+	delete [] walldata;
+    }
     
+    CUDA_CHECK(cudaPeekAtLastError());
+    CUDA_CHECK(cudaDeviceSynchronize());
+
     cudaChannelFormatDesc fmt = cudaCreateChannelDesc<float>();
     CUDA_CHECK(cudaMalloc3DArray (&arrSDF, &fmt, make_cudaExtent(VPD, VPD, VPD)));
 
@@ -270,34 +456,45 @@ ComputeInteractionsWall::ComputeInteractionsWall(MPI_Comm cartcomm, const int L,
     
     printf("rank %d nsurvived is %d -> %.2f%%\n", myrank, nsurvived, nsurvived * 100. /n);
 
-
     thrust::device_vector<Particle> solid_local(thrust::device_ptr<Particle>(p + nsurvived), thrust::device_ptr<Particle>(p + n));
   
-    HaloExchanger halo(cartcomm, L);
+    HaloExchanger halo(cartcomm, L, 666);
 
-    const Particle * solid_remote = NULL;
-    int nremote;
+    SimpleDeviceBuffer<Particle> solid_remote;
+    halo.exchange(thrust::raw_pointer_cast(&solid_local[0]), solid_local.size(), solid_remote);
 
-    halo.exchange(thrust::raw_pointer_cast(&solid_local[0]), solid_local.size(), solid_remote, nremote);
-
-    printf("receiving extra %d\n", nremote);
+    printf("rank %d is receiving extra %d\n", myrank, solid_remote.size);
     
-    solid_size = solid_local.size() + nremote;
+    solid_size = solid_local.size() + solid_remote.size;
 
     CUDA_CHECK(cudaMalloc(&solid, sizeof(Particle) * solid_size));
     CUDA_CHECK(cudaMemcpy(solid, thrust::raw_pointer_cast(&solid_local[0]), sizeof(Particle) * solid_local.size(), cudaMemcpyDeviceToDevice));
-    CUDA_CHECK(cudaMemcpy(solid + solid_local.size(), solid_remote, sizeof(Particle) * nremote, cudaMemcpyDeviceToDevice));
+    CUDA_CHECK(cudaMemcpy(solid + solid_local.size(), solid_remote.data, sizeof(Particle) * solid_remote.size, cudaMemcpyDeviceToDevice));
         
-    SolidWallsKernel::zero_velocity<<< (solid_size + 127) / 128, 128>>>(solid, solid_size);
+    if (solid_size > 0)
+	SolidWallsKernel::zero_velocity<<< (solid_size + 127) / 128, 128>>>(solid, solid_size);
 
     if (solid_size > 0)
 	cells.build(solid, solid_size);
+
+    {
+	const int n = solid_local.size();
+
+	Particle * phost = new Particle[n];
+
+	CUDA_CHECK(cudaMemcpy(phost, thrust::raw_pointer_cast(&solid_local[0]), sizeof(Particle) * n, cudaMemcpyDeviceToHost));
+
+	H5PartDump solid_dump("solid-walls.h5part", cartcomm, L);
+	solid_dump.dump(phost, n);
+
+	delete [] phost;
+    }
 }
 
 void ComputeInteractionsWall::bounce(Particle * const p, const int n)
 {
     if (n > 0)
-	SolidWallsKernel::bounce<<< (n + 127) / 128, 128>>>(p, n, L);
+	SolidWallsKernel::bounce<<< (n + 127) / 128, 128>>>(p, n, L, myrank, dt);
     
     CUDA_CHECK(cudaPeekAtLastError());
 }
@@ -305,6 +502,8 @@ void ComputeInteractionsWall::bounce(Particle * const p, const int n)
 void ComputeInteractionsWall::interactions(const Particle * const p, const int n, Acceleration * const acc,
 			      const int * const cellsstart, const int * const cellscount, int& saru_tag)
 {
+    //cellsstart and cellscount IGNORED for now
+    
     if (n > 0 && solid_size > 0)
 	SolidWallsKernel::interactions<<< (n + 127) / 128, 128>>>(p, n, acc, cells.start, cells.count, L,
 								  solid, solid_size, saru_tag, myrank, aij, gammadpd, sigmaf);

@@ -113,8 +113,9 @@ __global__ __launch_bounds__(32 * CPB, 16)
 		const float rij2 = _xr * _xr + _yr * _yr + _zr * _zr;
 		const float invrij = rsqrtf(rij2);
 		const float rij = rij2 * invrij;
-		const float wr = max((float)0, 1 - rij * info.invrc);
-		
+		const float argwr = max((float)0, 1 - rij * info.invrc);
+		const float wr = powf(argwr, powf(0.5f, -VISCOSITY_S_LEVEL));
+
 		const float xr = _xr * invrij;
 		const float yr = _yr * invrij;
 		const float zr = _zr * invrij;
@@ -127,7 +128,7 @@ __global__ __launch_bounds__(32 * CPB, 16)
 		const float mysaru = saru(min(spid, dpid), max(spid, dpid), idtimestep);
 		const float myrandnr = 3.464101615f * mysaru - 1.732050807f;
 		 
-		const float strength = (info.aij - info.gamma * wr * rdotv + info.sigmaf * myrandnr) * wr;
+		const float strength = info.aij * argwr - (info.gamma * wr * rdotv + info.sigmaf * myrandnr) * wr;
 		const bool valid = (d + slot != s + subtid) && (slot < np1) && (subtid < np2);
 		
 		if (valid)
@@ -174,7 +175,7 @@ void forces_dpd_cuda_nohost(const float * const xyzuvw, float * const axayaz,  c
 			    const float gamma,
 			    const float sigma,
 			    const float invsqrtdt,
-			    const int saru_tag)
+			    const int saru_tag, cudaStream_t stream)
 {
     if (np == 0)
     {
@@ -225,11 +226,11 @@ void forces_dpd_cuda_nohost(const float * const xyzuvw, float * const axayaz,  c
     c.gamma = gamma;
     c.sigmaf = sigma * invsqrtdt;
       
-    CUDA_CHECK(cudaMemcpyToSymbolAsync(info, &c, sizeof(c)));
+    CUDA_CHECK(cudaMemcpyToSymbolAsync(info, &c, sizeof(c), 0, cudaMemcpyHostToDevice, stream));
    
     _dpd_forces_saru<<<dim3(c.ncells.x / _XCPB_,
 			    c.ncells.y / _YCPB_,
-			    c.ncells.z / _ZCPB_), dim3(32, CPB)>>>(axayaz, saru_tag);
+			    c.ncells.z / _ZCPB_), dim3(32, CPB), 0, stream>>>(axayaz, saru_tag);
 
     CUDA_CHECK(cudaPeekAtLastError());	
 }
@@ -328,7 +329,7 @@ void forces_dpd_cuda_aos(float * const _xyzuvw, float * const _axayaz,
 	fdpd_oldnc = ncells;
     }
 
-    CUDA_CHECK(cudaMemcpyAsync(fdpd_xyzuvw, _xyzuvw, sizeof(float) * np * 6, nohost ? cudaMemcpyDeviceToDevice : cudaMemcpyHostToDevice));
+    CUDA_CHECK(cudaMemcpyAsync(fdpd_xyzuvw, _xyzuvw, sizeof(float) * np * 6, nohost ? cudaMemcpyDeviceToDevice : cudaMemcpyHostToDevice, 0));
     
     InfoDPD c;
     c.ncells = make_int3(nx, ny, nz);
@@ -347,7 +348,7 @@ void forces_dpd_cuda_aos(float * const _xyzuvw, float * const _axayaz,
     //TextureWrap texStart(_ptr(starts), ncells), texCount(_ptr(counts), ncells);
     //TextureWrap texParticles((float2*)_ptr(xyzuvw), 3 * np);
     
-    CUDA_CHECK(cudaMemcpyToSymbolAsync(info, &c, sizeof(c)));
+    CUDA_CHECK(cudaMemcpyToSymbolAsync(info, &c, sizeof(c), 0));
    
     ProfilerDPD::singletone().start();
 

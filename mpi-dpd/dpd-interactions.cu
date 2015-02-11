@@ -8,67 +8,28 @@
 
 using namespace std;
 
-ComputeInteractionsDPD::ComputeInteractionsDPD(MPI_Comm cartcomm, int L):
-    HaloExchanger(cartcomm, L)
+ComputeInteractionsDPD::ComputeInteractionsDPD(MPI_Comm cartcomm, int L): HaloExchanger(cartcomm, L, 0) {}
+
+void ComputeInteractionsDPD::spawn_local_work()
 {
-    acc_size = send_bag.size;
-    CUDA_CHECK(cudaMalloc(&acc_remote, acc_size * sizeof(Acceleration)));
-
-    for(int i = 0; i < 7; ++i)
-	CUDA_CHECK(cudaStreamCreate(streams + i));
-
-    for(int i = 0, ctr = 1; i < 26; ++i)
-    {
-	int d[3] = { (i + 2) % 3 - 1, (i / 3 + 2) % 3 - 1, (i / 9 + 2) % 3 - 1 };
-
-	const bool isface = abs(d[0]) + abs(d[1]) + abs(d[2]) == 1;
-
-	code2stream[i] = 0;
-
-	if (isface)
-	{
-	    code2stream[i] = ctr;
-	    ctr++;
-	}
-    }
+    if (localwork.n > 0)
+	forces_dpd_cuda_nohost((float *)localwork.p, (float *)localwork.a, localwork.n, 
+			       localwork.cellsstart, localwork.cellscount,
+			       1, L, L, L, aij, gammadpd, sigma, 1. / sqrt(dt), localwork.saru_tag);
 }
 
 void ComputeInteractionsDPD::evaluate(int& saru_tag, const Particle * const p, const int n, Acceleration * const a,
 				      const int * const cellsstart, const int * const cellscount)
 {
-    dpd_remote_interactions_stage1(p, n);
-
-    if (n > 0)
-	forces_dpd_cuda_nohost((float *)p, (float *)a, n, 
-			       cellsstart, cellscount,
-			       1, L, L, L, aij, gammadpd, sigma, 1. / sqrt(dt), saru_tag);
+    localwork = LocalWorkParams(saru_tag, p, n, a, cellsstart, cellscount); 
+    
+    HaloExchanger::pack_and_post(p, n, cellsstart, cellscount); //spawn local work will be called within this function
 
     saru_tag += nranks - myrank;
-
-    dpd_remote_interactions_stage2(p, n, saru_tag, a);
-
+    
+    dpd_remote_interactions(p, n, saru_tag, a);
+    
     saru_tag += 1 + myrank;  
-}
-
-
-__global__ void not_nan(float * p, const int n)
-{
-    assert(gridDim.x * blockDim.x >= n);
-
-    const int gid = threadIdx.x + blockDim.x * blockIdx.x;
-
-    if (gid < n)
-	assert(!isnan(p[gid]));
-}
-
-__global__ void fill_random(float * p, const int n)
-{
-    assert(gridDim.x * blockDim.x >= n);
-
-    const int gid = threadIdx.x + blockDim.x * blockIdx.x;
-
-    if (gid < n)
-	p[gid] = 2 * (gid % 100) * 0.01 - 1;
 }
 
 namespace RemoteDPD
@@ -110,34 +71,19 @@ namespace RemoteDPD
 #endif
 	for(int c = 0; c < 3; ++c)
 	{
-	    float val = atomicAdd(&alocal[pid].a[c], a.a[c]);
-	    assert(!isnan(val));
+	    atomicAdd(& alocal[pid].a[c], a.a[c]);
+	    
+	    assert(!isnan(a.a[c]));
 	}
     }
 }
 
-void ComputeInteractionsDPD::dpd_remote_interactions_stage1(const Particle * const p, const int n)
+void ComputeInteractionsDPD::dpd_remote_interactions(const Particle * const p, const int n, const int saru_tag1, Acceleration * const a)
 {
-    HaloExchanger::pack_and_post(p, n);
+    CUDA_CHECK(cudaPeekAtLastError());
 
-    if (acc_size < HaloExchanger::nof_sent_particles())
-    {
-	CUDA_CHECK(cudaFree(acc_remote));
-
-	acc_size = HaloExchanger::nof_sent_particles();
-	CUDA_CHECK(cudaMalloc(&acc_remote, sizeof(Acceleration) * acc_size));
-
-#ifndef NDEBUG
-	//fill acc entries with nan
-	CUDA_CHECK(cudaMemset(acc_remote, 0xff, sizeof(Acceleration) * acc_size));
-#endif
-    }
-}
-
-void ComputeInteractionsDPD::dpd_remote_interactions_stage2(const Particle * const p, const int n, const int saru_tag1, Acceleration * const a)
-{
     wait_for_messages();
-
+    
     int saru_tag2[26];
     bool saru_mask[26];
     for(int i = 0; i < 26; ++i)
@@ -154,8 +100,7 @@ void ComputeInteractionsDPD::dpd_remote_interactions_stage2(const Particle * con
 
 	saru_tag2[i] = indx[0] + dims[0] * dims[0] * (indx[1] + dims[1] * dims[1] * indx[2]);
 
-	int dstrank;
-	MPI_CHECK( MPI_Cart_rank(cartcomm, coordsneighbor, &dstrank) );
+	const int dstrank = dstranks[i];
 
 	if (dstrank != myrank)
 	    saru_mask[i] = min(dstrank, myrank) == myrank;
@@ -166,37 +111,59 @@ void ComputeInteractionsDPD::dpd_remote_interactions_stage2(const Particle * con
 	}
     }
 
+    CUDA_CHECK(cudaPeekAtLastError());
+
+    //CUDA_CHECK(cudaStreamSynchronize(HaloExchanger::streams[0]));
+
     for(int i = 0; i < 26; ++i)
     {
-	const int nd = send_offsets[i + 1] - send_offsets[i];
-	const int ns = recv_offsets[i + 1] - recv_offsets[i];
+	const int nd = sendhalos[i].dbuf.size;
+	const int ns = recvhalos[i].dbuf.size;
 
-	if (nd > 0 && ns == 0)
-	    CUDA_CHECK(cudaMemset((float *)&acc_remote[send_offsets[i]], 0, nd * sizeof(Acceleration)));
+	acc_remote[i].resize(nd);
 
-	if (ns == 0 || nd == 0)
+	if (nd == 0)
 	    continue;
-
+	
+#ifndef NDEBUG
+	//fill acc entries with nan
+	CUDA_CHECK(cudaMemset(acc_remote[i].data, 0xff, sizeof(Acceleration) * acc_remote[i].size));
+#endif
 	cudaStream_t mystream = streams[code2stream[i]];
-
-	directforces_dpd_cuda_bipartite_nohost(
-	    (float *)(send_bag.data + send_offsets[i]), (float *)&acc_remote[send_offsets[i]], nd,
-	    (float *)(recv_bag.data + recv_offsets[i]), ns,
-	    aij, gammadpd, sigma, 1. / sqrt(dt), saru_tag1, saru_tag2[i], saru_mask[i], mystream);
+	
+	if (ns == 0)
+	{
+	    CUDA_CHECK(cudaMemsetAsync((float *)acc_remote[i].data, 0, nd * sizeof(Acceleration), mystream));
+	    continue;
+	}
+	
+	if (sendhalos[i].dcellstarts.size * recvhalos[i].dcellstarts.size > 1 && nd * ns > 10 * 10)
+	{	   
+	    texDC[i].acquire(sendhalos[i].dcellstarts.data, sendhalos[i].dcellstarts.capacity);
+	    texSC[i].acquire(recvhalos[i].dcellstarts.data, recvhalos[i].dcellstarts.capacity);
+	    texSP[i].acquire((float2*)recvhalos[i].dbuf.data, recvhalos[i].dbuf.capacity * 3);
+	       
+	    forces_dpd_cuda_bipartite_nohost(mystream, (float2 *)sendhalos[i].dbuf.data, nd, texDC[i].texObj, texSC[i].texObj, texSP[i].texObj,
+					     ns, halosize[i], aij, gammadpd, sigma / sqrt(dt), saru_tag1, saru_tag2[i], saru_mask[i],
+					     (float *)acc_remote[i].data);
+	}
+	else
+	    directforces_dpd_cuda_bipartite_nohost(
+		(float *)sendhalos[i].dbuf.data, (float *)acc_remote[i].data, nd,
+		(float *)recvhalos[i].dbuf.data, ns,
+		aij, gammadpd, sigma, 1. / sqrt(dt), saru_tag1, saru_tag2[i], saru_mask[i], mystream);
     }
-
-    const int nremote = HaloExchanger::nof_sent_particles();
-
-    if (nremote > 0)
-	RemoteDPD::merge_accelerations<<<(nremote + 127) / 128, 128>>>(acc_remote, nremote, a, n, send_bag.data, p, scattered_entries.data, myrank);
-
+    
     CUDA_CHECK(cudaPeekAtLastError());
-}
-
-ComputeInteractionsDPD::~ComputeInteractionsDPD()
-{
-    CUDA_CHECK(cudaFree(acc_remote));
-
-    for(int i = 0; i < 7; ++i)
-	CUDA_CHECK(cudaStreamDestroy(streams[i]));
+    
+    for(int i = 0; i < 26; ++i)
+    {
+	const int nd = acc_remote[i].size;
+	
+	if (nd > 0)
+	    RemoteDPD::merge_accelerations<<<(nd + 127) / 128, 128, 0, streams[code2stream[i]]>>>
+		(acc_remote[i].data, nd, a, n, sendhalos[i].dbuf.data, p, sendhalos[i].scattered_entries.data, myrank);
+    }
+   
+    CUDA_CHECK(cudaPeekAtLastError());
 }
