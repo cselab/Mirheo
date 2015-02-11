@@ -1,3 +1,5 @@
+-include .cache.Makefile
+
 include ../Makefile
 
 ifeq "$(nonperiodic)" "1"
@@ -21,10 +23,10 @@ cuda-dpd-bipartite.o: cuda-dpd-bipartite.cu cuda-dpd.h
 	$(NVCC) $(NVCCFLAGS) -c cuda-dpd-bipartite.cu
 
 ../%.o:
-	make -C ../ $(@:../%=%)
+	make -C ../ $(@:../%=%) CXX="$(CXX)" NVCC="$(NVCC)"
 
 celllists:
-	make -C ../ cell-lists.o NVCCFLAGS="$(NVCCFLAGS)"
+	make -C ../ cell-lists.o NVCC="$(NVCC)" NVCCFLAGS="$(NVCCFLAGS)"
 
 clean:
 	rm -f test-dpd libcuda-dpd.so *.o

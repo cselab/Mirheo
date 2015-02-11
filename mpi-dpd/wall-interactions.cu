@@ -1,4 +1,4 @@
-#include <sys/stat.h>
+ #include <sys/stat.h>
 #include <sys/types.h>
 
 #include <cmath>
@@ -22,16 +22,45 @@ namespace SolidWallsKernel
 
     __device__ float sdf(float x, float y, float z, const int L)
     {
-	double p[3] = {x, y, z};
+	float p[3] = {x, y, z};
 	
-	double texcoord[3];
+	float texcoord[3];
 	for(int c = 0; c < 3; ++c)
 	{
-	    texcoord[c] = (p[c] - (-L/2 - MARGIN)) / (L + 2 * MARGIN);
+	    texcoord[c] = (p[c] + L / 2 + MARGIN) / (L + 2 * MARGIN);
+
 	    assert(texcoord[c] >= 0 && texcoord[c] <= 1);
 	}
 	
 	return tex3D(texSDF, texcoord[0], texcoord[1], texcoord[2]);
+    }
+
+    __device__ float3 grad_sdf(float x, float y, float z)
+    {
+	const float p[3] = {x, y, z};
+	
+	float tc[3];
+	for(int c = 0; c < 3; ++c)
+	{
+	    tc[c] = (p[c] + L / 2 + MARGIN) / (L + 2 * MARGIN);
+
+	    if (!(tc[c] >= 0 && tc[c] <= 1))
+	    {
+		printf("oooooooooops wall-interactions: texture coordinate %f exceeds bounds [0, 1] for c %d\nincrease MARGIN or decrease timestep",
+		       tc[c], c);
+	    }
+	    
+	    assert(tc[c] >= 0 && tc[c] <= 1);
+	}
+	
+	const float htw = 1. / VPD;
+	const float factor = 1. / (2 * htw) * 1.f / (L * 2 + MARGIN);
+	
+	return make_float3(
+	    factor * (tex3D(texSDF, tc[0] + htw, tc[1], tc[2]) - tex3D(texSDF, tc[0] - htw, tc[1], tc[2])),
+	    factor * (tex3D(texSDF, tc[0], tc[1] + htw, tc[2]) - tex3D(texSDF, tc[0], tc[1] - htw, tc[2])),
+	    factor * (tex3D(texSDF, tc[0], tc[1], tc[2] + htw) - tex3D(texSDF, tc[0], tc[1], tc[2] - htw))
+	    );
     }
     
     __global__ void fill_keys(const Particle * const particles, const int n, const int L, int * const key)
@@ -65,75 +94,81 @@ namespace SolidWallsKernel
 	dst[pid] = p;
     }
 
-    __device__ bool handle_collision(float& _x, float& _y, float& _z, float& _u, float& _v, float& _w, const int L, const int rank, const float _dt)
+    __device__ bool handle_collision(float& x, float& y, float& z, float& u, float& v, float& w, const int L, const int rank, const double dt)
     {
-	if (sdf(_x, _y, _z, L) < 0)
+	const float initial_sdf = sdf(x, y, z, L);
+	
+	if (initial_sdf < 0)
 	    return false;
+	
+	const float xold = x - dt * u;
+	const float yold = y - dt * v;
+	const float zold = z - dt * w;
 
-	double dt = _dt;
-	bool ok = false;
-
-	double x = _x, y = _y, z = _z, u = _u, v = _v, w = _w;
-
-	int ncollisions = 0;
-//	do
-	//{
-	    const double xold = x - dt * u;
-	    const double yold = y - dt * v;
-	    const double zold = z - dt * w;
-
-	    if (sdf(xold, yold, zold, L) >= 0)
-	    {
-		//printf("RANK %d collision resolution nr. %d oooops wall-interactions:handle_collision assumption failed: %f %f %f -> sdf %f\n", 
-		//     rank, ncollisions, xold, yold, zold, sdf(xold, yold, zold, L));
-		//assert(false);
-		return false;
-	    }
-	    
-	    float subdt = 0;
-	    
-	    for(int i = 1; i < 8; ++i)
-	    {
-		const double tcandidate = subdt + dt / (1 << i);
-		const double xcandidate = xold + tcandidate * u;
-		const double ycandidate = yold + tcandidate * v;
-		const double zcandidate = zold + tcandidate * w;
-		
-		if (sdf(xcandidate, ycandidate, zcandidate, L) < 0)
-		    subdt = tcandidate;
-	    }
-	    
-	    const double lambda = 2 * subdt - dt;
-	    
-	    x = xold + lambda * u;
-	    y = yold + lambda * v;
-	    z = zold + lambda * w;
-	    
-	    u  = -u;
-	    v  = -v;
-	    w  = -w;	    
-	    dt = dt - subdt;
-
-	    ok = (sdf(x, y, z, L) < 0);
-	    ++ncollisions;
-	    //} 
-//	while(!ok && ncollisions < 20);
-
-	if (!ok)
+	if (sdf(xold, yold, zold, L) >= 0)
 	{
-	    //return false;
-	    //printf("RANK %d oooops after %d collision resolutions, still failed: %f %f %f -> sdf %f\n remaining dt %e", 
-	    //   rank, ncollisions, x, y, z, sdf(x, y, z, L), dt);
+	    //this is the worst case - it means that old position was bad already
+	    //we need to rescue the particle, extracting it from the walls
+	    const float3 mygrad = grad_sdf(x, y, z);
+	    const float mysdf =  initial_sdf;
 
+	    for(int l = 0; l < 8; ++l)
+	    {
+		const float jump = pow(0.5f, l) * mysdf;
+		
+		x -= jump * mygrad.x;
+		y -= jump * mygrad.y;
+		z -= jump * mygrad.z;
+		
+		if (sdf(x, y, z, L) < 0)
+		{
+		    u  = -u;
+		    v  = -v;
+		    w  = -w;	    	
+
+		    return false;
+		}
+	    }
+
+	    printf("RANK %d bounce collision failed OLD: %f %f %f, sdf %e \nNEW: %f %f %f sdf %e\n", 
+		   rank, 
+		   xold, yold, zold, sdf(xold, yold, zold, L), 
+		   x, y, z, sdf(x, y, z, L));
+	    
+	    return false;
+	}
+	
+	float subdt = 0;
+	    
+	for(int i = 1; i < 8; ++i)
+	{
+	    const float tcandidate = subdt + dt / (1 << i);
+	    const float xcandidate = xold + tcandidate * u;
+	    const float ycandidate = yold + tcandidate * v;
+	    const float zcandidate = zold + tcandidate * w;
+	    
+	    if (sdf(xcandidate, ycandidate, zcandidate, L) < 0)
+		subdt = tcandidate;
+	}
+	
+	const float lambda = 2 * subdt - dt;
+	
+	x = xold + lambda * u;
+	y = yold + lambda * v;
+	z = zold + lambda * w;
+	
+	u  = -u;
+	v  = -v;
+	w  = -w;	    
+	
+	if (sdf(x, y, z, L) >= 0)
+	{
 	    x = xold;
 	    y = yold;
 	    z = zold;
-
-	    //printf("recovering with: RANK %d oooops after %d collision resolutions, still failed: %f %f %f -> sdf %f\n remaining dt %e", 
-	    //   rank, ncollisions, x, y, z, sdf(x, y, z, L), dt);
+	    
+	    assert(sdf(x, y, z, L) < 0);
 	}
-
-	_x = x; _y = y; _z = z; _u = u; _v = v; _w = w;
 
 	return true;
     }
@@ -305,7 +340,7 @@ struct FieldSampler
 	    fclose(f);
 	}
     
-    void sample(const float start[3], const float spacing[3], const int nsize[3], float * output) 
+    void sample(const float start[3], const float spacing[3], const int nsize[3], float * const output, const float amplitude_rescaling) 
 	{
 	    Bspline<4> bsp;
 
@@ -363,7 +398,7 @@ struct FieldSampler
 			for(int sz = 0; sz < 4; ++sz)
 			    val += w[2][sz] * partial[sz];
 					
-			output[ix + nsize[0] * (iy + nsize[1] * iz)] = val;
+			output[ix + nsize[0] * (iy + nsize[1] * iz)] = val * amplitude_rescaling;
 		    }
 	}
 
@@ -384,6 +419,12 @@ ComputeInteractionsWall::ComputeInteractionsWall(MPI_Comm cartcomm, const int L,
 
     FieldSampler sampler("sdf.dat");
 
+
+#ifndef NDEBUG	
+    assert(fabs(dims[0] / (double) dims[1] - sampler.extent[0] / (double)sampler.extent[1]) < 1e-5);
+    assert(fabs(dims[0] / (double) dims[2] - sampler.extent[0] / (double)sampler.extent[2]) < 1e-5);
+#endif
+        
     {
        	float start[3], spacing[3];
 	for(int c = 0; c < 3; ++c)
@@ -394,7 +435,8 @@ ComputeInteractionsWall::ComputeInteractionsWall(MPI_Comm cartcomm, const int L,
 	
 	int size[3] = {VPD, VPD, VPD};
 
-	sampler.sample(start, spacing, size, field);
+	const float amplitude_rescaling = (L + 2 * MARGIN) / (sampler.extent[0] / dims[0]) ;
+	sampler.sample(start, spacing, size, field, amplitude_rescaling);
     }
 
     if (hdf5field_dumps)
@@ -410,7 +452,8 @@ ComputeInteractionsWall::ComputeInteractionsWall(MPI_Comm cartcomm, const int L,
 	
 	int size[3] = {L, L, L};
 
-	sampler.sample(start, spacing, size, walldata);
+	const float amplitude_rescaling = L / (sampler.extent[0] / dims[0]);
+	sampler.sample(start, spacing, size, walldata, amplitude_rescaling);
 
 	H5FieldDump dump(cartcomm);
 	dump.dump_scalarfield(walldata, "wall");
