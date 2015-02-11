@@ -109,27 +109,30 @@ namespace SolidWallsKernel
 	{
 	    //this is the worst case - it means that old position was bad already
 	    //we need to rescue the particle, extracting it from the walls
-	    const float3 mygrad = grad_sdf(x, y, z);
-	    const float mysdf =  initial_sdf;
-
-	    for(int l = 0; l < 8; ++l)
+	    for(int attempt = 0; attempt < 4; ++attempt)
 	    {
-		const float jump = pow(0.5f, l) * mysdf;
+		const float3 mygrad = grad_sdf(x, y, z);
+		const float mysdf = sdf(x, y, z, L);
 		
-		x -= jump * mygrad.x;
-		y -= jump * mygrad.y;
-		z -= jump * mygrad.z;
-		
-		if (sdf(x, y, z, L) < 0)
+		for(int l = 0; l < 8; ++l)
 		{
-		    u  = -u;
-		    v  = -v;
-		    w  = -w;	    	
-
-		    return false;
+		    const float jump = pow(0.5f, l) * mysdf;
+		    
+		    x -= jump * mygrad.x;
+		    y -= jump * mygrad.y;
+		    z -= jump * mygrad.z;
+		    
+		    if (sdf(x, y, z, L) < 0)
+		    {
+			u  = -u;
+			v  = -v;
+			w  = -w;	    	
+			
+			return false;
+		    }
 		}
 	    }
-
+	    
 	    printf("RANK %d bounce collision failed OLD: %f %f %f, sdf %e \nNEW: %f %f %f sdf %e\n", 
 		   rank, 
 		   xold, yold, zold, sdf(xold, yold, zold, L), 
