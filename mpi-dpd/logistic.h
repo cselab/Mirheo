@@ -3,6 +3,8 @@
 
 #include <cstdlib>
 #include <limits>
+#include <stdint.h>
+#include <cmath>
 
 /************************* Trunk generator ***********************
  * Make one global random number per each timestep
@@ -10,7 +12,7 @@
  * passes BigCrush
  *****************************************************************/
 struct KISS {
-	typedef std::uint32_t integer;
+	typedef uint32_t integer;
 
         integer x, y, z, c;
 	
@@ -22,7 +24,7 @@ struct KISS {
         }
 
         integer get_int() {
-                std::uint64_t t, a = 698769069ULL;
+                uint64_t t, a = 698769069ULL;
                 x = 69069*x+12345;
                 y ^= (y<<13); y ^= (y>>17); y ^= (y<<5); /* y must never be set to zero! */
                 t = a*z+c; c = (t>>32); /* Also avoid setting z=c=0! */
@@ -51,8 +53,8 @@ __inline__ __device__ float rem( float r ) {
 }
 
 // FMA wrapper for the convenience of switching rouding modes
-__inline__ __device__ float FMA( float x ) {
-	return __fmaf_rz(x);
+__inline__ __device__ float FMA( float x, float y, float z ) {
+	return __fmaf_rz(x, y, z);
 }
 
 // logistic rounds
