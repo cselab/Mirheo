@@ -1,6 +1,8 @@
 #include "logistic.h"
 #include <cstdio>
 
+// example usage of the logistic RNG
+
 __global__ void foo( const float trunk, const uint nx, const uint ny )
 {
 	for(uint i=0;i<nx;i++) for(uint j=0;j<ny;j++) {
