@@ -16,6 +16,7 @@
 #include "dpd-interactions.h"
 #include "wall-interactions.h"
 #include "redistribute-particles.h"
+#include "logistic.h"
 
 using namespace std;
 
@@ -301,6 +302,8 @@ int main(int argc, char ** argv)
 	    RedistributeParticles redistribute(cartcomm, L);
 	    ComputeInteractionsDPD dpd(cartcomm, L);
 	    ComputeInteractionsWall * wall = NULL;
+            // in production runs replace the numbers with 4 unique ones that are same across ranks
+            KISS rng_trunk( 0x26F94D92, 0x383E7D1E, 0x46144B48, 0x6DDD73CB );
 	
 	    int saru_tag = rank;
 	
