@@ -74,7 +74,8 @@ namespace SolidWallsKernel
 
 	const Particle p = particles[pid];
 
-	key[pid] = (int)(sdf(p.x[0], p.x[1], p.x[2], L) >= 0);
+	const float mysdf = sdf(p.x[0], p.x[1], p.x[2], L);
+	key[pid] = (int)(mysdf >= 0) + (int)(mysdf > 3);
     }
 
     __global__ void zero_velocity(Particle * const dst, const int n)
@@ -502,12 +503,104 @@ ComputeInteractionsWall::ComputeInteractionsWall(MPI_Comm cartcomm, const int L,
     
     printf("rank %d nsurvived is %d -> %.2f%%\n", myrank, nsurvived, nsurvived * 100. /n);
 
-    thrust::device_vector<Particle> solid_local(thrust::device_ptr<Particle>(p + nsurvived), thrust::device_ptr<Particle>(p + n));
+    const int nbelt = thrust::count(keys.begin() + nsurvived, keys.end(), 1);
+    printf("rank %d belt is %d -> %.2f%%\n", myrank, nbelt, nbelt * 100. / n);
+
+    thrust::device_vector<Particle> solid_local(thrust::device_ptr<Particle>(p + nsurvived), thrust::device_ptr<Particle>(p + nsurvived + nbelt));
   
-    HaloExchanger halo(cartcomm, L, 666);
+    //can't use halo-exchanger class because of MARGIN
+    //HaloExchanger halo(cartcomm, L, 666);
+    //SimpleDeviceBuffer<Particle> solid_remote;
+    //halo.exchange(thrust::raw_pointer_cast(&solid_local[0]), solid_local.size(), solid_remote);
 
     SimpleDeviceBuffer<Particle> solid_remote;
-    halo.exchange(thrust::raw_pointer_cast(&solid_local[0]), solid_local.size(), solid_remote);
+
+    {
+	thrust::host_vector<Particle> local = solid_local;
+
+	int dstranks[26], remsizes[26], recv_tags[26];
+	for(int i = 0; i < 26; ++i)
+	{
+	    const int d[3] = { (i + 2) % 3 - 1, (i / 3 + 2) % 3 - 1, (i / 9 + 2) % 3 - 1 };
+	    
+	    recv_tags[i] = (2 - d[0]) % 3 + 3 * ((2 - d[1]) % 3 + 3 * ((2 - d[2]) % 3));
+	    
+	    int coordsneighbor[3];
+	    for(int c = 0; c < 3; ++c)
+		coordsneighbor[c] = coords[c] + d[c];
+	    
+	    MPI_CHECK( MPI_Cart_rank(cartcomm, coordsneighbor, dstranks + i) );
+	}
+
+	//send local counts - receive remote counts
+	{
+	    for(int i = 0; i < 26; ++i)
+		remsizes[i] = -1;
+
+	    MPI_Request reqrecv[26];
+	    for(int i = 0; i < 26; ++i)
+		MPI_CHECK( MPI_Irecv(remsizes + i, 1, MPI_INTEGER, dstranks[i], 123 + recv_tags[i], cartcomm, reqrecv + i) );
+	    
+	    const int localsize = local.size();
+	    
+	    MPI_Request reqsend[26];
+	    for(int i = 0; i < 26; ++i)
+		MPI_CHECK( MPI_Isend(&localsize, 1, MPI_INTEGER, dstranks[i], 123 + i, cartcomm, reqsend + i) );
+	    
+	    MPI_Status statuses[26];
+	    MPI_CHECK( MPI_Waitall(26, reqrecv, statuses) );    
+	    MPI_CHECK( MPI_Waitall(26, reqsend, statuses) );  
+
+	    for(int i = 0; i < 26; ++i)
+		assert(remsizes[i] >= 0);
+	}
+
+	std::vector<Particle> remote[26];
+
+	//send local data - receive remote data
+	{
+	    for(int i = 0; i < 26; ++i)
+		remote[i].resize(remsizes[i]);
+
+	    MPI_Request reqrecv[26];
+	    for(int i = 0; i < 26; ++i)
+		MPI_CHECK( MPI_Irecv(remote[i].data(), remote[i].size() * 6, MPI_FLOAT, dstranks[i], 321 + recv_tags[i], cartcomm, reqrecv + i) );
+
+	    MPI_Request reqsend[26];
+	    for(int i = 0; i < 26; ++i)
+		MPI_CHECK( MPI_Isend(local.data(), local.size() * 6, MPI_FLOAT, dstranks[i], 321 + i, cartcomm, reqsend + i) );
+	    
+	    MPI_Status statuses[26];
+	    MPI_CHECK( MPI_Waitall(26, reqrecv, statuses) );    
+	    MPI_CHECK( MPI_Waitall(26, reqsend, statuses) );
+	}
+
+	//select particles within my region [-L / 2 - MARGIN, +L / 2 + MARGIN]
+	std::vector<Particle> selected;
+	for(int i = 0; i < 26; ++i)
+	{
+	    int d[3] = { (i + 2) % 3 - 1, (i / 3 + 2) % 3 - 1, (i / 9 + 2) % 3 - 1 };
+
+	    for(int j = 0; j < remote[i].size(); ++j)
+	    {
+		Particle p = remote[i][j];
+
+		for(int c = 0; c < 3; ++c)
+		    p.x[c] += d[c] * L;
+
+		bool inside = true;
+
+		for(int c = 0; c < 3; ++c)
+		    inside &= p.x[c] >= -L / 2 - MARGIN && p.x[c] < L / 2 + MARGIN;
+
+		if (inside)
+		    selected.push_back(p);
+	    }
+	}
+
+	solid_remote.resize(selected.size());
+	CUDA_CHECK(cudaMemcpy(solid_remote.data, selected.data(), sizeof(Particle) * solid_remote.size, cudaMemcpyHostToDevice));
+    }
 
     printf("rank %d is receiving extra %d\n", myrank, solid_remote.size);
     
@@ -535,6 +628,8 @@ ComputeInteractionsWall::ComputeInteractionsWall(MPI_Comm cartcomm, const int L,
 
 	delete [] phost;
     }
+
+    CUDA_CHECK(cudaPeekAtLastError());
 }
 
 void ComputeInteractionsWall::bounce(Particle * const p, const int n)
