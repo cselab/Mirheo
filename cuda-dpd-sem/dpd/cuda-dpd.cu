@@ -41,30 +41,41 @@ __global__ __launch_bounds__(32 * CPB, 16)
      
     __shared__ int volatile starts[CPB][32], scan[CPB][32];
 
-    int mycount = 0; 
+    int mycount = 0, myscan = 0; 
     if (tid < 27)
     {
-	const int dx = (1 + tid) % 3;
-	const int dy = (1 + (tid / 3)) % 3; 
-	const int dz = (1 + (tid / 9)) % 3;
+	const int dx = (tid) % 3;
+	const int dy = ((tid / 3)) % 3; 
+	const int dz = ((tid / 9)) % 3;
 
-	const int xcid = (blockIdx.x * _XCPB_ + ((threadIdx.y) % _XCPB_) + dx - 1 + info.ncells.x) % info.ncells.x;
-	const int ycid = (blockIdx.y * _YCPB_ + ((threadIdx.y / _XCPB_) % _YCPB_) + dy - 1 + info.ncells.y) % info.ncells.y;
-	const int zcid = (blockIdx.z * _ZCPB_ + ((threadIdx.y / (_XCPB_ * _YCPB_)) % _ZCPB_) + dz - 1 + info.ncells.z) % info.ncells.z;
-	const int cid = xcid + info.ncells.x * (ycid + info.ncells.y * zcid);
-
+	int xcid = blockIdx.x * _XCPB_ + ((threadIdx.y) % _XCPB_) + dx - 1;
+	int ycid = blockIdx.y * _YCPB_ + ((threadIdx.y / _XCPB_) % _YCPB_) + dy - 1;
+	int zcid = blockIdx.z * _ZCPB_ + ((threadIdx.y / (_XCPB_ * _YCPB_)) % _ZCPB_) + dz - 1;
+	
+	const bool valid_cid = 
+	    xcid >= 0 && xcid < info.ncells.x &&
+	    ycid >= 0 && ycid < info.ncells.y &&
+	    zcid >= 0 && zcid < info.ncells.z ;
+	
+	xcid = min(info.ncells.x - 1, max(0, xcid));
+	ycid = min(info.ncells.y - 1, max(0, ycid));
+	zcid = min(info.ncells.z - 1, max(0, zcid));
+	
+	const int cid = max(0, xcid + info.ncells.x * (ycid + info.ncells.y * zcid));
+	
 	starts[wid][tid] = tex1Dfetch(texStart, cid);
-	mycount = tex1Dfetch(texCount, cid);
+	
+	myscan = mycount = valid_cid * tex1Dfetch(texCount, cid);
     }
 
     for(int L = 1; L < 32; L <<= 1)
-	mycount += (tid >= L) * __shfl_up(mycount, L) ;
+	myscan += (tid >= L) * __shfl_up(myscan, L) ;
 
-    if (tid < 27)
-	scan[wid][tid] = mycount;
+    if (tid < 28)
+	scan[wid][tid] = myscan - mycount;
 
-    const int dststart = starts[wid][0];
-    const int nsrc = scan[wid][26], ndst = scan[wid][0];
+    const int dststart = starts[wid][1 + 3 + 9];
+    const int nsrc = scan[wid][27], ndst = scan[wid][1 + 3 + 9 + 1] - scan[wid][1 + 3 + 9];
  
     for(int d = 0; d < ndst; d += ROWS)
     {
@@ -83,17 +94,28 @@ __global__ __launch_bounds__(32 * CPB, 16)
 	    const int np2 = min(nsrc - s, COLS);
   
 	    const int pid = s + subtid;
-	    const int key9 = 9 * (pid >= scan[wid][8]) + 9 * (pid >= scan[wid][17]);
-	    const int key3 = 3 * (pid >= scan[wid][key9 + 2]) + 3 * (pid >= scan[wid][key9 + 5]);
-	    const int key1 = (pid >= scan[wid][key9 + key3]) + (pid >= scan[wid][key9 + key3 + 1]);
-	    const int key = key9 + key3 + key1;
-	    assert(subtid >= np2 || pid >= (key ? scan[wid][key - 1] : 0) && pid < scan[wid][key]);
-
-	    const int spid = starts[wid][key] + pid - (key ? scan[wid][key - 1] : 0);
+	    const int key9 = 9 * ((pid >= scan[wid][9]) + (pid >= scan[wid][18]));
+	    const int key3 = 3 * ((pid >= scan[wid][key9 + 3]) + (pid >= scan[wid][key9 + 6]));
+	    const int key = key9 + key3;	    
+	   
+	    const int spid = pid - scan[wid][key] + starts[wid][key];
 	    const int sentry = 3 * spid;
 	    const float2 stmp0 = tex1Dfetch(texParticles2, sentry);
 	    const float2 stmp1 = tex1Dfetch(texParticles2, sentry + 1);
 	    const float2 stmp2 = tex1Dfetch(texParticles2, sentry + 2);
+
+#ifndef NDEBUG
+	    {
+		const int key1 = (pid >= scan[wid][key9 + key3 + 1]) + (pid >= scan[wid][key9 + key3 + 2]);
+		const int keyref = key9 + key3 + key1;
+		assert(keyref >= 0 && keyref < 27);
+		assert(pid >= scan[wid][keyref]);
+		assert(pid < scan[wid][keyref + 1] || pid >= nsrc);
+
+		const int spidref = pid - scan[wid][keyref] + starts[wid][keyref];
+		assert(spidref == spid || pid >= nsrc);
+	    }
+#endif
 	    
 	    {
 		const float xdiff = dtmp0.x - stmp0.x;
@@ -129,7 +151,7 @@ __global__ __launch_bounds__(32 * CPB, 16)
 		const float myrandnr = 3.464101615f * mysaru - 1.732050807f;
 		 
 		const float strength = info.aij * argwr - (info.gamma * wr * rdotv + info.sigmaf * myrandnr) * wr;
-		const bool valid = (d + slot != s + subtid) && (slot < np1) && (subtid < np2);
+		const bool valid = (dpid != spid) && (slot < np1) && (subtid < np2);
 		
 		if (valid)
 		{
@@ -156,7 +178,6 @@ __global__ __launch_bounds__(32 * CPB, 16)
 	const int c = (subtid % 3);       
 	const float fcontrib = (c == 0) * xforce + (c == 1) * yforce + (c == 2) * zforce;//f[subtid % 3];
 	const int dstpid = dststart + d + slot;
-
 
 	if (slot < np1)
 	    axayaz[c + 3 * dstpid] = fcontrib;
