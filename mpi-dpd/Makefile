@@ -23,13 +23,13 @@ OBJS = 	dpd-interactions.o \
 LIBS = -lcuda-dpd -lcuda-rbc -lcuda-ctc -lcudart 
 
 ifneq "$(h5part)" "0"
-LIBS += -L$(HDF5_DIR)/lib -lhdf5
+LIBS += -L$(HDF5_DIR)/lib -lhdf5 -L/scratch/daint/diegor/h5part/lib/ -lH5Part
 else
 NVCCFLAGS += -DNO_H5PART
 endif
 
 ifneq "$(h5)" "0"
-LIBS += -lhdf5
+LIBS += -lhdf5 -L$(HDF5_DIR)/lib
 else
 NVCCFLAGS += -DNO_H5
 endif
@@ -43,6 +43,7 @@ inquire: $(shell [ `cat slevel.txt` == "$(slevel)" ] || { echo "cleanall" ; } )
 	$(MAKE) $(MFLAGS) test
 
 test:  $(OBJS) libcuda-dpd libcuda-rbc libcuda-ctc
+	echo h5part is "$(h5part)"
 	$(CXX) $(CXXFLAGS) $(OBJS) $(LIBS) -o test
 
 -include $(OBJS:.o=.d)

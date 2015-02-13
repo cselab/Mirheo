@@ -6,6 +6,7 @@
 #endif
 
 #ifndef NO_H5PART
+#define PARALLEL_IO
 #include <H5Part.h>
 #endif
 
@@ -169,13 +170,18 @@ H5PartDump::H5PartDump(const string fname, MPI_Comm cartcomm, const int L):
     cartcomm(cartcomm), fname(fname), tstamp(0)
 {
 #ifndef NO_H5PART
+
     int dims[3], periods[3], coords[3];
     MPI_CHECK( MPI_Cart_get(cartcomm, 3, dims, periods, coords) );
 
     for(int c = 0; c < 3; ++c)
 	origin[c] = L / 2 + coords[c] * L;
 
-    H5PartFile * f = H5PartOpenFileParallel(fname.c_str(), H5PART_WRITE, cartcomm);
+    mkdir("h5", S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+
+    char path[1024];
+    sprintf(path, "h5/%s", fname.c_str());
+    H5PartFile * f = H5PartOpenFileParallel(path, H5PART_WRITE, cartcomm);
 
     assert(f != NULL);
 
@@ -392,7 +398,6 @@ void H5FieldDump::dump(const Particle * const p, const int n, int idtimestep)
 H5FieldDump::~H5FieldDump()
 {
 #ifndef NO_H5
-
     if (last_idtimestep == 0)
 	return;
 
