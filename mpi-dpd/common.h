@@ -9,14 +9,14 @@ const float sigma = sqrt(2 * gammadpd * kBT);
 const float sigmaf = sigma / sqrt(dt);
 const float aij = 2.5;
 const float hydrostatic_a = 0.01;
-const bool walls = true;
-const bool pushtheflow = true;
+const bool walls = false;
+const bool pushtheflow = false;
 const bool rbcs = false;
 const bool ctcs = false;
-const bool xyz_dumps = true;
-const bool hdf5field_dumps = true;
-const bool hdf5part_dumps = true;
-const int steps_per_report = 100;
+const bool xyz_dumps = false;
+const bool hdf5field_dumps = false;
+const bool hdf5part_dumps = false;
+const int steps_per_report = 1000;
 const int steps_per_dump = 1000;
 
 #include <cstdlib>

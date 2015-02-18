@@ -11,8 +11,8 @@ NVCCFLAGS += --use_fast_math
 # -Xptxas -dlcm=cg -maxrregcount 32
 
 ifeq "$(profile)" "1"
-NVCCFLAGS += -lineinfo -D_PROFILE_ -g
-CXXFLAGS += -D_PROFILE_
+NVCCFLAGS += -lineinfo -D_PROFILE_ 
+CXXFLAGS += -D_PROFILE_ -g
 endif
 
 ifneq "$(debug)" "1"

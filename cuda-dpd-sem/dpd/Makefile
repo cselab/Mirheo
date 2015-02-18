@@ -17,6 +17,7 @@ libcuda-dpd.so: cuda-dpd.o cuda-dpd-bipartite.o ../profiler-dpd.o celllists
 	$(CXX) $(CXXFLAGS) -shared cuda-dpd.o cuda-dpd-bipartite.o ../profiler-dpd.o ../cell-lists.o -o libcuda-dpd.so  -lcudart -lcurand
 
 cuda-dpd.o: cuda-dpd.cu cuda-dpd.h
+	$(NVCC) $(NVCCFLAGS) -cubin cuda-dpd.cu
 	$(NVCC) $(NVCCFLAGS) -c cuda-dpd.cu
 
 cuda-dpd-bipartite.o: cuda-dpd-bipartite.cu cuda-dpd.h
