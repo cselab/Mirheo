@@ -175,12 +175,11 @@ __global__ __launch_bounds__(32 * CPB, 16)
 	    zforce += __shfl_xor(zforce, L);
 	}
 
-	const int c = (subtid % 3);       
-	const float fcontrib = (c == 0) * xforce + (c == 1) * yforce + (c == 2) * zforce;//f[subtid % 3];
+     	const float fcontrib = (subtid == 0) * xforce + (subtid == 1) * yforce + (subtid == 2) * zforce;
 	const int dstpid = dststart + d + slot;
-
-	if (slot < np1)
-	    axayaz[c + 3 * dstpid] = fcontrib;
+	
+	if (slot < np1 && subtid < 3)
+	    axayaz[subtid + 3 * dstpid] = fcontrib;
     }
 }
 
