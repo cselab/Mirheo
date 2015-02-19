@@ -148,20 +148,12 @@ void _dpd_forces_saru(float * const axayaz, const int idtimestep)
 
 	for(int s = 0; s < nsrc; s += COLS)
 	{
-	    // const int np2 = min(nsrc - s, COLS);
-	    
-	    //if (s + subtid >= nsrc)
-	    //continue;
-	    
 	    const int pid = s + subtid;
 	    const int key9 = 9 * ((pid >= scan[wid][9]) + (pid >= scan[wid][18]));
 	    const int key3 = 3 * ((pid >= scan[wid][key9 + 3]) + (pid >= scan[wid][key9 + 6]));
 	    const int key = key9 + key3;	    
 	   
 	    const int spid = pid - scan[wid][key] + starts[wid][key];
-
-	    //if (dpid == spid)
-	    //continue;
 
 	    const int sentry = 3 * spid;
 	    const float2 stmp0 = tex1Dfetch(texParticles2, sentry);
@@ -171,54 +163,50 @@ void _dpd_forces_saru(float * const axayaz, const int idtimestep)
 	    const float ydiff = xdest.y - stmp0.y;
 	    const float zdiff = xdest.z - stmp1.x;
 	    const bool interacting = (s + subtid < nsrc) && (dpid != spid) && (xdiff * xdiff + ydiff * ydiff + zdiff * zdiff < 1);
-	    
-	    //xforce += interacting * 1e-5f;
-	    //if (interacting)
-#ifdef _SRCIDS_LMEM_
-		srcids[srccount] = spid;
-#else
-	srcids[srccount][wid][tid] = spid;
-#endif
-
-	srccount += interacting;
-	    
-	if (srccount == NSRCMAX)
-	{
-	    const float3 f = _dpd_interaction(idtimestep, dpid, xdest, udest, 
-#ifdef _SRCIDS_LMEM_
-					      srcids[NSRCMAX - 1]);
-#else
-	    srcids[NSRCMAX - 1][wid][tid]);
-#endif
-	srccount = NSRCMAX - 1;
 	
-	xforce += f.x; yforce += f.y; zforce += f.z;
-	}
-    }
-    
-
-#pragma unroll _NSRCMAX_
-    for(int i = 0; i < srccount; ++i)
-    {
-	    const float3 f = _dpd_interaction(idtimestep, dpid, xdest, udest, 
 #ifdef _SRCIDS_LMEM_
-					      srcids[i]);
+	    srcids[srccount] = spid;
 #else
-	    srcids[i][wid][tid]);
+	    srcids[srccount][wid][tid] = spid;
 #endif
-    
-    xforce += f.x; yforce += f.y; zforce += f.z;
-}
+
+	    srccount += interacting;
+	
+	    if (srccount == NSRCMAX)
+	    {
+		const float3 f = make_float3(1e-5f, 1e-5f, 1e-5f);
+#ifdef _SRCIDS_LMEM_
+		const float3 f = _dpd_interaction(idtimestep, dpid, xdest, udest, srcids[NSRCMAX - 1]);
+#else
+		const float3 f = _dpd_interaction(idtimestep, dpid, xdest, udest,  srcids[NSRCMAX - 1][wid][tid]);
+#endif
+		srccount = NSRCMAX - 1;
+	
+		xforce += f.x; yforce += f.y; zforce += f.z;
+	    }
+	}
+	
+#pragma unroll _NSRCMAX_
+	for(int i = 0; i < srccount; ++i)
+	{
+#ifdef _SRCIDS_LMEM_
+	    const float3 f = _dpd_interaction(idtimestep, dpid, xdest, udest, srcids[i]);
+#else
+	    const float3 f = _dpd_interaction(idtimestep, dpid, xdest, udest, srcids[i][wid][tid]);
+#endif
+	    
+	    xforce += f.x; yforce += f.y; zforce += f.z;
+	}
 	
 	for(int L = COLS / 2; L > 0; L >>=1)
 	{
 	    xforce += __shfl_xor(xforce, L);
 	    yforce += __shfl_xor(yforce, L);
 	    zforce += __shfl_xor(zforce, L);
-	    }
-
+	}
+	
 	const float fcontrib = (subtid == 0) * xforce + (subtid == 1) * yforce + (subtid == 2) * zforce;
-
+	
 	if (slot < np1 && subtid < 3)
 	    axayaz[subtid + 3 * dpid] = fcontrib;
     }
@@ -438,7 +426,7 @@ __global__ __launch_bounds__(32 * CPB, 16)
  
     for(int d = 0; d < ndst; d += ROWS)
     {
-	int srccount = 0;
+	//int srccount = 0;
 	
 	const int np1 = min(ndst - d, ROWS);
 
