@@ -44,7 +44,7 @@ vpath %.cpp %.h %.cu $(DIRS)
 
 clean:
 	rm -f *.cudaobj
-	rm -f *.o
+	rm -f *.o *.so *.a
 	rm -f *.d *.dcu
 	rm -f test-rbc
 	rm -f test-cuda-rbc
@@ -57,6 +57,9 @@ test-cuda-rbc: main.cudaobj rbc-cuda.cudaobj #rbc.o
 
 libcuda-rbc.so: rbcvector-cuda-utils.cudaobj rbc-cuda.cudaobj rbcvector-cpu-utils.o
 	$(CXX) $(CXXFLAGS) -shared $^ -o $@ -L/usr/local/cuda-6.0/lib64/ -lcudart -lcurand
+
+libcuda-rbc.a: rbcvector-cuda-utils.cudaobj rbc-cuda.cudaobj rbcvector-cpu-utils.o
+	ar rcs $@ $^
 
 lib-rbc.so: rbcvector-cpu-utils.o rbc.o
 	$(CXX) $(CXXFLAGS) -shared -fPIC $^ -o $@

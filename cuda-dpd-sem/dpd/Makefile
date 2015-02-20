@@ -16,6 +16,9 @@ test-dpd: main.cpp libcuda-dpd.so
 libcuda-dpd.so: cuda-dpd.o cuda-dpd-bipartite.o ../profiler-dpd.o celllists
 	$(CXX) $(CXXFLAGS) -shared cuda-dpd.o cuda-dpd-bipartite.o ../profiler-dpd.o ../cell-lists.o -o libcuda-dpd.so  -lcudart -lcurand
 
+libcuda-dpd.a: cuda-dpd.o cuda-dpd-bipartite.o ../profiler-dpd.o celllists
+	ar rcs $@ cuda-dpd.o cuda-dpd-bipartite.o ../profiler-dpd.o ../cell-lists.o
+
 cuda-dpd.o: cuda-dpd.cu cuda-dpd.h
 	$(NVCC) $(NVCCFLAGS) -cubin cuda-dpd.cu
 	$(NVCC) $(NVCCFLAGS) -c cuda-dpd.cu
@@ -30,7 +33,7 @@ celllists:
 	make -C ../ cell-lists.o NVCC="$(NVCC)" NVCCFLAGS="$(NVCCFLAGS)"
 
 clean:
-	rm -f test-dpd libcuda-dpd.so *.o
+	rm -f test-dpd libcuda-dpd.so *.o *.a
 	make -C ../ clean
 
 subclean: clean

@@ -83,7 +83,7 @@ int main(int argc, char ** argv)
 	MPI_CHECK( MPI_Cart_create(MPI_COMM_WORLD, 3, ranks, periods, 1, &cartcomm) );
 	
 	{
-	    vector<Particle> ic(L * L * L * 4);
+	    vector<Particle> ic(L * L * L * 3);
 	    
 	    for(int i = 0; i < ic.size(); ++i)
 		for(int c = 0; c < 3; ++c)
