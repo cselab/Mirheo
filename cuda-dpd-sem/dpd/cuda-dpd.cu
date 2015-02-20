@@ -77,7 +77,7 @@ template<int COLS, int ROWS, int NSRCMAX>
 __device__ void core(const int nsrc, const int * const scan, const int * const starts, 
 		     const int ndst, const int dststart)
 {
-    int srcids[NSRCMAX];
+   int srcids[NSRCMAX];
     for(int i = 0; i < NSRCMAX; ++i)
 	srcids[i] = 0;
     
@@ -154,6 +154,79 @@ __device__ void core(const int nsrc, const int * const scan, const int * const s
 	info.axayaz[subtid + 3 * dpid] = fcontrib;
 }
 
+template<int COLS, int ROWS, int NSRCMAX>
+__device__ void core_ilp(const int nsrc, const int * const scan, const int * const starts, 
+		     const int ndst, const int dststart)
+{
+    const int tid = threadIdx.x; 
+    const int slot = tid / COLS;
+    const int subtid = tid % COLS;
+     
+    const int dpid = dststart + slot;
+    const int entry = 3 * dpid;
+    const float2 dtmp0 = tex1Dfetch(texParticles2, entry);
+    const float2 dtmp1 = tex1Dfetch(texParticles2, entry + 1);
+    const float2 dtmp2 = tex1Dfetch(texParticles2, entry + 2);
+    const float3 xdest = make_float3(dtmp0.x, dtmp0.y, dtmp1.x);
+    const float3 udest = make_float3(dtmp1.y, dtmp2.x, dtmp2.y);
+
+    float xforce = 0, yforce = 0, zforce = 0;
+    
+    for(int s = 0; s < nsrc; s += NSRCMAX * COLS)
+    {
+	int spids[NSRCMAX];
+#pragma unroll 
+	for(int i = 0; i < NSRCMAX; ++i)
+	{
+	    const int pid = s + i * COLS + subtid;
+	    const int key9 = 9 * ((pid >= scan[9]) + (pid >= scan[18]));
+	    const int key3 = 3 * ((pid >= scan[key9 + 3]) + (pid >= scan[key9 + 6]));
+	    const int key = key9 + key3;	    
+	    
+	    spids[i] = pid - scan[key] + starts[key];
+	}
+
+	bool interacting[NSRCMAX];
+#pragma unroll 
+	for(int i = 0; i < NSRCMAX; ++i)
+	{
+	    const int sentry = 3 * spids[i];
+	    const float2 stmp0 = tex1Dfetch(texParticles2, sentry);
+	    const float2 stmp1 = tex1Dfetch(texParticles2, sentry + 1);
+	    
+	    const float xdiff = xdest.x - stmp0.x;
+	    const float ydiff = xdest.y - stmp0.y;
+	    const float zdiff = xdest.z - stmp1.x;
+	    interacting[i] = (s + i * COLS + subtid < nsrc) && (dpid != spids[i]) && (xdiff * xdiff + ydiff * ydiff + zdiff * zdiff < 1);
+	}
+
+#pragma unroll 
+	for(int i = 0; i < NSRCMAX; ++i)
+	{
+	    if (interacting[i])
+	    {
+		const float3 f = _dpd_interaction(dpid, xdest, udest, spids[i]);
+		
+		xforce += f.x; 
+		yforce += f.y; 
+		zforce += f.z;
+	    }
+	}
+    }
+
+    for(int L = COLS / 2; L > 0; L >>=1)
+    {
+	xforce += __shfl_xor(xforce, L);
+	yforce += __shfl_xor(yforce, L);
+	zforce += __shfl_xor(zforce, L);
+    }
+    
+    const float fcontrib = (subtid == 0) * xforce + (subtid == 1) * yforce + (subtid == 2) * zforce;
+    
+    if (subtid < 3)
+	info.axayaz[subtid + 3 * dpid] = fcontrib; 
+}
+
 __global__ __launch_bounds__(32 * CPB, 16) 
 void _dpd_forces_saru()
 {
@@ -210,12 +283,12 @@ void _dpd_forces_saru()
     int d = ndst4;
     if (d + 2 <= ndst)
     {
-	core<16, 2, 3>(nsrc, scan[wid],  starts[wid], 2, dststart + d);
+	core<16, 2, 4>(nsrc, scan[wid],  starts[wid], 2, dststart + d);
 	d += 2;
     }
 
     if (d < ndst)
-	core<32, 1, 2>(nsrc, scan[wid], starts[wid], 1, dststart + d);
+	core_ilp<32, 1, 2>(nsrc, scan[wid], starts[wid], 1, dststart + d);
 }
 
 #else
@@ -380,7 +453,7 @@ __global__ __launch_bounds__(32 * CPB, 16)
 #endif
 
 
-__global__ __launch_bounds__(32 * CPB, 16) 
+__global__ __launch_bounds__(32 * CPB, 8) 
     void inspect_dpd_forces_saru(const int nparticles, int2 * const entries, const int nentries)
 {
     /*assert(nentries = COLS * nparticles);
