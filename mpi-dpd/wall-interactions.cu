@@ -325,16 +325,28 @@ struct FieldSampler
 	{
 	    FILE * f = fopen(path, "rb");
 
+#ifndef NDEBUG
 	    int retval;
-	    retval = fscanf(f, "%f %f %f\n", extent + 0, extent + 1, extent + 2);
+	    retval = 
+#endif
+		fscanf(f, "%f %f %f\n", extent + 0, extent + 1, extent + 2);
+	    
 	    assert(retval == 3);
-	    retval = fscanf(f, "%d %d %d\n", N + 0, N + 1, N + 2);
+
+#ifndef NDEBUG
+	    retval = 
+#endif
+		fscanf(f, "%d %d %d\n", N + 0, N + 1, N + 2);
+	
 	    assert(retval == 3);
 	    
 	    const int nvoxels = N[0] * N[1] * N[2];
 	    data = new float[nvoxels];
-	    
-	    retval = fread(data, sizeof(float), nvoxels, f);
+
+#ifndef NDEBUG	    
+	    retval = 
+#endif
+		fread(data, sizeof(float), nvoxels, f);
 	    assert(retval == nvoxels);
 
 	    int nvoxels_solvent = 0;
