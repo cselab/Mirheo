@@ -3,10 +3,6 @@
 
 #include "../saru.cuh"
 
-#ifndef NDEBUG
-//#define _CHECK_
-#endif
-
 struct InfoDPD
 {
     int3 ncells;
@@ -25,6 +21,8 @@ texture<int, cudaTextureType1D> texStart, texCount;
 #define _YCPB_ 2
 #define _ZCPB_ 1
 #define CPB (_XCPB_ * _YCPB_ * _ZCPB_)
+//#define  _TIME_PROFILE_
+//#define _INSPECT_
 
 #if 1
 
@@ -237,7 +235,7 @@ void _dpd_forces_saru()
     const int tid = threadIdx.x;
     const int wid = threadIdx.y;
 
-    __shared__ int starts[CPB][32], scan[CPB][32];
+    __shared__ volatile int starts[CPB][32], scan[CPB][32];
 
     int mycount = 0, myscan = 0; 
     if (tid < 27)
@@ -278,17 +276,17 @@ void _dpd_forces_saru()
     const int ndst4 = (ndst >> 2) << 2;
 
     for(int d = 0; d < ndst4; d += 4)
-	core<8, 4, 4>(nsrc, scan[wid], starts[wid], 4, dststart + d);
+	core<8, 4, 4>(nsrc, (const int *)scan[wid], (const int *)starts[wid], 4, dststart + d);
 
     int d = ndst4;
     if (d + 2 <= ndst)
     {
-	core<16, 2, 4>(nsrc, scan[wid],  starts[wid], 2, dststart + d);
+	core<16, 2, 4>(nsrc, (const int *)scan[wid],  (const int *)starts[wid], 2, dststart + d);
 	d += 2;
     }
 
     if (d < ndst)
-	core_ilp<32, 1, 2>(nsrc, scan[wid], starts[wid], 1, dststart + d);
+	core_ilp<32, 1, 2>(nsrc, (const int *)scan[wid], (const int *)starts[wid], 1, dststart + d);
 }
 
 #else
@@ -453,10 +451,11 @@ __global__ __launch_bounds__(32 * CPB, 16)
 #endif
 
 
+#ifdef _INSPECT_
 __global__ __launch_bounds__(32 * CPB, 8) 
-    void inspect_dpd_forces_saru(const int nparticles, int2 * const entries, const int nentries)
+    void inspect_dpd_forces_saru(const int COLS, const int ROWS, const int nparticles, int2 * const entries, const int nentries)
 {
-    /*assert(nentries = COLS * nparticles);
+    assert(nentries = COLS * nparticles);
     assert(warpSize == COLS * ROWS);
     assert(blockDim.x == warpSize && blockDim.y == CPB && blockDim.z == 1);
     assert(ROWS * 3 <= warpSize);
@@ -547,15 +546,18 @@ __global__ __launch_bounds__(32 * CPB, 8)
 
 	if (slot < np1)
 	    entries[subtid + COLS * dpid] = make_int2(ninteractions, npotentialinteractions);
-	    }*/
     }
+}
+#endif
 
 
 bool fdpd_init = false;
 
 #include "../hacks.h"
 
+#ifdef _TIME_PROFILE_
 static cudaEvent_t evstart, evstop;
+#endif
 
 void forces_dpd_cuda_nohost(const float * const xyzuvw, float * const axayaz,  const int np,
 			    const int * const cellsstart, const int * const cellscount, 
@@ -599,9 +601,10 @@ void forces_dpd_cuda_nohost(const float * const xyzuvw, float * const axayaz,  c
 
 	CUDA_CHECK(cudaFuncSetCacheConfig(*dpdkernel, cudaFuncCachePreferL1));
 
+#ifdef _TIME_PROFILE_
 	CUDA_CHECK(cudaEventCreate(&evstart));
 	CUDA_CHECK(cudaEventCreate(&evstop));
-
+#endif
 	fdpd_init = true;
     }
 
@@ -630,33 +633,35 @@ void forces_dpd_cuda_nohost(const float * const xyzuvw, float * const axayaz,  c
     static int cetriolo = 0;
     cetriolo++;
 
-#if 0
+#ifdef _INSPECT_
     {
-	
-
+	//inspect irregularity of the computation,
+	//report data to file
 	if (cetriolo % 1000 == 0)
 	{
+	    enum { COLS = 16, ROWS = 2 };
+
+	    const size_t nentries = np * COLS;
+
 	    int2 * data;
-	    size_t nentries = np * COLS;
 	    CUDA_CHECK(cudaHostAlloc(&data, sizeof(int2) * nentries, cudaHostAllocMapped));
 	    memset(data, 0xff, sizeof(int2) * nentries);
 	    
 	    int * devptr;
 	    CUDA_CHECK(cudaHostGetDevicePointer(&devptr, data, 0));
 
-	    inspect_dpd_forces_saru<<<dim3(c.ncells.x / _XCPB_,
-			    c.ncells.y / _YCPB_,
-			    c.ncells.z / _ZCPB_), dim3(32, CPB), 0, stream>>>(
-				np, data, nentries);
+	    inspect_dpd_forces_saru<<<dim3(c.ncells.x / _XCPB_, c.ncells.y / _YCPB_, c.ncells.z / _ZCPB_), dim3(32, CPB), 0, stream>>>
+		(COLS, ROWS, np, data, nentries);
 
 	    CUDA_CHECK(cudaDeviceSynchronize());
-	    
 
 	    char path2report[2000];
 	    sprintf(path2report, "inspection-%d-tstep.txt", cetriolo);
+
 	    FILE * f = fopen(path2report, "w");
 	    assert(f);
-	       for(int i = 0, c = 0; i < np; ++i)
+
+	    for(int i = 0, c = 0; i < np; ++i)
 	    {
 		fprintf(f, "pid %05d: ", i);
 		
@@ -669,22 +674,26 @@ void forces_dpd_cuda_nohost(const float * const xyzuvw, float * const axayaz,  c
 		}
 		
 		fprintf(f, " sum: %02d pot: %d\n", s, (pot + COLS - 1) / (COLS));
-		}
+	    }
+	    
 	    fclose(f);
 	    
 	    CUDA_CHECK(cudaFreeHost(data));
-	    printf("inspection concluded.\n");
+	    printf("inspection saved to %s.\n", path2report);
 	}
     }
 #endif
 
+#ifdef _TIME_PROFILE_
     if (cetriolo % 500 == 0)
 	CUDA_CHECK(cudaEventRecord(evstart));
+#endif
       
     _dpd_forces_saru<<<dim3(c.ncells.x / _XCPB_,
 			    c.ncells.y / _YCPB_,
 			    c.ncells.z / _ZCPB_), dim3(32, CPB), 0, stream>>>();
 
+#ifdef _TIME_PROFILE_
     if (cetriolo % 500 == 0)
     {
 	CUDA_CHECK(cudaEventRecord(evstop));
@@ -694,6 +703,7 @@ void forces_dpd_cuda_nohost(const float * const xyzuvw, float * const axayaz,  c
 	CUDA_CHECK(cudaEventElapsedTime(&tms, evstart, evstop));
 	printf("elapsed time for DPD-BULK kernel: %.2f ms\n", tms);
     }
+#endif
 
     CUDA_CHECK(cudaPeekAtLastError());	
 }
@@ -706,9 +716,6 @@ void forces_dpd_cuda_nohost(const float * const xyzuvw, float * const axayaz,  c
 
 #include "../profiler-dpd.h"
 #include "../cell-lists.h"
-
-
-
 
 int fdpd_oldnp = 0, fdpd_oldnc = 0;
 
