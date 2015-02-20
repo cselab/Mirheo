@@ -74,7 +74,13 @@ workxrank_t *reorder(int *ranks) {
     fclose(f);
   }
 
-  locL[0]=sysL[0]/ranks[0]; locL[1]=sysL[1]/ranks[1]; locL[2]=sysL[2]/ranks[2];
+  locL[0]=roundf(sysL[0])/ranks[0]; locL[1]=roundf(sysL[1])/ranks[1]; locL[2]=roundf(sysL[2])/ranks[2];
+  for(int c=0; c<3; c++) {
+    if(locL[c]%2 || locL[c]*ranks[c]<sysL[c]) {
+      printf("Invalid conf %d %d %d\n",ranks[0],ranks[1],ranks[2]);
+      return NULL;
+    }
+  }
   double *rbuftval=new double[tranks];
   for(int r=0; r<tranks; r++) {
     lcoords[0]=(r/ranks[2]/ranks[1])%ranks[0];
@@ -255,7 +261,7 @@ int main(int argc, char ** argv) {
           if(iranks[1]>0 && iranks[1]!=ranks[1]) continue;
           if(iranks[2]>0 && iranks[2]!=ranks[2]) continue;
           workxrank_t *allwxra=reorder(ranks);
-
+          if(allwxra==NULL) continue;
             double *work=findbalance(nodes,tranks,allwxra,p2pwxra);
             double max=0;
             double ltotwork=0.;
@@ -309,7 +315,7 @@ int main(int argc, char ** argv) {
   double unbalance=((gmax/minwork)-1.0)*100.;
   printf("best config=%d %d %d, unbalance=%f%%\n",granks[0],granks[1],granks[2],
          unbalance);
-  printf("Lx=%f Ly=%f Lz=%f\n",sysL[0]/granks[0],sysL[1]/granks[1],sysL[2]/granks[2]);
+  printf("Lx=%f Ly=%f Lz=%f\n",roundf(sysL[0])/granks[0],roundf(sysL[1])/granks[1],roundf(sysL[2])/granks[2]);
   for(int i=0; i<nodes; i++) {
     printf("node %d ranks: ",i);
     for(int j=0; j<tranks/nodes; j++) {
