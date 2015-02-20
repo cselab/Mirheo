@@ -63,7 +63,7 @@ libcuda-ctc.a: ctc-cuda.cudaobj
 	ar rcs $@ $^
 
 $(LIBCUDADPD):
-	make -C ../cuda-dpd-sem/dpd libcuda-dpd.so nonperiodic=1 debug=$(debug)
+	make -C ../cuda-dpd-sem/dpd libcuda-dpd.a nonperiodic=1 debug=$(debug)
 
 %.o: %.cpp
 	$(CXX)  $(CXXFLAGS)  $(INCLUDES) -fPIC -c $< -o $@
