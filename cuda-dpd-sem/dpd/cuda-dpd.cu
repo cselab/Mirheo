@@ -810,7 +810,9 @@ void forces_dpd_cuda_aos(float * const _xyzuvw, float * const _axayaz,
     c.aij = aij;
     c.gamma = gamma;
     c.sigmaf = sigma * invsqrtdt;
-        
+    c.axayaz = fdpd_axayaz;
+    c.idtimestep = saru_tag;
+
     build_clists(fdpd_xyzuvw, np, rc, c.ncells.x, c.ncells.y, c.ncells.z,
 		 c.domainstart.x, c.domainstart.y, c.domainstart.z,
 		 order, fdpd_start, fdpd_count, NULL);
