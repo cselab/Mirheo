@@ -19,6 +19,17 @@
 
 #include "ctc.h"
 
+static const int blocksignal = false;
+
+volatile sig_atomic_t graceful_exit = 0, graceful_signum = 0;
+sigset_t mask;
+
+void signal_handler(int signum)
+{
+    graceful_exit = 1;
+    graceful_signum = signum;
+}
+
 using namespace std;
 
 int main(int argc, char ** argv)
@@ -34,21 +45,29 @@ int main(int argc, char ** argv)
     	for(int i = 0; i < 3; ++i)
 	    ranks[i] = atoi(argv[1 + i]);
 
-    CUDA_CHECK(cudaSetDevice(0));
-
-    sigset_t mask;
-    sigset_t orig_mask;
-    
-    sigemptyset (&mask);
-    sigaddset (&mask, SIGUSR1);
-    sigaddset (&mask, SIGINT);
-    
-    if (sigprocmask(SIG_BLOCK, &mask, &orig_mask) < 0) 
+    if (blocksignal)
     {
-	perror ("sigprocmask");
-	return 1;
+	sigemptyset (&mask);
+	sigaddset (&mask, SIGUSR1);
+	sigaddset (&mask, SIGINT);
+	
+	if (sigprocmask(SIG_BLOCK, &mask, NULL) < 0) 
+	{
+	    perror ("sigprocmask");
+	    return 1;
+	}
     }
-
+    else
+    {
+	struct sigaction action;
+	memset(&action, 0, sizeof(struct sigaction));
+	action.sa_handler = signal_handler;
+	//sigaction(SIGINT, &action, NULL);
+	sigaction(SIGUSR1, &action, NULL);
+    }
+    
+    CUDA_CHECK(cudaSetDevice(0));
+    
     int nranks, rank;   
     
     {
@@ -64,7 +83,7 @@ int main(int argc, char ** argv)
 	MPI_CHECK( MPI_Cart_create(MPI_COMM_WORLD, 3, ranks, periods, 1, &cartcomm) );
 	
 	{
-	    vector<Particle> ic(L * L * L * 3  );
+	    vector<Particle> ic(L * L * L * 4);
 	    
 	    for(int i = 0; i < ic.size(); ++i)
 		for(int c = 0; c < 3; ++c)
@@ -139,19 +158,28 @@ int main(int argc, char ** argv)
 		if (it % steps_per_report == 0)
 		{ 
 		    //check for termination requests
+		    if (blocksignal)
 		    {
 			struct timespec timeout;
 			timeout.tv_sec = 0;
 			timeout.tv_nsec = 1000;
 			
-			if (sigtimedwait(&mask, NULL, &timeout) >= 0) 
-			{
-			    if (!rank)
-				printf("Got a termination request. Time to save and exit!\n");
-
-			    break;
-			}
+			graceful_exit = sigtimedwait(&mask, NULL, &timeout) >= 0;
 		    }
+		    else
+		    {
+			int exitrequest = graceful_exit;
+			MPI_CHECK(MPI_Allreduce(MPI_IN_PLACE, &exitrequest, 1, MPI_LOGICAL, MPI_LOR, cartcomm)); 
+			graceful_exit = exitrequest;
+		    }
+
+		    if (graceful_exit)
+		    {
+			if (!rank)
+			    printf("Got a termination request. Time to save and exit!\n");
+		    
+			break;
+		    }	    		    
 
 		    report_host_memory_usage(cartcomm, stdout);
 
@@ -178,7 +206,7 @@ int main(int argc, char ** argv)
 			t0 = t1;
 		    }
 		}
-	    
+
 		double tstart;
 
 		if (it == 0)

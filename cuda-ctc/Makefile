@@ -47,7 +47,7 @@ endif
 
 clean:
 	rm -f *.cudaobj
-	rm -f *.o
+	rm -f *.o *.a *.so
 	rm -f *.d
 	rm -f test-rbc
 	rm -f test-cuda-rbc
@@ -59,8 +59,11 @@ test-cuda-ctc: main.cudaobj ctc-cuda.cudaobj $(LIBCUDADPD)
 libcuda-ctc.so: ctc-cuda.cudaobj
 	$(CXX) $(CXXFLAGS) -shared $^ -o $@ -L/usr/local/cuda/lib64/ -lcudart -lcurand
 
+libcuda-ctc.a: ctc-cuda.cudaobj
+	ar rcs $@ $^
+
 $(LIBCUDADPD):
-	make -C ../cuda-dpd-sem/dpd libcuda-dpd.so nonperiodic=1 debug=$(debug)
+	make -C ../cuda-dpd-sem/dpd libcuda-dpd.a nonperiodic=1 debug=$(debug)
 
 %.o: %.cpp
 	$(CXX)  $(CXXFLAGS)  $(INCLUDES) -fPIC -c $< -o $@
