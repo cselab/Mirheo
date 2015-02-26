@@ -876,7 +876,7 @@ void forces_dpd_cuda_aos(float * const _xyzuvw, float * const _axayaz,
 #endif
 }
 
-/*
+
 int * fdpd_order = NULL;
 float * fdpd_pv = NULL, *fdpd_a = NULL;
 
@@ -890,7 +890,7 @@ void forces_dpd_cuda(const float * const xp, const float * const yp, const float
 		     const float gamma,
 		     const float sigma,
 		     const float invsqrtdt,
-		     const int XXXXXXXXXXXXXXXXXxx)
+		     const float seed)
 {
     if (np <= 0) return;
 
@@ -922,7 +922,7 @@ void forces_dpd_cuda(const float * const xp, const float * const yp, const float
     }
 
     forces_dpd_cuda_aos(fdpd_pv, fdpd_a, fdpd_order, np, rc, LX, LY, LZ,
-			aij, gamma, sigma, invsqrtdt, XXXXXXXXXXXXXXx, false);
+			aij, gamma, sigma, invsqrtdt, seed, false);
     
     //delete [] pv;
      
@@ -937,4 +937,3 @@ void forces_dpd_cuda(const float * const xp, const float * const yp, const float
 
     //delete [] order;
 }
-*/

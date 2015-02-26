@@ -20,7 +20,7 @@ void forces_dpd_cuda_nohost(const float * const _xyzuvw, float * const _axayaz, 
 			    const float invsqrtdt,
 			    const float seed1,
 			    cudaStream_t stream = 0);		  
-/*
+
 void forces_dpd_cuda(const float * const xp, const float * const yp, const float * const zp,
 		     const float * const xv, const float * const yv, const float * const zv,
 		     float * const xa, float * const ya, float * const za,
@@ -31,8 +31,9 @@ void forces_dpd_cuda(const float * const xp, const float * const yp, const float
 		     const float gamma,
 		     const float sigma,
 		     const float invsqrtdt,
-		     XXXXXXXXXXXXXXXXXXXXX);
+		     const float seed);
 
+/*
 void forces_dpd_cuda_aos(float * const _xyzuvw, float * const _axayaz,
 			 int * const order, const int np,
 			 const float rc,
@@ -41,9 +42,8 @@ void forces_dpd_cuda_aos(float * const _xyzuvw, float * const _axayaz,
 			 const float gamma,
 			 const float sigma,
 			 const float invsqrtdt,
-			 XXXXXXXXXXXXX
-			 const bool nohost = false);*/
- 
+			 const float seed);
+ */
 void directforces_dpd_cuda_bipartite_nohost(
     const float * const xyzuvw, float * const axayaz, const int np,
     const float * const xyzuvw_src, const int np_src,

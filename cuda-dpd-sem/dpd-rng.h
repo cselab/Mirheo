@@ -1,43 +1,9 @@
 #pragma once
 
-#define YTANG
-
-#ifdef YTANG
-
 namespace Logistic
 {
     __device__ float mean0var1(float seed, uint i, uint j );	
 }
-
-#else
-__device__ inline float saru(unsigned int seed1, unsigned int seed2, unsigned int seed3)
-{
-    seed3 ^= (seed1<<7)^(seed2>>6);
-    seed2 += (seed1>>4)^(seed3>>15);
-    seed1 ^= (seed2<<9)+(seed3<<8);
-    seed3 ^= 0xA5366B4D*((seed2>>11) ^ (seed1<<1));
-    seed2 += 0x72BE1579*((seed1<<4)  ^ (seed3>>16));
-    seed1 ^= 0X3F38A6ED*((seed3>>5)  ^ (((signed int)seed2)>>22));
-    seed2 += seed1*seed3;
-    seed1 += seed3 ^ (seed2>>2);
-    seed2 ^= ((signed int)seed2)>>17;
-    
-    int state  = 0x79dedea3*(seed1^(((signed int)seed1)>>14));
-    int wstate = (state + seed2) ^ (((signed int)state)>>8);
-    state  = state + (wstate*(wstate^0xdddf97f5));
-    wstate = 0xABCB96F7 + (wstate>>1);
-    
-    state  = 0x4beb5d59*state + 0x2600e1f7; // LCG
-    wstate = wstate + 0x8009d14b + ((((signed int)wstate)>>31)&0xda879add); // OWS
-    
-    unsigned int v = (state ^ (state>>26))+wstate;
-    unsigned int r = (v^(v>>20))*0x6957f5a7;
-    
-    float res = r / (4294967295.0f);
-    return res;
-}
-#endif
-
 
 #include <cstdlib>
 #include <limits>
@@ -73,6 +39,8 @@ namespace Logistic
 		return x+y+(z=t);
 	    }
     };
+
+#ifdef __CUDACC__
 
 /************************* Branch generator **********************
  * Make one random number per pair of particles per timestep
@@ -125,6 +93,7 @@ namespace Logistic
 // mean = 0
 // variance = 1
 // can be used directly for DPD
+#if 0
     __inline__ __device__ float mean0var1( float seed, uint i, uint j ) 
     {
 	uint u = min( i, j );
@@ -133,4 +102,41 @@ namespace Logistic
 	float l = __logistic_core<N>( seed - p );
 	return l * sqrt2;
     }
+#else
+    __device__ inline float saru(unsigned int seed1, unsigned int seed2, unsigned int seed3)
+    {
+	seed3 ^= (seed1<<7)^(seed2>>6);
+	seed2 += (seed1>>4)^(seed3>>15);
+	seed1 ^= (seed2<<9)+(seed3<<8);
+	seed3 ^= 0xA5366B4D*((seed2>>11) ^ (seed1<<1));
+	seed2 += 0x72BE1579*((seed1<<4)  ^ (seed3>>16));
+	seed1 ^= 0X3F38A6ED*((seed3>>5)  ^ (((signed int)seed2)>>22));
+	seed2 += seed1*seed3;
+	seed1 += seed3 ^ (seed2>>2);
+	seed2 ^= ((signed int)seed2)>>17;
+	
+	int state  = 0x79dedea3*(seed1^(((signed int)seed1)>>14));
+	int wstate = (state + seed2) ^ (((signed int)state)>>8);
+	state  = state + (wstate*(wstate^0xdddf97f5));
+	wstate = 0xABCB96F7 + (wstate>>1);
+	
+	state  = 0x4beb5d59*state + 0x2600e1f7; // LCG
+	wstate = wstate + 0x8009d14b + ((((signed int)wstate)>>31)&0xda879add); // OWS
+	
+	unsigned int v = (state ^ (state>>26))+wstate;
+	unsigned int r = (v^(v>>20))*0x6957f5a7;
+	
+	float res = r / (4294967295.0f);
+	return res;
+    }
+    
+    __inline__ __device__ float mean0var1( float seed, uint i, uint j ) 
+    {
+	float t = seed;
+	unsigned int tag = *(int *)&t;
+	
+	return saru(tag, i, j) * 3.464101615f - 1.732050807f;
+    }
+#endif
+#endif
 }

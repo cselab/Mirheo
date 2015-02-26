@@ -5,8 +5,7 @@ ARCH_VAL ?= compute_35
 CODE_VAL ?= sm_35
 
 NVCCFLAGS += -I$(HDF5_DIR)/include -Xcudafe "--diag_suppress=unrecognized_gcc_pragma"
-NVCCFLAGS +=  -arch $(ARCH_VAL) -code $(CODE_VAL) -O3 -use_fast_math -g 
-# -DNDEBUG 
+NVCCFLAGS +=  -arch $(ARCH_VAL) -code $(CODE_VAL) -O3 -use_fast_math -g  -DNDEBUG 
 CXXFLAGS += -L../cuda-dpd-sem/dpd -L../cuda-rbc/ -L../cuda-ctc/ -O3 -g  
 #-DNDEBUG
 NVCCFLAGS += -I../cuda-dpd-sem/dpd -I../cuda-rbc/ -I../cuda-ctc
@@ -54,7 +53,7 @@ test:  $(OBJS) libcuda-dpd libcuda-rbc libcuda-ctc
 	$(NVCC) $(NVCCFLAGS) -M $*.cu > $*.d
 
 libcuda-dpd: 
-	make -C ../cuda-dpd-sem/dpd libcuda-dpd.a nonperiodic=1 debug=1 CXX="$(CXX)" NVCC="$(NVCC)" ARCH_VAL="$(ARCH_VAL)" CODE_VAL="$(CODE_VAL)" slevel="$(slevel)"
+	make -C ../cuda-dpd-sem/dpd libcuda-dpd.a nonperiodic=1 CXX="$(CXX)" NVCC="$(NVCC)" ARCH_VAL="$(ARCH_VAL)" CODE_VAL="$(CODE_VAL)" slevel="$(slevel)"
 
 libcuda-rbc: 
 	make -C ../cuda-rbc/ libcuda-rbc.a CXX="$(CXX)" NVCC="$(NVCC)" ARCH_VAL="$(ARCH_VAL)" CODE_VAL="$(CODE_VAL)"
