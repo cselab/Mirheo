@@ -43,6 +43,8 @@ public:
 
 ComputeInteractionsCTC(MPI_Comm _cartcomm, int L): ComputeInteractionsRBC(_cartcomm, L)
     {
+	local_trunk = Logistic::KISS(598 - myrank, 20383 + myrank, 129037, 2580);
+
 	nvertices = CudaCTC::get_nvertices();
     }
 };
@@ -58,6 +60,8 @@ public:
 
 CollectionCTC(MPI_Comm cartcomm, const int L):CollectionRBC(cartcomm, L)
     {
+	
+
 	CudaCTC::Extent extent;
 	CudaCTC::setup(nvertices, extent, dt);
 

@@ -1,4 +1,4 @@
-#include <../saru.cuh>
+#include <../dpd-rng.h>
 
 #include "rbc-interactions.h"
 
@@ -67,7 +67,7 @@ namespace KernelsRBC
 	}
     }
 
-    __device__ bool fsi_kernel(const int saru_tag,
+    __device__ bool fsi_kernel(const float seed,
 			       const int dpid, const float3 xp, const float3 up, const int spid,
 			       float& xforce, float& yforce, float& zforce)
     {
@@ -103,8 +103,9 @@ namespace KernelsRBC
 	    yr * (up.y - stmp2.x) +
 	    zr * (up.z - stmp2.y);
 	
-	const float mysaru = saru(saru_tag, dpid, spid);
-	const float myrandnr = 3.464101615f * mysaru - 1.732050807f;
+	//const float mysaru = saru(saru_tag, dpid, spid);
+	//const float myrandnr = 3.464101615f * mysaru - 1.732050807f;
+	const float myrandnr = Logistic::mean0var1(seed, dpid, spid);
 	
 	const float strength = params.aij * argwr +  (- params.gamma * wr * rdotv + params.sigmaf * myrandnr) * wr;
 	
@@ -115,7 +116,7 @@ namespace KernelsRBC
 	return true;
     }
 
-    __global__ void fsi_forces(const int saru_tag,
+    __global__ void fsi_forces(const float seed,
 			       Acceleration * accsolvent, const int npsolvent,
 			       const Particle * const particle, const int nparticles, Acceleration * accrbc, const int L)
     {
@@ -164,7 +165,7 @@ namespace KernelsRBC
 	    for(int s = mystart; s < myend; ++s)
 	    {
 		float f[3];
-		const bool nonzero = fsi_kernel(saru_tag, dpid, xp, up, s, f[0], f[1], f[2]);
+		const bool nonzero = fsi_kernel(seed, dpid, xp, up, s, f[0], f[1], f[2]);
 
 		if (nonzero)
 		{
@@ -182,7 +183,8 @@ namespace KernelsRBC
     }
 
     __global__ void merge_accelerations(const Acceleration * const src, const int n, Acceleration * const dst)
-    {	const int gid = threadIdx.x + blockDim.x * blockIdx.x;
+    {	
+	const int gid = threadIdx.x + blockDim.x * blockIdx.x;
 
 	if (gid < n)
 	    for(int c = 0; c < 3; ++c)
@@ -190,7 +192,8 @@ namespace KernelsRBC
     }
 }
 
-ComputeInteractionsRBC::ComputeInteractionsRBC(MPI_Comm _cartcomm, int L):  L(L), nvertices(CudaRBC::get_nvertices()), stream(0)
+ComputeInteractionsRBC::ComputeInteractionsRBC(MPI_Comm _cartcomm, int L):  
+    L(L), nvertices(CudaRBC::get_nvertices()), stream(0), local_trunk(0, 0, 0, 0)
 {
     assert(L % 2 == 0);
     assert(L >= 2);
@@ -198,6 +201,9 @@ ComputeInteractionsRBC::ComputeInteractionsRBC(MPI_Comm _cartcomm, int L):  L(L)
     MPI_CHECK( MPI_Comm_dup(_cartcomm, &cartcomm));
 
     MPI_CHECK( MPI_Comm_rank(cartcomm, &myrank));
+
+    local_trunk = Logistic::KISS(1908 - myrank, 1409 + myrank, 290, 12968);
+
     MPI_CHECK( MPI_Comm_size(cartcomm, &nranks));
 
     MPI_CHECK( MPI_Cart_get(cartcomm, 3, dims, periods, coords) );
@@ -331,8 +337,7 @@ void ComputeInteractionsRBC::_internal_forces(const Particle * const rbcs, const
 	CudaRBC::forces_nohost(stream, (float *)(rbcs + nvertices * i), (float *)(accrbc + nvertices * i));
 }
 
-void ComputeInteractionsRBC::evaluate(int& saru_tag,
-				      const Particle * const solvent, const int nparticles, Acceleration * accsolvent,
+void ComputeInteractionsRBC::evaluate(const Particle * const solvent, const int nparticles, Acceleration * accsolvent,
 				      const int * const cellsstart_solvent, const int * const cellscount_solvent,
 				      const Particle * const rbcs, const int nrbcs, Acceleration * accrbc)
 {	
@@ -343,11 +348,9 @@ void ComputeInteractionsRBC::evaluate(int& saru_tag,
     if (nrbcs > 0 && nparticles > 0)
     {
 	KernelsRBC::fsi_forces<<< (nrbcs * nvertices + 127) / 128, 128, 0, stream >>>
-	    (saru_tag + myrank, accsolvent, nparticles, rbcs, nrbcs * nvertices, accrbc, L);
+	    (local_trunk.get_float(), accsolvent, nparticles, rbcs, nrbcs * nvertices, accrbc, L);
 		
 	_internal_forces(rbcs, nrbcs, accrbc);
-
-	saru_tag += nranks;
     }
     
     _wait(reqrecvp);
@@ -359,10 +362,8 @@ void ComputeInteractionsRBC::evaluate(int& saru_tag,
 
 	if (count > 0)
 	    KernelsRBC::fsi_forces<<< (count + 127) / 128, 128, 0, stream >>>
-	    	(saru_tag + 26 * myrank + i, accsolvent, nparticles, remote[i].state.devptr, count, remote[i].result.devptr, L);
+	    	(local_trunk.get_float(), accsolvent, nparticles, remote[i].state.devptr, count, remote[i].result.devptr, L);
     }
-
-    saru_tag += 26 * nranks;
 
     CUDA_CHECK(cudaStreamSynchronize(stream));
 

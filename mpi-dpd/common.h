@@ -16,8 +16,8 @@ const bool ctcs = false;
 const bool xyz_dumps = false;
 const bool hdf5field_dumps = false;
 const bool hdf5part_dumps = false;
-const int steps_per_report = 1000;
-const int steps_per_dump = 1000;
+const int steps_per_report = 1;
+const int steps_per_dump = 1;
 
 #include <cstdlib>
 #include <cstdio>

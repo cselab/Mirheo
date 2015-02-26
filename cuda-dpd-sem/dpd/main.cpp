@@ -131,6 +131,8 @@ int main()
 			rc, L, L, L, aij, gamma, sigma, 1./sqrt(dt));
 		else
 		{
+		    abort();
+/*
 		    const int pivot = n  * 0.5;//(int)(drand48() * xp.size());
 		    		    
 		    forces_dpd_cuda_bipartite(
@@ -156,7 +158,7 @@ int main()
 			  &xv.front() + pivot, &yv.front() + pivot, &zv.front() + pivot,
 			  &xa.front() + pivot, &ya.front() + pivot, &za.front() + pivot,
 			  n - pivot,
-			  rc, L, L, L, aij, gamma, sigma, 1./sqrt(dt));
+			  rc, L, L, L, aij, gamma, sigma, 1./sqrt(dt));*/
 		}
 		
 		return;
