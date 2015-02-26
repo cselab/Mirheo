@@ -32,7 +32,8 @@ void signal_handler(int signum)
 }
 
 using namespace std;
-
+float *lwtimer=NULL;
+int cntlwtimer=0;
 int main(int argc, char ** argv)
 {
     int ranks[3];
@@ -68,11 +69,13 @@ int main(int argc, char ** argv)
     }
     
     CUDA_CHECK(cudaSetDevice(0));
-    
+    lwtimer=new float[(int)(tend / dt)/500]; 
     double tevaldpd=0.;
+#if 0
     cudaEvent_t start, stop;
     cudaEventCreate(&start);
     cudaEventCreate(&stop);
+#endif
     int nranks, rank;   
     {
 	MPI_CHECK( MPI_Init(&argc, &argv) );
@@ -414,18 +417,21 @@ int main(int argc, char ** argv)
 		//TODO: i need a coordinating class that performs all the local work while waiting for the communication
 		{
 		    tstart = MPI_Wtime();
+#if 0
 		    if((it % steps_per_report) == 0) {
 			cudaEventRecord(start);
 		    }
+#endif
 		    dpd.evaluate(saru_tag, particles.xyzuvw.data, particles.size, particles.axayaz.data, cells.start, cells.count);
+#if 0
 		    if((it % steps_per_report) == 0) {
 			cudaEventRecord(stop);
 			cudaEventSynchronize(stop);
 			float milliseconds = 0;
 			cudaEventElapsedTime(&milliseconds, start, stop);
 			float *rbuftime=new float[nranks];		
-		  	MPI_CHECK ( MPI_Gather(&milliseconds,1,MPI_FLOAT,rbuftime, 1,
-                         MPI_FLOAT, 0, MPI_COMM_WORLD) );
+		        MPI_CHECK ( MPI_Gather(&milliseconds,1,MPI_FLOAT,rbuftime, 1,
+                                    MPI_FLOAT, 0, MPI_COMM_WORLD) );
 			if(rank==0) {
 			 printf("Timing dpd.evaluate it %d\n",it);
 			 for(int i=0; i<nranks; i++) {
@@ -436,6 +442,7 @@ int main(int argc, char ** argv)
 		        }
 		    	tevaldpd+=milliseconds;
 		    }
+#endif
 		    timings["evaluate-dpd"] += (MPI_Wtime() - tstart);
 		    
 		    CUDA_CHECK(cudaPeekAtLastError());	
@@ -593,6 +600,7 @@ int main(int argc, char ** argv)
 	   
 	MPI_CHECK(MPI_Comm_free(&cartcomm));
 	{
+#if 0
         double *rbuftime=new double[nranks];	
 	MPI_CHECK ( MPI_Gather(&tevaldpd,1,MPI_DOUBLE,rbuftime, 1,
                          MPI_DOUBLE, 0, MPI_COMM_WORLD) );
@@ -634,12 +642,29 @@ int main(int argc, char ** argv)
 	  delete [] aranks;
 	}
 	delete [] rbuftime;
+#endif
 	}
-    	printf("Task %d: time=%f\n",rank,MPI_Wtime()-maxtime);
+	float *rbuftime=new float[cntlwtimer*nranks];		
+        MPI_CHECK ( MPI_Gather(lwtimer,cntlwtimer,MPI_FLOAT,rbuftime, 
+			 cntlwtimer, MPI_FLOAT, 0, MPI_COMM_WORLD) );
+	if(rank==0) {
+		 for(int j=0; j<cntlwtimer; j++) {
+			 printf("Timing dpd.evaluate it %d: ",j);
+			 for(int i=0; i<nranks; i++) {
+		             printf("%7.5f ",rbuftime[j+i*cntlwtimer]);
+	                 }
+			 printf(" End timing dpd.evaluate\n");
+		 }
+	}
+        delete [] rbuftime;
+	MPI_CHECK( MPI_Barrier(MPI_COMM_WORLD) );
+    	printf("Task %d: total time=%f\n",rank,MPI_Wtime()-maxtime);
 	MPI_CHECK( MPI_Finalize() );
     }
+#if 0
     cudaEventDestroy(start);
     cudaEventDestroy(stop); 
+#endif
     CUDA_CHECK(cudaDeviceSynchronize());
     CUDA_CHECK(cudaDeviceReset());
 
