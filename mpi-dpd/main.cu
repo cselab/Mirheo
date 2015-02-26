@@ -126,21 +126,19 @@ int main(int argc, char ** argv)
 	    CUDA_CHECK(cudaStreamCreate(&stream));
 	    	    
 	    redistribute_rbcs.stream = stream;
-
-	    int saru_tag = rank;
 	    
 	    CUDA_CHECK(cudaPeekAtLastError());
 
 	    cells.build(particles.xyzuvw.data, particles.size);
 
-	    dpd.evaluate(saru_tag, particles.xyzuvw.data, particles.size, particles.axayaz.data, cells.start, cells.count);
+	    dpd.evaluate(particles.xyzuvw.data, particles.size, particles.axayaz.data, cells.start, cells.count);
     
 	    if (rbcscoll)
-		rbc_interactions.evaluate(saru_tag, particles.xyzuvw.data, particles.size, particles.axayaz.data, cells.start, cells.count,
+		rbc_interactions.evaluate(particles.xyzuvw.data, particles.size, particles.axayaz.data, cells.start, cells.count,
 					  rbcscoll->data(), rbcscoll->count(), rbcscoll->acc());
 
 	    if (ctcscoll)
-		ctc_interactions.evaluate(saru_tag, particles.xyzuvw.data, particles.size, particles.axayaz.data, cells.start, cells.count,
+		ctc_interactions.evaluate(particles.xyzuvw.data, particles.size, particles.axayaz.data, cells.start, cells.count,
 					ctcscoll->data(), ctcscoll->count(), ctcscoll->acc());
 
 	    float driving_acceleration = 0;
@@ -358,7 +356,7 @@ int main(int argc, char ** argv)
 		//TODO: i need a coordinating class that performs all the local work while waiting for the communication
 		{
 		    tstart = MPI_Wtime();
-		    dpd.evaluate(saru_tag, particles.xyzuvw.data, particles.size, particles.axayaz.data, cells.start, cells.count);
+		    dpd.evaluate(particles.xyzuvw.data, particles.size, particles.axayaz.data, cells.start, cells.count);
 		    timings["evaluate-dpd"] += MPI_Wtime() - tstart;
 		    
 		    CUDA_CHECK(cudaPeekAtLastError());	
@@ -366,7 +364,7 @@ int main(int argc, char ** argv)
 		    if (rbcscoll)
 		    {
 			tstart = MPI_Wtime();
-			rbc_interactions.evaluate(saru_tag, particles.xyzuvw.data, particles.size, particles.axayaz.data,
+			rbc_interactions.evaluate(particles.xyzuvw.data, particles.size, particles.axayaz.data,
 						  cells.start, cells.count, rbcscoll->data(), rbcscoll->count(), rbcscoll->acc());
 			timings["evaluate-rbc"] += MPI_Wtime() - tstart;
 		    }
@@ -376,7 +374,7 @@ int main(int argc, char ** argv)
 		    if (ctcscoll)
 		    {
 			tstart = MPI_Wtime();
-			ctc_interactions.evaluate(saru_tag, particles.xyzuvw.data, particles.size, particles.axayaz.data,
+			ctc_interactions.evaluate(particles.xyzuvw.data, particles.size, particles.axayaz.data,
 						  cells.start, cells.count, ctcscoll->data(), ctcscoll->count(), ctcscoll->acc());
 			timings["evaluate-ctc"] += MPI_Wtime() - tstart;
 		    }
@@ -387,13 +385,13 @@ int main(int argc, char ** argv)
 		    {
 			tstart = MPI_Wtime();
 			wall->interactions(particles.xyzuvw.data, particles.size, particles.axayaz.data, 
-					   cells.start, cells.count, saru_tag);
+					   cells.start, cells.count);
 
 			if (rbcscoll)
-			    wall->interactions(rbcscoll->data(), rbcscoll->pcount(), rbcscoll->acc(), NULL, NULL, saru_tag);
+			    wall->interactions(rbcscoll->data(), rbcscoll->pcount(), rbcscoll->acc(), NULL, NULL);
 
 			if (ctcscoll)
-			    wall->interactions(ctcscoll->data(), ctcscoll->pcount(), ctcscoll->acc(), NULL, NULL, saru_tag);
+			    wall->interactions(ctcscoll->data(), ctcscoll->pcount(), ctcscoll->acc(), NULL, NULL);
 
 			timings["evaluate-walls"] += MPI_Wtime() - tstart;
 		    }

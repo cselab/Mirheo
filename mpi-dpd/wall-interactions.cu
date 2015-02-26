@@ -7,7 +7,7 @@
 #include <thrust/sort.h>
 #include <thrust/count.h>
 
-#include <../saru.cuh>
+
 
 #include "io.h"
 #include "halo-exchanger.h"
@@ -202,7 +202,7 @@ namespace SolidWallsKernel
 
     __global__ void interactions(const Particle * const particles, const int np, Acceleration * const acc,
 				 const int * const starts, const int * const counts, const int L,
-				 const Particle * const solid, const int nsolid, const int saru_tag1, const int saru_tag2,
+				 const Particle * const solid, const int nsolid, const float seed,
 				 const float aij, const float gamma, const float sigmaf)
     {
 	assert(blockDim.x * gridDim.x >= np);
@@ -273,9 +273,7 @@ namespace SolidWallsKernel
 		    yr * (vp - 0) +
 		    zr * (wp - 0);
 		
-		const float mysaru = saru(pid * nsolid + s, saru_tag1, saru_tag2);
-	
-		const float myrandnr = 3.464101615f * mysaru - 1.732050807f;
+		const float myrandnr = Logistic::mean0var1(seed, pid, s);
 		 
 		const float strength = aij * argwr + (- gamma * wr * rdotv + sigmaf * myrandnr) * wr;
 
@@ -426,9 +424,13 @@ struct FieldSampler
 
 ComputeInteractionsWall::ComputeInteractionsWall(MPI_Comm cartcomm, const int L, Particle* const p, 
 						 const int n, int& nsurvived):
-    cartcomm(cartcomm), L(L), arrSDF(NULL), solid(NULL), solid_size(0), cells(L+ 2 * MARGIN)
+
+    cartcomm(cartcomm), L(L), arrSDF(NULL), solid(NULL), solid_size(0), cells(L + 2 * MARGIN), trunk(0, 0, 0, 0)
 {
     MPI_CHECK( MPI_Comm_rank(cartcomm, &myrank));
+
+    trunk = Logistic::KISS(myrank, rand(), rand(), rand());
+
     MPI_CHECK( MPI_Cart_get(cartcomm, 3, dims, periods, coords) );
     
     float * field = new float[VPD * VPD * VPD];
@@ -653,17 +655,15 @@ void ComputeInteractionsWall::bounce(Particle * const p, const int n)
 }
 
 void ComputeInteractionsWall::interactions(const Particle * const p, const int n, Acceleration * const acc,
-			      const int * const cellsstart, const int * const cellscount, int& saru_tag)
+			      const int * const cellsstart, const int * const cellscount)
 {
     //cellsstart and cellscount IGNORED for now
     
     if (n > 0 && solid_size > 0)
 	SolidWallsKernel::interactions<<< (n + 127) / 128, 128>>>(p, n, acc, cells.start, cells.count, L,
-								  solid, solid_size, saru_tag, myrank, aij, gammadpd, sigmaf);
+								  solid, solid_size, trunk.get_float(), aij, gammadpd, sigmaf);
 
     CUDA_CHECK(cudaPeekAtLastError());
-
-    ++saru_tag;
 }
 
 ComputeInteractionsWall::~ComputeInteractionsWall()

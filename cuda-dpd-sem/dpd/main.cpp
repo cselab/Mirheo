@@ -8,6 +8,7 @@
 #include <random>
 
 #include "cuda-dpd.h"
+#include "../dpd-rng.h"
 
 using namespace std;
 
@@ -39,7 +40,7 @@ int main()
 {
     real L = 40;
 
-    const int Nm = 3;
+    const int Nm = 4;
     const int n = L * L * L * Nm;
     const real gamma = 45;
     const real sigma = 3;
@@ -113,6 +114,8 @@ int main()
     std::mt19937 gen(rd());
     std::normal_distribution<> dgauss(0, 1);
 
+    Logistic::KISS trunk(rand(), rand(), rand(), rand());
+
     int cnt = 0;
     auto _f = [&]()
 	{
@@ -128,9 +131,12 @@ int main()
 			&xv.front(), &yv.front(), &zv.front(),
 			&xa.front(), &ya.front(), &za.front(),
 			n,
-			rc, L, L, L, aij, gamma, sigma, 1./sqrt(dt));
+			rc, L, L, L, aij, gamma, sigma, 1./sqrt(dt),
+			trunk.get_float());
 		else
 		{
+		    abort();
+/*
 		    const int pivot = n  * 0.5;//(int)(drand48() * xp.size());
 		    		    
 		    forces_dpd_cuda_bipartite(
@@ -156,7 +162,7 @@ int main()
 			  &xv.front() + pivot, &yv.front() + pivot, &zv.front() + pivot,
 			  &xa.front() + pivot, &ya.front() + pivot, &za.front() + pivot,
 			  n - pivot,
-			  rc, L, L, L, aij, gamma, sigma, 1./sqrt(dt));
+			  rc, L, L, L, aij, gamma, sigma, 1./sqrt(dt));*/
 		}
 		
 		return;

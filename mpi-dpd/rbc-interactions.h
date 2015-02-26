@@ -5,6 +5,8 @@
 
 #include "common.h"
 
+#include <../dpd-rng.h>
+
 class ComputeInteractionsRBC
 {
 protected:
@@ -43,14 +45,15 @@ protected:
 	v.clear();
     }
 
+    Logistic::KISS local_trunk;
+
 public:
 
     cudaStream_t stream;
 
     ComputeInteractionsRBC(MPI_Comm cartcomm, const int L);
     
-    void evaluate(int& saru_tag,
-		  const Particle * const solvent, const int nparticles, Acceleration * accsolvent,
+    void evaluate(const Particle * const solvent, const int nparticles, Acceleration * accsolvent,
 		  const int * const cellsstart_solvent, const int * const cellscount_solvent,
 		  const Particle * const rbcs, const int nrbcs, Acceleration * accrbc);
 
