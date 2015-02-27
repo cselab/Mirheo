@@ -8,14 +8,14 @@
 
 using namespace std;
 
-ComputeInteractionsDPD::ComputeInteractionsDPD(MPI_Comm cartcomm, int L): HaloExchanger(cartcomm, L, 0) {}
+ComputeInteractionsDPD::ComputeInteractionsDPD(MPI_Comm cartcomm): HaloExchanger(cartcomm, 0) {}
 
 void ComputeInteractionsDPD::spawn_local_work()
 {
     if (localwork.n > 0)
 	forces_dpd_cuda_nohost((float *)localwork.p, (float *)localwork.a, localwork.n, 
 			       localwork.cellsstart, localwork.cellscount,
-			       1, L, L, L, aij, gammadpd, sigma, 1. / sqrt(dt), localwork.saru_tag);
+			       1, LX, LY, LZ, aij, gammadpd, sigma, 1. / sqrt(dt), localwork.saru_tag);
 }
 
 void ComputeInteractionsDPD::evaluate(int& saru_tag, const Particle * const p, const int n, Acceleration * const a,

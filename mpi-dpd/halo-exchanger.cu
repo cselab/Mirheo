@@ -5,10 +5,10 @@
 
 using namespace std;
 
-HaloExchanger::HaloExchanger(MPI_Comm _cartcomm, int L, const int basetag):  L(L), basetag(basetag), firstpost(true)
+HaloExchanger::HaloExchanger(MPI_Comm _cartcomm, const int basetag):  basetag(basetag), firstpost(true)
 {
-    assert(L % 2 == 0);
-    assert(L >= 2);
+    assert(LX % 2 == 0 && LY % 2 == 0 && LZ % 2 == 0);
+    assert(LX >= 2 && LY >= 2 && LZ >= 2);
 
     MPI_CHECK( MPI_Comm_dup(_cartcomm, &cartcomm));
 
@@ -29,14 +29,16 @@ HaloExchanger::HaloExchanger(MPI_Comm _cartcomm, int L, const int basetag):  L(L
 
 	MPI_CHECK( MPI_Cart_rank(cartcomm, coordsneighbor, dstranks + i) );
 
-	const int nhalocells = pow(L, 3 - abs(d[0]) - abs(d[1]) - abs(d[2]));
+	const int nhalodir[3] = { 
+	    d[0] != 0 ? 1 : LX, 
+	    d[1] != 0 ? 1 : LY, 
+	    d[2] != 0 ? 1 : LZ 
+	};
+
+	const int nhalocells = nhalodir[0] * nhalodir[1] * nhalodir[2];
+
 	int estimate = 6 * nhalocells;
 	estimate = 32 * ((estimate + 31) / 32);
-
-	halosize[i].x = d[0] != 0 ? 1 : L;
-	halosize[i].y = d[1] != 0 ? 1 : L;
-	halosize[i].z = d[2] != 0 ? 1 : L;
-	assert(nhalocells == halosize[i].x * halosize[i].y * halosize[i].z);
 
 	recvhalos[i].setup(estimate, nhalocells);
 	sendhalos[i].setup(estimate, nhalocells);
@@ -67,7 +69,7 @@ HaloExchanger::HaloExchanger(MPI_Comm _cartcomm, int L, const int basetag):  L(L
 namespace PackingHalo
 {
     __global__ void count(const int * const cellsstart, const int * const cellscount,
-			  const int3 halo_offset, const int3 halo_size, const int L,
+			  const int3 halo_offset, const int3 halo_size,
 			  int * const output_start, int * const output_count)
     {
 	assert(halo_size.x * halo_size.y * halo_size.z <= blockDim.x * gridDim.x);
@@ -84,13 +86,13 @@ namespace PackingHalo
 	 
 	if (gid < nsize)
 	{
-	    assert(dst.x >= 0 && dst.x < L);
-	    assert(dst.y >= 0 && dst.y < L);
-	    assert(dst.z >= 0 && dst.z < L);
+	    assert(dst.x >= 0 && dst.x < LX);
+	    assert(dst.y >= 0 && dst.y < LY);
+	    assert(dst.z >= 0 && dst.z < LZ);
 	    
-	    const int srcentry = dst.x + L * (dst.y + L * dst.z);
+	    const int srcentry = dst.x + LX * (dst.y + LY * dst.z);
 
-	    assert(srcentry < L * L * L);
+	    assert(srcentry < LX * LY * LZ);
 
 	    output_start[gid] = cellsstart[srcentry];
 	    output_count[gid] = cellscount[srcentry];
@@ -176,7 +178,7 @@ namespace PackingHalo
     __constant__ Particle * srcpacks[26], * dstpacks[26];
     __constant__ int packstarts[27];
 
-    __global__ void shift_recv_particles_float(const int np, const int L)
+    __global__ void shift_recv_particles_float(const int np)
     {
 	assert(sizeof(Particle) == 6 * sizeof(float));
 	assert(blockDim.x * gridDim.x >= np * 6);
@@ -201,7 +203,7 @@ namespace PackingHalo
 	const int dy = (code / 3 + 2) % 3 - 1;
 	const int dz = (code / 9 + 2) % 3 - 1;
 
-	*(c + (float *)&dstpacks[code][offset].x[0]) =  val + L * (dx * (c == 0) + dy * (c == 1) + dz * (c == 2));
+	*(c + (float *)&dstpacks[code][offset].x[0]) =  val + LX * dx * (c == 0) + LY * dy * (c == 1) + LZ * dz * (c == 2);
     }
 
 #ifndef NDEBUG
@@ -278,20 +280,21 @@ void HaloExchanger::pack_and_post(const Particle * const p, const int n, const i
     
     for(int i = 0; i < 26; ++i)
     {
-	int d[3] = { (i + 2) % 3 - 1, (i / 3 + 2) % 3 - 1, (i / 9 + 2) % 3 - 1 };
-	 
+	const int d[3] = { (i + 2) % 3 - 1, (i / 3 + 2) % 3 - 1, (i / 9 + 2) % 3 - 1 };
+	const int L[3] = { LX, LY, LZ };
+	
 	int halo_start[3], halo_size[3];
 	for(int c = 0; c < 3; ++c)
 	{
-	    halo_start[c] = max(d[c] * L - L/2 - 1, -L/2);
-	    halo_size[c] = min(d[c] * L + L/2 + 1, L/2) - halo_start[c];
+	    halo_start[c] = max(d[c] * L[c] - L[c]/2 - 1, -L[c]/2);
+	    halo_size[c] = min(d[c] * L[c] + L[c]/2 + 1, L[c]/2) - halo_start[c];
 	}
 
 	const int nentries = sendhalos[i].dcellstarts.size;
 	
 	PackingHalo::count<<< (nentries + 127) / 128, 128, 0, streams[code2stream[i]] >>>
-	    (cellsstart, cellscount,  make_int3(halo_start[0] + L/2 , halo_start[1] + L/2, halo_start[2] + L/2),
-	     make_int3(halo_size[0], halo_size[1], halo_size[2]), L, sendhalos[i].tmpstart.data, sendhalos[i].tmpcount.data);
+	    (cellsstart, cellscount,  make_int3(halo_start[0] + LX / 2 , halo_start[1] + LY / 2, halo_start[2] + LZ / 2),
+	     make_int3(halo_size[0], halo_size[1], halo_size[2]), sendhalos[i].tmpstart.data, sendhalos[i].tmpcount.data);
     }
     
     for(int i = 0; i < 26; ++i)
@@ -497,7 +500,7 @@ void HaloExchanger::wait_for_messages()
 
 	const int np = packstarts[26];
 
-	PackingHalo::shift_recv_particles_float<<<(np * 6 + 127) / 128, 128>>>(np, L);
+	PackingHalo::shift_recv_particles_float<<<(np * 6 + 127) / 128, 128>>>(np);
     }
 
     CUDA_CHECK(cudaPeekAtLastError());
@@ -525,29 +528,6 @@ int HaloExchanger::nof_sent_particles()
 	s += sendhalos[i].hbuf.size;
 
     return s;
-}
-
-void HaloExchanger::exchange(Particle * const plocal, int nlocal, SimpleDeviceBuffer<Particle>& retval)
-{
-    CellLists cells(L);	
-    cells.build(plocal, nlocal);
-   
-    pack_and_post(plocal, nlocal, cells.start, cells.count);
-    wait_for_messages();
-    CUDA_CHECK(cudaStreamSynchronize(streams[0]));
-    
-    int s = 0;
-    for(int i = 0; i < 26; ++i)
-	s += recvhalos[i].hbuf.size;
-    
-    retval.resize(s);
-
-    s = 0;
-    for(int i = 0; i < 26; ++i)
-    {
-	CUDA_CHECK(cudaMemcpy(retval.data + s, recvhalos[i].dbuf.data, recvhalos[i].dbuf.size * sizeof(Particle), cudaMemcpyDeviceToDevice));
-	s += recvhalos[i].dbuf.size;
-    }
 }
 
 HaloExchanger::~HaloExchanger()

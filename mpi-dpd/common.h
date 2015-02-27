@@ -1,6 +1,8 @@
 #pragma once
 
-const int L = 48;
+const int LX = 48;
+const int LY = 48;
+const int LZ = 48;
 const float dt = 0.001;
 const float tend = 50;
 const float kBT = 0.0945;
@@ -238,11 +240,11 @@ PinnedHostBuffer(int n = 0): capacity(0), size(0), data(NULL), devptr(NULL) { re
 //building the cell lists involve a reordering of the particle array (!)
 struct CellLists
 {
-    const int ncells, L;
+    const int ncells, LX, LY, LZ;
 
     int * start, * count;
     
-CellLists(const int L): ncells(L * L * L), L(L)
+CellLists(const int LX, const int LY, const int LZ): ncells(LX * LY * LZ), LX(LX), LY(LY), LZ(LZ)
 	{
 	    CUDA_CHECK(cudaMalloc(&start, sizeof(int) * ncells));
 	    CUDA_CHECK(cudaMalloc(&count, sizeof(int) * ncells));
@@ -258,6 +260,6 @@ CellLists(const int L): ncells(L * L * L), L(L)
 };
 
 
-void diagnostics(MPI_Comm comm, Particle * _particles, int n, float dt, int idstep, int L, Acceleration * _acc);
+void diagnostics(MPI_Comm comm, Particle * _particles, int n, float dt, int idstep, Acceleration * _acc);
 
 void report_host_memory_usage(MPI_Comm comm, FILE * foutput);

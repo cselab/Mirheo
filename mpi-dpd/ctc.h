@@ -17,7 +17,7 @@ class RedistributeCTCs : public RedistributeRBCs
 
 public:
 
-RedistributeCTCs(MPI_Comm _cartcomm, const int L):RedistributeRBCs(_cartcomm, L)
+RedistributeCTCs(MPI_Comm _cartcomm):RedistributeRBCs(_cartcomm)
     {
 	nvertices = CudaCTC::get_nvertices();
     }
@@ -41,7 +41,7 @@ class ComputeInteractionsCTC : public ComputeInteractionsRBC
 
 public:
 
-ComputeInteractionsCTC(MPI_Comm _cartcomm, int L): ComputeInteractionsRBC(_cartcomm, L)
+ComputeInteractionsCTC(MPI_Comm _cartcomm): ComputeInteractionsRBC(_cartcomm)
     {
 	nvertices = CudaCTC::get_nvertices();
     }
@@ -56,7 +56,7 @@ class CollectionCTC : public CollectionRBC
 
 public:
 
-CollectionCTC(MPI_Comm cartcomm, const int L):CollectionRBC(cartcomm, L)
+CollectionCTC(MPI_Comm cartcomm):CollectionRBC(cartcomm)
     {
 	CudaCTC::Extent extent;
 	CudaCTC::setup(nvertices, extent, dt);

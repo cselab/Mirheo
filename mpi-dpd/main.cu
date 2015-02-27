@@ -83,22 +83,23 @@ int main(int argc, char ** argv)
 	MPI_CHECK( MPI_Cart_create(MPI_COMM_WORLD, 3, ranks, periods, 1, &cartcomm) );
 	
 	{
-	    vector<Particle> ic(L * L * L * 4);
+	    vector<Particle> ic(LX * LY * LZ * 4);
 	    
+	    const int L[3] = { LX, LY, LZ };
 	    for(int i = 0; i < ic.size(); ++i)
 		for(int c = 0; c < 3; ++c)
 		{
-		    ic[i].x[c] = -L * 0.5 + drand48() * L;
+		    ic[i].x[c] = -L[c] * 0.5 + drand48() * L[c];
 		    ic[i].u[c] = 0;
 		}
 	    	    	  
 	    ParticleArray particles(ic);
-	    CellLists cells(L);		  
+	    CellLists cells(LX, LY, LZ);		  
 	    CollectionRBC * rbcscoll = NULL;
 	    
 	    if (rbcs)
 	    {
-		rbcscoll = new CollectionRBC(cartcomm, L);
+		rbcscoll = new CollectionRBC(cartcomm);
 		rbcscoll->setup();
 	    }
 
@@ -106,20 +107,20 @@ int main(int argc, char ** argv)
 
 	    if (ctcs)
 	    {
-		ctcscoll = new CollectionCTC(cartcomm, L);
+		ctcscoll = new CollectionCTC(cartcomm);
 		ctcscoll->setup();
 	    }
 
-	    H5PartDump dump_part("allparticles.h5part", cartcomm, L);
+	    H5PartDump dump_part("allparticles.h5part", cartcomm);
 	    H5FieldDump dump_field(cartcomm);
 
-	    RedistributeParticles redistribute(cartcomm, L);
-	    RedistributeRBCs redistribute_rbcs(cartcomm, L);
-	    RedistributeCTCs redistribute_ctcs(cartcomm, L);
+	    RedistributeParticles redistribute(cartcomm);
+	    RedistributeRBCs redistribute_rbcs(cartcomm);
+	    RedistributeCTCs redistribute_ctcs(cartcomm);
 
-	    ComputeInteractionsDPD dpd(cartcomm, L);
-	    ComputeInteractionsRBC rbc_interactions(cartcomm, L);
-	    ComputeInteractionsCTC ctc_interactions(cartcomm, L);
+	    ComputeInteractionsDPD dpd(cartcomm);
+	    ComputeInteractionsRBC rbc_interactions(cartcomm);
+	    ComputeInteractionsCTC ctc_interactions(cartcomm);
 	    ComputeInteractionsWall * wall = NULL;
 	    
 	    cudaStream_t stream;
@@ -259,7 +260,7 @@ int main(int argc, char ** argv)
 		if (walls && it > 5000 && wall == NULL)
 		{
 		    int nsurvived = 0;
-		    wall = new ComputeInteractionsWall(cartcomm, L, particles.xyzuvw.data, particles.size, nsurvived);
+		    wall = new ComputeInteractionsWall(cartcomm, particles.xyzuvw.data, particles.size, nsurvived);
 		    
 		    particles.resize(nsurvived);
 		    particles.clear_velocity();
@@ -286,7 +287,7 @@ int main(int argc, char ** argv)
 		    {
 			SimpleDeviceBuffer<int> marks(rbcscoll->pcount());
 			
-			SolidWallsKernel::fill_keys<<< (rbcscoll->pcount() + 127) / 128, 128 >>>(rbcscoll->data(), rbcscoll->pcount(), L, marks.data);
+			SolidWallsKernel::fill_keys<<< (rbcscoll->pcount() + 127) / 128, 128 >>>(rbcscoll->data(), rbcscoll->pcount(), marks.data);
 			
 			vector<int> tmp(marks.size);
 			CUDA_CHECK(cudaMemcpy(tmp.data(), marks.data, sizeof(int) * marks.size, cudaMemcpyDeviceToHost));
@@ -317,8 +318,7 @@ int main(int argc, char ** argv)
 		    {
 			SimpleDeviceBuffer<int> marks(ctcscoll->pcount());
 			
-			SolidWallsKernel::fill_keys<<< (ctcscoll->pcount() + 127) / 128, 128 >>>(ctcscoll->data(), ctcscoll->pcount(), L, 
-												 marks.data);
+			SolidWallsKernel::fill_keys<<< (ctcscoll->pcount() + 127) / 128, 128 >>>(ctcscoll->data(), ctcscoll->pcount(), marks.data);
 			
 			vector<int> tmp(marks.size);
 			CUDA_CHECK(cudaMemcpy(tmp.data(), marks.data, sizeof(int) * marks.size, cudaMemcpyDeviceToHost));
@@ -440,10 +440,10 @@ int main(int argc, char ** argv)
 
 		    assert(start == n);
 
-		    diagnostics(cartcomm, p, n, dt, it, L, a);
+		    diagnostics(cartcomm, p, n, dt, it, a);
 		    
 		    if (xyz_dumps)
-			xyz_dump(cartcomm, "particles.xyz", "all-particles", p, n, L, it > 0);
+			xyz_dump(cartcomm, "particles.xyz", "all-particles", p, n, it > 0);
 		  
 		    if (hdf5part_dumps)
 			dump_part.dump(p, n);

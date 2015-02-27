@@ -145,8 +145,8 @@ struct TransformedExtent
     float transform[4][4];
 };
 
-CollectionRBC::CollectionRBC(MPI_Comm cartcomm, const int L, const string path2ic): 
-    cartcomm(cartcomm), L(L), nrbcs(0), path2xyz("rbcs.xyz"), format4ply("ply/rbcs-%04d.ply"), path2ic("rbcs-ic.txt"), dumpcounter(0)
+CollectionRBC::CollectionRBC(MPI_Comm cartcomm, const string path2ic): 
+    cartcomm(cartcomm), nrbcs(0), path2xyz("rbcs.xyz"), format4ply("ply/rbcs-%04d.ply"), path2ic("rbcs-ic.txt"), dumpcounter(0)
 {
     MPI_CHECK(MPI_Comm_rank(cartcomm, &myrank));
     MPI_CHECK( MPI_Cart_get(cartcomm, 3, dims, periods, coords) );
@@ -215,17 +215,19 @@ void CollectionRBC::setup()
 
     vector<TransformedExtent> good;
 
+    const int L[3] = { LX, LY, LZ };
+
     for(vector<TransformedExtent>::iterator it = allrbcs.begin(); it != allrbcs.end(); ++it)
     {
 	bool inside = true;
 
 	for(int c = 0; c < 3; ++c)
-	    inside &= it->com[c] >= coords[c] * L && it->com[c] < (coords[c] + 1) * L;
+	    inside &= it->com[c] >= coords[c] * L[c] && it->com[c] < (coords[c] + 1) * L[c];
 
 	if (inside)
 	{
 	    for(int c = 0; c < 3; ++c)
-		it->transform[c][3] -= (coords[c] + 0.5) * L;
+		it->transform[c][3] -= (coords[c] + 0.5) * L[c];
 
 	    good.push_back(*it);
 	}
@@ -294,7 +296,7 @@ void CollectionRBC::dump(MPI_Comm comm)
 	}
 
     if (xyz_dumps)
-	xyz_dump(comm, path2xyz.c_str(), "cell-particles", p, n, L, !firsttime);
+	xyz_dump(comm, path2xyz.c_str(), "cell-particles", p, n, !firsttime);
 
     char buf[200];
     sprintf(buf, format4ply.c_str(), ctr);
@@ -308,7 +310,7 @@ void CollectionRBC::dump(MPI_Comm comm)
 	    mkdir("ply", S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
     }
 	    
-    ply_dump(comm, buf, indices, nrbcs, ntriangles, p, nvertices, L, false);
+    ply_dump(comm, buf, indices, nrbcs, ntriangles, p, nvertices, false);
 		    
     delete [] p;
     delete [] a;

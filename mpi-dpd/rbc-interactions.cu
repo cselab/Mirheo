@@ -16,7 +16,7 @@ namespace KernelsRBC
 
     static bool firsttime = true;
     
-    void setup(const Particle * const solvent, const int npsolvent, const int * const cellsstart, const int * const cellscount, const int L)
+    void setup(const Particle * const solvent, const int npsolvent, const int * const cellsstart, const int * const cellscount)
     {
 	if (firsttime)
 	{
@@ -41,7 +41,7 @@ namespace KernelsRBC
 	CUDA_CHECK(cudaBindTexture(&textureoffset, &texSolventParticles, solvent, &texSolventParticles.channelDesc,
 				   sizeof(float) * 6 * npsolvent));
 
-	const int ncells = L * L * L;
+	const int ncells = LX * LY * LZ;
 	
 	assert(textureoffset == 0);
 	CUDA_CHECK(cudaBindTexture(&textureoffset, &texCellsStart, cellsstart, &texCellsStart.channelDesc, sizeof(int) * ncells));
@@ -50,18 +50,19 @@ namespace KernelsRBC
 	assert(textureoffset == 0);
     }
     
-    __global__ void shift_send_particles(const Particle * const src, const int n, const int L, const int code, Particle * const dst)
+    __global__ void shift_send_particles(const Particle * const src, const int n, const int code, Particle * const dst)
     {
 	const int gid = threadIdx.x + blockDim.x * blockIdx.x;
 
 	const int d[3] = { (code + 2) % 3 - 1, (code / 3 + 2) % 3 - 1, (code / 9 + 2) % 3 - 1 };
-	
+	const int L[3] = { LX, LY, LZ };
+
 	if (gid < n)
 	{
 	    Particle p = src[gid];
 	    
 	    for(int c = 0; c < 3; ++c)
-		p.x[c] -= d[c] * L;
+		p.x[c] -= d[c] * L[c];
 
 	    dst[gid] = p;
 	}
@@ -117,7 +118,7 @@ namespace KernelsRBC
 
     __global__ void fsi_forces(const int saru_tag,
 			       Acceleration * accsolvent, const int npsolvent,
-			       const Particle * const particle, const int nparticles, Acceleration * accrbc, const int L)
+			       const Particle * const particle, const int nparticles, Acceleration * accrbc)
     {
 	const int dpid = threadIdx.x + blockDim.x * blockIdx.x;
 
@@ -129,9 +130,11 @@ namespace KernelsRBC
 	const float3 xp = make_float3(p.x[0], p.x[1], p.x[2]);
 	const float3 up = make_float3(p.u[0], p.u[1], p.u[2]);
 		
+	const int L[3] = { LX, LY, LZ };
+
 	int mycid[3];
 	for(int c = 0; c < 3; ++c)
-	    mycid[c] = (int)floor(p.x[c] + L/2);
+	    mycid[c] = (int)floor(p.x[c] + L[c]/2);
 
 	float fsum[3] = {0, 0, 0};
 	
@@ -149,12 +152,12 @@ namespace KernelsRBC
 
 	    bool validcid = true;
 	    for(int c = 0; c < 3; ++c)
-		validcid &= vcid[c] >= 0 && vcid[c] < L;
+		validcid &= vcid[c] >= 0 && vcid[c] < L[c];
 
 	    if (!validcid)
 		continue;
 	    
-	    const int cid = vcid[0] + L * (vcid[1] + L * vcid[2]);
+	    const int cid = vcid[0] + LX * (vcid[1] + LY * vcid[2]);
 	    const int mystart = tex1Dfetch(texCellsStart, cid);
 	    const int myend = mystart + tex1Dfetch(texCellsCount, cid);
 	    
@@ -190,7 +193,7 @@ namespace KernelsRBC
     }
 }
 
-ComputeInteractionsRBC::ComputeInteractionsRBC(MPI_Comm _cartcomm, int L):  L(L), nvertices(CudaRBC::get_nvertices()), stream(0)
+ComputeInteractionsRBC::ComputeInteractionsRBC(MPI_Comm _cartcomm): nvertices(CudaRBC::get_nvertices()), stream(0)
 {
     assert(L % 2 == 0);
     assert(L >= 2);
@@ -246,14 +249,15 @@ void ComputeInteractionsRBC::pack_and_post(const Particle * const rbcs, const in
 
 	for(int code = 0; code < 26; ++code)
 	{
-	    int d[3] = { (code + 2) % 3 - 1, (code / 3 + 2) % 3 - 1, (code / 9 + 2) % 3 - 1 };
+	    const int L[3] = { LX, LY, LZ };
+	    const int d[3] = { (code + 2) % 3 - 1, (code / 3 + 2) % 3 - 1, (code / 9 + 2) % 3 - 1 };
 
 	    bool interacting = true;
 	    
 	    for(int c = 0; c < 3; ++c)
 	    {
-		const float range_start = max((float)(d[c] * L - L/2 - 1), pmin[c]);
-		const float range_end = min((float)(d[c] * L + L/2 + 1), pmax[c]);
+		const float range_start = max((float)(d[c] * L[c] - L[c]/2 - 1), pmin[c]);
+		const float range_end = min((float)(d[c] * L[c] + L[c]/2 + 1), pmax[c]);
 
 		interacting &= range_end > range_start;
 	    }
@@ -287,7 +291,7 @@ void ComputeInteractionsRBC::pack_and_post(const Particle * const rbcs, const in
     {
 	for(int j = 0; j < haloreplica[i].size(); ++j)
 	    KernelsRBC::shift_send_particles<<< (nvertices + 127) / 128, 128, 0, stream>>>
-		(rbcs + nvertices * haloreplica[i][j], nvertices, L, i, local[i].state.devptr + nvertices * j);
+		(rbcs + nvertices * haloreplica[i][j], nvertices, i, local[i].state.devptr + nvertices * j);
 	 
 	CUDA_CHECK(cudaPeekAtLastError());
     }
@@ -336,14 +340,14 @@ void ComputeInteractionsRBC::evaluate(int& saru_tag,
 				      const int * const cellsstart_solvent, const int * const cellscount_solvent,
 				      const Particle * const rbcs, const int nrbcs, Acceleration * accrbc)
 {	
-    KernelsRBC::setup(solvent, nparticles, cellsstart_solvent, cellscount_solvent, L);
+    KernelsRBC::setup(solvent, nparticles, cellsstart_solvent, cellscount_solvent);
 
     pack_and_post(rbcs, nrbcs);
 
     if (nrbcs > 0 && nparticles > 0)
     {
 	KernelsRBC::fsi_forces<<< (nrbcs * nvertices + 127) / 128, 128, 0, stream >>>
-	    (saru_tag + myrank, accsolvent, nparticles, rbcs, nrbcs * nvertices, accrbc, L);
+	    (saru_tag + myrank, accsolvent, nparticles, rbcs, nrbcs * nvertices, accrbc);
 		
 	_internal_forces(rbcs, nrbcs, accrbc);
 
@@ -359,7 +363,7 @@ void ComputeInteractionsRBC::evaluate(int& saru_tag,
 
 	if (count > 0)
 	    KernelsRBC::fsi_forces<<< (count + 127) / 128, 128, 0, stream >>>
-	    	(saru_tag + 26 * myrank + i, accsolvent, nparticles, remote[i].state.devptr, count, remote[i].result.devptr, L);
+	    	(saru_tag + 26 * myrank + i, accsolvent, nparticles, remote[i].state.devptr, count, remote[i].result.devptr);
     }
 
     saru_tag += 26 * nranks;

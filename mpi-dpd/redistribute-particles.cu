@@ -43,9 +43,11 @@ namespace RedistributeParticlesKernels
 	    for(int c = 0; c < 3; ++c)
 		xp[c] = tex1Dfetch(texAllParticles, 6 * pid + c);
 
+	    const int L[3] = { LX, LY, LZ };
+
 	    int vcode[3];
 	    for(int c = 0; c < 3; ++c)
-		vcode[c] = (2 + (xp[c] >= -L/2) + (xp[c] >= L/2)) % 3;
+		vcode[c] = (2 + (xp[c] >= -L[c]/2) + (xp[c] >= L[c]/2)) % 3;
 	
 	    const int code = vcode[0] + 3 * (vcode[1] + 3 * vcode[2]);
 	    assert(code >= 0 && code < 27);
@@ -198,11 +200,13 @@ namespace RedistributeParticlesKernels
      
 	int tagged = gid >= np;
 
+	const int L[3] = { LX, LY, LZ };
+
 	if (gid < np)
 	    for(int c = 0; c < 3; ++c)
 	    {
 		const float val = tex1Dfetch(texAllParticles, c + 6 * gid);
-		tagged += (int)(val < -L / 2 || val >= L / 2);
+		tagged += (int)(val < -L[c] / 2 || val >= L[c] / 2);
 	    }
 			
 	__shared__ int global_offset, local_offset, values[STRIPESIZE];
@@ -326,10 +330,10 @@ namespace RedistributeParticlesKernels
 	assert (s < unpack_buffers[code].capacity * 6);
 	const float value = unpack_buffers[code].buffer[s];
 	
-	const int shift = L *
-	    ((c == 0) * ((code + 1) % 3 - 1) +
-	     (c == 1) * ((code / 3 + 1) % 3 - 1) +
-	     (c == 2) * ((code / 9 + 1) % 3 - 1));
+	const int shift =
+	    LX * (c == 0) * ((code + 1) % 3 - 1) +
+	    LY * (c == 1) * ((code / 3 + 1) % 3 - 1) +
+	    LZ * (c == 2) * ((code / 9 + 1) % 3 - 1);
 
 	dstbuf[gid] = value + shift;
 
@@ -360,7 +364,7 @@ namespace RedistributeParticlesKernels
 #endif
 }
 
-RedistributeParticles::RedistributeParticles(MPI_Comm _cartcomm, int whatever): 
+RedistributeParticles::RedistributeParticles(MPI_Comm _cartcomm): 
 failure(1), packsizes(27), firstcall(true)
 {
     MPI_CHECK(MPI_Comm_dup(_cartcomm, &cartcomm) );
@@ -379,7 +383,13 @@ failure(1), packsizes(27), firstcall(true)
 		
 	MPI_CHECK( MPI_Cart_rank(cartcomm, coordsneighbor, neighbor_ranks + i) );
 	
-	const int nhalocells = pow(L, 3 - abs(d[0]) - abs(d[1]) - abs(d[2]));
+	const int nhalodir[3] =  { 
+		d[0] != 0 ? 1 : LX, 
+		d[1] != 0 ? 1 : LY, 
+		d[2] != 0 ? 1 : LZ 
+	    };
+
+	const int nhalocells = nhalodir[0] * nhalodir[1] * nhalodir[2];
 	const int estimate = 3 * 2 * nhalocells;
 	
 	CUDA_CHECK(cudaMalloc(&packbuffers[i].scattered_indices, sizeof(int) * estimate));

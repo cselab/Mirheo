@@ -91,7 +91,7 @@ class ComputeInteractionsDPD : public HaloExchanger
     
 public:
     
-    ComputeInteractionsDPD(MPI_Comm cartcomm, int L);
+    ComputeInteractionsDPD(MPI_Comm cartcomm);
 
     void evaluate(int& saru_tag, const Particle * const p, int n, Acceleration * const a,
 		  const int * const cellsstart, const int * const cellscount);

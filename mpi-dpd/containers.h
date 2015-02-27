@@ -27,7 +27,7 @@ class CollectionRBC : public ParticleArray
 protected:
     MPI_Comm cartcomm;
     
-    int nrbcs, L, myrank, dims[3], periods[3], coords[3];
+    int nrbcs, myrank, dims[3], periods[3], coords[3];
     
     std::string path2xyz, format4ply, path2ic;
 
@@ -40,7 +40,7 @@ public:
     
     int nvertices, dumpcounter;
 
-    CollectionRBC(MPI_Comm cartcomm, const int L, const std::string path2ic = "rbcs-ic.txt");
+    CollectionRBC(MPI_Comm cartcomm, const std::string path2ic = "rbcs-ic.txt");
 
     void setup();
      
