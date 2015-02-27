@@ -6,13 +6,13 @@
 
 namespace SolidWallsKernel
 {
-    __global__ void fill_keys(const Particle * const particles, const int n, const int L, int * const key);
+    __global__ void fill_keys(const Particle * const particles, const int n, int * const key);
 }
 
 class ComputeInteractionsWall
 {
     MPI_Comm cartcomm;
-    int L, myrank, dims[3], periods[3], coords[3];
+    int myrank, dims[3], periods[3], coords[3];
     
     int solid_size;
     Particle * solid;
@@ -23,7 +23,7 @@ class ComputeInteractionsWall
     
 public:
 
-    ComputeInteractionsWall(MPI_Comm cartcomm, const int L, Particle* const p, const int n, int& nsurvived);
+    ComputeInteractionsWall(MPI_Comm cartcomm, Particle* const p, const int n, int& nsurvived);
 
     ~ComputeInteractionsWall();
      

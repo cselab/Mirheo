@@ -8,14 +8,14 @@
 
 using namespace std;
 
-ComputeInteractionsDPD::ComputeInteractionsDPD(MPI_Comm cartcomm, int L): HaloExchanger(cartcomm, L, 0) {}
+ComputeInteractionsDPD::ComputeInteractionsDPD(MPI_Comm cartcomm): HaloExchanger(cartcomm, 0) {}
 
 void ComputeInteractionsDPD::spawn_local_work()
 {
     if (localwork.n > 0)
 	forces_dpd_cuda_nohost((float *)localwork.p, (float *)localwork.a, localwork.n, 
 			       localwork.cellsstart, localwork.cellscount,
-			       1, L, L, L, aij, gammadpd, sigma, 1. / sqrt(dt), localwork.saru_tag);
+			       1, XSIZE_SUBDOMAIN, YSIZE_SUBDOMAIN, ZSIZE_SUBDOMAIN, aij, gammadpd, sigma, 1. / sqrt(dt), localwork.saru_tag);
 }
 
 void ComputeInteractionsDPD::evaluate(int& saru_tag, const Particle * const p, const int n, Acceleration * const a,
@@ -64,7 +64,8 @@ namespace RemoteDPD
 	for(int c = 0; c < 3; ++c)
 	{
 	    if (isnan(a.a[c]))
-		printf("rank %d) oouch gid %d %f out of %d remote entries going to pid %d of %d particles\n", rank, gid, a.a[c], nremote, pid, nlocal);
+		printf("rank %d) oouch gid %d %f out of %d remote entries going to pid %d of %d particles\n", 
+		       rank, gid, a.a[c], nremote, pid, nlocal);
 
 	    assert(!isnan(a.a[c]));
 	}
@@ -78,7 +79,8 @@ namespace RemoteDPD
     }
 }
 
-void ComputeInteractionsDPD::dpd_remote_interactions(const Particle * const p, const int n, const int saru_tag1, Acceleration * const a)
+void ComputeInteractionsDPD::dpd_remote_interactions(const Particle * const p, const int n, 
+						     const int saru_tag1, Acceleration * const a)
 {
     CUDA_CHECK(cudaPeekAtLastError());
 
