@@ -13,13 +13,16 @@
 #include "halo-exchanger.h"
 #include "wall-interactions.h"
 
-enum { 
-    XMARGIN = 12, 
-    YMARGIN = 12, 
-    ZMARGIN = 12, 
-    XVPD = 256, 
-    YVPD = ((YSIZE_SUBDOMAIN + 2 * YMARGIN) * XVPD + XSIZE_SUBDOMAIN + 2 * XMARGIN - 1) / (XSIZE_SUBDOMAIN + 2 * XMARGIN), 
-    ZVPD = ((ZSIZE_SUBDOMAIN + 2 * ZMARGIN) * XVPD + XSIZE_SUBDOMAIN + 2 * XMARGIN - 1) / (XSIZE_SUBDOMAIN + 2 * XMARGIN)
+enum {  
+    XTEXTURESIZE = 256, 
+
+    YTEXTURESIZE = 
+    ((YSIZE_SUBDOMAIN + 2 * YMARGIN_WALL) * XTEXTURESIZE + XSIZE_SUBDOMAIN + 2 * XMARGIN_WALL - 1) 
+    / (XSIZE_SUBDOMAIN + 2 * XMARGIN_WALL), 
+
+    ZTEXTURESIZE = 
+    ((ZSIZE_SUBDOMAIN + 2 * ZMARGIN_WALL) * XTEXTURESIZE + XSIZE_SUBDOMAIN + 2 * XMARGIN_WALL - 1) 
+    / (XSIZE_SUBDOMAIN + 2 * XMARGIN_WALL)
 };
 
 namespace SolidWallsKernel
@@ -29,7 +32,7 @@ namespace SolidWallsKernel
     __device__ float sdf(float x, float y, float z)
     {
 	const int L[3] = { XSIZE_SUBDOMAIN, YSIZE_SUBDOMAIN, ZSIZE_SUBDOMAIN };
-	const int MARGIN[3] = { XMARGIN, YMARGIN, ZMARGIN };
+	const int MARGIN[3] = { XMARGIN_WALL, YMARGIN_WALL, ZMARGIN_WALL };
 
 	float p[3] = {x, y, z};
 	
@@ -47,7 +50,7 @@ namespace SolidWallsKernel
     __device__ float3 grad_sdf(float x, float y, float z)
     {
 	const int L[3] = { XSIZE_SUBDOMAIN, YSIZE_SUBDOMAIN, ZSIZE_SUBDOMAIN };
-	const int MARGIN[3] = { XMARGIN, YMARGIN, ZMARGIN };
+	const int MARGIN[3] = { XMARGIN_WALL, YMARGIN_WALL, ZMARGIN_WALL };
 
 	const float p[3] = {x, y, z};
 	
@@ -65,8 +68,8 @@ namespace SolidWallsKernel
 	    assert(tc[c] >= 0 && tc[c] <= 1);
 	}
 	
-	const float htw = 1. / XVPD;
-	const float factor = 1. / (2 * htw) * 1.f / (XSIZE_SUBDOMAIN * 2 + XMARGIN);
+	const float htw = 1. / XTEXTURESIZE;
+	const float factor = 1. / (2 * htw) * 1.f / (XSIZE_SUBDOMAIN * 2 + XMARGIN_WALL);
 	
 	return make_float3(
 	    factor * (tex3D(texSDF, tc[0] + htw, tc[1], tc[2]) - tex3D(texSDF, tc[0] - htw, tc[1], tc[2])),
@@ -201,7 +204,7 @@ namespace SolidWallsKernel
 	Particle p = particles[pid];
 
 	const int L[3] = { XSIZE_SUBDOMAIN, YSIZE_SUBDOMAIN, ZSIZE_SUBDOMAIN };
-	const int MARGIN[3] = { XMARGIN, YMARGIN, ZMARGIN };
+	const int MARGIN[3] = { XMARGIN_WALL, YMARGIN_WALL, ZMARGIN_WALL };
 
 	for(int c = 0; c < 3; ++c)
 	{
@@ -230,7 +233,7 @@ namespace SolidWallsKernel
 	Particle p = particles[pid];
 	
 	const int L[3] = { XSIZE_SUBDOMAIN, YSIZE_SUBDOMAIN, ZSIZE_SUBDOMAIN };
-	const int MARGIN[3] = { XMARGIN, YMARGIN, ZMARGIN };
+	const int MARGIN[3] = { XMARGIN_WALL, YMARGIN_WALL, ZMARGIN_WALL };
 	
 	int base[3];
 	for(int c = 0; c < 3; ++c)
@@ -251,18 +254,18 @@ namespace SolidWallsKernel
 	    const int ycid = base[1] + (code/3 % 3) - 1;
 	    const int zcid = base[2] + (code/9 % 3) - 1;
 
-	    if (xcid < 0 || xcid >= XSIZE_SUBDOMAIN + 2 * XMARGIN ||
-		ycid < 0 || ycid >= YSIZE_SUBDOMAIN + 2 * YMARGIN ||
-		zcid < 0 || zcid >= ZSIZE_SUBDOMAIN + 2 * ZMARGIN )
+	    if (xcid < 0 || xcid >= XSIZE_SUBDOMAIN + 2 * XMARGIN_WALL ||
+		ycid < 0 || ycid >= YSIZE_SUBDOMAIN + 2 * YMARGIN_WALL ||
+		zcid < 0 || zcid >= ZSIZE_SUBDOMAIN + 2 * ZMARGIN_WALL )
 		continue;
 			    
 	    const int cid = xcid + 
-		(XSIZE_SUBDOMAIN + 2 * XMARGIN) * 
-		(ycid + (YSIZE_SUBDOMAIN + 2 * YMARGIN) * zcid);
+		(XSIZE_SUBDOMAIN + 2 * XMARGIN_WALL) * 
+		(ycid + (YSIZE_SUBDOMAIN + 2 * YMARGIN_WALL) * zcid);
 
-	    assert(cid >= 0 && cid < (XSIZE_SUBDOMAIN + 2 * XMARGIN) * 
-		   (YSIZE_SUBDOMAIN + 2 * YMARGIN) * 
-		   (ZSIZE_SUBDOMAIN + 2 * ZMARGIN));
+	    assert(cid >= 0 && cid < (XSIZE_SUBDOMAIN + 2 * XMARGIN_WALL) * 
+		   (YSIZE_SUBDOMAIN + 2 * YMARGIN_WALL) * 
+		   (ZSIZE_SUBDOMAIN + 2 * ZMARGIN_WALL));
 
 	    const int start = starts[cid];
 	    const int stop = start + counts[cid];
@@ -450,20 +453,23 @@ struct FieldSampler
 
 ComputeInteractionsWall::ComputeInteractionsWall(MPI_Comm cartcomm, Particle* const p, const int n, int& nsurvived):
     cartcomm(cartcomm), arrSDF(NULL), solid(NULL), solid_size(0), 
-    cells(XSIZE_SUBDOMAIN + 2 * XMARGIN, YSIZE_SUBDOMAIN + 2 * YMARGIN, ZSIZE_SUBDOMAIN + 2 * ZMARGIN)
+    cells(XSIZE_SUBDOMAIN + 2 * XMARGIN_WALL, YSIZE_SUBDOMAIN + 2 * YMARGIN_WALL, ZSIZE_SUBDOMAIN + 2 * ZMARGIN_WALL)
 {
     MPI_CHECK( MPI_Comm_rank(cartcomm, &myrank));
     MPI_CHECK( MPI_Cart_get(cartcomm, 3, dims, periods, coords) );
     
-    float * field = new float[ XVPD * YVPD * ZVPD];
+    float * field = new float[ XTEXTURESIZE * YTEXTURESIZE * ZTEXTURESIZE];
 
     FieldSampler sampler("sdf.dat");
 
     const int L[3] = { XSIZE_SUBDOMAIN, YSIZE_SUBDOMAIN, ZSIZE_SUBDOMAIN };
+    //printf("WALL CREATION: L %d %d %d\n", XSIZE_SUBDOMAIN, YSIZE_SUBDOMAIN, ZSIZE_SUBDOMAIN);
 
-    const int MARGIN[3] = { XMARGIN, YMARGIN, ZMARGIN };
+    const int MARGIN[3] = { XMARGIN_WALL, YMARGIN_WALL, ZMARGIN_WALL };
+    //printf("MARGIN: L %d %d %d\n", XMARGIN_WALL, YMARGIN_WALL, ZMARGIN_WALL);
 
-    const int VPD[3] = { XVPD, YVPD, ZVPD };
+    const int TEXTURESIZE[3] = { XTEXTURESIZE, YTEXTURESIZE, ZTEXTURESIZE };
+    //printf("TEXTURESIZE: L %d %d %d\n", XTEXTURESIZE, YTEXTURESIZE, ZTEXTURESIZE );
 
 #ifndef NDEBUG	
     assert(fabs(dims[0] * XSIZE_SUBDOMAIN / (double) (dims[1] * YSIZE_SUBDOMAIN) - sampler.extent[0] / (double)sampler.extent[1]) < 1e-5);
@@ -475,11 +481,13 @@ ComputeInteractionsWall::ComputeInteractionsWall(MPI_Comm cartcomm, Particle* co
 	for(int c = 0; c < 3; ++c)
 	{
 	    start[c] = sampler.N[c] * (coords[c] * L[c] - MARGIN[c]) / (float)(dims[c] * L[c]) ;
-	    spacing[c] =  sampler.N[c] * (L[c] + 2 * MARGIN[c]) / (float)(dims[c] * L[c]) / (float) VPD[c];
+	    spacing[c] =  sampler.N[c] * (L[c] + 2 * MARGIN[c]) / (float)(dims[c] * L[c]) / (float) TEXTURESIZE[c];
+	    //printf("filtering: c: %d start: %f scaling %f\n", c, start[c], spacing[c]);
 	}
 	
-	const float amplitude_rescaling = (XSIZE_SUBDOMAIN + 2 * XMARGIN) / (sampler.extent[0] / dims[0]) ;
-	sampler.sample(start, spacing, VPD, field, amplitude_rescaling);
+	const float amplitude_rescaling = (XSIZE_SUBDOMAIN + 2 * XMARGIN_WALL) / (sampler.extent[0] / dims[0]) ;
+	//printf("amplitude rescaling: %f\n",  amplitude_rescaling);
+	sampler.sample(start, spacing, TEXTURESIZE, field, amplitude_rescaling);
     }
 
     if (hdf5field_dumps)
@@ -508,12 +516,12 @@ ComputeInteractionsWall::ComputeInteractionsWall(MPI_Comm cartcomm, Particle* co
     CUDA_CHECK(cudaDeviceSynchronize());
 
     cudaChannelFormatDesc fmt = cudaCreateChannelDesc<float>();
-    CUDA_CHECK(cudaMalloc3DArray (&arrSDF, &fmt, make_cudaExtent(XVPD, YVPD, ZVPD)));
+    CUDA_CHECK(cudaMalloc3DArray (&arrSDF, &fmt, make_cudaExtent(XTEXTURESIZE, YTEXTURESIZE, ZTEXTURESIZE)));
 
     cudaMemcpy3DParms copyParams = {0};
-    copyParams.srcPtr   = make_cudaPitchedPtr((void *)field, XVPD * sizeof(float), XVPD, YVPD);
+    copyParams.srcPtr   = make_cudaPitchedPtr((void *)field, XTEXTURESIZE * sizeof(float), XTEXTURESIZE, YTEXTURESIZE);
     copyParams.dstArray = arrSDF;
-    copyParams.extent   = make_cudaExtent(XVPD, YVPD, ZVPD);
+    copyParams.extent   = make_cudaExtent(XTEXTURESIZE, YTEXTURESIZE, ZTEXTURESIZE);
     copyParams.kind     = cudaMemcpyHostToDevice;
     CUDA_CHECK(cudaMemcpy3D(&copyParams));
 

@@ -30,6 +30,7 @@ namespace ParticleKernels
 	for(int c = 0; c < 3; ++c)
 	    p[pid].x[c] += p[pid].u[c] * dt;
 
+#ifndef NDEBUG
 	const int L[3] = { XSIZE_SUBDOMAIN, YSIZE_SUBDOMAIN, ZSIZE_SUBDOMAIN };
 
 	if (check)
@@ -38,6 +39,7 @@ namespace ParticleKernels
 		assert(p[pid].x[c] >= -L[c] -L[c]/2);
 		assert(p[pid].x[c] <= +L[c] +L[c]/2);
 	    }
+#endif
     }
 
     __global__ void update_stage2_and_1(Particle * p, Acceleration * a, int n, float dt, const float driving_acceleration)
@@ -64,18 +66,18 @@ namespace ParticleKernels
 	
 	p[pid].u[c] = myu;
 	p[pid].x[c] = myx;
-
-	const int L[3] = { XSIZE_SUBDOMAIN, YSIZE_SUBDOMAIN, ZSIZE_SUBDOMAIN };
-
-#ifndef NDEBUG
-	    if (!(myx >= -L[c] -L[c]/2) || !(myx <= +L[c] +L[c]/2))
-	    {
-		printf("Uau: pid %d c %d: x %f u %f and a %f\n",
-		       pid, c, myx, myu, mya);
 	
-		assert(myx >= -L[c] -L[c]/2);
-		assert(myx <= +L[c] +L[c]/2);
-	    }
+#ifndef NDEBUG
+	const int L[3] = { XSIZE_SUBDOMAIN, YSIZE_SUBDOMAIN, ZSIZE_SUBDOMAIN };	
+	
+	if (!(myx >= -L[c] -L[c]/2) || !(myx <= +L[c] +L[c]/2))
+	{
+	    printf("Uau: pid %d c %d: x %f u %f and a %f\n",
+		   pid, c, myx, myu, mya);
+	    
+	    assert(myx >= -L[c] -L[c]/2);
+	    assert(myx <= +L[c] +L[c]/2);
+	}
 #endif
     }
     
@@ -159,11 +161,9 @@ CollectionRBC::CollectionRBC(MPI_Comm cartcomm, const string path2ic):
     CudaRBC::Extent extent;
     CudaRBC::setup(nvertices, extent);
 
-    const int L[3] = { XSIZE_SUBDOMAIN, YSIZE_SUBDOMAIN, ZSIZE_SUBDOMAIN };
-
-    assert(extent.xmax - extent.xmin < L[0]);
-    assert(extent.ymax - extent.ymin < L[1]);
-    assert(extent.zmax - extent.zmin < L[2]);
+    assert(extent.xmax - extent.xmin < XSIZE_SUBDOMAIN);
+    assert(extent.ymax - extent.ymin < YSIZE_SUBDOMAIN);
+    assert(extent.zmax - extent.zmin < ZSIZE_SUBDOMAIN);
 
     CudaRBC::get_triangle_indexing(indices, ntriangles);
 }

@@ -339,8 +339,10 @@ namespace RedistributeParticlesKernels
 
 	//if (!(c >= 3 || fabs(dstbuf[gid]) <= L /2))
 	//    printf("error! pid %d c %d code %d x: %f = original %f + shift %f\n", slot, c, code, dstbuf[gid], old, shift);
+#ifndef NDEBUG
 	const int L[3] = { XSIZE_SUBDOMAIN, YSIZE_SUBDOMAIN, ZSIZE_SUBDOMAIN };
 	assert(c >= 3 || fabs(dstbuf[gid]) <= L[c] /2);
+#endif
     }
 
 #ifndef NDEBUG

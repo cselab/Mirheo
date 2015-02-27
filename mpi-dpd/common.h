@@ -2,18 +2,21 @@
 
 enum { 
     XSIZE_SUBDOMAIN = 48, 
-    YSIZE_SUBDOMAIN = 48, 
-    ZSIZE_SUBDOMAIN = 48 
+    YSIZE_SUBDOMAIN = 32, 
+    ZSIZE_SUBDOMAIN = 32,
+    XMARGIN_WALL = 24,
+    YMARGIN_WALL = 0,
+    ZMARGIN_WALL = 0,
 };
 
 const float dt = 0.001;
-const float tend = 50;
+const float tend = 500;
 const float kBT = 0.0945;
 const float gammadpd = 45;
 const float sigma = sqrt(2 * gammadpd * kBT);
 const float sigmaf = sigma / sqrt(dt);
 const float aij = 2.5;
-const float hydrostatic_a = 0.01;
+const float hydrostatic_a = 0.05;
 const bool walls = false;
 const bool pushtheflow = false;
 const bool rbcs = false;

@@ -61,11 +61,9 @@ CollectionCTC(MPI_Comm cartcomm):CollectionRBC(cartcomm)
 	CudaCTC::Extent extent;
 	CudaCTC::setup(nvertices, extent, dt);
 
-	const int L[3] = { XSIZE_SUBDOMAIN, YSIZE_SUBDOMAIN, ZSIZE_SUBDOMAIN };
-
-	assert(extent.xmax - extent.xmin < L[0]);
-	assert(extent.ymax - extent.ymin < L[1]);
-	assert(extent.zmax - extent.zmin < L[2]);
+	assert(extent.xmax - extent.xmin < XSIZE_SUBDOMAIN);
+	assert(extent.ymax - extent.ymin < YSIZE_SUBDOMAIN);
+	assert(extent.zmax - extent.zmin < ZSIZE_SUBDOMAIN);
 
 	CudaCTC::get_triangle_indexing(indices, ntriangles);
 

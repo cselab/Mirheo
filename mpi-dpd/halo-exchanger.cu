@@ -29,13 +29,11 @@ HaloExchanger::HaloExchanger(MPI_Comm _cartcomm, const int basetag):  basetag(ba
 
 	MPI_CHECK( MPI_Cart_rank(cartcomm, coordsneighbor, dstranks + i) );
 
-	const int nhalodir[3] = { 
-	    d[0] != 0 ? 1 : XSIZE_SUBDOMAIN, 
-	    d[1] != 0 ? 1 : YSIZE_SUBDOMAIN, 
-	    d[2] != 0 ? 1 : ZSIZE_SUBDOMAIN 
-	};
-
-	const int nhalocells = nhalodir[0] * nhalodir[1] * nhalodir[2];
+	halosize[i].x = d[0] != 0 ? 1 : XSIZE_SUBDOMAIN;
+	halosize[i].y = d[1] != 0 ? 1 : YSIZE_SUBDOMAIN;
+	halosize[i].z = d[2] != 0 ? 1 : ZSIZE_SUBDOMAIN; 
+	
+	const int nhalocells = halosize[i].x * halosize[i].y * halosize[i].z;
 
 	int estimate = 6 * nhalocells;
 	estimate = 32 * ((estimate + 31) / 32);
