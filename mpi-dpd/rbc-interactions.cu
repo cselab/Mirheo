@@ -41,7 +41,7 @@ namespace KernelsRBC
 	CUDA_CHECK(cudaBindTexture(&textureoffset, &texSolventParticles, solvent, &texSolventParticles.channelDesc,
 				   sizeof(float) * 6 * npsolvent));
 
-	const int ncells = LX * LY * LZ;
+	const int ncells = XSIZE_SUBDOMAIN * YSIZE_SUBDOMAIN * ZSIZE_SUBDOMAIN;
 	
 	assert(textureoffset == 0);
 	CUDA_CHECK(cudaBindTexture(&textureoffset, &texCellsStart, cellsstart, &texCellsStart.channelDesc, sizeof(int) * ncells));
@@ -55,7 +55,7 @@ namespace KernelsRBC
 	const int gid = threadIdx.x + blockDim.x * blockIdx.x;
 
 	const int d[3] = { (code + 2) % 3 - 1, (code / 3 + 2) % 3 - 1, (code / 9 + 2) % 3 - 1 };
-	const int L[3] = { LX, LY, LZ };
+	const int L[3] = { XSIZE_SUBDOMAIN, YSIZE_SUBDOMAIN, ZSIZE_SUBDOMAIN };
 
 	if (gid < n)
 	{
@@ -130,7 +130,7 @@ namespace KernelsRBC
 	const float3 xp = make_float3(p.x[0], p.x[1], p.x[2]);
 	const float3 up = make_float3(p.u[0], p.u[1], p.u[2]);
 		
-	const int L[3] = { LX, LY, LZ };
+	const int L[3] = { XSIZE_SUBDOMAIN, YSIZE_SUBDOMAIN, ZSIZE_SUBDOMAIN };
 
 	int mycid[3];
 	for(int c = 0; c < 3; ++c)
@@ -157,7 +157,7 @@ namespace KernelsRBC
 	    if (!validcid)
 		continue;
 	    
-	    const int cid = vcid[0] + LX * (vcid[1] + LY * vcid[2]);
+	    const int cid = vcid[0] + XSIZE_SUBDOMAIN * (vcid[1] + YSIZE_SUBDOMAIN * vcid[2]);
 	    const int mystart = tex1Dfetch(texCellsStart, cid);
 	    const int myend = mystart + tex1Dfetch(texCellsCount, cid);
 	    
@@ -195,8 +195,8 @@ namespace KernelsRBC
 
 ComputeInteractionsRBC::ComputeInteractionsRBC(MPI_Comm _cartcomm): nvertices(CudaRBC::get_nvertices()), stream(0)
 {
-    assert(L % 2 == 0);
-    assert(L >= 2);
+    assert(XSIZE_SUBDOMAIN % 2 == 0 && YSIZE_SUBDOMAIN % 2 == 0 && ZSIZE_SUBDOMAIN % 2 == 0);
+    assert(XSIZE_SUBDOMAIN >= 2 && YSIZE_SUBDOMAIN >= 2 && ZSIZE_SUBDOMAIN >= 2);
 
     MPI_CHECK( MPI_Comm_dup(_cartcomm, &cartcomm));
 
@@ -249,7 +249,7 @@ void ComputeInteractionsRBC::pack_and_post(const Particle * const rbcs, const in
 
 	for(int code = 0; code < 26; ++code)
 	{
-	    const int L[3] = { LX, LY, LZ };
+	    const int L[3] = { XSIZE_SUBDOMAIN, YSIZE_SUBDOMAIN, ZSIZE_SUBDOMAIN };
 	    const int d[3] = { (code + 2) % 3 - 1, (code / 3 + 2) % 3 - 1, (code / 9 + 2) % 3 - 1 };
 
 	    bool interacting = true;

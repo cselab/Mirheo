@@ -83,9 +83,9 @@ int main(int argc, char ** argv)
 	MPI_CHECK( MPI_Cart_create(MPI_COMM_WORLD, 3, ranks, periods, 1, &cartcomm) );
 	
 	{
-	    vector<Particle> ic(LX * LY * LZ * 4);
+	    vector<Particle> ic(XSIZE_SUBDOMAIN * YSIZE_SUBDOMAIN * ZSIZE_SUBDOMAIN * 4);
 	    
-	    const int L[3] = { LX, LY, LZ };
+	    const int L[3] = { XSIZE_SUBDOMAIN, YSIZE_SUBDOMAIN, ZSIZE_SUBDOMAIN };
 	    for(int i = 0; i < ic.size(); ++i)
 		for(int c = 0; c < 3; ++c)
 		{
@@ -94,7 +94,7 @@ int main(int argc, char ** argv)
 		}
 	    	    	  
 	    ParticleArray particles(ic);
-	    CellLists cells(LX, LY, LZ);		  
+	    CellLists cells(XSIZE_SUBDOMAIN, YSIZE_SUBDOMAIN, ZSIZE_SUBDOMAIN);		  
 	    CollectionRBC * rbcscoll = NULL;
 	    
 	    if (rbcs)

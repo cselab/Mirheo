@@ -58,9 +58,9 @@ void xyz_dump(MPI_Comm comm, const char * filename, const char * particlename, P
     
     for(int i = 0; i < nlocal; ++i)
 	ss << rank << " " 
-	   << (particles[i].x[0] + LX / 2 + coords[0] * LX) << " "
-	   << (particles[i].x[1] + LY / 2 + coords[1] * LY) << " "
-	   << (particles[i].x[2] + LZ / 2 + coords[2] * LZ) << "\n";
+	   << (particles[i].x[0] + XSIZE_SUBDOMAIN / 2 + coords[0] * XSIZE_SUBDOMAIN) << " "
+	   << (particles[i].x[1] + YSIZE_SUBDOMAIN / 2 + coords[1] * YSIZE_SUBDOMAIN) << " "
+	   << (particles[i].x[2] + ZSIZE_SUBDOMAIN / 2 + coords[2] * ZSIZE_SUBDOMAIN) << "\n";
 
     string content = ss.str();
 	
@@ -138,7 +138,7 @@ void ply_dump(MPI_Comm comm, const char * filename,
     
     _write_bytes(content.c_str(), content.size(), f, comm);
     
-    const int L[3] = { LX, LY, LZ };
+    const int L[3] = { XSIZE_SUBDOMAIN, YSIZE_SUBDOMAIN, ZSIZE_SUBDOMAIN };
 
     for(int i = 0; i < n; ++i)
 	for(int c = 0; c < 3; ++c)
@@ -287,7 +287,7 @@ void H5FieldDump::_write_fields(const char * const path2h5,
     hid_t file_id = H5Fcreate(path2h5, H5F_ACC_TRUNC, H5P_DEFAULT, plist_id_access);
     H5Pclose(plist_id_access);
     
-    const int L[3] = { LX, LY, LZ };
+    const int L[3] = { XSIZE_SUBDOMAIN, YSIZE_SUBDOMAIN, ZSIZE_SUBDOMAIN };
     hsize_t globalsize[4] = {nranks[2] * L[2], nranks[1] * L[1], nranks[0] * L[0], 1};    
     hid_t filespace_simple = H5Screate_simple(4, globalsize, NULL);
     
@@ -340,7 +340,7 @@ H5FieldDump::H5FieldDump(MPI_Comm cartcomm): cartcomm(cartcomm), last_idtimestep
     int dims[3], periods[3], coords[3];
     MPI_CHECK( MPI_Cart_get(cartcomm, 3, dims, periods, coords) );
 
-    const int L[3] = { LX, LY, LZ };
+    const int L[3] = { XSIZE_SUBDOMAIN, YSIZE_SUBDOMAIN, ZSIZE_SUBDOMAIN };
 
     for(int c = 0; c < 3; ++c)
 	globalsize[c] = L[c] * dims[c];
@@ -359,7 +359,7 @@ void H5FieldDump::dump(const Particle * const p, const int n, int idtimestep)
 #ifndef NO_H5
     last_idtimestep = idtimestep;
 
-    const int ncells = LX * LY * LZ;
+    const int ncells = XSIZE_SUBDOMAIN * YSIZE_SUBDOMAIN * ZSIZE_SUBDOMAIN;
 
     vector<float> rho(ncells), u[3];
 
@@ -369,12 +369,12 @@ void H5FieldDump::dump(const Particle * const p, const int n, int idtimestep)
     for(int i = 0; i < n; ++i)
     {
 	const int cellindex[3] = {
-	    (int)floor(p[i].x[0] + LX / 2),
-	    (int)floor(p[i].x[1] + LY / 2),
-	    (int)floor(p[i].x[2] + LZ / 2)
+	    (int)floor(p[i].x[0] + XSIZE_SUBDOMAIN / 2),
+	    (int)floor(p[i].x[1] + YSIZE_SUBDOMAIN / 2),
+	    (int)floor(p[i].x[2] + ZSIZE_SUBDOMAIN / 2)
 	};
 
-	const int entry = cellindex[0] + LX * (cellindex[1] + LY * cellindex[2]);
+	const int entry = cellindex[0] + XSIZE_SUBDOMAIN * (cellindex[1] + YSIZE_SUBDOMAIN * cellindex[2]);
 
 	rho[entry] += 1;
 

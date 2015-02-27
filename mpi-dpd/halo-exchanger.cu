@@ -2,13 +2,13 @@
 #include <algorithm>
 
 #include "halo-exchanger.h"
-
+ 
 using namespace std;
 
 HaloExchanger::HaloExchanger(MPI_Comm _cartcomm, const int basetag):  basetag(basetag), firstpost(true)
 {
-    assert(LX % 2 == 0 && LY % 2 == 0 && LZ % 2 == 0);
-    assert(LX >= 2 && LY >= 2 && LZ >= 2);
+    assert(XSIZE_SUBDOMAIN % 2 == 0 && YSIZE_SUBDOMAIN % 2 == 0 && ZSIZE_SUBDOMAIN % 2 == 0);
+    assert(XSIZE_SUBDOMAIN >= 2 && YSIZE_SUBDOMAIN >= 2 && ZSIZE_SUBDOMAIN >= 2);
 
     MPI_CHECK( MPI_Comm_dup(_cartcomm, &cartcomm));
 
@@ -30,9 +30,9 @@ HaloExchanger::HaloExchanger(MPI_Comm _cartcomm, const int basetag):  basetag(ba
 	MPI_CHECK( MPI_Cart_rank(cartcomm, coordsneighbor, dstranks + i) );
 
 	const int nhalodir[3] = { 
-	    d[0] != 0 ? 1 : LX, 
-	    d[1] != 0 ? 1 : LY, 
-	    d[2] != 0 ? 1 : LZ 
+	    d[0] != 0 ? 1 : XSIZE_SUBDOMAIN, 
+	    d[1] != 0 ? 1 : YSIZE_SUBDOMAIN, 
+	    d[2] != 0 ? 1 : ZSIZE_SUBDOMAIN 
 	};
 
 	const int nhalocells = nhalodir[0] * nhalodir[1] * nhalodir[2];
@@ -86,13 +86,13 @@ namespace PackingHalo
 	 
 	if (gid < nsize)
 	{
-	    assert(dst.x >= 0 && dst.x < LX);
-	    assert(dst.y >= 0 && dst.y < LY);
-	    assert(dst.z >= 0 && dst.z < LZ);
+	    assert(dst.x >= 0 && dst.x < XSIZE_SUBDOMAIN);
+	    assert(dst.y >= 0 && dst.y < YSIZE_SUBDOMAIN);
+	    assert(dst.z >= 0 && dst.z < ZSIZE_SUBDOMAIN);
 	    
-	    const int srcentry = dst.x + LX * (dst.y + LY * dst.z);
+	    const int srcentry = dst.x + XSIZE_SUBDOMAIN * (dst.y + YSIZE_SUBDOMAIN * dst.z);
 
-	    assert(srcentry < LX * LY * LZ);
+	    assert(srcentry < XSIZE_SUBDOMAIN * YSIZE_SUBDOMAIN * ZSIZE_SUBDOMAIN);
 
 	    output_start[gid] = cellsstart[srcentry];
 	    output_count[gid] = cellscount[srcentry];
@@ -103,14 +103,15 @@ namespace PackingHalo
     }
     
 #ifndef NDEBUG
-    __device__ void halo_particle_check(const Particle p, const int pid, const int code, const int L)
+    __device__ void halo_particle_check(const Particle p, const int pid, const int code)
      {
 	 const int d[3] = { (code + 2) % 3 - 1, (code / 3 + 2) % 3 - 1, (code / 9 + 2) % 3 - 1 };
-	 
+	 const int L[3] = { XSIZE_SUBDOMAIN, YSIZE_SUBDOMAIN, ZSIZE_SUBDOMAIN };
+
 	 for(int c = 0; c < 3; ++c)
 	 {
-	     const float halo_start = max(d[c] * L - L/2 - 1, -L/2);
-	     const float halo_end = min(d[c] * L + L/2 + 1, L/2);
+	     const float halo_start = max(d[c] * L[c] - L[c]/2 - 1, -L[c]/2);
+	     const float halo_end = min(d[c] * L[c] + L[c]/2 + 1, L[c]/2);
 	     const float eps = 1e-5;
 	     if (!(p.x[c] >= halo_start - eps && p.x[c] < halo_end + eps))
 	     {
@@ -159,7 +160,7 @@ namespace PackingHalo
 	    *(float2 *)&hbag[dpid].x[c] = word;
 
 #ifndef NDEBUG
-	    halo_particle_check(particles[spid], spid, code, L)   ;
+	    halo_particle_check(particles[spid], spid, code)   ;
 #endif
 	}
 
@@ -203,11 +204,14 @@ namespace PackingHalo
 	const int dy = (code / 3 + 2) % 3 - 1;
 	const int dz = (code / 9 + 2) % 3 - 1;
 
-	*(c + (float *)&dstpacks[code][offset].x[0]) =  val + LX * dx * (c == 0) + LY * dy * (c == 1) + LZ * dz * (c == 2);
+	*(c + (float *)&dstpacks[code][offset].x[0]) =  val + 
+	    XSIZE_SUBDOMAIN * dx * (c == 0) + 
+	    YSIZE_SUBDOMAIN * dy * (c == 1) + 
+	    ZSIZE_SUBDOMAIN * dz * (c == 2);
     }
 
 #ifndef NDEBUG
-    __global__ void check_recv_particles(Particle *const particles, const int n, const int L,
+    __global__ void check_recv_particles(Particle *const particles, const int n,
 					 const int code, const int rank)
     {
 	assert(blockDim.x * gridDim.x >= n);
@@ -219,16 +223,17 @@ namespace PackingHalo
 	
 	Particle myp = particles[pid];
 
+	const int L[3] = { XSIZE_SUBDOMAIN, YSIZE_SUBDOMAIN, ZSIZE_SUBDOMAIN };
 	const int d[3] = { (code + 2) % 3 - 1, (code / 3 + 2) % 3 - 1, (code / 9 + 2) % 3 - 1 };
 
-	assert(myp.x[0] <= -L / 2 || myp.x[0] >= L / 2 ||
-	       myp.x[1] <= -L / 2 || myp.x[1] >= L / 2 || 
-	       myp.x[2] <= -L / 2 || myp.x[2] >= L / 2);
+	assert(myp.x[0] <= -L[0] / 2 || myp.x[0] >= L[0] / 2 ||
+	       myp.x[1] <= -L[1] / 2 || myp.x[1] >= L[1] / 2 || 
+	       myp.x[2] <= -L[2] / 2 || myp.x[2] >= L[2] / 2);
 
 	for(int c = 0; c < 3; ++c)
 	{
-	    const float halo_start = max(d[c] * L - L/2, -L/2 - 1);
-	    const float halo_end = min(d[c] * L + L/2, L/2 + 1);
+	    const float halo_start = max(d[c] * L[c] - L[c]/2, -L[c]/2 - 1);
+	    const float halo_end = min(d[c] * L[c] + L[c]/2, L[c]/2 + 1);
 	    const float eps = 1e-5;
 	    if (!(myp.x[c] >= halo_start - eps && myp.x[c] <= halo_end + eps))
 		printf("ooops RANK %d: shift_recv_particle: pid %d \npos %f %f %f vel: %f %f %f halo_start-end: %f %f\neps: %f, code %d c: %d direction %d %d %d\n",
@@ -242,28 +247,31 @@ namespace PackingHalo
 #endif
     
 #ifndef NDEBUG
-    __global__ void check_send_particles(Particle * p, int n, int L, int code)
+    __global__ void check_send_particles(Particle * p, int n, int code)
     {
 	assert(blockDim.x * gridDim.x >= n);
+
+	const int L[3] = { XSIZE_SUBDOMAIN, YSIZE_SUBDOMAIN, ZSIZE_SUBDOMAIN };
 
 	const int pid = threadIdx.x + blockDim.x * blockIdx.x;
 
 	if (pid >= n)
 	    return;
 
-	assert(p[pid].x[0] >= -L / 2 || p[pid].x[0] < L / 2 ||
-	       p[pid].x[1] >= -L / 2 || p[pid].x[1] < L / 2 || 
-	       p[pid].x[2] >= -L / 2 || p[pid].x[2] < L / 2);
+	assert(p[pid].x[0] >= -L[0] / 2 || p[pid].x[0] < L[0] / 2 ||
+	       p[pid].x[1] >= -L[1] / 2 || p[pid].x[1] < L[1] / 2 || 
+	       p[pid].x[2] >= -L[2] / 2 || p[pid].x[2] < L[2] / 2);
 
 	const int d[3] = { (code + 2) % 3 - 1, (code / 3 + 2) % 3 - 1, (code / 9 + 2) % 3 - 1 };
 
 	for(int c = 0; c < 3; ++c)
 	{
-	    const float halo_start = max(d[c] * L - L/2 - 1, -L/2);
-	    const float halo_end = min(d[c] * L + L/2 + 1, L/2);
+	    const float halo_start = max(d[c] * L[c] - L[c]/2 - 1, -L[c]/2);
+	    const float halo_end = min(d[c] * L[c] + L[c]/2 + 1, L[c]/2);
 	    const float eps = 1e-5;
 	    if (!(p[pid].x[c] >= halo_start - eps && p[pid].x[c] < halo_end + eps))
-		printf("oooops particle %d: %e %e %e component %d not within %f , %f eps %f\n", pid, p[pid].x[0], p[pid].x[1], p[pid].x[2],
+		printf("oooops particle %d: %e %e %e component %d not within %f , %f eps %f\n", 
+		       pid, p[pid].x[0], p[pid].x[1], p[pid].x[2],
 		       c, halo_start, halo_end, eps);
 	    
 	    assert(p[pid].x[c] >= halo_start - eps && p[pid].x[c] < halo_end + eps);
@@ -281,7 +289,7 @@ void HaloExchanger::pack_and_post(const Particle * const p, const int n, const i
     for(int i = 0; i < 26; ++i)
     {
 	const int d[3] = { (i + 2) % 3 - 1, (i / 3 + 2) % 3 - 1, (i / 9 + 2) % 3 - 1 };
-	const int L[3] = { LX, LY, LZ };
+	const int L[3] = { XSIZE_SUBDOMAIN, YSIZE_SUBDOMAIN, ZSIZE_SUBDOMAIN };
 	
 	int halo_start[3], halo_size[3];
 	for(int c = 0; c < 3; ++c)
@@ -293,8 +301,12 @@ void HaloExchanger::pack_and_post(const Particle * const p, const int n, const i
 	const int nentries = sendhalos[i].dcellstarts.size;
 	
 	PackingHalo::count<<< (nentries + 127) / 128, 128, 0, streams[code2stream[i]] >>>
-	    (cellsstart, cellscount,  make_int3(halo_start[0] + LX / 2 , halo_start[1] + LY / 2, halo_start[2] + LZ / 2),
-	     make_int3(halo_size[0], halo_size[1], halo_size[2]), sendhalos[i].tmpstart.data, sendhalos[i].tmpcount.data);
+	    (cellsstart, cellscount,  
+	     make_int3(halo_start[0] + XSIZE_SUBDOMAIN / 2 , 
+		       halo_start[1] + YSIZE_SUBDOMAIN / 2, 
+		       halo_start[2] + ZSIZE_SUBDOMAIN / 2),
+	     make_int3(halo_size[0], halo_size[1], halo_size[2]), 
+	     sendhalos[i].tmpstart.data, sendhalos[i].tmpcount.data);
     }
     
     for(int i = 0; i < 26; ++i)
@@ -313,7 +325,8 @@ void HaloExchanger::pack_and_post(const Particle * const p, const int n, const i
     }
       
     for(int i = 0; i < 26; ++i)
-	CUDA_CHECK(cudaMemcpyAsync(sendhalos[i].hcellstarts.devptr, sendhalos[i].dcellstarts.data, sizeof(int) * sendhalos[i].dcellstarts.size, 
+	CUDA_CHECK(cudaMemcpyAsync(sendhalos[i].hcellstarts.devptr, sendhalos[i].dcellstarts.data, 
+				   sizeof(int) * sendhalos[i].dcellstarts.size, 
 				   cudaMemcpyDeviceToDevice, streams[code2stream[i]]));
  
     for(int pass = 0; pass < 2; ++pass)
@@ -372,7 +385,7 @@ void HaloExchanger::pack_and_post(const Particle * const p, const int n, const i
     	const int nd = sendhalos[i].dbuf.size;
 	
 	if (nd > 0)
-	    PackingHalo::check_send_particles<<<(nd + 127)/ 128, 128>>>(sendhalos[i].dbuf.data, nd, L, i);
+	    PackingHalo::check_send_particles<<<(nd + 127)/ 128, 128>>>(sendhalos[i].dbuf.data, nd, i);
     }
 
     CUDA_CHECK(cudaDeviceSynchronize());
@@ -512,7 +525,7 @@ void HaloExchanger::wait_for_messages()
 	
 	if (count > 0)
 	    PackingHalo::check_recv_particles<<<(count + 127) / 128, 128, 0>>>(
-		recvhalos[code].dbuf.data, count, L, code, myrank);	
+		recvhalos[code].dbuf.data, count, code, myrank);	
     }
 
     CUDA_CHECK(cudaPeekAtLastError());

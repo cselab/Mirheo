@@ -1,4 +1,4 @@
- #include <sys/stat.h>
+#include <sys/stat.h>
 #include <sys/types.h>
 
 #include <cmath>
@@ -18,8 +18,8 @@ enum {
     YMARGIN = 12, 
     ZMARGIN = 12, 
     XVPD = 256, 
-    YVPD = ((LY + 2 * YMARGIN) * XVPD + LX + 2 * XMARGIN - 1) / (LX + 2 * XMARGIN), 
-    ZVPD = ((LZ + 2 * ZMARGIN) * XVPD + LX + 2 * XMARGIN - 1) / (LX + 2 * XMARGIN)
+    YVPD = ((YSIZE_SUBDOMAIN + 2 * YMARGIN) * XVPD + XSIZE_SUBDOMAIN + 2 * XMARGIN - 1) / (XSIZE_SUBDOMAIN + 2 * XMARGIN), 
+    ZVPD = ((ZSIZE_SUBDOMAIN + 2 * ZMARGIN) * XVPD + XSIZE_SUBDOMAIN + 2 * XMARGIN - 1) / (XSIZE_SUBDOMAIN + 2 * XMARGIN)
 };
 
 namespace SolidWallsKernel
@@ -28,7 +28,7 @@ namespace SolidWallsKernel
 
     __device__ float sdf(float x, float y, float z)
     {
-	const int L[3] = { LX, LY, LZ };
+	const int L[3] = { XSIZE_SUBDOMAIN, YSIZE_SUBDOMAIN, ZSIZE_SUBDOMAIN };
 	const int MARGIN[3] = { XMARGIN, YMARGIN, ZMARGIN };
 
 	float p[3] = {x, y, z};
@@ -46,7 +46,7 @@ namespace SolidWallsKernel
 
     __device__ float3 grad_sdf(float x, float y, float z)
     {
-	const int L[3] = { LX, LY, LZ };
+	const int L[3] = { XSIZE_SUBDOMAIN, YSIZE_SUBDOMAIN, ZSIZE_SUBDOMAIN };
 	const int MARGIN[3] = { XMARGIN, YMARGIN, ZMARGIN };
 
 	const float p[3] = {x, y, z};
@@ -66,7 +66,7 @@ namespace SolidWallsKernel
 	}
 	
 	const float htw = 1. / XVPD;
-	const float factor = 1. / (2 * htw) * 1.f / (LX * 2 + XMARGIN);
+	const float factor = 1. / (2 * htw) * 1.f / (XSIZE_SUBDOMAIN * 2 + XMARGIN);
 	
 	return make_float3(
 	    factor * (tex3D(texSDF, tc[0] + htw, tc[1], tc[2]) - tex3D(texSDF, tc[0] - htw, tc[1], tc[2])),
@@ -183,7 +183,7 @@ namespace SolidWallsKernel
 	    y = yold;
 	    z = zold;
 	    
-	    assert(sdf(x, y, z, L) < 0);
+	    assert(sdf(x, y, z) < 0);
 	}
 
 	return true;
@@ -200,7 +200,7 @@ namespace SolidWallsKernel
 
 	Particle p = particles[pid];
 
-	const int L[3] = { LX, LY, LZ };
+	const int L[3] = { XSIZE_SUBDOMAIN, YSIZE_SUBDOMAIN, ZSIZE_SUBDOMAIN };
 	const int MARGIN[3] = { XMARGIN, YMARGIN, ZMARGIN };
 
 	for(int c = 0; c < 3; ++c)
@@ -229,7 +229,7 @@ namespace SolidWallsKernel
 
 	Particle p = particles[pid];
 	
-	const int L[3] = { LX, LY, LZ };
+	const int L[3] = { XSIZE_SUBDOMAIN, YSIZE_SUBDOMAIN, ZSIZE_SUBDOMAIN };
 	const int MARGIN[3] = { XMARGIN, YMARGIN, ZMARGIN };
 	
 	int base[3];
@@ -251,13 +251,18 @@ namespace SolidWallsKernel
 	    const int ycid = base[1] + (code/3 % 3) - 1;
 	    const int zcid = base[2] + (code/9 % 3) - 1;
 
-	    if (xcid < 0 || xcid >= LX + 2 * XMARGIN ||
-		ycid < 0 || ycid >= LY + 2 * YMARGIN ||
-		zcid < 0 || zcid >= LZ + 2 * ZMARGIN )
+	    if (xcid < 0 || xcid >= XSIZE_SUBDOMAIN + 2 * XMARGIN ||
+		ycid < 0 || ycid >= YSIZE_SUBDOMAIN + 2 * YMARGIN ||
+		zcid < 0 || zcid >= ZSIZE_SUBDOMAIN + 2 * ZMARGIN )
 		continue;
 			    
-	    const int cid = xcid + (LX + 2 * XMARGIN) * (ycid + (LY + 2 * YMARGIN) * zcid);
-	    assert(cid >= 0 && cid < (LX + 2 * XMARGIN) * (LY + 2 * YMARGIN) * (LZ + 2 * ZMARGIN));
+	    const int cid = xcid + 
+		(XSIZE_SUBDOMAIN + 2 * XMARGIN) * 
+		(ycid + (YSIZE_SUBDOMAIN + 2 * YMARGIN) * zcid);
+
+	    assert(cid >= 0 && cid < (XSIZE_SUBDOMAIN + 2 * XMARGIN) * 
+		   (YSIZE_SUBDOMAIN + 2 * YMARGIN) * 
+		   (ZSIZE_SUBDOMAIN + 2 * ZMARGIN));
 
 	    const int start = starts[cid];
 	    const int stop = start + counts[cid];
@@ -374,7 +379,8 @@ struct FieldSampler
 	    fclose(f);
 	}
     
-    void sample(const float start[3], const float spacing[3], const int nsize[3], float * const output, const float amplitude_rescaling) 
+    void sample(const float start[3], const float spacing[3], const int nsize[3], 
+		float * const output, const float amplitude_rescaling) 
 	{
 	    Bspline<4> bsp;
 
@@ -443,7 +449,8 @@ struct FieldSampler
 };
 
 ComputeInteractionsWall::ComputeInteractionsWall(MPI_Comm cartcomm, Particle* const p, const int n, int& nsurvived):
-    cartcomm(cartcomm), arrSDF(NULL), solid(NULL), solid_size(0), cells(LX + 2 * XMARGIN, LY + 2 * YMARGIN, LZ + 2 * ZMARGIN)
+    cartcomm(cartcomm), arrSDF(NULL), solid(NULL), solid_size(0), 
+    cells(XSIZE_SUBDOMAIN + 2 * XMARGIN, YSIZE_SUBDOMAIN + 2 * YMARGIN, ZSIZE_SUBDOMAIN + 2 * ZMARGIN)
 {
     MPI_CHECK( MPI_Comm_rank(cartcomm, &myrank));
     MPI_CHECK( MPI_Cart_get(cartcomm, 3, dims, periods, coords) );
@@ -452,13 +459,15 @@ ComputeInteractionsWall::ComputeInteractionsWall(MPI_Comm cartcomm, Particle* co
 
     FieldSampler sampler("sdf.dat");
 
-    const int L[3] = { LX, LY, LZ };
+    const int L[3] = { XSIZE_SUBDOMAIN, YSIZE_SUBDOMAIN, ZSIZE_SUBDOMAIN };
+
     const int MARGIN[3] = { XMARGIN, YMARGIN, ZMARGIN };
+
     const int VPD[3] = { XVPD, YVPD, ZVPD };
 
 #ifndef NDEBUG	
-    assert(fabs(dims[0] * LX / (double) (dims[1] * LY) - sampler.extent[0] / (double)sampler.extent[1]) < 1e-5);
-    assert(fabs(dims[0] * LX / (double) (dims[2] * LZ) - sampler.extent[0] / (double)sampler.extent[2]) < 1e-5);
+    assert(fabs(dims[0] * XSIZE_SUBDOMAIN / (double) (dims[1] * YSIZE_SUBDOMAIN) - sampler.extent[0] / (double)sampler.extent[1]) < 1e-5);
+    assert(fabs(dims[0] * XSIZE_SUBDOMAIN / (double) (dims[2] * ZSIZE_SUBDOMAIN) - sampler.extent[0] / (double)sampler.extent[2]) < 1e-5);
 #endif
         
     {
@@ -469,13 +478,13 @@ ComputeInteractionsWall::ComputeInteractionsWall(MPI_Comm cartcomm, Particle* co
 	    spacing[c] =  sampler.N[c] * (L[c] + 2 * MARGIN[c]) / (float)(dims[c] * L[c]) / (float) VPD[c];
 	}
 	
-	const float amplitude_rescaling = (LX + 2 * XMARGIN) / (sampler.extent[0] / dims[0]) ;
+	const float amplitude_rescaling = (XSIZE_SUBDOMAIN + 2 * XMARGIN) / (sampler.extent[0] / dims[0]) ;
 	sampler.sample(start, spacing, VPD, field, amplitude_rescaling);
     }
 
     if (hdf5field_dumps)
     {
-	float * walldata = new float[LX * LY * LZ];
+	float * walldata = new float[XSIZE_SUBDOMAIN * YSIZE_SUBDOMAIN * ZSIZE_SUBDOMAIN];
 
 	float start[3], spacing[3];
 	for(int c = 0; c < 3; ++c)
@@ -484,7 +493,7 @@ ComputeInteractionsWall::ComputeInteractionsWall(MPI_Comm cartcomm, Particle* co
 	    spacing[c] = sampler.N[c] / (float)(dims[c] * L[c]) ;
 	}
 	
-	int size[3] = {LX, LY, LZ};
+	int size[3] = {XSIZE_SUBDOMAIN, YSIZE_SUBDOMAIN, ZSIZE_SUBDOMAIN};
 
 	const float amplitude_rescaling = L[0] / (sampler.extent[0] / dims[0]);
 	sampler.sample(start, spacing, size, walldata, amplitude_rescaling);

@@ -5,7 +5,8 @@
 
 RedistributeRBCs::RedistributeRBCs(MPI_Comm _cartcomm): nvertices(CudaRBC::get_nvertices()), stream(0)
 {
-    assert(L % 2 == 0);
+    assert(XSIZE_SUBDOMAIN % 2 == 0 && YSIZE_SUBDOMAIN % 2 == 0 && ZSIZE_SUBDOMAIN % 2 == 0);
+    assert(XSIZE_SUBDOMAIN >= 2 && YSIZE_SUBDOMAIN >= 2 && ZSIZE_SUBDOMAIN >= 2);
 
     MPI_CHECK(MPI_Comm_dup(_cartcomm, &cartcomm));
 	    
@@ -60,7 +61,7 @@ int RedistributeRBCs::stage1(const Particle * const xyzuvw, const int nrbcs)
 	    0.5 * (ext.zmin + ext.zmax)
 	};
 	
-	const int L[3] = { LX, LY, LZ };
+	const int L[3] = { XSIZE_SUBDOMAIN, YSIZE_SUBDOMAIN, ZSIZE_SUBDOMAIN };
 
 	int vcode[3];
 	for(int c = 0; c < 3; ++c)
@@ -134,7 +135,8 @@ int RedistributeRBCs::stage1(const Particle * const xyzuvw, const int nrbcs)
 
 namespace ParticleReorderingRBC
 {
-    __global__ void shift(const Particle * const psrc, const int np, const int code, const int rank, const bool check, Particle * const pdst)
+    __global__ void shift(const Particle * const psrc, const int np, const int code, const int rank, 
+			  const bool check, Particle * const pdst)
     {
 	assert(blockDim.x * gridDim.x >= np);
 	
@@ -150,7 +152,7 @@ namespace ParticleReorderingRBC
 #endif
 	Particle pnew = psrc[pid];
 
-	const int L[3] = {LX, LY, LZ};
+	const int L[3] = {XSIZE_SUBDOMAIN, YSIZE_SUBDOMAIN, ZSIZE_SUBDOMAIN};
 
 	for(int c = 0; c < 3; ++c)
 	    pnew.x[c] -= d[c] * L[c];
@@ -189,14 +191,16 @@ void RedistributeRBCs::stage2(Particle * const xyzuvw, const int nrbcs)
     recvreq.clear();
     sendreq.clear();
    
-    CUDA_CHECK(cudaMemcpyAsync(xyzuvw, sendbufs[0].devptr, notleaving * nvertices * sizeof(Particle), cudaMemcpyDeviceToDevice, stream));
+    CUDA_CHECK(cudaMemcpyAsync(xyzuvw, sendbufs[0].devptr, notleaving * nvertices * sizeof(Particle), 
+			       cudaMemcpyDeviceToDevice, stream));
     
     for(int i = 1, s = notleaving * nvertices; i < 27; ++i)
     {
 	const int count =  recvbufs[i].size;
 
 	if (count > 0)
-	    ParticleReorderingRBC::shift<<< (count + 127) / 128, 128, 0, stream >>>(recvbufs[i].devptr, count, i, myrank, false, xyzuvw + s);
+	    ParticleReorderingRBC::shift<<< (count + 127) / 128, 128, 0, stream >>>
+		(recvbufs[i].devptr, count, i, myrank, false, xyzuvw + s);
 
 	assert(s <= nrbcs * nvertices);
 

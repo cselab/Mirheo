@@ -30,11 +30,13 @@ namespace ParticleKernels
 	for(int c = 0; c < 3; ++c)
 	    p[pid].x[c] += p[pid].u[c] * dt;
 
+	const int L[3] = { XSIZE_SUBDOMAIN, YSIZE_SUBDOMAIN, ZSIZE_SUBDOMAIN };
+
 	if (check)
 	    for(int c = 0; c < 3; ++c)
 	    {
-		assert(p[pid].x[c] >= -L -L/2);
-		assert(p[pid].x[c] <= +L +L/2);
+		assert(p[pid].x[c] >= -L[c] -L[c]/2);
+		assert(p[pid].x[c] <= +L[c] +L[c]/2);
 	    }
     }
 
@@ -63,14 +65,16 @@ namespace ParticleKernels
 	p[pid].u[c] = myu;
 	p[pid].x[c] = myx;
 
+	const int L[3] = { XSIZE_SUBDOMAIN, YSIZE_SUBDOMAIN, ZSIZE_SUBDOMAIN };
+
 #ifndef NDEBUG
-	    if (!(myx >= -L -L/2) || !(myx <= +L +L/2))
+	    if (!(myx >= -L[c] -L[c]/2) || !(myx <= +L[c] +L[c]/2))
 	    {
 		printf("Uau: pid %d c %d: x %f u %f and a %f\n",
 		       pid, c, myx, myu, mya);
 	
-		assert(myx >= -L -L/2);
-		assert(myx <= +L +L/2);
+		assert(myx >= -L[c] -L[c]/2);
+		assert(myx <= +L[c] +L[c]/2);
 	    }
 #endif
     }
@@ -146,7 +150,8 @@ struct TransformedExtent
 };
 
 CollectionRBC::CollectionRBC(MPI_Comm cartcomm, const string path2ic): 
-    cartcomm(cartcomm), nrbcs(0), path2xyz("rbcs.xyz"), format4ply("ply/rbcs-%04d.ply"), path2ic("rbcs-ic.txt"), dumpcounter(0)
+    cartcomm(cartcomm), nrbcs(0), path2xyz("rbcs.xyz"), format4ply("ply/rbcs-%04d.ply"), 
+    path2ic("rbcs-ic.txt"), dumpcounter(0)
 {
     MPI_CHECK(MPI_Comm_rank(cartcomm, &myrank));
     MPI_CHECK( MPI_Cart_get(cartcomm, 3, dims, periods, coords) );
@@ -154,9 +159,11 @@ CollectionRBC::CollectionRBC(MPI_Comm cartcomm, const string path2ic):
     CudaRBC::Extent extent;
     CudaRBC::setup(nvertices, extent);
 
-    assert(extent.xmax - extent.xmin < L);
-    assert(extent.ymax - extent.ymin < L);
-    assert(extent.zmax - extent.zmin < L);
+    const int L[3] = { XSIZE_SUBDOMAIN, YSIZE_SUBDOMAIN, ZSIZE_SUBDOMAIN };
+
+    assert(extent.xmax - extent.xmin < L[0]);
+    assert(extent.ymax - extent.ymin < L[1]);
+    assert(extent.zmax - extent.zmin < L[2]);
 
     CudaRBC::get_triangle_indexing(indices, ntriangles);
 }
@@ -215,7 +222,7 @@ void CollectionRBC::setup()
 
     vector<TransformedExtent> good;
 
-    const int L[3] = { LX, LY, LZ };
+    const int L[3] = { XSIZE_SUBDOMAIN, YSIZE_SUBDOMAIN, ZSIZE_SUBDOMAIN };
 
     for(vector<TransformedExtent>::iterator it = allrbcs.begin(); it != allrbcs.end(); ++it)
     {

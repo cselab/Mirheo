@@ -1,8 +1,11 @@
 #pragma once
 
-const int LX = 48;
-const int LY = 48;
-const int LZ = 48;
+enum { 
+    XSIZE_SUBDOMAIN = 48, 
+    YSIZE_SUBDOMAIN = 48, 
+    ZSIZE_SUBDOMAIN = 48 
+};
+
 const float dt = 0.001;
 const float tend = 50;
 const float kBT = 0.0945;
