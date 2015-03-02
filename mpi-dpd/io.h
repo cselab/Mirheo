@@ -5,10 +5,11 @@
 #include "common.h"
 
 
-void xyz_dump(MPI_Comm comm, const char * filename, const char * particlename, Particle * particles, int n, int L, bool append);
+void xyz_dump(MPI_Comm comm, const char * filename, const char * particlename, Particle * particles, int n, bool append);
 
 void ply_dump(MPI_Comm comm, const char * filename,
-	      int (*mesh_indices)[3], const int ninstances, const int ntriangles_per_instance, Particle * _particles, int nvertices_per_instance, int L, bool append);
+	      int (*mesh_indices)[3], const int ninstances, const int ntriangles_per_instance, Particle * _particles, 
+	      int nvertices_per_instance, bool append);
 
 class H5PartDump
 {
@@ -23,7 +24,7 @@ class H5PartDump
     int tstamp;
 public:
 
-    H5PartDump(const std::string filename, MPI_Comm cartcomm, const int L);
+    H5PartDump(const std::string filename, MPI_Comm cartcomm);
 
     void dump(Particle * host_particles, int n);
     

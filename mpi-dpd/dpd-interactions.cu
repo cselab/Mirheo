@@ -8,8 +8,8 @@
 
 using namespace std;
 
-ComputeInteractionsDPD::ComputeInteractionsDPD(MPI_Comm cartcomm, int L): 
-    HaloExchanger(cartcomm, L, 0), local_trunk(0, 0, 0, 0)
+ComputeInteractionsDPD::ComputeInteractionsDPD(MPI_Comm cartcomm): 
+    HaloExchanger(cartcomm, 0), local_trunk(0, 0, 0, 0)
 {
     int myrank;
     MPI_CHECK(MPI_Comm_rank(cartcomm, &myrank));
@@ -67,7 +67,7 @@ void ComputeInteractionsDPD::spawn_local_work()
     if (localwork.n > 0)
 	forces_dpd_cuda_nohost((float *)localwork.p, (float *)localwork.a, localwork.n, 
 			       localwork.cellsstart, localwork.cellscount,
-			       1, L, L, L, aij, gammadpd, sigma, 1. / sqrt(dt), localwork.seed1);
+			       1, XSIZE_SUBDOMAIN, YSIZE_SUBDOMAIN, ZSIZE_SUBDOMAIN, aij, gammadpd, sigma, 1. / sqrt(dt), localwork.seed1);
 }
 
 void ComputeInteractionsDPD::evaluate(const Particle * const p, const int n, Acceleration * const a,
@@ -112,7 +112,8 @@ namespace RemoteDPD
 	for(int c = 0; c < 3; ++c)
 	{
 	    if (isnan(a.a[c]))
-		printf("rank %d) oouch gid %d %f out of %d remote entries going to pid %d of %d particles\n", rank, gid, a.a[c], nremote, pid, nlocal);
+		printf("rank %d) oouch gid %d %f out of %d remote entries going to pid %d of %d particles\n", 
+		       rank, gid, a.a[c], nremote, pid, nlocal);
 
 	    assert(!isnan(a.a[c]));
 	}
@@ -131,19 +132,16 @@ void ComputeInteractionsDPD::dpd_remote_interactions(const Particle * const p, c
     CUDA_CHECK(cudaPeekAtLastError());
 
     wait_for_messages();
-
+    
     CUDA_CHECK(cudaPeekAtLastError());
-
     for(int i = 0; i < 26; ++i)
     {
 	const float interrank_seed = interrank_trunks[i].get_float();
-	
 
 	const int nd = sendhalos[i].dbuf.size;
 	const int ns = recvhalos[i].dbuf.size;
 
 	acc_remote[i].resize(nd);
-	CUDA_CHECK(cudaMemsetAsync((float *)acc_remote[i].data, 0, nd * sizeof(Acceleration), 0));
 
 	if (nd == 0)
 	    continue;
@@ -162,11 +160,10 @@ void ComputeInteractionsDPD::dpd_remote_interactions(const Particle * const p, c
 	
 	if (sendhalos[i].dcellstarts.size * recvhalos[i].dcellstarts.size > 1 && nd * ns > 10 * 10)
 	{	   
-
 	    texDC[i].acquire(sendhalos[i].dcellstarts.data, sendhalos[i].dcellstarts.capacity);
 	    texSC[i].acquire(recvhalos[i].dcellstarts.data, recvhalos[i].dcellstarts.capacity);
 	    texSP[i].acquire((float2*)recvhalos[i].dbuf.data, recvhalos[i].dbuf.capacity * 3);
-	    
+	       
 	    forces_dpd_cuda_bipartite_nohost(mystream, (float2 *)sendhalos[i].dbuf.data, nd, texDC[i].texObj, texSC[i].texObj, texSP[i].texObj,
 					     ns, halosize[i], aij, gammadpd, sigma / sqrt(dt), interrank_seed, interrank_masks[i],
 					     (float *)acc_remote[i].data);
@@ -176,7 +173,6 @@ void ComputeInteractionsDPD::dpd_remote_interactions(const Particle * const p, c
 		(float *)sendhalos[i].dbuf.data, (float *)acc_remote[i].data, nd,
 		(float *)recvhalos[i].dbuf.data, ns,
 		aij, gammadpd, sigma, 1. / sqrt(dt), interrank_seed, interrank_masks[i], mystream);
-	    
     }
     
     CUDA_CHECK(cudaPeekAtLastError());

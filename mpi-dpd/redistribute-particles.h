@@ -25,7 +25,7 @@ public:
 
     void stage2(Particle * const particles, const int nparticles);
    
-    RedistributeParticles(MPI_Comm cartcomm, int whatever);
+    RedistributeParticles(MPI_Comm cartcomm);
    
     ~RedistributeParticles();
    
