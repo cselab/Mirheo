@@ -43,9 +43,11 @@ namespace RedistributeParticlesKernels
 	    for(int c = 0; c < 3; ++c)
 		xp[c] = tex1Dfetch(texAllParticles, 6 * pid + c);
 
+	    const int L[3] = { XSIZE_SUBDOMAIN, YSIZE_SUBDOMAIN, ZSIZE_SUBDOMAIN };
+
 	    int vcode[3];
 	    for(int c = 0; c < 3; ++c)
-		vcode[c] = (2 + (xp[c] >= -L/2) + (xp[c] >= L/2)) % 3;
+		vcode[c] = (2 + (xp[c] >= -L[c]/2) + (xp[c] >= L[c]/2)) % 3;
 	
 	    const int code = vcode[0] + 3 * (vcode[1] + 3 * vcode[2]);
 	    assert(code >= 0 && code < 27);
@@ -198,11 +200,13 @@ namespace RedistributeParticlesKernels
      
 	int tagged = gid >= np;
 
+	const int L[3] = { XSIZE_SUBDOMAIN, YSIZE_SUBDOMAIN, ZSIZE_SUBDOMAIN };
+
 	if (gid < np)
 	    for(int c = 0; c < 3; ++c)
 	    {
 		const float val = tex1Dfetch(texAllParticles, c + 6 * gid);
-		tagged += (int)(val < -L / 2 || val >= L / 2);
+		tagged += (int)(val < -L[c] / 2 || val >= L[c] / 2);
 	    }
 			
 	__shared__ int global_offset, local_offset, values[STRIPESIZE];
@@ -326,41 +330,45 @@ namespace RedistributeParticlesKernels
 	assert (s < unpack_buffers[code].capacity * 6);
 	const float value = unpack_buffers[code].buffer[s];
 	
-	const int shift = L *
-	    ((c == 0) * ((code + 1) % 3 - 1) +
-	     (c == 1) * ((code / 3 + 1) % 3 - 1) +
-	     (c == 2) * ((code / 9 + 1) % 3 - 1));
+	const int shift =
+	    XSIZE_SUBDOMAIN * (c == 0) * ((code + 1) % 3 - 1) +
+	    YSIZE_SUBDOMAIN * (c == 1) * ((code / 3 + 1) % 3 - 1) +
+	    ZSIZE_SUBDOMAIN * (c == 2) * ((code / 9 + 1) % 3 - 1);
 
 	dstbuf[gid] = value + shift;
 
 	//if (!(c >= 3 || fabs(dstbuf[gid]) <= L /2))
 	//    printf("error! pid %d c %d code %d x: %f = original %f + shift %f\n", slot, c, code, dstbuf[gid], old, shift);
-	
-	assert(c >= 3 || fabs(dstbuf[gid]) <= L /2);
+#ifndef NDEBUG
+	const int L[3] = { XSIZE_SUBDOMAIN, YSIZE_SUBDOMAIN, ZSIZE_SUBDOMAIN };
+	assert(c >= 3 || fabs(dstbuf[gid]) <= L[c] /2);
+#endif
     }
 
 #ifndef NDEBUG
     __global__ void check(const Particle * const p, const int np)
     {
 	assert(blockDim.x * gridDim.x >= np);
-	
+
+	const int L[3] = { XSIZE_SUBDOMAIN, YSIZE_SUBDOMAIN, ZSIZE_SUBDOMAIN };	
+
 	const int pid = threadIdx.x + blockDim.x * blockIdx.x;
-	
+
 	if (pid < np)
 	    for(int c = 0; c < 3; ++c)
 	    {
-		if (!(p[pid].x[c] >= -L/2 && p[pid].x[c] < L/2))
+		if (!(p[pid].x[c] >= -L[c]/2 && p[pid].x[c] < L[c]/2))
 		{
 		     printf("oooops pid %d component %d is %f\n", pid, c, p[pid].x[c]);
 		}
 		
-		assert(p[pid].x[c] >= -L/2 && p[pid].x[c] < L/2);
+		assert(p[pid].x[c] >= -L[c]/2 && p[pid].x[c] < L[c]/2);
 	    }
     }
 #endif
 }
 
-RedistributeParticles::RedistributeParticles(MPI_Comm _cartcomm, int whatever): 
+RedistributeParticles::RedistributeParticles(MPI_Comm _cartcomm): 
 failure(1), packsizes(27), firstcall(true)
 {
     MPI_CHECK(MPI_Comm_dup(_cartcomm, &cartcomm) );
@@ -379,7 +387,13 @@ failure(1), packsizes(27), firstcall(true)
 		
 	MPI_CHECK( MPI_Cart_rank(cartcomm, coordsneighbor, neighbor_ranks + i) );
 	
-	const int nhalocells = pow(L, 3 - abs(d[0]) - abs(d[1]) - abs(d[2]));
+	const int nhalodir[3] =  { 
+		d[0] != 0 ? 1 : XSIZE_SUBDOMAIN, 
+		d[1] != 0 ? 1 : YSIZE_SUBDOMAIN, 
+		d[2] != 0 ? 1 : ZSIZE_SUBDOMAIN 
+	    };
+
+	const int nhalocells = nhalodir[0] * nhalodir[1] * nhalodir[2];
 	const int estimate = 3 * 2 * nhalocells;
 	
 	CUDA_CHECK(cudaMalloc(&packbuffers[i].scattered_indices, sizeof(int) * estimate));
@@ -424,8 +438,8 @@ void RedistributeParticles::_post_recv()
 	MPI_CHECK( MPI_Irecv(recv_sizes + i, 1, MPI_INTEGER, neighbor_ranks[i], basetag + recv_tags[i], cartcomm, recvcountreq + i) );
     
     for(int i = 1; i < 27; ++i)
-	MPI_CHECK( MPI_Irecv(pinnedhost_recvbufs[i], default_message_sizes[i] * 6, MPI_FLOAT, neighbor_ranks[i], basetag + recv_tags[i] + 333,
-			     cartcomm, recvmsgreq + i) );
+	MPI_CHECK( MPI_Irecv(pinnedhost_recvbufs[i], default_message_sizes[i] * 6, MPI_FLOAT, 
+			     neighbor_ranks[i], basetag + recv_tags[i] + 333, cartcomm, recvmsgreq + i) );
 }
 
 void RedistributeParticles::_adjust_send_buffers(const int requested_capacities[27])
