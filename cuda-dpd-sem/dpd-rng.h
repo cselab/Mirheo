@@ -22,6 +22,8 @@ namespace Logistic
 	typedef uint32_t integer;
 	integer x, y, z, c;
 
+    KISS() : x(0), y(0), z(0), c(0) {}
+
     KISS( integer x_, integer y_, integer z_, integer c_ ) :
 	x(x_), y(y_), z(z_), c(c_) {}
 	
@@ -93,12 +95,12 @@ namespace Logistic
 // mean = 0
 // variance = 1
 // can be used directly for DPD
-#if 0
+#if 1
     __inline__ __device__ float mean0var1( float seed, uint i, uint j ) 
     {
-	uint u = min( i, j );
-	uint v = max( i, j );
-	float p = rem( u * gold + v * silver );
+	float u = min( i, j );
+	float v = max( i, j );
+	float p = rem( sqrtf(u) * gold + sqrtf(v) * silver );
 	float l = __logistic_core<N>( seed - p );
 	return l * sqrt2;
     }

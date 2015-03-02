@@ -30,12 +30,16 @@ namespace ParticleKernels
 	for(int c = 0; c < 3; ++c)
 	    p[pid].x[c] += p[pid].u[c] * dt;
 
+#ifndef NDEBUG
+	const int L[3] = { XSIZE_SUBDOMAIN, YSIZE_SUBDOMAIN, ZSIZE_SUBDOMAIN };
+
 	if (check)
 	    for(int c = 0; c < 3; ++c)
 	    {
-		assert(p[pid].x[c] >= -L -L/2);
-		assert(p[pid].x[c] <= +L +L/2);
+		assert(p[pid].x[c] >= -L[c] -L[c]/2);
+		assert(p[pid].x[c] <= +L[c] +L[c]/2);
 	    }
+#endif
     }
 
     __global__ void update_stage2_and_1(Particle * p, Acceleration * a, int n, float dt, const float driving_acceleration)
@@ -62,16 +66,18 @@ namespace ParticleKernels
 	
 	p[pid].u[c] = myu;
 	p[pid].x[c] = myx;
-
-#ifndef NDEBUG
-	    if (!(myx >= -L -L/2) || !(myx <= +L +L/2))
-	    {
-		printf("Uau: pid %d c %d: x %f u %f and a %f\n",
-		       pid, c, myx, myu, mya);
 	
-		assert(myx >= -L -L/2);
-		assert(myx <= +L +L/2);
-	    }
+#ifndef NDEBUG
+	const int L[3] = { XSIZE_SUBDOMAIN, YSIZE_SUBDOMAIN, ZSIZE_SUBDOMAIN };	
+	
+	if (!(myx >= -L[c] -L[c]/2) || !(myx <= +L[c] +L[c]/2))
+	{
+	    printf("Uau: pid %d c %d: x %f u %f and a %f\n",
+		   pid, c, myx, myu, mya);
+	    
+	    assert(myx >= -L[c] -L[c]/2);
+	    assert(myx <= +L[c] +L[c]/2);
+	}
 #endif
     }
     
@@ -145,8 +151,9 @@ struct TransformedExtent
     float transform[4][4];
 };
 
-CollectionRBC::CollectionRBC(MPI_Comm cartcomm, const int L, const string path2ic): 
-    cartcomm(cartcomm), L(L), nrbcs(0), path2xyz("rbcs.xyz"), format4ply("ply/rbcs-%04d.ply"), path2ic("rbcs-ic.txt"), dumpcounter(0)
+CollectionRBC::CollectionRBC(MPI_Comm cartcomm, const string path2ic): 
+    cartcomm(cartcomm), nrbcs(0), path2xyz("rbcs.xyz"), format4ply("ply/rbcs-%04d.ply"), 
+    path2ic("rbcs-ic.txt"), dumpcounter(0)
 {
     MPI_CHECK(MPI_Comm_rank(cartcomm, &myrank));
     MPI_CHECK( MPI_Cart_get(cartcomm, 3, dims, periods, coords) );
@@ -154,9 +161,9 @@ CollectionRBC::CollectionRBC(MPI_Comm cartcomm, const int L, const string path2i
     CudaRBC::Extent extent;
     CudaRBC::setup(nvertices, extent);
 
-    assert(extent.xmax - extent.xmin < L);
-    assert(extent.ymax - extent.ymin < L);
-    assert(extent.zmax - extent.zmin < L);
+    assert(extent.xmax - extent.xmin < XSIZE_SUBDOMAIN);
+    assert(extent.ymax - extent.ymin < YSIZE_SUBDOMAIN);
+    assert(extent.zmax - extent.zmin < ZSIZE_SUBDOMAIN);
 
     CudaRBC::get_triangle_indexing(indices, ntriangles);
 }
@@ -215,17 +222,19 @@ void CollectionRBC::setup()
 
     vector<TransformedExtent> good;
 
+    const int L[3] = { XSIZE_SUBDOMAIN, YSIZE_SUBDOMAIN, ZSIZE_SUBDOMAIN };
+
     for(vector<TransformedExtent>::iterator it = allrbcs.begin(); it != allrbcs.end(); ++it)
     {
 	bool inside = true;
 
 	for(int c = 0; c < 3; ++c)
-	    inside &= it->com[c] >= coords[c] * L && it->com[c] < (coords[c] + 1) * L;
+	    inside &= it->com[c] >= coords[c] * L[c] && it->com[c] < (coords[c] + 1) * L[c];
 
 	if (inside)
 	{
 	    for(int c = 0; c < 3; ++c)
-		it->transform[c][3] -= (coords[c] + 0.5) * L;
+		it->transform[c][3] -= (coords[c] + 0.5) * L[c];
 
 	    good.push_back(*it);
 	}
@@ -294,7 +303,7 @@ void CollectionRBC::dump(MPI_Comm comm)
 	}
 
     if (xyz_dumps)
-	xyz_dump(comm, path2xyz.c_str(), "cell-particles", p, n, L, !firsttime);
+	xyz_dump(comm, path2xyz.c_str(), "cell-particles", p, n, !firsttime);
 
     char buf[200];
     sprintf(buf, format4ply.c_str(), ctr);
@@ -308,7 +317,7 @@ void CollectionRBC::dump(MPI_Comm comm)
 	    mkdir("ply", S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
     }
 	    
-    ply_dump(comm, buf, indices, nrbcs, ntriangles, p, nvertices, L, false);
+    ply_dump(comm, buf, indices, nrbcs, ntriangles, p, nvertices, false);
 		    
     delete [] p;
     delete [] a;

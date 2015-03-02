@@ -15,7 +15,7 @@ MPI_Datatype Acceleration::mytype;
 void CellLists::build(Particle * const p, const int n)
 {
     if (n > 0)
-	build_clists((float * )p, n, 1, L, L, L, -L/2, -L/2, -L/2, NULL, start, count,  NULL, 0);
+	build_clists((float * )p, n, 1, LX, LY, LZ, -LX/2, -LY/2, -LZ/2, NULL, start, count,  NULL, 0);
     else
     {
 	CUDA_CHECK(cudaMemset(start, 0, sizeof(int) * ncells));
@@ -69,7 +69,7 @@ void report_host_memory_usage(MPI_Comm comm, FILE * foutput)
     }
 }
 
-void diagnostics(MPI_Comm comm, Particle * particles, int n, float dt, int idstep, int L, Acceleration * acc)
+void diagnostics(MPI_Comm comm, Particle * particles, int n, float dt, int idstep, Acceleration * acc)
 {
     double p[] = {0, 0, 0};
     for(int i = 0; i < n; ++i)

@@ -15,7 +15,7 @@ protected:
 
     std::vector<MPI_Request> reqsendp, reqrecvp, reqsendacc, reqrecvacc;
     
-    int nvertices, L, myrank, nranks, dims[3], periods[3], coords[3], dstranks[26], recv_tags[26], recv_counts[26], send_counts[26];
+    int nvertices, myrank, nranks, dims[3], periods[3], coords[3], dstranks[26], recv_tags[26], recv_counts[26], send_counts[26];
 
     std::vector< int > haloreplica[26];
     
@@ -51,7 +51,7 @@ public:
 
     cudaStream_t stream;
 
-    ComputeInteractionsRBC(MPI_Comm cartcomm, const int L);
+    ComputeInteractionsRBC(MPI_Comm cartcomm);
     
     void evaluate(const Particle * const solvent, const int nparticles, Acceleration * accsolvent,
 		  const int * const cellsstart_solvent, const int * const cellscount_solvent,
