@@ -26,7 +26,9 @@ ComputeInteractionsDPD::ComputeInteractionsDPD(MPI_Comm cartcomm, int L):
 	for(int c = 0; c < 3; ++c)
 	    indx[c] = min(coords[c], coordsneighbor[c]) * dims[c] + max(coords[c], coordsneighbor[c]);
 
-	const int interrank_seed = indx[0] + dims[0] * dims[0] * (indx[1] + dims[1] * dims[1] * indx[2]);
+	const int interrank_seed_base = indx[0] + dims[0] * dims[0] * (indx[1] + dims[1] * dims[1] * indx[2]);
+	const int interrank_seed_offset = abs(d[0]) + 2 * (abs(d[1]) + 2 * abs(d[2]));
+	const int interrank_seed = interrank_seed_base + interrank_seed_offset;
 	
 	interrank_trunks[i] = Logistic::KISS(390 + interrank_seed, interrank_seed  + 615, 12309, 23094); 
 
@@ -39,9 +41,10 @@ ComputeInteractionsDPD::ComputeInteractionsDPD(MPI_Comm cartcomm, int L):
 	    int alter_ego = (2 - d[0]) % 3 + 3 * ((2 - d[1]) % 3 + 3 * ((2 - d[2]) % 3));
 	    interrank_masks[i] = min(i, alter_ego) == i;
 	}
-
+	printf("my interrankseed for %d %d %d is %d -> mask %d\n", d[0], d[1], d[2], interrank_seed, interrank_masks[i]);
 	//interrank_masks[i] = true;
     }
+    //exit(0);
 }
 
 void ComputeInteractionsDPD::spawn_local_work()
@@ -119,11 +122,13 @@ void ComputeInteractionsDPD::dpd_remote_interactions(const Particle * const p, c
     for(int i = 0; i < 26; ++i)
     {
 	const float interrank_seed = interrank_trunks[i].get_float();
+	
 
 	const int nd = sendhalos[i].dbuf.size;
 	const int ns = recvhalos[i].dbuf.size;
 
 	acc_remote[i].resize(nd);
+	CUDA_CHECK(cudaMemsetAsync((float *)acc_remote[i].data, 0, nd * sizeof(Acceleration), 0));
 
 	if (nd == 0)
 	    continue;
@@ -142,10 +147,11 @@ void ComputeInteractionsDPD::dpd_remote_interactions(const Particle * const p, c
 	
 	if (sendhalos[i].dcellstarts.size * recvhalos[i].dcellstarts.size > 1 && nd * ns > 10 * 10)
 	{	   
+
 	    texDC[i].acquire(sendhalos[i].dcellstarts.data, sendhalos[i].dcellstarts.capacity);
 	    texSC[i].acquire(recvhalos[i].dcellstarts.data, recvhalos[i].dcellstarts.capacity);
 	    texSP[i].acquire((float2*)recvhalos[i].dbuf.data, recvhalos[i].dbuf.capacity * 3);
-	       
+	    
 	    forces_dpd_cuda_bipartite_nohost(mystream, (float2 *)sendhalos[i].dbuf.data, nd, texDC[i].texObj, texSC[i].texObj, texSP[i].texObj,
 					     ns, halosize[i], aij, gammadpd, sigma / sqrt(dt), interrank_seed, interrank_masks[i],
 					     (float *)acc_remote[i].data);
@@ -155,6 +161,7 @@ void ComputeInteractionsDPD::dpd_remote_interactions(const Particle * const p, c
 		(float *)sendhalos[i].dbuf.data, (float *)acc_remote[i].data, nd,
 		(float *)recvhalos[i].dbuf.data, ns,
 		aij, gammadpd, sigma, 1. / sqrt(dt), interrank_seed, interrank_masks[i], mystream);
+	    
     }
     
     CUDA_CHECK(cudaPeekAtLastError());

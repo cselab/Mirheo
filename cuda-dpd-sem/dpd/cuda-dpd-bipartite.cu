@@ -98,16 +98,17 @@ void _bipartite_dpd_directforces(float * const axayaz, const int np, const int n
 		    yr * (vp - vq) +
 		    zr * (wp - wq);
 		
-		const int spid = tid + s;
+		const int spid = s + l;
 		const int dpid = pid;
-		const int arg1 = mask * dpid + (1 - mask) * spid;
-		const float myrandnr = Logistic::mean0var1(seed, arg1, dpid + spid - arg1);
+		const float myrandnr = Logistic::mean0var1(seed, mask ? dpid : spid, mask ? spid : dpid);
 		
 		const float strength = aij * argwr + (- gamma * wr * rdotv + sigmaf * myrandnr) * wr;
-
-		xforce += strength * xr;
-		yforce += strength * yr;
-		zforce += strength * zr;
+		//if (valid && spid < np_src)
+		{
+		    xforce += strength * xr;
+		    yforce += strength * yr;
+		    zforce += strength * zr;
+		}
 	    }
 	}
     }
@@ -256,9 +257,8 @@ __global__ __launch_bounds__(32 * CPB, 16)
 		    yr * (dtmp2.x - stmp2.x) +
 		    zr * (dtmp2.y - stmp2.y);
 	
-		const int arg1 = mask * dpid + (1 - mask) * spid;
-		const float myrandnr = Logistic::mean0var1(seed, arg1, dpid + spid - arg1);
-		
+		const float myrandnr = Logistic::mean0var1(seed, mask ? dpid : spid, mask ? spid : dpid);
+
 		const float strength = aij * argwr + (- gamma * wr * rdotv + sigmaf * myrandnr) * wr;
 		const bool valid = (slot < np1) && (subtid < np2);
 
