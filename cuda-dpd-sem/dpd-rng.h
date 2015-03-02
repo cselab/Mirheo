@@ -98,8 +98,8 @@ namespace Logistic
 #if 1
     __inline__ __device__ float mean0var1( float seed, uint i, uint j ) 
     {
-	uint u = min( i, j );
-	uint v = max( i, j );
+	float u = min( i, j );
+	float v = max( i, j );
 	float p = rem( sqrtf(u) * gold + sqrtf(v) * silver );
 	float l = __logistic_core<N>( seed - p );
 	return l * sqrt2;

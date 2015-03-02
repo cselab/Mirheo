@@ -27,7 +27,25 @@ ComputeInteractionsDPD::ComputeInteractionsDPD(MPI_Comm cartcomm, int L):
 	    indx[c] = min(coords[c], coordsneighbor[c]) * dims[c] + max(coords[c], coordsneighbor[c]);
 
 	const int interrank_seed_base = indx[0] + dims[0] * dims[0] * (indx[1] + dims[1] * dims[1] * indx[2]);
-	const int interrank_seed_offset = abs(d[0]) + 2 * (abs(d[1]) + 2 * abs(d[2]));
+	
+	int interrank_seed_offset;
+
+	{
+	    const bool isplus = 
+		d[0] + d[1] + d[2] > 0 || 
+		d[0] + d[1] + d[2] == 0 && (
+		    d[0] > 0 || d[0] == 0 && (
+			d[1] > 0 || d[1] == 0 && d[2] > 0
+			)
+		    );
+	    
+	    const int mysign = 2 * isplus - 1;
+
+	    int v[3] = { 1 + mysign * d[0], 1 + mysign * d[1], 1 + mysign *d[2] };
+	    
+	    interrank_seed_offset = v[0] + 3 * (v[1] + 3 * v[2]);
+	    }
+
 	const int interrank_seed = interrank_seed_base + interrank_seed_offset;
 	
 	interrank_trunks[i] = Logistic::KISS(390 + interrank_seed, interrank_seed  + 615, 12309, 23094); 
@@ -41,10 +59,7 @@ ComputeInteractionsDPD::ComputeInteractionsDPD(MPI_Comm cartcomm, int L):
 	    int alter_ego = (2 - d[0]) % 3 + 3 * ((2 - d[1]) % 3 + 3 * ((2 - d[2]) % 3));
 	    interrank_masks[i] = min(i, alter_ego) == i;
 	}
-	printf("my interrankseed for %d %d %d is %d -> mask %d\n", d[0], d[1], d[2], interrank_seed, interrank_masks[i]);
-	//interrank_masks[i] = true;
     }
-    //exit(0);
 }
 
 void ComputeInteractionsDPD::spawn_local_work()
