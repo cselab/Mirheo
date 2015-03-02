@@ -9,12 +9,39 @@
 using namespace std;
 
 ComputeInteractionsDPD::ComputeInteractionsDPD(MPI_Comm cartcomm, int L): 
-    HaloExchanger(cartcomm, L, 0), global_trunk(124,187491,12378, 2894127), local_trunk(0, 0, 0, 0)
+    HaloExchanger(cartcomm, L, 0), local_trunk(0, 0, 0, 0)
 {
     int myrank;
     MPI_CHECK(MPI_Comm_rank(cartcomm, &myrank));
     
-    local_trunk = Logistic::KISS(659 + myrank, 321 - myrank, 652, 965);
+    for(int i = 0; i < 26; ++i)
+    {
+	int d[3] = { (i + 2) % 3 - 1, (i / 3 + 2) % 3 - 1, (i / 9 + 2) % 3 - 1 };
+
+	int coordsneighbor[3];
+	for(int c = 0; c < 3; ++c)
+	    coordsneighbor[c] = (coords[c] + d[c] + dims[c]) % dims[c];
+
+	int indx[3];
+	for(int c = 0; c < 3; ++c)
+	    indx[c] = min(coords[c], coordsneighbor[c]) * dims[c] + max(coords[c], coordsneighbor[c]);
+
+	const int interrank_seed = indx[0] + dims[0] * dims[0] * (indx[1] + dims[1] * dims[1] * indx[2]);
+	
+	interrank_trunks[i] = Logistic::KISS(390 + interrank_seed, interrank_seed  + 615, 12309, 23094); 
+
+	const int dstrank = dstranks[i];
+
+	if (dstrank != myrank)
+	    interrank_masks[i] = min(dstrank, myrank) == myrank;
+	else
+	{
+	    int alter_ego = (2 - d[0]) % 3 + 3 * ((2 - d[1]) % 3 + 3 * ((2 - d[2]) % 3));
+	    interrank_masks[i] = min(i, alter_ego) == i;
+	}
+
+	//interrank_masks[i] = true;
+    }
 }
 
 void ComputeInteractionsDPD::spawn_local_work()
@@ -86,40 +113,13 @@ void ComputeInteractionsDPD::dpd_remote_interactions(const Particle * const p, c
     CUDA_CHECK(cudaPeekAtLastError());
 
     wait_for_messages();
-    
-    const float global_seed = global_trunk.get_float();
-
-    int seed2[26];
-    bool mask[26];
-    for(int i = 0; i < 26; ++i)
-    {
-	int d[3] = { (i + 2) % 3 - 1, (i / 3 + 2) % 3 - 1, (i / 9 + 2) % 3 - 1 };
-
-	int coordsneighbor[3];
-	for(int c = 0; c < 3; ++c)
-	    coordsneighbor[c] = (coords[c] + d[c] + dims[c]) % dims[c];
-
-	int indx[3];
-	for(int c = 0; c < 3; ++c)
-	    indx[c] = min(coords[c], coordsneighbor[c]) * dims[c] + max(coords[c], coordsneighbor[c]);
-
-	seed2[i] = indx[0] + dims[0] * dims[0] * (indx[1] + dims[1] * dims[1] * indx[2]);
-
-	const int dstrank = dstranks[i];
-
-	if (dstrank != myrank)
-	    mask[i] = min(dstrank, myrank) == myrank;
-	else
-	{
-	    int alter_ego = (2 - d[0]) % 3 + 3 * ((2 - d[1]) % 3 + 3 * ((2 - d[2]) % 3));
-	    mask[i] = min(i, alter_ego) == i;
-	}
-    }
 
     CUDA_CHECK(cudaPeekAtLastError());
 
     for(int i = 0; i < 26; ++i)
     {
+	const float interrank_seed = interrank_trunks[i].get_float();
+
 	const int nd = sendhalos[i].dbuf.size;
 	const int ns = recvhalos[i].dbuf.size;
 
@@ -147,14 +147,14 @@ void ComputeInteractionsDPD::dpd_remote_interactions(const Particle * const p, c
 	    texSP[i].acquire((float2*)recvhalos[i].dbuf.data, recvhalos[i].dbuf.capacity * 3);
 	       
 	    forces_dpd_cuda_bipartite_nohost(mystream, (float2 *)sendhalos[i].dbuf.data, nd, texDC[i].texObj, texSC[i].texObj, texSP[i].texObj,
-					     ns, halosize[i], aij, gammadpd, sigma / sqrt(dt), global_seed, seed2[i], mask[i],
+					     ns, halosize[i], aij, gammadpd, sigma / sqrt(dt), interrank_seed, interrank_masks[i],
 					     (float *)acc_remote[i].data);
 	}
 	else
 	    directforces_dpd_cuda_bipartite_nohost(
 		(float *)sendhalos[i].dbuf.data, (float *)acc_remote[i].data, nd,
 		(float *)recvhalos[i].dbuf.data, ns,
-		aij, gammadpd, sigma, 1. / sqrt(dt), global_seed, seed2[i], mask[i], mystream);
+		aij, gammadpd, sigma, 1. / sqrt(dt), interrank_seed, interrank_masks[i], mystream);
     }
     
     CUDA_CHECK(cudaPeekAtLastError());

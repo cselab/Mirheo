@@ -86,7 +86,9 @@ class ComputeInteractionsDPD : public HaloExchanger
     //temporary buffer to compute accelerations in the halo
     SimpleDeviceBuffer<Acceleration> acc_remote[26];
 
-    Logistic::KISS global_trunk, local_trunk;
+    Logistic::KISS local_trunk;
+    Logistic::KISS interrank_trunks[26];
+    bool interrank_masks[26];
 
     //mpi-sync for the surrounding halos
     void dpd_remote_interactions(const Particle * const p, const int n, Acceleration * const a);

@@ -23,7 +23,7 @@ __constant__ BipartiteInfoDPD bipart_info;
 
 __global__
 void _bipartite_dpd_directforces(float * const axayaz, const int np, const int np_src,
-				 const float seed1, const int seed2, const bool mask, const float * xyzuvw, const float * xyzuvw_src,
+				 const float seed, const bool mask, const float * xyzuvw, const float * xyzuvw_src,
 				 const float invrc, const float aij, const float gamma, const float sigmaf)
 {
     assert(blockDim.x % warpSize == 0);
@@ -97,9 +97,12 @@ void _bipartite_dpd_directforces(float * const axayaz, const int np, const int n
 		    xr * (up - uq) +
 		    yr * (vp - vq) +
 		    zr * (wp - wq);
-				
-		const float myrandnr = Logistic::mean0var1(seed1, seed2, mask ? pid + np * (s + l) : (s + l) + np_src * pid);
-
+		
+		const int spid = tid + s;
+		const int dpid = pid;
+		const int arg1 = mask * dpid + (1 - mask) * spid;
+		const float myrandnr = Logistic::mean0var1(seed, arg1, dpid + spid - arg1);
+		
 		const float strength = aij * argwr + (- gamma * wr * rdotv + sigmaf * myrandnr) * wr;
 
 		xforce += strength * xr;
@@ -125,7 +128,7 @@ void directforces_dpd_cuda_bipartite_nohost(
     const float * const xyzuvw, float * const axayaz, const int np,
     const float * const xyzuvw_src, const int np_src,
     const float aij, const float gamma, const float sigma, const float invsqrtdt,
-    const float seed1, const int seed2, const bool mask, cudaStream_t stream)
+    const float seed, const bool mask, cudaStream_t stream)
 {
     if (np == 0 || np_src == 0)
     {
@@ -133,7 +136,7 @@ void directforces_dpd_cuda_bipartite_nohost(
 	return;
     }
  
-    _bipartite_dpd_directforces<<<(np + 127) / 128, 128, 0, stream>>>(axayaz, np, np_src, seed1, seed2, mask,
+    _bipartite_dpd_directforces<<<(np + 127) / 128, 128, 0, stream>>>(axayaz, np, np_src, seed, mask,
 								      xyzuvw, xyzuvw_src, 1, aij, gamma, sigma * invsqrtdt);
    
     CUDA_CHECK(cudaPeekAtLastError());
@@ -143,7 +146,7 @@ __global__ __launch_bounds__(32 * CPB, 16)
     void _dpd_bipforces(const float2 * const xyzuvw, const int np, cudaTextureObject_t texDstStart,
 			  cudaTextureObject_t texSrcStart,  cudaTextureObject_t texSrcParticles, const int np_src, const int3 halo_ncells,
 			  const float aij, const float gamma, const float sigmaf,
-			  const float seed1, const int seed2, const bool mask, float * const axayaz)
+			  const float seed, const bool mask, float * const axayaz)
 {
     assert(warpSize == COLS * ROWS);
     assert(blockDim.x == warpSize && blockDim.y == CPB && blockDim.z == 1);
@@ -253,7 +256,8 @@ __global__ __launch_bounds__(32 * CPB, 16)
 		    yr * (dtmp2.x - stmp2.x) +
 		    zr * (dtmp2.y - stmp2.y);
 	
-		const float myrandnr = Logistic::mean0var1(seed1, seed2, mask ? dpid + np * spid : spid + np_src * dpid);
+		const int arg1 = mask * dpid + (1 - mask) * spid;
+		const float myrandnr = Logistic::mean0var1(seed, arg1, dpid + spid - arg1);
 		
 		const float strength = aij * argwr + (- gamma * wr * rdotv + sigmaf * myrandnr) * wr;
 		const bool valid = (slot < np1) && (subtid < np2);
@@ -286,12 +290,12 @@ void forces_dpd_cuda_bipartite_nohost(cudaStream_t stream, const float2 * const 
 					    cudaTextureObject_t texSrcStart, cudaTextureObject_t texSrcParticles, const int np_src,
 					    const int3 halo_ncells,
 					    const float aij, const float gamma, const float sigmaf,
-					    const float seed1, const int seed2, const bool mask, float * const axayaz)
+					    const float seed, const bool mask, float * const axayaz)
 { 
     const int ncells = halo_ncells.x * halo_ncells.y * halo_ncells.z;
     
     _dpd_bipforces<<<(ncells + CPB - 1) / CPB, dim3(32, CPB), 0, stream>>>(
 	xyzuvw, np, texDstStart, texSrcStart, texSrcParticles, np_src,
-	halo_ncells, aij, gamma, sigmaf, seed1, seed2, mask,
+	halo_ncells, aij, gamma, sigmaf, seed, mask,
 	axayaz);
 }
