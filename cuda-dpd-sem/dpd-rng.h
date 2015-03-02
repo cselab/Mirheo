@@ -95,12 +95,12 @@ namespace Logistic
 // mean = 0
 // variance = 1
 // can be used directly for DPD
-#if 0
+#if 1
     __inline__ __device__ float mean0var1( float seed, uint i, uint j ) 
     {
 	uint u = min( i, j );
 	uint v = max( i, j );
-	float p = rem( u * gold + v * silver );
+	float p = rem( sqrtf(u) * gold + sqrtf(v) * silver );
 	float l = __logistic_core<N>( seed - p );
 	return l * sqrt2;
     }
