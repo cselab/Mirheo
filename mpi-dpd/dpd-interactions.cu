@@ -44,7 +44,7 @@ ComputeInteractionsDPD::ComputeInteractionsDPD(MPI_Comm cartcomm):
 	    int v[3] = { 1 + mysign * d[0], 1 + mysign * d[1], 1 + mysign *d[2] };
 	    
 	    interrank_seed_offset = v[0] + 3 * (v[1] + 3 * v[2]);
-	    }
+	}
 
 	const int interrank_seed = interrank_seed_base + interrank_seed_offset;
 	
@@ -151,7 +151,7 @@ void ComputeInteractionsDPD::dpd_remote_interactions(const Particle * const p, c
 	
 #ifndef NDEBUG
 	//fill acc entries with nan
-	CUDA_CHECK(cudaMemset(acc_remote[i].data, 0xff, sizeof(Acceleration) * acc_remote[i].size));
+	CUDA_CHECK(cudaMemsetAsync(acc_remote[i].data, 0xff, sizeof(Acceleration) * acc_remote[i].size, mystream));
 #endif
 	cudaStream_t mystream = streams[code2stream[i]];
 	

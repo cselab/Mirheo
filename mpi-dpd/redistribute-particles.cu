@@ -560,7 +560,7 @@ pack_attempt:
 
     CUDA_CHECK(cudaPeekAtLastError());
 
-    CUDA_CHECK(cudaMemset(packbuffers[0].buffer, 0xff, sizeof(float) * 6 * packbuffers[0].capacity));
+    //CUDA_CHECK(cudaMemset(packbuffers[0].buffer, 0xff, sizeof(float) * 6 * packbuffers[0].capacity));
     
     enum { BS = 128, ILP = 2 };
     RedistributeParticlesKernels::recompact_bulk<BS, ILP><<< (nparticles + BS - 1) / BS, BS, 0, mystream>>>(nparticles);

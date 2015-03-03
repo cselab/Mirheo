@@ -317,8 +317,7 @@ void HaloExchanger::pack_and_post(const Particle * const p, const int n, const i
     {
 	MPI_Status statuses[26 * 2];
 
-	MPI_CHECK( MPI_Waitall(nsendreq, sendreq, statuses) );
-	MPI_CHECK( MPI_Waitall(26, sendcellsreq, statuses) );
+	MPI_CHECK( MPI_Waitall(nextrasendreq, extrasendreq, statuses) );
 	MPI_CHECK( MPI_Waitall(26, sendcountreq, statuses) );
     }
       
@@ -395,23 +394,21 @@ void HaloExchanger::pack_and_post(const Particle * const p, const int n, const i
     spawn_local_work();
    
     for(int i = 0; i < 26; ++i)
-	MPI_CHECK( MPI_Isend(sendhalos[i].hcellstarts.data, sendhalos[i].hcellstarts.size, MPI_INTEGER, dstranks[i],
-			     basetag + i + 350, cartcomm,  sendcellsreq + i) );
+	MPI_CHECK( MPI_Send(sendhalos[i].hcellstarts.data, sendhalos[i].hcellstarts.size, MPI_INTEGER, dstranks[i],
+			     basetag + i + 350, cartcomm) );
 
     for(int i = 0; i < 26; ++i)
 	MPI_CHECK( MPI_Isend(&sendhalos[i].hbuf.size, 1, MPI_INTEGER, dstranks[i], basetag +  i + 150, cartcomm, sendcountreq + i) );
 
-    nsendreq = 0;
+    nextrasendreq = 0;
     
     for(int i = 0; i < 26; ++i)
     {
 	const int count = sendhalos[i].hbuf.size;
 	const int expected = sendhalos[i].expected;
 	
-	MPI_CHECK( MPI_Isend(sendhalos[i].hbuf.data, expected, Particle::datatype(), dstranks[i], 
-			    basetag +  i, cartcomm, sendreq + nsendreq) );
-
-	++nsendreq;
+	MPI_CHECK( MPI_Send(sendhalos[i].hbuf.data, expected, Particle::datatype(), dstranks[i], 
+			    basetag +  i, cartcomm) );
 	
 	if (count > expected)
 	{
@@ -419,9 +416,9 @@ void HaloExchanger::pack_and_post(const Particle * const p, const int n, const i
 	    printf("extra message from rank %d to rank %d! difference %d\n", myrank, dstranks[i], difference);
 	    
 	    MPI_CHECK( MPI_Isend(sendhalos[i].hbuf.data + expected, difference, Particle::datatype(), dstranks[i], 
-				 basetag + i + 555, cartcomm, sendreq + nsendreq) );
+				 basetag + i + 555, cartcomm, extrasendreq + nextrasendreq) );
 
-	    ++nsendreq;
+	    ++nextrasendreq;
 	}
     }
 
