@@ -1,4 +1,4 @@
- #include <sys/stat.h>
+#include <sys/stat.h>
 #include <sys/types.h>
 
 #include <cmath>
@@ -6,6 +6,8 @@
 #include <thrust/device_vector.h>
 #include <thrust/sort.h>
 #include <thrust/count.h>
+
+
 
 #include "io.h"
 #include "halo-exchanger.h"
@@ -31,6 +33,7 @@ namespace SolidWallsKernel
     {
 	const int L[3] = { XSIZE_SUBDOMAIN, YSIZE_SUBDOMAIN, ZSIZE_SUBDOMAIN };
 	const int MARGIN[3] = { XMARGIN_WALL, YMARGIN_WALL, ZMARGIN_WALL };
+
 	float p[3] = {x, y, z};
 	
 	float texcoord[3];
@@ -48,6 +51,7 @@ namespace SolidWallsKernel
     {
 	const int L[3] = { XSIZE_SUBDOMAIN, YSIZE_SUBDOMAIN, ZSIZE_SUBDOMAIN };
 	const int MARGIN[3] = { XMARGIN_WALL, YMARGIN_WALL, ZMARGIN_WALL };
+
 	const float p[3] = {x, y, z};
 	
 	float tc[3];
@@ -198,6 +202,7 @@ namespace SolidWallsKernel
 	    return;
 
 	Particle p = particles[pid];
+
 	const int L[3] = { XSIZE_SUBDOMAIN, YSIZE_SUBDOMAIN, ZSIZE_SUBDOMAIN };
 	const int MARGIN[3] = { XMARGIN_WALL, YMARGIN_WALL, ZMARGIN_WALL };
 
@@ -226,6 +231,7 @@ namespace SolidWallsKernel
 	    return;
 
 	Particle p = particles[pid];
+	
 	const int L[3] = { XSIZE_SUBDOMAIN, YSIZE_SUBDOMAIN, ZSIZE_SUBDOMAIN };
 	const int MARGIN[3] = { XMARGIN_WALL, YMARGIN_WALL, ZMARGIN_WALL };
 	
@@ -443,11 +449,13 @@ struct FieldSampler
 	}
 };
 
+
 ComputeInteractionsWall::ComputeInteractionsWall(MPI_Comm cartcomm, Particle* const p, const int n, int& nsurvived):
     cartcomm(cartcomm), arrSDF(NULL), solid(NULL), solid_size(0), 
     cells(XSIZE_SUBDOMAIN + 2 * XMARGIN_WALL, YSIZE_SUBDOMAIN + 2 * YMARGIN_WALL, ZSIZE_SUBDOMAIN + 2 * ZMARGIN_WALL)
 {
     MPI_CHECK( MPI_Comm_rank(cartcomm, &myrank));
+
     MPI_CHECK( MPI_Cart_get(cartcomm, 3, dims, periods, coords) );
     
     float * field = new float[ XTEXTURESIZE * YTEXTURESIZE * ZTEXTURESIZE];
@@ -505,7 +513,6 @@ ComputeInteractionsWall::ComputeInteractionsWall(MPI_Comm cartcomm, Particle* co
     }
     
     CUDA_CHECK(cudaPeekAtLastError());
-    CUDA_CHECK(cudaDeviceSynchronize());
 
     cudaChannelFormatDesc fmt = cudaCreateChannelDesc<float>();
     CUDA_CHECK(cudaMalloc3DArray (&arrSDF, &fmt, make_cudaExtent(XTEXTURESIZE, YTEXTURESIZE, ZTEXTURESIZE)));
@@ -619,7 +626,7 @@ ComputeInteractionsWall::ComputeInteractionsWall(MPI_Comm cartcomm, Particle* co
 	for(int i = 0; i < 26; ++i)
 	{
 	    const int d[3] = { (i + 2) % 3 - 1, (i / 3 + 2) % 3 - 1, (i / 9 + 2) % 3 - 1 };
-
+	    
 	    for(int j = 0; j < remote[i].size(); ++j)
 	    {
 		Particle p = remote[i][j];
@@ -653,7 +660,7 @@ ComputeInteractionsWall::ComputeInteractionsWall(MPI_Comm cartcomm, Particle* co
 	SolidWallsKernel::zero_velocity<<< (solid_size + 127) / 128, 128>>>(solid, solid_size);
 
     if (solid_size > 0)
-	cells.build(solid, solid_size);
+	cells.build(solid, solid_size, 0);
 
     {
 	const int n = solid_local.size();
@@ -671,21 +678,21 @@ ComputeInteractionsWall::ComputeInteractionsWall(MPI_Comm cartcomm, Particle* co
     CUDA_CHECK(cudaPeekAtLastError());
 }
 
-void ComputeInteractionsWall::bounce(Particle * const p, const int n)
+void ComputeInteractionsWall::bounce(Particle * const p, const int n, cudaStream_t stream)
 {
     if (n > 0)
-	SolidWallsKernel::bounce<<< (n + 127) / 128, 128>>>(p, n, myrank, dt);
+	SolidWallsKernel::bounce<<< (n + 127) / 128, 128, 0, stream>>>(p, n, myrank, dt);
     
     CUDA_CHECK(cudaPeekAtLastError());
 }
 
 void ComputeInteractionsWall::interactions(const Particle * const p, const int n, Acceleration * const acc,
-			      const int * const cellsstart, const int * const cellscount)
+					   const int * const cellsstart, const int * const cellscount, cudaStream_t stream)
 {
     //cellsstart and cellscount IGNORED for now
     
     if (n > 0 && solid_size > 0)
-	SolidWallsKernel::interactions<<< (n + 127) / 128, 128>>>(p, n, acc, cells.start, cells.count,solid, solid_size, trunk.get_float(), aij, gammadpd, sigmaf);
+	SolidWallsKernel::interactions<<< (n + 127) / 128, 128, 0, stream>>>(p, n, acc, cells.start, cells.count,solid, solid_size, trunk.get_float(), aij, gammadpd, sigmaf);
 
     CUDA_CHECK(cudaPeekAtLastError());
 }

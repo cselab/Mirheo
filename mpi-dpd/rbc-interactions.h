@@ -30,10 +30,10 @@ protected:
 	
     } remote[26], local[26];
 
-    void pack_and_post(const Particle * const rbcs, const int nrbcs);
+    void pack_and_post(const Particle * const rbcs, const int nrbcs, cudaStream_t stream);
     
-    virtual void _compute_extents(const Particle * const xyzuvw, const int nrbcs);
-    virtual void _internal_forces(const Particle * const xyzuvw, const int nrbcs, Acceleration * acc);
+    virtual void _compute_extents(const Particle * const xyzuvw, const int nrbcs, cudaStream_t stream);
+    virtual void _internal_forces(const Particle * const xyzuvw, const int nrbcs, Acceleration * acc, cudaStream_t stream);
 
     void _wait(std::vector<MPI_Request>& v)
     {
@@ -47,15 +47,15 @@ protected:
 
     Logistic::KISS local_trunk;
 
-public:
+    cudaEvent_t evextents, evfsi;
 
-    cudaStream_t stream;
+public:
 
     ComputeInteractionsRBC(MPI_Comm cartcomm);
     
     void evaluate(const Particle * const solvent, const int nparticles, Acceleration * accsolvent,
 		  const int * const cellsstart_solvent, const int * const cellscount_solvent,
-		  const Particle * const rbcs, const int nrbcs, Acceleration * accrbc);
+		  const Particle * const rbcs, const int nrbcs, Acceleration * accrbc, cudaStream_t stream);
 
     ~ComputeInteractionsRBC();
 };

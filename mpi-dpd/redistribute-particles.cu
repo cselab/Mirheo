@@ -394,7 +394,8 @@ failure(1), packsizes(27), firstcall(true)
 	    };
 
 	const int nhalocells = nhalodir[0] * nhalodir[1] * nhalodir[2];
-	const int estimate = 3 * 2 * nhalocells;
+	const float safety_factor = getenv("RDP_COMM_FACTOR") ? atof(getenv("RDP_COMM_FACTOR")) : 1.2;
+	const int estimate = numberdensity * safety_factor * nhalocells;
 	
 	CUDA_CHECK(cudaMalloc(&packbuffers[i].scattered_indices, sizeof(int) * estimate));
 	
@@ -424,8 +425,6 @@ failure(1), packsizes(27), firstcall(true)
     RedistributeParticlesKernels::texAllParticles.filterMode = cudaFilterModePoint;
     RedistributeParticlesKernels::texAllParticles.mipmapFilterMode = cudaFilterModePoint;
     RedistributeParticlesKernels::texAllParticles.normalized = 0;
-    
-    CUDA_CHECK(cudaStreamCreate(&mystream));
 
     CUDA_CHECK(cudaEventCreate(&evpacking, cudaEventDisableTiming));
     CUDA_CHECK(cudaEventCreate(&evsizes, cudaEventDisableTiming));
@@ -514,7 +513,7 @@ void RedistributeParticles::_adjust_recv_buffers(const int requested_capacities[
     }
 }
 
-int RedistributeParticles::stage1(const Particle * const particles, const int nparticles)
+int RedistributeParticles::stage1(const Particle * const particles, const int nparticles, cudaStream_t mystream)
 {
     if (firstcall)
 	_post_recv();
@@ -562,7 +561,7 @@ pack_attempt:
 
     CUDA_CHECK(cudaPeekAtLastError());
 
-    CUDA_CHECK(cudaMemset(packbuffers[0].buffer, 0xff, sizeof(float) * 6 * packbuffers[0].capacity));
+    //CUDA_CHECK(cudaMemset(packbuffers[0].buffer, 0xff, sizeof(float) * 6 * packbuffers[0].capacity));
     
     enum { BS = 128, ILP = 2 };
     RedistributeParticlesKernels::recompact_bulk<BS, ILP><<< (nparticles + BS - 1) / BS, BS, 0, mystream>>>(nparticles);
@@ -626,7 +625,7 @@ pack_attempt:
     return nexpected;
 }
     
-void RedistributeParticles::stage2(Particle * const particles, const int nparticles)
+void RedistributeParticles::stage2(Particle * const particles, const int nparticles, cudaStream_t mystream)
 {
     assert(nparticles == nexpected);
     
@@ -660,8 +659,6 @@ void RedistributeParticles::stage2(Particle * const particles, const int npartic
     _post_recv();
     
     CUDA_CHECK(cudaPeekAtLastError());
-    
-    CUDA_CHECK(cudaStreamSynchronize(mystream));
 }
 
 RedistributeParticles::~RedistributeParticles()
@@ -684,7 +681,5 @@ RedistributeParticles::~RedistributeParticles()
 	else
 	    CUDA_CHECK(cudaFree(packbuffers[i].buffer));
     }
-
-    CUDA_CHECK(cudaStreamDestroy(mystream));
 }
 

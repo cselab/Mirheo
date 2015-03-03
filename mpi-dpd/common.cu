@@ -12,7 +12,7 @@ bool Acceleration::initialized = false;
 
 MPI_Datatype Acceleration::mytype;
 
-void CellLists::build(Particle * const p, const int n)
+void CellLists::build(Particle * const p, const int n, cudaStream_t stream)
 {
     if (n > 0)
 	build_clists((float * )p, n, 1, LX, LY, LZ, -LX/2, -LY/2, -LZ/2, NULL, start, count,  NULL, 0);

@@ -17,8 +17,8 @@ struct ParticleArray
     ParticleArray(std::vector<Particle> ic);
 
     void resize(int n);
-    void update_stage1(const float driving_acceleration);
-    void update_stage2_and_1(const float driving_acceleration);
+    void update_stage1(const float driving_acceleration, cudaStream_t stream);
+    void update_stage2_and_1(const float driving_acceleration, cudaStream_t stream);
     void clear_velocity();
 };
 

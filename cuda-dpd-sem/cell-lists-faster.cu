@@ -514,7 +514,6 @@ void build_clists(float * const device_xyzuvw, int np, const float rc,
 	}
 
 	CUDA_CHECK(cudaPeekAtLastError());
-	CUDA_CHECK(cudaDeviceSynchronize());
     }
 
     CUDA_CHECK(cudaEventRecord(evacquire));

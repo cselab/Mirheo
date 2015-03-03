@@ -2,15 +2,16 @@
 
 enum { 
     XSIZE_SUBDOMAIN = 48, 
-    YSIZE_SUBDOMAIN = 32, 
-    ZSIZE_SUBDOMAIN = 32,
+    YSIZE_SUBDOMAIN = 48, 
+    ZSIZE_SUBDOMAIN = 48,
     XMARGIN_WALL = 24,
     YMARGIN_WALL = 0,
     ZMARGIN_WALL = 0,
 };
 
+const int numberdensity = 4;
 const float dt = 0.001;
-const float tend = 500;
+const float tend = 50;
 const float kBT = 0.0945;
 const float gammadpd = 45;
 const float sigma = sqrt(2 * gammadpd * kBT);
@@ -26,6 +27,7 @@ const bool hdf5field_dumps = false;
 const bool hdf5part_dumps = false;
 const int steps_per_report = 1000;
 const int steps_per_dump = 1000;
+
 
 #include <cstdlib>
 #include <cstdio>
@@ -256,7 +258,7 @@ CellLists(const int LX, const int LY, const int LZ): ncells(LX * LY * LZ), LX(LX
 	    CUDA_CHECK(cudaMalloc(&count, sizeof(int) * ncells));
 	}
 
-    void build(Particle * const p, const int n);
+    void build(Particle * const p, const int n, cudaStream_t stream);
 	    	    
     ~CellLists()
 	{

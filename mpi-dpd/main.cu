@@ -83,7 +83,7 @@ int main(int argc, char ** argv)
 	MPI_CHECK( MPI_Cart_create(MPI_COMM_WORLD, 3, ranks, periods, 1, &cartcomm) );
 	
 	{
-	    vector<Particle> ic(XSIZE_SUBDOMAIN * YSIZE_SUBDOMAIN * ZSIZE_SUBDOMAIN * 4);
+	    vector<Particle> ic(XSIZE_SUBDOMAIN * YSIZE_SUBDOMAIN * ZSIZE_SUBDOMAIN * numberdensity);
 	    
 	    const int L[3] = { XSIZE_SUBDOMAIN, YSIZE_SUBDOMAIN, ZSIZE_SUBDOMAIN };
 	    for(int i = 0; i < ic.size(); ++i)
@@ -105,7 +105,7 @@ int main(int argc, char ** argv)
 
 	    CollectionCTC * ctcscoll = NULL;
 
-	    if (ctcs)
+	    if (ctcs) 
 	    {
 		ctcscoll = new CollectionCTC(cartcomm);
 		ctcscoll->setup();
@@ -123,24 +123,22 @@ int main(int argc, char ** argv)
 	    ComputeInteractionsCTC ctc_interactions(cartcomm);
 	    ComputeInteractionsWall * wall = NULL;
 	    
-	    cudaStream_t stream;
-	    CUDA_CHECK(cudaStreamCreate(&stream));
+	    cudaStream_t mainstream;
+	    CUDA_CHECK(cudaStreamCreate(&mainstream));
 	    	    
-	    redistribute_rbcs.stream = stream;
-	    
 	    CUDA_CHECK(cudaPeekAtLastError());
 
-	    cells.build(particles.xyzuvw.data, particles.size);
+	    cells.build(particles.xyzuvw.data, particles.size, mainstream);
 
-	    dpd.evaluate(particles.xyzuvw.data, particles.size, particles.axayaz.data, cells.start, cells.count);
+	    dpd.evaluate(particles.xyzuvw.data, particles.size, particles.axayaz.data, cells.start, cells.count, mainstream);
     
 	    if (rbcscoll)
 		rbc_interactions.evaluate(particles.xyzuvw.data, particles.size, particles.axayaz.data, cells.start, cells.count,
-					  rbcscoll->data(), rbcscoll->count(), rbcscoll->acc());
+					  rbcscoll->data(), rbcscoll->count(), rbcscoll->acc(), mainstream);
 
 	    if (ctcscoll)
 		ctc_interactions.evaluate(particles.xyzuvw.data, particles.size, particles.axayaz.data, cells.start, cells.count,
-					ctcscoll->data(), ctcscoll->count(), ctcscoll->acc());
+					  ctcscoll->data(), ctcscoll->count(), ctcscoll->acc(), mainstream);
 
 	    float driving_acceleration = 0;
 
@@ -156,6 +154,8 @@ int main(int argc, char ** argv)
 	    {
 		if (it % steps_per_report == 0)
 		{ 
+		    CUDA_CHECK(cudaStreamSynchronize(mainstream));
+
 		    //check for termination requests
 		    if (blocksignal)
 		    {
@@ -207,22 +207,22 @@ int main(int argc, char ** argv)
 		}
 
 		double tstart;
-
+		
 		if (it == 0)
 		{
-		    particles.update_stage1(driving_acceleration);
+		    particles.update_stage1(driving_acceleration, mainstream);
 		    
 		    if (rbcscoll)
-			rbcscoll->update_stage1(driving_acceleration);
+			rbcscoll->update_stage1(driving_acceleration, mainstream);
 
 		    if (ctcscoll)
-			ctcscoll->update_stage1(driving_acceleration);
+			ctcscoll->update_stage1(driving_acceleration, mainstream);
 		}
-
+		
 		tstart = MPI_Wtime();
-		const int newnp = redistribute.stage1(particles.xyzuvw.data, particles.size);
+		const int newnp = redistribute.stage1(particles.xyzuvw.data, particles.size, mainstream);
 		particles.resize(newnp);
-		redistribute.stage2(particles.xyzuvw.data, particles.size);
+		redistribute.stage2(particles.xyzuvw.data, particles.size, mainstream);
 		timings["redistribute-particles"] += MPI_Wtime() - tstart;
 		
 		CUDA_CHECK(cudaPeekAtLastError());
@@ -230,33 +230,30 @@ int main(int argc, char ** argv)
 		if (rbcscoll)
 		{	
 		    tstart = MPI_Wtime();
-		    const int nrbcs = redistribute_rbcs.stage1(rbcscoll->data(), rbcscoll->count());
+		    const int nrbcs = redistribute_rbcs.stage1(rbcscoll->data(), rbcscoll->count(), mainstream);
 		    rbcscoll->resize(nrbcs);
-		    redistribute_rbcs.stage2(rbcscoll->data(), rbcscoll->count());
+		    redistribute_rbcs.stage2(rbcscoll->data(), rbcscoll->count(), mainstream);
 		    timings["redistribute-rbc"] += MPI_Wtime() - tstart;
 		}
-
+		
 		CUDA_CHECK(cudaPeekAtLastError());
 			
 		if (ctcscoll)
 		{	
 		    tstart = MPI_Wtime();
-		    const int nctcs = redistribute_ctcs.stage1(ctcscoll->data(), ctcscoll->count());
+		    const int nctcs = redistribute_ctcs.stage1(ctcscoll->data(), ctcscoll->count(), mainstream);
 		    ctcscoll->resize(nctcs);
-		    redistribute_ctcs.stage2(ctcscoll->data(), ctcscoll->count());
+		    redistribute_ctcs.stage2(ctcscoll->data(), ctcscoll->count(), mainstream);
 		    timings["redistribute-ctc"] += MPI_Wtime() - tstart;
 		}
-
+		
 		CUDA_CHECK(cudaPeekAtLastError());
-		
-		tstart = MPI_Wtime();
-		CUDA_CHECK(cudaStreamSynchronize(redistribute.mystream));
-		CUDA_CHECK(cudaStreamSynchronize(redistribute_rbcs.stream));
-		timings["stream-synchronize"] += MPI_Wtime() - tstart;
-		
+				
 		//create the wall when it is time
 		if (walls && it > 5000 && wall == NULL)
 		{
+		    CUDA_CHECK(cudaDeviceSynchronize());
+
 		    int nsurvived = 0;
 		    wall = new ComputeInteractionsWall(cartcomm, particles.xyzuvw.data, particles.size, nsurvived);
 		    
@@ -345,9 +342,9 @@ int main(int argc, char ** argv)
 
 		    CUDA_CHECK(cudaPeekAtLastError());
 		}
-
+		
 		tstart = MPI_Wtime();
-		cells.build(particles.xyzuvw.data, particles.size);
+		cells.build(particles.xyzuvw.data, particles.size, mainstream);
 		timings["build-cells"] += MPI_Wtime() - tstart;
 		
 		CUDA_CHECK(cudaPeekAtLastError());
@@ -356,7 +353,7 @@ int main(int argc, char ** argv)
 		//TODO: i need a coordinating class that performs all the local work while waiting for the communication
 		{
 		    tstart = MPI_Wtime();
-		    dpd.evaluate(particles.xyzuvw.data, particles.size, particles.axayaz.data, cells.start, cells.count);
+		    dpd.evaluate(particles.xyzuvw.data, particles.size, particles.axayaz.data, cells.start, cells.count, mainstream);
 		    timings["evaluate-dpd"] += MPI_Wtime() - tstart;
 		    
 		    CUDA_CHECK(cudaPeekAtLastError());	
@@ -365,7 +362,7 @@ int main(int argc, char ** argv)
 		    {
 			tstart = MPI_Wtime();
 			rbc_interactions.evaluate(particles.xyzuvw.data, particles.size, particles.axayaz.data,
-						  cells.start, cells.count, rbcscoll->data(), rbcscoll->count(), rbcscoll->acc());
+						  cells.start, cells.count, rbcscoll->data(), rbcscoll->count(), rbcscoll->acc(), mainstream);
 			timings["evaluate-rbc"] += MPI_Wtime() - tstart;
 		    }
 		    
@@ -375,7 +372,7 @@ int main(int argc, char ** argv)
 		    {
 			tstart = MPI_Wtime();
 			ctc_interactions.evaluate(particles.xyzuvw.data, particles.size, particles.axayaz.data,
-						  cells.start, cells.count, ctcscoll->data(), ctcscoll->count(), ctcscoll->acc());
+						  cells.start, cells.count, ctcscoll->data(), ctcscoll->count(), ctcscoll->acc(), mainstream);
 			timings["evaluate-ctc"] += MPI_Wtime() - tstart;
 		    }
 		    
@@ -385,24 +382,24 @@ int main(int argc, char ** argv)
 		    {
 			tstart = MPI_Wtime();
 			wall->interactions(particles.xyzuvw.data, particles.size, particles.axayaz.data, 
-					   cells.start, cells.count);
+					   cells.start, cells.count, mainstream);
 
 			if (rbcscoll)
-			    wall->interactions(rbcscoll->data(), rbcscoll->pcount(), rbcscoll->acc(), NULL, NULL);
+			    wall->interactions(rbcscoll->data(), rbcscoll->pcount(), rbcscoll->acc(), NULL, NULL, mainstream);
 
 			if (ctcscoll)
-			    wall->interactions(ctcscoll->data(), ctcscoll->pcount(), ctcscoll->acc(), NULL, NULL);
+			    wall->interactions(ctcscoll->data(), ctcscoll->pcount(), ctcscoll->acc(), NULL, NULL, mainstream);
 
 			timings["evaluate-walls"] += MPI_Wtime() - tstart;
 		    }
-
-		    //CUDA_CHECK(cudaDeviceSynchronize());
 		}
 		
 		CUDA_CHECK(cudaPeekAtLastError());
 
 		if (it % steps_per_dump == 0)
 		{
+		    CUDA_CHECK(cudaStreamSynchronize(mainstream));
+
 		    tstart = MPI_Wtime();
 		    int n = particles.size;
 
@@ -462,29 +459,29 @@ int main(int argc, char ** argv)
 		}
 
 		tstart = MPI_Wtime();
-		particles.update_stage2_and_1(driving_acceleration);
+		particles.update_stage2_and_1(driving_acceleration, mainstream);
 
 		CUDA_CHECK(cudaPeekAtLastError());
 
 		if (rbcscoll)
-		    rbcscoll->update_stage2_and_1(driving_acceleration);
+		    rbcscoll->update_stage2_and_1(driving_acceleration, mainstream);
 
 		CUDA_CHECK(cudaPeekAtLastError());
 
 		if (ctcscoll)
-		    ctcscoll->update_stage2_and_1(driving_acceleration);
+		    ctcscoll->update_stage2_and_1(driving_acceleration, mainstream);
 		timings["update"] += MPI_Wtime() - tstart;
 		
 		if (wall)
 		{
 		    tstart = MPI_Wtime();
-		    wall->bounce(particles.xyzuvw.data, particles.size);
+		    wall->bounce(particles.xyzuvw.data, particles.size, mainstream);
 		    
 		    if (rbcscoll)
-			wall->bounce(rbcscoll->data(), rbcscoll->pcount());
+			wall->bounce(rbcscoll->data(), rbcscoll->pcount(), mainstream);
 
 		    if (ctcscoll)
-			wall->bounce(ctcscoll->data(), ctcscoll->pcount());
+			wall->bounce(ctcscoll->data(), ctcscoll->pcount(), mainstream);
 
 		    timings["bounce-walls"] += MPI_Wtime() - tstart;
 		}
@@ -500,7 +497,7 @@ int main(int argc, char ** argv)
 
 	    fflush(stdout);
 	    
-	    CUDA_CHECK(cudaStreamDestroy(stream));
+	    CUDA_CHECK(cudaStreamDestroy(mainstream));
 	
 	    if (wall)
 		delete wall;

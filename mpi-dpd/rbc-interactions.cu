@@ -56,7 +56,7 @@ namespace KernelsRBC
 
 	const int d[3] = { (code + 2) % 3 - 1, (code / 3 + 2) % 3 - 1, (code / 9 + 2) % 3 - 1 };
 	const int L[3] = { XSIZE_SUBDOMAIN, YSIZE_SUBDOMAIN, ZSIZE_SUBDOMAIN };
-	
+
 	if (gid < n)
 	{
 	    Particle p = src[gid];
@@ -132,6 +132,7 @@ namespace KernelsRBC
 	const float3 up = make_float3(p.u[0], p.u[1], p.u[2]);
 		
 	const int L[3] = { XSIZE_SUBDOMAIN, YSIZE_SUBDOMAIN, ZSIZE_SUBDOMAIN };
+
 	int mycid[3];
 	for(int c = 0; c < 3; ++c)
 	    mycid[c] = (int)floor(p.x[c] + L[c]/2);
@@ -194,7 +195,7 @@ namespace KernelsRBC
     }
 }
 
-ComputeInteractionsRBC::ComputeInteractionsRBC(MPI_Comm _cartcomm): nvertices(CudaRBC::get_nvertices()), stream(0)
+ComputeInteractionsRBC::ComputeInteractionsRBC(MPI_Comm _cartcomm): nvertices(CudaRBC::get_nvertices())
 {
     assert(XSIZE_SUBDOMAIN % 2 == 0 && YSIZE_SUBDOMAIN % 2 == 0 && ZSIZE_SUBDOMAIN % 2 == 0);
     assert(XSIZE_SUBDOMAIN >= 2 && YSIZE_SUBDOMAIN >= 2 && ZSIZE_SUBDOMAIN >= 2);
@@ -202,7 +203,9 @@ ComputeInteractionsRBC::ComputeInteractionsRBC(MPI_Comm _cartcomm): nvertices(Cu
     MPI_CHECK( MPI_Comm_dup(_cartcomm, &cartcomm));
 
     MPI_CHECK( MPI_Comm_rank(cartcomm, &myrank));
+
     local_trunk = Logistic::KISS(1908 - myrank, 1409 + myrank, 290, 12968);
+
     MPI_CHECK( MPI_Comm_size(cartcomm, &nranks));
 
     MPI_CHECK( MPI_Cart_get(cartcomm, 3, dims, periods, coords) );
@@ -223,21 +226,24 @@ ComputeInteractionsRBC::ComputeInteractionsRBC(MPI_Comm _cartcomm): nvertices(Cu
     KernelsRBC::ParamsFSI params = {aij, gammadpd, sigmaf};
     
     CUDA_CHECK(cudaMemcpyToSymbol(KernelsRBC::params, &params, sizeof(KernelsRBC::ParamsFSI)));
+    CUDA_CHECK(cudaEventCreate(&evextents, cudaEventDisableTiming));
+    CUDA_CHECK(cudaEventCreate(&evfsi, cudaEventDisableTiming));
 }
 
-void ComputeInteractionsRBC::_compute_extents(const Particle * const rbcs, const int nrbcs)
+void ComputeInteractionsRBC::_compute_extents(const Particle * const rbcs, const int nrbcs, cudaStream_t stream)
 {
     for(int i = 0; i < nrbcs; ++i)
 	CudaRBC::extent_nohost(stream, (float *)(rbcs + nvertices * i), extents.devptr + i);
 }
 
-void ComputeInteractionsRBC::pack_and_post(const Particle * const rbcs, const int nrbcs)
+void ComputeInteractionsRBC::pack_and_post(const Particle * const rbcs, const int nrbcs, cudaStream_t stream)
 {
     extents.resize(nrbcs);
  
-    _compute_extents(rbcs, nrbcs);
+    _compute_extents(rbcs, nrbcs, stream);
 
-    CUDA_CHECK(cudaStreamSynchronize(stream));
+    CUDA_CHECK(cudaEventRecord(evextents));
+    CUDA_CHECK(cudaEventSynchronize(evextents));
 
     for(int i = 0; i < 26; ++i)
 	haloreplica[i].clear();
@@ -298,7 +304,8 @@ void ComputeInteractionsRBC::pack_and_post(const Particle * const rbcs, const in
 	CUDA_CHECK(cudaPeekAtLastError());
     }
      
-    CUDA_CHECK(cudaStreamSynchronize(stream));
+    CUDA_CHECK(cudaEventRecord(evfsi));
+    CUDA_CHECK(cudaEventSynchronize(evfsi));
 
     for(int i = 0; i < 26; ++i)
 	remote[i].setup(recv_counts[i] * nvertices);
@@ -331,7 +338,7 @@ void ComputeInteractionsRBC::pack_and_post(const Particle * const rbcs, const in
 	}
 }
 
-void ComputeInteractionsRBC::_internal_forces(const Particle * const rbcs, const int nrbcs, Acceleration * accrbc)
+void ComputeInteractionsRBC::_internal_forces(const Particle * const rbcs, const int nrbcs, Acceleration * accrbc, cudaStream_t stream)
 {
     for(int i = 0; i < nrbcs; ++i)
 	CudaRBC::forces_nohost(stream, (float *)(rbcs + nvertices * i), (float *)(accrbc + nvertices * i));
@@ -339,20 +346,18 @@ void ComputeInteractionsRBC::_internal_forces(const Particle * const rbcs, const
 
 void ComputeInteractionsRBC::evaluate(const Particle * const solvent, const int nparticles, Acceleration * accsolvent,
 				      const int * const cellsstart_solvent, const int * const cellscount_solvent,
-				      const Particle * const rbcs, const int nrbcs, Acceleration * accrbc)
+				      const Particle * const rbcs, const int nrbcs, Acceleration * accrbc, cudaStream_t stream)
 {	
     KernelsRBC::setup(solvent, nparticles, cellsstart_solvent, cellscount_solvent);
 
-    pack_and_post(rbcs, nrbcs);
+    pack_and_post(rbcs, nrbcs, stream);
 
     if (nrbcs > 0 && nparticles > 0)
     {
 	KernelsRBC::fsi_forces<<< (nrbcs * nvertices + 127) / 128, 128, 0, stream >>>
 	    (local_trunk.get_float(), accsolvent, nparticles, rbcs, nrbcs * nvertices, accrbc);
 		
-	_internal_forces(rbcs, nrbcs, accrbc);
-
-	
+	_internal_forces(rbcs, nrbcs, accrbc, stream);
     }
     
     _wait(reqrecvp);
@@ -367,9 +372,8 @@ void ComputeInteractionsRBC::evaluate(const Particle * const solvent, const int 
 	    	(local_trunk.get_float(), accsolvent, nparticles, remote[i].state.devptr, count, remote[i].result.devptr);
     }
 
-  
-
-    CUDA_CHECK(cudaStreamSynchronize(stream));
+    CUDA_CHECK(cudaEventRecord(evfsi));
+    CUDA_CHECK(cudaEventSynchronize(evfsi));
 
     for(int i = 0; i < 26; ++i)
 	if (recv_counts[i] > 0)
@@ -387,7 +391,7 @@ void ComputeInteractionsRBC::evaluate(const Particle * const solvent, const int 
 
     for(int i = 0; i < 26; ++i)
 	for(int j = 0; j < haloreplica[i].size(); ++j)
-	    KernelsRBC::merge_accelerations<<< (nvertices + 127) / 128, 128 >>>(local[i].result.devptr + nvertices * j, nvertices,
+	    KernelsRBC::merge_accelerations<<< (nvertices + 127) / 128, 128, 0, stream>>>(local[i].result.devptr + nvertices * j, nvertices,
 										accrbc + nvertices * haloreplica[i][j]);
 }
 
