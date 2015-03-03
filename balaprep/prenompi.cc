@@ -72,6 +72,7 @@ workxrank_t *reorder(int *ranks) {
     assert(retval == nvoxels);
 
     fclose(f);
+    return NULL;
   }
 
   locL[0]=roundf(sysL[0])/ranks[0]; locL[1]=roundf(sysL[1])/ranks[1]; locL[2]=roundf(sysL[2])/ranks[2];
@@ -204,30 +205,31 @@ double *findbalance(int nodes, int nranks, workxrank_t *allwxra, workxrank_t **p
 }
 
 
-#define MINARG 3
+#define MINARG 4
 int main(int argc, char ** argv) {
   int ranks[3];
   int granks[3];
   int iranks[3];
   int nodes, branks;
-  int tranks, num1;
+  int tranks, num1, minbsize=0;
   int oversubf=1;
 
   if (argc < MINARG)
     {
       fprintf(stderr,
-              "Usage: %s <nodes> <oversubscribefactor> [rankX rankY rankZ]\n",argv[0]);
+              "Usage: %s <nodes> <oversubscribefactor> <min boxsize> (0=any value) [rankX rankY rankZ]\n",argv[0]);
       exit(-1);
     }
   else {
     nodes=atoi(argv[1]);
     oversubf=atoi(argv[2]);
+    minbsize=atoi(argv[3]);
     tranks=nodes*oversubf;
   }
   if(argc>MINARG) {
     int checkranks=1;
     for(int i = 0; i < 3; ++i) {
-       iranks[i] = atoi(argv[3 + i]);
+       iranks[i] = atoi(argv[4 + i]);
        checkranks*=iranks[i];
     }
     if(checkranks!=tranks) {
@@ -252,6 +254,12 @@ int main(int argc, char ** argv) {
        gp2pwxra[i]=new workxrank_t[tranks/nodes];
   }
   branks=1;
+  { /* just read data and set sysL */
+    for(int i = 0; i < 3; ++i) {
+      ranks[i]=0;
+    }
+    reorder(ranks);
+  }
   for(int l = 1; l<=oversubf; l++) {
     tranks=nodes*l;
     for(int i = 1; i <= tranks; i++) {
@@ -262,9 +270,12 @@ int main(int argc, char ** argv) {
             ranks[0]=i;
             ranks[1]=j;
             ranks[2]=num1/j;
-            if(iranks[0]>0 && iranks[0]!=ranks[0]) continue;
-            if(iranks[1]>0 && iranks[1]!=ranks[1]) continue;
-            if(iranks[2]>0 && iranks[2]!=ranks[2]) continue;
+            if( (sysL[0]/ranks[0]<minbsize) ||
+                (iranks[0]>0 && iranks[0]!=ranks[0])) continue;
+            if((sysL[1]/ranks[1]<minbsize) ||
+               (iranks[1]>0 && iranks[1]!=ranks[1])) continue;
+            if((sysL[2]/ranks[2]<minbsize) ||
+               (iranks[2]>0 && iranks[2]!=ranks[2])) continue;
             workxrank_t *allwxra=reorder(ranks);
             if(allwxra==NULL) continue;
             double *work=findbalance(nodes,tranks,allwxra,p2pwxra);
