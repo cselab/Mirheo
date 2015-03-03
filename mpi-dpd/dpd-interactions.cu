@@ -60,6 +60,8 @@ ComputeInteractionsDPD::ComputeInteractionsDPD(MPI_Comm cartcomm):
 	    interrank_masks[i] = min(i, alter_ego) == i;
 	}
     }
+
+    CUDA_CHECK(cudaEventCreate(&evmerge, cudaEventDisableTiming));
 }
 
 void ComputeInteractionsDPD::spawn_local_work()
@@ -67,13 +69,14 @@ void ComputeInteractionsDPD::spawn_local_work()
     if (localwork.n > 0)
 	forces_dpd_cuda_nohost((float *)localwork.p, (float *)localwork.a, localwork.n, 
 			       localwork.cellsstart, localwork.cellscount,
-			       1, XSIZE_SUBDOMAIN, YSIZE_SUBDOMAIN, ZSIZE_SUBDOMAIN, aij, gammadpd, sigma, 1. / sqrt(dt), localwork.seed1);
+			       1, XSIZE_SUBDOMAIN, YSIZE_SUBDOMAIN, ZSIZE_SUBDOMAIN, aij, gammadpd, 
+			       sigma, 1. / sqrt(dt), localwork.seed1, localwork.stream);
 }
 
 void ComputeInteractionsDPD::evaluate(const Particle * const p, const int n, Acceleration * const a,
-				      const int * const cellsstart, const int * const cellscount)
+				      const int * const cellsstart, const int * const cellscount, cudaStream_t stream)
 {
-    localwork = LocalWorkParams(local_trunk.get_float(), p, n, a, cellsstart, cellscount); 
+    localwork = LocalWorkParams(local_trunk.get_float(), p, n, a, cellsstart, cellscount, stream); 
     
     HaloExchanger::pack_and_post(p, n, cellsstart, cellscount); //spawn local work will be called within this function
     
@@ -186,5 +189,8 @@ void ComputeInteractionsDPD::dpd_remote_interactions(const Particle * const p, c
 		(acc_remote[i].data, nd, a, n, sendhalos[i].dbuf.data, p, sendhalos[i].scattered_entries.data, myrank);
     }
    
+    CUDA_CHECK(cudaEventRecord(evmerge));
+    CUDA_CHECK(cudaEventSynchronize(evmerge));
+
     CUDA_CHECK(cudaPeekAtLastError());
 }

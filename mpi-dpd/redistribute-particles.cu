@@ -424,8 +424,6 @@ failure(1), packsizes(27), firstcall(true)
     RedistributeParticlesKernels::texAllParticles.filterMode = cudaFilterModePoint;
     RedistributeParticlesKernels::texAllParticles.mipmapFilterMode = cudaFilterModePoint;
     RedistributeParticlesKernels::texAllParticles.normalized = 0;
-    
-    CUDA_CHECK(cudaStreamCreate(&mystream));
 
     CUDA_CHECK(cudaEventCreate(&evpacking, cudaEventDisableTiming));
     CUDA_CHECK(cudaEventCreate(&evsizes, cudaEventDisableTiming));
@@ -514,7 +512,7 @@ void RedistributeParticles::_adjust_recv_buffers(const int requested_capacities[
     }
 }
 
-int RedistributeParticles::stage1(const Particle * const particles, const int nparticles)
+int RedistributeParticles::stage1(const Particle * const particles, const int nparticles, cudaStream_t mystream)
 {
     if (firstcall)
 	_post_recv();
@@ -626,7 +624,7 @@ pack_attempt:
     return nexpected;
 }
     
-void RedistributeParticles::stage2(Particle * const particles, const int nparticles)
+void RedistributeParticles::stage2(Particle * const particles, const int nparticles, cudaStream_t mystream)
 {
     assert(nparticles == nexpected);
     
@@ -660,8 +658,6 @@ void RedistributeParticles::stage2(Particle * const particles, const int npartic
     _post_recv();
     
     CUDA_CHECK(cudaPeekAtLastError());
-    
-    CUDA_CHECK(cudaStreamSynchronize(mystream));
 }
 
 RedistributeParticles::~RedistributeParticles()
@@ -684,7 +680,5 @@ RedistributeParticles::~RedistributeParticles()
 	else
 	    CUDA_CHECK(cudaFree(packbuffers[i].buffer));
     }
-
-    CUDA_CHECK(cudaStreamDestroy(mystream));
 }
 

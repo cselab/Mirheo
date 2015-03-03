@@ -505,8 +505,7 @@ ComputeInteractionsWall::ComputeInteractionsWall(MPI_Comm cartcomm, Particle* co
     }
     
     CUDA_CHECK(cudaPeekAtLastError());
-    CUDA_CHECK(cudaDeviceSynchronize());
-
+    
     cudaChannelFormatDesc fmt = cudaCreateChannelDesc<float>();
     CUDA_CHECK(cudaMalloc3DArray (&arrSDF, &fmt, make_cudaExtent(XTEXTURESIZE, YTEXTURESIZE, ZTEXTURESIZE)));
 
@@ -653,7 +652,7 @@ ComputeInteractionsWall::ComputeInteractionsWall(MPI_Comm cartcomm, Particle* co
 	SolidWallsKernel::zero_velocity<<< (solid_size + 127) / 128, 128>>>(solid, solid_size);
 
     if (solid_size > 0)
-	cells.build(solid, solid_size);
+	cells.build(solid, solid_size, 0);
 
     {
 	const int n = solid_local.size();
@@ -671,21 +670,21 @@ ComputeInteractionsWall::ComputeInteractionsWall(MPI_Comm cartcomm, Particle* co
     CUDA_CHECK(cudaPeekAtLastError());
 }
 
-void ComputeInteractionsWall::bounce(Particle * const p, const int n)
+void ComputeInteractionsWall::bounce(Particle * const p, const int n, cudaStream_t stream)
 {
     if (n > 0)
-	SolidWallsKernel::bounce<<< (n + 127) / 128, 128>>>(p, n, myrank, dt);
+	SolidWallsKernel::bounce<<< (n + 127) / 128, 128, 0, stream>>>(p, n, myrank, dt);
     
     CUDA_CHECK(cudaPeekAtLastError());
 }
 
 void ComputeInteractionsWall::interactions(const Particle * const p, const int n, Acceleration * const acc,
-			      const int * const cellsstart, const int * const cellscount)
+					   const int * const cellsstart, const int * const cellscount, cudaStream_t stream)
 {
     //cellsstart and cellscount IGNORED for now
     
     if (n > 0 && solid_size > 0)
-	SolidWallsKernel::interactions<<< (n + 127) / 128, 128>>>(p, n, acc, cells.start, cells.count,solid, solid_size, trunk.get_float(), aij, gammadpd, sigmaf);
+	SolidWallsKernel::interactions<<< (n + 127) / 128, 128, 0, stream>>>(p, n, acc, cells.start, cells.count,solid, solid_size, trunk.get_float(), aij, gammadpd, sigmaf);
 
     CUDA_CHECK(cudaPeekAtLastError());
 }

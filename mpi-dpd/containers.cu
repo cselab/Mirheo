@@ -108,17 +108,17 @@ ParticleArray::ParticleArray(vector<Particle> ic)
     CUDA_CHECK(cudaFuncSetCacheConfig(*upkernel, cudaFuncCachePreferL1));
 }
 
-void ParticleArray::update_stage1(const float driving_acceleration)
+void ParticleArray::update_stage1(const float driving_acceleration, cudaStream_t stream)
 {
     if (size)
-	ParticleKernels::update_stage1<<<(xyzuvw.size + 127) / 128, 128 >>>(
+	ParticleKernels::update_stage1<<<(xyzuvw.size + 127) / 128, 128, 0, stream>>>(
 	    xyzuvw.data, axayaz.data, xyzuvw.size, dt, driving_acceleration , false);
 }
 
-void  ParticleArray::update_stage2_and_1(const float driving_acceleration)
+void  ParticleArray::update_stage2_and_1(const float driving_acceleration, cudaStream_t stream)
 {
     if (size)
-	ParticleKernels::update_stage2_and_1<<<(xyzuvw.size * 3 + 127) / 128, 128 >>>
+	ParticleKernels::update_stage2_and_1<<<(xyzuvw.size * 3 + 127) / 128, 128, 0, stream>>>
 	    (xyzuvw.data, axayaz.data, xyzuvw.size, dt, driving_acceleration);
 }
 

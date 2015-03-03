@@ -256,7 +256,7 @@ CellLists(const int LX, const int LY, const int LZ): ncells(LX * LY * LZ), LX(LX
 	    CUDA_CHECK(cudaMalloc(&count, sizeof(int) * ncells));
 	}
 
-    void build(Particle * const p, const int n);
+    void build(Particle * const p, const int n, cudaStream_t stream);
 	    	    
     ~CellLists()
 	{

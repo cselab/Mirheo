@@ -19,19 +19,19 @@ protected:
 
     int nvertices, arriving, notleaving;
 
+    cudaEvent_t evextents;
+
     PinnedHostBuffer<CudaRBC::Extent> extents;
 
-    virtual void _compute_extents(const Particle * const xyzuvw, const int nrbcs);
+    virtual void _compute_extents(const Particle * const xyzuvw, const int nrbcs, cudaStream_t stream);
     
 public:
-
-    cudaStream_t stream;
     
     RedistributeRBCs(MPI_Comm comm);
         
-    int stage1(const Particle * const xyzuvw, const int nrbcs);
+    int stage1(const Particle * const xyzuvw, const int nrbcs, cudaStream_t stream);
     
-    void stage2(Particle * const xyzuvw, const int nrbcs);
+    void stage2(Particle * const xyzuvw, const int nrbcs, cudaStream_t stream);
 
     ~RedistributeRBCs();
 };

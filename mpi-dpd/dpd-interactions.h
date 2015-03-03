@@ -72,12 +72,13 @@ class ComputeInteractionsDPD : public HaloExchanger
 	Acceleration *  a;
 	const int *  cellsstart;
 	const int *  cellscount;
+	cudaStream_t stream;
 
-    LocalWorkParams(): seed1(-1), p(NULL), n(0), a(NULL), cellsstart(NULL), cellscount(NULL) {}
+    LocalWorkParams(): seed1(-1), p(NULL), n(0), a(NULL), cellsstart(NULL), cellscount(NULL), stream(0) {}
 
     LocalWorkParams(const float seed1, const Particle * const p, const int n, Acceleration * const a,
-		    const int * const cellsstart, const int * const cellscount):
-	seed1(seed1), p(p), n(n), a(a), cellsstart(cellsstart), cellscount(cellscount) { }
+		    const int * const cellsstart, const int * const cellscount, cudaStream_t stream):
+	seed1(seed1), p(p), n(n), a(a), cellsstart(cellsstart), cellscount(cellscount), stream(stream) { }
 	
     } localwork;
             
@@ -94,11 +95,13 @@ class ComputeInteractionsDPD : public HaloExchanger
     void dpd_remote_interactions(const Particle * const p, const int n, Acceleration * const a);
 
     void spawn_local_work();
+
+    cudaEvent_t evmerge;
     
 public:
     
     ComputeInteractionsDPD(MPI_Comm cartcomm);
 
     void evaluate(const Particle * const p, int n, Acceleration * const a,
-		  const int * const cellsstart, const int * const cellscount);
+		  const int * const cellsstart, const int * const cellscount, cudaStream_t stream);
 };

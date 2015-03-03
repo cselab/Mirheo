@@ -19,7 +19,7 @@ void forces_dpd_cuda_nohost(const float * const _xyzuvw, float * const _axayaz, 
 			    const float sigma,
 			    const float invsqrtdt,
 			    const float seed1,
-			    cudaStream_t stream = 0);		  
+			    cudaStream_t stream);		  
 
 void forces_dpd_cuda(const float * const xp, const float * const yp, const float * const zp,
 		     const float * const xv, const float * const yv, const float * const zv,
