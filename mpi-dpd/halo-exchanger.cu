@@ -28,14 +28,15 @@ HaloExchanger::HaloExchanger(MPI_Comm _cartcomm, const int basetag):  basetag(ba
 	    coordsneighbor[c] = coords[c] + d[c];
 
 	MPI_CHECK( MPI_Cart_rank(cartcomm, coordsneighbor, dstranks + i) );
-
+ 
 	halosize[i].x = d[0] != 0 ? 1 : XSIZE_SUBDOMAIN;
 	halosize[i].y = d[1] != 0 ? 1 : YSIZE_SUBDOMAIN;
 	halosize[i].z = d[2] != 0 ? 1 : ZSIZE_SUBDOMAIN; 
 	
 	const int nhalocells = halosize[i].x * halosize[i].y * halosize[i].z;
 
-	int estimate = 6 * nhalocells;
+	const float safety_factor = getenv("HEX_COMM_FACTOR") ? atof(getenv("HEX_COMM_FACTOR")) : 1.2;
+	int estimate = numberdensity * safety_factor * nhalocells;
 	estimate = 32 * ((estimate + 31) / 32);
 
 	recvhalos[i].setup(estimate, nhalocells);
@@ -317,7 +318,7 @@ void HaloExchanger::pack_and_post(const Particle * const p, const int n, const i
     {
 	MPI_Status statuses[26 * 2];
 
-	MPI_CHECK( MPI_Waitall(nextrasendreq, extrasendreq, statuses) );
+	MPI_CHECK( MPI_Waitall(nsendreq, sendreq, statuses) );
 	MPI_CHECK( MPI_Waitall(26, sendcountreq, statuses) );
     }
       
@@ -400,25 +401,27 @@ void HaloExchanger::pack_and_post(const Particle * const p, const int n, const i
     for(int i = 0; i < 26; ++i)
 	MPI_CHECK( MPI_Isend(&sendhalos[i].hbuf.size, 1, MPI_INTEGER, dstranks[i], basetag +  i + 150, cartcomm, sendcountreq + i) );
 
-    nextrasendreq = 0;
+    nsendreq = 0;
     
     for(int i = 0; i < 26; ++i)
     {
 	const int count = sendhalos[i].hbuf.size;
 	const int expected = sendhalos[i].expected;
 	
-	MPI_CHECK( MPI_Send(sendhalos[i].hbuf.data, expected, Particle::datatype(), dstranks[i], 
-			    basetag +  i, cartcomm) );
+	MPI_CHECK( MPI_Isend(sendhalos[i].hbuf.data, expected, Particle::datatype(), dstranks[i], 
+			     basetag +  i, cartcomm, sendreq + nsendreq) );
 	
+	++nsendreq;
+
 	if (count > expected)
 	{
 	    const int difference = count - expected;
 	    printf("extra message from rank %d to rank %d! difference %d\n", myrank, dstranks[i], difference);
 	    
 	    MPI_CHECK( MPI_Isend(sendhalos[i].hbuf.data + expected, difference, Particle::datatype(), dstranks[i], 
-				 basetag + i + 555, cartcomm, extrasendreq + nextrasendreq) );
+				 basetag + i + 555, cartcomm, sendreq + nsendreq) );
 
-	    ++nextrasendreq;
+	    ++nsendreq;
 	}
     }
 

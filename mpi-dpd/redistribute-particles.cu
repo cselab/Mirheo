@@ -394,7 +394,8 @@ failure(1), packsizes(27), firstcall(true)
 	    };
 
 	const int nhalocells = nhalodir[0] * nhalodir[1] * nhalodir[2];
-	const int estimate = 3 * 2 * nhalocells;
+	const float safety_factor = getenv("RDP_COMM_FACTOR") ? atof(getenv("RDP_COMM_FACTOR")) : 1.2;
+	const int estimate = numberdensity * safety_factor * nhalocells;
 	
 	CUDA_CHECK(cudaMalloc(&packbuffers[i].scattered_indices, sizeof(int) * estimate));
 	

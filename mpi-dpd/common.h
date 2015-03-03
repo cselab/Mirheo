@@ -9,6 +9,7 @@ enum {
     ZMARGIN_WALL = 0,
 };
 
+const int numberdensity = 4;
 const float dt = 0.001;
 const float tend = 50;
 const float kBT = 0.0945;
@@ -26,6 +27,7 @@ const bool hdf5field_dumps = false;
 const bool hdf5part_dumps = false;
 const int steps_per_report = 1000;
 const int steps_per_dump = 1000;
+
 
 #include <cstdlib>
 #include <cstdio>
