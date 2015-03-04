@@ -2,6 +2,7 @@
 
 #include <mpi.h>
 
+#include <../dpd-rng.h>
 #include "common.h"
 
 namespace SolidWallsKernel
@@ -13,6 +14,8 @@ class ComputeInteractionsWall
 {
     MPI_Comm cartcomm;
     int myrank, dims[3], periods[3], coords[3];
+ 
+    Logistic::KISS trunk;
     
     int solid_size;
     Particle * solid;
@@ -27,8 +30,8 @@ public:
 
     ~ComputeInteractionsWall();
      
-    void bounce(Particle * const p, const int n);
+    void bounce(Particle * const p, const int n, cudaStream_t stream);
 
     void interactions(const Particle * const p, const int n, Acceleration * const acc,
-		      const int * const cellsstart, const int * const cellscount, int& saru_tag);
+		      const int * const cellsstart, const int * const cellscount, cudaStream_t stream);
 };

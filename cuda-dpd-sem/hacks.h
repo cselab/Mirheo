@@ -1,5 +1,6 @@
 #pragma once
 #include <unistd.h>
+#include <cstdio>
 
 #ifndef CUDA_CHECK
 #define CUDA_CHECK(ans) do { cudaAssert((ans), __FILE__, __LINE__); } while(0)

@@ -1,7 +1,7 @@
 #include <cstdio>
 #include <cassert>
 
-#include "../saru.cuh"
+#include "../dpd-rng.h"
 
 struct InfoDPD
 {
@@ -9,7 +9,7 @@ struct InfoDPD
     float3 domainsize, invdomainsize, domainstart;
     float invrc, aij, gamma, sigmaf;
     float * axayaz;
-    int idtimestep;
+    float seed;
 };
 
 __constant__ InfoDPD info;
@@ -62,9 +62,8 @@ __device__ float3 _dpd_interaction(const int dpid, const float3 xdest, const flo
 	xr * (udest.x - stmp1.y) +
 	yr * (udest.y - stmp2.x) +
 	zr * (udest.z - stmp2.y);
-    
-    const float mysaru = saru(min(spid, dpid), max(spid, dpid), info.idtimestep);
-    const float myrandnr = 3.464101615f * mysaru - 1.732050807f;
+
+    const float myrandnr = Logistic::mean0var1(info.seed, min(spid, dpid), max(spid, dpid));
     
     const float strength = info.aij * argwr - (info.gamma * wr * rdotv + info.sigmaf * myrandnr) * wr;
     
@@ -226,12 +225,10 @@ __device__ void core_ilp(const int nsrc, const int * const scan, const int * con
 }
 
 __global__ __launch_bounds__(32 * CPB, 16) 
-void _dpd_forces_saru()
+void _dpd_forces()
 {
-    assert(warpSize == COLS * ROWS);
     assert(blockDim.x == warpSize && blockDim.y == CPB && blockDim.z == 1);
-    assert(ROWS * 3 <= warpSize);
-
+    
     const int tid = threadIdx.x;
     const int wid = threadIdx.y;
 
@@ -291,7 +288,7 @@ void _dpd_forces_saru()
 
 #else
 __global__ __launch_bounds__(32 * CPB, 16) 
-    void _dpd_forces_saru()
+    void _dpd_forces()
 {
     const int COLS = 32;
     const int ROWS = 1;
@@ -412,9 +409,8 @@ __global__ __launch_bounds__(32 * CPB, 16)
 		    yr * (dtmp2.x - stmp2.x) +
 		    zr * (dtmp2.y - stmp2.y);
 		  
-		const float mysaru = saru(min(spid, dpid), max(spid, dpid), info.idtimestep);
-		const float myrandnr = 3.464101615f * mysaru - 1.732050807f;
-		 
+		const float myrandnr = Logistic::mean0var1(info.seed, min(spid, dpid), max(spid, dpid));
+
 		const float strength = info.aij * argwr - (info.gamma * wr * rdotv + info.sigmaf * myrandnr) * wr;
 		const bool valid = (dpid != spid) && (slot < np1) && (subtid < np2);
 		
@@ -453,7 +449,7 @@ __global__ __launch_bounds__(32 * CPB, 16)
 
 #ifdef _INSPECT_
 __global__ __launch_bounds__(32 * CPB, 8) 
-    void inspect_dpd_forces_saru(const int COLS, const int ROWS, const int nparticles, int2 * const entries, const int nentries)
+    void inspect_dpd_forces(const int COLS, const int ROWS, const int nparticles, int2 * const entries, const int nentries)
 {
     assert(nentries = COLS * nparticles);
     assert(warpSize == COLS * ROWS);
@@ -565,7 +561,7 @@ void forces_dpd_cuda_nohost(const float * const xyzuvw, float * const axayaz,  c
 			    const float gamma,
 			    const float sigma,
 			    const float invsqrtdt,
-			    const int saru_tag, cudaStream_t stream)
+			    const float seed, cudaStream_t stream)
 {
     if (np == 0)
     {
@@ -595,7 +591,7 @@ void forces_dpd_cuda_nohost(const float * const xyzuvw, float * const axayaz,  c
 	texParticles2.mipmapFilterMode = cudaFilterModePoint;
 	texParticles2.normalized = 0;
 
-	void (*dpdkernel)() =  _dpd_forces_saru;
+	void (*dpdkernel)() =  _dpd_forces;
 
 	CUDA_CHECK(cudaFuncSetCacheConfig(*dpdkernel, cudaFuncCachePreferL1));
 
@@ -624,7 +620,7 @@ void forces_dpd_cuda_nohost(const float * const xyzuvw, float * const axayaz,  c
     c.gamma = gamma;
     c.sigmaf = sigma * invsqrtdt;
     c.axayaz = axayaz;
-    c.idtimestep = saru_tag;
+    c.seed = seed;
       
     CUDA_CHECK(cudaMemcpyToSymbolAsync(info, &c, sizeof(c), 0, cudaMemcpyHostToDevice, stream));
    
@@ -648,7 +644,7 @@ void forces_dpd_cuda_nohost(const float * const xyzuvw, float * const axayaz,  c
 	    int * devptr;
 	    CUDA_CHECK(cudaHostGetDevicePointer(&devptr, data, 0));
 
-	    inspect_dpd_forces_saru<<<dim3(c.ncells.x / _XCPB_, c.ncells.y / _YCPB_, c.ncells.z / _ZCPB_), dim3(32, CPB), 0, stream>>>
+	    inspect_dpd_forces<<<dim3(c.ncells.x / _XCPB_, c.ncells.y / _YCPB_, c.ncells.z / _ZCPB_), dim3(32, CPB), 0, stream>>>
 		(COLS, ROWS, np, data, nentries);
 
 	    CUDA_CHECK(cudaDeviceSynchronize());
@@ -686,7 +682,7 @@ void forces_dpd_cuda_nohost(const float * const xyzuvw, float * const axayaz,  c
     if (cetriolo % 500 == 0)
 	CUDA_CHECK(cudaEventRecord(evstart));
 #endif
-    _dpd_forces_saru<<<dim3(c.ncells.x / _XCPB_,
+    _dpd_forces<<<dim3(c.ncells.x / _XCPB_,
 			    c.ncells.y / _YCPB_,
 			    c.ncells.z / _ZCPB_), dim3(32, CPB), 0, stream>>>();
 
@@ -708,14 +704,7 @@ void forces_dpd_cuda_nohost(const float * const xyzuvw, float * const axayaz,  c
 #include <cmath>
 #include <unistd.h>
 
-//#include <thrust/device_vector.h>
-//using namespace thrust;
-
-#include "../profiler-dpd.h"
 #include "../cell-lists.h"
-
-
-
 
 int fdpd_oldnp = 0, fdpd_oldnc = 0;
 
@@ -730,7 +719,7 @@ void forces_dpd_cuda_aos(float * const _xyzuvw, float * const _axayaz,
 		     const float gamma,
 		     const float sigma,
 		     const float invsqrtdt,
-			 const int saru_tag,
+			 const float seed,
 			 const bool nohost)
 {
     if (np == 0)
@@ -811,7 +800,7 @@ void forces_dpd_cuda_aos(float * const _xyzuvw, float * const _axayaz,
     c.gamma = gamma;
     c.sigmaf = sigma * invsqrtdt;
     c.axayaz = fdpd_axayaz;
-    c.idtimestep = saru_tag;
+    c.seed = seed;
 
     build_clists(fdpd_xyzuvw, np, rc, c.ncells.x, c.ncells.y, c.ncells.z,
 		 c.domainstart.x, c.domainstart.y, c.domainstart.z,
@@ -822,21 +811,12 @@ void forces_dpd_cuda_aos(float * const _xyzuvw, float * const _axayaz,
     
     CUDA_CHECK(cudaMemcpyToSymbolAsync(info, &c, sizeof(c), 0));
    
-    ProfilerDPD::singletone().start();
-
-    if (saru_tag >= 0)
-	saru_tid = saru_tag;
-    
-    _dpd_forces_saru<<<dim3(c.ncells.x / _XCPB_,
+    _dpd_forces<<<dim3(c.ncells.x / _XCPB_,
 			    c.ncells.y / _YCPB_,
 			    c.ncells.z / _ZCPB_), dim3(32, CPB)>>>();
  
-    ++saru_tid;
-
     CUDA_CHECK(cudaPeekAtLastError());
 	
-    ProfilerDPD::singletone().force();
-    
 //copy xyzuvw as well?!?
     if (nohost)
     {
@@ -846,10 +826,6 @@ void forces_dpd_cuda_aos(float * const _xyzuvw, float * const _axayaz,
     else
 	CUDA_CHECK(cudaMemcpy(_axayaz, fdpd_axayaz, sizeof(float) * 3 * np, cudaMemcpyDeviceToHost));
 
-    ProfilerDPD::singletone().report();
-
-    //copy(axayaz.begin(), axayaz.end(), _axayaz);
-     
 #ifdef _CHECK_
     CUDA_CHECK(cudaThreadSynchronize());
     
@@ -900,6 +876,7 @@ void forces_dpd_cuda_aos(float * const _xyzuvw, float * const _axayaz,
 #endif
 }
 
+
 int * fdpd_order = NULL;
 float * fdpd_pv = NULL, *fdpd_a = NULL;
 
@@ -913,7 +890,7 @@ void forces_dpd_cuda(const float * const xp, const float * const yp, const float
 		     const float gamma,
 		     const float sigma,
 		     const float invsqrtdt,
-		     const int input_saru_tag)
+		     const float seed)
 {
     if (np <= 0) return;
 
@@ -945,7 +922,7 @@ void forces_dpd_cuda(const float * const xp, const float * const yp, const float
     }
 
     forces_dpd_cuda_aos(fdpd_pv, fdpd_a, fdpd_order, np, rc, LX, LY, LZ,
-			aij, gamma, sigma, invsqrtdt, input_saru_tag, false);
+			aij, gamma, sigma, invsqrtdt, seed, false);
     
     //delete [] pv;
      

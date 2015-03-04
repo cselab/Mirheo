@@ -6,6 +6,11 @@ ifeq "$(nonperiodic)" "1"
     NVCCFLAGS += -D_NONPERIODIC_KERNEL_
 endif
 
+ifeq "$(MAKECMDGOALS)" "libcuda-dpd.so"
+CXXFLAGS += -fPIC
+NVCCFLAGS += -Xcompiler -fpic
+endif
+
 NVCCFLAGS += -DVISCOSITY_S_LEVEL=$(slevel)
 
 .DEFAULT_GOAL = test-dpd

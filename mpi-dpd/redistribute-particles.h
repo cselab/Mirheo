@@ -21,9 +21,9 @@ public:
 	int * scattered_indices;
     };
 
-    int stage1(const Particle * const p, const int n);
+    int stage1(const Particle * const p, const int n, cudaStream_t stream);
 
-    void stage2(Particle * const particles, const int nparticles);
+    void stage2(Particle * const particles, const int nparticles, cudaStream_t);
    
     RedistributeParticles(MPI_Comm cartcomm);
    
@@ -33,8 +33,6 @@ public:
    
     float pinned_data(const int code, const int entry) { return pinnedhost_sendbufs[code][entry]; }
    
-    cudaStream_t mystream;
-
 private:
 
     MPI_Comm cartcomm;
