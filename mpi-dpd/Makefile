@@ -38,8 +38,8 @@ slevel ?= 0
 
 NVCCFLAGS += -DVISCOSITY_S_LEVEL=$(slevel)
 
-inquire: $(shell [ `cat slevel.txt` == "$(slevel)" ] || { echo "cleanall" ; } )
-	$(shell echo "$(slevel)" > slevel.txt )
+inquire: $(bash [ `cat slevel.txt` == "$(slevel)" ] || { echo "cleanall" ; } )
+	$(bash echo "$(slevel)" > slevel.txt )
 	$(MAKE) $(MFLAGS) test
 
 test:  $(OBJS) libcuda-dpd libcuda-rbc libcuda-ctc
