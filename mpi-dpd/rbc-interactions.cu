@@ -226,6 +226,7 @@ ComputeInteractionsRBC::ComputeInteractionsRBC(MPI_Comm _cartcomm): nvertices(Cu
     KernelsRBC::ParamsFSI params = {aij, gammadpd, sigmaf};
     
     CUDA_CHECK(cudaMemcpyToSymbol(KernelsRBC::params, &params, sizeof(KernelsRBC::ParamsFSI)));
+    
     CUDA_CHECK(cudaEventCreate(&evextents, cudaEventDisableTiming));
     CUDA_CHECK(cudaEventCreate(&evfsi, cudaEventDisableTiming));
 }
@@ -398,5 +399,8 @@ void ComputeInteractionsRBC::evaluate(const Particle * const solvent, const int 
 ComputeInteractionsRBC::~ComputeInteractionsRBC()
 {
     MPI_CHECK(MPI_Comm_free(&cartcomm));
+
+    CUDA_CHECK(cudaEventDestroy(evextents));
+    CUDA_CHECK(cudaEventDestroy(evfsi));
 }
 

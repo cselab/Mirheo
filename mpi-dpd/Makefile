@@ -22,6 +22,12 @@ OBJS = 	dpd-interactions.o \
 
 LIBS = -lcuda-dpd -lcuda-rbc -lcuda-ctc -lcudart 
 
+nvtx ?= 0
+ifneq "$(nvtx)" "0"
+LIBS += -lnvToolsExt
+NVCCFLAGS += -D_USE_NVTX_
+endif
+
 ifneq "$(h5part)" "0"
 LIBS += -L$(HDF5_DIR)/lib -lhdf5 -L/scratch/daint/diegor/h5part/lib/ -lH5Part
 else

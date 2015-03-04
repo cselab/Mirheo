@@ -680,6 +680,8 @@ ComputeInteractionsWall::ComputeInteractionsWall(MPI_Comm cartcomm, Particle* co
 
 void ComputeInteractionsWall::bounce(Particle * const p, const int n, cudaStream_t stream)
 {
+    NVTX_RANGE("WALL/bounce", NVTX_C3)
+	
     if (n > 0)
 	SolidWallsKernel::bounce<<< (n + 127) / 128, 128, 0, stream>>>(p, n, myrank, dt);
     
@@ -689,10 +691,17 @@ void ComputeInteractionsWall::bounce(Particle * const p, const int n, cudaStream
 void ComputeInteractionsWall::interactions(const Particle * const p, const int n, Acceleration * const acc,
 					   const int * const cellsstart, const int * const cellscount, cudaStream_t stream)
 {
+    NVTX_RANGE("WALL/interactions", NVTX_C3)
     //cellsstart and cellscount IGNORED for now
     
-    if (n > 0 && solid_size > 0)
-	SolidWallsKernel::interactions<<< (n + 127) / 128, 128, 0, stream>>>(p, n, acc, cells.start, cells.count,solid, solid_size, trunk.get_float(), aij, gammadpd, sigmaf);
+	if (n > 0 && solid_size > 0)
+	{
+	    //texDC.acquire(cellsstart, XSIZE_SUBDOMAIN * YSIZE_SUBDOMAIN * ZSIZE_SUBDOMAIN);
+	    //texSC.acquire(cells.start, cells.ncells);
+	    //texSP.acquire(solid, solid_size);
+	    
+	    SolidWallsKernel::interactions<<< (n + 127) / 128, 128, 0, stream>>>(p, n, acc, cells.start, cells.count, solid, solid_size, trunk.get_float(), aij, gammadpd, sigmaf);
+	}
 
     CUDA_CHECK(cudaPeekAtLastError());
 }

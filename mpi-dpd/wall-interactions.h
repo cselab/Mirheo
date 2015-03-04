@@ -23,6 +23,8 @@ class ComputeInteractionsWall
     cudaArray * arrSDF;
 
     CellLists cells;
+
+    HookedTexture texDC, texSC, texSP;
     
 public:
 

@@ -1,10 +1,10 @@
 #pragma once
 
 enum { 
-    XSIZE_SUBDOMAIN = 48, 
-    YSIZE_SUBDOMAIN = 48, 
-    ZSIZE_SUBDOMAIN = 48,
-    XMARGIN_WALL = 24,
+    XSIZE_SUBDOMAIN = 144, 
+    YSIZE_SUBDOMAIN = 32, 
+    ZSIZE_SUBDOMAIN = 32,
+    XMARGIN_WALL = 16,
     YMARGIN_WALL = 0,
     ZMARGIN_WALL = 0,
 };
@@ -18,7 +18,7 @@ const float sigma = sqrt(2 * gammadpd * kBT);
 const float sigmaf = sigma / sqrt(dt);
 const float aij = 2.5;
 const float hydrostatic_a = 0.05;
-const bool walls = false;
+const bool walls = true;
 const bool pushtheflow = false;
 const bool rbcs = false;
 const bool ctcs = false;
@@ -27,6 +27,8 @@ const bool hdf5field_dumps = false;
 const bool hdf5part_dumps = false;
 const int steps_per_report = 1000;
 const int steps_per_dump = 1000;
+
+extern bool currently_profiling;
 
 
 #include <cstdlib>
@@ -47,6 +49,52 @@ inline void cudaAssert(cudaError_t code, const char *file, int line)
 	abort();
     }
 }
+
+#ifdef _USE_NVTX_
+
+#include <nvToolsExt.h>
+enum NVTX_COLORS
+{
+    NVTX_C1 = 0x0000ff00,
+    NVTX_C2 = 0x000000ff,
+    NVTX_C3 = 0x00ffff00,
+    NVTX_C4 = 0x00ff00ff,
+    NVTX_C5 = 0x0000ffff,
+    NVTX_C6 = 0x00ff0000,
+    NVTX_C7 = 0x00ffffff
+};
+
+class NvtxTracer
+{
+    bool active;
+public:
+NvtxTracer(const char* name, NVTX_COLORS color = NVTX_C1): active(false)
+    {
+	if (currently_profiling)
+	{
+	    active = true;
+
+	    nvtxEventAttributes_t eventAttrib = {0};
+	    eventAttrib.version = NVTX_VERSION;
+	    eventAttrib.size = NVTX_EVENT_ATTRIB_STRUCT_SIZE;
+	    eventAttrib.colorType = NVTX_COLOR_ARGB;
+	    eventAttrib.color = color;
+	    eventAttrib.messageType = NVTX_MESSAGE_TYPE_ASCII;
+	    eventAttrib.message.ascii = name;
+	    nvtxRangePushEx(&eventAttrib);	    
+	}
+    }
+    
+    ~NvtxTracer()
+    {
+	if (active) nvtxRangePop();
+    }
+};
+
+#define NVTX_RANGE(arg...) NvtxTracer uniq_name_using_macros(arg);
+#else
+#define NVTX_RANGE(arg...)
+#endif
 
 #include <mpi.h>
 
@@ -238,6 +286,56 @@ PinnedHostBuffer(int n = 0): capacity(0), size(0), data(NULL), devptr(NULL) { re
 
 	    CUDA_CHECK(cudaHostGetDevicePointer(&devptr, data, 0));
 	}
+};
+
+class HookedTexture
+{
+    std::pair< void *, int> registered;
+    
+    template<typename T>  void _create(T * data, const int n)
+    {
+	struct cudaResourceDesc resDesc;
+	memset(&resDesc, 0, sizeof(resDesc));
+	resDesc.resType = cudaResourceTypeLinear;
+	resDesc.res.linear.devPtr = (void *)data;
+	resDesc.res.linear.sizeInBytes = n * sizeof(T);
+	resDesc.res.linear.desc = cudaCreateChannelDesc<T>();
+		
+	struct cudaTextureDesc texDesc;
+	memset(&texDesc, 0, sizeof(texDesc));
+	texDesc.addressMode[0]   = cudaAddressModeWrap;
+	texDesc.addressMode[1]   = cudaAddressModeWrap;
+	texDesc.filterMode       = cudaFilterModePoint;
+	texDesc.readMode         = cudaReadModeElementType;
+	texDesc.normalizedCoords = 0;
+		
+	CUDA_CHECK(cudaCreateTextureObject(&texObj, &resDesc, &texDesc, NULL));
+    }
+	
+    void _discard()	{  if (texObj != 0)CUDA_CHECK(cudaDestroyTextureObject(texObj)); }
+	    
+public:
+	
+    cudaTextureObject_t texObj;
+	
+HookedTexture(): texObj(0) { }
+
+    template<typename T>
+	cudaTextureObject_t acquire(T * data, const int n)
+    {
+	std::pair< void *, int> target = std::make_pair(data, n);
+
+	if (target != registered)
+	{
+	    _discard();
+	    _create(data, n);
+	    registered = target;
+	}
+
+	return texObj;
+    }
+	
+    ~HookedTexture() { _discard(); }
 };
 
 #include <cuda-dpd.h>

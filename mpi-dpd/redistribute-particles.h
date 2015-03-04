@@ -45,7 +45,7 @@ private:
 
     MPI_Request sendcountreq[27], recvcountreq[27], sendmsgreq[27 * 2], recvmsgreq[27 * 2];
 
-    cudaEvent_t evpacking, evsizes, evcompaction;
+    cudaEvent_t evpacking, evsizes; //, evcompaction;
 
     void _waitall(MPI_Request * reqs, const int n)
     {

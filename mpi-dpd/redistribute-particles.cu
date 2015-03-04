@@ -428,7 +428,7 @@ failure(1), packsizes(27), firstcall(true)
 
     CUDA_CHECK(cudaEventCreate(&evpacking, cudaEventDisableTiming));
     CUDA_CHECK(cudaEventCreate(&evsizes, cudaEventDisableTiming));
-    CUDA_CHECK(cudaEventCreate(&evcompaction, cudaEventDisableTiming));
+    //CUDA_CHECK(cudaEventCreate(&evcompaction, cudaEventDisableTiming));
 }
 
 void RedistributeParticles::_post_recv()
@@ -515,6 +515,8 @@ void RedistributeParticles::_adjust_recv_buffers(const int requested_capacities[
 
 int RedistributeParticles::stage1(const Particle * const particles, const int nparticles, cudaStream_t mystream)
 {
+    NVTX_RANGE("RDP/stage1");
+    
     if (firstcall)
 	_post_recv();
       
@@ -566,7 +568,7 @@ pack_attempt:
     enum { BS = 128, ILP = 2 };
     RedistributeParticlesKernels::recompact_bulk<BS, ILP><<< (nparticles + BS - 1) / BS, BS, 0, mystream>>>(nparticles);
 
-    CUDA_CHECK(cudaEventRecord(evcompaction));
+    //CUDA_CHECK(cudaEventRecord(evcompaction));
 
     if (!firstcall)
 	_waitall(sendcountreq + 1, 26);
@@ -618,7 +620,7 @@ pack_attempt:
 
     nhalo = nexpected - nbulk;
     
-    CUDA_CHECK(cudaEventSynchronize(evcompaction));
+    //CUDA_CHECK(cudaEventSynchronize(evcompaction));
 
     firstcall = false;
     
@@ -627,6 +629,8 @@ pack_attempt:
     
 void RedistributeParticles::stage2(Particle * const particles, const int nparticles, cudaStream_t mystream)
 {
+    NVTX_RANGE("RDP/stage2");
+    
     assert(nparticles == nexpected);
     
     _waitall(recvmsgreq + 1, 26);
@@ -663,6 +667,9 @@ void RedistributeParticles::stage2(Particle * const particles, const int npartic
 
 RedistributeParticles::~RedistributeParticles()
 {
+    CUDA_CHECK(cudaEventDestroy(evpacking));
+    CUDA_CHECK(cudaEventDestroy(evsizes));
+      
     if (!firstcall)
     {
 	for(int i = 1; i < 27; ++i)

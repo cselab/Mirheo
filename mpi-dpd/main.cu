@@ -8,6 +8,8 @@
 #include <vector>
 #include <map>
 
+#include <cuda_profiler_api.h>
+
 #include "common.h"
 #include "io.h"
 #include "containers.h"
@@ -19,6 +21,7 @@
 
 #include "ctc.h"
 
+bool currently_profiling = false;
 static const int blocksignal = false;
 
 volatile sig_atomic_t graceful_exit = 0, graceful_signum = 0;
@@ -152,6 +155,22 @@ int main(int argc, char ** argv)
 
 	    for(it = 0; it < nsteps; ++it)
 	    {
+#ifdef _USE_NVTX_
+		if (it == 7000)
+		{
+		    currently_profiling = true;
+		    CUDA_CHECK(cudaProfilerStart());
+		    
+		}
+		else if (it == 7050)
+		{
+		    CUDA_CHECK(cudaProfilerStop());
+		    currently_profiling = false;
+		    CUDA_CHECK(cudaDeviceSynchronize());
+		    break;
+		}
+#endif
+				
 		if (it % steps_per_report == 0)
 		{ 
 		    CUDA_CHECK(cudaStreamSynchronize(mainstream));
@@ -398,6 +417,7 @@ int main(int argc, char ** argv)
 
 		if (it % steps_per_dump == 0)
 		{
+		    NVTX_RANGE("data-dump");
 		    CUDA_CHECK(cudaStreamSynchronize(mainstream));
 
 		    tstart = MPI_Wtime();

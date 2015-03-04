@@ -60,12 +60,15 @@ ComputeInteractionsDPD::ComputeInteractionsDPD(MPI_Comm cartcomm):
 	    interrank_masks[i] = min(i, alter_ego) == i;
 	}
     }
+    
     CUDA_CHECK(cudaEventCreate(&evmerge, cudaEventDisableTiming));
 }
 
 
 void ComputeInteractionsDPD::spawn_local_work()
 {
+    NVTX_RANGE("DPD/bulk", NVTX_C5)
+	
     if (localwork.n > 0)
 	forces_dpd_cuda_nohost((float *)localwork.p, (float *)localwork.a, localwork.n, 
 			       localwork.cellsstart, localwork.cellscount,
@@ -132,12 +135,12 @@ namespace RemoteDPD
 
 void ComputeInteractionsDPD::dpd_remote_interactions(const Particle * const p, const int n, Acceleration * const a)
 {
-    CUDA_CHECK(cudaPeekAtLastError());
-
     wait_for_messages();
-
+    
     CUDA_CHECK(cudaPeekAtLastError());
-
+        
+    NVTX_RANGE("DPD/bipartite", NVTX_C3)
+	
     for(int i = 0; i < 26; ++i)
     {
 	const float interrank_seed = interrank_trunks[i].get_float();
@@ -196,4 +199,9 @@ void ComputeInteractionsDPD::dpd_remote_interactions(const Particle * const p, c
     CUDA_CHECK(cudaEventSynchronize(evmerge));
    
     CUDA_CHECK(cudaPeekAtLastError());
+}
+
+ComputeInteractionsDPD::~ComputeInteractionsDPD()
+{
+    CUDA_CHECK(cudaEventDestroy(evmerge));
 }
