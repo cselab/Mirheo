@@ -5,7 +5,7 @@
  
 using namespace std;
 
-HaloExchanger::HaloExchanger(MPI_Comm _cartcomm, const int basetag):  basetag(basetag), firstpost(true)
+HaloExchanger::HaloExchanger(MPI_Comm _cartcomm, const int basetag):  basetag(basetag), firstpost(true), nactive(26)
 {
     safety_factor = getenv("HEX_COMM_FACTOR") ? atof(getenv("HEX_COMM_FACTOR")) : 1.2;
 
@@ -322,9 +322,9 @@ void HaloExchanger::pack_and_post(const Particle * const p, const int n, const i
 	else
 	{
 	    MPI_Status statuses[26 * 2];
-	    MPI_CHECK( MPI_Waitall(26, sendcellsreq, statuses) );
+	    MPI_CHECK( MPI_Waitall(nactive, sendcellsreq, statuses) );
 	    MPI_CHECK( MPI_Waitall(nsendreq, sendreq, statuses) );
-	    MPI_CHECK( MPI_Waitall(26, sendcountreq, statuses) );
+	    MPI_CHECK( MPI_Waitall(nactive, sendcountreq, statuses) );
 	}
 	
 	for(int i = 0; i < 26; ++i)
@@ -402,19 +402,25 @@ void HaloExchanger::pack_and_post(const Particle * const p, const int n, const i
     {
 	NVTX_RANGE("HEX/send", NVTX_C2);
 	
-	for(int i = 0; i < 26; ++i)
-	    MPI_CHECK( MPI_Isend(sendhalos[i].hcellstarts.data, sendhalos[i].hcellstarts.size, MPI_INTEGER, dstranks[i],
-				 basetag + i + 350, cartcomm, sendcellsreq + i) );
+	for(int i = 0, c = 0; i < 26; ++i)
+	    if (sendhalos[i].expected)
+		MPI_CHECK( MPI_Isend(sendhalos[i].hcellstarts.data, sendhalos[i].hcellstarts.size, MPI_INTEGER, dstranks[i],
+				     basetag + i + 350, cartcomm, sendcellsreq + c++) );
 	
-	for(int i = 0; i < 26; ++i)
-	    MPI_CHECK( MPI_Isend(&sendhalos[i].hbuf.size, 1, MPI_INTEGER, dstranks[i], basetag +  i + 150, cartcomm, sendcountreq + i) );
+	for(int i = 0, c = 0; i < 26; ++i)
+	    if (sendhalos[i].expected)
+		MPI_CHECK( MPI_Isend(&sendhalos[i].hbuf.size, 1, MPI_INTEGER, dstranks[i], basetag +  i + 150, cartcomm, sendcountreq + c++) );
 	
 	nsendreq = 0;
 	
 	for(int i = 0; i < 26; ++i)
 	{
-	    const int count = sendhalos[i].hbuf.size;
 	    const int expected = sendhalos[i].expected;
+
+	    if (expected == 0)
+		continue;
+
+	    const int count = sendhalos[i].hbuf.size;	    
 	    
 	    MPI_CHECK( MPI_Isend(sendhalos[i].hbuf.data, expected, Particle::datatype(), dstranks[i], 
 				 basetag +  i, cartcomm, sendreq + nsendreq) );
@@ -439,23 +445,28 @@ void HaloExchanger::pack_and_post(const Particle * const p, const int n, const i
 
 void HaloExchanger::post_expected_recv()
 {
-    NVTX_RANGE("HEX/post irecv", NVTX_C3)
-
-    for(int i = 0; i < 26; ++i)
+    NVTX_RANGE("HEX/post irecv", NVTX_C3);
+    
+    for(int i = 0, c = 0; i < 26; ++i)
     {
 	assert(recvhalos[i].hbuf.capacity >= recvhalos[i].expected);
 	
-	MPI_CHECK( MPI_Irecv(recvhalos[i].hbuf.data, recvhalos[i].expected, Particle::datatype(), dstranks[i], 
-			     basetag + recv_tags[i], cartcomm, recvreq + i) );
+	if (recvhalos[i].expected)
+	    MPI_CHECK( MPI_Irecv(recvhalos[i].hbuf.data, recvhalos[i].expected, Particle::datatype(), dstranks[i], 
+				 basetag + recv_tags[i], cartcomm, recvreq + c++ ));
     }
 
-    for(int i = 0; i < 26; ++i)
-	MPI_CHECK( MPI_Irecv(recvhalos[i].hcellstarts.data, recvhalos[i].hcellstarts.size, MPI_INTEGER, dstranks[i],
-			     basetag + recv_tags[i] + 350, cartcomm,  recvcellsreq + i) );
-    
-    for(int i = 0; i < 26; ++i)
-	MPI_CHECK( MPI_Irecv(recv_counts + i, 1, MPI_INTEGER, dstranks[i],
-			     basetag + recv_tags[i] + 150, cartcomm, recvcountreq + i) );
+    for(int i = 0, c = 0; i < 26; ++i)
+	if (recvhalos[i].expected)
+	    MPI_CHECK( MPI_Irecv(recvhalos[i].hcellstarts.data, recvhalos[i].hcellstarts.size, MPI_INTEGER, dstranks[i],
+				 basetag + recv_tags[i] + 350, cartcomm,  recvcellsreq + c++) );
+	
+    for(int i = 0, c = 0; i < 26; ++i)
+	if (recvhalos[i].expected)
+	    MPI_CHECK( MPI_Irecv(recv_counts + i, 1, MPI_INTEGER, dstranks[i],
+				 basetag + recv_tags[i] + 150, cartcomm, recvcountreq + c++) );
+	else
+	    recv_counts[i] = 0;
 }
 
 void HaloExchanger::wait_for_messages()
@@ -467,9 +478,9 @@ void HaloExchanger::wait_for_messages()
     {
 	MPI_Status statuses[26];
 
-	MPI_CHECK( MPI_Waitall(26, recvreq, statuses) );    
-	MPI_CHECK( MPI_Waitall(26, recvcellsreq, statuses) );
-	MPI_CHECK( MPI_Waitall(26, recvcountreq, statuses) );
+	MPI_CHECK( MPI_Waitall(nactive, recvreq, statuses) );    
+	MPI_CHECK( MPI_Waitall(nactive, recvcellsreq, statuses) );
+	MPI_CHECK( MPI_Waitall(nactive, recvcountreq, statuses) );
     }
 
     for(int i = 0; i < 26; ++i)
@@ -562,18 +573,18 @@ void HaloExchanger::_cancel_recv()
     {
 	{
 	    MPI_Status statuses[26 * 2];
-	    MPI_CHECK( MPI_Waitall(26, sendcellsreq, statuses) );
+	    MPI_CHECK( MPI_Waitall(nactive, sendcellsreq, statuses) );
 	    MPI_CHECK( MPI_Waitall(nsendreq, sendreq, statuses) );
-	    MPI_CHECK( MPI_Waitall(26, sendcountreq, statuses) );
+	    MPI_CHECK( MPI_Waitall(nactive, sendcountreq, statuses) );
 	}
 
-	for(int i = 0; i < 26; ++i)
+	for(int i = 0; i < nactive; ++i)
 	    MPI_CHECK( MPI_Cancel(recvreq + i) );
 	
-	for(int i = 0; i < 26; ++i)
+	for(int i = 0; i < nactive; ++i)
 	    MPI_CHECK( MPI_Cancel(recvcellsreq + i) );
 	
-	for(int i = 0; i < 26; ++i)
+	for(int i = 0; i < nactive; ++i)
 	    MPI_CHECK( MPI_Cancel(recvcountreq + i) );
 
 	firstpost = true;
