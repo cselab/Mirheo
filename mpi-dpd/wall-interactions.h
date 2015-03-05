@@ -18,7 +18,7 @@ class ComputeInteractionsWall
     Logistic::KISS trunk;
     
     int solid_size;
-    Particle * solid;
+    float4 * solid4;
 
     cudaArray * arrSDF;
 

@@ -153,13 +153,13 @@ void ComputeInteractionsDPD::dpd_remote_interactions(const Particle * const p, c
 
 	if (nd == 0)
 	    continue;
+
+	cudaStream_t mystream = streams[code2stream[i]];
 	
 #ifndef NDEBUG
 	//fill acc entries with nan
 	CUDA_CHECK(cudaMemsetAsync(acc_remote[i].data, 0xff, sizeof(Acceleration) * acc_remote[i].size, mystream));
 #endif
-	cudaStream_t mystream = streams[code2stream[i]];
-	
 	if (ns == 0)
 	{
 	    CUDA_CHECK(cudaMemsetAsync((float *)acc_remote[i].data, 0, nd * sizeof(Acceleration), mystream));
