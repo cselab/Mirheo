@@ -47,6 +47,8 @@ private:
 
     float safety_factor;
 
+    int nactiveneighbors;
+
     MPI_Request sendcountreq[27], recvcountreq[27], sendmsgreq[27 * 2], recvmsgreq[27 * 2];
 
     cudaEvent_t evpacking, evsizes; //, evcompaction;

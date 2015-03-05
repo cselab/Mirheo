@@ -369,7 +369,7 @@ namespace RedistributeParticlesKernels
 }
 
 RedistributeParticles::RedistributeParticles(MPI_Comm _cartcomm): 
-failure(1), packsizes(27), firstcall(true)
+failure(1), packsizes(27), nactiveneighbors(26), firstcall(true)
 {
     safety_factor = getenv("RDP_COMM_FACTOR") ? atof(getenv("RDP_COMM_FACTOR")) : 1.2;
 
@@ -435,12 +435,16 @@ failure(1), packsizes(27), firstcall(true)
 
 void RedistributeParticles::_post_recv()
 {
-    for(int i = 1; i < 27; ++i)
-	MPI_CHECK( MPI_Irecv(recv_sizes + i, 1, MPI_INTEGER, neighbor_ranks[i], basetag + recv_tags[i], cartcomm, recvcountreq + i) );
+    for(int i = 1, c = 0; i < 27; ++i)
+    	if (default_message_sizes[i])
+	    MPI_CHECK( MPI_Irecv(recv_sizes + i, 1, MPI_INTEGER, neighbor_ranks[i], basetag + recv_tags[i], cartcomm, recvcountreq + c++) );
+	else
+	    recv_sizes[i] = 0;
     
-    for(int i = 1; i < 27; ++i)
-	MPI_CHECK( MPI_Irecv(pinnedhost_recvbufs[i], default_message_sizes[i] * 6, MPI_FLOAT, 
-			     neighbor_ranks[i], basetag + recv_tags[i] + 333, cartcomm, recvmsgreq + i) );
+    for(int i = 1, c = 0; i < 27; ++i)
+	if (default_message_sizes[i])
+	    MPI_CHECK( MPI_Irecv(pinnedhost_recvbufs[i], default_message_sizes[i] * 6, MPI_FLOAT, 
+				 neighbor_ranks[i], basetag + recv_tags[i] + 333, cartcomm, recvmsgreq + c++) );
 }
 
 void RedistributeParticles::_adjust_send_buffers(const int requested_capacities[27])
@@ -573,15 +577,21 @@ pack_attempt:
     //CUDA_CHECK(cudaEventRecord(evcompaction));
 
     if (!firstcall)
-	_waitall(sendcountreq + 1, 26);
+	_waitall(sendcountreq, nactiveneighbors);
     
     for(int i = 0; i < 27; ++i)
 	send_sizes[i] = packsizes.data[i];
 
     nbulk = recv_sizes[0] = send_sizes[0];
         
-    for(int i = 1; i < 27; ++i)
-	MPI_CHECK( MPI_Isend(send_sizes + i, 1, MPI_INTEGER, neighbor_ranks[i], basetag + i, cartcomm, sendcountreq + i) );
+    {
+	int c = 0;
+	for(int i = 1; i < 27; ++i)
+	    if (default_message_sizes[i])
+		MPI_CHECK( MPI_Isend(send_sizes + i, 1, MPI_INTEGER, neighbor_ranks[i], basetag + i, cartcomm, sendcountreq + c++) );
+		
+	assert(c == nactiveneighbors);
+    }
 
     CUDA_CHECK(cudaEventSynchronize(evpacking));
       
@@ -589,9 +599,14 @@ pack_attempt:
 	_waitall(sendmsgreq, nsendmsgreq);
     
     nsendmsgreq = 0;
-    for(int i = 1; i < 27; ++i, ++nsendmsgreq)
-	MPI_CHECK( MPI_Isend(pinnedhost_sendbufs[i], default_message_sizes[i] * 6, MPI_FLOAT, neighbor_ranks[i], basetag + i + 333,
-			     cartcomm, sendmsgreq + nsendmsgreq) );
+    for(int i = 1; i < 27; ++i)
+	if (default_message_sizes[i])
+	{
+	    MPI_CHECK( MPI_Isend(pinnedhost_sendbufs[i], default_message_sizes[i] * 6, MPI_FLOAT, neighbor_ranks[i], basetag + i + 333,
+				 cartcomm, sendmsgreq + nsendmsgreq) );
+
+	    ++nsendmsgreq;
+	}
 
     for(int i = 1; i < 27; ++i)
 	if (send_sizes[i] > default_message_sizes[i])
@@ -602,8 +617,9 @@ pack_attempt:
 				 neighbor_ranks[i], basetag + i + 666, cartcomm, sendmsgreq + nsendmsgreq) );
 	    ++nsendmsgreq;
 	}
+    assert(nactiveneighbors <= nsendmsgreq && nsendmsgreq <= 2 * nactiveneighbors);
     
-    _waitall(recvcountreq + 1, 26);
+    _waitall(recvcountreq, nactiveneighbors);
 
     {
 	int ustart[28];
@@ -635,7 +651,7 @@ void RedistributeParticles::stage2(Particle * const particles, const int npartic
     
     assert(nparticles == nexpected);
     
-    _waitall(recvmsgreq + 1, 26);
+    _waitall(recvmsgreq, nactiveneighbors);
     
     _adjust_recv_buffers(recv_sizes);
 
@@ -671,13 +687,13 @@ void RedistributeParticles::_cancel_recv()
 {
     if (!firstcall)
     {
-	_waitall(sendcountreq + 1, 26);
+	_waitall(sendcountreq, nactiveneighbors);
 	_waitall(sendmsgreq, nsendmsgreq);
 
-	for(int i = 1; i < 27; ++i)
+	for(int i = 0; i < nactiveneighbors; ++i)
 	    MPI_CHECK( MPI_Cancel(recvcountreq + i) );
     
-	for(int i = 1; i < 27; ++i)
+	for(int i = 0; i < nactiveneighbors; ++i)
 	    MPI_CHECK( MPI_Cancel(recvmsgreq + i) );
 
 	firstcall = true;
@@ -687,13 +703,15 @@ void RedistributeParticles::_cancel_recv()
 void RedistributeParticles::adjust_message_sizes(ExpectedMessageSizes sizes)
 {
     _cancel_recv();
-    
+
+    nactiveneighbors = 0;
     for(int i = 1; i < 27; ++i)
     {
 	const int d[3] = { (i + 1) % 3, (i / 3 + 1) % 3, (i / 9 + 1) % 3 };
        	const int entry = d[0] + 3 * (d[1] + 3 * d[2]);
 
 	default_message_sizes[i] = safety_factor * sizes.msgsizes[entry];
+	nactiveneighbors += (default_message_sizes[i] > 0);
     }
 }
 
