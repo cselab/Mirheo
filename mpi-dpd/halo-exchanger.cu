@@ -526,6 +526,8 @@ void HaloExchanger::wait_for_messages()
 	    CUDA_CHECK(cudaMemcpyAsync(recvhalos[code].dcellstarts.data, recvhalos[code].hcellstarts.devptr,
 				       sizeof(int) * recvhalos[code].hcellstarts.size, cudaMemcpyDeviceToDevice, streams[code2stream[code]]));
 
+    CUDA_CHECK(cudaPeekAtLastError());
+
     //shift the received particles
     {
 	int packstarts[27];
@@ -550,7 +552,8 @@ void HaloExchanger::wait_for_messages()
 
 	const int np = packstarts[26];
 
-	PackingHalo::shift_recv_particles_float<<<(np * 6 + 127) / 128, 128>>>(np);
+	if (np)
+	    PackingHalo::shift_recv_particles_float<<<(np * 6 + 127) / 128, 128>>>(np);
     }
 
     CUDA_CHECK(cudaPeekAtLastError());

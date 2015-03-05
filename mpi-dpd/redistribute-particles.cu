@@ -538,8 +538,9 @@ pack_attempt:
     *failure.data = false;
 
     RedistributeParticlesKernels::setup<<<1, 32, 0, mystream>>>();
-    
-    RedistributeParticlesKernels::scatter_halo_indices<<< (nparticles + 127) / 128, 128, 0, mystream>>>(nparticles, failure.devptr);
+
+    if (nparticles)
+	RedistributeParticlesKernels::scatter_halo_indices<<< (nparticles + 127) / 128, 128, 0, mystream>>>(nparticles, failure.devptr);
     
     RedistributeParticlesKernels::tiny_scan<<<1, 32, 0, mystream>>>(nparticles, packsizes.devptr);
 
@@ -549,7 +550,8 @@ pack_attempt:
     RedistributeParticlesKernels::check_scan<<<1, 1, 0, mystream>>>();
 #endif 
     
-    RedistributeParticlesKernels::pack<<< (6 * nparticles + 127) / 128, 128, 0, mystream>>> (nparticles, nparticles * 6);
+    if (nparticles)
+	RedistributeParticlesKernels::pack<<< (6 * nparticles + 127) / 128, 128, 0, mystream>>> (nparticles, nparticles * 6);
 
     CUDA_CHECK(cudaEventRecord(evpacking));
     
@@ -572,7 +574,9 @@ pack_attempt:
     //CUDA_CHECK(cudaMemset(packbuffers[0].buffer, 0xff, sizeof(float) * 6 * packbuffers[0].capacity));
     
     enum { BS = 128, ILP = 2 };
-    RedistributeParticlesKernels::recompact_bulk<BS, ILP><<< (nparticles + BS - 1) / BS, BS, 0, mystream>>>(nparticles);
+
+    if (nparticles)
+	RedistributeParticlesKernels::recompact_bulk<BS, ILP><<< (nparticles + BS - 1) / BS, BS, 0, mystream>>>(nparticles);
 
     //CUDA_CHECK(cudaEventRecord(evcompaction));
 

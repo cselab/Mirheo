@@ -135,6 +135,8 @@ namespace RemoteDPD
 
 void ComputeInteractionsDPD::dpd_remote_interactions(const Particle * const p, const int n, Acceleration * const a)
 {
+    CUDA_CHECK(cudaPeekAtLastError());
+    
     wait_for_messages();
     
     CUDA_CHECK(cudaPeekAtLastError());

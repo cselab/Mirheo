@@ -155,7 +155,7 @@ int main(int argc, char ** argv)
 
 	    for(it = 0; it < nsteps; ++it)
 	    {
-		//if (it > 499)printf("it is %d\n", it);
+		
 
 #ifdef _USE_NVTX_
 		if (it == 7000)
@@ -279,6 +279,14 @@ int main(int argc, char ** argv)
 		    ExpectedMessageSizes new_sizes;
 		    wall = new ComputeInteractionsWall(cartcomm, particles.xyzuvw.data, particles.size, nsurvived, new_sizes);
 		    
+		    if (new_sizes.msgsizes[1 + 3 + 9] == 0)
+		    {
+			printf("RANK %d ooooooooooooooooooops ha ha\n", rank);
+			
+			//TOMORROW:
+			//if (rank)  break;
+		    }
+
 		    redistribute.adjust_message_sizes(new_sizes);
 		    dpd.adjust_message_sizes(new_sizes);
 
@@ -511,6 +519,8 @@ int main(int argc, char ** argv)
 
 		    timings["bounce-walls"] += MPI_Wtime() - tstart;
 		}
+
+		
 
 		CUDA_CHECK(cudaPeekAtLastError());
 	    }
