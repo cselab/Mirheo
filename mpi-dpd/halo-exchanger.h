@@ -8,9 +8,9 @@
 class HaloExchanger
 {
     MPI_Comm cartcomm;
-    MPI_Request sendreq[26 * 2], recvreq[26], recvcellsreq[26], sendcountreq[26], recvcountreq[26];
+    MPI_Request sendreq[26 * 2], recvreq[26], sendcellsreq[26], recvcellsreq[26], sendcountreq[26], recvcountreq[26];
     
-    int recv_tags[26], recv_counts[26], nlocal;
+    int recv_tags[26], recv_counts[26], nlocal, nactive;
 
     ScanEngine scan;
 
@@ -21,6 +21,7 @@ protected:
     struct SendHalo
     {
 	int expected;
+	bool enabled;
 	SimpleDeviceBuffer<int> scattered_entries, tmpstart, tmpcount, dcellstarts;
 	SimpleDeviceBuffer<Particle> dbuf;
 	PinnedHostBuffer<int> hcellstarts;
@@ -28,10 +29,7 @@ protected:
 
 	void setup(const int estimate, const int nhalocells)
 	    {
-		expected = estimate;
-		dbuf.resize(estimate);
-		hbuf.resize(estimate);
-	 
+		adjust(estimate);
 		scattered_entries.resize(estimate);
 		dcellstarts.resize(nhalocells + 1);
 		hcellstarts.resize(nhalocells + 1);
@@ -39,11 +37,20 @@ protected:
 		tmpstart.resize(nhalocells + 1);
 	    }
 
+	void adjust(const int estimate)
+	    {
+		enabled = estimate > 0;
+		expected = estimate;
+		hbuf.resize(estimate);
+		dbuf.resize(estimate);
+	    }
+
     } sendhalos[26];
 
     struct RecvHalo
     {
 	int expected;
+	bool enabled;
 	PinnedHostBuffer<int> hcellstarts;
 	PinnedHostBuffer<Particle> hbuf;
 	SimpleDeviceBuffer<Particle> dbuf;
@@ -51,11 +58,17 @@ protected:
 
 	void setup(const int estimate, const int nhalocells)
 	    {
+		adjust(estimate);
+		dcellstarts.resize(nhalocells + 1);
+		hcellstarts.resize(nhalocells + 1);
+	    }
+
+	void adjust(const int estimate)
+	    {
+		enabled = estimate > 0;
 		expected = estimate;
 		hbuf.resize(estimate);
 		dbuf.resize(estimate);
-		dcellstarts.resize(nhalocells + 1);
-		hcellstarts.resize(nhalocells + 1);
 	    }
 
     } recvhalos[26];
@@ -69,6 +82,7 @@ protected:
     int nsendreq;
 
     int3 halosize[26];
+    float safety_factor;
 
     void post_expected_recv();
     
@@ -87,9 +101,13 @@ protected:
      
     const int basetag;
 
+    void _cancel_recv();
+
 public:
     
     HaloExchanger(MPI_Comm cartcomm, const int basetag);
+
+    void adjust_message_sizes(ExpectedMessageSizes sizes);
     
-    ~HaloExchanger();
+    virtual ~HaloExchanger();
 };

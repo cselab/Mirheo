@@ -37,6 +37,9 @@ namespace SolidWallsKernel
     
     __global__ void interactions(const float2 * particles, const int * const cellsstart, const int * const cellscount,
 				 const float seed, const float sigmaf, float * const axayaz);
+
+    __global__ void interactions_old(const Particle * const particles, const int np, const int nsolid,
+				     Acceleration * const acc, const float seed, const float sigmaf);
     void setup()
     {
 	for(int i = 0; i < 3; ++i)
@@ -63,10 +66,8 @@ namespace SolidWallsKernel
 	texWallCellCount.mipmapFilterMode = cudaFilterModePoint;
 	texWallCellCount.normalized = 0;
 
-	//void (*dpdkernel)() =  _dpd_forces;
-	void (*interactionskernel)(const float2 * particles, const int * const cellsstart, const int * const cellscount,
-				   const float seed, const float sigmaf, float * const axayaz) = interactions;
-	CUDA_CHECK(cudaFuncSetCacheConfig(*interactionskernel, cudaFuncCachePreferL1));
+	CUDA_CHECK(cudaFuncSetCacheConfig(*interactions, cudaFuncCachePreferL1));
+	CUDA_CHECK(cudaFuncSetCacheConfig(interactions_old, cudaFuncCachePreferL1));
     }
     
     __device__ float sdf(float x, float y, float z)
@@ -447,8 +448,8 @@ namespace SolidWallsKernel
 		   (YSIZE_SUBDOMAIN + 2 * YMARGIN_WALL) * 
 		   (ZSIZE_SUBDOMAIN + 2 * ZMARGIN_WALL));
 
-	    const int start = tex1Dfetch(texWallCellStart, cid); //cellsstart[cid];
-	    const int stop = start + tex1Dfetch(texWallCellCount, cid); //cellscount[cid];
+	    const int start = tex1Dfetch(texWallCellStart, cid);
+	    const int stop = start + tex1Dfetch(texWallCellCount, cid);
 
 	    assert(start >= 0 && stop <= nsolid && start <= stop);
 
@@ -456,9 +457,9 @@ namespace SolidWallsKernel
 	    {
 		const float4 stmp0 = tex1Dfetch(texWallParticles, s);
 				
-		const float xq = stmp0.x; //solid[s].x[0];
-		const float yq = stmp0.y; //solid[s].x[1];
-		const float zq = stmp0.z; //solid[s].x[2];
+		const float xq = stmp0.x;
+		const float yq = stmp0.y;
+		const float zq = stmp0.z;
 		
 	    	const float _xr = xp - xq;
 		const float _yr = yp - yq;
@@ -470,7 +471,6 @@ namespace SolidWallsKernel
 		    
 		const float rij = rij2 * invrij;
 		const float argwr = max((float)0, 1 - rij);
-		//const float wr = powf(argwr, powf(0.5f, -VISCOSITY_S_LEVEL));
 		const float wr = viscosity_function<-VISCOSITY_S_LEVEL>(argwr);
 		    
 		const float xr = _xr * invrij;
@@ -633,7 +633,7 @@ struct FieldSampler
 };
 
 
-ComputeInteractionsWall::ComputeInteractionsWall(MPI_Comm cartcomm, Particle* const p, const int n, int& nsurvived):
+ComputeInteractionsWall::ComputeInteractionsWall(MPI_Comm cartcomm, Particle* const p, const int n, int& nsurvived, ExpectedMessageSizes& new_sizes):
     cartcomm(cartcomm), arrSDF(NULL), solid4(NULL), solid_size(0), 
     cells(XSIZE_SUBDOMAIN + 2 * XMARGIN_WALL, YSIZE_SUBDOMAIN + 2 * YMARGIN_WALL, ZSIZE_SUBDOMAIN + 2 * ZMARGIN_WALL)
 {
@@ -673,6 +673,58 @@ ComputeInteractionsWall::ComputeInteractionsWall(MPI_Comm cartcomm, Particle* co
 	sampler.sample(start, spacing, TEXTURESIZE, field, amplitude_rescaling);
     }
 
+    {
+	for(int dz = -1; dz <= 1; ++dz)
+	    for(int dy = -1; dy <= 1; ++dy)
+		for(int dx = -1; dx <= 1; ++dx)
+		{
+		    const int d[3] = { dx, dy, dz };
+		    const int entry = (dx + 1) + 3 * ((dy + 1) + 3 * (dz + 1));
+		    
+		    int local_start[3] = {
+			d[0] + (d[0] == 1) * (XSIZE_SUBDOMAIN - 2),
+			d[1] + (d[1] == 1) * (YSIZE_SUBDOMAIN - 2),
+			d[2] + (d[2] == 1) * (ZSIZE_SUBDOMAIN - 2) 
+		    };
+		 
+		    int local_extent[3] = { 
+			1 * (d[0] != 0 ? 2 : XSIZE_SUBDOMAIN),
+			1 * (d[1] != 0 ? 2 : YSIZE_SUBDOMAIN),
+			1 * (d[2] != 0 ? 2 : ZSIZE_SUBDOMAIN) 
+		    };
+
+		    float start[3], spacing[3];
+		    for(int c = 0; c < 3; ++c)
+		    {
+			start[c] = (coords[c] * L[c] + local_start[c]) / (float)(dims[c] * L[c]) * sampler.N[c];
+			spacing[c] = sampler.N[c] / (float)(dims[c] * L[c]) ;
+		    }
+		   
+		    const int nextent = local_extent[0] * local_extent[1] * local_extent[2];
+		    float * data = new float[nextent];
+
+		    sampler.sample(start, spacing, local_extent, data, 1);
+		    
+		    int s = 0;
+		    for(int i = 0; i < nextent; ++i)
+			s += (data[i] < 0);
+
+		    delete [] data;
+		    double avgsize = s * numberdensity / pow(2, abs(d[0]) + abs(d[1]) + abs(d[2]));
+		    avgsize = 32 * ((int)(avgsize + 31) / 32);
+
+		    /*if (avgsize)
+		       printf("RANK: %d %d %d. MSGSIZE FOR d %d %d %d -> %f avgsize (start %d %d %d, extent %d %d %d)\n", 
+			      coords[0], coords[1], coords[2],
+			      d[0], d[1], d[2], avgsize,
+			 local_start[0], local_start[1], local_start[2], local_extent[0], local_extent[1], local_extent[2]);
+		    */
+
+		    new_sizes.msgsizes[entry] = avgsize;
+
+		}
+    }
+
     if (hdf5field_dumps)
     {
 	float * walldata = new float[XSIZE_SUBDOMAIN * YSIZE_SUBDOMAIN * ZSIZE_SUBDOMAIN];
@@ -706,12 +758,11 @@ ComputeInteractionsWall::ComputeInteractionsWall(MPI_Comm cartcomm, Particle* co
     copyParams.extent   = make_cudaExtent(XTEXTURESIZE, YTEXTURESIZE, ZTEXTURESIZE);
     copyParams.kind     = cudaMemcpyHostToDevice;
     CUDA_CHECK(cudaMemcpy3D(&copyParams));
+    delete [] field;
 
     SolidWallsKernel::setup();
     		
     CUDA_CHECK(cudaBindTextureToArray(SolidWallsKernel::texSDF, arrSDF, fmt));
-
-    delete [] field;
 
     thrust::device_vector<int> keys(n);
     
@@ -722,7 +773,6 @@ ComputeInteractionsWall::ComputeInteractionsWall(MPI_Comm cartcomm, Particle* co
 
     nsurvived = thrust::count(keys.begin(), keys.end(), 0);
     assert(nsurvived <= n);
-    
     printf("rank %d nsurvived is %d -> %.2f%%\n", myrank, nsurvived, nsurvived * 100. /n);
 
     const int nbelt = thrust::count(keys.begin() + nsurvived, keys.end(), 1);
