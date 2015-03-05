@@ -1,6 +1,7 @@
 #include <cstdio>
 #include <cassert>
 
+#include "cuda-dpd.h"
 #include "../dpd-rng.h"
 
 struct InfoDPD
@@ -26,14 +27,6 @@ texture<int, cudaTextureType1D> texStart, texCount;
 
 #if 1
 
-template<int s>
-__device__ float viscosity_function(float x)
-{
-    return sqrtf(viscosity_function<s - 1>(x));
-}
-
-template<> __device__ float viscosity_function<1>(float x) { return sqrtf(x); }
-template<> __device__ float viscosity_function<0>(float x){ return x; }
 
 __device__ float3 _dpd_interaction(const int dpid, const float3 xdest, const float3 udest, const int spid)
 {

@@ -4,6 +4,15 @@
 
 #include <cuda_runtime.h>
 
+template<int s>
+inline __device__ float viscosity_function(float x)
+{
+    return sqrtf(viscosity_function<s - 1>(x));
+}
+
+template<> inline __device__ float viscosity_function<1>(float x) { return sqrtf(x); }
+template<> inline __device__ float viscosity_function<0>(float x){ return x; }
+
 void build_clists(float * const device_xyzuvw, int np, const float rc, 
 		  const int xcells, const int ycells, const int zcells,
 		  const float xdomainstart, const float ydomainstart, const float zdomainstart,

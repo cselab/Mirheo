@@ -390,7 +390,7 @@ void HaloExchanger::pack_and_post(const Particle * const p, const int n, const i
 		PackingHalo::check_send_particles<<<(nd + 127)/ 128, 128>>>(sendhalos[i].dbuf.data, nd, i);
 	}
 	
-	CUDA_CHECK(cudaStreamSynchronize(stream));
+	CUDA_CHECK(cudaStreamSynchronize(0));
 	
 	CUDA_CHECK(cudaPeekAtLastError());
 #endif
