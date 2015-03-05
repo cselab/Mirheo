@@ -175,11 +175,11 @@ workxrank_t *reorder(int *ranks) {
 
 }
 
-double *findbalance(int nodes, int nranks, workxrank_t *allwxra, workxrank_t **p2pwxra) {
+double *findbalance(int nodes, int nranks, workxrank_t *allwxra, workxrank_t **p2pwxra, int maxrxn) {
   int *counter=new int[nodes];
   double *work=new double[nodes];
   double totwork=0.;
-  int maxrxn=nranks/nodes;
+  //  int maxrxn=nranks/nodes;
   for(int i=0; i<nodes; i++) {
     counter[i]=0;
     work[i]=0.;
@@ -232,7 +232,7 @@ int main(int argc, char ** argv) {
        iranks[i] = atoi(argv[4 + i]);
        checkranks*=iranks[i];
     }
-    if(checkranks!=tranks) {
+    if(0 && checkranks!=tranks) {
       fprintf(stderr,"Invalid rank combination: product must be equal to %d\n",tranks);
       exit(1);
     }
@@ -278,7 +278,7 @@ int main(int argc, char ** argv) {
                (iranks[2]>0 && iranks[2]!=ranks[2])) continue;
             workxrank_t *allwxra=reorder(ranks);
             if(allwxra==NULL) continue;
-            double *work=findbalance(nodes,tranks,allwxra,p2pwxra);
+            double *work=findbalance(nodes,tranks,allwxra,p2pwxra,oversubf);
             double max=0;
             double ltotwork=0.;
             for(int i=0; i<nodes; i++) {
