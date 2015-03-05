@@ -7,6 +7,8 @@ using namespace std;
 
 HaloExchanger::HaloExchanger(MPI_Comm _cartcomm, const int basetag):  basetag(basetag), firstpost(true)
 {
+    safety_factor = getenv("HEX_COMM_FACTOR") ? atof(getenv("HEX_COMM_FACTOR")) : 1.2;
+
     assert(XSIZE_SUBDOMAIN % 2 == 0 && YSIZE_SUBDOMAIN % 2 == 0 && ZSIZE_SUBDOMAIN % 2 == 0);
     assert(XSIZE_SUBDOMAIN >= 2 && YSIZE_SUBDOMAIN >= 2 && ZSIZE_SUBDOMAIN >= 2);
 
@@ -35,7 +37,7 @@ HaloExchanger::HaloExchanger(MPI_Comm _cartcomm, const int basetag):  basetag(ba
 	
 	const int nhalocells = halosize[i].x * halosize[i].y * halosize[i].z;
 
-	const float safety_factor = getenv("HEX_COMM_FACTOR") ? atof(getenv("HEX_COMM_FACTOR")) : 1.2;
+	
 	int estimate = numberdensity * safety_factor * nhalocells;
 	estimate = 32 * ((estimate + 31) / 32);
 
@@ -281,7 +283,6 @@ namespace PackingHalo
 
 void HaloExchanger::pack_and_post(const Particle * const p, const int n, const int * const cellsstart, const int * const cellscount)
 {
- 	
     CUDA_CHECK(cudaPeekAtLastError());
 
     nlocal = n;
@@ -321,7 +322,7 @@ void HaloExchanger::pack_and_post(const Particle * const p, const int n, const i
 	else
 	{
 	    MPI_Status statuses[26 * 2];
-	    
+	    MPI_CHECK( MPI_Waitall(26, sendcellsreq, statuses) );
 	    MPI_CHECK( MPI_Waitall(nsendreq, sendreq, statuses) );
 	    MPI_CHECK( MPI_Waitall(26, sendcountreq, statuses) );
 	}
@@ -402,8 +403,8 @@ void HaloExchanger::pack_and_post(const Particle * const p, const int n, const i
 	NVTX_RANGE("HEX/send", NVTX_C2);
 	
 	for(int i = 0; i < 26; ++i)
-	    MPI_CHECK( MPI_Send(sendhalos[i].hcellstarts.data, sendhalos[i].hcellstarts.size, MPI_INTEGER, dstranks[i],
-				basetag + i + 350, cartcomm) );
+	    MPI_CHECK( MPI_Isend(sendhalos[i].hcellstarts.data, sendhalos[i].hcellstarts.size, MPI_INTEGER, dstranks[i],
+				 basetag + i + 350, cartcomm, sendcellsreq + i) );
 	
 	for(int i = 0; i < 26; ++i)
 	    MPI_CHECK( MPI_Isend(&sendhalos[i].hbuf.size, 1, MPI_INTEGER, dstranks[i], basetag +  i + 150, cartcomm, sendcountreq + i) );
@@ -439,7 +440,7 @@ void HaloExchanger::pack_and_post(const Particle * const p, const int n, const i
 void HaloExchanger::post_expected_recv()
 {
     NVTX_RANGE("HEX/post irecv", NVTX_C3)
-    
+
     for(int i = 0; i < 26; ++i)
     {
 	assert(recvhalos[i].hbuf.capacity >= recvhalos[i].expected);
@@ -555,17 +556,17 @@ int HaloExchanger::nof_sent_particles()
     return s;
 }
 
-HaloExchanger::~HaloExchanger()
+void HaloExchanger::_cancel_recv()
 {
-    for(int i = 0; i < 7; ++i)
-	CUDA_CHECK(cudaStreamDestroy(streams[i]));
-    
-    CUDA_CHECK(cudaFreeHost(required_send_bag_size));
-
-    MPI_CHECK(MPI_Comm_free(&cartcomm));
-
     if (!firstpost)
     {
+	{
+	    MPI_Status statuses[26 * 2];
+	    MPI_CHECK( MPI_Waitall(26, sendcellsreq, statuses) );
+	    MPI_CHECK( MPI_Waitall(nsendreq, sendreq, statuses) );
+	    MPI_CHECK( MPI_Waitall(26, sendcountreq, statuses) );
+	}
+
 	for(int i = 0; i < 26; ++i)
 	    MPI_CHECK( MPI_Cancel(recvreq + i) );
 	
@@ -574,5 +575,34 @@ HaloExchanger::~HaloExchanger()
 	
 	for(int i = 0; i < 26; ++i)
 	    MPI_CHECK( MPI_Cancel(recvcountreq + i) );
+
+	firstpost = true;
     }
+}
+
+void HaloExchanger::adjust_message_sizes(ExpectedMessageSizes sizes)
+{
+    _cancel_recv();
+    
+    for(int i = 0; i < 26; ++i)
+    {
+	const int d[3] = { (i + 2) % 3, (i / 3 + 2) % 3, (i / 9 + 2) % 3 };
+	const int entry = d[0] + 3 * (d[1] + 3 * d[2]);
+	printf("adjusting msg %d with entry %d  to %d and safety factor is %f\n", 
+	       i, entry, sizes.msgsizes[entry], safety_factor);
+	recvhalos[i].adjust(sizes.msgsizes[entry] * safety_factor);
+	sendhalos[i].adjust(sizes.msgsizes[entry] * safety_factor);
+    }
+}
+
+HaloExchanger::~HaloExchanger()
+{
+    for(int i = 0; i < 7; ++i)
+	CUDA_CHECK(cudaStreamDestroy(streams[i]));
+    
+    CUDA_CHECK(cudaFreeHost(required_send_bag_size));
+    
+    MPI_CHECK(MPI_Comm_free(&cartcomm));
+    
+    _cancel_recv();    
 }

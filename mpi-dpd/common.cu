@@ -101,9 +101,9 @@ void diagnostics(MPI_Comm comm, Particle * particles, int n, float dt, int idste
 	
 	if (idstep == 0)
 	    fprintf(f, "TSTEP\tKBT\tPX\tPY\tPZ\n");
-	
-	for(int c = 0; c < 2; ++c)
-	    fprintf(c == 0 ? stdout : f, "%e\t%.10e\t%.10e\t%.10e\t%.10e\n", idstep * dt, kbt, p[0], p[1], p[2]);
+
+	printf("\x1b[91m%e\t%.10e\t%.10e\t%.10e\t%.10e\x1b[0m\n", idstep * dt, kbt, p[0], p[1], p[2]);
+	fprintf(f, "%e\t%.10e\t%.10e\t%.10e\t%.10e\n", idstep * dt, kbt, p[0], p[1], p[2]);
 		
 	fclose(f);
     }

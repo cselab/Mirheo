@@ -170,7 +170,7 @@ int main(int argc, char ** argv)
 		    break;
 		}
 #endif
-				
+	
 		if (it % steps_per_report == 0)
 		{ 
 		    CUDA_CHECK(cudaStreamSynchronize(mainstream));
@@ -200,7 +200,7 @@ int main(int argc, char ** argv)
 		    }	    		    
 
 		    report_host_memory_usage(cartcomm, stdout);
-
+		    
 		    if (rank == 0)
 		    {
 			static double t0 = MPI_Wtime(), t1;
@@ -209,7 +209,7 @@ int main(int argc, char ** argv)
 		    
 			if (it > 0)
 			{
-			    printf("beginning of time step %d (%.3f ms)\n", it, (t1 - t0) * 1e3 / steps_per_report);
+			    printf("\x1b[92mbeginning of time step %d (%.3f ms)\x1b[0m\n", it, (t1 - t0) * 1e3 / steps_per_report);
 			    printf("in more details, per time step:\n");
 			    double tt = 0;
 			    for(std::map<string, double>::iterator it = timings.begin(); it != timings.end(); ++it)
@@ -269,13 +269,17 @@ int main(int argc, char ** argv)
 		CUDA_CHECK(cudaPeekAtLastError());
 				
 		//create the wall when it is time
-		if (walls && it > 5000 && wall == NULL)
+		if (walls && it > 500 && wall == NULL)
 		{
 		    CUDA_CHECK(cudaDeviceSynchronize());
 
 		    int nsurvived = 0;
-		    wall = new ComputeInteractionsWall(cartcomm, particles.xyzuvw.data, particles.size, nsurvived);
+		    ExpectedMessageSizes new_sizes;
+		    wall = new ComputeInteractionsWall(cartcomm, particles.xyzuvw.data, particles.size, nsurvived, new_sizes);
 		    
+		    redistribute.adjust_message_sizes(new_sizes);
+		    dpd.adjust_message_sizes(new_sizes);
+
 		    particles.resize(nsurvived);
 		    particles.clear_velocity();
 		    		    

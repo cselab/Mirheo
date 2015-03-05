@@ -4,9 +4,9 @@ enum {
     XSIZE_SUBDOMAIN = 144, 
     YSIZE_SUBDOMAIN = 32, 
     ZSIZE_SUBDOMAIN = 32,
-    XMARGIN_WALL = 16,
-    YMARGIN_WALL = 0,
-    ZMARGIN_WALL = 0,
+    XMARGIN_WALL = 6,
+    YMARGIN_WALL = 6,
+    ZMARGIN_WALL = 6,
 };
 
 const int numberdensity = 4;
@@ -365,6 +365,10 @@ CellLists(const int LX, const int LY, const int LZ): ncells(LX * LY * LZ), LX(LX
 	}
 };
 
+struct ExpectedMessageSizes
+{
+    int msgsizes[27];
+};
 
 void diagnostics(MPI_Comm comm, Particle * _particles, int n, float dt, int idstep, Acceleration * _acc);
 

@@ -371,6 +371,8 @@ namespace RedistributeParticlesKernels
 RedistributeParticles::RedistributeParticles(MPI_Comm _cartcomm): 
 failure(1), packsizes(27), firstcall(true)
 {
+    safety_factor = getenv("RDP_COMM_FACTOR") ? atof(getenv("RDP_COMM_FACTOR")) : 1.2;
+
     MPI_CHECK(MPI_Comm_dup(_cartcomm, &cartcomm) );
 
     MPI_CHECK( MPI_Cart_get(cartcomm, 3, dims, periods, coords) );
@@ -394,7 +396,7 @@ failure(1), packsizes(27), firstcall(true)
 	    };
 
 	const int nhalocells = nhalodir[0] * nhalodir[1] * nhalodir[2];
-	const float safety_factor = getenv("RDP_COMM_FACTOR") ? atof(getenv("RDP_COMM_FACTOR")) : 1.2;
+	
 	const int estimate = numberdensity * safety_factor * nhalocells;
 	
 	CUDA_CHECK(cudaMalloc(&packbuffers[i].scattered_indices, sizeof(int) * estimate));
@@ -665,19 +667,42 @@ void RedistributeParticles::stage2(Particle * const particles, const int npartic
     CUDA_CHECK(cudaPeekAtLastError());
 }
 
-RedistributeParticles::~RedistributeParticles()
+void RedistributeParticles::_cancel_recv()
 {
-    CUDA_CHECK(cudaEventDestroy(evpacking));
-    CUDA_CHECK(cudaEventDestroy(evsizes));
-      
     if (!firstcall)
     {
+	_waitall(sendcountreq + 1, 26);
+	_waitall(sendmsgreq, nsendmsgreq);
+
 	for(int i = 1; i < 27; ++i)
 	    MPI_CHECK( MPI_Cancel(recvcountreq + i) );
     
 	for(int i = 1; i < 27; ++i)
 	    MPI_CHECK( MPI_Cancel(recvmsgreq + i) );
+
+	firstcall = true;
     }
+}
+
+void RedistributeParticles::adjust_message_sizes(ExpectedMessageSizes sizes)
+{
+    _cancel_recv();
+    
+    for(int i = 1; i < 27; ++i)
+    {
+	const int d[3] = { (i + 1) % 3, (i / 3 + 1) % 3, (i / 9 + 1) % 3 };
+       	const int entry = d[0] + 3 * (d[1] + 3 * d[2]);
+
+	default_message_sizes[i] = safety_factor * sizes.msgsizes[entry];
+    }
+}
+
+RedistributeParticles::~RedistributeParticles()
+{
+    CUDA_CHECK(cudaEventDestroy(evpacking));
+    CUDA_CHECK(cudaEventDestroy(evsizes));
+      
+    _cancel_recv();
     
     for(int i = 0; i < 27; ++i)
     {
