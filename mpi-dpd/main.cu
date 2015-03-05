@@ -155,6 +155,8 @@ int main(int argc, char ** argv)
 
 	    for(it = 0; it < nsteps; ++it)
 	    {
+		//if (it > 499)printf("it is %d\n", it);
+
 #ifdef _USE_NVTX_
 		if (it == 7000)
 		{
@@ -269,7 +271,7 @@ int main(int argc, char ** argv)
 		CUDA_CHECK(cudaPeekAtLastError());
 				
 		//create the wall when it is time
-		if (walls && it > 500 && wall == NULL)
+		if (walls && it > 5000 && wall == NULL)
 		{
 		    CUDA_CHECK(cudaDeviceSynchronize());
 

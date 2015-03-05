@@ -710,10 +710,14 @@ ComputeInteractionsWall::ComputeInteractionsWall(MPI_Comm cartcomm, Particle* co
 			s += (data[i] < 0);
 
 		    delete [] data;
-		    const double avgsize = s * numberdensity / pow(2, abs(d[0]) + abs(d[1]) + abs(d[2]));
+		    double avgsize = s * numberdensity / pow(2, abs(d[0]) + abs(d[1]) + abs(d[2]));
+		    avgsize = 32 * ((int)(avgsize + 31) / 32);
 
-		    printf("MSGSIZE FOR d %d %d %d -> %f avgsize (start %d %d %d, extent %d %d %d)\n", d[0], d[1], d[2], avgsize,
-			   local_start[0], local_start[1], local_start[2], local_extent[0], local_extent[1], local_extent[2]);
+		    if (avgsize)
+		       printf("RANK: %d %d %d. MSGSIZE FOR d %d %d %d -> %f avgsize (start %d %d %d, extent %d %d %d)\n", 
+			      coords[0], coords[1], coords[2],
+			      d[0], d[1], d[2], avgsize,
+			 local_start[0], local_start[1], local_start[2], local_extent[0], local_extent[1], local_extent[2]);
 
 		    new_sizes.msgsizes[entry] = avgsize;
 

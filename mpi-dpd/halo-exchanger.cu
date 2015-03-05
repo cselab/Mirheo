@@ -291,31 +291,33 @@ void HaloExchanger::pack_and_post(const Particle * const p, const int n, const i
 	NVTX_RANGE("HEX/pack", NVTX_C2);
 	
 	for(int i = 0; i < 26; ++i)
-	{
-	    const int d[3] = { (i + 2) % 3 - 1, (i / 3 + 2) % 3 - 1, (i / 9 + 2) % 3 - 1 };
-	    const int L[3] = { XSIZE_SUBDOMAIN, YSIZE_SUBDOMAIN, ZSIZE_SUBDOMAIN };
-	    
-	    int halo_start[3], halo_size[3];
-	    for(int c = 0; c < 3; ++c)
+	    if (sendhalos[i].expected)
 	    {
-		halo_start[c] = max(d[c] * L[c] - L[c]/2 - 1, -L[c]/2);
-		halo_size[c] = min(d[c] * L[c] + L[c]/2 + 1, L[c]/2) - halo_start[c];
+		const int d[3] = { (i + 2) % 3 - 1, (i / 3 + 2) % 3 - 1, (i / 9 + 2) % 3 - 1 };
+		const int L[3] = { XSIZE_SUBDOMAIN, YSIZE_SUBDOMAIN, ZSIZE_SUBDOMAIN };
+		
+		int halo_start[3], halo_size[3];
+		for(int c = 0; c < 3; ++c)
+		{
+		    halo_start[c] = max(d[c] * L[c] - L[c]/2 - 1, -L[c]/2);
+		    halo_size[c] = min(d[c] * L[c] + L[c]/2 + 1, L[c]/2) - halo_start[c];
+		}
+		
+		const int nentries = sendhalos[i].dcellstarts.size;
+		
+		PackingHalo::count<<< (nentries + 127) / 128, 128, 0, streams[code2stream[i]] >>>
+		    (cellsstart, cellscount,  
+		     make_int3(halo_start[0] + XSIZE_SUBDOMAIN / 2 , 
+			       halo_start[1] + YSIZE_SUBDOMAIN / 2, 
+			       halo_start[2] + ZSIZE_SUBDOMAIN / 2),
+		     make_int3(halo_size[0], halo_size[1], halo_size[2]), 
+		     sendhalos[i].tmpstart.data, sendhalos[i].tmpcount.data);
 	    }
-	    
-	    const int nentries = sendhalos[i].dcellstarts.size;
-	    
-	    PackingHalo::count<<< (nentries + 127) / 128, 128, 0, streams[code2stream[i]] >>>
-		(cellsstart, cellscount,  
-		 make_int3(halo_start[0] + XSIZE_SUBDOMAIN / 2 , 
-			   halo_start[1] + YSIZE_SUBDOMAIN / 2, 
-			   halo_start[2] + ZSIZE_SUBDOMAIN / 2),
-		 make_int3(halo_size[0], halo_size[1], halo_size[2]), 
-		 sendhalos[i].tmpstart.data, sendhalos[i].tmpcount.data);
-	}
 	
 	for(int i = 0; i < 26; ++i)
-	    scan.exclusive(streams[code2stream[i]], (uint*)sendhalos[i].dcellstarts.data, (uint*)sendhalos[i].tmpcount.data,
-			   sendhalos[i].tmpcount.size);
+	    if (sendhalos[i].expected)
+		scan.exclusive(streams[code2stream[i]], (uint*)sendhalos[i].dcellstarts.data, (uint*)sendhalos[i].tmpcount.data,
+			       sendhalos[i].tmpcount.size);
 	
 	if (firstpost)
 	    post_expected_recv();
@@ -328,9 +330,10 @@ void HaloExchanger::pack_and_post(const Particle * const p, const int n, const i
 	}
 	
 	for(int i = 0; i < 26; ++i)
-	    CUDA_CHECK(cudaMemcpyAsync(sendhalos[i].hcellstarts.devptr, sendhalos[i].dcellstarts.data, 
-				       sizeof(int) * sendhalos[i].dcellstarts.size, 
-				       cudaMemcpyDeviceToDevice, streams[code2stream[i]]));
+	    if (sendhalos[i].expected)
+		CUDA_CHECK(cudaMemcpyAsync(sendhalos[i].hcellstarts.devptr, sendhalos[i].dcellstarts.data, 
+					   sizeof(int) * sendhalos[i].dcellstarts.size, 
+					   cudaMemcpyDeviceToDevice, streams[code2stream[i]]));
 	
 	for(int pass = 0; pass < 2; ++pass)
 	{
@@ -338,6 +341,14 @@ void HaloExchanger::pack_and_post(const Particle * const p, const int n, const i
 	    
 	    for(int i = 0; i < 26; ++i)
 	    {
+		if (sendhalos[i].expected == 0)
+		{
+		    sendhalos[i].dbuf.size = 0;
+		    sendhalos[i].hbuf.size = 0;
+		    sendhalos[i].scattered_entries.size = 0;
+		    continue;
+		}
+
 		bool fail = false;
 		int nrequired;
 		
@@ -370,8 +381,8 @@ void HaloExchanger::pack_and_post(const Particle * const p, const int n, const i
 		if (pass == 1)
 		{
 		    sendhalos[i].dbuf.size = nrequired;
-		sendhalos[i].hbuf.size = nrequired;
-		sendhalos[i].scattered_entries.size = nrequired;
+		    sendhalos[i].hbuf.size = nrequired;
+		    sendhalos[i].scattered_entries.size = nrequired;
 		}
 	    } 
 	    
@@ -384,12 +395,13 @@ void HaloExchanger::pack_and_post(const Particle * const p, const int n, const i
 	
 #ifndef NDEBUG
 	for(int i = 0; i < 26; ++i)
-	{
-	    const int nd = sendhalos[i].dbuf.size;
-	    
-	    if (nd > 0)
-		PackingHalo::check_send_particles<<<(nd + 127)/ 128, 128>>>(sendhalos[i].dbuf.data, nd, i);
-	}
+	    if (sendhalos[i].expected)
+	    {
+		const int nd = sendhalos[i].dbuf.size;
+		
+		if (nd > 0)
+		    PackingHalo::check_send_particles<<<(nd + 127)/ 128, 128>>>(sendhalos[i].dbuf.data, nd, i);
+	    }
 	
 	CUDA_CHECK(cudaStreamSynchronize(0));
 	
@@ -510,8 +522,9 @@ void HaloExchanger::wait_for_messages()
     }
 
     for(int code = 0; code < 26; ++code)
-	CUDA_CHECK(cudaMemcpyAsync(recvhalos[code].dcellstarts.data, recvhalos[code].hcellstarts.devptr,
-				   sizeof(int) * recvhalos[code].hcellstarts.size, cudaMemcpyDeviceToDevice, streams[code2stream[code]]));
+	if (recvhalos[code].expected)
+	    CUDA_CHECK(cudaMemcpyAsync(recvhalos[code].dcellstarts.data, recvhalos[code].hcellstarts.devptr,
+				       sizeof(int) * recvhalos[code].hcellstarts.size, cudaMemcpyDeviceToDevice, streams[code2stream[code]]));
 
     //shift the received particles
     {
@@ -544,13 +557,14 @@ void HaloExchanger::wait_for_messages()
 
 #ifndef NDEBUG
     for(int code = 0; code < 26; ++code)
-    {
-	const int count = recv_counts[code];
-	
-	if (count > 0)
-	    PackingHalo::check_recv_particles<<<(count + 127) / 128, 128, 0>>>(
-		recvhalos[code].dbuf.data, count, code, myrank);	
-    }
+	if (recvhalos[i].expected)
+	{
+	    const int count = recv_counts[code];
+	    
+	    if (count > 0)
+		PackingHalo::check_recv_particles<<<(count + 127) / 128, 128, 0>>>(
+		    recvhalos[code].dbuf.data, count, code, myrank);	
+	}
 
     CUDA_CHECK(cudaPeekAtLastError());
 #endif
@@ -594,15 +608,17 @@ void HaloExchanger::_cancel_recv()
 void HaloExchanger::adjust_message_sizes(ExpectedMessageSizes sizes)
 {
     _cancel_recv();
-    
+    nactive = 0;
     for(int i = 0; i < 26; ++i)
     {
 	const int d[3] = { (i + 2) % 3, (i / 3 + 2) % 3, (i / 9 + 2) % 3 };
 	const int entry = d[0] + 3 * (d[1] + 3 * d[2]);
-	printf("adjusting msg %d with entry %d  to %d and safety factor is %f\n", 
-	       i, entry, sizes.msgsizes[entry], safety_factor);
+	/*printf("adjusting msg %d with entry %d  to %d and safety factor is %f\n", 
+	  i, entry, sizes.msgsizes[entry], safety_factor);*/
 	recvhalos[i].adjust(sizes.msgsizes[entry] * safety_factor);
 	sendhalos[i].adjust(sizes.msgsizes[entry] * safety_factor);
+	
+	nactive += (int)(sizes.msgsizes[entry] > 0);
     }
 }
 
