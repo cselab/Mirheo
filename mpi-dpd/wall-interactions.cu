@@ -130,7 +130,7 @@ namespace SolidWallsKernel
 	const Particle p = particles[pid];
 
 	const float mysdf = sdf(p.x[0], p.x[1], p.x[2]);
-	key[pid] = (int)(mysdf >= 0) + (int)(mysdf > 3);
+	key[pid] = (int)(mysdf >= 0) + (int)(mysdf > 2);
     }
 
     __global__ void strip_solid4(Particle * const src, const int n, float4 * dst)
