@@ -52,6 +52,6 @@ public:
     int count() { return nrbcs; }
     int pcount() { return nrbcs * nvertices; }
     
-    void dump(MPI_Comm comm);
+    void dump(MPI_Comm comm, MPI_Comm cartcomm);
 };
 

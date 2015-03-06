@@ -277,7 +277,7 @@ void CollectionRBC::remove(const int * const entries, const int nentries)
     CUDA_CHECK(cudaMemcpy(xyzuvw.data, survived.data, sizeof(Particle) * survived.size, cudaMemcpyDeviceToDevice));
 }
 
-void CollectionRBC::dump(MPI_Comm comm)
+void CollectionRBC::dump(MPI_Comm comm, MPI_Comm cartcomm)
 {
     int& ctr = dumpcounter;
     const bool firsttime = ctr == 0;
@@ -303,7 +303,7 @@ void CollectionRBC::dump(MPI_Comm comm)
 	}
 
     if (xyz_dumps)
-	xyz_dump(comm, path2xyz.c_str(), "cell-particles", p, n, !firsttime);
+	xyz_dump(comm, cartcomm, path2xyz.c_str(), "cell-particles", p, n, !firsttime);
 
     char buf[200];
     sprintf(buf, format4ply.c_str(), ctr);
@@ -317,7 +317,7 @@ void CollectionRBC::dump(MPI_Comm comm)
 	    mkdir("ply", S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
     }
 	    
-    ply_dump(comm, buf, indices, nrbcs, ntriangles, p, nvertices, false);
+    ply_dump(comm, cartcomm, buf, indices, nrbcs, ntriangles, p, nvertices, false);
 		    
     delete [] p;
     delete [] a;
