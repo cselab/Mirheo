@@ -69,7 +69,7 @@ void report_host_memory_usage(MPI_Comm comm, FILE * foutput)
     }
 }
 
-void diagnostics(MPI_Comm comm, Particle * particles, int n, float dt, int idstep, Acceleration * acc)
+void diagnostics(MPI_Comm comm, MPI_Comm cartcomm, Particle * particles, int n, float dt, int idstep, Acceleration * acc)
 {
     double p[] = {0, 0, 0};
     for(int i = 0; i < n; ++i)
@@ -80,7 +80,7 @@ void diagnostics(MPI_Comm comm, Particle * particles, int n, float dt, int idste
     MPI_CHECK( MPI_Comm_rank(comm, &rank) );
 
     int dims[3], periods[3], coords[3];
-    MPI_CHECK( MPI_Cart_get(comm, 3, dims, periods, coords) );
+    MPI_CHECK( MPI_Cart_get(cartcomm, 3, dims, periods, coords) );
     
     MPI_CHECK( MPI_Reduce(rank == 0 ? MPI_IN_PLACE : &p, rank == 0 ? &p : NULL, 3, MPI_DOUBLE, MPI_SUM, 0, comm) );
     

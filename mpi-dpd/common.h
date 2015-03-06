@@ -1,9 +1,9 @@
 #pragma once
 
 enum { 
-    XSIZE_SUBDOMAIN = 144, 
-    YSIZE_SUBDOMAIN = 32, 
-    ZSIZE_SUBDOMAIN = 32,
+    XSIZE_SUBDOMAIN = 24, 
+    YSIZE_SUBDOMAIN = 24, 
+    ZSIZE_SUBDOMAIN = 24,
     XMARGIN_WALL = 6,
     YMARGIN_WALL = 6,
     ZMARGIN_WALL = 6,
@@ -11,7 +11,7 @@ enum {
 
 const int numberdensity = 4;
 const float dt = 0.001;
-const float tend = 50;
+const float tend = 3;
 const float kBT = 0.0945;
 const float gammadpd = 45;
 const float sigma = sqrt(2 * gammadpd * kBT);
@@ -24,12 +24,12 @@ const bool rbcs = false;
 const bool ctcs = false;
 const bool xyz_dumps = false;
 const bool hdf5field_dumps = false;
-const bool hdf5part_dumps = false;
+const bool hdf5part_dumps = true;
 const int steps_per_report = 1000;
-const int steps_per_dump = 1000;
+const int steps_per_dump = 20;
+const int wall_creation_stepid = 500;
 
 extern bool currently_profiling;
-
 
 #include <cstdlib>
 #include <cstdio>
@@ -370,6 +370,6 @@ struct ExpectedMessageSizes
     int msgsizes[27];
 };
 
-void diagnostics(MPI_Comm comm, Particle * _particles, int n, float dt, int idstep, Acceleration * _acc);
+void diagnostics(MPI_Comm comm, MPI_Comm cartcomm, Particle * _particles, int n, float dt, int idstep, Acceleration * _acc);
 
 void report_host_memory_usage(MPI_Comm comm, FILE * foutput);

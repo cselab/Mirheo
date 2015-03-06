@@ -714,8 +714,11 @@ void RedistributeParticles::adjust_message_sizes(ExpectedMessageSizes sizes)
 	const int d[3] = { (i + 1) % 3, (i / 3 + 1) % 3, (i / 9 + 1) % 3 };
        	const int entry = d[0] + 3 * (d[1] + 3 * d[2]);
 
-	default_message_sizes[i] = safety_factor * sizes.msgsizes[entry];
-	nactiveneighbors += (default_message_sizes[i] > 0);
+	int estimate = (int)ceil(safety_factor * sizes.msgsizes[entry]);
+	estimate = 32 * ((estimate + 31) / 32);
+
+	default_message_sizes[i] = estimate;
+	nactiveneighbors += (estimate > 0);
     }
 }
 

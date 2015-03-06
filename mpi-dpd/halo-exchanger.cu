@@ -560,7 +560,7 @@ void HaloExchanger::wait_for_messages()
 
 #ifndef NDEBUG
     for(int code = 0; code < 26; ++code)
-	if (recvhalos[i].expected)
+	if (recvhalos[code].expected)
 	{
 	    const int count = recv_counts[code];
 	    
@@ -616,12 +616,15 @@ void HaloExchanger::adjust_message_sizes(ExpectedMessageSizes sizes)
     {
 	const int d[3] = { (i + 2) % 3, (i / 3 + 2) % 3, (i / 9 + 2) % 3 };
 	const int entry = d[0] + 3 * (d[1] + 3 * d[2]);
+	int estimate = sizes.msgsizes[entry] * safety_factor;
+	estimate = 32 * ((estimate + 31) / 32);
+
 	/*printf("adjusting msg %d with entry %d  to %d and safety factor is %f\n", 
 	  i, entry, sizes.msgsizes[entry], safety_factor);*/
-	recvhalos[i].adjust(sizes.msgsizes[entry] * safety_factor);
-	sendhalos[i].adjust(sizes.msgsizes[entry] * safety_factor);
+	recvhalos[i].adjust(estimate);
+	sendhalos[i].adjust(estimate);
 	
-	nactive += (int)(sizes.msgsizes[entry] > 0);
+	nactive += (int)(estimate > 0);
     }
 }
 
