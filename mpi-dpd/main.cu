@@ -21,6 +21,8 @@
 
 #include "ctc.h"
 
+#include "qos.h"
+
 bool currently_profiling = false;
 static const int blocksignal = false;
 
@@ -87,6 +89,9 @@ int main(int argc, char ** argv)
 	activecomm = cartcomm;
 	
 	{
+            int coords[3];
+            MPI_CHECK( MPI_Cart_get(cartcomm, 3, ranks, periods, coords) );
+            QOS qos(ranks, coords, rank, cartcomm, 100, 4, numberdensity, hydrostatic_a);
 	    vector<Particle> ic(XSIZE_SUBDOMAIN * YSIZE_SUBDOMAIN * ZSIZE_SUBDOMAIN * numberdensity);
 	    
 	    const int L[3] = { XSIZE_SUBDOMAIN, YSIZE_SUBDOMAIN, ZSIZE_SUBDOMAIN };
@@ -453,6 +458,9 @@ int main(int argc, char ** argv)
 		}
 	
 		CUDA_CHECK(cudaPeekAtLastError());
+
+		if ((wall) && (it % 10 == 0))
+		    qos.exec(it*dt, particles.xyzuvw.data, particles.size, (it % 50000) == 0);
 
 		if (it % steps_per_dump == 0)
 		{
