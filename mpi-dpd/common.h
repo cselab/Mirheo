@@ -1,14 +1,22 @@
 #pragma once
 
-const int L = 48;
+enum { 
+    XSIZE_SUBDOMAIN = 48, 
+    YSIZE_SUBDOMAIN = 32, 
+    ZSIZE_SUBDOMAIN = 32,
+    XMARGIN_WALL = 24,
+    YMARGIN_WALL = 0,
+    ZMARGIN_WALL = 0,
+};
+
 const float dt = 0.001;
-const float tend = 50;
+const float tend = 500;
 const float kBT = 0.0945;
 const float gammadpd = 45;
 const float sigma = sqrt(2 * gammadpd * kBT);
 const float sigmaf = sigma / sqrt(dt);
 const float aij = 2.5;
-const float hydrostatic_a = 0.01;
+const float hydrostatic_a = 0.05;
 const bool walls = false;
 const bool pushtheflow = false;
 const bool rbcs = false;
@@ -238,11 +246,11 @@ PinnedHostBuffer(int n = 0): capacity(0), size(0), data(NULL), devptr(NULL) { re
 //building the cell lists involve a reordering of the particle array (!)
 struct CellLists
 {
-    const int ncells, L;
+    const int ncells, LX, LY, LZ;
 
     int * start, * count;
     
-CellLists(const int L): ncells(L * L * L), L(L)
+CellLists(const int LX, const int LY, const int LZ): ncells(LX * LY * LZ), LX(LX), LY(LY), LZ(LZ)
 	{
 	    CUDA_CHECK(cudaMalloc(&start, sizeof(int) * ncells));
 	    CUDA_CHECK(cudaMalloc(&count, sizeof(int) * ncells));
@@ -258,6 +266,6 @@ CellLists(const int L): ncells(L * L * L), L(L)
 };
 
 
-void diagnostics(MPI_Comm comm, Particle * _particles, int n, float dt, int idstep, int L, Acceleration * _acc);
+void diagnostics(MPI_Comm comm, Particle * _particles, int n, float dt, int idstep, Acceleration * _acc);
 
 void report_host_memory_usage(MPI_Comm comm, FILE * foutput);

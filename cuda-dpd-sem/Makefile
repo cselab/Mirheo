@@ -1,10 +1,10 @@
 ARCH_VAL ?= compute_35
 CODE_VAL ?= sm_35
 
-CXXFLAGS += -g -O2  -fPIC -std=c++11
+CXXFLAGS += -g -O2 -std=c++11
 
 #these setting are for my gk104, for k20x pls set the right flags
-NVCCFLAGS += -Xcompiler  -fpic  -arch=$(ARCH_VAL)  -code=$(CODE_VAL)  -O4
+NVCCFLAGS += -arch=$(ARCH_VAL)  -code=$(CODE_VAL) -O4
 #-DNDEBUG
 #NVCCFLAGS += -Xptxas -v,-abi=yes
 NVCCFLAGS += --use_fast_math
