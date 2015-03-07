@@ -60,7 +60,7 @@ protected:
 
     } recvhalos[26];
       
-    int L, myrank, nranks, dims[3], periods[3], coords[3], dstranks[26];
+    int myrank, nranks, dims[3], periods[3], coords[3], dstranks[26];
     
     //zero-copy allocation for acquiring the message offsets in the gpu send buffer
     int * required_send_bag_size, * required_send_bag_size_host;
@@ -89,9 +89,7 @@ protected:
 
 public:
     
-    HaloExchanger(MPI_Comm cartcomm, int L, const int basetag);
+    HaloExchanger(MPI_Comm cartcomm, const int basetag);
     
     ~HaloExchanger();
-
-    void exchange(Particle * const plocal, int nlocal, SimpleDeviceBuffer<Particle>& result);
 };

@@ -16,9 +16,9 @@
 #include "redistribute-particles.h"
 #include "redistribute-rbcs.h"
 #include "rbc-interactions.h"
-#include "logistic.h"
 
 #include "ctc.h"
+#include "Rank2Node.c"
 
 static const int blocksignal = false;
 
@@ -32,7 +32,8 @@ void signal_handler(int signum)
 }
 
 using namespace std;
-
+float *lwtimer=NULL;
+int cntlwtimer=0;
 int main(int argc, char ** argv)
 {
     int ranks[3];
@@ -68,11 +69,17 @@ int main(int argc, char ** argv)
     }
     
     CUDA_CHECK(cudaSetDevice(0));
-    
+    lwtimer=new float[(int)(tend / dt)/500]; 
+    double tevaldpd=0.;
+#if 0
+    cudaEvent_t start, stop;
+    cudaEventCreate(&start);
+    cudaEventCreate(&stop);
+#endif
     int nranks, rank;   
-    
     {
 	MPI_CHECK( MPI_Init(&argc, &argv) );
+    	static double maxtime=MPI_Wtime(); 
 
 	MPI_CHECK( MPI_Comm_size(MPI_COMM_WORLD, &nranks) );
 	MPI_CHECK( MPI_Comm_rank(MPI_COMM_WORLD, &rank) );
@@ -80,27 +87,78 @@ int main(int argc, char ** argv)
 	srand48(rank);
 	
 	MPI_Comm cartcomm;
+	MPI_Comm AROcomm;
 	int periods[] = {1, 1, 1};	    
+#if 1
 	MPI_CHECK( MPI_Cart_create(MPI_COMM_WORLD, 3, ranks, periods, 1, &cartcomm) );
+#else
+#define RANK2NODE "rank2node.dat"
+        int *aranks=new int[nranks];
+        FILE *fp=fopen(RANK2NODE,"r");
+        if(fp==NULL) {
+           fprintf(stderr,"Error opening %s file\n",RANK2NODE);
+           MPI_Abort(MPI_COMM_WORLD,2);
+           exit(1);
+        }
+        int countr=0;
+        {
+#define MAXINPUTLINE 1024
+#define DELIMITER " \t"
+         char line[MAXINPUTLINE];
+         char *token;
+
+         bool survive=false;
+         while (fgets(line, MAXINPUTLINE, fp)) {
+               token=strtok(line,DELIMITER);
+               while(token!=NULL) {
+                  aranks[countr]=atoi(token);
+                  if(aranks[countr]==rank) {
+                     survive=true;
+                  }
+                  countr++;
+                  token=strtok(NULL,DELIMITER);
+               }
+          }
+          fclose(fp);
+#if 0
+          if(rank==0) {
+           for(int i=0; i<countr; i++) {
+               printf("rank %d survive!\n",aranks[i]);
+           }
+          }
+          if(!survive) {
+             printf("rank %d bye bye\n",rank);
+          }
+#endif
+        }
+        MPI_Group orig_group, new_group;
+        MPI_CHECK( MPI_Comm_group(MPI_COMM_WORLD, &orig_group) );
+        MPI_CHECK( MPI_Group_incl(orig_group, countr, aranks, &new_group) );
+        MPI_CHECK( MPI_Comm_create(MPI_COMM_WORLD, new_group, &AROcomm) );
+        MPI_CHECK(MPI_Comm_dup(AROcomm,&cartcomm));
+
+        MPI_CHECK( MPI_Cart_create(MPI_COMM_WORLD, 3, ranks, periods, 0, &cartcomm) );
+#endif
+        int mylorank;
+        Rank2Node(&mylorank,cartcomm);
 	
 	{
-	    vector<Particle> ic(XSIZE_SUBDOMAIN * YSIZE_SUBDOMAIN * ZSIZE_SUBDOMAIN * 4);
+	    vector<Particle> ic(L * L * L * 3);
 	    
-	    const int L[3] = { XSIZE_SUBDOMAIN, YSIZE_SUBDOMAIN, ZSIZE_SUBDOMAIN };
 	    for(int i = 0; i < ic.size(); ++i)
 		for(int c = 0; c < 3; ++c)
 		{
-		    ic[i].x[c] = -L[c] * 0.5 + drand48() * L[c];
+		    ic[i].x[c] = -L * 0.5 + drand48() * L;
 		    ic[i].u[c] = 0;
 		}
 	    	    	  
 	    ParticleArray particles(ic);
-	    CellLists cells(XSIZE_SUBDOMAIN, YSIZE_SUBDOMAIN, ZSIZE_SUBDOMAIN);		  
+	    CellLists cells(L);		  
 	    CollectionRBC * rbcscoll = NULL;
 	    
 	    if (rbcs)
 	    {
-		rbcscoll = new CollectionRBC(cartcomm);
+		rbcscoll = new CollectionRBC(cartcomm, L);
 		rbcscoll->setup();
 	    }
 
@@ -108,42 +166,41 @@ int main(int argc, char ** argv)
 
 	    if (ctcs)
 	    {
-		ctcscoll = new CollectionCTC(cartcomm);
+		ctcscoll = new CollectionCTC(cartcomm, L);
 		ctcscoll->setup();
 	    }
 
-	    H5PartDump dump_part("allparticles.h5part", cartcomm);
+	    H5PartDump dump_part("allparticles.h5part", cartcomm, L);
 	    H5FieldDump dump_field(cartcomm);
 
-	    RedistributeParticles redistribute(cartcomm);
-	    RedistributeRBCs redistribute_rbcs(cartcomm);
-	    RedistributeCTCs redistribute_ctcs(cartcomm);
+	    RedistributeParticles redistribute(cartcomm, L);
+	    RedistributeRBCs redistribute_rbcs(cartcomm, L);
+	    RedistributeCTCs redistribute_ctcs(cartcomm, L);
 
-	    ComputeInteractionsDPD dpd(cartcomm);
-	    ComputeInteractionsRBC rbc_interactions(cartcomm);
-	    ComputeInteractionsCTC ctc_interactions(cartcomm);
+	    ComputeInteractionsDPD dpd(cartcomm, L);
+	    ComputeInteractionsRBC rbc_interactions(cartcomm, L);
+	    ComputeInteractionsCTC ctc_interactions(cartcomm, L);
 	    ComputeInteractionsWall * wall = NULL;
-
-            // in production runs replace the numbers with 4 unique ones that are same across ranks
-            KISS rng_trunk( 0x26F94D92, 0x383E7D1E, 0x46144B48, 0x6DDD73CB );
 	    
 	    cudaStream_t stream;
 	    CUDA_CHECK(cudaStreamCreate(&stream));
 	    	    
 	    redistribute_rbcs.stream = stream;
+
+	    int saru_tag = rank;
 	    
 	    CUDA_CHECK(cudaPeekAtLastError());
 
 	    cells.build(particles.xyzuvw.data, particles.size);
 
-	    dpd.evaluate(particles.xyzuvw.data, particles.size, particles.axayaz.data, cells.start, cells.count);
+	    dpd.evaluate(saru_tag, particles.xyzuvw.data, particles.size, particles.axayaz.data, cells.start, cells.count);
     
 	    if (rbcscoll)
-		rbc_interactions.evaluate(particles.xyzuvw.data, particles.size, particles.axayaz.data, cells.start, cells.count,
+		rbc_interactions.evaluate(saru_tag, particles.xyzuvw.data, particles.size, particles.axayaz.data, cells.start, cells.count,
 					  rbcscoll->data(), rbcscoll->count(), rbcscoll->acc());
 
 	    if (ctcscoll)
-		ctc_interactions.evaluate(particles.xyzuvw.data, particles.size, particles.axayaz.data, cells.start, cells.count,
+		ctc_interactions.evaluate(saru_tag, particles.xyzuvw.data, particles.size, particles.axayaz.data, cells.start, cells.count,
 					ctcscoll->data(), ctcscoll->count(), ctcscoll->acc());
 
 	    float driving_acceleration = 0;
@@ -185,7 +242,6 @@ int main(int argc, char ** argv)
 		    }	    		    
 
 		    report_host_memory_usage(cartcomm, stdout);
-
 		    if (rank == 0)
 		    {
 			static double t0 = MPI_Wtime(), t1;
@@ -250,7 +306,7 @@ int main(int argc, char ** argv)
 		    redistribute_ctcs.stage2(ctcscoll->data(), ctcscoll->count());
 		    timings["redistribute-ctc"] += MPI_Wtime() - tstart;
 		}
-	    
+
 		CUDA_CHECK(cudaPeekAtLastError());
 		
 		tstart = MPI_Wtime();
@@ -262,7 +318,7 @@ int main(int argc, char ** argv)
 		if (walls && it > 5000 && wall == NULL)
 		{
 		    int nsurvived = 0;
-		    wall = new ComputeInteractionsWall(cartcomm, particles.xyzuvw.data, particles.size, nsurvived);
+		    wall = new ComputeInteractionsWall(cartcomm, L, particles.xyzuvw.data, particles.size, nsurvived);
 		    
 		    particles.resize(nsurvived);
 		    particles.clear_velocity();
@@ -289,7 +345,7 @@ int main(int argc, char ** argv)
 		    {
 			SimpleDeviceBuffer<int> marks(rbcscoll->pcount());
 			
-			SolidWallsKernel::fill_keys<<< (rbcscoll->pcount() + 127) / 128, 128 >>>(rbcscoll->data(), rbcscoll->pcount(), marks.data);
+			SolidWallsKernel::fill_keys<<< (rbcscoll->pcount() + 127) / 128, 128 >>>(rbcscoll->data(), rbcscoll->pcount(), L, marks.data);
 			
 			vector<int> tmp(marks.size);
 			CUDA_CHECK(cudaMemcpy(tmp.data(), marks.data, sizeof(int) * marks.size, cudaMemcpyDeviceToHost));
@@ -320,7 +376,8 @@ int main(int argc, char ** argv)
 		    {
 			SimpleDeviceBuffer<int> marks(ctcscoll->pcount());
 			
-			SolidWallsKernel::fill_keys<<< (ctcscoll->pcount() + 127) / 128, 128 >>>(ctcscoll->data(), ctcscoll->pcount(), marks.data);
+			SolidWallsKernel::fill_keys<<< (ctcscoll->pcount() + 127) / 128, 128 >>>(ctcscoll->data(), ctcscoll->pcount(), L, 
+												 marks.data);
 			
 			vector<int> tmp(marks.size);
 			CUDA_CHECK(cudaMemcpy(tmp.data(), marks.data, sizeof(int) * marks.size, cudaMemcpyDeviceToHost));
@@ -360,15 +417,40 @@ int main(int argc, char ** argv)
 		//TODO: i need a coordinating class that performs all the local work while waiting for the communication
 		{
 		    tstart = MPI_Wtime();
-		    dpd.evaluate(particles.xyzuvw.data, particles.size, particles.axayaz.data, cells.start, cells.count);
-		    timings["evaluate-dpd"] += MPI_Wtime() - tstart;
+#if 0
+		    if((it % steps_per_report) == 0) {
+			cudaEventRecord(start);
+		    }
+#endif
+		    dpd.evaluate(saru_tag, particles.xyzuvw.data, particles.size, particles.axayaz.data, cells.start, cells.count);
+#if 0
+		    if((it % steps_per_report) == 0) {
+			cudaEventRecord(stop);
+			cudaEventSynchronize(stop);
+			float milliseconds = 0;
+			cudaEventElapsedTime(&milliseconds, start, stop);
+			float *rbuftime=new float[nranks];		
+		        MPI_CHECK ( MPI_Gather(&milliseconds,1,MPI_FLOAT,rbuftime, 1,
+                                    MPI_FLOAT, 0, MPI_COMM_WORLD) );
+			if(rank==0) {
+			 printf("Timing dpd.evaluate it %d\n",it);
+			 for(int i=0; i<nranks; i++) {
+		             printf("%7.5f ",rbuftime[i]);
+	                 }
+			 printf("\n End timing dpd.evaluate\n");
+		         delete [] rbuftime;
+		        }
+		    	tevaldpd+=milliseconds;
+		    }
+#endif
+		    timings["evaluate-dpd"] += (MPI_Wtime() - tstart);
 		    
 		    CUDA_CHECK(cudaPeekAtLastError());	
 		    	
 		    if (rbcscoll)
 		    {
 			tstart = MPI_Wtime();
-			rbc_interactions.evaluate(particles.xyzuvw.data, particles.size, particles.axayaz.data,
+			rbc_interactions.evaluate(saru_tag, particles.xyzuvw.data, particles.size, particles.axayaz.data,
 						  cells.start, cells.count, rbcscoll->data(), rbcscoll->count(), rbcscoll->acc());
 			timings["evaluate-rbc"] += MPI_Wtime() - tstart;
 		    }
@@ -378,7 +460,7 @@ int main(int argc, char ** argv)
 		    if (ctcscoll)
 		    {
 			tstart = MPI_Wtime();
-			ctc_interactions.evaluate(particles.xyzuvw.data, particles.size, particles.axayaz.data,
+			ctc_interactions.evaluate(saru_tag, particles.xyzuvw.data, particles.size, particles.axayaz.data,
 						  cells.start, cells.count, ctcscoll->data(), ctcscoll->count(), ctcscoll->acc());
 			timings["evaluate-ctc"] += MPI_Wtime() - tstart;
 		    }
@@ -389,13 +471,13 @@ int main(int argc, char ** argv)
 		    {
 			tstart = MPI_Wtime();
 			wall->interactions(particles.xyzuvw.data, particles.size, particles.axayaz.data, 
-					   cells.start, cells.count);
+					   cells.start, cells.count, saru_tag);
 
 			if (rbcscoll)
-			    wall->interactions(rbcscoll->data(), rbcscoll->pcount(), rbcscoll->acc(), NULL, NULL);
+			    wall->interactions(rbcscoll->data(), rbcscoll->pcount(), rbcscoll->acc(), NULL, NULL, saru_tag);
 
 			if (ctcscoll)
-			    wall->interactions(ctcscoll->data(), ctcscoll->pcount(), ctcscoll->acc(), NULL, NULL);
+			    wall->interactions(ctcscoll->data(), ctcscoll->pcount(), ctcscoll->acc(), NULL, NULL, saru_tag);
 
 			timings["evaluate-walls"] += MPI_Wtime() - tstart;
 		    }
@@ -442,10 +524,10 @@ int main(int argc, char ** argv)
 
 		    assert(start == n);
 
-		    diagnostics(cartcomm, p, n, dt, it, a);
+		    diagnostics(cartcomm, p, n, dt, it, L, a);
 		    
 		    if (xyz_dumps)
-			xyz_dump(cartcomm, "particles.xyz", "all-particles", p, n, it > 0);
+			xyz_dump(cartcomm, "particles.xyz", "all-particles", p, n, L, it > 0);
 		  
 		    if (hdf5part_dumps)
 			dump_part.dump(p, n);
@@ -517,10 +599,72 @@ int main(int argc, char ** argv)
 	}
 	   
 	MPI_CHECK(MPI_Comm_free(&cartcomm));
- 
+	{
+#if 0
+        double *rbuftime=new double[nranks];	
+	MPI_CHECK ( MPI_Gather(&tevaldpd,1,MPI_DOUBLE,rbuftime, 1,
+                         MPI_DOUBLE, 0, MPI_COMM_WORLD) );
+	if(rank==0) {
+//	 for(int i=0; i<nranks; i++) {
+//		printf("rank %d: time in dpd.evaluate: %f\n",i,rbuftime[i]);
+//	 }
+#define RANK2NODE "MPICH_RANK_ORDER"
+#define MAXINPUTLINE 1024
+#define DELIMITER ","
+         char line[MAXINPUTLINE];
+         char *token;
+         int *aranks=new int[nranks];
+         FILE *fp=fopen(RANK2NODE,"r");
+         if(fp==NULL) {
+           fprintf(stderr,"Error opening %s file\n",RANK2NODE);
+           MPI_Abort(MPI_COMM_WORLD,2);
+           exit(1);
+         }
+	 int countr, j=0;
+         while (fgets(line, MAXINPUTLINE, fp)) {
+               countr=0;
+               token=strtok(line,DELIMITER);
+               while(token!=NULL) {
+                  aranks[countr]=atoi(token);
+                  if(aranks[countr]==rank) {
+                  }
+                  countr++;
+                  token=strtok(NULL,DELIMITER);
+               }
+	       double timexnode=0;
+	       for(int i=0; i<countr; i++) {
+			timexnode+=rbuftime[aranks[i]];		
+	       }
+	       printf("Total time in dpd.evaluate for node %d: %f\n",j,timexnode);
+	       j++;
+          }
+          fclose(fp);
+	  delete [] aranks;
+	}
+	delete [] rbuftime;
+#endif
+	}
+	float *rbuftime=new float[cntlwtimer*nranks];		
+        MPI_CHECK ( MPI_Gather(lwtimer,cntlwtimer,MPI_FLOAT,rbuftime, 
+			 cntlwtimer, MPI_FLOAT, 0, MPI_COMM_WORLD) );
+	if(rank==0) {
+		 for(int j=0; j<cntlwtimer; j++) {
+			 printf("Timing dpd.evaluate it %d: ",j);
+			 for(int i=0; i<nranks; i++) {
+		             printf("%7.5f ",rbuftime[j+i*cntlwtimer]);
+	                 }
+			 printf(" End timing dpd.evaluate\n");
+		 }
+	}
+        delete [] rbuftime;
+	MPI_CHECK( MPI_Barrier(MPI_COMM_WORLD) );
+    	printf("Task %d: total time=%f\n",rank,MPI_Wtime()-maxtime);
 	MPI_CHECK( MPI_Finalize() );
     }
-    
+#if 0
+    cudaEventDestroy(start);
+    cudaEventDestroy(stop); 
+#endif
     CUDA_CHECK(cudaDeviceSynchronize());
     CUDA_CHECK(cudaDeviceReset());
 

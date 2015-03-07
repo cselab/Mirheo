@@ -17,7 +17,7 @@ class RedistributeCTCs : public RedistributeRBCs
 
 public:
 
-RedistributeCTCs(MPI_Comm _cartcomm, const int L):RedistributeRBCs(_cartcomm, L)
+RedistributeCTCs(MPI_Comm _cartcomm):RedistributeRBCs(_cartcomm)
     {
 	nvertices = CudaCTC::get_nvertices();
     }
@@ -41,8 +41,10 @@ class ComputeInteractionsCTC : public ComputeInteractionsRBC
 
 public:
 
-ComputeInteractionsCTC(MPI_Comm _cartcomm, int L): ComputeInteractionsRBC(_cartcomm, L)
+ComputeInteractionsCTC(MPI_Comm _cartcomm): ComputeInteractionsRBC(_cartcomm)
     {
+	local_trunk = Logistic::KISS(598 - myrank, 20383 + myrank, 129037, 2580);
+
 	nvertices = CudaCTC::get_nvertices();
     }
 };
@@ -56,14 +58,16 @@ class CollectionCTC : public CollectionRBC
 
 public:
 
-CollectionCTC(MPI_Comm cartcomm, const int L):CollectionRBC(cartcomm, L)
+CollectionCTC(MPI_Comm cartcomm):CollectionRBC(cartcomm)
     {
+	
+
 	CudaCTC::Extent extent;
 	CudaCTC::setup(nvertices, extent, dt);
 
-	assert(extent.xmax - extent.xmin < L);
-	assert(extent.ymax - extent.ymin < L);
-	assert(extent.zmax - extent.zmin < L);
+	assert(extent.xmax - extent.xmin < XSIZE_SUBDOMAIN);
+	assert(extent.ymax - extent.ymin < YSIZE_SUBDOMAIN);
+	assert(extent.zmax - extent.zmin < ZSIZE_SUBDOMAIN);
 
 	CudaCTC::get_triangle_indexing(indices, ntriangles);
 

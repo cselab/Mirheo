@@ -6,6 +6,7 @@
 #endif
 
 #ifndef NO_H5PART
+#define PARALLEL_IO
 #include <H5Part.h>
 #endif
 
@@ -17,7 +18,7 @@
 
 using namespace std;
 
-void xyz_dump(MPI_Comm comm, const char * filename, const char * particlename, Particle * particles, int n, int L, bool append)
+void xyz_dump(MPI_Comm comm, const char * filename, const char * particlename, Particle * particles, int n, bool append)
 {
     int rank;
     MPI_CHECK( MPI_Comm_rank(comm, &rank) );
@@ -57,9 +58,9 @@ void xyz_dump(MPI_Comm comm, const char * filename, const char * particlename, P
     
     for(int i = 0; i < nlocal; ++i)
 	ss << rank << " " 
-	   << (particles[i].x[0] + L / 2 + coords[0] * L) << " "
-	   << (particles[i].x[1] + L / 2 + coords[1] * L) << " "
-	   << (particles[i].x[2] + L / 2 + coords[2] * L) << "\n";
+	   << (particles[i].x[0] + XSIZE_SUBDOMAIN / 2 + coords[0] * XSIZE_SUBDOMAIN) << " "
+	   << (particles[i].x[1] + YSIZE_SUBDOMAIN / 2 + coords[1] * YSIZE_SUBDOMAIN) << " "
+	   << (particles[i].x[2] + ZSIZE_SUBDOMAIN / 2 + coords[2] * ZSIZE_SUBDOMAIN) << "\n";
 
     string content = ss.str();
 	
@@ -94,7 +95,7 @@ void _write_bytes(const void * const ptr, const int nbytes, MPI_File f, MPI_Comm
 
 void ply_dump(MPI_Comm comm, const char * filename,
 	      int (*mesh_indices)[3], const int ninstances, const int ntriangles_per_instance,
-	      Particle * _particles, int nvertices_per_instance, int L, bool append)
+	      Particle * _particles, int nvertices_per_instance, bool append)
 {
     std::vector<Particle> particles(_particles, _particles + ninstances * nvertices_per_instance);
     
@@ -137,9 +138,11 @@ void ply_dump(MPI_Comm comm, const char * filename,
     
     _write_bytes(content.c_str(), content.size(), f, comm);
     
+    const int L[3] = { XSIZE_SUBDOMAIN, YSIZE_SUBDOMAIN, ZSIZE_SUBDOMAIN };
+
     for(int i = 0; i < n; ++i)
 	for(int c = 0; c < 3; ++c)
-	    particles[i].x[c] += L / 2 + coords[c] * L;
+	    particles[i].x[c] += L[c] / 2 + coords[c] * L[c];
 
     _write_bytes(&particles.front(), sizeof(Particle) * n, f, comm);
 
@@ -165,17 +168,22 @@ void ply_dump(MPI_Comm comm, const char * filename,
     MPI_CHECK( MPI_File_close(&f));
 }
 
-H5PartDump::H5PartDump(const string fname, MPI_Comm cartcomm, const int L):
+H5PartDump::H5PartDump(const string fname, MPI_Comm cartcomm):
     cartcomm(cartcomm), fname(fname), tstamp(0)
 {
 #ifndef NO_H5PART
+
     int dims[3], periods[3], coords[3];
     MPI_CHECK( MPI_Cart_get(cartcomm, 3, dims, periods, coords) );
 
     for(int c = 0; c < 3; ++c)
 	origin[c] = L / 2 + coords[c] * L;
 
-    H5PartFile * f = H5PartOpenFileParallel(fname.c_str(), H5PART_WRITE, cartcomm);
+    mkdir("h5", S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+
+    char path[1024];
+    sprintf(path, "h5/%s", fname.c_str());
+    H5PartFile * f = H5PartOpenFileParallel(path, H5PART_WRITE, cartcomm);
 
     assert(f != NULL);
 
@@ -279,7 +287,8 @@ void H5FieldDump::_write_fields(const char * const path2h5,
     hid_t file_id = H5Fcreate(path2h5, H5F_ACC_TRUNC, H5P_DEFAULT, plist_id_access);
     H5Pclose(plist_id_access);
     
-    hsize_t globalsize[4] = {nranks[2] * L, nranks[1] * L, nranks[0] * L, 1};    
+    const int L[3] = { XSIZE_SUBDOMAIN, YSIZE_SUBDOMAIN, ZSIZE_SUBDOMAIN };
+    hsize_t globalsize[4] = {nranks[2] * L[2], nranks[1] * L[1], nranks[0] * L[0], 1};    
     hid_t filespace_simple = H5Screate_simple(4, globalsize, NULL);
     
     for(int ichannel = 0; ichannel < nchannels; ++ichannel)
@@ -289,8 +298,8 @@ void H5FieldDump::_write_fields(const char * const path2h5,
 	
 	H5Pset_dxpl_mpio(plist_id, H5FD_MPIO_COLLECTIVE);
 	
-	hsize_t start[4] = { myrank[2] * L, myrank[1] * L, myrank[0] * L, 0};
-	hsize_t extent[4] = { L, L, L,  1};
+	hsize_t start[4] = { myrank[2] * L[2], myrank[1] * L[1], myrank[0] * L[0], 0};
+	hsize_t extent[4] = { L[2], L[1], L[0],  1};
 	hid_t filespace = H5Dget_space(dset_id);
 	H5Sselect_hyperslab(filespace, H5S_SELECT_SET, start, NULL, extent, NULL);
 	
@@ -331,8 +340,10 @@ H5FieldDump::H5FieldDump(MPI_Comm cartcomm): cartcomm(cartcomm), last_idtimestep
     int dims[3], periods[3], coords[3];
     MPI_CHECK( MPI_Cart_get(cartcomm, 3, dims, periods, coords) );
 
+    const int L[3] = { XSIZE_SUBDOMAIN, YSIZE_SUBDOMAIN, ZSIZE_SUBDOMAIN };
+
     for(int c = 0; c < 3; ++c)
-	globalsize[c] = L * dims[c];
+	globalsize[c] = L[c] * dims[c];
 }
 
 void H5FieldDump::dump_scalarfield(const float * const data, const char * channelname)
@@ -348,7 +359,7 @@ void H5FieldDump::dump(const Particle * const p, const int n, int idtimestep)
 #ifndef NO_H5
     last_idtimestep = idtimestep;
 
-    const int ncells = L * L * L;
+    const int ncells = XSIZE_SUBDOMAIN * YSIZE_SUBDOMAIN * ZSIZE_SUBDOMAIN;
 
     vector<float> rho(ncells), u[3];
 
@@ -358,12 +369,12 @@ void H5FieldDump::dump(const Particle * const p, const int n, int idtimestep)
     for(int i = 0; i < n; ++i)
     {
 	const int cellindex[3] = {
-	    (int)floor(p[i].x[0] + L / 2),
-	    (int)floor(p[i].x[1] + L / 2),
-	    (int)floor(p[i].x[2] + L / 2)
+	    (int)floor(p[i].x[0] + XSIZE_SUBDOMAIN / 2),
+	    (int)floor(p[i].x[1] + YSIZE_SUBDOMAIN / 2),
+	    (int)floor(p[i].x[2] + ZSIZE_SUBDOMAIN / 2)
 	};
 
-	const int entry = cellindex[0] + L * (cellindex[1] + L * cellindex[2]);
+	const int entry = cellindex[0] + XSIZE_SUBDOMAIN * (cellindex[1] + YSIZE_SUBDOMAIN * cellindex[2]);
 
 	rho[entry] += 1;
 
@@ -392,7 +403,6 @@ void H5FieldDump::dump(const Particle * const p, const int n, int idtimestep)
 H5FieldDump::~H5FieldDump()
 {
 #ifndef NO_H5
-
     if (last_idtimestep == 0)
 	return;
 

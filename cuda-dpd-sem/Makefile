@@ -1,18 +1,18 @@
 ARCH_VAL ?= compute_35
 CODE_VAL ?= sm_35
 
-CXXFLAGS += -g -O2  -fPIC
+CXXFLAGS += -g -O2 -std=c++11
 
 #these setting are for my gk104, for k20x pls set the right flags
-NVCCFLAGS = -arch=$(ARCH_VAL) -Xcompiler -fpic -code=$(CODE_VAL)  -O4
+NVCCFLAGS += -arch=$(ARCH_VAL)  -code=$(CODE_VAL) -O4
 #-DNDEBUG
 #NVCCFLAGS += -Xptxas -v,-abi=yes
 NVCCFLAGS += --use_fast_math
 # -Xptxas -dlcm=cg -maxrregcount 32
 
 ifeq "$(profile)" "1"
-NVCCFLAGS += -lineinfo -D_PROFILE_ -g
-CXXFLAGS += -D_PROFILE_
+NVCCFLAGS += -lineinfo -D_PROFILE_ 
+CXXFLAGS += -D_PROFILE_ -g
 endif
 
 ifneq "$(debug)" "1"
@@ -26,7 +26,6 @@ ifeq "$(legacy)" "1"
 CELLING=cell-lists.cu
 endif
 
-NVCC = nvcc
 
 test-cell-lists: test-cell-lists.cu cell-lists-faster.cu
 	$(NVCC) $(NVCCFLAGS) $^ -o test-cell-lists
