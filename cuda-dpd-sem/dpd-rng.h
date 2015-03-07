@@ -53,8 +53,8 @@ namespace Logistic
 // spacing coefficints for low discrepancy numbers
     const static float gold = 0.6180339887498948482;
     const static float silver = 0.4142135623730950488;
-    const static float gold_lo = 0.6180339887498948482/65536.0;
-    const static float silver_lo = 0.4142135623730950488/65536.0;
+    const static float bronze = 0.00008877875787352212838853023;
+    const static float tin = 0.00004602357186447026756768986;
 // square root of 2
     const static float sqrt2 = 1.41421356237309514547;
 
@@ -100,8 +100,8 @@ namespace Logistic
     {
 	uint u = min( i, j );
 	uint v = max( i, j );
-	//float p = rem( u * gold + v * silver );
-	float p = rem( ( (u&0xFFFF)*gold) + u*gold_lo + ((v&0xFFFF)*silver) + v * silver_lo );
+	//float p = rem( u * gold + v * silver ); // unsafe for large u or v
+	float p = rem( ( (u&0x3FF)*gold) + u*bronze + ((v&0x3FF)*silver) + v * tin ); // safe for large u or v
 	float l = __logistic_core<N>( seed - p );
 	return l * sqrt2;
     }
