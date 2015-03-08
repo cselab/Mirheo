@@ -74,7 +74,7 @@ template<int COLS, int ROWS, int NSRCMAX>
 __device__ void core(const int nsrc, const int * const scan, const int * const starts, 
 		     const int ndst, const int dststart)
 {
-   int srcids[NSRCMAX];
+    int srcids[NSRCMAX];
     for(int i = 0; i < NSRCMAX; ++i)
 	srcids[i] = 0;
     
