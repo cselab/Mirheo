@@ -301,13 +301,21 @@ void HaloExchanger::pack_and_post(const Particle * const p, const int n, const i
     }
 #endif
     static int newscani=1;
+#if 0
     static  sblockds_t *ptoblockds[26];
+#else
+    static  sblockds_t *ptoblockds;
+#endif
     static int mb[6], mw[12];
     if(newscani) {
+   	 CUDA_CHECK(cudaMalloc((void **)&ptoblockds,6*sizeof(sblockds_t)));
+         CUDA_CHECK(cudaMemset(ptoblockds,0,6*sizeof(sblockds_t)));
+#if 0
    	 for(int i = 0; i < 26; ++i) {
    	 CUDA_CHECK(cudaMalloc((void **)&ptoblockds[i],sizeof(sblockds_t)));
          CUDA_CHECK(cudaMemset(ptoblockds[i],0,sizeof(sblockds_t)));
     	}
+#endif
 	mb[0]=8;
 	mb[1]=17;
 	mb[2]=20;
@@ -369,6 +377,36 @@ void HaloExchanger::pack_and_post(const Particle * const p, const int n, const i
 			       sendhalos[i].tmpcount.size);
 #endif
 #define NTHREADS 1024
+	excl26scan<<<6*((sendhalos[mb[0]].tmpcount.size+NTHREADS-1)/NTHREADS),NTHREADS,0,streams[code2stream[mb[0]]]>>>(
+	  sendhalos[mb[0]].tmpcount.data,sendhalos[mb[0]].dcellstarts.data,
+	  sendhalos[mb[1]].tmpcount.data,sendhalos[mb[1]].dcellstarts.data,
+	  sendhalos[mb[2]].tmpcount.data,sendhalos[mb[2]].dcellstarts.data,
+	  sendhalos[mb[3]].tmpcount.data,sendhalos[mb[3]].dcellstarts.data,
+	  sendhalos[mb[4]].tmpcount.data,sendhalos[mb[4]].dcellstarts.data,
+	  sendhalos[mb[5]].tmpcount.data,sendhalos[mb[5]].dcellstarts.data,
+	  sendhalos[mw[0]].tmpcount.data,sendhalos[mw[0]].dcellstarts.data,
+	  sendhalos[mw[1]].tmpcount.data,sendhalos[mw[1]].dcellstarts.data,
+	  sendhalos[mw[2]].tmpcount.data,sendhalos[mw[2]].dcellstarts.data,
+	  sendhalos[mw[3]].tmpcount.data,sendhalos[mw[3]].dcellstarts.data,
+	  sendhalos[mw[4]].tmpcount.data,sendhalos[mw[4]].dcellstarts.data,
+	  sendhalos[mw[5]].tmpcount.data,sendhalos[mw[5]].dcellstarts.data,
+	  sendhalos[mw[6]].tmpcount.data,sendhalos[mw[6]].dcellstarts.data,
+	  sendhalos[mw[7]].tmpcount.data,sendhalos[mw[7]].dcellstarts.data,
+	  sendhalos[mw[8]].tmpcount.data,sendhalos[mw[8]].dcellstarts.data,
+	  sendhalos[mw[9]].tmpcount.data,sendhalos[mw[9]].dcellstarts.data,
+	  sendhalos[mw[10]].tmpcount.data,sendhalos[mw[10]].dcellstarts.data,
+	  sendhalos[mw[11]].tmpcount.data,sendhalos[mw[11]].dcellstarts.data,
+	  sendhalos[0].tmpcount.data,sendhalos[0].dcellstarts.data,
+	  sendhalos[1].tmpcount.data,sendhalos[1].dcellstarts.data,
+	  sendhalos[3].tmpcount.data,sendhalos[3].dcellstarts.data,
+	  sendhalos[4].tmpcount.data,sendhalos[4].dcellstarts.data,
+	  sendhalos[9].tmpcount.data,sendhalos[9].dcellstarts.data,
+	  sendhalos[10].tmpcount.data,sendhalos[10].dcellstarts.data,
+          sendhalos[12].tmpcount.data,sendhalos[12].dcellstarts.data,
+          sendhalos[13].tmpcount.data,sendhalos[13].dcellstarts.data,
+	  sendhalos[mw[0]].tmpcount.size, sendhalos[mb[0]].tmpcount.size,
+	  ptoblockds);
+#if 0
 	 for(int i=0; i<6; i++) {
 		 if(sendhalos[mb[i]].expected) { 
 			 exclscan<<<(sendhalos[mb[i]].tmpcount.size+NTHREADS-1)/NTHREADS,NTHREADS,0,streams[code2stream[mb[i]]]>>>(sendhalos[mb[i]].tmpcount.data,sendhalos[mb[i]].dcellstarts.data,sendhalos[mb[i]].tmpcount.size, ptoblockds[mb[i]]);
@@ -395,6 +433,7 @@ void HaloExchanger::pack_and_post(const Particle * const p, const int n, const i
           sendhalos[12].tmpcount.data,sendhalos[12].dcellstarts.data,
           sendhalos[13].tmpcount.data,sendhalos[13].dcellstarts.data,
 	  sendhalos[mw[0]].tmpcount.size);
+#endif
 #if defined(_TIME_PROFILE_)
     if (lit % 500 == 0)
     {
