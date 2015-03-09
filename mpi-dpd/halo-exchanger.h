@@ -96,7 +96,7 @@ protected:
     //mpi-sync for the surrounding halos, shift particle coord to the sysref of this rank
     void wait_for_messages();
 
-    virtual void spawn_local_work() { }
+    
     
     int nof_sent_particles();
 
@@ -113,6 +113,7 @@ public:
     HaloExchanger(MPI_Comm cartcomm, const int basetag);
 
     void adjust_message_sizes(ExpectedMessageSizes sizes);
-    
+    virtual void spawn_local_work() { }
+
     virtual ~HaloExchanger();
 };

@@ -478,33 +478,7 @@ void HaloExchanger::pack_and_post(const Particle * const p, const int n, const i
 	    }
 	}
 
-#if 1
 	PackingHalo::count_all<<<(PackingHalo::ncells + 127) / 128, 128 >>>(cellsstart, cellscount, PackingHalo::ncells);
-#else
-	for(int i = 0; i < 26; ++i)
-	    if (sendhalos[i].expected)
-	    {
-		const int d[3] = { (i + 2) % 3 - 1, (i / 3 + 2) % 3 - 1, (i / 9 + 2) % 3 - 1 };
-		const int L[3] = { XSIZE_SUBDOMAIN, YSIZE_SUBDOMAIN, ZSIZE_SUBDOMAIN };
-		
-		int halo_start[3], halo_size[3];
-		for(int c = 0; c < 3; ++c)
-		{
-		    halo_start[c] = max(d[c] * L[c] - L[c]/2 - 1, -L[c]/2);
-		    halo_size[c] = min(d[c] * L[c] + L[c]/2 + 1, L[c]/2) - halo_start[c];
-		}
-		
-		const int nentries = sendhalos[i].dcellstarts.size;
-		
-		PackingHalo::count<<< (nentries + 127) / 128, 128, 0, streams[code2stream[i]] >>>
-		    (cellsstart, cellscount,  
-		     make_int3(halo_start[0] + XSIZE_SUBDOMAIN / 2 , 
-			       halo_start[1] + YSIZE_SUBDOMAIN / 2, 
-			       halo_start[2] + ZSIZE_SUBDOMAIN / 2),
-		     make_int3(halo_size[0], halo_size[1], halo_size[2]), 
-		     sendhalos[i].tmpstart.data, sendhalos[i].tmpcount.data);
-	    }
-#endif
 
 #if 1
 	int * input_count[26],  * output_scan[26], scan_sizes[26];
@@ -513,7 +487,6 @@ void HaloExchanger::pack_and_post(const Particle * const p, const int n, const i
 	    input_count[i] = sendhalos[i].tmpcount.data;
 	    output_scan[i] = sendhalos[i].dcellstarts.data;
 	    scan_sizes[i] = sendhalos[i].tmpcount.size;
-	    
 	}
     
 	scan_massimo(input_count, output_scan, scan_sizes, 0);
@@ -552,82 +525,11 @@ void HaloExchanger::pack_and_post(const Particle * const p, const int n, const i
 	    
 	    CUDA_CHECK(cudaMemcpyToSymbolAsync(PackingHalo::dstcells, dstcells, sizeof(dstcells), 0, cudaMemcpyHostToDevice));
 	}
-#if 1
+
 	PackingHalo::copycells<<< (PackingHalo::ncells + 127) / 128, 128>>>(PackingHalo::ncells);
-#else
-	for(int i = 0; i < 26; ++i)
-	    if (sendhalos[i].expected)
-		CUDA_CHECK(cudaMemcpyAsync(sendhalos[i].hcellstarts.devptr, sendhalos[i].dcellstarts.data, 
-					   sizeof(int) * sendhalos[i].dcellstarts.size, 
-					   cudaMemcpyDeviceToDevice, streams[code2stream[i]]));
-#endif
 
-#if 1
 	_pack_all(p, n, firstpost, 0);
-	_consolidate_packs(p, n);	
-#else
-	for(int pass = 0; pass < 2; ++pass)
-	{
-	    bool needsync = pass == 0;
-	    
-	    for(int i = 0; i < 26; ++i)
-	    {
-		if (sendhalos[i].expected == 0)
-		{
-		    sendhalos[i].dbuf.size = 0;
-		    sendhalos[i].hbuf.size = 0;
-		    sendhalos[i].scattered_entries.size = 0;
-		    continue;
-		}
 
-		bool fail = false;
-		int nrequired;
-		
-		if (pass == 1)
-		{
-		    nrequired = required_send_bag_size_host[i];
-		    fail = sendhalos[i].dbuf.capacity < nrequired;
-		}
-		
-		if (pass == 0 || fail)
-		{
-		    if (fail)
-		    {
-			printf("------------------- rank %d - code %d : oops now: %d, expected: %d required: %d, current capacity: %d\n", 
-			       myrank, i, sendhalos[i].dbuf.size,
-			       sendhalos[i].expected, nrequired, sendhalos[i].dbuf.capacity);
-			sendhalos[i].dbuf.resize(nrequired);
-			sendhalos[i].hbuf.resize(nrequired);
-			sendhalos[i].scattered_entries.resize(nrequired);
-			needsync = true;
-		    }
-
-		    const int nentries = sendhalos[i].dcellstarts.size;
-		    const int nblocks = (sendhalos[i].dcellstarts.size + 1) / 2;
-		    
-		    PackingHalo::fill<<<nblocks, 32, 0, streams[code2stream[i]] >>>
-			(p, n, nentries - 1, sendhalos[i].tmpstart.data, sendhalos[i].tmpcount.data, sendhalos[i].dcellstarts.data,
-			 sendhalos[i].dbuf.data, sendhalos[i].hbuf.data, sendhalos[i].dbuf.capacity, sendhalos[i].scattered_entries.data,
-			 required_send_bag_size + i, i);	
-		}
-		
-		if (pass == 1)
-		{
-		    sendhalos[i].dbuf.size = nrequired;
-		    sendhalos[i].hbuf.size = nrequired;
-		    sendhalos[i].scattered_entries.size = nrequired;
-		}
-	    }
-
-	    
-	    CUDA_CHECK(cudaPeekAtLastError());
-	    
-	    if (needsync)
-		for(int i = 0; i < 7; ++i)
-		    CUDA_CHECK(cudaStreamSynchronize(streams[i]));
-	}
-
-#endif
 	
 #ifndef NDEBUG
 	for(int i = 0; i < 26; ++i)
@@ -646,6 +548,8 @@ void HaloExchanger::pack_and_post(const Particle * const p, const int n, const i
     }
 
     spawn_local_work();
+
+    _consolidate_packs(p, n);	
 
     {
 	NVTX_RANGE("HEX/send", NVTX_C2);
