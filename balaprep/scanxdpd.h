@@ -491,16 +491,16 @@ __global__ void excl26scan(int *d_data30,  int *d_output30,
                               int *d_data25, int *d_output25,
                               int *d_data26, int *d_output26,
                               int *d_data27, int *d_output27,
-                              int size, int size1, sblockds_t *ptoblockds) {
+                              int *size, int maxsize, sblockds_t *ptoblockds)  {
   __shared__ int temp[32];
   __shared__ unsigned int my_blockId;
   int temp1, temp2, temp3, temp4;
-  const int which=blockIdx.x/((size1+(blockDim.x-1))/blockDim.x);
   if(blockDim.x>MAXTHREADS) {
         printf("Invalid number of threads per block: %d, must be <=%d\n",blockDim.x,MAXTHREADS);
   }
-  temp3=6*((size1+(blockDim.x-1))/blockDim.x);
+  temp3=6*((maxsize+(blockDim.x-1))/blockDim.x);
   int tid = threadIdx.x;
+  const int which=blockIdx.x/((maxsize+(blockDim.x-1))/blockDim.x);
   if(blockIdx.x>=temp3) {
 	goto smallscan;
   }
@@ -508,29 +508,32 @@ __global__ void excl26scan(int *d_data30,  int *d_output30,
          my_blockId = atomicAdd( &(ptoblockds[which].g_block_id), 1 );
   }
   __syncthreads();
+  if(my_blockId*blockDim.x>=size[which]) {
+     return;
+  }
   switch(which) {
     case 0:
-      temp4 = temp1 = (tid+my_blockId*blockDim.x<size1)?
+      temp4 = temp1 = (tid+my_blockId*blockDim.x<size[0])?
                        d_data30[tid+my_blockId*blockDim.x]:0;
     break;
     case 1:
-      temp4 = temp1 = (tid+my_blockId*blockDim.x<size1)?
+      temp4 = temp1 = (tid+my_blockId*blockDim.x<size[1])?
                        d_data31[tid+my_blockId*blockDim.x]:0;
     break;
     case 2:
-      temp4 = temp1 = (tid+my_blockId*blockDim.x<size1)?
+      temp4 = temp1 = (tid+my_blockId*blockDim.x<size[2])?
                        d_data32[tid+my_blockId*blockDim.x]:0;
     break;
     case 3:
-      temp4 = temp1 = (tid+my_blockId*blockDim.x<size1)?
+      temp4 = temp1 = (tid+my_blockId*blockDim.x<size[3])?
                        d_data33[tid+my_blockId*blockDim.x]:0;
     break;
     case 4:
-      temp4 = temp1 = (tid+my_blockId*blockDim.x<size1)?
+      temp4 = temp1 = (tid+my_blockId*blockDim.x<size[4])?
                        d_data34[tid+my_blockId*blockDim.x]:0;
     break;
     case 5:
-      temp4 = temp1 = (tid+my_blockId*blockDim.x<size1)?
+      temp4 = temp1 = (tid+my_blockId*blockDim.x<size[5])?
                        d_data35[tid+my_blockId*blockDim.x]:0;
     break;
   }
@@ -558,7 +561,7 @@ __global__ void excl26scan(int *d_data30,  int *d_output30,
   if (threadIdx.x==(blockDim.x-1)) {
         do {} while( atomicAdd(&(ptoblockds[which].g_blockcnt),0) < my_blockId );
         temp[0]=ptoblockds[which].sum;
-        if(my_blockId==(((size1+(blockDim.x-1))/blockDim.x)-1)) { /* it is the last block; reset for next iteration */
+        if(my_blockId==(((size[which]+(blockDim.x-1))/blockDim.x)-1)) { /* it is the last block; reset for next iteration */
                 ptoblockds[which].sum=0;
                 ptoblockds[which].g_blockcnt=0;
                 ptoblockds[which].g_block_id=0;
@@ -570,7 +573,7 @@ __global__ void excl26scan(int *d_data30,  int *d_output30,
   }
   __syncthreads();
   temp1+=temp[0];
-  if(tid+my_blockId*blockDim.x<size1) {
+  if(tid+my_blockId*blockDim.x<size[which]) {
     switch(which) {
         case 0:
           d_output30[tid+my_blockId*blockDim.x]=temp1-temp4;
@@ -594,45 +597,45 @@ __global__ void excl26scan(int *d_data30,  int *d_output30,
   }
   return;
 smallscan:
-  if(tid>=(((size+WARPSIZE-1)/WARPSIZE)*WARPSIZE)) {
+  if(tid>=(((size[6+blockIdx.x-temp3]+WARPSIZE-1)/WARPSIZE)*WARPSIZE)) {
 	return;
   }
   switch(blockIdx.x-temp3) {
     case 0:
-      temp4 = temp1 = (tid<size)?d_data0[tid]:0;
+      temp4 = temp1 = (tid<size[6])?d_data0[tid]:0;
     break;
     case 1:
-      temp4 = temp1 = (tid<size)?d_data1[tid]:0;
+      temp4 = temp1 = (tid<size[7])?d_data1[tid]:0;
     break;
     case 2:
-      temp4 = temp1 = (tid<size)?d_data2[tid]:0;
+      temp4 = temp1 = (tid<size[8])?d_data2[tid]:0;
     break;
     case 3:
-      temp4 = temp1 = (tid<size)?d_data3[tid]:0;
+      temp4 = temp1 = (tid<size[9])?d_data3[tid]:0;
     break;
     case 4:
-      temp4 = temp1 = (tid<size)?d_data4[tid]:0;
+      temp4 = temp1 = (tid<size[10])?d_data4[tid]:0;
     break;
     case 5:
-      temp4 = temp1 = (tid<size)?d_data5[tid]:0;
+      temp4 = temp1 = (tid<size[11])?d_data5[tid]:0;
     break;
     case 6:
-      temp4 = temp1 = (tid<size)?d_data6[tid]:0;
+      temp4 = temp1 = (tid<size[12])?d_data6[tid]:0;
     break;
     case 7:
-      temp4 = temp1 = (tid<size)?d_data7[tid]:0;
+      temp4 = temp1 = (tid<size[13])?d_data7[tid]:0;
     break;
     case 8:
-      temp4 = temp1 = (tid<size)?d_data8[tid]:0;
+      temp4 = temp1 = (tid<size[14])?d_data8[tid]:0;
     break;
     case 9:
-      temp4 = temp1 = (tid<size)?d_data9[tid]:0;
+      temp4 = temp1 = (tid<size[15])?d_data9[tid]:0;
     break;
     case 10:
-      temp4 = temp1 = (tid<size)?d_data10[tid]:0;
+      temp4 = temp1 = (tid<size[16])?d_data10[tid]:0;
     break;
     case 11:
-      temp4 = temp1 = (tid<size)?d_data11[tid]:0;
+      temp4 = temp1 = (tid<size[17])?d_data11[tid]:0;
     break;
     default:
     return;
@@ -643,71 +646,117 @@ smallscan:
   }
   if (tid%32 == 31) temp[tid/32] = temp1;
   __syncthreads();
-  if (tid >= 32) { temp1 += temp[0]; }
-  if(tid<size) {
+  if (tid >= 32) { 
+	temp1 += temp[0];
+	if(tid >= 64) {
+		temp1 += temp[1];
+		if(tid>=96) {
+			temp1 += temp[2];
+			if(tid>=128) {
+				temp1 += temp[3];
+				if(tid>=160) {
+					temp1 += temp[4];
+					if(tid>=192) {
+						temp1 += temp[5];
+						if(tid>=224) {
+							temp1 += temp[6];
+							if(tid>=256) {
+							   temp1 += temp[7];
+						        }
+						}
+					}
+				}
+			}
+		}
+	}
+  }
     switch(blockIdx.x-temp3) {
     case 0:
-      d_output0[tid]=temp1-temp4;
+      if(tid<size[6]) {
+      	d_output0[tid]=temp1-temp4;
+      }	
       if(tid<2) {
           d_output20[tid]=d_data20[0]*tid;
       }
     break;
     case 1:
-      d_output1[tid]=temp1-temp4;
+      if(tid<size[7]) {
+      	d_output1[tid]=temp1-temp4;
+      }
       if(tid<2) {
           d_output21[tid]=d_data21[0]*tid;
       }
     break;
     case 2:
-      d_output2[tid]=temp1-temp4;
+      if(tid<size[8]) {
+      	d_output2[tid]=temp1-temp4;
+      }
       if(tid<2) {
           d_output22[tid]=d_data22[0]*tid;
       }
     break;
     case 3:
-      d_output3[tid]=temp1-temp4;
+      if(tid<size[9]) {
+      	d_output3[tid]=temp1-temp4;
+      }
       if(tid<2) {
           d_output23[tid]=d_data23[0]*tid;
       }
     break;
     case 4:
-      d_output4[tid]=temp1-temp4;
+      if(tid<size[10]) {
+      	d_output4[tid]=temp1-temp4;
+      }
       if(tid<2) {
           d_output24[tid]=d_data24[0]*tid;
       }
     break;
     case 5:
-      d_output5[tid]=temp1-temp4;
+      if(tid<size[11]) {
+     	 d_output5[tid]=temp1-temp4;
+      }
       if(tid<2) {
           d_output25[tid]=d_data25[0]*tid;
       }
     break;
     case 6:
-      d_output6[tid]=temp1-temp4;
+      if(tid<size[12]) {
+     	 d_output6[tid]=temp1-temp4;
+      }
       if(tid<2) {
           d_output26[tid]=d_data26[0]*tid;
       }
     break;
     case 7:
-      d_output7[tid]=temp1-temp4;
+      if(tid<size[13]) {
+     	 d_output7[tid]=temp1-temp4;
+      }
       if(tid<2) {
           d_output27[tid]=d_data27[0]*tid;
       }
     break;
     case 8:
-      d_output8[tid]=temp1-temp4;
+      if(tid<size[14]) {
+     	 d_output8[tid]=temp1-temp4;
+      }
     break;
     case 9:
-      d_output9[tid]=temp1-temp4;
+      if(tid<size[15]) {
+      	d_output9[tid]=temp1-temp4;
+      }
     break;
     case 10:
-      d_output10[tid]=temp1-temp4;
+      if(tid<size[16]) {
+      	d_output10[tid]=temp1-temp4;
+      }
     break;
     case 11:
-      d_output11[tid]=temp1-temp4;
+      if(tid<size[17]) {
+     	 d_output11[tid]=temp1-temp4;
+      }
     break;
     }
-  }
+  
 }
 
 
