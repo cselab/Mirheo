@@ -377,7 +377,7 @@ void HaloExchanger::pack_and_post(const Particle * const p, const int n, const i
 			       sendhalos[i].tmpcount.size);
 #endif
 #define NTHREADS 1024
-	excl26scan<<<6*((sendhalos[mb[0]].tmpcount.size+NTHREADS-1)/NTHREADS),NTHREADS,0,streams[code2stream[mb[0]]]>>>(
+	excl26scan<<<12+(6*((sendhalos[mb[0]].tmpcount.size+NTHREADS-1)/NTHREADS)),NTHREADS,0,streams[code2stream[mb[0]]]>>>(
 	  sendhalos[mb[0]].tmpcount.data,sendhalos[mb[0]].dcellstarts.data,
 	  sendhalos[mb[1]].tmpcount.data,sendhalos[mb[1]].dcellstarts.data,
 	  sendhalos[mb[2]].tmpcount.data,sendhalos[mb[2]].dcellstarts.data,

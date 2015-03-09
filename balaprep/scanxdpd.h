@@ -5,6 +5,7 @@ typedef struct {
 } sblockds_t;
 
 #define MAXTHREADS 1024
+#define WARPSIZE     32
 
 __global__ void exclscn2e(int *d_data0, int *d_output0,
                         int *d_data1, int *d_output1,
@@ -498,11 +499,15 @@ __global__ void excl26scan(int *d_data30,  int *d_output30,
   if(blockDim.x>MAXTHREADS) {
         printf("Invalid number of threads per block: %d, must be <=%d\n",blockDim.x,MAXTHREADS);
   }
+  temp3=6*((size1+(blockDim.x-1))/blockDim.x);
+  int tid = threadIdx.x;
+  if(blockIdx.x>=temp3) {
+	goto smallscan;
+  }
   if (threadIdx.x==0) {
          my_blockId = atomicAdd( &(ptoblockds[which].g_block_id), 1 );
   }
   __syncthreads();
-  int tid = threadIdx.x;
   switch(which) {
     case 0:
       temp4 = temp1 = (tid+my_blockId*blockDim.x<size1)?
@@ -587,7 +592,12 @@ __global__ void excl26scan(int *d_data30,  int *d_output30,
         break;
     }
   }
-  switch(blockIdx.x) {
+  return;
+smallscan:
+  if(tid>=(((size+WARPSIZE-1)/WARPSIZE)*WARPSIZE)) {
+	return;
+  }
+  switch(blockIdx.x-temp3) {
     case 0:
       temp4 = temp1 = (tid<size)?d_data0[tid]:0;
     break;
@@ -635,7 +645,7 @@ __global__ void excl26scan(int *d_data30,  int *d_output30,
   __syncthreads();
   if (tid >= 32) { temp1 += temp[0]; }
   if(tid<size) {
-    switch(blockIdx.x) {
+    switch(blockIdx.x-temp3) {
     case 0:
       d_output0[tid]=temp1-temp4;
       if(tid<2) {
@@ -702,3 +712,4 @@ __global__ void excl26scan(int *d_data30,  int *d_output30,
 
 
 #undef MAXTHREADS
+#undef WARPSIZE
