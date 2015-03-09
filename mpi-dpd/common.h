@@ -1,7 +1,7 @@
 #pragma once
 
 enum { 
-    XSIZE_SUBDOMAIN = 144, 
+    XSIZE_SUBDOMAIN = 48, 
     YSIZE_SUBDOMAIN = 48, 
     ZSIZE_SUBDOMAIN = 48,
     XMARGIN_WALL = 6,
