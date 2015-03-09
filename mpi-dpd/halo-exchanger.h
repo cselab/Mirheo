@@ -88,16 +88,6 @@ protected:
 
     void _pack_all(const Particle * const p, const int n, const bool update_baginfos, cudaStream_t stream);
     
-    void _consolidate_packs(const Particle * const p, const int n);
-    
-    //cuda-sync after to wait for packing of the halo, mpi non-blocking
-    void pack_and_post(const Particle * const p, const int n, const int * const cellsstart, const int * const cellscount);
-
-    //mpi-sync for the surrounding halos, shift particle coord to the sysref of this rank
-    void wait_for_messages();
-
-    
-    
     int nof_sent_particles();
 
     cudaEvent_t evfillall;
@@ -112,8 +102,13 @@ public:
     
     HaloExchanger(MPI_Comm cartcomm, const int basetag);
 
+    void pack(const Particle * const p, const int n, const int * const cellsstart, const int * const cellscount, cudaStream_t stream);
+
+    void consolidate_and_post(const Particle * const p, const int n, cudaStream_t stream);
+
+    void wait_for_messages();
+
     void adjust_message_sizes(ExpectedMessageSizes sizes);
-    virtual void spawn_local_work() { }
 
     virtual ~HaloExchanger();
 };

@@ -403,154 +403,152 @@ void HaloExchanger::_pack_all(const Particle * const p, const int n, const bool 
     CUDA_CHECK(cudaEventRecord(evfillall, stream));
 }
 
-void HaloExchanger::_consolidate_packs(const Particle * const p, const int n)
-{
-    CUDA_CHECK(cudaEventSynchronize(evfillall));
-
-    bool succeeded = true;
-    for(int i = 0; i < 26; ++i)
-    {
-	const int nrequired = required_send_bag_size_host[i];
-	const bool failed_entry = nrequired > sendhalos[i].dbuf.capacity;
-
-	if (failed_entry)
-	{
-	    sendhalos[i].dbuf.resize(nrequired);
-	    sendhalos[i].hbuf.resize(nrequired);
-	    sendhalos[i].scattered_entries.resize(nrequired);
-	    succeeded = false;
-	}
-    }
-
-    if (!succeeded)
-    {
-	_pack_all(p, n, true, 0);
-	
-	CUDA_CHECK(cudaEventSynchronize(evfillall));	
-    }
-    
-    for(int i = 0; i < 26; ++i)
-    {
-	const int nrequired = required_send_bag_size_host[i];
-
-	assert(nrequired <= sendhalos[i].dbuf.capacity);
-
-	sendhalos[i].dbuf.size = nrequired;
-	sendhalos[i].hbuf.size = nrequired;
-	sendhalos[i].scattered_entries.size = nrequired;
-    }
-}
-
-void HaloExchanger::pack_and_post(const Particle * const p, const int n, const int * const cellsstart, const int * const cellscount)
+void HaloExchanger::pack(const Particle * const p, const int n, const int * const cellsstart, const int * const cellscount, cudaStream_t stream)
 {
     CUDA_CHECK(cudaPeekAtLastError());
 
     nlocal = n;
 
+    NVTX_RANGE("HEX/pack", NVTX_C2);
+    
+    if (firstpost)
     {
-	NVTX_RANGE("HEX/pack", NVTX_C2);
-	
-	if (firstpost)
 	{
-	    {
-		int cellpackstarts[27];
-
-		cellpackstarts[0] = 0;
-		for(int i = 0, s = 0; i < 26; ++i)
-		    cellpackstarts[i + 1] =  (s += sendhalos[i].dcellstarts.size * (sendhalos[i].expected > 0));
-	
-		PackingHalo::ncells = cellpackstarts[26];
-
-		CUDA_CHECK(cudaMemcpyToSymbolAsync(PackingHalo::cellpackstarts, cellpackstarts,
-						   sizeof(cellpackstarts), 0, cudaMemcpyHostToDevice));
-	    }
-
-	    {
-		PackingHalo::CellPackSOA cellpacks[26];
-		for(int i = 0; i < 26; ++i)
-		{
-		    cellpacks[i].start = sendhalos[i].tmpstart.data;
-		    cellpacks[i].count = sendhalos[i].tmpcount.data;
-		}
-		
-		CUDA_CHECK(cudaMemcpyToSymbolAsync(PackingHalo::cellpacks, cellpacks,
-						   sizeof(cellpacks), 0, cudaMemcpyHostToDevice));
-	    }
+	    int cellpackstarts[27];
+	    
+	    cellpackstarts[0] = 0;
+	    for(int i = 0, s = 0; i < 26; ++i)
+		cellpackstarts[i + 1] =  (s += sendhalos[i].dcellstarts.size * (sendhalos[i].expected > 0));
+	    
+	    PackingHalo::ncells = cellpackstarts[26];
+	    
+	    CUDA_CHECK(cudaMemcpyToSymbolAsync(PackingHalo::cellpackstarts, cellpackstarts,
+					       sizeof(cellpackstarts), 0, cudaMemcpyHostToDevice, stream));
 	}
-
-	PackingHalo::count_all<<<(PackingHalo::ncells + 127) / 128, 128 >>>(cellsstart, cellscount, PackingHalo::ncells);
-
+	
+	{
+	    PackingHalo::CellPackSOA cellpacks[26];
+	    for(int i = 0; i < 26; ++i)
+	    {
+		cellpacks[i].start = sendhalos[i].tmpstart.data;
+		cellpacks[i].count = sendhalos[i].tmpcount.data;
+	    }
+	    
+	    CUDA_CHECK(cudaMemcpyToSymbolAsync(PackingHalo::cellpacks, cellpacks,
+					       sizeof(cellpacks), 0, cudaMemcpyHostToDevice, stream));
+	}
+    }
+    
+    PackingHalo::count_all<<<(PackingHalo::ncells + 127) / 128, 128, 0, stream>>>(cellsstart, cellscount, PackingHalo::ncells);
+    
 #if 1
-	int * input_count[26],  * output_scan[26], scan_sizes[26];
-	for(int i = 0; i < 26; ++i)
-	{
-	    input_count[i] = sendhalos[i].tmpcount.data;
-	    output_scan[i] = sendhalos[i].dcellstarts.data;
-	    scan_sizes[i] = sendhalos[i].tmpcount.size;
-	}
+    int * input_count[26],  * output_scan[26], scan_sizes[26];
+    for(int i = 0; i < 26; ++i)
+    {
+	input_count[i] = sendhalos[i].tmpcount.data;
+	output_scan[i] = sendhalos[i].dcellstarts.data;
+	scan_sizes[i] = sendhalos[i].tmpcount.size;
+    }
     
-	scan_massimo(input_count, output_scan, scan_sizes, 0);
+    scan_massimo(input_count, output_scan, scan_sizes, stream);
     
-	CUDA_CHECK(cudaPeekAtLastError());
-	CUDA_CHECK(cudaDeviceSynchronize());
+    CUDA_CHECK(cudaPeekAtLastError());
+    CUDA_CHECK(cudaDeviceSynchronize());
     
 #else
-	for(int i = 0; i < 26; ++i)
-	    if (sendhalos[i].expected)
-		scan.exclusive(streams[code2stream[i]], (uint*)sendhalos[i].dcellstarts.data, (uint*)sendhalos[i].tmpcount.data,
-			       sendhalos[i].tmpcount.size);
+    for(int i = 0; i < 26; ++i)
+	if (sendhalos[i].expected)
+	    scan.exclusive(0, (uint*)sendhalos[i].dcellstarts.data, (uint*)sendhalos[i].tmpcount.data,
+			   sendhalos[i].tmpcount.size);
 #endif
     
-	if (firstpost)
-	    post_expected_recv();
-	else
-	{
-	    MPI_Status statuses[26 * 2];
-	    MPI_CHECK( MPI_Waitall(nactive, sendcellsreq, statuses) );
-	    MPI_CHECK( MPI_Waitall(nsendreq, sendreq, statuses) );
-	    MPI_CHECK( MPI_Waitall(nactive, sendcountreq, statuses) );
-	}
-
-	if (firstpost)
-	{
-	    int * srccells[26];
-	    for(int i = 0; i < 26; ++i)
-		srccells[i] = sendhalos[i].dcellstarts.data;
-
-	    CUDA_CHECK(cudaMemcpyToSymbolAsync(PackingHalo::srccells, srccells, sizeof(srccells), 0, cudaMemcpyHostToDevice));
-
-	    int * dstcells[26];
-	    for(int i = 0; i < 26; ++i)
-		dstcells[i] = sendhalos[i].hcellstarts.devptr;
-	    
-	    CUDA_CHECK(cudaMemcpyToSymbolAsync(PackingHalo::dstcells, dstcells, sizeof(dstcells), 0, cudaMemcpyHostToDevice));
-	}
-
-	PackingHalo::copycells<<< (PackingHalo::ncells + 127) / 128, 128>>>(PackingHalo::ncells);
-
-	_pack_all(p, n, firstpost, 0);
-
-	
-#ifndef NDEBUG
-	for(int i = 0; i < 26; ++i)
-	    if (sendhalos[i].expected)
-	    {
-		const int nd = sendhalos[i].dbuf.size;
-		
-		if (nd > 0)
-		    PackingHalo::check_send_particles<<<(nd + 127)/ 128, 128>>>(sendhalos[i].dbuf.data, nd, i);
-	    }
-	
-	CUDA_CHECK(cudaStreamSynchronize(0));
-	
-	CUDA_CHECK(cudaPeekAtLastError());
-#endif
+    if (firstpost)
+	post_expected_recv();
+    else
+    {
+	MPI_Status statuses[26 * 2];
+	MPI_CHECK( MPI_Waitall(nactive, sendcellsreq, statuses) );
+	MPI_CHECK( MPI_Waitall(nsendreq, sendreq, statuses) );
+	MPI_CHECK( MPI_Waitall(nactive, sendcountreq, statuses) );
     }
+    
+    if (firstpost)
+    {
+	int * srccells[26];
+	for(int i = 0; i < 26; ++i)
+	    srccells[i] = sendhalos[i].dcellstarts.data;
+	
+	CUDA_CHECK(cudaMemcpyToSymbolAsync(PackingHalo::srccells, srccells, sizeof(srccells), 0, cudaMemcpyHostToDevice, stream));
+	
+	int * dstcells[26];
+	for(int i = 0; i < 26; ++i)
+	    dstcells[i] = sendhalos[i].hcellstarts.devptr;
+	
+	CUDA_CHECK(cudaMemcpyToSymbolAsync(PackingHalo::dstcells, dstcells, sizeof(dstcells), 0, cudaMemcpyHostToDevice, stream));
+    }
+    
+    PackingHalo::copycells<<< (PackingHalo::ncells + 127) / 128, 128, 0, stream>>>(PackingHalo::ncells);
+    
+    _pack_all(p, n, firstpost, stream);
+    
+    
+#ifndef NDEBUG
+    for(int i = 0; i < 26; ++i)
+	if (sendhalos[i].expected)
+	{
+	    const int nd = sendhalos[i].dbuf.size;
+	    
+	    if (nd > 0)
+		PackingHalo::check_send_particles<<<(nd + 127)/ 128, 128, 0, stream>>>(sendhalos[i].dbuf.data, nd, i);
+	}
+    
+    CUDA_CHECK(cudaStreamSynchronize(0));
+    
+    CUDA_CHECK(cudaPeekAtLastError());
+#endif
+}
 
-    spawn_local_work();
-
-    _consolidate_packs(p, n);	
-
+void HaloExchanger::consolidate_and_post(const Particle * const p, const int n, cudaStream_t stream)
+{
+    {
+	NVTX_RANGE("HEX/consolidate", NVTX_C2);
+	
+	CUDA_CHECK(cudaEventSynchronize(evfillall));
+	
+	bool succeeded = true;
+	for(int i = 0; i < 26; ++i)
+	{
+	    const int nrequired = required_send_bag_size_host[i];
+	    const bool failed_entry = nrequired > sendhalos[i].dbuf.capacity;
+	    
+	    if (failed_entry)
+	    {
+		sendhalos[i].dbuf.resize(nrequired);
+		sendhalos[i].hbuf.resize(nrequired);
+		sendhalos[i].scattered_entries.resize(nrequired);
+		succeeded = false;
+	    }
+	}
+	
+	if (!succeeded)
+	{
+	    _pack_all(p, n, true, stream);
+	    
+	    CUDA_CHECK(cudaEventSynchronize(evfillall));	
+	}
+	
+	for(int i = 0; i < 26; ++i)
+	{
+	    const int nrequired = required_send_bag_size_host[i];
+	    
+	    assert(nrequired <= sendhalos[i].dbuf.capacity);
+	    
+	    sendhalos[i].dbuf.size = nrequired;
+	    sendhalos[i].hbuf.size = nrequired;
+	    sendhalos[i].scattered_entries.size = nrequired;
+	}
+    }
+    
     {
 	NVTX_RANGE("HEX/send", NVTX_C2);
 	
@@ -691,15 +689,14 @@ namespace UnpackingHalo
 	    assert(myp.x[c] >= halo_start - eps && myp.x[c] <= halo_end + eps);
 	}
     }
-#endif
-    
+#endif 
 }
 
 void HaloExchanger::wait_for_messages()
 {
-    NVTX_RANGE("HEX/wait-recv", NVTX_C4)
-	
-	CUDA_CHECK(cudaPeekAtLastError());
+    NVTX_RANGE("HEX/wait-recv", NVTX_C4);
+    
+    CUDA_CHECK(cudaPeekAtLastError());
     
     {
 	MPI_Status statuses[26];

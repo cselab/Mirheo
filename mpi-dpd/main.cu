@@ -136,8 +136,12 @@ int main(int argc, char ** argv)
 
 	    cells.build(particles.xyzuvw.data, particles.size, mainstream);
 
-	    dpd.evaluate(particles.xyzuvw.data, particles.size, particles.axayaz.data, cells.start, cells.count, mainstream);
-    
+	    dpd.pack(particles.xyzuvw.data, particles.size, cells.start, cells.count, mainstream);
+	    dpd.local_interactions(particles.xyzuvw.data, particles.size, particles.axayaz.data, cells.start, cells.count, mainstream);
+	    dpd.consolidate_and_post(particles.xyzuvw.data, particles.size, mainstream);
+	    dpd.wait_for_messages();
+	    dpd.remote_interactions(particles.xyzuvw.data, particles.size, particles.axayaz.data);
+
 	    if (rbcscoll)
 		rbc_interactions.evaluate(particles.xyzuvw.data, particles.size, particles.axayaz.data, cells.start, cells.count,
 					  rbcscoll->data(), rbcscoll->count(), rbcscoll->acc(), mainstream);
@@ -411,7 +415,13 @@ int main(int argc, char ** argv)
 		//TODO: i need a coordinating class that performs all the local work while waiting for the communication
 		{
 		    tstart = MPI_Wtime();
-		    dpd.evaluate(particles.xyzuvw.data, particles.size, particles.axayaz.data, cells.start, cells.count, mainstream);
+		    //dpd.evaluate(particles.xyzuvw.data, particles.size, particles.axayaz.data, cells.start, cells.count, mainstream);
+		    dpd.pack(particles.xyzuvw.data, particles.size, cells.start, cells.count, mainstream);
+		    dpd.local_interactions(particles.xyzuvw.data, particles.size, particles.axayaz.data, cells.start, cells.count, mainstream);
+		    dpd.consolidate_and_post(particles.xyzuvw.data, particles.size, mainstream);
+		    dpd.wait_for_messages();
+		    dpd.remote_interactions(particles.xyzuvw.data, particles.size, particles.axayaz.data);
+
 		    timings["evaluate-dpd"] += MPI_Wtime() - tstart;
 		    
 		    CUDA_CHECK(cudaPeekAtLastError());	
