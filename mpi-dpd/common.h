@@ -288,6 +288,8 @@ PinnedHostBuffer(int n = 0): capacity(0), size(0), data(NULL), devptr(NULL) { re
 	}
 };
 
+#include <utility>
+
 class HookedTexture
 {
     std::pair< void *, int> registered;

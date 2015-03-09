@@ -453,7 +453,7 @@ int main(int argc, char ** argv)
 		}
 	
 		CUDA_CHECK(cudaPeekAtLastError());
-
+	
 		if (it % steps_per_dump == 0)
 		{
 		    NVTX_RANGE("data-dump");
