@@ -13,7 +13,7 @@ NVCCFLAGS += -I../cuda-dpd-sem/dpd -I../cuda-rbc/ -I../cuda-ctc
 OBJS = 	dpd-interactions.o \
 	redistribute-particles.o \
 	halo-exchanger.o common.o \
-	wall-interactions.o scan.o \
+	wall-interactions.o scan.o scan-massimo.o \
 	redistribute-rbcs.o \
 	rbc-interactions.o \
 	containers.o \

@@ -2,7 +2,8 @@
 #include <algorithm>
 
 #include "halo-exchanger.h"
- 
+#include "scan-massimo.h"
+
 using namespace std;
 
 HaloExchanger::HaloExchanger(MPI_Comm _cartcomm, const int basetag):  basetag(basetag), firstpost(true), nactive(26)
@@ -308,7 +309,6 @@ namespace PackingHalo
 #endif
 }
 
-
 void HaloExchanger::pack_and_post(const Particle * const p, const int n, const int * const cellsstart, const int * const cellscount)
 {
     CUDA_CHECK(cudaPeekAtLastError());
@@ -374,11 +374,28 @@ void HaloExchanger::pack_and_post(const Particle * const p, const int n, const i
 	    }
 #endif
 
-	for(int i = 0; i < 26; ++i)
+#if 0
+    int * input_count[26],  * output_scan[26], scan_sizes[26];
+    for(int i = 0; i < 26; ++i)
+    {
+	input_count[i] = sendhalos[i].tmpcount.data;
+	output_scan[i] = sendhalos[i].dcellstarts.data;
+	scan_sizes[i] = sendhalos[i].tmpcount.size;
+	    
+    }
+    
+    scan_massimo(input_count, output_scan, scan_sizes, 0);
+    
+    CUDA_CHECK(cudaPeekAtLastError());
+    CUDA_CHECK(cudaDeviceSynchronize());
+    
+#else
+    for(int i = 0; i < 26; ++i)
 	    if (sendhalos[i].expected)
 		scan.exclusive(streams[code2stream[i]], (uint*)sendhalos[i].dcellstarts.data, (uint*)sendhalos[i].tmpcount.data,
-			       sendhalos[i].tmpcount.size);
-	
+	sendhalos[i].tmpcount.size);
+#endif
+    
 	if (firstpost)
 	    post_expected_recv();
 	else
@@ -453,7 +470,8 @@ void HaloExchanger::pack_and_post(const Particle * const p, const int n, const i
 		    
 		    PackingHalo::fill<<<nentries, 32, 0, streams[code2stream[i]] >>>
 			(p, n, nentries - 1, sendhalos[i].tmpstart.data, sendhalos[i].tmpcount.data, sendhalos[i].dcellstarts.data,
-			 sendhalos[i].dbuf.data, sendhalos[i].hbuf.data, sendhalos[i].dbuf.capacity, sendhalos[i].scattered_entries.data, required_send_bag_size + i, i);	
+			 sendhalos[i].dbuf.data, sendhalos[i].hbuf.data, sendhalos[i].dbuf.capacity, sendhalos[i].scattered_entries.data,
+			 required_send_bag_size + i, i);	
 		}
 		
 		if (pass == 1)
