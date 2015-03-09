@@ -113,8 +113,9 @@ __device__ void core(const int nsrc, const int * const scan, const int * const s
 	const float zdiff = xdest.z - stmp1.x;
 	const bool interacting = (s + subtid < nsrc) && (dpid != spid) && (xdiff * xdiff + ydiff * ydiff + zdiff * zdiff < 1);
 	
-	srcids[srccount] = spid;	
-	srccount += interacting;
+	if (interacting) {
+		srcids[srccount++] = spid;
+	}
 	
 	if (srccount == NSRCMAX)
 	{
