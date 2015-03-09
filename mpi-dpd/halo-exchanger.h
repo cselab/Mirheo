@@ -85,6 +85,10 @@ protected:
     float safety_factor;
 
     void post_expected_recv();
+
+    void _pack_all(const Particle * const p, const int n, const bool update_baginfos, cudaStream_t stream);
+    
+    void _consolidate_packs(const Particle * const p, const int n);
     
     //cuda-sync after to wait for packing of the halo, mpi non-blocking
     void pack_and_post(const Particle * const p, const int n, const int * const cellsstart, const int * const cellscount);
@@ -96,6 +100,7 @@ protected:
     
     int nof_sent_particles();
 
+    cudaEvent_t evfillall;
     cudaStream_t streams[7];
     int code2stream[26];
      
