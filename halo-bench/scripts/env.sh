@@ -1,0 +1,5 @@
+export MPICH_MAX_THREAD_SAFETY=multiple
+export MPICH_NEMESIS_ASYNC_PROGRESS=1
+#export MPICH_MAX_THREAD_SAFETY=single/multiple
+#export MPICH_NEMESIS_ASYNC_PROGRESS=0/1
+# -r 
