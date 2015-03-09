@@ -506,7 +506,7 @@ void HaloExchanger::pack_and_post(const Particle * const p, const int n, const i
 	    }
 #endif
 
-#if 0
+#if 1
 	int * input_count[26],  * output_scan[26], scan_sizes[26];
 	for(int i = 0; i < 26; ++i)
 	{
