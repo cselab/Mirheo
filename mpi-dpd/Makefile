@@ -18,6 +18,7 @@ OBJS = 	dpd-interactions.o \
 	rbc-interactions.o \
 	containers.o \
 	io.o \
+    qos.o \
 	main.o 
 
 LIBS = -lcuda-dpd -lcuda-rbc -lcuda-ctc -lcudart 
