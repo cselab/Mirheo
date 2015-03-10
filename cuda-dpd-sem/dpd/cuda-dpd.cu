@@ -26,17 +26,21 @@ texture<int, cudaTextureType1D> texStart, texCount;
 #if 1
 
 template<int s>
-__inline__ __device__ float viscosity_function( float x )
+__device__ float viscosity_function( float x )
 {
     return sqrtf( viscosity_function < s - 1 > ( x ) );
 }
 
-template<> __inline__ __device__ float viscosity_function<0>( float x )
+template<> __device__ float viscosity_function<1>( float x )
+{
+    return sqrtf( x );
+}
+template<> __device__ float viscosity_function<0>( float x )
 {
     return x;
 }
 
-__inline__ __device__ float3 _dpd_interaction( const float dpid, const float3 xdest, const float3 udest, const float spid )
+__device__ float3 _dpd_interaction( const float dpid, const float3 xdest, const float3 udest, const float spid )
 {
     const int sentry = 3.f * spid;
     const float2 stmp0 = tex1Dfetch( texParticles2, sentry );
@@ -48,7 +52,7 @@ __inline__ __device__ float3 _dpd_interaction( const float dpid, const float3 xd
     const float _zr = xdest.z - stmp1.x;
 
     const float rij2 = _xr * _xr + _yr * _yr + _zr * _zr;
-    assert( rij2 < 1.f );
+    assert( rij2 < 1 );
 
     const float invrij = rsqrtf( rij2 );
     const float rij = rij2 * invrij;
@@ -72,8 +76,8 @@ __inline__ __device__ float3 _dpd_interaction( const float dpid, const float3 xd
 }
 
 template<int COLS, int ROWS, int NSRCMAX>
-__inline__ __device__ void core( const float nsrc, const float * const scan, const float * const starts,
-                      const int ndst, const float dststart )
+__device__ void core( const float nsrc, const float * const scan, const float * const starts,
+                      const float ndst, const float dststart )
 {
     float srcids[NSRCMAX];
     for( int i = 0; i < NSRCMAX; ++i )
@@ -87,7 +91,7 @@ __inline__ __device__ void core( const float nsrc, const float * const scan, con
     const float subtid = tid % COLS;
 
     const float dpid = dststart + slot;
-    const int entry = 3 * dpid;
+    const int entry = 3.f * dpid;
     const float2 dtmp0 = tex1Dfetch( texParticles2, entry );
     const float2 dtmp1 = tex1Dfetch( texParticles2, entry + 1 );
     const float2 dtmp2 = tex1Dfetch( texParticles2, entry + 2 );
@@ -96,10 +100,10 @@ __inline__ __device__ void core( const float nsrc, const float * const scan, con
 
     float xforce = 0, yforce = 0, zforce = 0;
 
-    for( float s = 0.f; s < nsrc; s += float(COLS) ) {
+    for( float s = 0; s < nsrc; s += float(COLS) ) {
         const float pid = s + subtid;
         const int key9 = 9 * ( ( pid >= scan[9] ) + ( pid >= scan[18] ) );
-        const int key3 = 3 * ( ( pid >= scan[key9 + 3] ) + ( pid >= scan[key9 + 6] ) );
+        const int key3 = 3 * ( ( pid >= scan[key9 + 3] )  + ( pid >= scan[key9 + 6] ) );
         const int key = key9 + key3;
 
         const float spid = pid - scan[key] + starts[key];
@@ -111,19 +115,18 @@ __inline__ __device__ void core( const float nsrc, const float * const scan, con
         const float xdiff = xdest.x - stmp0.x;
         const float ydiff = xdest.y - stmp0.y;
         const float zdiff = xdest.z - stmp1.x;
-        const int interacting = ( s + subtid < nsrc ) && ( dpid != spid ) && ( xdiff * xdiff + ydiff * ydiff + zdiff * zdiff < 1.f );
+        const bool interacting = ( pid < nsrc ) && ( xdiff * xdiff + ydiff * ydiff + zdiff * zdiff < 1.f ) && ( dpid != spid ) ;
 
-        srcids[srccount] = spid;
-        srccount += interacting;
+        if (interacting) {
+        	srcids[srccount++] = spid;
+        }
 
         if( srccount == NSRCMAX ) {
-            const float3 f = _dpd_interaction( dpid, xdest, udest, srcids[NSRCMAX - 1] );
+            const float3 f = _dpd_interaction( dpid, xdest, udest, srcids[--srccount] );
 
             xforce += f.x;
             yforce += f.y;
             zforce += f.z;
-
-            srccount = NSRCMAX - 1;
         }
     }
 
@@ -142,14 +145,14 @@ __inline__ __device__ void core( const float nsrc, const float * const scan, con
         zforce += __shfl_xor( zforce, L );
     }
 
-    const float fcontrib = ( subtid == 0 ) * xforce + ( subtid == 1 ) * yforce + ( subtid == 2 ) * zforce;
+    const float fcontrib = ( subtid == 0.f ) * xforce + ( subtid == 1.f ) * yforce + ( subtid == 2.f ) * zforce;
 
     if( subtid < 3 )
         info.axayaz[int(subtid + 3.f * dpid)] = fcontrib;
 }
 
 template<int COLS, int ROWS, int NSRCMAX>
-__inline__ __device__ void core_ilp( const float nsrc, const float * const scan, const float * const starts,
+__device__ void core_ilp( const float nsrc, const float * const scan, const float * const starts,
                           const float ndst, const float dststart )
 {
     const int tid = threadIdx.x;
@@ -166,11 +169,11 @@ __inline__ __device__ void core_ilp( const float nsrc, const float * const scan,
 
     float xforce = 0, yforce = 0, zforce = 0;
 
-    for( float s = 0.f; s < nsrc; s += float(NSRCMAX * COLS) ) {
+    for( float s = 0; s < nsrc; s += float(NSRCMAX * COLS) ) {
         float spids[NSRCMAX];
 #pragma unroll
-        for( int i = 0; i < NSRCMAX; ++i ) {
-            const float pid = s + float(i * COLS) + subtid;
+        for( int i = 0.f; i < NSRCMAX; ++i ) {
+            const float pid = s + float(i) * float(COLS) + subtid;
             const int key9 = 9 * ( ( pid >= scan[9] ) + ( pid >= scan[18] ) );
             const int key3 = 3 * ( ( pid >= scan[key9 + 3] ) + ( pid >= scan[key9 + 6] ) );
             const int key = key9 + key3;
@@ -181,14 +184,14 @@ __inline__ __device__ void core_ilp( const float nsrc, const float * const scan,
         bool interacting[NSRCMAX];
 #pragma unroll
         for( int i = 0; i < NSRCMAX; ++i ) {
-            const int sentry = 3 * spids[i];
+            const int sentry = 3.f * spids[i];
             const float2 stmp0 = tex1Dfetch( texParticles2, sentry );
             const float2 stmp1 = tex1Dfetch( texParticles2, sentry + 1 );
 
             const float xdiff = xdest.x - stmp0.x;
             const float ydiff = xdest.y - stmp0.y;
             const float zdiff = xdest.z - stmp1.x;
-            interacting[i] = ( s + float(i * COLS) + subtid < nsrc ) && ( dpid != spids[i] ) && ( xdiff * xdiff + ydiff * ydiff + zdiff * zdiff < 1.f );
+            interacting[i] = ( s + float(i) * float(COLS) + subtid < nsrc ) && ( xdiff * xdiff + ydiff * ydiff + zdiff * zdiff < 1 ) && ( dpid != spids[i] ) ;
         }
 
 #pragma unroll
@@ -209,7 +212,7 @@ __inline__ __device__ void core_ilp( const float nsrc, const float * const scan,
         zforce += __shfl_xor( zforce, L );
     }
 
-    const float fcontrib = ( subtid == 0 ) * xforce + ( subtid == 1 ) * yforce + ( subtid == 2 ) * zforce;
+    const float fcontrib = ( subtid == 0.f ) * xforce + ( subtid == 1.f ) * yforce + ( subtid == 2.f ) * zforce;
 
     if( subtid < 3 )
         info.axayaz[int(subtid + 3.f * dpid)] = fcontrib;
@@ -225,7 +228,7 @@ void _dpd_forces()
 
     __shared__ volatile float starts[CPB][32], scan[CPB][32];
 
-    int mycount = 0, myscan = 0;
+    float mycount = 0, myscan = 0;
     if( tid < 27 ) {
         const int dx = ( tid ) % 3;
         const int dy = ( ( tid / 3 ) ) % 3;
@@ -257,22 +260,22 @@ void _dpd_forces()
     if( tid < 28 )
         scan[wid][tid] = myscan - mycount;
 
-    const int nsrc = scan[wid][27];
-    const int dststart = starts[wid][1 + 3 + 9];
+    const float nsrc = scan[wid][27];
+    const float dststart = starts[wid][1 + 3 + 9];
     const int ndst = scan[wid][1 + 3 + 9 + 1] - scan[wid][1 + 3 + 9];
-    const int ndst4 = ( ndst >> 2 ) << 2;
+    const float ndst4 = ( ndst >> 2 ) << 2;
 
-    for( int d = 0; d < ndst4; d += 4 )
-        core<8, 4, 4>( nsrc, ( const float * )scan[wid], ( const float * )starts[wid], 4, dststart + d );
+    for( float d = 0.f; d < ndst4; d += 4.f )
+        core<8, 4, 4>( nsrc, ( const float * )scan[wid], ( const float * )starts[wid], 4.f, dststart + d );
 
-    int d = ndst4;
-    if( d + 2 <= ndst ) {
-        core<16, 2, 4>( nsrc, ( const float * )scan[wid], ( const float * )starts[wid], 2, dststart + d );
-        d += 2;
+    float d = ndst4;
+    if( d + 2.f <= ndst ) {
+        core<16, 2, 4>( nsrc, ( const float * )scan[wid], ( const float * )starts[wid], 2.f, dststart + d );
+        d += 2.f;
     }
 
     if( d < ndst )
-        core_ilp<32, 1, 2>( nsrc, ( const float * )scan[wid], ( const float * )starts[wid], 1, dststart + d );
+        core_ilp<32, 1, 2>( nsrc, ( const float * )scan[wid], ( const float * )starts[wid], 1.f, dststart + d );
 }
 
 #else

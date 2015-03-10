@@ -10,7 +10,7 @@ enum {
 };
 
 const float dt = 0.001;
-const float tend = 500;
+const float tend = 0.1;
 const float kBT = 0.0945;
 const float gammadpd = 45;
 const float sigma = sqrt(2 * gammadpd * kBT);

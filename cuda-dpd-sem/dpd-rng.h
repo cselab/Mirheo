@@ -100,6 +100,7 @@ template<> __inline__ __device__ float __logistic_core<0>( float x )
 // variance = 1
 // can be used directly for DPD
 #if 1
+
 __inline__ __device__ float mean0var1( float seed, int u, int v )
 {
     float p = rem( ( ( u & 0x3FF ) * gold ) + u * bronze + ( ( v & 0x3FF ) * silver ) + v * tin ); // safe for large u or v
@@ -109,10 +110,11 @@ __inline__ __device__ float mean0var1( float seed, int u, int v )
 
 __inline__ __device__ float mean0var1( float seed, float u, float v )
 {
-    float p = rem( fmod(u,1024.f) * gold + u * bronze + fmod(v,1024.f) * silver + v * tin ); // safe for large u or v
+	float p = rem( sqrtf(u) * gold + sqrtf(v) * silver ); // Acknowledging Dmitry for the use of sqrtf
     float l = __logistic_core<N>( seed - p );
     return l * sqrt2;
 }
+
 #else
 __device__ inline float saru( unsigned int seed1, unsigned int seed2, unsigned int seed3 )
 {
