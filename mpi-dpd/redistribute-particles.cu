@@ -521,8 +521,6 @@ void RedistributeParticles::_adjust_recv_buffers(const int requested_capacities[
 
 int RedistributeParticles::stage1(const Particle * const particles, const int nparticles, cudaStream_t mystream)
 {
-	{ // peh
-
     NVTX_RANGE("RDP/stage1");
     
     if (firstcall)
@@ -624,12 +622,6 @@ pack_attempt:
 	    ++nsendmsgreq;
 	}
     assert(nactiveneighbors <= nsendmsgreq && nsendmsgreq <= 2 * nactiveneighbors);
-
-	} // peh
-
-	{ // peh
-    NVTX_RANGE("RDP/s1wait");
-
     
     _waitall(recvcountreq, nactiveneighbors);
 
@@ -653,26 +645,17 @@ pack_attempt:
     //CUDA_CHECK(cudaEventSynchronize(evcompaction));
 
     firstcall = false;
-
-	} // peh
     
     return nexpected;
 }
     
 void RedistributeParticles::stage2(Particle * const particles, const int nparticles, cudaStream_t mystream)
 {
-	{ // peh
-    NVTX_RANGE("RDP/s2w");
+    NVTX_RANGE("RDP/stage2");
     
     assert(nparticles == nexpected);
     
     _waitall(recvmsgreq, nactiveneighbors);
-
-	}
-
-
-	{ // peh
-    NVTX_RANGE("RDP/stage2");
     
     _adjust_recv_buffers(recv_sizes);
 
@@ -699,11 +682,9 @@ void RedistributeParticles::stage2(Particle * const particles, const int npartic
     RedistributeParticlesKernels::check<<<(nparticles + 127) / 128, 128, 0, mystream>>>(particles, nparticles);
 #endif
     
-    _post_recv();    
-
+    _post_recv();
+    
     CUDA_CHECK(cudaPeekAtLastError());
-
-    } // peh
 }
 
 void RedistributeParticles::_cancel_recv()

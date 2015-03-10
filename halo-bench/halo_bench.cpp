@@ -314,7 +314,7 @@ void HaloExchanger::exchange() //Particle * const plocal, int nlocal, SimpleDevi
 {
     pack_and_post(); //plocal, nlocal, cells.start, cells.count);
     wait_for_messages();
-    spawn_remote_work();
+    spawn_local_work();
 }
 
 void HaloExchanger::spawn_local_work()
