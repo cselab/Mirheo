@@ -68,6 +68,7 @@ HaloExchanger::HaloExchanger(MPI_Comm _cartcomm, const int basetag):  basetag(ba
     }
 
     CUDA_CHECK(cudaEventCreate(&evfillall, cudaEventDisableTiming));
+    CUDA_CHECK(cudaEventCreate(&evshiftrecvp, cudaEventDisableTiming));
 }
 
 namespace PackingHalo
@@ -144,40 +145,6 @@ namespace PackingHalo
 	    cellpacks[code].start[dstcid] = 0;
 	    cellpacks[code].count[dstcid] = 0;
 	}    
-    }
-
-    __global__ void count(const int * const cellsstart, const int * const cellscount,
-			  const int3 halo_offset, const int3 halo_size,
-			  int * const output_start, int * const output_count)
-    {
-	assert(halo_size.x * halo_size.y * halo_size.z <= blockDim.x * gridDim.x);
-
-	const int gid = threadIdx.x + blockDim.x * blockIdx.x;
-
-	const int3 tmp = make_int3(gid % halo_size.x, (gid / halo_size.x) % halo_size.y, (gid / (halo_size.x * halo_size.y)));
-	 
-	const int3 dst = make_int3(halo_offset.x + tmp.x,
-				   halo_offset.y + tmp.y,
-				   halo_offset.z + tmp.z);
-
-	const int nsize = halo_size.x * halo_size.y * halo_size.z;
-	 
-	if (gid < nsize)
-	{
-	    assert(dst.x >= 0 && dst.x < XSIZE_SUBDOMAIN);
-	    assert(dst.y >= 0 && dst.y < YSIZE_SUBDOMAIN);
-	    assert(dst.z >= 0 && dst.z < ZSIZE_SUBDOMAIN);
-	    
-	    const int srcentry = dst.x + XSIZE_SUBDOMAIN * (dst.y + YSIZE_SUBDOMAIN * dst.z);
-
-	    assert(srcentry < XSIZE_SUBDOMAIN * YSIZE_SUBDOMAIN * ZSIZE_SUBDOMAIN);
-
-	    output_start[gid] = cellsstart[srcentry];
-	    output_count[gid] = cellscount[srcentry];
-	}
-	else
-	    if (gid == nsize)
-		output_start[gid] = output_count[gid] = 0;
     }
 
     __constant__ int * srccells[26], * dstcells[26];
@@ -290,60 +257,7 @@ namespace PackingHalo
 	if (gcid + 1 == cellpackstarts[code + 1])
 	    required_bag_size[code] = base_dst;
     }
-    
-
-    __global__ void fill(const Particle * const particles, const int np, const int ncells,
-			 const int * const start_src, const int * const count_src,
-			 const int * const start_dst, 
-			 Particle * const dbag, Particle * const hbag, const int bagsize, int * const scattered_entries, 
-			 int * const required_bag_size, const int code)
-    {
-	assert(sizeof(Particle) == 6 * sizeof(float));
-	assert(blockDim.x == warpSize);
-
-	const int cellid = (threadIdx.x >> 4) + 2 * blockIdx.x;
-
-	if (cellid > ncells)
-	    return;
-	
-	const int tid = threadIdx.x & 0xf;
-	
-	const int base_src = start_src[cellid];
-	const int base_dst = start_dst[cellid];
-	const int nsrc = min(count_src[cellid], bagsize - base_dst);
-	
-	const int nfloats = nsrc * 6;
-	for(int i = 2 * tid; i < nfloats; i += warpSize)
-	{
-	    const int lpid = i / 6;
-	    const int dpid = base_dst + lpid;
-	    const int spid = base_src + lpid;
-	    assert(spid < np && spid >= 0);
-
-	    const int c = i % 6;
-	    
-	    float2 word = *(float2 *)&particles[spid].x[c];
-	    *(float2 *)&dbag[dpid].x[c] = word;
-	    *(float2 *)&hbag[dpid].x[c] = word;
-
-#ifndef NDEBUG
-	    halo_particle_check(particles[spid], spid, code)   ;
-#endif
-	}
-
-	for(int lpid = tid; lpid < nsrc; lpid += warpSize / 2)
-	{
-	    const int dpid = base_dst + lpid;
-	    const int spid = base_src + lpid;
-
-	    scattered_entries[dpid] = spid;
-	}
-	
-	if (cellid == ncells)
-	    *required_bag_size = base_dst;
-    }
-
-    
+        
 #ifndef NDEBUG
     __global__ void check_send_particles(Particle * p, int n, int code)
     {
@@ -490,7 +404,6 @@ void HaloExchanger::pack(const Particle * const p, const int n, const int * cons
     PackingHalo::copycells<<< (PackingHalo::ncells + 127) / 128, 128, 0, stream>>>(PackingHalo::ncells);
     
     _pack_all(p, n, firstpost, stream);
-    
     
 #ifndef NDEBUG
     for(int i = 0; i < 26; ++i)
@@ -692,7 +605,7 @@ namespace UnpackingHalo
 #endif 
 }
 
-void HaloExchanger::wait_for_messages()
+void HaloExchanger::wait_for_messages(cudaStream_t stream)
 {
     NVTX_RANGE("HEX/wait-recv", NVTX_C4);
     
@@ -747,24 +660,26 @@ void HaloExchanger::wait_for_messages()
 	for(int code = 0, s = 0; code < 26; ++code)
 	    packstarts[code + 1] = (s += recv_counts[code]);
 	
-	CUDA_CHECK(cudaMemcpyToSymbolAsync(UnpackingHalo::packstarts, packstarts, sizeof(packstarts), 0, cudaMemcpyHostToDevice));
+	CUDA_CHECK(cudaMemcpyToSymbolAsync(UnpackingHalo::packstarts, packstarts, sizeof(packstarts), 0, cudaMemcpyHostToDevice, stream));
 
 	Particle * srcpacks[26];
 	for(int i = 0; i < 26; ++i)
 	    srcpacks[i] = recvhalos[i].hbuf.devptr;
 
-	CUDA_CHECK(cudaMemcpyToSymbolAsync(UnpackingHalo::srcpacks, srcpacks, sizeof(srcpacks), 0, cudaMemcpyHostToDevice));
+	CUDA_CHECK(cudaMemcpyToSymbolAsync(UnpackingHalo::srcpacks, srcpacks, sizeof(srcpacks), 0, cudaMemcpyHostToDevice, stream));
 
 	Particle * dstpacks[26];
 	for(int i = 0; i < 26; ++i)
 	    dstpacks[i] = recvhalos[i].dbuf.data;
 
-	CUDA_CHECK(cudaMemcpyToSymbolAsync(UnpackingHalo::dstpacks, dstpacks, sizeof(dstpacks), 0, cudaMemcpyHostToDevice));
+	CUDA_CHECK(cudaMemcpyToSymbolAsync(UnpackingHalo::dstpacks, dstpacks, sizeof(dstpacks), 0, cudaMemcpyHostToDevice, stream));
 
 	const int np = packstarts[26];
 
 	if (np)
-	    UnpackingHalo::shift_recv_particles_float<<<(np * 6 + 127) / 128, 128>>>(np);
+	    UnpackingHalo::shift_recv_particles_float<<<(np * 6 + 127) / 128, 128, 0, stream>>>(np);
+
+	CUDA_CHECK(cudaEventRecord(evshiftrecvp, stream));
     }
 
     CUDA_CHECK(cudaPeekAtLastError());
@@ -776,7 +691,7 @@ void HaloExchanger::wait_for_messages()
 	    const int count = recv_counts[code];
 	    
 	    if (count > 0)
-		UnpackingHalo::check_recv_particles<<<(count + 127) / 128, 128, 0>>>(
+		UnpackingHalo::check_recv_particles<<<(count + 127) / 128, 128, 0, stream>>>(
 		    recvhalos[code].dbuf.data, count, code, myrank);	
 	}
 
@@ -784,6 +699,9 @@ void HaloExchanger::wait_for_messages()
 #endif
 
     post_expected_recv();
+
+    for(int i = 0; i < 7; ++i)
+	CUDA_CHECK(cudaStreamWaitEvent(streams[i], evshiftrecvp, 0));
 }
 
 int HaloExchanger::nof_sent_particles()
