@@ -64,8 +64,6 @@ ComputeInteractionsDPD::ComputeInteractionsDPD(MPI_Comm cartcomm):
     CUDA_CHECK(cudaEventCreate(&evmerge, cudaEventDisableTiming));
 }
 
-
-
 void ComputeInteractionsDPD::local_interactions(const Particle * const p, const int n, Acceleration * const a,
 				      const int * const cellsstart, const int * const cellscount, cudaStream_t stream)
 {

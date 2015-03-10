@@ -70,6 +70,7 @@ int main(int argc, char ** argv)
     }
     
     CUDA_CHECK(cudaSetDevice(0));
+    CUDA_CHECK(cudaDeviceReset()); //WILL THIS MESS UP WITH MPS? 
     
     int nranks, rank;   
     
@@ -139,7 +140,7 @@ int main(int argc, char ** argv)
 	    dpd.pack(particles.xyzuvw.data, particles.size, cells.start, cells.count, mainstream);
 	    dpd.local_interactions(particles.xyzuvw.data, particles.size, particles.axayaz.data, cells.start, cells.count, mainstream);
 	    dpd.consolidate_and_post(particles.xyzuvw.data, particles.size, mainstream);
-	    dpd.wait_for_messages();
+	    dpd.wait_for_messages(mainstream);
 	    dpd.remote_interactions(particles.xyzuvw.data, particles.size, particles.axayaz.data);
 
 	    if (rbcscoll)
@@ -415,14 +416,19 @@ int main(int argc, char ** argv)
 		//TODO: i need a coordinating class that performs all the local work while waiting for the communication
 		{
 		    tstart = MPI_Wtime();
-		    //dpd.evaluate(particles.xyzuvw.data, particles.size, particles.axayaz.data, cells.start, cells.count, mainstream);
+		    
 		    dpd.pack(particles.xyzuvw.data, particles.size, cells.start, cells.count, mainstream);
 		    dpd.local_interactions(particles.xyzuvw.data, particles.size, particles.axayaz.data, cells.start, cells.count, mainstream);
+		    
+		    if (wall)
+			wall->interactions(particles.xyzuvw.data, particles.size, particles.axayaz.data, 
+					   cells.start, cells.count, mainstream);
+
 		    dpd.consolidate_and_post(particles.xyzuvw.data, particles.size, mainstream);
-		    dpd.wait_for_messages();
+		    dpd.wait_for_messages(mainstream);
 		    dpd.remote_interactions(particles.xyzuvw.data, particles.size, particles.axayaz.data);
 
-		    timings["evaluate-dpd"] += MPI_Wtime() - tstart;
+		    timings["evaluate-dpd interactions"] += MPI_Wtime() - tstart; 
 		    
 		    CUDA_CHECK(cudaPeekAtLastError());	
 		    	
@@ -449,16 +455,14 @@ int main(int argc, char ** argv)
 		    if (wall)
 		    {
 			tstart = MPI_Wtime();
-			wall->interactions(particles.xyzuvw.data, particles.size, particles.axayaz.data, 
-					   cells.start, cells.count, mainstream);
-
+		
 			if (rbcscoll)
 			    wall->interactions(rbcscoll->data(), rbcscoll->pcount(), rbcscoll->acc(), NULL, NULL, mainstream);
 
 			if (ctcscoll)
 			    wall->interactions(ctcscoll->data(), ctcscoll->pcount(), ctcscoll->acc(), NULL, NULL, mainstream);
 
-			timings["evaluate-walls"] += MPI_Wtime() - tstart;
+			timings["body-walls interactions"] += MPI_Wtime() - tstart;
 		    }
 		}
 	
