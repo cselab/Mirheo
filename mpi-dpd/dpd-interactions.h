@@ -23,7 +23,10 @@ class ComputeInteractionsDPD : public HaloExchanger
     Logistic::KISS interrank_trunks[26];
     bool interrank_masks[26];
 
-    cudaEvent_t evremoteint;
+    cudaEvent_t evremoteint[7];
+
+    cudaStream_t streams[7];
+    int code2stream[26];
     
 public:
     

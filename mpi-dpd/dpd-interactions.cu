@@ -61,7 +61,26 @@ HaloExchanger(cartcomm, 0), local_trunk(0, 0, 0, 0)
 	}
     }
     
-    CUDA_CHECK(cudaEventCreate(&evremoteint, cudaEventDisableTiming));
+    for(int i = 0; i < 7; ++i)
+	CUDA_CHECK(cudaEventCreate(evremoteint + i, cudaEventDisableTiming));
+
+    for(int i = 0; i < 7; ++i)
+	CUDA_CHECK(cudaStreamCreate(streams + i));
+
+    for(int i = 0, ctr = 1; i < 26; ++i)
+    {
+	int d[3] = { (i + 2) % 3 - 1, (i / 3 + 2) % 3 - 1, (i / 9 + 2) % 3 - 1 };
+
+	const bool isface = abs(d[0]) + abs(d[1]) + abs(d[2]) == 1;
+
+	code2stream[i] = i % 7;
+
+	if (isface)
+	{
+	    code2stream[i] = ctr;
+	    ctr++;
+	}
+    }
 }
 
 void ComputeInteractionsDPD::local_interactions(const Particle * const p, const int n, Acceleration * const a,
@@ -167,6 +186,9 @@ void ComputeInteractionsDPD::remote_interactions(const Particle * const p, const
     {
 	NVTX_RANGE("DPD/remote", NVTX_C3);
 
+	for(int i = 0; i < 7; ++i)
+	    CUDA_CHECK(cudaStreamWaitEvent(streams[i], evshiftrecvp, 0));
+
 	for(int pass = 0; pass < 2; ++pass)
 	{
 	    const bool face_pass = pass == 0;
@@ -222,6 +244,9 @@ void ComputeInteractionsDPD::remote_interactions(const Particle * const p, const
 	    
 	    }
 	}
+
+	for(int i = 0; i < 7; ++i)
+	    CUDA_CHECK(cudaEventRecord(evremoteint[i]));
         
 	CUDA_CHECK(cudaPeekAtLastError());
     }
@@ -261,9 +286,9 @@ void ComputeInteractionsDPD::remote_interactions(const Particle * const p, const
 					       sizeof(remote_accelerations), 0, cudaMemcpyHostToDevice, stream));
 	}
 	
-	CUDA_CHECK(cudaEventRecord(evremoteint));
-
-	CUDA_CHECK(cudaStreamWaitEvent(stream, evremoteint, 0));
+	
+	for(int i = 0; i < 7; ++i)
+	    CUDA_CHECK(cudaStreamWaitEvent(stream, evremoteint[i], 0));
 
 #if 1
 	RemoteDPD::merge_all<<< (RemoteDPD::npackedparticles + 127) / 128, 128, 0, stream >>>(a, n);
@@ -283,5 +308,9 @@ void ComputeInteractionsDPD::remote_interactions(const Particle * const p, const
 
 ComputeInteractionsDPD::~ComputeInteractionsDPD()
 {
-    CUDA_CHECK(cudaEventDestroy(evremoteint));
+    for(int i = 0; i < 7; ++i)
+	CUDA_CHECK(cudaStreamDestroy(streams[i]));
+    
+    for(int i = 0; i < 7; ++i)
+	CUDA_CHECK(cudaEventDestroy(evremoteint[i]));
 }

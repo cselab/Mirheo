@@ -91,8 +91,6 @@ protected:
     int nof_sent_particles();
 
     cudaEvent_t evfillall, evshiftrecvp;
-    cudaStream_t streams[7];
-    int code2stream[26];
      
     const int basetag;
 
