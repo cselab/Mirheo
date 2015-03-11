@@ -18,20 +18,22 @@ class ComputeInteractionsWall
     Logistic::KISS trunk;
     
     int solid_size;
-    Particle * solid;
+    float4 * solid4;
 
     cudaArray * arrSDF;
 
     CellLists cells;
+
+    HookedTexture texDC, texSC, texSP;
     
 public:
 
-    ComputeInteractionsWall(MPI_Comm cartcomm, Particle* const p, const int n, int& nsurvived);
+    ComputeInteractionsWall(MPI_Comm cartcomm, Particle* const p, const int n, int& nsurvived, ExpectedMessageSizes& new_sizes);
 
     ~ComputeInteractionsWall();
      
-    void bounce(Particle * const p, const int n);
+    void bounce(Particle * const p, const int n, cudaStream_t stream);
 
     void interactions(const Particle * const p, const int n, Acceleration * const acc,
-		      const int * const cellsstart, const int * const cellscount);
+		      const int * const cellsstart, const int * const cellscount, cudaStream_t stream);
 };

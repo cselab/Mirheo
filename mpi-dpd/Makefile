@@ -5,7 +5,7 @@ ARCH_VAL ?= compute_35
 CODE_VAL ?= sm_35
 
 NVCCFLAGS += -I$(HDF5_DIR)/include -Xcudafe "--diag_suppress=unrecognized_gcc_pragma"
-NVCCFLAGS +=  -arch $(ARCH_VAL) -code $(CODE_VAL) -O3 -use_fast_math -g  -DNDEBUG 
+NVCCFLAGS +=  -arch $(ARCH_VAL) -code $(CODE_VAL) -O3 -use_fast_math -g -DNDEBUG 
 CXXFLAGS += -L../cuda-dpd-sem/dpd -L../cuda-rbc/ -L../cuda-ctc/ -O3 -g  
 #-DNDEBUG
 NVCCFLAGS += -I../cuda-dpd-sem/dpd -I../cuda-rbc/ -I../cuda-ctc
@@ -13,7 +13,7 @@ NVCCFLAGS += -I../cuda-dpd-sem/dpd -I../cuda-rbc/ -I../cuda-ctc
 OBJS = 	dpd-interactions.o \
 	redistribute-particles.o \
 	halo-exchanger.o common.o \
-	wall-interactions.o scan.o \
+	wall-interactions.o scan.o scan-massimo.o \
 	redistribute-rbcs.o \
 	rbc-interactions.o \
 	containers.o \
@@ -21,6 +21,12 @@ OBJS = 	dpd-interactions.o \
 	main.o 
 
 LIBS = -lcuda-dpd -lcuda-rbc -lcuda-ctc -lcudart 
+
+nvtx ?= 0
+ifneq "$(nvtx)" "0"
+LIBS += -lnvToolsExt
+NVCCFLAGS += -D_USE_NVTX_
+endif
 
 ifneq "$(h5part)" "0"
 LIBS += -L$(HDF5_DIR)/lib -lhdf5 -L/scratch/daint/diegor/h5part/lib/ -lH5Part
@@ -38,8 +44,8 @@ slevel ?= 0
 
 NVCCFLAGS += -DVISCOSITY_S_LEVEL=$(slevel)
 
-inquire: $(shell [ `cat slevel.txt` == "$(slevel)" ] || { echo "cleanall" ; } )
-	$(shell echo "$(slevel)" > slevel.txt )
+inquire: $(bash [ `cat slevel.txt` == "$(slevel)" ] || { echo "cleanall" ; } )
+	$(bash echo "$(slevel)" > slevel.txt )
 	$(MAKE) $(MFLAGS) test
 
 test:  $(OBJS) libcuda-dpd libcuda-rbc libcuda-ctc

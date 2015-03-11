@@ -21,20 +21,20 @@ public:
 	int * scattered_indices;
     };
 
-    int stage1(const Particle * const p, const int n);
+    int stage1(const Particle * const p, const int n, cudaStream_t stream);
 
-    void stage2(Particle * const particles, const int nparticles);
+    void stage2(Particle * const particles, const int nparticles, cudaStream_t);
    
     RedistributeParticles(MPI_Comm cartcomm);
-   
+
+    void adjust_message_sizes(ExpectedMessageSizes sizes);
+
     ~RedistributeParticles();
    
     int pack_size(const int code) { return send_sizes[code]; }
    
     float pinned_data(const int code, const int entry) { return pinnedhost_sendbufs[code][entry]; }
    
-    cudaStream_t mystream;
-
 private:
 
     MPI_Comm cartcomm;
@@ -45,9 +45,13 @@ private:
 	default_message_sizes[27], send_sizes[27], recv_sizes[27],
 	nsendmsgreq, nexpected, nbulk, nhalo;
 
+    float safety_factor;
+
+    int nactiveneighbors;
+
     MPI_Request sendcountreq[27], recvcountreq[27], sendmsgreq[27 * 2], recvmsgreq[27 * 2];
 
-    cudaEvent_t evpacking, evsizes, evcompaction;
+    cudaEvent_t evpacking, evsizes; //, evcompaction;
 
     void _waitall(MPI_Request * reqs, const int n)
     {
@@ -56,7 +60,8 @@ private:
     }
    
     void _post_recv();
-   
+    void _cancel_recv();
+
     void _adjust_send_buffers(const int capacities[27]);
     void _adjust_recv_buffers(const int capacities[27]);
    

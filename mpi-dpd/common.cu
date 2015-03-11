@@ -12,7 +12,7 @@ bool Acceleration::initialized = false;
 
 MPI_Datatype Acceleration::mytype;
 
-void CellLists::build(Particle * const p, const int n)
+void CellLists::build(Particle * const p, const int n, cudaStream_t stream)
 {
     if (n > 0)
 	build_clists((float * )p, n, 1, LX, LY, LZ, -LX/2, -LY/2, -LZ/2, NULL, start, count,  NULL, 0);
@@ -69,7 +69,7 @@ void report_host_memory_usage(MPI_Comm comm, FILE * foutput)
     }
 }
 
-void diagnostics(MPI_Comm comm, Particle * particles, int n, float dt, int idstep, Acceleration * acc)
+void diagnostics(MPI_Comm comm, MPI_Comm cartcomm, Particle * particles, int n, float dt, int idstep, Acceleration * acc)
 {
     double p[] = {0, 0, 0};
     for(int i = 0; i < n; ++i)
@@ -80,7 +80,7 @@ void diagnostics(MPI_Comm comm, Particle * particles, int n, float dt, int idste
     MPI_CHECK( MPI_Comm_rank(comm, &rank) );
 
     int dims[3], periods[3], coords[3];
-    MPI_CHECK( MPI_Cart_get(comm, 3, dims, periods, coords) );
+    MPI_CHECK( MPI_Cart_get(cartcomm, 3, dims, periods, coords) );
     
     MPI_CHECK( MPI_Reduce(rank == 0 ? MPI_IN_PLACE : &p, rank == 0 ? &p : NULL, 3, MPI_DOUBLE, MPI_SUM, 0, comm) );
     
@@ -101,9 +101,9 @@ void diagnostics(MPI_Comm comm, Particle * particles, int n, float dt, int idste
 	
 	if (idstep == 0)
 	    fprintf(f, "TSTEP\tKBT\tPX\tPY\tPZ\n");
-	
-	for(int c = 0; c < 2; ++c)
-	    fprintf(c == 0 ? stdout : f, "%e\t%.10e\t%.10e\t%.10e\t%.10e\n", idstep * dt, kbt, p[0], p[1], p[2]);
+
+	printf("\x1b[91m%e\t%.10e\t%.10e\t%.10e\t%.10e\x1b[0m\n", idstep * dt, kbt, p[0], p[1], p[2]);
+	fprintf(f, "%e\t%.10e\t%.10e\t%.10e\t%.10e\n", idstep * dt, kbt, p[0], p[1], p[2]);
 		
 	fclose(f);
     }

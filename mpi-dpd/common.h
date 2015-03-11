@@ -2,15 +2,16 @@
 
 enum { 
     XSIZE_SUBDOMAIN = 48, 
-    YSIZE_SUBDOMAIN = 32, 
-    ZSIZE_SUBDOMAIN = 32,
-    XMARGIN_WALL = 24,
-    YMARGIN_WALL = 0,
-    ZMARGIN_WALL = 0,
+    YSIZE_SUBDOMAIN = 48, 
+    ZSIZE_SUBDOMAIN = 48,
+    XMARGIN_WALL = 6,
+    YMARGIN_WALL = 6,
+    ZMARGIN_WALL = 6,
 };
 
+const int numberdensity = 4;
 const float dt = 0.001;
-const float tend = 0.1;
+const float tend = 50;
 const float kBT = 0.0945;
 const float gammadpd = 45;
 const float sigma = sqrt(2 * gammadpd * kBT);
@@ -25,7 +26,10 @@ const bool xyz_dumps = false;
 const bool hdf5field_dumps = false;
 const bool hdf5part_dumps = false;
 const int steps_per_report = 1000;
-const int steps_per_dump = 1;
+const int steps_per_dump = 1000;
+const int wall_creation_stepid = 5000;
+
+extern bool currently_profiling;
 
 #include <cstdlib>
 #include <cstdio>
@@ -45,6 +49,52 @@ inline void cudaAssert(cudaError_t code, const char *file, int line)
 	abort();
     }
 }
+
+#ifdef _USE_NVTX_
+
+#include <nvToolsExt.h>
+enum NVTX_COLORS
+{
+    NVTX_C1 = 0x0000ff00,
+    NVTX_C2 = 0x000000ff,
+    NVTX_C3 = 0x00ffff00,
+    NVTX_C4 = 0x00ff00ff,
+    NVTX_C5 = 0x0000ffff,
+    NVTX_C6 = 0x00ff0000,
+    NVTX_C7 = 0x00ffffff
+};
+
+class NvtxTracer
+{
+    bool active;
+public:
+NvtxTracer(const char* name, NVTX_COLORS color = NVTX_C1): active(false)
+    {
+	if (currently_profiling)
+	{
+	    active = true;
+
+	    nvtxEventAttributes_t eventAttrib = {0};
+	    eventAttrib.version = NVTX_VERSION;
+	    eventAttrib.size = NVTX_EVENT_ATTRIB_STRUCT_SIZE;
+	    eventAttrib.colorType = NVTX_COLOR_ARGB;
+	    eventAttrib.color = color;
+	    eventAttrib.messageType = NVTX_MESSAGE_TYPE_ASCII;
+	    eventAttrib.message.ascii = name;
+	    nvtxRangePushEx(&eventAttrib);	    
+	}
+    }
+    
+    ~NvtxTracer()
+    {
+	if (active) nvtxRangePop();
+    }
+};
+
+#define NVTX_RANGE(arg...) NvtxTracer uniq_name_using_macros(arg);
+#else
+#define NVTX_RANGE(arg...)
+#endif
 
 #include <mpi.h>
 
@@ -238,6 +288,58 @@ PinnedHostBuffer(int n = 0): capacity(0), size(0), data(NULL), devptr(NULL) { re
 	}
 };
 
+#include <utility>
+
+class HookedTexture
+{
+    std::pair< void *, int> registered;
+    
+    template<typename T>  void _create(T * data, const int n)
+    {
+	struct cudaResourceDesc resDesc;
+	memset(&resDesc, 0, sizeof(resDesc));
+	resDesc.resType = cudaResourceTypeLinear;
+	resDesc.res.linear.devPtr = (void *)data;
+	resDesc.res.linear.sizeInBytes = n * sizeof(T);
+	resDesc.res.linear.desc = cudaCreateChannelDesc<T>();
+		
+	struct cudaTextureDesc texDesc;
+	memset(&texDesc, 0, sizeof(texDesc));
+	texDesc.addressMode[0]   = cudaAddressModeWrap;
+	texDesc.addressMode[1]   = cudaAddressModeWrap;
+	texDesc.filterMode       = cudaFilterModePoint;
+	texDesc.readMode         = cudaReadModeElementType;
+	texDesc.normalizedCoords = 0;
+		
+	CUDA_CHECK(cudaCreateTextureObject(&texObj, &resDesc, &texDesc, NULL));
+    }
+	
+    void _discard()	{  if (texObj != 0)CUDA_CHECK(cudaDestroyTextureObject(texObj)); }
+	    
+public:
+	
+    cudaTextureObject_t texObj;
+	
+HookedTexture(): texObj(0) { }
+
+    template<typename T>
+	cudaTextureObject_t acquire(T * data, const int n)
+    {
+	std::pair< void *, int> target = std::make_pair(data, n);
+
+	if (target != registered)
+	{
+	    _discard();
+	    _create(data, n);
+	    registered = target;
+	}
+
+	return texObj;
+    }
+	
+    ~HookedTexture() { _discard(); }
+};
+
 #include <cuda-dpd.h>
 
 //container for the cell lists, which contains only two integer vectors of size ncells.
@@ -256,7 +358,7 @@ CellLists(const int LX, const int LY, const int LZ): ncells(LX * LY * LZ), LX(LX
 	    CUDA_CHECK(cudaMalloc(&count, sizeof(int) * ncells));
 	}
 
-    void build(Particle * const p, const int n);
+    void build(Particle * const p, const int n, cudaStream_t stream);
 	    	    
     ~CellLists()
 	{
@@ -265,7 +367,11 @@ CellLists(const int LX, const int LY, const int LZ): ncells(LX * LY * LZ), LX(LX
 	}
 };
 
+struct ExpectedMessageSizes
+{
+    int msgsizes[27];
+};
 
-void diagnostics(MPI_Comm comm, Particle * _particles, int n, float dt, int idstep, Acceleration * _acc);
+void diagnostics(MPI_Comm comm, MPI_Comm cartcomm, Particle * _particles, int n, float dt, int idstep, Acceleration * _acc);
 
 void report_host_memory_usage(MPI_Comm comm, FILE * foutput);

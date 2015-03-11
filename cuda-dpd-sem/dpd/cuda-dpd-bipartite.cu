@@ -23,7 +23,7 @@ __constant__ BipartiteInfoDPD bipart_info;
 
 __global__
 void _bipartite_dpd_directforces(float * const axayaz, const int np, const int np_src,
-				 const float seed, const bool mask, const float * xyzuvw, const float * xyzuvw_src,
+				 const float seed, const int mask, const float * xyzuvw, const float * xyzuvw_src,
 				 const float invrc, const float aij, const float gamma, const float sigmaf)
 {
     assert(blockDim.x % warpSize == 0);
@@ -100,7 +100,10 @@ void _bipartite_dpd_directforces(float * const axayaz, const int np, const int n
 		
 		const int spid = s + l;
 		const int dpid = pid;
-		const float myrandnr = Logistic::mean0var1(seed, mask ? dpid : spid, mask ? spid : dpid);
+		
+		const int arg1 = mask * dpid + (1 - mask) * spid;
+		const int arg2 = mask * spid + (1 - mask) * dpid;
+		const float myrandnr = Logistic::mean0var1(seed, arg1, arg2);
 		
 		const float strength = aij * argwr + (- gamma * wr * rdotv + sigmaf * myrandnr) * wr;
 		//if (valid && spid < np_src)
@@ -129,7 +132,7 @@ void directforces_dpd_cuda_bipartite_nohost(
     const float * const xyzuvw, float * const axayaz, const int np,
     const float * const xyzuvw_src, const int np_src,
     const float aij, const float gamma, const float sigma, const float invsqrtdt,
-    const float seed, const bool mask, cudaStream_t stream)
+    const float seed, const int mask, cudaStream_t stream)
 {
     if (np == 0 || np_src == 0)
     {
@@ -147,20 +150,11 @@ __global__ __launch_bounds__(32 * CPB, 16)
     void _dpd_bipforces(const float2 * const xyzuvw, const int np, cudaTextureObject_t texDstStart,
 			  cudaTextureObject_t texSrcStart,  cudaTextureObject_t texSrcParticles, const int np_src, const int3 halo_ncells,
 			  const float aij, const float gamma, const float sigmaf,
-			  const float seed, const bool mask, float * const axayaz)
+			  const float seed, const int mask, float * const axayaz)
 {
     assert(warpSize == COLS * ROWS);
     assert(blockDim.x == warpSize && blockDim.y == CPB && blockDim.z == 1);
     assert(ROWS * 3 <= warpSize);
-
-    const int mycid = blockIdx.x * CPB + threadIdx.y;
-
-    if (mycid >= halo_ncells.x * halo_ncells.y * halo_ncells.z)
-	return;
-
-    const int xmycid = mycid % halo_ncells.x;
-    const int ymycid = (mycid / halo_ncells.x) % halo_ncells.y;
-    const int zmycid = (mycid / halo_ncells.x / halo_ncells.y) % halo_ncells.z;
 
     const int tid = threadIdx.x; 
     const int subtid = tid % COLS;
@@ -169,36 +163,46 @@ __global__ __launch_bounds__(32 * CPB, 16)
      
     __shared__ int volatile starts[CPB][32], scan[CPB][32];
 
-    int mycount = 0; 
+    const int mycid = blockIdx.x * CPB + threadIdx.y;
+    
+    if (mycid >= halo_ncells.x * halo_ncells.y * halo_ncells.z)
+	return;
+    
+    int mycount = 0, myscan = 0; 
     if (tid < 27)
     {
-	const int dx = (1 + tid) % 3;
-	const int dy = (1 + (tid / 3)) % 3; 
-	const int dz = (1 + (tid / 9)) % 3;
+	const int dx = (tid) % 3;
+	const int dy = ((tid / 3)) % 3; 
+	const int dz = ((tid / 9)) % 3;
 
-	const int xcid = xmycid + dx - 1;
-	const int ycid = ymycid + dy - 1;
-	const int zcid = zmycid + dz - 1;
+	int xcid = (mycid % halo_ncells.x) + dx - 1;
+	int ycid = ((mycid / halo_ncells.x) % halo_ncells.y) + dy - 1;
+	int zcid = ((mycid / halo_ncells.x / halo_ncells.y) % halo_ncells.z) + dz - 1;
 	
-	const bool bad_cid =
-	    xcid < 0 || xcid >= halo_ncells.x ||
-	    ycid < 0 || ycid >= halo_ncells.y ||
-	    zcid < 0 || zcid >= halo_ncells.z ;
-	    
-	const int cid = xcid + halo_ncells.x * (ycid + halo_ncells.y * zcid);
-
-	starts[wid][tid] = bad_cid ? -10000 : tex1Dfetch<int>(texSrcStart, cid);
-	mycount = bad_cid ? 0 : (tex1Dfetch<int>(texSrcStart, cid + 1) - tex1Dfetch<int>(texSrcStart, cid));
+	const bool valid_cid = 
+	    xcid >= 0 && xcid < halo_ncells.x &&
+	    ycid >= 0 && ycid < halo_ncells.y &&
+	    zcid >= 0 && zcid < halo_ncells.z ; 
+	
+	xcid = min(halo_ncells.x - 1, max(0, xcid));
+	ycid = min(halo_ncells.y - 1, max(0, ycid));
+	zcid = min(halo_ncells.z - 1, max(0, zcid));
+	
+	const int cid = max(0, xcid + halo_ncells.x * (ycid + halo_ncells.y * zcid));
+	
+	starts[wid][tid] = tex1Dfetch<int>(texSrcStart, cid);
+	
+	myscan = mycount = valid_cid * (tex1Dfetch<int>(texSrcStart, cid + 1) - tex1Dfetch<int>(texSrcStart, cid));
     }
 
     for(int L = 1; L < 32; L <<= 1)
-	mycount += (tid >= L) * __shfl_up(mycount, L) ;
+	myscan += (tid >= L) * __shfl_up(myscan, L) ;
 
-    if (tid < 27)
-	scan[wid][tid] = mycount;
-
+    if (tid < 28)
+	scan[wid][tid] = myscan - mycount;
+  
     const int dststart = tex1Dfetch<int>(texDstStart, mycid);
-    const int nsrc = scan[wid][26], ndst = tex1Dfetch<int>(texDstStart, mycid + 1) - tex1Dfetch<int>(texDstStart, mycid);
+    const int nsrc = scan[wid][27], ndst = tex1Dfetch<int>(texDstStart, mycid + 1) - tex1Dfetch<int>(texDstStart, mycid);
     
     for(int d = 0; d < ndst; d += ROWS)
     {
@@ -216,19 +220,13 @@ __global__ __launch_bounds__(32 * CPB, 16)
 	for(int s = 0; s < nsrc; s += COLS)
 	{
 	    const int np2 = min(nsrc - s, COLS);
-  
 	    const int pid = s + subtid;
-	    const int key9 = 9 * (pid >= scan[wid][8]) + 9 * (pid >= scan[wid][17]);
-	    const int key3 = 3 * (pid >= scan[wid][key9 + 2]) + 3 * (pid >= scan[wid][key9 + 5]);
-	    const int key1 = (pid >= scan[wid][key9 + key3]) + (pid >= scan[wid][key9 + key3 + 1]);
-	    const int key = key9 + key3 + key1;
-	    assert(key >= 0 && key < 27);
-	    assert(subtid >= np2 || pid >= (key ? scan[wid][key - 1] : 0) && pid < scan[wid][key]);
-
-	    const int spid = starts[wid][key] + pid - (key ? scan[wid][key - 1] : 0);
-	    assert(subtid >= np2 || starts[wid][key] >= 0);
-	    
+	    const int key9 = 9 * ((pid >= scan[wid][9]) + (pid >= scan[wid][18]));
+	    const int key3 = 3 * ((pid >= scan[wid][key9 + 3]) + (pid >= scan[wid][key9 + 6]));
+	    const int key = key9 + key3;
+	    const int spid = pid - scan[wid][key] + starts[wid][key];
 	    const int sentry = 3 * spid;
+	    
 	    const float2 stmp0 = tex1Dfetch<float2>(texSrcParticles, sentry);
 	    const float2 stmp1 = tex1Dfetch<float2>(texSrcParticles, sentry + 1);
 	    const float2 stmp2 = tex1Dfetch<float2>(texSrcParticles, sentry + 2);
@@ -256,9 +254,11 @@ __global__ __launch_bounds__(32 * CPB, 16)
 		    xr * (dtmp1.y - stmp1.y) +
 		    yr * (dtmp2.x - stmp2.x) +
 		    zr * (dtmp2.y - stmp2.y);
-	
-		const float myrandnr = Logistic::mean0var1(seed, mask ? dpid : spid, mask ? spid : dpid);
-
+		
+		const int arg1 = mask * dpid + (1 - mask) * spid;
+		const int arg2 = mask * spid + (1 - mask) * dpid;
+		const float myrandnr = Logistic::mean0var1(seed, arg1, arg2);
+		
 		const float strength = aij * argwr + (- gamma * wr * rdotv + sigmaf * myrandnr) * wr;
 		const bool valid = (slot < np1) && (subtid < np2);
 
@@ -287,13 +287,22 @@ __global__ __launch_bounds__(32 * CPB, 16)
 }
 
 void forces_dpd_cuda_bipartite_nohost(cudaStream_t stream, const float2 * const xyzuvw, const int np, cudaTextureObject_t texDstStart,
-					    cudaTextureObject_t texSrcStart, cudaTextureObject_t texSrcParticles, const int np_src,
-					    const int3 halo_ncells,
-					    const float aij, const float gamma, const float sigmaf,
-					    const float seed, const bool mask, float * const axayaz)
+				      cudaTextureObject_t texSrcStart, cudaTextureObject_t texSrcParticles, const int np_src,
+				      const int3 halo_ncells,
+				      const float aij, const float gamma, const float sigmaf,
+				      const float seed, const int mask, float * const axayaz)
 { 
     const int ncells = halo_ncells.x * halo_ncells.y * halo_ncells.z;
     
+    static bool fbip_init = false;
+
+    if (!fbip_init)
+    {
+	CUDA_CHECK(cudaFuncSetCacheConfig(_dpd_bipforces, cudaFuncCachePreferL1));
+
+	fbip_init = true;
+    }
+
     _dpd_bipforces<<<(ncells + CPB - 1) / CPB, dim3(32, CPB), 0, stream>>>(
 	xyzuvw, np, texDstStart, texSrcStart, texSrcParticles, np_src,
 	halo_ncells, aij, gamma, sigmaf, seed, mask,

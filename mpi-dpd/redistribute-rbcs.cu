@@ -3,7 +3,7 @@
 #include "redistribute-particles.h"
 #include "redistribute-rbcs.h"
 
-RedistributeRBCs::RedistributeRBCs(MPI_Comm _cartcomm): nvertices(CudaRBC::get_nvertices()), stream(0)
+RedistributeRBCs::RedistributeRBCs(MPI_Comm _cartcomm): nvertices(CudaRBC::get_nvertices())
 {
     assert(XSIZE_SUBDOMAIN % 2 == 0 && YSIZE_SUBDOMAIN % 2 == 0 && ZSIZE_SUBDOMAIN % 2 == 0);
     assert(XSIZE_SUBDOMAIN >= 2 && YSIZE_SUBDOMAIN >= 2 && ZSIZE_SUBDOMAIN >= 2);
@@ -33,22 +33,25 @@ RedistributeRBCs::RedistributeRBCs(MPI_Comm _cartcomm): nvertices(CudaRBC::get_n
 	//recvbufs[i].resize(nvertices * 10);
 	//sendbufs[i].resize(nvertices * 10);
     }
+
+    CUDA_CHECK(cudaEventCreate(&evextents, cudaEventDisableTiming));
 }
 
-void RedistributeRBCs::_compute_extents(const Particle * const xyzuvw, const int nrbcs)
+void RedistributeRBCs::_compute_extents(const Particle * const xyzuvw, const int nrbcs, cudaStream_t stream)
 {
     for(int i = 0; i < nrbcs; ++i)
 	CudaRBC::extent_nohost(stream, (float *)(xyzuvw + nvertices * i), extents.devptr + i);
 }
 
-int RedistributeRBCs::stage1(const Particle * const xyzuvw, const int nrbcs)
+int RedistributeRBCs::stage1(const Particle * const xyzuvw, const int nrbcs, cudaStream_t stream)
 {
     extents.resize(nrbcs);
  
-    _compute_extents(xyzuvw, nrbcs);
+    _compute_extents(xyzuvw, nrbcs, stream);
 
-    CUDA_CHECK(cudaStreamSynchronize(stream));
-   
+    CUDA_CHECK(cudaEventRecord(evextents));
+    CUDA_CHECK(cudaEventSynchronize(evextents));
+
     std::vector<int> reordering_indices[27];
 
     for(int i = 0; i < nrbcs; ++i)
@@ -180,7 +183,7 @@ namespace ParticleReorderingRBC
     }
 }
 
-void RedistributeRBCs::stage2(Particle * const xyzuvw, const int nrbcs)
+void RedistributeRBCs::stage2(Particle * const xyzuvw, const int nrbcs, cudaStream_t stream)
 {
     assert(notleaving + arriving == nrbcs);
 
