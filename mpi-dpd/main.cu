@@ -141,7 +141,7 @@ int main(int argc, char ** argv)
 	    dpd.local_interactions(particles.xyzuvw.data, particles.size, particles.axayaz.data, cells.start, cells.count, mainstream);
 	    dpd.consolidate_and_post(particles.xyzuvw.data, particles.size, mainstream);
 	    dpd.wait_for_messages(mainstream);
-	    dpd.remote_interactions(particles.xyzuvw.data, particles.size, particles.axayaz.data);
+	    dpd.remote_interactions(particles.xyzuvw.data, particles.size, particles.axayaz.data, mainstream);
 
 	    if (rbcscoll)
 		rbc_interactions.evaluate(particles.xyzuvw.data, particles.size, particles.axayaz.data, cells.start, cells.count,
@@ -426,7 +426,7 @@ int main(int argc, char ** argv)
 
 		    dpd.consolidate_and_post(particles.xyzuvw.data, particles.size, mainstream);
 		    dpd.wait_for_messages(mainstream);
-		    dpd.remote_interactions(particles.xyzuvw.data, particles.size, particles.axayaz.data);
+		    dpd.remote_interactions(particles.xyzuvw.data, particles.size, particles.axayaz.data, mainstream);
 
 		    timings["evaluate-dpd interactions"] += MPI_Wtime() - tstart; 
 		    

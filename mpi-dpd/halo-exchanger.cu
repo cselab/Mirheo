@@ -37,7 +37,6 @@ HaloExchanger::HaloExchanger(MPI_Comm _cartcomm, const int basetag):  basetag(ba
 	halosize[i].z = d[2] != 0 ? 1 : ZSIZE_SUBDOMAIN; 
 	
 	const int nhalocells = halosize[i].x * halosize[i].y * halosize[i].z;
-
 	
 	int estimate = numberdensity * safety_factor * nhalocells;
 	estimate = 32 * ((estimate + 31) / 32);
@@ -58,7 +57,7 @@ HaloExchanger::HaloExchanger(MPI_Comm _cartcomm, const int basetag):  basetag(ba
 
 	const bool isface = abs(d[0]) + abs(d[1]) + abs(d[2]) == 1;
 
-	code2stream[i] = 0;
+	code2stream[i] = i % 7;
 
 	if (isface)
 	{
@@ -367,8 +366,7 @@ void HaloExchanger::pack(const Particle * const p, const int n, const int * cons
     scan_massimo(input_count, output_scan, scan_sizes, stream);
     
     CUDA_CHECK(cudaPeekAtLastError());
-    CUDA_CHECK(cudaDeviceSynchronize());
-    
+        
 #else
     for(int i = 0; i < 26; ++i)
 	if (sendhalos[i].expected)
