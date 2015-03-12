@@ -21,9 +21,9 @@ public:
 	int * scattered_indices;
     };
 
-    int stage1(const Particle * const p, const int n, cudaStream_t stream);
+    int stage1(const Particle * const p, const int n, cudaStream_t stream, float& host_idling_time);
 
-    void stage2(Particle * const particles, const int nparticles, cudaStream_t);
+    void stage2(Particle * const particles, const int nparticles, cudaStream_t, float& host_idling_time);
    
     RedistributeParticles(MPI_Comm cartcomm);
 
@@ -53,10 +53,14 @@ private:
 
     cudaEvent_t evpacking, evsizes; //, evcompaction;
 
-    void _waitall(MPI_Request * reqs, const int n)
+    float _waitall(MPI_Request * reqs, const int n)
     {
+	const double tstart = MPI_Wtime();
+
 	MPI_Status statuses[n];
 	MPI_CHECK( MPI_Waitall(n, reqs, statuses) );    
+
+	return MPI_Wtime() - tstart;
     }
    
     void _post_recv();
