@@ -90,9 +90,7 @@ protected:
     
     int nof_sent_particles();
 
-    cudaEvent_t evfillall;
-    cudaStream_t streams[7];
-    int code2stream[26];
+    cudaEvent_t evfillall, evshiftrecvp;
      
     const int basetag;
 
@@ -106,7 +104,7 @@ public:
 
     void consolidate_and_post(const Particle * const p, const int n, cudaStream_t stream);
 
-    void wait_for_messages();
+    void wait_for_messages(cudaStream_t stream);
 
     void adjust_message_sizes(ExpectedMessageSizes sizes);
 

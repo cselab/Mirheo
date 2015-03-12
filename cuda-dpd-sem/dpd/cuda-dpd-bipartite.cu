@@ -287,13 +287,22 @@ __global__ __launch_bounds__(32 * CPB, 16)
 }
 
 void forces_dpd_cuda_bipartite_nohost(cudaStream_t stream, const float2 * const xyzuvw, const int np, cudaTextureObject_t texDstStart,
-					    cudaTextureObject_t texSrcStart, cudaTextureObject_t texSrcParticles, const int np_src,
-					    const int3 halo_ncells,
-					    const float aij, const float gamma, const float sigmaf,
-					    const float seed, const int mask, float * const axayaz)
+				      cudaTextureObject_t texSrcStart, cudaTextureObject_t texSrcParticles, const int np_src,
+				      const int3 halo_ncells,
+				      const float aij, const float gamma, const float sigmaf,
+				      const float seed, const int mask, float * const axayaz)
 { 
     const int ncells = halo_ncells.x * halo_ncells.y * halo_ncells.z;
     
+    static bool fbip_init = false;
+
+    if (!fbip_init)
+    {
+	CUDA_CHECK(cudaFuncSetCacheConfig(_dpd_bipforces, cudaFuncCachePreferL1));
+
+	fbip_init = true;
+    }
+
     _dpd_bipforces<<<(ncells + CPB - 1) / CPB, dim3(32, CPB), 0, stream>>>(
 	xyzuvw, np, texDstStart, texSrcStart, texSrcParticles, np_src,
 	halo_ncells, aij, gamma, sigmaf, seed, mask,

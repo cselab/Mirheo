@@ -23,13 +23,16 @@ class ComputeInteractionsDPD : public HaloExchanger
     Logistic::KISS interrank_trunks[26];
     bool interrank_masks[26];
 
-    cudaEvent_t evmerge;
+    cudaEvent_t evremoteint[7];
+
+    cudaStream_t streams[7];
+    int code2stream[26];
     
 public:
     
     ComputeInteractionsDPD(MPI_Comm cartcomm);
 
-    void remote_interactions(const Particle * const p, const int n, Acceleration * const a);
+    void remote_interactions(const Particle * const p, const int n, Acceleration * const a, cudaStream_t stream);
 
     void local_interactions(const Particle * const p, const int n, Acceleration * const a,
 			   const int * const cellsstart, const int * const cellscount, cudaStream_t stream);
