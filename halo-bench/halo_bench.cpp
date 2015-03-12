@@ -23,6 +23,22 @@ using namespace std;
 HPM hpm;
 #endif
 
+bool currently_profiling2 = false;
+
+inline void msg(char *header, MPI_Comm comm, int sent_id, int target, int count, MPI_Datatype type)
+{
+//#ifdef _USE_NVTX_
+        if (currently_profiling2)
+        {
+           int source, typesize;
+           MPI_Comm_rank(comm, &source);
+           MPI_Type_size(type, &typesize);
+           fprintf(stdout, "%s: msg %d %d %d %d\n", header, source, sent_id, target, count); //*typesize);
+        }
+//#endif
+}
+
+
 void *myalloc(size_t nbytes)
 {
 #if 1
@@ -60,6 +76,18 @@ inline void mpiAssert(int code, const char *file, int line, bool abort=true)
     }
 }
 
+enum {
+    XSIZE_SUBDOMAIN = 48,
+    YSIZE_SUBDOMAIN = 48,
+    ZSIZE_SUBDOMAIN = 48,
+    XMARGIN_WALL = 6,
+    YMARGIN_WALL = 6,
+    ZMARGIN_WALL = 6,
+};
+
+const int numberdensity = 4*6;
+float safety_factor = 1.2;
+
 class HaloExchanger
 {
     MPI_Comm cartcomm;
@@ -68,14 +96,15 @@ class HaloExchanger
     int recv_tags[26], recv_counts[26], nlocal;
     int send_counts[26];
 
-    int Nint;
-    int *send_buf[26], *recv_buf[26];
+    int Ncnt, expected;
+    float *send_buf[26], *recv_buf[26];
     MPI_Request sendreq[26], recvreq[26];
 
     bool firstpost;
 
     int use_prof;
     double local_duration, remote_duration, imbalance; 
+
 
 protected:
     
@@ -92,6 +121,7 @@ protected:
     //mpi-sync for the surrounding halos, shift particle coord to the sysref of this rank
     void wait_for_messages();
 
+    void cpu_delay(int);
     void spawn_local_work();
     void spawn_remote_work();
 
@@ -112,6 +142,8 @@ public:
 
 };
 
+static int order[26] = {12, 13, 15, 16, 21, 22, 24, 25, 3, 4, 6, 7, 9, 10, 11, 14, 18, 19, 20, 23, 0, 1, 2, 5, 8, 17};
+
 HaloExchanger::HaloExchanger(MPI_Comm _cartcomm, int L, const int basetag):  L(L), basetag(basetag), firstpost(true)
 {
     MPI_CHECK( MPI_Comm_dup(_cartcomm, &cartcomm));
@@ -128,14 +160,83 @@ HaloExchanger::HaloExchanger(MPI_Comm _cartcomm, int L, const int basetag):  L(L
 	recvreq[i] = MPI_REQUEST_NULL;
     }
 
-    Nint = L;
+    Ncnt = L;
+
+    for(int i = 0; i < 26; ++i) send_counts[i] = Ncnt;
+
+#if 0
+    {
+//0 	1	2   3   4      5    6  7      8    9   10     11 12 13  14  15 16 17    18     19 20   21 22 23  24 25
+//66354 66354 66354 1380 1380 66354 1380 1380 66354 1380 1380 1380 24 24 1380 24 24 66354 1380 1380 1380 24 24 1380 24 24
+
+        FILE *fp = fopen("counts.txt", "r");
+        if (fp != NULL)
+        {
+                char line[256];
+                for (int i = 0; i <= myrank; i++) fgets(line, 256, fp);
+
+                char *tok = strtok(line, " ");
+                if (tok != NULL) {
+                        printf("myrank = %d, rank = %d\n", myrank, atoi(tok));
+                        int i = 0;
+                        tok = strtok(NULL, " ");
+                        while (tok != NULL) {
+                                send_counts[i] = atoi(tok);
+                                i++;
+                                tok = strtok(NULL, " ");
+                        }
+                }
+        }
+
+        int max_cnt = -1;
+        for (int i = 0; i < 26; i++) {
+		if (send_counts[i] > max_cnt) max_cnt = send_counts[i]; 
+        }
+	Ncnt = max_cnt;
+    }
+#else
+//  if (Ncnt <= 0)
+    {
+	    for(int i = 1; i < 27; ++i)
+	    {
+	        const int d[3] = { (i + 1) % 3 - 1, (i / 3 + 1) % 3 - 1, (i / 9 + 1) % 3 - 1 };
+
+	        recv_tags[i] = (3 - d[0]) % 3 + 3 * ((3 - d[1]) % 3 + 3 * ((3 - d[2]) % 3));
+
+	        const int nhalodir[3] =  {
+			d[0] != 0 ? 1 : XSIZE_SUBDOMAIN,
+			d[1] != 0 ? 1 : YSIZE_SUBDOMAIN,
+			d[2] != 0 ? 1 : ZSIZE_SUBDOMAIN
+        	    };
+
+        	const int nhalocells = nhalodir[0] * nhalodir[1] * nhalodir[2];
+        	const int estimate = numberdensity * safety_factor * nhalocells;
+        	send_counts[i-1] = estimate - 4;
+   	}
+
+   	int max_cnt = -1;
+   	for (int i = 0; i < 26; i++) {
+		if (send_counts[i] > max_cnt) max_cnt = send_counts[i]; 
+	   }
+	   Ncnt = max_cnt;
+
+
+	   if (myrank == 0)
+	   {
+		printf("send_counts: ");
+		for (int i = 0; i < 26; i++) printf("%d ", send_counts[i]);
+		printf("\n");
+	   }
+    }
+#endif
+
     for(int i = 0; i < 26; ++i) {
-	send_buf[i] = (int *)myalloc(Nint*sizeof(int));
-	recv_buf[i] = (int *)myalloc(Nint*sizeof(int));
+	send_buf[i] = (float *)myalloc(Ncnt*sizeof(float));
+	recv_buf[i] = (float *)myalloc(Ncnt*sizeof(float));
     }
 
     for(int i = 0; i < 26; ++i) {
-	for (int j = 0; j < Nint; j++) {
+	for (int j = 0; j < Ncnt; j++) {
 		send_buf[i][j] = myrank;
 		recv_buf[i][j] = -1;
 	}
@@ -155,9 +256,9 @@ HaloExchanger::HaloExchanger(MPI_Comm _cartcomm, int L, const int basetag):  L(L
     }
 
     use_prof = 0;
-    local_duration = 2300;
-    remote_duration = 2300;
-    imbalance = 0.04;
+    local_duration = 6000;
+    remote_duration = 2000;
+    imbalance = 0.00;
 }
 
 void HaloExchanger::pack_and_post() //const Particle * const p, const int n, const int * const cellsstart, const int * const cellscount)
@@ -168,7 +269,7 @@ void HaloExchanger::pack_and_post() //const Particle * const p, const int n, con
 		MPI_CHECK( MPI_Send_init(send_counts+i, 1, MPI_INT, dstranks[i], basetag +  i + 150, cartcomm, sendcountreq + i) );
 	}
 	for(int i = 0; i < 26; ++i) {
-		MPI_CHECK( MPI_Send_init(send_buf[i], Nint, MPI_INT, dstranks[i], basetag +  i + 150, cartcomm, sendreq + i) );
+		MPI_CHECK( MPI_Send_init(send_buf[i], send_counts[i], MPI_FLOAT, dstranks[i], basetag +  i + 150, cartcomm, sendreq + i) );
 	}
 #endif
 
@@ -177,7 +278,7 @@ void HaloExchanger::pack_and_post() //const Particle * const p, const int n, con
 		MPI_CHECK( MPI_Ssend_init(send_counts+i, 1, MPI_INT, dstranks[i], basetag +  i + 150, cartcomm, sendcountreq + i) );
 	}
 	for(int i = 0; i < 26; ++i) {
-		MPI_CHECK( MPI_Ssend_init(send_buf[i], Nint, MPI_INT, dstranks[i], basetag +  i + 150, cartcomm, sendreq + i) );
+		MPI_CHECK( MPI_Ssend_init(send_buf[i], send_counts[i], MPI_FLOAT, dstranks[i], basetag +  i + 150, cartcomm, sendreq + i) );
 	}
 #endif
 
@@ -186,7 +287,7 @@ void HaloExchanger::pack_and_post() //const Particle * const p, const int n, con
 		MPI_CHECK( MPI_Recv_init(recv_counts+i, 1, MPI_INT, dstranks[i], basetag +  recv_tags[i] + 150, cartcomm, recvcountreq + i) );
 	}
 	for(int i = 0; i < 26; ++i) {
-		MPI_CHECK( MPI_Recv_init(recv_buf[i], Nint, MPI_INT, dstranks[i], basetag +  recv_tags[i] + 150, cartcomm, recvreq + i) );
+		MPI_CHECK( MPI_Recv_init(recv_buf[i], Ncnt, MPI_FLOAT, dstranks[i], basetag +  recv_tags[i] + 150, cartcomm, recvreq + i) );
 	}
 #endif
 	post_expected_recv();
@@ -203,32 +304,6 @@ void HaloExchanger::pack_and_post() //const Particle * const p, const int n, con
 	if (use_prof) hpm.HPM_Stop("wait1");
     }
       
-    for(int i = 0; i < 26; ++i)
-	send_counts[i] = 1;
-
-
-     spawn_local_work();
-  
-//   MPI_CHECK( MPI_Startall(26, sendcountreq + 0) );
-	 
-    for(int i = 0; i < 26; ++i) {
-#if defined(USE_MPI_ISEND)
-	MPI_CHECK( MPI_Isend(send_buf[i], Nint, MPI_INT, dstranks[i], basetag +  i + 150, cartcomm, sendreq + i) );	
-#elif defined(USE_MPI_SEND)
-	MPI_CHECK( MPI_Send(send_buf[i], Nint, MPI_INT, dstranks[i], basetag +  i + 150, cartcomm) );
-#elif defined(USE_MPI_ISSEND)
-	MPI_CHECK( MPI_Issend(send_buf[i], Nint, MPI_INT, dstranks[i], basetag +  i + 150, cartcomm, sendreq + i) );
-#elif defined(USE_MPI_SSEND)
-	MPI_CHECK( MPI_Ssend(send_buf[i], Nint, MPI_INT, dstranks[i], basetag +  i + 150, cartcomm) );
-#elif defined(USE_MPI_PERS_SEND)||defined(USE_MPI_PERS_SSEND)
-	MPI_CHECK( MPI_Start(sendreq + i) );
-#elif defined(USE_MPI_RSEND)
-	MPI_CHECK( MPI_Rsend(send_buf[i], Nint, MPI_INT, dstranks[i], basetag +  i + 150, cartcomm) );
-#else
-#error	"MPI send method not defined!"
-#endif
-
-    }
 
     for(int i = 0; i < 26; ++i) {
 #if defined(USE_MPI_ISEND)
@@ -249,6 +324,43 @@ void HaloExchanger::pack_and_post() //const Particle * const p, const int n, con
 
     }
 
+	 
+//    for(int i = 0; i < 26; ++i) {
+//    #pragma omp parallel for
+    for(int k = 0; k < 26; ++k) {
+        int i = k; //order[k];
+	//int i = order[25-k];
+	msg((char *)"b1", cartcomm, i, dstranks[i], send_counts[i], MPI_FLOAT);
+
+#if 1
+
+#if defined(USE_MPI_ISEND)
+	MPI_CHECK( MPI_Isend(send_buf[i], send_counts[i], MPI_FLOAT, dstranks[i], basetag +  i + 150, cartcomm, sendreq + i) );	
+#elif defined(USE_MPI_SEND)
+	MPI_CHECK( MPI_Send(send_buf[i], send_counts[i], MPI_FLOAT, dstranks[i], basetag +  i + 150, cartcomm) );
+#elif defined(USE_MPI_ISSEND)
+	MPI_CHECK( MPI_Issend(send_buf[i], send_counts[i], MPI_FLOAT, dstranks[i], basetag +  i + 150, cartcomm, sendreq + i) );
+#elif defined(USE_MPI_SSEND)
+	MPI_CHECK( MPI_Ssend(send_buf[i], send_counts[i], MPI_FLOAT, dstranks[i], basetag +  i + 150, cartcomm) );
+#elif defined(USE_MPI_PERS_SEND)||defined(USE_MPI_PERS_SSEND)
+	MPI_CHECK( MPI_Start(sendreq + i) );
+#elif defined(USE_MPI_RSEND)
+	MPI_CHECK( MPI_Rsend(send_buf[i], send_counts[i], MPI_FLOAT, dstranks[i], basetag +  i + 150, cartcomm) );
+#else
+#error	"MPI send method not defined!"
+#endif
+
+#else
+	if ((send_counts[i] < 16000) && (dstranks[i] != myrank))
+	MPI_CHECK( MPI_Send(send_buf[i], send_counts[i], MPI_FLOAT, dstranks[i], basetag +  i + 150, cartcomm) );
+	else
+	MPI_CHECK( MPI_Isend(send_buf[i], send_counts[i], MPI_FLOAT, dstranks[i], basetag +  i + 150, cartcomm, sendreq + i) );	
+#endif
+
+    }
+
+    spawn_local_work();
+
     nsendreq = 0;
     
     firstpost = false;
@@ -256,13 +368,11 @@ void HaloExchanger::pack_and_post() //const Particle * const p, const int n, con
 
 void HaloExchanger::post_expected_recv()
 {
-//    MPI_Startall(26, recvcountreq);
-
     for(int i = 0; i < 26; ++i) {
 #if defined(USE_MPI_IRECV)
-	MPI_CHECK( MPI_Irecv(recv_buf[i], Nint, MPI_INT, dstranks[i], basetag + recv_tags[i] + 150, cartcomm, recvreq + i) );
+	MPI_CHECK( MPI_Irecv(recv_counts+i, 1, MPI_INT, dstranks[i], basetag + recv_tags[i] + 150, cartcomm, recvcountreq + i) );
 #elif defined(USE_MPI_PERS_RECV)
-	MPI_Start(recvreq+i);
+	MPI_Start(recvcountreq+i);
 #else
 #error "MPI recv method not defined!" 
 #endif
@@ -270,9 +380,9 @@ void HaloExchanger::post_expected_recv()
 
     for(int i = 0; i < 26; ++i) {
 #if defined(USE_MPI_IRECV)
-	MPI_CHECK( MPI_Irecv(recv_counts+i, 1, MPI_INT, dstranks[i], basetag + recv_tags[i] + 150, cartcomm, recvcountreq + i) );
+	MPI_CHECK( MPI_Irecv(recv_buf[i], Ncnt, MPI_FLOAT, dstranks[i], basetag + recv_tags[i] + 150, cartcomm, recvreq + i) );
 #elif defined(USE_MPI_PERS_RECV)
-	MPI_Start(recvcountreq+i);
+	MPI_Start(recvreq+i);
 #else
 #error "MPI recv method not defined!" 
 #endif
@@ -288,6 +398,7 @@ void HaloExchanger::wait_for_messages()
 
 	if (use_prof) hpm.HPM_Start("wait2");
 	MPI_CHECK( MPI_Waitall(26, recvcountreq, statuses) );
+	//cpu_delay(50);
 	MPI_CHECK( MPI_Waitall(26, recvreq, statuses) );
 	if (use_prof) hpm.HPM_Stop("wait2");
 
@@ -314,7 +425,31 @@ void HaloExchanger::exchange() //Particle * const plocal, int nlocal, SimpleDevi
 {
     pack_and_post(); //plocal, nlocal, cells.start, cells.count);
     wait_for_messages();
-    spawn_local_work();
+    spawn_remote_work();
+}
+
+void HaloExchanger::cpu_delay(int duration)
+{
+    double t0 = my_Wtime()*1e6; // current time in us
+    double t_end = t0 + duration;
+    while (t0 < t_end) {
+		/*sched_yield();*/
+
+		/* 
+		int flag;
+		MPI_Status status;
+		MPI_Test(&recvreq[0], &flag, &status);
+		*/
+
+		/* 
+		int done = 0;
+		MPI_Status statuses[26];
+		MPI_Testall(26, recvcountreq, &done, statuses);
+		MPI_Testall(26, recvreq, &done, statuses);
+		*/
+		t0 = my_Wtime()*1e6;
+
+    }
 }
 
 void HaloExchanger::spawn_local_work()
@@ -327,28 +462,36 @@ void HaloExchanger::spawn_local_work()
     else        
 	duration = duration * ( 1 - imbalance * drand48());
 
+#if 0
     double t_end = t0 + duration;
     while (t0 < t_end) {
-		sched_yield();
+		/*sched_yield();*/
 		t0 = my_Wtime()*1e6;
     }
+#else
+    cpu_delay(duration);
+#endif
 }
 
 void HaloExchanger::spawn_remote_work()
 {
     double t0 = my_Wtime()*1e6; // current time in us
-    double duration = remote_duration; //2300;
+    double duration = remote_duration;
 
     if (drand48() < 0.5)
 	duration = duration * ( 1 + imbalance * drand48());
     else        
 	duration = duration * ( 1 - imbalance * drand48());
 
+#if 0
     double t_end = t0 + duration;
     while (t0 < t_end) {
-		sched_yield();
+		/*sched_yield();*/
 		t0 = my_Wtime()*1e6;
     }
+#else
+    cpu_delay(duration);
+#endif
 }
 
 void HaloExchanger::set_prof(int flag)
@@ -394,7 +537,7 @@ int main(int argc, char *argv[])
     int ranks[3];
     int N = 1;
     double t0, t1;
-    double local_wt = 2300, remote_wt = 2300, imbalance = 0;
+    double local_wt = 6000, remote_wt = 2000, imbalance = 0;
 
     if ((argc != 4) && (argc != 5) && (argc != 6) && (argc != 7) && (argc != 8))
     {
@@ -443,13 +586,13 @@ int main(int argc, char *argv[])
 
 	{
 #if DBG
-	int warmup_iter = 0, n_iter = 1e1;
+	int warmup_iter = 0, n_iter = 1e0;
 #else
 	int warmup_iter = 1e2, n_iter = 1e4;	// osu: 1e3, 1e5 for small and 1e1, 1e2 for large (>8192 bytes)
 #endif
 	double tt[n_iter]; 
 
-	if (N > 10000) {
+	if ((N == 0) || (N > 10000)) {
 		warmup_iter = 1e1;
 		n_iter = 1e3;
 	}
