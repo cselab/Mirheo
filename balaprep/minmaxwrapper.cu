@@ -24,6 +24,7 @@ maxminCTC(struct Particle *ctc, int size, int n, float3 *minctc, float3 *maxctc)
            cudaFree(ptoblockds);
            MY_CUDA_CHECK(cudaMalloc((void **)&ptoblockds,sizeof(sblockds_t)*n));
            MY_CUDA_CHECK(cudaMemcpy(ptoblockds,h_ptoblockds,sizeof(sblockds_t)*n,cudaMemcpyHostToDevice));
+           delete h_ptoblocksds;
         }
 
         int nblocks=n*((size+MAXTHREADS-1)/MAXTHREADS);
