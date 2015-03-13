@@ -106,10 +106,10 @@ __device__ void core( const uint nsrc, const uint * const scan, const uint * con
 
 	for(int s = 0; s < nsrc; s += COLS)
 	{
-		const uint pid = f2i( i2f(s) + i2f(subtid) );
-		const uint key9 = f2i( 9.f * ( i2f( pid >= scan[9]                       ) + i2f( pid >= scan[18]                      ) ) );
-		const uint key3 = f2i( 3.f * ( i2f( pid >= scan[f2i(i2f(key9) + i2f(3))] ) + i2f( pid >= scan[f2i(i2f(key9) + i2f(6))] ) ) );
-		const uint key = f2i( i2f(key9) + i2f(key3) );
+		const uint pid  = f2i( i2f(s) + i2f(subtid) );
+		const uint key9 = f2i( ( pid >= scan[ 9                       ] ? i2f(9) : i2f(0) ) + ( pid >= scan[ 18                      ] ? i2f(9) : i2f(0) ) );
+		const uint key3 = f2i( ( pid >= scan[ f2i(i2f(key9) + i2f(3)) ] ? i2f(3) : i2f(0) ) + ( pid >= scan[ f2i(i2f(key9) + i2f(6)) ] ? i2f(3) : i2f(0) ) );
+		const uint key  = f2i( i2f(key9) + i2f(key3) );
 
 		const uint spid = f2i( i2f(pid) - i2f(scan[key]) + i2f(starts[key]) );
 
@@ -180,10 +180,10 @@ __device__ void core_ilp( const uint nsrc, const uint * const scan, const uint *
         int spids[NSRCMAX];
 		#pragma unroll
         for( int i = 0; i < NSRCMAX; ++i ) {
-            const uint pid = f2i( i2f(s) + i2f(i) * float(COLS) + i2f(subtid) );
-            const uint key9 = f2i( 9.f * ( i2f( pid >= scan[9]                       ) + i2f( pid >= scan[18]                      ) ) );
-            const uint key3 = f2i( 3.f * ( i2f( pid >= scan[f2i(i2f(key9) + i2f(3))] ) + i2f( pid >= scan[f2i(i2f(key9) + i2f(6))] ) ) );
-            const uint key = f2i( i2f(key9) + i2f(key3) );
+            const uint pid  = f2i( i2f(s) + i2f(i) * float(COLS) + i2f(subtid) );
+    		const uint key9 = f2i( ( pid >= scan[ 9                       ] ? i2f(9) : i2f(0) ) + ( pid >= scan[ 18                      ] ? i2f(9) : i2f(0) ) );
+    		const uint key3 = f2i( ( pid >= scan[ f2i(i2f(key9) + i2f(3)) ] ? i2f(3) : i2f(0) ) + ( pid >= scan[ f2i(i2f(key9) + i2f(6)) ] ? i2f(3) : i2f(0) ) );
+    		const uint key  = f2i( i2f(key9) + i2f(key3) );
 
             spids[i] = f2i( i2f(pid) - i2f(scan[key]) + i2f(starts[key]) );
         }
