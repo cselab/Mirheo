@@ -10,6 +10,10 @@ typedef struct {
 #define MAXV     100000000.
 #define MINV    -100000000.
 
+/* following definition is fake! */
+struct Particle {
+       float x[3]; float u[3];
+};
 
 __global__ void minmaxmb(float3 *d_data, float3 *d_min, float3 *d_max,
                                   int size, sblockds_t *ptoblockds) {
@@ -208,7 +212,7 @@ __global__ void minmaxmba(struct Particle  *d_data, float3 *d_min, float3 *d_max
         maxtemp1.y=(ptoblockds[which].maxval.y>maxtemp1.y)?ptoblockds[which].maxval.y:maxtemp1.y;
         mintemp1.z=(ptoblockds[which].minval.z<mintemp1.z)?ptoblockds[which].minval.z:mintemp1.z;
         maxtemp1.z=(ptoblockds[which].maxval.z>maxtemp1.z)?ptoblockds[which].maxval.z:maxtemp1.z;
-        if(my_blockId==(gridDim.x-1)) { /* it is the last block; reset for next iteration */
+        if(my_blockId==(((size+blockDim.x-1)/blockDim.x))-1) { /* it is the last block; reset for next iteration */
                 ptoblockds[which].minval=mindef;
                 ptoblockds[which].maxval=maxdef;
                 ptoblockds[which].g_blockcnt=0;
@@ -224,7 +228,7 @@ __global__ void minmaxmba(struct Particle  *d_data, float3 *d_min, float3 *d_max
 
 }
 
-__global__ void minmaxob(float3 *d_data, float3 *d_min, float3 *d_max, int size) {
+__global__ void minmaxob(struct Particle *d_data, float3 *d_min, float3 *d_max, int size) {
   __shared__ float3 mintemp[32];
   __shared__ float3 maxtemp[32];
   __shared__ float shrtmp[3][MAXTHREADS];
@@ -243,7 +247,7 @@ __global__ void minmaxob(float3 *d_data, float3 *d_min, float3 *d_max, int size)
   for(int i=tid; i<3*blockDim.x; i+=blockDim.x) {
     xyz=i%3;
     //    if(xyz==0) {
-    shrtmp[xyz][i/3] = (i/3<size)?d_data[i/3+blockIdx.x*blockDim.x].x[xyz]:MINV;
+    shrtmp[xyz][i/3] = (i/3<size)?d_data[i/3+blockIdx.x*size].x[xyz]:MINV;
       //    } else if(xyz==1) {
       //      shrtmp[xyz][i/3] = (i/3<size)?d_data[i/3+blockIdx.x*blockDim.x].y:MINV;
       //    } else {
