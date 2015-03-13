@@ -3,6 +3,8 @@
 namespace Logistic
 {
 __device__ float mean0var1( float seed, uint i, uint j );
+__device__ float mean0var1( float seed, int i, int j );
+__device__ float mean0var1( float seed, float i, float j );
 }
 
 #include <cstdlib>
@@ -104,6 +106,13 @@ template<> __inline__ __device__ float __logistic_core<0>( float x )
 __inline__ __device__ float mean0var1( float seed, int u, int v )
 {
     float p = rem( ( ( u & 0x3FF ) * gold ) + u * bronze + ( ( v & 0x3FF ) * silver ) + v * tin ); // safe for large u or v
+    float l = __logistic_core<N>( seed - p );
+    return l * sqrt2;
+}
+
+__inline__ __device__ float mean0var1( float seed, uint u, uint v )
+{
+    float p = rem( ( ( u & 0x3FFU ) * gold ) + u * bronze + ( ( v & 0x3FFU ) * silver ) + v * tin ); // safe for large u or v
     float l = __logistic_core<N>( seed - p );
     return l * sqrt2;
 }
