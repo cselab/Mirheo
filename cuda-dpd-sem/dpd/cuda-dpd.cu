@@ -39,10 +39,10 @@ template<> __device__ float viscosity_function<0>( float x )
 
 __device__ float3 _dpd_interaction( const uint dpid, const float3 xdest, const float3 udest, const uint spid )
 {
-    const int sentry = scale( spid, 3.f );
+    const int sentry = xscale( spid, 3.f );
     const float2 stmp0 = tex1Dfetch( texParticles2, sentry           );
-    const float2 stmp1 = tex1Dfetch( texParticles2, add( sentry, 1 ) );
-    const float2 stmp2 = tex1Dfetch( texParticles2, add( sentry, 2 ) );
+    const float2 stmp1 = tex1Dfetch( texParticles2, xadd( sentry, 1 ) );
+    const float2 stmp2 = tex1Dfetch( texParticles2, xadd( sentry, 2 ) );
 
     const float _xr = xdest.x - stmp0.x;
     const float _yr = xdest.y - stmp0.y;
@@ -65,7 +65,7 @@ __device__ float3 _dpd_interaction( const uint dpid, const float3 xdest, const f
         yr * ( udest.y - stmp2.x ) +
         zr * ( udest.z - stmp2.y );
 
-    const float myrandnr = Logistic::mean0var1( info.seed, f2i( min( i2f(spid), i2f(dpid) ) ), f2i( max( i2f(spid), i2f(dpid) ) ) );
+    const float myrandnr = Logistic::mean0var1( info.seed, xmin(spid,dpid), xmax(spid,dpid) );
 
     const float strength = info.aij * wc - ( info.gamma * wr * rdotv + info.sigmaf * myrandnr ) * wr;
 
@@ -87,41 +87,41 @@ __device__ void core( const uint nsrc, const uint * const scan, const uint * con
     const uint slot = tid / COLS;
     const uint subtid = tid % COLS;
 
-    const uint dpid = f2i( i2f(dststart) + i2f(slot) );
-    const int entry = f2i( 3.f * i2f(dpid) );
-    const float2 dtmp0 = tex1Dfetch( texParticles2, f2i( i2f(entry)          ) );
-    const float2 dtmp1 = tex1Dfetch( texParticles2, f2i( i2f(entry) + i2f(1) ) );
-    const float2 dtmp2 = tex1Dfetch( texParticles2, f2i( i2f(entry) + i2f(2) ) );
+    const uint dpid = xadd( dststart, slot );
+    const int entry = xscale( dpid, 3.f );
+    const float2 dtmp0 = tex1Dfetch( texParticles2,       entry      );
+    const float2 dtmp1 = tex1Dfetch( texParticles2, xadd( entry, 1 ) );
+    const float2 dtmp2 = tex1Dfetch( texParticles2, xadd( entry, 2 ) );
     const float3 xdest = make_float3( dtmp0.x, dtmp0.y, dtmp1.x );
     const float3 udest = make_float3( dtmp1.y, dtmp2.x, dtmp2.y );
 
     float xforce = 0, yforce = 0, zforce = 0;
 
-	for(int s = 0; s < nsrc; s += COLS)
+	for(uint s = 0; u2f(s) < u2f(nsrc); s = xadd( s, COLS ) )
 	{
-		const uint pid  = f2i( i2f(s) + i2f(subtid) );
-		const uint key9 = f2i( ( pid >= scan[ 9                       ] ? i2f(9) : i2f(0) ) + ( pid >= scan[ 18                      ] ? i2f(9) : i2f(0) ) );
-		const uint key3 = f2i( ( pid >= scan[ f2i(i2f(key9) + i2f(3)) ] ? i2f(3) : i2f(0) ) + ( pid >= scan[ f2i(i2f(key9) + i2f(6)) ] ? i2f(3) : i2f(0) ) );
-		const uint key  = f2i( i2f(key9) + i2f(key3) );
+		const uint pid  = xadd( s, subtid );
+		const uint key9 = f2u( ( pid >= scan[ 9             ] ? i2f(9) : i2f(0) ) + ( pid >= scan[ 18            ] ? i2f(9) : i2f(0) ) );
+		const uint key3 = f2u( ( pid >= scan[ xadd(key9,3u) ] ? i2f(3) : i2f(0) ) + ( pid >= scan[ xadd(key9,6u) ] ? i2f(3) : i2f(0) ) );
+		const uint key  = xadd( key9, key3 );
 
-		const uint spid = f2i( i2f(pid) - i2f(scan[key]) + i2f(starts[key]) );
+		const uint spid = xadd( xsub( pid, scan[key] ), starts[key] );
 
-		const int sentry = f2i( 3.f * i2f(spid) );
-		const float2 stmp0 = tex1Dfetch( texParticles2, f2i( i2f(sentry)          ) );
-		const float2 stmp1 = tex1Dfetch( texParticles2, f2i( i2f(sentry) + i2f(1) ) );
+		const int sentry = xscale( spid, 3.f );
+		const float2 stmp0 = tex1Dfetch( texParticles2,       sentry      );
+		const float2 stmp1 = tex1Dfetch( texParticles2, xadd( sentry, 1 ) );
 
 		const float xdiff = xdest.x - stmp0.x;
 		const float ydiff = xdest.y - stmp0.y;
 		const float zdiff = xdest.z - stmp1.x;
-		const int interacting = ( i2f(pid) < i2f(nsrc) ) && ( xdiff * xdiff + ydiff * ydiff + zdiff * zdiff < 1.f ) && ( i2f(dpid) != i2f(spid) ) ;
+		const int interacting = ( u2f(pid) < u2f(nsrc) ) && ( xdiff * xdiff + ydiff * ydiff + zdiff * zdiff < 1.f ) && ( u2f(dpid) != u2f(spid) ) ;
 
 		if (interacting) {
 			srcids[srccount] = spid;
-			srccount = f2i( i2f(srccount) + i2f(1) );
+			srccount = xadd( srccount, 1u );
 		}
 
-		if( i2f(srccount) == i2f(NSRCMAX) ) {
-			srccount = f2i( i2f(srccount) - i2f(1) );
+		if( u2f(srccount) == u2f(NSRCMAX) ) {
+			srccount = xsub( srccount, 1u );
 			const float3 f = _dpd_interaction( dpid, xdest, udest, srcids[srccount] );
 
 			xforce += f.x;
@@ -131,7 +131,7 @@ __device__ void core( const uint nsrc, const uint * const scan, const uint * con
 	}
 
 #pragma unroll 4
-    for( int i = 0; i2f(i) < i2f(srccount); i = f2i(i2f(i)+i2f(1)) ) {
+    for( uint i = 0; u2f(i) < u2f(srccount); i = xadd( i, 1u ) ) {
         const float3 f = _dpd_interaction( dpid, xdest, udest, srcids[i] );
 
         xforce += f.x;
@@ -145,10 +145,10 @@ __device__ void core( const uint nsrc, const uint * const scan, const uint * con
         zforce += __shfl_xor( zforce, L );
     }
 
-    const float fcontrib = ( i2f(subtid) == i2f(0) ) * xforce + ( i2f(subtid) == i2f(1) ) * yforce + ( i2f(subtid) == i2f(2) ) * zforce;
+    const float fcontrib = ( u2f(subtid) == u2f(0u) ) * xforce + ( u2f(subtid) == u2f(1u) ) * yforce + ( u2f(subtid) == u2f(2u) ) * zforce;
 
     if( subtid < 3.f )
-        info.axayaz[f2i(i2f(subtid) + 3.f * i2f(dpid))] = fcontrib;
+        info.axayaz[ xmad( dpid, 3.f, subtid ) ] = fcontrib;
 }
 
 template<uint COLS, uint ROWS, uint NSRCMAX>
@@ -159,43 +159,43 @@ __device__ void core_ilp( const uint nsrc, const uint * const scan, const uint *
     const uint slot   = tid / COLS;
     const uint subtid = tid % COLS;
 
-    const uint dpid = f2i( i2f(dststart) + i2f(slot) );
-    const int entry = f2i( 3.f * i2f(dpid) );
-    const float2 dtmp0 = tex1Dfetch( texParticles2, f2i(i2f(entry)          ) );
-    const float2 dtmp1 = tex1Dfetch( texParticles2, f2i(i2f(entry) + i2f(1) ) );
-    const float2 dtmp2 = tex1Dfetch( texParticles2, f2i(i2f(entry) + i2f(2) ) );
+    const uint dpid = xadd( dststart, slot );
+    const int entry = xscale( dpid, 3.f );
+    const float2 dtmp0 = tex1Dfetch( texParticles2,       entry      );
+    const float2 dtmp1 = tex1Dfetch( texParticles2, xadd( entry, 1 ) );
+    const float2 dtmp2 = tex1Dfetch( texParticles2, xadd( entry, 2 ) );
     const float3 xdest = make_float3( dtmp0.x, dtmp0.y, dtmp1.x );
     const float3 udest = make_float3( dtmp1.y, dtmp2.x, dtmp2.y );
 
     float xforce = 0, yforce = 0, zforce = 0;
 
-    for( uint s = 0; i2f(s) < i2f(nsrc); s = f2i( i2f(s) + i2f(NSRCMAX * COLS) ) ) {
+    for( uint s = 0; u2f(s) < u2f(nsrc); s = xadd( s, NSRCMAX * COLS ) ) {
         int spids[NSRCMAX];
 		#pragma unroll
-        for( int i = 0; i < NSRCMAX; ++i ) {
-            const uint pid  = f2i( i2f(s) + i2f(i) * float(COLS) + i2f(subtid) );
-    		const uint key9 = f2i( ( pid >= scan[ 9                       ] ? i2f(9) : i2f(0) ) + ( pid >= scan[ 18                      ] ? i2f(9) : i2f(0) ) );
-    		const uint key3 = f2i( ( pid >= scan[ f2i(i2f(key9) + i2f(3)) ] ? i2f(3) : i2f(0) ) + ( pid >= scan[ f2i(i2f(key9) + i2f(6)) ] ? i2f(3) : i2f(0) ) );
-    		const uint key  = f2i( i2f(key9) + i2f(key3) );
+        for( uint i = 0; i < NSRCMAX; ++i ) {
+            const uint pid  = xadd( s, xmad( i, float(COLS), subtid ) );
+    		const uint key9 = f2u( ( pid >= scan[ 9             ] ? i2f(9) : i2f(0) ) + ( pid >= scan[ 18            ] ? i2f(9) : i2f(0) ) );
+    		const uint key3 = f2u( ( pid >= scan[ xadd(key9,3u) ] ? i2f(3) : i2f(0) ) + ( pid >= scan[ xadd(key9,6u) ] ? i2f(3) : i2f(0) ) );
+    		const uint key  = xadd( key9, key3 );
 
-            spids[i] = f2i( i2f(pid) - i2f(scan[key]) + i2f(starts[key]) );
+            spids[i] = xadd( xsub( pid, scan[key] ), starts[key] );
         }
 
         bool interacting[NSRCMAX];
 		#pragma unroll
-        for( int i = 0; i < NSRCMAX; ++i ) {
-            const int sentry = f2i( 3.f * i2f(spids[i]) );
-            const float2 stmp0 = tex1Dfetch( texParticles2, sentry );
-            const float2 stmp1 = tex1Dfetch( texParticles2, f2i( i2f(sentry) + i2f(1) ) );
+        for( uint i = 0; i < NSRCMAX; ++i ) {
+            const int sentry = xscale( spids[i], 3.f );
+            const float2 stmp0 = tex1Dfetch( texParticles2,       sentry      );
+            const float2 stmp1 = tex1Dfetch( texParticles2, xadd( sentry, 1 ) );
 
             const float xdiff = xdest.x - stmp0.x;
             const float ydiff = xdest.y - stmp0.y;
             const float zdiff = xdest.z - stmp1.x;
-            interacting[i] = ( i2f(s) + i2f(i) * float(COLS) + i2f(subtid) < i2f(nsrc) ) && ( xdiff * xdiff + ydiff * ydiff + zdiff * zdiff < 1.f ) && ( i2f(dpid) != i2f(spids[i]) ) ;
+            interacting[i] = ( u2f( xadd( s, xmad( i, float(COLS), subtid ) ) ) < u2f(nsrc) ) && ( xdiff * xdiff + ydiff * ydiff + zdiff * zdiff < 1.f ) && ( u2f(dpid) != u2f(spids[i]) ) ;
         }
 
 		#pragma unroll
-        for( int i = 0; i < NSRCMAX; ++i ) {
+        for( uint i = 0; i < NSRCMAX; ++i ) {
             if( interacting[i] ) {
                 const float3 f = _dpd_interaction( dpid, xdest, udest, spids[i] );
 
@@ -212,10 +212,10 @@ __device__ void core_ilp( const uint nsrc, const uint * const scan, const uint *
         zforce += __shfl_xor( zforce, L );
     }
 
-    const float fcontrib = ( i2f(subtid) == i2f(0) ) * xforce + ( i2f(subtid) == i2f(1) ) * yforce + ( i2f(subtid) == i2f(2) ) * zforce;
+    const float fcontrib = ( u2f(subtid) == u2f(0u) ) * xforce + ( u2f(subtid) == u2f(1u) ) * yforce + ( u2f(subtid) == u2f(2u) ) * zforce;
 
-    if( i2f(subtid) < i2f(3) )
-        info.axayaz[f2i(i2f(subtid) + 3.f * i2f(dpid))] = fcontrib;
+    if( u2f(subtid) < u2f(3u) )
+        info.axayaz[ xmad( dpid, 3.f, subtid ) ] = fcontrib;
 }
 
 __global__ __launch_bounds__( 32 * CPB, 16 )
@@ -262,20 +262,20 @@ void _dpd_forces()
 
     const uint nsrc = scan[wid][27];
     const uint dststart = starts[wid][1 + 3 + 9];
-    const uint ndst = scan[wid][1 + 3 + 9 + 1] - scan[wid][1 + 3 + 9];
+    const uint ndst = xsub( scan[wid][1 + 3 + 9 + 1], scan[wid][1 + 3 + 9] );
     const uint ndst4 = ( ndst >> 2 ) << 2;
 
-    for( uint d = 0; i2f(d) < i2f(ndst4); d = f2i(i2f(d)+i2f(4)) )
-        core<8, 4, 4>( nsrc, ( const uint * )scan[wid], ( const uint * )starts[wid], 4, f2i(i2f(dststart) + i2f(d)) );
+    for( uint d = 0; u2f(d) < u2f(ndst4); d = xadd( d, 4u ) )
+        core<8, 4, 4>( nsrc, ( const uint * )scan[wid], ( const uint * )starts[wid], 4, xadd( dststart, d ) );
 
     uint d = ndst4;
-    if( i2f(d) + i2f(2) <= i2f(ndst) ) {
-        core<16, 2, 4>( nsrc, ( const uint * )scan[wid], ( const uint * )starts[wid], 2, f2i(i2f(dststart) + i2f(d)) );
-        d += 2.f;
+    if( u2f( xadd( d, 2u ) ) <= u2f(ndst) ) {
+        core<16, 2, 4>( nsrc, ( const uint * )scan[wid], ( const uint * )starts[wid], 2, xadd( dststart, d ) );
+        d = xadd( d, 2u );
     }
 
-    if( i2f(d) < i2f(ndst) )
-        core_ilp<32, 1, 2>( nsrc, ( const uint * )scan[wid], ( const uint * )starts[wid], 1, f2i(i2f(dststart) + i2f(d)) );
+    if( u2f(d) < u2f(ndst) )
+        core_ilp<32, 1, 2>( nsrc, ( const uint * )scan[wid], ( const uint * )starts[wid], 1, xadd( dststart, d ) );
 }
 
 #else

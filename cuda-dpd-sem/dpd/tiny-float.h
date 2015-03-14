@@ -32,31 +32,85 @@ __forceinline__ __device__ float u2f( uint u )
 ******************************************************************************/
 
 // safety fallback to prevent unknowning usage
-template<typename T, typename S> class Do_Not_Use_Tiny_Float_For_Normal_Operations add( T const &t, S const &s );
-template<typename T, typename S> class Do_Not_Use_Tiny_Float_For_Normal_Operations scale( T const &t, S const &s );
+template<typename T, typename S, typename R> class Do_Not_Use_Tiny_Float_For_Normal_Operations xfma( T const &t, S const &s, R const &r );
+template<typename T, typename S> class Do_Not_Use_Tiny_Float_For_Normal_Operations xadd( T const &t, S const &s );
+template<typename T, typename S> class Do_Not_Use_Tiny_Float_For_Normal_Operations xsub( T const &t, S const &s );
+template<typename T, typename S> class Do_Not_Use_Tiny_Float_For_Normal_Operations xscale( T const &t, S const &s );
+template<typename T, typename S> class Do_Not_Use_Tiny_Float_For_Normal_Operations xmin( T const &t, S const &s );
+template<typename T, typename S> class Do_Not_Use_Tiny_Float_For_Normal_Operations xmax( T const &t, S const &s );
 
-__forceinline__ __device__ uint add( uint u, uint v ) {
+// u * v + w
+__forceinline__ __device__ uint xmad( uint u, float v, uint w ) {
+	float a = u2f(u), c = u2f(w), d;
+	asm( "fma.rz.f32 %0, %1, %2, %3;" : "=f"(d) : "f"(a), "f"(v), "f"(c) );
+	return f2u(d);
+}
+
+// u * v + w
+__forceinline__ __device__ int xmad( int u, float v, int w ) {
+	float a = i2f(u), c = i2f(w), d;
+	asm( "fma.rz.f32 %0, %1, %2, %3;" : "=f"(d) : "f"(a), "f"(v), "f"(c) );
+	return f2i(d);
+}
+
+__forceinline__ __device__ uint xadd( uint u, uint v ) {
 	float a = u2f(u), b = u2f(v), c;
 	asm( "add.f32 %0, %1, %2;" : "=f"(c) : "f"(a), "f"(b) );
 	return f2u(c);
 }
 
-__forceinline__ __device__ int add( int u, int v ) {
+__forceinline__ __device__ int xadd( int u, int v ) {
 	float a = i2f(u), b = i2f(v), c;
 	asm( "add.f32 %0, %1, %2;" : "=f"(c) : "f"(a), "f"(b) );
 	return f2i(c);
 }
 
-__forceinline__ __device__ uint scale( uint u, float s ) {
+__forceinline__ __device__ uint xsub( uint u, uint v ) {
+	float a = u2f(u), b = u2f(v), c;
+	asm( "sub.f32 %0, %1, %2;" : "=f"(c) : "f"(a), "f"(b) );
+	return f2u(c);
+}
+
+__forceinline__ __device__ int xsub( int u, int v ) {
+	float a = i2f(u), b = i2f(v), c;
+	asm( "sub.f32 %0, %1, %2;" : "=f"(c) : "f"(a), "f"(b) );
+	return f2i(c);
+}
+
+__forceinline__ __device__ uint xscale( uint u, float s ) {
 	float a = u2f(u), b;
 	asm( "mul.f32 %0, %1, %2;" : "=f"(b) : "f"(a), "f"(s) );
 	return f2u(b);
 }
 
-__forceinline__ __device__ int scale( int u, float s ) {
+__forceinline__ __device__ int xscale( int u, float s ) {
 	float a = i2f(u), b;
 	asm( "mul.f32 %0, %1, %2;" : "=f"(b) : "f"(a), "f"(s) );
 	return f2i(b);
+}
+
+__forceinline__ __device__ int xmin( int u, int v ) {
+	float a = i2f(u), b = i2f(v), c;
+	asm( "min.f32 %0, %1, %2;" : "=f"(c) : "f"(a), "f"(b) );
+	return f2i(c);
+}
+
+__forceinline__ __device__ uint xmin( uint u, uint v ) {
+	float a = u2f(u), b = u2f(v), c;
+	asm( "min.f32 %0, %1, %2;" : "=f"(c) : "f"(a), "f"(b) );
+	return f2u(c);
+}
+
+__forceinline__ __device__ int xmax( int u, int v ) {
+	float a = i2f(u), b = i2f(v), c;
+	asm( "max.f32 %0, %1, %2;" : "=f"(c) : "f"(a), "f"(b) );
+	return f2i(c);
+}
+
+__forceinline__ __device__ uint xmax( uint u, uint v ) {
+	float a = u2f(u), b = u2f(v), c;
+	asm( "max.f32 %0, %1, %2;" : "=f"(c) : "f"(a), "f"(b) );
+	return f2u(c);
 }
 
 #endif
