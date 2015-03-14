@@ -1,6 +1,7 @@
 #include <cstdio>
 #include <cassert>
 
+#include "tiny-float.h"
 #include "../dpd-rng.h"
 
 struct InfoDPD {
@@ -25,14 +26,6 @@ texture<int, cudaTextureType1D> texStart, texCount;
 
 #if 1
 
-__forceinline__ __device__ float i2f( uint i ) {
-	return __int_as_float(i);
-}
-
-__forceinline__ __device__ uint f2i( float f ) {
-        return __float_as_int(f);
-}
-
 template<int s>
 __device__ float viscosity_function( float x )
 {
@@ -46,10 +39,10 @@ template<> __device__ float viscosity_function<0>( float x )
 
 __device__ float3 _dpd_interaction( const uint dpid, const float3 xdest, const float3 udest, const uint spid )
 {
-    const int sentry = f2i( 3.f * i2f(spid) );
-    const float2 stmp0 = tex1Dfetch( texParticles2, f2i( i2f(sentry)          ) );
-    const float2 stmp1 = tex1Dfetch( texParticles2, f2i( i2f(sentry) + i2f(1) ) );
-    const float2 stmp2 = tex1Dfetch( texParticles2, f2i( i2f(sentry) + i2f(2) ) );
+    const int sentry = scale( spid, 3.f );
+    const float2 stmp0 = tex1Dfetch( texParticles2, sentry           );
+    const float2 stmp1 = tex1Dfetch( texParticles2, add( sentry, 1 ) );
+    const float2 stmp2 = tex1Dfetch( texParticles2, add( sentry, 2 ) );
 
     const float _xr = xdest.x - stmp0.x;
     const float _yr = xdest.y - stmp0.y;
