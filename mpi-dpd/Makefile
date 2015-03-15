@@ -1,8 +1,8 @@
 -include .cache.Makefile
 
-NVCC ?= nvcc
-ARCH_VAL ?= compute_35
-CODE_VAL ?= sm_35
+NVCC ?= nvcc -ccbin $(CXX)
+ARCH_VAL ?= compute_30
+CODE_VAL ?= sm_30
 
 NVCCFLAGS += -I$(HDF5_DIR)/include -Xcudafe "--diag_suppress=unrecognized_gcc_pragma"
 NVCCFLAGS +=  -arch $(ARCH_VAL) -code $(CODE_VAL) -O3 -use_fast_math -g -DNDEBUG 
