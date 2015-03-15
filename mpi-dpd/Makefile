@@ -35,7 +35,7 @@ NVCCFLAGS += -DNO_H5PART
 endif
 
 ifneq "$(h5)" "0"
-LIBS += -lhdf5 -L$(HDF5_DIR)/lib
+LIBS += -lhdf5 #-L$(HDF5_DIR)/lib
 else
 NVCCFLAGS += -DNO_H5
 endif

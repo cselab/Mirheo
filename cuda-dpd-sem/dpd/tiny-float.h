@@ -125,23 +125,33 @@ __forceinline__ __device__ uint xmax( uint u, uint v ) {
 	return f2u(c);
 }
 
-///******************************************************************************
-//                                 Compare
-//******************************************************************************/
-//
-//// result: (i>j)
-//__forceinline__ __device__ bool xcmpgt( uint i, uint j ) {
-//	uint r;
-//	float a = u2f(i), b = u2f(j);
-//	asm( "{ \
-//			.reg .pred p;\
-//			setp.gt.f32 p, %1, %2;\
-//			selp.u32    %0, 1, 0, p;\
-//          }" : "=r"(r) : "f"(a), "f"(b) );
-//	return bool(r);
-//}
-//
-//__forceinline__ __device__ uint xselgt( uint i, uint j, uint u, uint v ) {
+/******************************************************************************
+                                 Compare
+******************************************************************************/
+
+// return 1.0f on true, 0.0f on false
+#define xcmp(op) \
+template<typename T, typename S> __device__ class Do_Not_Use_Tiny_Float_For_Normal_Operations xcmp_##op( T const &t, S const &s ); \
+__inline__ __device__ float xcmp_##op( uint i, uint j ) { \
+	float r; \
+	float a = u2f(i), b = u2f(j); \
+	asm( "{.reg .pred p; setp." #op ".f32 p, %1, %2; selp.f32 %0, 1.0, 0.0, p;}" : "=f"(r) : "f"(a), "f"(b) ); \
+	return r; \
+}\
+__inline__ __device__ float xcmp_##op( float a, float b ) { \
+	float r; \
+	asm( "{.reg .pred p; setp." #op ".f32 p, %1, %2; selp.f32 %0, 1.0, 0.0, p;}" : "=f"(r) : "f"(a), "f"(b) ); \
+	return r; \
+}
+
+xcmp(eq); // ==
+xcmp(ne); // !=
+xcmp(lt); // <
+xcmp(le); // <=
+xcmp(gt); // >
+xcmp(ge); // >=
+
+//__forceinline__ __device__ float xselgt( uint i, uint j, float u, float v ) {
 //	float r;
 //	float a = u2f(i), b = u2f(j), c = u2f(u), d = u2f(v);
 //	asm( "{ \

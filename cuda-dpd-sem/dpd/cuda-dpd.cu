@@ -113,7 +113,7 @@ __device__ void core( const uint nsrc, const uint * const scan, const uint * con
 		const float xdiff = xdest.x - stmp0.x;
 		const float ydiff = xdest.y - stmp0.y;
 		const float zdiff = xdest.z - stmp1.x;
-		const int interacting = ( pid < nsrc ) && ( xdiff * xdiff + ydiff * ydiff + zdiff * zdiff < 1.f ) && ( dpid != spid ) ;
+		const float interacting = xcmp_lt(pid, nsrc ) * xcmp_lt( xdiff * xdiff + ydiff * ydiff + zdiff * zdiff, 1.f ) * xcmp_ne( dpid, spid ) ;
 
 		if (interacting) {
 			srcids[srccount] = spid;

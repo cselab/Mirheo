@@ -11,7 +11,7 @@ CXXFLAGS += -fPIC
 NVCCFLAGS += -Xcompiler -fpic
 endif
 
-NVCCFLAGS += -DVISCOSITY_S_LEVEL=$(slevel) -ftz=false -lineinfo
+NVCCFLAGS += -DVISCOSITY_S_LEVEL=$(slevel) -lineinfo 
 
 .DEFAULT_GOAL = test-dpd
 
