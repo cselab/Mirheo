@@ -76,7 +76,7 @@ template<uint COLS, uint ROWS, uint NSRCMAX>
 __device__ void core( const uint nsrc, const uint * const scan, const uint * const starts,
                       const uint ndst, const uint dststart )
 {
-    int srcids[NSRCMAX];
+    uint srcids[NSRCMAX];
     for( int i = 0; i < NSRCMAX; ++i )
         srcids[i] = 0;
 
@@ -97,11 +97,11 @@ __device__ void core( const uint nsrc, const uint * const scan, const uint * con
 
     float xforce = 0, yforce = 0, zforce = 0;
 
-	for(uint s = 0; u2f(s) < u2f(nsrc); s = xadd( s, COLS ) )
+	for(uint s = 0; s < nsrc; s = xadd( s, COLS ) )
 	{
 		const uint pid  = xadd( s, subtid );
-		const uint key9 = f2u( ( pid >= scan[ 9             ] ? i2f(9) : i2f(0) ) + ( pid >= scan[ 18            ] ? i2f(9) : i2f(0) ) );
-		const uint key3 = f2u( ( pid >= scan[ xadd(key9,3u) ] ? i2f(3) : i2f(0) ) + ( pid >= scan[ xadd(key9,6u) ] ? i2f(3) : i2f(0) ) );
+		const uint key9 = xadd( pid >= scan[ 9             ] ? i2f(9) : i2f(0), pid >= scan[ 18            ] ? i2f(9) : i2f(0) );
+		const uint key3 = xadd( pid >= scan[ xadd(key9,3u) ] ? i2f(3) : i2f(0), pid >= scan[ xadd(key9,6u) ] ? i2f(3) : i2f(0) );
 		const uint key  = xadd( key9, key3 );
 
 		const uint spid = xadd( xsub( pid, scan[key] ), starts[key] );
@@ -113,14 +113,14 @@ __device__ void core( const uint nsrc, const uint * const scan, const uint * con
 		const float xdiff = xdest.x - stmp0.x;
 		const float ydiff = xdest.y - stmp0.y;
 		const float zdiff = xdest.z - stmp1.x;
-		const int interacting = ( u2f(pid) < u2f(nsrc) ) && ( xdiff * xdiff + ydiff * ydiff + zdiff * zdiff < 1.f ) && ( u2f(dpid) != u2f(spid) ) ;
+		const int interacting = ( pid < nsrc ) && ( xdiff * xdiff + ydiff * ydiff + zdiff * zdiff < 1.f ) && ( dpid != spid ) ;
 
 		if (interacting) {
 			srcids[srccount] = spid;
 			srccount = xadd( srccount, 1u );
 		}
 
-		if( u2f(srccount) == u2f(NSRCMAX) ) {
+		if( srccount == NSRCMAX ) {
 			srccount = xsub( srccount, 1u );
 			const float3 f = _dpd_interaction( dpid, xdest, udest, srcids[srccount] );
 
@@ -131,7 +131,7 @@ __device__ void core( const uint nsrc, const uint * const scan, const uint * con
 	}
 
 #pragma unroll 4
-    for( uint i = 0; u2f(i) < u2f(srccount); i = xadd( i, 1u ) ) {
+    for( uint i = 0; i < srccount; i = xadd( i, 1u ) ) {
         const float3 f = _dpd_interaction( dpid, xdest, udest, srcids[i] );
 
         xforce += f.x;
@@ -145,7 +145,7 @@ __device__ void core( const uint nsrc, const uint * const scan, const uint * con
         zforce += __shfl_xor( zforce, L );
     }
 
-    const float fcontrib = ( u2f(subtid) == u2f(0u) ) * xforce + ( u2f(subtid) == u2f(1u) ) * yforce + ( u2f(subtid) == u2f(2u) ) * zforce;
+    const float fcontrib = ( subtid == 0u ) * xforce + ( subtid == 1u ) * yforce + ( subtid == 2u ) * zforce;
 
     if( subtid < 3.f )
         info.axayaz[ xmad( dpid, 3.f, subtid ) ] = fcontrib;
@@ -169,13 +169,13 @@ __device__ void core_ilp( const uint nsrc, const uint * const scan, const uint *
 
     float xforce = 0, yforce = 0, zforce = 0;
 
-    for( uint s = 0; u2f(s) < u2f(nsrc); s = xadd( s, NSRCMAX * COLS ) ) {
-        int spids[NSRCMAX];
+    for( uint s = 0; s < nsrc; s = xadd( s, NSRCMAX * COLS ) ) {
+        uint spids[NSRCMAX];
 		#pragma unroll
         for( uint i = 0; i < NSRCMAX; ++i ) {
             const uint pid  = xadd( s, xmad( i, float(COLS), subtid ) );
-    		const uint key9 = f2u( ( pid >= scan[ 9             ] ? i2f(9) : i2f(0) ) + ( pid >= scan[ 18            ] ? i2f(9) : i2f(0) ) );
-    		const uint key3 = f2u( ( pid >= scan[ xadd(key9,3u) ] ? i2f(3) : i2f(0) ) + ( pid >= scan[ xadd(key9,6u) ] ? i2f(3) : i2f(0) ) );
+    		const uint key9 = xadd( pid >= scan[ 9             ] ? i2f(9) : i2f(0), pid >= scan[ 18            ] ? i2f(9) : i2f(0) );
+    		const uint key3 = xadd( pid >= scan[ xadd(key9,3u) ] ? i2f(3) : i2f(0), pid >= scan[ xadd(key9,6u) ] ? i2f(3) : i2f(0) );
     		const uint key  = xadd( key9, key3 );
 
             spids[i] = xadd( xsub( pid, scan[key] ), starts[key] );
@@ -191,7 +191,7 @@ __device__ void core_ilp( const uint nsrc, const uint * const scan, const uint *
             const float xdiff = xdest.x - stmp0.x;
             const float ydiff = xdest.y - stmp0.y;
             const float zdiff = xdest.z - stmp1.x;
-            interacting[i] = ( u2f( xadd( s, xmad( i, float(COLS), subtid ) ) ) < u2f(nsrc) ) && ( xdiff * xdiff + ydiff * ydiff + zdiff * zdiff < 1.f ) && ( u2f(dpid) != u2f(spids[i]) ) ;
+            interacting[i] = ( xadd( s, xmad( i, float(COLS), subtid ) ) < nsrc ) && ( xdiff * xdiff + ydiff * ydiff + zdiff * zdiff < 1.f ) && ( dpid != spids[i] ) ;
         }
 
 		#pragma unroll
@@ -212,9 +212,9 @@ __device__ void core_ilp( const uint nsrc, const uint * const scan, const uint *
         zforce += __shfl_xor( zforce, L );
     }
 
-    const float fcontrib = ( u2f(subtid) == u2f(0u) ) * xforce + ( u2f(subtid) == u2f(1u) ) * yforce + ( u2f(subtid) == u2f(2u) ) * zforce;
+    const float fcontrib = ( subtid == 0u ) * xforce + ( subtid == 1u ) * yforce + ( subtid == 2u ) * zforce;
 
-    if( u2f(subtid) < u2f(3u) )
+    if( subtid < 3u )
         info.axayaz[ xmad( dpid, 3.f, subtid ) ] = fcontrib;
 }
 
@@ -265,16 +265,16 @@ void _dpd_forces()
     const uint ndst = xsub( scan[wid][1 + 3 + 9 + 1], scan[wid][1 + 3 + 9] );
     const uint ndst4 = ( ndst >> 2 ) << 2;
 
-    for( uint d = 0; u2f(d) < u2f(ndst4); d = xadd( d, 4u ) )
+    for( uint d = 0; d < ndst4; d = xadd( d, 4u ) )
         core<8, 4, 4>( nsrc, ( const uint * )scan[wid], ( const uint * )starts[wid], 4, xadd( dststart, d ) );
 
     uint d = ndst4;
-    if( u2f( xadd( d, 2u ) ) <= u2f(ndst) ) {
+    if( xadd( d, 2u ) <= ndst ) {
         core<16, 2, 4>( nsrc, ( const uint * )scan[wid], ( const uint * )starts[wid], 2, xadd( dststart, d ) );
         d = xadd( d, 2u );
     }
 
-    if( u2f(d) < u2f(ndst) )
+    if( d < ndst )
         core_ilp<32, 1, 2>( nsrc, ( const uint * )scan[wid], ( const uint * )starts[wid], 1, xadd( dststart, d ) );
 }
 
