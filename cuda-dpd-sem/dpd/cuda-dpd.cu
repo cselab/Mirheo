@@ -1,7 +1,7 @@
 #include <cstdio>
 #include <cassert>
 
-#include "tiny-float.h"
+#include "../tiny-float.h"
 #include "../dpd-rng.h"
 
 struct InfoDPD {
@@ -100,8 +100,6 @@ __device__ void core( const uint nsrc, const uint * const scan, const uint * con
 	for(uint s = 0; s < nsrc; s = xadd( s, COLS ) )
 	{
 		const uint pid  = xadd( s, subtid );
-//		const uint key9 = xadd( pid >= scan[ 9             ] ? i2f(9) : i2f(0), pid >= scan[ 18            ] ? i2f(9) : i2f(0) );
-//		const uint key3 = xadd( pid >= scan[ xadd(key9,3u) ] ? i2f(3) : i2f(0), pid >= scan[ xadd(key9,6u) ] ? i2f(3) : i2f(0) );
 		const uint key9 = xadd( xsel_ge( pid, scan[ 9             ], 9u, 0u ), xsel_ge( pid, scan[ 18            ], 9u, 0u ) );
 		const uint key3 = xadd( xsel_ge( pid, scan[ xadd(key9,3u) ], 3u, 0u ), xsel_ge( pid, scan[ xadd(key9,6u) ], 3u, 0u ) );
 		const uint key  = xadd( key9, key3 );
@@ -178,8 +176,8 @@ __device__ void core_ilp( const uint nsrc, const uint * const scan, const uint *
 		#pragma unroll
         for( uint i = 0; i < NSRCMAX; ++i ) {
             const uint pid  = xadd( s, xmad( i, float(COLS), subtid ) );
-    		const uint key9 = xadd( pid >= scan[ 9             ] ? i2f(9) : i2f(0), pid >= scan[ 18            ] ? i2f(9) : i2f(0) );
-    		const uint key3 = xadd( pid >= scan[ xadd(key9,3u) ] ? i2f(3) : i2f(0), pid >= scan[ xadd(key9,6u) ] ? i2f(3) : i2f(0) );
+    		const uint key9 = xadd( xsel_ge( pid, scan[ 9             ], 9u, 0u ), xsel_ge( pid, scan[ 18            ], 9u, 0u ) );
+    		const uint key3 = xadd( xsel_ge( pid, scan[ xadd(key9,3u) ], 3u, 0u ), xsel_ge( pid, scan[ xadd(key9,6u) ], 3u, 0u ) );
     		const uint key  = xadd( key9, key3 );
 
             spids[i] = xadd( xsub( pid, scan[key] ), starts[key] );

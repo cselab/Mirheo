@@ -11,6 +11,7 @@ __device__ float mean0var1( float seed, float i, float j );
 #include <limits>
 #include <stdint.h>
 #include <cmath>
+#include "tiny-float.h"
 
 namespace Logistic
 {
@@ -54,15 +55,6 @@ struct KISS {
 * each branch no weaker than trunk
 * zero dependency between branches
 *****************************************************************/
-// passes of logistic map
-const static int N = 18;
-// spacing coefficints for low discrepancy numbers
-const static float gold = 0.6180339887498948482;
-const static float silver = 0.4142135623730950488;
-const static float bronze = 0.00008877875787352212838853023;
-const static float tin = 0.00004602357186447026756768986;
-// square root of 2
-const static float sqrt2 = 1.41421356237309514547;
 
 // floating point version of LCG
 __inline__ __device__ float rem( float r )
@@ -97,11 +89,24 @@ template<> __inline__ __device__ float __logistic_core<0>( float x )
     return x;
 }
 
+#if 1
+
 // random number from the ArcSine distribution on [-sqrt(2),sqrt(2)]
 // mean = 0
 // variance = 1
 // can be used directly for DPD
-#if 1
+
+// passes of logistic map
+const static int N = 18;
+// spacing coefficints for low discrepancy numbers
+const static float gold   = 0.6180339887498948482;
+const static float hugegold   = 0.6180339887498948482E39;
+const static float silver = 0.4142135623730950488;
+const static float hugesilver = 0.4142135623730950488E39;
+const static float bronze = 0.00008877875787352212838853023;
+const static float tin    = 0.00004602357186447026756768986;
+// square root of 2
+const static float sqrt2 = 1.41421356237309514547;
 
 __inline__ __device__ float mean0var1( float seed, int u, int v )
 {
@@ -116,6 +121,17 @@ __inline__ __device__ float mean0var1( float seed, uint u, uint v )
     float l = __logistic_core<N>( seed - p );
     return l * sqrt2;
 }
+
+//__inline__ __device__ float mean0var1( float seed, uint u, uint v )
+//{
+//	float a = u2f(u), b = u2f(v);
+//	// explicit PTX to prevent FTZ
+//	asm( "fma.f32.rn %0, %1, %2, %3;" : "+f"(a) : "f"(a), "f"(hugegold), "f"(bronze) );
+//	asm( "fma.f32.rn %0, %1, %2, %3;" : "+f"(b) : "f"(b), "f"(hugesilver), "f"(tin) );
+//	float p = rem( ( ( u & 0x3FFU ) * gold ) + a + ( ( v & 0x3FFU ) * silver ) + b ); // safe for large u or v
+//    float l = __logistic_core<N>( seed - p );
+//    return l * sqrt2;
+//}
 
 __inline__ __device__ float mean0var1( float seed, float u, float v )
 {
