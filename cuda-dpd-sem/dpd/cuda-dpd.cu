@@ -100,8 +100,10 @@ __device__ void core( const uint nsrc, const uint * const scan, const uint * con
 	for(uint s = 0; s < nsrc; s = xadd( s, COLS ) )
 	{
 		const uint pid  = xadd( s, subtid );
-		const uint key9 = xadd( pid >= scan[ 9             ] ? i2f(9) : i2f(0), pid >= scan[ 18            ] ? i2f(9) : i2f(0) );
-		const uint key3 = xadd( pid >= scan[ xadd(key9,3u) ] ? i2f(3) : i2f(0), pid >= scan[ xadd(key9,6u) ] ? i2f(3) : i2f(0) );
+//		const uint key9 = xadd( pid >= scan[ 9             ] ? i2f(9) : i2f(0), pid >= scan[ 18            ] ? i2f(9) : i2f(0) );
+//		const uint key3 = xadd( pid >= scan[ xadd(key9,3u) ] ? i2f(3) : i2f(0), pid >= scan[ xadd(key9,6u) ] ? i2f(3) : i2f(0) );
+		const uint key9 = xadd( xsel_ge( pid, scan[ 9             ], 9u, 0u ), xsel_ge( pid, scan[ 18            ], 9u, 0u ) );
+		const uint key3 = xadd( xsel_ge( pid, scan[ xadd(key9,3u) ], 3u, 0u ), xsel_ge( pid, scan[ xadd(key9,6u) ], 3u, 0u ) );
 		const uint key  = xadd( key9, key3 );
 
 		const uint spid = xadd( xsub( pid, scan[key] ), starts[key] );
@@ -113,7 +115,9 @@ __device__ void core( const uint nsrc, const uint * const scan, const uint * con
 		const float xdiff = xdest.x - stmp0.x;
 		const float ydiff = xdest.y - stmp0.y;
 		const float zdiff = xdest.z - stmp1.x;
-		const float interacting = xcmp_lt(pid, nsrc ) * xcmp_lt( xdiff * xdiff + ydiff * ydiff + zdiff * zdiff, 1.f ) * xcmp_ne( dpid, spid ) ;
+		const float interacting = xfcmp_lt(pid, nsrc )
+				                * xfcmp_lt( xdiff * xdiff + ydiff * ydiff + zdiff * zdiff, 1.f )
+				                * xfcmp_ne( dpid, spid ) ;
 
 		if (interacting) {
 			srcids[srccount] = spid;
@@ -191,7 +195,9 @@ __device__ void core_ilp( const uint nsrc, const uint * const scan, const uint *
             const float xdiff = xdest.x - stmp0.x;
             const float ydiff = xdest.y - stmp0.y;
             const float zdiff = xdest.z - stmp1.x;
-            interacting[i] = ( xadd( s, xmad( i, float(COLS), subtid ) ) < nsrc ) && ( xdiff * xdiff + ydiff * ydiff + zdiff * zdiff < 1.f ) && ( dpid != spids[i] ) ;
+            interacting[i] = xfcmp_lt( xadd( s, xmad( i, float(COLS), subtid ) ), nsrc )
+            		       * xfcmp_lt( xdiff * xdiff + ydiff * ydiff + zdiff * zdiff, 1.f )
+            		       * xfcmp_ne( dpid, spids[i] );
         }
 
 		#pragma unroll

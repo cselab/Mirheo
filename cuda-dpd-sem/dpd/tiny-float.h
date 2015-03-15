@@ -129,20 +129,40 @@ __forceinline__ __device__ uint xmax( uint u, uint v ) {
                                  Compare
 ******************************************************************************/
 
-// return 1.0f on true, 0.0f on false
+// xsel: i op j ? k : l
+// xcmp: i op j ? 1 : 0
 #define xcmp(op) \
-template<typename T, typename S> __device__ class Do_Not_Use_Tiny_Float_For_Normal_Operations xcmp_##op( T const &t, S const &s ); \
-__inline__ __device__ float xcmp_##op( uint i, uint j ) { \
+template<typename T, typename S, typename U, typename V> __device__ class Do_Not_Use_Tiny_Float_For_Normal_Operations xsel_##op( T const &t, S const &s, U const &u, V const &v ); \
+template<typename T, typename S> __device__ class Do_Not_Use_Tiny_Float_For_Normal_Operations xcmpf_##op( T const &t, S const &s ); \
+template<typename T, typename S> __device__ class Do_Not_Use_Tiny_Float_For_Normal_Operations xcmpu_##op( T const &t, S const &s ); \
+__inline__ __device__ uint xsel_##op( uint i, uint j, uint k, uint l  ) { \
+	float r; \
+	float a = u2f(i), b = u2f(j), c = u2f(k), d = u2f(l); \
+	asm( "{.reg .pred p; setp." #op ".f32 p, %1, %2; selp.f32 %0, %3, %4, p;}" : "=f"(r) : "f"(a), "f"(b), "f"(c), "f"(d) ); \
+	return f2u(r); \
+}\
+__inline__ __device__ float xsel_##op( uint i, uint j, float c, float d ) { \
 	float r; \
 	float a = u2f(i), b = u2f(j); \
-	asm( "{.reg .pred p; setp." #op ".f32 p, %1, %2; selp.f32 %0, 1.0, 0.0, p;}" : "=f"(r) : "f"(a), "f"(b) ); \
+	asm( "{.reg .pred p; setp." #op ".f32 p, %1, %2; selp.f32 %0, %3, %4, p;}" : "=f"(r) : "f"(a), "f"(b), "f"(c), "f"(d) ); \
 	return r; \
 }\
-__inline__ __device__ float xcmp_##op( float a, float b ) { \
+__inline__ __device__ uint xsel_##op( float a, float b, uint k, uint l ) { \
 	float r; \
-	asm( "{.reg .pred p; setp." #op ".f32 p, %1, %2; selp.f32 %0, 1.0, 0.0, p;}" : "=f"(r) : "f"(a), "f"(b) ); \
+	float c = u2f(k), d = u2f(l); \
+	asm( "{.reg .pred p; setp." #op ".f32 p, %1, %2; selp.f32 %0, %3, %4, p;}" : "=f"(r) : "f"(a), "f"(b), "f"(c), "f"(d) ); \
+	return f2u(r); \
+}\
+__inline__ __device__ float xsel_##op( float a, float b, float c, float d ) { \
+	float r; \
+	asm( "{.reg .pred p; setp." #op ".f32 p, %1, %2; selp.f32 %0, %3, %4, p;}" : "=f"(r) : "f"(a), "f"(b), "f"(c), "f"(d) ); \
 	return r; \
-}
+}\
+__inline__ __device__ float xfcmp_##op( uint i, uint j ) { return xsel_##op( i, j, 1.0f, 0.0f ); } \
+__inline__ __device__ uint  xucmp_##op( uint i, uint j ) { return xsel_##op( i, j, 1u, 0u ); } \
+__inline__ __device__ float xfcmp_##op( float a, float b ) { return xsel_##op( a, b, 1.0f, 0.0f ); } \
+__inline__ __device__ uint  xucmp_##op( float a, float b ) { return xsel_##op( a, b, 1u, 0u ); }
+
 
 xcmp(eq); // ==
 xcmp(ne); // !=
@@ -151,19 +171,9 @@ xcmp(le); // <=
 xcmp(gt); // >
 xcmp(ge); // >=
 
-//__forceinline__ __device__ float xselgt( uint i, uint j, float u, float v ) {
-//	float r;
-//	float a = u2f(i), b = u2f(j), c = u2f(u), d = u2f(v);
-//	asm( "{ \
-//			.reg .pred p;\
-//			setp.gt.f32 p, %1, %2;\
-//			selp.f32    %0, %3, %4, p;\
-//          }" : "=f"(r) : "f"(a), "f"(b), "f"(c), "f"(d) );
-//	return f2u(r);
-//}
-
 /******************************************************************************
                                  Branch
+              Not Working Yet, Compiler does not see the loop!
 ******************************************************************************/
 
 #define __CONCAT__(x,y) x##y
