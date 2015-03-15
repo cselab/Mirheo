@@ -12,24 +12,26 @@ template<typename T> __device__ class Automatic_Type_Promotion_Not_Allowed i2f( 
 template<typename T> __device__ class Automatic_Type_Promotion_Not_Allowed u2f( T const &t );
 
 __forceinline__ __device__ int f2i( float f ) {
-        return __float_as_int(f);
+    int i;
+    asm( "mov.b32 %0, %1;" : "=r"( i ) : "f"( f ) );
+    return i;
 }
 
-__forceinline__ __device__ uint f2u( float f )
-{
+__forceinline__ __device__ uint f2u( float f ) {
     uint u;
-    asm volatile( "mov.b32 %0, %1;" : "=r"( u ) : "f"( f ) );
+    asm( "mov.b32 %0, %1;" : "=r"( u ) : "f"( f ) );
     return u;
 }
 
 __forceinline__ __device__ float i2f( int i ) {
-	return __int_as_float(i);
+    float f;
+    asm( "mov.b32 %0, %1;" : "=f"( f ) : "r"( i ) );
+    return f;
 }
 
-__forceinline__ __device__ float u2f( uint u )
-{
+__forceinline__ __device__ float u2f( uint u ) {
     float f;
-    asm volatile( "mov.b32 %0, %1;" : "=f"( f ) : "r"( u ) );
+    asm( "mov.b32 %0, %1;" : "=f"( f ) : "r"( u ) );
     return f;
 }
 
@@ -147,6 +149,12 @@ __inline__ __device__ float xsel_##op( uint i, uint j, float c, float d ) { \
 	asm( "{.reg .pred p; setp." #op ".f32 p, %1, %2; selp.f32 %0, %3, %4, p;}" : "=f"(r) : "f"(a), "f"(b), "f"(c), "f"(d) ); \
 	return r; \
 }\
+__inline__ __device__ float xsel_##op( int i, int j, float c, float d ) { \
+	float r; \
+	float a = i2f(i), b = i2f(j); \
+	asm( "{.reg .pred p; setp." #op ".f32 p, %1, %2; selp.f32 %0, %3, %4, p;}" : "=f"(r) : "f"(a), "f"(b), "f"(c), "f"(d) ); \
+	return r; \
+}\
 __inline__ __device__ uint xsel_##op( float a, float b, uint k, uint l ) { \
 	float r; \
 	float c = u2f(k), d = u2f(l); \
@@ -161,7 +169,8 @@ __inline__ __device__ float xsel_##op( float a, float b, float c, float d ) { \
 __inline__ __device__ float xfcmp_##op( uint i, uint j ) { return xsel_##op( i, j, 1.0f, 0.0f ); } \
 __inline__ __device__ uint  xucmp_##op( uint i, uint j ) { return xsel_##op( i, j, 1u, 0u ); } \
 __inline__ __device__ float xfcmp_##op( float a, float b ) { return xsel_##op( a, b, 1.0f, 0.0f ); } \
-__inline__ __device__ uint  xucmp_##op( float a, float b ) { return xsel_##op( a, b, 1u, 0u ); }
+__inline__ __device__ uint  xucmp_##op( float a, float b ) { return xsel_##op( a, b, 1u, 0u ); } \
+__inline__ __device__ float xfcmp_##op( int i, int j ) { return xsel_##op( i, j, 1.0f, 0.0f ); }
 
 
 xcmp(eq); // ==

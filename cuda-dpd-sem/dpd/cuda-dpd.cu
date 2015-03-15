@@ -15,7 +15,7 @@ struct InfoDPD {
 __constant__ InfoDPD info;
 
 texture<float2, cudaTextureType1D> texParticles2;
-texture<int, cudaTextureType1D> texStart, texCount;
+texture<uint, cudaTextureType1D> texStart, texCount;
 
 #define _XCPB_ 2
 #define _YCPB_ 2
@@ -227,12 +227,12 @@ void _dpd_forces()
 {
     assert( blockDim.x == warpSize && blockDim.y == CPB && blockDim.z == 1 );
 
-    const int tid = threadIdx.x;
-    const int wid = threadIdx.y;
+    const uint tid = threadIdx.x;
+    const uint wid = threadIdx.y;
 
     __shared__ volatile uint starts[CPB][32], scan[CPB][32];
 
-    float mycount = 0, myscan = 0;
+    uint mycount = 0, myscan = 0;
     if( tid < 27 ) {
         const int dx = ( tid ) % 3;
         const int dy = ( ( tid / 3 ) ) % 3;
@@ -242,27 +242,29 @@ void _dpd_forces()
         int ycid = blockIdx.y * _YCPB_ + ( ( threadIdx.y / _XCPB_ ) % _YCPB_ ) + dy - 1;
         int zcid = blockIdx.z * _ZCPB_ + ( ( threadIdx.y / ( _XCPB_ * _YCPB_ ) ) % _ZCPB_ ) + dz - 1;
 
-        const bool valid_cid =
-            xcid >= 0 && xcid < info.ncells.x &&
-            ycid >= 0 && ycid < info.ncells.y &&
-            zcid >= 0 && zcid < info.ncells.z ;
+        const float valid_cid =
+            xfcmp_ge( xcid, 0 ) * xfcmp_lt( xcid, info.ncells.x ) *
+            xfcmp_ge( ycid, 0 ) * xfcmp_lt( ycid, info.ncells.y ) *
+            xfcmp_ge( zcid, 0 ) * xfcmp_lt( zcid, info.ncells.z );
 
-        xcid = min( info.ncells.x - 1, max( 0, xcid ) );
-        ycid = min( info.ncells.y - 1, max( 0, ycid ) );
-        zcid = min( info.ncells.z - 1, max( 0, zcid ) );
+        xcid = xmin( xsub( info.ncells.x, 1 ), xmax( 0, xcid ) );
+        ycid = xmin( xsub( info.ncells.y, 1 ), xmax( 0, ycid ) );
+        zcid = xmin( xsub( info.ncells.z, 1 ), xmax( 0, zcid ) );
 
-        const int cid = max( 0, xcid + info.ncells.x * ( ycid + info.ncells.y * zcid ) );
+        const int cid = xmax( 0, xcid + info.ncells.x * ( ycid + info.ncells.y * zcid ) );
 
         starts[wid][tid] = tex1Dfetch( texStart, cid );
 
-        myscan = mycount = valid_cid * tex1Dfetch( texCount, cid );
+        myscan = mycount = xscale( tex1Dfetch( texCount, cid ), valid_cid );
     }
 
-    for( int L = 1; L < 32; L <<= 1 )
-        myscan += ( tid >= L ) * __shfl_up( myscan, L ) ;
+    for( uint L = 1u; L < 32u; L <<= 1 ) {
+    	uint theirscan = __shfl_up( myscan, L );
+        myscan = xadd( myscan, xsel_ge( tid, L, theirscan, 0u ) );
+    }
 
     if( tid < 28 )
-        scan[wid][tid] = myscan - mycount;
+        scan[wid][tid] = xsub( myscan, mycount );
 
     const uint nsrc = scan[wid][27];
     const uint dststart = starts[wid][1 + 3 + 9];
@@ -562,12 +564,12 @@ void forces_dpd_cuda_nohost( const float * const xyzuvw, float * const axayaz,  
     const int ncells = nx * ny * nz;
 
     if( !fdpd_init ) {
-        texStart.channelDesc = cudaCreateChannelDesc<int>();
+        texStart.channelDesc = cudaCreateChannelDesc<uint>();
         texStart.filterMode = cudaFilterModePoint;
         texStart.mipmapFilterMode = cudaFilterModePoint;
         texStart.normalized = 0;
 
-        texCount.channelDesc = cudaCreateChannelDesc<int>();
+        texCount.channelDesc = cudaCreateChannelDesc<uint>();
         texCount.filterMode = cudaFilterModePoint;
         texCount.mipmapFilterMode = cudaFilterModePoint;
         texCount.normalized = 0;
@@ -591,9 +593,9 @@ void forces_dpd_cuda_nohost( const float * const xyzuvw, float * const axayaz,  
     size_t textureoffset;
     CUDA_CHECK( cudaBindTexture( &textureoffset, &texParticles2, xyzuvw, &texParticles2.channelDesc, sizeof( float ) * 6 * np ) );
     assert( textureoffset == 0 );
-    CUDA_CHECK( cudaBindTexture( &textureoffset, &texStart, cellsstart, &texStart.channelDesc, sizeof( int ) * ncells ) );
+    CUDA_CHECK( cudaBindTexture( &textureoffset, &texStart, cellsstart, &texStart.channelDesc, sizeof( uint ) * ncells ) );
     assert( textureoffset == 0 );
-    CUDA_CHECK( cudaBindTexture( &textureoffset, &texCount, cellscount, &texCount.channelDesc, sizeof( int ) * ncells ) );
+    CUDA_CHECK( cudaBindTexture( &textureoffset, &texCount, cellscount, &texCount.channelDesc, sizeof( uint ) * ncells ) );
     assert( textureoffset == 0 );
 
     InfoDPD c;
@@ -715,12 +717,12 @@ void forces_dpd_cuda_aos( float * const _xyzuvw, float * const _axayaz,
     const int ncells = nx * ny * nz;
 
     if( !fdpd_init ) {
-        texStart.channelDesc = cudaCreateChannelDesc<int>();
+        texStart.channelDesc = cudaCreateChannelDesc<uint>();
         texStart.filterMode = cudaFilterModePoint;
         texStart.mipmapFilterMode = cudaFilterModePoint;
         texStart.normalized = 0;
 
-        texCount.channelDesc = cudaCreateChannelDesc<int>();
+        texCount.channelDesc = cudaCreateChannelDesc<uint>();
         texCount.filterMode = cudaFilterModePoint;
         texCount.mipmapFilterMode = cudaFilterModePoint;
         texCount.normalized = 0;
@@ -758,8 +760,8 @@ void forces_dpd_cuda_aos( float * const _xyzuvw, float * const _axayaz,
         CUDA_CHECK( cudaMalloc( &fdpd_count, sizeof( int ) * ncells ) );
 
         size_t textureoffset = 0;
-        CUDA_CHECK( cudaBindTexture( &textureoffset, &texStart, fdpd_start, &texStart.channelDesc, sizeof( int ) * ncells ) );
-        CUDA_CHECK( cudaBindTexture( &textureoffset, &texCount, fdpd_count, &texCount.channelDesc, sizeof( int ) * ncells ) );
+        CUDA_CHECK( cudaBindTexture( &textureoffset, &texStart, fdpd_start, &texStart.channelDesc, sizeof( uint ) * ncells ) );
+        CUDA_CHECK( cudaBindTexture( &textureoffset, &texCount, fdpd_count, &texCount.channelDesc, sizeof( uint ) * ncells ) );
 
         fdpd_oldnc = ncells;
     }
