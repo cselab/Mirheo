@@ -11,7 +11,7 @@ enum {
 
 const int numberdensity = 4;
 const float dt = 0.001;
-const float tend = 0.01;
+const float tend = 50;
 const float kBT = 0.0945;
 const float gammadpd = 45;
 const float sigma = sqrt(2 * gammadpd * kBT);
@@ -26,7 +26,7 @@ const bool xyz_dumps = false;
 const bool hdf5field_dumps = false;
 const bool hdf5part_dumps = false;
 const int steps_per_report = 1000;
-const int steps_per_dump = 1;
+const int steps_per_dump = 100;
 const int wall_creation_stepid = 5000;
 
 extern bool currently_profiling;
