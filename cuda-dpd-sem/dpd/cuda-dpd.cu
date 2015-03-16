@@ -6,6 +6,7 @@
 
 struct InfoDPD {
     int3 ncells;
+    float ncell_x, ncell_y;
     float3 domainsize, invdomainsize, domainstart;
     float invrc, aij, gamma, sigmaf;
     float * axayaz;
@@ -251,7 +252,7 @@ void _dpd_forces()
         ycid = xmin( xsub( info.ncells.y, 1 ), xmax( 0, ycid ) );
         zcid = xmin( xsub( info.ncells.z, 1 ), xmax( 0, zcid ) );
 
-        const int cid = xmax( 0, xcid + info.ncells.x * ( ycid + info.ncells.y * zcid ) );
+        const int cid = xmax( 0, xmad( xmad( zcid, info.ncell_y, ycid ), info.ncell_x, xcid ) );
 
         starts[wid][tid] = tex1Dfetch( texStart, cid );
 
@@ -600,6 +601,8 @@ void forces_dpd_cuda_nohost( const float * const xyzuvw, float * const axayaz,  
 
     InfoDPD c;
     c.ncells = make_int3( nx, ny, nz );
+    c.ncell_x = nx;
+    c.ncell_y = ny;
     c.domainsize = make_float3( XL, YL, ZL );
     c.invdomainsize = make_float3( 1 / XL, 1 / YL, 1 / ZL );
     c.domainstart = make_float3( -XL * 0.5, -YL * 0.5, -ZL * 0.5 );
@@ -770,6 +773,8 @@ void forces_dpd_cuda_aos( float * const _xyzuvw, float * const _axayaz,
 
     InfoDPD c;
     c.ncells = make_int3( nx, ny, nz );
+    c.ncell_x = nx;
+    c.ncell_y = ny;
     c.domainsize = make_float3( XL, YL, ZL );
     c.invdomainsize = make_float3( 1 / XL, 1 / YL, 1 / ZL );
     c.domainstart = make_float3( -XL * 0.5, -YL * 0.5, -ZL * 0.5 );

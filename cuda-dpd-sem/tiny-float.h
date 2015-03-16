@@ -93,13 +93,13 @@ __forceinline__ __device__ int xsub( int u, int v ) {
 
 __forceinline__ __device__ uint xscale( uint u, float s ) {
 	float a = u2f(u), b;
-	asm( "mul.f32 %0, %1, %2;" : "=f"(b) : "f"(a), "f"(s) );
+	asm( "mul.f32.rz %0, %1, %2;" : "=f"(b) : "f"(a), "f"(s) );
 	return f2u(b);
 }
 
 __forceinline__ __device__ int xscale( int u, float s ) {
 	float a = i2f(u), b;
-	asm( "mul.f32 %0, %1, %2;" : "=f"(b) : "f"(a), "f"(s) );
+	asm( "mul.f32.rz %0, %1, %2;" : "=f"(b) : "f"(a), "f"(s) );
 	return f2i(b);
 }
 
