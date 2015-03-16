@@ -739,7 +739,7 @@ void HaloExchanger::adjust_message_sizes(ExpectedMessageSizes sizes)
 	const int d[3] = { (i + 2) % 3, (i / 3 + 2) % 3, (i / 9 + 2) % 3 };
 	const int entry = d[0] + 3 * (d[1] + 3 * d[2]);
 	int estimate = sizes.msgsizes[entry] * safety_factor;
-	estimate = 32 * ((estimate + 31) / 32);
+	estimate = 64 * ((estimate + 63) / 64);
 
 	/*printf("adjusting msg %d with entry %d  to %d and safety factor is %f\n", 
 	  i, entry, sizes.msgsizes[entry], safety_factor);*/

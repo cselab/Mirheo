@@ -519,7 +519,7 @@ void RedistributeParticles::_adjust_recv_buffers(const int requested_capacities[
     }
 }
 
-int RedistributeParticles::stage1(const Particle * const particles, const int nparticles, cudaStream_t mystream)
+int RedistributeParticles::stage1(const Particle * const particles, const int nparticles, cudaStream_t mystream, float& host_idle_time)
 {
     {
 	NVTX_RANGE("RDP/pack");
@@ -555,9 +555,9 @@ int RedistributeParticles::stage1(const Particle * const particles, const int np
 	    RedistributeParticlesKernels::pack<<< (6 * nparticles + 127) / 128, 128, 0, mystream>>> (nparticles, nparticles * 6);
 	
 	CUDA_CHECK(cudaEventRecord(evpacking, mystream));
-	
+
 	CUDA_CHECK(cudaEventSynchronize(evsizes));
-        
+
 	if (*failure.data)
 	{
 	    //wait for packing to finish
@@ -576,13 +576,11 @@ int RedistributeParticles::stage1(const Particle * const particles, const int np
 	
 	if (nparticles)
 	    RedistributeParticlesKernels::recompact_bulk<BS, ILP><<< (nparticles + BS - 1) / BS, BS, 0, mystream>>>(nparticles);
-	
-	//CUDA_CHECK(cudaEventRecord(evcompaction));
     }
 
     {
-	NVTX_RANGE("RDP/send-recv");
-	
+	NVTX_RANGE("RDP/send-recv", NVTX_C2);
+
 	if (!firstcall)
 	    _waitall(sendcountreq, nactiveneighbors);
 	
@@ -627,8 +625,8 @@ int RedistributeParticles::stage1(const Particle * const particles, const int np
 	
 	assert(nactiveneighbors <= nsendmsgreq && nsendmsgreq <= 2 * nactiveneighbors);
     
-	_waitall(recvcountreq, nactiveneighbors);
-	
+	host_idle_time += _waitall(recvcountreq, nactiveneighbors);
+
 	{
 	    int ustart[28];
 	    
@@ -654,13 +652,13 @@ int RedistributeParticles::stage1(const Particle * const particles, const int np
     return nexpected;
 }
     
-void RedistributeParticles::stage2(Particle * const particles, const int nparticles, cudaStream_t mystream)
+void RedistributeParticles::stage2(Particle * const particles, const int nparticles, cudaStream_t mystream, float& host_idle_time)
 {
-    NVTX_RANGE("RDP/stage2");
+    NVTX_RANGE("RDP/stage2", NVTX_C7);
     
     assert(nparticles == nexpected);
     
-    _waitall(recvmsgreq, nactiveneighbors);
+    host_idle_time += _waitall(recvmsgreq, nactiveneighbors);
     
     _adjust_recv_buffers(recv_sizes);
 

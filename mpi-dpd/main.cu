@@ -39,7 +39,7 @@ using namespace std;
 int main(int argc, char ** argv)
 {
     int ranks[3];
-    
+
     if (argc != 4)
     {
 	printf("usage: ./mpi-dpd <xranks> <yranks> <zranks>\n");
@@ -81,12 +81,54 @@ int main(int argc, char ** argv)
 	MPI_CHECK( MPI_Comm_size(MPI_COMM_WORLD, &nranks) );
 	MPI_CHECK( MPI_Comm_rank(MPI_COMM_WORLD, &rank) );
 	
+	MPI_Comm activecomm = MPI_COMM_WORLD;
+	bool reordering = true;
+	const char * env_reorder = getenv("MPICH_RANK_REORDER_METHOD");
+
+	if (atoi(env_reorder ? env_reorder : "-1") == atoi("3"))
+	{
+	    reordering = false;
+
+	    const bool usefulrank = rank < ranks[0] * ranks[1] * ranks[2];
+	    
+	    MPI_CHECK(MPI_Comm_split(MPI_COMM_WORLD, usefulrank, rank, &activecomm)) ;
+
+	    MPI_CHECK(MPI_Barrier(activecomm));
+	    if (!usefulrank)
+	    {
+		printf("rank %d has been thrown away\n", rank);
+		fflush(stdout);
+
+		MPI_CHECK(MPI_Barrier(activecomm));
+
+		MPI_Finalize();
+
+		return 0;
+	    }
+
+	    MPI_CHECK(MPI_Barrier(activecomm));
+	}
+
 	srand48(rank);
 	
-	MPI_Comm cartcomm, activecomm;
+	MPI_Comm cartcomm;
 	int periods[] = {1, 1, 1};	    
-	MPI_CHECK( MPI_Cart_create(MPI_COMM_WORLD, 3, ranks, periods, 1, &cartcomm) );
+	MPI_CHECK( MPI_Cart_create(activecomm, 3, ranks, periods, (int)reordering, &cartcomm) );
 	activecomm = cartcomm;
+
+	{
+	    char name[1024];
+	    int len;
+	    MPI_CHECK(MPI_Get_processor_name(name, &len));
+	    
+	    int dims[3], periods[3], coords[3];
+	    MPI_CHECK( MPI_Cart_get(cartcomm, 3, dims, periods, coords) );
+
+	    MPI_CHECK(MPI_Barrier(activecomm));
+	    printf("(%d, %d, %d) -> %s\n", coords[0], coords[1], coords[2], name);
+	    fflush(stdout);
+	    MPI_CHECK(MPI_Barrier(activecomm));
+	}
 	
 	{
 	    vector<Particle> ic(XSIZE_SUBDOMAIN * YSIZE_SUBDOMAIN * ZSIZE_SUBDOMAIN * numberdensity);
@@ -98,8 +140,7 @@ int main(int argc, char ** argv)
 		    ic[i].x[c] = -L[c] * 0.5 + drand48() * L[c];
 		    ic[i].u[c] = 0;
 		}
-	    	    	 
-	    
+	    	    	 	    
 	    ParticleArray particles(ic);
 	    
 	    CellLists cells(XSIZE_SUBDOMAIN, YSIZE_SUBDOMAIN, ZSIZE_SUBDOMAIN);		  
@@ -161,8 +202,15 @@ int main(int argc, char ** argv)
 		driving_acceleration = hydrostatic_a;		    
 
 	    std::map<string, double> timings;
+	    float host_idle_time = 0;
 
 	    const size_t nsteps = (int)(tend / dt);
+
+	    if (rank == 0 && !walls)
+		printf("the simulation begins now and it consists of %.3e steps\n", (double)nsteps);
+
+	    double time_simulation_start = MPI_Wtime();
+
 	    int it;
 
 	    for(it = 0; it < nsteps; ++it)
@@ -212,14 +260,40 @@ int main(int argc, char ** argv)
 		    }	    		    
 
 		    report_host_memory_usage(activecomm, stdout);
-		    
-		    if (rank == 0)
+		   
+		    {
+			static double t0 = MPI_Wtime(), t1;
+
+			t1 = MPI_Wtime();
+
+			float host_busy_time = (MPI_Wtime() - t0) - host_idle_time;
+			
+			host_busy_time *= 1e3 / steps_per_report;
+
+			float sumval, maxval, minval;
+			MPI_CHECK(MPI_Reduce(&host_busy_time, &sumval, 1, MPI_FLOAT, MPI_SUM, 0, activecomm));
+			MPI_CHECK(MPI_Reduce(&host_busy_time, &maxval, 1, MPI_FLOAT, MPI_MAX, 0, activecomm));
+			MPI_CHECK(MPI_Reduce(&host_busy_time, &minval, 1, MPI_FLOAT, MPI_MIN, 0, activecomm));
+			
+			int commsize;
+			MPI_CHECK(MPI_Comm_size(activecomm, &commsize));
+			
+			const double imbalance = 100 * (maxval / sumval * commsize - 1);
+
+			if (it > 0 && rank == 0 && imbalance > 5)
+			    printf("\x1b[93moverall imbalance: %.f%%, host workload min/avg/max: %.2f/%.2f/%.2f ms\x1b[0m\n", 
+				   imbalance , minval, sumval / commsize, maxval);
+			
+			host_idle_time = 0;
+			t0 = t1;
+		    }
+ 
 		    {
 			static double t0 = MPI_Wtime(), t1;
 
 			t1 = MPI_Wtime();
 		    
-			if (it > 0)
+			if (it > 0 && rank == 0)
 			{
 			    printf("\x1b[92mbeginning of time step %d (%.3f ms)\x1b[0m\n", it, (t1 - t0) * 1e3 / steps_per_report);
 			    printf("in more details, per time step:\n");
@@ -236,7 +310,7 @@ int main(int argc, char ** argv)
 			t0 = t1;
 		    }
 		}
-
+		
 		double tstart;
 		
 		if (it == 0)
@@ -251,9 +325,9 @@ int main(int argc, char ** argv)
 		}
 		
 		tstart = MPI_Wtime();
-		const int newnp = redistribute.stage1(particles.xyzuvw.data, particles.size, mainstream);
+		const int newnp = redistribute.stage1(particles.xyzuvw.data, particles.size, mainstream, host_idle_time);
 		particles.resize(newnp);
-		redistribute.stage2(particles.xyzuvw.data, particles.size, mainstream);
+		redistribute.stage2(particles.xyzuvw.data, particles.size, mainstream, host_idle_time);
 		timings["redistribute-particles"] += MPI_Wtime() - tstart;
 		
 		CUDA_CHECK(cudaPeekAtLastError());
@@ -292,6 +366,29 @@ int main(int argc, char ** argv)
 		    ExpectedMessageSizes new_sizes;
 		    wall = new ComputeInteractionsWall(cartcomm, particles.xyzuvw.data, particles.size, nsurvived, new_sizes);
 		    
+		    //adjust the message sizes if we're pushing the flow in x
+		    {
+			const double xvelavg = getenv("XVELAVG") ? atof(getenv("XVELAVG")) : pushtheflow;
+			const double yvelavg = getenv("YVELAVG") ? atof(getenv("YVELAVG")) : 0;
+			const double zvelavg = getenv("ZVELAVG") ? atof(getenv("ZVELAVG")) : 0;
+		
+			for(int code = 0; code < 27; ++code)
+			{
+			    const int d[3] = {
+				(code % 3) - 1,
+				((code / 3) % 3) - 1,
+				((code / 9) % 3) - 1
+			    };
+			    
+			    const double IudotnI = 
+				fabs(d[0] * xvelavg) + 
+				fabs(d[1] * yvelavg) + 
+				fabs(d[2] * zvelavg) ;
+			    
+			    new_sizes.msgsizes[code] *= (1 + IudotnI * dt * numberdensity );
+			}
+		    }
+
 		    redistribute.adjust_message_sizes(new_sizes);
 		    dpd.adjust_message_sizes(new_sizes);
 
@@ -315,7 +412,7 @@ int main(int argc, char ** argv)
 				MPI_CHECK(MPI_Comm_size(activecomm, &nkilled));
 				
 				printf("THERE ARE %d RANKS WITH ZERO WORKLOAD THAT WILL MPI-FINALIZE NOW.\n", nkilled);
-			    }
+			    } 
 			    
 			    break;
 			}
@@ -408,6 +505,12 @@ int main(int argc, char ** argv)
 			driving_acceleration = hydrostatic_a;
 
 		    CUDA_CHECK(cudaPeekAtLastError());
+
+
+		    if (rank == 0)
+			printf("the simulation begins now and it consists of %.3e steps\n", (double)(nsteps - it));
+
+		    time_simulation_start = MPI_Wtime();
 		}
 		
 		tstart = MPI_Wtime();
@@ -524,7 +627,7 @@ int main(int argc, char ** argv)
 			    dump_part.dump(p, n);
 
 		    if (hdf5field_dumps)
-			dump_field.dump(activecomm, p, n, it);
+			dump_field.dump(activecomm, p, particles.size, it);
 
 		    /* if (rbcscoll)
 			rbcscoll->dump(activecomm, cartcomm);
@@ -569,12 +672,14 @@ int main(int argc, char ** argv)
 		CUDA_CHECK(cudaPeekAtLastError());
 	    }
 
+	    const double time_simulation_stop = MPI_Wtime();
+	 
 	    if (rank == 0)
 		if (it == nsteps)
-		    printf("simulation is done. Ciao.\n");
+		    printf("simulation is done after %.3e s. Ciao.\n", time_simulation_stop - time_simulation_start);
 		else
 		    if (it != wall_creation_stepid)
-			printf("external termination request (signal). Bye.\n");
+			printf("external termination request (signal) after %.3e s. Bye.\n", time_simulation_stop - time_simulation_start);
 
 	    fflush(stdout);
 	    
