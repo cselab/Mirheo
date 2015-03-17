@@ -144,12 +144,12 @@ namespace Redistancing
 	    else						
 		val = sussman_scheme(ix, iy, iz, sgn0);
 	}
-	
-	dst[ix + info.NX * (iy + info.NY * iz)] = val;
 
+	dst[ix + info.NX * (iy + info.NY * iz)] = val;
+	
 	assert(!isnan(val));
 	assert(!isinf(val));
-	assert(val * sgn0 >= 0);
+	assert(val * sgn0 >= 0); 
     }
 }
 
@@ -232,8 +232,10 @@ void redistancing(float * host_inout, const int NX, const int NY, const int NZ, 
 
     for(int t = 0; t <  niterations; ++t)
     {
+	//printf("timestep %d\n", t);
 	Redistancing::step<<< dim3( (NX + 7) / 8, (NY + 7) / 8, (NZ + 1) / 2), dim3(8, 8, 2) >>>(tmp.data);
-	
+	//CUDA_CHECK(cudaDeviceSynchronize());
+	//CUDA_CHECK(cudaPeekAtLastError());
 	CUDA_CHECK(cudaMemcpy3DAsync(&copyParams));
     }
 
@@ -241,6 +243,8 @@ void redistancing(float * host_inout, const int NX, const int NY, const int NZ, 
     
     CUDA_CHECK(cudaMemcpy(host_inout, tmp.data, sizeof(float) * NX * NY * NZ, cudaMemcpyDeviceToHost));
     
+    CUDA_CHECK(cudaUnbindTexture(Redistancing::texphi0));
+    CUDA_CHECK(cudaUnbindTexture(Redistancing::texphi));
     CUDA_CHECK(cudaFreeArray(arrPhi0));
     CUDA_CHECK(cudaFreeArray(arrPhi));
 
