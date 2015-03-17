@@ -25,13 +25,18 @@ enum
         
     XTEXTURESIZE = 256, 
 
-    YTEXTURESIZE = 
+    _YTEXTURESIZE = 
     ((YSIZE_SUBDOMAIN + 2 * YMARGIN_WALL) * XTEXTURESIZE + XSIZE_SUBDOMAIN + 2 * XMARGIN_WALL - 1) 
     / (XSIZE_SUBDOMAIN + 2 * XMARGIN_WALL), 
 
-    ZTEXTURESIZE = 
+    YTEXTURESIZE = 16 * ((_YTEXTURESIZE + 15) / 16),
+
+    _ZTEXTURESIZE = 
     ((ZSIZE_SUBDOMAIN + 2 * ZMARGIN_WALL) * XTEXTURESIZE + XSIZE_SUBDOMAIN + 2 * XMARGIN_WALL - 1) 
-    / (XSIZE_SUBDOMAIN + 2 * XMARGIN_WALL)
+    / (XSIZE_SUBDOMAIN + 2 * XMARGIN_WALL),
+
+    ZTEXTURESIZE = 16 * ((_ZTEXTURESIZE + 15) / 16),
+
 };
 
 namespace SolidWallsKernel
@@ -53,9 +58,9 @@ namespace SolidWallsKernel
 	   
 	texSDF.normalized = true;
 	texSDF.filterMode = cudaFilterModeLinear;
-	texSDF.addressMode[0] = cudaAddressModeClamp;
-	texSDF.addressMode[1] = cudaAddressModeClamp;
-	texSDF.addressMode[2] = cudaAddressModeClamp;
+	texSDF.addressMode[0] = cudaAddressModeWrap;
+	texSDF.addressMode[1] = cudaAddressModeWrap;
+	texSDF.addressMode[2] = cudaAddressModeWrap;
     
 	texWallParticles.channelDesc = cudaCreateChannelDesc<float4>();
 	texWallParticles.filterMode = cudaFilterModePoint;
@@ -98,7 +103,7 @@ namespace SolidWallsKernel
     {
 	const int L[3] = { XSIZE_SUBDOMAIN, YSIZE_SUBDOMAIN, ZSIZE_SUBDOMAIN };
 	const int MARGIN[3] = { XMARGIN_WALL, YMARGIN_WALL, ZMARGIN_WALL };
-
+	const int TEXSIZES[3] = {XTEXTURESIZE, YTEXTURESIZE, ZTEXTURESIZE };
 	const float p[3] = {x, y, z};
 	
 	float tc[3];
@@ -114,15 +119,30 @@ namespace SolidWallsKernel
 	    
 	    assert(tc[c] >= 0 && tc[c] <= 1);
 	}
-	
-	const float htw = 1. / XTEXTURESIZE;
-	const float factor = 1. / (2 * htw) * 1.f / (XSIZE_SUBDOMAIN * 2 + XMARGIN_WALL);
-	
-	return make_float3(
-	    factor * (tex3D(texSDF, tc[0] + htw, tc[1], tc[2]) - tex3D(texSDF, tc[0] - htw, tc[1], tc[2])),
-	    factor * (tex3D(texSDF, tc[0], tc[1] + htw, tc[2]) - tex3D(texSDF, tc[0], tc[1] - htw, tc[2])),
-	    factor * (tex3D(texSDF, tc[0], tc[1], tc[2] + htw) - tex3D(texSDF, tc[0], tc[1], tc[2] - htw))
+
+	float factors[3], htw[3];
+	for(int c = 0; c < 3; ++c)
+	{
+		htw[c] = 1. / TEXSIZES[c];
+		factors[c] = 1. / (2 * htw[c]) * 1.f / (2 * MARGIN[c] + L[c]);
+	}	
+
+	float3 mygrad = make_float3(
+	    factors[0] * (tex3D(texSDF, tc[0] + htw[0], tc[1], tc[2]) - tex3D(texSDF, tc[0] - htw[0], tc[1], tc[2])),
+	    factors[1] * (tex3D(texSDF, tc[0], tc[1] + htw[1], tc[2]) - tex3D(texSDF, tc[0], tc[1] - htw[1], tc[2])),
+	    factors[2] * (tex3D(texSDF, tc[0], tc[1], tc[2] + htw[2]) - tex3D(texSDF, tc[0], tc[1], tc[2] - htw[2]))
 	    );
+
+	float mygradmag = sqrt(mygrad.x * mygrad.x + mygrad.y * mygrad.y + mygrad.z * mygrad.z);
+	
+	if (mygradmag > 1e-4)
+	{
+		mygrad.x /= mygradmag;
+		mygrad.y /= mygradmag;
+		mygrad.z /= mygradmag;
+	}
+
+	return mygrad;
     }
     
     __global__ void fill_keys(const Particle * const particles, const int n, int * const key)
