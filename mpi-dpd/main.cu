@@ -390,7 +390,12 @@ int main(int argc, char ** argv)
 			}
 		    }
 
+<<<<<<< HEAD
 		    //redistribute.adjust_message_sizes(new_sizes);
+=======
+
+		    redistribute.adjust_message_sizes(new_sizes);
+>>>>>>> a1d2ad5be555cfd6a652b335641c6fc102452277
 		    dpd.adjust_message_sizes(new_sizes);
 
 		    if (hdf5part_dumps)
