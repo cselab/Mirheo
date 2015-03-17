@@ -103,7 +103,7 @@ namespace RemoteDPD
     __constant__ int * scattered_indices[26];
     __constant__ Acceleration * remote_accelerations[26];
     
-    __global__ void merge_all(Acceleration * const alocal, const int nlocal)
+    __global__ void merge_all(Acceleration * const alocal, const int nlocal, const int nremote)
     {
 	assert(blockDim.x * gridDim.x >= nremote);
 
@@ -118,11 +118,14 @@ namespace RemoteDPD
 	const int idpack = key9 + key3 + key1;
 
 	assert(idpack >= 0 && idpack < 26);
-	assert(gid >= cellpackstarts[idpack] && gid < cellpackstarts[idpack + 1]);
+	assert(gid >= packstarts[idpack] && gid < packstarts[idpack + 1]);
 
 	const int offset = gid - packstarts[idpack];
 	
 	int pid = scattered_indices[idpack][offset];
+
+	if (!(pid >= 0 && pid < nlocal))
+	    printf("oooooops pid is %d whereas nlocal is %d\n", pid, nlocal);
 	assert(pid >= 0 && pid < nlocal);
 
 	Acceleration a = remote_accelerations[idpack][offset];
@@ -259,7 +262,10 @@ void ComputeInteractionsDPD::remote_interactions(const Particle * const p, const
 	    
 	    packstarts[0] = 0;
 	    for(int i = 0, s = 0; i < 26; ++i)
+	    {
+		assert(acc_remote[i].size == sendhalos[i].scattered_entries.size);
 		packstarts[i + 1] =  (s += acc_remote[i].size);
+	    }
 	    
 	    RemoteDPD::npackedparticles = packstarts[26];
 	    
@@ -290,8 +296,11 @@ void ComputeInteractionsDPD::remote_interactions(const Particle * const p, const
 	for(int i = 0; i < 7; ++i)
 	    CUDA_CHECK(cudaStreamWaitEvent(stream, evremoteint[i], 0));
 
+	CUDA_CHECK(cudaDeviceSynchronize());
 #if 1
-	RemoteDPD::merge_all<<< (RemoteDPD::npackedparticles + 127) / 128, 128, 0, stream >>>(a, n);
+	
+	RemoteDPD::merge_all<<< (RemoteDPD::npackedparticles + 127) / 128, 128, 0, stream >>>(a, n, RemoteDPD::npackedparticles);
+	CUDA_CHECK(cudaDeviceSynchronize());
 #else
 	for(int i = 0; i < 26; ++i)
 	{
@@ -303,6 +312,8 @@ void ComputeInteractionsDPD::remote_interactions(const Particle * const p, const
 	}
 #endif
 	CUDA_CHECK(cudaPeekAtLastError());
+
+	CUDA_CHECK(cudaDeviceSynchronize());
     }
 }
 

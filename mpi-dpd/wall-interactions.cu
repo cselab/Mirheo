@@ -10,6 +10,11 @@
 #include "io.h"
 #include "halo-exchanger.h"
 #include "wall-interactions.h"
+#include "redistancing.h"
+
+
+#include <vtkImageData.h>
+#include <vtkXMLImageDataWriter.h>
 
 enum
 {
@@ -668,9 +673,62 @@ ComputeInteractionsWall::ComputeInteractionsWall(MPI_Comm cartcomm, Particle* co
 	    //printf("filtering: c: %d start: %f scaling %f\n", c, start[c], spacing[c]);
 	}
 	
-	const float amplitude_rescaling = (XSIZE_SUBDOMAIN + 2 * XMARGIN_WALL) / (sampler.extent[0] / dims[0]) ;
+	const float amplitude_rescaling = (XSIZE_SUBDOMAIN /*+ 2 * XMARGIN_WALL*/) / (sampler.extent[0] / dims[0]) ;
 	//printf("amplitude rescaling: %f\n",  amplitude_rescaling);
 	sampler.sample(start, spacing, TEXTURESIZE, field, amplitude_rescaling);
+    }
+
+    //extra redistancing because margin might exceed the domain
+    {
+	const double dx =  (XSIZE_SUBDOMAIN + 2 * XMARGIN_WALL) / (double)XTEXTURESIZE;
+	const double dy =  (YSIZE_SUBDOMAIN + 2 * YMARGIN_WALL) / (double)YTEXTURESIZE;
+	const double dz =  (ZSIZE_SUBDOMAIN + 2 * ZMARGIN_WALL) / (double)ZTEXTURESIZE;
+	
+	
+	redistancing(field, XTEXTURESIZE, YTEXTURESIZE, ZTEXTURESIZE, dx, dy, dz, XTEXTURESIZE * 4);
+    }
+
+    {
+	printf("writing to VTK file..\n");
+	vtkImageData * img = vtkImageData::New();
+	
+	img->SetExtent(0, XTEXTURESIZE-1, 0, YTEXTURESIZE-1, 0, ZTEXTURESIZE-1);
+	img->SetDimensions(XTEXTURESIZE, YTEXTURESIZE, ZTEXTURESIZE);
+	
+	img->AllocateScalars(VTK_FLOAT, 1);	
+
+//img->SetScalarTypeToFloat();
+	
+	//three components: initial condition, computed SDF and exact solution
+	//img->SetNumberOfScalarComponents(1);
+	
+	//img->AllocateScalars();
+	
+	const float dx = (XSIZE_SUBDOMAIN + 2 * XMARGIN_WALL) / (float)XTEXTURESIZE;
+	const float dy = (YSIZE_SUBDOMAIN + 2 * YMARGIN_WALL) / (float)YTEXTURESIZE;
+	const float dz = (ZSIZE_SUBDOMAIN + 2 * ZMARGIN_WALL) / (float)ZTEXTURESIZE;
+
+	const float x0 = coords[0] * XSIZE_SUBDOMAIN - XMARGIN_WALL;
+	const float y0 = coords[1] * YSIZE_SUBDOMAIN - YMARGIN_WALL;
+	const float z0 = coords[2] * ZSIZE_SUBDOMAIN - ZMARGIN_WALL;
+
+	img->SetSpacing(dx, dy, dz);
+	img->SetOrigin(x0, y0, z0);
+	
+	for(int iz=0; iz<ZTEXTURESIZE; iz++)
+	    for(int iy=0; iy<YTEXTURESIZE; iy++)
+		for(int ix=0; ix<XTEXTURESIZE; ix++)
+		    img->SetScalarComponentFromFloat(ix, iy, iz, 0,  field[ix + XTEXTURESIZE * (iy + YTEXTURESIZE * iz)]);
+	
+	vtkXMLImageDataWriter * writer = vtkXMLImageDataWriter::New();
+	char buf[1024];
+	sprintf(buf, "redistancing-rank%d.vti", myrank);
+	writer->SetFileName(buf);
+	writer->SetInputData(img);
+	writer->Write();
+	
+	writer->Delete();
+	img->Delete();
     }
 
     {

@@ -4,7 +4,7 @@ enum {
     XSIZE_SUBDOMAIN = 48, 
     YSIZE_SUBDOMAIN = 48, 
     ZSIZE_SUBDOMAIN = 48,
-    XMARGIN_WALL = 6,
+    XMARGIN_WALL = 24,
     YMARGIN_WALL = 6,
     ZMARGIN_WALL = 6,
 };
@@ -14,20 +14,20 @@ const float dt = 0.001;
 const float tend = 50;
 const float kBT = 0.0945;
 const float gammadpd = 45;
-const float sigma = sqrt(2 * gammadpd * kBT);
+const float sigma = sqrt(2 * gammadpd * kBT); 
 const float sigmaf = sigma / sqrt(dt);
 const float aij = 2.5;
 const float hydrostatic_a = 0.05;
-const bool walls = false;
-const bool pushtheflow = false;
+const bool walls = true;
+const bool pushtheflow = true;
 const bool rbcs = false;
 const bool ctcs = false;
 const bool xyz_dumps = false;
-const bool hdf5field_dumps = false;
+const bool hdf5field_dumps = true;
 const bool hdf5part_dumps = false;
 const int steps_per_report = 1000;
 const int steps_per_dump = 1000;
-const int wall_creation_stepid = 5000;
+const int wall_creation_stepid = 500;
 
 extern bool currently_profiling;
 
