@@ -350,7 +350,6 @@ void HaloExchanger::pack(const Particle * const p, const int n, const int * cons
     scan_massimo(input_count, output_scan, scan_sizes, stream);
     
     CUDA_CHECK(cudaPeekAtLastError());
-    //CUDA_CHECK(cudaDeviceSynchronize());
     
 #else
     for(int i = 0; i < 26; ++i)

@@ -19,7 +19,7 @@ const float sigmaf = sigma / sqrt(dt);
 const float aij = 2.5;
 const float hydrostatic_a = 0.05;
 const bool walls = true;
-const bool pushtheflow = true;
+const bool pushtheflow = false;
 const bool rbcs = false;
 const bool ctcs = false;
 const bool xyz_dumps = false;
@@ -27,7 +27,7 @@ const bool hdf5field_dumps = true;
 const bool hdf5part_dumps = false;
 const int steps_per_report = 1000;
 const int steps_per_dump = 1000;
-const int wall_creation_stepid = 500;
+const int wall_creation_stepid = 5000;
 
 extern bool currently_profiling;
 

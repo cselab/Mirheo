@@ -262,11 +262,8 @@ void ComputeInteractionsDPD::remote_interactions(const Particle * const p, const
 	    
 	    packstarts[0] = 0;
 	    for(int i = 0, s = 0; i < 26; ++i)
-	    {
-		assert(acc_remote[i].size == sendhalos[i].scattered_entries.size);
-		packstarts[i + 1] =  (s += acc_remote[i].size);
-	    }
-	    
+		packstarts[i + 1] =  (s += acc_remote[i].size * (sendhalos[i].expected > 0));
+	    	    
 	    RemoteDPD::npackedparticles = packstarts[26];
 	    
 	    CUDA_CHECK(cudaMemcpyToSymbolAsync(RemoteDPD::packstarts, packstarts,
@@ -296,24 +293,19 @@ void ComputeInteractionsDPD::remote_interactions(const Particle * const p, const
 	for(int i = 0; i < 7; ++i)
 	    CUDA_CHECK(cudaStreamWaitEvent(stream, evremoteint[i], 0));
 
-	CUDA_CHECK(cudaDeviceSynchronize());
 #if 1
-	
 	RemoteDPD::merge_all<<< (RemoteDPD::npackedparticles + 127) / 128, 128, 0, stream >>>(a, n, RemoteDPD::npackedparticles);
-	CUDA_CHECK(cudaDeviceSynchronize());
 #else
 	for(int i = 0; i < 26; ++i)
 	{
 	    const int nd = acc_remote[i].size;
-	
+	    
 	    if (nd > 0)
 		RemoteDPD::merge_accelerations<<<(nd + 127) / 128, 128, 0, streams[code2stream[i]]>>>
 		    (acc_remote[i].data, nd, a, n, sendhalos[i].dbuf.data, p, sendhalos[i].scattered_entries.data, myrank);
 	}
 #endif
 	CUDA_CHECK(cudaPeekAtLastError());
-
-	CUDA_CHECK(cudaDeviceSynchronize());
     }
 }
 
