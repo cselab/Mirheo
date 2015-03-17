@@ -21,7 +21,7 @@ protected:
     struct SendHalo
     {
 	int expected;
-	bool enabled;
+
 	SimpleDeviceBuffer<int> scattered_entries, tmpstart, tmpcount, dcellstarts;
 	SimpleDeviceBuffer<Particle> dbuf;
 	PinnedHostBuffer<int> hcellstarts;
@@ -30,7 +30,6 @@ protected:
 	void setup(const int estimate, const int nhalocells)
 	    {
 		adjust(estimate);
-		scattered_entries.resize(estimate);
 		dcellstarts.resize(nhalocells + 1);
 		hcellstarts.resize(nhalocells + 1);
 		tmpcount.resize(nhalocells + 1);
@@ -39,10 +38,10 @@ protected:
 
 	void adjust(const int estimate)
 	    {
-		enabled = estimate > 0;
 		expected = estimate;
 		hbuf.resize(estimate);
 		dbuf.resize(estimate);
+		scattered_entries.resize(estimate);
 	    }
 
     } sendhalos[26];
@@ -50,7 +49,7 @@ protected:
     struct RecvHalo
     {
 	int expected;
-	bool enabled;
+
 	PinnedHostBuffer<int> hcellstarts;
 	PinnedHostBuffer<Particle> hbuf;
 	SimpleDeviceBuffer<Particle> dbuf;
@@ -65,7 +64,6 @@ protected:
 
 	void adjust(const int estimate)
 	    {
-		enabled = estimate > 0;
 		expected = estimate;
 		hbuf.resize(estimate);
 		dbuf.resize(estimate);

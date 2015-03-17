@@ -37,18 +37,12 @@ namespace Redistancing
 
     __device__  inline float simple_scheme(int ix, int iy, int iz, float sgn0, float myphi0) 
     {
-	int entries = 0;
-	
 	float mindistance = 1e6f;
 	
 	for(int code = 0; code < 3 * 3 * 3; ++code)
 	{
 	    if (code == 1 + 3 + 9) continue;
-	    
-	    const float deltax = info.dx * ((code % 3) - 1);
-	    const float deltay = info.dy * ((code % 9) / 3 - 1);
-	    const float deltaz = info.dz * ((code / 9) - 1);
-	    
+	  
 	    const int xneighbor = ix + (code % 3) - 1;
 	    const int yneighbor = iy + (code % 9) / 3 - 1;
 	    const int zneighbor = iz + (code / 9) - 1;
@@ -240,13 +234,15 @@ void redistancing(float * host_inout, const int NX, const int NY, const int NZ, 
     {
 	Redistancing::step<<< dim3( (NX + 7) / 8, (NY + 7) / 8, (NZ + 1) / 2), dim3(8, 8, 2) >>>(tmp.data);
 	
-	CUDA_CHECK(cudaPeekAtLastError());
-	CUDA_CHECK(cudaDeviceSynchronize());
 	CUDA_CHECK(cudaMemcpy3DAsync(&copyParams));
     }
 
+    CUDA_CHECK(cudaPeekAtLastError());
+    
     CUDA_CHECK(cudaMemcpy(host_inout, tmp.data, sizeof(float) * NX * NY * NZ, cudaMemcpyDeviceToHost));
     
     CUDA_CHECK(cudaFreeArray(arrPhi0));
     CUDA_CHECK(cudaFreeArray(arrPhi));
+
+    CUDA_CHECK(cudaPeekAtLastError());
 }

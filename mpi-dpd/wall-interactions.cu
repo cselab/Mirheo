@@ -7,14 +7,15 @@
 #include <thrust/sort.h>
 #include <thrust/count.h>
 
+#ifndef NO_VTK
+#include <vtkImageData.h>
+#include <vtkXMLImageDataWriter.h>
+#endif
+
 #include "io.h"
 #include "halo-exchanger.h"
 #include "wall-interactions.h"
 #include "redistancing.h"
-
-
-#include <vtkImageData.h>
-#include <vtkXMLImageDataWriter.h>
 
 enum
 {
@@ -637,8 +638,8 @@ struct FieldSampler
 	}
 };
 
-
-ComputeInteractionsWall::ComputeInteractionsWall(MPI_Comm cartcomm, Particle* const p, const int n, int& nsurvived, ExpectedMessageSizes& new_sizes):
+ComputeInteractionsWall::ComputeInteractionsWall(MPI_Comm cartcomm, Particle* const p, const int n, int& nsurvived,
+						 ExpectedMessageSizes& new_sizes):
     cartcomm(cartcomm), arrSDF(NULL), solid4(NULL), solid_size(0), 
     cells(XSIZE_SUBDOMAIN + 2 * XMARGIN_WALL, YSIZE_SUBDOMAIN + 2 * YMARGIN_WALL, ZSIZE_SUBDOMAIN + 2 * ZMARGIN_WALL)
 {
@@ -651,32 +652,32 @@ ComputeInteractionsWall::ComputeInteractionsWall(MPI_Comm cartcomm, Particle* co
     FieldSampler sampler("sdf.dat");
 
     const int L[3] = { XSIZE_SUBDOMAIN, YSIZE_SUBDOMAIN, ZSIZE_SUBDOMAIN };
-    //printf("WALL CREATION: L %d %d %d\n", XSIZE_SUBDOMAIN, YSIZE_SUBDOMAIN, ZSIZE_SUBDOMAIN);
-
     const int MARGIN[3] = { XMARGIN_WALL, YMARGIN_WALL, ZMARGIN_WALL };
-    //printf("MARGIN: L %d %d %d\n", XMARGIN_WALL, YMARGIN_WALL, ZMARGIN_WALL);
-
     const int TEXTURESIZE[3] = { XTEXTURESIZE, YTEXTURESIZE, ZTEXTURESIZE };
-    //printf("TEXTURESIZE: L %d %d %d\n", XTEXTURESIZE, YTEXTURESIZE, ZTEXTURESIZE );
-
+    
 #ifndef NDEBUG	
     assert(fabs(dims[0] * XSIZE_SUBDOMAIN / (double) (dims[1] * YSIZE_SUBDOMAIN) - sampler.extent[0] / (double)sampler.extent[1]) < 1e-5);
     assert(fabs(dims[0] * XSIZE_SUBDOMAIN / (double) (dims[2] * ZSIZE_SUBDOMAIN) - sampler.extent[0] / (double)sampler.extent[2]) < 1e-5);
 #endif
-        
+
+    if (myrank == 0)
+	printf("sampling the geometry file...\n");
+
     {
        	float start[3], spacing[3];
 	for(int c = 0; c < 3; ++c)
 	{
 	    start[c] = sampler.N[c] * (coords[c] * L[c] - MARGIN[c]) / (float)(dims[c] * L[c]) ;
 	    spacing[c] =  sampler.N[c] * (L[c] + 2 * MARGIN[c]) / (float)(dims[c] * L[c]) / (float) TEXTURESIZE[c];
-	    //printf("filtering: c: %d start: %f scaling %f\n", c, start[c], spacing[c]);
 	}
 	
 	const float amplitude_rescaling = (XSIZE_SUBDOMAIN /*+ 2 * XMARGIN_WALL*/) / (sampler.extent[0] / dims[0]) ;
-	//printf("amplitude rescaling: %f\n",  amplitude_rescaling);
+
 	sampler.sample(start, spacing, TEXTURESIZE, field, amplitude_rescaling);
     }
+
+    if (myrank == 0)
+	printf("redistancing the geometry field...\n");	
 
     //extra redistancing because margin might exceed the domain
     {
@@ -684,25 +685,19 @@ ComputeInteractionsWall::ComputeInteractionsWall(MPI_Comm cartcomm, Particle* co
 	const double dy =  (YSIZE_SUBDOMAIN + 2 * YMARGIN_WALL) / (double)YTEXTURESIZE;
 	const double dz =  (ZSIZE_SUBDOMAIN + 2 * ZMARGIN_WALL) / (double)ZTEXTURESIZE;
 	
-	
 	redistancing(field, XTEXTURESIZE, YTEXTURESIZE, ZTEXTURESIZE, dx, dy, dz, XTEXTURESIZE * 4);
     }
 
+#ifndef NO_VTK
     {
-	printf("writing to VTK file..\n");
+	if (myrank == 0)
+	    printf("writing to VTK file..\n");
+	
 	vtkImageData * img = vtkImageData::New();
 	
 	img->SetExtent(0, XTEXTURESIZE-1, 0, YTEXTURESIZE-1, 0, ZTEXTURESIZE-1);
 	img->SetDimensions(XTEXTURESIZE, YTEXTURESIZE, ZTEXTURESIZE);
-	
 	img->AllocateScalars(VTK_FLOAT, 1);	
-
-//img->SetScalarTypeToFloat();
-	
-	//three components: initial condition, computed SDF and exact solution
-	//img->SetNumberOfScalarComponents(1);
-	
-	//img->AllocateScalars();
 	
 	const float dx = (XSIZE_SUBDOMAIN + 2 * XMARGIN_WALL) / (float)XTEXTURESIZE;
 	const float dy = (YSIZE_SUBDOMAIN + 2 * YMARGIN_WALL) / (float)YTEXTURESIZE;
@@ -730,6 +725,10 @@ ComputeInteractionsWall::ComputeInteractionsWall(MPI_Comm cartcomm, Particle* co
 	writer->Delete();
 	img->Delete();
     }
+#endif
+
+   if (myrank == 0)
+	printf("estimating geometry-based message sizes...\n");	
 
     {
 	for(int dz = -1; dz <= 1; ++dz)
@@ -770,16 +769,6 @@ ComputeInteractionsWall::ComputeInteractionsWall(MPI_Comm cartcomm, Particle* co
 		    delete [] data;
 		    double avgsize = ceil(s * numberdensity / (double)pow(2, abs(d[0]) + abs(d[1]) + abs(d[2])));
 
-		    //if (avgsize)
-		    //avgsize = 32 * ((int)(avgsize + 31) / 32);
-
-		    /*if (avgsize)
-		       printf("RANK: %d %d %d. MSGSIZE FOR d %d %d %d -> %f avgsize (start %d %d %d, extent %d %d %d)\n", 
-			      coords[0], coords[1], coords[2],
-			      d[0], d[1], d[2], avgsize,
-			 local_start[0], local_start[1], local_start[2], local_extent[0], local_extent[1], local_extent[2]);
-		    */
-
 		    new_sizes.msgsizes[entry] = (int)avgsize;
 
 		}
@@ -787,6 +776,9 @@ ComputeInteractionsWall::ComputeInteractionsWall(MPI_Comm cartcomm, Particle* co
 
     if (hdf5field_dumps)
     {
+	if (myrank == 0)
+	    printf("H5 data dump of the geometry...\n");
+  
 	float * walldata = new float[XSIZE_SUBDOMAIN * YSIZE_SUBDOMAIN * ZSIZE_SUBDOMAIN];
 
 	float start[3], spacing[3];
@@ -824,6 +816,9 @@ ComputeInteractionsWall::ComputeInteractionsWall(MPI_Comm cartcomm, Particle* co
     		
     CUDA_CHECK(cudaBindTextureToArray(SolidWallsKernel::texSDF, arrSDF, fmt));
 
+    if (myrank == 0)
+	printf("carving out wall particles...\n");
+  
     thrust::device_vector<int> keys(n);
     
     SolidWallsKernel::fill_keys<<< (n + 127) / 128, 128 >>>(p, n, thrust::raw_pointer_cast(&keys[0]));
@@ -833,11 +828,9 @@ ComputeInteractionsWall::ComputeInteractionsWall(MPI_Comm cartcomm, Particle* co
 
     nsurvived = thrust::count(keys.begin(), keys.end(), 0);
     assert(nsurvived <= n);
-    //printf("rank %d nsurvived is %d -> %.2f%%\n", myrank, nsurvived, nsurvived * 100. /n);
-
+    
     const int nbelt = thrust::count(keys.begin() + nsurvived, keys.end(), 1);
-    //printf("rank %d belt is %d -> %.2f%%\n", myrank, nbelt, nbelt * 100. / n);
-
+    
     thrust::device_vector<Particle> solid_local(thrust::device_ptr<Particle>(p + nsurvived), thrust::device_ptr<Particle>(p + nsurvived + nbelt));
 
     {
@@ -858,6 +851,9 @@ ComputeInteractionsWall::ComputeInteractionsWall(MPI_Comm cartcomm, Particle* co
     //SimpleDeviceBuffer<Particle> solid_remote;
     //halo.exchange(thrust::raw_pointer_cast(&solid_local[0]), solid_local.size(), solid_remote);
 
+    if (myrank == 0)
+	printf("fetching remote wall particles in my proximity...\n");
+  
     SimpleDeviceBuffer<Particle> solid_remote;
 
     {
@@ -947,8 +943,6 @@ ComputeInteractionsWall::ComputeInteractionsWall(MPI_Comm cartcomm, Particle* co
 	CUDA_CHECK(cudaMemcpy(solid_remote.data, selected.data(), sizeof(Particle) * solid_remote.size, cudaMemcpyHostToDevice));
     }
 
-    //printf("rank %d is receiving extra %d\n", myrank, solid_remote.size);
-    
     solid_size = solid_local.size() + solid_remote.size;
     
     Particle * solid;
@@ -960,6 +954,9 @@ ComputeInteractionsWall::ComputeInteractionsWall(MPI_Comm cartcomm, Particle* co
 	cells.build(solid, solid_size, 0);
     
     CUDA_CHECK(cudaMalloc(&solid4, sizeof(float4) * solid_size));
+
+    if (myrank == 0)
+	printf("consolidating wall particles...\n");
 
     if (solid_size > 0)
 	SolidWallsKernel::strip_solid4<<< (solid_size + 127) / 128, 128>>>(solid, solid_size, solid4);

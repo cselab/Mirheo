@@ -5,8 +5,7 @@ ARCH_VAL ?= compute_35
 CODE_VAL ?= sm_35
 
 NVCCFLAGS += -I$(HDF5_DIR)/include -Xcudafe "--diag_suppress=unrecognized_gcc_pragma"
-NVCCFLAGS +=  -arch $(ARCH_VAL) -code $(CODE_VAL) -O3 -use_fast_math -g
-# -DNDEBUG 
+NVCCFLAGS +=  -arch $(ARCH_VAL) -code $(CODE_VAL) -O3 -use_fast_math -g -DNDEBUG 
 CXXFLAGS += -L../cuda-dpd-sem/dpd -L../cuda-rbc/ -L../cuda-ctc/ -O3 -g  -std=c++11	
 #-DNDEBUG
 NVCCFLAGS += -I../cuda-dpd-sem/dpd -I../cuda-rbc/ -I../cuda-ctc
@@ -42,9 +41,11 @@ else
 NVCCFLAGS += -DNO_H5
 endif
 
+vtk ?= 0
 ifneq "$(vtk)" "0"
 LIBS += -lvtkIOImage-6.2 -lvtkCommonDataModel-6.2 -lvtkpng-6.2  -lvtktiff-6.2 -lvtkmetaio-6.2 -lvtkDICOMParser-6.2 -lvtkzlib-6.2 -lvtksys-6.2 -lvtkIOXMLParser-6.2 -lvtkCommonExecutionModel-6.2 -lvtkCommonTransforms-6.2  -lvtkCommonCore-6.2 -lvtkIOXML-6.2 -lvtkexpat-6.2  -lvtkjpeg-6.2 -lvtkIOCore-6.2  -lvtkCommonSystem-6.2 -lvtkCommonTransforms-6.2 -lvtkCommonMath-6.2 -lvtkCommonMisc-6.2
-#-lvtkIO -lvtkFiltering -lvtksys -lvtkCommon 
+else
+NVCCFLAGS += -DNO_VTK
 endif
 
 slevel ?= 0

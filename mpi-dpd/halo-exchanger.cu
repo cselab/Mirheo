@@ -350,7 +350,6 @@ void HaloExchanger::pack(const Particle * const p, const int n, const int * cons
     scan_massimo(input_count, output_scan, scan_sizes, stream);
     
     CUDA_CHECK(cudaPeekAtLastError());
-    //CUDA_CHECK(cudaDeviceSynchronize());
     
 #else
     for(int i = 0; i < 26; ++i)
@@ -748,9 +747,9 @@ void HaloExchanger::adjust_message_sizes(ExpectedMessageSizes sizes)
 	int estimate = sizes.msgsizes[entry] * safety_factor;
 	estimate = 64 * ((estimate + 63) / 64);
 
-	if (estimate)
-	    printf("RANK %d: direction %d %d %d: adjusting msg %d with entry %d  to %d and safety factor is %f\n", 
-		   myrank, d[0] - 1, d[1] - 1, d[2] - 1, i, entry, estimate, safety_factor);
+	//if (estimate)
+	//    printf("RANK %d: direction %d %d %d: adjusting msg %d with entry %d  to %d and safety factor is %f\n", 
+	//	   myrank, d[0] - 1, d[1] - 1, d[2] - 1, i, entry, estimate, safety_factor);
 
 	recvhalos[i].adjust(estimate);
 	sendhalos[i].adjust(estimate);
