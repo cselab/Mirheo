@@ -337,10 +337,12 @@ namespace RedistributeParticlesKernels
 
 	dstbuf[gid] = value + shift;
 
-	//if (!(c >= 3 || fabs(dstbuf[gid]) <= L /2))
-	//    printf("error! pid %d c %d code %d x: %f = original %f + shift %f\n", slot, c, code, dstbuf[gid], old, shift);
 #ifndef NDEBUG
 	const int L[3] = { XSIZE_SUBDOMAIN, YSIZE_SUBDOMAIN, ZSIZE_SUBDOMAIN };
+	if (!(c >= 3 || fabs(dstbuf[gid]) <= L[c] /2))
+		printf("ooooooooops REDISTRIBUTE: code: %d c: %d gid: %d dst value: %f, value : %f  shift : %f\n", 
+				code, c, gid, dstbuf[gid], value, (float)shift);
+	
 	assert(c >= 3 || fabs(dstbuf[gid]) <= L[c] /2);
 #endif
     }
@@ -632,7 +634,7 @@ int RedistributeParticles::stage1(const Particle * const particles, const int np
 	    
 	    ustart[0] = 0;	
 	    for(int i = 1; i < 28; ++i)
-		ustart[i] = ustart[i - 1] + recv_sizes[i - 1];
+		ustart[i] = ustart[i - 1] + recv_sizes[i - 1] * (default_message_sizes[i - 1] > 0);
 	    
 	    CUDA_CHECK(cudaMemcpyToSymbolAsync(RedistributeParticlesKernels::unpack_start, ustart,
 					       sizeof(int) * 28, 0, cudaMemcpyHostToDevice, mystream));
@@ -723,6 +725,9 @@ void RedistributeParticles::adjust_message_sizes(ExpectedMessageSizes sizes)
 	default_message_sizes[i] = estimate;
 	nactiveneighbors += (estimate > 0);
     }
+
+    _adjust_send_buffers(default_message_sizes);
+    _adjust_recv_buffers(default_message_sizes);
 }
 
 RedistributeParticles::~RedistributeParticles()
