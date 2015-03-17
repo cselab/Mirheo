@@ -630,11 +630,11 @@ int main(int argc, char ** argv)
 		    if (hdf5field_dumps)
 			dump_field.dump(activecomm, p, particles.size, it);
 
-		    /* if (rbcscoll)
+		    if (rbcscoll)
 			rbcscoll->dump(activecomm, cartcomm);
 		   	
 		    if (ctcscoll)
-		    ctcscoll->dump(activecomm, cartcomm);*/
+			ctcscoll->dump(activecomm, cartcomm);
 
 		    delete [] p;
 		    delete [] a;
