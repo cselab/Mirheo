@@ -403,21 +403,7 @@ void HaloExchanger::pack(const Particle * const p, const int n, const int * cons
     PackingHalo::copycells<0><<< (PackingHalo::ncells + 127) / 128, 128, 0, stream>>>(PackingHalo::ncells);
     
     _pack_all(p, n, firstpost, stream);
-    
-#ifndef NDEBUG
-    for(int i = 0; i < 26; ++i)
-	if (sendhalos[i].expected)
-	{
-	    const int nd = sendhalos[i].dbuf.size;
-	    
-	    if (nd > 0)
-		PackingHalo::check_send_particles<<<(nd + 127)/ 128, 128, 0, stream>>>(sendhalos[i].dbuf.data, nd, i);
-	}
-    
-    CUDA_CHECK(cudaStreamSynchronize(0));
-    
-    CUDA_CHECK(cudaPeekAtLastError());
-#endif
+
 }
 
 void HaloExchanger::consolidate_and_post(const Particle * const p, const int n, cudaStream_t stream)
@@ -461,6 +447,23 @@ void HaloExchanger::consolidate_and_post(const Particle * const p, const int n, 
 	}
     }
     
+#ifndef NDEBUG
+    //CUDA_CHECK(cudaStreamSynchronize(0));
+    
+    for(int i = 0; i < 26; ++i)
+	if (sendhalos[i].expected)
+	{
+	    const int nd = sendhalos[i].dbuf.size;
+	    
+	    if (nd > 0)
+		PackingHalo::check_send_particles<<<(nd + 127)/ 128, 128, 0, stream>>>(sendhalos[i].dbuf.data, nd, i);
+	}
+    
+    CUDA_CHECK(cudaStreamSynchronize(0));
+    
+    CUDA_CHECK(cudaPeekAtLastError());
+#endif
+
     {
 	NVTX_RANGE("HEX/send", NVTX_C2);
 	
@@ -491,8 +494,12 @@ void HaloExchanger::consolidate_and_post(const Particle * const p, const int n, 
 	    
 	    if (count > expected)
 	    {
+		
 		const int difference = count - expected;
-		printf("extra message from rank %d to rank %d! difference %d\n", myrank, dstranks[i], difference);
+
+		int d[3] = { (i + 2) % 3 - 1, (i / 3 + 2) % 3 - 1, (i / 9 + 2) % 3 - 1 };
+		printf("extra message from rank %d to rank %d in the direction of %d %d %d! difference %d, expected is %d\n", 
+		       myrank, dstranks[i], d[0], d[1], d[2], difference, expected);
 		
 		MPI_CHECK( MPI_Isend(sendhalos[i].hbuf.data + expected, difference, Particle::datatype(), dstranks[i], 
 				     basetag + i + 555, cartcomm, sendreq + nsendreq) );
@@ -741,8 +748,10 @@ void HaloExchanger::adjust_message_sizes(ExpectedMessageSizes sizes)
 	int estimate = sizes.msgsizes[entry] * safety_factor;
 	estimate = 64 * ((estimate + 63) / 64);
 
-	/*printf("adjusting msg %d with entry %d  to %d and safety factor is %f\n", 
-	  i, entry, sizes.msgsizes[entry], safety_factor);*/
+	if (estimate)
+	    printf("RANK %d: direction %d %d %d: adjusting msg %d with entry %d  to %d and safety factor is %f\n", 
+		   myrank, d[0] - 1, d[1] - 1, d[2] - 1, i, entry, estimate, safety_factor);
+
 	recvhalos[i].adjust(estimate);
 	sendhalos[i].adjust(estimate);
 	
