@@ -105,7 +105,7 @@ __device__ void core( const uint nsrc, const uint * const scan, const uint * con
 		const uint key3 = xadd( xsel_ge( pid, scan[ xadd(key9,3u) ], 3u, 0u ), xsel_ge( pid, scan[ xadd(key9,6u) ], 3u, 0u ) );
 		const uint key  = xadd( key9, key3 );
 
-		const uint spid = xadd( xsub( pid, scan[key] ), starts[key] );
+		const uint spid = xsub( xadd( pid, starts[key] ), scan[key] );
 
 		const int sentry = xscale( spid, 3.f );
 		const float2 stmp0 = tex1Dfetch( texParticles2,       sentry      );
@@ -148,7 +148,7 @@ __device__ void core( const uint nsrc, const uint * const scan, const uint * con
         zforce += __shfl_xor( zforce, L );
     }
 
-    const float fcontrib = ( subtid == 0u ) * xforce + ( subtid == 1u ) * yforce + ( subtid == 2u ) * zforce;
+    const float fcontrib = xsel_eq( subtid, 0u, xforce, xsel_eq( subtid, 1u, yforce, zforce ) );
 
     if( subtid < 3.f )
         info.axayaz[ xmad( dpid, 3.f, subtid ) ] = fcontrib;
@@ -181,7 +181,7 @@ __device__ void core_ilp( const uint nsrc, const uint * const scan, const uint *
     		const uint key3 = xadd( xsel_ge( pid, scan[ xadd(key9,3u) ], 3u, 0u ), xsel_ge( pid, scan[ xadd(key9,6u) ], 3u, 0u ) );
     		const uint key  = xadd( key9, key3 );
 
-            spids[i] = xadd( xsub( pid, scan[key] ), starts[key] );
+            spids[i] = xsub( xadd( pid, starts[key] ), scan[key] );
         }
 
         bool interacting[NSRCMAX];
@@ -217,7 +217,7 @@ __device__ void core_ilp( const uint nsrc, const uint * const scan, const uint *
         zforce += __shfl_xor( zforce, L );
     }
 
-    const float fcontrib = ( subtid == 0u ) * xforce + ( subtid == 1u ) * yforce + ( subtid == 2u ) * zforce;
+    const float fcontrib = xsel_eq( subtid, 0u, xforce, xsel_eq( subtid, 1u, yforce, zforce ) );
 
     if( subtid < 3u )
         info.axayaz[ xmad( dpid, 3.f, subtid ) ] = fcontrib;
@@ -243,20 +243,20 @@ void _dpd_forces()
         int ycid = blockIdx.y * _YCPB_ + ( ( threadIdx.y / _XCPB_ ) % _YCPB_ ) + dy - 1;
         int zcid = blockIdx.z * _ZCPB_ + ( ( threadIdx.y / ( _XCPB_ * _YCPB_ ) ) % _ZCPB_ ) + dz - 1;
 
-        const float valid_cid =
-            xfcmp_ge( xcid, 0 ) * xfcmp_lt( xcid, info.ncells.x ) *
-            xfcmp_ge( ycid, 0 ) * xfcmp_lt( ycid, info.ncells.y ) *
-            xfcmp_ge( zcid, 0 ) * xfcmp_lt( zcid, info.ncells.z );
+        const bool valid_cid =
+                ( xcid >= 0 ) && ( xcid < info.ncells.x ) &&
+                ( ycid >= 0 ) && ( ycid < info.ncells.y ) &&
+                ( zcid >= 0 ) && ( zcid < info.ncells.z );
 
-        xcid = xmin( xsub( info.ncells.x, 1 ), xmax( 0, xcid ) );
-        ycid = xmin( xsub( info.ncells.y, 1 ), xmax( 0, ycid ) );
-        zcid = xmin( xsub( info.ncells.z, 1 ), xmax( 0, zcid ) );
+        xcid = xmin( xsub( info.ncells.x, 1 ), max( 0, xcid ) );
+        ycid = xmin( xsub( info.ncells.y, 1 ), max( 0, ycid ) );
+        zcid = xmin( xsub( info.ncells.z, 1 ), max( 0, zcid ) );
 
-        const int cid = xmax( 0, xmad( xmad( zcid, info.ncell_y, ycid ), info.ncell_x, xcid ) );
+        const int cid = max( 0, ( zcid * info.ncells.y + ycid ) * info.ncells.x + xcid );
 
         starts[wid][tid] = tex1Dfetch( texStart, cid );
 
-        myscan = mycount = xscale( tex1Dfetch( texCount, cid ), valid_cid );
+        myscan = mycount = valid_cid ? tex1Dfetch( texCount, cid ) : 0u;
     }
 
     for( uint L = 1u; L < 32u; L <<= 1 ) {

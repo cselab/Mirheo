@@ -10,6 +10,8 @@ template<typename T> __device__ class Automatic_Type_Promotion_Not_Allowed f2i( 
 template<typename T> __device__ class Automatic_Type_Promotion_Not_Allowed f2u( T const &t );
 template<typename T> __device__ class Automatic_Type_Promotion_Not_Allowed i2f( T const &t );
 template<typename T> __device__ class Automatic_Type_Promotion_Not_Allowed u2f( T const &t );
+template<typename T> __device__ class Automatic_Type_Promotion_Not_Allowed i2u( T const &t );
+template<typename T> __device__ class Automatic_Type_Promotion_Not_Allowed u2i( T const &t );
 
 __forceinline__ __device__ int f2i( float f ) {
     int i;
@@ -33,6 +35,18 @@ __forceinline__ __device__ float u2f( uint u ) {
     float f;
     asm( "mov.b32 %0, %1;" : "=f"( f ) : "r"( u ) );
     return f;
+}
+
+__forceinline__ __device__ uint i2u( int i ) {
+    uint u;
+    asm( "mov.b32 %0, %1;" : "=r"( u ) : "r"( i ) );
+    return u;
+}
+
+__forceinline__ __device__ int u2i( uint u ) {
+    int i;
+    asm( "mov.b32 %0, %1;" : "=r"( i ) : "r"( u ) );
+    return i;
 }
 
 /******************************************************************************
@@ -63,43 +77,43 @@ __forceinline__ __device__ int xmad( int u, float v, int w ) {
 
 __forceinline__ __device__ uint xadd( uint u, uint v ) {
 	float a = u2f(u), b = u2f(v), c;
-	asm( "add.f32 %0, %1, %2;" : "=f"(c) : "f"(a), "f"(b) );
+	asm( "add.rz.f32 %0, %1, %2;" : "=f"(c) : "f"(a), "f"(b) );
 	return f2u(c);
 }
 
 __forceinline__ __device__ int xadd( int u, int v ) {
 	float a = i2f(u), b = i2f(v), c;
-	asm( "add.f32 %0, %1, %2;" : "=f"(c) : "f"(a), "f"(b) );
+	asm( "add.rz.f32 %0, %1, %2;" : "=f"(c) : "f"(a), "f"(b) );
 	return f2i(c);
 }
 
 __forceinline__ __device__ uint xadd( float u, float v ) {
 	float c;
-	asm( "add.f32 %0, %1, %2;" : "=f"(c) : "f"(u), "f"(v) );
+	asm( "add.rz.f32 %0, %1, %2;" : "=f"(c) : "f"(u), "f"(v) );
 	return f2i(c);
 }
 
 __forceinline__ __device__ uint xsub( uint u, uint v ) {
 	float a = u2f(u), b = u2f(v), c;
-	asm( "sub.f32 %0, %1, %2;" : "=f"(c) : "f"(a), "f"(b) );
+	asm( "sub.rz.f32 %0, %1, %2;" : "=f"(c) : "f"(a), "f"(b) );
 	return f2u(c);
 }
 
 __forceinline__ __device__ int xsub( int u, int v ) {
 	float a = i2f(u), b = i2f(v), c;
-	asm( "sub.f32 %0, %1, %2;" : "=f"(c) : "f"(a), "f"(b) );
+	asm( "sub.rz.f32 %0, %1, %2;" : "=f"(c) : "f"(a), "f"(b) );
 	return f2i(c);
 }
 
 __forceinline__ __device__ uint xscale( uint u, float s ) {
 	float a = u2f(u), b;
-	asm( "mul.f32.rz %0, %1, %2;" : "=f"(b) : "f"(a), "f"(s) );
+	asm( "mul.rz.f32 %0, %1, %2;" : "=f"(b) : "f"(a), "f"(s) );
 	return f2u(b);
 }
 
 __forceinline__ __device__ int xscale( int u, float s ) {
 	float a = i2f(u), b;
-	asm( "mul.f32.rz %0, %1, %2;" : "=f"(b) : "f"(a), "f"(s) );
+	asm( "mul.rz.f32 %0, %1, %2;" : "=f"(b) : "f"(a), "f"(s) );
 	return f2i(b);
 }
 
@@ -170,7 +184,6 @@ __inline__ __device__ float xfcmp_##op( uint i, uint j ) { return xsel_##op( i, 
 __inline__ __device__ uint  xucmp_##op( uint i, uint j ) { return xsel_##op( i, j, 1u, 0u ); } \
 __inline__ __device__ float xfcmp_##op( float a, float b ) { return xsel_##op( a, b, 1.0f, 0.0f ); } \
 __inline__ __device__ uint  xucmp_##op( float a, float b ) { return xsel_##op( a, b, 1u, 0u ); } \
-__inline__ __device__ float xfcmp_##op( int i, int j ) { return xsel_##op( i, j, 1.0f, 0.0f ); }
 
 
 xcmp(eq); // ==
