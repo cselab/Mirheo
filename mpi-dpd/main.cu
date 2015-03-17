@@ -390,6 +390,7 @@ int main(int argc, char ** argv)
 			}
 		    }
 
+
 		    redistribute.adjust_message_sizes(new_sizes);
 		    dpd.adjust_message_sizes(new_sizes);
 
