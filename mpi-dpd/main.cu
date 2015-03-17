@@ -390,7 +390,7 @@ int main(int argc, char ** argv)
 			}
 		    }
 
-		    redistribute.adjust_message_sizes(new_sizes);
+		    //redistribute.adjust_message_sizes(new_sizes);
 		    dpd.adjust_message_sizes(new_sizes);
 
 		    if (hdf5part_dumps)
@@ -424,7 +424,18 @@ int main(int argc, char ** argv)
 
 		    particles.resize(nsurvived);
 		    particles.clear_velocity();
-		    		    
+	
+		    {
+			H5PartDump sd("survived-particles.h5part", activecomm, cartcomm);
+			Particle * p = new Particle[particles.size];
+			
+			CUDA_CHECK(cudaMemcpy(p, particles.xyzuvw.data, sizeof(Particle) * particles.size, cudaMemcpyDeviceToHost));
+			
+			sd.dump(p, particles.size);
+			
+			delete [] p;
+		    }
+	    		    
 		    if (rank == 0)
 		    {
 			if( access( "particles.xyz", F_OK ) != -1 )
