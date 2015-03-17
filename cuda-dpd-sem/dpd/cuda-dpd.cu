@@ -477,12 +477,11 @@ void _dpd_forces()
 }
 #endif
 
-
 #ifdef _INSPECT_
 __global__ __launch_bounds__( 32 * CPB, 8 )
 void inspect_dpd_forces( const int COLS, const int ROWS, const int nparticles, int2 * const entries, const int nentries )
 {
-    assert( nentries = COLS * nparticles );
+    assert( nentries == COLS * nparticles );
     assert( warpSize == COLS * ROWS );
     assert( blockDim.x == warpSize && blockDim.y == CPB && blockDim.z == 1 );
     assert( ROWS * 3 <= warpSize );
@@ -688,6 +687,7 @@ void forces_dpd_cuda_nohost( const float * const xyzuvw, float * const axayaz,  
 	#endif
 
 	if( !fdpd_init ) {
+		#if !(USE_TEXOBJ&2)
         texStart.channelDesc = cudaCreateChannelDesc<uint>();
         texStart.filterMode = cudaFilterModePoint;
         texStart.mipmapFilterMode = cudaFilterModePoint;
@@ -702,6 +702,7 @@ void forces_dpd_cuda_nohost( const float * const xyzuvw, float * const axayaz,  
         texParticles2.filterMode = cudaFilterModePoint;
         texParticles2.mipmapFilterMode = cudaFilterModePoint;
         texParticles2.normalized = 0;
+		#endif
 
 		void ( *dpdkernel )() =  _dpd_forces;
 
@@ -821,6 +822,7 @@ void forces_dpd_cuda_aos( float * const _xyzuvw, float * const _axayaz,
     const int ncells = nx * ny * nz;
 
     if( !fdpd_init ) {
+		#if !(USE_TEXOBJ&2)
         texStart.channelDesc = cudaCreateChannelDesc<uint>();
         texStart.filterMode = cudaFilterModePoint;
         texStart.mipmapFilterMode = cudaFilterModePoint;
@@ -835,6 +837,7 @@ void forces_dpd_cuda_aos( float * const _xyzuvw, float * const _axayaz,
         texParticles2.filterMode = cudaFilterModePoint;
         texParticles2.mipmapFilterMode = cudaFilterModePoint;
         texParticles2.normalized = 0;
+		#endif
 
         fdpd_init = true;
     }
@@ -848,8 +851,10 @@ void forces_dpd_cuda_aos( float * const _xyzuvw, float * const _axayaz,
         CUDA_CHECK( cudaMalloc( &fdpd_xyzuvw, sizeof( float ) * 6 * np ) );
         CUDA_CHECK( cudaMalloc( &fdpd_axayaz, sizeof( float ) * 3 * np ) );
 
+		#if !(USE_TEXOBJ&2)
         size_t textureoffset;
         CUDA_CHECK( cudaBindTexture( &textureoffset, &texParticles2, fdpd_xyzuvw, &texParticles2.channelDesc, sizeof( float ) * 6 * np ) );
+		#endif
 
         fdpd_oldnp = np;
     }
@@ -863,9 +868,11 @@ void forces_dpd_cuda_aos( float * const _xyzuvw, float * const _axayaz,
         CUDA_CHECK( cudaMalloc( &fdpd_start, sizeof( uint ) * ncells ) );
         CUDA_CHECK( cudaMalloc( &fdpd_count, sizeof( uint ) * ncells ) );
 
+		#if !(USE_TEXOBJ&2)
         size_t textureoffset = 0;
         CUDA_CHECK( cudaBindTexture( &textureoffset, &texStart, fdpd_start, &texStart.channelDesc, sizeof( uint ) * ncells ) );
         CUDA_CHECK( cudaBindTexture( &textureoffset, &texCount, fdpd_count, &texCount.channelDesc, sizeof( uint ) * ncells ) );
+		#endif
 
         fdpd_oldnc = ncells;
     }
