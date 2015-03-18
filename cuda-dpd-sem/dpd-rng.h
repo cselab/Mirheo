@@ -57,35 +57,50 @@ struct KISS {
 *****************************************************************/
 
 // floating point version of LCG
-__inline__ __device__ float rem( float r )
-{
+__inline__ __device__ float rem( float r ) {
     return r - floorf( r );
 }
 
 // FMA wrapper for the convenience of switching rouding modes
-__inline__ __device__ float FMA( float x, float y, float z )
-{
+__inline__ __device__ float FMA( float x, float y, float z ) {
     return __fmaf_rz( x, y, z );
+}
+
+// saturated square
+// clamp result to [0,1]
+// to cancel error introduced by logistic<3> \in [-1.000001, 1.000003]
+__inline__ __device__ float SQR( float x ) {
+    asm("mul.f32.sat %0, %0, %0;" : "+f"(x) : "f"(x), "f"(x) );
+    return x;
 }
 
 // logistic rounds
 // <3> : 4 FMA + 1 MUL
 // <2> : 2 FMA + 1 MUL
 // <1> : 1 FMA + 1 MUL
-template<int N> __inline__ __device__ float __logistic_core( float x )
-{
-    float x2 = x * x;
-    float r = FMA( FMA( 8.0, x2, -8.0 ), x2, 1.0 );
-    return __logistic_core < N - 2 > ( r );
+template<int N> __inline__ __device__ float __logistic_core( float x ) {
+    float x2 = SQR( x );
+    float r = FMA( FMA( FMA( FMA( 128.0, x2, -256.0 ), x2, 160.0 ), x2, -32.0 ), x2, 1.0 );
+    return __logistic_core < N - 3 > ( r );
 }
 
-template<> __inline__ __device__ float __logistic_core<1>( float x )
-{
-    return FMA( 2.0 * x, x, -1.0 );
+template<> __inline__ __device__ float __logistic_core<2>( float x ) {
+	float x2 = SQR( x );
+    return FMA( FMA( 8.0, x2, -8.0 ), x2, 1.0 );
+}
+//template<int N> __inline__ __device__ float __logistic_core( float x )
+//{
+//    float x2 = x * x;
+//    float r = FMA( FMA( 8.0, x2, -8.0 ), x2, 1.0 );
+//    return __logistic_core < N - 2 > ( r );
+//}
+
+template<> __inline__ __device__ float __logistic_core<1>( float x ) {
+	float x2 = SQR( x );
+	return FMA( 2.0, x2, -1.0 );
 }
 
-template<> __inline__ __device__ float __logistic_core<0>( float x )
-{
+template<> __inline__ __device__ float __logistic_core<0>( float x ) {
     return x;
 }
 
@@ -97,7 +112,7 @@ template<> __inline__ __device__ float __logistic_core<0>( float x )
 // can be used directly for DPD
 
 // passes of logistic map
-const static int N = 18;
+const static int N = 21;
 // spacing coefficints for low discrepancy numbers
 const static float gold   = 0.6180339887498948482;
 const static float hugegold   = 0.6180339887498948482E39;
@@ -121,17 +136,6 @@ __inline__ __device__ float mean0var1( float seed, uint u, uint v )
     float l = __logistic_core<N>( seed - p );
     return l * sqrt2;
 }
-
-//__inline__ __device__ float mean0var1( float seed, uint u, uint v )
-//{
-//	float a = u2f(u), b = u2f(v);
-//	// explicit PTX to prevent FTZ
-//	asm( "fma.f32.rn %0, %1, %2, %3;" : "+f"(a) : "f"(a), "f"(hugegold), "f"(bronze) );
-//	asm( "fma.f32.rn %0, %1, %2, %3;" : "+f"(b) : "f"(b), "f"(hugesilver), "f"(tin) );
-//	float p = rem( ( ( u & 0x3FFU ) * gold ) + a + ( ( v & 0x3FFU ) * silver ) + b ); // safe for large u or v
-//    float l = __logistic_core<N>( seed - p );
-//    return l * sqrt2;
-//}
 
 __inline__ __device__ float mean0var1( float seed, float u, float v )
 {

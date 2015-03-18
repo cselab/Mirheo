@@ -4,6 +4,7 @@
 #include "../tiny-float.h"
 #include "../dpd-rng.h"
 
+//#define PROF_TRIGGER
 #define USE_TEXOBJ 3
 
 struct InfoDPD {
@@ -13,8 +14,10 @@ struct InfoDPD {
     float invrc, aij, gamma, sigmaf;
     float * axayaz;
     float seed;
+	#if (USE_TEXOBJ&1)
     cudaTextureObject_t txoParticles2;
     cudaTextureObject_t txoStart, txoCount;
+	#endif
 };
 
 __constant__ InfoDPD info;
@@ -140,10 +143,16 @@ __device__ void core( const uint nsrc, const uint * const scan, const uint * con
 		const float interacting = xfcmp_lt(pid, nsrc )
 				                * xfcmp_lt( xdiff * xdiff + ydiff * ydiff + zdiff * zdiff, 1.f )
 				                * xfcmp_ne( dpid, spid ) ;
+#ifdef PROF_TRIGGER
+		__prof_trigger(00);
+#endif
 
 		if (interacting) {
 			srcids[srccount] = spid;
 			srccount = xadd( srccount, 1u );
+#ifdef PROF_TRIGGER
+			__prof_trigger(01);
+#endif
 		}
 
 		if( srccount == NSRCMAX ) {
