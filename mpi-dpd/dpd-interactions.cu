@@ -103,7 +103,7 @@ namespace RemoteDPD
     __constant__ int * scattered_indices[26];
     __constant__ Acceleration * remote_accelerations[26];
     
-    __global__ void merge_all(Acceleration * const alocal, const int nlocal)
+    __global__ void merge_all(Acceleration * const alocal, const int nlocal, const int nremote)
     {
 	assert(blockDim.x * gridDim.x >= nremote);
 
@@ -118,11 +118,14 @@ namespace RemoteDPD
 	const int idpack = key9 + key3 + key1;
 
 	assert(idpack >= 0 && idpack < 26);
-	assert(gid >= cellpackstarts[idpack] && gid < cellpackstarts[idpack + 1]);
+	assert(gid >= packstarts[idpack] && gid < packstarts[idpack + 1]);
 
 	const int offset = gid - packstarts[idpack];
 	
 	int pid = scattered_indices[idpack][offset];
+
+	if (!(pid >= 0 && pid < nlocal))
+	    printf("oooooops pid is %d whereas nlocal is %d\n", pid, nlocal);
 	assert(pid >= 0 && pid < nlocal);
 
 	Acceleration a = remote_accelerations[idpack][offset];
@@ -259,8 +262,8 @@ void ComputeInteractionsDPD::remote_interactions(const Particle * const p, const
 	    
 	    packstarts[0] = 0;
 	    for(int i = 0, s = 0; i < 26; ++i)
-		packstarts[i + 1] =  (s += acc_remote[i].size);
-	    
+		packstarts[i + 1] =  (s += acc_remote[i].size * (sendhalos[i].expected > 0));
+	    	    
 	    RemoteDPD::npackedparticles = packstarts[26];
 	    
 	    CUDA_CHECK(cudaMemcpyToSymbolAsync(RemoteDPD::packstarts, packstarts,
@@ -291,12 +294,12 @@ void ComputeInteractionsDPD::remote_interactions(const Particle * const p, const
 	    CUDA_CHECK(cudaStreamWaitEvent(stream, evremoteint[i], 0));
 
 #if 1
-	RemoteDPD::merge_all<<< (RemoteDPD::npackedparticles + 127) / 128, 128, 0, stream >>>(a, n);
+	RemoteDPD::merge_all<<< (RemoteDPD::npackedparticles + 127) / 128, 128, 0, stream >>>(a, n, RemoteDPD::npackedparticles);
 #else
 	for(int i = 0; i < 26; ++i)
 	{
 	    const int nd = acc_remote[i].size;
-	
+	    
 	    if (nd > 0)
 		RemoteDPD::merge_accelerations<<<(nd + 127) / 128, 128, 0, streams[code2stream[i]]>>>
 		    (acc_remote[i].data, nd, a, n, sendhalos[i].dbuf.data, p, sendhalos[i].scattered_entries.data, myrank);
