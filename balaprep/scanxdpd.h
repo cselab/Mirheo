@@ -508,9 +508,6 @@ __global__ void excl26scan(int *d_data30,  int *d_output30,
          my_blockId = atomicAdd( &(ptoblockds[which].g_block_id), 1 );
   }
   __syncthreads();
-  if(my_blockId*blockDim.x>=size[which]) {
-     return;
-  }
   switch(which) {
     case 0:
       temp4 = temp1 = (tid+my_blockId*blockDim.x<size[0])?
@@ -537,7 +534,6 @@ __global__ void excl26scan(int *d_data30,  int *d_output30,
                        d_data35[tid+my_blockId*blockDim.x]:0;
     break;
   }
-
   for (int d=1; d<32; d<<=1) {
          temp2 = __shfl_up(temp1,d);
         if (tid%32 >= d) temp1 += temp2;
@@ -569,7 +565,7 @@ __global__ void excl26scan(int *d_data30,  int *d_output30,
                 ptoblockds[which].sum=temp[0]+temp1;
                 atomicAdd(&(ptoblockds[which].g_blockcnt),1);
         }
-        __threadfence();  // wait for write completion
+//        __threadfence();  // wait for write completion
   }
   __syncthreads();
   temp1+=temp[0];
@@ -757,6 +753,210 @@ smallscan:
     break;
     }
   
+}
+
+__global__ void excl26scanaopob(int **d_data,  int **d_output,
+                              int *size)  {
+  __shared__ int temp[WARPSIZE];
+  __shared__ int sum;
+  int temp1, temp2, temp3, temp4;
+  if(blockDim.x>MAXTHREADS) {
+        printf("Invalid number of threads per block: %d, must be <=%d\n",blockDim.x,MAXTHREADS);
+  }
+  const int tid = threadIdx.x;
+  int which=blockIdx.x;
+  const int iiw = tid%32;
+  const int *linput=d_data[which];
+  int *loutput=d_output[which];
+  const int lsize=size[which];
+  if(blockIdx.x>=6) {
+	goto smallscan;
+  }
+  if(tid==0) {
+	sum=0;
+  }
+  for(int i=tid; i<(((lsize+WARPSIZE)/WARPSIZE)*WARPSIZE); i+=blockDim.x) {
+  temp4 = temp1 = (i<lsize)?linput[i]:0;
+  for (int d=1; d<32; d<<=1) {
+         temp2 = __shfl_up(temp1,d);
+         temp1 += temp2*(iiw>=d);
+  }
+  if (iiw == 31) temp[tid/32] = temp1;
+  __syncthreads();
+  if (tid < 32) {
+        temp2 = 0;
+        if (tid < blockDim.x/32) {
+                temp2 = temp[tid];
+        }
+        for (int d=1; d<32; d<<=1) {
+         temp3 = __shfl_up(temp2,d);
+         temp2 += temp3*(iiw>=d);
+        }
+        if (tid < blockDim.x/32) { temp[tid] = temp2; }
+  }
+  temp3=sum;
+  __syncthreads();
+  if(tid>=32) temp1+=temp[tid/32-1];
+  if(i<lsize) {
+    loutput[i]=temp3+temp1-temp4;
+  }
+  if (tid==(blockDim.x-1)) {
+	sum+=temp1;
+  }
+  }
+  return;
+smallscan:
+  if(tid>=(((lsize+WARPSIZE-1)/WARPSIZE)*WARPSIZE)) {
+	return;
+  }
+  which=blockIdx.x;
+  temp4 = temp1 = (tid<lsize)?linput[tid]:0;
+  for (int d=1; d<32; d<<=1) {
+         temp2 = __shfl_up(temp1,d);
+         if (tid%32 >= d) temp1 += temp2;
+  }
+  if (tid%32 == 31) temp[tid/32] = temp1;
+  __syncthreads();
+  if (tid >= 32) { 
+	temp1 += temp[0];
+	if(tid >= 64) {
+		temp1 += temp[1];
+		if(tid>=96) {
+			temp1 += temp[2];
+			if(tid>=128) {
+				temp1 += temp[3];
+				if(tid>=160) {
+					temp1 += temp[4];
+					if(tid>=192) {
+						temp1 += temp[5];
+						if(tid>=224) {
+							temp1 += temp[6];
+							if(tid>=256) {
+							   temp1 += temp[7];
+						        }
+						}
+					}
+				}
+			}
+		}
+	}
+  }
+  if(tid<lsize) {
+      	loutput[tid]=temp1-temp4;
+  }
+  if(which<14) {
+	if(tid<2) {
+        	d_output[which+12][tid]=d_data[which+12][0]*tid;
+	}
+  } 
+}
+
+__global__ void excl26scanaop(int **d_data,  int **d_output,
+                              int *size, int maxsize, sblockds_t *ptoblockds)  {
+  __shared__ int temp[32];
+  __shared__ unsigned int my_blockId;
+  int temp1, temp2, temp3, temp4;
+  if(blockDim.x>MAXTHREADS) {
+        printf("Invalid number of threads per block: %d, must be <=%d\n",blockDim.x,MAXTHREADS);
+  }
+  temp3=6*((maxsize+(blockDim.x-1))/blockDim.x);
+  int tid = threadIdx.x;
+  int which=blockIdx.x/((maxsize+(blockDim.x-1))/blockDim.x);
+  const int *linput=d_data[which];
+  int *loutput=d_output[which];
+  const int lsize=size[which];
+  if(blockIdx.x>=temp3) {
+	goto smallscan;
+  }
+  if (threadIdx.x==0) {
+         my_blockId = atomicAdd( &(ptoblockds[which].g_block_id), 1 );
+  }
+  __syncthreads();
+  temp4 = temp1 = (tid+my_blockId*blockDim.x<lsize)?
+                       linput[tid+my_blockId*blockDim.x]:0;
+  for (int d=1; d<32; d<<=1) {
+         temp2 = __shfl_up(temp1,d);
+        if (tid%32 >= d) temp1 += temp2;
+  }
+  if (tid%32 == 31) temp[tid/32] = temp1;
+  __syncthreads();
+  if (threadIdx.x < 32) {
+        temp2 = 0;
+        if (tid < blockDim.x/32) {
+                temp2 = temp[threadIdx.x];
+        }
+        for (int d=1; d<32; d<<=1) {
+         temp3 = __shfl_up(temp2,d);
+         if (tid%32 >= d) {temp2 += temp3;}
+        }
+        if (tid < blockDim.x/32) { temp[tid] = temp2; }
+  }
+  __syncthreads();
+  if (tid >= 32) { temp1 += temp[tid/32 - 1]; }
+  __syncthreads();
+  if (threadIdx.x==(blockDim.x-1)) {
+        do {} while( atomicAdd(&(ptoblockds[which].g_blockcnt),0) < my_blockId );
+        temp[0]=ptoblockds[which].sum;
+        if(my_blockId==(((lsize+(blockDim.x-1))/blockDim.x)-1)) { /* it is the last block; reset for next iteration */
+                ptoblockds[which].sum=0;
+                ptoblockds[which].g_blockcnt=0;
+                ptoblockds[which].g_block_id=0;
+        } else {
+                ptoblockds[which].sum=temp[0]+temp1;
+                atomicAdd(&(ptoblockds[which].g_blockcnt),1);
+        }
+//        __threadfence();  // wait for write completion
+  }
+  __syncthreads();
+  temp1+=temp[0];
+  if(tid+my_blockId*blockDim.x<lsize) {
+    loutput[tid+my_blockId*blockDim.x]=temp1-temp4;
+  }
+  return;
+smallscan:
+  if(tid>=(((size[6+blockIdx.x-temp3]+WARPSIZE-1)/WARPSIZE)*WARPSIZE)) {
+	return;
+  }
+  which=blockIdx.x-temp3+6;
+  temp4 = temp1 = (tid<size[which])?d_data[which][tid]:0;
+  for (int d=1; d<32; d<<=1) {
+         temp2 = __shfl_up(temp1,d);
+         if (tid%32 >= d) temp1 += temp2;
+  }
+  if (tid%32 == 31) temp[tid/32] = temp1;
+  __syncthreads();
+  if (tid >= 32) { 
+	temp1 += temp[0];
+	if(tid >= 64) {
+		temp1 += temp[1];
+		if(tid>=96) {
+			temp1 += temp[2];
+			if(tid>=128) {
+				temp1 += temp[3];
+				if(tid>=160) {
+					temp1 += temp[4];
+					if(tid>=192) {
+						temp1 += temp[5];
+						if(tid>=224) {
+							temp1 += temp[6];
+							if(tid>=256) {
+							   temp1 += temp[7];
+						        }
+						}
+					}
+				}
+			}
+		}
+	}
+  }
+  if(tid<size[which]) {
+      	d_output[which][tid]=temp1-temp4;
+  }
+  if(which<14) {
+	if(tid<2) {
+        	d_output[which+12][tid]=d_data[which+12][0]*tid;
+	}
+  } 
 }
 
 
