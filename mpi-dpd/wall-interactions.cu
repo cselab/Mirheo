@@ -53,11 +53,9 @@ namespace SolidWallsKernel
 				     Acceleration * const acc, const float seed, const float sigmaf);
     void setup()
     {
-	for(int i = 0; i < 3; ++i)
-	    texSDF.addressMode[i] = cudaAddressModeClamp;
-	   
-	texSDF.normalized = true;
-	texSDF.filterMode = cudaFilterModeLinear;
+	texSDF.normalized = 0;
+	texSDF.filterMode = cudaFilterModePoint;
+	texSDF.mipmapFilterMode = cudaFilterModePoint;
 	texSDF.addressMode[0] = cudaAddressModeWrap;
 	texSDF.addressMode[1] = cudaAddressModeWrap;
 	texSDF.addressMode[2] = cudaAddressModeWrap;
@@ -85,18 +83,41 @@ namespace SolidWallsKernel
     {
 	const int L[3] = { XSIZE_SUBDOMAIN, YSIZE_SUBDOMAIN, ZSIZE_SUBDOMAIN };
 	const int MARGIN[3] = { XMARGIN_WALL, YMARGIN_WALL, ZMARGIN_WALL };
+	const int TEXSIZES[3] = {XTEXTURESIZE, YTEXTURESIZE, ZTEXTURESIZE };
 
 	float p[3] = {x, y, z};
 	
-	float texcoord[3];
+	float texcoord[3], lambda[3];
 	for(int c = 0; c < 3; ++c)
 	{
-	    texcoord[c] = (p[c] + L[c] / 2 + MARGIN[c]) / (L[c] + 2 * MARGIN[c]);
+	    const float t = TEXSIZES[c] * (p[c] + L[c] / 2 + MARGIN[c]) / (L[c] + 2 * MARGIN[c]);
 
-	    assert(texcoord[c] >= 0 && texcoord[c] <= 1);
+	    lambda[c] = t - (int)t;
+	    texcoord[c] = (int)t + 0.5;
+
+	    assert(texcoord[c] >= 0 && texcoord[c] <= TEXSIZES[c]);
 	}
 	
-	return tex3D(texSDF, texcoord[0], texcoord[1], texcoord[2]);
+	const float s000 = tex3D(texSDF, texcoord[0] + 0, texcoord[1] + 0, texcoord[2] + 0);
+	const float s001 = tex3D(texSDF, texcoord[0] + 1, texcoord[1] + 0, texcoord[2] + 0);
+	const float s010 = tex3D(texSDF, texcoord[0] + 0, texcoord[1] + 1, texcoord[2] + 0);
+	const float s011 = tex3D(texSDF, texcoord[0] + 1, texcoord[1] + 1, texcoord[2] + 0);
+	const float s100 = tex3D(texSDF, texcoord[0] + 0, texcoord[1] + 0, texcoord[2] + 1);
+	const float s101 = tex3D(texSDF, texcoord[0] + 1, texcoord[1] + 0, texcoord[2] + 1);
+	const float s110 = tex3D(texSDF, texcoord[0] + 0, texcoord[1] + 1, texcoord[2] + 1);
+	const float s111 = tex3D(texSDF, texcoord[0] + 1, texcoord[1] + 1, texcoord[2] + 1);
+
+	const float s00x = s000 * (1 - lambda[0]) + lambda[0] * s001;
+	const float s01x = s010 * (1 - lambda[0]) + lambda[0] * s011;
+	const float s10x = s100 * (1 - lambda[0]) + lambda[0] * s101;
+	const float s11x = s110 * (1 - lambda[0]) + lambda[0] * s111;
+
+	const float s0yx = s00x * (1 - lambda[1]) + lambda[1] * s01x;
+	const float s1yx = s10x * (1 - lambda[1]) + lambda[1] * s11x;
+
+	const float szyx = s0yx * (1 - lambda[2]) + lambda[2] * s1yx;
+
+	return szyx;
     }
 
     __device__ float3 grad_sdf(float x, float y, float z)
@@ -109,40 +130,34 @@ namespace SolidWallsKernel
 	float tc[3];
 	for(int c = 0; c < 3; ++c)
 	{
-	    tc[c] = (p[c] + L[c] / 2 + MARGIN[c]) / (L[c] + 2 * MARGIN[c]);
+	    tc[c] = TEXSIZES[c] * (p[c] + L[c] / 2 + MARGIN[c]) / (L[c] + 2 * MARGIN[c]);
 
-	    if (!(tc[c] >= 0 && tc[c] <= 1))
+	    if (!(tc[c] >= 0 && tc[c] <= TEXSIZES[c]))
 	    {
-		printf("oooooooooops wall-interactions: texture coordinate %f exceeds bounds [0, 1] for c %d\nincrease MARGIN or decrease timestep",
-		       tc[c], c);
+		printf("oooooooooops wall-interactions: texture coordinate %f exceeds bounds [0, %d] for c %d\nincrease MARGIN or decrease timestep", TEXSIZES[c], tc[c], c);
 	    }
 	    
-	    assert(tc[c] >= 0 && tc[c] <= 1);
+	    assert(tc[c] >= 0 && tc[c] <= TEXSIZES[c]);
 	}
 
-	float factors[3], htw[3];
+	float factors[3];
 	for(int c = 0; c < 3; ++c)
-	{
-		htw[c] = 1. / TEXSIZES[c];
-		factors[c] = 1. / (2 * htw[c]) * 1.f / (2 * MARGIN[c] + L[c]);
-	}	
-
-	float3 mygrad = make_float3(
-	    factors[0] * (tex3D(texSDF, tc[0] + htw[0], tc[1], tc[2]) - tex3D(texSDF, tc[0] - htw[0], tc[1], tc[2])),
-	    factors[1] * (tex3D(texSDF, tc[0], tc[1] + htw[1], tc[2]) - tex3D(texSDF, tc[0], tc[1] - htw[1], tc[2])),
-	    factors[2] * (tex3D(texSDF, tc[0], tc[1], tc[2] + htw[2]) - tex3D(texSDF, tc[0], tc[1], tc[2] - htw[2]))
-	    );
-
-	float mygradmag = sqrt(mygrad.x * mygrad.x + mygrad.y * mygrad.y + mygrad.z * mygrad.z);
+	    factors[c] = 1. / (2 * TEXSIZES[c]) * 1.f / (2 * MARGIN[c] + L[c]);
+      
+	float xmygrad = factors[0] * (tex3D(texSDF, tc[0] + 1, tc[1], tc[2]) - tex3D(texSDF, tc[0] - 1, tc[1], tc[2]));
+	float ymygrad = factors[1] * (tex3D(texSDF, tc[0], tc[1] + 1, tc[2]) - tex3D(texSDF, tc[0], tc[1] - 1, tc[2]));
+	float zmygrad = factors[2] * (tex3D(texSDF, tc[0], tc[1], tc[2] + 1) - tex3D(texSDF, tc[0], tc[1], tc[2] - 1));
+	   
+	float mygradmag = sqrt(xmygrad * xmygrad + ymygrad * ymygrad + zmygrad * zmygrad);
 	
-	if (mygradmag > 1e-4)
+	if (mygradmag > 1e-6)
 	{
-		mygrad.x /= mygradmag;
-		mygrad.y /= mygradmag;
-		mygrad.z /= mygradmag;
+	    xmygrad /= mygradmag;
+	    ymygrad /= mygradmag;
+	    zmygrad /= mygradmag;
 	}
 
-	return mygrad;
+	return make_float3(xmygrad, ymygrad, zmygrad);
     }
     
     __global__ void fill_keys(const Particle * const particles, const int n, int * const key)
@@ -189,34 +204,36 @@ namespace SolidWallsKernel
 	{
 	    //this is the worst case - it means that old position was bad already
 	    //we need to rescue the particle, extracting it from the walls
-	    for(int attempt = 0; attempt < 4; ++attempt)
+
+	    const float3 mygrad = grad_sdf(x, y, z);
+	    const float mysdf = sdf(x, y, z);
+	    
+	    x -= mysdf * mygrad.x;
+	    y -= mysdf * mygrad.y;
+	    z -= mysdf * mygrad.z;
+	    
+	    for(int l = 10; l >= 1; --l)
 	    {
-		const float3 mygrad = grad_sdf(x, y, z);
-		const float mysdf = sdf(x, y, z);
-		
-		for(int l = 0; l < 8; ++l)
+		if (sdf(x, y, z) < 0)
 		{
-		    const float jump = pow(0.5f, l) * mysdf;
+		    u  = -u;
+		    v  = -v;
+		    w  = -w;	    	
 		    
-		    x -= jump * mygrad.x;
-		    y -= jump * mygrad.y;
-		    z -= jump * mygrad.z;
-		    
-		    if (sdf(x, y, z) < 0)
-		    {
-			u  = -u;
-			v  = -v;
-			w  = -w;	    	
-			
-			return false;
-		    }
+		    return false;
 		}
+		
+		const float jump = 1.1f * mysdf / (1 << l);
+		
+		x -= jump * mygrad.x;
+		y -= jump * mygrad.y;
+		z -= jump * mygrad.z;
 	    }
 	    
-	    printf("RANK %d bounce collision failed OLD: %f %f %f, sdf %e \nNEW: %f %f %f sdf %e\n", 
+	    printf("RANK %d bounce collision failed OLD: %f %f %f, sdf %e \nNEW: %f %f %f sdf %e, gradient %f %f %f\n", 
 		   rank, 
 		   xold, yold, zold, sdf(xold, yold, zold), 
-		   x, y, z, sdf(x, y, z));
+		   x, y, z, sdf(x, y, z), mygrad.x, mygrad.y, mygrad.z);
 	    
 	    return false;
 	}
@@ -723,9 +740,9 @@ ComputeInteractionsWall::ComputeInteractionsWall(MPI_Comm cartcomm, Particle* co
 	const float dy = (YSIZE_SUBDOMAIN + 2 * YMARGIN_WALL) / (float)YTEXTURESIZE;
 	const float dz = (ZSIZE_SUBDOMAIN + 2 * ZMARGIN_WALL) / (float)ZTEXTURESIZE;
 
-	const float x0 = coords[0] * XSIZE_SUBDOMAIN - XMARGIN_WALL;
-	const float y0 = coords[1] * YSIZE_SUBDOMAIN - YMARGIN_WALL;
-	const float z0 = coords[2] * ZSIZE_SUBDOMAIN - ZMARGIN_WALL;
+	const float x0 = -XSIZE_SUBDOMAIN / 2 - XMARGIN_WALL;
+	const float y0 = -YSIZE_SUBDOMAIN / 2 - YMARGIN_WALL;
+	const float z0 = -ZSIZE_SUBDOMAIN / 2 - ZMARGIN_WALL;
 
 	img->SetSpacing(dx, dy, dz);
 	img->SetOrigin(x0, y0, z0);
@@ -853,6 +870,7 @@ ComputeInteractionsWall::ComputeInteractionsWall(MPI_Comm cartcomm, Particle* co
     
     thrust::device_vector<Particle> solid_local(thrust::device_ptr<Particle>(p + nsurvived), thrust::device_ptr<Particle>(p + nsurvived + nbelt));
 
+    if (hdf5part_dumps)
     {
 	const int n = solid_local.size();
 
@@ -860,7 +878,7 @@ ComputeInteractionsWall::ComputeInteractionsWall(MPI_Comm cartcomm, Particle* co
 
 	CUDA_CHECK(cudaMemcpy(phost, thrust::raw_pointer_cast(&solid_local[0]), sizeof(Particle) * n, cudaMemcpyDeviceToHost));
 
-	H5PartDump solid_dump("solid-walls.h5part", cartcomm, cartcomm);
+       	H5PartDump solid_dump("solid-walls.h5part", cartcomm, cartcomm);
 	solid_dump.dump(phost, n);
 
 	delete [] phost;
