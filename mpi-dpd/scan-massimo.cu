@@ -773,6 +773,101 @@ smallscan:
   
 }
 
+__global__ void excl26scanaopob(int **d_data,  int **d_output,
+                              int *size)  {
+  __shared__ int temp[WARPSIZE];
+  __shared__ int sum;
+  int temp1, temp2, temp3, temp4;
+  if(blockDim.x>MAXTHREADS) {
+        printf("Invalid number of threads per block: %d, must be <=%d\n",blockDim.x,MAXTHREADS);
+  }
+  const int tid = threadIdx.x;
+  int which=blockIdx.x;
+  const int iiw = tid%32;
+  const int *linput=d_data[which];
+  int *loutput=d_output[which];
+  const int lsize=size[which];
+  if(blockIdx.x>=6) {
+	goto smallscan;
+  }
+  if(tid==0) {
+	sum=0;
+  }
+  for(int i=tid; i<(((lsize+WARPSIZE)/WARPSIZE)*WARPSIZE); i+=blockDim.x) {
+  temp4 = temp1 = (i<lsize)?linput[i]:0;
+  for (int d=1; d<32; d<<=1) {
+         temp2 = __shfl_up(temp1,d);
+         temp1 += temp2*(iiw>=d);
+  }
+  if (iiw == 31) temp[tid/32] = temp1;
+  __syncthreads();
+  if (tid < 32) {
+        temp2 = 0;
+        if (tid < blockDim.x/32) {
+                temp2 = temp[tid];
+        }
+        for (int d=1; d<32; d<<=1) {
+         temp3 = __shfl_up(temp2,d);
+         temp2 += temp3*(iiw>=d);
+        }
+        if (tid < blockDim.x/32) { temp[tid] = temp2; }
+  }
+  temp3=sum;
+  __syncthreads();
+  if(tid>=32) temp1+=temp[tid/32-1];
+  if(i<lsize) {
+    loutput[i]=temp3+temp1-temp4;
+  }
+  if (tid==(blockDim.x-1)) {
+	sum+=temp1;
+  }
+  }
+  return;
+smallscan:
+  if(tid>=(((lsize+WARPSIZE-1)/WARPSIZE)*WARPSIZE)) {
+	return;
+  }
+  which=blockIdx.x;
+  temp4 = temp1 = (tid<lsize)?linput[tid]:0;
+  for (int d=1; d<32; d<<=1) {
+         temp2 = __shfl_up(temp1,d);
+         if (tid%32 >= d) temp1 += temp2;
+  }
+  if (tid%32 == 31) temp[tid/32] = temp1;
+  __syncthreads();
+  if (tid >= 32) { 
+	temp1 += temp[0];
+	if(tid >= 64) {
+		temp1 += temp[1];
+		if(tid>=96) {
+			temp1 += temp[2];
+			if(tid>=128) {
+				temp1 += temp[3];
+				if(tid>=160) {
+					temp1 += temp[4];
+					if(tid>=192) {
+						temp1 += temp[5];
+						if(tid>=224) {
+							temp1 += temp[6];
+							if(tid>=256) {
+							   temp1 += temp[7];
+						        }
+						}
+					}
+				}
+			}
+		}
+	}
+  }
+  if(tid<lsize) {
+      	loutput[tid]=temp1-temp4;
+  }
+  if(which<14) {
+	if(tid<2) {
+        	d_output[which+12][tid]=d_data[which+12][0]*tid;
+	}
+  } 
+}
 
 #undef MAXTHREADS
 #undef WARPSIZE
@@ -792,79 +887,112 @@ void scan_massimo(const int * const count[26], int * const result[26], const int
     }
 #endif
     static int newscani=1;
-    static  sblockds_t *ptoblockds;
+//    static  sblockds_t *ptoblockds;
 
-    static int mb[6], mw[12], maxscan=0;
+    int mb[6], mw[12], maxscan=0;
+    static int **d_aopd, **d_aopr;
     static int *d_sizescan;
     int h_sizescan[18];
+    const int *h_aopd[26], *h_aopr[26];
     if(newscani) {
-   	CUDA_CHECK(cudaMalloc((void **)&ptoblockds,6*sizeof(sblockds_t)));
-        CUDA_CHECK(cudaMemset(ptoblockds,0,6*sizeof(sblockds_t)));
-   	CUDA_CHECK(cudaMalloc((void **)&d_sizescan,18*sizeof(int)));
-	mb[0]=8;
-	mb[1]=17;
-	mb[2]=20;
-	mb[3]=23;
-	mb[4]=24;
-	mb[5]=25;
-	mw[0]=2;
-	mw[1]=5;
-	mw[2]=6;
-	mw[3]=7;
-	mw[4]=11;
-	mw[5]=14;
-	mw[6]=15;
-	mw[7]=16;
-	mw[8]=18;
-	mw[9]=19;
-	mw[10]=21;
-	mw[11]=22;
-   	for(int i = 0; i < 6; ++i) {
-		h_sizescan[i]=sizes[mb[i]];
-		maxscan=(maxscan<h_sizescan[i])?h_sizescan[i]:maxscan;
-    	}
-   	for(int i = 0; i < 12; ++i) {
-		h_sizescan[6+i]=sizes[mw[i]];
-    	}
+//        CUDA_CHECK(cudaMalloc((void **)&ptoblockds,6*sizeof(sblockds_t)));
+//        CUDA_CHECK(cudaMemset(ptoblockds,0,6*sizeof(sblockds_t)));
+        CUDA_CHECK(cudaMalloc((void **)&d_sizescan,18*sizeof(int)));
+        CUDA_CHECK(cudaMalloc((void ***)&d_aopd,sizeof(int *)*26));
+        CUDA_CHECK(cudaMalloc((void ***)&d_aopr,sizeof(int *)*26));
+        mb[0]=8;
+        mb[1]=17;
+        mb[2]=20;
+        mb[3]=23;
+        mb[4]=24;
+        mb[5]=25;
+        mw[0]=2;
+        mw[1]=5;
+        mw[2]=6;
+        mw[3]=7;
+        mw[4]=11;
+        mw[5]=14;
+        mw[6]=15;
+        mw[7]=16;
+        mw[8]=18;
+        mw[9]=19;
+        mw[10]=21;
+        mw[11]=22;
+        for(int i = 0; i < 6; ++i) {
+                h_sizescan[i]=sizes[mb[i]];
+                h_aopd[i]=count[mb[i]];
+                h_aopr[i]=result[mb[i]];
+                maxscan=(maxscan<h_sizescan[i])?h_sizescan[i]:maxscan;
+        }
+        for(int i = 0; i < 12; ++i) {
+                h_sizescan[6+i]=sizes[mw[i]];
+                h_aopd[6+i]=count[mw[i]];
+                h_aopr[6+i]=result[mw[i]];
+        }
+        h_aopd[18]=count[0];
+        h_aopr[18]=result[0];
+        h_aopd[19]=count[1];
+        h_aopr[19]=result[1];
+        h_aopd[20]=count[3];
+        h_aopr[20]=result[3];
+        h_aopd[21]=count[4];
+        h_aopr[21]=result[4];
+        h_aopd[22]=count[9];
+        h_aopr[22]=result[9];
+        h_aopd[23]=count[10];
+        h_aopr[23]=result[10];
+        h_aopd[24]=count[12];
+        h_aopr[24]=result[12];
+        h_aopd[25]=count[13];
+        h_aopr[25]=result[13];
         CUDA_CHECK(cudaMemcpy(d_sizescan,h_sizescan,18*sizeof(int),
-			      cudaMemcpyHostToDevice));
-   	newscani=0;
+                              cudaMemcpyHostToDevice));
+        CUDA_CHECK( cudaMemcpy( d_aopd, h_aopd, 26*sizeof(int *),
+                                cudaMemcpyHostToDevice ) );
+        CUDA_CHECK( cudaMemcpy( d_aopr, h_aopr, 26*sizeof(int *),
+                                cudaMemcpyHostToDevice ) );
+
+        newscani=0;
     }
 
-	
-#if defined(_TIME_PROFILE_) 
+
+#if defined(_TIME_PROFILE_)
    if (lit % 500 == 0)
         CUDA_CHECK(cudaEventRecord(evstart));
 #endif
 #define NTHREADS 1024
-	excl26scan<<<12+(6*((maxscan+NTHREADS-1)/NTHREADS)),NTHREADS,0,stream>>>(
-	  count[mb[0]],result[mb[0]],
-	  count[mb[1]],result[mb[1]],
-	  count[mb[2]],result[mb[2]],
-	  count[mb[3]],result[mb[3]],
-	  count[mb[4]],result[mb[4]],
-	  count[mb[5]],result[mb[5]],
-	  count[mw[0]],result[mw[0]],
-	  count[mw[1]],result[mw[1]],
-	  count[mw[2]],result[mw[2]],
-	  count[mw[3]],result[mw[3]],
-	  count[mw[4]],result[mw[4]],
-	  count[mw[5]],result[mw[5]],
-	  count[mw[6]],result[mw[6]],
-	  count[mw[7]],result[mw[7]],
-	  count[mw[8]],result[mw[8]],
-	  count[mw[9]],result[mw[9]],
-	  count[mw[10]],result[mw[10]],
-	  count[mw[11]],result[mw[11]],
-	  count[0],result[0],
-	  count[1],result[1],
-	  count[3],result[3],
-	  count[4],result[4],
-	  count[9],result[9],
-	  count[10],result[10],
+#if 0
+        excl26scan<<<12+(6*((maxscan+NTHREADS-1)/NTHREADS)),NTHREADS,0,stream>>>(
+          count[mb[0]],result[mb[0]],
+          count[mb[1]],result[mb[1]],
+          count[mb[2]],result[mb[2]],
+          count[mb[3]],result[mb[3]],
+          count[mb[4]],result[mb[4]],
+          count[mb[5]],result[mb[5]],
+          count[mw[0]],result[mw[0]],
+          count[mw[1]],result[mw[1]],
+          count[mw[2]],result[mw[2]],
+          count[mw[3]],result[mw[3]],
+          count[mw[4]],result[mw[4]],
+          count[mw[5]],result[mw[5]],
+          count[mw[6]],result[mw[6]],
+          count[mw[7]],result[mw[7]],
+          count[mw[8]],result[mw[8]],
+          count[mw[9]],result[mw[9]],
+          count[mw[10]],result[mw[10]],
+          count[mw[11]],result[mw[11]],
+          count[0],result[0],
+          count[1],result[1],
+          count[3],result[3],
+          count[4],result[4],
+          count[9],result[9],
+          count[10],result[10],
           count[12],result[12],
           count[13],result[13],
-	  d_sizescan, maxscan, ptoblockds);
+          d_sizescan, maxscan, ptoblockds);
+#else
+          excl26scanaopob<<<18,NTHREADS>>>(d_aopd, d_aopr, d_sizescan);
+#endif
 #if defined(_TIME_PROFILE_)
     if (lit % 500 == 0)
     {
