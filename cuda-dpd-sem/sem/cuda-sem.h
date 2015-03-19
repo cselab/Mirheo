@@ -1,3 +1,15 @@
+/*
+ *  cuda-sem.h
+ *  Part of CTC/cuda-dpd-sem/sem/
+ *
+ *  Created and authored by Diego Rossinelli on 2014-07-29.
+ *  Copyright 2015. All rights reserved.
+ *
+ *  Users are NOT authorized
+ *  to employ the present software for their own publications
+ *  before getting a written permission from the author of this file.
+ */
+
 #pragma once
 
 void forces_sem_cuda_direct(float * const xp, float * const yp, float * const zp,

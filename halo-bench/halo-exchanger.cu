@@ -1,3 +1,15 @@
+/*
+ *  halo-exchanger.cu
+ *  Part of CTC/halo-bench/
+ *
+ *  Created and authored by Panagiotis Chatzidoukas on 2015-03-09.
+ *  Copyright 2015. All rights reserved.
+ *
+ *  Users are NOT authorized
+ *  to employ the present software for their own publications
+ *  before getting a written permission from the author of this file.
+ */
+
 #include <cstring>
 #include <algorithm>
 
