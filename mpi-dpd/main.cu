@@ -124,7 +124,7 @@ int main(int argc, char ** argv)
 	    MPI_CHECK( MPI_Cart_get(cartcomm, 3, dims, periods, coords) );
 
 	    MPI_CHECK(MPI_Barrier(activecomm));
-	    printf("(%d, %d, %d) -> %s\n", coords[0], coords[1], coords[2], name);
+	    printf("RANK %d: (%d, %d, %d) -> %s\n", rank, coords[0], coords[1], coords[2], name);
 	    fflush(stdout);
 	    MPI_CHECK(MPI_Barrier(activecomm));
 	}
@@ -390,9 +390,10 @@ int main(int argc, char ** argv)
 			}
 		    }
 
-
+		    MPI_CHECK(MPI_Barrier(activecomm));
 		    redistribute.adjust_message_sizes(new_sizes);
 		    dpd.adjust_message_sizes(new_sizes);
+		    MPI_CHECK(MPI_Barrier(activecomm));
 
 		    if (hdf5part_dumps)
 			dump_part.close();
