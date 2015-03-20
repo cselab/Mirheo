@@ -22,6 +22,7 @@ namespace Logistic
 #include <limits>
 #include <stdint.h>
 #include <cmath>
+#include "tiny-float.h"
 
 namespace Logistic
 {
@@ -72,9 +73,8 @@ namespace Logistic
     const static float sqrt2 = 1.41421356237309514547;
 
 // floating point version of LCG
-    __inline__ __device__ float rem( float r ) 
-    {
-	return r - floor(r);
+__inline__ __device__ float rem( float r ) {
+    return r - floorf( r );
     }
 
 // FMA wrapper for the convenience of switching rouding modes

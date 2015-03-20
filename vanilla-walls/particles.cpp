@@ -1,8 +1,14 @@
 /*
- * Particles.cpp
+ *  particles.cpp
+ *  Part of CTC/vanilla-walls/
  *
- *  Created on: Aug 12, 2014
- *      Author: kirill
+ *  Created by Kirill Lykov, on 2014-08-12.
+ *  Authored by Diego Rossinelli on 2014-08-12.
+ *  Copyright 2015. All rights reserved.
+ *
+ *  Users are NOT authorized
+ *  to employ the present software for their own publications
+ *  before getting a written permission from the author of this file.
  */
 #include "particles.h"
 

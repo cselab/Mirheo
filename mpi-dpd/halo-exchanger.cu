@@ -3,6 +3,7 @@
  *  Part of CTC/mpi-dpd/
  *
  *  Created and authored by Diego Rossinelli on 2015-03-05.
+ *  Major editing from Massimo-Bernaschi on 2015-03-20.
  *  Copyright 2015. All rights reserved.
  *
  *  Users are NOT authorized
