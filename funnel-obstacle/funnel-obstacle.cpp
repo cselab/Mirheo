@@ -1,8 +1,13 @@
 /*
- * funnel-obstacle.cpp
+ *  funnel-obstacle.cpp
+ *  Part of CTC/funnel-obstacle/
  *
- *  Created on: Jul 31, 2014
- *      Author: kirill
+ *  Created and authored by Kirill Lykov on 2014-07-31.
+ *  Copyright 2015. All rights reserved.
+ *
+ *  Users are NOT authorized
+ *  to employ the present software for their own publications
+ *  before getting a written permission from the author of this file.
  */
 #include "funnel-obstacle.h"
 

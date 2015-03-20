@@ -1,8 +1,13 @@
 /*
- * obst.cpp
+ *  obst-check.cpp
+ *  Part of CTC/funnel-obstacle/
  *
- *  Created on: Jul 30, 2014
- *      Author: kirill
+ *  Created and authored by Kirill Lykov on 2014-07-30.
+ *  Copyright 2015. All rights reserved.
+ *
+ *  Users are NOT authorized
+ *  to employ the present software for their own publications
+ *  before getting a written permission from the author of this file.
  */
 #include <iostream>
 #include <cstdlib>
@@ -55,8 +60,6 @@ void checkFunnelObstacleFind1()
       assertTrue(!fo.isInside(x, y));
   }
 
-  for (size_t iy = 0; iy < szForEvery; ++iy) {
-    float y = iy * h - 5;
     float x = 0.0;
     if (y > -3.9 && y <= 3.9)
       assertTrue(fo.isInside(x, y));
