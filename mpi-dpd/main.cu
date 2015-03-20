@@ -30,6 +30,7 @@
 #include "redistribute-particles.h"
 #include "redistribute-rbcs.h"
 #include "rbc-interactions.h"
+#include "logistic.h"
 
 #include "ctc.h"
 
@@ -182,6 +183,9 @@ int main(int argc, char ** argv)
 	    ComputeInteractionsRBC rbc_interactions(cartcomm);
 	    ComputeInteractionsCTC ctc_interactions(cartcomm);
 	    ComputeInteractionsWall * wall = NULL;
+
+            // in production runs replace the numbers with 4 unique ones that are same across ranks
+            KISS rng_trunk( 0x26F94D92, 0x383E7D1E, 0x46144B48, 0x6DDD73CB );
 	    
 	    cudaStream_t mainstream;
 	    CUDA_CHECK(cudaStreamCreate(&mainstream));

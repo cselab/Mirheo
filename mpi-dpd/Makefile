@@ -1,6 +1,6 @@
 -include .cache.Makefile
 
-NVCC ?= nvcc
+NVCC ?= nvcc -ccbin $(CXX)
 ARCH_VAL ?= compute_35
 CODE_VAL ?= sm_35
 
@@ -36,7 +36,7 @@ NVCCFLAGS += -DNO_H5PART
 endif
 
 ifneq "$(h5)" "0"
-LIBS += -lhdf5 -L$(HDF5_DIR)/lib
+LIBS += -lhdf5 #-L$(HDF5_DIR)/lib
 else
 NVCCFLAGS += -DNO_H5
 endif
