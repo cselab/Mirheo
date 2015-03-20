@@ -3,6 +3,7 @@
  *  Part of CTC/cuda-dpd-sem/dpd/
  *
  *  Created and authored by Diego Rossinelli on 2014-07-28.
+ *  Edited by Yu-Hang Tang ('Floatization') on 2015-03-18.
  *  Copyright 2015. All rights reserved.
  *
  *  Users are NOT authorized
