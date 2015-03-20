@@ -134,7 +134,7 @@ namespace SolidWallsKernel
 
 	    if (!(tc[c] >= 0 && tc[c] <= TEXSIZES[c]))
 	    {
-		printf("oooooooooops wall-interactions: texture coordinate %f exceeds bounds [0, %d] for c %d\nincrease MARGIN or decrease timestep", TEXSIZES[c], tc[c], c);
+		cuda_printf("oooooooooops wall-interactions: texture coordinate %f exceeds bounds [0, %d] for c %d\nincrease MARGIN or decrease timestep", TEXSIZES[c], tc[c], c);
 	    }
 	    
 	    assert(tc[c] >= 0 && tc[c] <= TEXSIZES[c]);
@@ -230,7 +230,7 @@ namespace SolidWallsKernel
 		z -= jump * mygrad.z;
 	    }
 	    
-	    printf("RANK %d bounce collision failed OLD: %f %f %f, sdf %e \nNEW: %f %f %f sdf %e, gradient %f %f %f\n", 
+	    cuda_printf("RANK %d bounce collision failed OLD: %f %f %f, sdf %e \nNEW: %f %f %f sdf %e, gradient %f %f %f\n", 
 		   rank, 
 		   xold, yold, zold, sdf(xold, yold, zold), 
 		   x, y, z, sdf(x, y, z), mygrad.x, mygrad.y, mygrad.z);
@@ -290,7 +290,7 @@ namespace SolidWallsKernel
 	for(int c = 0; c < 3; ++c)
 	{
 	    if (!(abs(p.x[c]) <= L[c]/2 + MARGIN[c]))
-		printf("bounce: ooooooooops component %d we have %f %f %f outside %d + %d\n", c, p.x[0], p.x[1], p.x[2], L[c]/2, MARGIN[c]);
+		cuda_printf("bounce: ooooooooops component %d we have %f %f %f outside %d + %d\n", c, p.x[0], p.x[1], p.x[2], L[c]/2, MARGIN[c]);
 
 	    assert(abs(p.x[c]) <= L[c]/2 + MARGIN[c]);
 	}

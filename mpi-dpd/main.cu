@@ -549,7 +549,7 @@ int main(int argc, char ** argv)
 		    dpd.wait_for_messages(mainstream);
 		    dpd.remote_interactions(particles.xyzuvw.data, particles.size, particles.axayaz.data, mainstream);
 
-		    timings["evaluate-dpd interactions"] += MPI_Wtime() - tstart; 
+		    timings["evaluate-interactions"] += MPI_Wtime() - tstart; 
 		    
 		    CUDA_CHECK(cudaPeekAtLastError());	
 		    	
@@ -652,7 +652,7 @@ int main(int argc, char ** argv)
 		    delete [] p;
 		    delete [] a;
 
-		     timings["diagnostics"] += MPI_Wtime() - tstart;
+		    timings["diagnostics"] += MPI_Wtime() - tstart;
 		}
 
 		tstart = MPI_Wtime();
@@ -687,14 +687,16 @@ int main(int argc, char ** argv)
 	    }
 
 	    const double time_simulation_stop = MPI_Wtime();
-	 
+	    const double telapsed = time_simulation_stop - time_simulation_start;
+
 	    if (rank == 0)
 		if (it == nsteps)
-		    printf("simulation is done after %.3e s. Ciao.\n", time_simulation_stop - time_simulation_start);
+		    printf("simulation is done after %.3e s (%dm%ds). Ciao.\n", 
+			   telapsed, (int)(telapsed / 60), (int)(telapsed) % 60);
 		else
 		    if (it != wall_creation_stepid)
-			printf("external termination request (signal) after %.3e s. Bye.\n", time_simulation_stop - time_simulation_start);
-
+			printf("external termination request (signal) after %.3e s. Bye.\n", telapsed);
+	    
 	    fflush(stdout);
 	    
 	    CUDA_CHECK(cudaStreamDestroy(mainstream));

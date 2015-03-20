@@ -125,7 +125,7 @@ namespace RemoteDPD
 	int pid = scattered_indices[idpack][offset];
 
 	if (!(pid >= 0 && pid < nlocal))
-	    printf("oooooops pid is %d whereas nlocal is %d\n", pid, nlocal);
+	    cuda_printf("oooooops pid is %d whereas nlocal is %d\n", pid, nlocal);
 	assert(pid >= 0 && pid < nlocal);
 
 	Acceleration a = remote_accelerations[idpack][offset];

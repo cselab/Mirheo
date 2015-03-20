@@ -1,5 +1,11 @@
 #pragma once
 
+#if 0
+#define cuda_printf(...)
+#else
+#define cuda_printf(...) do { printf(__VA_ARGS__); } while(0)
+#endif
+
 enum { 
     XSIZE_SUBDOMAIN = 48, 
     YSIZE_SUBDOMAIN = 48, 

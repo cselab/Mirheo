@@ -72,7 +72,7 @@ namespace ParticleKernels
 	
 	if (!(myx >= -L[c] -L[c]/2) || !(myx <= +L[c] +L[c]/2))
 	{
-	    printf("Uau: pid %d c %d: x %f u %f and a %f\n",
+	    cuda_printf("Uau: pid %d c %d: x %f u %f and a %f\n",
 		   pid, c, myx, myu, mya);
 	    
 	    assert(myx >= -L[c] -L[c]/2);
