@@ -1,3 +1,15 @@
+/*
+ *  tiny-float.h
+ *  Part of CTC/cuda-dpd-sem/
+ *
+ *  Created and authored by Yu-Hang Tang on 2015-03-14.
+ *  Copyright 2015. All rights reserved.
+ *
+ *  Users are NOT authorized
+ *  to employ the present software for their own publications
+ *  before getting a written permission from the author of this file.
+ */
+
 #ifndef _TINY_FLOAT_
 #define _TINY_FLOAT_
 
