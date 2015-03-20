@@ -1,3 +1,15 @@
+/*
+ *  halo-exchanger.h
+ *  Part of CTC/mpi-dpd/
+ *
+ *  Created and authored by Diego Rossinelli on 2014-11-18.
+ *  Copyright 2015. All rights reserved.
+ *
+ *  Users are NOT authorized
+ *  to employ the present software for their own publications
+ *  before getting a written permission from the author of this file.
+ */
+
 #pragma once
 
 #include <mpi.h>

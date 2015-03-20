@@ -1,3 +1,15 @@
+/*
+ *  main.cpp
+ *  Part of CTC/cell-placement/
+ *
+ *  Created and authored by Diego Rossinelli on 2014-12-18.
+ *  Copyright 2015. All rights reserved.
+ *
+ *  Users are NOT authorized
+ *  to employ the present software for their own publications
+ *  before getting a written permission from the author of this file.
+ */
+
 #include <cstdlib>
 #include <cstdio>
 #include <cmath>

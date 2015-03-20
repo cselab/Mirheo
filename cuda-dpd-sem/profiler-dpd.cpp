@@ -1,3 +1,15 @@
+/*
+ *  profiler-dpd.cpp
+ *  Part of CTC/cuda-dpd-sem/
+ *
+ *  Created and authored by Diego Rossinelli on 2014-07-17.
+ *  Copyright 2015. All rights reserved.
+ *
+ *  Users are NOT authorized
+ *  to employ the present software for their own publications
+ *  before getting a written permission from the author of this file.
+ */
+
 #include <cstdlib>
 #include <cstdio>
 #include <unistd.h>

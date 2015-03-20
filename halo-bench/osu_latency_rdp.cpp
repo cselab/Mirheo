@@ -1,3 +1,15 @@
+/*
+ *  osu_latency_rdp.cpp
+ *  Part of CTC/halo-bench/
+ *
+ *  Created and authored by phadjido 2015-03-12 on 18:59:02.
+ *  Copyright 2015. All rights reserved.
+ *
+ *  Users are NOT authorized
+ *  to employ the present software for their own publications
+ *  before getting a written permission from the author of this file.
+ */
+
 #define BENCHMARK "OSU MPI%s Latency Test"
 /*
  * Copyright (C) 2002-2014 the Network-Based Computing Laboratory
