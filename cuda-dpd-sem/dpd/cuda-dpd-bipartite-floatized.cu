@@ -13,6 +13,7 @@
 #include <cassert>
 
 #include "../dpd-rng.h"
+#include "cuda-dpd.h"
 
 struct BipartiteInfoDPD {
     int3 ncells;
@@ -94,7 +95,7 @@ void _bipartite_dpd_directforces( float * const axayaz, const int np, const int 
 
                 const float rij = rij2 * invrij;
                 const float argwr = max( ( float )0, 1 - rij * invrc );
-                const float wr = powf( argwr, powf( 0.5f, -VISCOSITY_S_LEVEL ) );
+                const float wr = viscosity_function<-VISCOSITY_S_LEVEL>(argwr);
 
                 const float xr = _xr * invrij;
                 const float yr = _yr * invrij;
@@ -199,7 +200,8 @@ void _dpd_bipforces( const float2 * const xyzuvw, const int np, cudaTextureObjec
     }
 
     for( int L = 1; L < 32; L <<= 1 )
-        myscan += ( tid >= L ) * __shfl_up( myscan, L ) ;
+	//int or float yuhang?
+        myscan += ( tid >= L ) * __shfl_up((int) myscan, L ) ;
 
     if( tid < 28 )
         scan[wid][tid] = myscan - mycount;
@@ -240,7 +242,7 @@ void _dpd_bipforces( const float2 * const xyzuvw, const int np, cudaTextureObjec
                 const float invrij = rsqrtf( rij2 );
                 const float rij = rij2 * invrij;
                 const float argwr = max( ( float )0, 1 - rij );
-                const float wr = powf( argwr, powf( 0.5f, -VISCOSITY_S_LEVEL ) );
+                const float wr = viscosity_function<-VISCOSITY_S_LEVEL>(argwr);
 
                 const float xr = _xr * invrij;
                 const float yr = _yr * invrij;

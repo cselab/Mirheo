@@ -13,6 +13,7 @@
 #include <cassert>
 
 #include "../dpd-rng.h"
+#include "cuda-dpd.h"
 
 struct BipartiteInfoDPD
 {
@@ -99,7 +100,7 @@ void _bipartite_dpd_directforces(float * const axayaz, const int np, const int n
 		 
 		const float rij = rij2 * invrij;
 		const float argwr = max((float)0, 1 - rij * invrc);
-		const float wr = powf(argwr, powf(0.5f, -VISCOSITY_S_LEVEL));
+		const float wr = viscosity_function<-VISCOSITY_S_LEVEL>(argwr);
 
 		const float xr = _xr * invrij;
 		const float yr = _yr * invrij;
@@ -256,7 +257,7 @@ __global__ __launch_bounds__(32 * CPB, 16)
 		const float invrij = rsqrtf(rij2);
 		const float rij = rij2 * invrij;
 		const float argwr = max((float)0, 1 - rij);
-		const float wr = powf(argwr, powf(0.5f, -VISCOSITY_S_LEVEL));
+		const float wr = viscosity_function<-VISCOSITY_S_LEVEL>(argwr);
 
 		const float xr = _xr * invrij;
 		const float yr = _yr * invrij;
