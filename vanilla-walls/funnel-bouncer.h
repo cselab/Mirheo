@@ -3,6 +3,7 @@
  *  Part of CTC/vanilla-walls/
  *
  *  Created and authored by Diego Rossinelli on 2014-08-11.
+ *  Major editing from Kirill Lykov on 2014-08-12.
  *  Copyright 2015. All rights reserved.
  *
  *  Users are NOT authorized
