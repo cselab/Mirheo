@@ -48,6 +48,7 @@ else
 NVCCFLAGS += -DNO_VTK
 endif
 
+floatized ?= 1
 slevel ?= 0
 
 NVCCFLAGS += -DVISCOSITY_S_LEVEL=$(slevel)
@@ -67,7 +68,7 @@ test:  $(OBJS) libcuda-dpd libcuda-rbc libcuda-ctc
 	$(NVCC) $(NVCCFLAGS) -M $*.cu > $*.d
 
 libcuda-dpd: 
-	make -C ../cuda-dpd-sem/dpd libcuda-dpd.a nonperiodic=1 CXX="$(CXX)" NVCC="$(NVCC)" ARCH_VAL="$(ARCH_VAL)" CODE_VAL="$(CODE_VAL)" slevel="$(slevel)"
+	make -C ../cuda-dpd-sem/dpd libcuda-dpd.a nonperiodic=1 floatized="$(floatized)" CXX="$(CXX)" NVCC="$(NVCC)" ARCH_VAL="$(ARCH_VAL)" CODE_VAL="$(CODE_VAL)" slevel="$(slevel)"
 
 libcuda-rbc: 
 	make -C ../cuda-rbc/ libcuda-rbc.a CXX="$(CXX)" NVCC="$(NVCC)" ARCH_VAL="$(ARCH_VAL)" CODE_VAL="$(CODE_VAL)"

@@ -1,0 +1,5 @@
+Generates parabolic funnels.
+./makeall.sh
+./run.sh
+
+The result is in the file sdf.dat

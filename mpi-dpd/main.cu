@@ -1,3 +1,15 @@
+/*
+ *  main.cu
+ *  Part of CTC/mpi-dpd/
+ *
+ *  Created and authored by Diego Rossinelli on 2014-11-14.
+ *  Copyright 2015. All rights reserved.
+ *
+ *  Users are NOT authorized
+ *  to employ the present software for their own publications
+ *  before getting a written permission from the author of this file.
+ */
+
 #include <cstdlib>
 #include <cstdio>
 #include <cmath>
@@ -18,9 +30,8 @@
 #include "redistribute-particles.h"
 #include "redistribute-rbcs.h"
 #include "rbc-interactions.h"
-#include "logistic.h"
-
 #include "ctc.h"
+#include "../cuda-dpd-sem/dpd-rng.h"
 
 bool currently_profiling = false;
 static const int blocksignal = false;
@@ -125,7 +136,7 @@ int main(int argc, char ** argv)
 	    MPI_CHECK( MPI_Cart_get(cartcomm, 3, dims, periods, coords) );
 
 	    MPI_CHECK(MPI_Barrier(activecomm));
-	    printf("(%d, %d, %d) -> %s\n", coords[0], coords[1], coords[2], name);
+	    printf("RANK %d: (%d, %d, %d) -> %s\n", rank, coords[0], coords[1], coords[2], name);
 	    fflush(stdout);
 	    MPI_CHECK(MPI_Barrier(activecomm));
 	}
@@ -172,8 +183,8 @@ int main(int argc, char ** argv)
 	    ComputeInteractionsCTC ctc_interactions(cartcomm);
 	    ComputeInteractionsWall * wall = NULL;
 
-            // in production runs replace the numbers with 4 unique ones that are same across ranks
-            KISS rng_trunk( 0x26F94D92, 0x383E7D1E, 0x46144B48, 0x6DDD73CB );
+		// in production runs replace the numbers with 4 unique ones that are same across ranks
+		Logistic::KISS rng_trunk( 0x26F94D92, 0x383E7D1E, 0x46144B48, 0x6DDD73CB );
 	    
 	    cudaStream_t mainstream;
 	    CUDA_CHECK(cudaStreamCreate(&mainstream));
@@ -394,8 +405,11 @@ int main(int argc, char ** argv)
 			}
 		    }
 
+
+		    MPI_CHECK(MPI_Barrier(activecomm));
 		    redistribute.adjust_message_sizes(new_sizes);
 		    dpd.adjust_message_sizes(new_sizes);
+		    MPI_CHECK(MPI_Barrier(activecomm));
 
 		    if (hdf5part_dumps)
 			dump_part.close();
@@ -428,7 +442,18 @@ int main(int argc, char ** argv)
 
 		    particles.resize(nsurvived);
 		    particles.clear_velocity();
-		    		    
+	
+		    {
+			H5PartDump sd("survived-particles.h5part", activecomm, cartcomm);
+			Particle * p = new Particle[particles.size];
+			
+			CUDA_CHECK(cudaMemcpy(p, particles.xyzuvw.data, sizeof(Particle) * particles.size, cudaMemcpyDeviceToHost));
+			
+			sd.dump(p, particles.size);
+			
+			delete [] p;
+		    }
+	    		    
 		    if (rank == 0)
 		    {
 			if( access( "particles.xyz", F_OK ) != -1 )
@@ -540,7 +565,7 @@ int main(int argc, char ** argv)
 		    dpd.wait_for_messages(mainstream);
 		    dpd.remote_interactions(particles.xyzuvw.data, particles.size, particles.axayaz.data, mainstream);
 
-		    timings["evaluate-dpd interactions"] += MPI_Wtime() - tstart; 
+		    timings["evaluate-interactions"] += MPI_Wtime() - tstart; 
 		    
 		    CUDA_CHECK(cudaPeekAtLastError());	
 		    	
@@ -643,7 +668,7 @@ int main(int argc, char ** argv)
 		    delete [] p;
 		    delete [] a;
 
-		     timings["diagnostics"] += MPI_Wtime() - tstart;
+		    timings["diagnostics"] += MPI_Wtime() - tstart;
 		}
 
 		tstart = MPI_Wtime();
@@ -678,14 +703,16 @@ int main(int argc, char ** argv)
 	    }
 
 	    const double time_simulation_stop = MPI_Wtime();
-	 
+	    const double telapsed = time_simulation_stop - time_simulation_start;
+
 	    if (rank == 0)
 		if (it == nsteps)
-		    printf("simulation is done after %.3e s. Ciao.\n", time_simulation_stop - time_simulation_start);
+		    printf("simulation is done after %.3e s (%dm%ds). Ciao.\n", 
+			   telapsed, (int)(telapsed / 60), (int)(telapsed) % 60);
 		else
 		    if (it != wall_creation_stepid)
-			printf("external termination request (signal) after %.3e s. Bye.\n", time_simulation_stop - time_simulation_start);
-
+			printf("external termination request (signal) after %.3e s. Bye.\n", telapsed);
+	    
 	    fflush(stdout);
 	    
 	    CUDA_CHECK(cudaStreamDestroy(mainstream));

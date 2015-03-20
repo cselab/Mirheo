@@ -1,3 +1,15 @@
+/*
+ *  dpd-interactions.cu
+ *  Part of CTC/mpi-dpd/
+ *
+ *  Created and authored by Diego Rossinelli on 2015-03-04.
+ *  Copyright 2015. All rights reserved.
+ *
+ *  Users are NOT authorized
+ *  to employ the present software for their own publications
+ *  before getting a written permission from the author of this file.
+ */
+
 #include <cassert>
 
 #include <algorithm>
@@ -125,7 +137,7 @@ namespace RemoteDPD
 	int pid = scattered_indices[idpack][offset];
 
 	if (!(pid >= 0 && pid < nlocal))
-	    printf("oooooops pid is %d whereas nlocal is %d\n", pid, nlocal);
+	    cuda_printf("oooooops pid is %d whereas nlocal is %d\n", pid, nlocal);
 	assert(pid >= 0 && pid < nlocal);
 
 	Acceleration a = remote_accelerations[idpack][offset];

@@ -2,6 +2,14 @@
 
 include ../Makefile
 
+CUDADPD = cuda-dpd.cu
+CUDADPDBIP = cuda-dpd-bipartite.cu
+
+ifeq "$(floatized)" "1"
+CUDADPD = cuda-dpd-floatized.cu
+CUDADPDBIP = cuda-dpd-bipartite-floatized.cu
+endif
+
 ifeq "$(nonperiodic)" "1"
     NVCCFLAGS += -D_NONPERIODIC_KERNEL_
 endif
@@ -24,12 +32,12 @@ libcuda-dpd.so: cuda-dpd.o cuda-dpd-bipartite.o ../profiler-dpd.o celllists
 libcuda-dpd.a: cuda-dpd.o cuda-dpd-bipartite.o ../profiler-dpd.o celllists
 	ar rcs $@ cuda-dpd.o cuda-dpd-bipartite.o ../profiler-dpd.o ../cell-lists.o
 
-cuda-dpd.o: cuda-dpd.cu cuda-dpd.h
-	$(NVCC) $(NVCCFLAGS) -cubin cuda-dpd.cu
-	$(NVCC) $(NVCCFLAGS) -c cuda-dpd.cu
+cuda-dpd.o: $(CUDADPD) cuda-dpd.h
+	$(NVCC) $(NVCCFLAGS) -cubin $(CUDADPD)
+	$(NVCC) $(NVCCFLAGS) -c $(CUDADPD) -o $@
 
-cuda-dpd-bipartite.o: cuda-dpd-bipartite.cu cuda-dpd.h
-	$(NVCC) $(NVCCFLAGS) -c cuda-dpd-bipartite.cu
+cuda-dpd-bipartite.o: $(CUDADPDBIP) cuda-dpd.h
+	$(NVCC) $(NVCCFLAGS) -c $(CUDADPDBIP) -o $@
 
 ../%.o:
 	make -C ../ $(@:../%=%) CXX="$(CXX)" NVCC="$(NVCC)"

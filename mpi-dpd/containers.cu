@@ -1,3 +1,15 @@
+/*
+ *  containers.cu
+ *  Part of CTC/mpi-dpd/
+ *
+ *  Created and authored by Diego Rossinelli on 2014-12-05.
+ *  Copyright 2015. All rights reserved.
+ *
+ *  Users are NOT authorized
+ *  to employ the present software for their own publications
+ *  before getting a written permission from the author of this file.
+ */
+
 #include <sys/stat.h>
 
 #include <rbc-cuda.h>
@@ -72,7 +84,7 @@ namespace ParticleKernels
 	
 	if (!(myx >= -L[c] -L[c]/2) || !(myx <= +L[c] +L[c]/2))
 	{
-	    printf("Uau: pid %d c %d: x %f u %f and a %f\n",
+	    cuda_printf("Uau: pid %d c %d: x %f u %f and a %f\n",
 		   pid, c, myx, myu, mya);
 	    
 	    assert(myx >= -L[c] -L[c]/2);
