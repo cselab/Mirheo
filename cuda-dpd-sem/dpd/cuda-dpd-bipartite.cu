@@ -200,7 +200,7 @@ void _dpd_bipforces( const float2 * const xyzuvw, const int np, cudaTextureObjec
     }
 
     for( int L = 1; L < 32; L <<= 1 )
-        myscan += ( tid >= L ) * __shfl_up( myscan, L ) ;
+        myscan += ( tid >= L ) * i2u( __shfl_up( u2i(myscan), L ) );
 
     if( tid < 28 )
         scan[wid][tid] = myscan - mycount;

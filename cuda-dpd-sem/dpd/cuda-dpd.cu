@@ -318,7 +318,7 @@ void _dpd_forces()
     }
 
     for( uint L = 1u; L < 32u; L <<= 1 ) {
-    	uint theirscan = __shfl_up( int(myscan), int(L) );
+    	uint theirscan = i2u( __shfl_up( u2i(myscan), u2i(L) ) );
         myscan = xadd( myscan, xsel_ge( tid, L, theirscan, 0u ) );
     }
 
