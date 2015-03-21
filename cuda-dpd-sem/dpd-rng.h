@@ -91,22 +91,22 @@ __inline__ __device__ float SQR( float x ) {
 // <3> : 4 FMA + 1 MUL
 // <2> : 2 FMA + 1 MUL
 // <1> : 1 FMA + 1 MUL
-template<int N> __inline__ __device__ float __logistic_core( float x ) {
-    float x2 = SQR( x );
-    float r = FMA( FMA( FMA( FMA( 128.0, x2, -256.0 ), x2, 160.0 ), x2, -32.0 ), x2, 1.0 );
-    return __logistic_core < N - 3 > ( r );
-}
-
-template<> __inline__ __device__ float __logistic_core<2>( float x ) {
-	float x2 = SQR( x );
-    return FMA( FMA( 8.0, x2, -8.0 ), x2, 1.0 );
-}
-//template<int N> __inline__ __device__ float __logistic_core( float x )
-//{
-//    float x2 = x * x;
-//    float r = FMA( FMA( 8.0, x2, -8.0 ), x2, 1.0 );
-//    return __logistic_core < N - 2 > ( r );
+//template<int N> __inline__ __device__ float __logistic_core( float x ) {
+//    float x2 = SQR( x );
+//    float r = FMA( FMA( FMA( FMA( 128.0, x2, -256.0 ), x2, 160.0 ), x2, -32.0 ), x2, 1.0 );
+//    return __logistic_core < N - 3 > ( r );
 //}
+//
+//template<> __inline__ __device__ float __logistic_core<2>( float x ) {
+//	float x2 = SQR( x );
+//    return FMA( FMA( 8.0, x2, -8.0 ), x2, 1.0 );
+//}
+template<int N> __inline__ __device__ float __logistic_core( float x )
+{
+    float x2 = x * x;
+    float r = FMA( FMA( 8.0, x2, -8.0 ), x2, 1.0 );
+    return __logistic_core < N - 2 > ( r );
+}
 
 template<> __inline__ __device__ float __logistic_core<1>( float x ) {
 	float x2 = SQR( x );
@@ -125,7 +125,7 @@ template<> __inline__ __device__ float __logistic_core<0>( float x ) {
 // can be used directly for DPD
 
 // passes of logistic map
-const static int N = 21;
+const static int N = 18;
 // spacing coefficints for low discrepancy numbers
 const static float gold   = 0.6180339887498948482;
 const static float hugegold   = 0.6180339887498948482E39;
