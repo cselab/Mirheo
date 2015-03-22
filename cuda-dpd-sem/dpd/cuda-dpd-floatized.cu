@@ -15,9 +15,10 @@
 
 #include "../tiny-float.h"
 #include "../dpd-rng.h"
+#include "../hacks.h"
 
 //#define PROF_TRIGGER
-#define USE_TEXOBJ 0
+#define USE_TEXOBJ 3
 
 struct InfoDPD {
     int3 ncells;
@@ -38,6 +39,39 @@ __constant__ InfoDPD info;
 texture<float2, cudaTextureType1D> texParticles2;
 texture<uint, cudaTextureType1D> texStart, texCount;
 #endif
+#if (USE_TEXOBJ&1)
+template<typename TYPE> struct texture_object {
+	cudaTextureObject_t txo;
+	cudaResourceDesc res_desc;
+	cudaTextureDesc tex_desc;
+	TYPE *ptr_;
+	long long n_;
+
+	texture_object() : txo(0), ptr_(NULL), n_(0LL) {}
+
+	inline operator cudaTextureObject_t () { return txo; };
+
+	inline cudaTextureObject_t rebind( TYPE *ptr, const long long n ) {
+		if ( ptr != ptr_ || ( ptr == ptr_ && n > n_ ) ) {
+			if ( txo ) CUDA_CHECK( cudaDestroyTextureObject( txo ) );
+			ptr_ = ptr;
+			n_ = n;
+			res_desc.resType = cudaResourceTypeLinear;
+			res_desc.res.linear.desc = cudaCreateChannelDesc<TYPE>();
+			res_desc.res.linear.devPtr = ptr_;
+			res_desc.res.linear.sizeInBytes = sizeof( TYPE ) * n_;
+			tex_desc.readMode = cudaReadModeElementType;
+			CUDA_CHECK( cudaCreateTextureObject( &txo, &res_desc, &tex_desc, NULL ) );
+		}
+		return txo;
+	}
+};
+
+texture_object<float2> txoParticles2;
+texture_object<uint> txoStart, txoCount;
+#endif
+
+
 
 #define _XCPB_ 2
 #define _YCPB_ 2
@@ -45,8 +79,6 @@ texture<uint, cudaTextureType1D> texStart, texCount;
 #define CPB (_XCPB_ * _YCPB_ * _ZCPB_)
 //#define  _TIME_PROFILE_
 //#define _INSPECT_
-
-#if 1
 
 template<int s>
 __device__ float viscosity_function( float x )
@@ -343,161 +375,6 @@ void _dpd_forces()
         core_ilp<32, 1, 2>( nsrc, ( const uint * )scan[wid], ( const uint * )starts[wid], 1, xadd( dststart, d ) );
 }
 
-#else
-__global__ __launch_bounds__( 32 * CPB, 16 )
-void _dpd_forces()
-{
-    const int COLS = 32;
-    const int ROWS = 1;
-    assert( warpSize == COLS * ROWS );
-    assert( blockDim.x == warpSize && blockDim.y == CPB && blockDim.z == 1 );
-    assert( ROWS * 3 <= warpSize );
-
-    const int tid = threadIdx.x;
-    const int subtid = tid % COLS;
-    const int slot = tid / COLS;
-    const int wid = threadIdx.y;
-
-    __shared__ int volatile starts[CPB][32], scan[CPB][32];
-
-    int mycount = 0, myscan = 0;
-    if( tid < 27 ) {
-        const int dx = ( tid ) % 3;
-        const int dy = ( ( tid / 3 ) ) % 3;
-        const int dz = ( ( tid / 9 ) ) % 3;
-
-        int xcid = blockIdx.x * _XCPB_ + ( ( threadIdx.y ) % _XCPB_ ) + dx - 1;
-        int ycid = blockIdx.y * _YCPB_ + ( ( threadIdx.y / _XCPB_ ) % _YCPB_ ) + dy - 1;
-        int zcid = blockIdx.z * _ZCPB_ + ( ( threadIdx.y / ( _XCPB_ * _YCPB_ ) ) % _ZCPB_ ) + dz - 1;
-
-        const bool valid_cid =
-            xcid >= 0 && xcid < info.ncells.x &&
-            ycid >= 0 && ycid < info.ncells.y &&
-            zcid >= 0 && zcid < info.ncells.z ;
-
-        xcid = min( info.ncells.x - 1, max( 0, xcid ) );
-        ycid = min( info.ncells.y - 1, max( 0, ycid ) );
-        zcid = min( info.ncells.z - 1, max( 0, zcid ) );
-
-        const int cid = max( 0, xcid + info.ncells.x * ( ycid + info.ncells.y * zcid ) );
-
-        starts[wid][tid] = tex1Dfetch( texStart, cid );
-
-        myscan = mycount = valid_cid * tex1Dfetch( texCount, cid );
-    }
-
-    for( int L = 1; L < 32; L <<= 1 )
-        myscan += ( tid >= L ) * __shfl_up( myscan, L ) ;
-
-    if( tid < 28 )
-        scan[wid][tid] = myscan - mycount;
-
-    const int dststart = starts[wid][1 + 3 + 9];
-    const int nsrc = scan[wid][27], ndst = scan[wid][1 + 3 + 9 + 1] - scan[wid][1 + 3 + 9];
-
-    for( int d = 0; d < ndst; d += ROWS ) {
-        const int np1 = min( ndst - d, ROWS );
-
-        const int dpid = dststart + d + slot;
-        const int entry = 3 * dpid;
-        float2 dtmp0 = tex1Dfetch( texParticles2, entry );
-        float2 dtmp1 = tex1Dfetch( texParticles2, entry + 1 );
-        float2 dtmp2 = tex1Dfetch( texParticles2, entry + 2 );
-
-        float xforce = 0, yforce = 0, zforce = 0;
-
-        for( int s = 0; s < nsrc; s += COLS ) {
-            const int np2 = min( nsrc - s, COLS );
-
-            const int pid = s + subtid;
-            const int key9 = 9 * ( ( pid >= scan[wid][9] ) + ( pid >= scan[wid][18] ) );
-            const int key3 = 3 * ( ( pid >= scan[wid][key9 + 3] ) + ( pid >= scan[wid][key9 + 6] ) );
-            const int key = key9 + key3;
-
-            const int spid = pid - scan[wid][key] + starts[wid][key];
-            const int sentry = 3 * spid;
-            const float2 stmp0 = tex1Dfetch( texParticles2, sentry );
-            const float2 stmp1 = tex1Dfetch( texParticles2, sentry + 1 );
-            const float2 stmp2 = tex1Dfetch( texParticles2, sentry + 2 );
-
-#ifndef NDEBUG
-            {
-                const int key1 = ( pid >= scan[wid][key9 + key3 + 1] ) + ( pid >= scan[wid][key9 + key3 + 2] );
-                const int keyref = key9 + key3 + key1;
-                assert( keyref >= 0 && keyref < 27 );
-                assert( pid >= scan[wid][keyref] );
-                assert( pid < scan[wid][keyref + 1] || pid >= nsrc );
-
-                const int spidref = pid - scan[wid][keyref] + starts[wid][keyref];
-                assert( spidref == spid || pid >= nsrc );
-            }
-#endif
-
-            {
-                const float xdiff = dtmp0.x - stmp0.x;
-                const float ydiff = dtmp0.y - stmp0.y;
-                const float zdiff = dtmp1.x - stmp1.x;
-
-#ifndef _NONPERIODIC_KERNEL_
-                asdasda
-                const float _xr = xdiff - info.domainsize.x * floorf( 0.5f + xdiff * info.invdomainsize.x );
-                const float _yr = ydiff - info.domainsize.y * floorf( 0.5f + ydiff * info.invdomainsize.y );
-                const float _zr = zdiff - info.domainsize.z * floorf( 0.5f + zdiff * info.invdomainsize.z );
-#else
-                const float _xr = xdiff;
-                const float _yr = ydiff;
-                const float _zr = zdiff;
-#endif
-                const float rij2 = _xr * _xr + _yr * _yr + _zr * _zr;
-                const float invrij = rsqrtf( rij2 );
-                const float rij = rij2 * invrij;
-                const float argwr = max( ( float )0, 1 - rij * info.invrc );
-                const float wr = viscosity_function<-VISCOSITY_S_LEVEL>(argwr);
-
-                const float xr = _xr * invrij;
-                const float yr = _yr * invrij;
-                const float zr = _zr * invrij;
-
-                const float rdotv =
-                    xr * ( dtmp1.y - stmp1.y ) +
-                    yr * ( dtmp2.x - stmp2.x ) +
-                    zr * ( dtmp2.y - stmp2.y );
-
-                const float myrandnr = Logistic::mean0var1( info.seed, min( spid, dpid ), max( spid, dpid ) );
-
-                const float strength = info.aij * argwr - ( info.gamma * wr * rdotv + info.sigmaf * myrandnr ) * wr;
-                const bool valid = ( dpid != spid ) && ( slot < np1 ) && ( subtid < np2 );
-
-                if( valid ) {
-#ifdef _CHECK_
-                    xforce += ( rij2 < 1 );
-                    yforce += wr;
-                    zforce += 0;
-#else
-                    xforce += strength * xr;
-                    yforce += strength * yr;
-                    zforce += strength * zr;
-#endif
-                }
-            }
-        }
-
-        for( int L = COLS / 2; L > 0; L >>= 1 ) {
-            xforce += __shfl_xor( xforce, L );
-            yforce += __shfl_xor( yforce, L );
-            zforce += __shfl_xor( zforce, L );
-        }
-
-        const int c = ( subtid % 3 );
-        const float fcontrib = ( c == 0 ) * xforce + ( c == 1 ) * yforce + ( c == 2 ) * zforce; //f[subtid % 3];
-        const int dstpid = dststart + d + slot;
-
-        if( slot < np1 )
-            info.axayaz[c + 3 * dstpid] = fcontrib;
-    }
-}
-#endif
-
 #ifdef _INSPECT_
 __global__ __launch_bounds__( 32 * CPB, 8 )
 void inspect_dpd_forces( const int COLS, const int ROWS, const int nparticles, int2 * const entries, const int nentries )
@@ -611,7 +488,7 @@ void forces_dpd_cuda_nohost( const float * const xyzuvw, float * const axayaz,  
                              const float invsqrtdt,
                              const float seed, cudaStream_t stream )
 {
-    if( np == 0 ) {
+	if( np == 0 ) {
         printf( "WARNING: forces_dpd_cuda_nohost called with np = %d\n", np );
         return;
     }
@@ -644,67 +521,10 @@ void forces_dpd_cuda_nohost( const float * const xyzuvw, float * const axayaz,  
     c.sigmaf = sigma * invsqrtdt;
     c.axayaz = axayaz;
     c.seed = seed;
-
 	#if (USE_TEXOBJ&1)
-	{
-		static cudaResourceDesc res_desc;
-		static cudaTextureDesc tex_desc;
-		static cudaTextureObject_t txo;
-		if ( const_cast<float*>(xyzuvw) != res_desc.res.linear.devPtr ) {
-			if ( txo ) {
-				printf("destroyed\n");
-				CUDA_CHECK( cudaDestroyTextureObject(txo) );
-			}
-			res_desc.resType = cudaResourceTypeLinear;
-			res_desc.res.linear.devPtr = const_cast<float*>(xyzuvw);
-			res_desc.res.linear.desc = cudaCreateChannelDesc<float2>();
-			res_desc.res.linear.sizeInBytes = sizeof( float ) * 6 * np;
-			tex_desc.readMode = cudaReadModeElementType;
-			CUDA_CHECK( cudaCreateTextureObject( &txo, &res_desc, &tex_desc, NULL ) );
-			printf("created\n");
-		}
-		c.txoParticles2 = txo;
-	}
-
-	{
-		static cudaResourceDesc res_desc;
-		static cudaTextureDesc tex_desc;
-		static cudaTextureObject_t txo;
-		if ( const_cast<int*>(cellsstart) != res_desc.res.linear.devPtr ) {
-			if ( txo ) {
-				printf("destroyed\n");
-				CUDA_CHECK( cudaDestroyTextureObject(txo) );
-			}
-			res_desc.resType = cudaResourceTypeLinear;
-			res_desc.res.linear.devPtr = const_cast<int*>(cellsstart);
-			res_desc.res.linear.desc = cudaCreateChannelDesc<uint>();
-			res_desc.res.linear.sizeInBytes = sizeof( uint ) * ncells;
-			tex_desc.readMode = cudaReadModeElementType;
-			CUDA_CHECK( cudaCreateTextureObject( &txo, &res_desc, &tex_desc, NULL ) );
-			printf("created\n");
-		}
-		c.txoStart = txo;
-	}
-
-	{
-		static cudaResourceDesc res_desc;
-		static cudaTextureDesc tex_desc;
-		static cudaTextureObject_t txo;
-		if ( const_cast<int*>(cellscount) != res_desc.res.linear.devPtr ) {
-			if ( txo ) {
-				printf("destroyed\n");
-				CUDA_CHECK( cudaDestroyTextureObject(txo) );
-			}
-			res_desc.resType = cudaResourceTypeLinear;
-			res_desc.res.linear.devPtr = const_cast<int*>(cellscount);
-			res_desc.res.linear.desc = cudaCreateChannelDesc<uint>();
-			res_desc.res.linear.sizeInBytes = sizeof( uint ) * ncells;
-			tex_desc.readMode = cudaReadModeElementType;
-			CUDA_CHECK( cudaCreateTextureObject( &txo, &res_desc, &tex_desc, NULL ) );
-			printf("created\n");
-		}
-		c.txoCount = txo;
-	}
+    c.txoParticles2 = txoParticles2.rebind( (float2*)const_cast<float*>(xyzuvw), 3 * np );
+    c.txoStart = txoStart.rebind( (uint*)const_cast<int*>(cellsstart), ncells );
+    c.txoCount = txoCount.rebind( (uint*)const_cast<int*>(cellscount), ncells );
 	#endif
 
 	if( !fdpd_init ) {
@@ -1001,8 +821,6 @@ void forces_dpd_cuda( const float * const xp, const float * const yp, const floa
                       const float seed )
 {
     if( np <= 0 ) return;
-
-    printf("%s %d\n",__FILE__,__LINE__);
 
     if( np > fdpd_oldnp ) {
         if( fdpd_oldnp > 0 ) {
