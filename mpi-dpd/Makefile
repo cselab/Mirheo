@@ -49,7 +49,12 @@ NVCCFLAGS += -DNO_VTK
 endif
 
 floatized ?= 1
+jittered ?= 0
 slevel ?= 0
+
+ifeq "$(jittered)" "1"
+NVCCFLAGS += -D_JITTERED_IC
+endif
 
 NVCCFLAGS += -DVISCOSITY_S_LEVEL=$(slevel)
 

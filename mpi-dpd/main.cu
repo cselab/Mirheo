@@ -142,8 +142,21 @@ int main(int argc, char ** argv)
 	}
 	
 	{
-	    vector<Particle> ic(XSIZE_SUBDOMAIN * YSIZE_SUBDOMAIN * ZSIZE_SUBDOMAIN * numberdensity);
-	    
+ 	    vector<Particle> ic(XSIZE_SUBDOMAIN * YSIZE_SUBDOMAIN * ZSIZE_SUBDOMAIN * numberdensity);
+#ifdef _JITTERED_IC
+		for(int k=0;k<ZSIZE_SUBDOMAIN;k++)
+			for(int j=0;j<YSIZE_SUBDOMAIN;j++)
+				for(int i=0; i<XSIZE_SUBDOMAIN;i++)
+					for(int l=0;l<numberdensity;l++) {
+						int p = l + numberdensity * ( i + XSIZE_SUBDOMAIN * ( j + YSIZE_SUBDOMAIN * k ) );
+						ic[p].x[0] = drand48() - 0.5 * XSIZE_SUBDOMAIN + i;
+						ic[p].x[1] = drand48() - 0.5 * YSIZE_SUBDOMAIN + j;
+						ic[p].x[2] = drand48() - 0.5 * ZSIZE_SUBDOMAIN + k;
+						ic[p].u[0] = 0;
+						ic[p].u[1] = 0;
+						ic[p].u[2] = 0;
+					}
+#else
 	    const int L[3] = { XSIZE_SUBDOMAIN, YSIZE_SUBDOMAIN, ZSIZE_SUBDOMAIN };
 	    for(int i = 0; i < ic.size(); ++i)
 		for(int c = 0; c < 3; ++c)
@@ -151,7 +164,8 @@ int main(int argc, char ** argv)
 		    ic[i].x[c] = -L[c] * 0.5 + drand48() * L[c];
 		    ic[i].u[c] = 0;
 		}
-	    	    	 	    
+#endif
+
 	    ParticleArray particles(ic);
 	    
 	    CellLists cells(XSIZE_SUBDOMAIN, YSIZE_SUBDOMAIN, ZSIZE_SUBDOMAIN);		  
