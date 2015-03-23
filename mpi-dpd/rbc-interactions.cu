@@ -251,6 +251,8 @@ void ComputeInteractionsRBC::_compute_extents(const Particle * const rbcs, const
 
 void ComputeInteractionsRBC::pack_and_post(const Particle * const rbcs, const int nrbcs, cudaStream_t stream)
 {
+    NVTX_RANGE("RBC/pack-post", NVTX_C2);
+
     extents.resize(nrbcs);
  
     _compute_extents(rbcs, nrbcs, stream);
@@ -367,45 +369,61 @@ void ComputeInteractionsRBC::evaluate(const Particle * const solvent, const int 
 
     if (nrbcs > 0 && nparticles > 0)
     {
+	NVTX_RANGE("RBC/local forces", NVTX_C3);
+
 	KernelsRBC::fsi_forces<<< (nrbcs * nvertices + 127) / 128, 128, 0, stream >>>
 	    (local_trunk.get_float(), accsolvent, nparticles, rbcs, nrbcs * nvertices, accrbc);
 		
 	_internal_forces(rbcs, nrbcs, accrbc, stream);
     }
     
-    _wait(reqrecvp);
-    _wait(reqsendp);
-    
-    for(int i = 0; i < 26; ++i)
     {
-	const int count = remote[i].state.size;
+	NVTX_RANGE("RBC/wait-exchange", NVTX_C4);
+	_wait(reqrecvp);
+	_wait(reqsendp);
+    }
+    
+    {
+	NVTX_RANGE("RBC/fsi", NVTX_C5);
+	for(int i = 0; i < 26; ++i)
+	{
+	    const int count = remote[i].state.size;
 
-	if (count > 0)
-	    KernelsRBC::fsi_forces<<< (count + 127) / 128, 128, 0, stream >>>
-	    	(local_trunk.get_float(), accsolvent, nparticles, remote[i].state.devptr, count, remote[i].result.devptr);
+	    if (count > 0)
+		KernelsRBC::fsi_forces<<< (count + 127) / 128, 128, 0, stream >>>
+		    (local_trunk.get_float(), accsolvent, nparticles, remote[i].state.devptr, count, remote[i].result.devptr);
+	}
+	
+	CUDA_CHECK(cudaEventRecord(evfsi));
+	CUDA_CHECK(cudaEventSynchronize(evfsi));
     }
 
-    CUDA_CHECK(cudaEventRecord(evfsi));
-    CUDA_CHECK(cudaEventSynchronize(evfsi));
+    {
+	NVTX_RANGE("RBC/send-results", NVTX_C6);
 
-    for(int i = 0; i < 26; ++i)
-	if (recv_counts[i] > 0)
-	{
-	    MPI_Request request;
-	    
-	    MPI_CHECK(MPI_Isend(remote[i].result.data, recv_counts[i] * nvertices, Acceleration::datatype(), dstranks[i],
+	for(int i = 0; i < 26; ++i)
+	    if (recv_counts[i] > 0)
+	    {
+		MPI_Request request;
+		
+		MPI_CHECK(MPI_Isend(remote[i].result.data, recv_counts[i] * nvertices, Acceleration::datatype(), dstranks[i],
 				i + 2285, cartcomm, &request));
+		
+		reqsendacc.push_back(request);
+	    }
 
-	    reqsendacc.push_back(request);
-	}
+	_wait(reqrecvacc);
+	_wait(reqsendacc);
+    }
+    
+    {
+	NVTX_RANGE("RBC/merge", NVTX_C7);
 
-    _wait(reqrecvacc);
-    _wait(reqsendacc);
-
-    for(int i = 0; i < 26; ++i)
-	for(int j = 0; j < haloreplica[i].size(); ++j)
-	    KernelsRBC::merge_accelerations<<< (nvertices + 127) / 128, 128, 0, stream>>>(local[i].result.devptr + nvertices * j, nvertices,
-										accrbc + nvertices * haloreplica[i][j]);
+	for(int i = 0; i < 26; ++i)
+	    for(int j = 0; j < haloreplica[i].size(); ++j)
+		KernelsRBC::merge_accelerations<<< (nvertices + 127) / 128, 128, 0, stream>>>(local[i].result.devptr + nvertices * j, nvertices,
+											      accrbc + nvertices * haloreplica[i][j]);
+    }
 }
 
 ComputeInteractionsRBC::~ComputeInteractionsRBC()

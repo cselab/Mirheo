@@ -227,13 +227,13 @@ int main(int argc, char ** argv)
 	    for(it = 0; it < nsteps; ++it)
 	    {
 #ifdef _USE_NVTX_
-		if (it == 7000)
+		if (it == 1001)
 		{
 		    currently_profiling = true;
 		    CUDA_CHECK(cudaProfilerStart());
 		    
 		}
-		else if (it == 7050)
+		else if (it == 1051)
 		{
 		    CUDA_CHECK(cudaProfilerStop());
 		    currently_profiling = false;
@@ -535,7 +535,6 @@ int main(int argc, char ** argv)
 			driving_acceleration = hydrostatic_a;
 
 		    CUDA_CHECK(cudaPeekAtLastError());
-
 
 		    if (rank == 0)
 			printf("the simulation begins now and it consists of %.3e steps\n", (double)(nsteps - it));

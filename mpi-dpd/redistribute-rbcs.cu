@@ -51,12 +51,16 @@ RedistributeRBCs::RedistributeRBCs(MPI_Comm _cartcomm): nvertices(CudaRBC::get_n
 
 void RedistributeRBCs::_compute_extents(const Particle * const xyzuvw, const int nrbcs, cudaStream_t stream)
 {
+    NVTX_RANGE("RDC/extent", NVTX_C7);
+
     for(int i = 0; i < nrbcs; ++i)
 	CudaRBC::extent_nohost(stream, (float *)(xyzuvw + nvertices * i), extents.devptr + i);
 }
 
 int RedistributeRBCs::stage1(const Particle * const xyzuvw, const int nrbcs, cudaStream_t stream)
 {
+    NVTX_RANGE("RDC/stage1", NVTX_C3);
+
     extents.resize(nrbcs);
  
     _compute_extents(xyzuvw, nrbcs, stream);
@@ -197,6 +201,8 @@ namespace ParticleReorderingRBC
 
 void RedistributeRBCs::stage2(Particle * const xyzuvw, const int nrbcs, cudaStream_t stream)
 {
+    NVTX_RANGE("RDC/stage2", NVTX_C7);
+
     assert(notleaving + arriving == nrbcs);
 
     MPI_Status statuses[26];

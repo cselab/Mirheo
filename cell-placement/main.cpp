@@ -277,7 +277,7 @@ int main(int argc, const char ** argv)
 	int attempt = 0;
 	for(; attempt < maxattempts; ++attempt)
 	{
-	    const int type = (int)(drand48() >= 0.25);
+	    const int type = 0;//(int)(drand48() >= 0.25);
 
 	    TransformedExtent t(extents[type], domainextent);
 	    
