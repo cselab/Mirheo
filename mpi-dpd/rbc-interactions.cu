@@ -271,8 +271,6 @@ void ComputeInteractionsRBC::pack_and_post(const Particle * const rbcs, const in
 
     for(int i = 0; i < nrbcs; ++i)
     {
-	//const CudaRBC::Extent ext = extents.data[i];
-	
 	float pmin[3] = {minextents.data[i].x, minextents.data[i].y, minextents.data[i].z};
 	float pmax[3] = {maxextents.data[i].x, maxextents.data[i].y, maxextents.data[i].z};
 

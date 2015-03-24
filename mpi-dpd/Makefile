@@ -20,6 +20,7 @@ OBJS = 	dpd-interactions.o \
 	rbc-interactions.o \
 	containers.o \
 	io.o \
+	simulation.o \
 	main.o 
 
 LIBS = -lcuda-dpd -lcuda-rbc -lcuda-ctc -lcudart 

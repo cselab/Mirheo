@@ -16,6 +16,10 @@
 
 #include "common.h"
 
+#ifdef _USE_NVTX_
+bool NvtxTracer::currently_profiling = false;
+#endif
+
 bool Particle::initialized = false;
 
 MPI_Datatype Particle::mytype;
