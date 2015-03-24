@@ -53,6 +53,7 @@ class Simulation
     int nranks, rank;  
 	    
     std::vector<Particle> _ic();
+
     void _redistribute();
     void _report(const bool verbose, const int idtimestep);
     void _create_walls(const bool verbose, bool & termination_request);

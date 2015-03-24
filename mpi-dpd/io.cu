@@ -3,6 +3,7 @@
  *  Part of CTC/mpi-dpd/
  *
  *  Created and authored by Diego Rossinelli on 2015-01-30.
+ *  Major bug in H5 dump fixed by Panotelli on 2015-03-24.
  *  Copyright 2015. All rights reserved.
  *
  *  Users are NOT authorized
@@ -403,10 +404,10 @@ void H5FieldDump::dump(MPI_Comm comm, const Particle * const p, const int n, int
     for(int i = 0; i < n; ++i)
     {
 	const int cellindex[3] = {
-	    (int)floor(p[i].x[0] + XSIZE_SUBDOMAIN / 2),
-	    (int)floor(p[i].x[1] + YSIZE_SUBDOMAIN / 2),
-	    (int)floor(p[i].x[2] + ZSIZE_SUBDOMAIN / 2)
-	};
+            (int)floor((double) p[i].x[0] + XSIZE_SUBDOMAIN / 2),
+            (int)floor((double) p[i].x[1] + YSIZE_SUBDOMAIN / 2),
+            (int)floor((double) p[i].x[2] + ZSIZE_SUBDOMAIN / 2)
+        };
 
 	const int entry = cellindex[0] + XSIZE_SUBDOMAIN * (cellindex[1] + YSIZE_SUBDOMAIN * cellindex[2]);
 
