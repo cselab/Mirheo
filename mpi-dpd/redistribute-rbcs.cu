@@ -51,8 +51,7 @@ RedistributeRBCs::RedistributeRBCs(MPI_Comm _cartcomm): nvertices(CudaRBC::get_n
 
 void RedistributeRBCs::_compute_extents(const Particle * const xyzuvw, const int nrbcs, cudaStream_t stream)
 {
-    for(int i = 0; i < nrbcs; ++i)
-	CudaRBC::extent_nohost(stream, (float *)(xyzuvw + nvertices * i), extents.devptr + i);
+	CudaRBC::extent_nohost(stream, nrbcs, (float *)xyzuvw, extents.devptr);
 }
 
 int RedistributeRBCs::stage1(const Particle * const xyzuvw, const int nrbcs, cudaStream_t stream)

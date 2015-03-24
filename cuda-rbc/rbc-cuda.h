@@ -15,34 +15,43 @@ using namespace std;
 
 namespace CudaRBC
 {
-    struct
-    {
-	float kbT, p, lmax, q, Cq, totArea0, totVolume0, area0,
-	    ka, kd, kv, gammaT, gammaC,  sinTheta0, cosTheta0, kb;
+	struct Params
+	{
+		float kbT, p, lmax, q, Cq, totArea0, totVolume0, area0,
+		ka, kd, kv, gammaT, gammaC,  sinTheta0, cosTheta0, kb,
+		rc, aij, gamma, sigma, dt, mass;
+		int ntriang, ndihedrals, nparticles;
 
-    } static params;
+	};
 
-    struct Extent
-    {
-	float xmin, ymin, zmin;
-	float xmax, ymax, zmax;
-    };
+	struct Extent
+	{
+		float xmin, ymin, zmin;
+		float xmax, ymax, zmax;
+	};
 
-/* blocking, initializes params */
-    void setup(int& nvertices, Extent& host_extent);
+	static Params params;
+	static __constant__ Params devParams;
 
-    int get_nvertices();
-    
-/* A * (x, 1) */
-    void initialize(float *device_xyzuvw, const float (*transform)[4]);
+	/* blocking, initializes params */
+	void setup(int& nvertices, Extent& host_extent, float scale = 1.0f);
 
-/* non-synchronizing */
-    void forces_nohost(cudaStream_t stream, const float * const device_xyzuvw, float * const device_axayaz);
+	void unitsSetup(float lmax, float p, float cq, float kb, float ka, float kv, float gammaC,
+			float totArea0, float totVolume0, float lunit, float tunit, int ndens, bool prn);
 
-/*non-synchronizing, extent not initialized */
-    void extent_nohost(cudaStream_t stream, const float * const xyzuvw, Extent * device_extent);
+	int get_nvertices();
+	Params& get_params();
+	float* get_orig_xyzuvw();
 
-/* get me a pointer to YOUR plain array - no allocation on my side */
-    void get_triangle_indexing(int (*&host_triplets_ptr)[3], int& ntriangles);
+	/* A * (x, 1) */
+	void initialize(float *device_xyzuvw, const float (*transform)[4]);
 
+	/* non-synchronizing */
+	void forces_nohost(cudaStream_t stream, int ncells, const float * const device_xyzuvw, float * const device_axayaz);
+
+	/*non-synchronizing, extent not initialized */
+	void extent_nohost(cudaStream_t stream, int ncells, const float * const xyzuvw, Extent * device_extent, int n = -1);
+
+	/* get me a pointer to YOUR plain array - no allocation on my side */
+	void get_triangle_indexing(int (*&host_triplets_ptr)[3], int& ntriangles);
 };

@@ -29,6 +29,7 @@ struct ParticleArray
     ParticleArray(std::vector<Particle> ic);
 
     void resize(int n);
+    void preserve_resize(int n);
     void update_stage1(const float driving_acceleration, cudaStream_t stream);
     void update_stage2_and_1(const float driving_acceleration, cudaStream_t stream);
     void clear_velocity();
@@ -60,6 +61,7 @@ public:
     Acceleration * acc() { return axayaz.data; }
     void remove(const int * const entries, const int nentries);
     void resize(const int rbcs_count);
+    void preserve_resize(int n);
     
     int count() { return nrbcs; }
     int pcount() { return nrbcs * nvertices; }
