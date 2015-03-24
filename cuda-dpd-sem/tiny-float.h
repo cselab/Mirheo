@@ -89,43 +89,43 @@ __forceinline__ __device__ int xmad( int u, float v, int w ) {
 
 __forceinline__ __device__ uint xadd( uint u, uint v ) {
 	float a = u2f(u), b = u2f(v), c;
-	asm( "add.rz.f32 %0, %1, %2;" : "=f"(c) : "f"(a), "f"(b) );
+	asm( "add.f32 %0, %1, %2;" : "=f"(c) : "f"(a), "f"(b) );
 	return f2u(c);
 }
 
 __forceinline__ __device__ int xadd( int u, int v ) {
 	float a = i2f(u), b = i2f(v), c;
-	asm( "add.rz.f32 %0, %1, %2;" : "=f"(c) : "f"(a), "f"(b) );
+	asm( "add.f32 %0, %1, %2;" : "=f"(c) : "f"(a), "f"(b) );
 	return f2i(c);
 }
 
 __forceinline__ __device__ uint xadd( float u, float v ) {
 	float c;
-	asm( "add.rz.f32 %0, %1, %2;" : "=f"(c) : "f"(u), "f"(v) );
+	asm( "add.f32 %0, %1, %2;" : "=f"(c) : "f"(u), "f"(v) );
 	return f2i(c);
 }
 
 __forceinline__ __device__ uint xsub( uint u, uint v ) {
 	float a = u2f(u), b = u2f(v), c;
-	asm( "sub.rz.f32 %0, %1, %2;" : "=f"(c) : "f"(a), "f"(b) );
+	asm( "sub.f32 %0, %1, %2;" : "=f"(c) : "f"(a), "f"(b) );
 	return f2u(c);
 }
 
 __forceinline__ __device__ int xsub( int u, int v ) {
 	float a = i2f(u), b = i2f(v), c;
-	asm( "sub.rz.f32 %0, %1, %2;" : "=f"(c) : "f"(a), "f"(b) );
+	asm( "sub.f32 %0, %1, %2;" : "=f"(c) : "f"(a), "f"(b) );
 	return f2i(c);
 }
 
 __forceinline__ __device__ uint xscale( uint u, float s ) {
 	float a = u2f(u), b;
-	asm( "mul.rz.f32 %0, %1, %2;" : "=f"(b) : "f"(a), "f"(s) );
+	asm( "mul.f32 %0, %1, %2;" : "=f"(b) : "f"(a), "f"(s) );
 	return f2u(b);
 }
 
 __forceinline__ __device__ int xscale( int u, float s ) {
 	float a = i2f(u), b;
-	asm( "mul.rz.f32 %0, %1, %2;" : "=f"(b) : "f"(a), "f"(s) );
+	asm( "mul.f32 %0, %1, %2;" : "=f"(b) : "f"(a), "f"(s) );
 	return f2i(b);
 }
 
