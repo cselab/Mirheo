@@ -31,7 +31,8 @@ protected:
 
     std::vector< int > haloreplica[26];
     
-    PinnedHostBuffer<CudaRBC::Extent> extents;
+    //PinnedHostBuffer<CudaRBC::Extent> extents;
+    PinnedHostBuffer<float3> minextents, maxextents;
 
     struct
     {

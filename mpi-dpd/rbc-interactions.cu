@@ -13,6 +13,7 @@
 #include <../dpd-rng.h>
 
 #include "rbc-interactions.h"
+#include "minmax-massimo.h"
 
 namespace KernelsRBC
 {
@@ -245,16 +246,21 @@ ComputeInteractionsRBC::ComputeInteractionsRBC(MPI_Comm _cartcomm): nvertices(Cu
 
 void ComputeInteractionsRBC::_compute_extents(const Particle * const rbcs, const int nrbcs, cudaStream_t stream)
 {
+#if 1
+    minmax_massimo(rbcs, nvertices, nrbcs, minextents.devptr, maxextents.devptr, stream);
+#else
     for(int i = 0; i < nrbcs; ++i)
 	CudaRBC::extent_nohost(stream, (float *)(rbcs + nvertices * i), extents.devptr + i);
+#endif
 }
 
 void ComputeInteractionsRBC::pack_and_post(const Particle * const rbcs, const int nrbcs, cudaStream_t stream)
 {
     NVTX_RANGE("RBC/pack-post", NVTX_C2);
 
-    extents.resize(nrbcs);
- 
+    minextents.resize(nrbcs);
+    maxextents.resize(nrbcs);
+
     _compute_extents(rbcs, nrbcs, stream);
 
     CUDA_CHECK(cudaEventRecord(evextents));
@@ -265,10 +271,10 @@ void ComputeInteractionsRBC::pack_and_post(const Particle * const rbcs, const in
 
     for(int i = 0; i < nrbcs; ++i)
     {
-	const CudaRBC::Extent ext = extents.data[i];
+	//const CudaRBC::Extent ext = extents.data[i];
 	
-	float pmin[3] = {ext.xmin, ext.ymin, ext.zmin};
-	float pmax[3] = {ext.xmax, ext.ymax, ext.zmax};
+	float pmin[3] = {minextents.data[i].x, minextents.data[i].y, minextents.data[i].z};
+	float pmax[3] = {maxextents.data[i].x, maxextents.data[i].y, maxextents.data[i].z};
 
 	for(int code = 0; code < 26; ++code)
 	{

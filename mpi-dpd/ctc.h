@@ -14,6 +14,7 @@
 
 #include "redistribute-rbcs.h"
 #include "rbc-interactions.h"
+#include "minmax-massimo.h"
 
 #include <ctc-cuda.h>
 
@@ -22,9 +23,12 @@ class RedistributeCTCs : public RedistributeRBCs
     void _compute_extents(const Particle * const xyzuvw, const int nrbcs, cudaStream_t stream)
     {
 	assert(sizeof(CudaCTC::Extent) == sizeof(CudaRBC::Extent));
-
+#if 1
+	minmax_massimo(xyzuvw, nvertices, nrbcs, minextents.devptr, maxextents.devptr, stream);
+#else
 	for(int i = 0; i < nrbcs; ++i)
 	    CudaCTC::extent_nohost(stream, (float *)(xyzuvw + nvertices * i), (CudaCTC::Extent *)(extents.devptr + i));
+#endif
     }
 
 public:
@@ -40,9 +44,12 @@ class ComputeInteractionsCTC : public ComputeInteractionsRBC
     void _compute_extents(const Particle * const xyzuvw, const int nrbcs, cudaStream_t stream)
     {
 	assert(sizeof(CudaCTC::Extent) == sizeof(CudaRBC::Extent));
-
+#if 1
+	minmax_massimo(xyzuvw, nvertices, nrbcs, minextents.devptr, maxextents.devptr, stream);
+#else
 	for(int i = 0; i < nrbcs; ++i)
 	    CudaCTC::extent_nohost(stream, (float *)(xyzuvw + nvertices * i), (CudaCTC::Extent *)(extents.devptr + i));
+#endif
     }
 
     void _internal_forces(const Particle * const rbcs, const int nrbcs, Acceleration * accrbc, cudaStream_t stream)

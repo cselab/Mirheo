@@ -5,7 +5,7 @@
 #define MAXV     100000000.
 #define MINV    -100000000.
 
-__global__ void minmaxob(struct Particle *d_data, float3 *d_min, float3 *d_max, int size) {
+__global__ void minmaxob(const Particle * const d_data, float3 *d_min, float3 *d_max, int size) {
     __shared__ float3 mintemp[32];
     __shared__ float3 maxtemp[32];
     __shared__ float shrtmp[3][MAXTHREADS];
@@ -87,7 +87,7 @@ __global__ void minmaxob(struct Particle *d_data, float3 *d_min, float3 *d_max, 
 
 }
 
-void minmax_massimo(Particle * rbc, int size, int n, float3 *minrbc, float3 *maxrbc) 
+void minmax_massimo(const Particle * const rbc, int size, int n, float3 *minrbc, float3 *maxrbc, cudaStream_t stream) 
 {
-    minmaxob<<<n,((size+31)/32)*32>>>(rbc, minrbc, maxrbc, size);
+    minmaxob<<<n,((size+31)/32)*32, 0, stream>>>(rbc, minrbc, maxrbc, size);
 }

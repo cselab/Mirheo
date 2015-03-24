@@ -33,7 +33,8 @@ protected:
 
     cudaEvent_t evextents;
 
-    PinnedHostBuffer<CudaRBC::Extent> extents;
+    //PinnedHostBuffer<CudaRBC::Extent> extents;
+    PinnedHostBuffer<float3> minextents, maxextents;
 
     virtual void _compute_extents(const Particle * const xyzuvw, const int nrbcs, cudaStream_t stream);
     

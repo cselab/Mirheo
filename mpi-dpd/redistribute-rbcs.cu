@@ -14,6 +14,7 @@
 
 #include "redistribute-particles.h"
 #include "redistribute-rbcs.h"
+#include "minmax-massimo.h"
 
 RedistributeRBCs::RedistributeRBCs(MPI_Comm _cartcomm): nvertices(CudaRBC::get_nvertices())
 {
@@ -53,16 +54,22 @@ void RedistributeRBCs::_compute_extents(const Particle * const xyzuvw, const int
 {
     NVTX_RANGE("RDC/extent", NVTX_C7);
 
+#if 1
+    minmax_massimo(xyzuvw, nvertices, nrbcs, minextents.devptr, maxextents.devptr, stream);
+#else
     for(int i = 0; i < nrbcs; ++i)
 	CudaRBC::extent_nohost(stream, (float *)(xyzuvw + nvertices * i), extents.devptr + i);
+#endif
 }
 
 int RedistributeRBCs::stage1(const Particle * const xyzuvw, const int nrbcs, cudaStream_t stream)
 {
     NVTX_RANGE("RDC/stage1", NVTX_C3);
 
-    extents.resize(nrbcs);
- 
+    //extents.resize(nrbcs);
+    minextents.resize(nrbcs);
+    maxextents.resize(nrbcs);
+
     _compute_extents(xyzuvw, nrbcs, stream);
 
     CUDA_CHECK(cudaEventRecord(evextents));
@@ -72,12 +79,14 @@ int RedistributeRBCs::stage1(const Particle * const xyzuvw, const int nrbcs, cud
 
     for(int i = 0; i < nrbcs; ++i)
     {
-	const CudaRBC::Extent ext = extents.data[i];
-	
+	//const CudaRBC::Extent ext = extents.data[i];
+	const float3 minext = minextents.data[i];
+	const float3 maxext = maxextents.data[i];
+
 	float p[3] = {
-	    0.5 * (ext.xmin + ext.xmax),
-	    0.5 * (ext.ymin + ext.ymax),
-	    0.5 * (ext.zmin + ext.zmax)
+	    0.5 * (minext.x + maxext.x),
+	    0.5 * (minext.y + maxext.y),
+	    0.5 * (minext.z + maxext.z)
 	};
 	
 	const int L[3] = { XSIZE_SUBDOMAIN, YSIZE_SUBDOMAIN, ZSIZE_SUBDOMAIN };
@@ -100,7 +109,7 @@ int RedistributeRBCs::stage1(const Particle * const xyzuvw, const int nrbcs, cud
 				       sizeof(Particle) * nvertices, cudaMemcpyDeviceToDevice, stream));
 
     CUDA_CHECK(cudaStreamSynchronize(stream));
-
+//I need to post receive first
     MPI_Request sendcountreq[26];
     for(int i = 1; i < 27; ++i)
 	MPI_CHECK( MPI_Isend(&sendbufs[i].size, 1, MPI_INTEGER, rankneighbors[i], i + 1024, cartcomm, &sendcountreq[i-1]) );
