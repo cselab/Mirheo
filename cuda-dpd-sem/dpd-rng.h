@@ -79,38 +79,36 @@ __inline__ __device__ float FMA( float x, float y, float z ) {
     return __fmaf_rz( x, y, z );
 }
 
-// saturated square
-// clamp result to [0,1]
-// to cancel error introduced by logistic<3> \in [-1.000001, 1.000003]
-__inline__ __device__ float SQR( float x ) {
-    asm("mul.f32.sat %0, %0, %0;" : "+f"(x) : "f"(x), "f"(x) );
-    return x;
-}
-
 // logistic rounds
 // <3> : 4 FMA + 1 MUL
 // <2> : 2 FMA + 1 MUL
 // <1> : 1 FMA + 1 MUL
-//template<int N> __inline__ __device__ float __logistic_core( float x ) {
-//    float x2 = SQR( x );
-//    float r = FMA( FMA( FMA( FMA( 128.0, x2, -256.0 ), x2, 160.0 ), x2, -32.0 ), x2, 1.0 );
-//    return __logistic_core < N - 3 > ( r );
-//}
-//
-//template<> __inline__ __device__ float __logistic_core<2>( float x ) {
-//	float x2 = SQR( x );
-//    return FMA( FMA( 8.0, x2, -8.0 ), x2, 1.0 );
-//}
+#if 0
+template<int N> __inline__ __device__ float __logistic_core( float x ) {
+    float x2;
+    // saturated square
+    // clamp result to [0,1]
+    // to cancel error introduced by logistic<3> \in [-1.000001, 1.000003]
+	asm("mul.f32.sat %0, %1, %1;" : "=f"(x2) : "f"(x), "f"(x) );
+    float r = FMA( FMA( FMA( FMA( 128.0, x2, -256.0 ), x2, 160.0 ), x2, -32.0 ), x2, 1.0 );
+    return __logistic_core < N - 3 > ( r );
+}
+
+template<> __inline__ __device__ float __logistic_core<2>( float x ) {
+	float x2 = x * x;
+    return FMA( FMA( 8.0, x2, -8.0 ), x2, 1.0 );
+}
+#else
 template<int N> __inline__ __device__ float __logistic_core( float x )
 {
     float x2 = x * x;
     float r = FMA( FMA( 8.0, x2, -8.0 ), x2, 1.0 );
     return __logistic_core < N - 2 > ( r );
 }
+#endif
 
 template<> __inline__ __device__ float __logistic_core<1>( float x ) {
-	float x2 = SQR( x );
-	return FMA( 2.0, x2, -1.0 );
+	return FMA( 2.0 * x, x, -1.0 );
 }
 
 template<> __inline__ __device__ float __logistic_core<0>( float x ) {

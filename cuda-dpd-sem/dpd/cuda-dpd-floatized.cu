@@ -18,7 +18,7 @@
 #include "../hacks.h"
 
 //#define PROF_TRIGGER
-#define USE_TEXOBJ 3
+#define USE_TEXOBJ 0
 
 struct InfoDPD {
     int3 ncells;
