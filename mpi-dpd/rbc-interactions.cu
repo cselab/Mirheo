@@ -157,6 +157,10 @@ namespace KernelsRBC
 	for(int c = 0; c < 3; ++c)
 	    mycid[c] = (int)floor(p.x[c] + L[c]/2);
 
+	for(int c = 0; c < 3; ++c)
+	    if (mycid[c] < -1 || mycid[c] >= L[c] + 1)
+		return;
+
 	float fsum[3] = {0, 0, 0};
 	
 	for(int code = 0; code < 27; ++code)

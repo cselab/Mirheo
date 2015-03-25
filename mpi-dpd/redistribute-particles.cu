@@ -521,8 +521,8 @@ void RedistributeParticles::_adjust_recv_buffers(const int requested_capacities[
 	}
 	else
 	{
-	    printf("ooooooooooooooops %d , req %d!!\n", unpackbuffers[i].capacity, capacity);
-	    exit(-1);
+	    //printf("ooooooooooooooops %d , req %d!!\n", unpackbuffers[i].capacity, capacity);
+	    //exit(-1);
 	    CUDA_CHECK(cudaFree(unpackbuffers[i].buffer));
 	    
 	    CUDA_CHECK(cudaMalloc(&unpackbuffers[i].buffer, sizeof(float) * 6 * capacity));
