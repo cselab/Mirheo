@@ -34,14 +34,9 @@ namespace CudaRBC
 	static __constant__ Params devParams;
 
 	/* blocking, initializes params */
-	void setup(int& nvertices, Extent& host_extent, float scale = 1.0f);
-
-	void unitsSetup(float lmax, float p, float cq, float kb, float ka, float kv, float gammaC,
-			float totArea0, float totVolume0, float lunit, float tunit, int ndens, bool prn);
+	void setup(int& nvertices, Extent& host_extent);
 
 	int get_nvertices();
-	Params& get_params();
-	float* get_orig_xyzuvw();
 
 	/* A * (x, 1) */
 	void initialize(float *device_xyzuvw, const float (*transform)[4]);

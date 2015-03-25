@@ -55,9 +55,14 @@ namespace CudaRBC
 	texture<int4,   cudaTextureType1D> texTriangles4;
 	texture<int4,   cudaTextureType1D> texDihedrals4;
 
-	void setup(int& nvertices, Extent& host_extent, float scale)
+    void unitsSetup(float lmax, float p, float cq, float kb, float ka, float kv, float gammaC,
+		    float totArea0, float totVolume0, float lunit, float tunit, int ndens, bool prn);
+    
+	void setup(int& nvertices, Extent& host_extent)
 	{
-		const bool report = true;
+	    const float scale=1;
+		
+		const bool report = false;
 
 		//        0.0945, 0.00141, 1.642599,
 		//        1, 1.8, a, v, a/m.ntriang, 945, 0, 472.5,
@@ -220,7 +225,7 @@ namespace CudaRBC
 
 		dummy = new Extent[maxCells];
 
-		unitsSetup(1.64, 0.00705, 6, 15, 1000, 5000, 5, 135, 90, 1e-6, 1e-5, 4, true);
+		unitsSetup(1.64, 0.00705, 6, 15, 1000, 5000, 5, 135, 90, 1e-6, 1e-5, 4, report);
 	}
 
 	void unitsSetup(float lmax, float p, float cq, float kb, float ka, float kv, float gammaC,
@@ -228,7 +233,7 @@ namespace CudaRBC
 	{
 		const float lrbc = 1.000000e-06;
 		const float trbc = 3.009441e-03;
-		const float mrbc = 3.811958e-13;
+		//const float mrbc = 3.811958e-13;
 
 		float ll = lunit / lrbc;
 		float tt = tunit / trbc;

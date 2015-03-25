@@ -250,7 +250,7 @@ int main(int argc, const char ** argv)
 {
     if (argc != 4)
     {
-	printf("usage: ./cell-placement <xdomain-extent> <ydomain-extent> <zdomain-extent>");
+	printf("usage: ./cell-placement <xdomain-extent> <ydomain-extent> <zdomain-extent>\n");
 	exit(-1);
     }
 

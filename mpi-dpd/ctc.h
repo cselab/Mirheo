@@ -35,7 +35,8 @@ public:
 
 RedistributeCTCs(MPI_Comm _cartcomm):RedistributeRBCs(_cartcomm)
     {
-	nvertices = CudaCTC::get_nvertices();
+	CudaCTC::Extent host_extent;
+	CudaCTC::setup(nvertices, host_extent, dt);
     }
 };
   
@@ -56,7 +57,7 @@ class ComputeInteractionsCTC : public ComputeInteractionsRBC
     {
 	for(int i = 0; i < nrbcs; ++i)
 	    CudaCTC::forces_nohost(stream, (float *)(rbcs + nvertices * i), (float *)(accrbc + nvertices * i));
-    }
+    } 
 
 public:
 
@@ -64,7 +65,8 @@ ComputeInteractionsCTC(MPI_Comm _cartcomm) : ComputeInteractionsRBC(_cartcomm)
     {
 	local_trunk = Logistic::KISS(598 - myrank, 20383 + myrank, 129037, 2580);
 
-	nvertices = CudaCTC::get_nvertices();
+	CudaCTC::Extent host_extent;
+	CudaCTC::setup(nvertices, host_extent, dt);
     }
 };
 
@@ -81,7 +83,7 @@ CollectionCTC(MPI_Comm cartcomm) : CollectionRBC(cartcomm)
     {
 	CudaCTC::Extent extent;
 	CudaCTC::setup(nvertices, extent, dt);
-
+	
 	assert(extent.xmax - extent.xmin < XSIZE_SUBDOMAIN);
 	assert(extent.ymax - extent.ymin < YSIZE_SUBDOMAIN);
 	assert(extent.zmax - extent.zmin < ZSIZE_SUBDOMAIN);

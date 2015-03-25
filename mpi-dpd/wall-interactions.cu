@@ -587,30 +587,34 @@ struct FieldSampler
 	{
 	    FILE * f = fopen(path, "rb");
 
-#ifndef NDEBUG
 	    int retval;
-	    retval = 
-#endif
-		fscanf(f, "%f %f %f\n", extent + 0, extent + 1, extent + 2);
+	    retval = fscanf(f, "%f %f %f\n", extent + 0, extent + 1, extent + 2);
 	    
-	    assert(retval == 3);
+	    if(retval != 3)
+	    {
+		printf("ooops something went wrong in reading %s.\n", path);
+		exit(EXIT_FAILURE);
+	    }
 
-#ifndef NDEBUG
-	    retval = 
-#endif
-		fscanf(f, "%d %d %d\n", N + 0, N + 1, N + 2);
+	    retval = fscanf(f, "%d %d %d\n", N + 0, N + 1, N + 2);
 	
-	    assert(retval == 3);
-	    
+	    if(retval != 3)
+	    {
+		printf("ooops something went wrong in reading %s.\n", path);
+		exit(EXIT_FAILURE);
+	    }
+	     
 	    const int nvoxels = N[0] * N[1] * N[2];
 	    data = new float[nvoxels];
+	    
+	    retval = fread(data, sizeof(float), nvoxels, f);
 
-#ifndef NDEBUG	    
-	    retval = 
-#endif
-		fread(data, sizeof(float), nvoxels, f);
-	    assert(retval == nvoxels);
-
+	    if(retval != nvoxels)
+	    {
+		printf("ooops something went wrong in reading %s.\n", path);
+		exit(EXIT_FAILURE);
+	    }
+	    
 	    int nvoxels_solvent = 0;
 	    for(int i = 0; i < nvoxels; ++i)
 		nvoxels_solvent += (data[i] < 0);

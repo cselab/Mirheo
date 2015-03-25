@@ -40,8 +40,7 @@ namespace SignalHandling
     
     bool check_termination_request()
     {
-	if (graceful_exit)
-	    return true;
+	return graceful_exit;
     }   
 }
 

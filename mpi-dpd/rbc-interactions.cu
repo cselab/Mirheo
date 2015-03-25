@@ -29,6 +29,10 @@ namespace KernelsRBC
 
     static bool firsttime = true;
     
+    __global__ void fsi_forces(const float seed,
+			       Acceleration * accsolvent, const int npsolvent,
+			       const Particle * const particle, const int nparticles, Acceleration * accrbc);
+    
     void setup(const Particle * const solvent, const int npsolvent, const int * const cellsstart, const int * const cellscount)
     {
 	if (firsttime)
@@ -58,9 +62,11 @@ namespace KernelsRBC
 	
 	assert(textureoffset == 0);
 	CUDA_CHECK(cudaBindTexture(&textureoffset, &texCellsStart, cellsstart, &texCellsStart.channelDesc, sizeof(int) * ncells));
-	assert(textureoffset == 0);
+	assert(textureoffset == 0); 
 	CUDA_CHECK(cudaBindTexture(&textureoffset, &texCellsCount, cellscount, &texCellsCount.channelDesc, sizeof(int) * ncells));
 	assert(textureoffset == 0);
+
+	CUDA_CHECK(cudaFuncSetCacheConfig(fsi_forces, cudaFuncCachePreferL1));
     }
     
     __global__ void shift_send_particles(const Particle * const src, const int n, const int code, Particle * const dst)
@@ -125,11 +131,12 @@ namespace KernelsRBC
 	
 	xforce = strength * xr;
 	yforce = strength * yr;
-	zforce = strength * zr;
+	zforce = strength * zr; 
 
 	return true;
     }
 
+    
     __global__ void fsi_forces(const float seed,
 			       Acceleration * accsolvent, const int npsolvent,
 			       const Particle * const particle, const int nparticles, Acceleration * accrbc)
@@ -177,7 +184,8 @@ namespace KernelsRBC
 	    
 	    assert(mystart >= 0 && mystart <= myend);
 	    assert(myend <= npsolvent);
-	    
+
+	    #pragma unroll 4
 	    for(int s = mystart; s < myend; ++s)
 	    {
 		float f[3];
@@ -187,9 +195,9 @@ namespace KernelsRBC
 		{
 		    for(int c = 0; c < 3; ++c)
 			fsum[c] += f[c];
-		    
+		     
 		    for(int c = 0; c < 3; ++c)
-		    	atomicAdd(c + (float *)(accsolvent + s), -f[c]);
+		    	   atomicAdd(c + (float *)(accsolvent + s), -f[c]);
 		}
 	    }
 	}
@@ -208,15 +216,18 @@ namespace KernelsRBC
     }
 }
 
-ComputeInteractionsRBC::ComputeInteractionsRBC(MPI_Comm _cartcomm): nvertices(CudaRBC::get_nvertices())
-{
+ComputeInteractionsRBC::ComputeInteractionsRBC(MPI_Comm _cartcomm): nvertices(0)
+{ 
     assert(XSIZE_SUBDOMAIN % 2 == 0 && YSIZE_SUBDOMAIN % 2 == 0 && ZSIZE_SUBDOMAIN % 2 == 0);
     assert(XSIZE_SUBDOMAIN >= 2 && YSIZE_SUBDOMAIN >= 2 && ZSIZE_SUBDOMAIN >= 2);
-
+    
+    CudaRBC::Extent host_extent;
+    CudaRBC::setup(nvertices, host_extent);
+    
     MPI_CHECK( MPI_Comm_dup(_cartcomm, &cartcomm));
 
     MPI_CHECK( MPI_Comm_rank(cartcomm, &myrank));
-
+ 
     local_trunk = Logistic::KISS(1908 - myrank, 1409 + myrank, 290, 12968);
 
     MPI_CHECK( MPI_Comm_size(cartcomm, &nranks));
@@ -359,7 +370,7 @@ void ComputeInteractionsRBC::pack_and_post(const Particle * const rbcs, const in
 
 void ComputeInteractionsRBC::_internal_forces(const Particle * const rbcs, const int nrbcs, Acceleration * accrbc, cudaStream_t stream)
 {
-	CudaRBC::forces_nohost(stream, nrbcs, (float *)rbcs, (float *)accrbc);
+    CudaRBC::forces_nohost(stream, nrbcs, (float *)rbcs, (float *)accrbc);
 }
 
 void ComputeInteractionsRBC::evaluate(const Particle * const solvent, const int nparticles, Acceleration * accsolvent,

@@ -18,8 +18,6 @@ OBJS = 	dpd-interactions.o \
 	redistancing.o \
 	redistribute-rbcs.o \
 	rbc-interactions.o \
-	cell-destroyer.o \
-	cell-producer.o \
 	containers.o \
 	io.o \
 	simulation.o \
