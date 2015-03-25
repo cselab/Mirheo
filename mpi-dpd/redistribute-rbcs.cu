@@ -20,6 +20,9 @@ RedistributeRBCs::RedistributeRBCs(MPI_Comm _cartcomm): nvertices(CudaRBC::get_n
 {
     assert(XSIZE_SUBDOMAIN % 2 == 0 && YSIZE_SUBDOMAIN % 2 == 0 && ZSIZE_SUBDOMAIN % 2 == 0);
     assert(XSIZE_SUBDOMAIN >= 2 && YSIZE_SUBDOMAIN >= 2 && ZSIZE_SUBDOMAIN >= 2);
+
+    if (!rbcs)
+	return;
     
     CudaRBC::Extent host_extent;
     CudaRBC::setup(nvertices, host_extent);

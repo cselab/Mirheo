@@ -19,8 +19,8 @@
 #endif
 
 enum { 
-    XSIZE_SUBDOMAIN = 48, 
-    YSIZE_SUBDOMAIN = 48, 
+    XSIZE_SUBDOMAIN = 48,
+    YSIZE_SUBDOMAIN = 48,
     ZSIZE_SUBDOMAIN = 48,
     XMARGIN_WALL = 6,
     YMARGIN_WALL = 6,
@@ -38,10 +38,10 @@ const float aij = 25;
 const float hydrostatic_a = 0.05;
 const bool walls = false;
 const bool pushtheflow = false;
-const bool rbcs = true;
+const bool rbcs = false;
 const bool ctcs = false;
 const bool xyz_dumps = false;
-const bool hdf5field_dumps = true;
+const bool hdf5field_dumps = false;
 const bool hdf5part_dumps = false;
 const int steps_per_report = 1000;
 const int steps_per_dump = 1000;

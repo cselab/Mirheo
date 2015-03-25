@@ -34,7 +34,7 @@ const static uint CPB = 4;
 #include "../hacks.h"
 
 __global__
-void _bipartite_dpd_directforces( float * const axayaz, const int np, const int np_src,
+void _bipartite_dpd_directforces_floatized( float * const axayaz, const int np, const int np_src,
                                   const float seed, const int mask, const float * xyzuvw, const float * xyzuvw_src,
                                   const float invrc, const float aij, const float gamma, const float sigmaf )
 {
@@ -146,14 +146,14 @@ void directforces_dpd_cuda_bipartite_nohost(
         return;
     }
 
-    _bipartite_dpd_directforces <<< ( np + 127 ) / 128, 128, 0, stream >>> ( axayaz, np, np_src, seed, mask,
+    _bipartite_dpd_directforces_floatized <<< ( np + 127 ) / 128, 128, 0, stream >>> ( axayaz, np, np_src, seed, mask,
             xyzuvw, xyzuvw_src, 1, aij, gamma, sigma * invsqrtdt );
 
     CUDA_CHECK( cudaPeekAtLastError() );
 }
 
 __global__ __launch_bounds__( 32 * CPB, 16 )
-void _dpd_bipforces( const float2 * const xyzuvw, const int np, cudaTextureObject_t texDstStart,
+void _dpd_bipforces_floatized( const float2 * const xyzuvw, const int np, cudaTextureObject_t texDstStart,
                      cudaTextureObject_t texSrcStart,  cudaTextureObject_t texSrcParticles, const int np_src, const int3 halo_ncells,
                      const float aij, const float gamma, const float sigmaf,
                      const float seed, const uint mask, float * const axayaz )
@@ -296,12 +296,12 @@ void forces_dpd_cuda_bipartite_nohost( cudaStream_t stream, const float2 * const
     static bool fbip_init = false;
 
     if( !fbip_init ) {
-        CUDA_CHECK( cudaFuncSetCacheConfig( _dpd_bipforces, cudaFuncCachePreferL1 ) );
+        CUDA_CHECK( cudaFuncSetCacheConfig( _dpd_bipforces_floatized, cudaFuncCachePreferL1 ) );
 
         fbip_init = true;
     }
 
-    _dpd_bipforces <<< ( ncells + CPB - 1 ) / CPB, dim3( 32, CPB ), 0, stream >>> (
+    _dpd_bipforces_floatized <<< ( ncells + CPB - 1 ) / CPB, dim3( 32, CPB ), 0, stream >>> (
         xyzuvw, np, texDstStart, texSrcStart, texSrcParticles, np_src,
         halo_ncells, aij, gamma, sigmaf, seed, mask,
         axayaz );

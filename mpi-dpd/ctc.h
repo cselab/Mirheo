@@ -35,6 +35,9 @@ public:
 
 RedistributeCTCs(MPI_Comm _cartcomm):RedistributeRBCs(_cartcomm)
     {
+	if (!ctcs)
+	    return;
+	
 	CudaCTC::Extent host_extent;
 	CudaCTC::setup(nvertices, host_extent, dt);
     }
@@ -65,6 +68,9 @@ ComputeInteractionsCTC(MPI_Comm _cartcomm) : ComputeInteractionsRBC(_cartcomm)
     {
 	local_trunk = Logistic::KISS(598 - myrank, 20383 + myrank, 129037, 2580);
 
+	if (!ctcs)
+	    return;
+	
 	CudaCTC::Extent host_extent;
 	CudaCTC::setup(nvertices, host_extent, dt);
     }
@@ -81,6 +87,9 @@ public:
 
 CollectionCTC(MPI_Comm cartcomm) : CollectionRBC(cartcomm)
     {
+	if (!ctcs)
+	    return;
+	
 	CudaCTC::Extent extent;
 	CudaCTC::setup(nvertices, extent, dt);
 	
