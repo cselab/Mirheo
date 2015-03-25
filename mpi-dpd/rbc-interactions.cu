@@ -220,9 +220,12 @@ ComputeInteractionsRBC::ComputeInteractionsRBC(MPI_Comm _cartcomm): nvertices(0)
 { 
     assert(XSIZE_SUBDOMAIN % 2 == 0 && YSIZE_SUBDOMAIN % 2 == 0 && ZSIZE_SUBDOMAIN % 2 == 0);
     assert(XSIZE_SUBDOMAIN >= 2 && YSIZE_SUBDOMAIN >= 2 && ZSIZE_SUBDOMAIN >= 2);
-    
-    CudaRBC::Extent host_extent;
-    CudaRBC::setup(nvertices, host_extent);
+
+    if (rbcs)
+    {
+        CudaRBC::Extent host_extent;
+	CudaRBC::setup(nvertices, host_extent);
+    }
     
     MPI_CHECK( MPI_Comm_dup(_cartcomm, &cartcomm));
 

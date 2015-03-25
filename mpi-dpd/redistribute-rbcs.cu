@@ -20,16 +20,19 @@ RedistributeRBCs::RedistributeRBCs(MPI_Comm _cartcomm): nvertices(CudaRBC::get_n
 {
     assert(XSIZE_SUBDOMAIN % 2 == 0 && YSIZE_SUBDOMAIN % 2 == 0 && ZSIZE_SUBDOMAIN % 2 == 0);
     assert(XSIZE_SUBDOMAIN >= 2 && YSIZE_SUBDOMAIN >= 2 && ZSIZE_SUBDOMAIN >= 2);
-    
-    CudaRBC::Extent host_extent;
-    CudaRBC::setup(nvertices, host_extent);
-    
+
+    if (rbcs)
+    {
+	CudaRBC::Extent host_extent;
+	CudaRBC::setup(nvertices, host_extent);
+    }
+
     MPI_CHECK(MPI_Comm_dup(_cartcomm, &cartcomm));
 	    
     MPI_CHECK( MPI_Comm_rank(cartcomm, &myrank));
-	    
+    
     MPI_CHECK( MPI_Cart_get(cartcomm, 3, dims, periods, coords) );
-	    
+    
     rankneighbors[0] = myrank;
     for(int i = 1; i < 27; ++i)
     {
@@ -38,18 +41,18 @@ RedistributeRBCs::RedistributeRBCs(MPI_Comm _cartcomm): nvertices(CudaRBC::get_n
 	int coordsneighbor[3];
 	for(int c = 0; c < 3; ++c)
 	    coordsneighbor[c] = coords[c] + d[c];
-		
+	
 	MPI_CHECK( MPI_Cart_rank(cartcomm, coordsneighbor, rankneighbors + i) );
-
+	
 	for(int c = 0; c < 3; ++c)
 	    coordsneighbor[c] = coords[c] - d[c];
-
+	
 	MPI_CHECK( MPI_Cart_rank(cartcomm, coordsneighbor, anti_rankneighbors + i) );
-
+	
 	//recvbufs[i].resize(nvertices * 10);
 	//sendbufs[i].resize(nvertices * 10);
     }
-
+    
     CUDA_CHECK(cudaEventCreate(&evextents, cudaEventDisableTiming));
 }
 

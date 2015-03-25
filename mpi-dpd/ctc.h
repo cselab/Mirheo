@@ -35,8 +35,11 @@ public:
 
 RedistributeCTCs(MPI_Comm _cartcomm):RedistributeRBCs(_cartcomm)
     {
-	CudaCTC::Extent host_extent;
-	CudaCTC::setup(nvertices, host_extent, dt);
+	if (ctcs)
+	{
+	    CudaCTC::Extent host_extent;
+	    CudaCTC::setup(nvertices, host_extent, dt);
+	}
     }
 };
   
@@ -65,8 +68,11 @@ ComputeInteractionsCTC(MPI_Comm _cartcomm) : ComputeInteractionsRBC(_cartcomm)
     {
 	local_trunk = Logistic::KISS(598 - myrank, 20383 + myrank, 129037, 2580);
 
-	CudaCTC::Extent host_extent;
-	CudaCTC::setup(nvertices, host_extent, dt);
+	if (ctcs)
+	{
+	    CudaCTC::Extent host_extent;
+	    CudaCTC::setup(nvertices, host_extent, dt);
+	}
     }
 };
 
@@ -81,15 +87,18 @@ public:
 
 CollectionCTC(MPI_Comm cartcomm) : CollectionRBC(cartcomm)
     {
-	CudaCTC::Extent extent;
-	CudaCTC::setup(nvertices, extent, dt);
+	if (ctcs)
+	{
+	    CudaCTC::Extent extent;
+	    CudaCTC::setup(nvertices, extent, dt);
+
+	    assert(extent.xmax - extent.xmin < XSIZE_SUBDOMAIN);
+	    assert(extent.ymax - extent.ymin < YSIZE_SUBDOMAIN);
+	    assert(extent.zmax - extent.zmin < ZSIZE_SUBDOMAIN);
+	    
+	    CudaCTC::get_triangle_indexing(indices, ntriangles);
+	}
 	
-	assert(extent.xmax - extent.xmin < XSIZE_SUBDOMAIN);
-	assert(extent.ymax - extent.ymin < YSIZE_SUBDOMAIN);
-	assert(extent.zmax - extent.zmin < ZSIZE_SUBDOMAIN);
-
-	CudaCTC::get_triangle_indexing(indices, ntriangles);
-
 	path2xyz = "ctcs.xyz";
 	format4ply = "ply/ctcs-%04d.ply";
 	path2ic = "ctcs-ic.txt";

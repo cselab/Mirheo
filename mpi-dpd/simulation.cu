@@ -20,12 +20,29 @@ std::vector<Particle> Simulation::_ic()
     
     const int L[3] = { XSIZE_SUBDOMAIN, YSIZE_SUBDOMAIN, ZSIZE_SUBDOMAIN };
     
+    for(int iz = 0; iz < L[2]; iz++)
+	for(int iy = 0; iy < L[1]; iy++)
+	    for(int ix = 0; ix < L[0]; ix++)
+		for(int l = 0; l < numberdensity; ++l)
+		{
+		    const int p = l + numberdensity * (ix + L[0] * (iy + L[1] * iz));
+		    
+		    ic[p].x[0] = -L[0]/2 + ix + drand48();
+		    ic[p].x[1] = -L[1]/2 + iy + drand48();
+		    ic[p].x[2] = -L[2]/2 + iz + drand48();
+		    ic[p].u[0] = 0;
+		    ic[p].u[1] = 0;
+		    ic[p].u[2] = 0;
+		}
+
+    /* use this to check robustness 
     for(int i = 0; i < ic.size(); ++i)
 	for(int c = 0; c < 3; ++c)
 	    {
 		ic[i].x[c] = -L[c] * 0.5 + drand48() * L[c];
 		ic[i].u[c] = 0;
 	    }
+    */
     
     return ic;
 }
