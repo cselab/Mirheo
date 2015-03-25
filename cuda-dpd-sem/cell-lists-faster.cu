@@ -519,7 +519,7 @@ void build_clists(float * const device_xyzuvw, int np, const float rc,
 	{
 	    static const int SLOTS = 1;
 	    
-	    printf("SHMEM: %.2f kB\n", (float)(sizeof(int) * ncells.y * ncells.z * SLOTS) / 1024.);
+	    //printf("SHMEM: %.2f kB\n", (float)(sizeof(int) * ncells.y * ncells.z * SLOTS) / 1024.);
 	    
 	      yzhistogram<ILP, SLOTS, WARPS><<<nblocks, blocksize, sizeof(int) * ncells.y * ncells.z * SLOTS, stream>>>
 		(np, 1 / rc, ncells, domainstart, yzcid,  loffsets, yzhisto, dyzscan, failuretest.dmaxstripe);

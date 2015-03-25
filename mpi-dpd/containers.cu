@@ -144,6 +144,17 @@ void ParticleArray::resize(int n)
     CUDA_CHECK(cudaMemset(axayaz.data, 0, sizeof(Acceleration) * size));
 }
 
+void ParticleArray::preserve_resize(int n)
+{
+	int oldsize = size;
+    size = n;
+
+    xyzuvw.preserve_resize(n);
+    axayaz.preserve_resize(n);
+
+    if (size > oldsize)
+    	CUDA_CHECK(cudaMemset(axayaz.data + oldsize, 0, sizeof(Acceleration) * (size-oldsize)));
+}
 void ParticleArray::clear_velocity()
 {
     if (size)
@@ -155,6 +166,13 @@ void CollectionRBC::resize(const int count)
     nrbcs = count;
 
     ParticleArray::resize(count * nvertices);
+}
+
+void CollectionRBC::preserve_resize(const int count)
+{
+    nrbcs = count;
+
+    ParticleArray::preserve_resize(count * nvertices);
 }
     
 struct TransformedExtent
@@ -329,6 +347,7 @@ void CollectionRBC::dump(MPI_Comm comm, MPI_Comm cartcomm)
 	    mkdir("ply", S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
     }
 	    
+	if (nrbcs > 0)
     ply_dump(comm, cartcomm, buf, indices, nrbcs, ntriangles, p, nvertices, false);
 		    
     delete [] p;

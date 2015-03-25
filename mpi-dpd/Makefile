@@ -18,12 +18,14 @@ OBJS = 	dpd-interactions.o \
 	redistancing.o \
 	redistribute-rbcs.o \
 	rbc-interactions.o \
+	cell-destroyer.o \
+	cell-producer.o \
 	containers.o \
 	io.o \
 	simulation.o \
 	main.o 
 
-LIBS = -lcuda-dpd -lcuda-rbc -lcuda-ctc -lcudart 
+LIBS = -lcuda-dpd -lcuda-rbc -lcuda-ctc -lcudart -ldl -lz
 
 nvtx ?= 0
 ifneq "$(nvtx)" "0"
@@ -70,13 +72,13 @@ test:  $(OBJS) libcuda-dpd libcuda-rbc libcuda-ctc
 	$(NVCC) $(NVCCFLAGS) -M $*.cu > $*.d
 
 libcuda-dpd: 
-	make -C ../cuda-dpd-sem/dpd libcuda-dpd.a nonperiodic=1 floatized="$(floatized)" CXX="$(CXX)" NVCC="$(NVCC)" ARCH_VAL="$(ARCH_VAL)" CODE_VAL="$(CODE_VAL)" slevel="$(slevel)"
+	$(MAKE) -C ../cuda-dpd-sem/dpd libcuda-dpd.a nonperiodic=1 floatized="$(floatized)" CXX="$(CXX)" NVCC="$(NVCC)" ARCH_VAL="$(ARCH_VAL)" CODE_VAL="$(CODE_VAL)" slevel="$(slevel)"
 
 libcuda-rbc: 
-	make -C ../cuda-rbc/ libcuda-rbc.a CXX="$(CXX)" NVCC="$(NVCC)" ARCH_VAL="$(ARCH_VAL)" CODE_VAL="$(CODE_VAL)"
+	$(MAKE) -C ../cuda-rbc/ libcuda-rbc.a CXX="$(CXX)" NVCC="$(NVCC)" ARCH_VAL="$(ARCH_VAL)" CODE_VAL="$(CODE_VAL)"
 
 libcuda-ctc: 
-	make -C ../cuda-ctc/ libcuda-ctc.a CXX="$(CXX)" NVCC="$(NVCC)" ARCH_VAL="$(ARCH_VAL)" CODE_VAL="$(CODE_VAL)"
+	$(MAKE) -C ../cuda-ctc/ libcuda-ctc.a CXX="$(CXX)" NVCC="$(NVCC)" ARCH_VAL="$(ARCH_VAL)" CODE_VAL="$(CODE_VAL)"
 
 clean:
 	rm -f test *.o *.d slevel.txt

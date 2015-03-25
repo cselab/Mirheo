@@ -10,7 +10,7 @@ config ?= release
 
 ifeq "$(config)" "debug"
 CXXFLAGS+= -O0 -g
-GPUFLAGS+= -O0 -g -lineinfo
+GPUFLAGS+= -O0 -g -G -lineinfo
 else ifeq "$(config)" "release"
 CXXFLAGS+= -O3 -g -fno-tree-vectorize -funroll-loops -DNDEBUG
 GPUFLAGS+= -O4 -DNDEBUG
@@ -29,7 +29,7 @@ DIRS = ./
 INCLUDES += -I$(DIRS)
 
 
-.DEFAULT_GOAL := test-rbc
+.DEFAULT_GOAL := test-cuda-rbc
 .PHONY: clean
 
 ifneq "$(MAKECMDGOALS)" "clean"

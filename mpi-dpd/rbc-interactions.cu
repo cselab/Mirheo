@@ -359,8 +359,7 @@ void ComputeInteractionsRBC::pack_and_post(const Particle * const rbcs, const in
 
 void ComputeInteractionsRBC::_internal_forces(const Particle * const rbcs, const int nrbcs, Acceleration * accrbc, cudaStream_t stream)
 {
-    for(int i = 0; i < nrbcs; ++i)
-	CudaRBC::forces_nohost(stream, (float *)(rbcs + nvertices * i), (float *)(accrbc + nvertices * i));
+	CudaRBC::forces_nohost(stream, nrbcs, (float *)rbcs, (float *)accrbc);
 }
 
 void ComputeInteractionsRBC::evaluate(const Particle * const solvent, const int nparticles, Acceleration * accsolvent,

@@ -147,47 +147,47 @@ class SimRBC
 	int nparticles;
 	const real L;
 	real *xyzuvw, *fxfyfz;
+	int ncells;
+	cudaEvent_t start, stop;
 
 public:
 
-	SimRBC(const real L): L(L)
+	SimRBC(const real L, int ncells): L(L), ncells(ncells)
 {
 		CudaRBC::Extent extent;
+		CudaRBC::Extent *devExtents, *hstExtents;
 		CudaRBC::setup(nparticles, extent);
-		printf("Original extent:  [%.3f  %.3f  %.3f] -- [%.3f  %.3f  %.3f]\n",
-				extent.xmin, extent.ymin, extent.zmin,
-				extent.xmax, extent.ymax, extent.zmax);
 
-		gpuErrchk( cudaMalloc(&xyzuvw, 6*nparticles*sizeof(real)) );
-		gpuErrchk( cudaMalloc(&fxfyfz, 3*nparticles*sizeof(real)) );
+		gpuErrchk( cudaMalloc(&xyzuvw, ncells * 6*nparticles*sizeof(real)) );
+		gpuErrchk( cudaMalloc(&fxfyfz, ncells * 3*nparticles*sizeof(real)) );
+		gpuErrchk( cudaMalloc(&devExtents, ncells * sizeof(CudaRBC::Extent)) );
+		hstExtents = new CudaRBC::Extent[ncells];
 
 		float A[4][4];
 		memset(&A[0][0], 0, 16*sizeof(float));
 		A[0][0] = A[1][1] = A[2][2] = A[3][3] = 1;
-		A[1][3] = 2;
 
-		CudaRBC::initialize(xyzuvw, A);
+		for (int i=0; i<ncells; i++)
+		{
+			A[0][0] = A[1][1] = A[2][2] = 1 + 0.3*(drand48() - 0.5);
+			A[2][3] += 4;
+			CudaRBC::initialize(xyzuvw + i * 6*nparticles, A);
+		}
 		printf("initialized\n");
 
-		CudaRBC::Extent * devext;
-		gpuErrchk( cudaMalloc(&devext, sizeof(CudaRBC::Extent)) );
-		CudaRBC::extent_nohost(0, xyzuvw, devext);
-		gpuErrchk( cudaMemcpy(&extent, devext, sizeof(CudaRBC::Extent), cudaMemcpyDeviceToHost) );
-		printf("New extent (y+=2):  [%.3f  %.3f  %.3f] -- [%.3f  %.3f  %.3f]\n",
-				extent.xmin, extent.ymin, extent.zmin,
-				extent.xmax, extent.ymax, extent.zmax);
-
-		int ntr;
-		int (*trs)[3];
-		CudaRBC::get_triangle_indexing(trs, ntr);
-
-		for (int i=0; i<ntr; i++)
+		CudaRBC::extent_nohost(0, ncells, xyzuvw, devExtents);
+		gpuErrchk( cudaMemcpy(hstExtents, devExtents, ncells * sizeof(CudaRBC::Extent), cudaMemcpyDeviceToHost) );
+		cudaDeviceSynchronize();
+		for (int i=0; i<ncells; i++)
 		{
-			printf("%3d: [%3d %3d %3d]  ", i, trs[i][0], trs[i][1], trs[i][2]);
-			if ((i+1)%6 == 0) printf("\n");
+			printf("#%.3d:  [%.3f  %.3f], [%.3f  %.3f], [%.3f  %.3f]\n", i,
+					hstExtents[i].xmin, hstExtents[i].xmax,
+					hstExtents[i].ymin, hstExtents[i].ymax,
+					hstExtents[i].zmin, hstExtents[i].zmax);
 		}
-		printf("\n");
 
+		cudaEventCreate(&start);
+		cudaEventCreate(&stop);
 }
 
 	void _diag(FILE ** fs, const int nfs, real t)
@@ -197,8 +197,12 @@ public:
 
 	void _f()
 	{
-		gpuErrchk( cudaMemset(fxfyfz, 0, 3*nparticles * sizeof(real)) );
-		CudaRBC::forces_nohost(0, xyzuvw, fxfyfz);
+		gpuErrchk( cudaMemset(fxfyfz, 0, ncells * 3*nparticles * sizeof(real)) );
+
+		cudaEventRecord(start);
+		//for (int i=0; i<ncells; i++)
+			CudaRBC::forces_nohost(0, ncells, xyzuvw, fxfyfz);
+		cudaEventRecord(stop);
 	};
 
 	void run(const real tend, const real dt)
@@ -207,12 +211,15 @@ public:
 
 		FILE * fdiags[2] = {stdout, fopen("diag.txt", "w") };
 
-		const size_t nt = 1;//(int)(tend / dt);
+		const size_t nt = (int)(tend / dt);
 
 		_f();
 
 		Timer tm;
 		tm.start();
+
+		float tottime = 0;
+
 		for(int it = 0; it < nt; ++it)
 		{
 			//			if (it % 200 == 0)
@@ -221,24 +228,29 @@ public:
 			//				_diag(fdiags, 2, t);
 			//			}
 
-			_update_vel<<<(nparticles + 127) / 128, 128>>>(xyzuvw, fxfyfz, dt * 0.5, nparticles);
+			_update_vel<<<(ncells*nparticles + 127) / 128, 128>>>(xyzuvw, fxfyfz, dt * 0.5, ncells*nparticles);
 
 
-			_update_pos<<<(nparticles + 127) / 128, 128>>>(xyzuvw, dt, nparticles, L);
+			_update_pos<<<(ncells*nparticles + 127) / 128, 128>>>(xyzuvw, dt, ncells*nparticles, L);
 
 
 			_f();
 
-			_update_vel<<<(nparticles + 127) / 128, 128>>>(xyzuvw, fxfyfz, dt * 0.5, nparticles);
+			_update_vel<<<(ncells*nparticles + 127) / 128, 128>>>(xyzuvw, fxfyfz, dt * 0.5, ncells*nparticles);
 
-			if (it % 500 == 0)
+			float interval;
+			cudaEventSynchronize(stop);
+			cudaEventElapsedTime(&interval, start, stop);
+			tottime += interval;
+
+			if (it % 2000 == 0)
 			{
-				vmd_xyz("evolution.xyz", xyzuvw, nparticles, it > 0);
+				vmd_xyz("evolution.xyz", xyzuvw, ncells*nparticles, it > 0);
 				//vmd_xyz_3comp("force.xyz", fxfyfz, nparticles, it > 0);
 			}
 		}
 
-		printf("Avg time per step is is %f  ms\n", tm.elapsed() / 1e6 / nt);
+		printf("Avg time per step is %.4f  ms, forces took %.5f ms\n", tm.elapsed() / 1e6 / nt, tottime / nt);
 
 		fclose(fdiags[1]);
 	}
@@ -248,11 +260,11 @@ int main()
 {
 	printf("hello rbc-gpu test\n");
 
-	real L = 10; //  /Volumes/Phenix/CTC/vanilla-rbc/evolution.xyz
+	real L = 10000; //  /Volumes/Phenix/CTC/vanilla-rbc/evolution.xyz
 
-	SimRBC sim(L);
+	SimRBC sim(L, 50);
 
-	sim.run(10, 0.001);
+	sim.run(0.05, 0.001);
 
 	return 0;
 }

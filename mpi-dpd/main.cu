@@ -23,8 +23,7 @@ bool currently_profiling = false;
 namespace SignalHandling
 {
     volatile sig_atomic_t graceful_exit = 0, graceful_signum = 0;
-    sigset_t mask;
-    
+        
     void signal_handler(int signum)
     {
 	graceful_exit = 1;
@@ -33,15 +32,6 @@ namespace SignalHandling
     
     void setup()
     {
-	sigemptyset (&mask);
-	sigaddset (&mask, SIGINT);
-	
-	if (sigprocmask(SIG_BLOCK, &mask, NULL) < 0) 
-	{
-	    perror ("sigprocmask");
-	    exit(EXIT_FAILURE);
-	}
-	
 	struct sigaction action;
 	memset(&action, 0, sizeof(struct sigaction));
 	action.sa_handler = signal_handler;
@@ -52,12 +42,6 @@ namespace SignalHandling
     {
 	if (graceful_exit)
 	    return true;
-	
-	struct timespec timeout;
-	timeout.tv_sec = 0;
-	timeout.tv_nsec = 1000;
-	
-	return sigtimedwait(&mask, NULL, &timeout) >= 0;
     }   
 }
 

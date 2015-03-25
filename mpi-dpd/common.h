@@ -12,7 +12,7 @@
 
 #pragma once
 
-#if 0
+#if 1
 #define cuda_printf(...)
 #else
 #define cuda_printf(...) do { printf(__VA_ARGS__); } while(0)
@@ -34,7 +34,7 @@ const float kBT = 0.0945;
 const float gammadpd = 45;
 const float sigma = sqrt(2 * gammadpd * kBT); 
 const float sigmaf = sigma / sqrt(dt);
-const float aij = 2.5;
+const float aij = 25;
 const float hydrostatic_a = 0.05;
 const bool walls = true;
 const bool pushtheflow = true;
@@ -44,7 +44,7 @@ const bool xyz_dumps = false;
 const bool hdf5field_dumps = true;
 const bool hdf5part_dumps = false;
 const int steps_per_report = 1000;
-const int steps_per_dump = 1000;
+const int steps_per_dump = 10000;
 const int wall_creation_stepid = 5000;
 
 #include <cstdlib>
@@ -83,7 +83,7 @@ enum NVTX_COLORS
 class NvtxTracer
 {
     bool active;
-    
+
 public:
 
     static bool currently_profiling;
