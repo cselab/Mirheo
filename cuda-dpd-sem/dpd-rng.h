@@ -143,8 +143,11 @@ __inline__ __device__ float mean0var1( float seed, int u, int v )
 
 __inline__ __device__ float mean0var1( float seed, uint u, uint v )
 {
-    float p = rem( ( ( u & 0x3FFU ) * gold ) + u * bronze + ( ( v & 0x3FFU ) * silver ) + v * tin ); // safe for large u or v
+	// 7 FLOPS
+	float p = rem( ( ( u & 0x3FFU ) * gold ) + u * bronze + ( ( v & 0x3FFU ) * silver ) + v * tin ); // safe for large u or v
+	// 45+1 FLOPS
     float l = __logistic_core<N>( seed - p );
+    // 1 FLOP
     return l * sqrt2;
 }
 

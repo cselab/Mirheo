@@ -10,6 +10,10 @@ CUDADPD = cuda-dpd-floatized.cu
 CUDADPDBIP = cuda-dpd-bipartite-floatized.cu
 endif
 
+ifeq "$(flops)" "1"
+        NVCCFLAGS += -D_COUNT_FLOPS
+endif
+
 ifeq "$(nonperiodic)" "1"
     NVCCFLAGS += -D_NONPERIODIC_KERNEL_
 endif
