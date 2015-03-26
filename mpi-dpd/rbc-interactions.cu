@@ -155,11 +155,16 @@ namespace KernelsRBC
 
 	int mycid[3];
 	for(int c = 0; c < 3; ++c)
-	    mycid[c] = (int)floor(p.x[c] + L[c]/2);
+	    mycid[c] = L[c]/2 + (int)floor(p.x[c]);
 
 	for(int c = 0; c < 3; ++c)
 	    if (mycid[c] < -1 || mycid[c] >= L[c] + 1)
+	    {
+		for(int c = 0; c < 3; ++c)
+		    accrbc[dpid].a[c] = 0;
+
 		return;
+	    }
 
 	float fsum[3] = {0, 0, 0};
 	
@@ -254,7 +259,7 @@ ComputeInteractionsRBC::ComputeInteractionsRBC(MPI_Comm _cartcomm): nvertices(0)
 	MPI_CHECK( MPI_Cart_rank(cartcomm, coordsneighbor, dstranks + i) );
     }
 
-    KernelsRBC::ParamsFSI params = {aij, gammadpd, sigmaf};
+    KernelsRBC::ParamsFSI params = {12.5 , gammadpd, sigmaf};
     
     CUDA_CHECK(cudaMemcpyToSymbol(KernelsRBC::params, &params, sizeof(KernelsRBC::ParamsFSI)));
     
@@ -265,7 +270,8 @@ ComputeInteractionsRBC::ComputeInteractionsRBC(MPI_Comm _cartcomm): nvertices(0)
 void ComputeInteractionsRBC::_compute_extents(const Particle * const rbcs, const int nrbcs, cudaStream_t stream)
 {
 #if 1
-    minmax_massimo(rbcs, nvertices, nrbcs, minextents.devptr, maxextents.devptr, stream);
+    if (nrbcs)
+	minmax_massimo(rbcs, nvertices, nrbcs, minextents.devptr, maxextents.devptr, stream);
 #else
     for(int i = 0; i < nrbcs; ++i)
 	CudaRBC::extent_nohost(stream, (float *)(rbcs + nvertices * i), extents.devptr + i);
@@ -281,7 +287,7 @@ void ComputeInteractionsRBC::pack_and_post(const Particle * const rbcs, const in
 
     _compute_extents(rbcs, nrbcs, stream);
 
-    CUDA_CHECK(cudaEventRecord(evextents));
+    CUDA_CHECK(cudaEventRecord(evextents, stream));
     CUDA_CHECK(cudaEventSynchronize(evextents));
 
     for(int i = 0; i < 26; ++i)
@@ -341,7 +347,7 @@ void ComputeInteractionsRBC::pack_and_post(const Particle * const rbcs, const in
 	CUDA_CHECK(cudaPeekAtLastError());
     }
      
-    CUDA_CHECK(cudaEventRecord(evfsi));
+    CUDA_CHECK(cudaEventRecord(evfsi, stream));
     CUDA_CHECK(cudaEventSynchronize(evfsi));
 
     for(int i = 0; i < 26; ++i)

@@ -225,7 +225,7 @@ namespace CudaRBC
 
 		dummy = new Extent[maxCells];
 
-		unitsSetup(1.64, 0.00705, 6, 15, 1000, 5000, 5, 135, 90, 1e-6, 1e-5, 4, report);
+		unitsSetup(1.64, 0.00141, 19.0476, 64, 1104.168, 159.0438, 0, 135, 94, 1e-6, 2.4295e-6, 4, report); //unitsSetup(1.64, 0.00705, 6, 15, 1000, 5000, 5, 135, 90, 1e-6, 1e-5, 4, report);
 	}
 
 	void unitsSetup(float lmax, float p, float cq, float kb, float ka, float kv, float gammaC,
@@ -250,7 +250,7 @@ namespace CudaRBC
 		params.totVolume0 = totVolume0 * pow(ll, -3.0);
 		params.ka =  params.kbT * ka / (l0*l0);
 		params.kd =  params.kbT * 0.0 / (l0*l0);
-		params.kv =  params.kbT * kv * (l0*l0*l0);
+		params.kv =  params.kbT * kv / (l0*l0*l0);//	params.kv =  params.kbT * kv * (l0*l0*l0);
 		params.gammaC = gammaC * 580 * pow(tt, 1.0);
 		params.gammaT = 3.0 * params.gammaC;
 
@@ -260,7 +260,7 @@ namespace CudaRBC
 		params.sigma = sqrt(2 * params.gamma * params.kbT);
 		//		params.dt = dt;
 
-		float phi = 3.1 / 180.0*M_PI;
+		float phi = 6.9 / 180.0*M_PI; //float phi = 3.1 / 180.0*M_PI;
 		params.sinTheta0 = sin(phi);
 		params.cosTheta0 = cos(phi);
 		params.kb = kb * params.kbT;
