@@ -18,7 +18,7 @@ std::vector<Particle> Simulation::_ic()
 
     std::vector<Particle> ic(XSIZE_SUBDOMAIN * YSIZE_SUBDOMAIN * ZSIZE_SUBDOMAIN * numberdensity);
     
-    const int L[3] = { XSIZE_SUBDOMAIN, YSIZE_SUBDOMAIN, ZSIZE_SUBDOMAIN };
+    const double L[3] = { XSIZE_SUBDOMAIN, YSIZE_SUBDOMAIN, ZSIZE_SUBDOMAIN };
     
     for(int iz = 0; iz < L[2]; iz++)
 	for(int iy = 0; iy < L[1]; iy++)
