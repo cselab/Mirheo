@@ -20,12 +20,12 @@ RedistributeRBCs::RedistributeRBCs(MPI_Comm _cartcomm): nvertices(CudaRBC::get_n
 {
     assert(XSIZE_SUBDOMAIN % 2 == 0 && YSIZE_SUBDOMAIN % 2 == 0 && ZSIZE_SUBDOMAIN % 2 == 0);
     assert(XSIZE_SUBDOMAIN >= 2 && YSIZE_SUBDOMAIN >= 2 && ZSIZE_SUBDOMAIN >= 2);
-
-    if (!rbcs)
-	return;
     
+    if (rbcs)
+    {
     CudaRBC::Extent host_extent;
     CudaRBC::setup(nvertices, host_extent);
+    }
     
     MPI_CHECK(MPI_Comm_dup(_cartcomm, &cartcomm));
 	    
@@ -61,7 +61,8 @@ void RedistributeRBCs::_compute_extents(const Particle * const xyzuvw, const int
     NVTX_RANGE("RDC/extent", NVTX_C7);
 
 #if 1
-    minmax_massimo(xyzuvw, nvertices, nrbcs, minextents.devptr, maxextents.devptr, stream);
+    if (nrbcs)
+	minmax_massimo(xyzuvw, nvertices, nrbcs, minextents.devptr, maxextents.devptr, stream);
 #else
     for(int i = 0; i < nrbcs; ++i)
 	CudaRBC::extent_nohost(stream, (float *)(xyzuvw + nvertices * i), extents.devptr + i);
@@ -78,14 +79,13 @@ int RedistributeRBCs::stage1(const Particle * const xyzuvw, const int nrbcs, cud
 
     _compute_extents(xyzuvw, nrbcs, stream);
 
-    CUDA_CHECK(cudaEventRecord(evextents));
+    CUDA_CHECK(cudaEventRecord(evextents, stream));
     CUDA_CHECK(cudaEventSynchronize(evextents));
 
     std::vector<int> reordering_indices[27];
 
     for(int i = 0; i < nrbcs; ++i)
     {
-	//const CudaRBC::Extent ext = extents.data[i];
 	const float3 minext = minextents.data[i];
 	const float3 maxext = maxextents.data[i];
 
@@ -135,12 +135,11 @@ int RedistributeRBCs::stage1(const Particle * const xyzuvw, const int nrbcs, cud
     arriving /= nvertices;
     notleaving = sendbufs[0].size / nvertices;
 
-    if (arriving)
-	printf("YEE something is arriving to rank %d (arriving %d)\n", myrank, arriving);
+    //if (arriving)
+    //printf("YEE something is arriving to rank %d (arriving %d)\n", myrank, arriving);
   
     MPI_Status statuses[26];	    
     MPI_CHECK( MPI_Waitall(26, sendcountreq, statuses) );
-
 
     for(int i = 1; i < 27; ++i)
 	if (recvbufs[i].size > 0)

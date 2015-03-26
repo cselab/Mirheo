@@ -29,7 +29,7 @@ enum {
 
 const int numberdensity = 4;
 const float dt = 0.001;
-const float tend = 50;
+const float tend = 5000;
 const float kBT = 0.0945;
 const float gammadpd = 45;
 const float sigma = sqrt(2 * gammadpd * kBT); 
@@ -37,11 +37,11 @@ const float sigmaf = sigma / sqrt(dt);
 const float aij = 25;
 const float hydrostatic_a = 0.05;
 const bool walls = false;
-const bool pushtheflow = false;
-const bool rbcs = false;
+const bool pushtheflow = true;
+const bool rbcs = true;
 const bool ctcs = false;
 const bool xyz_dumps = false;
-const bool hdf5field_dumps = false;
+const bool hdf5field_dumps = true;
 const bool hdf5part_dumps = false;
 const int steps_per_report = 1000;
 const int steps_per_dump = 1000;
