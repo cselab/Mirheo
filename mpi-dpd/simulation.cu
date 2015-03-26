@@ -136,34 +136,33 @@ void Simulation::_report(const bool verbose, const int idtimestep)
 
 void Simulation::_remove_bodies_from_wall(CollectionRBC * coll)
 {
-    //remove rbcs touching the wall
-    if(coll && coll->count())
+    if(!coll || !coll->count())
+	return;
+    
+    SimpleDeviceBuffer<int> marks(coll->pcount());
+    
+    SolidWallsKernel::fill_keys<<< (coll->pcount() + 127) / 128, 128 >>>(coll->data(), coll->pcount(), marks.data);
+    
+    vector<int> tmp(marks.size);
+    CUDA_CHECK(cudaMemcpy(tmp.data(), marks.data, sizeof(int) * marks.size, cudaMemcpyDeviceToHost));
+    
+    const int nbodies = coll->count();
+    const int nvertices = coll->nvertices;
+    
+    std::vector<int> tokill;
+    for(int i = 0; i < nbodies; ++i)
     {
-	SimpleDeviceBuffer<int> marks(coll->pcount());
+	bool valid = true;
 	
-	SolidWallsKernel::fill_keys<<< (coll->pcount() + 127) / 128, 128 >>>(coll->data(), coll->pcount(), marks.data);
+	for(int j = 0; j < nvertices && valid; ++j)
+	    valid &= 0 == tmp[j + nvertices * i];
 	
-	vector<int> tmp(marks.size);
-	CUDA_CHECK(cudaMemcpy(tmp.data(), marks.data, sizeof(int) * marks.size, cudaMemcpyDeviceToHost));
-	
-	const int nrbcs = rbcscoll->count();
-	const int nvertices = rbcscoll->nvertices;
-	
-	std::vector<int> tokill;
-	for(int i = 0; i < nrbcs; ++i)
-	{
-	    bool valid = true;
-	    
-	    for(int j = 0; j < nvertices && valid; ++j)
-		valid &= 0 == tmp[j + nvertices * i];
-	    
-		if (!valid)
-		    tokill.push_back(i);
-	    }
-	
-	coll->remove(&tokill.front(), tokill.size());
-	coll->clear_velocity();
+	if (!valid)
+	    tokill.push_back(i);
     }
+    
+    coll->remove(&tokill.front(), tokill.size());
+    coll->clear_velocity();
     
     CUDA_CHECK(cudaPeekAtLastError());
 }
@@ -249,7 +248,7 @@ void Simulation::_create_walls(const bool verbose, bool & termination_request)
     _remove_bodies_from_wall(rbcscoll);
     _remove_bodies_from_wall(ctcscoll);
 
- {
+    {
 	H5PartDump sd("survived-particles.h5part", activecomm, cartcomm);
 	Particle * p = new Particle[particles.size];
 	
@@ -437,7 +436,6 @@ void Simulation::_update_and_bounce()
     
     CUDA_CHECK(cudaPeekAtLastError());
 }
-
 
 Simulation::Simulation(MPI_Comm cartcomm, MPI_Comm activecomm, bool (*check_termination)()) :  
     cartcomm(cartcomm), activecomm(activecomm),
