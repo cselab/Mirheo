@@ -37,8 +37,8 @@ const float sigmaf = sigma / sqrt(dt);
 const float aij = 25;
 const float hydrostatic_a = 0.05;
 const bool walls = false;
-const bool pushtheflow = false;
-const bool rbcs = false;
+const bool pushtheflow = true;
+const bool rbcs = true;
 const bool ctcs = false;
 const bool xyz_dumps = false;
 const bool hdf5field_dumps = true;
@@ -312,7 +312,7 @@ PinnedHostBuffer(int n = 0): capacity(0), size(0), data(NULL), devptr(NULL) { re
 
 class HookedTexture
 {
-    std::pair< void *, int> registered;
+    std::pair<void *, int> registered;
     
     template<typename T>  void _create(T * data, const int n)
     {
@@ -345,9 +345,9 @@ HookedTexture(): texObj(0) { }
     template<typename T>
 	cudaTextureObject_t acquire(T * data, const int n)
     {
-	std::pair< void *, int> target = std::make_pair(data, n);
+	std::pair<void *, int> target = std::make_pair(const_cast<T *>(data), n);
 
-	if (target != registered)
+	if (target.first != registered.first || target.second > registered.second)
 	{
 	    _discard();
 	    _create(data, n);
@@ -372,13 +372,13 @@ struct CellLists
 
     int * start, * count;
     
-CellLists(const int LX, const int LY, const int LZ): ncells(LX * LY * LZ), LX(LX), LY(LY), LZ(LZ)
+CellLists(const int LX, const int LY, const int LZ): ncells(LX * LY * LZ + 1), LX(LX), LY(LY), LZ(LZ)
 	{
 	    CUDA_CHECK(cudaMalloc(&start, sizeof(int) * ncells));
 	    CUDA_CHECK(cudaMalloc(&count, sizeof(int) * ncells));
 	}
 
-    void build(Particle * const p, const int n, cudaStream_t stream);
+    void build(Particle * const p, const int n, cudaStream_t stream, int * const order = NULL);
 	    	    
     ~CellLists()
 	{

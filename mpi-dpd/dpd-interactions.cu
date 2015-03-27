@@ -300,8 +300,7 @@ void ComputeInteractionsDPD::remote_interactions(const Particle * const p, const
 	    CUDA_CHECK(cudaMemcpyToSymbolAsync(RemoteDPD::remote_accelerations, remote_accelerations,
 					       sizeof(remote_accelerations), 0, cudaMemcpyHostToDevice, stream));
 	}
-	
-	
+		
 	for(int i = 0; i < 7; ++i)
 	    CUDA_CHECK(cudaStreamWaitEvent(stream, evremoteint[i], 0));
 

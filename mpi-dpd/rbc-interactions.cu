@@ -10,6 +10,7 @@
  *  before getting a written permission from the author of this file.
  */
 
+#include <set>
 #include <../dpd-rng.h>
 
 #include "rbc-interactions.h"
@@ -69,7 +70,7 @@ namespace KernelsRBC
 	CUDA_CHECK(cudaFuncSetCacheConfig(fsi_forces, cudaFuncCachePreferL1));
     }
     
-    __global__ void shift_send_particles(const Particle * const src, const int n, const int code, Particle * const dst)
+    __global__ void shift_send_particles_kernel(const Particle * const src, const int n, const int code, Particle * const dst)
     {
 	const int gid = threadIdx.x + blockDim.x * blockIdx.x;
 
@@ -86,6 +87,152 @@ namespace KernelsRBC
 	    dst[gid] = p;
 	}
     }
+
+    static const int cmaxnrbcs = 64;
+    __constant__ float * csources[cmaxnrbcs], * cdestinations[cmaxnrbcs];
+    __constant__ int ccodes[cmaxnrbcs];
+
+    template <bool from_cmem>
+    __global__ void shift_all_send_particles(const int nrbcs, const int nvertices, 
+					     const float ** const dsources, const int * dcodes, float ** const ddestinations)
+    {
+	const int nfloats_per_rbc = 6 * nvertices;
+
+	assert(nfloats_per_rbc * nrbcs <= blockDim.x * gridDim.x);
+
+	const int gid = threadIdx.x + blockDim.x * blockIdx.x;
+	
+	if (gid >= nfloats_per_rbc * nrbcs) 
+	    return;
+
+	const int idrbc = gid / nfloats_per_rbc;
+	assert(idrbc < nrbcs);
+
+	const int offset = gid % nfloats_per_rbc;
+	
+	float val;
+	if (from_cmem)
+	    val = csources[idrbc][offset];
+	else
+	    val = dsources[idrbc][offset];
+	
+	int code;
+	if (from_cmem)
+	    code = ccodes[idrbc];
+	else
+	    code = dcodes[idrbc];
+
+	const int c = gid % 6;
+
+	val -= 
+	    (c == 0) * ((code     + 2) % 3 - 1) * XSIZE_SUBDOMAIN + 
+	    (c == 1) * ((code / 3 + 2) % 3 - 1) * YSIZE_SUBDOMAIN + 
+	    (c == 2) * ((code / 9 + 2) % 3 - 1) * ZSIZE_SUBDOMAIN ;
+
+	if (from_cmem)
+	    cdestinations[idrbc][offset] = val;
+	else
+	    ddestinations[idrbc][offset] = val;
+    }
+
+    SimpleDeviceBuffer<float *> _ddestinations;
+    SimpleDeviceBuffer<const float *> _dsources;
+    SimpleDeviceBuffer<int> _dcodes;
+    
+    void shift_send_particles(cudaStream_t stream, const int nrbcs, const int nvertices,
+			      const float ** const sources, const int * codes, float ** const destinations)
+    {
+	if (nrbcs == 0)
+	    return;
+
+	const int nthreads = nrbcs * nvertices * 6;
+
+	if (nrbcs < cmaxnrbcs)
+	{
+	    CUDA_CHECK(cudaMemcpyToSymbolAsync(ccodes, codes, sizeof(int) * nrbcs, 0, cudaMemcpyHostToDevice, stream));
+	    CUDA_CHECK(cudaMemcpyToSymbolAsync(cdestinations, destinations, sizeof(float *) * nrbcs, 0, cudaMemcpyHostToDevice, stream));
+	    CUDA_CHECK(cudaMemcpyToSymbolAsync(csources, sources, sizeof(float *) * nrbcs, 0, cudaMemcpyHostToDevice, stream));
+	    
+	    shift_all_send_particles<true><<<(nthreads + 127) / 128, 128, 0, stream>>>
+		(nrbcs, nvertices, NULL, NULL, NULL);
+
+	    CUDA_CHECK(cudaPeekAtLastError());
+	}
+	else
+	{
+	    _dcodes.resize(nrbcs);
+	    _ddestinations.resize(nrbcs);
+	    _dsources.resize(nrbcs);
+
+	    CUDA_CHECK(cudaMemcpyAsync(_dcodes.data, codes, sizeof(int) * nrbcs, cudaMemcpyHostToDevice, stream));
+	    CUDA_CHECK(cudaMemcpyAsync(_ddestinations.data, destinations, sizeof(float *) * nrbcs, cudaMemcpyHostToDevice, stream));
+	    CUDA_CHECK(cudaMemcpyAsync(_dsources.data, sources, sizeof(float *) * nrbcs, cudaMemcpyHostToDevice, stream));
+
+	    shift_all_send_particles<false><<<(nthreads + 127) / 128, 128, 0, stream>>>
+		(nrbcs, nvertices, _dsources.data, _dcodes.data, _ddestinations.data);
+	}
+    }
+
+  template <bool from_cmem>
+    __global__ void merge_all_acc(const int nrbcs, const int nvertices, 
+				  const float ** const dsources, float ** const ddestinations)
+    {
+	if (nrbcs == 0)
+	    return;
+
+	const int nfloats_per_rbc = 3 * nvertices;
+
+	assert(nfloats_per_rbc * nrbcs <= blockDim.x * gridDim.x);
+
+	const int gid = threadIdx.x + blockDim.x * blockIdx.x;
+	
+	if (gid >= nfloats_per_rbc * nrbcs) 
+	    return;
+
+	const int idrbc = gid / nfloats_per_rbc;
+	assert(idrbc < nrbcs);
+
+	const int offset = gid % nfloats_per_rbc;
+	
+	float val;
+	if (from_cmem)
+	    val = csources[idrbc][offset];
+	else
+	    val = dsources[idrbc][offset];
+	
+	if (from_cmem)
+	    atomicAdd(cdestinations[idrbc] + offset, val);
+	else
+	    atomicAdd(ddestinations[idrbc] + offset, val);
+    }
+
+    void merge_all_accel(cudaStream_t stream, const int nrbcs, const int nvertices,
+			 const float ** const sources, float ** const destinations)
+    {
+	const int nthreads = nrbcs * nvertices * 3;
+
+	if (nrbcs < cmaxnrbcs)
+	{
+	    CUDA_CHECK(cudaMemcpyToSymbolAsync(cdestinations, destinations, sizeof(float *) * nrbcs, 0, cudaMemcpyHostToDevice, stream));
+	    CUDA_CHECK(cudaMemcpyToSymbolAsync(csources, sources, sizeof(float *) * nrbcs, 0, cudaMemcpyHostToDevice, stream));
+	    
+	    merge_all_acc<true><<<(nthreads + 127) / 128, 128, 0, stream>>>(nrbcs, nvertices, NULL, NULL);
+
+	    CUDA_CHECK(cudaPeekAtLastError());
+	}
+	else
+	{
+	    _dcodes.resize(nrbcs);
+	    _ddestinations.resize(nrbcs);
+	    _dsources.resize(nrbcs);
+
+	    CUDA_CHECK(cudaMemcpyAsync(_ddestinations.data, destinations, sizeof(float *) * nrbcs, cudaMemcpyHostToDevice, stream));
+	    CUDA_CHECK(cudaMemcpyAsync(_dsources.data, sources, sizeof(float *) * nrbcs, cudaMemcpyHostToDevice, stream));
+
+	    merge_all_acc<false><<<(nthreads + 127) / 128, 128, 0, stream>>>(nrbcs, nvertices, _dsources.data, _ddestinations.data);
+	}
+    }
+
 
     __device__ bool fsi_kernel(const float seed,
 			       const int dpid, const float3 xp, const float3 up, const int spid,
@@ -223,25 +370,61 @@ namespace KernelsRBC
 	    for(int c = 0; c < 3; ++c)
 		dst[gid].a[c] += src[gid].a[c];
     }
+
+    __global__ void merge_accelerations_float(const Acceleration * const src, const int n, Acceleration * const dst)
+    {	
+	assert(blockDim.x * gridDim.x >= n * 3);
+
+	const int gid = threadIdx.x + blockDim.x * blockIdx.x;
+
+	const int pid = gid / 3;
+	const int c = gid % 3;
+
+	if (pid < n)
+	    dst[pid].a[c] += src[pid].a[c];
+    }
+
+    template<bool accumulation>
+    __global__ void merge_accelerations_scattered_float(const int * const reordering, const Acceleration * const src, 
+							const int n, Acceleration * const dst)
+    {
+	assert(blockDim.x * gridDim.x >= n * 3);
+
+	const int gid = threadIdx.x + blockDim.x * blockIdx.x;
+
+	const int pid = gid / 3;
+	const int c = gid % 3;
+
+	if (pid < n)
+	{
+	    const int actualpid = reordering[pid];
+
+	    if (accumulation)
+		dst[actualpid].a[c] += src[pid].a[c];
+	    else
+		dst[actualpid].a[c] = src[pid].a[c];
+	}
+    }
 }
 
-ComputeInteractionsRBC::ComputeInteractionsRBC(MPI_Comm _cartcomm): nvertices(0)
+ComputeInteractionsRBC::ComputeInteractionsRBC(MPI_Comm _cartcomm): 
+nvertices(0), dualcells(XSIZE_SUBDOMAIN, YSIZE_SUBDOMAIN, ZSIZE_SUBDOMAIN)
 { 
     assert(XSIZE_SUBDOMAIN % 2 == 0 && YSIZE_SUBDOMAIN % 2 == 0 && ZSIZE_SUBDOMAIN % 2 == 0);
     assert(XSIZE_SUBDOMAIN >= 2 && YSIZE_SUBDOMAIN >= 2 && ZSIZE_SUBDOMAIN >= 2);
     
     if (rbcs)
     {
-    CudaRBC::Extent host_extent;
-    CudaRBC::setup(nvertices, host_extent);
+	CudaRBC::Extent host_extent;
+	CudaRBC::setup(nvertices, host_extent);
     }
     
     MPI_CHECK( MPI_Comm_dup(_cartcomm, &cartcomm));
-
+    
     MPI_CHECK( MPI_Comm_rank(cartcomm, &myrank));
- 
+    
     local_trunk = Logistic::KISS(1908 - myrank, 1409 + myrank, 290, 12968);
-
+    
     MPI_CHECK( MPI_Comm_size(cartcomm, &nranks));
 
     MPI_CHECK( MPI_Cart_get(cartcomm, 3, dims, periods, coords) );
@@ -338,6 +521,26 @@ void ComputeInteractionsRBC::pack_and_post(const Particle * const rbcs, const in
     for(int i = 0; i < 26; ++i)
 	local[i].setup(send_counts[i] * nvertices);
 
+#if 1
+    {
+	std::vector<int> codes;
+	std::vector<const float *> src;
+	std::vector<float *> dst;
+	
+	for(int i = 0; i < 26; ++i)
+	    for(int j = 0; j < haloreplica[i].size(); ++j)
+	    {
+		codes.push_back(i);
+		src.push_back((float *)(rbcs + nvertices * haloreplica[i][j]));
+		dst.push_back((float *)(local[i].state.devptr + nvertices * j));
+	    }
+
+	KernelsRBC::shift_send_particles(stream, src.size(), nvertices, &src.front(), &codes.front(), &dst.front());
+	
+	CUDA_CHECK(cudaPeekAtLastError());
+    }
+   
+#else
     for(int i = 0; i < 26; ++i)
     {
 	for(int j = 0; j < haloreplica[i].size(); ++j)
@@ -346,6 +549,7 @@ void ComputeInteractionsRBC::pack_and_post(const Particle * const rbcs, const in
 	 
 	CUDA_CHECK(cudaPeekAtLastError());
     }
+#endif
      
     CUDA_CHECK(cudaEventRecord(evfsi, stream));
     CUDA_CHECK(cudaEventSynchronize(evfsi));
@@ -398,9 +602,45 @@ void ComputeInteractionsRBC::evaluate(const Particle * const solvent, const int 
     {
 	NVTX_RANGE("RBC/local forces", NVTX_C3);
 
+	const float seed = local_trunk.get_float();
+
+#if 0
+	const int nsolvent = nparticles;
+	const int nsolute = nrbcs * nvertices;
+	const int3 vcells = make_int3(XSIZE_SUBDOMAIN, YSIZE_SUBDOMAIN, ZSIZE_SUBDOMAIN);
+	const int ncells = XSIZE_SUBDOMAIN * YSIZE_SUBDOMAIN * ZSIZE_SUBDOMAIN;
+
+	reordered_solute.resize(nsolute);	
+	CUDA_CHECK(cudaMemcpyAsync(reordered_solute.data, rbcs, sizeof(Particle) * nrbcs * nvertices, cudaMemcpyDeviceToDevice, stream));
+
+	reordering.resize(nsolute);
+	dualcells.build(reordered_solute.data, nrbcs * nvertices, stream, reordering.data);
+
+	texSolventStart.acquire(const_cast<int *>(cellsstart_solvent), ncells + 1);
+	texSolvent.acquire((float2 *)const_cast<Particle *>(solvent), nsolvent * 3);
+	texSoluteStart.acquire(const_cast<int *>(dualcells.start), ncells + 1);
+	texSolute.acquire((float2 *)const_cast<Particle *>(reordered_solute.data), reordered_solute.capacity);
+
+	//solute to solvent
+	lacc_solvent.resize(nsolvent);
+	forces_dpd_cuda_bipartite_nohost(stream, (float2 *)solvent, nsolvent, texSolventStart.texObj, texSoluteStart.texObj, texSolute.texObj,
+					 nsolute, vcells, 12.5, gammadpd, sigma / sqrt(dt), seed, 0, (float *)lacc_solvent.data);
+
+	//solvent to solute
+	lacc_solute.resize(nsolute);
+	forces_dpd_cuda_bipartite_nohost(stream, (float2 *)reordered_solute.data, nsolute, texSoluteStart.texObj, texSolventStart.texObj, texSolvent.texObj, 
+					 nsolvent, vcells, 12.5, gammadpd, sigma / sqrt(dt), seed, 1, (float *)lacc_solute.data);
+	
+	KernelsRBC::merge_accelerations_float<<< (nparticles * 3 + 127) / 128, 128, 0, stream >>>(lacc_solvent.data, nparticles, accsolvent);
+	
+        KernelsRBC::merge_accelerations_scattered_float<false><<< (nrbcs * nvertices * 3 + 127) / 128, 128, 0, stream >>>(
+	    reordering.data, lacc_solute.data, nrbcs * nvertices, accrbc);
+
+#else
 	KernelsRBC::fsi_forces<<< (nrbcs * nvertices + 127) / 128, 128, 0, stream >>>
-	    (local_trunk.get_float(), accsolvent, nparticles, rbcs, nrbcs * nvertices, accrbc);
-		
+	    (seed, accsolvent, nparticles, rbcs, nrbcs * nvertices, accrbc);
+#endif
+
 	_internal_forces(rbcs, nrbcs, accrbc, stream);
     }
     
@@ -445,11 +685,28 @@ void ComputeInteractionsRBC::evaluate(const Particle * const solvent, const int 
     
     {
 	NVTX_RANGE("RBC/merge", NVTX_C7);
-
+#if 1
+	{
+	    std::vector<const float *> src;
+	    std::vector<float *> dst;
+	    
+	    for(int i = 0; i < 26; ++i)
+		for(int j = 0; j < haloreplica[i].size(); ++j)
+		{
+		    src.push_back((float *)(local[i].result.devptr + nvertices * j));
+		    dst.push_back((float *)(accrbc + nvertices * haloreplica[i][j]));
+		}
+	    
+	    KernelsRBC::merge_all_accel(stream, src.size(), nvertices, &src.front(), &dst.front());
+	    
+	    CUDA_CHECK(cudaPeekAtLastError());
+	}
+#else
 	for(int i = 0; i < 26; ++i)
 	    for(int j = 0; j < haloreplica[i].size(); ++j)
 		KernelsRBC::merge_accelerations<<< (nvertices + 127) / 128, 128, 0, stream>>>(local[i].result.devptr + nvertices * j, nvertices,
 											      accrbc + nvertices * haloreplica[i][j]);
+#endif
     }
 }
 

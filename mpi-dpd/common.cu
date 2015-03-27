@@ -28,10 +28,10 @@ bool Acceleration::initialized = false;
 
 MPI_Datatype Acceleration::mytype;
 
-void CellLists::build(Particle * const p, const int n, cudaStream_t stream)
+void CellLists::build(Particle * const p, const int n, cudaStream_t stream, int * const order)
 {
     if (n > 0)
-	build_clists((float * )p, n, 1, LX, LY, LZ, -LX/2, -LY/2, -LZ/2, NULL, start, count,  NULL, 0);
+	build_clists((float * )p, n, 1, LX, LY, LZ, -LX/2, -LY/2, -LZ/2, order, start, count,  NULL, 0);
     else
     {
 	CUDA_CHECK(cudaMemset(start, 0, sizeof(int) * ncells));
