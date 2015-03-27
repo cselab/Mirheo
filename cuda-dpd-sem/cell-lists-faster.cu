@@ -304,6 +304,12 @@ __global__ void xgather(const int * const ids, const int np, const float invrc, 
     for(int i = tid; i < ncells.x; i += warpSize)
 	starts[i + ncells.x * yzcid] = start + (i == 0 ? 0 : xhisto[i - 1]);
  
+    if (yzcid == ncells.y * ncells.z - 1 && tid == 0)
+    {
+	starts[ncells.x * ncells.y * ncells.z] = start + xhisto[ncells.x - 1];
+	counts[ncells.x * ncells.y * ncells.z] = 0;
+    }
+
     for(int i = tid; i < count; i += warpSize)
     {
 	const int entry = loffset[i];
@@ -406,7 +412,7 @@ bool clists_perfmon = false;
 bool clists_robust = true;
 
 float * xyzuvw_copy = NULL;
-int *loffsets = NULL, *yzcid = NULL, *outid = NULL, *order= NULL, *dyzscan = NULL, *yzhisto = NULL;
+int *loffsets = NULL, *yzcid = NULL, *outid = NULL, *dyzscan = NULL, *yzhisto = NULL;
 
 cudaEvent_t evstart, evacquire, evscatter, evgather;
 
@@ -416,7 +422,7 @@ int old_np = 0, old_yzncells = 0;
 void build_clists(float * const device_xyzuvw, int np, const float rc, 
 		  const int xcells, const int ycells, const int zcells,
 		  const float xdomainstart, const float ydomainstart, const float zdomainstart,
-		  int * const host_order, int * device_cellsstart, int * device_cellscount,
+		  int * const order, int * device_cellsstart, int * device_cellscount,
 		  std::pair<int, int *> * nonemptycells, cudaStream_t stream)
 {
     assert(np > 0);
@@ -460,14 +466,12 @@ void build_clists(float * const device_xyzuvw, int np, const float rc,
 	    CUDA_CHECK(cudaFree(loffsets));
 	    CUDA_CHECK(cudaFree(yzcid));
 	    CUDA_CHECK(cudaFree(outid));
-	    CUDA_CHECK(cudaFree(order));
 	}
 
 	CUDA_CHECK(cudaMalloc(&xyzuvw_copy, sizeof(float) * 6 * np));
 	CUDA_CHECK(cudaMalloc(&loffsets, sizeof(int) * np));
 	CUDA_CHECK(cudaMalloc(&yzcid, sizeof(int) * np));
 	CUDA_CHECK(cudaMalloc(&outid, sizeof(int) * np));
-	CUDA_CHECK(cudaMalloc(&order, sizeof(int) * np));
 
 	old_np = np;
     }
@@ -547,7 +551,7 @@ void build_clists(float * const device_xyzuvw, int np, const float rc,
 	if(shmem_fp < 48 * 1024)
 	    xgather<YCPB><<< dim3(1, ncells.y / YCPB, ncells.z), dim3(32, YCPB), shmem_fp, stream>>>
 		(outid, np, 1 / rc, ncells, domainstart, device_cellsstart, device_cellscount, device_xyzuvw, xbufsize,
-		 host_order == NULL ? NULL : order);
+		 order);
 	else
 	{
 	    static const int YCPB = 1;
@@ -558,7 +562,7 @@ void build_clists(float * const device_xyzuvw, int np, const float rc,
 	    
 	    xgather<YCPB><<< dim3(1, ncells.y / YCPB, ncells.z), dim3(32, YCPB), shmem_fp, stream>>>
 		(outid, np, 1 / rc, ncells, domainstart, device_cellsstart, device_cellscount, device_xyzuvw, xbufsize,
-		 host_order == NULL ? NULL : order);
+		 order);
 	}
     }
     
@@ -587,7 +591,7 @@ void build_clists(float * const device_xyzuvw, int np, const float rc,
 	    
 	    xgather<1><<< dim3(1, ncells.y, ncells.z), dim3(32), sizeof(int) * (ncells.x  + 2 * xbufsize), stream>>>
 		(outid, np, 1 / rc, ncells, domainstart, device_cellsstart, device_cellscount, device_xyzuvw, xbufsize,
-		 host_order == NULL ? NULL : order);
+		 order);
 
 	    cudaError_t status = cudaPeekAtLastError();
 
@@ -636,9 +640,6 @@ void build_clists(float * const device_xyzuvw, int np, const float rc,
 	
 	nonemptycells->first = nonempties;
     }
-
-    if (host_order != NULL)
-	CUDA_CHECK(cudaMemcpyAsync(host_order, order, sizeof(int) * np, cudaMemcpyDeviceToHost, stream));
 
     CUDA_CHECK(cudaUnbindTexture(texParticlesCLS));
     CUDA_CHECK(cudaUnbindTexture(texScanYZ));
