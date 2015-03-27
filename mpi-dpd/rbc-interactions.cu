@@ -362,6 +362,96 @@ namespace KernelsRBC
 	    accrbc[dpid].a[c] = fsum[c];
     }
 
+    __constant__ int packstarts[27];
+    __constant__ Particle * packstates[26];
+    __constant__ Acceleration * packresults[26];
+
+    __global__ void fsi_forces_all(const float seed,
+				   Acceleration * accsolvent, const int npsolvent, const int nremote)
+    {
+	const int gid = threadIdx.x + blockDim.x * blockIdx.x;
+
+	if (gid >= nremote)
+	    return;
+
+	const int key9 = 9 * ((gid >= packstarts[9]) + (gid >= packstarts[18]));
+	const int key3 = 3 * ((gid >= packstarts[key9 + 3]) + (gid >= packstarts[key9 + 6]));
+	const int key1 = (gid >= packstarts[key9 + key3 + 1]) + (gid >= packstarts[key9 + key3 + 2]);
+	const int code = key9 + key3 + key1;
+
+	assert(code >= 0 && code < 26);
+	assert(gid >= packstarts[code] && gid < packstarts[code + 1]);
+
+	const int lpid = gid - packstarts[code];
+	const Particle p = packstates[code][lpid];
+
+	const float3 xp = make_float3(p.x[0], p.x[1], p.x[2]);
+	const float3 up = make_float3(p.u[0], p.u[1], p.u[2]);
+		
+	const int L[3] = { XSIZE_SUBDOMAIN, YSIZE_SUBDOMAIN, ZSIZE_SUBDOMAIN };
+
+	int mycid[3];
+	for(int c = 0; c < 3; ++c)
+	    mycid[c] = L[c]/2 + (int)floor(p.x[c]);
+
+	for(int c = 0; c < 3; ++c)
+	    if (mycid[c] < -1 || mycid[c] >= L[c] + 1)
+	    {
+		for(int c = 0; c < 3; ++c)
+		    packresults[code][lpid].a[c] = 0;
+
+		return;
+	    }
+
+	float fsum[3] = {0, 0, 0};
+	
+	for(int code = 0; code < 27; ++code)
+	{
+	    const int d[3] = {
+		(code % 3) - 1,
+		(code/3 % 3) - 1,
+		(code/9 % 3) - 1
+	    };
+	    
+	    int vcid[3];
+	    for(int c = 0; c < 3; ++c)
+		vcid[c] = mycid[c] + d[c];
+
+	    bool validcid = true;
+	    for(int c = 0; c < 3; ++c)
+		validcid &= vcid[c] >= 0 && vcid[c] < L[c];
+
+	    if (!validcid)
+		continue;
+	    
+	    const int cid = vcid[0] + XSIZE_SUBDOMAIN * (vcid[1] + YSIZE_SUBDOMAIN * vcid[2]);
+	    const int mystart = tex1Dfetch(texCellsStart, cid);
+	    const int myend = mystart + tex1Dfetch(texCellsCount, cid);
+	    
+	    assert(mystart >= 0 && mystart <= myend);
+	    assert(myend <= npsolvent);
+
+	    #pragma unroll 4
+	    for(int s = mystart; s < myend; ++s)
+	    {
+		float f[3];
+		const bool nonzero = fsi_kernel(seed, gid, xp, up, s, f[0], f[1], f[2]);
+
+		if (nonzero)
+		{
+		    for(int c = 0; c < 3; ++c)
+			fsum[c] += f[c];
+		     
+		    for(int c = 0; c < 3; ++c)
+		    	   atomicAdd(c + (float *)(accsolvent + s), -f[c]);
+		}
+	    }
+	}
+	
+	for(int c = 0; c < 3; ++c)
+	    packresults[code][lpid].a[c] = fsum[c];
+    }
+
     __global__ void merge_accelerations(const Acceleration * const src, const int n, Acceleration * const dst)
     {	
 	const int gid = threadIdx.x + blockDim.x * blockIdx.x;
@@ -652,6 +742,48 @@ void ComputeInteractionsRBC::evaluate(const Particle * const solvent, const int 
     
     {
 	NVTX_RANGE("RBC/fsi", NVTX_C5);
+
+#if 1
+	{
+	    int nremote = 0;
+
+	    {
+		int packstarts[27];
+	    
+		packstarts[0] = 0;
+		for(int i = 0, s = 0; i < 26; ++i)
+		    packstarts[i + 1] = (s += remote[i].state.size);
+		
+		nremote = packstarts[26];
+		
+		CUDA_CHECK(cudaMemcpyToSymbolAsync(KernelsRBC::packstarts, packstarts,
+						   sizeof(packstarts), 0, cudaMemcpyHostToDevice, stream));
+	    }
+	    
+	    {
+		Particle * packstates[26];
+		
+		for(int i = 0; i < 26; ++i)
+		    packstates[i] = remote[i].state.devptr;
+
+		CUDA_CHECK(cudaMemcpyToSymbolAsync(KernelsRBC::packstates, packstates,
+						   sizeof(packstates), 0, cudaMemcpyHostToDevice, stream));
+	    }
+
+	     {
+		Acceleration * packresults[26];
+		
+		for(int i = 0; i < 26; ++i)
+		    packresults[i] = remote[i].result.devptr;
+
+		CUDA_CHECK(cudaMemcpyToSymbolAsync(KernelsRBC::packresults, packresults,
+						   sizeof(packresults), 0, cudaMemcpyHostToDevice, stream));
+	    }
+	    
+	     KernelsRBC::fsi_forces_all<<< (nremote + 127) / 128, 128, 0, stream>>>(local_trunk.get_float(), accsolvent, nparticles, nremote);
+
+	}
+#else
 	for(int i = 0; i < 26; ++i)
 	{
 	    const int count = remote[i].state.size;
@@ -660,6 +792,7 @@ void ComputeInteractionsRBC::evaluate(const Particle * const solvent, const int 
 		KernelsRBC::fsi_forces<<< (count + 127) / 128, 128, 0, stream >>>
 		    (local_trunk.get_float(), accsolvent, nparticles, remote[i].state.devptr, count, remote[i].result.devptr);
 	}
+#endif
 	
 	CUDA_CHECK(cudaEventRecord(evfsi));
 	CUDA_CHECK(cudaEventSynchronize(evfsi));
