@@ -377,8 +377,12 @@ void _dpd_forces_floatized()
 }
 
 #ifdef _COUNT_FLOPS
+struct _dpd_interaction_flops_counter {
+	const static unsigned long long FLOPS = 32ULL + Logistic::mean0var1_flops_counter::FLOPS;
+};
+
 template<uint COLS, uint ROWS, uint NSRCMAX>
-__device__ void core_count_flops( unsigned long long *FLOPS, const uint nsrc, const uint * const scan, const uint * const starts,
+__device__ void core_flops_counter( unsigned long long *FLOPS, const uint nsrc, const uint * const scan, const uint * const starts,
                       const uint ndst, const uint dststart )
 {
     uint srcids[NSRCMAX];
@@ -449,7 +453,7 @@ __device__ void core_count_flops( unsigned long long *FLOPS, const uint nsrc, co
 			//xforce += f.x; // 1 FLOP
 			//yforce += f.y; // 1 FLOP
 			//zforce += f.z; // 1 FLOP
-			atomicAdd( FLOPS, 92ULL );
+			atomicAdd( FLOPS, _dpd_interaction_flops_counter::FLOPS + 4ULL );
 		}
 
 		// 1 FLOP for s++
@@ -465,7 +469,7 @@ __device__ void core_count_flops( unsigned long long *FLOPS, const uint nsrc, co
         // zforce += f.z; // 1 FLOP
 
         // 1 FLOP for i++
-        atomicAdd( FLOPS, 92ULL );
+        atomicAdd( FLOPS, _dpd_interaction_flops_counter::FLOPS + 4ULL );
     }
 
     for( uint L = COLS / 2; L > 0; L >>= 1 ) {
@@ -485,7 +489,7 @@ __device__ void core_count_flops( unsigned long long *FLOPS, const uint nsrc, co
 }
 
 template<uint COLS, uint ROWS, uint NSRCMAX>
-__device__ void core_ilp_count_flops( unsigned long long *FLOPS, const uint nsrc, const uint * const scan, const uint * const starts,
+__device__ void core_ilp_flops_counter( unsigned long long *FLOPS, const uint nsrc, const uint * const scan, const uint * const starts,
                           const uint ndst, const uint dststart )
 {
     const uint tid    = threadIdx.x;
@@ -552,7 +556,7 @@ __device__ void core_ilp_count_flops( unsigned long long *FLOPS, const uint nsrc
                 //xforce += f.x; // 1 FLOP
                 //yforce += f.y; // 1 FLOP
                 //zforce += f.z; // 1 FLOP
-            	atomicAdd( FLOPS, 91ULL );
+            	atomicAdd( FLOPS, _dpd_interaction_flops_counter::FLOPS + 3ULL );
             }
         }
 
@@ -576,7 +580,7 @@ __device__ void core_ilp_count_flops( unsigned long long *FLOPS, const uint nsrc
 }
 
 __global__ __launch_bounds__( 32 * CPB, 16 )
-void _dpd_forces_floatized_count_flops(unsigned long long *FLOPS)
+void _dpd_forces_floatized_flops_counter(unsigned long long *FLOPS)
 {
     assert( blockDim.x == warpSize && blockDim.y == CPB && blockDim.z == 1 );
 
@@ -633,28 +637,28 @@ void _dpd_forces_floatized_count_flops(unsigned long long *FLOPS)
     const uint ndst4 = ( ndst >> 2 ) << 2;
 
     for( uint d = 0; d < ndst4; d = xadd( d, 4u ) ) { // 1 FLOP
-        core_count_flops<8, 4, 4>( FLOPS, nsrc, ( const uint * )scan[wid], ( const uint * )starts[wid], 4, xadd( dststart, d ) ); // 1 FLOP
+        core_flops_counter<8, 4, 4>( FLOPS, nsrc, ( const uint * )scan[wid], ( const uint * )starts[wid], 4, xadd( dststart, d ) ); // 1 FLOP
     	atomicAdd( FLOPS, 2ULL );
 	}
 
     uint d = ndst4;
     if( xadd( d, 2u ) <= ndst ) { // 1 FLOP
-        core_count_flops<16, 2, 4>( FLOPS, nsrc, ( const uint * )scan[wid], ( const uint * )starts[wid], 2, xadd( dststart, d ) ); // 1 FLOP
+        core_flops_counter<16, 2, 4>( FLOPS, nsrc, ( const uint * )scan[wid], ( const uint * )starts[wid], 2, xadd( dststart, d ) ); // 1 FLOP
         d = xadd( d, 2u ); // 1 FLOP
         atomicAdd( FLOPS, 3ULL );
     }
 
     if( d < ndst ) {
-        core_ilp_count_flops<32, 1, 2>( FLOPS, nsrc, ( const uint * )scan[wid], ( const uint * )starts[wid], 1, xadd( dststart, d ) ); // 1 FLOP
+        core_ilp_flops_counter<32, 1, 2>( FLOPS, nsrc, ( const uint * )scan[wid], ( const uint * )starts[wid], 1, xadd( dststart, d ) ); // 1 FLOP
         atomicAdd( FLOPS, 1ULL );
     }
 }
 
-__global__ void reset_FLOPS( unsigned long long *FLOPS ) {
+__global__ void reset_flops( unsigned long long *FLOPS ) {
 	*FLOPS = 0ULL;
 }
 
-__global__ void print_FLOPS( unsigned long long *FLOPS ) {
+__global__ void print_flops( unsigned long long *FLOPS ) {
 	printf("FLOPS count: %llu\n", *FLOPS);
 }
 #endif
@@ -761,11 +765,11 @@ void forces_dpd_cuda_nohost( const float * const xyzuvw, float * const axayaz,  
     {
     	static unsigned long long *FLOPS;
     	if (!FLOPS) cudaMalloc( &FLOPS, 128 * sizeof(unsigned long long) );
-    	reset_FLOPS<<<1,1,0,stream>>>(FLOPS);
-    	_dpd_forces_floatized_count_flops <<< dim3( c.ncells.x / _XCPB_,
+    	reset_flops<<<1,1,0,stream>>>(FLOPS);
+    	_dpd_forces_floatized_flops_counter <<< dim3( c.ncells.x / _XCPB_,
     	                          c.ncells.y / _YCPB_,
     	                          c.ncells.z / _ZCPB_ ), dim3( 32, CPB ), 0, stream >>> ( FLOPS );
-    	print_FLOPS<<<1,1,0,stream>>>(FLOPS);
+    	print_flops<<<1,1,0,stream>>>(FLOPS);
 
     	//count FLOPS
         //report data to scree
