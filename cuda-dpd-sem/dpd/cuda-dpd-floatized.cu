@@ -133,9 +133,24 @@ __device__ float3 _dpd_interaction( const uint dpid, const float3 xdest, const f
     return make_float3( strength * xr, strength * yr, strength * zr );
 }
 
+//inline __device__ uint xxge( uint i, uint j ) {
+//	uint diff = xsub( j, i );
+//	uint alpha = xmin( 1u, xmax(0u, diff) );
+//	return xsub(1u,alpha);
+//}
+inline __device__ uint xxgeinv( uint i, uint j ) {
+	uint diff = xsub( j, i );
+	uint alpha = xmin( 1u, xmax(0u, diff) );
+	return alpha;
+}
+
 template<uint COLS, uint ROWS, uint NSRCMAX>
 __device__ void core( const uint nsrc, const uint * const scan, const uint * const starts,
-                      const uint ndst, const uint dststart )
+                      const uint ndst, const uint dststart,
+                      const uint scan3, const uint scan6, const uint scan9,
+                      const uint scan12, const uint scan15, const uint scan18,
+                      const uint scan21, const uint scan24
+)
 {
     uint srcids[NSRCMAX];
     for( int i = 0; i < NSRCMAX; ++i )
@@ -167,9 +182,50 @@ __device__ void core( const uint nsrc, const uint * const scan, const uint * con
 	for(uint s = 0; s < nsrc; s = xadd( s, COLS ) )
 	{
 		const uint pid  = xadd( s, subtid );  // 1 FLOP
-		const uint key9 = xadd( xsel_ge( pid, scan[ 9             ], 9u, 0u ), xsel_ge( pid, scan[ 18            ], 9u, 0u ) ); // 3 FLOPS
-		const uint key3 = xadd( xsel_ge( pid, scan[ xadd(key9,3u) ], 3u, 0u ), xsel_ge( pid, scan[ xadd(key9,6u) ], 3u, 0u ) ); // 3 FLOPS
-		const uint key  = xadd( key9, key3 ); // 1 FLOP
+//		const uint key = ( pid >= scan3  ? 3u : 0u ) +
+//						 ( pid >= scan6  ? 3u : 0u ) +
+//						 ( pid >= scan9  ? 3u : 0u ) +
+//						 ( pid >= scan12 ? 3u : 0u ) +
+//						 ( pid >= scan15 ? 3u : 0u ) +
+//						 ( pid >= scan18 ? 3u : 0u ) +
+//						 ( pid >= scan21 ? 3u : 0u ) +
+//						 ( pid >= scan24 ? 3u : 0u ) ;
+//		const uint key = xscale( 3u,
+//				xfcmp_ge( pid, scan3 ) + xfcmp_ge( pid, scan6 ) + xfcmp_ge( pid, scan9 ) + xfcmp_ge( pid, scan12 ) +
+//				xfcmp_ge( pid, scan15 ) + xfcmp_ge( pid, scan18 ) + xfcmp_ge( pid, scan21 ) + xfcmp_ge( pid, scan24 ) );
+//		const uint key = xscale( xxge( pid, scan3 ) + xxge( pid, scan6 ) + xxge( pid, scan9 ) + xxge( pid, scan12 ) +
+//				                 xxge( pid, scan15 ) + xxge( pid, scan18 ) + xxge( pid, scan21 ) + xxge( pid, scan24 ), 3.f );
+//		const uint key = xscale(
+//				xsub(
+//				xsub(
+//				xsub(
+//				xsub(
+//				xsub(
+//				xsub(
+//				xsub(
+//				xsub( 8u,
+//					  xxgeinv( pid, scan3 ) ),
+//					  xxgeinv( pid, scan6 ) ),
+//					  xxgeinv( pid, scan9 ) ),
+//					  xxgeinv( pid, scan12 ) ),
+//					  xxgeinv( pid, scan15 ) ),
+//					  xxgeinv( pid, scan18 ) ),
+//					  xxgeinv( pid, scan21 ) ),
+//					  xxgeinv( pid, scan24 ) ), 3.f );
+		const uint key9 = xmad( xadd( xxgeinv( pid, scan[ 9             ] ), xxgeinv( pid, scan[ 18            ] ) ), -9.f, 18u );
+		const uint key3 = xmad( xadd( xxgeinv( pid, scan[ xadd(key9,3u) ] ), xxgeinv( pid, scan[ xadd(key9,6u) ] ) ), -3.f,  6u );
+		const uint key  = xadd( key9, key3 );
+//		const uint key9 = xadd( xsel_ge( pid, scan[ 9             ], 9u, 0u ), xsel_ge( pid, scan[ 18            ], 9u, 0u ) );
+//		const uint key3 = xadd( xsel_ge( pid, scan[ xadd(key9,3u) ], 3u, 0u ), xsel_ge( pid, scan[ xadd(key9,6u) ], 3u, 0u ) );
+//		const uint key  = xadd( key9, key3 );
+//		{
+//		const uint key9 = xadd( xsel_ge( pid, scan[ 9             ], 9u, 0u ), xsel_ge( pid, scan[ 18            ], 9u, 0u ) );
+//		const uint key3 = xadd( xsel_ge( pid, scan[ xadd(key9,3u) ], 3u, 0u ), xsel_ge( pid, scan[ xadd(key9,6u) ], 3u, 0u ) );
+//		const uint keyk  = xadd( key9, key3 );
+//		if (blockIdx.x==0&&threadIdx.x==0) {
+//			printf("key %d should be %d\n",key,keyk);
+//		}
+//		}
 
 		const uint spid = xsub( xadd( pid, starts[key] ), scan[key] ); // 2 FLOPS
 
@@ -364,11 +420,17 @@ void _dpd_forces_floatized()
     const uint ndst4 = ( ndst >> 2 ) << 2;
 
     for( uint d = 0; d < ndst4; d = xadd( d, 4u ) ) // 1 FLOP
-        core<8, 4, 4>( nsrc, ( const uint * )scan[wid], ( const uint * )starts[wid], 4, xadd( dststart, d ) ); // 1 FLOP
+        core<8, 4, 4>( nsrc, ( const uint * )scan[wid], ( const uint * )starts[wid], 4, xadd( dststart, d ),
+                scan[wid][3], scan[wid][6], scan[wid][9], scan[wid][12],
+                scan[wid][15], scan[wid][18], scan[wid][21], scan[wid][24]
+        ); // 1 FLOP
 
     uint d = ndst4;
     if( xadd( d, 2u ) <= ndst ) { // 1 FLOP
-        core<16, 2, 4>( nsrc, ( const uint * )scan[wid], ( const uint * )starts[wid], 2, xadd( dststart, d ) ); // 1 FLOP
+        core<16, 2, 4>( nsrc, ( const uint * )scan[wid], ( const uint * )starts[wid], 2, xadd( dststart, d ),
+                scan[wid][3], scan[wid][6], scan[wid][9], scan[wid][12],
+                scan[wid][15], scan[wid][18], scan[wid][21], scan[wid][24]
+        ); // 1 FLOP
         d = xadd( d, 2u ); // 1 FLOP
     }
 
