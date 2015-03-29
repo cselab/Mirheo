@@ -205,6 +205,16 @@ xcmp(le); // <=
 xcmp(gt); // >
 xcmp(ge); // >=
 
+inline __device__ uint xlt( uint i, uint j ) {
+	uint diff = xsub( j, i );
+	return xmin( 1u, xmax(0u, diff) );
+}
+
+inline __device__ uint xgt( uint i, uint j ) {
+	uint diff = xsub( i, j );
+	return xmin( 1u, xmax(0u, diff) );
+}
+
 /******************************************************************************
                                  Branch
               Not Working Yet, Compiler does not see the loop!

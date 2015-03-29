@@ -133,17 +133,6 @@ __device__ float3 _dpd_interaction( const uint dpid, const float3 xdest, const f
     return make_float3( strength * xr, strength * yr, strength * zr );
 }
 
-//inline __device__ uint xxge( uint i, uint j ) {
-//	uint diff = xsub( j, i );
-//	uint alpha = xmin( 1u, xmax(0u, diff) );
-//	return xsub(1u,alpha);
-//}
-inline __device__ uint xxgeinv( uint i, uint j ) {
-	uint diff = xsub( j, i );
-	uint alpha = xmin( 1u, xmax(0u, diff) );
-	return alpha;
-}
-
 template<uint COLS, uint ROWS, uint NSRCMAX>
 __device__ void core( const uint nsrc, const uint * const scan, const uint * const starts,
                       const uint ndst, const uint dststart,
@@ -182,19 +171,9 @@ __device__ void core( const uint nsrc, const uint * const scan, const uint * con
 	for(uint s = 0; s < nsrc; s = xadd( s, COLS ) )
 	{
 		const uint pid  = xadd( s, subtid );  // 1 FLOP
-//		const uint key = ( pid >= scan3  ? 3u : 0u ) +
-//						 ( pid >= scan6  ? 3u : 0u ) +
-//						 ( pid >= scan9  ? 3u : 0u ) +
-//						 ( pid >= scan12 ? 3u : 0u ) +
-//						 ( pid >= scan15 ? 3u : 0u ) +
-//						 ( pid >= scan18 ? 3u : 0u ) +
-//						 ( pid >= scan21 ? 3u : 0u ) +
-//						 ( pid >= scan24 ? 3u : 0u ) ;
 //		const uint key = xscale( 3u,
 //				xfcmp_ge( pid, scan3 ) + xfcmp_ge( pid, scan6 ) + xfcmp_ge( pid, scan9 ) + xfcmp_ge( pid, scan12 ) +
 //				xfcmp_ge( pid, scan15 ) + xfcmp_ge( pid, scan18 ) + xfcmp_ge( pid, scan21 ) + xfcmp_ge( pid, scan24 ) );
-//		const uint key = xscale( xxge( pid, scan3 ) + xxge( pid, scan6 ) + xxge( pid, scan9 ) + xxge( pid, scan12 ) +
-//				                 xxge( pid, scan15 ) + xxge( pid, scan18 ) + xxge( pid, scan21 ) + xxge( pid, scan24 ), 3.f );
 //		const uint key = xscale(
 //				xsub(
 //				xsub(
@@ -204,20 +183,21 @@ __device__ void core( const uint nsrc, const uint * const scan, const uint * con
 //				xsub(
 //				xsub(
 //				xsub( 8u,
-//					  xxgeinv( pid, scan3 ) ),
-//					  xxgeinv( pid, scan6 ) ),
-//					  xxgeinv( pid, scan9 ) ),
-//					  xxgeinv( pid, scan12 ) ),
-//					  xxgeinv( pid, scan15 ) ),
-//					  xxgeinv( pid, scan18 ) ),
-//					  xxgeinv( pid, scan21 ) ),
-//					  xxgeinv( pid, scan24 ) ), 3.f );
-		const uint key9 = xmad( xadd( xxgeinv( pid, scan[ 9             ] ), xxgeinv( pid, scan[ 18            ] ) ), -9.f, 18u );
-		const uint key3 = xmad( xadd( xxgeinv( pid, scan[ xadd(key9,3u) ] ), xxgeinv( pid, scan[ xadd(key9,6u) ] ) ), -3.f,  6u );
-		const uint key  = xadd( key9, key3 );
-//		const uint key9 = xadd( xsel_ge( pid, scan[ 9             ], 9u, 0u ), xsel_ge( pid, scan[ 18            ], 9u, 0u ) );
-//		const uint key3 = xadd( xsel_ge( pid, scan[ xadd(key9,3u) ], 3u, 0u ), xsel_ge( pid, scan[ xadd(key9,6u) ], 3u, 0u ) );
+//					  xlt( pid, scan3 ) ),
+//					  xlt( pid, scan6 ) ),
+//					  xlt( pid, scan9 ) ),
+//					  xlt( pid, scan12 ) ),
+//					  xlt( pid, scan15 ) ),
+//					  xlt( pid, scan18 ) ),
+//					  xlt( pid, scan21 ) ),
+//					  xlt( pid, scan24 ) ), 3.f );
+//		const uint key9 = xmad( xadd( xlt( pid, scan[ 9             ] ), xlt( pid, scan[ 18            ] ) ), -9.f, 18u );
+//		const uint key3 = xmad( xadd( xlt( pid, scan[ xadd(key9,3u) ] ), xlt( pid, scan[ xadd(key9,6u) ] ) ), -3.f,  6u );
 //		const uint key  = xadd( key9, key3 );
+
+		const uint key9 = xadd( xsel_ge( pid, scan[ 9             ], 9u, 0u ), xsel_ge( pid, scan[ 18            ], 9u, 0u ) );
+		const uint key3 = xadd( xsel_ge( pid, scan[ xadd(key9,3u) ], 3u, 0u ), xsel_ge( pid, scan[ xadd(key9,6u) ], 3u, 0u ) );
+		const uint key  = xadd( key9, key3 );
 //		{
 //		const uint key9 = xadd( xsel_ge( pid, scan[ 9             ], 9u, 0u ), xsel_ge( pid, scan[ 18            ], 9u, 0u ) );
 //		const uint key3 = xadd( xsel_ge( pid, scan[ xadd(key9,3u) ], 3u, 0u ), xsel_ge( pid, scan[ xadd(key9,6u) ], 3u, 0u ) );
@@ -249,6 +229,8 @@ __device__ void core( const uint nsrc, const uint * const scan, const uint * con
 			srcids[srccount] = spid;
 			srccount = xadd( srccount, 1u ); // 1 FLOP
 		}
+//		srcids[srccount] = spid;
+//		srccount = xadd( srccount, xscale( 1u, interacting) ); // 1 FLOP
 
 		if( srccount == NSRCMAX ) {
 			srccount = xsub( srccount, 1u ); // 1 FLOP
