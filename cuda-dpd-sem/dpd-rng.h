@@ -139,7 +139,7 @@ template<> struct __logistic_core_flops_counter<0> {
 // can be used directly for DPD
 
 // passes of logistic map
-const static int N = 36;
+const static int N = 18;
 // spacing coefficints for low discrepancy numbers
 const static float gold   = 0.6180339887498948482;
 const static float hugegold   = 0.6180339887498948482E39;

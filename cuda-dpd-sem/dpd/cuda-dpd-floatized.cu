@@ -71,14 +71,14 @@ texture_object<float2> txoParticles2;
 texture_object<uint> txoStart, txoCount;
 #endif
 
-
-
 #define _XCPB_ 2
 #define _YCPB_ 2
 #define _ZCPB_ 1
 #define CPB (_XCPB_ * _YCPB_ * _ZCPB_)
 //#define  _TIME_PROFILE_
 //#define _INSPECT_
+
+#define LETS_MAKE_IT_MESSY
 
 template<int s>
 __device__ float viscosity_function( float x )
@@ -167,20 +167,20 @@ __device__ void core( const uint nsrc, const uint2 * const starts_and_scans,
 	for(uint s = 0; s < nsrc; s = xadd( s, COLS ) )
 	{
 		const uint pid  = xadd( s, subtid );
-#if 1
-		float f_key;
+#ifdef LETS_MAKE_IT_MESSY
+		float key9f;
 		asm( "{ .reg .pred p, q;"
 			 "   setp.ge.f32 p, %1, %3;"
 			 "   setp.ge.f32 q, %1, %4;"
 			 "   selp.f32    %0, %2, 0.0, p;"
-			 "@q add.f32     %0, %0, %2; }" : "=f"(f_key) : "f"(u2f(pid)), "f"(u2f(9u)), "f"(u2f(starts_and_scans[9].y)), "f"(u2f(starts_and_scans[18].y)) );
-		const uint key9 = f2u(f_key);
+			 "@q add.f32     %0, %0, %2; }" : "=f"(key9f) : "f"(u2f(pid)), "f"(u2f(9u)), "f"(u2f(starts_and_scans[9].y)), "f"(u2f(starts_and_scans[18].y)) );
+		const uint key9 = f2u(key9f);
 		asm( "{ .reg .pred p, q;"
 			 "   setp.ge.f32 p, %1, %3;"
 			 "   setp.ge.f32 q, %1, %4;"
 			 "@p add.f32     %0, %0, %2;"
-			 "@q add.f32     %0, %0, %2; }" : "+f"(f_key) : "f"(u2f(pid)), "f"(u2f(3u)), "f"(u2f(starts_and_scans[xadd(key9,3u)].y)), "f"(u2f(starts_and_scans[xadd(key9,6u)].y)) );
-		const uint key = f2u(f_key);
+			 "@q add.f32     %0, %0, %2; }" : "+f"(key9f) : "f"(u2f(pid)), "f"(u2f(3u)), "f"(u2f(starts_and_scans[xadd(key9,3u)].y)), "f"(u2f(starts_and_scans[xadd(key9,6u)].y)) );
+		const uint key = f2u(key9f);
 #else
 		const uint key9 = xadd( xsel_ge( pid, scan9                , 9u, 0u ), xsel_ge( pid, scan18               , 9u, 0u ) );
 		const uint key3 = xadd( xsel_ge( pid, scan[ xadd(key9,3u) ], 3u, 0u ), xsel_ge( pid, scan[ xadd(key9,6u) ], 3u, 0u ) );
@@ -202,18 +202,18 @@ __device__ void core( const uint nsrc, const uint2 * const starts_and_scans,
 		const float xdiff = xdest.x - stmp0.x;
 		const float ydiff = xdest.y - stmp0.y;
 		const float zdiff = xdest.z - stmp1.x;
-#if 1
-		float f_srccount = u2f(srccount);
+#ifdef LETS_MAKE_IT_MESSY
+		float srccount_f = u2f(srccount);
 		asm("{ .reg .pred p;"
 			"   setp.lt.f32 p, %1, %2;"
 			"   setp.lt.and.f32 p, %3, 1.0, p;"
 			"   setp.ne.and.f32 p, %4, %5, p;"
 			"   @p st.u32 [%6], %7;"
 			"   @p add.f32 %0, %0, %8;"
-			"   }" : "+f"(f_srccount) : "f"(u2f(pid)), "f"(u2f(nsrc)), "f"(xdiff * xdiff + ydiff * ydiff + zdiff * zdiff), "f"(u2f(dpid)), "f"(u2f(spid)),
+			"   }" : "+f"(srccount_f) : "f"(u2f(pid)), "f"(u2f(nsrc)), "f"(xdiff * xdiff + ydiff * ydiff + zdiff * zdiff), "f"(u2f(dpid)), "f"(u2f(spid)),
 			"l"(srcids+srccount), "r"(spid), "f"(u2f(1u))
 			: "memory" );
-		srccount = f2u( f_srccount );
+		srccount = f2u( srccount_f );
 #else
 		const float interacting = xfcmp_lt(pid, nsrc )
 				                * xfcmp_lt( xdiff * xdiff + ydiff * ydiff + zdiff * zdiff, 1.f )
@@ -288,20 +288,20 @@ __device__ void core_ilp( const uint nsrc, const uint2 * const starts_and_scans,
 		#pragma unroll
         for( uint i = 0; i < NSRCMAX; ++i ) {
             const uint pid  = xadd( s, xmad( i, float(COLS), subtid ) );
-#if 1
-			float f_key;
+#ifdef LETS_MAKE_IT_MESSY
+			float key9f;
 			asm( "{ .reg .pred p, q;"
 				 "   setp.ge.f32 p, %1, %3;"
 				 "   setp.ge.f32 q, %1, %4;"
 				 "   selp.f32    %0, %2, 0.0, p;"
-				 "@q add.f32     %0, %0, %2; }" : "=f"(f_key) : "f"(u2f(pid)), "f"(u2f(9u)), "f"(u2f(starts_and_scans[9].y)), "f"(u2f(starts_and_scans[18].y)) );
-			const uint key9 = f2u(f_key);
+				 "@q add.f32     %0, %0, %2; }" : "=f"(key9f) : "f"(u2f(pid)), "f"(u2f(9u)), "f"(u2f(starts_and_scans[9].y)), "f"(u2f(starts_and_scans[18].y)) );
+			const uint key9 = f2u(key9f);
 			asm( "{ .reg .pred p, q;"
 				 "   setp.ge.f32 p, %1, %3;"
 				 "   setp.ge.f32 q, %1, %4;"
 				 "@p add.f32     %0, %0, %2;"
-				 "@q add.f32     %0, %0, %2; }" : "+f"(f_key) : "f"(u2f(pid)), "f"(u2f(3u)), "f"(u2f(starts_and_scans[xadd(key9,3u)].y)), "f"(u2f(starts_and_scans[xadd(key9,6u)].y)) );
-			const uint key = f2u(f_key);
+				 "@q add.f32     %0, %0, %2; }" : "+f"(key9f) : "f"(u2f(pid)), "f"(u2f(3u)), "f"(u2f(starts_and_scans[xadd(key9,3u)].y)), "f"(u2f(starts_and_scans[xadd(key9,6u)].y)) );
+			const uint key = f2u(key9f);
 #else
     		const uint key9 = xadd( xsel_ge( pid, scan[ 9             ], 9u, 0u ), xsel_ge( pid, scan[ 18            ], 9u, 0u ) );
     		const uint key3 = xadd( xsel_ge( pid, scan[ xadd(key9,3u) ], 3u, 0u ), xsel_ge( pid, scan[ xadd(key9,6u) ], 3u, 0u ) );
@@ -325,7 +325,7 @@ __device__ void core_ilp( const uint nsrc, const uint2 * const starts_and_scans,
             const float xdiff = xdest.x - stmp0.x;
             const float ydiff = xdest.y - stmp0.y;
             const float zdiff = xdest.z - stmp1.x;
-#if 1
+#ifdef LETS_MAKE_IT_MESSY
 			uint interacting_one;
             asm("{ .reg .pred p;"
 				"   setp.lt.f32 p, %1, %2;"
@@ -334,7 +334,6 @@ __device__ void core_ilp( const uint nsrc, const uint2 * const starts_and_scans,
 				"   }" : "=r"(interacting_one)  : "f"(u2f(xadd( s, xmad( i, float(COLS), subtid ) ))), "f"(u2f(nsrc)), "f"(xdiff * xdiff + ydiff * ydiff + zdiff * zdiff), "f"(u2f(dpid)), "f"(u2f(spids[i])) );
             interacting[i] = interacting_one;
 #else
-
             interacting[i] = xfcmp_lt( xadd( s, xmad( i, float(COLS), subtid ) ), nsrc )
             		       * xfcmp_lt( xdiff * xdiff + ydiff * ydiff + zdiff * zdiff, 1.f )
             		       * xfcmp_ne( dpid, spids[i] );
