@@ -78,10 +78,9 @@ private:
     void _post_recv();
     void _cancel_recv();
 
-    void _adjust_send_buffers(const int capacities[27]);
+    bool _adjust_send_buffers(const int capacities[27]);
     void _adjust_recv_buffers(const int capacities[27]);
    
-    PinnedHostBuffer<bool> failure; 
     PinnedHostBuffer<int> packsizes;
    
     float * pinnedhost_sendbufs[27], * pinnedhost_recvbufs[27];
