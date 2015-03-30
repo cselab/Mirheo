@@ -291,14 +291,29 @@ __device__ void core_ilp( const uint nsrc, const uint * const scan, const uint *
 		#pragma unroll
         for( uint i = 0; i < NSRCMAX; ++i ) {
             const uint pid  = xadd( s, xmad( i, float(COLS), subtid ) );
+#if 1
+			float f_key;
+			asm( "{ .reg .pred p, q;"
+				 "   setp.ge.f32 p, %1, %3;"
+				 "   setp.ge.f32 q, %1, %4;"
+				 "   selp.f32    %0, %2, 0.0, p;"
+				 "@q add.f32     %0, %0, %2; }" : "=f"(f_key) : "f"(u2f(pid)), "f"(u2f(9u)), "f"(u2f(scan[9])), "f"(u2f(scan[18])) );
+			const uint key9 = f2u(f_key);
+			asm( "{ .reg .pred p, q;"
+				 "   setp.ge.f32 p, %1, %3;"
+				 "   setp.ge.f32 q, %1, %4;"
+				 "@p add.f32     %0, %0, %2;"
+				 "@q add.f32     %0, %0, %2; }" : "+f"(f_key) : "f"(u2f(pid)), "f"(u2f(3u)), "f"(u2f(scan[xadd(key9,3u)])), "f"(u2f(scan[xadd(key9,6u)])) );
+			const uint key = f2u(f_key);
+#else
     		const uint key9 = xadd( xsel_ge( pid, scan[ 9             ], 9u, 0u ), xsel_ge( pid, scan[ 18            ], 9u, 0u ) );
     		const uint key3 = xadd( xsel_ge( pid, scan[ xadd(key9,3u) ], 3u, 0u ), xsel_ge( pid, scan[ xadd(key9,6u) ], 3u, 0u ) );
     		const uint key  = xadd( key9, key3 );
-
+#endif
             spids[i] = xsub( xadd( pid, starts[key] ), scan[key] );
         }
 
-        bool interacting[NSRCMAX];
+        uint interacting[NSRCMAX];
 		#pragma unroll
         for( uint i = 0; i < NSRCMAX; ++i ) {
             const int sentry = xscale( spids[i], 3.f );
@@ -313,9 +328,20 @@ __device__ void core_ilp( const uint nsrc, const uint * const scan, const uint *
             const float xdiff = xdest.x - stmp0.x;
             const float ydiff = xdest.y - stmp0.y;
             const float zdiff = xdest.z - stmp1.x;
+#if 1
+			uint inter_;
+            asm("{ .reg .pred p;"
+				"   setp.lt.f32 p, %1, %2;"
+				"   setp.lt.and.f32 p, %3, 1.0, p;"
+				"   set.ne.and.u32.f32 %0, %4, %5, p;"
+				"   }" : "=r"(inter_)  : "f"(u2f(xadd( s, xmad( i, float(COLS), subtid ) ))), "f"(u2f(nsrc)), "f"(xdiff * xdiff + ydiff * ydiff + zdiff * zdiff), "f"(u2f(dpid)), "f"(u2f(spids[i])) );
+            interacting[i] = inter_;
+#else
+
             interacting[i] = xfcmp_lt( xadd( s, xmad( i, float(COLS), subtid ) ), nsrc )
             		       * xfcmp_lt( xdiff * xdiff + ydiff * ydiff + zdiff * zdiff, 1.f )
             		       * xfcmp_ne( dpid, spids[i] );
+#endif
         }
 
 		#pragma unroll
