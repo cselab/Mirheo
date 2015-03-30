@@ -184,19 +184,21 @@ __device__ void core( const uint nsrc, const uint * const scan, const uint * con
 		const float xdiff = xdest.x - stmp0.x;
 		const float ydiff = xdest.y - stmp0.y;
 		const float zdiff = xdest.z - stmp1.x;
-		const float interacting = xfcmp_lt(pid, nsrc )
-				                * xfcmp_lt( xdiff * xdiff + ydiff * ydiff + zdiff * zdiff, 1.f )
-				                * xfcmp_ne( dpid, spid ) ;
-#ifdef PROF_TRIGGER
-		__prof_trigger(00);
-#endif
+//		const float interacting = xfcmp_lt(pid, nsrc )
+//				                * xfcmp_lt( xdiff * xdiff + ydiff * ydiff + zdiff * zdiff, 1.f )
+//				                * xfcmp_ne( dpid, spid ) ;
+		float interacting;
+		asm("{"
+			".reg .pred p;"
+			" setp.lt.f32 p, %1, %2;"
+			" setp.lt.and.f32 p, %3, 1.0, p;"
+			" setp.ne.and.f32 p, %4, %5, p;"
+			" selp.f32 %0, 1.0, 0.0, p;"
+			"}" : "=f"(interacting) : "f"(u2f(pid)), "f"(u2f(nsrc)), "f"(xdiff * xdiff + ydiff * ydiff + zdiff * zdiff), "f"(u2f(dpid)), "f"(u2f(spid)) );
 
 		if (interacting) {
 			srcids[srccount] = spid;
 			srccount = xadd( srccount, 1u );
-#ifdef PROF_TRIGGER
-			__prof_trigger(01);
-#endif
 		}
 
 		if( srccount == NSRCMAX ) {
