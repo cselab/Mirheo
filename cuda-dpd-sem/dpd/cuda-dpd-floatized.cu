@@ -18,7 +18,7 @@
 #include "../hacks.h"
 
 //#define PROF_TRIGGER
-#define USE_TEXOBJ 0
+#define USE_TEXOBJ 3
 
 struct InfoDPD {
     int3 ncells;
@@ -134,12 +134,8 @@ __device__ float3 _dpd_interaction( const uint dpid, const float3 xdest, const f
 }
 
 template<uint COLS, uint ROWS, uint NSRCMAX>
-__device__ void core( const uint nsrc, const uint * const scan, const uint * const starts,
-                      const uint ndst, const uint dststart,
-                      const uint scan3, const uint scan6, const uint scan9,
-                      const uint scan12, const uint scan15, const uint scan18,
-                      const uint scan21, const uint scan24
-)
+__device__ void core( const uint nsrc, const uint2 * const starts_and_scans,
+                      const uint ndst, const uint dststart )
 {
     uint srcids[NSRCMAX];
     for( int i = 0; i < NSRCMAX; ++i )
@@ -170,75 +166,63 @@ __device__ void core( const uint nsrc, const uint * const scan, const uint * con
 
 	for(uint s = 0; s < nsrc; s = xadd( s, COLS ) )
 	{
-		const uint pid  = xadd( s, subtid );  // 1 FLOP
-//		const uint key = xscale( 3u,
-//				xfcmp_ge( pid, scan3 ) + xfcmp_ge( pid, scan6 ) + xfcmp_ge( pid, scan9 ) + xfcmp_ge( pid, scan12 ) +
-//				xfcmp_ge( pid, scan15 ) + xfcmp_ge( pid, scan18 ) + xfcmp_ge( pid, scan21 ) + xfcmp_ge( pid, scan24 ) );
-//		const uint key = xscale(
-//				xsub(
-//				xsub(
-//				xsub(
-//				xsub(
-//				xsub(
-//				xsub(
-//				xsub(
-//				xsub( 8u,
-//					  xlt( pid, scan3 ) ),
-//					  xlt( pid, scan6 ) ),
-//					  xlt( pid, scan9 ) ),
-//					  xlt( pid, scan12 ) ),
-//					  xlt( pid, scan15 ) ),
-//					  xlt( pid, scan18 ) ),
-//					  xlt( pid, scan21 ) ),
-//					  xlt( pid, scan24 ) ), 3.f );
-//		const uint key9 = xmad( xadd( xlt( pid, scan[ 9             ] ), xlt( pid, scan[ 18            ] ) ), -9.f, 18u );
-//		const uint key3 = xmad( xadd( xlt( pid, scan[ xadd(key9,3u) ] ), xlt( pid, scan[ xadd(key9,6u) ] ) ), -3.f,  6u );
-//		const uint key  = xadd( key9, key3 );
-
-		const uint key9 = xadd( xsel_ge( pid, scan[ 9             ], 9u, 0u ), xsel_ge( pid, scan[ 18            ], 9u, 0u ) );
+		const uint pid  = xadd( s, subtid );
+#if 1
+		float f_key;
+		asm( "{ .reg .pred p, q;"
+			 "   setp.ge.f32 p, %1, %3;"
+			 "   setp.ge.f32 q, %1, %4;"
+			 "   selp.f32    %0, %2, 0.0, p;"
+			 "@q add.f32     %0, %0, %2; }" : "=f"(f_key) : "f"(u2f(pid)), "f"(u2f(9u)), "f"(u2f(starts_and_scans[9].y)), "f"(u2f(starts_and_scans[18].y)) );
+		const uint key9 = f2u(f_key);
+		asm( "{ .reg .pred p, q;"
+			 "   setp.ge.f32 p, %1, %3;"
+			 "   setp.ge.f32 q, %1, %4;"
+			 "@p add.f32     %0, %0, %2;"
+			 "@q add.f32     %0, %0, %2; }" : "+f"(f_key) : "f"(u2f(pid)), "f"(u2f(3u)), "f"(u2f(starts_and_scans[xadd(key9,3u)].y)), "f"(u2f(starts_and_scans[xadd(key9,6u)].y)) );
+		const uint key = f2u(f_key);
+#else
+		const uint key9 = xadd( xsel_ge( pid, scan9                , 9u, 0u ), xsel_ge( pid, scan18               , 9u, 0u ) );
 		const uint key3 = xadd( xsel_ge( pid, scan[ xadd(key9,3u) ], 3u, 0u ), xsel_ge( pid, scan[ xadd(key9,6u) ], 3u, 0u ) );
 		const uint key  = xadd( key9, key3 );
-//		{
-//		const uint key9 = xadd( xsel_ge( pid, scan[ 9             ], 9u, 0u ), xsel_ge( pid, scan[ 18            ], 9u, 0u ) );
-//		const uint key3 = xadd( xsel_ge( pid, scan[ xadd(key9,3u) ], 3u, 0u ), xsel_ge( pid, scan[ xadd(key9,6u) ], 3u, 0u ) );
-//		const uint keyk  = xadd( key9, key3 );
-//		if (blockIdx.x==0&&threadIdx.x==0) {
-//			printf("key %d should be %d\n",key,keyk);
-//		}
-//		}
+#endif
 
-		const uint spid = xsub( xadd( pid, starts[key] ), scan[key] ); // 2 FLOPS
+		const uint spid = xsub( xadd( pid, starts_and_scans[key].x ), starts_and_scans[key].y );
 
-		const int sentry = xscale( spid, 3.f ); // 1 FLOP
 		#if (USE_TEXOBJ&2)
+		const int sentry = xscale( spid, 3.f );
 		const float2 stmp0 = tex1Dfetch<float2>( info.txoParticles2,       sentry      );
 		const float2 stmp1 = tex1Dfetch<float2>( info.txoParticles2, xadd( sentry, 1 ) );
 		#else
+		const int sentry = xscale( spid, 3.f );
 		const float2 stmp0 = tex1Dfetch( texParticles2,       sentry      );
-		const float2 stmp1 = tex1Dfetch( texParticles2, xadd( sentry, 1 ) ); // 1 FLOP
+		const float2 stmp1 = tex1Dfetch( texParticles2, xadd( sentry, 1 ) );
 		#endif
 
 		const float xdiff = xdest.x - stmp0.x;
 		const float ydiff = xdest.y - stmp0.y;
 		const float zdiff = xdest.z - stmp1.x;
-//		const float interacting = xfcmp_lt(pid, nsrc )
-//				                * xfcmp_lt( xdiff * xdiff + ydiff * ydiff + zdiff * zdiff, 1.f )
-//				                * xfcmp_ne( dpid, spid ) ;
-		float interacting;
-		asm("{"
-			".reg .pred p;"
-			" setp.lt.f32 p, %1, %2;"
-			" setp.lt.and.f32 p, %3, 1.0, p;"
-			" setp.ne.and.f32 p, %4, %5, p;"
-			" selp.f32 %0, 1.0, 0.0, p;"
-			"}" : "=f"(interacting) : "f"(u2f(pid)), "f"(u2f(nsrc)), "f"(xdiff * xdiff + ydiff * ydiff + zdiff * zdiff), "f"(u2f(dpid)), "f"(u2f(spid)) );
-
+#if 1
+		float f_srccount = u2f(srccount);
+		asm("{ .reg .pred p;"
+			"   setp.lt.f32 p, %1, %2;"
+			"   setp.lt.and.f32 p, %3, 1.0, p;"
+			"   setp.ne.and.f32 p, %4, %5, p;"
+			"   @p st.u32 [%6], %7;"
+			"   @p add.f32 %0, %0, %8;"
+			"   }" : "+f"(f_srccount) : "f"(u2f(pid)), "f"(u2f(nsrc)), "f"(xdiff * xdiff + ydiff * ydiff + zdiff * zdiff), "f"(u2f(dpid)), "f"(u2f(spid)),
+			"l"(srcids+srccount), "r"(spid), "f"(u2f(1u))
+			: "memory" );
+		srccount = f2u( f_srccount );
+#else
+		const float interacting = xfcmp_lt(pid, nsrc )
+				                * xfcmp_lt( xdiff * xdiff + ydiff * ydiff + zdiff * zdiff, 1.f )
+				                * xfcmp_ne( dpid, spid ) ;
 		if (interacting) {
 			srcids[srccount] = spid;
 			srccount = xadd( srccount, 1u );
 		}
-//		srcids[srccount] = spid;
-//		srccount = xadd( srccount, xscale( 1u, interacting) ); // 1 FLOP
+#endif
 
 		if( srccount == NSRCMAX ) {
 			srccount = xsub( srccount, 1u ); // 1 FLOP
@@ -276,7 +260,7 @@ __device__ void core( const uint nsrc, const uint * const scan, const uint * con
 }
 
 template<uint COLS, uint ROWS, uint NSRCMAX>
-__device__ void core_ilp( const uint nsrc, const uint * const scan, const uint * const starts,
+__device__ void core_ilp( const uint nsrc, const uint2 * const starts_and_scans,
                           const uint ndst, const uint dststart )
 {
     const uint tid    = threadIdx.x;
@@ -303,15 +287,30 @@ __device__ void core_ilp( const uint nsrc, const uint * const scan, const uint *
         uint spids[NSRCMAX];
 		#pragma unroll
         for( uint i = 0; i < NSRCMAX; ++i ) {
-            const uint pid  = xadd( s, xmad( i, float(COLS), subtid ) ); // 3 FLOPS
-    		const uint key9 = xadd( xsel_ge( pid, scan[ 9             ], 9u, 0u ), xsel_ge( pid, scan[ 18            ], 9u, 0u ) ); // 3 FLOPS
-    		const uint key3 = xadd( xsel_ge( pid, scan[ xadd(key9,3u) ], 3u, 0u ), xsel_ge( pid, scan[ xadd(key9,6u) ], 3u, 0u ) ); // 3 FLOPS
+            const uint pid  = xadd( s, xmad( i, float(COLS), subtid ) );
+#if 1
+			float f_key;
+			asm( "{ .reg .pred p, q;"
+				 "   setp.ge.f32 p, %1, %3;"
+				 "   setp.ge.f32 q, %1, %4;"
+				 "   selp.f32    %0, %2, 0.0, p;"
+				 "@q add.f32     %0, %0, %2; }" : "=f"(f_key) : "f"(u2f(pid)), "f"(u2f(9u)), "f"(u2f(starts_and_scans[9].y)), "f"(u2f(starts_and_scans[18].y)) );
+			const uint key9 = f2u(f_key);
+			asm( "{ .reg .pred p, q;"
+				 "   setp.ge.f32 p, %1, %3;"
+				 "   setp.ge.f32 q, %1, %4;"
+				 "@p add.f32     %0, %0, %2;"
+				 "@q add.f32     %0, %0, %2; }" : "+f"(f_key) : "f"(u2f(pid)), "f"(u2f(3u)), "f"(u2f(starts_and_scans[xadd(key9,3u)].y)), "f"(u2f(starts_and_scans[xadd(key9,6u)].y)) );
+			const uint key = f2u(f_key);
+#else
+    		const uint key9 = xadd( xsel_ge( pid, scan[ 9             ], 9u, 0u ), xsel_ge( pid, scan[ 18            ], 9u, 0u ) );
+    		const uint key3 = xadd( xsel_ge( pid, scan[ xadd(key9,3u) ], 3u, 0u ), xsel_ge( pid, scan[ xadd(key9,6u) ], 3u, 0u ) );
     		const uint key  = xadd( key9, key3 );
-
-            spids[i] = xsub( xadd( pid, starts[key] ), scan[key] );
+#endif
+            spids[i] = xsub( xadd( pid, starts_and_scans[key].x ), starts_and_scans[key].y );
         }
 
-        bool interacting[NSRCMAX];
+        uint interacting[NSRCMAX];
 		#pragma unroll
         for( uint i = 0; i < NSRCMAX; ++i ) {
             const int sentry = xscale( spids[i], 3.f ); // 1 FLOP
@@ -323,12 +322,23 @@ __device__ void core_ilp( const uint nsrc, const uint * const scan, const uint *
 			const float2 stmp1 = tex1Dfetch( texParticles2, xadd( sentry, 1 ) ); // 1 FLOP
 			#endif
 
-            const float xdiff = xdest.x - stmp0.x; // 1 FLOP
-            const float ydiff = xdest.y - stmp0.y; // 1 FLOP
-            const float zdiff = xdest.z - stmp1.x; // 1 FLOP
+            const float xdiff = xdest.x - stmp0.x;
+            const float ydiff = xdest.y - stmp0.y;
+            const float zdiff = xdest.z - stmp1.x;
+#if 1
+			uint interacting_one;
+            asm("{ .reg .pred p;"
+				"   setp.lt.f32 p, %1, %2;"
+				"   setp.lt.and.f32 p, %3, 1.0, p;"
+				"   set.ne.and.u32.f32 %0, %4, %5, p;"
+				"   }" : "=r"(interacting_one)  : "f"(u2f(xadd( s, xmad( i, float(COLS), subtid ) ))), "f"(u2f(nsrc)), "f"(xdiff * xdiff + ydiff * ydiff + zdiff * zdiff), "f"(u2f(dpid)), "f"(u2f(spids[i])) );
+            interacting[i] = interacting_one;
+#else
+
             interacting[i] = xfcmp_lt( xadd( s, xmad( i, float(COLS), subtid ) ), nsrc )
             		       * xfcmp_lt( xdiff * xdiff + ydiff * ydiff + zdiff * zdiff, 1.f )
-            		       * xfcmp_ne( dpid, spids[i] ); // 13 FLOPS
+            		       * xfcmp_ne( dpid, spids[i] );
+#endif
         }
 
 		#pragma unroll
@@ -365,7 +375,7 @@ void _dpd_forces_floatized()
     const uint tid = threadIdx.x;
     const uint wid = threadIdx.y;
 
-    __shared__ volatile uint starts[CPB][32], scan[CPB][32];
+    __shared__ volatile uint2 starts_and_scans[CPB][32];
 
     uint mycount = 0, myscan = 0;
     if( tid < 27 ) {
@@ -388,10 +398,10 @@ void _dpd_forces_floatized()
 
         const int cid = max( 0, ( zcid * info.ncells.y + ycid ) * info.ncells.x + xcid );
 		#if (USE_TEXOBJ&2)
-        starts[wid][tid] = tex1Dfetch<uint>( info.txoStart, cid );
+        starts_and_scans[wid][tid].x = tex1Dfetch<uint>( info.txoStart, cid );
         myscan = mycount = valid_cid ? tex1Dfetch<uint>( info.txoCount, cid ) : 0u;
 		#else
-        starts[wid][tid] = tex1Dfetch( texStart, cid );
+        starts_and_scans[wid][tid].x = tex1Dfetch( texStart, cid );
         myscan = mycount = valid_cid ? tex1Dfetch( texCount, cid ) : 0u;
 		#endif
     }
@@ -402,30 +412,24 @@ void _dpd_forces_floatized()
     }
 
     if( tid < 28 )
-        scan[wid][tid] = xsub( myscan, mycount ); // 1 FLOP
+    	starts_and_scans[wid][tid].y = xsub( myscan, mycount );
 
-    const uint nsrc = scan[wid][27];
-    const uint dststart = starts[wid][1 + 3 + 9];
-    const uint ndst = xsub( scan[wid][1 + 3 + 9 + 1], scan[wid][1 + 3 + 9] ); // 1 FLOP
+    const uint nsrc = starts_and_scans[wid][27].y;
+    const uint dststart = starts_and_scans[wid][1 + 3 + 9].x;
+    const uint ndst = xsub( starts_and_scans[wid][1 + 3 + 9 + 1].y, starts_and_scans[wid][1 + 3 + 9].y );
     const uint ndst4 = ( ndst >> 2 ) << 2;
 
-    for( uint d = 0; d < ndst4; d = xadd( d, 4u ) ) // 1 FLOP
-        core<8, 4, 4>( nsrc, ( const uint * )scan[wid], ( const uint * )starts[wid], 4, xadd( dststart, d ),
-                scan[wid][3], scan[wid][6], scan[wid][9], scan[wid][12],
-                scan[wid][15], scan[wid][18], scan[wid][21], scan[wid][24]
-        ); // 1 FLOP
+    for( uint d = 0; d < ndst4; d = xadd( d, 4u ) )
+        core<8, 4, 4>( nsrc, ( const uint2 * )starts_and_scans[wid], 4, xadd( dststart, d ) );
 
     uint d = ndst4;
-    if( xadd( d, 2u ) <= ndst ) { // 1 FLOP
-        core<16, 2, 4>( nsrc, ( const uint * )scan[wid], ( const uint * )starts[wid], 2, xadd( dststart, d ),
-                scan[wid][3], scan[wid][6], scan[wid][9], scan[wid][12],
-                scan[wid][15], scan[wid][18], scan[wid][21], scan[wid][24]
-        ); // 1 FLOP
-        d = xadd( d, 2u ); // 1 FLOP
+    if( xadd( d, 2u ) <= ndst ) {
+        core<16, 2, 4>( nsrc, ( const uint2 * )starts_and_scans[wid], 2, xadd( dststart, d ) );
+        d = xadd( d, 2u );
     }
 
     if( d < ndst )
-        core_ilp<32, 1, 2>( nsrc, ( const uint * )scan[wid], ( const uint * )starts[wid], 1, xadd( dststart, d ) ); // 1 FLOP
+        core_ilp<32, 1, 2>( nsrc, ( const uint2 * )starts_and_scans[wid], 1, xadd( dststart, d ) );
 }
 
 #ifdef _COUNT_FLOPS
