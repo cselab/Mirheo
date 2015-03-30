@@ -93,11 +93,18 @@ template<int N> __inline__ __device__ float __logistic_core( float x ) {
     float r = FMA( FMA( FMA( FMA( 128.0, x2, -256.0 ), x2, 160.0 ), x2, -32.0 ), x2, 1.0 );
     return __logistic_core < N - 3 > ( r );
 }
+template<int N> struct __logistic_core_flops_counter {
+	const static unsigned long long FLOPS = 9 + __logistic_core_flops_counter<N-3>::FLOPS;
+};
 
 template<> __inline__ __device__ float __logistic_core<2>( float x ) {
 	float x2 = x * x;
     return FMA( FMA( 8.0, x2, -8.0 ), x2, 1.0 );
 }
+template<> struct __logistic_core_flops_counter<2> {
+	const static unsigned long long FLOPS = 5;
+};
+
 #else
 template<int N> __inline__ __device__ float __logistic_core( float x )
 {
@@ -105,15 +112,24 @@ template<int N> __inline__ __device__ float __logistic_core( float x )
     float r = FMA( FMA( 8.0, x2, -8.0 ), x2, 1.0 );
     return __logistic_core < N - 2 > ( r );
 }
+template<int N> struct __logistic_core_flops_counter {
+	const static unsigned long long FLOPS = 5 + __logistic_core_flops_counter<N-2>::FLOPS;
+};
 #endif
 
 template<> __inline__ __device__ float __logistic_core<1>( float x ) {
 	return FMA( 2.0 * x, x, -1.0 );
 }
+template<> struct __logistic_core_flops_counter<1> {
+	const static unsigned long long FLOPS = 3;
+};
 
 template<> __inline__ __device__ float __logistic_core<0>( float x ) {
     return x;
 }
+template<> struct __logistic_core_flops_counter<0> {
+	const static unsigned long long FLOPS = 0;
+};
 
 #if 1
 
@@ -123,7 +139,7 @@ template<> __inline__ __device__ float __logistic_core<0>( float x ) {
 // can be used directly for DPD
 
 // passes of logistic map
-const static int N = 18;
+const static int N = 36;
 // spacing coefficints for low discrepancy numbers
 const static float gold   = 0.6180339887498948482;
 const static float hugegold   = 0.6180339887498948482E39;
@@ -143,10 +159,16 @@ __inline__ __device__ float mean0var1( float seed, int u, int v )
 
 __inline__ __device__ float mean0var1( float seed, uint u, uint v )
 {
-    float p = rem( ( ( u & 0x3FFU ) * gold ) + u * bronze + ( ( v & 0x3FFU ) * silver ) + v * tin ); // safe for large u or v
+	// 7 FLOPS
+	float p = rem( ( ( u & 0x3FFU ) * gold ) + u * bronze + ( ( v & 0x3FFU ) * silver ) + v * tin ); // safe for large u or v
+	// 45+1 FLOPS
     float l = __logistic_core<N>( seed - p );
+    // 1 FLOP
     return l * sqrt2;
 }
+struct mean0var1_flops_counter {
+	const static unsigned long long FLOPS = 9ULL + __logistic_core_flops_counter<N>::FLOPS;
+};
 
 __inline__ __device__ float mean0var1( float seed, float u, float v )
 {
@@ -190,6 +212,10 @@ __inline__ __device__ float mean0var1( float seed, uint i, uint j )
 
     return saru( tag, i, j ) * 3.464101615f - 1.732050807f;
 }
+struct mean0var1_flops_counter {
+	const static unsigned long long FLOPS = 2ULL;
+};
+
 #endif
 #endif
 }

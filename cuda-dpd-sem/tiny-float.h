@@ -161,8 +161,8 @@ __forceinline__ __device__ uint xmax( uint u, uint v ) {
 // xcmp: i op j ? 1 : 0
 #define xcmp(op) \
 template<typename T, typename S, typename U, typename V> __device__ class Do_Not_Use_Tiny_Float_For_Normal_Operations xsel_##op( T const &t, S const &s, U const &u, V const &v ); \
-template<typename T, typename S> __device__ class Do_Not_Use_Tiny_Float_For_Normal_Operations xcmpf_##op( T const &t, S const &s ); \
-template<typename T, typename S> __device__ class Do_Not_Use_Tiny_Float_For_Normal_Operations xcmpu_##op( T const &t, S const &s ); \
+template<typename T, typename S> __device__ class Do_Not_Use_Tiny_Float_For_Normal_Operations xfcmp_##op( T const &t, S const &s ); \
+template<typename T, typename S> __device__ class Do_Not_Use_Tiny_Float_For_Normal_Operations xucmp_##op( T const &t, S const &s ); \
 __inline__ __device__ uint xsel_##op( uint i, uint j, uint k, uint l  ) { \
 	float r; \
 	float a = u2f(i), b = u2f(j), c = u2f(k), d = u2f(l); \
@@ -204,6 +204,16 @@ xcmp(lt); // <
 xcmp(le); // <=
 xcmp(gt); // >
 xcmp(ge); // >=
+
+inline __device__ uint xlt( uint i, uint j ) {
+	uint diff = xsub( j, i );
+	return xmin( 1u, xmax(0u, diff) );
+}
+
+inline __device__ uint xgt( uint i, uint j ) {
+	uint diff = xsub( i, j );
+	return xmin( 1u, xmax(0u, diff) );
+}
 
 /******************************************************************************
                                  Branch
