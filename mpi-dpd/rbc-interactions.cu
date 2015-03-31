@@ -222,7 +222,6 @@ namespace KernelsRBC
 	}
 	else
 	{
-	    _dcodes.resize(nrbcs);
 	    _ddestinations.resize(nrbcs);
 	    _dsources.resize(nrbcs);
 
