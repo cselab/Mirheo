@@ -27,13 +27,13 @@ protected:
     
     int myrank, dims[3], periods[3], coords[3], rankneighbors[27], anti_rankneighbors[27];
 
-    PinnedHostBuffer /*SimpleDeviceBuffer*/<Particle> recvbufs[27], sendbufs[27];
+    SimpleDeviceBuffer<Particle> bulk;
+    PinnedHostBuffer /*SimpleDeviceBuffer*/<Particle> halo_recvbufs[27], halo_sendbufs[27];
 
     int nvertices, arriving, notleaving;
 
     cudaEvent_t evextents;
 
-    //PinnedHostBuffer<CudaRBC::Extent> extents;
     PinnedHostBuffer<float3> minextents, maxextents;
 
     virtual void _compute_extents(const Particle * const xyzuvw, const int nrbcs, cudaStream_t stream);

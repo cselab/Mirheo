@@ -476,7 +476,6 @@ void build_clists(float * const device_xyzuvw, int np, const float rc,
 
 	old_np = np;
     }
-
     
     if (old_yzncells < yzncells)
     {
