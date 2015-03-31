@@ -340,6 +340,7 @@ __global__ void xgather(const int * const ids, const int np, const float invrc, 
 	    order[start + i] = reordered[i];
 }
 
+
 #include <thrust/copy.h>
 #include <thrust/iterator/counting_iterator.h>
 
@@ -411,7 +412,7 @@ struct is_gzero
 bool clists_perfmon = false;
 bool clists_robust = true;
 
-float * xyzuvw_copy = NULL;
+float * xyzuvw_internal_copy = NULL;
 int *loffsets = NULL, *yzcid = NULL, *outid = NULL, *dyzscan = NULL, *yzhisto = NULL;
 
 cudaEvent_t evstart, evacquire, evscatter, evgather;
@@ -423,7 +424,7 @@ void build_clists(float * const device_xyzuvw, int np, const float rc,
 		  const int xcells, const int ycells, const int zcells,
 		  const float xdomainstart, const float ydomainstart, const float zdomainstart,
 		  int * const order, int * device_cellsstart, int * device_cellscount,
-		  std::pair<int, int *> * nonemptycells, cudaStream_t stream)
+		  std::pair<int, int *> * nonemptycells, cudaStream_t stream, const float * const src_device_xyzuvw)
 {
     assert(np > 0);
     
@@ -462,13 +463,13 @@ void build_clists(float * const device_xyzuvw, int np, const float rc,
     {
 	if (old_np > 0)
 	{
-	    CUDA_CHECK(cudaFree(xyzuvw_copy));
+	    CUDA_CHECK(cudaFree(xyzuvw_internal_copy));
 	    CUDA_CHECK(cudaFree(loffsets));
 	    CUDA_CHECK(cudaFree(yzcid));
 	    CUDA_CHECK(cudaFree(outid));
 	}
 
-	CUDA_CHECK(cudaMalloc(&xyzuvw_copy, sizeof(float) * 6 * np));
+	CUDA_CHECK(cudaMalloc(&xyzuvw_internal_copy, sizeof(float) * 6 * np));
 	CUDA_CHECK(cudaMalloc(&loffsets, sizeof(int) * np));
 	CUDA_CHECK(cudaMalloc(&yzcid, sizeof(int) * np));
 	CUDA_CHECK(cudaMalloc(&outid, sizeof(int) * np));
@@ -490,18 +491,24 @@ void build_clists(float * const device_xyzuvw, int np, const float rc,
 	
 	old_yzncells = yzncells;
     }
+      
+    failuretest.reset(); 
+    assert(failuretest.maxstripe != NULL);
+    
+    const float * xyzuvw_copy = xyzuvw_internal_copy;
 
+    if (src_device_xyzuvw)
+	xyzuvw_copy = src_device_xyzuvw;
+    else
+	CUDA_CHECK(cudaMemcpyAsync(xyzuvw_internal_copy, device_xyzuvw, sizeof(float) * 6 * np, cudaMemcpyDeviceToDevice, stream));
+ 
+    CUDA_CHECK(cudaMemsetAsync(yzhisto, 0, sizeof(int) * yzncells, stream));
+  
     size_t textureoffset = 0;
     CUDA_CHECK(cudaBindTexture(&textureoffset, &texParticlesCLS, xyzuvw_copy, &texParticlesCLS.channelDesc, sizeof(float) * 6 * np));
     CUDA_CHECK(cudaBindTexture(&textureoffset, &texScanYZ, dyzscan, &texScanYZ.channelDesc, sizeof(int) * ncells.y * ncells.z));
     CUDA_CHECK(cudaBindTexture(&textureoffset, &texCountYZ, yzhisto, &texCountYZ.channelDesc, sizeof(int) * ncells.y * ncells.z));
-    
-    failuretest.reset(); 
-    assert(failuretest.maxstripe != NULL);
-    
-    CUDA_CHECK(cudaMemcpyAsync(xyzuvw_copy, device_xyzuvw, sizeof(float) * 6 * np, cudaMemcpyDeviceToDevice, stream));
-    CUDA_CHECK(cudaMemsetAsync(yzhisto, 0, sizeof(int) * yzncells, stream));
-    
+  
     if (clists_perfmon)
 	CUDA_CHECK(cudaEventRecord(evstart));
 

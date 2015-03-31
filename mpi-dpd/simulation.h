@@ -33,6 +33,7 @@
 
 class Simulation
 {
+    SimpleDeviceBuffer<Particle> unordered_particles;
     ParticleArray particles;
     
     CellLists cells;

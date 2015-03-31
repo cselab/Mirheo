@@ -25,11 +25,7 @@ inline __device__ float viscosity_function(float x)
 template<> inline __device__ float viscosity_function<1>(float x) { return sqrtf(x); }
 template<> inline __device__ float viscosity_function<0>(float x){ return x; }
 
-void build_clists(float * const device_xyzuvw, int np, const float rc, 
-		  const int xcells, const int ycells, const int zcells,
-		  const float xdomainstart, const float ydomainstart, const float zdomainstart,
-		  int * const host_order, int * device_cellsstart, int * device_cellscount,
-		  std::pair<int, int *> * nonemptycells, cudaStream_t stream);
+#include "../cell-lists.h"
 
 void forces_dpd_cuda_nohost(const float * const _xyzuvw, float * const _axayaz,  const int np,
 			    const int * const cellsstart, const int * const cellscount, 

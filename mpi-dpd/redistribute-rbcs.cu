@@ -23,8 +23,8 @@ RedistributeRBCs::RedistributeRBCs(MPI_Comm _cartcomm): nvertices(CudaRBC::get_n
     
     if (rbcs)
     {
-    CudaRBC::Extent host_extent;
-    CudaRBC::setup(nvertices, host_extent);
+	CudaRBC::Extent host_extent;
+	CudaRBC::setup(nvertices, host_extent);
     }
     
     MPI_CHECK(MPI_Comm_dup(_cartcomm, &cartcomm));

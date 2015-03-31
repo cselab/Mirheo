@@ -29,7 +29,7 @@ enum {
 
 const int numberdensity = 4;
 const float dt = 0.001;
-const float tend = 5000;
+const float tend = 10;
 const float kBT = 0.0945;
 const float gammadpd = 45;
 const float sigma = sqrt(2 * gammadpd * kBT); 
@@ -372,13 +372,14 @@ struct CellLists
 
     int * start, * count;
     
-CellLists(const int LX, const int LY, const int LZ): ncells(LX * LY * LZ + 1), LX(LX), LY(LY), LZ(LZ)
+CellLists(const int LX, const int LY, const int LZ): 
+    ncells(LX * LY * LZ + 1), LX(LX), LY(LY), LZ(LZ)
 	{
 	    CUDA_CHECK(cudaMalloc(&start, sizeof(int) * ncells));
 	    CUDA_CHECK(cudaMalloc(&count, sizeof(int) * ncells));
 	}
 
-    void build(Particle * const p, const int n, cudaStream_t stream, int * const order = NULL);
+    void build(Particle * const p, const int n, cudaStream_t stream, int * const order = NULL, const Particle * const src = NULL);
 	    	    
     ~CellLists()
 	{

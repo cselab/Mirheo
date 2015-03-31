@@ -68,15 +68,13 @@ namespace RedistributeParticlesKernels
 	    {
 		const int entry = atomicAdd(pack_count + code, 1);
 		
-		if (entry >= pack_buffers[code].capacity)
-		    failed = true;
-		else
+		if (entry < pack_buffers[code].capacity)
 		    pack_buffers[code].scattered_indices[entry] = pid;
 	    }
 	}
     }
 
-    __global__ void tiny_scan(const int nparticles, int * const packsizes)
+    __global__ void tiny_scan(const int nparticles, const int bulkcapacity, int * const packsizes, bool * const failureflag)
     {
 	assert(blockDim.x > 27 && gridDim.x == 1);
 	
@@ -85,10 +83,16 @@ namespace RedistributeParticlesKernels
 	int myval = 0, mycount = 0;
 	
 	if (tid < 27)
+	{
 	    myval = mycount = pack_count[threadIdx.x];
-
-	if (tid < 27)
 	    packsizes[tid] = mycount;
+
+	    if (mycount >= pack_buffers[tid].capacity)
+	    {
+		failed = true;
+		*failureflag = true;
+	    }
+	}
 
 	for(int L = 1; L < 32; L <<= 1)
 	    myval += (tid >= L) * __shfl_up(myval, L) ;
@@ -98,7 +102,15 @@ namespace RedistributeParticlesKernels
 	if (tid == 26)
 	{
 	    pack_start[tid + 1] = myval;
-	    packsizes[0] = nparticles - myval;
+	    
+	    const int nbulk = nparticles - myval;
+	    packsizes[0] = nbulk;
+
+	    if (nbulk >= bulkcapacity)
+	    {
+		failed = true;
+		*failureflag = true;
+	    }
 	}
     }
 
@@ -369,7 +381,7 @@ namespace RedistributeParticlesKernels
 }
 
 RedistributeParticles::RedistributeParticles(MPI_Comm _cartcomm): 
-packsizes(27), nactiveneighbors(26), firstcall(true)
+failure(1), packsizes(27), nactiveneighbors(26), firstcall(true)
 {
     safety_factor = getenv("RDP_COMM_FACTOR") ? atof(getenv("RDP_COMM_FACTOR")) : 1.2;
 
@@ -447,17 +459,13 @@ void RedistributeParticles::_post_recv()
 				 neighbor_ranks[i], basetag + recv_tags[i] + 333, cartcomm, recvmsgreq + c++) );
 }
 
-bool RedistributeParticles::_adjust_send_buffers(const int requested_capacities[27])
+void RedistributeParticles::_adjust_send_buffers(const int requested_capacities[27])
 {
-    bool reallocation = false;
-    
     for(int i = 0; i < 27; ++i)
     {
 	if (requested_capacities[i] <= packbuffers[i].capacity)
 	    continue;
 
-	reallocation = true;
-	
 	const int capacity = requested_capacities[i];
 	
 	CUDA_CHECK(cudaFree(packbuffers[i].scattered_indices));
@@ -485,8 +493,6 @@ bool RedistributeParticles::_adjust_send_buffers(const int requested_capacities[
 	    unpackbuffers[i].capacity = capacity;
 	}
     }
-
-    return reallocation;
 }
 
 void RedistributeParticles::_adjust_recv_buffers(const int requested_capacities[27])
@@ -540,13 +546,14 @@ int RedistributeParticles::stage1(const Particle * const particles, const int np
 	
 	CUDA_CHECK(cudaMemcpyToSymbolAsync(RedistributeParticlesKernels::pack_buffers, packbuffers,
 					   sizeof(PackBuffer) * 27, 0, cudaMemcpyHostToDevice, mystream));
-	
+
+	*failure.data = false;
 	RedistributeParticlesKernels::setup<<<1, 32, 0, mystream>>>();
 	
 	if (nparticles)
 	    RedistributeParticlesKernels::scatter_halo_indices<<< (nparticles + 127) / 128, 128, 0, mystream>>>(nparticles);
 	
-	RedistributeParticlesKernels::tiny_scan<<<1, 32, 0, mystream>>>(nparticles, packsizes.devptr);
+	RedistributeParticlesKernels::tiny_scan<<<1, 32, 0, mystream>>>(nparticles, packbuffers[0].capacity, packsizes.devptr, failure.devptr);
 
 	CUDA_CHECK(cudaEventRecord(evsizes, mystream));
 	
@@ -561,14 +568,14 @@ int RedistributeParticles::stage1(const Particle * const particles, const int np
 
 	CUDA_CHECK(cudaEventSynchronize(evsizes));
 
-	const bool reallocation_occurred = _adjust_send_buffers(packsizes.devptr);
-	
-	if (reallocation_occurred)
+	if (*failure.data)
 	{
 	    //wait for packing to finish
 	    CUDA_CHECK(cudaEventSynchronize(evpacking));
 	    
 	    printf("...FAILED! Recovering now...\n");
+
+	    _adjust_send_buffers(packsizes.devptr);
 	    	    
 	    goto pack_attempt;
 	}
