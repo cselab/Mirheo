@@ -51,8 +51,11 @@ void Simulation::_redistribute()
 {
     double tstart = MPI_Wtime();
     const int newnp = redistribute.stage1(particles.xyzuvw.data, particles.size, mainstream, host_idle_time);
+
     particles.resize(newnp);
-    redistribute.stage2(particles.xyzuvw.data, particles.size, mainstream, host_idle_time);
+    unordered_particles.resize(newnp);
+
+    redistribute.stage2(unordered_particles.data, newnp, mainstream, host_idle_time);
     timings["redistribute-particles"] += MPI_Wtime() - tstart;
 	
     CUDA_CHECK(cudaPeekAtLastError());
@@ -78,6 +81,10 @@ void Simulation::_redistribute()
     }
     
     CUDA_CHECK(cudaPeekAtLastError());
+
+    tstart = MPI_Wtime();
+    cells.build(particles.xyzuvw.data, particles.size, mainstream, NULL, unordered_particles.data);
+    timings["build-cells"] += MPI_Wtime() - tstart;
 }
 
 void Simulation::_report(const bool verbose, const int idtimestep)
@@ -277,14 +284,10 @@ void Simulation::_create_walls(const bool verbose, bool & termination_request)
 
 void Simulation::_forces()
 {
-    double tstart = MPI_Wtime();
-    cells.build(particles.xyzuvw.data, particles.size, mainstream);
-    timings["build-cells"] += MPI_Wtime() - tstart;
-	
     //THIS IS WHERE WE WANT TO ACHIEVE 70% OF THE PEAK
     //TODO: i need a coordinating class that performs all the local work while waiting for the communication
     {
-	tstart = MPI_Wtime();
+	double tstart = MPI_Wtime();
 	
 	dpd.pack(particles.xyzuvw.data, particles.size, cells.start, cells.count, mainstream);
 	dpd.local_interactions(particles.xyzuvw.data, particles.size, particles.axayaz.data, cells.start, cells.count, mainstream);
@@ -476,6 +479,7 @@ void Simulation::run()
     
     double time_simulation_start = MPI_Wtime();
     
+    _redistribute();
     _forces();
     
     if (!walls && pushtheflow)
