@@ -23,8 +23,8 @@ RedistributeRBCs::RedistributeRBCs(MPI_Comm _cartcomm): nvertices(CudaRBC::get_n
     
     if (rbcs)
     {
-    CudaRBC::Extent host_extent;
-    CudaRBC::setup(nvertices, host_extent);
+	CudaRBC::Extent host_extent;
+	CudaRBC::setup(nvertices, host_extent);
     }
     
     MPI_CHECK(MPI_Comm_dup(_cartcomm, &cartcomm));
@@ -115,7 +115,8 @@ int RedistributeRBCs::stage1(const Particle * const xyzuvw, const int nrbcs, cud
 				       sizeof(Particle) * nvertices, cudaMemcpyDeviceToDevice, stream));
 
     CUDA_CHECK(cudaStreamSynchronize(stream));
-//I need to post receive first
+
+    //I need to post receive first
     MPI_Request sendcountreq[26];
     for(int i = 1; i < 27; ++i)
 	MPI_CHECK( MPI_Isend(&sendbufs[i].size, 1, MPI_INTEGER, rankneighbors[i], i + 1024, cartcomm, &sendcountreq[i-1]) );
