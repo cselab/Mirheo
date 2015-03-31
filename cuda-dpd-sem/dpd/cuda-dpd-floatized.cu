@@ -224,35 +224,13 @@ __device__ void core( const uint nsrc, const uint2 * const starts_and_scans,
 		}
 #endif
 
-		if ( blockIdx.x==0 &&blockIdx.y==0 && blockIdx.z==0 && threadIdx.x<32 &&threadIdx.y==0&&threadIdx.z==0) {
-			volatile __shared__ int N[32];
-			N[threadIdx.x] = srccount;
-			if (threadIdx.x==0&&threadIdx.y==0&&threadIdx.z==0) {
-				printf("%d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d\n",
-						N[0], N[1], N[2], N[3], N[4], N[5], N[6], N[7], N[8], N[9], N[10], N[11], N[12], N[13], N[14], N[15], N[16], N[17], N[18], N[19], N[20], N[21], N[22], N[23], N[24], N[25], N[26], N[27], N[28], N[29], N[30], N[31] );
-			}
-			if ( srccount == NSRCMAX ) {
-				srccount = xsub( srccount, 1u ); // 1 FLOP
-				const float3 f = _dpd_interaction( dpid, xdest, udest, srcids[srccount] ); // 88 FLOPS
+		if ( srccount == NSRCMAX ) {
+			srccount = xsub( srccount, 1u ); // 1 FLOP
+			const float3 f = _dpd_interaction( dpid, xdest, udest, srcids[srccount] ); // 88 FLOPS
 
-				xforce += f.x; // 1 FLOP
-				yforce += f.y; // 1 FLOP
-				zforce += f.z; // 1 FLOP
-				N[threadIdx.x] = 1;
-			} else N[threadIdx.x] = 0;
-			if (threadIdx.x==0&&threadIdx.y==0&&threadIdx.z==0) {
-				printf("%c %c %c %c %c %c %c %c %c %c %c %c %c %c %c %c %c %c %c %c %c %c %c %c %c %c %c %c %c %c %c %c\n",
-						N[0]?'X':'O', N[1]?'X':'O', N[2]?'X':'O', N[3]?'X':'O', N[4]?'X':'O', N[5]?'X':'O', N[6]?'X':'O', N[7]?'X':'O', N[8]?'X':'O', N[9]?'X':'O', N[10]?'X':'O', N[11]?'X':'O', N[12]?'X':'O', N[13]?'X':'O', N[14]?'X':'O', N[15]?'X':'O', N[16]?'X':'O', N[17]?'X':'O', N[18]?'X':'O', N[19]?'X':'O', N[20]?'X':'O', N[21]?'X':'O', N[22]?'X':'O', N[23]?'X':'O', N[24]?'X':'O', N[25]?'X':'O', N[26]?'X':'O', N[27]?'X':'O', N[28]?'X':'O', N[29]?'X':'O', N[30]?'X':'O', N[31]?'X':'O' );
-			}
-		} else {
-			if ( srccount == NSRCMAX ) {
-				srccount = xsub( srccount, 1u ); // 1 FLOP
-				const float3 f = _dpd_interaction( dpid, xdest, udest, srcids[srccount] ); // 88 FLOPS
-
-				xforce += f.x; // 1 FLOP
-				yforce += f.y; // 1 FLOP
-				zforce += f.z; // 1 FLOP
-			}
+			xforce += f.x; // 1 FLOP
+			yforce += f.y; // 1 FLOP
+			zforce += f.z; // 1 FLOP
 		}
 
 		// 1 FLOP for s++
