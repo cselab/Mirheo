@@ -69,6 +69,73 @@ void RedistributeRBCs::_compute_extents(const Particle * const xyzuvw, const int
 #endif
 }
 
+namespace ReorderingRBC
+{
+    static const int cmaxnrbcs = 64 * 4;
+    __constant__ float * csources[cmaxnrbcs], * cdestinations[cmaxnrbcs];
+
+    template <bool from_cmem>
+    __global__ void pack_all_kernel(const int nrbcs, const int nvertices, 
+				    const float ** const dsources, float ** const ddestinations)
+    {
+	if (nrbcs == 0)
+	    return;
+
+	const int nfloats_per_rbc = 6 * nvertices;
+
+	assert(nfloats_per_rbc * nrbcs <= blockDim.x * gridDim.x);
+
+	const int gid = threadIdx.x + blockDim.x * blockIdx.x;
+	
+	if (gid >= nfloats_per_rbc * nrbcs) 
+	    return;
+
+	const int idrbc = gid / nfloats_per_rbc;
+	assert(idrbc < nrbcs);
+
+	const int offset = gid % nfloats_per_rbc;
+	
+	float val;
+	if (from_cmem)
+	    val = csources[idrbc][offset];
+	else
+	    val = dsources[idrbc][offset];
+	
+	if (from_cmem)
+	    cdestinations[idrbc][offset] = val;
+	else
+	    ddestinations[idrbc][offset] = val;
+    }
+
+    SimpleDeviceBuffer<float *> _ddestinations;
+    SimpleDeviceBuffer<const float *> _dsources;
+
+    void pack_all(cudaStream_t stream, const int nrbcs, const int nvertices, const float ** const sources, float ** const destinations)
+    {
+	const int nthreads = nrbcs * nvertices * 6;
+
+	if (nrbcs < cmaxnrbcs)
+	{
+	    CUDA_CHECK(cudaMemcpyToSymbolAsync(cdestinations, destinations, sizeof(float *) * nrbcs, 0, cudaMemcpyHostToDevice, stream));
+	    CUDA_CHECK(cudaMemcpyToSymbolAsync(csources, sources, sizeof(float *) * nrbcs, 0, cudaMemcpyHostToDevice, stream));
+	    
+	    pack_all_kernel<true><<<(nthreads + 127) / 128, 128, 0, stream>>>(nrbcs, nvertices, NULL, NULL);
+
+	    CUDA_CHECK(cudaPeekAtLastError());
+	}
+	else
+	{
+	    _ddestinations.resize(nrbcs);
+	    _dsources.resize(nrbcs);
+
+	    CUDA_CHECK(cudaMemcpyAsync(_ddestinations.data, destinations, sizeof(float *) * nrbcs, cudaMemcpyHostToDevice, stream));
+	    CUDA_CHECK(cudaMemcpyAsync(_dsources.data, sources, sizeof(float *) * nrbcs, cudaMemcpyHostToDevice, stream));
+
+	    pack_all_kernel<false><<<(nthreads + 127) / 128, 128, 0, stream>>>(nrbcs, nvertices, _dsources.data, _ddestinations.data);
+	}
+    }
+}
+
 int RedistributeRBCs::stage1(const Particle * const xyzuvw, const int nrbcs, cudaStream_t stream)
 {
     NVTX_RANGE("RDC/stage1", NVTX_C3);
@@ -106,20 +173,48 @@ int RedistributeRBCs::stage1(const Particle * const xyzuvw, const int nrbcs, cud
 	reordering_indices[code].push_back(i);
     }
 
-    for(int i = 0; i < 27; ++i)
-	sendbufs[i].resize(reordering_indices[i].size() * nvertices);
+    bulk.resize(reordering_indices[0].size() * nvertices);
 
-    for(int i = 0; i < 27; ++i)
+    for(int i = 1; i < 27; ++i)
+	halo_sendbufs[i].resize(reordering_indices[i].size() * nvertices);
+
+#if 1
+    {
+	std::vector<const float *> src;
+	std::vector<float *> dst;
+
+	for(int i = 0; i < 27; ++i)
+	    for(int j = 0; j < reordering_indices[i].size(); ++j)
+	    {
+		src.push_back((float *)(xyzuvw + nvertices * reordering_indices[i][j]));
+		
+		if (i)
+		    dst.push_back((float *)(halo_sendbufs[i].devptr + nvertices * j));
+		else
+		    dst.push_back((float *)(bulk.data + nvertices * j));
+	    }
+	
+	ReorderingRBC::pack_all(stream, src.size(), nvertices, &src.front(), &dst.front());
+	
+	CUDA_CHECK(cudaPeekAtLastError());
+    }
+#else
+    for(int j = 0; j < reordering_indices[0].size(); ++j)
+	CUDA_CHECK(cudaMemcpyAsync(bulk.data + nvertices * j, xyzuvw + nvertices * reordering_indices[0][j],
+				   sizeof(Particle) * nvertices, cudaMemcpyDeviceToDevice, stream));
+
+    for(int i = 1; i < 27; ++i)
 	for(int j = 0; j < reordering_indices[i].size(); ++j)
-	    CUDA_CHECK(cudaMemcpyAsync(sendbufs[i].devptr + nvertices * j, xyzuvw + nvertices * reordering_indices[i][j],
+	    CUDA_CHECK(cudaMemcpyAsync(halo_sendbufs[i].devptr + nvertices * j, xyzuvw + nvertices * reordering_indices[i][j],
 				       sizeof(Particle) * nvertices, cudaMemcpyDeviceToDevice, stream));
+#endif
 
     CUDA_CHECK(cudaStreamSynchronize(stream));
 
     //I need to post receive first
     MPI_Request sendcountreq[26];
     for(int i = 1; i < 27; ++i)
-	MPI_CHECK( MPI_Isend(&sendbufs[i].size, 1, MPI_INTEGER, rankneighbors[i], i + 1024, cartcomm, &sendcountreq[i-1]) );
+	MPI_CHECK( MPI_Isend(&halo_sendbufs[i].size, 1, MPI_INTEGER, rankneighbors[i], i + 1024, cartcomm, &sendcountreq[i-1]) );
 
     arriving = 0;
     for(int i = 1; i < 27; ++i)
@@ -130,11 +225,11 @@ int RedistributeRBCs::stage1(const Particle * const xyzuvw, const int nrbcs, cud
 	MPI_CHECK( MPI_Recv(&count, 1, MPI_INTEGER, anti_rankneighbors[i], i + 1024, cartcomm, &status) );
 
 	arriving += count;
-	recvbufs[i].resize(count);
+	halo_recvbufs[i].resize(count);
     }
     
     arriving /= nvertices;
-    notleaving = sendbufs[0].size / nvertices;
+    notleaving = bulk.size / nvertices;
 
     //if (arriving)
     //printf("YEE something is arriving to rank %d (arriving %d)\n", myrank, arriving);
@@ -143,22 +238,22 @@ int RedistributeRBCs::stage1(const Particle * const xyzuvw, const int nrbcs, cud
     MPI_CHECK( MPI_Waitall(26, sendcountreq, statuses) );
 
     for(int i = 1; i < 27; ++i)
-	if (recvbufs[i].size > 0)
+	if (halo_recvbufs[i].size > 0)
 	{
 	    MPI_Request request;
 
-	    MPI_CHECK(MPI_Irecv(recvbufs[i].data, recvbufs[i].size, Particle::datatype(),
+	    MPI_CHECK(MPI_Irecv(halo_recvbufs[i].data, halo_recvbufs[i].size, Particle::datatype(),
 				anti_rankneighbors[i], i + 1155, cartcomm, &request));
 
 	    recvreq.push_back(request);
 	}
 
     for(int i = 1; i < 27; ++i)
-	if (sendbufs[i].size > 0)
+	if (halo_sendbufs[i].size > 0)
 	{
 	    MPI_Request request;
 
-	    MPI_CHECK(MPI_Isend(sendbufs[i].data, sendbufs[i].size, Particle::datatype(),
+	    MPI_CHECK(MPI_Isend(halo_sendbufs[i].data, halo_sendbufs[i].size, Particle::datatype(),
 				rankneighbors[i], i + 1155, cartcomm, &request));
 
 	    sendreq.push_back(request);
@@ -227,20 +322,20 @@ void RedistributeRBCs::stage2(Particle * const xyzuvw, const int nrbcs, cudaStre
     recvreq.clear();
     sendreq.clear();
    
-    CUDA_CHECK(cudaMemcpyAsync(xyzuvw, sendbufs[0].devptr, notleaving * nvertices * sizeof(Particle), 
+    CUDA_CHECK(cudaMemcpyAsync(xyzuvw, bulk.data, notleaving * nvertices * sizeof(Particle), 
 			       cudaMemcpyDeviceToDevice, stream));
     
     for(int i = 1, s = notleaving * nvertices; i < 27; ++i)
     {
-	const int count =  recvbufs[i].size;
+	const int count =  halo_recvbufs[i].size;
 
 	if (count > 0)
 	    ParticleReorderingRBC::shift<<< (count + 127) / 128, 128, 0, stream >>>
-		(recvbufs[i].devptr, count, i, myrank, false, xyzuvw + s);
+		(halo_recvbufs[i].devptr, count, i, myrank, false, xyzuvw + s);
 
 	assert(s <= nrbcs * nvertices);
 
-	s += recvbufs[i].size;
+	s += halo_recvbufs[i].size;
     }
 
     CUDA_CHECK(cudaPeekAtLastError());
