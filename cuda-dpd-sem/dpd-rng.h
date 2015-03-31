@@ -177,6 +177,14 @@ __inline__ __device__ float mean0var1( float seed, float u, float v )
     return l * sqrt2;
 }
 
+__inline__ __device__ float mean0var1_dual( float seed, float u, float v )
+{
+	float p = rem( sqrtf(u) * gold + sqrtf(v) * silver ); // Acknowledging Dmitry for the use of sqrtf
+    float l = __logistic_core<N>( seed - p );
+    float z = __logistic_core<N>( seed + p - 1.f );
+    return l + z;
+}
+
 #else
 __device__ inline float saru( unsigned int seed1, unsigned int seed2, unsigned int seed3 )
 {

@@ -496,12 +496,12 @@ void Simulation::run()
 	const bool verbose = it > 0 && rank == 0;
 	
 #ifdef _USE_NVTX_
-	if (it == 2001)
+	if (it == 7001)
 	{
 	    NvtxTracer::currently_profiling = true;
 	    CUDA_CHECK(cudaProfilerStart());
 	}
-	else if (it == 2011)
+	else if (it == 7051)
 	{
 	    CUDA_CHECK(cudaProfilerStop());
 	    NvtxTracer::currently_profiling = false;
