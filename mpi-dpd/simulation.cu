@@ -51,11 +51,9 @@ void Simulation::_redistribute()
 {
     double tstart = MPI_Wtime();
     const int newnp = redistribute.stage1(particles.xyzuvw.data, particles.size, mainstream, host_idle_time);
-
-    particles.resize(newnp);
     unordered_particles.resize(newnp);
-
     redistribute.stage2(unordered_particles.data, newnp, mainstream, host_idle_time);
+    particles.resize(newnp);
     timings["redistribute-particles"] += MPI_Wtime() - tstart;
 	
     CUDA_CHECK(cudaPeekAtLastError());
@@ -535,7 +533,10 @@ void Simulation::run()
 	    CUDA_CHECK(cudaDeviceSynchronize());
 	    
 	    bool termination_request = false;
+
 	    _create_walls(verbose, termination_request);
+
+	    _redistribute();
 	    
 	    if (termination_request)
 		break;
