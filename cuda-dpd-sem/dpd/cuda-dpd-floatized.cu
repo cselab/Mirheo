@@ -135,7 +135,7 @@ __device__ float3 _dpd_interaction( const uint dpid, const float3 xdest, const f
 
 template<uint COLS, uint ROWS, uint NSRCMAX>
 __device__ void core( const uint nsrc, const uint2 * const starts_and_scans,
-                      const uint ndst, const uint dststart, const uint2 record9 )
+                      const uint ndst, const uint dststart )
 {
     uint srcids[NSRCMAX];
     for( int i = 0; i < NSRCMAX; ++i )
@@ -168,19 +168,62 @@ __device__ void core( const uint nsrc, const uint2 * const starts_and_scans,
 	{
 		const uint pid  = xadd( s, subtid );
 #ifdef LETS_MAKE_IT_MESSY
+//		float key9f;
+//		asm( "{ .reg .pred p, q;"
+//			 "   setp.ge.f32 p, %1, %3;"
+//			 "   setp.ge.f32 q, %1, %4;"
+//			 "   selp.f32    %0, %2, 0.0, p;"
+//			 "@q add.f32     %0, %0, %2; }" : "=f"(key9f) : "f"(u2f(pid)), "f"(u2f(9u)), "f"(u2f(starts_and_scans[9].y)), "f"(u2f(starts_and_scans[18].y)) );
+//		const uint key9 = f2u(key9f);
+//		asm( "{ .reg .pred p, q;"
+//			 "   setp.ge.f32 p, %1, %3;"
+//			 "   setp.ge.f32 q, %1, %4;"
+//			 "@p add.f32     %0, %0, %2;"
+//			 "@q add.f32     %0, %0, %2; }" : "+f"(key9f) : "f"(u2f(pid)), "f"(u2f(3u)), "f"(u2f(starts_and_scans[xadd(key9,3u)].y)), "f"(u2f(starts_and_scans[xadd(key9,6u)].y)) );
+//		const uint key = f2u(key9f);
+
+//		float key9f;
+//		asm( "{ .reg .pred p, q;"
+//			 "  .reg .f32  scan9, scan18;"
+//			 "   ld.f32 scan9,  [%3 +  9*8 + 4];"
+//			 "   ld.f32 scan18, [%3 + 18*8 + 4];"
+//			 "   setp.ge.f32 p, %1, scan9;"
+//			 "   setp.ge.f32 q, %1, scan18;"
+//			 "   selp.f32    %0, %2, 0.0, p;"
+//			 "@q add.f32     %0, %0, %2; }" : "=f"(key9f) : "f"(u2f(pid)), "f"(u2f(9u)), "l"(starts_and_scans) );
+//		const uint key9 = f2u(key9f);
+//		asm( "{ .reg .pred p, q;"
+//			 "  .reg .f32  scan3, scan6;"
+//			 "   ld.f32 scan3, [%3 + 3*8 + 4];"
+//			 "   ld.f32 scan6, [%3 + 6*8 + 4];"
+//			 "   setp.ge.f32 p, %1, scan3;"
+//			 "   setp.ge.f32 q, %1, scan6;"
+//			 "@p add.f32     %0, %0, %2;"
+//			 "@q add.f32     %0, %0, %2; }" : "+f"(key9f) : "f"(u2f(pid)), "f"(u2f(3u)), "l"(starts_and_scans+key9) );
+//		const uint key = f2u(key9f);
+
 		float key9f;
 		asm( "{ .reg .pred p, q;"
-			 "   setp.ge.f32 p, %1, %3;"
-			 "   setp.ge.f32 q, %1, %4;"
+			 "  .reg .f32  scan9, scan18;"
+			 "  .reg .s64  array, offset;"
+			 "   mov.b64 array, %4;"
+			 "   ld.shared.f32 scan9,  [array +  9*8 + 4];"
+			 "   ld.shared.f32 scan18, [array + 18*8 + 4];"
+			 "   setp.ge.f32 p, %1, scan9;"
+			 "   setp.ge.f32 q, %1, scan18;"
 			 "   selp.f32    %0, %2, 0.0, p;"
-			 "@q add.f32     %0, %0, %2; }" : "=f"(key9f) : "f"(u2f(pid)), "f"(u2f(9u)), "f"(u2f(record9.x)), "f"(u2f(record9.y)) );
-		const uint key9 = f2u(key9f);
-		const uint4 record3 = * (const uint4 *) ( starts_and_scans + xadd( key9, 4u ) );
-		asm( "{ .reg .pred p, q;"
-			 "   setp.ge.f32 p, %1, %3;"
-			 "   setp.ge.f32 q, %1, %4;"
-			 "@p add.f32     %0, %0, %2;"
-			 "@q add.f32     %0, %0, %2; }" : "+f"(key9f) : "f"(u2f(pid)), "f"(u2f(3u)), "f"(u2f(record3.y)), "f"(u2f(record3.w)) );
+			 "@q add.f32     %0, %0, %2;"
+			 "  .reg .u32  key9;"
+			 "   mov.b32 key9, %0;"
+			 "   mul.wide.u32 offset, key9, 8;"
+			 "   add.s64 array, array, offset;"
+			 "  .reg .f32  scan3, scan6;"
+			 "   ld.shared.f32 scan3, [array + 3*8 + 4];"
+			 "   ld.shared.f32 scan6, [array + 6*8 + 4];"
+			 "   setp.ge.f32 p, %1, scan3;"
+			 "   setp.ge.f32 q, %1, scan6;"
+			 "@p add.f32     %0, %0, %3;"
+			 "@q add.f32     %0, %0, %3; }" : "=f"(key9f) : "f"(u2f(pid)), "f"(u2f(9u)), "f"(u2f(3u)), "l"((long long)threadIdx.y*32*8) );
 		const uint key = f2u(key9f);
 #else
 		const uint key9 = xadd( xsel_ge( pid, scan9                , 9u, 0u ), xsel_ge( pid, scan18               , 9u, 0u ) );
@@ -262,7 +305,7 @@ __device__ void core( const uint nsrc, const uint2 * const starts_and_scans,
 
 template<uint COLS, uint ROWS, uint NSRCMAX>
 __device__ void core_ilp( const uint nsrc, const uint2 * const starts_and_scans,
-                          const uint ndst, const uint dststart, const uint2 record9 )
+                          const uint ndst, const uint dststart )
 {
     const uint tid    = threadIdx.x;
     const uint slot   = tid / COLS;
@@ -295,19 +338,18 @@ __device__ void core_ilp( const uint nsrc, const uint2 * const starts_and_scans,
 				 "   setp.ge.f32 p, %1, %3;"
 				 "   setp.ge.f32 q, %1, %4;"
 				 "   selp.f32    %0, %2, 0.0, p;"
-				 "@q add.f32     %0, %0, %2; }" : "=f"(key9f) : "f"(u2f(pid)), "f"(u2f(9u)), "f"(u2f(record9.x)), "f"(u2f(record9.y)) );
+				 "@q add.f32     %0, %0, %2; }" : "=f"(key9f) : "f"(u2f(pid)), "f"(u2f(9u)), "f"(u2f(starts_and_scans[9].y)), "f"(u2f(starts_and_scans[18].y)) );
 			const uint key9 = f2u(key9f);
-			const uint4 record3 = * (const uint4 *) ( starts_and_scans + xadd( key9, 4u ) );
 			asm( "{ .reg .pred p, q;"
 				 "   setp.ge.f32 p, %1, %3;"
 				 "   setp.ge.f32 q, %1, %4;"
 				 "@p add.f32     %0, %0, %2;"
-				 "@q add.f32     %0, %0, %2; }" : "+f"(key9f) : "f"(u2f(pid)), "f"(u2f(3u)), "f"(u2f(record3.y)), "f"(u2f(record3.w)) );
+				 "@q add.f32     %0, %0, %2; }" : "+f"(key9f) : "f"(u2f(pid)), "f"(u2f(3u)), "f"(u2f(starts_and_scans[xadd(key9,3u)].y)), "f"(u2f(starts_and_scans[xadd(key9,6u)].y)) );
 			const uint key = f2u(key9f);
 #else
-			const uint key9 = xadd( xsel_ge( pid, starts_and_scans[ 9             ].y, 9u, 0u ), xsel_ge( pid, starts_and_scans[ 18            ].y, 9u, 0u ) );
-			const uint key3 = xadd( xsel_ge( pid, starts_and_scans[ xadd(key9,3u) ].y, 3u, 0u ), xsel_ge( pid, starts_and_scans[ xadd(key9,6u) ].y, 3u, 0u ) );
-			const uint key  = xadd( key9, key3 );
+    		const uint key9 = xadd( xsel_ge( pid, scan[ 9             ], 9u, 0u ), xsel_ge( pid, scan[ 18            ], 9u, 0u ) );
+    		const uint key3 = xadd( xsel_ge( pid, scan[ xadd(key9,3u) ], 3u, 0u ), xsel_ge( pid, scan[ xadd(key9,6u) ], 3u, 0u ) );
+    		const uint key  = xadd( key9, key3 );
 #endif
             spids[i] = xsub( xadd( pid, starts_and_scans[key].x ), starts_and_scans[key].y );
         }
@@ -421,28 +463,17 @@ void _dpd_forces_floatized()
     const uint ndst = xsub( starts_and_scans[wid][1 + 3 + 9 + 1].y, starts_and_scans[wid][1 + 3 + 9].y );
     const uint ndst4 = ( ndst >> 2 ) << 2;
 
-//	if (tid==18) {
-//    	starts_and_scans[wid][10].x = starts_and_scans[wid][tid].x;
-//    	starts_and_scans[wid][10].y = starts_and_scans[wid][tid].y;
-//    }
-	const uint p = tid % 9u;
-    if (p==3||p==6) {
-    	starts_and_scans[wid][tid+(p==3?1:-1)].x = starts_and_scans[wid][tid].x;
-    	starts_and_scans[wid][tid+(p==3?1:-1)].y = starts_and_scans[wid][tid].y;
-    }
-
-    const uint2 record9 = make_uint2( starts_and_scans[wid][9].y, starts_and_scans[wid][18].y );
     for( uint d = 0; d < ndst4; d = xadd( d, 4u ) )
-        core<8, 4, 4>( nsrc, ( const uint2 * )starts_and_scans[wid], 4, xadd( dststart, d ), record9 );
+        core<8, 4, 4>( nsrc, ( const uint2 * )starts_and_scans[wid], 4, xadd( dststart, d ) );
 
     uint d = ndst4;
     if( xadd( d, 2u ) <= ndst ) {
-        core<16, 2, 4>( nsrc, ( const uint2 * )starts_and_scans[wid], 2, xadd( dststart, d ), record9 );
+        core<16, 2, 4>( nsrc, ( const uint2 * )starts_and_scans[wid], 2, xadd( dststart, d ) );
         d = xadd( d, 2u );
     }
 
     if( d < ndst )
-        core_ilp<32, 1, 2>( nsrc, ( const uint2 * )starts_and_scans[wid], 1, xadd( dststart, d ), record9 );
+        core_ilp<32, 1, 2>( nsrc, ( const uint2 * )starts_and_scans[wid], 1, xadd( dststart, d ) );
 }
 
 #ifdef _COUNT_FLOPS
@@ -809,7 +840,6 @@ void forces_dpd_cuda_nohost( const float * const xyzuvw, float * const axayaz,  
 	void ( *dpdkernel )() =  _dpd_forces_floatized;
 
         CUDA_CHECK( cudaFuncSetCacheConfig( *dpdkernel, cudaFuncCachePreferL1 ) );
-        CUDA_CHECK( cudaFuncSetSharedMemConfig( *dpdkernel, cudaSharedMemBankSizeEightByte) );
 
 #ifdef _TIME_PROFILE_
         CUDA_CHECK( cudaEventCreate( &evstart ) );
