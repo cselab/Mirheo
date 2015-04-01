@@ -3,6 +3,7 @@
  *  Part of CTC/cuda-dpd-sem/
  *
  *  Created and authored by Diego Rossinelli on 2014-08-07.
+ *  Edited by Massimo Bernaschi on 2014-03-30.
  *  Copyright 2015. All rights reserved.
  *
  *  Users are NOT authorized
@@ -25,7 +26,8 @@ __global__ void yzhistogram(const int np,
 			    int * const localoffsets,
 			    int * const global_yzhisto,
 			    int * const global_yzscan,
-			    int * const max_yzcount)
+                            int * const max_yzcount,
+			    int * const gmemhisto)
 {
     extern __shared__ int shmemhisto[];
 
@@ -42,8 +44,6 @@ __global__ void yzhistogram(const int np,
     if (tile >= np)
 	return;
         
-    for(int i = tid ; i < SLOTS * nhisto; i += blockDim.x)
-	shmemhisto[i] = 0;
  
     float y[ILP], z[ILP];
     for(int j = 0; j < ILP; ++j)
@@ -78,9 +78,14 @@ __global__ void yzhistogram(const int np,
 	if (g < np)
 	{
 	    entries[j] =  ycid + ncells.y * zcid;
-	    offset[j] = atomicAdd(shmemhisto + entries[j] + slot * nhisto, 1);
+	    offset[j] = atomicAdd(gmemhisto + (blockIdx.x*nhisto*SLOTS) + entries[j] + slot * nhisto, 1);
 	}
     }
+
+    __syncthreads();
+
+    for(int i = tid ; i < SLOTS * nhisto; i += blockDim.x)
+        shmemhisto[i] = gmemhisto[i + (blockIdx.x * nhisto * SLOTS)];
 
     __syncthreads();
 	
@@ -402,23 +407,23 @@ struct FailureTest
 
 struct is_gzero
 {
-  __host__ __device__
-  bool operator()(const int &x)
-  {
-    return  x > 0;
-  }
+    __host__ __device__
+    bool operator()(const int &x)
+	{
+	    return  x > 0;
+	}
 };
 
 bool clists_perfmon = false;
 bool clists_robust = true;
 
 float * xyzuvw_internal_copy = NULL;
-int *loffsets = NULL, *yzcid = NULL, *outid = NULL, *dyzscan = NULL, *yzhisto = NULL;
+int *loffsets = NULL, *yzcid = NULL, *outid = NULL, *dyzscan = NULL, *yzhisto = NULL, *gmemhistos = NULL;
 
 cudaEvent_t evstart, evacquire, evscatter, evgather;
 
 bool initialized = false;
-int old_np = 0, old_yzncells = 0;
+int old_np = 0, old_yzncells = 0, old_gmemhistos_size = 0;
 
 void build_clists(float * const device_xyzuvw, int np, const float rc, 
 		  const int xcells, const int ycells, const int zcells,
@@ -433,6 +438,8 @@ void build_clists(float * const device_xyzuvw, int np, const float rc,
     const int yzncells = ycells * zcells;
     const float densitynumber = np / (float)(ncells.x * ncells.y * ncells.z);
     int xbufsize = (int)(ncells.x * densitynumber * 2);
+
+ 
      
     if (!initialized)
     {
@@ -519,20 +526,32 @@ void build_clists(float * const device_xyzuvw, int np, const float rc,
 	const int blocksize = 32 * WARPS;
 	const int nblocks = (np + blocksize * ILP - 1)/ (blocksize * ILP);
 	const int shmem_fp = sizeof(int) * ncells.y * ncells.z * SLOTS;
+
+	if(nblocks * shmem_fp > old_gmemhistos_size)
+	{
+	    if(old_gmemhistos_size > 0)
+		CUDA_CHECK(cudaFree(gmemhistos));
+
+	    CUDA_CHECK(cudaMalloc(&gmemhistos, nblocks * shmem_fp));
+
+	    old_gmemhistos_size = nblocks * shmem_fp;
+        }
+
+        CUDA_CHECK(cudaMemsetAsync(gmemhistos, 0, nblocks*shmem_fp, stream));
 		
 	*failuretest.maxstripe = 0;
 	
 	if (shmem_fp <= 32 * 1024)
 	    yzhistogram<ILP, SLOTS, WARPS><<<nblocks, blocksize, sizeof(int) * ncells.y * ncells.z * SLOTS, stream>>>
-		(np, 1 / rc, ncells, domainstart, yzcid,  loffsets, yzhisto, dyzscan, failuretest.dmaxstripe);
+                (np, 1 / rc, ncells, domainstart, yzcid,  loffsets, yzhisto, dyzscan, failuretest.dmaxstripe, gmemhistos);
 	else
 	{
 	    static const int SLOTS = 1;
 	    
 	    //printf("SHMEM: %.2f kB\n", (float)(sizeof(int) * ncells.y * ncells.z * SLOTS) / 1024.);
 	    
-	      yzhistogram<ILP, SLOTS, WARPS><<<nblocks, blocksize, sizeof(int) * ncells.y * ncells.z * SLOTS, stream>>>
-		(np, 1 / rc, ncells, domainstart, yzcid,  loffsets, yzhisto, dyzscan, failuretest.dmaxstripe);
+	    yzhistogram<ILP, SLOTS, WARPS><<<nblocks, blocksize, sizeof(int) * ncells.y * ncells.z * SLOTS, stream>>>
+                (np, 1 / rc, ncells, domainstart, yzcid,  loffsets, yzhisto, dyzscan, failuretest.dmaxstripe, gmemhistos);
 	}
 
 	CUDA_CHECK(cudaPeekAtLastError());
