@@ -438,11 +438,11 @@ void _dpd_forces_floatized()
     const uint ndst4 = ( ndst >> 2 ) << 2;
 
     for( uint d = 0; d < ndst4; d = xadd( d, 4u ) )
-        core<8, 4, 4>( nsrc, ( const uint2 * )starts_and_scans[wid], wid*32u*sizeof(uint2), 4, xadd( dststart, d ) );
+        core<8, 4, 6>( nsrc, ( const uint2 * )starts_and_scans[wid], wid*32u*sizeof(uint2), 4, xadd( dststart, d ) );
 
     uint d = ndst4;
     if( xadd( d, 2u ) <= ndst ) {
-        core<16, 2, 4>( nsrc, ( const uint2 * )starts_and_scans[wid], wid*32u*sizeof(uint2), 2, xadd( dststart, d ) );
+        core<16, 2, 6>( nsrc, ( const uint2 * )starts_and_scans[wid], wid*32u*sizeof(uint2), 2, xadd( dststart, d ) );
         d = xadd( d, 2u );
     }
 
