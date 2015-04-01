@@ -18,7 +18,7 @@
 #include "../hacks.h"
 
 //#define PROF_TRIGGER
-#define USE_TEXOBJ 0
+#define USE_TEXOBJ 3
 
 struct InfoDPD {
     int3 ncells;
@@ -71,14 +71,14 @@ texture_object<float2> txoParticles2;
 texture_object<uint> txoStart, txoCount;
 #endif
 
-
-
 #define _XCPB_ 2
 #define _YCPB_ 2
 #define _ZCPB_ 1
 #define CPB (_XCPB_ * _YCPB_ * _ZCPB_)
 //#define  _TIME_PROFILE_
 //#define _INSPECT_
+
+#define LETS_MAKE_IT_MESSY
 
 template<int s>
 __device__ float viscosity_function( float x )
@@ -91,49 +91,50 @@ template<> __device__ float viscosity_function<0>( float x )
     return x;
 }
 
+// 88 FLOPS
 __device__ float3 _dpd_interaction( const uint dpid, const float3 xdest, const float3 udest, const uint spid )
 {
-    const int sentry = xscale( spid, 3.f );
+    const int sentry = xscale( spid, 3.f ); // 1 FLOP
 	#if (USE_TEXOBJ&2)
     const float2 stmp0 = tex1Dfetch<float2>( info.txoParticles2, sentry           );
     const float2 stmp1 = tex1Dfetch<float2>( info.txoParticles2, xadd( sentry, 1 ) );
     const float2 stmp2 = tex1Dfetch<float2>( info.txoParticles2, xadd( sentry, 2 ) );
 	#else
     const float2 stmp0 = tex1Dfetch( texParticles2, sentry           );
-    const float2 stmp1 = tex1Dfetch( texParticles2, xadd( sentry, 1 ) );
-    const float2 stmp2 = tex1Dfetch( texParticles2, xadd( sentry, 2 ) );
+    const float2 stmp1 = tex1Dfetch( texParticles2, xadd( sentry, 1 ) ); // 1 FLOP
+    const float2 stmp2 = tex1Dfetch( texParticles2, xadd( sentry, 2 ) ); // 1 FLOP
     #endif
 
-    const float _xr = xdest.x - stmp0.x;
-    const float _yr = xdest.y - stmp0.y;
-    const float _zr = xdest.z - stmp1.x;
+    const float _xr = xdest.x - stmp0.x; // 1 FLOP
+    const float _yr = xdest.y - stmp0.y; // 1 FLOP
+    const float _zr = xdest.z - stmp1.x; // 1 FLOP
 
-    const float rij2 = _xr * _xr + _yr * _yr + _zr * _zr;
+    const float rij2 = _xr * _xr + _yr * _yr + _zr * _zr; // 5 FLOPS
     assert( rij2 < 1.f );
 
-    const float invrij = rsqrtf( rij2 );
-    const float rij = rij2 * invrij;
-    const float wc = 1.f - rij;
-    const float wr = viscosity_function < -VISCOSITY_S_LEVEL > ( wc );
+    const float invrij = rsqrtf( rij2 ); // 1 FLOP
+    const float rij = rij2 * invrij; // 1 FLOP
+    const float wc = 1.f - rij; // 1 FLOP
+    const float wr = viscosity_function < -VISCOSITY_S_LEVEL > ( wc ); // 0 FLOP
 
-    const float xr = _xr * invrij;
-    const float yr = _yr * invrij;
-    const float zr = _zr * invrij;
+    const float xr = _xr * invrij; // 1 FLOP
+    const float yr = _yr * invrij; // 1 FLOP
+    const float zr = _zr * invrij; // 1 FLOP
 
     const float rdotv =
         xr * ( udest.x - stmp1.y ) +
         yr * ( udest.y - stmp2.x ) +
-        zr * ( udest.z - stmp2.y );
+        zr * ( udest.z - stmp2.y );  // 8 FLOPS
 
-    const float myrandnr = Logistic::mean0var1( info.seed, xmin(spid,dpid), xmax(spid,dpid) );
+    const float myrandnr = Logistic::mean0var1( info.seed, xmin(spid,dpid), xmax(spid,dpid) );  // 54+2 FLOP
 
-    const float strength = info.aij * wc - ( info.gamma * wr * rdotv + info.sigmaf * myrandnr ) * wr;
+    const float strength = info.aij * wc - ( info.gamma * wr * rdotv + info.sigmaf * myrandnr ) * wr; // 7 FLOPS
 
     return make_float3( strength * xr, strength * yr, strength * zr );
 }
 
 template<uint COLS, uint ROWS, uint NSRCMAX>
-__device__ void core( const uint nsrc, const uint * const scan, const uint * const starts,
+__device__ void core( const uint nsrc, const uint2 * const starts_and_scans,
                       const uint ndst, const uint dststart )
 {
     uint srcids[NSRCMAX];
@@ -147,16 +148,16 @@ __device__ void core( const uint nsrc, const uint * const scan, const uint * con
     const uint slot = tid / COLS;
     const uint subtid = tid % COLS;
 
-    const uint dpid = xadd( dststart, slot );
-    const int entry = xscale( dpid, 3.f );
+    const uint dpid = xadd( dststart, slot ); // 1 FLOP
+    const int entry = xscale( dpid, 3.f ); // 1 FLOP
 	#if (USE_TEXOBJ&2)
     const float2 dtmp0 = tex1Dfetch<float2>( info.txoParticles2,       entry      );
     const float2 dtmp1 = tex1Dfetch<float2>( info.txoParticles2, xadd( entry, 1 ) );
     const float2 dtmp2 = tex1Dfetch<float2>( info.txoParticles2, xadd( entry, 2 ) );
 	#else
     const float2 dtmp0 = tex1Dfetch( texParticles2,       entry      );
-    const float2 dtmp1 = tex1Dfetch( texParticles2, xadd( entry, 1 ) );
-    const float2 dtmp2 = tex1Dfetch( texParticles2, xadd( entry, 2 ) );
+    const float2 dtmp1 = tex1Dfetch( texParticles2, xadd( entry, 1 ) ); // 1 FLOP
+    const float2 dtmp2 = tex1Dfetch( texParticles2, xadd( entry, 2 ) ); // 1 FLOP
 	#endif
     const float3 xdest = make_float3( dtmp0.x, dtmp0.y, dtmp1.x );
     const float3 udest = make_float3( dtmp1.y, dtmp2.x, dtmp2.y );
@@ -166,17 +167,34 @@ __device__ void core( const uint nsrc, const uint * const scan, const uint * con
 	for(uint s = 0; s < nsrc; s = xadd( s, COLS ) )
 	{
 		const uint pid  = xadd( s, subtid );
-		const uint key9 = xadd( xsel_ge( pid, scan[ 9             ], 9u, 0u ), xsel_ge( pid, scan[ 18            ], 9u, 0u ) );
+#ifdef LETS_MAKE_IT_MESSY
+		float key9f;
+		asm( "{ .reg .pred p, q;"
+			 "   setp.ge.f32 p, %1, %3;"
+			 "   setp.ge.f32 q, %1, %4;"
+			 "   selp.f32    %0, %2, 0.0, p;"
+			 "@q add.f32     %0, %0, %2; }" : "=f"(key9f) : "f"(u2f(pid)), "f"(u2f(9u)), "f"(u2f(starts_and_scans[9].y)), "f"(u2f(starts_and_scans[18].y)) );
+		const uint key9 = f2u(key9f);
+		asm( "{ .reg .pred p, q;"
+			 "   setp.ge.f32 p, %1, %3;"
+			 "   setp.ge.f32 q, %1, %4;"
+			 "@p add.f32     %0, %0, %2;"
+			 "@q add.f32     %0, %0, %2; }" : "+f"(key9f) : "f"(u2f(pid)), "f"(u2f(3u)), "f"(u2f(starts_and_scans[xadd(key9,3u)].y)), "f"(u2f(starts_and_scans[xadd(key9,6u)].y)) );
+		const uint key = f2u(key9f);
+#else
+		const uint key9 = xadd( xsel_ge( pid, scan9                , 9u, 0u ), xsel_ge( pid, scan18               , 9u, 0u ) );
 		const uint key3 = xadd( xsel_ge( pid, scan[ xadd(key9,3u) ], 3u, 0u ), xsel_ge( pid, scan[ xadd(key9,6u) ], 3u, 0u ) );
 		const uint key  = xadd( key9, key3 );
+#endif
 
-		const uint spid = xsub( xadd( pid, starts[key] ), scan[key] );
+		const uint spid = xsub( xadd( pid, starts_and_scans[key].x ), starts_and_scans[key].y );
 
-		const int sentry = xscale( spid, 3.f );
 		#if (USE_TEXOBJ&2)
+		const int sentry = xscale( spid, 3.f );
 		const float2 stmp0 = tex1Dfetch<float2>( info.txoParticles2,       sentry      );
 		const float2 stmp1 = tex1Dfetch<float2>( info.txoParticles2, xadd( sentry, 1 ) );
 		#else
+		const int sentry = xscale( spid, 3.f );
 		const float2 stmp0 = tex1Dfetch( texParticles2,       sentry      );
 		const float2 stmp1 = tex1Dfetch( texParticles2, xadd( sentry, 1 ) );
 		#endif
@@ -184,70 +202,81 @@ __device__ void core( const uint nsrc, const uint * const scan, const uint * con
 		const float xdiff = xdest.x - stmp0.x;
 		const float ydiff = xdest.y - stmp0.y;
 		const float zdiff = xdest.z - stmp1.x;
+#ifdef LETS_MAKE_IT_MESSY
+		float srccount_f = u2f(srccount);
+		asm("{ .reg .pred p;"
+			"   setp.lt.f32 p, %1, %2;"
+			"   setp.lt.and.f32 p, %3, 1.0, p;"
+			"   setp.ne.and.f32 p, %4, %5, p;"
+			"   @p st.u32 [%6], %7;"
+			"   @p add.f32 %0, %0, %8;"
+			"   }" : "+f"(srccount_f) : "f"(u2f(pid)), "f"(u2f(nsrc)), "f"(xdiff * xdiff + ydiff * ydiff + zdiff * zdiff), "f"(u2f(dpid)), "f"(u2f(spid)),
+			"l"(srcids+srccount), "r"(spid), "f"(u2f(1u))
+			: "memory" );
+		srccount = f2u( srccount_f );
+#else
 		const float interacting = xfcmp_lt(pid, nsrc )
 				                * xfcmp_lt( xdiff * xdiff + ydiff * ydiff + zdiff * zdiff, 1.f )
 				                * xfcmp_ne( dpid, spid ) ;
-#ifdef PROF_TRIGGER
-		__prof_trigger(00);
-#endif
-
 		if (interacting) {
 			srcids[srccount] = spid;
 			srccount = xadd( srccount, 1u );
-#ifdef PROF_TRIGGER
-			__prof_trigger(01);
-#endif
 		}
+#endif
 
 		if( srccount == NSRCMAX ) {
-			srccount = xsub( srccount, 1u );
-			const float3 f = _dpd_interaction( dpid, xdest, udest, srcids[srccount] );
+			srccount = xsub( srccount, 1u ); // 1 FLOP
+			const float3 f = _dpd_interaction( dpid, xdest, udest, srcids[srccount] ); // 88 FLOPS
 
-			xforce += f.x;
-			yforce += f.y;
-			zforce += f.z;
+			xforce += f.x; // 1 FLOP
+			yforce += f.y; // 1 FLOP
+			zforce += f.z; // 1 FLOP
 		}
+
+		// 1 FLOP for s++
 	}
 
 #pragma unroll 4
     for( uint i = 0; i < srccount; i = xadd( i, 1u ) ) {
-        const float3 f = _dpd_interaction( dpid, xdest, udest, srcids[i] );
+        const float3 f = _dpd_interaction( dpid, xdest, udest, srcids[i] ); // 88 FLOPS
 
-        xforce += f.x;
-        yforce += f.y;
-        zforce += f.z;
+        xforce += f.x; // 1 FLOP
+        yforce += f.y; // 1 FLOP
+        zforce += f.z; // 1 FLOP
+
+        // 1 FLOP for i++
     }
 
     for( uint L = COLS / 2; L > 0; L >>= 1 ) {
-        xforce += __shfl_xor( xforce, L );
-        yforce += __shfl_xor( yforce, L );
-        zforce += __shfl_xor( zforce, L );
+        xforce += __shfl_xor( xforce, L ); // 1 FLOP
+        yforce += __shfl_xor( yforce, L ); // 1 FLOP
+        zforce += __shfl_xor( zforce, L ); // 1 FLOP
     }
 
-    const float fcontrib = xsel_eq( subtid, 0u, xforce, xsel_eq( subtid, 1u, yforce, zforce ) );
+    const float fcontrib = xsel_eq( subtid, 0u, xforce, xsel_eq( subtid, 1u, yforce, zforce ) ); // 2 FLOPS
 
     if( subtid < 3.f )
-        info.axayaz[ xmad( dpid, 3.f, subtid ) ] = fcontrib;
+        info.axayaz[ xmad( dpid, 3.f, subtid ) ] = fcontrib;  // 2 FLOPS
 }
 
 template<uint COLS, uint ROWS, uint NSRCMAX>
-__device__ void core_ilp( const uint nsrc, const uint * const scan, const uint * const starts,
+__device__ void core_ilp( const uint nsrc, const uint2 * const starts_and_scans,
                           const uint ndst, const uint dststart )
 {
     const uint tid    = threadIdx.x;
     const uint slot   = tid / COLS;
     const uint subtid = tid % COLS;
 
-    const uint dpid = xadd( dststart, slot );
-    const int entry = xscale( dpid, 3.f );
+    const uint dpid = xadd( dststart, slot ); // 1 FLOP
+    const int entry = xscale( dpid, 3.f ); // 1 FLOP
 	#if (USE_TEXOBJ&2)
 	const float2 dtmp0 = tex1Dfetch<float2>( info.txoParticles2,       entry      );
 	const float2 dtmp1 = tex1Dfetch<float2>( info.txoParticles2, xadd( entry, 1 ) );
 	const float2 dtmp2 = tex1Dfetch<float2>( info.txoParticles2, xadd( entry, 2 ) );
 	#else
 	const float2 dtmp0 = tex1Dfetch( texParticles2,       entry      );
-	const float2 dtmp1 = tex1Dfetch( texParticles2, xadd( entry, 1 ) );
-	const float2 dtmp2 = tex1Dfetch( texParticles2, xadd( entry, 2 ) );
+	const float2 dtmp1 = tex1Dfetch( texParticles2, xadd( entry, 1 ) ); // 1 FLOP
+	const float2 dtmp2 = tex1Dfetch( texParticles2, xadd( entry, 2 ) ); // 1 FLOP
 	#endif
     const float3 xdest = make_float3( dtmp0.x, dtmp0.y, dtmp1.x );
     const float3 udest = make_float3( dtmp1.y, dtmp2.x, dtmp2.y );
@@ -259,59 +288,354 @@ __device__ void core_ilp( const uint nsrc, const uint * const scan, const uint *
 		#pragma unroll
         for( uint i = 0; i < NSRCMAX; ++i ) {
             const uint pid  = xadd( s, xmad( i, float(COLS), subtid ) );
+#ifdef LETS_MAKE_IT_MESSY
+			float key9f;
+			asm( "{ .reg .pred p, q;"
+				 "   setp.ge.f32 p, %1, %3;"
+				 "   setp.ge.f32 q, %1, %4;"
+				 "   selp.f32    %0, %2, 0.0, p;"
+				 "@q add.f32     %0, %0, %2; }" : "=f"(key9f) : "f"(u2f(pid)), "f"(u2f(9u)), "f"(u2f(starts_and_scans[9].y)), "f"(u2f(starts_and_scans[18].y)) );
+			const uint key9 = f2u(key9f);
+			asm( "{ .reg .pred p, q;"
+				 "   setp.ge.f32 p, %1, %3;"
+				 "   setp.ge.f32 q, %1, %4;"
+				 "@p add.f32     %0, %0, %2;"
+				 "@q add.f32     %0, %0, %2; }" : "+f"(key9f) : "f"(u2f(pid)), "f"(u2f(3u)), "f"(u2f(starts_and_scans[xadd(key9,3u)].y)), "f"(u2f(starts_and_scans[xadd(key9,6u)].y)) );
+			const uint key = f2u(key9f);
+#else
     		const uint key9 = xadd( xsel_ge( pid, scan[ 9             ], 9u, 0u ), xsel_ge( pid, scan[ 18            ], 9u, 0u ) );
     		const uint key3 = xadd( xsel_ge( pid, scan[ xadd(key9,3u) ], 3u, 0u ), xsel_ge( pid, scan[ xadd(key9,6u) ], 3u, 0u ) );
     		const uint key  = xadd( key9, key3 );
-
-            spids[i] = xsub( xadd( pid, starts[key] ), scan[key] );
+#endif
+            spids[i] = xsub( xadd( pid, starts_and_scans[key].x ), starts_and_scans[key].y );
         }
 
-        bool interacting[NSRCMAX];
+        uint interacting[NSRCMAX];
 		#pragma unroll
         for( uint i = 0; i < NSRCMAX; ++i ) {
-            const int sentry = xscale( spids[i], 3.f );
+            const int sentry = xscale( spids[i], 3.f ); // 1 FLOP
 			#if (USE_TEXOBJ&2)
 			const float2 stmp0 = tex1Dfetch<float2>( info.txoParticles2,       sentry      );
 			const float2 stmp1 = tex1Dfetch<float2>( info.txoParticles2, xadd( sentry, 1 ) );
 			#else
 			const float2 stmp0 = tex1Dfetch( texParticles2,       sentry      );
-			const float2 stmp1 = tex1Dfetch( texParticles2, xadd( sentry, 1 ) );
+			const float2 stmp1 = tex1Dfetch( texParticles2, xadd( sentry, 1 ) ); // 1 FLOP
 			#endif
 
             const float xdiff = xdest.x - stmp0.x;
             const float ydiff = xdest.y - stmp0.y;
             const float zdiff = xdest.z - stmp1.x;
+#ifdef LETS_MAKE_IT_MESSY
+			uint interacting_one;
+            asm("{ .reg .pred p;"
+				"   setp.lt.f32 p, %1, %2;"
+				"   setp.lt.and.f32 p, %3, 1.0, p;"
+				"   set.ne.and.u32.f32 %0, %4, %5, p;"
+				"   }" : "=r"(interacting_one)  : "f"(u2f(xadd( s, xmad( i, float(COLS), subtid ) ))), "f"(u2f(nsrc)), "f"(xdiff * xdiff + ydiff * ydiff + zdiff * zdiff), "f"(u2f(dpid)), "f"(u2f(spids[i])) );
+            interacting[i] = interacting_one;
+#else
             interacting[i] = xfcmp_lt( xadd( s, xmad( i, float(COLS), subtid ) ), nsrc )
             		       * xfcmp_lt( xdiff * xdiff + ydiff * ydiff + zdiff * zdiff, 1.f )
             		       * xfcmp_ne( dpid, spids[i] );
+#endif
         }
 
 		#pragma unroll
         for( uint i = 0; i < NSRCMAX; ++i ) {
             if( interacting[i] ) {
-                const float3 f = _dpd_interaction( dpid, xdest, udest, spids[i] );
+                const float3 f = _dpd_interaction( dpid, xdest, udest, spids[i] ); // 88 FLOPS
 
-                xforce += f.x;
-                yforce += f.y;
-                zforce += f.z;
+                xforce += f.x; // 1 FLOP
+                yforce += f.y; // 1 FLOP
+                zforce += f.z; // 1 FLOP
             }
         }
+
+        // 1 FLOP for s += NSRCMAX * COLS;
     }
 
     for( uint L = COLS / 2; L > 0; L >>= 1 ) {
-        xforce += __shfl_xor( xforce, L );
-        yforce += __shfl_xor( yforce, L );
-        zforce += __shfl_xor( zforce, L );
+        xforce += __shfl_xor( xforce, L ); // 1 FLOP
+        yforce += __shfl_xor( yforce, L ); // 1 FLOP
+        zforce += __shfl_xor( zforce, L ); // 1 FLOP
     }
 
-    const float fcontrib = xsel_eq( subtid, 0u, xforce, xsel_eq( subtid, 1u, yforce, zforce ) );
+    const float fcontrib = xsel_eq( subtid, 0u, xforce, xsel_eq( subtid, 1u, yforce, zforce ) );  // 2 FLOPS
 
     if( subtid < 3u )
-        info.axayaz[ xmad( dpid, 3.f, subtid ) ] = fcontrib;
+        info.axayaz[ xmad( dpid, 3.f, subtid ) ] = fcontrib;  // 2 FLOPS
 }
 
 __global__ __launch_bounds__( 32 * CPB, 16 )
 void _dpd_forces_floatized()
+{
+    assert( blockDim.x == warpSize && blockDim.y == CPB && blockDim.z == 1 );
+
+    const uint tid = threadIdx.x;
+    const uint wid = threadIdx.y;
+
+    __shared__ volatile uint2 starts_and_scans[CPB][32];
+
+    uint mycount = 0, myscan = 0;
+    if( tid < 27 ) {
+        const int dx = ( tid ) % 3;
+        const int dy = ( ( tid / 3 ) ) % 3;
+        const int dz = ( ( tid / 9 ) ) % 3;
+
+        int xcid = blockIdx.x * _XCPB_ + ( ( threadIdx.y ) % _XCPB_ ) + dx - 1;
+        int ycid = blockIdx.y * _YCPB_ + ( ( threadIdx.y / _XCPB_ ) % _YCPB_ ) + dy - 1;
+        int zcid = blockIdx.z * _ZCPB_ + ( ( threadIdx.y / ( _XCPB_ * _YCPB_ ) ) % _ZCPB_ ) + dz - 1;
+
+        const bool valid_cid =
+                ( xcid >= 0 ) && ( xcid < info.ncells.x ) &&
+                ( ycid >= 0 ) && ( ycid < info.ncells.y ) &&
+                ( zcid >= 0 ) && ( zcid < info.ncells.z );
+
+        xcid = xmin( xsub( info.ncells.x, 1 ), max( 0, xcid ) ); // 2 FLOPS
+        ycid = xmin( xsub( info.ncells.y, 1 ), max( 0, ycid ) ); // 2 FLOPS
+        zcid = xmin( xsub( info.ncells.z, 1 ), max( 0, zcid ) ); // 2 FLOPS
+
+        const int cid = max( 0, ( zcid * info.ncells.y + ycid ) * info.ncells.x + xcid );
+		#if (USE_TEXOBJ&2)
+        starts_and_scans[wid][tid].x = tex1Dfetch<uint>( info.txoStart, cid );
+        myscan = mycount = valid_cid ? tex1Dfetch<uint>( info.txoCount, cid ) : 0u;
+		#else
+        starts_and_scans[wid][tid].x = tex1Dfetch( texStart, cid );
+        myscan = mycount = valid_cid ? tex1Dfetch( texCount, cid ) : 0u;
+		#endif
+    }
+
+    for( uint L = 1u; L < 32u; L <<= 1 ) {
+    	uint theirscan = i2u( __shfl_up( u2i(myscan), u2i(L) ) );
+        myscan = xadd( myscan, xsel_ge( tid, L, theirscan, 0u ) ); // 2 FLOPS
+    }
+
+    if( tid < 28 )
+    	starts_and_scans[wid][tid].y = xsub( myscan, mycount );
+
+    const uint nsrc = starts_and_scans[wid][27].y;
+    const uint dststart = starts_and_scans[wid][1 + 3 + 9].x;
+    const uint ndst = xsub( starts_and_scans[wid][1 + 3 + 9 + 1].y, starts_and_scans[wid][1 + 3 + 9].y );
+    const uint ndst4 = ( ndst >> 2 ) << 2;
+
+    for( uint d = 0; d < ndst4; d = xadd( d, 4u ) )
+        core<8, 4, 4>( nsrc, ( const uint2 * )starts_and_scans[wid], 4, xadd( dststart, d ) );
+
+    uint d = ndst4;
+    if( xadd( d, 2u ) <= ndst ) {
+        core<16, 2, 4>( nsrc, ( const uint2 * )starts_and_scans[wid], 2, xadd( dststart, d ) );
+        d = xadd( d, 2u );
+    }
+
+    if( d < ndst )
+        core_ilp<32, 1, 2>( nsrc, ( const uint2 * )starts_and_scans[wid], 1, xadd( dststart, d ) );
+}
+
+#ifdef _COUNT_FLOPS
+struct _dpd_interaction_flops_counter {
+	const static unsigned long long FLOPS = 32ULL + Logistic::mean0var1_flops_counter::FLOPS;
+};
+
+template<uint COLS, uint ROWS, uint NSRCMAX>
+__device__ void core_flops_counter( unsigned long long *FLOPS, const uint nsrc, const uint * const scan, const uint * const starts,
+                      const uint ndst, const uint dststart )
+{
+    uint srcids[NSRCMAX];
+    for( int i = 0; i < NSRCMAX; ++i )
+        srcids[i] = 0;
+
+    uint srccount = 0;
+    assert( ndst == ROWS );
+
+    const uint tid = threadIdx.x;
+    const uint slot = tid / COLS;
+    const uint subtid = tid % COLS;
+
+    const uint dpid = xadd( dststart, slot ); // 1 FLOP
+    const int entry = xscale( dpid, 3.f ); // 1 FLOP
+	#if (USE_TEXOBJ&2)
+    const float2 dtmp0 = tex1Dfetch<float2>( info.txoParticles2,       entry      );
+    const float2 dtmp1 = tex1Dfetch<float2>( info.txoParticles2, xadd( entry, 1 ) );
+    const float2 dtmp2 = tex1Dfetch<float2>( info.txoParticles2, xadd( entry, 2 ) );
+	#else
+    const float2 dtmp0 = tex1Dfetch( texParticles2,       entry      );
+    const float2 dtmp1 = tex1Dfetch( texParticles2, xadd( entry, 1 ) ); // 1 FLOP
+    const float2 dtmp2 = tex1Dfetch( texParticles2, xadd( entry, 2 ) ); // 1 FLOP
+	#endif
+    const float3 xdest = make_float3( dtmp0.x, dtmp0.y, dtmp1.x );
+    const float3 udest = make_float3( dtmp1.y, dtmp2.x, dtmp2.y );
+
+    atomicAdd( FLOPS, 4ULL );
+
+    float xforce = 0, yforce = 0, zforce = 0;
+
+	for(uint s = 0; s < nsrc; s = xadd( s, COLS ) )
+	{
+		const uint pid  = xadd( s, subtid );  // 1 FLOP
+		const uint key9 = xadd( xsel_ge( pid, scan[ 9             ], 9u, 0u ), xsel_ge( pid, scan[ 18            ], 9u, 0u ) ); // 3 FLOPS
+		const uint key3 = xadd( xsel_ge( pid, scan[ xadd(key9,3u) ], 3u, 0u ), xsel_ge( pid, scan[ xadd(key9,6u) ], 3u, 0u ) ); // 3 FLOPS
+		const uint key  = xadd( key9, key3 ); // 1 FLOP
+
+		const uint spid = xsub( xadd( pid, starts[key] ), scan[key] ); // 2 FLOPS
+
+		const int sentry = xscale( spid, 3.f ); // 1 FLOP
+		#if (USE_TEXOBJ&2)
+		const float2 stmp0 = tex1Dfetch<float2>( info.txoParticles2,       sentry      );
+		const float2 stmp1 = tex1Dfetch<float2>( info.txoParticles2, xadd( sentry, 1 ) );
+		#else
+		const float2 stmp0 = tex1Dfetch( texParticles2,       sentry      );
+		const float2 stmp1 = tex1Dfetch( texParticles2, xadd( sentry, 1 ) ); // 1 FLOP
+		#endif
+
+		const float xdiff = xdest.x - stmp0.x; // 1 FLOP
+		const float ydiff = xdest.y - stmp0.y; // 1 FLOP
+		const float zdiff = xdest.z - stmp1.x; // 1 FLOP
+		const float interacting = xfcmp_lt(pid, nsrc )
+				                * xfcmp_lt( xdiff * xdiff + ydiff * ydiff + zdiff * zdiff, 1.f )
+				                * xfcmp_ne( dpid, spid ) ; // 10 FLOPS
+
+		atomicAdd( FLOPS, 25ULL );
+
+		if (interacting) {
+			srcids[srccount] = spid;
+			srccount = xadd( srccount, 1u ); // 1 FLOP
+			atomicAdd( FLOPS, 1ULL );
+		}
+
+		if( srccount == NSRCMAX ) {
+			srccount = xsub( srccount, 1u ); // 1 FLOP
+			//const float3 f = _dpd_interaction( dpid, xdest, udest, srcids[srccount] ); // 88 FLOPS
+			//xforce += f.x; // 1 FLOP
+			//yforce += f.y; // 1 FLOP
+			//zforce += f.z; // 1 FLOP
+			atomicAdd( FLOPS, _dpd_interaction_flops_counter::FLOPS + 4ULL );
+		}
+
+		// 1 FLOP for s++
+		atomicAdd( FLOPS, 1ULL );
+	}
+
+#pragma unroll 4
+    for( uint i = 0; i < srccount; i = xadd( i, 1u ) ) {
+        // const float3 f = _dpd_interaction( dpid, xdest, udest, srcids[i] ); // 88 FLOPS
+
+        // xforce += f.x; // 1 FLOP
+        // yforce += f.y; // 1 FLOP
+        // zforce += f.z; // 1 FLOP
+
+        // 1 FLOP for i++
+        atomicAdd( FLOPS, _dpd_interaction_flops_counter::FLOPS + 4ULL );
+    }
+
+    for( uint L = COLS / 2; L > 0; L >>= 1 ) {
+        // xforce += __shfl_xor( xforce, L ); // 1 FLOP
+        // yforce += __shfl_xor( yforce, L ); // 1 FLOP
+        // zforce += __shfl_xor( zforce, L ); // 1 FLOP
+        atomicAdd( FLOPS, 3ULL );
+    }
+
+    // const float fcontrib = xsel_eq( subtid, 0u, xforce, xsel_eq( subtid, 1u, yforce, zforce ) ); // 2 FLOPS
+    atomicAdd( FLOPS, 2ULL );
+
+    if( subtid < 3.f ) {
+        // info.axayaz[ xmad( dpid, 3.f, subtid ) ] = fcontrib;  // 2 FLOPS
+        atomicAdd( FLOPS, 2ULL );
+    }
+}
+
+template<uint COLS, uint ROWS, uint NSRCMAX>
+__device__ void core_ilp_flops_counter( unsigned long long *FLOPS, const uint nsrc, const uint * const scan, const uint * const starts,
+                          const uint ndst, const uint dststart )
+{
+    const uint tid    = threadIdx.x;
+    const uint slot   = tid / COLS;
+    const uint subtid = tid % COLS;
+
+    const uint dpid = xadd( dststart, slot ); // 1 FLOP
+    const int entry = xscale( dpid, 3.f ); // 1 FLOP
+	#if (USE_TEXOBJ&2)
+	const float2 dtmp0 = tex1Dfetch<float2>( info.txoParticles2,       entry      );
+	const float2 dtmp1 = tex1Dfetch<float2>( info.txoParticles2, xadd( entry, 1 ) );
+	const float2 dtmp2 = tex1Dfetch<float2>( info.txoParticles2, xadd( entry, 2 ) );
+	#else
+	const float2 dtmp0 = tex1Dfetch( texParticles2,       entry      );
+	const float2 dtmp1 = tex1Dfetch( texParticles2, xadd( entry, 1 ) ); // 1 FLOP
+	const float2 dtmp2 = tex1Dfetch( texParticles2, xadd( entry, 2 ) ); // 1 FLOP
+	#endif
+    const float3 xdest = make_float3( dtmp0.x, dtmp0.y, dtmp1.x );
+    const float3 udest = make_float3( dtmp1.y, dtmp2.x, dtmp2.y );
+
+    atomicAdd( FLOPS, 4ULL );
+
+    float xforce = 0, yforce = 0, zforce = 0;
+
+    for( uint s = 0; s < nsrc; s = xadd( s, NSRCMAX * COLS ) ) {
+        uint spids[NSRCMAX];
+		#pragma unroll
+        for( uint i = 0; i < NSRCMAX; ++i ) {
+            const uint pid  = xadd( s, xmad( i, float(COLS), subtid ) ); // 3 FLOPS
+    		const uint key9 = xadd( xsel_ge( pid, scan[ 9             ], 9u, 0u ), xsel_ge( pid, scan[ 18            ], 9u, 0u ) ); // 3 FLOPS
+    		const uint key3 = xadd( xsel_ge( pid, scan[ xadd(key9,3u) ], 3u, 0u ), xsel_ge( pid, scan[ xadd(key9,6u) ], 3u, 0u ) ); // 3 FLOPS
+    		const uint key  = xadd( key9, key3 );
+
+            spids[i] = xsub( xadd( pid, starts[key] ), scan[key] ); // 2 FLOPS
+            atomicAdd( FLOPS, 11ULL );
+        }
+
+        bool interacting[NSRCMAX];
+		#pragma unroll
+        for( uint i = 0; i < NSRCMAX; ++i ) {
+            const int sentry = xscale( spids[i], 3.f ); // 1 FLOP
+			#if (USE_TEXOBJ&2)
+			const float2 stmp0 = tex1Dfetch<float2>( info.txoParticles2,       sentry      );
+			const float2 stmp1 = tex1Dfetch<float2>( info.txoParticles2, xadd( sentry, 1 ) );
+			#else
+			const float2 stmp0 = tex1Dfetch( texParticles2,       sentry      );
+			const float2 stmp1 = tex1Dfetch( texParticles2, xadd( sentry, 1 ) ); // 1 FLOP
+			#endif
+
+            const float xdiff = xdest.x - stmp0.x; // 1 FLOP
+            const float ydiff = xdest.y - stmp0.y; // 1 FLOP
+            const float zdiff = xdest.z - stmp1.x; // 1 FLOP
+            interacting[i] = xfcmp_lt( xadd( s, xmad( i, float(COLS), subtid ) ), nsrc )
+            		       * xfcmp_lt( xdiff * xdiff + ydiff * ydiff + zdiff * zdiff, 1.f )
+            		       * xfcmp_ne( dpid, spids[i] ); // 13 FLOPS
+            atomicAdd( FLOPS, 18ULL );
+        }
+
+		#pragma unroll
+        for( uint i = 0; i < NSRCMAX; ++i ) {
+            if( interacting[i] ) {
+                //const float3 f = _dpd_interaction( dpid, xdest, udest, spids[i] ); // 88 FLOPS
+
+                //xforce += f.x; // 1 FLOP
+                //yforce += f.y; // 1 FLOP
+                //zforce += f.z; // 1 FLOP
+            	atomicAdd( FLOPS, _dpd_interaction_flops_counter::FLOPS + 3ULL );
+            }
+        }
+
+        // 1 FLOP for s += NSRCMAX * COLS;
+    }
+
+    for( uint L = COLS / 2; L > 0; L >>= 1 ) {
+        //xforce += __shfl_xor( xforce, L ); // 1 FLOP
+        //yforce += __shfl_xor( yforce, L ); // 1 FLOP
+        //zforce += __shfl_xor( zforce, L ); // 1 FLOP
+    	atomicAdd( FLOPS, 3ULL );
+    }
+
+    //const float fcontrib = xsel_eq( subtid, 0u, xforce, xsel_eq( subtid, 1u, yforce, zforce ) );  // 2 FLOPS
+    atomicAdd( FLOPS, 2ULL );
+
+    if( subtid < 3u ) {
+        //info.axayaz[ xmad( dpid, 3.f, subtid ) ] = fcontrib;  // 2 FLOPS
+    	atomicAdd( FLOPS, 2ULL );
+    }
+}
+
+__global__ __launch_bounds__( 32 * CPB, 16 )
+void _dpd_forces_floatized_flops_counter(unsigned long long *FLOPS)
 {
     assert( blockDim.x == warpSize && blockDim.y == CPB && blockDim.z == 1 );
 
@@ -335,9 +659,10 @@ void _dpd_forces_floatized()
                 ( ycid >= 0 ) && ( ycid < info.ncells.y ) &&
                 ( zcid >= 0 ) && ( zcid < info.ncells.z );
 
-        xcid = xmin( xsub( info.ncells.x, 1 ), max( 0, xcid ) );
-        ycid = xmin( xsub( info.ncells.y, 1 ), max( 0, ycid ) );
-        zcid = xmin( xsub( info.ncells.z, 1 ), max( 0, zcid ) );
+        xcid = xmin( xsub( info.ncells.x, 1 ), max( 0, xcid ) ); // 2 FLOPS
+        ycid = xmin( xsub( info.ncells.y, 1 ), max( 0, ycid ) ); // 2 FLOPS
+        zcid = xmin( xsub( info.ncells.z, 1 ), max( 0, zcid ) ); // 2 FLOPS
+        atomicAdd( FLOPS, 6ULL );
 
         const int cid = max( 0, ( zcid * info.ncells.y + ycid ) * info.ncells.x + xcid );
 		#if (USE_TEXOBJ&2)
@@ -350,124 +675,46 @@ void _dpd_forces_floatized()
     }
 
     for( uint L = 1u; L < 32u; L <<= 1 ) {
-    	uint theirscan = __shfl_up( int(myscan), int(L) );
-        myscan = xadd( myscan, xsel_ge( tid, L, theirscan, 0u ) );
+    	uint theirscan = i2u( __shfl_up( u2i(myscan), u2i(L) ) );
+        myscan = xadd( myscan, xsel_ge( tid, L, theirscan, 0u ) ); // 2 FLOPS
+        atomicAdd( FLOPS, 2ULL );
     }
 
-    if( tid < 28 )
-        scan[wid][tid] = xsub( myscan, mycount );
+    if( tid < 28 ) {
+        scan[wid][tid] = xsub( myscan, mycount ); // 1 FLOP
+        atomicAdd( FLOPS, 2ULL );
+    }
 
     const uint nsrc = scan[wid][27];
     const uint dststart = starts[wid][1 + 3 + 9];
-    const uint ndst = xsub( scan[wid][1 + 3 + 9 + 1], scan[wid][1 + 3 + 9] );
+    const uint ndst = xsub( scan[wid][1 + 3 + 9 + 1], scan[wid][1 + 3 + 9] ); // 1 FLOP
+    atomicAdd( FLOPS, 1ULL );
     const uint ndst4 = ( ndst >> 2 ) << 2;
 
-    for( uint d = 0; d < ndst4; d = xadd( d, 4u ) )
-        core<8, 4, 4>( nsrc, ( const uint * )scan[wid], ( const uint * )starts[wid], 4, xadd( dststart, d ) );
+    for( uint d = 0; d < ndst4; d = xadd( d, 4u ) ) { // 1 FLOP
+        core_flops_counter<8, 4, 4>( FLOPS, nsrc, ( const uint * )scan[wid], ( const uint * )starts[wid], 4, xadd( dststart, d ) ); // 1 FLOP
+    	atomicAdd( FLOPS, 2ULL );
+	}
 
     uint d = ndst4;
-    if( xadd( d, 2u ) <= ndst ) {
-        core<16, 2, 4>( nsrc, ( const uint * )scan[wid], ( const uint * )starts[wid], 2, xadd( dststart, d ) );
-        d = xadd( d, 2u );
+    if( xadd( d, 2u ) <= ndst ) { // 1 FLOP
+        core_flops_counter<16, 2, 4>( FLOPS, nsrc, ( const uint * )scan[wid], ( const uint * )starts[wid], 2, xadd( dststart, d ) ); // 1 FLOP
+        d = xadd( d, 2u ); // 1 FLOP
+        atomicAdd( FLOPS, 3ULL );
     }
 
-    if( d < ndst )
-        core_ilp<32, 1, 2>( nsrc, ( const uint * )scan[wid], ( const uint * )starts[wid], 1, xadd( dststart, d ) );
+    if( d < ndst ) {
+        core_ilp_flops_counter<32, 1, 2>( FLOPS, nsrc, ( const uint * )scan[wid], ( const uint * )starts[wid], 1, xadd( dststart, d ) ); // 1 FLOP
+        atomicAdd( FLOPS, 1ULL );
+    }
 }
 
-#ifdef _INSPECT_
-__global__ __launch_bounds__( 32 * CPB, 8 )
-void inspect_dpd_forces( const int COLS, const int ROWS, const int nparticles, int2 * const entries, const int nentries )
-{
-    assert( nentries == COLS * nparticles );
-    assert( warpSize == COLS * ROWS );
-    assert( blockDim.x == warpSize && blockDim.y == CPB && blockDim.z == 1 );
-    assert( ROWS * 3 <= warpSize );
+__global__ void reset_flops( unsigned long long *FLOPS ) {
+	*FLOPS = 0ULL;
+}
 
-    const int tid = threadIdx.x;
-    const int subtid = tid % COLS;
-    const int slot = tid / COLS;
-    const int wid = threadIdx.y;
-
-    __shared__ int volatile starts[CPB][32], scan[CPB][32];
-
-    int mycount = 0, myscan = 0;
-    if( tid < 27 ) {
-        const int dx = ( tid ) % 3;
-        const int dy = ( ( tid / 3 ) ) % 3;
-        const int dz = ( ( tid / 9 ) ) % 3;
-
-        int xcid = blockIdx.x * _XCPB_ + ( ( threadIdx.y ) % _XCPB_ ) + dx - 1;
-        int ycid = blockIdx.y * _YCPB_ + ( ( threadIdx.y / _XCPB_ ) % _YCPB_ ) + dy - 1;
-        int zcid = blockIdx.z * _ZCPB_ + ( ( threadIdx.y / ( _XCPB_ * _YCPB_ ) ) % _ZCPB_ ) + dz - 1;
-
-        const bool valid_cid =
-            xcid >= 0 && xcid < info.ncells.x &&
-            ycid >= 0 && ycid < info.ncells.y &&
-            zcid >= 0 && zcid < info.ncells.z ;
-
-        xcid = min( info.ncells.x - 1, max( 0, xcid ) );
-        ycid = min( info.ncells.y - 1, max( 0, ycid ) );
-        zcid = min( info.ncells.z - 1, max( 0, zcid ) );
-
-        const int cid = max( 0, xcid + info.ncells.x * ( ycid + info.ncells.y * zcid ) );
-
-        starts[wid][tid] = tex1Dfetch( texStart, cid );
-
-        myscan = mycount = valid_cid * tex1Dfetch( texCount, cid );
-    }
-
-    for( int L = 1; L < 32; L <<= 1 )
-        myscan += ( tid >= L ) * __shfl_up( myscan, L ) ;
-
-    if( tid < 28 )
-        scan[wid][tid] = myscan - mycount;
-
-    const int dststart = starts[wid][1 + 3 + 9];
-    const int nsrc = scan[wid][27], ndst = scan[wid][1 + 3 + 9 + 1] - scan[wid][1 + 3 + 9];
-
-    for( int d = 0; d < ndst; d += ROWS ) {
-        //int srccount = 0;
-
-        const int np1 = min( ndst - d, ROWS );
-
-        const int dpid = dststart + d + slot;
-        const int entry = 3 * dpid;
-
-        const float2 dtmp0 = tex1Dfetch( texParticles2, entry );
-        const float2 dtmp1 = tex1Dfetch( texParticles2, entry + 1 );
-        const float2 dtmp2 = tex1Dfetch( texParticles2, entry + 2 );
-        const float3 xdest = make_float3( dtmp0.x, dtmp0.y, dtmp1.x );
-        const float3 udest = make_float3( dtmp1.y, dtmp2.x, dtmp2.y );
-
-        int ninteractions = 0, npotentialinteractions = 0;
-
-        for( int s = 0; s < nsrc; s += COLS ) {
-            const int np2 = min( nsrc - s, COLS );
-
-            const int pid = s + subtid;
-            const int key9 = 9 * ( ( pid >= scan[wid][9] ) + ( pid >= scan[wid][18] ) );
-            const int key3 = 3 * ( ( pid >= scan[wid][key9 + 3] ) + ( pid >= scan[wid][key9 + 6] ) );
-            const int key = key9 + key3;
-
-            const int spid = pid - scan[wid][key] + starts[wid][key];
-            const int sentry = 3 * spid;
-            const float2 stmp0 = tex1Dfetch( texParticles2, sentry );
-            const float2 stmp1 = tex1Dfetch( texParticles2, sentry + 1 );
-
-            const float xdiff = xdest.x - stmp0.x;
-            const float ydiff = xdest.y - stmp0.y;
-            const float zdiff = xdest.z - stmp1.x;
-            const bool interacting = ( dpid != spid ) && ( slot < np1 ) && ( subtid < np2 ) &&
-                                     ( xdiff * xdiff + ydiff * ydiff + zdiff * zdiff < 1 );
-
-            ninteractions += ( int )( interacting );
-            npotentialinteractions += 1;
-        }
-
-        if( slot < np1 )
-            entries[subtid + COLS * dpid] = make_int2( ninteractions, npotentialinteractions );
-    }
+__global__ void print_flops( unsigned long long *FLOPS ) {
+	printf("FLOPS count: %llu\n", *FLOPS);
 }
 #endif
 
@@ -561,54 +808,6 @@ void forces_dpd_cuda_nohost( const float * const xyzuvw, float * const axayaz,  
     static int cetriolo = 0;
     cetriolo++;
 
-#ifdef _INSPECT_
-    {
-        //inspect irregularity of the computation,
-        //report data to file
-        if( cetriolo % 1000 == 0 ) {
-            enum { COLS = 16, ROWS = 2 };
-
-            const size_t nentries = np * COLS;
-
-            int2 * data;
-            CUDA_CHECK( cudaHostAlloc( &data, sizeof( int2 ) * nentries, cudaHostAllocMapped ) );
-            memset( data, 0xff, sizeof( int2 ) * nentries );
-
-            int * devptr;
-            CUDA_CHECK( cudaHostGetDevicePointer( &devptr, data, 0 ) );
-
-            inspect_dpd_forces <<< dim3( c.ncells.x / _XCPB_, c.ncells.y / _YCPB_, c.ncells.z / _ZCPB_ ), dim3( 32, CPB ), 0, stream >>>
-            ( COLS, ROWS, np, data, nentries );
-
-            CUDA_CHECK( cudaDeviceSynchronize() );
-
-            char path2report[2000];
-            sprintf( path2report, "inspection-%d-tstep.txt", cetriolo );
-
-            FILE * f = fopen( path2report, "w" );
-            assert( f );
-
-            for( int i = 0, c = 0; i < np; ++i ) {
-                fprintf( f, "pid %05d: ", i );
-
-                int s = 0, pot = 0;
-                for( int j = 0; j < COLS; ++j, ++c ) {
-                    fprintf( f, "%02d ", data[c].x );
-                    s += data[c].x;
-                    pot += data[c].y;
-                }
-
-                fprintf( f, " sum: %02d pot: %d\n", s, ( pot + COLS - 1 ) / ( COLS ) );
-            }
-
-            fclose( f );
-
-            CUDA_CHECK( cudaFreeHost( data ) );
-            printf( "inspection saved to %s.\n", path2report );
-        }
-    }
-#endif
-
 #ifdef _TIME_PROFILE_
     if( cetriolo % 500 == 0 )
         CUDA_CHECK( cudaEventRecord( evstart ) );
@@ -616,6 +815,63 @@ void forces_dpd_cuda_nohost( const float * const xyzuvw, float * const axayaz,  
     _dpd_forces_floatized <<< dim3( c.ncells.x / _XCPB_,
                           c.ncells.y / _YCPB_,
                           c.ncells.z / _ZCPB_ ), dim3( 32, CPB ), 0, stream >>> ();
+
+#ifdef _COUNT_FLOPS
+    {
+    	static unsigned long long *FLOPS;
+    	if (!FLOPS) cudaMalloc( &FLOPS, 128 * sizeof(unsigned long long) );
+    	reset_flops<<<1,1,0,stream>>>(FLOPS);
+    	_dpd_forces_floatized_flops_counter <<< dim3( c.ncells.x / _XCPB_,
+    	                          c.ncells.y / _YCPB_,
+    	                          c.ncells.z / _ZCPB_ ), dim3( 32, CPB ), 0, stream >>> ( FLOPS );
+    	print_flops<<<1,1,0,stream>>>(FLOPS);
+
+    	//count FLOPS
+        //report data to scree
+
+//        if( cetriolo % 1000 == 0 ) {
+//            enum { COLS = 16, ROWS = 2 };
+//
+//            const size_t nentries = np * COLS;
+//
+//            int2 * data;
+//            CUDA_CHECK( cudaHostAlloc( &data, sizeof( int2 ) * nentries, cudaHostAllocMapped ) );
+//            memset( data, 0xff, sizeof( int2 ) * nentries );
+//
+//            int * devptr;
+//            CUDA_CHECK( cudaHostGetDevicePointer( &devptr, data, 0 ) );
+//
+//            inspect_dpd_forces <<< dim3( c.ncells.x / _XCPB_, c.ncells.y / _YCPB_, c.ncells.z / _ZCPB_ ), dim3( 32, CPB ), 0, stream >>>
+//            ( COLS, ROWS, np, data, nentries );
+//
+//            CUDA_CHECK( cudaDeviceSynchronize() );
+//
+//            char path2report[2000];
+//            sprintf( path2report, "inspection-%d-tstep.txt", cetriolo );
+//
+//            FILE * f = fopen( path2report, "w" );
+//            assert( f );
+//
+//            for( int i = 0, c = 0; i < np; ++i ) {
+//                fprintf( f, "pid %05d: ", i );
+//
+//                int s = 0, pot = 0;
+//                for( int j = 0; j < COLS; ++j, ++c ) {
+//                    fprintf( f, "%02d ", data[c].x );
+//                    s += data[c].x;
+//                    pot += data[c].y;
+//                }
+//
+//                fprintf( f, " sum: %02d pot: %d\n", s, ( pot + COLS - 1 ) / ( COLS ) );
+//            }
+//
+//            fclose( f );
+//
+//            CUDA_CHECK( cudaFreeHost( data ) );
+//            printf( "inspection saved to %s.\n", path2report );
+//        }
+    }
+#endif
 
 #ifdef _TIME_PROFILE_
     if( cetriolo % 500 == 0 ) {
