@@ -137,11 +137,13 @@ template<uint COLS, uint ROWS, uint NSRCMAX>
 __device__ void core( const uint nsrc, const uint2 * const starts_and_scans, const uint p_starts_and_scans,
                       const uint ndst, const uint dststart )
 {
-    uint srcids[NSRCMAX];
+	uint srcids[NSRCMAX];
     for( int i = 0; i < NSRCMAX; ++i )
         srcids[i] = 0;
 
-    uint srccount = 0;
+    uint p_srcids = uint(srcids) & 0xFFFFFFU;
+
+	uint srccount = 0;
     assert( ndst == ROWS );
 
     const uint tid = threadIdx.x;
@@ -221,6 +223,7 @@ __device__ void core( const uint nsrc, const uint2 * const starts_and_scans, con
 		const float ydiff = xdest.y - stmp0.y;
 		const float zdiff = xdest.z - stmp1.x;
 #ifdef LETS_MAKE_IT_MESSY
+#if 1
 		float srccount_f = u2f(srccount);
 		asm("{ .reg .pred p;"
 			"   setp.lt.f32 p, %1, %2;"
@@ -232,6 +235,24 @@ __device__ void core( const uint nsrc, const uint2 * const starts_and_scans, con
 			"l"(srcids+srccount), "r"(spid), "f"(u2f(1u))
 			: "memory" );
 		srccount = f2u( srccount_f );
+#else
+		float srccount_f = u2f(srccount);
+		asm("{ .reg .pred p;"
+			"  .reg .f32 psrc_f;"
+			"  .reg .u32 psrc;"
+			"   setp.lt.f32 p, %1, %2;"
+			"   setp.lt.and.f32 p, %3, 1.0, p;"
+			"   setp.ne.and.f32 p, %4, %5, p;"
+			"   mov.b32 psrc_f, %6;"
+			"   fma.f32.rm psrc_f, %0, 4.0, psrc_f;"
+			"   mov.b32 psrc, psrc_f;"
+			"   @p st.local.u32 [psrc], %7;"
+			"   @p add.f32 %0, %0, %8;"
+			"   }" : "+f"(srccount_f) : "f"(u2f(pid)), "f"(u2f(nsrc)), "f"(xdiff * xdiff + ydiff * ydiff + zdiff * zdiff), "f"(u2f(dpid)), "f"(u2f(spid)),
+			"r"(p_srcids), "r"(spid), "f"(u2f(1u))
+			: "memory" );
+		srccount = f2u( srccount_f );
+#endif
 #else
 		const float interacting = xfcmp_lt(pid, nsrc )
 				                * xfcmp_lt( xdiff * xdiff + ydiff * ydiff + zdiff * zdiff, 1.f )
