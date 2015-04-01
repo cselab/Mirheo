@@ -134,7 +134,7 @@ __device__ float3 _dpd_interaction( const uint dpid, const float3 xdest, const f
 }
 
 template<uint COLS, uint ROWS, uint NSRCMAX>
-__device__ void core( const uint nsrc, const uint2 * const starts_and_scans,
+__device__ void core( const uint nsrc, const uint2 * const starts_and_scans, const uint p_starts_and_scans,
                       const uint ndst, const uint dststart )
 {
     uint srcids[NSRCMAX];
@@ -202,29 +202,30 @@ __device__ void core( const uint nsrc, const uint2 * const starts_and_scans,
 //			 "@q add.f32     %0, %0, %2; }" : "+f"(key9f) : "f"(u2f(pid)), "f"(u2f(3u)), "l"(starts_and_scans+key9) );
 //		const uint key = f2u(key9f);
 
-		float key9f;
+		uint key;
 		asm( "{ .reg .pred p, q;"
-			 "  .reg .f32  scan9, scan18;"
-			 "  .reg .s64  array, offset;"
-			 "   mov.b64 array, %4;"
+			 "  .reg .f32  key;"
+			 "  .reg .f32  scan3, scan6, scan9, scan18;"
+			 "  .reg .s32  array;"
+			 "  .reg .f32  array_f;"
+			 "   mov.b32 array, %4;"
 			 "   ld.shared.f32 scan9,  [array +  9*8 + 4];"
 			 "   ld.shared.f32 scan18, [array + 18*8 + 4];"
 			 "   setp.ge.f32 p, %1, scan9;"
 			 "   setp.ge.f32 q, %1, scan18;"
-			 "   selp.f32    %0, %2, 0.0, p;"
-			 "@q add.f32     %0, %0, %2;"
-			 "  .reg .u32  key9;"
-			 "   mov.b32 key9, %0;"
-			 "   mul.wide.u32 offset, key9, 8;"
-			 "   add.s64 array, array, offset;"
-			 "  .reg .f32  scan3, scan6;"
+			 "   selp.f32    key, %2, 0.0, p;"
+			 "@q add.f32     key, key, %2;"
+			 "   mov.b32 array_f, array;"
+			 "   fma.f32.rm array_f, key, 8.0, array_f;"
+			 "   mov.b32 array, array_f;"
 			 "   ld.shared.f32 scan3, [array + 3*8 + 4];"
 			 "   ld.shared.f32 scan6, [array + 6*8 + 4];"
 			 "   setp.ge.f32 p, %1, scan3;"
 			 "   setp.ge.f32 q, %1, scan6;"
-			 "@p add.f32     %0, %0, %3;"
-			 "@q add.f32     %0, %0, %3; }" : "=f"(key9f) : "f"(u2f(pid)), "f"(u2f(9u)), "f"(u2f(3u)), "l"((long long)threadIdx.y*32*8) );
-		const uint key = f2u(key9f);
+			 "@p add.f32     key, key, %3;"
+			 "@q add.f32     key, key, %3;"
+	         "   mov.b32     %0, key;"
+	         "}" : "=r"(key) : "f"(u2f(pid)), "f"(u2f(9u)), "f"(u2f(3u)), "r"(p_starts_and_scans) );
 #else
 		const uint key9 = xadd( xsel_ge( pid, scan9                , 9u, 0u ), xsel_ge( pid, scan18               , 9u, 0u ) );
 		const uint key3 = xadd( xsel_ge( pid, scan[ xadd(key9,3u) ], 3u, 0u ), xsel_ge( pid, scan[ xadd(key9,6u) ], 3u, 0u ) );
@@ -464,11 +465,11 @@ void _dpd_forces_floatized()
     const uint ndst4 = ( ndst >> 2 ) << 2;
 
     for( uint d = 0; d < ndst4; d = xadd( d, 4u ) )
-        core<8, 4, 4>( nsrc, ( const uint2 * )starts_and_scans[wid], 4, xadd( dststart, d ) );
+        core<8, 4, 4>( nsrc, ( const uint2 * )starts_and_scans[wid], wid*32u*sizeof(uint2), 4, xadd( dststart, d ) );
 
     uint d = ndst4;
     if( xadd( d, 2u ) <= ndst ) {
-        core<16, 2, 4>( nsrc, ( const uint2 * )starts_and_scans[wid], 2, xadd( dststart, d ) );
+        core<16, 2, 4>( nsrc, ( const uint2 * )starts_and_scans[wid], wid*32u*sizeof(uint2), 2, xadd( dststart, d ) );
         d = xadd( d, 2u );
     }
 
