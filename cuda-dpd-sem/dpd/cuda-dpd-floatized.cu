@@ -168,71 +168,44 @@ __device__ void core( const uint nsrc, const uint2 * const starts_and_scans, con
 	{
 		const uint pid  = xadd( s, subtid );
 #ifdef LETS_MAKE_IT_MESSY
-//		float key9f;
-//		asm( "{ .reg .pred p, q;"
-//			 "   setp.ge.f32 p, %1, %3;"
-//			 "   setp.ge.f32 q, %1, %4;"
-//			 "   selp.f32    %0, %2, 0.0, p;"
-//			 "@q add.f32     %0, %0, %2; }" : "=f"(key9f) : "f"(u2f(pid)), "f"(u2f(9u)), "f"(u2f(starts_and_scans[9].y)), "f"(u2f(starts_and_scans[18].y)) );
-//		const uint key9 = f2u(key9f);
-//		asm( "{ .reg .pred p, q;"
-//			 "   setp.ge.f32 p, %1, %3;"
-//			 "   setp.ge.f32 q, %1, %4;"
-//			 "@p add.f32     %0, %0, %2;"
-//			 "@q add.f32     %0, %0, %2; }" : "+f"(key9f) : "f"(u2f(pid)), "f"(u2f(3u)), "f"(u2f(starts_and_scans[xadd(key9,3u)].y)), "f"(u2f(starts_and_scans[xadd(key9,6u)].y)) );
-//		const uint key = f2u(key9f);
-
-//		float key9f;
-//		asm( "{ .reg .pred p, q;"
-//			 "  .reg .f32  scan9, scan18;"
-//			 "   ld.f32 scan9,  [%3 +  9*8 + 4];"
-//			 "   ld.f32 scan18, [%3 + 18*8 + 4];"
-//			 "   setp.ge.f32 p, %1, scan9;"
-//			 "   setp.ge.f32 q, %1, scan18;"
-//			 "   selp.f32    %0, %2, 0.0, p;"
-//			 "@q add.f32     %0, %0, %2; }" : "=f"(key9f) : "f"(u2f(pid)), "f"(u2f(9u)), "l"(starts_and_scans) );
-//		const uint key9 = f2u(key9f);
-//		asm( "{ .reg .pred p, q;"
-//			 "  .reg .f32  scan3, scan6;"
-//			 "   ld.f32 scan3, [%3 + 3*8 + 4];"
-//			 "   ld.f32 scan6, [%3 + 6*8 + 4];"
-//			 "   setp.ge.f32 p, %1, scan3;"
-//			 "   setp.ge.f32 q, %1, scan6;"
-//			 "@p add.f32     %0, %0, %2;"
-//			 "@q add.f32     %0, %0, %2; }" : "+f"(key9f) : "f"(u2f(pid)), "f"(u2f(3u)), "l"(starts_and_scans+key9) );
-//		const uint key = f2u(key9f);
-
-		uint key;
+		uint spid;
 		asm( "{ .reg .pred p, q;"
 			 "  .reg .f32  key;"
 			 "  .reg .f32  scan3, scan6, scan9, scan18;"
+			 "  .reg .f32  mystart, myscan;"
 			 "  .reg .s32  array;"
 			 "  .reg .f32  array_f;"
-			 "   mov.b32 array, %4;"
-			 "   ld.shared.f32 scan9,  [array +  9*8 + 4];"
-			 "   ld.shared.f32 scan18, [array + 18*8 + 4];"
-			 "   setp.ge.f32 p, %1, scan9;"
-			 "   setp.ge.f32 q, %1, scan18;"
-			 "   selp.f32    key, %2, 0.0, p;"
-			 "@q add.f32     key, key, %2;"
-			 "   mov.b32 array_f, array;"
-			 "   fma.f32.rm array_f, key, 8.0, array_f;"
-			 "   mov.b32 array, array_f;"
-			 "   ld.shared.f32 scan3, [array + 3*8 + 4];"
-			 "   ld.shared.f32 scan6, [array + 6*8 + 4];"
-			 "   setp.ge.f32 p, %1, scan3;"
-			 "   setp.ge.f32 q, %1, scan6;"
-			 "@p add.f32     key, key, %3;"
-			 "@q add.f32     key, key, %3;"
-	         "   mov.b32     %0, key;"
-	         "}" : "=r"(key) : "f"(u2f(pid)), "f"(u2f(9u)), "f"(u2f(3u)), "r"(p_starts_and_scans) );
+			 "   mov.b32           array, %4;"
+			 "   ld.shared.f32     scan9,  [array +  9*8 + 4];"
+			 "   ld.shared.f32     scan18, [array + 18*8 + 4];"
+			 "   setp.ge.f32       p, %1, scan9;"
+			 "   setp.ge.f32       q, %1, scan18;"
+			 "   selp.f32          key, %2, 0.0, p;"
+			 "@q add.f32           key, key, %2;"
+			 "   mov.b32           array_f, array;"
+			 "   fma.f32.rm        array_f, key, 8.0, array_f;"
+			 "   mov.b32 array,    array_f;"
+			 "   ld.shared.f32     scan3, [array + 3*8 + 4];"
+			 "   ld.shared.f32     scan6, [array + 6*8 + 4];"
+			 "   setp.ge.f32       p, %1, scan3;"
+			 "   setp.ge.f32       q, %1, scan6;"
+			 "@p add.f32           key, key, %3;"
+			 "@q add.f32           key, key, %3;"
+			 "   mov.b32           array_f, %4;"
+			 "   fma.f32.rm        array_f, key, 8.0, array_f;"
+			 "   mov.b32           array, array_f;"
+			 "   ld.shared.v2.f32 {mystart, myscan}, [array];"
+			 "   add.f32           mystart, mystart, %1;"
+			 "   sub.f32           mystart, mystart, myscan;"
+	         "   mov.b32           %0, mystart;"
+	         "}" : "=r"(spid) : "f"(u2f(pid)), "f"(u2f(9u)), "f"(u2f(3u)), "r"(p_starts_and_scans) );
 #else
-		const uint key9 = xadd( xsel_ge( pid, scan9                , 9u, 0u ), xsel_ge( pid, scan18               , 9u, 0u ) );
-		const uint key3 = xadd( xsel_ge( pid, scan[ xadd(key9,3u) ], 3u, 0u ), xsel_ge( pid, scan[ xadd(key9,6u) ], 3u, 0u ) );
+		const uint key9 = xadd( xsel_ge( pid, scan[ 9u            ].y, 9u, 0u ), xsel_ge( pid, scan[ 18u           ].y, 9u, 0u ) );
+		const uint key3 = xadd( xsel_ge( pid, scan[ xadd(key9,3u) ].y, 3u, 0u ), xsel_ge( pid, scan[ xadd(key9,6u) ].y, 3u, 0u ) );
 		const uint key  = xadd( key9, key3 );
+		const uint spid = xsub( xadd( pid, starts_and_scans[key].x ), starts_and_scans[key].y );
 #endif
 
-		const uint spid = xsub( xadd( pid, starts_and_scans[key].x ), starts_and_scans[key].y );
 
 		#if (USE_TEXOBJ&2)
 		const int sentry = xscale( spid, 3.f );
