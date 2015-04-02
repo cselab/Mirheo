@@ -216,7 +216,12 @@ namespace KernelsRBC
     void merge_all_accel(cudaStream_t stream, const int nrbcs, const int nvertices,
 			 const float ** const sources, float ** const destinations)
     {
+	if (nrbcs == 0)
+	    return;
+
 	const int nthreads = nrbcs * nvertices * 3;
+
+	CUDA_CHECK(cudaPeekAtLastError());
 
 	if (nrbcs < cmaxnrbcs)
 	{
