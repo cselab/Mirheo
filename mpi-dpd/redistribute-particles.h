@@ -33,10 +33,16 @@ public:
 	int * scattered_indices;
     };
 
-    int stage1(const Particle * const p, const int n, cudaStream_t stream, float& host_idling_time);
+    void pack(const Particle * const p, const int n, cudaStream_t stream);
 
-    void stage2(Particle * const particles, const int nparticles, cudaStream_t, float& host_idling_time);
+    void send();
+
+    void bulk(const int nparticles, cudaStream_t mystream);
    
+    int recv_count(cudaStream_t, float& host_idling_time);
+
+    void recv_unpack(Particle * const particles, const int nparticles, cudaStream_t, float& host_idling_time);
+
     RedistributeParticles(MPI_Comm cartcomm);
 
     void adjust_message_sizes(ExpectedMessageSizes sizes);

@@ -293,7 +293,6 @@ namespace KernelsRBC
 
 	return true;
     }
-
     
     __global__ void fsi_forces(const float seed,
 			       Acceleration * accsolvent, const int npsolvent,
@@ -791,7 +790,8 @@ void ComputeInteractionsRBC::evaluate(const Particle * const solvent, const int 
 						   sizeof(packresults), 0, cudaMemcpyHostToDevice, stream));
 	    }
 	    
-	     KernelsRBC::fsi_forces_all<<< (nremote + 127) / 128, 128, 0, stream>>>(local_trunk.get_float(), accsolvent, nparticles, nremote);
+	     if(nremote)
+		 KernelsRBC::fsi_forces_all<<< (nremote + 127) / 128, 128, 0, stream>>>(local_trunk.get_float(), accsolvent, nparticles, nremote);
 
 	}
 #else
@@ -807,6 +807,8 @@ void ComputeInteractionsRBC::evaluate(const Particle * const solvent, const int 
 	
 	CUDA_CHECK(cudaEventRecord(evfsi));
 	CUDA_CHECK(cudaEventSynchronize(evfsi));
+
+	CUDA_CHECK(cudaPeekAtLastError());
     }
 
     {

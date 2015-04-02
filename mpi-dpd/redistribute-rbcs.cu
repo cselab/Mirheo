@@ -54,6 +54,8 @@ RedistributeRBCs::RedistributeRBCs(MPI_Comm _cartcomm): nvertices(CudaRBC::get_n
     }
 
     CUDA_CHECK(cudaEventCreate(&evextents, cudaEventDisableTiming));
+
+    _post_recvcount();
 }
 
 void RedistributeRBCs::_compute_extents(const Particle * const xyzuvw, const int nrbcs, cudaStream_t stream)
@@ -112,6 +114,9 @@ namespace ReorderingRBC
 
     void pack_all(cudaStream_t stream, const int nrbcs, const int nvertices, const float ** const sources, float ** const destinations)
     {
+	if (nrbcs == 0)
+	    return;
+
 	const int nthreads = nrbcs * nvertices * 6;
 
 	if (nrbcs < cmaxnrbcs)
@@ -120,8 +125,6 @@ namespace ReorderingRBC
 	    CUDA_CHECK(cudaMemcpyToSymbolAsync(csources, sources, sizeof(float *) * nrbcs, 0, cudaMemcpyHostToDevice, stream));
 	    
 	    pack_all_kernel<true><<<(nthreads + 127) / 128, 128, 0, stream>>>(nrbcs, nvertices, NULL, NULL);
-
-	    CUDA_CHECK(cudaPeekAtLastError());
 	}
 	else
 	{
@@ -133,20 +136,31 @@ namespace ReorderingRBC
 
 	    pack_all_kernel<false><<<(nthreads + 127) / 128, 128, 0, stream>>>(nrbcs, nvertices, _dsources.data, _ddestinations.data);
 	}
+
+	CUDA_CHECK(cudaPeekAtLastError());
     }
 }
 
-int RedistributeRBCs::stage1(const Particle * const xyzuvw, const int nrbcs, cudaStream_t stream)
+void RedistributeRBCs::extent(const Particle * const xyzuvw, const int nrbcs, cudaStream_t stream)
 {
-    NVTX_RANGE("RDC/stage1", NVTX_C3);
+    NVTX_RANGE("RDC/extent", NVTX_C2);
 
-    //extents.resize(nrbcs);
     minextents.resize(nrbcs);
     maxextents.resize(nrbcs);
 
+    CUDA_CHECK(cudaPeekAtLastError());
+
     _compute_extents(xyzuvw, nrbcs, stream);
 
+    CUDA_CHECK(cudaPeekAtLastError());
+
     CUDA_CHECK(cudaEventRecord(evextents, stream));
+}
+    
+void RedistributeRBCs::pack_sendcount(const Particle * const xyzuvw, const int nrbcs, cudaStream_t stream)
+{
+    NVTX_RANGE("RDC/pack-sendcount", NVTX_C3);
+
     CUDA_CHECK(cudaEventSynchronize(evextents));
 
     std::vector<int> reordering_indices[27];
@@ -210,29 +224,46 @@ int RedistributeRBCs::stage1(const Particle * const xyzuvw, const int nrbcs, cud
 #endif
 
     CUDA_CHECK(cudaStreamSynchronize(stream));
-
-    //I need to post receive first
-    MPI_Request sendcountreq[26];
+    
     for(int i = 1; i < 27; ++i)
 	MPI_CHECK( MPI_Isend(&halo_sendbufs[i].size, 1, MPI_INTEGER, rankneighbors[i], i + 1024, cartcomm, &sendcountreq[i-1]) );
+}
+
+void RedistributeRBCs::_post_recvcount()
+{
+    recv_counts[0] = 0;
+
+    for(int i = 1; i < 27; ++i)
+    {
+	MPI_Request req;
+
+	MPI_CHECK( MPI_Irecv(recv_counts + i, 1, MPI_INTEGER, anti_rankneighbors[i], i + 1024, cartcomm, &req) );
+	
+	recvcountreq.push_back(req);
+    }
+}
+
+int RedistributeRBCs::post()
+{
+    NVTX_RANGE("RDC/post", NVTX_C3);
+
+    {
+	MPI_Status statuses[recvcountreq.size()];
+	MPI_CHECK( MPI_Waitall(recvcountreq.size(), &recvcountreq.front(), statuses) );
+	recvcountreq.clear();
+    }
 
     arriving = 0;
     for(int i = 1; i < 27; ++i)
     {
-	int count;
+	const int count = recv_counts[i];
 	
-	MPI_Status status;
-	MPI_CHECK( MPI_Recv(&count, 1, MPI_INTEGER, anti_rankneighbors[i], i + 1024, cartcomm, &status) );
-
 	arriving += count;
 	halo_recvbufs[i].resize(count);
     }
     
     arriving /= nvertices;
     notleaving = bulk.size / nvertices;
-
-    //if (arriving)
-    //printf("YEE something is arriving to rank %d (arriving %d)\n", myrank, arriving);
   
     MPI_Status statuses[26];	    
     MPI_CHECK( MPI_Waitall(26, sendcountreq, statuses) );
@@ -309,9 +340,9 @@ namespace ParticleReorderingRBC
     }
 }
 
-void RedistributeRBCs::stage2(Particle * const xyzuvw, const int nrbcs, cudaStream_t stream)
+void RedistributeRBCs::unpack(Particle * const xyzuvw, const int nrbcs, cudaStream_t stream)
 {
-    NVTX_RANGE("RDC/stage2", NVTX_C7);
+    NVTX_RANGE("RDC/recv-unpack", NVTX_C7);
 
     assert(notleaving + arriving == nrbcs);
 
@@ -339,6 +370,8 @@ void RedistributeRBCs::stage2(Particle * const xyzuvw, const int nrbcs, cudaStre
     }
 
     CUDA_CHECK(cudaPeekAtLastError());
+
+    _post_recvcount();
 }
 
 RedistributeRBCs::~RedistributeRBCs()

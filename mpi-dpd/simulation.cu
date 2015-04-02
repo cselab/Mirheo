@@ -50,39 +50,64 @@ std::vector<Particle> Simulation::_ic()
 void Simulation::_redistribute()
 {
     double tstart = MPI_Wtime();
-    const int newnp = redistribute.stage1(particles.xyzuvw.data, particles.size, mainstream, host_idle_time);
-    unordered_particles.resize(newnp);
-    redistribute.stage2(unordered_particles.data, newnp, mainstream, host_idle_time);
-    particles.resize(newnp);
-    timings["redistribute-particles"] += MPI_Wtime() - tstart;
-	
-    CUDA_CHECK(cudaPeekAtLastError());
     
-    if (rbcscoll)
-    {	
-	double tstart = MPI_Wtime();
-	const int nrbcs = redistribute_rbcs.stage1(rbcscoll->data(), rbcscoll->count(), mainstream);
-	rbcscoll->resize(nrbcs);
-	redistribute_rbcs.stage2(rbcscoll->data(), rbcscoll->count(), mainstream);
-	timings["redistribute-rbc"] += MPI_Wtime() - tstart;
-    }
-	
+    redistribute.pack(particles.xyzuvw.data, particles.size, mainstream);
+
     CUDA_CHECK(cudaPeekAtLastError());
+
+    if (rbcscoll) 
+	redistribute_rbcs.extent(rbcscoll->data(), rbcscoll->count(), mainstream);
     
     if (ctcscoll)
-    {	
-	double tstart = MPI_Wtime();
-	const int nctcs = redistribute_ctcs.stage1(ctcscoll->data(), ctcscoll->count(), mainstream);
+	redistribute_ctcs.extent(ctcscoll->data(), ctcscoll->count(), mainstream);
+    
+    redistribute.send();
+
+    if (rbcscoll) 
+	redistribute_rbcs.pack_sendcount(rbcscoll->data(), rbcscoll->count(), mainstream);
+    
+    if (ctcscoll)
+	redistribute_ctcs.pack_sendcount(ctcscoll->data(), ctcscoll->count(), mainstream);
+    
+    redistribute.bulk(particles.size, mainstream);
+
+    CUDA_CHECK(cudaPeekAtLastError());
+
+    const int newnp = redistribute.recv_count(mainstream, host_idle_time);
+    
+    int nrbcs;
+    if (rbcscoll) 
+	nrbcs = redistribute_rbcs.post();
+
+    int nctcs;
+    if (ctcscoll)
+	nctcs = redistribute_ctcs.post();
+
+    if (rbcscoll) 
+	rbcscoll->resize(nrbcs);
+
+    if (ctcscoll)
 	ctcscoll->resize(nctcs);
-	redistribute_ctcs.stage2(ctcscoll->data(), ctcscoll->count(), mainstream);
-	timings["redistribute-ctc"] += MPI_Wtime() - tstart;
-    }
+
+    unordered_particles.resize(newnp);
+
+    redistribute.recv_unpack(unordered_particles.data, newnp, mainstream, host_idle_time);
+
+    CUDA_CHECK(cudaPeekAtLastError());
+
+    particles.resize(newnp);
+
+    cells.build(particles.xyzuvw.data, particles.size, mainstream, NULL, unordered_particles.data);
+    
+    if (rbcscoll)
+	redistribute_rbcs.unpack(rbcscoll->data(), rbcscoll->count(), mainstream);
+
+    if (ctcscoll)
+	redistribute_ctcs.unpack(ctcscoll->data(), ctcscoll->count(), mainstream);
     
     CUDA_CHECK(cudaPeekAtLastError());
 
-    tstart = MPI_Wtime();
-    cells.build(particles.xyzuvw.data, particles.size, mainstream, NULL, unordered_particles.data);
-    timings["build-cells"] += MPI_Wtime() - tstart;
+    timings["redistribute"] += MPI_Wtime() - tstart;
 }
 
 void Simulation::_report(const bool verbose, const int idtimestep)
