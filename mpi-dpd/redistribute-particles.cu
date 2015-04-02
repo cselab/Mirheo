@@ -624,7 +624,7 @@ int RedistributeParticles::stage1(const Particle * const particles, const int np
 	    }
 	
 	for(int i = 1; i < 27; ++i)
-	    if (send_sizes[i] > default_message_sizes[i])
+	    if (default_message_sizes[i] && send_sizes[i] > default_message_sizes[i])
 	    {
 		const int count = send_sizes[i] - default_message_sizes[i];
 		
@@ -676,7 +676,7 @@ void RedistributeParticles::stage2(Particle * const particles, const int npartic
 				       sizeof(UnpackBuffer) * 27, 0, cudaMemcpyHostToDevice, mystream));
     
     for(int i = 1; i < 27; ++i)
-	if (recv_sizes[i] > default_message_sizes[i])
+	if (default_message_sizes[i] && recv_sizes[i] > default_message_sizes[i])
 	{
 	    const int count = recv_sizes[i] - default_message_sizes[i];
 	    
