@@ -197,6 +197,14 @@ SimpleDeviceBuffer(int n = 0): capacity(0), size(0), data(NULL) { resize(n);}
 	    
 	    data = NULL;
 	}
+
+    void dispose()
+	{
+	    if (data != NULL)
+		CUDA_CHECK(cudaFree(data));
+	    
+	    data = NULL;
+	}
     
     void resize(const int n)
 	{
