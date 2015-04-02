@@ -129,6 +129,12 @@ __forceinline__ __device__ int xscale( int u, float s ) {
 	return f2i(b);
 }
 
+template<uint m> __forceinline__ __device__ uint xmod( uint u ) {
+	float a = u2f(u);
+	asm( "mul.f32.rm %0, %1, %2;" : "+f"(a) : "f"(a), "f"(1.f/m) );
+	return xsub( u, xscale( f2u(a), float(m) ) );
+}
+
 __forceinline__ __device__ int xmin( int u, int v ) {
 	float a = i2f(u), b = i2f(v), c;
 	asm( "min.f32 %0, %1, %2;" : "=f"(c) : "f"(a), "f"(b) );
