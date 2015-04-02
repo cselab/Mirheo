@@ -24,13 +24,16 @@ class ComputeInteractionsRBC
 protected:
 
     MPI_Comm cartcomm;
+    MPI_Request reqsendcounts[26], reqrecvcounts[26];
 
     std::vector<MPI_Request> reqsendp, reqrecvp, reqsendacc, reqrecvacc;
     
     int nvertices, myrank, nranks, dims[3], periods[3], coords[3], dstranks[26], recv_tags[26], recv_counts[26], send_counts[26];
 
     std::vector< int > haloreplica[26];
-    
+
+
+
     //PinnedHostBuffer<CudaRBC::Extent> extents;
     PinnedHostBuffer<float3> minextents, maxextents;
 
@@ -43,10 +46,10 @@ protected:
 	
     } remote[26], local[26];
 
-    void pack_and_post(const Particle * const rbcs, const int nrbcs, cudaStream_t stream);
+    //void pack_and_post(const Particle * const rbcs, const int nrbcs, cudaStream_t stream);
     
     virtual void _compute_extents(const Particle * const xyzuvw, const int nrbcs, cudaStream_t stream);
-    virtual void _internal_forces(const Particle * const xyzuvw, const int nrbcs, Acceleration * acc, cudaStream_t stream);
+    
 
     void _wait(std::vector<MPI_Request>& v)
     {
@@ -71,10 +74,31 @@ protected:
 public:
 
     ComputeInteractionsRBC(MPI_Comm cartcomm);
-    
+    /*
     void evaluate(const Particle * const solvent, const int nparticles, Acceleration * accsolvent,
 		  const int * const cellsstart_solvent, const int * const cellscount_solvent,
 		  const Particle * const rbcs, const int nrbcs, Acceleration * accrbc, cudaStream_t stream);
+    */
+
+    void extent(const Particle * const rbcs, const int nrbcs, cudaStream_t stream);
+    void count(const int nrbcs);
+    void exchange_count();
+    void pack_p(const Particle * const rbcs, cudaStream_t stream);
+    void post_p();
+
+    virtual void internal_forces(const Particle * const xyzuvw, const int nrbcs, Acceleration * acc, cudaStream_t stream);
+
+    void fsi_bulk(const Particle * const solvent, const int nparticles, Acceleration * accsolvent,
+	     const int * const cellsstart_solvent, const int * const cellscount_solvent,
+	     const Particle * const rbcs, const int nrbcs, Acceleration * accrbc, cudaStream_t stream);
+
+    void fsi_halo(const Particle * const solvent, const int nparticles, Acceleration * accsolvent,
+		  const int * const cellsstart_solvent, const int * const cellscount_solvent,
+		  const Particle * const rbcs, const int nrbcs, Acceleration * accrbc, cudaStream_t stream);
+
+    void post_a();
+
+    void merge_a(Acceleration * accrbc, cudaStream_t stream);
 
     ~ComputeInteractionsRBC();
 };
