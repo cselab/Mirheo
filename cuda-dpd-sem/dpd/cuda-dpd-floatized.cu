@@ -225,9 +225,9 @@ __device__ void core( const uint nsrc, const uint2 * const starts_and_scans,
 			"   setp.ne.and.f32 p, %4, %5, p;"
 			"   @p st.shared.u32 [%6], %8;"
 			"   @p add.f32 %0, %0, %7;"
-			"}" : "+f"(srccount_f) : "f"(u2f(pid)), "f"(u2f(nsrc)), "f"(xdiff * xdiff + ydiff * ydiff + zdiff * zdiff), "f"(u2f(dpid)), "f"(u2f(spid)),
-			"r"( xmad(tid,4.f,xmad(wid,128.f,xmad(srccount,512.f,1024u))) ), "f"(u2f(1u)), "r"(spid)
-			: "memory" );
+			"}" : "+f"(srccount_f) :
+			"f"( u2f(pid) ), "f"(u2f(nsrc)), "f"(xdiff * xdiff + ydiff * ydiff + zdiff * zdiff), "f"(u2f(dpid)), "f"(u2f(spid)),
+			"r"( xmad(tid,4.f,xmad(wid,128.f,xmad(srccount,512.f,1024u))) ), "f"(u2f(1u)), "r"(spid) : "memory" );
 		srccount = f2u( srccount_f );
 #else
 		const float interacting = xfcmp_lt(pid, nsrc )
@@ -241,7 +241,6 @@ __device__ void core( const uint nsrc, const uint2 * const starts_and_scans,
 		if ( srccount == NSRCMAX ) {
 			srccount = xsub( srccount, 1u ); // 1 FLOP
 			// why do we reload spid? it's right there in register
-			// uint spid = srcids[srccount][wid][tid];
 			const float3 f = _dpd_interaction( dpid, xdest, udest, spid ); // 88 FLOPS
 
 			xforce += f.x; // 1 FLOP
@@ -251,16 +250,14 @@ __device__ void core( const uint nsrc, const uint2 * const starts_and_scans,
 		// 1 FLOP for s++
 	}
 
-    //uint pshared = xmad( tid, 4.f, xmad( wid, 128.f, 1024u ) );
 #pragma unroll 4
-    for( uint i = 0; i < srccount; i = xadd( i, 1u ) ) {
+	for( uint i = 0; i < srccount; i = xadd( i, 1u ) ) {
 #ifdef LETS_MAKE_IT_MESSY
-    	//uint spid = srcids[i*128+wid*32+tid];
-	uint spid=0;
-	asm("ld.shared.u32 %0, [%1];" : "=r"(spid) : "r"( xmad(tid,4.f,xmad(wid,128.f,xmad(i,512.f,1024u))) ) );
-	const float3 f = _dpd_interaction( dpid, xdest, udest, spid ); // 88 FLOPS
+		uint spid;
+		asm("ld.shared.u32 %0, [%1];" : "=r"(spid) : "r"( xmad(tid,4.f,xmad(wid,128.f,xmad(i,512.f,1024u))) ) );
+		const float3 f = _dpd_interaction( dpid, xdest, udest, spid ); // 88 FLOPS
 #else
-    	const float3 f = _dpd_interaction( dpid, xdest, udest, srcids[i] ); // 88 FLOPS
+		const float3 f = _dpd_interaction( dpid, xdest, udest, srcids[i] ); // 88 FLOPS
 #endif
         xforce += f.x; // 1 FLOP
         yforce += f.y; // 1 FLOP
