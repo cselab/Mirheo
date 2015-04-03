@@ -61,7 +61,7 @@ private:
     
     int dims[3], periods[3], coords[3], neighbor_ranks[27], recv_tags[27],
 	default_message_sizes[27], send_sizes[27], recv_sizes[27],
-	nsendmsgreq, nexpected, nbulk, nhalo;
+	nsendmsgreq, nexpected, nbulk, nhalo, myrank;
 
     float safety_factor;
 

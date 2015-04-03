@@ -85,9 +85,10 @@ namespace RedistributeParticlesKernels
 	if (tid < 27)
 	{
 	    myval = mycount = pack_count[threadIdx.x];
-	    packsizes[tid] = mycount;
-
-	    if (mycount >= pack_buffers[tid].capacity)
+	    if (tid > 0)
+		packsizes[tid] = mycount;
+	   
+	    if (mycount > pack_buffers[tid].capacity)
 	    {
 		failed = true;
 		*failureflag = true;
@@ -106,14 +107,14 @@ namespace RedistributeParticlesKernels
 	    const int nbulk = nparticles - myval;
 	    packsizes[0] = nbulk;
 
-	    if (nbulk >= bulkcapacity)
+	    if (nbulk > bulkcapacity)
 	    {
 		failed = true;
 		*failureflag = true;
 	    }
 	}
     }
-
+    
 #ifndef NDEBUG
     __global__ void check_scan()
     {
@@ -270,7 +271,8 @@ namespace RedistributeParticlesKernels
 		for(int i = 0; i < ILP; ++i)
 		{
 		    const int d = dbase + i * STRIPESIZE;
-		    assert(d < pack_buffers[0].capacity * 6);
+		   
+		    assert(d < pack_buffers[0].capacity * 6 || d >= stop);
 		    assert(d >= 0);
 		    
 		    if (d < stop)
@@ -387,6 +389,7 @@ failure(1), packsizes(27), nactiveneighbors(26), firstcall(true)
 
     MPI_CHECK(MPI_Comm_dup(_cartcomm, &cartcomm) );
 
+    MPI_CHECK( MPI_Comm_rank(cartcomm, &myrank) );
     MPI_CHECK( MPI_Cart_get(cartcomm, 3, dims, periods, coords) );
 
     for(int i = 0; i < 27; ++i)
@@ -423,7 +426,7 @@ failure(1), packsizes(27), nactiveneighbors(26), firstcall(true)
 	}
 	else
 	{
-	    CUDA_CHECK(cudaMalloc(&packbuffers[i].buffer, sizeof(float) * 6 * estimate));
+      	    CUDA_CHECK(cudaMalloc(&packbuffers[i].buffer, sizeof(float) * 6 * estimate));
 	    unpackbuffers[i].buffer = packbuffers[i].buffer;
 
 	    pinnedhost_sendbufs[i] = NULL;
@@ -452,7 +455,7 @@ void RedistributeParticles::_post_recv()
 	    MPI_CHECK( MPI_Irecv(recv_sizes + i, 1, MPI_INTEGER, neighbor_ranks[i], basetag + recv_tags[i], cartcomm, recvcountreq + c++) );
 	else
 	    recv_sizes[i] = 0;
-    
+ 
     for(int i = 1, c = 0; i < 27; ++i)
 	if (default_message_sizes[i])
 	    MPI_CHECK( MPI_Irecv(pinnedhost_recvbufs[i], default_message_sizes[i] * 6, MPI_FLOAT, 
@@ -533,6 +536,8 @@ void RedistributeParticles::_adjust_recv_buffers(const int requested_capacities[
 void RedistributeParticles::pack(const Particle * const particles, const int nparticles, cudaStream_t mystream)
 {
     NVTX_RANGE("RDP/pack");
+
+    bool secondchance = false;
     
     if (firstcall)
 	_post_recv();
@@ -572,10 +577,23 @@ pack_attempt:
 	//wait for packing to finish
 	CUDA_CHECK(cudaEventSynchronize(evpacking));
 	    
-	printf("...FAILED! Recovering now...\n");
+	printf("RedistributeParticles::pack RANK %d ...FAILED! Recovering now...\n", myrank);
 
-	_adjust_send_buffers(packsizes.devptr);
+	_adjust_send_buffers(packsizes.data);
 	    	    
+	if (myrank == 0)
+	for(int i = 0; i < 27; ++i)
+	    printf("ASD: %d\n", packsizes.data[i]);
+
+	if (secondchance)
+	{
+	    printf("CAZZ...cioe' va bene tutto ragassi ma non siamo qui a far la ceretta allo yeti.\n");
+	    abort();
+	}
+
+	if (!secondchance)
+	    secondchance = true;
+
 	goto pack_attempt;
     }
 
@@ -643,6 +661,8 @@ void RedistributeParticles::send()
 
 int RedistributeParticles::recv_count(cudaStream_t mystream, float& host_idle_time)
 {
+    CUDA_CHECK(cudaPeekAtLastError());  
+
     NVTX_RANGE("RDP/recv-count", NVTX_C3);
 
     host_idle_time += _waitall(recvcountreq, nactiveneighbors);
