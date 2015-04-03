@@ -134,7 +134,7 @@ __device__ float3 _dpd_interaction( const uint dpid, const float4 xdest, const f
 
 template<uint COLS, uint ROWS, uint NSRCMAX>
 __device__ void core( const uint nsrc, const uint2 * const starts_and_scans,
-                      const uint ndst, const uint dststart, volatile uint srcids[4*4*32] )
+                      const uint ndst, const uint dststart )
 {
 	uint srccount = 0;
     assert( ndst == ROWS );
@@ -258,15 +258,6 @@ __device__ void core( const uint nsrc, const uint2 * const starts_and_scans,
     	//uint spid = srcids[i*128+wid*32+tid];
 	uint spid=0;
 	asm("ld.shared.u32 %0, [%1];" : "=r"(spid) : "r"( xmad(tid,4.f,xmad(wid,128.f,xmad(i,512.f,1024u))) ) );
-    	//uint spid;
-        //if (blockIdx.x+blockIdx.y+blockIdx.z+threadIdx.x+threadIdx.y+threadIdx.z<1024) {
-        //if (blockIdx.x >= gridDim.x/2) {
-        //if (blockIdx.x >= gridDim.x/2) {
-       // 	asm("ld.shared.u32 %0, [%1];" : "=r"(spid) : "r"( xmad(tid,4.f,xmad(wid,128.f,xmad(i,512.f,1024u))) ) : "memory" );
-        //} else {
-		//spid = srcids[i][wid][tid];
-        	//asm("ld.shared.u32 %0, [%1];" : "=r"(spid) : "r"( xmad(tid,4.f,xmad(wid,128.f,xmad(i,512.f,1024u))) ) : "memory" );
-	//}
 	const float3 f = _dpd_interaction( dpid, xdest, udest, spid ); // 88 FLOPS
 #else
     	const float3 f = _dpd_interaction( dpid, xdest, udest, srcids[i] ); // 88 FLOPS
@@ -449,11 +440,11 @@ void _dpd_forces_floatized()
     const uint ndst4 = ( ndst >> 2 ) << 2;
 
     for( uint d = 0; d < ndst4; d = xadd( d, 4u ) )
-        core<8, 4, 4>( nsrc, ( const uint2 * )starts_and_scans[wid], 4, xadd( dststart, d ), (volatile uint *)&(starts_and_scans[CPB][0]) );
+        core<8, 4, 4>( nsrc, ( const uint2 * )starts_and_scans[wid], 4, xadd( dststart, d ) );
 
     uint d = ndst4;
     if( xadd( d, 2u ) <= ndst ) {
-        core<16, 2, 4>( nsrc, ( const uint2 * )starts_and_scans[wid], 2, xadd( dststart, d ), (volatile uint *)&(starts_and_scans[CPB][0]) );
+        core<16, 2, 4>( nsrc, ( const uint2 * )starts_and_scans[wid], 2, xadd( dststart, d ) );
         d = xadd( d, 2u );
     }
 
