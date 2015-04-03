@@ -133,19 +133,14 @@ __device__ float3 _dpd_interaction( const uint dpid, const float4 xdest, const f
 }
 
 template<uint COLS, uint ROWS, uint NSRCMAX>
-__device__ void core( const uint nsrc, const uint2 * const starts_and_scans, const uint p_starts_and_scans,
-                      const uint ndst, const uint dststart )
+__device__ void core( const uint nsrc, const uint2 * const starts_and_scans,
+                      const uint ndst, const uint dststart, volatile uint srcids[4*4*32] )
 {
-	uint srcids[NSRCMAX];
-    uint p_srcids = uint(srcids) & 0xFFFFFFU;
-
-    for( int i = 0; i < NSRCMAX; ++i )
-        srcids[i] = 0;
-
 	uint srccount = 0;
     assert( ndst == ROWS );
 
     const uint tid = threadIdx.x;
+    const uint wid = threadIdx.y;
     const uint slot = tid / COLS;
     const uint subtid = tid % COLS;
 
@@ -176,7 +171,7 @@ __device__ void core( const uint nsrc, const uint2 * const starts_and_scans, con
 			 "  .reg .s32  array;"
 			 "  .reg .f32  array_f;"
 			 "   mov.b32           array_f, %4;"
-			 "   mul.f32           array_f, array_f, 8.0;"
+			 "   mul.f32           array_f, array_f, 256.0;"
 			 "   mov.b32           array, array_f;"
 			 "   ld.shared.f32     scan9,  [array +  9*8 + 4];"
 			 "   ld.shared.f32     scan18, [array + 18*8 + 4];"
@@ -194,14 +189,14 @@ __device__ void core( const uint nsrc, const uint2 * const starts_and_scans, con
 			 "@p add.f32           key, key, %3;"
 			 "@q add.f32           key, key, %3;"
 			 "   mov.b32           array_f, %4;"
-			 "   mul.f32           array_f, array_f, 8.0;"
+			 "   mul.f32           array_f, array_f, 256.0;"
 			 "   fma.f32.rm        array_f, key, 8.0, array_f;"
 			 "   mov.b32           array, array_f;"
 			 "   ld.shared.v2.f32 {mystart, myscan}, [array];"
 			 "   add.f32           mystart, mystart, %1;"
 			 "   sub.f32           mystart, mystart, myscan;"
 	         "   mov.b32           %0, mystart;"
-	         "}" : "=r"(spid) : "f"(u2f(pid)), "f"(u2f(9u)), "f"(u2f(3u)), "r"(p_starts_and_scans) );
+	         "}" : "=r"(spid) : "f"(u2f(pid)), "f"(u2f(9u)), "f"(u2f(3u)), "f"(u2f(wid)) );
 #else
 		const uint key9 = xadd( xsel_ge( pid, scan[ 9u            ].y, 9u, 0u ), xsel_ge( pid, scan[ 18u           ].y, 9u, 0u ) );
 		const uint key3 = xadd( xsel_ge( pid, scan[ xadd(key9,3u) ].y, 3u, 0u ), xsel_ge( pid, scan[ xadd(key9,6u) ].y, 3u, 0u ) );
@@ -228,10 +223,10 @@ __device__ void core( const uint nsrc, const uint2 * const starts_and_scans, con
 			"   setp.lt.f32 p, %1, %2;"
 			"   setp.lt.and.f32 p, %3, 1.0, p;"
 			"   setp.ne.and.f32 p, %4, %5, p;"
-			"   @p st.u32 [%6], %7;"
-			"   @p add.f32 %0, %0, %8;"
+			"   @p st.shared.u32 [%6], %8;"
+			"   @p add.f32 %0, %0, %7;"
 			"}" : "+f"(srccount_f) : "f"(u2f(pid)), "f"(u2f(nsrc)), "f"(xdiff * xdiff + ydiff * ydiff + zdiff * zdiff), "f"(u2f(dpid)), "f"(u2f(spid)),
-			"l"(srcids+srccount), "r"(spid), "f"(u2f(1u))
+			"r"( xmad(tid,4.f,xmad(wid,128.f,xmad(srccount,512.f,1024u))) ), "f"(u2f(1u)), "r"(spid)
 			: "memory" );
 		srccount = f2u( srccount_f );
 #else
@@ -243,11 +238,10 @@ __device__ void core( const uint nsrc, const uint2 * const starts_and_scans, con
 			srccount = xadd( srccount, 1u );
 		}
 #endif
-
 		if ( srccount == NSRCMAX ) {
 			srccount = xsub( srccount, 1u ); // 1 FLOP
-			uint spid = srcids[srccount];
-
+			// why do we reload spid? it's right there in register
+			// uint spid = srcids[srccount][wid][tid];
 			const float3 f = _dpd_interaction( dpid, xdest, udest, spid ); // 88 FLOPS
 
 			xforce += f.x; // 1 FLOP
@@ -257,10 +251,26 @@ __device__ void core( const uint nsrc, const uint2 * const starts_and_scans, con
 		// 1 FLOP for s++
 	}
 
+    //uint pshared = xmad( tid, 4.f, xmad( wid, 128.f, 1024u ) );
 #pragma unroll 4
     for( uint i = 0; i < srccount; i = xadd( i, 1u ) ) {
-        const float3 f = _dpd_interaction( dpid, xdest, udest, srcids[i] ); // 88 FLOPS
-
+#ifdef LETS_MAKE_IT_MESSY
+    	//uint spid = srcids[i*128+wid*32+tid];
+	uint spid=0;
+	asm("ld.shared.u32 %0, [%1];" : "=r"(spid) : "r"( xmad(tid,4.f,xmad(wid,128.f,xmad(i,512.f,1024u))) ) );
+    	//uint spid;
+        //if (blockIdx.x+blockIdx.y+blockIdx.z+threadIdx.x+threadIdx.y+threadIdx.z<1024) {
+        //if (blockIdx.x >= gridDim.x/2) {
+        //if (blockIdx.x >= gridDim.x/2) {
+       // 	asm("ld.shared.u32 %0, [%1];" : "=r"(spid) : "r"( xmad(tid,4.f,xmad(wid,128.f,xmad(i,512.f,1024u))) ) : "memory" );
+        //} else {
+		//spid = srcids[i][wid][tid];
+        	//asm("ld.shared.u32 %0, [%1];" : "=r"(spid) : "r"( xmad(tid,4.f,xmad(wid,128.f,xmad(i,512.f,1024u))) ) : "memory" );
+	//}
+	const float3 f = _dpd_interaction( dpid, xdest, udest, spid ); // 88 FLOPS
+#else
+    	const float3 f = _dpd_interaction( dpid, xdest, udest, srcids[i] ); // 88 FLOPS
+#endif
         xforce += f.x; // 1 FLOP
         yforce += f.y; // 1 FLOP
         zforce += f.z; // 1 FLOP
@@ -393,7 +403,7 @@ void _dpd_forces_floatized()
     const uint tid = threadIdx.x;
     const uint wid = threadIdx.y;
 
-    __shared__ volatile uint2 starts_and_scans[CPB][32];
+    __shared__ volatile uint2 starts_and_scans[CPB*3][32];
 
     uint mycount = 0, myscan = 0;
     const int dx = ( tid ) % 3;
@@ -439,11 +449,11 @@ void _dpd_forces_floatized()
     const uint ndst4 = ( ndst >> 2 ) << 2;
 
     for( uint d = 0; d < ndst4; d = xadd( d, 4u ) )
-        core<8, 4, 6>( nsrc, ( const uint2 * )starts_and_scans[wid], xscale( wid, 32.f ), 4, xadd( dststart, d ) );
+        core<8, 4, 4>( nsrc, ( const uint2 * )starts_and_scans[wid], 4, xadd( dststart, d ), (volatile uint *)&(starts_and_scans[CPB][0]) );
 
     uint d = ndst4;
     if( xadd( d, 2u ) <= ndst ) {
-        core<16, 2, 6>( nsrc, ( const uint2 * )starts_and_scans[wid], xscale( wid, 32.f ), 2, xadd( dststart, d ) );
+        core<16, 2, 4>( nsrc, ( const uint2 * )starts_and_scans[wid], 2, xadd( dststart, d ), (volatile uint *)&(starts_and_scans[CPB][0]) );
         d = xadd( d, 2u );
     }
 
@@ -834,7 +844,7 @@ void forces_dpd_cuda_nohost( const float * const xyzuvw, float * const axayaz,  
 
 	void ( *dpdkernel )() =  _dpd_forces_floatized;
 
-        CUDA_CHECK( cudaFuncSetCacheConfig( *dpdkernel, cudaFuncCachePreferL1 ) );
+        CUDA_CHECK( cudaFuncSetCacheConfig( *dpdkernel, cudaFuncCachePreferShared ) );
 
 #ifdef _TIME_PROFILE_
         CUDA_CHECK( cudaEventCreate( &evstart ) );
