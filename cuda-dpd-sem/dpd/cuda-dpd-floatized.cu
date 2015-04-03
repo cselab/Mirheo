@@ -175,7 +175,9 @@ __device__ void core( const uint nsrc, const uint2 * const starts_and_scans, con
 			 "  .reg .f32  mystart, myscan;"
 			 "  .reg .s32  array;"
 			 "  .reg .f32  array_f;"
-			 "   mov.b32           array, %4;"
+			 "   mov.b32           array_f, %4;"
+			 "   mul.f32           array_f, array_f, 8.0;"
+			 "   mov.b32           array, array_f;"
 			 "   ld.shared.f32     scan9,  [array +  9*8 + 4];"
 			 "   ld.shared.f32     scan18, [array + 18*8 + 4];"
 			 "   setp.ge.f32       p, %1, scan9;"
@@ -192,6 +194,7 @@ __device__ void core( const uint nsrc, const uint2 * const starts_and_scans, con
 			 "@p add.f32           key, key, %3;"
 			 "@q add.f32           key, key, %3;"
 			 "   mov.b32           array_f, %4;"
+			 "   mul.f32           array_f, array_f, 8.0;"
 			 "   fma.f32.rm        array_f, key, 8.0, array_f;"
 			 "   mov.b32           array, array_f;"
 			 "   ld.shared.v2.f32 {mystart, myscan}, [array];"
@@ -436,11 +439,11 @@ void _dpd_forces_floatized()
     const uint ndst4 = ( ndst >> 2 ) << 2;
 
     for( uint d = 0; d < ndst4; d = xadd( d, 4u ) )
-        core<8, 4, 6>( nsrc, ( const uint2 * )starts_and_scans[wid], wid*32u*sizeof(uint2), 4, xadd( dststart, d ) );
+        core<8, 4, 6>( nsrc, ( const uint2 * )starts_and_scans[wid], xscale( wid, 32.f ), 4, xadd( dststart, d ) );
 
     uint d = ndst4;
     if( xadd( d, 2u ) <= ndst ) {
-        core<16, 2, 6>( nsrc, ( const uint2 * )starts_and_scans[wid], wid*32u*sizeof(uint2), 2, xadd( dststart, d ) );
+        core<16, 2, 6>( nsrc, ( const uint2 * )starts_and_scans[wid], xscale( wid, 32.f ), 2, xadd( dststart, d ) );
         d = xadd( d, 2u );
     }
 
