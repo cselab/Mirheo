@@ -87,6 +87,21 @@ __forceinline__ __device__ int xmad( int u, float v, int w ) {
 	return f2i(d);
 }
 
+// u * v - w
+__forceinline__ __device__ uint xmsb( uint u, float v, uint w ) {
+	float a = u2f(u), c = u2f(w), d;
+	asm( "{.reg .f32 nc; neg.f32 nc, %3; fma.rm.f32 %0, %1, %2, nc;}" : "=f"(d) : "f"(a), "f"(v), "f"(c) );
+	return f2u(d);
+}
+
+// u * v - w
+__forceinline__ __device__ int xmsb( int u, float v, int w ) {
+	float a = i2f(u), c = i2f(w), d;
+	asm( "{.reg .f32 nc; neg.f32 nc, %3; fma.rm.f32 %0, %1, %2, nc;}" : "=f"(d) : "f"(a), "f"(v), "f"(c) );
+	return f2i(d);
+}
+
+
 __forceinline__ __device__ uint xadd( uint u, uint v ) {
 	float a = u2f(u), b = u2f(v), c;
 	asm( "add.f32 %0, %1, %2;" : "=f"(c) : "f"(a), "f"(b) );
