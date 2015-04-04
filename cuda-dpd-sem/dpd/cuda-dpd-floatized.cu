@@ -196,7 +196,8 @@ __device__ void core( const uint nsrc, const uint2 * const starts_and_scans,
 			 "   add.f32           mystart, mystart, %1;"
 			 "   sub.f32           mystart, mystart, myscan;"
 	         "   mov.b32           %0, mystart;"
-	         "}" : "=r"(spid) : "f"(u2f(pid)), "f"(u2f(9u)), "f"(u2f(3u)), "f"(u2f(wid)) ); // 15 FLOPS
+	         "}" : "=r"(spid) : "f"(u2f(pid)), "f"(u2f(9u)), "f"(u2f(3u)), "f"(u2f(wid)) );
+		// 15 FLOPS
 #else
 		const uint key9 = xadd( xsel_ge( pid, scan[ 9u            ].y, 9u, 0u ), xsel_ge( pid, scan[ 18u           ].y, 9u, 0u ) );
 		const uint key3 = xadd( xsel_ge( pid, scan[ xadd(key9,3u) ].y, 3u, 0u ), xsel_ge( pid, scan[ xadd(key9,6u) ].y, 3u, 0u ) );
@@ -356,6 +357,7 @@ __device__ void core_ilp( const uint nsrc, const uint2 * const starts_and_scans,
     			 "   sub.f32           mystart, mystart, myscan;"
     	         "   mov.b32           %0, mystart;"
     	         "}" : "=r"(spid) : "f"(u2f(pid)), "f"(u2f(9u)), "f"(u2f(3u)), "f"(u2f(wid)) );
+    		// 15 FLOPS
             spids[i] = spid;
 #else
     		const uint key9 = xadd( xsel_ge( pid, scan[ 9             ], 9u, 0u ), xsel_ge( pid, scan[ 18            ], 9u, 0u ) );
@@ -376,9 +378,9 @@ __device__ void core_ilp( const uint nsrc, const uint2 * const starts_and_scans,
 			const float4 xtmp = tex1Dfetch( texParticles2,       sentry      );
 			#endif
 
-            const float xdiff = xdest.x - xtmp.x;
-            const float ydiff = xdest.y - xtmp.y;
-            const float zdiff = xdest.z - xtmp.z;
+            const float xdiff = xdest.x - xtmp.x; // 1 FLOP
+            const float ydiff = xdest.y - xtmp.y; // 1 FLOP
+            const float zdiff = xdest.z - xtmp.z; // 1 FLOP
 #ifdef LETS_MAKE_IT_MESSY
 			uint interacting_one;
             asm("{ .reg .pred p;"
@@ -386,6 +388,7 @@ __device__ void core_ilp( const uint nsrc, const uint2 * const starts_and_scans,
 				"   setp.lt.and.f32 p, %3, 1.0, p;"
 				"   set.ne.and.u32.f32 %0, %4, %5, p;"
 				"   }" : "=r"(interacting_one)  : "f"(u2f(xadd( s, xmad( i, float(COLS), subtid ) ))), "f"(u2f(nsrc)), "f"(xdiff * xdiff + ydiff * ydiff + zdiff * zdiff), "f"(u2f(dpid)), "f"(u2f(spids[i])) );
+            // 12 FLOPS
             interacting[i] = interacting_one;
 #else
             interacting[i] = xfcmp_lt( xadd( s, xmad( i, float(COLS), subtid ) ), nsrc )
@@ -422,6 +425,7 @@ __device__ void core_ilp( const uint nsrc, const uint2 * const starts_and_scans,
     	"     selp.f32 %0, %2, %3, !isy;"
     	"@isz mov.b32 %0, %4;"
     	"}" : "=f"(fcontrib) : "f"(u2f(subtid)), "f"(xforce), "f"(yforce), "f"(zforce), "f"(u2f(1u)), "f"(u2f(2u)) );
+    // 2 FLOPS
 #else
     const float fcontrib = xsel_eq( subtid, 0u, xforce, xsel_eq( subtid, 1u, yforce, zforce ) );  // 2 FLOPS
 #endif
@@ -476,24 +480,24 @@ void _dpd_forces_floatized()
     }
 
     if( tid < 28 )
-    	starts_and_scans[wid][tid].y = xsub( myscan, mycount );
+    	starts_and_scans[wid][tid].y = xsub( myscan, mycount ); // 1 FLOP
 
     const uint nsrc = starts_and_scans[wid][27].y;
     const uint dststart = starts_and_scans[wid][1 + 3 + 9].x;
-    const uint ndst = xsub( starts_and_scans[wid][1 + 3 + 9 + 1].y, starts_and_scans[wid][1 + 3 + 9].y );
+    const uint ndst = xsub( starts_and_scans[wid][1 + 3 + 9 + 1].y, starts_and_scans[wid][1 + 3 + 9].y ); // 1 FLOP
     const uint ndst4 = ( ndst >> 2 ) << 2;
 
-    for( uint d = 0; d < ndst4; d = xadd( d, 4u ) )
-        core<8, 4, 4>( nsrc, ( const uint2 * )starts_and_scans[wid], 4, xadd( dststart, d ) );
+    for( uint d = 0; d < ndst4; d = xadd( d, 4u ) ) // 1 FLOP
+        core<8, 4, 4>( nsrc, ( const uint2 * )starts_and_scans[wid], 4, xadd( dststart, d ) ); // 1 FLOP
 
     uint d = ndst4;
-    if( xadd( d, 2u ) <= ndst ) {
-        core<16, 2, 4>( nsrc, ( const uint2 * )starts_and_scans[wid], 2, xadd( dststart, d ) );
-        d = xadd( d, 2u );
+    if( xadd( d, 2u ) <= ndst ) { // 1 FLOPS
+        core<16, 2, 4>( nsrc, ( const uint2 * )starts_and_scans[wid], 2, xadd( dststart, d ) ); // 1 FLOP
+        d = xadd( d, 2u ); // 1 FLOP
     }
 
     if( d < ndst )
-        core_ilp<32, 1, 2>( nsrc, ( const uint2 * )starts_and_scans[wid], 1, xadd( dststart, d ) );
+        core_ilp<32, 1, 2>( nsrc, ( const uint2 * )starts_and_scans[wid], 1, xadd( dststart, d ) ); // 1 FLOP
 }
 
 __global__ void copy( float *v4, const float *v3, const int n ) {
@@ -514,135 +518,201 @@ struct _dpd_interaction_flops_counter {
 };
 
 template<uint COLS, uint ROWS, uint NSRCMAX>
-__device__ void core_flops_counter( unsigned long long *FLOPS, const uint nsrc, const uint * const scan, const uint * const starts,
-                      const uint ndst, const uint dststart )
+__device__ void core_flops_counter( unsigned long long *FLOPS, const uint nsrc, const uint2 * const starts_and_scans,
+        const uint ndst, const uint dststart )
 {
-    uint srcids[NSRCMAX];
-    for( int i = 0; i < NSRCMAX; ++i )
-        srcids[i] = 0;
-
-    uint srccount = 0;
+	uint srccount = 0;
     assert( ndst == ROWS );
 
     const uint tid = threadIdx.x;
+    const uint wid = threadIdx.y;
     const uint slot = tid / COLS;
     const uint subtid = tid % COLS;
 
     const uint dpid = xadd( dststart, slot ); // 1 FLOP
-    const int entry = xscale( dpid, 3.f ); // 1 FLOP
+    const int entry = xscale( dpid, 2.f ); // 1 FLOP
 	#if (USE_TEXOBJ&2)
     const float2 dtmp0 = tex1Dfetch<float2>( info.txoParticles2,       entry      );
     const float2 dtmp1 = tex1Dfetch<float2>( info.txoParticles2, xadd( entry, 1 ) );
     const float2 dtmp2 = tex1Dfetch<float2>( info.txoParticles2, xadd( entry, 2 ) );
-	#else
-    const float2 dtmp0 = tex1Dfetch( texParticles2,       entry      );
-    const float2 dtmp1 = tex1Dfetch( texParticles2, xadd( entry, 1 ) ); // 1 FLOP
-    const float2 dtmp2 = tex1Dfetch( texParticles2, xadd( entry, 2 ) ); // 1 FLOP
-	#endif
     const float3 xdest = make_float3( dtmp0.x, dtmp0.y, dtmp1.x );
     const float3 udest = make_float3( dtmp1.y, dtmp2.x, dtmp2.y );
+	#else
+    const float4 xdest = tex1Dfetch( texParticles2,       entry      );
+    const float4 udest = tex1Dfetch( texParticles2, xadd( entry, 1 ) ); // 1 FLOP
+	#endif
 
-    atomicAdd( FLOPS, 4ULL );
+    atomicAdd( FLOPS, 3ULL );
 
     float xforce = 0, yforce = 0, zforce = 0;
 
-	for(uint s = 0; s < nsrc; s = xadd( s, COLS ) )
+    for(uint s = 0; s < nsrc; s = xadd( s, COLS ) )
 	{
-		const uint pid  = xadd( s, subtid );  // 1 FLOP
-		const uint key9 = xadd( xsel_ge( pid, scan[ 9             ], 9u, 0u ), xsel_ge( pid, scan[ 18            ], 9u, 0u ) ); // 3 FLOPS
-		const uint key3 = xadd( xsel_ge( pid, scan[ xadd(key9,3u) ], 3u, 0u ), xsel_ge( pid, scan[ xadd(key9,6u) ], 3u, 0u ) ); // 3 FLOPS
-		const uint key  = xadd( key9, key3 ); // 1 FLOP
+    	const uint pid  = xadd( s, subtid ); // 1 FLOP
+#ifdef LETS_MAKE_IT_MESSY
+		uint spid;
+		asm( "{ .reg .pred p, q;"
+			 "  .reg .f32  key;"
+			 "  .reg .f32  scan3, scan6, scan9, scan18;"
+			 "  .reg .f32  mystart, myscan;"
+			 "  .reg .s32  array;"
+			 "  .reg .f32  array_f;"
+			 "   mov.b32           array_f, %4;"
+			 "   mul.f32           array_f, array_f, 256.0;"
+			 "   mov.b32           array, array_f;"
+			 "   ld.shared.f32     scan9,  [array +  9*8 + 4];"
+			 "   ld.shared.f32     scan18, [array + 18*8 + 4];"
+			 "   setp.ge.f32       p, %1, scan9;"
+			 "   setp.ge.f32       q, %1, scan18;"
+			 "   selp.f32          key, %2, 0.0, p;"
+			 "@q add.f32           key, key, %2;"
+			 "   mov.b32           array_f, array;"
+			 "   fma.f32.rm        array_f, key, 8.0, array_f;"
+			 "   mov.b32 array,    array_f;"
+			 "   ld.shared.f32     scan3, [array + 3*8 + 4];"
+			 "   ld.shared.f32     scan6, [array + 6*8 + 4];"
+			 "   setp.ge.f32       p, %1, scan3;"
+			 "   setp.ge.f32       q, %1, scan6;"
+			 "@p add.f32           key, key, %3;"
+			 "@q add.f32           key, key, %3;"
+			 "   mov.b32           array_f, %4;"
+			 "   mul.f32           array_f, array_f, 256.0;"
+			 "   fma.f32.rm        array_f, key, 8.0, array_f;"
+			 "   mov.b32           array, array_f;"
+			 "   ld.shared.v2.f32 {mystart, myscan}, [array];"
+			 "   add.f32           mystart, mystart, %1;"
+			 "   sub.f32           mystart, mystart, myscan;"
+	         "   mov.b32           %0, mystart;"
+	         "}" : "=r"(spid) : "f"(u2f(pid)), "f"(u2f(9u)), "f"(u2f(3u)), "f"(u2f(wid)) );
+		// 15 FLOPS
+#else
+		const uint key9 = xadd( xsel_ge( pid, scan[ 9u            ].y, 9u, 0u ), xsel_ge( pid, scan[ 18u           ].y, 9u, 0u ) );
+		const uint key3 = xadd( xsel_ge( pid, scan[ xadd(key9,3u) ].y, 3u, 0u ), xsel_ge( pid, scan[ xadd(key9,6u) ].y, 3u, 0u ) );
+		const uint key  = xadd( key9, key3 );
+		const uint spid = xsub( xadd( pid, starts_and_scans[key].x ), starts_and_scans[key].y );
+#endif
 
-		const uint spid = xsub( xadd( pid, starts[key] ), scan[key] ); // 2 FLOPS
-
-		const int sentry = xscale( spid, 3.f ); // 1 FLOP
 		#if (USE_TEXOBJ&2)
+		const int sentry = xscale( spid, 3.f );
 		const float2 stmp0 = tex1Dfetch<float2>( info.txoParticles2,       sentry      );
 		const float2 stmp1 = tex1Dfetch<float2>( info.txoParticles2, xadd( sentry, 1 ) );
 		#else
-		const float2 stmp0 = tex1Dfetch( texParticles2,       sentry      );
-		const float2 stmp1 = tex1Dfetch( texParticles2, xadd( sentry, 1 ) ); // 1 FLOP
+		const int sentry = xscale( spid, 2.f ); // 1 FLOP
+		const float4 xtmp = tex1Dfetch( texParticles2, sentry );
 		#endif
 
-		const float xdiff = xdest.x - stmp0.x; // 1 FLOP
-		const float ydiff = xdest.y - stmp0.y; // 1 FLOP
-		const float zdiff = xdest.z - stmp1.x; // 1 FLOP
+		const float xdiff = xdest.x - xtmp.x; // 1 FLOP
+		const float ydiff = xdest.y - xtmp.y; // 1 FLOP
+		const float zdiff = xdest.z - xtmp.z; // 1 FLOP
+		atomicAdd( FLOPS, 20ULL );
+#if 0
+		asm("{ .reg .pred p;"
+			"  .reg .f32 srccount_f;"
+			"   mov.b32 srccount_f, %0;"
+			"   setp.lt.f32 p, %1, %2;"
+			"   setp.lt.and.f32 p, %3, 1.0, p;"
+			"   setp.ne.and.f32 p, %4, %5, p;"
+			"   @p st.shared.u32 [%6], %8;"
+			"   @p add.f32 srccount_f, srccount_f, %7;"
+			"   mov.b32 %0, srccount_f;"
+			"}" : "+r"(srccount) :
+			"f"( u2f(pid) ), "f"(u2f(nsrc)), "f"(xdiff * xdiff + ydiff * ydiff + zdiff * zdiff), "f"(u2f(dpid)), "f"(u2f(spid)),
+			"r"( xmad(tid,4.f,xmad(wid,128.f,xmad(srccount,512.f,1024u))) ), "f"(u2f(1u)), "r"(spid) : "memory" );
+		// 3+(?1)+11
+#else
+		// 14 FLOPS
 		const float interacting = xfcmp_lt(pid, nsrc )
 				                * xfcmp_lt( xdiff * xdiff + ydiff * ydiff + zdiff * zdiff, 1.f )
-				                * xfcmp_ne( dpid, spid ) ; // 10 FLOPS
-
-		atomicAdd( FLOPS, 25ULL );
-
+				                * xfcmp_ne( dpid, spid ) ;
+		atomicAdd( FLOPS, 14ULL );
 		if (interacting) {
-			srcids[srccount] = spid;
+//			srcids[srccount] = spid;
 			srccount = xadd( srccount, 1u ); // 1 FLOP
 			atomicAdd( FLOPS, 1ULL );
 		}
-
-		if( srccount == NSRCMAX ) {
+#endif
+		if ( srccount == NSRCMAX ) {
 			srccount = xsub( srccount, 1u ); // 1 FLOP
-			//const float3 f = _dpd_interaction( dpid, xdest, udest, srcids[srccount] ); // 88 FLOPS
-			//xforce += f.x; // 1 FLOP
-			//yforce += f.y; // 1 FLOP
-			//zforce += f.z; // 1 FLOP
-			atomicAdd( FLOPS, _dpd_interaction_flops_counter::FLOPS + 4ULL );
-		}
+			// why do we reload spid? it's right there in register
+			float3 f;// = _dpd_interaction( dpid, xdest, udest, spid ); // 87 FLOPS
 
+			xforce += f.x; // 1 FLOP
+			yforce += f.y; // 1 FLOP
+			zforce += f.z; // 1 FLOP
+			atomicAdd( FLOPS, 4ULL + _dpd_interaction_flops_counter::FLOPS );
+		}
 		// 1 FLOP for s++
 		atomicAdd( FLOPS, 1ULL );
 	}
 
 #pragma unroll 4
-    for( uint i = 0; i < srccount; i = xadd( i, 1u ) ) {
-        // const float3 f = _dpd_interaction( dpid, xdest, udest, srcids[i] ); // 88 FLOPS
-
-        // xforce += f.x; // 1 FLOP
-        // yforce += f.y; // 1 FLOP
-        // zforce += f.z; // 1 FLOP
+	for( uint i = 0; i < srccount; i = xadd( i, 1u ) ) {
+#ifdef LETS_MAKE_IT_MESSY
+		uint spid;
+		asm("ld.shared.u32 %0, [%1];" : "=r"(spid) : "r"( xmad(tid,4.f,xmad(wid,128.f,xmad(i,512.f,1024u))) ) ); // 6 FLOPS
+		float3 f;// = _dpd_interaction( dpid, xdest, udest, spid ); // 87 FLOPS
+		atomicAdd( FLOPS, 6 + _dpd_interaction_flops_counter::FLOPS );
+#else
+		const float3 f = _dpd_interaction( dpid, xdest, udest, srcids[i] ); // 87 FLOPS
+#endif
+        xforce += f.x; // 1 FLOP
+        yforce += f.y; // 1 FLOP
+        zforce += f.z; // 1 FLOP
 
         // 1 FLOP for i++
-        atomicAdd( FLOPS, _dpd_interaction_flops_counter::FLOPS + 4ULL );
+        atomicAdd( FLOPS, 4ULL );
     }
 
     for( uint L = COLS / 2; L > 0; L >>= 1 ) {
-        // xforce += __shfl_xor( xforce, L ); // 1 FLOP
-        // yforce += __shfl_xor( yforce, L ); // 1 FLOP
-        // zforce += __shfl_xor( zforce, L ); // 1 FLOP
+        xforce += __shfl_xor( xforce, L ); // 1 FLOP
+        yforce += __shfl_xor( yforce, L ); // 1 FLOP
+        zforce += __shfl_xor( zforce, L ); // 1 FLOP
         atomicAdd( FLOPS, 3ULL );
     }
 
-    // const float fcontrib = xsel_eq( subtid, 0u, xforce, xsel_eq( subtid, 1u, yforce, zforce ) ); // 2 FLOPS
+#ifdef LETS_MAKE_IT_MESSY
+    float fcontrib;
+    asm("{   .reg .pred isy, isz;"
+    	"     setp.f32.eq isy, %1, %5;"
+    	"     setp.f32.eq isz, %1, %6;"
+    	"     selp.f32 %0, %2, %3, !isy;"
+    	"@isz mov.b32 %0, %4;"
+    	"}" : "=f"(fcontrib) : "f"(u2f(subtid)), "f"(xforce), "f"(yforce), "f"(zforce), "f"(u2f(1u)), "f"(u2f(2u)) );
+    // 2 FLOPS
     atomicAdd( FLOPS, 2ULL );
+#else
+    //const float fcontrib = xsel_eq( subtid, 0u, xforce, xsel_eq( subtid, 1u, yforce, zforce ) ); // 2 FLOPS
+#endif
 
     if( subtid < 3.f ) {
-        // info.axayaz[ xmad( dpid, 3.f, subtid ) ] = fcontrib;  // 2 FLOPS
+        //info.axayaz[ xmad( dpid, 3.f, subtid ) ] = fcontrib;  // 2 FLOPS
         atomicAdd( FLOPS, 2ULL );
     }
 }
 
 template<uint COLS, uint ROWS, uint NSRCMAX>
-__device__ void core_ilp_flops_counter( unsigned long long *FLOPS, const uint nsrc, const uint * const scan, const uint * const starts,
-                          const uint ndst, const uint dststart )
+__device__ void core_ilp_flops_counter( unsigned long long *FLOPS, const uint nsrc, const uint2 * const starts_and_scans,
+        const uint ndst, const uint dststart )
 {
     const uint tid    = threadIdx.x;
+    const uint wid    = threadIdx.y;
     const uint slot   = tid / COLS;
     const uint subtid = tid % COLS;
 
     const uint dpid = xadd( dststart, slot ); // 1 FLOP
-    const int entry = xscale( dpid, 3.f ); // 1 FLOP
+    const int entry = xscale( dpid, 2.f ); // 1 FLOP
 	#if (USE_TEXOBJ&2)
 	const float2 dtmp0 = tex1Dfetch<float2>( info.txoParticles2,       entry      );
 	const float2 dtmp1 = tex1Dfetch<float2>( info.txoParticles2, xadd( entry, 1 ) );
 	const float2 dtmp2 = tex1Dfetch<float2>( info.txoParticles2, xadd( entry, 2 ) );
-	#else
-	const float2 dtmp0 = tex1Dfetch( texParticles2,       entry      );
-	const float2 dtmp1 = tex1Dfetch( texParticles2, xadd( entry, 1 ) ); // 1 FLOP
-	const float2 dtmp2 = tex1Dfetch( texParticles2, xadd( entry, 2 ) ); // 1 FLOP
-	#endif
     const float3 xdest = make_float3( dtmp0.x, dtmp0.y, dtmp1.x );
     const float3 udest = make_float3( dtmp1.y, dtmp2.x, dtmp2.y );
+	#else
+	const float4 xdest = tex1Dfetch( texParticles2,       entry      );
+	const float4 udest = tex1Dfetch( texParticles2, xadd( entry, 1 ) ); // 1 FLOP
+	#endif
 
-    atomicAdd( FLOPS, 4ULL );
+	atomicAdd( FLOPS, 3ULL );
 
     float xforce = 0, yforce = 0, zforce = 0;
 
@@ -650,60 +720,123 @@ __device__ void core_ilp_flops_counter( unsigned long long *FLOPS, const uint ns
         uint spids[NSRCMAX];
 		#pragma unroll
         for( uint i = 0; i < NSRCMAX; ++i ) {
-            const uint pid  = xadd( s, xmad( i, float(COLS), subtid ) ); // 3 FLOPS
-    		const uint key9 = xadd( xsel_ge( pid, scan[ 9             ], 9u, 0u ), xsel_ge( pid, scan[ 18            ], 9u, 0u ) ); // 3 FLOPS
-    		const uint key3 = xadd( xsel_ge( pid, scan[ xadd(key9,3u) ], 3u, 0u ), xsel_ge( pid, scan[ xadd(key9,6u) ], 3u, 0u ) ); // 3 FLOPS
+            const uint pid  = xadd( s, xmad( i, float(COLS), subtid ) );
+            atomicAdd( FLOPS, 3ULL );
+#ifdef LETS_MAKE_IT_MESSY
+    		uint spid;
+    		asm( "{ .reg .pred p, q;"
+    			 "  .reg .f32  key;"
+    			 "  .reg .f32  scan3, scan6, scan9, scan18;"
+    			 "  .reg .f32  mystart, myscan;"
+    			 "  .reg .s32  array;"
+    			 "  .reg .f32  array_f;"
+    			 "   mov.b32           array_f, %4;"
+    			 "   mul.f32           array_f, array_f, 256.0;"
+    			 "   mov.b32           array, array_f;"
+    			 "   ld.shared.f32     scan9,  [array +  9*8 + 4];"
+    			 "   ld.shared.f32     scan18, [array + 18*8 + 4];"
+    			 "   setp.ge.f32       p, %1, scan9;"
+    			 "   setp.ge.f32       q, %1, scan18;"
+    			 "   selp.f32          key, %2, 0.0, p;"
+    			 "@q add.f32           key, key, %2;"
+    			 "   mov.b32           array_f, array;"
+    			 "   fma.f32.rm        array_f, key, 8.0, array_f;"
+    			 "   mov.b32 array,    array_f;"
+    			 "   ld.shared.f32     scan3, [array + 3*8 + 4];"
+    			 "   ld.shared.f32     scan6, [array + 6*8 + 4];"
+    			 "   setp.ge.f32       p, %1, scan3;"
+    			 "   setp.ge.f32       q, %1, scan6;"
+    			 "@p add.f32           key, key, %3;"
+    			 "@q add.f32           key, key, %3;"
+    			 "   mov.b32           array_f, %4;"
+    			 "   mul.f32           array_f, array_f, 256.0;"
+    			 "   fma.f32.rm        array_f, key, 8.0, array_f;"
+    			 "   mov.b32           array, array_f;"
+    			 "   ld.shared.v2.f32 {mystart, myscan}, [array];"
+    			 "   add.f32           mystart, mystart, %1;"
+    			 "   sub.f32           mystart, mystart, myscan;"
+    	         "   mov.b32           %0, mystart;"
+    	         "}" : "=r"(spid) : "f"(u2f(pid)), "f"(u2f(9u)), "f"(u2f(3u)), "f"(u2f(wid)) );
+    		// 15 FLOPS
+            spids[i] = spid;
+            atomicAdd( FLOPS, 15ULL );
+#else
+    		const uint key9 = xadd( xsel_ge( pid, scan[ 9             ], 9u, 0u ), xsel_ge( pid, scan[ 18            ], 9u, 0u ) );
+    		const uint key3 = xadd( xsel_ge( pid, scan[ xadd(key9,3u) ], 3u, 0u ), xsel_ge( pid, scan[ xadd(key9,6u) ], 3u, 0u ) );
     		const uint key  = xadd( key9, key3 );
-
-            spids[i] = xsub( xadd( pid, starts[key] ), scan[key] ); // 2 FLOPS
-            atomicAdd( FLOPS, 11ULL );
+            spids[i] = xsub( xadd( pid, starts_and_scans[key].x ), starts_and_scans[key].y );
+#endif
         }
 
-        bool interacting[NSRCMAX];
+        uint interacting[NSRCMAX];
 		#pragma unroll
         for( uint i = 0; i < NSRCMAX; ++i ) {
-            const int sentry = xscale( spids[i], 3.f ); // 1 FLOP
 			#if (USE_TEXOBJ&2)
 			const float2 stmp0 = tex1Dfetch<float2>( info.txoParticles2,       sentry      );
 			const float2 stmp1 = tex1Dfetch<float2>( info.txoParticles2, xadd( sentry, 1 ) );
 			#else
-			const float2 stmp0 = tex1Dfetch( texParticles2,       sentry      );
-			const float2 stmp1 = tex1Dfetch( texParticles2, xadd( sentry, 1 ) ); // 1 FLOP
+            const int sentry = xscale( spids[i], 2.f ); // 1 FLOP
+			const float4 xtmp = tex1Dfetch( texParticles2,       sentry      );
 			#endif
 
-            const float xdiff = xdest.x - stmp0.x; // 1 FLOP
-            const float ydiff = xdest.y - stmp0.y; // 1 FLOP
-            const float zdiff = xdest.z - stmp1.x; // 1 FLOP
+            const float xdiff = xdest.x - xtmp.x; // 1 FLOP
+            const float ydiff = xdest.y - xtmp.y; // 1 FLOP
+            const float zdiff = xdest.z - xtmp.z; // 1 FLOP
+            atomicAdd( FLOPS, 4ULL );
+
+#ifdef LETS_MAKE_IT_MESSY
+			uint interacting_one;
+            asm("{ .reg .pred p;"
+				"   setp.lt.f32 p, %1, %2;"
+				"   setp.lt.and.f32 p, %3, 1.0, p;"
+				"   set.ne.and.u32.f32 %0, %4, %5, p;"
+				"   }" : "=r"(interacting_one)  : "f"(u2f(xadd( s, xmad( i, float(COLS), subtid ) ))), "f"(u2f(nsrc)), "f"(xdiff * xdiff + ydiff * ydiff + zdiff * zdiff), "f"(u2f(dpid)), "f"(u2f(spids[i])) );
+            // 12 FLOPS
+            interacting[i] = interacting_one;
+            atomicAdd( FLOPS, 12ULL );
+#else
             interacting[i] = xfcmp_lt( xadd( s, xmad( i, float(COLS), subtid ) ), nsrc )
             		       * xfcmp_lt( xdiff * xdiff + ydiff * ydiff + zdiff * zdiff, 1.f )
-            		       * xfcmp_ne( dpid, spids[i] ); // 13 FLOPS
-            atomicAdd( FLOPS, 18ULL );
+            		       * xfcmp_ne( dpid, spids[i] );
+#endif
         }
 
 		#pragma unroll
         for( uint i = 0; i < NSRCMAX; ++i ) {
             if( interacting[i] ) {
-                //const float3 f = _dpd_interaction( dpid, xdest, udest, spids[i] ); // 88 FLOPS
+                float3 f;// = _dpd_interaction( dpid, xdest, udest, spids[i] ); // 88 FLOPS
 
-                //xforce += f.x; // 1 FLOP
-                //yforce += f.y; // 1 FLOP
-                //zforce += f.z; // 1 FLOP
-            	atomicAdd( FLOPS, _dpd_interaction_flops_counter::FLOPS + 3ULL );
+                xforce += f.x; // 1 FLOP
+                yforce += f.y; // 1 FLOP
+                zforce += f.z; // 1 FLOP
+                atomicAdd( FLOPS, 3ULL + _dpd_interaction_flops_counter::FLOPS );
             }
         }
 
         // 1 FLOP for s += NSRCMAX * COLS;
+        atomicAdd( FLOPS, 1ULL );
     }
 
     for( uint L = COLS / 2; L > 0; L >>= 1 ) {
-        //xforce += __shfl_xor( xforce, L ); // 1 FLOP
-        //yforce += __shfl_xor( yforce, L ); // 1 FLOP
-        //zforce += __shfl_xor( zforce, L ); // 1 FLOP
-    	atomicAdd( FLOPS, 3ULL );
+        xforce += __shfl_xor( xforce, L ); // 1 FLOP
+        yforce += __shfl_xor( yforce, L ); // 1 FLOP
+        zforce += __shfl_xor( zforce, L ); // 1 FLOP
+        atomicAdd( FLOPS, 3ULL );
     }
 
-    //const float fcontrib = xsel_eq( subtid, 0u, xforce, xsel_eq( subtid, 1u, yforce, zforce ) );  // 2 FLOPS
+#ifdef LETS_MAKE_IT_MESSY
+    float fcontrib;
+    asm("{   .reg .pred isy, isz;"
+    	"     setp.f32.eq isy, %1, %5;"
+    	"     setp.f32.eq isz, %1, %6;"
+    	"     selp.f32 %0, %2, %3, !isy;"
+    	"@isz mov.b32 %0, %4;"
+    	"}" : "=f"(fcontrib) : "f"(u2f(subtid)), "f"(xforce), "f"(yforce), "f"(zforce), "f"(u2f(1u)), "f"(u2f(2u)) );
+    // 2 FLOPS
     atomicAdd( FLOPS, 2ULL );
+#else
+    const float fcontrib = xsel_eq( subtid, 0u, xforce, xsel_eq( subtid, 1u, yforce, zforce ) );  // 2 FLOPS
+#endif
 
     if( subtid < 3u ) {
         //info.axayaz[ xmad( dpid, 3.f, subtid ) ] = fcontrib;  // 2 FLOPS
@@ -719,13 +852,14 @@ void _dpd_forces_floatized_flops_counter(unsigned long long *FLOPS)
     const uint tid = threadIdx.x;
     const uint wid = threadIdx.y;
 
-    __shared__ volatile uint starts[CPB][32], scan[CPB][32];
+    __shared__ volatile uint2 starts_and_scans[CPB*3][32];
 
     uint mycount = 0, myscan = 0;
+    const int dx = ( tid ) % 3;
+    const int dy = ( ( tid / 3 ) ) % 3;
+    const int dz = ( ( tid / 9 ) ) % 3;
+
     if( tid < 27 ) {
-        const int dx = ( tid ) % 3;
-        const int dy = ( ( tid / 3 ) ) % 3;
-        const int dz = ( ( tid / 9 ) ) % 3;
 
         int xcid = blockIdx.x * _XCPB_ + ( ( threadIdx.y ) % _XCPB_ ) + dx - 1;
         int ycid = blockIdx.y * _YCPB_ + ( ( threadIdx.y / _XCPB_ ) % _YCPB_ ) + dy - 1;
@@ -743,45 +877,45 @@ void _dpd_forces_floatized_flops_counter(unsigned long long *FLOPS)
 
         const int cid = max( 0, ( zcid * info.ncells.y + ycid ) * info.ncells.x + xcid );
 		#if (USE_TEXOBJ&2)
-        starts[wid][tid] = tex1Dfetch<uint>( info.txoStart, cid );
+        starts_and_scans[wid][tid].x = tex1Dfetch<uint>( info.txoStart, cid );
         myscan = mycount = valid_cid ? tex1Dfetch<uint>( info.txoCount, cid ) : 0u;
 		#else
-        starts[wid][tid] = tex1Dfetch( texStart, cid );
+        starts_and_scans[wid][tid].x = tex1Dfetch( texStart, cid );
         myscan = mycount = valid_cid ? tex1Dfetch( texCount, cid ) : 0u;
 		#endif
     }
 
     for( uint L = 1u; L < 32u; L <<= 1 ) {
     	uint theirscan = i2u( __shfl_up( u2i(myscan), u2i(L) ) );
-        myscan = xadd( myscan, xsel_ge( tid, L, theirscan, 0u ) ); // 2 FLOPS
-        atomicAdd( FLOPS, 2ULL );
+    	myscan = xadd( myscan, xsel_ge( tid, L, theirscan, 0u ) ); // 2 FLOPS
+    	atomicAdd( FLOPS, 2ULL );
     }
 
     if( tid < 28 ) {
-        scan[wid][tid] = xsub( myscan, mycount ); // 1 FLOP
+    	starts_and_scans[wid][tid].y = xsub( myscan, mycount ); // 1 FLOP
+    	atomicAdd( FLOPS, 1ULL );
+    }
+
+    const uint nsrc = starts_and_scans[wid][27].y;
+    const uint dststart = starts_and_scans[wid][1 + 3 + 9].x;
+    const uint ndst = xsub( starts_and_scans[wid][1 + 3 + 9 + 1].y, starts_and_scans[wid][1 + 3 + 9].y ); // 1 FLOP
+    const uint ndst4 = ( ndst >> 2 ) << 2;
+    atomicAdd( FLOPS, 1ULL );
+
+    for( uint d = 0; d < ndst4; d = xadd( d, 4u ) ) { // 1 FLOP
+        core_flops_counter<8, 4, 4>( FLOPS, nsrc, ( const uint2 * )starts_and_scans[wid], 4, xadd( dststart, d ) ); // 1 FLOP
         atomicAdd( FLOPS, 2ULL );
     }
 
-    const uint nsrc = scan[wid][27];
-    const uint dststart = starts[wid][1 + 3 + 9];
-    const uint ndst = xsub( scan[wid][1 + 3 + 9 + 1], scan[wid][1 + 3 + 9] ); // 1 FLOP
-    atomicAdd( FLOPS, 1ULL );
-    const uint ndst4 = ( ndst >> 2 ) << 2;
-
-    for( uint d = 0; d < ndst4; d = xadd( d, 4u ) ) { // 1 FLOP
-        core_flops_counter<8, 4, 4>( FLOPS, nsrc, ( const uint * )scan[wid], ( const uint * )starts[wid], 4, xadd( dststart, d ) ); // 1 FLOP
-    	atomicAdd( FLOPS, 2ULL );
-	}
-
     uint d = ndst4;
-    if( xadd( d, 2u ) <= ndst ) { // 1 FLOP
-        core_flops_counter<16, 2, 4>( FLOPS, nsrc, ( const uint * )scan[wid], ( const uint * )starts[wid], 2, xadd( dststart, d ) ); // 1 FLOP
+    if( xadd( d, 2u ) <= ndst ) { // 1 FLOPS
+        core_flops_counter<16, 2, 4>( FLOPS, nsrc, ( const uint2 * )starts_and_scans[wid], 2, xadd( dststart, d ) ); // 1 FLOP
         d = xadd( d, 2u ); // 1 FLOP
         atomicAdd( FLOPS, 3ULL );
     }
 
     if( d < ndst ) {
-        core_ilp_flops_counter<32, 1, 2>( FLOPS, nsrc, ( const uint * )scan[wid], ( const uint * )starts[wid], 1, xadd( dststart, d ) ); // 1 FLOP
+        core_ilp_flops_counter<32, 1, 2>( FLOPS, nsrc, ( const uint2 * )starts_and_scans[wid], 1, xadd( dststart, d ) ); // 1 FLOP
         atomicAdd( FLOPS, 1ULL );
     }
 }
