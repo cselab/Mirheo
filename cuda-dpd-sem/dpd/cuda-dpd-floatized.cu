@@ -36,10 +36,8 @@ struct InfoDPD {
 __constant__ InfoDPD info;
 
 #if !(USE_TEXOBJ&2)
-texture<float4,  cudaTextureType1D> texParticles4;
-texture<float2,  cudaTextureType1D> texParticles2;
-texture<float4,  cudaTextureType1D> texParticlesDebug;
-texture<uint,    cudaTextureType1D> texStart, texCount;
+texture<float4, cudaTextureType1D> texParticles2;
+texture<uint, cudaTextureType1D> texStart, texCount;
 #endif
 #if (USE_TEXOBJ&1)
 template<typename TYPE> struct texture_object {
@@ -93,40 +91,17 @@ template<> __device__ float viscosity_function<0>( float x )
     return x;
 }
 
-__forceinline__ __device__ uint xscaleru( uint u, float s ) {
-	float a = u2f(u), b;
-	asm( "mul.f32.rp %0, %1, %2;" : "=f"(b) : "f"(a), "f"(s) );
-	return f2u(b);
-}
-
-__forceinline__ __device__ uint xscalerz( uint u, float s ) {
-	float a = u2f(u), b;
-	asm( "mul.f32.rz %0, %1, %2;" : "=f"(b) : "f"(a), "f"(s) );
-	return f2u(b);
-}
-
-// 88 FLOPS
-__device__ float3 _dpd_interaction( const uint dpid, const float3 xdest, const float3 udest, const uint spid )
+// 31+56 FLOPS
+__device__ float3 _dpd_interaction( const uint dpid, const float4 xdest, const float4 udest, const uint spid )
 {
+    const int sentry = xscale( spid, 2.f ); // 1 FLOP
 	#if (USE_TEXOBJ&2)
     const float2 stmp0 = tex1Dfetch<float2>( info.txoParticles2, sentry           );
     const float2 stmp1 = tex1Dfetch<float2>( info.txoParticles2, xadd( sentry, 1 ) );
     const float2 stmp2 = tex1Dfetch<float2>( info.txoParticles2, xadd( sentry, 2 ) );
 	#else
-#if 0
-    const int sentry = xscale( spid, 2.f );
-    const float4 tmp0 = tex1Dfetch( texParticlesDebug,       sentry      );
-    const float4 tmp1 = tex1Dfetch( texParticlesDebug, xadd( sentry, 1 ) ); // 1 FLOP
-    const float3 xtmp = make_float3( tmp0.x, tmp0.y, tmp0.z );
-    const float3 utmp = make_float3( tmp0.w, tmp1.x, tmp1.y );
-#else
-    uint m = xscaleru( spid, 1.5f );
-    uint n = xmadrp( xsub( xmad( xscalerz( spid, 0.5f), 2.f, 1u ), spid ), 1.5f, xscale(spid,3.f) );
-    const float4 tmp0 = tex1Dfetch( texParticles4, m );
-    const float2 tmp1 = tex1Dfetch( texParticles2, n ); // 1 FLOP
-    const float3 xtmp = make_float3( tmp0.x, tmp0.y, tmp0.z );
-    const float3 utmp = make_float3( tmp0.w, tmp1.x, tmp1.y );
-#endif
+    const float4 xtmp = tex1Dfetch( texParticles2, sentry           );
+    const float4 utmp = tex1Dfetch( texParticles2, xadd( sentry, 1 ) ); // 1 FLOP
     #endif
 
     const float _xr = xdest.x - xtmp.x; // 1 FLOP
@@ -170,6 +145,7 @@ __device__ void core( const uint nsrc, const uint2 * const starts_and_scans,
     const uint subtid = tid % COLS;
 
     const uint dpid = xadd( dststart, slot ); // 1 FLOP
+    const int entry = xscale( dpid, 2.f ); // 1 FLOP
 	#if (USE_TEXOBJ&2)
     const float2 dtmp0 = tex1Dfetch<float2>( info.txoParticles2,       entry      );
     const float2 dtmp1 = tex1Dfetch<float2>( info.txoParticles2, xadd( entry, 1 ) );
@@ -177,19 +153,15 @@ __device__ void core( const uint nsrc, const uint2 * const starts_and_scans,
     const float3 xdest = make_float3( dtmp0.x, dtmp0.y, dtmp1.x );
     const float3 udest = make_float3( dtmp1.y, dtmp2.x, dtmp2.y );
 	#else
-    uint m = xscaleru( dpid, 1.5f );
-    uint n = xmadrp( xsub( xmad( xscalerz( dpid, 0.5f), 2.f, 1u ), dpid ), 1.5f, xscale(dpid,3.f) );
-    const float4 tmp0 = tex1Dfetch( texParticles4, m );
-    const float2 tmp1 = tex1Dfetch( texParticles2, n ); // 1 FLOP
-    const float3 xdest = make_float3( tmp0.x, tmp0.y, tmp0.z );
-    const float3 udest = make_float3( tmp0.w, tmp1.x, tmp1.y );
+    const float4 xdest = tex1Dfetch( texParticles2,       entry      );
+    const float4 udest = tex1Dfetch( texParticles2, xadd( entry, 1 ) ); // 1 FLOP
 	#endif
 
     float xforce = 0, yforce = 0, zforce = 0;
 
     for(uint s = 0; s < nsrc; s = xadd( s, COLS ) )
 	{
-    	const uint pid  = xadd( s, subtid );
+    	const uint pid  = xadd( s, subtid ); // 1 FLOP
 #ifdef LETS_MAKE_IT_MESSY
 		uint spid;
 		asm( "{ .reg .pred p, q;"
@@ -224,7 +196,7 @@ __device__ void core( const uint nsrc, const uint2 * const starts_and_scans,
 			 "   add.f32           mystart, mystart, %1;"
 			 "   sub.f32           mystart, mystart, myscan;"
 	         "   mov.b32           %0, mystart;"
-	         "}" : "=r"(spid) : "f"(u2f(pid)), "f"(u2f(9u)), "f"(u2f(3u)), "f"(u2f(wid)) );
+	         "}" : "=r"(spid) : "f"(u2f(pid)), "f"(u2f(9u)), "f"(u2f(3u)), "f"(u2f(wid)) ); // 15 FLOPS
 #else
 		const uint key9 = xadd( xsel_ge( pid, scan[ 9u            ].y, 9u, 0u ), xsel_ge( pid, scan[ 18u           ].y, 9u, 0u ) );
 		const uint key3 = xadd( xsel_ge( pid, scan[ xadd(key9,3u) ].y, 3u, 0u ), xsel_ge( pid, scan[ xadd(key9,6u) ].y, 3u, 0u ) );
@@ -238,39 +210,41 @@ __device__ void core( const uint nsrc, const uint2 * const starts_and_scans,
 		const float2 stmp0 = tex1Dfetch<float2>( info.txoParticles2,       sentry      );
 		const float2 stmp1 = tex1Dfetch<float2>( info.txoParticles2, xadd( sentry, 1 ) );
 		#else
-	    uint m = xscaleru( spid, 1.5f );
-	    const float4 tmp0 = tex1Dfetch( texParticles4, m );
-	    const float3 xtmp = make_float3( tmp0.x, tmp0.y, tmp0.z );
-	    #endif
+		const int sentry = xscale( spid, 2.f ); // 1 FLOP
+		const float4 xtmp = tex1Dfetch( texParticles2, sentry );
+		#endif
 
-		const float xdiff = xdest.x - xtmp.x;
-		const float ydiff = xdest.y - xtmp.y;
-		const float zdiff = xdest.z - xtmp.z;
+		const float xdiff = xdest.x - xtmp.x; // 1 FLOP
+		const float ydiff = xdest.y - xtmp.y; // 1 FLOP
+		const float zdiff = xdest.z - xtmp.z; // 1 FLOP
 #ifdef LETS_MAKE_IT_MESSY
-		float srccount_f = u2f(srccount);
 		asm("{ .reg .pred p;"
+			"  .reg .f32 srccount_f;"
+			"   mov.b32 srccount_f, %0;"
 			"   setp.lt.f32 p, %1, %2;"
 			"   setp.lt.and.f32 p, %3, 1.0, p;"
 			"   setp.ne.and.f32 p, %4, %5, p;"
 			"   @p st.shared.u32 [%6], %8;"
-			"   @p add.f32 %0, %0, %7;"
-			"}" : "+f"(srccount_f) :
+			"   @p add.f32 srccount_f, srccount_f, %7;"
+			"   mov.b32 %0, srccount_f;"
+			"}" : "+r"(srccount) :
 			"f"( u2f(pid) ), "f"(u2f(nsrc)), "f"(xdiff * xdiff + ydiff * ydiff + zdiff * zdiff), "f"(u2f(dpid)), "f"(u2f(spid)),
 			"r"( xmad(tid,4.f,xmad(wid,128.f,xmad(srccount,512.f,1024u))) ), "f"(u2f(1u)), "r"(spid) : "memory" );
-		srccount = f2u( srccount_f );
+		// 3+(?1)+11
 #else
+		// 14 FLOPS
 		const float interacting = xfcmp_lt(pid, nsrc )
 				                * xfcmp_lt( xdiff * xdiff + ydiff * ydiff + zdiff * zdiff, 1.f )
 				                * xfcmp_ne( dpid, spid ) ;
 		if (interacting) {
 			srcids[srccount] = spid;
-			srccount = xadd( srccount, 1u );
+			srccount = xadd( srccount, 1u ); // 1 FLOP
 		}
 #endif
 		if ( srccount == NSRCMAX ) {
 			srccount = xsub( srccount, 1u ); // 1 FLOP
 			// why do we reload spid? it's right there in register
-			const float3 f = _dpd_interaction( dpid, xdest, udest, spid ); // 88 FLOPS
+			const float3 f = _dpd_interaction( dpid, xdest, udest, spid ); // 87 FLOPS
 
 			xforce += f.x; // 1 FLOP
 			yforce += f.y; // 1 FLOP
@@ -283,10 +257,10 @@ __device__ void core( const uint nsrc, const uint2 * const starts_and_scans,
 	for( uint i = 0; i < srccount; i = xadd( i, 1u ) ) {
 #ifdef LETS_MAKE_IT_MESSY
 		uint spid;
-		asm("ld.shared.u32 %0, [%1];" : "=r"(spid) : "r"( xmad(tid,4.f,xmad(wid,128.f,xmad(i,512.f,1024u))) ) );
-		const float3 f = _dpd_interaction( dpid, xdest, udest, spid ); // 88 FLOPS
+		asm("ld.shared.u32 %0, [%1];" : "=r"(spid) : "r"( xmad(tid,4.f,xmad(wid,128.f,xmad(i,512.f,1024u))) ) ); // 6 FLOPS
+		const float3 f = _dpd_interaction( dpid, xdest, udest, spid ); // 87 FLOPS
 #else
-		const float3 f = _dpd_interaction( dpid, xdest, udest, srcids[i] ); // 88 FLOPS
+		const float3 f = _dpd_interaction( dpid, xdest, udest, srcids[i] ); // 87 FLOPS
 #endif
         xforce += f.x; // 1 FLOP
         yforce += f.y; // 1 FLOP
@@ -301,7 +275,18 @@ __device__ void core( const uint nsrc, const uint2 * const starts_and_scans,
         zforce += __shfl_xor( zforce, L ); // 1 FLOP
     }
 
-    const float fcontrib = xsel_eq( subtid, 0u, xforce, xsel_eq( subtid, 1u, yforce, zforce ) ); // 2 FLOPS
+#ifdef LETS_MAKE_IT_MESSY
+    float fcontrib;
+    asm("{   .reg .pred isy, isz;"
+    	"     setp.f32.eq isy, %1, %5;"
+    	"     setp.f32.eq isz, %1, %6;"
+    	"     selp.f32 %0, %2, %3, !isy;"
+    	"@isz mov.b32 %0, %4;"
+    	"}" : "=f"(fcontrib) : "f"(u2f(subtid)), "f"(xforce), "f"(yforce), "f"(zforce), "f"(u2f(1u)), "f"(u2f(2u)) );
+    // 2 FLOPS
+#else
+    //const float fcontrib = xsel_eq( subtid, 0u, xforce, xsel_eq( subtid, 1u, yforce, zforce ) ); // 2 FLOPS
+#endif
 
     if( subtid < 3.f )
         info.axayaz[ xmad( dpid, 3.f, subtid ) ] = fcontrib;  // 2 FLOPS
@@ -312,10 +297,12 @@ __device__ void core_ilp( const uint nsrc, const uint2 * const starts_and_scans,
                           const uint ndst, const uint dststart )
 {
     const uint tid    = threadIdx.x;
+    const uint wid    = threadIdx.y;
     const uint slot   = tid / COLS;
     const uint subtid = tid % COLS;
 
     const uint dpid = xadd( dststart, slot ); // 1 FLOP
+    const int entry = xscale( dpid, 2.f ); // 1 FLOP
 	#if (USE_TEXOBJ&2)
 	const float2 dtmp0 = tex1Dfetch<float2>( info.txoParticles2,       entry      );
 	const float2 dtmp1 = tex1Dfetch<float2>( info.txoParticles2, xadd( entry, 1 ) );
@@ -323,12 +310,8 @@ __device__ void core_ilp( const uint nsrc, const uint2 * const starts_and_scans,
     const float3 xdest = make_float3( dtmp0.x, dtmp0.y, dtmp1.x );
     const float3 udest = make_float3( dtmp1.y, dtmp2.x, dtmp2.y );
 	#else
-    uint m = xscaleru( dpid, 1.5f );
-    uint n = xmadrp( xsub( xmad( xscalerz( dpid, 0.5f), 2.f, 1u ), dpid ), 1.5f, xscale(dpid,3.f) );
-    const float4 tmp0 = tex1Dfetch( texParticles4, m );
-    const float2 tmp1 = tex1Dfetch( texParticles2, n ); // 1 FLOP
-    const float3 xdest = make_float3( tmp0.x, tmp0.y, tmp0.z );
-    const float3 udest = make_float3( tmp0.w, tmp1.x, tmp1.y );
+	const float4 xdest = tex1Dfetch( texParticles2,       entry      );
+	const float4 udest = tex1Dfetch( texParticles2, xadd( entry, 1 ) ); // 1 FLOP
 	#endif
 
     float xforce = 0, yforce = 0, zforce = 0;
@@ -339,25 +322,47 @@ __device__ void core_ilp( const uint nsrc, const uint2 * const starts_and_scans,
         for( uint i = 0; i < NSRCMAX; ++i ) {
             const uint pid  = xadd( s, xmad( i, float(COLS), subtid ) );
 #ifdef LETS_MAKE_IT_MESSY
-			float key9f;
-			asm( "{ .reg .pred p, q;"
-				 "   setp.ge.f32 p, %1, %3;"
-				 "   setp.ge.f32 q, %1, %4;"
-				 "   selp.f32    %0, %2, 0.0, p;"
-				 "@q add.f32     %0, %0, %2; }" : "=f"(key9f) : "f"(u2f(pid)), "f"(u2f(9u)), "f"(u2f(starts_and_scans[9].y)), "f"(u2f(starts_and_scans[18].y)) );
-			const uint key9 = f2u(key9f);
-			asm( "{ .reg .pred p, q;"
-				 "   setp.ge.f32 p, %1, %3;"
-				 "   setp.ge.f32 q, %1, %4;"
-				 "@p add.f32     %0, %0, %2;"
-				 "@q add.f32     %0, %0, %2; }" : "+f"(key9f) : "f"(u2f(pid)), "f"(u2f(3u)), "f"(u2f(starts_and_scans[xadd(key9,3u)].y)), "f"(u2f(starts_and_scans[xadd(key9,6u)].y)) );
-			const uint key = f2u(key9f);
+    		uint spid;
+    		asm( "{ .reg .pred p, q;"
+    			 "  .reg .f32  key;"
+    			 "  .reg .f32  scan3, scan6, scan9, scan18;"
+    			 "  .reg .f32  mystart, myscan;"
+    			 "  .reg .s32  array;"
+    			 "  .reg .f32  array_f;"
+    			 "   mov.b32           array_f, %4;"
+    			 "   mul.f32           array_f, array_f, 256.0;"
+    			 "   mov.b32           array, array_f;"
+    			 "   ld.shared.f32     scan9,  [array +  9*8 + 4];"
+    			 "   ld.shared.f32     scan18, [array + 18*8 + 4];"
+    			 "   setp.ge.f32       p, %1, scan9;"
+    			 "   setp.ge.f32       q, %1, scan18;"
+    			 "   selp.f32          key, %2, 0.0, p;"
+    			 "@q add.f32           key, key, %2;"
+    			 "   mov.b32           array_f, array;"
+    			 "   fma.f32.rm        array_f, key, 8.0, array_f;"
+    			 "   mov.b32 array,    array_f;"
+    			 "   ld.shared.f32     scan3, [array + 3*8 + 4];"
+    			 "   ld.shared.f32     scan6, [array + 6*8 + 4];"
+    			 "   setp.ge.f32       p, %1, scan3;"
+    			 "   setp.ge.f32       q, %1, scan6;"
+    			 "@p add.f32           key, key, %3;"
+    			 "@q add.f32           key, key, %3;"
+    			 "   mov.b32           array_f, %4;"
+    			 "   mul.f32           array_f, array_f, 256.0;"
+    			 "   fma.f32.rm        array_f, key, 8.0, array_f;"
+    			 "   mov.b32           array, array_f;"
+    			 "   ld.shared.v2.f32 {mystart, myscan}, [array];"
+    			 "   add.f32           mystart, mystart, %1;"
+    			 "   sub.f32           mystart, mystart, myscan;"
+    	         "   mov.b32           %0, mystart;"
+    	         "}" : "=r"(spid) : "f"(u2f(pid)), "f"(u2f(9u)), "f"(u2f(3u)), "f"(u2f(wid)) );
+            spids[i] = spid;
 #else
     		const uint key9 = xadd( xsel_ge( pid, scan[ 9             ], 9u, 0u ), xsel_ge( pid, scan[ 18            ], 9u, 0u ) );
     		const uint key3 = xadd( xsel_ge( pid, scan[ xadd(key9,3u) ], 3u, 0u ), xsel_ge( pid, scan[ xadd(key9,6u) ], 3u, 0u ) );
     		const uint key  = xadd( key9, key3 );
-#endif
             spids[i] = xsub( xadd( pid, starts_and_scans[key].x ), starts_and_scans[key].y );
+#endif
         }
 
         uint interacting[NSRCMAX];
@@ -367,9 +372,8 @@ __device__ void core_ilp( const uint nsrc, const uint2 * const starts_and_scans,
 			const float2 stmp0 = tex1Dfetch<float2>( info.txoParticles2,       sentry      );
 			const float2 stmp1 = tex1Dfetch<float2>( info.txoParticles2, xadd( sentry, 1 ) );
 			#else
-		    uint m = xscaleru( spids[i], 1.5f );
-		    const float4 tmp0 = tex1Dfetch( texParticles4, m );
-		    const float3 xtmp = make_float3( tmp0.x, tmp0.y, tmp0.z );
+            const int sentry = xscale( spids[i], 2.f ); // 1 FLOP
+			const float4 xtmp = tex1Dfetch( texParticles2,       sentry      );
 			#endif
 
             const float xdiff = xdest.x - xtmp.x;
@@ -410,7 +414,17 @@ __device__ void core_ilp( const uint nsrc, const uint2 * const starts_and_scans,
         zforce += __shfl_xor( zforce, L ); // 1 FLOP
     }
 
+#ifdef LETS_MAKE_IT_MESSY
+    float fcontrib;
+    asm("{   .reg .pred isy, isz;"
+    	"     setp.f32.eq isy, %1, %5;"
+    	"     setp.f32.eq isz, %1, %6;"
+    	"     selp.f32 %0, %2, %3, !isy;"
+    	"@isz mov.b32 %0, %4;"
+    	"}" : "=f"(fcontrib) : "f"(u2f(subtid)), "f"(xforce), "f"(yforce), "f"(zforce), "f"(u2f(1u)), "f"(u2f(2u)) );
+#else
     const float fcontrib = xsel_eq( subtid, 0u, xforce, xsel_eq( subtid, 1u, yforce, zforce ) );  // 2 FLOPS
+#endif
 
     if( subtid < 3u )
         info.axayaz[ xmad( dpid, 3.f, subtid ) ] = fcontrib;  // 2 FLOPS
@@ -458,7 +472,7 @@ void _dpd_forces_floatized()
 
     for( uint L = 1u; L < 32u; L <<= 1 ) {
     	uint theirscan = i2u( __shfl_up( u2i(myscan), u2i(L) ) );
-        myscan = xadd( myscan, xsel_ge( tid, L, theirscan, 0u ) ); // 2 FLOPS
+    	myscan = xadd( myscan, xsel_ge( tid, L, theirscan, 0u ) ); // 2 FLOPS
     }
 
     if( tid < 28 )
@@ -482,9 +496,21 @@ void _dpd_forces_floatized()
         core_ilp<32, 1, 2>( nsrc, ( const uint2 * )starts_and_scans[wid], 1, xadd( dststart, d ) );
 }
 
+__global__ void copy( float *v4, const float *v3, const int n ) {
+	for(int i=blockIdx.x*blockDim.x+threadIdx.x;i<n;i+=blockDim.x*gridDim.x) {
+			v4[i*8+0] = v3[i*6+0];
+			v4[i*8+1] = v3[i*6+1];
+			v4[i*8+2] = v3[i*6+2];
+			v4[i*8+4] = v3[i*6+3];
+			v4[i*8+5] = v3[i*6+4];
+			v4[i*8+6] = v3[i*6+5];
+	}
+}
+
+
 #ifdef _COUNT_FLOPS
 struct _dpd_interaction_flops_counter {
-	const static unsigned long long FLOPS = 32ULL + Logistic::mean0var1_flops_counter::FLOPS;
+	const static unsigned long long FLOPS = 31ULL + Logistic::mean0var1_flops_counter::FLOPS;
 };
 
 template<uint COLS, uint ROWS, uint NSRCMAX>
@@ -776,38 +802,6 @@ bool fdpd_init = false;
 static cudaEvent_t evstart, evstop;
 #endif
 
-
-__global__ void make_texture( float *xyzuvwvwxyzu, const float *xyzuvw, const int n ) {
-	for(int i=blockIdx.x*blockDim.x+threadIdx.x;i<n;i+=blockDim.x*gridDim.x) {
-		if(i%2==0) {
-			xyzuvwvwxyzu[i*6+0] = xyzuvw[i*6+0];
-			xyzuvwvwxyzu[i*6+1] = xyzuvw[i*6+1];
-			xyzuvwvwxyzu[i*6+2] = xyzuvw[i*6+2];
-			xyzuvwvwxyzu[i*6+3] = xyzuvw[i*6+3];
-			xyzuvwvwxyzu[i*6+4] = xyzuvw[i*6+4];
-			xyzuvwvwxyzu[i*6+5] = xyzuvw[i*6+5];
-		} else {
-			xyzuvwvwxyzu[i*6+0] = xyzuvw[i*6+4];
-			xyzuvwvwxyzu[i*6+1] = xyzuvw[i*6+5];
-			xyzuvwvwxyzu[i*6+2] = xyzuvw[i*6+0];
-			xyzuvwvwxyzu[i*6+3] = xyzuvw[i*6+1];
-			xyzuvwvwxyzu[i*6+4] = xyzuvw[i*6+2];
-			xyzuvwvwxyzu[i*6+5] = xyzuvw[i*6+3];
-		}
-	}
-}
-
-__global__ void make_texture_debug( float *xyz_o_uvw_o, const float *xyzuvw, const int n ) {
-	for(int i=blockIdx.x*blockDim.x+threadIdx.x;i<n;i+=blockDim.x*gridDim.x) {
-		xyz_o_uvw_o[i*8+0] = xyzuvw[i*6+0];
-		xyz_o_uvw_o[i*8+1] = xyzuvw[i*6+1];
-		xyz_o_uvw_o[i*8+2] = xyzuvw[i*6+2];
-		xyz_o_uvw_o[i*8+3] = xyzuvw[i*6+3];
-		xyz_o_uvw_o[i*8+4] = xyzuvw[i*6+4];
-		xyz_o_uvw_o[i*8+5] = xyzuvw[i*6+5];
-	}
-}
-
 void forces_dpd_cuda_nohost( const float * const xyzuvw, float * const axayaz,  const int np,
                              const int * const cellsstart, const int * const cellscount,
                              const float rc,
@@ -830,23 +824,16 @@ void forces_dpd_cuda_nohost( const float * const xyzuvw, float * const axayaz,  
 
 	#if !(USE_TEXOBJ&2)
     size_t textureoffset;
-	static float *xyzuvwvwxyzu, *xyz_o_uvw_o;
+	static float *xyz_o_uvw_o;
 	static int last_size;
-	if (!xyzuvwvwxyzu || last_size < np ) {
-			if (xyzuvwvwxyzu) cudaFree(xyzuvwvwxyzu);
-			cudaMalloc(&xyzuvwvwxyzu,sizeof(float)*6*np);
+	if (!xyz_o_uvw_o || last_size < np ) {
 			if (xyz_o_uvw_o) cudaFree(xyz_o_uvw_o);
 			cudaMalloc(&xyz_o_uvw_o,sizeof(float)*8*np);
 			last_size = np;
 	}
-    make_texture<<<64,512,0,stream>>>( xyzuvwvwxyzu, xyzuvw, np );
-    make_texture_debug<<<64,512,0,stream>>>( xyz_o_uvw_o, xyzuvw, np );
-    CUDA_CHECK( cudaBindTexture( &textureoffset, &texParticles2, xyzuvwvwxyzu, &texParticles2.channelDesc, sizeof( float ) * 6 * np ) );
+    copy<<<64,512,0,stream>>>( xyz_o_uvw_o, xyzuvw, np );
+    CUDA_CHECK( cudaBindTexture( &textureoffset, &texParticles2, xyz_o_uvw_o, &texParticles2.channelDesc, sizeof( float ) * 8 * np ) );
     assert( textureoffset == 0 );
-    CUDA_CHECK( cudaBindTexture( &textureoffset, &texParticles4, xyzuvwvwxyzu, &texParticles4.channelDesc, sizeof( float ) * 6 * np ) );
-    assert( textureoffset == 0 );
-//    CUDA_CHECK( cudaBindTexture( &textureoffset, &texParticlesDebug, xyz_o_uvw_o, &texParticlesDebug.channelDesc, sizeof( float ) * 8 * np ) );
-//    assert( textureoffset == 0 );
     CUDA_CHECK( cudaBindTexture( &textureoffset, &texStart, cellsstart, &texStart.channelDesc, sizeof( uint ) * ncells ) );
     assert( textureoffset == 0 );
     CUDA_CHECK( cudaBindTexture( &textureoffset, &texCount, cellscount, &texCount.channelDesc, sizeof( uint ) * ncells ) );
@@ -884,20 +871,10 @@ void forces_dpd_cuda_nohost( const float * const xyzuvw, float * const axayaz,  
         texCount.mipmapFilterMode = cudaFilterModePoint;
         texCount.normalized = 0;
 
-        texParticles2.channelDesc = cudaCreateChannelDesc<float2>();
+        texParticles2.channelDesc = cudaCreateChannelDesc<float4>();
         texParticles2.filterMode = cudaFilterModePoint;
         texParticles2.mipmapFilterMode = cudaFilterModePoint;
         texParticles2.normalized = 0;
-
-        texParticles4.channelDesc = cudaCreateChannelDesc<float4>();
-        texParticles4.filterMode = cudaFilterModePoint;
-        texParticles4.mipmapFilterMode = cudaFilterModePoint;
-        texParticles4.normalized = 0;
-
-        texParticlesDebug.channelDesc = cudaCreateChannelDesc<float4>();
-        texParticlesDebug.filterMode = cudaFilterModePoint;
-        texParticlesDebug.mipmapFilterMode = cudaFilterModePoint;
-        texParticlesDebug.normalized = 0;
 		#endif
 
 	void ( *dpdkernel )() =  _dpd_forces_floatized;
@@ -923,11 +900,6 @@ void forces_dpd_cuda_nohost( const float * const xyzuvw, float * const axayaz,  
     _dpd_forces_floatized <<< dim3( c.ncells.x / _XCPB_,
                           c.ncells.y / _YCPB_,
                           c.ncells.z / _ZCPB_ ), dim3( 32, CPB ), 0, stream >>> ();
-
-//		printf("%s %d\n",__FILE__,__LINE__);
-//		CUDA_CHECK( cudaDeviceSynchronize() );
-//		cudaDeviceReset();
-//		exit(0);
 
 #ifdef _COUNT_FLOPS
     {
