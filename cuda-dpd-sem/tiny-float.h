@@ -80,6 +80,12 @@ __forceinline__ __device__ uint xmad( uint u, float v, uint w ) {
 	return f2u(d);
 }
 
+__forceinline__ __device__ uint xmadrp( uint u, float v, uint w ) {
+	float a = u2f(u), c = u2f(w), d;
+	asm( "fma.rp.f32 %0, %1, %2, %3;" : "=f"(d) : "f"(a), "f"(v), "f"(c) );
+	return f2u(d);
+}
+
 // u * v + w
 __forceinline__ __device__ int xmad( int u, float v, int w ) {
 	float a = i2f(u), c = i2f(w), d;
