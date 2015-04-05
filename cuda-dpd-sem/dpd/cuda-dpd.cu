@@ -367,18 +367,21 @@ __device__ uint __lanemask_lt() {
 }
 
 //template<uint SIMD_WIDTH, uint QSIZE>
-#define SIMD_WIDTH 8u
-#define QSIZE 4u
+#define SIMD_WIDTH 16u
+#define NSLOT      2u
+#if (SIMD_WIDTH*NSLOT!=32)
+#pragma error
+#endif
 
 __global__ __launch_bounds__(32 * CPB, 16) 
 void _dpd_forces_new3()
 {
-	int mycount=0, myscan=0;
+	uint mycount=0, myscan=0;
 	const uint tid = threadIdx.x;
 	const uint wid = threadIdx.y;
 
-	__shared__ int volatile starts[CPB][32], scan[CPB][32];
-	__shared__ int volatile queue[CPB][32/SIMD_WIDTH][QSIZE][SIMD_WIDTH];
+	__shared__ uint volatile starts[CPB][32], scan[CPB][32];
+	__shared__ uint volatile queue[CPB][NSLOT][32];
 
 	if (tid < 27) {
 		const int cbase = blockIdx.x*blockDim.y + wid;
@@ -401,35 +404,38 @@ void _dpd_forces_new3()
 	}
 
 	// prefix sum
+	#pragma unroll
     for(int L = 1; L < 32; L <<= 1)
 	myscan += (tid >= L) * __shfl_up(myscan, L) ;
     if (tid < 28) scan[wid][tid] = myscan - mycount;
 
-    const int dststart = starts[wid][13];
-	const int lastdst = dststart + scan[wid][14]-scan[wid][13];
-    const int nsrc = scan[wid][27];
+    const uint dststart = starts[wid][13];
+	const uint lastdst = dststart + scan[wid][14]-scan[wid][13];
+    const uint nsrc = scan[wid][27];
 
-	const int lane = tid % SIMD_WIDTH;
-	const int slot = tid / SIMD_WIDTH;
+	const uint lane = tid % SIMD_WIDTH;
+	const uint slot = tid / SIMD_WIDTH;
+	// TODO
 	const uint slotmask = ( ((1<<SIMD_WIDTH)-1) << (slot*SIMD_WIDTH) );
 	const uint lanemask = __lanemask_lt() & slotmask;
 
-	for(int dpid = dststart+slot; dpid < lastdst; dpid += (32/SIMD_WIDTH)) {
+	for(uint dpid = dststart + slot; dpid < lastdst; dpid += (32/SIMD_WIDTH)) {
+		// build neighbor list
 		const float2 dtmp0 = tex1Dfetch( texParticles2, dpid * 3     );
 		const float2 dtmp1 = tex1Dfetch( texParticles2, dpid * 3 + 1 );
 		const float3 xdest = make_float3( dtmp0.x, dtmp0.y, dtmp1.x );
-		int pqueue = 0;
+		uint nb = 0;
 
-		for(int p = 0; p < nsrc; p += SIMD_WIDTH ) {
-			const int pid = p + lane;
+		for(uint p = 0; p < nsrc; p += SIMD_WIDTH ) {
+			const uint pid = p + lane;
 			int interacting = 0;
-			int spid = -1;
+			uint spid;
 
-			if (pid<nsrc) {
-				const int key9 = 9 * ((pid >= scan[wid][9       ]) + (pid >= scan[wid][18      ]));
-				const int key3 = 3 * ((pid >= scan[wid][key9 + 3]) + (pid >= scan[wid][key9 + 6]));
-				const int key = key9 + key3;
-				spid = pid - scan[wid][key3+key9] + starts[wid][key3+key9];
+			if ( pid < nsrc ) {
+				const uint key9 = 9 * ((pid >= scan[wid][9       ]) + (pid >= scan[wid][18      ]));
+				const uint key3 = 3 * ((pid >= scan[wid][key9 + 3]) + (pid >= scan[wid][key9 + 6]));
+				const uint key = key9 + key3;
+				spid = pid - scan[wid][key] + starts[wid][key];
 
 				const float2 stmp0 = tex1Dfetch(texParticles2, 3 * spid     );
 				const float2 stmp1 = tex1Dfetch(texParticles2, 3 * spid + 1 );
@@ -444,84 +450,33 @@ void _dpd_forces_new3()
 			}
 			uint all_interacting = __ballot( interacting );
 
-#if 0
-			if ((spid==251||spid==255)&&(dpid==251||dpid==255)) printf("checking %d vs %d: %d\n",dpid,spid,interacting);
-#endif
-//			if (blockIdx.x==0&&blockIdx.y==0&&blockIdx.z==0&&wid==0&&dpid==1) {
-//				printf("dpid %d spid %d hit %d\n",dpid, spid,interacting);
-//			}
-
-			uint pinsert = pqueue + __popc( all_interacting & lanemask );
-				 pqueue += __popc( all_interacting & slotmask );
-#if 0
-				 if (pqueue>=SIMD_WIDTH*QSIZE) printf("queue overflow!\n");
-#endif
-			uint pcol = pinsert % SIMD_WIDTH;
-			uint prow = pinsert / SIMD_WIDTH;
-			if (interacting) {
-				queue[wid][slot][prow][pcol] = spid;
-#if 0
-				if (blockIdx.x==0&&blockIdx.y==0&&blockIdx.z==0&&wid==0&&dpid==1) {
-					printf("put %d into %d %d %d\n",spid,slot,prow,pcol);
-				}
-#endif
-			}
+			uint insert = nb + __popc( all_interacting & lanemask );
+			nb += __popc( all_interacting & slotmask );
+			if (interacting) queue[wid][slot][insert] = spid;
 		}
 
-#if 0
-		//if (blockIdx.x==0&&blockIdx.y==0&&blockIdx.z==0&&wid==0&&lane==0) {
-		if (lane==0&&dpid==251) {
-			for(int row=0;row<pqueue/SIMD_WIDTH+1;row++)
-			printf("slot %d (dpid %d, pqueue %d) row %d srcid %d %d %d %d %d %d %d %d\n", slot, dpid, pqueue, row,
-					(row*SIMD_WIDTH+0 < pqueue) ? queue[wid][slot][row][0] : -1,
-					(row*SIMD_WIDTH+1 < pqueue) ? queue[wid][slot][row][1] : -1,
-					(row*SIMD_WIDTH+2 < pqueue) ? queue[wid][slot][row][2] : -1,
-					(row*SIMD_WIDTH+3 < pqueue) ? queue[wid][slot][row][3] : -1,
-					(row*SIMD_WIDTH+4 < pqueue) ? queue[wid][slot][row][4] : -1,
-					(row*SIMD_WIDTH+5 < pqueue) ? queue[wid][slot][row][5] : -1,
-					(row*SIMD_WIDTH+6 < pqueue) ? queue[wid][slot][row][6] : -1,
-					(row*SIMD_WIDTH+7 < pqueue) ? queue[wid][slot][row][7] : -1 );
-		}
-#endif
-
-#if 1
+		// evaluate force
 		const float2 dtmp2 = tex1Dfetch( texParticles2, dpid * 3 + 2 );
 		const float3 udest = make_float3( dtmp1.y, dtmp2.x, dtmp2.y );
 
-		//if (dpid==251) printf("%d lane %d pqueue %d slotmask %08X\n",dpid,lane,pqueue,slotmask);
-
 		float xforce = 0.f, yforce = 0.f, zforce = 0.f;
-		for(int pid = lane, prow =0; pid < pqueue; prow += 1, pid += SIMD_WIDTH ) {
-			const int spid = queue[wid][slot][prow][lane];
+		for(uint pid = lane; pid < nb; pid += SIMD_WIDTH ) {
+			const uint spid = queue[wid][slot][pid];
 			const float2 stmp0 = tex1Dfetch(texParticles2, 3 * spid     );
 			const float2 stmp1 = tex1Dfetch(texParticles2, 3 * spid + 1 );
 			const float2 stmp2 = tex1Dfetch(texParticles2, 3 * spid + 2 );
 			const float3 xsrc = make_float3( stmp0.x, stmp0.y, stmp1.x );
 			const float3 usrc = make_float3( stmp1.y, stmp2.x, stmp2.y );
 
-#if 0
-			if (blockIdx.x==0&&blockIdx.y==0&&blockIdx.z==0&&wid==0) {
-				printf("evaluate between %d and queue[%d][%d][%d][%d]: %d\n",dpid,wid,slot,prow, lane, spid );
-				if(tid==0) printf("==========================================\n");
-			}
-#endif
-
 			const float3 f = _dpd_interaction(dpid, xdest, udest, xsrc, usrc, spid );
-
-#if 0
-			#define ONESTEP
-			//if (dpid<4&&spid<4) printf("%d - %d: %f\n",dpid,spid,f.x);
-			//if (dpid>=251&&dpid<256&&spid>=251&&spid<256) printf("%d - %d: %f\n",dpid,spid,f.x);
-			if ((spid==251||spid==255)&&(dpid==251||dpid==255)) printf("force %d vs %d: %f\n",dpid,spid,f.x);
-			if (dpid==251) printf("%d see %d on lane %d (pqueue %d)\n",dpid,spid,lane,pqueue);
-#endif
-
 
 			xforce += f.x;
 			yforce += f.y;
 			zforce += f.z;
 		}
 
+		// reduce force
+		#pragma unroll
 		for(int L = SIMD_WIDTH / 2; L > 0; L >>=1)
 		{
 			xforce += __shfl_xor(xforce, L);
@@ -530,12 +485,7 @@ void _dpd_forces_new3()
 		}
 
 		const float fcontrib = (lane == 0) * xforce + (lane == 1) * yforce + (lane == 2) * zforce;
-#if 1
-		if (lane < 3) info.axayaz[3 * dpid + lane] = fcontrib;
-#else
-		if (lane < 3) info.axayaz[3 * dpid + lane] = 0.f;
-#endif
-#endif
+		if (lane < 3u) info.axayaz[3 * dpid + lane] = fcontrib;
 	}
 }
 
@@ -972,7 +922,7 @@ void forces_dpd_cuda_nohost(const float * const xyzuvw, float * const axayaz,  c
 	//void (*dpdkernel)() =  _dpd_forces;
 	void (*dpdkernel)() =  _dpd_forces_new3;//, 3>;
 
-	CUDA_CHECK(cudaFuncSetCacheConfig(*dpdkernel, cudaFuncCachePreferShared));
+	CUDA_CHECK(cudaFuncSetCacheConfig(*dpdkernel, cudaFuncCachePreferEqual));
 
 #ifdef _TIME_PROFILE_
 	CUDA_CHECK(cudaEventCreate(&evstart));
