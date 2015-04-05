@@ -360,40 +360,219 @@ void _dpd_forces_new2() {
 	}
 }
 
+__device__ uint __lanemask_lt() {
+	uint mask;
+	asm("mov.u32 %0, %lanemask_lt;" : "=r"(mask) );
+	return mask;
+}
+
+//template<uint SIMD_WIDTH, uint QSIZE>
+#define SIMD_WIDTH 8u
+#define QSIZE 4u
+
 __global__ __launch_bounds__(32 * CPB, 16) 
+void _dpd_forces_new3()
+{
+	int mycount=0, myscan=0;
+	const uint tid = threadIdx.x;
+	const uint wid = threadIdx.y;
+
+	__shared__ int volatile starts[CPB][32], scan[CPB][32];
+	__shared__ int volatile queue[CPB][32/SIMD_WIDTH][QSIZE][SIMD_WIDTH];
+
+	if (tid < 27) {
+		const int cbase = blockIdx.x*blockDim.y + wid;
+
+		int dx, dy, dz;
+		dx = dy = dz = tid/3;
+		dx = tid - dx*3 - 1;
+		dy = __IMOD(dy,3) - 1;
+		dz = __IMOD(dz/3,3) - 1;
+
+		int cid = cbase +
+			  dz*info.ncells.x*info.ncells.y +
+			  dy*info.ncells.x +
+			  dx;
+
+		const bool valid_cid = (cid >= 0) && (cid < info.ncells.x*info.ncells.y*info.ncells.z);
+
+		starts[wid][tid] = (valid_cid) ? tex1Dfetch(texStart, cid) : 0;
+		myscan = mycount = (valid_cid) ? tex1Dfetch(texCount, cid) : 0;
+	}
+
+	// prefix sum
+    for(int L = 1; L < 32; L <<= 1)
+	myscan += (tid >= L) * __shfl_up(myscan, L) ;
+    if (tid < 28) scan[wid][tid] = myscan - mycount;
+
+    const int dststart = starts[wid][13];
+	const int lastdst = dststart + scan[wid][14]-scan[wid][13];
+    const int nsrc = scan[wid][27];
+
+	const int lane = tid % SIMD_WIDTH;
+	const int slot = tid / SIMD_WIDTH;
+	const uint slotmask = ( ((1<<SIMD_WIDTH)-1) << (slot*SIMD_WIDTH) );
+	const uint lanemask = __lanemask_lt() & slotmask;
+
+	for(int dpid = dststart+slot; dpid < lastdst; dpid += (32/SIMD_WIDTH)) {
+		const float2 dtmp0 = tex1Dfetch( texParticles2, dpid * 3     );
+		const float2 dtmp1 = tex1Dfetch( texParticles2, dpid * 3 + 1 );
+		const float3 xdest = make_float3( dtmp0.x, dtmp0.y, dtmp1.x );
+		int pqueue = 0;
+
+		for(int p = 0; p < nsrc; p += SIMD_WIDTH ) {
+			const int pid = p + lane;
+			int interacting = 0;
+			int spid = -1;
+
+			if (pid<nsrc) {
+				const int key9 = 9 * ((pid >= scan[wid][9       ]) + (pid >= scan[wid][18      ]));
+				const int key3 = 3 * ((pid >= scan[wid][key9 + 3]) + (pid >= scan[wid][key9 + 6]));
+				const int key = key9 + key3;
+				spid = pid - scan[wid][key3+key9] + starts[wid][key3+key9];
+
+				const float2 stmp0 = tex1Dfetch(texParticles2, 3 * spid     );
+				const float2 stmp1 = tex1Dfetch(texParticles2, 3 * spid + 1 );
+				const float3 xsrc = make_float3( stmp0.x, stmp0.y, stmp1.x );
+
+				const float dx = xdest.x - xsrc.x;
+				const float dy = xdest.y - xsrc.y;
+				const float dz = xdest.z - xsrc.z;
+				const float d2 = dx * dx + dy * dy + dz * dz;
+
+				interacting = ((dpid != spid) && (d2 < 1.0f));
+			}
+			uint all_interacting = __ballot( interacting );
+
+#if 0
+			if ((spid==251||spid==255)&&(dpid==251||dpid==255)) printf("checking %d vs %d: %d\n",dpid,spid,interacting);
+#endif
+//			if (blockIdx.x==0&&blockIdx.y==0&&blockIdx.z==0&&wid==0&&dpid==1) {
+//				printf("dpid %d spid %d hit %d\n",dpid, spid,interacting);
+//			}
+
+			uint pinsert = pqueue + __popc( all_interacting & lanemask );
+				 pqueue += __popc( all_interacting & slotmask );
+#if 0
+				 if (pqueue>=SIMD_WIDTH*QSIZE) printf("queue overflow!\n");
+#endif
+			uint pcol = pinsert % SIMD_WIDTH;
+			uint prow = pinsert / SIMD_WIDTH;
+			if (interacting) {
+				queue[wid][slot][prow][pcol] = spid;
+#if 0
+				if (blockIdx.x==0&&blockIdx.y==0&&blockIdx.z==0&&wid==0&&dpid==1) {
+					printf("put %d into %d %d %d\n",spid,slot,prow,pcol);
+				}
+#endif
+			}
+		}
+
+#if 0
+		//if (blockIdx.x==0&&blockIdx.y==0&&blockIdx.z==0&&wid==0&&lane==0) {
+		if (lane==0&&dpid==251) {
+			for(int row=0;row<pqueue/SIMD_WIDTH+1;row++)
+			printf("slot %d (dpid %d, pqueue %d) row %d srcid %d %d %d %d %d %d %d %d\n", slot, dpid, pqueue, row,
+					(row*SIMD_WIDTH+0 < pqueue) ? queue[wid][slot][row][0] : -1,
+					(row*SIMD_WIDTH+1 < pqueue) ? queue[wid][slot][row][1] : -1,
+					(row*SIMD_WIDTH+2 < pqueue) ? queue[wid][slot][row][2] : -1,
+					(row*SIMD_WIDTH+3 < pqueue) ? queue[wid][slot][row][3] : -1,
+					(row*SIMD_WIDTH+4 < pqueue) ? queue[wid][slot][row][4] : -1,
+					(row*SIMD_WIDTH+5 < pqueue) ? queue[wid][slot][row][5] : -1,
+					(row*SIMD_WIDTH+6 < pqueue) ? queue[wid][slot][row][6] : -1,
+					(row*SIMD_WIDTH+7 < pqueue) ? queue[wid][slot][row][7] : -1 );
+		}
+#endif
+
+#if 1
+		const float2 dtmp2 = tex1Dfetch( texParticles2, dpid * 3 + 2 );
+		const float3 udest = make_float3( dtmp1.y, dtmp2.x, dtmp2.y );
+
+		//if (dpid==251) printf("%d lane %d pqueue %d slotmask %08X\n",dpid,lane,pqueue,slotmask);
+
+		float xforce = 0.f, yforce = 0.f, zforce = 0.f;
+		for(int pid = lane, prow =0; pid < pqueue; prow += 1, pid += SIMD_WIDTH ) {
+			const int spid = queue[wid][slot][prow][lane];
+			const float2 stmp0 = tex1Dfetch(texParticles2, 3 * spid     );
+			const float2 stmp1 = tex1Dfetch(texParticles2, 3 * spid + 1 );
+			const float2 stmp2 = tex1Dfetch(texParticles2, 3 * spid + 2 );
+			const float3 xsrc = make_float3( stmp0.x, stmp0.y, stmp1.x );
+			const float3 usrc = make_float3( stmp1.y, stmp2.x, stmp2.y );
+
+#if 0
+			if (blockIdx.x==0&&blockIdx.y==0&&blockIdx.z==0&&wid==0) {
+				printf("evaluate between %d and queue[%d][%d][%d][%d]: %d\n",dpid,wid,slot,prow, lane, spid );
+				if(tid==0) printf("==========================================\n");
+			}
+#endif
+
+			const float3 f = _dpd_interaction(dpid, xdest, udest, xsrc, usrc, spid );
+
+#if 0
+			#define ONESTEP
+			//if (dpid<4&&spid<4) printf("%d - %d: %f\n",dpid,spid,f.x);
+			//if (dpid>=251&&dpid<256&&spid>=251&&spid<256) printf("%d - %d: %f\n",dpid,spid,f.x);
+			if ((spid==251||spid==255)&&(dpid==251||dpid==255)) printf("force %d vs %d: %f\n",dpid,spid,f.x);
+			if (dpid==251) printf("%d see %d on lane %d (pqueue %d)\n",dpid,spid,lane,pqueue);
+#endif
+
+
+			xforce += f.x;
+			yforce += f.y;
+			zforce += f.z;
+		}
+
+		for(int L = SIMD_WIDTH / 2; L > 0; L >>=1)
+		{
+			xforce += __shfl_xor(xforce, L);
+			yforce += __shfl_xor(yforce, L);
+			zforce += __shfl_xor(zforce, L);
+		}
+
+		const float fcontrib = (lane == 0) * xforce + (lane == 1) * yforce + (lane == 2) * zforce;
+#if 1
+		if (lane < 3) info.axayaz[3 * dpid + lane] = fcontrib;
+#else
+		if (lane < 3) info.axayaz[3 * dpid + lane] = 0.f;
+#endif
+#endif
+	}
+}
+
+__global__ __launch_bounds__(32 * CPB, 16)
 void _dpd_forces()
 {
     assert(blockDim.x == warpSize && blockDim.y == CPB && blockDim.z == 1);
-    
+
     const int tid = threadIdx.x;
     const int wid = threadIdx.y;
 
     __shared__ volatile int starts[CPB][32], scan[CPB][32];
 
-    int mycount = 0, myscan = 0; 
+    int mycount = 0, myscan = 0;
     if (tid < 27)
     {
 	const int dx = (tid) % 3;
-	const int dy = ((tid / 3)) % 3; 
+	const int dy = ((tid / 3)) % 3;
 	const int dz = ((tid / 9)) % 3;
 
 	int xcid = blockIdx.x * _XCPB_ + ((threadIdx.y) % _XCPB_) + dx - 1;
 	int ycid = blockIdx.y * _YCPB_ + ((threadIdx.y / _XCPB_) % _YCPB_) + dy - 1;
 	int zcid = blockIdx.z * _ZCPB_ + ((threadIdx.y / (_XCPB_ * _YCPB_)) % _ZCPB_) + dz - 1;
-	
-	const bool valid_cid = 
+
+	const bool valid_cid =
 	    xcid >= 0 && xcid < info.ncells.x &&
 	    ycid >= 0 && ycid < info.ncells.y &&
 	    zcid >= 0 && zcid < info.ncells.z ;
-	
+
 	xcid = min(info.ncells.x - 1, max(0, xcid));
 	ycid = min(info.ncells.y - 1, max(0, ycid));
 	zcid = min(info.ncells.z - 1, max(0, zcid));
-	
+
 	const int cid = max(0, xcid + info.ncells.x * (ycid + info.ncells.y * zcid));
-	
+
 	starts[wid][tid] = tex1Dfetch(texStart, cid);
-	
+
 	myscan = mycount = valid_cid * tex1Dfetch(texCount, cid);
     }
 
@@ -404,7 +583,7 @@ void _dpd_forces()
 	scan[wid][tid] = myscan - mycount;
 
     const int nsrc = scan[wid][27];
-    
+
     const int dststart = starts[wid][1 + 3 + 9];
     const int ndst = scan[wid][1 + 3 + 9 + 1] - scan[wid][1 + 3 + 9];
     const int ndst4 = (ndst >> 2) << 2;
@@ -741,6 +920,17 @@ static void cellstats(const int *d_cstart, const int *d_ccount, int nx, int ny, 
 	free(ccount);
 }
 
+__global__ void print_a(const int np) {
+	double sx = 0, sy = 0, sz = 0;
+	for(int i=0;i<np;i++) {
+//		printf("%f %f %f\n",info.axayaz[i*3+0], info.axayaz[i*3+1], info.axayaz[i*3+2]);
+		sx += info.axayaz[i*3+0];
+		sy += info.axayaz[i*3+1];
+		sz += info.axayaz[i*3+2];
+	}
+	printf("%lf %lf %lf\n",sx,sy,sz);
+}
+
 void forces_dpd_cuda_nohost(const float * const xyzuvw, float * const axayaz,  const int np,
 			    const int * const cellsstart, const int * const cellscount, 
 			    const float rc,
@@ -780,9 +970,9 @@ void forces_dpd_cuda_nohost(const float * const xyzuvw, float * const axayaz,  c
 	texParticles2.normalized = 0;
 
 	//void (*dpdkernel)() =  _dpd_forces;
-	void (*dpdkernel)() =  _dpd_forces_new2<32, 1>;//, 3>;
+	void (*dpdkernel)() =  _dpd_forces_new3;//, 3>;
 
-	CUDA_CHECK(cudaFuncSetCacheConfig(*dpdkernel, cudaFuncCachePreferL1));
+	CUDA_CHECK(cudaFuncSetCacheConfig(*dpdkernel, cudaFuncCachePreferShared));
 
 #ifdef _TIME_PROFILE_
 	CUDA_CHECK(cudaEventCreate(&evstart));
@@ -876,8 +1066,17 @@ void forces_dpd_cuda_nohost(const float * const xyzuvw, float * const axayaz,  c
     //cellstats(cellsstart, cellscount, nx, ny, nz);              // MAURO
     CUDA_CHECK(cudaMemset(axayaz, 0, sizeof(float)*np*3));      /////////// MAURO CHECK IF NECESSARY
 
-    _dpd_forces_new2<32, 1>/*, 3>*/<<<(c.ncells.x*c.ncells.y*c.ncells.z+CPB-1)/CPB, dim3(32, CPB), 0, stream>>>();
+    _dpd_forces_new3/*, 3>*/<<<(c.ncells.x*c.ncells.y*c.ncells.z+CPB-1)/CPB, dim3(32, CPB), 0, stream>>>();
     //_dpd_forces<<<dim3(c.ncells.x / _XCPB_, c.ncells.y / _YCPB_, c.ncells.z / _ZCPB_), dim3(32, CPB), 0, stream>>>();
+
+#ifdef ONESTEP
+	print_a<<<1,1>>>(np);
+
+    CUDA_CHECK( cudaDeviceSynchronize() );
+    CUDA_CHECK( cudaDeviceReset() );
+    printf("%s %d\n",__FILE__,__LINE__);
+    exit(0);
+#endif
 
 #ifdef _TIME_PROFILE_
     if (cetriolo % 500 == 0)
@@ -1008,7 +1207,7 @@ void forces_dpd_cuda_aos(float * const _xyzuvw, float * const _axayaz,
     //cellstats(fdpd_start, fdpd_count, nx, ny, nz);              // MAURO
     CUDA_CHECK(cudaMemset(fdpd_axayaz, 0, sizeof(float)*np*3)); ////////////// Mauro: CHECK IF NECESSARY 
 
-    _dpd_forces_new2<32, 1><<<(c.ncells.x*c.ncells.y*c.ncells.z+CPB-1)/CPB, dim3(32, CPB)>>>();
+    _dpd_forces_new3<<<(c.ncells.x*c.ncells.y*c.ncells.z+CPB-1)/CPB, dim3(32, CPB)>>>();
     //_dpd_forces<<<dim3(c.ncells.x / _XCPB_, c.ncells.y / _YCPB_, c.ncells.z / _ZCPB_), dim3(32, CPB)>>>();
  
     CUDA_CHECK(cudaPeekAtLastError());
