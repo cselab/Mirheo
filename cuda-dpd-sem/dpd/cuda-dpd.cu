@@ -37,6 +37,7 @@ texture<int, cudaTextureType1D> texStart, texCount;
 //#define  _TIME_PROFILE_
 //#define _INSPECT_
 
+// Mauro: set to 0
 #if 1
 
 
@@ -72,6 +73,36 @@ __device__ float3 _dpd_interaction(const int dpid, const float3 xdest, const flo
     
     const float strength = info.aij * argwr - (info.gamma * wr * rdotv + info.sigmaf * myrandnr) * wr;
     
+    return make_float3(strength * xr, strength * yr, strength * zr);
+}
+
+__device__ float3 _dpd_interaction(const int dpid, const float3 xdest, const float3 udest, const float3 xsrc, const float3 usrc, const int spid)
+{
+    const float _xr = xdest.x - xsrc.x;
+    const float _yr = xdest.y - xsrc.y;
+    const float _zr = xdest.z - xsrc.z;
+
+    const float rij2 = _xr * _xr + _yr * _yr + _zr * _zr;
+    assert(rij2 < 1);
+
+    const float invrij = rsqrtf(rij2);
+    const float rij = rij2 * invrij;
+    const float argwr = 1 - rij;
+    const float wr = viscosity_function<-VISCOSITY_S_LEVEL>(argwr);
+
+    const float xr = _xr * invrij;
+    const float yr = _yr * invrij;
+    const float zr = _zr * invrij;
+
+    const float rdotv =
+	xr * (udest.x - usrc.x) +
+	yr * (udest.y - usrc.y) +
+	zr * (udest.z - usrc.z);
+
+    const float myrandnr = Logistic::mean0var1(info.seed, min(spid, dpid), max(spid, dpid));
+
+    const float strength = info.aij * argwr - (info.gamma * wr * rdotv + info.sigmaf * myrandnr) * wr;
+
     return make_float3(strength * xr, strength * yr, strength * zr);
 }
 
@@ -229,6 +260,106 @@ __device__ void core_ilp(const int nsrc, const int * const scan, const int * con
 	info.axayaz[subtid + 3 * dpid] = fcontrib; 
 }
 
+#define __IMOD(x,y) ((x)-((x)/(y))*(y))
+template<int COLS, int ROWS>
+__global__  
+__launch_bounds__(32*CPB, 16)
+void _dpd_forces_new2() {
+
+	int mycount=0, myscan=0; 
+
+	__shared__ int volatile starts[CPB][32], scan[CPB][32];
+
+	if (threadIdx.x < 14) {
+
+		const int cbase = blockIdx.x*blockDim.y + threadIdx.y;
+
+		int dx, dy, dz;
+		dx = dy = dz = threadIdx.x/3;
+		dx = threadIdx.x - dx*3 - 1;
+		dy = __IMOD(dy,3) - 1;
+		dz = __IMOD(dz/3,3) - 1;
+
+		int cid = cbase +
+			  dz*info.ncells.x*info.ncells.y +
+			  dy*info.ncells.x +
+			  dx;
+
+		const bool valid_cid = (cid >= 0) && (cid < info.ncells.x*info.ncells.y*info.ncells.z);
+
+		starts[threadIdx.y][threadIdx.x] = (valid_cid) ? tex1Dfetch(texStart, cid) : 0;
+		myscan = mycount = (valid_cid) ? tex1Dfetch(texCount, cid) : 0;
+	}
+   
+	#pragma unroll 
+	for(int L = 1; L < 32; L <<= 1)
+		myscan += (threadIdx.x >= L)*__shfl_up(myscan, L);
+
+	if (threadIdx.x < 15) scan[threadIdx.y][threadIdx.x] = myscan - mycount;
+    
+	const int subtid = threadIdx.x % COLS;
+	const int slot = threadIdx.x / COLS;
+
+	const int dststart = starts[threadIdx.y][13];
+	const int lastdst = dststart + scan[threadIdx.y][14]-scan[threadIdx.y][13];
+
+	const int nsrc = scan[threadIdx.y][14];
+	const int nsrcext = scan[threadIdx.y][13];
+
+	for(int pid = subtid; pid < nsrc; pid += COLS) {
+
+		const int key9 = 9*(pid >= scan[threadIdx.y][9]);
+		int key3 = 3*(pid >= scan[threadIdx.y][key9 + 3]);
+		key3 += (key9 < 9) ? 3*(pid >= scan[threadIdx.y][key9 + 6]) : 0;
+		int spid = pid - scan[threadIdx.y][key3+key9] + starts[threadIdx.y][key3+key9];
+
+		const int sentry = 3 * spid;
+		const float2 stmp0 = tex1Dfetch(texParticles2, sentry);
+		const float2 stmp1 = tex1Dfetch(texParticles2, sentry + 1);
+		const float2 stmp2 = tex1Dfetch(texParticles2, sentry + 2);
+		const float3 xsrc = make_float3( stmp0.x, stmp0.y, stmp1.x );
+		const float3 usrc = make_float3( stmp1.y, stmp2.x, stmp2.y );
+		float fx = 0.f, fy = 0.f, fz = 0.f;
+
+		for(int dpid = dststart+slot; dpid < lastdst; dpid += ROWS) {
+
+//			float3 xdest, udest;
+			const float2 dtmp0 = tex1Dfetch(texParticles2, 3*dpid);
+//			xdest.x = dtmp0.x;
+//			xdest.y = dtmp0.y;
+			const float2 dtmp1 = tex1Dfetch(texParticles2, 3*dpid +1);
+//			xdest.z = dtmp0.x;
+//			udest.x = dtmp0.y;
+//			udest.y = dtmp0.x;
+//			udest.z = dtmp0.y;
+			const float3 xdest = make_float3( dtmp0.x, dtmp0.y, dtmp1.x );
+			
+			const float d2 = (xdest.x-xsrc.x)*(xdest.x-xsrc.x) +
+					 (xdest.y-xsrc.y)*(xdest.y-xsrc.y) +
+					 (xdest.z-xsrc.z)*(xdest.z-xsrc.z);
+
+			if ((dpid != spid) && (d2 < 1.0f)) {
+				const float2 dtmp2 = tex1Dfetch(texParticles2, 3*dpid +2);
+			    const float3 udest = make_float3( dtmp1.y, dtmp2.x, dtmp2.y );
+				const float3 f = _dpd_interaction(dpid, xdest, udest, xsrc, usrc, spid);
+
+				atomicAdd(info.axayaz + 3*dpid    , f.x);
+				atomicAdd(info.axayaz + 3*dpid + 1, f.y);
+				atomicAdd(info.axayaz + 3*dpid + 2, f.z);
+
+				if (pid < nsrcext) {
+					fx -= f.x;
+					fy -= f.y;
+					fz -= f.z;
+				}
+			}
+		}
+		atomicAdd(info.axayaz + 3*spid    , fx);
+		atomicAdd(info.axayaz + 3*spid + 1, fy);
+		atomicAdd(info.axayaz + 3*spid + 2, fz);
+	}
+}
+
 __global__ __launch_bounds__(32 * CPB, 16) 
 void _dpd_forces()
 {
@@ -273,12 +404,14 @@ void _dpd_forces()
 	scan[wid][tid] = myscan - mycount;
 
     const int nsrc = scan[wid][27];
+    
     const int dststart = starts[wid][1 + 3 + 9];
     const int ndst = scan[wid][1 + 3 + 9 + 1] - scan[wid][1 + 3 + 9];
     const int ndst4 = (ndst >> 2) << 2;
 
     for(int d = 0; d < ndst4; d += 4)
 	core<8, 4, 4>(nsrc, (const int *)scan[wid], (const int *)starts[wid], 4, dststart + d);
+	//core_ilp_test<32, 1, 4>(nsrc, (const int *)scan[wid], (const int *)starts[wid], 4, dststart + d);
 
     int d = ndst4;
     if (d + 2 <= ndst)
@@ -350,6 +483,7 @@ __global__ __launch_bounds__(32 * CPB, 16)
 
 	const int dpid = dststart + d + slot;
 	const int entry = 3 * dpid;
+	// Mauro: redundant reads by the warp (ROW S=1 && COLS=32 -> the 32 th of the warp read the same float2 x3)
 	float2 dtmp0 = tex1Dfetch(texParticles2, entry);
 	float2 dtmp1 = tex1Dfetch(texParticles2, entry + 1);
 	float2 dtmp2 = tex1Dfetch(texParticles2, entry + 2);
@@ -557,6 +691,56 @@ bool fdpd_init = false;
 static cudaEvent_t evstart, evstop;
 #endif
 
+static void cellstats(const int *d_cstart, const int *d_ccount, int nx, int ny, int nz) {
+
+	int *cstart, *ccount;
+	int cmin=999999999, cmax=-1, nmin=999999999, nmax=-1;
+	int nc = nx*ny*nz;
+
+	cstart = (int *)malloc(sizeof(*cstart)*nc);
+	if (!cstart) {
+		fprintf(stderr, "Cannot allocate %zu bytes!\n", sizeof(*cstart)*nc);
+		exit(1);
+	}
+	ccount = (int *)malloc(sizeof(*ccount)*nc);
+	if (!ccount) {
+		fprintf(stderr, "Cannot allocate %zu bytes!\n", sizeof(*ccount)*nc);
+		exit(1);
+	}
+
+	CUDA_CHECK(cudaMemcpy(cstart, d_cstart, sizeof(*cstart)*nc, cudaMemcpyDeviceToHost));
+	CUDA_CHECK(cudaMemcpy(ccount, d_ccount, sizeof(*ccount)*nc, cudaMemcpyDeviceToHost));
+
+	for(int i = 0; i < nc; i++) {
+		cmin = min(cmin, ccount[i]);
+		cmax = max(cmax, ccount[i]);
+	}
+
+	int neighs[27];
+	for(int k = -1; k < 2; k++)
+		for(int j = -1; j < 2; j++)
+			for(int i = -1; i < 2; i++)
+				neighs[(k+1)*9 + (j+1)*3 + i+1] = k*nx*ny + j*nx + i;
+
+	for(int i = 0; i < nc; i++) {
+		int curnn = 0;
+		for(int z = 0; z < 27; z++) {
+			int nid = i+neighs[z];
+			if (nid >= 0 && nid < nc) {
+				curnn += ccount[nid];
+			}
+		}
+		nmin = min(nmin, curnn);
+		nmax = max(nmax, curnn);
+	}
+
+	fprintf(stdout, "Cell particle count min/max: %d, %d\n", cmin, cmax);
+	fprintf(stdout, "Cell neighborhood particle count min/max: %d, %d\n", nmin, nmax);
+
+	free(cstart);
+	free(ccount);
+}
+
 void forces_dpd_cuda_nohost(const float * const xyzuvw, float * const axayaz,  const int np,
 			    const int * const cellsstart, const int * const cellscount, 
 			    const float rc,
@@ -595,7 +779,8 @@ void forces_dpd_cuda_nohost(const float * const xyzuvw, float * const axayaz,  c
 	texParticles2.mipmapFilterMode = cudaFilterModePoint;
 	texParticles2.normalized = 0;
 
-	void (*dpdkernel)() =  _dpd_forces;
+	//void (*dpdkernel)() =  _dpd_forces;
+	void (*dpdkernel)() =  _dpd_forces_new2<32, 1>;//, 3>;
 
 	CUDA_CHECK(cudaFuncSetCacheConfig(*dpdkernel, cudaFuncCachePreferL1));
 
@@ -686,9 +871,13 @@ void forces_dpd_cuda_nohost(const float * const xyzuvw, float * const axayaz,  c
     if (cetriolo % 500 == 0)
 	CUDA_CHECK(cudaEventRecord(evstart));
 #endif
-    _dpd_forces<<<dim3(c.ncells.x / _XCPB_,
-			    c.ncells.y / _YCPB_,
-			    c.ncells.z / _ZCPB_), dim3(32, CPB), 0, stream>>>();
+//fprintf("Calling _dpd_forces with conf g(%d,%d,%d), b (%d,%d,%d)\n", c.ncells.x / _XCPB_, c.ncells.y / _YCPB_, c.ncells.z / _ZCPB_, 32, CPB, 1);
+
+    //cellstats(cellsstart, cellscount, nx, ny, nz);              // MAURO
+    CUDA_CHECK(cudaMemset(axayaz, 0, sizeof(float)*np*3));      /////////// MAURO CHECK IF NECESSARY
+
+    _dpd_forces_new2<32, 1>/*, 3>*/<<<(c.ncells.x*c.ncells.y*c.ncells.z+CPB-1)/CPB, dim3(32, CPB), 0, stream>>>();
+    //_dpd_forces<<<dim3(c.ncells.x / _XCPB_, c.ncells.y / _YCPB_, c.ncells.z / _ZCPB_), dim3(32, CPB), 0, stream>>>();
 
 #ifdef _TIME_PROFILE_
     if (cetriolo % 500 == 0)
@@ -714,6 +903,7 @@ int fdpd_oldnp = 0, fdpd_oldnc = 0;
 
 float * fdpd_xyzuvw = NULL, * fdpd_axayaz = NULL;
 int * fdpd_start = NULL, * fdpd_count = NULL;
+
 
 void forces_dpd_cuda_aos(float * const _xyzuvw, float * const _axayaz,
 		     int * const order, const int np,
@@ -814,10 +1004,12 @@ void forces_dpd_cuda_aos(float * const _xyzuvw, float * const _axayaz,
     //TextureWrap texParticles((float2*)_ptr(xyzuvw), 3 * np);
     
     CUDA_CHECK(cudaMemcpyToSymbolAsync(info, &c, sizeof(c), 0));
-   
-    _dpd_forces<<<dim3(c.ncells.x / _XCPB_,
-			    c.ncells.y / _YCPB_,
-			    c.ncells.z / _ZCPB_), dim3(32, CPB)>>>();
+
+    //cellstats(fdpd_start, fdpd_count, nx, ny, nz);              // MAURO
+    CUDA_CHECK(cudaMemset(fdpd_axayaz, 0, sizeof(float)*np*3)); ////////////// Mauro: CHECK IF NECESSARY 
+
+    _dpd_forces_new2<32, 1><<<(c.ncells.x*c.ncells.y*c.ncells.z+CPB-1)/CPB, dim3(32, CPB)>>>();
+    //_dpd_forces<<<dim3(c.ncells.x / _XCPB_, c.ncells.y / _YCPB_, c.ncells.z / _ZCPB_), dim3(32, CPB)>>>();
  
     CUDA_CHECK(cudaPeekAtLastError());
 	
