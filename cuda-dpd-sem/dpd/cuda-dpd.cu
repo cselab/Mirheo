@@ -488,7 +488,7 @@ __device__ uint __lanemask_lt() {
 
 #define VOTE
 #define TARGET  111
-#define ONESTEP
+//#define ONESTEP
 
 __device__ char4 tid2ind[14] = {{-1, -1, -1, 0}, {0, -1, -1, 0}, {1, -1, -1, 0},
 				{-1,  0, -1, 0}, {0,  0, -1, 0}, {1,  0, -1, 0},
@@ -553,9 +553,9 @@ void _dpd_forces_new3() {
 		uint nb = 0;
 		for(uint p = 0; p < nsrc; p = xadd( p, COLS ) ) {
 			const uint pid = p + subtid;
-			if (pid < nsrc) {
+			uint spid;
+			if (pid<nsrc) {
 				#ifdef LETS_MAKE_IT_MESSY
-				uint spid;
 				asm( "{ .reg .pred p, q, r;"
 						 "  .reg .f32  key;"
 						 "  .reg .f32  scan3, scan6, scan9;"
@@ -591,24 +591,35 @@ void _dpd_forces_new3() {
 				const uint key9 = 9*(pid >= start_n_scan[wid][9].y);
 				uint key3 = 3*(pid >= start_n_scan[wid][key9 + 3].y);
 				key3 += (key9 < 9) ? 3*(pid >= start_n_scan[wid][key9 + 6].y) : 0;
-				uint spid = pid - start_n_scan[wid][key3+key9].y + start_n_scan[wid][key3+key9].x;
+				spid = pid - start_n_scan[wid][key3+key9].y + start_n_scan[wid][key3+key9].x;
 				#endif
+			}
 
+			#ifdef LETS_MAKE_IT_MESSY
+			float4 xsrc, usrc;
+			#else
+			float3 xsrc, usrc;
+			#endif
+			float fx = 0.f, fy = 0.f, fz = 0.f;
+
+			if (pid<nsrc) {
 				#ifdef LETS_MAKE_IT_MESSY
 				const uint sentry = xscale( spid, 2.f );
-				const float4 xsrc = tex1Dfetch(texParticlesF4, sentry    );
-				const float4 usrc = tex1Dfetch(texParticlesF4, xadd( sentry, 1u ) );
+				xsrc = tex1Dfetch(texParticlesF4, sentry    );
+				usrc = tex1Dfetch(texParticlesF4, xadd( sentry, 1u ) );
 				#else
 				const uint sentry = xscale( spid, 3.f );
 				const float2 stmp0 = tex1Dfetch(texParticles2, sentry    );
 				const float2 stmp1 = tex1Dfetch(texParticles2, xadd( sentry, 1u ) );
 				const float2 stmp2 = tex1Dfetch(texParticles2, xadd( sentry, 2u ) );
-				const float3 xsrc = make_float3( stmp0.x, stmp0.y, stmp1.x );
-				const float3 usrc = make_float3( stmp1.y, stmp2.x, stmp2.y );
+				xsrc = make_float3( stmp0.x, stmp0.y, stmp1.x );
+				usrc = make_float3( stmp1.y, stmp2.x, stmp2.y );
 				#endif
-				float fx = 0.f, fy = 0.f, fz = 0.f;
+			}
 
-				for(uint dpid = xadd(dststart,slot); dpid < lastdst; dpid = xadd(dpid, ROWS) ) {
+			for(uint dpid = xadd(dststart,slot); dpid < lastdst; dpid = xadd(dpid, ROWS) ) {
+				int interacting = 0;
+				if (pid<nsrc) {
 					#ifdef LETS_MAKE_IT_MESSY
 					const float4 xdest = tex1Dfetch(texParticlesF4, xscale( dpid, 2.f ) );
 					#else
@@ -618,121 +629,55 @@ void _dpd_forces_new3() {
 					const float3 xdest = make_float3( dtmp0.x, dtmp0.y, dtmp1.x );
 					#endif
 
-					const float d2 = (xdest.x-xsrc.x)*(xdest.x-xsrc.x) +
-							 (xdest.y-xsrc.y)*(xdest.y-xsrc.y) +
-							 (xdest.z-xsrc.z)*(xdest.z-xsrc.z);
-
-
-					#ifdef VOTE
-					int interacting = ((dpid != spid) && (d2 < 1.0f));
-					uint overview = __ballot( interacting );
-					const uint insert = nb + __popc( overview & __lanemask_lt() );
-					if (interacting) queue[wid][insert] = ( ( (dpid-dststart)<<24 ) | spid );
-					nb += __popc( overview );
-
-					if ( nb >= 32 ) {
-						const uint dpid = dststart + ( queue[wid][tid] >> 24 );
-						const uint spid = queue[wid][tid] & 0x00FFFFFF;
-						#ifdef LETS_MAKE_IT_MESSY
-						const float4 xdest = tex1Dfetch(texParticlesF4, xscale( dpid, 2.f     ) );
-						const float4 udest = tex1Dfetch(texParticlesF4,   xmad( dpid, 2.f, 1u ) );
-						const float4 xsrc  = tex1Dfetch(texParticlesF4, xscale( spid, 2.f     ) );
-						const float4 usrc  = tex1Dfetch(texParticlesF4,   xmad( spid, 2.f, 1u ) );
-						#else
-						const uint sentry = xscale( spid, 3.f );
-						const float2 stmp0 = tex1Dfetch(texParticles2, sentry    );
-						const float2 stmp1 = tex1Dfetch(texParticles2, xadd( sentry, 1u ) );
-						const float2 stmp2 = tex1Dfetch(texParticles2, xadd( sentry, 2u ) );
-						const float3 xsrc = make_float3( stmp0.x, stmp0.y, stmp1.x );
-						const float3 usrc = make_float3( stmp1.y, stmp2.x, stmp2.y );
-						const uint dentry = xscale( dpid, 3.f );
-						const float2 dtmp0 = tex1Dfetch(texParticles2, dentry    );
-						const float2 dtmp1 = tex1Dfetch(texParticles2, xadd( dentry, 1u ) );
-						const float2 dtmp2 = tex1Dfetch(texParticles2, xadd( dentry, 2u ) );
-						const float3 xdest = make_float3( dtmp0.x, dtmp0.y, dtmp1.x );
-						const float3 udest = make_float3( dtmp1.y, dtmp2.x, dtmp2.y );
-						#endif
-						const float3 f = _dpd_interaction(dpid, xdest, udest, xsrc, usrc, spid);
-
-						float* acc = info.axayaz + xscale( dpid, 3.f );
-						atomicAdd(acc++, f.x);
-						atomicAdd(acc++, f.y);
-						atomicAdd(acc  , f.z);
-						//if (spid==TARGET||dpid==TARGET) printf("%c %d -> %d\n", spid>dpid?'A':'B', spid, dpid);
-						//printf("NN %d %d %f\n",spid,dpid,f.x);
-
-						if (spid < spidext) {
-							float* acc = info.axayaz + xscale( spid, 3.f );
-							atomicAdd(acc++, -f.x);
-							atomicAdd(acc++, -f.y);
-							atomicAdd(acc  , -f.z);
-							//if (spid==TARGET||dpid==TARGET) printf("%c %d -> %d\n", dpid>spid?'A':'B', dpid, spid);
-							//printf("NN %d %d %f\n",dpid,spid,-f.x);
-						}
-
-						nb -= 32;
-						queue[wid][tid] = queue[wid][tid+32];
-					}
-
-					#else
-					if ((dpid != spid) && (d2 < 1.0f)) {
-						#ifdef LETS_MAKE_IT_MESSY
-						const float4 udest = tex1Dfetch(texParticlesF4, xmad( dpid, 2.f, 1u ) );
-						#else
-						const float2 dtmp2 = tex1Dfetch(texParticles2, 3*dpid +2);
-						const float3 udest = make_float3( dtmp1.y, dtmp2.x, dtmp2.y );
-						#endif
-						const float3 f = _dpd_interaction(dpid, xdest, udest, xsrc, usrc, spid);
-
-						#define ONESTEP
-
-						float* acc = info.axayaz + xscale( dpid, 3.f );
-						atomicAdd(acc++, f.x);
-						atomicAdd(acc++, f.y);
-						atomicAdd(acc  , f.z);
-						if (spid==TARGET||dpid==TARGET) printf("%c %d -> %d\n", spid>dpid?'A':'B', spid, dpid);
-
-						if (pid < nsrcext) {
-							fx -= f.x;
-							fy -= f.y;
-							fz -= f.z;
-							if (spid==TARGET||dpid==TARGET) printf("%c %d -> %d\n", dpid>spid?'A':'B', dpid, spid);
-						}
-					}
-
-					#if 0
-					int interacting = ((dpid != spid) && (d2 < 1.0f));
-					uint overview = __ballot( interacting );
-					const uint insert = nb + __popc( overview & __lanemask_lt() );
-					if (interacting) {
-						if (dpid==TARGET) printf("I: TARGET - %d @ %d\n",spid,insert);
-						if (spid==TARGET) printf("I: TARGET - %d @ %d\n",dpid,insert);
-						queue[wid][insert] = ( ( (dpid-dststart)<<24 ) | spid );
-					}
-					nb += __popc( overview );
-
-					if ( nb >= 32 ) {
-						const uint dpid = dststart + ( queue[wid][tid] >> 24 );
-						const uint spid = queue[wid][tid] & 0x00FFFFFF;
-
-						if (dpid==TARGET) printf("O: TARGET - %d @ %d\n",spid, tid);
-						if (spid==TARGET) printf("O: TARGET - %d @ %d\n",dpid, tid);
-						#define ONESTEP
-
-						nb -= 32;
-						queue[wid][tid] = queue[wid][tid+32];
-					}
-					#endif
-
-					#endif
+					const float d2 = (xdest.x-xsrc.x)*(xdest.x-xsrc.x) + (xdest.y-xsrc.y)*(xdest.y-xsrc.y) + (xdest.z-xsrc.z)*(xdest.z-xsrc.z);
+					interacting = ((dpid != spid) && (d2 < 1.0f));
 				}
-				#ifndef VOTE
-				float *acc = info.axayaz + xscale( spid, 3.f );
-				atomicAdd(acc++, fx);
-				atomicAdd(acc++, fy);
-				atomicAdd(acc  , fz);
-				#endif
+
+				uint overview = __ballot( interacting );
+				const uint insert = nb + __popc( overview & __lanemask_lt() );
+				if (interacting) queue[wid][insert] = ( ( (dpid-dststart)<<24 ) | spid );
+				nb += __popc( overview );
+				if ( nb >= 32 ) {
+					const uint dpid = dststart + ( queue[wid][tid] >> 24 );
+					const uint spid = queue[wid][tid] & 0x00FFFFFF;
+					#ifdef LETS_MAKE_IT_MESSY
+					const float4 xdest = tex1Dfetch(texParticlesF4, xscale( dpid, 2.f     ) );
+					const float4 udest = tex1Dfetch(texParticlesF4,   xmad( dpid, 2.f, 1u ) );
+					const float4 xsrc  = tex1Dfetch(texParticlesF4, xscale( spid, 2.f     ) );
+					const float4 usrc  = tex1Dfetch(texParticlesF4,   xmad( spid, 2.f, 1u ) );
+					#else
+					const uint sentry = xscale( spid, 3.f );
+					const float2 stmp0 = tex1Dfetch(texParticles2, sentry    );
+					const float2 stmp1 = tex1Dfetch(texParticles2, xadd( sentry, 1u ) );
+					const float2 stmp2 = tex1Dfetch(texParticles2, xadd( sentry, 2u ) );
+					const float3 xsrc = make_float3( stmp0.x, stmp0.y, stmp1.x );
+					const float3 usrc = make_float3( stmp1.y, stmp2.x, stmp2.y );
+					const uint dentry = xscale( dpid, 3.f );
+					const float2 dtmp0 = tex1Dfetch(texParticles2, dentry    );
+					const float2 dtmp1 = tex1Dfetch(texParticles2, xadd( dentry, 1u ) );
+					const float2 dtmp2 = tex1Dfetch(texParticles2, xadd( dentry, 2u ) );
+					const float3 xdest = make_float3( dtmp0.x, dtmp0.y, dtmp1.x );
+					const float3 udest = make_float3( dtmp1.y, dtmp2.x, dtmp2.y );
+					#endif
+					const float3 f = _dpd_interaction(dpid, xdest, udest, xsrc, usrc, spid);
+
+					float* acc = info.axayaz + xscale( dpid, 3.f );
+					atomicAdd(acc++, f.x);
+					atomicAdd(acc++, f.y);
+					atomicAdd(acc  , f.z);
+
+					if (spid < spidext) {
+						float* acc = info.axayaz + xscale( spid, 3.f );
+						atomicAdd(acc++, -f.x);
+						atomicAdd(acc++, -f.y);
+						atomicAdd(acc  , -f.z);
+					}
+
+					nb -= 32;
+					queue[wid][tid] = queue[wid][tid+32];
+				}
 			}
+
 			#ifdef VOTE
 			nb = __shfl( nb, 0 );
 			if (tid < nb) {
@@ -763,31 +708,13 @@ void _dpd_forces_new3() {
 				atomicAdd(acc++, f.x);
 				atomicAdd(acc++, f.y);
 				atomicAdd(acc  , f.z);
-				//printf("NN %d %d %f\n",spid,dpid,f.x);
 
 				if (spid < spidext) {
 					float* acc = info.axayaz + xscale( spid, 3.f );
 					atomicAdd(acc++, -f.x);
 					atomicAdd(acc++, -f.y);
 					atomicAdd(acc  , -f.z);
-					//if (spid==TARGET||dpid==TARGET) printf("%c %d -> %d\n", dpid>spid?'A':'B', dpid, spid);
-					//printf("NN %d %d %f\n",dpid,spid,-f.x);
 				}
-			}
-			nb = 0;
-			#endif
-			#if 0
-			// nb never bigger than 31
-			nb = __shfl( nb, 0 );
-			if (tid < nb) {
-				const uint dpid = dststart + ( queue[wid][tid] >> 24 );
-				const uint spid = queue[wid][tid] & 0x00FFFFFF;
-				//if (dpid==0) printf("O: 0 - %d @ %d\n",spid,tid);
-				//if (spid==0) printf("O: 0 - %d @ %d\n",dpid,tid);
-				uint last = 31 - __clz( __ballot(1) );
-				if (dpid==TARGET) printf("O: TARGET - %d @ %d last tid %d, nb %d\n",spid,tid, last, nb );
-				if (spid==TARGET) printf("O: TARGET - %d @ %d last tid %d, nb %d\n",dpid,tid, last, nb );
-				#define ONESTEP
 			}
 			nb = 0;
 			#endif
