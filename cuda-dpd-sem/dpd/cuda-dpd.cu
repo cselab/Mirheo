@@ -458,7 +458,7 @@ __device__ char4 tid2ind[14] = {{-1, -1, -1, 0}, {0, -1, -1, 0}, {1, -1, -1, 0},
 #define MYCPBY	(2)
 #define MYCPBZ	(2)
 #define MYWPB	(4)
-template<int COLS, int ROWS>
+template<uint COLS, uint ROWS>
 __global__  
 __launch_bounds__(32*MYWPB, 16)
 void _dpd_forces_new3() {
@@ -498,20 +498,20 @@ void _dpd_forces_new3() {
 		if (tid < 15) start_n_scan[wid][tid].y = myscan - mycount;
 	    
 		const uint subtid = tid % COLS;
-		const uint slot = tid / COLS;
+		const uint slot   = tid / COLS;
 
 		const uint dststart = start_n_scan[wid][13].x;
-		const uint lastdst = dststart + start_n_scan[wid][14].y-start_n_scan[wid][13].y;
+		const uint lastdst  = xsub( xadd( dststart, start_n_scan[wid][14].y ), start_n_scan[wid][13].y );
 
-		const uint nsrc = start_n_scan[wid][14].y;
-		const uint nsrcext = start_n_scan[wid][13].y;
+		const uint nsrc     = start_n_scan[wid][14].y;
+		const uint nsrcext  = start_n_scan[wid][13].y;
 
-		for(uint pid = subtid; pid < nsrc; pid += COLS) {
+		for(uint pid = subtid; pid < nsrc; pid = xadd( pid, COLS ) ) {
 #if 0//def LETS_MAKE_IT_MESSY
-			int spid;
-			asm( "{ .reg .pred p, q;"
+			uint spid;
+			asm( "{ .reg .pred p, q, r;"
 					 "  .reg .f32  key;"
-					 "  .reg .f32  scan3, scan6, scan9, scan18;"
+					 "  .reg .f32  scan3, scan6, scan9;"
 					 "  .reg .f32  mystart, myscan;"
 					 "  .reg .s32  array;"
 					 "  .reg .f32  array_f;"
@@ -519,19 +519,17 @@ void _dpd_forces_new3() {
 					 "   mul.f32           array_f, array_f, 256.0;"
 					 "   mov.b32           array, array_f;"
 					 "   ld.shared.f32     scan9,  [array +  9*8 + 4];"
-					 "   ld.shared.f32     scan18, [array + 18*8 + 4];"
 					 "   setp.ge.f32       p, %1, scan9;"
-					 "   setp.ge.f32       q, %1, scan18;"
 					 "   selp.f32          key, %2, 0.0, p;"
-					 "@q add.f32           key, key, %2;"
 					 "   mov.b32           array_f, array;"
 					 "   fma.f32.rm        array_f, key, 8.0, array_f;"
 					 "   mov.b32 array,    array_f;"
 					 "   ld.shared.f32     scan3, [array + 3*8 + 4];"
-					 "   ld.shared.f32     scan6, [array + 6*8 + 4];"
 					 "   setp.ge.f32       p, %1, scan3;"
-					 "   setp.ge.f32       q, %1, scan6;"
 					 "@p add.f32           key, key, %3;"
+					 "   setp.lt.f32       p, key, %2;"
+					 "@p ld.shared.f32     scan6, [array + 6*8 + 4];"
+					 "   setp.ge.and.f32   q, %1, scan6, p;"
 					 "@q add.f32           key, key, %3;"
 					 "   mov.b32           array_f, %4;"
 					 "   mul.f32           array_f, array_f, 256.0;"
@@ -542,7 +540,6 @@ void _dpd_forces_new3() {
 					 "   sub.f32           mystart, mystart, myscan;"
 					 "   mov.b32           %0, mystart;"
 					 "}" : "=r"(spid) : "f"(u2f(pid)), "f"(u2f(9u)), "f"(u2f(3u)), "f"(u2f(wid)) );
-
 #else
 			const uint key9 = 9*(pid >= start_n_scan[wid][9].y);
 			uint key3 = 3*(pid >= start_n_scan[wid][key9 + 3].y);
@@ -550,18 +547,18 @@ void _dpd_forces_new3() {
 			uint spid = pid - start_n_scan[wid][key3+key9].y + start_n_scan[wid][key3+key9].x;
 #endif
 
-			const uint sentry = 3 * spid;
-			const float2 stmp0 = tex1Dfetch(texParticles2, sentry);
-			const float2 stmp1 = tex1Dfetch(texParticles2, sentry + 1);
-			const float2 stmp2 = tex1Dfetch(texParticles2, sentry + 2);
+			const uint sentry = xscale( spid, 3.f );
+			const float2 stmp0 = tex1Dfetch(texParticles2, sentry    );
+			const float2 stmp1 = tex1Dfetch(texParticles2, xadd( sentry, 1u ) );
+			const float2 stmp2 = tex1Dfetch(texParticles2, xadd( sentry, 2u ) );
 			const float3 xsrc = make_float3( stmp0.x, stmp0.y, stmp1.x );
 			const float3 usrc = make_float3( stmp1.y, stmp2.x, stmp2.y );
 			float fx = 0.f, fy = 0.f, fz = 0.f;
 
-			for(uint dpid = dststart+slot; dpid < lastdst; dpid += ROWS) {
-
-				const float2 dtmp0 = tex1Dfetch(texParticles2, 3*dpid);
-				const float2 dtmp1 = tex1Dfetch(texParticles2, 3*dpid +1);
+			for(uint dpid = xadd(dststart,slot); dpid < lastdst; dpid = xadd(dpid, ROWS) ) {
+				const uint dentry = xscale( dpid, 3.f );
+				const float2 dtmp0 = tex1Dfetch(texParticles2,      dentry      );
+				const float2 dtmp1 = tex1Dfetch(texParticles2, xadd(dentry, 1u ));
 				const float3 xdest = make_float3( dtmp0.x, dtmp0.y, dtmp1.x );
 				
 				const float d2 = (xdest.x-xsrc.x)*(xdest.x-xsrc.x) +
