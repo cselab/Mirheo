@@ -660,16 +660,20 @@ void _dpd_forces_new5() {
 					#endif
 					const float3 f = _dpd_interaction(dpid, xdest, udest, xsrc, usrc, spid);
 
-					float* acc = info.axayaz + xscale( dpid, 3.f );
-					atomicAdd(acc++, f.x);
-					atomicAdd(acc++, f.y);
-					atomicAdd(acc  , f.z);
+					uint base = dpid & 0xFFFFFF00;
+					uint off  = dpid - base;
+					float* acc = info.axayaz + base * 3 + off;
+					atomicAdd(acc   , f.x);
+					atomicAdd(acc+32, f.y);
+					atomicAdd(acc+64, f.z);
 
 					if (spid < spidext) {
-						float* acc = info.axayaz + xscale( spid, 3.f );
-						atomicAdd(acc++, -f.x);
-						atomicAdd(acc++, -f.y);
-						atomicAdd(acc  , -f.z);
+						uint base = spid & 0xFFFFFF00;
+						uint off  = spid - base;
+						float* acc = info.axayaz + base * 3 + off;
+						atomicAdd(acc   , f.x);
+						atomicAdd(acc+32, f.y);
+						atomicAdd(acc+64, f.z);
 					}
 
 					nb -= 32;
@@ -703,16 +707,20 @@ void _dpd_forces_new5() {
 				#endif
 				const float3 f = _dpd_interaction(dpid, xdest, udest, xsrc, usrc, spid);
 
-				float* acc = info.axayaz + xscale( dpid, 3.f );
-				atomicAdd(acc++, f.x);
-				atomicAdd(acc++, f.y);
-				atomicAdd(acc  , f.z);
+				uint base = dpid & 0xFFFFFF00;
+				uint off  = dpid - base;
+				float* acc = info.axayaz + base * 3 + off;
+				atomicAdd(acc   , f.x);
+				atomicAdd(acc+32, f.y);
+				atomicAdd(acc+64, f.z);
 
 				if (spid < spidext) {
-					float* acc = info.axayaz + xscale( spid, 3.f );
-					atomicAdd(acc++, -f.x);
-					atomicAdd(acc++, -f.y);
-					atomicAdd(acc  , -f.z);
+					uint base = spid & 0xFFFFFF00;
+					uint off  = spid - base;
+					float* acc = info.axayaz + base * 3 + off;
+					atomicAdd(acc   , f.x);
+					atomicAdd(acc+32, f.y);
+					atomicAdd(acc+64, f.z);
 				}
 			}
 			nb = 0;
@@ -1124,6 +1132,24 @@ __global__ void check_a(const int np)
 	printf("ACC: %lf %lf %lf\n",sx,sy,sz);
 }
 
+__global__ void transpose_a(const int np)
+{
+	__shared__ float a[3];
+	for(int i=blockIdx.x*blockDim.x+threadIdx.x;i<n;i+=blockDim.x*gridDim.x) {
+		int base = i & 0xFFFFFF00;
+		int off  = i - base;
+		float ax = info.axayaz[ base*3 + off      ];
+		float ay = info.axayaz[ base*3 + off + 32 ];
+		float az = info.axayaz[ base*3 + off + 64 ];
+		// make sync between lanes
+		if (__ballot(1)) {
+			info.axayaz[ i * 3 + 0 ] = ax;
+			info.axayaz[ i * 3 + 1 ] = ay;
+			info.axayaz[ i * 3 + 2 ] = az;
+		}
+	}
+}
+
 void forces_dpd_cuda_nohost(const float * const xyzuvw, float * const axayaz,  const int np,
 			    const int * const cellsstart, const int * const cellscount, 
 			    const float rc,
@@ -1275,8 +1301,10 @@ void forces_dpd_cuda_nohost(const float * const xyzuvw, float * const axayaz,  c
     //cellstats(cellsstart, cellscount, nx, ny, nz);              // MAURO
     CUDA_CHECK(cudaMemset(axayaz, 0, sizeof(float)*np*3));      /////////// MAURO CHECK IF NECESSARY
 
-    if (c.ncells.x%MYCPBX==0 && c.ncells.y%MYCPBY==0 && c.ncells.z%MYCPBZ==0)
-	_dpd_forces_new5<<<dim3(c.ncells.x/MYCPBX, c.ncells.y/MYCPBY, c.ncells.z/MYCPBZ), dim3(32, MYWPB), 0, stream>>>();
+    if (c.ncells.x%MYCPBX==0 && c.ncells.y%MYCPBY==0 && c.ncells.z%MYCPBZ==0) {
+    	_dpd_forces_new5<<<dim3(c.ncells.x/MYCPBX, c.ncells.y/MYCPBY, c.ncells.z/MYCPBZ), dim3(32, MYWPB), 0, stream>>>();
+        transpose_a<<<64,512,0,stream>>>(np);
+    }
     else {
 		#ifdef LETS_MAKE_IT_MESSY
     	fprintf(stderr,"Incompatible texture\n");
