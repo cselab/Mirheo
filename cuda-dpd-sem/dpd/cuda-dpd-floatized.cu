@@ -132,6 +132,36 @@ __device__ float3 _dpd_interaction( const uint dpid, const float4 xdest, const f
     return make_float3( strength * xr, strength * yr, strength * zr );
 }
 
+__device__ float3 _dpd_interaction(const int dpid, const float4 xdest, const float4 udest, const float4 xsrc, const float4 usrc, const int spid)
+{
+    const float _xr = xdest.x - xsrc.x;
+    const float _yr = xdest.y - xsrc.y;
+    const float _zr = xdest.z - xsrc.z;
+
+    const float rij2 = _xr * _xr + _yr * _yr + _zr * _zr;
+    assert(rij2 < 1);
+
+    const float invrij = rsqrtf(rij2);
+    const float rij = rij2 * invrij;
+    const float argwr = 1 - rij;
+    const float wr = viscosity_function<-VISCOSITY_S_LEVEL>(argwr);
+
+    const float xr = _xr * invrij;
+    const float yr = _yr * invrij;
+    const float zr = _zr * invrij;
+
+    const float rdotv =
+	xr * (udest.x - usrc.x) +
+	yr * (udest.y - usrc.y) +
+	zr * (udest.z - usrc.z);
+
+    const float myrandnr = Logistic::mean0var1(info.seed, min(spid, dpid), max(spid, dpid));
+
+    const float strength = info.aij * argwr - (info.gamma * wr * rdotv + info.sigmaf * myrandnr) * wr;
+
+    return make_float3(strength * xr, strength * yr, strength * zr);
+}
+
 template<uint COLS, uint ROWS, uint NSRCMAX>
 __device__ void core( const uint nsrc, const uint2 * const starts_and_scans,
                       const uint ndst, const uint dststart )
@@ -244,8 +274,8 @@ __device__ void core( const uint nsrc, const uint2 * const starts_and_scans,
 #endif
 		if ( srccount == NSRCMAX ) {
 			srccount = xsub( srccount, 1u ); // 1 FLOP
-			// why do we reload spid? it's right there in register
-			const float3 f = _dpd_interaction( dpid, xdest, udest, spid ); // 87 FLOPS
+			const float4 utmp = tex1Dfetch( texParticles2, xmad( spid, 2.f, 1u ) );
+			const float3 f = _dpd_interaction( dpid, xdest, udest, xtmp, utmp, spid ); // 87 FLOPS
 
 			xforce += f.x; // 1 FLOP
 			yforce += f.y; // 1 FLOP
@@ -1037,6 +1067,8 @@ void forces_dpd_cuda_nohost( const float * const xyzuvw, float * const axayaz,  
 
 #ifdef _COUNT_FLOPS
     {
+	static int nstep = 0;
+	if ( ++nstep > 6950 ) {
     	static unsigned long long *FLOPS;
     	if (!FLOPS) cudaMalloc( &FLOPS, 128 * sizeof(unsigned long long) );
     	reset_flops<<<1,1,0,stream>>>(FLOPS);
@@ -1044,7 +1076,7 @@ void forces_dpd_cuda_nohost( const float * const xyzuvw, float * const axayaz,  
     	                          c.ncells.y / _YCPB_,
     	                          c.ncells.z / _ZCPB_ ), dim3( 32, CPB ), 0, stream >>> ( FLOPS );
     	print_flops<<<1,1,0,stream>>>(FLOPS);
-
+	}
     	//count FLOPS
         //report data to scree
 
