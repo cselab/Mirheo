@@ -499,10 +499,9 @@ __device__ char4 tid2ind[14] = {{-1, -1, -1, 0}, {0, -1, -1, 0}, {1, -1, -1, 0},
 #define MYCPBY	(2)
 #define MYCPBZ	(2)
 #define MYWPB	(4)
-template<uint COLS, uint ROWS>
-__global__  
-__launch_bounds__(32*MYWPB, 16)
-void _dpd_forces_new3() {
+
+__global__  __launch_bounds__(32*MYWPB, 16)
+void _dpd_forces_new5() {
 
 	__shared__ uint2 volatile start_n_scan[MYWPB][32];
 	__shared__ uint  volatile queue[MYWPB][64];
@@ -539,9 +538,6 @@ void _dpd_forces_new3() {
 
 		if (tid < 15) start_n_scan[wid][tid].y = myscan - mycount;
 	    
-		const uint subtid = tid % COLS;
-		const uint slot   = tid / COLS;
-
 		const uint dststart = start_n_scan[wid][13].x;
 		const uint lastdst  = xsub( xadd( dststart, start_n_scan[wid][14].y ), start_n_scan[wid][13].y );
 
@@ -550,8 +546,8 @@ void _dpd_forces_new3() {
 
 		// TODO
 		uint nb = 0;
-		for(uint p = 0; p < nsrc; p = xadd( p, COLS ) ) {
-			const uint pid = p + subtid;
+		for(uint p = 0; p < nsrc; p = xadd( p, 32u ) ) {
+			const uint pid = p + tid;
 			#ifdef LETS_MAKE_IT_MESSY
 			uint spid;
 			asm( "{ .reg .pred p, q, r;"
@@ -594,28 +590,24 @@ void _dpd_forces_new3() {
 			#endif
 
 			#ifdef LETS_MAKE_IT_MESSY
-			float4 xsrc, usrc;
+			float4 xsrc;
 			#else
-			float3 xsrc, usrc;
+			float3 xsrc;
 			#endif
-			float fx = 0.f, fy = 0.f, fz = 0.f;
 
 			if (pid<nsrc) {
 				#ifdef LETS_MAKE_IT_MESSY
 				const uint sentry = xscale( spid, 2.f );
-				xsrc = tex1Dfetch(texParticlesF4, sentry    );
-				usrc = tex1Dfetch(texParticlesF4, xadd( sentry, 1u ) );
+				xsrc = tex1Dfetch(texParticlesF4, sentry );
 				#else
 				const uint sentry = xscale( spid, 3.f );
 				const float2 stmp0 = tex1Dfetch(texParticles2, sentry    );
 				const float2 stmp1 = tex1Dfetch(texParticles2, xadd( sentry, 1u ) );
-				const float2 stmp2 = tex1Dfetch(texParticles2, xadd( sentry, 2u ) );
 				xsrc = make_float3( stmp0.x, stmp0.y, stmp1.x );
-				usrc = make_float3( stmp1.y, stmp2.x, stmp2.y );
 				#endif
 			}
 
-			for(uint dpid = xadd(dststart,slot); dpid < lastdst; dpid = xadd(dpid, ROWS) ) {
+			for(uint dpid = dststart; dpid < lastdst; dpid = xadd(dpid, 1u) ) {
 				int interacting = 0;
 				if (pid<nsrc) {
 					#ifdef LETS_MAKE_IT_MESSY
@@ -628,11 +620,20 @@ void _dpd_forces_new3() {
 					#endif
 
 					const float d2 = (xdest.x-xsrc.x)*(xdest.x-xsrc.x) + (xdest.y-xsrc.y)*(xdest.y-xsrc.y) + (xdest.z-xsrc.z)*(xdest.z-xsrc.z);
+					#ifdef LETS_MAKE_IT_MESSY
+					asm("{ .reg .pred        p;"
+						"  .reg .f32         i;"
+						"   setp.lt.ftz.f32  p, %3, 1.0;"
+						"   setp.ne.and.f32  p, %1, %2, p;"
+						"   selp.s32         %0, 1, 0, p;"
+						"}" : "+r"(interacting) : "f"(u2f(dpid)), "f"(u2f(spid)), "f"(d2), "f"(u2f(1u)) );
+					#else
 					interacting = ((dpid != spid) && (d2 < 1.0f));
+					#endif
 				}
 
 				uint overview = __ballot( interacting );
-				const uint insert = nb + __popc( overview & __lanemask_lt() );
+				const uint insert = xadd( nb, i2u( __popc( overview & __lanemask_lt() ) ) );
 				if (interacting) queue[wid][insert] = ( ( (dpid-dststart)<<24 ) | spid );
 				nb += __popc( overview );
 				if ( nb >= 32 ) {
@@ -1166,7 +1167,7 @@ void forces_dpd_cuda_nohost(const float * const xyzuvw, float * const axayaz,  c
 	texParticlesF4.mipmapFilterMode = cudaFilterModePoint;
 	texParticlesF4.normalized = 0;
 
-	CUDA_CHECK(cudaFuncSetCacheConfig(_dpd_forces_new3<32, 1>, cudaFuncCachePreferEqual));
+	CUDA_CHECK(cudaFuncSetCacheConfig(_dpd_forces_new5, cudaFuncCachePreferEqual));
 	CUDA_CHECK(cudaFuncSetCacheConfig(_dpd_forces_new2_1<32, 1>, cudaFuncCachePreferL1));
 
 #ifdef _TIME_PROFILE_
@@ -1275,7 +1276,7 @@ void forces_dpd_cuda_nohost(const float * const xyzuvw, float * const axayaz,  c
     CUDA_CHECK(cudaMemset(axayaz, 0, sizeof(float)*np*3));      /////////// MAURO CHECK IF NECESSARY
 
     if (c.ncells.x%MYCPBX==0 && c.ncells.y%MYCPBY==0 && c.ncells.z%MYCPBZ==0)
-	_dpd_forces_new3<32, 1><<<dim3(c.ncells.x/MYCPBX, c.ncells.y/MYCPBY, c.ncells.z/MYCPBZ), dim3(32, MYWPB), 0, stream>>>();
+	_dpd_forces_new5<<<dim3(c.ncells.x/MYCPBX, c.ncells.y/MYCPBY, c.ncells.z/MYCPBZ), dim3(32, MYWPB), 0, stream>>>();
     else {
 		#ifdef LETS_MAKE_IT_MESSY
     	fprintf(stderr,"Incompatible texture\n");
@@ -1422,7 +1423,7 @@ void forces_dpd_cuda_aos(float * const _xyzuvw, float * const _axayaz,
     CUDA_CHECK(cudaMemset(fdpd_axayaz, 0, sizeof(float)*np*3)); ////////////// Mauro: CHECK IF NECESSARY 
 
     //_dpd_forces_new2_1<32, 1><<<(c.ncells.x*c.ncells.y*c.ncells.z+CPB-1)/CPB, dim3(32, CPB)>>>();
-    _dpd_forces_new3<32, 1>/*, 3>*/<<<dim3(c.ncells.x/MYCPBX, c.ncells.y/MYCPBY, c.ncells.z/MYCPBZ), dim3(32, MYWPB)>>>();
+    _dpd_forces_new5/*, 3>*/<<<dim3(c.ncells.x/MYCPBX, c.ncells.y/MYCPBY, c.ncells.z/MYCPBZ), dim3(32, MYWPB)>>>();
     //_dpd_forces<<<dim3(c.ncells.x / _XCPB_, c.ncells.y / _YCPB_, c.ncells.z / _ZCPB_), dim3(32, CPB)>>>();
  
     CUDA_CHECK(cudaPeekAtLastError());
