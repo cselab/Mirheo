@@ -23,6 +23,8 @@ struct InfoDPD
     float invrc, aij, gamma, sigmaf;
     float * axayaz;
     float seed;
+    uint  * nextra;
+    uint2 * extra_neighbors;
 };
 
 __constant__ InfoDPD info;
@@ -366,6 +368,12 @@ __device__ uint __lanemask_lt() {
 	return mask;
 }
 
+__device__ uint __lanemask_le() {
+	uint mask;
+	asm("mov.u32 %0, %lanemask_le;" : "=r"(mask) );
+	return mask;
+}
+
 //template<uint SIMD_WIDTH, uint QSIZE>
 #define SIMD_WIDTH 16u
 #define NSLOT      2u
@@ -419,22 +427,21 @@ void _dpd_forces_new3()
 	const uint slotmask = ( ((1<<SIMD_WIDTH)-1) << (slot*SIMD_WIDTH) );
 	const uint lanemask = __lanemask_lt() & slotmask;
 
-	for(uint dpid = dststart + slot; dpid < lastdst; dpid += (32/SIMD_WIDTH)) {
+	for(uint dpid = dststart + slot; dpid < lastdst; dpid += NSLOT) {
 		// build neighbor list
 		const float2 dtmp0 = tex1Dfetch( texParticles2, dpid * 3     );
 		const float2 dtmp1 = tex1Dfetch( texParticles2, dpid * 3 + 1 );
 		const float3 xdest = make_float3( dtmp0.x, dtmp0.y, dtmp1.x );
 		uint nb = 0;
 
-		for(uint p = 0; p < nsrc; p += SIMD_WIDTH ) {
-			const uint pid = p + lane;
+		for(uint p = 0, pid = lane; p < nsrc; p += SIMD_WIDTH, pid += SIMD_WIDTH ) {
 			int interacting = 0;
 			uint spid;
 
 			if ( pid < nsrc ) {
 				const uint key9 = 9 * ((pid >= scan[wid][9       ]) + (pid >= scan[wid][18      ]));
 				const uint key3 = 3 * ((pid >= scan[wid][key9 + 3]) + (pid >= scan[wid][key9 + 6]));
-				const uint key = key9 + key3;
+				const uint key  = key9 + key3;
 				spid = pid - scan[wid][key] + starts[wid][key];
 
 				const float2 stmp0 = tex1Dfetch(texParticles2, 3 * spid     );
@@ -448,17 +455,17 @@ void _dpd_forces_new3()
 
 				interacting = ((dpid != spid) && (d2 < 1.0f));
 			}
-			uint all_interacting = __ballot( interacting );
 
-			uint insert = nb + __popc( all_interacting & lanemask );
-			nb += __popc( all_interacting & slotmask );
+			const uint all_interacting = __ballot( interacting );
+			const uint insert = nb + __popc( all_interacting & lanemask );
 			if (interacting) queue[wid][slot][insert] = spid;
+			nb = __shfl( insert + interacting, slot * SIMD_WIDTH + SIMD_WIDTH - 1 );
 		}
 
 		// evaluate force
 		const float2 dtmp2 = tex1Dfetch( texParticles2, dpid * 3 + 2 );
 		const float3 udest = make_float3( dtmp1.y, dtmp2.x, dtmp2.y );
-
+#if 1
 		float xforce = 0.f, yforce = 0.f, zforce = 0.f;
 		for(uint pid = lane; pid < nb; pid += SIMD_WIDTH ) {
 			const uint spid = queue[wid][slot][pid];
@@ -474,6 +481,30 @@ void _dpd_forces_new3()
 			yforce += f.y;
 			zforce += f.z;
 		}
+#else
+		float xforce = 0.f, yforce = 0.f, zforce = 0.f;
+		uint batch;
+		for(batch = 0; batch + SIMD_WIDTH <= nb ; batch += SIMD_WIDTH ) {
+			const uint spid = queue[wid][slot][batch+lane];
+			const float2 stmp0 = tex1Dfetch(texParticles2, 3 * spid     );
+			const float2 stmp1 = tex1Dfetch(texParticles2, 3 * spid + 1 );
+			const float2 stmp2 = tex1Dfetch(texParticles2, 3 * spid + 2 );
+			const float3 xsrc = make_float3( stmp0.x, stmp0.y, stmp1.x );
+			const float3 usrc = make_float3( stmp1.y, stmp2.x, stmp2.y );
+
+			const float3 f = _dpd_interaction(dpid, xdest, udest, xsrc, usrc, spid );
+
+			xforce += f.x;
+			yforce += f.y;
+			zforce += f.z;
+		}
+		// put the tail to global buffer
+		if ( batch < nb && lane < nb - batch ) {
+			uint all_overflow = __ballot(1);
+			uint insert = atomicInc( info.nextra, 0xFFFFFFFF ) + __popc( all_overflow & __lanemask_lt() );
+			info.extra_neighbors[ insert ] = make_uint2( dpid, queue[wid][slot][batch+lane] );
+		}
+#endif
 
 		// reduce force
 		#pragma unroll
@@ -487,6 +518,10 @@ void _dpd_forces_new3()
 		const float fcontrib = (lane == 0) * xforce + (lane == 1) * yforce + (lane == 2) * zforce;
 		if (lane < 3u) info.axayaz[3 * dpid + lane] = fcontrib;
 	}
+}
+
+__global__ void reset_nextra() {
+	*info.nextra = 0;
 }
 
 __global__ __launch_bounds__(32 * CPB, 16)
@@ -870,17 +905,6 @@ static void cellstats(const int *d_cstart, const int *d_ccount, int nx, int ny, 
 	free(ccount);
 }
 
-__global__ void print_a(const int np) {
-	double sx = 0, sy = 0, sz = 0;
-	for(int i=0;i<np;i++) {
-//		printf("%f %f %f\n",info.axayaz[i*3+0], info.axayaz[i*3+1], info.axayaz[i*3+2]);
-		sx += info.axayaz[i*3+0];
-		sy += info.axayaz[i*3+1];
-		sz += info.axayaz[i*3+2];
-	}
-	printf("%lf %lf %lf\n",sx,sy,sz);
-}
-
 void forces_dpd_cuda_nohost(const float * const xyzuvw, float * const axayaz,  const int np,
 			    const int * const cellsstart, const int * const cellscount, 
 			    const float rc,
@@ -950,7 +974,19 @@ void forces_dpd_cuda_nohost(const float * const xyzuvw, float * const axayaz,  c
     c.sigmaf = sigma * invsqrtdt;
     c.axayaz = axayaz;
     c.seed = seed;
-      
+
+#if 0
+    static uint2* extra_neighbors;
+    static uint * nextra;
+    if (!extra_neighbors) {
+    	cudaMalloc( &nextra, sizeof(uint) );
+    	cudaMalloc( &extra_neighbors, sizeof(uint2) * np * 8 );
+    }
+    c.nextra = nextra;
+    c.extra_neighbors = extra_neighbors;
+    reset_nextra<<<1,1>>>();
+#endif
+
     CUDA_CHECK(cudaMemcpyToSymbolAsync(info, &c, sizeof(c), 0, cudaMemcpyHostToDevice, stream));
    
     static int cetriolo = 0;
