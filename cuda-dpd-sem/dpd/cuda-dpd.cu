@@ -508,7 +508,7 @@ void _dpd_forces_new3() {
 		const uint nsrcext  = start_n_scan[wid][13].y;
 
 		for(uint pid = subtid; pid < nsrc; pid = xadd( pid, COLS ) ) {
-#if 0//def LETS_MAKE_IT_MESSY
+#ifdef LETS_MAKE_IT_MESSY
 			uint spid;
 			asm( "{ .reg .pred p, q, r;"
 					 "  .reg .f32  key;"
@@ -548,27 +548,45 @@ void _dpd_forces_new3() {
 			uint spid = pid - start_n_scan[wid][key3+key9].y + start_n_scan[wid][key3+key9].x;
 #endif
 
+#ifdef LETS_MAKE_IT_MESSY
+			const uint sentry = xscale( spid, 2.f );
+			const float4 stmp0 = tex1Dfetch(texParticlesF4, sentry    );
+			const float4 stmp1 = tex1Dfetch(texParticlesF4, xadd( sentry, 1u ) );
+			const float3 xsrc = make_float3( stmp0.x, stmp0.y, stmp0.z );
+			const float3 usrc = make_float3( stmp1.x, stmp1.y, stmp1.z );
+#else
 			const uint sentry = xscale( spid, 3.f );
 			const float2 stmp0 = tex1Dfetch(texParticles2, sentry    );
 			const float2 stmp1 = tex1Dfetch(texParticles2, xadd( sentry, 1u ) );
 			const float2 stmp2 = tex1Dfetch(texParticles2, xadd( sentry, 2u ) );
 			const float3 xsrc = make_float3( stmp0.x, stmp0.y, stmp1.x );
 			const float3 usrc = make_float3( stmp1.y, stmp2.x, stmp2.y );
+#endif
 			float fx = 0.f, fy = 0.f, fz = 0.f;
 
 			for(uint dpid = xadd(dststart,slot); dpid < lastdst; dpid = xadd(dpid, ROWS) ) {
+#ifdef LETS_MAKE_IT_MESSY
+				const float4 dtmp0 = tex1Dfetch(texParticlesF4, xscale( dpid, 2.f ) );
+				const float3 xdest = make_float3( dtmp0.x, dtmp0.y, dtmp0.z );
+#else
 				const uint dentry = xscale( dpid, 3.f );
 				const float2 dtmp0 = tex1Dfetch(texParticles2,      dentry      );
 				const float2 dtmp1 = tex1Dfetch(texParticles2, xadd(dentry, 1u ));
 				const float3 xdest = make_float3( dtmp0.x, dtmp0.y, dtmp1.x );
+#endif
 				
 				const float d2 = (xdest.x-xsrc.x)*(xdest.x-xsrc.x) +
 						 (xdest.y-xsrc.y)*(xdest.y-xsrc.y) +
 						 (xdest.z-xsrc.z)*(xdest.z-xsrc.z);
 
 				if ((dpid != spid) && (d2 < 1.0f)) {
+#ifdef LETS_MAKE_IT_MESSY
+					const float4 dtmp1 = tex1Dfetch(texParticlesF4, xmad( dpid, 2.f, 1u ) );
+					const float3 udest = make_float3( dtmp1.x, dtmp1.y, dtmp1.z );
+#else
 					const float2 dtmp2 = tex1Dfetch(texParticles2, 3*dpid +2);
 					const float3 udest = make_float3( dtmp1.y, dtmp2.x, dtmp2.y );
+#endif
 					const float3 f = _dpd_interaction(dpid, xdest, udest, xsrc, usrc, spid);
 
 					float* acc = info.axayaz + xscale( dpid, 3.f );
@@ -583,9 +601,10 @@ void _dpd_forces_new3() {
 					}
 				}
 			}
-			atomicAdd(info.axayaz + 3*spid    , fx);
-			atomicAdd(info.axayaz + 3*spid + 1, fy);
-			atomicAdd(info.axayaz + 3*spid + 2, fz);
+			float *acc = info.axayaz + xscale( spid, 3.f );
+			atomicAdd(acc++, fx);
+			atomicAdd(acc++, fy);
+			atomicAdd(acc  , fz);
 		}
 	}
 }
@@ -1041,7 +1060,7 @@ void forces_dpd_cuda_nohost(const float * const xyzuvw, float * const axayaz,  c
     }
 
     size_t textureoffset;
-    {
+#ifdef LETS_MAKE_IT_MESSY
 		static float *xyzuvwoo;
 		static int last_size;
 		if (!xyzuvwoo || last_size < np ) {
@@ -1051,10 +1070,11 @@ void forces_dpd_cuda_nohost(const float * const xyzuvw, float * const axayaz,  c
 		}
 		make_texture<<<64,512,0,stream>>>( xyzuvwoo, xyzuvw, np );
 		CUDA_CHECK( cudaBindTexture( &textureoffset, &texParticlesF4, xyzuvwoo, &texParticlesF4.channelDesc, sizeof( float ) * 8 * np ) );
-    }
-
+		assert(textureoffset == 0);
+#else
 	CUDA_CHECK(cudaBindTexture(&textureoffset, &texParticles2, xyzuvw, &texParticles2.channelDesc, sizeof(float) * 6 * np));
     assert(textureoffset == 0);
+#endif
     CUDA_CHECK(cudaBindTexture(&textureoffset, &texStart, cellsstart, &texStart.channelDesc, sizeof(int) * ncells));
     assert(textureoffset == 0);
     CUDA_CHECK(cudaBindTexture(&textureoffset, &texCount, cellscount, &texCount.channelDesc, sizeof(int) * ncells));
@@ -1137,11 +1157,15 @@ void forces_dpd_cuda_nohost(const float * const xyzuvw, float * const axayaz,  c
     //cellstats(cellsstart, cellscount, nx, ny, nz);              // MAURO
     CUDA_CHECK(cudaMemset(axayaz, 0, sizeof(float)*np*3));      /////////// MAURO CHECK IF NECESSARY
 
-    //_dpd_forces_new2_1<32, 1>/*, 3>*/<<<(c.ncells.x*c.ncells.y*c.ncells.z+CPB-1)/CPB, dim3(32, CPB), 0, stream>>>();
     if (c.ncells.x%MYCPBX==0 && c.ncells.y%MYCPBY==0 && c.ncells.z%MYCPBZ==0)
 	_dpd_forces_new3<32, 1><<<dim3(c.ncells.x/MYCPBX, c.ncells.y/MYCPBY, c.ncells.z/MYCPBZ), dim3(32, MYWPB), 0, stream>>>();
-    else
-	_dpd_forces_new2_1<32, 1><<<(c.ncells.x*c.ncells.y*c.ncells.z+CPB-1)/CPB, dim3(32, CPB), 0, stream>>>();
+    else {
+		#ifdef LETS_MAKE_IT_MESSY
+    	fprintf(stderr,"Incompatible texture\n");
+		#else
+    	_dpd_forces_new2_1<32, 1><<<(c.ncells.x*c.ncells.y*c.ncells.z+CPB-1)/CPB, dim3(32, CPB), 0, stream>>>();
+		#endif
+    }
     //_dpd_forces<<<dim3(c.ncells.x / _XCPB_, c.ncells.y / _YCPB_, c.ncells.z / _ZCPB_), dim3(32, CPB), 0, stream>>>();
 
 #ifdef _TIME_PROFILE_
