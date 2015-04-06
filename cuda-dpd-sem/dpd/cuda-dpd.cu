@@ -877,10 +877,10 @@ void forces_dpd_cuda_nohost(const float * const xyzuvw, float * const axayaz,  c
     if (cetriolo % 500 == 0)
 	CUDA_CHECK(cudaEventRecord(evstart));
 #endif
-//fprintf("Calling _dpd_forces with conf g(%d,%d,%d), b (%d,%d,%d)\n", c.ncells.x / _XCPB_, c.ncells.y / _YCPB_, c.ncells.z / _ZCPB_, 32, CPB, 1);
 
     //cellstats(cellsstart, cellscount, nx, ny, nz);              // MAURO
-    CUDA_CHECK( cudaMemsetAsync(axayaz, 0, sizeof(float)*np*3, stream) );      /////////// MAURO CHECK IF NECESSARY // YUHANG: fixed bug: not in stream
+    // YUHANG: fixed bug: not using stream
+    CUDA_CHECK( cudaMemsetAsync(axayaz, 0, sizeof(float)*np*3, stream) );      /////////// MAURO CHECK IF NECESSARY
 
     if (c.ncells.x%MYCPBX==0 && c.ncells.y%MYCPBY==0 && c.ncells.z%MYCPBZ==0) {
     	_dpd_forces_new5<<<dim3(c.ncells.x/MYCPBX, c.ncells.y/MYCPBY, c.ncells.z/MYCPBZ), dim3(32, MYWPB), 0, stream>>>();
@@ -891,7 +891,6 @@ void forces_dpd_cuda_nohost(const float * const xyzuvw, float * const axayaz,  c
     else {
     	fprintf(stderr,"Incompatible texture\n");
     }
-    //_dpd_forces<<<dim3(c.ncells.x / _XCPB_, c.ncells.y / _YCPB_, c.ncells.z / _ZCPB_), dim3(32, CPB), 0, stream>>>();
 
 #ifdef ONESTEP
     check_a<<<1,1>>>(np);
