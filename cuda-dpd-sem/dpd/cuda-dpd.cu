@@ -28,6 +28,7 @@ struct InfoDPD
 __constant__ InfoDPD info;
 
 texture<float2, cudaTextureType1D> texParticles2;
+texture<float4, cudaTextureType1D> texParticlesF4;
 texture<int, cudaTextureType1D> texStart, texCount;
  
 #define _XCPB_ 2
@@ -570,9 +571,10 @@ void _dpd_forces_new3() {
 					const float3 udest = make_float3( dtmp1.y, dtmp2.x, dtmp2.y );
 					const float3 f = _dpd_interaction(dpid, xdest, udest, xsrc, usrc, spid);
 
-					atomicAdd(info.axayaz + 3*dpid    , f.x);
-					atomicAdd(info.axayaz + 3*dpid + 1, f.y);
-					atomicAdd(info.axayaz + 3*dpid + 2, f.z);
+					float* acc = info.axayaz + xscale( dpid, 3.f );
+					atomicAdd(acc++, f.x);
+					atomicAdd(acc++, f.y);
+					atomicAdd(acc  , f.z);
 
 					if (pid < nsrcext) {
 						fx -= f.x;
@@ -969,6 +971,17 @@ static void cellstats(const int *d_cstart, const int *d_ccount, int nx, int ny, 
 	free(ccount);
 }
 
+__global__ void make_texture( float *v4, const float *v3, const int n ) {
+	for(int i=blockIdx.x*blockDim.x+threadIdx.x;i<n;i+=blockDim.x*gridDim.x) {
+			v4[i*8+0] = v3[i*6+0];
+			v4[i*8+1] = v3[i*6+1];
+			v4[i*8+2] = v3[i*6+2];
+			v4[i*8+4] = v3[i*6+3];
+			v4[i*8+5] = v3[i*6+4];
+			v4[i*8+6] = v3[i*6+5];
+	}
+}
+
 void forces_dpd_cuda_nohost(const float * const xyzuvw, float * const axayaz,  const int np,
 			    const int * const cellsstart, const int * const cellscount, 
 			    const float rc,
@@ -1007,6 +1020,11 @@ void forces_dpd_cuda_nohost(const float * const xyzuvw, float * const axayaz,  c
 	texParticles2.mipmapFilterMode = cudaFilterModePoint;
 	texParticles2.normalized = 0;
 
+	texParticlesF4.channelDesc = cudaCreateChannelDesc<float4>();
+	texParticlesF4.filterMode = cudaFilterModePoint;
+	texParticlesF4.mipmapFilterMode = cudaFilterModePoint;
+	texParticlesF4.normalized = 0;
+
 	//void (*dpdkernel)() =  _dpd_forces;
 	//void (*dpdkernel)() =  _dpd_forces_new2_1<32, 1>;//, 3>;
 	//void (*dpdkernel)() =  _dpd_forces_new3<32, 1>;//, 3>;
@@ -1023,7 +1041,19 @@ void forces_dpd_cuda_nohost(const float * const xyzuvw, float * const axayaz,  c
     }
 
     size_t textureoffset;
-    CUDA_CHECK(cudaBindTexture(&textureoffset, &texParticles2, xyzuvw, &texParticles2.channelDesc, sizeof(float) * 6 * np));
+    {
+		static float *xyzuvwoo;
+		static int last_size;
+		if (!xyzuvwoo || last_size < np ) {
+				if (xyzuvwoo) cudaFree(xyzuvwoo);
+				cudaMalloc(&xyzuvwoo,sizeof(float)*8*np);
+				last_size = np;
+		}
+		make_texture<<<64,512,0,stream>>>( xyzuvwoo, xyzuvw, np );
+		CUDA_CHECK( cudaBindTexture( &textureoffset, &texParticlesF4, xyzuvwoo, &texParticlesF4.channelDesc, sizeof( float ) * 8 * np ) );
+    }
+
+	CUDA_CHECK(cudaBindTexture(&textureoffset, &texParticles2, xyzuvw, &texParticles2.channelDesc, sizeof(float) * 6 * np));
     assert(textureoffset == 0);
     CUDA_CHECK(cudaBindTexture(&textureoffset, &texStart, cellsstart, &texStart.channelDesc, sizeof(int) * ncells));
     assert(textureoffset == 0);
