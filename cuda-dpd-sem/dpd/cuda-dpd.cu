@@ -35,7 +35,6 @@ texture<int, cudaTextureType1D> texStart, texCount;
 #define _YCPB_ 2
 #define _ZCPB_ 1
 #define CPB (_XCPB_ * _YCPB_ * _ZCPB_)
-//#define LETS_MAKE_IT_MESSY
 
 // Mauro: set to 0
 #if 1
@@ -489,6 +488,7 @@ __device__ uint __lanemask_lt() {
 #define VOTE
 #define TARGET  111
 //#define ONESTEP
+#define LETS_MAKE_IT_MESSY
 
 __device__ char4 tid2ind[14] = {{-1, -1, -1, 0}, {0, -1, -1, 0}, {1, -1, -1, 0},
 				{-1,  0, -1, 0}, {0,  0, -1, 0}, {1,  0, -1, 0},
