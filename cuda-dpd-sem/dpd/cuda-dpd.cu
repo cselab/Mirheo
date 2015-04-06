@@ -465,7 +465,6 @@ void _dpd_forces_new3()
 		// evaluate force
 		const float2 dtmp2 = tex1Dfetch( texParticles2, dpid * 3 + 2 );
 		const float3 udest = make_float3( dtmp1.y, dtmp2.x, dtmp2.y );
-#if 1
 		float xforce = 0.f, yforce = 0.f, zforce = 0.f;
 		for(uint pid = lane; pid < nb; pid += SIMD_WIDTH ) {
 			const uint spid = queue[wid][slot][pid];
@@ -481,30 +480,6 @@ void _dpd_forces_new3()
 			yforce += f.y;
 			zforce += f.z;
 		}
-#else
-		float xforce = 0.f, yforce = 0.f, zforce = 0.f;
-		uint batch;
-		for(batch = 0; batch + SIMD_WIDTH <= nb ; batch += SIMD_WIDTH ) {
-			const uint spid = queue[wid][slot][batch+lane];
-			const float2 stmp0 = tex1Dfetch(texParticles2, 3 * spid     );
-			const float2 stmp1 = tex1Dfetch(texParticles2, 3 * spid + 1 );
-			const float2 stmp2 = tex1Dfetch(texParticles2, 3 * spid + 2 );
-			const float3 xsrc = make_float3( stmp0.x, stmp0.y, stmp1.x );
-			const float3 usrc = make_float3( stmp1.y, stmp2.x, stmp2.y );
-
-			const float3 f = _dpd_interaction(dpid, xdest, udest, xsrc, usrc, spid );
-
-			xforce += f.x;
-			yforce += f.y;
-			zforce += f.z;
-		}
-		// put the tail to global buffer
-		if ( batch < nb && lane < nb - batch ) {
-			uint all_overflow = __ballot(1);
-			uint insert = atomicInc( info.nextra, 0xFFFFFFFF ) + __popc( all_overflow & __lanemask_lt() );
-			info.extra_neighbors[ insert ] = make_uint2( dpid, queue[wid][slot][batch+lane] );
-		}
-#endif
 
 		// reduce force
 		#pragma unroll
@@ -1195,7 +1170,7 @@ void forces_dpd_cuda_aos(float * const _xyzuvw, float * const _axayaz,
 
     _dpd_forces_new3<<<(c.ncells.x*c.ncells.y*c.ncells.z+CPB-1)/CPB, dim3(32, CPB)>>>();
     //_dpd_forces<<<dim3(c.ncells.x / _XCPB_, c.ncells.y / _YCPB_, c.ncells.z / _ZCPB_), dim3(32, CPB)>>>();
- 
+
     CUDA_CHECK(cudaPeekAtLastError());
 	
 //copy xyzuvw as well?!?
