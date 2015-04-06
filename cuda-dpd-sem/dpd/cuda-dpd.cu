@@ -137,105 +137,6 @@ __device__ float3 _dpd_interaction(const int dpid, const float4 xdest, const flo
 
 #define __IMOD(x,y) ((x)-((x)/(y))*(y))
 
-//template<int COLS, int ROWS>
-//__global__
-//__launch_bounds__(32*CPB, 16)
-//void _dpd_forces_new2_1() {
-//
-//	int mycount=0, myscan=0;
-//
-//	__shared__ int volatile starts[CPB][32], scan[CPB][32];
-//
-//	if (threadIdx.x < 14) {
-//
-//		const int cbase = blockIdx.x*blockDim.y + threadIdx.y;
-//
-//		int dx, dy, dz;
-//		dx = dy = dz = threadIdx.x/3;
-//		dx = threadIdx.x - dx*3 - 1;
-//		dy = __IMOD(dy,3) - 1;
-//		dz = __IMOD(dz/3,3) - 1;
-//
-//		int cid = cbase +
-//			  dz*info.ncells.x*info.ncells.y +
-//			  dy*info.ncells.x +
-//			  dx;
-//
-//		const bool valid_cid = (cid >= 0) && (cid < info.ncells.x*info.ncells.y*info.ncells.z);
-//
-//		starts[threadIdx.y][threadIdx.x] = (valid_cid) ? tex1Dfetch(texStart, cid) : 0;
-//		myscan = mycount = (valid_cid) ? tex1Dfetch(texCount, cid) : 0;
-//	}
-//
-//	#pragma unroll
-//	for(int L = 1; L < 32; L <<= 1)
-//		myscan += (threadIdx.x >= L)*__shfl_up(myscan, L);
-//
-//	if (threadIdx.x < 15) scan[threadIdx.y][threadIdx.x] = myscan - mycount;
-//
-//	const int subtid = threadIdx.x % COLS;
-//	const int slot = threadIdx.x / COLS;
-//
-//	const int dststart = starts[threadIdx.y][13];
-//	const int lastdst = dststart + scan[threadIdx.y][14]-scan[threadIdx.y][13];
-//
-//	const int nsrc = scan[threadIdx.y][14];
-//	const int nsrcext = scan[threadIdx.y][13];
-//
-//	for(int pid = subtid; pid < nsrc; pid += COLS) {
-//
-//		const int key9 = 9*(pid >= scan[threadIdx.y][9]);
-//		int key3 = 3*(pid >= scan[threadIdx.y][key9 + 3]);
-//		key3 += (key9 < 9) ? 3*(pid >= scan[threadIdx.y][key9 + 6]) : 0;
-//		int spid = pid - scan[threadIdx.y][key3+key9] + starts[threadIdx.y][key3+key9];
-//
-//		const int sentry = 3 * spid;
-//		const float2 stmp0 = tex1Dfetch(texParticles2, sentry);
-//		const float2 stmp1 = tex1Dfetch(texParticles2, sentry + 1);
-//		const float2 stmp2 = tex1Dfetch(texParticles2, sentry + 2);
-//		const float3 xsrc = make_float3( stmp0.x, stmp0.y, stmp1.x );
-//		const float3 usrc = make_float3( stmp1.y, stmp2.x, stmp2.y );
-//		float fx = 0.f, fy = 0.f, fz = 0.f;
-//
-//		for(int dpid = dststart+slot; dpid < lastdst; dpid += ROWS) {
-//
-////			float3 xdest, udest;
-//			const float2 dtmp0 = tex1Dfetch(texParticles2, 3*dpid);
-////			xdest.x = dtmp0.x;
-////			xdest.y = dtmp0.y;
-//			const float2 dtmp1 = tex1Dfetch(texParticles2, 3*dpid +1);
-////			xdest.z = dtmp0.x;
-////			udest.x = dtmp0.y;
-////			udest.y = dtmp0.x;
-////			udest.z = dtmp0.y;
-//			const float3 xdest = make_float3( dtmp0.x, dtmp0.y, dtmp1.x );
-//
-//			const float d2 = (xdest.x-xsrc.x)*(xdest.x-xsrc.x) +
-//					 (xdest.y-xsrc.y)*(xdest.y-xsrc.y) +
-//					 (xdest.z-xsrc.z)*(xdest.z-xsrc.z);
-//
-//			if ((dpid != spid) && (d2 < 1.0f)) {
-//				const float2 dtmp2 = tex1Dfetch(texParticles2, 3*dpid +2);
-//				const float3 udest = make_float3( dtmp1.y, dtmp2.x, dtmp2.y );
-//				const float3 f = _dpd_interaction(dpid, xdest, udest, xsrc, usrc, spid);
-//
-//				atomicAdd(info.axayaz + 3*dpid    , f.x);
-//				atomicAdd(info.axayaz + 3*dpid + 1, f.y);
-//				atomicAdd(info.axayaz + 3*dpid + 2, f.z);
-//
-//				if (pid < nsrcext) {
-//					fx -= f.x;
-//					fy -= f.y;
-//					fz -= f.z;
-//				}
-//			}
-//		}
-//		atomicAdd(info.axayaz + 3*spid    , fx);
-//		atomicAdd(info.axayaz + 3*spid + 1, fy);
-//		atomicAdd(info.axayaz + 3*spid + 2, fz);
-//	}
-//}
-
 __inline__ __device__ uint __lanemask_lt() {
 	uint mask;
 	asm("mov.u32 %0, %lanemask_lt;" : "=r"(mask) );
@@ -270,8 +171,6 @@ __device__ char4 tid2ind[14] = {{-1, -1, -1, 0}, {0, -1, -1, 0}, {1, -1, -1, 0},
 
 __forceinline__ __device__ void core_ytang1(uint volatile queue[MYWPB][64], const uint dststart, const uint wid, const uint tid, const uint spidext ) {
 	const uint2 pid = __unpack_8_24( queue[wid][tid] );
-//	const uint dpid = dststart + ( queue[wid][tid] >> 24 );
-//	const uint spid = queue[wid][tid] & 0x00FFFFFF;
 	const uint dpid = dststart + pid.x;
 	const uint spid = pid.y;
 
@@ -462,8 +361,7 @@ void _dpd_forces_new5() {
 
 				uint overview = __ballot( interacting );
 				const uint insert = xadd( nb, i2u( __popc( overview & __lanemask_lt() ) ) );
-				//if (interacting) queue[wid][insert] = ( ( (dpid-dststart)<<24 ) | spid );
-				if (interacting) queue[wid][insert] = __pack_8_24( dpid-dststart, spid );
+				if (interacting) queue[wid][insert] = __pack_8_24( xsub(dpid,dststart), spid );
 				nb = xadd( nb, i2u( __popc( overview ) ) );
 				if ( nb >= 32u ) {
 					core_ytang1( queue, dststart, wid, tid, spidext );
@@ -471,11 +369,10 @@ void _dpd_forces_new5() {
 					queue[wid][tid] = queue[wid][tid+32];
 				}
 			}
-
-			nb = __shfl( nb, 0 );
-			if (tid < nb) core_ytang1( queue, dststart, wid, tid, spidext );
-			nb = 0;
 		}
+
+		if (tid < nb) core_ytang1( queue, dststart, wid, tid, spidext );
+		nb = 0;
 	}
 }
 
@@ -888,21 +785,21 @@ void forces_dpd_cuda_nohost(const float * const xyzuvw, float * const axayaz,  c
     }
 
     size_t textureoffset;
-#ifdef LETS_MAKE_IT_MESSY
-		static float *xyzuvwoo;
-		static int last_size;
-		if (!xyzuvwoo || last_size < np ) {
-				if (xyzuvwoo) cudaFree(xyzuvwoo);
-				cudaMalloc(&xyzuvwoo,sizeof(float)*8*np);
-				last_size = np;
-		}
-		make_texture<<<64,512,0,stream>>>( xyzuvwoo, xyzuvw, np );
-		CUDA_CHECK( cudaBindTexture( &textureoffset, &texParticlesF4, xyzuvwoo, &texParticlesF4.channelDesc, sizeof( float ) * 8 * np ) );
-		assert(textureoffset == 0);
-#else
+	#ifdef LETS_MAKE_IT_MESSY
+	static float *xyzuvwoo;
+	static int last_size;
+	if (!xyzuvwoo || last_size < np ) {
+			if (xyzuvwoo) cudaFree(xyzuvwoo);
+			cudaMalloc(&xyzuvwoo,sizeof(float)*8*np);
+			last_size = np;
+	}
+	make_texture<<<64,512,0,stream>>>( xyzuvwoo, xyzuvw, np );
+	CUDA_CHECK( cudaBindTexture( &textureoffset, &texParticlesF4, xyzuvwoo, &texParticlesF4.channelDesc, sizeof( float ) * 8 * np ) );
+	assert(textureoffset == 0);
+	#else
 	CUDA_CHECK(cudaBindTexture(&textureoffset, &texParticles2, xyzuvw, &texParticles2.channelDesc, sizeof(float) * 6 * np));
     assert(textureoffset == 0);
-#endif
+	#endif
     CUDA_CHECK(cudaBindTexture(&textureoffset, &texStart, cellsstart, &texStart.channelDesc, sizeof(int) * ncells));
     assert(textureoffset == 0);
     CUDA_CHECK(cudaBindTexture(&textureoffset, &texCount, cellscount, &texCount.channelDesc, sizeof(int) * ncells));
