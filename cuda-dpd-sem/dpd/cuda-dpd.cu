@@ -236,10 +236,22 @@ __device__ float3 _dpd_interaction(const int dpid, const float4 xdest, const flo
 //	}
 //}
 
-__device__ uint __lanemask_lt() {
+__inline__ __device__ uint __lanemask_lt() {
 	uint mask;
 	asm("mov.u32 %0, %lanemask_lt;" : "=r"(mask) );
 	return mask;
+}
+
+__inline__ __device__ uint __pack_8_24(uint a, uint b) {
+	uint d;
+	asm("bfi.b32  %0, %1, %2, 24, 8;" : "=r"(d) : "r"(a), "r"(b) );
+	return d;
+}
+
+__inline__ __device__ uint2 __unpack_8_24(uint d) {
+	uint a;
+	asm("bfe.u32  %0, %1, 24, 8;" : "=r"(a) : "r"(d) );
+	return make_uint2( a, d&0x00FFFFFFU );
 }
 
 #define TRANSPOSED_ATOMICS
@@ -257,8 +269,12 @@ __device__ char4 tid2ind[14] = {{-1, -1, -1, 0}, {0, -1, -1, 0}, {1, -1, -1, 0},
 #define MYWPB	(4)
 
 __forceinline__ __device__ void core_ytang1(uint volatile queue[MYWPB][64], const uint dststart, const uint wid, const uint tid, const uint spidext ) {
-	const uint dpid = dststart + ( queue[wid][tid] >> 24 );
-	const uint spid = queue[wid][tid] & 0x00FFFFFF;
+	const uint2 pid = __unpack_8_24( queue[wid][tid] );
+//	const uint dpid = dststart + ( queue[wid][tid] >> 24 );
+//	const uint spid = queue[wid][tid] & 0x00FFFFFF;
+	const uint dpid = dststart + pid.x;
+	const uint spid = pid.y;
+
 	#ifdef LETS_MAKE_IT_MESSY
 	const float4 xdest = tex1Dfetch(texParticlesF4, xscale( dpid, 2.f     ) );
 	const float4 udest = tex1Dfetch(texParticlesF4,   xmad( dpid, 2.f, 1u ) );
@@ -446,11 +462,12 @@ void _dpd_forces_new5() {
 
 				uint overview = __ballot( interacting );
 				const uint insert = xadd( nb, i2u( __popc( overview & __lanemask_lt() ) ) );
-				if (interacting) queue[wid][insert] = ( ( (dpid-dststart)<<24 ) | spid );
-				nb += __popc( overview );
-				if ( nb >= 32 ) {
+				//if (interacting) queue[wid][insert] = ( ( (dpid-dststart)<<24 ) | spid );
+				if (interacting) queue[wid][insert] = __pack_8_24( dpid-dststart, spid );
+				nb = xadd( nb, i2u( __popc( overview ) ) );
+				if ( nb >= 32u ) {
 					core_ytang1( queue, dststart, wid, tid, spidext );
-					nb -= 32;
+					nb = xsub( nb, 32u );
 					queue[wid][tid] = queue[wid][tid+32];
 				}
 			}
