@@ -546,54 +546,52 @@ void _dpd_forces_new3() {
 		const uint lastdst  = xsub( xadd( dststart, start_n_scan[wid][14].y ), start_n_scan[wid][13].y );
 
 		const uint nsrc     = start_n_scan[wid][14].y;
-		const uint nsrcext  = start_n_scan[wid][13].y;
 		const uint spidext  = start_n_scan[wid][13].x;
 
 		// TODO
 		uint nb = 0;
 		for(uint p = 0; p < nsrc; p = xadd( p, COLS ) ) {
 			const uint pid = p + subtid;
+			#ifdef LETS_MAKE_IT_MESSY
 			uint spid;
-			if (pid<nsrc) {
-				#ifdef LETS_MAKE_IT_MESSY
-				asm( "{ .reg .pred p, q, r;"
-						 "  .reg .f32  key;"
-						 "  .reg .f32  scan3, scan6, scan9;"
-						 "  .reg .f32  mystart, myscan;"
-						 "  .reg .s32  array;"
-						 "  .reg .f32  array_f;"
-						 "   mov.b32           array_f, %4;"
-						 "   mul.f32           array_f, array_f, 256.0;"
-						 "   mov.b32           array, array_f;"
-						 "   ld.shared.f32     scan9,  [array +  9*8 + 4];"
-						 "   setp.ge.f32       p, %1, scan9;"
-						 "   selp.f32          key, %2, 0.0, p;"
-						 "   mov.b32           array_f, array;"
-						 "   fma.f32.rm        array_f, key, 8.0, array_f;"
-						 "   mov.b32 array,    array_f;"
-						 "   ld.shared.f32     scan3, [array + 3*8 + 4];"
-						 "   setp.ge.f32       p, %1, scan3;"
-						 "@p add.f32           key, key, %3;"
-						 "   setp.lt.f32       p, key, %2;"
-						 "@p ld.shared.f32     scan6, [array + 6*8 + 4];"
-						 "   setp.ge.and.f32   q, %1, scan6, p;"
-						 "@q add.f32           key, key, %3;"
-						 "   mov.b32           array_f, %4;"
-						 "   mul.f32           array_f, array_f, 256.0;"
-						 "   fma.f32.rm        array_f, key, 8.0, array_f;"
-						 "   mov.b32           array, array_f;"
-						 "   ld.shared.v2.f32 {mystart, myscan}, [array];"
-						 "   add.f32           mystart, mystart, %1;"
-						 "   sub.f32           mystart, mystart, myscan;"
-						 "   mov.b32           %0, mystart;"
-						 "}" : "=r"(spid) : "f"(u2f(pid)), "f"(u2f(9u)), "f"(u2f(3u)), "f"(u2f(wid)) );
-				#else
-				const uint key9 = 9*(pid >= start_n_scan[wid][9].y);
-				uint key3 = 3*(pid >= start_n_scan[wid][key9 + 3].y);
-				key3 += (key9 < 9) ? 3*(pid >= start_n_scan[wid][key9 + 6].y) : 0;
-				spid = pid - start_n_scan[wid][key3+key9].y + start_n_scan[wid][key3+key9].x;
-				#endif
-			}
+			asm( "{ .reg .pred p, q, r;"
+				 "  .reg .f32  key;"
+				 "  .reg .f32  scan3, scan6, scan9;"
+				 "  .reg .f32  mystart, myscan;"
+				 "  .reg .s32  array;"
+				 "  .reg .f32  array_f;"
+				 "   mov.b32           array_f, %4;"
+				 "   mul.f32           array_f, array_f, 256.0;"
+				 "   mov.b32           array, array_f;"
+				 "   ld.shared.f32     scan9,  [array +  9*8 + 4];"
+				 "   setp.ge.f32       p, %1, scan9;"
+				 "   selp.f32          key, %2, 0.0, p;"
+				 "   mov.b32           array_f, array;"
+				 "   fma.f32.rm        array_f, key, 8.0, array_f;"
+				 "   mov.b32 array,    array_f;"
+				 "   ld.shared.f32     scan3, [array + 3*8 + 4];"
+				 "   setp.ge.f32       p, %1, scan3;"
+				 "@p add.f32           key, key, %3;"
+				 "   setp.lt.f32       p, key, %2;"
+				 "   setp.lt.and.f32   p, %5, %6, p;"
+				 "@p ld.shared.f32     scan6, [array + 6*8 + 4];"
+				 "   setp.ge.and.f32   q, %1, scan6, p;"
+				 "@q add.f32           key, key, %3;"
+				 "   mov.b32           array_f, %4;"
+				 "   mul.f32           array_f, array_f, 256.0;"
+				 "   fma.f32.rm        array_f, key, 8.0, array_f;"
+				 "   mov.b32           array, array_f;"
+				 "   ld.shared.v2.f32 {mystart, myscan}, [array];"
+				 "   add.f32           mystart, mystart, %1;"
+				 "   sub.f32           mystart, mystart, myscan;"
+				 "   mov.b32           %0, mystart;"
+				 "}" : "=r"(spid) : "f"(u2f(pid)), "f"(u2f(9u)), "f"(u2f(3u)), "f"(u2f(wid)), "f"(u2f(pid)), "f"(u2f(nsrc)) );
+			#else
+			const uint key9 = 9*(pid >= start_n_scan[wid][9].y);
+			uint key3 = 3*(pid >= start_n_scan[wid][key9 + 3].y);
+			key3 += (key9 < 9) ? 3*(pid >= start_n_scan[wid][key9 + 6].y) : 0;
+			const uint spid = pid - start_n_scan[wid][key3+key9].y + start_n_scan[wid][key3+key9].x;
+			#endif
 
 			#ifdef LETS_MAKE_IT_MESSY
 			float4 xsrc, usrc;
