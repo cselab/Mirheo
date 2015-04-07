@@ -23,12 +23,15 @@ struct InfoDPD
     float invrc, aij, gamma, sigmaf;
     float * axayaz;
     float seed;
+    // YTANG testing
+    float4 *xyzo;
 };
 
 __constant__ InfoDPD info;
 
 texture<float2, cudaTextureType1D> texParticles2;
 texture<float4, cudaTextureType1D> texParticlesF4;
+texture<ushort4, cudaTextureType1D, cudaReadModeNormalizedFloat> texParticlesH4;
 texture<int, cudaTextureType1D> texStart, texCount;
  
 #define _XCPB_ 2
@@ -158,6 +161,8 @@ __inline__ __device__ uint2 __unpack_8_24(uint d) {
 #define TRANSPOSED_ATOMICS
 //#define ONESTEP
 #define LETS_MAKE_IT_MESSY
+//#define HALF_FLOAT
+#define DIRECT_LD
 
 __device__ char4 tid2ind[14] = {{-1, -1, -1, 0}, {0, -1, -1, 0}, {1, -1, -1, 0},
 				{-1,  0, -1, 0}, {0,  0, -1, 0}, {1,  0, -1, 0},
@@ -195,6 +200,8 @@ __forceinline__ __device__ void core_ytang1(uint volatile queue[MYWPB][64], cons
 	#endif
 	const float3 f = _dpd_interaction(dpid, xdest, udest, xsrc, usrc, spid);
 
+	// the overhead of transposition acc back
+	// can be completely killed by changing the integration kernel
 	#ifdef TRANSPOSED_ATOMICS
 	uint base = dpid & 0xFFFFFFE0U;
 	uint off  = xsub( dpid, base );
@@ -244,6 +251,7 @@ void _dpd_forces_new5() {
 			  offs.y*info.ncells.x +
 			  offs.x;
 
+	//#pragma unroll 4 // faster on k20x, slower on k20
 	for(int it = 3; it >= 0; it--) {
 
 		uint mycount=0, myscan=0;
@@ -324,8 +332,15 @@ void _dpd_forces_new5() {
 
 			if (pid<nsrc) {
 				#ifdef LETS_MAKE_IT_MESSY
-				const uint sentry = xscale( spid, 2.f );
-				xsrc = tex1Dfetch(texParticlesF4, sentry );
+				#ifdef HALF_FLOAT
+				xsrc = tex1Dfetch(texParticlesH4, spid );
+				#else
+				#ifdef DIRECT_LD
+				xsrc = info.xyzo[spid];
+				#else
+				xsrc = tex1Dfetch(texParticlesF4, xscale( spid, 2.f ) );
+				#endif
+				#endif
 				#else
 				const uint sentry = xscale( spid, 3.f );
 				const float2 stmp0 = tex1Dfetch(texParticles2, sentry    );
@@ -338,7 +353,15 @@ void _dpd_forces_new5() {
 				int interacting = 0;
 				if (pid<nsrc) {
 					#ifdef LETS_MAKE_IT_MESSY
+					#ifdef HALF_FLOAT
+					const float4 xdest = tex1Dfetch(texParticlesH4, dpid );
+					#else
+					#ifdef DIRECT_LD
+					const float4 xdest = info.xyzo[dpid];
+					#else
 					const float4 xdest = tex1Dfetch(texParticlesF4, xscale( dpid, 2.f ) );
+					#endif
+					#endif
 					#else
 					const uint dentry = xscale( dpid, 3.f );
 					const float2 dtmp0 = tex1Dfetch(texParticles2,      dentry      );
@@ -693,14 +716,18 @@ static void cellstats(const int *d_cstart, const int *d_ccount, int nx, int ny, 
 	free(ccount);
 }
 
-__global__ void make_texture( float *v4, const float *v3, const int n ) {
+__global__ void make_texture( float4 *xyzouvwo, float4 *xyzo, ushort4 *xyzo_half, const float *xyzuvw, const int n ) {
 	for(int i=blockIdx.x*blockDim.x+threadIdx.x;i<n;i+=blockDim.x*gridDim.x) {
-			v4[i*8+0] = v3[i*6+0];
-			v4[i*8+1] = v3[i*6+1];
-			v4[i*8+2] = v3[i*6+2];
-			v4[i*8+4] = v3[i*6+3];
-			v4[i*8+5] = v3[i*6+4];
-			v4[i*8+6] = v3[i*6+5];
+		float x = xyzuvw[i*6+0];
+		float y = xyzuvw[i*6+1];
+		float z = xyzuvw[i*6+2];
+		float u = xyzuvw[i*6+3];
+		float v = xyzuvw[i*6+4];
+		float w = xyzuvw[i*6+5];
+		xyzouvwo[i*2+0] = make_float4( x, y, z, 0.f );
+		xyzouvwo[i*2+1] = make_float4( u, v, w, 0.f );
+		xyzo[i] = make_float4( x, y, z, 0.f );
+		xyzo_half[i] = make_ushort4( __float2half_rn(x), __float2half_rn(y), __float2half_rn(z), 0 );
 	}
 }
 
@@ -775,6 +802,11 @@ void forces_dpd_cuda_nohost(const float * const xyzuvw, float * const axayaz,  c
 	texParticlesF4.mipmapFilterMode = cudaFilterModePoint;
 	texParticlesF4.normalized = 0;
 
+	texParticlesH4.channelDesc = cudaCreateChannelDescHalf4();
+	texParticlesH4.filterMode = cudaFilterModePoint;
+	texParticlesH4.mipmapFilterMode = cudaFilterModePoint;
+	texParticlesH4.normalized = 0;
+
 	CUDA_CHECK(cudaFuncSetCacheConfig(_dpd_forces_new5, cudaFuncCachePreferEqual));
 
 #ifdef _TIME_PROFILE_
@@ -784,17 +816,28 @@ void forces_dpd_cuda_nohost(const float * const xyzuvw, float * const axayaz,  c
 	fdpd_init = true;
     }
 
+    InfoDPD c;
+
     size_t textureoffset;
 	#ifdef LETS_MAKE_IT_MESSY
-	static float *xyzuvwoo;
+	static float4 *xyzouvwo, *xyzo;
+	static ushort4 *xyzo_half;
 	static int last_size;
-	if (!xyzuvwoo || last_size < np ) {
-			if (xyzuvwoo) cudaFree(xyzuvwoo);
-			cudaMalloc(&xyzuvwoo,sizeof(float)*8*np);
+	if (!xyzouvwo || last_size < np ) {
+			if (xyzouvwo) {
+				cudaFree( xyzouvwo );
+				cudaFree( xyzo );
+				cudaFree( xyzo_half );
+			}
+			cudaMalloc( &xyzouvwo,  sizeof(float4)*2*np);
+			cudaMalloc( &xyzo,      sizeof(float4)*np);
+			cudaMalloc( &xyzo_half, sizeof(ushort4)*np);
 			last_size = np;
 	}
-	make_texture<<<64,512,0,stream>>>( xyzuvwoo, xyzuvw, np );
-	CUDA_CHECK( cudaBindTexture( &textureoffset, &texParticlesF4, xyzuvwoo, &texParticlesF4.channelDesc, sizeof( float ) * 8 * np ) );
+	make_texture<<<64,512,0,stream>>>( xyzouvwo, xyzo, xyzo_half, xyzuvw, np );
+	CUDA_CHECK( cudaBindTexture( &textureoffset, &texParticlesF4, xyzouvwo,  &texParticlesF4.channelDesc, sizeof( float ) * 8 * np ) );
+	CUDA_CHECK( cudaBindTexture( &textureoffset, &texParticlesH4, xyzo_half, &texParticlesH4.channelDesc, sizeof( ushort4 ) * np ) );
+	c.xyzo = xyzo;
 	assert(textureoffset == 0);
 	#else
 	CUDA_CHECK(cudaBindTexture(&textureoffset, &texParticles2, xyzuvw, &texParticles2.channelDesc, sizeof(float) * 6 * np));
@@ -805,7 +848,6 @@ void forces_dpd_cuda_nohost(const float * const xyzuvw, float * const axayaz,  c
     CUDA_CHECK(cudaBindTexture(&textureoffset, &texCount, cellscount, &texCount.channelDesc, sizeof(int) * ncells));
     assert(textureoffset == 0);
       
-    InfoDPD c;
     c.ncells = make_int3(nx, ny, nz);
     c.domainsize = make_float3(XL, YL, ZL);
     c.invdomainsize = make_float3(1 / XL, 1 / YL, 1 / ZL);
