@@ -161,8 +161,8 @@ __inline__ __device__ uint2 __unpack_8_24(uint d) {
 #define TRANSPOSED_ATOMICS
 //#define ONESTEP
 #define LETS_MAKE_IT_MESSY
-//#define HALF_FLOAT
-#define DIRECT_LD
+#define HALF_FLOAT
+//#define DIRECT_LD
 
 __device__ char4 tid2ind[14] = {{-1, -1, -1, 0}, {0, -1, -1, 0}, {1, -1, -1, 0},
 				{-1,  0, -1, 0}, {0,  0, -1, 0}, {1,  0, -1, 0},
