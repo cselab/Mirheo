@@ -174,10 +174,12 @@ __device__ char4 tid2ind[14] = {{-1, -1, -1, 0}, {0, -1, -1, 0}, {1, -1, -1, 0},
 #define MYCPBZ	(2)
 #define MYWPB	(4)
 
-__forceinline__ __device__ void core_ytang1(uint volatile queue[MYWPB][64], const uint dststart, const uint wid, const uint tid, const uint spidext ) {
-	const uint2 pid = __unpack_8_24( queue[wid][tid] );
-	const uint dpid = dststart + pid.x;
-	const uint spid = pid.y;
+__forceinline__ __device__ void core_ytang1(uint2 volatile queue[MYWPB][48], const uint dststart, const uint wid, const uint tid, const uint spidext ) {
+//	const uint2 pid = __unpack_8_24( queue[wid][tid] );
+//	const uint dpid = dststart + pid.x;
+//	const uint spid = pid.y;
+	const uint dpid = queue[wid][tid].x;
+	const uint spid = queue[wid][tid].y;
 
 	#ifdef LETS_MAKE_IT_MESSY
 	const float4 xdest = tex1Dfetch(texParticlesF4, xscale( dpid, 2.f     ) );
@@ -237,8 +239,8 @@ __forceinline__ __device__ void core_ytang1(uint volatile queue[MYWPB][64], cons
 __global__  __launch_bounds__(32*MYWPB, 16)
 void _dpd_forces_new5() {
 
-	__shared__ uint2 volatile start_n_scan[MYWPB][32];
-	__shared__ uint  volatile queue[MYWPB][64];
+	__shared__ uint2 volatile start_n_scan[MYWPB][16];
+	__shared__ uint2 volatile queue[MYWPB][48];
 
 	const uint tid = threadIdx.x;
 	const uint wid = threadIdx.y;
@@ -384,12 +386,20 @@ void _dpd_forces_new5() {
 
 				uint overview = __ballot( interacting );
 				const uint insert = xadd( nb, i2u( __popc( overview & __lanemask_lt() ) ) );
-				if (interacting) queue[wid][insert] = __pack_8_24( xsub(dpid,dststart), spid );
+				if (interacting) {
+					//queue[wid][insert] = __pack_8_24( xsub(dpid,dststart), spid );
+					queue[wid][insert].x = dpid;
+					queue[wid][insert].y = spid;
+				}
 				nb = xadd( nb, i2u( __popc( overview ) ) );
 				if ( nb >= 32u ) {
 					core_ytang1( queue, dststart, wid, tid, spidext );
 					nb = xsub( nb, 32u );
-					queue[wid][tid] = queue[wid][tid+32];
+					//queue[wid][tid] = queue[wid][tid+32];
+					if (tid<16) {
+						queue[wid][tid].x = queue[wid][tid+32].x;
+						queue[wid][tid].y = queue[wid][tid+32].y;
+					}
 				}
 			}
 		}
