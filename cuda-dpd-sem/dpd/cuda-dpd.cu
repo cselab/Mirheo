@@ -283,7 +283,7 @@ void _dpd_forces_new5() {
 		uint nb = 0;
 		for(uint p = 0; p < nsrc; p = xadd( p, 32u ) ) {
 			const uint pid = p + tid;
-			#ifdef LETS_MAKE_IT_MESSY
+			#if 0//def LETS_MAKE_IT_MESSY
 			uint spid;
 			asm( "{ .reg .pred p, q, r;"
 				 "  .reg .f32  key;"
