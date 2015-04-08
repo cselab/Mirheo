@@ -158,6 +158,7 @@ __inline__ __device__ uint2 __unpack_8_24(uint d) {
 	return make_uint2( a, d&0x00FFFFFFU );
 }
 
+
 #define TRANSPOSED_ATOMICS
 //#define ONESTEP
 #define LETS_MAKE_IT_MESSY
@@ -232,7 +233,6 @@ __forceinline__ __device__ void core_ytang1(uint volatile queue[MYWPB][64], cons
 	}
 	#endif
 }
-
 
 __global__  __launch_bounds__(32*MYWPB, 16)
 void _dpd_forces_new5() {
