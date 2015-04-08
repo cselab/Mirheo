@@ -50,34 +50,64 @@ std::vector<Particle> Simulation::_ic()
 void Simulation::_redistribute()
 {
     double tstart = MPI_Wtime();
-    const int newnp = redistribute.stage1(particles.xyzuvw.data, particles.size, mainstream, host_idle_time);
-    particles.resize(newnp);
-    redistribute.stage2(particles.xyzuvw.data, particles.size, mainstream, host_idle_time);
-    timings["redistribute-particles"] += MPI_Wtime() - tstart;
-	
-    CUDA_CHECK(cudaPeekAtLastError());
     
-    if (rbcscoll)
-    {	
-	double tstart = MPI_Wtime();
-	const int nrbcs = redistribute_rbcs.stage1(rbcscoll->data(), rbcscoll->count(), mainstream);
-	rbcscoll->resize(nrbcs);
-	redistribute_rbcs.stage2(rbcscoll->data(), rbcscoll->count(), mainstream);
-	timings["redistribute-rbc"] += MPI_Wtime() - tstart;
-    }
-	
+    redistribute.pack(particles.xyzuvw.data, particles.size, mainstream);
+
     CUDA_CHECK(cudaPeekAtLastError());
+
+    if (rbcscoll) 
+	redistribute_rbcs.extent(rbcscoll->data(), rbcscoll->count(), mainstream);
     
     if (ctcscoll)
-    {	
-	double tstart = MPI_Wtime();
-	const int nctcs = redistribute_ctcs.stage1(ctcscoll->data(), ctcscoll->count(), mainstream);
+	redistribute_ctcs.extent(ctcscoll->data(), ctcscoll->count(), mainstream);
+    
+    redistribute.send();
+
+    if (rbcscoll) 
+	redistribute_rbcs.pack_sendcount(rbcscoll->data(), rbcscoll->count(), mainstream);
+    
+    if (ctcscoll)
+	redistribute_ctcs.pack_sendcount(ctcscoll->data(), ctcscoll->count(), mainstream);
+    
+    redistribute.bulk(particles.size, mainstream);
+
+    CUDA_CHECK(cudaPeekAtLastError());
+
+    const int newnp = redistribute.recv_count(mainstream, host_idle_time);
+    
+    int nrbcs;
+    if (rbcscoll) 
+	nrbcs = redistribute_rbcs.post();
+
+    int nctcs;
+    if (ctcscoll)
+	nctcs = redistribute_ctcs.post();
+
+    if (rbcscoll) 
+	rbcscoll->resize(nrbcs);
+
+    if (ctcscoll)
 	ctcscoll->resize(nctcs);
-	redistribute_ctcs.stage2(ctcscoll->data(), ctcscoll->count(), mainstream);
-	timings["redistribute-ctc"] += MPI_Wtime() - tstart;
-    }
+
+    unordered_particles.resize(newnp);
+
+    redistribute.recv_unpack(unordered_particles.data, newnp, mainstream, host_idle_time);
+
+    CUDA_CHECK(cudaPeekAtLastError());
+
+    particles.resize(newnp);
+
+    cells.build(particles.xyzuvw.data, particles.size, mainstream, NULL, unordered_particles.data);
+    
+    if (rbcscoll)
+	redistribute_rbcs.unpack(rbcscoll->data(), rbcscoll->count(), mainstream);
+
+    if (ctcscoll)
+	redistribute_ctcs.unpack(ctcscoll->data(), ctcscoll->count(), mainstream);
     
     CUDA_CHECK(cudaPeekAtLastError());
+
+    timings["redistribute"] += MPI_Wtime() - tstart;
 }
 
 void Simulation::_report(const bool verbose, const int idtimestep)
@@ -277,64 +307,103 @@ void Simulation::_create_walls(const bool verbose, bool & termination_request)
 
 void Simulation::_forces()
 {
-    double tstart = MPI_Wtime();
-    cells.build(particles.xyzuvw.data, particles.size, mainstream);
-    timings["build-cells"] += MPI_Wtime() - tstart;
-	
     //THIS IS WHERE WE WANT TO ACHIEVE 70% OF THE PEAK
     //TODO: i need a coordinating class that performs all the local work while waiting for the communication
-    {
-	tstart = MPI_Wtime();
-	
-	dpd.pack(particles.xyzuvw.data, particles.size, cells.start, cells.count, mainstream);
-	dpd.local_interactions(particles.xyzuvw.data, particles.size, particles.axayaz.data, cells.start, cells.count, mainstream);
-	
-	if (wall)
-	    wall->interactions(particles.xyzuvw.data, particles.size, particles.axayaz.data, 
-			       cells.start, cells.count, mainstream);
-	
-	dpd.consolidate_and_post(particles.xyzuvw.data, particles.size, mainstream);
-	dpd.wait_for_messages(mainstream);
-	dpd.remote_interactions(particles.xyzuvw.data, particles.size, particles.axayaz.data, mainstream);
-	
-	timings["evaluate-interactions"] += MPI_Wtime() - tstart; 
-	
-	CUDA_CHECK(cudaPeekAtLastError());	
-	
-	if (rbcscoll)
-	{
-	    tstart = MPI_Wtime();
-	    rbc_interactions.evaluate(particles.xyzuvw.data, particles.size, particles.axayaz.data,
-				      cells.start, cells.count, rbcscoll->data(), rbcscoll->count(), rbcscoll->acc(), mainstream);
-	    timings["evaluate-rbc"] += MPI_Wtime() - tstart;
-	}
-	
-	CUDA_CHECK(cudaPeekAtLastError());
-	
-	if (ctcscoll)
-	{
-	    tstart = MPI_Wtime();
-	    ctc_interactions.evaluate(particles.xyzuvw.data, particles.size, particles.axayaz.data,
-				      cells.start, cells.count, ctcscoll->data(), ctcscoll->count(), ctcscoll->acc(), mainstream);
-	    timings["evaluate-ctc"] += MPI_Wtime() - tstart;
-	}
-	
-	CUDA_CHECK(cudaPeekAtLastError());
-	
-	if (wall)
-	{
-	    tstart = MPI_Wtime();
-	    
-	    if (rbcscoll)
-		wall->interactions(rbcscoll->data(), rbcscoll->pcount(), rbcscoll->acc(), NULL, NULL, mainstream);
-	    
-	    if (ctcscoll)
-		wall->interactions(ctcscoll->data(), ctcscoll->pcount(), ctcscoll->acc(), NULL, NULL, mainstream);
-	    
-	    timings["body-walls interactions"] += MPI_Wtime() - tstart;
-	}
-    }
     
+    double tstart = MPI_Wtime();
+	
+    if (rbcscoll) 
+	rbc_interactions.extent(rbcscoll->data(), rbcscoll->count(), mainstream);
+
+    if (ctcscoll) 
+	ctc_interactions.extent(ctcscoll->data(), ctcscoll->count(), mainstream);
+	
+    if (rbcscoll) 
+	rbc_interactions.count(rbcscoll->count());
+
+    if (ctcscoll) 
+	ctc_interactions.count(ctcscoll->count());
+
+    dpd.pack(particles.xyzuvw.data, particles.size, cells.start, cells.count, mainstream);
+
+    CUDA_CHECK(cudaPeekAtLastError());
+
+    if (rbcscoll) 
+	rbc_interactions. pack_p(rbcscoll->data(), mainstream);
+
+    if (ctcscoll) 
+	ctc_interactions.pack_p(ctcscoll->data(), mainstream);
+
+    dpd.consolidate_and_post(particles.xyzuvw.data, particles.size, mainstream);
+
+    if (rbcscoll) 
+	rbc_interactions.fsi_bulk(particles.xyzuvw.data, particles.size, particles.axayaz.data, cells.start, cells.count,
+				  rbcscoll->data(), rbcscoll->count(), rbcscoll->acc(), mainstream);
+	
+    if (ctcscoll) 
+	ctc_interactions.fsi_bulk(particles.xyzuvw.data, particles.size, particles.axayaz.data, cells.start, cells.count,
+				  ctcscoll->data(), ctcscoll->count(), ctcscoll->acc(), mainstream);
+
+    CUDA_CHECK(cudaPeekAtLastError());
+
+    if (rbcscoll) 
+	rbc_interactions.exchange_count();
+
+    if (ctcscoll) 
+	ctc_interactions.exchange_count();
+
+    if (rbcscoll) 
+	rbc_interactions.internal_forces(rbcscoll->data(), rbcscoll->count(), rbcscoll->acc(), mainstream);
+
+    if (ctcscoll) 
+	ctc_interactions.internal_forces(ctcscoll->data(), ctcscoll->count(), ctcscoll->acc(), mainstream);
+
+    if (rbcscoll) 
+	rbc_interactions.post_p();
+
+    if (ctcscoll) 
+	ctc_interactions.post_p();
+
+    if (rbcscoll && wall)
+	wall->interactions(rbcscoll->data(), rbcscoll->pcount(), rbcscoll->acc(), NULL, NULL, mainstream);
+
+    if (ctcscoll && wall)
+	wall->interactions(ctcscoll->data(), ctcscoll->pcount(), ctcscoll->acc(), NULL, NULL, mainstream);
+
+    if (rbcscoll) 
+	rbc_interactions.fsi_halo(particles.xyzuvw.data, particles.size, particles.axayaz.data, cells.start, cells.count, 
+				  rbcscoll->data(), rbcscoll->count(), rbcscoll->acc(), mainstream);
+	
+    if (ctcscoll) 
+	ctc_interactions.fsi_halo(particles.xyzuvw.data, particles.size, particles.axayaz.data, cells.start, cells.count, 
+				  ctcscoll->data(), ctcscoll->count(), ctcscoll->acc(), mainstream);
+
+    dpd.local_interactions(particles.xyzuvw.data, particles.size, particles.axayaz.data, cells.start, cells.count, mainstream);
+	
+    if (wall)
+	wall->interactions(particles.xyzuvw.data, particles.size, particles.axayaz.data, 
+			   cells.start, cells.count, mainstream);
+	
+    CUDA_CHECK(cudaPeekAtLastError());
+
+    if (rbcscoll) 
+	rbc_interactions.post_a();
+
+    if (ctcscoll) 
+	ctc_interactions.post_a();
+
+    
+    dpd.wait_for_messages(mainstream);
+    dpd.remote_interactions(particles.xyzuvw.data, particles.size, particles.axayaz.data, mainstream);
+	
+    if (rbcscoll) 
+	rbc_interactions.merge_a(rbcscoll->acc(), mainstream);
+
+    if (ctcscoll) 
+	ctc_interactions.merge_a(ctcscoll->acc(), mainstream);
+
+    timings["interactions"] += MPI_Wtime() - tstart; 
+	
     CUDA_CHECK(cudaPeekAtLastError());
 }
 
@@ -476,6 +545,7 @@ void Simulation::run()
     
     double time_simulation_start = MPI_Wtime();
     
+    _redistribute();
     _forces();
     
     if (!walls && pushtheflow)
@@ -531,7 +601,10 @@ void Simulation::run()
 	    CUDA_CHECK(cudaDeviceSynchronize());
 	    
 	    bool termination_request = false;
+
 	    _create_walls(verbose, termination_request);
+
+	    _redistribute();
 	    
 	    if (termination_request)
 		break;

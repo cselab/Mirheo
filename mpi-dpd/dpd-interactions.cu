@@ -261,7 +261,7 @@ void ComputeInteractionsDPD::remote_interactions(const Particle * const p, const
 	}
 
 	for(int i = 0; i < 7; ++i)
-	    CUDA_CHECK(cudaEventRecord(evremoteint[i]));
+	    CUDA_CHECK(cudaEventRecord(evremoteint[i], streams[i]));
         
 	CUDA_CHECK(cudaPeekAtLastError());
     }

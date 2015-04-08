@@ -24,7 +24,8 @@ class RedistributeCTCs : public RedistributeRBCs
     {
 	assert(sizeof(CudaCTC::Extent) == sizeof(CudaRBC::Extent));
 #if 1
-	minmax_massimo(xyzuvw, nvertices, nrbcs, minextents.devptr, maxextents.devptr, stream);
+	if (nrbcs)
+	    minmax_massimo(xyzuvw, nvertices, nrbcs, minextents.devptr, maxextents.devptr, stream);
 #else
 	for(int i = 0; i < nrbcs; ++i)
 	    CudaCTC::extent_nohost(stream, (float *)(xyzuvw + nvertices * i), (CudaCTC::Extent *)(extents.devptr + i));
@@ -37,9 +38,9 @@ RedistributeCTCs(MPI_Comm _cartcomm):RedistributeRBCs(_cartcomm)
     {
 	if (ctcs)
 	{
-	CudaCTC::Extent host_extent;
-	CudaCTC::setup(nvertices, host_extent, dt);
-    }
+	    CudaCTC::Extent host_extent;
+	    CudaCTC::setup(nvertices, host_extent, dt);
+	}
     }
 };
   
@@ -49,7 +50,8 @@ class ComputeInteractionsCTC : public ComputeInteractionsRBC
     {
 	assert(sizeof(CudaCTC::Extent) == sizeof(CudaRBC::Extent));
 #if 1
-	minmax_massimo(xyzuvw, nvertices, nrbcs, minextents.devptr, maxextents.devptr, stream);
+	if (nrbcs)
+	    minmax_massimo(xyzuvw, nvertices, nrbcs, minextents.devptr, maxextents.devptr, stream);
 #else
 	for(int i = 0; i < nrbcs; ++i)
 	    CudaCTC::extent_nohost(stream, (float *)(xyzuvw + nvertices * i), (CudaCTC::Extent *)(extents.devptr + i));
@@ -70,9 +72,9 @@ ComputeInteractionsCTC(MPI_Comm _cartcomm) : ComputeInteractionsRBC(_cartcomm)
 
 	if (ctcs)
 	{
-	CudaCTC::Extent host_extent;
-	CudaCTC::setup(nvertices, host_extent, dt);
-    }
+	    CudaCTC::Extent host_extent;
+	    CudaCTC::setup(nvertices, host_extent, dt);
+	}
     }
 };
 
@@ -89,14 +91,14 @@ CollectionCTC(MPI_Comm cartcomm) : CollectionRBC(cartcomm)
     {
 	if (ctcs)
 	{
-	CudaCTC::Extent extent;
-	CudaCTC::setup(nvertices, extent, dt);
+	    CudaCTC::Extent extent;
+	    CudaCTC::setup(nvertices, extent, dt);
 	
-	assert(extent.xmax - extent.xmin < XSIZE_SUBDOMAIN);
-	assert(extent.ymax - extent.ymin < YSIZE_SUBDOMAIN);
-	assert(extent.zmax - extent.zmin < ZSIZE_SUBDOMAIN);
+	    assert(extent.xmax - extent.xmin < XSIZE_SUBDOMAIN);
+	    assert(extent.ymax - extent.ymin < YSIZE_SUBDOMAIN);
+	    assert(extent.zmax - extent.zmin < ZSIZE_SUBDOMAIN);
 
-	CudaCTC::get_triangle_indexing(indices, ntriangles);
+	    CudaCTC::get_triangle_indexing(indices, ntriangles);
 	}
 
 	path2xyz = "ctcs.xyz";

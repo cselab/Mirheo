@@ -3,6 +3,7 @@
  *  Part of CTC/cell-placement/
  *
  *  Created and authored by Diego Rossinelli on 2014-12-18.
+ *  Major revision by Yu-Hang Tang on
  *  Copyright 2015. All rights reserved.
  *
  *  Users are NOT authorized
@@ -16,312 +17,249 @@
 #include <iostream>
 #include <fstream>
 #include <vector>
+#include <map>
 #include <algorithm>
+#include <omp.h>
+
+#include "point.h"
 
 using namespace std;
+using namespace ermine;
 
-struct Extent
+using point = Vector<double,3>;
+using matrix = Matrix<double,4,4>;
+using identity = Identity<double,4,4>;
+
+void verify( string path2ic )
 {
-    float xmin, ymin, zmin;
-    float xmax, ymax, zmax;
-};
+    printf( "VERIFYING <%s>\n", path2ic.c_str() );
 
-Extent compute_extent(const char * const path)
-{
-    ifstream in(path);
-    string line;
-    
-    if (in.good())
-	cout << "Reading file " << path << endl;
-    else
-    {
-	cout << path << ": no such file" << endl;
-	exit(1);
-    }
+    FILE * f = fopen( path2ic.c_str(), "r" );
 
-    int nparticles, nbonds, ntriang, ndihedrals;
-
-    in >> nparticles >> nbonds >> ntriang >> ndihedrals;
-    
-    if (in.good())
-	cout << "File contains " << nparticles << " atoms, " << nbonds << " bonds, " << ntriang
-	     << " triangles and " << ndihedrals << " dihedrals" << endl;
-    else
-    {
-	cout << "Couldn't parse the file" << endl;
-	exit(1);
-    }
-    
-    vector<float> xs(nparticles), ys(nparticles), zs(nparticles);
-
-    for(int i = 0; i < nparticles; ++i)
-    {
-	int dummy;
-	in >> dummy >> dummy >> dummy >> xs[i] >> ys[i] >> zs[i];
-    }
-
-    Extent retval = {
-	*min_element(xs.begin(), xs.end()),
-	*min_element(ys.begin(), ys.end()),
-	*min_element(zs.begin(), zs.end()),
-	*max_element(xs.begin(), xs.end()),
-	*max_element(ys.begin(), ys.end()),
-	*max_element(zs.begin(), zs.end())
-    };
-
-    {
-	printf("extent: \n");
-	for(int i = 0; i < 6; ++i)
-	    printf("%f ", *(i + (float *)(&retval.xmin)));
-	printf("\n");
-    }
-
-    return retval;
-}
-
-struct TransformedExtent
-{
-    float transform[4][4];
-
-    float xmin[3], xmax[3], local_xmin[3], local_xmax[3];
-
-    TransformedExtent(Extent extent, const int domain_extent[3])
-	{
-	    local_xmin[0] = extent.xmin;
-	    local_xmin[1] = extent.ymin;
-	    local_xmin[2] = extent.zmin;
-	    
-	    local_xmax[0] = extent.xmax;
-	    local_xmax[1] = extent.ymax;
-	    local_xmax[2] = extent.zmax;
-	
-	    build_transform(extent, domain_extent);
-	    
-	    for(int i = 0; i < 8; ++i)
-	    {
-		const int idx[3] = { i % 2, (i/2) % 2, (i/4) % 2 };
-		
-		float local[3];
-		for(int c = 0; c < 3; ++c)
-		    local[c] = idx[c] ? local_xmax[c] : local_xmin[c];
-
-		float world[3];
-
-		apply(local, world);
-
-		if (i == 0)
-		    for(int c = 0; c < 3; ++c)
-			xmin[c] = xmax[c] = world[c];
-		else
-		    for(int c = 0; c < 3; ++c)
-		    {
-			xmin[c] = min(xmin[c], world[c]);
-			xmax[c] = max(xmax[c], world[c]);
-		    }
-	    }
-	}
-
-    void build_transform(const Extent extent, const int domain_extent[3])
-	{
-	    for(int i = 0; i < 4; ++i)
-		for(int j = 0; j < 4; ++j)
-		    transform[i][j] = i == j;
-
-	    for(int i = 0; i < 3; ++i)
-		transform[i][3] = - 0.5 * (local_xmin[i] + local_xmax[i]);
-
-	    const float angles[3] = { 
-		0.25 * (drand48() - 0.5) * 2 * M_PI, 
-		M_PI * 0.5 + 0.25 * (drand48() * 2 - 1) * M_PI,
-		0.25 * (drand48() - 0.5) * 2 * M_PI
-	    };
-
-	    for(int d = 0; d < 3; ++d)
-	    {
-		const float c = cos(angles[d]);
-		const float s = sin(angles[d]);
-
-		float tmp[4][4];
-
-		for(int i = 0; i < 4; ++i)
-		    for(int j = 0; j < 4; ++j)
-			tmp[i][j] = i == j;
-
-		if (d == 0)
-		{
-		    tmp[0][0] = tmp[1][1] = c;
-		    tmp[0][1] = -(tmp[1][0] = s);
-		} 
-		else 
-		    if (d == 1)
-		    {
-			tmp[0][0] = tmp[2][2] = c;
-			tmp[0][2] = -(tmp[2][0] = s);
-		    }
-		    else
-		    {  
-			tmp[1][1] = tmp[2][2] = c;
-			tmp[1][2] = -(tmp[2][1] = s);
-		    }
-
-		float res[4][4];
-		for(int i = 0; i < 4; ++i)
-		    for(int j = 0; j < 4; ++j)
-		    {
-			float s = 0;
-			    
-			for(int k = 0; k < 4; ++k)
-			    s += transform[i][k] * tmp[k][j];
-
-			res[i][j] = s;
-		    }
-
-		for(int i = 0; i < 4; ++i)
-		    for(int j = 0; j < 4; ++j)
-			transform[i][j] = res[i][j];
-	    }
-
-	    float maxlocalextent = 0;
-	    for(int i = 0; i < 3; ++i)
-		maxlocalextent = max(maxlocalextent, local_xmax[i] - local_xmin[i]);
-
-	    for(int i = 0; i < 3; ++i)
-		transform[i][3] += 0.5 * maxlocalextent + drand48() * (domain_extent[i] - maxlocalextent);
-	}
-
-    void apply(float x[3], float y[3])
-	{
-	    for(int i = 0; i < 3; ++i)
-		y[i] = transform[i][0] * x[0] + transform[i][1] * x[1] + transform[i][2] * x[2] + transform[i][3];
-	}
-
-    bool collides(const TransformedExtent a, const float tol)
-	{
-	    int s[3], e[3];
-
-	    for(int c = 0; c < 3; ++c)
-	    {
-		s[c] = max(xmin[c], a.xmin[c]);
-		e[c] = min(xmax[c], a.xmax[c]);
-
-		if (s[c] - e[c] >= tol)
-		    return false;
-	    }
-
-	    return true;
-	}
-};
-
-void verify(string path2ic)
-{
-    printf("VERIFYING <%s>\n", path2ic.c_str());
-
-    FILE * f = fopen(path2ic.c_str(), "r");
-    
     bool isgood = true;
-    
-    while(isgood)
-    {
-	float tmp[19];
-	for(int c = 0; c < 19; ++c)
-	{
-	    int retval = fscanf(f, "%f", tmp + c);
-	    
-	    isgood &= retval == 1;
-	}
-	
-	if (isgood)
-	{
-	    printf("reading: ");
-	    
-	    for(int c = 0; c < 19; ++c)
-		printf("%f ", tmp[c]);
-	    
-	    printf("\n");
-	}
-    }
-    
-    fclose(f);
 
-    printf("========================================\n\n\n\n");
+    while( isgood ) {
+        double tmp[19];
+        for( int c = 0; c < 19; ++c ) {
+            int retval = fscanf( f, "%lf", tmp + c );
+
+            isgood &= retval == 1;
+        }
+
+        if( isgood ) {
+            printf( "reading: " );
+
+            for( int c = 0; c < 19; ++c )
+                printf( "%lf ", tmp[c] );
+
+            printf( "\n" );
+        }
+    }
+
+    fclose( f );
+
+    printf( "========================================\n\n\n\n" );
 }
 
-int main(int argc, const char ** argv)
+// low-dimensional RBC model
+struct LD_RBC {
+	constexpr static double r = 2.2;
+	constexpr static int n = 8;
+	std::array<point,n> vert;
+	point xmin, xmax;
+	matrix transform;
+	LD_RBC() {
+		constexpr double L = 2.0;
+		for(int i=0;i<n;i++) {
+			vert[i] = point( L * cos(i*2.f*M_PI/n), L * sin(i*2.f*M_PI/n), 0. );
+		}
+	}
+};
+
+struct CTC {
+	constexpr static double r = 10.0;
+	constexpr static int n = 1;
+	std::array<point,n> vert;
+	point xmin, xmax;
+	matrix transform;
+	CTC() {
+		vert[0] = point(0);
+	}
+};
+
+template<typename P> void set_minmax( P &p ) {
+	p.xmin = 1e20;
+	p.xmax = 1e-20;
+	for(auto &v: p.vert) {
+		for(int i=0;i<3;i++) {
+			p.xmin[i] = min( p.xmin[i], v[i] );
+			p.xmax[i] = max( p.xmax[i], v[i] );
+		}
+	}
+}
+
+template<typename P> void randomize( P &p, point global_ext  ) {
+	point com(0);
+	for( auto const &v: p.vert ) com += v;
+	com /= double(p.n);
+
+	double maxr = 0.;
+	for( auto const &v: p.vert ) maxr = max( maxr, norm(v - com));
+	maxr += p.r;
+
+	point dx = ( global_ext - 2 * maxr ) * point( drand48(), drand48(), drand48() ) +  maxr;
+
+	point da( 0.25 * ( drand48() - 0.5 ) * 2 * M_PI,
+	          M_PI * 0.5 + 0.25 * ( drand48() * 2 - 1 ) * M_PI,
+	          0.25 * ( drand48() - 0.5 ) * 2 * M_PI );
+
+	matrix T1 = identity(), T2 = identity(), Rx = identity(), Ry = identity(), Rz = identity();
+
+	// move to COM
+	T1(0,3) = -com[0], T1(1,3) = -com[1], T1(2,3) = -com[2];
+
+	// rotate randonmly
+	Rx(0,0) = 1.; Rx(1,1) = cos(da[0]); Rx(1,2) =-sin(da[0]); Rx(2,1) = sin(da[0]); Rx(2,2) = cos(da[0]); Rx(3,3) = 1.;
+
+	Ry(1,1) = 1.; Ry(0,0) = cos(da[1]); Ry(0,2) = sin(da[1]); Ry(2,0) =-sin(da[1]); Ry(2,2) = cos(da[1]); Ry(3,3) = 1.;
+
+	Rz(2,2) = 1.; Rz(0,0) = cos(da[2]); Rz(0,1) =-sin(da[2]); Rz(1,0) = sin(da[2]); Rz(1,1) = cos(da[2]); Rz(3,3) = 1.;
+
+	// move to random point in global, margin = maxr
+	T2(0,3) = dx[0], T2(1,3) = dx[1], T2(2,3) = dx[2];
+
+	p.transform = T2 * Rz * Ry * Rx * T1;
+
+	for( auto &v: p.vert ) {
+		Vector<double,4> u( v[0], v[1], v[2], 1. );
+		u = p.transform * u;
+		v[0] = u[0], v[1] = u[1], v[2] = u[2]; // div by u[3] not needed because no scaling
+	}
+
+	set_minmax( p );
+}
+
+struct cell {
+	int64_t i, j, k;
+	cell(int64_t i_, int64_t j_, int64_t k_) : i(i_), j(j_), k(k_) {}
+	friend inline bool operator < ( cell const& x, cell const &y ) {
+		return (x.i<y.i) || (x.i==y.i&&x.j<y.j) || (x.i==y.i&&x.j==y.j&&x.k<y.k);
+	}
+};
+
+struct cell_list : public map<cell,vector<int64_t> > {
+	double spacing, margin;
+
+	cell_list( double s, double m ) : spacing(s), margin(m) {}
+
+	inline cell p2c(point p) {
+		point ijk = floor( p / spacing );
+		return cell( ijk[0], ijk[1], ijk[2] );
+	}
+	inline void put( point xmin, point xmax, int64_t idx ) {
+		cell lower = p2c( xmin - margin );
+		cell upper = p2c( xmax + margin );
+		for( int64_t i = lower.i ; i <= upper.i ; i++ )
+			for( int64_t j = lower.j ; j <= upper.j ; j++ )
+				for( int64_t k = lower.k ; k <= upper.k ; k++ )
+					(*this)[cell(i,j,k)].push_back(idx);
+	}
+};
+
+template<typename P, typename Q> bool collides( P const& p, Q const &q, const double tol = 0 ) {
+	constexpr double r = p.r + q.r;
+	for(int i=0;i<p.n;i++)
+		for(int j=0;j<q.n;j++) {
+			if ( normsq( p.vert[i] - q.vert[j] ) < (r+tol)*(r+tol) ) return true;
+		}
+	return false;
+}
+
+int main( int argc, const char ** argv )
 {
-    if (argc != 4)
-    {
-	printf("usage: ./cell-placement <xdomain-extent> <ydomain-extent> <zdomain-extent>\n");
-	exit(-1);
+    if( argc < 4 ) {
+        printf( "usage: ./cell-placement <xdomain-extent> <ydomain-extent> <zdomain-extent> [maxn] \n" );
+        exit( -1 );
     }
 
-    int domainextent[3];
-    for(int i = 0; i < 3; ++i)
-	domainextent[i] = atoi(argv[1 + i]);
+    point domainextent( atof(argv[1]), atof(argv[2]), atof(argv[3]) );
 
-    printf("domain extent: %d %d %d\n", 
-	   domainextent[0], domainextent[1], domainextent[2]);
-    
-    Extent extents[2] = {
-	compute_extent("../cuda-rbc/rbc2.atom_parsed"),
-	compute_extent("../cuda-ctc/sphere.dat")
-    };
+    printf( "domain extent: %lf %lf %lf\n", domainextent[0], domainextent[1], domainextent[2] );
 
+    int64_t maxn = argc >= 5 ? atoi( argv[4] ) : 0xFFFFFFFFFFLL;
+
+    printf(" max number of RBCs: %ld\n", maxn );
     bool failed = false;
-    
-    vector<TransformedExtent> results[2];
 
-    while(!failed)
-    {
-	const int maxattempts = 100000;
+    cell_list      clist_rbc(12, 5);
+    cell_list      clist_ctc(48,12);
+    vector<LD_RBC> result_rbc;
+    vector<CTC>    result_ctc;
 
-	int attempt = 0;
-	for(; attempt < maxattempts; ++attempt)
-	{
-	    const int type = 0;//(int)(drand48() >= 0.25);
+    double t1 = omp_get_wtime();
 
-	    TransformedExtent t(extents[type], domainextent);
-	    
-	    bool noncolliding = true;
+    while( !failed && result_rbc.size() + result_ctc.size() < maxn ) {
+        const int maxattempts = 100000;
 
-	    for(int i = 0; i < 2; ++i)
-		for(int j = 0; j < results[i].size() && noncolliding; ++j)
-		    noncolliding &= !t.collides(results[i][j], 0.00);
-	    
-	    if (noncolliding)
-	    {
-		results[type].push_back(t);
-		break;
-	    }
-	}
+        int attempt = 0;
+        do {
+            const int type = 0;//(int)(drand48() >= 0.25);
 
-	printf("attempts: %d, result: %d\n", attempt, results[0].size() + results[1].size());
-	
-	failed |= attempt == maxattempts;
+            LD_RBC t;
+            randomize( t, domainextent );
+
+            bool colliding = false;
+
+            point center = ( t.xmin + t.xmax ) * 0.5;
+            for( auto &i: clist_rbc[ clist_rbc.p2c(center) ] ) {
+            	if (colliding) break;
+            	colliding |= collides( t, result_rbc[i] );
+            }
+            for( auto &i: clist_ctc[ clist_ctc.p2c(center) ] ) {
+            	if (colliding) break;
+            	colliding |= collides( t, result_ctc[i] );
+            }
+
+            if( !colliding ) {
+            	clist_rbc.put( t.xmin, t.xmax, result_rbc.size() );
+            	result_rbc.push_back( t );
+                break;
+            }
+        } while( ++attempt < maxattempts );
+
+        printf( "attempts: %d, result: %d\n", attempt, result_rbc.size() + result_ctc.size() );
+
+        failed |= attempt == maxattempts;
     }
 
-    string output_names[2] = { "rbcs-ic.txt", "ctcs-ic.txt" };
+    double t2 = omp_get_wtime();
 
-    for(int idtype = 0; idtype < 2; ++idtype)
     {
-	FILE * f = fopen(output_names[idtype].c_str(), "w");
-	
-	for(vector<TransformedExtent>::iterator it = results[idtype].begin(); it != results[idtype].end(); ++it)
-	{
-	    for(int c = 0; c < 3; ++c)
-		fprintf(f, "%f ", 0.5 * (it->xmin[c] + it->xmax[c]));
-
-	    for(int i = 0; i < 4; ++i)
-		for(int j = 0; j < 4; ++j)
-		    fprintf(f, "%f ", it->transform[i][j]);
-
-	    fprintf(f, "\n");
-	}
-
-	fclose(f);
+    	FILE * f = fopen( "rbcs-ic.txt", "w" );
+    	for( auto const &it: result_rbc ) {
+    		// COM
+            for( int c = 0; c < 3; ++c ) fprintf( f, "%lf ", 0.5 * ( it.xmin[c] + it.xmax[c] ) );
+            // rotate matrix
+            for( int i = 0; i < 4; ++i ) for( int j = 0; j < 4; ++j ) fprintf( f, "%lf ", it.transform(i,j) );
+            fprintf( f, "\n" );
+        }
+        fclose( f );
     }
 
-    for(int idtype = 0; idtype < 2; ++idtype)
-	verify(output_names[idtype]);
-    
+    {
+    	FILE * f = fopen( "ctcs-ic.txt", "w" );
+    	for( auto const &it: result_ctc ) {
+            for( int c = 0; c < 3; ++c ) fprintf( f, "%lf ", 0.5 * ( it.xmin[c] + it.xmax[c] ) );
+            for( int i = 0; i < 4; ++i ) for( int j = 0; j < 4; ++j ) fprintf( f, "%lf ", it.transform(i,j) );
+            fprintf( f, "\n" );
+        }
+        fclose( f );
+    }
+
+	verify( "rbcs-ic.txt" );
+	verify( "ctcs-ic.txt" );
+
+	printf("Generation took %lf seconds\n", t2 - t1 );
+
     return 0;
 }

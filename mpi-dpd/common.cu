@@ -28,10 +28,12 @@ bool Acceleration::initialized = false;
 
 MPI_Datatype Acceleration::mytype;
 
-void CellLists::build(Particle * const p, const int n, cudaStream_t stream, int * const order)
+void CellLists::build(Particle * const p, const int n, cudaStream_t stream, int * const order, const Particle * const src)
 {
+    NVTX_RANGE("Cells-build", NVTX_C1)
+
     if (n > 0)
-	build_clists((float * )p, n, 1, LX, LY, LZ, -LX/2, -LY/2, -LZ/2, order, start, count,  NULL, 0);
+	build_clists((float * )p, n, 1, LX, LY, LZ, -LX/2, -LY/2, -LZ/2, order, start, count,  NULL, stream, (float *)src);
     else
     {
 	CUDA_CHECK(cudaMemset(start, 0, sizeof(int) * ncells));

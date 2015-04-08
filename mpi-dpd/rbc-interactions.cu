@@ -138,6 +138,13 @@ namespace KernelsRBC
     SimpleDeviceBuffer<float *> _ddestinations;
     SimpleDeviceBuffer<const float *> _dsources;
     SimpleDeviceBuffer<int> _dcodes;
+
+    void dispose()
+    {
+	_ddestinations.dispose();
+	_dsources.dispose();
+	_dcodes.dispose();
+    }
     
     void shift_send_particles(cudaStream_t stream, const int nrbcs, const int nvertices,
 			      const float ** const sources, const int * codes, float ** const destinations)
@@ -209,7 +216,12 @@ namespace KernelsRBC
     void merge_all_accel(cudaStream_t stream, const int nrbcs, const int nvertices,
 			 const float ** const sources, float ** const destinations)
     {
+	if (nrbcs == 0)
+	    return;
+
 	const int nthreads = nrbcs * nvertices * 3;
+
+	CUDA_CHECK(cudaPeekAtLastError());
 
 	if (nrbcs < cmaxnrbcs)
 	{
@@ -222,7 +234,6 @@ namespace KernelsRBC
 	}
 	else
 	{
-	    _dcodes.resize(nrbcs);
 	    _ddestinations.resize(nrbcs);
 	    _dsources.resize(nrbcs);
 
@@ -282,7 +293,6 @@ namespace KernelsRBC
 
 	return true;
     }
-
     
     __global__ void fsi_forces(const float seed,
 			       Acceleration * accsolvent, const int npsolvent,
@@ -551,9 +561,9 @@ void ComputeInteractionsRBC::_compute_extents(const Particle * const rbcs, const
 #endif
 }
 
-void ComputeInteractionsRBC::pack_and_post(const Particle * const rbcs, const int nrbcs, cudaStream_t stream)
+void ComputeInteractionsRBC::extent(const Particle * const rbcs, const int nrbcs, cudaStream_t stream)
 {
-    NVTX_RANGE("RBC/pack-post", NVTX_C2);
+    NVTX_RANGE("RBC/extent", NVTX_C2);
 
     minextents.resize(nrbcs);
     maxextents.resize(nrbcs);
@@ -561,6 +571,12 @@ void ComputeInteractionsRBC::pack_and_post(const Particle * const rbcs, const in
     _compute_extents(rbcs, nrbcs, stream);
 
     CUDA_CHECK(cudaEventRecord(evextents, stream));
+}
+
+void ComputeInteractionsRBC::count(const int nrbcs)
+{
+    NVTX_RANGE("RBC/count", NVTX_C3);
+
     CUDA_CHECK(cudaEventSynchronize(evextents));
 
     for(int i = 0; i < 26; ++i)
@@ -568,8 +584,8 @@ void ComputeInteractionsRBC::pack_and_post(const Particle * const rbcs, const in
 
     for(int i = 0; i < nrbcs; ++i)
     {
-	float pmin[3] = {minextents.data[i].x, minextents.data[i].y, minextents.data[i].z};
-	float pmax[3] = {maxextents.data[i].x, maxextents.data[i].y, maxextents.data[i].z};
+	float pmin[3] = { minextents.data[i].x, minextents.data[i].y, minextents.data[i].z };
+	float pmax[3] = { maxextents.data[i].x, maxextents.data[i].y, maxextents.data[i].z };
 
 	for(int code = 0; code < 26; ++code)
 	{
@@ -591,25 +607,35 @@ void ComputeInteractionsRBC::pack_and_post(const Particle * const rbcs, const in
 	}
     }
 
-    MPI_Request reqrecvcounts[26];
     for(int i = 0; i <26; ++i)
 	MPI_CHECK(MPI_Irecv(recv_counts + i, 1, MPI_INTEGER, dstranks[i], recv_tags[i] + 2077, cartcomm, reqrecvcounts + i));
 
-    MPI_Request reqsendcounts[26];
+    
     for(int i = 0; i < 26; ++i)
     {
 	send_counts[i] = haloreplica[i].size();
 	MPI_CHECK(MPI_Isend(send_counts + i, 1, MPI_INTEGER, dstranks[i], i + 2077, cartcomm, reqsendcounts + i));
     }
 
-    {
-	MPI_Status statuses[26];
-	MPI_CHECK(MPI_Waitall(26, reqrecvcounts, statuses));
-	MPI_CHECK(MPI_Waitall(26, reqsendcounts, statuses));
-    }
-
     for(int i = 0; i < 26; ++i)
 	local[i].setup(send_counts[i] * nvertices);
+}
+
+void ComputeInteractionsRBC::exchange_count()
+{
+    NVTX_RANGE("RBC/exchange-count", NVTX_C4);
+
+    MPI_Status statuses[26];
+    MPI_CHECK(MPI_Waitall(26, reqrecvcounts, statuses));
+    MPI_CHECK(MPI_Waitall(26, reqsendcounts, statuses));
+        
+    for(int i = 0; i < 26; ++i)
+	remote[i].setup(recv_counts[i] * nvertices);
+}
+
+void ComputeInteractionsRBC::pack_p(const Particle * const rbcs, cudaStream_t stream)
+{
+    NVTX_RANGE("RBC/pack", NVTX_C4);
 
 #if 1
     {
@@ -629,7 +655,6 @@ void ComputeInteractionsRBC::pack_and_post(const Particle * const rbcs, const in
 	
 	CUDA_CHECK(cudaPeekAtLastError());
     }
-   
 #else
     for(int i = 0; i < 26; ++i)
     {
@@ -642,10 +667,13 @@ void ComputeInteractionsRBC::pack_and_post(const Particle * const rbcs, const in
 #endif
      
     CUDA_CHECK(cudaEventRecord(evfsi, stream));
-    CUDA_CHECK(cudaEventSynchronize(evfsi));
+}
 
-    for(int i = 0; i < 26; ++i)
-	remote[i].setup(recv_counts[i] * nvertices);
+void ComputeInteractionsRBC::post_p()
+{
+    NVTX_RANGE("RBC/post-p", NVTX_C5);
+
+    CUDA_CHECK(cudaEventSynchronize(evfsi));
 
     for(int i = 0; i < 26; ++i)
 	if (recv_counts[i] > 0)
@@ -675,23 +703,21 @@ void ComputeInteractionsRBC::pack_and_post(const Particle * const rbcs, const in
 	}
 }
 
-void ComputeInteractionsRBC::_internal_forces(const Particle * const rbcs, const int nrbcs, Acceleration * accrbc, cudaStream_t stream)
+void ComputeInteractionsRBC::internal_forces(const Particle * const rbcs, const int nrbcs, Acceleration * accrbc, cudaStream_t stream)
 {
     CudaRBC::forces_nohost(stream, nrbcs, (float *)rbcs, (float *)accrbc);
 }
 
-void ComputeInteractionsRBC::evaluate(const Particle * const solvent, const int nparticles, Acceleration * accsolvent,
+void ComputeInteractionsRBC::fsi_bulk(const Particle * const solvent, const int nparticles, Acceleration * accsolvent,
 				      const int * const cellsstart_solvent, const int * const cellscount_solvent,
 				      const Particle * const rbcs, const int nrbcs, Acceleration * accrbc, cudaStream_t stream)
 {	
-    KernelsRBC::setup(solvent, nparticles, cellsstart_solvent, cellscount_solvent);
+    NVTX_RANGE("RBC/fsi-bulk", NVTX_C6);
 
-    pack_and_post(rbcs, nrbcs, stream);
+    KernelsRBC::setup(solvent, nparticles, cellsstart_solvent, cellscount_solvent);
 
     if (nrbcs > 0 && nparticles > 0)
     {
-	NVTX_RANGE("RBC/local forces", NVTX_C3);
-
 	const float seed = local_trunk.get_float();
 
 #if 0
@@ -730,117 +756,123 @@ void ComputeInteractionsRBC::evaluate(const Particle * const solvent, const int 
 	KernelsRBC::fsi_forces<<< (nrbcs * nvertices + 127) / 128, 128, 0, stream >>>
 	    (seed, accsolvent, nparticles, rbcs, nrbcs * nvertices, accrbc);
 #endif
+    }
+}
 
-	_internal_forces(rbcs, nrbcs, accrbc, stream);
-    }
-    
-    {
-	NVTX_RANGE("RBC/wait-exchange", NVTX_C4);
-	_wait(reqrecvp);
-	_wait(reqsendp);
-    }
-    
-    {
-	NVTX_RANGE("RBC/fsi", NVTX_C5);
+void ComputeInteractionsRBC::fsi_halo(const Particle * const solvent, const int nparticles, Acceleration * accsolvent,
+				      const int * const cellsstart_solvent, const int * const cellscount_solvent,
+				      const Particle * const rbcs, const int nrbcs, Acceleration * accrbc, cudaStream_t stream)
+{
+    NVTX_RANGE("RBC/fsi-halo", NVTX_C7);
+
+    _wait(reqrecvp);
+    _wait(reqsendp);
 
 #if 1
+    {
+	int nremote = 0;
+
 	{
-	    int nremote = 0;
-
-	    {
-		int packstarts[27];
+	    int packstarts[27];
 	    
-		packstarts[0] = 0;
-		for(int i = 0, s = 0; i < 26; ++i)
-		    packstarts[i + 1] = (s += remote[i].state.size);
+	    packstarts[0] = 0;
+	    for(int i = 0, s = 0; i < 26; ++i)
+		packstarts[i + 1] = (s += remote[i].state.size);
 		
-		nremote = packstarts[26];
+	    nremote = packstarts[26];
 		
-		CUDA_CHECK(cudaMemcpyToSymbolAsync(KernelsRBC::packstarts, packstarts,
-						   sizeof(packstarts), 0, cudaMemcpyHostToDevice, stream));
-	    }
-	    
-	    {
-		Particle * packstates[26];
-		
-		for(int i = 0; i < 26; ++i)
-		    packstates[i] = remote[i].state.devptr;
-
-		CUDA_CHECK(cudaMemcpyToSymbolAsync(KernelsRBC::packstates, packstates,
-						   sizeof(packstates), 0, cudaMemcpyHostToDevice, stream));
-	    }
-
-	     {
-		Acceleration * packresults[26];
-		
-		for(int i = 0; i < 26; ++i)
-		    packresults[i] = remote[i].result.devptr;
-
-		CUDA_CHECK(cudaMemcpyToSymbolAsync(KernelsRBC::packresults, packresults,
-						   sizeof(packresults), 0, cudaMemcpyHostToDevice, stream));
-	    }
-	    
-	     KernelsRBC::fsi_forces_all<<< (nremote + 127) / 128, 128, 0, stream>>>(local_trunk.get_float(), accsolvent, nparticles, nremote);
-
+	    CUDA_CHECK(cudaMemcpyToSymbolAsync(KernelsRBC::packstarts, packstarts,
+					       sizeof(packstarts), 0, cudaMemcpyHostToDevice, stream));
 	}
+	    
+	{
+	    Particle * packstates[26];
+		
+	    for(int i = 0; i < 26; ++i)
+		packstates[i] = remote[i].state.devptr;
+
+	    CUDA_CHECK(cudaMemcpyToSymbolAsync(KernelsRBC::packstates, packstates,
+					       sizeof(packstates), 0, cudaMemcpyHostToDevice, stream));
+	}
+
+	{
+	    Acceleration * packresults[26];
+		
+	    for(int i = 0; i < 26; ++i)
+		packresults[i] = remote[i].result.devptr;
+
+	    CUDA_CHECK(cudaMemcpyToSymbolAsync(KernelsRBC::packresults, packresults,
+					       sizeof(packresults), 0, cudaMemcpyHostToDevice, stream));
+	}
+	    
+	if(nremote)
+	    KernelsRBC::fsi_forces_all<<< (nremote + 127) / 128, 128, 0, stream>>>(local_trunk.get_float(), accsolvent, nparticles, nremote);
+
+    }
 #else
-	for(int i = 0; i < 26; ++i)
-	{
-	    const int count = remote[i].state.size;
+    for(int i = 0; i < 26; ++i)
+    {
+	const int count = remote[i].state.size;
 
-	    if (count > 0)
-		KernelsRBC::fsi_forces<<< (count + 127) / 128, 128, 0, stream >>>
-		    (local_trunk.get_float(), accsolvent, nparticles, remote[i].state.devptr, count, remote[i].result.devptr);
-	}
+	if (count > 0)
+	    KernelsRBC::fsi_forces<<< (count + 127) / 128, 128, 0, stream >>>
+		(local_trunk.get_float(), accsolvent, nparticles, remote[i].state.devptr, count, remote[i].result.devptr);
+    }
 #endif
 	
-	CUDA_CHECK(cudaEventRecord(evfsi));
-	CUDA_CHECK(cudaEventSynchronize(evfsi));
-    }
+    CUDA_CHECK(cudaEventRecord(evfsi));
+    
+    CUDA_CHECK(cudaPeekAtLastError());
+}
 
-    {
-	NVTX_RANGE("RBC/send-results", NVTX_C6);
+void ComputeInteractionsRBC::post_a()
+{
+    NVTX_RANGE("RBC/send-results", NVTX_C1);
 
-	for(int i = 0; i < 26; ++i)
-	    if (recv_counts[i] > 0)
-	    {
-		MPI_Request request;
+    CUDA_CHECK(cudaEventSynchronize(evfsi));
+
+    _wait(reqsendacc);
+
+    for(int i = 0; i < 26; ++i)
+	if (recv_counts[i] > 0)
+	{
+	    MPI_Request request;
 		
-		MPI_CHECK(MPI_Isend(remote[i].result.data, recv_counts[i] * nvertices, Acceleration::datatype(), dstranks[i],
+	    MPI_CHECK(MPI_Isend(remote[i].result.data, recv_counts[i] * nvertices, Acceleration::datatype(), dstranks[i],
 				i + 2285, cartcomm, &request));
 		
-		reqsendacc.push_back(request);
-	    }
-
-	_wait(reqrecvacc);
-	_wait(reqsendacc);
-    }
-    
-    {
-	NVTX_RANGE("RBC/merge", NVTX_C7);
-#if 1
-	{
-	    std::vector<const float *> src;
-	    std::vector<float *> dst;
-	    
-	    for(int i = 0; i < 26; ++i)
-		for(int j = 0; j < haloreplica[i].size(); ++j)
-		{
-		    src.push_back((float *)(local[i].result.devptr + nvertices * j));
-		    dst.push_back((float *)(accrbc + nvertices * haloreplica[i][j]));
-		}
-	    
-	    KernelsRBC::merge_all_accel(stream, src.size(), nvertices, &src.front(), &dst.front());
-	    
-	    CUDA_CHECK(cudaPeekAtLastError());
+	    reqsendacc.push_back(request);
 	}
-#else
+}
+
+void ComputeInteractionsRBC::merge_a(Acceleration * accrbc, cudaStream_t stream)
+{
+    NVTX_RANGE("RBC/merge", NVTX_C2);
+
+    _wait(reqrecvacc);
+	
+#if 1
+    {
+	std::vector<const float *> src;
+	std::vector<float *> dst;
+	    
 	for(int i = 0; i < 26; ++i)
 	    for(int j = 0; j < haloreplica[i].size(); ++j)
-		KernelsRBC::merge_accelerations<<< (nvertices + 127) / 128, 128, 0, stream>>>(local[i].result.devptr + nvertices * j, nvertices,
-											      accrbc + nvertices * haloreplica[i][j]);
-#endif
+	    {
+		src.push_back((float *)(local[i].result.devptr + nvertices * j));
+		dst.push_back((float *)(accrbc + nvertices * haloreplica[i][j]));
+	    }
+	    
+	KernelsRBC::merge_all_accel(stream, src.size(), nvertices, &src.front(), &dst.front());
+	    
+	CUDA_CHECK(cudaPeekAtLastError());
     }
+#else
+    for(int i = 0; i < 26; ++i)
+	for(int j = 0; j < haloreplica[i].size(); ++j)
+	    KernelsRBC::merge_accelerations<<< (nvertices + 127) / 128, 128, 0, stream>>>(local[i].result.devptr + nvertices * j, nvertices,
+											  accrbc + nvertices * haloreplica[i][j]);
+#endif
 }
 
 ComputeInteractionsRBC::~ComputeInteractionsRBC()
@@ -849,5 +881,7 @@ ComputeInteractionsRBC::~ComputeInteractionsRBC()
 
     CUDA_CHECK(cudaEventDestroy(evextents));
     CUDA_CHECK(cudaEventDestroy(evfsi));
+
+    KernelsRBC::dispose();
 }
 

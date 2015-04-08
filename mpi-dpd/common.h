@@ -197,6 +197,14 @@ SimpleDeviceBuffer(int n = 0): capacity(0), size(0), data(NULL) { resize(n);}
 	    
 	    data = NULL;
 	}
+
+    void dispose()
+	{
+	    if (data != NULL)
+		CUDA_CHECK(cudaFree(data));
+	    
+	    data = NULL;
+	}
     
     void resize(const int n)
 	{
@@ -372,13 +380,14 @@ struct CellLists
 
     int * start, * count;
     
-CellLists(const int LX, const int LY, const int LZ): ncells(LX * LY * LZ + 1), LX(LX), LY(LY), LZ(LZ)
+CellLists(const int LX, const int LY, const int LZ): 
+    ncells(LX * LY * LZ + 1), LX(LX), LY(LY), LZ(LZ)
 	{
 	    CUDA_CHECK(cudaMalloc(&start, sizeof(int) * ncells));
 	    CUDA_CHECK(cudaMalloc(&count, sizeof(int) * ncells));
 	}
 
-    void build(Particle * const p, const int n, cudaStream_t stream, int * const order = NULL);
+    void build(Particle * const p, const int n, cudaStream_t stream, int * const order = NULL, const Particle * const src = NULL);
 	    	    
     ~CellLists()
 	{

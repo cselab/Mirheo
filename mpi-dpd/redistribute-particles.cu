@@ -85,9 +85,10 @@ namespace RedistributeParticlesKernels
 	if (tid < 27)
 	{
 	    myval = mycount = pack_count[threadIdx.x];
-	    packsizes[tid] = mycount;
-
-	    if (mycount >= pack_buffers[tid].capacity)
+	    if (tid > 0)
+		packsizes[tid] = mycount;
+	   
+	    if (mycount > pack_buffers[tid].capacity)
 	    {
 		failed = true;
 		*failureflag = true;
@@ -106,14 +107,14 @@ namespace RedistributeParticlesKernels
 	    const int nbulk = nparticles - myval;
 	    packsizes[0] = nbulk;
 
-	    if (nbulk >= bulkcapacity)
+	    if (nbulk > bulkcapacity)
 	    {
 		failed = true;
 		*failureflag = true;
 	    }
 	}
     }
-
+    
 #ifndef NDEBUG
     __global__ void check_scan()
     {
@@ -270,7 +271,8 @@ namespace RedistributeParticlesKernels
 		for(int i = 0; i < ILP; ++i)
 		{
 		    const int d = dbase + i * STRIPESIZE;
-		    assert(d < pack_buffers[0].capacity * 6);
+		   
+		    assert(d < pack_buffers[0].capacity * 6 || d >= stop);
 		    assert(d >= 0);
 		    
 		    if (d < stop)
@@ -387,6 +389,7 @@ failure(1), packsizes(27), nactiveneighbors(26), firstcall(true)
 
     MPI_CHECK(MPI_Comm_dup(_cartcomm, &cartcomm) );
 
+    MPI_CHECK( MPI_Comm_rank(cartcomm, &myrank) );
     MPI_CHECK( MPI_Cart_get(cartcomm, 3, dims, periods, coords) );
 
     for(int i = 0; i < 27; ++i)
@@ -423,7 +426,7 @@ failure(1), packsizes(27), nactiveneighbors(26), firstcall(true)
 	}
 	else
 	{
-	    CUDA_CHECK(cudaMalloc(&packbuffers[i].buffer, sizeof(float) * 6 * estimate));
+      	    CUDA_CHECK(cudaMalloc(&packbuffers[i].buffer, sizeof(float) * 6 * estimate));
 	    unpackbuffers[i].buffer = packbuffers[i].buffer;
 
 	    pinnedhost_sendbufs[i] = NULL;
@@ -452,7 +455,7 @@ void RedistributeParticles::_post_recv()
 	    MPI_CHECK( MPI_Irecv(recv_sizes + i, 1, MPI_INTEGER, neighbor_ranks[i], basetag + recv_tags[i], cartcomm, recvcountreq + c++) );
 	else
 	    recv_sizes[i] = 0;
-    
+ 
     for(int i = 1, c = 0; i < 27; ++i)
 	if (default_message_sizes[i])
 	    MPI_CHECK( MPI_Irecv(pinnedhost_recvbufs[i], default_message_sizes[i] * 6, MPI_FLOAT, 
@@ -530,123 +533,149 @@ void RedistributeParticles::_adjust_recv_buffers(const int requested_capacities[
     }
 }
 
-int RedistributeParticles::stage1(const Particle * const particles, const int nparticles, cudaStream_t mystream, float& host_idle_time)
+void RedistributeParticles::pack(const Particle * const particles, const int nparticles, cudaStream_t mystream)
 {
-    {
-	NVTX_RANGE("RDP/pack");
+    NVTX_RANGE("RDP/pack");
+
+    bool secondchance = false;
     
-	if (firstcall)
-	    _post_recv();
+    if (firstcall)
+	_post_recv();
 	
-	size_t textureoffset;
-	CUDA_CHECK(cudaBindTexture(&textureoffset, &RedistributeParticlesKernels::texAllParticles, particles, 
-				   &RedistributeParticlesKernels::texAllParticles.channelDesc,
-				   sizeof(float) * 6 * nparticles));
-    pack_attempt:
+    size_t textureoffset;
+    CUDA_CHECK(cudaBindTexture(&textureoffset, &RedistributeParticlesKernels::texAllParticles, particles, 
+			       &RedistributeParticlesKernels::texAllParticles.channelDesc,
+			       sizeof(float) * 6 * nparticles));
+pack_attempt:
 	
-	CUDA_CHECK(cudaMemcpyToSymbolAsync(RedistributeParticlesKernels::pack_buffers, packbuffers,
-					   sizeof(PackBuffer) * 27, 0, cudaMemcpyHostToDevice, mystream));
+    CUDA_CHECK(cudaMemcpyToSymbolAsync(RedistributeParticlesKernels::pack_buffers, packbuffers,
+				       sizeof(PackBuffer) * 27, 0, cudaMemcpyHostToDevice, mystream));
 
-	*failure.data = false;
-	RedistributeParticlesKernels::setup<<<1, 32, 0, mystream>>>();
+    *failure.data = false;
+    RedistributeParticlesKernels::setup<<<1, 32, 0, mystream>>>();
 	
-	if (nparticles)
-	    RedistributeParticlesKernels::scatter_halo_indices<<< (nparticles + 127) / 128, 128, 0, mystream>>>(nparticles);
+    if (nparticles)
+	RedistributeParticlesKernels::scatter_halo_indices<<< (nparticles + 127) / 128, 128, 0, mystream>>>(nparticles);
 	
-	RedistributeParticlesKernels::tiny_scan<<<1, 32, 0, mystream>>>(nparticles, packbuffers[0].capacity, packsizes.devptr, failure.devptr);
+    RedistributeParticlesKernels::tiny_scan<<<1, 32, 0, mystream>>>(nparticles, packbuffers[0].capacity, packsizes.devptr, failure.devptr);
 
-	CUDA_CHECK(cudaEventRecord(evsizes, mystream));
+    CUDA_CHECK(cudaEventRecord(evsizes, mystream));
 	
 #ifndef NDEBUG
-	RedistributeParticlesKernels::check_scan<<<1, 1, 0, mystream>>>();
+    RedistributeParticlesKernels::check_scan<<<1, 1, 0, mystream>>>();
 #endif 
 	
-	if (nparticles)
-	    RedistributeParticlesKernels::pack<<< (6 * nparticles + 127) / 128, 128, 0, mystream>>> (nparticles, nparticles * 6);
+    if (nparticles)
+	RedistributeParticlesKernels::pack<<< (6 * nparticles + 127) / 128, 128, 0, mystream>>> (nparticles, nparticles * 6);
 	
-	CUDA_CHECK(cudaEventRecord(evpacking, mystream));
+    CUDA_CHECK(cudaEventRecord(evpacking, mystream));
 
-	CUDA_CHECK(cudaEventSynchronize(evsizes));
+    CUDA_CHECK(cudaEventSynchronize(evsizes));
 
-	if (*failure.data)
-	{
-	    //wait for packing to finish
-	    CUDA_CHECK(cudaEventSynchronize(evpacking));
+    if (*failure.data)
+    {
+	//wait for packing to finish
+	CUDA_CHECK(cudaEventSynchronize(evpacking));
 	    
-	    printf("...FAILED! Recovering now...\n");
+	printf("RedistributeParticles::pack RANK %d ...FAILED! Recovering now...\n", myrank);
 
-	    _adjust_send_buffers(packsizes.devptr);
+	_adjust_send_buffers(packsizes.data);
 	    	    
-	    goto pack_attempt;
+	if (myrank == 0)
+	for(int i = 0; i < 27; ++i)
+	    printf("ASD: %d\n", packsizes.data[i]);
+
+	if (secondchance)
+	{
+	    printf("CAZZ...cioe' va bene tutto ragassi ma non siamo qui a far la ceretta allo yeti.\n");
+	    abort();
 	}
 
-	CUDA_CHECK(cudaPeekAtLastError());
+	if (!secondchance)
+	    secondchance = true;
 
-        enum { BS = 128, ILP = 2 };
-	
-	if (nparticles)
-	    RedistributeParticlesKernels::recompact_bulk<BS, ILP><<< (nparticles + BS - 1) / BS, BS, 0, mystream>>>(nparticles);
+	goto pack_attempt;
     }
 
-    {
-	NVTX_RANGE("RDP/send-recv", NVTX_C2);
+    CUDA_CHECK(cudaPeekAtLastError());
+}
 
-	if (!firstcall)
-	    _waitall(sendcountreq, nactiveneighbors);
+void RedistributeParticles::bulk(const int nparticles, cudaStream_t mystream)
+{
+    NVTX_RANGE("RDP/bulk", NVTX_C2);
+
+    enum { BS = 128, ILP = 2 };
 	
-	for(int i = 0; i < 27; ++i)
-	    send_sizes[i] = packsizes.data[i];
+    if (nparticles)
+	RedistributeParticlesKernels::recompact_bulk<BS, ILP><<< (nparticles + BS - 1) / BS, BS, 0, mystream>>>(nparticles);
+}
 
-	nbulk = recv_sizes[0] = send_sizes[0];
+void RedistributeParticles::send()
+{
+    NVTX_RANGE("RDP/send", NVTX_C2);
+
+    if (!firstcall)
+	_waitall(sendcountreq, nactiveneighbors);
+	
+    for(int i = 0; i < 27; ++i)
+	send_sizes[i] = packsizes.data[i];
+
+    nbulk = recv_sizes[0] = send_sizes[0];
         
-	{
-	    int c = 0;
-	    for(int i = 1; i < 27; ++i)
-		if (default_message_sizes[i])
-		    MPI_CHECK( MPI_Isend(send_sizes + i, 1, MPI_INTEGER, neighbor_ranks[i], basetag + i, cartcomm, sendcountreq + c++) );
-		
-	    assert(c == nactiveneighbors);
-	}
-
-	CUDA_CHECK(cudaEventSynchronize(evpacking));
-    
-	if (!firstcall)
-	    _waitall(sendmsgreq, nsendmsgreq);
-    
-	nsendmsgreq = 0;
+    {
+	int c = 0;
 	for(int i = 1; i < 27; ++i)
 	    if (default_message_sizes[i])
-	    {
-		MPI_CHECK( MPI_Isend(pinnedhost_sendbufs[i], default_message_sizes[i] * 6, MPI_FLOAT, neighbor_ranks[i], basetag + i + 333,
-				     cartcomm, sendmsgreq + nsendmsgreq) );
+		MPI_CHECK( MPI_Isend(send_sizes + i, 1, MPI_INTEGER, neighbor_ranks[i], basetag + i, cartcomm, sendcountreq + c++) );
 		
-		++nsendmsgreq;
-	    }
-	
-	for(int i = 1; i < 27; ++i)
-	    if (send_sizes[i] > default_message_sizes[i])
-	    {
-		const int count = send_sizes[i] - default_message_sizes[i];
-		
-		MPI_CHECK( MPI_Isend(pinnedhost_sendbufs[i] + default_message_sizes[i] * 6, count * 6, MPI_FLOAT,
-				     neighbor_ranks[i], basetag + i + 666, cartcomm, sendmsgreq + nsendmsgreq) );
-		++nsendmsgreq;
-	    }
-	
-	assert(nactiveneighbors <= nsendmsgreq && nsendmsgreq <= 2 * nactiveneighbors);
-    
-	host_idle_time += _waitall(recvcountreq, nactiveneighbors);
+	assert(c == nactiveneighbors);
+    }
 
+    CUDA_CHECK(cudaEventSynchronize(evpacking));
+    
+    if (!firstcall)
+	_waitall(sendmsgreq, nsendmsgreq);
+    
+    nsendmsgreq = 0;
+    for(int i = 1; i < 27; ++i)
+	if (default_message_sizes[i])
 	{
-	    int ustart[28];
-	    
-	    ustart[0] = 0;	
-	    for(int i = 1; i < 28; ++i)
-		ustart[i] = ustart[i - 1] + recv_sizes[i - 1] * (default_message_sizes[i - 1] > 0);
-	    
-	    CUDA_CHECK(cudaMemcpyToSymbolAsync(RedistributeParticlesKernels::unpack_start, ustart,
-					       sizeof(int) * 28, 0, cudaMemcpyHostToDevice, mystream));
+	    MPI_CHECK( MPI_Isend(pinnedhost_sendbufs[i], default_message_sizes[i] * 6, MPI_FLOAT, neighbor_ranks[i], basetag + i + 333,
+				 cartcomm, sendmsgreq + nsendmsgreq) );
+		
+	    ++nsendmsgreq;
 	}
+	
+    for(int i = 1; i < 27; ++i)
+	if (default_message_sizes[i] && send_sizes[i] > default_message_sizes[i])
+	{
+	    const int count = send_sizes[i] - default_message_sizes[i];
+		
+	    MPI_CHECK( MPI_Isend(pinnedhost_sendbufs[i] + default_message_sizes[i] * 6, count * 6, MPI_FLOAT,
+				 neighbor_ranks[i], basetag + i + 666, cartcomm, sendmsgreq + nsendmsgreq) );
+	    ++nsendmsgreq;
+	}
+	
+    assert(nactiveneighbors <= nsendmsgreq && nsendmsgreq <= 2 * nactiveneighbors);
+}
+
+int RedistributeParticles::recv_count(cudaStream_t mystream, float& host_idle_time)
+{
+    CUDA_CHECK(cudaPeekAtLastError());  
+
+    NVTX_RANGE("RDP/recv-count", NVTX_C3);
+
+    host_idle_time += _waitall(recvcountreq, nactiveneighbors);
+
+    {
+	int ustart[28];
+	    
+	ustart[0] = 0;	
+	for(int i = 1; i < 28; ++i)
+	    ustart[i] = ustart[i - 1] + recv_sizes[i - 1] * (default_message_sizes[i - 1] > 0);
+	    
+	CUDA_CHECK(cudaMemcpyToSymbolAsync(RedistributeParticlesKernels::unpack_start, ustart,
+					   sizeof(int) * 28, 0, cudaMemcpyHostToDevice, mystream));
     }
 
     nexpected = 0;
@@ -655,16 +684,16 @@ int RedistributeParticles::stage1(const Particle * const particles, const int np
     
     nhalo = nexpected - nbulk;
     
-    //CUDA_CHECK(cudaEventSynchronize(evcompaction));
+//CUDA_CHECK(cudaEventSynchronize(evcompaction));
     
     firstcall = false;
     
     return nexpected;
 }
     
-void RedistributeParticles::stage2(Particle * const particles, const int nparticles, cudaStream_t mystream, float& host_idle_time)
+void RedistributeParticles::recv_unpack(Particle * const particles, const int nparticles, cudaStream_t mystream, float& host_idle_time)
 {
-    NVTX_RANGE("RDP/stage2", NVTX_C7);
+    NVTX_RANGE("RDP/recv-unpack", NVTX_C4);
     
     assert(nparticles == nexpected);
     
@@ -676,7 +705,7 @@ void RedistributeParticles::stage2(Particle * const particles, const int npartic
 				       sizeof(UnpackBuffer) * 27, 0, cudaMemcpyHostToDevice, mystream));
     
     for(int i = 1; i < 27; ++i)
-	if (recv_sizes[i] > default_message_sizes[i])
+	if (default_message_sizes[i] && recv_sizes[i] > default_message_sizes[i])
 	{
 	    const int count = recv_sizes[i] - default_message_sizes[i];
 	    

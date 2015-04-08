@@ -49,7 +49,7 @@ __constant__ float A[4][4];
 
 void setup(int& nvertices, Extent& host_extent, float dt)
 {
-	const bool report = true;
+	const bool report = false;
 
 	const char* fname = "../cuda-ctc/sphere.dat";
 	ifstream in(fname);

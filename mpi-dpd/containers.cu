@@ -347,7 +347,6 @@ void CollectionRBC::dump(MPI_Comm comm, MPI_Comm cartcomm)
 	    mkdir("ply", S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
     }
 	    
-	if (nrbcs > 0)
     ply_dump(comm, cartcomm, buf, indices, nrbcs, ntriangles, p, nvertices, false);
 		    
     delete [] p;
