@@ -163,6 +163,7 @@ __inline__ __device__ uint2 __unpack_8_24(uint d) {
 //#define ONESTEP
 #define LETS_MAKE_IT_MESSY
 #define HALF_FLOAT
+//#define CONSOLIDATE_SMEM
 //#define DIRECT_LD
 
 __device__ char4 tid2ind[14] = {{-1, -1, -1, 0}, {0, -1, -1, 0}, {1, -1, -1, 0},
@@ -279,6 +280,19 @@ void _dpd_forces_new5() {
 		const uint nsrc     = start_n_scan[wid][14].y;
 		const uint spidext  = start_n_scan[wid][13].x;
 
+		#ifdef CONSOLIDATE_SMEM
+		// 0 3 6 9 12 15
+//		if (tid < 7) {
+//			uint d = min( tid * 3, 14 );
+//			start_n_scan[wid][tid].x = start_n_scan[wid][d].x;
+//			start_n_scan[wid][tid].y = start_n_scan[wid][d].y;
+//		}
+		if (tid==15) {
+			start_n_scan[wid][tid].x = start_n_scan[wid][14].x;
+			start_n_scan[wid][tid].y = start_n_scan[wid][14].y;
+		}
+		#endif
+
 		// TODO
 		uint nb = 0;
 		for(uint p = 0; p < nsrc; p = xadd( p, 32u ) ) {
@@ -318,10 +332,16 @@ void _dpd_forces_new5() {
 				 "   mov.b32           %0, mystart;"
 				 "}" : "=r"(spid) : "f"(u2f(pid)), "f"(u2f(9u)), "f"(u2f(3u)), "f"(u2f(wid)), "f"(u2f(pid)), "f"(u2f(nsrc)) );
 			#else
+			#ifdef CONSOLIDATE_SMEM
+			const uint key9 = 9*(pid >= start_n_scan[wid][9].y);
+			const uint key3 = 3*((pid >= start_n_scan[wid][key9 + 3].y)+(pid >= start_n_scan[wid][key9 + 6].y));
+			const uint spid = pid - start_n_scan[wid][key3+key9].y + start_n_scan[wid][key3+key9].x;
+			#else
 			const uint key9 = 9*(pid >= start_n_scan[wid][9].y);
 			uint key3 = 3*(pid >= start_n_scan[wid][key9 + 3].y);
 			key3 += (key9 < 9) ? 3*(pid >= start_n_scan[wid][key9 + 6].y) : 0;
 			const uint spid = pid - start_n_scan[wid][key3+key9].y + start_n_scan[wid][key3+key9].x;
+			#endif
 			#endif
 
 			#ifdef LETS_MAKE_IT_MESSY
