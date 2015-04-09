@@ -37,36 +37,6 @@ texture<int, cudaTextureType1D> texStart, texCount;
 #define _ZCPB_ 1
 #define CPB (_XCPB_ * _YCPB_ * _ZCPB_)
 
-__device__ float3 _dpd_interaction(const int dpid, const float3 xdest, const float3 udest, const float3 xsrc, const float3 usrc, const int spid)
-{
-    const float _xr = xdest.x - xsrc.x;
-    const float _yr = xdest.y - xsrc.y;
-    const float _zr = xdest.z - xsrc.z;
-
-    const float rij2 = _xr * _xr + _yr * _yr + _zr * _zr;
-    assert(rij2 < 1);
-
-    const float invrij = rsqrtf(rij2);
-    const float rij = rij2 * invrij;
-    const float argwr = 1 - rij;
-    const float wr = viscosity_function<-VISCOSITY_S_LEVEL>(argwr);
-
-    const float xr = _xr * invrij;
-    const float yr = _yr * invrij;
-    const float zr = _zr * invrij;
-
-    const float rdotv =
-	xr * (udest.x - usrc.x) +
-	yr * (udest.y - usrc.y) +
-	zr * (udest.z - usrc.z);
-
-    const float myrandnr = Logistic::mean0var1(info.seed, min(spid, dpid), max(spid, dpid));
-
-    const float strength = info.aij * argwr - (info.gamma * wr * rdotv + info.sigmaf * myrandnr) * wr;
-
-    return make_float3(strength * xr, strength * yr, strength * zr);
-}
-
 __device__ float3 _dpd_interaction(const int dpid, const float4 xdest, const float4 udest, const float4 xsrc, const float4 usrc, const int spid)
 {
     const float _xr = xdest.x - xsrc.x;
@@ -78,8 +48,8 @@ __device__ float3 _dpd_interaction(const int dpid, const float4 xdest, const flo
 
     const float invrij = rsqrtf(rij2);
     const float rij = rij2 * invrij;
-    const float argwr = 1 - rij;
-    const float wr = viscosity_function<-VISCOSITY_S_LEVEL>(argwr);
+    const float wc = 1 - rij;
+    const float wr = viscosity_function<-VISCOSITY_S_LEVEL>(wc);
 
     const float xr = _xr * invrij;
     const float yr = _yr * invrij;
@@ -92,7 +62,7 @@ __device__ float3 _dpd_interaction(const int dpid, const float4 xdest, const flo
 
     const float myrandnr = Logistic::mean0var1(info.seed, min(spid, dpid), max(spid, dpid));
 
-    const float strength = info.aij * argwr - (info.gamma * wr * rdotv + info.sigmaf * myrandnr) * wr;
+    const float strength = info.aij * wc - (info.gamma * wr * rdotv + info.sigmaf * myrandnr) * wr;
 
     return make_float3(strength * xr, strength * yr, strength * zr);
 }
@@ -222,24 +192,11 @@ void _dpd_forces_symm_merged() {
 		const uint nsrc     = start_n_scan[wid][14].y;
 		const uint spidext  = start_n_scan[wid][13].x;
 
-		#ifdef CONSOLIDATE_SMEM
-		// 0 3 6 9 12 15
-//		if (tid < 7) {
-//			uint d = min( tid * 3, 14 );
-//			start_n_scan[wid][tid].x = start_n_scan[wid][d].x;
-//			start_n_scan[wid][tid].y = start_n_scan[wid][d].y;
-//		}
-		if (tid==15) {
-			start_n_scan[wid][tid].x = start_n_scan[wid][14].x;
-			start_n_scan[wid][tid].y = start_n_scan[wid][14].y;
-		}
-		#endif
-
 		// TODO
 		uint nb = 0;
 		for(uint p = 0; p < nsrc; p = xadd( p, 32u ) ) {
 			const uint pid = p + tid;
-			#if 0//def LETS_MAKE_IT_MESSY
+			#ifdef LETS_MAKE_IT_MESSY
 			uint spid;
 			asm( "{ .reg .pred p, q, r;"
 				 "  .reg .f32  key;"
@@ -274,16 +231,10 @@ void _dpd_forces_symm_merged() {
 				 "   mov.b32           %0, mystart;"
 				 "}" : "=r"(spid) : "f"(u2f(pid)), "f"(u2f(9u)), "f"(u2f(3u)), "f"(u2f(wid)), "f"(u2f(pid)), "f"(u2f(nsrc)) );
 			#else
-			#ifdef CONSOLIDATE_SMEM
-			const uint key9 = 9*(pid >= start_n_scan[wid][9].y);
-			const uint key3 = 3*((pid >= start_n_scan[wid][key9 + 3].y)+(pid >= start_n_scan[wid][key9 + 6].y));
-			const uint spid = pid - start_n_scan[wid][key3+key9].y + start_n_scan[wid][key3+key9].x;
-			#else
 			const uint key9 = 9*(pid >= start_n_scan[wid][9].y);
 			uint key3 = 3*(pid >= start_n_scan[wid][key9 + 3].y);
 			key3 += (key9 < 9) ? 3*(pid >= start_n_scan[wid][key9 + 6].y) : 0;
 			const uint spid = pid - start_n_scan[wid][key3+key9].y + start_n_scan[wid][key3+key9].x;
-			#endif
 			#endif
 
 			float4 xsrc;
@@ -308,7 +259,15 @@ void _dpd_forces_symm_merged() {
 
 				uint overview = __ballot( interacting );
 				const uint insert = xadd( nb, i2u( __popc( overview & __lanemask_lt() ) ) );
-				if (interacting) queue[wid][insert] = __pack_8_24( xsub(dpid,dststart), spid );
+				if (interacting) {
+					#ifdef LETS_MAKE_IT_MESSY
+					uint item = __pack_8_24( xsub(dpid,dststart), spid );
+					uint offset = xmad( wid, 256.f, xmad( insert, 4.f, 1024u ) );
+					asm("st.shared.u32 [%0], %1;" : : "r"(offset), "r"(item) : "memory" );
+					#else
+					queue[wid][insert] = __pack_8_24( xsub(dpid,dststart), spid );
+					#endif
+				}
 				nb = xadd( nb, i2u( __popc( overview ) ) );
 				if ( nb >= 32u ) {
 					core_ytang1( queue, dststart, wid, tid, spidext );
