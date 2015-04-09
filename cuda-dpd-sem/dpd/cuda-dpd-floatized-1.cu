@@ -28,8 +28,6 @@ struct InfoDPD
 
 __constant__ InfoDPD info;
 
-texture<float2, cudaTextureType1D> texParticles2;
-texture<float4, cudaTextureType1D> texParticlesX4;
 texture<float4, cudaTextureType1D> texParticlesF4;
 texture<ushort4, cudaTextureType1D, cudaReadModeNormalizedFloat> texParticlesH4;
 texture<int, cudaTextureType1D> texStart, texCount;
@@ -123,9 +121,7 @@ __inline__ __device__ uint2 __unpack_8_24(uint d) {
 #define TRANSPOSED_ATOMICS
 //#define ONESTEP
 #define LETS_MAKE_IT_MESSY
-//#define HALF_FLOAT
 //#define CONSOLIDATE_SMEM
-#define DIRECT_LD
 
 __device__ char4 tid2ind[14] = {{-1, -1, -1, 0}, {0, -1, -1, 0}, {1, -1, -1, 0},
 				{-1,  0, -1, 0}, {0,  0, -1, 0}, {1,  0, -1, 0},
@@ -142,25 +138,10 @@ __forceinline__ __device__ void core_ytang1(uint volatile queue[MYWPB][64], cons
 	const uint dpid = dststart + pid.x;
 	const uint spid = pid.y;
 
-	#ifdef LETS_MAKE_IT_MESSY
 	const float4 xdest = tex1Dfetch(texParticlesF4, xscale( dpid, 2.f     ) );
 	const float4 udest = tex1Dfetch(texParticlesF4,   xmad( dpid, 2.f, 1u ) );
 	const float4 xsrc  = tex1Dfetch(texParticlesF4, xscale( spid, 2.f     ) );
 	const float4 usrc  = tex1Dfetch(texParticlesF4,   xmad( spid, 2.f, 1u ) );
-	#else
-	const uint sentry = xscale( spid, 3.f );
-	const float2 stmp0 = tex1Dfetch(texParticles2, sentry    );
-	const float2 stmp1 = tex1Dfetch(texParticles2, xadd( sentry, 1u ) );
-	const float2 stmp2 = tex1Dfetch(texParticles2, xadd( sentry, 2u ) );
-	const float3 xsrc = make_float3( stmp0.x, stmp0.y, stmp1.x );
-	const float3 usrc = make_float3( stmp1.y, stmp2.x, stmp2.y );
-	const uint dentry = xscale( dpid, 3.f );
-	const float2 dtmp0 = tex1Dfetch(texParticles2, dentry    );
-	const float2 dtmp1 = tex1Dfetch(texParticles2, xadd( dentry, 1u ) );
-	const float2 dtmp2 = tex1Dfetch(texParticles2, xadd( dentry, 2u ) );
-	const float3 xdest = make_float3( dtmp0.x, dtmp0.y, dtmp1.x );
-	const float3 udest = make_float3( dtmp1.y, dtmp2.x, dtmp2.y );
-	#endif
 	const float3 f = _dpd_interaction(dpid, xdest, udest, xsrc, usrc, spid);
 
 	// the overhead of transposition acc back
@@ -197,7 +178,7 @@ __forceinline__ __device__ void core_ytang1(uint volatile queue[MYWPB][64], cons
 }
 
 __global__  __launch_bounds__(32*MYWPB, 16)
-void _dpd_forces_new5() {
+void _dpd_forces_symm_merged() {
 
 	__shared__ uint2 volatile start_n_scan[MYWPB][32];
 	__shared__ uint  volatile queue[MYWPB][64];
@@ -305,51 +286,13 @@ void _dpd_forces_new5() {
 			#endif
 			#endif
 
-			#ifdef LETS_MAKE_IT_MESSY
 			float4 xsrc;
-			#else
-			float3 xsrc;
-			#endif
-
-			if (pid<nsrc) {
-				#ifdef LETS_MAKE_IT_MESSY
-				#ifdef HALF_FLOAT
-				xsrc = tex1Dfetch(texParticlesH4, spid );
-				#else
-				#ifdef DIRECT_LD
-				xsrc = tex1Dfetch(texParticlesX4, spid );
-				#else
-				xsrc = tex1Dfetch(texParticlesF4, xscale( spid, 2.f ) );
-				#endif
-				#endif
-				#else
-				const uint sentry = xscale( spid, 3.f );
-				const float2 stmp0 = tex1Dfetch(texParticles2, sentry    );
-				const float2 stmp1 = tex1Dfetch(texParticles2, xadd( sentry, 1u ) );
-				xsrc = make_float3( stmp0.x, stmp0.y, stmp1.x );
-				#endif
-			}
+			if (pid<nsrc) xsrc = tex1Dfetch(texParticlesH4, spid );
 
 			for(uint dpid = dststart; dpid < lastdst; dpid = xadd(dpid, 1u) ) {
 				int interacting = 0;
 				if (pid<nsrc) {
-					#ifdef LETS_MAKE_IT_MESSY
-					#ifdef HALF_FLOAT
-					const float4 xdest = tex1Dfetch(texParticlesH4, dpid );
-					#else
-					#ifdef DIRECT_LD
-					const float4 xdest = tex1Dfetch(texParticlesX4, dpid );
-					#else
-					const float4 xdest = tex1Dfetch(texParticlesF4, xscale( dpid, 2.f ) );
-					#endif
-					#endif
-					#else
-					const uint dentry = xscale( dpid, 3.f );
-					const float2 dtmp0 = tex1Dfetch(texParticles2,      dentry      );
-					const float2 dtmp1 = tex1Dfetch(texParticles2, xadd(dentry, 1u ));
-					const float3 xdest = make_float3( dtmp0.x, dtmp0.y, dtmp1.x );
-					#endif
-
+					const float4 xdest = tex1Dfetch( texParticlesH4, dpid );
 					const float d2 = (xdest.x-xsrc.x)*(xdest.x-xsrc.x) + (xdest.y-xsrc.y)*(xdest.y-xsrc.y) + (xdest.z-xsrc.z)*(xdest.z-xsrc.z);
 					#ifdef LETS_MAKE_IT_MESSY
 					asm("{ .reg .pred        p;"
@@ -387,7 +330,7 @@ bool fdpd_init = false;
 static cudaEvent_t evstart, evstop;
 #endif
 
-__global__ void make_texture( float4 *xyzouvwo, float4 *xyzo, ushort4 *xyzo_half, const float *xyzuvw, const int n ) {
+__global__ void make_texture( float4 *xyzouvwo, ushort4 *xyzo_half, const float *xyzuvw, const int n ) {
 	for(int i=blockIdx.x*blockDim.x+threadIdx.x;i<n;i+=blockDim.x*gridDim.x) {
 		float x = xyzuvw[i*6+0];
 		float y = xyzuvw[i*6+1];
@@ -397,7 +340,6 @@ __global__ void make_texture( float4 *xyzouvwo, float4 *xyzo, ushort4 *xyzo_half
 		float w = xyzuvw[i*6+5];
 		xyzouvwo[i*2+0] = make_float4( x, y, z, 0.f );
 		xyzouvwo[i*2+1] = make_float4( u, v, w, 0.f );
-		xyzo[i] = make_float4( x, y, z, 0.f );
 		xyzo_half[i] = make_ushort4( __float2half_rn(x), __float2half_rn(y), __float2half_rn(z), 0 );
 	}
 }
@@ -463,16 +405,6 @@ void forces_dpd_cuda_nohost(const float * const xyzuvw, float * const axayaz,  c
 	texCount.mipmapFilterMode = cudaFilterModePoint;
 	texCount.normalized = 0;
 
-	texParticles2.channelDesc = cudaCreateChannelDesc<float2>();
-	texParticles2.filterMode = cudaFilterModePoint;
-	texParticles2.mipmapFilterMode = cudaFilterModePoint;
-	texParticles2.normalized = 0;
-
-	texParticlesX4.channelDesc = cudaCreateChannelDesc<float4>();
-	texParticlesX4.filterMode = cudaFilterModePoint;
-	texParticlesX4.mipmapFilterMode = cudaFilterModePoint;
-	texParticlesX4.normalized = 0;
-
 	texParticlesF4.channelDesc = cudaCreateChannelDesc<float4>();
 	texParticlesF4.filterMode = cudaFilterModePoint;
 	texParticlesF4.mipmapFilterMode = cudaFilterModePoint;
@@ -483,7 +415,7 @@ void forces_dpd_cuda_nohost(const float * const xyzuvw, float * const axayaz,  c
 	texParticlesH4.mipmapFilterMode = cudaFilterModePoint;
 	texParticlesH4.normalized = 0;
 
-	CUDA_CHECK(cudaFuncSetCacheConfig(_dpd_forces_new5, cudaFuncCachePreferEqual));
+	CUDA_CHECK(cudaFuncSetCacheConfig(_dpd_forces_symm_merged, cudaFuncCachePreferEqual));
 
 #ifdef _TIME_PROFILE_
 	CUDA_CHECK(cudaEventCreate(&evstart));
@@ -495,30 +427,23 @@ void forces_dpd_cuda_nohost(const float * const xyzuvw, float * const axayaz,  c
     InfoDPD c;
 
     size_t textureoffset;
-	#ifdef LETS_MAKE_IT_MESSY
-	static float4 *xyzouvwo, *xyzo;
+	static  float4 *xyzouvwo;
 	static ushort4 *xyzo_half;
 	static int last_size;
 	if (!xyzouvwo || last_size < np ) {
 			if (xyzouvwo) {
 				cudaFree( xyzouvwo );
-				cudaFree( xyzo );
 				cudaFree( xyzo_half );
 			}
 			cudaMalloc( &xyzouvwo,  sizeof(float4)*2*np);
-			cudaMalloc( &xyzo,      sizeof(float4)*np);
 			cudaMalloc( &xyzo_half, sizeof(ushort4)*np);
 			last_size = np;
 	}
-	make_texture<<<64,512,0,stream>>>( xyzouvwo, xyzo, xyzo_half, xyzuvw, np );
-	CUDA_CHECK( cudaBindTexture( &textureoffset, &texParticlesX4, xyzo,      &texParticlesX4.channelDesc, sizeof( float ) * 4 * np ) );
+	make_texture<<<64,512,0,stream>>>( xyzouvwo, xyzo_half, xyzuvw, np );
 	CUDA_CHECK( cudaBindTexture( &textureoffset, &texParticlesF4, xyzouvwo,  &texParticlesF4.channelDesc, sizeof( float ) * 8 * np ) );
+	assert(textureoffset == 0);
 	CUDA_CHECK( cudaBindTexture( &textureoffset, &texParticlesH4, xyzo_half, &texParticlesH4.channelDesc, sizeof( ushort4 ) * np ) );
 	assert(textureoffset == 0);
-	#else
-	CUDA_CHECK(cudaBindTexture(&textureoffset, &texParticles2, xyzuvw, &texParticles2.channelDesc, sizeof(float) * 6 * np));
-    assert(textureoffset == 0);
-	#endif
     CUDA_CHECK(cudaBindTexture(&textureoffset, &texStart, cellsstart, &texStart.channelDesc, sizeof(int) * ncells));
     assert(textureoffset == 0);
     CUDA_CHECK(cudaBindTexture(&textureoffset, &texCount, cellscount, &texCount.channelDesc, sizeof(int) * ncells));
@@ -549,7 +474,7 @@ void forces_dpd_cuda_nohost(const float * const xyzuvw, float * const axayaz,  c
     CUDA_CHECK( cudaMemsetAsync(axayaz, 0, sizeof(float)*np*3, stream) );
 
     if (c.ncells.x%MYCPBX==0 && c.ncells.y%MYCPBY==0 && c.ncells.z%MYCPBZ==0) {
-    	_dpd_forces_new5<<<dim3(c.ncells.x/MYCPBX, c.ncells.y/MYCPBY, c.ncells.z/MYCPBZ), dim3(32, MYWPB), 0, stream>>>();
+    	_dpd_forces_symm_merged<<<dim3(c.ncells.x/MYCPBX, c.ncells.y/MYCPBY, c.ncells.z/MYCPBZ), dim3(32, MYWPB), 0, stream>>>();
 		#ifdef TRANSPOSED_ATOMICS
         transpose_acc<<<64,512,0,stream>>>(np);
 		#endif
