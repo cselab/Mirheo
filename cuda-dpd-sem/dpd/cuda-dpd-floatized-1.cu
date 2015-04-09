@@ -103,8 +103,15 @@ __device__ char4 tid2ind[14] = {{-1, -1, -1, 0}, {0, -1, -1, 0}, {1, -1, -1, 0},
 #define MYCPBZ	(2)
 #define MYWPB	(4)
 
-__forceinline__ __device__ void core_ytang1(uint volatile queue[MYWPB][64], const uint dststart, const uint wid, const uint tid, const uint spidext ) {
+__forceinline__ __device__ void core_ytang1(const uint dststart, const uint wid, const uint tid, const uint spidext ) {
+	#ifdef LETS_MAKE_IT_MESSY
+	uint item;
+	uint offset = xmad( wid, 256.f, xmad( tid, 4.f, 1024u ) );
+	asm("ld.shared.u32 %0, [%1];" : "=r"(item) : "r"(offset) : "memory" );
+	const uint2 pid = __unpack_8_24( item );
+	#else
 	const uint2 pid = __unpack_8_24( queue[wid][tid] );
+	#endif
 	const uint dpid = dststart + pid.x;
 	const uint spid = pid.y;
 
@@ -150,8 +157,8 @@ __forceinline__ __device__ void core_ytang1(uint volatile queue[MYWPB][64], cons
 __global__  __launch_bounds__(32*MYWPB, 16)
 void _dpd_forces_symm_merged() {
 
-	__shared__ uint2 volatile start_n_scan[MYWPB][32];
-	__shared__ uint  volatile queue[MYWPB][64];
+	__shared__ uint2 volatile start_n_scan[MYWPB*2][32];
+	//__shared__ uint  volatile queue[MYWPB][64];
 
 	const uint tid = threadIdx.x;
 	const uint wid = threadIdx.y;
@@ -261,7 +268,7 @@ void _dpd_forces_symm_merged() {
 				const uint insert = xadd( nb, i2u( __popc( overview & __lanemask_lt() ) ) );
 				if (interacting) {
 					#ifdef LETS_MAKE_IT_MESSY
-					uint item  = __pack_8_24( xsub(dpid,dststart), spid );
+					uint item   = __pack_8_24( xsub(dpid,dststart), spid );
 					uint offset = xmad( wid, 256.f, xmad( insert, 4.f, 1024u ) );
 					asm("st.shared.u32 [%0], %1;" : : "r"(offset), "r"(item) : "memory" );
 					#else
@@ -270,14 +277,22 @@ void _dpd_forces_symm_merged() {
 				}
 				nb = xadd( nb, i2u( __popc( overview ) ) );
 				if ( nb >= 32u ) {
-					core_ytang1( queue, dststart, wid, tid, spidext );
+					core_ytang1( dststart, wid, tid, spidext );
 					nb = xsub( nb, 32u );
+					#ifdef LETS_MAKE_IT_MESSY
+					uint offset = xmad( wid, 256.f, xmad( tid, 4.f, 1024u ) );
+					asm("{ .reg .u32 tmp;"
+						"   ld.shared.u32 tmp, [%0+128];"
+						"   st.shared.u32 [%0], tmp;"
+						"}" : : "r"(offset) : "memory" );
+					#else
 					queue[wid][tid] = queue[wid][tid+32];
+					#endif
 				}
 			}
 		}
 
-		if (tid < nb) core_ytang1( queue, dststart, wid, tid, spidext );
+		if (tid < nb) core_ytang1( dststart, wid, tid, spidext );
 		nb = 0;
 	}
 }
