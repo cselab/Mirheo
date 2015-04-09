@@ -88,22 +88,22 @@ void xyz_dump(MPI_Comm comm, MPI_Comm cartcomm, const char * filename, const cha
     MPI_CHECK( MPI_File_close(&f));
 }
 
-void _write_bytes(const void * const ptr, const int nbytes, MPI_File f, MPI_Comm comm)
+void _write_bytes(const void * const ptr, const long long nbytes, MPI_File f, MPI_Comm comm)
 {
-    MPI_Offset base;
-    MPI_CHECK( MPI_File_get_position(f, &base));
-    
-    int offset = 0;
-    MPI_CHECK( MPI_Exscan(&nbytes, &offset, 1, MPI_INTEGER, MPI_SUM, comm)); 
-	
-    MPI_Status status;
-	
-    MPI_CHECK( MPI_File_write_at_all(f, base + offset, ptr, nbytes, MPI_CHAR, &status));
+	MPI_Offset base;
+	MPI_CHECK( MPI_File_get_position(f, &base));
 
-    int ntotal = 0;
-    MPI_CHECK( MPI_Allreduce(&nbytes, &ntotal, 1, MPI_INT, MPI_SUM, comm) );
-    
-    MPI_CHECK( MPI_File_seek(f, ntotal, MPI_SEEK_CUR));
+	MPI_Offset offset = 0;
+	MPI_CHECK( MPI_Exscan(&nbytes, &offset, 1, MPI_LONG_LONG, MPI_SUM, comm));
+
+	MPI_Status status;
+
+	MPI_CHECK( MPI_File_write_at_all(f, base + offset, ptr, nbytes, MPI_CHAR, &status));
+
+	long long ntotal = 0;
+	MPI_CHECK( MPI_Allreduce(&nbytes, &ntotal, 1, MPI_LONG_LONG, MPI_SUM, comm) );
+
+	MPI_CHECK( MPI_File_seek(f, ntotal, MPI_SEEK_CUR));
 }
 
 void ply_dump(MPI_Comm comm, MPI_Comm cartcomm, const char * filename,
