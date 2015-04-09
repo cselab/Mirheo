@@ -178,7 +178,7 @@ template<typename P, typename Q> bool collides( P const& p, Q const &q, const do
 int main( int argc, const char ** argv )
 {
     if( argc < 4 ) {
-        printf( "usage: ./cell-placement <xdomain-extent> <ydomain-extent> <zdomain-extent> [maxn] \n" );
+        printf( "usage: ./cell-placement <xdomain-extent> <ydomain-extent> <zdomain-extent> [vol_fraction] \n" );
         exit( -1 );
     }
 
@@ -186,7 +186,8 @@ int main( int argc, const char ** argv )
 
     printf( "domain extent: %lf %lf %lf\n", domainextent[0], domainextent[1], domainextent[2] );
 
-    int64_t maxn = argc >= 5 ? atoi( argv[4] ) : 0xFFFFFFFFFFLL;
+    double vol = domainextent[0] * domainextent[1] * domainextent[2];
+    int64_t maxn = argc >= 5 ? ( vol * atof( argv[4] ) / 92.45 ) : 0xFFFFFFFFFFLL;
 
     printf(" max number of RBCs: %ld\n", maxn );
     bool failed = false;
@@ -199,7 +200,7 @@ int main( int argc, const char ** argv )
     double t1 = omp_get_wtime();
 
     while( !failed && result_rbc.size() + result_ctc.size() < maxn ) {
-        const int maxattempts = 100000;
+        const int maxattempts = 1000000;
 
         int attempt = 0;
         do {
