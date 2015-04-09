@@ -62,10 +62,11 @@ __forceinline__ __device__ int u2i( uint u ) {
 }
 
 // CUDA 5.5 does not define shuffle for uint
+#if CUDART_VERSION <= 5500
 __inline__ __device__ uint __shfl_up(uint var, unsigned int delta, int width=warpSize) {
 	return i2u( __shfl_up( u2i(var), delta, width ) );
 }
-
+#endif
 
 /******************************************************************************
                                  Arithmetic

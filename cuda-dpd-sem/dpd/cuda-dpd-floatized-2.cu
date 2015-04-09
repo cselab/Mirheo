@@ -2,6 +2,7 @@
  *  cuda-dpd.cu
  *  Part of CTC/cuda-dpd-sem/dpd/
  *
+ *  Evaluation of DPD force WITHOUT using Newton's 3rd law
  *  Created and authored by Yu-Hang Tang on 2015-03-18.
  *  Copyright 2015. All rights reserved.
  *
@@ -17,7 +18,6 @@
 #include "../dpd-rng.h"
 #include "../hacks.h"
 
-//#define PROF_TRIGGER
 #define USE_TEXOBJ 0
 
 struct InfoDPD {
@@ -76,7 +76,6 @@ texture_object<uint> txoStart, txoCount;
 #define _ZCPB_ 1
 #define CPB (_XCPB_ * _YCPB_ * _ZCPB_)
 //#define  _TIME_PROFILE_
-//#define _INSPECT_
 
 #define LETS_MAKE_IT_MESSY
 
@@ -504,9 +503,10 @@ void _dpd_forces_floatized()
 		#endif
     }
 
-    for( uint L = 1u; L < 32u; L <<= 1 ) {
-    	uint theirscan = i2u( __shfl_up( u2i(myscan), u2i(L) ) );
-    	myscan = xadd( myscan, xsel_ge( tid, L, theirscan, 0u ) ); // 2 FLOPS
+	#pragma unroll
+    for( int L = 1; L < 32; L <<= 1 ) {
+    	uint theirscan = __shfl_up( myscan, L );
+    	myscan = xadd( myscan, xsel_ge( tid, i2u(L), theirscan, 0u ) ); // 2 FLOPS
     }
 
     if( tid < 28 )
@@ -915,9 +915,10 @@ void _dpd_forces_floatized_flops_counter(unsigned long long *FLOPS)
 		#endif
     }
 
-    for( uint L = 1u; L < 32u; L <<= 1 ) {
-    	uint theirscan = i2u( __shfl_up( u2i(myscan), u2i(L) ) );
-    	myscan = xadd( myscan, xsel_ge( tid, L, theirscan, 0u ) ); // 2 FLOPS
+	#pragma unroll
+    for( int L = 1; L < 32; L <<= 1 ) {
+    	uint theirscan = __shfl_up( myscan, L );
+    	myscan = xadd( myscan, xsel_ge( tid, i2u(L), theirscan, 0u ) ); // 2 FLOPS
     	atomicAdd( FLOPS, 2ULL );
     }
 
@@ -1067,304 +1068,20 @@ void forces_dpd_cuda_nohost( const float * const xyzuvw, float * const axayaz,  
 
 #ifdef _COUNT_FLOPS
     {
-	static int nstep = 0;
-	if ( ++nstep > 6950 ) {
-    	static unsigned long long *FLOPS;
-    	if (!FLOPS) cudaMalloc( &FLOPS, 128 * sizeof(unsigned long long) );
-    	reset_flops<<<1,1,0,stream>>>(FLOPS);
-    	_dpd_forces_floatized_flops_counter <<< dim3( c.ncells.x / _XCPB_,
-    	                          c.ncells.y / _YCPB_,
-    	                          c.ncells.z / _ZCPB_ ), dim3( 32, CPB ), 0, stream >>> ( FLOPS );
-    	print_flops<<<1,1,0,stream>>>(FLOPS);
-	}
-    	//count FLOPS
-        //report data to scree
-
-//        if( cetriolo % 1000 == 0 ) {
-//            enum { COLS = 16, ROWS = 2 };
-//
-//            const size_t nentries = np * COLS;
-//
-//            int2 * data;
-//            CUDA_CHECK( cudaHostAlloc( &data, sizeof( int2 ) * nentries, cudaHostAllocMapped ) );
-//            memset( data, 0xff, sizeof( int2 ) * nentries );
-//
-//            int * devptr;
-//            CUDA_CHECK( cudaHostGetDevicePointer( &devptr, data, 0 ) );
-//
-//            inspect_dpd_forces <<< dim3( c.ncells.x / _XCPB_, c.ncells.y / _YCPB_, c.ncells.z / _ZCPB_ ), dim3( 32, CPB ), 0, stream >>>
-//            ( COLS, ROWS, np, data, nentries );
-//
-//            CUDA_CHECK( cudaDeviceSynchronize() );
-//
-//            char path2report[2000];
-//            sprintf( path2report, "inspection-%d-tstep.txt", cetriolo );
-//
-//            FILE * f = fopen( path2report, "w" );
-//            assert( f );
-//
-//            for( int i = 0, c = 0; i < np; ++i ) {
-//                fprintf( f, "pid %05d: ", i );
-//
-//                int s = 0, pot = 0;
-//                for( int j = 0; j < COLS; ++j, ++c ) {
-//                    fprintf( f, "%02d ", data[c].x );
-//                    s += data[c].x;
-//                    pot += data[c].y;
-//                }
-//
-//                fprintf( f, " sum: %02d pot: %d\n", s, ( pot + COLS - 1 ) / ( COLS ) );
-//            }
-//
-//            fclose( f );
-//
-//            CUDA_CHECK( cudaFreeHost( data ) );
-//            printf( "inspection saved to %s.\n", path2report );
-//        }
-    }
-#endif
-
-#ifdef _TIME_PROFILE_
-    if( cetriolo % 500 == 0 ) {
-        CUDA_CHECK( cudaEventRecord( evstop ) );
-        CUDA_CHECK( cudaEventSynchronize( evstop ) );
-
-        float tms;
-        CUDA_CHECK( cudaEventElapsedTime( &tms, evstart, evstop ) );
-        printf( "elapsed time for DPD-BULK kernel: %.2f ms\n", tms );
+		static int nstep = 0;
+		if ( ++nstep > 6950 ) {
+			static unsigned long long *FLOPS;
+			if (!FLOPS) cudaMalloc( &FLOPS, 128 * sizeof(unsigned long long) );
+			reset_flops<<<1,1,0,stream>>>(FLOPS);
+			_dpd_forces_floatized_flops_counter <<< dim3( c.ncells.x / _XCPB_,
+									  c.ncells.y / _YCPB_,
+									  c.ncells.z / _ZCPB_ ), dim3( 32, CPB ), 0, stream >>> ( FLOPS );
+			print_flops<<<1,1,0,stream>>>(FLOPS);
+			//count FLOPS
+			//report data to scree
+		}
     }
 #endif
 
     CUDA_CHECK( cudaPeekAtLastError() );
-}
-
-#include <cmath>
-#include <unistd.h>
-
-#include "../cell-lists.h"
-
-int fdpd_oldnp = 0, fdpd_oldnc = 0;
-
-float * fdpd_xyzuvw = NULL, * fdpd_axayaz = NULL;
-int * fdpd_start = NULL, * fdpd_count = NULL;
-
-void forces_dpd_cuda_aos( float * const _xyzuvw, float * const _axayaz,
-                          int * const order, const int np,
-                          const float rc,
-                          const float XL, const float YL, const float ZL,
-                          const float aij,
-                          const float gamma,
-                          const float sigma,
-                          const float invsqrtdt,
-                          const float seed,
-                          const bool nohost )
-{
-    if( np == 0 ) {
-        printf( "WARNING: forces_dpd_cuda_aos called with np = %d\n", np );
-        return;
-    }
-
-    int nx = ( int )ceil( XL / rc );
-    int ny = ( int )ceil( YL / rc );
-    int nz = ( int )ceil( ZL / rc );
-    const int ncells = nx * ny * nz;
-
-    if( !fdpd_init ) {
-		#if !(USE_TEXOBJ&2)
-        texStart.channelDesc = cudaCreateChannelDesc<uint>();
-        texStart.filterMode = cudaFilterModePoint;
-        texStart.mipmapFilterMode = cudaFilterModePoint;
-        texStart.normalized = 0;
-
-        texCount.channelDesc = cudaCreateChannelDesc<uint>();
-        texCount.filterMode = cudaFilterModePoint;
-        texCount.mipmapFilterMode = cudaFilterModePoint;
-        texCount.normalized = 0;
-
-        texParticles2.channelDesc = cudaCreateChannelDesc<float2>();
-        texParticles2.filterMode = cudaFilterModePoint;
-        texParticles2.mipmapFilterMode = cudaFilterModePoint;
-        texParticles2.normalized = 0;
-		#endif
-
-        fdpd_init = true;
-    }
-
-    if( fdpd_oldnp < np ) {
-        if( fdpd_oldnp > 0 ) {
-            CUDA_CHECK( cudaFree( fdpd_xyzuvw ) );
-            CUDA_CHECK( cudaFree( fdpd_axayaz ) );
-        }
-
-        CUDA_CHECK( cudaMalloc( &fdpd_xyzuvw, sizeof( float ) * 6 * np ) );
-        CUDA_CHECK( cudaMalloc( &fdpd_axayaz, sizeof( float ) * 3 * np ) );
-
-		#if !(USE_TEXOBJ&2)
-        size_t textureoffset;
-        CUDA_CHECK( cudaBindTexture( &textureoffset, &texParticles2, fdpd_xyzuvw, &texParticles2.channelDesc, sizeof( float ) * 6 * np ) );
-		#endif
-
-        fdpd_oldnp = np;
-    }
-
-    if( fdpd_oldnc < ncells ) {
-        if( fdpd_oldnc > 0 ) {
-            CUDA_CHECK( cudaFree( fdpd_start ) );
-            CUDA_CHECK( cudaFree( fdpd_count ) );
-        }
-
-        CUDA_CHECK( cudaMalloc( &fdpd_start, sizeof( uint ) * ncells ) );
-        CUDA_CHECK( cudaMalloc( &fdpd_count, sizeof( uint ) * ncells ) );
-
-		#if !(USE_TEXOBJ&2)
-        size_t textureoffset = 0;
-        CUDA_CHECK( cudaBindTexture( &textureoffset, &texStart, fdpd_start, &texStart.channelDesc, sizeof( uint ) * ncells ) );
-        CUDA_CHECK( cudaBindTexture( &textureoffset, &texCount, fdpd_count, &texCount.channelDesc, sizeof( uint ) * ncells ) );
-		#endif
-
-        fdpd_oldnc = ncells;
-    }
-
-    CUDA_CHECK( cudaMemcpyAsync( fdpd_xyzuvw, _xyzuvw, sizeof( float ) * np * 6, nohost ? cudaMemcpyDeviceToDevice : cudaMemcpyHostToDevice, 0 ) );
-
-    InfoDPD c;
-    c.ncells = make_int3( nx, ny, nz );
-    c.ncell_x = nx;
-    c.ncell_y = ny;
-    c.domainsize = make_float3( XL, YL, ZL );
-    c.invdomainsize = make_float3( 1 / XL, 1 / YL, 1 / ZL );
-    c.domainstart = make_float3( -XL * 0.5, -YL * 0.5, -ZL * 0.5 );
-    c.invrc = 1.f / rc;
-    c.aij = aij;
-    c.gamma = gamma;
-    c.sigmaf = sigma * invsqrtdt;
-    c.axayaz = fdpd_axayaz;
-    c.seed = seed;
-
-    build_clists( fdpd_xyzuvw, np, rc, c.ncells.x, c.ncells.y, c.ncells.z,
-                  c.domainstart.x, c.domainstart.y, c.domainstart.z,
-                  order, fdpd_start, fdpd_count, NULL );
-
-    //TextureWrap texStart(_ptr(starts), ncells), texCount(_ptr(counts), ncells);
-    //TextureWrap texParticles((float2*)_ptr(xyzuvw), 3 * np);
-
-    CUDA_CHECK( cudaMemcpyToSymbolAsync( info, &c, sizeof( c ), 0 ) );
-
-    _dpd_forces_floatized <<< dim3( c.ncells.x / _XCPB_,
-                          c.ncells.y / _YCPB_,
-                          c.ncells.z / _ZCPB_ ), dim3( 32, CPB ) >>> ();
-
-    CUDA_CHECK( cudaPeekAtLastError() );
-
-//copy xyzuvw as well?!?
-    if( nohost ) {
-        CUDA_CHECK( cudaMemcpy( _xyzuvw, fdpd_xyzuvw, sizeof( float ) * 6 * np, cudaMemcpyDeviceToDevice ) );
-        CUDA_CHECK( cudaMemcpy( _axayaz, fdpd_axayaz, sizeof( float ) * 3 * np, cudaMemcpyDeviceToDevice ) );
-    } else
-        CUDA_CHECK( cudaMemcpy( _axayaz, fdpd_axayaz, sizeof( float ) * 3 * np, cudaMemcpyDeviceToHost ) );
-
-#ifdef _CHECK_
-    CUDA_CHECK( cudaThreadSynchronize() );
-
-    for( int ii = 0; ii < np; ++ii ) {
-        printf( "pid %d -> %f %f %f\n", ii, ( float )axayaz[0 + 3 * ii], ( float )axayaz[1 + 3 * ii], ( float )axayaz[2 + 3 * ii] );
-
-        int cnt = 0;
-        float fc = 0;
-        const int i = order[ii];
-        printf( "devi coords are %f %f %f\n", ( float )xyzuvw[0 + 6 * ii], ( float )xyzuvw[1 + 6 * ii], ( float )xyzuvw[2 + 6 * ii] );
-        printf( "host coords are %f %f %f\n", ( float )_xyzuvw[0 + 6 * i], ( float )_xyzuvw[1 + 6 * i], ( float )_xyzuvw[2 + 6 * i] );
-
-        for( int j = 0; j < np; ++j ) {
-            if( i == j )
-                continue;
-
-            float xr = _xyzuvw[0 + 6 * i] - _xyzuvw[0 + 6 * j];
-            float yr = _xyzuvw[1 + 6 * i] - _xyzuvw[1 + 6 * j];
-            float zr = _xyzuvw[2 + 6 * i] - _xyzuvw[2 + 6 * j];
-
-            xr -= c.domainsize.x *  ::floor( 0.5f + xr / c.domainsize.x );
-            yr -= c.domainsize.y *  ::floor( 0.5f + yr / c.domainsize.y );
-            zr -= c.domainsize.z *  ::floor( 0.5f + zr / c.domainsize.z );
-
-            const float rij2 = xr * xr + yr * yr + zr * zr;
-            const float invrij = rsqrtf( rij2 );
-            const float rij = rij2 * invrij;
-            const float wr = max( ( float )0, 1 - rij * c.invrc );
-
-            const bool collision =  rij2 < 1;
-
-            if( collision )
-                fc += wr;// printf("ref p %d colliding with %d\n", i, j);
-
-            cnt += collision;
-        }
-        printf( "i found %d host interactions and with cuda i found %d\n", cnt, ( int )axayaz[0 + 3 * ii] );
-        assert( cnt == ( float )axayaz[0 + 3 * ii] );
-        printf( "fc aij ref %f vs cuda %e\n", fc, ( float )axayaz[1 + 3 * ii] );
-        assert( fabs( fc - ( float )axayaz[1 + 3 * ii] ) < 1e-4 );
-    }
-
-    printf( "test done.\n" );
-    sleep( 1 );
-    exit( 0 );
-#endif
-}
-
-
-int * fdpd_order = NULL;
-float * fdpd_pv = NULL, *fdpd_a = NULL;
-
-void forces_dpd_cuda( const float * const xp, const float * const yp, const float * const zp,
-                      const float * const xv, const float * const yv, const float * const zv,
-                      float * const xa, float * const ya, float * const za,
-                      const int np,
-                      const float rc,
-                      const float LX, const float LY, const float LZ,
-                      const float aij,
-                      const float gamma,
-                      const float sigma,
-                      const float invsqrtdt,
-                      const float seed )
-{
-    if( np <= 0 ) return;
-
-    if( np > fdpd_oldnp ) {
-        if( fdpd_oldnp > 0 ) {
-            CUDA_CHECK( cudaFreeHost( fdpd_pv ) );
-            CUDA_CHECK( cudaFreeHost( fdpd_order ) );
-            CUDA_CHECK( cudaFreeHost( fdpd_a ) );
-        }
-
-        CUDA_CHECK( cudaHostAlloc( &fdpd_pv, sizeof( float ) * np * 6, cudaHostAllocDefault ) );
-        CUDA_CHECK( cudaHostAlloc( &fdpd_order, sizeof( int ) * np, cudaHostAllocDefault ) );
-        CUDA_CHECK( cudaHostAlloc( &fdpd_a, sizeof( float ) * np * 3, cudaHostAllocDefault ) );
-
-        //this will be done by forces_dpd_cuda
-        //fdpd_oldnp = np;
-    }
-
-    for( int i = 0; i < np; ++i ) {
-        fdpd_pv[0 + 6 * i] = xp[i];
-        fdpd_pv[1 + 6 * i] = yp[i];
-        fdpd_pv[2 + 6 * i] = zp[i];
-        fdpd_pv[3 + 6 * i] = xv[i];
-        fdpd_pv[4 + 6 * i] = yv[i];
-        fdpd_pv[5 + 6 * i] = zv[i];
-    }
-
-    forces_dpd_cuda_aos( fdpd_pv, fdpd_a, fdpd_order, np, rc, LX, LY, LZ,
-                         aij, gamma, sigma, invsqrtdt, seed, false );
-
-    //delete [] pv;
-
-    for( int i = 0; i < np; ++i ) {
-        xa[fdpd_order[i]] += fdpd_a[0 + 3 * i];
-        ya[fdpd_order[i]] += fdpd_a[1 + 3 * i];
-        za[fdpd_order[i]] += fdpd_a[2 + 3 * i];
-    }
-
-    //delete [] a;
-
-    //delete [] order;
 }
