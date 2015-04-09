@@ -261,7 +261,7 @@ void _dpd_forces_symm_merged() {
 				const uint insert = xadd( nb, i2u( __popc( overview & __lanemask_lt() ) ) );
 				if (interacting) {
 					#ifdef LETS_MAKE_IT_MESSY
-					uint item = __pack_8_24( xsub(dpid,dststart), spid );
+					uint item  = __pack_8_24( xsub(dpid,dststart), spid );
 					uint offset = xmad( wid, 256.f, xmad( insert, 4.f, 1024u ) );
 					asm("st.shared.u32 [%0], %1;" : : "r"(offset), "r"(item) : "memory" );
 					#else
