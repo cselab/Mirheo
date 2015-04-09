@@ -6,8 +6,13 @@ CUDADPD = cuda-dpd.cu
 CUDADPDBIP = cuda-dpd-bipartite.cu
 
 ifeq "$(floatized)" "1"
-CUDADPD = cuda-dpd-floatized.cu
+CUDADPD = cuda-dpd-floatized-1.cu
 CUDADPDBIP = cuda-dpd-bipartite-floatized.cu
+else
+ifeq "$(floatized)" "2"
+CUDADPD = cuda-dpd-floatized-2.cu
+CUDADPDBIP = cuda-dpd-bipartite-floatized.cu
+endif
 endif
 
 ifeq "$(flops)" "1"
