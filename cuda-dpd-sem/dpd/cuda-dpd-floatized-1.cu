@@ -32,6 +32,11 @@ texture<float4, cudaTextureType1D> texParticlesF4;
 texture<ushort4, cudaTextureType1D, cudaReadModeNormalizedFloat> texParticlesH4;
 texture<int, cudaTextureType1D> texStart, texCount;
  
+#define TRANSPOSED_ATOMICS
+#define ONESTEP
+#define LETS_MAKE_IT_MESSY
+#define CRAZY_SMEM
+
 #define _XCPB_ 2
 #define _YCPB_ 2
 #define _ZCPB_ 1
@@ -87,12 +92,6 @@ __inline__ __device__ uint2 __unpack_8_24(uint d) {
 	return make_uint2( a, d&0x00FFFFFFU );
 }
 
-
-#define TRANSPOSED_ATOMICS
-//#define ONESTEP
-#define LETS_MAKE_IT_MESSY
-//#define CONSOLIDATE_SMEM
-
 __device__ char4 tid2ind[14] = {{-1, -1, -1, 0}, {0, -1, -1, 0}, {1, -1, -1, 0},
 				{-1,  0, -1, 0}, {0,  0, -1, 0}, {1,  0, -1, 0},
 				{-1,  1, -1, 0}, {0,  1, -1, 0}, {1,  1, -1, 0},
@@ -103,8 +102,20 @@ __device__ char4 tid2ind[14] = {{-1, -1, -1, 0}, {0, -1, -1, 0}, {1, -1, -1, 0},
 #define MYCPBZ	(2)
 #define MYWPB	(4)
 
-__forceinline__ __device__ void core_ytang1(uint volatile queue[MYWPB][64], const uint dststart, const uint wid, const uint tid, const uint spidext ) {
-	const uint2 pid = __unpack_8_24( queue[wid][tid] );
+#ifdef CRAZY_SMEM
+__forceinline__ __device__ void core_ytang1(const uint dststart, const uint wid, const uint tid, const uint spidext ) {
+#else
+__forceinline__ __device__ void core_ytang1(volatile uint const *queue, const uint dststart, const uint wid, const uint tid, const uint spidext ) {
+#endif
+
+#ifdef CRAZY_SMEM
+	uint item;
+	const uint offset = xmad( wid, 256.f, xmad( tid, 4.f, 1024u ) );
+	asm("ld.volatile.shared.u32 %0, [%1];" : "=r"(item) : "r"(offset) : "memory" );
+	const uint2 pid = __unpack_8_24( item );
+#else
+	const uint2 pid = __unpack_8_24( queue[tid] );
+#endif
 	const uint dpid = dststart + pid.x;
 	const uint spid = pid.y;
 
@@ -150,8 +161,13 @@ __forceinline__ __device__ void core_ytang1(uint volatile queue[MYWPB][64], cons
 __global__  __launch_bounds__(32*MYWPB, 16)
 void _dpd_forces_symm_merged() {
 
-	__shared__ uint2 volatile start_n_scan[MYWPB][32];
-	__shared__ uint  volatile queue[MYWPB][64];
+#ifdef CRAZY_SMEM
+	asm volatile(".shared .u32 smem[512];" ::: "memory" );
+//	__shared__ uint2 volatile start_n_scan[MYWPB*2][32];
+#else
+	__shared__ uint2 volatile start_n_scan[MYWPB*2][32];
+	volatile uint *queue = (volatile uint *)(start_n_scan[4+threadIdx.y]);
+#endif
 
 	const uint tid = threadIdx.x;
 	const uint wid = threadIdx.y;
@@ -176,7 +192,11 @@ void _dpd_forces_symm_merged() {
 
 			const bool valid_cid = (cid >= 0) && (cid < info.ncells.x*info.ncells.y*info.ncells.z);
 
+			#ifdef CRAZY_SMEM
+			asm("st.volatile.shared.u32 [%0], %1;" :: "r"(xmad(wid,256.f,xscale(tid,8.f))), "r"((valid_cid) ? tex1Dfetch(texStart, cid) : 0) : "memory" );
+			#else
 			start_n_scan[wid][tid].x = (valid_cid) ? tex1Dfetch(texStart, cid) : 0;
+			#endif
 			myscan = mycount = (valid_cid) ? tex1Dfetch(texCount, cid) : 0;
 		}
 	   
@@ -184,13 +204,32 @@ void _dpd_forces_symm_merged() {
 		for(int L = 1; L < 32; L <<= 1)
 			myscan += (tid >= L)*__shfl_up(myscan, L);
 
-		if (tid < 15) start_n_scan[wid][tid].y = myscan - mycount;
-	    
+		if (tid < 15) {
+			#ifdef CRAZY_SMEM
+			asm("st.volatile.shared.u32 [%0+4], %1;" :: "r"(xmad(wid,256.f,xscale(tid,8.f))), "r"(xsub(myscan,mycount)) : "memory" );
+			#else
+			start_n_scan[wid][tid].y = myscan - mycount;
+			#endif
+		}
+
+		#ifdef CRAZY_SMEM
+		uint x13, y13, y14;
+		asm("ld.volatile.shared.v2.u32 {%0,%1}, [%3   ];"
+			"ld.volatile.shared.u32     %2,     [%3+12];"
+			: "=r"(x13), "=r"(y13), "=r"(y14) : "r"( xmad(wid,256.f,13u*8u) ) : "memory" );
+		const uint dststart = x13;
+		const uint lastdst  = xsub( xadd( dststart, y14 ), y13 );
+
+		const uint nsrc     = y14;
+		const uint spidext  = x13;
+#else
 		const uint dststart = start_n_scan[wid][13].x;
 		const uint lastdst  = xsub( xadd( dststart, start_n_scan[wid][14].y ), start_n_scan[wid][13].y );
 
 		const uint nsrc     = start_n_scan[wid][14].y;
 		const uint spidext  = start_n_scan[wid][13].x;
+#endif
+
 
 		// TODO
 		uint nb = 0;
@@ -260,32 +299,42 @@ void _dpd_forces_symm_merged() {
 				uint overview = __ballot( interacting );
 				const uint insert = xadd( nb, i2u( __popc( overview & __lanemask_lt() ) ) );
 				if (interacting) {
-					#ifdef LETS_MAKE_IT_MESSY
-					uint item   = __pack_8_24( xsub(dpid,dststart), spid );
+					#ifdef CRAZY_SMEM
+					uint item  = __pack_8_24( xsub(dpid,dststart), spid );
 					uint offset = xmad( wid, 256.f, xmad( insert, 4.f, 1024u ) );
-					asm("st.shared.u32 [%0], %1;" : : "r"(offset), "r"(item) : "memory" );
+					asm("st.volatile.shared.u32 [%0], %1;" : : "r"(offset), "r"(item) : "memory" );
 					#else
-					queue[wid][insert] = __pack_8_24( xsub(dpid,dststart), spid );
+					queue[insert] = __pack_8_24( xsub(dpid,dststart), spid );
 					#endif
 				}
 				nb = xadd( nb, i2u( __popc( overview ) ) );
 				if ( nb >= 32u ) {
+					#ifdef CRAZY_SMEM
+					core_ytang1( dststart, wid, tid, spidext );
+					#else
 					core_ytang1( queue, dststart, wid, tid, spidext );
+					#endif
 					nb = xsub( nb, 32u );
-					#ifdef LETS_MAKE_IT_MESSY
+					#ifdef CRAZY_SMEM
 					uint offset = xmad( wid, 256.f, xmad( tid, 4.f, 1024u ) );
 					asm("{ .reg .u32 tmp;"
-						"   ld.shared.u32 tmp, [%0+128];"
-						"   st.shared.u32 [%0], tmp;"
-						"}" : : "r"(offset) : "memory" );
+						"   ld.volatile.shared.u32 tmp, [%0+128];"
+						"   st.volatile.shared.u32 [%0], tmp;"
+						"}" :: "r"(offset) : "memory" );
 					#else
-					queue[wid][tid] = queue[wid][tid+32];
+					queue[tid] = queue[tid+32];
 					#endif
 				}
 			}
 		}
 
-		if (tid < nb) core_ytang1( queue, dststart, wid, tid, spidext );
+		if (tid < nb) {
+			#ifdef CRAZY_SMEM
+			core_ytang1( dststart, wid, tid, spidext );
+			#else
+			core_ytang1( queue, dststart, wid, tid, spidext );
+			#endif
+		}
 		nb = 0;
 	}
 }
@@ -349,7 +398,11 @@ void forces_dpd_cuda_nohost(const float * const xyzuvw, float * const axayaz,  c
 			    const float invsqrtdt,
 			    const float seed, cudaStream_t stream)
 {
-    if (np == 0)
+//	#ifdef ONESTEP
+//	cudaDeviceSetLimit( cudaLimitPrintfFifoSize, 32 * 1024 * 1024 );
+//	#endif
+
+	if (np == 0)
     {
 	printf("WARNING: forces_dpd_cuda_nohost called with np = %d\n", np);
 	return;
