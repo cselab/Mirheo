@@ -265,25 +265,10 @@ void _dpd_forces_symm_merged() {
 			const float4 xsrc = tex1Dfetch(texParticlesH4, xmin( spid, lastdst ) );
 
 			for(uint dpid = dststart; dpid < lastdst; dpid = xadd(dpid, 1u) ) {
-				int interacting = 0;
-#if 0
-				if (pid<nsrc) { // TODO: try all-enter, predicate later by pid<nsrc
-					const float4 xdest = tex1Dfetch( texParticlesH4, dpid );
-					const float d2 = (xdest.x-xsrc.x)*(xdest.x-xsrc.x) + (xdest.y-xsrc.y)*(xdest.y-xsrc.y) + (xdest.z-xsrc.z)*(xdest.z-xsrc.z);
-					#ifdef LETS_MAKE_IT_MESSY
-					asm("{ .reg .pred        p;"
-						"  .reg .f32         i;"
-						"   setp.lt.ftz.f32  p, %3, 1.0;"
-						"   setp.ne.and.f32  p, %1, %2, p;"
-						"   selp.s32         %0, 1, 0, p;"
-						"}" : "+r"(interacting) : "f"(u2f(dpid)), "f"(u2f(spid)), "f"(d2), "f"(u2f(1u)), "f"(u2f(pid)) );
-					#else
-					interacting = ((dpid != spid) && (d2 < 1.0f));
-					#endif
-				}
-#else
 				const float4 xdest = tex1Dfetch( texParticlesH4, dpid );
 				const float d2 = (xdest.x-xsrc.x)*(xdest.x-xsrc.x) + (xdest.y-xsrc.y)*(xdest.y-xsrc.y) + (xdest.z-xsrc.z)*(xdest.z-xsrc.z);
+				#ifdef LETS_MAKE_IT_MESSY
+				int interacting = 0;
 				asm("{ .reg .pred        p;"
 					"  .reg .f32         i;"
 					"   setp.lt.ftz.f32  p, %3, 1.0;"
@@ -291,7 +276,9 @@ void _dpd_forces_symm_merged() {
 					"   setp.lt.and.f32  p, %2, %5, p;"
 					"   selp.s32         %0, 1, 0, p;"
 					"}" : "+r"(interacting) : "f"(u2f(dpid)), "f"(u2f(spid)), "f"(d2), "f"(u2f(1u)), "f"(u2f(lastdst)) );
-#endif
+				#else
+				const int interacting = (pid<nsrc) && ((dpid != spid) && (d2 < 1.0f));
+				#endif
 
 				uint overview = __ballot( interacting );
 				const uint insert = xadd( nb, i2u( __popc( overview & __lanemask_lt() ) ) );
