@@ -103,9 +103,9 @@ __device__ char4 tid2ind[14] = {{-1, -1, -1, 0}, {0, -1, -1, 0}, {1, -1, -1, 0},
 #define MYWPB	(4)
 
 #ifdef CRAZY_SMEM
-__forceinline__ __device__ void core_ytang1(const uint dststart, const uint pshare, const uint tid, const uint spidext ) {
+__forceinline__ __device__ void core_ytang(const uint dststart, const uint pshare, const uint tid, const uint spidext ) {
 #else
-__forceinline__ __device__ void core_ytang1(volatile uint const *queue, const uint dststart, const uint wid, const uint tid, const uint spidext ) {
+__forceinline__ __device__ void core_ytang(volatile uint const *queue, const uint dststart, const uint wid, const uint tid, const uint spidext ) {
 #endif
 
 #ifdef CRAZY_SMEM
@@ -161,13 +161,9 @@ __forceinline__ __device__ void core_ytang1(volatile uint const *queue, const ui
 __global__  __launch_bounds__(32*MYWPB, 16)
 void _dpd_forces_symm_merged() {
 
-#ifdef CRAZY_SMEM
 	asm volatile(".shared .u32 smem[512];" ::: "memory" );
-#else
-	__shared__ uint2 volatile start_n_scan[MYWPB*2][32];
-	volatile uint *queue = (volatile uint *)(start_n_scan[4+threadIdx.y]);
-	const uint wid = threadIdx.y;
-#endif
+	//* was: __shared__ uint2 volatile start_n_scan[MYWPB][32];
+	//* was: __shared__ uint  volatile queue[MYWPB][64];
 
 	const uint tid = threadIdx.x; // TODO: use 1D threadIdx to prevent S2R
 	const uint wid = threadIdx.y;
@@ -193,13 +189,13 @@ void _dpd_forces_symm_merged() {
 
 			const bool valid_cid = (cid >= 0) && (cid < info.ncells.x*info.ncells.y*info.ncells.z);
 
-			#ifdef CRAZY_SMEM
-			asm("st.volatile.shared.u32 [%0], %1;" :: "r"( xmad( tid, 8.f, pshare ) ), "r"( (valid_cid) ? tex1Dfetch(texStart, cid) : 0 ) : "memory" );
+			asm("st.volatile.shared.u32 [%0], %1;" ::
+				"r"( xmad( tid, 8.f, pshare ) ),
+				"r"( (valid_cid) ? tex1Dfetch(texStart, cid) : 0 ) :
+				"memory" );
 			if (valid_cid) myscan = mycount = tex1Dfetch(texCount, cid);
-			#else
-			start_n_scan[wid][tid].x = (valid_cid) ? tex1Dfetch(texStart, cid) : 0;
-			myscan = mycount = (valid_cid) ? tex1Dfetch(texCount, cid) : 0;
-			#endif
+			//* was: start_n_scan[wid][tid].x = (valid_cid) ? tex1Dfetch(texStart, cid) : 0;
+			//* was: myscan = mycount = (valid_cid) ? tex1Dfetch(texCount, cid) : 0;
 
 		}
 	   
@@ -209,30 +205,22 @@ void _dpd_forces_symm_merged() {
 		}
 
 		if (tid < 15) {
-			#ifdef CRAZY_SMEM
 			asm("st.volatile.shared.u32 [%0+4], %1;" :: "r"( xmad( tid, 8.f, pshare ) ), "r"( xsub( myscan, mycount ) ) : "memory" );
-			#else
-			start_n_scan[wid][tid].y = myscan - mycount;
-			#endif
+			//* was: start_n_scan[wid][tid].y = myscan - mycount;
 		}
 
-		#ifdef CRAZY_SMEM
 		uint x13, y13, y14;
 		asm("ld.volatile.shared.v2.u32 {%0,%1}, [%3+104];" // 104 = 13 x 8-byte uint2
 			"ld.volatile.shared.u32     %2,     [%3+116];" // 116 = 14 x 8-bute uint2 + .y
 			: "=r"(x13), "=r"(y13), "=r"(y14) : "r"(pshare) : "memory" );
 		const uint dststart = x13;
 		const uint lastdst  = xsub( xadd( dststart, y14 ), y13 );
-
 		const uint nsrc     = y14;
 		const uint spidext  = x13;
-#else
-		const uint dststart = start_n_scan[wid][13].x;
-		const uint lastdst  = xsub( xadd( dststart, start_n_scan[wid][14].y ), start_n_scan[wid][13].y );
-
-		const uint nsrc     = start_n_scan[wid][14].y;
-		const uint spidext  = start_n_scan[wid][13].x;
-#endif
+		//* was: const uint dststart = start_n_scan[wid][13].x;
+		//* was: const uint lastdst  = xsub( xadd( dststart, start_n_scan[wid][14].y ), start_n_scan[wid][13].y );
+		//* was: const uint nsrc     = start_n_scan[wid][14].y;
+		//* was: const uint spidext  = start_n_scan[wid][13].x;
 
 		uint nb = 0;
 		for(uint p = 0; p < nsrc; p = xadd( p, 32u ) ) { // TODO: bool type PTX return
@@ -278,6 +266,7 @@ void _dpd_forces_symm_merged() {
 
 			for(uint dpid = dststart; dpid < lastdst; dpid = xadd(dpid, 1u) ) {
 				int interacting = 0;
+#if 0
 				if (pid<nsrc) { // TODO: try all-enter, predicate later by pid<nsrc
 					const float4 xdest = tex1Dfetch( texParticlesH4, dpid );
 					const float d2 = (xdest.x-xsrc.x)*(xdest.x-xsrc.x) + (xdest.y-xsrc.y)*(xdest.y-xsrc.y) + (xdest.z-xsrc.z)*(xdest.z-xsrc.z);
@@ -292,45 +281,43 @@ void _dpd_forces_symm_merged() {
 					interacting = ((dpid != spid) && (d2 < 1.0f));
 					#endif
 				}
+#else
+				const float4 xdest = tex1Dfetch( texParticlesH4, dpid );
+				const float d2 = (xdest.x-xsrc.x)*(xdest.x-xsrc.x) + (xdest.y-xsrc.y)*(xdest.y-xsrc.y) + (xdest.z-xsrc.z)*(xdest.z-xsrc.z);
+				asm("{ .reg .pred        p;"
+					"  .reg .f32         i;"
+					"   setp.lt.ftz.f32  p, %3, 1.0;"
+					"   setp.ne.and.f32  p, %1, %2, p;"
+					"   setp.lt.and.f32  p, %2, %5, p;"
+					"   selp.s32         %0, 1, 0, p;"
+					"}" : "+r"(interacting) : "f"(u2f(dpid)), "f"(u2f(spid)), "f"(d2), "f"(u2f(1u)), "f"(u2f(lastdst)) );
+#endif
 
 				uint overview = __ballot( interacting );
 				const uint insert = xadd( nb, i2u( __popc( overview & __lanemask_lt() ) ) );
 				if (interacting) { // TODO: make it bool, nb extra+ 1 if interacting is true
-					#ifdef CRAZY_SMEM
-					uint item  = __pack_8_24( xsub(dpid,dststart), spid );
-					uint offset = xmad( insert, 4.f, pshare );
-					asm("st.volatile.shared.u32 [%0+1024], %1;" : : "r"(offset), "r"(item) : "memory" );
-					#else
-					queue[insert] = __pack_8_24( xsub(dpid,dststart), spid );
-					#endif
+					asm("st.volatile.shared.u32 [%0+1024], %1;" : :
+						"r"( xmad( insert, 4.f, pshare ) ),
+						"r"( __pack_8_24( xsub(dpid,dststart), spid ) ) :
+						"memory" );
+					//* was: queue[insert] = __pack_8_24( xsub(dpid,dststart), spid );
 				}
 				nb = xadd( nb, i2u( __popc( overview ) ) );
 				if ( nb >= 32u ) {
-					#ifdef CRAZY_SMEM
-					core_ytang1( dststart, pshare, tid, spidext );
-					#else
-					core_ytang1( queue, dststart, wid, tid, spidext );
-					#endif
+					core_ytang( dststart, pshare, tid, spidext );
 					nb = xsub( nb, 32u );
-					#ifdef CRAZY_SMEM
-					uint offset = xmad( tid, 4.f, pshare );
+
 					asm("{ .reg .u32 tmp;"
 						"   ld.volatile.shared.u32 tmp, [%0+1024+128];"
 						"   st.volatile.shared.u32 [%0+1024], tmp;"
-						"}" :: "r"(offset) : "memory" );
-					#else
-					queue[tid] = queue[tid+32];
-					#endif
+						"}" :: "r"( xmad( tid, 4.f, pshare ) ) : "memory" );
+					//* was: queue[tid] = queue[tid+32];
 				}
 			}
 		}
 
 		if (tid < nb) {
-			#ifdef CRAZY_SMEM
-			core_ytang1( dststart, pshare, tid, spidext );
-			#else
-			core_ytang1( queue, dststart, wid, tid, spidext );
-			#endif
+			core_ytang( dststart, pshare, tid, spidext );
 		}
 		nb = 0;
 	}
