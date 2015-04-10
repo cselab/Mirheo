@@ -180,7 +180,7 @@ void _dpd_forces_symm_merged() {
 			  offs.x;
 
 	//#pragma unroll 4 // faster on k20x, slower on k20
-	for(int it = 3; it >= 0; it--) {
+	for(int it = 3; it >= 0; it --) {
 
 		uint mycount=0, myscan=0;
 
