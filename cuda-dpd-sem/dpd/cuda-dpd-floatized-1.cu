@@ -119,10 +119,12 @@ __forceinline__ __device__ void core_ytang(volatile uint const *queue, const uin
 	const uint dpid = xadd( dststart, pid.x );
 	const uint spid = pid.y;
 
-	const float4 xdest = tex1Dfetch(texParticlesF4, xscale( dpid, 2.f     ) );
-	const float4 udest = tex1Dfetch(texParticlesF4,   xmad( dpid, 2.f, 1u ) );
-	const float4 xsrc  = tex1Dfetch(texParticlesF4, xscale( spid, 2.f     ) );
-	const float4 usrc  = tex1Dfetch(texParticlesF4,   xmad( spid, 2.f, 1u ) );
+	const uint dentry = xscale( dpid, 2.f );
+	const uint sentry = xscale( spid, 2.f );
+	const float4 xdest = tex1Dfetch(texParticlesF4,       dentry       );
+	const float4 xsrc  = tex1Dfetch(texParticlesF4,       sentry       );
+	const float4 udest = tex1Dfetch(texParticlesF4, xadd( dentry, 1u ) );
+	const float4 usrc  = tex1Dfetch(texParticlesF4, xadd( sentry, 1u ) );
 	const float3 f = _dpd_interaction(dpid, xdest, udest, xsrc, usrc, spid);
 
 	// the overhead of transposition acc back
@@ -165,7 +167,7 @@ void _dpd_forces_symm_merged() {
 	//* was: __shared__ uint2 volatile start_n_scan[MYWPB][32];
 	//* was: __shared__ uint  volatile queue[MYWPB][64];
 
-	const uint tid = threadIdx.x; // TODO: use 1D threadIdx to prevent S2R
+	const uint tid = threadIdx.x; // TODO: how to prevent S2R?
 	const uint wid = threadIdx.y;
 	const uint pshare = xscale( threadIdx.y, 256.f );
 
@@ -199,12 +201,27 @@ void _dpd_forces_symm_merged() {
 
 		}
 	   
-		#pragma unroll 
-		for(int L = 1; L < 32; L <<= 1) {
-			myscan = xadd( myscan, (tid >= L)*__shfl_up(myscan, L) ); // TODO
-		}
+		// was: #pragma unroll
+		// was: for(int L = 1; L < 32; L <<= 1) {
+		// was: 	myscan = xadd( myscan, (tid >= L)*__shfl_up(myscan, L) );
+		// was: }
+		asm("{ .reg .pred   p;"
+			"  .reg .f32    myscan, theirscan;"
+			"   mov.b32     myscan, %0;"
+			"   shfl.up.b32 theirscan|p, myscan, 0x1, 0x0;"
+			"@p add.f32     myscan, theirscan, myscan;"
+			"   shfl.up.b32 theirscan|p, myscan, 0x2, 0x0;"
+			"@p add.f32     myscan, theirscan, myscan;"
+			"   shfl.up.b32 theirscan|p, myscan, 0x4, 0x0;"
+			"@p add.f32     myscan, theirscan, myscan;"
+			"   shfl.up.b32 theirscan|p, myscan, 0x8, 0x0;"
+			"@p add.f32     myscan, theirscan, myscan;"
+			"   shfl.up.b32 theirscan|p, myscan, 0x10, 0x0;"
+			"@p add.f32     myscan, theirscan, myscan;"
+			"   mov.b32     %0, myscan;"
+			"}"	: "+r"(myscan) );
 
-		if (tid < 15) {
+		if (tid < 15) { // TODO: use PTX for compare
 			asm("st.volatile.shared.u32 [%0+4], %1;" :: "r"( xmad( tid, 8.f, pshare ) ), "r"( xsub( myscan, mycount ) ) : "memory" );
 			//* was: start_n_scan[wid][tid].y = myscan - mycount;
 		}
@@ -279,11 +296,13 @@ void _dpd_forces_symm_merged() {
 					"=r"(overview) : "f"(u2f(dpid)), "f"(u2f(spid)), "f"(d2), "f"(u2f(1u)), "f"(u2f(lastdst)) );
 
 				const uint insert = xadd( nb, i2u( __popc( overview & __lanemask_lt() ) ) );
+
 				asm("@interacting st.volatile.shared.u32 [%0+1024], %1;" : :
 					"r"( xmad( insert, 4.f, pshare ) ),
 					"r"( __pack_8_24( xsub(dpid,dststart), spid ) ) :
 					"memory" );
 				//* was: if (interacting) queue[wid][insert] = __pack_8_24( xsub(dpid,dststart), spid );
+
 				nb = xadd( nb, i2u( __popc( overview ) ) );
 				if ( nb >= 32u ) {
 					core_ytang( dststart, pshare, tid, spidext );
@@ -300,7 +319,7 @@ void _dpd_forces_symm_merged() {
 
 				uint overview = __ballot( interacting );
 				const uint insert = xadd( nb, i2u( __popc( overview & __lanemask_lt() ) ) );
-				if (interacting) { // TODO: make it bool, nb extra+ 1 if interacting is true
+				if (interacting) {
 					asm("st.volatile.shared.u32 [%0+1024], %1;" : :
 						"r"( xmad( insert, 4.f, pshare ) ),
 						"r"( __pack_8_24( xsub(dpid,dststart), spid ) ) :
