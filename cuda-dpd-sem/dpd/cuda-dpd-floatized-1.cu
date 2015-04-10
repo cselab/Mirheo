@@ -28,15 +28,9 @@ struct InfoDPD
 
 __constant__ InfoDPD info;
 
-#define MERGE_START_COUNT
-
 texture<float4, cudaTextureType1D> texParticlesF4;
 texture<ushort4, cudaTextureType1D, cudaReadModeNormalizedFloat> texParticlesH4;
-#ifdef MERGE_START_COUNT
 texture<uint2, cudaTextureType1D> texStartAndCount;
-#else
-texture<int, cudaTextureType1D> texStart, texCount;
-#endif
  
 #define TRANSPOSED_ATOMICS
 //#define ONESTEP
@@ -186,74 +180,50 @@ void _dpd_forces_symm_merged() {
 			  offs.x;
 
 	//#pragma unroll 4 // faster on k20x, slower on k20
-	for(int it = 3; it >= 0; it --) { // TODO: TINYFLOAT
+	for(int it = 3; it >= 0; it--) { // TODO: TINYFLOAT
 
-		uint mycount=0, myscan=0;
+		const int cid = cbase +
+				(it>1)*info.ncells.x*info.ncells.y +
+				((it&1)^((it>>1)&1))*info.ncells.x;
 
-#if 0//def LETS_MAKE_IT_MESSY
-			const int cid = cbase +
-					(it>1)*info.ncells.x*info.ncells.y +
-					((it&1)^((it>>1)&1))*info.ncells.x;
+		uint mystart = 0, mycount = 0, myscan;
+		asm("{  .reg .pred vc;"
+			"   .reg .u32  foo, bar;"
+			"   .reg .s64  texture;"
+			"    setp.lt.f32     vc, %2, %3;"
+			"    setp.ge.and.f32 vc, %5, 0.0, vc;"
+			"    setp.lt.and.s32 vc, %4, %6, vc;"
+			"    selp.s32 %0, 1, 0, vc;"
+			"@vc mov.u64 texture, texStartAndCount;"
+			"@vc tex.1d.v4.s32.s32 {%0, %1, foo, bar}, [texture, %4];"
+			"}" :
+			"=r"(mystart), "=r"(mycount)  :
+			"f"(u2f(tid)), "f"(u2f(14u)), "r"(cid), "f"(i2f(cid)),
+			"r"(info.ncells.x*info.ncells.y*info.ncells.z) );
 
-			asm("{       .reg .pred valid_cid;"
-				"        .reg .u32  start, ;"
-				"        .reg .s64  tstart;"
-				"           setp.lt.f32     valid_cid, %2, %3;"
-				"           setp.ge.and.f32 valid_cid, %5, 0.0, valid_cid;"
-				"           setp.lt.and.s32 valid_cid, %4, %6, valid_cid;"
-				"@valid_cid mov.u64 tstart, texStart;"
-				"@valid_cid tex.1d.v4.s32.s32 {"
-					mov.u64 	%rd6, texStart;
-					tex.1d.v4.s32.s32	{%r47, %r48, %r49, %r50}, [%rd6, {%r9}];
+		myscan  = mycount;
+		asm("st.volatile.shared.u32 [%0], %1;" ::
+			"r"( xmad( tid, 8.f, pshare ) ),
+			"r"( mystart ) :
+			"memory" );
+		//* was: uint mycount=0, myscan=0;
+		//* was: if (tid < 14) { // TODO: do tid<14 predicate later
+			//* was: const int cid = cbase +
+			//* was: 		(it>1)*info.ncells.x*info.ncells.y +
+			//* was: 		((it&1)^((it>>1)&1))*info.ncells.x;
 
-					:
-				"r"(myscan), "r"(mycount) : "f"(u2f(tid)), "f"(u2f(14u)), "r"(cid), "f"(i2f(cid)),
-				"r"(info.ncells.x*info.ncells.y*info.ncells.z),
-				"r"( xmad( tid, 8.f, pshare ) ),
-					);
-			//const bool valid_cid = (tid < 14) && (cid >= 0) && (cid < info.ncells.x*info.ncells.y*info.ncells.z);
+			//* was: const bool valid_cid = (cid >= 0) && (cid < info.ncells.x*info.ncells.y*info.ncells.z);
+			//* was: const uint2 sc = valid_cid ? tex1Dfetch( texStartAndCount, cid ) : make_uint2(0,0);
 
-			asm("st.volatile.shared.u32 [%0], %1;" ::
-
-				"r"( (valid_cid) ? tex1Dfetch(texStart, cid) : 0 ) :
-				"memory" );
-			if (valid_cid) myscan = mycount = tex1Dfetch(texCount, cid);
 			//* was: start_n_scan[wid][tid].x = (valid_cid) ? tex1Dfetch(texStart, cid) : 0;
 			//* was: myscan = mycount = (valid_cid) ? tex1Dfetch(texCount, cid) : 0;
-#else
-		if (tid < 14) { // TODO: do tid<14 predicate later
-			const int cid = cbase +
-					(it>1)*info.ncells.x*info.ncells.y +
-					((it&1)^((it>>1)&1))*info.ncells.x;
-
-			const bool valid_cid = (cid >= 0) && (cid < info.ncells.x*info.ncells.y*info.ncells.z);
-#ifdef MERGE_START_COUNT
-			const uint2 sc = valid_cid ? tex1Dfetch( texStartAndCount, cid ) : make_uint2(0,0);
-
-			asm("st.volatile.shared.u32 [%0], %1;" ::
-				"r"( xmad( tid, 8.f, pshare ) ),
-				"r"( sc.x ) :
-				"memory" );
-			myscan = mycount = sc.y;
-			//* was: start_n_scan[wid][tid].x = (valid_cid) ? tex1Dfetch(texStart, cid) : 0;
-			//* was: myscan = mycount = (valid_cid) ? tex1Dfetch(texCount, cid) : 0;
-#else
-
-			asm("st.volatile.shared.u32 [%0], %1;" ::
-				"r"( xmad( tid, 8.f, pshare ) ),
-				"r"( (valid_cid) ? tex1Dfetch(texStart, cid) : 0 ) :
-				"memory" );
-			if (valid_cid) myscan = mycount = tex1Dfetch(texCount, cid);
-			//* was: start_n_scan[wid][tid].x = (valid_cid) ? tex1Dfetch(texStart, cid) : 0;
-			//* was: myscan = mycount = (valid_cid) ? tex1Dfetch(texCount, cid) : 0;
-#endif
-		}
-#endif
+		//* was: }
 	   
 		// was: #pragma unroll
 		// was: for(int L = 1; L < 32; L <<= 1) {
 		// was: 	myscan = xadd( myscan, (tid >= L)*__shfl_up(myscan, L) );
 		// was: }
+
 		asm("{ .reg .pred   p;"
 			"  .reg .f32    myscan, theirscan;"
 			"   mov.b32     myscan, %0;"
@@ -480,22 +450,10 @@ void forces_dpd_cuda_nohost(const float * const xyzuvw, float * const axayaz,  c
 
     if (!fdpd_init)
     {
-#ifdef MERGE_START_COUNT
 	texStartAndCount.channelDesc = cudaCreateChannelDesc<uint2>();
 	texStartAndCount.filterMode  = cudaFilterModePoint;
 	texStartAndCount.mipmapFilterMode = cudaFilterModePoint;
 	texStartAndCount.normalized = 0;
-#else
-	texStart.channelDesc = cudaCreateChannelDesc<int>();
-	texStart.filterMode = cudaFilterModePoint;
-	texStart.mipmapFilterMode = cudaFilterModePoint;
-	texStart.normalized = 0;
-    
-	texCount.channelDesc = cudaCreateChannelDesc<int>();
-	texCount.filterMode = cudaFilterModePoint;
-	texCount.mipmapFilterMode = cudaFilterModePoint;
-	texCount.normalized = 0;
-#endif
 
 	texParticlesF4.channelDesc = cudaCreateChannelDesc<float4>();
 	texParticlesF4.filterMode = cudaFilterModePoint;
@@ -531,7 +489,6 @@ void forces_dpd_cuda_nohost(const float * const xyzuvw, float * const axayaz,  c
 			cudaMalloc( &xyzo_half, sizeof(ushort4)*np);
 			last_size = np;
 	}
-#ifdef MERGE_START_COUNT
 	static uint2 *start_and_count;
 	static int last_nc;
 	if (!start_and_count || last_nc < ncells) {
@@ -541,23 +498,15 @@ void forces_dpd_cuda_nohost(const float * const xyzuvw, float * const axayaz,  c
 		cudaMalloc( &start_and_count, sizeof(uint2)*ncells);
 		last_nc = ncells;
 	}
-#endif
 
 	make_texture<<<64,512,0,stream>>>( xyzouvwo, xyzo_half, xyzuvw, np );
 	CUDA_CHECK( cudaBindTexture( &textureoffset, &texParticlesF4, xyzouvwo,  &texParticlesF4.channelDesc, sizeof( float ) * 8 * np ) );
 	assert(textureoffset == 0);
 	CUDA_CHECK( cudaBindTexture( &textureoffset, &texParticlesH4, xyzo_half, &texParticlesH4.channelDesc, sizeof( ushort4 ) * np ) );
 	assert(textureoffset == 0);
-#ifdef MERGE_START_COUNT
 	make_texture2<<<64,512,0,stream>>>( start_and_count, cellsstart, cellscount, ncells );
     CUDA_CHECK(cudaBindTexture(&textureoffset, &texStartAndCount, start_and_count, &texStartAndCount.channelDesc, sizeof(uint2) * ncells));
     assert(textureoffset == 0);
-#else
-    CUDA_CHECK(cudaBindTexture(&textureoffset, &texStart, cellsstart, &texStart.channelDesc, sizeof(int) * ncells));
-    assert(textureoffset == 0);
-    CUDA_CHECK(cudaBindTexture(&textureoffset, &texCount, cellscount, &texCount.channelDesc, sizeof(int) * ncells));
-    assert(textureoffset == 0);
-#endif
       
     c.ncells = make_int3(nx, ny, nz);
     c.domainsize = make_float3(XL, YL, ZL);
