@@ -376,53 +376,88 @@ namespace KernelsRBC
     __constant__ Particle * packstates[26];
     __constant__ Acceleration * packresults[26];
 
-    template<int BLOCKSIZE>
-    __global__ void fsi_forces_all(const float seed,
-				   Acceleration * accsolvent, const int npsolvent, const int nremote)
+    template<int BLOCKSIZE> __global__  __launch_bounds__(32 * 4, 16)
+	void fsi_forces_all(const float seed, Acceleration * accsolvent, const int npsolvent, const int nremote)
     {
 	assert(blockDim.x == BLOCKSIZE);
 	assert(blockDim.x * gridDim.x >= nremote);
 
-	__shared__ float tmp[BLOCKSIZE * 6];
+	__shared__ float tmp[BLOCKSIZE * 3];
 
 	const int tid = threadIdx.x;
-	const int gidstart =  blockDim.x * blockIdx.x;
+	const int gidstart =  BLOCKSIZE * blockIdx.x;
 
-	const int nlocal = min(blockDim.x, nremote - gidstart);
+	const int nlocal = min(BLOCKSIZE, nremote - gidstart);
+
+	float3 xp, up;
+
+#ifndef NDEBUG
+	xp = make_float3(-313.313f, -313.313f, -313.313f); //che e' poi l'auto di paperino
+	up = make_float3(-313.313f, -313.313f, -313.313f);
+#endif
 
 	{
 	    const int n = nlocal * 6;
+	    const int h = nlocal * 3;
 
-	    for(int l = tid; l < n; l += blockDim.x)
+	    for(int base = 0; base < n; base += h)
 	    {
-		const int gid = gidstart + l / 6;
+#pragma unroll 3
+		for(int x = tid; x < h; x += BLOCKSIZE)
+		{
+		    const int l = base + x;
+		    const int gid = gidstart + l / 6;
 
-		const int key9 = 9 * ((gid >= packstarts[9]) + (gid >= packstarts[18]));
-		const int key3 = 3 * ((gid >= packstarts[key9 + 3]) + (gid >= packstarts[key9 + 6]));
-		const int key1 = (gid >= packstarts[key9 + key3 + 1]) + (gid >= packstarts[key9 + key3 + 2]);
+		    const int key9 = 9 * ((gid >= packstarts[9]) + (gid >= packstarts[18]));
+		    const int key3 = 3 * ((gid >= packstarts[key9 + 3]) + (gid >= packstarts[key9 + 6]));
+		    const int key1 = (gid >= packstarts[key9 + key3 + 1]) + (gid >= packstarts[key9 + key3 + 2]);
 
-		const int code = key9 + key3 + key1;
-		const int lpid = gid - packstarts[code];
+		    const int code = key9 + key3 + key1;
+		    const int lpid = gid - packstarts[code];
 
-		tmp[l] = *((l % 6) + (float *)&packstates[code][lpid]);
+		    assert(x < BLOCKSIZE * 3);
+		    tmp[x] = *((l % 6) + (float *)&packstates[code][lpid]);
+		}
+
+		__syncthreads();
+
+		const int xstart = tid * 6 - base;
+
+		if (0 <= xstart && xstart + 3 <= h)
+		{
+		    xp.x = tmp[0 + xstart];
+		    xp.y = tmp[1 + xstart];
+		    xp.z = tmp[2 + xstart];
+
+		    assert(0 + 6 * tid - base >= 0);
+		    assert(2 + 6 * tid - base < 3 * BLOCKSIZE);
+		}
+
+		const int ustart = 3 + 6 * tid - base;
+
+		if (0 <= ustart && ustart + 3 <= h)
+		{
+		    up.x = tmp[0 + ustart];
+		    up.y = tmp[1 + ustart];
+		    up.z = tmp[2 + ustart];
+
+		    assert(3 + 6 * tid - base >= 0);
+		    assert(5 + 6 * tid - base < 3 * BLOCKSIZE);
+		}
 	    }
 	}
 
-	__syncthreads();
+#ifndef NDEBUG
+	assert(xp.x != -313.313f || gidstart + tid >= nremote);
+	assert(xp.y != -313.313f || gidstart + tid >= nremote);
+	assert(xp.z != -313.313f || gidstart + tid >= nremote);
+	assert(up.x != -313.313f || gidstart + tid >= nremote);
+	assert(up.y != -313.313f || gidstart + tid >= nremote);
+	assert(up.z != -313.313f || gidstart + tid >= nremote);
+#endif
 
-	float3 xp, up;
-	if (tid + gidstart < nremote)
-	{
-	    xp.x = tmp[0 + 6 * tid];
-	    xp.y = tmp[1 + 6 * tid];
-	    xp.z = tmp[2 + 6 * tid];
-	    up.x = tmp[3 + 6 * tid];
-	    up.y = tmp[4 + 6 * tid];
-	    up.z = tmp[5 + 6 * tid];
-
-	    for(int c = 0; c < 6; ++c)
-		assert(!isnan(tmp[c + 6 * tid]));
-	}
+	assert(!isnan(xp.x) && !isnan(xp.y) && !isnan(xp.z));
+	assert(!isnan(up.x) && !isnan(up.y) && !isnan(up.z));
 
 	__syncthreads();
 
@@ -492,7 +527,8 @@ namespace KernelsRBC
 	{
 	    const int n = nlocal * 3;
 
-	    for(int l = tid; l < n; l += blockDim.x)
+#pragma unroll 3
+	    for(int l = tid; l < n; l += BLOCKSIZE)
 	    {
 		const int gid = gidstart + l / 3;
 
