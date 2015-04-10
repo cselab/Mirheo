@@ -287,7 +287,7 @@ void _dpd_forces_symm_merged() {
 						"   setp.lt.ftz.f32  p, %3, 1.0;"
 						"   setp.ne.and.f32  p, %1, %2, p;"
 						"   selp.s32         %0, 1, 0, p;"
-						"}" : "+r"(interacting) : "f"(u2f(dpid)), "f"(u2f(spid)), "f"(d2), "f"(u2f(1u)), "f"(u2f(pid)), "f"(u2f(nsrc)) );
+						"}" : "+r"(interacting) : "f"(u2f(dpid)), "f"(u2f(spid)), "f"(d2), "f"(u2f(1u)), "f"(u2f(pid)) );
 					#else
 					interacting = ((dpid != spid) && (d2 < 1.0f));
 					#endif
