@@ -267,18 +267,36 @@ void _dpd_forces_symm_merged() {
 			for(uint dpid = dststart; dpid < lastdst; dpid = xadd(dpid, 1u) ) {
 				const float4 xdest = tex1Dfetch( texParticlesH4, dpid );
 				const float d2 = (xdest.x-xsrc.x)*(xdest.x-xsrc.x) + (xdest.y-xsrc.y)*(xdest.y-xsrc.y) + (xdest.z-xsrc.z)*(xdest.z-xsrc.z);
+
 				#ifdef LETS_MAKE_IT_MESSY
-				int interacting = 0;
-				asm("{ .reg .pred        p;"
-					"  .reg .f32         i;"
-					"   setp.lt.ftz.f32  p, %3, 1.0;"
-					"   setp.ne.and.f32  p, %1, %2, p;"
-					"   setp.lt.and.f32  p, %2, %5, p;"
-					"   selp.s32         %0, 1, 0, p;"
-					"}" : "+r"(interacting) : "f"(u2f(dpid)), "f"(u2f(spid)), "f"(d2), "f"(u2f(1u)), "f"(u2f(lastdst)) );
+				//int interacting = 0;
+				asm volatile(".reg .pred interacting;");
+				uint overview;
+				asm("   setp.lt.ftz.f32  interacting, %3, 1.0;"
+					"   setp.ne.and.f32  interacting, %1, %2, interacting;"
+					"   setp.lt.and.f32  interacting, %2, %5, interacting;"
+					"   vote.ballot.b32  %0, interacting;" :
+					"=r"(overview) : "f"(u2f(dpid)), "f"(u2f(spid)), "f"(d2), "f"(u2f(1u)), "f"(u2f(lastdst)) );
+
+				const uint insert = xadd( nb, i2u( __popc( overview & __lanemask_lt() ) ) );
+				asm("@interacting st.volatile.shared.u32 [%0+1024], %1;" : :
+					"r"( xmad( insert, 4.f, pshare ) ),
+					"r"( __pack_8_24( xsub(dpid,dststart), spid ) ) :
+					"memory" );
+				//* was: if (interacting) queue[wid][insert] = __pack_8_24( xsub(dpid,dststart), spid );
+				nb = xadd( nb, i2u( __popc( overview ) ) );
+				if ( nb >= 32u ) {
+					core_ytang( dststart, pshare, tid, spidext );
+					nb = xsub( nb, 32u );
+
+					asm("{ .reg .u32 tmp;"
+						"   ld.volatile.shared.u32 tmp, [%0+1024+128];"
+						"   st.volatile.shared.u32 [%0+1024], tmp;"
+						"}" :: "r"( xmad( tid, 4.f, pshare ) ) : "memory" );
+					//* was: queue[tid] = queue[tid+32];
+				}
 				#else
 				const int interacting = (pid<nsrc) && ((dpid != spid) && (d2 < 1.0f));
-				#endif
 
 				uint overview = __ballot( interacting );
 				const uint insert = xadd( nb, i2u( __popc( overview & __lanemask_lt() ) ) );
@@ -300,6 +318,8 @@ void _dpd_forces_symm_merged() {
 						"}" :: "r"( xmad( tid, 4.f, pshare ) ) : "memory" );
 					//* was: queue[tid] = queue[tid+32];
 				}
+				#endif
+
 			}
 		}
 
