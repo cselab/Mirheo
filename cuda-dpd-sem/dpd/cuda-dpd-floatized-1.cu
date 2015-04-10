@@ -33,7 +33,7 @@ texture<ushort4, cudaTextureType1D, cudaReadModeNormalizedFloat> texParticlesH4;
 texture<int, cudaTextureType1D> texStart, texCount;
  
 #define TRANSPOSED_ATOMICS
-#define ONESTEP
+//#define ONESTEP
 #define LETS_MAKE_IT_MESSY
 #define CRAZY_SMEM
 
@@ -103,20 +103,20 @@ __device__ char4 tid2ind[14] = {{-1, -1, -1, 0}, {0, -1, -1, 0}, {1, -1, -1, 0},
 #define MYWPB	(4)
 
 #ifdef CRAZY_SMEM
-__forceinline__ __device__ void core_ytang1(const uint dststart, const uint wid, const uint tid, const uint spidext ) {
+__forceinline__ __device__ void core_ytang1(const uint dststart, const uint pshare, const uint tid, const uint spidext ) {
 #else
 __forceinline__ __device__ void core_ytang1(volatile uint const *queue, const uint dststart, const uint wid, const uint tid, const uint spidext ) {
 #endif
 
 #ifdef CRAZY_SMEM
 	uint item;
-	const uint offset = xmad( wid, 256.f, xmad( tid, 4.f, 1024u ) );
-	asm("ld.volatile.shared.u32 %0, [%1];" : "=r"(item) : "r"(offset) : "memory" );
+	const uint offset = xmad( tid, 4.f, pshare );
+	asm("ld.volatile.shared.u32 %0, [%1+1024];" : "=r"(item) : "r"(offset) : "memory" );
 	const uint2 pid = __unpack_8_24( item );
 #else
 	const uint2 pid = __unpack_8_24( queue[tid] );
 #endif
-	const uint dpid = dststart + pid.x;
+	const uint dpid = xadd( dststart, pid.x );
 	const uint spid = pid.y;
 
 	const float4 xdest = tex1Dfetch(texParticlesF4, xscale( dpid, 2.f     ) );
@@ -135,7 +135,7 @@ __forceinline__ __device__ void core_ytang1(volatile uint const *queue, const ui
 	atomicAdd(acc+32, f.y);
 	atomicAdd(acc+64, f.z);
 
-	if (spid < spidext) {
+	if (spid < spidext) { // TODO: PTX bool
 		uint base = spid & 0xFFFFFFE0U;
 		uint off  = xsub( spid, base );
 		float* acc = info.axayaz + xmad( base, 3.f, off );
@@ -163,14 +163,15 @@ void _dpd_forces_symm_merged() {
 
 #ifdef CRAZY_SMEM
 	asm volatile(".shared .u32 smem[512];" ::: "memory" );
-//	__shared__ uint2 volatile start_n_scan[MYWPB*2][32];
 #else
 	__shared__ uint2 volatile start_n_scan[MYWPB*2][32];
 	volatile uint *queue = (volatile uint *)(start_n_scan[4+threadIdx.y]);
+	const uint wid = threadIdx.y;
 #endif
 
-	const uint tid = threadIdx.x;
+	const uint tid = threadIdx.x; // TODO: use 1D threadIdx to prevent S2R
 	const uint wid = threadIdx.y;
+	const uint pshare = xscale( threadIdx.y, 256.f );
 
 	const char4 offs = __ldg(tid2ind+tid);
 	const int cbase = blockIdx.z*MYCPBZ*info.ncells.x*info.ncells.y +
@@ -193,20 +194,23 @@ void _dpd_forces_symm_merged() {
 			const bool valid_cid = (cid >= 0) && (cid < info.ncells.x*info.ncells.y*info.ncells.z);
 
 			#ifdef CRAZY_SMEM
-			asm("st.volatile.shared.u32 [%0], %1;" :: "r"(xmad(wid,256.f,xscale(tid,8.f))), "r"((valid_cid) ? tex1Dfetch(texStart, cid) : 0) : "memory" );
+			asm("st.volatile.shared.u32 [%0], %1;" :: "r"( xmad( tid, 8.f, pshare ) ), "r"( (valid_cid) ? tex1Dfetch(texStart, cid) : 0 ) : "memory" );
+			if (valid_cid) myscan = mycount = tex1Dfetch(texCount, cid);
 			#else
 			start_n_scan[wid][tid].x = (valid_cid) ? tex1Dfetch(texStart, cid) : 0;
-			#endif
 			myscan = mycount = (valid_cid) ? tex1Dfetch(texCount, cid) : 0;
+			#endif
+
 		}
 	   
 		#pragma unroll 
-		for(int L = 1; L < 32; L <<= 1)
-			myscan += (tid >= L)*__shfl_up(myscan, L);
+		for(int L = 1; L < 32; L <<= 1) {
+			myscan = xadd( myscan, (tid >= L)*__shfl_up(myscan, L) ); // TODO
+		}
 
 		if (tid < 15) {
 			#ifdef CRAZY_SMEM
-			asm("st.volatile.shared.u32 [%0+4], %1;" :: "r"(xmad(wid,256.f,xscale(tid,8.f))), "r"(xsub(myscan,mycount)) : "memory" );
+			asm("st.volatile.shared.u32 [%0+4], %1;" :: "r"( xmad( tid, 8.f, pshare ) ), "r"( xsub( myscan, mycount ) ) : "memory" );
 			#else
 			start_n_scan[wid][tid].y = myscan - mycount;
 			#endif
@@ -214,9 +218,9 @@ void _dpd_forces_symm_merged() {
 
 		#ifdef CRAZY_SMEM
 		uint x13, y13, y14;
-		asm("ld.volatile.shared.v2.u32 {%0,%1}, [%3   ];"
-			"ld.volatile.shared.u32     %2,     [%3+12];"
-			: "=r"(x13), "=r"(y13), "=r"(y14) : "r"( xmad(wid,256.f,13u*8u) ) : "memory" );
+		asm("ld.volatile.shared.v2.u32 {%0,%1}, [%3+104];" // 104 = 13 x 8-byte uint2
+			"ld.volatile.shared.u32     %2,     [%3+116];" // 116 = 14 x 8-bute uint2 + .y
+			: "=r"(x13), "=r"(y13), "=r"(y14) : "r"(pshare) : "memory" );
 		const uint dststart = x13;
 		const uint lastdst  = xsub( xadd( dststart, y14 ), y13 );
 
@@ -230,10 +234,8 @@ void _dpd_forces_symm_merged() {
 		const uint spidext  = start_n_scan[wid][13].x;
 #endif
 
-
-		// TODO
 		uint nb = 0;
-		for(uint p = 0; p < nsrc; p = xadd( p, 32u ) ) {
+		for(uint p = 0; p < nsrc; p = xadd( p, 32u ) ) { // TODO: bool type PTX return
 			const uint pid = p + tid;
 			#ifdef LETS_MAKE_IT_MESSY
 			uint spid;
@@ -243,9 +245,7 @@ void _dpd_forces_symm_merged() {
 				 "  .reg .f32  mystart, myscan;"
 				 "  .reg .s32  array;"
 				 "  .reg .f32  array_f;"
-				 "   mov.b32           array_f, %4;"
-				 "   mul.f32           array_f, array_f, 256.0;"
-				 "   mov.b32           array, array_f;"
+				 "   mov.b32           array, %4;"
 				 "   ld.shared.f32     scan9,  [array +  9*8 + 4];"
 				 "   setp.ge.f32       p, %1, scan9;"
 				 "   selp.f32          key, %2, 0.0, p;"
@@ -260,15 +260,13 @@ void _dpd_forces_symm_merged() {
 				 "@p ld.shared.f32     scan6, [array + 6*8 + 4];"
 				 "   setp.ge.and.f32   q, %1, scan6, p;"
 				 "@q add.f32           key, key, %3;"
-				 "   mov.b32           array_f, %4;"
-				 "   mul.f32           array_f, array_f, 256.0;"
-				 "   fma.f32.rm        array_f, key, 8.0, array_f;"
+				 "   fma.f32.rm        array_f, key, 8.0, %4;"
 				 "   mov.b32           array, array_f;"
 				 "   ld.shared.v2.f32 {mystart, myscan}, [array];"
 				 "   add.f32           mystart, mystart, %1;"
 				 "   sub.f32           mystart, mystart, myscan;"
 				 "   mov.b32           %0, mystart;"
-				 "}" : "=r"(spid) : "f"(u2f(pid)), "f"(u2f(9u)), "f"(u2f(3u)), "f"(u2f(wid)), "f"(u2f(pid)), "f"(u2f(nsrc)) );
+				 "}" : "=r"(spid) : "f"(u2f(pid)), "f"(u2f(9u)), "f"(u2f(3u)), "f"(u2f(pshare)), "f"(u2f(pid)), "f"(u2f(nsrc)) );
 			#else
 			const uint key9 = 9*(pid >= start_n_scan[wid][9].y);
 			uint key3 = 3*(pid >= start_n_scan[wid][key9 + 3].y);
@@ -276,12 +274,11 @@ void _dpd_forces_symm_merged() {
 			const uint spid = pid - start_n_scan[wid][key3+key9].y + start_n_scan[wid][key3+key9].x;
 			#endif
 
-			float4 xsrc;
-			if (pid<nsrc) xsrc = tex1Dfetch(texParticlesH4, spid );
+			const float4 xsrc = tex1Dfetch(texParticlesH4, xmin( spid, lastdst ) );
 
 			for(uint dpid = dststart; dpid < lastdst; dpid = xadd(dpid, 1u) ) {
 				int interacting = 0;
-				if (pid<nsrc) {
+				if (pid<nsrc) { // TODO: try all-enter, predicate later by pid<nsrc
 					const float4 xdest = tex1Dfetch( texParticlesH4, dpid );
 					const float d2 = (xdest.x-xsrc.x)*(xdest.x-xsrc.x) + (xdest.y-xsrc.y)*(xdest.y-xsrc.y) + (xdest.z-xsrc.z)*(xdest.z-xsrc.z);
 					#ifdef LETS_MAKE_IT_MESSY
@@ -290,7 +287,7 @@ void _dpd_forces_symm_merged() {
 						"   setp.lt.ftz.f32  p, %3, 1.0;"
 						"   setp.ne.and.f32  p, %1, %2, p;"
 						"   selp.s32         %0, 1, 0, p;"
-						"}" : "+r"(interacting) : "f"(u2f(dpid)), "f"(u2f(spid)), "f"(d2), "f"(u2f(1u)) );
+						"}" : "+r"(interacting) : "f"(u2f(dpid)), "f"(u2f(spid)), "f"(d2), "f"(u2f(1u)), "f"(u2f(pid)), "f"(u2f(nsrc)) );
 					#else
 					interacting = ((dpid != spid) && (d2 < 1.0f));
 					#endif
@@ -298,11 +295,11 @@ void _dpd_forces_symm_merged() {
 
 				uint overview = __ballot( interacting );
 				const uint insert = xadd( nb, i2u( __popc( overview & __lanemask_lt() ) ) );
-				if (interacting) {
+				if (interacting) { // TODO: make it bool, nb extra+ 1 if interacting is true
 					#ifdef CRAZY_SMEM
 					uint item  = __pack_8_24( xsub(dpid,dststart), spid );
-					uint offset = xmad( wid, 256.f, xmad( insert, 4.f, 1024u ) );
-					asm("st.volatile.shared.u32 [%0], %1;" : : "r"(offset), "r"(item) : "memory" );
+					uint offset = xmad( insert, 4.f, pshare );
+					asm("st.volatile.shared.u32 [%0+1024], %1;" : : "r"(offset), "r"(item) : "memory" );
 					#else
 					queue[insert] = __pack_8_24( xsub(dpid,dststart), spid );
 					#endif
@@ -310,16 +307,16 @@ void _dpd_forces_symm_merged() {
 				nb = xadd( nb, i2u( __popc( overview ) ) );
 				if ( nb >= 32u ) {
 					#ifdef CRAZY_SMEM
-					core_ytang1( dststart, wid, tid, spidext );
+					core_ytang1( dststart, pshare, tid, spidext );
 					#else
 					core_ytang1( queue, dststart, wid, tid, spidext );
 					#endif
 					nb = xsub( nb, 32u );
 					#ifdef CRAZY_SMEM
-					uint offset = xmad( wid, 256.f, xmad( tid, 4.f, 1024u ) );
+					uint offset = xmad( tid, 4.f, pshare );
 					asm("{ .reg .u32 tmp;"
-						"   ld.volatile.shared.u32 tmp, [%0+128];"
-						"   st.volatile.shared.u32 [%0], tmp;"
+						"   ld.volatile.shared.u32 tmp, [%0+1024+128];"
+						"   st.volatile.shared.u32 [%0+1024], tmp;"
 						"}" :: "r"(offset) : "memory" );
 					#else
 					queue[tid] = queue[tid+32];
@@ -330,7 +327,7 @@ void _dpd_forces_symm_merged() {
 
 		if (tid < nb) {
 			#ifdef CRAZY_SMEM
-			core_ytang1( dststart, wid, tid, spidext );
+			core_ytang1( dststart, pshare, tid, spidext );
 			#else
 			core_ytang1( queue, dststart, wid, tid, spidext );
 			#endif
