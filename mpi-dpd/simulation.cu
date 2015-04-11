@@ -566,12 +566,12 @@ void Simulation::run()
 	const bool verbose = it > 0 && rank == 0;
 	
 #ifdef _USE_NVTX_
-	if (it == 7001)
+	if (it == 1001)
 	{
 	    NvtxTracer::currently_profiling = true;
 	    CUDA_CHECK(cudaProfilerStart());
 	}
-	else if (it == 7051)
+	else if (it == 1051)
 	{
 	    CUDA_CHECK(cudaProfilerStop());
 	    NvtxTracer::currently_profiling = false;
@@ -635,7 +635,7 @@ void Simulation::run()
     
     if (rank == 0)
 	if (it == nsteps)
-	    printf("simulation is done after %.3e s (%dm%ds). Ciao.\n", 
+	    printf("simulation is done after %.2lf s (%dm%ds). Ciao.\n",
 		   telapsed, (int)(telapsed / 60), (int)(telapsed) % 60);
 	else
 	    if (it != wall_creation_stepid)
