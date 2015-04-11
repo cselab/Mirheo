@@ -335,7 +335,8 @@ void Simulation::_forces()
 	ctc_interactions.pack_p(ctcscoll->data(), mainstream);
 
     dpd.consolidate_and_post(particles.xyzuvw.data, particles.size, mainstream);
-
+    dpd.local_interactions(particles.xyzuvw.data, particles.size, particles.axayaz.data, cells.start, cells.count, mainstream);
+    
     if (rbcscoll) 
 	rbc_interactions.fsi_bulk(particles.xyzuvw.data, particles.size, particles.axayaz.data, cells.start, cells.count,
 				  rbcscoll->data(), rbcscoll->count(), rbcscoll->acc(), mainstream);
@@ -378,7 +379,7 @@ void Simulation::_forces()
 	ctc_interactions.fsi_halo(particles.xyzuvw.data, particles.size, particles.axayaz.data, cells.start, cells.count, 
 				  ctcscoll->data(), ctcscoll->count(), ctcscoll->acc(), mainstream);
 
-    dpd.local_interactions(particles.xyzuvw.data, particles.size, particles.axayaz.data, cells.start, cells.count, mainstream);
+    
 	
     if (wall)
 	wall->interactions(particles.xyzuvw.data, particles.size, particles.axayaz.data, 

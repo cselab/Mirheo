@@ -32,8 +32,6 @@ protected:
 
     std::vector< int > haloreplica[26];
 
-
-
     //PinnedHostBuffer<CudaRBC::Extent> extents;
     PinnedHostBuffer<float3> minextents, maxextents;
 
@@ -74,11 +72,6 @@ protected:
 public:
 
     ComputeInteractionsRBC(MPI_Comm cartcomm);
-    /*
-    void evaluate(const Particle * const solvent, const int nparticles, Acceleration * accsolvent,
-		  const int * const cellsstart_solvent, const int * const cellscount_solvent,
-		  const Particle * const rbcs, const int nrbcs, Acceleration * accrbc, cudaStream_t stream);
-    */
 
     void extent(const Particle * const rbcs, const int nrbcs, cudaStream_t stream);
     void count(const int nrbcs);
