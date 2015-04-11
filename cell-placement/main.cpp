@@ -285,7 +285,7 @@ int main(int argc, const char ** argv)
 
 	    for(int i = 0; i < 2; ++i)
 		for(int j = 0; j < results[i].size() && noncolliding; ++j)
-		    noncolliding &= !t.collides(results[i][j], 0.00);
+		    noncolliding &= !t.collides(results[i][j], 0.01);
 	    
 	    if (noncolliding)
 	    {
