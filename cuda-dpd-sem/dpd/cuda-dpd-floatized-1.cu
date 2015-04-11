@@ -88,15 +88,26 @@ __inline__ __device__ uint __pack_8_24(uint a, uint b) {
 
 __inline__ __device__ uint2 __unpack_8_24(uint d) {
 	uint a;
-	asm("bfe.u32  %0, %1, 24, 8;" : "=r"(a) : "r"(d) ); // TODO: can I destructively extract?
+	asm("bfe.u32  %0, %1, 24, 8;" : "=r"(a) : "r"(d) );
 	return make_uint2( a, d&0x00FFFFFFU );
 }
 
-__device__ char4 tid2ind[14] = {{-1, -1, -1, 0}, {0, -1, -1, 0}, {1, -1, -1, 0},
-				{-1,  0, -1, 0}, {0,  0, -1, 0}, {1,  0, -1, 0},
-				{-1,  1, -1, 0}, {0,  1, -1, 0}, {1,  1, -1, 0},
-				{-1, -1,  0, 0}, {0, -1,  0, 0}, {1, -1,  0, 0},
-				{-1,  0,  0, 0}, {0,  0,  0, 0}};
+//__device__ char4 tid2ind[14] = {{-1, -1, -1, 0}, {0, -1, -1, 0}, {1, -1, -1, 0},
+//				{-1,  0, -1, 0}, {0,  0, -1, 0}, {1,  0, -1, 0},
+//				{-1,  1, -1, 0}, {0,  1, -1, 0}, {1,  1, -1, 0},
+//				{-1, -1,  0, 0}, {0, -1,  0, 0}, {1, -1,  0, 0},
+//				{-1,  0,  0, 0}, {0,  0,  0, 0}};
+__device__ char4 tid2ind[32] = {{-1, -1, -1, 0}, {0, -1, -1, 0}, {1, -1, -1, 0},
+                                {-1,  0, -1, 0}, {0,  0, -1, 0}, {1,  0, -1, 0},
+                                {-1 , 1, -1, 0}, {0,  1, -1, 0}, {1,  1, -1, 0},
+                                {-1, -1,  0, 0}, {0, -1,  0, 0}, {1, -1,  0, 0},
+                                {-1,  0,  0, 0}, {0,  0,  0, 0}, {1,  0,  0, 0},
+                                {-1,  1,  0, 0}, {0,  1,  0, 0}, {1,  1,  0, 0},
+                                {-1, -1,  1, 0}, {0, -1,  1, 0}, {1, -1,  1, 0},
+                                {-1,  0,  1, 0}, {0,  0,  1, 0}, {1,  0,  1, 0},
+                                {-1,  1,  1, 0}, {0,  1,  1, 0}, {1,  1,  1, 0},
+                                { 0,  0,  0, 0}, {0,  0,  0, 0}, {0,  0,  0, 0},
+                                { 0,  0,  0, 0}, {0,  0,  0, 0}};
 #define MYCPBX	(4)
 #define MYCPBY	(2)
 #define MYCPBZ	(2)
@@ -137,7 +148,7 @@ __forceinline__ __device__ void core_ytang(volatile uint const *queue, const uin
 	atomicAdd(acc+32, f.y);
 	atomicAdd(acc+64, f.z);
 
-	if (spid < spidext) { // TODO: PTX bool
+	if (spid < spidext) {
 		uint base = spid & 0xFFFFFFE0U;
 		uint off  = xsub( spid, base );
 		float* acc = info.axayaz + xmad( base, 3.f, off );
