@@ -246,6 +246,10 @@ void _dpd_forces_symm_merged() {
 			"@lt15 st.volatile.shared.u32 [%2+4], %3;"
 			"}":: "f"(u2f(tid)), "f"(u2f(15u)), "r"( xmad( tid, 8.f, pshare ) ), "r"( xsub( myscan, mycount ) ) : "memory" );
 
+		//* was: const uint dststart = start_n_scan[wid][13].x;
+		//* was: const uint lastdst  = xsub( xadd( dststart, start_n_scan[wid][14].y ), start_n_scan[wid][13].y );
+		//* was: const uint nsrc     = start_n_scan[wid][14].y;
+		//* was: const uint spidext  = start_n_scan[wid][13].x;
 		uint x13, y13, y14; // TODO: LDS.128
 		asm("ld.volatile.shared.v2.u32 {%0,%1}, [%3+104];" // 104 = 13 x 8-byte uint2
 			"ld.volatile.shared.u32     %2,     [%3+116];" // 116 = 14 x 8-bute uint2 + .y
@@ -254,10 +258,6 @@ void _dpd_forces_symm_merged() {
 		const uint lastdst  = xsub( xadd( dststart, y14 ), y13 );
 		const uint nsrc     = y14;
 		const uint spidext  = x13;
-		//* was: const uint dststart = start_n_scan[wid][13].x;
-		//* was: const uint lastdst  = xsub( xadd( dststart, start_n_scan[wid][14].y ), start_n_scan[wid][13].y );
-		//* was: const uint nsrc     = start_n_scan[wid][14].y;
-		//* was: const uint spidext  = start_n_scan[wid][13].x;
 
 		uint nb = 0;
 		for(uint p = 0; p < nsrc; p = xadd( p, 32u ) ) { // TODO: bool type PTX return
