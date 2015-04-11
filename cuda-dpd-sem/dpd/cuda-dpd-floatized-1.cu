@@ -376,19 +376,42 @@ bool fdpd_init = false;
 static cudaEvent_t evstart, evstop;
 #endif
 
-__global__ void make_texture( float4 *xyzouvwo, ushort4 *xyzo_half, const float *xyzuvw, const int n ) {
-	for(int i=blockIdx.x*blockDim.x+threadIdx.x;i<n;i+=blockDim.x*gridDim.x) {
-		float x = xyzuvw[i*6+0];
-		float y = xyzuvw[i*6+1];
-		float z = xyzuvw[i*6+2];
-		float u = xyzuvw[i*6+3];
-		float v = xyzuvw[i*6+4];
-		float w = xyzuvw[i*6+5];
-		xyzouvwo[i*2+0] = make_float4( x, y, z, 0.f );
-		xyzouvwo[i*2+1] = make_float4( u, v, w, 0.f );
-		xyzo_half[i] = make_ushort4( __float2half_rn(x), __float2half_rn(y), __float2half_rn(z), 0 );
+#if 1
+__global__ void make_texture( float *xyzouvwo, ushort4 *xyzo_half, const float *xyzuvw, const uint n ) {
+	extern __shared__ volatile float smem[];
+	const uint warpid = threadIdx.x / 32;
+	const uint lane = threadIdx.x % 32;
+	for(uint i = blockIdx.x*blockDim.x+threadIdx.x ; i < n ; i += blockDim.x*gridDim.x ) {
+		const uint base = i - i % 32;
+		#pragma unroll
+		for(uint j = lane; j < 192; j += 32) {
+			smem[ warpid * 192 + j ] = xyzuvw[ base * 6 + j ];
+			xyzouvwo[ base * 8 + (j / 3) * 4 + j % 3 ] = xyzuvw[ base * 6 + j];
+		}
+		xyzo_half[i] = make_ushort4( __float2half_rn( smem[ warpid*192 + lane*6 + 0 ] ),
+									 __float2half_rn( smem[ warpid*192 + lane*6 + 1 ] ),
+									 __float2half_rn( smem[ warpid*192 + lane*6 + 2 ] ), 0 );
 	}
 }
+#else
+__global__ void make_texture( float *xyzouvwo, ushort4 *xyzo_half, const float *xyzuvw, const int n ) {
+        for(int i=blockIdx.x*blockDim.x+threadIdx.x;i<n;i+=blockDim.x*gridDim.x) {
+                float x = xyzuvw[i*6+0];
+                float y = xyzuvw[i*6+1];
+                float z = xyzuvw[i*6+2];
+                float u = xyzuvw[i*6+3];
+                float v = xyzuvw[i*6+4];
+                float w = xyzuvw[i*6+5];
+                xyzouvwo[i*8+0] = x;
+                xyzouvwo[i*8+1] = y;
+                xyzouvwo[i*8+2] = z;
+                xyzouvwo[i*8+4] = u;
+                xyzouvwo[i*8+5] = v;
+                xyzouvwo[i*8+6] = w;
+                xyzo_half[i] = make_ushort4( __float2half_rn(x), __float2half_rn(y), __float2half_rn(z), 0 );
+        }
+}
+#endif
 
 __global__ void make_texture2( uint2 *start_and_count, const int *start, const int *count, const int n ) {
 	for(int i=blockIdx.x*blockDim.x+threadIdx.x;i<n;i+=blockDim.x*gridDim.x) {
@@ -467,6 +490,7 @@ void forces_dpd_cuda_nohost(const float * const xyzuvw, float * const axayaz,  c
 	texParticlesH4.normalized = 0;
 
 	CUDA_CHECK(cudaFuncSetCacheConfig(_dpd_forces_symm_merged, cudaFuncCachePreferEqual));
+	CUDA_CHECK(cudaFuncSetCacheConfig(make_texture, cudaFuncCachePreferShared));
 
 #ifdef _TIME_PROFILE_
 	CUDA_CHECK(cudaEventCreate(&evstart));
@@ -478,7 +502,7 @@ void forces_dpd_cuda_nohost(const float * const xyzuvw, float * const axayaz,  c
     InfoDPD c;
 
     size_t textureoffset;
-	static  float4 *xyzouvwo;
+	static  float  *xyzouvwo;
 	static ushort4 *xyzo_half;
 	static int last_size;
 	if (!xyzouvwo || last_size < np ) {
@@ -500,7 +524,7 @@ void forces_dpd_cuda_nohost(const float * const xyzuvw, float * const axayaz,  c
 		last_nc = ncells;
 	}
 
-	make_texture<<<64,512,0,stream>>>( xyzouvwo, xyzo_half, xyzuvw, np );
+	make_texture<<<28,1024,1024*6*sizeof(float),stream>>>( xyzouvwo, xyzo_half, xyzuvw, np );
 	CUDA_CHECK( cudaBindTexture( &textureoffset, &texParticlesF4, xyzouvwo,  &texParticlesF4.channelDesc, sizeof( float ) * 8 * np ) );
 	assert(textureoffset == 0);
 	CUDA_CHECK( cudaBindTexture( &textureoffset, &texParticlesH4, xyzo_half, &texParticlesH4.channelDesc, sizeof( ushort4 ) * np ) );
