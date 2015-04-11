@@ -197,7 +197,7 @@ void _dpd_forces_symm_merged() {
 			"@vc mov.u64 texture, texStartAndCount;"
 			"@vc tex.1d.v4.s32.s32 {%0, %1, foo, bar}, [texture, %4];"
 			"}" :
-			"=r"(mystart), "=r"(mycount)  :
+			"+r"(mystart), "+r"(mycount)  :
 			"f"(u2f(tid)), "f"(u2f(14u)), "r"(cid), "f"(i2f(cid)),
 			"r"(info.ncells.x*info.ncells.y*info.ncells.z) );
 
