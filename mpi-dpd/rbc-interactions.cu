@@ -25,50 +25,10 @@ namespace KernelsRBC
 
     __constant__ ParamsFSI params;
 
-    texture<float2, cudaTextureType1D> texSolventParticles;
-    texture<int, cudaTextureType1D> texCellsStart, texCellsCount;
+    texture<float2, cudaTextureType1D> texSolventParticles, texSoluteParticles;
+    texture<int, cudaTextureType1D> texCellsStart, texCellsCount, texSoluteCellsStart, texSoluteCellsCount;
 
     static bool firsttime = true;
-
-    __global__ void fsi_forces(const float seed,
-			       Acceleration * accsolvent, const int npsolvent,
-			       const Particle * const particle, const int nparticles, Acceleration * accrbc);
-
-    void setup(const Particle * const solvent, const int npsolvent, const int * const cellsstart, const int * const cellscount)
-    {
-	if (firsttime)
-	{
-	    texCellsStart.channelDesc = cudaCreateChannelDesc<int>();
-	    texCellsStart.filterMode = cudaFilterModePoint;
-	    texCellsStart.mipmapFilterMode = cudaFilterModePoint;
-	    texCellsStart.normalized = 0;
-
-	    texCellsCount.channelDesc = cudaCreateChannelDesc<int>();
-	    texCellsCount.filterMode = cudaFilterModePoint;
-	    texCellsCount.mipmapFilterMode = cudaFilterModePoint;
-	    texCellsCount.normalized = 0;
-
-	    texSolventParticles.channelDesc = cudaCreateChannelDesc<float2>();
-	    texSolventParticles.filterMode = cudaFilterModePoint;
-	    texSolventParticles.mipmapFilterMode = cudaFilterModePoint;
-	    texSolventParticles.normalized = 0;
-	    firsttime = false;
-	}
-
-	size_t textureoffset;
-	CUDA_CHECK(cudaBindTexture(&textureoffset, &texSolventParticles, solvent, &texSolventParticles.channelDesc,
-				   sizeof(float) * 6 * npsolvent));
-
-	const int ncells = XSIZE_SUBDOMAIN * YSIZE_SUBDOMAIN * ZSIZE_SUBDOMAIN;
-
-	assert(textureoffset == 0);
-	CUDA_CHECK(cudaBindTexture(&textureoffset, &texCellsStart, cellsstart, &texCellsStart.channelDesc, sizeof(int) * ncells));
-	assert(textureoffset == 0);
-	CUDA_CHECK(cudaBindTexture(&textureoffset, &texCellsCount, cellscount, &texCellsCount.channelDesc, sizeof(int) * ncells));
-	assert(textureoffset == 0);
-
-	CUDA_CHECK(cudaFuncSetCacheConfig(fsi_forces, cudaFuncCachePreferL1));
-    }
 
     __global__ void shift_send_particles_kernel(const Particle * const src, const int n, const int code, Particle * const dst)
     {
@@ -280,8 +240,6 @@ namespace KernelsRBC
 	    yr * (up.y - stmp2.x) +
 	    zr * (up.z - stmp2.y);
 
-	//const float mysaru = saru(saru_tag, dpid, spid);
-	//const float myrandnr = 3.464101615f * mysaru - 1.732050807f;
 	const float myrandnr = Logistic::mean0var1(seed, dpid, spid);
 
 	const float strength = params.aij * argwr +  (- params.gamma * wr * rdotv + params.sigmaf * myrandnr) * wr;
@@ -323,8 +281,6 @@ namespace KernelsRBC
 
     template<int XCPB, int YCPB, int ZCPB, int COLS, int ROWS>
     __global__ void fsi_forces(const float seed,
-			       cudaTextureObject_t texSoluteCellStart,
-			       cudaTextureObject_t texSoluteParticles,
 			       float * const accsolute, const int nsolute,
 			       float * const accsolvent, const int nsolvent)
     {
@@ -345,6 +301,11 @@ namespace KernelsRBC
 	const int xmycid = blockIdx.x * XCPB + ((wid) % XCPB);
 	const int ymycid = blockIdx.y * YCPB + ((wid / XCPB) % YCPB);
 	const int zmycid = blockIdx.z * ZCPB + ((wid / (XCPB * YCPB)) % ZCPB);
+
+	assert(xmycid >= 0 && xmycid < XSIZE_SUBDOMAIN);
+	assert(ymycid >= 0 && ymycid < YSIZE_SUBDOMAIN);
+	assert(zmycid >= 0 && zmycid < ZSIZE_SUBDOMAIN);
+
 	const int mycid = xmycid + XSIZE_SUBDOMAIN * (ymycid + YSIZE_SUBDOMAIN * zmycid);
 
 	int mycount = 0, myscan = 0;
@@ -383,35 +344,35 @@ namespace KernelsRBC
 
 	const int nsrc = scan[wid][27];
 
-	const int dststart = tex1Dfetch<int>(texSoluteCellStart, mycid);
-	const int lastdst = tex1Dfetch<int>(texSoluteCellStart, mycid + 1);
+	const int dststart = tex1Dfetch(texSoluteCellsStart, mycid);
+	const int lastdst = dststart + tex1Dfetch(texSoluteCellsCount, mycid);
 
-	for(int pid = subtid; pid < nsrc; pid += COLS)
+	for(int dpid = dststart + slot; dpid < lastdst; dpid += ROWS)
 	{
-	    const int key9 = 9 * ((pid >= scan[wid][9]) + (pid >= scan[wid][18]));
-	    const int key3 = 3 * ((pid >= scan[wid][key9 + 3]) + (pid >= scan[wid][key9 + 6]));
-	    const int key = key9 + key3;
+	    float3 xdest, udest, force = make_float3(0, 0, 0);
 
-	    const int spid = pid - scan[wid][key] + starts[wid][key];
-	    const int sentry = 3 * spid;
-	    const float2 stmp0 = tex1Dfetch(texSolventParticles, sentry);
-	    const float2 stmp1 = tex1Dfetch(texSolventParticles, sentry + 1);
+	    float2 dtmp0 = tex1Dfetch(texSoluteParticles, 3 * dpid);
+	    xdest.x = dtmp0.x;
+	    xdest.y = dtmp0.y;
 
-	    for(int dpid = dststart + slot; dpid < lastdst; dpid += ROWS)
+	    dtmp0 = tex1Dfetch(texSoluteParticles, 3 * dpid + 1);
+	    xdest.z = dtmp0.x;
+	    udest.x = dtmp0.y;
+
+	    dtmp0 = tex1Dfetch(texSoluteParticles, 3 * dpid + 2);
+	    udest.y = dtmp0.x;
+	    udest.z = dtmp0.y;
+
+	    for(int pid = subtid; pid < nsrc; pid += COLS)
 	    {
-		float3 xdest, udest;
+		const int key9 = 9 * ((pid >= scan[wid][9]) + (pid >= scan[wid][18]));
+		const int key3 = 3 * ((pid >= scan[wid][key9 + 3]) + (pid >= scan[wid][key9 + 6]));
+		const int key = key9 + key3;
 
-		float2 dtmp0 = tex1Dfetch<float2>(texSoluteParticles, 3 * dpid);
-		xdest.x = dtmp0.x;
-		xdest.y = dtmp0.y;
-
-		dtmp0 = tex1Dfetch<float2>(texSoluteParticles, 3 * dpid + 1);
-		xdest.z = dtmp0.x;
-		udest.x = dtmp0.y;
-
-		dtmp0 = tex1Dfetch<float2>(texSoluteParticles, 3 * dpid + 2);
-		udest.y = dtmp0.x;
-		udest.z = dtmp0.y;
+		const int spid = pid - scan[wid][key] + starts[wid][key];
+		const int sentry = 3 * spid;
+		const float2 stmp0 = tex1Dfetch(texSolventParticles, sentry);
+		const float2 stmp1 = tex1Dfetch(texSolventParticles, sentry + 1);
 
 		const float xr = xdest.x - stmp0.x;
 		const float yr = xdest.y - stmp0.y;
@@ -423,19 +384,26 @@ namespace KernelsRBC
 		    const float2 stmp2 = tex1Dfetch(texSolventParticles, sentry + 2);
 		    const float3 f = fsi_interaction(seed, dpid, udest, spid, stmp1, stmp2, xr, yr, zr, rij2);
 
-		    atomicAdd(accsolute + 3 * dpid    , f.x);
+		    /*atomicAdd(accsolute + 3 * dpid    , f.x);
 		    atomicAdd(accsolute + 3 * dpid + 1, f.y);
-		    atomicAdd(accsolute + 3 * dpid + 2, f.z);
+		    atomicAdd(accsolute + 3 * dpid + 2, f.z);*/
+		    force.x += f.x;
+		    force.y += f.y;
+		    force.z += f.z;
 
 		    atomicAdd(accsolvent + 3 * spid    , -f.x);
 		    atomicAdd(accsolvent + 3 * spid + 1, -f.y);
 		    atomicAdd(accsolvent + 3 * spid + 2, -f.z);
 		}
 	    }
+
+	    atomicAdd(accsolute + 3 * dpid    , force.x);
+	    atomicAdd(accsolute + 3 * dpid + 1, force.y);
+	    atomicAdd(accsolute + 3 * dpid + 2, force.z);
 	}
     }
 
-    __global__ void fsi_forces(const float seed,
+    __global__ void fsi_forces_old(const float seed,
 			       Acceleration * accsolvent, const int npsolvent,
 			       const Particle * const particle, const int nparticles, Acceleration * accrbc)
     {
@@ -728,6 +696,77 @@ namespace KernelsRBC
 		dst[actualpid].a[c] = src[pid].a[c];
 	}
     }
+
+
+    void setup(const Particle * const solvent, const int npsolvent, const int * const cellsstart, const int * const cellscount,
+	       const Particle * const solute, const int npsolute, const int * const solute_cellsstart, const int * const solute_cellscount)
+    {
+	if (firsttime)
+	{
+	    texCellsStart.channelDesc = cudaCreateChannelDesc<int>();
+	    texCellsStart.filterMode = cudaFilterModePoint;
+	    texCellsStart.mipmapFilterMode = cudaFilterModePoint;
+	    texCellsStart.normalized = 0;
+
+	    texCellsCount.channelDesc = cudaCreateChannelDesc<int>();
+	    texCellsCount.filterMode = cudaFilterModePoint;
+	    texCellsCount.mipmapFilterMode = cudaFilterModePoint;
+	    texCellsCount.normalized = 0;
+
+	    texSoluteCellsStart.channelDesc = cudaCreateChannelDesc<int>();
+	    texSoluteCellsStart.filterMode = cudaFilterModePoint;
+	    texSoluteCellsStart.mipmapFilterMode = cudaFilterModePoint;
+	    texSoluteCellsStart.normalized = 0;
+
+	    texSoluteCellsCount.channelDesc = cudaCreateChannelDesc<int>();
+	    texSoluteCellsCount.filterMode = cudaFilterModePoint;
+	    texSoluteCellsCount.mipmapFilterMode = cudaFilterModePoint;
+	    texSoluteCellsCount.normalized = 0;
+
+	    texSolventParticles.channelDesc = cudaCreateChannelDesc<float2>();
+	    texSolventParticles.filterMode = cudaFilterModePoint;
+	    texSolventParticles.mipmapFilterMode = cudaFilterModePoint;
+	    texSolventParticles.normalized = 0;
+
+	    texSoluteParticles.channelDesc = cudaCreateChannelDesc<float2>();
+	    texSoluteParticles.filterMode = cudaFilterModePoint;
+	    texSoluteParticles.mipmapFilterMode = cudaFilterModePoint;
+	    texSoluteParticles.normalized = 0;
+
+	    firsttime = false;
+	}
+
+	size_t textureoffset;
+	CUDA_CHECK(cudaBindTexture(&textureoffset, &texSolventParticles, solvent, &texSolventParticles.channelDesc,
+				   sizeof(float) * 6 * npsolvent));
+	assert(textureoffset == 0);
+
+
+	CUDA_CHECK(cudaBindTexture(&textureoffset, &texSoluteParticles, solute, &texSoluteParticles.channelDesc,
+				   sizeof(float) * 6 * npsolute));
+	assert(textureoffset == 0);
+
+
+	const int ncells = XSIZE_SUBDOMAIN * YSIZE_SUBDOMAIN * ZSIZE_SUBDOMAIN;
+
+	assert(textureoffset == 0);
+	CUDA_CHECK(cudaBindTexture(&textureoffset, &texCellsStart, cellsstart, &texCellsStart.channelDesc, sizeof(int) * ncells));
+	assert(textureoffset == 0);
+	CUDA_CHECK(cudaBindTexture(&textureoffset, &texCellsCount, cellscount, &texCellsCount.channelDesc, sizeof(int) * ncells));
+	assert(textureoffset == 0);
+
+	CUDA_CHECK(cudaBindTexture(&textureoffset, &texSoluteCellsStart, solute_cellsstart, &texSoluteCellsStart.channelDesc,
+				   sizeof(int) * ncells));
+	assert(textureoffset == 0);
+	CUDA_CHECK(cudaBindTexture(&textureoffset, &texSoluteCellsCount, solute_cellscount, &texSoluteCellsCount.channelDesc,
+				   sizeof(int) * ncells));
+	assert(textureoffset == 0);
+
+
+	CUDA_CHECK(cudaFuncSetCacheConfig(fsi_forces<2, 2, 1, 8, 4>, cudaFuncCachePreferL1));
+	CUDA_CHECK(cudaFuncSetCacheConfig(fsi_forces_old, cudaFuncCachePreferL1));
+
+    }
 }
 
 ComputeInteractionsRBC::ComputeInteractionsRBC(MPI_Comm _cartcomm):
@@ -937,7 +976,7 @@ void ComputeInteractionsRBC::fsi_bulk(const Particle * const solvent, const int 
 {
     NVTX_RANGE("RBC/fsi-bulk", NVTX_C6);
 
-    KernelsRBC::setup(solvent, nparticles, cellsstart_solvent, cellscount_solvent);
+
 
     if (nrbcs > 0 && nparticles > 0)
     {
@@ -955,20 +994,24 @@ void ComputeInteractionsRBC::fsi_bulk(const Particle * const solvent, const int 
 	reordering.resize(nsolute);
 	dualcells.build(reordered_solute.data, nrbcs * nvertices, stream, reordering.data);
 
-	texSoluteStart.acquire(const_cast<int *>(dualcells.start), ncells + 1);
-	texSolute.acquire((float2 *)const_cast<Particle *>(reordered_solute.data), reordered_solute.capacity);
+	//texSoluteStart.acquire(const_cast<int *>(dualcells.start), ncells + 1);
+	//texSolute.acquire((float2 *)const_cast<Particle *>(reordered_solute.data), reordered_solute.capacity);
 
 	lacc_solute.resize(nsolute);
 	CUDA_CHECK(cudaMemsetAsync(lacc_solute.data, 0, sizeof(float) * 3 * lacc_solute.size, stream));
 
-	KernelsRBC::fsi_forces<2, 2, 1, 32, 1><<<
+	KernelsRBC::setup(solvent, nparticles, cellsstart_solvent, cellscount_solvent,
+			  reordered_solute.data, nsolute, dualcells.start, dualcells.count);
+
+	KernelsRBC::fsi_forces<2, 2, 1, 8, 4><<<
 	    dim3(vcells.x / 2, vcells.y / 2, vcells.z), dim3(32, 4), 0, stream>>>
-	    (seed, texSoluteStart.texObj, texSolute.texObj, (float *)lacc_solute.data, lacc_solute.size, (float *)accsolvent, nsolvent);
+	    (seed, (float *)lacc_solute.data, nsolute, (float *)accsolvent, nsolvent);
 
         KernelsRBC::merge_accelerations_scattered_float<false><<< (nrbcs * nvertices * 3 + 127) / 128, 128, 0, stream >>>(
 	    reordering.data, lacc_solute.data, nrbcs * nvertices, accrbc);
 
 #else
+	KernelsRBC::setup(solvent, nparticles, cellsstart_solvent, cellscount_solvent, NULL, 0, NULL,NULL);
 	KernelsRBC::fsi_forces<<< (nrbcs * nvertices + 127) / 128, 128, 0, stream >>>
 	    (seed, accsolvent, nparticles, rbcs, nrbcs * nvertices, accrbc);
 #endif

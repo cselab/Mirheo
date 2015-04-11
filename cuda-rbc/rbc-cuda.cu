@@ -224,8 +224,8 @@ namespace CudaRBC
 		assert(textureoffset == 0);
 
 		dummy = new Extent[maxCells];
-
-		unitsSetup(1.64, 0.00141, 19.0476, 64, 1104.168, 159.0438, 0, 135, 94, 1e-6, 2.4295e-6, 4, report); //unitsSetup(1.64, 0.00705, 6, 15, 1000, 5000, 5, 135, 90, 1e-6, 1e-5, 4, report);
+		unitsSetup(1.64, 0.001412*2, 19.0476*0.5, 160, 11004.168, 10159.0438, 2, 135, 91, 1e-6, 2.4295e-6, 4, report);
+		//unitsSetup(1.64, 0.00141, 19.0476, 64, 1104.168, 159.0438, 0, 135, 94, 1e-6, 2.4295e-6, 4, report); //unitsSetup(1.64, 0.00705, 6, 15, 1000, 5000, 5, 135, 90, 1e-6, 1e-5, 4, report);
 	}
 
 	void unitsSetup(float lmax, float p, float cq, float kb, float ka, float kv, float gammaC,
