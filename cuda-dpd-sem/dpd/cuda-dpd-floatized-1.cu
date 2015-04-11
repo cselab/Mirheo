@@ -130,7 +130,7 @@ __forceinline__ __device__ void core_ytang(volatile uint const *queue, const uin
 	// the overhead of transposition acc back
 	// can be completely killed by changing the integration kernel
 	#ifdef TRANSPOSED_ATOMICS
-	uint base = dpid & 0xFFFFFFE0U; // TODO: use xdiv + xscale?
+	uint base = dpid & 0xFFFFFFE0U; // xdiv + xscale -> 0.01ms slower
 	uint off  = xsub( dpid, base );
 	float* acc = info.axayaz + xmad( base, 3.f, off );
 	atomicAdd(acc   , f.x);
@@ -160,6 +160,8 @@ __forceinline__ __device__ void core_ytang(volatile uint const *queue, const uin
 	#endif
 }
 
+// TODO: modify compiled PTX to replace integer comparison in branch statements
+
 __global__  __launch_bounds__(32*MYWPB, 16)
 void _dpd_forces_symm_merged() {
 
@@ -167,7 +169,7 @@ void _dpd_forces_symm_merged() {
 	//* was: __shared__ uint2 volatile start_n_scan[MYWPB][32];
 	//* was: __shared__ uint  volatile queue[MYWPB][64];
 
-	const uint tid = threadIdx.x; // TODO: how to prevent S2R?
+	const uint tid = threadIdx.x;
 	const uint wid = threadIdx.y;
 	const uint pshare = xscale( threadIdx.y, 256.f );
 
@@ -260,9 +262,13 @@ void _dpd_forces_symm_merged() {
 		const uint spidext  = x13;
 
 		uint nb = 0;
-		for(uint p = 0; p < nsrc; p = xadd( p, 32u ) ) { // TODO: bool type PTX return
+		for(uint p = 0; p < nsrc; p = xadd( p, 32u ) ) {
 			const uint pid = p + tid;
-			#ifdef LETS_MAKE_IT_MESSY
+
+			//* was: const uint key9 = 9*(pid >= start_n_scan[wid][9].y);
+			//* was: uint key3 = 3*(pid >= start_n_scan[wid][key9 + 3].y);
+			//* was: key3 += (key9 < 9) ? 3*(pid >= start_n_scan[wid][key9 + 6].y) : 0;
+			//* was: const uint spid = pid - start_n_scan[wid][key3+key9].y + start_n_scan[wid][key3+key9].x;
 			uint spid;
 			asm( "{ .reg .pred p, q, r;" // TODO: HOW TO USE LDS.128
 				 "  .reg .f32  key;"
@@ -292,12 +298,6 @@ void _dpd_forces_symm_merged() {
 				 "   sub.f32           mystart, mystart, myscan;"
 				 "   mov.b32           %0, mystart;"
 				 "}" : "=r"(spid) : "f"(u2f(pid)), "f"(u2f(9u)), "f"(u2f(3u)), "f"(u2f(pshare)), "f"(u2f(pid)), "f"(u2f(nsrc)) );
-			#else
-			const uint key9 = 9*(pid >= start_n_scan[wid][9].y);
-			uint key3 = 3*(pid >= start_n_scan[wid][key9 + 3].y);
-			key3 += (key9 < 9) ? 3*(pid >= start_n_scan[wid][key9 + 6].y) : 0;
-			const uint spid = pid - start_n_scan[wid][key3+key9].y + start_n_scan[wid][key3+key9].x;
-			#endif
 
 			const float4 xsrc = tex1Dfetch(texParticlesH4, xmin( spid, lastdst ) );
 

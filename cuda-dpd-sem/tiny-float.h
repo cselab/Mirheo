@@ -157,6 +157,19 @@ __forceinline__ __device__ int xscale( int u, float s ) {
 	return f2i(b);
 }
 
+// semantic: xdiv(x,0.25f) = x * 0.25f = x / 4
+__forceinline__ __device__ uint xdiv( uint u, float s ) {
+	float a = u2f(u), b;
+	asm( "mul.f32.rm %0, %1, %2;" : "=f"(b) : "f"(a), "f"(s) );
+	return f2u(b);
+}
+
+__forceinline__ __device__ int xdiv( int u, float s ) {
+	float a = i2f(u), b;
+	asm( "mul.f32.rm %0, %1, %2;" : "=f"(b) : "f"(a), "f"(s) );
+	return f2i(b);
+}
+
 template<uint m> __forceinline__ __device__ uint xmod( uint u ) {
 	float a = u2f(u);
 	asm( "mul.f32.rm %0, %1, %2;" : "+f"(a) : "f"(a), "f"(1.f/m) );
