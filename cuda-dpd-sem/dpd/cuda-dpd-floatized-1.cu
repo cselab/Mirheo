@@ -180,7 +180,7 @@ void _dpd_forces_symm_merged() {
 			  offs.x;
 
 	//#pragma unroll 4 // faster on k20x, slower on k20
-	for(int it = 3; it >= 0; it--) { // TODO: TINYFLOAT
+	for(int it = 3; it >= 0; it--) { // TODO: TINYFLOAT slower? try later
 
 		const int cid = cbase +
 				(it>1)*info.ncells.x*info.ncells.y +
@@ -207,7 +207,7 @@ void _dpd_forces_symm_merged() {
 			"r"( mystart ) :
 			"memory" );
 		//* was: uint mycount=0, myscan=0;
-		//* was: if (tid < 14) { // TODO: do tid<14 predicate later
+		//* was: if (tid < 14) {
 			//* was: const int cid = cbase +
 			//* was: 		(it>1)*info.ncells.x*info.ncells.y +
 			//* was: 		((it&1)^((it>>1)&1))*info.ncells.x;
@@ -240,10 +240,11 @@ void _dpd_forces_symm_merged() {
 			"   mov.b32     %0, myscan;"
 			"}"	: "+r"(myscan) );
 
-		if (tid < 15) { // TODO: use PTX for compare
-			asm("st.volatile.shared.u32 [%0+4], %1;" :: "r"( xmad( tid, 8.f, pshare ) ), "r"( xsub( myscan, mycount ) ) : "memory" );
-			//* was: start_n_scan[wid][tid].y = myscan - mycount;
-		}
+	 	//* was: if (tid < 15) start_n_scan[wid][tid].y = myscan - mycount;
+		asm("{    .reg .pred lt15;"
+			"      setp.lt.f32 lt15, %0, %1;"
+			"@lt15 st.volatile.shared.u32 [%2+4], %3;"
+			"}":: "f"(u2f(tid)), "f"(u2f(15u)), "r"( xmad( tid, 8.f, pshare ) ), "r"( xsub( myscan, mycount ) ) : "memory" );
 
 		uint x13, y13, y14; // TODO: LDS.128
 		asm("ld.volatile.shared.v2.u32 {%0,%1}, [%3+104];" // 104 = 13 x 8-byte uint2
