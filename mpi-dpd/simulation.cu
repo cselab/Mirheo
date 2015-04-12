@@ -635,7 +635,7 @@ void Simulation::run()
     
     if (rank == 0)
 	if (it == nsteps)
-	    printf("simulation is done after %.3e s (%dm%ds). Ciao.\n", 
+	    printf("simulation is done after %.2lf s (%dm%ds). Ciao.\n",
 		   telapsed, (int)(telapsed / 60), (int)(telapsed) % 60);
 	else
 	    if (it != wall_creation_stepid)
