@@ -204,7 +204,7 @@ void Simulation::_create_walls(const bool verbose, bool & termination_request)
     
     int nsurvived = 0;
     ExpectedMessageSizes new_sizes;
-    wall = new ComputeInteractionsWall(cartcomm, particles.xyzuvw.data, particles.size, nsurvived, new_sizes);
+    wall = new ComputeInteractionsWall(cartcomm, particles.xyzuvw.data, particles.size, nsurvived, new_sizes, verbose);
     
     //adjust the message sizes if we're pushing the flow in x
     {
