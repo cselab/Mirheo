@@ -13,12 +13,14 @@
 
 #include <cstdio>
 #include <cassert>
+#include <mpi.h>
 
 #include "cuda-dpd.h"
 #include "../dpd-rng.h"
 
 struct InfoDPD {
     int3 ncells;
+    uint nxyz;
     float3 domainsize, invdomainsize, domainstart;
     float invrc, aij, gamma, sigmaf;
     float * axayaz;
@@ -35,6 +37,7 @@ texture<uint2, cudaTextureType1D> texStartAndCount;
 //#define ONESTEP
 #define LETS_MAKE_IT_MESSY
 #define CRAZY_SMEM
+#define HALF_FLOAT
 
 #define _XCPB_ 2
 #define _YCPB_ 2
@@ -130,30 +133,30 @@ __forceinline__ __device__ void core_ytang( const uint dststart, const uint psha
     // the overhead of transposition acc back
     // can be completely killed by changing the integration kernel
 #ifdef TRANSPOSED_ATOMICS
-    uint base = dpid & 0xFFFFFFE0U; // xdiv + xscale -> 0.01ms slower
-    uint off  = xsub( dpid, base );
-    float* acc = info.axayaz + xmad( base, 3.f, off );
+    uint off  = dpid & 0x0000001FU;
+    uint base = xdiv( dpid, 1/32.f);
+    float* acc = info.axayaz + xmad( base, 96.f, off );
     atomicAdd( acc   , f.x );
     atomicAdd( acc + 32, f.y );
     atomicAdd( acc + 64, f.z );
 
     if( spid < spidext ) {
-        uint base = spid & 0xFFFFFFE0U;
-        uint off  = xsub( spid, base );
-        float* acc = info.axayaz + xmad( base, 3.f, off );
+        uint off  = spid & 0x0000001FU;
+        uint base = xdiv( spid, 1/32.f );
+        float* acc = info.axayaz + xmad( base, 96.f, off );
         atomicAdd( acc   , -f.x );
         atomicAdd( acc + 32, -f.y );
         atomicAdd( acc + 64, -f.z );
     }
 #else
-    float* acc = info.axayaz + xscale( dpid, 3.f );
-    atomicAdd( acc  , f.x );
+    float* acc = info.axayaz + dpid * 3;
+    atomicAdd( acc    , f.x );
     atomicAdd( acc + 1, f.y );
     atomicAdd( acc + 2, f.z );
 
     if( spid < spidext ) {
-        float* acc = info.axayaz + xscale( spid, 3.f );
-        atomicAdd( acc  , -f.x );
+        float* acc = info.axayaz + spid * 3;
+        atomicAdd( acc    , -f.x );
         atomicAdd( acc + 1, -f.y );
         atomicAdd( acc + 2, -f.z );
     }
@@ -164,22 +167,6 @@ __forceinline__ __device__ void core_ytang( const uint dststart, const uint psha
 #define MYCPBY  (2)
 #define MYCPBZ  (2)
 #define MYWPB   (4)
-
-template<class TYPE> __device__ TYPE __warp_max( TYPE value )
-{
-#pragma unroll
-    for( int p = ( 32 >> 1 ); p >= 1 ; p >>= 1 )
-        value = max( value, __shfl_xor( value, p ) );
-    return value;
-}
-
-template<class TYPE> __device__ TYPE __warp_min( TYPE value )
-{
-#pragma unroll
-    for( int p = ( 32 >> 1 ); p >= 1 ; p >>= 1 )
-        value = min( value, __shfl_xor( value, p ) );
-    return value;
-}
 
 __global__  __launch_bounds__( 32 * MYWPB, 16 )
 void _dpd_forces_symm_merged() {
@@ -243,7 +230,7 @@ void _dpd_forces_symm_merged() {
              "}" :
              "+r"( mystart ), "+r"( mycount )  :
              "f"( u2f( tid ) ), "f"( u2f( 14u ) ), "r"( cid ), "f"( i2f( cid ) ),
-             "r"( info.ncells.x*info.ncells.y*info.ncells.z ) );
+             "r"( info.nxyz ) );
         myscan  = mycount;
         asm( "st.volatile.shared.u32 [%0], %1;" ::
              "r"( xmad( tid, 8.f, pshare ) ),
@@ -316,7 +303,7 @@ void _dpd_forces_symm_merged() {
                  "@p add.f32           key, key, %3;"
                  "   setp.lt.f32       p, key, %2;"
                  "   setp.lt.and.f32   p, %5, %6, p;"
-                 "@p ld.shared.f32     scan6, [array + 6*8 + 4];"
+                 "   ld.shared.f32     scan6, [array + 6*8 + 4];"
                  "   setp.ge.and.f32   q, %1, scan6, p;"
                  "@q add.f32           key, key, %3;"
                  "   fma.f32.rm        array_f, key, 8.0, %4;"
@@ -330,7 +317,8 @@ void _dpd_forces_symm_merged() {
             const float4 xsrc = tex1Dfetch( texParticlesH4, xmin( spid, lastdst ) );
 
             for( uint dpid = dststart; dpid < lastdst; dpid = xadd( dpid, 1u ) ) {
-                const float4 xdest = tex1Dfetch( texParticlesH4, dpid );
+
+            	const float4 xdest = tex1Dfetch( texParticlesH4, dpid );
                 const float dx = xdest.x - xsrc.x;
                 const float dy = xdest.y - xsrc.y;
                 const float dz = xdest.z - xsrc.z;
@@ -387,27 +375,26 @@ __global__ void make_texture( float4 * __restrict xyzouvwo, ushort4 * __restrict
     extern __shared__ volatile float  smem[];
     const uint warpid = threadIdx.x / 32;
     const uint lane = threadIdx.x % 32;
-    for( uint i = blockIdx.x * blockDim.x + threadIdx.x ; i < n ; i += blockDim.x * gridDim.x ) {
-        const uint base = i - i % 32;
-        const float2 * pbase = ( float2* )( xyzuvw +  base * 6 );
+    for( uint i = (blockIdx.x * blockDim.x + threadIdx.x)&0xFFFFFFE0U ; i < n ; i += blockDim.x * gridDim.x ) {
+        const float2 * base = ( float2* )( xyzuvw +  i * 6 );
 		#pragma unroll 3
         for( uint j = lane; j < 96; j += 32 ) {
-            float2 u = pbase[j];
+            float2 u = base[j];
             // NVCC bug: no operator = between volatile float2 and float2
             asm volatile( "st.volatile.shared.v2.f32 [%0], {%1, %2};" : : "r"( ( warpid * 96 + j )*8 ), "f"( u.x ), "f"( u.y ) : "memory" );
         }
         // SMEM: XYZUVW XYZUVW ...
         uint pid = lane / 2;
         const uint x_or_v = ( lane % 2 ) * 3;
-        xyzouvwo[ base * 2 + lane ] = make_float4( smem[ warpid * 192 + pid * 6 + x_or_v + 0 ],
+        xyzouvwo[ i * 2 + lane ] = make_float4( smem[ warpid * 192 + pid * 6 + x_or_v + 0 ],
                                       smem[ warpid * 192 + pid * 6 + x_or_v + 1 ],
                                       smem[ warpid * 192 + pid * 6 + x_or_v + 2 ], 0 );
         pid += 16;
-        xyzouvwo[ base * 2 + lane + 32] = make_float4( smem[ warpid * 192 + pid * 6 + x_or_v + 0 ],
+        xyzouvwo[ i * 2 + lane + 32] = make_float4( smem[ warpid * 192 + pid * 6 + x_or_v + 0 ],
                                           smem[ warpid * 192 + pid * 6 + x_or_v + 1 ],
                                           smem[ warpid * 192 + pid * 6 + x_or_v + 2 ], 0 );
 
-        xyzo_half[i] = make_ushort4( __float2half_rn( smem[ warpid * 192 + lane * 6 + 0 ] ),
+        xyzo_half[i+lane] = make_ushort4( __float2half_rn( smem[ warpid * 192 + lane * 6 + 0 ] ),
                                      __float2half_rn( smem[ warpid * 192 + lane * 6 + 1 ] ),
                                      __float2half_rn( smem[ warpid * 192 + lane * 6 + 2 ] ), 0 );
     }
@@ -420,31 +407,54 @@ __global__ void make_texture2( uint2 *start_and_count, const int *start, const i
     }
 }
 
-__global__ void check_acc( const int np )
+__global__ void check_acc( int *signal, const int np )
 {
     double sx = 0, sy = 0, sz = 0;
     for( int i = 0; i < np; i++ ) {
-        sx += info.axayaz[i * 3 + 0];
-        sy += info.axayaz[i * 3 + 1];
-        sz += info.axayaz[i * 3 + 2];
+    	double ax = info.axayaz[i * 3 + 0];
+    	double ay = info.axayaz[i * 3 + 1];
+    	double az = info.axayaz[i * 3 + 2];
+    	if (ax!=ax || ay !=ay || az !=az) {
+    		printf("particle %d: %f %f %f\n",i,ax,ay,az);
+    		*signal = 1;
+    	}
+        sx += ax;
+        sy += ay;
+        sz += az;
     }
-    printf( "ACC: %lf %lf %lf\n", sx, sy, sz );
+    printf( "ACC: %+.7lf %+.7lf %+.7lf\n", sx, sy, sz );
 }
 
-__global__ void transpose_acc( const int np )
+__global__ void check_acc_transposed( const int np )
 {
-    for( int i = blockIdx.x * blockDim.x + threadIdx.x; i < np; i += blockDim.x * gridDim.x ) {
-        int base = i & 0xFFFFFFE0U;
-        int off  = i - base;
-        float ax = info.axayaz[ base * 3 + off      ];
-        float ay = info.axayaz[ base * 3 + off + 32 ];
-        float az = info.axayaz[ base * 3 + off + 64 ];
-        // make sync between lanes
-        if( __ballot( 1 ) ) {
-            info.axayaz[ i * 3 + 0 ] = ax;
-            info.axayaz[ i * 3 + 1 ] = ay;
-            info.axayaz[ i * 3 + 2 ] = az;
-        }
+    double sx = 0, sy = 0, sz = 0;
+    for( int i = 0; i < np; i++ ) {
+    	int base = i / 32;
+    	int off = i % 32;
+    	int p = base * 96 + off;
+        sx += info.axayaz[p];
+        sy += info.axayaz[p+32];
+        sz += info.axayaz[p+64];
+    }
+    printf( "ACC-TRANSPOSED: %+.7lf %+.7lf %+.7lf\n", sx, sy, sz );
+}
+
+
+__global__  __launch_bounds__( 1024, 2 )
+void transpose_acc( const int np )
+{
+    __shared__ volatile float  smem[32][96];
+    const uint lane = threadIdx.x % 32;
+    const uint warpid = threadIdx.x / 32;
+
+    for( uint i = (blockIdx.x * blockDim.x + threadIdx.x)&0xFFFFFFE0U; i < np; i += blockDim.x * gridDim.x ) {
+        const uint base = xmad( i, 3.f, lane );
+        smem[warpid][lane   ] = info.axayaz[ base      ];
+        smem[warpid][lane+32] = info.axayaz[ base + 32 ];
+        smem[warpid][lane+64] = info.axayaz[ base + 64 ];
+		info.axayaz[ base      ] = smem[warpid][ xmad( __IMOD(lane+ 0,3), 32.f, (lane+ 0)/3 ) ];
+		info.axayaz[ base + 32 ] = smem[warpid][ xmad( __IMOD(lane+32,3), 32.f, (lane+32)/3 ) ];
+		info.axayaz[ base + 64 ] = smem[warpid][ xmad( __IMOD(lane+64,3), 32.f, (lane+64)/3 ) ];
     }
 }
 
@@ -509,9 +519,10 @@ void forces_dpd_cuda_nohost( const float * const xyzuvw, float * const axayaz,  
             cudaFree( xyzouvwo );
             cudaFree( xyzo_half );
         }
-        cudaMalloc( &xyzouvwo,  sizeof( float4 ) * 2 * np );
-        cudaMalloc( &xyzo_half, sizeof( ushort4 )*np );
         last_size = np;
+        if (last_size%32) last_size += 32 - last_size%32;
+        cudaMalloc( &xyzouvwo,  sizeof( float4 ) * 2 * last_size );
+        cudaMalloc( &xyzo_half, sizeof( ushort4 ) * last_size );
     }
     static uint2 *start_and_count;
     static int last_nc;
@@ -533,6 +544,7 @@ void forces_dpd_cuda_nohost( const float * const xyzuvw, float * const axayaz,  
     assert( textureoffset == 0 );
 
     c.ncells = make_int3( nx, ny, nz );
+    c.nxyz = nx * ny * nz;
     c.domainsize = make_float3( XL, YL, ZL );
     c.invdomainsize = make_float3( 1 / XL, 1 / YL, 1 / ZL );
     c.domainstart = make_float3( -XL * 0.5, -YL * 0.5, -ZL * 0.5 );
@@ -554,12 +566,15 @@ void forces_dpd_cuda_nohost( const float * const xyzuvw, float * const axayaz,  
 #endif
 
     // YUHANG: fixed bug: not using stream
-    CUDA_CHECK( cudaMemsetAsync( axayaz, 0, sizeof( float )*np * 3, stream ) );
+    int np32 = np;
+    if (np32%32) np32 += 32 - np32%32;
+    CUDA_CHECK( cudaMemsetAsync( axayaz, 0, sizeof( float )* np32 * 3, stream ) );
 
     if( c.ncells.x % MYCPBX == 0 && c.ncells.y % MYCPBY == 0 && c.ncells.z % MYCPBZ == 0 ) {
         _dpd_forces_symm_merged <<< dim3( c.ncells.x / MYCPBX, c.ncells.y / MYCPBY, c.ncells.z / MYCPBZ ), dim3( 32, MYWPB ), 0, stream >>> ();
 #ifdef TRANSPOSED_ATOMICS
-        transpose_acc <<< 64, 512, 0, stream>>>( np );
+        // check_acc_transposed<<<1, 1, 0, stream>>>( np );
+        transpose_acc <<< 28, 1024, 0, stream>>>( np );
 #endif
     } else {
         fprintf( stderr, "Incompatible grid config\n" );
@@ -569,6 +584,7 @@ void forces_dpd_cuda_nohost( const float * const xyzuvw, float * const axayaz,  
     check_acc <<< 1, 1>>>( np );
     CUDA_CHECK( cudaDeviceSynchronize() );
     CUDA_CHECK( cudaDeviceReset() );
+    MPI_Finalize();
     exit( 0 );
 #endif
 

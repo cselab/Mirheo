@@ -138,6 +138,11 @@ void ParticleArray::resize(int n)
 {
     size = n;
     
+    // YTANG: need the array to be 32-padded for locally transposed storage of acceleration
+    if ( n % 32 ) {
+        xyzuvw.preserve_resize( n - n % 32 + 32 );
+        axayaz.preserve_resize( n - n % 32 + 32 );
+    }
     xyzuvw.resize(n);
     axayaz.resize(n);
     
