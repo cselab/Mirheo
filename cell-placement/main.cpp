@@ -199,7 +199,7 @@ struct TransformedExtent
 
     bool collides(const TransformedExtent a, const float tol)
 	{
-	    int s[3], e[3];
+	    float s[3], e[3];
 
 	    for(int c = 0; c < 3; ++c)
 	    {
@@ -250,6 +250,7 @@ void verify(string path2ic)
 
 class Checker
 {
+    const float safetymargin;
     float h[3];
     int n[3], ntot;
 
@@ -257,73 +258,69 @@ class Checker
 
 public:
 
-    Checker(float hh, int dext[3]);
+    Checker(float hh, int dext[3], const float safetymargin):
+	safetymargin(safetymargin)
+	{
+	    h[0] = h[1] = h[2] = hh;
 
-    bool check(TransformedExtent& ex);
+	    for (int d = 0; d < 3; ++d)
+		n[d] = (int)ceil((double)dext[d] / h[d]) + 2;
 
-    void add(TransformedExtent& ex);
+	    ntot = n[0] * n[1] * n[2];
+
+	    data.resize(ntot);
+	}
+
+    bool check(TransformedExtent& ex)
+	{
+	    int imin[3], imax[3];
+
+	    for (int d=0; d<3; d++)
+	    {
+		imin[d] = floor(ex.xmin[d] / h[d]) + 1;
+		imax[d] = floor(ex.xmax[d] / h[d]) + 1;
+	    }
+
+	    for (int i=imin[0]; i<=imax[0]; i++)
+		for (int j=imin[1]; j<=imax[1]; j++)
+		    for (int k=imin[2]; k<=imax[2]; k++)
+		    {
+			const int icell = i * n[1] * n[2] + j * n[2] + k;
+
+			bool good = true;
+
+			for (auto rival : data[icell])
+			    good &= !ex.collides(rival, safetymargin);
+
+			if (!good)
+			    return false;
+		    }
+
+	    return true;
+	}
+
+
+    void add(TransformedExtent& ex)
+	{
+	    int imin[3], imax[3];
+
+	    for (int d=0; d<3; ++d)
+	    {
+		imin[d] = floor(ex.xmin[d] / h[d]) + 1;
+		imax[d] = floor(ex.xmax[d] / h[d]) + 1;
+	    }
+
+	    bool good = true;
+
+	    for (int i=imin[0]; i<=imax[0]; i++)
+		for (int j=imin[1]; j<=imax[1]; j++)
+		    for (int k=imin[2]; k<=imax[2]; k++)
+		    {
+			const int icell = i * n[1]*n[2] + j * n[2] + k;
+			data[icell].push_back(ex);
+		    }
+	}
 };
-
-Checker::Checker(float hh, int dext[3])
-{
-    h[0] = h[1] = h[2] = hh;
-
-    for (int d = 0; d < 3; ++d)
-        n[d] = (int)ceil((double)dext[d] / h[d]) + 2;
-
-    ntot = n[0] * n[1] * n[2];
-
-    data.resize(ntot);
-}
-
-bool Checker::check(TransformedExtent &ex)
-{
-    int imin[3], imax[3];
-
-    for (int d=0; d<3; d++)
-    {
-        imin[d] = floor(ex.xmin[d] / h[d]) + 1;
-        imax[d] = floor(ex.xmax[d] / h[d]) + 1;
-    }
-
-    for (int i=imin[0]; i<=imax[0]; i++)
-        for (int j=imin[1]; j<=imax[1]; j++)
-            for (int k=imin[2]; k<=imax[2]; k++)
-            {
-                const int icell = i * n[1] * n[2] + j * n[2] + k;
-
-		bool good = true;
-
-		for (auto rival : data[icell])
-                    good &= !ex.collides(rival, 0.01f);
-
-                if (!good)
-		    return false;
-            }
-
-    return true;
-}
-
-void Checker::add(TransformedExtent& ex)
-{
-    int imin[3], imax[3];
-
-    for (int d=0; d<3; ++d)
-    {
-        imin[d] = floor(ex.xmin[d] / h[d]) + 1;
-        imax[d] = floor(ex.xmax[d] / h[d]) + 1;
-    }
-
-    bool good = true;
-
-    for (int i=imin[0]; i<=imax[0]; i++)
-        for (int j=imin[1]; j<=imax[1]; j++)
-            for (int k=imin[2]; k<=imax[2]; k++)
-            {
-                const int icell = i * n[1]*n[2] + j * n[2] + k;
-                data[icell].push_back(ex);
-            }
-}
 
 int main(int argc, const char ** argv)
 {
@@ -348,7 +345,10 @@ int main(int argc, const char ** argv)
     bool failed = false;
 
     vector<TransformedExtent> results[2];
-    Checker checker(8, domainextent);
+
+    const float tol = 0.7;
+
+    Checker checker(8, domainextent, tol);
 
     int tot = 0;
     while(!failed)
@@ -364,15 +364,16 @@ int main(int argc, const char ** argv)
 
 	    bool noncolliding = true;
 
-            /* original code:
-	       for(int i = 0; i < 2; ++i)
-	       for(int j = 0; j < results[i].size() && noncolliding; ++j)
-	       noncolliding &= !t.collides(results[i][j], 0.00);
-	    */
+#if 0
+            //original code
+	    for(int i = 0; i < 2; ++i)
+		for(int j = 0; j < results[i].size() && noncolliding; ++j)
+		    noncolliding &= !t.collides(results[i][j], tol);
+#else
+            noncolliding = checker.check(t);
+#endif
 
-            const bool ch = checker.check(t);
-
-            if (ch)
+            if (noncolliding)
 	    {
                 checker.add(t);
 		results[type].push_back(t);
