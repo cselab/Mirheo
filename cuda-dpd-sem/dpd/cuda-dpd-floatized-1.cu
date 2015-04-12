@@ -92,11 +92,6 @@ __inline__ __device__ uint2 __unpack_8_24(uint d) {
 	return make_uint2( a, d&0x00FFFFFFU );
 }
 
-//__device__ char4 tid2ind[14] = {{-1, -1, -1, 0}, {0, -1, -1, 0}, {1, -1, -1, 0},
-//				{-1,  0, -1, 0}, {0,  0, -1, 0}, {1,  0, -1, 0},
-//				{-1,  1, -1, 0}, {0,  1, -1, 0}, {1,  1, -1, 0},
-//				{-1, -1,  0, 0}, {0, -1,  0, 0}, {1, -1,  0, 0},
-//				{-1,  0,  0, 0}, {0,  0,  0, 0}};
 __device__ char4 tid2ind[32] = {{-1, -1, -1, 0}, {0, -1, -1, 0}, {1, -1, -1, 0},
                                 {-1,  0, -1, 0}, {0,  0, -1, 0}, {1,  0, -1, 0},
                                 {-1 , 1, -1, 0}, {0,  1, -1, 0}, {1,  1, -1, 0},
@@ -113,20 +108,11 @@ __device__ char4 tid2ind[32] = {{-1, -1, -1, 0}, {0, -1, -1, 0}, {1, -1, -1, 0},
 #define MYCPBZ	(2)
 #define MYWPB	(4)
 
-#ifdef CRAZY_SMEM
 __forceinline__ __device__ void core_ytang(const uint dststart, const uint pshare, const uint tid, const uint spidext ) {
-#else
-__forceinline__ __device__ void core_ytang(volatile uint const *queue, const uint dststart, const uint wid, const uint tid, const uint spidext ) {
-#endif
-
-#ifdef CRAZY_SMEM
 	uint item;
 	const uint offset = xmad( tid, 4.f, pshare );
 	asm("ld.volatile.shared.u32 %0, [%1+1024];" : "=r"(item) : "r"(offset) : "memory" );
 	const uint2 pid = __unpack_8_24( item );
-#else
-	const uint2 pid = __unpack_8_24( queue[tid] );
-#endif
 	const uint dpid = xadd( dststart, pid.x );
 	const uint spid = pid.y;
 
@@ -387,42 +373,35 @@ bool fdpd_init = false;
 static cudaEvent_t evstart, evstop;
 #endif
 
-#if 1
-__global__ void make_texture( float *xyzouvwo, ushort4 *xyzo_half, const float *xyzuvw, const uint n ) {
-	extern __shared__ volatile float smem[];
+__global__ void make_texture( float4 * __restrict xyzouvwo, ushort4 * __restrict xyzo_half, const float * __restrict xyzuvw, const uint n ) {
+	extern __shared__ volatile float  smem[];
 	const uint warpid = threadIdx.x / 32;
 	const uint lane = threadIdx.x % 32;
 	for(uint i = blockIdx.x*blockDim.x+threadIdx.x ; i < n ; i += blockDim.x*gridDim.x ) {
 		const uint base = i - i % 32;
-		#pragma unroll
-		for(uint j = lane; j < 192; j += 32) {
-			smem[ warpid * 192 + j ] = xyzuvw[ base * 6 + j ];
-			xyzouvwo[ base * 8 + (j / 3) * 4 + j % 3 ] = xyzuvw[ base * 6 + j];
+		const float2 * pbase = (float2*)( xyzuvw +  base*6 );
+		#pragma unroll 3
+		for(uint j = lane; j < 96; j += 32) {
+			float2 u = pbase[j];
+			// NVCC bug: no operator = between volatile float2 and float2
+			asm volatile("st.volatile.shared.v2.f32 [%0], {%1, %2};" : : "r"((warpid * 96 + j)*8), "f"(u.x), "f"(u.y) : "memory" );
 		}
+		// SMEM: XYZUVW XYZUVW ...
+		uint pid = lane / 2;
+		const uint x_or_v = (lane % 2) * 3;
+		xyzouvwo[ base * 2 + lane ] = make_float4( smem[ warpid*192 + pid*6 + x_or_v + 0 ],
+												   smem[ warpid*192 + pid*6 + x_or_v + 1 ],
+												   smem[ warpid*192 + pid*6 + x_or_v + 2 ], 0 );
+		pid += 16;
+		xyzouvwo[ base * 2 + lane+32] = make_float4( smem[ warpid*192 + pid*6 + x_or_v + 0 ],
+													 smem[ warpid*192 + pid*6 + x_or_v + 1 ],
+													 smem[ warpid*192 + pid*6 + x_or_v + 2 ], 0 );
+
 		xyzo_half[i] = make_ushort4( __float2half_rn( smem[ warpid*192 + lane*6 + 0 ] ),
 									 __float2half_rn( smem[ warpid*192 + lane*6 + 1 ] ),
 									 __float2half_rn( smem[ warpid*192 + lane*6 + 2 ] ), 0 );
 	}
 }
-#else
-__global__ void make_texture( float *xyzouvwo, ushort4 *xyzo_half, const float *xyzuvw, const int n ) {
-        for(int i=blockIdx.x*blockDim.x+threadIdx.x;i<n;i+=blockDim.x*gridDim.x) {
-                float x = xyzuvw[i*6+0];
-                float y = xyzuvw[i*6+1];
-                float z = xyzuvw[i*6+2];
-                float u = xyzuvw[i*6+3];
-                float v = xyzuvw[i*6+4];
-                float w = xyzuvw[i*6+5];
-                xyzouvwo[i*8+0] = x;
-                xyzouvwo[i*8+1] = y;
-                xyzouvwo[i*8+2] = z;
-                xyzouvwo[i*8+4] = u;
-                xyzouvwo[i*8+5] = v;
-                xyzouvwo[i*8+6] = w;
-                xyzo_half[i] = make_ushort4( __float2half_rn(x), __float2half_rn(y), __float2half_rn(z), 0 );
-        }
-}
-#endif
 
 __global__ void make_texture2( uint2 *start_and_count, const int *start, const int *count, const int n ) {
 	for(int i=blockIdx.x*blockDim.x+threadIdx.x;i<n;i+=blockDim.x*gridDim.x) {
@@ -535,7 +514,7 @@ void forces_dpd_cuda_nohost(const float * const xyzuvw, float * const axayaz,  c
 		last_nc = ncells;
 	}
 
-	make_texture<<<28,1024,1024*6*sizeof(float),stream>>>( xyzouvwo, xyzo_half, xyzuvw, np );
+	make_texture<<<28,1024,1024*6*sizeof(float),stream>>>( (float4*)xyzouvwo, xyzo_half, xyzuvw, np );
 	CUDA_CHECK( cudaBindTexture( &textureoffset, &texParticlesF4, xyzouvwo,  &texParticlesF4.channelDesc, sizeof( float ) * 8 * np ) );
 	assert(textureoffset == 0);
 	CUDA_CHECK( cudaBindTexture( &textureoffset, &texParticlesH4, xyzo_half, &texParticlesH4.channelDesc, sizeof( ushort4 ) * np ) );
