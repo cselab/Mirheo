@@ -19,6 +19,7 @@
 
 struct InfoDPD {
     int3 ncells;
+    uint nxyz;
     float3 domainsize, invdomainsize, domainstart;
     float invrc, aij, gamma, sigmaf;
     float * axayaz;
@@ -130,17 +131,17 @@ __forceinline__ __device__ void core_ytang( const uint dststart, const uint psha
     // the overhead of transposition acc back
     // can be completely killed by changing the integration kernel
 #ifdef TRANSPOSED_ATOMICS
-    uint base = dpid & 0xFFFFFFE0U; // xdiv + xscale -> 0.01ms slower
-    uint off  = xsub( dpid, base );
-    float* acc = info.axayaz + xmad( base, 3.f, off );
+    uint off  = dpid & 0x0000001FU;
+    uint base = xdiv( dpid, 1/32.f);
+    float* acc = info.axayaz + xmad( base, 96.f, off );
     atomicAdd( acc   , f.x );
     atomicAdd( acc + 32, f.y );
     atomicAdd( acc + 64, f.z );
 
     if( spid < spidext ) {
-        uint base = spid & 0xFFFFFFE0U;
-        uint off  = xsub( spid, base );
-        float* acc = info.axayaz + xmad( base, 3.f, off );
+        uint off  = spid & 0x0000001FU;
+        uint base = xdiv( spid, 1/32.f );
+        float* acc = info.axayaz + xmad( base, 96.f, off );
         atomicAdd( acc   , -f.x );
         atomicAdd( acc + 32, -f.y );
         atomicAdd( acc + 64, -f.z );
@@ -243,7 +244,7 @@ void _dpd_forces_symm_merged() {
              "}" :
              "+r"( mystart ), "+r"( mycount )  :
              "f"( u2f( tid ) ), "f"( u2f( 14u ) ), "r"( cid ), "f"( i2f( cid ) ),
-             "r"( info.ncells.x*info.ncells.y*info.ncells.z ) );
+             "r"( info.nxyz ) );
         myscan  = mycount;
         asm( "st.volatile.shared.u32 [%0], %1;" ::
              "r"( xmad( tid, 8.f, pshare ) ),
@@ -316,7 +317,7 @@ void _dpd_forces_symm_merged() {
                  "@p add.f32           key, key, %3;"
                  "   setp.lt.f32       p, key, %2;"
                  "   setp.lt.and.f32   p, %5, %6, p;"
-                 "@p ld.shared.f32     scan6, [array + 6*8 + 4];"
+                 "   ld.shared.f32     scan6, [array + 6*8 + 4];"
                  "   setp.ge.and.f32   q, %1, scan6, p;"
                  "@q add.f32           key, key, %3;"
                  "   fma.f32.rm        array_f, key, 8.0, %4;"
@@ -431,20 +432,21 @@ __global__ void check_acc( const int np )
     printf( "ACC: %lf %lf %lf\n", sx, sy, sz );
 }
 
-__global__ void transpose_acc( const int np )
+__global__  __launch_bounds__( 1024, 2 )
+void transpose_acc( const int np )
 {
-    for( int i = blockIdx.x * blockDim.x + threadIdx.x; i < np; i += blockDim.x * gridDim.x ) {
-        int base = i & 0xFFFFFFE0U;
-        int off  = i - base;
-        float ax = info.axayaz[ base * 3 + off      ];
-        float ay = info.axayaz[ base * 3 + off + 32 ];
-        float az = info.axayaz[ base * 3 + off + 64 ];
-        // make sync between lanes
-        if( __ballot( 1 ) ) {
-            info.axayaz[ i * 3 + 0 ] = ax;
-            info.axayaz[ i * 3 + 1 ] = ay;
-            info.axayaz[ i * 3 + 2 ] = az;
-        }
+    __shared__ volatile float  smem[32][96];
+    const uint warpid = threadIdx.x / 32;
+    const uint lane = threadIdx.x % 32;
+
+    for( uint i = blockIdx.x * blockDim.x + threadIdx.x; i < np; i += blockDim.x * gridDim.x ) {
+        const uint base = xmad( i / 32u, 96.f, lane );
+        smem[warpid][lane   ] = info.axayaz[ base      ];
+        smem[warpid][lane+32] = info.axayaz[ base + 32 ];
+        smem[warpid][lane+64] = info.axayaz[ base + 64 ];
+		info.axayaz[ base      ] = smem[warpid][ xmad( __IMOD(lane+ 0,3), 32.f, (lane+ 0)/3 ) ];
+		info.axayaz[ base + 32 ] = smem[warpid][ xmad( __IMOD(lane+32,3), 32.f, (lane+32)/3 ) ];
+		info.axayaz[ base + 64 ] = smem[warpid][ xmad( __IMOD(lane+64,3), 32.f, (lane+64)/3 ) ];
     }
 }
 
@@ -533,6 +535,7 @@ void forces_dpd_cuda_nohost( const float * const xyzuvw, float * const axayaz,  
     assert( textureoffset == 0 );
 
     c.ncells = make_int3( nx, ny, nz );
+    c.nxyz = nx * ny * nz;
     c.domainsize = make_float3( XL, YL, ZL );
     c.invdomainsize = make_float3( 1 / XL, 1 / YL, 1 / ZL );
     c.domainstart = make_float3( -XL * 0.5, -YL * 0.5, -ZL * 0.5 );
@@ -559,7 +562,7 @@ void forces_dpd_cuda_nohost( const float * const xyzuvw, float * const axayaz,  
     if( c.ncells.x % MYCPBX == 0 && c.ncells.y % MYCPBY == 0 && c.ncells.z % MYCPBZ == 0 ) {
         _dpd_forces_symm_merged <<< dim3( c.ncells.x / MYCPBX, c.ncells.y / MYCPBY, c.ncells.z / MYCPBZ ), dim3( 32, MYWPB ), 0, stream >>> ();
 #ifdef TRANSPOSED_ATOMICS
-        transpose_acc <<< 64, 512, 0, stream>>>( np );
+        transpose_acc <<< 28, 1024, 0, stream>>>( np );
 #endif
     } else {
         fprintf( stderr, "Incompatible grid config\n" );
