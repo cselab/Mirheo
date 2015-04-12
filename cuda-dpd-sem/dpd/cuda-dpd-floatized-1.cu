@@ -206,14 +206,16 @@ void _dpd_forces_symm_merged() {
     	//* was:                 ( ( it & 1u ) ^ ( it >> 1 ) ) * info.ncells.x;
     	int cid;
         asm("{  .reg .pred    p;"
+        	"   .reg .f32     incf;"
         	"   .reg .s32     inc;"
         	"    setp.lt.f32  p, %2, %3;"
-        	"    selp.s32     inc, %4, 0, p;"
-        	"    add.s32      inc, inc, %5;"
+        	"    selp.f32     incf, %4, 0.0, p;"
+        	"    add.f32      incf, incf, %5;"
+        	"    mov.b32      inc, incf;"
         	"    mul.lo.u32   inc, inc, %6;"
         	"    add.s32 %0,  %1, inc;"
         	"}" :
-        	"=r"(cid) : "r"(cbase), "f"(u2f(it)), "f"(u2f(2u)), "r"(info.ncells.y), "r"( ( it & 1u ) ^ ( it >> 1 ) ),
+        	"=r"(cid) : "r"(cbase), "f"(u2f(it)), "f"(u2f(2u)), "f"(i2f(info.ncells.y)), "f"( u2f( ( it & 1u ) ^ ( it >> 1 ) ) ),
         	"r"(info.ncells.x) );
 
         //* was: uint mycount=0, myscan=0;
