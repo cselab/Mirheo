@@ -737,13 +737,14 @@ namespace KernelsRBC
 	}
 
 	size_t textureoffset;
-	CUDA_CHECK(cudaBindTexture(&textureoffset, &texSolventParticles, solvent, &texSolventParticles.channelDesc,
+	if (npsolvent)
+	    CUDA_CHECK(cudaBindTexture(&textureoffset, &texSolventParticles, solvent, &texSolventParticles.channelDesc,
 				   sizeof(float) * 6 * npsolvent));
 	assert(textureoffset == 0);
 
 
-	CUDA_CHECK(cudaBindTexture(&textureoffset, &texSoluteParticles, solute, &texSoluteParticles.channelDesc,
-				   sizeof(float) * 6 * npsolute));
+	if (npsolute)
+	    CUDA_CHECK(cudaBindTexture(&textureoffset, &texSoluteParticles, solute, &texSoluteParticles.channelDesc, sizeof(float) * 6 * npsolute));
 	assert(textureoffset == 0);
 
 
@@ -976,32 +977,28 @@ void ComputeInteractionsRBC::fsi_bulk(const Particle * const solvent, const int 
 {
     NVTX_RANGE("RBC/fsi-bulk", NVTX_C6);
 
+    const int nsolute = nrbcs * nvertices;
+    const int nsolvent = nparticles;
+    const int3 vcells = make_int3(XSIZE_SUBDOMAIN, YSIZE_SUBDOMAIN, ZSIZE_SUBDOMAIN);
+    const int ncells = XSIZE_SUBDOMAIN * YSIZE_SUBDOMAIN * ZSIZE_SUBDOMAIN;
 
+    reordered_solute.resize(nsolute);
+    reordering.resize(nsolute);
+    lacc_solute.resize(nsolute);
+
+    KernelsRBC::setup(solvent, nparticles, cellsstart_solvent, cellscount_solvent,
+		      reordered_solute.data, nsolute, dualcells.start, dualcells.count);
 
     if (nrbcs > 0 && nparticles > 0)
     {
 	const float seed = local_trunk.get_float();
 
 #if 1
-	const int nsolvent = nparticles;
-	const int nsolute = nrbcs * nvertices;
-	const int3 vcells = make_int3(XSIZE_SUBDOMAIN, YSIZE_SUBDOMAIN, ZSIZE_SUBDOMAIN);
-	const int ncells = XSIZE_SUBDOMAIN * YSIZE_SUBDOMAIN * ZSIZE_SUBDOMAIN;
-
-	reordered_solute.resize(nsolute);
 	CUDA_CHECK(cudaMemcpyAsync(reordered_solute.data, rbcs, sizeof(Particle) * nrbcs * nvertices, cudaMemcpyDeviceToDevice, stream));
 
-	reordering.resize(nsolute);
 	dualcells.build(reordered_solute.data, nrbcs * nvertices, stream, reordering.data);
 
-	//texSoluteStart.acquire(const_cast<int *>(dualcells.start), ncells + 1);
-	//texSolute.acquire((float2 *)const_cast<Particle *>(reordered_solute.data), reordered_solute.capacity);
-
-	lacc_solute.resize(nsolute);
 	CUDA_CHECK(cudaMemsetAsync(lacc_solute.data, 0, sizeof(float) * 3 * lacc_solute.size, stream));
-
-	KernelsRBC::setup(solvent, nparticles, cellsstart_solvent, cellscount_solvent,
-			  reordered_solute.data, nsolute, dualcells.start, dualcells.count);
 
 	KernelsRBC::fsi_forces<2, 2, 1, 8, 4><<<
 	    dim3(vcells.x / 2, vcells.y / 2, vcells.z), dim3(32, 4), 0, stream>>>
@@ -1011,7 +1008,6 @@ void ComputeInteractionsRBC::fsi_bulk(const Particle * const solvent, const int 
 	    reordering.data, lacc_solute.data, nrbcs * nvertices, accrbc);
 
 #else
-	KernelsRBC::setup(solvent, nparticles, cellsstart_solvent, cellscount_solvent, NULL, 0, NULL,NULL);
 	KernelsRBC::fsi_forces<<< (nrbcs * nvertices + 127) / 128, 128, 0, stream >>>
 	    (seed, accsolvent, nparticles, rbcs, nrbcs * nvertices, accrbc);
 #endif
