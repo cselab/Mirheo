@@ -178,13 +178,24 @@ void _dpd_forces_symm_merged() {
 			  offs.y*info.ncells.x +
 			  offs.x;
 
-	//#pragma unroll 4 // faster on k20x, slower on k20
 	for(int it = 3; it >= 0; it--) { // TODO: TINYFLOAT slower? try later
 
 		const int cid = cbase +
 				(it>1)*info.ncells.x*info.ncells.y +
 				((it&1)^((it>>1)&1))*info.ncells.x;
 
+		//* was: uint mycount=0, myscan=0;
+		//* was: if (tid < 14) {
+			//* was: const int cid = cbase +
+			//* was: 		(it>1)*info.ncells.x*info.ncells.y +
+			//* was: 		((it&1)^((it>>1)&1))*info.ncells.x;
+
+			//* was: const bool valid_cid = (cid >= 0) && (cid < info.ncells.x*info.ncells.y*info.ncells.z);
+			//* was: const uint2 sc = valid_cid ? tex1Dfetch( texStartAndCount, cid ) : make_uint2(0,0);
+
+			//* was: start_n_scan[wid][tid].x = (valid_cid) ? tex1Dfetch(texStart, cid) : 0;
+			//* was: myscan = mycount = (valid_cid) ? tex1Dfetch(texCount, cid) : 0;
+		//* was: }
 		uint mystart = 0, mycount = 0, myscan;
 		asm("{  .reg .pred vc;"
 			"   .reg .u32  foo, bar;"
@@ -199,30 +210,16 @@ void _dpd_forces_symm_merged() {
 			"+r"(mystart), "+r"(mycount)  :
 			"f"(u2f(tid)), "f"(u2f(14u)), "r"(cid), "f"(i2f(cid)),
 			"r"(info.ncells.x*info.ncells.y*info.ncells.z) );
-
 		myscan  = mycount;
 		asm("st.volatile.shared.u32 [%0], %1;" ::
 			"r"( xmad( tid, 8.f, pshare ) ),
 			"r"( mystart ) :
 			"memory" );
-		//* was: uint mycount=0, myscan=0;
-		//* was: if (tid < 14) {
-			//* was: const int cid = cbase +
-			//* was: 		(it>1)*info.ncells.x*info.ncells.y +
-			//* was: 		((it&1)^((it>>1)&1))*info.ncells.x;
-
-			//* was: const bool valid_cid = (cid >= 0) && (cid < info.ncells.x*info.ncells.y*info.ncells.z);
-			//* was: const uint2 sc = valid_cid ? tex1Dfetch( texStartAndCount, cid ) : make_uint2(0,0);
-
-			//* was: start_n_scan[wid][tid].x = (valid_cid) ? tex1Dfetch(texStart, cid) : 0;
-			//* was: myscan = mycount = (valid_cid) ? tex1Dfetch(texCount, cid) : 0;
-		//* was: }
 	   
 		// was: #pragma unroll
 		// was: for(int L = 1; L < 32; L <<= 1) {
 		// was: 	myscan = xadd( myscan, (tid >= L)*__shfl_up(myscan, L) );
 		// was: }
-
 		asm("{ .reg .pred   p;"
 			"  .reg .f32    myscan, theirscan;"
 			"   mov.b32     myscan, %0;"
@@ -302,8 +299,7 @@ void _dpd_forces_symm_merged() {
 				const float4 xdest = tex1Dfetch( texParticlesH4, dpid );
 				const float d2 = (xdest.x-xsrc.x)*(xdest.x-xsrc.x) + (xdest.y-xsrc.y)*(xdest.y-xsrc.y) + (xdest.z-xsrc.z)*(xdest.z-xsrc.z);
 
-				#ifdef LETS_MAKE_IT_MESSY
-				//int interacting = 0;
+				//* was: int interacting = 0;
 				asm volatile(".reg .pred interacting;");
 				uint overview;
 				asm("   setp.lt.ftz.f32  interacting, %3, 1.0;"
@@ -314,47 +310,23 @@ void _dpd_forces_symm_merged() {
 
 				const uint insert = xadd( nb, i2u( __popc( overview & __lanemask_lt() ) ) );
 
+				//* was: if (interacting) queue[wid][insert] = __pack_8_24( xsub(dpid,dststart), spid );
 				asm("@interacting st.volatile.shared.u32 [%0+1024], %1;" : :
 					"r"( xmad( insert, 4.f, pshare ) ),
 					"r"( __pack_8_24( xsub(dpid,dststart), spid ) ) :
 					"memory" );
-				//* was: if (interacting) queue[wid][insert] = __pack_8_24( xsub(dpid,dststart), spid );
 
 				nb = xadd( nb, i2u( __popc( overview ) ) );
 				if ( nb >= 32u ) {
 					core_ytang( dststart, pshare, tid, spidext );
 					nb = xsub( nb, 32u );
 
+					//* was: queue[tid] = queue[tid+32];
 					asm("{ .reg .u32 tmp;"
 						"   ld.volatile.shared.u32 tmp, [%0+1024+128];"
 						"   st.volatile.shared.u32 [%0+1024], tmp;"
 						"}" :: "r"( xmad( tid, 4.f, pshare ) ) : "memory" );
-					//* was: queue[tid] = queue[tid+32];
 				}
-				#else
-				const int interacting = (pid<nsrc) && ((dpid != spid) && (d2 < 1.0f));
-
-				uint overview = __ballot( interacting );
-				const uint insert = xadd( nb, i2u( __popc( overview & __lanemask_lt() ) ) );
-				if (interacting) {
-					asm("st.volatile.shared.u32 [%0+1024], %1;" : :
-						"r"( xmad( insert, 4.f, pshare ) ),
-						"r"( __pack_8_24( xsub(dpid,dststart), spid ) ) :
-						"memory" );
-					//* was: queue[insert] = __pack_8_24( xsub(dpid,dststart), spid );
-				}
-				nb = xadd( nb, i2u( __popc( overview ) ) );
-				if ( nb >= 32u ) {
-					core_ytang( dststart, pshare, tid, spidext );
-					nb = xsub( nb, 32u );
-
-					asm("{ .reg .u32 tmp;"
-						"   ld.volatile.shared.u32 tmp, [%0+1024+128];"
-						"   st.volatile.shared.u32 [%0+1024], tmp;"
-						"}" :: "r"( xmad( tid, 4.f, pshare ) ) : "memory" );
-					//* was: queue[tid] = queue[tid+32];
-				}
-				#endif
 
 			}
 		}
