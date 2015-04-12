@@ -440,7 +440,7 @@ __global__ void check_acc_transposed( const int np )
 }
 
 
-__global__  __launch_bounds__( 128, 16 )
+__global__  __launch_bounds__( 1024, 2 )
 void transpose_acc( const int np )
 {
     __shared__ volatile float  smem[32][96];
@@ -452,7 +452,6 @@ void transpose_acc( const int np )
         smem[warpid][lane   ] = info.axayaz[ base      ];
         smem[warpid][lane+32] = info.axayaz[ base + 32 ];
         smem[warpid][lane+64] = info.axayaz[ base + 64 ];
-        __threadfence();
 		info.axayaz[ base      ] = smem[warpid][ xmad( __IMOD(lane+ 0,3), 32.f, (lane+ 0)/3 ) ];
 		info.axayaz[ base + 32 ] = smem[warpid][ xmad( __IMOD(lane+32,3), 32.f, (lane+32)/3 ) ];
 		info.axayaz[ base + 64 ] = smem[warpid][ xmad( __IMOD(lane+64,3), 32.f, (lane+64)/3 ) ];
@@ -575,7 +574,7 @@ void forces_dpd_cuda_nohost( const float * const xyzuvw, float * const axayaz,  
         _dpd_forces_symm_merged <<< dim3( c.ncells.x / MYCPBX, c.ncells.y / MYCPBY, c.ncells.z / MYCPBZ ), dim3( 32, MYWPB ), 0, stream >>> ();
 #ifdef TRANSPOSED_ATOMICS
         // check_acc_transposed<<<1, 1, 0, stream>>>( np );
-        transpose_acc <<< 224, 128, 0, stream>>>( np );
+        transpose_acc <<< 28, 1024, 0, stream>>>( np );
 #endif
     } else {
         fprintf( stderr, "Incompatible grid config\n" );
