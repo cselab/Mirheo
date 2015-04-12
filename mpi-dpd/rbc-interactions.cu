@@ -1037,7 +1037,6 @@ void ComputeInteractionsRBC::fsi_bulk(const Particle * const solvent, const int 
     const int nsolute = nrbcs * nvertices;
     const int nsolvent = nparticles;
     const int3 vcells = make_int3(XSIZE_SUBDOMAIN, YSIZE_SUBDOMAIN, ZSIZE_SUBDOMAIN);
-    const int ncells = XSIZE_SUBDOMAIN * YSIZE_SUBDOMAIN * ZSIZE_SUBDOMAIN;
 
     reordered_solute.resize(nsolute);
     reordering.resize(nsolute);
@@ -1196,4 +1195,3 @@ ComputeInteractionsRBC::~ComputeInteractionsRBC()
 
     KernelsRBC::dispose();
 }
-
