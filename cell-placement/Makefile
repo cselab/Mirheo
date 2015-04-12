@@ -1,10 +1,7 @@
 cell-placement:	main.cpp
-	$(CXX) -std=c++11 -O3 -fopenmp main.cpp -o cell-placement
-
-check: check.cpp
-	$(CXX) -std=c++11 -O3 check.cpp -o check
+	$(CXX) main.cpp -o cell-placement -O3 -std=c++11
 
 clean:
-	rm -f cell-placement check
+	rm cell-placement
 
 .PHONY = cell-placement

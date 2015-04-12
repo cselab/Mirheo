@@ -40,7 +40,7 @@ class ComputeInteractionsWall
     
 public:
 
-    ComputeInteractionsWall(MPI_Comm cartcomm, Particle* const p, const int n, int& nsurvived, ExpectedMessageSizes& new_sizes);
+    ComputeInteractionsWall(MPI_Comm cartcomm, Particle* const p, const int n, int& nsurvived, ExpectedMessageSizes& new_sizes, const bool verbose);
 
     ~ComputeInteractionsWall();
      

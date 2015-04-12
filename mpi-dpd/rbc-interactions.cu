@@ -385,8 +385,8 @@ namespace KernelsRBC
 		    const float3 f = fsi_interaction(seed, dpid, udest, spid, stmp1, stmp2, xr, yr, zr, rij2);
 
 		    /*atomicAdd(accsolute + 3 * dpid    , f.x);
-		    atomicAdd(accsolute + 3 * dpid + 1, f.y);
-		    atomicAdd(accsolute + 3 * dpid + 2, f.z);*/
+		      atomicAdd(accsolute + 3 * dpid + 1, f.y);
+		      atomicAdd(accsolute + 3 * dpid + 2, f.z);*/
 		    force.x += f.x;
 		    force.y += f.y;
 		    force.z += f.z;
@@ -404,8 +404,8 @@ namespace KernelsRBC
     }
 
     __global__ void fsi_forces_old(const float seed,
-			       Acceleration * accsolvent, const int npsolvent,
-			       const Particle * const particle, const int nparticles, Acceleration * accrbc)
+				   Acceleration * accsolvent, const int npsolvent,
+				   const Particle * const particle, const int nparticles, Acceleration * accrbc)
     {
 	const int dpid = threadIdx.x + blockDim.x * blockIdx.x;
 
@@ -485,16 +485,41 @@ namespace KernelsRBC
     __constant__ Particle * packstates[26];
     __constant__ Acceleration * packresults[26];
 
+    __device__ float3 __shfl_float3(float3 f, int l) {
+
+	return make_float3(__shfl(f.x, l),
+			   __shfl(f.y, l),
+			   __shfl(f.z, l));
+    }
+
+    __constant__ char4 tid2ind[32] = {{-1, -1, -1, 0}, {0, -1, -1, 0}, {1, -1, -1, 0},
+				      {-1,  0, -1, 0}, {0,  0, -1, 0}, {1,  0, -1, 0},
+				      {-1 , 1, -1, 0}, {0,  1, -1, 0}, {1,  1, -1, 0},
+				      {-1, -1,  0, 0}, {0, -1,  0, 0}, {1, -1,  0, 0},
+				      {-1,  0,  0, 0}, {0,  0,  0, 0}, {1,  0,  0, 0},
+				      {-1,  1,  0, 0}, {0,  1,  0, 0}, {1,  1,  0, 0},
+				      {-1, -1,  1, 0}, {0, -1,  1, 0}, {1, -1,  1, 0},
+				      {-1,  0,  1, 0}, {0,  0,  1, 0}, {1,  0,  1, 0},
+				      {-1,  1,  1, 0}, {0,  1,  1, 0}, {1,  1,  1, 0},
+				      { 0,  0,  0, 0}, {0,  0,  0, 0}, {0,  0,  0, 0},
+				      { 0,  0,  0, 0}, {0,  0,  0, 0}};
+
     template<int BLOCKSIZE> __global__  __launch_bounds__(32 * 4, 16)
-	void fsi_forces_all(const float seed, Acceleration * accsolvent, const int npsolvent, const int nremote)
+	void fsi_forces_all_nopref(const float seed, Acceleration * accsolvent, const int npsolvent, const int nremote)
     {
 	assert(blockDim.x == BLOCKSIZE);
 	assert(blockDim.x * gridDim.x >= nremote);
 
 	__shared__ float tmp[BLOCKSIZE * 3];
+	__shared__ int volatile starts[BLOCKSIZE];
+	__shared__ int volatile scan[BLOCKSIZE];
 
 	const int tid = threadIdx.x;
 	const int gidstart =  BLOCKSIZE * blockIdx.x;
+
+	const int lid = threadIdx.x%32;
+	const int wof = threadIdx.x&(~31);
+	const int wst = gidstart+wof;
 
 	const int nlocal = min(BLOCKSIZE, nremote - gidstart);
 
@@ -570,58 +595,90 @@ namespace KernelsRBC
 
 	__syncthreads();
 
-	if (tid + gidstart < nremote)
+	if (wst < nremote)
 	{
+	    char mycid[4] = {-2,-2,-2,0};
+	    if (tid + gidstart < nremote) {
+	        mycid[0] = XSIZE_SUBDOMAIN / 2 + (int)floor(xp.x);
+	        mycid[1] = YSIZE_SUBDOMAIN / 2 + (int)floor(xp.y);
+	        mycid[2] = ZSIZE_SUBDOMAIN / 2 + (int)floor(xp.z);
+		mycid[3] = 1;
+
+	        if (mycid[0] < -1 || mycid[0] >= XSIZE_SUBDOMAIN + 1 ||
+		    mycid[1] < -1 || mycid[1] >= YSIZE_SUBDOMAIN + 1 ||
+		    mycid[2] < -1 || mycid[2] >= ZSIZE_SUBDOMAIN + 1)
+		    mycid[3] = 0;
+            }
+
 	    float fsum[3] = {0, 0, 0};
+	    const char4 offs = tid2ind[lid];
 
-	    const int xcid = XSIZE_SUBDOMAIN / 2 + (int)floor(xp.x);
-	    const int ycid = YSIZE_SUBDOMAIN / 2 + (int)floor(xp.y);
-	    const int zcid = ZSIZE_SUBDOMAIN / 2 + (int)floor(xp.z);
+	    for(int l = 0; l < 32; l++) {
 
-	    const bool invalid =
-		xcid < -1 || xcid >= XSIZE_SUBDOMAIN + 1 ||
-		ycid < -1 || ycid >= YSIZE_SUBDOMAIN + 1 ||
-		zcid < -1 || zcid >= ZSIZE_SUBDOMAIN + 1 ;
+		char ccel[4];
+		*((int *)ccel) = __shfl(*((int *)mycid), l);
+		if (!ccel[3]) continue;
 
-	    if (!invalid)
-		for(int code = 0; code < 27; ++code)
-		{
-		    const int xsrccid = xcid + (code % 3) - 1;
-		    const int ysrccid = ycid + (code/3 % 3) - 1;
-		    const int zsrccid = zcid + (code/9 % 3) - 1;
+    		int mycount=0, myscan=0;
+		if (lid < 27) {
 
-		    const bool invalidsrccid =
-			xsrccid < 0 || xsrccid >= XSIZE_SUBDOMAIN ||
-			ysrccid < 0 || ysrccid >= YSIZE_SUBDOMAIN ||
-			zsrccid < 0 || zsrccid >= ZSIZE_SUBDOMAIN ;
+		    ccel[0] += offs.x;
+		    ccel[1] += offs.y;
+		    ccel[2] += offs.z;
 
-		    if (invalidsrccid)
-			continue;
+		    bool validcid = ccel[0] >= 0 && ccel[0] < XSIZE_SUBDOMAIN &&
+			ccel[1] >= 0 && ccel[1] < YSIZE_SUBDOMAIN &&
+			ccel[2] >= 0 && ccel[2] < ZSIZE_SUBDOMAIN;
 
-		    const int srccid = xsrccid + XSIZE_SUBDOMAIN * (ysrccid + YSIZE_SUBDOMAIN * zsrccid);
+		    const int cid = (validcid) ? (ccel[0] + XSIZE_SUBDOMAIN*(ccel[1] + YSIZE_SUBDOMAIN*ccel[2])) : 0;
+		    starts[threadIdx.x] = (validcid) ? tex1Dfetch(texCellsStart, cid) : 0;
+		    myscan = mycount = (validcid) ? tex1Dfetch(texCellsCount, cid) : 0;
+		}
+#pragma unroll
+		for(int L = 1; L < 32; L <<= 1)
+		    myscan += (lid >= L)*__shfl_up(myscan, L);
 
-		    const int mystart = tex1Dfetch(texCellsStart, srccid);
-		    const int myend = mystart + tex1Dfetch(texCellsCount, srccid);
+		if (lid < 28) scan[threadIdx.x] = myscan - mycount;
 
-		    assert(mystart >= 0 && mystart <= myend);
-		    assert(myend <= npsolvent);
+		float ftmp[3] = {0, 0, 0};
+		float3 dxp = __shfl_float3(xp, l);
+		float3 dup = __shfl_float3(up, l);
 
-#pragma unroll 4
-		    for(int s = mystart; s < myend; ++s)
-		    {
-			float f[3];
-			const bool nonzero = fsi_kernel(seed, tid + gidstart, xp, up, s, f[0], f[1], f[2]);
+		const int did = wst+l;
 
-			if (nonzero)
-			{
-			    for(int c = 0; c < 3; ++c)
-				fsum[c] += f[c];
+		const int nsrc = scan[wof+27];
+		for(int sid = lid; sid < nsrc; sid += 32) {
 
-			    for(int c = 0; c < 3; ++c)
-				atomicAdd(c + (float *)(accsolvent + s), -f[c]);
-			}
+		    const int key9 = 9*((sid >= scan[wof + 9]) + (sid >= scan[wof + 18]));
+		    const int key3 = 3*((sid >= scan[wof + key9+3]) + (sid >= scan[wof + key9+6]));
+		    const int key1 = (sid >= scan[wof + key9+key3+1]) + (sid >= scan[wof + key9+key3+2]);
+		    int s = sid - scan[wof + key3+key9+key1] + starts[wof + key3+key9+key1];
+
+		    float f[3];
+		    const bool nonzero = fsi_kernel(seed, did, dxp, dup, s, f[0], f[1], f[2]);
+
+		    if (nonzero) {
+			ftmp[0] += f[0];
+			ftmp[1] += f[1];
+			ftmp[2] += f[2];
+
+			atomicAdd((float *)(accsolvent + s),   -f[0]);
+			atomicAdd((float *)(accsolvent + s)+1, -f[1]);
+			atomicAdd((float *)(accsolvent + s)+2, -f[2]);
 		    }
 		}
+#pragma unroll
+		for(int z = 16; z; z >>= 1) {
+		    ftmp[0] += __shfl_xor(ftmp[0], z);
+		    ftmp[1] += __shfl_xor(ftmp[1], z);
+		    ftmp[2] += __shfl_xor(ftmp[2], z);
+		}
+		if (l == lid) {
+		    fsum[0] = ftmp[0];
+		    fsum[1] = ftmp[1];
+		    fsum[2] = ftmp[2];
+		}
+	    }
 
 	    for(int c = 0; c < 3;  ++c)
 		assert(!isnan(fsum[c]));
@@ -737,13 +794,14 @@ namespace KernelsRBC
 	}
 
 	size_t textureoffset;
-	CUDA_CHECK(cudaBindTexture(&textureoffset, &texSolventParticles, solvent, &texSolventParticles.channelDesc,
-				   sizeof(float) * 6 * npsolvent));
+	if (npsolvent)
+	    CUDA_CHECK(cudaBindTexture(&textureoffset, &texSolventParticles, solvent, &texSolventParticles.channelDesc,
+				       sizeof(float) * 6 * npsolvent));
 	assert(textureoffset == 0);
 
 
-	CUDA_CHECK(cudaBindTexture(&textureoffset, &texSoluteParticles, solute, &texSoluteParticles.channelDesc,
-				   sizeof(float) * 6 * npsolute));
+	if (npsolute)
+	    CUDA_CHECK(cudaBindTexture(&textureoffset, &texSoluteParticles, solute, &texSoluteParticles.channelDesc, sizeof(float) * 6 * npsolute));
 	assert(textureoffset == 0);
 
 
@@ -976,32 +1034,27 @@ void ComputeInteractionsRBC::fsi_bulk(const Particle * const solvent, const int 
 {
     NVTX_RANGE("RBC/fsi-bulk", NVTX_C6);
 
+    const int nsolute = nrbcs * nvertices;
+    const int nsolvent = nparticles;
+    const int3 vcells = make_int3(XSIZE_SUBDOMAIN, YSIZE_SUBDOMAIN, ZSIZE_SUBDOMAIN);
 
+    reordered_solute.resize(nsolute);
+    reordering.resize(nsolute);
+    lacc_solute.resize(nsolute);
+
+    KernelsRBC::setup(solvent, nparticles, cellsstart_solvent, cellscount_solvent,
+		      reordered_solute.data, nsolute, dualcells.start, dualcells.count);
 
     if (nrbcs > 0 && nparticles > 0)
     {
 	const float seed = local_trunk.get_float();
 
 #if 1
-	const int nsolvent = nparticles;
-	const int nsolute = nrbcs * nvertices;
-	const int3 vcells = make_int3(XSIZE_SUBDOMAIN, YSIZE_SUBDOMAIN, ZSIZE_SUBDOMAIN);
-	const int ncells = XSIZE_SUBDOMAIN * YSIZE_SUBDOMAIN * ZSIZE_SUBDOMAIN;
-
-	reordered_solute.resize(nsolute);
 	CUDA_CHECK(cudaMemcpyAsync(reordered_solute.data, rbcs, sizeof(Particle) * nrbcs * nvertices, cudaMemcpyDeviceToDevice, stream));
 
-	reordering.resize(nsolute);
 	dualcells.build(reordered_solute.data, nrbcs * nvertices, stream, reordering.data);
 
-	//texSoluteStart.acquire(const_cast<int *>(dualcells.start), ncells + 1);
-	//texSolute.acquire((float2 *)const_cast<Particle *>(reordered_solute.data), reordered_solute.capacity);
-
-	lacc_solute.resize(nsolute);
 	CUDA_CHECK(cudaMemsetAsync(lacc_solute.data, 0, sizeof(float) * 3 * lacc_solute.size, stream));
-
-	KernelsRBC::setup(solvent, nparticles, cellsstart_solvent, cellscount_solvent,
-			  reordered_solute.data, nsolute, dualcells.start, dualcells.count);
 
 	KernelsRBC::fsi_forces<2, 2, 1, 8, 4><<<
 	    dim3(vcells.x / 2, vcells.y / 2, vcells.z), dim3(32, 4), 0, stream>>>
@@ -1011,7 +1064,6 @@ void ComputeInteractionsRBC::fsi_bulk(const Particle * const solvent, const int 
 	    reordering.data, lacc_solute.data, nrbcs * nvertices, accrbc);
 
 #else
-	KernelsRBC::setup(solvent, nparticles, cellsstart_solvent, cellscount_solvent, NULL, 0, NULL,NULL);
 	KernelsRBC::fsi_forces<<< (nrbcs * nvertices + 127) / 128, 128, 0, stream >>>
 	    (seed, accsolvent, nparticles, rbcs, nrbcs * nvertices, accrbc);
 #endif
@@ -1065,7 +1117,7 @@ void ComputeInteractionsRBC::fsi_halo(const Particle * const solvent, const int 
 	}
 
 	if(nremote)
-	    KernelsRBC::fsi_forces_all<128><<< (nremote + 127) / 128, 128, 0, stream>>>(local_trunk.get_float(), accsolvent, nparticles, nremote);
+	    KernelsRBC::fsi_forces_all_nopref<128><<< (nremote + 127) / 128, 128, 0, stream>>>(local_trunk.get_float(), accsolvent, nparticles, nremote);
 
     }
 #else
@@ -1143,4 +1195,3 @@ ComputeInteractionsRBC::~ComputeInteractionsRBC()
 
     KernelsRBC::dispose();
 }
-

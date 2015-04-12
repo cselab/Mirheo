@@ -58,13 +58,13 @@ class ComputeInteractionsCTC : public ComputeInteractionsRBC
 #endif
     }
 
-    void _internal_forces(const Particle * const rbcs, const int nrbcs, Acceleration * accrbc, cudaStream_t stream)
+public:
+
+    void internal_forces(const Particle * const xyzuvw, const int nrbcs, Acceleration * acc, cudaStream_t stream)
     {
 	for(int i = 0; i < nrbcs; ++i)
-	    CudaCTC::forces_nohost(stream, (float *)(rbcs + nvertices * i), (float *)(accrbc + nvertices * i));
+	    CudaCTC::forces_nohost(stream, (float *)(xyzuvw + nvertices * i), (float *)(acc + nvertices * i));
     } 
-
-public:
 
 ComputeInteractionsCTC(MPI_Comm _cartcomm) : ComputeInteractionsRBC(_cartcomm)
     {
