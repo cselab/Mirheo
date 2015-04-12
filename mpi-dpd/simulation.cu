@@ -336,13 +336,7 @@ void Simulation::_forces()
 
     dpd.consolidate_and_post(particles.xyzuvw.data, particles.size, mainstream);
 
-    if (rbcscoll) 
-	rbc_interactions.fsi_bulk(particles.xyzuvw.data, particles.size, particles.axayaz.data, cells.start, cells.count,
-				  rbcscoll->data(), rbcscoll->count(), rbcscoll->acc(), mainstream);
-	
-    if (ctcscoll) 
-	ctc_interactions.fsi_bulk(particles.xyzuvw.data, particles.size, particles.axayaz.data, cells.start, cells.count,
-				  ctcscoll->data(), ctcscoll->count(), ctcscoll->acc(), mainstream);
+    dpd.local_interactions(particles.xyzuvw.data, particles.size, particles.axayaz.data, cells.start, cells.count, mainstream);
 
     CUDA_CHECK(cudaPeekAtLastError());
 
@@ -353,16 +347,18 @@ void Simulation::_forces()
 	ctc_interactions.exchange_count();
 
     if (rbcscoll) 
-	rbc_interactions.internal_forces(rbcscoll->data(), rbcscoll->count(), rbcscoll->acc(), mainstream);
-
-    if (ctcscoll) 
-	ctc_interactions.internal_forces(ctcscoll->data(), ctcscoll->count(), ctcscoll->acc(), mainstream);
-
-    if (rbcscoll) 
 	rbc_interactions.post_p();
 
     if (ctcscoll) 
 	ctc_interactions.post_p();
+
+    if (rbcscoll) 
+	rbc_interactions.fsi_bulk(particles.xyzuvw.data, particles.size, particles.axayaz.data, cells.start, cells.count,
+				  rbcscoll->data(), rbcscoll->count(), rbcscoll->acc(), mainstream);
+	
+    if (ctcscoll) 
+	ctc_interactions.fsi_bulk(particles.xyzuvw.data, particles.size, particles.axayaz.data, cells.start, cells.count,
+				  ctcscoll->data(), ctcscoll->count(), ctcscoll->acc(), mainstream);
 
     if (rbcscoll && wall)
 	wall->interactions(rbcscoll->data(), rbcscoll->pcount(), rbcscoll->acc(), NULL, NULL, mainstream);
@@ -377,9 +373,13 @@ void Simulation::_forces()
     if (ctcscoll) 
 	ctc_interactions.fsi_halo(particles.xyzuvw.data, particles.size, particles.axayaz.data, cells.start, cells.count, 
 				  ctcscoll->data(), ctcscoll->count(), ctcscoll->acc(), mainstream);
-
-    dpd.local_interactions(particles.xyzuvw.data, particles.size, particles.axayaz.data, cells.start, cells.count, mainstream);
 	
+    if (rbcscoll) 
+	rbc_interactions.internal_forces(rbcscoll->data(), rbcscoll->count(), rbcscoll->acc(), mainstream);
+
+    if (ctcscoll) 
+	ctc_interactions.internal_forces(ctcscoll->data(), ctcscoll->count(), ctcscoll->acc(), mainstream);
+
     if (wall)
 	wall->interactions(particles.xyzuvw.data, particles.size, particles.axayaz.data, 
 			   cells.start, cells.count, mainstream);
