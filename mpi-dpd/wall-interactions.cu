@@ -585,6 +585,8 @@ struct FieldSampler
 
     FieldSampler(const char * path)
 	{
+	    NVTX_RANGE("WALL/load-file", NVTX_C3);
+
 	    FILE * f = fopen(path, "rb");
 
 	    int retval;
@@ -625,6 +627,8 @@ struct FieldSampler
     void sample(const float start[3], const float spacing[3], const int nsize[3], 
 		float * const output, const float amplitude_rescaling) 
 	{
+	    NVTX_RANGE("WALL/sample", NVTX_C7);
+
 	    Bspline<4> bsp;
 
 	    for(int iz = 0; iz < nsize[2]; ++iz)
@@ -731,9 +735,11 @@ ComputeInteractionsWall::ComputeInteractionsWall(MPI_Comm cartcomm, Particle* co
 
     if (myrank == 0)
 	printf("redistancing the geometry field...\n");	
-
+ 
     //extra redistancing because margin might exceed the domain
     {
+	NVTX_RANGE("WALL/redistancing", NVTX_C4);
+
 	const double dx =  (XSIZE_SUBDOMAIN + 2 * XMARGIN_WALL) / (double)XTEXTURESIZE;
 	const double dy =  (YSIZE_SUBDOMAIN + 2 * YMARGIN_WALL) / (double)YTEXTURESIZE;
 	const double dz =  (ZSIZE_SUBDOMAIN + 2 * ZMARGIN_WALL) / (double)ZTEXTURESIZE;
@@ -829,6 +835,8 @@ ComputeInteractionsWall::ComputeInteractionsWall(MPI_Comm cartcomm, Particle* co
 
     if (hdf5field_dumps)
     {
+	NVTX_RANGE("WALL/h5-dump", NVTX_C4);
+
 	if (myrank == 0)
 	    printf("H5 data dump of the geometry...\n");
   
@@ -911,6 +919,8 @@ ComputeInteractionsWall::ComputeInteractionsWall(MPI_Comm cartcomm, Particle* co
     SimpleDeviceBuffer<Particle> solid_remote;
 
     {
+	NVTX_RANGE("WALL/exchange-particles", NVTX_C3)
+
 	thrust::host_vector<Particle> local = solid_local;
 
 	int dstranks[26], remsizes[26], recv_tags[26];
