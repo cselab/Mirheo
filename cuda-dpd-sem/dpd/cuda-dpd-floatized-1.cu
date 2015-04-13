@@ -221,13 +221,11 @@ void _dpd_forces_symm_merged()
         uint mystart = 0, mycount = 0, myscan;
         asm( "{  .reg .pred vc;"
              "   .reg .u32  foo, bar;"
-             "   .reg .s64  texture;"
              "    setp.lt.f32     vc, %2, %3;"
              "    setp.ge.and.f32 vc, %5, 0.0, vc;"
              "    setp.lt.and.s32 vc, %4, %6, vc;"
              "    selp.s32 %0, 1, 0, vc;"
-             "@vc mov.u64 texture, texStartAndCount;"
-             "@vc tex.1d.v4.s32.s32 {%0, %1, foo, bar}, [texture, %4];"
+             "@vc tex.1d.v4.s32.s32 {%0, %1, foo, bar}, [texStartAndCount, %4];"
              "}" :
              "+r"( mystart ), "+r"( mycount )  :
              "f"( u2f( tid ) ), "f"( u2f( 14u ) ), "r"( cid ), "f"( i2f( cid ) ),
