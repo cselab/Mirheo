@@ -67,7 +67,7 @@ __device__ float3 _dpd_interaction( const int dpid, const float4 xdest, const fl
         yr * ( udest.y - usrc.y ) +
         zr * ( udest.z - usrc.z );
 
-    const float myrandnr = Logistic::mean0var1( info.seed, min( spid, dpid ), max( spid, dpid ) );
+    const float myrandnr = Logistic::mean0var1( info.seed, xmin( spid, dpid ), xmax( spid, dpid ) );
 
     const float strength = info.aij * wc - ( info.gamma * wr * rdotv + info.sigmaf * myrandnr ) * wr;
 
