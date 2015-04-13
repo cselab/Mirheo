@@ -62,7 +62,7 @@ inquire: $(bash [ `cat slevel.txt` == "$(slevel)" ] || { echo "cleanall" ; } )
 
 test:  $(OBJS) libcuda-dpd libcuda-rbc libcuda-ctc
 	echo h5part is "$(h5part)"
-	nvcc -ccbin $(CXX) $(CXXFLAGS) $(OBJS) $(LIBS) -o test
+	$(CXX) $(CXXFLAGS) $(OBJS) $(LIBS) -o test
 
 -include $(OBJS:.o=.d)
 
