@@ -52,6 +52,8 @@ class Simulation
     ComputeInteractionsCTC ctc_interactions;
     ComputeInteractionsWall * wall;
 
+    LocalComm localcomm;
+
     bool (*check_termination)();
 
     MPI_Comm activecomm, cartcomm;

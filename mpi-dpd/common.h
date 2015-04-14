@@ -405,3 +405,30 @@ struct ExpectedMessageSizes
 void diagnostics(MPI_Comm comm, MPI_Comm cartcomm, Particle * _particles, int n, float dt, int idstep, Acceleration * _acc);
 
 void report_host_memory_usage(MPI_Comm comm, FILE * foutput);
+
+
+class LocalComm
+{
+	MPI_Comm local_comm;
+	int local_rank, local_nranks;
+	int rank, nranks;
+	int cuda_mps_enabled;
+	char name[MPI_MAX_PROCESSOR_NAME];
+	int len;
+
+public:
+	LocalComm();
+
+	void initialize(MPI_Comm active_comm);
+
+	void barrier();
+
+	void print_particles(int np);
+
+	int get_size() { return local_nranks; }
+
+	int get_rank() { return local_rank; }
+
+	MPI_Comm get_comm() { return local_comm;  }
+};
+

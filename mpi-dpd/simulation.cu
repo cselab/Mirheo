@@ -107,6 +107,8 @@ void Simulation::_redistribute()
     
     CUDA_CHECK(cudaPeekAtLastError());
 
+    localcomm.barrier();
+
     timings["redistribute"] += MPI_Wtime() - tstart;
 }
 
@@ -722,6 +724,8 @@ void Simulation::_lockstep()
 	redistribute_ctcs.unpack(ctcscoll->data(), ctcscoll->count(), mainstream);
 
     CUDA_CHECK(cudaPeekAtLastError());
+
+    localcomm.barrier();	// peh: +1
 
     timings["lockstep"] += MPI_Wtime() - tstart;
 }

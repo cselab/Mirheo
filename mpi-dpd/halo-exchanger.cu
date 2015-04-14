@@ -50,7 +50,6 @@ HaloExchanger::HaloExchanger(MPI_Comm _cartcomm, const int basetag):  basetag(ba
 	halosize[i].z = d[2] != 0 ? 1 : ZSIZE_SUBDOMAIN; 
 	
 	const int nhalocells = halosize[i].x * halosize[i].y * halosize[i].z;
-
 	
 	int estimate = numberdensity * safety_factor * nhalocells;
 	estimate = 32 * ((estimate + 31) / 32);
@@ -72,7 +71,7 @@ namespace PackingHalo
     
     __constant__ int cellpackstarts[27];
 
-    struct CellPackSOA { int * start, * count; };
+    struct CellPackSOA { int * start, * count; bool enabled; };
     
     __constant__ CellPackSOA cellpacks[26];
     
@@ -132,8 +131,10 @@ namespace PackingHalo
 	    const int srcentry = srccellpos[0] + XSIZE_SUBDOMAIN * (srccellpos[1] + YSIZE_SUBDOMAIN * srccellpos[2]);
 	    assert(srcentry < XSIZE_SUBDOMAIN * YSIZE_SUBDOMAIN * ZSIZE_SUBDOMAIN);
 	
-	    cellpacks[code].start[dstcid] = cellsstart[srcentry];
-	    cellpacks[code].count[dstcid] = cellscount[srcentry];
+	    const int enabled = cellpacks[code].enabled;
+
+	    cellpacks[code].start[dstcid] = enabled * cellsstart[srcentry];
+	    cellpacks[code].count[dstcid] = enabled * cellscount[srcentry];
 	}
 	else if (dstcid == ndstcells)
 	{
@@ -342,6 +343,7 @@ void HaloExchanger::pack(const Particle * const p, const int n, const int * cons
 	    {
 		cellpacks[i].start = sendhalos[i].tmpstart.data;
 		cellpacks[i].count = sendhalos[i].tmpcount.data;
+		cellpacks[i].enabled = sendhalos[i].expected > 0;
 	    }
 	    
 	    CUDA_CHECK(cudaMemcpyToSymbolAsync(PackingHalo::cellpacks, cellpacks,

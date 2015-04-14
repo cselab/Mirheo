@@ -619,13 +619,24 @@ struct FieldSampler
 		exit(EXIT_FAILURE);
 	    }
 
-	    MPI_Offset filesize;
-	    MPI_CHECK( MPI_File_get_size(fh, &filesize));
+	    int header_size = 0;
+
+	    for(int i = 0; i < sizeof(header); ++i)
+		if (header[i] == '\n')
+		{
+		    if (header_size > 0)
+		    {
+			header_size = i + 1;
+			break;
+		    }
+		    
+		    header_size = i + 1;
+		}
 
 	    if (verbose)
-		printf("reading binary data...\n");
+		printf("reading binary data... from byte %d\n", header_size);
 
-	    MPI_CHECK( MPI_File_read_at_all(fh, filesize - sizeof(float) * nvoxels, data, nvoxels, MPI_FLOAT, &status));
+	    MPI_CHECK( MPI_File_read_at_all(fh, header_size, data, nvoxels, MPI_FLOAT, &status));
 
 	    MPI_CHECK( MPI_File_close(&fh));
 	}

@@ -991,7 +991,7 @@ void scan_massimo(const int * const count[26], int * const result[26], const int
           count[13],result[13],
           d_sizescan, maxscan, ptoblockds);
 #else
-          excl26scanaopob<<<18,NTHREADS>>>(d_aopd, d_aopr, d_sizescan);
+	excl26scanaopob<<<18,NTHREADS, 0, stream>>>(d_aopd, d_aopr, d_sizescan);
 #endif
 #if defined(_TIME_PROFILE_)
     if (lit % 500 == 0)
