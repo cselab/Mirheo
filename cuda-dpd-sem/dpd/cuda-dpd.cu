@@ -359,6 +359,7 @@ __device__ void core_ilp(const int nsrc, const int * const scan, const int * con
     if (subtid < 3)
 	info.axayaz[subtid + 3 * dpid] = fcontrib;
 }
+
 __global__ __launch_bounds__(32 * CPB, 16)
 void _dpd_forces()
 {

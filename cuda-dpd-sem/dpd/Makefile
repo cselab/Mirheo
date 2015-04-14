@@ -6,8 +6,17 @@ CUDADPD = cuda-dpd.cu
 CUDADPDBIP = cuda-dpd-bipartite.cu
 
 ifeq "$(floatized)" "1"
-CUDADPD = cuda-dpd-floatized.cu
+CUDADPD = cuda-dpd-floatized-1.cu
 CUDADPDBIP = cuda-dpd-bipartite-floatized.cu
+else
+ifeq "$(floatized)" "2"
+CUDADPD = cuda-dpd-floatized-2.cu
+CUDADPDBIP = cuda-dpd-bipartite-floatized.cu
+endif
+endif
+
+ifeq "$(flops)" "1"
+        NVCCFLAGS += -D_COUNT_FLOPS
 endif
 
 ifeq "$(nonperiodic)" "1"
@@ -19,7 +28,7 @@ CXXFLAGS += -fPIC
 NVCCFLAGS += -Xcompiler -fpic
 endif
 
-NVCCFLAGS += -DVISCOSITY_S_LEVEL=$(slevel) -lineinfo 
+NVCCFLAGS += -DVISCOSITY_S_LEVEL=$(slevel) -lineinfo -Xptxas -v
 
 .DEFAULT_GOAL = test-dpd
 
