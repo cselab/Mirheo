@@ -813,11 +813,14 @@ namespace KernelsRBC
 	CUDA_CHECK(cudaBindTexture(&textureoffset, &texCellsCount, cellscount, &texCellsCount.channelDesc, sizeof(int) * ncells));
 	assert(textureoffset == 0);
 
-	CUDA_CHECK(cudaBindTexture(&textureoffset, &texSoluteCellsStart, solute_cellsstart, &texSoluteCellsStart.channelDesc,
-				   sizeof(int) * ncells));
+	if (solute_cellsstart)
+	    CUDA_CHECK(cudaBindTexture(&textureoffset, &texSoluteCellsStart, solute_cellsstart, &texSoluteCellsStart.channelDesc,
+				       sizeof(int) * ncells));
 	assert(textureoffset == 0);
-	CUDA_CHECK(cudaBindTexture(&textureoffset, &texSoluteCellsCount, solute_cellscount, &texSoluteCellsCount.channelDesc,
-				   sizeof(int) * ncells));
+	
+	if (solute_cellscount)
+	    CUDA_CHECK(cudaBindTexture(&textureoffset, &texSoluteCellsCount, solute_cellscount, &texSoluteCellsCount.channelDesc,
+				       sizeof(int) * ncells));
 	assert(textureoffset == 0);
 
 
@@ -884,6 +887,21 @@ void ComputeInteractionsRBC::_compute_extents(const Particle * const rbcs, const
 void ComputeInteractionsRBC::extent(const Particle * const rbcs, const int nrbcs, cudaStream_t stream)
 {
     NVTX_RANGE("RBC/extent", NVTX_C2);
+    
+    const int nsolute = nrbcs * nvertices;
+   
+    reordered_solute.resize(nsolute);
+    reordering.resize(nsolute);
+    lacc_solute.resize(nsolute);
+    
+    if (nrbcs > 0)
+    {
+	CUDA_CHECK(cudaMemsetAsync(lacc_solute.data, 0, sizeof(float) * 3 * nsolute, stream));	
+
+	CUDA_CHECK(cudaMemcpyAsync(reordered_solute.data, rbcs, sizeof(Particle) * nrbcs * nvertices, cudaMemcpyDeviceToDevice, stream));
+
+	dualcells.build(reordered_solute.data, nrbcs * nvertices, stream, reordering.data);
+    }
 
     minextents.resize(nrbcs);
     maxextents.resize(nrbcs);
@@ -1036,12 +1054,7 @@ void ComputeInteractionsRBC::fsi_bulk(const Particle * const solvent, const int 
 
     const int nsolute = nrbcs * nvertices;
     const int nsolvent = nparticles;
-    const int3 vcells = make_int3(XSIZE_SUBDOMAIN, YSIZE_SUBDOMAIN, ZSIZE_SUBDOMAIN);
-
-    reordered_solute.resize(nsolute);
-    reordering.resize(nsolute);
-    lacc_solute.resize(nsolute);
-
+    
     KernelsRBC::setup(solvent, nparticles, cellsstart_solvent, cellscount_solvent,
 		      reordered_solute.data, nsolute, dualcells.start, dualcells.count);
 
@@ -1050,17 +1063,13 @@ void ComputeInteractionsRBC::fsi_bulk(const Particle * const solvent, const int 
 	const float seed = local_trunk.get_float();
 
 #if 1
-	CUDA_CHECK(cudaMemcpyAsync(reordered_solute.data, rbcs, sizeof(Particle) * nrbcs * nvertices, cudaMemcpyDeviceToDevice, stream));
-
-	dualcells.build(reordered_solute.data, nrbcs * nvertices, stream, reordering.data);
-
-	CUDA_CHECK(cudaMemsetAsync(lacc_solute.data, 0, sizeof(float) * 3 * lacc_solute.size, stream));
+	const int3 vcells = make_int3(XSIZE_SUBDOMAIN, YSIZE_SUBDOMAIN, ZSIZE_SUBDOMAIN);
 
 	KernelsRBC::fsi_forces<2, 2, 1, 8, 4><<<
 	    dim3(vcells.x / 2, vcells.y / 2, vcells.z), dim3(32, 4), 0, stream>>>
 	    (seed, (float *)lacc_solute.data, nsolute, (float *)accsolvent, nsolvent);
 
-        KernelsRBC::merge_accelerations_scattered_float<false><<< (nrbcs * nvertices * 3 + 127) / 128, 128, 0, stream >>>(
+        KernelsRBC::merge_accelerations_scattered_float<true><<< (nrbcs * nvertices * 3 + 127) / 128, 128, 0, stream >>>(
 	    reordering.data, lacc_solute.data, nrbcs * nvertices, accrbc);
 
 #else
@@ -1076,6 +1085,8 @@ void ComputeInteractionsRBC::fsi_halo(const Particle * const solvent, const int 
 {
     NVTX_RANGE("RBC/fsi-halo", NVTX_C7);
 
+    KernelsRBC::setup(solvent, nparticles, cellsstart_solvent, cellscount_solvent,
+		      NULL, 0, NULL, 0);
     _wait(reqrecvp);
     _wait(reqsendp);
 
@@ -1117,7 +1128,8 @@ void ComputeInteractionsRBC::fsi_halo(const Particle * const solvent, const int 
 	}
 
 	if(nremote)
-	    KernelsRBC::fsi_forces_all_nopref<128><<< (nremote + 127) / 128, 128, 0, stream>>>(local_trunk.get_float(), accsolvent, nparticles, nremote);
+	    KernelsRBC::fsi_forces_all_nopref<128><<< (nremote + 127) / 128, 128, 0, stream>>>
+		(local_trunk.get_float(), accsolvent, nparticles, nremote);
 
     }
 #else

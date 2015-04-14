@@ -218,7 +218,8 @@ SimpleDeviceBuffer(int n = 0): capacity(0), size(0), data(NULL) { resize(n);}
 	    if (data != NULL)
 		CUDA_CHECK(cudaFree(data));
 	    
-	    capacity = n;
+	    const int conservative_estimate = (int)ceil(1.2 * n);
+	    capacity = 128 * ((conservative_estimate + 129) / 128);
 	    
 	    CUDA_CHECK(cudaMalloc(&data, sizeof(T) * capacity));
 	    

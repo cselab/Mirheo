@@ -33,6 +33,11 @@ struct ParticleArray
     void update_stage1(const float driving_acceleration, cudaStream_t stream);
     void update_stage2_and_1(const float driving_acceleration, cudaStream_t stream);
     void clear_velocity();
+
+    void clear_acc(cudaStream_t stream)
+	{
+	    CUDA_CHECK(cudaMemsetAsync(axayaz.data, 0, sizeof(Acceleration) * axayaz.size, stream));
+	}
 };
 
 class CollectionRBC : public ParticleArray

@@ -29,7 +29,7 @@ class ComputeInteractionsDPD : public HaloExchanger
     HookedTexture texSC[26], texDC[26], texSP[26];
     
     //temporary buffer to compute accelerations in the halo
-    SimpleDeviceBuffer<Acceleration> acc_remote[26];
+    SimpleDeviceBuffer<Acceleration> acc_remote[26], acc_local;
 
     Logistic::KISS local_trunk;
     Logistic::KISS interrank_trunks[26];

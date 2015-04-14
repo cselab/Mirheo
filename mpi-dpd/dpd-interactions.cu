@@ -95,16 +95,33 @@ HaloExchanger(cartcomm, 0), local_trunk(0, 0, 0, 0)
     }
 }
 
+namespace LocalDPD
+{
+    __global__ void merge(const float * const src, float * const dst, const int n)
+    {
+	const int gid = threadIdx.x + blockIdx.x * blockDim.x;
+
+	if (gid < n)
+	    dst[gid] += src[gid];
+    }
+}
+
 void ComputeInteractionsDPD::local_interactions(const Particle * const p, const int n, Acceleration * const a,
 						const int * const cellsstart, const int * const cellscount, cudaStream_t stream)
 {
     NVTX_RANGE("DPD/local", NVTX_C5);
     
     if (n > 0)
-	forces_dpd_cuda_nohost((float *)p, (float *)a, n, 
+    {
+	acc_local.resize(n);
+	
+	forces_dpd_cuda_nohost((float *)p, (float *)acc_local.data, n, 
 			       cellsstart, cellscount,
 			       1, XSIZE_SUBDOMAIN, YSIZE_SUBDOMAIN, ZSIZE_SUBDOMAIN, aij, gammadpd, 
 			       sigma, 1. / sqrt(dt), local_trunk.get_float(), stream);
+
+	LocalDPD::merge<<< (n * 3 + 127) / 128, 128, 0, stream >>>((float *)acc_local.data, (float *)a, 3 * n);
+    }
 }
 
 namespace RemoteDPD

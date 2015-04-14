@@ -75,6 +75,8 @@ class Simulation
     void _data_dump(const int idtimestep);
     void _update_and_bounce();
 
+    void _lockstep();
+
 public:
 
     Simulation(MPI_Comm cartcomm, MPI_Comm activecomm, bool (*check_termination)()) ;
