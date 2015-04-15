@@ -16,6 +16,8 @@
 
 #include "common.h"
 
+bool is_mps_enabled;
+
 #ifdef _USE_NVTX_
 bool NvtxTracer::currently_profiling = false;
 #endif
@@ -147,26 +149,14 @@ LocalComm::LocalComm()
     local_comm = MPI_COMM_NULL;
     local_rank = 0;
     local_nranks = 1;
-    cuda_mps_enabled = 0;
 }
 
 void LocalComm::initialize(MPI_Comm active_comm)
 {
-    cuda_mps_enabled = (getenv("CRAY_CUDA_MPS")!= NULL) ||
-	(getenv("CUDA_MPS")!= NULL) ||
-	(getenv("CRAY_CUDA_PROXY")!= NULL) ||
-	(getenv("CUDA_PROXY")!= NULL);
-
-    //if (cuda_mps_enabled == 0)
-    //	return;
-
     MPI_Comm_rank(active_comm, &rank);
     MPI_Comm_size(active_comm, &nranks);
 
     local_comm = active_comm;
-
-    //char name[256];
-    //int len;
 
     MPI_Get_processor_name(name, &len);
     int id = Adler32(name, len);
@@ -179,7 +169,7 @@ void LocalComm::initialize(MPI_Comm active_comm)
 
 void LocalComm::barrier()
 {
-    if (!cuda_mps_enabled || local_nranks == 1) return;
+    if (!is_mps_enabled || local_nranks == 1) return;
 
     MPI_CHECK(MPI_Barrier(local_comm));
 }
