@@ -180,7 +180,12 @@ void _dpd_forces_symm_merged()
     const uint wid = threadIdx.y;
     const uint pshare = xscale( threadIdx.y, 256.f );
 
+#if __CUDA_ARCH__ >= 350
     const char4 offs = __ldg( tid2ind + tid );
+#else
+    const char4 offs = tid2ind[tid];
+#endif
+
     const int cbase = blockIdx.z * MYCPBZ * info.ncells.x * info.ncells.y +
                       blockIdx.y * MYCPBY * info.ncells.x +
                       blockIdx.x * MYCPBX + wid +
