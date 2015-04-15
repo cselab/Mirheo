@@ -596,7 +596,7 @@ struct FieldSampler
 	    MPI_CHECK( MPI_File_open(comm, path, MPI_MODE_RDONLY, MPI_INFO_NULL, &fh) );
 
 	    MPI_Status status;
-	    MPI_CHECK( MPI_File_read_at_all(fh, 0, header, sizeof(header), MPI_CHAR, &status));
+	    MPI_CHECK( MPI_File_read_at(fh, 0, header, sizeof(header), MPI_CHAR, &status));
 
 	    const int retval = sscanf(header, "%f %f %f\n%d %d %d\n", extent + 0, extent + 1, extent + 2, N + 0, N + 1, N + 2);
 
@@ -636,7 +636,7 @@ struct FieldSampler
 	    if (verbose)
 		printf("reading binary data... from byte %d\n", header_size);
 
-	    MPI_CHECK( MPI_File_read_at_all(fh, header_size, data, nvoxels, MPI_FLOAT, &status));
+	    MPI_CHECK( MPI_File_read_at(fh, header_size, data, nvoxels, MPI_FLOAT, &status));
 
 	    MPI_CHECK( MPI_File_close(&fh));
 	}
