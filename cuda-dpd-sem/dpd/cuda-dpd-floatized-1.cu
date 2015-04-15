@@ -55,7 +55,7 @@ __device__ float3 _dpd_interaction( const int dpid, const float4 xdest, const fl
 
     const float invrij = rsqrtf( rij2 );
     const float rij = rij2 * invrij;
-    const float wc = 1 - rij;
+    const float wc = max(0.f, 1 - rij);
     const float wr = viscosity_function < -VISCOSITY_S_LEVEL > ( wc );
 
     const float xr = _xr * invrij;
