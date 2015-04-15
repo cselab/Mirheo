@@ -47,6 +47,8 @@ const int steps_per_report = 1000;
 const int steps_per_dump = 10000;
 const int wall_creation_stepid = 5000;
 
+extern bool is_mps_enabled;
+
 #include <cstdlib>
 #include <cstdio>
 #include <cmath>
@@ -412,7 +414,7 @@ class LocalComm
 	MPI_Comm local_comm;
 	int local_rank, local_nranks;
 	int rank, nranks;
-	int cuda_mps_enabled;
+
 	char name[MPI_MAX_PROCESSOR_NAME];
 	int len;
 
