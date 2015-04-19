@@ -548,8 +548,12 @@ void RedistributeParticles::pack(const Particle * const particles, const int npa
 			       sizeof(float) * 6 * nparticles));
 pack_attempt:
 	
-    CUDA_CHECK(cudaMemcpyToSymbolAsync(RedistributeParticlesKernels::pack_buffers, packbuffers,
+    if (!is_mps_enabled)
+	CUDA_CHECK(cudaMemcpyToSymbolAsync(RedistributeParticlesKernels::pack_buffers, packbuffers,
 				       sizeof(PackBuffer) * 27, 0, cudaMemcpyHostToDevice, mystream));
+    else
+	CUDA_CHECK(cudaMemcpyToSymbol(RedistributeParticlesKernels::pack_buffers, packbuffers,
+				       sizeof(PackBuffer) * 27, 0, cudaMemcpyHostToDevice));
 
     *failure.data = false;
     RedistributeParticlesKernels::setup<<<1, 32, 0, mystream>>>();
@@ -668,14 +672,18 @@ int RedistributeParticles::recv_count(cudaStream_t mystream, float& host_idle_ti
     host_idle_time += _waitall(recvcountreq, nactiveneighbors);
 
     {
-	int ustart[28];
+	static int ustart[28];
 	    
 	ustart[0] = 0;	
 	for(int i = 1; i < 28; ++i)
 	    ustart[i] = ustart[i - 1] + recv_sizes[i - 1] * (default_message_sizes[i - 1] > 0);
 	    
-	CUDA_CHECK(cudaMemcpyToSymbolAsync(RedistributeParticlesKernels::unpack_start, ustart,
+	if (!is_mps_enabled)
+	    CUDA_CHECK(cudaMemcpyToSymbolAsync(RedistributeParticlesKernels::unpack_start, ustart,
 					   sizeof(int) * 28, 0, cudaMemcpyHostToDevice, mystream));
+	else
+	    CUDA_CHECK(cudaMemcpyToSymbol(RedistributeParticlesKernels::unpack_start, ustart,
+					   sizeof(int) * 28, 0, cudaMemcpyHostToDevice));
     }
 
     nexpected = 0;
@@ -701,8 +709,12 @@ void RedistributeParticles::recv_unpack(Particle * const particles, const int np
     
     _adjust_recv_buffers(recv_sizes);
 
-    CUDA_CHECK(cudaMemcpyToSymbolAsync(RedistributeParticlesKernels::unpack_buffers, unpackbuffers,
+    if (!is_mps_enabled)
+	CUDA_CHECK(cudaMemcpyToSymbolAsync(RedistributeParticlesKernels::unpack_buffers, unpackbuffers,
 				       sizeof(UnpackBuffer) * 27, 0, cudaMemcpyHostToDevice, mystream));
+    else
+	CUDA_CHECK(cudaMemcpyToSymbol(RedistributeParticlesKernels::unpack_buffers, unpackbuffers,
+				       sizeof(UnpackBuffer) * 27, 0, cudaMemcpyHostToDevice));
     
     for(int i = 1; i < 27; ++i)
 	if (default_message_sizes[i] && recv_sizes[i] > default_message_sizes[i])

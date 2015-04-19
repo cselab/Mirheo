@@ -287,7 +287,7 @@ void ComputeInteractionsDPD::remote_interactions(const Particle * const p, const
 	NVTX_RANGE("DPD/merge", NVTX_C6);
 
 	{
-	    int packstarts[27];
+	    static int packstarts[27];
 	    
 	    packstarts[0] = 0;
 	    for(int i = 0, s = 0; i < 26; ++i)
@@ -295,27 +295,39 @@ void ComputeInteractionsDPD::remote_interactions(const Particle * const p, const
 	    	    
 	    RemoteDPD::npackedparticles = packstarts[26];
 	    
-	    CUDA_CHECK(cudaMemcpyToSymbolAsync(RemoteDPD::packstarts, packstarts,
+	    if (!is_mps_enabled)
+		CUDA_CHECK(cudaMemcpyToSymbolAsync(RemoteDPD::packstarts, packstarts,
 					       sizeof(packstarts), 0, cudaMemcpyHostToDevice, stream));
+	    else
+		CUDA_CHECK(cudaMemcpyToSymbol(RemoteDPD::packstarts, packstarts,
+					       sizeof(packstarts), 0, cudaMemcpyHostToDevice));
 	}
 
 	{
-	    int * scattered_indices[26];
+	    static int * scattered_indices[26];
 	    for(int i = 0; i < 26; ++i)
 		scattered_indices[i] = sendhalos[i].scattered_entries.data;
 
-	    CUDA_CHECK(cudaMemcpyToSymbolAsync(RemoteDPD::scattered_indices, scattered_indices,
+	    if (!is_mps_enabled)
+		CUDA_CHECK(cudaMemcpyToSymbolAsync(RemoteDPD::scattered_indices, scattered_indices,
 					       sizeof(scattered_indices), 0, cudaMemcpyHostToDevice, stream));
+	    else
+		CUDA_CHECK(cudaMemcpyToSymbol(RemoteDPD::scattered_indices, scattered_indices,
+					       sizeof(scattered_indices), 0, cudaMemcpyHostToDevice));
 	}
 	
 	{
-	    Acceleration * remote_accelerations[26];
+	    static Acceleration * remote_accelerations[26];
 
 	    for(int i = 0; i < 26; ++i)
 		remote_accelerations[i] = acc_remote[i].data;
 
-	    CUDA_CHECK(cudaMemcpyToSymbolAsync(RemoteDPD::remote_accelerations, remote_accelerations,
+	    if (!is_mps_enabled)
+		CUDA_CHECK(cudaMemcpyToSymbolAsync(RemoteDPD::remote_accelerations, remote_accelerations,
 					       sizeof(remote_accelerations), 0, cudaMemcpyHostToDevice, stream));
+	    else
+		CUDA_CHECK(cudaMemcpyToSymbol(RemoteDPD::remote_accelerations, remote_accelerations,
+					       sizeof(remote_accelerations), 0, cudaMemcpyHostToDevice));
 	}
 		
 	for(int i = 0; i < 7; ++i)

@@ -116,9 +116,15 @@ namespace KernelsRBC
 
 	if (nrbcs < cmaxnrbcs)
 	{
-	    CUDA_CHECK(cudaMemcpyToSymbolAsync(ccodes, codes, sizeof(int) * nrbcs, 0, cudaMemcpyHostToDevice, stream));
-	    CUDA_CHECK(cudaMemcpyToSymbolAsync(cdestinations, destinations, sizeof(float *) * nrbcs, 0, cudaMemcpyHostToDevice, stream));
-	    CUDA_CHECK(cudaMemcpyToSymbolAsync(csources, sources, sizeof(float *) * nrbcs, 0, cudaMemcpyHostToDevice, stream));
+	    if (!is_mps_enabled) {
+		CUDA_CHECK(cudaMemcpyToSymbolAsync(ccodes, codes, sizeof(int) * nrbcs, 0, cudaMemcpyHostToDevice, stream));
+		CUDA_CHECK(cudaMemcpyToSymbolAsync(cdestinations, destinations, sizeof(float *) * nrbcs, 0, cudaMemcpyHostToDevice, stream));
+		CUDA_CHECK(cudaMemcpyToSymbolAsync(csources, sources, sizeof(float *) * nrbcs, 0, cudaMemcpyHostToDevice, stream));
+	    } else {
+		CUDA_CHECK(cudaMemcpyToSymbol(ccodes, codes, sizeof(int) * nrbcs, 0, cudaMemcpyHostToDevice));
+		CUDA_CHECK(cudaMemcpyToSymbol(cdestinations, destinations, sizeof(float *) * nrbcs, 0, cudaMemcpyHostToDevice));
+		CUDA_CHECK(cudaMemcpyToSymbol(csources, sources, sizeof(float *) * nrbcs, 0, cudaMemcpyHostToDevice));
+	    }
 
 	    shift_all_send_particles<true><<<(nthreads + 127) / 128, 128, 0, stream>>>
 		(nrbcs, nvertices, NULL, NULL, NULL);
@@ -131,9 +137,15 @@ namespace KernelsRBC
 	    _ddestinations.resize(nrbcs);
 	    _dsources.resize(nrbcs);
 
-	    CUDA_CHECK(cudaMemcpyAsync(_dcodes.data, codes, sizeof(int) * nrbcs, cudaMemcpyHostToDevice, stream));
-	    CUDA_CHECK(cudaMemcpyAsync(_ddestinations.data, destinations, sizeof(float *) * nrbcs, cudaMemcpyHostToDevice, stream));
-	    CUDA_CHECK(cudaMemcpyAsync(_dsources.data, sources, sizeof(float *) * nrbcs, cudaMemcpyHostToDevice, stream));
+	    if (!is_mps_enabled) {
+		CUDA_CHECK(cudaMemcpyAsync(_dcodes.data, codes, sizeof(int) * nrbcs, cudaMemcpyHostToDevice, stream));
+		CUDA_CHECK(cudaMemcpyAsync(_ddestinations.data, destinations, sizeof(float *) * nrbcs, cudaMemcpyHostToDevice, stream));
+		CUDA_CHECK(cudaMemcpyAsync(_dsources.data, sources, sizeof(float *) * nrbcs, cudaMemcpyHostToDevice, stream));
+	    } else {
+		CUDA_CHECK(cudaMemcpy(_dcodes.data, codes, sizeof(int) * nrbcs, cudaMemcpyHostToDevice));
+		CUDA_CHECK(cudaMemcpy(_ddestinations.data, destinations, sizeof(float *) * nrbcs, cudaMemcpyHostToDevice));
+		CUDA_CHECK(cudaMemcpy(_dsources.data, sources, sizeof(float *) * nrbcs, cudaMemcpyHostToDevice));
+	    }
 
 	    shift_all_send_particles<false><<<(nthreads + 127) / 128, 128, 0, stream>>>
 		(nrbcs, nvertices, _dsources.data, _dcodes.data, _ddestinations.data);
@@ -185,8 +197,13 @@ namespace KernelsRBC
 
 	if (nrbcs < cmaxnrbcs)
 	{
-	    CUDA_CHECK(cudaMemcpyToSymbolAsync(cdestinations, destinations, sizeof(float *) * nrbcs, 0, cudaMemcpyHostToDevice, stream));
-	    CUDA_CHECK(cudaMemcpyToSymbolAsync(csources, sources, sizeof(float *) * nrbcs, 0, cudaMemcpyHostToDevice, stream));
+	    if (!is_mps_enabled) {
+		CUDA_CHECK(cudaMemcpyToSymbolAsync(cdestinations, destinations, sizeof(float *) * nrbcs, 0, cudaMemcpyHostToDevice, stream));
+		CUDA_CHECK(cudaMemcpyToSymbolAsync(csources, sources, sizeof(float *) * nrbcs, 0, cudaMemcpyHostToDevice, stream));
+	    } else {
+		CUDA_CHECK(cudaMemcpyToSymbol(cdestinations, destinations, sizeof(float *) * nrbcs, 0, cudaMemcpyHostToDevice));
+		CUDA_CHECK(cudaMemcpyToSymbol(csources, sources, sizeof(float *) * nrbcs, 0, cudaMemcpyHostToDevice));
+	    }
 
 	    merge_all_acc<true><<<(nthreads + 127) / 128, 128, 0, stream>>>(nrbcs, nvertices, NULL, NULL);
 
@@ -197,8 +214,13 @@ namespace KernelsRBC
 	    _ddestinations.resize(nrbcs);
 	    _dsources.resize(nrbcs);
 
-	    CUDA_CHECK(cudaMemcpyAsync(_ddestinations.data, destinations, sizeof(float *) * nrbcs, cudaMemcpyHostToDevice, stream));
-	    CUDA_CHECK(cudaMemcpyAsync(_dsources.data, sources, sizeof(float *) * nrbcs, cudaMemcpyHostToDevice, stream));
+	    if (!is_mps_enabled) {
+		CUDA_CHECK(cudaMemcpyAsync(_ddestinations.data, destinations, sizeof(float *) * nrbcs, cudaMemcpyHostToDevice, stream));
+		CUDA_CHECK(cudaMemcpyAsync(_dsources.data, sources, sizeof(float *) * nrbcs, cudaMemcpyHostToDevice, stream));
+	    } else {
+		CUDA_CHECK(cudaMemcpy(_ddestinations.data, destinations, sizeof(float *) * nrbcs, cudaMemcpyHostToDevice));
+		CUDA_CHECK(cudaMemcpy(_dsources.data, sources, sizeof(float *) * nrbcs, cudaMemcpyHostToDevice));
+	    }
 
 	    merge_all_acc<false><<<(nthreads + 127) / 128, 128, 0, stream>>>(nrbcs, nvertices, _dsources.data, _ddestinations.data);
 	}
@@ -977,9 +999,13 @@ void ComputeInteractionsRBC::pack_p(const Particle * const rbcs, cudaStream_t st
 
 #if 1
     {
-	std::vector<int> codes;
-	std::vector<const float *> src;
-	std::vector<float *> dst;
+	static std::vector<int> codes;
+	static std::vector<const float *> src;
+	static std::vector<float *> dst;
+
+	codes.clear();
+	src.clear();
+	dst.clear();
 
 	for(int i = 0; i < 26; ++i)
 	    for(int j = 0; j < haloreplica[i].size(); ++j)
@@ -1095,7 +1121,7 @@ void ComputeInteractionsRBC::fsi_halo(const Particle * const solvent, const int 
 	int nremote = 0;
 
 	{
-	    int packstarts[27];
+	    static int packstarts[27];
 
 	    packstarts[0] = 0;
 	    for(int i = 0, s = 0; i < 26; ++i)
@@ -1103,28 +1129,40 @@ void ComputeInteractionsRBC::fsi_halo(const Particle * const solvent, const int 
 
 	    nremote = packstarts[26];
 
-	    CUDA_CHECK(cudaMemcpyToSymbolAsync(KernelsRBC::packstarts, packstarts,
+	    if (!is_mps_enabled)
+		CUDA_CHECK(cudaMemcpyToSymbolAsync(KernelsRBC::packstarts, packstarts,
 					       sizeof(packstarts), 0, cudaMemcpyHostToDevice, stream));
+	    else
+		CUDA_CHECK(cudaMemcpyToSymbol(KernelsRBC::packstarts, packstarts,
+					       sizeof(packstarts), 0, cudaMemcpyHostToDevice));
 	}
 
 	{
-	    Particle * packstates[26];
+	    static Particle * packstates[26];
 
 	    for(int i = 0; i < 26; ++i)
 		packstates[i] = remote[i].state.devptr;
 
-	    CUDA_CHECK(cudaMemcpyToSymbolAsync(KernelsRBC::packstates, packstates,
+	    if (!is_mps_enabled)
+		CUDA_CHECK(cudaMemcpyToSymbolAsync(KernelsRBC::packstates, packstates,
 					       sizeof(packstates), 0, cudaMemcpyHostToDevice, stream));
+	    else
+		CUDA_CHECK(cudaMemcpyToSymbol(KernelsRBC::packstates, packstates,
+					       sizeof(packstates), 0, cudaMemcpyHostToDevice));
 	}
 
 	{
-	    Acceleration * packresults[26];
+	    static Acceleration * packresults[26];
 
 	    for(int i = 0; i < 26; ++i)
 		packresults[i] = remote[i].result.devptr;
 
-	    CUDA_CHECK(cudaMemcpyToSymbolAsync(KernelsRBC::packresults, packresults,
+	    if (!is_mps_enabled)
+		CUDA_CHECK(cudaMemcpyToSymbolAsync(KernelsRBC::packresults, packresults,
 					       sizeof(packresults), 0, cudaMemcpyHostToDevice, stream));
+	    else
+		CUDA_CHECK(cudaMemcpyToSymbol(KernelsRBC::packresults, packresults,
+					       sizeof(packresults), 0, cudaMemcpyHostToDevice));
 	}
 
 	if(nremote)
@@ -1176,8 +1214,11 @@ void ComputeInteractionsRBC::merge_a(Acceleration * accrbc, cudaStream_t stream)
 
 #if 1
     {
-	std::vector<const float *> src;
-	std::vector<float *> dst;
+	static std::vector<const float *> src;
+	static std::vector<float *> dst;
+
+	src.clear();
+	dst.clear();
 
 	for(int i = 0; i < 26; ++i)
 	    for(int j = 0; j < haloreplica[i].size(); ++j)

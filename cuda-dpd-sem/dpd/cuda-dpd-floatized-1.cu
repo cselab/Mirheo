@@ -371,7 +371,7 @@ void _dpd_forces_symm_merged()
 }
 
 bool fdpd_init = false;
-
+static bool is_mps_enabled = false;
 #include "../hacks.h"
 #ifdef _TIME_PROFILE_
 static cudaEvent_t evstart, evstop;
@@ -511,10 +511,25 @@ void forces_dpd_cuda_nohost( const float * const xyzuvw, float * const axayaz,  
         CUDA_CHECK( cudaEventCreate( &evstart ) );
         CUDA_CHECK( cudaEventCreate( &evstop ) );
 #endif
+
+	{
+	    is_mps_enabled = false;
+
+	    const char * mps_variables[] = {
+		"CRAY_CUDA_MPS",
+		"CUDA_MPS",
+		"CRAY_CUDA_PROXY",
+		"CUDA_PROXY"
+	    };
+
+	    for(int i = 0; i < 4; ++i)
+		is_mps_enabled |= getenv(mps_variables[i])!= NULL && atoi(getenv(mps_variables[i])) != 0;
+	}
+
         fdpd_init = true;
     }
 
-    InfoDPD c;
+    static InfoDPD c;
 
     size_t textureoffset;
     static  float  *xyzouvwo;
@@ -561,7 +576,10 @@ void forces_dpd_cuda_nohost( const float * const xyzuvw, float * const axayaz,  
     c.axayaz = axayaz;
     c.seed = seed;
 
-    CUDA_CHECK( cudaMemcpyToSymbolAsync( info, &c, sizeof( c ), 0, cudaMemcpyHostToDevice, stream ) );
+    if (!is_mps_enabled)
+	CUDA_CHECK( cudaMemcpyToSymbolAsync( info, &c, sizeof( c ), 0, cudaMemcpyHostToDevice, stream ) );
+    else
+	CUDA_CHECK( cudaMemcpyToSymbol( info, &c, sizeof( c ), 0, cudaMemcpyHostToDevice ) );
 
     static int cetriolo = 0;
     cetriolo++;

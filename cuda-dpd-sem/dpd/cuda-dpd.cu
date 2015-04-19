@@ -682,7 +682,7 @@ __global__ __launch_bounds__(32 * CPB, 8)
 #endif
 
 bool fdpd_init = false;
-
+static bool is_mps_enabled = false;
 #include "../hacks.h"
 #ifdef _TIME_PROFILE_
 static cudaEvent_t evstart, evstop;
@@ -734,6 +734,21 @@ void forces_dpd_cuda_nohost(const float * const xyzuvw, float * const axayaz,  c
 	CUDA_CHECK(cudaEventCreate(&evstart));
 	CUDA_CHECK(cudaEventCreate(&evstop));
 #endif
+        
+	{
+	    is_mps_enabled = false;
+
+	    const char * mps_variables[] = {
+		"CRAY_CUDA_MPS",
+		"CUDA_MPS",
+		"CRAY_CUDA_PROXY",
+		"CUDA_PROXY"
+	    };
+
+	    for(int i = 0; i < 4; ++i)
+		is_mps_enabled |= getenv(mps_variables[i])!= NULL && atoi(getenv(mps_variables[i])) != 0;
+	}
+
 	fdpd_init = true;
     }
 
@@ -745,7 +760,7 @@ void forces_dpd_cuda_nohost(const float * const xyzuvw, float * const axayaz,  c
     CUDA_CHECK(cudaBindTexture(&textureoffset, &texCount, cellscount, &texCount.channelDesc, sizeof(int) * ncells));
     assert(textureoffset == 0);
 
-    InfoDPD c;
+    static InfoDPD c;
     c.ncells = make_int3(nx, ny, nz);
     c.domainsize = make_float3(XL, YL, ZL);
     c.invdomainsize = make_float3(1 / XL, 1 / YL, 1 / ZL);
@@ -757,7 +772,10 @@ void forces_dpd_cuda_nohost(const float * const xyzuvw, float * const axayaz,  c
     c.axayaz = axayaz;
     c.seed = seed;
 
-    CUDA_CHECK(cudaMemcpyToSymbolAsync(info, &c, sizeof(c), 0, cudaMemcpyHostToDevice, stream));
+    if (!is_mps_enabled)
+	CUDA_CHECK(cudaMemcpyToSymbolAsync(info, &c, sizeof(c), 0, cudaMemcpyHostToDevice, stream));
+    else
+	CUDA_CHECK(cudaMemcpyToSymbol(info, &c, sizeof(c), 0, cudaMemcpyHostToDevice));
 
     static int cetriolo = 0;
     cetriolo++;
@@ -818,7 +836,7 @@ void forces_dpd_cuda_nohost(const float * const xyzuvw, float * const axayaz,  c
 	CUDA_CHECK(cudaEventRecord(evstart));
 #endif
 
-    CUDA_CHECK(cudaMemsetAsync(axayaz, 0, sizeof(float) * 3 * np));
+    CUDA_CHECK(cudaMemsetAsync(axayaz, 0, sizeof(float) * 3 * np), stream);
     _dpd_forces_new2<32, 1>/*, 3>*/<<<(c.ncells.x*c.ncells.y*c.ncells.z+CPB-1)/CPB, dim3(32, CPB), 0, stream>>>();
 /*_dpd_forces<<<dim3(c.ncells.x / _XCPB_,
 			    c.ncells.y / _YCPB_,
@@ -928,7 +946,7 @@ void forces_dpd_cuda_aos(float * const _xyzuvw, float * const _axayaz,
 
     CUDA_CHECK(cudaMemcpyAsync(fdpd_xyzuvw, _xyzuvw, sizeof(float) * np * 6, nohost ? cudaMemcpyDeviceToDevice : cudaMemcpyHostToDevice, 0));
 
-    InfoDPD c;
+    static InfoDPD c;
     c.ncells = make_int3(nx, ny, nz);
     c.domainsize = make_float3(XL, YL, ZL);
     c.invdomainsize = make_float3(1 / XL, 1 / YL, 1 / ZL);

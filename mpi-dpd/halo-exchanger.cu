@@ -293,7 +293,7 @@ void HaloExchanger::_pack_all(const Particle * const p, const int n, const bool 
 {
     if (update_baginfos)
     {
-	PackingHalo::SendBagInfo baginfos[26];
+	static PackingHalo::SendBagInfo baginfos[26];
 
 	for(int i = 0; i < 26; ++i)
 	{
@@ -306,7 +306,10 @@ void HaloExchanger::_pack_all(const Particle * const p, const int n, const bool 
 	    baginfos[i].hbag = sendhalos[i].hbuf.data;
 	}
 
-	CUDA_CHECK(cudaMemcpyToSymbolAsync(PackingHalo::baginfos, baginfos, sizeof(baginfos), 0, cudaMemcpyHostToDevice));
+	if (!is_mps_enabled)
+	    CUDA_CHECK(cudaMemcpyToSymbolAsync(PackingHalo::baginfos, baginfos, sizeof(baginfos), 0, cudaMemcpyHostToDevice, stream)); // peh: added stream
+	else
+	    CUDA_CHECK(cudaMemcpyToSymbol(PackingHalo::baginfos, baginfos, sizeof(baginfos), 0, cudaMemcpyHostToDevice));
     }
 
     PackingHalo::fill_all<<< (PackingHalo::ncells + 1) / 2, 32, 0, stream>>>(p, n, required_send_bag_size);
@@ -325,7 +328,7 @@ void HaloExchanger::pack(const Particle * const p, const int n, const int * cons
     if (firstpost)
     {
 	{
-	    int cellpackstarts[27];
+	    static int cellpackstarts[27];
 
 	    cellpackstarts[0] = 0;
 	    for(int i = 0, s = 0; i < 26; ++i)
@@ -333,12 +336,12 @@ void HaloExchanger::pack(const Particle * const p, const int n, const int * cons
 
 	    PackingHalo::ncells = cellpackstarts[26];
 
-	    CUDA_CHECK(cudaMemcpyToSymbolAsync(PackingHalo::cellpackstarts, cellpackstarts,
-					       sizeof(cellpackstarts), 0, cudaMemcpyHostToDevice, stream));
+	    CUDA_CHECK(cudaMemcpyToSymbol(PackingHalo::cellpackstarts, cellpackstarts,
+					       sizeof(cellpackstarts), 0, cudaMemcpyHostToDevice));
 	}
 
 	{
-	    PackingHalo::CellPackSOA cellpacks[26];
+	    static PackingHalo::CellPackSOA cellpacks[26];
 	    for(int i = 0; i < 26; ++i)
 	    {
 		cellpacks[i].start = sendhalos[i].tmpstart.data;
@@ -346,8 +349,8 @@ void HaloExchanger::pack(const Particle * const p, const int n, const int * cons
 		cellpacks[i].enabled = sendhalos[i].expected > 0;
 	    }
 
-	    CUDA_CHECK(cudaMemcpyToSymbolAsync(PackingHalo::cellpacks, cellpacks,
-					       sizeof(cellpacks), 0, cudaMemcpyHostToDevice, stream));
+	    CUDA_CHECK(cudaMemcpyToSymbol(PackingHalo::cellpacks, cellpacks,
+					       sizeof(cellpacks), 0, cudaMemcpyHostToDevice));
 	}
     }
 
@@ -386,31 +389,31 @@ void HaloExchanger::pack(const Particle * const p, const int n, const int * cons
     if (firstpost)
     {
 	{
-	    int * srccells[26];
+	    static int * srccells[26];
 	    for(int i = 0; i < 26; ++i)
 		srccells[i] = sendhalos[i].dcellstarts.data;
 
-	    CUDA_CHECK(cudaMemcpyToSymbolAsync(PackingHalo::srccells, srccells, sizeof(srccells), 0, cudaMemcpyHostToDevice, stream));
+	    CUDA_CHECK(cudaMemcpyToSymbol(PackingHalo::srccells, srccells, sizeof(srccells), 0, cudaMemcpyHostToDevice));
 
-	    int * dstcells[26];
+	    static int * dstcells[26];
 	    for(int i = 0; i < 26; ++i)
 		dstcells[i] = sendhalos[i].hcellstarts.devptr;
 
-	    CUDA_CHECK(cudaMemcpyToSymbolAsync(PackingHalo::dstcells, dstcells, sizeof(dstcells), 0, cudaMemcpyHostToDevice, stream));
+	    CUDA_CHECK(cudaMemcpyToSymbol(PackingHalo::dstcells, dstcells, sizeof(dstcells), 0, cudaMemcpyHostToDevice));
 	}
 
 	{
-	    int * srccells[26];
+	    static int * srccells[26];
 	    for(int i = 0; i < 26; ++i)
 		srccells[i] = recvhalos[i].hcellstarts.devptr;
 
-	    CUDA_CHECK(cudaMemcpyToSymbolAsync(PackingHalo::srccells, srccells, sizeof(srccells), sizeof(srccells), cudaMemcpyHostToDevice, stream));
+	    CUDA_CHECK(cudaMemcpyToSymbol(PackingHalo::srccells, srccells, sizeof(srccells), sizeof(srccells), cudaMemcpyHostToDevice));
 
-	    int * dstcells[26];
+	    static int * dstcells[26];
 	    for(int i = 0; i < 26; ++i)
 		dstcells[i] = recvhalos[i].dcellstarts.data;
 
-	    CUDA_CHECK(cudaMemcpyToSymbolAsync(PackingHalo::dstcells, dstcells, sizeof(dstcells), sizeof(dstcells), cudaMemcpyHostToDevice, stream));
+	    CUDA_CHECK(cudaMemcpyToSymbol(PackingHalo::dstcells, dstcells, sizeof(dstcells), sizeof(dstcells), cudaMemcpyHostToDevice));
 	}
     }
 
@@ -671,25 +674,34 @@ void HaloExchanger::wait_for_messages(cudaStream_t stream)
 
     //shift the received particles
     {
-	int packstarts[27];
+	static int packstarts[27];
 
 	packstarts[0] = 0;
 	for(int code = 0, s = 0; code < 26; ++code)
 	    packstarts[code + 1] = (s += recv_counts[code]);
 
-	CUDA_CHECK(cudaMemcpyToSymbolAsync(UnpackingHalo::packstarts, packstarts, sizeof(packstarts), 0, cudaMemcpyHostToDevice, stream));
+	if (!is_mps_enabled)
+	    CUDA_CHECK(cudaMemcpyToSymbolAsync(UnpackingHalo::packstarts, packstarts, sizeof(packstarts), 0, cudaMemcpyHostToDevice, stream));
+	else
+	    CUDA_CHECK(cudaMemcpyToSymbol(UnpackingHalo::packstarts, packstarts, sizeof(packstarts), 0, cudaMemcpyHostToDevice));
 
-	Particle * srcpacks[26];
+	static Particle * srcpacks[26];
 	for(int i = 0; i < 26; ++i)
 	    srcpacks[i] = recvhalos[i].hbuf.devptr;
 
-	CUDA_CHECK(cudaMemcpyToSymbolAsync(UnpackingHalo::srcpacks, srcpacks, sizeof(srcpacks), 0, cudaMemcpyHostToDevice, stream));
+	if (!is_mps_enabled)
+	    CUDA_CHECK(cudaMemcpyToSymbolAsync(UnpackingHalo::srcpacks, srcpacks, sizeof(srcpacks), 0, cudaMemcpyHostToDevice, stream));
+	else
+	    CUDA_CHECK(cudaMemcpyToSymbol(UnpackingHalo::srcpacks, srcpacks, sizeof(srcpacks), 0, cudaMemcpyHostToDevice));
 
-	Particle * dstpacks[26];
+	static Particle * dstpacks[26];
 	for(int i = 0; i < 26; ++i)
 	    dstpacks[i] = recvhalos[i].dbuf.data;
 
-	CUDA_CHECK(cudaMemcpyToSymbolAsync(UnpackingHalo::dstpacks, dstpacks, sizeof(dstpacks), 0, cudaMemcpyHostToDevice, stream));
+	if (!is_mps_enabled)
+	    CUDA_CHECK(cudaMemcpyToSymbolAsync(UnpackingHalo::dstpacks, dstpacks, sizeof(dstpacks), 0, cudaMemcpyHostToDevice, stream));
+	else
+	    CUDA_CHECK(cudaMemcpyToSymbol(UnpackingHalo::dstpacks, dstpacks, sizeof(dstpacks), 0, cudaMemcpyHostToDevice));
 
 	const int np = packstarts[26];
 

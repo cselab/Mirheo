@@ -121,8 +121,13 @@ namespace ReorderingRBC
 
 	if (nrbcs < cmaxnrbcs)
 	{
-	    CUDA_CHECK(cudaMemcpyToSymbolAsync(cdestinations, destinations, sizeof(float *) * nrbcs, 0, cudaMemcpyHostToDevice, stream));
-	    CUDA_CHECK(cudaMemcpyToSymbolAsync(csources, sources, sizeof(float *) * nrbcs, 0, cudaMemcpyHostToDevice, stream));
+	    if (!is_mps_enabled) {
+		CUDA_CHECK(cudaMemcpyToSymbolAsync(cdestinations, destinations, sizeof(float *) * nrbcs, 0, cudaMemcpyHostToDevice, stream));
+		CUDA_CHECK(cudaMemcpyToSymbolAsync(csources, sources, sizeof(float *) * nrbcs, 0, cudaMemcpyHostToDevice, stream));
+	    } else {
+		CUDA_CHECK(cudaMemcpyToSymbol(cdestinations, destinations, sizeof(float *) * nrbcs, 0, cudaMemcpyHostToDevice));
+		CUDA_CHECK(cudaMemcpyToSymbol(csources, sources, sizeof(float *) * nrbcs, 0, cudaMemcpyHostToDevice));
+	    }
 	    
 	    pack_all_kernel<true><<<(nthreads + 127) / 128, 128, 0, stream>>>(nrbcs, nvertices, NULL, NULL);
 	}
@@ -131,8 +136,13 @@ namespace ReorderingRBC
 	    _ddestinations.resize(nrbcs);
 	    _dsources.resize(nrbcs);
 
-	    CUDA_CHECK(cudaMemcpyAsync(_ddestinations.data, destinations, sizeof(float *) * nrbcs, cudaMemcpyHostToDevice, stream));
-	    CUDA_CHECK(cudaMemcpyAsync(_dsources.data, sources, sizeof(float *) * nrbcs, cudaMemcpyHostToDevice, stream));
+	    if (!is_mps_enabled) {
+		CUDA_CHECK(cudaMemcpyAsync(_ddestinations.data, destinations, sizeof(float *) * nrbcs, cudaMemcpyHostToDevice, stream));
+		CUDA_CHECK(cudaMemcpyAsync(_dsources.data, sources, sizeof(float *) * nrbcs, cudaMemcpyHostToDevice, stream));
+	    } else {
+		CUDA_CHECK(cudaMemcpy(_ddestinations.data, destinations, sizeof(float *) * nrbcs, cudaMemcpyHostToDevice));
+		CUDA_CHECK(cudaMemcpy(_dsources.data, sources, sizeof(float *) * nrbcs, cudaMemcpyHostToDevice));
+	    }
 
 	    pack_all_kernel<false><<<(nthreads + 127) / 128, 128, 0, stream>>>(nrbcs, nvertices, _dsources.data, _ddestinations.data);
 	}
@@ -194,8 +204,11 @@ void RedistributeRBCs::pack_sendcount(const Particle * const xyzuvw, const int n
 
 #if 1
     {
-	std::vector<const float *> src;
-	std::vector<float *> dst;
+	static std::vector<const float *> src;
+	static std::vector<float *> dst;
+
+	src.clear();
+	dst.clear();
 
 	for(int i = 0; i < 27; ++i)
 	    for(int j = 0; j < reordering_indices[i].size(); ++j)

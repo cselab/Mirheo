@@ -587,6 +587,8 @@ void Simulation::_lockstep()
 
     CUDA_CHECK(cudaPeekAtLastError());
 
+    localcomm.barrier(); // peh: 1
+
     if (rbcscoll)
 	rbc_interactions.exchange_count();
 
@@ -698,6 +700,8 @@ void Simulation::_lockstep()
 
     redistribute.recv_unpack(unordered_particles.data, newnp, mainstream, host_idle_time);
 
+    localcomm.barrier();	// peh: +2
+
     particles.resize(newnp);
 
     cells.build(particles.xyzuvw.data, particles.size, mainstream, NULL, unordered_particles.data);
@@ -727,7 +731,7 @@ void Simulation::_lockstep()
 
     CUDA_CHECK(cudaPeekAtLastError());
 
-    localcomm.barrier();	// peh: +1
+//  localcomm.barrier();  // peh: +3
 
     timings["lockstep"] += MPI_Wtime() - tstart;
 }
