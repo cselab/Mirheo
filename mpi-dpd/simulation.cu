@@ -135,7 +135,7 @@ void Simulation::_report(const bool verbose, const int idtimestep)
 	
 	const double imbalance = 100 * (maxval / sumval * commsize - 1);
 	
-	if (verbose && imbalance > 5)
+	if (verbose && imbalance >= 0)
 	    printf("\x1b[93moverall imbalance: %.f%%, host workload min/avg/max: %.2f/%.2f/%.2f ms\x1b[0m\n", 
 		   imbalance , minval, sumval / commsize, maxval);
 	
