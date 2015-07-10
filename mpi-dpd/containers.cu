@@ -16,19 +16,19 @@
 
 #include "containers.h"
 #include "io.h"
-	    	    
+
 namespace ParticleKernels
 {
     __global__ void update_stage1(Particle * p, Acceleration * a, int n, float dt,
 				  const float driving_acceleration, const bool check = true)
     {
 	assert(blockDim.x * gridDim.x >= n);
-    
+
 	const int pid = threadIdx.x + blockDim.x * blockIdx.x;
 
 	if (pid >= n)
 	    return;
-    
+
 	for(int c = 0; c < 3; ++c)
 	{
 	    assert(!isnan(p[pid].x[c]));
@@ -38,7 +38,7 @@ namespace ParticleKernels
 
 	for(int c = 0; c < 3; ++c)
 	    p[pid].u[c] += (a[pid].a[c] + (c == 0 ? driving_acceleration : 0)) * dt * 0.5;
-    
+
 	for(int c = 0; c < 3; ++c)
 	    p[pid].x[c] += p[pid].u[c] * dt;
 
@@ -57,46 +57,46 @@ namespace ParticleKernels
     __global__ void update_stage2_and_1(Particle * p, Acceleration * a, int n, float dt, const float driving_acceleration)
     {
 	assert(blockDim.x * gridDim.x >= 3 * n);
-	
+
 	const int gid = threadIdx.x + blockDim.x * blockIdx.x;
 
 	if (gid >= 3 * n)
 	    return;
-	
+
 	const int pid = gid / 3;
 	const int c = gid % 3;
 
 	const float mya = a[pid].a[c] + (c == 0 ? driving_acceleration : 0);
-	
+
 	float myu = p[pid].u[c];
 	float myx = p[pid].x[c];
-	
+
 	myu += mya * dt;
 	myx += myu * dt;
 
 	assert(!isnan(myu) && !isnan(myx));
-	
+
 	p[pid].u[c] = myu;
 	p[pid].x[c] = myx;
-	
+
 #ifndef NDEBUG
-	const int L[3] = { XSIZE_SUBDOMAIN, YSIZE_SUBDOMAIN, ZSIZE_SUBDOMAIN };	
-	
+	const int L[3] = { XSIZE_SUBDOMAIN, YSIZE_SUBDOMAIN, ZSIZE_SUBDOMAIN };
+
 	if (!(myx >= -L[c] -L[c]/2) || !(myx <= +L[c] +L[c]/2))
 	{
 	    cuda_printf("Uau: pid %d c %d: x %f u %f and a %f\n",
 		   pid, c, myx, myu, mya);
-	    
+
 	    assert(myx >= -L[c] -L[c]/2);
 	    assert(myx <= +L[c] +L[c]/2);
 	}
 #endif
     }
-    
+
     __global__ void clear_velocity(Particle * const p, const int n)
     {
 	assert(blockDim.x * gridDim.x >= n);
-    
+
 	const int pid = threadIdx.x + blockDim.x * blockIdx.x;
 
 	if (pid >= n)
@@ -116,7 +116,7 @@ ParticleArray::ParticleArray(vector<Particle> ic)
 
     void (*upkernel)(Particle * p, Acceleration * a, int n, float dt,
 		     const float da) = ParticleKernels::update_stage2_and_1;
-    
+
     CUDA_CHECK(cudaFuncSetCacheConfig(*upkernel, cudaFuncCachePreferL1));
 }
 
@@ -137,7 +137,7 @@ void  ParticleArray::update_stage2_and_1(const float driving_acceleration, cudaS
 void ParticleArray::resize(int n)
 {
     size = n;
-    
+
     // YTANG: need the array to be 32-padded for locally transposed storage of acceleration
     if ( n % 32 ) {
         xyzuvw.preserve_resize( n - n % 32 + 32 );
@@ -145,7 +145,7 @@ void ParticleArray::resize(int n)
     }
     xyzuvw.resize(n);
     axayaz.resize(n);
-    
+
     CUDA_CHECK(cudaMemset(axayaz.data, 0, sizeof(Acceleration) * size));
 }
 
@@ -166,6 +166,12 @@ void ParticleArray::clear_velocity()
 	ParticleKernels::clear_velocity<<<(xyzuvw.size + 127) / 128, 128 >>>(xyzuvw.data, xyzuvw.size);
 }
 
+std::string CollectionRBC::path2xyz, CollectionRBC::format4ply, CollectionRBC::path2ic;
+int (*CollectionRBC::indices)[3];
+int CollectionRBC::ntriangles;
+int CollectionRBC::nvertices;
+
+
 void CollectionRBC::resize(const int count)
 {
     nrbcs = count;
@@ -179,28 +185,30 @@ void CollectionRBC::preserve_resize(const int count)
 
     ParticleArray::preserve_resize(count * nvertices);
 }
-    
+
 struct TransformedExtent
 {
     float com[3];
     float transform[4][4];
 };
 
-CollectionRBC::CollectionRBC(MPI_Comm cartcomm, const string path2ic): 
-    cartcomm(cartcomm), nrbcs(0), path2xyz("rbcs.xyz"), format4ply("ply/rbcs-%04d.ply"), 
-    path2ic("rbcs-ic.txt"), dumpcounter(0)
+CollectionRBC::CollectionRBC(MPI_Comm cartcomm):
+    cartcomm(cartcomm), nrbcs(0)
 {
     MPI_CHECK(MPI_Comm_rank(cartcomm, &myrank));
     MPI_CHECK( MPI_Cart_get(cartcomm, 3, dims, periods, coords) );
-    
+
+    path2xyz = "rbcs.xyz";
+    format4ply = "ply/rbcs-%04d.ply";
+    CollectionRBC::path2ic = "rbcs-ic.txt";
+
+    CudaRBC::get_triangle_indexing(indices, ntriangles);
     CudaRBC::Extent extent;
     CudaRBC::setup(nvertices, extent);
 
     assert(extent.xmax - extent.xmin < XSIZE_SUBDOMAIN);
     assert(extent.ymax - extent.ymin < YSIZE_SUBDOMAIN);
     assert(extent.zmax - extent.zmin < ZSIZE_SUBDOMAIN);
-
-    CudaRBC::get_triangle_indexing(indices, ntriangles);
 }
 
 void CollectionRBC::setup()
@@ -213,21 +221,21 @@ void CollectionRBC::setup()
 	FILE * f = fopen(path2ic.c_str(), "r");
 	printf("READING FROM: <%s>\n", path2ic.c_str());
 	bool isgood = true;
-	
+
 	while(isgood)
 	{
 	    float tmp[19];
 	    for(int c = 0; c < 19; ++c)
 	    {
 		int retval = fscanf(f, "%f", tmp + c);
-		
+
 		isgood &= retval == 1;
 	    }
 
 	    if (isgood)
 	    {
 		TransformedExtent t;
-		
+
 		for(int c = 0; c < 3; ++c)
 		    t.com[c] = tmp[c];
 
@@ -249,7 +257,7 @@ void CollectionRBC::setup()
     MPI_CHECK(MPI_Bcast(&allrbcs_count, 1, MPI_INT, 0, cartcomm));
 
     allrbcs.resize(allrbcs_count);
-    
+
     const int nfloats_per_entry = sizeof(TransformedExtent) / sizeof(float);
     assert( sizeof(TransformedExtent) % sizeof(float) == 0);
 
@@ -274,7 +282,7 @@ void CollectionRBC::setup()
 	    good.push_back(*it);
 	}
     }
-    
+
     resize(good.size());
 
     for(int i = 0; i < good.size(); ++i)
@@ -304,27 +312,19 @@ void CollectionRBC::remove(const int * const entries, const int nentries)
     SimpleDeviceBuffer<Particle> survived(nvertices * nsurvived);
 
     for(int i = 0; i < nsurvived; ++i)
-	CUDA_CHECK(cudaMemcpy(survived.data + nvertices * i, data() + nvertices * survivors[i], 
+	CUDA_CHECK(cudaMemcpy(survived.data + nvertices * i, data() + nvertices * survivors[i],
 			      sizeof(Particle) * nvertices, cudaMemcpyDeviceToDevice));
-	    
+
     resize(nsurvived);
 
     CUDA_CHECK(cudaMemcpy(xyzuvw.data, survived.data, sizeof(Particle) * survived.size, cudaMemcpyDeviceToDevice));
 }
 
-void CollectionRBC::dump(MPI_Comm comm, MPI_Comm cartcomm)
+void CollectionRBC::dump(MPI_Comm comm, MPI_Comm cartcomm, Particle * const p, const Acceleration * const a, const int n, const int iddatadump)
 {
-    int& ctr = dumpcounter;
+    int ctr = iddatadump;
     const bool firsttime = ctr == 0;
-	    
-    const int n = size;
 
-    Particle * p = new Particle[n];
-    Acceleration * a = new Acceleration[n];
-
-    CUDA_CHECK(cudaMemcpy(p, xyzuvw.data, sizeof(Particle) * n, cudaMemcpyDeviceToHost));
-    CUDA_CHECK(cudaMemcpy(a, axayaz.data, sizeof(Acceleration) * n, cudaMemcpyDeviceToHost));
-		   
     //we fused VV stages so we need to recover the state before stage 1
     for(int i = 0; i < n; ++i)
 	for(int c = 0; c < 3; ++c)
@@ -332,7 +332,7 @@ void CollectionRBC::dump(MPI_Comm comm, MPI_Comm cartcomm)
 	    assert(!isnan(p[i].x[c]));
 	    assert(!isnan(p[i].u[c]));
 	    assert(!isnan(a[i].a[c]));
-	    
+
 	    p[i].x[c] -= dt * p[i].u[c];
 	    p[i].u[c] -= 0.5 * dt * a[i].a[c];
 	}
@@ -347,15 +347,10 @@ void CollectionRBC::dump(MPI_Comm comm, MPI_Comm cartcomm)
     {
 	int rank;
 	MPI_CHECK(MPI_Comm_rank(comm, &rank));
-		
+
 	if(rank == 0)
 	    mkdir("ply", S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
     }
-	    
-    ply_dump(comm, cartcomm, buf, indices, nrbcs, ntriangles, p, nvertices, false);
-		    
-    delete [] p;
-    delete [] a;
 
-    ++ctr;
+    ply_dump(comm, cartcomm, buf, indices, n / nvertices, ntriangles, p, nvertices, false);
 }

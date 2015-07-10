@@ -23,13 +23,13 @@ bool currently_profiling = false;
 namespace SignalHandling
 {
     volatile sig_atomic_t graceful_exit = 0, graceful_signum = 0;
-        
+
     void signal_handler(int signum)
     {
 	graceful_exit = 1;
 	graceful_signum = signum;
     }
-    
+
     void setup()
     {
 	struct sigaction action;
@@ -37,11 +37,11 @@ namespace SignalHandling
 	action.sa_handler = signal_handler;
 	sigaction(SIGUSR1, &action, NULL);
     }
-    
+
     bool check_termination_request()
     {
 	return graceful_exit;
-    }   
+    }
 }
 
 int main(int argc, char ** argv)
@@ -59,7 +59,11 @@ int main(int argc, char ** argv)
 	    ranks[i] = atoi(argv[1 + i]);
 
     SignalHandling::setup();
-    
+
+#ifdef _USE_NVTX_
+    nvtxNameOsThread(pthread_self(), "MASTER_THREAD");
+#endif
+
     CUDA_CHECK(cudaSetDevice(0));
 
     CUDA_CHECK(cudaDeviceReset());
@@ -73,19 +77,34 @@ int main(int argc, char ** argv)
 	    "CRAY_CUDA_PROXY",
 	    "CUDA_PROXY"
 	};
-	
+
 	for(int i = 0; i < 4; ++i)
 	    is_mps_enabled |= getenv(mps_variables[i])!= NULL && atoi(getenv(mps_variables[i])) != 0;
     }
-    
-    int nranks, rank;   
-    
+
+    int nranks, rank;
+
     {
-	MPI_CHECK( MPI_Init(&argc, &argv) );
+	//needed for the asynchronous data dumps
+	setenv("MPICH_MAX_THREAD_SAFETY", "multiple", 0);
+
+	int provided_safety_level;
+	MPI_CHECK( MPI_Init_thread(&argc, &argv, MPI_THREAD_MULTIPLE, &provided_safety_level));
 
 	MPI_CHECK( MPI_Comm_size(MPI_COMM_WORLD, &nranks) );
 	MPI_CHECK( MPI_Comm_rank(MPI_COMM_WORLD, &rank) );
-	
+
+	if (provided_safety_level != MPI_THREAD_MULTIPLE)
+	{
+	    if (rank == 0)
+		printf("ooooooooops MPI thread safety level is just %d. Aborting now.\n", provided_safety_level);
+
+	    abort();
+	}
+	else
+	    if (rank == 0)
+		printf("I have set MPICH_MAX_THREAD_SAFETY=multiple\n");
+
 	MPI_Comm activecomm = MPI_COMM_WORLD;
 
 	bool reordering = true;
@@ -98,7 +117,7 @@ int main(int argc, char ** argv)
 	    reordering = false;
 
 	    const bool usefulrank = rank < ranks[0] * ranks[1] * ranks[2];
-	    
+
 	    MPI_CHECK(MPI_Comm_split(MPI_COMM_WORLD, usefulrank, rank, &activecomm)) ;
 
 	    MPI_CHECK(MPI_Barrier(activecomm));
@@ -117,10 +136,10 @@ int main(int argc, char ** argv)
 
 	    MPI_CHECK(MPI_Barrier(activecomm));
 	}
-	
+
 	MPI_Comm cartcomm;
 
-	int periods[] = {1, 1, 1};	    
+	int periods[] = {1, 1, 1};
 
 	MPI_CHECK( MPI_Cart_create(activecomm, 3, ranks, periods, (int)reordering, &cartcomm) );
 
@@ -131,7 +150,7 @@ int main(int argc, char ** argv)
 	    char name[1024];
 	    int len;
 	    MPI_CHECK(MPI_Get_processor_name(name, &len));
-	    
+
 	    int dims[3], periods[3], coords[3];
 	    MPI_CHECK( MPI_Cart_get(cartcomm, 3, dims, periods, coords) );
 
@@ -142,26 +161,26 @@ int main(int argc, char ** argv)
 
 	    MPI_CHECK(MPI_Barrier(activecomm));
 	}
-	
+
 	//RAII
 	{
 	    Simulation simulation(cartcomm, activecomm, SignalHandling::check_termination_request);
 
 	    simulation.run();
 	}
-	
+
 	if (activecomm != cartcomm)
 	    MPI_CHECK(MPI_Comm_free(&activecomm));
-	
+
 	MPI_CHECK(MPI_Comm_free(&cartcomm));
-	
+
 	MPI_CHECK(MPI_Finalize());
     }
-    
+
     CUDA_CHECK(cudaDeviceSynchronize());
 
     CUDA_CHECK(cudaDeviceReset());
 
     return 0;
 }
-	
+

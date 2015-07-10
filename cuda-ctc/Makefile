@@ -48,7 +48,7 @@ endif
 clean:
 	rm -f *.cudaobj
 	rm -f *.o *.a *.so
-	rm -f *.d
+	rm -f *.d *.dcu
 	rm -f test-rbc
 	rm -f test-cuda-rbc
 

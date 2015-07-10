@@ -47,18 +47,17 @@ protected:
     
     int nrbcs, myrank, dims[3], periods[3], coords[3];
     
-    std::string path2xyz, format4ply, path2ic;
-
     virtual void _initialize(float *device_xyzuvw, const float (*transform)[4]);
     
-    int (*indices)[3];
-    int ntriangles;
-
+    static std::string path2xyz, format4ply, path2ic;
+    static int (*indices)[3];
+    static int ntriangles;
+    
 public:
     
-    int nvertices, dumpcounter;
+    static int nvertices;
 
-    CollectionRBC(MPI_Comm cartcomm, const std::string path2ic = "rbcs-ic.txt");
+    CollectionRBC(MPI_Comm cartcomm);
 
     void setup();
      
@@ -71,6 +70,6 @@ public:
     int count() { return nrbcs; }
     int pcount() { return nrbcs * nvertices; }
     
-    void dump(MPI_Comm comm, MPI_Comm cartcomm);
+    static void dump(MPI_Comm comm, MPI_Comm cartcomm, Particle * const p, const Acceleration * const a, const int n, const int iddatadump);
 };
 

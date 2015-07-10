@@ -85,7 +85,13 @@ class CollectionCTC : public CollectionRBC
 	CudaCTC::initialize(device_xyzuvw, transform);
     }
 
+    static std::string path2xyz, format4ply, path2ic;
+    static int (*indices)[3];
+    static int ntriangles;
+    
 public:
+    
+    static int nvertices;
 
 CollectionCTC(MPI_Comm cartcomm) : CollectionRBC(cartcomm)
     {
