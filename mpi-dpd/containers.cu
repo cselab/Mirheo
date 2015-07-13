@@ -16,6 +16,17 @@
 
 #include "containers.h"
 #include "io.h"
+#include "ctc.h"
+
+std::string CollectionRBC::path2xyz, CollectionRBC::format4ply, CollectionRBC::path2ic;
+int (*CollectionRBC::indices)[3];
+int CollectionRBC::ntriangles;
+int CollectionRBC::nvertices;
+
+std::string CollectionCTC::path2xyz, CollectionCTC::format4ply, CollectionCTC::path2ic;
+int (*CollectionCTC::indices)[3];
+int CollectionCTC::ntriangles;
+int CollectionCTC::nvertices;
 
 namespace ParticleKernels
 {
@@ -165,12 +176,6 @@ void ParticleArray::clear_velocity()
     if (size)
 	ParticleKernels::clear_velocity<<<(xyzuvw.size + 127) / 128, 128 >>>(xyzuvw.data, xyzuvw.size);
 }
-
-std::string CollectionRBC::path2xyz, CollectionRBC::format4ply, CollectionRBC::path2ic;
-int (*CollectionRBC::indices)[3];
-int CollectionRBC::ntriangles;
-int CollectionRBC::nvertices;
-
 
 void CollectionRBC::resize(const int count)
 {
