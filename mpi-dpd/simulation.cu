@@ -554,7 +554,7 @@ void Simulation::_datadump_async()
 
 	datadump_pending = false;
 
-	pthread_cond_signal(&request_datadump);
+	pthread_cond_signal(&done_datadump);
 
 	pthread_mutex_unlock(&mutex_datadump);
 
