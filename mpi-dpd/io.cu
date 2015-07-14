@@ -425,6 +425,9 @@ void H5FieldDump::dump(MPI_Comm comm, const Particle * const p, const int n, int
 
     if (!directory_exists)
     {
+	int rank;
+	MPI_CHECK(MPI_Comm_rank(comm, &rank));
+	
 	if (rank == 0)
 	    mkdir("h5", S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
 
@@ -475,4 +478,8 @@ H5FieldDump::~H5FieldDump()
 #endif //NO_H5
 }
 
+<<<<<<< HEAD
 bool H5FieldDump::directory_exists = false;
+=======
+bool H5FieldDump::directory_exists = false;
+>>>>>>> 7958163cfbb713e98550739a1ac73f4478e3d52d
