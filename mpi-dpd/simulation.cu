@@ -10,6 +10,8 @@
  *  before getting a written permission from the author of this file.
  */
 
+#include <sys/stat.h>
+
 #include "simulation.h"
 
 std::vector<Particle> Simulation::_ic()
@@ -179,7 +181,7 @@ void Simulation::_remove_bodies_from_wall(CollectionRBC * coll)
     CUDA_CHECK(cudaMemcpy(tmp.data(), marks.data, sizeof(int) * marks.size, cudaMemcpyDeviceToHost));
 
     const int nbodies = coll->count();
-    const int nvertices = coll->nvertices;
+    const int nvertices = coll->get_nvertices();
 
     std::vector<int> tokill;
     for(int i = 0; i < nbodies; ++i)
@@ -285,21 +287,6 @@ void Simulation::_create_walls(const bool verbose, bool & termination_request)
 	sd.dump(p, particles.size);
 
 	delete [] p;
-    }
-
-    if (rank == 0)
-    {
-	if( access( "particles.xyz", F_OK ) != -1 )
-	{
-	    const int retval = rename ("particles.xyz", "particles-equilibration.xyz");
-	    assert(retval != -1);
-	}
-
-	if( access( "rbcs.xyz", F_OK ) != -1 )
-	{
-	    const int retval = rename ("rbcs.xyz", "rbcs-equilibration.xyz");
-	    assert(retval != -1);
-	}
     }
 }
 
@@ -473,8 +460,9 @@ void Simulation::_datadump_async()
     nvtxNameOsThread(pthread_self(), "DATADUMP_THREAD");
 #endif
 
-    int iddatadump = 0;
+    int iddatadump = 0, rank;
     int curr_idtimestep = -1;
+    bool wallcreated = false;
 
     MPI_Comm myactivecomm, mycartcomm;
 
@@ -483,6 +471,13 @@ void Simulation::_datadump_async()
 
     H5PartDump dump_part("allparticles.h5part", activecomm, cartcomm), *dump_part_solvent = NULL;
     H5FieldDump dump_field(cartcomm);
+
+    MPI_CHECK(MPI_Comm_rank(myactivecomm, &rank));
+
+    if (rank == 0)
+	mkdir("xyz", S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+
+    MPI_CHECK(MPI_Barrier(myactivecomm));
 
     while (true)
     {
@@ -508,14 +503,34 @@ void Simulation::_datadump_async()
 	    diagnostics(myactivecomm, mycartcomm, p, n, dt, datadump_idtimestep, a);
 	}
 
-	if (xyz_dumps)	
+	if (xyz_dumps)
 	{
 	    NVTX_RANGE("xyz dump", NVTX_C2);
-	    xyz_dump(myactivecomm, mycartcomm, "particles.xyz", "all-particles", p, n, datadump_idtimestep > 0);
+
+	    if (walls && datadump_idtimestep >= wall_creation_stepid && !wallcreated)
+	    {
+		if (rank == 0)
+		{
+		    if( access("xyz/particles-equilibration.xyz", F_OK ) == -1 )
+			rename ("xyz/particles.xyz", "xyz/particles-equilibration.xyz");
+
+		    if( access( "xyz/rbcs-equilibration.xyz", F_OK ) == -1 )
+			rename ("xyz/rbcs.xyz", "xyz/rbcs-equilibration.xyz");
+
+		    if( access( "xyz/ctcs-equilibration.xyz", F_OK ) == -1 )
+			rename ("xyz/ctcs.xyz", "xyz/ctcs-equilibration.xyz");
+		}
+
+		MPI_CHECK(MPI_Barrier(myactivecomm));
+
+		wallcreated = true;
+	    }
+
+	    xyz_dump(myactivecomm, mycartcomm, "xyz/particles.xyz", "all-particles", p, n, datadump_idtimestep > 0);
 	}
 
 	if (hdf5part_dumps)
-	{	
+	{
 	    NVTX_RANGE("h5part dump", NVTX_C3);
 
 	    if (!dump_part_solvent && walls && datadump_idtimestep >= wall_creation_stepid)
@@ -542,10 +557,11 @@ void Simulation::_datadump_async()
 	    NVTX_RANGE("ply dump", NVTX_C5);
 
 	    if (rbcscoll)
-		rbcscoll->dump(myactivecomm, mycartcomm, p + datadump_nsolvent, a + datadump_nsolvent, datadump_nrbcs, iddatadump);
+		CollectionRBC::dump(myactivecomm, mycartcomm, p + datadump_nsolvent, a + datadump_nsolvent, datadump_nrbcs, iddatadump);
 
 	    if (ctcscoll)
-		ctcscoll->dump(myactivecomm, mycartcomm, p + datadump_nsolvent + datadump_nrbcs, a + datadump_nsolvent + datadump_nrbcs, datadump_nctcs, iddatadump);
+		CollectionCTC::dump(myactivecomm, mycartcomm, p + datadump_nsolvent + datadump_nrbcs,
+				    a + datadump_nsolvent + datadump_nrbcs, datadump_nctcs, iddatadump);
 	}
 
 	curr_idtimestep = datadump_idtimestep;
@@ -621,13 +637,13 @@ Simulation::Simulation(MPI_Comm cartcomm, MPI_Comm activecomm, bool (*check_term
     if (rbcs)
     {
 	rbcscoll = new CollectionRBC(cartcomm);
-	rbcscoll->setup();
+	rbcscoll->setup("rbcs-ic.txt");
     }
 
     if (ctcs)
     {
 	ctcscoll = new CollectionCTC(cartcomm);
-	ctcscoll->setup();
+	ctcscoll->setup("ctcs-ic.txt");
     }
 
     //setting up the asynchronous data dumps
