@@ -47,6 +47,8 @@ public:
 
 class H5FieldDump
 {
+    static bool directory_exists;
+    
     int last_idtimestep, globalsize[3];
 
     MPI_Comm cartcomm;
