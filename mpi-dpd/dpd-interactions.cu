@@ -218,7 +218,7 @@ namespace BipsBatch
     struct BatchInfo
     {
 	float * xdst, * adst, * xsrc, seed;
-	int ndst, nsrc, mask;
+	int ndst, nsrc, mask; //, cellsdirection, * cellstarts;
     };
 
     __constant__ BatchInfo batchinfos[20];
@@ -234,6 +234,7 @@ namespace BipsBatch
 	if (gid >= ndstall)
 	    return;
 
+	//find my halo bag
 	const int key4 = 4 * ((gid >= start[4]) + (gid >= start[8]) + (gid >= start[12]) + (gid >= start[16]));
 	const int key2 = key4 + 2 * (gid >= start[key4 + 2]);
 	const int key = key2 + (gid >= start[key2 + 1]);
@@ -241,11 +242,12 @@ namespace BipsBatch
 
 	const int entry = key;
 	assert(entry < 20);
-	const int pid = gid - start[entry];
 
+	const int pid = gid - start[entry];
 	assert(tid == pid % warpSize);
 
 	const BatchInfo info = batchinfos[entry];
+
 	const int nd = info.ndst;
 	const int ns = info.nsrc;
 	const int mask = info.mask;
@@ -278,14 +280,16 @@ namespace BipsBatch
 
 	    if (tid < batchsize)
 	    {
-		my_xq = xsrc[0 + (tid + s) * 6];
-		my_yq = xsrc[1 + (tid + s) * 6];
-		my_zq = xsrc[2 + (tid + s) * 6];
-		my_uq = xsrc[3 + (tid + s) * 6];
-		my_vq = xsrc[4 + (tid + s) * 6];
-		my_wq = xsrc[5 + (tid + s) * 6];
+		my_xq = __ldg(xsrc + 0 + (tid + s) * 6);
+		my_yq = __ldg(xsrc + 1 + (tid + s) * 6);
+		my_zq = __ldg(xsrc + 2 + (tid + s) * 6);
+		my_uq = __ldg(xsrc + 3 + (tid + s) * 6);
+		my_vq = __ldg(xsrc + 4 + (tid + s) * 6);
+		my_wq = __ldg(xsrc + 5 + (tid + s) * 6);
 	    }
 
+
+#pragma unroll 8
 	    for(int l = 0; l < batchsize; ++l)
 	    {
 		const float xq = __shfl(my_xq, l);
@@ -348,9 +352,17 @@ namespace BipsBatch
 	}
     }
 
+    bool firstcall = true;
+
     void interactions(const float aij, const float gamma, const float sigma, const float invsqrtdt,
 		      const BatchInfo infos[20], cudaStream_t stream)
     {
+	if (firstcall)
+	{
+	    CUDA_CHECK(cudaFuncSetCacheConfig(interactions_kernel, cudaFuncCachePreferL1));
+	    firstcall = false;
+	}
+
 	CUDA_CHECK(cudaMemcpyToSymbolAsync(batchinfos, infos, sizeof(BatchInfo) * 20, 0, cudaMemcpyHostToDevice, stream));
 
 	int count_padded[20];
@@ -366,7 +378,8 @@ namespace BipsBatch
 	const int nthreads = start_padded[20];
 	assert(nthreads % 32 == 0);
 
-	interactions_kernel<<<(nthreads + 127) / 128, 128, 0, stream>>>(aij, gamma, sigma * invsqrtdt, nthreads);
+	interactions_kernel<<<(nthreads + 31) / 32, 32, 0, stream>>>(aij, gamma, sigma * invsqrtdt, nthreads);
+	//printf("spawiniing %d cuda blocks\n", (nthreads + 31) / 32);
 
 	CUDA_CHECK(cudaPeekAtLastError());
     }
@@ -455,9 +468,13 @@ void ComputeInteractionsDPD::remote_interactions(const Particle * const p, const
 		if (isface)
 		    continue;
 
+		const bool isedge = abs(d[0]) + abs(d[1]) + abs(d[2]) == 1;
+		const bool edgedir = 0 + (abs(d[1]) == 0) * 1 + (abs(d[2]) == 0) * 2;
+		
 		BipsBatch::BatchInfo entry = {
 		    (float *)sendhalos[i].dbuf.data, (float *)acc_remote[i].data, (float *)recvhalos[i].dbuf.data,
-		    interrank_trunks[i].get_float(), sendhalos[i].dbuf.size, recvhalos[i].dbuf.size, interrank_masks[i]
+		    interrank_trunks[i].get_float(), sendhalos[i].dbuf.size, recvhalos[i].dbuf.size, interrank_masks[i] //,
+		    //isedge ? edgedir : -1, recvhalos[i].dcellstarts.data  
 		};
 
 		infos[ ctr++ ] = entry;
@@ -488,10 +505,10 @@ void ComputeInteractionsDPD::remote_interactions(const Particle * const p, const
 
 	    if (!is_mps_enabled)
 		CUDA_CHECK(cudaMemcpyToSymbolAsync(RemoteDPD::packstarts, packstarts,
-					       sizeof(packstarts), 0, cudaMemcpyHostToDevice, stream));
+						   sizeof(packstarts), 0, cudaMemcpyHostToDevice, stream));
 	    else
 		CUDA_CHECK(cudaMemcpyToSymbol(RemoteDPD::packstarts, packstarts,
-					       sizeof(packstarts), 0, cudaMemcpyHostToDevice));
+					      sizeof(packstarts), 0, cudaMemcpyHostToDevice));
 	}
 
 	{
@@ -501,10 +518,10 @@ void ComputeInteractionsDPD::remote_interactions(const Particle * const p, const
 
 	    if (!is_mps_enabled)
 		CUDA_CHECK(cudaMemcpyToSymbolAsync(RemoteDPD::scattered_indices, scattered_indices,
-					       sizeof(scattered_indices), 0, cudaMemcpyHostToDevice, stream));
+						   sizeof(scattered_indices), 0, cudaMemcpyHostToDevice, stream));
 	    else
 		CUDA_CHECK(cudaMemcpyToSymbol(RemoteDPD::scattered_indices, scattered_indices,
-					       sizeof(scattered_indices), 0, cudaMemcpyHostToDevice));
+					      sizeof(scattered_indices), 0, cudaMemcpyHostToDevice));
 	}
 
 	{
@@ -515,10 +532,10 @@ void ComputeInteractionsDPD::remote_interactions(const Particle * const p, const
 
 	    if (!is_mps_enabled)
 		CUDA_CHECK(cudaMemcpyToSymbolAsync(RemoteDPD::remote_accelerations, remote_accelerations,
-					       sizeof(remote_accelerations), 0, cudaMemcpyHostToDevice, stream));
+						   sizeof(remote_accelerations), 0, cudaMemcpyHostToDevice, stream));
 	    else
 		CUDA_CHECK(cudaMemcpyToSymbol(RemoteDPD::remote_accelerations, remote_accelerations,
-					       sizeof(remote_accelerations), 0, cudaMemcpyHostToDevice));
+					      sizeof(remote_accelerations), 0, cudaMemcpyHostToDevice));
 	}
 
 	for(int i = 0; i < 7; ++i)
