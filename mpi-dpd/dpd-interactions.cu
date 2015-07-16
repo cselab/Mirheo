@@ -87,7 +87,7 @@ void ComputeInteractionsDPD::local_interactions(const Particle * const p, const 
 
 namespace BipsBatch
 {
-    __constant__ int start[27];
+    __constant__ unsigned int start[27];
 
     struct BatchInfo
     {
@@ -97,135 +97,192 @@ namespace BipsBatch
 
     __constant__ BatchInfo batchinfos[26];
 
-    __global__ void interactions_kernel(const float aij, const float gamma, const float sigmaf,	const int ndstall, const float * adst)
+    __global__ void
+    interaction_kernel(const float aij, const float gamma, const float sigmaf,
+		       const int ndstall, float * const adst, const int sizeadst)
     {
+#if !defined(__CUDA_ARCH__)
+#warning __CUDA_ARCH__ not defined! assuming 350
+#define _ACCESS(x) __ldg(x)
+#elif __CUDA_ARCH__ >= 350
+#define _ACCESS(x) __ldg(x)
+#else
+#define _ACCESS(x) (*(x))
+#endif
+
 	assert(ndstall <= gridDim.x * blockDim.x);
-	assert(blockDim.x % warpSize == 0);
 
 	const int gid = threadIdx.x + blockDim.x * blockIdx.x;
 
 	if (gid >= start[26])
 	    return;
 
-	const int key9 = 9 * ((gid >= start[9]) + (gid >= start[18]));
-	const int key3 = 3 * ((gid >= start[key9 + 3]) + (gid >= start[key9 + 6]));
-	const int key1 = (gid >= start[key9 + key3 + 1]) + (gid >= start[key9 + key3 + 2]);
+	int code, dpid;
 
-	const int code =  key9 + key3 + key1;
-	const int pid = gid - start[entry];
-	assert(code < 26);
-	
-	const BatchInfo info = batchinfos[entry];
-	assert( pid < info.nd );
+	{
+	    const int key9 = 9 * ((gid >= start[9]) + (gid >= start[18]));
+	    const int key3 = 3 * ((gid >= start[key9 + 3]) + (gid >= start[key9 + 6]));
+	    const int key1 = (gid >= start[key9 + key3 + 1]) + (gid >= start[key9 + key3 + 2]);
 
-	const float xp = info.xdst[0 + pid * 6];
-	const float yp = info.xdst[1 + pid * 6];
-	const float zp = info.xdst[2 + pid * 6];
-	const float up = info.xdst[3 + pid * 6];
-	const float vp = info.xdst[4 + pid * 6];
-	const float wp = info.xdst[5 + pid * 6];
+	    code =  key9 + key3 + key1;
+	    dpid = gid - start[code];
+	    assert(code < 26);
+	}
 
-	const int xcid = xp + XSIZE_SUBDOMAIN / 2;
-	const int ycid = yp + YSIZE_SUBDOMAIN / 2;
-	const int zcid = zp + ZSIZE_SUBDOMAIN / 2;
+	const BatchInfo info = batchinfos[code];
 
-	const int m0 = 0 == (code + 2) % 3 - 1;
-	const int m1 = 0 == (code / 3 + 2) % 3 - 1;
-	const int m2 = 0 == (code / 9 + 2) % 3 - 1;
+	if (dpid >= info.ndst)
+	    return;
+
+	const float xp = info.xdst[0 + dpid * 6];
+	const float yp = info.xdst[1 + dpid * 6];
+	const float zp = info.xdst[2 + dpid * 6];
+	const float up = info.xdst[3 + dpid * 6];
+	const float vp = info.xdst[4 + dpid * 6];
+	const float wp = info.xdst[5 + dpid * 6];
+
+	const float * const xsrc = info.xsrc;
+	const int mask = info.mask;
+	const float seed = info.seed;
+
+	const int dstbase = 3 * info.scattered_entries[dpid];
+	assert(dstbase < sizeadst * 3);
+
+	int xcells, ycells, basecid, xstencilsize, ystencilsize, stencilsize;
+
+	{
+	    const int m0 = 0 == (code + 2) % 3 - 1;
+	    const int m1 = 0 == (code / 3 + 2) % 3 - 1;
+	    const int m2 = 0 == (code / 9 + 2) % 3 - 1;
+
+	    xcells = 1 + m0 * (XSIZE_SUBDOMAIN - 1);
+	    ycells = 1 + m1 * (YSIZE_SUBDOMAIN - 1);
+	    const int zcells = 1 + m2 * (ZSIZE_SUBDOMAIN - 1);
+
+	    const int xcid = (int)(xp + XSIZE_SUBDOMAIN / 2);
+	    const int ycid = (int)(yp + YSIZE_SUBDOMAIN / 2);
+	    const int zcid = (int)(zp + ZSIZE_SUBDOMAIN / 2);
+	    assert(xcid >= 0 && ycid >= 0 && zcid >= 0);
+
+	    const int xbasecid = m0 * max(0, xcid - 1);
+	    const int ybasecid = m1 * max(0, ycid - 1);
+	    const int zbasecid = m2 * max(0, zcid - 1);
+	    basecid = xbasecid + xcells * (ybasecid + ycells * zbasecid);
+
+	    xstencilsize = 1 + m0 * (min(xcells, xcid + 2) -1 - xbasecid);
+	    ystencilsize = 1 + m1 * (min(ycells, ycid + 2) -1 - ybasecid);
+	    const int zstencilsize = 1 + m2 * (min(zcells, zcid + 2) -1 - zbasecid);
+
+	    stencilsize = xstencilsize * ystencilsize * zstencilsize;
+	    assert(stencilsize > 0);
+	}
 
 	float xforce = 0, yforce = 0, zforce = 0;
 
-	for(int dz = -1; dz < 2; ++dz)
-	    for(int dy = -1; dy < 2; ++dy)
-		for(int dx = -1; dx < 2; ++dx)
-		{
-		    const int cid = ...;
-		    const int cidnext = ...;
+	int itstencil = -1, countp = 0, spid;
 
-		    const int start = _ACCESS(cellstarts + cid);
-		    const int stop = _ACCESS(cellstarts + cidnext);
+	do
+	{
+	    while (countp == 0)
+	    {
+		++itstencil;
 
-		    for(int spid = start; spid < stop; ++spid)
-		    {
-			const float xq = _ACCESS(xsrc + 0 + spid * 6);
-			const float yq = _ACCESS(xsrc + 1 + spid * 6);
-			const float zq = _ACCESS(xsrc + 2 + spid * 6);
-			const float uq = _ACCESS(xsrc + 3 + spid * 6);
-			const float vq = _ACCESS(xsrc + 4 + spid * 6);
-			const float wq = _ACCESS(xsrc + 5 + spid * 6);
+		if (itstencil >= stencilsize)
+		    goto endloop;
 
-			const float _xr = xp - xq;
-			const float _yr = yp - yq;
-			const float _zr = zp - zq;
+		const int tmp = itstencil / xstencilsize;
 
-			const float rij2 = _xr * _xr + _yr * _yr + _zr * _zr;
+		const int currcid = basecid + (itstencil % xstencilsize) +
+		    xcells * ((tmp % ystencilsize) + ycells * (tmp / ystencilsize));
 
-			if (rij2 < 1)
-			{
-			    const float invrij = rsqrtf(rij2);
+		spid = _ACCESS(info.cellstarts + currcid);
+		assert(spid >= 0);
 
-			    const float rij = rij2 * invrij;
-			    const float argwr = 1.f - rij;
-			    const float wr = viscosity_function<-VISCOSITY_S_LEVEL>(argwr);
+		countp = _ACCESS(info.cellstarts + currcid + 1) - spid;
+		assert(countp >= 0);
+	    }
 
-			    const float xr = _xr * invrij;
-			    const float yr = _yr * invrij;
-			    const float zr = _zr * invrij;
+	    const float xq = _ACCESS(xsrc + 0 + spid * 6);
+	    const float yq = _ACCESS(xsrc + 1 + spid * 6);
+	    const float zq = _ACCESS(xsrc + 2 + spid * 6);
+	    const float uq = _ACCESS(xsrc + 3 + spid * 6);
+	    const float vq = _ACCESS(xsrc + 4 + spid * 6);
+	    const float wq = _ACCESS(xsrc + 5 + spid * 6);
 
-			    const float rdotv =
-				xr * (up - uq) +
-				yr * (vp - vq) +
-				zr * (wp - wq);
+	    ++spid;
+	    --countp;
 
-			    const int spid = s + l;
-			    const int dpid = pid;
+	    const float _xr = xp - xq;
+	    const float _yr = yp - yq;
+	    const float _zr = zp - zq;
 
-			    const int arg1 = mask * dpid + (1 - mask) * spid;
-			    const int arg2 = mask * spid + (1 - mask) * dpid;
-			    const float myrandnr = Logistic::mean0var1(seed, arg1, arg2);
+	    const float rij2 = _xr * _xr + _yr * _yr + _zr * _zr;
 
-			    const float strength = aij * argwr + (- gamma * wr * rdotv + sigmaf * myrandnr) * wr;
+	    if (rij2 >= 1)
+		continue;
 
-			    xforce += strength * xr;
-			    yforce += strength * yr;
-			    zforce += strength * zr;
-			}
-		    }
-		}
-	
-	const int dstbase = 3 * info.scattered_indices[pid];
+	    const float invrij = rsqrtf(rij2);
 
-	atomicAdd(dst + dstbase + 0, xforce);
-	atomicAdd(dst + dstbase + 1, yforce);
-	atomicAdd(dst + dstbase + 2, zforce);
+	    const float rij = rij2 * invrij;
+	    const float argwr = 1.f - rij;
+	    const float wr = viscosity_function<-VISCOSITY_S_LEVEL>(argwr);
+
+	    const float xr = _xr * invrij;
+	    const float yr = _yr * invrij;
+	    const float zr = _zr * invrij;
+
+	    const float rdotv =
+		xr * (up - uq) +
+		yr * (vp - vq) +
+		zr * (wp - wq);
+
+	    const int arg1 = mask * dpid + (1 - mask) * (spid - 1);
+	    const int arg2 = mask * (spid - 1) + (1 - mask) * dpid;
+	    const float myrandnr = Logistic::mean0var1(seed, arg1, arg2);
+
+	    const float strength = aij * argwr + (- gamma * wr * rdotv + sigmaf * myrandnr) * wr;
+
+	    xforce += strength * xr;
+	    yforce += strength * yr;
+	    zforce += strength * zr;
+	}
+	while(true);
+
+    endloop:
+
+	atomicAdd(adst + dstbase + 0, xforce);
+	atomicAdd(adst + dstbase + 1, yforce);
+	atomicAdd(adst + dstbase + 2, zforce);
+
+#undef _ACCESS
     }
 
     bool firstcall = true;
 
     void interactions(const float aij, const float gamma, const float sigma, const float invsqrtdt,
-		      const BatchInfo infos[20], cudaStream_t stream, cudaEvent_t event, float * const acc)
+		      const BatchInfo infos[20], cudaStream_t stream, cudaEvent_t event, float * const acc, const int n)
     {
 	if (firstcall)
 	{
-	    CUDA_CHECK(cudaFuncSetCacheConfig(interactions_kernel, cudaFuncCachePreferL1));
+	    CUDA_CHECK(cudaFuncSetCacheConfig(interaction_kernel, cudaFuncCachePreferL1));
 	    firstcall = false;
 	}
 
 	CUDA_CHECK(cudaMemcpyToSymbolAsync(batchinfos, infos, sizeof(BatchInfo) * 26, 0, cudaMemcpyHostToDevice, stream));
 
-	int hstart[27];
+	unsigned int hstart_padded[27];
 
-	hstart[0] = 0;
+	hstart_padded[0] = 0;
 	for(int i = 0; i < 26; ++i)
-	    hstart[i + 1] = info[i].nd + hstart[i];
+	    hstart_padded[i + 1] = hstart_padded[i] + 32 * (((unsigned int)infos[i].ndst + 31)/ 32) ;
 
-	CUDA_CHECK(cudaMemcpyToSymbolAsync(start, hstart, sizeof(hstart), 0, cudaMemcpyHostToDevice, stream));
+	CUDA_CHECK(cudaMemcpyToSymbolAsync(start, hstart_padded, sizeof(hstart_padded), 0, cudaMemcpyHostToDevice, stream));
 
-	const int nhaloparticles = start_padded[26];
+	const int nthreads = hstart_padded[26];
 
-	CUDA_CHECK(cudaStreamWaitEvent(stream, event, 0));    
+	CUDA_CHECK(cudaStreamWaitEvent(stream, event, 0));
 
-	interaction_kernel<<< (nhaloparticles + 127) / 128, 128, 0, stream>>>(aij, gamma, sigma * invsqrtdt, nthreads, acc);
+	interaction_kernel<<< (nthreads + 127) / 128, 128, 0, stream>>>(aij, gamma, sigma * invsqrtdt, nthreads, acc, n);
 
 	CUDA_CHECK(cudaPeekAtLastError());
     }
@@ -235,24 +292,22 @@ void ComputeInteractionsDPD::remote_interactions(const Particle * const p, const
 {
     NVTX_RANGE("DPD/remote", NVTX_C3);
 
-    CUDA_CHECK(cudaPeekAtLastError());    
-	
+    CUDA_CHECK(cudaPeekAtLastError());
+
     BipsBatch::BatchInfo infos[26];
-    
+
     for(int i = 0; i < 26; ++i)
     {
 	BipsBatch::BatchInfo entry = {
-	    (float *)sendhalos[i].dbuf.data, (float *)recvhalos[i].dbuf.data, interrank_trunks[i].get_float(), 
-	    sendhalos[i].dbuf.size, recvhalos[i].dbuf.size, interrank_masks[i], 
-	    recvhalos[i].dcellstarts.data, sendhalos[i].scattered_entries.data  
+	    (float *)sendhalos[i].dbuf.data, (float *)recvhalos[i].dbuf.data, interrank_trunks[i].get_float(),
+	    sendhalos[i].dbuf.size, recvhalos[i].dbuf.size, interrank_masks[i],
+	    recvhalos[i].dcellstarts.data, sendhalos[i].scattered_entries.data
 	};
-	
+
 	infos[i] = entry;
     }
-    
-    assert(ctr == 20);
 
-    BipsBatch::interactions(aij, gammadpd, sigma, 1. / sqrt(dt), infos, stream, evshiftrecvp, a);
+    BipsBatch::interactions(aij, gammadpd, sigma, 1. / sqrt(dt), infos, stream, evshiftrecvp, (float *)a, n);
 
     CUDA_CHECK(cudaPeekAtLastError());
 }
