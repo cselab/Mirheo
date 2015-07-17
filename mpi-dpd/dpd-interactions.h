@@ -28,9 +28,8 @@ class ComputeInteractionsDPD : public HaloExchanger
 {           
     Logistic::KISS local_trunk;
     Logistic::KISS interrank_trunks[26];
-    bool interrank_masks[26];
 
-    cudaEvent_t evhalodone;
+    bool interrank_masks[26];
     
 public:
     
@@ -40,6 +39,4 @@ public:
 
     void local_interactions(const Particle * const p, const int n, Acceleration * const a,
 			    const int * const cellsstart, const int * const cellscount, cudaStream_t stream);
-
-    ~ComputeInteractionsDPD();
 };

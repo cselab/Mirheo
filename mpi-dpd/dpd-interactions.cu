@@ -22,8 +22,6 @@ using namespace std;
 
 ComputeInteractionsDPD::ComputeInteractionsDPD(MPI_Comm cartcomm): HaloExchanger(cartcomm, 0), local_trunk(0, 0, 0, 0)
 {
-    CUDA_CHECK(cudaEventCreate(&evhalodone, cudaEventDisableTiming));
-
     int myrank;
     MPI_CHECK(MPI_Comm_rank(cartcomm, &myrank));
 
@@ -270,16 +268,19 @@ namespace BipsBatch
 
     bool firstcall = true;
 
+    cudaEvent_t evhalodone;
+
     void interactions(const float aij, const float gamma, const float sigma, const float invsqrtdt,
-		      const BatchInfo infos[20], cudaStream_t stream, /*cudaEvent_t event, */float * const acc, const int n)
+		      const BatchInfo infos[20], cudaStream_t computestream, cudaStream_t uploadstream, float * const acc, const int n)
     {
 	if (firstcall)
 	{
+	    CUDA_CHECK(cudaEventCreate(&evhalodone, cudaEventDisableTiming));
 	    CUDA_CHECK(cudaFuncSetCacheConfig(interaction_kernel, cudaFuncCachePreferL1));
 	    firstcall = false;
 	}
 
-	CUDA_CHECK(cudaMemcpyToSymbolAsync(batchinfos, infos, sizeof(BatchInfo) * 26, 0, cudaMemcpyHostToDevice, stream));
+	CUDA_CHECK(cudaMemcpyToSymbolAsync(batchinfos, infos, sizeof(BatchInfo) * 26, 0, cudaMemcpyHostToDevice, uploadstream));
 
 	unsigned int hstart_padded[27];
 
@@ -287,11 +288,15 @@ namespace BipsBatch
 	for(int i = 0; i < 26; ++i)
 	    hstart_padded[i + 1] = hstart_padded[i] + 32 * (((unsigned int)infos[i].ndst + 31)/ 32) ;
 
-	CUDA_CHECK(cudaMemcpyToSymbolAsync(start, hstart_padded, sizeof(hstart_padded), 0, cudaMemcpyHostToDevice, stream));
+	CUDA_CHECK(cudaMemcpyToSymbolAsync(start, hstart_padded, sizeof(hstart_padded), 0, cudaMemcpyHostToDevice, uploadstream));
 
 	const int nthreads = hstart_padded[26];
 
-	interaction_kernel<<< (nthreads + 127) / 128, 128, 0, stream>>>(aij, gamma, sigma * invsqrtdt, nthreads, acc, n);
+	CUDA_CHECK(cudaEventRecord(evhalodone, uploadstream));
+
+	CUDA_CHECK(cudaStreamWaitEvent(computestream, evhalodone, 0));
+
+	interaction_kernel<<< (nthreads + 127) / 128, 128, 0, computestream>>>(aij, gamma, sigma * invsqrtdt, nthreads, acc, n);
 
 	CUDA_CHECK(cudaPeekAtLastError());
     }
@@ -316,15 +321,7 @@ void ComputeInteractionsDPD::remote_interactions(const Particle * const p, const
 	infos[i] = entry;
     }
 
-    BipsBatch::interactions(aij, gammadpd, sigma, 1. / sqrt(dt), infos, uploadstream, (float *)a, n);
-
-    CUDA_CHECK(cudaEventRecord(evhalodone));
-    CUDA_CHECK(cudaStreamWaitEvent(stream, evhalodone, 0));
+    BipsBatch::interactions(aij, gammadpd, sigma, 1. / sqrt(dt), infos, stream, uploadstream, (float *)a, n);
 
     CUDA_CHECK(cudaPeekAtLastError());
-}
-
-ComputeInteractionsDPD::~ComputeInteractionsDPD()
-{
-    CUDA_CHECK(cudaEventDestroy(evhalodone));
 }
