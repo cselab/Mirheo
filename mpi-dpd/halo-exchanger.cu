@@ -60,9 +60,10 @@ HaloExchanger::HaloExchanger(MPI_Comm _cartcomm, const int basetag):  basetag(ba
 
     CUDA_CHECK(cudaHostAlloc((void **)&required_send_bag_size_host, sizeof(int) * 26, cudaHostAllocMapped));
     CUDA_CHECK(cudaHostGetDevicePointer(&required_send_bag_size, required_send_bag_size_host, 0));
-    
+
     CUDA_CHECK(cudaEventCreate(&evfillall, cudaEventDisableTiming));
-    CUDA_CHECK(cudaEventCreate(&evupload, cudaEventDisableTiming));
+
+    CUDA_CHECK(cudaStreamCreate(&uploadstream));
 }
 
 namespace PackingHalo
@@ -560,7 +561,7 @@ void HaloExchanger::wait_for_messages(cudaStream_t stream)
     NVTX_RANGE("HEX/wait-recv", NVTX_C4);
 
     CUDA_CHECK(cudaPeekAtLastError());
- 
+
     {
 	MPI_Status statuses[26];
 
@@ -595,12 +596,15 @@ void HaloExchanger::wait_for_messages(cudaStream_t stream)
 	}
     }
 
-    PackingHalo::copycells<1><<< (PackingHalo::ncells + 127) / 128, 128, 0, stream>>>(PackingHalo::ncells);
-
-    CUDA_CHECK(cudaPeekAtLastError());
+    for(int i = 0; i < 26; ++i)
+	CUDA_CHECK(cudaMemcpyAsync(recvhalos[i].dbuf.data, recvhalos[i].hbuf.data,
+				   sizeof(Particle) * recvhalos[i].hbuf.size, cudaMemcpyHostToDevice, uploadstream));
 
     for(int i = 0; i < 26; ++i)
-	CUDA_CHECK(cudaMemcpyAsync(recvhalos[i].dbuf.data, recvhalos[i].hbuf.data, sizeof(Particle) * recvhalos[i].hbuf.size, cudaMemcpyHostToDevice, stream));
+	CUDA_CHECK(cudaMemcpyAsync(recvhalos[i].dcellstarts.data, recvhalos[i].hcellstarts.data,
+				   sizeof(int) * recvhalos[i].hcellstarts.size, cudaMemcpyHostToDevice, uploadstream));
+
+    CUDA_CHECK(cudaPeekAtLastError());
 
     post_expected_recv();
 }
@@ -669,4 +673,7 @@ HaloExchanger::~HaloExchanger()
     _cancel_recv();
 
     CUDA_CHECK(cudaEventDestroy(evfillall));
+
+
+    CUDA_CHECK(cudaStreamDestroy(uploadstream));
 }
