@@ -92,7 +92,7 @@ namespace BipsBatch
     struct BatchInfo
     {
 	float * xdst, * xsrc, seed;
-	int ndst, nsrc, mask, * cellstarts, * scattered_entries;
+	int ndst, nsrc, mask, * cellstarts, * scattered_entries, dx, dy, dz, xcells, ycells, zcells;
     };
 
     __constant__ BatchInfo batchinfos[26];
@@ -134,9 +134,10 @@ namespace BipsBatch
 	if (dpid >= info.ndst)
 	    return;
 
-	const float xp = info.xdst[0 + dpid * 6];
-	const float yp = info.xdst[1 + dpid * 6];
-	const float zp = info.xdst[2 + dpid * 6];
+	float xp = info.xdst[0 + dpid * 6];
+	float yp = info.xdst[1 + dpid * 6];
+	float zp = info.xdst[2 + dpid * 6];
+
 	const float up = info.xdst[3 + dpid * 6];
 	const float vp = info.xdst[4 + dpid * 6];
 	const float wp = info.xdst[5 + dpid * 6];
@@ -148,41 +149,41 @@ namespace BipsBatch
 	const int dstbase = 3 * info.scattered_entries[dpid];
 	assert(dstbase < sizeadst * 3);
 
-	int xcells, ycells, basecid, xstencilsize, ystencilsize, stencilsize;
-	float xshift, yshift, zshift;
+	int  basecid = 0, xstencilsize = 1, ystencilsize = 1, stencilsize = 1;
 
 	{
-	    const int dx = (code + 2) % 3 - 1;
-	    const int dy = (code / 3 + 2) % 3 - 1;
-	    const int dz = (code / 9 + 2) % 3 - 1;
+	    if (info.dz == 0)
+	    {
+		const int zcid = (int)(zp + ZSIZE_SUBDOMAIN / 2);
+		const int zbasecid = max(0, -1 + zcid);
+		basecid = zbasecid;
+		stencilsize = min(info.zcells, zcid + 2) - zbasecid;
+	    }
 
-	    const int m0 = 0 == dx;
-	    const int m1 = 0 == dy;
-	    const int m2 = 0 == dz;
+	    basecid *= info.ycells;
 
-	    xshift = dx * XSIZE_SUBDOMAIN;
-	    yshift = dy * YSIZE_SUBDOMAIN;
-	    zshift = dz * ZSIZE_SUBDOMAIN;
+	    if (info.dy == 0)
+	    {
+		const int ycid = (int)(yp + YSIZE_SUBDOMAIN / 2);
+		const int ybasecid = max(0, -1 + ycid);
+		basecid += ybasecid;
+		stencilsize *= ystencilsize = min(info.ycells, ycid + 2) - ybasecid;
+	    }
 
-	    xcells = 1 + m0 * (XSIZE_SUBDOMAIN - 1);
-	    ycells = 1 + m1 * (YSIZE_SUBDOMAIN - 1);
-	    const int zcells = 1 + m2 * (ZSIZE_SUBDOMAIN - 1);
+	    basecid *= info.xcells;
 
-	    const int xcid = (int)(xp + XSIZE_SUBDOMAIN / 2);
-	    const int ycid = (int)(yp + YSIZE_SUBDOMAIN / 2);
-	    const int zcid = (int)(zp + ZSIZE_SUBDOMAIN / 2);
-	    assert(xcid >= 0 && ycid >= 0 && zcid >= 0);
+	    if (info.dx == 0)
+	    {
+		const int xcid = (int)(xp + XSIZE_SUBDOMAIN / 2);
+		const int xbasecid =  max(0, -1 + xcid);
+		basecid += xbasecid;
+		stencilsize *= xstencilsize = min(info.xcells, xcid + 2) - xbasecid;
+	    }
 
-	    const int xbasecid = m0 * max(0, xcid - 1);
-	    const int ybasecid = m1 * max(0, ycid - 1);
-	    const int zbasecid = m2 * max(0, zcid - 1);
-	    basecid = xbasecid + xcells * (ybasecid + ycells * zbasecid);
+	    xp -= info.dx * XSIZE_SUBDOMAIN;
+	    yp -= info.dy * YSIZE_SUBDOMAIN;
+	    zp -= info.dz * ZSIZE_SUBDOMAIN;
 
-	    xstencilsize = 1 + m0 * (min(xcells, xcid + 2) -1 - xbasecid);
-	    ystencilsize = 1 + m1 * (min(ycells, ycid + 2) -1 - ybasecid);
-	    const int zstencilsize = 1 + m2 * (min(zcells, zcid + 2) -1 - zbasecid);
-
-	    stencilsize = xstencilsize * ystencilsize * zstencilsize;
 	    assert(stencilsize > 0);
 	}
 
@@ -202,7 +203,7 @@ namespace BipsBatch
 		const int tmp = itstencil / xstencilsize;
 
 		const int currcid = basecid + (itstencil % xstencilsize) +
-		    xcells * ((tmp % ystencilsize) + ycells * (tmp / ystencilsize));
+		    info.xcells * ((tmp % ystencilsize) + info.ycells * (tmp / ystencilsize));
 
 		spid = _ACCESS(info.cellstarts + currcid);
 		assert(spid >= 0);
@@ -211,9 +212,9 @@ namespace BipsBatch
 		assert(countp >= 0);
 	    }
 
-	    const float xq = xshift + _ACCESS(xsrc + 0 + spid * 6);
-	    const float yq = yshift + _ACCESS(xsrc + 1 + spid * 6);
-	    const float zq = zshift + _ACCESS(xsrc + 2 + spid * 6);
+	    const float xq = _ACCESS(xsrc + 0 + spid * 6);
+	    const float yq = _ACCESS(xsrc + 1 + spid * 6);
+	    const float zq = _ACCESS(xsrc + 2 + spid * 6);
 	    const float uq = _ACCESS(xsrc + 3 + spid * 6);
 	    const float vq = _ACCESS(xsrc + 4 + spid * 6);
 	    const float wq = _ACCESS(xsrc + 5 + spid * 6);
@@ -312,10 +313,20 @@ void ComputeInteractionsDPD::remote_interactions(const Particle * const p, const
 
     for(int i = 0; i < 26; ++i)
     {
+	const int dx = (i + 2) % 3 - 1;
+	const int dy = (i / 3 + 2) % 3 - 1;
+	const int dz = (i / 9 + 2) % 3 - 1;
+
+	const int m0 = 0 == dx;
+	const int m1 = 0 == dy;
+	const int m2 = 0 == dz;
+
 	BipsBatch::BatchInfo entry = {
 	    (float *)sendhalos[i].dbuf.data, (float *)recvhalos[i].dbuf.data, interrank_trunks[i].get_float(),
 	    sendhalos[i].dbuf.size, recvhalos[i].dbuf.size, interrank_masks[i],
-	    recvhalos[i].dcellstarts.data, sendhalos[i].scattered_entries.data
+	    recvhalos[i].dcellstarts.data, sendhalos[i].scattered_entries.data,
+	    dx, dy, dz,
+	    1 + m0 * (XSIZE_SUBDOMAIN - 1), 1 + m1 * (YSIZE_SUBDOMAIN - 1), 1 + m2 * (ZSIZE_SUBDOMAIN - 1)
 	};
 
 	infos[i] = entry;
