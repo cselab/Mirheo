@@ -112,27 +112,31 @@ namespace BipsBatch
 
 	assert(ndstall <= gridDim.x * blockDim.x);
 
-	const int gid = threadIdx.x + blockDim.x * blockIdx.x;
-
-	if (gid >= start[26])
-	    return;
+	BatchInfo info;
 
 	int code, dpid;
 
 	{
-	    const int key9 = 9 * ((gid >= start[9]) + (gid >= start[18]));
-	    const int key3 = 3 * ((gid >= start[key9 + 3]) + (gid >= start[key9 + 6]));
-	    const int key1 = (gid >= start[key9 + key3 + 1]) + (gid >= start[key9 + key3 + 2]);
+	    const int gid = threadIdx.x + blockDim.x * blockIdx.x;
 
-	    code =  key9 + key3 + key1;
-	    dpid = gid - start[code];
-	    assert(code < 26);
+	    if (gid >= start[26])
+		return;
+
+	    {
+		const int key9 = 9 * ((gid >= start[9]) + (gid >= start[18]));
+		const int key3 = 3 * ((gid >= start[key9 + 3]) + (gid >= start[key9 + 6]));
+		const int key1 = (gid >= start[key9 + key3 + 1]) + (gid >= start[key9 + key3 + 2]);
+
+		code =  key9 + key3 + key1;
+		dpid = gid - start[code];
+		assert(code < 26);
+	    }
+
+	    info = batchinfos[code];
+
+	    if (dpid >= info.ndst)
+		return;
 	}
-
-	const BatchInfo info = batchinfos[code];
-
-	if (dpid >= info.ndst)
-	    return;
 
 	float xp = info.xdst[0 + dpid * 6];
 	float yp = info.xdst[1 + dpid * 6];
@@ -141,10 +145,6 @@ namespace BipsBatch
 	const float up = info.xdst[3 + dpid * 6];
 	const float vp = info.xdst[4 + dpid * 6];
 	const float wp = info.xdst[5 + dpid * 6];
-
-	const float * const xsrc = info.xsrc;
-	const int mask = info.mask;
-	const float seed = info.seed;
 
 	const int dstbase = 3 * info.scattered_entries[dpid];
 	assert(dstbase < sizeadst * 3);
@@ -189,20 +189,20 @@ namespace BipsBatch
 
 	float xforce = 0, yforce = 0, zforce = 0;
 
-	int itstencil = -1, countp = 0, spid;
+	int countp = 0, spid;
 
 	do
 	{
 	    while (countp == 0)
 	    {
-		++itstencil;
+		--stencilsize;
 
-		if (itstencil >= stencilsize)
+		if (stencilsize == -1)
 		    goto endloop;
 
-		const int tmp = itstencil / xstencilsize;
+		const int tmp = stencilsize / xstencilsize;
 
-		const int currcid = basecid + (itstencil % xstencilsize) +
+		const int currcid = basecid + (stencilsize % xstencilsize) +
 		    info.xcells * ((tmp % ystencilsize) + info.ycells * (tmp / ystencilsize));
 
 		spid = _ACCESS(info.cellstarts + currcid);
@@ -211,13 +211,14 @@ namespace BipsBatch
 		countp = _ACCESS(info.cellstarts + currcid + 1) - spid;
 		assert(countp >= 0);
 	    }
-
-	    const float xq = _ACCESS(xsrc + 0 + spid * 6);
-	    const float yq = _ACCESS(xsrc + 1 + spid * 6);
-	    const float zq = _ACCESS(xsrc + 2 + spid * 6);
-	    const float uq = _ACCESS(xsrc + 3 + spid * 6);
-	    const float vq = _ACCESS(xsrc + 4 + spid * 6);
-	    const float wq = _ACCESS(xsrc + 5 + spid * 6);
+	    
+	    const float * const ptr = info.xsrc + spid * 6;
+	    const float xq = _ACCESS(ptr + 0);
+	    const float yq = _ACCESS(ptr + 1);
+	    const float zq = _ACCESS(ptr + 2);
+	    const float uq = _ACCESS(ptr + 3);
+	    const float vq = _ACCESS(ptr + 4);
+	    const float wq = _ACCESS(ptr + 5);
 
 	    ++spid;
 	    --countp;
@@ -246,9 +247,9 @@ namespace BipsBatch
 		yr * (vp - vq) +
 		zr * (wp - wq);
 
-	    const int arg1 = mask * dpid + (1 - mask) * (spid - 1);
-	    const int arg2 = mask * (spid - 1) + (1 - mask) * dpid;
-	    const float myrandnr = Logistic::mean0var1(seed, arg1, arg2);
+	    const int arg1 = info.mask * dpid + (1 - info.mask) * (spid - 1);
+	    const int arg2 = info.mask * (spid - 1) + (1 - info.mask) * dpid;
+	    const float myrandnr = Logistic::mean0var1(info.seed, arg1, arg2);
 
 	    const float strength = aij * argwr + (- gamma * wr * rdotv + sigmaf * myrandnr) * wr;
 
