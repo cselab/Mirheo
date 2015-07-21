@@ -89,10 +89,15 @@ namespace BipsBatch
 {
     __constant__ unsigned int start[27];
 
+    enum HaloType { HALO_BULK = 0, HALO_FACE = 1, HALO_EDGE = 2, HALO_CORNER = 3 } ;
+
     struct BatchInfo
     {
-	float * xdst, * xsrc, seed;
+	float * xdst;
+	float2 * xsrc;
+	float seed;
 	int ndst, nsrc, mask, * cellstarts, * scattered_entries, dx, dy, dz, xcells, ycells, zcells;
+	HaloType halotype;
     };
 
     __constant__ BatchInfo batchinfos[26];
@@ -114,7 +119,7 @@ namespace BipsBatch
 
 	BatchInfo info;
 
-	int code, dpid;
+	uint code, dpid;
 
 	{
 	    const int gid = threadIdx.x + blockDim.x * blockIdx.x;
@@ -149,7 +154,8 @@ namespace BipsBatch
 	const int dstbase = 3 * info.scattered_entries[dpid];
 	assert(dstbase < sizeadst * 3);
 
-	int scan1, scan2, ncandidates, spidbase, deltaspid1 = 0, deltaspid2 = 0;
+	uint scan1, scan2, ncandidates, spidbase;
+	int deltaspid1 = 0, deltaspid2 = 0;
 
 	{
 	    int  basecid = 0, xstencilsize = 1, ystencilsize = 1, zstencilsize = 1;
@@ -188,18 +194,16 @@ namespace BipsBatch
 		zp -= info.dz * ZSIZE_SUBDOMAIN;
 	    }
 
-	    const bool isface = (abs(info.dx) + abs(info.dy) + abs(info.dz)) == 1;
+	    int rowstencilsize = 1, colstencilsize = 1, ncols = 1;
 
-	    int rowstencilsize = 1;
-	    int colstencilsize = max(xstencilsize, max(ystencilsize, zstencilsize));
-	    int ncols = 1;
-
-	    if (isface)
+	    if (info.halotype == HALO_FACE)
 	    {
 		rowstencilsize = info.dz ? ystencilsize : zstencilsize;
 		colstencilsize = info.dx ? ystencilsize : xstencilsize;
 		ncols = info.dx ? info.ycells : info.xcells;
 	    }
+	    else if (info.halotype == HALO_EDGE)
+		colstencilsize = max(xstencilsize, max(ystencilsize, zstencilsize));
 
 	    assert(rowstencilsize * colstencilsize == xstencilsize * ystencilsize * zstencilsize);
 
@@ -210,64 +214,53 @@ namespace BipsBatch
 
 	    if (rowstencilsize > 1)
 	    {
-		const int spidbase1 = _ACCESS(info.cellstarts + basecid + ncols);
-		count1 = _ACCESS(info.cellstarts + basecid + ncols + colstencilsize) - spidbase1;
-		assert(count1 >= 0);
-		deltaspid1 = spidbase1 - spidbase;
+		deltaspid1 = _ACCESS(info.cellstarts + basecid + ncols);
+		count1 = _ACCESS(info.cellstarts + basecid + ncols + colstencilsize) - deltaspid1;
 	    }
 
 	    if (rowstencilsize > 2)
 	    {
-		const int spidbase2 = _ACCESS(info.cellstarts + basecid + 2 * ncols);
-		count2 = _ACCESS(info.cellstarts + basecid + 2 * ncols + colstencilsize) - spidbase2;
-		assert(count2 >= 0);
-		deltaspid2 = spidbase2 - spidbase - deltaspid1;
-		assert(spidbase + deltaspid1 + deltaspid2 == spidbase2);
+		deltaspid2 = _ACCESS(info.cellstarts + basecid + 2 * ncols);
+		count2 = _ACCESS(info.cellstarts + basecid + 2 * ncols + colstencilsize) - deltaspid2;
 	    }
 
-	    deltaspid1 -= count0;
-	    deltaspid2 -= count1;
 	    scan1 = count0;
 	    scan2 = scan1 + count1;
 	    ncandidates = scan2 + count2;
-	    assert(scan1 >= 0 && scan2 >= 0 && ncandidates >= 0);
+
+	    deltaspid1 -= scan1;
+	    deltaspid2 -= scan2;
+
+	    assert(count1 >= 0 && count2 >= 0 && scan1 >= 0 && scan2 >= 0 && ncandidates >= 0);
 	}
 
-	const float * const xsrc = info.xsrc;
+	const float2 * const xsrc = info.xsrc;
 	const int mask = info.mask;
 	const float seed = info.seed;
 
 	float xforce = 0, yforce = 0, zforce = 0;
 
 #pragma unroll
-	for(int i = 0; i < ncandidates; ++i)
+	for(uint i = 0; i < ncandidates; ++i)
 	{
 	    const int m1 = (int)(i >= scan1);
 	    const int m2 = (int)(i >= scan2);
-	    const int spid = spidbase + i + m1 * (deltaspid1 + m2 * deltaspid2);
-
+	    const uint spid = i + (m2 ? deltaspid2 : m1 ? deltaspid1 : spidbase);
 	    assert(spid >= 0 && spid < info.nsrc);
 
-	    const float xq = _ACCESS(xsrc + 0 + spid * 6);
-	    const float yq = _ACCESS(xsrc + 1 + spid * 6);
-	    const float zq = _ACCESS(xsrc + 2 + spid * 6);
-	    const float uq = _ACCESS(xsrc + 3 + spid * 6);
-	    const float vq = _ACCESS(xsrc + 4 + spid * 6);
-	    const float wq = _ACCESS(xsrc + 5 + spid * 6);
+	    const float2 s0 = _ACCESS(xsrc + 0 + spid * 3);
+	    const float2 s1 = _ACCESS(xsrc + 1 + spid * 3);
+	    const float2 s2 = _ACCESS(xsrc + 2 + spid * 3);
 
-	    const float _xr = xp - xq;
-	    const float _yr = yp - yq;
-	    const float _zr = zp - zq;
+	    const float _xr = xp - s0.x;
+	    const float _yr = yp - s0.y;
+	    const float _zr = zp - s1.x;
 
 	    const float rij2 = _xr * _xr + _yr * _yr + _zr * _zr;
-
-	    if (rij2 >= 1)
-		continue;
-
 	    const float invrij = rsqrtf(rij2);
 
 	    const float rij = rij2 * invrij;
-	    const float argwr = 1.f - rij;
+	    const float argwr = max(0.f, 1.f - rij);
 	    const float wr = viscosity_function<-VISCOSITY_S_LEVEL>(argwr);
 
 	    const float xr = _xr * invrij;
@@ -275,12 +268,12 @@ namespace BipsBatch
 	    const float zr = _zr * invrij;
 
 	    const float rdotv =
-		xr * (up - uq) +
-		yr * (vp - vq) +
-		zr * (wp - wq);
+		xr * (up - s1.y) +
+		yr * (vp - s2.x) +
+		zr * (wp - s2.y);
 
-	    const int arg1 = mask * dpid + (1 - mask) * spid;
-	    const int arg2 = mask * spid + (1 - mask) * dpid;
+	    const uint arg1 = mask ? dpid : spid;
+	    const uint arg2 = mask ? spid : dpid;
 	    const float myrandnr = Logistic::mean0var1(seed, arg1, arg2);
 
 	    const float strength = aij * argwr + (- gamma * wr * rdotv + sigmaf * myrandnr) * wr;
@@ -352,11 +345,12 @@ void ComputeInteractionsDPD::remote_interactions(const Particle * const p, const
 	const int m2 = 0 == dz;
 
 	BipsBatch::BatchInfo entry = {
-	    (float *)sendhalos[i].dbuf.data, (float *)recvhalos[i].dbuf.data, interrank_trunks[i].get_float(),
+	    (float *)sendhalos[i].dbuf.data, (float2 *)recvhalos[i].dbuf.data, interrank_trunks[i].get_float(),
 	    sendhalos[i].dbuf.size, recvhalos[i].dbuf.size, interrank_masks[i],
 	    recvhalos[i].dcellstarts.data, sendhalos[i].scattered_entries.data,
 	    dx, dy, dz,
-	    1 + m0 * (XSIZE_SUBDOMAIN - 1), 1 + m1 * (YSIZE_SUBDOMAIN - 1), 1 + m2 * (ZSIZE_SUBDOMAIN - 1)
+	    1 + m0 * (XSIZE_SUBDOMAIN - 1), 1 + m1 * (YSIZE_SUBDOMAIN - 1), 1 + m2 * (ZSIZE_SUBDOMAIN - 1),
+	    (BipsBatch::HaloType)(abs(dx) + abs(dy) + abs(dz))
 	};
 
 	infos[i] = entry;
