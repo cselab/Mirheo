@@ -122,7 +122,7 @@ namespace BipsBatch
 	uint code, dpid;
 
 	{
-	    const int gid = threadIdx.x + blockDim.x * blockIdx.x;
+	    const int gid = (threadIdx.x + blockDim.x * blockIdx.x) >> 1;
 
 	    if (gid >= start[26])
 		return;
@@ -240,8 +240,8 @@ namespace BipsBatch
 
 	float xforce = 0, yforce = 0, zforce = 0;
 
-#pragma unroll
-	for(uint i = 0; i < ncandidates; ++i)
+#pragma unroll 2
+	for(uint i = threadIdx.x & 1; i < ncandidates; i += 2)
 	{
 	    const int m1 = (int)(i >= scan1);
 	    const int m2 = (int)(i >= scan2);
@@ -310,11 +310,11 @@ namespace BipsBatch
 
 	hstart_padded[0] = 0;
 	for(int i = 0; i < 26; ++i)
-	    hstart_padded[i + 1] = hstart_padded[i] + 32 * (((unsigned int)infos[i].ndst + 31)/ 32) ;
+	    hstart_padded[i + 1] = hstart_padded[i] + 16 * (((unsigned int)infos[i].ndst + 15)/ 16) ;
 
 	CUDA_CHECK(cudaMemcpyToSymbolAsync(start, hstart_padded, sizeof(hstart_padded), 0, cudaMemcpyHostToDevice, uploadstream));
 
-	const int nthreads = hstart_padded[26];
+	const int nthreads = 2 * hstart_padded[26];
 
 	CUDA_CHECK(cudaEventRecord(evhalodone, uploadstream));
 
