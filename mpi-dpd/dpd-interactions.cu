@@ -149,79 +149,111 @@ namespace BipsBatch
 	const int dstbase = 3 * info.scattered_entries[dpid];
 	assert(dstbase < sizeadst * 3);
 
-	int  basecid = 0, xstencilsize = 1, ystencilsize = 1, stencilsize = 1;
+	int scan1, scan2, ncandidates, spidbase, deltaspid1 = 0, deltaspid2 = 0;
 
 	{
-	    if (info.dz == 0)
+	    int  basecid = 0, xstencilsize = 1, ystencilsize = 1, zstencilsize = 1;
+
 	    {
-		const int zcid = (int)(zp + ZSIZE_SUBDOMAIN / 2);
-		const int zbasecid = max(0, -1 + zcid);
-		basecid = zbasecid;
-		stencilsize = min(info.zcells, zcid + 2) - zbasecid;
+		if (info.dz == 0)
+		{
+		    const int zcid = (int)(zp + ZSIZE_SUBDOMAIN / 2);
+		    const int zbasecid = max(0, -1 + zcid);
+		    basecid = zbasecid;
+		    zstencilsize = min(info.zcells, zcid + 2) - zbasecid;
+		}
+
+		basecid *= info.ycells;
+
+		if (info.dy == 0)
+		{
+		    const int ycid = (int)(yp + YSIZE_SUBDOMAIN / 2);
+		    const int ybasecid = max(0, -1 + ycid);
+		    basecid += ybasecid;
+		    ystencilsize = min(info.ycells, ycid + 2) - ybasecid;
+		}
+
+		basecid *= info.xcells;
+
+		if (info.dx == 0)
+		{
+		    const int xcid = (int)(xp + XSIZE_SUBDOMAIN / 2);
+		    const int xbasecid =  max(0, -1 + xcid);
+		    basecid += xbasecid;
+		    xstencilsize = min(info.xcells, xcid + 2) - xbasecid;
+		}
+
+		xp -= info.dx * XSIZE_SUBDOMAIN;
+		yp -= info.dy * YSIZE_SUBDOMAIN;
+		zp -= info.dz * ZSIZE_SUBDOMAIN;
 	    }
 
-	    basecid *= info.ycells;
+	    const bool isface = (abs(info.dx) + abs(info.dy) + abs(info.dz)) == 1;
 
-	    if (info.dy == 0)
+	    int rowstencilsize = 1;
+	    int colstencilsize = max(xstencilsize, max(ystencilsize, zstencilsize));
+	    int ncols = 1;
+
+	    if (isface)
 	    {
-		const int ycid = (int)(yp + YSIZE_SUBDOMAIN / 2);
-		const int ybasecid = max(0, -1 + ycid);
-		basecid += ybasecid;
-		stencilsize *= ystencilsize = min(info.ycells, ycid + 2) - ybasecid;
+		rowstencilsize = info.dz ? ystencilsize : zstencilsize;
+		colstencilsize = info.dx ? ystencilsize : xstencilsize;
+		ncols = info.dx ? info.ycells : info.xcells;
 	    }
 
-	    basecid *= info.xcells;
+	    assert(rowstencilsize * colstencilsize == xstencilsize * ystencilsize * zstencilsize);
 
-	    if (info.dx == 0)
+	    spidbase = _ACCESS(info.cellstarts + basecid);
+	    const int count0 = _ACCESS(info.cellstarts + basecid + colstencilsize) - spidbase;
+
+	    int count1 = 0, count2 = 0;
+
+	    if (rowstencilsize > 1)
 	    {
-		const int xcid = (int)(xp + XSIZE_SUBDOMAIN / 2);
-		const int xbasecid =  max(0, -1 + xcid);
-		basecid += xbasecid;
-		stencilsize *= xstencilsize = min(info.xcells, xcid + 2) - xbasecid;
+		const int spidbase1 = _ACCESS(info.cellstarts + basecid + ncols);
+		count1 = _ACCESS(info.cellstarts + basecid + ncols + colstencilsize) - spidbase1;
+		assert(count1 >= 0);
+		deltaspid1 = spidbase1 - spidbase;
 	    }
 
-	    xp -= info.dx * XSIZE_SUBDOMAIN;
-	    yp -= info.dy * YSIZE_SUBDOMAIN;
-	    zp -= info.dz * ZSIZE_SUBDOMAIN;
+	    if (rowstencilsize > 2)
+	    {
+		const int spidbase2 = _ACCESS(info.cellstarts + basecid + 2 * ncols);
+		count2 = _ACCESS(info.cellstarts + basecid + 2 * ncols + colstencilsize) - spidbase2;
+		assert(count2 >= 0);
+		deltaspid2 = spidbase2 - spidbase - deltaspid1;
+		assert(spidbase + deltaspid1 + deltaspid2 == spidbase2);
+	    }
 
-	    assert(stencilsize > 0);
+	    deltaspid1 -= count0;
+	    deltaspid2 -= count1;
+	    scan1 = count0;
+	    scan2 = scan1 + count1;
+	    ncandidates = scan2 + count2;
+	    assert(scan1 >= 0 && scan2 >= 0 && ncandidates >= 0);
 	}
+
+	const float * const xsrc = info.xsrc;
+	const int mask = info.mask;
+	const float seed = info.seed;
 
 	float xforce = 0, yforce = 0, zforce = 0;
 
-	int countp = 0, spid;
-
-	do
+#pragma unroll
+	for(int i = 0; i < ncandidates; ++i)
 	{
-	    while (countp == 0)
-	    {
-		--stencilsize;
+	    const int m1 = (int)(i >= scan1);
+	    const int m2 = (int)(i >= scan2);
+	    const int spid = spidbase + i + m1 * (deltaspid1 + m2 * deltaspid2);
 
-		if (stencilsize == -1)
-		    goto endloop;
+	    assert(spid >= 0 && spid < info.nsrc);
 
-		const int tmp = stencilsize / xstencilsize;
-
-		const int currcid = basecid + (stencilsize % xstencilsize) +
-		    info.xcells * ((tmp % ystencilsize) + info.ycells * (tmp / ystencilsize));
-
-		spid = _ACCESS(info.cellstarts + currcid);
-		assert(spid >= 0);
-
-		countp = _ACCESS(info.cellstarts + currcid + 1) - spid;
-		assert(countp >= 0);
-	    }
-	    
-	    const float * const ptr = info.xsrc + spid * 6;
-	    const float xq = _ACCESS(ptr + 0);
-	    const float yq = _ACCESS(ptr + 1);
-	    const float zq = _ACCESS(ptr + 2);
-	    const float uq = _ACCESS(ptr + 3);
-	    const float vq = _ACCESS(ptr + 4);
-	    const float wq = _ACCESS(ptr + 5);
-
-	    ++spid;
-	    --countp;
+	    const float xq = _ACCESS(xsrc + 0 + spid * 6);
+	    const float yq = _ACCESS(xsrc + 1 + spid * 6);
+	    const float zq = _ACCESS(xsrc + 2 + spid * 6);
+	    const float uq = _ACCESS(xsrc + 3 + spid * 6);
+	    const float vq = _ACCESS(xsrc + 4 + spid * 6);
+	    const float wq = _ACCESS(xsrc + 5 + spid * 6);
 
 	    const float _xr = xp - xq;
 	    const float _yr = yp - yq;
@@ -247,9 +279,9 @@ namespace BipsBatch
 		yr * (vp - vq) +
 		zr * (wp - wq);
 
-	    const int arg1 = info.mask * dpid + (1 - info.mask) * (spid - 1);
-	    const int arg2 = info.mask * (spid - 1) + (1 - info.mask) * dpid;
-	    const float myrandnr = Logistic::mean0var1(info.seed, arg1, arg2);
+	    const int arg1 = mask * dpid + (1 - mask) * spid;
+	    const int arg2 = mask * spid + (1 - mask) * dpid;
+	    const float myrandnr = Logistic::mean0var1(seed, arg1, arg2);
 
 	    const float strength = aij * argwr + (- gamma * wr * rdotv + sigmaf * myrandnr) * wr;
 
@@ -257,9 +289,6 @@ namespace BipsBatch
 	    yforce += strength * yr;
 	    zforce += strength * zr;
 	}
-	while(true);
-
-    endloop:
 
 	atomicAdd(adst + dstbase + 0, xforce);
 	atomicAdd(adst + dstbase + 1, yforce);
