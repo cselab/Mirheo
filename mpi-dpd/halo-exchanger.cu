@@ -471,10 +471,11 @@ void HaloExchanger::consolidate_and_post(const Particle * const p, const int n, 
     	CUDA_CHECK(cudaMemcpyAsync(sendhalos[i].hbuf.data, sendhalos[i].dbuf.data, sizeof(Particle) * sendhalos[i].hbuf.size,
 				   cudaMemcpyDeviceToHost, downloadstream));
 
-    CUDA_CHECK(cudaEventRecord(evdownloaded, downloadstream));
+    //this is commented due to the hanging described below
+    //CUDA_CHECK(cudaEventRecord(evdownloaded, downloadstream));
     
 #ifndef NDEBUG
-    //CUDA_CHECK(cudaStreamSynchronize(0));
+    CUDA_CHECK(cudaStreamSynchronize(0));
 
     for(int i = 0; i < 26; ++i)
 	if (sendhalos[i].expected)
@@ -490,7 +491,9 @@ void HaloExchanger::consolidate_and_post(const Particle * const p, const int n, 
     CUDA_CHECK(cudaPeekAtLastError());
 #endif
 
-    CUDA_CHECK(cudaEventSynchronize(evdownloaded));
+    CUDA_CHECK(cudaStreamSynchronize(downloadstream));
+    //this hangs undefinitely on XK7 (please confirm)
+    //CUDA_CHECK(cudaEventSynchronize(evdownloaded));
     
     {
 	NVTX_RANGE("HEX/send", NVTX_C2);
