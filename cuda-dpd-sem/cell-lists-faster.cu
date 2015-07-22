@@ -14,6 +14,8 @@
 #include <cstdio>
 #include <cassert>
 
+#define TEST_MAURO
+
 texture<float, cudaTextureType1D> texParticlesCLS;
 
 __device__ int  blockscount = 0;
@@ -35,7 +37,9 @@ __global__ void yzhistogram(const int np,
     assert(blockDim.x == warpSize * WARPS);
 
     const int tid = threadIdx.x;
+#ifndef TEST_MAURO
     const int slot = tid % (SLOTS);
+#endif
     const int gsize = gridDim.x * blockDim.x;
     const int nhisto = ncells.y * ncells.z;
 
@@ -46,6 +50,9 @@ __global__ void yzhistogram(const int np,
         
  
     float y[ILP], z[ILP];
+#ifdef TEST_MAURO
+    float x[ILP];
+#endif
     for(int j = 0; j < ILP; ++j)
     {
 	const int g = tile + tid + gsize * j;
@@ -54,18 +61,27 @@ __global__ void yzhistogram(const int np,
 
 	if (g < np)
 	{
+#ifdef TEST_MAURO
+	    x[j] = tex1Dfetch(texParticlesCLS, 0 + 6 * g); 
+#endif
 	    y[j] = tex1Dfetch(texParticlesCLS, 1 + 6 * g); 
 	    z[j] = tex1Dfetch(texParticlesCLS, 2 + 6 * g); 
 	}
     }
 
-    __syncthreads();
+//    __syncthreads();
 	
-    int entries[ILP], offset[ILP];
+    int entries[ILP];
+#ifndef TEST_MAURO
+    int offset[ILP];
+#endif
     for(int j = 0; j < ILP; ++j)
     {
 	const int g = tile + tid + gsize * j;
 	    
+#ifdef TEST_MAURO
+	int xcid = min(ncells.x - 1, max(0, (int)floor(invrc * (x[j] - domainstart.x))));
+#endif
 	int ycid = min(ncells.y - 1, max(0, (int)(floor(y[j] - domainstart.y) * invrc)));
 	int zcid = min(ncells.z - 1, max(0, (int)(floor(z[j] - domainstart.z) * invrc)));
 	    
@@ -73,15 +89,21 @@ __global__ void yzhistogram(const int np,
 	assert(zcid >= 0 && zcid < ncells.z);
 
 	entries[j] = -1;
+#ifndef TEST_MAURO
 	offset[j] = -1;
-
+#endif
 	if (g < np)
 	{
 	    entries[j] =  ycid + ncells.y * zcid;
+#ifndef TEST_MAURO
 	    offset[j] = atomicAdd(gmemhisto + (blockIdx.x*nhisto*SLOTS) + entries[j] + slot * nhisto, 1);
+#else
+	    localoffsets[g] = (atomicAdd(global_yzhisto + entries[j], 1) & 0x00FFFFFFFF) | (xcid << 24);
+	    yzcid[g] = entries[j];
+#endif
 	}
     }
-
+#ifndef TEST_MAURO
     __syncthreads();
 
     for(int i = tid ; i < SLOTS * nhisto; i += blockDim.x)
@@ -118,7 +140,9 @@ __global__ void yzhistogram(const int np,
 	    localoffsets[g] = offset[j] + shmemhisto[entries[j]];
 	}
     }
-    
+#endif
+    //__threadfence();
+    __syncthreads();
     __shared__ bool lastone;
 
     if (tid == 0)
@@ -130,7 +154,6 @@ __global__ void yzhistogram(const int np,
     }
 
     __syncthreads();
-        
     if (lastone)
     {
 	for(int i = tid ; i < nhisto; i += blockDim.x)
@@ -227,9 +250,13 @@ __global__ void yzscatter(const int * const localoffsets,
 	    const int localoffset = localoffsets[g];
 	    const int base = tex1Dfetch(texScanYZ, yzcid);
 	
+#ifndef TEST_MAURO
 	    const int entry = base + localoffset;
-
 	    outid[entry] = g;
+#else
+	    const int entry = base + (localoffset & 0x00FFFFFF);
+	    outid[entry] = (g & 0x00FFFFFF) | (localoffset & 0xFF000000);
+#endif
 	}
     }
 }
@@ -239,7 +266,7 @@ texture<int, cudaTextureType1D> texCountYZ;
 template<int YCPB>
 __global__ void xgather(const int * const ids, const int np, const float invrc, const int3 ncells, const float3 domainstart,
 			int * const starts, int * const counts,
-			float * const xyzuvw, const int bufsize, int * const order)
+			float * const xyzuvw, const int bufsize, int * const order, int *loffs)
 {
     assert(gridDim.x == 1 && gridDim.y == ncells.y / YCPB && gridDim.z == ncells.z);
     assert(blockDim.x == warpSize);
@@ -247,9 +274,12 @@ __global__ void xgather(const int * const ids, const int np, const float invrc, 
     
     extern __shared__ volatile int allhisto[];
     volatile int * const xhisto = &allhisto[ncells.x * threadIdx.y];
+#ifndef TEST_MAURO
     volatile int * const loffset = &allhisto[YCPB * ncells.x + bufsize * threadIdx.y];
     volatile int * const reordered = &allhisto[YCPB * ncells.x + bufsize * (YCPB + threadIdx.y)];
-
+#else
+    volatile int * const reordered = &allhisto[YCPB * ncells.x + bufsize * threadIdx.y];
+#endif
     const int tid = threadIdx.x;
     const int ycid = threadIdx.y + YCPB * blockIdx.y;
 
@@ -259,7 +289,9 @@ __global__ void xgather(const int * const ids, const int np, const float invrc, 
     const int yzcid = ycid + ncells.y * blockIdx.z;
     const int start = tex1Dfetch(texScanYZ, yzcid);
     const int count = tex1Dfetch(texCountYZ, yzcid);
-
+#ifdef TEST_MAURO
+    loffs += start;
+#endif
     if (count > bufsize)
     {
 	//asm("trap ;");
@@ -272,18 +304,23 @@ __global__ void xgather(const int * const ids, const int np, const float invrc, 
     for(int i = tid; i < count; i += warpSize)
     {
 	const int g = start + i;
-
+#ifndef TEST_MAURO
  	const int id = ids[g];
-
 	const float x = tex1Dfetch(texParticlesCLS, 6 * id);
-
 	const int xcid = min(ncells.x - 1, max(0, (int)floor(invrc * (x - domainstart.x))));
-	
+#else
+ 	int id = ids[g];
+	const int xcid = id >> 24;
+	id &= 0x00FFFFFF;
+#endif
 	const int val = atomicAdd((int *)(xhisto + xcid), 1);
 	assert(xcid < ncells.x);
 	assert(i < bufsize);
-	
+#ifndef TEST_MAURO	
 	loffset[i] = val |  (xcid << 16);
+#else
+	loffs[i] = val |  (xcid << 16);
+#endif
     }
     
     for(int i = tid; i < ncells.x; i += warpSize)
@@ -317,21 +354,30 @@ __global__ void xgather(const int * const ids, const int np, const float invrc, 
 
     for(int i = tid; i < count; i += warpSize)
     {
+#ifndef TEST_MAURO	
 	const int entry = loffset[i];
+#else
+	const int entry = loffs[i];
+#endif
 	const int xcid = entry >> 16;
 	assert(xcid < ncells.x);
 	const int loff = entry & 0xffff;
 
 	const int dest = (xcid == 0 ? 0 : xhisto[xcid - 1]) + loff;
 
+#ifndef TEST_MAURO
 	reordered[dest] = ids[start + i];
+#else
+	reordered[dest] = ids[start + i] & 0x00FFFFFF;
+#endif
     }
 
     const int nfloats = count * 6;
     const int base = 6 * start;
     
-    const int mystart = (32 - (base & 0x1f) + tid) & 0x1f;
-    for(int i = mystart; i < nfloats; i += warpSize)
+    //const int mystart = (32 - (base & 0x1f) + tid) & 0x1f;
+    //for(int i = mystart; i < nfloats; i += warpSize)
+    for(int i = tid; i < nfloats; i += warpSize)
     {
 	const int c = i % 6;
 	const int p = reordered[i / 6];
@@ -517,10 +563,14 @@ void build_clists(float * const device_xyzuvw, int np, const float rc,
   
     if (clists_perfmon)
 	CUDA_CHECK(cudaEventRecord(evstart));
-
+//fprintf(stdout, " densitynumber * 2=%f\n",  densitynumber * 2);
     {
 	static const int ILP = 4;
-	static const int SLOTS = 3;	
+#ifndef TEST_MAURO
+	static const int SLOTS = 3;
+#else
+	static const int SLOTS = 1;
+#endif
 	static const int WARPS = 32;
 	
 	const int blocksize = 32 * WARPS;
@@ -541,10 +591,11 @@ void build_clists(float * const device_xyzuvw, int np, const float rc,
 		
 	*failuretest.maxstripe = 0;
 	
-	if (shmem_fp <= 32 * 1024)
+	if (shmem_fp <= 32 * 1024) {
+            //fprintf(stderr, "yzhistogram<%d, %d, %d><<<%d, %d, %zu>>>\n", ILP, SLOTS, WARPS, nblocks, blocksize, sizeof(int) * ncells.y * ncells.z * SLOTS);
 	    yzhistogram<ILP, SLOTS, WARPS><<<nblocks, blocksize, sizeof(int) * ncells.y * ncells.z * SLOTS, stream>>>
                 (np, 1 / rc, ncells, domainstart, yzcid,  loffsets, yzhisto, dyzscan, failuretest.dmaxstripe, gmemhistos);
-	else
+	} else
 	{
 	    static const int SLOTS = 1;
 	    
@@ -567,17 +618,20 @@ void build_clists(float * const device_xyzuvw, int np, const float rc,
     CUDA_CHECK(cudaEventSynchronize(evacquire));
 
     {
-	static const int YCPB = 2;
-
 	xbufsize = *failuretest.maxstripe;
-
+#ifndef TEST_MAURO
+	static const int YCPB = 2;
 	int shmem_fp = sizeof(int) * (ncells.x  + 2 * xbufsize) * YCPB;
-
-	if(shmem_fp < 48 * 1024)
-	    xgather<YCPB><<< dim3(1, ncells.y / YCPB, ncells.z), dim3(32, YCPB), shmem_fp, stream>>>
+#else
+	static const int YCPB = 4;
+	int shmem_fp = sizeof(int) * (ncells.x  + xbufsize) * YCPB;
+#endif
+	if(shmem_fp < 48 * 1024) {
+            //printf("line %d: xgather<%d><<<(%d,%d,%d), (%d,%d), %d>>>\n", __LINE__, YCPB, 1, ncells.y / YCPB, ncells.z, 32, YCPB, shmem_fp);
+	    xgather<YCPB><<< dim3(1, (ncells.y +YCPB-1)/ YCPB, ncells.z), dim3(32, YCPB), shmem_fp, stream>>>
 		(outid, np, 1 / rc, ncells, domainstart, device_cellsstart, device_cellscount, device_xyzuvw, xbufsize,
-		 order);
-	else
+		 order, loffsets);
+	} else
 	{
 	    static const int YCPB = 1;
 
@@ -587,7 +641,7 @@ void build_clists(float * const device_xyzuvw, int np, const float rc,
 	    
 	    xgather<YCPB><<< dim3(1, ncells.y / YCPB, ncells.z), dim3(32, YCPB), shmem_fp, stream>>>
 		(outid, np, 1 / rc, ncells, domainstart, device_cellsstart, device_cellscount, device_xyzuvw, xbufsize,
-		 order);
+		 order, loffsets);
 	}
     }
     
@@ -616,7 +670,7 @@ void build_clists(float * const device_xyzuvw, int np, const float rc,
 	    
 	    xgather<1><<< dim3(1, ncells.y, ncells.z), dim3(32), sizeof(int) * (ncells.x  + 2 * xbufsize), stream>>>
 		(outid, np, 1 / rc, ncells, domainstart, device_cellsstart, device_cellscount, device_xyzuvw, xbufsize,
-		 order);
+		 order, loffsets);
 
 	    cudaError_t status = cudaPeekAtLastError();
 

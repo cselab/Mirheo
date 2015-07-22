@@ -6,8 +6,7 @@ CODE_VAL ?= sm_35
 
 NVCCFLAGS += -I$(HDF5_DIR)/include -Xcudafe "--diag_suppress=unrecognized_gcc_pragma"
 NVCCFLAGS +=  -arch $(ARCH_VAL) -code $(CODE_VAL) -O3 -use_fast_math -g -DNDEBUG
-CXXFLAGS += -L../cuda-dpd-sem/dpd -L../cuda-rbc/ -L../cuda-ctc/ -O3 -g  -std=c++11	
-#-DNDEBUG
+CXXFLAGS += -L../cuda-dpd-sem/dpd -L../cuda-rbc/ -L../cuda-ctc/ -O3 -g  -std=c++11 -DNDEBUG
 NVCCFLAGS += -I../cuda-dpd-sem/dpd -I../cuda-rbc/ -I../cuda-ctc
 
 OBJS = 	dpd-interactions.o \
@@ -28,7 +27,7 @@ LIBS = -lcuda-dpd -lcuda-rbc -lcuda-ctc -lcudart -ldl -lz
 nvtx ?= 0
 ifneq "$(nvtx)" "0"
 LIBS += -lnvToolsExt
-NVCCFLAGS += -D_USE_NVTX_
+NVCCFLAGS += -D_USE_NVTX_ -lineinfo
 endif
 
 ifneq "$(h5part)" "0"
@@ -69,6 +68,8 @@ test:  $(OBJS) libcuda-dpd libcuda-rbc libcuda-ctc
 %.o: %.cu
 	$(NVCC) $(NVCCFLAGS) $*.cu -c -o $*.o 
 	$(NVCC) $(NVCCFLAGS) -M $*.cu > $*.d
+	$(NVCC) $(NVCCFLAGS) -c $*.cu --cubin 
+	$(NVCC) $(NVCCFLAGS) -c $*.cu --ptx
 
 libcuda-dpd: 
 	$(MAKE) -C ../cuda-dpd-sem/dpd libcuda-dpd.a nonperiodic=1 floatized="$(floatized)" flops="$(flops)" CXX="$(CXX)" NVCC="$(NVCC)" ARCH_VAL="$(ARCH_VAL)" CODE_VAL="$(CODE_VAL)" slevel="$(slevel)"

@@ -878,7 +878,7 @@ void Simulation::run()
 	ctcscoll->update_stage1(driving_acceleration, mainstream);
 
     int it;
-    enum { nvtxstart = 7651, nvtxstop = 8051 } ;
+    enum { nvtxstart = 7981, nvtxstop = 8021 } ;
 
     for(it = 0; it < nsteps; ++it)
     {
