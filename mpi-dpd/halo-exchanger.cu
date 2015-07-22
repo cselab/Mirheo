@@ -61,9 +61,11 @@ HaloExchanger::HaloExchanger(MPI_Comm _cartcomm, const int basetag):  basetag(ba
     CUDA_CHECK(cudaHostAlloc((void **)&required_send_bag_size_host, sizeof(int) * 26, cudaHostAllocMapped));
     CUDA_CHECK(cudaHostGetDevicePointer(&required_send_bag_size, required_send_bag_size_host, 0));
 
-    CUDA_CHECK(cudaEventCreate(&evfillall, cudaEventDisableTiming));
+    CUDA_CHECK(cudaEventCreateWithFlags(&evfillall, cudaEventDisableTiming));
+    CUDA_CHECK(cudaEventCreateWithFlags(&evdownloaded, cudaEventDisableTiming | cudaEventBlockingSync));
 
     CUDA_CHECK(cudaStreamCreate(&uploadstream));
+    CUDA_CHECK(cudaStreamCreate(&downloadstream));
 }
 
 namespace PackingHalo
@@ -237,7 +239,7 @@ namespace PackingHalo
 
 	    float2 word = *(float2 *)&particles[spid].x[c];
 	    *(float2 *)&baginfos[code].dbag[dpid].x[c] = word;
-	    *(float2 *)&baginfos[code].hbag[dpid].x[c] = word;
+	    //*(float2 *)&baginfos[code].hbag[dpid].x[c] = word;
 
 #ifndef NDEBUG
 	    halo_particle_check(particles[spid], spid, code)   ;
@@ -465,6 +467,12 @@ void HaloExchanger::consolidate_and_post(const Particle * const p, const int n, 
 	}
     }
 
+    for(int i = 0; i < 26; ++i)
+    	CUDA_CHECK(cudaMemcpyAsync(sendhalos[i].hbuf.data, sendhalos[i].dbuf.data, sizeof(Particle) * sendhalos[i].hbuf.size,
+				   cudaMemcpyDeviceToHost, downloadstream));
+
+    CUDA_CHECK(cudaEventRecord(evdownloaded, downloadstream));
+    
 #ifndef NDEBUG
     //CUDA_CHECK(cudaStreamSynchronize(0));
 
@@ -482,6 +490,8 @@ void HaloExchanger::consolidate_and_post(const Particle * const p, const int n, 
     CUDA_CHECK(cudaPeekAtLastError());
 #endif
 
+    CUDA_CHECK(cudaEventSynchronize(evdownloaded));
+    
     {
 	NVTX_RANGE("HEX/send", NVTX_C2);
 
@@ -673,7 +683,8 @@ HaloExchanger::~HaloExchanger()
     _cancel_recv();
 
     CUDA_CHECK(cudaEventDestroy(evfillall));
-
+    CUDA_CHECK(cudaEventDestroy(evdownloaded));
 
     CUDA_CHECK(cudaStreamDestroy(uploadstream));
+    CUDA_CHECK(cudaStreamDestroy(downloadstream));
 }

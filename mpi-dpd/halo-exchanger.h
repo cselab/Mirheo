@@ -100,8 +100,8 @@ protected:
     
     int nof_sent_particles();
 
-    cudaStream_t uploadstream;
-    cudaEvent_t evfillall, evuploaded;
+    cudaStream_t uploadstream, downloadstream;
+    cudaEvent_t evfillall, evuploaded, evdownloaded;
      
     const int basetag;
 

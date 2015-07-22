@@ -324,9 +324,9 @@ void Simulation::_forces()
     if (ctcscoll)
 	ctc_interactions.pack_p(ctcscoll->data(), mainstream);
 
-    dpd.consolidate_and_post(particles.xyzuvw.data, particles.size, mainstream);
-
     dpd.local_interactions(particles.xyzuvw.data, particles.size, particles.axayaz.data, cells.start, cells.count, mainstream);
+
+    dpd.consolidate_and_post(particles.xyzuvw.data, particles.size, mainstream);
 
     CUDA_CHECK(cudaPeekAtLastError());
 
@@ -700,9 +700,9 @@ void Simulation::_lockstep()
     if (ctcscoll)
 	ctc_interactions.pack_p(ctcscoll->data(), mainstream);
 
-    dpd.consolidate_and_post(particles.xyzuvw.data, particles.size, mainstream);
-
     dpd.local_interactions(particles.xyzuvw.data, particles.size, particles.axayaz.data, cells.start, cells.count, mainstream);
+
+    dpd.consolidate_and_post(particles.xyzuvw.data, particles.size, mainstream);
 
     CUDA_CHECK(cudaPeekAtLastError());
 
