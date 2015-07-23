@@ -24,7 +24,7 @@ public:
 
     struct UnpackBuffer
     {
-	float * buffer;
+	float2 * buffer;
 	int capacity;
     };
    

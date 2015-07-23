@@ -25,26 +25,27 @@ using namespace std;
 namespace RedistributeParticlesKernels
 {
     __constant__ RedistributeParticles::PackBuffer pack_buffers[27];
-    
+
     __constant__ RedistributeParticles::UnpackBuffer unpack_buffers[27];
-    
-    __device__ int pack_count[27], pack_start[28];
+
+    __device__ int pack_count[27], pack_start_padded[28];
 
     __constant__ int unpack_start[28];
 
     __device__ bool failed;
-    
+
     texture<float, cudaTextureType1D> texAllParticles;
- 
+    texture<float2, cudaTextureType1D> texAllParticlesFloat2;
+
     __global__ void setup()
     {
 	if (threadIdx.x == 0)
 	    failed = false;
-	
+
 	if (threadIdx.x < 27)
 	    pack_count[threadIdx.x] = 0;
     }
-    
+
     __global__ void scatter_halo_indices(const int np)
     {
 	const int pid = threadIdx.x + blockDim.x * blockIdx.x;
@@ -60,14 +61,14 @@ namespace RedistributeParticlesKernels
 	    int vcode[3];
 	    for(int c = 0; c < 3; ++c)
 		vcode[c] = (2 + (xp[c] >= -L[c]/2) + (xp[c] >= L[c]/2)) % 3;
-	
+
 	    const int code = vcode[0] + 3 * (vcode[1] + 3 * vcode[2]);
 	    assert(code >= 0 && code < 27);
 
 	    if (code > 0)
 	    {
 		const int entry = atomicAdd(pack_count + code, 1);
-		
+
 		if (entry < pack_buffers[code].capacity)
 		    pack_buffers[code].scattered_indices[entry] = pid;
 	    }
@@ -77,17 +78,17 @@ namespace RedistributeParticlesKernels
     __global__ void tiny_scan(const int nparticles, const int bulkcapacity, int * const packsizes, bool * const failureflag)
     {
 	assert(blockDim.x > 27 && gridDim.x == 1);
-	
+
 	const int tid = threadIdx.x;
 
 	int myval = 0, mycount = 0;
-	
+
 	if (tid < 27)
 	{
 	    myval = mycount = pack_count[threadIdx.x];
 	    if (tid > 0)
 		packsizes[tid] = mycount;
-	   
+
 	    if (mycount > pack_buffers[tid].capacity)
 	    {
 		failed = true;
@@ -95,15 +96,17 @@ namespace RedistributeParticlesKernels
 	    }
 	}
 
+	//myval = 32 * ((myval + 31) / 32);
+
 	for(int L = 1; L < 32; L <<= 1)
 	    myval += (tid >= L) * __shfl_up(myval, L) ;
 
-	pack_start[tid] = myval - mycount;
+	pack_start_padded[tid] = myval - mycount;
 
 	if (tid == 26)
 	{
-	    pack_start[tid + 1] = myval;
-	    
+	    pack_start_padded[tid + 1] = myval;
+
 	    const int nbulk = nparticles - myval;
 	    packsizes[0] = nbulk;
 
@@ -114,7 +117,7 @@ namespace RedistributeParticlesKernels
 	    }
 	}
     }
-    
+
 #ifndef NDEBUG
     __global__ void check_scan()
     {
@@ -125,22 +128,33 @@ namespace RedistributeParticlesKernels
     }
 #endif
 
-    __global__ void pack(const int nparticles, const int nfloats)
+    __global__ void pack(const int nparticles, const int nfloat2s)
     {
-	assert(blockDim.x * gridDim.x >= nfloats);
+#if !defined(__CUDA_ARCH__)
+#warning __CUDA_ARCH__ not defined! assuming 350
+#define _ACCESS(x) __ldg(x)
+#elif __CUDA_ARCH__ >= 350
+#define _ACCESS(x) __ldg(x)
+#else
+#define _ACCESS(x) (*(x))
+#endif
+	assert(blockDim.x * gridDim.x >= nfloat2s);
 
 	if (failed)
 	    return;
-	
+
 	const int gid = threadIdx.x + blockDim.x * blockIdx.x;
-	const int slot = gid / 6;
+	const int slot = gid / 3;
 
 	const int tid = threadIdx.x;
-	
-	__shared__ int start[28];
+
+	__shared__ int start[28]; //, count[27];
 
 	if (tid < 28)
-	    start[tid] = pack_start[tid];
+	    start[tid] = pack_start_padded[tid];
+
+	//if (tid < 27)
+	//   count[tid] = pack_count[tid];
 
 	__syncthreads();
 
@@ -150,20 +164,25 @@ namespace RedistributeParticlesKernels
 
 	const int idpack = key9 + key3 + key1;
 
-	if (slot >= pack_start[27])
+	if (slot >= start[27])
 	    return;
 
-	const int offset = slot - pack_start[idpack];
+	const int offset = slot - start[idpack];
+
+	//if (offset >= count[idpack])
+	//    return;
+
 	assert (offset >= 0 && offset < pack_buffers[idpack].capacity);
-	
-	const int pid = pack_buffers[idpack].scattered_indices[offset];
+
+	const int pid = _ACCESS(pack_buffers[idpack].scattered_indices + offset);
 	assert(pid < nparticles && pid >= 0);
 
-	const int c = gid % 6;
-	const int d = c + 6 * offset;
-	assert (d < pack_buffers[idpack].capacity * 6);	
-	   
-	pack_buffers[idpack].buffer[d] = tex1Dfetch(texAllParticles, c + 6 * pid);
+	const int c = gid % 3;
+	const int d = c + 3 * offset;
+	assert (d < pack_buffers[idpack].capacity * 3);
+
+	pack_buffers[idpack].buffer[d] = tex1Dfetch(texAllParticlesFloat2, c + 3 * pid);
+#undef _ACCESS
     }
 
     __device__ void bitonic_warp(int& key, int& val)
@@ -174,14 +193,14 @@ namespace RedistributeParticlesKernels
 	for(int D = 1; D <= 16; D <<= 1)
 #pragma unroll
 	    for(int L = D; L >= 1; L >>= 1)
-	    { 
+	    {
 		const int mask = L == D ? 2 * D - 1 : L;
-		
+
 		const int otherkey = __shfl_xor(key, mask);
 		const int otherval = __shfl_xor(val, mask);
-		
+
 		const bool exchange =  (2 * (int)(lane < (lane ^ mask)) - 1) * (key - otherkey) > 0;
-		
+
 		if (exchange)
 		{
 		    key = otherkey;
@@ -197,7 +216,7 @@ namespace RedistributeParticlesKernels
 
 	return p;
     }
-    
+
     template<int STRIPESIZE, int ILP>
     __global__ void recompact_bulk(const int np)
     {
@@ -208,7 +227,7 @@ namespace RedistributeParticlesKernels
 	const int tid = threadIdx.x;
 	const int lid = threadIdx.x & (WARPSIZE - 1);
 	const int gid = threadIdx.x + STRIPESIZE * blockIdx.x;
-     
+
 	int tagged = gid >= np;
 
 	const int L[3] = { XSIZE_SUBDOMAIN, YSIZE_SUBDOMAIN, ZSIZE_SUBDOMAIN };
@@ -219,31 +238,31 @@ namespace RedistributeParticlesKernels
 		const float val = tex1Dfetch(texAllParticles, c + 6 * gid);
 		tagged += (int)(val < -L[c] / 2 || val >= L[c] / 2);
 	    }
-			
+
 	__shared__ int global_offset, local_offset, values[STRIPESIZE];
 
 	if (tid == 0)
-	    local_offset = 0;	   
+	    local_offset = 0;
 
 	const int ntags = __syncthreads_count(tagged > 0);
 	const int nvalid = STRIPESIZE - ntags;
 
 	if (tid == 0)
 	    global_offset = atomicAdd(&pack_count[0], nvalid);
-	
+
 	if (ntags)
 	{
 	    int pid = gid;
 	    bitonic_warp(tagged, pid);
 	    const int ngoodones = count_warp(!tagged);
-	    
+
 	    int warp_offset;
 
 	    if (lid == 0)
 		warp_offset = atomicAdd(&local_offset, ngoodones);
 
 	    warp_offset = __shfl(warp_offset, 0);
-		
+
 	    if (!tagged)
 		values[warp_offset + lid] = pid;
 
@@ -251,30 +270,34 @@ namespace RedistributeParticlesKernels
 
 	    __syncthreads();
 
-	    const int start = 6 * global_offset;
-	    const int stop = start + 6 * nvalid;
-	    	    
+	    const int start = 3 * global_offset;
+	    const int stop = start + 3 * nvalid;
+
 	    for(int dbase = start + tid; dbase < stop; dbase += STRIPESIZE * ILP)
 	    {
-		float data[ILP];
+		float2 data[ILP];
 #pragma unroll
 		for(int i = 0; i < ILP; ++i)
 		{
 		    const int d = dbase + i * STRIPESIZE;
-		    const int c = d % 6;
-		    const int s =  (d - start) / 6;
+		    const int c = d % 3;
+		    const int s =  (d - start) / 3;
 		    assert(s >= 0);
 		    assert(s < STRIPESIZE || d >= stop);
-		    data[i] = d < stop ? tex1Dfetch(texAllParticles, c + 6 * values[s]) : 0;
+		    data[i].x = 0;
+		    data[i].y = 0;
+
+		    if (d < stop)
+			data[i] = tex1Dfetch(texAllParticlesFloat2, c + 3 * values[s]);
 		}
 #pragma unroll
 		for(int i = 0; i < ILP; ++i)
 		{
 		    const int d = dbase + i * STRIPESIZE;
-		   
-		    assert(d < pack_buffers[0].capacity * 6 || d >= stop);
+
+		    assert(d < pack_buffers[0].capacity * 3 || d >= stop);
 		    assert(d >= 0);
-		    
+
 		    if (d < stop)
 			pack_buffers[0].buffer[d] = data[i];
 		}
@@ -283,20 +306,24 @@ namespace RedistributeParticlesKernels
 	else
 	{
 	    __syncthreads();
-	    
-	    const int start = 6 * global_offset;
-	    const int stop = start + 6 * nvalid;
-	    const int srcbase = -start + 6 * STRIPESIZE * blockIdx.x;
-	    
+
+	    const int start = 3 * global_offset;
+	    const int stop = start + 3 * nvalid;
+	    const int srcbase = -start + 3 * STRIPESIZE * blockIdx.x;
+
 	    for(int d = start + tid; d < stop; d += STRIPESIZE * ILP)
 	    {
-		float data[ILP];
+		float2 data[ILP];
 
 #pragma unroll
 		for(int i = 0; i < ILP; ++i)
 		{
 		    const int s = d + i * STRIPESIZE;
-		    data[i] = s < stop ? tex1Dfetch(texAllParticles, srcbase + s) : 0;
+		    data[i].x = 0;
+		    data[i].y = 0;
+
+		    if (s < stop)
+			data[i] = tex1Dfetch(texAllParticlesFloat2, srcbase + s);
 		}
 
 #pragma unroll
@@ -305,7 +332,7 @@ namespace RedistributeParticlesKernels
 		    const int dest = d + i * STRIPESIZE;
 		    if (dest < stop)
 		    {
-			assert(dest < pack_buffers[0].capacity * 6);
+			assert(dest < pack_buffers[0].capacity * 3);
 			assert(dest >= 0);
 			pack_buffers[0].buffer[dest] = data[i];
 		    }
@@ -314,47 +341,56 @@ namespace RedistributeParticlesKernels
 	}
     }
 
-    __global__ void unpack(float * dstbuf, const int nfloats, const int nparticles, const int base)
+    __global__ void unpack(float2 * dstbuf, const int nfloat2s, const int nparticles, const int base)
     {
-	assert(blockDim.x * gridDim.x >= nfloats);
-	
+	assert(blockDim.x * gridDim.x >= nfloat2s);
+
 	const int gid = threadIdx.x + blockDim.x * blockIdx.x + base;
 
-	if (gid >= nfloats + base)
+	if (gid >= nfloat2s + base)
 	    return;
-	
-	const int slot = gid / 6;
-	
+
+	const int slot = gid / 3;
+
 	const int key9 = 9 * (slot >= unpack_start[9]) + 9 * (slot >= unpack_start[18]);
 	const int key3 = 3 * (slot >= unpack_start[key9 + 3]) + 3 * (slot >= unpack_start[key9 + 6]);
 	const int key1 = (slot >= unpack_start[key9 + key3 + 1]) + (slot >= unpack_start[key9 + key3 + 2]);
 	const int code = key9 + key3 + key1;
-	
+
 	assert(slot >= unpack_start[code] && slot < unpack_start[code + 1]);
-	
+
 	const int offset = slot - unpack_start[code];
 	assert (offset >= 0 && offset < unpack_buffers[code].capacity);
-	
-	const int c = gid % 6;
-	assert(c >= 0 && c < 6);
 
-	const int s = c + 6 * offset;
-	assert (s < unpack_buffers[code].capacity * 6);
-	const float value = unpack_buffers[code].buffer[s];
-	
-	const int shift =
-	    XSIZE_SUBDOMAIN * (c == 0) * ((code + 1) % 3 - 1) +
-	    YSIZE_SUBDOMAIN * (c == 1) * ((code / 3 + 1) % 3 - 1) +
-	    ZSIZE_SUBDOMAIN * (c == 2) * ((code / 9 + 1) % 3 - 1);
+	const int c = gid % 3;
+	assert(c >= 0 && c < 3);
 
-	dstbuf[gid] = value + shift;
+	const int s = c + 3 * offset;
+	assert (s < unpack_buffers[code].capacity * 3);
+	float2 value = unpack_buffers[code].buffer[s];
+
+	const int shift0 =
+	    XSIZE_SUBDOMAIN * (2 * c == 0) * ((code + 1) % 3 - 1) +
+	    YSIZE_SUBDOMAIN * (2 * c == 1) * ((code / 3 + 1) % 3 - 1) +
+	    ZSIZE_SUBDOMAIN * (2 * c == 2) * ((code / 9 + 1) % 3 - 1);
+
+	value.x += shift0;
+
+	const int shift1 =
+	    XSIZE_SUBDOMAIN * (2 * c + 1 == 0) * ((code + 1) % 3 - 1) +
+	    YSIZE_SUBDOMAIN * (2 * c + 1 == 1) * ((code / 3 + 1) % 3 - 1) +
+	    ZSIZE_SUBDOMAIN * (2 * c + 1 == 2) * ((code / 9 + 1) % 3 - 1);
+
+	value.y += shift1;
+
+	dstbuf[gid] = value;
 
 #ifndef NDEBUG
 	const int L[3] = { XSIZE_SUBDOMAIN, YSIZE_SUBDOMAIN, ZSIZE_SUBDOMAIN };
 	if (!(c >= 3 || fabs(dstbuf[gid]) <= L[c] /2))
-		printf("ooooooooops REDISTRIBUTE: code: %d c: %d gid: %d dst value: %f, value : %f  shift : %f\n", 
+		printf("ooooooooops REDISTRIBUTE: code: %d c: %d gid: %d dst value: %f, value : %f  shift : %f\n",
 				code, c, gid, dstbuf[gid], value, (float)shift);
-	
+
 	assert(c >= 3 || fabs(dstbuf[gid]) <= L[c] /2);
 #endif
     }
@@ -364,7 +400,7 @@ namespace RedistributeParticlesKernels
     {
 	assert(blockDim.x * gridDim.x >= np);
 
-	const int L[3] = { XSIZE_SUBDOMAIN, YSIZE_SUBDOMAIN, ZSIZE_SUBDOMAIN };	
+	const int L[3] = { XSIZE_SUBDOMAIN, YSIZE_SUBDOMAIN, ZSIZE_SUBDOMAIN };
 
 	const int pid = threadIdx.x + blockDim.x * blockIdx.x;
 
@@ -375,14 +411,14 @@ namespace RedistributeParticlesKernels
 		{
 		     printf("oooops pid %d component %d is %f\n", pid, c, p[pid].x[c]);
 		}
-		
+
 		assert(p[pid].x[c] >= -L[c]/2 && p[pid].x[c] < L[c]/2);
 	    }
     }
 #endif
 }
 
-RedistributeParticles::RedistributeParticles(MPI_Comm _cartcomm): 
+RedistributeParticles::RedistributeParticles(MPI_Comm _cartcomm):
 failure(1), packsizes(27), nactiveneighbors(26), firstcall(true)
 {
     safety_factor = getenv("RDP_COMM_FACTOR") ? atof(getenv("RDP_COMM_FACTOR")) : 1.2;
@@ -401,21 +437,21 @@ failure(1), packsizes(27), nactiveneighbors(26), firstcall(true)
 	int coordsneighbor[3];
 	for(int c = 0; c < 3; ++c)
 	    coordsneighbor[c] = coords[c] + d[c];
-		
+
 	MPI_CHECK( MPI_Cart_rank(cartcomm, coordsneighbor, neighbor_ranks + i) );
-	
-	const int nhalodir[3] =  { 
-		d[0] != 0 ? 1 : XSIZE_SUBDOMAIN, 
-		d[1] != 0 ? 1 : YSIZE_SUBDOMAIN, 
-		d[2] != 0 ? 1 : ZSIZE_SUBDOMAIN 
+
+	const int nhalodir[3] =  {
+		d[0] != 0 ? 1 : XSIZE_SUBDOMAIN,
+		d[1] != 0 ? 1 : YSIZE_SUBDOMAIN,
+		d[2] != 0 ? 1 : ZSIZE_SUBDOMAIN
 	    };
 
 	const int nhalocells = nhalodir[0] * nhalodir[1] * nhalodir[2];
-	
+
 	const int estimate = numberdensity * safety_factor * nhalocells;
-	
+
 	CUDA_CHECK(cudaMalloc(&packbuffers[i].scattered_indices, sizeof(int) * estimate));
-	
+
 	if (i)
 	{
 	    CUDA_CHECK(cudaHostAlloc(&pinnedhost_sendbufs[i], sizeof(float) * 6 * estimate, cudaHostAllocMapped));
@@ -432,16 +468,21 @@ failure(1), packsizes(27), nactiveneighbors(26), firstcall(true)
 	    pinnedhost_sendbufs[i] = NULL;
 	    pinnedhost_recvbufs[i] = NULL;
 	}
-	
+
 	packbuffers[i].capacity = estimate;
 	unpackbuffers[i].capacity = estimate;
 	default_message_sizes[i] = estimate;
     }
-    
+
     RedistributeParticlesKernels::texAllParticles.channelDesc = cudaCreateChannelDesc<float>();
     RedistributeParticlesKernels::texAllParticles.filterMode = cudaFilterModePoint;
     RedistributeParticlesKernels::texAllParticles.mipmapFilterMode = cudaFilterModePoint;
     RedistributeParticlesKernels::texAllParticles.normalized = 0;
+
+    RedistributeParticlesKernels::texAllParticlesFloat2.channelDesc = cudaCreateChannelDesc<float2>();
+    RedistributeParticlesKernels::texAllParticlesFloat2.filterMode = cudaFilterModePoint;
+    RedistributeParticlesKernels::texAllParticlesFloat2.mipmapFilterMode = cudaFilterModePoint;
+    RedistributeParticlesKernels::texAllParticlesFloat2.normalized = 0;
 
     CUDA_CHECK(cudaEventCreate(&evpacking, cudaEventDisableTiming));
     CUDA_CHECK(cudaEventCreate(&evsizes, cudaEventDisableTiming));
@@ -455,10 +496,10 @@ void RedistributeParticles::_post_recv()
 	    MPI_CHECK( MPI_Irecv(recv_sizes + i, 1, MPI_INTEGER, neighbor_ranks[i], basetag + recv_tags[i], cartcomm, recvcountreq + c++) );
 	else
 	    recv_sizes[i] = 0;
- 
+
     for(int i = 1, c = 0; i < 27; ++i)
 	if (default_message_sizes[i])
-	    MPI_CHECK( MPI_Irecv(pinnedhost_recvbufs[i], default_message_sizes[i] * 6, MPI_FLOAT, 
+	    MPI_CHECK( MPI_Irecv(pinnedhost_recvbufs[i], default_message_sizes[i] * 6, MPI_FLOAT,
 				 neighbor_ranks[i], basetag + recv_tags[i] + 333, cartcomm, recvmsgreq + c++) );
 }
 
@@ -470,14 +511,14 @@ void RedistributeParticles::_adjust_send_buffers(const int requested_capacities[
 	    continue;
 
 	const int capacity = requested_capacities[i];
-	
+
 	CUDA_CHECK(cudaFree(packbuffers[i].scattered_indices));
 	CUDA_CHECK(cudaMalloc(&packbuffers[i].scattered_indices, sizeof(int) * capacity));
-	
+
 	if (i)
 	{
 	    CUDA_CHECK(cudaFreeHost(pinnedhost_sendbufs[i]));
-	   	    
+
 	    CUDA_CHECK(cudaHostAlloc(&pinnedhost_sendbufs[i], sizeof(float) * 6 * capacity, cudaHostAllocMapped));
 	    CUDA_CHECK(cudaHostGetDevicePointer(&packbuffers[i].buffer, pinnedhost_sendbufs[i], 0));
 
@@ -486,10 +527,10 @@ void RedistributeParticles::_adjust_send_buffers(const int requested_capacities[
 	else
 	{
 	    CUDA_CHECK(cudaFree(packbuffers[i].buffer));
-	    
+
 	    CUDA_CHECK(cudaMalloc(&packbuffers[i].buffer, sizeof(float) * 6 * capacity));
 	    unpackbuffers[i].buffer = packbuffers[i].buffer;
-	    
+
 	    assert(pinnedhost_sendbufs[i] == NULL);
 
 	    packbuffers[i].capacity = capacity;
@@ -506,18 +547,18 @@ void RedistributeParticles::_adjust_recv_buffers(const int requested_capacities[
 	    continue;
 
 	const int capacity = requested_capacities[i];
-	
+
 	if (i)
 	{
 	    //preserve-resize policy
 	    float * const old = pinnedhost_recvbufs[i];
-	    
+
 	    CUDA_CHECK(cudaHostAlloc(&pinnedhost_recvbufs[i], sizeof(float) * 6 * capacity, cudaHostAllocMapped));
 	    CUDA_CHECK(cudaHostGetDevicePointer(&unpackbuffers[i].buffer, pinnedhost_recvbufs[i], 0));
 
 	    CUDA_CHECK(cudaMemcpy(pinnedhost_recvbufs[i], old, sizeof(float) * 6 * unpackbuffers[i].capacity,
 				  cudaMemcpyHostToHost));
-	    
+
 	    CUDA_CHECK(cudaFreeHost(old));
 	}
 	else
@@ -528,7 +569,7 @@ void RedistributeParticles::_adjust_recv_buffers(const int requested_capacities[
 	    //CUDA_CHECK(cudaMalloc(&unpackbuffers[i].buffer, sizeof(float) * 6 * capacity));
 	    //assert(pinnedhost_recvbufs[i] == NULL);
 	}
-	
+
 	unpackbuffers[i].capacity = capacity;
     }
 }
@@ -538,16 +579,20 @@ void RedistributeParticles::pack(const Particle * const particles, const int npa
     NVTX_RANGE("RDP/pack");
 
     bool secondchance = false;
-    
+
     if (firstcall)
 	_post_recv();
-	
+
     size_t textureoffset;
-    CUDA_CHECK(cudaBindTexture(&textureoffset, &RedistributeParticlesKernels::texAllParticles, particles, 
+    CUDA_CHECK(cudaBindTexture(&textureoffset, &RedistributeParticlesKernels::texAllParticles, particles,
 			       &RedistributeParticlesKernels::texAllParticles.channelDesc,
 			       sizeof(float) * 6 * nparticles));
+
+    CUDA_CHECK(cudaBindTexture(&textureoffset, &RedistributeParticlesKernels::texAllParticlesFloat2, particles,
+			       &RedistributeParticlesKernels::texAllParticlesFloat2.channelDesc,
+			       sizeof(float) * 6 * nparticles));
 pack_attempt:
-	
+
     if (!is_mps_enabled)
 	CUDA_CHECK(cudaMemcpyToSymbolAsync(RedistributeParticlesKernels::pack_buffers, packbuffers,
 				       sizeof(PackBuffer) * 27, 0, cudaMemcpyHostToDevice, mystream));
@@ -557,21 +602,21 @@ pack_attempt:
 
     *failure.data = false;
     RedistributeParticlesKernels::setup<<<1, 32, 0, mystream>>>();
-	
+
     if (nparticles)
 	RedistributeParticlesKernels::scatter_halo_indices<<< (nparticles + 127) / 128, 128, 0, mystream>>>(nparticles);
-	
+
     RedistributeParticlesKernels::tiny_scan<<<1, 32, 0, mystream>>>(nparticles, packbuffers[0].capacity, packsizes.devptr, failure.devptr);
 
     CUDA_CHECK(cudaEventRecord(evsizes, mystream));
-	
+
 #ifndef NDEBUG
     RedistributeParticlesKernels::check_scan<<<1, 1, 0, mystream>>>();
-#endif 
-	
+#endif
+
     if (nparticles)
-	RedistributeParticlesKernels::pack<<< (6 * nparticles + 127) / 128, 128, 0, mystream>>> (nparticles, nparticles * 6);
-	
+	RedistributeParticlesKernels::pack<<< (3 * nparticles + 127) / 128, 128, 0, mystream>>> (nparticles, nparticles * 3);
+
     CUDA_CHECK(cudaEventRecord(evpacking, mystream));
 
     CUDA_CHECK(cudaEventSynchronize(evsizes));
@@ -580,18 +625,18 @@ pack_attempt:
     {
 	//wait for packing to finish
 	CUDA_CHECK(cudaEventSynchronize(evpacking));
-	    
+
 	printf("RedistributeParticles::pack RANK %d ...FAILED! Recovering now...\n", myrank);
 
 	_adjust_send_buffers(packsizes.data);
-	    	    
+
 	if (myrank == 0)
 	for(int i = 0; i < 27; ++i)
 	    printf("ASD: %d\n", packsizes.data[i]);
 
 	if (secondchance)
 	{
-	    printf("CAZZ...cioe' va bene tutto ragassi ma non siamo qui a far la ceretta allo yeti.\n");
+	    printf("...non siamo qui a far la ceretta allo yeti.\n");
 	    abort();
 	}
 
@@ -609,7 +654,7 @@ void RedistributeParticles::bulk(const int nparticles, cudaStream_t mystream)
     NVTX_RANGE("RDP/bulk", NVTX_C2);
 
     enum { BS = 128, ILP = 2 };
-	
+
     if (nparticles)
 	RedistributeParticlesKernels::recompact_bulk<BS, ILP><<< (nparticles + BS - 1) / BS, BS, 0, mystream>>>(nparticles);
 }
@@ -620,52 +665,52 @@ void RedistributeParticles::send()
 
     if (!firstcall)
 	_waitall(sendcountreq, nactiveneighbors);
-	
+
     for(int i = 0; i < 27; ++i)
 	send_sizes[i] = packsizes.data[i];
 
     nbulk = recv_sizes[0] = send_sizes[0];
-        
+
     {
 	int c = 0;
 	for(int i = 1; i < 27; ++i)
 	    if (default_message_sizes[i])
 		MPI_CHECK( MPI_Isend(send_sizes + i, 1, MPI_INTEGER, neighbor_ranks[i], basetag + i, cartcomm, sendcountreq + c++) );
-		
+
 	assert(c == nactiveneighbors);
     }
 
     CUDA_CHECK(cudaEventSynchronize(evpacking));
-    
+
     if (!firstcall)
 	_waitall(sendmsgreq, nsendmsgreq);
-    
+
     nsendmsgreq = 0;
     for(int i = 1; i < 27; ++i)
 	if (default_message_sizes[i])
 	{
 	    MPI_CHECK( MPI_Isend(pinnedhost_sendbufs[i], default_message_sizes[i] * 6, MPI_FLOAT, neighbor_ranks[i], basetag + i + 333,
 				 cartcomm, sendmsgreq + nsendmsgreq) );
-		
+
 	    ++nsendmsgreq;
 	}
-	
+
     for(int i = 1; i < 27; ++i)
 	if (default_message_sizes[i] && send_sizes[i] > default_message_sizes[i])
 	{
 	    const int count = send_sizes[i] - default_message_sizes[i];
-		
+
 	    MPI_CHECK( MPI_Isend(pinnedhost_sendbufs[i] + default_message_sizes[i] * 6, count * 6, MPI_FLOAT,
 				 neighbor_ranks[i], basetag + i + 666, cartcomm, sendmsgreq + nsendmsgreq) );
 	    ++nsendmsgreq;
 	}
-	
+
     assert(nactiveneighbors <= nsendmsgreq && nsendmsgreq <= 2 * nactiveneighbors);
 }
 
 int RedistributeParticles::recv_count(cudaStream_t mystream, float& host_idle_time)
 {
-    CUDA_CHECK(cudaPeekAtLastError());  
+    CUDA_CHECK(cudaPeekAtLastError());
 
     NVTX_RANGE("RDP/recv-count", NVTX_C3);
 
@@ -673,11 +718,11 @@ int RedistributeParticles::recv_count(cudaStream_t mystream, float& host_idle_ti
 
     {
 	static int ustart[28];
-	    
-	ustart[0] = 0;	
+
+	ustart[0] = 0;
 	for(int i = 1; i < 28; ++i)
 	    ustart[i] = ustart[i - 1] + recv_sizes[i - 1] * (default_message_sizes[i - 1] > 0);
-	    
+
 	if (!is_mps_enabled)
 	    CUDA_CHECK(cudaMemcpyToSymbolAsync(RedistributeParticlesKernels::unpack_start, ustart,
 					   sizeof(int) * 28, 0, cudaMemcpyHostToDevice, mystream));
@@ -689,24 +734,24 @@ int RedistributeParticles::recv_count(cudaStream_t mystream, float& host_idle_ti
     nexpected = 0;
     for(int i = 0; i < 27; ++i)
 	nexpected += recv_sizes[i];
-    
+
     nhalo = nexpected - nbulk;
-    
+
 //CUDA_CHECK(cudaEventSynchronize(evcompaction));
-    
+
     firstcall = false;
-    
+
     return nexpected;
 }
-    
+
 void RedistributeParticles::recv_unpack(Particle * const particles, const int nparticles, cudaStream_t mystream, float& host_idle_time)
 {
     NVTX_RANGE("RDP/recv-unpack", NVTX_C4);
-    
+
     assert(nparticles == nexpected);
-    
+
     host_idle_time += _waitall(recvmsgreq, nactiveneighbors);
-    
+
     _adjust_recv_buffers(recv_sizes);
 
     if (!is_mps_enabled)
@@ -715,12 +760,12 @@ void RedistributeParticles::recv_unpack(Particle * const particles, const int np
     else
 	CUDA_CHECK(cudaMemcpyToSymbol(RedistributeParticlesKernels::unpack_buffers, unpackbuffers,
 				       sizeof(UnpackBuffer) * 27, 0, cudaMemcpyHostToDevice));
-    
+
     for(int i = 1; i < 27; ++i)
 	if (default_message_sizes[i] && recv_sizes[i] > default_message_sizes[i])
 	{
 	    const int count = recv_sizes[i] - default_message_sizes[i];
-	    
+
 	    MPI_Status status;
 	    MPI_CHECK( MPI_Recv(pinnedhost_recvbufs[i] + default_message_sizes[i] * 6, count * 6, MPI_FLOAT,
 				neighbor_ranks[i], basetag + recv_tags[i] + 666, cartcomm, &status) );
@@ -729,15 +774,15 @@ void RedistributeParticles::recv_unpack(Particle * const particles, const int np
     CUDA_CHECK(cudaMemcpyAsync(particles, packbuffers[0].buffer, sizeof(Particle) * nbulk, cudaMemcpyDeviceToDevice, mystream));
 
     if (nhalo)
-	RedistributeParticlesKernels::unpack<<<(nhalo * 6 + 127) / 128, 128, 0, mystream>>>((float *)particles, nhalo * 6,
-										 nhalo, nbulk * 6);	
-    
+	RedistributeParticlesKernels::unpack<<<(nhalo * 3 + 127) / 128, 128, 0, mystream>>>((float2 *)particles, nhalo * 3,
+										 nhalo, nbulk * 3);
+
 #ifndef NDEBUG
     RedistributeParticlesKernels::check<<<(nparticles + 127) / 128, 128, 0, mystream>>>(particles, nparticles);
 #endif
-    
+
     _post_recv();
-    
+
     CUDA_CHECK(cudaPeekAtLastError());
 }
 
@@ -750,7 +795,7 @@ void RedistributeParticles::_cancel_recv()
 
 	for(int i = 0; i < nactiveneighbors; ++i)
 	    MPI_CHECK( MPI_Cancel(recvcountreq + i) );
-    
+
 	for(int i = 0; i < nactiveneighbors; ++i)
 	    MPI_CHECK( MPI_Cancel(recvmsgreq + i) );
 
@@ -783,9 +828,9 @@ RedistributeParticles::~RedistributeParticles()
 {
     CUDA_CHECK(cudaEventDestroy(evpacking));
     CUDA_CHECK(cudaEventDestroy(evsizes));
-      
+
     _cancel_recv();
-    
+
     for(int i = 0; i < 27; ++i)
     {
 	CUDA_CHECK(cudaFree(packbuffers[i].scattered_indices));
@@ -796,4 +841,3 @@ RedistributeParticles::~RedistributeParticles()
 	    CUDA_CHECK(cudaFree(packbuffers[i].buffer));
     }
 }
-
