@@ -1,3 +1,4 @@
+
 /*
  *  containers.cu
  *  Part of CTC/mpi-dpd/
@@ -59,43 +60,83 @@ namespace ParticleKernels
 #endif
     }
 
-    __global__ void update_stage2_and_1(Particle * p, Acceleration * a, int n, float dt, const float driving_acceleration)
+    __global__ void update_stage2_and_1(float2 * const pdata, const float * const adata,
+					const int nparticles, const float dt, const float driving_acceleration)
     {
-	assert(blockDim.x * gridDim.x >= 3 * n);
+	enum { BLOCKSIZE = 128, ILP = 4 };
 
-	const int gid = threadIdx.x + blockDim.x * blockIdx.x;
+	assert(blockDim.x * gridDim.x >= nparticles && blockDim.x == BLOCKSIZE);
 
-	if (gid >= 3 * n)
-	    return;
+	__shared__ float2 shxv[BLOCKSIZE * 3];
+	__shared__ float sha[BLOCKSIZE * 3];
 
-	const int pid = gid / 3;
-	const int c = gid % 3;
+	const int pidbase = blockDim.x * blockIdx.x;
+	const int nlocalparticles = min(nparticles - pidbase, BLOCKSIZE);
+	const int nwords = nlocalparticles * 3;
 
-	const float mya = a[pid].a[c] + (c == 0 ? driving_acceleration : 0);
+	const int base = 3 * pidbase;
+	const int tid = threadIdx.x;
 
-	float myu = p[pid].u[c];
-	float myx = p[pid].x[c];
+#pragma unroll 3
+	for(int i = tid; i < nwords; i += BLOCKSIZE)
+	    shxv[i] = pdata[base + i];
 
-	myu += mya * dt;
-	myx += myu * dt;
+#pragma unroll 3
+	for(int i = tid; i < nwords; i += BLOCKSIZE)
+	    sha[i] = adata[base + i];
 
-	assert(!isnan(myu) && !isnan(myx));
+	__syncthreads();
 
-	p[pid].u[c] = myu;
-	p[pid].x[c] = myx;
+	const bool valid = tid < nlocalparticles;
+
+	if (valid)
+	{
+	    const int entry = 3 * tid;
+
+	    float2 xy = shxv[entry];
+	    float2 zu = shxv[entry + 1];
+	    float2 vw = shxv[entry + 2];
+
+	    const float ax = sha[entry];
+	    const float ay = sha[entry + 1];
+	    const float az = sha[entry + 2];
+
+	    zu.y += (ax + driving_acceleration) * dt;
+	    vw.x += ay * dt;
+	    vw.y += az * dt;
+
+	    xy.x += zu.y * dt;
+	    xy.y += vw.x * dt;
+	    zu.x += vw.y * dt;
 
 #ifndef NDEBUG
-	const int L[3] = { XSIZE_SUBDOMAIN, YSIZE_SUBDOMAIN, ZSIZE_SUBDOMAIN };
+	    {
+		const int L[3] = { XSIZE_SUBDOMAIN, YSIZE_SUBDOMAIN, ZSIZE_SUBDOMAIN };
+		const float x[3] = {xy.x, xy.y, zu.x};
+		const float u[3] = {zu.y, vw.x, vw.y};
+		const float a[3] = {ax, ay, az};
 
-	if (!(myx >= -L[c] -L[c]/2) || !(myx <= +L[c] +L[c]/2))
-	{
-	    cuda_printf("Uau: pid %d c %d: x %f u %f and a %f\n",
-			pid, c, myx, myu, mya);
+		for(int c = 0; c < 3; ++c)
+		    if (!(x[c] >= -L[c] -L[c]/2) || !(x[c] <= +L[c] +L[c]/2))
+		    {
+			cuda_printf("Uau: pid %d c %d: x %f u %f and a %f\n",
+				    pid, c, x[c], u[c], a[c]);
 
-	    assert(myx >= -L[c] -L[c]/2);
-	    assert(myx <= +L[c] +L[c]/2);
-	}
+			assert(x[c] >= -L[c] -L[c]/2);
+			assert(x[c] <= +L[c] +L[c]/2);
+		    }
+	    }
 #endif
+	    shxv[entry] = xy;
+	    shxv[entry + 1] = zu;
+	    shxv[entry + 2] = vw;
+	}
+
+	__syncthreads();
+
+#pragma unroll 3
+	for(int i = tid; i < nwords; i += BLOCKSIZE)
+	    pdata[base + i] = shxv[i];
     }
 
     __global__ void clear_velocity(Particle * const p, const int n)
@@ -119,10 +160,7 @@ ParticleArray::ParticleArray(vector<Particle> ic)
     CUDA_CHECK(cudaMemcpy(xyzuvw.data, (float*) &ic.front(), sizeof(Particle) * ic.size(), cudaMemcpyHostToDevice));
     CUDA_CHECK(cudaMemset(axayaz.data, 0, sizeof(Acceleration) * ic.size()));
 
-    void (*upkernel)(Particle * p, Acceleration * a, int n, float dt,
-		     const float da) = ParticleKernels::update_stage2_and_1;
-
-    CUDA_CHECK(cudaFuncSetCacheConfig(*upkernel, cudaFuncCachePreferL1));
+//    CUDA_CHECK(cudaFuncSetCacheConfig(*ParticleKernels::update_stage2_and_1, cudaFuncCachePreferL1));
 }
 
 void ParticleArray::update_stage1(const float driving_acceleration, cudaStream_t stream)
@@ -135,8 +173,8 @@ void ParticleArray::update_stage1(const float driving_acceleration, cudaStream_t
 void  ParticleArray::update_stage2_and_1(const float driving_acceleration, cudaStream_t stream)
 {
     if (size)
-	ParticleKernels::update_stage2_and_1<<<(xyzuvw.size * 3 + 127) / 128, 128, 0, stream>>>
-	    (xyzuvw.data, axayaz.data, xyzuvw.size, dt, driving_acceleration);
+	ParticleKernels::update_stage2_and_1<<<(xyzuvw.size + 127) / 128, 128, 0, stream>>>
+	    ((float2 *)xyzuvw.data, (float *)axayaz.data, xyzuvw.size, dt, driving_acceleration);
 }
 
 void ParticleArray::resize(int n)

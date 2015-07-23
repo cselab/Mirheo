@@ -124,7 +124,7 @@ namespace RedistributeParticlesKernels
 	assert(blockDim.x == 1 && gridDim.x == 1);
 
 	for(int i = 1; i < 28; ++i)
-	    assert(pack_start[i - 1] <= pack_start[i]);
+	    assert(pack_start_padded[i - 1] <= pack_start_padded[i]);
     }
 #endif
 
@@ -385,14 +385,6 @@ namespace RedistributeParticlesKernels
 
 	dstbuf[gid] = value;
 
-#ifndef NDEBUG
-	const int L[3] = { XSIZE_SUBDOMAIN, YSIZE_SUBDOMAIN, ZSIZE_SUBDOMAIN };
-	if (!(c >= 3 || fabs(dstbuf[gid]) <= L[c] /2))
-		printf("ooooooooops REDISTRIBUTE: code: %d c: %d gid: %d dst value: %f, value : %f  shift : %f\n",
-				code, c, gid, dstbuf[gid], value, (float)shift);
-
-	assert(c >= 3 || fabs(dstbuf[gid]) <= L[c] /2);
-#endif
     }
 
 #ifndef NDEBUG
