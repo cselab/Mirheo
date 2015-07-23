@@ -73,11 +73,11 @@ namespace ParticleKernels
 #define _ACCESS(x) (*(x))
 #endif
 
-	enum { NWARPS = 4 };
+	enum { NWARPS = 4, STRIDE = 32 };
 
 	assert(blockDim.x * blockDim.y * gridDim.x >= nparticles && blockDim.x == 32 && blockDim.y == NWARPS);
 
-	__shared__ volatile float shxv[NWARPS][32 * 6 + 1];
+	__shared__ volatile float shxv[NWARPS][STRIDE * 6];
 
 	const int pidbase = 32 * (threadIdx.y + NWARPS * blockIdx.x);
 	const int nlocalparticles = min(nparticles - pidbase, 32);
@@ -109,20 +109,26 @@ namespace ParticleKernels
 #pragma unroll 3
 	for(int c = 0; c < 3; ++c)
 	{
-	    shxv[wid][2 * (tid + 32 * c)] = tmp2[c].x;
-	    shxv[wid][2 * (tid + 32 * c) + 1] = tmp2[c].y;
+	    const int entry = 2 * (tid + 32 * c); 
+	    const int lpid = entry / 6;
+	    const int c0 = entry % 6;
+	    const int c1 = (entry + 1) % 6;
+	    
+	    shxv[wid][(c0 % 3) + 3 * (lpid + STRIDE * (c0 >= 3))] = tmp2[c].x;
+	    shxv[wid][(c1 % 3) + 3 * (lpid + STRIDE * (c1 >= 3))] = tmp2[c].y;
 	}
 
 	if (valid)
 	{
-	    const int entry = 6 * tid;
-
-	    float x = shxv[wid][entry];
-	    float y = shxv[wid][entry + 1];
-	    float z = shxv[wid][entry + 2];
-	    float u = shxv[wid][entry + 3];
-	    float v = shxv[wid][entry + 4];
-	    float w = shxv[wid][entry + 5];
+	    const int entry0 = 3 * tid;
+	    const int entry1 = 3 * (tid + STRIDE);
+	    
+	    float x = shxv[wid][entry0];
+	    float y = shxv[wid][entry0 + 1];
+	    float z = shxv[wid][entry0 + 2];
+	    float u = shxv[wid][entry1];
+	    float v = shxv[wid][entry1 + 1];
+	    float w = shxv[wid][entry1 + 2];
 
 	    u += (ax + driving_acceleration) * dt;
 	    v += ay * dt;
@@ -131,20 +137,25 @@ namespace ParticleKernels
 	    x += u * dt;
 	    y += v * dt;
 	    z += w * dt;
-
-	    shxv[wid][entry] = x;
-	    shxv[wid][entry + 1] = y;
-	    shxv[wid][entry + 2] = z;
-	    shxv[wid][entry + 3] = u;
-	    shxv[wid][entry + 4] = v;
-	    shxv[wid][entry + 5] = w;
+	    
+	    shxv[wid][entry0] = x;
+	    shxv[wid][entry0 + 1] = y;
+	    shxv[wid][entry0 + 2] = z;
+	    shxv[wid][entry1] = u;
+	    shxv[wid][entry1 + 1] = v;
+	    shxv[wid][entry1 + 2] = w;
 	}
 
 #pragma unroll 3
 	for(int c = 0; c < 3; ++c)
 	{
-	    tmp2[c].x = shxv[wid][2 * (tid + 32 * c)];
-	    tmp2[c].y = shxv[wid][2 * (tid + 32 * c) + 1];
+	    const int entry = 2 * (tid + 32 * c); 
+	    const int lpid = entry / 6;
+	    const int c0 = entry % 6;
+	    const int c1 = (entry + 1) % 6;
+	    
+	    tmp2[c].x = shxv[wid][(c0 % 3) + 3 * (lpid + STRIDE * (c0 >= 3))];
+	    tmp2[c].y = shxv[wid][(c1 % 3) + 3 * (lpid + STRIDE * (c1 >= 3))];
 	}
 
 #pragma unroll 3
