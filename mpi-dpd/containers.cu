@@ -63,12 +63,22 @@ namespace ParticleKernels
     __global__ void update_stage2_and_1(float2 * const pdata, const float * const adata,
 					const int nparticles, const float dt, const float driving_acceleration)
     {
+	
+#if !defined(__CUDA_ARCH__)
+#warning __CUDA_ARCH__ not defined! assuming 350
+#define _ACCESS(x) __ldg(x)
+#elif __CUDA_ARCH__ >= 350
+#define _ACCESS(x) __ldg(x)
+#else
+#define _ACCESS(x) (*(x))
+#endif
+
 	enum { NWARPS = 4 };
 
 	assert(blockDim.x * blockDim.y * gridDim.x >= nparticles && blockDim.x == 32 && blockDim.y == NWARPS);
 
-	__shared__ volatile float2 shxv[NWARPS][32 * 3];
-	__shared__ volatile float sha[NWARPS][32 * 3];
+	__shared__ volatile float shxv[NWARPS][32 * 6 + 1];
+//	__shared__ volatile float sha[NWARPS][32 * 3];
 
 	const int pidbase = 32 * (threadIdx.y + NWARPS * blockIdx.x);
 	const int nlocalparticles = min(nparticles - pidbase, 32);
@@ -78,46 +88,60 @@ namespace ParticleKernels
 	const int wid = threadIdx.y;
 	const int tid = threadIdx.x;
 
+	float ax,ay,az;
+
+	const bool valid = tid < nlocalparticles;
+	if (valid)
+	{
+	    const int entry = 3 * (pidbase + tid);
+	    ax = _ACCESS(adata + entry);
+	    ay = _ACCESS(adata + entry + 1);
+	    az = _ACCESS(adata + entry + 2);
+	}
+
+
 	float2 tmp2[3] = {0, 0, 0};
-	float tmp[3] = {0, 0, 0};
+	//float tmp[3] = {0, 0, 0};
 
 #pragma unroll 3
 	for(int c = 0; c < 3; ++c)
 	    if (tid + 32 * c < nwords)
-		tmp2[c] = pdata[base + tid + 32 * c];
+		tmp2[c] = _ACCESS(pdata + base + tid + 32 * c);
 
+
+	/*
 #pragma unroll 3
 	for(int c = 0; c < 3; ++c) 
 	    if (tid + 32 * c < nwords)
 		tmp[c] = adata[base + tid + 32 * c];
-	
+*/
 #pragma unroll 3
 	for(int c = 0; c < 3; ++c)
 	{
-	    shxv[wid][tid + 32 * c].x = tmp2[c].x;
-	    shxv[wid][tid + 32 * c].y = tmp2[c].y;
+	    shxv[wid][2 * (tid + 32 * c)] = tmp2[c].x;
+	    shxv[wid][2 * (tid + 32 * c) + 1] = tmp2[c].y;
 	}
 	
-#pragma unroll 3
-	for(int c = 0; c < 3; ++c)
+//#pragma unroll 3
+	/*for(int c = 0; c < 3; ++c)
 	    sha[wid][tid + 32 *c] = tmp[c];
-
+	*/
 //	__syncthreads();
 
-	const bool valid = tid < nlocalparticles;
+
 
 	if (valid)
 	{
-	    const int entry = 3 * tid;
+	    const int entry = 6 * tid;
 
-	    float2 xy = make_float2(shxv[wid][entry].x, shxv[wid][entry].y);
-	    float2 zu = make_float2(shxv[wid][entry + 1].x, shxv[wid][entry + 1].y);
-	    float2 vw = make_float2(shxv[wid][entry + 2].x, shxv[wid][entry + 2].y);
+	    float2 xy = make_float2(shxv[wid][entry], shxv[wid][entry + 1]);
+	    float2 zu = make_float2(shxv[wid][entry + 2], shxv[wid][entry + 3]);
+	    float2 vw = make_float2(shxv[wid][entry + 4], shxv[wid][entry + 5]);
 
-	    const float ax = sha[wid][entry];
+	    /*  const float ax = sha[wid][entry];
 	    const float ay = sha[wid][entry + 1];
 	    const float az = sha[wid][entry + 2];
-
+	    */
 	    zu.y += (ax + driving_acceleration) * dt;
 	    vw.x += ay * dt;
 	    vw.y += az * dt;
@@ -144,12 +168,12 @@ namespace ParticleKernels
 		    }
 	    }
 #endif
-	    shxv[wid][entry].x = xy.x;
-	    shxv[wid][entry].y = xy.y;
-	    shxv[wid][entry + 1].x = zu.x;
-	    shxv[wid][entry + 1].y = zu.y;
-	    shxv[wid][entry + 2].x = vw.x;
-	    shxv[wid][entry + 2].y = vw.y;
+	    shxv[wid][entry] = xy.x;
+	    shxv[wid][entry + 1] = xy.y;
+	    shxv[wid][entry + 2] = zu.x;
+	    shxv[wid][entry + 3] = zu.y;
+	    shxv[wid][entry + 4] = vw.x;
+	    shxv[wid][entry + 5] = vw.y;
 	}
 
 //	__syncthreads();
@@ -157,8 +181,8 @@ namespace ParticleKernels
 #pragma unroll 3
 	for(int c = 0; c < 3; ++c)
 	{
-	    tmp2[c].x = shxv[wid][tid + 32 * c].x;
-	    tmp2[c].y = shxv[wid][tid + 32 * c].y;
+	    tmp2[c].x = shxv[wid][2 * (tid + 32 * c)];
+	    tmp2[c].y = shxv[wid][2 * (tid + 32 * c) + 1];
 	}
 
 #pragma unroll 3
