@@ -78,7 +78,6 @@ namespace ParticleKernels
 	assert(blockDim.x * blockDim.y * gridDim.x >= nparticles && blockDim.x == 32 && blockDim.y == NWARPS);
 
 	__shared__ volatile float shxv[NWARPS][32 * 6 + 1];
-//	__shared__ volatile float sha[NWARPS][32 * 3];
 
 	const int pidbase = 32 * (threadIdx.y + NWARPS * blockIdx.x);
 	const int nlocalparticles = min(nparticles - pidbase, 32);
@@ -88,9 +87,10 @@ namespace ParticleKernels
 	const int wid = threadIdx.y;
 	const int tid = threadIdx.x;
 
-	float ax,ay,az;
+	float ax, ay, az;
 
 	const bool valid = tid < nlocalparticles;
+
 	if (valid)
 	{
 	    const int entry = 3 * (pidbase + tid);
@@ -99,84 +99,46 @@ namespace ParticleKernels
 	    az = _ACCESS(adata + entry + 2);
 	}
 
-
 	float2 tmp2[3] = {0, 0, 0};
-	//float tmp[3] = {0, 0, 0};
 
 #pragma unroll 3
 	for(int c = 0; c < 3; ++c)
 	    if (tid + 32 * c < nwords)
 		tmp2[c] = _ACCESS(pdata + base + tid + 32 * c);
 
-
-	/*
-#pragma unroll 3
-	for(int c = 0; c < 3; ++c) 
-	    if (tid + 32 * c < nwords)
-		tmp[c] = adata[base + tid + 32 * c];
-*/
 #pragma unroll 3
 	for(int c = 0; c < 3; ++c)
 	{
 	    shxv[wid][2 * (tid + 32 * c)] = tmp2[c].x;
 	    shxv[wid][2 * (tid + 32 * c) + 1] = tmp2[c].y;
 	}
-	
-//#pragma unroll 3
-	/*for(int c = 0; c < 3; ++c)
-	    sha[wid][tid + 32 *c] = tmp[c];
-	*/
-//	__syncthreads();
-
-
 
 	if (valid)
 	{
 	    const int entry = 6 * tid;
 
-	    float2 xy = make_float2(shxv[wid][entry], shxv[wid][entry + 1]);
-	    float2 zu = make_float2(shxv[wid][entry + 2], shxv[wid][entry + 3]);
-	    float2 vw = make_float2(shxv[wid][entry + 4], shxv[wid][entry + 5]);
+	    float x = shxv[wid][entry];
+	    float y = shxv[wid][entry + 1];
+	    float z = shxv[wid][entry + 2];
+	    float u = shxv[wid][entry + 3];
+	    float v = shxv[wid][entry + 4];
+	    float w = shxv[wid][entry + 5];
 
-	    /*  const float ax = sha[wid][entry];
-	    const float ay = sha[wid][entry + 1];
-	    const float az = sha[wid][entry + 2];
-	    */
-	    zu.y += (ax + driving_acceleration) * dt;
-	    vw.x += ay * dt;
-	    vw.y += az * dt;
+	    u += (ax + driving_acceleration) * dt;
+	    v += ay * dt;
+	    w += az * dt;
 
-	    xy.x += zu.y * dt;
-	    xy.y += vw.x * dt;
-	    zu.x += vw.y * dt;
+	    x += u * dt;
+	    y += v * dt;
+	    z += w * dt;
 
-#ifndef NDEBUG
-	    {
-		const int L[3] = { XSIZE_SUBDOMAIN, YSIZE_SUBDOMAIN, ZSIZE_SUBDOMAIN };
-		const float x[3] = {xy.x, xy.y, zu.x};
-		const float u[3] = {zu.y, vw.x, vw.y};
-		const float a[3] = {ax, ay, az};
-
-		for(int c = 0; c < 3; ++c)
-		    if (!(x[c] >= -L[c] -L[c]/2) || !(x[c] <= +L[c] +L[c]/2))
-		    {
-			cuda_printf("Uau: pid %d c %d: x %f u %f and a %f\n",
-				    pid, c, x[c], u[c], a[c]);
-
-			assert(x[c] >= -L[c] -L[c]/2);
-			assert(x[c] <= +L[c] +L[c]/2);
-		    }
-	    }
-#endif
-	    shxv[wid][entry] = xy.x;
-	    shxv[wid][entry + 1] = xy.y;
-	    shxv[wid][entry + 2] = zu.x;
-	    shxv[wid][entry + 3] = zu.y;
-	    shxv[wid][entry + 4] = vw.x;
-	    shxv[wid][entry + 5] = vw.y;
+	    shxv[wid][entry] = x;
+	    shxv[wid][entry + 1] = y;
+	    shxv[wid][entry + 2] = z;
+	    shxv[wid][entry + 3] = u;
+	    shxv[wid][entry + 4] = v;
+	    shxv[wid][entry + 5] = w;
 	}
-
-//	__syncthreads();
 
 #pragma unroll 3
 	for(int c = 0; c < 3; ++c)
