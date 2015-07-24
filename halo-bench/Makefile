@@ -28,7 +28,7 @@ mesh_topo: mesh_topo.cpp
 	$(MPI_CC) $(CFLAGS) -o mesh_topo mesh_topo.cpp
 
 mesh_distances: mesh_distances.cpp
-	$(MPI_CC) $(CFLAGS) -o mesh_distances mesh_distances.cpp
+	g++ $(CFLAGS) -o mesh_distances mesh_distances.cpp
 
 byte_latency: byte_latency.cpp
 	$(MPI_CC) $(CFLAGS) -o byte_latency byte_latency.cpp
