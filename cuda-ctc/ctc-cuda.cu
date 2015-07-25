@@ -1,5 +1,5 @@
 /*
- *  rbc.cpp
+ *  ctc-cuda.cu
  *  ctc local
  *
  *  Created by Dmitry Alexeev on Nov 3, 2014
@@ -16,10 +16,12 @@
 #include <string>
 #include <fstream>
 #include <iostream>
+#include <utility>
+#include <cassert>
+#include <cuda_runtime.h>
 
 #include "vec3.h"
 #include "cuda-common.h"
-#include "cuda-dpd.h"
 
 using namespace std;
 
@@ -31,14 +33,15 @@ int ntriang;
 int nbonds;
 int ndihedrals;
 
-int *triangles_host;
 int *triangles;
-int *bonds;
 int *dihedrals;
+    int *triangles_host;
+    int *triplets;
 
 // Helper pointers
-real *totA_V;
-int  *mapping;
+    int maxCells;
+    __constant__ real *totA_V;
+    real *host_av;
 
 // Original configuration
 real* orig_xyzuvw;
@@ -46,12 +49,26 @@ real* orig_xyzuvw;
 map<cudaStream_t, float*> bufmap;
 __constant__ float A[4][4];
 
+    Extent* dummy;
 
-void setup(int& nvertices, Extent& host_extent, float dt)
+    texture<float,  cudaTextureType1D> texParticles;
+    texture<int4,   cudaTextureType1D> texTriangles4;
+    texture<int4,   cudaTextureType1D> texDihedrals4;
+
+    void unitsSetup(float lmax, float p, float cq, float kb, float ka, float kv, float gammaC,
+            float totArea0, float totVolume0, float lunit, float tunit, int ndens, bool prn);
+
+    void setup(int& nvertices, Extent& host_extent)
 {
+        const float scale=1;
+
 	const bool report = false;
 
-	const char* fname = "../cuda-ctc/sphere.dat";
+        //        0.0945, 0.00141, 1.642599,
+        //        1, 1.8, a, v, a/m.ntriang, 945, 0, 472.5,
+        //        90, 30, sin(phi), cos(phi), 6.048
+
+        const char* fname = "../cuda-ctc/sphere14.dat";
 	ifstream in(fname);
 	string line;
 
@@ -88,6 +105,12 @@ void setup(int& nvertices, Extent& host_extent, float dt)
 	{
 		in >> tmp1 >> tmp2 >> aid >> xyzuvw_host[6*cur+0] >> xyzuvw_host[6*cur+1] >> xyzuvw_host[6*cur+2];
 		xyzuvw_host[6*cur+3] = xyzuvw_host[6*cur+4] = xyzuvw_host[6*cur+5] = 0;
+
+            // Scale in dpd units
+            xyzuvw_host[6*cur+0] *= scale;
+            xyzuvw_host[6*cur+1] *= scale;
+            xyzuvw_host[6*cur+2] *= scale;
+
 		if (aid != 1) break;
 		cur++;
 	}
@@ -111,10 +134,6 @@ void setup(int& nvertices, Extent& host_extent, float dt)
 		for (int d=0; d<3; d++)
 			xyzuvw_host[6*i + d] -= origin[d];
 
-	int *used = new int[nparticles];
-	int *mapping_host = new int[4*(ntriang + ndihedrals)];
-	memset(used, 0, nparticles*sizeof(int));
-	memset(mapping_host, 0, 4*(ntriang + ndihedrals)*sizeof(int));
 	int id0, id1, id2, id3;
 
 	// Bonds section
@@ -130,19 +149,16 @@ void setup(int& nvertices, Extent& host_extent, float dt)
 
 	// Angles section --> triangles
 
-	triangles_host = new int[3*ntriang];
+        triangles_host = new int[4*ntriang];
+        triplets = new int[3*ntriang];
 	for (int i=0; i<ntriang; i++)
 	{
 		in >> tmp1 >> tmp2 >> id0 >> id1 >> id2;
 
 		id0--; id1--; id2--;
-		triangles_host[3*i + 0] = id0;
-		triangles_host[3*i + 1] = id1;
-		triangles_host[3*i + 2] = id2;
-
-		mapping_host[4*i + 0] = (used[id0]++);
-		mapping_host[4*i + 1] = (used[id1]++);
-		mapping_host[4*i + 2] = (used[id2]++);
+            triangles_host[4*i + 0] = triplets[3*i + 0] = id0;
+            triangles_host[4*i + 1] = triplets[3*i + 1] = id1;
+            triangles_host[4*i + 2] = triplets[3*i + 2] = id2;
 	}
 
 	// Dihedrals section
@@ -157,28 +173,20 @@ void setup(int& nvertices, Extent& host_extent, float dt)
 		dihedrals_host[4*i + 1] = id1;
 		dihedrals_host[4*i + 2] = id2;
 		dihedrals_host[4*i + 3] = id3;
-
-		mapping_host[4*(i + ntriang) + 0] = (used[id0]++);
-		mapping_host[4*(i + ntriang) + 1] = (used[id1]++);
-		mapping_host[4*(i + ntriang) + 2] = (used[id2]++);
-		mapping_host[4*(i + ntriang) + 3] = (used[id3]++);
 	}
 
 	in.close();
 
 	gpuErrchk( cudaMalloc(&orig_xyzuvw, nparticles             * 6 * sizeof(float)) );
-	gpuErrchk( cudaMalloc(&triangles,   ntriang                * 3 * sizeof(int)) );
+        gpuErrchk( cudaMalloc(&triangles,   ntriang    * 4 * sizeof(int)) );
 	gpuErrchk( cudaMalloc(&dihedrals,   ndihedrals             * 4 * sizeof(int)) );
-	gpuErrchk( cudaMalloc(&mapping,     (ndihedrals + ntriang) * 4 * sizeof(int)) );
 
 	gpuErrchk( cudaMemcpy(orig_xyzuvw, xyzuvw_host,    nparticles             * 6 * sizeof(float), cudaMemcpyHostToDevice) );
-	gpuErrchk( cudaMemcpy(triangles,   triangles_host, ntriang                * 3 * sizeof(int),   cudaMemcpyHostToDevice) );
+        gpuErrchk( cudaMemcpy(triangles,   triangles_host, ntriang    * 4 * sizeof(int),   cudaMemcpyHostToDevice) );
 	gpuErrchk( cudaMemcpy(dihedrals,   dihedrals_host, ndihedrals             * 4 * sizeof(int),   cudaMemcpyHostToDevice) );
-	gpuErrchk( cudaMemcpy(mapping,     mapping_host,   (ndihedrals + ntriang) * 4 * sizeof(int),   cudaMemcpyHostToDevice) );
 
 	delete[] xyzuvw_host;
 	delete[] dihedrals_host;
-	delete[] mapping_host;
 
 	nvertices = nparticles;
 	host_extent.xmin = xmin[0] - origin[0];
@@ -189,41 +197,136 @@ void setup(int& nvertices, Extent& host_extent, float dt)
 	host_extent.ymax = xmax[1] - origin[1];
 	host_extent.zmax = xmax[2] - origin[2];
 
-	gpuErrchk( cudaMalloc(&totA_V, 2 * sizeof(float)) );
+        maxCells = 5;
+        gpuErrchk( cudaMalloc(&host_av, maxCells * 2 * sizeof(float)) );
+        gpuErrchk( cudaMemcpyToSymbol(totA_V, &host_av,  sizeof(real*)) );
 
-	//        0.0945, 0.00141, 1.642599,
-	//        1, 1.8, a, v, a/m.ntriang, 945, 0, 472.5,
-	//        90, 30, sin(phi), cos(phi), 6.048
+        // Texture setup
+        texTriangles4.channelDesc = cudaCreateChannelDesc<int4>();
+        texTriangles4.filterMode = cudaFilterModePoint;
+        texTriangles4.mipmapFilterMode = cudaFilterModePoint;
+        texTriangles4.normalized = 0;
 
-	params.kbT = 0.0945;
-	params.p = 0.00141;
-	params.lmax = 1.442599;
+        texDihedrals4.channelDesc = cudaCreateChannelDesc<int4>();
+        texDihedrals4.filterMode = cudaFilterModePoint;
+        texDihedrals4.mipmapFilterMode = cudaFilterModePoint;
+        texDihedrals4.normalized = 0;
+
+        texParticles.channelDesc = cudaCreateChannelDesc<float>();
+        texParticles.filterMode = cudaFilterModePoint;
+        texParticles.mipmapFilterMode = cudaFilterModePoint;
+        texParticles.normalized = 0;
+
+        size_t textureoffset;
+        gpuErrchk( cudaBindTexture(&textureoffset, &texTriangles4, triangles, &texTriangles4.channelDesc, ntriang * 4 * sizeof(int)) );
+        assert(textureoffset == 0);
+        gpuErrchk( cudaBindTexture(&textureoffset, &texDihedrals4, dihedrals, &texDihedrals4.channelDesc, ndihedrals * 4 * sizeof(int)) );
+        assert(textureoffset == 0);
+
+        dummy = new Extent[maxCells];
+
+        unitsSetup(1.64, 0.00141*2, 19.0476*0.5, 200, 40104.168, 40059.0438, 0, 660, 1596, 1e-6, 2.4295e-6, 4, false); //unitsSetup(1.64, 0.00705, 6, 15, 1000, 5000, 5, 135, 90, 1e-6, 1e-5, 4, report);
+    }
+
+    void unitsSetup(float lmax, float p, float cq, float kb, float ka, float kv, float gammaC,
+            float totArea0, float totVolume0, float lunit, float tunit, int ndens, bool prn)
+    {
+        const float lrbc = 1.000000e-06;
+        const float trbc = 3.009441e-03;
+        //const float mrbc = 3.811958e-13;
+
+        float ll = lunit / lrbc;
+        float tt = tunit / trbc;
+
+        float l0 = 0.537104 / ll;
+
+        params.kbT = 580 * 250 * pow(ll, -2.0) * pow(tt, 2.0);
+        params.p = p / ll;
+        params.lmax = lmax / ll;
 	params.q = 1;
-	params.Cq = 1.8;
-	params.totArea0 = 1256;
-	params.totVolume0 = 4188;
+        params.Cq = cq * params.kbT * pow(ll, -2.0);
+        params.totArea0 = totArea0 * pow(ll, -2.0);
 	params.area0 = params.totArea0 / (float)ntriang;
-	params.ka = 945;
-	params.kd = 10;
-	params.kv = 150;
-	params.gammaT = 9;
-	params.gammaC = 3;
+        params.totVolume0 = totVolume0 * pow(ll, -3.0);
+        params.ka =  params.kbT * ka / (l0*l0);
+        params.kd =  params.kbT * 0.0 / (l0*l0);
+        params.kv =  params.kbT * kv / (l0*l0*l0);//	params.kv =  params.kbT * kv * (l0*l0*l0);
+        params.gammaC = gammaC * 580 * pow(tt, 1.0);
+        params.gammaT = 3.0 * params.gammaC;
 
 	params.rc = 0.5;
 	params.aij = 100;
-	params.gamma = 45;
+        params.gamma = 15;
 	params.sigma = sqrt(2 * params.gamma * params.kbT);
-	params.dt = dt;
+        //		params.dt = dt;
 
-	float phi = 8.0 / 180.0*M_PI;
+        float phi = 2.7 / 180.0*M_PI; //float phi = 3.1 / 180.0*M_PI;
 	params.sinTheta0 = sin(phi);
 	params.cosTheta0 = cos(phi);
-	params.kb = 6.048;
+        params.kb = kb * params.kbT;
+
+        params.mass = 1.1 / 0.995 * params.totVolume0 * ndens / nparticles;
+
+        //		params.kbT = 0.0945;
+        //        params.p = 0.00141;
+        //        params.lmax = 1.442599;
+        //        params.q = 1;
+        //        params.Cq = 1.8;
+        //        params.totArea0 = 660;
+        //        params.totVolume0 = 1590;
+        //        params.area0 = params.totArea0 / (float)ntriang;
+        //        params.ka = 345;
+        //        params.kd = 0;
+        //        params.kv = 300;
+        //        params.gammaT = 6;
+        //        params.gammaC = 2;
+        //
+        //        params.rc = 0.5;
+        //        params.aij = 100;
+        //        params.gamma = 45;
+        //        params.sigma = sqrt(2 * params.gamma * params.kbT);
+        //        //params.dt = dt;
+        //
+        //        phi = 3.0 / 180.0*M_PI;
+        //        params.sinTheta0 = sin(phi);
+        //        params.cosTheta0 = cos(phi);
+        //        params.kb = 16.048;
+
+        params.ndihedrals = ndihedrals;
+        params.ntriang = ntriang;
+        params.nparticles = nparticles;
+        gpuErrchk( cudaMemcpyToSymbol  (devParams, &params, sizeof(Params)) );
+
+        if (prn)
+        {
+            printf("\n************* Parameters setup *************\n");
+            printf("Started with <RBC space (DPD space)>:\n");
+            printf("    DPD unit of time:  %e\n",   tunit);
+            printf("    DPD unit of length:  %e\n\n", lunit);
+            printf("\t Lmax    %12.5f  (%12.5f)\n", lmax,   params.lmax);
+            printf("\t p       %12.5f  (%12.5f)\n", p,      params.p);
+            printf("\t Cq      %12.5f  (%12.5f)\n", cq,     params.Cq);
+            printf("\t kb      %12.5f  (%12.5f)\n", kb,     params.kb);
+            printf("\t ka      %12.5f  (%12.5f)\n", ka,     params.ka);
+            printf("\t kv      %12.5f  (%12.5f)\n", kv,     params.kv);
+            printf("\t gammaC  %12.5f  (%12.5f)\n\n", gammaC, params.gammaC);
+
+            printf("\t kbT     %12e in dpd\n", params.kbT);
+            printf("\t mass    %12.5f in dpd\n", params.mass);
+            printf("\t area    %12.5f  (%12.5f)\n", totArea0,  params.totArea0);
+            printf("\t volume  %12.5f  (%12.5f)\n", totVolume0, params.totVolume0);
+            printf("************* **************** *************\n\n");
 }
+    }
 
     int get_nvertices()
     {
 	return nparticles;
+    }
+
+    Params& get_params()
+    {
+        return params;
     }
 
 __global__ void transformKernel(float* xyzuvw, int n)
@@ -260,7 +363,7 @@ __inline__ __host__ __device__ float3 fmaxf(float3 a, float3 b)
 	return make_float3(max(a.x,b.x), max(a.y,b.y), max(a.z,b.z));
 }
 
-__device__ float atomicMin(float *addr, float value)
+    __device__ __inline__ float atomicMin(float *addr, float value)
 {
 	float old = *addr, assumed;
 	if(old <= value) return old;
@@ -274,7 +377,7 @@ __device__ float atomicMin(float *addr, float value)
 	return old;
 }
 
-__device__ float atomicMax(float *addr, float value)
+    __device__ __inline__ float atomicMax(float *addr, float value)
 {
 	float old = *addr, assumed;
 	if(old >= value) return old;
@@ -289,14 +392,16 @@ __device__ float atomicMax(float *addr, float value)
 }
 
 
-__global__ void extentKernel(const float* const xyzuvw, Extent* extent, int npart)
+    __global__ void extentKernel(const float* const __restrict__ xyzuvw, Extent* extent, int npart)
 {
 	float3 loBound = make_float3( 1e10f,  1e10f,  1e10f);
 	float3 hiBound = make_float3(-1e10f, -1e10f, -1e10f);
+        const int cid = blockIdx.y;
 
 	for(int i = blockIdx.x * blockDim.x + threadIdx.x; i < npart; i += blockDim.x * gridDim.x)
 	{
-		float3 v = make_float3(xyzuvw[6*i + 0], xyzuvw[6*i + 1], xyzuvw[6*i + 2]);
+            const float* addr = xyzuvw + 6 * (devParams.nparticles*cid + i);
+            float3 v = make_float3(addr[0], addr[1], addr[2]);
 
 		loBound = fminf(loBound, v);
 		hiBound = fmaxf(hiBound, v);
@@ -308,45 +413,65 @@ __global__ void extentKernel(const float* const xyzuvw, Extent* extent, int npar
 
 	if ((threadIdx.x & (warpSize - 1)) == 0)
 	{
-		atomicMin(&extent->xmin, loBound.x);
-		atomicMin(&extent->ymin, loBound.y);
-		atomicMin(&extent->zmin, loBound.z);
+            atomicMin(&extent[cid].xmin, loBound.x);
+            atomicMin(&extent[cid].ymin, loBound.y);
+            atomicMin(&extent[cid].zmin, loBound.z);
 
-		atomicMax(&extent->xmax, hiBound.x);
-		atomicMax(&extent->ymax, hiBound.y);
-		atomicMax(&extent->zmax, hiBound.z);
+            atomicMax(&extent[cid].xmax, hiBound.x);
+            atomicMax(&extent[cid].ymax, hiBound.y);
+            atomicMax(&extent[cid].zmax, hiBound.z);
 	}
 }
 
-void extent_nohost(cudaStream_t stream, const float * const xyzuvw, Extent * device_extent, int n)
+    void extent_nohost(cudaStream_t stream, int ncells, const float * const xyzuvw, Extent * device_extent, int n)
 {
-	const int threads = 128;
-	const int blocks  = (nparticles + threads - 1) / threads;
+        if (ncells == 0) return;
 
-	Extent dummy;
-	dummy.xmin = dummy.ymin = dummy.zmin = 1e10;
-	dummy.xmax = dummy.ymax = dummy.zmax = -1e10;
-	gpuErrchk( cudaMemcpy(device_extent, &dummy, sizeof(Extent), cudaMemcpyHostToDevice) );
+        dim3 threads(32*3, 1);
+        dim3 blocks( (ntriang + threads.x - 1) / threads.x, ncells );
+
+        if (ncells > maxCells)
+        {
+            maxCells = 2*ncells;
+            gpuErrchk( cudaFree(host_av) );
+            gpuErrchk( cudaMalloc(&host_av, maxCells * 2 * sizeof(float)) );
+            gpuErrchk( cudaMemcpyToSymbol(totA_V, &host_av,  sizeof(real*)) );
+
+            delete[] dummy;
+            dummy = new Extent[maxCells];
+        }
+
+        for (int i=0; i<ncells; i++)
+        {
+            dummy[i].xmin = dummy[i].ymin = dummy[i].zmin = 1e10;
+            dummy[i].xmax = dummy[i].ymax = dummy[i].zmax = -1e10;
+        }
+
+        gpuErrchk( cudaMemcpy(device_extent, dummy, ncells * sizeof(Extent), cudaMemcpyHostToDevice) );
 
 	if (n == -1) n = nparticles;
 	extentKernel<<<blocks, threads, 0, stream>>>(xyzuvw, device_extent, n);
+        gpuErrchk( cudaPeekAtLastError() );
 }
 
+    __device__ __inline__ vec3 tex2vec(int id)
+    {
+        return vec3(tex1Dfetch(texParticles, id+0),
+                tex1Dfetch(texParticles, id+1),
+                tex1Dfetch(texParticles, id+2));
+    }
 
-__global__ void areaAndVolumeKernel(int* triangles, const float* const xyzuvw, float* totA_V, int ntriang)
+    __global__ void areaAndVolumeKernel()
 {
 	float2 a_v = make_float2(0.0f, 0.0f);
+        const int cid = blockIdx.y;
 
-	for(int i = blockIdx.x * blockDim.x + threadIdx.x; i < ntriang; i += blockDim.x * gridDim.x)
+        for(int i = blockIdx.x * blockDim.x + threadIdx.x; i < devParams.ntriang; i += blockDim.x * gridDim.x)
 	{
-		int id0 = triangles[3*i + 0];
-		vec3 v0(xyzuvw+6*id0);
-
-		int id1 = triangles[3*i + 1];
-		vec3 v1(xyzuvw+6*id1);
-
-		int id2 = triangles[3*i + 2];
-		vec3 v2(xyzuvw+6*id2);
+            int4 ids = tex1Dfetch(texTriangles4, i);
+            vec3 v0( tex2vec(6*(ids.x+cid*devParams.nparticles)) );
+            vec3 v1( tex2vec(6*(ids.y+cid*devParams.nparticles)) );
+            vec3 v2( tex2vec(6*(ids.z+cid*devParams.nparticles)) );
 
 		a_v.x += 0.5f * norm(cross(v1 - v0, v2 - v0));
 		a_v.y += 0.1666666667f * (- v0.z*v1.y*v2.x + v0.z*v1.x*v2.y + v0.y*v1.z*v2.x
@@ -356,48 +481,34 @@ __global__ void areaAndVolumeKernel(int* triangles, const float* const xyzuvw, f
 	a_v = warpReduceSum(a_v);
 	if ((threadIdx.x & (warpSize - 1)) == 0)
 	{
-		atomicAdd(&totA_V[0], a_v.x);
-		atomicAdd(&totA_V[1], a_v.y);
+            atomicAdd(&totA_V[2*cid+0], a_v.x);
+            atomicAdd(&totA_V[2*cid+1], a_v.y);
 	}
 }
 
+    __global__ void perTriangle(float* fxfyfz)
+    {
+        const int i = blockIdx.x * blockDim.x + threadIdx.x;
+        const int cid = blockIdx.y;
+        if (i >= devParams.ntriang) return;
 
-// Assume that values are already transferred to device
-__host__ void areaAndVolume(const float* const xyzuvw)
-{
-	const int threads = 128;
-	const int blocks  = (ntriang + threads - 1) / threads;
+        const float totArea   =      totA_V[2*cid + 0];
+        const float totVolume = fabs(totA_V[2*cid + 1]);
 
-	gpuErrchk( cudaMemset(totA_V, 0, 2 * sizeof(float)) );
-	areaAndVolumeKernel<<<blocks, threads>>>(triangles, xyzuvw, totA_V, ntriang);
-}
-
-
-__global__ void perTriangle(int* triangles, const float* const xyzuvw, float* fxfyfz, int* mapping, int ntriang,
-		float q, float Cq, float* totA_V, float totArea0, float totVolume0, float area0, float ka, float kd, float kv)
-{
-	float totArea = totA_V[0];
-	float totVolume = totA_V[1];
-	int i = blockIdx.x * blockDim.x + threadIdx.x;
-	if (i >= ntriang) return;
-
-	int id0 = triangles[3*i + 0];
-	vec3 v0(xyzuvw+6*id0);
-
-	int id1 = triangles[3*i + 1];
-	vec3 v1(xyzuvw+6*id1);
-
-	int id2 = triangles[3*i + 2];
-	vec3 v2(xyzuvw+6*id2);
+        int4 ids = tex1Dfetch(texTriangles4, i);
+        vec3 v0( tex2vec(6*(ids.x+cid*devParams.nparticles)) );
+        vec3 v1( tex2vec(6*(ids.y+cid*devParams.nparticles)) );
+        vec3 v2( tex2vec(6*(ids.z+cid*devParams.nparticles)) );
 
 	vec3 ksi = cross(v1 - v0, v2 - v0);
 	float area = 0.5f * norm(ksi);
 
 	// in-plane
-	float alpha = 0.25f * q*Cq / powf(area, q+2.0);
+        float alpha = 0.25f * devParams.q*devParams.Cq / powf(area, devParams.q+2.0f);
 
 	// area conservation
-	float beta_a = -0.25f * ( ka*(totArea - totArea0) / (totArea0*area) + kd * (area - area0) / (area0 * area) );
+        float beta_a = -0.25f * ( devParams.ka*(totArea - devParams.totArea0) / (devParams.totArea0*area) +
+                devParams.kd * (area - devParams.area0) / (devParams.area0 * area) );
 	alpha += beta_a;
 	vec3 f0, f1, f2;
 
@@ -406,64 +517,56 @@ __global__ void perTriangle(int* triangles, const float* const xyzuvw, float* fx
 	f2 = cross(ksi, v1-v0)*alpha;
 
 	// volume conservation
-	// "-" here is because the normal look inside
+        // "-" here is because the normals look inside
 	vec3 ksi_3 = ksi*0.333333333f;
 	vec3 t_c = (v0 + v1 + v2) * 0.333333333f;
-	float beta_v = -0.1666666667f * kv * (totVolume - totVolume0) / (totVolume0);
+        float beta_v = -0.1666666667f * devParams.kv * (totVolume - devParams.totVolume0) / (devParams.totVolume0);
 
 	f0 += (ksi_3 + cross(t_c, v2-v1)) * beta_v;
 	f1 += (ksi_3 + cross(t_c, v0-v2)) * beta_v;
 	f2 += (ksi_3 + cross(t_c, v1-v0)) * beta_v;
 
-	int addr0 = warpSize * 3*id0 + mapping[4*i + 0];
-	int addr1 = warpSize * 3*id1 + mapping[4*i + 1];
-	int addr2 = warpSize * 3*id2 + mapping[4*i + 2];
-	//printf("%d\n%d\n%d\n", addr0, addr1, addr2);
-	for (int d = 0, sh = 0; d<3; d++, sh+=warpSize)
+        float* addr = fxfyfz + 3*cid*devParams.nparticles;
+#pragma unroll
+        for (int d = 0; d<3; d++)
 	{
-		fxfyfz[addr0 + sh] = f0[d];
-		fxfyfz[addr1 + sh] = f1[d];
-		fxfyfz[addr2 + sh] = f2[d];
+            atomicAdd(addr + 3*ids.x + d, f0[d]);
+            atomicAdd(addr + 3*ids.y + d, f1[d]);
+            atomicAdd(addr + 3*ids.z + d, f2[d]);
 	}
 }
 
-
-__global__ void perDihedral(int* dihedrals, const float* const xyzuvw, float* fxfyfz, int* mapping, int ndihedrals, int ntriang,
-		float kbT, float p, float lmax, float gammaT, float gammaC, float sinTheta0, float cosTheta0, float kb)
+    __global__ void perDihedral(float* fxfyfz)
 {
-	int i = blockIdx.x * blockDim.x + threadIdx.x;
-	if (i >= ndihedrals) return;
+        const int i = blockIdx.x * blockDim.x + threadIdx.x;
+        const int cid = blockIdx.y;
+        if (i >= devParams.ndihedrals) return;
 
-	int id0 = dihedrals[4*i + 0];
-	vec3 v0(xyzuvw+6*id0);
-
-	int id1 = dihedrals[4*i + 1];
-	vec3 v1(xyzuvw+6*id1);
-
-	int id2 = dihedrals[4*i + 2];
-	vec3 v2(xyzuvw+6*id2);
-
-	int id3 = dihedrals[4*i + 3];
-	vec3 v3(xyzuvw+6*id3);
+        int4 ids = tex1Dfetch(texDihedrals4, i);
+        vec3 v0( tex2vec(6*(ids.x+cid*devParams.nparticles)) );
+        vec3 v1( tex2vec(6*(ids.y+cid*devParams.nparticles)) );
+        vec3 v2( tex2vec(6*(ids.z+cid*devParams.nparticles)) );
+        vec3 v3( tex2vec(6*(ids.w+cid*devParams.nparticles)) );
 
 	vec3 f0, f1, f2, f3;
 
 	vec3 d21 = v2 - v1;
 	float r = norm(d21);
 	if (r < 0.0001) r = 0.0001;
-	float xx = r/lmax;
+        float xx = r/devParams.lmax;
 
-	float IbforceI = kbT / p * ( 0.25f/((1.0f-xx)*(1.0f-xx)) - 0.25f + xx ) / r;  // TODO: minus??
+        float IbforceI = devParams.kbT / devParams.p * ( 0.25f/((1.0f-xx)*(1.0f-xx)) - 0.25f + xx ) / r;  // TODO: minus??
 	vec3 bforce = d21*IbforceI;
 	f1 += bforce;
 	f2 -= bforce;
 
 	// Friction force
-	vec3 u1(xyzuvw+6*id1 + 3);
-	vec3 u2(xyzuvw+6*id2 + 3);
+        vec3 u1( tex2vec(6*(ids.y+cid*devParams.nparticles) + 3) );
+        vec3 u2( tex2vec(6*(ids.z+cid*devParams.nparticles) + 3) );
+
 	vec3 du21 = u2 - u1;
 
-	vec3 dforce = du21*gammaT + d21 * gammaC * dot(du21, d21) / (r*r);
+        vec3 dforce = du21*devParams.gammaT + d21 * devParams.gammaC * dot(du21, d21) / (r*r);
 	f1 += dforce;
 	f2 -= dforce;
 	//printf("%f  %f  %f\n", dforce.x, dforce.y, dforce.z);
@@ -483,7 +586,7 @@ __global__ void perDihedral(int* dihedrals, const float* const xyzuvw, float* fx
 	float sinTheta = IsinThetaI;
 	if (dot(ksi - dzeta, t_c0 - t_c1) > 0.0f) sinTheta = -sinTheta;  // ">" because the normals look inside
 
-	float beta_b = kb * (sinTheta * cosTheta0 - cosTheta * sinTheta0) / sinTheta;
+        float beta_b = devParams.kb * (sinTheta * devParams.cosTheta0 - cosTheta * devParams.sinTheta0) / sinTheta;
 	float b11 = -beta_b * cosTheta / (IksiI*IksiI);
 	float b12 = beta_b / (IksiI*IdzetaI);
 	float b22 = -beta_b * cosTheta / (IdzetaI*IdzetaI);
@@ -493,116 +596,67 @@ __global__ void perDihedral(int* dihedrals, const float* const xyzuvw, float* fx
 	f2 += cross(ksi, v1 - v0)*b11 + ( cross(ksi, v3 - v1) + cross(dzeta, v1 - v0) )*b12 + cross(dzeta, v3 - v1)*b22;
 	f3 += cross(ksi, v1 - v2)*b12 + cross(dzeta, v1 - v2)*b22;
 
-	int addr0 = warpSize * 3*id0 + mapping[4*(i+ntriang) + 0];
-	int addr1 = warpSize * 3*id1 + mapping[4*(i+ntriang) + 1];
-	int addr2 = warpSize * 3*id2 + mapping[4*(i+ntriang) + 2];
-	int addr3 = warpSize * 3*id3 + mapping[4*(i+ntriang) + 3];
-	//printf("%d\n%d\n%d\n%d\n", addr0, addr1, addr2, addr3);
-	for (int d = 0, sh = 0; d<3; d++, sh+=warpSize)
+        float* addr = fxfyfz + 3*cid*devParams.nparticles;
+#pragma unroll
+        for (int d = 0; d<3; d++)
 	{
-		fxfyfz[addr0 + sh] = f0[d];
-		fxfyfz[addr1 + sh] = f1[d];
-		fxfyfz[addr2 + sh] = f2[d];
-		fxfyfz[addr3 + sh] = f3[d];
+            atomicAdd(addr + 3*ids.x + d, f0[d]);
+            atomicAdd(addr + 3*ids.y + d, f1[d]);
+            atomicAdd(addr + 3*ids.z + d, f2[d]);
+            atomicAdd(addr + 3*ids.w + d, f3[d]);
 	}
 }
 
-__global__ void collectForces(float* pfxfyfz,  float* fxfyfz, int n)
+    void forces_nohost(cudaStream_t stream, int ncells, const float * const device_xyzuvw, float * const device_axayaz)
 {
-	int i = blockIdx.x * blockDim.x + threadIdx.x;
-	if (i >= warpSize * 3*n) return;
+        if (ncells == 0) return;
 
-	//if (i< 10) printf("%d\t%f\t%f\t%f\n", i, pfxfyfz[3*i+0], pfxfyfz[3*i+1], pfxfyfz[3*i+2]);
+        if (ncells > maxCells)
+        {
+            maxCells = 2*ncells;
+            gpuErrchk( cudaFree(host_av) );
+            gpuErrchk( cudaMalloc(&host_av, maxCells * 2 * sizeof(float)) );
+            gpuErrchk( cudaMemcpyToSymbol(totA_V, &host_av,  sizeof(real*)) );
 
-	float myf = pfxfyfz[i];
-	myf = warpReduceSum(myf);
-
-	if ((threadIdx.x & (warpSize - 1)) == 0)
-	{
-		fxfyfz[(i / warpSize)] += myf;
-	}
-	pfxfyfz[i]=0;
-}
-
-void forces_nohost(cudaStream_t stream, const float * const device_xyzuvw, float * const device_axayaz)
-{
-	const int warpSize = 32;
-
-	areaAndVolume(device_xyzuvw);
-
-	//	float *temp = new float[2];
-	//	gpuErrchk( cudaMemcpy(temp, totA_V, 2 * sizeof(float), cudaMemcpyDeviceToHost) );
-	//	printf("Area:  %.4f,  volume  %.4f\n", temp[0], temp[1]);
-
-	float* pfxfyfz;
-	if (bufmap.find(stream) != bufmap.end())
-	{
-		pfxfyfz = bufmap[stream];
-	}
-	else
-	{
-		gpuErrchk( cudaMalloc(&pfxfyfz, 3*warpSize*nparticles * sizeof(float)) );
-	    gpuErrchk( cudaMemset(pfxfyfz, 0, 3*warpSize*nparticles * sizeof(float)) );
-		bufmap[stream] = pfxfyfz;
+            delete[] dummy;
+            dummy = new Extent[maxCells];
 	}
 
-	const int threads = 128;
-	int blocks  = (ntriang + threads - 1) / threads;
-	// Per-triangle forces
-	perTriangle<<<blocks, threads, 0, stream>>>(triangles, device_xyzuvw, pfxfyfz, mapping, ntriang,
-			params.q, params.Cq, totA_V,
-			params.totArea0, params.totVolume0, params.area0,
-			params.ka, params.kd, params.kv);
+        size_t textureoffset;
+        gpuErrchk( cudaBindTexture(&textureoffset, &texParticles,  device_xyzuvw, &texParticles.channelDesc,  ncells * nparticles * 6 * sizeof(float)) );
+        assert(textureoffset == 0);
 
-	// Bending force
-	blocks  = (ndihedrals + threads - 1) / threads;
-	perDihedral<<<blocks, threads, 0, stream>>>(dihedrals, device_xyzuvw, pfxfyfz, mapping, ndihedrals, ntriang,
-			params.kbT, params.p, params.lmax,
-			params.gammaT, params.gammaC, params.sinTheta0, params.cosTheta0, params.kb);
+        dim3 trThreads(32*3, 1);
+        dim3 trBlocks( (ntriang + trThreads.x - 1) / trThreads.x, ncells );
 
-	// Collect partial sums
-	blocks  = (warpSize * 3*nparticles + threads - 1) / threads;
-	collectForces<<<blocks, threads, 0, stream>>>(pfxfyfz, device_axayaz, nparticles);
-}
+        dim3 dihThreads(32*3, 1);
+        dim3 dihBlocks( (ndihedrals + dihThreads.x - 1) / dihThreads.x, ncells );
+
+        gpuErrchk( cudaMemset(host_av, 0, ncells * 2 * sizeof(float)) );
+        areaAndVolumeKernel<<<trBlocks, trThreads, 0, stream>>>();
+        gpuErrchk( cudaPeekAtLastError() );
+
+        //		float *temp = new float[ncells*2];
+        //		gpuErrchk( cudaMemcpy(temp, host_av, ncells * 2 * sizeof(float), cudaMemcpyDeviceToHost) );
+        //		for (int i=0; i<ncells; i++)
+        //			printf("# %d:  Area:  %.4f,  volume  %.4f\n", i, temp[2*i], temp[2*i+1]);
+
+        perDihedral<<<dihBlocks, dihThreads, 0, stream>>>(device_axayaz);
+        gpuErrchk( cudaPeekAtLastError() );
+        perTriangle<<<trBlocks, trThreads, 0, stream>>>(device_axayaz);
+        gpuErrchk( cudaPeekAtLastError() );
+        gpuErrchk( cudaUnbindTexture(texParticles) );
+	}
 
 void get_triangle_indexing(int (*&host_triplets_ptr)[3], int& ntriangles)
 {
-	host_triplets_ptr = (int(*)[3])triangles_host;
+        host_triplets_ptr = (int(*)[3])triplets;
 	ntriangles = ntriang;
 }
-/*
-void interforce_nohost(cudaStream_t stream, const float * const xyzuvw, const int nrbcs, float * const axayaz, const int saru_tag)
-{
-	static bool inited = false;
-	static Extent *devex, *ex;
 
-	if (nrbcs == 0) return;
-
-
-	if (!inited)
+    float* get_orig_xyzuvw()
 	{
-		gpuErrchk( cudaMalloc    (&devex, sizeof(Extent)) );
-		gpuErrchk( cudaMallocHost(&ex,    sizeof(Extent)) );
-
-		inited = true;
+        return orig_xyzuvw;
 	}
-
-	extent_nohost(stream, xyzuvw, devex, nrbcs*nparticles);
-
-	gpuErrchk( cudaMemcpy(ex, devex, sizeof(Extent), cudaMemcpyDeviceToHost) );
-
-	int lx = 2*ceil( max(fabs(ex->xmin), ex->xmax) );
-	int ly = 2*ceil( max(fabs(ex->ymin), ex->ymax) );
-	int lz = 2*ceil( max(fabs(ex->zmin), ex->zmax) );
-
-	lx = (lx == 0) ? 2 : ( (lx % 2 == 0) ? lx : lx + 1 );
-	ly = (ly == 0) ? 2 : ( (ly % 2 == 0) ? ly : ly + 1 );
-	lz = (lz == 0) ? 2 : ( (lz % 2 == 0) ? lz : lz + 1 );
-
-	interforces_dpd_cuda_nohost(xyzuvw, axayaz, nrbcs*nparticles, nparticles,
-			params.rc, lx, ly, lz, params.aij, params.gamma, params.sigma, sqrt(1.0f / params.dt), saru_tag, stream);
-}
-*/
-
 
 }

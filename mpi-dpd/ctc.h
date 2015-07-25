@@ -39,7 +39,7 @@ RedistributeCTCs(MPI_Comm _cartcomm):RedistributeRBCs(_cartcomm)
 	if (ctcs)
 	{
 	    CudaCTC::Extent host_extent;
-	    CudaCTC::setup(nvertices, host_extent, dt);
+        CudaCTC::setup(nvertices, host_extent);
 	}
     }
 };
@@ -49,21 +49,15 @@ class ComputeInteractionsCTC : public ComputeInteractionsRBC
     void _compute_extents(const Particle * const xyzuvw, const int nrbcs, cudaStream_t stream)
     {
 	assert(sizeof(CudaCTC::Extent) == sizeof(CudaRBC::Extent));
-#if 1
 	if (nrbcs)
 	    minmax_massimo(xyzuvw, nvertices, nrbcs, minextents.devptr, maxextents.devptr, stream);
-#else
-	for(int i = 0; i < nrbcs; ++i)
-	    CudaCTC::extent_nohost(stream, (float *)(xyzuvw + nvertices * i), (CudaCTC::Extent *)(extents.devptr + i));
-#endif
     }
 
 public:
 
-    void internal_forces(const Particle * const xyzuvw, const int nrbcs, Acceleration * acc, cudaStream_t stream)
+    void internal_forces(const Particle * const xyzuvw, const int ncells, Acceleration * acc, cudaStream_t stream)
     {
-	for(int i = 0; i < nrbcs; ++i)
-	    CudaCTC::forces_nohost(stream, (float *)(xyzuvw + nvertices * i), (float *)(acc + nvertices * i));
+        CudaCTC::forces_nohost(stream, ncells, (float *) xyzuvw, (float *)acc);
     }
 
 ComputeInteractionsCTC(MPI_Comm _cartcomm) : ComputeInteractionsRBC(_cartcomm)
@@ -73,7 +67,7 @@ ComputeInteractionsCTC(MPI_Comm _cartcomm) : ComputeInteractionsRBC(_cartcomm)
 	if (ctcs)
 	{
 	    CudaCTC::Extent host_extent;
-	    CudaCTC::setup(nvertices, host_extent, dt);
+        CudaCTC::setup(nvertices, host_extent);
 	}
     }
 };
@@ -98,7 +92,7 @@ CollectionCTC(MPI_Comm cartcomm) : CollectionRBC(cartcomm)
 	if (ctcs)
 	{
 	    CudaCTC::Extent extent;
-	    CudaCTC::setup(nvertices, extent, dt);
+        CudaCTC::setup(nvertices, extent);
 
 	    assert(extent.xmax - extent.xmin < XSIZE_SUBDOMAIN);
 	    assert(extent.ymax - extent.ymin < YSIZE_SUBDOMAIN);
