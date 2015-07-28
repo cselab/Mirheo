@@ -29,9 +29,9 @@ std::vector<Particle> Simulation::_ic()
 		{
 		    const int p = l + numberdensity * (ix + L[0] * (iy + L[1] * iz));
 
-		    ic[p].x[0] = -L[0]/2 + ix + drand48();
-		    ic[p].x[1] = -L[1]/2 + iy + drand48();
-		    ic[p].x[2] = -L[2]/2 + iz + drand48();
+		    ic[p].x[0] = -L[0]/2 + ix + 0.99 * drand48();
+		    ic[p].x[1] = -L[1]/2 + iy + 0.99 * drand48();
+		    ic[p].x[2] = -L[2]/2 + iz + 0.99 * drand48();
 		    ic[p].u[0] = 0;
 		    ic[p].u[1] = 0;
 		    ic[p].u[2] = 0;
@@ -829,7 +829,7 @@ void Simulation::_lockstep()
     newparticles->resize(newnp);
 
     redistribute.recv_unpack(newparticles->xyzuvw.data, newnp, cells.start, cells.count, mainstream, host_idle_time);
-
+   
     CUDA_CHECK(cudaPeekAtLastError());
 
     swap(particles, newparticles);
