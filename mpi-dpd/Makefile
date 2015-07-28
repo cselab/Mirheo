@@ -8,6 +8,7 @@ NVCCFLAGS += -I$(HDF5_DIR)/include -Xcudafe "--diag_suppress=unrecognized_gcc_pr
 NVCCFLAGS +=  -arch $(ARCH_VAL) -code $(CODE_VAL) -O3 -use_fast_math -g -DNDEBUG
 CXXFLAGS += -L../cuda-dpd-sem/dpd -L../cuda-rbc/ -L../cuda-ctc/ -O3 -g  -std=c++11 -DNDEBUG
 NVCCFLAGS += -I../cuda-dpd-sem/dpd -I../cuda-rbc/ -I../cuda-ctc
+#NVCCFLAGS +=  -DREPORT_TOPOLOGY $(CRAY_PMI_INCLUDE_OPTS)
 
 OBJS = 	dpd-interactions.o \
 	redistribute-particles.o \
