@@ -35,8 +35,8 @@
 
 class Simulation
 {
-    SimpleDeviceBuffer<Particle> unordered_particles;
-    ParticleArray particles;
+    ParticleArray particles_pingpong[2];
+    ParticleArray * particles, * newparticles;
     
     CellLists cells;
     CollectionRBC * rbcscoll;

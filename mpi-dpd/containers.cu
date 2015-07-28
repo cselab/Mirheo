@@ -178,16 +178,6 @@ namespace ParticleKernels
     }
 }
 
-ParticleArray::ParticleArray(vector<Particle> ic)
-{
-    resize(ic.size());
-
-    CUDA_CHECK(cudaMemcpy(xyzuvw.data, (float*) &ic.front(), sizeof(Particle) * ic.size(), cudaMemcpyHostToDevice));
-    CUDA_CHECK(cudaMemset(axayaz.data, 0, sizeof(Acceleration) * ic.size()));
-
-//    CUDA_CHECK(cudaFuncSetCacheConfig(*ParticleKernels::update_stage2_and_1, cudaFuncCachePreferL1));
-}
-
 void ParticleArray::update_stage1(const float driving_acceleration, cudaStream_t stream)
 {
     if (size)

@@ -37,11 +37,15 @@ public:
 
     void send();
 
-    void bulk(const int nparticles, cudaStream_t mystream);
+    void bulk(const int nparticles,
+	      int * const cellstarts, int * const cellcounts,
+	      cudaStream_t mystream);
    
     int recv_count(cudaStream_t, float& host_idling_time);
 
-    void recv_unpack(Particle * const particles, const int nparticles, cudaStream_t, float& host_idling_time);
+    void recv_unpack(Particle * const particles, const int nparticles,
+		     int * const cellstarts, int * const cellcounts,
+		     cudaStream_t, float& host_idling_time);
 
     RedistributeParticles(MPI_Comm cartcomm);
 
@@ -61,7 +65,7 @@ private:
     
     int dims[3], periods[3], coords[3], neighbor_ranks[27], recv_tags[27],
 	default_message_sizes[27], send_sizes[27], recv_sizes[27],
-	nsendmsgreq, nexpected, nbulk, nhalo, myrank;
+	nsendmsgreq, nexpected, nbulk, nhalo, nhalo_padded, myrank;
 
     float safety_factor;
 
@@ -85,7 +89,7 @@ private:
     void _cancel_recv();
 
     void _adjust_send_buffers(const int capacities[27]);
-    void _adjust_recv_buffers(const int capacities[27]);
+    bool _adjust_recv_buffers(const int capacities[27]);
 
     PinnedHostBuffer<bool> failure;
     PinnedHostBuffer<int> packsizes;
@@ -94,5 +98,10 @@ private:
    
     PackBuffer packbuffers[27];
     UnpackBuffer unpackbuffers[27];
+
+    SimpleDeviceBuffer<unsigned char> compressed_cellcounts;
+    SimpleDeviceBuffer<Particle> remote_particles;
+    SimpleDeviceBuffer<uint> scattered_indices;
+    SimpleDeviceBuffer<uchar4> subindices, subindices_remote;
 };
 

@@ -13,7 +13,7 @@ OBJS = 	dpd-interactions.o \
 	redistribute-particles.o \
 	halo-exchanger.o common.o \
 	wall-interactions.o scan.o \
-	scan-massimo.o minmax-massimo.o \
+	scan-massimo.o scan-mauro.o minmax-massimo.o \
 	redistancing.o \
 	redistribute-rbcs.o \
 	rbc-interactions.o \

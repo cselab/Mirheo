@@ -24,10 +24,6 @@ struct ParticleArray
     SimpleDeviceBuffer<Particle> xyzuvw;
     SimpleDeviceBuffer<Acceleration> axayaz;
 
-    ParticleArray() {}
-
-    ParticleArray(std::vector<Particle> ic);
-
     void resize(int n);
     void preserve_resize(int n);
     void update_stage1(const float driving_acceleration, cudaStream_t stream);
