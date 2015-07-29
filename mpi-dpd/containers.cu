@@ -60,10 +60,10 @@ namespace ParticleKernels
 #endif
     }
 
-    __global__ void update_stage2_and_1(float2 * const pdata, const float * const adata,
+    __global__ void update_stage2_and_1(float2 * const _pdata, const float * const _adata,
 					const int nparticles, const float dt, const float driving_acceleration)
     {
-	
+
 #if !defined(__CUDA_ARCH__)
 #warning __CUDA_ARCH__ not defined! assuming 350
 #define _ACCESS(x) __ldg(x)
@@ -73,95 +73,137 @@ namespace ParticleKernels
 #define _ACCESS(x) (*(x))
 #endif
 
-	enum { NWARPS = 4, STRIDE = 32 };
+	assert(blockDim.x == 128 && blockDim.x * gridDim.x >= nparticles);
 
-	assert(blockDim.x * blockDim.y * gridDim.x >= nparticles && blockDim.x == 32 && blockDim.y == NWARPS);
 
-	__shared__ volatile float shxv[NWARPS][STRIDE * 6];
+	const int warpid = threadIdx.x >> 5;
+	const int base = 32 * (warpid + 4 * blockIdx.x);
+	const int nsrc = min(32, nparticles - base);
 
-	const int pidbase = 32 * (threadIdx.y + NWARPS * blockIdx.x);
-	const int nlocalparticles = min(nparticles - pidbase, 32);
-	const int nwords = nlocalparticles * 3;
+	float2 * const pdata = _pdata + 3 * base;
+	const float * const adata = _adata + 3 * base;
 
-	const int base = 3 * pidbase;
-	const int wid = threadIdx.y;
-	const int tid = threadIdx.x;
+	 int laneid;
+	 asm volatile ("mov.u32 %0, %%laneid;" : "=r"(laneid));
 
-	float ax, ay, az;
+	 const int nwords = 3 * nparticles;
 
-	const bool valid = tid < nlocalparticles;
+	 float2 s0, s1, s2;
+	 float ax, ay, az;
 
-	if (valid)
-	{
-	    const int entry = 3 * (pidbase + tid);
-	    ax = _ACCESS(adata + entry);
-	    ay = _ACCESS(adata + entry + 1);
-	    az = _ACCESS(adata + entry + 2);
-	}
+	 if (laneid < nwords)
+	 {
+	     s0 = _ACCESS(pdata + laneid);
+	     ax = _ACCESS(adata + laneid);
+	 }
 
-	float2 tmp2[3] = {0, 0, 0};
+	 if (laneid + 32 < nwords)
+	 {
+	     s1 = _ACCESS(pdata + laneid + 32);
+	     ay = _ACCESS(adata + laneid + 32);
+	 }
 
-#pragma unroll 3
-	for(int c = 0; c < 3; ++c)
-	    if (tid + 32 * c < nwords)
-		tmp2[c] = _ACCESS(pdata + base + tid + 32 * c);
+	 if (laneid + 64 < nwords)
+	 {
+	     s2 = _ACCESS(pdata + laneid + 64);
+	     az = _ACCESS(adata + laneid + 64);
+	 }
 
-#pragma unroll 3
-	for(int c = 0; c < 3; ++c)
-	{
-	    const int entry = 2 * (tid + 32 * c); 
-	    const int lpid = entry / 6;
-	    const int c0 = entry % 6;
-	    const int c1 = (entry + 1) % 6;
-	    
-	    shxv[wid][(c0 % 3) + 3 * (lpid + STRIDE * (c0 >= 3))] = tmp2[c].x;
-	    shxv[wid][(c1 % 3) + 3 * (lpid + STRIDE * (c1 >= 3))] = tmp2[c].y;
-	}
+	 {
+	     const int srclane0 = (3 * laneid + 0) & 0x1f;
+	     const int srclane1 = (srclane0 + 1) & 0x1f;
+	     const int srclane2 = (srclane0 + 2) & 0x1f;
 
-	if (valid)
-	{
-	    const int entry0 = 3 * tid;
-	    const int entry1 = 3 * (tid + STRIDE);
-	    
-	    float x = shxv[wid][entry0];
-	    float y = shxv[wid][entry0 + 1];
-	    float z = shxv[wid][entry0 + 2];
-	    float u = shxv[wid][entry1];
-	    float v = shxv[wid][entry1 + 1];
-	    float w = shxv[wid][entry1 + 2];
+	     const int start = laneid % 3;
 
-	    u += (ax + driving_acceleration) * dt;
-	    v += ay * dt;
-	    w += az * dt;
+	     {
+		 const float t0 = __shfl(start == 0 ? s0.x : start == 1 ? s1.x : s2.x, srclane0);
+		 const float t1 = __shfl(start == 0 ? s2.x : start == 1 ? s0.x : s1.x, srclane1);
+		 const float t2 = __shfl(start == 0 ? s1.x : start == 1 ? s2.x : s0.x, srclane2);
 
-	    x += u * dt;
-	    y += v * dt;
-	    z += w * dt;
-	    
-	    shxv[wid][entry0] = x;
-	    shxv[wid][entry0 + 1] = y;
-	    shxv[wid][entry0 + 2] = z;
-	    shxv[wid][entry1] = u;
-	    shxv[wid][entry1 + 1] = v;
-	    shxv[wid][entry1 + 2] = w;
-	}
+		 s0.x = t0;
+		 s1.x = t1;
+		 s2.x = t2;
+	     }
 
-#pragma unroll 3
-	for(int c = 0; c < 3; ++c)
-	{
-	    const int entry = 2 * (tid + 32 * c); 
-	    const int lpid = entry / 6;
-	    const int c0 = entry % 6;
-	    const int c1 = (entry + 1) % 6;
-	    
-	    tmp2[c].x = shxv[wid][(c0 % 3) + 3 * (lpid + STRIDE * (c0 >= 3))];
-	    tmp2[c].y = shxv[wid][(c1 % 3) + 3 * (lpid + STRIDE * (c1 >= 3))];
-	}
+	     {
+		 const float t0 = __shfl(start == 0 ? s0.y : start == 1 ? s1.y : s2.y, srclane0);
+		 const float t1 = __shfl(start == 0 ? s2.y : start == 1 ? s0.y : s1.y, srclane1);
+		 const float t2 = __shfl(start == 0 ? s1.y : start == 1 ? s2.y : s0.y, srclane2);
 
-#pragma unroll 3
-	for(int c = 0; c < 3; ++c)
-	    if (tid + 32 * c < nwords)
-		pdata[base + tid + 32 * c] = tmp2[c];
+		 s0.y = t0;
+		 s1.y = t1;
+		 s2.y = t2;
+	     }
+
+	     {
+		 const float t0 = __shfl(start == 0 ? ax : start == 1 ? ay : az, srclane0);
+		 const float t1 = __shfl(start == 0 ? az : start == 1 ? ax : ay, srclane1);
+		 const float t2 = __shfl(start == 0 ? ay : start == 1 ? az : ax, srclane2);
+
+		 ax = t0;
+		 ay = t1;
+		 az = t2;
+	     }
+	 }
+
+	 s1.y += (ax + driving_acceleration) * dt;
+	 s2.x += ay * dt;
+	 s2.y += az * dt;
+
+	 s0.x += s1.y * dt;
+	 s0.y += s2.x * dt;
+	 s1.x += s2.y * dt;
+
+	 {
+	     const int srclane0 = (32 * ((laneid) % 3) + laneid) / 3;
+	     const int srclane1 = (32 * ((laneid + 1) % 3) + laneid) / 3;
+	     const int srclane2 = (32 * ((laneid + 2) % 3) + laneid) / 3;
+
+	     const int start = laneid % 3;
+
+	     {
+		 const float t0 = __shfl(s0.x, srclane0);
+		 const float t1 = __shfl(s2.x, srclane1);
+		 const float t2 = __shfl(s1.x, srclane2);
+
+		 s0.x = start == 0 ? t0 : start == 1 ? t2 : t1;
+		 s1.x = start == 0 ? t1 : start == 1 ? t0 : t2;
+		 s2.x = start == 0 ? t2 : start == 1 ? t1 : t0;
+	     }
+
+	     {
+		 const float t0 = __shfl(s0.y, srclane0);
+		 const float t1 = __shfl(s2.y, srclane1);
+		 const float t2 = __shfl(s1.y, srclane2);
+
+		 s0.y = start == 0 ? t0 : start == 1 ? t2 : t1;
+		 s1.y = start == 0 ? t1 : start == 1 ? t0 : t2;
+		 s2.y = start == 0 ? t2 : start == 1 ? t1 : t0;
+	     }
+
+	     {
+		 const float t0 = __shfl(ax, srclane0);
+		 const float t1 = __shfl(az, srclane1);
+		 const float t2 = __shfl(ay, srclane2);
+
+		 ax = start == 0 ? t0 : start == 1 ? t2 : t1;
+		 ay = start == 0 ? t1 : start == 1 ? t0 : t2;
+		 az = start == 0 ? t2 : start == 1 ? t1 : t0;
+	     }
+
+	     const int nwords = 3 * nparticles;
+
+	     if (laneid < nwords)
+		 pdata[laneid] = s0;
+
+
+	     if (laneid + 32 < nwords)
+		 pdata[laneid + 32] = s1;
+
+	     if (laneid + 64 < nwords)
+		 pdata[laneid + 64] = s2;
+	 }
     }
 
     __global__ void clear_velocity(Particle * const p, const int n)
@@ -188,7 +230,7 @@ void ParticleArray::update_stage1(const float driving_acceleration, cudaStream_t
 void  ParticleArray::update_stage2_and_1(const float driving_acceleration, cudaStream_t stream)
 {
     if (size)
-	ParticleKernels::update_stage2_and_1<<<(xyzuvw.size + 127) / 128, dim3(32, 4), 0, stream>>>
+	ParticleKernels::update_stage2_and_1<<<(xyzuvw.size + 127) / 128, 128, 0, stream>>>
 	    ((float2 *)xyzuvw.data, (float *)axayaz.data, xyzuvw.size, dt, driving_acceleration);
 }
 
