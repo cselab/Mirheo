@@ -195,9 +195,9 @@ namespace RedistributeParticlesKernels
 	assert(blockDim.x == 128 && blockDim.x * gridDim.x >= nparticles);
 
 	const int lane = threadIdx.x & 0x1f;
-	const uint warpid = threadIdx.x >> 5;
-	const uint base = 32 * (warpid + 4 * blockIdx.x);
-	const uint nsrc = min(32, nparticles - base);
+	const int warpid = threadIdx.x >> 5;
+	const int base = 32 * (warpid + 4 * blockIdx.x);
+	const int nsrc = min(32, nparticles - base);
 
 	if (nsrc == 0)
 	    return;
