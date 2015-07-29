@@ -231,7 +231,7 @@ namespace BipsBatch
 	    deltaspid1 -= scan1;
 	    deltaspid2 -= scan2;
 
-	    assert(count1 >= 0 && count2 >= 0 && scan1 >= 0 && scan2 >= 0 && ncandidates >= 0);
+	    assert(count1 >= 0 && count2 >= 0);
 	}
 
 	const float2 * const xsrc = info.xsrc;
