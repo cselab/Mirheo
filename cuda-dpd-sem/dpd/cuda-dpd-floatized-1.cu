@@ -382,8 +382,10 @@ __global__ void make_texture( float4 * __restrict xyzouvwo, ushort4 * __restrict
     extern __shared__ volatile float  smem[];
     const uint warpid = threadIdx.x / 32;
     const uint lane = threadIdx.x % 32;
-    for( uint i = ( blockIdx.x * blockDim.x + threadIdx.x ) & 0xFFFFFFE0U ; i < n ; i += blockDim.x * gridDim.x ) {
-        const float2 * base = ( float2* )( xyzuvw +  i * 6 );
+    //for( uint i = ( blockIdx.x * blockDim.x + threadIdx.x ) & 0xFFFFFFE0U ; i < n ; i += blockDim.x * gridDim.x ) {
+    const uint i =  (blockIdx.x * blockDim.x + threadIdx.x ) & 0xFFFFFFE0U;
+
+    const float2 * base = ( float2* )( xyzuvw +  i * 6 );
 #pragma unroll 3
         for( uint j = lane; j < 96; j += 32 ) {
             float2 u = base[j];
@@ -404,7 +406,7 @@ __global__ void make_texture( float4 * __restrict xyzouvwo, ushort4 * __restrict
         xyzo_half[i + lane] = make_ushort4( __float2half_rn( smem[ warpid * 192 + lane * 6 + 0 ] ),
                                             __float2half_rn( smem[ warpid * 192 + lane * 6 + 1 ] ),
                                             __float2half_rn( smem[ warpid * 192 + lane * 6 + 2 ] ), 0 );
-    }
+// }
 }
 
 __global__ void make_texture2( uint2 *start_and_count, const int *start, const int *count, const int n )
@@ -555,7 +557,7 @@ void forces_dpd_cuda_nohost( const float * const xyzuvw, float * const axayaz,  
         last_nc = ncells;
     }
 
-    make_texture <<< 28, 1024, 1024 * 6 * sizeof( float ), stream>>>( ( float4* )xyzouvwo, xyzo_half, xyzuvw, np );
+    make_texture <<< (np + 1023)/1024, 1024, 1024 * 6 * sizeof( float ), stream>>>( ( float4* )xyzouvwo, xyzo_half, xyzuvw, np );
     CUDA_CHECK( cudaBindTexture( &textureoffset, &texParticlesF4, xyzouvwo,  &texParticlesF4.channelDesc, sizeof( float ) * 8 * np ) );
     assert( textureoffset == 0 );
     CUDA_CHECK( cudaBindTexture( &textureoffset, &texParticlesH4, xyzo_half, &texParticlesH4.channelDesc, sizeof( ushort4 ) * np ) );
