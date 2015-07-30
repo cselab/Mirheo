@@ -377,37 +377,6 @@ static bool is_mps_enabled = false;
 static cudaEvent_t evstart, evstop;
 #endif
 
-__global__ void make_texture( float4 * __restrict xyzouvwo, ushort4 * __restrict xyzo_half, const float * __restrict xyzuvw, const uint n )
-{
-    extern __shared__ volatile float  smem[];
-    const uint warpid = threadIdx.x / 32;
-    const uint lane = threadIdx.x % 32;
-    //for( uint i = ( blockIdx.x * blockDim.x + threadIdx.x ) & 0xFFFFFFE0U ; i < n ; i += blockDim.x * gridDim.x ) {
-    const uint i =  (blockIdx.x * blockDim.x + threadIdx.x ) & 0xFFFFFFE0U;
-
-    const float2 * base = ( float2* )( xyzuvw +  i * 6 );
-#pragma unroll 3
-        for( uint j = lane; j < 96; j += 32 ) {
-            float2 u = base[j];
-            // NVCC bug: no operator = between volatile float2 and float2
-            asm volatile( "st.volatile.shared.v2.f32 [%0], {%1, %2};" : : "r"( ( warpid * 96 + j )*8 ), "f"( u.x ), "f"( u.y ) : "memory" );
-        }
-        // SMEM: XYZUVW XYZUVW ...
-        uint pid = lane / 2;
-        const uint x_or_v = ( lane % 2 ) * 3;
-        xyzouvwo[ i * 2 + lane ] = make_float4( smem[ warpid * 192 + pid * 6 + x_or_v + 0 ],
-                                                smem[ warpid * 192 + pid * 6 + x_or_v + 1 ],
-                                                smem[ warpid * 192 + pid * 6 + x_or_v + 2 ], 0 );
-        pid += 16;
-        xyzouvwo[ i * 2 + lane + 32] = make_float4( smem[ warpid * 192 + pid * 6 + x_or_v + 0 ],
-                                       smem[ warpid * 192 + pid * 6 + x_or_v + 1 ],
-                                       smem[ warpid * 192 + pid * 6 + x_or_v + 2 ], 0 );
-
-        xyzo_half[i + lane] = make_ushort4( __float2half_rn( smem[ warpid * 192 + lane * 6 + 0 ] ),
-                                            __float2half_rn( smem[ warpid * 192 + lane * 6 + 1 ] ),
-                                            __float2half_rn( smem[ warpid * 192 + lane * 6 + 2 ] ), 0 );
-// }
-}
 
 __global__ void make_texture2( uint2 *start_and_count, const int *start, const int *count, const int n )
 {
@@ -466,7 +435,7 @@ void transpose_acc( const int np )
     }
 }
 
-void forces_dpd_cuda_nohost( const float * const xyzuvw, float * const axayaz,  const int np,
+void forces_dpd_cuda_nohost( const float4 * const xyzouvwo, const ushort4 * const xyzo_half, float * const axayaz,  const int np,
                              const int * const cellsstart, const int * const cellscount,
                              const float rc,
                              const float XL, const float YL, const float ZL,
@@ -507,7 +476,7 @@ void forces_dpd_cuda_nohost( const float * const xyzuvw, float * const axayaz,  
         texParticlesH4.normalized = 0;
 
         CUDA_CHECK( cudaFuncSetCacheConfig( _dpd_forces_symm_merged, cudaFuncCachePreferEqual ) );
-        CUDA_CHECK( cudaFuncSetCacheConfig( make_texture, cudaFuncCachePreferShared ) );
+        
 
 #ifdef _TIME_PROFILE_
         CUDA_CHECK( cudaEventCreate( &evstart ) );
@@ -534,19 +503,7 @@ void forces_dpd_cuda_nohost( const float * const xyzuvw, float * const axayaz,  
     static InfoDPD c;
 
     size_t textureoffset;
-    static  float  *xyzouvwo;
-    static ushort4 *xyzo_half;
-    static int last_size;
-    if( !xyzouvwo || last_size < np ) {
-        if( xyzouvwo ) {
-            cudaFree( xyzouvwo );
-            cudaFree( xyzo_half );
-        }
-        last_size = np;
-        if( last_size % 32 ) last_size += 32 - last_size % 32;
-        cudaMalloc( &xyzouvwo,  sizeof( float4 ) * 2 * last_size );
-        cudaMalloc( &xyzo_half, sizeof( ushort4 ) * last_size );
-    }
+   
     static uint2 *start_and_count;
     static int last_nc;
     if( !start_and_count || last_nc < ncells ) {
@@ -557,7 +514,6 @@ void forces_dpd_cuda_nohost( const float * const xyzuvw, float * const axayaz,  
         last_nc = ncells;
     }
 
-    make_texture <<< (np + 1023)/1024, 1024, 1024 * 6 * sizeof( float ), stream>>>( ( float4* )xyzouvwo, xyzo_half, xyzuvw, np );
     CUDA_CHECK( cudaBindTexture( &textureoffset, &texParticlesF4, xyzouvwo,  &texParticlesF4.channelDesc, sizeof( float ) * 8 * np ) );
     assert( textureoffset == 0 );
     CUDA_CHECK( cudaBindTexture( &textureoffset, &texParticlesH4, xyzo_half, &texParticlesH4.channelDesc, sizeof( ushort4 ) * np ) );

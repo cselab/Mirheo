@@ -14,6 +14,52 @@
 
 #include "simulation.h"
 
+__global__ void make_texture( float4 * __restrict xyzouvwo, ushort4 * __restrict xyzo_half, const float * __restrict xyzuvw, const uint n )
+{
+    extern __shared__ volatile float  smem[];
+    const uint warpid = threadIdx.x / 32;
+    const uint lane = threadIdx.x % 32;
+    //for( uint i = ( blockIdx.x * blockDim.x + threadIdx.x ) & 0xFFFFFFE0U ; i < n ; i += blockDim.x * gridDim.x ) {
+    const uint i =  (blockIdx.x * blockDim.x + threadIdx.x ) & 0xFFFFFFE0U;
+
+    const float2 * base = ( float2* )( xyzuvw +  i * 6 );
+#pragma unroll 3
+        for( uint j = lane; j < 96; j += 32 ) {
+            float2 u = base[j];
+            // NVCC bug: no operator = between volatile float2 and float2
+            asm volatile( "st.volatile.shared.v2.f32 [%0], {%1, %2};" : : "r"( ( warpid * 96 + j )*8 ), "f"( u.x ), "f"( u.y ) : "memory" );
+        }
+        // SMEM: XYZUVW XYZUVW ...
+        uint pid = lane / 2;
+        const uint x_or_v = ( lane % 2 ) * 3;
+        xyzouvwo[ i * 2 + lane ] = make_float4( smem[ warpid * 192 + pid * 6 + x_or_v + 0 ],
+                                                smem[ warpid * 192 + pid * 6 + x_or_v + 1 ],
+                                                smem[ warpid * 192 + pid * 6 + x_or_v + 2 ], 0 );
+        pid += 16;
+        xyzouvwo[ i * 2 + lane + 32] = make_float4( smem[ warpid * 192 + pid * 6 + x_or_v + 0 ],
+                                       smem[ warpid * 192 + pid * 6 + x_or_v + 1 ],
+                                       smem[ warpid * 192 + pid * 6 + x_or_v + 2 ], 0 );
+
+        xyzo_half[i + lane] = make_ushort4( __float2half_rn( smem[ warpid * 192 + lane * 6 + 0 ] ),
+                                            __float2half_rn( smem[ warpid * 192 + lane * 6 + 1 ] ),
+                                            __float2half_rn( smem[ warpid * 192 + lane * 6 + 2 ] ), 0 );
+// }
+}
+
+void Simulation::_update_helper_arrays()
+{
+    CUDA_CHECK( cudaFuncSetCacheConfig( make_texture, cudaFuncCachePreferShared ) );
+    
+    const int np = particles->size;
+
+    xyzouvwo.resize(2 * np);
+    xyzo_half.resize(np);
+
+    make_texture <<< (np + 1023) / 1024, 1024, 1024 * 6 * sizeof( float )>>>(xyzouvwo.data, xyzo_half.data, (float *)particles->xyzuvw.data, np );
+
+    CUDA_CHECK(cudaPeekAtLastError());
+}
+
 std::vector<Particle> Simulation::_ic()
 {
     srand48(rank);
@@ -92,9 +138,11 @@ void Simulation::_redistribute()
 	ctcscoll->resize(nctcs);
 
     newparticles->resize(newnp);
+    xyzouvwo.resize(newnp * 2);
+    xyzo_half.resize(newnp);
 
-    redistribute.recv_unpack(newparticles->xyzuvw.data, newnp, cells.start, cells.count, mainstream, host_idle_time);
-
+    redistribute.recv_unpack(newparticles->xyzuvw.data, xyzouvwo.data, xyzo_half.data, newnp, cells.start, cells.count, mainstream, host_idle_time);
+    
     CUDA_CHECK(cudaPeekAtLastError());
 
     swap(particles, newparticles);
@@ -270,6 +318,9 @@ void Simulation::_create_walls(const bool verbose, bool & termination_request)
     particles->resize(nsurvived);
     particles->clear_velocity();
     cells.build(particles->xyzuvw.data, particles->size, 0, NULL, NULL);
+
+    _update_helper_arrays();
+    
     CUDA_CHECK(cudaPeekAtLastError());
 
     //remove cells touching the wall
@@ -322,7 +373,7 @@ void Simulation::_forces()
     if (ctcscoll)
 	ctc_interactions.pack_p(ctcscoll->data(), mainstream);
 
-    dpd.local_interactions(particles->xyzuvw.data, particles->size, particles->axayaz.data, cells.start, cells.count, mainstream);
+    dpd.local_interactions(xyzouvwo.data, xyzo_half.data, particles->size, particles->axayaz.data, cells.start, cells.count, mainstream);
 
     dpd.consolidate_and_post(particles->xyzuvw.data, particles->size, mainstream);
 
@@ -636,6 +687,8 @@ Simulation::Simulation(MPI_Comm cartcomm, MPI_Comm activecomm, bool (*check_term
 	CUDA_CHECK(cudaMemcpy(particles->xyzuvw.data, &ic.front(), sizeof(Particle) * ic.size(), cudaMemcpyHostToDevice));
 
 	cells.build(particles->xyzuvw.data, particles->size, 0, NULL, NULL);
+
+	_update_helper_arrays();
     }
 
     localcomm.initialize(activecomm);
@@ -711,8 +764,8 @@ void Simulation::_lockstep()
     if (ctcscoll)
 	ctc_interactions.pack_p(ctcscoll->data(), mainstream);
 
-    dpd.local_interactions(particles->xyzuvw.data, particles->size, particles->axayaz.data, cells.start, cells.count, mainstream);
-
+    dpd.local_interactions(xyzouvwo.data, xyzo_half.data, particles->size, particles->axayaz.data, cells.start, cells.count, mainstream);
+    
     dpd.consolidate_and_post(particles->xyzuvw.data, particles->size, mainstream);
 
     CUDA_CHECK(cudaPeekAtLastError());
@@ -827,8 +880,10 @@ void Simulation::_lockstep()
 	redistribute_ctcs.pack_sendcount(ctcscoll->data(), ctcscoll->count(), mainstream);
 
     newparticles->resize(newnp);
+    xyzouvwo.resize(newnp * 2);
+    xyzo_half.resize(newnp);
 
-    redistribute.recv_unpack(newparticles->xyzuvw.data, newnp, cells.start, cells.count, mainstream, host_idle_time);
+    redistribute.recv_unpack(newparticles->xyzuvw.data, xyzouvwo.data, xyzo_half.data, newnp, cells.start, cells.count, mainstream, host_idle_time);
    
     CUDA_CHECK(cudaPeekAtLastError());
 

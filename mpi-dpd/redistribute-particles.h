@@ -43,9 +43,8 @@ public:
    
     int recv_count(cudaStream_t, float& host_idling_time);
 
-    void recv_unpack(Particle * const particles, const int nparticles,
-		     int * const cellstarts, int * const cellcounts,
-		     cudaStream_t, float& host_idling_time);
+    void recv_unpack(Particle * const particles, float4 * const xyzouvwo, ushort4 * const xyzo_half, const int nparticles,
+		     int * const cellstarts, int * const cellcounts, cudaStream_t, float& host_idling_time);
 
     RedistributeParticles(MPI_Comm cartcomm);
 

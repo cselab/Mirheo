@@ -27,7 +27,8 @@ template<> inline __device__ float viscosity_function<0>(float x){ return x; }
 
 #include "../cell-lists.h"
 
-void forces_dpd_cuda_nohost(const float * const _xyzuvw, float * const _axayaz,  const int np,
+void forces_dpd_cuda_nohost(const float4 * const xyzouvwo, const ushort4 * const xyzo_half,
+			    float * const _axayaz,  const int np,
 			    const int * const cellsstart, const int * const cellscount, 
 			    const float rc,
 			    const float XL, const float YL, const float ZL,
@@ -50,17 +51,6 @@ void forces_dpd_cuda(const float * const xp, const float * const yp, const float
 		     const float invsqrtdt,
 		     const float seed);
 
-/*
-void forces_dpd_cuda_aos(float * const _xyzuvw, float * const _axayaz,
-			 int * const order, const int np,
-			 const float rc,
-			 const float XL, const float YL, const float ZL,
-			 const float aij,
-			 const float gamma,
-			 const float sigma,
-			 const float invsqrtdt,
-			 const float seed);
- */
 void directforces_dpd_cuda_bipartite_nohost(
     const float * const xyzuvw, float * const axayaz, const int np,
     const float * const xyzuvw_src, const int np_src,

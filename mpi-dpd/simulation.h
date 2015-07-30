@@ -37,6 +37,8 @@ class Simulation
 {
     ParticleArray particles_pingpong[2];
     ParticleArray * particles, * newparticles;
+    SimpleDeviceBuffer<float4> xyzouvwo;
+    SimpleDeviceBuffer<ushort4> xyzo_half;
     
     CellLists cells;
     CollectionRBC * rbcscoll;
@@ -68,7 +70,8 @@ class Simulation
     int nranks, rank;  
 	    
     std::vector<Particle> _ic();
-
+    void _update_helper_arrays();
+    
     void _redistribute();
     void _report(const bool verbose, const int idtimestep);
     void _create_walls(const bool verbose, bool & termination_request);

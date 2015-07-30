@@ -423,19 +423,39 @@ namespace RedistributeParticlesKernels
 	}
     }
 
+    __forceinline__ __device__ void xchg_aos2f(const int srclane0, const int srclane1, const int start, float& s0, float& s1)
+    {
+	const float t0 = __shfl(s0, srclane0);
+	const float t1 = __shfl(s1, srclane1);
+
+	s0 = start == 0 ? t0 : t1;
+	s1 = start == 0 ? t1 : t0;
+
+	s1 = __shfl_xor(s1, 1);
+    }
+
+    __forceinline__ __device__ void xchg_aos4f(const int srclane0, const int srclane1, const int start, float3& s0, float3& s1)
+    {
+	xchg_aos2f(srclane0, srclane1, start, s0.x, s1.x);
+	xchg_aos2f(srclane0, srclane1, start, s0.y, s1.y);
+	xchg_aos2f(srclane0, srclane1, start, s0.z, s1.z);
+    }
+
     __global__ void gather_particles(const uint * const scattered_indices,
 				     const float2 * const remoteparticles, const int nremoteparticles,
 				     const int noldparticles,
-				     const uint nparticles,
-				     float2 * const dstbuf)
+				     const int nparticles,
+				     float2 * const dstbuf,
+				     float4 * const xyzouvwo,
+				     ushort4 * const xyzo_half)
     {
 	assert(blockDim.x == 128);
 
-	const uint warpid = threadIdx.x >> 5;
-	const uint tid = threadIdx.x & 0x1f;
+	const int warpid = threadIdx.x >> 5;
+	const int tid = threadIdx.x & 0x1f;
 
-	const uint base = 32 * (warpid + 4 * blockIdx.x);
-	const uint pid = base + tid;
+	const int base = 32 * (warpid + 4 * blockIdx.x);
+	const int pid = base + tid;
 
 	const bool valid = (pid < nparticles);
 
@@ -471,7 +491,40 @@ namespace RedistributeParticlesKernels
 	    }
 	}
 
-	write_AOS6f(dstbuf + 3 * base, min(32, nparticles - base), data0, data1, data2);
+	const int nsrc = min(32, nparticles - base);
+
+
+	{
+	    //if (tid < nsrc) {xyzouvwo[2 * (base + tid) + 0] = make_float4(data0.x, data0.y, data1.x, 0);
+	    //	xyzouvwo[2 * (base + tid) + 1] = make_float4(data1.y, data2.x, data2.y, 0);}
+
+
+	    const int srclane0 = (32 * ((tid) & 0x1) + tid) >> 1;
+	    const int srclane1 = (32 * ((tid + 1) & 0x1) + tid) >> 1;
+	    const int start = tid % 2;
+	    const int destbase = 2 * base;
+
+	    float3 s0 = make_float3(data0.x, data0.y, data1.x);
+	    float3 s1 = make_float3(data1.y, data2.x, data2.y);
+
+	    xchg_aos4f(srclane0, srclane1, start, s0, s1);
+
+	    if (tid < 2 * nsrc)
+		xyzouvwo[destbase + tid] = make_float4(s0.x, s0.y, s0.z, 0);
+
+	    if (tid + 32 < 2 * nsrc)
+		xyzouvwo[destbase + tid + 32] = make_float4(s1.x, s1.y, s1.z, 0);
+	}
+
+	if (tid < nsrc)
+	{
+	    xyzo_half[base + tid] = make_ushort4(
+		__float2half_rn(data0.x),
+		__float2half_rn(data0.y),
+		__float2half_rn(data1.x), 0);
+	}
+
+	write_AOS6f(dstbuf + 3 * base, nsrc, data0, data1, data2);
     }
 
 #ifndef NDEBUG
@@ -911,9 +964,8 @@ int RedistributeParticles::recv_count(cudaStream_t mystream, float& host_idle_ti
     return nexpected;
 }
 
-void RedistributeParticles::recv_unpack(Particle * const particles, const int nparticles,
-					int * const cellstarts, int * const cellcounts,
-					cudaStream_t mystream, float& host_idling_time)
+void RedistributeParticles::recv_unpack(Particle * const particles, float4 * const xyzouvwo, ushort4 * const xyzo_half, const int nparticles,
+					int * const cellstarts, int * const cellcounts, cudaStream_t mystream, float& host_idling_time)
 {
     NVTX_RANGE("RDP/recv-unpack", NVTX_C4);
 
@@ -971,7 +1023,8 @@ void RedistributeParticles::recv_unpack(Particle * const particles, const int np
     assert(scattered_indices.size == nparticles);
 
     RedistributeParticlesKernels::gather_particles<<< (nparticles + 127) / 128, 128, 0, mystream>>>
-	(scattered_indices.data, (float2 *)remote_particles.data, nhalo, RedistributeParticlesKernels::ntexparticles, nparticles, (float2 *)particles);
+	(scattered_indices.data, (float2 *)remote_particles.data, nhalo,
+	 RedistributeParticlesKernels::ntexparticles, nparticles, (float2 *)particles, xyzouvwo, xyzo_half);
 
     CUDA_CHECK(cudaPeekAtLastError());
 
