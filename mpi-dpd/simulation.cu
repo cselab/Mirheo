@@ -724,6 +724,7 @@ Simulation::Simulation(MPI_Comm cartcomm, MPI_Comm activecomm, bool (*check_term
 	ctcscoll->setup("ctcs-ic.txt");
     }
 
+#ifndef _NO_DUMPS_
     //setting up the asynchronous data dumps
     {
 	CUDA_CHECK(cudaEventCreate(&evdownloaded, cudaEventDisableTiming | cudaEventBlockingSync));
@@ -742,6 +743,7 @@ Simulation::Simulation(MPI_Comm cartcomm, MPI_Comm activecomm, bool (*check_term
 	    exit(-1);
 	}
     }
+#endif
 }
 
 void Simulation::_lockstep()
@@ -1040,9 +1042,10 @@ void Simulation::run()
 
 	_forces();
 
+#ifndef _NO_DUMPS_
 	if (it % steps_per_dump == 0)
 	    _datadump(it);
-
+#endif
 	_update_and_bounce();
     }
 
@@ -1064,6 +1067,7 @@ void Simulation::run()
 
 Simulation::~Simulation()
 {
+#ifndef _NO_DUMPS_
     pthread_mutex_lock(&mutex_datadump);
 
     datadump_pending = true;
@@ -1072,7 +1076,7 @@ Simulation::~Simulation()
     pthread_mutex_unlock(&mutex_datadump);
 
     pthread_join(thread_datadump, NULL);
-
+#endif
     CUDA_CHECK(cudaStreamDestroy(mainstream));
 
     if (wall)
