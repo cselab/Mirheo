@@ -38,6 +38,7 @@ const float aij = 25;
 const float hydrostatic_a = 0.05;
 const bool walls = false;
 const bool pushtheflow = false;
+const bool doublepoiseuille = false;
 const bool rbcs = false;
 const bool ctcs = false;
 const bool xyz_dumps = false;

@@ -49,7 +49,7 @@ __global__ void make_texture( float4 * __restrict xyzouvwo, ushort4 * __restrict
 void Simulation::_update_helper_arrays()
 {
     CUDA_CHECK( cudaFuncSetCacheConfig( make_texture, cudaFuncCachePreferShared ) );
-    
+
     const int np = particles->size;
 
     xyzouvwo.resize(2 * np);
@@ -142,7 +142,7 @@ void Simulation::_redistribute()
     xyzo_half.resize(newnp);
 
     redistribute.recv_unpack(newparticles->xyzuvw.data, xyzouvwo.data, xyzo_half.data, newnp, cells.start, cells.count, mainstream, host_idle_time);
-    
+
     CUDA_CHECK(cudaPeekAtLastError());
 
     swap(particles, newparticles);
@@ -320,7 +320,7 @@ void Simulation::_create_walls(const bool verbose, bool & termination_request)
     cells.build(particles->xyzuvw.data, particles->size, 0, NULL, NULL);
 
     _update_helper_arrays();
-    
+
     CUDA_CHECK(cudaPeekAtLastError());
 
     //remove cells touching the wall
@@ -676,25 +676,39 @@ Simulation::Simulation(MPI_Comm cartcomm, MPI_Comm activecomm, bool (*check_term
     driving_acceleration(0), host_idle_time(0), nsteps((int)(tend / dt)),
     datadump_pending(false), simulation_is_done(false)
 {
+    localcomm.initialize(activecomm);
+
+    MPI_CHECK( MPI_Comm_size(activecomm, &nranks) );
+    MPI_CHECK( MPI_Comm_rank(activecomm, &rank) );
+
+    int dims[3], periods[3], coords[3];
+    MPI_CHECK( MPI_Cart_get(cartcomm, 3, dims, periods, coords) );
+
     {
 	particles = &particles_pingpong[0];
 	newparticles = &particles_pingpong[1];
 
 	vector<Particle> ic = _ic();
 
-	particles_pingpong[0].resize(ic.size());
-	particles_pingpong[1].resize(ic.size());
+	for(int c = 0; c < 2; ++c)
+	{
+	    particles_pingpong[c].resize(ic.size());
+
+	    particles_pingpong[c].origin = make_float3((0.5 + coords[0]) * XSIZE_SUBDOMAIN,
+						       (0.5 + coords[1]) * YSIZE_SUBDOMAIN,
+						       (0.5 + coords[2]) * ZSIZE_SUBDOMAIN);
+
+	    particles_pingpong[c].globalextent = make_float3(dims[0] * XSIZE_SUBDOMAIN,
+							     dims[1] * YSIZE_SUBDOMAIN,
+							     dims[2] * ZSIZE_SUBDOMAIN);
+	}
+
 	CUDA_CHECK(cudaMemcpy(particles->xyzuvw.data, &ic.front(), sizeof(Particle) * ic.size(), cudaMemcpyHostToDevice));
 
 	cells.build(particles->xyzuvw.data, particles->size, 0, NULL, NULL);
 
 	_update_helper_arrays();
     }
-
-    localcomm.initialize(activecomm);
-
-    MPI_CHECK( MPI_Comm_size(activecomm, &nranks) );
-    MPI_CHECK( MPI_Comm_rank(activecomm, &rank) );
 
     CUDA_CHECK(cudaStreamCreate(&mainstream));
 
@@ -765,7 +779,7 @@ void Simulation::_lockstep()
 	ctc_interactions.pack_p(ctcscoll->data(), mainstream);
 
     dpd.local_interactions(xyzouvwo.data, xyzo_half.data, particles->size, particles->axayaz.data, cells.start, cells.count, mainstream);
-    
+
     dpd.consolidate_and_post(particles->xyzuvw.data, particles->size, mainstream);
 
     CUDA_CHECK(cudaPeekAtLastError());
@@ -884,7 +898,7 @@ void Simulation::_lockstep()
     xyzo_half.resize(newnp);
 
     redistribute.recv_unpack(newparticles->xyzuvw.data, xyzouvwo.data, xyzo_half.data, newnp, cells.start, cells.count, mainstream, host_idle_time);
-   
+
     CUDA_CHECK(cudaPeekAtLastError());
 
     swap(particles, newparticles);

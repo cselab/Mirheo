@@ -21,6 +21,8 @@ struct ParticleArray
 {
     int size;
 
+    float3 origin, globalextent;
+
     SimpleDeviceBuffer<Particle> xyzuvw;
     SimpleDeviceBuffer<Acceleration> axayaz;
 
