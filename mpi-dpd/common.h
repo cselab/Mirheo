@@ -12,7 +12,7 @@
 
 #pragma once
 
-#ifndef NDEBUG
+#ifdef NDEBUG
 #define cuda_printf(...)
 #else
 #define cuda_printf(...) do { printf(__VA_ARGS__); } while(0)
