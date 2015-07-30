@@ -306,7 +306,7 @@ namespace BipsBatch
 
 	CUDA_CHECK(cudaMemcpyToSymbolAsync(batchinfos, infos, sizeof(BatchInfo) * 26, 0, cudaMemcpyHostToDevice, uploadstream));
 
-	unsigned int hstart_padded[27];
+	static unsigned int hstart_padded[27];
 
 	hstart_padded[0] = 0;
 	for(int i = 0; i < 26; ++i)
@@ -332,7 +332,7 @@ void ComputeInteractionsDPD::remote_interactions(const Particle * const p, const
 
     CUDA_CHECK(cudaPeekAtLastError());
 
-    BipsBatch::BatchInfo infos[26];
+    static BipsBatch::BatchInfo infos[26];
 
     for(int i = 0; i < 26; ++i)
     {
