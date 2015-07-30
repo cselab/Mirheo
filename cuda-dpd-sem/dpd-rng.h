@@ -220,6 +220,17 @@ __inline__ __device__ float mean0var1( float seed, uint i, uint j )
 
     return saru( tag, i, j ) * 3.464101615f - 1.732050807f;
 }
+
+__inline__ __device__ float mean0var1( float seed, int i, int j )
+{
+    return mean0var1( seed, (uint) i, (uint) j );
+}
+
+__inline__ __device__ float mean0var1( float seed, float i, float j )
+{
+    return mean0var1( seed, (uint) i, (uint) j );
+}
+
 struct mean0var1_flops_counter {
 	const static unsigned long long FLOPS = 2ULL;
 };
