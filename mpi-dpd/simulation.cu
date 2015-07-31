@@ -531,6 +531,7 @@ void Simulation::_datadump_async()
     while (true)
     {
 	pthread_mutex_lock(&mutex_datadump);
+	async_thread_initialized = 1;
 
 	while (!datadump_pending)
 	    pthread_cond_wait(&request_datadump, &mutex_datadump);
@@ -735,7 +736,18 @@ Simulation::Simulation(MPI_Comm cartcomm, MPI_Comm activecomm, bool (*check_term
 	int rc = pthread_mutex_init(&mutex_datadump, NULL);
 	rc |= pthread_cond_init(&done_datadump, NULL);
 	rc |= pthread_cond_init(&request_datadump, NULL);
+	async_thread_initialized = 0;
 	rc |= pthread_create(&thread_datadump, NULL, datadump_trampoline, this);
+
+	while (1) 
+	{
+		pthread_mutex_lock(&mutex_datadump);
+		int done = async_thread_initialized;
+		pthread_mutex_unlock(&mutex_datadump);
+	
+		if (done) 
+			break;
+	}
 
 	if (rc)
 	{

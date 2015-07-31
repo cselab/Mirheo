@@ -86,6 +86,7 @@ class Simulation
     pthread_cond_t request_datadump, done_datadump;
     bool datadump_pending;
     int datadump_idtimestep, datadump_nsolvent, datadump_nrbcs, datadump_nctcs;
+    bool async_thread_initialized;
 
     PinnedHostBuffer<Particle> particles_datadump;
     PinnedHostBuffer<Acceleration> accelerations_datadump;
