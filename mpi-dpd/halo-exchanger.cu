@@ -673,6 +673,9 @@ void HaloExchanger::adjust_message_sizes(ExpectedMessageSizes sizes)
 	recvhalos[i].adjust(estimate);
 	sendhalos[i].adjust(estimate);
 
+    if (estimate == 0)
+        required_send_bag_size_host[i] = 0;
+
 	nactive += (int)(estimate > 0);
     }
 }
