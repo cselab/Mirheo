@@ -73,13 +73,13 @@ ComputeInteractionsDPD::ComputeInteractionsDPD(MPI_Comm cartcomm): HaloExchanger
     }
 }
 
-void ComputeInteractionsDPD::local_interactions(const float4 * const xyzouvwo, const ushort4 * const xyzo_half, const int n, Acceleration * const a,
-						const int * const cellsstart, const int * const cellscount, cudaStream_t stream)
+void ComputeInteractionsDPD::local_interactions(const Particle * const xyzuvw, const float4 * const xyzouvwo, const ushort4 * const xyzo_half,
+						const int n, Acceleration * const a, const int * const cellsstart, const int * const cellscount, cudaStream_t stream)
 {
     NVTX_RANGE("DPD/local", NVTX_C5);
 
     if (n > 0)
-	forces_dpd_cuda_nohost(xyzouvwo, xyzo_half, (float *)a, n,
+	forces_dpd_cuda_nohost((float*)xyzuvw, xyzouvwo, xyzo_half, (float *)a, n,
 			       cellsstart, cellscount,
 			       1, XSIZE_SUBDOMAIN, YSIZE_SUBDOMAIN, ZSIZE_SUBDOMAIN, aij, gammadpd,
 			       sigma, 1. / sqrt(dt), local_trunk.get_float(), stream);

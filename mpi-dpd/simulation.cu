@@ -24,25 +24,25 @@ __global__ void make_texture( float4 * __restrict xyzouvwo, ushort4 * __restrict
 
     const float2 * base = ( float2* )( xyzuvw +  i * 6 );
 #pragma unroll 3
-        for( uint j = lane; j < 96; j += 32 ) {
-            float2 u = base[j];
-            // NVCC bug: no operator = between volatile float2 and float2
-            asm volatile( "st.volatile.shared.v2.f32 [%0], {%1, %2};" : : "r"( ( warpid * 96 + j )*8 ), "f"( u.x ), "f"( u.y ) : "memory" );
-        }
-        // SMEM: XYZUVW XYZUVW ...
-        uint pid = lane / 2;
-        const uint x_or_v = ( lane % 2 ) * 3;
-        xyzouvwo[ i * 2 + lane ] = make_float4( smem[ warpid * 192 + pid * 6 + x_or_v + 0 ],
-                                                smem[ warpid * 192 + pid * 6 + x_or_v + 1 ],
-                                                smem[ warpid * 192 + pid * 6 + x_or_v + 2 ], 0 );
-        pid += 16;
-        xyzouvwo[ i * 2 + lane + 32] = make_float4( smem[ warpid * 192 + pid * 6 + x_or_v + 0 ],
-                                       smem[ warpid * 192 + pid * 6 + x_or_v + 1 ],
-                                       smem[ warpid * 192 + pid * 6 + x_or_v + 2 ], 0 );
+    for( uint j = lane; j < 96; j += 32 ) {
+	float2 u = base[j];
+	// NVCC bug: no operator = between volatile float2 and float2
+	asm volatile( "st.volatile.shared.v2.f32 [%0], {%1, %2};" : : "r"( ( warpid * 96 + j )*8 ), "f"( u.x ), "f"( u.y ) : "memory" );
+    }
+    // SMEM: XYZUVW XYZUVW ...
+    uint pid = lane / 2;
+    const uint x_or_v = ( lane % 2 ) * 3;
+    xyzouvwo[ i * 2 + lane ] = make_float4( smem[ warpid * 192 + pid * 6 + x_or_v + 0 ],
+					    smem[ warpid * 192 + pid * 6 + x_or_v + 1 ],
+					    smem[ warpid * 192 + pid * 6 + x_or_v + 2 ], 0 );
+    pid += 16;
+    xyzouvwo[ i * 2 + lane + 32] = make_float4( smem[ warpid * 192 + pid * 6 + x_or_v + 0 ],
+						smem[ warpid * 192 + pid * 6 + x_or_v + 1 ],
+						smem[ warpid * 192 + pid * 6 + x_or_v + 2 ], 0 );
 
-        xyzo_half[i + lane] = make_ushort4( __float2half_rn( smem[ warpid * 192 + lane * 6 + 0 ] ),
-                                            __float2half_rn( smem[ warpid * 192 + lane * 6 + 1 ] ),
-                                            __float2half_rn( smem[ warpid * 192 + lane * 6 + 2 ] ), 0 );
+    xyzo_half[i + lane] = make_ushort4( __float2half_rn( smem[ warpid * 192 + lane * 6 + 0 ] ),
+					__float2half_rn( smem[ warpid * 192 + lane * 6 + 1 ] ),
+					__float2half_rn( smem[ warpid * 192 + lane * 6 + 2 ] ), 0 );
 // }
 }
 
@@ -292,27 +292,27 @@ void Simulation::_create_walls(const bool verbose, bool & termination_request)
     //there is no support for killing zero-workload ranks for rbcs and ctcs just yet
     /* this is unnecessarily complex for now
        if (!rbcs && !ctcs)
-    {
-	const bool local_work = new_sizes.msgsizes[1 + 3 + 9] > 0;
+       {
+       const bool local_work = new_sizes.msgsizes[1 + 3 + 9] > 0;
 
-	MPI_CHECK(MPI_Comm_split(cartcomm, local_work, rank, &activecomm)) ;
+       MPI_CHECK(MPI_Comm_split(cartcomm, local_work, rank, &activecomm)) ;
 
-	MPI_CHECK(MPI_Comm_rank(activecomm, &rank));
+       MPI_CHECK(MPI_Comm_rank(activecomm, &rank));
 
-	if (!local_work )
-	{
-	    if (rank == 0)
-	    {
-		int nkilled;
-		MPI_CHECK(MPI_Comm_size(activecomm, &nkilled));
+       if (!local_work )
+       {
+       if (rank == 0)
+       {
+       int nkilled;
+       MPI_CHECK(MPI_Comm_size(activecomm, &nkilled));
 
-		printf("THERE ARE %d RANKS WITH ZERO WORKLOAD THAT WILL MPI-FINALIZE NOW.\n", nkilled);
-	    }
+       printf("THERE ARE %d RANKS WITH ZERO WORKLOAD THAT WILL MPI-FINALIZE NOW.\n", nkilled);
+       }
 
-	    termination_request = true;
-	    return;
-	}
-    }
+       termination_request = true;
+       return;
+       }
+       }
     */
 
     particles->resize(nsurvived);
@@ -373,7 +373,7 @@ void Simulation::_forces()
     if (ctcscoll)
 	ctc_interactions.pack_p(ctcscoll->data(), mainstream);
 
-    dpd.local_interactions(xyzouvwo.data, xyzo_half.data, particles->size, particles->axayaz.data, cells.start, cells.count, mainstream);
+    dpd.local_interactions(particles->xyzuvw.data, xyzouvwo.data, xyzo_half.data, particles->size, particles->axayaz.data, cells.start, cells.count, mainstream);
 
     dpd.consolidate_and_post(particles->xyzuvw.data, particles->size, mainstream);
 
@@ -617,6 +617,7 @@ void Simulation::_datadump_async()
 	curr_idtimestep = datadump_idtimestep;
 
 	pthread_mutex_lock(&mutex_datadump);
+	
 	if (simulation_is_done)
 	{
 	    pthread_mutex_unlock(&mutex_datadump);
@@ -746,12 +747,12 @@ Simulation::Simulation(MPI_Comm cartcomm, MPI_Comm activecomm, bool (*check_term
 
 	while (1) 
 	{
-		pthread_mutex_lock(&mutex_datadump);
-		int done = async_thread_initialized;
-		pthread_mutex_unlock(&mutex_datadump);
+	    pthread_mutex_lock(&mutex_datadump);
+	    int done = async_thread_initialized;
+	    pthread_mutex_unlock(&mutex_datadump);
 	
-		if (done) 
-			break;
+	    if (done) 
+		break;
 	}
 
 	if (rc)
@@ -797,7 +798,7 @@ void Simulation::_lockstep()
     if (ctcscoll)
 	ctc_interactions.pack_p(ctcscoll->data(), mainstream);
 
-    dpd.local_interactions(xyzouvwo.data, xyzo_half.data, particles->size, particles->axayaz.data, cells.start, cells.count, mainstream);
+    dpd.local_interactions(particles->xyzuvw.data, xyzouvwo.data, xyzo_half.data, particles->size, particles->axayaz.data, cells.start, cells.count, mainstream);
 
     dpd.consolidate_and_post(particles->xyzuvw.data, particles->size, mainstream);
 
