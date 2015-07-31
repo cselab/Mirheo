@@ -77,9 +77,9 @@ void xyz_dump(MPI_Comm comm, MPI_Comm cartcomm, const char * filename, const cha
 
     string content = ss.str();
 
-    int len = content.size();
-    int offset = 0;
-    MPI_CHECK( MPI_Exscan(&len, &offset, 1, MPI_INTEGER, MPI_SUM, comm));
+    MPI_Offset len = content.size();
+    MPI_Offset offset = 0;
+    MPI_CHECK( MPI_Exscan(&len, &offset, 1, MPI_OFFSET, MPI_SUM, comm));
 
     MPI_Status status;
 
