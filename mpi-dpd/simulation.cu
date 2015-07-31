@@ -615,6 +615,8 @@ void Simulation::_datadump_async()
 	}
 
 	curr_idtimestep = datadump_idtimestep;
+	if (simulation_is_done)
+	    break;
 
 	pthread_mutex_lock(&mutex_datadump);
 
