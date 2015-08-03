@@ -227,7 +227,7 @@ namespace SolidWallsKernel
 	if (sdf(xold, yold, zold) >= 0)
 	{
 	    //this is the worst case - it means that old position was bad already
-	    //we need to rescue the particle, extracting it from the walls
+	    //we need to search and rescue the particle
 
 	    const float3 mygrad = grad_sdf(x, y, z);
 	    const float mysdf = currsdf;
@@ -262,18 +262,39 @@ namespace SolidWallsKernel
 	    return;
 	}
 
+	//2 steps of newton raphson
 	float subdt = 0;
 
-	for(int i = 1; i < 8; ++i)
 	{
-	    const float tcandidate = subdt + dt / (1 << i);
-	    const float xcandidate = xold + tcandidate * u;
-	    const float ycandidate = yold + tcandidate * v;
-	    const float zcandidate = zold + tcandidate * w;
+	    const float3 mygrad = grad_sdf(x, y, z);
+	    const float DphiDt = mygrad.x * u + mygrad.y * v + mygrad.z * w;
 
-	    if (sdf(xcandidate, ycandidate, zcandidate) < 0)
-		subdt = tcandidate;
+	    assert(DphiDt > 0);
+
+	    subdt -= currsdf / DphiDt;
+
+	    //if (!(subdt >= -dt && subdt < 0))
+	    //	printf("oooooops step1 subdt is %e, dt is %e, sdf %e, dphi/dt %e\n", subdt, dt, currsdf, DphiDt);
+
+	     assert(subdt >= -dt);
 	}
+
+	{
+	    const float3 xstar = make_float3(x + subdt * u, y + subdt * v, z + subdt * w);
+	    const float3 mygrad = grad_sdf(xstar.x, xstar.y, xstar.z);
+	    const float DphiDt = mygrad.x * u + mygrad.y * v + mygrad.z * w;
+
+	    assert(DphiDt > 0);
+	    const float mysdf = sdf(xstar.x, xstar.y, xstar.z);
+	    const float oldsubdt = subdt;
+	    subdt -= mysdf / DphiDt;
+
+	    //if (!(subdt >= -dt && subdt < 0))
+	    //	printf("oooooops step2 subdt is %e, dt is %e, sdf %e, dphi/dt %e, previous subdt %e\n", subdt, dt, mysdf, DphiDt, oldsubdt);
+
+	    assert(subdt >= -dt && subdt < 0);
+	}
+
 
 	const float lambda = 2 * subdt - dt;
 
@@ -300,7 +321,7 @@ namespace SolidWallsKernel
     __global__ __launch_bounds__(32 * 4, 12)
     void bounce(float2 * const particles, const int nparticles, const int rank, const float dt)
     {
-	assert(blockDim.x * gridDim.x >= n);
+	assert(blockDim.x * gridDim.x >= nparticles);
 
 	const int pid = threadIdx.x + blockDim.x * blockIdx.x;
 
