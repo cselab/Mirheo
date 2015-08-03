@@ -132,6 +132,21 @@ namespace SolidWallsKernel
 	return szyx;
     }
 
+    __device__ float cheap_sdf(float x, float y, float z) //within the rescaled texel width error
+    {
+	const int L[3] = { XSIZE_SUBDOMAIN, YSIZE_SUBDOMAIN, ZSIZE_SUBDOMAIN };
+	const int MARGIN[3] = { XMARGIN_WALL, YMARGIN_WALL, ZMARGIN_WALL };
+	const int TEXSIZES[3] = {XTEXTURESIZE, YTEXTURESIZE, ZTEXTURESIZE };
+	
+	float p[3] = {x, y, z};
+	
+	float texcoord[3];
+	for(int c = 0; c < 3; ++c)
+	    texcoord[c] = TEXSIZES[c] * (p[c] + L[c] / 2 + MARGIN[c]) / (L[c] + 2 * MARGIN[c]);
+	    
+	return tex3D(texSDF, texcoord[0], texcoord[1], texcoord[2]);
+    }
+
     __device__ float3 grad_sdf(float x, float y, float z)
     {
 	const int L[3] = { XSIZE_SUBDOMAIN, YSIZE_SUBDOMAIN, ZSIZE_SUBDOMAIN };
@@ -166,7 +181,7 @@ namespace SolidWallsKernel
 	{
 	    xmygrad /= mygradmag;
 	    ymygrad /= mygradmag;
-	    zmygrad /= mygradmag;
+	    zmygrad /= mygradmag; 
 	}
 
 	return make_float3(xmygrad, ymygrad, zmygrad);
@@ -201,13 +216,10 @@ namespace SolidWallsKernel
 	dst[pid] = make_float4(p.x[0], p.x[1], p.x[2], 0);
     }
 
-    __device__ bool handle_collision(float& x, float& y, float& z, float& u, float& v, float& w, const int rank, const double dt)
+    __device__ void handle_collision(const float currsdf, float& x, float& y, float& z, float& u, float& v, float& w, const int rank, const float dt)
     {
-	const float initial_sdf = sdf(x, y, z);
-
-	if (initial_sdf < 0)
-	    return false;
-
+	assert(currsdf >= 0);
+	
 	const float xold = x - dt * u;
 	const float yold = y - dt * v;
 	const float zold = z - dt * w;
@@ -218,13 +230,13 @@ namespace SolidWallsKernel
 	    //we need to rescue the particle, extracting it from the walls
 
 	    const float3 mygrad = grad_sdf(x, y, z);
-	    const float mysdf = sdf(x, y, z);
+	    const float mysdf = currsdf;
 
 	    x -= mysdf * mygrad.x;
 	    y -= mysdf * mygrad.y;
 	    z -= mysdf * mygrad.z;
 
-	    for(int l = 10; l >= 1; --l)
+	    for(int l = 8; l >= 1; --l)
 	    {
 		if (sdf(x, y, z) < 0)
 		{
@@ -232,7 +244,7 @@ namespace SolidWallsKernel
 		    v  = -v;
 		    w  = -w;
 
-		    return false;
+		    return;
 		}
 
 		const float jump = 1.1f * mysdf / (1 << l);
@@ -247,7 +259,7 @@ namespace SolidWallsKernel
 			xold, yold, zold, sdf(xold, yold, zold),
 			x, y, z, sdf(x, y, z), mygrad.x, mygrad.y, mygrad.z);
 
-	    return false;
+	    return;
 	}
 
 	float subdt = 0;
@@ -282,33 +294,67 @@ namespace SolidWallsKernel
 	    assert(sdf(x, y, z) < 0);
 	}
 
-	return true;
+	return;
     }
-
-    __global__ void bounce(Particle * const particles, const int n, const int rank, const float dt)
+    
+    __global__ __launch_bounds__(32 * 4, 12)
+    void bounce(float2 * const particles, const int nparticles, const int rank, const float dt)
     {
 	assert(blockDim.x * gridDim.x >= n);
+	
+	const int laneid = threadIdx.x & 0x1f;
+	const int warpid = threadIdx.x >> 5;
+	const int base = 32 * (warpid + 4 * blockIdx.x);
+	const int nsrc = min(32, nparticles - base);
 
-	const int pid = threadIdx.x + blockDim.x * blockIdx.x;
+	float2 data0, data1, data2; 
+	read_AOS6f(particles + 3 * base, nsrc, data0, data1, data2);	
 
-	if (pid >= n)
+	/*const int pid = threadIdx.x + blockDim.x * blockIdx.x;
+
+	if (pid >= nparticles)
 	    return;
-
-	Particle p = particles[pid];
-
+	
+	float2 data0 = particles[pid * 3];
+	float2 data1 = particles[pid * 3 + 1];	
+	*/
+#ifndef NDEBUG
 	const int L[3] = { XSIZE_SUBDOMAIN, YSIZE_SUBDOMAIN, ZSIZE_SUBDOMAIN };
 	const int MARGIN[3] = { XMARGIN_WALL, YMARGIN_WALL, ZMARGIN_WALL };
-
+	const float x[3] = { data0.x, data0.y, data1.x } ;
+	
 	for(int c = 0; c < 3; ++c)
 	{
-	    if (!(abs(p.x[c]) <= L[c]/2 + MARGIN[c]))
-		cuda_printf("bounce: ooooooooops component %d we have %f %f %f outside %d + %d\n", c, p.x[0], p.x[1], p.x[2], L[c]/2, MARGIN[c]);
+	    if (!(abs(x[c]) <= L[c]/2 + MARGIN[c]))
+		cuda_printf("bounce: ooooooooops component %d we have %f %f %f outside %d + %d\n", c, x[0], x[1], x[2], L[c]/2, MARGIN[c]);
 
-	    assert(abs(p.x[c]) <= L[c]/2 + MARGIN[c]);
+	    assert(abs(x[c]) <= L[c]/2 + MARGIN[c]);
 	}
+#endif
 
-	if (handle_collision(p.x[0], p.x[1], p.x[2], p.u[0], p.u[1], p.u[2], rank, dt))
-	    particles[pid] = p;
+	if (laneid < nsrc)
+	//if (pid < nparticles)
+	{
+	    const float mycheapsdf = cheap_sdf(data0.x, data0.y, data1.x);
+
+	    if (mycheapsdf >= XSIZE_WALLCELLS / XTEXTURESIZE)
+	    {
+		const float currsdf = sdf(data0.x, data0.y, data1.x);
+		
+		//float2 data2 = particles[pid * 3 + 2];
+		
+		if (currsdf >= 0)
+		{
+		    handle_collision(currsdf, data0.x, data0.y, data1.x, data1.y, data2.x, data2.y, rank, dt);
+		
+		    const int pid = base + laneid;
+
+		    particles[3 * pid] = data0;
+		    particles[3 * pid + 1] = data1;
+		    particles[3 * pid + 2] = data2;
+		}
+	    }
+	}
     }
 
 #define _XCPB_ 2
@@ -1052,7 +1098,7 @@ void ComputeInteractionsWall::bounce(Particle * const p, const int n, cudaStream
     NVTX_RANGE("WALL/bounce", NVTX_C3)
 
 	if (n > 0)
-	    SolidWallsKernel::bounce<<< (n + 127) / 128, 128, 0, stream>>>(p, n, myrank, dt);
+	    SolidWallsKernel::bounce<<< (n + 127) / 128, 128, 0, stream>>>((float2 *)p, n, myrank, dt);
 
     CUDA_CHECK(cudaPeekAtLastError());
 }
