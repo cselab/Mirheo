@@ -137,13 +137,13 @@ namespace SolidWallsKernel
 	const int L[3] = { XSIZE_SUBDOMAIN, YSIZE_SUBDOMAIN, ZSIZE_SUBDOMAIN };
 	const int MARGIN[3] = { XMARGIN_WALL, YMARGIN_WALL, ZMARGIN_WALL };
 	const int TEXSIZES[3] = {XTEXTURESIZE, YTEXTURESIZE, ZTEXTURESIZE };
-	
+
 	float p[3] = {x, y, z};
-	
+
 	float texcoord[3];
 	for(int c = 0; c < 3; ++c)
 	    texcoord[c] = TEXSIZES[c] * (p[c] + L[c] / 2 + MARGIN[c]) / (L[c] + 2 * MARGIN[c]);
-	    
+
 	return tex3D(texSDF, texcoord[0], texcoord[1], texcoord[2]);
     }
 
@@ -181,7 +181,7 @@ namespace SolidWallsKernel
 	{
 	    xmygrad /= mygradmag;
 	    ymygrad /= mygradmag;
-	    zmygrad /= mygradmag; 
+	    zmygrad /= mygradmag;
 	}
 
 	return make_float3(xmygrad, ymygrad, zmygrad);
@@ -219,7 +219,7 @@ namespace SolidWallsKernel
     __device__ void handle_collision(const float currsdf, float& x, float& y, float& z, float& u, float& v, float& w, const int rank, const float dt)
     {
 	assert(currsdf >= 0);
-	
+
 	const float xold = x - dt * u;
 	const float yold = y - dt * v;
 	const float zold = z - dt * w;
@@ -296,33 +296,25 @@ namespace SolidWallsKernel
 
 	return;
     }
-    
+
     __global__ __launch_bounds__(32 * 4, 12)
     void bounce(float2 * const particles, const int nparticles, const int rank, const float dt)
     {
 	assert(blockDim.x * gridDim.x >= n);
-	
-	const int laneid = threadIdx.x & 0x1f;
-	const int warpid = threadIdx.x >> 5;
-	const int base = 32 * (warpid + 4 * blockIdx.x);
-	const int nsrc = min(32, nparticles - base);
 
-	float2 data0, data1, data2; 
-	read_AOS6f(particles + 3 * base, nsrc, data0, data1, data2);	
-
-	/*const int pid = threadIdx.x + blockDim.x * blockIdx.x;
+	const int pid = threadIdx.x + blockDim.x * blockIdx.x;
 
 	if (pid >= nparticles)
 	    return;
-	
+
 	float2 data0 = particles[pid * 3];
-	float2 data1 = particles[pid * 3 + 1];	
-	*/
+	float2 data1 = particles[pid * 3 + 1];
+
 #ifndef NDEBUG
 	const int L[3] = { XSIZE_SUBDOMAIN, YSIZE_SUBDOMAIN, ZSIZE_SUBDOMAIN };
 	const int MARGIN[3] = { XMARGIN_WALL, YMARGIN_WALL, ZMARGIN_WALL };
 	const float x[3] = { data0.x, data0.y, data1.x } ;
-	
+
 	for(int c = 0; c < 3; ++c)
 	{
 	    if (!(abs(x[c]) <= L[c]/2 + MARGIN[c]))
@@ -332,22 +324,19 @@ namespace SolidWallsKernel
 	}
 #endif
 
-	if (laneid < nsrc)
-	//if (pid < nparticles)
+	if (pid < nparticles)
 	{
 	    const float mycheapsdf = cheap_sdf(data0.x, data0.y, data1.x);
 
 	    if (mycheapsdf >= XSIZE_WALLCELLS / XTEXTURESIZE)
 	    {
 		const float currsdf = sdf(data0.x, data0.y, data1.x);
-		
-		//float2 data2 = particles[pid * 3 + 2];
-		
+
+		float2 data2 = particles[pid * 3 + 2];
+
 		if (currsdf >= 0)
 		{
 		    handle_collision(currsdf, data0.x, data0.y, data1.x, data1.y, data2.x, data2.y, rank, dt);
-		
-		    const int pid = base + laneid;
 
 		    particles[3 * pid] = data0;
 		    particles[3 * pid + 1] = data1;
@@ -675,7 +664,7 @@ struct FieldSampler
 			header_size = i + 1;
 			break;
 		    }
-		    
+
 		    header_size = i + 1;
 		}
 
