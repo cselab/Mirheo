@@ -435,7 +435,22 @@ void HaloExchanger::pack(const Particle * const p, const int n, const int * cons
     PackingHalo::count_all<<<(PackingHalo::ncells + 127) / 128, 128, 0, stream>>>(cellsstart, cellscount, PackingHalo::ncells);
 
     if (!is_mps_enabled)
-	PackingHalo::scan_diego< 16 ><<< 26, 16 * 32, 0, stream>>>();
+    {
+	PackingHalo::scan_diego< 32 ><<< 26, 32 * 32, 0, stream>>>();
+
+/* or in alternative:
+	int * input_count[26],  * output_scan[26], scan_sizes[26];
+	for(int i = 0; i < 26; ++i)
+	{
+	    input_count[i] = sendhalos[i].tmpcount.data;
+	    output_scan[i] = sendhalos[i].dcellstarts.data;
+	    scan_sizes[i] = sendhalos[i].tmpcount.size;
+	}
+
+	scan_massimo(input_count, output_scan, scan_sizes, stream);
+*/
+	CUDA_CHECK(cudaPeekAtLastError());
+    }
     else
 	PackingHalo::scan_diego< 1 ><<< 26, 1 * 32, 0, stream>>>();
 
