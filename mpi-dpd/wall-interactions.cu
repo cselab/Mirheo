@@ -147,6 +147,29 @@ namespace SolidWallsKernel
 	return tex3D(texSDF, texcoord[0], texcoord[1], texcoord[2]);
     }
 
+    __device__ float3 ugrad_sdf(float x, float y, float z)
+    {
+	const int L[3] = { XSIZE_SUBDOMAIN, YSIZE_SUBDOMAIN, ZSIZE_SUBDOMAIN };
+	const int MARGIN[3] = { XMARGIN_WALL, YMARGIN_WALL, ZMARGIN_WALL };
+	const int TEXSIZES[3] = {XTEXTURESIZE, YTEXTURESIZE, ZTEXTURESIZE };
+	const float p[3] = {x, y, z};
+
+	float tc[3];
+	for(int c = 0; c < 3; ++c)
+	    tc[c] = TEXSIZES[c] * (p[c] + L[c] / 2 + MARGIN[c]) / (L[c] + 2 * MARGIN[c]);
+
+	float factors[3];
+	for(int c = 0; c < 3; ++c)
+	    factors[c] = TEXSIZES[c] / (2 * MARGIN[c] + L[c]);
+
+	float myval = tex3D(texSDF, tc[0], tc[1], tc[2]);
+	float xmygrad = factors[0] * (tex3D(texSDF, tc[0] + 1, tc[1], tc[2]) - myval);
+	float ymygrad = factors[1] * (tex3D(texSDF, tc[0], tc[1] + 1, tc[2]) - myval);
+	float zmygrad = factors[2] * (tex3D(texSDF, tc[0], tc[1], tc[2] + 1) - myval);
+
+	return make_float3(xmygrad, ymygrad, zmygrad);
+    }
+
     __device__ float3 grad_sdf(float x, float y, float z)
     {
 	const int L[3] = { XSIZE_SUBDOMAIN, YSIZE_SUBDOMAIN, ZSIZE_SUBDOMAIN };
@@ -167,13 +190,9 @@ namespace SolidWallsKernel
 	    assert(tc[c] >= 0 && tc[c] <= TEXSIZES[c]);
 	}
 
-	float factors[3];
-	for(int c = 0; c < 3; ++c)
-	    factors[c] = 1. / (2 * TEXSIZES[c]) * 1.f / (2 * MARGIN[c] + L[c]);
-
-	float xmygrad = factors[0] * (tex3D(texSDF, tc[0] + 1, tc[1], tc[2]) - tex3D(texSDF, tc[0] - 1, tc[1], tc[2]));
-	float ymygrad = factors[1] * (tex3D(texSDF, tc[0], tc[1] + 1, tc[2]) - tex3D(texSDF, tc[0], tc[1] - 1, tc[2]));
-	float zmygrad = factors[2] * (tex3D(texSDF, tc[0], tc[1], tc[2] + 1) - tex3D(texSDF, tc[0], tc[1], tc[2] - 1));
+	float xmygrad = (tex3D(texSDF, tc[0] + 1, tc[1], tc[2]) - tex3D(texSDF, tc[0] - 1, tc[1], tc[2]));
+	float ymygrad = (tex3D(texSDF, tc[0], tc[1] + 1, tc[2]) - tex3D(texSDF, tc[0], tc[1] - 1, tc[2]));
+	float zmygrad = (tex3D(texSDF, tc[0], tc[1], tc[2] + 1) - tex3D(texSDF, tc[0], tc[1], tc[2] - 1));
 
 	float mygradmag = sqrt(xmygrad * xmygrad + ymygrad * ymygrad + zmygrad * zmygrad);
 
@@ -186,6 +205,8 @@ namespace SolidWallsKernel
 
 	return make_float3(xmygrad, ymygrad, zmygrad);
     }
+
+
 
     __global__ void fill_keys(const Particle * const particles, const int n, int * const key)
     {
@@ -262,40 +283,29 @@ namespace SolidWallsKernel
 	    return;
 	}
 
-	//2 steps of newton raphson
-	float subdt = 0;
+	//newton raphson steps
+	float subdt = dt;
 
 	{
-	    const float3 mygrad = grad_sdf(x, y, z);
-	    const float DphiDt = mygrad.x * u + mygrad.y * v + mygrad.z * w;
+	    const float3 mygrad = ugrad_sdf(x, y, z);
+	    const float DphiDt = max(1e-4f, mygrad.x * u + mygrad.y * v + mygrad.z * w);
 
 	    assert(DphiDt > 0);
 
-	    subdt -= currsdf / DphiDt;
-
-	    //if (!(subdt >= -dt && subdt < 0))
-	    //	printf("oooooops step1 subdt is %e, dt is %e, sdf %e, dphi/dt %e\n", subdt, dt, currsdf, DphiDt);
-
-	     assert(subdt >= -dt);
+	    subdt = min(dt, max(0.f, subdt - currsdf / DphiDt * 1.02f));
 	}
 
+#if 0
 	{
 	    const float3 xstar = make_float3(x + subdt * u, y + subdt * v, z + subdt * w);
-	    const float3 mygrad = grad_sdf(xstar.x, xstar.y, xstar.z);
+	    const float3 mygrad = max(1e-4f, ugrad_sdf(xstar.x, xstar.y, xstar.z));
 	    const float DphiDt = mygrad.x * u + mygrad.y * v + mygrad.z * w;
 
 	    assert(DphiDt > 0);
-	    const float mysdf = sdf(xstar.x, xstar.y, xstar.z);
-	    const float oldsubdt = subdt;
-	    subdt -= mysdf / DphiDt;
 
-	    //if (!(subdt >= -dt && subdt < 0))
-	    //	printf("oooooops step2 subdt is %e, dt is %e, sdf %e, dphi/dt %e, previous subdt %e\n", subdt, dt, mysdf, DphiDt, oldsubdt);
-
-	    assert(subdt >= -dt && subdt < 0);
+	    subdt = min(dt, max(0.f, subdt - sdf(xstar.x, xstar.y, xstar.z) / DphiDt * 1.02f));
 	}
-
-
+#endif
 	const float lambda = 2 * subdt - dt;
 
 	x = xold + lambda * u;
