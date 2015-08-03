@@ -328,7 +328,7 @@ namespace SolidWallsKernel
 	{
 	    const float mycheapsdf = cheap_sdf(data0.x, data0.y, data1.x);
 
-	    if (mycheapsdf >= XSIZE_WALLCELLS / XTEXTURESIZE)
+	    if (mycheapsdf >= -((float)XSIZE_WALLCELLS / (float)XTEXTURESIZE))
 	    {
 		const float currsdf = sdf(data0.x, data0.y, data1.x);
 
