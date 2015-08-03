@@ -169,7 +169,7 @@ public:
 
 		for (int i=0; i<ncells; i++)
 		{
-			A[0][0] = A[1][1] = A[2][2] = 1 + 0.3*(drand48() - 0.5);
+			A[0][0] = A[1][1] = A[2][2] = 1 + 0.2*(drand48() - 0.5);
 			A[2][3] += 4;
 			CudaRBC::initialize(xyzuvw + i * 6*nparticles, A);
 		}
@@ -243,7 +243,7 @@ public:
 			cudaEventElapsedTime(&interval, start, stop);
 			tottime += interval;
 
-			if (it % 2000 == 0)
+			if (it % 20 == 0)
 			{
 				vmd_xyz("evolution.xyz", xyzuvw, ncells*nparticles, it > 0);
 				//vmd_xyz_3comp("force.xyz", fxfyfz, nparticles, it > 0);
@@ -264,7 +264,7 @@ int main()
 
 	SimRBC sim(L, 50);
 
-	sim.run(0.05, 0.001);
+	sim.run(1, 0.001);
 
 	return 0;
 }

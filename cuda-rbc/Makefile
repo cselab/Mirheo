@@ -1,9 +1,9 @@
-CXX = g++
+CC=CC
 NVCC = nvcc
 CXXFLAGS +=  -L$(subst :, -L,$(LD_LIBRARY_PATH))
 CXXFLAGS+= -fopenmp -std=c++11 -Wno-unknown-pragmas -Wno-reorder -Wno-comment -Wno-deprecated
-GPULIBS+= -lcuda -lcudart -L/usr/local/cuda-6.0/lib64
-GPUFLAGS+= -arch=compute_30  -Xcompiler -fpic -code=sm_30
+GPULIBS+= -lcudart
+GPUFLAGS+= -arch=sm_35  -Xcompiler -fpic
 GPUFLAGS+= --use_fast_math
 
 config ?= release
@@ -50,28 +50,28 @@ clean:
 	rm -f test-cuda-rbc
 
 test-rbc: main.o rbcvector-cpu-utils.o rbc.o
-	$(CXX) $^  $(LIBS) -o $@
+	$(CC) $^  $(LIBS) -o $@
 
 test-cuda-rbc: main.cudaobj rbc-cuda.cudaobj #rbc.o
-	$(CXX) $(GPULIBS) $^ -o $@
+	$(CC) $(GPULIBS) $^ -o $@
 
 libcuda-rbc.so: rbcvector-cuda-utils.cudaobj rbc-cuda.cudaobj rbcvector-cpu-utils.o
-	$(CXX) $(CXXFLAGS) -shared $^ -o $@ -L/usr/local/cuda-6.0/lib64/ -lcudart -lcurand
+	$(CC) $(CXXFLAGS) -shared $^ -o $@ -L/usr/local/cuda-6.0/lib64/ -lcudart -lcurand
 
 libcuda-rbc.a: rbcvector-cuda-utils.cudaobj rbc-cuda.cudaobj rbcvector-cpu-utils.o
 	ar rcs $@ $^
 
 lib-rbc.so: rbcvector-cpu-utils.o rbc.o
-	$(CXX) $(CXXFLAGS) -shared -fPIC $^ -o $@
+	$(CC) $(CXXFLAGS) -shared -fPIC $^ -o $@
 
 %.o:%.cpp
-	$(CXX)  $(CXXFLAGS)  $(INCLUDES) -fPIC -c $< -o $@
+	$(CC)  $(CXXFLAGS)  $(INCLUDES) -fPIC -c $< -o $@
 
 %.cudaobj:%.cu
 	$(NVCC)  $(GPUFLAGS)  $(INCLUDES) -c $< -o $@
 
 %.d: %.cpp
-	$(CXX)  $(CXXFLAGS) $(THRUST_TARGET_CPU) -MM $< > $*.d
+	$(CC)  $(CXXFLAGS) $(THRUST_TARGET_CPU) -MM $< > $*.d
 
 %.dcu: %.cu
 	$(NVCC)  $(GPUFLAGS)  $(INCLUDES) -M $< -o $@
