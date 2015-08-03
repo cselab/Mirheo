@@ -74,7 +74,7 @@ namespace PackingHalo
 
     __constant__ int cellpackstarts[27];
 
-    struct CellPackSOA { int * start, * count; bool enabled; };
+    struct CellPackSOA { int * start, * count, * scan, size; bool enabled; };
 
     __constant__ CellPackSOA cellpacks[26];
 
@@ -191,6 +191,79 @@ namespace PackingHalo
 	}
     }
 #endif
+
+    template<int NWARPS>
+    __global__ void scan_diego()
+    {
+	assert(gridDim.x == 26 && blockDim.x == 32 * NWARPS);
+
+	__shared__ int shdata[32];
+
+	const int code = blockIdx.x;
+	const int * const count = cellpacks[code].count;
+	int * const start = cellpacks[code].scan;
+	const int n = cellpacks[code].size;
+
+	const int tid = threadIdx.x;
+	const int laneid = threadIdx.x & 0x1f;
+	const int warpid = threadIdx.x >> 5;
+
+	int lastval = 0;
+
+	for(int sourcebase = 0; sourcebase < n; sourcebase += 32 * NWARPS)
+	{
+	    const int sourceid = sourcebase + tid;
+
+	    int mycount = 0, myscan = 0;
+
+	    if (sourceid < n)
+		myscan = mycount = count[sourceid];
+
+	    if (tid == 0)
+		myscan += lastval;
+
+	    for(int L = 1; L < 32; L <<= 1)
+	    {
+		const int val = __shfl_up(myscan, L);
+
+		if (laneid >= L)
+		    myscan += val;
+	    }
+
+	    if (laneid == 31)
+		shdata[warpid] = myscan;
+
+	    __syncthreads();
+
+	    if (warpid == 0)
+	    {
+		int gs = 0;
+
+		if (laneid < NWARPS)
+		    gs = shdata[tid];
+
+		for(int L = 1; L < 32; L <<= 1)
+		{
+		    const int val = __shfl_up(gs, L);
+
+		    if (laneid >= L)
+			gs += val;
+		}
+
+		shdata[tid] = gs;
+
+		lastval = __shfl(gs, 31);
+	    }
+
+	    __syncthreads();
+
+	    if (warpid)
+		myscan += shdata[warpid - 1];
+
+	    if (sourceid < n)
+		start[sourceid] = myscan - mycount;
+	}
+    }
 
     struct SendBagInfo
     {
@@ -350,6 +423,8 @@ void HaloExchanger::pack(const Particle * const p, const int n, const int * cons
 		cellpacks[i].start = sendhalos[i].tmpstart.data;
 		cellpacks[i].count = sendhalos[i].tmpcount.data;
 		cellpacks[i].enabled = sendhalos[i].expected > 0;
+		cellpacks[i].scan = sendhalos[i].dcellstarts.data;
+		cellpacks[i].size = sendhalos[i].dcellstarts.size;
 	    }
 
 	    CUDA_CHECK(cudaMemcpyToSymbol(PackingHalo::cellpacks, cellpacks,
@@ -360,24 +435,9 @@ void HaloExchanger::pack(const Particle * const p, const int n, const int * cons
     PackingHalo::count_all<<<(PackingHalo::ncells + 127) / 128, 128, 0, stream>>>(cellsstart, cellscount, PackingHalo::ncells);
 
     if (!is_mps_enabled)
-    {
-	int * input_count[26],  * output_scan[26], scan_sizes[26];
-	for(int i = 0; i < 26; ++i)
-	{
-	    input_count[i] = sendhalos[i].tmpcount.data;
-	    output_scan[i] = sendhalos[i].dcellstarts.data;
-	    scan_sizes[i] = sendhalos[i].tmpcount.size;
-	}
-
-	scan_massimo(input_count, output_scan, scan_sizes, stream);
-
-	CUDA_CHECK(cudaPeekAtLastError());
-    }
+	PackingHalo::scan_diego< 16 ><<< 26, 16 * 32, 0, stream>>>();
     else
-	for(int i = 0; i < 26; ++i)
-	    if (sendhalos[i].expected)
-		scan.exclusive(0, (uint*)sendhalos[i].dcellstarts.data, (uint*)sendhalos[i].tmpcount.data,
-			       sendhalos[i].tmpcount.size);
+	PackingHalo::scan_diego< 1 ><<< 26, 1 * 32, 0, stream>>>();
 
     if (firstpost)
 	post_expected_recv();
@@ -473,7 +533,7 @@ void HaloExchanger::consolidate_and_post(const Particle * const p, const int n, 
 
     //this is commented due to the hanging described below
     //CUDA_CHECK(cudaEventRecord(evdownloaded, downloadstream));
-    
+
 #ifndef NDEBUG
     CUDA_CHECK(cudaStreamSynchronize(0));
 
@@ -494,7 +554,7 @@ void HaloExchanger::consolidate_and_post(const Particle * const p, const int n, 
     CUDA_CHECK(cudaStreamSynchronize(downloadstream));
     //this hangs undefinitely on XK7 (please confirm)
     //CUDA_CHECK(cudaEventSynchronize(evdownloaded));
-    
+
     {
 	NVTX_RANGE("HEX/send", NVTX_C2);
 
