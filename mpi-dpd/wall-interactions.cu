@@ -295,11 +295,11 @@ namespace SolidWallsKernel
 	    subdt = min(dt, max(0.f, subdt - currsdf / DphiDt * 1.02f));
 	}
 
-#if 0
+#if 1
 	{
 	    const float3 xstar = make_float3(x + subdt * u, y + subdt * v, z + subdt * w);
-	    const float3 mygrad = max(1e-4f, ugrad_sdf(xstar.x, xstar.y, xstar.z));
-	    const float DphiDt = mygrad.x * u + mygrad.y * v + mygrad.z * w;
+	    const float3 mygrad = ugrad_sdf(xstar.x, xstar.y, xstar.z);
+	    const float DphiDt = max(1e-4f, mygrad.x * u + mygrad.y * v + mygrad.z * w);
 
 	    assert(DphiDt > 0);
 
