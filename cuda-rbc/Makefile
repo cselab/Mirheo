@@ -52,13 +52,13 @@ clean:
 test-rbc: main.o rbcvector-cpu-utils.o rbc.o
 	$(CC) $^  $(LIBS) -o $@
 
-test-cuda-rbc: main.cudaobj rbc-cuda.cudaobj #rbc.o
+test-cuda-rbc: main.cudaobj rbc-cuda.cudaobj
 	$(CC) $(GPULIBS) $^ -o $@
 
-libcuda-rbc.so: rbcvector-cuda-utils.cudaobj rbc-cuda.cudaobj rbcvector-cpu-utils.o
+libcuda-rbc.so: rbc-cuda.cudaobj
 	$(CC) $(CXXFLAGS) -shared $^ -o $@ -L/usr/local/cuda-6.0/lib64/ -lcudart -lcurand
 
-libcuda-rbc.a: rbcvector-cuda-utils.cudaobj rbc-cuda.cudaobj rbcvector-cpu-utils.o
+libcuda-rbc.a: rbc-cuda.cudaobj
 	ar rcs $@ $^
 
 lib-rbc.so: rbcvector-cpu-utils.o rbc.o

@@ -121,7 +121,7 @@ namespace CudaRBC
         const float scale=1;
         const bool report = false;
 
-        FILE * f = fopen("../cuda-rbc/sphere.dat", "r");
+        FILE * f = fopen("../cuda-rbc/rbc.dat", "r");
         if (!f)
         {
             printf("Error in cuda-rbc: data file not found!\n");
@@ -161,7 +161,7 @@ namespace CudaRBC
             const int retval = fscanf(f, "%d %d %d %d %d\n", dummy + 0, dummy + 1,
                     &tri.x, &tri.y, &tri.z);
 
-            tri.x -= 1;      tri.y -= 1;      tri.z -= 1;
+            //tri.x -= 1;      tri.y -= 1;      tri.z -= 1;
 
             if (retval != 5)
                 break;
@@ -318,8 +318,6 @@ namespace CudaRBC
         float ll = lunit / lrbc;
         float tt = tunit / trbc;
 
-        float l0 = 0.537104 / ll;
-
         params.kbT = 580 * 250 * pow(ll, -2.0) * pow(tt, 2.0);
         params.p = p / ll;
         params.lmax = lmax / ll;
@@ -327,8 +325,9 @@ namespace CudaRBC
         params.Cq = cq * params.kbT * pow(ll, -2.0);
         params.totArea0 = totArea0 * pow(ll, -2.0);
         params.totVolume0 = totVolume0 * pow(ll, -3.0);
-        params.ka =  params.kbT * ka / (l0*l0);
-        params.kv =  params.kbT * kv / (l0*l0*l0);//	params.kv =  params.kbT * kv * (l0*l0*l0);
+        params.l0 = sqrt(params.totArea0 / (2.0*params.nvertices - 4.) * 4.0/sqrt(3.0));
+        params.ka = ka * params.kbT / (params.totArea0 * params.l0 * params.l0);
+        params.kv = kv * params.kbT / (6 * params.totVolume0 * powf(params.l0, 3));
         params.gammaC = gammaC * 580 * pow(tt, 1.0);
         params.gammaT = 3.0 * params.gammaC;
 
@@ -349,6 +348,7 @@ namespace CudaRBC
             printf("    DPD unit of time:  %e\n",   tunit);
             printf("    DPD unit of length:  %e\n\n", lunit);
             printf("\t Lmax    %12.5f  (%12.5f)\n", lmax,   params.lmax);
+            printf("\t l0      %12.5f\n",           params.l0);
             printf("\t p       %12.5f  (%12.5f)\n", p,      params.p);
             printf("\t Cq      %12.5f  (%12.5f)\n", cq,     params.Cq);
             printf("\t kb      %12.5f  (%12.5f)\n", kb,     params.kb);
