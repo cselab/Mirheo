@@ -373,7 +373,7 @@ namespace SolidWallsKernel
 	}
     }
 
-    __global__ void interactions_3tpp(const float2 * const particles, const int np, const int nsolid,
+    __global__ __launch_bounds__(128, 16) void interactions_3tpp(const float2 * const particles, const int np, const int nsolid,
 				     float * const acc, const float seed, const float sigmaf)
     {
 	assert(blockDim.x * gridDim.x >= np * 3);
@@ -453,6 +453,7 @@ namespace SolidWallsKernel
 
 	float xforce = 0, yforce = 0, zforce = 0;
 
+#pragma unroll 2
 	for(int i = 0; i < ncandidates; ++i)
 	{
 	    const int m1 = (int)(i >= scan1);
