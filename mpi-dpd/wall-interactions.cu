@@ -58,8 +58,8 @@ namespace SolidWallsKernel
     texture<float4, 1, cudaReadModeElementType> texWallParticles;
     texture<int, 1, cudaReadModeElementType> texWallCellStart, texWallCellCount;
 
-    __global__ void interactions_3tpp(const Particle * const particles, const int np, const int nsolid,
-				     Acceleration * const acc, const float seed, const float sigmaf);
+    __global__ void interactions_3tpp(const float2 * const particles, const int np, const int nsolid,
+				     float * const acc, const float seed, const float sigmaf);
     void setup()
     {
 	texSDF.normalized = 0;
@@ -373,8 +373,8 @@ namespace SolidWallsKernel
 	}
     }
 
-    __global__ void interactions_3tpp(const Particle * const particles, const int np, const int nsolid,
-				     Acceleration * const acc, const float seed, const float sigmaf)
+    __global__ void interactions_3tpp(const float2 * const particles, const int np, const int nsolid,
+				     float * const acc, const float seed, const float sigmaf)
     {
 	assert(blockDim.x * gridDim.x >= np * 3);
 
@@ -385,50 +385,37 @@ namespace SolidWallsKernel
 	if (pid >= np)
 	    return;
 
-	Particle p = particles[pid];
-	//const float2 dst0 = particles[3 * pid + 0];
-	//const float2 dst1 = particles[3 * pid + 1];
+	const float2 dst0 = particles[3 * pid + 0];
+	const float2 dst1 = particles[3 * pid + 1];
 
-	const float mygoodsdf = sdf(p.x[0], p.x[1], p.x[2]);
-	const float mysdf = cheap_sdf(p.x[0], p.x[1], p.x[2]);
-	bool bempty =  (mysdf <= -1 - 1.7320f * ((float)XSIZE_WALLCELLS / (float)XTEXTURESIZE));
+	const float interacting_threshold = -1 - 1.7320f * ((float)XSIZE_WALLCELLS / (float)XTEXTURESIZE);
 
-	if (bempty)
+	if (cheap_sdf(dst0.x, dst0.y, dst1.x) <= interacting_threshold)
 	    return;
 
-	const int L[3] = { XSIZE_SUBDOMAIN, YSIZE_SUBDOMAIN, ZSIZE_SUBDOMAIN };
-	const int MARGIN[3] = { XMARGIN_WALL, YMARGIN_WALL, ZMARGIN_WALL };
+	const float2 dst2 = particles[3 * pid + 2];
 
-	int base[3];
-	for(int c = 0; c < 3; ++c)
+#ifndef NDEBUG
 	{
-	    assert(p.x[c] >= -L[c]/2 - MARGIN[c]);
-	    assert(p.x[c] < L[c]/2 + MARGIN[c]);
-	    base[c] = (int)(p.x[c] - (-L[c]/2 - MARGIN[c]));
+	    const int L[3] = { XSIZE_SUBDOMAIN, YSIZE_SUBDOMAIN, ZSIZE_SUBDOMAIN };
+	    const int MARGIN[3] = { XMARGIN_WALL, YMARGIN_WALL, ZMARGIN_WALL };
+	    const float x[3] = { dst0.x, dst0.y, dst1.x};
+
+	    for(int c = 0; c < 3; ++c)
+	    {
+		assert( x[c] >= -L[c]/2 - MARGIN[c]);
+		assert( x[c] < L[c]/2 + MARGIN[c]);
+	    }
 	}
-	
-	assert (base[0] > 0 || base[0] < -1 + XSIZE_SUBDOMAIN + 2 * XMARGIN_WALL ||
-		base[1] > 0 || base[1] < -1 + YSIZE_SUBDOMAIN + 2 * YMARGIN_WALL ||
-		base[2] > 0 || base[2] < -1 + ZSIZE_SUBDOMAIN + 2 * ZMARGIN_WALL );
-	    
-	const float xp = p.x[0], yp = p.x[1], zp = p.x[2];
-	const float up = p.u[0], vp = p.u[1], wp = p.u[2];
-
-	float xforce = 0, yforce = 0, zforce = 0;
-
-	const int codestart = zplane * 9;
-	const int codestop = (zplane + 1) * 9;
-
-	//int start[3], count[3];
-	//int mynsrc = 0;
+#endif
 
 	uint scan1, scan2, ncandidates, spidbase;
-	int deltaspid1 = 0, deltaspid2 = 0;
-	//for(int i = 0; i < 3; ++i)
+	int deltaspid1, deltaspid2;
+
 	{
-	    const int xcid = base[0] - 1;
-	    const int ycid = base[1] - 1 + 0;
-	    const int zcid = base[2] - 1 + zplane;
+	    const int xbase = (int)(dst0.x - (-XSIZE_SUBDOMAIN/2 - XMARGIN_WALL));
+	    const int ybase = (int)(dst0.y - (-YSIZE_SUBDOMAIN/2 - YMARGIN_WALL));
+	    const int zbase = (int)(dst1.x - (-ZSIZE_SUBDOMAIN/2 - ZMARGIN_WALL));
 
 	    enum
 	    {
@@ -437,8 +424,12 @@ namespace SolidWallsKernel
 		ZCELLS = ZSIZE_SUBDOMAIN + 2 * ZMARGIN_WALL,
 		NCELLS = XCELLS * YCELLS * ZCELLS
 	    };
-	    
-	    const int cid0 = xcid + XCELLS * (ycid + YCELLS * zcid);
+
+	    assert (xbase > 0 && xbase < -1 + XCELLS &&
+		    ybase > 0 && ybase < -1 + YCELLS &&
+		    zbase > 0 && zbase < -1 + ZCELLS );
+
+	    const int cid0 = xbase - 1 + XCELLS * (ybase - 1 + YCELLS * (zbase - 1 + zplane));
 
 	    spidbase = tex1Dfetch(texWallCellStart, cid0);
 	    int count0 = tex1Dfetch(texWallCellStart, cid0 + 3) - spidbase;
@@ -458,101 +449,60 @@ namespace SolidWallsKernel
 
 	    deltaspid1 -= scan1;
 	    deltaspid2 -= scan2;
-	    //mynsrc += tex1Dfetch(texWallCellStart, cid1) - tex1Dfetch(texWallCellStart, cid0);
 	}
 
-/*	int myctr = 0;
-	for(int code = codestart; code < codestop; ++code)
-	{
-	    const int xcid = base[0] + (code % 3) - 1;
-	    const int ycid = base[1] + (code/3 % 3) - 1;
-	    const int zcid = base[2] + (code/9 % 3) - 1;
+	float xforce = 0, yforce = 0, zforce = 0;
 
-	    if (xcid < 0 || xcid >= XSIZE_SUBDOMAIN + 2 * XMARGIN_WALL ||
-		ycid < 0 || ycid >= YSIZE_SUBDOMAIN + 2 * YMARGIN_WALL ||
-		zcid < 0 || zcid >= ZSIZE_SUBDOMAIN + 2 * ZMARGIN_WALL )
-		continue;
-
-	    const int cid = xcid +
-		(XSIZE_SUBDOMAIN + 2 * XMARGIN_WALL) *
-		(ycid + (YSIZE_SUBDOMAIN + 2 * YMARGIN_WALL) * zcid);
-
-	    assert(cid >= 0 && cid < (XSIZE_SUBDOMAIN + 2 * XMARGIN_WALL) *
-		   (YSIZE_SUBDOMAIN + 2 * YMARGIN_WALL) *
-		   (ZSIZE_SUBDOMAIN + 2 * ZMARGIN_WALL));
-
-	    const int start = tex1Dfetch(texWallCellStart, cid);
-	    const int stop = start + tex1Dfetch(texWallCellCount, cid);
-	    //myctr += stop - start;
-	    //assert(stop - start == 0 || !bempty);
-
-	    assert(start >= 0 && stop <= nsolid && start <= stop);
-
-	    for(int s = start; s < stop; ++s)
-	    {*/
 	for(int i = 0; i < ncandidates; ++i)
-		{
-//		    const int i = myctr;
-		    const int m1 = (int)(i >= scan1);
-		    const int m2 = (int)(i >= scan2);
-		    const int spid = i + (m2 ? deltaspid2 : m1 ? deltaspid1 : spidbase);
-		    if (!(spid >= 0 && spid < nsolid))
-			printf("i %d n %d scans: %d %d spidbas %d spid  %d\n", i, ncandidates, scan1, scan2, spidbase, spid);
-		    
-		    assert(spid >= 0 && spid < nsolid);
+	{
+	    const int m1 = (int)(i >= scan1);
+	    const int m2 = (int)(i >= scan2);
+	    const int spid = i + (m2 ? deltaspid2 : m1 ? deltaspid1 : spidbase);
 
-		    //assert(spid == s);
-//		    myctr++;
-		    //	}
-		const float4 stmp0 = tex1Dfetch(texWallParticles, spid);
+	    assert(spid >= 0 && spid < nsolid);
 
-		const float xq = stmp0.x;
-		const float yq = stmp0.y;
-		const float zq = stmp0.z;
+	    const float4 stmp0 = tex1Dfetch(texWallParticles, spid);
 
-	    	const float _xr = xp - xq;
-		const float _yr = yp - yq;
-		const float _zr = zp - zq;
+	    const float xq = stmp0.x;
+	    const float yq = stmp0.y;
+	    const float zq = stmp0.z;
 
-		const float rij2 = _xr * _xr + _yr * _yr + _zr * _zr;
+	    const float _xr = dst0.x - xq;
+	    const float _yr = dst0.y - yq;
+	    const float _zr = dst1.x - zq;
 
-		const float invrij = rsqrtf(rij2);
+	    const float rij2 = _xr * _xr + _yr * _yr + _zr * _zr;
 
-		const float rij = rij2 * invrij;
+	    const float invrij = rsqrtf(rij2);
 
-		
-		const float argwr = max((float)0, 1 - rij);
-		
-		const float wr = viscosity_function<-VISCOSITY_S_LEVEL>(argwr);
+	    const float rij = rij2 * invrij;
+	    const float argwr = max(0.f, 1.f - rij);
+	    const float wr = viscosity_function<-VISCOSITY_S_LEVEL>(argwr);
 
-		const float xr = _xr * invrij;
-		const float yr = _yr * invrij;
-		const float zr = _zr * invrij;
+	    const float xr = _xr * invrij;
+	    const float yr = _yr * invrij;
+	    const float zr = _zr * invrij;
 
-		const float rdotv =
-		    xr * (up - 0) +
-		    yr * (vp - 0) +
-		    zr * (wp - 0);
+	    const float rdotv =
+		xr * (dst1.y - 0) +
+		yr * (dst2.x - 0) +
+		zr * (dst2.y - 0);
 
-		const float myrandnr = Logistic::mean0var1(seed, pid, spid);
+	    const float myrandnr = Logistic::mean0var1(seed, pid, spid);
 
-		const float strength = aij * argwr + (- gammadpd * wr * rdotv + sigmaf * myrandnr) * wr;
+	    const float strength = aij * argwr + (- gammadpd * wr * rdotv + sigmaf * myrandnr) * wr;
 
-		xforce += strength * xr;
-		yforce += strength * yr;
-		zforce += strength * zr;
-	    }
-//	}
-    //if (ncandidates != myctr)
-//	    printf("oh no mynsrc %d myctr %d\n", ncandidates, myctr); 
-//	assert(ncandidates == myctr );
+	    xforce += strength * xr;
+	    yforce += strength * yr;
+	    zforce += strength * zr;
+	}
 
-	atomicAdd(&acc[pid].a[0], xforce);
-	atomicAdd(&acc[pid].a[1], yforce);
-	atomicAdd(&acc[pid].a[2], zforce);
+	atomicAdd(acc + 3 * pid + 0, xforce);
+	atomicAdd(acc + 3 * pid + 1, yforce);
+	atomicAdd(acc + 3 * pid + 2, zforce);
 
 	for(int c = 0; c < 3; ++c)
-	    assert(!isnan(acc[pid].a[c]));
+	    assert(!isnan(acc[3 * pid + c]));
     }
 }
 
@@ -1079,7 +1029,7 @@ void ComputeInteractionsWall::interactions(const Particle * const p, const int n
 	assert(textureoffset == 0);
 
 	SolidWallsKernel::interactions_3tpp<<< (3 * n + 127) / 128, 128, 0, stream>>>
-	    (p, n, solid_size, acc, trunk.get_float(), sigmaf);
+	    ((float2 *)p, n, solid_size, (float *)acc, trunk.get_float(), sigmaf);
 
 	CUDA_CHECK(cudaUnbindTexture(SolidWallsKernel::texWallParticles));
 	CUDA_CHECK(cudaUnbindTexture(SolidWallsKernel::texWallCellStart));
