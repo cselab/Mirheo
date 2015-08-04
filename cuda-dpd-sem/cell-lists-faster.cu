@@ -14,7 +14,7 @@
 #include <cstdio>
 #include <cassert>
 
-#define TEST_MAURO
+//#define TEST_MAURO
 
 texture<float, cudaTextureType1D> texParticlesCLS;
 

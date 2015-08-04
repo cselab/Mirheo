@@ -400,6 +400,7 @@ namespace PackingHalo
 	    required_bag_size[code] = base_dst;
     }
 
+
 #ifndef NDEBUG
     __global__ void check_send_particles(Particle * p, int n, int code)
     {
