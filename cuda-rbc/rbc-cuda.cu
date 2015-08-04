@@ -116,6 +116,10 @@ namespace CudaRBC
         float x[3], u[3];
     };
 
+    template <int nvertices>
+    __global__ __launch_bounds__(128, 12)
+    void fall_kernel(const int nrbcs, float* const __restrict__ av, float * const acc);
+
     void setup(int& nvertices, Extent& host_extent)
     {
         const float scale=1;
@@ -306,6 +310,8 @@ namespace CudaRBC
         CUDA_CHECK( cudaMalloc(&host_av, 1 * 2 * sizeof(float)) );
 
         unitsSetup(1.64, 0.001412, 19.0476, 35, 2500, 3500, 50, 135, 91, 1e-6, 2.4295e-6, 4, report);
+
+        CUDA_CHECK( cudaFuncSetCacheConfig(fall_kernel<498>, cudaFuncCachePreferL1) );
     }
 
     void unitsSetup(float lmax, float p, float cq, float kb, float ka, float kv, float gammaC,
