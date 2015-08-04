@@ -265,6 +265,75 @@ namespace PackingHalo
 	}
     }
 
+    template<>
+    __global__ void scan_diego<1>()
+    {
+	assert(blockDim.x == 32);
+
+	const int code = blockIdx.x;
+	const int * const input = cellpacks[code].count;
+	int * const output = cellpacks[code].scan;
+	const int n = cellpacks[code].size;
+
+	enum { BATCHSIZE = 16 };
+
+	const int laneid = threadIdx.x;
+
+	int baseval = 0;
+
+	for(int base = 0; base < n; base += 32 * BATCHSIZE)
+	{
+	    int count[BATCHSIZE];
+
+#pragma unroll
+	    for(int i = 0; i < BATCHSIZE; ++i)
+		count[i] = 0;
+
+#pragma unroll
+	    for(int i = 0; i < BATCHSIZE; ++i)
+	    {
+		const int entry = base + laneid + i * 32;
+
+		if (entry < n)
+		    count[i] = input[entry];
+	    }
+
+	    int scan[BATCHSIZE];
+
+#pragma unroll
+	    for(int i = 0; i < BATCHSIZE; ++i)
+		scan[i] = count[i];
+
+#pragma unroll 5
+	    for(int L = 1; L < 32; L <<= 1)
+	    {
+#pragma unroll
+		for(int i = 0; i < BATCHSIZE; ++i)
+		{
+		    const int val = __shfl_up(scan[i], L);
+
+		    if (laneid >= L)
+			scan[i] += val;
+		}
+	    }
+
+#pragma unroll
+	    for(int i = 1; i < BATCHSIZE; ++i)
+		scan[i] += __shfl(scan[i - 1], 31);
+
+#pragma unroll
+	    for(int i = 0; i < BATCHSIZE; ++i)
+	    {
+		const int entry = base + laneid + i * 32;
+
+		if (entry < n)
+		    output[entry] = scan[i] - count[i] + baseval;
+	    }
+
+	    baseval += __shfl(scan[BATCHSIZE - 1], 31);
+	}
+    }
+
     struct SendBagInfo
     {
 	const int * start_src, * count_src, * start_dst;
