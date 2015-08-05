@@ -540,6 +540,8 @@ struct FieldSampler
 
 	    if (verbose)
 		printf("reading header...\n");
+
+	    static const size_t CHUNKSIZE = 1 << 25;
 #if 1
 	    int rank;
 	    MPI_CHECK(MPI_Comm_rank(comm, &rank));
@@ -601,7 +603,14 @@ struct FieldSampler
 		fclose(fh);
 
 		printf("broadcasting data\n");
-		MPI_CHECK( MPI_Bcast( data, nvoxels, MPI_FLOAT, 0, comm ) );
+
+		for(size_t i = 0; i < nvoxels; i += CHUNKSIZE)
+		{
+		    size_t s = (i + CHUNKSIZE <= nvoxels ) ? CHUNKSIZE : (nvoxels - i);
+		    MPI_CHECK( MPI_Bcast(data + i, s, MPI_FLOAT, 0, comm ) );
+		    printf("bum %d\n", i);
+		}
+
 	    }
 	    else
 	    {
@@ -611,7 +620,12 @@ struct FieldSampler
 
 		data = new float[nvoxels];
 
-		MPI_CHECK( MPI_Bcast( data, nvoxels, MPI_FLOAT, 0, comm ) );
+		for(size_t i = 0; i < nvoxels; i += CHUNKSIZE)
+		{
+		    size_t s = (i + CHUNKSIZE <= nvoxels ) ? CHUNKSIZE : (nvoxels - i);
+		    MPI_CHECK( MPI_Bcast(data + i, s, MPI_FLOAT, 0, comm ) );
+		}
+
 	    }
 #else
 	    char header[2048];
