@@ -540,7 +540,80 @@ struct FieldSampler
 
 	    if (verbose)
 		printf("reading header...\n");
+#if 1
+	    int rank;
+	    MPI_CHECK(MPI_Comm_rank(comm, &rank));
 
+	    if (rank==0)
+	    {
+		char header[2048];
+
+		FILE * fh = fopen(path, "rb");
+
+		fread(header, 1, sizeof(header), fh);
+
+		printf("root parsing header\n");
+		const int retval = sscanf(header, "%f %f %f\n%d %d %d\n", extent + 0, extent + 1, extent + 2, N + 0, N + 1, N + 2);
+
+		if(retval != 6)
+		{
+		    printf("ooops something went wrong in reading %s.\n", path);
+		    exit(EXIT_FAILURE);
+		}
+
+		printf("broadcasting N\n");
+		MPI_CHECK( MPI_Bcast( N, 3, MPI_INT, 0, comm ) );
+		MPI_CHECK( MPI_Bcast(extent, 3, MPI_FLOAT, 0, comm ) );
+
+		if (verbose)
+		    printf("allocating data...\n");
+
+		const int nvoxels = N[0] * N[1] * N[2];
+
+		data = new float[nvoxels];
+
+		if(data == NULL)
+		{
+		    printf("ooops bad allocation %s.\n", path);
+		    exit(EXIT_FAILURE);
+		}
+
+		int header_size = 0;
+
+		for(int i = 0; i < sizeof(header); ++i)
+		    if (header[i] == '\n')
+		    {
+			if (header_size > 0)
+			{
+			    header_size = i + 1;
+			    break;
+			}
+
+			header_size = i + 1;
+		    }
+
+		if (verbose)
+		    printf("reading binary data... from byte %d\n", header_size);
+
+		fseek(fh, header_size, SEEK_SET);
+		fread(data, sizeof(float), nvoxels, fh);
+
+		fclose(fh);
+
+		printf("broadcasting data\n");
+		MPI_CHECK( MPI_Bcast( data, nvoxels, MPI_FLOAT, 0, comm ) );
+	    }
+	    else
+	    {
+		MPI_CHECK( MPI_Bcast( N, 3, MPI_INT, 0, comm ) );
+		MPI_CHECK( MPI_Bcast(extent, 3, MPI_FLOAT, 0, comm ) );
+		const int nvoxels = N[0] * N[1] * N[2];
+
+		data = new float[nvoxels];
+
+		MPI_CHECK( MPI_Bcast( data, nvoxels, MPI_FLOAT, 0, comm ) );
+	    }
+#else
 	    char header[2048];
 
 	    MPI_File fh;
@@ -590,6 +663,7 @@ struct FieldSampler
 	    MPI_CHECK( MPI_File_read_at(fh, header_size, data, nvoxels, MPI_FLOAT, &status));
 
 	    MPI_CHECK( MPI_File_close(&fh));
+#endif
 	}
 
     void sample(const float start[3], const float spacing[3], const int nsize[3],
