@@ -33,8 +33,11 @@ test-cell-lists: test-cell-lists.cu cell-lists-faster.cu
 profiler-dpd.o:	profiler-dpd.cpp profiler-dpd.h
 	$(CXX) $(CXXFLAGS) -c profiler-dpd.cpp
 
-cell-lists.o: $(CELLING) cell-lists.h
-	$(NVCC) $(NVCCFLAGS) -c $(CELLING) -o $@
+cell-lists.o: cell-lists.cu cell-lists.h
+	$(NVCC) $(NVCCFLAGS) -c $< -o $@
+
+cell-lists-faster.o: cell-lists-faster.cu cell-lists.h
+	$(NVCC) $(NVCCFLAGS) -c $< -o $@
 
 clean:
 	rm -f test-cell-lists *.o

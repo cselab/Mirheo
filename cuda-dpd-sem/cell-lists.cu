@@ -100,10 +100,11 @@ __global__ void pid2code(int * codes, int * pids, const int np, const float * xy
     int iy = (int)floor(y);
     int iz = (int)floor(z);
     
-    if( !(ix >= 0 && ix < ncells.x) ||
+    /*   if( !(ix >= 0 && ix < ncells.x) ||
 	!(iy >= 0 && iy < ncells.y) ||
 	!(iz >= 0 && iz < ncells.z))
 	printf("pid %d: oops %f %f %f -> %d %d %d\n", pid, x, y, z, ix, iy, iz);
+    */
 
     ix = max(0, min(ncells.x - 1, ix));
     iy = max(0, min(ncells.y - 1, iy));
@@ -165,10 +166,10 @@ using namespace thrust;
 
 template<typename T> T * _ptr(device_vector<T>& v) { return raw_pointer_cast(v.data()); }
 
-void build_clists(float * const xyzuvw, int np, const float rc,
-		  const int xcells, const int ycells, const int zcells,
-		  const float xstart, const float ystart, const float zstart,
-		  int * const order, int * cellsstart, int * cellscount, std::pair<int, int *> * nonemptycells, cudaStream_t stream)
+void build_clists_vanilla(float * const xyzuvw, int np, const float rc,
+			  const int xcells, const int ycells, const int zcells,
+			  const float xstart, const float ystart, const float zstart,
+			  int * const order, int * cellsstart, int * cellscount, std::pair<int, int *> * nonemptycells, cudaStream_t stream, const float * const src_device_xyzuvw)
 {
     device_vector<int> codes(np), pids(np);
     pid2code<<<(np + 127) / 128, 128>>>(_ptr(codes), _ptr(pids), np, xyzuvw, make_int3(xcells, ycells, zcells), make_float3(xstart, ystart, zstart), 1./rc);
@@ -177,7 +178,11 @@ void build_clists(float * const xyzuvw, int np, const float rc,
     
     {
 	device_vector<float> tmp(np * 6);
-	copy(device_ptr<float>(xyzuvw), device_ptr<float>(xyzuvw + 6 * np), tmp.begin());
+
+	if (src_device_xyzuvw)
+	    copy(device_ptr<float>((float *)src_device_xyzuvw), device_ptr<float>((float *)src_device_xyzuvw + 6 * np), tmp.begin());
+	else
+	     copy(device_ptr<float>(xyzuvw), device_ptr<float>(xyzuvw + 6 * np), tmp.begin());
 	
 	_gather<<<(6 * np + 127) / 128, 128>>>(_ptr(tmp), _ptr(pids), xyzuvw, 6 * np);
 	CUDA_CHECK(cudaPeekAtLastError());
