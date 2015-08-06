@@ -34,7 +34,7 @@ void CellLists::build(Particle * const p, const int n, cudaStream_t stream, int 
 
 	if (n > 0)
 	{
-	    if (!is_mps_enabled || XSIZE_SUBDOMAIN < 64 && YSIZE_SUBDOMAIN < 64 && ZSIZE_SUBDOMAIN < 64)
+	    if (local_comm.get_size() <= 4 && !is_mps_enabled || XSIZE_SUBDOMAIN < 64 && YSIZE_SUBDOMAIN < 64 && ZSIZE_SUBDOMAIN < 64)
 		build_clists((float * )p, n, 1, LX, LY, LZ, -LX/2, -LY/2, -LZ/2, order, start, count,  NULL, stream, (float *)src);
 	    else
 		build_clists_vanilla((float * )p, n, 1, LX, LY, LZ, -LX/2, -LY/2, -LZ/2, order, start, count,  NULL, stream, (float *)src);
