@@ -324,15 +324,30 @@ public:
 
 int main(int argc, const char ** argv)
 {
-    if (argc != 4)
+    if ((argc != 4)&&(argc != 7))
     {
-	printf("usage: ./cell-placement <xdomain-extent> <ydomain-extent> <zdomain-extent>\n");
+	printf("usage-1: ./cell-placement <xdomain-extent> <ydomain-extent> <zdomain-extent>\n");
+	printf("usage-2: ./cell-placement <local_xdomain-extent> <local_ydomain-extent> <local_zdomain-extent> <xranks> <yranks> <zranks>\n");
 	exit(-1);
     }
 
     int domainextent[3];
-    for(int i = 0; i < 3; ++i)
-	domainextent[i] = atoi(argv[1 + i]);
+    if (argc == 4)
+    {
+	for(int i = 0; i < 3; ++i)
+	    domainextent[i] = atoi(argv[1 + i]);
+    }
+    if (argc == 7)
+    {
+	int ldomainextent[3];
+	int ranki[3];
+	for(int i = 0; i < 3; ++i)
+	{
+	    ldomainextent[i] = atoi(argv[1 + i]);
+	    ranki[i] = atoi(argv[4 + i]);
+	    domainextent[i] = ldomainextent[i]*ranki[i];
+	}
+    }
 
     printf("domain extent: %d %d %d\n",
 	   domainextent[0], domainextent[1], domainextent[2]);
