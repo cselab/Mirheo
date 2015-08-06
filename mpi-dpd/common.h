@@ -19,12 +19,12 @@
 #endif
 
 enum { 
-    XSIZE_SUBDOMAIN = 48,
-    YSIZE_SUBDOMAIN = 48,
-    ZSIZE_SUBDOMAIN = 48,
-    XMARGIN_WALL = 6,
-    YMARGIN_WALL = 6,
-    ZMARGIN_WALL = 6,
+    XSIZE_SUBDOMAIN = 64,
+    YSIZE_SUBDOMAIN = 64,
+    ZSIZE_SUBDOMAIN = 64,
+    XMARGIN_WALL = 14,
+    YMARGIN_WALL = 14,
+    ZMARGIN_WALL = 14,
 };
 
 const int numberdensity = 4;

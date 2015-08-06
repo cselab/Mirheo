@@ -15,13 +15,14 @@ using namespace std;
 
 namespace CudaRBC
 {
-    struct Params
-    {
-        float kbT, p, lmax, q, Cq, totArea0, totVolume0,
-        ka, kv, gammaT, gammaC,  sinTheta0, cosTheta0, kb, l0;
-        float sint0kb, cost0kb, kbToverp;
-        int  nvertices, ntriangles;
-    };
+	struct Params
+	{
+		float kbT, p, lmax, q, Cq, totArea0, totVolume0, area0,
+		ka, kd, kv, gammaT, gammaC,  sinTheta0, cosTheta0, kb,
+		rc, aij, gamma, sigma, dt, mass;
+		int ntriang, ndihedrals, nparticles;
+
+	};
 
 	struct Extent
 	{
