@@ -155,7 +155,7 @@ void Simulation::_redistribute()
 
     CUDA_CHECK(cudaPeekAtLastError());
 
-    localcomm.barrier();
+    //localcomm.barrier();
 
     timings["redistribute"] += MPI_Wtime() - tstart;
 }
@@ -804,7 +804,7 @@ void Simulation::_lockstep()
 
     CUDA_CHECK(cudaPeekAtLastError());
 
-    localcomm.barrier(); // peh: 1
+    //localcomm.barrier(); // peh: 1
 
     if (rbcscoll)
 	rbc_interactions.exchange_count();
@@ -923,7 +923,7 @@ void Simulation::_lockstep()
 
     swap(particles, newparticles);
 
-    localcomm.barrier();	// peh: +2
+    //localcomm.barrier();	// peh: +2
 
     int nrbcs;
     if (rbcscoll)

@@ -509,7 +509,7 @@ public:
 
 	void initialize(MPI_Comm active_comm);
 
-	void barrier();
+	//void barrier();
 
 	void print_particles(int np);
 
