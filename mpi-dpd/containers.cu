@@ -26,7 +26,7 @@ int (*CollectionCTC::indices)[3] = NULL, CollectionCTC::ntriangles = -1, Collect
 namespace ParticleKernels
 {
     __global__ void update_stage1(Particle * p, Acceleration * a, int n, float dt,
-				  const float _driving_acceleration, const float threshold, const bool check = true)
+				  const float _driving_acceleration, const float threshold, const bool doublePoiseuille, const bool check = true)
     {
 	assert(blockDim.x * gridDim.x >= n);
 
@@ -44,7 +44,7 @@ namespace ParticleKernels
 
 	float driving_acceleration = _driving_acceleration;
 
-	 if (doublepoiseuille && p[pid].x[1] <= threshold)
+	 if (doublePoiseuille && p[pid].x[1] <= threshold)
 	     driving_acceleration *= -1;
 
 	for(int c = 0; c < 3; ++c)
@@ -66,7 +66,8 @@ namespace ParticleKernels
     }
 
     __global__ void update_stage2_and_1(float2 * const _pdata, const float * const _adata,
-					const int nparticles, const float dt, const float _driving_acceleration, const float threshold)
+					const int nparticles, const float dt, const float _driving_acceleration, const float threshold,
+					const bool doublePoiseuille)
     {
 
 #if !defined(__CUDA_ARCH__)
@@ -154,7 +155,7 @@ namespace ParticleKernels
 
 	 float driving_acceleration = _driving_acceleration;
 
-	 if (doublepoiseuille && s0.y <= threshold)
+	 if (doublePoiseuille && s0.y <= threshold)
 	     driving_acceleration *= -1;
 
 	 s1.y += (ax + driving_acceleration) * dt;
@@ -234,14 +235,14 @@ void ParticleArray::update_stage1(const float driving_acceleration, cudaStream_t
 {
     if (size)
 	ParticleKernels::update_stage1<<<(xyzuvw.size + 127) / 128, 128, 0, stream>>>(
-	    xyzuvw.data, axayaz.data, xyzuvw.size, dt, driving_acceleration, globalextent.y * 0.5 - origin.y, false);
+	    xyzuvw.data, axayaz.data, xyzuvw.size, dt, driving_acceleration, globalextent.y * 0.5 - origin.y, doublepoiseuille, false);
 }
 
 void  ParticleArray::update_stage2_and_1(const float driving_acceleration, cudaStream_t stream)
 {
     if (size)
 	ParticleKernels::update_stage2_and_1<<<(xyzuvw.size + 127) / 128, 128, 0, stream>>>
-	    ((float2 *)xyzuvw.data, (float *)axayaz.data, xyzuvw.size, dt, driving_acceleration, globalextent.y * 0.5 - origin.y);
+	    ((float2 *)xyzuvw.data, (float *)axayaz.data, xyzuvw.size, dt, driving_acceleration, globalextent.y * 0.5 - origin.y, doublepoiseuille);
 }
 
 void ParticleArray::resize(int n)

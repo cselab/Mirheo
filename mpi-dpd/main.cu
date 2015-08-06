@@ -19,9 +19,13 @@
 #include <pmi.h>
 #endif
 
+#include "argument-parser.h"
 #include "simulation.h"
 
 bool currently_profiling = false;
+float tend;
+bool walls, pushtheflow, doublepoiseuille, rbcs, ctcs, xyz_dumps, hdf5field_dumps, hdf5part_dumps, is_mps_enabled;
+int steps_per_report, steps_per_dump, wall_creation_stepid;
 
 namespace SignalHandling
 {
@@ -52,7 +56,7 @@ int main(int argc, char ** argv)
     int ranks[3];
 
     //parsing of the positional arguments
-    if (argc != 4)
+    if (argc < 4)
     {
 	printf("usage: ./mpi-dpd <xranks> <yranks> <zranks>\n");
 	exit(-1);
@@ -60,6 +64,19 @@ int main(int argc, char ** argv)
     else
     	for(int i = 0; i < 3; ++i)
 	    ranks[i] = atoi(argv[1 + i]);
+
+    ArgumentParser argp(vector<string>(argv + 4, argv + argc));
+
+    tend = argp("-tend").asDouble(50);
+    walls = argp("-walls").asBool(false);
+    pushtheflow = argp("-pushtheflow").asBool(false);
+    doublepoiseuille = argp("-doublepoiseuille").asBool(false);
+    rbcs = argp("-rbcs").asBool(false);
+    ctcs = argp("-ctcs").asBool(false);
+    xyz_dumps = argp("-xyz_dumps").asBool(false);
+    steps_per_report = argp("-steps_per_report").asInt(1000);
+    steps_per_dump = argp("-steps_per_dump").asInt(1000);
+    wall_creation_stepid = argp("-wall_creation_stepid").asInt(5000);
 
     SignalHandling::setup();
 
@@ -174,6 +191,9 @@ int main(int argc, char ** argv)
 
 	//RAII
 	{
+	    if (rank == 0)
+		argp.print_arguments();
+
 	    Simulation simulation(cartcomm, activecomm, SignalHandling::check_termination_request);
 
 	    simulation.run();
@@ -193,4 +213,3 @@ int main(int argc, char ** argv)
 
     return 0;
 }
-

@@ -16,8 +16,6 @@
 
 #include "common.h"
 
-bool is_mps_enabled;
-
 #ifdef _USE_NVTX_
 bool NvtxTracer::currently_profiling = false;
 #endif
