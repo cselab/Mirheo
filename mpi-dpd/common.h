@@ -509,8 +509,6 @@ public:
 
 	void initialize(MPI_Comm active_comm);
 
-	void barrier();
-
 	void print_particles(int np);
 
 	int get_size() { return local_nranks; }

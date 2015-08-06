@@ -454,10 +454,7 @@ void HaloExchanger::_pack_all(const Particle * const p, const int n, const bool 
 	    baginfos[i].hbag = sendhalos[i].hbuf.data;
 	}
 
-	if (!is_mps_enabled)
-	    CUDA_CHECK(cudaMemcpyToSymbolAsync(PackingHalo::baginfos, baginfos, sizeof(baginfos), 0, cudaMemcpyHostToDevice, stream)); // peh: added stream
-	else
-	    CUDA_CHECK(cudaMemcpyToSymbol(PackingHalo::baginfos, baginfos, sizeof(baginfos), 0, cudaMemcpyHostToDevice));
+	CUDA_CHECK(cudaMemcpyToSymbolAsync(PackingHalo::baginfos, baginfos, sizeof(baginfos), 0, cudaMemcpyHostToDevice, stream)); // peh: added stream
     }
 
     PackingHalo::fill_all<<< (PackingHalo::ncells + 1) / 2, 32, 0, stream>>>(p, n, required_send_bag_size);
@@ -506,25 +503,9 @@ void HaloExchanger::pack(const Particle * const p, const int n, const int * cons
 
     PackingHalo::count_all<<<(PackingHalo::ncells + 127) / 128, 128, 0, stream>>>(cellsstart, cellscount, PackingHalo::ncells);
 
-    if (!is_mps_enabled)
-    {
-	PackingHalo::scan_diego< 32 ><<< 26, 32 * 32, 0, stream>>>();
+    PackingHalo::scan_diego< 32 ><<< 26, 32 * 32, 0, stream>>>();
 
-/* or in alternative:
-	int * input_count[26],  * output_scan[26], scan_sizes[26];
-	for(int i = 0; i < 26; ++i)
-	{
-	    input_count[i] = sendhalos[i].tmpcount.data;
-	    output_scan[i] = sendhalos[i].dcellstarts.data;
-	    scan_sizes[i] = sendhalos[i].tmpcount.size;
-	}
-
-	scan_massimo(input_count, output_scan, scan_sizes, stream);
-*/
-	CUDA_CHECK(cudaPeekAtLastError());
-    }
-    else
-	PackingHalo::scan_diego< 1 ><<< 26, 1 * 32, 0, stream>>>();
+    CUDA_CHECK(cudaPeekAtLastError());
 
     if (firstpost)
 	post_expected_recv();
@@ -615,8 +596,9 @@ void HaloExchanger::consolidate_and_post(const Particle * const p, const int n, 
     }
 
     for(int i = 0; i < 26; ++i)
-    	CUDA_CHECK(cudaMemcpyAsync(sendhalos[i].hbuf.data, sendhalos[i].dbuf.data, sizeof(Particle) * sendhalos[i].hbuf.size,
-				   cudaMemcpyDeviceToHost, downloadstream));
+	if (sendhalos[i].hbuf.size)
+	    CUDA_CHECK(cudaMemcpyAsync(sendhalos[i].hbuf.data, sendhalos[i].dbuf.data, sizeof(Particle) * sendhalos[i].hbuf.size,
+				       cudaMemcpyDeviceToHost, downloadstream));
 
     //this is commented due to the hanging described below
     //CUDA_CHECK(cudaEventRecord(evdownloaded, downloadstream));

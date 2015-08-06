@@ -155,8 +155,6 @@ void Simulation::_redistribute()
 
     CUDA_CHECK(cudaPeekAtLastError());
 
-    localcomm.barrier();
-
     timings["redistribute"] += MPI_Wtime() - tstart;
 }
 
@@ -263,7 +261,7 @@ void Simulation::_create_walls(const bool verbose, bool & termination_request)
 	    const double xvelavg = getenv("XVELAVG") ? atof(getenv("XVELAVG")) : pushtheflow;
 	    const double yvelavg = getenv("YVELAVG") ? atof(getenv("YVELAVG")) : 0;
 	    const double zvelavg = getenv("ZVELAVG") ? atof(getenv("ZVELAVG")) : 0;
-	    
+
 	    for(int code = 0; code < 27; ++code)
 	    {
 		const int d[3] = {
@@ -271,21 +269,21 @@ void Simulation::_create_walls(const bool verbose, bool & termination_request)
 		    ((code / 3) % 3) - 1,
 		    ((code / 9) % 3) - 1
 		};
-		
+
 		const double IudotnI =
 		    fabs(d[0] * xvelavg) +
 		    fabs(d[1] * yvelavg) +
 		    fabs(d[2] * zvelavg) ;
-		
+
 		const float factor = 1 + IudotnI * dt * 10 * numberdensity;
-		
+
 		//printf("RANK %d: direction %d %d %d -> IudotnI is %f and final factor is %f\n",
 		//rank, d[0], d[1], d[2], IudotnI, 1 + IudotnI * dt * numberdensity);
-		
+
 		new_sizes.msgsizes[code] *= factor;
 	    }
 	}
-	
+
 	MPI_CHECK(MPI_Barrier(activecomm));
 	redistribute.adjust_message_sizes(new_sizes);
 	dpd.adjust_message_sizes(new_sizes);
@@ -620,7 +618,7 @@ void Simulation::_datadump_async()
 	curr_idtimestep = datadump_idtimestep;
 
 	pthread_mutex_lock(&mutex_datadump);
-	
+
 	if (simulation_is_done)
 	{
 	    pthread_mutex_unlock(&mutex_datadump);
@@ -748,13 +746,13 @@ Simulation::Simulation(MPI_Comm cartcomm, MPI_Comm activecomm, bool (*check_term
 	async_thread_initialized = 0;
 	rc |= pthread_create(&thread_datadump, NULL, datadump_trampoline, this);
 
-	while (1) 
+	while (1)
 	{
 	    pthread_mutex_lock(&mutex_datadump);
 	    int done = async_thread_initialized;
 	    pthread_mutex_unlock(&mutex_datadump);
-	
-	    if (done) 
+
+	    if (done)
 		break;
 	}
 
@@ -806,8 +804,6 @@ void Simulation::_lockstep()
     dpd.consolidate_and_post(particles->xyzuvw.data, particles->size, mainstream);
 
     CUDA_CHECK(cudaPeekAtLastError());
-
-    localcomm.barrier(); // peh: 1
 
     if (rbcscoll)
 	rbc_interactions.exchange_count();
@@ -926,8 +922,6 @@ void Simulation::_lockstep()
 
     swap(particles, newparticles);
 
-    localcomm.barrier();	// peh: +2
-
     int nrbcs;
     if (rbcscoll)
 	nrbcs = redistribute_rbcs.post();
@@ -981,7 +975,7 @@ void Simulation::run()
 	ctcscoll->update_stage1(driving_acceleration, mainstream);
 
     int it;
-    
+
 
     for(it = 0; it < nsteps; ++it)
     {

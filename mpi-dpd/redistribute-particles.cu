@@ -763,12 +763,8 @@ void RedistributeParticles::pack(const Particle * const particles, const int npa
 
 pack_attempt:
 
-    if (!is_mps_enabled)
-	CUDA_CHECK(cudaMemcpyToSymbolAsync(RedistributeParticlesKernels::pack_buffers, packbuffers,
+    CUDA_CHECK(cudaMemcpyToSymbolAsync(RedistributeParticlesKernels::pack_buffers, packbuffers,
 					   sizeof(PackBuffer) * 27, 0, cudaMemcpyHostToDevice, mystream));
-    else
-	CUDA_CHECK(cudaMemcpyToSymbol(RedistributeParticlesKernels::pack_buffers, packbuffers,
-				      sizeof(PackBuffer) * 27, 0, cudaMemcpyHostToDevice));
 
     *failure.data = false;
     RedistributeParticlesKernels::setup<<<1, 32, 0, mystream>>>();
@@ -937,22 +933,11 @@ int RedistributeParticles::recv_count(cudaStream_t mystream, float& host_idle_ti
 
 	nhalo_padded = ustart_padded[27];
 
-	if (!is_mps_enabled)
-	{
-	    CUDA_CHECK(cudaMemcpyToSymbolAsync(RedistributeParticlesKernels::unpack_start, ustart,
-					       sizeof(int) * 28, 0, cudaMemcpyHostToDevice, mystream));
+	CUDA_CHECK(cudaMemcpyToSymbolAsync(RedistributeParticlesKernels::unpack_start, ustart,
+					   sizeof(int) * 28, 0, cudaMemcpyHostToDevice, mystream));
 
-	    CUDA_CHECK(cudaMemcpyToSymbolAsync(RedistributeParticlesKernels::unpack_start_padded, ustart_padded,
-					       sizeof(int) * 28, 0, cudaMemcpyHostToDevice, mystream));
-	}
-	else
-	{
-	    CUDA_CHECK(cudaMemcpyToSymbol(RedistributeParticlesKernels::unpack_start, ustart,
-					  sizeof(int) * 28, 0, cudaMemcpyHostToDevice));
-
-	    CUDA_CHECK(cudaMemcpyToSymbol(RedistributeParticlesKernels::unpack_start_padded, ustart_padded,
-					  sizeof(int) * 28, 0, cudaMemcpyHostToDevice));
-	}
+	CUDA_CHECK(cudaMemcpyToSymbolAsync(RedistributeParticlesKernels::unpack_start_padded, ustart_padded,
+					   sizeof(int) * 28, 0, cudaMemcpyHostToDevice, mystream));
     }
 
     {
@@ -979,12 +964,8 @@ void RedistributeParticles::recv_unpack(Particle * const particles, float4 * con
     _adjust_recv_buffers(recv_sizes);
 
     if (haschanged)
-	if (!is_mps_enabled)
-	    CUDA_CHECK(cudaMemcpyToSymbolAsync(RedistributeParticlesKernels::unpack_buffers, unpackbuffers,
+	CUDA_CHECK(cudaMemcpyToSymbolAsync(RedistributeParticlesKernels::unpack_buffers, unpackbuffers,
 					       sizeof(UnpackBuffer) * 27, 0, cudaMemcpyHostToDevice, mystream));
-	else
-	    CUDA_CHECK(cudaMemcpyToSymbol(RedistributeParticlesKernels::unpack_buffers, unpackbuffers,
-					  sizeof(UnpackBuffer) * 27, 0, cudaMemcpyHostToDevice));
 
     for(int i = 1; i < 27; ++i)
 	if (default_message_sizes[i] && recv_sizes[i] > default_message_sizes[i])
