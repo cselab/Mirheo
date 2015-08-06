@@ -25,6 +25,7 @@
 bool currently_profiling = false;
 float tend;
 bool walls, pushtheflow, doublepoiseuille, rbcs, ctcs, xyz_dumps, hdf5field_dumps, hdf5part_dumps, is_mps_enabled;
+bool mpich_multithread_safety;
 int steps_per_report, steps_per_dump, wall_creation_stepid, nvtxstart, nvtxstop;
 
 namespace SignalHandling
@@ -79,6 +80,7 @@ int main(int argc, char ** argv)
     wall_creation_stepid = argp("-wall_creation_stepid").asInt(5000);
     nvtxstart = argp("-nvtxstart").asInt(10400);
     nvtxstop = argp("-nvtxstop").asInt(10500);
+    mpich_multithread_safety = argp("-safety").asBool(true);
     
     SignalHandling::setup();
 
@@ -110,22 +112,27 @@ int main(int argc, char ** argv)
 	//needed for the asynchronous data dumps
 	setenv("MPICH_MAX_THREAD_SAFETY", "multiple", 0);
 
-	int provided_safety_level;
-	MPI_CHECK( MPI_Init_thread(&argc, &argv, MPI_THREAD_MULTIPLE, &provided_safety_level));
+	if (mpich_multithread_safety) {
+		int provided_safety_level;
+		MPI_CHECK( MPI_Init_thread(&argc, &argv, MPI_THREAD_MULTIPLE, &provided_safety_level));
 
-	MPI_CHECK( MPI_Comm_size(MPI_COMM_WORLD, &nranks) );
-	MPI_CHECK( MPI_Comm_rank(MPI_COMM_WORLD, &rank) );
+		MPI_CHECK( MPI_Comm_size(MPI_COMM_WORLD, &nranks) );
+		MPI_CHECK( MPI_Comm_rank(MPI_COMM_WORLD, &rank) );
 
-	if (provided_safety_level != MPI_THREAD_MULTIPLE)
-	{
-	    if (rank == 0)
-		printf("ooooooooops MPI thread safety level is just %d. Aborting now.\n", provided_safety_level);
-
-	    abort();
+		if (provided_safety_level != MPI_THREAD_MULTIPLE)
+		{
+		    if (rank == 0)
+			printf("ooooooooops MPI thread safety level is just %d. Aborting now.\n", provided_safety_level);
+		    abort();
+		}
+		else
+		    if (rank == 0)
+			printf("I have set MPICH_MAX_THREAD_SAFETY=multiple\n");
+	} else {
+		MPI_CHECK( MPI_Init(&argc, &argv) );
+                MPI_CHECK( MPI_Comm_size(MPI_COMM_WORLD, &nranks) );
+                MPI_CHECK( MPI_Comm_rank(MPI_COMM_WORLD, &rank) );
 	}
-	else
-	    if (rank == 0)
-		printf("I have set MPICH_MAX_THREAD_SAFETY=multiple\n");
 
 	MPI_Comm activecomm = MPI_COMM_WORLD;
 
