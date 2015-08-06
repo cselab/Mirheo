@@ -284,10 +284,10 @@ void Simulation::_create_walls(const bool verbose, bool & termination_request)
 	}
     }
 
-    MPI_CHECK(MPI_Barrier(activecomm));
-    redistribute.adjust_message_sizes(new_sizes);
-    dpd.adjust_message_sizes(new_sizes);
-    MPI_CHECK(MPI_Barrier(activecomm));
+    //MPI_CHECK(MPI_Barrier(activecomm));
+    //redistribute.adjust_message_sizes(new_sizes);
+    //dpd.adjust_message_sizes(new_sizes);
+    //MPI_CHECK(MPI_Barrier(activecomm));
 
     //there is no support for killing zero-workload ranks for rbcs and ctcs just yet
     /* this is unnecessarily complex for now
