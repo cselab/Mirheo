@@ -169,14 +169,14 @@ void LocalComm::initialize(MPI_Comm active_comm)
     MPI_Comm_rank(local_comm, &local_rank);
     MPI_Comm_size(local_comm, &local_nranks);
 }
-/*
+
 void LocalComm::barrier()
 {
     if (!is_mps_enabled || local_nranks == 1) return;
 
     MPI_CHECK(MPI_Barrier(local_comm));
 }
-*/
+
 void LocalComm::print_particles(int np)
 {
     //if (!cuda_mps_enabled || local_nranks == 1) return;

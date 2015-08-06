@@ -57,6 +57,7 @@ class Simulation
     bool simulation_is_done;
 
     MPI_Comm activecomm, cartcomm;
+    //LocalComm localcomm;
 
     cudaStream_t mainstream;
     

@@ -84,9 +84,9 @@ int main(int argc, char ** argv)
     adjust_message_sizes = argp("-adjust_message_sizes").asBool(false);
 
 #ifndef _NO_DUMPS_
-    const bool mpi_thread_safe = argp("-mpi_thread_safe").asBool(false);
-#else
     const bool mpi_thread_safe = argp("-mpi_thread_safe").asBool(true);
+#else
+    const bool mpi_thread_safe = argp("-mpi_thread_safe").asBool(false);
 #endif
 
     SignalHandling::setup();

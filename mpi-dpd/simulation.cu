@@ -686,6 +686,8 @@ Simulation::Simulation(MPI_Comm cartcomm, MPI_Comm activecomm, bool (*check_term
     MPI_CHECK( MPI_Comm_size(activecomm, &nranks) );
     MPI_CHECK( MPI_Comm_rank(activecomm, &rank) );
 
+    //localcomm.initialize(activecomm);
+
     int dims[3], periods[3], coords[3];
     MPI_CHECK( MPI_Cart_get(cartcomm, 3, dims, periods, coords) );
 
@@ -921,7 +923,7 @@ void Simulation::_lockstep()
 
     swap(particles, newparticles);
 
-    //localcomm.barrier();	// peh: +2
+  //localcomm.barrier();	// peh: +2
 
     int nrbcs;
     if (rbcscoll)
@@ -948,7 +950,7 @@ void Simulation::_lockstep()
 
     CUDA_CHECK(cudaPeekAtLastError());
 
-//  localcomm.barrier();  // peh: +3
+    ///localcomm.barrier();  // peh: +3
 
     timings["lockstep"] += MPI_Wtime() - tstart;
 }
