@@ -256,38 +256,41 @@ void Simulation::_create_walls(const bool verbose, bool & termination_request)
     ExpectedMessageSizes new_sizes;
     wall = new ComputeInteractionsWall(cartcomm, particles->xyzuvw.data, particles->size, nsurvived, new_sizes, verbose);
 
-    //adjust the message sizes if we're pushing the flow in x
+    if (adjust_message_sizes)
     {
-	const double xvelavg = getenv("XVELAVG") ? atof(getenv("XVELAVG")) : pushtheflow;
-	const double yvelavg = getenv("YVELAVG") ? atof(getenv("YVELAVG")) : 0;
-	const double zvelavg = getenv("ZVELAVG") ? atof(getenv("ZVELAVG")) : 0;
-
-	for(int code = 0; code < 27; ++code)
+	//adjust the message sizes if we're pushing the flow in x
 	{
-	    const int d[3] = {
-		(code % 3) - 1,
-		((code / 3) % 3) - 1,
-		((code / 9) % 3) - 1
-	    };
-
-	    const double IudotnI =
-		fabs(d[0] * xvelavg) +
-		fabs(d[1] * yvelavg) +
-		fabs(d[2] * zvelavg) ;
-
-	    const float factor = 1 + IudotnI * dt * 10 * numberdensity;
-
-	    //printf("RANK %d: direction %d %d %d -> IudotnI is %f and final factor is %f\n",
-	    //rank, d[0], d[1], d[2], IudotnI, 1 + IudotnI * dt * numberdensity);
-
-	    new_sizes.msgsizes[code] *= factor;
+	    const double xvelavg = getenv("XVELAVG") ? atof(getenv("XVELAVG")) : pushtheflow;
+	    const double yvelavg = getenv("YVELAVG") ? atof(getenv("YVELAVG")) : 0;
+	    const double zvelavg = getenv("ZVELAVG") ? atof(getenv("ZVELAVG")) : 0;
+	    
+	    for(int code = 0; code < 27; ++code)
+	    {
+		const int d[3] = {
+		    (code % 3) - 1,
+		    ((code / 3) % 3) - 1,
+		    ((code / 9) % 3) - 1
+		};
+		
+		const double IudotnI =
+		    fabs(d[0] * xvelavg) +
+		    fabs(d[1] * yvelavg) +
+		    fabs(d[2] * zvelavg) ;
+		
+		const float factor = 1 + IudotnI * dt * 10 * numberdensity;
+		
+		//printf("RANK %d: direction %d %d %d -> IudotnI is %f and final factor is %f\n",
+		//rank, d[0], d[1], d[2], IudotnI, 1 + IudotnI * dt * numberdensity);
+		
+		new_sizes.msgsizes[code] *= factor;
+	    }
 	}
+	
+	MPI_CHECK(MPI_Barrier(activecomm));
+	redistribute.adjust_message_sizes(new_sizes);
+	dpd.adjust_message_sizes(new_sizes);
+	MPI_CHECK(MPI_Barrier(activecomm));
     }
-
-    MPI_CHECK(MPI_Barrier(activecomm));
-    redistribute.adjust_message_sizes(new_sizes);
-    dpd.adjust_message_sizes(new_sizes);
-    MPI_CHECK(MPI_Barrier(activecomm));
 
     //there is no support for killing zero-workload ranks for rbcs and ctcs just yet
     /* this is unnecessarily complex for now

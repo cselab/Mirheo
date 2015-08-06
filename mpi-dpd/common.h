@@ -38,7 +38,7 @@ const float hydrostatic_a = 0.05;
 
 
 extern float tend;
-extern bool walls, pushtheflow, doublepoiseuille, rbcs, ctcs, xyz_dumps, hdf5field_dumps, hdf5part_dumps, is_mps_enabled;
+extern bool walls, pushtheflow, doublepoiseuille, rbcs, ctcs, xyz_dumps, hdf5field_dumps, hdf5part_dumps, is_mps_enabled, adjust_message_sizes;
 extern int steps_per_report, steps_per_dump, wall_creation_stepid, nvtxstart, nvtxstop;
 
 __device__ __forceinline__
