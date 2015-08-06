@@ -308,9 +308,9 @@ cartcomm(cartcomm), ncells(0)
     CudaRBC::Extent extent;
     CudaRBC::setup(nvertices, extent);
 
-    assert(extent.xmax - extent.xmin < XSIZE_SUBDOMAIN);
+/*    assert(extent.xmax - extent.xmin < XSIZE_SUBDOMAIN);
     assert(extent.ymax - extent.ymin < YSIZE_SUBDOMAIN);
-    assert(extent.zmax - extent.zmin < ZSIZE_SUBDOMAIN);
+    assert(extent.zmax - extent.zmin < ZSIZE_SUBDOMAIN);*/
 }
 
 void CollectionRBC::setup(const char * const path2ic)
