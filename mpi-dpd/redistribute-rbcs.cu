@@ -121,13 +121,8 @@ namespace ReorderingRBC
 
 	if (nrbcs < cmaxnrbcs)
 	{
-	    if (!is_mps_enabled) {
-		CUDA_CHECK(cudaMemcpyToSymbolAsync(cdestinations, destinations, sizeof(float *) * nrbcs, 0, cudaMemcpyHostToDevice, stream));
-		CUDA_CHECK(cudaMemcpyToSymbolAsync(csources, sources, sizeof(float *) * nrbcs, 0, cudaMemcpyHostToDevice, stream));
-	    } else {
-		CUDA_CHECK(cudaMemcpyToSymbol(cdestinations, destinations, sizeof(float *) * nrbcs, 0, cudaMemcpyHostToDevice));
-		CUDA_CHECK(cudaMemcpyToSymbol(csources, sources, sizeof(float *) * nrbcs, 0, cudaMemcpyHostToDevice));
-	    }
+	    CUDA_CHECK(cudaMemcpyToSymbolAsync(cdestinations, destinations, sizeof(float *) * nrbcs, 0, cudaMemcpyHostToDevice, stream));
+	    CUDA_CHECK(cudaMemcpyToSymbolAsync(csources, sources, sizeof(float *) * nrbcs, 0, cudaMemcpyHostToDevice, stream));
 	    
 	    pack_all_kernel<true><<<(nthreads + 127) / 128, 128, 0, stream>>>(nrbcs, nvertices, NULL, NULL);
 	}
@@ -136,13 +131,8 @@ namespace ReorderingRBC
 	    _ddestinations.resize(nrbcs);
 	    _dsources.resize(nrbcs);
 
-	    if (!is_mps_enabled) {
-		CUDA_CHECK(cudaMemcpyAsync(_ddestinations.data, destinations, sizeof(float *) * nrbcs, cudaMemcpyHostToDevice, stream));
-		CUDA_CHECK(cudaMemcpyAsync(_dsources.data, sources, sizeof(float *) * nrbcs, cudaMemcpyHostToDevice, stream));
-	    } else {
-		CUDA_CHECK(cudaMemcpy(_ddestinations.data, destinations, sizeof(float *) * nrbcs, cudaMemcpyHostToDevice));
-		CUDA_CHECK(cudaMemcpy(_dsources.data, sources, sizeof(float *) * nrbcs, cudaMemcpyHostToDevice));
-	    }
+	    CUDA_CHECK(cudaMemcpyAsync(_ddestinations.data, destinations, sizeof(float *) * nrbcs, cudaMemcpyHostToDevice, stream));
+	    CUDA_CHECK(cudaMemcpyAsync(_dsources.data, sources, sizeof(float *) * nrbcs, cudaMemcpyHostToDevice, stream));
 
 	    pack_all_kernel<false><<<(nthreads + 127) / 128, 128, 0, stream>>>(nrbcs, nvertices, _dsources.data, _ddestinations.data);
 	}

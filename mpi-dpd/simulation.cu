@@ -155,8 +155,6 @@ void Simulation::_redistribute()
 
     CUDA_CHECK(cudaPeekAtLastError());
 
-    localcomm.barrier();
-
     timings["redistribute"] += MPI_Wtime() - tstart;
 }
 
@@ -256,38 +254,41 @@ void Simulation::_create_walls(const bool verbose, bool & termination_request)
     ExpectedMessageSizes new_sizes;
     wall = new ComputeInteractionsWall(cartcomm, particles->xyzuvw.data, particles->size, nsurvived, new_sizes, verbose);
 
-    //adjust the message sizes if we're pushing the flow in x
+    if (adjust_message_sizes)
     {
-	const double xvelavg = getenv("XVELAVG") ? atof(getenv("XVELAVG")) : pushtheflow;
-	const double yvelavg = getenv("YVELAVG") ? atof(getenv("YVELAVG")) : 0;
-	const double zvelavg = getenv("ZVELAVG") ? atof(getenv("ZVELAVG")) : 0;
-
-	for(int code = 0; code < 27; ++code)
+	//adjust the message sizes if we're pushing the flow in x
 	{
-	    const int d[3] = {
-		(code % 3) - 1,
-		((code / 3) % 3) - 1,
-		((code / 9) % 3) - 1
-	    };
+	    const double xvelavg = getenv("XVELAVG") ? atof(getenv("XVELAVG")) : pushtheflow;
+	    const double yvelavg = getenv("YVELAVG") ? atof(getenv("YVELAVG")) : 0;
+	    const double zvelavg = getenv("ZVELAVG") ? atof(getenv("ZVELAVG")) : 0;
 
-	    const double IudotnI =
-		fabs(d[0] * xvelavg) +
-		fabs(d[1] * yvelavg) +
-		fabs(d[2] * zvelavg) ;
+	    for(int code = 0; code < 27; ++code)
+	    {
+		const int d[3] = {
+		    (code % 3) - 1,
+		    ((code / 3) % 3) - 1,
+		    ((code / 9) % 3) - 1
+		};
 
-	    const float factor = 1 + IudotnI * dt * 10 * numberdensity;
+		const double IudotnI =
+		    fabs(d[0] * xvelavg) +
+		    fabs(d[1] * yvelavg) +
+		    fabs(d[2] * zvelavg) ;
 
-	    //printf("RANK %d: direction %d %d %d -> IudotnI is %f and final factor is %f\n",
-	    //rank, d[0], d[1], d[2], IudotnI, 1 + IudotnI * dt * numberdensity);
+		const float factor = 1 + IudotnI * dt * 10 * numberdensity;
 
-	    new_sizes.msgsizes[code] *= factor;
+		//printf("RANK %d: direction %d %d %d -> IudotnI is %f and final factor is %f\n",
+		//rank, d[0], d[1], d[2], IudotnI, 1 + IudotnI * dt * numberdensity);
+
+		new_sizes.msgsizes[code] *= factor;
+	    }
 	}
-    }
 
-    MPI_CHECK(MPI_Barrier(activecomm));
-    redistribute.adjust_message_sizes(new_sizes);
-    dpd.adjust_message_sizes(new_sizes);
-    MPI_CHECK(MPI_Barrier(activecomm));
+	MPI_CHECK(MPI_Barrier(activecomm));
+	redistribute.adjust_message_sizes(new_sizes);
+	dpd.adjust_message_sizes(new_sizes);
+	MPI_CHECK(MPI_Barrier(activecomm));
+    }
 
     //there is no support for killing zero-workload ranks for rbcs and ctcs just yet
     /* this is unnecessarily complex for now
@@ -617,7 +618,7 @@ void Simulation::_datadump_async()
 	curr_idtimestep = datadump_idtimestep;
 
 	pthread_mutex_lock(&mutex_datadump);
-	
+
 	if (simulation_is_done)
 	{
 	    pthread_mutex_unlock(&mutex_datadump);
@@ -683,8 +684,6 @@ Simulation::Simulation(MPI_Comm cartcomm, MPI_Comm activecomm, bool (*check_term
     driving_acceleration(0), host_idle_time(0), nsteps((int)(tend / dt)),
     datadump_pending(false), simulation_is_done(false)
 {
-    localcomm.initialize(activecomm);
-
     MPI_CHECK( MPI_Comm_size(activecomm, &nranks) );
     MPI_CHECK( MPI_Comm_rank(activecomm, &rank) );
 
@@ -745,13 +744,13 @@ Simulation::Simulation(MPI_Comm cartcomm, MPI_Comm activecomm, bool (*check_term
 	async_thread_initialized = 0;
 	rc |= pthread_create(&thread_datadump, NULL, datadump_trampoline, this);
 
-	while (1) 
+	while (1)
 	{
 	    pthread_mutex_lock(&mutex_datadump);
 	    int done = async_thread_initialized;
 	    pthread_mutex_unlock(&mutex_datadump);
-	
-	    if (done) 
+
+	    if (done)
 		break;
 	}
 
@@ -803,8 +802,6 @@ void Simulation::_lockstep()
     dpd.consolidate_and_post(particles->xyzuvw.data, particles->size, mainstream);
 
     CUDA_CHECK(cudaPeekAtLastError());
-
-    localcomm.barrier(); // peh: 1
 
     if (rbcscoll)
 	rbc_interactions.exchange_count();
@@ -923,8 +920,6 @@ void Simulation::_lockstep()
 
     swap(particles, newparticles);
 
-    localcomm.barrier();	// peh: +2
-
     int nrbcs;
     if (rbcscoll)
 	nrbcs = redistribute_rbcs.post();
@@ -978,7 +973,7 @@ void Simulation::run()
 	ctcscoll->update_stage1(driving_acceleration, mainstream);
 
     int it;
-    
+
 
     for(it = 0; it < nsteps; ++it)
     {
