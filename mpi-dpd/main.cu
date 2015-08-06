@@ -25,7 +25,7 @@
 bool currently_profiling = false;
 float tend;
 bool walls, pushtheflow, doublepoiseuille, rbcs, ctcs, xyz_dumps, hdf5field_dumps, hdf5part_dumps, is_mps_enabled;
-int steps_per_report, steps_per_dump, wall_creation_stepid;
+int steps_per_report, steps_per_dump, wall_creation_stepid, nvtxstart, nvtxstop;
 
 namespace SignalHandling
 {
@@ -77,7 +77,9 @@ int main(int argc, char ** argv)
     steps_per_report = argp("-steps_per_report").asInt(1000);
     steps_per_dump = argp("-steps_per_dump").asInt(1000);
     wall_creation_stepid = argp("-wall_creation_stepid").asInt(5000);
-
+    nvtxstart = argp("-nvtxstart").asInt(10400);
+    nvtxstop = argp("-nvtxstop").asInt(10500);
+    
     SignalHandling::setup();
 
 #ifdef _USE_NVTX_
