@@ -372,7 +372,8 @@ PinnedHostBuffer(int n = 0): capacity(0), size(0), data(NULL), devptr(NULL) { re
 	    if (data != NULL)
 		CUDA_CHECK(cudaFreeHost(data));
 
-	    capacity = n;
+	    const int conservative_estimate = (int)ceil(1.1 * n);
+	    capacity = 128 * ((conservative_estimate + 129) / 128);
 	    
 	    CUDA_CHECK(cudaHostAlloc(&data, sizeof(T) * capacity, cudaHostAllocMapped));
 	    

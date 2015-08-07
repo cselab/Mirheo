@@ -565,7 +565,7 @@ void HaloExchanger::consolidate_and_post(const Particle * const p, const int n, 
 	for(int i = 0; i < 26; ++i)
 	{
 	    const int nrequired = required_send_bag_size_host[i];
-	    const bool failed_entry = nrequired > sendhalos[i].dbuf.capacity;
+	    const bool failed_entry = nrequired > sendhalos[i].dbuf.capacity || nrequired > sendhalos[i].hbuf.capacity;
 
 	    if (failed_entry)
 	    {
@@ -587,7 +587,7 @@ void HaloExchanger::consolidate_and_post(const Particle * const p, const int n, 
 	{
 	    const int nrequired = required_send_bag_size_host[i];
 
-	    assert(nrequired <= sendhalos[i].dbuf.capacity);
+	    assert(nrequired <= sendhalos[i].dbuf.capacity && nrequired <= sendhalos[i].hbuf.capacity);
 
 	    sendhalos[i].dbuf.size = nrequired;
 	    sendhalos[i].hbuf.size = nrequired;
