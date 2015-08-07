@@ -16,7 +16,7 @@
 
 #include "cell-lists.h"
 
-#if 1
+#if 0
 // The following encoding/decoding was taken from
 // http://fgiesen.wordpress.com/2009/12/13/decoding-morton-codes/
 // "Insert" two 0 bits after each of the 10 low bits of x
