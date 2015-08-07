@@ -114,7 +114,8 @@ namespace RedistributeParticlesKernels
 	for(int L = 1; L < 32; L <<= 1)
 	    myval += (tid >= L) * __shfl_up(myval, L) ;
 
-	pack_start_padded[tid] = myval - mycount;
+	if (tid < 28)
+	    pack_start_padded[tid] = myval - mycount;
 
 	if (tid == 26)
 	{
