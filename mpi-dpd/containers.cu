@@ -81,7 +81,6 @@ namespace ParticleKernels
 
 	assert(blockDim.x == 128 && blockDim.x * gridDim.x >= nparticles);
 
-
 	const int warpid = threadIdx.x >> 5;
 	const int base = 32 * (warpid + 4 * blockIdx.x);
 	const int nsrc = min(32, nparticles - base);
@@ -92,7 +91,7 @@ namespace ParticleKernels
 	 int laneid;
 	 asm volatile ("mov.u32 %0, %%laneid;" : "=r"(laneid));
 
-	 const int nwords = 3 * nparticles;
+	 const int nwords = 3 * nsrc;
 
 	 float2 s0, s1, s2;
 	 float ax, ay, az;
@@ -202,19 +201,16 @@ namespace ParticleKernels
 		 ay = start == 0 ? t1 : start == 1 ? t0 : t2;
 		 az = start == 0 ? t2 : start == 1 ? t1 : t0;
 	     }
-
-	     const int nwords = 3 * nparticles;
-
-	     if (laneid < nwords)
-		 pdata[laneid] = s0;
-
-
-	     if (laneid + 32 < nwords)
-		 pdata[laneid + 32] = s1;
-
-	     if (laneid + 64 < nwords)
-		 pdata[laneid + 64] = s2;
 	 }
+
+	 if (laneid < nwords)
+	     pdata[laneid] = s0;
+
+	 if (laneid + 32 < nwords)
+	     pdata[laneid + 32] = s1;
+
+	 if (laneid + 64 < nwords)
+	     pdata[laneid + 64] = s2;
     }
 
     __global__ void clear_velocity(Particle * const p, const int n)
