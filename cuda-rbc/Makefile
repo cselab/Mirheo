@@ -3,7 +3,8 @@
 CXXFLAGS +=  -L$(subst :, -L,$(LD_LIBRARY_PATH))
 CXXFLAGS+= -fopenmp -std=c++11 -Wno-unknown-pragmas -Wno-reorder -Wno-comment -Wno-deprecated
 GPULIBS+= -lcudart
-GPUFLAGS+= -arch=$(ARCH_VAL)  -code=$(CODE_VAL)  -Xcompiler -fpic
+GPUFLAGS+= -arch=$(ARCH_VAL)  -code=$(CODE_VAL)  
+#-Xcompiler -fpic
 GPUFLAGS+= --use_fast_math
 
 config ?= release
@@ -55,14 +56,14 @@ test-rbc: main.o rbcvector-cpu-utils.o rbc.o
 test-cuda-rbc: main.cudaobj rbc-cuda.cudaobj
 	$(CXX) $(GPULIBS) $^ -o $@
 
-libcuda-rbc.so: rbc-cuda.cudaobj
-	$(CXX) $(CXXFLAGS) -shared $^ -o $@ -L/usr/local/cuda-6.0/lib64/ -lcudart -lcurand
+#libcuda-rbc.so: rbc-cuda.cudaobj
+#	$(CXX) $(CXXFLAGS) -shared $^ -o $@ -L/usr/local/cuda-6.0/lib64/ -lcudart -lcurand
 
 libcuda-rbc.a: rbc-cuda.cudaobj
 	ar rcs $@ $^
 
-lib-rbc.so: rbcvector-cpu-utils.o rbc.o
-	$(CXX) $(CXXFLAGS) -shared -fPIC $^ -o $@
+#lib-rbc.so: rbcvector-cpu-utils.o rbc.o
+#	$(CXX) $(CXXFLAGS) -shared -fPIC $^ -o $@
 
 %.o:%.cpp
 	$(CXX)  $(CXXFLAGS)  $(INCLUDES) -fPIC -c $< -o $@

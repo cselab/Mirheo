@@ -3,7 +3,8 @@ NVCC ?= nvcc
 CXXFLAGS +=  -L$(subst :, -L,$(LD_LIBRARY_PATH))
 CXXFLAGS+= -fopenmp -std=c++11 -Wno-unknown-pragmas -Wno-reorder -Wno-comment -Wno-deprecated
 GPULIBS+= -lcuda -lcudart -L/usr/local/cuda/lib64
-GPUFLAGS+= -arch=compute_30  -Xcompiler -fpic -code=sm_30
+GPUFLAGS+= -arch=$(ARCH_VAL)  -code=$(CODE_VAL) 
+#-arch=compute_30  -Xcompiler -fpic -code=sm_30
 GPUFLAGS+= --use_fast_math
 
 config ?= release
@@ -22,7 +23,7 @@ GPUFLAGS+= -O3 -lineinfo -g
 CXXFLAGS+= -O1 -g 
 endif
 
-LIBS += #-lstdc++
+1LIBS += #-lstdc++
 OS = $(shell uname)
 ifneq "$(OS)" "Darwin"
 LIBS += -lrt
@@ -56,8 +57,8 @@ clean:
 test-cuda-ctc: main.cudaobj ctc-cuda.cudaobj $(LIBCUDADPD)
 	$(CXX) $(GPULIBS) $^ -o $@
 
-libcuda-ctc.so: ctc-cuda.cudaobj
-	$(CXX) $(CXXFLAGS) -shared $^ -o $@ -L/usr/local/cuda/lib64/ -lcudart -lcurand
+#libcuda-ctc.so: ctc-cuda.cudaobj
+#	$(CXX) $(CXXFLAGS) -shared $^ -o $@ -L/usr/local/cuda/lib64/ -lcudart -lcurand
 
 libcuda-ctc.a: ctc-cuda.cudaobj
 	ar rcs $@ $^
