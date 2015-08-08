@@ -227,6 +227,8 @@ __global__ void yzhistogram(const int np,
 	    }
 	}
 
+	__syncthreads();
+
 	for(int i = tid ; i < nhisto; i += blockDim.x)
 	    global_yzscan[i] = i == 0 ? 0 : shmemhisto[i - 1];
     }

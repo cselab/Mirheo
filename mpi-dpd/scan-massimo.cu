@@ -775,7 +775,7 @@ smallscan:
 
 __global__ void excl26scanaopob(int **d_data,  int **d_output,
                               int *size)  {
-  __shared__ int temp[WARPSIZE];
+  __shared__ int temp[3][WARPSIZE];
   __shared__ int sum;
   int temp1, temp2, temp3, temp4;
   if(blockDim.x>MAXTHREADS) {
@@ -793,28 +793,28 @@ __global__ void excl26scanaopob(int **d_data,  int **d_output,
   if(tid==0) {
 	sum=0;
   }
-  for(int i=tid; i<(((lsize+WARPSIZE)/WARPSIZE)*WARPSIZE); i+=blockDim.x) {
+  for(int i=tid; i<(((lsize+WARPSIZE-1)/WARPSIZE)*WARPSIZE); i+=blockDim.x) {
   temp4 = temp1 = (i<lsize)?linput[i]:0;
   for (int d=1; d<32; d<<=1) {
          temp2 = __shfl_up(temp1,d);
          temp1 += temp2*(iiw>=d);
   }
-  if (iiw == 31) temp[tid/32] = temp1;
+  if (iiw == 31) temp[i/blockDim.x][tid/32] = temp1;
   __syncthreads();
   if (tid < 32) {
         temp2 = 0;
         if (tid < blockDim.x/32) {
-                temp2 = temp[tid];
+                temp2 = temp[i/blockDim.x][tid];
         }
         for (int d=1; d<32; d<<=1) {
          temp3 = __shfl_up(temp2,d);
          temp2 += temp3*(iiw>=d);
         }
-        if (tid < blockDim.x/32) { temp[tid] = temp2; }
+        if (tid < blockDim.x/32) { temp[i/blockDim.x][tid] = temp2; }
   }
   temp3=sum;
   __syncthreads();
-  if(tid>=32) temp1+=temp[tid/32-1];
+  if(tid>=32) temp1+=temp[i/blockDim.x][tid/32-1];
   if(i<lsize) {
     loutput[i]=temp3+temp1-temp4;
   }
@@ -833,24 +833,24 @@ smallscan:
          temp2 = __shfl_up(temp1,d);
          if (tid%32 >= d) temp1 += temp2;
   }
-  if (tid%32 == 31) temp[tid/32] = temp1;
+  if (tid%32 == 31) temp[0][tid/32] = temp1;
   __syncthreads();
   if (tid >= 32) { 
-	temp1 += temp[0];
+	temp1 += temp[0][0];
 	if(tid >= 64) {
-		temp1 += temp[1];
+		temp1 += temp[0][1];
 		if(tid>=96) {
-			temp1 += temp[2];
+			temp1 += temp[0][2];
 			if(tid>=128) {
-				temp1 += temp[3];
+				temp1 += temp[0][3];
 				if(tid>=160) {
-					temp1 += temp[4];
+					temp1 += temp[0][4];
 					if(tid>=192) {
-						temp1 += temp[5];
+						temp1 += temp[0][5];
 						if(tid>=224) {
-							temp1 += temp[6];
+							temp1 += temp[0][6];
 							if(tid>=256) {
-							   temp1 += temp[7];
+							   temp1 += temp[0][7];
 						        }
 						}
 					}
