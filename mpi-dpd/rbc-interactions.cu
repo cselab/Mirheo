@@ -213,8 +213,9 @@ namespace KernelsRBC
 #define _ACCESS(x) (*(x))
 #endif
 
-    __global__ /* __launch_bounds__(128, 16)*/ void interactions_3tpp(const float2 * const particles, const int np, const int nsolvent,
-								      float * const acc, float * const accsolvent, const float seed)
+    __global__  __launch_bounds__(128, 16)
+	void interactions_3tpp(const float2 * const particles, const int np, const int nsolvent,
+			       float * const acc, float * const accsolvent, const float seed)
     {
 	assert(blockDim.x * gridDim.x >= np * 3);
 
@@ -291,60 +292,13 @@ namespace KernelsRBC
 
 	    deltaspid1 -= scan1;
 	    deltaspid2 -= scan2;
-
-#ifndef NDEBUG
-	    {
-		const Particle p = *(((Particle *)particles) + pid);
-
-		const float3 xp = make_float3(p.x[0], p.x[1], p.x[2]);
-		const float3 up = make_float3(p.u[0], p.u[1], p.u[2]);
-
-		const int L[3] = { XSIZE_SUBDOMAIN, YSIZE_SUBDOMAIN, ZSIZE_SUBDOMAIN };
-
-		int mycid[3];
-		for(int c = 0; c < 3; ++c)
-		    mycid[c] = L[c]/2 + (int)floor(p.x[c]);
-
-		int ctr = 0;
-		for(int code = zplane * 9 ; code < (zplane  + 1)* 9; ++code)
-		{
-		    const int d[3] = {
-			(code % 3) - 1,
-			(code/3 % 3) - 1,
-			(code/9 % 3) - 1
-		    };
-
-		    int vcid[3];
-		    for(int c = 0; c < 3; ++c)
-			vcid[c] = mycid[c] + d[c];
-
-		    bool validcid = true;
-		    for(int c = 0; c < 3; ++c)
-			validcid &= vcid[c] >= 0 && vcid[c] < L[c];
-
-		    if (!validcid)
-			continue;
-
-		    const int cid = vcid[0] + XSIZE_SUBDOMAIN * (vcid[1] + YSIZE_SUBDOMAIN * vcid[2]);
-		    const int mystart = tex1Dfetch(texCellsStart, cid);
-		    const int myend = mystart + tex1Dfetch(texCellsCount, cid);
-		    ctr += myend - mystart;
-		}
-		const int cidad0 = xcenter + XCELLS * (ycenter + YCELLS * zmy);
-		const int cidad1 = mycid[0] + XCELLS * (mycid[1] + YCELLS * mycid[2]);
-		if (ctr != ncandidates)
-		    printf(" cid %d %d : %d-> ctr %d ncandidates\n",  cidad0, cidad1, ctr, ncandidates);
-
-		assert(ctr == ncandidates);
-	    }
-#endif
 	}
 
 	float xforce = 0, yforce = 0, zforce = 0;
 
-//#pragma unroll 2
-	    for(int i = 0; i < ncandidates; ++i)
-	    {
+#pragma unroll 2
+	for(int i = 0; i < ncandidates; ++i)
+	{
 	    const int m1 = (int)(i >= scan1);
 	    const int m2 = (int)(i >= scan2);
 	    const int spid = i + (m2 ? deltaspid2 : m1 ? deltaspid1 : spidbase);
@@ -398,277 +352,122 @@ namespace KernelsRBC
 	    atomicAdd(accsolvent + sentry + 2, -zinteraction);
 	}
 
-	    atomicAdd(acc + 3 * pid + 0, xforce);
-	    atomicAdd(acc + 3 * pid + 1, yforce);
-	    atomicAdd(acc + 3 * pid + 2, zforce);
+	atomicAdd(acc + 3 * pid + 0, xforce);
+	atomicAdd(acc + 3 * pid + 1, yforce);
+	atomicAdd(acc + 3 * pid + 2, zforce);
 
-	    for(int c = 0; c < 3; ++c)
-		assert(!isnan(acc[3 * pid + c]));
-	}
+	for(int c = 0; c < 3; ++c)
+	    assert(!isnan(acc[3 * pid + c]));
+    }
 
-	    __constant__ int packstarts[27];
-	    __constant__ Particle * packstates[26];
-	    __constant__ Acceleration * packresults[26];
+    __constant__ int packstarts[27];
+    __constant__ Particle * packstates[26];
+    __constant__ Acceleration * packresults[26];
 
-	    __device__ bool fsi_kernel(const float seed,
-		const int dpid, const float3 xp, const float3 up, const int spid,
-		float& xforce, float& yforce, float& zforce)
-	    {
-	    xforce = yforce = zforce = 0;
+    __device__ bool fsi_kernel(const float seed,
+			       const int dpid, const float3 xp, const float3 up, const int spid,
+			       float& xforce, float& yforce, float& zforce)
+    {
+	xforce = yforce = zforce = 0;
 
-	    const int sentry = 3 * spid;
+	const int sentry = 3 * spid;
 
-	    const float2 stmp0 = tex1Dfetch(texSolventParticles, sentry);
-	    const float2 stmp1 = tex1Dfetch(texSolventParticles, sentry + 1);
-	    const float2 stmp2 = tex1Dfetch(texSolventParticles, sentry + 2);
+	const float2 stmp0 = tex1Dfetch(texSolventParticles, sentry);
+	const float2 stmp1 = tex1Dfetch(texSolventParticles, sentry + 1);
+	const float2 stmp2 = tex1Dfetch(texSolventParticles, sentry + 2);
 
-	    const float _xr = xp.x - stmp0.x;
-	    const float _yr = xp.y - stmp0.y;
-	    const float _zr = xp.z - stmp1.x;
+	const float _xr = xp.x - stmp0.x;
+	const float _yr = xp.y - stmp0.y;
+	const float _zr = xp.z - stmp1.x;
 
-	    const float rij2 = _xr * _xr + _yr * _yr + _zr * _zr;
+	const float rij2 = _xr * _xr + _yr * _yr + _zr * _zr;
 
-	    if (rij2 > 1)
-		return false;
+	if (rij2 > 1)
+	    return false;
 
-	    const float invrij = rsqrtf(rij2);
+	const float invrij = rsqrtf(rij2);
 
-	    const float rij = rij2 * invrij;
-	    const float argwr = max((float)0, 1 - rij);
-	    const float wr = powf(argwr, powf(0.5f, -VISCOSITY_S_LEVEL));
+	const float rij = rij2 * invrij;
+	const float argwr = max((float)0, 1 - rij);
+	const float wr = powf(argwr, powf(0.5f, -VISCOSITY_S_LEVEL));
 
-	    const float xr = _xr * invrij;
-	    const float yr = _yr * invrij;
-	    const float zr = _zr * invrij;
+	const float xr = _xr * invrij;
+	const float yr = _yr * invrij;
+	const float zr = _zr * invrij;
 
-	    const float rdotv =
-		xr * (up.x - stmp1.y) +
-		yr * (up.y - stmp2.x) +
-		zr * (up.z - stmp2.y);
+	const float rdotv =
+	    xr * (up.x - stmp1.y) +
+	    yr * (up.y - stmp2.x) +
+	    zr * (up.z - stmp2.y);
 
-	    const float myrandnr = Logistic::mean0var1(seed, dpid, spid);
+	const float myrandnr = Logistic::mean0var1(seed, dpid, spid);
 
-	    const float strength = params.aij * argwr +  (- params.gamma * wr * rdotv + params.sigmaf * myrandnr) * wr;
+	const float strength = params.aij * argwr +  (- params.gamma * wr * rdotv + params.sigmaf * myrandnr) * wr;
 
-	    xforce = strength * xr;
-	    yforce = strength * yr;
-	    zforce = strength * zr;
+	xforce = strength * xr;
+	yforce = strength * yr;
+	zforce = strength * zr;
 
-	    return true;
-	}
+	return true;
+    }
 
-	    __device__ float3 __shfl_float3(float3 f, int l) {
+    __device__ float3 __shfl_float3(float3 f, int l)
+    {
 
-	    return make_float3(__shfl(f.x, l),
-		__shfl(f.y, l),
-		__shfl(f.z, l));
-	}
+	return make_float3(__shfl(f.x, l),
+			   __shfl(f.y, l),
+			   __shfl(f.z, l));
+    }
 
-	    __constant__ char4 tid2ind[32] = {{-1, -1, -1, 0}, {0, -1, -1, 0}, {1, -1, -1, 0},
-									       {-1,  0, -1, 0}, {0,  0, -1, 0}, {1,  0, -1, 0},
-														{-1 , 1, -1, 0}, {0,  1, -1, 0}, {1,  1, -1, 0},
-																		 {-1, -1,  0, 0}, {0, -1,  0, 0}, {1, -1,  0, 0},
-																						  {-1,  0,  0, 0}, {0,  0,  0, 0}, {1,  0,  0, 0},
-																										   {-1,  1,  0, 0}, {0,  1,  0, 0}, {1,  1,  0, 0},
-																														    {-1, -1,  1, 0}, {0, -1,  1, 0}, {1, -1,  1, 0},
-																																		     {-1,  0,  1, 0}, {0,  0,  1, 0}, {1,  0,  1, 0},
-																																						      {-1,  1,  1, 0}, {0,  1,  1, 0}, {1,  1,  1, 0},
-																																										       { 0,  0,  0, 0}, {0,  0,  0, 0}, {0,  0,  0, 0},
-																																															{ 0,  0,  0, 0}, {0,  0,  0, 0}};
+    __constant__ char4 tid2ind[32] = {{-1, -1, -1, 0}, {0, -1, -1, 0}, {1, -1, -1, 0},
+				      {-1,  0, -1, 0}, {0,  0, -1, 0}, {1,  0, -1, 0},
+				      {-1 , 1, -1, 0}, {0,  1, -1, 0}, {1,  1, -1, 0},
+				      {-1, -1,  0, 0}, {0, -1,  0, 0}, {1, -1,  0, 0},
+				      {-1,  0,  0, 0}, {0,  0,  0, 0}, {1,  0,  0, 0},
+				      {-1,  1,  0, 0}, {0,  1,  0, 0}, {1,  1,  0, 0},
+				      {-1, -1,  1, 0}, {0, -1,  1, 0}, {1, -1,  1, 0},
+				      {-1,  0,  1, 0}, {0,  0,  1, 0}, {1,  0,  1, 0},
+				      {-1,  1,  1, 0}, {0,  1,  1, 0}, {1,  1,  1, 0},
+				      { 0,  0,  0, 0}, {0,  0,  0, 0}, {0,  0,  0, 0},
+				      { 0,  0,  0, 0}, {0,  0,  0, 0}};
 
-	    template<int BLOCKSIZE> __global__  __launch_bounds__(32 * 4, 16)
-		void fsi_forces_all_nopref(const float seed, Acceleration * accsolvent, const int npsolvent, const int nremote)
-	    {
-	    assert(blockDim.x == BLOCKSIZE);
-	    assert(blockDim.x * gridDim.x >= nremote);
+    template<int BLOCKSIZE> __global__  __launch_bounds__(32 * 4, 16)
+	void fsi_forces_all_nopref(const float seed, Acceleration * accsolvent, const int npsolvent, const int nremote)
+    {
+	assert(blockDim.x == BLOCKSIZE);
+	assert(blockDim.x * gridDim.x >= nremote);
 
-	    __shared__ float tmp[BLOCKSIZE * 3];
-	    __shared__ int volatile starts[BLOCKSIZE];
-	    __shared__ int volatile scan[BLOCKSIZE];
+	__shared__ float tmp[BLOCKSIZE * 3];
+	__shared__ int volatile starts[BLOCKSIZE];
+	__shared__ int volatile scan[BLOCKSIZE];
 
-	    const int tid = threadIdx.x;
-	    const int gidstart =  BLOCKSIZE * blockIdx.x;
+	const int tid = threadIdx.x;
+	const int gidstart =  BLOCKSIZE * blockIdx.x;
 
-	    const int lid = threadIdx.x%32;
-	    const int wof = threadIdx.x&(~31);
-	    const int wst = gidstart+wof;
+	const int lid = threadIdx.x%32;
+	const int wof = threadIdx.x&(~31);
+	const int wst = gidstart+wof;
 
-	    const int nlocal = min(BLOCKSIZE, nremote - gidstart);
+	const int nlocal = min(BLOCKSIZE, nremote - gidstart);
 
-	    float3 xp, up;
-
-#ifndef NDEBUG
-	    xp = make_float3(-313.313f, -313.313f, -313.313f); //che e' poi l'auto di paperino
-	    up = make_float3(-313.313f, -313.313f, -313.313f);
-#endif
-
-	    {
-		const int n = nlocal * 6;
-		const int h = nlocal * 3;
-
-		for(int base = 0; base < n; base += h)
-		{
-#pragma unroll 3
-		    for(int x = tid; x < h; x += BLOCKSIZE)
-		    {
-			const int l = base + x;
-			const int gid = gidstart + l / 6;
-
-			const int key9 = 9 * ((gid >= packstarts[9]) + (gid >= packstarts[18]));
-			const int key3 = 3 * ((gid >= packstarts[key9 + 3]) + (gid >= packstarts[key9 + 6]));
-			const int key1 = (gid >= packstarts[key9 + key3 + 1]) + (gid >= packstarts[key9 + key3 + 2]);
-
-			const int code = key9 + key3 + key1;
-			const int lpid = gid - packstarts[code];
-
-			assert(x < BLOCKSIZE * 3);
-			tmp[x] = *((l % 6) + (float *)&packstates[code][lpid]);
-		    }
-
-		    __syncthreads();
-
-		    const int xstart = tid * 6 - base;
-
-		    if (0 <= xstart && xstart + 3 <= h)
-		    {
-			xp.x = tmp[0 + xstart];
-			xp.y = tmp[1 + xstart];
-			xp.z = tmp[2 + xstart];
-
-			assert(0 + 6 * tid - base >= 0);
-			assert(2 + 6 * tid - base < 3 * BLOCKSIZE);
-		    }
-
-		    const int ustart = 3 + 6 * tid - base;
-
-		    if (0 <= ustart && ustart + 3 <= h)
-		    {
-			up.x = tmp[0 + ustart];
-			up.y = tmp[1 + ustart];
-			up.z = tmp[2 + ustart];
-
-			assert(3 + 6 * tid - base >= 0);
-			assert(5 + 6 * tid - base < 3 * BLOCKSIZE);
-		    }
-		}
-	    }
+	float3 xp, up;
 
 #ifndef NDEBUG
-	    assert(xp.x != -313.313f || gidstart + tid >= nremote);
-	    assert(xp.y != -313.313f || gidstart + tid >= nremote);
-	    assert(xp.z != -313.313f || gidstart + tid >= nremote);
-	    assert(up.x != -313.313f || gidstart + tid >= nremote);
-	    assert(up.y != -313.313f || gidstart + tid >= nremote);
-	    assert(up.z != -313.313f || gidstart + tid >= nremote);
+	xp = make_float3(-313.313f, -313.313f, -313.313f); //che e' poi l'auto di paperino
+	up = make_float3(-313.313f, -313.313f, -313.313f);
 #endif
 
-	    assert(!isnan(xp.x) && !isnan(xp.y) && !isnan(xp.z));
-	    assert(!isnan(up.x) && !isnan(up.y) && !isnan(up.z));
+	{
+	    const int n = nlocal * 6;
+	    const int h = nlocal * 3;
 
-	    __syncthreads();
-
-	    if (wst < nremote)
+	    for(int base = 0; base < n; base += h)
 	    {
-		char mycid[4] = {-2,-2,-2,0};
-		if (tid + gidstart < nremote) {
-		    mycid[0] = XSIZE_SUBDOMAIN / 2 + (int)floor(xp.x);
-		    mycid[1] = YSIZE_SUBDOMAIN / 2 + (int)floor(xp.y);
-		    mycid[2] = ZSIZE_SUBDOMAIN / 2 + (int)floor(xp.z);
-		    mycid[3] = 1;
-
-		    if (mycid[0] < -1 || mycid[0] >= XSIZE_SUBDOMAIN + 1 ||
-			mycid[1] < -1 || mycid[1] >= YSIZE_SUBDOMAIN + 1 ||
-			mycid[2] < -1 || mycid[2] >= ZSIZE_SUBDOMAIN + 1)
-			mycid[3] = 0;
-		}
-
-		float fsum[3] = {0, 0, 0};
-		const char4 offs = tid2ind[lid];
-
-		for(int l = 0; l < 32; l++) {
-
-		    char ccel[4];
-		    *((int *)ccel) = __shfl(*((int *)mycid), l);
-		    if (!ccel[3]) continue;
-
-		    int mycount=0, myscan=0;
-		    if (lid < 27) {
-
-			ccel[0] += offs.x;
-			ccel[1] += offs.y;
-			ccel[2] += offs.z;
-
-			bool validcid = ccel[0] >= 0 && ccel[0] < XSIZE_SUBDOMAIN &&
-			    ccel[1] >= 0 && ccel[1] < YSIZE_SUBDOMAIN &&
-			    ccel[2] >= 0 && ccel[2] < ZSIZE_SUBDOMAIN;
-
-			const int cid = (validcid) ? (ccel[0] + XSIZE_SUBDOMAIN*(ccel[1] + YSIZE_SUBDOMAIN*ccel[2])) : 0;
-			starts[threadIdx.x] = (validcid) ? tex1Dfetch(texCellsStart, cid) : 0;
-			myscan = mycount = (validcid) ? tex1Dfetch(texCellsCount, cid) : 0;
-		    }
-#pragma unroll
-		    for(int L = 1; L < 32; L <<= 1)
-			myscan += (lid >= L)*__shfl_up(myscan, L);
-
-		    if (lid < 28) scan[threadIdx.x] = myscan - mycount;
-
-		    float ftmp[3] = {0, 0, 0};
-		    float3 dxp = __shfl_float3(xp, l);
-		    float3 dup = __shfl_float3(up, l);
-
-		    const int did = wst+l;
-
-		    const int nsrc = scan[wof+27];
-		    for(int sid = lid; sid < nsrc; sid += 32) {
-
-			const int key9 = 9*((sid >= scan[wof + 9]) + (sid >= scan[wof + 18]));
-			const int key3 = 3*((sid >= scan[wof + key9+3]) + (sid >= scan[wof + key9+6]));
-			const int key1 = (sid >= scan[wof + key9+key3+1]) + (sid >= scan[wof + key9+key3+2]);
-			int s = sid - scan[wof + key3+key9+key1] + starts[wof + key3+key9+key1];
-
-			float f[3];
-			const bool nonzero = fsi_kernel(seed, did, dxp, dup, s, f[0], f[1], f[2]);
-
-			if (nonzero) {
-			    ftmp[0] += f[0];
-			    ftmp[1] += f[1];
-			    ftmp[2] += f[2];
-
-			    atomicAdd((float *)(accsolvent + s),   -f[0]);
-			    atomicAdd((float *)(accsolvent + s)+1, -f[1]);
-			    atomicAdd((float *)(accsolvent + s)+2, -f[2]);
-			}
-		    }
-#pragma unroll
-		    for(int z = 16; z; z >>= 1) {
-			ftmp[0] += __shfl_xor(ftmp[0], z);
-			ftmp[1] += __shfl_xor(ftmp[1], z);
-			ftmp[2] += __shfl_xor(ftmp[2], z);
-		    }
-		    if (l == lid) {
-			fsum[0] = ftmp[0];
-			fsum[1] = ftmp[1];
-			fsum[2] = ftmp[2];
-		    }
-		}
-
-		for(int c = 0; c < 3;  ++c)
-		    assert(!isnan(fsum[c]));
-
-		tmp[0 + 3 * tid] = fsum[0];
-		tmp[1 + 3 * tid] = fsum[1];
-		tmp[2 + 3 * tid] = fsum[2];
-	    }
-
-	    __syncthreads();
-
-	    {
-		const int n = nlocal * 3;
-
 #pragma unroll 3
-		for(int l = tid; l < n; l += BLOCKSIZE)
+		for(int x = tid; x < h; x += BLOCKSIZE)
 		{
-		    const int gid = gidstart + l / 3;
+		    const int l = base + x;
+		    const int gid = gidstart + l / 6;
 
 		    const int key9 = 9 * ((gid >= packstarts[9]) + (gid >= packstarts[18]));
 		    const int key3 = 3 * ((gid >= packstarts[key9 + 3]) + (gid >= packstarts[key9 + 6]));
@@ -677,10 +476,166 @@ namespace KernelsRBC
 		    const int code = key9 + key3 + key1;
 		    const int lpid = gid - packstarts[code];
 
-		    packresults[code][lpid].a[l % 3] = tmp[l];
+		    assert(x < BLOCKSIZE * 3);
+		    tmp[x] = *((l % 6) + (float *)&packstates[code][lpid]);
+		}
+
+		__syncthreads();
+
+		const int xstart = tid * 6 - base;
+
+		if (0 <= xstart && xstart + 3 <= h)
+		{
+		    xp.x = tmp[0 + xstart];
+		    xp.y = tmp[1 + xstart];
+		    xp.z = tmp[2 + xstart];
+
+		    assert(0 + 6 * tid - base >= 0);
+		    assert(2 + 6 * tid - base < 3 * BLOCKSIZE);
+		}
+
+		const int ustart = 3 + 6 * tid - base;
+
+		if (0 <= ustart && ustart + 3 <= h)
+		{
+		    up.x = tmp[0 + ustart];
+		    up.y = tmp[1 + ustart];
+		    up.z = tmp[2 + ustart];
+
+		    assert(3 + 6 * tid - base >= 0);
+		    assert(5 + 6 * tid - base < 3 * BLOCKSIZE);
 		}
 	    }
+	}
+
+#ifndef NDEBUG
+	assert(xp.x != -313.313f || gidstart + tid >= nremote);
+	assert(xp.y != -313.313f || gidstart + tid >= nremote);
+	assert(xp.z != -313.313f || gidstart + tid >= nremote);
+	assert(up.x != -313.313f || gidstart + tid >= nremote);
+	assert(up.y != -313.313f || gidstart + tid >= nremote);
+	assert(up.z != -313.313f || gidstart + tid >= nremote);
+#endif
+
+	assert(!isnan(xp.x) && !isnan(xp.y) && !isnan(xp.z));
+	assert(!isnan(up.x) && !isnan(up.y) && !isnan(up.z));
+
+	__syncthreads();
+
+	if (wst < nremote)
+	{
+	    char mycid[4] = {-2,-2,-2,0};
+	    if (tid + gidstart < nremote) {
+		mycid[0] = XSIZE_SUBDOMAIN / 2 + (int)floor(xp.x);
+		mycid[1] = YSIZE_SUBDOMAIN / 2 + (int)floor(xp.y);
+		mycid[2] = ZSIZE_SUBDOMAIN / 2 + (int)floor(xp.z);
+		mycid[3] = 1;
+
+		if (mycid[0] < -1 || mycid[0] >= XSIZE_SUBDOMAIN + 1 ||
+		    mycid[1] < -1 || mycid[1] >= YSIZE_SUBDOMAIN + 1 ||
+		    mycid[2] < -1 || mycid[2] >= ZSIZE_SUBDOMAIN + 1)
+		    mycid[3] = 0;
 	    }
+
+	    float fsum[3] = {0, 0, 0};
+	    const char4 offs = tid2ind[lid];
+
+	    for(int l = 0; l < 32; l++) {
+
+		char ccel[4];
+		*((int *)ccel) = __shfl(*((int *)mycid), l);
+		if (!ccel[3]) continue;
+
+		int mycount=0, myscan=0;
+		if (lid < 27) {
+
+		    ccel[0] += offs.x;
+		    ccel[1] += offs.y;
+		    ccel[2] += offs.z;
+
+		    bool validcid = ccel[0] >= 0 && ccel[0] < XSIZE_SUBDOMAIN &&
+			ccel[1] >= 0 && ccel[1] < YSIZE_SUBDOMAIN &&
+			ccel[2] >= 0 && ccel[2] < ZSIZE_SUBDOMAIN;
+
+		    const int cid = (validcid) ? (ccel[0] + XSIZE_SUBDOMAIN*(ccel[1] + YSIZE_SUBDOMAIN*ccel[2])) : 0;
+		    starts[threadIdx.x] = (validcid) ? tex1Dfetch(texCellsStart, cid) : 0;
+		    myscan = mycount = (validcid) ? tex1Dfetch(texCellsCount, cid) : 0;
+		}
+#pragma unroll
+		for(int L = 1; L < 32; L <<= 1)
+		    myscan += (lid >= L)*__shfl_up(myscan, L);
+
+		if (lid < 28) scan[threadIdx.x] = myscan - mycount;
+
+		float ftmp[3] = {0, 0, 0};
+		float3 dxp = __shfl_float3(xp, l);
+		float3 dup = __shfl_float3(up, l);
+
+		const int did = wst+l;
+
+		const int nsrc = scan[wof+27];
+		for(int sid = lid; sid < nsrc; sid += 32) {
+
+		    const int key9 = 9*((sid >= scan[wof + 9]) + (sid >= scan[wof + 18]));
+		    const int key3 = 3*((sid >= scan[wof + key9+3]) + (sid >= scan[wof + key9+6]));
+		    const int key1 = (sid >= scan[wof + key9+key3+1]) + (sid >= scan[wof + key9+key3+2]);
+		    int s = sid - scan[wof + key3+key9+key1] + starts[wof + key3+key9+key1];
+
+		    float f[3];
+		    const bool nonzero = fsi_kernel(seed, did, dxp, dup, s, f[0], f[1], f[2]);
+
+		    if (nonzero) {
+			ftmp[0] += f[0];
+			ftmp[1] += f[1];
+			ftmp[2] += f[2];
+
+			atomicAdd((float *)(accsolvent + s),   -f[0]);
+			atomicAdd((float *)(accsolvent + s)+1, -f[1]);
+			atomicAdd((float *)(accsolvent + s)+2, -f[2]);
+		    }
+		}
+#pragma unroll
+		for(int z = 16; z; z >>= 1) {
+		    ftmp[0] += __shfl_xor(ftmp[0], z);
+		    ftmp[1] += __shfl_xor(ftmp[1], z);
+		    ftmp[2] += __shfl_xor(ftmp[2], z);
+		}
+		if (l == lid) {
+		    fsum[0] = ftmp[0];
+		    fsum[1] = ftmp[1];
+		    fsum[2] = ftmp[2];
+		}
+	    }
+
+	    for(int c = 0; c < 3;  ++c)
+		assert(!isnan(fsum[c]));
+
+	    tmp[0 + 3 * tid] = fsum[0];
+	    tmp[1 + 3 * tid] = fsum[1];
+	    tmp[2 + 3 * tid] = fsum[2];
+	}
+
+	__syncthreads();
+
+	{
+	    const int n = nlocal * 3;
+
+#pragma unroll 3
+	    for(int l = tid; l < n; l += BLOCKSIZE)
+	    {
+		const int gid = gidstart + l / 3;
+
+		const int key9 = 9 * ((gid >= packstarts[9]) + (gid >= packstarts[18]));
+		const int key3 = 3 * ((gid >= packstarts[key9 + 3]) + (gid >= packstarts[key9 + 6]));
+		const int key1 = (gid >= packstarts[key9 + key3 + 1]) + (gid >= packstarts[key9 + key3 + 2]);
+
+		const int code = key9 + key3 + key1;
+		const int lpid = gid - packstarts[code];
+
+		packresults[code][lpid].a[l % 3] = tmp[l];
+	    }
+	}
+    }
 
     __global__ void merge_accelerations(const Acceleration * const src, const int n, Acceleration * const dst)
     {
