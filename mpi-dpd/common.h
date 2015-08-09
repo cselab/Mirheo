@@ -18,8 +18,8 @@
 #define cuda_printf(...) do { printf(__VA_ARGS__); } while(0)
 #endif
 
-enum 
-{ 
+enum
+{
     XSIZE_SUBDOMAIN = 48,
     YSIZE_SUBDOMAIN = 48,
     ZSIZE_SUBDOMAIN = 48,
@@ -32,7 +32,7 @@ const int numberdensity = 4;
 const float dt = 0.001;
 const float kBT = 0.0945;
 const float gammadpd = 45;
-const float sigma = sqrt(2 * gammadpd * kBT); 
+const float sigma = sqrt(2 * gammadpd * kBT);
 const float sigmaf = sigma / sqrt(dt);
 const float aij = 25;
 const float hydrostatic_a = 0.05;
@@ -48,12 +48,12 @@ void read_AOS6f(const float2 * const data, const int nparticles, float2& s0, flo
 {
     if (nparticles == 0)
 	return;
-    
+
     int laneid;
     asm volatile ("mov.u32 %0, %%laneid;" : "=r"(laneid));
 
     const int nfloat2 = 3 * nparticles;
-     
+
     if (laneid < nfloat2)
 	s0 = data[laneid];
 
@@ -68,7 +68,7 @@ void read_AOS6f(const float2 * const data, const int nparticles, float2& s0, flo
     const int srclane2 = (srclane0 + 2) & 0x1f;
 
     const int start = laneid % 3;
-    
+
     {
 	const float t0 = __shfl(start == 0 ? s0.x : start == 1 ? s1.x : s2.x, srclane0);
 	const float t1 = __shfl(start == 0 ? s2.x : start == 1 ? s0.x : s1.x, srclane1);
@@ -78,7 +78,7 @@ void read_AOS6f(const float2 * const data, const int nparticles, float2& s0, flo
 	s1.x = t1;
 	s2.x = t2;
     }
-    
+
     {
 	const float t0 = __shfl(start == 0 ? s0.y : start == 1 ? s1.y : s2.y, srclane0);
 	const float t1 = __shfl(start == 0 ? s2.y : start == 1 ? s0.y : s1.y, srclane1);
@@ -95,45 +95,82 @@ void write_AOS6f(float2 * const data, const int nparticles, float2& s0, float2& 
 {
     if (nparticles == 0)
 	return;
-    
+
     int laneid;
     asm volatile ("mov.u32 %0, %%laneid;" : "=r"(laneid));
-    
+
     const int srclane0 = (32 * ((laneid) % 3) + laneid) / 3;
     const int srclane1 = (32 * ((laneid + 1) % 3) + laneid) / 3;
     const int srclane2 = (32 * ((laneid + 2) % 3) + laneid) / 3;
 
     const int start = laneid % 3;
-    
+
     {
 	const float t0 = __shfl(s0.x, srclane0);
 	const float t1 = __shfl(s2.x, srclane1);
 	const float t2 = __shfl(s1.x, srclane2);
-	
+
 	s0.x = start == 0 ? t0 : start == 1 ? t2 : t1;
 	s1.x = start == 0 ? t1 : start == 1 ? t0 : t2;
 	s2.x = start == 0 ? t2 : start == 1 ? t1 : t0;
     }
-    
+
     {
 	const float t0 = __shfl(s0.y, srclane0);
 	const float t1 = __shfl(s2.y, srclane1);
 	const float t2 = __shfl(s1.y, srclane2);
-	
+
 	s0.y = start == 0 ? t0 : start == 1 ? t2 : t1;
 	s1.y = start == 0 ? t1 : start == 1 ? t0 : t2;
 	s2.y = start == 0 ? t2 : start == 1 ? t1 : t0;
     }
-    
+
     const int nfloat2 = 3 * nparticles;
-    
+
     if (laneid < nfloat2)
 	data[laneid] = s0;
-    
+
     if (laneid + 32 < nfloat2)
 	data[laneid + 32] = s1;
-    
+
     if (laneid + 64 < nfloat2)
+	data[laneid + 64] = s2;
+}
+
+__device__ __forceinline__
+void write_AOS3f(float * const data, const int nparticles, float& s0, float& s1, float& s2)
+{
+    if (nparticles == 0)
+	return;
+
+    int laneid;
+    asm volatile ("mov.u32 %0, %%laneid;" : "=r"(laneid));
+
+    const int srclane0 = (32 * ((laneid) % 3) + laneid) / 3;
+    const int srclane1 = (32 * ((laneid + 1) % 3) + laneid) / 3;
+    const int srclane2 = (32 * ((laneid + 2) % 3) + laneid) / 3;
+
+    const int start = laneid % 3;
+
+    {
+	const float t0 = __shfl(s0, srclane0);
+	const float t1 = __shfl(s2, srclane1);
+	const float t2 = __shfl(s1, srclane2);
+
+	s0 = start == 0 ? t0 : start == 1 ? t2 : t1;
+	s1 = start == 0 ? t1 : start == 1 ? t0 : t2;
+	s2 = start == 0 ? t2 : start == 1 ? t1 : t0;
+    }
+
+    const int nfloat = 3 * nparticles;
+
+    if (laneid < nfloat)
+	data[laneid] = s0;
+
+    if (laneid + 32 < nfloat)
+	data[laneid + 32] = s1;
+
+    if (laneid + 64 < nfloat)
 	data[laneid + 64] = s2;
 }
 
@@ -148,10 +185,10 @@ void write_AOS6f(float2 * const data, const int nparticles, float2& s0, float2& 
 #define CUDA_CHECK(ans) do { cudaAssert((ans), __FILE__, __LINE__); } while(0)
 inline void cudaAssert(cudaError_t code, const char *file, int line)
 {
-    if (code != cudaSuccess) 
+    if (code != cudaSuccess)
     {
 	fprintf(stderr,"GPUassert: %s %s %d\n", cudaGetErrorString(code), file, line);
-	
+
 	abort();
     }
 }
@@ -191,10 +228,10 @@ NvtxTracer(const char* name, NVTX_COLORS color = NVTX_C1): active(false)
 	    eventAttrib.color = color;
 	    eventAttrib.messageType = NVTX_MESSAGE_TYPE_ASCII;
 	    eventAttrib.message.ascii = name;
-	    nvtxRangePushEx(&eventAttrib);	    
+	    nvtxRangePushEx(&eventAttrib);
 	}
     }
-    
+
     ~NvtxTracer()
     {
 	if (active) nvtxRangePop();
@@ -212,14 +249,14 @@ NvtxTracer(const char* name, NVTX_COLORS color = NVTX_C1): active(false)
 
 inline void mpiAssert(int code, const char *file, int line, bool abort=true)
 {
-    if (code != MPI_SUCCESS) 
+    if (code != MPI_SUCCESS)
     {
 	char error_string[2048];
 	int length_of_error_string = sizeof(error_string);
 	MPI_Error_string(code, error_string, &length_of_error_string);
-	 
+
 	printf("mpiAssert: %s %d %s\n", file, line, error_string);
-	 	 
+
 	MPI_Abort(MPI_COMM_WORLD, code);
     }
 }
@@ -275,16 +312,16 @@ template<typename T>
 struct SimpleDeviceBuffer
 {
     int capacity, size;
-    
+
     T * data;
-    
+
 SimpleDeviceBuffer(int n = 0): capacity(0), size(0), data(NULL) { resize(n);}
-    
+
     ~SimpleDeviceBuffer()
 	{
 	    if (data != NULL)
 		CUDA_CHECK(cudaFree(data));
-	    
+
 	    data = NULL;
 	}
 
@@ -292,49 +329,49 @@ SimpleDeviceBuffer(int n = 0): capacity(0), size(0), data(NULL) { resize(n);}
 	{
 	    if (data != NULL)
 		CUDA_CHECK(cudaFree(data));
-	    
+
 	    data = NULL;
 	}
-    
+
     void resize(const int n)
 	{
 	    assert(n >= 0);
-	    
+
 	    size = n;
-	    
+
 	    if (capacity >= n)
 		return;
-	    
+
 	    if (data != NULL)
 		CUDA_CHECK(cudaFree(data));
-	    
+
 	    const int conservative_estimate = (int)ceil(1.1 * n);
 	    capacity = 128 * ((conservative_estimate + 129) / 128);
-	    
+
 	    CUDA_CHECK(cudaMalloc(&data, sizeof(T) * capacity));
-	    
+
 #ifndef NDEBUG
 	    CUDA_CHECK(cudaMemset(data, 0, sizeof(T) * capacity));
 #endif
 	}
-    
+
     void preserve_resize(const int n)
 	{
 	    assert(n >= 0);
-	    
+
 	    T * old = data;
-	    
+
 	    const int oldsize = size;
-	    
+
 	    size = n;
-	    
+
 	    if (capacity >= n)
 		return;
-	    
+
 	    capacity = n;
-	    
+
 	    CUDA_CHECK(cudaMalloc(&data, sizeof(T) * capacity));
-	    
+
 	    if (old != NULL)
 	    {
 		CUDA_CHECK(cudaMemcpy(data, old, sizeof(T) * oldsize, cudaMemcpyDeviceToDevice));
@@ -347,16 +384,16 @@ template<typename T>
 struct PinnedHostBuffer
 {
     int capacity, size;
-    
+
     T * data, * devptr;
-    
+
 PinnedHostBuffer(int n = 0): capacity(0), size(0), data(NULL), devptr(NULL) { resize(n);}
 
     ~PinnedHostBuffer()
 	{
 	    if (data != NULL)
 		CUDA_CHECK(cudaFreeHost(data));
-	    
+
 	    data = NULL;
 	}
 
@@ -365,39 +402,39 @@ PinnedHostBuffer(int n = 0): capacity(0), size(0), data(NULL), devptr(NULL) { re
 	    assert(n >= 0);
 
 	    size = n;
-	    
+
 	    if (capacity >= n)
-		return;	    
+		return;
 
 	    if (data != NULL)
 		CUDA_CHECK(cudaFreeHost(data));
 
 	    const int conservative_estimate = (int)ceil(1.1 * n);
 	    capacity = 128 * ((conservative_estimate + 129) / 128);
-	    
+
 	    CUDA_CHECK(cudaHostAlloc(&data, sizeof(T) * capacity, cudaHostAllocMapped));
-	    
+
 	    CUDA_CHECK(cudaHostGetDevicePointer(&devptr, data, 0));
 	}
 
     void preserve_resize(const int n)
 	{
 	    assert(n >= 0);
-	    
+
 	    T * old = data;
-	    
+
 	    const int oldsize = size;
-	    
+
 	    size = n;
-	    
+
 	    if (capacity >= n)
 		return;
-	    
+
 	    capacity = n;
 
 	    data = NULL;
 	    CUDA_CHECK(cudaHostAlloc(&data, sizeof(T) * capacity, cudaHostAllocMapped));
-	    
+
 	    if (old != NULL)
 	    {
 		CUDA_CHECK(cudaMemcpy(data, old, sizeof(T) * oldsize, cudaMemcpyHostToHost));
@@ -413,7 +450,7 @@ PinnedHostBuffer(int n = 0): capacity(0), size(0), data(NULL), devptr(NULL) { re
 class HookedTexture
 {
     std::pair<void *, int> registered;
-    
+
     template<typename T>  void _create(T * data, const int n)
     {
 	struct cudaResourceDesc resDesc;
@@ -422,7 +459,7 @@ class HookedTexture
 	resDesc.res.linear.devPtr = (void *)data;
 	resDesc.res.linear.sizeInBytes = n * sizeof(T);
 	resDesc.res.linear.desc = cudaCreateChannelDesc<T>();
-		
+
 	struct cudaTextureDesc texDesc;
 	memset(&texDesc, 0, sizeof(texDesc));
 	texDesc.addressMode[0]   = cudaAddressModeWrap;
@@ -430,16 +467,16 @@ class HookedTexture
 	texDesc.filterMode       = cudaFilterModePoint;
 	texDesc.readMode         = cudaReadModeElementType;
 	texDesc.normalizedCoords = 0;
-		
+
 	CUDA_CHECK(cudaCreateTextureObject(&texObj, &resDesc, &texDesc, NULL));
     }
-	
+
     void _discard()	{  if (texObj != 0)CUDA_CHECK(cudaDestroyTextureObject(texObj)); }
-	    
+
 public:
-	
+
     cudaTextureObject_t texObj;
-	
+
 HookedTexture(): texObj(0) { }
 
     template<typename T>
@@ -456,7 +493,7 @@ HookedTexture(): texObj(0) { }
 
 	return texObj;
     }
-	
+
     ~HookedTexture() { _discard(); }
 };
 
@@ -471,8 +508,8 @@ struct CellLists
     const int ncells, LX, LY, LZ;
 
     int * start, * count;
-    
-CellLists(const int LX, const int LY, const int LZ): 
+
+CellLists(const int LX, const int LY, const int LZ):
     ncells(LX * LY * LZ + 1), LX(LX), LY(LY), LZ(LZ)
 	{
 	    CUDA_CHECK(cudaMalloc(&start, sizeof(int) * ncells));
@@ -480,7 +517,7 @@ CellLists(const int LX, const int LY, const int LZ):
 	}
 
     void build(Particle * const p, const int n, cudaStream_t stream, int * const order = NULL, const Particle * const src = NULL);
-	    	    
+
     ~CellLists()
 	{
 	    CUDA_CHECK(cudaFree(start));
