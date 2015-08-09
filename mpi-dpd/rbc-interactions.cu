@@ -213,7 +213,9 @@ namespace KernelsRBC
 #define _ACCESS(x) (*(x))
 #endif
 
-    __global__  __launch_bounds__(128, 16)
+    static const int NCELLS = XSIZE_SUBDOMAIN * YSIZE_SUBDOMAIN * ZSIZE_SUBDOMAIN;
+
+    __global__  __launch_bounds__(128, 10)
 	void interactions_3tpp(const float2 * const particles, const int np, const int nsolvent,
 			       float * const acc, float * const accsolvent, const float seed)
     {
@@ -239,7 +241,6 @@ namespace KernelsRBC
 		XCELLS = XSIZE_SUBDOMAIN,
 		YCELLS = YSIZE_SUBDOMAIN,
 		ZCELLS = ZSIZE_SUBDOMAIN,
-		NCELLS = XCELLS * YCELLS * ZCELLS,
 		XOFFSET = XCELLS / 2,
 		YOFFSET = YCELLS / 2,
 		ZOFFSET = ZCELLS / 2
@@ -296,7 +297,7 @@ namespace KernelsRBC
 
 	float xforce = 0, yforce = 0, zforce = 0;
 
-#pragma unroll 2
+#pragma unroll 3
 	for(int i = 0; i < ncandidates; ++i)
 	{
 	    const int m1 = (int)(i >= scan1);
