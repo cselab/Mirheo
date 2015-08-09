@@ -637,51 +637,6 @@ namespace KernelsRBC
 	}
     }
 
-    __global__ void merge_accelerations(const Acceleration * const src, const int n, Acceleration * const dst)
-    {
-	const int gid = threadIdx.x + blockDim.x * blockIdx.x;
-
-	if (gid < n)
-	    for(int c = 0; c < 3; ++c)
-		dst[gid].a[c] += src[gid].a[c];
-    }
-
-    __global__ void merge_accelerations_float(const Acceleration * const src, const int n, Acceleration * const dst)
-    {
-	assert(blockDim.x * gridDim.x >= n * 3);
-
-	const int gid = threadIdx.x + blockDim.x * blockIdx.x;
-
-	const int pid = gid / 3;
-	const int c = gid % 3;
-
-	if (pid < n)
-	    dst[pid].a[c] += src[pid].a[c];
-    }
-
-    template<bool accumulation>
-    __global__ void merge_accelerations_scattered_float(const int * const reordering, const Acceleration * const src,
-							const int n, Acceleration * const dst)
-    {
-	assert(blockDim.x * gridDim.x >= n * 3);
-
-	const int gid = threadIdx.x + blockDim.x * blockIdx.x;
-
-	const int pid = gid / 3;
-	const int c = gid % 3;
-
-	if (pid < n)
-	{
-	    const int actualpid = reordering[pid];
-
-	    if (accumulation)
-		dst[actualpid].a[c] += src[pid].a[c];
-	    else
-		dst[actualpid].a[c] = src[pid].a[c];
-	}
-    }
-
-
     void setup(const Particle * const solvent, const int npsolvent, const int * const cellsstart, const int * const cellscount,
 	       const Particle * const solute, const int npsolute, const int * const solute_cellsstart, const int * const solute_cellscount)
     {
