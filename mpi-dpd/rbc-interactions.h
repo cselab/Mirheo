@@ -58,11 +58,6 @@ protected:
 
     cudaEvent_t evextents, evfsi;
 
-    CellLists dualcells;
-    SimpleDeviceBuffer<Acceleration> lacc_solute;
-    SimpleDeviceBuffer<Particle> reordered_solute;
-    SimpleDeviceBuffer<int> reordering;
-
 public:
 
     ComputeInteractionsRBC(MPI_Comm cartcomm);
