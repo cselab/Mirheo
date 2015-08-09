@@ -213,7 +213,7 @@ namespace KernelsRBC
 #define _ACCESS(x) (*(x))
 #endif
     
-    __global__ void interactions_3tpp(const float2 * const particles, const int np, const int nsolvent,
+    __global__  __launch_bounds__(128, 16) void interactions_3tpp(const float2 * const particles, const int np, const int nsolvent,
 				      float * const acc, float * const accsolvent, const float seed)
     {
 	assert(blockDim.x * gridDim.x >= np * 3);
@@ -244,13 +244,13 @@ namespace KernelsRBC
 		ZOFFSET = ZCELLS / 2	
 	    };
 
-	    const int xcenter = (int)(dst0.x + XOFFSET);
+	    const int xcenter = (int)floorf(dst0.x + XOFFSET);
 	    const int xstart = max(0, xcenter - 1);
 	    const int xcount = min(XCELLS, xcenter + 2) - xstart;
 	    
-	    const int ycenter = (int)(dst0.y + YOFFSET);
+	    const int ycenter = (int)floorf(dst0.y + YOFFSET);
 	    
-	    const int zcenter =  (int)(dst1.x + ZOFFSET);
+	    const int zcenter =  (int)floorf(dst1.x + ZOFFSET);
 	    const int zmy = zcenter - 1 + zplane;
 	    const bool zvalid = zmy >= 0 && zmy < ZCELLS;
 
@@ -336,7 +336,7 @@ namespace KernelsRBC
 
 	float xforce = 0, yforce = 0, zforce = 0;
 
-#pragma unroll 2
+//#pragma unroll 2
 	for(int i = 0; i < ncandidates; ++i)
 	{
 	    const int m1 = (int)(i >= scan1);
