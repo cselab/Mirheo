@@ -204,6 +204,202 @@ namespace KernelsRBC
 	}
     }
 
+#if !defined(__CUDA_ARCH__)
+#warning __CUDA_ARCH__ not defined! assuming 350
+#define _ACCESS(x) __ldg(x)
+#elif __CUDA_ARCH__ >= 350
+#define _ACCESS(x) __ldg(x)
+#else
+#define _ACCESS(x) (*(x))
+#endif
+    
+    __global__ void interactions_3tpp(const float2 * const particles, const int np, const int nsolvent,
+				      float * const acc, float * const accsolvent, const float seed)
+    {
+	assert(blockDim.x * gridDim.x >= np * 3);
+
+	const int gid = threadIdx.x + blockDim.x * blockIdx.x;
+       	const int pid = gid / 3;
+	const int zplane = gid % 3;
+
+	if (pid >= np)
+	    return;
+
+	const float2 dst0 = _ACCESS(particles + 3 * pid + 0);
+	const float2 dst1 = _ACCESS(particles + 3 * pid + 1);
+	const float2 dst2 = _ACCESS(particles + 3 * pid + 2);
+
+	int scan1, scan2, ncandidates, spidbase;
+	int deltaspid1, deltaspid2;
+
+	{
+	    enum
+	    {	
+		XCELLS = XSIZE_SUBDOMAIN,
+		YCELLS = YSIZE_SUBDOMAIN,
+		ZCELLS = ZSIZE_SUBDOMAIN,
+		NCELLS = XCELLS * YCELLS * ZCELLS,
+		XOFFSET = XCELLS / 2,
+		YOFFSET = YCELLS / 2,
+		ZOFFSET = ZCELLS / 2	
+	    };
+
+	    const int xcenter = (int)(dst0.x + XOFFSET);
+	    const int xstart = max(0, xcenter - 1);
+	    const int xcount = min(XCELLS, xcenter + 2) - xstart;
+	    
+	    const int ycenter = (int)(dst0.y + YOFFSET);
+	    
+	    const int zcenter =  (int)(dst1.x + ZOFFSET);
+	    const int zmy = zcenter - 1 + zplane;
+	    const bool zvalid = zmy >= 0 && zmy < ZCELLS;
+
+	    int count0 = 0, count1 = 0, count2 = 0;
+	    
+	    if (zvalid && ycenter - 1 >= 0 && ycenter - 1 < YCELLS)
+	    {
+		const int cid0 = xstart + XCELLS * (ycenter - 1 + YCELLS * zmy);
+		assert(cid0 >= 0 && cid0 + xcount < NCELLS);
+		spidbase = tex1Dfetch(texCellsStart, cid0);
+		count0 = tex1Dfetch(texCellsStart, cid0 + xcount) - spidbase;
+	    }
+
+	    if (zvalid && ycenter >= 0 && ycenter < YCELLS)
+	    {
+		const int cid1 = xstart + XCELLS * (ycenter + YCELLS * zmy);
+		assert(cid1 >= 0 && cid1 + xcount < NCELLS);
+		deltaspid1 = tex1Dfetch(texCellsStart, cid1);
+		count1 = tex1Dfetch(texCellsStart, cid1 + xcount) - deltaspid1;
+	    }
+
+	    if (zvalid && ycenter + 1 >= 0 && ycenter + 1 < YCELLS)
+	    {
+		const int cid2 = xstart + XCELLS * (ycenter + 1 + YCELLS * zmy);
+		deltaspid2 = tex1Dfetch(texCellsStart, cid2);
+		assert(cid2 >= 0 && cid2 + xcount < NCELLS);
+		count2 = (cid2 + xcount == NCELLS) ? nsolvent : tex1Dfetch(texCellsStart, cid2 + xcount) - deltaspid2;
+	    }
+
+	    scan1 = count0;
+	    scan2 = count0 + count1;
+	    ncandidates = scan2 + count2;
+
+	    deltaspid1 -= scan1;
+	    deltaspid2 -= scan2;
+/*
+	    {
+		const Particle p = *(((Particle *)particles) + pid);
+		
+		const float3 xp = make_float3(p.x[0], p.x[1], p.x[2]);
+		const float3 up = make_float3(p.u[0], p.u[1], p.u[2]);
+		
+		const int L[3] = { XSIZE_SUBDOMAIN, YSIZE_SUBDOMAIN, ZSIZE_SUBDOMAIN };
+		
+		int mycid[3];
+		for(int c = 0; c < 3; ++c)
+		    mycid[c] = L[c]/2 + (int)floor(p.x[c]);
+		
+		int ctr = 0;
+		for(int code = zplane * 9 ; code < (zplane  + 1)* 9; ++code)
+		{
+		    const int d[3] = {
+			(code % 3) - 1,
+			(code/3 % 3) - 1,
+			(code/9 % 3) - 1
+		    };
+		    
+		    int vcid[3];
+		    for(int c = 0; c < 3; ++c)
+			vcid[c] = mycid[c] + d[c];
+		    
+		    bool validcid = true;
+		    for(int c = 0; c < 3; ++c)
+			validcid &= vcid[c] >= 0 && vcid[c] < L[c];
+		    
+		    if (!validcid)
+			continue;
+		    
+		    const int cid = vcid[0] + XSIZE_SUBDOMAIN * (vcid[1] + YSIZE_SUBDOMAIN * vcid[2]);
+		    const int mystart = tex1Dfetch(texCellsStart, cid);
+		    const int myend = mystart + tex1Dfetch(texCellsCount, cid);
+		    ctr += myend - mystart;
+		}
+
+		const int cidad0 = xcenter + XCELLS * (ycenter + YCELLS * zmy);
+		const int cidad1 = mycid[0] + XCELLS * (mycid[1] + YCELLS * mycid[2]);
+		if (ctr != ncandidates)
+		    printf(" cid %d %d : %d-> ctr %d ncandidates %d\n",  cidad0, cidad1, ctr, ncandidates);
+	    
+		assert(ctr == ncandidates);
+	    }*/
+	}
+
+	float xforce = 0, yforce = 0, zforce = 0;
+
+#pragma unroll 2
+	for(int i = 0; i < ncandidates; ++i)
+	{
+	    const int m1 = (int)(i >= scan1);
+	    const int m2 = (int)(i >= scan2);
+	    const int spid = i + (m2 ? deltaspid2 : m1 ? deltaspid1 : spidbase);
+	    
+	    assert(spid >= 0 && spid < nsolvent);
+
+	    const int sentry = 3 * spid;
+	    const float2 stmp0 = tex1Dfetch(texSolventParticles, sentry    );
+	    const float2 stmp1 = tex1Dfetch(texSolventParticles, sentry + 1);
+	    const float2 stmp2 = tex1Dfetch(texSolventParticles, sentry + 2);
+
+	    const float _xr = dst0.x - stmp0.x;
+	    const float _yr = dst0.y - stmp0.y;
+	    const float _zr = dst1.x - stmp1.x;
+
+	    const float rij2 = _xr * _xr + _yr * _yr + _zr * _zr;
+
+	    const float invrij = rsqrtf(rij2);
+
+	    const float rij = rij2 * invrij;
+	    
+	    if (rij2 >= 1)
+		continue;
+	    
+	    const float argwr = 1.f - rij;
+	    const float wr = viscosity_function<-VISCOSITY_S_LEVEL>(argwr);
+
+	    const float xr = _xr * invrij;
+	    const float yr = _yr * invrij;
+	    const float zr = _zr * invrij;
+
+	    const float rdotv =
+		xr * (dst1.y - stmp1.y) +
+		yr * (dst2.x - stmp2.x) +
+		zr * (dst2.y - stmp2.y);
+
+	    const float myrandnr = Logistic::mean0var1(seed, pid, spid);
+
+	    const float strength = aij * argwr + (- params.gamma * wr * rdotv + params.sigmaf * myrandnr) * wr;
+
+	    const float xinteraction = strength * xr;
+	    const float yinteraction = strength * yr;
+	    const float zinteraction = strength * zr;
+	    
+	    xforce += xinteraction;
+	    yforce += yinteraction;
+	    zforce += zinteraction;
+
+	    atomicAdd(accsolvent + sentry    , -xinteraction);
+	    atomicAdd(accsolvent + sentry + 1, -yinteraction);
+	    atomicAdd(accsolvent + sentry + 2, -zinteraction);
+	}
+
+	atomicAdd(acc + 3 * pid + 0, xforce);
+	atomicAdd(acc + 3 * pid + 1, yforce);
+	atomicAdd(acc + 3 * pid + 2, zforce);
+
+	for(int c = 0; c < 3; ++c)
+	    assert(!isnan(acc[3 * pid + c]));
+    }
+
     __device__ bool fsi_kernel(const float seed,
 			       const int dpid, const float3 xp, const float3 up, const int spid,
 			       float& xforce, float& yforce, float& zforce)
@@ -478,7 +674,7 @@ namespace KernelsRBC
 	}
 
 	for(int c = 0; c < 3; ++c)
-	    accrbc[dpid].a[c] = fsum[c];
+	    atomicAdd(&accrbc[dpid].a[c], fsum[c]);//accrbc[dpid].a[c] = fsum[c];
     }
 
     __constant__ int packstarts[27];
@@ -1067,6 +1263,10 @@ void ComputeInteractionsRBC::fsi_bulk(const Particle * const solvent, const int 
 	const float seed = local_trunk.get_float();
 
 #if 1
+	KernelsRBC::interactions_3tpp<<< (3 * nsolute + 127) / 128, 128, 0, stream >>>((float2 *)rbcs, nsolute, nsolvent,
+										       (float *)accrbc, (float *)accsolvent, seed);
+	
+#elif 0
 	const int3 vcells = make_int3(XSIZE_SUBDOMAIN, YSIZE_SUBDOMAIN, ZSIZE_SUBDOMAIN);
 
 	KernelsRBC::fsi_forces<2, 2, 1, 8, 4><<<
@@ -1077,7 +1277,7 @@ void ComputeInteractionsRBC::fsi_bulk(const Particle * const solvent, const int 
 	    reordering.data, lacc_solute.data, nrbcs * nvertices, accrbc);
 
 #else
-	KernelsRBC::fsi_forces<<< (nrbcs * nvertices + 127) / 128, 128, 0, stream >>>
+	KernelsRBC::fsi_forces_old<<< (nrbcs * nvertices + 127) / 128, 128, 0, stream >>>
 	    (seed, accsolvent, nparticles, rbcs, nrbcs * nvertices, accrbc);
 #endif
     }
