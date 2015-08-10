@@ -338,7 +338,7 @@ namespace KernelsRBC
 
 	    const float myrandnr = Logistic::mean0var1(seed, pid, spid);
 
-	    const float strength = aij * argwr + (- params.gamma * wr * rdotv + params.sigmaf * myrandnr) * wr;
+	    const float strength = params.aij * argwr + (- params.gamma * wr * rdotv + params.sigmaf * myrandnr) * wr;
 
 	    const float xinteraction = strength * xr;
 	    const float yinteraction = strength * yr;
@@ -388,7 +388,7 @@ namespace KernelsRBC
 	    const uint key3 = 3 * (localbase >= packstarts_padded[key9 + 3]) + 3 * (localbase >= packstarts_padded[key9 + 6]);
 	    const uint key1 = (localbase >= packstarts_padded[key9 + key3 + 1]) + (localbase >= packstarts_padded[key9 + key3 + 2]);
 	    const int code = key9 + key3 + key1;
-	    assert(code >= 1 && code < 27);
+	    assert(code >= 0 && code < 26);
 	    assert(localbase >= packstarts_padded[code] && localbase < packstarts_padded[code + 1]);
 
 	    const int unpackbase = localbase - packstarts_padded[code];
@@ -515,7 +515,7 @@ namespace KernelsRBC
 
 		const float myrandnr = Logistic::mean0var1(seed, pid, spid);
 
-		const float strength = aij * argwr + (- params.gamma * wr * rdotv + params.sigmaf * myrandnr) * wr;
+		const float strength = params.aij * argwr + (- params.gamma * wr * rdotv + params.sigmaf * myrandnr) * wr;
 
 		const float xinteraction = strength * xr;
 		const float yinteraction = strength * yr;
