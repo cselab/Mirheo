@@ -158,8 +158,9 @@ LocalComm::LocalComm()
     local_nranks = 1;
 }
 
-void LocalComm::initialize(MPI_Comm active_comm)
+void LocalComm::initialize(MPI_Comm _active_comm)
 {
+    active_comm = _active_comm;
     MPI_Comm_rank(active_comm, &rank);
     MPI_Comm_size(active_comm, &nranks);
 
@@ -185,9 +186,36 @@ void LocalComm::print_particles(int np)
 {
     //if (!cuda_mps_enabled || local_nranks == 1) return;
 
-    int node_np;
-    MPI_Reduce(&np, &node_np, 1, MPI_INT, MPI_SUM, 0, local_comm);
-    if (local_rank == 0) {
+    int node_np = 0;
+    MPI_Allreduce(&np, &node_np, 1, MPI_INT, MPI_SUM, local_comm);
+
+#ifdef PRINT_RANK_PARTICLES
+    {
+	printf("Grank: %d node: %s particles: %d\n", rank, name, np); fflush(0);
+    }
+#endif
+
+#ifdef PRINT_NODE_PARTICLES
+    if (local_rank == 0)
+    {
 	printf("Grank: %d node: %s particles: %d\n", rank, name, node_np); fflush(0);
     }
+#endif
+
+    float np_f = (float) node_np;
+    float np_sum = (local_rank == 0) ? np_f : 0;  /* lazy way to avoid new communicator */
+
+    float sumval, maxval, minval;
+    MPI_CHECK(MPI_Reduce(&np_sum, &sumval, 1, MPI_FLOAT, MPI_SUM, 0, active_comm));
+    MPI_CHECK(MPI_Reduce(&np_f,   &maxval, 1, MPI_FLOAT, MPI_MAX, 0, active_comm));
+    MPI_CHECK(MPI_Reduce(&np_f,   &minval, 1, MPI_FLOAT, MPI_MIN, 0, active_comm));
+
+    int nnodes = nranks / local_nranks;	/* assumes symmetry */
+
+    const double imbalance = 100 * (maxval / sumval * nnodes - 1);
+
+    if (rank == 0)
+	printf("\x1b[94moverall imbalance: %.f%%, particles per node min/avg/max: %.0f/%.0f/%.0f \x1b[0m\n",
+	    imbalance , minval, sumval / nnodes, maxval);
+
 }

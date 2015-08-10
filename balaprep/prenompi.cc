@@ -87,11 +87,21 @@ workxrank_t *reorder(int *ranks) {
     return NULL;
   }
 
+#if 1 /* peh */
+  printf("sysL = %f %f %f\n",  sysL[0],  sysL[1],  sysL[2]);
+  printf("r(sysL)= %f %f %f\n",  roundf(sysL[0]),  roundf(sysL[1]),  roundf(sysL[2]));
+  printf("rank = %d %d %d\n", ranks[0], ranks[1], ranks[2]);
+#endif
+
   locL[0]=roundf(sysL[0])/ranks[0]; locL[1]=roundf(sysL[1])/ranks[1]; locL[2]=roundf(sysL[2])/ranks[2];
+
+  printf("locL = %f %f %f\n",  locL[0],  locL[1],  locL[2]);
   for(int c=0; c<3; c++) {
     if(locL[c]%2 || locL[c]*ranks[c]<sysL[c]) {
+#if 0 /* peh */
       printf("Invalid conf %d %d %d\n",ranks[0],ranks[1],ranks[2]);
       return NULL;
+#endif
     }
   }
   double *rbuftval=new double[tranks];
@@ -168,6 +178,9 @@ workxrank_t *reorder(int *ranks) {
             totval+=(val< 0.? 1.0:0.0);
           }
     rbuftval[r]=totval;
+#if 1 /* peh */
+    printf("r:%d -> totval:%f\n", r, totval);
+#endif
   }
   int *neworder=new int[tranks];
   workxrank_t *wxra=new workxrank_t[tranks];
@@ -311,7 +324,7 @@ int main(int argc, char ** argv) {
             }
             if(ltotwork!=totwork) {
               fprintf(stderr,"Unexpected total work %f, expected %f\n",ltotwork,totwork);
-              exit(1);
+              //exit(1);
             }
             printf("max work for config %d %d %d=%f\n",ranks[0],ranks[1],ranks[2],max);
             if(gmax==0. || max<gmax) {

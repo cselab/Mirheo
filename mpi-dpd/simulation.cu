@@ -187,6 +187,8 @@ void Simulation::_report(const bool verbose, const int idtimestep)
 	    printf("\x1b[93moverall imbalance: %.f%%, host workload min/avg/max: %.2f/%.2f/%.2f ms\x1b[0m\n",
 		   imbalance , minval, sumval / commsize, maxval);
 
+	localcomm.print_particles(particles->size);
+
 	host_idle_time = 0;
 	t0 = t1;
     }

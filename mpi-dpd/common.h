@@ -537,7 +537,7 @@ void report_host_memory_usage(MPI_Comm comm, FILE * foutput);
 
 class LocalComm
 {
-	MPI_Comm local_comm;
+	MPI_Comm local_comm, active_comm;
 	int local_rank, local_nranks;
 	int rank, nranks;
 
