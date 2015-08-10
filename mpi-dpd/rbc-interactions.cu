@@ -266,7 +266,7 @@ namespace KernelsRBC
 	    if (zvalid && ycenter - 1 >= 0 && ycenter - 1 < YCELLS)
 	    {
 		const int cid0 = xstart + XCELLS * (ycenter - 1 + YCELLS * zmy);
-		assert(cid0 >= 0 && cid0 + xcount < NCELLS);
+		assert(cid0 >= 0 && cid0 + xcount <= NCELLS);
 		spidbase = tex1Dfetch(texCellsStart, cid0);
 		count0 = ((cid0 + xcount == NCELLS) ? nsolvent : tex1Dfetch(texCellsStart, cid0 + xcount)) - spidbase;
 	    }
@@ -274,7 +274,7 @@ namespace KernelsRBC
 	    if (zvalid && ycenter >= 0 && ycenter < YCELLS)
 	    {
 		const int cid1 = xstart + XCELLS * (ycenter + YCELLS * zmy);
-		assert(cid1 >= 0 && cid1 + xcount < NCELLS);
+		assert(cid1 >= 0 && cid1 + xcount <= NCELLS);
 		deltaspid1 = tex1Dfetch(texCellsStart, cid1);
 		count1 = ((cid1 + xcount == NCELLS) ? nsolvent : tex1Dfetch(texCellsStart, cid1 + xcount)) - deltaspid1;
 	    }
@@ -446,7 +446,7 @@ namespace KernelsRBC
 		if (zvalid && ycenter - 1 >= 0 && ycenter - 1 < YCELLS)
 		{
 		    const int cid0 = xstart + XCELLS * (ycenter - 1 + YCELLS * zmy);
-		    assert(cid0 >= 0 && cid0 + xcount < NCELLS);
+		    assert(cid0 >= 0 && cid0 + xcount <= NCELLS);
 		    spidbase = tex1Dfetch(texCellsStart, cid0);
 		    count0 = ((cid0 + xcount == NCELLS) ? nsolvent : tex1Dfetch(texCellsStart, cid0 + xcount)) - spidbase;
 		}
@@ -454,7 +454,7 @@ namespace KernelsRBC
 		if (zvalid && ycenter >= 0 && ycenter < YCELLS)
 		{
 		    const int cid1 = xstart + XCELLS * (ycenter + YCELLS * zmy);
-		    assert(cid1 >= 0 && cid1 + xcount < NCELLS);
+		    assert(cid1 >= 0 && cid1 + xcount <= NCELLS);
 		    deltaspid1 = tex1Dfetch(texCellsStart, cid1);
 		    count1 = ((cid1 + xcount == NCELLS) ? nsolvent : tex1Dfetch(texCellsStart, cid1 + xcount)) - deltaspid1;
 		}
