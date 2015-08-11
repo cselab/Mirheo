@@ -561,3 +561,54 @@ public:
 };
 
 extern LocalComm localcomm;
+
+
+inline MPI_Comm setup_reorder_comm(MPI_Comm init_comm, int rank, int nranks)
+{
+    MPI_Group init_group;
+    MPI_Group new_group;
+    MPI_Comm new_comm;
+
+    FILE *fp = fopen("MPICH_RANK_ORDER", "r");
+    if (fp == NULL)
+    {
+	if (rank == 0)
+	    printf("\nMPICH_RANK_ORDER.txt not found, returning input communicator\n");
+
+	return init_comm;
+    }
+
+    // read the ranks in their new order
+    int *p_rank = (int*) malloc(nranks*sizeof(int));
+
+    for(int i = 0; i < nranks; i++)
+    {
+	int rid;
+	int f = fscanf(fp, "%d", &rid);
+	if (f != 1)
+	{
+	    printf("ERROR: not enough ranks!\n");
+	    MPI_Abort(init_comm, 1);
+	}
+	p_rank[rid] = i;
+    }
+
+#if VERBOSE
+    if (rank == 0)
+	for (int i = 0; i < nranks; i++)
+	    printf("p_rank[%d] = %d\n", i, p_rank[i]);
+#endif
+
+    // get the group under init_comm
+    MPI_CHECK( MPI_Comm_group(init_comm, &init_group));
+
+    // create the new group
+    MPI_CHECK( MPI_Group_incl(init_group, nranks, p_rank, &new_group));
+
+    free(p_rank);
+
+    // create the new communicator
+    MPI_CHECK( MPI_Comm_create(init_comm, new_group, &new_comm));
+
+    return new_comm;
+}
