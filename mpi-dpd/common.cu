@@ -136,20 +136,16 @@ void diagnostics(MPI_Comm comm, MPI_Comm cartcomm, Particle * particles, int n, 
     }
 }
 
-inline int Adler32(const void *buf, size_t len)
+inline size_t hash_string(const char *buf)
 {
-    const char * data = (const char *)buf;
-    int a = 1, b = 0;
-    const int MOD_ADLER = 65521;
-
-    for (size_t index = 0; index < len; ++index)
-    {
-	a = (a + data[index]) % MOD_ADLER;
-	b = (b + a) % MOD_ADLER;
+    size_t result = 0;
+    while( *buf != 0 ) {
+	result = result * 31 + *buf++;
     }
 
-    return (b << 16) | a;
+    return result;
 }
+
 
 LocalComm::LocalComm()
 {
@@ -167,7 +163,7 @@ void LocalComm::initialize(MPI_Comm _active_comm)
     local_comm = active_comm;
 
     MPI_Get_processor_name(name, &len);
-    int id = Adler32(name, len);
+    size_t id = hash_string(name);
 
     MPI_Comm_split(active_comm, id, rank, &local_comm) ;
 
