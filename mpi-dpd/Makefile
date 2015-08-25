@@ -6,8 +6,8 @@ CODE_VAL ?= sm_35
 
 NVCCFLAGS += -I$(HDF5_DIR)/include -Xcudafe "--diag_suppress=unrecognized_gcc_pragma"
 NVCCFLAGS +=  -arch $(ARCH_VAL) -code $(CODE_VAL) -O3 -use_fast_math -g -DNDEBUG
-CXXFLAGS += -L../cuda-dpd-sem/dpd -L../cuda-rbc/ -L../cuda-ctc/ -O3 -g  -std=c++11 -DNDEBUG
-NVCCFLAGS += -I../cuda-dpd-sem/dpd -I../cuda-rbc/ -I../cuda-ctc
+CXXFLAGS += -L../cuda-dpd/dpd -L../cuda-rbc/ -L../cuda-ctc/ -O3 -g  -std=c++11 -DNDEBUG
+NVCCFLAGS += -I../cuda-dpd/dpd -I../cuda-rbc/ -I../cuda-ctc
 #NVCCFLAGS +=  -DREPORT_TOPOLOGY $(CRAY_PMI_INCLUDE_OPTS)
 #NVCCFLAGS += -DCUSTOM_REORDERING=1
 
@@ -79,7 +79,7 @@ test:  $(OBJS) libcuda-dpd libcuda-rbc libcuda-ctc
 #	$(NVCC) $(NVCCFLAGS) -c $*.cu --ptx
 
 libcuda-dpd:
-	$(MAKE) -C ../cuda-dpd-sem/dpd libcuda-dpd.a nonperiodic=1 floatized="$(floatized)" flops="$(flops)" CXX="$(CXX)" NVCC="$(NVCC)" ARCH_VAL="$(ARCH_VAL)" CODE_VAL="$(CODE_VAL)" slevel="$(slevel)"
+	$(MAKE) -C ../cuda-dpd/dpd libcuda-dpd.a nonperiodic=1 floatized="$(floatized)" flops="$(flops)" CXX="$(CXX)" NVCC="$(NVCC)" ARCH_VAL="$(ARCH_VAL)" CODE_VAL="$(CODE_VAL)" slevel="$(slevel)"
 
 libcuda-rbc:
 	$(MAKE) -C ../cuda-rbc/ libcuda-rbc.a CXX="$(CXX)" NVCC="$(NVCC)" ARCH_VAL="$(ARCH_VAL)" CODE_VAL="$(CODE_VAL)"
@@ -92,7 +92,7 @@ clean:
 
 cleanall: clean
 	rm -f slevel.txt
-	make -C ../cuda-dpd-sem/dpd clean
+	make -C ../cuda-dpd/dpd clean
 	make -C ../cuda-rbc clean
 	make -C ../cuda-ctc clean
 
