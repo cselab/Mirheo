@@ -24,8 +24,6 @@ class HaloExchanger
     
     int recv_tags[26], recv_counts[26], nlocal, nactive;
 
-    ScanEngine scan;
-
     bool firstpost;
     
 protected:
