@@ -59,7 +59,7 @@ class Simulation
     MPI_Comm activecomm, cartcomm;
     //LocalComm localcomm;
 
-    cudaStream_t mainstream;
+    cudaStream_t mainstream, uploadstream, downloadstream;
     
     std::map<std::string, double> timings;
 

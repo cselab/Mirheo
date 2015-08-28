@@ -720,6 +720,8 @@ Simulation::Simulation(MPI_Comm cartcomm, MPI_Comm activecomm, bool (*check_term
     }
 
     CUDA_CHECK(cudaStreamCreate(&mainstream));
+    CUDA_CHECK(cudaStreamCreate(&uploadstream));
+    CUDA_CHECK(cudaStreamCreate(&downloadstream));
 
     if (rbcs)
     {
