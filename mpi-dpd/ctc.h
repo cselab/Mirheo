@@ -13,7 +13,6 @@
 #pragma once
 
 #include "redistribute-rbcs.h"
-#include "rbc-interactions.h"
 #include "minmax-massimo.h"
 
 #include <ctc-cuda.h>
@@ -36,34 +35,6 @@ public:
 
 RedistributeCTCs(MPI_Comm _cartcomm):RedistributeRBCs(_cartcomm)
     {
-	if (ctcs)
-	{
-	    CudaCTC::Extent host_extent;
-        CudaCTC::setup(nvertices, host_extent);
-	}
-    }
-};
-
-class ComputeInteractionsCTC : public ComputeInteractionsRBC
-{
-    void _compute_extents(const Particle * const xyzuvw, const int nrbcs, cudaStream_t stream)
-    {
-	assert(sizeof(CudaCTC::Extent) == sizeof(CudaRBC::Extent));
-	if (nrbcs)
-	    minmax_massimo(xyzuvw, nvertices, nrbcs, minextents.devptr, maxextents.devptr, stream);
-    }
-
-public:
-
-    void internal_forces(const Particle * const xyzuvw, const int ncells, Acceleration * acc, cudaStream_t stream)
-    {
-        CudaCTC::forces_nohost(stream, ncells, (float *) xyzuvw, (float *)acc);
-    }
-
-ComputeInteractionsCTC(MPI_Comm _cartcomm) : ComputeInteractionsRBC(_cartcomm)
-    {
-	local_trunk = Logistic::KISS(598 - myrank, 20383 + myrank, 129037, 2580);
-
 	if (ctcs)
 	{
 	    CudaCTC::Extent host_extent;

@@ -3,7 +3,7 @@
  *  Part of CTC/mpi-dpd/
  *
  *  Created and authored by Diego Rossinelli on 2014-12-02.
-g *  Copyright 2015. All rights reserved.
+ *  Copyright 2015. All rights reserved.
  *
  *  Users are NOT authorized
  *  to employ the present software for their own publications
@@ -65,15 +65,16 @@ firstpost(true), requiredpacksizes(26), packstarts_padded(27)
 	int estimate = numberdensity * safety_factor * nhalocells;
 	estimate = 32 * ((estimate + 31) / 32);
 
-	remote[i].esimate = estimate;
+	remote[i].expected = estimate;
 	remote[i].preserve_resize(estimate);
 
-	local[i].estimate = estimate;
+	local[i].expected = estimate;
 	local[i].resize(estimate);
 
-	CUDA_CHECK(cudaMemcpyToSymbol(FSI_PUP::sendbagsizes, &estimate, sizeof(int), sizeof(int) * i, cudaMemcpyHostToDevice));
-	CUDA_CHECK(cudaMemcpyToSymbol(FSI_PUP::scattered_indices, &local[i].scattered_indices.data, sizeof(int *),
-				      sizeof(int *) * i, cudaMemcpyHostToDevice));
+	CUDA_CHECK(cudaMemcpyToSymbol(FSI_PUP::sendbagsizes, &estimate, sizeof(int),
+				      sizeof(int) * i, cudaMemcpyHostToDevice));
+	CUDA_CHECK(cudaMemcpyToSymbol(FSI_PUP::scattered_indices, &local[i].scattered_indices.data,
+				      sizeof(int *), sizeof(int *) * i, cudaMemcpyHostToDevice));
     }
 
     {
@@ -206,30 +207,27 @@ namespace FSI_PUP
 
 	const int tid = threadIdx.x;
 
-	int myscan = 0, mycount = 0;
+	int mycount = 0;
 
 	if (tid < 26)
 	{
-	    myscan = mycount = pack_count[threadIdx.x];
-
+	    mycount = pack_count[threadIdx.x];
+	    
 	    required_packsizes[tid] = mycount;
-
+	    
 	    if (mycount > sendbagsizes[tid])
-	    {
 		failed = true;
-		*failureflag = true;
-	    }
 	}
-
-	myval = 32 * ((myval + 31) / 32);
-
+	
+	int myscan = mycount = 32 * ((mycount + 31) / 32);
+	
 	for(int L = 1; L < 32; L <<= 1)
-	    myval += (tid >= L) * __shfl_up(myval, L) ;
-
+	    myscan += (tid >= L) * __shfl_up(myscan, L) ;
+	
 	if (tid < 27)
 	{
-	    pack_start_padded[tid] = myval - mycount;
-	    host_pack_start_padded[tid] = myval - mycount;
+	    pack_start_padded[tid] = myscan - mycount;
+	    host_pack_start_padded[tid] = myscan - mycount;
 	}
     }
 
@@ -237,7 +235,7 @@ namespace FSI_PUP
 
     __global__ void pack(const float2 * const particles, const int nparticles, float2 * const buffer, const float nbuffer)
     {
-	assert(blockDim.x * gridDim.x >= npack_padded && blockDim.x == 128);
+	assert(blockDim.x == 128);
 
 #if !defined(__CUDA_ARCH__)
 #warning __CUDA_ARCH__ not defined! assuming 350
@@ -248,11 +246,12 @@ namespace FSI_PUP
 #define _ACCESS(x) (*(x))
 #endif
 
-	if (*failed)
+	if (failed)
 	    return;
 
-	const int npack_padded = _ACCESS(pack_start_padded[26]);
-
+	const int npack_padded = _ACCESS(pack_start_padded + 26);
+	assert(blockDim.x * gridDim.x >= npack_padded);
+	       
 	const int warpid = threadIdx.x >> 5;
 	const int localbase = 32 * (warpid + 4 * blockIdx.x);
 
@@ -276,9 +275,9 @@ namespace FSI_PUP
 
 	const int packbase = localbase - _ACCESS(pack_start_padded + code);
 
-	assert(packbase >= 0 && packbase < packcount[code]);
+	assert(packbase >= 0 && packbase < pack_count[code]);
 
-	const int npack = min(32, _ACCESS(packcount + code) - packbase);
+	const int npack = min(32, _ACCESS(pack_count + code) - packbase);
 
 	const int lane = threadIdx.x & 0x1f;
 
@@ -295,9 +294,9 @@ namespace FSI_PUP
 	    s1 = _ACCESS(particles + entry + 1);
 	    s2 = _ACCESS(particles + entry + 2);
 
-	    s0.x -=  ((code + 2) % 3 - 1) * XSIZE_SUBDOMAIN;
-	    s0.y -=  ((code / 3 + 2) % 3 - 1) * YSIZE_SUBDOMAIN;
-	    s1.x -=  ((code / 9 + 2) % 3 - 1) * ZSIZE_SUBDOMAIN;
+	    s0.x -= ((code + 2) % 3 - 1) * XSIZE_SUBDOMAIN;
+	    s0.y -= ((code / 3 + 2) % 3 - 1) * YSIZE_SUBDOMAIN;
+	    s1.x -= ((code / 9 + 2) % 3 - 1) * ZSIZE_SUBDOMAIN;
 	}
 
 	assert(localbase >= 0 && npack >= 0 && localbase + npack < nbuffer);
@@ -311,9 +310,9 @@ void ComputeFSI::pack_p(const Particle * const solute, const int nsolute, cudaSt
     NVTX_RANGE("FSI/pack", NVTX_C4);
 
     FSI_PUP::init<<< 1, 26, 0, stream >>>();
-    FSI_PUP::scatter_indices<<< (nsolute + 127) / 128, 128, 0, stream >>>(solute, nsolute);
+    FSI_PUP::scatter_indices<<< (nsolute + 127) / 128, 128, 0, stream >>>((float2 *)solute, nsolute);
     FSI_PUP::tiny_scan<<< 1, 32, 0, stream >>>(requiredpacksizes.devptr, packstarts_padded.devptr);
-    FSI_PUP::pack<<< (nsolute + 127 + 32 * 26) / 128, 128, 0, stream >>>(solute, nsolute, packbuf.data, packbuf.capacity);
+    FSI_PUP::pack<<< (nsolute + 127 + 32 * 26) / 128, 128, 0, stream >>>((float2 *)solute, nsolute, (float2 *)packbuf.data, packbuf.capacity);
 
     CUDA_CHECK(cudaPeekAtLastError());
 
@@ -321,7 +320,7 @@ void ComputeFSI::pack_p(const Particle * const solute, const int nsolute, cudaSt
     //amount of memory transferred could be unnecessarily large?
 }
 
-void ComputeFSI::post_p(cudaStream_t stream)
+void ComputeFSI::post_p(const Particle * const solute, const int nsolute, cudaStream_t stream, cudaStream_t downloadstream)
 {
     //consolidate the packing
     {
@@ -341,7 +340,7 @@ void ComputeFSI::post_p(cudaStream_t stream)
 	if (packingfailed)
 	{
 	    for(int i = 0; i < 26; ++i)
-		local[i].setup(send_counts[i]);
+		local[i].resize(send_counts[i]);
 
 	    int newcapacities[26];
 	    for(int i = 0; i < 26; ++i)
@@ -359,9 +358,9 @@ void ComputeFSI::post_p(cudaStream_t stream)
 	    host_packbuf.resize(packstarts_padded.data[26]);
 
 	    FSI_PUP::init<<< 1, 26, 0, stream >>>();
-	    FSI_PUP::scatter_indices<<< (nsolute + 127) / 128, 128, 0, stream >>>(solute, nsolute);
+	    FSI_PUP::scatter_indices<<< (nsolute + 127) / 128, 128, 0, stream >>>((float2 *)solute, nsolute);
 	    FSI_PUP::tiny_scan<<< 1, 32, 0, stream >>>(requiredpacksizes.devptr, packstarts_padded.devptr);
-	    FSI_PUP::pack<<< (nsolute + 127 + 32 * 26) / 128, 128, 0, stream >>>(solute, nsolute, packbuf.data, packbuf.capacity);
+	    FSI_PUP::pack<<< (nsolute + 127 + 32 * 26) / 128, 128, 0, stream >>>((float2 *)solute, nsolute, (float2 *)packbuf.data, packbuf.capacity);
 
 	    CUDA_CHECK(cudaStreamSynchronize(stream));
 
@@ -369,7 +368,7 @@ void ComputeFSI::post_p(cudaStream_t stream)
 		send_counts[i] = requiredpacksizes.data[i];
 	}
 
-	CUDA_CHECK(cudaMemcpyAsync(host_packbuf.data, packbuf.data, sizeof(Particle) * packstarts_padded[26], cudaMemcpyDeviceToHost, downloadstream));
+	CUDA_CHECK(cudaMemcpyAsync(host_packbuf.data, packbuf.data, sizeof(Particle) * packstarts_padded.data[26], cudaMemcpyDeviceToHost, downloadstream));
 
 	CUDA_CHECK(cudaStreamSynchronize(downloadstream));
     }
@@ -380,7 +379,7 @@ void ComputeFSI::post_p(cudaStream_t stream)
 
 	if (firstpost)
 	{
-	    _post_recvreq();
+	    _postrecvs();
 
 	    firstpost = false;
 	}
@@ -398,7 +397,7 @@ void ComputeFSI::post_p(cudaStream_t stream)
 
 	for(int i = 0; i < 26; ++i)
 	{
-	    const int start = packstarts_padded[i];
+	    const int start = packstarts_padded.data[i];
 	    const int count = send_counts[i];
 	    const int expected = local[i].expected;
 
@@ -413,6 +412,9 @@ void ComputeFSI::post_p(cudaStream_t stream)
 				     MPI_FLOAT, dstranks[i], TAGBASE_P2 + i, cartcomm, &reqP2) );
 
 		reqsendP.push_back(reqP2);
+
+		printf("ComputeFSI::post_p ooops rank %d needs to send more than expeted: %d instead of %d\n",
+		       myrank, count, expected);
 	    }
 	}
     }
@@ -822,10 +824,11 @@ void ComputeFSI::fsi_halo(const Particle * const solvent, const int nparticles, 
 
 	    if (count > expected)
 	    {
-		remote[i].preserve_resize(count)
+		remote[i].preserve_resize(count);
 
-		MPI_CHECK( MPI_Recv(remote[i].state.data + expected, (count - expected) * 6, MPI_FLOAT, dstranks[i],
-				    TAGBASE_P2 + recv_tags[i], cartcomm) );
+		MPI_Status status;
+		MPI_CHECK( MPI_Recv(remote[i].hstate.data + expected, (count - expected) * 6, MPI_FLOAT, dstranks[i],
+				    TAGBASE_P2 + recv_tags[i], cartcomm, &status) );
 	    }
 	}
     }
@@ -836,7 +839,7 @@ void ComputeFSI::fsi_halo(const Particle * const solvent, const int nparticles, 
 	FSI_CORE::setup(solvent, nparticles, cellsstart_solvent, cellscount_solvent);
 
 	for(int i = 0; i < 26; ++i)
-	    CUDA_CHECK(cudaMemcpyToSymbolAsync(remote[i].dstate.data, remote[i].hstate.data, sizeof(Particle) * remote[i].hstate.size,
+	    CUDA_CHECK(cudaMemcpyAsync(remote[i].dstate.data, remote[i].hstate.data, sizeof(Particle) * remote[i].hstate.size,
 					       cudaMemcpyHostToDevice, uploadstream));
 
 	int nremote_padded = 0;
@@ -845,19 +848,19 @@ void ComputeFSI::fsi_halo(const Particle * const solvent, const int nparticles, 
 	    static int recvpackcount[26], recvpackstarts_padded[27];
 
 	    for(int i = 0; i < 26; ++i)
-		recvpackcount[i] = remote[i].state.size;
+		recvpackcount[i] = remote[i].dstate.size;
 
 	    CUDA_CHECK(cudaMemcpyToSymbolAsync(FSI_CORE::packcount, recvpackcount,
-					       sizeof(packcount), 0, cudaMemcpyHostToDevice, uploadstream));
+					       sizeof(recvpackcount), 0, cudaMemcpyHostToDevice, uploadstream));
 
 	    recvpackstarts_padded[0] = 0;
 	    for(int i = 0, s = 0; i < 26; ++i)
-		recvpackstarts_padded[i + 1] = (s += 32 * ((remote[i].state.size + 31) / 32));
+		recvpackstarts_padded[i + 1] = (s += 32 * ((remote[i].dstate.size + 31) / 32));
 
 	    nremote_padded = recvpackstarts_padded[26];
 
 	    CUDA_CHECK(cudaMemcpyToSymbolAsync(FSI_CORE::packstarts_padded, recvpackstarts_padded,
-					       sizeof(packstarts_padded), 0, cudaMemcpyHostToDevice, uploadstream));
+					       sizeof(recvpackstarts_padded), 0, cudaMemcpyHostToDevice, uploadstream));
 	}
 
 	{
@@ -866,8 +869,8 @@ void ComputeFSI::fsi_halo(const Particle * const solvent, const int nparticles, 
 	    for(int i = 0; i < 26; ++i)
 		recvpackstates[i] = remote[i].dstate.data;
 
-	    CUDA_CHECK(cudaMemcpyToSymbolAsync(FSI_CORE::packstates, packstates,
-					       sizeof(packstates), 0, cudaMemcpyHostToDevice, uploadstream));
+	    CUDA_CHECK(cudaMemcpyToSymbolAsync(FSI_CORE::packstates, recvpackstates,
+					       sizeof(recvpackstates), 0, cudaMemcpyHostToDevice, uploadstream));
 	}
 
 	{
@@ -906,13 +909,13 @@ void ComputeFSI::post_a()
 	const int expected = remote[i].expected;
 
 	MPI_Request reqA;
-	MPI_CHECK( MPI_Isend(remote[i].data, expected * 6, MPI_FLOAT, dstranks[i], TAGBASE_A + i, cartcomm, &reqA) );
+	MPI_CHECK( MPI_Isend(remote[i].result.data, expected * 6, MPI_FLOAT, dstranks[i], TAGBASE_A + i, cartcomm, &reqA) );
 	reqsendA.push_back(reqA);
 
 	if (count > expected)
 	{
 	    MPI_Request reqA2;
-	    MPI_CHECK( MPI_Isend(remote[i].data + start + expected, (count - expected) * 6,
+	    MPI_CHECK( MPI_Isend(remote[i].result.data + expected, (count - expected) * 6,
 				 MPI_FLOAT, dstranks[i], TAGBASE_A2 + i, cartcomm, &reqA2) );
 
 	    reqsendA.push_back(reqA2);
@@ -924,7 +927,7 @@ namespace FSI_PUP
 {
     __constant__ float * recvbags[26];
 
-    __global__ void unpack(const float * const accelerations, const int nparticles, const int npack_padded)
+    __global__ void unpack(float * const accelerations, const int nparticles, const int npack_padded)
     {
 	assert(blockDim.x * gridDim.x >= 3 * npack_padded && blockDim.x == 128);
 
@@ -974,13 +977,16 @@ void ComputeFSI::merge_a(Acceleration * accsolute, const int nsolute, cudaStream
 	const int expected = remote[i].expected;
 
 	if (count > expected)
+	{
+	    MPI_Status status;
 	    MPI_CHECK( MPI_Recv(remote[i].result.data + expected, (count - expected) * 6, MPI_FLOAT, dstranks[i],
-				TAGBASE_A2 + recv_tags[i], cartcomm) );
+				TAGBASE_A2 + recv_tags[i], cartcomm, &status) );
+	}
     }
 
-    const int npadded = packstarts_padded[26];
+    const int npadded = packstarts_padded.data[26];
 
-    FSI_PUP::unpack<<< (npadded * 3 + 127) / 128, 0, stream >>>(acc, nsolute, npadded);
+    FSI_PUP::unpack<<< (npadded * 3 + 127) / 128, 128, 0, stream >>>((float *)accsolute, nsolute, npadded);
 
     _postrecvs();
 }

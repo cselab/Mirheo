@@ -64,8 +64,6 @@ HaloExchanger::HaloExchanger(MPI_Comm _cartcomm, const int basetag):  basetag(ba
     CUDA_CHECK(cudaEventCreateWithFlags(&evfillall, cudaEventDisableTiming));
     CUDA_CHECK(cudaEventCreateWithFlags(&evdownloaded, cudaEventDisableTiming | cudaEventBlockingSync));
 
-    CUDA_CHECK(cudaStreamCreate(&uploadstream));
-    CUDA_CHECK(cudaStreamCreate(&downloadstream));
 }
 
 namespace PackingHalo
@@ -485,7 +483,7 @@ void HaloExchanger::pack(const Particle * const p, const int n, const int * cons
 
 }
 
-void HaloExchanger::consolidate_and_post(const Particle * const p, const int n, cudaStream_t stream)
+void HaloExchanger::consolidate_and_post(const Particle * const p, const int n, cudaStream_t stream, cudaStream_t downloadstream)
 {
     {
 	NVTX_RANGE("HEX/consolidate", NVTX_C2);
@@ -631,7 +629,7 @@ void HaloExchanger::post_expected_recv()
 	    recv_counts[i] = 0;
 }
 
-void HaloExchanger::wait_for_messages(cudaStream_t stream)
+void HaloExchanger::wait_for_messages(cudaStream_t stream, cudaStream_t uploadstream)
 {
     NVTX_RANGE("HEX/wait-recv", NVTX_C4);
 
@@ -752,7 +750,4 @@ HaloExchanger::~HaloExchanger()
 
     CUDA_CHECK(cudaEventDestroy(evfillall));
     CUDA_CHECK(cudaEventDestroy(evdownloaded));
-
-    CUDA_CHECK(cudaStreamDestroy(uploadstream));
-    CUDA_CHECK(cudaStreamDestroy(downloadstream));
 }

@@ -35,7 +35,7 @@ public:
     
     ComputeInteractionsDPD(MPI_Comm cartcomm);
 
-    void remote_interactions(const Particle * const p, const int n, Acceleration * const a, cudaStream_t stream);
+    void remote_interactions(const Particle * const p, const int n, Acceleration * const a, cudaStream_t stream, cudaStream_t uploadstream);
 
     void local_interactions(const Particle * const xyzuvw, const float4 * const xyzouvwo, const ushort4 * const xyzo_half, const int n, Acceleration * const a,
 			    const int * const cellsstart, const int * const cellscount, cudaStream_t stream);

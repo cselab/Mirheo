@@ -352,7 +352,7 @@ void Simulation::_forces()
 
     if (ctcscoll)
     	ctcscoll->clear_acc(mainstream);
-
+/*
     if (rbcscoll)
 	rbc_interactions.extent(rbcscoll->data(), rbcscoll->count(), mainstream);
 
@@ -364,23 +364,23 @@ void Simulation::_forces()
 
     if (ctcscoll)
 	ctc_interactions.count(ctcscoll->count());
-
+*/
     dpd.pack(particles->xyzuvw.data, particles->size, cells.start, cells.count, mainstream);
 
     CUDA_CHECK(cudaPeekAtLastError());
-
+/*
     if (rbcscoll)
 	rbc_interactions. pack_p(rbcscoll->data(), mainstream);
 
     if (ctcscoll)
 	ctc_interactions.pack_p(ctcscoll->data(), mainstream);
-
+*/
     dpd.local_interactions(particles->xyzuvw.data, xyzouvwo.data, xyzo_half.data, particles->size, particles->axayaz.data, cells.start, cells.count, mainstream);
 
-    dpd.consolidate_and_post(particles->xyzuvw.data, particles->size, mainstream);
+    dpd.consolidate_and_post(particles->xyzuvw.data, particles->size, mainstream, downloadstream);
 
     CUDA_CHECK(cudaPeekAtLastError());
-
+/*
     if (rbcscoll)
 	rbc_interactions.exchange_count();
 
@@ -400,13 +400,14 @@ void Simulation::_forces()
     if (ctcscoll)
 	ctc_interactions.fsi_bulk(particles->xyzuvw.data, particles->size, particles->axayaz.data, cells.start, cells.count,
 				  ctcscoll->data(), ctcscoll->count(), ctcscoll->acc(), mainstream);
-
+*/
     if (rbcscoll && wall)
 	wall->interactions(rbcscoll->data(), rbcscoll->pcount(), rbcscoll->acc(), NULL, NULL, mainstream);
 
     if (ctcscoll && wall)
 	wall->interactions(ctcscoll->data(), ctcscoll->pcount(), ctcscoll->acc(), NULL, NULL, mainstream);
 
+ /*
     if (rbcscoll)
 	rbc_interactions.fsi_halo(particles->xyzuvw.data, particles->size, particles->axayaz.data, cells.start, cells.count,
 				  rbcscoll->data(), rbcscoll->count(), rbcscoll->acc(), mainstream);
@@ -420,28 +421,30 @@ void Simulation::_forces()
 
     if (ctcscoll)
 	ctc_interactions.internal_forces(ctcscoll->data(), ctcscoll->count(), ctcscoll->acc(), mainstream);
-
+*/
     if (wall)
 	wall->interactions(particles->xyzuvw.data, particles->size, particles->axayaz.data,
 			   cells.start, cells.count, mainstream);
 
     CUDA_CHECK(cudaPeekAtLastError());
 
-    if (rbcscoll)
+/*    if (rbcscoll)
 	rbc_interactions.post_a();
 
     if (ctcscoll)
 	ctc_interactions.post_a();
+*/
+    
+    dpd.wait_for_messages(mainstream, uploadstream);
+    dpd.remote_interactions(particles->xyzuvw.data, particles->size, particles->axayaz.data, mainstream, uploadstream);
 
-    dpd.wait_for_messages(mainstream);
-    dpd.remote_interactions(particles->xyzuvw.data, particles->size, particles->axayaz.data, mainstream);
-
-    if (rbcscoll)
+/*    if (rbcscoll)
 	rbc_interactions.merge_a(rbcscoll->acc(), mainstream);
 
     if (ctcscoll)
 	ctc_interactions.merge_a(ctcscoll->acc(), mainstream);
-
+*/
+    
     timings["interactions"] += MPI_Wtime() - tstart;
 
     CUDA_CHECK(cudaPeekAtLastError());
@@ -680,7 +683,7 @@ Simulation::Simulation(MPI_Comm cartcomm, MPI_Comm activecomm, bool (*check_term
     /*particles(_ic()),*/ cells(XSIZE_SUBDOMAIN, YSIZE_SUBDOMAIN, ZSIZE_SUBDOMAIN),
     rbcscoll(NULL), ctcscoll(NULL), wall(NULL),
     redistribute(cartcomm),  redistribute_rbcs(cartcomm),  redistribute_ctcs(cartcomm),
-    dpd(cartcomm), rbc_interactions(cartcomm), ctc_interactions(cartcomm),
+    dpd(cartcomm), fsi(cartcomm),
     check_termination(check_termination),
     driving_acceleration(0), host_idle_time(0), nsteps((int)(tend / dt)),
     datadump_pending(false), simulation_is_done(false)
@@ -779,15 +782,16 @@ void Simulation::_lockstep()
 
     if (ctcscoll)
     	ctcscoll->clear_acc(mainstream);
-
+/*
     if (rbcscoll)
 	rbc_interactions.extent(rbcscoll->data(), rbcscoll->count(), mainstream);
 
     if (ctcscoll)
 	ctc_interactions.extent(ctcscoll->data(), ctcscoll->count(), mainstream);
-
+*/
+    
     dpd.pack(particles->xyzuvw.data, particles->size, cells.start, cells.count, mainstream);
-
+/*
     if (rbcscoll)
 	rbc_interactions.count(rbcscoll->count());
 
@@ -801,16 +805,17 @@ void Simulation::_lockstep()
 
     if (ctcscoll)
 	ctc_interactions.pack_p(ctcscoll->data(), mainstream);
-
+*/
+    
     dpd.local_interactions(particles->xyzuvw.data, xyzouvwo.data, xyzo_half.data, particles->size, particles->axayaz.data, cells.start, cells.count, mainstream);
 
-    dpd.consolidate_and_post(particles->xyzuvw.data, particles->size, mainstream);
+    dpd.consolidate_and_post(particles->xyzuvw.data, particles->size, mainstream, downloadstream);
 
     CUDA_CHECK(cudaPeekAtLastError());
 
     //localcomm.barrier(); // peh: 1
 
-    if (rbcscoll)
+    /*  if (rbcscoll)
 	rbc_interactions.exchange_count();
 
     if (ctcscoll)
@@ -843,16 +848,17 @@ void Simulation::_lockstep()
 
     if (ctcscoll)
 	ctc_interactions.post_a();
-
+    */
+    
     if (wall)
 	wall->interactions(particles->xyzuvw.data, particles->size, particles->axayaz.data,
 			   cells.start, cells.count, mainstream);
 
     CUDA_CHECK(cudaPeekAtLastError());
 
-    dpd.wait_for_messages(mainstream);
+    dpd.wait_for_messages(mainstream, uploadstream);
 
-    dpd.remote_interactions(particles->xyzuvw.data, particles->size, particles->axayaz.data, mainstream);
+    dpd.remote_interactions(particles->xyzuvw.data, particles->size, particles->axayaz.data, mainstream, uploadstream);
 
     particles->update_stage2_and_1(driving_acceleration, mainstream);
 
@@ -866,13 +872,13 @@ void Simulation::_lockstep()
     redistribute.send();
 
     redistribute.bulk(particles->size, cells.start, cells.count, mainstream);
-
+/*
     if (rbcscoll)
 	rbc_interactions.internal_forces(rbcscoll->data(), rbcscoll->count(), rbcscoll->acc(), mainstream);
 
     if (ctcscoll)
 	ctc_interactions.internal_forces(ctcscoll->data(), ctcscoll->count(), ctcscoll->acc(), mainstream);
-
+*/
     CUDA_CHECK(cudaPeekAtLastError());
 
     if (rbcscoll && wall)
@@ -880,13 +886,13 @@ void Simulation::_lockstep()
 
     if (ctcscoll && wall)
 	wall->interactions(ctcscoll->data(), ctcscoll->pcount(), ctcscoll->acc(), NULL, NULL, mainstream);
-
+/*
     if (rbcscoll)
 	rbc_interactions.merge_a(rbcscoll->acc(), mainstream);
 
     if (ctcscoll)
 	ctc_interactions.merge_a(ctcscoll->acc(), mainstream);
-
+*/
     if (rbcscoll)
 	rbcscoll->update_stage2_and_1(driving_acceleration, mainstream);
 
@@ -1099,8 +1105,11 @@ Simulation::~Simulation()
 
     pthread_join(thread_datadump, NULL);
 #endif
+    
     CUDA_CHECK(cudaStreamDestroy(mainstream));
-
+    CUDA_CHECK(cudaStreamDestroy(uploadstream));
+    CUDA_CHECK(cudaStreamDestroy(downloadstream));
+    
     if (wall)
 	delete wall;
 

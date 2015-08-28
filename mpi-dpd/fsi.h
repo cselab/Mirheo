@@ -66,6 +66,7 @@ protected:
 	int expected, capacity;
 
 	SimpleDeviceBuffer<int> scattered_indices;
+	PinnedHostBuffer<Acceleration> result;
 
 	void resize(int n) { scattered_indices.resize(n); capacity = scattered_indices.capacity; }
 
@@ -85,7 +86,7 @@ protected:
     {
 	for(int i = 0; i < 26; ++i)
 	{
-	    MPI_Request reqC, reqP, recA;
+	    MPI_Request reqC, reqP, reqA;
 
 	    MPI_CHECK( MPI_Irecv(recv_counts + i, 1, MPI_INTEGER, dstranks[i],
 				 TAGBASE_C + recv_tags[i], cartcomm,  &reqC) );
@@ -108,7 +109,7 @@ public:
 
     void pack_p(const Particle * const solute, const int nsolute, cudaStream_t stream);
 
-    void post_p(cudaStream_t stream);
+    void post_p(const Particle * const solute, const int nsolute, cudaStream_t stream, cudaStream_t downloadstream);
 
     void fsi_bulk(const Particle * const solvent, const int nsolvent, Acceleration * accsolvent,
 		  const int * const cellsstart_solvent, const int * const cellscount_solvent,
@@ -118,7 +119,7 @@ public:
 		  const int * const cellsstart_solvent, const int * const cellscount_solvent,
 		  cudaStream_t stream, cudaStream_t uploadstream);
 
-    void post_a(cudaStream_t stream);
+    void post_a();
 
     void merge_a(Acceleration * accsolute, const int nsolute, cudaStream_t stream);
 

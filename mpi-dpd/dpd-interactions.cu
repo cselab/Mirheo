@@ -246,7 +246,7 @@ namespace BipsBatch
 	    const int m1 = (int)(i >= scan1);
 	    const int m2 = (int)(i >= scan2);
 	    const uint spid = i + (m2 ? deltaspid2 : m1 ? deltaspid1 : spidbase);
-	    assert(spid >= 0 && spid < info.nsrc);
+	    assert(spid < info.nsrc);
 
 	    const float2 s0 = _ACCESS(xsrc + 0 + spid * 3);
 	    const float2 s1 = _ACCESS(xsrc + 1 + spid * 3);
@@ -326,7 +326,7 @@ namespace BipsBatch
     }
 }
 
-void ComputeInteractionsDPD::remote_interactions(const Particle * const p, const int n, Acceleration * const a, cudaStream_t stream)
+void ComputeInteractionsDPD::remote_interactions(const Particle * const p, const int n, Acceleration * const a, cudaStream_t stream, cudaStream_t uploadstream)
 {
     NVTX_RANGE("DPD/remote", NVTX_C3);
 
