@@ -16,6 +16,7 @@
 #include <algorithm>
 #include <vector>
 #include <assert.h>
+#include "../common/common.h"
 
 using namespace std;
 
@@ -35,56 +36,66 @@ int main(int argc, char ** argv)
     float xextent, yextent;    
 
     vector<float> slice;    
-    
-    {   
-        printf("Reading file %s...\n", argv[1]);
-        FILE * f = fopen(argv[1], "r");
-        assert(f != 0);
-        float zextentOld;
-        int NZOld;
-        fscanf(f, "%f %f %f\n", &xextent, &yextent, &zextentOld);
-        fscanf(f, "%d %d %d\n", &NX, &NY, &NZOld);
-        printf("Extent: [%f, %f, %f]. Grid size: [%d, %d, %d]\n", xextent, yextent, zextentOld, NX, NY,NZOld);
-        slice.resize(NX * NY, 0.0f);
-        fread(&slice[0], sizeof(float), slice.size(), f);
-        fclose(f);
-    }
+    int oldNZ;
+    float zextentOld;
+    readDAT(argv[1], slice, xextent, yextent, zextentOld, NX, NY, oldNZ);
+    assert(oldNZ == 1);
         
     printf("Generating data with extent [%f, %f, %f], dimensions [%d, %d, %d], zmargin %f\n", 
         xextent, yextent, zextent + 2 * zmargin, NX, NY, NZ, zmargin);
-    vector<float>  volume(NX * NY * NZ, 0.0f);
+    
+    vector<float>  outputslice(NX * NY, 0.0f);
     
     const float z0 = -zextent * 0.5 - zmargin;
     const float dz = (zextent + 2 * zmargin) / (NZ - 1);
     
-//#pragma omp parallel for
+    FILE * f = fopen(argv[5], "w");
+    assert(f != 0);
+    fprintf(f, "%f %f %f\n", yextent, xextent, zextent + 2.0f * zmargin);
+    fprintf(f, "%d %d %d\n", NY, NX, NZ);
+
     for(int iz = 0; iz < NZ; ++iz)
     {
         const float z = z0 + iz * dz;
+        
+#pragma omp parallel for
         for(int iy = 0; iy < NY; ++iy)
             for(int ix = 0; ix < NX; ++ix)
             {
                 const float xysdf = slice[ix + NX * (NY - 1 - iy)]; // NY -1 to change Y-axis direction
-                const float zsdf = fabs(z) - zextent * 0.5;
-                float val;
-                if (xysdf < 0)
-                    val = max(zsdf, xysdf);
-                else
-                    val = (zsdf < 0) ? xysdf : sqrt(zsdf * zsdf + xysdf * xysdf);
-            
-                assert(iy + NY * (ix + NX * iz) < volume.size());
-                assert(volume[iy + NY * (ix + NX * iz)] == 0.0f);
-                volume[iy + NY * (ix + NX * iz)] = val;
+                float val = xysdf;
+                if (zmargin != 0.0f) {
+                    const float zsdf = fabs(z) - zextent * 0.5;
+                    if (xysdf < 0)
+                        val = max(zsdf, xysdf);
+                    else
+                        val = (zsdf < 0) ? xysdf : sqrt(zsdf * zsdf + xysdf * xysdf);
+                }
+                assert(iy + NY * (ix) < outputslice.size());
+               
+                assert(fabs(val) < 1e3); // to check that the value has reasonable range
+                outputslice[iy + NY * ix] = val;
             }
+        
+        if (iz == 0)
+        {
+            unsigned char * ptr = (unsigned char *)&outputslice[0];
+            if ((ptr[0] >= 9 && ptr[0] <= 13) || ptr[0] == 32 )
+            {
+                ptr[0] = (ptr[0] == 32) ? 33 : (ptr[0] < 11) ? 8 : 14;
+                printf("INFO: some symbols were changed while writing\n");
+            }
+        }
+        
+        int result = fwrite(&outputslice.front(), sizeof(float), NX * NY, f);
+        
+        if (result != NX  * NY) {
+            printf("ERROR: written less than expected");
+            exit(3);
+        }
+
     }
    
-    {
-        FILE * f = fopen(argv[5], "w");
-        assert(f != 0);
-        fprintf(f, "%f %f %f\n", yextent, xextent, zextent + 2.0f * zmargin); //exchange X and Y
-        fprintf(f, "%d %d %d\n", NY, NX, NZ);
-        fwrite(&volume[0], sizeof(float), volume.size(), f);
-        fclose(f);
-    }
+    fclose(f);
 }
 

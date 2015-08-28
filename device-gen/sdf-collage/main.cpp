@@ -9,8 +9,8 @@
  *  to employ the present software for their own publications
  *  before getting a written permission from the author of this file.
  */
-
 #include <cstdio>
+#include <limits>
 #include <cstdlib>
 #include <cstring>
 #include <algorithm>
@@ -18,106 +18,12 @@
 #include <vector>
 #include <assert.h>
 #include <string>
-
+#include <iostream>
+#include "../common/redistance.h"
+#include "../common/common.h"
 using namespace std;
 
-#define _ACCESS(f, x, y) f[(x) + xsize * (y)]
-
-namespace Redistancing
-{
-    int xsize;
-    float * phi0, * phi;
-    float dt, invdx, invdy;
-
-    template<int d>
-    inline bool anycrossing_dir(int ix, int iy, const float sgn0) 
-    {
-        const int dx = d == 0, dy = d == 1, dz = d == 2;
-        
-        const float fm1 = _ACCESS(phi0, ix - dx, iy - dy);
-        const float fp1 = _ACCESS(phi0, ix + dx, iy + dy);
-        
-        return (fm1 * sgn0 < 0 || fp1 * sgn0 < 0);
-    }
-
-    inline bool anycrossing(int ix, int iy, const float sgn0) 
-    {
-        return
-        anycrossing_dir<0>(ix, iy, sgn0) ||
-        anycrossing_dir<1>(ix, iy, sgn0) ;
-    }
-    
-    float sussman_scheme(int ix, int iy, float sgn0)
-    {
-        const float phicenter =  _ACCESS(phi, ix, iy);
-        
-        const float dphidxm = phicenter -     _ACCESS(phi, ix - 1, iy);
-        const float dphidxp = _ACCESS(phi, ix + 1, iy) - phicenter;
-        const float dphidym = phicenter -     _ACCESS(phi, ix, iy - 1);
-        const float dphidyp = _ACCESS(phi, ix, iy + 1) - phicenter;
-        
-        if (sgn0 == 1)
-        {
-            const float xgrad0 = max( max((float)0, dphidxm), -min((float)0, dphidxp)) * invdx;
-            const float ygrad0 = max( max((float)0, dphidym), -min((float)0, dphidyp)) * invdy;
-            
-            const float G0 = sqrtf(xgrad0 * xgrad0 + ygrad0 * ygrad0) - 1;
-            
-            return phicenter - dt * sgn0 * G0;
-        }
-        else
-        {
-            const float xgrad1 = max( -min((float)0, dphidxm), max((float)0, dphidxp)) * invdx;
-            const float ygrad1 = max( -min((float)0, dphidym), max((float)0, dphidyp)) * invdy;
-            
-            const float G1 = sqrtf(xgrad1 * xgrad1 + ygrad1 * ygrad1) - 1;
-            
-            return phicenter - dt * sgn0 * G1;
-        }
-    }
-        
-    void redistancing(const int iterations, const float dt, const float dx, const float dy,
-                      const int xsize, const int ysize,
-                      float * field)
-    {
-        Redistancing::xsize = xsize;
-        Redistancing::dt = dt;
-        Redistancing::invdx = 1. / dx;
-        Redistancing::invdy = 1. / dy;
-        
-        Redistancing::phi0 = new float[xsize * ysize];
-        memcpy(phi0, field, sizeof(float) * xsize * ysize);
-        Redistancing::phi = field;
-        
-        float * tmp = new float[xsize * ysize];
-        for(int t = 0; t < iterations; ++t)
-        {
-            if (t % 30 == 0)
-                    printf("t: %d\n", t);
-            
-#pragma omp parallel for
-            for(int iy = 0; iy < ysize; ++iy)
-                for(int ix = 0; ix < xsize; ++ix)
-                {
-                    const float myval0 = _ACCESS(phi0, ix, iy);
-                    const float sgn0 = myval0 > 0 ? 1 : (myval0 < 0 ? -1 : 0);
-                    
-                    if (anycrossing(ix, iy, sgn0) || ix == 0 || ix == xsize - 1 || iy == 0 || iy == ysize - 1)
-                        tmp[ix + xsize * iy] = myval0;
-                    else
-                        tmp[ix + xsize * iy] = sussman_scheme(ix, iy, sgn0);
-                }
-            
-            memcpy(field, tmp, sizeof(float) * xsize * ysize);
-        }
-        
-        delete [] tmp;
-        delete [] phi0;
-        phi0 = NULL;
-    }
-}
-
-void mergeSDF(int NX, int NY, vector< vector<float> >& cookie, vector<float>& cake)
+void mergeSDF(int NX, int NY, const vector< vector<float> >& cookie, vector<float>& cake)
 {
     cake.resize(cookie.size() * cookie[0].size());
     printf("SIZE: %d\n", cake.size());
@@ -127,15 +33,16 @@ void mergeSDF(int NX, int NY, vector< vector<float> >& cookie, vector<float>& ca
         {
             const int dst = ix + stride * iy;
             const int iobst = iy / NY;
+            assert(ix + NX * (iy - iobst*NY) < cookie[iobst].size());
             cake[dst] = cookie[iobst][ix + NX * (iy - iobst*NY)];
         }
 }
 
 int main(int argc, char ** argv)
 {
-    if (argc != 5)
+    if (argc != 6)
     {
-        printf("usage: ./sdf-collage <input-2d-sdf> <xtimes> <ytimes> <output-2d-sdf>\n");
+        printf("usage: ./sdf-collage <input-2d-sdf> <xtimes> <ytimes> <ymargin>  <output-2d-sdf>\n");
         return -1;
     }
     
@@ -150,16 +57,7 @@ int main(int argc, char ** argv)
     {
         cookie.resize(1);
         // for one file
-        FILE * f = fopen(argv[1], "r");
-        assert(f != 0);
-        fscanf(f, "%f %f %f\n", &xextent, &yextent, &zextent);
-        fscanf(f, "%d %d %d\n", &NX, &NY, &NZ);
-        printf("Extent: [%f, %f, %f]. Grid size: [%d, %d, %d]\n", xextent, yextent, zextent, NX, NY,NZ);
-        assert(NZ == 1);
-        cookie[0].resize(NX * NY * NZ, 0.0f);
-        fread(&cookie[0][0], sizeof(float), NX * NY * NZ, f);
-        fclose(f);
-        
+        readDAT(argv[1], cookie[0], xextent, yextent, zextent, NX, NY, NZ);
         printf("Populate %d * %d times\n", xtimes, ytimes);
         const int stride = xtimes * NX;
         cake.resize(xtimes * ytimes * NX * NY);
@@ -196,32 +94,75 @@ int main(int argc, char ** argv)
         for (int i = files.size() - 1; i >= 0; --i)
         {
             printf("Reading file %s ...\n", files[i].c_str());
-            FILE * f = fopen(files[i].c_str(), "r");
-            assert(f != 0);
-            fscanf(f, "%f %f %f\n", &xextent, &yextent, &zextent);
-            fscanf(f, "%d %d %d\n", &NX, &NY, &NZ);
-            printf("Extent: [%g, %g, %g]. Grid size: [%d, %d, %d]\n", xextent, yextent, zextent, NX, NY,NZ);
-            assert(NZ == 1);
-            cookie[i].resize(NX * NY * NZ, 0.0f);
-            fread(&cookie[i][0], sizeof(float), NX * NY * NZ, f);
-            fclose(f);
+            readDAT(files[i].c_str(), cookie[i], xextent, yextent, zextent, NX, NY,NZ);
+            for(int iy = 0; iy < NY; ++iy)
+                for(int ix = 0; ix < NX; ++ix)
+                {
+                    if (cookie[i][ix + NX * iy] > 1e3)
+                    {
+                        std::cout << "ERROR in file " << files[i].c_str() << std::endl;
+                        exit(0);
+                    }
+                }
         }
 
-        mergeSDF(NX, NY, cookie, cake); 
+        mergeSDF(NX, NY, cookie, cake);
+
+        // add walls in Y directio
+        float wallWidth = atof(argv[4]);
+        if (wallWidth != 0.0f)
+        {
+            int cakeNX = xtimes * NX;
+            int cakeNY = ytimes * NY;
+            const float x0 = -xtimes * xextent * 0.5;
+            const float dx = xtimes * xextent / (cakeNX - 1);
+
+            const float y0 = -ytimes * yextent * 0.5;
+            const float dy = ytimes * yextent / (cakeNY - 1);
+
+            const float angle = (1.8/180.)*M_PI;
+            const float normal[] = {-cos(angle), sin(angle)};
+            wallWidth = -2*y0*tan(angle);
+            
+            float ypick = 25.0f; //15
+            float widthOfBufferZone = 8-wallWidth +  0.0*(48 - 2*wallWidth);
+            float xpick = (wallWidth) * (-2.0f*y0 - ypick) / (-2.0f*y0);
+            const float angle2 = atan(xpick/ypick);
+            std::cout << "YY = " << xpick << ", " << y0 + ypick << " ANGLE = "  << angle2/M_PI*180  << std::endl;
+            const float normal2[] = {-cos(angle2), -sin(angle2)};
+            
+            
+            const float linePoint[] = {-x0 - wallWidth, y0};
+            const float linePoint2[] = {-x0 - xpick -wallWidth, -y0 - ypick};
+
+            for(int iy = 0; iy < cakeNY; ++iy)
+                for(int ix = 0; ix < cakeNX; ++ix)
+                {
+                    const float signX = sign(dx*ix + x0);
+                    float p[] = {dx*ix + x0, dy*iy + y0};
+                    //float xsdf = std::numeric_limits<float>::min();
+                        float padding = signbit(-p[0])*widthOfBufferZone;
+                        float xsdf = -1e6;
+                        
+                        if ((signX == -1 && p[1] > (y0 + ypick)) || (signX == 1 && p[1] < (-y0 - ypick))) {
+                            xsdf = -(normal[0]*(fabs(p[0]) - linePoint[0] + padding) - signX*normal[1]*(p[1] - linePoint[1]));
+                        } else { 
+                            xsdf = -(normal2[0]*(fabs(p[0]) - linePoint2[0] - signbit(p[0])*wallWidth + padding) - normal2[1]*(fabs(p[1]) - linePoint2[1]));   
+                        }
+                                    
+                            cake[ix + cakeNX*iy] = std::max(cake[ix + cakeNX*iy], xsdf);
+                    //}                    
+                    //const float xsdf = fabs(dx*ix + x0) - (xextent * 0.5 - wallWidth);
+                    //cake[ix + cakeNX*iy] = std::max(cake[ix + cakeNX*iy], xsdf);
+                }
+        }         
     }
     
-    const float dx = xextent / NX;
-    const float dy = yextent / NY;
-    Redistancing::redistancing(240, 0.25 * min(dx, dy), dx, dy, xtimes * NX, ytimes * NY, &cake[0]);
-    
-    {
-        FILE * f = fopen(argv[4], "w");
-        assert(f != 0);
-        fprintf(f, "%f %f %f\n", xtimes * xextent, ytimes * yextent, 1.0f);
-        fprintf(f, "%d %d %d\n", xtimes * NX, ytimes * NY, 1);
-        fwrite(&cake[0], sizeof(float), cake.size(), f);
-        fclose(f);
-    }
-    
+    const float dx = xextent / (NX - 1);
+    const float dy = yextent / (NY - 1);
+    Redistancing::redistancing(1000, 0.25 * min(dx, dy), dx, dy, xtimes * NX, ytimes * NY, &cake[0]);
+   
+    writeDAT(argv[5], cake, xtimes * xextent, ytimes * yextent, 1.0f, xtimes * NX, ytimes * NY, 1);
     return 0;
 }
+

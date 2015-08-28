@@ -2,7 +2,7 @@
  *  main.cpp
  *  Part of CTC/device-gen/sdf-unit-par/
  *
- *  Created and authored by Diego Rossinelli and Kirill Lykov on 2015-03-20.
+ *  Created and authored by Kirill Lykov on 2015-03-28.
  *  Copyright 2015. All rights reserved.
  *
  *  Users are NOT authorized
@@ -15,53 +15,47 @@
 #include <cmath>
 #include <iostream>
 #include <vector>
+#include <algorithm>
 #include "../common/common.h"
 using namespace std;
 
-struct Parabola 
+struct Egg 
 {
-    float x0;
-    float ymax; // length of obstacle, for cutting the pick
-    float y0;
+    float r1, r2, alpha;
 
-    Parabola(float gap, float xextent) : ymax(48.0) 
+    Egg() 
+    : r1(12.0f), r2(8.5f), alpha(0.03f) 
     {
-        x0 = xextent/2.0f - gap/2.0f;
-        if (gap > 9.0)
-            y0 = ymax;
-        else
-            y0 = ymax + 6.5;
     }    
 
-    void line1(vector<float>& vx, vector<float>& vy) {
-        int N = 500;
-        float dx = 2.0f * fabs(x0) / (N - 1);
-        for (int i = 0; i < N; ++i) {
-            float x = i * dx - x0;
-            float y = 0.0f;
-            vx.push_back(x);
-            vy.push_back(y);
-        }
+    float x2y(float x) const {
+        return sqrt(r2*r2 * exp(-alpha * x) * (1.0f - x*x/r1/r1));
     }
-
-    void line2(vector<float>& vx, vector<float>& vy) {
-        int N = 1500;
-        float dx = 2.0f * fabs(x0) / (N - 1);
-        float alpha = -y0 / (x0 * x0);
-        for (int i = 0; i < N; ++i) {    
-            float x = i * dx - x0;
-            float y = min(ymax, alpha * x*x + y0);
+    
+    void run(vector<float>& vx, vector<float>& vy) {
+        int N = 500;
+        float dx = 2.0f * r1 / (N - 1);
+        for (int i = 0; i < N; ++i) {
+            float x = i * dx - r1;
+            float y = x2y(x);
             vx.push_back(x);
             vy.push_back(y);
         }
+        
+        auto vxRev = vx;
+        vx.insert(vx.end(), vxRev.rbegin(), vxRev.rend());
+
+        auto vyRev = vy;
+        for_each(vyRev.begin(), vyRev.end(), [](float& i) { i *= -1.0f; });
+        vy.insert(vy.end(), vyRev.rbegin(), vyRev.rend());
     }
 };
 
 int main(int argc, char ** argv)
 {
-    if (argc != 7)
+    if (argc != 6)
     {
-        printf("usage: ./sdf-unit <NX> <NY> <xextent> <yextent> <gap> <out-file-name> \n");
+        printf("usage: ./sdf-unit-egg <NX> <NY> <xextent> <yextent> <out-file-name> \n");
         return 1;
     }
     
@@ -69,15 +63,13 @@ int main(int argc, char ** argv)
     const int NY = atoi(argv[2]);
     const float xextent = atof(argv[3]);
     const float yextent = atof(argv[4]);
-    const float gap = atof(argv[5]);
  
     vector<float> xs, ys;
-    Parabola par(gap, xextent);
-    par.line1(xs, ys);
-    par.line2(xs, ys);   
+    Egg egg;
+    egg.run(xs, ys);
 
     const float xlb = -xextent/2.0f;
-    const float ylb = -(yextent - par.ymax)/2.0f; 
+    const float ylb = -yextent/2.0f; 
     printf("starting brute force sdf with %d x %d starting from %f %f to %f %f\n",
            NX, NY, xlb, ylb, xlb + xextent, ylb + yextent);
     
@@ -110,10 +102,8 @@ int main(int argc, char ** argv)
         float s = -1;
     
         {
-            const float alpha = -par.y0 / (par.x0 * par.x0);
-            const float ycurve = min(par.ymax, alpha * x*x + par.y0);
-            
-            if (x >= -par.x0 && x <= par.x0 && y >= 0 && y <= ycurve)
+            const float ycurve = egg.x2y(x);
+            if (x >= -egg.r1 && x <= egg.r1 && fabs(y) <= ycurve)
                 s = +1;
         }
 
@@ -121,7 +111,15 @@ int main(int argc, char ** argv)
         sdf[ix + NX * iy] = s * sqrt(distance2);
     }
     
-    writeDAT(argv[6], sdf, xextent, yextent, 1.0f, NX, NY, 1);
+    writeDAT(argv[5], sdf, xextent, yextent, 1.0f, NX, NY, 1);
+    //FILE * f = fopen(argv[5], "w");
+    //fprintf(f, "%f %f %f\n", xextent, yextent, 1.0f);
+    //fprintf(f, "%d %d %d\n", NX, NY, 1);
+    //fwrite(sdf, sizeof(float), NX * NY, f);
+    //fclose(f);
+    
+    //delete [] sdf;
     
     return 0;
 }
+
