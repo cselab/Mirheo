@@ -22,44 +22,52 @@
 class ComputeFSI
 {
     enum { TAGBASE_C = 113, TAGBASE_P = 365, TAGBASE_A = 668, TAGBASE_P2 = 1055, TAGBASE_A2 = 1501 };
-    
+
 protected:
 
     MPI_Comm cartcomm;
-       
-    int myrank, nranks, dstranks[26],
-	dims[3], periods[3], coords[3],
-	recv_tags[26], recv_counts[26], send_counts[26];
-    
+
     bool firstpost;
 
-    cudaEvent_t evPpacked, evPdownloaded, evAcomputed, evPuploaded;
+    int nranks, dstranks[26],
+	dims[3], periods[3], coords[3], myrank,
+	recv_tags[26], recv_counts[26], send_counts[26];
 
-    SimpleDeviceBuffer<Particle> packbuffer;
-    PinnedHostBuffer<Particle> host_packbuffer;
+    cudaEvent_t evPpacked, evAcomputed;
+
+    SimpleDeviceBuffer<Particle> packbuf;
+    PinnedHostBuffer<Particle> host_packbuf;
     PinnedHostBuffer<int> requiredpacksizes, packstarts_padded;
-        
+
     std::vector<MPI_Request> reqsendC, reqrecvC, reqsendP, reqrecvP, reqsendA, reqrecvA;
 
     Logistic::KISS local_trunk;
-      
+
     struct RemoteHalo
     {
-	int expected;
-	
+	int expected, capacity;
+
 	SimpleDeviceBuffer<Particle> dstate;
 	PinnedHostBuffer<Particle> hstate;
 	PinnedHostBuffer<Acceleration> result;
 
-	void setup(int n) { dstate.resize(n); hstate.resize(n); result.resize(n); }
+	void preserve_resize(int n)
+	    {
+		dstate.resize(n);
+		hstate.preserve_resize(n);
+		result.resize(n);
+		capacity = dstate.capacity;
+	    }
 
     } remote[26];
 
     struct LocalHalo
     {
+	int expected, capacity;
+
 	SimpleDeviceBuffer<int> scattered_indices;
 
-	void resize(int n) { RemoteHalo::resize(n); scattered_indices.resize(n); }
+	void resize(int n) { scattered_indices.resize(n); capacity = scattered_indices.capacity; }
 
     } local[26];
 
@@ -75,10 +83,10 @@ protected:
 
     void _postrecvs()
     {
-	for(int i = 0, c = 0; i < 26; ++i)
+	for(int i = 0; i < 26; ++i)
 	{
 	    MPI_Request reqC, reqP, recA;
-		 
+
 	    MPI_CHECK( MPI_Irecv(recv_counts + i, 1, MPI_INTEGER, dstranks[i],
 				 TAGBASE_C + recv_tags[i], cartcomm,  &reqC) );
 
@@ -87,7 +95,7 @@ protected:
 
 	    MPI_CHECK( MPI_Irecv(local[i].result.data, local[i].expected * 3, MPI_FLOAT, dstranks[i],
 				 TAGBASE_A + recv_tags[i], cartcomm, &reqA) );
-		 
+
 	    reqrecvC.push_back(reqC);
 	    reqrecvP.push_back(reqP);
 	    reqrecvA.push_back(reqA);
@@ -107,7 +115,8 @@ public:
 		  const Particle * const solute, const int nrbcs, Acceleration * accsolute, cudaStream_t stream);
 
     void fsi_halo(const Particle * const solvent, const int nsolvent, Acceleration * accsolvent,
-		  const int * const cellsstart_solvent, const int * const cellscount_solvent, cudaStream_t stream);
+		  const int * const cellsstart_solvent, const int * const cellscount_solvent,
+		  cudaStream_t stream, cudaStream_t uploadstream);
 
     void post_a(cudaStream_t stream);
 
