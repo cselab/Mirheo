@@ -309,9 +309,13 @@ void ComputeFSI::pack_p(const Particle * const solute, const int nsolute, cudaSt
     NVTX_RANGE("FSI/pack", NVTX_C4);
 
     FSI_PUP::init<<< 1, 26, 0, stream >>>();
-    FSI_PUP::scatter_indices<<< (nsolute + 127) / 128, 128, 0, stream >>>((float2 *)solute, nsolute);
-    FSI_PUP::tiny_scan<<< 1, 32, 0, stream >>>(requiredpacksizes.devptr, packstarts_padded.devptr);
-    FSI_PUP::pack<<< (nsolute + 127 + 31 * 26) / 128, 128, 0, stream >>>((float2 *)solute, nsolute, (float2 *)packbuf.data, packbuf.capacity);
+
+    if (nsolute)
+    {
+	FSI_PUP::scatter_indices<<< (nsolute + 127) / 128, 128, 0, stream >>>((float2 *)solute, nsolute);
+	FSI_PUP::tiny_scan<<< 1, 32, 0, stream >>>(requiredpacksizes.devptr, packstarts_padded.devptr);
+	FSI_PUP::pack<<< (nsolute + 127 + 31 * 26) / 128, 128, 0, stream >>>((float2 *)solute, nsolute, (float2 *)packbuf.data, packbuf.capacity);
+    }
 
     CUDA_CHECK(cudaEventRecord(evPpacked, stream));
 
@@ -358,9 +362,13 @@ void ComputeFSI::post_p(const Particle * const solute, const int nsolute, cudaSt
 	    host_packbuf.resize(packstarts_padded.data[26]);
 
 	    FSI_PUP::init<<< 1, 26, 0, stream >>>();
-	    FSI_PUP::scatter_indices<<< (nsolute + 127) / 128, 128, 0, stream >>>((float2 *)solute, nsolute);
-	    FSI_PUP::tiny_scan<<< 1, 32, 0, stream >>>(requiredpacksizes.devptr, packstarts_padded.devptr);
-	    FSI_PUP::pack<<< (nsolute + 127 + 31 * 26) / 128, 128, 0, stream >>>((float2 *)solute, nsolute, (float2 *)packbuf.data, packbuf.capacity);
+
+	    if (nsolute)
+	    {
+		FSI_PUP::scatter_indices<<< (nsolute + 127) / 128, 128, 0, stream >>>((float2 *)solute, nsolute);
+		FSI_PUP::tiny_scan<<< 1, 32, 0, stream >>>(requiredpacksizes.devptr, packstarts_padded.devptr);
+		FSI_PUP::pack<<< (nsolute + 127 + 31 * 26) / 128, 128, 0, stream >>>((float2 *)solute, nsolute, (float2 *)packbuf.data, packbuf.capacity);
+	    }
 
 	    CUDA_CHECK(cudaStreamSynchronize(stream));
 
@@ -605,16 +613,20 @@ namespace FSI_CORE
 	    firsttime = false;
 	}
 
-	size_t textureoffset;
+	size_t textureoffset = 0;
+
 	if (npsolvent)
+	{
 	    CUDA_CHECK(cudaBindTexture(&textureoffset, &texSolventParticles, solvent, &texSolventParticles.channelDesc,
 				       sizeof(float) * 6 * npsolvent));
-	assert(textureoffset == 0);
+	    assert(textureoffset == 0);
+	}
 
 	const int ncells = XSIZE_SUBDOMAIN * YSIZE_SUBDOMAIN * ZSIZE_SUBDOMAIN;
 
 	CUDA_CHECK(cudaBindTexture(&textureoffset, &texCellsStart, cellsstart, &texCellsStart.channelDesc, sizeof(int) * ncells));
 	assert(textureoffset == 0);
+
 	CUDA_CHECK(cudaBindTexture(&textureoffset, &texCellsCount, cellscount, &texCellsCount.channelDesc, sizeof(int) * ncells));
 	assert(textureoffset == 0);
 
@@ -1006,7 +1018,8 @@ void ComputeFSI::merge_a(Acceleration * accsolute, const int nsolute, cudaStream
 
     const int npadded = packstarts_padded.data[26];
 
-    FSI_PUP::unpack<<< (npadded * 3 + 127) / 128, 128, 0, stream >>>((float *)accsolute, nsolute, npadded);
+    if (npadded)
+	FSI_PUP::unpack<<< (npadded * 3 + 127) / 128, 128, 0, stream >>>((float *)accsolute, nsolute, npadded);
 
     _postrecvs();
 }
