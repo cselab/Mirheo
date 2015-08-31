@@ -392,14 +392,20 @@ void Simulation::_forces()
 
     if (rbcscoll)
     {
+	CUDA_CHECK(cudaPeekAtLastError());
+
 	fsi.bulk(particles->xyzuvw.data, particles->size, particles->axayaz.data,
 		 cells.start, cells.count, rbcscoll->data(), rbcscoll->pcount(), rbcscoll->acc(), mainstream);
 
 	CudaRBC::forces_nohost(mainstream, rbcscoll->count(), (float *)rbcscoll->data(), (float *)rbcscoll->acc());
 
+	CUDA_CHECK(cudaPeekAtLastError());
+
 	fsi.post_a();
 
 	fsi.merge_a(rbcscoll->acc(), rbcscoll->pcount(), mainstream);
+
+	CUDA_CHECK(cudaPeekAtLastError());
     }
 
     timings["interactions"] += MPI_Wtime() - tstart;
@@ -769,7 +775,20 @@ void Simulation::_lockstep()
 
     dpd.remote_interactions(particles->xyzuvw.data, particles->size, particles->axayaz.data, mainstream, uploadstream);
 
+    if (rbcscoll)
+    {
+	fsi.bulk(particles->xyzuvw.data, particles->size, particles->axayaz.data,
+		 cells.start, cells.count, rbcscoll->data(), rbcscoll->pcount(), rbcscoll->acc(), mainstream);
+
+	CudaRBC::forces_nohost(mainstream, rbcscoll->count(), (float *)rbcscoll->data(), (float *)rbcscoll->acc());
+
+	fsi.post_a();
+
+	CUDA_CHECK(cudaPeekAtLastError());
+    }
+
     particles->update_stage2_and_1(driving_acceleration, mainstream);
+
 
     if (wall)
 	wall->bounce(particles->xyzuvw.data, particles->size, mainstream);
@@ -781,16 +800,6 @@ void Simulation::_lockstep()
     redistribute.send();
 
     redistribute.bulk(particles->size, cells.start, cells.count, mainstream);
-
-    if (rbcscoll)
-    {
-	fsi.bulk(particles->xyzuvw.data, particles->size, particles->axayaz.data,
-		 cells.start, cells.count, rbcscoll->data(), rbcscoll->pcount(), rbcscoll->acc(), mainstream);
-
-	CudaRBC::forces_nohost(mainstream, rbcscoll->count(), (float *)rbcscoll->data(), (float *)rbcscoll->acc());
-
-	fsi.post_a();
-    }
 
     CUDA_CHECK(cudaPeekAtLastError());
 

@@ -70,7 +70,7 @@ protected:
 	SimpleDeviceBuffer<int> scattered_indices;
 	PinnedHostBuffer<Acceleration> result;
 
-	void resize(int n) { scattered_indices.resize(n); capacity = scattered_indices.capacity; }
+	void resize(int n) { scattered_indices.resize(n); result.resize(n); capacity = scattered_indices.capacity; }
 
     } local[26];
 
@@ -93,8 +93,12 @@ protected:
 	    MPI_CHECK( MPI_Irecv(recv_counts + i, 1, MPI_INTEGER, dstranks[i],
 				 TAGBASE_C + recv_tags[i], cartcomm,  &reqC) );
 
+	    assert(remote[i].hstate.data);
+
 	    MPI_CHECK( MPI_Irecv(remote[i].hstate.data, remote[i].expected * 6, MPI_FLOAT, dstranks[i],
 				 TAGBASE_P + recv_tags[i], cartcomm, &reqP) );
+
+	    assert(local[i].result.data);
 
 	    MPI_CHECK( MPI_Irecv(local[i].result.data, local[i].expected * 3, MPI_FLOAT, dstranks[i],
 				 TAGBASE_A + recv_tags[i], cartcomm, &reqA) );

@@ -120,6 +120,12 @@ namespace FSI_PUP
 	float2 s0, s1, s2;
 	read_AOS6f(particles + base, nsrc, s0, s1, s2);
 
+	const int lane = threadIdx.x & 0x1f;
+	const int pid = base + lane;
+
+	if (pid >= nparticles)
+	    return;
+
 	enum
 	{
 	    HXSIZE = XSIZE_SUBDOMAIN / 2,
@@ -141,53 +147,14 @@ namespace FSI_PUP
 	if (halocode[0] == 0 && halocode[1] == 0 && halocode[2] == 0)
 	    return;
 
-	const int lane = threadIdx.x & 0x1f;
-	const int pid = base + lane;
-
-	if (pid < nparticles)
-	{
-	    //faces
+	//faces
 #pragma unroll 3
-	    for(int d = 0; d < 3; ++d)
-		if (halocode[d])
-		{
-		    const int xterm = (halocode[0] * (d == 0) + 2) % 3;
-		    const int yterm = (halocode[1] * (d == 1) + 2) % 3;
-		    const int zterm = (halocode[2] * (d == 2) + 2) % 3;
-
-		    const int bagid = xterm + 3 * (yterm + 3 * zterm);
-		    assert(bagid >= 0 && bagid < 26);
-
-		    const int myid = atomicAdd(pack_count + bagid, 1);
-
-		    if (myid < sendbagsizes[bagid])
-			scattered_indices[bagid][myid] = pid;
-		}
-
-	    //edges
-#pragma unroll 3
-	    for(int d = 0; d < 3; ++d)
-		if (halocode[(d + 1) % 3] && halocode[(d + 2) % 3])
-		{
-		    const int xterm = (halocode[0] * (d != 0) + 2) % 3;
-		    const int yterm = (halocode[1] * (d != 1) + 2) % 3;
-		    const int zterm = (halocode[2] * (d != 2) + 2) % 3;
-
-		    const int bagid = xterm + 3 * (yterm + 3 * zterm);
-		    assert(bagid >= 0 && bagid < 26);
-
-		    const int myid = atomicAdd(pack_count + bagid, 1);
-
-		    if (myid < sendbagsizes[bagid])
-			scattered_indices[bagid][myid] = pid;
-		}
-
-	    //one corner
-	    if (halocode[0] && halocode[1] && halocode[2])
+	for(int d = 0; d < 3; ++d)
+	    if (halocode[d])
 	    {
-		const int xterm = (halocode[0] + 2) % 3;
-		const int yterm = (halocode[1] + 2) % 3;
-		const int zterm = (halocode[2] + 2) % 3;
+		const int xterm = (halocode[0] * (d == 0) + 2) % 3;
+		const int yterm = (halocode[1] * (d == 1) + 2) % 3;
+		const int zterm = (halocode[2] * (d == 2) + 2) % 3;
 
 		const int bagid = xterm + 3 * (yterm + 3 * zterm);
 		assert(bagid >= 0 && bagid < 26);
@@ -197,6 +164,39 @@ namespace FSI_PUP
 		if (myid < sendbagsizes[bagid])
 		    scattered_indices[bagid][myid] = pid;
 	    }
+
+	//edges
+#pragma unroll 3
+	for(int d = 0; d < 3; ++d)
+	    if (halocode[(d + 1) % 3] && halocode[(d + 2) % 3])
+	    {
+		const int xterm = (halocode[0] * (d != 0) + 2) % 3;
+		const int yterm = (halocode[1] * (d != 1) + 2) % 3;
+		const int zterm = (halocode[2] * (d != 2) + 2) % 3;
+
+		const int bagid = xterm + 3 * (yterm + 3 * zterm);
+		assert(bagid >= 0 && bagid < 26);
+
+		const int myid = atomicAdd(pack_count + bagid, 1);
+
+		if (myid < sendbagsizes[bagid])
+		    scattered_indices[bagid][myid] = pid;
+	    }
+
+	//one corner
+	if (halocode[0] && halocode[1] && halocode[2])
+	{
+	    const int xterm = (halocode[0] + 2) % 3;
+	    const int yterm = (halocode[1] + 2) % 3;
+	    const int zterm = (halocode[2] + 2) % 3;
+
+	    const int bagid = xterm + 3 * (yterm + 3 * zterm);
+	    assert(bagid >= 0 && bagid < 26);
+
+	    const int myid = atomicAdd(pack_count + bagid, 1);
+
+	    if (myid < sendbagsizes[bagid])
+		scattered_indices[bagid][myid] = pid;
 	}
     }
 
@@ -635,7 +635,7 @@ void ComputeFSI::bulk(const Particle * const solvent, const int nsolvent, Accele
 	const float seed = local_trunk.get_float();
 
 	FSI_CORE::interactions_3tpp<<< (3 * nsolute + 127) / 128, 128, 0, stream >>>
-	    ((float2 *)rbcs, nsolute, nsolvent, (float *)accsolute, (float *)accsolvent, seed);
+	    ((float2 *)solute, nsolute, nsolvent, (float *)accsolute, (float *)accsolvent, seed);
     }
 
     CUDA_CHECK(cudaPeekAtLastError());
