@@ -39,7 +39,7 @@ firstpost(true), requiredpacksizes(26), packstarts_padded(27)
 
     local_trunk = Logistic::KISS(1908 - myrank, 1409 + myrank, 290, 12968);
 
-    const float safety_factor = getenv("FSI_COMM_FACTOR") ? atof(getenv("FSI_COMM_FACTOR")) : 1.2f;
+    const float safety_factor = getenv("FSI_COMM_FACTOR") ? atof(getenv("FSI_COMM_FACTOR")) : 1.66f;
 
     for(int i = 0; i < 26; ++i)
     {
@@ -60,7 +60,7 @@ firstpost(true), requiredpacksizes(26), packstarts_padded(27)
 	const int nhalocells = xhalosize * yhalosize * zhalosize;
 
 	int estimate = numberdensity * safety_factor * nhalocells;
-	estimate = 32 * ((estimate + 31) / 32);
+	estimate = 64 * ((estimate + 63) / 64);
 
 	remote[i].expected = estimate;
 	remote[i].preserve_resize(estimate);
@@ -118,7 +118,7 @@ namespace FSI_PUP
 	const int nsrc = min(32, nparticles - base);
 
 	float2 s0, s1, s2;
-	read_AOS6f(particles + base, nsrc, s0, s1, s2);
+	read_AOS6f(particles + 3 * base, nsrc, s0, s1, s2);
 
 	const int lane = threadIdx.x & 0x1f;
 	const int pid = base + lane;
@@ -300,7 +300,7 @@ namespace FSI_PUP
 
 	assert(localbase >= 0 && npack >= 0 && localbase + npack < nbuffer);
 
-	write_AOS6f(buffer + localbase, npack, s0, s1, s2);
+	write_AOS6f(buffer + 3 * localbase, npack, s0, s1, s2);
     }
 }
 
@@ -429,8 +429,8 @@ void ComputeFSI::post_p(const Particle * const solute, const int nsolute, cudaSt
 
 		reqsendP.push_back(reqP2);
 
-		printf("ComputeFSI::post_p ooops rank %d needs to send more than expected: %d instead of %d\n",
-		       myrank, count, expected);
+		printf("ComputeFSI::post_p ooops rank %d needs to send more than expected: %d instead of %d (i %d)\n",
+		       myrank, count, expected, i);
 	    }
 	}
     }
@@ -934,7 +934,7 @@ void ComputeFSI::post_a()
 	if (count > expected)
 	{
 	    MPI_Request reqA2;
-	    MPI_CHECK( MPI_Isend(remote[i].result.data + expected, (count - expected) * 6,
+	    MPI_CHECK( MPI_Isend(remote[i].result.data + expected, (count - expected) * 3,
 				 MPI_FLOAT, dstranks[i], TAGBASE_A2 + i, cartcomm, &reqA2) );
 
 	    reqsendA.push_back(reqA2);
