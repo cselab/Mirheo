@@ -57,6 +57,8 @@ protected:
 		hstate.preserve_resize(n);
 		result.resize(n);
 		capacity = dstate.capacity;
+
+		assert(hstate.capacity == capacity);
 	    }
 
     } remote[26];
@@ -74,7 +76,7 @@ protected:
 
     void _wait(std::vector<MPI_Request>& v)
     {
-	MPI_Status statuses[26];
+	MPI_Status statuses[v.size()];
 
 	if (v.size())
 	    MPI_CHECK(MPI_Waitall(v.size(), &v.front(), statuses));
@@ -111,13 +113,13 @@ public:
 
     void post_p(const Particle * const solute, const int nsolute, cudaStream_t stream, cudaStream_t downloadstream);
 
-    void fsi_bulk(const Particle * const solvent, const int nsolvent, Acceleration * accsolvent,
-		  const int * const cellsstart_solvent, const int * const cellscount_solvent,
-		  const Particle * const solute, const int nrbcs, Acceleration * accsolute, cudaStream_t stream);
+    void bulk(const Particle * const solvent, const int nsolvent, Acceleration * accsolvent,
+	      const int * const cellsstart_solvent, const int * const cellscount_solvent,
+	      const Particle * const solute, const int nrbcs, Acceleration * accsolute, cudaStream_t stream);
 
-    void fsi_halo(const Particle * const solvent, const int nsolvent, Acceleration * accsolvent,
-		  const int * const cellsstart_solvent, const int * const cellscount_solvent,
-		  cudaStream_t stream, cudaStream_t uploadstream);
+    void halo(const Particle * const solvent, const int nsolvent, Acceleration * accsolvent,
+	      const int * const cellsstart_solvent, const int * const cellscount_solvent,
+	      cudaStream_t stream, cudaStream_t uploadstream);
 
     void post_a();
 
