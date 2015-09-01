@@ -3,7 +3,7 @@
  *  ctc local
  *
  *  Created by Dmitry Alexeev on Nov 3, 2014
- *  Copyright 2014 ETH Zurich. All rights reserved.
+ *  Completely rewritten by Dmitry Alexeev and Diego Rossinelli since April 1, 2015.
  *
  */
 
@@ -663,7 +663,7 @@ namespace CudaRBC
         dim3 avThreads(256, 1);
         dim3 avBlocks( 1, ncells );
 
-        CUDA_CHECK( cudaMemset(host_av, 0, ncells * 2 * sizeof(float)) );
+        CUDA_CHECK( cudaMemsetAsync(host_av, 0, ncells * 2 * sizeof(float), stream) );
         areaAndVolumeKernel<<<avBlocks, avThreads, 0, stream>>>(host_av);
         CUDA_CHECK( cudaPeekAtLastError() );
 

@@ -45,8 +45,8 @@ void CellLists::build(Particle * const p, const int n, cudaStream_t stream, int 
 	}
 	else
 	{
-	    CUDA_CHECK(cudaMemset(start, 0, sizeof(int) * ncells));
-	    CUDA_CHECK(cudaMemset(count, 0, sizeof(int) * ncells));
+	    CUDA_CHECK(cudaMemsetAsync(start, 0, sizeof(int) * ncells, stream));
+	    CUDA_CHECK(cudaMemsetAsync(count, 0, sizeof(int) * ncells, stream));
 	}
 }
 
