@@ -836,7 +836,6 @@ void ComputeFSI::halo(const Particle * const solvent, const int nparticles, Acce
 	_wait(reqrecvC);
 	_wait(reqrecvP);
 
-
 	for(int i = 0; i < 26; ++i)
 	{
 	    const int count = recv_counts[i];
@@ -850,6 +849,8 @@ void ComputeFSI::halo(const Particle * const solvent, const int nparticles, Acce
 		MPI_CHECK( MPI_Recv(remote[i].hstate.data + expected, (count - expected) * 6, MPI_FLOAT, dstranks[i],
 				    TAGBASE_P2 + recv_tags[i], cartcomm, &status) );
 	}
+
+	_postrecvC();
     }
 
     {
@@ -927,26 +928,11 @@ void ComputeFSI::post_a()
 
     CUDA_CHECK(cudaEventSynchronize(evAcomputed));
 
+    reqsendA.resize(26);
     for(int i = 0; i < 26; ++i)
-    {
-	const int count = recv_counts[i];
-	const int expected = remote[i].expected;
+	MPI_CHECK( MPI_Isend(remote[i].result.data, remote[i].result.size * 3, MPI_FLOAT, dstranks[i], TAGBASE_A + i, cartcomm, &reqsendA[i]) );
 
-	MPI_Request reqA;
-	MPI_CHECK( MPI_Isend(remote[i].result.data, remote[i].result.size * 3, MPI_FLOAT, dstranks[i], TAGBASE_A + i, cartcomm, &reqA) );
-	reqsendA.push_back(reqA);
 
-	if (count > expected)
-	{
-	    MPI_Request reqA2;
-	    MPI_CHECK( MPI_Isend(remote[i].result.data + expected, (count - expected) * 3,
-				 MPI_FLOAT, dstranks[i], TAGBASE_A2 + i, cartcomm, &reqA2) );
-
-	    reqsendA.push_back(reqA2);
-	}
-    }
-
-    _postrecvC();
 }
 
 namespace FSI_PUP
