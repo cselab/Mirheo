@@ -27,7 +27,7 @@ protected:
 
     MPI_Comm cartcomm;
 
-    bool firstpost;
+    bool firststep;
 
     int nranks, dstranks[26],
 	dims[3], periods[3], coords[3], myrank,
@@ -84,27 +84,41 @@ protected:
 	v.clear();
     }
 
-    void _postrecvs()
+    void _postrecvC()
     {
 	for(int i = 0; i < 26; ++i)
 	{
-	    MPI_Request reqC, reqP, reqA;
+	    MPI_Request reqC;
 
-	    MPI_CHECK( MPI_Irecv(recv_counts + i, 1, MPI_INTEGER, dstranks[i],
+	    MPI_CHECK( MPI_Irecv(recv_counts + i, 1, MPI_INTEGER, dstranks[i], 
 				 TAGBASE_C + recv_tags[i], cartcomm,  &reqC) );
 
-	    assert(remote[i].hstate.data);
+	    reqrecvC.push_back(reqC);
+	}
+    }
+
+    void _postrecvP()
+    {
+	for(int i = 0; i < 26; ++i)
+	{
+	    MPI_Request reqP;
 
 	    MPI_CHECK( MPI_Irecv(remote[i].hstate.data, remote[i].expected * 6, MPI_FLOAT, dstranks[i],
 				 TAGBASE_P + recv_tags[i], cartcomm, &reqP) );
 
-	    assert(local[i].result.data);
+	    reqrecvP.push_back(reqP);
+	}
+    }
+
+    void _postrecvA()
+    {
+	for(int i = 0; i < 26; ++i)
+	{
+	    MPI_Request reqA;
 
 	    MPI_CHECK( MPI_Irecv(local[i].result.data, local[i].expected * 3, MPI_FLOAT, dstranks[i],
 				 TAGBASE_A + recv_tags[i], cartcomm, &reqA) );
 
-	    reqrecvC.push_back(reqC);
-	    reqrecvP.push_back(reqP);
 	    reqrecvA.push_back(reqA);
 	}
     }

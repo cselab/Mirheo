@@ -27,7 +27,7 @@ namespace FSI_CORE
 }
 
 ComputeFSI::ComputeFSI(MPI_Comm _cartcomm) :
-firstpost(true), requiredpacksizes(26), packstarts_padded(27)
+firststep(true), requiredpacksizes(26), packstarts_padded(27)
 {
     assert(XSIZE_SUBDOMAIN % 2 == 0 && YSIZE_SUBDOMAIN % 2 == 0 && ZSIZE_SUBDOMAIN % 2 == 0);
     assert(XSIZE_SUBDOMAIN >= 2 && YSIZE_SUBDOMAIN >= 2 && ZSIZE_SUBDOMAIN >= 2);
@@ -308,6 +308,8 @@ void ComputeFSI::pack_p(const Particle * const solute, const int nsolute, cudaSt
 {
     NVTX_RANGE("FSI/pack", NVTX_C4);
 
+    _postrecvA();
+
     FSI_PUP::init<<< 1, 26, 0, stream >>>();
 
     if (nsolute)
@@ -332,6 +334,11 @@ void ComputeFSI::post_p(const Particle * const solute, const int nsolute, cudaSt
 	NVTX_RANGE("FSI/consolidate", NVTX_C5);
 
 	CUDA_CHECK(cudaEventSynchronize(evPpacked));
+
+	if (firststep)
+	    _postrecvC();
+	else
+	    _wait(reqsendC);
 
 	for(int i = 0; i < 26; ++i)
 	    send_counts[i] = requiredpacksizes.data[i];
@@ -384,6 +391,11 @@ void ComputeFSI::post_p(const Particle * const solute, const int nsolute, cudaSt
 	for(int i = 0; i < 26; ++i)
 	    local[i].resize(send_counts[i]);
 
+	if (firststep)
+	    _postrecvP();
+	else
+	    _wait(reqsendP);
+
 	CUDA_CHECK(cudaMemcpyAsync(host_packbuf.data, packbuf.data, sizeof(Particle) * packstarts_padded.data[26], cudaMemcpyDeviceToHost, downloadstream));
 
 	CUDA_CHECK(cudaStreamSynchronize(downloadstream));
@@ -392,19 +404,6 @@ void ComputeFSI::post_p(const Particle * const solute, const int nsolute, cudaSt
     //post the sending of the packs
     {
 	NVTX_RANGE("FSI/send", NVTX_C6);
-
-	if (firstpost)
-	{
-	    _postrecvs();
-
-	    firstpost = false;
-	}
-	else
-	{
-	    _wait(reqsendC);
-	    _wait(reqsendP);
-	    _wait(reqsendA);
-	}
 
 	reqsendC.resize(26);
 
@@ -610,6 +609,8 @@ namespace FSI_CORE
 	    texSolventParticles.mipmapFilterMode = cudaFilterModePoint;
 	    texSolventParticles.normalized = 0;
 
+	    CUDA_CHECK(cudaFuncSetCacheConfig(interactions_3tpp, cudaFuncCachePreferL1));
+
 	    firsttime = false;
 	}
 
@@ -629,8 +630,6 @@ namespace FSI_CORE
 
 	CUDA_CHECK(cudaBindTexture(&textureoffset, &texCellsCount, cellscount, &texCellsCount.channelDesc, sizeof(int) * ncells));
 	assert(textureoffset == 0);
-
-	CUDA_CHECK(cudaFuncSetCacheConfig(interactions_3tpp, cudaFuncCachePreferL1));
     }
 }
 
@@ -837,6 +836,7 @@ void ComputeFSI::halo(const Particle * const solvent, const int nparticles, Acce
 	_wait(reqrecvC);
 	_wait(reqrecvP);
 
+
 	for(int i = 0; i < 26; ++i)
 	{
 	    const int count = recv_counts[i];
@@ -902,6 +902,9 @@ void ComputeFSI::halo(const Particle * const solvent, const int nparticles, Acce
 					       sizeof(packresults), 0, cudaMemcpyHostToDevice, uploadstream));
 	}
 
+	if (!firststep)
+	    _wait(reqsendA);
+
 	if(nremote_padded)
 	{
 	    CUDA_CHECK(cudaStreamSynchronize(uploadstream));
@@ -909,6 +912,8 @@ void ComputeFSI::halo(const Particle * const solvent, const int nparticles, Acce
 	    FSI_CORE::interactions_halo<<< (nremote_padded + 127) / 128, 128, 0, stream>>>
 		(nremote_padded, nparticles, (float *)accsolvent, local_trunk.get_float());
 	}
+
+	_postrecvP();
 
 	CUDA_CHECK(cudaEventRecord(evAcomputed, stream));
     }
@@ -940,6 +945,8 @@ void ComputeFSI::post_a()
 	    reqsendA.push_back(reqA2);
 	}
     }
+
+    _postrecvC();
 }
 
 namespace FSI_PUP
@@ -1021,7 +1028,7 @@ void ComputeFSI::merge_a(Acceleration * accsolute, const int nsolute, cudaStream
     if (npadded)
 	FSI_PUP::unpack<<< (npadded * 3 + 127) / 128, 128, 0, stream >>>((float *)accsolute, nsolute, npadded);
 
-    _postrecvs();
+    firststep = false;
 }
 
 ComputeFSI::~ComputeFSI()
