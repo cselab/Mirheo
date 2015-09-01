@@ -116,7 +116,7 @@ protected:
 	{
 	    MPI_Request reqA;
 
-	    MPI_CHECK( MPI_Irecv(local[i].result.data, local[i].expected * 3, MPI_FLOAT, dstranks[i],
+	    MPI_CHECK( MPI_Irecv(local[i].result.data, local[i].result.size * 3, MPI_FLOAT, dstranks[i],
 				 TAGBASE_A + recv_tags[i], cartcomm, &reqA) );
 
 	    reqrecvA.push_back(reqA);

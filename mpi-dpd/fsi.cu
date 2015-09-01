@@ -308,8 +308,6 @@ void ComputeFSI::pack_p(const Particle * const solute, const int nsolute, cudaSt
 {
     NVTX_RANGE("FSI/pack", NVTX_C4);
 
-    _postrecvA();
-
     FSI_PUP::init<<< 1, 26, 0, stream >>>();
 
     if (nsolute)
@@ -390,6 +388,8 @@ void ComputeFSI::post_p(const Particle * const solute, const int nsolute, cudaSt
 
 	for(int i = 0; i < 26; ++i)
 	    local[i].resize(send_counts[i]);
+
+	_postrecvA();
 
 	if (firststep)
 	    _postrecvP();
@@ -933,7 +933,7 @@ void ComputeFSI::post_a()
 	const int expected = remote[i].expected;
 
 	MPI_Request reqA;
-	MPI_CHECK( MPI_Isend(remote[i].result.data, expected * 3, MPI_FLOAT, dstranks[i], TAGBASE_A + i, cartcomm, &reqA) );
+	MPI_CHECK( MPI_Isend(remote[i].result.data, remote[i].result.size * 3, MPI_FLOAT, dstranks[i], TAGBASE_A + i, cartcomm, &reqA) );
 	reqsendA.push_back(reqA);
 
 	if (count > expected)
@@ -1007,21 +1007,6 @@ void ComputeFSI::merge_a(Acceleration * accsolute, const int nsolute, cudaStream
     }
 
     _wait(reqrecvA);
-
-    for(int i = 0; i < 26; ++i)
-    {
-	const int count = send_counts[i];
-	assert(remote[i].capacity >= count);
-
-	const int expected = remote[i].expected;
-
-	if (count > expected)
-	{
-	    MPI_Status status;
-	    MPI_CHECK( MPI_Recv(local[i].result.data + expected, (count - expected) * 3, MPI_FLOAT, dstranks[i],
-				TAGBASE_A2 + recv_tags[i], cartcomm, &status) );
-	}
-    }
 
     const int npadded = packstarts_padded.data[26];
 
