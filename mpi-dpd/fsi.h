@@ -45,7 +45,7 @@ protected:
 
     class TimeSeriesWindow
     {
-	static const int N = 100;
+	static const int N = 200;
 
 	int count, start, data[N];
 
@@ -92,7 +92,7 @@ protected:
 		history.update(n);
 	    }
 
-	int expected() const { return history.max(); }
+	int expected() const { return (int)ceil(history.max() * 1.3); }
 
 	int capacity() const { assert(hstate.capacity == dstate.capacity); return dstate.capacity; }
 
@@ -115,7 +115,7 @@ protected:
 
 	void update() { history.update(result.size); }
 
-	int expected() const { return history.max(); }
+	int expected() const { return (int)ceil(history.max() * 1.3); }
 
 	int capacity() const { return scattered_indices.capacity; }
 

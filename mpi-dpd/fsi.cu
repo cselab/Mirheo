@@ -410,9 +410,11 @@ void ComputeFSI::post_p(const Particle * const solute, const int nsolute, cudaSt
 				     MPI_FLOAT, dstranks[i], TAGBASE_P2 + i, cartcomm, &reqP2) );
 
 		reqsendP.push_back(reqP2);
-
-		//printf("ComputeFSI::post_p ooops rank %d needs to send more than expected: %d instead of %d (i %d)\n",
-		//     myrank, count, expected, i);
+#if 0
+		printf("ComputeFSI::post_p ooops rank %d needs to send more than expected: %d instead of %d (i %d)\n",
+		       myrank, count, expected, i);
+		fflush(stdout);
+#endif
 	    }
 	}
     }
@@ -899,7 +901,7 @@ void ComputeFSI::halo(const Particle * const solvent, const int nparticles, Acce
 
 	for(int i = 0; i < 26; ++i)
 	    local[i].update();
-	
+
 	_postrecvP();
 
 	CUDA_CHECK(cudaEventRecord(evAcomputed, stream));
@@ -982,9 +984,6 @@ void ComputeFSI::merge_a(Acceleration * accsolute, const int nsolute, cudaStream
 
     if (npadded)
 	FSI_PUP::unpack<<< (npadded * 3 + 127) / 128, 128, 0, stream >>>((float *)accsolute, nsolute, npadded);
-
-    //firststep = false;
-    //printf("FIRST PASS DONE\n");
 }
 
 ComputeFSI::~ComputeFSI()
