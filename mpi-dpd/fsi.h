@@ -46,7 +46,7 @@ protected:
     class TimeSeriesWindow
     {
 	static const int N = 100;
-	
+
 	int count, start, data[N];
 
     public:
@@ -107,10 +107,10 @@ protected:
 	SimpleDeviceBuffer<int> scattered_indices;
 	PinnedHostBuffer<Acceleration> result;
 
-	void resize(int n) 
-	{ 
-	    scattered_indices.resize(n); 
-	    result.resize(n); 
+	void resize(int n)
+	{
+	    scattered_indices.resize(n);
+	    result.resize(n);
 	}
 
 	void update() { history.update(result.size); }
@@ -120,6 +120,17 @@ protected:
 	int capacity() const { return scattered_indices.capacity; }
 
     } local[26];
+
+    void _adjust_packbuffers()
+    {
+	int s = 0;
+
+	for(int i = 0; i < 26; ++i)
+	    s += 32 * ((local[i].capacity() + 31) / 32);
+
+	packbuf.resize(s);
+	host_packbuf.resize(s);
+    }
 
     void _wait(std::vector<MPI_Request>& v)
     {
@@ -137,7 +148,7 @@ protected:
 	{
 	    MPI_Request reqC;
 
-	    MPI_CHECK( MPI_Irecv(recv_counts + i, 1, MPI_INTEGER, dstranks[i], 
+	    MPI_CHECK( MPI_Irecv(recv_counts + i, 1, MPI_INTEGER, dstranks[i],
 				 TAGBASE_C + recv_tags[i], cartcomm,  &reqC) );
 
 	    reqrecvC.push_back(reqC);
@@ -149,7 +160,7 @@ protected:
 	for(int i = 0; i < 26; ++i)
 	{
 	    MPI_Request reqP;
-	    
+
 	    MPI_CHECK( MPI_Irecv(remote[i].hstate.data, remote[i].expected() * 6, MPI_FLOAT, dstranks[i],
 				 TAGBASE_P + recv_tags[i], cartcomm, &reqP) );
 

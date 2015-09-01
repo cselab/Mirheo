@@ -51,12 +51,6 @@ iterationcount(-1), requiredpacksizes(26), packstarts_padded(27)
 
 	MPI_CHECK( MPI_Cart_rank(cartcomm, coordsneighbor, dstranks + i) );
 
-	const int xhalosize = d[0] ? 1 : XSIZE_SUBDOMAIN;
-	const int yhalosize = d[1] ? 1 : YSIZE_SUBDOMAIN;
-	const int zhalosize = d[2] ? 1 : ZSIZE_SUBDOMAIN;
-
-	const int nhalocells = xhalosize * yhalosize * zhalosize;
-
 	const int estimate = 1;
 	remote[i].preserve_resize(estimate);
 	local[i].resize(estimate);
@@ -68,14 +62,7 @@ iterationcount(-1), requiredpacksizes(26), packstarts_padded(27)
 				      sizeof(int *), sizeof(int *) * i, cudaMemcpyHostToDevice));
     }
 
-    {
-	int s = 0;
-	for(int i = 0; i < 26; ++i)
-	    s += 32 * ((local[i].scattered_indices.capacity + 31) / 32);
-
-	packbuf.resize(s);
-	host_packbuf.resize(s);
-    }
+    _adjust_packbuffers();
 
     CUDA_CHECK(cudaEventCreateWithFlags(&evPpacked, cudaEventDisableTiming | cudaEventBlockingSync));
     CUDA_CHECK(cudaEventCreateWithFlags(&evAcomputed, cudaEventDisableTiming | cudaEventBlockingSync));
@@ -359,8 +346,7 @@ void ComputeFSI::post_p(const Particle * const solute, const int nsolute, cudaSt
 
 	    CUDA_CHECK(cudaMemcpyToSymbolAsync(FSI_PUP::scattered_indices, newindices, sizeof(newindices), 0, cudaMemcpyHostToDevice, stream));
 
-	    packbuf.resize(packstarts_padded.data[26]);
-	    host_packbuf.resize(packstarts_padded.data[26]);
+	    _adjust_packbuffers();
 
 	    FSI_PUP::init<<< 1, 26, 0, stream >>>();
 
@@ -378,7 +364,7 @@ void ComputeFSI::post_p(const Particle * const solute, const int nsolute, cudaSt
 		assert(send_counts[i] == requiredpacksizes.data[i]);
 
 	    for(int i = 0; i < 26; ++i)
-		assert(send_counts[i] <= local[i].capacity);
+		assert(send_counts[i] <= local[i].capacity());
 #endif
 	}
 
@@ -913,7 +899,7 @@ void ComputeFSI::halo(const Particle * const solvent, const int nparticles, Acce
 
 	for(int i = 0; i < 26; ++i)
 	    local[i].update();
-
+	
 	_postrecvP();
 
 	CUDA_CHECK(cudaEventRecord(evAcomputed, stream));

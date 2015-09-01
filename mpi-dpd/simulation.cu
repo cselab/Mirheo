@@ -789,7 +789,6 @@ void Simulation::_lockstep()
 
     particles->update_stage2_and_1(driving_acceleration, mainstream);
 
-
     if (wall)
 	wall->bounce(particles->xyzuvw.data, particles->size, mainstream);
 
