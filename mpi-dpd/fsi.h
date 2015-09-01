@@ -27,7 +27,7 @@ protected:
 
     MPI_Comm cartcomm;
 
-    bool firststep;
+    int iterationcount;
 
     int nranks, dstranks[26],
 	dims[3], periods[3], coords[3], myrank,
@@ -43,9 +43,42 @@ protected:
 
     Logistic::KISS local_trunk;
 
-    struct RemoteHalo
+    class TimeSeriesWindow
     {
-	int expected, capacity;
+	static const int N = 100;
+	
+	int count, start, data[N];
+
+    public:
+
+    TimeSeriesWindow(): count(0), start(0) { }
+
+	void update(int val)
+	    {
+		data[start] = ::max(0, val);
+		start = (start + 1) % N;
+
+		if (count < N)
+		    ++count;
+	    }
+
+	int max() const
+	    {
+		int retval = 0;
+
+		for(int i = 0; i < count; ++i)
+		    retval = ::max(data[i], retval);
+
+		return retval;
+	    }
+
+    };
+
+    class RemoteHalo
+    {
+	TimeSeriesWindow history;
+
+    public:
 
 	SimpleDeviceBuffer<Particle> dstate;
 	PinnedHostBuffer<Particle> hstate;
@@ -56,21 +89,35 @@ protected:
 		dstate.resize(n);
 		hstate.preserve_resize(n);
 		result.resize(n);
-		capacity = dstate.capacity;
-
-		assert(hstate.capacity == capacity);
+		history.update(n);
 	    }
+
+	int expected() const { return history.max(); }
+
+	int capacity() const { assert(hstate.capacity == dstate.capacity); return dstate.capacity; }
 
     } remote[26];
 
-    struct LocalHalo
+    class LocalHalo
     {
-	int expected, capacity;
+	TimeSeriesWindow history;
+
+    public:
 
 	SimpleDeviceBuffer<int> scattered_indices;
 	PinnedHostBuffer<Acceleration> result;
 
-	void resize(int n) { scattered_indices.resize(n); result.resize(n); capacity = scattered_indices.capacity; }
+	void resize(int n) 
+	{ 
+	    scattered_indices.resize(n); 
+	    result.resize(n); 
+	}
+
+	void update() { history.update(result.size); }
+
+	int expected() const { return history.max(); }
+
+	int capacity() const { return scattered_indices.capacity; }
 
     } local[26];
 
@@ -102,11 +149,20 @@ protected:
 	for(int i = 0; i < 26; ++i)
 	{
 	    MPI_Request reqP;
-
-	    MPI_CHECK( MPI_Irecv(remote[i].hstate.data, remote[i].expected * 6, MPI_FLOAT, dstranks[i],
+	    
+	    MPI_CHECK( MPI_Irecv(remote[i].hstate.data, remote[i].expected() * 6, MPI_FLOAT, dstranks[i],
 				 TAGBASE_P + recv_tags[i], cartcomm, &reqP) );
 
 	    reqrecvP.push_back(reqP);
+#if 0
+	    if (iterationcount % 200 == 1 && myrank == 0)
+	    {
+		printf("exchange rate: S: %d R: %d\n", local[i].expected(), remote[i].expected());
+
+		if (i == 25)
+		    printf("========================================================\n");
+	    }
+#endif
 	}
     }
 
