@@ -746,18 +746,18 @@ void Simulation::_lockstep()
     if (ctcscoll)
     	ctcscoll->clear_acc(mainstream);
 
-    dpd.pack(particles->xyzuvw.data, particles->size, cells.start, cells.count, mainstream);
-
     if (rbcscoll)
 	fsi.pack_p(rbcscoll->data(), rbcscoll->pcount(), mainstream);
+
+    dpd.pack(particles->xyzuvw.data, particles->size, cells.start, cells.count, mainstream);
 
     dpd.local_interactions(particles->xyzuvw.data, xyzouvwo.data, xyzo_half.data, particles->size, particles->axayaz.data,
 			   cells.start, cells.count, mainstream);
 
-    dpd.consolidate_and_post(particles->xyzuvw.data, particles->size, mainstream, downloadstream);
-
     if (rbcscoll)
 	fsi.post_p(rbcscoll->data(), rbcscoll->pcount(), mainstream, downloadstream);
+
+    dpd.consolidate_and_post(particles->xyzuvw.data, particles->size, mainstream, downloadstream);
 
     CUDA_CHECK(cudaPeekAtLastError());
 
@@ -782,9 +782,9 @@ void Simulation::_lockstep()
 
 	CudaRBC::forces_nohost(mainstream, rbcscoll->count(), (float *)rbcscoll->data(), (float *)rbcscoll->acc());
 
-	fsi.post_a();
-
 	CUDA_CHECK(cudaPeekAtLastError());
+
+	fsi.post_a();
     }
 
     particles->update_stage2_and_1(driving_acceleration, mainstream);
