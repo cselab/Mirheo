@@ -64,7 +64,6 @@ protected:
 
 		return retval;
 	    }
-
     };
 
     class RemoteHalo
@@ -183,25 +182,59 @@ protected:
 	}
     }
 
+    void _pack_attempt();
+
+    struct ParticlesWrap
+    {
+	const Particle * p;
+	Acceleration * a;
+	int n;
+
+    ParticlesWrap() : p(NULL), a(NULL), n(0){}
+
+    ParticlesWrap(const Particle * const p, const int n, Acceleration * a):
+	p(p), n(n), a(a) {}
+    };
+
+    std::vector<ParticlesWrap> wsolutes;
+
+    struct SolventWrap : ParticlesWrap
+    {
+	const int * cellsstart, * cellscount;
+
+    SolventWrap(): cellsstart(NULL), cellscount(NULL), ParticlesWrap() {}
+
+	SolventWrap(const Particle * const p, const int n, Acceleration * a, const int * const cellsstart, const int * const cellscount):
+	ParticlesWrap(p, n, a), cellsstart(cellsstart), cellscount(cellscount) {}
+    }
+    wsolvent;
+
 public:
 
     ComputeFSI(MPI_Comm cartcomm);
 
-    void pack_p(const Particle * const solute, const int nsolute, cudaStream_t stream);
+    void bind_solvent(const Particle * const solvent, const int nsolvent, Acceleration * accsolvent,
+		      const int * const cellsstart_solvent, const int * const cellscount_solvent)
+    {
+	wsolvent = SolventWrap(solvent, nsolvent, accsolvent, cellsstart_solvent, cellscount_solvent);
+    }
 
-    void post_p(const Particle * const solute, const int nsolute, cudaStream_t stream, cudaStream_t downloadstream);
+    void attach_solute(const Particle * const solute, const int nsolute, Acceleration * accsolute)
+    {
+	wsolutes.push_back( ParticlesWrap(solute, nsolute, accsolute) );
+    }
 
-    void bulk(const Particle * const solvent, const int nsolvent, Acceleration * accsolvent,
-	      const int * const cellsstart_solvent, const int * const cellscount_solvent,
-	      const Particle * const solute, const int nrbcs, Acceleration * accsolute, cudaStream_t stream);
+    void pack_p(cudaStream_t stream);
 
-    void halo(const Particle * const solvent, const int nsolvent, Acceleration * accsolvent,
-	      const int * const cellsstart_solvent, const int * const cellscount_solvent,
-	      cudaStream_t stream, cudaStream_t uploadstream);
+    void post_p(cudaStream_t stream, cudaStream_t downloadstream);
+
+    void bulk(cudaStream_t stream);
+
+    void halo(cudaStream_t stream, cudaStream_t uploadstream);
 
     void post_a();
 
-    void merge_a(Acceleration * accsolute, const int nsolute, cudaStream_t stream);
+    void merge_a(cudaStream_t stream);
 
     ~ComputeFSI();
 };

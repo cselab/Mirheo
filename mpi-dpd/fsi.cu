@@ -30,7 +30,7 @@ ComputeFSI::ComputeFSI(MPI_Comm _cartcomm) :
 iterationcount(-1), requiredpacksizes(26), packstarts_padded(27)
 {
     assert(XSIZE_SUBDOMAIN % 2 == 0 && YSIZE_SUBDOMAIN % 2 == 0 && ZSIZE_SUBDOMAIN % 2 == 0);
-    assert(XSIZE_SUBDOMAIN >= 2 && YSIZE_SUBDOMAIN >= 2 && ZSIZE_SUBDOMAIN >= 2);
+    assert(XSIZE_SUBDOMAIN >= 4 && YSIZE_SUBDOMAIN >= 4 && ZSIZE_SUBDOMAIN >= 4);
 
     MPI_CHECK( MPI_Comm_dup(_cartcomm, &cartcomm));
     MPI_CHECK( MPI_Comm_size(cartcomm, &nranks));
@@ -285,9 +285,13 @@ namespace FSI_PUP
     }
 }
 
-void ComputeFSI::pack_p(const Particle * const solute, const int nsolute, cudaStream_t stream)
+void ComputeFSI::pack_p(cudaStream_t stream)
 {
     NVTX_RANGE("FSI/pack", NVTX_C4);
+    assert(solutes.size() == 1);
+
+    const Particle * const solute = wsolutes[0].p;
+    const int nsolute = wsolutes[0].n;
 
     ++iterationcount;
 
@@ -308,8 +312,11 @@ void ComputeFSI::pack_p(const Particle * const solute, const int nsolute, cudaSt
     //amount of memory transferred could be unnecessarily large?
 }
 
-void ComputeFSI::post_p(const Particle * const solute, const int nsolute, cudaStream_t stream, cudaStream_t downloadstream)
+void ComputeFSI::post_p(cudaStream_t stream, cudaStream_t downloadstream)
 {
+    const Particle * const solute = wsolutes[0].p;
+    const int nsolute = wsolutes[0].n;
+
     //consolidate the packing
     {
 	NVTX_RANGE("FSI/consolidate", NVTX_C5);
@@ -621,22 +628,21 @@ namespace FSI_CORE
     }
 }
 
-void ComputeFSI::bulk(const Particle * const solvent, const int nsolvent, Acceleration * accsolvent,
-			  const int * const cellsstart_solvent, const int * const cellscount_solvent,
-			  const Particle * const solute, const int nsolute, Acceleration * accsolute, cudaStream_t stream)
+void ComputeFSI::bulk(cudaStream_t stream)
 {
     NVTX_RANGE("FSI/bulk", NVTX_C6);
 
-    FSI_CORE::setup(solvent, nsolvent, cellsstart_solvent, cellscount_solvent);
+    FSI_CORE::setup(wsolvent.p, wsolvent.n, wsolvent.cellsstart, wsolvent.cellscount);
 
-    if (nsolute)
+    for(std::vector<ParticlesWrap>::iterator it = wsolutes.begin(); it != wsolutes.end(); ++it)
     {
 	const float seed = local_trunk.get_float();
 
-	FSI_CORE::interactions_3tpp<<< (3 * nsolute + 127) / 128, 128, 0, stream >>>
-	    ((float2 *)solute, nsolute, nsolvent, (float *)accsolute, (float *)accsolvent, seed);
+	if (it->n)
+	    FSI_CORE::interactions_3tpp<<< (3 * it->n + 127) / 128, 128, 0, stream >>>
+		((float2 *)it->p, it->n, wsolvent.n, (float *)it->a, (float *)wsolvent.a, seed);
     }
-
+    
     CUDA_CHECK(cudaPeekAtLastError());
 }
 
@@ -814,9 +820,7 @@ namespace FSI_CORE
     }
 }
 
-void ComputeFSI::halo(const Particle * const solvent, const int nparticles, Acceleration * accsolvent,
-				      const int * const cellsstart_solvent, const int * const cellscount_solvent,
-				      cudaStream_t stream, cudaStream_t uploadstream)
+void ComputeFSI::halo(cudaStream_t stream, cudaStream_t uploadstream)
 {
     {
 	NVTX_RANGE("FSI/recv-p", NVTX_C7);
@@ -844,7 +848,7 @@ void ComputeFSI::halo(const Particle * const solvent, const int nparticles, Acce
     {
 	NVTX_RANGE("FSI/halo", NVTX_C7);
 
-	FSI_CORE::setup(solvent, nparticles, cellsstart_solvent, cellscount_solvent);
+	FSI_CORE::setup(wsolvent.p, wsolvent.n, wsolvent.cellsstart, wsolvent.cellscount);
 
 	for(int i = 0; i < 26; ++i)
 	    CUDA_CHECK(cudaMemcpyAsync(remote[i].dstate.data, remote[i].hstate.data, sizeof(Particle) * remote[i].hstate.size,
@@ -899,7 +903,7 @@ void ComputeFSI::halo(const Particle * const solvent, const int nparticles, Acce
 	    CUDA_CHECK(cudaStreamSynchronize(uploadstream));
 
 	    FSI_CORE::interactions_halo<<< (nremote_padded + 127) / 128, 128, 0, stream>>>
-		(nremote_padded, nparticles, (float *)accsolvent, local_trunk.get_float());
+		(nremote_padded, wsolvent.n, (float *)wsolvent.a, local_trunk.get_float());
 	}
 
 	for(int i = 0; i < 26; ++i)
@@ -964,14 +968,17 @@ namespace FSI_PUP
 	const float myval = _ACCESS(recvbags[code] + component +  3 * lpid);
 	const int dpid = _ACCESS(scattered_indices[code] + lpid);
 	assert(dpid >= 0 && dpid < nparticles);
-	
+
 	atomicAdd(accelerations + 3 * dpid + component, myval);
     }
 }
 
-void ComputeFSI::merge_a(Acceleration * accsolute, const int nsolute, cudaStream_t stream)
+void ComputeFSI::merge_a(cudaStream_t stream)
 {
     NVTX_RANGE("FSI/merge", NVTX_C2);
+
+    Acceleration * accsolute = wsolutes[0].a;
+    const int nsolute = wsolutes[0].n;
 
     {
 	float * recvbags[26];
@@ -988,6 +995,8 @@ void ComputeFSI::merge_a(Acceleration * accsolute, const int nsolute, cudaStream
 
     if (npadded)
 	FSI_PUP::unpack<<< (npadded * 3 + 127) / 128, 128, 0, stream >>>((float *)accsolute, nsolute, npadded);
+
+    wsolutes.clear();
 }
 
 ComputeFSI::~ComputeFSI()
