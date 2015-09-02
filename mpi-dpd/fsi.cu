@@ -213,7 +213,7 @@ namespace FSI_PUP
 	}
     }
 
-    __global__ void pack(const float2 * const particles, const int nparticles, float2 * const buffer, const float nbuffer)
+    __global__ void pack(const float2 * const particles, const int nparticles, float2 * const buffer, const int nbuffer)
     {
 	assert(blockDim.x == 128);
 
@@ -379,7 +379,10 @@ void ComputeFSI::post_p(const Particle * const solute, const int nsolute, cudaSt
 	    _wait(reqsendP);
 
 	if (packstarts_padded.data[26])
+	{
+	    assert(host_packbuf.capacity >= packbuf.capacity);
 	    CUDA_CHECK(cudaMemcpyAsync(host_packbuf.data, packbuf.data, sizeof(Particle) * packstarts_padded.data[26], cudaMemcpyDeviceToHost, downloadstream));
+	}
 
 	CUDA_CHECK(cudaStreamSynchronize(downloadstream));
     }
@@ -960,7 +963,8 @@ namespace FSI_PUP
 
 	const float myval = _ACCESS(recvbags[code] + component +  3 * lpid);
 	const int dpid = _ACCESS(scattered_indices[code] + lpid);
-
+	assert(dpid >= 0 && dpid < nparticles);
+	
 	atomicAdd(accelerations + 3 * dpid + component, myval);
     }
 }

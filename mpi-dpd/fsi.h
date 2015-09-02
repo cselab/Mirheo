@@ -47,26 +47,19 @@ protected:
     {
 	static const int N = 200;
 
-	int count, start, data[N];
+	int count, data[N];
 
     public:
 
-    TimeSeriesWindow(): count(0), start(0) { }
+    TimeSeriesWindow(): count(0){ }
 
-	void update(int val)
-	    {
-		data[start] = ::max(0, val);
-		start = (start + 1) % N;
-
-		if (count < N)
-		    ++count;
-	    }
+	void update(int val) { data[count++ % N] = ::max(0, val); }
 
 	int max() const
 	    {
 		int retval = 0;
 
-		for(int i = 0; i < count; ++i)
+		for(int i = 0; i < min(N, count); ++i)
 		    retval = ::max(data[i], retval);
 
 		return retval;
