@@ -35,9 +35,10 @@ protected:
 
     cudaEvent_t evPpacked, evAcomputed;
 
+    SimpleDeviceBuffer<int> packscount, packsstart, packsoffset, packstotalstart;
+    PinnedHostBuffer<int> host_packstotalstart, host_packstotalcount;
     SimpleDeviceBuffer<Particle> packbuf;
     PinnedHostBuffer<Particle> host_packbuf;
-    PinnedHostBuffer<int> requiredpacksizes, packstarts_padded;
 
     std::vector<MPI_Request> reqsendC, reqrecvC, reqsendP, reqrecvP, reqsendA, reqrecvA;
 
@@ -182,7 +183,7 @@ protected:
 	}
     }
 
-    void _pack_attempt();
+    void _pack_attempt(cudaStream_t stream);
 
     struct ParticlesWrap
     {
@@ -206,8 +207,7 @@ protected:
 
 	SolventWrap(const Particle * const p, const int n, Acceleration * a, const int * const cellsstart, const int * const cellscount):
 	ParticlesWrap(p, n, a), cellsstart(cellsstart), cellscount(cellscount) {}
-    }
-    wsolvent;
+    } wsolvent;
 
 public:
 

@@ -789,7 +789,7 @@ void Simulation::_lockstep()
 	CudaRBC::forces_nohost(mainstream, rbcscoll->count(), (float *)rbcscoll->data(), (float *)rbcscoll->acc());
 
     if (ctcscoll)
-	CudaRBC::forces_nohost(mainstream, ctcscoll->count(), (float *)ctcscoll->data(), (float *)ctcscoll->acc());
+	CudaCTC::forces_nohost(mainstream, ctcscoll->count(), (float *)ctcscoll->data(), (float *)ctcscoll->acc());
 
     CUDA_CHECK(cudaPeekAtLastError());
 
