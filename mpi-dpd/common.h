@@ -380,6 +380,68 @@ SimpleDeviceBuffer(int n = 0): capacity(0), size(0), data(NULL) { resize(n);}
 };
 
 template<typename T>
+struct SimpleHostBuffer
+{
+    int capacity, size;
+
+    T * data;
+
+SimpleHostBuffer(int n = 0): capacity(0), size(0), data(NULL) { resize(n);}
+
+    ~SimpleHostBuffer()
+	{
+	    if (data != NULL)
+		CUDA_CHECK(cudaFreeHost(data));
+
+	    data = NULL;
+	}
+
+    void resize(const int n)
+	{
+	    assert(n >= 0);
+
+	    size = n;
+
+	    if (capacity >= n)
+		return;
+
+	    if (data != NULL)
+		CUDA_CHECK(cudaFreeHost(data));
+
+	    const int conservative_estimate = (int)ceil(1.1 * n);
+	    capacity = 128 * ((conservative_estimate + 129) / 128);
+
+	    CUDA_CHECK(cudaHostAlloc(&data, sizeof(T) * capacity, cudaHostAllocDefault));
+	}
+
+    void preserve_resize(const int n)
+	{
+	    assert(n >= 0);
+
+	    T * old = data;
+
+	    const int oldsize = size;
+
+	    size = n;
+
+	    if (capacity >= n)
+		return;
+
+	    const int conservative_estimate = (int)ceil(1.1 * n);
+	    capacity = 128 * ((conservative_estimate + 129) / 128);
+
+	    data = NULL;
+	    CUDA_CHECK(cudaHostAlloc(&data, sizeof(T) * capacity, cudaHostAllocDefault));
+
+	    if (old != NULL)
+	    {
+		memcpy(data, old, sizeof(T) * oldsize);
+		CUDA_CHECK(cudaFreeHost(old));
+	    }
+	}
+};
+
+template<typename T>
 struct PinnedHostBuffer
 {
     int capacity, size;

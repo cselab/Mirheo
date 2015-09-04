@@ -532,7 +532,7 @@ void Simulation::_datadump_async()
 		if (rank == 0)
 		{
 		    if( access("xyz/particles-equilibration.xyz", F_OK ) == -1 )
-			rename ("xyz/particles->xyz", "xyz/particles-equilibration.xyz");
+			rename ("xyz/particles.xyz", "xyz/particles-equilibration.xyz");
 
 		    if( access( "xyz/rbcs-equilibration.xyz", F_OK ) == -1 )
 			rename ("xyz/rbcs.xyz", "xyz/rbcs-equilibration.xyz");

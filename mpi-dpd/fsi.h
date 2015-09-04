@@ -76,6 +76,7 @@ protected:
 	SimpleDeviceBuffer<Particle> dstate;
 	PinnedHostBuffer<Particle> hstate;
 	PinnedHostBuffer<Acceleration> result;
+	vector<Particle> pmessage;
 
 	void preserve_resize(int n)
 	    {
@@ -85,7 +86,7 @@ protected:
 		history.update(n);
 	    }
 
-	int expected() const { return (int)ceil(history.max() * 1.3); }
+	int expected() const { return (int)ceil(history.max() * 1.1); }
 
 	int capacity() const { assert(hstate.capacity == dstate.capacity); return dstate.capacity; }
 
@@ -108,82 +109,11 @@ protected:
 
 	void update() { history.update(result.size); }
 
-	int expected() const { return (int)ceil(history.max() * 1.3); }
+	int expected() const { return (int)ceil(history.max() * 1.1); }
 
-	int capacity() const { return scattered_indices.capacity; }
+	int capacity() const { assert(result.capacity == scattered_indices.capacity); return scattered_indices.capacity; }
 
     } local[26];
-
-    void _adjust_packbuffers()
-    {
-	int s = 0;
-
-	for(int i = 0; i < 26; ++i)
-	    s += 32 * ((local[i].capacity() + 31) / 32);
-
-	packbuf.resize(s);
-	host_packbuf.resize(s);
-    }
-
-    void _wait(std::vector<MPI_Request>& v)
-    {
-	MPI_Status statuses[v.size()];
-
-	if (v.size())
-	    MPI_CHECK(MPI_Waitall(v.size(), &v.front(), statuses));
-
-	v.clear();
-    }
-
-    void _postrecvC()
-    {
-	for(int i = 0; i < 26; ++i)
-	{
-	    MPI_Request reqC;
-
-	    MPI_CHECK( MPI_Irecv(recv_counts + i, 1, MPI_INTEGER, dstranks[i],
-				 TAGBASE_C + recv_tags[i], cartcomm,  &reqC) );
-
-	    reqrecvC.push_back(reqC);
-	}
-    }
-
-    void _postrecvP()
-    {
-	for(int i = 0; i < 26; ++i)
-	{
-	    MPI_Request reqP;
-
-	    MPI_CHECK( MPI_Irecv(remote[i].hstate.data, remote[i].expected() * 6, MPI_FLOAT, dstranks[i],
-				 TAGBASE_P + recv_tags[i], cartcomm, &reqP) );
-
-	    reqrecvP.push_back(reqP);
-#if 0
-	    if (iterationcount % 200 == 1 && myrank == 0)
-	    {
-		printf("exchange rate: S: %d R: %d\n", local[i].expected(), remote[i].expected());
-
-		if (i == 25)
-		    printf("========================================================\n");
-	    }
-#endif
-	}
-    }
-
-    void _postrecvA()
-    {
-	for(int i = 0; i < 26; ++i)
-	{
-	    MPI_Request reqA;
-
-	    MPI_CHECK( MPI_Irecv(local[i].result.data, local[i].result.size * 3, MPI_FLOAT, dstranks[i],
-				 TAGBASE_A + recv_tags[i], cartcomm, &reqA) );
-
-	    reqrecvA.push_back(reqA);
-	}
-    }
-
-    void _pack_attempt(cudaStream_t stream);
 
     struct ParticlesWrap
     {
@@ -208,6 +138,97 @@ protected:
 	SolventWrap(const Particle * const p, const int n, Acceleration * a, const int * const cellsstart, const int * const cellscount):
 	ParticlesWrap(p, n, a), cellsstart(cellsstart), cellscount(cellscount) {}
     } wsolvent;
+
+    void _adjust_packbuffers()
+    {
+	int s = 0;
+
+	for(int i = 0; i < 26; ++i)
+	    s += 32 * ((local[i].capacity() + 31) / 32);
+
+	packbuf.resize(s);
+	host_packbuf.resize(s);
+    }
+
+    void _wait(std::vector<MPI_Request>& v)
+    {
+	MPI_Status statuses[v.size()];
+
+	if (v.size())
+	    MPI_CHECK(MPI_Waitall(v.size(), &v.front(), statuses));
+
+	v.clear();
+    }
+
+    void _postrecvC()
+    {
+#ifndef NDEBUG
+	memset(recv_counts, 0x8f, sizeof(int) * 26);
+#endif
+	for(int i = 0; i < 26; ++i)
+	{
+	    MPI_Request reqC;
+
+	    MPI_CHECK( MPI_Irecv(recv_counts + i, 1, MPI_INTEGER, dstranks[i],
+				 TAGBASE_C + recv_tags[i], cartcomm,  &reqC) );
+
+	    reqrecvC.push_back(reqC);
+	}
+    }
+
+    void _postrecvP()
+    {
+	for(int i = 0; i < 26; ++i)
+	{
+	    MPI_Request reqP;
+
+#ifndef NDEBUG
+	    memset(remote[i].hstate.data, 0xff, remote[i].hstate.capacity * sizeof(Particle));
+#endif
+
+	    remote[i].pmessage.resize(remote[i].expected());
+
+	    MPI_CHECK( MPI_Irecv(&remote[i].pmessage.front(), remote[i].expected() * 6, MPI_FLOAT, dstranks[i],
+				 TAGBASE_P + recv_tags[i], cartcomm, &reqP) );
+
+	    reqrecvP.push_back(reqP);
+#if 0
+	    if (iterationcount % 200 == 1 && myrank == 0)
+	    {
+		printf("exchange rate: S: %d R: %d\n", local[i].expected(), remote[i].expected());
+
+		if (i == 25)
+		    printf("========================================================\n");
+	    }
+#endif
+	}
+    }
+
+    void _postrecvA()
+    {
+	for(int i = 0; i < 26; ++i)
+	{
+	    MPI_Request reqA;
+
+#ifndef NDEBUG
+	    memset(local[i].result.data, 0xff, local[i].result.capacity * sizeof(Acceleration));
+#endif
+	    MPI_CHECK( MPI_Irecv(local[i].result.data, local[i].result.size * 3, MPI_FLOAT, dstranks[i],
+				 TAGBASE_A + recv_tags[i], cartcomm, &reqA) );
+
+	    reqrecvA.push_back(reqA);
+	}
+    }
+
+    void _not_nan(const float * const x, const int n) const
+    {
+#ifndef NDEBUG
+	for(int i = 0; i < n; ++i)
+	    assert(!isnan(x[i]));
+#endif
+    }
+
+    void _pack_attempt(cudaStream_t stream);
 
 public:
 

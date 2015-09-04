@@ -10,6 +10,8 @@
  *  before getting a written permission from the author of this file.
  */
 
+//#define _DUMBCRAY_
+
 #include <../dpd-rng.h>
 
 #include "fsi.h"
@@ -56,7 +58,7 @@ iterationcount(-1), packstotalstart(27), host_packstotalstart(27), host_packstot
 	local[i].resize(estimate);
 	local[i].update();
 
-	CUDA_CHECK(cudaMemcpyToSymbol(FSI_PUP::ccapacities, &estimate, sizeof(int),
+	CUDA_CHECK(cudaMemcpyToSymbol(FSI_PUP::ccapacities, &local[i].scattered_indices.capacity, sizeof(int),
 				      sizeof(int) * i, cudaMemcpyHostToDevice));
 	CUDA_CHECK(cudaMemcpyToSymbol(FSI_PUP::scattered_indices, &local[i].scattered_indices.data,
 				      sizeof(int *), sizeof(int *) * i, cudaMemcpyHostToDevice));
@@ -96,7 +98,7 @@ namespace FSI_PUP
 	const int lane = threadIdx.x & 0x1f;
 	const int pid = base + lane;
 
-	if (pid >= nparticles)
+	if (lane >= nsrc)
 	    return;
 
 	enum
@@ -109,6 +111,10 @@ namespace FSI_PUP
 	assert(s0.x >= -HXSIZE + 1 - XSIZE_SUBDOMAIN && s0.x < HXSIZE - 1 + XSIZE_SUBDOMAIN);
 	assert(s0.y >= -HYSIZE + 1 - YSIZE_SUBDOMAIN && s0.y < HYSIZE - 1 + YSIZE_SUBDOMAIN);
 	assert(s1.x >= -HZSIZE + 1 - ZSIZE_SUBDOMAIN && s1.x < HZSIZE - 1 + ZSIZE_SUBDOMAIN);
+
+	assert(fabs(s1.y) < 1e4);
+	assert(fabs(s2.x) < 1e4);
+	assert(fabs(s2.y) < 1e4);
 
 	const int halocode[3] =
 	    {
@@ -192,6 +198,9 @@ namespace FSI_PUP
 	    {
 		const int newcount = mycount + oldtotalcounts[tid];
 		totalcounts[tid] = newcount;
+
+		if (newcount > ccapacities[tid])
+		    failed = true;
 	    }
 	}
 
@@ -225,69 +234,74 @@ namespace FSI_PUP
 	if (failed)
 	    return;
 
-	const int npack_padded = cpaddedstarts[26];
-	assert(blockDim.x * gridDim.x >= npack_padded);
-
 	const int warpid = threadIdx.x >> 5;
-	const int localbase = 32 * (warpid + 4 * blockIdx.x);
+	const int npack_padded = cpaddedstarts[26];
 
-	if (localbase >= npack_padded)
-	    return;
-
-	const int key9 = 9 * ((int)(localbase >= cpaddedstarts[9]) +
-			      (int)(localbase >= cpaddedstarts[18]));
-
-	const int key3 = 3 * ((int)(localbase >= cpaddedstarts[key9 + 3]) +
-			      (int)(localbase >= cpaddedstarts[key9 + 6]));
-
-	const int key1 =
-	    (int)(localbase >= cpaddedstarts[key9 + key3 + 1]) +
-	    (int)(localbase >= cpaddedstarts[key9 + key3 + 2]);
-
-	const int code = key9 + key3 + key1;
-
-	assert(code >= 0 && code < 26);
-	assert(localbase >= cpaddedstarts[code] && localbase < cpaddedstarts[code + 1]);
-
-	const int packbase = localbase - cpaddedstarts[code];
-	assert(packbase >= 0 && packbase < ccounts[code]);
-
-	const int npack = min(32, ccounts[code] - packbase);
-
-	const int lane = threadIdx.x & 0x1f;
-
-	float2 s0, s1, s2;
-
-	if (lane < npack)
+	for (int localbase = 32 * (warpid + 4 * blockIdx.x); localbase < npack_padded; localbase += gridDim.x * blockDim.x)
 	{
-	    const int pid = _ACCESS(scattered_indices[code] + coffsets[code] + packbase + lane);
+	    const int key9 = 9 * ((int)(localbase >= cpaddedstarts[9]) +
+				  (int)(localbase >= cpaddedstarts[18]));
 
-	    if (pid < 0)
-		printf("ooops solutid %d: coffsets[%d]=%d, packbase= %d, lane=%d\n", soluteid, code, coffsets[code], packbase, lane);
+	    const int key3 = 3 * ((int)(localbase >= cpaddedstarts[key9 + 3]) +
+				  (int)(localbase >= cpaddedstarts[key9 + 6]));
 
-	    assert(pid >= 0);
-	    assert(pid < nparticles);
+	    const int key1 =
+		(int)(localbase >= cpaddedstarts[key9 + key3 + 1]) +
+		(int)(localbase >= cpaddedstarts[key9 + key3 + 2]);
 
-	    const int entry = 3 * pid;
+	    const int code = key9 + key3 + key1;
 
-	    s0 = _ACCESS(particles + entry);
-	    s1 = _ACCESS(particles + entry + 1);
-	    s2 = _ACCESS(particles + entry + 2);
+	    assert(code >= 0 && code < 26);
+	    assert(localbase >= cpaddedstarts[code] && localbase < cpaddedstarts[code + 1]);
 
-	    s0.x -= ((code + 2) % 3 - 1) * XSIZE_SUBDOMAIN;
-	    s0.y -= ((code / 3 + 2) % 3 - 1) * YSIZE_SUBDOMAIN;
-	    s1.x -= ((code / 9 + 2) % 3 - 1) * ZSIZE_SUBDOMAIN;
+	    const int packbase = localbase - cpaddedstarts[code];
+	    assert(packbase >= 0 && packbase < ccounts[code]);
+
+	    const int npack = min(32, ccounts[code] - packbase);
+
+	    const int lane = threadIdx.x & 0x1f;
+
+	    float2 s0, s1, s2;
+
+	    if (lane < npack)
+	    {
+		const int entry = coffsets[code] + packbase + lane;
+		assert(entry >= 0 && entry < ccapacities[code]);
+		const int pid = _ACCESS(scattered_indices[code] + entry);
+		assert(pid >= 0 && pid < nparticles);
+
+		const int entry2 = 3 * pid;
+
+		s0 = _ACCESS(particles + entry2);
+		s1 = _ACCESS(particles + entry2 + 1);
+		s2 = _ACCESS(particles + entry2 + 2);
+
+		s0.x -= ((code + 2) % 3 - 1) * XSIZE_SUBDOMAIN;
+		s0.y -= ((code / 3 + 2) % 3 - 1) * YSIZE_SUBDOMAIN;
+		s1.x -= ((code / 9 + 2) % 3 - 1) * ZSIZE_SUBDOMAIN;
+	    }
+
+	    assert(cbases[code] + coffsets[code] + packbase >= 0 && npack >= 0);
+	    assert(cbases[code] + coffsets[code] + packbase + npack < nbuffer);
+
+	    write_AOS6f(buffer + 3 * (cbases[code] + coffsets[code] + packbase), npack, s0, s1, s2);
 	}
-
-	assert(cbases[code] + coffsets[code] + packbase >= 0 && npack >= 0);
-	assert(cbases[code] + coffsets[code] + packbase + npack < nbuffer);
-
-	write_AOS6f(buffer + 3 * (cbases[code] + coffsets[code] + packbase), npack, s0, s1, s2);
     }
 }
 
 void ComputeFSI::_pack_attempt(cudaStream_t stream)
 {
+#ifndef NDEBUG
+    CUDA_CHECK(cudaMemsetAsync(packbuf.data, 0xff, sizeof(Particle) * packbuf.capacity, stream));
+    memset(host_packbuf.data, 0xff, sizeof(Particle) * packbuf.capacity);
+
+    for(int i = 0; i < 26; ++i)
+    {
+	CUDA_CHECK(cudaMemsetAsync(local[i].scattered_indices.data, 0x8f, sizeof(int) * local[i].scattered_indices.capacity, stream));
+	CUDA_CHECK(cudaMemsetAsync(local[i].result.data, 0xff, sizeof(Acceleration) * local[i].result.capacity, stream));
+    }
+#endif
+
     CUDA_CHECK(cudaMemsetAsync(packscount.data, 0, sizeof(int) * packscount.size, stream));
     CUDA_CHECK(cudaMemsetAsync(packsoffset.data, 0, sizeof(int) * packsoffset.size, stream));
     CUDA_CHECK(cudaMemsetAsync(packsstart.data, 0, sizeof(int) * packsstart.size, stream));
@@ -329,7 +343,7 @@ void ComputeFSI::_pack_attempt(cudaStream_t stream)
 	    CUDA_CHECK(cudaMemcpyToSymbolAsync(FSI_PUP::ccounts, packscount.data + 26 * i, sizeof(int) * 26, 0, cudaMemcpyDeviceToDevice, stream));
 	    CUDA_CHECK(cudaMemcpyToSymbolAsync(FSI_PUP::cpaddedstarts, packsstart.data + 27 * i, sizeof(int) * 27, 0, cudaMemcpyDeviceToDevice, stream));
 
-	    FSI_PUP::pack<<< (it.n + 127 + 31 * 26) / 128, 128, 0, stream >>>((float2 *)it.p, it.n, (float2 *)packbuf.data, packbuf.capacity, i);
+	    FSI_PUP::pack<<< 14 * 16, 128, 0, stream >>>((float2 *)it.p, it.n, (float2 *)packbuf.data, packbuf.capacity, i);
 	}
     }
 
@@ -410,16 +424,17 @@ void ComputeFSI::post_p(cudaStream_t stream, cudaStream_t downloadstream)
 #endif
 	}
 
-	//for(int i = 0; i < 26; ++i)
-	//  printf("packing %d : %d\n", i, send_counts[i]);
-
 	for(int i = 0; i < 26; ++i)
 	    local[i].resize(send_counts[i]);
 
 	_postrecvA();
 
 	if (iterationcount == 0)
+	{
+#ifndef _DUMBCRAY_
 	    _postrecvP();
+#endif
+	}
 	else
 	    _wait(reqsendP);
 
@@ -449,9 +464,18 @@ void ComputeFSI::post_p(cudaStream_t stream, cudaStream_t downloadstream)
 	    const int expected = local[i].expected();
 
 	    MPI_Request reqP;
+
+	    _not_nan((float *)(host_packbuf.data + start), count * 6);
+
+#ifdef _DUMBCRAY_
+	    MPI_CHECK( MPI_Isend(host_packbuf.data + start, count * 6, MPI_FLOAT, dstranks[i], TAGBASE_P + i, cartcomm, &reqP) );
+#else
 	    MPI_CHECK( MPI_Isend(host_packbuf.data + start, expected * 6, MPI_FLOAT, dstranks[i], TAGBASE_P + i, cartcomm, &reqP) );
+#endif
+
 	    reqsendP.push_back(reqP);
 
+#ifndef _DUMBCRAY_
 	    if (count > expected)
 	    {
 		MPI_Request reqP2;
@@ -459,12 +483,8 @@ void ComputeFSI::post_p(cudaStream_t stream, cudaStream_t downloadstream)
 				     MPI_FLOAT, dstranks[i], TAGBASE_P2 + i, cartcomm, &reqP2) );
 
 		reqsendP.push_back(reqP2);
-#if 0
-		printf("ComputeFSI::post_p ooops rank %d needs to send more than expected: %d instead of %d (i %d)\n",
-		       myrank, count, expected, i);
-		fflush(stdout);
-#endif
 	    }
+#endif
 	}
     }
 }
@@ -610,6 +630,13 @@ namespace FSI_CORE
 	    xforce += xinteraction;
 	    yforce += yinteraction;
 	    zforce += zinteraction;
+
+	    assert(!isnan(xinteraction));
+	    assert(!isnan(yinteraction));
+	    assert(!isnan(zinteraction));
+	    assert(fabs(xinteraction) < 1e4);
+	    assert(fabs(yinteraction) < 1e4);
+	    assert(fabs(zinteraction) < 1e4);
 
 	    atomicAdd(accsolvent + sentry    , -xinteraction);
 	    atomicAdd(accsolvent + sentry + 1, -yinteraction);
@@ -852,6 +879,13 @@ namespace FSI_CORE
 		yforce += yinteraction;
 		zforce += zinteraction;
 
+		assert(!isnan(xinteraction));
+		assert(!isnan(yinteraction));
+		assert(!isnan(zinteraction));
+		assert(fabs(xinteraction) < 1e4);
+		assert(fabs(yinteraction) < 1e4);
+		assert(fabs(zinteraction) < 1e4);
+
 		atomicAdd(accsolvent + sentry    , -xinteraction);
 		atomicAdd(accsolvent + sentry + 1, -yinteraction);
 		atomicAdd(accsolvent + sentry + 2, -zinteraction);
@@ -878,13 +912,27 @@ void ComputeFSI::halo(cudaStream_t stream, cudaStream_t uploadstream)
 	    const int count = recv_counts[i];
 	    const int expected = remote[i].expected();
 
+	    remote[i].pmessage.resize(max(1, count));
 	    remote[i].preserve_resize(count);
+
+#ifndef NDEBUG
+	    CUDA_CHECK(cudaMemsetAsync(remote[i].dstate.data, 0xff, sizeof(Particle) * remote[i].dstate.capacity, uploadstream));
+	    CUDA_CHECK(cudaMemsetAsync(remote[i].result.data, 0xff, sizeof(Acceleration) * remote[i].result.capacity, uploadstream));
+#endif
 
 	    MPI_Status status;
 
+#ifdef _DUMBCRAY_
+	    MPI_CHECK( MPI_Recv(remote[i].hstate.data, count * 6, MPI_FLOAT, dstranks[i], TAGBASE_P + recv_tags[i], cartcomm, &status) );
+#else
 	    if (count > expected)
-		MPI_CHECK( MPI_Recv(remote[i].hstate.data + expected, (count - expected) * 6, MPI_FLOAT, dstranks[i],
+		MPI_CHECK( MPI_Recv(&remote[i].pmessage.front() + expected, (count - expected) * 6, MPI_FLOAT, dstranks[i],
 				    TAGBASE_P2 + recv_tags[i], cartcomm, &status) );
+#endif
+
+	    memcpy(remote[i].hstate.data, &remote[i].pmessage.front(), sizeof(Particle) * count);
+
+	    _not_nan((float*)remote[i].hstate.data, count * 6);
 	}
 
 	_postrecvC();
@@ -954,7 +1002,9 @@ void ComputeFSI::halo(cudaStream_t stream, cudaStream_t uploadstream)
 	for(int i = 0; i < 26; ++i)
 	    local[i].update();
 
+#ifndef _DUMBCRAY_
 	_postrecvP();
+#endif
 
 	CUDA_CHECK(cudaEventRecord(evAcomputed, stream));
     }
@@ -984,48 +1034,51 @@ namespace FSI_PUP
     {
 	const int npack_padded = cpaddedstarts[26];
 
-	assert(blockDim.x * gridDim.x >= 3 * npack_padded && blockDim.x == 128);
+	for(int gid = threadIdx.x + blockDim.x * blockIdx.x; gid < 3 * npack_padded; gid += blockDim.x * gridDim.x)
+	{
+	    const int pid = gid / 3;
 
-	const int gid = threadIdx.x + blockDim.x * blockIdx.x;
-	const int pid = gid / 3;
+	    if (pid >= npack_padded)
+		return;
 
-	if (pid >= npack_padded)
-	    return;
+	    const int key9 = 9 * ((int)(pid >= cpaddedstarts[9]) +
+				  (int)(pid >= cpaddedstarts[18]));
 
-	const int key9 = 9 * ((int)(pid >= cpaddedstarts[9]) +
-			      (int)(pid >= cpaddedstarts[18]));
+	    const int key3 = 3 * ((int)(pid >= cpaddedstarts[key9 + 3]) +
+				  (int)(pid >= cpaddedstarts[key9 + 6]));
 
-	const int key3 = 3 * ((int)(pid >= cpaddedstarts[key9 + 3]) +
-			      (int)(pid >= cpaddedstarts[key9 + 6]));
+	    const int key1 =
+		(int)(pid >= cpaddedstarts[key9 + key3 + 1]) +
+		(int)(pid >= cpaddedstarts[key9 + key3 + 2]);
 
-	const int key1 =
-	    (int)(pid >= cpaddedstarts[key9 + key3 + 1]) +
-	    (int)(pid >= cpaddedstarts[key9 + key3 + 2]);
+	    const int code = key9 + key3 + key1;
+	    assert(code >= 0 && code < 26);
+	    assert(pid >= cpaddedstarts[code] && pid < cpaddedstarts[code + 1]);
 
-	const int code = key9 + key3 + key1;
-	assert(code >= 0 && code < 26);
-	assert(pid >= cpaddedstarts[code] && pid < cpaddedstarts[code + 1]);
+	    const int lpid = pid - cpaddedstarts[code];
+	    assert(lpid >= 0);
 
-	const int lpid = pid - cpaddedstarts[code];
-	assert(lpid >= 0);
+	    if (lpid >= ccounts[code])
+		continue;
 
-	if (lpid >= ccounts[code])
-	    return;
+	    const int component = gid % 3;
 
-	const int component = gid % 3;
+	    const int entry = coffsets[code] + lpid;
+	    assert(entry >= 0 && entry <= ccapacities[code]);
 
-	const int entry = coffsets[code] + lpid;
-	assert(entry >= 0 && entry <= ccapacities[code]);
-	const float myval = _ACCESS(recvbags[code] + component +  3 * entry);
-	const int dpid = _ACCESS(scattered_indices[code] + entry);
-	assert(dpid >= 0 && dpid < nparticles);
+	    const float myval = _ACCESS(recvbags[code] + component +  3 * entry);
+	    const int dpid = _ACCESS(scattered_indices[code] + entry);
+	    assert(dpid >= 0 && dpid < nparticles);
 
-	atomicAdd(accelerations + 3 * dpid + component, myval);
+	    atomicAdd(accelerations + 3 * dpid + component, myval);
+	}
     }
 }
 
 void ComputeFSI::merge_a(cudaStream_t stream)
 {
+    CUDA_CHECK(cudaPeekAtLastError());
+
     if (wsolutes.size() == 0)
 	return;
 
@@ -1046,12 +1099,15 @@ void ComputeFSI::merge_a(cudaStream_t stream)
     {
 	const ParticlesWrap it = wsolutes[i];
 
-	CUDA_CHECK(cudaMemcpyToSymbolAsync(FSI_PUP::cpaddedstarts, packsstart.data + 27 * i, sizeof(int) * 27, 0, cudaMemcpyDeviceToDevice, stream));
-	CUDA_CHECK(cudaMemcpyToSymbolAsync(FSI_PUP::ccounts, packscount.data + 26 * i, sizeof(int) * 26, 0, cudaMemcpyDeviceToDevice, stream));
-	CUDA_CHECK(cudaMemcpyToSymbolAsync(FSI_PUP::coffsets, packsoffset.data + 26 * i, sizeof(int) * 26, 0, cudaMemcpyDeviceToDevice, stream));
-
 	if (it.n)
-	    FSI_PUP::unpack<<< ((it.n + 31 * 26) * 3 + 127) / 128, 128, 0, stream >>>((float *)it.a, it.n);
+	{
+	    CUDA_CHECK(cudaMemcpyToSymbolAsync(FSI_PUP::cpaddedstarts, packsstart.data + 27 * i, sizeof(int) * 27, 0, cudaMemcpyDeviceToDevice, stream));
+	    CUDA_CHECK(cudaMemcpyToSymbolAsync(FSI_PUP::ccounts, packscount.data + 26 * i, sizeof(int) * 26, 0, cudaMemcpyDeviceToDevice, stream));
+	    CUDA_CHECK(cudaMemcpyToSymbolAsync(FSI_PUP::coffsets, packsoffset.data + 26 * i, sizeof(int) * 26, 0, cudaMemcpyDeviceToDevice, stream));
+
+	    FSI_PUP::unpack<<< 16 * 14, 128, 0, stream >>>((float *)it.a, it.n);
+	}
+	CUDA_CHECK(cudaPeekAtLastError());
     }
 
     wsolutes.clear();
