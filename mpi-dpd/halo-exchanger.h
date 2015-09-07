@@ -15,7 +15,6 @@
 #include <mpi.h>
 
 #include "common.h"
-#include "scan.h"
 
 class HaloExchanger
 {
