@@ -16,11 +16,11 @@
 
 #include <cuda-dpd.h>
 
-#include "dpd-interactions.h"
+#include "dpd.h"
 
 using namespace std;
 
-ComputeInteractionsDPD::ComputeInteractionsDPD(MPI_Comm cartcomm): HaloExchanger(cartcomm, 0), local_trunk(0, 0, 0, 0)
+ComputeDPD::ComputeDPD(MPI_Comm cartcomm): SolventExchange(cartcomm, 0), local_trunk(0, 0, 0, 0)
 {
     int myrank;
     MPI_CHECK(MPI_Comm_rank(cartcomm, &myrank));
@@ -73,8 +73,8 @@ ComputeInteractionsDPD::ComputeInteractionsDPD(MPI_Comm cartcomm): HaloExchanger
     }
 }
 
-void ComputeInteractionsDPD::local_interactions(const Particle * const xyzuvw, const float4 * const xyzouvwo, const ushort4 * const xyzo_half,
-						const int n, Acceleration * const a, const int * const cellsstart, const int * const cellscount, cudaStream_t stream)
+void ComputeDPD::local_interactions(const Particle * const xyzuvw, const float4 * const xyzouvwo, const ushort4 * const xyzo_half,
+				    const int n, Acceleration * const a, const int * const cellsstart, const int * const cellscount, cudaStream_t stream)
 {
     NVTX_RANGE("DPD/local", NVTX_C5);
 
@@ -326,7 +326,7 @@ namespace BipsBatch
     }
 }
 
-void ComputeInteractionsDPD::remote_interactions(const Particle * const p, const int n, Acceleration * const a, cudaStream_t stream, cudaStream_t uploadstream)
+void ComputeDPD::remote_interactions(const Particle * const p, const int n, Acceleration * const a, cudaStream_t stream, cudaStream_t uploadstream)
 {
     NVTX_RANGE("DPD/remote", NVTX_C3);
 

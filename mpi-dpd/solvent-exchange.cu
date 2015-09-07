@@ -14,12 +14,12 @@
 #include <cstring>
 #include <algorithm>
 
-#include "halo-exchanger.h"
+#include "solvent-exchange.h"
 #include "scan-massimo.h"
 
 using namespace std;
 
-HaloExchanger::HaloExchanger(MPI_Comm _cartcomm, const int basetag):  basetag(basetag), firstpost(true), nactive(26)
+SolventExchange::SolventExchange(MPI_Comm _cartcomm, const int basetag):  basetag(basetag), firstpost(true), nactive(26)
 {
     safety_factor = getenv("HEX_COMM_FACTOR") ? atof(getenv("HEX_COMM_FACTOR")) : 1.2;
 
@@ -63,7 +63,6 @@ HaloExchanger::HaloExchanger(MPI_Comm _cartcomm, const int basetag):  basetag(ba
 
     CUDA_CHECK(cudaEventCreateWithFlags(&evfillall, cudaEventDisableTiming));
     CUDA_CHECK(cudaEventCreateWithFlags(&evdownloaded, cudaEventDisableTiming | cudaEventBlockingSync));
-
 }
 
 namespace PackingHalo
@@ -366,7 +365,7 @@ namespace PackingHalo
 #endif
 }
 
-void HaloExchanger::_pack_all(const Particle * const p, const int n, const bool update_baginfos, cudaStream_t stream)
+void SolventExchange::_pack_all(const Particle * const p, const int n, const bool update_baginfos, cudaStream_t stream)
 {
     if (update_baginfos)
     {
@@ -391,7 +390,7 @@ void HaloExchanger::_pack_all(const Particle * const p, const int n, const bool 
     CUDA_CHECK(cudaEventRecord(evfillall, stream));
 }
 
-void HaloExchanger::pack(const Particle * const p, const int n, const int * const cellsstart, const int * const cellscount, cudaStream_t stream)
+void SolventExchange::pack(const Particle * const p, const int n, const int * const cellsstart, const int * const cellscount, cudaStream_t stream)
 {
     CUDA_CHECK(cudaPeekAtLastError());
 
@@ -483,7 +482,7 @@ void HaloExchanger::pack(const Particle * const p, const int n, const int * cons
 
 }
 
-void HaloExchanger::consolidate_and_post(const Particle * const p, const int n, cudaStream_t stream, cudaStream_t downloadstream)
+void SolventExchange::consolidate_and_post(const Particle * const p, const int n, cudaStream_t stream, cudaStream_t downloadstream)
 {
     {
 	NVTX_RANGE("HEX/consolidate", NVTX_C2);
@@ -603,7 +602,7 @@ void HaloExchanger::consolidate_and_post(const Particle * const p, const int n, 
     firstpost = false;
 }
 
-void HaloExchanger::post_expected_recv()
+void SolventExchange::post_expected_recv()
 {
     NVTX_RANGE("HEX/post irecv", NVTX_C3);
 
@@ -629,7 +628,7 @@ void HaloExchanger::post_expected_recv()
 	    recv_counts[i] = 0;
 }
 
-void HaloExchanger::wait_for_messages(cudaStream_t stream, cudaStream_t uploadstream)
+void SolventExchange::wait_for_messages(cudaStream_t stream, cudaStream_t uploadstream)
 {
     NVTX_RANGE("HEX/wait-recv", NVTX_C4);
 
@@ -682,7 +681,7 @@ void HaloExchanger::wait_for_messages(cudaStream_t stream, cudaStream_t uploadst
     post_expected_recv();
 }
 
-int HaloExchanger::nof_sent_particles()
+int SolventExchange::nof_sent_particles()
 {
     int s = 0;
     for(int i = 0; i < 26; ++i)
@@ -691,7 +690,7 @@ int HaloExchanger::nof_sent_particles()
     return s;
 }
 
-void HaloExchanger::_cancel_recv()
+void SolventExchange::_cancel_recv()
 {
     if (!firstpost)
     {
@@ -715,7 +714,7 @@ void HaloExchanger::_cancel_recv()
     }
 }
 
-void HaloExchanger::adjust_message_sizes(ExpectedMessageSizes sizes)
+void SolventExchange::adjust_message_sizes(ExpectedMessageSizes sizes)
 {
     _cancel_recv();
     nactive = 0;
@@ -740,7 +739,7 @@ void HaloExchanger::adjust_message_sizes(ExpectedMessageSizes sizes)
     }
 }
 
-HaloExchanger::~HaloExchanger()
+SolventExchange::~SolventExchange()
 {
     CUDA_CHECK(cudaFreeHost(required_send_bag_size));
 

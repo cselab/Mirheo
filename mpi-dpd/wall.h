@@ -22,7 +22,7 @@ namespace SolidWallsKernel
     __global__ void fill_keys(const Particle * const particles, const int n, int * const key);
 }
 
-class ComputeInteractionsWall
+class ComputeWall
 {
     MPI_Comm cartcomm;
     int myrank, dims[3], periods[3], coords[3];
@@ -38,9 +38,9 @@ class ComputeInteractionsWall
 
 public:
 
-    ComputeInteractionsWall(MPI_Comm cartcomm, Particle* const p, const int n, int& nsurvived, ExpectedMessageSizes& new_sizes, const bool verbose);
+    ComputeWall(MPI_Comm cartcomm, Particle* const p, const int n, int& nsurvived, ExpectedMessageSizes& new_sizes, const bool verbose);
 
-    ~ComputeInteractionsWall();
+    ~ComputeWall();
 
     void bounce(Particle * const p, const int n, cudaStream_t stream);
 

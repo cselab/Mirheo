@@ -25,7 +25,7 @@
 #endif
 
 #include "io.h"
-#include "halo-exchanger.h"
+#include "solvent-exchange.h"
 #include "wall.h"
 #include "redistancing.h"
 
@@ -751,7 +751,7 @@ struct FieldSampler
 	}
 };
 
-ComputeInteractionsWall::ComputeInteractionsWall(MPI_Comm cartcomm, Particle* const p, const int n, int& nsurvived,
+ComputeWall::ComputeWall(MPI_Comm cartcomm, Particle* const p, const int n, int& nsurvived,
 						 ExpectedMessageSizes& new_sizes, const bool verbose):
     cartcomm(cartcomm), arrSDF(NULL), solid4(NULL), solid_size(0),
     cells(XSIZE_SUBDOMAIN + 2 * XMARGIN_WALL, YSIZE_SUBDOMAIN + 2 * YMARGIN_WALL, ZSIZE_SUBDOMAIN + 2 * ZMARGIN_WALL)
@@ -1086,7 +1086,7 @@ ComputeInteractionsWall::ComputeInteractionsWall(MPI_Comm cartcomm, Particle* co
     CUDA_CHECK(cudaPeekAtLastError());
 }
 
-void ComputeInteractionsWall::bounce(Particle * const p, const int n, cudaStream_t stream)
+void ComputeWall::bounce(Particle * const p, const int n, cudaStream_t stream)
 {
     NVTX_RANGE("WALL/bounce", NVTX_C3)
 
@@ -1096,7 +1096,7 @@ void ComputeInteractionsWall::bounce(Particle * const p, const int n, cudaStream
     CUDA_CHECK(cudaPeekAtLastError());
 }
 
-void ComputeInteractionsWall::interactions(const Particle * const p, const int n, Acceleration * const acc,
+void ComputeWall::interactions(const Particle * const p, const int n, Acceleration * const acc,
 					   const int * const cellsstart, const int * const cellscount, cudaStream_t stream)
 {
     NVTX_RANGE("WALL/interactions", NVTX_C3);
@@ -1128,7 +1128,7 @@ void ComputeInteractionsWall::interactions(const Particle * const p, const int n
     CUDA_CHECK(cudaPeekAtLastError());
 }
 
-ComputeInteractionsWall::~ComputeInteractionsWall()
+ComputeWall::~ComputeWall()
 {
     CUDA_CHECK(cudaUnbindTexture(SolidWallsKernel::texSDF));
     CUDA_CHECK(cudaFreeArray(arrSDF));

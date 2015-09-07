@@ -11,9 +11,9 @@ NVCCFLAGS += -I../cuda-dpd/dpd -I../cuda-rbc/ -I../cuda-ctc
 #NVCCFLAGS +=  -DREPORT_TOPOLOGY $(CRAY_PMI_INCLUDE_OPTS)
 #NVCCFLAGS += -DCUSTOM_REORDERING=1
 
-OBJS = 	dpd-interactions.o \
+OBJS = 	dpd.o \
 	redistribute-particles.o \
-	halo-exchanger.o common.o \
+	solvent-exchange.o common.o \
 	wall.o \
 	scan-massimo.o scan-mauro.o minmax-massimo.o \
 	redistancing.o \

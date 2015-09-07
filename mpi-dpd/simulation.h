@@ -25,7 +25,7 @@
 
 #include "common.h"
 #include "containers.h"
-#include "dpd-interactions.h"
+#include "dpd.h"
 #include "wall.h"
 #include "fsi.h"
 #include "redistribute-particles.h"
@@ -48,10 +48,10 @@ class Simulation
     RedistributeRBCs redistribute_rbcs;
     RedistributeCTCs redistribute_ctcs;
     
-    ComputeInteractionsDPD dpd;
+    ComputeDPD dpd;
     ComputeFSI fsi;
 
-    ComputeInteractionsWall * wall;
+    ComputeWall * wall;
 
     bool (*check_termination)();
     bool simulation_is_done;

@@ -16,7 +16,7 @@
 
 #include "common.h"
 
-class HaloExchanger
+class SolventExchange
 {
     MPI_Comm cartcomm;
     MPI_Request sendreq[26 * 2], recvreq[26], sendcellsreq[26], recvcellsreq[26], sendcountreq[26], recvcountreq[26];
@@ -105,7 +105,7 @@ protected:
 
 public:
     
-    HaloExchanger(MPI_Comm cartcomm, const int basetag);
+    SolventExchange(MPI_Comm cartcomm, const int basetag);
 
     void pack(const Particle * const p, const int n, const int * const cellsstart, const int * const cellscount, cudaStream_t stream);
 
@@ -115,5 +115,5 @@ public:
 
     void adjust_message_sizes(ExpectedMessageSizes sizes);
 
-    virtual ~HaloExchanger();
+    virtual ~SolventExchange();
 };

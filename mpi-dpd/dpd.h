@@ -21,10 +21,10 @@
 #include <../dpd-rng.h>
 
 #include "common.h"
-#include "halo-exchanger.h"
+#include "solvent-exchange.h"
 
 //see the vanilla version of this code for details about how this class operates
-class ComputeInteractionsDPD : public HaloExchanger
+class ComputeDPD : public SolventExchange
 {           
     Logistic::KISS local_trunk;
     Logistic::KISS interrank_trunks[26];
@@ -33,7 +33,7 @@ class ComputeInteractionsDPD : public HaloExchanger
     
 public:
     
-    ComputeInteractionsDPD(MPI_Comm cartcomm);
+    ComputeDPD(MPI_Comm cartcomm);
 
     void remote_interactions(const Particle * const p, const int n, Acceleration * const a, cudaStream_t stream, cudaStream_t uploadstream);
 
