@@ -15,7 +15,7 @@ OBJS = 	dpd.o \
 	redistribute-particles.o \
 	solvent-exchange.o common.o \
 	wall.o \
-	scan-massimo.o scan-mauro.o minmax-massimo.o \
+	scan.o minmax.o \
 	redistancing.o \
 	redistribute-rbcs.o \
 	fsi.o \

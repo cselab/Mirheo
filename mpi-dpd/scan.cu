@@ -191,7 +191,7 @@ __global__ void gexscan(uint4 *vin, unsigned int *offs, uint4 *vout, int n) {
 	return;
 }
 
-void scan_mauro(const unsigned char * const input, const int size, cudaStream_t stream, uint * const output)
+void scan(const unsigned char * const input, const int size, cudaStream_t stream, uint * const output)
 {
     enum { THREADS = 128 } ;
     

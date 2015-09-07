@@ -14,7 +14,7 @@
 
 #include "redistribute-particles.h"
 #include "redistribute-rbcs.h"
-#include "minmax-massimo.h"
+#include "minmax.h"
 
 RedistributeRBCs::RedistributeRBCs(MPI_Comm _cartcomm): nvertices(CudaRBC::get_nvertices())
 {
@@ -64,7 +64,7 @@ void RedistributeRBCs::_compute_extents(const Particle * const xyzuvw, const int
 
 #if 1
     if (nrbcs)
-	minmax_massimo(xyzuvw, nvertices, nrbcs, minextents.devptr, maxextents.devptr, stream);
+	minmax(xyzuvw, nvertices, nrbcs, minextents.devptr, maxextents.devptr, stream);
 #else
     for(int i = 0; i < nrbcs; ++i)
 	CudaRBC::extent_nohost(stream, (float *)(xyzuvw + nvertices * i), extents.devptr + i);

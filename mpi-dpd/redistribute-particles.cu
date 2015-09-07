@@ -16,7 +16,7 @@
 
 #include "redistribute-particles.h"
 
-extern void scan_mauro(const unsigned char * const input, const int size, cudaStream_t stream, uint * const output);
+extern void scan(const unsigned char * const input, const int size, cudaStream_t stream, uint * const output);
 
 #ifndef WARPSIZE
 #define WARPSIZE 32
@@ -991,7 +991,7 @@ void RedistributeParticles::recv_unpack(Particle * const particles, float4 * con
     RedistributeParticlesKernels::compress_counts<<< (compressed_cellcounts.size + 127) / 128, 128, 0, mystream >>>
 	(compressed_cellcounts.size, (int4 *)cellcounts, (uchar4 *)compressed_cellcounts.data);
 
-    scan_mauro(compressed_cellcounts.data, compressed_cellcounts.size, mystream, (uint *)cellstarts);
+    scan(compressed_cellcounts.data, compressed_cellcounts.size, mystream, (uint *)cellstarts);
 
 #ifndef NDEBUG
     CUDA_CHECK(cudaMemset(scattered_indices.data, 0xff, sizeof(int) * scattered_indices.size));

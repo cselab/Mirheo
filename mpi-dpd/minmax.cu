@@ -10,7 +10,7 @@
  *  before getting a written permission from the author of this file.
  */
 
-#include "minmax-massimo.h"
+#include "minmax.h"
 
 #define MAXTHREADS 1024
 #define WARPSIZE     32
@@ -216,7 +216,7 @@ __global__ void minmaxmba(const Particle  *d_data, float3 *d_min, float3 *d_max,
 
 }
 
-void minmax_massimo(const Particle * const rbc, int size, int n, float3 *minrbc, float3 *maxrbc, cudaStream_t stream) 
+void minmax(const Particle * const rbc, int size, int n, float3 *minrbc, float3 *maxrbc, cudaStream_t stream) 
 {
     const int size32 = ((size + 31) / 32) * 32;
 

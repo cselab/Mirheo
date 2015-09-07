@@ -15,7 +15,6 @@
 #include <algorithm>
 
 #include "solvent-exchange.h"
-#include "scan-massimo.h"
 
 using namespace std;
 
