@@ -507,58 +507,6 @@ PinnedHostBuffer(int n = 0): capacity(0), size(0), data(NULL), devptr(NULL) { re
 	}
 };
 
-#include <utility>
-
-class HookedTexture
-{
-    std::pair<void *, int> registered;
-
-    template<typename T>  void _create(T * data, const int n)
-    {
-	struct cudaResourceDesc resDesc;
-	memset(&resDesc, 0, sizeof(resDesc));
-	resDesc.resType = cudaResourceTypeLinear;
-	resDesc.res.linear.devPtr = (void *)data;
-	resDesc.res.linear.sizeInBytes = n * sizeof(T);
-	resDesc.res.linear.desc = cudaCreateChannelDesc<T>();
-
-	struct cudaTextureDesc texDesc;
-	memset(&texDesc, 0, sizeof(texDesc));
-	texDesc.addressMode[0]   = cudaAddressModeWrap;
-	texDesc.addressMode[1]   = cudaAddressModeWrap;
-	texDesc.filterMode       = cudaFilterModePoint;
-	texDesc.readMode         = cudaReadModeElementType;
-	texDesc.normalizedCoords = 0;
-
-	CUDA_CHECK(cudaCreateTextureObject(&texObj, &resDesc, &texDesc, NULL));
-    }
-
-    void _discard()	{  if (texObj != 0)CUDA_CHECK(cudaDestroyTextureObject(texObj)); }
-
-public:
-
-    cudaTextureObject_t texObj;
-
-HookedTexture(): texObj(0) { }
-
-    template<typename T>
-	cudaTextureObject_t acquire(T * data, const int n)
-    {
-	std::pair<void *, int> target = std::make_pair(const_cast<T *>(data), n);
-
-	if (target.first != registered.first || target.second > registered.second)
-	{
-	    _discard();
-	    _create(data, n);
-	    registered = target;
-	}
-
-	return texObj;
-    }
-
-    ~HookedTexture() { _discard(); }
-};
-
 #include <cuda-dpd.h>
 
 //container for the cell lists, which contains only two integer vectors of size ncells.

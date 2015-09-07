@@ -14,7 +14,7 @@ NVCCFLAGS += -I../cuda-dpd/dpd -I../cuda-rbc/ -I../cuda-ctc
 OBJS = 	dpd-interactions.o \
 	redistribute-particles.o \
 	halo-exchanger.o common.o \
-	wall-interactions.o \
+	wall.o \
 	scan-massimo.o scan-mauro.o minmax-massimo.o \
 	redistancing.o \
 	redistribute-rbcs.o \

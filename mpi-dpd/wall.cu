@@ -26,7 +26,7 @@
 
 #include "io.h"
 #include "halo-exchanger.h"
-#include "wall-interactions.h"
+#include "wall.h"
 #include "redistancing.h"
 
 enum
@@ -59,7 +59,7 @@ namespace SolidWallsKernel
     texture<int, 1, cudaReadModeElementType> texWallCellStart, texWallCellCount;
 
     __global__ void interactions_3tpp(const float2 * const particles, const int np, const int nsolid,
-				     float * const acc, const float seed, const float sigmaf);
+				      float * const acc, const float seed, const float sigmaf);
     void setup()
     {
 	texSDF.normalized = 0;
@@ -325,7 +325,7 @@ namespace SolidWallsKernel
     }
 
     __global__ __launch_bounds__(32 * 4, 12)
-    void bounce(float2 * const particles, const int nparticles, const int rank, const float dt)
+	void bounce(float2 * const particles, const int nparticles, const int rank, const float dt)
     {
 	assert(blockDim.x * gridDim.x >= nparticles);
 
@@ -374,7 +374,7 @@ namespace SolidWallsKernel
     }
 
     __global__ __launch_bounds__(128, 16) void interactions_3tpp(const float2 * const particles, const int np, const int nsolid,
-				     float * const acc, const float seed, const float sigmaf)
+								 float * const acc, const float seed, const float sigmaf)
     {
 	assert(blockDim.x * gridDim.x >= np * 3);
 

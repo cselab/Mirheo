@@ -26,7 +26,7 @@
 #include "common.h"
 #include "containers.h"
 #include "dpd-interactions.h"
-#include "wall-interactions.h"
+#include "wall.h"
 #include "fsi.h"
 #include "redistribute-particles.h"
 #include "redistribute-rbcs.h"
