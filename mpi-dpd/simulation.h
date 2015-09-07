@@ -27,9 +27,9 @@
 #include "containers.h"
 #include "dpd-interactions.h"
 #include "wall-interactions.h"
+#include "fsi.h"
 #include "redistribute-particles.h"
 #include "redistribute-rbcs.h"
-#include "rbc-interactions.h"
 #include "ctc.h"
 #include "io.h"
 
@@ -49,8 +49,8 @@ class Simulation
     RedistributeCTCs redistribute_ctcs;
     
     ComputeInteractionsDPD dpd;
-    ComputeInteractionsRBC rbc_interactions;
-    ComputeInteractionsCTC ctc_interactions;
+    ComputeFSI fsi;
+
     ComputeInteractionsWall * wall;
 
     bool (*check_termination)();
@@ -59,7 +59,7 @@ class Simulation
     MPI_Comm activecomm, cartcomm;
     //LocalComm localcomm;
 
-    cudaStream_t mainstream;
+    cudaStream_t mainstream, uploadstream, downloadstream;
     
     std::map<std::string, double> timings;
 

@@ -24,8 +24,6 @@ class HaloExchanger
     
     int recv_tags[26], recv_counts[26], nlocal, nactive;
 
-    ScanEngine scan;
-
     bool firstpost;
     
 protected:
@@ -100,7 +98,6 @@ protected:
     
     int nof_sent_particles();
 
-    cudaStream_t uploadstream, downloadstream;
     cudaEvent_t evfillall, evuploaded, evdownloaded;
      
     const int basetag;
@@ -113,9 +110,9 @@ public:
 
     void pack(const Particle * const p, const int n, const int * const cellsstart, const int * const cellscount, cudaStream_t stream);
 
-    void consolidate_and_post(const Particle * const p, const int n, cudaStream_t stream);
+    void consolidate_and_post(const Particle * const p, const int n, cudaStream_t stream, cudaStream_t downloadstream);
 
-    void wait_for_messages(cudaStream_t stream);
+    void wait_for_messages(cudaStream_t stream, cudaStream_t uploadstream);
 
     void adjust_message_sizes(ExpectedMessageSizes sizes);
 

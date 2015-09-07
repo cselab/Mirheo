@@ -18,7 +18,7 @@ OBJS = 	dpd-interactions.o \
 	scan-massimo.o scan-mauro.o minmax-massimo.o \
 	redistancing.o \
 	redistribute-rbcs.o \
-	rbc-interactions.o \
+	fsi.o \
 	containers.o \
 	io.o \
 	simulation.o \

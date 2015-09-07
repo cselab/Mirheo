@@ -253,7 +253,9 @@ void ParticleArray::resize(int n)
     xyzuvw.resize(n);
     axayaz.resize(n);
 
+#ifndef NDEBUG
     CUDA_CHECK(cudaMemset(axayaz.data, 0, sizeof(Acceleration) * size));
+#endif
 }
 
 void ParticleArray::preserve_resize(int n)

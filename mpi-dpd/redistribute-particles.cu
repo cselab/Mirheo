@@ -483,7 +483,7 @@ namespace RedistributeParticlesKernels
 	    else
 	    {
 		if (spid >= noldparticles)
-		    printf("ooops pid %d spid %d noldp%d\n", pid, spid, noldparticles);
+		    cuda_printf("ooops pid %d spid %d noldp%d\n", pid, spid, noldparticles);
 
 		assert(spid < noldparticles);
 		data0 = tex1Dfetch(texAllParticlesFloat2, 0 + 3 * spid);

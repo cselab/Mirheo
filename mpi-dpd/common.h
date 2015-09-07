@@ -41,8 +41,6 @@ extern float tend;
 extern bool walls, pushtheflow, doublepoiseuille, rbcs, ctcs, xyz_dumps, hdf5field_dumps, hdf5part_dumps, is_mps_enabled;
 extern int steps_per_report, steps_per_dump, wall_creation_stepid, nvtxstart, nvtxstop;
 
-
-
 __device__ __forceinline__
 void read_AOS6f(const float2 * const data, const int nparticles, float2& s0, float2& s1, float2& s2)
 {
@@ -368,7 +366,8 @@ SimpleDeviceBuffer(int n = 0): capacity(0), size(0), data(NULL) { resize(n);}
 	    if (capacity >= n)
 		return;
 
-	    capacity = n;
+	    const int conservative_estimate = (int)ceil(1.1 * n);
+	    capacity = 128 * ((conservative_estimate + 129) / 128);
 
 	    CUDA_CHECK(cudaMalloc(&data, sizeof(T) * capacity));
 
@@ -376,6 +375,68 @@ SimpleDeviceBuffer(int n = 0): capacity(0), size(0), data(NULL) { resize(n);}
 	    {
 		CUDA_CHECK(cudaMemcpy(data, old, sizeof(T) * oldsize, cudaMemcpyDeviceToDevice));
 		CUDA_CHECK(cudaFree(old));
+	    }
+	}
+};
+
+template<typename T>
+struct SimpleHostBuffer
+{
+    int capacity, size;
+
+    T * data;
+
+SimpleHostBuffer(int n = 0): capacity(0), size(0), data(NULL) { resize(n);}
+
+    ~SimpleHostBuffer()
+	{
+	    if (data != NULL)
+		CUDA_CHECK(cudaFreeHost(data));
+
+	    data = NULL;
+	}
+
+    void resize(const int n)
+	{
+	    assert(n >= 0);
+
+	    size = n;
+
+	    if (capacity >= n)
+		return;
+
+	    if (data != NULL)
+		CUDA_CHECK(cudaFreeHost(data));
+
+	    const int conservative_estimate = (int)ceil(1.1 * n);
+	    capacity = 128 * ((conservative_estimate + 129) / 128);
+
+	    CUDA_CHECK(cudaHostAlloc(&data, sizeof(T) * capacity, cudaHostAllocDefault));
+	}
+
+    void preserve_resize(const int n)
+	{
+	    assert(n >= 0);
+
+	    T * old = data;
+
+	    const int oldsize = size;
+
+	    size = n;
+
+	    if (capacity >= n)
+		return;
+
+	    const int conservative_estimate = (int)ceil(1.1 * n);
+	    capacity = 128 * ((conservative_estimate + 129) / 128);
+
+	    data = NULL;
+	    CUDA_CHECK(cudaHostAlloc(&data, sizeof(T) * capacity, cudaHostAllocDefault));
+
+	    if (old != NULL)
+	    {
+		memcpy(data, old, sizeof(T) * oldsize);
+		CUDA_CHECK(cudaFreeHost(old));
 	    }
 	}
 };
@@ -430,7 +491,8 @@ PinnedHostBuffer(int n = 0): capacity(0), size(0), data(NULL), devptr(NULL) { re
 	    if (capacity >= n)
 		return;
 
-	    capacity = n;
+	    const int conservative_estimate = (int)ceil(1.1 * n);
+	    capacity = 128 * ((conservative_estimate + 129) / 128);
 
 	    data = NULL;
 	    CUDA_CHECK(cudaHostAlloc(&data, sizeof(T) * capacity, cudaHostAllocMapped));
