@@ -111,7 +111,7 @@ void collageSDF(const int NX, const int NY, const float xextent, const float yex
     }         
 }
 
-void shiftSDF(const int NX, const int NY, const float xextent, const float yextent, std::vector<float>& inputGrid, 
+void shiftSDF(const int NX, const int NY, const float xextent, const float yextent, const std::vector<float>& inputGrid, 
               const float xshift, const float xpadding, int& newNX, float& newXextent, std::vector<float>& outGrid)
 {
     float h = xextent / (NX - 1);
