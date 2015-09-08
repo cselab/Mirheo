@@ -15,22 +15,22 @@
 
 using namespace std;
 
-#define _ACCESS(f, x, y) f[(x) + xsize * (y)]
+#define _ACCESS(f, x, y) f[(x) + m_xsize * (y)]
 
-namespace Redistancing
+class Redistance
 {
-    int xsize, ysize;
-    float * phi0, * phi;
-    float dt, invdx, invdy;
-    float dls[9];
+    int m_xsize, m_ysize;
+    float * m_phi0, * m_phi;
+    float m_dt, m_dx, m_dy, m_invdx, m_invdy;
+    float m_dls[9];
 
     template<int d>
     inline bool anycrossing_dir(int ix, int iy, const float sgn0) 
     {
         const int dx = d == 0, dy = d == 1, dz = d == 2;
         
-        const float fm1 = _ACCESS(phi0, ix - dx, iy - dy);
-        const float fp1 = _ACCESS(phi0, ix + dx, iy + dy);
+        const float fm1 = _ACCESS(m_phi0, ix - dx, iy - dy);
+        const float fp1 = _ACCESS(m_phi0, ix + dx, iy + dy);
         
         return (fm1 * sgn0 < 0 || fp1 * sgn0 < 0);
     }
@@ -39,13 +39,14 @@ namespace Redistancing
     {
         return
         anycrossing_dir<0>(ix, iy, sgn0) ||
-        anycrossing_dir<1>(ix, iy, sgn0) ;
+        anycrossing_dir<1>(ix, iy, sgn0);
     }
-    
+
     float simple_scheme(int ix, int iy, float sgn0, float myphi0);
     
     float sussman_scheme(int ix, int iy, float sgn0);
-        
-    void redistancing(const int iterations, const float dt, const float dx, const float dy,
-                      const int xsize, const int ysize, float * field);
-}
+public:    
+    Redistance(const float dt, const float dx, const float dy,
+                      const int xsize, const int ysize);
+    void run(const int iterations, float * field);
+};

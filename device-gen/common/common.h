@@ -22,7 +22,7 @@ inline float sign(float x) {
 }
 
 inline void readDAT(const std::string& fileName, std::vector<float>& data, 
-        float& xextent, float& yextent, float& zextent, int& NX, int& NY, int& NZ)
+        int& NX, int& NY, int& NZ, float& xextent, float& yextent, float& zextent)
 {
     FILE * f = fopen(fileName.c_str(), "r");
     assert(f != 0);
@@ -42,7 +42,7 @@ inline void readDAT(const std::string& fileName, std::vector<float>& data,
 }
 
 inline void writeDAT(const std::string& fileName,  std::vector<float>& data,
-        float xextent, float yextent, float zextent, int NX, int NY, int NZ)
+        const int NX, const int NY, const int NZ, float xextent, float yextent, float zextent)
 {
     FILE * f = fopen(fileName.c_str(), "w");
     assert(f != 0);

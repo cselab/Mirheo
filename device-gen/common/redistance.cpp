@@ -1,100 +1,96 @@
 #include "redistance.h"
+#include <algorithm>
+#include <cassert>
 
-namespace Redistancing
-{
-    float sussman_scheme(int ix, int iy, float sgn0)
+    float Redistance::sussman_scheme(int ix, int iy, float sgn0)
     {
-        const float phicenter =  _ACCESS(phi, ix, iy);
+        const float phicenter =  _ACCESS(m_phi, ix, iy);
 
-        const float dphidxm = phicenter -     _ACCESS(phi, ix - 1, iy);
-        const float dphidxp = _ACCESS(phi, ix + 1, iy) - phicenter;
-        const float dphidym = phicenter -     _ACCESS(phi, ix, iy - 1);
-        const float dphidyp = _ACCESS(phi, ix, iy + 1) - phicenter;
+        const float dphidxm = phicenter -     _ACCESS(m_phi, ix - 1, iy);
+        const float dphidxp = _ACCESS(m_phi, ix + 1, iy) - phicenter;
+        const float dphidym = phicenter -     _ACCESS(m_phi, ix, iy - 1);
+        const float dphidyp = _ACCESS(m_phi, ix, iy + 1) - phicenter;
 
         if (sgn0 == 1)
         {
-            const float xgrad0 = max( max((float)0, dphidxm), -min((float)0, dphidxp)) * invdx;
-            const float ygrad0 = max( max((float)0, dphidym), -min((float)0, dphidyp)) * invdy;
+            const float xgrad0 = std::max( max(0.0f, dphidxm), -std::min(0.0f, dphidxp)) * m_invdx;
+            const float ygrad0 = std::max( max(0.0f, dphidym), -min(0.0f, dphidyp)) * m_invdy;
 
-            const float G0 = sqrtf(xgrad0 * xgrad0 + ygrad0 * ygrad0) - 1;
+            const float G0 = sqrtf(xgrad0 * xgrad0 + ygrad0 * ygrad0) - 1.0f;
 
-            return phicenter - dt * sgn0 * G0;
+            return phicenter - m_dt * sgn0 * G0;
         }
         else
         {
-            const float xgrad1 = max( -min((float)0, dphidxm), max((float)0, dphidxp)) * invdx;
-            const float ygrad1 = max( -min((float)0, dphidym), max((float)0, dphidyp)) * invdy;
+            const float xgrad1 = std::max( -min(0.0f, dphidxm), std::max(0.0f, dphidxp)) * m_invdx;
+            const float ygrad1 = std::max( -min(0.0f, dphidym), std::max(0.0f, dphidyp)) * m_invdy;
 
-            const float G1 = sqrtf(xgrad1 * xgrad1 + ygrad1 * ygrad1) - 1;
+            const float G1 = sqrtf(xgrad1 * xgrad1 + ygrad1 * ygrad1) - 1.0f;
 
-            return phicenter - dt * sgn0 * G1;
+            return phicenter - m_dt * sgn0 * G1;
         }
     }
 
-    void redistancing(const int iterations, const float dt, const float dx, const float dy,
-                      const int xsize, const int ysize,
-                      float * field)
-    {
-        Redistancing::xsize = xsize;
-        Redistancing::ysize = ysize;
-        Redistancing::dt = dt;
-        Redistancing::invdx = 1. / dx;
-        Redistancing::invdy = 1. / dy;
+Redistance::Redistance(const float dt, const float dx, const float dy,
+                      const int xsize, const int ysize)
+: m_xsize(xsize), m_ysize(ysize), m_dt(dt), m_dx(dx), m_dy(dy), m_invdx(1.0f/dx), m_invdy(1.0f/dy), m_phi0(nullptr), m_phi(nullptr)
+{}
 
+    void Redistance::run(const int iterations, float * field)
+    {
         for(int code = 0; code < 3 * 3; ++code)
         {
             if (code == 1 + 3) continue;
 
-            const float deltax = dx * ((code % 3) - 1);
-            const float deltay = dy * ((code % 9) / 3 - 1);
+            const float deltax = m_dx * ((code % 3) - 1);
+            const float deltay = m_dy * ((code % 9) / 3 - 1);
 
             const float dl = sqrtf(deltax * deltax + deltay * deltay);
 
-            Redistancing::dls[code] = dl;
+            m_dls[code] = dl;
         }
 
+        m_phi0 = new float[m_xsize * m_ysize];
+        memcpy(m_phi0, field, sizeof(float) * m_xsize * m_ysize);
+        m_phi = field;
 
-        Redistancing::phi0 = new float[xsize * ysize];
-        memcpy(phi0, field, sizeof(float) * xsize * ysize);
-        Redistancing::phi = field;
-
-        float * tmp = new float[xsize * ysize];
+        float * tmp = new float[m_xsize * m_ysize];
         for(int t = 0; t < iterations; ++t)
         {
             if (t % 100 == 0)
-                printf("t: %d, size: %d %d\n", t, xsize, ysize);
+                printf("t: %d, size: %d %d\n", t, m_xsize, m_ysize);
 
 //#pragma omp parallel for
-            for(int iy = 0; iy < ysize; ++iy)
-                for(int ix = 0; ix < xsize; ++ix)
+            for(int iy = 0; iy < m_ysize; ++iy)
+                for(int ix = 0; ix < m_xsize; ++ix)
                 {
-                    const float myval0 = _ACCESS(phi0, ix, iy);
+                    const float myval0 = _ACCESS(m_phi0, ix, iy);
                     const float sgn0 = myval0 > 0 ? 1 : (myval0 < 0 ? -1 : 0);
 
                     const bool boundary = (
-                        ix == 0 || ix == xsize - 1 ||
-                        iy == 0 || iy == ysize - 1);
+                        ix == 0 || ix == m_xsize - 1 ||
+                        iy == 0 || iy == m_ysize - 1);
                     if (boundary)
-                        tmp[ix + xsize * iy] = simple_scheme(ix, iy, sgn0, myval0);
+                        tmp[ix + m_xsize * iy] = simple_scheme(ix, iy, sgn0, myval0);
                     else
                     {
                         if (anycrossing(ix, iy, sgn0))
-                            tmp[ix + xsize * iy] = myval0;
+                            tmp[ix + m_xsize * iy] = myval0;
                         else
-                            tmp[ix + xsize * iy] = sussman_scheme(ix, iy, sgn0);
+                            tmp[ix + m_xsize * iy] = sussman_scheme(ix, iy, sgn0);
                     }
-                    assert(fabs(tmp[ix + xsize * iy]) < 1e7);
+                    assert(fabs(tmp[ix + m_xsize * iy]) < 1e7);
                 }
 
-            memcpy(field, tmp, sizeof(float) * xsize * ysize);
+            memcpy(field, tmp, sizeof(float) * m_xsize * m_ysize);
         }
 
         delete [] tmp;
-        delete [] phi0;
-        phi0 = NULL;
+        delete [] m_phi0;
+        m_phi0 = nullptr;
     }
 
-    float simple_scheme(int ix, int iy, float sgn0, float myphi0)
+    float Redistance::simple_scheme(int ix, int iy, float sgn0, float myphi0)
     {
         float mindistance = 1e6f;
         for(int code = 0; code < 3 * 3; ++code)
@@ -104,13 +100,13 @@ namespace Redistancing
             const int xneighbor = ix + (code % 3) - 1;
             const int yneighbor = iy + (code % 9) / 3 - 1;
 
-            if (xneighbor < 0 || xneighbor >= xsize) continue;
-            if (yneighbor < 0 || yneighbor >= ysize) continue;
+            if (xneighbor < 0 || xneighbor >= m_xsize) continue;
+            if (yneighbor < 0 || yneighbor >= m_ysize) continue;
 
-            const float phi0_neighbor = _ACCESS(phi0, xneighbor, yneighbor);
-            const float phi_neighbor = _ACCESS(phi, xneighbor, yneighbor);
+            const float phi0_neighbor = _ACCESS(m_phi0, xneighbor, yneighbor);
+            const float phi_neighbor = _ACCESS(m_phi, xneighbor, yneighbor);
 
-            const float dl = Redistancing::dls[code];
+            const float dl = m_dls[code];
 
             float distance = 0;
 
@@ -119,10 +115,9 @@ namespace Redistancing
             else
                 distance = dl + abs(phi_neighbor);
 
-            mindistance = min(mindistance, distance);
+            mindistance = std::min(mindistance, distance);
         }
 
         return sgn0 * mindistance;
     }
 
-}
