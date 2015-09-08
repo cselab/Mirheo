@@ -65,12 +65,13 @@ class CTCiChip1Builder
     float m_resolution, m_zmargin;
     float m_eggSizeX, m_eggSizeY, m_eggSizeZ; // size of the egg with the empty space aroung it
     const float m_angle;
-    std::string m_outFileName2D, m_outFileName3D; 
+    std::string m_outFileName2D, m_outFileName3D;
+    int m_niterRedistance;
 public:
     CTCiChip1Builder()
     : m_ncolumns(0), m_nrows(0), m_nrepeat(0), m_resolution(0), m_zmargin(0),
       m_eggSizeX(56.0f), m_eggSizeY(32.0f), m_eggSizeZ(58.0f),
-      m_angle(1.7f * M_PI / 180.0f)
+      m_angle(1.7f * M_PI / 180.0f), m_niterRedistance(1e3)
     {}
 
     CTCiChip1Builder& setNColumns(int ncolumns) 
@@ -162,7 +163,7 @@ void CTCiChip1Builder::build() const
     const float dx = finalExtent[0] / (finalN[0] - 1);
     const float dy = finalExtent[1] / (finalN[1] - 1);
     Redistance redistancer(0.25f * min(dx, dy), dx, dy, finalN[0], finalN[1]);
-    redistancer.run(1e2, &finalSDF[0]);
+    redistancer.run(m_niterRedistance, &finalSDF[0]);
 
     // 6 Repeat this pattern
     SDF finalSDF2;
@@ -270,14 +271,6 @@ int main(int argc, char ** argv)
     float zMargin = static_cast<float>(argp("-zMargin").asDouble(5.0));
 
     std::string outFileName = argp("-out").asString("3d");
-   
-    //int nColumns = 5;
-    //int nRows = 57;
-    //int nRepeat = 2;
-
-    //int zMargin = 5.0f;
-
-    //std::string outFileName = "3d";
 
     CTCiChip1Builder builder;
     try {

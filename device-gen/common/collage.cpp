@@ -1,5 +1,5 @@
 /*
- *  main.cpp
+ *  collage.cpp
  *  Part of CTC/device-gen/sdf-collage/
  *
  *  Created and authored by Diego Rossinelli and Kirill Lykov on 2015-03-20.

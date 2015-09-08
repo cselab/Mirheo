@@ -1,6 +1,6 @@
 /*
- *  main.cpp
- *  Part of CTC/device-gen/2Dto3D/
+ *  2Dto3D.cpp
+ *  Part of CTC/device-gen/common/
  *
  *  Created and authored by Diego Rossinelli and Kirill Lykov on 2015-03-20.
  *  Copyright 2015. All rights reserved.
