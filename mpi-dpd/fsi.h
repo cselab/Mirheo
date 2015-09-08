@@ -21,7 +21,7 @@
 
 class ComputeFSI : public SoluteExchange::Visitor
 {
-    cudaEvent_t evuploaded;
+    //TODO: use cudaEvent_t evuploaded;
 
     SolventWrap wsolvent;
 

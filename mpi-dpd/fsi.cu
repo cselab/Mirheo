@@ -28,7 +28,7 @@ ComputeFSI::ComputeFSI(MPI_Comm comm)
 
     local_trunk = Logistic::KISS(1908 - myrank, 1409 + myrank, 290, 12968);
 
-    CUDA_CHECK(cudaEventCreateWithFlags(&evuploaded, cudaEventDisableTiming));
+    //TODO: use CUDA_CHECK(cudaEventCreateWithFlags(&evuploaded, cudaEventDisableTiming));
 
     KernelsFSI::Params params = {12.5 , gammadpd, sigmaf};
 
@@ -502,3 +502,4 @@ void ComputeFSI::halo(ParticlesWrap halos[26], cudaStream_t stream)
 
     CUDA_CHECK(cudaPeekAtLastError());
 }
+

@@ -11,7 +11,7 @@ NVCCFLAGS += -I../cuda-dpd/dpd -I../cuda-rbc/ -I../cuda-ctc
 #NVCCFLAGS +=  -DREPORT_TOPOLOGY $(CRAY_PMI_INCLUDE_OPTS)
 #NVCCFLAGS += -DCUSTOM_REORDERING=1
 
-OBJS = 	dpd.o wall.o fsi.o \
+OBJS = 	dpd.o wall.o fsi.o contact.o \
 	redistribute-particles.o redistribute-rbcs.o \
 	solvent-exchange.o solute-exchange.o \
 	common.o containers.o io.o \
