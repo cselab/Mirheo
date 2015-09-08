@@ -53,6 +53,12 @@ datadump ?= 1
 ifeq "$(datadump)" "0"
 NVCCFLAGS += -D_NO_DUMPS_
 endif
+ifeq "$(datadump)" "1"
+NVCCFLAGS += -D_SYNC_DUMPS_
+endif
+ifeq "$(datadump)" "2"
+NVCCFLAGS += -D_ASYNC_DUMPS_
+endif
 
 NVCCFLAGS += -DVISCOSITY_S_LEVEL=$(slevel)
 
