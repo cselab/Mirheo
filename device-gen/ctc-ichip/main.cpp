@@ -17,6 +17,7 @@
 #include <vector>
 #include <algorithm>
 #include <stdexcept>
+#include <argument-parser.h>
 #include "../common/common.h"
 #include "../common/collage.h"
 #include "../common/redistance.h"
@@ -260,14 +261,23 @@ void CTCiChip1Builder::shiftRows(int rowNX, int rowNY, float rowSizeX, float row
 
 int main(int argc, char ** argv)
 {
-    
-    int nColumns = 5;
-    int nRows = 57;
-    int nRepeat = 2;
 
-    int zMargin = 5.0f;
+    ArgumentParser argp(vector<string>(argv, argv + argc));
 
-    std::string outFileName = "3d";
+    int nColumns = argp("-nColumns").asInt(1);
+    int nRows = argp("-nRows").asInt(1);
+    int nRepeat = argp("-nRepeat").asInt(1);    
+    float zMargin = static_cast<float>(argp("-zMargin").asDouble(5.0));
+
+    std::string outFileName = argp("-out").asString("3d");
+   
+    //int nColumns = 5;
+    //int nRows = 57;
+    //int nRepeat = 2;
+
+    //int zMargin = 5.0f;
+
+    //std::string outFileName = "3d";
 
     CTCiChip1Builder builder;
     try {
