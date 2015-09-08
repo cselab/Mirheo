@@ -475,6 +475,10 @@ void Simulation::_datadump(const int idtimestep)
     datadump_pending = true;
 
     pthread_cond_signal(&request_datadump);
+#if defined(_SYNC_DUMPS_)
+    while (datadump_pending)
+	pthread_cond_wait(&done_datadump, &mutex_datadump);
+#endif
 
     pthread_mutex_unlock(&mutex_datadump);
 
