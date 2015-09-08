@@ -481,7 +481,7 @@ void SolventExchange::pack(const Particle * const p, const int n, const int * co
 
 }
 
-void SolventExchange::consolidate_and_post(const Particle * const p, const int n, cudaStream_t stream, cudaStream_t downloadstream)
+void SolventExchange::post(const Particle * const p, const int n, cudaStream_t stream, cudaStream_t downloadstream)
 {
     {
 	NVTX_RANGE("HEX/consolidate", NVTX_C2);
@@ -627,7 +627,7 @@ void SolventExchange::post_expected_recv()
 	    recv_counts[i] = 0;
 }
 
-void SolventExchange::wait_for_messages(cudaStream_t stream, cudaStream_t uploadstream)
+void SolventExchange::recv(cudaStream_t stream, cudaStream_t uploadstream)
 {
     NVTX_RANGE("HEX/wait-recv", NVTX_C4);
 

@@ -109,9 +109,9 @@ public:
 
     void pack(const Particle * const p, const int n, const int * const cellsstart, const int * const cellscount, cudaStream_t stream);
 
-    void consolidate_and_post(const Particle * const p, const int n, cudaStream_t stream, cudaStream_t downloadstream);
+    void post(const Particle * const p, const int n, cudaStream_t stream, cudaStream_t downloadstream);
 
-    void wait_for_messages(cudaStream_t stream, cudaStream_t uploadstream);
+    void recv(cudaStream_t stream, cudaStream_t uploadstream);
 
     void adjust_message_sizes(ExpectedMessageSizes sizes);
 

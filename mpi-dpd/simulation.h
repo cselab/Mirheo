@@ -27,6 +27,7 @@
 #include "containers.h"
 #include "dpd.h"
 #include "wall.h"
+#include "solute-exchange.h"
 #include "fsi.h"
 #include "redistribute-particles.h"
 #include "redistribute-rbcs.h"
@@ -49,6 +50,7 @@ class Simulation
     RedistributeCTCs redistribute_ctcs;
     
     ComputeDPD dpd;
+    SoluteExchange solutex;
     ComputeFSI fsi;
 
     ComputeWall * wall;

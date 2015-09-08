@@ -11,18 +11,12 @@ NVCCFLAGS += -I../cuda-dpd/dpd -I../cuda-rbc/ -I../cuda-ctc
 #NVCCFLAGS +=  -DREPORT_TOPOLOGY $(CRAY_PMI_INCLUDE_OPTS)
 #NVCCFLAGS += -DCUSTOM_REORDERING=1
 
-OBJS = 	dpd.o \
-	redistribute-particles.o \
-	solvent-exchange.o common.o \
-	wall.o \
-	scan.o minmax.o \
-	redistancing.o \
-	redistribute-rbcs.o \
-	fsi.o \
-	containers.o \
-	io.o \
-	simulation.o \
-	main.o
+OBJS = 	dpd.o wall.o fsi.o \
+	redistribute-particles.o redistribute-rbcs.o \
+	solvent-exchange.o solute-exchange.o \
+	common.o containers.o io.o \
+	scan.o minmax.o redistancing.o \
+	simulation.o main.o
 
 LIBS = -lcuda-dpd -lcuda-rbc -lcuda-ctc -lcudart -ldl -lz
 

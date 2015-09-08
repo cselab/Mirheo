@@ -305,6 +305,28 @@ struct Acceleration
 	}
 };
 
+struct ParticlesWrap
+{
+    const Particle * p;
+    Acceleration * a;
+    int n;
+
+ParticlesWrap() : p(NULL), a(NULL), n(0){}
+
+ParticlesWrap(const Particle * const p, const int n, Acceleration * a):
+    p(p), n(n), a(a) {}
+};
+
+struct SolventWrap : ParticlesWrap
+{
+    const int * cellsstart, * cellscount;
+
+SolventWrap(): cellsstart(NULL), cellscount(NULL), ParticlesWrap() {}
+
+SolventWrap(const Particle * const p, const int n, Acceleration * a, const int * const cellsstart, const int * const cellscount):
+    ParticlesWrap(p, n, a), cellsstart(cellsstart), cellscount(cellscount) {}
+};
+
 //container for the gpu particles during the simulation
 template<typename T>
 struct SimpleDeviceBuffer
@@ -547,27 +569,27 @@ void report_host_memory_usage(MPI_Comm comm, FILE * foutput);
 
 class LocalComm
 {
-	MPI_Comm local_comm, active_comm;
-	int local_rank, local_nranks;
-	int rank, nranks;
+    MPI_Comm local_comm, active_comm;
+    int local_rank, local_nranks;
+    int rank, nranks;
 
-	char name[MPI_MAX_PROCESSOR_NAME];
-	int len;
+    char name[MPI_MAX_PROCESSOR_NAME];
+    int len;
 
 public:
-	LocalComm();
+    LocalComm();
 
-	void initialize(MPI_Comm active_comm);
+    void initialize(MPI_Comm active_comm);
 
-	void barrier();
+    void barrier();
 
-	void print_particles(int np);
+    void print_particles(int np);
 
-	int get_size() { return local_nranks; }
+    int get_size() { return local_nranks; }
 
-	int get_rank() { return local_rank; }
+    int get_rank() { return local_rank; }
 
-	MPI_Comm get_comm() { return local_comm;  }
+    MPI_Comm get_comm() { return local_comm;  }
 };
 
 extern LocalComm localcomm;
