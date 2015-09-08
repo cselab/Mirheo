@@ -1,6 +1,6 @@
 /*
  *  simulation.cu
- *  Part of CTC/mpi-dpd/
+ *  Part of uDeviceX/mpi-dpd/
  *
  *  Created and authored by Diego Rossinelli on 2015-03-24.
  *  Copyright 2015. All rights reserved.

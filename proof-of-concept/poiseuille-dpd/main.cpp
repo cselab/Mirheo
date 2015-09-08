@@ -1,6 +1,6 @@
 /*
  *  main.cpp
- *  Part of CTC/poiseuille-dpd/
+ *  Part of uDeviceX/poiseuille-dpd/
  *
  *  Created and authored by Diego Rossinelli on 2014-07-12.
  *  Copyright 2015. All rights reserved.

@@ -1,6 +1,6 @@
 /*
  *  cell-factory.h
- *  Part of CTC/cuda-dpd-sem/sem/
+ *  Part of uDeviceX/cuda-dpd-sem/sem/
  *
  *  Created and authored by Diego Rossinelli on 2014-08-08.
  *  Copyright 2015. All rights reserved.

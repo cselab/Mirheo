@@ -1,6 +1,6 @@
 /*
  *  cuda-dpd-bipartite.cu
- *  Part of CTC/cuda-dpd-sem/dpd/
+ *  Part of uDeviceX/cuda-dpd-sem/dpd/
  *
  *  Created and authored by Yu-Hang Tang on 2015-03-18.
  *  Copyright 2015. All rights reserved.

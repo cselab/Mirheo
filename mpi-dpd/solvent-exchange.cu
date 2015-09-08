@@ -1,6 +1,6 @@
 /*
- *  halo-exchanger.cu
- *  Part of CTC/mpi-dpd/
+ *  solvent-exchange.cu
+ *  Part of uDeviceX/mpi-dpd/
  *
  *  Created and authored by Diego Rossinelli on 2015-03-05.
  *  Major editing from Massimo-Bernaschi on 2015-03-20.

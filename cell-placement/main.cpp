@@ -1,6 +1,6 @@
 /*
  *  main.cpp
- *  Part of CTC/cell-placement/
+ *  Part of uDeviceX/cell-placement/
  *
  *  Created and authored by Diego Rossinelli on 2014-12-18.
  *  Further edited by Dmitry Alexeev on 2014-03-25.

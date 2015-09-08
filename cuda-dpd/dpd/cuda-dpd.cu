@@ -1,6 +1,6 @@
 /*
  *  cuda-dpd.cu
- *  Part of CTC/cuda-dpd-sem/dpd/
+ *  Part of uDeviceX/cuda-dpd-sem/dpd/
  *
  *  Created and authored by Diego Rossinelli on 2015-02-26.
  *  Major editing by Mauro Bisson on 2015-04-01.

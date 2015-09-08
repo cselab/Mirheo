@@ -1,6 +1,6 @@
 /*
- *  halo-exchanger.h
- *  Part of CTC/mpi-dpd/
+ *  solvent-exchange.h
+ *  Part of uDeviceX/mpi-dpd/
  *
  *  Created and authored by Diego Rossinelli on 2014-11-18.
  *  Copyright 2015. All rights reserved.

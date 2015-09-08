@@ -1,3 +1,14 @@
+/*
+ *  scan.cu
+ *  Part of uDeviceX/mpi-dpd/
+ *
+ *  Created and authored by Mauro Bisson on 2015-07-28.
+ *  Copyright 2015. All rights reserved.
+ *
+ *  Users are NOT authorized
+ *  to employ the present software for their own publications
+ *  before getting a written permission from the author of this file.
+ */
 
 template <int NWARP>
 __global__ void breduce(uint4 *vin, unsigned int *vout, int n) {

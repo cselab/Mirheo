@@ -1,6 +1,6 @@
 /*
  *  main.cpp
- *  Part of CTC/vanilla-mpi-dpd/
+ *  Part of uDeviceX/vanilla-mpi-dpd/
  *
  *  Created and authored by Diego Rossinelli on 2014-11-06.
  *  Copyright 2015. All rights reserved.

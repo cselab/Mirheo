@@ -1,6 +1,6 @@
 /*
  *  cell-lists.h
- *  Part of CTC/cuda-dpd-sem/
+ *  Part of uDeviceX/cuda-dpd-sem/
  *
  *  Created and authored by Diego Rossinelli on 2014-07-21.
  *  Copyright 2015. All rights reserved.

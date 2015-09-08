@@ -1,6 +1,6 @@
 /*
  *  funnel-obstacle.cpp
- *  Part of CTC/funnel-obstacle/
+ *  Part of uDeviceX/funnel-obstacle/
  *
  *  Created and authored by Kirill Lykov on 2014-07-31.
  *  Copyright 2015. All rights reserved.

@@ -1,6 +1,6 @@
 /*
  *  cuda-dpd.cu
- *  Part of CTC/cuda-dpd-sem/dpd/
+ *  Part of uDeviceX/cuda-dpd-sem/dpd/
  *
  *  Evaluation of DPD force using Newton's 3rd law
  *  Created and authored by Yu-Hang Tang and Mauro Bisson on 2015-04-01.

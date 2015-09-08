@@ -1,6 +1,6 @@
 /*
- *  wall-interactions.h
- *  Part of CTC/mpi-dpd/
+ *  wall.h
+ *  Part of uDeviceX/mpi-dpd/
  *
  *  Created and authored by Diego Rossinelli on 2014-11-19.
  *  Copyright 2015. All rights reserved.
