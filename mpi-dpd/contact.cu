@@ -52,7 +52,7 @@ namespace KernelsContact
 	texCellsStart.mipmapFilterMode = cudaFilterModePoint;
 	texCellsStart.normalized = 0;
 
-	texCellEntries.channelDesc = cudaCreateChannelDesc<float2>();
+	texCellEntries.channelDesc = cudaCreateChannelDesc<int>();
 	texCellEntries.filterMode = cudaFilterModePoint;
 	texCellEntries.mipmapFilterMode = cudaFilterModePoint;
 	texCellEntries.normalized = 0;
@@ -63,8 +63,8 @@ namespace KernelsContact
 }
 
 ComputeContact::ComputeContact(MPI_Comm comm):
-cellsentries(KernelsContact::NCELLS), cellsstart(KernelsContact::NCELLS),
-cellscount(KernelsContact::NCELLS), compressed_cellscount(KernelsContact::NCELLS)
+cellsentries(KernelsContact::NCELLS + 4), cellsstart(KernelsContact::NCELLS + 4),
+cellscount(KernelsContact::NCELLS + 4), compressed_cellscount(KernelsContact::NCELLS + 4)
 {
     int myrank;
     MPI_CHECK( MPI_Comm_rank(comm, &myrank));
@@ -105,7 +105,10 @@ namespace KernelsContact
 	    return;
 
 	const uchar4 subindex = subindices[pid];
-	assert(subindex.x != 0xff && subindex.y != 0xff && subindex.z != 0xff && subindex.w < 0xff);
+	
+	if (subindex.x == 0xff && subindex.y == 0xff && subindex.z == 0xff)
+	    return;
+	
 	assert(subindex.x < XCELLS && subindex.y < YCELLS && subindex.z < ZCELLS);
 
 	const int cellid = subindex.x + XCELLS * (subindex.y + YCELLS * subindex.z);
@@ -129,13 +132,19 @@ namespace KernelsContact
     {
 	size_t textureoffset = 0;
 
-	if (ncellentries)
+#ifndef NDEBUG
 	{
+	    int nitems;
+	    CUDA_CHECK(cudaMemcpy(&nitems, cellsstart + NCELLS , sizeof(int), cudaMemcpyDeviceToHost));
+	    printf("nitems is %d, ntotal: %d\n", nitems, ncellentries);
+	}
+#endif
+	if (ncellentries)
 	    CUDA_CHECK(cudaBindTexture(&textureoffset, &texCellEntries, cellentries, &texCellEntries.channelDesc,
 				       sizeof(int) * ncellentries));
-	    assert(textureoffset == 0);
-	}
-
+	
+	assert(textureoffset == 0);
+	
 	const int ncells = XSIZE_SUBDOMAIN * YSIZE_SUBDOMAIN * ZSIZE_SUBDOMAIN;
 
 	CUDA_CHECK(cudaBindTexture(&textureoffset, &texCellsStart, cellsstart, &texCellsStart.channelDesc, sizeof(int) * ncells));
@@ -173,12 +182,20 @@ void ComputeContact::build_cells(std::vector<ParticlesWrap> wsolutes, cudaStream
     cellsentries.resize(ntotal);
 
     CUDA_CHECK(cudaMemsetAsync(cellscount.data, 0, sizeof(int) * cellscount.size, stream));
+    
+#ifndef NDEBUG
+    CUDA_CHECK(cudaMemsetAsync(cellsentries.data, 0xff, sizeof(int) * cellsentries.capacity, stream));
+    CUDA_CHECK(cudaMemsetAsync(subindices.data, 0xff, sizeof(int) * subindices.capacity, stream));
+#endif
 
+    int ctr = 0;
     for(int i = 0; i < wsolutes.size(); ++i)
     {
 	const ParticlesWrap it = wsolutes[i];
 
-	subindex_local<<< (it.n + 127) / 128, 128, 0, stream >>>(it.n, (float2 *)it.p, cellscount.data, subindices.data);
+	subindex_local<<< (it.n + 127) / 128, 128, 0, stream >>>(it.n, (float2 *)it.p, cellscount.data, subindices.data + ctr);
+
+	ctr += it.n;
     }
 
     compress_counts<<< (compressed_cellscount.size + 127) / 128, 128, 0, stream >>>
@@ -186,7 +203,7 @@ void ComputeContact::build_cells(std::vector<ParticlesWrap> wsolutes, cudaStream
 
     scan(compressed_cellscount.data, compressed_cellscount.size, stream, (uint *)cellsstart.data);
 
-    int ctr = 0;
+    ctr = 0;
     for(int i = 0; i < wsolutes.size(); ++i)
     {
 	const ParticlesWrap it = wsolutes[i];
