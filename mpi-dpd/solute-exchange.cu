@@ -14,6 +14,7 @@
 
 #include <../dpd-rng.h>
 
+#include "common-kernels.h"
 #include "solute-exchange.h"
 
 namespace SolutePUP

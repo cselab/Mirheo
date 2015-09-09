@@ -373,6 +373,9 @@ void Simulation::_forces()
 
     CUDA_CHECK(cudaPeekAtLastError());
 
+    if (contactforces)
+	contact.build_cells(wsolutes, mainstream);
+
     dpd.local_interactions(particles->xyzuvw.data, xyzouvwo.data, xyzo_half.data, particles->size, particles->axayaz.data,
 			   cells.start, cells.count, mainstream);
 
@@ -403,6 +406,9 @@ void Simulation::_forces()
     dpd.remote_interactions(particles->xyzuvw.data, particles->size, particles->axayaz.data, mainstream, uploadstream);
 
     fsi.bulk(wsolutes, mainstream);
+
+    if (contactforces)
+	contact.bulk(wsolutes, mainstream);
 
     CUDA_CHECK(cudaPeekAtLastError());
 
@@ -660,7 +666,7 @@ Simulation::Simulation(MPI_Comm cartcomm, MPI_Comm activecomm, bool (*check_term
     /*particles(_ic()),*/ cells(XSIZE_SUBDOMAIN, YSIZE_SUBDOMAIN, ZSIZE_SUBDOMAIN),
     rbcscoll(NULL), ctcscoll(NULL), wall(NULL),
     redistribute(cartcomm),  redistribute_rbcs(cartcomm),  redistribute_ctcs(cartcomm),
-    dpd(cartcomm), fsi(cartcomm), solutex(cartcomm),
+    dpd(cartcomm), fsi(cartcomm), contact(cartcomm), solutex(cartcomm),
     check_termination(check_termination),
     driving_acceleration(0), host_idle_time(0), nsteps((int)(tend / dt)),
     datadump_pending(false), simulation_is_done(false)
@@ -669,6 +675,9 @@ Simulation::Simulation(MPI_Comm cartcomm, MPI_Comm activecomm, bool (*check_term
     MPI_CHECK( MPI_Comm_rank(activecomm, &rank) );
 
     solutex.attach_halocomputation(fsi);
+
+    if (contactforces)
+	solutex.attach_halocomputation(contact);
     //localcomm.initialize(activecomm);
 
     int dims[3], periods[3], coords[3];
@@ -782,6 +791,9 @@ void Simulation::_lockstep()
     dpd.local_interactions(particles->xyzuvw.data, xyzouvwo.data, xyzo_half.data, particles->size, particles->axayaz.data,
 			   cells.start, cells.count, mainstream);
 
+    if (contactforces)
+	contact.build_cells(wsolutes, mainstream);
+
     solutex.post_p(mainstream, downloadstream);
 
     dpd.post(particles->xyzuvw.data, particles->size, mainstream, downloadstream);
@@ -803,6 +815,9 @@ void Simulation::_lockstep()
     dpd.remote_interactions(particles->xyzuvw.data, particles->size, particles->axayaz.data, mainstream, uploadstream);
 
     fsi.bulk(wsolutes, mainstream);
+
+    if (contactforces)
+	contact.bulk(wsolutes, mainstream);
 
     CUDA_CHECK(cudaPeekAtLastError());
 

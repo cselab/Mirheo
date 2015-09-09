@@ -12,6 +12,7 @@
 
 #include <../dpd-rng.h>
 
+#include "common-kernels.h"
 #include "fsi.h"
 
 namespace KernelsFSI

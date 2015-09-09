@@ -14,9 +14,9 @@
 #include <vector>
 #include <algorithm>
 
+#include "common-kernels.h"
+#include "scan.h"
 #include "redistribute-particles.h"
-
-extern void scan(const unsigned char * const input, const int size, cudaStream_t stream, uint * const output);
 
 #ifndef WARPSIZE
 #define WARPSIZE 32
@@ -191,130 +191,6 @@ namespace RedistributeParticlesKernels
 	pack_buffers[idpack].buffer[d] = tex1Dfetch(texAllParticlesFloat2, c + 3 * pid);
     }
 
-    __global__ void subindex_local(const int nparticles, const float2 * particles, int * const partials, uchar4 * subindices)
-    {
-	assert(blockDim.x == 128 && blockDim.x * gridDim.x >= nparticles);
-
-	const int lane = threadIdx.x & 0x1f;
-	const int warpid = threadIdx.x >> 5;
-	const int base = 32 * (warpid + 4 * blockIdx.x);
-	const int nsrc = min(32, nparticles - base);
-
-	if (nsrc == 0)
-	    return;
-
-	int cid = -1;
-
-	//LOAD PARTICLES, COMPUTE CELL ID
-	{
-	    float2 data0, data1, data2;
-
-	    read_AOS6f(particles + 3 * base, nsrc, data0, data1, data2);
-
-	    const bool inside = (data0.x >= -XSIZE_SUBDOMAIN / 2 && data0.x < XSIZE_SUBDOMAIN / 2 &&
-				 data0.y >= -YSIZE_SUBDOMAIN / 2 && data0.y < YSIZE_SUBDOMAIN / 2 &&
-				 data1.x >= -ZSIZE_SUBDOMAIN / 2 && data1.x < ZSIZE_SUBDOMAIN / 2 );
-
-	    if (lane < nsrc && inside)
-	    {
-		const int xcid = (int)floor((double)data0.x + XSIZE_SUBDOMAIN / 2);
-		const int ycid = (int)floor((double)data0.y + YSIZE_SUBDOMAIN / 2);
-		const int zcid = (int)floor((double)data1.x + ZSIZE_SUBDOMAIN / 2);
-
-		cid = xcid + XSIZE_SUBDOMAIN * (ycid + YSIZE_SUBDOMAIN * zcid);
-	    }
-	}
-
-	int pid = lane + base;
-
-	//BITONIC SORT
-	{
-#pragma unroll
-	    for(int D = 1; D <= 16; D <<= 1)
-#pragma unroll
-		for(int L = D; L >= 1; L >>= 1)
-		{
-		    const int mask = L == D ? 2 * D - 1 : L;
-
-		    const int othercid = __shfl_xor(cid, mask);
-		    const int otherpid = __shfl_xor(pid, mask);
-
-		    const bool exchange =  (2 * (int)(lane < (lane ^ mask)) - 1) * (cid - othercid) > 0;
-
-		    if (exchange)
-		    {
-			cid = othercid;
-			pid = otherpid;
-		    }
-		}
-	}
-
-	int start, pcount;
-
-	//FIND PARTICLES SHARING SAME CELL IDS
-	{
-	    __shared__ volatile int keys[4][32];
-
-	    keys[warpid][lane] = cid;
-
-	    const bool ishead = cid != __shfl(cid, lane - 1) || lane == 0;
-
-	    if (cid >= 0)
-	    {
-		const int searchval = ishead ? cid + 1 : cid;
-
-		int first = ishead ? lane : 0;
-		int last = ishead ? 32 : (lane + 1);
-		int count = last - first;
-
-		while (count > 0)
-		{
-		    const int step = count / 2;
-		    const int it = first + step;
-
-		    if (keys[warpid][it] < searchval)
-		    {
-			first = it + 1;
-			count -= step + 1;
-		    }
-		    else
-			count = step;
-		}
-
-		start = ishead ? lane : first;
-
-		if (ishead)
-		    pcount = first - lane;
-	    }
-	}
-
-	//ADD COUNT TO PARTIALS, WRITE SUBINDEX
-	{
-	    int globalstart;
-
-	    if (cid >= 0 && lane == start)
-		globalstart = atomicAdd(partials + cid, pcount);
-
-
-	    const int subindex = __shfl(globalstart, start) + (lane - start);
-	    assert(subindex < 0xff && subindex >= 0 || cid < 0 );
-
-	    uchar4 entry = make_uchar4(0xff, 0xff, 0xff, 0xff);
-
-	    if (cid >= 0)
-	    {
-		const int xcid = cid % XSIZE_SUBDOMAIN;
-		const int ycid = (cid / XSIZE_SUBDOMAIN) % YSIZE_SUBDOMAIN;
-		const int zcid = cid / (XSIZE_SUBDOMAIN * YSIZE_SUBDOMAIN);
-
-		entry = make_uchar4(xcid, ycid, zcid, subindex);
-	    }
-
-	    if (pid < nparticles)
-		subindices[pid] = entry;
-	}
-    }
-
     __global__ void subindex_remote(const uint nparticles_padded,
 				    const uint nparticles, int * const partials, float2 * const dstbuf, uchar4 * const subindices)
     {
@@ -378,20 +254,6 @@ namespace RedistributeParticlesKernels
 
 	if (laneid < nunpack)
 	    subindices[dstbase + laneid] = make_uchar4(xcid, ycid, zcid, subindex);
-    }
-
-    __global__ void compress_counts(const int nentries, const int4 * const counts, uchar4 * const output)
-    {
-	const int gid = threadIdx.x + blockDim.x * blockIdx.x;
-
-	if (4 * gid >= nentries)
-	    return;
-
-	assert(nentries % 4 == 0);
-
-	const int4 entry = counts[gid];
-
-	output[gid] = make_uchar4(entry.x, entry.y, entry.z, entry.w);
     }
 
     __global__ void scatter_indices(const bool remote, const uchar4 * const subindices, const int nparticles,
@@ -878,7 +740,7 @@ void RedistributeParticles::bulk(const int nparticles, int * const cellstarts, i
     subindices.resize(nparticles);
 */
     subindices.resize(nparticles);
-    RedistributeParticlesKernels::subindex_local<<< (nparticles + 127) / 128, 128, 0, mystream>>>
+    subindex_local<<< (nparticles + 127) / 128, 128, 0, mystream>>>
 	(nparticles, RedistributeParticlesKernels::texparticledata, cellcounts, subindices.data);
 /*
 #ifndef NDEBUG
@@ -988,7 +850,7 @@ void RedistributeParticles::recv_unpack(Particle * const particles, float4 * con
 	RedistributeParticlesKernels::subindex_remote<<< (nhalo_padded + 127) / 128, 128, 0, mystream >>>
 	    (nhalo_padded, nhalo, cellcounts, (float2 *)remote_particles.data, subindices_remote.data);
 
-    RedistributeParticlesKernels::compress_counts<<< (compressed_cellcounts.size + 127) / 128, 128, 0, mystream >>>
+    compress_counts<<< (compressed_cellcounts.size + 127) / 128, 128, 0, mystream >>>
 	(compressed_cellcounts.size, (int4 *)cellcounts, (uchar4 *)compressed_cellcounts.data);
 
     scan(compressed_cellcounts.data, compressed_cellcounts.size, mystream, (uint *)cellstarts);
