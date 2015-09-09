@@ -71,7 +71,7 @@ Redistance::Redistance(const float dt, const float dx, const float dy,
             if (t % 100 == 0)
                 printf("t: %d, size: %d %d\n", t, m_xsize, m_ysize);
 
-//#pragma omp parallel for
+#pragma omp parallel for
             for(int iy = 0; iy < m_ysize; ++iy)
                 for(int ix = 0; ix < m_xsize; ++ix)
                 {
