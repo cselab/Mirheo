@@ -1,5 +1,5 @@
 /*
- *  collage.cpp
+ *  collage.h
  *  Part of CTC/device-gen/common/
  *
  *  Created and authored by Diego Rossinelli and Kirill Lykov on 2015-03-20.

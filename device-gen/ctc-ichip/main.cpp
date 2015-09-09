@@ -18,6 +18,7 @@
 #include <algorithm>
 #include <stdexcept>
 #include <argument-parser.h>
+#include "../common/device-builder.h"
 #include "../common/common.h"
 #include "../common/collage.h"
 #include "../common/redistance.h"
@@ -57,21 +58,14 @@ struct Egg
     }
 };
 
-typedef vector<float> SDF;
-
-class CTCiChip1Builder
+class CTCiChip1Builder : public DeviceBuilder
 {
-    int m_ncolumns, m_nrows, m_nrepeat;
-    float m_resolution, m_zmargin;
-    float m_eggSizeX, m_eggSizeY, m_eggSizeZ; // size of the egg with the empty space aroung it
+    int m_nrepeat;
     const float m_angle;
-    std::string m_outFileName2D, m_outFileName3D;
-    int m_niterRedistance;
 public:
     CTCiChip1Builder()
-    : m_ncolumns(0), m_nrows(0), m_nrepeat(0), m_resolution(0), m_zmargin(0),
-      m_eggSizeX(56.0f), m_eggSizeY(32.0f), m_eggSizeZ(58.0f),
-      m_angle(1.7f * M_PI / 180.0f), m_niterRedistance(1e3)
+    : DeviceBuilder(56.0f, 32.0f, 58.0f),
+      m_nrepeat(0), m_angle(1.7f * M_PI / 180.0f)
     {}
 
     CTCiChip1Builder& setNColumns(int ncolumns) 
@@ -116,34 +110,35 @@ public:
         return *this;
     }
     
-    void build() const;
+    void build();
         
 private:
-    void generateEggSDF(const int NX, const int NY, const float xextent, const float yextent, vector<float>& sdf) const;
+    void generateUnitSDF(vector<float>& sdf) const;
 
     void shiftRows(int rowNX, int rowNY, float rowSizeX, float rowSizeY, const SDF& rowObstacles,
                    float& padding, int& shiftedRowNX, float& shiftedRowSizeX,std::vector<SDF>& shiftedRows) const;
 };
 
-void CTCiChip1Builder::build() const
+void CTCiChip1Builder::build() 
 {
     if (m_ncolumns *  m_nrows *  m_nrepeat * m_resolution * m_zmargin == 0.0f || m_outFileName3D.length() == 0)
         throw std::runtime_error("Invalid parameters");
+    
     // 1 Create 1 obstacle
-    const int eggNX = static_cast<int>(m_eggSizeX * m_resolution);
-    const int eggNY = static_cast<int>(m_eggSizeY * m_resolution);
-    const int eggNZ = static_cast<int>(m_eggSizeZ * m_resolution);
+    m_unitNX = static_cast<int>(m_unitSizeX * m_resolution);
+    m_unitNY = static_cast<int>(m_unitSizeY * m_resolution);
+    m_unitNZ = static_cast<int>(m_unitSizeZ * m_resolution);
 
     SDF eggSdf;
-    generateEggSDF(eggNX, eggNY, m_eggSizeX, m_eggSizeY, eggSdf);
+    generateUnitSDF(eggSdf);
 
     // 2 Create 1 row of obstacles
-    int rowNX = m_ncolumns*eggNX;
-    int rowNY = eggNY;
-    int rowSizeX = m_ncolumns * m_eggSizeX;
-    int rowSizeY = m_eggSizeY;
+    int rowNX = m_ncolumns*m_unitNX;
+    int rowNY = m_unitNY;
+    int rowSizeX = m_ncolumns * m_unitSizeX;
+    int rowSizeY = m_unitSizeY;
     SDF rowObstacles;
-    populateSDF(eggNX, eggNY, m_eggSizeX, m_eggSizeY, eggSdf, m_ncolumns, 1, rowObstacles);
+    populateSDF(m_unitNX, m_unitNY, m_unitSizeX, m_unitSizeY, eggSdf, m_ncolumns, 1, rowObstacles);
 
     // 3 Shift rows
     float padding = 0.0f;
@@ -175,27 +170,25 @@ void CTCiChip1Builder::build() const
         writeDAT(m_outFileName2D, finalSDF, finalN[0], m_nrepeat * finalN[1], 1, finalExtent[0], m_nrepeat * finalExtent[1], 1.0f);
 
     conver2Dto3D(finalN[0], m_nrepeat * finalN[1], finalExtent[0], m_nrepeat*finalExtent[1], finalSDF,
-                 eggNZ, m_eggSizeZ - 2.0f*m_zmargin, m_zmargin, m_outFileName3D);
+                 m_unitNZ, m_unitSizeZ - 2.0f*m_zmargin, m_zmargin, m_outFileName3D);
 }
 
-void CTCiChip1Builder::generateEggSDF(const int NX, const int NY, const float xextent, const float yextent, vector<float>& sdf) const
+void CTCiChip1Builder::generateUnitSDF(vector<float>& sdf) const
 {
     vector<float> xs, ys;
     Egg egg;
     egg.run(xs, ys);
 
-    const float xlb = -xextent/2.0f;
-    const float ylb = -yextent/2.0f;
-    printf("starting brute force sdf with %d x %d starting from %f %f to %f %f\n",
-           NX, NY, xlb, ylb, xlb + xextent, ylb + yextent);
+    const float xlb = -m_unitSizeX/2.0f;
+    const float ylb = -m_unitSizeY/2.0f;
 
-    sdf.resize(NX * NY, 0.0f);
-    const float dx = xextent / NX;
-    const float dy = yextent / NY;
+    sdf.resize(m_unitNX * m_unitNY, 0.0f);
+    const float dx = m_unitSizeX / (m_unitNX - 1);
+    const float dy = m_unitSizeY / (m_unitNY - 1);
     const int nsamples = xs.size();
 
-    for(int iy = 0; iy < NY; ++iy)
-    for(int ix = 0; ix < NX; ++ix)
+    for(int iy = 0; iy < m_unitNY; ++iy)
+    for(int ix = 0; ix < m_unitNX; ++ix)
     {
         const float x = xlb + ix * dx;
         const float y = ylb + iy * dy;
@@ -224,24 +217,24 @@ void CTCiChip1Builder::generateEggSDF(const int NX, const int NY, const float xe
         }
 
 
-        sdf[ix + NX * iy] = s * sqrt(distance2);
+        sdf[ix + m_unitNX * iy] = s * sqrt(distance2);
     }
 }
 
 void CTCiChip1Builder::shiftRows(int rowNX, int rowNY, float rowSizeX, float rowSizeY, const SDF& rowObstacles,
                                  float& padding, int& shiftedRowNX, float& shiftedRowSizeX,std::vector<SDF>& shiftedRows) const
 {
-    const int nRowsPerShift = static_cast<int>(ceil(m_eggSizeX / (m_eggSizeY * tan(m_angle))));
-    if (fabs(m_eggSizeX / (m_eggSizeY * tan(m_angle)) - nRowsPerShift) > 1e-1) {
+    const int nRowsPerShift = static_cast<int>(ceil(m_unitSizeX / (m_unitSizeY * tan(m_angle))));
+    if (fabs(m_unitSizeX / (m_unitSizeY * tan(m_angle)) - nRowsPerShift) > 1e-1) {
         throw std::runtime_error("Suggest changing the angle");
     }
 
-    padding = float(ceil(m_nrows * m_eggSizeY * tan(m_angle)));
+    padding = float(ceil(m_nrows * m_unitSizeY * tan(m_angle)));
     // TODO Do I need this nUniqueRows?
     int nUniqueRows = m_nrows;
     if (m_nrows > nRowsPerShift) {
         nUniqueRows = nRowsPerShift;
-        padding = float(round(nRowsPerShift * m_eggSizeY * tan(m_angle)));
+        padding = float(round(nRowsPerShift * m_unitSizeY * tan(m_angle)));
     }
 
     // TODO fix this stupid workaround
@@ -262,14 +255,13 @@ void CTCiChip1Builder::shiftRows(int rowNX, int rowNY, float rowSizeX, float row
 
 int main(int argc, char ** argv)
 {
-
     ArgumentParser argp(vector<string>(argv, argv + argc));
 
     int nColumns = argp("-nColumns").asInt(1);
     int nRows = argp("-nRows").asInt(1);
     int nRepeat = argp("-nRepeat").asInt(1);    
     float zMargin = static_cast<float>(argp("-zMargin").asDouble(5.0));
-
+    float resolution = static_cast<float>(argp("-zResolution").asDouble(1.0));
     std::string outFileName = argp("-out").asString("3d");
 
     CTCiChip1Builder builder;
@@ -277,7 +269,7 @@ int main(int argc, char ** argv)
         builder.setNColumns(nColumns)
                .setNRows(nRows)
                .setRepeat(nRepeat)
-               .setResolution(1.0f)
+               .setResolution(resolution)
                .setZWallWidth(zMargin)
                .setFileNameFor3D(outFileName)
                .build();
