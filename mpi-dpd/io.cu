@@ -1,6 +1,6 @@
 /*
  *  io.cu
- *  Part of CTC/mpi-dpd/
+ *  Part of uDeviceX/mpi-dpd/
  *
  *  Created and authored by Diego Rossinelli on 2015-01-30.
  *  Major bug in H5 dump fixed by Panotelli on 2015-03-24.

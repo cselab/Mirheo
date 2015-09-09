@@ -1,6 +1,6 @@
 /*
  *  funnel-bouncer.cpp
- *  Part of CTC/vanilla-walls/
+ *  Part of uDeviceX/vanilla-walls/
  *
  *  Created by Kirill Lykov, on 2014-08-12.
  *  Authored by Diego Rossinelli on 2014-08-12.

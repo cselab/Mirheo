@@ -1,8 +1,8 @@
 /*
  *  scan.cu
- *  Part of CTC/mpi-dpd/
+ *  Part of uDeviceX/mpi-dpd/
  *
- *  Created and authored by Diego Rossinelli on 2014-11-28.
+ *  Created and authored by Mauro Bisson on 2015-07-28.
  *  Copyright 2015. All rights reserved.
  *
  *  Users are NOT authorized
@@ -10,289 +10,328 @@
  *  before getting a written permission from the author of this file.
  */
 
-#include "scan.h"
+template <int NWARP>
+__global__ void breduce(uint4 *vin, unsigned int *vout, int n) {
 
-//THIS CODE WAS NAIVELY EXTENDED FROM THE CUDA SDK!!! SHAME ON ME.
+	const int wid = threadIdx.x/32;
+	const int lid = threadIdx.x%32;
+	const int tid = blockDim.x*blockIdx.x + threadIdx.x;
+	uint4 val = make_uint4(0,0,0,0);
 
-//All three kernels run 512 threads per workgroup
-//Must be a power of two
-#define THREADBLOCK_SIZE 256
+	__shared__ unsigned int shtmp[NWARP]; 
 
-////////////////////////////////////////////////////////////////////////////////
-// Basic ccan codelets
-////////////////////////////////////////////////////////////////////////////////
-//Naive inclusive scan: O(N * log2(N)) operations
-//Allocate 2 * 'size' local memory, initialize the first half
-//with 'size' zeros avoiding if(pos >= offset) condition evaluation
-//and saving instructions
-inline __device__ uint scan1Inclusive(uint idata, volatile uint *s_Data, uint size)
-{
-    uint pos = 2 * threadIdx.x - (threadIdx.x & (size - 1));
-    s_Data[pos] = 0;
-    pos += size;
-    s_Data[pos] = idata;
+	if (tid < n) val = vin[tid];
 
-    for (uint offset = 1; offset < size; offset <<= 1)
-    {
-        __syncthreads();
-        uint t = s_Data[pos] + s_Data[pos - offset];
-        __syncthreads();
-        s_Data[pos] = t;
-    }
+	val.x = ((val.x & 0xFF000000) >> 24) + ((val.x & 0xFF0000) >> 16) + ((val.x & 0xFF00) >> 8) + (val.x & 0xFF);
+	val.y = ((val.y & 0xFF000000) >> 24) + ((val.y & 0xFF0000) >> 16) + ((val.y & 0xFF00) >> 8) + (val.y & 0xFF);
+	val.z = ((val.z & 0xFF000000) >> 24) + ((val.z & 0xFF0000) >> 16) + ((val.z & 0xFF00) >> 8) + (val.z & 0xFF);
+	val.w = ((val.w & 0xFF000000) >> 24) + ((val.w & 0xFF0000) >> 16) + ((val.w & 0xFF00) >> 8) + (val.w & 0xFF);
+	val.x += val.y + val.z + val.w;
 
-    return s_Data[pos];
-}
+	#pragma unroll
+	for(int i = 16; i > 0; i >>= 1)
+		val.x += __shfl_down((int)val.x, i);
 
-inline __device__ uint scan1Exclusive(uint idata, volatile uint *s_Data, uint size)
-{
-    return scan1Inclusive(idata, s_Data, size) - idata;
-}
+	if (0 == lid)
+		shtmp[wid] = val.x;
 
-inline __device__ uint4 scan4Inclusive(uint4 idata4, volatile uint *s_Data, uint size)
-{
-    //Level-0 inclusive scan
-    idata4.y += idata4.x;
-    idata4.z += idata4.y;
-    idata4.w += idata4.z;
-
-    //Level-1 exclusive scan
-    uint oval = scan1Exclusive(idata4.w, s_Data, size / 4);
-
-    idata4.x += oval;
-    idata4.y += oval;
-    idata4.z += oval;
-    idata4.w += oval;
-
-    return idata4;
-}
-
-//Exclusive vector scan: the array to be scanned is stored
-//in local thread memory scope as uint4
-inline __device__ uint4 scan4Exclusive(uint4 idata4, volatile uint *s_Data, uint size)
-{
-    uint4 odata4 = scan4Inclusive(idata4, s_Data, size);
-    odata4.x -= idata4.x;
-    odata4.y -= idata4.y;
-    odata4.z -= idata4.z;
-    odata4.w -= idata4.w;
-    return odata4;
-}
-
-////////////////////////////////////////////////////////////////////////////////
-// Scan kernels
-////////////////////////////////////////////////////////////////////////////////
-__global__ void scanExclusiveShared(uint4 *d_Dst, uint4 *d_Src, uint size, const int arrayLength)
-{
-    __shared__ uint s_Data[2 * THREADBLOCK_SIZE];
-
-    uint pos = blockIdx.x * blockDim.x + threadIdx.x;
-
-    //Load data
-    uint4 idata4 = make_uint4(0, 0, 0, 0);
-
-    if (pos * 4 < arrayLength)
-	idata4 = d_Src[pos];
-
-    //Calculate exclusive scan
-    uint4 odata4 = scan4Exclusive(idata4, s_Data, size);
-
-    //Write back
-    if (pos * 4 < arrayLength)
-	d_Dst[pos] = odata4;
-}
-
-//Exclusive scan of top elements of bottom-level scans (4 * THREADBLOCK_SIZE)
-__global__ void scanExclusiveShared2(uint *d_Buf, uint *d_Dst, uint *d_Src, uint N, uint arrayLength, uint originalArrayLength)
-{
-    __shared__ uint s_Data[2 * THREADBLOCK_SIZE];
-
-    //Skip loads and stores for inactive threads of last threadblock (pos >= N)
-    uint pos = blockIdx.x * blockDim.x + threadIdx.x;
-
-    //Load top elements
-    //Convert results of bottom-level scan back to inclusive
-    uint idata = 0;
-    const int entry = (4 * THREADBLOCK_SIZE) - 1 + (4 * THREADBLOCK_SIZE) * pos;
-    const bool valid = pos < N && entry >= 0 && entry < originalArrayLength;
-    
-    if (valid)
-	idata =
-            d_Dst[entry] +
-            d_Src[entry];
- 
-    //Compute
-    uint odata = scan1Exclusive(idata, s_Data, arrayLength);
-    
-    //Avoid out-of-bound access
-    if (pos < N)
-    {
-//	printf("gid %d my odata: %d, idata %d\n", pos, odata, idata);
-        d_Buf[pos] = odata;
-    }
-}
-
-//Final step of large-array scan: combine basic inclusive scan with exclusive scan of top elements of input arrays
-__global__ void uniformUpdate(uint4 *d_Data, uint *d_Buffer, const int arrayLength)
-{
-    __shared__ uint buf;
-    uint pos = blockIdx.x * blockDim.x + threadIdx.x;
-
-    if (threadIdx.x == 0)
-    {
-        buf = d_Buffer[blockIdx.x];
-    }
-
-    __syncthreads();
-
-    if (pos * 4 < arrayLength)
-    {
-	uint4 data4 = d_Data[pos];
-	data4.x += buf;
-	data4.y += buf;
-	data4.z += buf;
-	data4.w += buf;
-	d_Data[pos] = data4;
-    }
-}
-
-////////////////////////////////////////////////////////////////////////////////
-// Interface function
-////////////////////////////////////////////////////////////////////////////////
-//Derived as 32768 (max power-of-two gridDim.x) * 4 * THREADBLOCK_SIZE
-//Due to scanExclusiveShared<<<>>>() 1D block addressing
-
-static const uint MIN_SHORT_ARRAY_SIZE = 4;
-static const uint MAX_SHORT_ARRAY_SIZE = 4 * THREADBLOCK_SIZE;
-#ifndef NDEBUG
-static const uint MAX_BATCH_ELEMENTS = 64 * 1048576;
-static const uint MIN_LARGE_ARRAY_SIZE = 4 * THREADBLOCK_SIZE;
-static const uint MAX_LARGE_ARRAY_SIZE = 4 * THREADBLOCK_SIZE * THREADBLOCK_SIZE;
-#endif
-
-//Internal exclusive scan buffer
-//static uint *d_Buf;
-//  CUDA_CHECK(cudaMalloc((void **)&d_Buf, (MAX_BATCH_ELEMENTS / (4 * THREADBLOCK_SIZE)) * sizeof(uint)));
-
-
-static int nextpo2(unsigned int v)
-{
-     // compute the next highest power of 2 of 32-bit v
-
-    v--;
-    v |= v >> 1;
-    v |= v >> 2;
-    v |= v >> 4;
-    v |= v >> 8;
-    v |= v >> 16;
-    v++;
-
-    return v;
-}
-
-__global__ void scanExclusiveRidiculous(uint *d_Dst, uint *d_Src, uint arrayLength)
-{
-    int s = 0;
-    for(int i = 0; i < arrayLength; ++i)
-    {
-	d_Dst[i] = s;
-	s += d_Src[i];
-    }
-}
-
-//block footprint in terms of touched global entries
-static const int BFP = 4 * THREADBLOCK_SIZE;
-
-void scanExclusiveShort(cudaStream_t stream, uint *d_Dst, uint *d_Src, uint arrayLength)
-{
-    //printf("hello short\n");
- 
-    //Check supported size range
-    assert((arrayLength >= MIN_SHORT_ARRAY_SIZE) && (arrayLength <= MAX_SHORT_ARRAY_SIZE));
-
-    //Check total batch size limit
-    assert(arrayLength <= MAX_BATCH_ELEMENTS);
-
-    //Check all threadblocks to be fully packed with data
-    //assert(arrayLength % (4 * THREADBLOCK_SIZE) == 0);
-
-    scanExclusiveShared<<<(arrayLength + BFP-1) / BFP, THREADBLOCK_SIZE, 0, stream>>>(
-        (uint4 *)d_Dst,
-        (uint4 *)d_Src,
-	nextpo2(arrayLength), arrayLength);
-
-    CUDA_CHECK(cudaPeekAtLastError());
-}
-
-void scanExclusiveLarge(cudaStream_t stream, uint *d_Dst, uint *d_Buf, uint *d_Src, uint arrayLength)
-{
-    //printf("hello large\n");
-   
-    const int next_size = nextpo2(arrayLength);
-    
-    //Check supported size range
-    assert((arrayLength >= MIN_LARGE_ARRAY_SIZE) && (arrayLength <= MAX_LARGE_ARRAY_SIZE));
-
-    //Check total batch size limit
-    assert(arrayLength <= MAX_BATCH_ELEMENTS);
-
-    const int nfineblocks = (arrayLength + BFP - 1) / BFP;
-    
-    scanExclusiveShared<<< nfineblocks, THREADBLOCK_SIZE, 0, stream>>>(
-        (uint4 *)d_Dst,
-        (uint4 *)d_Src,
-        4 * THREADBLOCK_SIZE,
-	arrayLength
-    );
-    CUDA_CHECK(cudaPeekAtLastError());
-
-    //Not all threadblocks need to be packed with input data:
-    //inactive threads of highest threadblock just don't do global reads and writes
-    const uint blockCount2 =  (nfineblocks + THREADBLOCK_SIZE - 1) / THREADBLOCK_SIZE; 
-    
-    scanExclusiveShared2<<< blockCount2, THREADBLOCK_SIZE, 0, stream>>>(
-        (uint *)d_Buf,
-        (uint *)d_Dst,
-        (uint *)d_Src,
-        nfineblocks,
-        nextpo2(nfineblocks),
-	arrayLength
-    );
-    CUDA_CHECK(cudaPeekAtLastError()); 
-
-    uniformUpdate<<< (arrayLength + BFP - 1) / BFP, THREADBLOCK_SIZE, 0, stream>>>(
-        (uint4 *)d_Dst,
-        (uint *)d_Buf,
-	arrayLength
-	);
-    CUDA_CHECK(cudaPeekAtLastError());
-}
-
-void ScanEngine::exclusive(cudaStream_t stream, uint *d_Dst, uint *d_Src, uint arrayLength)
-{	
-    if (arrayLength <  MIN_SHORT_ARRAY_SIZE)
-    {
-	scanExclusiveRidiculous<<<1, 1, 0, stream>>>(d_Dst, d_Src, arrayLength);
-    }
-    else
-    {
-	if (arrayLength < MAX_SHORT_ARRAY_SIZE)
-	    scanExclusiveShort(stream, d_Dst, d_Src, arrayLength);
-	else
-	{
-	    if (str2buf[stream] == NULL)
-	    {
-		str2buf[stream] = new SimpleDeviceBuffer<uint>;
-	    }
-	    
-	    str2buf[stream]->resize((arrayLength + BFP - 1) / BFP);
-	    
-	    scanExclusiveLarge(stream, d_Dst,  str2buf[stream]->data, d_Src, arrayLength);
+	__syncthreads();
+	if (0 == wid) {
+		val.x = (lid < NWARP) ? shtmp[lid] : 0;
+		
+		#pragma unroll
+		for(int i = 16; i > 0; i >>= 1)
+			val.x += __shfl_down((int)val.x, i);
 	}
-    }
+	if (0 == threadIdx.x) vout[blockIdx.x] = val.x;
+	return;
 }
 
-ScanEngine::~ScanEngine()
-{
-    for(std::map< cudaStream_t, SimpleDeviceBuffer<uint> *>::iterator it = str2buf.begin(); it != str2buf.end(); ++it)
-	delete it->second;
+template <int BDIM>
+__global__ void bexscan(unsigned int *v, int n) {
+
+	extern __shared__ unsigned int shtmp[]; 
+
+	//assert(gridDim.x == 1);
+	//assert(blockDim.x == BDIM);
+
+	for(int i = threadIdx.x; i < n; i += BDIM) shtmp[i] = v[i];
+
+	int i = threadIdx.x;
+	__syncthreads();
+	for(; n >= BDIM; i += BDIM, n -= BDIM) {
+
+		__syncthreads();
+		if (i > 0 && 0 == threadIdx.x)
+			shtmp[i] += shtmp[i-1];
+
+		unsigned int a = 0;
+
+		#pragma unroll
+		for(int j = 1; j < BDIM; j <<= 1) {
+			a = 0;
+
+			__syncthreads();
+			if (threadIdx.x >= j) a = shtmp[i] + shtmp[i-j];
+
+			__syncthreads();
+			if (threadIdx.x >= j) shtmp[i] = a;
+		}
+		v[i] = shtmp[i];
+	}
+	if (threadIdx.x < n) {
+
+		__syncthreads();
+		if (i > 0 && 0 == threadIdx.x)
+			shtmp[i] += shtmp[i-1];
+
+		unsigned int a = 0;
+		for(int j = 1; j < BDIM; j <<= 1) {
+			a = 0;
+
+			__syncthreads();
+			if (threadIdx.x >= j) a = shtmp[i] + shtmp[i-j];
+
+			__syncthreads();
+			if (threadIdx.x >= j) shtmp[i] = a;
+		}
+		v[i] = shtmp[i];
+	}
+	return;
 }
+
+template <int NWARP>
+__global__ void gexscan(uint4 *vin, unsigned int *offs, uint4 *vout, int n) {
+
+	const int wid = threadIdx.x/32;
+	const int lid = threadIdx.x%32;
+	const int tid = blockDim.x*blockIdx.x + threadIdx.x;
+	uint4 val[4];
+
+	__shared__ unsigned int woff[NWARP]; 
+
+	//assert(0 == NWARP%4);
+
+	if (tid < n) val[0] = vin[tid];
+	else 	     val[0] = make_uint4(0,0,0,0);
+
+	// read bytes B0 B1 B2 B3 into VAL[*].y VAL[*].z VAL[*].w VAL[*].x
+	val[3].y = (val[0].w & 0x000000FF);
+	val[3].z = (val[0].w & 0x0000FF00) >>  8;
+	val[3].w = (val[0].w & 0x00FF0000) >> 16;
+	val[3].x = (val[0].w & 0xFF000000) >> 24;
+
+	val[2].y = (val[0].z & 0x000000FF);
+	val[2].z = (val[0].z & 0x0000FF00) >>  8;
+	val[2].w = (val[0].z & 0x00FF0000) >> 16;
+	val[2].x = (val[0].z & 0xFF000000) >> 24;
+
+	val[1].y = (val[0].y & 0x000000FF);
+	val[1].z = (val[0].y & 0x0000FF00) >>  8;
+	val[1].w = (val[0].y & 0x00FF0000) >> 16;
+	val[1].x = (val[0].y & 0xFF000000) >> 24;
+
+	val[0].y = (val[0].x & 0x000000FF);
+	val[0].z = (val[0].x & 0x0000FF00) >>  8;
+	val[0].w = (val[0].x & 0x00FF0000) >> 16;
+	val[0].x = (val[0].x & 0xFF000000) >> 24;
+
+	uint4 tu4;
+	tu4.x = val[0].x + val[0].y + val[0].z + val[0].w;
+	tu4.y = val[1].x + val[1].y + val[1].z + val[1].w;
+	tu4.z = val[2].x + val[2].y + val[2].z + val[2].w;
+	tu4.w = val[3].x + val[3].y + val[3].z + val[3].w;
+
+	unsigned int tmp = tu4.x + tu4.y + tu4.z + tu4.w;
+
+	tu4.w = tmp;
+	#pragma unroll
+	for(int i = 1; i < 32; i <<= 1)
+		tu4.w += (lid >= i)*__shfl_up((int)tu4.w, i);
+
+	if (lid == 31)
+		if (wid < NWARP-1) woff[wid+1] = tu4.w;
+		else 		   woff[0]     = (blockIdx.x > 0) ? offs[blockIdx.x-1] : 0;
+
+	tu4.w -= tmp;
+
+	__syncthreads();
+	if (0 == wid) {
+		tmp = (lid < NWARP) ? woff[lid] : 0;
+		#pragma unroll
+		for(int i = 1; i < NWARP; i <<= 1)
+			tmp += (lid >= i)*__shfl_up((int)tmp, i);
+
+		if (lid < NWARP) woff[lid] = tmp;
+	}
+	__syncthreads();
+
+	if (tid >= n) return;
+
+	uint4 lps;
+	lps.x = woff[wid] + tu4.w;
+	lps.y = lps.x + tu4.x;
+	lps.z = lps.y + tu4.y;
+	lps.w = lps.z + tu4.z;
+
+	val[0].x = lps.x;
+	val[1].x = lps.y;
+	val[2].x = lps.z;
+	val[3].x = lps.w;
+
+	val[0].y += val[0].x;
+	val[1].y += val[1].x;
+	val[2].y += val[2].x;
+	val[3].y += val[3].x;
+
+	val[0].z += val[0].y;
+	val[1].z += val[1].y;
+	val[2].z += val[2].y;
+	val[3].z += val[3].y;
+
+	val[0].w += val[0].z;
+	val[1].w += val[1].z;
+	val[2].w += val[2].z;
+	val[3].w += val[3].z;
+
+	vout += tid*4;
+	
+	#pragma unroll
+	for(int i = 0; i < 4; i++)
+		vout[i] = val[i];
+	return;
+}
+
+void scan(const unsigned char * const input, const int size, cudaStream_t stream, uint * const output)
+{
+    enum { THREADS = 128 } ;
+    
+    static uint * tmp = NULL;
+
+    if (tmp == NULL)
+    	cudaMalloc(&tmp, sizeof(uint) * (64 * 64 * 64 / THREADS));
+
+    int nblocks = ((size / 16) + THREADS - 1 ) / THREADS;
+    
+    breduce< THREADS / 32 ><<<nblocks, THREADS, 0, stream>>>((uint4 *)input, tmp, size / 16);
+    
+    bexscan< THREADS ><<<1, THREADS, nblocks*sizeof(uint), stream>>>(tmp, nblocks);
+    
+    gexscan< THREADS / 32 ><<<nblocks, THREADS, 0, stream>>>((uint4 *)input, tmp, (uint4 *)output, size / 16);
+}
+
+#ifdef _DRIVER_
+#include <stdio.h>
+#include <stdlib.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <cuda.h>
+
+__device__ int nullv = 0;
+
+__global__ void nullk() {
+
+	if (0 == threadIdx.x) nullv++;
+	return;
+}
+
+
+void *Malloc(size_t sz) {
+
+	void *ptr;
+
+	ptr = (void *)malloc(sz);
+	if (!ptr) {
+		fprintf(stderr, "Cannot allocate %zu bytes...\n", sz);
+		exit(EXIT_FAILURE);
+	}
+	return ptr;
+}
+
+void *myCudaMalloc(size_t sz) {
+
+        void *ptr;
+
+        MY_CUDA_CHECK( cudaMalloc(&ptr, sz) );
+	return ptr;
+}
+
+int main(int argc, char **argv) {
+
+	unsigned char *h_vin, *d_vin;
+	unsigned int *dsol, *hsol, *d_vout, *d_buf;
+	int i;
+
+	cudaEvent_t start, stop;
+        float et;
+	
+	h_vin = (unsigned char *)Malloc(SIZE*sizeof(*h_vin));
+	for(i = 0; i < SIZE; i++)
+		h_vin[i] = rand()%255;
+
+	if (SIDE < 48 || SIDE > 64) {
+	    //	fprintf(stderr, "SIDE MUST be in [48, 52, 56, 60, 64]\n");
+	    //exit(EXIT_FAILURE);
+	}
+	if (SIZE % 16) {
+		fprintf(stderr, "SIZE MUST be a multiple of 16!\n");
+		exit(EXIT_FAILURE);
+	}
+	fprintf(stdout, "Computing exclusive scan of %d (%d^3) uchars\n", SIZE, SIDE);
+
+	MY_CUDA_CHECK(cudaSetDevice(0));
+	d_vin = (unsigned char *)myCudaMalloc(SIZE*sizeof(*d_vin));
+	MY_CUDA_CHECK( cudaMemcpy(d_vin, h_vin, SIZE*sizeof(*d_vin), cudaMemcpyHostToDevice) );
+	
+	dsol = (unsigned int *)Malloc(SIZE*sizeof(*dsol));
+	hsol = (unsigned int *)Malloc(SIZE*sizeof(*hsol));
+	memset(hsol, 0, SIZE*sizeof(*hsol));
+	for(i = 1; i < SIZE; i++) {
+		hsol[i] = (unsigned int)h_vin[i-1] + hsol[i-1];
+	}
+
+	enum{ THREADS = 128 } ;
+	// for temporary reductions (allocated to maximum size)
+	d_buf = (unsigned int *)myCudaMalloc((64*64*64/THREADS)*sizeof(*d_buf));
+	d_vout = (unsigned int *)myCudaMalloc(SIZE*sizeof(*d_vout));
+
+	int nblocks = ((SIZE/16)+THREADS-1)/THREADS;
+	MY_CUDA_CHECK( cudaEventCreate(&start) );
+	MY_CUDA_CHECK( cudaEventCreate(&stop) );
+
+	// to avoid overhead of first kernel lauch from exscan timing
+	nullk<<<1,1>>>();
+
+	// Computes the exscan of "uchar d_vin[SIDE**3]" into "uint d_vout[SIDE**3]"
+	MY_CUDA_CHECK( cudaEventRecord(start, 0) );
+	breduce<THREADS/32><<<nblocks, THREADS>>>((uint4 *)d_vin, d_buf, SIZE/16);
+	bexscan<THREADS><<<1, THREADS, nblocks*sizeof(*d_buf)>>>(d_buf, nblocks);
+	gexscan<THREADS/32><<<nblocks, THREADS>>>((uint4 *)d_vin, d_buf, (uint4 *)d_vout, SIZE/16);
+	MY_CUDA_CHECK( cudaEventRecord(stop, 0) );
+	MY_CHECK_ERROR("KERNEL ERROR");
+
+	MY_CUDA_CHECK( cudaEventSynchronize(stop) );
+	MY_CUDA_CHECK( cudaEventElapsedTime(&et, start, stop) );
+        fprintf(stderr, "Device execution time: %E ms\n", et);
+
+	MY_CUDA_CHECK( cudaMemcpy(dsol, d_vout, SIZE*sizeof(*dsol), cudaMemcpyDeviceToHost) );
+	for(i = 0; i < SIZE; i++) {
+		if (dsol[i] != hsol[i]) {
+			fprintf(stderr, "Error: dsol[%d]=%d AND d_vout[%d]=%d\n", i, hsol[i], i, dsol[i]);
+			break;
+		}
+	}
+	if (i == SIZE)
+		fprintf(stderr, "Output OK!\n");
+
+	free(h_vin);
+	free(dsol);
+	free(hsol);
+	MY_CUDA_CHECK(cudaFree(d_vin));
+	MY_CUDA_CHECK(cudaFree(d_vout));
+	MY_CUDA_CHECK(cudaFree(d_buf));
+
+	return 0;
+}
+
+#endif

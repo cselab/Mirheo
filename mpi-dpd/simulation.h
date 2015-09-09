@@ -1,6 +1,6 @@
 /*
  *  simulation.h
- *  Part of CTC/mpi-dpd/
+ *  Part of uDeviceX/mpi-dpd/
  *
  *  Created and authored by Diego Rossinelli on 2015-03-24.
  *  Copyright 2015. All rights reserved.
@@ -25,8 +25,9 @@
 
 #include "common.h"
 #include "containers.h"
-#include "dpd-interactions.h"
-#include "wall-interactions.h"
+#include "dpd.h"
+#include "wall.h"
+#include "solute-exchange.h"
 #include "fsi.h"
 #include "redistribute-particles.h"
 #include "redistribute-rbcs.h"
@@ -48,10 +49,11 @@ class Simulation
     RedistributeRBCs redistribute_rbcs;
     RedistributeCTCs redistribute_ctcs;
     
-    ComputeInteractionsDPD dpd;
+    ComputeDPD dpd;
+    SoluteExchange solutex;
     ComputeFSI fsi;
 
-    ComputeInteractionsWall * wall;
+    ComputeWall * wall;
 
     bool (*check_termination)();
     bool simulation_is_done;

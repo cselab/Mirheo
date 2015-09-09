@@ -1,6 +1,6 @@
 /*
  *  dpd-rng.h
- *  Part of CTC/cuda-dpd-sem/
+ *  Part of uDeviceX/cuda-dpd-sem/
  *
  *  Created and authored by Diego Rossinelli on 2015-02-12.
  *  Major editing (+Logistic RNG) from Yu-Hang Tang on 2015-03-19.

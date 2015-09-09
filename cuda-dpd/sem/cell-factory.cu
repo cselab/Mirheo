@@ -1,6 +1,6 @@
 /*
  *  cell-factory.cu
- *  Part of CTC/cuda-dpd-sem/sem/
+ *  Part of uDeviceX/cuda-dpd-sem/sem/
  *
  *  Created and authored by Dmitry 2014-08-07 on 12:56:03.
  *  Copyright 2015. All rights reserved.

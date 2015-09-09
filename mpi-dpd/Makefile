@@ -11,18 +11,12 @@ NVCCFLAGS += -I../cuda-dpd/dpd -I../cuda-rbc/ -I../cuda-ctc
 #NVCCFLAGS +=  -DREPORT_TOPOLOGY $(CRAY_PMI_INCLUDE_OPTS)
 #NVCCFLAGS += -DCUSTOM_REORDERING=1
 
-OBJS = 	dpd-interactions.o \
-	redistribute-particles.o \
-	halo-exchanger.o common.o \
-	wall-interactions.o scan.o \
-	scan-massimo.o scan-mauro.o minmax-massimo.o \
-	redistancing.o \
-	redistribute-rbcs.o \
-	fsi.o \
-	containers.o \
-	io.o \
-	simulation.o \
-	main.o
+OBJS = 	dpd.o wall.o fsi.o contact.o \
+	redistribute-particles.o redistribute-rbcs.o \
+	solvent-exchange.o solute-exchange.o \
+	common.o containers.o io.o \
+	scan.o minmax.o redistancing.o \
+	simulation.o main.o
 
 LIBS = -lcuda-dpd -lcuda-rbc -lcuda-ctc -lcudart -ldl -lz
 
@@ -58,6 +52,12 @@ datadump ?= 1
 
 ifeq "$(datadump)" "0"
 NVCCFLAGS += -D_NO_DUMPS_
+endif
+ifeq "$(datadump)" "1"
+NVCCFLAGS += -D_SYNC_DUMPS_
+endif
+ifeq "$(datadump)" "2"
+NVCCFLAGS += -D_ASYNC_DUMPS_
 endif
 
 NVCCFLAGS += -DVISCOSITY_S_LEVEL=$(slevel)

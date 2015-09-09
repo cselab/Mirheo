@@ -1,5 +1,5 @@
 /*
- *  rbc-interactions.h
+ *  contact.h
  *  Part of uDeviceX/mpi-dpd/
  *
  *  Created and authored by Diego Rossinelli on 2014-12-02.
@@ -19,19 +19,15 @@
 
 #include <../dpd-rng.h>
 
-class ComputeFSI : public SoluteExchange::Visitor
+class ComputeContact : public SoluteExchange::Visitor
 {
-    //TODO: use cudaEvent_t evuploaded;
-
-    SolventWrap wsolvent;
+    //cudaEvent_t evuploaded;
 
     Logistic::KISS local_trunk;
 
 public:
 
-    void bind_solvent(SolventWrap wrap) { wsolvent = wrap; }
-
-    ComputeFSI(MPI_Comm comm);
+    ComputeContact(MPI_Comm comm);
 
     void bulk(std::vector<ParticlesWrap> wsolutes, cudaStream_t stream);
 

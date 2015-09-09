@@ -1,6 +1,6 @@
 /*
  *  common.h
- *  Part of CTC/mpi-dpd/
+ *  Part of uDeviceX/mpi-dpd/
  *
  *  Created and authored by Diego Rossinelli, on 2014-12-05.
  *  Copyright 2015. All rights reserved.
@@ -305,6 +305,28 @@ struct Acceleration
 	}
 };
 
+struct ParticlesWrap
+{
+    const Particle * p;
+    Acceleration * a;
+    int n;
+
+ParticlesWrap() : p(NULL), a(NULL), n(0){}
+
+ParticlesWrap(const Particle * const p, const int n, Acceleration * a):
+    p(p), n(n), a(a) {}
+};
+
+struct SolventWrap : ParticlesWrap
+{
+    const int * cellsstart, * cellscount;
+
+SolventWrap(): cellsstart(NULL), cellscount(NULL), ParticlesWrap() {}
+
+SolventWrap(const Particle * const p, const int n, Acceleration * a, const int * const cellsstart, const int * const cellscount):
+    ParticlesWrap(p, n, a), cellsstart(cellsstart), cellscount(cellscount) {}
+};
+
 //container for the gpu particles during the simulation
 template<typename T>
 struct SimpleDeviceBuffer
@@ -507,58 +529,6 @@ PinnedHostBuffer(int n = 0): capacity(0), size(0), data(NULL), devptr(NULL) { re
 	}
 };
 
-#include <utility>
-
-class HookedTexture
-{
-    std::pair<void *, int> registered;
-
-    template<typename T>  void _create(T * data, const int n)
-    {
-	struct cudaResourceDesc resDesc;
-	memset(&resDesc, 0, sizeof(resDesc));
-	resDesc.resType = cudaResourceTypeLinear;
-	resDesc.res.linear.devPtr = (void *)data;
-	resDesc.res.linear.sizeInBytes = n * sizeof(T);
-	resDesc.res.linear.desc = cudaCreateChannelDesc<T>();
-
-	struct cudaTextureDesc texDesc;
-	memset(&texDesc, 0, sizeof(texDesc));
-	texDesc.addressMode[0]   = cudaAddressModeWrap;
-	texDesc.addressMode[1]   = cudaAddressModeWrap;
-	texDesc.filterMode       = cudaFilterModePoint;
-	texDesc.readMode         = cudaReadModeElementType;
-	texDesc.normalizedCoords = 0;
-
-	CUDA_CHECK(cudaCreateTextureObject(&texObj, &resDesc, &texDesc, NULL));
-    }
-
-    void _discard()	{  if (texObj != 0)CUDA_CHECK(cudaDestroyTextureObject(texObj)); }
-
-public:
-
-    cudaTextureObject_t texObj;
-
-HookedTexture(): texObj(0) { }
-
-    template<typename T>
-	cudaTextureObject_t acquire(T * data, const int n)
-    {
-	std::pair<void *, int> target = std::make_pair(const_cast<T *>(data), n);
-
-	if (target.first != registered.first || target.second > registered.second)
-	{
-	    _discard();
-	    _create(data, n);
-	    registered = target;
-	}
-
-	return texObj;
-    }
-
-    ~HookedTexture() { _discard(); }
-};
-
 #include <cuda-dpd.h>
 
 //container for the cell lists, which contains only two integer vectors of size ncells.
@@ -599,27 +569,27 @@ void report_host_memory_usage(MPI_Comm comm, FILE * foutput);
 
 class LocalComm
 {
-	MPI_Comm local_comm, active_comm;
-	int local_rank, local_nranks;
-	int rank, nranks;
+    MPI_Comm local_comm, active_comm;
+    int local_rank, local_nranks;
+    int rank, nranks;
 
-	char name[MPI_MAX_PROCESSOR_NAME];
-	int len;
+    char name[MPI_MAX_PROCESSOR_NAME];
+    int len;
 
 public:
-	LocalComm();
+    LocalComm();
 
-	void initialize(MPI_Comm active_comm);
+    void initialize(MPI_Comm active_comm);
 
-	void barrier();
+    void barrier();
 
-	void print_particles(int np);
+    void print_particles(int np);
 
-	int get_size() { return local_nranks; }
+    int get_size() { return local_nranks; }
 
-	int get_rank() { return local_rank; }
+    int get_rank() { return local_rank; }
 
-	MPI_Comm get_comm() { return local_comm;  }
+    MPI_Comm get_comm() { return local_comm;  }
 };
 
 extern LocalComm localcomm;

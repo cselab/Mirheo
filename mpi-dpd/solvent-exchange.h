@@ -1,6 +1,6 @@
 /*
- *  halo-exchanger.h
- *  Part of CTC/mpi-dpd/
+ *  solvent-exchange.h
+ *  Part of uDeviceX/mpi-dpd/
  *
  *  Created and authored by Diego Rossinelli on 2014-11-18.
  *  Copyright 2015. All rights reserved.
@@ -15,9 +15,8 @@
 #include <mpi.h>
 
 #include "common.h"
-#include "scan.h"
 
-class HaloExchanger
+class SolventExchange
 {
     MPI_Comm cartcomm;
     MPI_Request sendreq[26 * 2], recvreq[26], sendcellsreq[26], recvcellsreq[26], sendcountreq[26], recvcountreq[26];
@@ -106,15 +105,15 @@ protected:
 
 public:
     
-    HaloExchanger(MPI_Comm cartcomm, const int basetag);
+    SolventExchange(MPI_Comm cartcomm, const int basetag);
 
     void pack(const Particle * const p, const int n, const int * const cellsstart, const int * const cellscount, cudaStream_t stream);
 
-    void consolidate_and_post(const Particle * const p, const int n, cudaStream_t stream, cudaStream_t downloadstream);
+    void post(const Particle * const p, const int n, cudaStream_t stream, cudaStream_t downloadstream);
 
-    void wait_for_messages(cudaStream_t stream, cudaStream_t uploadstream);
+    void recv(cudaStream_t stream, cudaStream_t uploadstream);
 
     void adjust_message_sizes(ExpectedMessageSizes sizes);
 
-    virtual ~HaloExchanger();
+    virtual ~SolventExchange();
 };

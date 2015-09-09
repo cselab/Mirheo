@@ -1,6 +1,6 @@
 /*
  *  main.cpp
- *  Part of CTC/create-hdf5-file/
+ *  Part of uDeviceX/create-hdf5-file/
  *
  *  Created and authored by Diego Rossinelli on 2015-01-27.
  *  Copyright 2015. All rights reserved.

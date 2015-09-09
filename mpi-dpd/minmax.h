@@ -1,6 +1,6 @@
 /*
  *  minmax-massimo.h
- *  Part of CTC/mpi-dpd/
+ *  Part of uDeviceX/mpi-dpd/
  *
  *  Created and authored by Massimo Bernaschi on 2015-03-24.
  *  Copyright 2015. All rights reserved.
@@ -14,5 +14,5 @@
 
 #include "common.h"
 
-void minmax_massimo(const Particle * const particles, int nparticles_per_body, int nbodies, 
+void minmax(const Particle * const particles, int nparticles_per_body, int nbodies, 
 		    float3 * minextents, float3 * maxextents, cudaStream_t stream);

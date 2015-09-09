@@ -1,6 +1,6 @@
 /*
  *  minmax.cu
- *  Part of CTC/balaprep/
+ *  Part of uDeviceX/balaprep/
  *
  *  Created and authored by Massimo Bernaschi on 2015-03-13.
  *  Copyright 2015. All rights reserved.

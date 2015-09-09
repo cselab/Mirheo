@@ -1,6 +1,6 @@
 /*
  *  cuda-dpd-bipartite.cu
- *  Part of CTC/cuda-dpd-sem/dpd/
+ *  Part of uDeviceX/cuda-dpd-sem/dpd/
  *
  *  Created and authored by Diego Rossinelli on 2014-07-28.
  *  Copyright 2015. All rights reserved.

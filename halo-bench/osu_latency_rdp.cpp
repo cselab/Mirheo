@@ -1,6 +1,6 @@
 /*
  *  osu_latency_rdp.cpp
- *  Part of CTC/halo-bench/
+ *  Part of uDeviceX/halo-bench/
  *
  *  Created and authored by phadjido 2015-03-12 on 18:59:02.
  *  Copyright 2015. All rights reserved.
