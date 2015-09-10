@@ -133,7 +133,6 @@ void read_AOS3f(const float * const data, const int nparticles, float& s0, float
     }
 }
 
-
 __device__ __forceinline__
 void write_AOS3f(float * const data, const int nparticles, float& s0, float& s1, float& s2)
 {
@@ -171,7 +170,8 @@ void write_AOS3f(float * const data, const int nparticles, float& s0, float& s1,
 	data[laneid + 64] = s2;
 }
 
-__global__ static void subindex_local(const int nparticles, const float2 * particles, int * const partials,
+template<bool project>
+__global__  void subindex_local(const int nparticles, const float2 * particles, int * const partials,
 				      uchar4 * const subindices)
 {
     assert(blockDim.x == 128 && blockDim.x * gridDim.x >= nparticles);
@@ -192,17 +192,29 @@ __global__ static void subindex_local(const int nparticles, const float2 * parti
 
 	read_AOS6f(particles + 3 * base, nsrc, data0, data1, data2);
 
-	const bool inside = (data0.x >= -XSIZE_SUBDOMAIN / 2 && data0.x < XSIZE_SUBDOMAIN / 2 &&
-			     data0.y >= -YSIZE_SUBDOMAIN / 2 && data0.y < YSIZE_SUBDOMAIN / 2 &&
-			     data1.x >= -ZSIZE_SUBDOMAIN / 2 && data1.x < ZSIZE_SUBDOMAIN / 2 );
+	const bool inside = project ||
+	    (data0.x >= -XSIZE_SUBDOMAIN / 2 && data0.x < XSIZE_SUBDOMAIN / 2 &&
+	     data0.y >= -YSIZE_SUBDOMAIN / 2 && data0.y < YSIZE_SUBDOMAIN / 2 &&
+	     data1.x >= -ZSIZE_SUBDOMAIN / 2 && data1.x < ZSIZE_SUBDOMAIN / 2 );
 
 	if (lane < nsrc && inside)
 	{
-	    const int xcid = (int)floor((double)data0.x + XSIZE_SUBDOMAIN / 2);
-	    const int ycid = (int)floor((double)data0.y + YSIZE_SUBDOMAIN / 2);
-	    const int zcid = (int)floor((double)data1.x + ZSIZE_SUBDOMAIN / 2);
+	    if (project)
+	    {
+		const int xcid = min(XSIZE_SUBDOMAIN - 1, max(0, (int)floor((double)data0.x + XSIZE_SUBDOMAIN / 2)));
+		const int ycid = min(YSIZE_SUBDOMAIN - 1, max(0, (int)floor((double)data0.y + YSIZE_SUBDOMAIN / 2)));
+		const int zcid = min(ZSIZE_SUBDOMAIN - 1, max(0, (int)floor((double)data1.x + ZSIZE_SUBDOMAIN / 2)));
 
-	    cid = xcid + XSIZE_SUBDOMAIN * (ycid + YSIZE_SUBDOMAIN * zcid);
+		cid = xcid + XSIZE_SUBDOMAIN * (ycid + YSIZE_SUBDOMAIN * zcid);
+	    }
+	    else
+	    {
+		const int xcid = (int)floor((double)data0.x + XSIZE_SUBDOMAIN / 2);
+		const int ycid = (int)floor((double)data0.y + YSIZE_SUBDOMAIN / 2);
+		const int zcid = (int)floor((double)data1.x + ZSIZE_SUBDOMAIN / 2);
+
+		cid = xcid + XSIZE_SUBDOMAIN * (ycid + YSIZE_SUBDOMAIN * zcid);
+	    }
 	}
     }
 

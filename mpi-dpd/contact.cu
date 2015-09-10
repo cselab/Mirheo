@@ -174,7 +174,7 @@ void ComputeContact::build_cells(std::vector<ParticlesWrap> wsolutes, cudaStream
     cellsentries.resize(ntotal);
 
     CUDA_CHECK(cudaMemsetAsync(cellscount.data, 0, sizeof(int) * cellscount.size, stream));
-    
+
 #ifndef NDEBUG
     CUDA_CHECK(cudaMemsetAsync(cellsentries.data, 0xff, sizeof(int) * cellsentries.capacity, stream));
     CUDA_CHECK(cudaMemsetAsync(subindices.data, 0xff, sizeof(int) * subindices.capacity, stream));
@@ -190,7 +190,8 @@ void ComputeContact::build_cells(std::vector<ParticlesWrap> wsolutes, cudaStream
 	const ParticlesWrap it = wsolutes[i];
 
 	if (it.n)
-	    subindex_local<<< (it.n + 127) / 128, 128, 0, stream >>>(it.n, (float2 *)it.p, cellscount.data, subindices.data + ctr);
+	    subindex_local<true><<< (it.n + 127) / 128, 128, 0, stream >>>
+		(it.n, (float2 *)it.p, cellscount.data, subindices.data + ctr);
 
 	ctr += it.n;
     }
@@ -238,7 +239,6 @@ namespace KernelsContact
 
 	int scan1, scan2, ncandidates, spidbase;
 	int deltaspid1, deltaspid2;
-	bool isinside = false;
 
 	{
 	    const int xcenter = XOFFSET + (int)floorf(dst0.x);
@@ -272,8 +272,6 @@ namespace KernelsContact
 		assert(cid1 >= 0 && cid1 + xcount <= NCELLS);
 		deltaspid1 = tex1Dfetch(texCellsStart, cid1);
 		count1 = tex1Dfetch(texCellsStart, cid1 + xcount) - deltaspid1;
-
-		isinside = xcenter >= 0 && xcenter < XCELLS;
 	    }
 
 	    if (zvalid && ycenter + 1 >= 0 && ycenter + 1 < YCELLS)
@@ -312,7 +310,7 @@ namespace KernelsContact
 	    const int spid = ce.pid;
 	    assert(spid >= 0 && spid < cnsolutes[soluteid]);
 
-	    if (isinside && (mysoluteid < soluteid || mysoluteid == soluteid && pid <= spid))
+	    if (mysoluteid < soluteid || mysoluteid == soluteid && pid <= spid)
 		continue;
 
 	    const int sentry = 3 * spid;
