@@ -1,6 +1,6 @@
 /*
  *  main.cu
- *  Part of CTC/mpi-dpd/
+ *  Part of uDeviceX/mpi-dpd/
  *
  *  Created and authored by Diego Rossinelli on 2014-11-14.
  *  Copyright 2015. All rights reserved.
@@ -24,7 +24,7 @@
 
 bool currently_profiling = false;
 float tend;
-bool walls, pushtheflow, doublepoiseuille, rbcs, ctcs, xyz_dumps, hdf5field_dumps, hdf5part_dumps, is_mps_enabled, adjust_message_sizes;
+bool walls, pushtheflow, doublepoiseuille, rbcs, ctcs, xyz_dumps, hdf5field_dumps, hdf5part_dumps, is_mps_enabled, adjust_message_sizes, contactforces;
 int steps_per_report, steps_per_dump, wall_creation_stepid, nvtxstart, nvtxstop;
 
 LocalComm localcomm;
@@ -82,6 +82,7 @@ int main(int argc, char ** argv)
     nvtxstart = argp("-nvtxstart").asInt(10400);
     nvtxstop = argp("-nvtxstop").asInt(10500);
     adjust_message_sizes = argp("-adjust_message_sizes").asBool(false);
+    contactforces = argp("-contactforces").asBool(false);
 
 #ifndef _NO_DUMPS_
     const bool mpi_thread_safe = argp("-mpi_thread_safe").asBool(true);

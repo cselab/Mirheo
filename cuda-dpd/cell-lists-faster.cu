@@ -1,6 +1,6 @@
 /*
  *  cell-lists-faster.cu
- *  Part of CTC/cuda-dpd-sem/
+ *  Part of uDeviceX/cuda-dpd-sem/
  *
  *  Created and authored by Diego Rossinelli on 2014-08-07.
  *  Edited by Massimo Bernaschi on 2014-03-30.

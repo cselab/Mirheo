@@ -1,6 +1,6 @@
 /*
  *  simulation.h
- *  Part of CTC/mpi-dpd/
+ *  Part of uDeviceX/mpi-dpd/
  *
  *  Created and authored by Diego Rossinelli on 2015-03-24.
  *  Copyright 2015. All rights reserved.
@@ -27,8 +27,9 @@
 #include "containers.h"
 #include "dpd.h"
 #include "wall.h"
-#include "solute-exchange.h"
 #include "fsi.h"
+#include "contact.h"
+#include "solute-exchange.h"
 #include "redistribute-particles.h"
 #include "redistribute-rbcs.h"
 #include "ctc.h"
@@ -52,6 +53,7 @@ class Simulation
     ComputeDPD dpd;
     SoluteExchange solutex;
     ComputeFSI fsi;
+    ComputeContact contact;
 
     ComputeWall * wall;
 

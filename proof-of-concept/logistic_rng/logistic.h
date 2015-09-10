@@ -1,6 +1,6 @@
 /*
  *  logistic.h
- *  Part of CTC/logistic_rng/
+ *  Part of uDeviceX/logistic_rng/
  *
  *  Created and authored by Yu-Hang Tang on 2015-03-20.
  *  Copyright 2015. All rights reserved.

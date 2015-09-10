@@ -1,6 +1,6 @@
 /*
  *  tiny-float.h
- *  Part of CTC/cuda-dpd-sem/
+ *  Part of uDeviceX/cuda-dpd-sem/
  *
  *  Created and authored by Yu-Hang Tang on 2015-03-14.
  *  Copyright 2015. All rights reserved.

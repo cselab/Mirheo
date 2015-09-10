@@ -1,6 +1,6 @@
 /*
  *  main.cpp
- *  Part of CTC/vanilla-microfluidics/
+ *  Part of uDeviceX/vanilla-microfluidics/
  *
  *  Created and authored by Diego Rossinelli on 2014-08-08.
  *  Copyright 2015. All rights reserved.

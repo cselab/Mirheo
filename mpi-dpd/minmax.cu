@@ -1,6 +1,6 @@
 /*
  *  minmax-massimo.cu
- *  Part of CTC/mpi-dpd/
+ *  Part of uDeviceX/mpi-dpd/
  *
  *  Created and authored by Massimo Bernaschi on 2015-03-23.
  *  Copyright 2015. All rights reserved.

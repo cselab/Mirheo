@@ -1,6 +1,6 @@
 /*
  *  cuda-sem.cu
- *  Part of CTC/cuda-dpd-sem/sem/
+ *  Part of uDeviceX/cuda-dpd-sem/sem/
  *
  *  Created and authored by Dmitry 2014-08-05 on 17:25:23.
  *  Copyright 2015. All rights reserved.

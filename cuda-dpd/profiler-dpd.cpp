@@ -1,6 +1,6 @@
 /*
  *  profiler-dpd.cpp
- *  Part of CTC/cuda-dpd-sem/
+ *  Part of uDeviceX/cuda-dpd-sem/
  *
  *  Created and authored by Diego Rossinelli on 2014-07-17.
  *  Copyright 2015. All rights reserved.
