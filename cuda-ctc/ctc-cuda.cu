@@ -632,7 +632,7 @@ __inline__ __host__ __device__ float3 fmaxf(float3 a, float3 b)
         dim3 dihThreads(32*3, 1);
         dim3 dihBlocks( (ndihedrals + dihThreads.x - 1) / dihThreads.x, ncells );
 
-        gpuErrchk( cudaMemset(host_av, 0, ncells * 2 * sizeof(float)) );
+        gpuErrchk( cudaMemsetAsync(host_av, 0, ncells * 2 * sizeof(float), stream) );
         areaAndVolumeKernel<<<trBlocks, trThreads, 0, stream>>>();
         gpuErrchk( cudaPeekAtLastError() );
 
