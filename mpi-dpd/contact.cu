@@ -11,6 +11,8 @@
  */
 
 static const int maxsolutes = 32;
+static const float ljsigma = 0.5;
+static const float ljsigma2 = ljsigma * ljsigma;
 
 #include <../dpd-rng.h>
 
@@ -220,9 +222,10 @@ void ComputeContact::build_cells(std::vector<ParticlesWrap> wsolutes, cudaStream
 
 namespace KernelsContact
 {
-    __global__ void bulk_3tpp(const float2 * const particles,
-			      const int np, const int ncellentries, const int nsolutes,
-			      float * const acc, const float seed, const int mysoluteid)
+    __global__  __launch_bounds__(128, 10)
+	void bulk_3tpp(const float2 * const particles,
+		       const int np, const int ncellentries, const int nsolutes,
+		       float * const acc, const float seed, const int mysoluteid)
     {
 	assert(blockDim.x * gridDim.x >= np * 3);
 
@@ -241,7 +244,7 @@ namespace KernelsContact
 	int deltaspid1, deltaspid2;
 
 	{
-	    const int xcenter = XOFFSET + (int)floorf(dst0.x);
+	    const int xcenter = min(XCELLS - 1, max(0, XOFFSET + (int)floorf(dst0.x)));
 	    const int xstart = max(0, xcenter - 1);
 	    const int xcount = min(XCELLS, xcenter + 2) - xstart;
 
@@ -250,9 +253,9 @@ namespace KernelsContact
 
 	    assert(xcount >= 0);
 
-	    const int ycenter = YOFFSET + (int)floorf(dst0.y);
+	    const int ycenter = min(YCELLS - 1, max(0, YOFFSET + (int)floorf(dst0.y)));
 
-	    const int zcenter = ZOFFSET + (int)floorf(dst1.x);
+	    const int zcenter = min(ZCELLS - 1, max(0, ZOFFSET + (int)floorf(dst1.x)));
 	    const int zmy = zcenter - 1 + zplane;
 	    const bool zvalid = zmy >= 0 && zmy < ZCELLS;
 
@@ -333,10 +336,10 @@ namespace KernelsContact
 		continue;
 
 	    const float invr2 = invrij * invrij;
-	    const float t2 = 0.0625f * invr2;
+	    const float t2 = ljsigma2 * invr2;
 	    const float t4 = t2 * t2;
 	    const float t6 = t4 * t2;
-	    const float lj = max(0.f, -24.f * invr2 * t6 * (2.f * t6 - 1.f));
+	    const float lj = min(1e4f, max(0.f, 24.f * invrij * t6 * (2.f * t6 - 1.f)));
 
 	    const float wr = viscosity_function<-VISCOSITY_S_LEVEL>(1.f - rij);
 
@@ -542,10 +545,10 @@ namespace KernelsContact
 		    continue;
 
 		const float invr2 = invrij * invrij;
-		const float t2 = 0.0625f * invr2;
+		const float t2 = ljsigma2 * invr2;
 		const float t4 = t2 * t2;
 		const float t6 = t4 * t2;
-		const float lj = max(0.f, -24.f * invr2 * t6 * (2.f * t6 - 1.f));
+		const float lj = min(1e4f, max(0.f, 24.f * invrij * t6 * (2.f * t6 - 1.f)));
 
 		const float wr = viscosity_function<-VISCOSITY_S_LEVEL>(1.f - rij);
 
