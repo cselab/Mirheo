@@ -25,7 +25,7 @@
 bool currently_profiling = false;
 float tend;
 bool walls, pushtheflow, doublepoiseuille, rbcs, ctcs, xyz_dumps, hdf5field_dumps, hdf5part_dumps, is_mps_enabled, adjust_message_sizes, contactforces;
-int steps_per_report, steps_per_dump, wall_creation_stepid, nvtxstart, nvtxstop;
+int steps_per_report, steps_per_dump, wall_creation_stepid, nvtxstart, nvtxstop, nsubsteps;
 
 LocalComm localcomm;
 
@@ -76,6 +76,7 @@ int main(int argc, char ** argv)
     rbcs = argp("-rbcs").asBool(false);
     ctcs = argp("-ctcs").asBool(false);
     xyz_dumps = argp("-xyz_dumps").asBool(false);
+    hdf5field_dumps = argp("-hdf5field_dumps").asBool(false);
     steps_per_report = argp("-steps_per_report").asInt(1000);
     steps_per_dump = argp("-steps_per_dump").asInt(1000);
     wall_creation_stepid = argp("-wall_creation_stepid").asInt(5000);
@@ -83,6 +84,7 @@ int main(int argc, char ** argv)
     nvtxstop = argp("-nvtxstop").asInt(10500);
     adjust_message_sizes = argp("-adjust_message_sizes").asBool(false);
     contactforces = argp("-contactforces").asBool(false);
+    nsubsteps = argp("-nsubsteps").asInt(0);
 
 #ifndef _NO_DUMPS_
     const bool mpi_thread_safe = argp("-mpi_thread_safe").asBool(true);

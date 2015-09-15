@@ -336,7 +336,7 @@ namespace KernelsContact
 	    const float t2 = 0.0625f * invr2;
 	    const float t4 = t2 * t2;
 	    const float t6 = t4 * t2;
-	    const float lj = max(0.f, -24.f * invr2 * t6 * (2.f * t6 - 1.f));
+	    const float lj = min(max(0.f, -24.f * invr2 * t6 * (2.f * t6 - 1.f)), 1000.0f);
 
 	    const float wr = viscosity_function<-VISCOSITY_S_LEVEL>(1.f - rij);
 
@@ -545,7 +545,7 @@ namespace KernelsContact
 		const float t2 = 0.0625f * invr2;
 		const float t4 = t2 * t2;
 		const float t6 = t4 * t2;
-		const float lj = max(0.f, -24.f * invr2 * t6 * (2.f * t6 - 1.f));
+		const float lj = min(max(0.f, -24.f * invr2 * t6 * (2.f * t6 - 1.f)), 1000.0f);
 
 		const float wr = viscosity_function<-VISCOSITY_S_LEVEL>(1.f - rij);
 

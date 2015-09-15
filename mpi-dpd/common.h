@@ -23,23 +23,23 @@ enum
     XSIZE_SUBDOMAIN = 48,
     YSIZE_SUBDOMAIN = 48,
     ZSIZE_SUBDOMAIN = 48,
-    XMARGIN_WALL = 6,
-    YMARGIN_WALL = 6,
-    ZMARGIN_WALL = 6,
+    XMARGIN_WALL = 10,
+    YMARGIN_WALL = 10,
+    ZMARGIN_WALL = 10,
 };
 
 const int numberdensity = 4;
-const float dt = 0.001;
-const float kBT = 0.0945;
-const float gammadpd = 45;
+const float dt = 0.0025;
+const float kBT = 1.0;
+const float gammadpd = 20;
 const float sigma = sqrt(2 * gammadpd * kBT);
 const float sigmaf = sigma / sqrt(dt);
-const float aij = 25;
-const float hydrostatic_a = 0.05;
+const float aij = 50;
+const float hydrostatic_a = 0.018;
 
 extern float tend;
 extern bool walls, pushtheflow, doublepoiseuille, rbcs, ctcs, xyz_dumps, hdf5field_dumps, hdf5part_dumps, is_mps_enabled, contactforces;
-extern int steps_per_report, steps_per_dump, wall_creation_stepid, nvtxstart, nvtxstop;
+extern int steps_per_report, steps_per_dump, wall_creation_stepid, nvtxstart, nvtxstop, nsubsteps;
 
 #include <cstdlib>
 #include <cstdio>

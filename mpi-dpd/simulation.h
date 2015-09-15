@@ -70,7 +70,7 @@ class Simulation
     const size_t nsteps;
     float driving_acceleration;
     float host_idle_time;
-    int nranks, rank;  
+    int nranks, rank, qoiid;
 	    
     std::vector<Particle> _ic();
     void _update_helper_arrays();
@@ -79,7 +79,8 @@ class Simulation
     void _report(const bool verbose, const int idtimestep);
     void _create_walls(const bool verbose, bool & termination_request);
     void _remove_bodies_from_wall(CollectionRBC * coll);
-    void _forces();
+    void _forces(bool firsttime = false);
+    void _qoi(Particle* rbcs, Particle * ctcs, const float tm);
     void _datadump(const int idtimestep);
     void _update_and_bounce();
     void _lockstep();

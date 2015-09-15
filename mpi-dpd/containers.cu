@@ -227,18 +227,18 @@ namespace ParticleKernels
     }
 }
 
-void ParticleArray::update_stage1(const float driving_acceleration, cudaStream_t stream)
+void ParticleArray::update_stage1(const float driving_acceleration, cudaStream_t stream, const float timestep)
 {
     if (size)
 	ParticleKernels::update_stage1<<<(xyzuvw.size + 127) / 128, 128, 0, stream>>>(
-	    xyzuvw.data, axayaz.data, xyzuvw.size, dt, driving_acceleration, globalextent.y * 0.5 - origin.y, doublepoiseuille, false);
+	    xyzuvw.data, axayaz.data, xyzuvw.size, timestep, driving_acceleration, globalextent.y * 0.5 - origin.y, doublepoiseuille, false);
 }
 
-void  ParticleArray::update_stage2_and_1(const float driving_acceleration, cudaStream_t stream)
+void  ParticleArray::update_stage2_and_1(const float driving_acceleration, cudaStream_t stream, const float timestep)
 {
     if (size)
 	ParticleKernels::update_stage2_and_1<<<(xyzuvw.size + 127) / 128, 128, 0, stream>>>
-	    ((float2 *)xyzuvw.data, (float *)axayaz.data, xyzuvw.size, dt, driving_acceleration, globalextent.y * 0.5 - origin.y, doublepoiseuille);
+	    ((float2 *)xyzuvw.data, (float *)axayaz.data, xyzuvw.size, timestep, driving_acceleration, globalextent.y * 0.5 - origin.y, doublepoiseuille);
 }
 
 void ParticleArray::resize(int n)
@@ -281,6 +281,7 @@ void CollectionRBC::resize(const int count)
     ncells = count;
 
     ParticleArray::resize(count * get_nvertices());
+    fsi_axayaz.resize(count * get_nvertices());
 }
 
 void CollectionRBC::preserve_resize(const int count)
@@ -288,6 +289,7 @@ void CollectionRBC::preserve_resize(const int count)
     ncells = count;
 
     ParticleArray::preserve_resize(count * get_nvertices());
+    fsi_axayaz.preserve_resize(count * get_nvertices());
 }
 
 struct TransformedExtent
