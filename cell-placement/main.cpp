@@ -373,7 +373,7 @@ int main(int argc, const char ** argv)
         for (int j=0; j<4; j++)
             onectc.transform[i][j] = (i == j) ? 1 : 0;
     onectc.transform[0][3] = 30;
-    onectc.transform[1][3] = 1120;
+    onectc.transform[1][3] = 328;
     onectc.transform[2][3] = 33;
 
     onectc.xmin[0] = extents[1].xmin + onectc.transform[0][3];
