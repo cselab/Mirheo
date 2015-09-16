@@ -2,8 +2,12 @@
 
 Set of scripts to generate device geometries as Signed Distance Function in \*.dat format.
 The dat format consists of header and the binary float data:
+```
 <xSize> <ySize> <zSize>
-<xDim> <yDim> <zDim>
+<xGridSize> <yGridSize> <zGridSize>
+<Binary data>
+```
+Where size is the geometry length units (typically microns), grid size defines how many grid points are there.
 
 ## Parabolic funnels
 Geometry mimicing the microfluidic device by McFaul et al [Cell separation based on size and deformability using microfluidic funnel ratchets](http://www.ncbi.nlm.nih.gov/pubmed/22517056)
