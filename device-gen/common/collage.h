@@ -13,9 +13,11 @@
 
 #include <vector>
 
-void collageSDF(const int NX, const int NY, const float xextent, const float yextent, 
+void collageSDF(int NX, int NY, const std::vector< std::vector<float> >& sampleSDF, std::vector<float>& outputSDF);
+
+void collageSDFWithWall(const int NX, const int NY, const float xextent, const float yextent, 
                 const std::vector< std::vector<float> >& sampleSDF, const int ytimes,
-                bool wallInY, std::vector<float>& outputSDF);
+                const float paddingAdd, std::vector<float>& outputSDF);
 
 void populateSDF(const int NX, const int NY, const float xextent, const float yextent, const std::vector<float>& sampleSDF,
                  const int xtimes, const int ytimes, std::vector<float>& outputSDF);

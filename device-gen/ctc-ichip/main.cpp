@@ -62,9 +62,10 @@ class CTCiChip1Builder : public DeviceBuilder
 {
     int m_nrepeat;
     const float m_angle;
+    float m_desiredSubdomainSzX;
 public:
     CTCiChip1Builder()
-    : DeviceBuilder(56.0f, 32.0f, 58.0f),
+    : DeviceBuilder(56.0f, 32.0f, 128.0f),
       m_nrepeat(0), m_angle(1.7f * M_PI / 180.0f)
     {}
 
@@ -98,6 +99,12 @@ public:
         return *this;
     }
 
+    CTCiChip1Builder& setDiseredSubdomainX(float x)
+    {
+        m_desiredSubdomainSzX = x;
+        return *this;
+    }
+
     CTCiChip1Builder& setFileNameFor2D(const std::string& outFileName2D)
     {
         m_outFileName2D = outFileName2D;
@@ -116,7 +123,7 @@ private:
     void generateUnitSDF(vector<float>& sdf) const;
 
     void shiftRows(int rowNX, int rowNY, float rowSizeX, float rowSizeY, const SDF& rowObstacles,
-                   float& padding, int& shiftedRowNX, float& shiftedRowSizeX,std::vector<SDF>& shiftedRows) const;
+                   float& padding, float& addPadding, int& shiftedRowNX, float& shiftedRowSizeX,std::vector<SDF>& shiftedRows) const;
 };
 
 void CTCiChip1Builder::build() 
@@ -142,15 +149,16 @@ void CTCiChip1Builder::build()
 
     // 3 Shift rows
     float padding = 0.0f;
+    float addPadding = 0.0f;
     int shiftedRowNX = 0; // they are all the same length
     float shiftedRowSizeX = 0.0f;
 
     std::vector<SDF> shiftedRows;
-    shiftRows(rowNX, rowNY, rowSizeX, rowSizeY, rowObstacles, padding, shiftedRowNX, shiftedRowSizeX, shiftedRows);
+    shiftRows(rowNX, rowNY, rowSizeX, rowSizeY, rowObstacles, padding, addPadding, shiftedRowNX, shiftedRowSizeX, shiftedRows);
 
     // 4 Collage rows
     SDF finalSDF;
-    collageSDF(shiftedRowNX, rowNY, shiftedRowSizeX, rowSizeY, shiftedRows, m_nrows, true, finalSDF);
+    collageSDFWithWall(shiftedRowNX, rowNY, shiftedRowSizeX, rowSizeY, shiftedRows, m_nrows, addPadding, finalSDF);
 
     // 5 Apply redistancing for the result
     float finalExtent[] = {shiftedRowSizeX, static_cast<float>(m_nrows * rowSizeY)};
@@ -222,7 +230,7 @@ void CTCiChip1Builder::generateUnitSDF(vector<float>& sdf) const
 }
 
 void CTCiChip1Builder::shiftRows(int rowNX, int rowNY, float rowSizeX, float rowSizeY, const SDF& rowObstacles,
-                                 float& padding, int& shiftedRowNX, float& shiftedRowSizeX,std::vector<SDF>& shiftedRows) const
+                                 float& padding, float& addPadding, int& shiftedRowNX, float& shiftedRowSizeX,std::vector<SDF>& shiftedRows) const
 {
     const int nRowsPerShift = static_cast<int>(ceil(m_unitSizeX / (m_unitSizeY * tan(m_angle))));
     if (fabs(m_unitSizeX / (m_unitSizeY * tan(m_angle)) - nRowsPerShift) > 1e-1) {
@@ -241,13 +249,19 @@ void CTCiChip1Builder::shiftRows(int rowNX, int rowNY, float rowSizeX, float row
     if (padding < 32.0f)
         padding = 0.0f;
     if (padding == 57.0f)
-        padding = 56.0f;
-    padding = padding + 8; // adjust padding to have desired size
+        padding = m_unitSizeX;
+    
+    // additional hack to have domain size in X direction to be devisible by desiredSubdomainSzX
+    {
+        float origSzX = m_ncolumns*m_unitSizeX + padding;
+        addPadding = (int(origSzX/m_desiredSubdomainSzX) + 1)*m_desiredSubdomainSzX - origSzX;
+        padding = padding + addPadding; // adjust padding to have desired size
+    }
 
-    std::cout << "Launching rows generation. Padding = "<< padding <<std::endl;
+    std::cout << "Launching rows generation. New size = "<< m_ncolumns*m_unitSizeX + padding << std::endl;
     shiftedRows.resize(nUniqueRows);
     for (int i = 0; i < nUniqueRows; ++i) {
-        float xshift = (nUniqueRows - i -1 ) * 32.0f * tan(m_angle);
+        float xshift = (nUniqueRows - i - 1) * 32.0f * tan(m_angle);
         shiftSDF(rowNX, rowNY, rowSizeX, rowSizeY, rowObstacles, xshift, padding, shiftedRowNX, shiftedRowSizeX, shiftedRows[i]);
     }
 }
@@ -271,7 +285,9 @@ int main(int argc, char ** argv)
                .setRepeat(nRepeat)
                .setResolution(resolution)
                .setZWallWidth(zMargin)
+               .setFileNameFor2D("2d")
                .setFileNameFor3D(outFileName)
+               .setDiseredSubdomainX(64.0f)
                .build();
     } catch(const std::exception& ex) {
         std::cout << "ERROR: " << ex.what() << std::endl;

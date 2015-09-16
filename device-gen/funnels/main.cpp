@@ -189,7 +189,8 @@ void FunnelsBuilder::build()
 
     // 3 Collage rows
     SDF finalSDF;
-    collageSDF(m_unitNX * m_ncolumns, m_unitNY, m_unitSizeX * m_ncolumns, m_unitSizeY, rows, m_nrows, false, finalSDF);
+    collageSDF(m_unitNX * m_ncolumns, m_unitNY, rows, finalSDF);
+    //collageSDF(m_unitNX * m_ncolumns, m_unitNY, m_unitSizeX * m_ncolumns, m_unitSizeY, rows, m_nrows, false, finalSDF);
 
     // 4 Apply redistancing for the result
     float finalExtent[] = {m_unitSizeX * m_ncolumns, m_unitSizeY * m_nrows};
