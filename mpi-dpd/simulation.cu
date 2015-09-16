@@ -588,7 +588,7 @@ void Simulation::_datadump_async()
 	{
 	    NVTX_RANGE("hdf5 field dump", NVTX_C4);
 
-	    dump_field.dump(activecomm, p, particles->size, datadump_idtimestep);
+	    dump_field.dump(activecomm, p, datadump_nsolvent, datadump_idtimestep);
 	}
 
 	{
