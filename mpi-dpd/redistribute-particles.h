@@ -79,7 +79,7 @@ private:
 	const double tstart = MPI_Wtime();
 
 	MPI_Status statuses[n];
-	MPI_CHECK( MPI_Waitall(n, reqs, statuses) );    
+	MPI_CHECK( MPI_Waitall(n, reqs, statuses) );
 
 	return MPI_Wtime() - tstart;
     }

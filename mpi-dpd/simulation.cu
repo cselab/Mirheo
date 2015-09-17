@@ -55,6 +55,7 @@ void Simulation::_update_helper_arrays()
     xyzouvwo.resize(2 * np);
     xyzo_half.resize(np);
 
+    if (np)
     make_texture <<< (np + 1023) / 1024, 1024, 1024 * 6 * sizeof( float )>>>(xyzouvwo.data, xyzo_half.data, (float *)particles->xyzuvw.data, np );
 
     CUDA_CHECK(cudaPeekAtLastError());

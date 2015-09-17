@@ -473,7 +473,7 @@ subindices_remote(1.5 * numberdensity * (XSIZE_SUBDOMAIN * YSIZE_SUBDOMAIN * ZSI
 
 	CUDA_CHECK(cudaMalloc(&packbuffers[i].scattered_indices, sizeof(int) * estimate));
 
-	if (i)
+	if (i && estimate)
 	{
 	    CUDA_CHECK(cudaHostAlloc(&pinnedhost_sendbufs[i], sizeof(float) * 6 * estimate, cudaHostAllocMapped));
 	    CUDA_CHECK(cudaHostGetDevicePointer(&packbuffers[i].buffer, pinnedhost_sendbufs[i], 0));
@@ -613,10 +613,12 @@ void RedistributeParticles::pack(const Particle * const particles, const int npa
 	_post_recv();
 
     size_t textureoffset;
+    if (nparticles)
     CUDA_CHECK(cudaBindTexture(&textureoffset, &RedistributeParticlesKernels::texAllParticles, particles,
 			       &RedistributeParticlesKernels::texAllParticles.channelDesc,
 			       sizeof(float) * 6 * nparticles));
 
+    if (nparticles)
     CUDA_CHECK(cudaBindTexture(&textureoffset, &RedistributeParticlesKernels::texAllParticlesFloat2, particles,
 			       &RedistributeParticlesKernels::texAllParticlesFloat2.channelDesc,
 			       sizeof(float) * 6 * nparticles));
@@ -740,6 +742,8 @@ void RedistributeParticles::bulk(const int nparticles, int * const cellstarts, i
     subindices.resize(nparticles);
 */
     subindices.resize(nparticles);
+
+    if (nparticles)
     subindex_local<false><<< (nparticles + 127) / 128, 128, 0, mystream>>>
 	(nparticles, RedistributeParticlesKernels::texparticledata, cellcounts, subindices.data);
 /*
@@ -850,6 +854,7 @@ void RedistributeParticles::recv_unpack(Particle * const particles, float4 * con
 	RedistributeParticlesKernels::subindex_remote<<< (nhalo_padded + 127) / 128, 128, 0, mystream >>>
 	    (nhalo_padded, nhalo, cellcounts, (float2 *)remote_particles.data, subindices_remote.data);
 
+    if (compressed_cellcounts.size)
     compress_counts<<< (compressed_cellcounts.size + 127) / 128, 128, 0, mystream >>>
 	(compressed_cellcounts.size, (int4 *)cellcounts, (uchar4 *)compressed_cellcounts.data);
 
@@ -859,6 +864,7 @@ void RedistributeParticles::recv_unpack(Particle * const particles, float4 * con
     CUDA_CHECK(cudaMemset(scattered_indices.data, 0xff, sizeof(int) * scattered_indices.size));
 #endif
 
+    if (subindices.size)
     RedistributeParticlesKernels::scatter_indices<<< (subindices.size + 127) / 128, 128, 0, mystream>>>
 	(false, subindices.data, subindices.size, cellstarts, scattered_indices.data, scattered_indices.size);
 
@@ -868,6 +874,7 @@ void RedistributeParticles::recv_unpack(Particle * const particles, float4 * con
 
     assert(scattered_indices.size == nparticles);
 
+    if (nparticles)
     RedistributeParticlesKernels::gather_particles<<< (nparticles + 127) / 128, 128, 0, mystream>>>
 	(scattered_indices.data, (float2 *)remote_particles.data, nhalo,
 	 RedistributeParticlesKernels::ntexparticles, nparticles, (float2 *)particles, xyzouvwo, xyzo_half);
