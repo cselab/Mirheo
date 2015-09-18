@@ -320,6 +320,7 @@ namespace BipsBatch
 
 	CUDA_CHECK(cudaStreamWaitEvent(computestream, evhalodone, 0));
 
+	if (nthreads)
 	interaction_kernel<<< (nthreads + 127) / 128, 128, 0, computestream>>>(aij, gamma, sigma * invsqrtdt, nthreads, acc, n);
 
 	CUDA_CHECK(cudaPeekAtLastError());

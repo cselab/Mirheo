@@ -289,9 +289,15 @@ void SoluteExchange::_pack_attempt(cudaStream_t stream)
 	CUDA_CHECK(cudaMemsetAsync(local[i].result.data, 0xff, sizeof(Acceleration) * local[i].result.capacity, stream));
     }
 #endif
+    CUDA_CHECK(cudaPeekAtLastError());
 
+    if (packscount.size)
     CUDA_CHECK(cudaMemsetAsync(packscount.data, 0, sizeof(int) * packscount.size, stream));
+
+    if (packsoffset.size)
     CUDA_CHECK(cudaMemsetAsync(packsoffset.data, 0, sizeof(int) * packsoffset.size, stream));
+
+    if (packsstart.size)
     CUDA_CHECK(cudaMemsetAsync(packsstart.data, 0, sizeof(int) * packsstart.size, stream));
 
     SolutePUP::init<<< 1, 1, 0, stream >>>();
@@ -360,6 +366,8 @@ void SoluteExchange::post_p(cudaStream_t stream, cudaStream_t downloadstream)
 {
     if (wsolutes.size() == 0)
 	return;
+
+    CUDA_CHECK(cudaPeekAtLastError());
 
     //consolidate the packing
     {

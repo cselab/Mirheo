@@ -76,6 +76,7 @@ int main(int argc, char ** argv)
     rbcs = argp("-rbcs").asBool(false);
     ctcs = argp("-ctcs").asBool(false);
     xyz_dumps = argp("-xyz_dumps").asBool(false);
+    hdf5field_dumps = argp("-hdf5field_dumps").asBool(false);
     steps_per_report = argp("-steps_per_report").asInt(1000);
     steps_per_dump = argp("-steps_per_dump").asInt(1000);
     wall_creation_stepid = argp("-wall_creation_stepid").asInt(5000);
