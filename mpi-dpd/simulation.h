@@ -60,7 +60,7 @@ class Simulation
     bool (*check_termination)();
     bool simulation_is_done;
 
-    MPI_Comm activecomm, cartcomm;
+    MPI_Comm activecomm, cartcomm, qoicomm;
     //LocalComm localcomm;
 
     cudaStream_t mainstream, uploadstream, downloadstream;

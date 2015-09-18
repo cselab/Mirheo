@@ -537,9 +537,9 @@ void Simulation::_qoi(Particle* rbcs, Particle * ctcs, const float tm)
             locCTChisto[irow]++;
         }
 
-    MPI_CHECK( MPI_Reduce(rank == 0 ? MPI_IN_PLACE : &locRBChisto[0], &locRBChisto[0], nbins, MPI_INT, MPI_SUM, 0, cartcomm) );
-    MPI_CHECK( MPI_Reduce(rank == 0 ? MPI_IN_PLACE : &locCTChisto[0], &locCTChisto[0], nbins, MPI_INT, MPI_SUM, 0, cartcomm) );
-    MPI_CHECK( MPI_Reduce(rank == 0 ? MPI_IN_PLACE : totcom, totcom, 3, MPI_FLOAT, MPI_SUM, 0, cartcomm) );
+    MPI_CHECK( MPI_Reduce(rank == 0 ? MPI_IN_PLACE : &locRBChisto[0], &locRBChisto[0], nbins, MPI_INT, MPI_SUM, 0, qoicomm) );
+    MPI_CHECK( MPI_Reduce(rank == 0 ? MPI_IN_PLACE : &locCTChisto[0], &locCTChisto[0], nbins, MPI_INT, MPI_SUM, 0, qoicomm) );
+    MPI_CHECK( MPI_Reduce(rank == 0 ? MPI_IN_PLACE : totcom, totcom, 3, MPI_FLOAT, MPI_SUM, 0, qoicomm) );
 
 
     if (ctcscoll && ctcscoll->count() > 0)
@@ -855,6 +855,8 @@ Simulation::Simulation(MPI_Comm cartcomm, MPI_Comm activecomm, bool (*check_term
 {
     MPI_CHECK( MPI_Comm_size(activecomm, &nranks) );
     MPI_CHECK( MPI_Comm_rank(activecomm, &rank) );
+
+    MPI_CHECK( MPI_Comm_dup(activecomm, &qoicomm) );
 
     solutex.attach_halocomputation(fsi);
 
