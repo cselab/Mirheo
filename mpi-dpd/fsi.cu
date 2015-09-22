@@ -261,6 +261,8 @@ void ComputeFSI::bulk(std::vector<ParticlesWrap> wsolutes, cudaStream_t stream)
 
     KernelsFSI::setup(wsolvent.p, wsolvent.n, wsolvent.cellsstart, wsolvent.cellscount);
 
+    CUDA_CHECK(cudaPeekAtLastError());
+
     for(std::vector<ParticlesWrap>::iterator it = wsolutes.begin(); it != wsolutes.end(); ++it)
    	if (it->n)
 	    KernelsFSI::interactions_3tpp<<< (3 * it->n + 127) / 128, 128, 0, stream >>>
@@ -456,6 +458,8 @@ void ComputeFSI::halo(ParticlesWrap halos[26], cudaStream_t stream)
 
     KernelsFSI::setup(wsolvent.p, wsolvent.n, wsolvent.cellsstart, wsolvent.cellscount);
 
+    CUDA_CHECK(cudaPeekAtLastError());
+
     int nremote_padded = 0;
 
     {
@@ -503,4 +507,3 @@ void ComputeFSI::halo(ParticlesWrap halos[26], cudaStream_t stream)
 
     CUDA_CHECK(cudaPeekAtLastError());
 }
-
