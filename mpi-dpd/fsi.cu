@@ -458,6 +458,8 @@ void ComputeFSI::halo(ParticlesWrap halos[26], cudaStream_t stream)
 
     KernelsFSI::setup(wsolvent.p, wsolvent.n, wsolvent.cellsstart, wsolvent.cellscount);
 
+    CUDA_CHECK(cudaPeekAtLastError());
+
     int nremote_padded = 0;
 
     {
@@ -505,4 +507,3 @@ void ComputeFSI::halo(ParticlesWrap halos[26], cudaStream_t stream)
 
     CUDA_CHECK(cudaPeekAtLastError());
 }
-
