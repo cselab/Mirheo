@@ -555,7 +555,22 @@ void H5FieldDump::_write_fields(const char * const path2h5,
     MPI_CHECK( MPI_Cart_get(cartcomm, 3, nranks, periods, myrank) );
 
     id_t plist_id_access = H5Pcreate(H5P_FILE_ACCESS);
-    H5Pset_fapl_mpio(plist_id_access, comm, MPI_INFO_NULL);
+
+    int cb = 1;
+    while (cb*2 <= size) cb *= 2;
+
+    cb = min(cb, 128);
+    char cbstr[100];
+    sprintf(cbstr, "%d", cb);
+
+    MPI_Info info;
+    MPI_Info_create(&info);
+    MPI_Info_set(info, "cb_nodes", cbstr);
+    MPI_Info_set(info, "romio_cb_write", "enable");
+    MPI_Info_set(info, "romio_ds_write", "disable");
+    MPI_Info_set(info, "striping_factor", cbstr);
+
+    H5Pset_fapl_mpio(plist_id_access, comm, info);
 
     hid_t file_id = H5Fcreate(path2h5, H5F_ACC_TRUNC, H5P_DEFAULT, plist_id_access);
     H5Pclose(plist_id_access);
