@@ -476,133 +476,9 @@ void Simulation::_forces(bool firsttime)
     CUDA_CHECK(cudaPeekAtLastError());
 }
 
-void Simulation::_qoi(Particle* rbcs, Particle * ctcs, const float tm)
-{
-    int dims[3], periods[3], coords[3];
-    MPI_CHECK( MPI_Cart_get(cartcomm, 3, dims, periods, coords) );
-
-    const int subdomain[3] = {XSIZE_SUBDOMAIN, YSIZE_SUBDOMAIN, ZSIZE_SUBDOMAIN};
-    const int nbins = 15; // number of rows
-
-    vector<int> locRBChisto(nbins, 0);
-    vector<int> locCTChisto(nbins, 0);
-    float totcom[3] = {0, 0, 0};
-
-    const float rwidth = 56;
-    const float offset = 40;
-    const float tan_a  = tan(1.7 / 180.0 * M_PI);
-
-    if (rbcscoll)
-    {
-        for (int p = 0; p < rbcscoll->count(); p++)
-        {
-            float com[3] = {0, 0, 0};
-            Particle * cur = rbcs + p * rbcscoll->get_nvertices();
-
-            for (int i=0; i < rbcscoll->get_nvertices(); i++)
-                for (int d = 0; d<3; d++)
-                {
-                    totcom[d] += cur[i].x[d] + (coords[d] + 0.5) * subdomain[d];
-                    com[d]    += cur[i].x[d];
-                }
-
-            for (int d = 0; d<3; d++)
-                com[d] = com[d] / rbcscoll->get_nvertices() + (coords[d] + 0.5) * subdomain[d];
-
-            int irow = floor( (com[1] - offset - com[0] * tan_a) / rwidth );
-            if (irow >= nbins) irow = nbins - 1;
-            if (irow < 0) irow = 0;
-
-            locRBChisto[irow]++;
-        }
-    }
-
-    if (ctcscoll)
-        for (int p = 0; p < ctcscoll->count(); p++)
-        {
-            float com[3] = {0, 0, 0};
-            Particle * cur = ctcs + p * ctcscoll->get_nvertices();
-
-            for (int i=0; i < ctcscoll->get_nvertices(); i++)
-                for (int d = 0; d<3; d++)
-                    com[d] += cur[i].x[d];
-
-            for (int d = 0; d<3; d++)
-                com[d] = com[d] / ctcscoll->get_nvertices() + (coords[d] + 0.5) * subdomain[d];
-
-            int irow = floor( (com[1] - offset - com[0] * tan_a) / rwidth );
-            if (irow >= nbins) irow = nbins - 1;
-            if (irow < 0) irow = 0;
-
-            locCTChisto[irow]++;
-        }
-
-    MPI_CHECK( MPI_Reduce(rank == 0 ? MPI_IN_PLACE : &locRBChisto[0], &locRBChisto[0], nbins, MPI_INT, MPI_SUM, 0, qoicomm) );
-    MPI_CHECK( MPI_Reduce(rank == 0 ? MPI_IN_PLACE : &locCTChisto[0], &locCTChisto[0], nbins, MPI_INT, MPI_SUM, 0, qoicomm) );
-    MPI_CHECK( MPI_Reduce(rank == 0 ? MPI_IN_PLACE : totcom, totcom, 3, MPI_FLOAT, MPI_SUM, 0, qoicomm) );
-
-
-    if (ctcscoll && ctcscoll->count() > 0)
-    {
-        float com[3] = {0, 0, 0};
-
-        Particle * cur = ctcs;
-        for (int i=0; i < ctcscoll->get_nvertices(); i++)
-            for (int d = 0; d<3; d++)
-                com[d] += cur[i].x[d];
-
-        for (int d = 0; d<3; d++)
-            com[d] = com[d] / ctcscoll->get_nvertices() + (coords[d] + 0.5) * subdomain[d];
-
-        FILE* f = fopen("ctccom.txt", qoiid == 0 ? "w" : "a");
-        fprintf(f, "%f   %e %e %e\n", tm, com[0], com[1], com[2]);
-        fclose(f);
-    }
-
-    if (rank == 0)
-    {
-        if (rbcscoll)
-        {
-            FILE* fout = fopen("rbchisto.dat", qoiid == 0 ? "w" : "a");
-            fprintf(fout, "\n %f\n", tm);
-            for (int i=0; i<nbins; i++)
-                fprintf(fout, "%d   %d\n", i, locRBChisto[i]);
-            fclose(fout);
-        }
-
-        if (ctcscoll)
-        {
-            FILE* fout = fopen("ctchisto.dat", qoiid == 0 ? "w" : "a");
-            fprintf(fout, "\n %f\n", tm);
-            for (int i=0; i<nbins; i++)
-                fprintf(fout, "%d   %d\n", i, locCTChisto[i]);
-            fclose(fout);
-        }
-
-        if (rbcscoll)
-        {
-            float totrbcs = 0;
-            for (int i=0; i<nbins; i++)
-                totrbcs += locRBChisto[i];
-            totrbcs *= rbcscoll->get_nvertices();
-
-            FILE* fout = fopen("rbccom.txt", qoiid == 0 ? "w" : "a");
-            fprintf(fout, "%f   %e %e %e\n", tm, totcom[0] / totrbcs, totcom[1] / totrbcs, totcom[2] / totrbcs);
-            fclose(fout);
-        }
-    }
-    qoiid++;
-}
-
-
 void Simulation::_datadump(const int idtimestep)
 {
     double tstart = MPI_Wtime();
-
-    pthread_mutex_lock(&mutex_datadump);
-
-    while (datadump_pending)
-        pthread_cond_wait(&done_datadump, &mutex_datadump);
 
     int n = particles->size;
 
@@ -644,162 +520,22 @@ void Simulation::_datadump(const int idtimestep)
     }
 
     assert(start == n);
-
     CUDA_CHECK(cudaEventRecord(evdownloaded, 0));
 
-    datadump_idtimestep = idtimestep;
     datadump_nsolvent = particles->size;
     datadump_nrbcs = rbcscoll ? rbcscoll->pcount() : 0;
     datadump_nctcs = ctcscoll ? ctcscoll->pcount() : 0;
-    datadump_pending = true;
 
-    pthread_cond_signal(&request_datadump);
-#if defined(_SYNC_DUMPS_)
-    while (datadump_pending)
-        pthread_cond_wait(&done_datadump, &mutex_datadump);
-#endif
+    MPI_CHECK( MPI_Send(&datadump_nsolvent, 1, MPI_INT, rank, 0, intercomm) );
+    MPI_CHECK( MPI_Send(&datadump_nrbcs,    1, MPI_INT, rank, 0, intercomm) );
+    MPI_CHECK( MPI_Send(&datadump_nctcs,    1, MPI_INT, rank, 0, intercomm) );
 
-    pthread_mutex_unlock(&mutex_datadump);
+    CUDA_CHECK( cudaEventSynchronize(evdownloaded) );
+
+    MPI_CHECK( MPI_Send(particles_datadump.data,     n, Particle::datatype(),     rank, 0, intercomm) );
+    MPI_CHECK( MPI_Send(accelerations_datadump.data, n, Acceleration::datatype(), rank, 0, intercomm) );
 
     timings["data-dump"] += MPI_Wtime() - tstart;
-}
-
-void Simulation::_datadump_async()
-{
-#ifdef _USE_NVTX_
-    nvtxNameOsThread(pthread_self(), "DATADUMP_THREAD");
-#endif
-
-    int iddatadump = 0, rank;
-    int curr_idtimestep = -1;
-    bool wallcreated = false;
-
-    MPI_Comm myactivecomm, mycartcomm;
-
-    MPI_CHECK(MPI_Comm_dup(activecomm, &myactivecomm) );
-    MPI_CHECK(MPI_Comm_dup(cartcomm, &mycartcomm) );
-
-    H5PartDump dump_part("allparticles->h5part", activecomm, cartcomm), *dump_part_solvent = NULL;
-    H5FieldDump dump_field(cartcomm);
-
-    MPI_CHECK(MPI_Comm_rank(myactivecomm, &rank));
-
-    if (rank == 0)
-        mkdir("xyz", S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
-
-    MPI_CHECK(MPI_Barrier(myactivecomm));
-
-    while (true)
-    {
-        pthread_mutex_lock(&mutex_datadump);
-        async_thread_initialized = 1;
-
-        while (!datadump_pending)
-            pthread_cond_wait(&request_datadump, &mutex_datadump);
-
-        pthread_mutex_unlock(&mutex_datadump);
-
-        if (curr_idtimestep == datadump_idtimestep)
-            if (simulation_is_done)
-                break;
-
-        CUDA_CHECK(cudaEventSynchronize(evdownloaded));
-
-        const int n = particles_datadump.size;
-        Particle * p = particles_datadump.data;
-        Acceleration * a = accelerations_datadump.data;
-
-        {
-            NVTX_RANGE("diagnostics", NVTX_C1);
-            diagnostics(myactivecomm, mycartcomm, p, n, dt, datadump_idtimestep, a);
-        }
-
-        if (xyz_dumps)
-        {
-            NVTX_RANGE("xyz dump", NVTX_C2);
-
-            if (walls && datadump_idtimestep >= wall_creation_stepid && !wallcreated)
-            {
-                if (rank == 0)
-                {
-                    if( access("xyz/particles-equilibration.xyz", F_OK ) == -1 )
-                        rename ("xyz/particles.xyz", "xyz/particles-equilibration.xyz");
-
-                    if( access( "xyz/rbcs-equilibration.xyz", F_OK ) == -1 )
-                        rename ("xyz/rbcs.xyz", "xyz/rbcs-equilibration.xyz");
-
-                    if( access( "xyz/ctcs-equilibration.xyz", F_OK ) == -1 )
-                        rename ("xyz/ctcs.xyz", "xyz/ctcs-equilibration.xyz");
-                }
-
-                MPI_CHECK(MPI_Barrier(myactivecomm));
-
-                wallcreated = true;
-            }
-
-            xyz_dump(myactivecomm, mycartcomm, "xyz/particles->xyz", "all-particles", p, n, datadump_idtimestep > 0);
-        }
-
-        if (hdf5part_dumps)
-        {
-            NVTX_RANGE("h5part dump", NVTX_C3);
-
-            if (!dump_part_solvent && walls && datadump_idtimestep >= wall_creation_stepid)
-            {
-                dump_part.close();
-
-                dump_part_solvent = new H5PartDump("solvent-particles->h5part", activecomm, cartcomm);
-            }
-
-            if (dump_part_solvent)
-                dump_part_solvent->dump(p, n);
-            else
-                dump_part.dump(p, n);
-        }
-
-        if (hdf5field_dumps)
-        {
-            NVTX_RANGE("hdf5 field dump", NVTX_C4);
-
-            dump_field.dump(activecomm, p, datadump_nsolvent, datadump_idtimestep);
-        }
-
-        {
-            NVTX_RANGE("ply dump", NVTX_C5);
-
-            if (rbcscoll)
-                CollectionRBC::dump(myactivecomm, mycartcomm, p + datadump_nsolvent, a + datadump_nsolvent, datadump_nrbcs, iddatadump);
-
-            if (ctcscoll)
-                CollectionCTC::dump(myactivecomm, mycartcomm, p + datadump_nsolvent + datadump_nrbcs,
-                        a + datadump_nsolvent + datadump_nrbcs, datadump_nctcs, iddatadump);
-        }
-
-        _qoi(p + datadump_nsolvent, p + datadump_nsolvent + datadump_nrbcs, curr_idtimestep * dt);
-
-        curr_idtimestep = datadump_idtimestep;
-
-        pthread_mutex_lock(&mutex_datadump);
-
-        if (simulation_is_done)
-        {
-            pthread_mutex_unlock(&mutex_datadump);
-            break;
-        }
-
-        datadump_pending = false;
-
-        pthread_cond_signal(&done_datadump);
-
-        pthread_mutex_unlock(&mutex_datadump);
-
-        ++iddatadump;
-    }
-
-    if (dump_part_solvent)
-        delete dump_part_solvent;
-
-    CUDA_CHECK(cudaEventDestroy(evdownloaded));
 }
 
 void Simulation::_update_and_bounce()
@@ -842,8 +578,8 @@ void Simulation::_update_and_bounce()
     CUDA_CHECK(cudaPeekAtLastError());
 }
 
-Simulation::Simulation(MPI_Comm cartcomm, MPI_Comm activecomm, bool (*check_termination)()) :
-            cartcomm(cartcomm), activecomm(activecomm),
+Simulation::Simulation(MPI_Comm cartcomm, MPI_Comm activecomm, MPI_Comm intercomm, bool (*check_termination)()) :
+            cartcomm(cartcomm), activecomm(activecomm), intercomm(intercomm),
             /*particles(_ic()),*/ cells(XSIZE_SUBDOMAIN, YSIZE_SUBDOMAIN, ZSIZE_SUBDOMAIN),
             rbcscoll(NULL), ctcscoll(NULL), wall(NULL),
             redistribute(cartcomm),  redistribute_rbcs(cartcomm),  redistribute_ctcs(cartcomm),
@@ -855,8 +591,6 @@ Simulation::Simulation(MPI_Comm cartcomm, MPI_Comm activecomm, bool (*check_term
 {
     MPI_CHECK( MPI_Comm_size(activecomm, &nranks) );
     MPI_CHECK( MPI_Comm_rank(activecomm, &rank) );
-
-    MPI_CHECK( MPI_Comm_dup(activecomm, &qoicomm) );
 
     solutex.attach_halocomputation(fsi);
 
@@ -909,37 +643,9 @@ Simulation::Simulation(MPI_Comm cartcomm, MPI_Comm activecomm, bool (*check_term
         ctcscoll->setup("ctcs-ic.txt");
     }
 
-#ifndef _NO_DUMPS_
-    //setting up the asynchronous data dumps
-    {
-        CUDA_CHECK(cudaEventCreate(&evdownloaded, cudaEventDisableTiming | cudaEventBlockingSync));
-
-        particles_datadump.resize(particles->size * 1.5);
-        accelerations_datadump.resize(particles->size * 1.5);
-
-        int rc = pthread_mutex_init(&mutex_datadump, NULL);
-        rc |= pthread_cond_init(&done_datadump, NULL);
-        rc |= pthread_cond_init(&request_datadump, NULL);
-        async_thread_initialized = 0;
-        rc |= pthread_create(&thread_datadump, NULL, datadump_trampoline, this);
-
-        while (1)
-        {
-            pthread_mutex_lock(&mutex_datadump);
-            int done = async_thread_initialized;
-            pthread_mutex_unlock(&mutex_datadump);
-
-            if (done)
-                break;
-        }
-
-        if (rc)
-        {
-            printf("ERROR; return code from pthread_create() is %d\n", rc);
-            exit(-1);
-        }
-    }
-#endif
+    CUDA_CHECK(cudaEventCreate(&evdownloaded, cudaEventDisableTiming | cudaEventBlockingSync));
+    particles_datadump.resize(particles->size * 1.5);
+    accelerations_datadump.resize(particles->size * 1.5);
 }
 
 void Simulation::_lockstep()
@@ -1266,6 +972,11 @@ void Simulation::run()
 
     simulation_is_done = true;
 
+    datadump_nsolvent = datadump_nrbcs = datadump_nctcs = -1;
+    MPI_CHECK( MPI_Send(&datadump_nsolvent, 1, MPI_INT, rank, 0, intercomm) );
+    MPI_CHECK( MPI_Send(&datadump_nrbcs,    1, MPI_INT, rank, 0, intercomm) );
+    MPI_CHECK( MPI_Send(&datadump_nctcs,    1, MPI_INT, rank, 0, intercomm) );
+
     if (rank == 0)
         if (it == nsteps)
             printf("simulation is done after %.2lf s (%dm%ds). Ciao.\n",
@@ -1279,17 +990,6 @@ void Simulation::run()
 
 Simulation::~Simulation()
 {
-#ifndef _NO_DUMPS_
-    pthread_mutex_lock(&mutex_datadump);
-
-    datadump_pending = true;
-    pthread_cond_signal(&request_datadump);
-
-    pthread_mutex_unlock(&mutex_datadump);
-
-    pthread_join(thread_datadump, NULL);
-#endif
-
     CUDA_CHECK(cudaStreamDestroy(mainstream));
     CUDA_CHECK(cudaStreamDestroy(uploadstream));
     CUDA_CHECK(cudaStreamDestroy(downloadstream));

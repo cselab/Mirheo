@@ -246,6 +246,9 @@ namespace SolidWallsKernel
 	    //this is the worst case - it means that old position was bad already
 	    //we need to search and rescue the particle
 
+            cuda_printf("Warning rank %d sdf: %f (%.4f %.4f %.4f), from: sdf %f (%.4f %.4f %.4f)...   ",
+                    rank, currsdf, x, y, z, sdf(xold, yold, zold), xold, yold, zold);
+
 	    const float3 mygrad = grad_sdf(x, y, z);
 	    const float mysdf = currsdf;
 
@@ -260,6 +263,8 @@ namespace SolidWallsKernel
 		    u  = -u;
 		    v  = -v;
 		    w  = -w;
+
+                    cuda_printf("rescued in %d steps\n", 9-l);
 
 		    return;
 		}
@@ -718,7 +723,7 @@ struct FieldSampler
 
 				    int g[3];
 				    for(int c = 0; c < 3; ++c)
-					g[c] = max(0, min(N[c] - 1, l[c] - 1 + anchor[c]));
+                                    g[c] = (l[c] - 1 + anchor[c] + N[c]) % N[c];
 
 				    s += w[0][sx] * data[g[0] + N[0] * (g[1] + N[1] * g[2])];
 				}

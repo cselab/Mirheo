@@ -177,6 +177,12 @@ namespace CudaCTC
 
         in.close();
 
+        int *dummyiii;
+        if ( cudaMalloc(&dummyiii, sizeof(int)) == cudaErrorDevicesUnavailable )
+            return;
+        else
+            gpuErrchk(cudaFree(dummyiii));
+
         gpuErrchk( cudaMalloc(&orig_xyzuvw, nparticles             * 6 * sizeof(float)) );
         gpuErrchk( cudaMalloc(&triangles,   ntriang    * 4 * sizeof(int)) );
         gpuErrchk( cudaMalloc(&dihedrals,   ndihedrals             * 4 * sizeof(int)) );

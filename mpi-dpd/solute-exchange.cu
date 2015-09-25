@@ -516,9 +516,9 @@ void SoluteExchange::recv_p(cudaStream_t uploadstream)
 	if (count > expected)
 	    MPI_CHECK( MPI_Recv(&remote[i].pmessage.front() + expected, (count - expected) * 6, MPI_FLOAT, dstranks[i],
 				TAGBASE_P2 + recv_tags[i], cartcomm, &status) );
-#endif
 
 	memcpy(remote[i].hstate.data, &remote[i].pmessage.front(), sizeof(Particle) * count);
+#endif
 
 	_not_nan((float*)remote[i].hstate.data, count * 6);
     }

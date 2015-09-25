@@ -60,7 +60,7 @@ class Simulation
     bool (*check_termination)();
     bool simulation_is_done;
 
-    MPI_Comm activecomm, cartcomm, qoicomm;
+    MPI_Comm activecomm, cartcomm, intercomm;
     //LocalComm localcomm;
 
     cudaStream_t mainstream, uploadstream, downloadstream;
@@ -80,7 +80,6 @@ class Simulation
     void _create_walls(const bool verbose, bool & termination_request);
     void _remove_bodies_from_wall(CollectionRBC * coll);
     void _forces(bool firsttime = false);
-    void _qoi(Particle* rbcs, Particle * ctcs, const float tm);
     void _datadump(const int idtimestep);
     void _update_and_bounce();
     void _lockstep();
@@ -101,11 +100,9 @@ class Simulation
 
 public:
 
-    Simulation(MPI_Comm cartcomm, MPI_Comm activecomm, bool (*check_termination)()) ;
+    Simulation(MPI_Comm cartcomm, MPI_Comm activecomm, MPI_Comm intercomm, bool (*check_termination)()) ;
     
     void run();
 
     ~Simulation();
-
-    static void * datadump_trampoline(void * x) { ((Simulation *)x)->_datadump_async(); return NULL; }
 };

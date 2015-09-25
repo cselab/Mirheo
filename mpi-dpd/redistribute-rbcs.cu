@@ -109,8 +109,8 @@ namespace ReorderingRBC
 	    ddestinations[idrbc][offset] = val;
     }
 
-    SimpleDeviceBuffer<float *> _ddestinations;
-    SimpleDeviceBuffer<const float *> _dsources;
+    SimpleDeviceBuffer<float *> *_ddestinations = new SimpleDeviceBuffer<float*>;
+    SimpleDeviceBuffer<const float *> *_dsources = new SimpleDeviceBuffer<const float*>;
 
     void pack_all(cudaStream_t stream, const int nrbcs, const int nvertices, const float ** const sources, float ** const destinations)
     {
@@ -128,13 +128,13 @@ namespace ReorderingRBC
 	}
 	else
 	{
-	    _ddestinations.resize(nrbcs);
-	    _dsources.resize(nrbcs);
+	    _ddestinations->resize(nrbcs);
+	    _dsources->resize(nrbcs);
 
-	    CUDA_CHECK(cudaMemcpyAsync(_ddestinations.data, destinations, sizeof(float *) * nrbcs, cudaMemcpyHostToDevice, stream));
-	    CUDA_CHECK(cudaMemcpyAsync(_dsources.data, sources, sizeof(float *) * nrbcs, cudaMemcpyHostToDevice, stream));
+	    CUDA_CHECK(cudaMemcpyAsync(_ddestinations->data, destinations, sizeof(float *) * nrbcs, cudaMemcpyHostToDevice, stream));
+	    CUDA_CHECK(cudaMemcpyAsync(_dsources->data, sources, sizeof(float *) * nrbcs, cudaMemcpyHostToDevice, stream));
 
-	    pack_all_kernel<false><<<(nthreads + 127) / 128, 128, 0, stream>>>(nrbcs, nvertices, _dsources.data, _ddestinations.data);
+	    pack_all_kernel<false><<<(nthreads + 127) / 128, 128, 0, stream>>>(nrbcs, nvertices, _dsources->data, _ddestinations->data);
 	}
 
 	CUDA_CHECK(cudaPeekAtLastError());

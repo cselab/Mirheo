@@ -273,6 +273,12 @@ namespace CudaRBC
             xyzuvw_host[6*i+5] = 0;
         }
 
+        int *dummy;
+        if ( cudaMalloc(&dummy, sizeof(int)) == cudaErrorDevicesUnavailable )
+            return;
+        else
+            CUDA_CHECK(cudaFree(dummy));
+
         CUDA_CHECK( cudaMalloc(&orig_xyzuvw, nvertices * 6 * sizeof(float)) );
         CUDA_CHECK( cudaMemcpy(orig_xyzuvw, xyzuvw_host, nvertices * 6 * sizeof(float), cudaMemcpyHostToDevice) );
         delete[] xyzuvw_host;

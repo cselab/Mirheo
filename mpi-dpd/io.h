@@ -16,7 +16,6 @@
 
 #include "common.h"
 
-
 void xyz_dump(MPI_Comm comm, MPI_Comm cartcomm, const char * filename, const char * particlename, Particle * particles, int n, bool append);
 
 void ply_dump(MPI_Comm comm, MPI_Comm cartcomm, const char * filename,
