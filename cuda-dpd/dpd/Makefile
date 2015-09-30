@@ -35,8 +35,8 @@ NVCCFLAGS += -DVISCOSITY_S_LEVEL=$(slevel) -lineinfo -Xptxas -v
 test-dpd: main.cpp libcuda-dpd.so
 	$(CXX) $(CXXFLAGS) $^  -lcudart -lcurand -o test-dpd
 
-libcuda-dpd.a: cuda-dpd.o cuda-dpd-bipartite.o ../profiler-dpd.o celllists
-	ar rcs $@ cuda-dpd.o cuda-dpd-bipartite.o ../profiler-dpd.o ../cell-lists.o ../cell-lists-faster.o
+libcuda-dpd.a: cuda-dpd.o cuda-dpd-bipartite.o stress.o ../profiler-dpd.o celllists
+	ar rcs $@ cuda-dpd.o cuda-dpd-bipartite.o ../profiler-dpd.o ../cell-lists.o ../cell-lists-faster.o stress.o
 
 libcuda-dpd.so: cuda-dpd.o cuda-dpd-bipartite.o ../profiler-dpd.o celllists
 	$(CXX) $(CXXFLAGS) -shared cuda-dpd.o cuda-dpd-bipartite.o ../profiler-dpd.o ../cell-lists.o ../cell-lists-faster.o -o libcuda-dpd.so  -lcudart -lcurand
@@ -47,6 +47,9 @@ cuda-dpd.o: $(CUDADPD) cuda-dpd.h
 
 cuda-dpd-bipartite.o: $(CUDADPDBIP) cuda-dpd.h
 	$(NVCC) $(NVCCFLAGS) -c $(CUDADPDBIP) -o $@
+
+stress.o: stress.cu cuda-dpd.h
+	$(NVCC) $(NVCCFLAGS) -c $< -o $@
 
 ../%.o:
 	make -C ../ $(@:../%=%) CXX="$(CXX)" NVCC="$(NVCC)"

@@ -55,6 +55,7 @@ void Simulation::_update_helper_arrays()
     xyzouvwo.resize(2 * np);
     xyzo_half.resize(np);
 
+    if (np)
     make_texture <<< (np + 1023) / 1024, 1024, 1024 * 6 * sizeof( float )>>>(xyzouvwo.data, xyzo_half.data, (float *)particles->xyzuvw.data, np );
 
     CUDA_CHECK(cudaPeekAtLastError());
@@ -440,6 +441,15 @@ void Simulation::_datadump(const int idtimestep)
 
     int n = particles->size;
 
+    if (stress)
+    {
+	for(int c = 0; c < 6; ++c)
+	    stresses_datadump[c].resize(n);
+
+	for(int c = 0; c < 6; ++c)
+	    CUDA_CHECK(cudaMemcpyAsync(stresses_datadump[c].data, stresses[c].data, sizeof(float) * n, cudaMemcpyDeviceToHost,0));
+    }
+
     if (rbcscoll)
 	n += rbcscoll->pcount();
 
@@ -567,6 +577,40 @@ void Simulation::_datadump_async()
 	    xyz_dump(myactivecomm, mycartcomm, "xyz/particles->xyz", "all-particles", p, n, datadump_idtimestep > 0);
 	}
 
+	if (stress)
+	{
+	    char filename[1024];
+	    sprintf(filename, "stress/stresses-%05d.data", iddatadump);
+
+	    if(rank == 0 && iddatadump == 0)
+		mkdir("stress", S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+
+	    const int nsolvent = stresses_datadump[0].size;
+
+	    stress_dump(mycartcomm, filename, stresses_datadump[0].size, p,
+			stresses_datadump[0].data, stresses_datadump[1].data, stresses_datadump[2].data,
+			stresses_datadump[3].data, stresses_datadump[4].data, stresses_datadump[5].data);
+
+	    //lets quickly compute the average stress in the system
+	    float avgstress[6] = {0, 0, 0, 0, 0, 0};
+
+	    for(int c = 0; c < 6; ++c)
+		for(int i = 0; i < nsolvent; ++i)
+		    avgstress[c] += stresses_datadump[c].data[i];
+
+	    int ntotsolvent;
+	    MPI_CHECK( MPI_Reduce(&nsolvent, &ntotsolvent, 1, MPI_INT, MPI_SUM, 0, myactivecomm));
+
+	    float totavgstress[6];
+	    MPI_CHECK( MPI_Reduce(avgstress, totavgstress, 6, MPI_FLOAT, MPI_SUM, 0, myactivecomm));
+
+	    for(int c = 0; c < 6; ++c)
+		totavgstress[c] /= ntotsolvent;
+
+	    printf("average stress: sxx:%.3e sxy:%.3e sxz:%.3e syy:%.3e syz:%.3e szz:%.3e\n",
+		   totavgstress[0], totavgstress[1], totavgstress[2], totavgstress[3], totavgstress[4], totavgstress[5]);
+	}
+
 	if (hdf5part_dumps)
 	{
 	    NVTX_RANGE("h5part dump", NVTX_C3);
@@ -588,7 +632,7 @@ void Simulation::_datadump_async()
 	{
 	    NVTX_RANGE("hdf5 field dump", NVTX_C4);
 
-	    dump_field.dump(activecomm, p, particles->size, datadump_idtimestep);
+	    dump_field.dump(activecomm, p, datadump_nsolvent, datadump_idtimestep);
 	}
 
 	{
@@ -1024,7 +1068,18 @@ void Simulation::run()
 		printf("the simulation begins now and it consists of %.3e steps\n", (double)(nsteps - it));
 	}
 
+	if(stress && it % steps_per_dump == 0)
+	{
+	    for(int c = 0; c < 6; ++c)
+		stresses[c].resize(particles->size);
+
+	    dpd.set_stress_buffers(stresses[0].data, stresses[1].data, stresses[2].data, stresses[3].data, stresses[4].data, stresses[5].data);
+	}
+
 	_forces();
+
+	if (stress && it % steps_per_dump == 0 )
+	    dpd.clr_stress_buffers();
 
 #ifndef _NO_DUMPS_
 	if (it % steps_per_dump == 0)

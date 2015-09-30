@@ -23,6 +23,11 @@ void ply_dump(MPI_Comm comm, MPI_Comm cartcomm, const char * filename,
 	      int (*mesh_indices)[3], const int ninstances, const int ntriangles_per_instance, Particle * _particles, 
 	      int nvertices_per_instance, bool append);
 
+void stress_dump(MPI_Comm comm, const char * filename, const int nparticles,
+		 const Particle * const particles,
+		 const float * const stress_xx, const float * const stress_xy, const float * const stress_xz,
+		 const float * const stress_yy, const float * const stress_yz, const float * const stress_zz);
+
 class H5PartDump
 {
     float origin[3];
