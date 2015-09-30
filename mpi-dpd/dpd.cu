@@ -20,7 +20,9 @@
 
 using namespace std;
 
-ComputeDPD::ComputeDPD(MPI_Comm cartcomm): SolventExchange(cartcomm, 0), local_trunk(0, 0, 0, 0)
+ComputeDPD::ComputeDPD(MPI_Comm cartcomm):
+SolventExchange(cartcomm, 0), local_trunk(0, 0, 0, 0),
+sigma_xx(NULL),	sigma_xy(NULL),	sigma_xz(NULL), sigma_yy(NULL),	sigma_yz(NULL), sigma_zz(NULL)
 {
     int myrank;
     MPI_CHECK(MPI_Comm_rank(cartcomm, &myrank));
@@ -73,16 +75,25 @@ ComputeDPD::ComputeDPD(MPI_Comm cartcomm): SolventExchange(cartcomm, 0), local_t
     }
 }
 
+
+
 void ComputeDPD::local_interactions(const Particle * const xyzuvw, const float4 * const xyzouvwo, const ushort4 * const xyzo_half,
 				    const int n, Acceleration * const a, const int * const cellsstart, const int * const cellscount, cudaStream_t stream)
 {
     NVTX_RANGE("DPD/local", NVTX_C5);
 
     if (n > 0)
+    {
 	forces_dpd_cuda_nohost((float*)xyzuvw, xyzouvwo, xyzo_half, (float *)a, n,
 			       cellsstart, cellscount,
 			       1, XSIZE_SUBDOMAIN, YSIZE_SUBDOMAIN, ZSIZE_SUBDOMAIN, aij, gammadpd,
-			       sigma, 1. / sqrt(dt), local_trunk.get_float(), stream);
+			       sigma, 1. / sqrt(dt), current_lseed = local_trunk.get_float(), stream);
+
+	if (sigma_xx)
+	    compute_stress((float *)xyzuvw, n, cellsstart, cellscount, XSIZE_SUBDOMAIN, YSIZE_SUBDOMAIN, ZSIZE_SUBDOMAIN,
+			   aij, gammadpd, sigmaf, current_lseed,
+			   sigma_xx, sigma_xy, sigma_xz, sigma_yy, sigma_yz, sigma_zz, (float *)a, stream);
+    }
 }
 
 namespace BipsBatch
@@ -102,9 +113,17 @@ namespace BipsBatch
 
     __constant__ BatchInfo batchinfos[26];
 
-    __global__ void
-    interaction_kernel(const float aij, const float gamma, const float sigmaf,
-		       const int ndstall, float * const adst, const int sizeadst)
+    struct StressInfo
+    {
+	float *sigma_xx, *sigma_xy, *sigma_xz, *sigma_yy, *sigma_yz, *sigma_zz;
+    };
+
+    __constant__ StressInfo stressinfo;
+
+
+    template < bool computestresses > __global__
+    void interaction_kernel(const float aij, const float gamma, const float sigmaf,
+			    const int ndstall, float * const adst, const int sizeadst)
     {
 #if !defined(__CUDA_ARCH__)
 #warning __CUDA_ARCH__ not defined! assuming 350
@@ -151,7 +170,8 @@ namespace BipsBatch
 	const float vp = info.xdst[4 + dpid * 6];
 	const float wp = info.xdst[5 + dpid * 6];
 
-	const int dstbase = 3 * info.scattered_entries[dpid];
+	const int dstentry = info.scattered_entries[dpid];
+	const int dstbase = 3 * dstentry;
 	assert(dstbase < sizeadst * 3);
 
 	uint scan1, scan2, ncandidates, spidbase;
@@ -281,6 +301,16 @@ namespace BipsBatch
 	    xforce += strength * xr;
 	    yforce += strength * yr;
 	    zforce += strength * zr;
+
+	    if (computestresses)
+	    {
+		atomicAdd(stressinfo.sigma_xx + dstentry, strength * xr * _xr);
+		atomicAdd(stressinfo.sigma_xy + dstentry, strength * xr * _yr);
+		atomicAdd(stressinfo.sigma_xz + dstentry, strength * xr * _zr);
+		atomicAdd(stressinfo.sigma_yy + dstentry, strength * yr * _yr);
+		atomicAdd(stressinfo.sigma_yz + dstentry, strength * yr * _zr);
+		atomicAdd(stressinfo.sigma_zz + dstentry, strength * zr * _zr);
+	    }
 	}
 
 	atomicAdd(adst + dstbase + 0, xforce);
@@ -295,12 +325,15 @@ namespace BipsBatch
     cudaEvent_t evhalodone;
 
     void interactions(const float aij, const float gamma, const float sigma, const float invsqrtdt,
-		      const BatchInfo infos[20], cudaStream_t computestream, cudaStream_t uploadstream, float * const acc, const int n)
+		      const BatchInfo infos[20], cudaStream_t computestream, cudaStream_t uploadstream, float * const acc,
+		      float * const sigma_xx, float * const sigma_xy, float * const sigma_xz, float * const sigma_yy,
+		      float * const sigma_yz, float * const sigma_zz, const int n)
     {
 	if (firstcall)
 	{
 	    CUDA_CHECK(cudaEventCreate(&evhalodone, cudaEventDisableTiming));
-	    CUDA_CHECK(cudaFuncSetCacheConfig(interaction_kernel, cudaFuncCachePreferL1));
+	    CUDA_CHECK(cudaFuncSetCacheConfig(interaction_kernel<false>, cudaFuncCachePreferL1));
+	    CUDA_CHECK(cudaFuncSetCacheConfig(interaction_kernel<true>, cudaFuncCachePreferL1));
 	    firstcall = false;
 	}
 
@@ -316,12 +349,24 @@ namespace BipsBatch
 
 	const int nthreads = 2 * hstart_padded[26];
 
+	if (sigma_xx)
+	{
+	    StressInfo strinfo = {sigma_xx, sigma_xy, sigma_xz, sigma_yy, sigma_yz, sigma_zz };
+
+	    CUDA_CHECK(cudaMemcpyToSymbolAsync(stressinfo, &strinfo, sizeof(strinfo), 0, cudaMemcpyHostToDevice, uploadstream));
+	}
+
 	CUDA_CHECK(cudaEventRecord(evhalodone, uploadstream));
 
 	CUDA_CHECK(cudaStreamWaitEvent(computestream, evhalodone, 0));
 
 	if (nthreads)
-	interaction_kernel<<< (nthreads + 127) / 128, 128, 0, computestream>>>(aij, gamma, sigma * invsqrtdt, nthreads, acc, n);
+	{
+	    if (sigma_xx)
+		interaction_kernel<true><<< (nthreads + 127) / 128, 128, 0, computestream>>>(aij, gamma, sigma * invsqrtdt, nthreads, acc, n);
+	    else
+		interaction_kernel<false><<< (nthreads + 127) / 128, 128, 0, computestream>>>(aij, gamma, sigma * invsqrtdt, nthreads, acc, n);
+	}
 
 	CUDA_CHECK(cudaPeekAtLastError());
     }
@@ -346,7 +391,7 @@ void ComputeDPD::remote_interactions(const Particle * const p, const int n, Acce
 	const int m2 = 0 == dz;
 
 	BipsBatch::BatchInfo entry = {
-	    (float *)sendhalos[i].dbuf.data, (float2 *)recvhalos[i].dbuf.data, interrank_trunks[i].get_float(),
+	    (float *)sendhalos[i].dbuf.data, (float2 *)recvhalos[i].dbuf.data, current_rseeds[i] = interrank_trunks[i].get_float(),
 	    sendhalos[i].dbuf.size, recvhalos[i].dbuf.size, interrank_masks[i],
 	    recvhalos[i].dcellstarts.data, sendhalos[i].scattered_entries.data,
 	    dx, dy, dz,
@@ -357,7 +402,8 @@ void ComputeDPD::remote_interactions(const Particle * const p, const int n, Acce
 	infos[i] = entry;
     }
 
-    BipsBatch::interactions(aij, gammadpd, sigma, 1. / sqrt(dt), infos, stream, uploadstream, (float *)a, n);
+    BipsBatch::interactions(aij, gammadpd, sigma, 1. / sqrt(dt), infos, stream, uploadstream, (float *)a,
+			    sigma_xx, sigma_xy, sigma_xz, sigma_yy, sigma_yz, sigma_zz, n);
 
     CUDA_CHECK(cudaPeekAtLastError());
 }

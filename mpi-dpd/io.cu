@@ -181,6 +181,49 @@ void ply_dump(MPI_Comm comm, MPI_Comm cartcomm, const char * filename,
     MPI_CHECK( MPI_File_close(&f));
 }
 
+void stress_dump(MPI_Comm cartcomm, const char * filename, const int nparticles,
+		 const Particle * const particles,
+		 const float * const stress_xx, const float * const stress_xy, const float * const stress_xz,
+		 const float * const stress_yy, const float * const stress_yz, const float * const stress_zz)
+{
+    std::vector<float> buf(nparticles * 9);
+
+    int rank;
+    MPI_CHECK( MPI_Comm_rank(cartcomm, &rank) );
+
+    int dims[3], periods[3], coords[3];
+    MPI_CHECK( MPI_Cart_get(cartcomm, 3, dims, periods, coords) );
+
+    int NALL = 0;
+    const int n = nparticles;
+    MPI_CHECK( MPI_Reduce(&n, &NALL, 1, MPI_INT, MPI_SUM, 0, cartcomm) );
+
+    MPI_File f;
+    MPI_CHECK( MPI_File_open(cartcomm, filename , MPI_MODE_WRONLY | MPI_MODE_CREATE, MPI_INFO_NULL, &f) );
+
+    MPI_CHECK( MPI_File_set_size (f, sizeof(float) * 9 * NALL ));
+
+    const int L[3] = { XSIZE_SUBDOMAIN, YSIZE_SUBDOMAIN, ZSIZE_SUBDOMAIN };
+
+    for(int i = 0; i < n; ++i)
+    {
+	for(int c = 0; c < 3; ++c)
+	    buf[9 * i + c] = particles[i].x[c] + L[c] / 2 + coords[c] * L[c];
+
+	buf[9 * i + 3] = stress_xx[i];
+	buf[9 * i + 4] = stress_xy[i];
+	buf[9 * i + 5] = stress_xz[i];
+	buf[9 * i + 6] = stress_yy[i];
+	buf[9 * i + 7] = stress_yz[i];
+	buf[9 * i + 8] = stress_zz[i];
+    }
+
+    _write_bytes(buf.data(), sizeof(float) * 9 * n, f, cartcomm);
+
+    MPI_CHECK( MPI_File_close(&f));
+}
+
+
 H5PartDump::H5PartDump(const string fname, MPI_Comm comm, MPI_Comm cartcomm): tstamp(0), disposed(false)
 {
     _initialize(fname, comm, cartcomm);
