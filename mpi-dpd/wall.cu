@@ -377,6 +377,14 @@ namespace SolidWallsKernel
         }
     }
 
+    struct StressInfo
+    {
+	float *sigma_xx, *sigma_xy, *sigma_xz, *sigma_yy, *sigma_yz, *sigma_zz;
+    };
+
+    __constant__ StressInfo stressinfo;
+
+    template<bool computestresses >
     __global__ __launch_bounds__(128, 16) void interactions_3tpp(const float2 * const particles, const int np, const int nsolid,
             float * const acc, const float seed, const float sigmaf)
     {
@@ -500,6 +508,16 @@ namespace SolidWallsKernel
             xforce += strength * xr;
             yforce += strength * yr;
             zforce += strength * zr;
+
+	    if (computestresses)
+	    {
+		atomicAdd(stressinfo.sigma_xx + pid, strength * xr * _xr);
+		atomicAdd(stressinfo.sigma_xy + pid, strength * xr * _yr);
+		atomicAdd(stressinfo.sigma_xz + pid, strength * xr * _zr);
+		atomicAdd(stressinfo.sigma_yy + pid, strength * yr * _yr);
+		atomicAdd(stressinfo.sigma_yz + pid, strength * yr * _zr);
+		atomicAdd(stressinfo.sigma_zz + pid, strength * zr * _zr);
+	    }
         }
 
         atomicAdd(acc + 3 * pid + 0, xforce);
@@ -1121,8 +1139,19 @@ void ComputeWall::interactions(const Particle * const p, const int n, Accelerati
                 &SolidWallsKernel::texWallCellCount.channelDesc, sizeof(int) * cells.ncells));
         assert(textureoffset == 0);
 
-        SolidWallsKernel::interactions_3tpp<<< (3 * n + 127) / 128, 128, 0, stream>>>
+	if (sigma_xx)
+	{
+	    SolidWallsKernel::StressInfo strinfo = { sigma_xx, sigma_xy, sigma_xz, sigma_yy, sigma_yz, sigma_zz };
+
+	    CUDA_CHECK(cudaMemcpyToSymbolAsync(SolidWallsKernel::stressinfo, &strinfo, sizeof(strinfo), 0, cudaMemcpyHostToDevice, stream));
+
+	    SolidWallsKernel::interactions_3tpp<true><<< (3 * n + 127) / 128, 128, 0, stream>>>
                 ((float2 *)p, n, solid_size, (float *)acc, trunk.get_float(), sigmaf);
+	}
+	else
+	    SolidWallsKernel::interactions_3tpp<false><<< (3 * n + 127) / 128, 128, 0, stream>>>
+                ((float2 *)p, n, solid_size, (float *)acc, trunk.get_float(), sigmaf);
+
 
         CUDA_CHECK(cudaUnbindTexture(SolidWallsKernel::texWallParticles));
         CUDA_CHECK(cudaUnbindTexture(SolidWallsKernel::texWallCellStart));

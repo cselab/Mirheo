@@ -1075,12 +1075,20 @@ void Simulation::run()
 		stresses[c].resize(particles->size);
 
 	    dpd.set_stress_buffers(stresses[0].data, stresses[1].data, stresses[2].data, stresses[3].data, stresses[4].data, stresses[5].data);
+
+	    if (wall)
+		wall->set_stress_buffers(stresses[0].data, stresses[1].data, stresses[2].data, stresses[3].data, stresses[4].data, stresses[5].data);
 	}
 
 	_forces();
 
 	if (stress && it % steps_per_dump == 0 )
+	{
 	    dpd.clr_stress_buffers();
+
+	    if (wall)
+		wall->clr_stress_buffers();
+	}
 
 #ifndef _NO_DUMPS_
 	if (it % steps_per_dump == 0)
