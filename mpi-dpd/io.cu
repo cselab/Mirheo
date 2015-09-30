@@ -196,7 +196,7 @@ void stress_dump(MPI_Comm cartcomm, const char * filename, const int nparticles,
 
     int NALL = 0;
     const int n = nparticles;
-    MPI_CHECK( MPI_Reduce(&n, &NALL, 1, MPI_INT, MPI_SUM, 0, cartcomm) );
+    MPI_CHECK( MPI_Allreduce(&n, &NALL, 1, MPI_INT, MPI_SUM, cartcomm) );
 
     MPI_File f;
     MPI_CHECK( MPI_File_open(cartcomm, filename , MPI_MODE_WRONLY | MPI_MODE_CREATE, MPI_INFO_NULL, &f) );

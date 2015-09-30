@@ -607,8 +607,9 @@ void Simulation::_datadump_async()
 	    for(int c = 0; c < 6; ++c)
 		totavgstress[c] /= ntotsolvent;
 
-	    printf("average stress: sxx:%.3e sxy:%.3e sxz:%.3e syy:%.3e syz:%.3e szz:%.3e\n",
-		   totavgstress[0], totavgstress[1], totavgstress[2], totavgstress[3], totavgstress[4], totavgstress[5]);
+	    if (rank == 0)
+		printf("average stress: sxx:%.3e sxy:%.3e sxz:%.3e syy:%.3e syz:%.3e szz:%.3e\n",
+		       totavgstress[0], totavgstress[1], totavgstress[2], totavgstress[3], totavgstress[4], totavgstress[5]);
 	}
 
 	if (hdf5part_dumps)
