@@ -57,8 +57,10 @@ namespace SolidWallsKernel
     texture<float4, 1, cudaReadModeElementType> texWallParticles;
     texture<int, 1, cudaReadModeElementType> texWallCellStart, texWallCellCount;
 
+    template<bool computestresses>
     __global__ void interactions_3tpp(const float2 * const particles, const int np, const int nsolid,
-            float * const acc, const float seed, const float sigmaf);
+				      float * const acc, const float seed, const float sigmaf);
+
     void setup()
     {
         texSDF.normalized = 0;
@@ -83,7 +85,8 @@ namespace SolidWallsKernel
         texWallCellCount.mipmapFilterMode = cudaFilterModePoint;
         texWallCellCount.normalized = 0;
 
-        CUDA_CHECK(cudaFuncSetCacheConfig(interactions_3tpp, cudaFuncCachePreferL1));
+        CUDA_CHECK(cudaFuncSetCacheConfig(interactions_3tpp<true>, cudaFuncCachePreferL1));
+	CUDA_CHECK(cudaFuncSetCacheConfig(interactions_3tpp<false>, cudaFuncCachePreferL1));
     }
 
     __device__ float sdf(float x, float y, float z)
@@ -200,8 +203,6 @@ namespace SolidWallsKernel
 
         return make_float3(xmygrad, ymygrad, zmygrad);
     }
-
-
 
     __global__ void fill_keys(const Particle * const particles, const int n, int * const key)
     {
