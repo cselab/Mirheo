@@ -53,7 +53,6 @@ int main(const int argc, const char ** argv)
 	char path[2048];
 	
 	gets(path);
-	//fscanf(stdin, "%2048s\n",
 	fprintf(stderr, "Working on <%s>\n", path);
 
 	FILE * fin = fopen(path, "r");
@@ -151,7 +150,6 @@ int main(const int argc, const char ** argv)
     }
     else if (nprojections == 2)
     {
-	
 	int ctr = 0;
 	for(int iz = 0; iz < nbins[2]; ++iz)
 	    for(int iy = 0; iy < nbins[1]; ++iy)
@@ -160,7 +158,7 @@ int main(const int argc, const char ** argv)
 		    printf("%03d ", ctr);
 
 		    for(int c = 0; c < noutputchannels; ++c)
-			printf("%+.3e ", bindata[noutputchannels * ctr + c]);
+			printf("%+.4e ", bindata[noutputchannels * ctr + c]);
 
 		    printf("\n");
 
@@ -185,7 +183,7 @@ int main(const int argc, const char ** argv)
 		for(int iy = 0; iy < nbins[1]; ++iy)
 		    for(int ix = 0; ix < nbins[0]; ++ix)
 		    {
-			printf("%+.3e ", bindata[noutputchannels * ctr + c]);
+			printf("%+.5e ", bindata[noutputchannels * ctr + c]);
 
 			++ctr;
 
@@ -194,7 +192,7 @@ int main(const int argc, const char ** argv)
 		    }
 	    
 	    if (c < noutputchannels - 1)
-		printf("SEPARATION\n");
+		printf("\n");
 	}
     }
     else

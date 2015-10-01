@@ -1,3 +1,4 @@
+make
 
 echo EXAMPLE1: REDUCE ALL
 find ../../mpi-dpd/stress/* | ./stress -origin=0,0,0 -extent=48,48,48 -project=1,1,1
@@ -9,16 +10,19 @@ gnuplot -persist <<- END_GNUPLOT
 END_GNUPLOT
 
 echo EXAMPLE3: HEIGHT FIELD + MATPLOTLIB
-find ../../mpi-dpd/stress/* | ./stress -origin=0,0,0 -extent=48,48,48 -project=0,1,0 | csplit - %SEPARATION% {*} -f channel.
+find ../../mpi-dpd/stress/* | ./stress -origin=0,0,0 -extent=48,48,48 -project=0,1,0 | csplit --suppress-matched - '/^$/' {*} -f channel.
 python <<- END_PYTHON
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 
-path = "channel.01"
-ncols, nrows = 48, 48
-temp = np.loadtxt('channel.04').T 
-grid = temp.reshape((nrows, ncols))
-plt.imshow(grid, interpolation='nearest', cmap=cm.gist_rainbow)
+for path in ["channel.00", "channel.01", "channel.02", "channel.03", "channel.04", "channel.05"]:
+    ncols, nrows = 48, 48
+    temp = np.loadtxt(path).T 
+    grid = temp.reshape((nrows, ncols))
+    plt.figure(path)
+    plt.imshow(grid, interpolation='nearest', cmap=cm.gist_rainbow)
+
 plt.show()
+    
 END_PYTHON
