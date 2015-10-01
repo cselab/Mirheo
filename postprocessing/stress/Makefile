@@ -1,9 +1,9 @@
 CXX = g++
 
-test: main.cpp
-	$(CXX) main.cpp -I../ -g -O3 -o test
+stress: main.cpp
+	$(CXX) main.cpp -I../ -g -O3 -Wno-deprecated-declarations  -o stress
 
 clean:
-	rm -f test
+	rm -f stress
 
 .PHONY = clean

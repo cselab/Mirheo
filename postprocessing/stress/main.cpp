@@ -9,7 +9,7 @@ int main(const int argc, const char ** argv)
 {
     const bool verbose = false;
 
-    ArgumentParser argp(argc, argv);//("-lightpos").asVecFloat(4)
+    ArgumentParser argp(argc, argv);
 
     const bool avg = argp("-average").asBool(true);
     vector<float> origin = argp("-origin").asVecFloat(3);
@@ -47,71 +47,94 @@ int main(const int argc, const char ** argv)
     float * const bindata = new float[noutput];
     memset(bindata, 0, sizeof(float) * noutput);
 
-    FILE * fin = fopen("../../mpi-dpd/stress/stresses-00019.data", "r");
-    assert(fin);
-
-    if (verbose)				\
-	printf("reading...\n");
-
-    fseek(fin, 0, SEEK_END);
-    const size_t filesize = ftell(fin);
-    fseek(fin, 0, SEEK_SET);
-
-    const size_t nparticles = filesize / 9 / sizeof(float);
-    assert(filesize % (9 * sizeof(float)) == 0);
-
-    if (verbose)
+    int numfiles = 0;
+    while (!feof(stdin))
     {
-	printf("i have found %d particles\n", nparticles);
-	printf("particle chunk %d\n", chunksize);
-    }
+	char path[2048];
+	
+	gets(path);
+	//fscanf(stdin, "%2048s\n",
+	fprintf(stderr, "Working on <%s>\n", path);
 
-    for(size_t base = 0; base < nparticles; base += chunksize)
-    {
-	const int nhotparticles = min(nparticles - base, chunksize);
-	fread(pbuf, sizeof(float) * 9, nhotparticles, fin);
+	FILE * fin = fopen(path, "r");
 
-#ifndef NDEBUG
+	if (!fin)
+	{
+	    printf("can't access <%s> , exiting now.\n");
+	    exit(-1);
+	}
+
+	if (verbose)
+	    printf("reading...\n");
+
+	fseek(fin, 0, SEEK_END);
+	const size_t filesize = ftell(fin);
+	fseek(fin, 0, SEEK_SET);
+
+	const size_t nparticles = filesize / 9 / sizeof(float);
+	assert(filesize % (9 * sizeof(float)) == 0);
+
 	if (verbose)
 	{
-	    float avgs[9];
-	    for(int i = 0; i < 9; ++i)
-		avgs[i] = 0;
-
-	    for(int i = 0; i < nhotparticles; ++i)
-		for(int c = 0; c < 9; ++c)
-		    avgs[c] += pbuf[9 * i + c];
-
-	    for(int i = 0; i < 9; ++i)
-		printf("AVG %d: %.3e\n", i, avgs[i] / nhotparticles);
+	    printf("i have found %d particles\n", nparticles);
+	    printf("particle chunk %d\n", chunksize);
 	}
+
+	for(size_t base = 0; base < nparticles; base += chunksize)
+	{
+	    const int nhotparticles = min(nparticles - base, chunksize);
+	    fread(pbuf, sizeof(float) * 9, nhotparticles, fin);
+
+#ifndef NDEBUG
+	    if (verbose)
+	    {
+		float avgs[9];
+		for(int i = 0; i < 9; ++i)
+		    avgs[i] = 0;
+
+		for(int i = 0; i < nhotparticles; ++i)
+		    for(int c = 0; c < 9; ++c)
+			avgs[c] += pbuf[9 * i + c];
+
+		for(int i = 0; i < 9; ++i)
+		    printf("AVG %d: %.3e\n", i, avgs[i] / nhotparticles);
+	    }
 #endif
 
-	for(int i = 0; i < nhotparticles; ++i)
-	{
-	    int index[3];
-	    for(int c = 0; c < 3; ++c)
-		index[c] = (int)((pbuf[9 * i + c] - origin[c]) / binsize[c]);
+	    for(int i = 0; i < nhotparticles; ++i)
+	    {
+		int index[3];
+		for(int c = 0; c < 3; ++c)
+		    index[c] = (int)((pbuf[9 * i + c] - origin[c]) / binsize[c]);
 
-	    bool valid = true;
-	    for(int c = 0; c < 3; ++c)
-		valid &= index[c] >= 0 && index[c] < nbins[c];
+		bool valid = true;
+		for(int c = 0; c < 3; ++c)
+		    valid &= index[c] >= 0 && index[c] < nbins[c];
 
-	    if (!valid)
-		continue;
+		if (!valid)
+		    continue;
 
-	    const int binid = index[0] + nbins[0] * (index[1] + nbins[1] * index[2]);
-	    ++bincount[binid];
+		const int binid = index[0] + nbins[0] * (index[1] + nbins[1] * index[2]);
+		++bincount[binid];
 
-	    const int base = noutputchannels * binid;
+		const int base = noutputchannels * binid;
 
-	    for(int c = 0; c < 6; ++c)
-		bindata[base + c] += pbuf[9 * i + 3 + c];
+		for(int c = 0; c < 6; ++c)
+		    bindata[base + c] += pbuf[9 * i + 3 + c];
+	    }
 	}
+
+	fclose(fin);
+
+	++numfiles;
     }
 
-    fclose(fin);
-
+    if (!numfiles)
+    {
+	printf("ooops zero files were read. Exiting now.\n");
+	exit(-1);
+    }
+    
     if (avg)
 	for(int i = 0; i < ntotbins; ++i)
 	    for(int c = 0; c < noutputchannels; ++c)
@@ -156,9 +179,8 @@ int main(const int argc, const char ** argv)
 
 	for(int c = 0; c < noutputchannels; ++c)
 	{
-	    //printf("OUTPUT %d:\n", c);
 	    int ctr = 0;
-	    //printf("start\n");
+	    
 	    for(int iz = 0; iz < nbins[2]; ++iz)
 		for(int iy = 0; iy < nbins[1]; ++iy)
 		    for(int ix = 0; ix < nbins[0]; ++ix)
@@ -170,10 +192,9 @@ int main(const int argc, const char ** argv)
 			if (ctr % nx == 0)
 			    printf("\n");
 		    }
-	    //printf("stop\n");
 	    
 	    if (c < noutputchannels - 1)
-		printf("END OUTPUT\n");
+		printf("SEPARATION\n");
 	}
     }
     else
@@ -185,6 +206,8 @@ int main(const int argc, const char ** argv)
     delete [] pbuf;
     delete [] bincount;
     delete [] bindata;
+
+    perror("all is done. ciao.\n");
 
     return 0;
 }
