@@ -1,4 +1,6 @@
 #include <mpi.h>
+#include <unistd.h>
+#include <fcntl.h>
 
 #include <cstdio>
 #include <iostream>
@@ -90,9 +92,9 @@ int main(int argc, const char ** argv)
 	if (verbose)
 	    fprintf(stderr, "working on <%s>\n", path);
 
-	FILE * fin = fopen(path, "r");
+	int fdin = open(path, O_RDONLY);
 
-	if (!fin)
+	if (!fdin)
 	{
 	    fprintf(stderr, "can't access <%s> , exiting now.\n", path);
 	    exit(-1);
@@ -101,9 +103,9 @@ int main(int argc, const char ** argv)
 	if (verbose)
 	    perror("reading...\n");
 
-	fseek(fin, 0, SEEK_END);
-	const size_t filesize = ftell(fin);
-	fseek(fin, 0, SEEK_SET);
+	const size_t filesize = lseek(fdin, 0, SEEK_END);
+
+	lseek(fdin, 0, SEEK_SET);
 
 	const size_t nparticles = filesize / 9 / sizeof(float);
 	assert(filesize % (9 * sizeof(float)) == 0);
@@ -117,48 +119,59 @@ int main(int argc, const char ** argv)
 	for(size_t base = 0; base < nparticles; base += chunksize)
 	{
 	    const int nhotparticles = min(nparticles - base, chunksize);
-	    fread(pbuf, sizeof(float) * 9, nhotparticles, fin);
+	    const size_t nhotbytes = nhotparticles * sizeof(float) * 9;
 
-#ifndef NDEBUG
-	    if (verbose)
+	    size_t nreadbytes = 0;
+	    int start = 0;
+	    	    
+	    while(start < nhotparticles)
 	    {
-		float avgs[9];
-		for(int i = 0; i < 9; ++i)
-		    avgs[i] = 0;
+		nreadbytes += read(fdin, pbuf, nhotbytes - nreadbytes);
+		const int stop = nreadbytes / sizeof(float) / 9;
+		
+#ifndef NDEBUG
+		if (verbose)
+		{
+		    float avgs[9];
+		    for(int i = 0; i < 9; ++i)
+			avgs[i] = 0;
 
-		for(int i = 0; i < nhotparticles; ++i)
-		    for(int c = 0; c < 9; ++c)
-			avgs[c] += pbuf[9 * i + c];
+		    for(int i = 0; i < nhotparticles; ++i)
+			for(int c = 0; c < 9; ++c)
+			    avgs[c] += pbuf[9 * i + c];
 
-		for(int i = 0; i < 9; ++i)
-		    printf("AVG %d: %.3e\n", i, avgs[i] / nhotparticles);
-	    }
+		    for(int i = 0; i < 9; ++i)
+			printf("AVG %d: %.3e\n", i, avgs[i] / nhotparticles);
+		}
 #endif
 
-	    for(int i = 0; i < nhotparticles; ++i)
-	    {
-		int index[3];
-		for(int c = 0; c < 3; ++c)
-		    index[c] = (int)((pbuf[9 * i + c] - origin[c]) / binsize[c]);
+		for(int i = start; i < stop; ++i)
+		{
+		    int index[3];
+		    for(int c = 0; c < 3; ++c)
+			index[c] = (int)((pbuf[9 * i + c] - origin[c]) / binsize[c]);
 
-		bool valid = true;
-		for(int c = 0; c < 3; ++c)
-		    valid &= index[c] >= 0 && index[c] < nbins[c];
+		    bool valid = true;
+		    for(int c = 0; c < 3; ++c)
+			valid &= index[c] >= 0 && index[c] < nbins[c];
 
-		if (!valid)
-		    continue;
+		    if (!valid)
+			continue;
 
-		const int binid = index[0] + nbins[0] * (index[1] + nbins[1] * index[2]);
-		++bincount[binid];
+		    const int binid = index[0] + nbins[0] * (index[1] + nbins[1] * index[2]);
+		    ++bincount[binid];
 
-		const int base = noutputchannels * binid;
+		    const int base = noutputchannels * binid;
 
-		for(int c = 0; c < 6; ++c)
-		    bindata[base + c] += pbuf[9 * i + 3 + c];
+		    for(int c = 0; c < 6; ++c)
+			bindata[base + c] += pbuf[9 * i + 3 + c];
+		}
+
+		start = stop;
 	    }
 	}
 
-	fclose(fin);
+	close(fdin);
     }
 
     if (!numfiles)
