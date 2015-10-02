@@ -1,16 +1,26 @@
+#include <mpi.h>
+
 #include <cstdio>
+#include <iostream>
 #include <vector>
+#include <sstream>
 
 #include <argument-parser.h>
+#include <mpi-check.h>
 
 using namespace std;
 
-int main(const int argc, const char ** argv)
+int main(int argc, const char ** argv)
 {
-    const bool verbose = false;
+    MPI_CHECK( MPI_Init(&argc, (char ***)&argv) );
+
+    int nranks, rank;
+    MPI_CHECK( MPI_Comm_rank(MPI_COMM_WORLD, &rank));
+    MPI_CHECK( MPI_Comm_size(MPI_COMM_WORLD, &nranks));
 
     ArgumentParser argp(argc, argv);
 
+    const bool verbose = argp("-verbose").asBool(false);
     const bool avg = argp("-average").asBool(true);
     vector<float> origin = argp("-origin").asVecFloat(3);
     vector<float> extent = argp("-extent").asVecFloat(3);
@@ -44,27 +54,52 @@ int main(const int argc, const char ** argv)
 
     const int noutput = noutputchannels * ntotbins;
 
-    float * const bindata = new float[noutput];
-    memset(bindata, 0, sizeof(float) * noutput);
+    double * const bindata = new double[noutput];
+    memset(bindata, 0, sizeof(double) * noutput);
 
-    int numfiles = 0;
-    while (!feof(stdin))
+    vector<string> paths;
+
     {
-	char path[2048];
-	
-	gets(path);
-	fprintf(stderr, "Working on <%s>\n", path);
+	string myinput;
+
+	if (rank == 0)
+	    for (string line; getline(cin, line);)
+		myinput += line + "\n";
+
+	int inputsize = myinput.size();
+	MPI_CHECK( MPI_Bcast(&inputsize, 1, MPI_INTEGER, 0, MPI_COMM_WORLD));
+
+	myinput.resize(inputsize);
+
+	MPI_CHECK( MPI_Bcast(&myinput[0], inputsize, MPI_CHAR, 0, MPI_COMM_WORLD));
+
+	int c = 0;
+	istringstream iss(myinput);
+
+	for (string line; getline(iss, line); ++c)
+	    if (c % nranks == rank)
+		paths.push_back(line);
+    }
+
+    int numfiles = paths.size();
+
+    for(int ipath = 0; ipath < paths.size(); ++ipath)
+    {
+	const char * const path = paths[ipath].c_str();
+
+	if (verbose)
+	    fprintf(stderr, "working on <%s>\n", path);
 
 	FILE * fin = fopen(path, "r");
 
 	if (!fin)
 	{
-	    printf("can't access <%s> , exiting now.\n");
+	    fprintf(stderr, "can't access <%s> , exiting now.\n", path);
 	    exit(-1);
 	}
 
 	if (verbose)
-	    printf("reading...\n");
+	    perror("reading...\n");
 
 	fseek(fin, 0, SEEK_END);
 	const size_t filesize = ftell(fin);
@@ -75,8 +110,8 @@ int main(const int argc, const char ** argv)
 
 	if (verbose)
 	{
-	    printf("i have found %d particles\n", nparticles);
-	    printf("particle chunk %d\n", chunksize);
+	    fprintf(stderr, "i have found %d particles\n", (int)nparticles);
+	    fprintf(stderr, "particle chunk %d\n", (int)chunksize);
 	}
 
 	for(size_t base = 0; base < nparticles; base += chunksize)
@@ -124,16 +159,20 @@ int main(const int argc, const char ** argv)
 	}
 
 	fclose(fin);
-
-	++numfiles;
     }
 
     if (!numfiles)
     {
-	printf("ooops zero files were read. Exiting now.\n");
+	perror("ooops zero files were read. Exiting now.\n");
 	exit(-1);
     }
-    
+
+    MPI_CHECK( MPI_Reduce(rank ? bincount : MPI_IN_PLACE, bincount, ntotbins, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD) );
+    MPI_CHECK( MPI_Reduce(rank ? bindata : MPI_IN_PLACE, bindata, noutput, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD) );
+
+    if (rank)
+	goto finalize;
+
     if (avg)
 	for(int i = 0; i < ntotbins; ++i)
 	    for(int c = 0; c < noutputchannels; ++c)
@@ -167,7 +206,7 @@ int main(const int argc, const char ** argv)
     }
     else if (nprojections == 1)
     {
-	int nx;
+	int nx = 0;
 	for(int c = 0; c < 3; ++c)
 	    if (nbins[c] > 1)
 	    {
@@ -178,7 +217,7 @@ int main(const int argc, const char ** argv)
 	for(int c = 0; c < noutputchannels; ++c)
 	{
 	    int ctr = 0;
-	    
+
 	    for(int iz = 0; iz < nbins[2]; ++iz)
 		for(int iy = 0; iy < nbins[1]; ++iy)
 		    for(int ix = 0; ix < nbins[0]; ++ix)
@@ -190,22 +229,27 @@ int main(const int argc, const char ** argv)
 			if (ctr % nx == 0)
 			    printf("\n");
 		    }
-	    
+
 	    if (c < noutputchannels - 1)
 		printf("\n");
 	}
     }
     else
     {
-	printf("woops invalid number of projections. Exiting now...\n");
+	perror("woops invalid number of projections. Exiting now...\n");
 	exit(-1);
     }
+
+    if (verbose)
+	perror("all is done. ciao.\n");
+
+finalize:
 
     delete [] pbuf;
     delete [] bincount;
     delete [] bindata;
 
-    perror("all is done. ciao.\n");
+    MPI_CHECK( MPI_Finalize() );
 
     return 0;
 }

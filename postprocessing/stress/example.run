@@ -10,14 +10,14 @@ gnuplot -persist <<- END_GNUPLOT
 END_GNUPLOT
 
 echo EXAMPLE3: HEIGHT FIELD + MATPLOTLIB
-find ../../mpi-dpd/stress/* | ./stress -origin=0,0,0 -extent=48,48,48 -project=0,1,0 | csplit --suppress-matched - '/^$/' {*} -f channel.
+find ../../mpi-dpd/stress/* | ./stress -origin=0,0,0 -extent=48,48,32 -project=0,1,0 | csplit --suppress-matched - '/^$/' {*} -f channel.
 python <<- END_PYTHON
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 
 for path in ["channel.00", "channel.01", "channel.02", "channel.03", "channel.04", "channel.05"]:
-    ncols, nrows = 48, 48
+    ncols, nrows = 48, 32
     temp = np.loadtxt(path).T 
     grid = temp.reshape((nrows, ncols))
     plt.figure(path)
