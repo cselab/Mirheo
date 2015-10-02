@@ -85,7 +85,10 @@ int main(int argc, const char ** argv)
 
     int numfiles = paths.size();
 
-    for(int ipath = 0; ipath < paths.size(); ++ipath)
+    size_t totalfootprint = 0;
+    double timeIO = 0;
+    
+    for(int ipath = 0; ipath < (int)paths.size(); ++ipath)
     {
 	const char * const path = paths[ipath].c_str();
 
@@ -104,6 +107,8 @@ int main(int argc, const char ** argv)
 	    perror("reading...\n");
 
 	const size_t filesize = lseek(fdin, 0, SEEK_END);
+	
+	totalfootprint += filesize;
 
 	lseek(fdin, 0, SEEK_SET);
 
@@ -126,7 +131,10 @@ int main(int argc, const char ** argv)
 	    	    
 	    while(start < nhotparticles)
 	    {
+		const double tstart = MPI_Wtime();
 		nreadbytes += read(fdin, pbuf, nhotbytes - nreadbytes);
+		timeIO += MPI_Wtime() - tstart;
+		
 		const int stop = nreadbytes / sizeof(float) / 9;
 		
 #ifndef NDEBUG
@@ -182,6 +190,8 @@ int main(int argc, const char ** argv)
 
     MPI_CHECK( MPI_Reduce(rank ? bincount : MPI_IN_PLACE, bincount, ntotbins, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD) );
     MPI_CHECK( MPI_Reduce(rank ? bindata : MPI_IN_PLACE, bindata, noutput, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD) );
+    MPI_CHECK( MPI_Reduce(rank ? &timeIO : MPI_IN_PLACE, &timeIO, 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD) );
+    MPI_CHECK( MPI_Reduce(rank ? &totalfootprint : MPI_IN_PLACE, &totalfootprint, 1, MPI_OFFSET, MPI_SUM, 0, MPI_COMM_WORLD) );
 
     if (rank)
 	goto finalize;
@@ -255,6 +265,9 @@ int main(int argc, const char ** argv)
 
     if (verbose)
 	perror("all is done. ciao.\n");
+
+    fprintf(stderr, "total footprint: %.3f MB, I/O time: %.3f ms\n", totalfootprint * 1. / 1024 / 1024, timeIO * 1e3);
+    fprintf(stderr, "read throughput: %.3f GB/s\n", totalfootprint /( 1024 * 1024) / timeIO / 1024);
 
 finalize:
 
