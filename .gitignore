@@ -9,3 +9,6 @@
 .DS*
 *.orig
 *.xyz
+*.ply
+*.png
+*.dcu

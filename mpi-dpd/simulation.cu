@@ -586,8 +586,7 @@ Simulation::Simulation(MPI_Comm cartcomm, MPI_Comm activecomm, MPI_Comm intercom
             dpd(cartcomm), fsi(cartcomm), contact(cartcomm), solutex(cartcomm),
             check_termination(check_termination),
             driving_acceleration(0), host_idle_time(0), nsteps((int)(tend / dt)),
-            datadump_pending(false), simulation_is_done(false),
-            qoiid(0)
+    datadump_pending(false), simulation_is_done(false)
 {
     MPI_CHECK( MPI_Comm_size(activecomm, &nranks) );
     MPI_CHECK( MPI_Comm_rank(activecomm, &rank) );
@@ -960,11 +959,10 @@ void Simulation::run()
 
         _forces();
 
-#ifndef _NO_DUMPS_
         if (it % steps_per_dump == 0)
             _datadump(it);
-#endif
-        _update_and_bounce();
+        
+	_update_and_bounce();
     }
 
     const double time_simulation_stop = MPI_Wtime();

@@ -1,6 +1,6 @@
 /*
  *  io.cu
- *  Part of CTC/mpi-dpd/
+ *  Part of uDeviceX/mpi-dpd/
  *
  *  Created and authored by Diego Rossinelli on 2015-01-30.
  *  Major bug in H5 dump fixed by Panotelli on 2015-03-24.
@@ -149,14 +149,14 @@ void ply_dump_mpi(MPI_Comm comm, MPI_Comm cartcomm, const char * filename,
     MPI_CHECK( MPI_Cart_get(cartcomm, 3, dims, periods, coords) );
 
     /* Part II: particles */
-    int NPOINTS = 0;
-    const int n = particles.size();
-    MPI_CHECK( MPI_Allreduce(&n, &NPOINTS, 1, MPI_INT, MPI_SUM, comm) );
+    int64_t NPOINTS = 0;
+    const int64_t n = particles.size();
+    MPI_CHECK( MPI_Allreduce(&n, &NPOINTS, 1, MPI_LONG_LONG, MPI_SUM, comm) );
 
     /* Part III: triangles */
-    const int ntriangles = ntriangles_per_instance * ninstances;
-    int NTRIANGLES = 0;
-    MPI_CHECK( MPI_Allreduce(&ntriangles, &NTRIANGLES, 1, MPI_INT, MPI_SUM, comm) );
+    const int64_t ntriangles = ntriangles_per_instance * ninstances;
+    int64_t NTRIANGLES = 0;
+    MPI_CHECK( MPI_Allreduce(&ntriangles, &NTRIANGLES, 1, MPI_LONG_LONG, MPI_SUM, comm) );
 
     /* Part I: header */
     std::stringstream ss;
@@ -178,20 +178,20 @@ void ply_dump_mpi(MPI_Comm comm, MPI_Comm cartcomm, const char * filename,
     int HEADERSIZE = 0;
     MPI_CHECK( MPI_Allreduce(&headersize, &HEADERSIZE, 1, MPI_INT, MPI_SUM, comm) );
 
-    unsigned long size0 = HEADERSIZE;
-    unsigned long size1 = NPOINTS*sizeof(Particle);
+    int64_t size0 = HEADERSIZE;
+    int64_t size1 = NPOINTS*sizeof(Particle);
     //  unsigned long size2 = NTRIANGLES*4*sizeof(int);
 
     MPI_Offset base0 = 0; 
     MPI_Offset base1 = base0 + size0;
     MPI_Offset base2 = base1 + size1; 
 
-    int ioffset0 = 0;
-    int ioffset1 = 0;
-    int ioffset2 = 0;
-    MPI_CHECK( MPI_Exscan(&headersize, &ioffset0, 1, MPI_INTEGER, MPI_SUM, comm));
-    MPI_CHECK( MPI_Exscan(&n, &ioffset1, 1, MPI_INTEGER, MPI_SUM, comm));
-    MPI_CHECK( MPI_Exscan(&ntriangles, &ioffset2, 1, MPI_INTEGER, MPI_SUM, comm));
+    int64_t ioffset0 = 0;
+    int64_t ioffset1 = 0;
+    int64_t ioffset2 = 0;
+    MPI_CHECK( MPI_Exscan(&headersize, &ioffset0, 1, MPI_LONG_LONG, MPI_SUM, comm));
+    MPI_CHECK( MPI_Exscan(&n, &ioffset1, 1, MPI_LONG_LONG, MPI_SUM, comm));
+    MPI_CHECK( MPI_Exscan(&ntriangles, &ioffset2, 1, MPI_LONG_LONG, MPI_SUM, comm));
 
     MPI_Offset poffset0 = ioffset0*sizeof(char);
     MPI_Offset poffset1 = ioffset1*sizeof(Particle);
@@ -251,21 +251,21 @@ void ply_dump_mpi(MPI_Comm comm, MPI_Comm cartcomm, const char * filename,
 
     MPI_Barrier(comm);
 
-    double t3 = MPI_Wtime();
+//    double t3 = MPI_Wtime();
     MPI_CHECK( MPI_File_close(&f));
-    double t4 = MPI_Wtime();
-
-    double d0 = 1e3*(t1 - t0);
-    double d1 = 1e3*(t2 - t1);
-    double d2 = 1e3*(t3 - t2);
-    double d3 = 1e3*(t4 - t3);
-
-    MPI_Reduce(rank == 0 ? MPI_IN_PLACE : &d0, &d0, 1, MPI_DOUBLE, MPI_MAX, 0, comm);
-    MPI_Reduce(rank == 0 ? MPI_IN_PLACE : &d1, &d1, 1, MPI_DOUBLE, MPI_MAX, 0, comm);
-    MPI_Reduce(rank == 0 ? MPI_IN_PLACE : &d2, &d2, 1, MPI_DOUBLE, MPI_MAX, 0, comm);
-    MPI_Reduce(rank == 0 ? MPI_IN_PLACE : &d3, &d3, 1, MPI_DOUBLE, MPI_MAX, 0, comm);
-
-    if (!rank) printf("ply_dump_mpi:\t %.2f ms;  \t prep: %.2f, open %.2f, write %.2f, close %.2f\n", d0+d1+d2+d3, d0, d1, d2, d3);
+//    double t4 = MPI_Wtime();
+//
+//    double d0 = 1e3*(t1 - t0);
+//    double d1 = 1e3*(t2 - t1);
+//    double d2 = 1e3*(t3 - t2);
+//    double d3 = 1e3*(t4 - t3);
+//
+//    MPI_Reduce(rank == 0 ? MPI_IN_PLACE : &d0, &d0, 1, MPI_DOUBLE, MPI_MAX, 0, comm);
+//    MPI_Reduce(rank == 0 ? MPI_IN_PLACE : &d1, &d1, 1, MPI_DOUBLE, MPI_MAX, 0, comm);
+//    MPI_Reduce(rank == 0 ? MPI_IN_PLACE : &d2, &d2, 1, MPI_DOUBLE, MPI_MAX, 0, comm);
+//    MPI_Reduce(rank == 0 ? MPI_IN_PLACE : &d3, &d3, 1, MPI_DOUBLE, MPI_MAX, 0, comm);
+//
+//    if (!rank) printf("ply_dump_mpi:\t %.2f ms;  \t prep: %.2f, open %.2f, write %.2f, close %.2f\n", d0+d1+d2+d3, d0, d1, d2, d3);
 }
 
 void ply_dump_posix(MPI_Comm comm, MPI_Comm cartcomm, const char * filename,
@@ -551,8 +551,9 @@ void H5FieldDump::_write_fields(const char * const path2h5,
         MPI_Comm comm, const float time)
 {
 #ifndef NO_H5
-    int nranks[3], periods[3], myrank[3];
+    int nranks[3], periods[3], myrank[3], size;
     MPI_CHECK( MPI_Cart_get(cartcomm, 3, nranks, periods, myrank) );
+    MPI_CHECK( MPI_Comm_size(comm, &size) );
 
     id_t plist_id_access = H5Pcreate(H5P_FILE_ACCESS);
 
@@ -570,7 +571,7 @@ void H5FieldDump::_write_fields(const char * const path2h5,
     MPI_Info_set(info, "romio_ds_write", "disable");
     MPI_Info_set(info, "striping_factor", cbstr);
 
-    H5Pset_fapl_mpio(plist_id_access, comm, info);
+    H5Pset_fapl_mpio(plist_id_access, comm, MPI_INFO_NULL);
 
     hid_t file_id = H5Fcreate(path2h5, H5F_ACC_TRUNC, H5P_DEFAULT, plist_id_access);
     H5Pclose(plist_id_access);

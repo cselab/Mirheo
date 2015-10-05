@@ -70,7 +70,7 @@ class Simulation
     const size_t nsteps;
     float driving_acceleration;
     float host_idle_time;
-    int nranks, rank, qoiid;
+    int nranks, rank;
 	    
     std::vector<Particle> _ic();
     void _update_helper_arrays();

@@ -27,7 +27,6 @@ using namespace std;
 
 namespace CudaCTC
 {
-
     int nparticles;
     int ntriang;
     int nbonds;
@@ -85,16 +84,19 @@ namespace CudaCTC
 
         in >> nparticles >> nbonds >> ntriang >> ndihedrals;
 
-        if (report)
-            if (in.good())
-            {
+
+        if (in.good())
+        {
+            if (report || nparticles <= 0 || ntriang <= 0)
                 cout << "File contains " << nparticles << " atoms, " << nbonds << " bonds, " << ntriang << " triangles and " << ndihedrals << " dihedrals" << endl;
-            }
-            else
-            {
-                cout << "Couldn't parse the file" << endl;
-                exit(1);
-            }
+        }
+        else
+        {
+            cout << "Couldn't parse the file" << endl;
+            exit(1);
+        }
+
+        if (nparticles <= 0 || ntriang <= 0) abort();
 
         // Atoms section
         real *xyzuvw_host = new real[6*nparticles];
@@ -177,6 +179,7 @@ namespace CudaCTC
 
         in.close();
 
+        nvertices = nparticles;
         int *dummyiii;
         if ( cudaMalloc(&dummyiii, sizeof(int)) == cudaErrorDevicesUnavailable )
             return;
@@ -194,7 +197,6 @@ namespace CudaCTC
         delete[] xyzuvw_host;
         delete[] dihedrals_host;
 
-        nvertices = nparticles;
         host_extent.xmin = xmin[0] - origin[0];
         host_extent.ymin = xmin[1] - origin[1];
         host_extent.zmin = xmin[2] - origin[2];
@@ -638,7 +640,7 @@ namespace CudaCTC
         dim3 dihThreads(32*3, 1);
         dim3 dihBlocks( (ndihedrals + dihThreads.x - 1) / dihThreads.x, ncells );
 
-        gpuErrchk( cudaMemset(host_av, 0, ncells * 2 * sizeof(float)) );
+        gpuErrchk( cudaMemsetAsync(host_av, 0, ncells * 2 * sizeof(float), stream) );
         areaAndVolumeKernel<<<trBlocks, trThreads, 0, stream>>>();
         gpuErrchk( cudaPeekAtLastError() );
 

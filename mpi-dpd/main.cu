@@ -87,12 +87,6 @@ int main(int argc, char ** argv)
     contactforces = argp("-contactforces").asBool(false);
     nsubsteps = argp("-nsubsteps").asInt(0);
 
-#ifndef _NO_DUMPS_
-    const bool mpi_thread_safe = argp("-mpi_thread_safe").asBool(true);
-#else
-    const bool mpi_thread_safe = argp("-mpi_thread_safe").asBool(false);
-#endif
-
     SignalHandling::setup();
 
 #ifdef _USE_NVTX_

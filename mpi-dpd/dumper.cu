@@ -24,6 +24,8 @@ Dumper::Dumper(MPI_Comm iocomm, MPI_Comm iocartcomm, MPI_Comm intercomm) : iocom
     nrbcverts = rdummy->get_nvertices();
     nctcverts = cdummy->get_nvertices();
 
+    if (nrbcverts < 0 || nctcverts < 0) abort();
+
     MPI_CHECK(MPI_Comm_rank(iocomm, &rank));
 }
 
@@ -177,6 +179,8 @@ void Dumper::do_dump()
         MPI_CHECK( MPI_Recv(p, n, Particle::datatype(),     rank, 0, intercomm, &status) );
         MPI_CHECK( MPI_Recv(a, n, Acceleration::datatype(), rank, 0, intercomm, &status) );
 
+        double t0 = MPI_Wtime();
+
         H5PartDump dump_part("allparticles->h5part", iocomm, iocartcomm), *dump_part_solvent = NULL;
         H5FieldDump dump_field(iocartcomm);
 
@@ -234,7 +238,7 @@ void Dumper::do_dump()
 
         if (hdf5field_dumps)
         {
-            dump_field.dump(iocomm, p, nparticles, iddatadump);
+            dump_field.dump(iocomm, p, nparticles, iddatadump * steps_per_dump);
         }
 
         {
@@ -246,6 +250,11 @@ void Dumper::do_dump()
         }
 
         qoi(p + nparticles, p + nparticles + nrbcparts, nrbcparts, nctcparts, iddatadump * dt);
+
+        double t1 = MPI_Wtime();
+        double d0 = 1e3*(t1 - t0);
+        MPI_Reduce(rank == 0 ? MPI_IN_PLACE : &d0, &d0, 1, MPI_DOUBLE, MPI_MAX, 0, iocomm);
+        if (!rank) printf(" \e[35mStep: %d, datadump time: %.2f ms\e[0m\n", iddatadump, d0);
 
         ++iddatadump;
     }
