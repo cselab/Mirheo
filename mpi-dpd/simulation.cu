@@ -592,11 +592,13 @@ void Simulation::_datadump_async()
 			stresses_datadump[3].data, stresses_datadump[4].data, stresses_datadump[5].data);
 
 	    //lets quickly compute the average stress in the system
-	    float avgstress[6] = {0, 0, 0, 0, 0, 0};
+	    const int v1[6] = {0, 0, 0, 1, 1, 2};
+	    const int v2[6] = {0, 1, 2, 1, 2, 2};
 
+	    float avgstress[6] = {0, 0, 0, 0, 0, 0};
 	    for(int c = 0; c < 6; ++c)
 		for(int i = 0; i < nsolvent; ++i)
-		    avgstress[c] += stresses_datadump[c].data[i];
+		    avgstress[c] += stresses_datadump[c].data[i] + p[i].u[v1[c]] * p[i].u[v2[c]];
 
 	    int ntotsolvent;
 	    MPI_CHECK( MPI_Reduce(&nsolvent, &ntotsolvent, 1, MPI_INT, MPI_SUM, 0, myactivecomm));
@@ -723,7 +725,6 @@ Simulation::Simulation(MPI_Comm cartcomm, MPI_Comm activecomm, bool (*check_term
 
     if (contactforces)
 	solutex.attach_halocomputation(contact);
-    //localcomm.initialize(activecomm);
 
     int dims[3], periods[3], coords[3];
     MPI_CHECK( MPI_Cart_get(cartcomm, 3, dims, periods, coords) );
@@ -989,7 +990,6 @@ void Simulation::run()
 	ctcscoll->update_stage1(driving_acceleration, mainstream);
 
     int it;
-
 
     for(it = 0; it < nsteps; ++it)
     {

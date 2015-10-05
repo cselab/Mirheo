@@ -27,6 +27,10 @@ int main(int argc, const char ** argv)
     vector<float> origin = argp("-origin").asVecFloat(3);
     vector<float> extent = argp("-extent").asVecFloat(3);
     vector<float> projectf = argp("-project").asVecFloat(3);
+    string contributions = argp("-contributions").asString("uf");
+
+    const double ufactor = contributions.find("u") != string::npos;
+    const double ffactor = contributions.find("f") != string::npos;
 
     bool project[3];
     for(int c = 0; c < 3; ++c)
@@ -37,9 +41,9 @@ int main(int argc, const char ** argv)
 	nprojections += project[c];
 
     const int noutputchannels = 6;
-    const size_t chunksize = (1 << 29) / 9 / sizeof(float);
+    const size_t chunksize = (1 << 29) / 12 / sizeof(float);
 
-    float * const pbuf = new float[9 * chunksize];
+    float * const pbuf = new float[12 * chunksize];
 
     float binsize[3];
     for(int c = 0; c < 3; ++c)
@@ -87,7 +91,7 @@ int main(int argc, const char ** argv)
 
     size_t totalfootprint = 0;
     double timeIO = 0;
-    
+
     for(int ipath = 0; ipath < (int)paths.size(); ++ipath)
     {
 	const char * const path = paths[ipath].c_str();
@@ -107,13 +111,13 @@ int main(int argc, const char ** argv)
 	    perror("reading...\n");
 
 	const size_t filesize = lseek(fdin, 0, SEEK_END);
-	
+
 	totalfootprint += filesize;
 
 	lseek(fdin, 0, SEEK_SET);
 
-	const size_t nparticles = filesize / 9 / sizeof(float);
-	assert(filesize % (9 * sizeof(float)) == 0);
+	const size_t nparticles = filesize / 12 / sizeof(float);
+	assert(filesize % (12 * sizeof(float)) == 0);
 
 	if (verbose)
 	{
@@ -124,40 +128,42 @@ int main(int argc, const char ** argv)
 	for(size_t base = 0; base < nparticles; base += chunksize)
 	{
 	    const int nhotparticles = min(nparticles - base, chunksize);
-	    const size_t nhotbytes = nhotparticles * sizeof(float) * 9;
+	    const size_t nhotbytes = nhotparticles * sizeof(float) * 12;
 
 	    size_t nreadbytes = 0;
 	    int start = 0;
-	    	    
+
 	    while(start < nhotparticles)
 	    {
 		const double tstart = MPI_Wtime();
 		nreadbytes += read(fdin, pbuf, nhotbytes - nreadbytes);
 		timeIO += MPI_Wtime() - tstart;
-		
-		const int stop = nreadbytes / sizeof(float) / 9;
-		
+
+		const int stop = nreadbytes / sizeof(float) / 12;
+
 #ifndef NDEBUG
 		if (verbose)
 		{
-		    float avgs[9];
-		    for(int i = 0; i < 9; ++i)
+		    float avgs[12];
+		    for(int i = 0; i < 12; ++i)
 			avgs[i] = 0;
 
 		    for(int i = 0; i < nhotparticles; ++i)
-			for(int c = 0; c < 9; ++c)
-			    avgs[c] += pbuf[9 * i + c];
+			for(int c = 0; c < 12; ++c)
+			    avgs[c] += pbuf[12 * i + c];
 
-		    for(int i = 0; i < 9; ++i)
+		    for(int i = 0; i < 12; ++i)
 			printf("AVG %d: %.3e\n", i, avgs[i] / nhotparticles);
 		}
 #endif
 
 		for(int i = start; i < stop; ++i)
 		{
+		    const int srcbase = 12 * i;
+
 		    int index[3];
 		    for(int c = 0; c < 3; ++c)
-			index[c] = (int)((pbuf[9 * i + c] - origin[c]) / binsize[c]);
+			index[c] = (int)((pbuf[srcbase + c] - origin[c]) / binsize[c]);
 
 		    bool valid = true;
 		    for(int c = 0; c < 3; ++c)
@@ -169,10 +175,15 @@ int main(int argc, const char ** argv)
 		    const int binid = index[0] + nbins[0] * (index[1] + nbins[1] * index[2]);
 		    ++bincount[binid];
 
-		    const int base = noutputchannels * binid;
+		    const int dstbase = noutputchannels * binid;
+
+		    const int v1[6] = {0, 0, 0, 1, 1, 2};
+		    const int v2[6] = {0, 1, 2, 1, 2, 2};
 
 		    for(int c = 0; c < 6; ++c)
-			bindata[base + c] += pbuf[9 * i + 3 + c];
+			bindata[dstbase + c] +=
+			    ffactor * pbuf[srcbase + 6 + c] +
+			    ufactor * pbuf[srcbase + 3 + v1[c]] * pbuf[srcbase + 3 + v2[c]];
 		}
 
 		start = stop;
