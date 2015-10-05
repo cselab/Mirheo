@@ -1,3 +1,5 @@
+CXXFLAGS += -O3 -DNDEBUG
+
 plates: plates.cpp
 	$(CXX) $(CXXFLAGS) $< -o plates
 

@@ -34,12 +34,14 @@ int main(const int argc, const char * argv[])
     fwrite(data, sizeof(float), NX * NY * NZ, f);
     fclose(f);
 
+#ifndef NDEBUG
     {
 	FILE * f = fopen("sdf.raw", "w");
 	assert(f != 0);
 	fwrite(data, sizeof(float), NX * NY * NZ, f);
 	fclose(f);
     }
+#endif
     
     delete [] data;
     
