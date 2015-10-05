@@ -59,7 +59,7 @@ namespace SolidWallsKernel
 
     template<bool computestresses>
     __global__ void interactions_3tpp(const float2 * const particles, const int np, const int nsolid,
-				      float * const acc, const float seed, const float sigmaf);
+				      float * const acc, const float seed, const float sigmaf, const float xvel, const float y0);
 
     void setup()
     {
@@ -385,9 +385,11 @@ namespace SolidWallsKernel
 
     __constant__ StressInfo stressinfo;
 
+
     template<bool computestresses >
     __global__ __launch_bounds__(128, 16) void interactions_3tpp(const float2 * const particles, const int np, const int nsolid,
-            float * const acc, const float seed, const float sigmaf)
+								 float * const acc, const float seed, const float sigmaf,
+								 const float xvelocity_wall, const float y0)
     {
         assert(blockDim.x * gridDim.x >= np * 3);
 
@@ -496,9 +498,11 @@ namespace SolidWallsKernel
             const float xr = _xr * invrij;
             const float yr = _yr * invrij;
             const float zr = _zr * invrij;
-
+	    
+	    const float xvel = yq > y0 ? xvelocity_wall : 0;
+	  	    
             const float rdotv =
-                    xr * (dst1.y - 0) +
+                    xr * (dst1.y - xvel) +
                     yr * (dst2.x - 0) +
                     zr * (dst2.y - 0);
 
@@ -775,8 +779,8 @@ struct FieldSampler
 };
 
 ComputeWall::ComputeWall(MPI_Comm cartcomm, Particle* const p, const int n, int& nsurvived,
-        ExpectedMessageSizes& new_sizes, const bool verbose):
-            cartcomm(cartcomm), arrSDF(NULL), solid4(NULL), solid_size(0),
+        ExpectedMessageSizes& new_sizes, const float xvelocity):
+    cartcomm(cartcomm), arrSDF(NULL), solid4(NULL), solid_size(0), xvelocity(xvelocity),
             cells(XSIZE_SUBDOMAIN + 2 * XMARGIN_WALL, YSIZE_SUBDOMAIN + 2 * YMARGIN_WALL, ZSIZE_SUBDOMAIN + 2 * ZMARGIN_WALL)
 {
     MPI_CHECK( MPI_Comm_rank(cartcomm, &myrank));
@@ -785,6 +789,7 @@ ComputeWall::ComputeWall(MPI_Comm cartcomm, Particle* const p, const int n, int&
 
     float * field = new float[ XTEXTURESIZE * YTEXTURESIZE * ZTEXTURESIZE];
 
+    static const bool verbose = false;
     FieldSampler sampler("sdf.dat", cartcomm, verbose);
 
     const int L[3] = { XSIZE_SUBDOMAIN, YSIZE_SUBDOMAIN, ZSIZE_SUBDOMAIN };
@@ -1123,7 +1128,6 @@ void ComputeWall::interactions(const Particle * const p, const int n, Accelerati
         const int * const cellsstart, const int * const cellscount, cudaStream_t stream)
 {
     NVTX_RANGE("WALL/interactions", NVTX_C3);
-    //cellsstart and cellscount IGNORED for now
 
     if (n > 0 && solid_size > 0)
     {
@@ -1140,6 +1144,8 @@ void ComputeWall::interactions(const Particle * const p, const int n, Accelerati
                 &SolidWallsKernel::texWallCellCount.channelDesc, sizeof(int) * cells.ncells));
         assert(textureoffset == 0);
 
+	const float y0 = (dims[1] - 1 - 2 * coords[1]) * YSIZE_SUBDOMAIN / 2;
+	
 	if (sigma_xx)
 	{
 	    SolidWallsKernel::StressInfo strinfo = { sigma_xx, sigma_xy, sigma_xz, sigma_yy, sigma_yz, sigma_zz };
@@ -1147,11 +1153,11 @@ void ComputeWall::interactions(const Particle * const p, const int n, Accelerati
 	    CUDA_CHECK(cudaMemcpyToSymbolAsync(SolidWallsKernel::stressinfo, &strinfo, sizeof(strinfo), 0, cudaMemcpyHostToDevice, stream));
 
 	    SolidWallsKernel::interactions_3tpp<true><<< (3 * n + 127) / 128, 128, 0, stream>>>
-                ((float2 *)p, n, solid_size, (float *)acc, trunk.get_float(), sigmaf);
+                ((float2 *)p, n, solid_size, (float *)acc, trunk.get_float(), sigmaf, xvelocity, y0);
 	}
 	else
 	    SolidWallsKernel::interactions_3tpp<false><<< (3 * n + 127) / 128, 128, 0, stream>>>
-                ((float2 *)p, n, solid_size, (float *)acc, trunk.get_float(), sigmaf);
+                ((float2 *)p, n, solid_size, (float *)acc, trunk.get_float(), sigmaf, xvelocity, y0);
 
 
         CUDA_CHECK(cudaUnbindTexture(SolidWallsKernel::texWallParticles));

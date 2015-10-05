@@ -37,7 +37,7 @@ const float sigmaf = sigma / sqrt(dt);
 const float aij = 25;
 const float hydrostatic_a = 0.05;
 
-extern float tend;
+extern float tend, couette;
 extern bool walls, pushtheflow, doublepoiseuille, rbcs, ctcs, xyz_dumps, hdf5field_dumps, hdf5part_dumps, is_mps_enabled, contactforces, stress;
 extern int steps_per_report, steps_per_dump, wall_creation_stepid, nvtxstart, nvtxstop;
 

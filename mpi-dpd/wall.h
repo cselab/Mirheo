@@ -32,7 +32,7 @@ class ComputeWall
     int solid_size;
     float4 * solid4;
     float * sigma_xx, * sigma_xy, * sigma_xz, * sigma_yy,
-	* sigma_yz, * sigma_zz;
+	* sigma_yz, * sigma_zz, xvelocity;
 
     cudaArray * arrSDF;
 
@@ -40,7 +40,7 @@ class ComputeWall
 
 public:
 
-    ComputeWall(MPI_Comm cartcomm, Particle* const p, const int n, int& nsurvived, ExpectedMessageSizes& new_sizes, const bool verbose);
+    ComputeWall(MPI_Comm cartcomm, Particle* const p, const int n, int& nsurvived, ExpectedMessageSizes& new_sizes, const float xvelocity);
 
     ~ComputeWall();
 
