@@ -780,7 +780,9 @@ struct FieldSampler
 
 ComputeWall::ComputeWall(MPI_Comm cartcomm, Particle* const p, const int n, int& nsurvived,
         ExpectedMessageSizes& new_sizes, const float xvelocity):
+    sigma_xx(NULL),	sigma_xy(NULL),	sigma_xz(NULL), sigma_yy(NULL),	sigma_yz(NULL), sigma_zz(NULL),
     cartcomm(cartcomm), arrSDF(NULL), solid4(NULL), solid_size(0), xvelocity(xvelocity),
+
             cells(XSIZE_SUBDOMAIN + 2 * XMARGIN_WALL, YSIZE_SUBDOMAIN + 2 * YMARGIN_WALL, ZSIZE_SUBDOMAIN + 2 * ZMARGIN_WALL)
 {
     MPI_CHECK( MPI_Comm_rank(cartcomm, &myrank));
