@@ -389,7 +389,7 @@ namespace SolidWallsKernel
     template<bool computestresses >
     __global__ __launch_bounds__(128, 16) void interactions_3tpp(const float2 * const particles, const int np, const int nsolid,
 								 float * const acc, const float seed, const float sigmaf,
-								 const float xvelocity_wall, const float y0)
+								 const float xvelocity_wall, const float z0)
     {
         assert(blockDim.x * gridDim.x >= np * 3);
 
@@ -499,7 +499,7 @@ namespace SolidWallsKernel
             const float yr = _yr * invrij;
             const float zr = _zr * invrij;
 	    
-	    const float xvel = yq > y0 ? xvelocity_wall : 0;
+	    const float xvel = zq > z0 ? xvelocity_wall : 0;
 	  	    
             const float rdotv =
                     xr * (dst1.y - xvel) +
@@ -1146,7 +1146,7 @@ void ComputeWall::interactions(const Particle * const p, const int n, Accelerati
                 &SolidWallsKernel::texWallCellCount.channelDesc, sizeof(int) * cells.ncells));
         assert(textureoffset == 0);
 
-	const float y0 = (dims[1] - 1 - 2 * coords[1]) * YSIZE_SUBDOMAIN / 2;
+	const float z0 = (dims[2] - 1 - 2 * coords[2]) * ZSIZE_SUBDOMAIN / 2;
 	
 	if (sigma_xx)
 	{
@@ -1155,11 +1155,11 @@ void ComputeWall::interactions(const Particle * const p, const int n, Accelerati
 	    CUDA_CHECK(cudaMemcpyToSymbolAsync(SolidWallsKernel::stressinfo, &strinfo, sizeof(strinfo), 0, cudaMemcpyHostToDevice, stream));
 
 	    SolidWallsKernel::interactions_3tpp<true><<< (3 * n + 127) / 128, 128, 0, stream>>>
-                ((float2 *)p, n, solid_size, (float *)acc, trunk.get_float(), sigmaf, xvelocity, y0);
+                ((float2 *)p, n, solid_size, (float *)acc, trunk.get_float(), sigmaf, xvelocity, z0);
 	}
 	else
 	    SolidWallsKernel::interactions_3tpp<false><<< (3 * n + 127) / 128, 128, 0, stream>>>
-                ((float2 *)p, n, solid_size, (float *)acc, trunk.get_float(), sigmaf, xvelocity, y0);
+                ((float2 *)p, n, solid_size, (float *)acc, trunk.get_float(), sigmaf, xvelocity, z0);
 
 
         CUDA_CHECK(cudaUnbindTexture(SolidWallsKernel::texWallParticles));

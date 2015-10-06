@@ -40,7 +40,7 @@ int main(int argc, const char ** argv)
     for(int c = 0; c < 3; ++c)
 	nprojections += project[c];
 
-    const int noutputchannels = 6;
+    const int noutputchannels = 9;
     const size_t chunksize = (1 << 29) / 12 / sizeof(float);
 
     float * const pbuf = new float[12 * chunksize];
@@ -184,6 +184,9 @@ int main(int argc, const char ** argv)
 			bindata[dstbase + c] +=
 			    ffactor * pbuf[srcbase + 6 + c] +
 			    ufactor * pbuf[srcbase + 3 + v1[c]] * pbuf[srcbase + 3 + v2[c]];
+
+		    for(int c = 0; c < 3; ++c)
+			bindata[dstbase + 6 + c] += pbuf[srcbase + 3 + c];
 		}
 
 		start = stop;
@@ -193,7 +196,7 @@ int main(int argc, const char ** argv)
 	close(fdin);
     }
 
-    if (!numfiles)
+    if (rank == 0 && !numfiles)
     {
 	perror("ooops zero files were read. Exiting now.\n");
 	exit(-1);
