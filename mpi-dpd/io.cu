@@ -215,12 +215,12 @@ void stress_dump(MPI_Comm cartcomm, const char * filename, const int nparticles,
 	for(int c = 0; c < 3; ++c)
 	    buf[base + 3 + c] = particles[i].u[c];
 	
-	buf[base + 6] = stress_xx[i];
-	buf[base + 7] = stress_xy[i];
-	buf[base + 8] = stress_xz[i];
-	buf[base + 9] = stress_yy[i];
-	buf[base + 10] = stress_yz[i];
-	buf[base + 11] = stress_zz[i];
+	buf[base + 6] = stress_xx[i] / 2;
+	buf[base + 7] = stress_xy[i] / 2;
+	buf[base + 8] = stress_xz[i] / 2;
+	buf[base + 9] = stress_yy[i] / 2;
+	buf[base + 10] = stress_yz[i] / 2;
+	buf[base + 11] = stress_zz[i] / 2;
     }
 
     _write_bytes(buf.data(), sizeof(float) * 12 * n, f, cartcomm);
