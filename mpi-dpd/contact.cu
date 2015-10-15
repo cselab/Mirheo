@@ -460,7 +460,9 @@ namespace KernelsContact
 	    int deltaspid1, deltaspid2;
 
 	    {
-       		const int xcenter = XOFFSET + (int)floorf(dst0.x);
+       		int xcenter = XOFFSET + (int)floorf(dst0.x);
+		xcenter = max(-1, min(XCELLS, xcenter));
+
 		const int xstart = max(0, xcenter - 1);
 		const int xcount = min(XCELLS, xcenter + 2) - xstart;
 
@@ -469,9 +471,12 @@ namespace KernelsContact
 
 		assert(xcount >= 0);
 
-		const int ycenter = YOFFSET + (int)floorf(dst0.y);
+		int ycenter = YOFFSET + (int)floorf(dst0.y);
+		ycenter = max(-1, min(YCELLS, ycenter));
 
-		const int zcenter = ZOFFSET + (int)floorf(dst1.x);
+		int zcenter = ZOFFSET + (int)floorf(dst1.x);
+		zcenter = max(-1, min(ZCELLS, zcenter));
+
 		const int zmy = zcenter - 1 + zplane;
 		const bool zvalid = zmy >= 0 && zmy < ZCELLS;
 
