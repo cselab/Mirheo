@@ -72,7 +72,7 @@ namespace SolutePUP
 
     __constant__ int coffsets[26];
 
-    __global__ void scatter_indices(const float2 * const particles, const int nparticles, int * const counts)
+    __global__ void scatter_indices(const float2 * const particles, const int nparticles, int * const counts, const bool contactforces)
     {
 	assert(blockDim.x * gridDim.x >= nparticles && blockDim.x == 128);
 
@@ -104,11 +104,13 @@ namespace SolutePUP
 	assert(fabs(s2.x) < 1e4);
 	assert(fabs(s2.y) < 1e4);
 
+	const int mymargin = contactforces ? 15 : 1;
+
 	const int halocode[3] =
 	    {
-		-1 + (int)(s0.x >= -HXSIZE + 1) + (int)(s0.x >= HXSIZE - 1),
-		-1 + (int)(s0.y >= -HYSIZE + 1) + (int)(s0.y >= HYSIZE - 1),
-		-1 + (int)(s1.x >= -HZSIZE + 1) + (int)(s1.x >= HZSIZE - 1)
+		-1 + (int)(s0.x >= -HXSIZE + mymargin) + (int)(s0.x >= HXSIZE - mymargin),
+		-1 + (int)(s0.y >= -HYSIZE + mymargin) + (int)(s0.y >= HYSIZE - mymargin),
+		-1 + (int)(s1.x >= -HZSIZE + mymargin) + (int)(s1.x >= HZSIZE - mymargin)
 	    };
 
 	if (halocode[0] == 0 && halocode[1] == 0 && halocode[2] == 0)
@@ -310,7 +312,7 @@ void SoluteExchange::_pack_attempt(cudaStream_t stream)
 	{
 	    CUDA_CHECK(cudaMemcpyToSymbolAsync(SolutePUP::coffsets, packsoffset.data + 26 * i, sizeof(int) * 26, 0, cudaMemcpyDeviceToDevice, stream));
 
-	    SolutePUP::scatter_indices<<< (it.n + 127) / 128, 128, 0, stream >>>((float2 *)it.p, it.n, packscount.data + i * 26);
+	    SolutePUP::scatter_indices<<< (it.n + 127) / 128, 128, 0, stream >>>((float2 *)it.p, it.n, packscount.data + i * 26, contactforces);
 	}
 
 	SolutePUP::tiny_scan<<< 1, 32, 0, stream >>>(packscount.data + i * 26, packsoffset.data + 26 * i,

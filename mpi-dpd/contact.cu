@@ -535,14 +535,14 @@ namespace KernelsContact
 		const float2 stmp1 = _ACCESS(csolutes[soluteid] + sentry + 1);
 		const float2 stmp2 = _ACCESS(csolutes[soluteid] + sentry + 2);
 
-		const bool invalidsrc =
+/*		const bool invalidsrc =
 		    stmp0.x < -XOFFSET ||
 		    stmp0.y < -YOFFSET ||
 		    stmp1.x < -ZOFFSET;
 
 		if (invalidsrc)
-		    continue;
-
+		  continue;
+*/
 		const float _xr = dst0.x - stmp0.x;
 		const float _yr = dst0.y - stmp0.y;
 		const float _zr = dst1.x - stmp1.x;
