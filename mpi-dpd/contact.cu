@@ -64,7 +64,7 @@ cellsstart(KernelsContact::NCELLS + 16), cellscount(KernelsContact::NCELLS + 16)
 
     local_trunk = Logistic::KISS(7119 - myrank, 187 + myrank, 18278, 15674);
 
-    KernelsContact::Params params = { 0*gammadpd, 0*sigmaf, 1};
+    KernelsContact::Params params = { gammadpd, sigmaf, 1};
 
     CUDA_CHECK(cudaMemcpyToSymbol(KernelsContact::params, &params, sizeof(params)));
 
@@ -330,9 +330,6 @@ namespace KernelsContact
 	const float xacc = atomicAdd(csolutesacc[soluteid] + 3 * actualpid + 0, xforce);
 	const float yacc = atomicAdd(csolutesacc[soluteid] + 3 * actualpid + 1, yforce);
 	const float zacc = atomicAdd(csolutesacc[soluteid] + 3 * actualpid + 2, zforce);
-
-	if (isnan(xacc))
-	    printf("ooops xacc %f for soluteid %d pid %d\n", xacc, soluteid, actualpid);
 
 	assert(!isnan(xacc));
 	assert(!isnan(yacc));
