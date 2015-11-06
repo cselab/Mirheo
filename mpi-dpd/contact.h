@@ -21,23 +21,21 @@
 
 class ComputeContact : public SoluteExchange::Visitor
 {
-    //cudaEvent_t evuploaded;
-
-    int nsolutes;
-
+    std::vector<ParticlesWrap> wsolutes;
+    
     SimpleDeviceBuffer<uchar4> subindices;
     SimpleDeviceBuffer<unsigned char> compressed_cellscount;
     SimpleDeviceBuffer<int> cellsentries, cellsstart, cellscount;
+    SimpleDeviceBuffer<Particle> allhalos;
+    SimpleDeviceBuffer<Acceleration> allhalosacc;
 
     Logistic::KISS local_trunk;
-
+    
 public:
 
     ComputeContact(MPI_Comm comm);
 
-    void build_cells(std::vector<ParticlesWrap> wsolutes, cudaStream_t stream);
-
-    void bulk(std::vector<ParticlesWrap> wsolutes, cudaStream_t stream);
+    void attach_bulk(std::vector<ParticlesWrap> wsolutes) { this->wsolutes = wsolutes; }
 
     /*override of SoluteExchange::Visitor::halo*/
     void halo(ParticlesWrap solutes[26], cudaStream_t stream);

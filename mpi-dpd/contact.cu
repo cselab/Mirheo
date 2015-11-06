@@ -42,11 +42,6 @@ namespace KernelsContact
 
     texture<int, cudaTextureType1D> texCellsStart, texCellEntries;
 
-    __global__ void bulk_3tpp(const float2 * const particles, const int np, const int ncellentries, const int nsolutes,
-			      float * const acc, const float seed, const int mysoluteid);
-
-    __global__ 	void halo(const int nparticles_padded, const int ncellentries, const int nsolutes, const float seed);
-
     void setup()
     {
 	texCellsStart.channelDesc = cudaCreateChannelDesc<int>();
@@ -58,14 +53,11 @@ namespace KernelsContact
 	texCellEntries.filterMode = cudaFilterModePoint;
 	texCellEntries.mipmapFilterMode = cudaFilterModePoint;
 	texCellEntries.normalized = 0;
-
-	CUDA_CHECK(cudaFuncSetCacheConfig(bulk_3tpp, cudaFuncCachePreferL1));
-	CUDA_CHECK(cudaFuncSetCacheConfig(halo, cudaFuncCachePreferL1));
     }
 }
 
 ComputeContact::ComputeContact(MPI_Comm comm):
-cellsstart(KernelsContact::NCELLS + 16), cellscount(KernelsContact::NCELLS + 16), compressed_cellscount(KernelsContact::NCELLS + 16)
+cellsstart(KernelsContact::NCELLS), cellscount(KernelsContact::NCELLS), compressed_cellscount(KernelsContact::NCELLS)
 {
     int myrank;
     MPI_CHECK( MPI_Comm_rank(comm, &myrank));
@@ -81,7 +73,7 @@ cellsstart(KernelsContact::NCELLS + 16), cellscount(KernelsContact::NCELLS + 16)
 
 namespace KernelsContact
 {
-    __global__ void populate(const uchar4 * const subindices, const int * const cellstart,
+     __global__ void populate(const uchar4 * const subindices, const int * const cellstart,
 			     const int nparticles, const int soluteid, const int ntotalparticles,
 			     CellEntry * const entrycells)
     {
@@ -161,84 +153,34 @@ namespace KernelsContact
 	CUDA_CHECK(cudaMemcpyToSymbolAsync(csolutes, ps, sizeof(float2 *) * n, 0, cudaMemcpyHostToDevice, stream));
 	CUDA_CHECK(cudaMemcpyToSymbolAsync(csolutesacc, as, sizeof(float *) * n, 0, cudaMemcpyHostToDevice, stream));
     }
-}
 
-void ComputeContact::build_cells(std::vector<ParticlesWrap> wsolutes, cudaStream_t stream)
-{
-    this->nsolutes = wsolutes.size();
-
-    int ntotal = 0;
-
-    for(int i = 0; i < wsolutes.size(); ++i)
-	ntotal += wsolutes[i].n;
-
-    subindices.resize(ntotal);
-    cellsentries.resize(ntotal);
-
-    CUDA_CHECK(cudaMemsetAsync(cellscount.data, 0, sizeof(int) * cellscount.size, stream));
-
-#ifndef NDEBUG
-    CUDA_CHECK(cudaMemsetAsync(cellsentries.data, 0xff, sizeof(int) * cellsentries.capacity, stream));
-    CUDA_CHECK(cudaMemsetAsync(subindices.data, 0xff, sizeof(int) * subindices.capacity, stream));
-    CUDA_CHECK(cudaMemsetAsync(compressed_cellscount.data, 0xff, sizeof(unsigned char) * compressed_cellscount.capacity, stream));
-    CUDA_CHECK(cudaMemsetAsync(cellsstart.data, 0xff, sizeof(int) * cellsstart.capacity, stream));
-#endif
-
-    CUDA_CHECK(cudaPeekAtLastError());
-
-    int ctr = 0;
-    for(int i = 0; i < wsolutes.size(); ++i)
-    {
-	const ParticlesWrap it = wsolutes[i];
-
-	if (it.n)
-	    subindex_local<true><<< (it.n + 127) / 128, 128, 0, stream >>>
-		(it.n, (float2 *)it.p, cellscount.data, subindices.data + ctr);
-
-	ctr += it.n;
-    }
-
-    compress_counts<<< (compressed_cellscount.size + 127) / 128, 128, 0, stream >>>
-	(compressed_cellscount.size, (int4 *)cellscount.data, (uchar4 *)compressed_cellscount.data);
-
-    scan(compressed_cellscount.data, compressed_cellscount.size, stream, (uint *)cellsstart.data);
-
-    ctr = 0;
-    for(int i = 0; i < wsolutes.size(); ++i)
-    {
-	const ParticlesWrap it = wsolutes[i];
-
-	if (it.n)
-	    KernelsContact::populate<<< (it.n + 127) / 128, 128, 0, stream >>>
-		(subindices.data + ctr, cellsstart.data, it.n, i, ntotal, (KernelsContact::CellEntry *)cellsentries.data);
-
-	ctr += it.n;
-    }
-
-    CUDA_CHECK(cudaPeekAtLastError());
-
-    KernelsContact::bind(cellsstart.data, cellsentries.data, ntotal, wsolutes, stream, cellscount.data);
-}
-
-namespace KernelsContact
-{
-    __global__  __launch_bounds__(128, 10)
-	void bulk_3tpp(const float2 * const particles,
-		       const int np, const int ncellentries, const int nsolutes,
-		       float * const acc, const float seed, const int mysoluteid)
+    __global__ void bulk_3tpp(const int np, const int nsolutes, const float seed)
     {
 	assert(blockDim.x * gridDim.x >= np * 3);
 
 	const int gid = threadIdx.x + blockDim.x * blockIdx.x;
-       	const int pid = gid / 3;
+       	const int myslot = gid / 3;
 	const int zplane = gid % 3;
 
-	if (pid >= np)
+	if (myslot >= np)
 	    return;
 
-	const float2 dst0 = _ACCESS(particles + 3 * pid + 0);
-	const float2 dst1 = _ACCESS(particles + 3 * pid + 1);
-	const float2 dst2 = _ACCESS(particles + 3 * pid + 2);
+	float2 dst0, dst1, dst2;
+	int soluteid, actualpid;
+
+	{
+	    CellEntry ce;
+	    ce.pid = tex1Dfetch(texCellEntries, myslot);
+
+	    soluteid = ce.code.w;
+
+	    ce.code.w = 0;
+	    actualpid = ce.pid;
+
+	    dst0 = _ACCESS(csolutes[soluteid] + 3 * actualpid + 0);
+	    dst1 = _ACCESS(csolutes[soluteid] + 3 * actualpid + 1);
+	    dst2 = _ACCESS(csolutes[soluteid] + 3 * actualpid + 2);
+	}
 
 	int scan1, scan2, ncandidates, spidbase;
 	int deltaspid1, deltaspid2;
@@ -295,13 +237,15 @@ namespace KernelsContact
 
 	float xforce = 0, yforce = 0, zforce = 0;
 
-#pragma unroll 3
 	for(int i = 0; i < ncandidates; ++i)
 	{
 	    const int m1 = (int)(i >= scan1);
 	    const int m2 = (int)(i >= scan2);
 	    const int slot = i + (m2 ? deltaspid2 : m1 ? deltaspid1 : spidbase);
 	    assert(slot >= 0 && slot < ncellentries);
+
+	    if (slot >= myslot)
+		continue;
 
 	    CellEntry ce;
 	    ce.pid = tex1Dfetch(texCellEntries, slot);
@@ -312,9 +256,6 @@ namespace KernelsContact
 
 	    const int spid = ce.pid;
 	    assert(spid >= 0 && spid < cnsolutes[soluteid]);
-
-	    if (mysoluteid < soluteid || mysoluteid == soluteid && pid <= spid)
-		continue;
 
 	    const int sentry = 3 * spid;
 	    const float2 stmp0 = _ACCESS(csolutes[soluteid] +  sentry    );
@@ -352,7 +293,7 @@ namespace KernelsContact
 		yr * (dst2.x - stmp2.x) +
 		zr * (dst2.y - stmp2.y);
 
-	    const float myrandnr = Logistic::mean0var1(seed, pid, spid);
+	    const float myrandnr = Logistic::mean0var1(seed, myslot, slot);
 
 	    const float strength = lj + (- params.gamma * wr * rdotv + params.sigmaf * myrandnr) * wr;
 
@@ -377,82 +318,36 @@ namespace KernelsContact
 	    atomicAdd(csolutesacc[soluteid] + sentry + 2, -zinteraction);
 	}
 
-	atomicAdd(acc + 3 * pid + 0, xforce);
-	atomicAdd(acc + 3 * pid + 1, yforce);
-	atomicAdd(acc + 3 * pid + 2, zforce);
+	atomicAdd(csolutesacc[soluteid] + 3 * actualpid + 0, xforce);
+	atomicAdd(csolutesacc[soluteid] + 3 * actualpid + 1, yforce);
+	atomicAdd(csolutesacc[soluteid] + 3 * actualpid + 2, zforce);
 
 	for(int c = 0; c < 3; ++c)
 	    assert(!isnan(acc[3 * pid + c]));
     }
-}
 
-void ComputeContact::bulk(std::vector<ParticlesWrap> wsolutes, cudaStream_t stream)
-{
-    NVTX_RANGE("Contact/bulk", NVTX_C6);
-
-    if (wsolutes.size() == 0)
-	return;
-
-    for(int i = 0; i < wsolutes.size(); ++i)
+    __global__ void halo(const float2 * halo, const int nhalo, const int nsolutes, const float seed, float * const acc)
     {
-	ParticlesWrap it = wsolutes[i];
-
-   	if (it.n)
-	    KernelsContact::bulk_3tpp<<< (3 * it.n + 127) / 128, 128, 0, stream >>>
-		((float2 *)it.p, it.n, cellsentries.size, wsolutes.size(), (float *)it.a, local_trunk.get_float(), i);
-
-	CUDA_CHECK(cudaPeekAtLastError());
-    }
-}
-
-namespace KernelsContact
-{
-    __constant__ int packstarts_padded[27], packcount[26];
-    __constant__ Particle * packstates[26];
-    __constant__ Acceleration * packresults[26];
-
-    __global__ 	void halo(const int nparticles_padded, const int ncellentries, const int nsolutes, const float seed)
-    {
-	assert(blockDim.x * gridDim.x >= nparticles_padded);
+	assert(blockDim.x * gridDim.x >= nhalo);
 
 	const int laneid = threadIdx.x & 0x1f;
 	const int warpid = threadIdx.x >> 5;
-	const int localbase = 32 * (warpid + 4 * blockIdx.x);
-	const int pid = localbase + laneid;
+	const int unpackbase = 32 * (warpid + 4 * blockIdx.x);
+	const int nunpack =  min(32, nhalo - unpackbase);
 
-	if (localbase >= nparticles_padded)
-	    return;
-
-	int nunpack;
 	float2 dst0, dst1, dst2;
-	float * dst = NULL;
-
-	{
-	    const uint key9 = 9 * (localbase >= packstarts_padded[9]) + 9 * (localbase >= packstarts_padded[18]);
-	    const uint key3 = 3 * (localbase >= packstarts_padded[key9 + 3]) + 3 * (localbase >= packstarts_padded[key9 + 6]);
-	    const uint key1 = (localbase >= packstarts_padded[key9 + key3 + 1]) + (localbase >= packstarts_padded[key9 + key3 + 2]);
-	    const int code = key9 + key3 + key1;
-	    assert(code >= 0 && code < 26);
-	    assert(localbase >= packstarts_padded[code] && localbase < packstarts_padded[code + 1]);
-
-	    const int unpackbase = localbase - packstarts_padded[code];
-	    assert (unpackbase >= 0);
-	    assert(unpackbase < packcount[code]);
-
-	    nunpack = min(32, packcount[code] - unpackbase);
-
-	    if (nunpack == 0)
-		return;
-
-	    read_AOS6f((float2 *)(packstates[code] + unpackbase), nunpack, dst0, dst1, dst2);
-
-	    dst = (float*)(packresults[code] + unpackbase);
-	}
+	read_AOS6f((float2 *)(halo + unpackbase), nunpack, dst0, dst1, dst2);
 
 	float xforce, yforce, zforce;
-	read_AOS3f(dst, nunpack, xforce, yforce, zforce);
+	read_AOS3f(acc + unpackbase, nunpack, xforce, yforce, zforce);
 
-	const int nzplanes = laneid < nunpack ? 3 : 0;
+	const bool valid =
+	    laneid < nunpack &&
+	    dst0.x >= -XOFFSET &&
+	    dst0.y >= -YOFFSET &&
+	    dst1.x >= -ZOFFSET ;
+
+	const int nzplanes = valid ? 3 : 0;
 
 	for(int zplane = 0; zplane < nzplanes; ++zplane)
 	{
@@ -460,9 +355,7 @@ namespace KernelsContact
 	    int deltaspid1, deltaspid2;
 
 	    {
-       		int xcenter = XOFFSET + (int)floorf(dst0.x);
-		xcenter = max(-1, min(XCELLS, xcenter));
-
+       		const int xcenter = XOFFSET + (int)floorf(dst0.x);
 		const int xstart = max(0, xcenter - 1);
 		const int xcount = min(XCELLS, xcenter + 2) - xstart;
 
@@ -471,11 +364,8 @@ namespace KernelsContact
 
 		assert(xcount >= 0);
 
-		int ycenter = YOFFSET + (int)floorf(dst0.y);
-		ycenter = max(-1, min(YCELLS, ycenter));
-
-		int zcenter = ZOFFSET + (int)floorf(dst1.x);
-		zcenter = max(-1, min(ZCELLS, zcenter));
+		const int ycenter = YOFFSET + (int)floorf(dst0.y);
+		const int zcenter = ZOFFSET + (int)floorf(dst1.x);
 
 		const int zmy = zcenter - 1 + zplane;
 		const bool zvalid = zmy >= 0 && zmy < ZCELLS;
@@ -535,14 +425,6 @@ namespace KernelsContact
 		const float2 stmp1 = _ACCESS(csolutes[soluteid] + sentry + 1);
 		const float2 stmp2 = _ACCESS(csolutes[soluteid] + sentry + 2);
 
-/*		const bool invalidsrc =
-		    stmp0.x < -XOFFSET ||
-		    stmp0.y < -YOFFSET ||
-		    stmp1.x < -ZOFFSET;
-
-		if (invalidsrc)
-		  continue;
-*/
 		const float _xr = dst0.x - stmp0.x;
 		const float _yr = dst0.y - stmp0.y;
 		const float _zr = dst1.x - stmp1.x;
@@ -574,7 +456,7 @@ namespace KernelsContact
 		    yr * (dst2.x - stmp2.x) +
 		    zr * (dst2.y - stmp2.y);
 
-		const float myrandnr = Logistic::mean0var1(seed, pid, spid);
+		const float myrandnr = Logistic::mean0var1(seed, unpackbase + laneid, spid);
 
 		const float strength = lj + (- params.gamma * wr * rdotv + params.sigmaf * myrandnr) * wr;
 
@@ -600,7 +482,7 @@ namespace KernelsContact
 	    }
 	}
 
-	write_AOS3f(dst, nunpack, xforce, yforce, zforce);
+	write_AOS3f(acc + unpackbase, nunpack, xforce, yforce, zforce);
     }
 }
 
@@ -608,46 +490,98 @@ void ComputeContact::halo(ParticlesWrap halos[26], cudaStream_t stream)
 {
     NVTX_RANGE("Contact/halo", NVTX_C7);
 
-    int nremote_padded = 0;
-
+    //collate halos
     {
-	int recvpackcount[26], recvpackstarts_padded[27];
-
+	int c = 0;
 	for(int i = 0; i < 26; ++i)
-	    recvpackcount[i] = halos[i].n;
+	    c += halos[i].n;
 
-	CUDA_CHECK(cudaMemcpyToSymbolAsync(KernelsContact::packcount, recvpackcount,
-					   sizeof(recvpackcount), 0, cudaMemcpyHostToDevice, stream));
+	allhalos.resize(c);
+	allhalosacc.resize(c);
 
-	recvpackstarts_padded[0] = 0;
-	for(int i = 0, s = 0; i < 26; ++i)
-	    recvpackstarts_padded[i + 1] = (s += 32 * ((halos[i].n + 31) / 32));
-
-	nremote_padded = recvpackstarts_padded[26];
-
-	CUDA_CHECK(cudaMemcpyToSymbolAsync(KernelsContact::packstarts_padded, recvpackstarts_padded,
-					   sizeof(recvpackstarts_padded), 0, cudaMemcpyHostToDevice, stream));
-
-	const Particle * recvpackstates[26];
-
+	c = 0;
 	for(int i = 0; i < 26; ++i)
-	    recvpackstates[i] = halos[i].p;
+	{
+	    CUDA_CHECK(cudaMemcpyAsync(allhalos.data + c, halos[i].p, sizeof(Particle) * halos[i].n, cudaMemcpyHostToDevice, stream));
+	    CUDA_CHECK(cudaMemcpyAsync(allhalosacc.data + c, halos[i].a, sizeof(Acceleration) * halos[i].n, cudaMemcpyHostToDevice, stream));
 
-	CUDA_CHECK(cudaMemcpyToSymbolAsync(KernelsContact::packstates, recvpackstates,
-					   sizeof(recvpackstates), 0, cudaMemcpyHostToDevice, stream));
-
-	Acceleration * packresults[26];
-
-	for(int i = 0; i < 26; ++i)
-	    packresults[i] = halos[i].a;
-
-	CUDA_CHECK(cudaMemcpyToSymbolAsync(KernelsContact::packresults, packresults,
-					   sizeof(packresults), 0, cudaMemcpyHostToDevice, stream));
+	    c += halos[i].n;
+	}
     }
 
-    if(nremote_padded)
-    	KernelsContact::halo<<< (nremote_padded + 127) / 128, 128, 0, stream>>>
-	    (nremote_padded, cellsentries.size, nsolutes, local_trunk.get_float());
+    CUDA_CHECK(cudaPeekAtLastError());
+
+    ParticlesWrap halowrap(allhalos.data, allhalos.size, allhalosacc.data);
+
+    wsolutes.push_back(halowrap);
+
+    int ntotal = 0;
+
+    for(int i = 0; i < wsolutes.size(); ++i)
+	ntotal += wsolutes[i].n;
+
+    subindices.resize(ntotal);
+    cellsentries.resize(ntotal);
+
+    CUDA_CHECK(cudaMemsetAsync(cellscount.data, 0, sizeof(int) * cellscount.size, stream));
+
+#ifndef NDEBUG
+    CUDA_CHECK(cudaMemsetAsync(cellsentries.data, 0xff, sizeof(int) * cellsentries.capacity, stream));
+    CUDA_CHECK(cudaMemsetAsync(subindices.data, 0xff, sizeof(int) * subindices.capacity, stream));
+    CUDA_CHECK(cudaMemsetAsync(compressed_cellscount.data, 0xff, sizeof(unsigned char) * compressed_cellscount.capacity, stream));
+    CUDA_CHECK(cudaMemsetAsync(cellsstart.data, 0xff, sizeof(int) * cellsstart.capacity, stream));
+#endif
+
+    CUDA_CHECK(cudaPeekAtLastError());
+
+    int ctr = 0;
+    for(int i = 0; i < wsolutes.size(); ++i)
+    {
+	const ParticlesWrap it = wsolutes[i];
+
+	if (it.n)
+	    subindex_local<<< (it.n + 127) / 128, 128, 0, stream >>>
+		(it.n, (float2 *)it.p, cellscount.data, subindices.data + ctr);
+
+	ctr += it.n;
+    }
+
+    compress_counts<<< (compressed_cellscount.size + 127) / 128, 128, 0, stream >>>
+	(compressed_cellscount.size, (int4 *)cellscount.data, (uchar4 *)compressed_cellscount.data);
+
+    scan(compressed_cellscount.data, compressed_cellscount.size, stream, (uint *)cellsstart.data);
+
+    ctr = 0;
+    for(int i = 0; i < wsolutes.size(); ++i)
+    {
+	const ParticlesWrap it = wsolutes[i];
+
+	if (it.n)
+	    KernelsContact::populate<<< (it.n + 127) / 128, 128, 0, stream >>>
+		(subindices.data + ctr, cellsstart.data, it.n, i, ntotal, (KernelsContact::CellEntry *)cellsentries.data);
+
+	ctr += it.n;
+    }
+
+    CUDA_CHECK(cudaPeekAtLastError());
+
+    KernelsContact::bind(cellsstart.data, cellsentries.data, ntotal, wsolutes, stream, cellscount.data);
+
+    KernelsContact::bulk_3tpp<<< (3 * cellsentries.size + 127) / 128, 128, 0, stream >>>
+	(cellsentries.size, wsolutes.size(), local_trunk.get_float());
+
+    KernelsContact::halo<<< (allhalos.size + 127) / 128, 128, 0, stream>>>
+	((float2 *)allhalos.data, allhalos.size, wsolutes.size(), local_trunk.get_float(), (float *)allhalosacc.data);
+
+    //split back halos
+    {
+    	int c = 0;
+	for(int i = 0; i < 26; ++i)
+	{
+	    CUDA_CHECK(cudaMemcpyAsync(halos[i].a, allhalosacc.data + c, sizeof(Acceleration) * halos[i].n, cudaMemcpyDeviceToHost, stream));
+	    c += halos[i].n;
+	}
+    }
 
     CUDA_CHECK(cudaPeekAtLastError());
 }

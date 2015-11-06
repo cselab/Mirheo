@@ -374,9 +374,6 @@ void Simulation::_forces()
 
     CUDA_CHECK(cudaPeekAtLastError());
 
-    if (contactforces)
-	contact.build_cells(wsolutes, mainstream);
-
     dpd.local_interactions(particles->xyzuvw.data, xyzouvwo.data, xyzo_half.data, particles->size, particles->axayaz.data,
 			   cells.start, cells.count, mainstream);
 
@@ -409,7 +406,7 @@ void Simulation::_forces()
     fsi.bulk(wsolutes, mainstream);
 
     if (contactforces)
-	contact.bulk(wsolutes, mainstream);
+	contact.attach_bulk(wsolutes);
 
     CUDA_CHECK(cudaPeekAtLastError());
 
@@ -837,9 +834,6 @@ void Simulation::_lockstep()
     dpd.local_interactions(particles->xyzuvw.data, xyzouvwo.data, xyzo_half.data, particles->size, particles->axayaz.data,
 			   cells.start, cells.count, mainstream);
 
-    if (contactforces)
-	contact.build_cells(wsolutes, mainstream);
-
     solutex.post_p(mainstream, downloadstream);
 
     dpd.post(particles->xyzuvw.data, particles->size, mainstream, downloadstream);
@@ -863,7 +857,7 @@ void Simulation::_lockstep()
     fsi.bulk(wsolutes, mainstream);
 
     if (contactforces)
-	contact.bulk(wsolutes, mainstream);
+	contact.attach_bulk(wsolutes);
 
     CUDA_CHECK(cudaPeekAtLastError());
 
