@@ -333,7 +333,7 @@ namespace KernelsContact
 
 	if (isnan(xacc))
 	    printf("ooops xacc %f for soluteid %d pid %d\n", xacc, soluteid, actualpid);
-	
+
 	assert(!isnan(xacc));
 	assert(!isnan(yacc));
 	assert(!isnan(zacc));
@@ -358,14 +358,14 @@ namespace KernelsContact
 
 	const bool outside_plus =
 	    dst0.x >= XOFFSET ||
-	    dst0.y >= YOFFSET ||
-	    dst1.x >= ZOFFSET ;
+	    dst0.x >= -XOFFSET && dst0.y >= YOFFSET ||
+	    dst0.x >= -XOFFSET && dst0.y >= -YOFFSET && dst1.x >= ZOFFSET;
 
-	const bool inside_outerhalo = 
+	const bool inside_outerhalo =
 	    dst0.x < XOFFSET + 1 &&
 	    dst0.y < YOFFSET + 1 &&
 	    dst1.x < ZOFFSET + 1 ;
-	
+
 	const bool valid = laneid < nunpack && outside_plus && inside_outerhalo;
 
 	if (!valid)
@@ -598,7 +598,7 @@ void ComputeContact::halo(ParticlesWrap halos[26], cudaStream_t stream)
 
     KernelsContact::bulk_3tpp<<< (3 * cellsentries.size + 127) / 128, 128, 0, stream >>>
      	(wsolutes.size(), local_trunk.get_float());
-    
+
     ctr = 0;
     for(int i = 0; i < wsolutes.size(); ++i)
     {

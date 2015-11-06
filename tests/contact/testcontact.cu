@@ -107,9 +107,8 @@ int main(int argc, char ** argv)
 	const size_t myseed = 0x563d00cf;//time(NULL);
         srand48(myseed);
 	printf("myseed: 0x%x\n", myseed);
-        //srand48(0);
 
-        int n = 25e3; //l*l*l*dens;
+        int n = 25e3;
         vector<Particle> ic(n);
         vector<Acceleration> acc(n);
         for (int i=0; i<n; i++)
@@ -119,7 +118,7 @@ int main(int argc, char ** argv)
 
 	Logistic::KISS local_trunk = Logistic::KISS(7119 - rank, 187 + rank, 18278, 15674);
 
-     	const double center[3] = { XSIZE_SUBDOMAIN/2, YSIZE_SUBDOMAIN/2, 0*ZSIZE_SUBDOMAIN/2} ;//YSIZE_SUBDOMAIN/2 -};
+     	const double center[3] = { -XSIZE_SUBDOMAIN/2, -YSIZE_SUBDOMAIN/2, -ZSIZE_SUBDOMAIN/2} ;//YSIZE_SUBDOMAIN/2 -};
 	const double halfwidth[3] = {XSIZE_SUBDOMAIN/10., YSIZE_SUBDOMAIN/10., ZSIZE_SUBDOMAIN / 10.};
 
 	for(int i = 0; i < n; ++i)
@@ -228,7 +227,7 @@ int main(int argc, char ** argv)
 		hfy += acc[i].a[1];
 		hfz += acc[i].a[2];
 	    }
-	
+
 	    printf("CPU F [%8f %8f %8f], GPU F [%8f %8f %8f]\n", hfx, hfy, hfz, fx, fy, fz);
 	    printf("%d particles.\n", n);
 	}
@@ -237,7 +236,7 @@ int main(int argc, char ** argv)
 	    const float * ref = &acc[0].a[0];
 	    const float * res = &gpuacc[0].a[0];
 	    const double tol = 5e-3;
-	
+
 	    double linf = 0, l1 = 0, linf_rel = 0, l1_rel = 0;
 	    const int nentries = 3 * n;
 	    bool failed = false;
@@ -245,25 +244,25 @@ int main(int argc, char ** argv)
 	    {
 		assert(!std::isnan(ref[i]));
 		assert(!std::isnan(res[i]));
-	    
+
 		const double err = ref[i] - res[i];
 		const double maxval = std::max(fabs(res[i]), fabs(ref[i]));
-		const double relerr = err/std::max(1e-6, maxval); 
+		const double relerr = err/std::max(1e-6, maxval);
 
-		failed |= fabs(relerr) >= tol && fabs(err) >= tol; 
+		failed |= fabs(relerr) >= tol && fabs(err) >= tol;
 
 		if (failed)
 		    printf("p %d c %d: %e ref: %e -> %e %e\n", i / 3, i % 3, res[i], ref[i], err, relerr);
-		
+
 		if (i % 3 == 2 && failed)
 		{
 		    const int pid = i/3;
 
 		    const bool inside =
-			ic[i].x[0] >= -XOFFSET && ic[pid].x[0] < XOFFSET && 
-			ic[i].x[1] >= -YOFFSET && ic[pid].x[1] < YOFFSET && 
+			ic[i].x[0] >= -XOFFSET && ic[pid].x[0] < XOFFSET &&
+			ic[i].x[1] >= -YOFFSET && ic[pid].x[1] < YOFFSET &&
 			ic[i].x[2] >= -ZOFFSET && ic[pid].x[2] < ZOFFSET ;
-		   
+
 		    printf("%d:  CPU [%+.3f %+.3f %+.3f]  GPU [%+.3f %+.3f %+.3f] -> p %+.3f %+.3f %+.3f -> inside: %d\n",
 			   i, acc[pid].a[0], acc[pid].a[1], acc[pid].a[2],
 			   gpuacc[pid].a[0], gpuacc[pid].a[1], gpuacc[pid].a[2],
@@ -271,7 +270,7 @@ int main(int argc, char ** argv)
 
 		    failed = false;
 		}
-	    
+
 		assert(fabs(relerr) < tol || fabs(err) < tol);
 
 		l1 += fabs(err);
@@ -280,7 +279,7 @@ int main(int argc, char ** argv)
 		linf = std::max(linf, fabs(err));
 		linf_rel = std::max(linf_rel, fabs(relerr));
 	    }
-	
+
 	    printf("l-infinity errors: %.03e (absolute) %.03e (relative)\n", linf, linf_rel);
 	    printf("       l-1 errors: %.03e (absolute) %.03e (relative)\n", l1, l1_rel);
 	}
