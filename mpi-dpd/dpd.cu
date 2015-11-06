@@ -27,6 +27,8 @@ sigma_xx(NULL),	sigma_xy(NULL),	sigma_xz(NULL), sigma_yy(NULL),	sigma_yz(NULL), 
     int myrank;
     MPI_CHECK(MPI_Comm_rank(cartcomm, &myrank));
 
+    local_trunk = Logistic::KISS(9078 - 2 * myrank, 321 - myrank, 552, 456);
+
     for(int i = 0; i < 26; ++i)
     {
 	int d[3] = { (i + 2) % 3 - 1, (i / 3 + 2) % 3 - 1, (i / 9 + 2) % 3 - 1 };
@@ -74,8 +76,6 @@ sigma_xx(NULL),	sigma_xy(NULL),	sigma_xz(NULL), sigma_yy(NULL),	sigma_yz(NULL), 
 	}
     }
 }
-
-
 
 void ComputeDPD::local_interactions(const Particle * const xyzuvw, const float4 * const xyzouvwo, const ushort4 * const xyzo_half,
 				    const int n, Acceleration * const a, const int * const cellsstart, const int * const cellscount, cudaStream_t stream)
