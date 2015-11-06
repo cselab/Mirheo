@@ -57,7 +57,7 @@ namespace KernelsContact
 }
 
 ComputeContact::ComputeContact(MPI_Comm comm):
-cellsstart(KernelsContact::NCELLS), cellscount(KernelsContact::NCELLS), compressed_cellscount(KernelsContact::NCELLS)
+cellsstart(KernelsContact::NCELLS + 16), cellscount(KernelsContact::NCELLS + 16), compressed_cellscount(KernelsContact::NCELLS + 16)
 {
     int myrank;
     MPI_CHECK( MPI_Comm_rank(comm, &myrank));
@@ -154,8 +154,10 @@ namespace KernelsContact
 	CUDA_CHECK(cudaMemcpyToSymbolAsync(csolutesacc, as, sizeof(float *) * n, 0, cudaMemcpyHostToDevice, stream));
     }
 
-    __global__ void bulk_3tpp(const int np, const int nsolutes, const float seed)
+    __global__ void bulk_3tpp(const int nsolutes, const float seed)
     {
+	const int np = tex1Dfetch(texCellsStart, XCELLS * YCELLS * ZCELLS);
+
 	assert(blockDim.x * gridDim.x >= np * 3);
 
 	const int gid = threadIdx.x + blockDim.x * blockIdx.x;
@@ -177,9 +179,16 @@ namespace KernelsContact
 	    ce.code.w = 0;
 	    actualpid = ce.pid;
 
+	    assert(soluteid < nsolutes);
+	    assert(actualpid >= 0 && actualpid < cnsolutes[soluteid]);
+
 	    dst0 = _ACCESS(csolutes[soluteid] + 3 * actualpid + 0);
 	    dst1 = _ACCESS(csolutes[soluteid] + 3 * actualpid + 1);
 	    dst2 = _ACCESS(csolutes[soluteid] + 3 * actualpid + 2);
+
+	    assert(dst0.x >= -XOFFSET && dst0.x < XOFFSET);
+	    assert(dst0.y >= -YOFFSET && dst0.y < YOFFSET);
+	    assert(dst1.x >= -ZOFFSET && dst1.x < ZOFFSET);
 	}
 
 	int scan1, scan2, ncandidates, spidbase;
@@ -242,7 +251,7 @@ namespace KernelsContact
 	    const int m1 = (int)(i >= scan1);
 	    const int m2 = (int)(i >= scan2);
 	    const int slot = i + (m2 ? deltaspid2 : m1 ? deltaspid1 : spidbase);
-	    assert(slot >= 0 && slot < ncellentries);
+	    assert(slot >= 0 && slot < np);
 
 	    if (slot >= myslot)
 		continue;
@@ -318,16 +327,19 @@ namespace KernelsContact
 	    atomicAdd(csolutesacc[soluteid] + sentry + 2, -zinteraction);
 	}
 
-	atomicAdd(csolutesacc[soluteid] + 3 * actualpid + 0, xforce);
-	atomicAdd(csolutesacc[soluteid] + 3 * actualpid + 1, yforce);
-	atomicAdd(csolutesacc[soluteid] + 3 * actualpid + 2, zforce);
+	const float xacc = atomicAdd(csolutesacc[soluteid] + 3 * actualpid + 0, xforce);
+	const float yacc = atomicAdd(csolutesacc[soluteid] + 3 * actualpid + 1, yforce);
+	const float zacc = atomicAdd(csolutesacc[soluteid] + 3 * actualpid + 2, zforce);
 
-	for(int c = 0; c < 3; ++c)
-	    assert(!isnan(acc[3 * pid + c]));
+	assert(!isnan(xacc));
+	assert(!isnan(yacc));
+	assert(!isnan(zacc));
     }
 
     __global__ void halo(const float2 * halo, const int nhalo, const int nsolutes, const float seed, float * const acc)
     {
+	const int nbulk = tex1Dfetch(texCellsStart, XCELLS * YCELLS * ZCELLS);
+
 	assert(blockDim.x * gridDim.x >= nhalo);
 
 	const int laneid = threadIdx.x & 0x1f;
@@ -341,11 +353,12 @@ namespace KernelsContact
 	float xforce, yforce, zforce;
 	read_AOS3f(acc + unpackbase, nunpack, xforce, yforce, zforce);
 
-	const bool valid =
-	    laneid < nunpack &&
-	    dst0.x >= -XOFFSET &&
-	    dst0.y >= -YOFFSET &&
-	    dst1.x >= -ZOFFSET ;
+	const bool outside_plus =
+	    dst0.x >= XOFFSET ||
+	    dst0.y >= YOFFSET ||
+	    dst1.x >= ZOFFSET ;
+
+	const bool valid = laneid < nunpack && outside_plus;
 
 	const int nzplanes = valid ? 3 : 0;
 
@@ -410,7 +423,7 @@ namespace KernelsContact
 		const int m2 = (int)(i >= scan2);
 		const int slot = i + (m2 ? deltaspid2 : m1 ? deltaspid1 : spidbase);
 
-		assert(slot >= 0 && slot < ncellentries);
+		assert(slot >= 0 && slot < nbulk);
 		CellEntry ce;
 		ce.pid = tex1Dfetch(texCellEntries, slot);
 		const int soluteid = ce.code.w;
@@ -568,10 +581,20 @@ void ComputeContact::halo(ParticlesWrap halos[26], cudaStream_t stream)
     KernelsContact::bind(cellsstart.data, cellsentries.data, ntotal, wsolutes, stream, cellscount.data);
 
     KernelsContact::bulk_3tpp<<< (3 * cellsentries.size + 127) / 128, 128, 0, stream >>>
-	(cellsentries.size, wsolutes.size(), local_trunk.get_float());
+	(wsolutes.size(), local_trunk.get_float());
 
-    KernelsContact::halo<<< (allhalos.size + 127) / 128, 128, 0, stream>>>
-	((float2 *)allhalos.data, allhalos.size, wsolutes.size(), local_trunk.get_float(), (float *)allhalosacc.data);
+    ctr = 0;
+    for(int i = 0; i < wsolutes.size(); ++i)
+    {
+	const ParticlesWrap it = wsolutes[i];
+
+	if (it.n)
+	    KernelsContact::halo<<< (it.n + 127) / 128, 128, 0, stream>>>
+		((float2 *)it.p, it.n, wsolutes.size(), local_trunk.get_float(), (float *)it.a);
+
+
+	ctr += it.n;
+    }
 
     //split back halos
     {
