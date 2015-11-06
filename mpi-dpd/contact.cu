@@ -64,7 +64,7 @@ cellsstart(KernelsContact::NCELLS + 16), cellscount(KernelsContact::NCELLS + 16)
 
     local_trunk = Logistic::KISS(7119 - myrank, 187 + myrank, 18278, 15674);
 
-    KernelsContact::Params params = { gammadpd, sigmaf, 1};
+    KernelsContact::Params params = { 0*gammadpd, 0*sigmaf, 1};
 
     CUDA_CHECK(cudaMemcpyToSymbol(KernelsContact::params, &params, sizeof(params)));
 
@@ -331,6 +331,9 @@ namespace KernelsContact
 	const float yacc = atomicAdd(csolutesacc[soluteid] + 3 * actualpid + 1, yforce);
 	const float zacc = atomicAdd(csolutesacc[soluteid] + 3 * actualpid + 2, zforce);
 
+	if (isnan(xacc))
+	    printf("ooops xacc %f for soluteid %d pid %d\n", xacc, soluteid, actualpid);
+	
 	assert(!isnan(xacc));
 	assert(!isnan(yacc));
 	assert(!isnan(zacc));
@@ -348,21 +351,27 @@ namespace KernelsContact
 	const int nunpack =  min(32, nhalo - unpackbase);
 
 	float2 dst0, dst1, dst2;
-	read_AOS6f((float2 *)(halo + unpackbase), nunpack, dst0, dst1, dst2);
+	read_AOS6f((float2 *)(halo + 3 * unpackbase), nunpack, dst0, dst1, dst2);
 
 	float xforce, yforce, zforce;
-	read_AOS3f(acc + unpackbase, nunpack, xforce, yforce, zforce);
+	read_AOS3f(acc + 3 * unpackbase, nunpack, xforce, yforce, zforce);
 
 	const bool outside_plus =
 	    dst0.x >= XOFFSET ||
 	    dst0.y >= YOFFSET ||
 	    dst1.x >= ZOFFSET ;
 
-	const bool valid = laneid < nunpack && outside_plus;
+	const bool inside_outerhalo = 
+	    dst0.x < XOFFSET + 1 &&
+	    dst0.y < YOFFSET + 1 &&
+	    dst1.x < ZOFFSET + 1 ;
+	
+	const bool valid = laneid < nunpack && outside_plus && inside_outerhalo;
 
-	const int nzplanes = valid ? 3 : 0;
+	if (!valid)
+	    return;
 
-	for(int zplane = 0; zplane < nzplanes; ++zplane)
+	for(int zplane = 0; zplane < 3; ++zplane)
 	{
 	    int scan1, scan2, ncandidates, spidbase;
 	    int deltaspid1, deltaspid2;
@@ -495,7 +504,14 @@ namespace KernelsContact
 	    }
 	}
 
-	write_AOS3f(acc + unpackbase, nunpack, xforce, yforce, zforce);
+	//write_AOS3f(acc + unpackbase, nunpack, xforce, yforce, zforce);
+	//if (valid)
+	{
+	    assert(valid);
+	    acc[3 * (unpackbase + laneid) + 0] = xforce;
+	    acc[3 * (unpackbase + laneid) + 1] = yforce;
+	    acc[3 * (unpackbase + laneid) + 2] = zforce;
+	}
     }
 }
 
@@ -581,8 +597,8 @@ void ComputeContact::halo(ParticlesWrap halos[26], cudaStream_t stream)
     KernelsContact::bind(cellsstart.data, cellsentries.data, ntotal, wsolutes, stream, cellscount.data);
 
     KernelsContact::bulk_3tpp<<< (3 * cellsentries.size + 127) / 128, 128, 0, stream >>>
-	(wsolutes.size(), local_trunk.get_float());
-
+     	(wsolutes.size(), local_trunk.get_float());
+    
     ctr = 0;
     for(int i = 0; i < wsolutes.size(); ++i)
     {

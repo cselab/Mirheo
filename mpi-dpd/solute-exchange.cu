@@ -505,7 +505,7 @@ void SoluteExchange::recv_p(cudaStream_t uploadstream)
 
 #ifndef NDEBUG
 	CUDA_CHECK(cudaMemsetAsync(remote[i].dstate.data, 0xff, sizeof(Particle) * remote[i].dstate.capacity, uploadstream));
-	CUDA_CHECK(cudaMemsetAsync(remote[i].result.data, 0xff, sizeof(Acceleration) * remote[i].result.capacity, uploadstream));
+	CUDA_CHECK(cudaMemsetAsync(remote[i].result.data, 0 /*0xff*/, sizeof(Acceleration) * remote[i].result.capacity, uploadstream));
 #endif
 
 	MPI_Status status;
