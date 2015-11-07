@@ -399,14 +399,14 @@ void Simulation::_forces()
 
     solutex.recv_p(uploadstream);
 
+    if (contactforces)
+	contact.attach_bulk(wsolutes);
+
     solutex.halo(uploadstream, mainstream);
 
     dpd.remote_interactions(particles->xyzuvw.data, particles->size, particles->axayaz.data, mainstream, uploadstream);
 
     fsi.bulk(wsolutes, mainstream);
-
-    if (contactforces)
-	contact.attach_bulk(wsolutes);
 
     CUDA_CHECK(cudaPeekAtLastError());
 
@@ -850,14 +850,14 @@ void Simulation::_lockstep()
 
     solutex.recv_p(uploadstream);
 
+    if (contactforces)
+	contact.attach_bulk(wsolutes);
+
     solutex.halo(uploadstream, mainstream);
 
     dpd.remote_interactions(particles->xyzuvw.data, particles->size, particles->axayaz.data, mainstream, uploadstream);
 
     fsi.bulk(wsolutes, mainstream);
-
-    if (contactforces)
-	contact.attach_bulk(wsolutes);
 
     CUDA_CHECK(cudaPeekAtLastError());
 

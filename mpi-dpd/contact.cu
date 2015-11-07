@@ -54,6 +54,8 @@ namespace KernelsContact
 	texCellEntries.mipmapFilterMode = cudaFilterModePoint;
 	texCellEntries.normalized = 0;
     }
+
+    __global__ void bulk_3tpp(const int nsolutes, const float seed);
 }
 
 ComputeContact::ComputeContact(MPI_Comm comm):
@@ -69,6 +71,8 @@ cellsstart(KernelsContact::NCELLS + 16), cellscount(KernelsContact::NCELLS + 16)
     CUDA_CHECK(cudaMemcpyToSymbol(KernelsContact::params, &params, sizeof(params)));
 
     CUDA_CHECK(cudaPeekAtLastError());
+
+    CUDA_CHECK(cudaFuncSetCacheConfig(KernelsContact::bulk_3tpp , cudaFuncCachePreferL1));
 }
 
 namespace KernelsContact
@@ -168,23 +172,23 @@ namespace KernelsContact
 	    return;
 
 	float2 dst0, dst1, dst2;
-	int soluteid, actualpid;
+	int mysoluteid, actualpid;
 
 	{
 	    CellEntry ce;
 	    ce.pid = tex1Dfetch(texCellEntries, myslot);
 
-	    soluteid = ce.code.w;
+	    mysoluteid = ce.code.w;
 
 	    ce.code.w = 0;
 	    actualpid = ce.pid;
 
-	    assert(soluteid < nsolutes);
-	    assert(actualpid >= 0 && actualpid < cnsolutes[soluteid]);
+	    assert(mysoluteid < nsolutes);
+	    assert(actualpid >= 0 && actualpid < cnsolutes[mysoluteid]);
 
-	    dst0 = _ACCESS(csolutes[soluteid] + 3 * actualpid + 0);
-	    dst1 = _ACCESS(csolutes[soluteid] + 3 * actualpid + 1);
-	    dst2 = _ACCESS(csolutes[soluteid] + 3 * actualpid + 2);
+	    dst0 = _ACCESS(csolutes[mysoluteid] + 3 * actualpid + 0);
+	    dst1 = _ACCESS(csolutes[mysoluteid] + 3 * actualpid + 1);
+	    dst2 = _ACCESS(csolutes[mysoluteid] + 3 * actualpid + 2);
 
 	    assert(dst0.x >= -XOFFSET && dst0.x < XOFFSET);
 	    assert(dst0.y >= -YOFFSET && dst0.y < YOFFSET);
@@ -318,18 +322,18 @@ namespace KernelsContact
 	    assert(!isnan(yinteraction));
 	    assert(!isnan(zinteraction));
 
-	    assert(fabs(xinteraction) < 1e4);
-	    assert(fabs(yinteraction) < 1e4);
-	    assert(fabs(zinteraction) < 1e4);
+	    assert(fabs(xinteraction) < 1e5);
+	    assert(fabs(yinteraction) < 1e5);
+	    assert(fabs(zinteraction) < 1e5);
 
 	    atomicAdd(csolutesacc[soluteid] + sentry    , -xinteraction);
 	    atomicAdd(csolutesacc[soluteid] + sentry + 1, -yinteraction);
 	    atomicAdd(csolutesacc[soluteid] + sentry + 2, -zinteraction);
 	}
 
-	const float xacc = atomicAdd(csolutesacc[soluteid] + 3 * actualpid + 0, xforce);
-	const float yacc = atomicAdd(csolutesacc[soluteid] + 3 * actualpid + 1, yforce);
-	const float zacc = atomicAdd(csolutesacc[soluteid] + 3 * actualpid + 2, zforce);
+	const float xacc = atomicAdd(csolutesacc[mysoluteid] + 3 * actualpid + 0, xforce);
+	const float yacc = atomicAdd(csolutesacc[mysoluteid] + 3 * actualpid + 1, yforce);
+	const float zacc = atomicAdd(csolutesacc[mysoluteid] + 3 * actualpid + 2, zforce);
 
 	assert(!isnan(xacc));
 	assert(!isnan(yacc));
@@ -491,9 +495,9 @@ namespace KernelsContact
 		assert(!isnan(yinteraction));
 		assert(!isnan(zinteraction));
 
-		assert(fabs(xinteraction) < 1e4);
-		assert(fabs(yinteraction) < 1e4);
-		assert(fabs(zinteraction) < 1e4);
+		assert(fabs(xinteraction) < 1e5);
+		assert(fabs(yinteraction) < 1e5);
+		assert(fabs(zinteraction) < 1e5);
 
 		atomicAdd(csolutesacc[soluteid] + sentry    , -xinteraction);
 		atomicAdd(csolutesacc[soluteid] + sentry + 1, -yinteraction);
@@ -524,6 +528,11 @@ void ComputeContact::halo(ParticlesWrap halos[26], cudaStream_t stream)
 
 	allhalos.resize(c);
 	allhalosacc.resize(c);
+
+#ifndef NDEBUG
+	CUDA_CHECK(cudaMemsetAsync(allhalos.data, 0xff, sizeof(Particle) * allhalos.capacity, stream));
+	CUDA_CHECK(cudaMemsetAsync(allhalosacc.data, 0xff, sizeof(Acceleration) * allhalosacc.capacity, stream));
+#endif
 
 	c = 0;
 	for(int i = 0; i < 26; ++i)
