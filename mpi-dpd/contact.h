@@ -26,8 +26,6 @@ class ComputeContact : public SoluteExchange::Visitor
     SimpleDeviceBuffer<uchar4> subindices;
     SimpleDeviceBuffer<unsigned char> compressed_cellscount;
     SimpleDeviceBuffer<int> cellsentries, cellsstart, cellscount;
-    SimpleDeviceBuffer<Particle> allhalos;
-    SimpleDeviceBuffer<Acceleration> allhalosacc;
 
     Logistic::KISS local_trunk;
     
@@ -38,5 +36,5 @@ public:
     void attach_bulk(std::vector<ParticlesWrap> wsolutes) { this->wsolutes = wsolutes; }
 
     /*override of SoluteExchange::Visitor::halo*/
-    void halo(ParticlesWrap solutes[26], cudaStream_t stream);
+    void halo(ParticlesWrap allhalos, cudaStream_t stream);
 };

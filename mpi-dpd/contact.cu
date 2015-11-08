@@ -516,37 +516,11 @@ namespace KernelsContact
     }
 }
 
-void ComputeContact::halo(ParticlesWrap halos[26], cudaStream_t stream)
+void ComputeContact::halo(ParticlesWrap halowrap, cudaStream_t stream)
 {
     NVTX_RANGE("Contact/halo", NVTX_C7);
 
-    //collate halos
-    {
-	int c = 0;
-	for(int i = 0; i < 26; ++i)
-	    c += halos[i].n;
-
-	allhalos.resize(c);
-	allhalosacc.resize(c);
-
-#ifndef NDEBUG
-	CUDA_CHECK(cudaMemsetAsync(allhalos.data, 0xff, sizeof(Particle) * allhalos.capacity, stream));
-	CUDA_CHECK(cudaMemsetAsync(allhalosacc.data, 0xff, sizeof(Acceleration) * allhalosacc.capacity, stream));
-#endif
-
-	c = 0;
-	for(int i = 0; i < 26; ++i)
-	{
-	    CUDA_CHECK(cudaMemcpyAsync(allhalos.data + c, halos[i].p, sizeof(Particle) * halos[i].n, cudaMemcpyHostToDevice, stream));
-	    CUDA_CHECK(cudaMemcpyAsync(allhalosacc.data + c, halos[i].a, sizeof(Acceleration) * halos[i].n, cudaMemcpyHostToDevice, stream));
-
-	    c += halos[i].n;
-	}
-    }
-
     CUDA_CHECK(cudaPeekAtLastError());
-
-    ParticlesWrap halowrap(allhalos.data, allhalos.size, allhalosacc.data);
 
     wsolutes.push_back(halowrap);
 
@@ -614,18 +588,7 @@ void ComputeContact::halo(ParticlesWrap halos[26], cudaStream_t stream)
 	    KernelsContact::halo<<< (it.n + 127) / 128, 128, 0, stream>>>
 		((float2 *)it.p, it.n, wsolutes.size(), local_trunk.get_float(), (float *)it.a);
 
-
 	ctr += it.n;
-    }
-
-    //split back halos
-    {
-    	int c = 0;
-	for(int i = 0; i < 26; ++i)
-	{
-	    CUDA_CHECK(cudaMemcpyAsync(halos[i].a, allhalosacc.data + c, sizeof(Acceleration) * halos[i].n, cudaMemcpyDeviceToHost, stream));
-	    c += halos[i].n;
-	}
     }
 
     CUDA_CHECK(cudaPeekAtLastError());

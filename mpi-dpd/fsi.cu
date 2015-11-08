@@ -158,10 +158,14 @@ namespace KernelsFSI
 
 	    const float rij2 = _xr * _xr + _yr * _yr + _zr * _zr;
 
+	    if (!(rij2 > 0))
+		printf("oopsa rij2 %f : src = %f %f %f  dst= %f %f %f\n", rij2, stmp0.x, stmp0.y, stmp1.x, dst0.x, dst0.y, dst1.x);
+	    assert(rij2 > 0);
+	    
 	    const float invrij = rsqrtf(rij2);
 
 	    const float rij = rij2 * invrij;
-
+	    
 	    if (rij2 >= 1)
 		continue;
 
@@ -270,7 +274,7 @@ void ComputeFSI::bulk(std::vector<ParticlesWrap> wsolutes, cudaStream_t stream)
 
     CUDA_CHECK(cudaPeekAtLastError());
 }
-
+/*
 namespace KernelsFSI
 {
     __constant__ int packstarts_padded[27], packcount[26];
@@ -450,16 +454,16 @@ namespace KernelsFSI
 
 	write_AOS3f(dst, nunpack, xforce, yforce, zforce);
     }
-}
+    }*/
 
-void ComputeFSI::halo(ParticlesWrap halos[26], cudaStream_t stream)
+void ComputeFSI::halo(ParticlesWrap halowrap, cudaStream_t stream)
 {
     NVTX_RANGE("FSI/halo", NVTX_C7);
 
     KernelsFSI::setup(wsolvent.p, wsolvent.n, wsolvent.cellsstart, wsolvent.cellscount);
 
     CUDA_CHECK(cudaPeekAtLastError());
-
+/*
     int nremote_padded = 0;
 
     {
@@ -504,6 +508,14 @@ void ComputeFSI::halo(ParticlesWrap halos[26], cudaStream_t stream)
     if(nremote_padded)
     	KernelsFSI::interactions_halo<<< (nremote_padded + 127) / 128, 128, 0, stream>>>
 	    (nremote_padded, wsolvent.n, (float *)wsolvent.a, local_trunk.get_float());
+*/
+    //printf("before halo fsi\n");
+    
+    if (halowrap.n)
+	KernelsFSI::interactions_3tpp<<< (3 * halowrap.n + 127) / 128, 128, 0, stream >>>
+	    ((float2 *)halowrap.p, halowrap.n, wsolvent.n, (float *)halowrap.a, (float *)wsolvent.a, local_trunk.get_float());
 
+    /*CUDA_CHECK(cudaDeviceSynchronize());
+      printf("after halo fsi\n");*/
     CUDA_CHECK(cudaPeekAtLastError());
 }

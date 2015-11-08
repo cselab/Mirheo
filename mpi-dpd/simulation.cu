@@ -397,12 +397,12 @@ void Simulation::_forces()
 
     dpd.recv(mainstream, uploadstream);
 
-    solutex.recv_p(uploadstream);
+    solutex.recv_p(uploadstream, mainstream);
 
     if (contactforces)
 	contact.attach_bulk(wsolutes);
 
-    solutex.halo(uploadstream, mainstream);
+    solutex.halo(uploadstream, mainstream, downloadstream);
 
     dpd.remote_interactions(particles->xyzuvw.data, particles->size, particles->axayaz.data, mainstream, uploadstream);
 
@@ -848,12 +848,12 @@ void Simulation::_lockstep()
 
     dpd.recv(mainstream, uploadstream);
 
-    solutex.recv_p(uploadstream);
+    solutex.recv_p(uploadstream, mainstream);
 
     if (contactforces)
 	contact.attach_bulk(wsolutes);
 
-    solutex.halo(uploadstream, mainstream);
+    solutex.halo(uploadstream, mainstream, downloadstream);
 
     dpd.remote_interactions(particles->xyzuvw.data, particles->size, particles->axayaz.data, mainstream, uploadstream);
 

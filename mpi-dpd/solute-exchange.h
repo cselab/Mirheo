@@ -22,7 +22,7 @@ class SoluteExchange
     
 public:
     
-    struct Visitor { virtual void halo(ParticlesWrap solutehalos[26], cudaStream_t stream) = 0; };
+    struct Visitor { virtual void halo(ParticlesWrap allhalos, cudaStream_t stream) = 0; };
     
 protected:
 
@@ -34,7 +34,7 @@ protected:
 	dims[3], periods[3], coords[3], myrank,
 	recv_tags[26], recv_counts[26], send_counts[26];
 
-    cudaEvent_t evPpacked, evAcomputed;
+    cudaEvent_t evPpacked, evAcomputed, evAdownloaded;
 
     SimpleDeviceBuffer<int> packscount, packsstart, packsoffset, packstotalstart;
     PinnedHostBuffer<int> host_packstotalstart, host_packstotalcount;
@@ -77,14 +77,14 @@ protected:
 
     public:
 
-	SimpleDeviceBuffer<Particle> dstate;
+	//SimpleDeviceBuffer<Particle> dstate;
 	PinnedHostBuffer<Particle> hstate;
 	PinnedHostBuffer<Acceleration> result;
 	std::vector<Particle> pmessage;
 
 	void preserve_resize(int n)
 	    {
-		dstate.resize(n);
+		//dstate.resize(n);
 		hstate.preserve_resize(n);
 		result.resize(n);
 		history.update(n);
@@ -92,9 +92,12 @@ protected:
 
 	int expected() const { return (int)ceil(history.max() * 1.1); }
 
-	int capacity() const { assert(hstate.capacity == dstate.capacity); return dstate.capacity; }
+	int capacity() const { /*assert(hstate.capacity == dstate.capacity);*/ return hstate.capacity; }
 
     } remote[26];
+
+    SimpleDeviceBuffer<Particle> allremotehalos;
+    SimpleDeviceBuffer<Acceleration> allremotehalosacc;
 
     class LocalHalo
     {
@@ -213,9 +216,9 @@ public:
 
     void post_p(cudaStream_t stream, cudaStream_t downloadstream);
 
-    void recv_p(cudaStream_t uploadstream);
+    void recv_p(cudaStream_t uploadstream, cudaStream_t computestream);
     
-    void halo(cudaStream_t uploadstream, cudaStream_t stream);
+    void halo(cudaStream_t uploadstream, cudaStream_t computestream, cudaStream_t downloadstream);
 
     void post_a();
 
