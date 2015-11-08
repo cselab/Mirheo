@@ -158,7 +158,7 @@ namespace KernelsContact
 	CUDA_CHECK(cudaMemcpyToSymbolAsync(csolutesacc, as, sizeof(float *) * n, 0, cudaMemcpyHostToDevice, stream));
     }
 
-    __global__ void bulk_3tpp(const int nsolutes, const float seed)
+    __global__  __launch_bounds__(128, 10) void bulk_3tpp(const int nsolutes, const float seed)
     {
 	const int np = tex1Dfetch(texCellsStart, XCELLS * YCELLS * ZCELLS);
 
@@ -505,14 +505,9 @@ namespace KernelsContact
 	    }
 	}
 
-	//write_AOS3f(acc + unpackbase, nunpack, xforce, yforce, zforce);
-	//if (valid)
-	{
-	    assert(valid);
-	    acc[3 * (unpackbase + laneid) + 0] = xforce;
-	    acc[3 * (unpackbase + laneid) + 1] = yforce;
-	    acc[3 * (unpackbase + laneid) + 2] = zforce;
-	}
+	acc[3 * (unpackbase + laneid) + 0] = xforce;
+	acc[3 * (unpackbase + laneid) + 1] = yforce;
+	acc[3 * (unpackbase + laneid) + 2] = zforce;
     }
 }
 

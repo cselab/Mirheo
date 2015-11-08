@@ -492,7 +492,7 @@ void SoluteExchange::recv_p(cudaStream_t uploadstream, cudaStream_t computestrea
 	return;
 
     NVTX_RANGE("SOLUTEX/recv-p", NVTX_C7);
-    
+
     _wait(reqrecvC);
     _wait(reqrecvP);
 
@@ -505,7 +505,6 @@ void SoluteExchange::recv_p(cudaStream_t uploadstream, cudaStream_t computestrea
 	remote[i].preserve_resize(count);
 
 #ifndef NDEBUG
-	//CUDA_CHECK(cudaMemsetAsync(remote[i].dstate.data, 0xff, sizeof(Particle) * remote[i].dstate.capacity, uploadstream));
 	CUDA_CHECK(cudaMemsetAsync(remote[i].result.data, 0xff, sizeof(Acceleration) * remote[i].result.capacity, uploadstream));
 #endif
 
@@ -525,12 +524,7 @@ void SoluteExchange::recv_p(cudaStream_t uploadstream, cudaStream_t computestrea
     }
 
     _postrecvC();
-    
-    /*for(int i = 0; i < 26; ++i)
-	CUDA_CHECK(cudaMemcpyAsync(remote[i].dstate.data, remote[i].hstate.data, sizeof(Particle) * remote[i].hstate.size,
-	cudaMemcpyHostToDevice, uploadstream));*/
 
-    
     //collate halos
     {
 	int c = 0;
@@ -541,12 +535,12 @@ void SoluteExchange::recv_p(cudaStream_t uploadstream, cudaStream_t computestrea
 	CUDA_CHECK(cudaMemsetAsync(allremotehalosacc.data, 0xff, sizeof(Acceleration) * allremotehalosacc.capacity, computestream));
 	CUDA_CHECK(cudaMemsetAsync(allremotehalos.data, 0xff, sizeof(Particle) * allremotehalos.capacity, uploadstream));
 #endif
-	
+
 	allremotehalos.resize(c);
 	allremotehalosacc.resize(c);
 
 	CUDA_CHECK(cudaMemsetAsync(allremotehalosacc.data, 0, sizeof(Acceleration) * allremotehalosacc.size, computestream));
-	
+
 	c = 0;
 	for(int i = 0; i < 26; ++i)
 	{
@@ -563,28 +557,23 @@ void SoluteExchange::halo(cudaStream_t uploadstream, cudaStream_t computestream,
 
     if (wsolutes.size() == 0)
 	return;
-        
+
     if (iterationcount)
 	_wait(reqsendA);
-    
-    /*ParticlesWrap halos[26];
-    
-    for(int i = 0; i < 26; ++i)
-	halos[i] = ParticlesWrap(remote[i].dstate.data, remote[i].dstate.size, remote[i].result.devptr);
-    */
+
     ParticlesWrap halowrap(allremotehalos.data, allremotehalos.size, allremotehalosacc.data);
-    
+
     CUDA_CHECK(cudaStreamSynchronize(uploadstream));
-    
+
     for(int i = 0; i < visitors.size(); ++i)
 	visitors[i]->halo(halowrap, computestream);
-    
+
     CUDA_CHECK(cudaPeekAtLastError());
-    
+
     CUDA_CHECK(cudaEventRecord(evAcomputed, computestream));
 
     CUDA_CHECK(cudaStreamWaitEvent(downloadstream, evAcomputed, 0));
-	
+
     //split back halos
     {
     	int c = 0;
@@ -596,10 +585,10 @@ void SoluteExchange::halo(cudaStream_t uploadstream, cudaStream_t computestream,
     }
 
     CUDA_CHECK(cudaEventRecord(evAdownloaded, downloadstream));
-    
+
     for(int i = 0; i < 26; ++i)
 	local[i].update();
-    
+
 #ifndef _DUMBCRAY_
     _postrecvP();
 #endif
