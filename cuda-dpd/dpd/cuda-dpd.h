@@ -29,7 +29,7 @@ template<> inline __device__ float viscosity_function<0>(float x){ return x; }
 
 void forces_dpd_cuda_nohost(const float * const xyzuvw, const float4 * const xyzouvwo, const ushort4 * const xyzo_half,
 			    float * const _axayaz,  const int np,
-			    const int * const cellsstart, const int * const cellscount, 
+			    const int * const cellsstart, const int * const cellscount,
 			    const float rc,
 			    const float XL, const float YL, const float ZL,
 			    const float aij,
@@ -37,7 +37,7 @@ void forces_dpd_cuda_nohost(const float * const xyzuvw, const float4 * const xyz
 			    const float sigma,
 			    const float invsqrtdt,
 			    const float seed1,
-			    cudaStream_t stream);		  
+			    cudaStream_t stream);
 
 void forces_dpd_cuda(const float * const xp, const float * const yp, const float * const zp,
 		     const float * const xv, const float * const yv, const float * const zv,
@@ -62,3 +62,13 @@ void forces_dpd_cuda_bipartite_nohost(cudaStream_t stream, const float2 * const 
 				      const int3 halo_ncells,
 				      const float aij, const float gamma, const float sigmaf,
 				      const float seed, const int mask, float * const axayaz);
+
+void compute_stress(const float * const xyzuvw,
+		    const int np,
+		    const int * const cellsstart, const int * const cellscount,
+		    const int XL, const int YL, const int ZL,
+		    const float aij, const float gamma,  const float sigmaf, const float seed,
+		    float * const sigma_xx, float * const sigma_xy, float * const sigma_xz,
+		    float * const sigma_yy, float * const sigma_yz, float * const sigma_zz,
+		    float * const axayaz,
+		    cudaStream_t stream);

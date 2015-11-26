@@ -744,7 +744,7 @@ void RedistributeParticles::bulk(const int nparticles, int * const cellstarts, i
     subindices.resize(nparticles);
 
     if (nparticles)
-    subindex_local<false><<< (nparticles + 127) / 128, 128, 0, mystream>>>
+    subindex_local<<< (nparticles + 127) / 128, 128, 0, mystream>>>
 	(nparticles, RedistributeParticlesKernels::texparticledata, cellcounts, subindices.data);
 /*
 #ifndef NDEBUG

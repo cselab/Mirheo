@@ -60,7 +60,7 @@ public:
 
 CollectionCTC(MPI_Comm cartcomm) : CollectionRBC(cartcomm)
     {
-	if (ctcs)
+	//if (ctcs)
 	{
 	    CudaCTC::Extent extent;
 	    CudaCTC::setup(nvertices, extent);

@@ -36,5 +36,5 @@ public:
     void bulk(std::vector<ParticlesWrap> wsolutes, cudaStream_t stream);
 
     /*override of SoluteExchange::Visitor::halo*/
-    void halo(ParticlesWrap solutes[26], cudaStream_t stream);
+    void halo(ParticlesWrap halowrap, cudaStream_t stream);
 };

@@ -31,6 +31,8 @@ class ComputeWall
 
     int solid_size;
     float4 * solid4;
+    float * sigma_xx, * sigma_xy, * sigma_xz, * sigma_yy,
+	* sigma_yz, * sigma_zz, xvelocity;
 
     cudaArray * arrSDF;
 
@@ -38,11 +40,32 @@ class ComputeWall
 
 public:
 
-    ComputeWall(MPI_Comm cartcomm, Particle* const p, const int n, int& nsurvived, ExpectedMessageSizes& new_sizes, const bool verbose);
+    ComputeWall(MPI_Comm cartcomm, Particle* const p, const int n, int& nsurvived, ExpectedMessageSizes& new_sizes, const float xvelocity);
 
     ~ComputeWall();
 
     void bounce(Particle * const p, const int n, cudaStream_t stream, const float deltat = dt);
+
+    void set_stress_buffers(float * const stress_xx, float * const stress_xy, float * const stress_xz, float * const stress_yy,
+			    float * const stress_yz, float * const stress_zz)
+    {
+	sigma_xx = stress_xx;
+	sigma_xy = stress_xy;
+	sigma_xz = stress_xz;
+	sigma_yy = stress_yy;
+	sigma_yz = stress_yz;
+	sigma_zz = stress_zz;
+    }
+
+    void clr_stress_buffers()
+    {
+	sigma_xx = NULL;
+	sigma_xy = NULL;
+	sigma_xz = NULL;
+	sigma_yy = NULL;
+	sigma_yz = NULL;
+	sigma_zz = NULL;
+    }
 
     void interactions(const Particle * const p, const int n, Acceleration * const acc,
 		      const int * const cellsstart, const int * const cellscount, cudaStream_t stream);

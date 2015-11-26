@@ -91,14 +91,9 @@ void xyz_dump(MPI_Comm comm, MPI_Comm cartcomm, const char * filename, const cha
     MPI_CHECK( MPI_File_close(&f));
 }
 
-void _write_bytes_mpi(const void * const ptr, const int nbytes32, MPI_File f, MPI_Offset base0, MPI_Offset offset0, MPI_Comm comm, int rank)
+void _write_bytes_mpi(const void * const ptr, const MPI_Offset nbytes, MPI_File f, const MPI_Offset base, MPI_Offset offset)
 {
-    MPI_Offset base = base0;
-    MPI_Offset offset = offset0;
-    MPI_Offset nbytes = nbytes32;
-
     MPI_Status status;
-
     MPI_CHECK( MPI_File_write_at_all(f, base + offset, ptr, nbytes, MPI_CHAR, &status));
 }
 
@@ -224,14 +219,14 @@ void ply_dump_mpi(MPI_Comm comm, MPI_Comm cartcomm, const char * filename,
     }
 #endif
 
-    _write_bytes_mpi(content.c_str(), content.size(), f, base0, poffset0, comm, rank);
+    _write_bytes_mpi(content.c_str(), content.size(), f, base0, poffset0);
     const int L[3] = { XSIZE_SUBDOMAIN, YSIZE_SUBDOMAIN, ZSIZE_SUBDOMAIN };
 
     for(int i = 0; i < n; ++i)
         for(int c = 0; c < 3; ++c)
             particles[i].x[c] += L[c] / 2 + coords[c] * L[c];
 
-    _write_bytes_mpi(&particles.front(), sizeof(Particle) * n, f, base1, poffset1, comm, rank);
+    _write_bytes_mpi(&particles.front(), sizeof(Particle) * n, f, base1, poffset1);
 
     int poffset = ioffset1;
     std::vector<int> buf;
@@ -247,7 +242,7 @@ void ply_dump_mpi(MPI_Comm comm, MPI_Comm cartcomm, const char * filename,
             buf.insert(buf.end(), primitive, primitive + 4);
         }
 
-    _write_bytes_mpi(&buf.front(), sizeof(int) * buf.size(), f, base2, poffset2, comm, rank);
+    _write_bytes_mpi(&buf.front(), sizeof(int) * buf.size(), f, base2, poffset2);
 
     MPI_Barrier(comm);
 
@@ -418,6 +413,57 @@ void ply_dump(MPI_Comm comm, MPI_Comm cartcomm, const char * filename,
 #endif
 
 }
+
+void stress_dump(MPI_Comm cartcomm, const char * filename, const int nparticles,
+		 const Particle * const particles,
+		 const float * const stress_xx, const float * const stress_xy, const float * const stress_xz,
+		 const float * const stress_yy, const float * const stress_yz, const float * const stress_zz)
+{
+    std::vector<float> buf(nparticles * 12);
+
+    int rank;
+    MPI_CHECK( MPI_Comm_rank(cartcomm, &rank) );
+
+    int dims[3], periods[3], coords[3];
+    MPI_CHECK( MPI_Cart_get(cartcomm, 3, dims, periods, coords) );
+
+    int NALL = 0;
+    const int n = nparticles;
+    MPI_CHECK( MPI_Allreduce(&n, &NALL, 1, MPI_INT, MPI_SUM, cartcomm) );
+
+    MPI_File f;
+    MPI_CHECK( MPI_File_open(cartcomm, filename , MPI_MODE_WRONLY | MPI_MODE_CREATE, MPI_INFO_NULL, &f) );
+
+    MPI_CHECK( MPI_File_set_size (f, sizeof(float) * 12 * NALL ));
+
+    const int L[3] = { XSIZE_SUBDOMAIN, YSIZE_SUBDOMAIN, ZSIZE_SUBDOMAIN };
+
+    for(int i = 0; i < n; ++i)
+    {
+	const int base = 12 * i;
+	
+	for(int c = 0; c < 3; ++c)
+	    buf[base + c] = particles[i].x[c] + L[c] / 2 + coords[c] * L[c];
+
+	for(int c = 0; c < 3; ++c)
+	    buf[base + 3 + c] = particles[i].u[c];
+	
+	buf[base + 6] = stress_xx[i] / 2;
+	buf[base + 7] = stress_xy[i] / 2;
+	buf[base + 8] = stress_xz[i] / 2;
+	buf[base + 9] = stress_yy[i] / 2;
+	buf[base + 10] = stress_yz[i] / 2;
+	buf[base + 11] = stress_zz[i] / 2;
+    }
+
+    MPI_Offset offset = 0, nbytes = (MPI_Offset)sizeof(float) * 12 * n;
+    MPI_CHECK( MPI_Exscan(&nbytes, &offset, 1, MPI_OFFSET, MPI_SUM, cartcomm));
+
+    _write_bytes_mpi(buf.data(), nbytes, f, 0, offset);
+
+    MPI_CHECK( MPI_File_close(&f));
+}
+
 
 H5PartDump::H5PartDump(const string fname, MPI_Comm comm, MPI_Comm cartcomm): tstamp(0), disposed(false)
 {

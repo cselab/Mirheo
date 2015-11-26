@@ -24,7 +24,11 @@ Dumper::Dumper(MPI_Comm iocomm, MPI_Comm iocartcomm, MPI_Comm intercomm) : iocom
     nrbcverts = rdummy->get_nvertices();
     nctcverts = cdummy->get_nvertices();
 
-    if (nrbcverts < 0 || nctcverts < 0) abort();
+    if (nrbcverts < 0 || nctcverts < 0)
+    {
+        printf("RBC vertices: %d, CTC vertices: %d\n", nrbcverts, nctcverts);
+        abort();
+    }
 
     MPI_CHECK(MPI_Comm_rank(iocomm, &rank));
 }

@@ -41,6 +41,7 @@ class Simulation
     ParticleArray * particles, * newparticles;
     SimpleDeviceBuffer<float4> xyzouvwo;
     SimpleDeviceBuffer<ushort4> xyzo_half;
+    SimpleDeviceBuffer<float> stresses[6];
     
     CellLists cells;
     CollectionRBC * rbcscoll;
@@ -93,6 +94,7 @@ class Simulation
 
     PinnedHostBuffer<Particle> particles_datadump;
     PinnedHostBuffer<Acceleration> accelerations_datadump;
+    PinnedHostBuffer<float> stresses_datadump[6];
 
     cudaEvent_t evdownloaded;
 

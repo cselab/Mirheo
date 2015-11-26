@@ -59,7 +59,8 @@ iterationcount(-1), packstotalstart(27), host_packstotalstart(27), host_packstot
     _adjust_packbuffers();
 
     CUDA_CHECK(cudaEventCreateWithFlags(&evPpacked, cudaEventDisableTiming | cudaEventBlockingSync));
-    CUDA_CHECK(cudaEventCreateWithFlags(&evAcomputed, cudaEventDisableTiming | cudaEventBlockingSync));
+    CUDA_CHECK(cudaEventCreateWithFlags(&evAcomputed, cudaEventDisableTiming));
+    CUDA_CHECK(cudaEventCreateWithFlags(&evAdownloaded, cudaEventDisableTiming | cudaEventBlockingSync));
 
     CUDA_CHECK(cudaPeekAtLastError());
 }
@@ -351,7 +352,7 @@ void SoluteExchange::pack_p(cudaStream_t stream)
     if (wsolutes.size() == 0)
 	return;
 
-    NVTX_RANGE("FSI/pack", NVTX_C4);
+    NVTX_RANGE("SOLUTEX/pack", NVTX_C4);
 
     ++iterationcount;
 
@@ -371,7 +372,7 @@ void SoluteExchange::post_p(cudaStream_t stream, cudaStream_t downloadstream)
 
     //consolidate the packing
     {
-	NVTX_RANGE("FSI/consolidate", NVTX_C5);
+	NVTX_RANGE("SOLUTEX/consolidate", NVTX_C5);
 
 	CUDA_CHECK(cudaEventSynchronize(evPpacked));
 
@@ -446,7 +447,7 @@ void SoluteExchange::post_p(cudaStream_t stream, cudaStream_t downloadstream)
 
     //post the sending of the packs
     {
-	NVTX_RANGE("FSI/send", NVTX_C6);
+	NVTX_RANGE("SOLUTEX/send", NVTX_C6);
 
 	reqsendC.resize(26);
 
@@ -485,13 +486,13 @@ void SoluteExchange::post_p(cudaStream_t stream, cudaStream_t downloadstream)
     }
 }
 
-void SoluteExchange::recv_p(cudaStream_t uploadstream)
+void SoluteExchange::recv_p(cudaStream_t uploadstream, cudaStream_t computestream)
 {
     if (wsolutes.size() == 0)
 	return;
 
-    NVTX_RANGE("FSI/recv-p", NVTX_C7);
-    
+    NVTX_RANGE("SOLUTEX/recv-p", NVTX_C7);
+
     _wait(reqrecvC);
     _wait(reqrecvP);
 
@@ -504,7 +505,6 @@ void SoluteExchange::recv_p(cudaStream_t uploadstream)
 	remote[i].preserve_resize(count);
 
 #ifndef NDEBUG
-	CUDA_CHECK(cudaMemsetAsync(remote[i].dstate.data, 0xff, sizeof(Particle) * remote[i].dstate.capacity, uploadstream));
 	CUDA_CHECK(cudaMemsetAsync(remote[i].result.data, 0xff, sizeof(Acceleration) * remote[i].result.capacity, uploadstream));
 #endif
 
@@ -524,39 +524,71 @@ void SoluteExchange::recv_p(cudaStream_t uploadstream)
     }
 
     _postrecvC();
-    
-    for(int i = 0; i < 26; ++i)
-	CUDA_CHECK(cudaMemcpyAsync(remote[i].dstate.data, remote[i].hstate.data, sizeof(Particle) * remote[i].hstate.size,
-				   cudaMemcpyHostToDevice, uploadstream));
+
+    //collate halos
+    {
+	int c = 0;
+	for(int i = 0; i < 26; ++i)
+	    c += remote[i].hstate.size;
+
+#ifndef NDEBUG
+	CUDA_CHECK(cudaMemsetAsync(allremotehalosacc.data, 0xff, sizeof(Acceleration) * allremotehalosacc.capacity, computestream));
+	CUDA_CHECK(cudaMemsetAsync(allremotehalos.data, 0xff, sizeof(Particle) * allremotehalos.capacity, uploadstream));
+#endif
+
+	allremotehalos.resize(c);
+	allremotehalosacc.resize(c);
+
+	CUDA_CHECK(cudaMemsetAsync(allremotehalosacc.data, 0, sizeof(Acceleration) * allremotehalosacc.size, computestream));
+
+	c = 0;
+	for(int i = 0; i < 26; ++i)
+	{
+	    CUDA_CHECK(cudaMemcpyAsync(allremotehalos.data + c, remote[i].hstate.data, sizeof(Particle) * remote[i].hstate.size, cudaMemcpyHostToDevice, uploadstream));
+
+	    c += remote[i].hstate.size;
+	}
+    }
 }
 
-void SoluteExchange::halo(cudaStream_t uploadstream, cudaStream_t stream)
+void SoluteExchange::halo(cudaStream_t uploadstream, cudaStream_t computestream, cudaStream_t downloadstream)
 {
-    NVTX_RANGE("FSI/halo", NVTX_C7);
+    NVTX_RANGE("SOLUTEX/halo", NVTX_C7);
 
     if (wsolutes.size() == 0)
 	return;
-        
+
     if (iterationcount)
 	_wait(reqsendA);
-    
-    ParticlesWrap halos[26];
-    
-    for(int i = 0; i < 26; ++i)
-	halos[i] = ParticlesWrap(remote[i].dstate.data, remote[i].dstate.size, remote[i].result.devptr);
-    
+
+    ParticlesWrap halowrap(allremotehalos.data, allremotehalos.size, allremotehalosacc.data);
+
     CUDA_CHECK(cudaStreamSynchronize(uploadstream));
-    
+
     for(int i = 0; i < visitors.size(); ++i)
-	visitors[i]->halo(halos, stream);
-    
+	visitors[i]->halo(halowrap, computestream);
+
     CUDA_CHECK(cudaPeekAtLastError());
-    
-    CUDA_CHECK(cudaEventRecord(evAcomputed, stream));
-    
+
+    CUDA_CHECK(cudaEventRecord(evAcomputed, computestream));
+
+    CUDA_CHECK(cudaStreamWaitEvent(downloadstream, evAcomputed, 0));
+
+    //split back halos
+    {
+    	int c = 0;
+	for(int i = 0; i < 26; ++i)
+	{
+	    CUDA_CHECK(cudaMemcpyAsync(remote[i].result.data, allremotehalosacc.data + c, sizeof(Acceleration) * remote[i].hstate.size, cudaMemcpyDeviceToHost, downloadstream));
+	    c += remote[i].hstate.size;
+	}
+    }
+
+    CUDA_CHECK(cudaEventRecord(evAdownloaded, downloadstream));
+
     for(int i = 0; i < 26; ++i)
 	local[i].update();
-    
+
 #ifndef _DUMBCRAY_
     _postrecvP();
 #endif
@@ -567,9 +599,9 @@ void SoluteExchange::post_a()
     if (wsolutes.size() == 0)
 	return;
 
-    NVTX_RANGE("FSI/send-a", NVTX_C1);
+    NVTX_RANGE("SOLUTEX/send-a", NVTX_C1);
 
-    CUDA_CHECK(cudaEventSynchronize(evAcomputed));
+    CUDA_CHECK(cudaEventSynchronize(evAdownloaded));
 
     reqsendA.resize(26);
     for(int i = 0; i < 26; ++i)
@@ -632,7 +664,7 @@ void SoluteExchange::recv_a(cudaStream_t stream)
     if (wsolutes.size() == 0)
 	return;
 
-    NVTX_RANGE("FSI/merge", NVTX_C2);
+    NVTX_RANGE("SOLUTEX/merge", NVTX_C2);
 
     {
 	float * recvbags[26];
@@ -667,4 +699,5 @@ SoluteExchange::~SoluteExchange()
 
     CUDA_CHECK(cudaEventDestroy(evPpacked));
     CUDA_CHECK(cudaEventDestroy(evAcomputed));
+    CUDA_CHECK(cudaEventDestroy(evAdownloaded));
 }
