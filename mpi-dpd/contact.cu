@@ -142,20 +142,23 @@ namespace KernelsContact
 
 	const int n = wsolutes.size();
 
-	int ns[n];
-	float2 * ps[n];
-	float * as[n];
-
-	for(int i = 0; i < n; ++i)
+	if (n)
 	{
-	    ns[i] = wsolutes[i].n;
-	    ps[i] = (float2 *)wsolutes[i].p;
-	    as[i] = (float * )wsolutes[i].a;
-	}
+	    int ns[n];
+	    float2 * ps[n];
+	    float * as[n];
 
-	CUDA_CHECK(cudaMemcpyToSymbolAsync(cnsolutes, ns, sizeof(int) * n, 0, cudaMemcpyHostToDevice, stream));
-	CUDA_CHECK(cudaMemcpyToSymbolAsync(csolutes, ps, sizeof(float2 *) * n, 0, cudaMemcpyHostToDevice, stream));
-	CUDA_CHECK(cudaMemcpyToSymbolAsync(csolutesacc, as, sizeof(float *) * n, 0, cudaMemcpyHostToDevice, stream));
+	    for(int i = 0; i < n; ++i)
+	    {
+		ns[i] = wsolutes[i].n;
+		ps[i] = (float2 *)wsolutes[i].p;
+		as[i] = (float * )wsolutes[i].a;
+	    }
+
+	    CUDA_CHECK(cudaMemcpyToSymbolAsync(cnsolutes, ns, sizeof(int) * n, 0, cudaMemcpyHostToDevice, stream));
+	    CUDA_CHECK(cudaMemcpyToSymbolAsync(csolutes, ps, sizeof(float2 *) * n, 0, cudaMemcpyHostToDevice, stream));
+	    CUDA_CHECK(cudaMemcpyToSymbolAsync(csolutesacc, as, sizeof(float *) * n, 0, cudaMemcpyHostToDevice, stream));
+	}
     }
 
     __global__  __launch_bounds__(128, 10) void bulk_3tpp(const int nsolutes, const float seed)
@@ -571,8 +574,9 @@ void ComputeContact::halo(ParticlesWrap halowrap, cudaStream_t stream)
 
     KernelsContact::bind(cellsstart.data, cellsentries.data, ntotal, wsolutes, stream, cellscount.data);
 
-    KernelsContact::bulk_3tpp<<< (3 * cellsentries.size + 127) / 128, 128, 0, stream >>>
-     	(wsolutes.size(), local_trunk.get_float());
+    if (cellsentries.size)
+	KernelsContact::bulk_3tpp<<< (3 * cellsentries.size + 127) / 128, 128, 0, stream >>>
+	    (wsolutes.size(), local_trunk.get_float());
 
     ctr = 0;
     for(int i = 0; i < wsolutes.size(); ++i)
