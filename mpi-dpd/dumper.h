@@ -21,6 +21,7 @@ class Dumper
     MPI_Comm iocomm, intercomm, iocartcomm;
     vector<Particle> particles;
     vector<Acceleration> accelerations;
+    vector<float3> avgVels;
 
     int nrbcverts, nctcverts, qoiid, rank;
 

@@ -273,12 +273,6 @@ namespace CudaRBC
             xyzuvw_host[6*i+5] = 0;
         }
 
-        int *dummy;
-        if ( cudaMalloc(&dummy, sizeof(int)) == cudaErrorDevicesUnavailable )
-            return;
-        else
-            CUDA_CHECK(cudaFree(dummy));
-
         CUDA_CHECK( cudaMalloc(&orig_xyzuvw, nvertices * 6 * sizeof(float)) );
         CUDA_CHECK( cudaMemcpy(orig_xyzuvw, xyzuvw_host, nvertices * 6 * sizeof(float), cudaMemcpyHostToDevice) );
         delete[] xyzuvw_host;
@@ -315,7 +309,7 @@ namespace CudaRBC
         maxCells = 0;
         CUDA_CHECK( cudaMalloc(&host_av, 1 * 2 * sizeof(float)) );
 
-        unitsSetup(1.194170681, 0.003092250212, 20.49568481, 39.2254922344138, 13223.5137655706, 7710.76185113627, 18.14524310, 135, 94, 1e-6, 2.4295e-6, 4, report);
+        unitsSetup(1.233, 0.00198, 30, 13*8.8, 5000, 10000, 30, 135, 95, 1.0e-6, 8.7e-3, 4, report);
 
         CUDA_CHECK( cudaFuncSetCacheConfig(fall_kernel<498>, cudaFuncCachePreferL1) );
     }
@@ -323,14 +317,15 @@ namespace CudaRBC
     void unitsSetup(float lmax, float p, float cq, float kb, float ka, float kv, float gammaC,
             float totArea0, float totVolume0, float lunit, float tunit, int ndens, bool prn)
     {
-        const float lrbc = 1.000000e-06;
-        const float trbc = 3.009441e-03;
+        const float lrbc = 1.0e-6;
+        const float trbc = 8.7e-3;//3.009441e-03;
         //const float mrbc = 3.811958e-13;
 
         float ll = lunit / lrbc;
         float tt = tunit / trbc;
+        float EE = pow(ll, -2.0) * pow(tt, 2.0);
 
-        params.kbT = 580 * 250 * pow(ll, -2.0) * pow(tt, 2.0);
+        params.kbT = 0.05 * EE;
         params.p = p / ll;
         params.lmax = lmax / ll;
         params.q = 1;
@@ -338,12 +333,12 @@ namespace CudaRBC
         params.totArea0 = totArea0 * pow(ll, -2.0);
         params.totVolume0 = totVolume0 * pow(ll, -3.0);
         params.l0 = sqrt(params.totArea0 / (2.0*params.nvertices - 4.) * 4.0/sqrt(3.0));
-        params.ka = ka * params.kbT / (params.totArea0 * params.l0 * params.l0);
-        params.kv = kv * params.kbT / (6 * params.totVolume0 * powf(params.l0, 3));
-        params.gammaC = gammaC * 580 * pow(tt, 1.0);
+        params.ka = ka * EE / (params.totArea0 * params.l0 * params.l0);
+        params.kv = kv * EE / (6 * params.totVolume0 * powf(params.l0, 3));
+        params.gammaC = gammaC * pow(tt, 1.0);
         params.gammaT = 3.0 * params.gammaC;
 
-        float phi = 6.97 / 180.0*M_PI;
+        float phi = 0*6.97 / 180.0*M_PI;
         params.sinTheta0 = sin(phi);
         params.cosTheta0 = cos(phi);
         params.kb = kb * params.kbT;

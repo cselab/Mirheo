@@ -34,6 +34,8 @@
 #include "redistribute-rbcs.h"
 #include "ctc.h"
 #include "io.h"
+#include "velcontroller.h"
+#include "velsampler.h"
 
 class Simulation
 {
@@ -99,6 +101,9 @@ class Simulation
     cudaEvent_t evdownloaded;
 
     void  _datadump_async();
+
+    VelController* velcontrol;
+    VelSampler*    velsampler;
 
 public:
 

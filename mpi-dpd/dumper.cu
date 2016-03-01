@@ -31,6 +31,8 @@ Dumper::Dumper(MPI_Comm iocomm, MPI_Comm iocartcomm, MPI_Comm intercomm) : iocom
     }
 
     MPI_CHECK(MPI_Comm_rank(iocomm, &rank));
+
+    avgVels.resize(XSIZE_SUBDOMAIN*YSIZE_SUBDOMAIN*ZSIZE_SUBDOMAIN);
 }
 
 void Dumper::qoi(Particle* rbcs, Particle * ctcs, int nrbcparts, int nctcparts, const float tm)
@@ -182,6 +184,7 @@ void Dumper::do_dump()
         Acceleration* a = &accelerations[0];
         MPI_CHECK( MPI_Recv(p, n, Particle::datatype(),     rank, 0, intercomm, &status) );
         MPI_CHECK( MPI_Recv(a, n, Acceleration::datatype(), rank, 0, intercomm, &status) );
+        MPI_CHECK( MPI_Recv(&avgVels[0], avgVels.size()*3, MPI_FLOAT, rank, 0, intercomm, &status) );
 
         double t0 = MPI_Wtime();
 
@@ -243,6 +246,23 @@ void Dumper::do_dump()
         if (hdf5field_dumps)
         {
             dump_field.dump(iocomm, p, nparticles, iddatadump * steps_per_dump);
+
+            // Dump avg vels as well
+            char filepath[512];
+            sprintf(filepath, "h5/avgvels-%04d.h5", iddatadump);
+
+            vector<float> vx(avgVels.size()), vy(avgVels.size()), vz(avgVels.size());
+            for (int i=0; i<avgVels.size(); i++)
+            {
+                vx[i] = avgVels[i].x;
+                vy[i] = avgVels[i].y;
+                vz[i] = avgVels[i].z;
+            }
+
+            float * data[] = {&vx[0], &vy[0], &vz[0]};
+            const char * names[] = { "avgU", "avgV", "avgW" };
+
+            dump_field._write_fields(filepath, data, names, 3, iocartcomm, iddatadump * steps_per_dump * dt);
         }
 
         {
@@ -253,12 +273,12 @@ void Dumper::do_dump()
                 CollectionCTC::dump(iocomm, iocartcomm, p + nparticles + nrbcparts, a + nparticles + nrbcparts, nctcparts, iddatadump);
         }
 
-        qoi(p + nparticles, p + nparticles + nrbcparts, nrbcparts, nctcparts, iddatadump * dt);
+        qoi(p + nparticles, p + nparticles + nrbcparts, nrbcparts, nctcparts, iddatadump * steps_per_dump * dt);
 
         double t1 = MPI_Wtime();
         double d0 = 1e3*(t1 - t0);
         MPI_Reduce(rank == 0 ? MPI_IN_PLACE : &d0, &d0, 1, MPI_DOUBLE, MPI_MAX, 0, iocomm);
-        if (!rank) printf(" \e[35mStep: %d, datadump time: %.2f ms\e[0m\n", iddatadump, d0);
+        if (!rank) printf(" \e[35mStep: %d, datadump time: %.2f ms\e[0m\n", iddatadump * steps_per_dump, d0);
 
         ++iddatadump;
     }
