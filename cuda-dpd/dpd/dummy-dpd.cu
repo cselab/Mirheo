@@ -78,96 +78,118 @@ __device__ __forceinline__ float3 _dpd_interaction(float2* xyzuvw, const int dst
 	return make_float3(strength * xr, strength * yr, strength * zr);
 }
 
+__device__ __forceinline__ int warpAggrFetchAdd(int* addr, bool pred)
+{
+	const int tid = threadIdx.x & 31;
+	int res;
+	const int mask = ballot(pred); // i-th bit is if lane i is interacting
+	const int leader = __ffs(mask) - 1;  // 0-th thread is not always active
+
+	if (tid == leader)
+	{
+		res = *addr;
+		*addr += __popc(mask); // n of non-zero bits
+	}
+
+	res = __shfl(res, leader);
+	return res + __popc( mask & ((1 << tid) - 1) );
+}
+
 __global__ void smth(const float * __restrict__ xyzuvw, const ushort4 * __restrict__ hxyzo, float* axayaz, const int * const cellsstart, const int * const cellscount,
 		int nCellsX, int nCellsY, int nCellsZ, int ndens, int np, int ncells)
 {
 	extern __shared__ int shmem[];
 
-	const int globId = blockIdx.x * blockDim.x + threadIdx.x;
-	const int cid = globId >> 5;
-	const int tid = globId & 31;
-	const int wid = threadIdx.x >> 5;
+	const int tid = threadIdx.x;
+	const int wid = threadIdx.z * blockDim.z + threadIdx.y;
 
-	int* table  = shmem + wid * 2*ndens * (2*ndens*4 + 1);
+	int*  myshmem  = shmem + wid * ndens * ndens*4 * 2*2*4 + 1;
+	int*  nentries = myshmem;
+	int2* inters   = (int2*)(myshmem+1);
 
-	if (cid >= ncells) return;
+	const int cellX0 = blockIdx.x;
+	const int cellY0 = blockIdx.y * blockDim.y + threadIdx.y;
+	const int cellZ0 = blockIdx.z * blockDim.z + threadIdx.z;
 
-	const int cellX0 = cid % nCellsX;
-	const int cellY0 = (cid / nCellsX) % nCellsY;
-	const int cellZ0 = (cid / (nCellsX*nCellsY)) % nCellsZ;
+	const int cid = (cellZ0*nCellsY + cellY0)*nCellsX + cellX0;
 
 	const int dstStart = cellsstart[cid];
 	const int dstEnd   = cellsstart[cid+1];
 
-	for (int dstShift = 0; dstShift < dstEnd - dstStart; dstShift += nDstPerIter)
+	*nentries = 0;
+
+	for (int curDst=dstStart; curDst < dstEnd; curDst+=nDstPerIter)
 	{
 		float3 dstCoos[nDstPerIter];
 
 #pragma unroll
 		for (int i=0; i<nDstPerIter; i++)
 		{
-			dstCoos[i] = readCoos(xyzuvw, dstStart + dstShift + i);
-			table[(dstShift + i)*(2*ndens*4 + 1)] = 0;
+			dstCoos[i] = readCoos(xyzuvw, curDst+i);
 		}
 
-		const int deltaCell = tid / 6;
-		const int cellY = cellY0 + deltaCell % 3 - 1;
-		const int cellZ = cellZ0 + deltaCell / 3 - 1;
-		if (cellY < 0 || cellY == nCellsY || cellZ < 0 || cellZ == nCellsZ) continue;
+		// 5 groups 6 threads each
+		// each group takes one row
+		const int groupSize = 6;
+		const int groupId = tid / groupSize;
+		const int idInGroup = tid % groupSize;
+		const int cellY = cellY0 + groupId % 3 - 1;
+		const int cellZ = cellZ0 + groupId / 3 - 1;
 
-		int rowStartCell = (cellZ*nCellsY + cellY)*nCellsX + cellX0 - 1;
-		const int pstart = cellsstart[max(rowStartCell, 0)];
-		const int pend   = cellsstart[min(rowStartCell+3, ncells)];
+		if (cellY < 0 || cellY >= nCellsY || cellZ < 0 || cellZ >= nCellsZ) continue;
+
+		const int midCellId = (cellZ*nCellsY + cellY)*nCellsX + cellX0;
+		int rowStart  = (cellX0 == 0)         ? midCellId     : midCellId - 1;
+		int rowEnd    = (cellX0 == nCellsX-1) ? midCellId + 1 : midCellId + 2;
+		if (midCellId == cid) rowEnd = midCellId + 1; // this row is already partly covered
+
+		const int pstart = cellsstart[rowStart];
+		const int pend   = cellsstart[rowEnd];
 
 #pragma unroll 2
-		for (int srcId = tid % 6; srcId < pend - pstart; srcId += 6)
+		for (int srcId = pstart + idInGroup; srcId < pend; srcId += groupSize)
 		{
-			const float3 srcCoos = readCoos(xyzuvw, srcId + pstart);
+			const float3 srcCoos = readCoos(xyzuvw, srcId);
 
 #pragma unroll
 			for (int i=0; i<nDstPerIter; i++)
-				if (distance2(srcCoos, dstCoos[i]) < 1.0f)
-				{
-					int* intList = table + (dstShift + i)*(2*ndens*4 + 1);
-					const int myentry = atomicAdd(intList, 1) + 1; // +1 cause first element is size
-//					if (cid == 48*48*2 + 48*2 + 10)
-//						printf("dst: %d, entry: %d\n", dstShift + i, myentry);
+			{
+				const bool interacting = distance2(srcCoos, dstCoos[i]) < 1.0f;
+				const int myentry = warpAggrFetchAdd(nentries, interacting);
 
-					intList[myentry] = srcId + pstart;
+				if (interacting)
+				{
+					inters[myentry] = make_int2(curDst+i, srcId);
+					//if (cid == 60) printf("lane %d, nentry: %d\n", tid, myentry);
 				}
+			}
 		}
 	}
 
-
-	return;
-	const int groupSize = 8;
-	const int groupId = tid / groupSize;
-	const int idInGroup = tid % groupId;
-
-	// Each group works on one dst
-	for (int dst = groupId; dst < dstEnd - dstStart; dst += groupSize)
-	{
-		// Interaction list for this dst
-		const int* intList = table + dst*(2*ndens*4 + 1);
-		const int nentires = intList[0];
-		float3 acc = make_float3(0, 0, 0);
+	const int totEntries = *nentries;
+//	if (tid == 0)
+//		printf("cid %02d (%d %d %d):   %d\n", cid, cellX0, cellY0, cellZ0, totEntries/4);
 
 #pragma unroll 2
-		for (int i=idInGroup; i<nentires; i+=groupSize)
+	for (int i=tid; i<totEntries; i+=warpSize)
+	{
+		const int2 pids = inters[i];
+		if (pids.x == pids.y) continue;
+		float3 frc = _dpd_interaction((float2*)xyzuvw, pids.x, pids.y);
+
+		atomicAdd(axayaz + pids.x*3 + 0, frc.x);
+		atomicAdd(axayaz + pids.x*3 + 1, frc.y);
+		atomicAdd(axayaz + pids.x*3 + 2, frc.z);
+
+		// If src is in the same cell as dst,
+		// interaction will be computed twice
+		// no need for atomics in this case
+		if (pids.y < dstStart || pids.y >= dstEnd)
 		{
-			const int srcId = intList[i + 1]; // NOTE +1 !!
-			float3 frc = _dpd_interaction((float2*)xyzuvw, dst + dstStart, srcId);
-
-			acc += frc;
-
-			atomicAdd(axayaz + srcId*3 + 0, -frc.x);
-			atomicAdd(axayaz + srcId*3 + 1, -frc.y);
-			atomicAdd(axayaz + srcId*3 + 2, -frc.z);
+			atomicAdd(axayaz + pids.y*3 + 0, -frc.x);
+			atomicAdd(axayaz + pids.y*3 + 1, -frc.y);
+			atomicAdd(axayaz + pids.y*3 + 2, -frc.z);
 		}
-
-		axayaz[(dst + dstStart)*3 + 0] = acc.x;
-		axayaz[(dst + dstStart)*3 + 1] = acc.y;
-		axayaz[(dst + dstStart)*3 + 2] = acc.z;
 	}
 }
 
@@ -185,16 +207,19 @@ void forces_dpd_cuda_nohost( const float * const xyzuvw, const float4 * const xy
 {
 
 	const int ndens = 4;
-	const int nthreads = 128;
+	const int nx = round(XL / rc);
+	const int ny = round(YL / rc);
+	const int nz = round(ZL / rc);
 
-	// 2*ndens rows of one count + 2*ndens*4 entries
-	const int shmemSize = (nthreads / 32) * 2*ndens * (2*ndens*4 + 1) * sizeof(int);
+	dim3 nblocks(nx, ny/2, nz/2);
+	dim3 nthreads(32, 2, 2);
+	const int shmemSize = (nthreads.x * nthreads.y * nthreads.z / 32) * ndens * ndens*4 * 2*2 * sizeof(int)*4 + 4*sizeof(int);
 
-	printf("SHMEM: %d\n", shmemSize);
+	cudaFuncSetCacheConfig( smth, cudaFuncCachePreferNone );
 
-	smth<<< round(32 * XL*YL*ZL + nthreads-1) / nthreads, nthreads, shmemSize >>>(xyzuvw, xyzo_half, axayaz, cellsstart, cellscount, XL, YL, ZL, ndens, np, XL*YL*ZL);
+	cudaMemsetAsync( axayaz, 0, sizeof( float )* np * 3, stream );
+	smth<<< nblocks, nthreads, shmemSize >>>(xyzuvw, xyzo_half, axayaz, cellsstart, cellscount, nx, ny, nz, ndens, np, nx*ny*nz);
 	cudaPeekAtLastError();
-	cudaMemsetAsync( axayaz, 0, sizeof( float )* np * 3, stream ) ;
 }
 
 
