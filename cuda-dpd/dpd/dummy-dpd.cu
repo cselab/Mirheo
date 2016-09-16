@@ -1,17 +1,58 @@
 #include <cstdio>
 #include <helper_math.h>
 #include <cuda_fp16.h>
+#include <cassert>
+#include "../tiny-float.h"
 
 #include "cuda-dpd.h"
 #include "../dpd-rng.h"
 
-const int nDstPerIter = 4;
-
-__device__ __forceinline__ float3 readCoos(const ushort4* half_xyzo, int pid)
+__device__ __forceinline__ float3 readCoosHalf(const ushort4* half_xyzo, int pid)
 {
 	const ushort4 tmp = half_xyzo[pid];
 
 	return make_float3(__half2float(tmp.x), __half2float(tmp.y), __half2float(tmp.z));
+}
+
+__device__ __forceinline__ float3 readCoos4_coos(const float4* xyzo, int pid)
+{
+	const float4 tmp = xyzo[pid];
+
+	return make_float3(tmp.x, (tmp.y), (tmp.z));
+}
+
+__device__ __forceinline__ float3 readCoos4(const float4* xyzouvwo, int pid)
+{
+	const float4 tmp = xyzouvwo[pid*2];
+
+	return make_float3(tmp.x, tmp.y, tmp.z);
+}
+
+__device__ __forceinline__ float3 readCoos2(const float2* xyzuvw, int pid)
+{
+	const float2 tmp1 = xyzuvw[pid*3];
+	const float2 tmp2 = xyzuvw[pid*3+1];
+
+	return make_float3(tmp1.x, tmp1.y, tmp2.x);
+}
+
+__device__ __forceinline__ void readAll4(const float4* xyzouvwo, int pid, float3& coo, float3& vel)
+{
+	const float4 tmp1 = xyzouvwo[pid*2];
+	const float4 tmp2 = xyzouvwo[pid*2+1];
+
+	coo = make_float3(tmp1.x, tmp1.y, tmp1.z);
+	vel = make_float3(tmp2.x, tmp2.y, tmp2.z);
+}
+
+__device__ __forceinline__ void readAll2(const float2* xyzuvw, int pid, float3& coo, float3& vel)
+{
+	const float2 tmp1 = xyzuvw[pid*3];
+	const float2 tmp2 = xyzuvw[pid*3+1];
+	const float2 tmp3 = xyzuvw[pid*3+2];
+
+	coo = make_float3(tmp1.x, tmp1.y, tmp2.x);
+	vel = make_float3(tmp2.y, tmp3.x, tmp3.y);
 }
 
 __device__ __forceinline__ float sqr(float x)
@@ -37,26 +78,26 @@ __device__ __forceinline__ float3 warpReduceSum(float3 val)
 }
 
 
-const float dt = 0.0025;
+//const float dt = 0.0025;
 const float kBT = 1.0;
 const float gammadpd = 20;
 const float sigma = sqrt(2 * gammadpd * kBT);
 const float sigmaf = 126.4911064;//sigma / sqrt(dt);
 const float aij = 50;
 
-__device__ __forceinline__ float3 _dpd_interaction(const float4* __restrict__ xyzouvwo, const int dstId, const int srcId)
+__device__ __forceinline__ float3 _dpd_interaction(const float4* xyzo, const float4* uvwo, const int dstId, const int srcId)
 {
-	const float4 dstCoo = xyzouvwo[dstId*2 + 0];
-	const float4 dstVel = xyzouvwo[dstId*2 + 1];
+	const float3 dstCoo = readCoos4_coos(xyzo, dstId);
+	const float3 dstVel = readCoos4_coos(uvwo, dstId);
 
-	const float4 srcCoo = xyzouvwo[srcId*2 + 0];
-	const float4 srcVel = xyzouvwo[srcId*2 + 1];
+	const float3 srcCoo = readCoos4_coos(xyzo, srcId);
+	const float3 srcVel = readCoos4_coos(uvwo, srcId);
 
 	const float _xr = dstCoo.x - srcCoo.x;
 	const float _yr = dstCoo.y - srcCoo.y;
 	const float _zr = dstCoo.z - srcCoo.z;
 	const float rij2 = _xr * _xr + _yr * _yr + _zr * _zr;
-	//assert(rij2 < 1);
+	if (rij2 > 1.0f) return make_float3(0.0f);
 
 	const float invrij = rsqrtf(rij2);
 	const float rij = rij2 * invrij;
@@ -72,36 +113,40 @@ __device__ __forceinline__ float3 _dpd_interaction(const float4* __restrict__ xy
 			yr * (dstVel.y - srcVel.y) +
 			zr * (dstVel.z - srcVel.z);
 
-	const float myrandnr = Logistic::mean0var1(1, min(srcId, dstId), max(srcId, dstId));
+	const float myrandnr = 0;//Logistic::mean0var1(1, min(srcId, dstId), max(srcId, dstId));
 
 	const float strength = aij * argwr - (gammadpd * wr * rdotv + sigmaf * myrandnr) * wr;
 
 	return make_float3(strength * xr, strength * yr, strength * zr);
 }
 
-__device__ __forceinline__ int warpAggrFetchAdd(int val, bool pred, int tid)
+__device__ __forceinline__ int warpAggrFetchAdd(int& val, bool pred, int tid)
 {
-	int res;
 	const int mask = ballot(pred); // i-th bit is if lane i is interacting
-	const int leader = __ffs(mask) - 1;  // 0-th thread is not always active
-
-	if (tid == leader)
-	{
-		res = val;
-		val += __popc(mask); // n of non-zero bits
-	}
-
-	res = __shfl(res, leader);
-	return res + __popc( mask & ((1 << tid) - 1) );
+	int res = val + __popc( mask & ((1 << tid) - 1) );
+	val = val + __popc(mask);
+	return res;
 }
 
-__device__ __forceinline__ void execInteractions(const int nentries, const int2* inters, const float4* xyzouvwo, float* axayaz, int tid, int dstStart, int dstEnd)
-{
-	const int2 pids = inters[tid];
-	if (pids.x == pids.y || tid >= nentries) return;
-	float3 frc = _dpd_interaction(xyzouvwo, pids.x, pids.y);
 
-	float* dest = axayaz + pids.x*3;
+__device__ __forceinline__ int pack2int(int small, int big)
+{
+	return (small << 26) | big;
+}
+
+__device__ __forceinline__ int2 upackFromint(int packed, int shift)
+{
+	return make_int2( (packed >> 26) + shift,  packed & 0x3FFFFFF );
+}
+
+__device__ __forceinline__ void execInteractions(const int nentries, const int2 pids, const float4* xyzo, const float4* uvwo, float* axayaz, int dstStart, int dstEnd)
+{
+	//assert(nentries <= 32);
+
+	if (pids.x == pids.y) return;
+	float3 frc = _dpd_interaction(xyzo, uvwo, pids.x, pids.y);
+	//
+	float* dest = axayaz + xscale(pids.x, 3.0f);
 	atomicAdd(dest,     frc.x);
 	atomicAdd(dest + 1, frc.y);
 	atomicAdd(dest + 2, frc.z);
@@ -109,145 +154,137 @@ __device__ __forceinline__ void execInteractions(const int nentries, const int2*
 	// If src is in the same cell as dst,
 	// interaction will be computed twice
 	// no need for atomics in this case
-	if (pids.y < dstStart || pids.y >= dstEnd)
-	{
-		dest = axayaz + pids.y*3;
-		atomicAdd(dest,     -frc.x);
-		atomicAdd(dest + 1, -frc.y);
-		atomicAdd(dest + 2, -frc.z);
-	}
+	dest = axayaz + xscale(pids.y, 3.0f);
+	atomicAdd(dest,     -frc.x);
+	atomicAdd(dest + 1, -frc.y);
+	atomicAdd(dest + 2, -frc.z);
 }
 
-//__launch_bounds__(128, 14)
-__global__ void smth(const float4 * __restrict__ xyzouvwo, const ushort4 *  half_xyzo, float* axayaz, const int * __restrict__ cellsstart, const int * __restrict__ cellscount,
-		int nCellsX, int nCellsY, int nCellsZ, int ndens, int np, int ncells)
+const int bDimY = 2;
+const int bDimZ = 2;
+const int nDstPerIter = 4;
+
+__launch_bounds__(32*bDimY*bDimZ, 64 / (bDimY*bDimZ))
+__global__ void smth(const float4 * __restrict__ xyzo, const float4 * __restrict__ uvwo, float* axayaz, const int * __restrict__ cellsstart, int nCellsX, int nCellsY, int nCellsZ, int ncells)
 {
-	__shared__ int  nentries[4];
-	__shared__ int2 inters[4][32];
-
 	const int tid = threadIdx.x;
-	const int wid = threadIdx.z * blockDim.z + threadIdx.y;
+	const int wid = (threadIdx.z * bDimZ + threadIdx.y);
 
-	const int cellX0 = blockIdx.x;
-	const int cellY0 = blockIdx.y * blockDim.y + threadIdx.y;
-	const int cellZ0 = blockIdx.z * blockDim.z + threadIdx.z;
+	volatile __shared__ int pool[ bDimY*bDimZ ][128];
+	volatile int* inters = pool[wid];
+	int nentries = 0;
+
+	const int cellX0 = (blockIdx.x) ;
+	const int cellY0 = xmad(blockIdx.y, (float)bDimY, threadIdx.y);//(blockIdx.y * bDimY) + threadIdx.y;
+	const int cellZ0 = xmad(blockIdx.z, (float)bDimZ, threadIdx.z);//(blockIdx.z * bDimZ) + threadIdx.z;
 
 	const int cid = (cellZ0*nCellsY + cellY0)*nCellsX + cellX0;
 
 	const int dstStart = cellsstart[cid];
 	const int dstEnd   = cellsstart[cid+1];
 
-	nentries[wid] = 0;
+	const int groupSize = 6;
+	const int groupId = xdiv((uint)tid, 0.16666666667f);//tid / groupSize;
+	const int idInGroup = xsub(tid, xscale(groupId, 6.0f));//groupSize * groupId;
 
-	for (int curDst=dstStart; curDst < dstEnd; curDst+=nDstPerIter)
+	int cellY = cellY0 + (uint)groupId % 3 - 1;
+	int cellZ = cellZ0 + (uint)groupId / 3 - 1;
+
+	bool valid = (cellY >= 0 && cellY < nCellsY && cellZ >= 0 && cellZ < nCellsZ && groupId < 5);
+
+	const int midCellId = (cellZ*nCellsY + cellY)*nCellsX + cellX0;
+	int rowStart  = max(midCellId-1, 0);//(cellX0 == 0)         ? midCellId     : midCellId - 1;
+	int rowEnd    = min(midCellId+2, ncells);
+	if ( midCellId == cid ) rowEnd = midCellId + 1; // this row is already partly covered
+
+	const int pstart = cellsstart[rowStart];
+	const int pend   = valid ? cellsstart[rowEnd] : -1;
+
+	for (int srcId = pstart + idInGroup; __any(srcId < pend); srcId += groupSize)
 	{
-		float3 dstCoos[nDstPerIter];
+		const float3 srcCoos = (srcId < pend) ? readCoos4_coos(xyzo, srcId) : make_float3(-10000.0f);
 
-#pragma unroll
-		for (int i=0; i<nDstPerIter; i++)
-			dstCoos[i] = readCoos(half_xyzo, curDst+i);
-
-		// 5 groups 6 threads each
-		// each group takes one row
-		const int groupSize = 6;
-		const int groupId = tid / groupSize;
-		const int idInGroup = tid - groupSize*groupId;
-		const int cellY = cellY0 + ((groupId > 2) ? groupId - 4 : groupId - 1);
-		const int cellZ = cellZ0 + ((groupId > 2) ? 0 : 1);
-
-		bool valid = (cellY >= 0 && cellY < nCellsY && cellZ >= 0 && cellZ < nCellsZ && groupId < 5);
-
-		const int midCellId = (cellZ*nCellsY + cellY)*nCellsX + cellX0;
-		int rowStart  = max(midCellId-1, 0);//(cellX0 == 0)         ? midCellId     : midCellId - 1;
-		int rowEnd    = min(midCellId+2, ncells+1);
-		if (midCellId == cid) rowEnd = midCellId + 1; // this row is already partly covered
-
-		const int pstart = valid ? cellsstart[rowStart] : 0;
-		const int pend   = valid ? cellsstart[rowEnd] : -1;
-
-		//#pragma unroll 3
-		for (int srcId = pstart + idInGroup; __any(srcId < pend); srcId += groupSize)
+		for (int dstBase=dstStart; dstBase<dstEnd; dstBase+=nDstPerIter)
 		{
-			if (srcId < pend)
+#pragma unroll nDstPerIter
+			for (int dstId=dstBase; dstId<dstBase+nDstPerIter; dstId++)
 			{
-				const float3 srcCoos = readCoos(half_xyzo, srcId);
+				bool interacting = distance2(srcCoos, readCoos4_coos(xyzo, dstId)) < 1.00f && dstId < dstEnd;
+				if (dstStart <= srcId && srcId < dstEnd && dstId <= srcId) interacting = false;
 
-#pragma unroll
-				for (int i=0; i<nDstPerIter; i++)
-				{
-					bool interacting = distance2(srcCoos, dstCoos[i]) < 1.02f && curDst+i < dstEnd;
-					const int myentry = warpAggrFetchAdd(nentries[wid], interacting, tid);
-
-					if (interacting)
-					{
-						inters[wid][myentry] = make_int2(curDst+i, srcId);
-						//if (myentry > 80) printf("lane %d, nentry: %d\n", tid, myentry);
-					}
-				}
+				const int myentry = warpAggrFetchAdd(nentries, interacting, tid);
+				if (interacting) inters[myentry] = pack2int(dstId-dstStart, srcId);
 			}
 
-			if (nentries[wid] >= warpSize)
+			while (nentries >= warpSize)
 			{
-				execInteractions(nentries[wid], inters[wid] + nentries[wid] - warpSize, xyzouvwo, axayaz, tid, dstStart, dstEnd);
-				nentries[wid] -= warpSize;
+				const int2 pids = upackFromint( inters[nentries - warpSize + tid], dstStart );
+				execInteractions(warpSize, pids, xyzo, uvwo, axayaz, dstStart, dstEnd);
+				nentries -= warpSize;
 			}
 		}
 	}
 
-	if (nentries[wid])
-		execInteractions(nentries[wid], inters[wid], xyzouvwo, axayaz, tid, dstStart, dstEnd);
+	if (tid < nentries)
+		execInteractions(nentries, upackFromint(inters[tid], dstStart), xyzo, uvwo, axayaz, dstStart, dstEnd);
 }
 
-__device__ __forceinline__ void loadRow(const ushort4 * __restrict__ half_xyzo, int n, float3* shmem, int tid)
+__global__ void make_texture_dummy( const float4 * xyzouvwo, float4 * xyzo, float4 * uvwo, const uint n )
 {
-	for (int i=tid; i<n; i+=warpSize)
-	{
-		ushort4 tmp = half_xyzo[i];
-		shmem[i] = make_float3(__half2float(tmp.x), __half2float(tmp.y), __half2float(tmp.z));
-	}
+	const uint pid =  (blockIdx.x * blockDim.x + threadIdx.x);
+	if (pid >= n) return;
+
+	xyzo[pid] = xyzouvwo[2*pid+0];
+	uvwo[pid] = xyzouvwo[2*pid+1];
 }
 
-const static __device__ float2 id2cooYZ[] = { {0,0}, {1,0}, {0,1}, {1,1}, {2,1}, {0,2}, {1,2}, {2,2}, {0,3}, {1,3}, {2,3} };
-
-__global__ void smth2(const float4 * __restrict__ xyzouvwo, const ushort4 * __restrict__ half_xyzo, float* axayaz, const int * __restrict__ cellsstart, const int * __restrict__ cellscount,
-		float nCellsX, float nCellsY, float nCellsZ, int ndens, int np, int ncells)
+template<typename T>
+struct SimpleDeviceBuffer
 {
-	__shared__ float3 cache[11][16];
+	int capacity, size;
 
-	const int tid = threadIdx.x;
-	const int wid = threadIdx.y;
+	T * data;
 
-	const float cellX0 = blockIdx.x;
-	const float cellY0 = blockIdx.y*2.0f;
-	const float cellZ0 = blockIdx.z*2.0f;
+	SimpleDeviceBuffer(int n = 0): capacity(0), size(0), data(NULL) { resize(n);}
 
-	//const int cid = (cellZ0*nCellsY + cellY0)*nCellsX + cellX0;
-	//const int blockBaseCellid = (cellZ0*nCellsY + cellY0)*nCellsX + cellX0;
-
-//	const int dstStart = cellsstart[cid];
-//	const int dstEnd   = cellsstart[cid+1];
-
-#pragma unroll 3
-	for (int row = wid; row < 11; row+=4)
+	~SimpleDeviceBuffer()
 	{
-		float cellY = id2cooYZ[row].x + cellY0;
-		float cellZ = id2cooYZ[row].y + cellZ0;
+		if (data != NULL)
+			cudaFree(data);
 
-		if (cellY >= 0.0f && cellY < nCellsY && cellZ >= 0.0f && cellZ < nCellsZ)
-		{
-			float midCellId = (cellZ*nCellsY + cellY)*nCellsX + cellX0;
-
-			int rowStart  = max((int)round(midCellId-1.0f), 0);
-			int rowEnd    = min((int)round(midCellId+2.0f), ncells+1);
-
-			const int pstart = cellsstart[rowStart];
-			const int pend   = cellsstart[rowEnd];
-
-			//printf("start %d end %d,  id %d\n", pstart, pend, (wid << 2) + cellY);
-			loadRow(half_xyzo + pstart, (pend - pstart), cache[row], tid);
-		}
+		data = NULL;
 	}
-}
+
+	void dispose()
+	{
+		if (data != NULL)
+			cudaFree(data);
+
+		data = NULL;
+	}
+
+	void resize(const int n)
+	{
+		assert(n >= 0);
+
+		size = n;
+
+		if (capacity >= n)
+			return;
+
+		if (data != NULL)
+			cudaFree(data);
+
+		const int conservative_estimate = (int)ceil(1.1 * n);
+		capacity = 128 * ((conservative_estimate + 129) / 128);
+
+		cudaMalloc(&data, sizeof(T) * capacity);
+
+#ifndef NDEBUG
+		cudaMemset(data, 0, sizeof(T) * capacity);
+#endif
+	}
+};
 
 
 
@@ -262,20 +299,24 @@ void forces_dpd_cuda_nohost( const float * const xyzuvw, const float4 * const xy
 		const float seed, cudaStream_t stream )
 {
 
+	static SimpleDeviceBuffer<float4> xyzo, uvwo;
+
+	xyzo.resize(np);
+	uvwo.resize(np);
+
 	const int ndens = 4;
 	const int nx = round(XL / rc);
 	const int ny = round(YL / rc);
 	const int nz = round(ZL / rc);
 
-	dim3 nblocks(nx, ny/2, nz/2);
-	dim3 nthreads(32, 4, 1);
-	const int shmemSize = (nthreads.x * nthreads.y * nthreads.z / 32) * ndens * ndens*3 * 2*2 * sizeof(int) + 4*sizeof(int);
+	dim3 nblocks(nx, ny/bDimY, nz/bDimZ);
+	dim3 nthreads(32, bDimY, bDimZ);
 
-	cudaFuncSetCacheConfig( smth, cudaFuncCachePreferNone );
+	cudaFuncSetCacheConfig( smth, cudaFuncCachePreferEqual );
 
 	cudaMemsetAsync( axayaz, 0, sizeof( float )* np * 3, stream );
-	smth2<<< nblocks, nthreads >>>(xyzouvwo, xyzo_half, axayaz, cellsstart, cellscount, nx, ny, nz, ndens, np, nx*ny*nz);
-	cudaPeekAtLastError();
+	make_texture_dummy<<< (np + 1023) / 1024, 1024 >>>(xyzouvwo, xyzo.data, uvwo.data, np);
+	smth<<< nblocks, nthreads >>>(xyzo.data, uvwo.data, axayaz, cellsstart, nx, ny, nz, nx*ny*nz);
 }
 
 
