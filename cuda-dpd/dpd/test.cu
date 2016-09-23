@@ -117,9 +117,9 @@ struct PinnedHostBuffer
 {
 	int capacity, size;
 
-	T * data, * devptr;
+	T * data, * devdata;
 
-	PinnedHostBuffer(int n = 0): capacity(0), size(0), data(NULL), devptr(NULL) { resize(n);}
+	PinnedHostBuffer(int n = 0): capacity(0), size(0), data(NULL), devdata(NULL) { resize(n);}
 
 	~PinnedHostBuffer()
 	{
@@ -146,7 +146,7 @@ struct PinnedHostBuffer
 
 		CUDA_CHECK(cudaHostAlloc(&data, sizeof(T) * capacity, cudaHostAllocMapped));
 
-		CUDA_CHECK(cudaHostGetDevicePointer(&devptr, data, 0));
+		CUDA_CHECK(cudaHostGetDevicePointer(&devdata, data, 0));
 	}
 
 	void preserve_resize(const int n)
@@ -174,7 +174,7 @@ struct PinnedHostBuffer
 			CUDA_CHECK(cudaFreeHost(old));
 		}
 
-		CUDA_CHECK(cudaHostGetDevicePointer(&devptr, data, 0));
+		CUDA_CHECK(cudaHostGetDevicePointer(&devdata, data, 0));
 	}
 };
 
@@ -229,7 +229,7 @@ __global__ void make_texture1( float4 * xyzouvwo, ushort4 * xyzo_half, const flo
 int main(int argc, char **argv)
 {
 	const int L = 48;
-	const int ndens = 4;
+	const int ndens = 10;
 	const int np = L*L*L*ndens;
 	PinnedHostBuffer<Particle>   particles(np);
 	SimpleDeviceBuffer<Particle> devp(np);

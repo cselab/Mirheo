@@ -235,6 +235,17 @@ __global__ void nullk() {
 	return;
 }
 
+#define MY_CUDA_CHECK(ans) do { cudaAssert((ans), __FILE__, __LINE__); } while(0)
+inline void cudaAssert(cudaError_t code, const char *file, int line)
+{
+    if (code != cudaSuccess)
+    {
+	fprintf(stderr,"GPUassert: %s %s %d\n", cudaGetErrorString(code), file, line);
+
+	abort();
+    }
+}
+
 
 void *Malloc(size_t sz) {
 
@@ -308,7 +319,7 @@ int main(int argc, char **argv) {
 	bexscan<THREADS><<<1, THREADS, nblocks*sizeof(*d_buf)>>>(d_buf, nblocks);
 	gexscan<THREADS/32><<<nblocks, THREADS>>>((uint4 *)d_vin, d_buf, (uint4 *)d_vout, SIZE/16);
 	MY_CUDA_CHECK( cudaEventRecord(stop, 0) );
-	MY_CHECK_ERROR("KERNEL ERROR");
+	//MY_CHECK_ERROR("KERNEL ERROR");
 
 	MY_CUDA_CHECK( cudaEventSynchronize(stop) );
 	MY_CUDA_CHECK( cudaEventElapsedTime(&et, start, stop) );

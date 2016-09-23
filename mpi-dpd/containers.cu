@@ -70,14 +70,14 @@ namespace ParticleKernels
 					const bool doublePoiseuille)
     {
 
-#if !defined(__CUDA_ARCH__)
-#warning __CUDA_ARCH__ not defined! assuming 350
-#define _ACCESS(x) __ldg(x)
-#elif __CUDA_ARCH__ >= 350
-#define _ACCESS(x) __ldg(x)
-#else
+//#if !defined(__CUDA_ARCH__)
+//#warning __CUDA_ARCH__ not defined! assuming 350
+//#define _ACCESS(x) __ldg(x)
+//#elif __CUDA_ARCH__ >= 350
+//#define _ACCESS(x) __ldg(x)
+//#else
 #define _ACCESS(x) (*(x))
-#endif
+//#endif
 
 	assert(blockDim.x == 128 && blockDim.x * gridDim.x >= nparticles);
 

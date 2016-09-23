@@ -7,25 +7,11 @@
 #include "cuda-dpd.h"
 #include "../dpd-rng.h"
 
-__device__ __forceinline__ float3 readCoosHalf(const ushort4* half_xyzo, int pid)
-{
-	const ushort4 tmp = half_xyzo[pid];
-
-	return make_float3(__half2float(tmp.x), __half2float(tmp.y), __half2float(tmp.z));
-}
-
-__device__ __forceinline__ float3 readCoos4_coos(const float4* xyzo, int pid)
+__device__ __forceinline__ float3 readCoos4(const float4* xyzo, int pid)
 {
 	const float4 tmp = xyzo[pid];
 
 	return make_float3(tmp.x, (tmp.y), (tmp.z));
-}
-
-__device__ __forceinline__ float3 readCoos4(const float4* xyzouvwo, int pid)
-{
-	const float4 tmp = xyzouvwo[pid*2];
-
-	return make_float3(tmp.x, tmp.y, tmp.z);
 }
 
 __device__ __forceinline__ float3 readCoos2(const float2* xyzuvw, int pid)
@@ -66,32 +52,13 @@ __device__ __forceinline__ float distance2(const Ta a, const Tb b)
 	return sqr(a.x - b.x) + sqr(a.y - b.y) + sqr(a.z - b.z);
 }
 
-__device__ __forceinline__ float3 warpReduceSum(float3 val)
+template<typename T>
+__device__ __forceinline__ float3 _dpd_interaction(const T* __restrict__ data, const int dstId, const int srcId,
+		float adpd, float gammadpd, float sigmadpd, float seed)
 {
-	for (int offset = warpSize/2; offset > 0; offset /= 2)
-	{
-		val.x += __shfl_down(val.x, offset);
-		val.y += __shfl_down(val.y, offset);
-		val.z += __shfl_down(val.z, offset);
-	}
-	return val;
-}
-
-
-//const float dt = 0.0025;
-const float kBT = 1.0;
-const float gammadpd = 20;
-const float sigma = sqrt(2 * gammadpd * kBT);
-const float sigmaf = 126.4911064;//sigma / sqrt(dt);
-const float aij = 50;
-
-__device__ __forceinline__ float3 _dpd_interaction(const float4* xyzo, const float4* uvwo, const int dstId, const int srcId)
-{
-	const float3 dstCoo = readCoos4_coos(xyzo, dstId);
-	const float3 dstVel = readCoos4_coos(uvwo, dstId);
-
-	const float3 srcCoo = readCoos4_coos(xyzo, srcId);
-	const float3 srcVel = readCoos4_coos(uvwo, srcId);
+	float3 dstCoo, dstVel, srcCoo, srcVel;
+	readAll2(data, dstId, dstCoo, dstVel);
+	readAll2(data, srcId, srcCoo, srcVel);
 
 	const float _xr = dstCoo.x - srcCoo.x;
 	const float _yr = dstCoo.y - srcCoo.y;
@@ -113,9 +80,9 @@ __device__ __forceinline__ float3 _dpd_interaction(const float4* xyzo, const flo
 			yr * (dstVel.y - srcVel.y) +
 			zr * (dstVel.z - srcVel.z);
 
-	const float myrandnr = 0;//Logistic::mean0var1(1, min(srcId, dstId), max(srcId, dstId));
+	const float myrandnr = Logistic::mean0var1(seed, min(srcId, dstId), max(srcId, dstId));
 
-	const float strength = aij * argwr - (gammadpd * wr * rdotv + sigmaf * myrandnr) * wr;
+	const float strength = adpd * argwr - (gammadpd * wr * rdotv + sigmadpd * myrandnr) * wr;
 
 	return make_float3(strength * xr, strength * yr, strength * zr);
 }
@@ -139,12 +106,14 @@ __device__ __forceinline__ int2 upackFromint(int packed, int shift)
 	return make_int2( (packed >> 26) + shift,  packed & 0x3FFFFFF );
 }
 
-__device__ __forceinline__ void execInteractions(const int nentries, const int2 pids, const float4* xyzo, const float4* uvwo, float* axayaz, int dstStart, int dstEnd)
+template<typename T>
+__device__ __forceinline__ void execInteractions(const int nentries, const int2 pids, const T* data, float* axayaz,
+		float adpd, float gammadpd, float sigmadpd, float seed)
 {
 	//assert(nentries <= 32);
 
 	if (pids.x == pids.y) return;
-	float3 frc = _dpd_interaction(xyzo, uvwo, pids.x, pids.y);
+	float3 frc = _dpd_interaction(data, pids.x, pids.y, adpd, gammadpd, sigmadpd, seed);
 	//
 	float* dest = axayaz + xscale(pids.x, 3.0f);
 	atomicAdd(dest,     frc.x);
@@ -165,7 +134,8 @@ const int bDimZ = 2;
 const int nDstPerIter = 4;
 
 __launch_bounds__(32*bDimY*bDimZ, 64 / (bDimY*bDimZ))
-__global__ void smth(const float4 * __restrict__ xyzo, const float4 * __restrict__ uvwo, float* axayaz, const int * __restrict__ cellsstart, int nCellsX, int nCellsY, int nCellsZ, int ncells)
+__global__ void smth(const float2 * __restrict__ xyzuvw, const float4 * __restrict__ xyzo, float* axayaz, const int * __restrict__ cellsstart,
+		int nCellsX, int nCellsY, int nCellsZ, int ncells, float adpd, float gammadpd, float sigmadpd, float seed)
 {
 	const int tid = threadIdx.x;
 	const int wid = (threadIdx.z * bDimZ + threadIdx.y);
@@ -175,8 +145,8 @@ __global__ void smth(const float4 * __restrict__ xyzo, const float4 * __restrict
 	int nentries = 0;
 
 	const int cellX0 = (blockIdx.x) ;
-	const int cellY0 = xmad(blockIdx.y, (float)bDimY, threadIdx.y);//(blockIdx.y * bDimY) + threadIdx.y;
-	const int cellZ0 = xmad(blockIdx.z, (float)bDimZ, threadIdx.z);//(blockIdx.z * bDimZ) + threadIdx.z;
+	const int cellY0 = (blockIdx.y * bDimY) + threadIdx.y;
+	const int cellZ0 = (blockIdx.z * bDimZ) + threadIdx.z;
 
 	const int cid = (cellZ0*nCellsY + cellY0)*nCellsX + cellX0;
 
@@ -187,14 +157,16 @@ __global__ void smth(const float4 * __restrict__ xyzo, const float4 * __restrict
 	const int groupId = xdiv((uint)tid, 0.16666666667f);//tid / groupSize;
 	const int idInGroup = xsub(tid, xscale(groupId, 6.0f));//groupSize * groupId;
 
-	int cellY = cellY0 + (uint)groupId % 3 - 1;
-	int cellZ = cellZ0 + (uint)groupId / 3 - 1;
+	int shZ = (uint)groupId / 3;
+	int cellY = cellY0 + (groupId - xscale(shZ, 3.0f)) - 1;
+	int cellZ = cellZ0 + shZ - 1;
 
 	bool valid = (cellY >= 0 && cellY < nCellsY && cellZ >= 0 && cellZ < nCellsZ && groupId < 5);
 
 	const int midCellId = (cellZ*nCellsY + cellY)*nCellsX + cellX0;
-	int rowStart  = max(midCellId-1, 0);//(cellX0 == 0)         ? midCellId     : midCellId - 1;
-	int rowEnd    = min(midCellId+2, ncells);
+	int rowStart  = max(midCellId-1, 0);
+	int rowEnd    = min(midCellId+2, ncells+1);
+
 	if ( midCellId == cid ) rowEnd = midCellId + 1; // this row is already partly covered
 
 	const int pstart = cellsstart[rowStart];
@@ -202,14 +174,14 @@ __global__ void smth(const float4 * __restrict__ xyzo, const float4 * __restrict
 
 	for (int srcId = pstart + idInGroup; __any(srcId < pend); srcId += groupSize)
 	{
-		const float3 srcCoos = (srcId < pend) ? readCoos4_coos(xyzo, srcId) : make_float3(-10000.0f);
+		const float3 srcCoos = (srcId < pend) ? readCoos4(xyzo, srcId) : make_float3(-10000.0f);
 
 		for (int dstBase=dstStart; dstBase<dstEnd; dstBase+=nDstPerIter)
 		{
 #pragma unroll nDstPerIter
 			for (int dstId=dstBase; dstId<dstBase+nDstPerIter; dstId++)
 			{
-				bool interacting = distance2(srcCoos, readCoos4_coos(xyzo, dstId)) < 1.00f && dstId < dstEnd;
+				bool interacting = distance2(srcCoos, readCoos4(xyzo, dstId)) < 1.00f && dstId < dstEnd;
 				if (dstStart <= srcId && srcId < dstEnd && dstId <= srcId) interacting = false;
 
 				const int myentry = warpAggrFetchAdd(nentries, interacting, tid);
@@ -219,14 +191,14 @@ __global__ void smth(const float4 * __restrict__ xyzo, const float4 * __restrict
 			while (nentries >= warpSize)
 			{
 				const int2 pids = upackFromint( inters[nentries - warpSize + tid], dstStart );
-				execInteractions(warpSize, pids, xyzo, uvwo, axayaz, dstStart, dstEnd);
+				execInteractions(warpSize, pids, xyzuvw, axayaz, adpd, gammadpd, sigmadpd, seed);
 				nentries -= warpSize;
 			}
 		}
 	}
 
 	if (tid < nentries)
-		execInteractions(nentries, upackFromint(inters[tid], dstStart), xyzo, uvwo, axayaz, dstStart, dstEnd);
+		execInteractions(nentries, upackFromint(inters[tid], dstStart), xyzuvw, axayaz, adpd, gammadpd, sigmadpd, seed);
 }
 
 __global__ void make_texture_dummy( const float4 * xyzouvwo, float4 * xyzo, float4 * uvwo, const uint n )
@@ -292,9 +264,9 @@ void forces_dpd_cuda_nohost( const float * const xyzuvw, const float4 * const xy
 		const int * const cellsstart, const int * const cellscount,
 		const float rc,
 		const float XL, const float YL, const float ZL,
-		const float aij,
-		const float gamma,
-		const float sigma,
+		const float adpd,
+		const float gammadpd,
+		const float sigmadpd,
 		const float invsqrtdt,
 		const float seed, cudaStream_t stream )
 {
@@ -315,8 +287,8 @@ void forces_dpd_cuda_nohost( const float * const xyzuvw, const float4 * const xy
 	cudaFuncSetCacheConfig( smth, cudaFuncCachePreferEqual );
 
 	cudaMemsetAsync( axayaz, 0, sizeof( float )* np * 3, stream );
-	make_texture_dummy<<< (np + 1023) / 1024, 1024 >>>(xyzouvwo, xyzo.data, uvwo.data, np);
-	smth<<< nblocks, nthreads >>>(xyzo.data, uvwo.data, axayaz, cellsstart, nx, ny, nz, nx*ny*nz);
+	make_texture_dummy<<< (np + 1023) / 1024, 1024, 0, stream >>>(xyzouvwo, xyzo.data, uvwo.data, np);
+	smth<<< nblocks, nthreads, 0, stream >>>((float2*)xyzuvw, xyzo.data, axayaz, cellsstart, nx, ny, nz, nx*ny*nz, adpd, gammadpd, sigmadpd*invsqrtdt, seed);
 }
 
 

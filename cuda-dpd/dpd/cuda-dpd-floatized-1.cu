@@ -13,7 +13,6 @@
 
 #include <cstdio>
 #include <cassert>
-#include <mpi.h>
 
 #include "cuda-dpd.h"
 #include "../dpd-rng.h"
@@ -51,7 +50,7 @@ __device__ float3 _dpd_interaction( const int dpid, const float4 xdest, const fl
     const float _zr = xdest.z - xsrc.z;
 
     const float rij2 = _xr * _xr + _yr * _yr + _zr * _zr;
-    assert( rij2 < 1 );
+    //assert( rij2 < 1 );
 
     const float invrij = rsqrtf( rij2 );
     const float rij = rij2 * invrij;
@@ -334,7 +333,7 @@ void _dpd_forces_symm_merged()
                 //* was: int interacting = 0;
                 asm volatile( ".reg .pred interacting;" );
                 uint overview;
-                asm( "   setp.lt.ftz.f32  interacting, %3, 1.0;"
+                asm( "   setp.lt.ftz.f32  interacting, %3, 1.05;"
                      "   setp.ne.and.f32  interacting, %1, %2, interacting;"
                      "   setp.lt.and.f32  interacting, %2, %5, interacting;"
                      "   vote.ballot.b32  %0, interacting;" :
@@ -566,7 +565,6 @@ void forces_dpd_cuda_nohost( const float * const xyzuvw, const float4 * const xy
     check_acc <<< 1, 1, 0, stream>>>( np );
     CUDA_CHECK( cudaDeviceSynchronize() );
     CUDA_CHECK( cudaDeviceReset() );
-    MPI_Finalize();
     exit( 0 );
 #endif
 

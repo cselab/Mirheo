@@ -13,6 +13,7 @@
 
 #include <cstdio>
 #include <cassert>
+#include <cuda.h>
 
 #include "cuda-dpd.h"
 #include "../dpd-rng.h"
@@ -838,6 +839,7 @@ void forces_dpd_cuda_nohost(const float * const xyzuvw, const float4 * const xyz
 #endif
 
     CUDA_CHECK(cudaMemsetAsync(axayaz, 0, sizeof(float) * 3 * np, stream));
+
     _dpd_forces_new2<32, 1>/*, 3>*/<<<(c.ncells.x*c.ncells.y*c.ncells.z+CPB-1)/CPB, dim3(32, CPB), 0, stream>>>();
 /*_dpd_forces<<<dim3(c.ncells.x / _XCPB_,
 			    c.ncells.y / _YCPB_,
