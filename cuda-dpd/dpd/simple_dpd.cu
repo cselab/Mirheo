@@ -84,7 +84,7 @@ __device__ __forceinline__ float3 _dpd_interaction(
 			yr * (dstVel.y - srcVel.y) +
 			zr * (dstVel.z - srcVel.z);
 
-	const float myrandnr = Logistic::mean0var1(seed, min(srcId, dstId), max(srcId, dstId));
+	const float myrandnr = 0*Logistic::mean0var1(seed, min(srcId, dstId), max(srcId, dstId));
 
 	const float strength = adpd * argwr - (gammadpd * wr * rdotv + sigmadpd * myrandnr) * wr;
 
@@ -209,22 +209,16 @@ __global__ void smth(const float2 * __restrict__ xyzuvw, const float4 * __restri
 		execInteractions(nentries, upackFromint(inters[tid], dstStart), xyzouvwo, axayaz, adpd, gammadpd, sigmadpd, seed);
 }
 
-
-__device__ __forceinline__ void warpReduceSum(float3& val)
+__device__ inline int getCellId(const float x, const float start, const float invrc, const int ncells)
 {
-#pragma unroll 5
-	for (int offset = warpSize/2; offset > 0; offset /= 2)
-	{
-		val.x += __shfl_down(val.x, offset);
-		val.y += __shfl_down(val.y, offset);
-		val.z += __shfl_down(val.z, offset);
-	}
+	const float v = invrc * (x - start);
+	const float robustV = min(min(floor(v), floor(v - 1.0e-6f)), floor(v + 1.0e-6f));
+	return min(ncells - 1, max(0, (int)robustV));
 }
 
-
 //__launch_bounds__(128, 16)
-__global__ void smth2(const float2 * __restrict__ xyzuvw, const float4 * __restrict__ xyzo, const float4 * __restrict__ xyzouvwo, float* axayaz, const int * __restrict__ cellsstart,
-		int nCellsX, int nCellsY, int nCellsZ, int ncells_1, int np, float adpd, float gammadpd, float sigmadpd, float seed)
+__global__ void smth2(const float4 * __restrict__ xyzouvwo, float* axayaz, const int * __restrict__ cellsstart,
+		int3 ncells, float3 domainStart, int ncells_1, int np, float adpd, float gammadpd, float sigmadpd, float seed)
 {
 	const int dstId = blockIdx.x*blockDim.x + threadIdx.x;
 	if (dstId >= np) return;
@@ -233,18 +227,18 @@ __global__ void smth2(const float2 * __restrict__ xyzuvw, const float4 * __restr
 	float3 dstAcc = make_float3(0.0f);
 	readAll4(xyzouvwo, dstId, dstCoo, dstVel);
 
-	const int cellX0 = (int)floor(dstCoo.x + nCellsX/2);
-	const int cellY0 = (int)floor(dstCoo.y + nCellsY/2);
-	const int cellZ0 = (int)floor(dstCoo.z + nCellsZ/2);
+	const int cellX0 = getCellId(dstCoo.x, domainStart.x, 1.0f, ncells.x);
+	const int cellY0 = getCellId(dstCoo.y, domainStart.y, 1.0f, ncells.y);
+	const int cellZ0 = getCellId(dstCoo.z, domainStart.z, 1.0f, ncells.z);
 
 #pragma unroll
 	for (int cellY = cellY0-1; cellY <= cellY0; cellY++)
 		for (int cellZ = cellZ0-1; cellZ <= cellZ0+1; cellZ++)
 		{
-			if ( !(cellY >= 0 && cellY < nCellsY && cellZ >= 0 && cellZ < nCellsZ) ) continue;
+			if ( !(cellY >= 0 && cellY < ncells.y && cellZ >= 0 && cellZ < ncells.z) ) continue;
 			if (cellY == cellY0 && cellZ > cellZ0) continue;
 
-			const int midCellId = (cellZ*nCellsY + cellY)*nCellsX + cellX0;
+			const int midCellId = (cellZ*ncells.y + cellY)*ncells.x + cellX0;
 			int rowStart  = max(midCellId-1, 0);
 			int rowEnd    = min(midCellId+2, ncells_1);
 			if ( cellY == cellY0 && cellZ == cellZ0 ) rowEnd = midCellId + 1; // this row is already partly covered
@@ -252,7 +246,6 @@ __global__ void smth2(const float2 * __restrict__ xyzuvw, const float4 * __restr
 			const int pstart = cellsstart[rowStart];
 			const int pend   = cellsstart[rowEnd];
 
-#pragma unroll 2
 			for (int srcId = pstart; srcId < pend; srcId ++)
 			{
 				const float3 srcCoo = readCoosFromAll4(xyzouvwo, srcId);
@@ -375,7 +368,8 @@ void forces_dpd_cuda_nohost( const float * const xyzuvw, const float4 * const xy
 	//smth<<< nblocks, nthreads, 0, stream >>>((float2*)xyzuvw, xyzo.data, xyzouvwo, axayaz, cellsstart, nx, ny, nz, nx*ny*nz+1, adpd, gammadpd, sigmadpd*invsqrtdt, seed);
 
 	const int nth = 128;
-	smth2<<< (np + nth - 1) / nth, nth, 0, stream >>>((float2*)xyzuvw, xyzo.data, xyzouvwo, axayaz, cellsstart, nx, ny, nz, nx*ny*nz+1, np, adpd, gammadpd, sigmadpd*invsqrtdt, seed);
+	smth2<<< (np + nth - 1) / nth, nth, 0, stream >>>(xyzouvwo, axayaz, cellsstart,
+			make_int3(nx, ny, nz), make_float3(-nx/2, -ny/2, -nz/2), nx*ny*nz+1, np, adpd, gammadpd, sigmadpd*invsqrtdt, seed);
 
 
 }
