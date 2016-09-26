@@ -151,14 +151,14 @@ __global__ void smth(const float2 * __restrict__ xyzuvw, const float4 * __restri
 	volatile int* inters = pool[wid];
 	int nentries = 0;
 
-	const int cellX0 = (blockIdx.x) ;
+	const int cellX0 = (2*blockIdx.x) ;
 	const int cellY0 = (blockIdx.y * bDimY) + threadIdx.y;
 	const int cellZ0 = (blockIdx.z * bDimZ) + threadIdx.z;
 
 	const int cid = (cellZ0*nCellsY + cellY0)*nCellsX + cellX0;
 
 	const int dstStart = cellsstart[cid];
-	const int dstEnd   = cellsstart[cid+1];
+	const int dstEnd   = cellsstart[cid+2];
 
 	const int groupSize = 6;
 	const int groupId = (uint)tid / groupSize;//tid / groupSize;
@@ -172,9 +172,9 @@ __global__ void smth(const float2 * __restrict__ xyzuvw, const float4 * __restri
 
 	const int midCellId = (cellZ*nCellsY + cellY)*nCellsX + cellX0;
 	int rowStart  = max(midCellId-1, 0);
-	int rowEnd    = min(midCellId+2, ncells_1);
+	int rowEnd    = min(midCellId+3, ncells_1);
 
-	if ( midCellId == cid ) rowEnd = midCellId + 1; // this row is already partly covered
+	if ( midCellId == cid ) rowEnd = midCellId + 2; // this row is already partly covered
 
 	const int pstart = valid ? cellsstart[rowStart] : 0;
 	const int pend   = valid ? cellsstart[rowEnd] : -1;
@@ -290,7 +290,7 @@ void forces_dpd_cuda_nohost( const float * const xyzuvw, const float4 * const xy
 	const int ny = round(YL / rc);
 	const int nz = round(ZL / rc);
 
-	dim3 nblocks(nx, ny/bDimY, nz/bDimZ);
+	dim3 nblocks(nx/2, ny/bDimY, nz/bDimZ);
 	dim3 nthreads(32, bDimY, bDimZ);
 
 	cudaFuncSetCacheConfig( smth, cudaFuncCachePreferEqual );
