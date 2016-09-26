@@ -43,90 +43,75 @@ template<typename T>
 struct SimpleDeviceBuffer
 {
 	int capacity, size;
+	T * devdata;
 
-	T * data;
-
-	SimpleDeviceBuffer(int n = 0): capacity(0), size(0), data(NULL) { resize(n);}
+	SimpleDeviceBuffer(int n = 0): capacity(0), size(0), devdata(NULL) { resize(n); }
 
 	~SimpleDeviceBuffer()
 	{
-		if (data != NULL)
-			CUDA_CHECK(cudaFree(data));
-
-		data = NULL;
-	}
-
-	void dispose()
-	{
-		if (data != NULL)
-			CUDA_CHECK(cudaFree(data));
-
-		data = NULL;
+		if (devdata != NULL) CUDA_CHECK(cudaFree(devdata));
 	}
 
 	void resize(const int n)
 	{
 		assert(n >= 0);
-
 		size = n;
 
-		if (capacity >= n)
-			return;
+		if (capacity >= n) return;
 
-		if (data != NULL)
-			CUDA_CHECK(cudaFree(data));
+		if (devdata != NULL) CUDA_CHECK(cudaFree(devdata));
 
 		const int conservative_estimate = (int)ceil(1.1 * n);
 		capacity = 128 * ((conservative_estimate + 129) / 128);
 
-		CUDA_CHECK(cudaMalloc(&data, sizeof(T) * capacity));
-
-#ifndef NDEBUG
-		CUDA_CHECK(cudaMemset(data, 0, sizeof(T) * capacity));
-#endif
+		CUDA_CHECK(cudaMalloc(&devdata, sizeof(T) * capacity));
 	}
 
 	void preserve_resize(const int n)
 	{
 		assert(n >= 0);
 
-		T * old = data;
+		T * old = devdata;
 
 		const int oldsize = size;
-
 		size = n;
 
-		if (capacity >= n)
-			return;
+		if (capacity >= n) return;
 
 		const int conservative_estimate = (int)ceil(1.1 * n);
 		capacity = 128 * ((conservative_estimate + 129) / 128);
 
-		CUDA_CHECK(cudaMalloc(&data, sizeof(T) * capacity));
+		CUDA_CHECK( cudaMalloc(&devdata, sizeof(T) * capacity) );
 
 		if (old != NULL)
 		{
-			CUDA_CHECK(cudaMemcpy(data, old, sizeof(T) * oldsize, cudaMemcpyDeviceToDevice));
+			CUDA_CHECK(cudaMemcpy(devdata, old, sizeof(T) * oldsize, cudaMemcpyDeviceToDevice));
 			CUDA_CHECK(cudaFree(old));
 		}
 	}
+
+	template<typename Cont>
+	void copy(Cont& cont)
+	{
+		static_assert(std::is_same<decltype(devdata), decltype(cont.devdata)>::value, "can't copy buffers of different types");
+
+		resize(cont.size);
+		CUDA_CHECK( cudaMemcpy(devdata, cont.devdata, sizeof(T) * size, cudaMemcpyDeviceToDevice) );
+	}
+
 };
 
 template<typename T>
 struct PinnedHostBuffer
 {
 	int capacity, size;
+	T * hostdata, * devdata;
 
-	T * data, * devdata;
-
-	PinnedHostBuffer(int n = 0): capacity(0), size(0), data(NULL), devdata(NULL) { resize(n);}
+	PinnedHostBuffer(int n = 0): capacity(0), size(0), hostdata(NULL), devdata(NULL) { resize(n); }
 
 	~PinnedHostBuffer()
 	{
-		if (data != NULL)
-			CUDA_CHECK(cudaFreeHost(data));
-
-		data = NULL;
+		if (hostdata != NULL) CUDA_CHECK(cudaFreeHost(hostdata));
 	}
 
 	void resize(const int n)
@@ -134,47 +119,55 @@ struct PinnedHostBuffer
 		assert(n >= 0);
 
 		size = n;
+		if (capacity >= n) return;
 
-		if (capacity >= n)
-			return;
-
-		if (data != NULL)
-			CUDA_CHECK(cudaFreeHost(data));
+		if (hostdata != NULL) CUDA_CHECK(cudaFreeHost(hostdata));
 
 		const int conservative_estimate = (int)ceil(1.1 * n);
 		capacity = 128 * ((conservative_estimate + 129) / 128);
 
-		CUDA_CHECK(cudaHostAlloc(&data, sizeof(T) * capacity, cudaHostAllocMapped));
-
-		CUDA_CHECK(cudaHostGetDevicePointer(&devdata, data, 0));
+		CUDA_CHECK(cudaHostAlloc(&hostdata, sizeof(T) * capacity, cudaHostAllocMapped));
+		CUDA_CHECK(cudaHostGetDevicePointer(&devdata, hostdata, 0));
 	}
 
 	void preserve_resize(const int n)
 	{
 		assert(n >= 0);
 
-		T * old = data;
+		T * old = hostdata;
 
 		const int oldsize = size;
-
 		size = n;
 
-		if (capacity >= n)
-			return;
+		if (capacity >= n) return;
 
 		const int conservative_estimate = (int)ceil(1.1 * n);
 		capacity = 128 * ((conservative_estimate + 129) / 128);
 
-		data = NULL;
-		CUDA_CHECK(cudaHostAlloc(&data, sizeof(T) * capacity, cudaHostAllocMapped));
+		hostdata = NULL;
+		CUDA_CHECK(cudaHostAlloc(&hostdata, sizeof(T) * capacity, cudaHostAllocMapped));
 
 		if (old != NULL)
 		{
-			CUDA_CHECK(cudaMemcpy(data, old, sizeof(T) * oldsize, cudaMemcpyHostToHost));
+			CUDA_CHECK(cudaMemcpy(hostdata, old, sizeof(T) * oldsize, cudaMemcpyHostToHost));
 			CUDA_CHECK(cudaFreeHost(old));
 		}
 
-		CUDA_CHECK(cudaHostGetDevicePointer(&devdata, data, 0));
+		CUDA_CHECK(cudaHostGetDevicePointer(&devdata, hostdata, 0));
+	}
+
+	T& operator[](const int i)
+	{
+		return hostdata[i];
+	}
+
+	template<typename Cont>
+	void copy(Cont& cont)
+	{
+		static_assert(std::is_same<decltype(devdata), decltype(cont.devdata)>::value, "can't copy buffers of different types");
+
+		resize(cont.size);
+		CUDA_CHECK( cudaMemcpy(devdata, cont.devdata, sizeof(T) * size, cudaMemcpyDeviceToDevice) );
 	}
 };
 
@@ -229,17 +222,18 @@ __global__ void make_texture1( float4 * xyzouvwo, ushort4 * xyzo_half, const flo
 int main(int argc, char **argv)
 {
 	const int L = 48;
-	const int ndens = 10;
+	const int ndens = 4;
 	const int np = L*L*L*ndens;
 	PinnedHostBuffer<Particle>   particles(np);
 	SimpleDeviceBuffer<Particle> devp(np);
-	SimpleDeviceBuffer<float4>   pWithO(np*2);
-	SimpleDeviceBuffer<ushort4>  halfPwithO(np*2);
+	SimpleDeviceBuffer<float4>   pWithO(2*np);
+	SimpleDeviceBuffer<ushort4>  halfPwithO(np);
 
 	SimpleDeviceBuffer<int> cellsstart(L*L*L + 1);
-	SimpleDeviceBuffer<int> cellscount(L*L*L);
+	SimpleDeviceBuffer<int> cellscount(L*L*L + 1);
 
 	PinnedHostBuffer<int> hcellsstart(L*L*L + 1);
+	PinnedHostBuffer<int> hcellscount(L*L*L + 1);
 
 	SimpleDeviceBuffer<Acceleration> acc(np);
 	PinnedHostBuffer  <Acceleration> hacc(np);
@@ -254,33 +248,38 @@ int main(int argc, char **argv)
 			for (int k=0; k<L; k++)
 				for (int p=0; p<ndens; p++)
 				{
-					particles.data[c].x[0] = i + drand48() - L/2;
-					particles.data[c].x[1] = j + drand48() - L/2;
-					particles.data[c].x[2] = k + drand48() - L/2;
+					particles[c].x[0] = i + drand48() - L/2;
+					particles[c].x[1] = j + drand48() - L/2;
+					particles[c].x[2] = k + drand48() - L/2;
 
-					particles.data[c].u[0] = drand48() - 0.5;
-					particles.data[c].u[1] = drand48() - 0.5;
-					particles.data[c].u[2] = drand48() - 0.5;
+					particles[c].u[0] = drand48() - 0.5;
+					particles[c].u[1] = drand48() - 0.5;
+					particles[c].u[2] = drand48() - 0.5;
 					c++;
 				}
 
 	printf("building cells...\n");
 
-	build_clists((float*)particles.devptr, np, 1.0, L, L, L, -L/2.0, -L/2.0, -L/2.0, nullptr, cellsstart.data, cellscount.data);
-	CUDA_CHECK( cudaMemcpy(devp.data, particles.devptr, particles.size * sizeof(Particle), cudaMemcpyDeviceToDevice) );
-	CUDA_CHECK( cudaMemcpy(hcellsstart.devptr, cellsstart.data, cellsstart.size * sizeof(int), cudaMemcpyDeviceToDevice) );
-
-	//	for (int i = 0; i<np; i++)
-	//		printf("  %f %f %f\n", particles.data[i].x[0], particles.data[i].x[1], particles.data[i].x[2]);
-	//
-	//
-	//	for (int i = 0; i< L*L*L; i++)
-	//		printf("start %d,  count %d\n", cellsstart.data[i], cellscount.data[i]);
+	build_clists((float*)particles.devdata, np, 1.0, L, L, L, -L/2.0, -L/2.0, -L/2.0, nullptr, cellsstart.devdata, cellscount.devdata);
+	devp.copy(particles);
 
 	printf("making textures\n");
 
-	//make_texture <<< (np + 1023) / 1024, 1024, 1024 * 6 * sizeof( float )>>>(pWithO.data, halfPwithO.data, (float *)particles.devptr, np );
-	make_texture1  <<< (np + 1023) / 1024, 1024 >>>(pWithO.data, halfPwithO.data, (float2 *)particles.devptr, np );
+	make_texture <<< (np + 1023) / 1024, 1024, 1024 * 6 * sizeof( float )>>>(pWithO.devdata, halfPwithO.devdata, (float *)devp.devdata, np );
+	//make_texture1  <<< (np + 1023) / 1024, 1024 >>>(pWithO.devdata, halfPwithO.devdata, (float2 *)particles.devdata, np );
+
+	hcellsstart.copy(cellsstart);
+	hcellscount.copy(cellscount);
+
+	cudaDeviceSynchronize();
+
+	//	for (int i = 0; i<np; i++)
+	//		printf("  %f %f %f\n", particles[i].x[0], particles[i].x[1], particles[i].x[2]);
+	//
+	//
+		for (int i = 0; i< L*L*L+1; i++)
+			if (hcellsstart[i] > np+1)
+				printf("FROM CPU cid %d   start %d,  count %d\n", i, hcellsstart[i], hcellscount[i]);
 
 	const float dt = 0.0025;
 	const float kBT = 1.0;
@@ -289,21 +288,22 @@ int main(int argc, char **argv)
 	const float sigmaf = 126.4911064;//sigma / sqrt(dt);
 	const float aij = 50;
 
-	for (int i=0; i<2; i++)
+	for (int i=0; i<2000; i++)
 	{
-		printf("running it # %d\n", i);
-		forces_dpd_cuda_nohost((float*)devp.data, pWithO.data, halfPwithO.data, (float*)acc.data, np, cellsstart.data, cellscount.data, 1.0, L, L, L, aij, gammadpd, sigma, 1.0/sqrt(dt), 1, 0);
+		//printf("running it # %d\n", i);
+		forces_dpd_cuda_nohost((float*)devp.devdata, pWithO.devdata, halfPwithO.devdata, (float*)acc.devdata, np, cellsstart.devdata, cellscount.devdata, 1.0, L, L, L, aij, gammadpd, sigma, 1.0/sqrt(dt), 1, 0);
 		CUDA_CHECK( cudaPeekAtLastError() );
 	}
 
-	CUDA_CHECK( cudaMemcpy(hacc.devptr, acc.data, acc.size * sizeof(Acceleration), cudaMemcpyDeviceToDevice) );
+	hacc.copy(acc);
 	cudaDeviceSynchronize();
+
 	printf("finised, reducing acc\n");
 	double a[3] = {};
 	for (int i=0; i<np; i++)
 	{
 		for (int c=0; c<3; c++)
-			a[c] += hacc.data[i].a[c];
+			a[c] += hacc[i].a[c];
 	}
 	printf("Reduced acc: %e %e %e\n\n", a[0], a[1], a[2]);
 
@@ -312,12 +312,11 @@ int main(int argc, char **argv)
 	std::vector<Acceleration> refAcc(acc.size);
 
 
-
 	auto addForce = [&](int dstId, int srcId, Acceleration& a)
 	{
-		const float _xr = particles.data[dstId].x[0] - particles.data[srcId].x[0];
-		const float _yr = particles.data[dstId].x[1] - particles.data[srcId].x[1];
-		const float _zr = particles.data[dstId].x[2] - particles.data[srcId].x[2];
+		const float _xr = particles[dstId].x[0] - particles[srcId].x[0];
+		const float _yr = particles[dstId].x[1] - particles[srcId].x[1];
+		const float _zr = particles[dstId].x[2] - particles[srcId].x[2];
 
 		const float rij2 = _xr * _xr + _yr * _yr + _zr * _zr;
 
@@ -334,9 +333,9 @@ int main(int argc, char **argv)
 		const float zr = _zr * invrij;
 
 		const float rdotv =
-				xr * (particles.data[dstId].u[0] - particles.data[srcId].u[0]) +
-				yr * (particles.data[dstId].u[1] - particles.data[srcId].u[1]) +
-				zr * (particles.data[dstId].u[2] - particles.data[srcId].u[2]);
+				xr * (particles[dstId].u[0] - particles[srcId].u[0]) +
+				yr * (particles[dstId].u[1] - particles[srcId].u[1]) +
+				zr * (particles[dstId].u[2] - particles[srcId].u[2]);
 
 		const float myrandnr = 0;//Logistic::mean0var1(1, min(srcId, dstId), max(srcId, dstId));
 
@@ -354,7 +353,7 @@ int main(int argc, char **argv)
 			{
 				const int cid = (cz*L + cy)*L + cx;
 
-				for (int dstId = hcellsstart.data[cid]; dstId < hcellsstart.data[cid+1]; dstId++)
+				for (int dstId = hcellsstart[cid]; dstId < hcellsstart[cid+1]; dstId++)
 				{
 					Acceleration a {0,0,0};
 
@@ -365,7 +364,7 @@ int main(int argc, char **argv)
 								const int srcCid = ( (cz+dz)*L + (cy+dy) ) * L + cx+dx;
 								if (srcCid >= L*L*L || srcCid < 0) continue;
 
-								for (int srcId = hcellsstart.data[srcCid]; srcId < hcellsstart.data[srcCid+1]; srcId++)
+								for (int srcId = hcellsstart[srcCid]; srcId < hcellsstart[srcCid+1]; srcId++)
 								{
 									if (dstId != srcId)
 										addForce(dstId, srcId, a);
@@ -386,7 +385,7 @@ int main(int argc, char **argv)
 		double perr = -1;
 		for (int c=0; c<3; c++)
 		{
-			const double err = fabs(refAcc[i].a[c] - hacc.data[i].a[c]);
+			const double err = fabs(refAcc[i].a[c] - hacc[i].a[c]);
 			linf = max(linf, err);
 			perr = max(perr, err);
 			l2 += err * err;
@@ -395,18 +394,18 @@ int main(int argc, char **argv)
 		if (argc > 1 && perr > 0.1)
 		{
 			printf("id %d,  %12f %12f %12f     ref %12f %12f %12f    diff   %12f %12f %12f\n", i,
-				hacc.data[i].a[0], hacc.data[i].a[1], hacc.data[i].a[2],
+				hacc[i].a[0], hacc[i].a[1], hacc[i].a[2],
 				refAcc[i].a[0], refAcc[i].a[1], refAcc[i].a[2],
-				hacc.data[i].a[0]-refAcc[i].a[0], hacc.data[i].a[1]-refAcc[i].a[1], hacc.data[i].a[2]-refAcc[i].a[2]);
+				hacc[i].a[0]-refAcc[i].a[0], hacc[i].a[1]-refAcc[i].a[1], hacc[i].a[2]-refAcc[i].a[2]);
 
 
 			int dstId = i;
 
-			int cx = floor(particles.data[dstId].x[0]) + L/2;
-			int cy = floor(particles.data[dstId].x[1]) + L/2;
-			int cz = floor(particles.data[dstId].x[2]) + L/2;
+			int cx = floor(particles[dstId].x[0]) + L/2;
+			int cy = floor(particles[dstId].x[1]) + L/2;
+			int cz = floor(particles[dstId].x[2]) + L/2;
 
-			printf(" [%f %f %f] --> %d %d %d\n", particles.data[dstId].x[0], particles.data[dstId].x[1], particles.data[dstId].x[2], cx, cy, cz);
+			printf(" [%f %f %f] --> %d %d %d\n", particles[dstId].x[0], particles[dstId].x[1], particles[dstId].x[2], cx, cy, cz);
 
 			const int cid = (cz*L + cy)*L + cx;
 
@@ -418,9 +417,9 @@ int main(int argc, char **argv)
 						const int srcCid = ( (cz+dz)*L + (cy+dy) ) * L + cx+dx;
 						if (srcCid >= L*L*L || srcCid < 0) continue;
 
-						for (int srcId = hcellsstart.data[srcCid]; srcId < hcellsstart.data[srcCid+1]; srcId++)
+						for (int srcId = hcellsstart[srcCid]; srcId < hcellsstart[srcCid+1]; srcId++)
 						{
-							Acceleration a {hacc.data[i].a[0], hacc.data[i].a[1], hacc.data[i].a[2]};
+							Acceleration a {hacc[i].a[0], hacc[i].a[1], hacc[i].a[2]};
 
 							if (dstId != srcId)
 								addForce(dstId, srcId, a);
@@ -429,7 +428,7 @@ int main(int argc, char **argv)
 
 							if (nerr < perr)
 								printf("\t Possible correction %d (cell %d [%d %d %d]): %f   ==>   %f %f %f\n", srcId, srcCid, dx, dy, dz, nerr,
-										a.a[0]-hacc.data[i].a[0], a.a[1]-hacc.data[i].a[1], a.a[2]-hacc.data[i].a[2]);
+										a.a[0]-hacc[i].a[0], a.a[1]-hacc[i].a[1], a.a[2]-hacc[i].a[2]);
 						}
 					}
 			printf("\n\n");
