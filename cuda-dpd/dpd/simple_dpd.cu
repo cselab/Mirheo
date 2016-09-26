@@ -59,14 +59,11 @@ __device__ __forceinline__ float distance2(const Ta a, const Tb b)
 	return sqr(a.x - b.x) + sqr(a.y - b.y) + sqr(a.z - b.z);
 }
 
-template<typename T>
-__device__ __forceinline__ float3 _dpd_interaction(const T* __restrict__ data, const int dstId, const int srcId,
+__device__ __forceinline__ float3 _dpd_interaction(
+		const float3 dstCoo, const float3 dstVel, const int dstId,
+		const float3 srcCoo, const float3 srcVel, const int srcId,
 		float adpd, float gammadpd, float sigmadpd, float seed)
 {
-	float3 dstCoo, dstVel, srcCoo, srcVel;
-	readAll4(data, dstId, dstCoo, dstVel);
-	readAll4(data, srcId, srcCoo, srcVel);
-
 	const float _xr = dstCoo.x - srcCoo.x;
 	const float _yr = dstCoo.y - srcCoo.y;
 	const float _zr = dstCoo.z - srcCoo.z;
@@ -87,7 +84,7 @@ __device__ __forceinline__ float3 _dpd_interaction(const T* __restrict__ data, c
 			yr * (dstVel.y - srcVel.y) +
 			zr * (dstVel.z - srcVel.z);
 
-	const float myrandnr = 0*Logistic::mean0var1(seed, min(srcId, dstId), max(srcId, dstId));
+	const float myrandnr = Logistic::mean0var1(seed, min(srcId, dstId), max(srcId, dstId));
 
 	const float strength = adpd * argwr - (gammadpd * wr * rdotv + sigmadpd * myrandnr) * wr;
 
@@ -117,11 +114,14 @@ template<typename T>
 __device__ __forceinline__ void execInteractions(const int nentries, const int2 pids, const T* data, float* axayaz,
 		float adpd, float gammadpd, float sigmadpd, float seed)
 {
-	//assert(nentries <= 32);
+	assert(nentries <= 32);
 
-	if (pids.x == pids.y) return;
-	float3 frc = _dpd_interaction(data, pids.x, pids.y, adpd, gammadpd, sigmadpd, seed);
-	//
+	float3 dstCoo, dstVel, srcCoo, srcVel;
+	readAll4(data, pids.x, dstCoo, dstVel);
+	readAll4(data, pids.y, srcCoo, srcVel);
+
+	float3 frc = _dpd_interaction(dstCoo, dstVel, pids.x, srcCoo, srcVel, pids.y, adpd, gammadpd, sigmadpd, seed);
+
 	float* dest = axayaz + pids.x*3;
 	atomicAdd(dest,     frc.x);
 	atomicAdd(dest + 1, frc.y);
@@ -145,7 +145,7 @@ __global__ void smth(const float2 * __restrict__ xyzuvw, const float4 * __restri
 		int nCellsX, int nCellsY, int nCellsZ, int ncells_1, float adpd, float gammadpd, float sigmadpd, float seed)
 {
 	const int tid = threadIdx.x;
-	const int wid = (threadIdx.z * bDimZ + threadIdx.y);
+	const int wid = (threadIdx.z * bDimY + threadIdx.y);
 
 	volatile __shared__ int pool[ bDimY*bDimZ ][128];
 	volatile int* inters = pool[wid];
@@ -179,17 +179,16 @@ __global__ void smth(const float2 * __restrict__ xyzuvw, const float4 * __restri
 	const int pstart = valid ? cellsstart[rowStart] : 0;
 	const int pend   = valid ? cellsstart[rowEnd] : -1;
 
-
 	for (int srcId = pstart + idInGroup; __any(srcId < pend); srcId += groupSize)
 	{
-		const float3 srcCoos = (srcId < pend) ? readCoosFromAll4(xyzouvwo, srcId) : make_float3(-10000.0f);
+		const float3 srcCoo = (srcId < pend) ? readCoosFromAll4(xyzouvwo, srcId) : make_float3(-10000.0f);
 
 		for (int dstBase=dstStart; dstBase<dstEnd; dstBase+=nDstPerIter)
 		{
 #pragma unroll nDstPerIter
 			for (int dstId=dstBase; dstId<dstBase+nDstPerIter; dstId++)
 			{
-				bool interacting =  dstId < dstEnd && distance2(srcCoos, readCoosFromAll4(xyzouvwo, dstId)) < 1.00f;
+				bool interacting =  dstId < dstEnd && distance2(srcCoo, readCoosFromAll4(xyzouvwo, dstId)) < 1.00f;
 				if (dstStart <= srcId && srcId < dstEnd && dstId <= srcId) interacting = false;
 
 				const int myentry = warpAggrFetchAdd(nentries, interacting, tid);
@@ -209,6 +208,82 @@ __global__ void smth(const float2 * __restrict__ xyzuvw, const float4 * __restri
 	if (tid < nentries)
 		execInteractions(nentries, upackFromint(inters[tid], dstStart), xyzouvwo, axayaz, adpd, gammadpd, sigmadpd, seed);
 }
+
+
+__device__ __forceinline__ void warpReduceSum(float3& val)
+{
+#pragma unroll 5
+	for (int offset = warpSize/2; offset > 0; offset /= 2)
+	{
+		val.x += __shfl_down(val.x, offset);
+		val.y += __shfl_down(val.y, offset);
+		val.z += __shfl_down(val.z, offset);
+	}
+}
+
+
+//__launch_bounds__(128, 16)
+__global__ void smth2(const float2 * __restrict__ xyzuvw, const float4 * __restrict__ xyzo, const float4 * __restrict__ xyzouvwo, float* axayaz, const int * __restrict__ cellsstart,
+		int nCellsX, int nCellsY, int nCellsZ, int ncells_1, int np, float adpd, float gammadpd, float sigmadpd, float seed)
+{
+	const int dstId = blockIdx.x*blockDim.x + threadIdx.x;
+	if (dstId >= np) return;
+
+	float3 dstCoo, dstVel;
+	float3 dstAcc = make_float3(0.0f);
+	readAll4(xyzouvwo, dstId, dstCoo, dstVel);
+
+	const int cellX0 = (int)floor(dstCoo.x + nCellsX/2);
+	const int cellY0 = (int)floor(dstCoo.y + nCellsY/2);
+	const int cellZ0 = (int)floor(dstCoo.z + nCellsZ/2);
+
+#pragma unroll
+	for (int cellY = cellY0-1; cellY <= cellY0; cellY++)
+		for (int cellZ = cellZ0-1; cellZ <= cellZ0+1; cellZ++)
+		{
+			if ( !(cellY >= 0 && cellY < nCellsY && cellZ >= 0 && cellZ < nCellsZ) ) continue;
+			if (cellY == cellY0 && cellZ > cellZ0) continue;
+
+			const int midCellId = (cellZ*nCellsY + cellY)*nCellsX + cellX0;
+			int rowStart  = max(midCellId-1, 0);
+			int rowEnd    = min(midCellId+2, ncells_1);
+			if ( cellY == cellY0 && cellZ == cellZ0 ) rowEnd = midCellId + 1; // this row is already partly covered
+
+			const int pstart = cellsstart[rowStart];
+			const int pend   = cellsstart[rowEnd];
+
+#pragma unroll 2
+			for (int srcId = pstart; srcId < pend; srcId ++)
+			{
+				const float3 srcCoo = readCoosFromAll4(xyzouvwo, srcId);
+
+				bool interacting = distance2(srcCoo, dstCoo) < 1.00f;
+				if (dstId <= srcId && cellY == cellY0 && cellZ == cellZ0) interacting = false;
+
+				if (interacting)
+				{
+					float3 srcCoo, srcVel;
+					readAll4(xyzouvwo, srcId, srcCoo, srcVel);
+
+					float3 frc = _dpd_interaction(dstCoo, dstVel, dstId, srcCoo, srcVel, srcId, adpd, gammadpd, sigmadpd, seed);
+
+					dstAcc += frc;
+
+					float* dest = axayaz + srcId*3;
+					atomicAdd(dest,     -frc.x);
+					atomicAdd(dest + 1, -frc.y);
+					atomicAdd(dest + 2, -frc.z);
+				}
+			}
+		}
+
+	float* dest = axayaz + dstId*3;
+	atomicAdd(dest,     dstAcc.x);
+	atomicAdd(dest + 1, dstAcc.y);
+	atomicAdd(dest + 2, dstAcc.z);
+}
+
+
 
 __global__ void make_texture_dummy( const float4 * xyzouvwo, float4 * xyzo, float4 * uvwo, const uint n )
 {
@@ -297,7 +372,12 @@ void forces_dpd_cuda_nohost( const float * const xyzuvw, const float4 * const xy
 
 	cudaMemsetAsync( axayaz, 0, sizeof( float )* np * 3, stream );
 	make_texture_dummy<<< (np + 1023) / 1024, 1024, 0, stream >>>(xyzouvwo, xyzo.data, uvwo.data, np);
-	smth<<< nblocks, nthreads, 0, stream >>>((float2*)xyzuvw, xyzo.data, xyzouvwo, axayaz, cellsstart, nx, ny, nz, nx*ny*nz+1, adpd, gammadpd, sigmadpd*invsqrtdt, seed);
+	//smth<<< nblocks, nthreads, 0, stream >>>((float2*)xyzuvw, xyzo.data, xyzouvwo, axayaz, cellsstart, nx, ny, nz, nx*ny*nz+1, adpd, gammadpd, sigmadpd*invsqrtdt, seed);
+
+	const int nth = 128;
+	smth2<<< (np + nth - 1) / nth, nth, 0, stream >>>((float2*)xyzuvw, xyzo.data, xyzouvwo, axayaz, cellsstart, nx, ny, nz, nx*ny*nz+1, np, adpd, gammadpd, sigmadpd*invsqrtdt, seed);
+
+
 }
 
 
