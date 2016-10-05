@@ -9,10 +9,9 @@
 
 struct HaloHelper
 {
-	PinnedBuffer<Particle> sides[6];
-	PinnedBuffer<int> counts, limits;
-
-	std::vector<Particle> sendBufs[27];
+	PinnedBuffer<int> counts;
+	PinnedBuffer<Particle> sendBufs[27];
+	PinnedBuffer<float4*>  sendAddrs;
 
 	cudaStream_t stream;
 	std::thread thread;
@@ -20,6 +19,7 @@ struct HaloHelper
 
 class HaloExchanger
 {
+private:
 	int dir2rank[27];
 	int nActiveNeighbours;
 	int myrank;
@@ -37,7 +37,7 @@ class HaloExchanger
 public:
 
 	HaloExchanger(MPI_Comm& comm);
-	void attach(ParticleVector* pv);
+	void attach(ParticleVector* pv, int ndens);
 	void exchangeInit();
 	void exchangeFinalize();
 };

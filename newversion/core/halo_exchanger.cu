@@ -1,76 +1,105 @@
 #include "datatypes.h"
 #include "containers.h"
 #include "halo_exchanger.h"
+#include "celllist.h"
+#include "logger.h"
 
 #include <vector>
 #include <thread>
 #include <algorithm>
 #include <unistd.h>
 
-__global__ void getHalos(const int* __restrict__ cellsStart, const float4* __restrict__ xyzouvwo, const int3 ncells, const int totcells,
-		float4* dst0, float4* dst1, float4* dst2, float4* dst3, int count[4], int* limits)
+__global__ void getHalos(const int* __restrict__ cellsStart, const float4* __restrict__ xyzouvwo, const int3 ncells, const int totcells, const float3 length,
+		const int64_t __restrict__ dests[27], int counts[27])
 {
 	const int gid = blockIdx.x*blockDim.x + threadIdx.x;
 	const int variant = blockIdx.y;
 	int cid;
 
 	if (variant <= 1)
+	{
 		cid = gid * ncells.x  +  (ncells.x-1) * variant; // x = 0,   x = nx - 1
+		if (gid >= ncells.y*ncells.z) return;
+	}
+	else if (variant <= 3)
+	{
+		cid = (gid % ncells.x) + (gid / ncells.x) * ncells.x*(ncells.y)  +  ncells.x * (ncells.y-1) * (variant - 2);  // y = 0,   y = ny - 1
+		if (gid >= ncells.x*ncells.z) return;
+	}
 	else
-		cid = (gid % ncells.x) + (gid / ncells.x) * ncells.x*(ncells.y-1)  +  ncells.x * (ncells.y-1) * (variant - 2);  // y = 0,   y = ny - 1
+	{
+		cid = gid + ncells.x * ncells.y * (ncells.z-1) * (variant - 4);  // z = 0,   z = nz - 1
+		if (gid >= ncells.x*ncells.y) return;
+	}
 
 	if (cid >= totcells) return;
 
-	volatile __shared__ int shIndex;
-	__shared__ int bsize;
-	bsize = 0;
+	// Need NOT to load same particles to different sides
+	// z plane fully, y - w/o z=0, z=nz-1, x - w/o all other borders
+
+	int cx, cy, cz;
+	cx = cid % ncells.x;
+	cy = (cid / ncells.x) % ncells.y;
+	cz = cid / (ncells.x * ncells.y);
+
+	// Find
+	if (cx == 0) cx = 0;
+	else if (cx == ncells.x-1) cx = 2;
+	else cx = 1;
+
+	if (cy == 0) cy = 0;
+	else if (cy == ncells.y-1) cy = 2;
+	else cy = 1;
+
+	if (cz == 0) cz = 0;
+	else if (cz == ncells.z-1) cz = 2;
+	else cz = 1;
 
 	const int pstart = cellsStart[cid];
 	const int pend   = cellsStart[cid+1];
+	int nparts = pend - pstart;
 
-	int myid = atomicAdd(&bsize, pend-pstart);
+	// Exclude cells already covered by other variants
+	// X
+	if ( (variant == 0 || variant == 1) && (cz != 1 || cy != 1)) nparts = 0;
+	// Y
+	if ( (variant == 2 || variant == 3) && (cz != 1) ) nparts = 0;
 
-	__syncthreads();
+	for (int ix = min(cx, 1); ix <= max(cx, 1); ix++)
+		for (int iy = min(cy, 1); iy <= max(cy, 1); iy++)
+			for (int iz = min(cz, 1); iz <= max(cz, 1); iz++)
+			{
+				if (ix == 1 && iy == 1 && iz == 1) continue;
 
-	if (threadIdx.x == 0)
-		shIndex = atomicAdd(count + variant, bsize);
+				const int bufId = (iz*3 + iy)*3 + ix;
+				const float4 shift{ length.x*(ix-1), length.y*(iy-1), length.z*(iz-1), 0 };
 
-	__syncthreads();
+				int myid = atomicAdd(counts + bufId, nparts);
+				for (int i = 0; i < nparts; i++)
+				{
+					const int dstInd = 2*(myid   + i);
+					const int srcInd = 2*(pstart + i);
 
-	myid += shIndex;
+					float4 tmp1 = xyzouvwo[srcInd] - shift;
+					float4 tmp2 = xyzouvwo[srcInd+1];
 
-	float4* dest[4] = {dst0, dst1, dst2, dst3};
-
-	for (int i = 0; i < pend-pstart; i++)
-	{
-		const int dstInd = 2*(myid   + i);
-		const int srcInd = 2*(pstart + i);
-
-		float4 tmp1 = xyzouvwo[srcInd];
-		float4 tmp2 = xyzouvwo[srcInd];
-		tmp1.w = __int_as_float(pstart + i);
-		tmp2.w = __int_as_float(cid);
-
-		dest[variant][dstInd + 0] = tmp1;
-		dest[variant][dstInd + 1] = tmp2;
-	}
-
-	if (gid == 0 && variant == 0)
-	{
-		limits[0] = cellsStart[ncells.x * ncells.y];
-		limits[1] = cellsStart[totcells - ncells.x * ncells.y];
-	}
+					float4* addr = (float4*)dests[bufId];
+					addr[dstInd + 0] = tmp1;
+					addr[dstInd + 1] = tmp2;
+				}
+			}
 }
 
 HaloExchanger::HaloExchanger(MPI_Comm& comm) : nActiveNeighbours(26)
 {
-	logger.MPI_Check( MPI_Comm_dup(comm, &haloComm));
+	MPI_Check( MPI_Comm_dup(comm, &haloComm));
 
 	int dims[3], periods[3], coords[3];
-	logger.MPI_Check( MPI_Cart_get (haloComm, 3, dims, periods, coords) );
-	logger.MPI_Check( MPI_Comm_rank(haloComm, &myrank));
+	MPI_Check( MPI_Cart_get (haloComm, 3, dims, periods, coords) );
+	MPI_Check( MPI_Comm_rank(haloComm, &myrank));
 
-	logger.MPI_Check( MPI_Type_contiguous(sizeof(Particle), MPI_BYTE, &mpiParticleType) );
+	MPI_Check( MPI_Type_contiguous(sizeof(Particle), MPI_BYTE, &mpiParticleType) );
+	MPI_Check( MPI_Type_commit(&mpiParticleType) );
 
 	for(int i = 0; i < 27; ++i)
 	{
@@ -80,28 +109,44 @@ HaloExchanger::HaloExchanger(MPI_Comm& comm) : nActiveNeighbours(26)
 		for(int c = 0; c < 3; ++c)
 			coordsNeigh[c] = coords[c] + d[c];
 
-		logger.MPI_Check( MPI_Cart_rank(haloComm, coordsNeigh, dir2rank + i) );
+		MPI_Check( MPI_Cart_rank(haloComm, coordsNeigh, dir2rank + i) );
 	}
 }
 
-void HaloExchanger::attach(ParticleVector* pv)
+void HaloExchanger::attach(ParticleVector* pv, int ndens)
 {
 	particleVectors.push_back(pv);
 
 	helpers.resize(helpers.size() + 1);
 	HaloHelper& helper = helpers[helpers.size() - 1];
 
-	helper.counts.resize(4);
-	helper.limits.resize(2);
+	helper.sendAddrs.resize(27);
+	helper.counts.resize(27);
 
-	logger.CUDA_Check( cudaStreamCreate(&helper.stream) );
+	CUDA_Check( cudaStreamCreateWithPriority(&helper.stream, cudaStreamNonBlocking, -10) );
+
+	const int maxdim = std::max({pv->ncells.x, pv->ncells.y, pv->ncells.z});
+
+	for(int i = 0; i < 27; ++i)
+	{
+		int d[3] = { i%3 - 1, (i/3) % 3 - 1, i/9 - 1 };
+
+		int c = std::abs(d[0]) + std::abs(d[1]) + std::abs(d[2]);
+		if (c > 0)
+		{
+			helper.sendBufs[i].resize( 3 * ndens * pow(maxdim, 3 - c) );
+			helper.sendAddrs[i] = (float4*)helper.sendBufs[i].devdata;
+		}
+	}
+	helper.sendAddrs.synchronize(synchronizeDevice);
 }
 
 void HaloExchanger::exchangeInit()
 {
 	for (int i=0; i<particleVectors.size(); i++)
 	{
-		helpers[i].thread = std::thread([&] {
+		helpers[i].thread = std::thread([=] {
+			debug("Initiating %d-th halo exchange", i);
 			send(i);
 			receive(i);
 		});
@@ -120,82 +165,29 @@ void HaloExchanger::send(int n)
 	HaloHelper& helper = helpers[n];
 
 	const int maxdim = std::max({pv->ncells.x, pv->ncells.y, pv->ncells.z});
-	const int nthreads = 128;
-
+	const int nthreads = 512;
 	helper.counts.clear(helper.stream);
-	// TODO: need number density here
-	for (int i=0; i<6; i++)
-		helper.sides[i].resize(maxdim*maxdim * 10 * 4);
 
-	printf("md = %d\n", maxdim);
+	debug("Preparing %d-th halo on the device", n);
+	getHalos<<< dim3((maxdim*maxdim + nthreads - 1) / nthreads, 6, 1),  dim3(nthreads, 1, 1), 0, helper.stream >>>
+			(pv->cellsStart.devdata, (float4*)pv->coosvels.devdata, pv->ncells, pv->totcells, pv->length,
+			 (int64_t*)helper.sendAddrs.devdata, helper.counts.devdata);
 
-	getHalos<<< dim3((maxdim*maxdim + nthreads - 1) / nthreads, 4, 1),  dim3(nthreads, 1, 1), 0, helper.stream >>>
-			(pv->cellsStart.devdata, (float4*)pv->coosvels.devdata, pv->ncells, pv->totcells,
-					(float4*)helper.sides[0].devdata,
-					(float4*)helper.sides[1].devdata,
-					(float4*)helper.sides[2].devdata,
-					(float4*)helper.sides[3].devdata, helper.counts.devdata, helper.limits.devdata);
-
-	// This can be easily removed by keeping stuff in gpu mem
-	helper.limits.synchronize(synchronizeHost, helper.stream);
 	helper.counts.synchronize(synchronizeHost, helper.stream);
-
-	logger.CUDA_Check( cudaMemcpyAsync(helper.sides[4].devdata, pv->coosvels.devdata,
-			helper.limits[0] * sizeof(Particle),cudaMemcpyDeviceToHost, helper.stream) );
-
-	logger.CUDA_Check( cudaMemcpyAsync(helper.sides[5].devdata, pv->coosvels.devdata + helper.limits[1],
-			(pv->np - helper.limits[1]) * sizeof(Particle), cudaMemcpyDeviceToHost, helper.stream) );
-
-	logger.CUDA_Check( cudaStreamSynchronize(helper.stream) );
-
-	for (auto& buf : helper.sendBufs)
-		buf.resize(0);
-
-	auto processOneSide = [&] (Particle* srcs, int n)
-	{
-		for (int pid=0; pid<n; pid++)
-		{
-			auto& p = srcs[pid];
-			const int cid = p.i2;
-
-			int cx, cy, cz;
-			cx = cid % pv->ncells.x;
-			cy = (cid / pv->ncells.x) % pv->ncells.y;
-			cz = cid / (pv->ncells.x * pv->ncells.y);
-
-			if (cx == 0) cx = 0;
-			else if (cx == pv->ncells.x-1) cx = 2;
-			else cx = 1;
-
-			if (cy == 0) cy = 0;
-			else if (cy == pv->ncells.y-1) cy = 2;
-			else cy = 1;
-
-			if (cz == 0) cz = 0;
-			else if (cz == pv->ncells.z-1) cz = 2;
-			else cz = 1;
-
-			for (int ix = min(cx, 1); ix <= max(cx, 1); ix++)
-				for (int iy = min(cy, 1); iy <= max(cy, 1); iy++)
-					for (int iz = min(cz, 1); iz <= max(cz, 1); iz++)
-					{
-						if (cx == 1 && cy == 1 && cz == 1) continue;
-
-						int bufId = (cz*3 + cy)*3 + cx;
-						helper.sendBufs[bufId].push_back(p);
-					}
-		}
-	};
-
-	for (int i=0; i<6; i++)
-		processOneSide(helper.sides[i].hostdata, helper.sides[i].size);
+	debug("Downloading %d-th halo", n);
+	for (int i=0; i<27; i++)
+		if (i != 13)
+			CUDA_Check( cudaMemcpyAsync(helper.sendBufs[i].hostdata, helper.sendBufs[i].devdata,
+					helper.counts[i]*sizeof(Particle), cudaMemcpyDeviceToHost, helper.stream) );
+	CUDA_Check( cudaStreamSynchronize(helper.stream) );
 
 	MPI_Request req;
 	for (int i=0; i<27; i++)
-		if (i != 13 && dir2rank[i] > 0)
-			logger.MPI_Check( MPI_Isend(&helper.sendBufs[i][0], helper.sendBufs[i].size(), mpiParticleType, dir2rank[i], 0, haloComm, &req) );
-
-	printf("sending done\n");
+		if (i != 13 && dir2rank[i] >= 0)
+		{
+			debug("Sending %d-th halo to rank %d in dircode %d, size %d", n, dir2rank[i], i, helper.counts[i]);
+			MPI_Check( MPI_Isend(helper.sendBufs[i].hostdata, helper.counts[i], mpiParticleType, dir2rank[i], 0, haloComm, &req) );
+		}
 }
 
 void HaloExchanger::receive(int n)
@@ -204,24 +196,26 @@ void HaloExchanger::receive(int n)
 	auto& pv = particleVectors[n];
 
 	int cur = 0;
+	pv->halo.resize(0);
 	for (int i=0; i<nActiveNeighbours; i++)
 	{
 		MPI_Status stat;
 		int recvd = 0;
 		while (recvd == 0)
 		{
-			logger.MPI_Check( MPI_Iprobe(MPI_ANY_SOURCE, 0, haloComm, &recvd, &stat) );
-			usleep(10);
+			MPI_Check( MPI_Iprobe(MPI_ANY_SOURCE, 0, haloComm, &recvd, &stat) );
+			if (recvd == 0) usleep(10);
 		}
 
-		printf("");
 		int msize;
-	    logger.MPI_Check( MPI_Get_count(&stat, mpiParticleType, &msize) );
+	    MPI_Check( MPI_Get_count(&stat, mpiParticleType, &msize) );
 
 		pv->halo.resize(pv->halo.size + msize, resizePreserve, helper.stream);
-		logger.MPI_Check( MPI_Recv(pv->halo.hostdata+cur, msize, mpiParticleType, stat.MPI_SOURCE, 0, haloComm, &stat) );
+		debug("Receiving %d-th halo from rank %d, size %d", n, stat.MPI_SOURCE, msize);
+		MPI_Check( MPI_Recv(pv->halo.hostdata+cur, msize, mpiParticleType, stat.MPI_SOURCE, 0, haloComm, &stat) );
 		cur += msize;
 	}
 
 	pv->halo.synchronize(synchronizeDevice, helper.stream);
+	CUDA_Check( cudaStreamSynchronize(helper.stream) );
 }

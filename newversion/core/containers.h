@@ -11,13 +11,13 @@ struct ParticleVector
 
 	DeviceBuffer<int> cellsStart;
 	DeviceBuffer<uint8_t> cellsSize;
-	float3 domainStart; // assume 0,0,0 is center of the local domain
+	float3 domainStart, length; // assume 0,0,0 is center of the local domain
 	int3 ncells;
 	int totcells;
 
 	PinnedBuffer<Particle>	   halo;
 
-	ParticleVector(int3 ncells, float3 domainStart) : ncells(ncells), domainStart(domainStart)
+	ParticleVector(int3 ncells, float3 domainStart, float3 length) : ncells(ncells), domainStart(domainStart), length(length)
 	{
 		totcells = ncells.x * ncells.y * ncells.z;
 		cellsStart.resize(totcells + 1);

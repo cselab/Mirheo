@@ -78,7 +78,7 @@ void buildCellList(float4* in_xyzouvwo, const int n, const float3 domainStart, c
 {
 	// Compute cell sizes
 	const int totcells = ncells.x*ncells.y*ncells.z;
-	CUDA_CHECK( cudaMemsetAsync(cellsSize, 0, (totcells + 1)*sizeof(uint8_t), stream) );  // +1 to have correct cellsStart[totcells]
+	CUDA_Check( cudaMemsetAsync(cellsSize, 0, (totcells + 1)*sizeof(uint8_t), stream) );  // +1 to have correct cellsStart[totcells]
 	computeCellsSizes<<< (n+127)/128, 128, 0, stream >>>(in_xyzouvwo, n, domainStart, ncells, invrc, (uint*)cellsSize);
 
 	// Scan to get cell starts

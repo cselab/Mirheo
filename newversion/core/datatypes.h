@@ -56,7 +56,7 @@ struct DeviceBuffer
 
 	~DeviceBuffer()
 	{
-		if (devdata != nullptr) logger.CUDA_Check(cudaFree(devdata));
+		if (devdata != nullptr) CUDA_Check(cudaFree(devdata));
 	}
 
 	void resize(const int n, ResizeKind kind = resizeAnew, cudaStream_t stream = 0)
@@ -71,19 +71,19 @@ struct DeviceBuffer
 		const int conservative_estimate = (int)ceil(1.1 * n);
 		capacity = 128 * ((conservative_estimate + 129) / 128);
 
-		logger.CUDA_Check(cudaMalloc(&devdata, sizeof(T) * capacity));
+		CUDA_Check(cudaMalloc(&devdata, sizeof(T) * capacity));
 
 		if (kind == resizePreserve && dold != nullptr)
 		{
-			logger.CUDA_Check(cudaMemcpyAsync(devdata, dold, sizeof(T) * oldsize, cudaMemcpyDeviceToDevice, stream));
+			CUDA_Check(cudaMemcpyAsync(devdata, dold, sizeof(T) * oldsize, cudaMemcpyDeviceToDevice, stream));
 		}
 
-		logger.CUDA_Check(cudaFree(dold));
+		CUDA_Check(cudaFree(dold));
 	}
 
 	void clear(cudaStream_t stream = 0)
 	{
-		logger.CUDA_Check( cudaMemsetAsync(devdata, 0, sizeof(T) * size, stream) );
+		CUDA_Check( cudaMemsetAsync(devdata, 0, sizeof(T) * size, stream) );
 	}
 
 	template<typename Cont>
@@ -92,7 +92,7 @@ struct DeviceBuffer
 		static_assert(std::is_same<decltype(devdata), decltype(cont.devdata)>::value, "can't copy buffers of different types");
 
 		resize(cont.size);
-		logger.CUDA_Check( cudaMemcpyAsync(devdata, cont.devdata, sizeof(T) * size, cudaMemcpyDeviceToDevice, stream) );
+		CUDA_Check( cudaMemcpyAsync(devdata, cont.devdata, sizeof(T) * size, cudaMemcpyDeviceToDevice, stream) );
 	}
 
 	template<typename Cont>
@@ -101,7 +101,7 @@ struct DeviceBuffer
 		static_assert(std::is_same<decltype(devdata), decltype(cont.hostdata)>::value, "can't copy buffers of different types");
 
 		resize(cont.size);
-		logger.CUDA_Check( cudaMemcpyAsync(devdata, cont.hostdata, sizeof(T) * size, cudaMemcpyHostToDevice, stream) );
+		CUDA_Check( cudaMemcpyAsync(devdata, cont.hostdata, sizeof(T) * size, cudaMemcpyHostToDevice, stream) );
 	}
 };
 
@@ -115,7 +115,7 @@ struct PinnedBuffer
 
 	~PinnedBuffer()
 	{
-		if (hostdata != nullptr) logger.CUDA_Check(cudaFreeHost(hostdata));
+		if (hostdata != nullptr) CUDA_Check(cudaFreeHost(hostdata));
 	}
 
 	void resize(const int n, ResizeKind kind = resizeAnew, cudaStream_t stream = 0)
@@ -131,27 +131,27 @@ struct PinnedBuffer
 		const int conservative_estimate = (int)ceil(1.1 * n);
 		capacity = 128 * ((conservative_estimate + 129) / 128);
 
-		logger.CUDA_Check(cudaHostAlloc(&hostdata, sizeof(T) * capacity, cudaHostAllocDefault));
-		logger.CUDA_Check(cudaMalloc(&devdata, sizeof(T) * capacity));
+		CUDA_Check(cudaHostAlloc(&hostdata, sizeof(T) * capacity, 0));
+		CUDA_Check(cudaMalloc(&devdata, sizeof(T) * capacity));
 
 		if (kind == resizePreserve && hold != nullptr)
 		{
 			memcpy(hostdata, hold, sizeof(T) * oldsize);
-			logger.CUDA_Check(cudaMemcpyAsync(devdata, dold, sizeof(T) * oldsize, cudaMemcpyDeviceToDevice, stream));
+			CUDA_Check(cudaMemcpyAsync(devdata, dold, sizeof(T) * oldsize, cudaMemcpyDeviceToDevice, stream));
 		}
 
-		logger.CUDA_Check(cudaFreeHost(hold));
-		logger.CUDA_Check(cudaFree(dold));
+		CUDA_Check(cudaFreeHost(hold));
+		CUDA_Check(cudaFree(dold));
 	}
 
 	void synchronize(SynchroKind kind, cudaStream_t stream = 0)
 	{
 		if (kind == synchronizeDevice)
-			logger.CUDA_Check(cudaMemcpyAsync(devdata, hostdata, sizeof(T) * size, cudaMemcpyHostToDevice, stream));
+			CUDA_Check(cudaMemcpyAsync(devdata, hostdata, sizeof(T) * size, cudaMemcpyHostToDevice, stream));
 		else
 		{
-			logger.CUDA_Check(cudaMemcpyAsync(hostdata, devdata, sizeof(T) * size, cudaMemcpyDeviceToHost, stream));
-			logger.CUDA_Check(cudaStreamSynchronize(stream));
+			CUDA_Check(cudaMemcpyAsync(hostdata, devdata, sizeof(T) * size, cudaMemcpyDeviceToHost, stream));
+			CUDA_Check(cudaStreamSynchronize(stream));
 		}
 	}
 
@@ -162,7 +162,7 @@ struct PinnedBuffer
 
 	void clear(cudaStream_t stream = 0)
 	{
-		logger.CUDA_Check( cudaMemsetAsync(devdata, 0, sizeof(T) * size, stream) );
+		CUDA_Check( cudaMemsetAsync(devdata, 0, sizeof(T) * size, stream) );
 		memset(hostdata, 0, sizeof(T) * size);
 	}
 
@@ -172,7 +172,7 @@ struct PinnedBuffer
 		static_assert(std::is_same<decltype(devdata), decltype(cont.devdata)>::value, "can't copy buffers of different types");
 
 		resize(cont.size);
-		logger.CUDA_Check( cudaMemcpyAsync(devdata, cont.devdata, sizeof(T) * size, cudaMemcpyDeviceToDevice, stream) );
+		CUDA_Check( cudaMemcpyAsync(devdata, cont.devdata, sizeof(T) * size, cudaMemcpyDeviceToDevice, stream) );
 	}
 
 	template<typename Cont>
@@ -245,7 +245,7 @@ struct HostBuffer
 		static_assert(std::is_same<decltype(hostdata), decltype(cont.devdata)>::value, "can't copy buffers of different types");
 
 		resize(cont.size);
-		logger.CUDA_Check( cudaMemcpyAsync(hostdata, cont.devdata, sizeof(T) * size, cudaMemcpyDeviceToHost, stream) );
+		CUDA_Check( cudaMemcpyAsync(hostdata, cont.devdata, sizeof(T) * size, cudaMemcpyDeviceToHost, stream) );
 	}
 };
 

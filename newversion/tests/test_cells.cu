@@ -16,9 +16,15 @@
 
 #include "../core/datatypes.h"
 #include "../core/celllist.h"
+#include "../core/logger.h"
+
+Logger logger;
 
 int main(int argc, char **argv)
 {
+	MPI_Init(&argc, &argv);
+	logger.init(MPI_COMM_WORLD, "cells.log", 9);
+
 	const int3 ncells{64, 64, 64};
 	const float3 domainStart{-ncells.x / 2.0f, -ncells.y / 2.0f, -ncells.z / 2.0f};
 	const int totcells = ncells.x*ncells.y*ncells.z;
