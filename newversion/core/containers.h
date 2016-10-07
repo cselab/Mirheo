@@ -19,7 +19,11 @@ struct ParticleVector
 
 	ParticleVector(int3 ncells, float3 domainStart, float3 length) : ncells(ncells), domainStart(domainStart), length(length)
 	{
-		totcells = ncells.x * ncells.y * ncells.z;
+		int maxdim = std::max({ncells.x, ncells.y, ncells.z});
+		int minpow2 = 1;
+		while (minpow2 < maxdim) minpow2 <<= 1;
+		totcells = minpow2*minpow2*minpow2;
+
 		cellsStart.resize(totcells + 1);
 		cellsSize.resize(totcells + 1);
 	}

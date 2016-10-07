@@ -27,11 +27,11 @@ int main(int argc, char ** argv)
 
 	// Initial cells
 
-	int3 ncells = {48, 48, 48};
+	int3 ncells = {64, 64, 64};
 	float3 domainStart = {-ncells.x / 2.0f, -ncells.y / 2.0f, -ncells.z / 2.0f};
 	float3 length{(float)ncells.x, (float)ncells.y, (float)ncells.z};
 
-	const int ndens = 4;
+	const int ndens = 8;
 
 	ParticleVector dpds(ncells, domainStart, length);
 
@@ -66,7 +66,7 @@ int main(int argc, char ** argv)
 	HaloExchanger halo(cartComm);
 	halo.attach(&dpds, 7);
 
-	buildCellList((float4*)dpds.coosvels.devdata, dpds.np, dpds.domainStart, dpds.ncells, 1.0f, (float4*)dpds.pingPongBuf.devdata, dpds.cellsSize.devdata, dpds.cellsStart.devdata, defStream);
+	buildCellList((float4*)dpds.coosvels.devdata, dpds.np, dpds.domainStart, dpds.ncells, dpds.totcells, 1.0f, (float4*)dpds.pingPongBuf.devdata, dpds.cellsSize.devdata, dpds.cellsStart.devdata, defStream);
 	swap(dpds.coosvels, dpds.pingPongBuf, defStream);
 	CUDA_Check( cudaStreamSynchronize(defStream) );
 

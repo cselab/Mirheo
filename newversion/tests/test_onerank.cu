@@ -6,6 +6,7 @@
 #include "../core/dpd.h"
 #include "../core/halo_exchanger.h"
 #include "../core/logger.h"
+#include "../core/integrate.h"
 
 #include <unistd.h>
 
@@ -36,13 +37,13 @@ int main(int argc, char ** argv)
 
 	// Initial cells
 
-	int3 ncells = {96, 96, 96};
+	int3 ncells = {64, 64, 64};
 	float3 domainStart = {-ncells.x / 2.0f, -ncells.y / 2.0f, -ncells.z / 2.0f};
 	float3 length{(float)ncells.x, (float)ncells.y, (float)ncells.z};
 	ParticleVector dpds(ncells, domainStart, length);
 
-	const int ndens = 4;
-	dpds.resize(dpds.totcells*ndens);
+	const int ndens = 8;
+	dpds.resize(ncells.x*ncells.y*ncells.z * ndens);
 
 	srand48(0);
 
@@ -74,22 +75,28 @@ int main(int argc, char ** argv)
 	HaloExchanger halo(cartComm);
 	halo.attach(&dpds, 7);
 
-	buildCellList((float4*)dpds.coosvels.devdata, dpds.np, dpds.domainStart, dpds.ncells, 1.0f, (float4*)dpds.pingPongBuf.devdata, dpds.cellsSize.devdata, dpds.cellsStart.devdata, defStream);
+	buildCellList((float4*)dpds.coosvels.devdata, dpds.np, dpds.domainStart, dpds.ncells, dpds.totcells, 1.0f, (float4*)dpds.pingPongBuf.devdata, dpds.cellsSize.devdata, dpds.cellsStart.devdata, defStream);
 	swap(dpds.coosvels, dpds.pingPongBuf, defStream);
 	CUDA_Check( cudaStreamSynchronize(defStream) );
 
-	for (int i=0; i<10; i++)
+	for (int i=0; i<100; i++)
 	{
+		buildCellList((float4*)dpds.coosvels.devdata, dpds.np, dpds.domainStart, dpds.ncells, dpds.totcells, 1.0f, (float4*)dpds.pingPongBuf.devdata, dpds.cellsSize.devdata, dpds.cellsStart.devdata, defStream);
+		swap(dpds.coosvels, dpds.pingPongBuf, defStream);
+		cudaStreamSynchronize(defStream);
+
+		computeInternalDPD(dpds, defStream);
+
 		halo.exchangeInit();
+		halo.exchangeFinalize();
+
+		computeHaloDPD(dpds, defStream);
+		integrate(dpds, 1e-15f, defStream);
+
 
 		//cudaDeviceSynchronize();
 
-		computeInternalDPD(dpds, defStream);
-		computeHaloDPD(dpds, defStream);
-		buildCellList((float4*)dpds.coosvels.devdata, dpds.np, dpds.domainStart, dpds.ncells, 1.0f, (float4*)dpds.pingPongBuf.devdata, dpds.cellsSize.devdata, dpds.cellsStart.devdata, defStream);
-		swap(dpds.coosvels, dpds.pingPongBuf, defStream);
 
-		halo.exchangeFinalize();
 
 		//cudaDeviceSynchronize();
 

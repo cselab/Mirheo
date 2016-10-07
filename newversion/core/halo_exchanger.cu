@@ -14,35 +14,40 @@ __global__ void getHalos(const int* __restrict__ cellsStart, const float4* __res
 {
 	const int gid = blockIdx.x*blockDim.x + threadIdx.x;
 	const int variant = blockIdx.y;
+	const int tid = threadIdx.x;
 	int cid;
-
-	if (variant <= 1)
-	{
-		cid = gid * ncells.x  +  (ncells.x-1) * variant; // x = 0,   x = nx - 1
-		if (gid >= ncells.y*ncells.z) return;
-	}
-	else if (variant <= 3)
-	{
-		cid = (gid % ncells.x) + (gid / ncells.x) * ncells.x*(ncells.y)  +  ncells.x * (ncells.y-1) * (variant - 2);  // y = 0,   y = ny - 1
-		if (gid >= ncells.x*ncells.z) return;
-	}
-	else
-	{
-		cid = gid + ncells.x * ncells.y * (ncells.z-1) * (variant - 4);  // z = 0,   z = nz - 1
-		if (gid >= ncells.x*ncells.y) return;
-	}
-
-	if (cid >= totcells) return;
-
-	// Need NOT to load same particles to different sides
-	// z plane fully, y - w/o z=0, z=nz-1, x - w/o all other borders
-
 	int cx, cy, cz;
-	cx = cid % ncells.x;
-	cy = (cid / ncells.x) % ncells.y;
-	cz = cid / (ncells.x * ncells.y);
 
-	// Find
+	bool valid = true;
+
+	if (variant <= 1)  // x
+	{
+		if (gid >= ncells.y*ncells.z) valid = false;
+		cx = variant * (ncells.x - 1);
+		cy = gid % ncells.y;
+		cz = gid / ncells.y;
+		cid = encode(cx, cy, cz, ncells);
+	}
+	else if (variant <= 3)  // y
+	{
+		if (gid >= ncells.x*ncells.z) valid = false;
+		cx = gid % ncells.x;
+		cy = (variant - 2) * (ncells.y - 1);
+		cz = gid / ncells.x;
+		cid = encode(cx, cy, cz, ncells);
+	}
+	else   // z
+	{
+		if (gid >= ncells.x*ncells.y) valid = false;
+		cx = gid % ncells.x;
+		cy = gid / ncells.x;
+		cz = (variant - 4) * (ncells.z - 1);
+		cid = encode(cx, cy, cz, ncells);
+	}
+
+	valid &= cid < totcells;
+
+	// Find side codes
 	if (cx == 0) cx = 0;
 	else if (cx == ncells.x-1) cx = 2;
 	else cx = 1;
@@ -55,15 +60,25 @@ __global__ void getHalos(const int* __restrict__ cellsStart, const float4* __res
 	else if (cz == ncells.z-1) cz = 2;
 	else cz = 1;
 
-	const int pstart = cellsStart[cid];
-	const int pend   = cellsStart[cid+1];
-	int nparts = pend - pstart;
-
 	// Exclude cells already covered by other variants
-	// X
-	if ( (variant == 0 || variant == 1) && (cz != 1 || cy != 1)) nparts = 0;
-	// Y
-	if ( (variant == 2 || variant == 3) && (cz != 1) ) nparts = 0;
+	if ( (variant == 0 || variant == 1) && (cz != 1 || cy != 1) ) valid = false;
+	if ( (variant == 2 || variant == 3) && (cz != 1) ) valid = false;
+
+	if (__all(!valid) && tid > 27) return;
+
+	int2 start_size = valid ? decodeStartSize(cellsStart[cid]) : make_int2(0, 0);
+
+	// Use shared memory to decrease global atomics
+	// We're sending to max 7 halos (corner)
+	int validHalos[7];
+	int haloOffset[7] = {};
+	int current = 0;
+
+	// Total number of elements written to halos by this block
+	__shared__ int blockSum[27];
+	if (tid < 27) blockSum[tid] = 0;
+
+	__syncthreads();
 
 	for (int ix = min(cx, 1); ix <= max(cx, 1); ix++)
 		for (int iy = min(cy, 1); iy <= max(cy, 1); iy++)
@@ -72,22 +87,67 @@ __global__ void getHalos(const int* __restrict__ cellsStart, const float4* __res
 				if (ix == 1 && iy == 1 && iz == 1) continue;
 
 				const int bufId = (iz*3 + iy)*3 + ix;
-				const float4 shift{ length.x*(ix-1), length.y*(iy-1), length.z*(iz-1), 0 };
-
-				int myid = atomicAdd(counts + bufId, nparts);
-				for (int i = 0; i < nparts; i++)
-				{
-					const int dstInd = 2*(myid   + i);
-					const int srcInd = 2*(pstart + i);
-
-					float4 tmp1 = xyzouvwo[srcInd] - shift;
-					float4 tmp2 = xyzouvwo[srcInd+1];
-
-					float4* addr = (float4*)dests[bufId];
-					addr[dstInd + 0] = tmp1;
-					addr[dstInd + 1] = tmp2;
-				}
+				validHalos[current] = bufId;
+				haloOffset[current] = atomicAdd(blockSum + bufId, start_size.y);
+				current++;
 			}
+
+	__syncthreads();
+
+	if (tid < 27 && blockSum[tid] > 0)
+		blockSum[tid] = atomicAdd(counts + tid, blockSum[tid]);
+
+	__syncthreads();
+
+#pragma unroll 3
+	for (int i=0; i<current; i++)
+	{
+		const int bufId = validHalos[i];
+		const int myid  = blockSum[bufId] + haloOffset[i];
+
+		const int ix = bufId % 3;
+		const int iy = (bufId / 3) % 3;
+		const int iz = bufId / 9;
+		const float4 shift{ length.x*(ix-1), length.y*(iy-1), length.z*(iz-1), 0 };
+
+		for (int i = 0; i < start_size.y; i++)
+		{
+			const int dstInd = 2*(myid         + i);
+			const int srcInd = 2*(start_size.x + i);
+
+			float4 tmp1 = xyzouvwo[srcInd] - shift;
+			float4 tmp2 = xyzouvwo[srcInd+1];
+
+			float4* addr = (float4*)dests[bufId];
+			addr[dstInd + 0] = tmp1;
+			addr[dstInd + 1] = tmp2;
+		}
+	}
+
+
+//	for (int ix = min(cx, 1); ix <= max(cx, 1); ix++)
+//		for (int iy = min(cy, 1); iy <= max(cy, 1); iy++)
+//			for (int iz = min(cz, 1); iz <= max(cz, 1); iz++)
+//			{
+//				if (ix == 1 && iy == 1 && iz == 1) continue;
+//
+//				const int bufId = (iz*3 + iy)*3 + ix;
+//				const float4 shift{ length.x*(ix-1), length.y*(iy-1), length.z*(iz-1), 0 };
+//
+//				int myid = atomicAdd(counts + bufId, start_size.y);
+//				for (int i = 0; i < start_size.y; i++)
+//				{
+//					const int dstInd = 2*(myid         + i);
+//					const int srcInd = 2*(start_size.x + i);
+//
+//					float4 tmp1 = xyzouvwo[srcInd];// - shift;
+//					float4 tmp2 = xyzouvwo[srcInd+1];
+//
+//					float4* addr = (float4*)dests[bufId];
+//					addr[dstInd + 0] = tmp1;
+//					addr[dstInd + 1] = tmp2;
+//				}
+//			}
 }
 
 HaloExchanger::HaloExchanger(MPI_Comm& comm) : nActiveNeighbours(26)
@@ -165,7 +225,7 @@ void HaloExchanger::send(int n)
 	HaloHelper& helper = helpers[n];
 
 	const int maxdim = std::max({pv->ncells.x, pv->ncells.y, pv->ncells.z});
-	const int nthreads = 512;
+	const int nthreads = 32;
 	helper.counts.clear(helper.stream);
 
 	debug("Preparing %d-th halo on the device", n);

@@ -66,7 +66,8 @@ void computeInternalDPD(ParticleVector& pv, cudaStream_t stream)
 	const int nth = 128;
 
 	debug("Computing internal forces for %d paricles", pv.np);
-	computeSelfInteractions<<< (pv.np + nth - 1) / nth, nth, 0, stream >>>((float4*)pv.coosvels.devdata, (float*)pv.accs.devdata, pv.cellsStart.devdata,
+	computeSelfInteractions<<< (pv.np + nth - 1) / nth, nth, 0, stream >>>(
+			(float4*)pv.coosvels.devdata, (float*)pv.accs.devdata, pv.cellsStart.devdata, pv.cellsSize.devdata,
 			pv.ncells, pv.domainStart, pv.totcells+1, pv.np, dpdInt);
 }
 

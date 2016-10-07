@@ -25,14 +25,14 @@ int main(int argc, char ** argv)
 
 	// Initial cells
 
-	int l = 128;
+	int l = 96;
 	int3 ncells = {l, l, l};
 	float3 domainStart = {-ncells.x / 2.0f, -ncells.y / 2.0f, -ncells.z / 2.0f};
 	float3 length{(float)ncells.x, (float)ncells.y, (float)ncells.z};
 	ParticleVector dpds(ncells, domainStart, length);
 
 	const int ndens = 4;
-	dpds.resize(dpds.totcells*ndens);
+	dpds.resize(ncells.x*ncells.y*ncells.z * ndens);
 
 	srand48(0);
 
@@ -64,7 +64,7 @@ int main(int argc, char ** argv)
 //	HaloExchanger halo(cartComm);
 //	halo.attach(&dpds, 7);
 
-	buildCellList((float4*)dpds.coosvels.devdata, dpds.np, dpds.domainStart, dpds.ncells, 1.0f, (float4*)dpds.pingPongBuf.devdata, dpds.cellsSize.devdata, dpds.cellsStart.devdata, defStream);
+	buildCellList((float4*)dpds.coosvels.devdata, dpds.np, dpds.domainStart, dpds.ncells, dpds.totcells, 1.0f, (float4*)dpds.pingPongBuf.devdata, dpds.cellsSize.devdata, dpds.cellsStart.devdata, defStream);
 	swap(dpds.coosvels, dpds.pingPongBuf, defStream);
 	CUDA_Check( cudaStreamSynchronize(defStream) );
 
@@ -96,7 +96,9 @@ int main(int argc, char ** argv)
 
 	HostBuffer<Acceleration> hacc;
 	HostBuffer<int> hcellsstart;
+	HostBuffer<uint8_t> hcellssize;
 	hcellsstart.copy(dpds.cellsStart);
+	hcellssize.copy(dpds.cellsSize);
 	hacc.copy(dpds.accs);
 
 	dpds.coosvels.synchronize(synchronizeHost);
@@ -113,7 +115,7 @@ int main(int argc, char ** argv)
 
 
 	printf("Checking (this is not necessarily a cubic domain)......\n");
-	return 0;
+
 	std::vector<Acceleration> refAcc(hacc.size);
 
 	auto addForce = [&](int dstId, int srcId, Acceleration& a)
@@ -155,9 +157,11 @@ int main(int argc, char ** argv)
 		for (int cy = 0; cy < ncells.y; cy++)
 			for (int cz = 0; cz < ncells.z; cz++)
 			{
-				const int cid = (cz*ncells.y + cy)*ncells.x + cx;
+				const int cid = encode(cx, cy, cz, ncells);
 
-				for (int dstId = hcellsstart[cid]; dstId < hcellsstart[cid+1]; dstId++)
+				const int2 start_size = decodeStartSize(hcellsstart[cid]);
+
+				for (int dstId = start_size.x; dstId < start_size.x + start_size.y; dstId++)
 				{
 					Acceleration a {0,0,0,0};
 
@@ -165,10 +169,12 @@ int main(int argc, char ** argv)
 						for (int dy = -1; dy <= 1; dy++)
 							for (int dz = -1; dz <= 1; dz++)
 							{
-								const int srcCid = ( (cz+dz)*ncells.y + (cy+dy) ) * ncells.x + cx+dx;
+								const int srcCid = encode(cx+dx, cy+dy, cz+dz, ncells);
 								if (srcCid >= dpds.totcells || srcCid < 0) continue;
 
-								for (int srcId = hcellsstart[srcCid]; srcId < hcellsstart[srcCid+1]; srcId++)
+								const int2 srcStart_size = decodeStartSize(hcellsstart[srcCid]);
+
+								for (int srcId = srcStart_size.x; srcId < srcStart_size.x + srcStart_size.y; srcId++)
 								{
 									if (dstId != srcId)
 										addForce(dstId, srcId, a);

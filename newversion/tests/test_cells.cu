@@ -23,13 +23,13 @@ Logger logger;
 int main(int argc, char **argv)
 {
 	MPI_Init(&argc, &argv);
-	logger.init(MPI_COMM_WORLD, "cells.log", 9);
+	logger.init(MPI_COMM_WORLD, "cells.log", 0);
 
 	const int3 ncells{64, 64, 64};
 	const float3 domainStart{-ncells.x / 2.0f, -ncells.y / 2.0f, -ncells.z / 2.0f};
-	const int totcells = ncells.x*ncells.y*ncells.z;
+	const int totcells = 64*64*64;
 
-	const int ndens = 12;
+	const int ndens = 8;
 	int np = totcells*ndens;
 	PinnedBuffer<Particle>   particles(np);
 	PinnedBuffer<Particle>   out(np);
@@ -45,7 +45,7 @@ int main(int argc, char **argv)
 	for (int i=0; i<ncells.x; i++)
 		for (int j=0; j<ncells.y; j++)
 			for (int k=0; k<ncells.z; k++)
-				for (int p=0; p<ndens * drand48(); p++)
+				for (int p=0; p<ndens; p++)
 				{
 					particles[c].x[0] = i + drand48() + domainStart.x;
 					particles[c].x[1] = j + drand48() + domainStart.y;
@@ -61,15 +61,15 @@ int main(int argc, char **argv)
 	particles.resize(np);
 	particles.synchronize(synchronizeDevice, 0);
 
-	for (int i=0; i<50; i++)
-		buildCellList((float4*)particles.devdata, np, domainStart, ncells, 1.0f, (float4*)out.devdata, cellsSize.devdata, cellsStart.devdata, 0);
+	for (int i=0; i<100; i++)
+		buildCellList((float4*)particles.devdata, np, domainStart, ncells, totcells, 1.0f, (float4*)out.devdata, cellsSize.devdata, cellsStart.devdata, 0);
 
 	particles.synchronize(synchronizeHost, 0);
 	out.synchronize(synchronizeHost, 0);
 	cellsStart.synchronize(synchronizeHost, 0);
 	cellsSize.synchronize(synchronizeHost, 0);
 
-	HostBuffer<int> cellscount(totcells);
+	HostBuffer<int> cellscount(totcells+1);
 	for (int i=0; i<totcells; i++)
 		cellscount[i] = 0;
 	for (int pid=0; pid < np; pid++)
@@ -80,11 +80,15 @@ int main(int argc, char **argv)
 	}
 
 	printf("np = %d\n", np);
-//	for (int cid=0; cid < totcells+1; cid++)
-//		if ( (int)cellsSize[cid] != cellscount[cid] ) printf("cid %d:  %d (%d),  %d\n", cid, (int)cellsSize[cid], cellscount[cid], cellsStart[cid]);
+	for (int cid=0; cid < totcells+1; cid++)
+		if ( (cellsStart[cid] >> 26) != cellscount[cid] )
+			printf("cid %d:  %d (%d),  %d\n", cid, cellsStart[cid] >> 26, cellscount[cid], cellsStart[cid] & ((1<<26) - 1));
 
 	for (int cid=0; cid < totcells; cid++)
-		for (int pid=cellsStart[cid]; pid < cellsStart[cid+1]; pid++)
+	{
+		const int start = cellsStart[cid] & ((1<<26) - 1);
+		const int size = cellsStart[cid] >> 26;
+		for (int pid=start; pid < start + size; pid++)
 		{
 			const float3 coo{out[pid].x[0], out[pid].x[1], out[pid].x[2]};
 			const int origId = out[pid].i1;
@@ -96,6 +100,7 @@ int main(int argc, char **argv)
 				printf("cid  %d,  actCid  %d  for pid %d:  [%e %e %e], originally %d : [%e %e %e]\n",
 						cid, actCid, pid, coo.x, coo.y, coo.z, origId, particles[origId].x[0], particles[origId].x[1], particles[origId].x[2]);
 		}
+	}
 
 	return 0;
 }
