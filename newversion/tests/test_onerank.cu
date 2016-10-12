@@ -5,12 +5,105 @@
 #include "../core/celllist.h"
 #include "../core/dpd.h"
 #include "../core/halo_exchanger.h"
+#include "../core/redistributor.h"
 #include "../core/logger.h"
 #include "../core/integrate.h"
 
 #include <unistd.h>
 
 Logger logger;
+
+void makeCells(const Particle* __restrict__ coos, int* __restrict__ cellsStart, int* __restrict__ cellsSize,
+		int3 ncells, float3 domainStart, float rc)
+{
+
+}
+
+void forces(const Particle* __restrict__ coos, Acceleration* __restrict__ accs, const int* __restrict__ cellsStart, const int* __restrict__ cellsSize,
+		int3 ncells, int totcells, float3 domainStart, float3 length)
+{
+
+	const float dt = 0.0025;
+	const float kBT = 1.0;
+	const float gammadpd = 20;
+	const float sigma = sqrt(2 * gammadpd * kBT);
+	const float sigmaf = sigma / sqrt(dt);
+	const float aij = 50;
+
+	auto addForce = [=] (int dstId, int srcId, Acceleration& a)
+	{
+		float _xr = coos[dstId].x[0] - coos[srcId].x[0];
+		float _yr = coos[dstId].x[1] - coos[srcId].x[1];
+		float _zr = coos[dstId].x[2] - coos[srcId].x[2];
+
+		_xr = std::min({_xr, _xr - length.x, _xr + length.x});
+		_yr = std::min({_yr, _yr - length.y, _yr + length.y});
+		_zr = std::min({_zr, _zr - length.z, _zr + length.z});
+
+		const float rij2 = _xr * _xr + _yr * _yr + _zr * _zr;
+
+		if (rij2 > 1.0f) return;
+		//assert(rij2 < 1);
+
+		const float invrij = 1.0f / sqrt(rij2);
+		const float rij = rij2 * invrij;
+		const float argwr = 1.0f - rij;
+		const float wr = argwr;
+
+		const float xr = _xr * invrij;
+		const float yr = _yr * invrij;
+		const float zr = _zr * invrij;
+
+		const float rdotv =
+				xr * (coos[dstId].u[0] - coos[srcId].u[0]) +
+				yr * (coos[dstId].u[1] - coos[srcId].u[1]) +
+				zr * (coos[dstId].u[2] - coos[srcId].u[2]);
+
+		const float myrandnr = 0;//Logistic::mean0var1(1, min(srcId, dstId), max(srcId, dstId));
+
+		const float strength = aij * argwr - (gammadpd * wr * rdotv + sigmaf * myrandnr) * wr;
+
+		a.a[0] += strength * xr;
+		a.a[1] += strength * yr;
+		a.a[2] += strength * zr;
+	};
+
+#pragma omp parallel for collapse(3)
+	for (int cx = 0; cx < ncells.x; cx++)
+		for (int cy = 0; cy < ncells.y; cy++)
+			for (int cz = 0; cz < ncells.z; cz++)
+			{
+				const int cid = encode(cx, cy, cz, ncells);
+
+				for (int dstId = cellsStart[cid]; dstId < cellsStart[cid] + cellsSize[cid]; dstId++)
+				{
+					Acceleration a {0,0,0,0};
+
+					for (int dx = -1; dx <= 1; dx++)
+						for (int dy = -1; dy <= 1; dy++)
+							for (int dz = -1; dz <= 1; dz++)
+							{
+								int ncx, ncy, ncz;
+								ncx = (cx+dx + ncells.x) % ncells.x;
+								ncy = (cy+dy + ncells.y) % ncells.y;
+								ncz = (cz+dz + ncells.z) % ncells.z;
+
+								const int srcCid = encode(ncx, ncy, ncz, ncells);
+								if (srcCid >= totcells || srcCid < 0) continue;
+
+								for (int srcId = cellsStart[srcCid]; srcId < cellsStart[srcCid] + cellsSize[srcCid]; srcId++)
+								{
+									if (dstId != srcId)
+										addForce(dstId, srcId, a);
+								}
+							}
+
+					accs[dstId].a[0] = a.a[0];
+					accs[dstId].a[1] = a.a[1];
+					accs[dstId].a[2] = a.a[2];
+				}
+			}
+}
 
 int main(int argc, char ** argv)
 {
@@ -66,42 +159,54 @@ int main(int argc, char ** argv)
 					c++;
 				}
 
+
 	dpds.resize(c);
 	dpds.coosvels.synchronize(synchronizeDevice);
+	dpds.accs.clear();
+
+	HostBuffer<Particle> particles(dpds.np);
+	for (int i=0; i<dpds.np; i++)
+		particles[i] = dpds.coosvels[i];
 
 	cudaStream_t defStream;
 	CUDA_Check( cudaStreamCreateWithPriority(&defStream, cudaStreamNonBlocking, 10) );
 
 	HaloExchanger halo(cartComm);
-	halo.attach(&dpds, 7);
+	halo.attach(&dpds, ndens);
+	Redistributor redist(cartComm);
+	redist.attach(&dpds, ndens);
 
-	buildCellList((float4*)dpds.coosvels.devdata, dpds.np, dpds.domainStart, dpds.ncells, dpds.totcells, 1.0f, (float4*)dpds.pingPongBuf.devdata, dpds.cellsSize.devdata, dpds.cellsStart.devdata, defStream);
-	swap(dpds.coosvels, dpds.pingPongBuf, defStream);
+	buildCellList(dpds,defStream);
 	CUDA_Check( cudaStreamSynchronize(defStream) );
 
-	for (int i=0; i<100; i++)
-	{
-		buildCellList((float4*)dpds.coosvels.devdata, dpds.np, dpds.domainStart, dpds.ncells, dpds.totcells, 1.0f, (float4*)dpds.pingPongBuf.devdata, dpds.cellsSize.devdata, dpds.cellsStart.devdata, defStream);
-		swap(dpds.coosvels, dpds.pingPongBuf, defStream);
-		cudaStreamSynchronize(defStream);
+	const float dt = 0.001;
+	const int niters = 100;
 
+	for (int i=0; i<niters; i++)
+	{
+		dpds.accs.clear(defStream);
 		computeInternalDPD(dpds, defStream);
 
 		halo.exchangeInit();
 		halo.exchangeFinalize();
 
 		computeHaloDPD(dpds, defStream);
-		integrate(dpds, 1e-15f, defStream);
+		CUDA_Check( cudaStreamSynchronize(defStream) );
 
+		redist.redistribute(dt);
 
-		//cudaDeviceSynchronize();
+		buildCellListAndIntegrate(dpds, dt, defStream);
+		CUDA_Check( cudaStreamSynchronize(defStream) );
 
-
-
-		//cudaDeviceSynchronize();
-
-		cudaStreamSynchronize(defStream);
+		cudaDeviceSynchronize();
 	}
+
+
+	HostBuffer<Acceleration> accs(particles.size);
+
+
+
+
 
 
 

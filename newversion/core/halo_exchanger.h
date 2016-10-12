@@ -30,7 +30,6 @@ private:
 	std::vector<HaloHelper> helpers;
 
 
-	void postReceive(int vid);
 	void send(int vid);
 	void receive(int vid);
 

@@ -123,31 +123,6 @@ __global__ void getHalos(const int* __restrict__ cellsStart, const float4* __res
 			addr[dstInd + 1] = tmp2;
 		}
 	}
-
-
-//	for (int ix = min(cx, 1); ix <= max(cx, 1); ix++)
-//		for (int iy = min(cy, 1); iy <= max(cy, 1); iy++)
-//			for (int iz = min(cz, 1); iz <= max(cz, 1); iz++)
-//			{
-//				if (ix == 1 && iy == 1 && iz == 1) continue;
-//
-//				const int bufId = (iz*3 + iy)*3 + ix;
-//				const float4 shift{ length.x*(ix-1), length.y*(iy-1), length.z*(iz-1), 0 };
-//
-//				int myid = atomicAdd(counts + bufId, start_size.y);
-//				for (int i = 0; i < start_size.y; i++)
-//				{
-//					const int dstInd = 2*(myid         + i);
-//					const int srcInd = 2*(start_size.x + i);
-//
-//					float4 tmp1 = xyzouvwo[srcInd];// - shift;
-//					float4 tmp2 = xyzouvwo[srcInd+1];
-//
-//					float4* addr = (float4*)dests[bufId];
-//					addr[dstInd + 0] = tmp1;
-//					addr[dstInd + 1] = tmp2;
-//				}
-//			}
 }
 
 HaloExchanger::HaloExchanger(MPI_Comm& comm) : nActiveNeighbours(26)
@@ -246,14 +221,14 @@ void HaloExchanger::send(int n)
 		if (i != 13 && dir2rank[i] >= 0)
 		{
 			debug("Sending %d-th halo to rank %d in dircode %d, size %d", n, dir2rank[i], i, helper.counts[i]);
-			MPI_Check( MPI_Isend(helper.sendBufs[i].hostdata, helper.counts[i], mpiParticleType, dir2rank[i], 0, haloComm, &req) );
+			MPI_Check( MPI_Isend(helper.sendBufs[i].hostdata, helper.counts[i], mpiParticleType, dir2rank[i], n, haloComm, &req) );
 		}
 }
 
 void HaloExchanger::receive(int n)
 {
 	HaloHelper& helper = helpers[n];
-	auto& pv = particleVectors[n];
+	auto pv = particleVectors[n];
 
 	int cur = 0;
 	pv->halo.resize(0);
@@ -263,7 +238,7 @@ void HaloExchanger::receive(int n)
 		int recvd = 0;
 		while (recvd == 0)
 		{
-			MPI_Check( MPI_Iprobe(MPI_ANY_SOURCE, 0, haloComm, &recvd, &stat) );
+			MPI_Check( MPI_Iprobe(MPI_ANY_SOURCE, n, haloComm, &recvd, &stat) );
 			if (recvd == 0) usleep(10);
 		}
 
@@ -272,7 +247,8 @@ void HaloExchanger::receive(int n)
 
 		pv->halo.resize(pv->halo.size + msize, resizePreserve, helper.stream);
 		debug("Receiving %d-th halo from rank %d, size %d", n, stat.MPI_SOURCE, msize);
-		MPI_Check( MPI_Recv(pv->halo.hostdata+cur, msize, mpiParticleType, stat.MPI_SOURCE, 0, haloComm, &stat) );
+		MPI_Check( MPI_Recv(pv->halo.hostdata+cur, msize, mpiParticleType, stat.MPI_SOURCE, n, haloComm, &stat) );
+
 		cur += msize;
 	}
 

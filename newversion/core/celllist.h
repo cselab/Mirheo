@@ -4,8 +4,12 @@
 #include "helper_math.h"
 #include <cstdint>
 
-void buildCellList(float4* in_xyzouvwo, const int n, const float3 domainStart, const int3 ncells, const int totcells, const float invrc,
-				   float4* out_xyzouvwo, uint8_t* cellsSize, int* cellsStart, cudaStream_t stream);
+#include "containers.h"
+
+void buildCellList(ParticleVector& pv, cudaStream_t stream);
+
+void buildCellListAndIntegrate(ParticleVector& pv, float dt, cudaStream_t stream);
+
 
 // ==========================================================================================================================================
 // Morton or normal cells
@@ -85,12 +89,18 @@ __device__ __host__ __forceinline__ int getCellIdAlongAxis(const float x, const 
 		return robustV;
 }
 
-template<typename T, bool Clamp = true>
+template<bool Clamp = true, typename T>
 __device__ __host__ __forceinline__ int getCellId(const T coo, const float3 domainStart, const int3 ncells, const float invrc)
 {
 	const int ix = getCellIdAlongAxis<Clamp>(coo.x, domainStart.x, ncells.x, 1.0f);
 	const int iy = getCellIdAlongAxis<Clamp>(coo.y, domainStart.y, ncells.y, 1.0f);
 	const int iz = getCellIdAlongAxis<Clamp>(coo.z, domainStart.z, ncells.z, 1.0f);
+
+	if (!Clamp)
+	{
+		if (ix < 0 || ix >= ncells.x  ||  iy < 0 || iy >= ncells.y  ||  iz < 0 || iz >= ncells.z)
+			return -1;
+	}
 
 	return encode(ix, iy, iz, ncells);
 }

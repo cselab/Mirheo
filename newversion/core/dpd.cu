@@ -62,8 +62,7 @@ void computeInternalDPD(ParticleVector& pv, cudaStream_t stream)
 
 	cudaFuncSetCacheConfig( computeSelfInteractions<decltype(dpdInt)>, cudaFuncCachePreferL1 );
 
-	CUDA_Check( cudaMemsetAsync(pv.accs.devdata, 0, sizeof(float4)* pv.np, stream) );
-	const int nth = 128;
+	const int nth = 32 * 4;
 
 	debug("Computing internal forces for %d paricles", pv.np);
 	computeSelfInteractions<<< (pv.np + nth - 1) / nth, nth, 0, stream >>>(

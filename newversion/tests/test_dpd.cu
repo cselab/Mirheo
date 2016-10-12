@@ -25,13 +25,13 @@ int main(int argc, char ** argv)
 
 	// Initial cells
 
-	int l = 96;
+	int l = 64;
 	int3 ncells = {l, l, l};
 	float3 domainStart = {-ncells.x / 2.0f, -ncells.y / 2.0f, -ncells.z / 2.0f};
 	float3 length{(float)ncells.x, (float)ncells.y, (float)ncells.z};
 	ParticleVector dpds(ncells, domainStart, length);
 
-	const int ndens = 4;
+	const int ndens = 8;
 	dpds.resize(ncells.x*ncells.y*ncells.z * ndens);
 
 	srand48(0);
@@ -68,7 +68,7 @@ int main(int argc, char ** argv)
 	swap(dpds.coosvels, dpds.pingPongBuf, defStream);
 	CUDA_Check( cudaStreamSynchronize(defStream) );
 
-	for (int i=0; i<100; i++)
+	for (int i=0; i<50; i++)
 	{
 		//halo.exchangeInit();
 
@@ -115,6 +115,7 @@ int main(int argc, char ** argv)
 
 
 	printf("Checking (this is not necessarily a cubic domain)......\n");
+	return 0;
 
 	std::vector<Acceleration> refAcc(hacc.size);
 

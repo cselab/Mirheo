@@ -21,19 +21,19 @@ struct ParticleVector
 	{
 		int maxdim = std::max({ncells.x, ncells.y, ncells.z});
 		int minpow2 = 1;
-		while (minpow2 < maxdim) minpow2 <<= 1;
+		while (minpow2 < maxdim) minpow2 *= 2;
 		totcells = minpow2*minpow2*minpow2;
 
 		cellsStart.resize(totcells + 1);
 		cellsSize.resize(totcells + 1);
 	}
 
-	void resize(const int n, ResizeKind kind = ResizeKind::resizePreserve)
+	void resize(const int n, ResizeKind kind = ResizeKind::resizePreserve, cudaStream_t stream = 0)
 	{
 		// TODO: stream
-		coosvels.resize(n, kind);
-		pingPongBuf.resize(n, kind);
-		accs.resize(n, kind);
+		coosvels.resize(n, kind, stream);
+		pingPongBuf.resize(n, kind, stream);
+		accs.resize(n, kind, stream);
 
 		np = n;
 	}

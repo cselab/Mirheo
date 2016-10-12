@@ -12,6 +12,13 @@ __device__ __forceinline__ float3 readCoosFromAll4(const float4* xyzouvwo, int p
 	return make_float3(tmp.x, tmp.y, tmp.z);
 }
 
+__device__ __forceinline__ float3 readVelsFromAll4(const float4* xyzouvwo, int pid)
+{
+	const float4 tmp = xyzouvwo[2*pid+1];
+
+	return make_float3(tmp.x, tmp.y, tmp.z);
+}
+
 __device__ __forceinline__ void readAll4(const float4* xyzouvwo, int pid, float3& coo, float3& vel)
 {
 	const float4 tmp1 = xyzouvwo[pid*2];
@@ -32,9 +39,14 @@ __device__ __forceinline__ float distance2(const Ta a, const Tb b)
 	return sqr(a.x - b.x) + sqr(a.y - b.y) + sqr(a.z - b.z);
 }
 
+__device__ __forceinline__ float3 f4tof3(float4 v)
+{
+	return make_float3(v.x, v.y, v.z);
+}
+
 //__launch_bounds__(128, 16)
 template<typename Interaction>
-__global__ void computeSelfInteractions(const float4 * __restrict__ xyzouvwo, float* axayaz, const int * __restrict__ cellsStart, const uint8_t * __restrict__ cellsSize,
+__global__ void computeSelfInteractions(const float4 * __restrict__ xyzouvwo, float* axayaz, const int * __restrict__ cellsStart, const uint8_t * cellsSize,
 		int3 ncells, float3 domainStart, int ncells_1, int np, Interaction interaction)
 {
 	const int dstId = blockIdx.x*blockDim.x + threadIdx.x;
@@ -70,8 +82,7 @@ __global__ void computeSelfInteractions(const float4 * __restrict__ xyzouvwo, fl
 
 					if (interacting)
 					{
-						float3 srcCoo, srcVel;
-						readAll4(xyzouvwo, srcId, srcCoo, srcVel);
+						const float3 srcVel = readVelsFromAll4(xyzouvwo, srcId);
 
 						float3 frc = interaction(dstCoo, dstVel, dstId, srcCoo, srcVel, srcId);
 
@@ -91,15 +102,10 @@ __global__ void computeSelfInteractions(const float4 * __restrict__ xyzouvwo, fl
 	atomicAdd(dest + 2, dstAcc.z);
 }
 
-__device__ __forceinline__ float3 f4tof3(float4 v)
-{
-	return make_float3(v.x, v.y, v.z);
-}
-
 template<bool NeedDstAcc, bool NeedSrcAcc, typename Interaction>
-__launch_bounds__(128, 16)
+//__launch_bounds__(128, 16)
 __global__ void computeHaloInteractions(
-		const float4 * __restrict__ dstData, float* dstAccs,
+		const float4 * dstData, float* dstAccs,
 		const float4 * __restrict__ srcData, float* srcAccs,
 		const int * __restrict__ cellsStart, int3 ncells, float3 domainStart, int ncells_1, int ndst, Interaction interaction)
 {
@@ -110,7 +116,6 @@ __global__ void computeHaloInteractions(
 
 	float3 dstCoo, dstVel;
 	float3 dstAcc = make_float3(0.0f);
-	float d1, d2;
 //	readAll4(dstData, dstId, dstCoo, dstVel);
 	dstCoo = f4tof3(readNoCache(dstData+2*dstId));
 	dstVel = f4tof3(readNoCache(dstData+2*dstId+1));
@@ -136,8 +141,7 @@ __global__ void computeHaloInteractions(
 
 					if (interacting)
 					{
-						float3 srcCoo, srcVel;
-						readAll4(srcData, srcId, srcCoo, srcVel);
+						const float3 srcVel = readVelsFromAll4(srcData, srcId);
 
 						float3 frc = interaction(dstCoo, dstVel, dstId, srcCoo, srcVel, srcId);
 
@@ -178,7 +182,9 @@ __global__ void computeExternalInteractions(
 
 	float3 dstCoo, dstVel;
 	float3 dstAcc = make_float3(0.0f);
-	readAll4(dstData, dstId, dstCoo, dstVel);
+//	readAll4(dstData, dstId, dstCoo, dstVel);
+	dstCoo = f4tof3(readNoCache(dstData+2*dstId));
+	dstVel = f4tof3(readNoCache(dstData+2*dstId+1));
 
 	const int cellX0 = getCellIdAlongAxis<false>(dstCoo.x, domainStart.x, ncells.x, 1.0f);
 	const int cellY0 = getCellIdAlongAxis<false>(dstCoo.y, domainStart.y, ncells.y, 1.0f);
@@ -205,8 +211,7 @@ __global__ void computeExternalInteractions(
 
 				if (interacting)
 				{
-					float3 srcCoo, srcVel;
-					readAll4(srcData, srcId, srcCoo, srcVel);
+					const float3 srcVel = readVelsFromAll4(srcData, srcId);
 
 					float3 frc = interaction(dstCoo, dstVel, dstId, srcCoo, srcVel, srcId);
 

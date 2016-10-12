@@ -7,8 +7,9 @@ SRC_DIR = ../../core/ ../
 VPATH = $(SRC_DIR)
 NVCCFLAGS += $(addprefix -I,$(SRC_DIR))
 
-onerank_obj = scan.o celllist.o halo_exchanger.o dpd.o test_onerank.o
+onerank_obj = scan.o celllist.o halo_exchanger.o dpd.o test_onerank.o redistributor.o
 halo_obj    = scan.o celllist.o halo_exchanger.o test_halo.o
+redist_obj  = scan.o celllist.o redistributor.o test_redist.o
 log_obj     = test_logger.o
 cells_obj   = scan.o celllist.o test_cells.o
 dpd_obj     = scan.o celllist.o dpd.o test_dpd.o
@@ -29,6 +30,9 @@ test_onerank: $(onerank_obj)
 test_halo: $(halo_obj)
 	$(NVCC) $(NVCCFLAGS) $(LIBS) $^ -o $@
 	
+test_redist: $(redist_obj)
+	$(NVCC) $(NVCCFLAGS) $(LIBS) $^ -o $@
+	
 test_dpd: $(dpd_obj)
 	$(NVCC) $(NVCCFLAGS) $(LIBS) $^ -o $@
 
@@ -40,7 +44,7 @@ test_dpd: $(dpd_obj)
 	$(NVCC) $(NVCCFLAGS) -c $< -o $@
 	
 clean:
-	rm -f *.o *.d test_onerank test_halo test_logger test_cells test_dpd
+	rm -f *.o *.d test_onerank test_halo test_logger test_cells test_dpd test_redist
 	
 .PHONY: clean default
 

@@ -9,6 +9,16 @@
 
 Logger logger;
 
+Particle addShift(Particle p, float a, float b, float c)
+{
+	Particle res = p;
+	res.x[0] += a;
+	res.x[1] += b;
+	res.x[2] += c;
+
+	return res;
+}
+
 int main(int argc, char ** argv)
 {
 	// Init
@@ -66,8 +76,7 @@ int main(int argc, char ** argv)
 	HaloExchanger halo(cartComm);
 	halo.attach(&dpds, 7);
 
-	buildCellList((float4*)dpds.coosvels.devdata, dpds.np, dpds.domainStart, dpds.ncells, dpds.totcells, 1.0f, (float4*)dpds.pingPongBuf.devdata, dpds.cellsSize.devdata, dpds.cellsStart.devdata, defStream);
-	swap(dpds.coosvels, dpds.pingPongBuf, defStream);
+	buildCellList(dpds, 0);
 	CUDA_Check( cudaStreamSynchronize(defStream) );
 
 	for (int i=0; i<100; i++)
@@ -88,39 +97,39 @@ int main(int argc, char ** argv)
 		int cz = getCellIdAlongAxis(coo.z, domainStart.z, ncells.z, 1.0f);
 
 		// 6
-		if (cx == 0)          bufs[ (1*3 + 1)*3 + 0 ].push_back(p);
-		if (cx == ncells.x-1) bufs[ (1*3 + 1)*3 + 2 ].push_back(p);
-		if (cy == 0)          bufs[ (1*3 + 0)*3 + 1 ].push_back(p);
-		if (cy == ncells.y-1) bufs[ (1*3 + 2)*3 + 1 ].push_back(p);
-		if (cz == 0)          bufs[ (0*3 + 1)*3 + 1 ].push_back(p);
-		if (cz == ncells.z-1) bufs[ (2*3 + 1)*3 + 1 ].push_back(p);
+		if (cx == 0)          bufs[ (1*3 + 1)*3 + 0 ].push_back(addShift(p,  length.x,         0,         0));
+		if (cx == ncells.x-1) bufs[ (1*3 + 1)*3 + 2 ].push_back(addShift(p, -length.x,         0,         0));
+		if (cy == 0)          bufs[ (1*3 + 0)*3 + 1 ].push_back(addShift(p,         0,  length.y,         0));
+		if (cy == ncells.y-1) bufs[ (1*3 + 2)*3 + 1 ].push_back(addShift(p,         0, -length.y,         0));
+		if (cz == 0)          bufs[ (0*3 + 1)*3 + 1 ].push_back(addShift(p,         0,         0,  length.z));
+		if (cz == ncells.z-1) bufs[ (2*3 + 1)*3 + 1 ].push_back(addShift(p,         0,         0, -length.z));
 
 		// 12
-		if (cx == 0          && cy == 0)          bufs[ (1*3 + 0)*3 + 0 ].push_back(p);
-		if (cx == ncells.x-1 && cy == 0)          bufs[ (1*3 + 0)*3 + 2 ].push_back(p);
-		if (cx == 0          && cy == ncells.y-1) bufs[ (1*3 + 2)*3 + 0 ].push_back(p);
-		if (cx == ncells.x-1 && cy == ncells.y-1) bufs[ (1*3 + 2)*3 + 2 ].push_back(p);
+		if (cx == 0          && cy == 0)          bufs[ (1*3 + 0)*3 + 0 ].push_back(addShift(p,  length.x,  length.y,         0));
+		if (cx == ncells.x-1 && cy == 0)          bufs[ (1*3 + 0)*3 + 2 ].push_back(addShift(p, -length.x,  length.y,         0));
+		if (cx == 0          && cy == ncells.y-1) bufs[ (1*3 + 2)*3 + 0 ].push_back(addShift(p,  length.x, -length.y,         0));
+		if (cx == ncells.x-1 && cy == ncells.y-1) bufs[ (1*3 + 2)*3 + 2 ].push_back(addShift(p, -length.x, -length.y,         0));
 
-		if (cy == 0          && cz == 0)          bufs[ (0*3 + 0)*3 + 1 ].push_back(p);
-		if (cy == ncells.y-1 && cz == 0)          bufs[ (0*3 + 2)*3 + 1 ].push_back(p);
-		if (cy == 0          && cz == ncells.z-1) bufs[ (2*3 + 0)*3 + 1 ].push_back(p);
-		if (cy == ncells.y-1 && cz == ncells.z-1) bufs[ (2*3 + 2)*3 + 1 ].push_back(p);
+		if (cy == 0          && cz == 0)          bufs[ (0*3 + 0)*3 + 1 ].push_back(addShift(p,         0,  length.y,  length.z));
+		if (cy == ncells.y-1 && cz == 0)          bufs[ (0*3 + 2)*3 + 1 ].push_back(addShift(p,         0, -length.y,  length.z));
+		if (cy == 0          && cz == ncells.z-1) bufs[ (2*3 + 0)*3 + 1 ].push_back(addShift(p,         0,  length.y, -length.z));
+		if (cy == ncells.y-1 && cz == ncells.z-1) bufs[ (2*3 + 2)*3 + 1 ].push_back(addShift(p,         0, -length.y, -length.z));
 
 
-		if (cz == 0          && cx == 0)          bufs[ (0*3 + 1)*3 + 0 ].push_back(p);
-		if (cz == ncells.z-1 && cx == 0)          bufs[ (2*3 + 1)*3 + 0 ].push_back(p);
-		if (cz == 0          && cx == ncells.x-1) bufs[ (0*3 + 1)*3 + 2 ].push_back(p);
-		if (cz == ncells.z-1 && cx == ncells.x-1) bufs[ (2*3 + 1)*3 + 2 ].push_back(p);
+		if (cz == 0          && cx == 0)          bufs[ (0*3 + 1)*3 + 0 ].push_back(addShift(p,  length.x,         0,  length.z));
+		if (cz == ncells.z-1 && cx == 0)          bufs[ (2*3 + 1)*3 + 0 ].push_back(addShift(p,  length.x,         0, -length.z));
+		if (cz == 0          && cx == ncells.x-1) bufs[ (0*3 + 1)*3 + 2 ].push_back(addShift(p, -length.x,         0,  length.z));
+		if (cz == ncells.z-1 && cx == ncells.x-1) bufs[ (2*3 + 1)*3 + 2 ].push_back(addShift(p, -length.x,         0, -length.z));
 
 		// 8
-		if (cx == 0          && cy == 0          && cz == 0)          bufs[ (0*3 + 0)*3 + 0 ].push_back(p);
-		if (cx == 0          && cy == 0          && cz == ncells.z-1) bufs[ (2*3 + 0)*3 + 0 ].push_back(p);
-		if (cx == 0          && cy == ncells.y-1 && cz == 0)          bufs[ (0*3 + 2)*3 + 0 ].push_back(p);
-		if (cx == 0          && cy == ncells.y-1 && cz == ncells.z-1) bufs[ (2*3 + 2)*3 + 0 ].push_back(p);
-		if (cx == ncells.x-1 && cy == 0          && cz == 0)          bufs[ (0*3 + 0)*3 + 2 ].push_back(p);
-		if (cx == ncells.x-1 && cy == 0          && cz == ncells.z-1) bufs[ (2*3 + 0)*3 + 2 ].push_back(p);
-		if (cx == ncells.x-1 && cy == ncells.y-1 && cz == 0)          bufs[ (0*3 + 2)*3 + 2 ].push_back(p);
-		if (cx == ncells.x-1 && cy == ncells.y-1 && cz == ncells.z-1) bufs[ (2*3 + 2)*3 + 2 ].push_back(p);
+		if (cx == 0          && cy == 0          && cz == 0)          bufs[ (0*3 + 0)*3 + 0 ].push_back(addShift(p,  length.x,  length.y,  length.z));
+		if (cx == 0          && cy == 0          && cz == ncells.z-1) bufs[ (2*3 + 0)*3 + 0 ].push_back(addShift(p,  length.x,  length.y, -length.z));
+		if (cx == 0          && cy == ncells.y-1 && cz == 0)          bufs[ (0*3 + 2)*3 + 0 ].push_back(addShift(p,  length.x, -length.y,  length.z));
+		if (cx == 0          && cy == ncells.y-1 && cz == ncells.z-1) bufs[ (2*3 + 2)*3 + 0 ].push_back(addShift(p,  length.x, -length.y, -length.z));
+		if (cx == ncells.x-1 && cy == 0          && cz == 0)          bufs[ (0*3 + 0)*3 + 2 ].push_back(addShift(p, -length.x,  length.y,  length.z));
+		if (cx == ncells.x-1 && cy == 0          && cz == ncells.z-1) bufs[ (2*3 + 0)*3 + 2 ].push_back(addShift(p, -length.x,  length.y, -length.z));
+		if (cx == ncells.x-1 && cy == ncells.y-1 && cz == 0)          bufs[ (0*3 + 2)*3 + 2 ].push_back(addShift(p, -length.x, -length.y,  length.z));
+		if (cx == ncells.x-1 && cy == ncells.y-1 && cz == ncells.z-1) bufs[ (2*3 + 2)*3 + 2 ].push_back(addShift(p, -length.x, -length.y, -length.z));
 	}
 
 	for (int i = 0; i<27; i++)
