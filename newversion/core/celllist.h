@@ -80,13 +80,12 @@ __device__ __host__ __forceinline__ int2 decodeStartSize(int code)
 template<bool Clamp = true>
 __device__ __host__ __forceinline__ int getCellIdAlongAxis(const float x, const float start, const int ncells, const float invrc)
 {
-	const float v = invrc * (x - start);
-	const float robustV = min(min(floor(v), floor(v - 1.0e-6f)), floor(v + 1.0e-6f));
+	const float v = floor(invrc * (x - start));
 
 	if (Clamp)
-		return min(ncells - 1, max(0, (int)robustV));
+		return min(ncells - 1, max(0, (int)v));
 	else
-		return robustV;
+		return v;
 }
 
 template<bool Clamp = true, typename T>

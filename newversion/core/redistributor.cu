@@ -19,7 +19,7 @@ __global__ void getExitingParticles(const int* __restrict__ cellsStart, const fl
 	int cid;
 	int cx, cy, cz;
 
-	// Select all the boundary cells WITOUT duplicates
+	// Select all the boundary cells WITH	OUT duplicates
 	bool valid = true;
 
 	if (variant <= 1)  // x
@@ -70,7 +70,7 @@ __global__ void getExitingParticles(const int* __restrict__ cellsStart, const fl
 
 	// The following is called for every outer cell and exactly once for each
 	//
-	// Now for each cell we check every particle if it needs to move
+	// Now for each cell we check its every particle if it needs to move
 
 	int2 start_size = valid ? decodeStartSize(cellsStart[cid]) : make_int2(0, 0);
 
@@ -88,15 +88,15 @@ __global__ void getExitingParticles(const int* __restrict__ cellsStart, const fl
 		int py = getCellIdAlongAxis<false>(newcoo.y, domainStart.y, ncells.y, 1.0f);
 		int pz = getCellIdAlongAxis<false>(newcoo.z, domainStart.z, ncells.z, 1.0f);
 
-		if (px <= -1) px = 0;
+		if (px < 0) px = 0;
 		else if (px >= ncells.x) px = 2;
 		else px = 1;
 
-		if (py <= -1) py = 0;
+		if (py < 0) py = 0;
 		else if (py >= ncells.y) py = 2;
 		else py = 1;
 
-		if (pz <= -1) pz = 0;
+		if (pz < 0) pz = 0;
 		else if (pz >= ncells.z) pz = 2;
 		else pz = 1;
 
@@ -251,7 +251,7 @@ void Redistributor::receive(int n)
 		while (recvd == 0)
 		{
 			MPI_Check( MPI_Iprobe(MPI_ANY_SOURCE, n, redComm, &recvd, &stat) );
-			//if (recvd == 0) usleep(10);
+			if (recvd == 0) usleep(10);
 		}
 
 		int msize;
@@ -276,6 +276,7 @@ void Redistributor::receive(int n)
 
 	int oldsize = pv->np;
 	pv->resize(oldsize + total, resizePreserve, helper.stream);
+	pv->received = total;
 
 	CUDA_Check( cudaMemcpyAsync(pv->coosvels.devdata + oldsize, helper.recvPartBuf.hostdata, total*sizeof(Particle),     cudaMemcpyHostToDevice, helper.stream) );
 	CUDA_Check( cudaMemcpyAsync(pv->accs.    devdata + oldsize, helper.recvAccBuf. hostdata, total*sizeof(Acceleration), cudaMemcpyHostToDevice, helper.stream) );

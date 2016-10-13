@@ -14,7 +14,7 @@ __global__ void blendStartSize(uchar4* cellsSize, int4* cellsStart, const int to
 }
 
 template<typename Transform>
-__global__ void computeCellSizesWithTimeIntegration(const float4* xyzouvwo, const int n,
+__global__ void computeCellSizesWithTimeIntegration(const float4* xyzouvwo, const int n, const int nMovable,
 		const float3 domainStart, const int3 ncells, const float invrc, Transform transform, uint* cellsSize)
 {
 	const int gid = blockIdx.x * blockDim.x + threadIdx.x;
@@ -24,7 +24,11 @@ __global__ void computeCellSizesWithTimeIntegration(const float4* xyzouvwo, cons
 	float4 vel = xyzouvwo[gid*2+1];
 	transform(coo, vel, gid);
 
-	const int cid = getCellId<false>(coo, domainStart, ncells, invrc);
+	int cid;
+	if (gid < nMovable)
+		cid = getCellId<false>(coo, domainStart, ncells, invrc);
+	else
+		cid = getCellId(coo, domainStart, ncells, invrc);
 
 	// No atomic for chars
 	// Workaround: pad zeros around char in proper position and add as int
@@ -40,7 +44,7 @@ __global__ void computeCellSizesWithTimeIntegration(const float4* xyzouvwo, cons
 }
 
 template<typename Transform>
-__global__ void rearrangeAndIntegrate(const float4* in_xyzouvwo, const int n, const float3 domainStart, const int3 ncells,
+__global__ void rearrangeAndIntegrate(const float4* in_xyzouvwo, const int n, const int nMovable, const float3 domainStart, const int3 ncells,
 		const float invrc, uint* cellsSize, int* cellsStart, Transform transform, float4* out_xyzouvwo)
 {
 	const int gid = blockIdx.x * blockDim.x + threadIdx.x;
@@ -69,7 +73,10 @@ __global__ void rearrangeAndIntegrate(const float4* in_xyzouvwo, const int n, co
 		// val is coordinate, othval is corresponding velocity
 		transform(val, othval, pid);
 
-		cid = getCellId<false>(val, domainStart, ncells, invrc);
+		if (pid < nMovable)
+			cid = getCellId<false>(val, domainStart, ncells, invrc);
+		else
+			cid = getCellId(val, domainStart, ncells, invrc);
 
 		if (cid >= 0)
 		{
@@ -124,21 +131,21 @@ void buildCellListAndIntegrate(ParticleVector& pv, float dt, cudaStream_t stream
 	};
 
 	// Compute cell sizes
-	debug("Computing cell sizes for %d particles", pv.np);
+	debug("Computing cell sizes for %d particles with %d newcomers", pv.np, pv.received);
 	CUDA_Check( cudaMemsetAsync(pv.cellsSize.devdata, 0, (pv.totcells + 1)*sizeof(uint8_t), stream) );  // +1 to have correct cellsStart[totcells]
 	computeCellSizesWithTimeIntegration<<< (pv.np+127)/128, 128, 0, stream >>> (
-			(float4*)pv.coosvels.devdata, pv.np, pv.domainStart, pv.ncells, 1.0f, integrate, (uint*)pv.cellsSize.devdata);
+			(float4*)pv.coosvels.devdata, pv.np, pv.np - pv.received, pv.domainStart, pv.ncells, 1.0f, integrate, (uint*)pv.cellsSize.devdata);
 
 	// Scan to get cell starts
 	scan(pv.cellsSize.devdata, pv.totcells+1, pv.cellsStart.devdata, stream);
 
 	// Blend size and start together
-	blendStartSize<<< (pv.totcells/4 + 127) / 128, 128, 0, stream >>>((uchar4*)pv.cellsSize.devdata, (int4*)pv.cellsStart.devdata, pv.totcells);
+	blendStartSize<<< ((pv.totcells+3)/4 + 127) / 128, 128, 0, stream >>>((uchar4*)pv.cellsSize.devdata, (int4*)pv.cellsStart.devdata, pv.totcells);
 
 	// Rearrange the data
 	debug("Rearranging and integrating %d particles", pv.np);
 	rearrangeAndIntegrate<<< (2*pv.np+127)/128, 128, 0, stream >>> (
-			(float4*)pv.coosvels.devdata, pv.np, pv.domainStart, pv.ncells, 1.0f,
+			(float4*)pv.coosvels.devdata, pv.np, pv.np - pv.received, pv.domainStart, pv.ncells, 1.0f,
 			(uint*)pv.cellsSize.devdata, pv.cellsStart.devdata, integrate, (float4*)pv.pingPongBuf.devdata);
 	debug("Rearranging completed");
 

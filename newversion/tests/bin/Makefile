@@ -1,5 +1,5 @@
 NVCC = nvcc
-NVCCFLAGS = -std=c++11 -arch=compute_61 -code=sm_61 -O3 -DNDEBUG --use_fast_math -g -lineinfo --expt-extended-lambda
+NVCCFLAGS = -std=c++11 -arch=compute_61 -code=sm_61 -O3 -DNDEBUG --use_fast_math -g -lineinfo --expt-extended-lambda -Xcompiler " -fopenmp"
 
 LIBS = -lmpi
 

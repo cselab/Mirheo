@@ -14,6 +14,7 @@ struct ParticleVector
 	float3 domainStart, length; // assume 0,0,0 is center of the local domain
 	int3 ncells;
 	int totcells;
+	int received;
 
 	PinnedBuffer<Particle>	   halo;
 

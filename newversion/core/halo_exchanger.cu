@@ -239,7 +239,7 @@ void HaloExchanger::receive(int n)
 		while (recvd == 0)
 		{
 			MPI_Check( MPI_Iprobe(MPI_ANY_SOURCE, n, haloComm, &recvd, &stat) );
-			if (recvd == 0) usleep(10);
+			//if (recvd == 0) usleep(10);
 		}
 
 		int msize;

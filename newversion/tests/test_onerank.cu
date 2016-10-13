@@ -9,15 +9,74 @@
 #include "../core/logger.h"
 #include "../core/integrate.h"
 
+#include "timer.h"
 #include <unistd.h>
 
 Logger logger;
 
-void makeCells(const Particle* __restrict__ coos, int* __restrict__ cellsStart, int* __restrict__ cellsSize,
-		int3 ncells, float3 domainStart, float rc)
+void makeCells(Particle*& __restrict__ coos, Particle*& __restrict__ buffer, int* __restrict__ cellsStart, int* __restrict__ cellsSize,
+		int np, int3 ncells, int totcells, float3 domainStart, float invrc)
 {
+	for (int i=0; i<totcells+1; i++)
+		cellsSize[i] = 0;
 
+	for (int i=0; i<np; i++)
+		cellsSize[getCellId(float3{coos[i].x[0], coos[i].x[1], coos[i].x[2]}, domainStart, ncells, invrc)]++;
+
+	cellsStart[0] = 0;
+	for (int i=1; i<=totcells; i++)
+		cellsStart[i] = cellsSize[i-1] + cellsStart[i-1];
+
+	for (int i=0; i<np; i++)
+	{
+		const int cid = getCellId(float3{coos[i].x[0], coos[i].x[1], coos[i].x[2]}, domainStart, ncells, invrc);
+		buffer[cellsStart[cid]] = coos[i];
+		cellsStart[cid]++;
+	}
+
+	for (int i=0; i<totcells; i++)
+		cellsStart[i] -= cellsSize[i];
+
+	std::swap(coos, buffer);
 }
+
+void integrate(Particle* __restrict__ coos, Acceleration* __restrict__ accs, int np, float dt, float3 domainStart, float3 length)
+{
+	for (int i=0; i<np; i++)
+	{
+		coos[i].u[0] += accs[i].a[0]*dt;
+		coos[i].u[1] += accs[i].a[1]*dt;
+		coos[i].u[2] += accs[i].a[2]*dt;
+
+		coos[i].x[0] += coos[i].u[0]*dt;
+		coos[i].x[1] += coos[i].u[1]*dt;
+		coos[i].x[2] += coos[i].u[2]*dt;
+
+		if (coos[i].x[0] >  domainStart.x+length.x) coos[i].x[0] -= length.x;
+		if (coos[i].x[0] <= domainStart.x)          coos[i].x[0] += length.x;
+
+		if (coos[i].x[1] >  domainStart.y+length.y) coos[i].x[1] -= length.y;
+		if (coos[i].x[1] <= domainStart.y)          coos[i].x[1] += length.y;
+
+		if (coos[i].x[2] >  domainStart.z+length.z) coos[i].x[2] -= length.z;
+		if (coos[i].x[2] <= domainStart.z)          coos[i].x[2] += length.z;
+	}
+}
+
+
+template<typename T>
+T minabs(T arg)
+{
+	return arg;
+}
+
+template<typename T, typename... Args>
+T minabs(T arg, Args... other)
+{
+	const T v = minabs(other...	);
+	return (std::abs(arg) < std::abs(v)) ? arg : v;
+}
+
 
 void forces(const Particle* __restrict__ coos, Acceleration* __restrict__ accs, const int* __restrict__ cellsStart, const int* __restrict__ cellsSize,
 		int3 ncells, int totcells, float3 domainStart, float3 length)
@@ -36,9 +95,9 @@ void forces(const Particle* __restrict__ coos, Acceleration* __restrict__ accs, 
 		float _yr = coos[dstId].x[1] - coos[srcId].x[1];
 		float _zr = coos[dstId].x[2] - coos[srcId].x[2];
 
-		_xr = std::min({_xr, _xr - length.x, _xr + length.x});
-		_yr = std::min({_yr, _yr - length.y, _yr + length.y});
-		_zr = std::min({_zr, _zr - length.z, _zr + length.z});
+		_xr = minabs(_xr, _xr - length.x, _xr + length.x);
+		_yr = minabs(_yr, _yr - length.y, _yr + length.y);
+		_zr = minabs(_zr, _zr - length.z, _zr + length.z);
 
 		const float rij2 = _xr * _xr + _yr * _yr + _zr * _zr;
 
@@ -95,6 +154,8 @@ void forces(const Particle* __restrict__ coos, Acceleration* __restrict__ accs, 
 								{
 									if (dstId != srcId)
 										addForce(dstId, srcId, a);
+
+									//printf("%d  %f %f %f\n", dstId, a.a[0], a.a[1], a.a[2]);
 								}
 							}
 
@@ -110,7 +171,7 @@ int main(int argc, char ** argv)
 	// Init
 
 	int nranks, rank;
-	int ranks[] = {1, 1, 1};
+	int ranks[] = {2, 1, 1};
 	int periods[] = {1, 1, 1};
 	MPI_Comm cartComm;
 
@@ -122,7 +183,7 @@ int main(int argc, char ** argv)
 	    MPI_Abort(MPI_COMM_WORLD, 1);
 	}
 
-	logger.init(MPI_COMM_WORLD, "onerank.log", 9);
+	logger.init(MPI_COMM_WORLD, "onerank.log", 0);
 
 	MPI_Check( MPI_Comm_size(MPI_COMM_WORLD, &nranks) );
 	MPI_Check( MPI_Comm_rank(MPI_COMM_WORLD, &rank) );
@@ -130,7 +191,7 @@ int main(int argc, char ** argv)
 
 	// Initial cells
 
-	int3 ncells = {64, 64, 64};
+	int3 ncells = {48, 48, 48};
 	float3 domainStart = {-ncells.x / 2.0f, -ncells.y / 2.0f, -ncells.z / 2.0f};
 	float3 length{(float)ncells.x, (float)ncells.y, (float)ncells.z};
 	ParticleVector dpds(ncells, domainStart, length);
@@ -153,9 +214,9 @@ int main(int argc, char ** argv)
 					dpds.coosvels[c].x[2] = k + drand48() + domainStart.z;
 					dpds.coosvels[c].i1 = c;
 
-					dpds.coosvels[c].u[0] = drand48() - 0.5;
-					dpds.coosvels[c].u[1] = drand48() - 0.5;
-					dpds.coosvels[c].u[2] = drand48() - 0.5;
+					dpds.coosvels[c].u[0] = 0*(drand48() - 0.5);
+					dpds.coosvels[c].u[1] = 0*(drand48() - 0.5);
+					dpds.coosvels[c].u[2] = 0*(drand48() - 0.5);
 					c++;
 				}
 
@@ -179,8 +240,13 @@ int main(int argc, char ** argv)
 	buildCellList(dpds,defStream);
 	CUDA_Check( cudaStreamSynchronize(defStream) );
 
-	const float dt = 0.001;
-	const int niters = 100;
+	const float dt = 0.002;
+	const int niters = 200;
+
+	printf("GPU execution\n");
+
+	Timer tm;
+	tm.start();
 
 	for (int i=0; i<niters; i++)
 	{
@@ -197,19 +263,77 @@ int main(int argc, char ** argv)
 
 		buildCellListAndIntegrate(dpds, dt, defStream);
 		CUDA_Check( cudaStreamSynchronize(defStream) );
+	}
 
-		cudaDeviceSynchronize();
+	double elapsed = tm.elapsed() * 1e-9;
+
+	printf("Finished in %f s, 1 step took %f ms\n", elapsed, elapsed / niters * 1000.0);
+
+
+	return 0;
+
+	int np = particles.size;
+	int totcells = dpds.totcells;
+
+	HostBuffer<Particle> buffer(np);
+	HostBuffer<Acceleration> accs(np);
+	HostBuffer<int>   cellsStart(totcells+1), cellsSize(totcells+1);
+
+	printf("CPU execution\n");
+
+	for (int i=0; i<niters; i++)
+	{
+		printf("%d...", i);
+		fflush(stdout);
+		makeCells(particles.hostdata, buffer.hostdata, cellsStart.hostdata, cellsSize.hostdata, np, ncells, totcells, domainStart, 1.0f);
+		forces(particles.hostdata, accs.hostdata, cellsStart.hostdata, cellsSize.hostdata, ncells, totcells, domainStart, length);
+		integrate(particles.hostdata, accs.hostdata, np, dt, domainStart, length);
+	}
+
+	printf("\nDone, checking\n");
+	printf("NP:  %d,  ref  %d\n", dpds.np, np);
+
+
+	dpds.coosvels.synchronize(synchronizeHost);
+
+	std::vector<int> gpuid(np), cpuid(np);
+	for (int i=0; i<np; i++)
+	{
+		gpuid[dpds.coosvels[i].i1] = i;
+		cpuid[particles[i].i1] = i;
 	}
 
 
-	HostBuffer<Acceleration> accs(particles.size);
+	double l2 = 0, linf = -1;
 
+	for (int i=0; i<np; i++)
+	{
+		Particle cpuP = particles[cpuid[i]];
+		Particle gpuP = dpds.coosvels[gpuid[i]];
 
+		double perr = -1;
+		for (int c=0; c<3; c++)
+		{
+			const double err = fabs(cpuP.x[c] - gpuP.x[c]) + fabs(cpuP.u[c] - gpuP.u[c]);
+			linf = max(linf, err);
+			perr = max(perr, err);
+			l2 += err * err;
+		}
 
+		if (argc > 1 && perr > 0.01)
+		{
+			printf("id %8d diff %8e  [%12f %12f %12f  %8d] [%12f %12f %12f]\n"
+				   "                           ref [%12f %12f %12f  %8d] [%12f %12f %12f] \n\n", i, perr,
+					gpuP.x[0], gpuP.x[1], gpuP.x[2], gpuP.i1,
+					gpuP.u[0], gpuP.u[1], gpuP.u[2],
+					cpuP.x[0], cpuP.x[1], cpuP.x[2], cpuP.i1,
+					cpuP.u[0], cpuP.u[1], cpuP.u[2]);
+		}
+	}
 
-
-
-
+	l2 = sqrt(l2 / dpds.np);
+	printf("L2   norm: %f\n", l2);
+	printf("Linf norm: %f\n", linf);
 
 	return 0;
 }

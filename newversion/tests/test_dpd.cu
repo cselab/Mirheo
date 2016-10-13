@@ -61,29 +61,15 @@ int main(int argc, char ** argv)
 	cudaStream_t defStream;
 	CUDA_Check( cudaStreamCreateWithPriority(&defStream, cudaStreamNonBlocking, 10) );
 
-//	HaloExchanger halo(cartComm);
-//	halo.attach(&dpds, 7);
-
-	buildCellList((float4*)dpds.coosvels.devdata, dpds.np, dpds.domainStart, dpds.ncells, dpds.totcells, 1.0f, (float4*)dpds.pingPongBuf.devdata, dpds.cellsSize.devdata, dpds.cellsStart.devdata, defStream);
-	swap(dpds.coosvels, dpds.pingPongBuf, defStream);
+	buildCellList(dpds, defStream);
 	CUDA_Check( cudaStreamSynchronize(defStream) );
 
 	for (int i=0; i<50; i++)
 	{
-		//halo.exchangeInit();
-
-		//cudaDeviceSynchronize();
-
+		dpds.accs.clear(defStream);
 		computeInternalDPD(dpds, defStream);
-		//computeHaloDPD(dpds, defStream);
-		//buildCellList((float4*)dpds.coosvels.devdata, dpds.np, dpds.domainStart, dpds.ncells, 1.0f, (float4*)dpds.pingPongBuf.devdata, dpds.cellsSize.devdata, dpds.cellsStart.devdata, defStream);
-		//swap(dpds.coosvels, dpds.pingPongBuf, defStream);
-
-		//halo.exchangeFinalize();
 
 		cudaDeviceSynchronize();
-
-		//cudaStreamSynchronize(defStream);
 	}
 
 	const float dt = 0.0025;
@@ -115,7 +101,6 @@ int main(int argc, char ** argv)
 
 
 	printf("Checking (this is not necessarily a cubic domain)......\n");
-	return 0;
 
 	std::vector<Acceleration> refAcc(hacc.size);
 
