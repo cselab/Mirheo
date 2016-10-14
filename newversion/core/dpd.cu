@@ -67,7 +67,7 @@ void computeInternalDPD(ParticleVector& pv, cudaStream_t stream)
 	debug("Computing internal forces for %d paricles", pv.np);
 	computeSelfInteractions<<< (pv.np + nth - 1) / nth, nth, 0, stream >>>(
 			(float4*)pv.coosvels.devdata, (float*)pv.accs.devdata, pv.cellsStart.devdata, pv.cellsSize.devdata,
-			pv.ncells, pv.domainStart, pv.totcells+1, pv.np, dpdInt);
+			pv.ncells, pv.domainStart, pv.ncells.x*pv.ncells.y*pv.ncells.z+1, pv.np, dpdInt);
 }
 
 void computeHaloDPD(ParticleVector& pv, cudaStream_t stream)

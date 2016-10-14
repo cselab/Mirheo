@@ -14,7 +14,7 @@ void buildCellListAndIntegrate(ParticleVector& pv, float dt, cudaStream_t stream
 // ==========================================================================================================================================
 // Morton or normal cells
 // ==========================================================================================================================================
-#define __MORTON__
+//#define __MORTON__
 
 #ifdef __MORTON__
 __device__ __host__ inline int getThirdBits(const int m)
@@ -56,7 +56,7 @@ __device__ __host__ int3 inline decode(int code, int3 ncells)
 }
 #else
 
-__device__ __host__ __forceinline__ float encode(int ix, int iy, int iz, int3 ncells)
+__device__ __host__ __forceinline__ int encode(int ix, int iy, int iz, int3 ncells)
 {
 	return (iz*ncells.y + iy)*ncells.x + ix;
 }

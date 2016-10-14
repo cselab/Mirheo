@@ -170,8 +170,11 @@ int main(int argc, char ** argv)
 {
 	// Init
 
+	if (argc != 4)
+		die("Need 3 command line arguments")
+
 	int nranks, rank;
-	int ranks[] = {1, 1, 1};
+	int ranks[] = {2, 1, 1};
 	int periods[] = {1, 1, 1};
 	MPI_Comm cartComm;
 
@@ -183,7 +186,7 @@ int main(int argc, char ** argv)
 	    MPI_Abort(MPI_COMM_WORLD, 1);
 	}
 
-	logger.init(MPI_COMM_WORLD, "onerank.log", 0);
+	logger.init(MPI_COMM_WORLD, "manyranks.log", 4);
 
 	MPI_Check( MPI_Comm_size(MPI_COMM_WORLD, &nranks) );
 	MPI_Check( MPI_Comm_rank(MPI_COMM_WORLD, &rank) );
@@ -191,7 +194,7 @@ int main(int argc, char ** argv)
 
 	// Initial cells
 
-	int3 ncells = {64, 64, 64};
+	int3 ncells = {48, 48, 48};
 	float3 domainStart = {-ncells.x / 2.0f, -ncells.y / 2.0f, -ncells.z / 2.0f};
 	float3 length{(float)ncells.x, (float)ncells.y, (float)ncells.z};
 	ParticleVector dpds(ncells, domainStart, length);
@@ -240,8 +243,8 @@ int main(int argc, char ** argv)
 	buildCellList(dpds,defStream);
 	CUDA_Check( cudaStreamSynchronize(defStream) );
 
-	const float dt = 0.005;
-	const int niters = 500;
+	const float dt = 0.002;
+	const int niters = 200;
 
 	printf("GPU execution\n");
 
@@ -270,7 +273,7 @@ int main(int argc, char ** argv)
 	printf("Finished in %f s, 1 step took %f ms\n", elapsed, elapsed / niters * 1000.0);
 
 
-	if (argc < 2) return 0;
+	return 0;
 
 	int np = particles.size;
 	int totcells = dpds.totcells;
@@ -320,7 +323,7 @@ int main(int argc, char ** argv)
 			l2 += err * err;
 		}
 
-		if (argc > 2 && perr > 0.01)
+		if (argc > 1 && perr > 0.01)
 		{
 			printf("id %8d diff %8e  [%12f %12f %12f  %8d] [%12f %12f %12f]\n"
 				   "                           ref [%12f %12f %12f  %8d] [%12f %12f %12f] \n\n", i, perr,

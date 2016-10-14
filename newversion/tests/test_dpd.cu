@@ -64,7 +64,7 @@ int main(int argc, char ** argv)
 	buildCellList(dpds, defStream);
 	CUDA_Check( cudaStreamSynchronize(defStream) );
 
-	for (int i=0; i<50; i++)
+	for (int i=0; i<1000; i++)
 	{
 		dpds.accs.clear(defStream);
 		computeInternalDPD(dpds, defStream);
@@ -179,15 +179,19 @@ int main(int argc, char ** argv)
 	for (int i=0; i<dpds.np; i++)
 	{
 		double perr = -1;
+
+		double toterr = 0;
 		for (int c=0; c<3; c++)
 		{
 			const double err = fabs(refAcc[i].a[c] - hacc[i].a[c]);
+			toterr += err;
 			linf = max(linf, err);
 			perr = max(perr, err);
 			l2 += err * err;
 		}
 
-		if (argc > 1 && perr > 0.1)
+		if (argc > 1 && (perr > 0.1 || std::isnan(toterr)))
+
 		{
 			printf("id %d,  %12f %12f %12f     ref %12f %12f %12f    diff   %12f %12f %12f\n", i,
 				hacc[i].a[0], hacc[i].a[1], hacc[i].a[2],

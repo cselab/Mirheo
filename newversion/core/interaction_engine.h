@@ -44,8 +44,8 @@ __device__ __forceinline__ float3 f4tof3(float4 v)
 	return make_float3(v.x, v.y, v.z);
 }
 
-//__launch_bounds__(128, 16)
 template<typename Interaction>
+__launch_bounds__(128, 16)
 __global__ void computeSelfInteractions(const float4 * __restrict__ xyzouvwo, float* axayaz, const int * __restrict__ cellsStart, const uint8_t * cellsSize,
 		int3 ncells, float3 domainStart, int ncells_1, int np, Interaction interaction)
 {
@@ -60,9 +60,10 @@ __global__ void computeSelfInteractions(const float4 * __restrict__ xyzouvwo, fl
 	const int cellY0 = getCellIdAlongAxis(dstCoo.y, domainStart.y, ncells.y, 1.0f);
 	const int cellZ0 = getCellIdAlongAxis(dstCoo.z, domainStart.z, ncells.z, 1.0f);
 
-	for (int cellX = cellX0-1; cellX <= cellX0+1; cellX++)
+	for (int cellZ = cellZ0-1; cellZ <= cellZ0+1; cellZ++)
 		for (int cellY = cellY0-1; cellY <= cellY0; cellY++)
-			for (int cellZ = cellZ0-1; cellZ <= cellZ0+1; cellZ++)
+#ifdef __MORTON__
+			for (int cellX = cellX0-1; cellX <= cellX0+1; cellX++)
 			{
 				if ( !(cellX >= 0 && cellX < ncells.x && cellY >= 0 && cellY < ncells.y && cellZ >= 0 && cellZ < ncells.z) ) continue;
 				if ( cellY == cellY0 && cellZ > cellZ0) continue;
@@ -71,8 +72,25 @@ __global__ void computeSelfInteractions(const float4 * __restrict__ xyzouvwo, fl
 				const int cid = encode(cellX, cellY, cellZ, ncells);
 
 				const int2 start_size = decodeStartSize(cellsStart[cid]);
+#else
+			{
+				if ( !(cellY >= 0 && cellY < ncells.y && cellZ >= 0 && cellZ < ncells.z) ) continue;
+				if (cellY == cellY0 && cellZ > cellZ0) continue;
 
-#pragma unroll 2
+				const int midCellId = encode(cellX0, cellY, cellZ, ncells);
+				int rowStart  = max(midCellId-1, 0);
+				int rowEnd    = min(midCellId+2, ncells_1);
+
+				if ( cellY == cellY0 && cellZ == cellZ0 ) rowEnd = midCellId + 1; // this row is already partly covered
+
+				const int2 pstart = decodeStartSize(cellsStart[rowStart]);
+				const int2 pend   = decodeStartSize(cellsStart[rowEnd]);
+
+				const int2 start_size = make_int2(pstart.x, pend.x - pstart.x);
+#endif
+
+
+#pragma unroll 4
 				for (int srcId = start_size.x; srcId < start_size.x + start_size.y; srcId ++)
 				{
 					const float3 srcCoo = readCoosFromAll4(xyzouvwo, srcId);
