@@ -90,7 +90,7 @@ __global__ void computeSelfInteractions(const float4 * __restrict__ xyzouvwo, fl
 #endif
 
 
-#pragma unroll 4
+#pragma unroll 2
 				for (int srcId = start_size.x; srcId < start_size.x + start_size.y; srcId ++)
 				{
 					const float3 srcCoo = readCoosFromAll4(xyzouvwo, srcId);

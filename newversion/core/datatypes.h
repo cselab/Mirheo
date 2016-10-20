@@ -68,7 +68,7 @@ struct DeviceBuffer
 		size = n;
 		if (capacity >= n) return;
 
-		const int conservative_estimate = (int)ceil(1.1 * n);
+		const int conservative_estimate = (int)ceil(1.1 * n + 10);
 		capacity = 128 * ((conservative_estimate + 129) / 128);
 
 		CUDA_Check(cudaMalloc(&devdata, sizeof(T) * capacity));
@@ -128,7 +128,7 @@ struct PinnedBuffer
 		size = n;
 		if (capacity >= n) return;
 
-		const int conservative_estimate = (int)ceil(1.1 * n);
+		const int conservative_estimate = (int)ceil(1.1 * n + 10);
 		capacity = 128 * ((conservative_estimate + 129) / 128);
 
 		CUDA_Check(cudaHostAlloc(&hostdata, sizeof(T) * capacity, 0));
@@ -157,6 +157,7 @@ struct PinnedBuffer
 
 	T& operator[](const int i)
 	{
+		assert(0 <= i && i < size);
 		return hostdata[i];
 	}
 
@@ -207,7 +208,7 @@ struct HostBuffer
 		size = n;
 		if (capacity >= n) return;
 
-		const int conservative_estimate = (int)ceil(1.1 * n);
+		const int conservative_estimate = (int)ceil(1.1 * n + 10);
 		capacity = 128 * ((conservative_estimate + 129) / 128);
 
 		hostdata = (T*) malloc(sizeof(T) * capacity);
@@ -222,6 +223,7 @@ struct HostBuffer
 
 	T& operator[](const int i)
 	{
+		assert(0 <= i && i < size);
 		return hostdata[i];
 	}
 

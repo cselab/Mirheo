@@ -18,7 +18,7 @@ struct ParticleVector
 
 	PinnedBuffer<Particle>	   halo;
 
-	ParticleVector(int3 ncells, float3 domainStart, float3 length) : ncells(ncells), domainStart(domainStart), length(length)
+	ParticleVector(int3 ncells, float3 domainStart, float3 length) : ncells(ncells), domainStart(domainStart), length(length), received(0)
 	{
 		int maxdim = std::max({ncells.x, ncells.y, ncells.z});
 		int minpow2 = 1;

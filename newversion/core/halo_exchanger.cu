@@ -138,7 +138,7 @@ HaloExchanger::HaloExchanger(MPI_Comm& comm) : nActiveNeighbours(26)
 
 	for(int i = 0; i < 27; ++i)
 	{
-		int d[3] = { i%3, (i/3) % 3, i/9 };
+		int d[3] = { i%3 - 1, (i/3) % 3 - 1, i/9 - 1 };
 
 		int coordsNeigh[3];
 		for(int c = 0; c < 3; ++c)
@@ -220,7 +220,7 @@ void HaloExchanger::send(int n)
 	for (int i=0; i<27; i++)
 		if (i != 13 && dir2rank[i] >= 0)
 		{
-			debug("Sending %d-th halo to rank %d in dircode %d, size %d", n, dir2rank[i], i, helper.counts[i]);
+			debug("Sending %d-th halo to rank %d in dircode %d [%2d %2d %2d], size %d", n, dir2rank[i], i, i%3 - 1, (i/3)%3 - 1, i/9 - 1, helper.counts[i]);
 			MPI_Check( MPI_Isend(helper.sendBufs[i].hostdata, helper.counts[i], mpiParticleType, dir2rank[i], n, haloComm, &req) );
 		}
 }
@@ -239,7 +239,7 @@ void HaloExchanger::receive(int n)
 		while (recvd == 0)
 		{
 			MPI_Check( MPI_Iprobe(MPI_ANY_SOURCE, n, haloComm, &recvd, &stat) );
-			//if (recvd == 0) usleep(10);
+			if (recvd == 0) usleep(25);
 		}
 
 		int msize;

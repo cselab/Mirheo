@@ -14,7 +14,7 @@ __global__ void blendStartSize(uchar4* cellsSize, int4* cellsStart, const int to
 }
 
 template<typename Transform>
-__global__ void computeCellSizesWithTimeIntegration(const float4* xyzouvwo, const int n, const int nMovable,
+__global__ void computeCellSizesBeforeTimeIntegration(const float4* xyzouvwo, const int n, const int nMovable,
 		const float3 domainStart, const int3 ncells, const float invrc, Transform transform, uint* cellsSize)
 {
 	const int gid = blockIdx.x * blockDim.x + threadIdx.x;
@@ -133,7 +133,7 @@ void buildCellListAndIntegrate(ParticleVector& pv, float dt, cudaStream_t stream
 	// Compute cell sizes
 	debug("Computing cell sizes for %d particles with %d newcomers", pv.np, pv.received);
 	CUDA_Check( cudaMemsetAsync(pv.cellsSize.devdata, 0, (pv.totcells + 1)*sizeof(uint8_t), stream) );  // +1 to have correct cellsStart[totcells]
-	computeCellSizesWithTimeIntegration<<< (pv.np+127)/128, 128, 0, stream >>> (
+	computeCellSizesBeforeTimeIntegration<<< (pv.np+127)/128, 128, 0, stream >>> (
 			(float4*)pv.coosvels.devdata, pv.np, pv.np - pv.received, pv.domainStart, pv.ncells, 1.0f, integrate, (uint*)pv.cellsSize.devdata);
 
 	// Scan to get cell starts

@@ -241,7 +241,7 @@ int main(int argc, char ** argv)
 	CUDA_Check( cudaStreamSynchronize(defStream) );
 
 	const float dt = 0.005;
-	const int niters = 500;
+	const int niters = 3000;
 
 	printf("GPU execution\n");
 

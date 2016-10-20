@@ -1,5 +1,5 @@
 NVCC = nvcc
-NVCCFLAGS = -std=c++11 -arch=compute_61 -code=sm_61 -O3 -DNDEBUG --use_fast_math -g -lineinfo --expt-extended-lambda -Xcompiler " -fopenmp"
+NVCCFLAGS = -std=c++11 -arch=compute_61 -code=sm_61 -O3 --use_fast_math -g -lineinfo --expt-extended-lambda -Xcompiler " -fopenmp"
 
 LIBS = -lmpi
 
@@ -8,6 +8,7 @@ VPATH = $(SRC_DIR)
 NVCCFLAGS += $(addprefix -I,$(SRC_DIR))
 
 onerank_obj = scan.o celllist.o halo_exchanger.o dpd.o test_onerank.o redistributor.o
+manyranks_obj = scan.o celllist.o halo_exchanger.o dpd.o test_manyranks.o redistributor.o
 halo_obj    = scan.o celllist.o halo_exchanger.o test_halo.o
 redist_obj  = scan.o celllist.o redistributor.o test_redist.o
 log_obj     = test_logger.o
@@ -25,6 +26,9 @@ test_logger: $(log_obj)
 	$(NVCC) $(NVCCFLAGS) $(LIBS) $^ -o $@
 
 test_onerank: $(onerank_obj)
+	$(NVCC) $(NVCCFLAGS) $(LIBS) $^ -o $@
+	
+test_manyranks: $(manyranks_obj)
 	$(NVCC) $(NVCCFLAGS) $(LIBS) $^ -o $@
 	
 test_halo: $(halo_obj)
