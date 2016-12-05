@@ -36,6 +36,7 @@ int main(int argc, char **argv)
 	}
 
 	logger.init(MPI_COMM_WORLD, "cells.log", 9);
+	IniParser config("tests.cfg");
 
 	MPI_Check( MPI_Comm_size(MPI_COMM_WORLD, &nranks) );
 	MPI_Check( MPI_Comm_rank(MPI_COMM_WORLD, &rank) );
@@ -94,7 +95,7 @@ int main(int argc, char **argv)
 	dpds.accs.copy(accInit);
 
 	for (int i=0; i<1; i++)
-		buildCellListAndIntegrate(dpds, dt, 0);
+		buildCellListAndIntegrate(dpds, config, dt, 0);
 
 	dpds.coosvels.synchronize(synchronizeHost);
 	cudaDeviceSynchronize();

@@ -253,7 +253,7 @@ struct HostBuffer
 
 
 template<typename T>
-void swap(DeviceBuffer<T>& a, DeviceBuffer<T>& b, cudaStream_t stream)
+void swap(DeviceBuffer<T>& a, DeviceBuffer<T>& b, cudaStream_t stream = 0)
 {
 	a.resize(b.size, resizePreserve, stream);
 	b.resize(a.size, resizePreserve, stream);
@@ -262,7 +262,7 @@ void swap(DeviceBuffer<T>& a, DeviceBuffer<T>& b, cudaStream_t stream)
 }
 
 template<typename T>
-void swap(HostBuffer<T>& a, HostBuffer<T>& b, cudaStream_t stream)
+void swap(HostBuffer<T>& a, HostBuffer<T>& b, cudaStream_t stream = 0)
 {
 	a.resize(b.size, resizePreserve, stream);
 	b.resize(a.size, resizePreserve, stream);
@@ -271,7 +271,7 @@ void swap(HostBuffer<T>& a, HostBuffer<T>& b, cudaStream_t stream)
 }
 
 template<typename T>
-void swap(PinnedBuffer<T>& a, PinnedBuffer<T>& b, cudaStream_t stream)
+void swap(PinnedBuffer<T>& a, PinnedBuffer<T>& b, cudaStream_t stream = 0)
 {
 	a.resize(b.size, resizePreserve, stream);
 	b.resize(a.size, resizePreserve, stream);

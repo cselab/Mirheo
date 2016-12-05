@@ -5,38 +5,65 @@
 #include <unordered_map>
 #include <regex>
 
+#include "logger.h"
+
+#pragma once
+
 class IniParser
 {
+public:
 	std::unordered_map<std::string, std::string> content;
+	mutable std::unordered_map<std::string, std::unordered_map<std::string, void*>> cache;
 
 	const std::regex sectionRX;
 	const std::regex boolRX;
 	const std::regex commentRX;
 
-	bool __readValue(const std::string& section, const std::string& key, std::string& value)
+	template <typename T, typename Parser>
+	T get(const std::string& sectionName, const std::string& key, const T def, Parser parse)
 	{
-		if (content.find(section) == content.end()) return false;
+		// Check if the section exists
+		if (content.find(sectionName) == content.end()) return def;
 
-		const std::regex key_valRX("(?:^|\\n)\\s*"+key+"\\s*(?:\\:|\\=)\\s*(.*?)(?:$|\\n)");
+		// Check the cache
+		{
+			auto& cachedSection = cache[sectionName];
+			auto value = cachedSection.find(key);
+			if (value != cachedSection.end()) return *(T*)value->second;
+		}
 
-		std::string& sectContent = content[section];
+		// Not in cache, read and update cache
+		const std::regex key_valRX("(?:^|\\n)\\s*"+key+"\\s*(?:\\:|\\=)\\s*(.*?)(?:$|\\n)", std::regex::icase);
+		std::string& sectionContent = content[sectionName];
+		std::string  value;
+
 		std::smatch result;
-		if (std::regex_search(sectContent, result, key_valRX))
+		if (std::regex_search(sectionContent, result, key_valRX))
 		{
 			value = result[1];
-			return true;
+
+			T* result = new T;
+			*result = parse(value);
+
+			cache[sectionName][key] = (void*)result;
+			return *result;
 		}
-		else return false;
+		else return def;
 	}
+
 
 public:
 	IniParser(const std::string& fname) :
-		sectionRX("\\[(.*?)\\]([^\\[]*)", std::regex::optimize),
-		boolRX("\\s*(?:1|true)\\s*"),
-		commentRX("#.*?(?:$|\\n)")
+		sectionRX("\\[(.*?)\\]([^\\[]*)", std::regex::optimize | std::regex::icase),
+		boolRX("\\s*(?:1|true)\\s*", std::regex::optimize | std::regex::icase),
+		commentRX("#.*?(?:$|\\n)", std::regex::optimize | std::regex::icase)
 	{
 		std::ifstream inpFile(fname);
-		if (!inpFile.good()) throw std::runtime_error("No such file: "+fname);
+		if (!inpFile.good())
+		{
+			error("Unable to open settings file, falling back to defaults");
+			return;
+		}
 
 		std::stringstream buffer;
 		buffer << inpFile.rdbuf();
@@ -50,67 +77,63 @@ public:
 			content[sectName] = std::regex_replace(sectContent, commentRX, "\n");
 			strbuf = result.suffix().str();
 
-			std::cout << sectName << "  ->  " << content[sectName] << std::endl;
+			//std::cout << "'" << sectName << "'  ->  " << content[sectName] << std::endl;
 		}
+	}
+
+	template<typename T>
+	void setDefaultValue(const std::string& section, const std::string& key, const T value)
+	{
+		T* data = new T;
+		*data = value;
+		cache[section][key] = (void*)data;
 	}
 
 	int getInt(const std::string& section, const std::string& key, const int def = 0)
 	{
-		std::string value;
-		if (__readValue(section, key, value))
-		{
-			std::size_t pos;
-			int res = std::stoi(value, &pos);
-			if (pos < value.length())
-				throw std::runtime_error("Bad argument for key "+key+" in section ["+section+"]: "+value);
+		return get(section, key, def, [](const std::string& value) { return std::stoi(value); } );
+	}
+
+	int3 getInt3(const std::string& section, const std::string& key, const int3 def = make_int3(0, 0, 0))
+	{
+		return get(section, key, def, [](const std::string& value) {
+			std::istringstream stream(value);
+			int3 res;
+			stream >> res.x >> res.y >> res.z;
 			return res;
-		}
-		return def;
+		} );
 	}
 
 	float getFloat(const std::string& section, const std::string& key, const float def = 0)
 	{
-		std::string value;
-		if (__readValue(section, key, value))
-		{
-			std::size_t pos;
-			float res = std::stof(value, &pos);
-			if (pos < value.length())
-				throw std::runtime_error("Bad argument for key "+key+" in section ["+section+"]: "+value);
-			return res;
-		}
-		return def;
+		return get(section, key, def, [](const std::string& value) { return std::stof(value); } );
 	}
+
+	float3 getFloat3(const std::string& section, const std::string& key, const float3 def = make_float3(0, 0, 0))
+	{
+		return get(section, key, def, [](const std::string& value) {
+			std::istringstream stream(value);
+			float3 res;
+			stream >> res.x >> res.y >> res.z;
+			return res;
+		} );
+	}
+
 
 	double getDouble(const std::string& section, const std::string& key, const double def = 0)
 	{
-		std::string value;
-		if (__readValue(section, key, value))
-		{
-			std::size_t pos;
-			double res = std::stod(value, &pos);
-			if (pos < value.length())
-				throw std::runtime_error("Bad argument for key "+key+" in section ["+section+"]: "+value);
-			return res;
-		}
-		return def;
+		return get(section, key, def, [](const std::string& value) { return std::stod(value); } );
 	}
 
 	bool getBool(const std::string& section, const std::string& key, const bool def = false)
 	{
-		std::string value;
-		if (__readValue(section, key, value))
+		return get(section, key, def, [this](const std::string& value) {
 			return std::regex_match(value, boolRX);
-		else
-			return def;
+		});
 	}
 
 	std::string getString(const std::string& section, const std::string& key, const std::string def = "")
 	{
-		std::string value;
-		if (__readValue(section, key, value))
-			return value;
-		else
-			return def;
+		return get(section, key, def, [] (const std::string& value) { return value; } );
 	}
 };

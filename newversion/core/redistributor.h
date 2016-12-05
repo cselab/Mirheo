@@ -3,6 +3,7 @@
 #include "datatypes.h"
 #include "containers.h"
 #include "logger.h"
+#include "iniparser.h"
 
 #include <vector>
 #include <thread>
@@ -47,12 +48,14 @@ private:
 	void send(int vid);
 	void receive(int vid);
 
+	IniParser& config;
+
 public:
 
 	// Has to be private, but cuda doesn't support lambdas in private functions
 	void __identify(int vid, float dt);
 
-	Redistributor(MPI_Comm& comm);
+	Redistributor(MPI_Comm& comm, IniParser& config);
 	void attach(ParticleVector* pv, int ndens);
 	void redistribute(float dt);
 };

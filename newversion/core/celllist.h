@@ -5,10 +5,11 @@
 #include <cstdint>
 
 #include "containers.h"
+#include "logger.h"
+#include "iniparser.h"
 
-void buildCellList(ParticleVector& pv, cudaStream_t stream);
-
-void buildCellListAndIntegrate(ParticleVector& pv, float dt, cudaStream_t stream);
+void buildCellList(ParticleVector& pv, IniParser& config, cudaStream_t stream);
+void buildCellListAndIntegrate(ParticleVector& pv, IniParser& config, float dt, cudaStream_t stream);
 
 
 // ==========================================================================================================================================
@@ -59,6 +60,13 @@ __device__ __host__ int3 inline decode(int code, int3 ncells)
 __device__ __host__ __forceinline__ int encode(int ix, int iy, int iz, int3 ncells)
 {
 	return (iz*ncells.y + iy)*ncells.x + ix;
+}
+
+__device__ __host__ __forceinline__ void decode(int cid, int& ix, int& iy, int& iz, int3 ncells)
+{
+	ix = cid % ncells.x;
+	iy = (cid / ncells.x) % ncells.y;
+	iz = cid / (ncells.x * ncells.y);
 }
 
 #endif

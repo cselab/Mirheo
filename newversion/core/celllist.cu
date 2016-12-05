@@ -2,6 +2,7 @@
 #include "scan.h"
 #include "celllist.h"
 #include "non_cached_rw.h"
+#include "flows.h"
 
 __global__ void blendStartSize(uchar4* cellsSize, int4* cellsStart, const int totcells)
 {
@@ -14,7 +15,7 @@ __global__ void blendStartSize(uchar4* cellsSize, int4* cellsStart, const int to
 }
 
 template<typename Transform>
-__global__ void computeCellSizesBeforeTimeIntegration(const float4* xyzouvwo, const int n, const int nMovable,
+__global__ void computeCellSizesBeforeTimeIntegration(const float4* xyzouvwo, const float4* accs, const int n, const int nMovable,
 		const float3 domainStart, const int3 ncells, const float invrc, Transform transform, uint* cellsSize)
 {
 	const int gid = blockIdx.x * blockDim.x + threadIdx.x;
@@ -22,7 +23,8 @@ __global__ void computeCellSizesBeforeTimeIntegration(const float4* xyzouvwo, co
 
 	float4 coo = xyzouvwo[gid*2];
 	float4 vel = xyzouvwo[gid*2+1];
-	transform(coo, vel, gid);
+	float4 acc = accs[gid];
+	transform(coo, vel, acc, gid);
 
 	int cid;
 	if (gid < nMovable)
@@ -44,7 +46,7 @@ __global__ void computeCellSizesBeforeTimeIntegration(const float4* xyzouvwo, co
 }
 
 template<typename Transform>
-__global__ void rearrangeAndIntegrate(const float4* in_xyzouvwo, const int n, const int nMovable, const float3 domainStart, const int3 ncells,
+__global__ void rearrangeAndIntegrate(const float4* in_xyzouvwo, const float4* accs, const int n, const int nMovable, const float3 domainStart, const int3 ncells,
 		const float invrc, uint* cellsSize, int* cellsStart, Transform transform, float4* out_xyzouvwo)
 {
 	const int gid = blockIdx.x * blockDim.x + threadIdx.x;
@@ -59,6 +61,8 @@ __global__ void rearrangeAndIntegrate(const float4* in_xyzouvwo, const int n, co
 	// this is to allow more cache for atomics
 	// loads / stores here need no cache
 	float4 val = readNoCache(in_xyzouvwo+gid);
+	float4 acc = accs[pid];
+
 
 	// Send velocity to adjacent thread that has coordinate
 	float4 othval;
@@ -71,7 +75,7 @@ __global__ void rearrangeAndIntegrate(const float4* in_xyzouvwo, const int n, co
 	if (sh == 0)
 	{
 		// val is coordinate, othval is corresponding velocity
-		transform(val, othval, pid);
+		transform(val, othval, acc, pid);
 
 		if (pid < nMovable)
 			cid = getCellId<false>(val, domainStart, ncells, invrc);
@@ -103,38 +107,29 @@ __global__ void rearrangeAndIntegrate(const float4* in_xyzouvwo, const int n, co
 	{
 		// val is velocity, othval is rubbish
 		dstId = otherDst;
-		transform(othval, val, pid);
+		transform(othval, val, acc, pid);
 	}
 
 	if (dstId >= 0) writeNoCache(out_xyzouvwo + 2*dstId+sh, val);
 }
 
 
-void buildCellList(ParticleVector& pv, cudaStream_t stream)
+void buildCellList(ParticleVector& pv, IniParser& config, cudaStream_t stream)
 {
-	buildCellListAndIntegrate(pv, 0, stream);
+	buildCellListAndIntegrate(pv, config, 0, stream);
 }
 
-void buildCellListAndIntegrate(ParticleVector& pv, float dt, cudaStream_t stream)
+void buildCellListAndIntegrate(ParticleVector& pv, IniParser& config, float dt, cudaStream_t stream)
 {
-	auto accs = (float4*)pv.accs.devdata;
-	auto integrate = [accs, dt] __device__ (float4& x, float4& v, const int pid) {
-		const float4 a = accs[pid];
-
-		v.x += a.x*dt;
-		v.y += a.y*dt;
-		v.z += a.z*dt;
-
-		x.x += v.x*dt;
-		x.y += v.y*dt;
-		x.z += v.z*dt;
-	};
+	// Look up the included file for explanation
 
 	// Compute cell sizes
 	debug("Computing cell sizes for %d particles with %d newcomers", pv.np, pv.received);
 	CUDA_Check( cudaMemsetAsync(pv.cellsSize.devdata, 0, (pv.totcells + 1)*sizeof(uint8_t), stream) );  // +1 to have correct cellsStart[totcells]
-	computeCellSizesBeforeTimeIntegration<<< (pv.np+127)/128, 128, 0, stream >>> (
-			(float4*)pv.coosvels.devdata, pv.np, pv.np - pv.received, pv.domainStart, pv.ncells, 1.0f, integrate, (uint*)pv.cellsSize.devdata);
+
+	flowMacroWrapper( (computeCellSizesBeforeTimeIntegration<<< (pv.np+127)/128, 128, 0, stream >>> (
+						(float4*)pv.coosvels.devdata, (float4*)pv.accs.devdata,
+						pv.np, pv.np - pv.received, pv.domainStart, pv.ncells, 1.0f, integrate, (uint*)pv.cellsSize.devdata)) );
 
 	// Scan to get cell starts
 	scan(pv.cellsSize.devdata, pv.totcells+1, pv.cellsStart.devdata, stream);
@@ -144,9 +139,11 @@ void buildCellListAndIntegrate(ParticleVector& pv, float dt, cudaStream_t stream
 
 	// Rearrange the data
 	debug("Rearranging and integrating %d particles", pv.np);
-	rearrangeAndIntegrate<<< (2*pv.np+127)/128, 128, 0, stream >>> (
-			(float4*)pv.coosvels.devdata, pv.np, pv.np - pv.received, pv.domainStart, pv.ncells, 1.0f,
-			(uint*)pv.cellsSize.devdata, pv.cellsStart.devdata, integrate, (float4*)pv.pingPongBuf.devdata);
+
+	flowMacroWrapper( (rearrangeAndIntegrate<<< (2*pv.np+127)/128, 128, 0, stream >>> (
+						(float4*)pv.coosvels.devdata, (float4*)pv.accs.devdata, pv.np, pv.np - pv.received, pv.domainStart, pv.ncells, 1.0f,
+						(uint*)pv.cellsSize.devdata, pv.cellsStart.devdata, integrate, (float4*)pv.pingPongBuf.devdata)) );
+
 	debug("Rearranging completed");
 
 	// Now we need the new size of particles array.

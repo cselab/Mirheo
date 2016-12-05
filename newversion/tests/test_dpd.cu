@@ -64,7 +64,7 @@ int main(int argc, char ** argv)
 	buildCellList(dpds, defStream);
 	CUDA_Check( cudaStreamSynchronize(defStream) );
 
-	for (int i=0; i<1000; i++)
+	for (int i=0; i<100; i++)
 	{
 		dpds.accs.clear(defStream);
 		computeInternalDPD(dpds, defStream);

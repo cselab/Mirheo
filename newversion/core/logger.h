@@ -49,7 +49,10 @@ class Logger
 		}
 	}
 
+
 public:
+
+	Logger() : runtimeDebugLvl(-100) {}
 
 	void init(MPI_Comm&& comm, const std::string fname, int debugLvl = 3)
 	{

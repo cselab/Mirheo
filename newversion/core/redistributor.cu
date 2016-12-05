@@ -3,6 +3,7 @@
 #include "redistributor.h"
 #include "celllist.h"
 #include "logger.h"
+#include "flows.h"
 
 #include <vector>
 #include <thread>
@@ -82,7 +83,7 @@ __global__ void getExitingParticles(const int* __restrict__ cellsStart, const fl
 		const float4 acc = accs[srcId];
 
 		float4 newcoo = coo, newvel = vel;
-		transform(newcoo, newvel, acc);
+		transform(newcoo, newvel, acc, srcId);
 
 		int px = getCellIdAlongAxis<false>(newcoo.x, domainStart.x, ncells.x, 1.0f);
 		int py = getCellIdAlongAxis<false>(newcoo.y, domainStart.y, ncells.y, 1.0f);
@@ -122,7 +123,7 @@ __global__ void getExitingParticles(const int* __restrict__ cellsStart, const fl
 	}
 }
 
-Redistributor::Redistributor(MPI_Comm& comm) : nActiveNeighbours(26)
+Redistributor::Redistributor(MPI_Comm& comm, IniParser& config) : nActiveNeighbours(26), config(config)
 {
 	MPI_Check( MPI_Comm_dup(comm, &redComm));
 
@@ -190,28 +191,20 @@ void Redistributor::redistribute(float dt)
 
 void Redistributor::__identify(int n, float dt)
 {
-	auto& pv = particleVectors[n];
+	auto& pv = *particleVectors[n];
 	auto& helper = helpers[n];
 
-	const int maxdim = std::max({pv->ncells.x, pv->ncells.y, pv->ncells.z});
+	const int maxdim = std::max({pv.ncells.x, pv.ncells.y, pv.ncells.z});
 	const int nthreads = 32;
 	helper.counts.clear(helper.stream);
-
-	auto integrate = [dt] __device__ (float4& x, float4& v, float4 a) {
-		v.x += a.x*dt;
-		v.y += a.y*dt;
-		v.z += a.z*dt;
-
-		x.x += v.x*dt;
-		x.y += v.y*dt;
-		x.z += v.z*dt;
-	};
+	auto config = this->config;
 
 	debug("Preparing %d-th leaving particles on the device", n);
-	getExitingParticles<<< dim3((maxdim*maxdim + nthreads - 1) / nthreads, 6, 1),  dim3(nthreads, 1, 1), 0, helper.stream >>>
-			(pv->cellsStart.devdata, (float4*)pv->coosvels.devdata, (float4*)pv->accs.devdata,
-			 pv->ncells, pv->totcells, pv->length, pv->domainStart,
-			 (int64_t*)helper.sendAddrs.devdata, helper.counts.devdata, integrate);
+
+	flowMacroWrapper( (getExitingParticles<<< dim3((maxdim*maxdim + nthreads - 1) / nthreads, 6, 1),  dim3(nthreads, 1, 1), 0, helper.stream >>>
+				(pv.cellsStart.devdata, (float4*)pv.coosvels.devdata, (float4*)pv.accs.devdata,
+				 pv.ncells, pv.totcells, pv.length, pv.domainStart,
+				 (int64_t*)helper.sendAddrs.devdata, helper.counts.devdata, integrate)) );
 }
 
 void Redistributor::send(int n)
