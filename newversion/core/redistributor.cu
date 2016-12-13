@@ -13,7 +13,7 @@
 template<typename Transform>
 __global__ void getExitingParticles(const int* __restrict__ cellsStart, const float4* __restrict__ xyzouvwo, const float4* __restrict__ accs,
 		const int3 ncells, const int totcells, const float3 length, const float3 domainStart,
-		const int64_t __restrict__ dests[27], int counts[27], Transform transform)
+		const int64_t __restrict__ dests[27], int counts[27], const float dt, Transform transform)
 {
 	const int gid = blockIdx.x*blockDim.x + threadIdx.x;
 	const int variant = blockIdx.y;
@@ -83,7 +83,7 @@ __global__ void getExitingParticles(const int* __restrict__ cellsStart, const fl
 		const float4 acc = accs[srcId];
 
 		float4 newcoo = coo, newvel = vel;
-		transform(newcoo, newvel, acc, srcId);
+		transform(newcoo, newvel, acc, dt, srcId);
 
 		int px = getCellIdAlongAxis<false>(newcoo.x, domainStart.x, ncells.x, 1.0f);
 		int py = getCellIdAlongAxis<false>(newcoo.y, domainStart.y, ncells.y, 1.0f);
@@ -204,7 +204,7 @@ void Redistributor::__identify(int n, float dt)
 	flowMacroWrapper( (getExitingParticles<<< dim3((maxdim*maxdim + nthreads - 1) / nthreads, 6, 1),  dim3(nthreads, 1, 1), 0, helper.stream >>>
 				(pv.cellsStart.devdata, (float4*)pv.coosvels.devdata, (float4*)pv.accs.devdata,
 				 pv.ncells, pv.totcells, pv.length, pv.domainStart,
-				 (int64_t*)helper.sendAddrs.devdata, helper.counts.devdata, integrate)) );
+				 (int64_t*)helper.sendAddrs.devdata, helper.counts.devdata, dt, integrate)) );
 }
 
 void Redistributor::send(int n)

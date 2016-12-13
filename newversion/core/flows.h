@@ -4,9 +4,10 @@
 //
 // Parameter of this macro is a cuda kernel that will be called "as is"
 // It has to have a templated parameter integrate, which is a lambda function:
-// integrate(float4& x, float4& v, const float4 a, const int pid)
+// integrate(float4& x, float4& v, const float4 a, const float dt, const int pid)
 //
-// It has to integrate coordinates and velocities and apply all the other transformations
+// It has to integrate coordinates and velocities and apply any the other transformations
+// MUST be time-reversible
 //
 // Available vars: pv:     ParticleVector
 // 			       config: IniParser with settings
@@ -22,7 +23,7 @@ do { \
  \
 	if (flowType == "noflow") \
 	{ \
-		auto integrate = [dt] __device__ (float4& x, float4& v, const float4 a, const int pid) { \
+		auto integrate = [] __device__ (float4& x, float4& v, const float4 a, const float dt, const int pid) { \
 			v.x += a.x*dt; \
 			v.y += a.y*dt; \
 			v.z += a.z*dt; \
@@ -33,12 +34,13 @@ do { \
 		}; \
  \
 		function; \
+		CUDA_Check( cudaPeekAtLastError() ); \
 	} \
  \
 	if (flowType == "const_grad_P") \
 	{ \
 		float3 additionalForce = config.getFloat3("FlowField", "AdditionalForce"); \
-		auto integrate = [dt, additionalForce] __device__ (float4& x, float4& v, const float4 a, const int pid) { \
+		auto integrate = [additionalForce] __device__ (float4& x, float4& v, const float4 a, const float dt, const int pid) { \
 			v.x += (a.x+additionalForce.x) * dt; \
 			v.y += (a.y+additionalForce.y) * dt; \
 			v.z += (a.z+additionalForce.z) * dt; \
@@ -49,5 +51,6 @@ do { \
 		}; \
  \
 		function; \
+		CUDA_Check( cudaPeekAtLastError() ); \
 	} \
 } while(0)

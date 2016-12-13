@@ -315,8 +315,8 @@ __global__ void getBoundaryCells(const int3 ncells, const int totcells, const fl
 	}
 }
 
-
 template<typename Transform>
+__launch_bounds__(128, 8)
 __global__ void bounceBeforeIntegration(const int* wallCells, const int nWallCells, const int* __restrict__ cellsStart, const float4* accs,
 		cudaTextureObject_t sdfTex, const float3 length, const float3 h, const float3 invH, float4* xyzouvwo, const float dt, Transform transform)
 {
@@ -334,24 +334,17 @@ __global__ void bounceBeforeIntegration(const int* wallCells, const int nWallCel
 		float va, vb;
 
 		float4 coo = xyzouvwo[2*pid];
-		float4 vel = xyzouvwo[2*pid + 1];
+		float4 vel = xyzouvwo[2*pid+1];
 		float4 acc = accs[pid];
 
 		float4 oldCoo = coo;
-		float4 oldVel = vel;
 		transform(coo, vel, acc, dt, pid);
 
-		va = evalSdf(sdfTex, oldCoo, length, h, invH);
 		vb = evalSdf(sdfTex, coo, length, h, invH);
-
-		float _va = va;
-		float _vb = vb;
-
 		if (vb < 0.0f) continue; // if inside - continue
-		assert( va < 0.0f ); // Accuracy issues here!
 
-//		if (va >= 0.0f)
-//			printf("%d %d  old[%f %f %f] new[%f %f %f] %f  %f\n", cid, __float_as_int(coo.w), coo.x, coo.y, coo.z, oldCoo.x, oldCoo.y, oldCoo.z, va, vb);
+		va = evalSdf(sdfTex, oldCoo, length, h, invH);
+		assert( va < 0.0f ); // Accuracy issues here!
 
 		// Determine where we cross
 		// Interpolation search
@@ -362,16 +355,12 @@ __global__ void bounceBeforeIntegration(const int* wallCells, const int nWallCel
 		float vmid;
 
 		int iters;
-#pragma unroll 2
+
 		for (iters=0; iters<maxNIters; iters++)
 		{
-			const float lambda = min(max((vb / (vb - va)), 0.1f), 0.9f);  // va*l + (1-l)*vb = 0
+			const float lambda = min(max((vb / (vb - va)), 0.01f), 0.99f);  // va*l + (1-l)*vb = 0
 			mid = a*lambda + b*(1.0f - lambda);
 			vmid = evalSdf(sdfTex, mid, length, h, invH);
-
-//			if (__float_as_int(coo.w) == 151945)
-//				printf("  [%.9f %.9f %.9f] (%.9f),  [%.9f %.9f %.9f] (%.9f)  == %f ==>  [%.9f %.9f %.9f] (%.9f)\n",
-//						a.x, a.y, a.z, va,  b.x, b.y, b.z, vb,  lambda, mid.x, mid.y, mid.z, vmid);
 
 			if (va * vmid < 0.0f)
 			{
@@ -386,7 +375,6 @@ __global__ void bounceBeforeIntegration(const int* wallCells, const int nWallCel
 
 			if (fabs(vmid) < tolerance) break;
 		}
-
 		assert(fabs(vmid) < tolerance);
 
 		// Final intersection at old*alpha + new*(1-alpha)
@@ -398,39 +386,19 @@ __global__ void bounceBeforeIntegration(const int* wallCells, const int nWallCel
 		// In the corners long bounce may place the particle into another wall
 		// Need to find a safe step in that case
 		float4 candidate = oldCoo + beta * (coo - oldCoo);
-		float vcandidate;
-
-//		if (iters >= 10)
-//			printf("%d:   [%f %f %f] (%f),  [%f %f %f] (%f)  ==>  [%f %f %f] (%f)     %d\n", __float_as_int(coo.w),
-//					oldCoo.x, oldCoo.y, oldCoo.z, _va,  coo.x, coo.y, coo.z, _vb,  mid.x, mid.y, mid.z, vmid, iters+1);
 
 		for (int i=0; i<maxNIters; i++)
 		{
-			if ( (vcandidate = evalSdf(sdfTex, candidate, length, h, invH)) < 0.0f ) break;
+			if ( (evalSdf(sdfTex, candidate, length, h, invH)) < 0.0f ) break;
 
 			beta *= 0.5;
 			candidate = oldCoo - beta * (coo - oldCoo);
 		}
-
-		if (vcandidate >= 0.0f)
-		printf("Warning: %d %d  old [%f %f %f] (%f),  new [%f %f %f] (%f)  ==> [%f %f %f] (%f)  in %d iters\n",
-				cid, pid, oldCoo.x, oldCoo.y, oldCoo.z, evalSdf(sdfTex, oldCoo, length, h, invH),
-				coo.x, coo.y, coo.z, evalSdf(sdfTex, coo, length, h, invH),
-				candidate.x, candidate.y, candidate.z, vcandidate, iters+1);
 		//assert(vcandidate < 1.0f);
 
 
 		float4 candVel = vel;
 		transform(candidate, candVel, -acc, dt, pid);
-
-//		float4 x0 = candidate;
-//		float4 v0 = -vel;
-//		transform(x0, v0, acc, dt, pid);
-//		if (__float_as_int(coo.w) == 83745)
-//				printf("[%f %f %f] vs [%f %f %f],  [%f %f %f] vs [%f %f %f]\n",
-//						c0.x, c0.y, c0.z,  x0.x, x0.y, x0.z,
-//						-vel.x, -vel.y, -vel.z, v0.x, v0.y, v0.z);
-
 
 		xyzouvwo[2*pid] = candidate;
 		xyzouvwo[2*pid + 1] = -vel;
@@ -445,8 +413,8 @@ __global__ void check(float4* data, const int n, cudaTextureObject_t sdfTex, con
 	float4 coo = data[2*pid];
 	float v = evalSdf(sdfTex, coo, length, h, invH);
 
-	//if (v > 0.0f)
-	//	printf("CHECK! %d:  [%f %f %f] -> %f\n", __float_as_int(coo.w), coo.x, coo.y, coo.z, v);
+	if (v > 0.0f)
+		printf("CHECK! %d:  [%f %f %f] -> %f\n", __float_as_int(coo.w), coo.x, coo.y, coo.z, v);
 }
 
 void Wall::_check()
@@ -649,6 +617,7 @@ void Wall::create(ParticleVector& dpds)
 	nBoundaryCells.synchronize(synchronizeHost);
 	info("Found %d boundary cells", nBoundaryCells[0]);
 	boundaryCells.resize(nBoundaryCells[0]);
+
 	nBoundaryCells.clear();
 	getBoundaryCells<<< (dpds.totcells + 127) / 128, 128 >>> (dpds.ncells, dpds.totcells, dpds.domainStart, rc, sdfTex, length, h, nBoundaryCells.devdata, boundaryCells.devdata);
 }
@@ -657,7 +626,7 @@ void Wall::bounce(cudaStream_t stream)
 {
 	for (auto& pv : particleVectors)
 	{
-		flowMacroWrapper( (bounceBeforeIntegration<<< (boundaryCells.size + 127) / 128, 128, 0, stream >>>(
+		flowMacroWrapper( (bounceBeforeIntegration<<< (boundaryCells.size + 63) / 64, 64, 0, stream >>>(
 				boundaryCells.devdata, boundaryCells.size, pv->cellsStart.devdata, (float4*)pv->accs.devdata,
 				sdfTex, length, h, 1.0 / h, (float4*)pv->coosvels.devdata, dt, integrate)) );
 	}

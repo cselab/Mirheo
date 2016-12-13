@@ -191,7 +191,7 @@ template<bool NeedDstAcc, bool NeedSrcAcc, typename Interaction>
 __global__ void computeExternalInteractions(
 		const float4 * __restrict__ dstData, float* dstAccs,
 		const float4 * __restrict__ srcData, float* srcAccs,
-		const int * __restrict__ cellsstart, int3 ncells, float3 domainStart, int ncells_1, int ndst, Interaction interaction)
+		const int * __restrict__ cellsStart, int3 ncells, float3 domainStart, int ncells_1, int ndst, Interaction interaction)
 {
 	static_assert(NeedDstAcc || NeedSrcAcc, "External interactions should return at least some accelerations");
 
@@ -200,7 +200,7 @@ __global__ void computeExternalInteractions(
 
 	float3 dstCoo, dstVel;
 	float3 dstAcc = make_float3(0.0f);
-//	readAll4(dstData, dstId, dstCoo, dstVel);
+	//	readAll4(dstData, dstId, dstCoo, dstVel);
 	dstCoo = f4tof3(readNoCache(dstData+2*dstId));
 	dstVel = f4tof3(readNoCache(dstData+2*dstId+1));
 
@@ -208,44 +208,63 @@ __global__ void computeExternalInteractions(
 	const int cellY0 = getCellIdAlongAxis<false>(dstCoo.y, domainStart.y, ncells.y, 1.0f);
 	const int cellZ0 = getCellIdAlongAxis<false>(dstCoo.z, domainStart.z, ncells.z, 1.0f);
 
-#pragma unroll
-	for (int cellY = cellY0-1; cellY <= cellY0+1; cellY++)
-		for (int cellZ = cellZ0-1; cellZ <= cellZ0+1; cellZ++)
-		{
-			if ( !(cellY >= 0 && cellY < ncells.y && cellZ >= 0 && cellZ < ncells.z) ) continue;
-
-			const int midCellId = (cellZ*ncells.y + cellY)*ncells.x + cellX0;
-			int rowStart  = max(midCellId-1, 0);
-			int rowEnd    = min(midCellId+2, ncells_1);
-
-			const int pstart = cellsstart[rowStart];
-			const int pend   = cellsstart[rowEnd];
-
-			for (int srcId = pstart; srcId < pend; srcId ++)
+	for (int cellZ = cellZ0-1; cellZ <= cellZ0+1; cellZ++)
+		for (int cellY = cellY0-1; cellY <= cellY0; cellY++)
+#ifdef __MORTON__
+			for (int cellX = cellX0-1; cellX <= cellX0+1; cellX++)
 			{
-				const float3 srcCoo = readCoosFromAll4(srcData, srcId);
+				if ( !(cellX >= 0 && cellX < ncells.x && cellY >= 0 && cellY < ncells.y && cellZ >= 0 && cellZ < ncells.z) ) continue;
+				if ( cellY == cellY0 && cellZ > cellZ0) continue;
+				if ( cellY == cellY0 && cellZ == cellZ0 && cellX > cellX0) continue;
 
-				bool interacting = distance2(srcCoo, dstCoo) < 1.0f;
+				const int cid = encode(cellX, cellY, cellZ, ncells);
 
-				if (interacting)
+				const int2 start_size = decodeStartSize(cellsStart[cid]);
+#else
+			{
+				if ( !(cellY >= 0 && cellY < ncells.y && cellZ >= 0 && cellZ < ncells.z) ) continue;
+				if (cellY == cellY0 && cellZ > cellZ0) continue;
+
+				const int midCellId = encode(cellX0, cellY, cellZ, ncells);
+				int rowStart  = max(midCellId-1, 0);
+				int rowEnd    = min(midCellId+2, ncells_1);
+
+				if ( cellY == cellY0 && cellZ == cellZ0 ) rowEnd = midCellId + 1; // this row is already partly covered
+
+				const int2 pstart = decodeStartSize(cellsStart[rowStart]);
+				const int2 pend   = decodeStartSize(cellsStart[rowEnd]);
+
+				const int2 start_size = make_int2(pstart.x, pend.x - pstart.x);
+#endif
+
+
+#pragma unroll 2
+				for (int srcId = start_size.x; srcId < start_size.x + start_size.y; srcId ++)
 				{
-					const float3 srcVel = readVelsFromAll4(srcData, srcId);
+					const float3 srcCoo = readCoosFromAll4(srcData, srcId);
 
-					float3 frc = interaction(dstCoo, dstVel, dstId, srcCoo, srcVel, srcId);
+					bool interacting = distance2(srcCoo, dstCoo) < 1.00f;
 
-					if (NeedDstAcc)
-						dstAcc += frc;
-					if (NeedSrcAcc)
+					if (interacting)
 					{
-						float* dest = srcAccs + srcId*4;
+						const float3 srcVel = readVelsFromAll4(srcData, srcId);
 
-						atomicAdd(dest,     -frc.x);
-						atomicAdd(dest + 1, -frc.y);
-						atomicAdd(dest + 2, -frc.z);
+						float3 frc = interaction(dstCoo, dstVel, dstId, srcCoo, srcVel, srcId);
+
+						if (NeedDstAcc)
+							dstAcc += frc;
+
+						if (NeedSrcAcc)
+						{
+							float* dest = srcAccs + srcId*4;
+
+							atomicAdd(dest,     -frc.x);
+							atomicAdd(dest + 1, -frc.y);
+							atomicAdd(dest + 2, -frc.z);
+						}
 					}
 				}
 			}
-		}
 
 	if (NeedDstAcc)
 	{

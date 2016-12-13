@@ -185,11 +185,11 @@ void createSdf(int3 resolution, float3 size, float r0, std::string fname)
 				const float val = sqrtf(dr.x*dr.x + dr.y*dr.y + dr.z*dr.z) - r0;
 				sdf[ (i*resolution.y + j)*resolution.x + k ] = val;
 
-				printf("%5.2f  ", val);
+				//printf("%5.2f  ", val);
 			}
-			printf("\n");
+			//printf("\n");
 		}
-		printf("\n");
+		//printf("\n");
 	}
 
 	std::ofstream out(fname);
@@ -215,7 +215,7 @@ void checkFrozenRemaining(Particle* frozen, int nFrozen, Particle* remaining, in
 		float d1 = sqrt(a.x[0]*a.x[0] + a.x[1]*a.x[1] + a.x[2]*a.x[2]);
 		float d2 = sqrt(b.x[0]*b.x[0] + b.x[1]*b.x[1] + b.x[2]*b.x[2]);
 
-		return d1 < d2;// && fabs(d1 - d2) > 1e-6;
+		return d1 < d2 && fabs(d1 - d2) > 1e-6;
 	};
 
 	std::sort(refFrozen.begin(), refFrozen.end(), cmp);
@@ -240,28 +240,35 @@ void checkFrozenRemaining(Particle* frozen, int nFrozen, Particle* remaining, in
 	vecend = std::set_difference(remaining, remaining + nRem, refRem.begin(), refRem.end(), res.begin(), cmp);
 	for (auto p=res.begin(); p!=vecend; p++)
 	{
-		printf("Missing particle in Remaining: [%f %f %f]\n", p->x[0], p->x[1], p->x[2]);
+		printf("Missing particle in Remaining: [%f %f %f] \n", p->x[0], p->x[1], p->x[2]);
 	}
 
+	//======================================
+
+	vecend = std::set_difference(refFrozen.begin(), refFrozen.end(), frozen, frozen + nFrozen, res.begin(), cmp);
+	float maxdiff = 0;
+	for (auto p=res.begin(); p!=vecend; p++)
+	{
+		float sdf = sqrt(p->x[0]*p->x[0] + p->x[1]*p->x[1] + p->x[2]*p->x[2]) - r;
+		maxdiff = max(maxdiff, min(sdf, 1-sdf));
+
+		//printf("haha: [%f %f %f]  %f\n", p->x[0], p->x[1], p->x[2], sdf);
+
+	}
+	printf("Max distance inside frozen layer of missed particles: %f\n", maxdiff);
 
 
-//	float maxdiff = 0;
-//	for (int i=0; i<nFrozen; i++)
-//	{
-//		const float dist = sqrt(frozen[i].x[0]*frozen[i].x[0] + frozen[i].x[1]*frozen[i].x[1] + frozen[i].x[2]*frozen[i].x[2]) - r;
-//		maxdiff = std::max( maxdiff, std::max(-dist, dist-1) );
-//	}
-//
-//	printf("Error for frozen particles: %f\n", maxdiff);
-//
-//	maxdiff = 0;
-//	for (int i=0; i<nRem; i++)
-//	{
-//		const float dist = sqrt(remaining[i].x[0]*remaining[i].x[0] + remaining[i].x[1]*remaining[i].x[1] + remaining[i].x[2]*remaining[i].x[2]) - r;
-//		maxdiff = std::max( maxdiff, dist );
-//	}
-//
-//	printf("Error for remaining particles: %f\n", maxdiff);
+	vecend = std::set_difference(refRem.begin(), refRem.end(), remaining, remaining + nRem, res.begin(), cmp);
+	maxdiff = 0;
+	for (auto p=res.begin(); p!=vecend; p++)
+	{
+		float sdf = sqrt(p->x[0]*p->x[0] + p->x[1]*p->x[1] + p->x[2]*p->x[2]) - r;
+		maxdiff = min(maxdiff, sdf);
+
+		//printf("hohoho: [%f %f %f]  %f\n", p->x[0], p->x[1], p->x[2], sdf);
+
+	}
+	printf("Min sdf of missed remaining particles: %f\n", maxdiff);
 }
 
 int main(int argc, char ** argv)
@@ -281,7 +288,7 @@ int main(int argc, char ** argv)
 	    MPI_Abort(MPI_COMM_WORLD, 1);
 	}
 
-	logger.init(MPI_COMM_WORLD, "wall.log", 9);
+	logger.init(MPI_COMM_WORLD, "wall.log", 1);
 	IniParser config("../wall.cfg");
 
 	MPI_Check( MPI_Comm_size(MPI_COMM_WORLD, &nranks) );
@@ -296,15 +303,15 @@ int main(int argc, char ** argv)
 
 	ParticleVector dpds(ncells, domainStart, length);
 
-	const int ndens = 2;
+	const int ndens = 10;
 	dpds.resize(ncells.x*ncells.y*ncells.z * ndens);
 
 	srand48(0);
 
 	printf("initializing...\n");
 
-	const float radius = 5;
-	createSdf(make_int3(9, 9, 9), make_float3(ncells), radius, "sphere.sdf");
+	const float radius = 20;
+	createSdf(make_int3(129), make_float3(ncells), radius, "sphere.sdf");
 
 	int c = 0;
 	for (int i=0; i<ncells.x; i++)
@@ -346,11 +353,14 @@ int main(int argc, char ** argv)
 	buildCellList(dpds, config, defStream);
 	CUDA_Check( cudaStreamSynchronize(defStream) );
 
-	const float dt = 0.005;
-	const int niters = 1000;
+	const float dt = config.getFloat("Common", "dt");
+	printf("%f\n", dt);
+	const int niters = 50;
 
 	Wall wall(cartComm, config);
 	wall.create(dpds);
+	buildCellList(dpds, config, defStream);
+	wall.attach(&dpds);
 
 	HostBuffer<Particle> frozen(wall.frozen.size);
 	HostBuffer<float> intSdf(wall.sdfRawData.size);
@@ -359,23 +369,22 @@ int main(int argc, char ** argv)
 	frozen.copy(wall.frozen);
 	dpds.coosvels.synchronize(synchronizeHost);
 
-	printf("============================================================================================\n");
-	for (int i=0; i<wall.resolution.z; i++)
-	{
-		for (int j=0; j<wall.resolution.y; j++)
-		{
-			for (int k=0; k<wall.resolution.x; k++)
-			{
-				printf("%5.2f  ", intSdf[ (i*wall.resolution.y + j)*wall.resolution.x + k ]);
-			}
-			printf("\n");
-		}
-		printf("\n");
-	}
+//	printf("============================================================================================\n");
+//	for (int i=0; i<wall.resolution.z; i++)
+//	{
+//		for (int j=0; j<wall.resolution.y; j++)
+//		{
+//			for (int k=0; k<wall.resolution.x; k++)
+//			{
+//				printf("%5.2f  ", intSdf[ (i*wall.resolution.y + j)*wall.resolution.x + k ]);
+//			}
+//			printf("\n");
+//		}
+//		printf("\n");
+//	}
 
-	checkFrozenRemaining(frozen.hostdata, frozen.size, dpds.coosvels.hostdata, dpds.np, initial.hostdata, initial.size, make_float3(ncells), radius);
-
-	return 0;
+	if (argc > 1)
+		checkFrozenRemaining(frozen.hostdata, frozen.size, dpds.coosvels.hostdata, dpds.np, initial.hostdata, initial.size, make_float3(ncells), radius);
 
 	printf("GPU execution\n");
 
@@ -384,6 +393,7 @@ int main(int argc, char ** argv)
 
 	for (int i=0; i<niters; i++)
 	{
+		printf("Iteration %d\n", i);
 		dpds.accs.clear(defStream);
 		computeInternalDPD(dpds, defStream);
 
@@ -393,10 +403,14 @@ int main(int argc, char ** argv)
 		computeHaloDPD(dpds, defStream);
 		CUDA_Check( cudaStreamSynchronize(defStream) );
 
+		wall.computeInteractions(defStream);
+		wall.bounce(defStream);
+
 		redist.redistribute(dt);
 
 		buildCellListAndIntegrate(dpds, config, dt, defStream);
 		CUDA_Check( cudaStreamSynchronize(defStream) );
+		wall._check();
 	}
 
 	double elapsed = tm.elapsed() * 1e-9;

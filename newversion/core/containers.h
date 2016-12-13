@@ -31,7 +31,6 @@ struct ParticleVector
 
 	void resize(const int n, ResizeKind kind = ResizeKind::resizePreserve, cudaStream_t stream = 0)
 	{
-		// TODO: stream
 		coosvels.resize(n, kind, stream);
 		pingPongBuf.resize(n, kind, stream);
 		accs.resize(n, kind, stream);

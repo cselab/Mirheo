@@ -16,7 +16,7 @@ __global__ void blendStartSize(uchar4* cellsSize, int4* cellsStart, const int to
 
 template<typename Transform>
 __global__ void computeCellSizesBeforeTimeIntegration(const float4* xyzouvwo, const float4* accs, const int n, const int nMovable,
-		const float3 domainStart, const int3 ncells, const float invrc, Transform transform, uint* cellsSize)
+		const float3 domainStart, const int3 ncells, const float invrc, const float dt, Transform transform, uint* cellsSize)
 {
 	const int gid = blockIdx.x * blockDim.x + threadIdx.x;
 	if (gid >= n) return;
@@ -24,7 +24,7 @@ __global__ void computeCellSizesBeforeTimeIntegration(const float4* xyzouvwo, co
 	float4 coo = xyzouvwo[gid*2];
 	float4 vel = xyzouvwo[gid*2+1];
 	float4 acc = accs[gid];
-	transform(coo, vel, acc, gid);
+	transform(coo, vel, acc, dt, gid);
 
 	int cid;
 	if (gid < nMovable)
@@ -47,7 +47,7 @@ __global__ void computeCellSizesBeforeTimeIntegration(const float4* xyzouvwo, co
 
 template<typename Transform>
 __global__ void rearrangeAndIntegrate(const float4* in_xyzouvwo, const float4* accs, const int n, const int nMovable, const float3 domainStart, const int3 ncells,
-		const float invrc, uint* cellsSize, int* cellsStart, Transform transform, float4* out_xyzouvwo)
+		const float invrc, uint* cellsSize, int* cellsStart, const float dt, Transform transform, float4* out_xyzouvwo)
 {
 	const int gid = blockIdx.x * blockDim.x + threadIdx.x;
 	const int pid = gid / 2;
@@ -75,7 +75,7 @@ __global__ void rearrangeAndIntegrate(const float4* in_xyzouvwo, const float4* a
 	if (sh == 0)
 	{
 		// val is coordinate, othval is corresponding velocity
-		transform(val, othval, acc, pid);
+		transform(val, othval, acc, dt, pid);
 
 		if (pid < nMovable)
 			cid = getCellId<false>(val, domainStart, ncells, invrc);
@@ -107,7 +107,7 @@ __global__ void rearrangeAndIntegrate(const float4* in_xyzouvwo, const float4* a
 	{
 		// val is velocity, othval is rubbish
 		dstId = otherDst;
-		transform(othval, val, acc, pid);
+		transform(othval, val, acc, dt, pid);
 	}
 
 	if (dstId >= 0) writeNoCache(out_xyzouvwo + 2*dstId+sh, val);
@@ -129,7 +129,7 @@ void buildCellListAndIntegrate(ParticleVector& pv, IniParser& config, float dt, 
 
 	flowMacroWrapper( (computeCellSizesBeforeTimeIntegration<<< (pv.np+127)/128, 128, 0, stream >>> (
 						(float4*)pv.coosvels.devdata, (float4*)pv.accs.devdata,
-						pv.np, pv.np - pv.received, pv.domainStart, pv.ncells, 1.0f, integrate, (uint*)pv.cellsSize.devdata)) );
+						pv.np, pv.np - pv.received, pv.domainStart, pv.ncells, 1.0f, dt, integrate, (uint*)pv.cellsSize.devdata)) );
 
 	// Scan to get cell starts
 	scan(pv.cellsSize.devdata, pv.totcells+1, pv.cellsStart.devdata, stream);
@@ -142,7 +142,7 @@ void buildCellListAndIntegrate(ParticleVector& pv, IniParser& config, float dt, 
 
 	flowMacroWrapper( (rearrangeAndIntegrate<<< (2*pv.np+127)/128, 128, 0, stream >>> (
 						(float4*)pv.coosvels.devdata, (float4*)pv.accs.devdata, pv.np, pv.np - pv.received, pv.domainStart, pv.ncells, 1.0f,
-						(uint*)pv.cellsSize.devdata, pv.cellsStart.devdata, integrate, (float4*)pv.pingPongBuf.devdata)) );
+						(uint*)pv.cellsSize.devdata, pv.cellsStart.devdata, dt, integrate, (float4*)pv.pingPongBuf.devdata)) );
 
 	debug("Rearranging completed");
 

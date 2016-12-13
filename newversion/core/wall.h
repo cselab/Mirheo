@@ -35,6 +35,7 @@ public:
 
 	Wall(MPI_Comm& comm, IniParser& config);
 
+	void _check();
 	void create(ParticleVector& dpds);
 	void attach(ParticleVector* pv);
 	void computeInteractions(cudaStream_t stream = 0);
