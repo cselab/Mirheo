@@ -201,50 +201,43 @@ __device__ __forceinline__ int atomicAggInc(int *ctr)
 }
 
 
-namespace FreezingActions
-{
-	const int Freeze = 1;
-	const int Keep   = 2;
-	const int Remove = 3;
-}
-
-__global__ void countFrozen(float4* particles, cudaTextureObject_t sdfTex, float3 length, float3 h, int* nFrozen)
+__global__ void countFrozen(float4* particles, const int np, cudaTextureObject_t sdfTex, float3 length, float3 h, int* nFrozen)
 {
 	const int pid = blockIdx.x * blockDim.x + threadIdx.x;
+	if (pid >= np) return;
 
 	const float4 coos = particles[2*pid];
 	float4 vels = particles[2*pid+1];
 
 	const float sdf = evalSdf(sdfTex, coos, length, h, 1.0f / h);
 
-	if (sdf < 0.0f)			vels.w = __int_as_float(FreezingActions::Keep);  // keep
-	else if (sdf > 1.5f)	vels.w = __int_as_float(FreezingActions::Remove);  // remove
-	else
+	if (sdf > 0.0f && sdf < 1.2f)
 	{
-		vels.w = __int_as_float(FreezingActions::Freeze);  // freeze
 		atomicAggInc(nFrozen);
 	}
 
 	particles[2*pid+1].w = vels.w;
 }
 
-__global__ void collectFrozen(cudaTextureObject_t sdfTex, const float4* input, float4* output, float4* frozen, int* nRemaining, int* nFrozen)
+__global__ void collectFrozen(cudaTextureObject_t sdfTex, float3 length, float3 h, const int np,
+		const float4* input, float4* remaining, float4* frozen, int* nRemaining, int* nFrozen)
 {
 	const int pid = blockIdx.x * blockDim.x + threadIdx.x;
+	if (pid >= np) return;
 
 	const float4 coos = input[2*pid];
 	const float4 vels = input[2*pid+1];
 
-	const int key = __float_as_int(vels.w);
+	const float sdf = evalSdf(sdfTex, coos, length, h, 1.0f / h);
 
-	if (key == FreezingActions::Keep)
+	if (sdf <= 0.0f)
 	{
 		const int ind = atomicAggInc(nRemaining);
-		output[2*ind] = coos;
-		output[2*ind + 1] = vels;
+		remaining[2*ind] = coos;
+		remaining[2*ind + 1] = vels;
 	}
 
-	if (key == FreezingActions::Freeze)
+	if (sdf > 0.0f && sdf < 1.2f)
 	{
 		const int ind = atomicAggInc(nFrozen);
 		frozen[2*ind] = coos;
@@ -252,21 +245,22 @@ __global__ void collectFrozen(cudaTextureObject_t sdfTex, const float4* input, f
 	}
 }
 
-__global__ void countBoundaryCells(const int3 ncells, const float3 domainStart, const float rc, cudaTextureObject_t sdfTex,
+__global__ void countBoundaryCells(const int3 ncells, const int totcells, const float3 domainStart, const float rc, cudaTextureObject_t sdfTex,
 		const float3 length, const float3 h, int* nBoundaryCells)
 {
 	const int cid = blockIdx.x * blockDim.x + threadIdx.x;
+	if (cid >= totcells) return;
 	int ix, iy, iz;
 
 	decode(cid, ix, iy, iz, ncells);
 
 	const float3 invH = 1.0f / h;
 
-	const float cx = domainStart.x + ix*rc - 1e-6f;
-	const float cy = domainStart.y + iy*rc - 1e-6f;
-	const float cz = domainStart.z + iz*rc - 1e-6f;
+	const float cx = domainStart.x + ix*rc;
+	const float cy = domainStart.y + iy*rc;
+	const float cz = domainStart.z + iz*rc;
 
-	const float l = rc+2e-6f;
+	const float l = rc;
 	const float s000 = evalSdf(sdfTex, make_float3(cx,   cy,   cz),   length, h, invH);
 	const float s001 = evalSdf(sdfTex, make_float3(cx,   cy,   cz+l), length, h, invH);
 	const float s010 = evalSdf(sdfTex, make_float3(cx,   cy+l, cz),   length, h, invH);
@@ -276,30 +270,32 @@ __global__ void countBoundaryCells(const int3 ncells, const float3 domainStart, 
 	const float s110 = evalSdf(sdfTex, make_float3(cx+l, cy+l, cz),   length, h, invH);
 	const float s111 = evalSdf(sdfTex, make_float3(cx+l, cy+l, cz+l), length, h, invH);
 
-	if ( (1e-6f > s000 && s000 > -1.000001f) || (1e-6f > s001 && s001 > -1.000001f) ||
-		 (1e-6f > s010 && s010 > -1.000001f) || (1e-6f > s011 && s011 > -1.000001f) ||
-		 (1e-6f > s100 && s100 > -1.000001f) || (1e-6f > s101 && s101 > -1.000001f) ||
-		 (1e-6f > s110 && s110 > -1.000001f) || (1e-6f > s111 && s111 > -1.000001f) )
+	if ( (0.1f > s000 && s000 > -1.1f) || (0.1f > s001 && s001 > -1.1f) ||
+		 (0.1f > s010 && s010 > -1.1f) || (0.1f > s011 && s011 > -1.1f) ||
+		 (0.1f > s100 && s100 > -1.1f) || (0.1f > s101 && s101 > -1.1f) ||
+		 (0.1f > s110 && s110 > -1.1f) || (0.1f > s111 && s111 > -1.1f) )
 	{
 		atomicAggInc(nBoundaryCells);
 	}
 }
 
-__global__ void getBoundaryCells(const int3 ncells, const float3 domainStart, const float rc,
+__global__ void getBoundaryCells(const int3 ncells, const int totcells, const float3 domainStart, const float rc,
 		cudaTextureObject_t sdfTex, const float3 length, const float3 h, int* nBoundaryCells, int* boundaryCells)
 {
 	const int cid = blockIdx.x * blockDim.x + threadIdx.x;
+	if (cid >= totcells) return;
+
 	int ix, iy, iz;
 
 	decode(cid, ix, iy, iz, ncells);
 
 	const float3 invH = 1.0f / h;
 
-	const float cx = domainStart.x + ix*rc - 1e-6f;
-	const float cy = domainStart.y + iy*rc - 1e-6f;
-	const float cz = domainStart.z + iz*rc - 1e-6f;
+	const float cx = domainStart.x + ix*rc;
+	const float cy = domainStart.y + iy*rc;
+	const float cz = domainStart.z + iz*rc;
 
-	const float l = rc+2e-6f;
+	const float l = rc;
 	const float s000 = evalSdf(sdfTex, make_float3(cx,   cy,   cz),   length, h, invH);
 	const float s001 = evalSdf(sdfTex, make_float3(cx,   cy,   cz+l), length, h, invH);
 	const float s010 = evalSdf(sdfTex, make_float3(cx,   cy+l, cz),   length, h, invH);
@@ -309,10 +305,10 @@ __global__ void getBoundaryCells(const int3 ncells, const float3 domainStart, co
 	const float s110 = evalSdf(sdfTex, make_float3(cx+l, cy+l, cz),   length, h, invH);
 	const float s111 = evalSdf(sdfTex, make_float3(cx+l, cy+l, cz+l), length, h, invH);
 
-	if ( (1e-6f > s000 && s000 > -1.000001f) || (1e-6f > s001 && s001 > -1.000001f) ||
-		 (1e-6f > s010 && s010 > -1.000001f) || (1e-6f > s011 && s011 > -1.000001f) ||
-		 (1e-6f > s100 && s100 > -1.000001f) || (1e-6f > s101 && s101 > -1.000001f) ||
-		 (1e-6f > s110 && s110 > -1.000001f) || (1e-6f > s111 && s111 > -1.000001f) )
+	if ( (0.1f > s000 && s000 > -1.1f) || (0.1f > s001 && s001 > -1.1f) ||
+		 (0.1f > s010 && s010 > -1.1f) || (0.1f > s011 && s011 > -1.1f) ||
+		 (0.1f > s100 && s100 > -1.1f) || (0.1f > s101 && s101 > -1.1f) ||
+		 (0.1f > s110 && s110 > -1.1f) || (0.1f > s111 && s111 > -1.1f) )
 	{
 		int id = atomicAggInc(nBoundaryCells);
 		boundaryCells[id] = cid;
@@ -321,10 +317,14 @@ __global__ void getBoundaryCells(const int3 ncells, const float3 domainStart, co
 
 
 template<typename Transform>
-__global__ void bounceBeforeIntegration(const int* wallCells, const int* __restrict__ cellsStart, const float4* accs,
-		cudaTextureObject_t sdfTex, const float3 length, const float3 h, const float3 invH, float4* xyzouvwo, Transform transform)
+__global__ void bounceBeforeIntegration(const int* wallCells, const int nWallCells, const int* __restrict__ cellsStart, const float4* accs,
+		cudaTextureObject_t sdfTex, const float3 length, const float3 h, const float3 invH, float4* xyzouvwo, const float dt, Transform transform)
 {
+	const int maxNIters = 20;
+	const float tolerance = 5e-6;
+
 	const int tid = blockIdx.x * blockDim.x + threadIdx.x;
+	if (tid >= nWallCells) return;
 	const int cid = wallCells[tid];
 
 	const int2 startSize = decodeStartSize(cellsStart[cid]);
@@ -338,49 +338,125 @@ __global__ void bounceBeforeIntegration(const int* wallCells, const int* __restr
 		float4 acc = accs[pid];
 
 		float4 oldCoo = coo;
-		transform(coo, vel, acc, pid);
+		float4 oldVel = vel;
+		transform(coo, vel, acc, dt, pid);
 
-		va = evalSdf(sdfTex, coo, length, h, invH);
-		if (va > 0.0f) continue;
+		va = evalSdf(sdfTex, oldCoo, length, h, invH);
+		vb = evalSdf(sdfTex, coo, length, h, invH);
 
-		vb = evalSdf(sdfTex, oldCoo, length, h, invH);
-		assert( vb >= 0.0f ); // Accuracy issues here!
+		float _va = va;
+		float _vb = vb;
+
+		if (vb < 0.0f) continue; // if inside - continue
+		assert( va < 0.0f ); // Accuracy issues here!
+
+//		if (va >= 0.0f)
+//			printf("%d %d  old[%f %f %f] new[%f %f %f] %f  %f\n", cid, __float_as_int(coo.w), coo.x, coo.y, coo.z, oldCoo.x, oldCoo.y, oldCoo.z, va, vb);
 
 		// Determine where we cross
 		// Interpolation search
 
 		float3 a{oldCoo.x, oldCoo.y, oldCoo.z};
 		float3 b{coo.x, coo.y, coo.z};
-		float vmid = 1.0f;
-		float lambda;
+		float3 mid;
+		float vmid;
 
-		while (fabs(vmid) > 1e-6f)
+		int iters;
+#pragma unroll 2
+		for (iters=0; iters<maxNIters; iters++)
 		{
-			lambda = vb / (vb - va);  // va*l + (1-l)*vb = 0
-			const float3 mid = a*lambda + b*(1.0f - lambda);
+			const float lambda = min(max((vb / (vb - va)), 0.1f), 0.9f);  // va*l + (1-l)*vb = 0
+			mid = a*lambda + b*(1.0f - lambda);
 			vmid = evalSdf(sdfTex, mid, length, h, invH);
 
+//			if (__float_as_int(coo.w) == 151945)
+//				printf("  [%.9f %.9f %.9f] (%.9f),  [%.9f %.9f %.9f] (%.9f)  == %f ==>  [%.9f %.9f %.9f] (%.9f)\n",
+//						a.x, a.y, a.z, va,  b.x, b.y, b.z, vb,  lambda, mid.x, mid.y, mid.z, vmid);
+
 			if (va * vmid < 0.0f)
+			{
 				vb = vmid;
+				b = mid;
+			}
 			else
+			{
 				va = vmid;
+				a = mid;
+			}
+
+			if (fabs(vmid) < tolerance) break;
 		}
+
+		assert(fabs(vmid) < tolerance);
+
+		// Final intersection at old*alpha + new*(1-alpha)
+		const float alpha = (oldCoo.x - mid.x) / (oldCoo.x - coo.x);
+
+		// Travel along alpha*(new - old), then bounces back along -(1-alpha)*(new - old)
+		float beta = 2*alpha - 1;
 
 		// In the corners long bounce may place the particle into another wall
 		// Need to find a safe step in that case
-		float beta = 1-2*lambda;
-		float4 candidate = oldCoo - beta * (coo - oldCoo);
+		float4 candidate = oldCoo + beta * (coo - oldCoo);
+		float vcandidate;
 
-		while (evalSdf(sdfTex, candidate, length, h, invH) > -1e-6f)
+//		if (iters >= 10)
+//			printf("%d:   [%f %f %f] (%f),  [%f %f %f] (%f)  ==>  [%f %f %f] (%f)     %d\n", __float_as_int(coo.w),
+//					oldCoo.x, oldCoo.y, oldCoo.z, _va,  coo.x, coo.y, coo.z, _vb,  mid.x, mid.y, mid.z, vmid, iters+1);
+
+		for (int i=0; i<maxNIters; i++)
 		{
+			if ( (vcandidate = evalSdf(sdfTex, candidate, length, h, invH)) < 0.0f ) break;
+
 			beta *= 0.5;
 			candidate = oldCoo - beta * (coo - oldCoo);
 		}
+
+		if (vcandidate >= 0.0f)
+		printf("Warning: %d %d  old [%f %f %f] (%f),  new [%f %f %f] (%f)  ==> [%f %f %f] (%f)  in %d iters\n",
+				cid, pid, oldCoo.x, oldCoo.y, oldCoo.z, evalSdf(sdfTex, oldCoo, length, h, invH),
+				coo.x, coo.y, coo.z, evalSdf(sdfTex, coo, length, h, invH),
+				candidate.x, candidate.y, candidate.z, vcandidate, iters+1);
+		//assert(vcandidate < 1.0f);
+
+
+		float4 candVel = vel;
+		transform(candidate, candVel, -acc, dt, pid);
+
+//		float4 x0 = candidate;
+//		float4 v0 = -vel;
+//		transform(x0, v0, acc, dt, pid);
+//		if (__float_as_int(coo.w) == 83745)
+//				printf("[%f %f %f] vs [%f %f %f],  [%f %f %f] vs [%f %f %f]\n",
+//						c0.x, c0.y, c0.z,  x0.x, x0.y, x0.z,
+//						-vel.x, -vel.y, -vel.z, v0.x, v0.y, v0.z);
+
 
 		xyzouvwo[2*pid] = candidate;
 		xyzouvwo[2*pid + 1] = -vel;
 	}
 }
+
+__global__ void check(float4* data, const int n, cudaTextureObject_t sdfTex, const float3 length, const float3 h, const float3 invH)
+{
+	const int pid = blockIdx.x * blockDim.x + threadIdx.x;
+	if (pid >= n) return;
+
+	float4 coo = data[2*pid];
+	float v = evalSdf(sdfTex, coo, length, h, invH);
+
+	//if (v > 0.0f)
+	//	printf("CHECK! %d:  [%f %f %f] -> %f\n", __float_as_int(coo.w), coo.x, coo.y, coo.z, v);
+}
+
+void Wall::_check()
+{
+	for (auto& pv : particleVectors)
+	{
+		check<<< (pv->np + 127) / 128, 128 >>>( (float4*)pv->coosvels.devdata, pv->np, sdfTex, length, h, 1.0 / h);
+	}
+}
+
 
 
 Wall::Wall(MPI_Comm& comm, IniParser& config): config(config)
@@ -421,7 +497,7 @@ Wall::Wall(MPI_Comm& comm, IniParser& config): config(config)
 			fullSdfResolution.x >> fullSdfResolution.y >> fullSdfResolution.z;
 		fullSdfSize = fullSdfResolution.x * fullSdfResolution.y * fullSdfResolution.z;
 
-		info("Using wall file '%s' of size %.2fx%f.2x%f.2 and resolution %dx%dx%d", sdfname.c_str(),
+		info("Using wall file '%s' of size %.2fx%.2fx%.2f and resolution %dx%dx%d", sdfname.c_str(),
 				fullSdfExtent.x, fullSdfExtent.y, fullSdfExtent.z,
 				fullSdfResolution.x, fullSdfResolution.y, fullSdfResolution.z);
 
@@ -547,43 +623,50 @@ void Wall::create(ParticleVector& dpds)
 	PinnedBuffer<int> nFrozen(1), nRemaining(1), nBoundaryCells(1);
 
 	nFrozen.clear();
-	countFrozen<<< (dpds.np + 127) / 128, 128 >>>((float4*)dpds.coosvels.devdata, sdfTex, length, h, nFrozen.devdata);
+	countFrozen<<< (dpds.np + 127) / 128, 128 >>>((float4*)dpds.coosvels.devdata, dpds.np, sdfTex, length, h, nFrozen.devdata);
 
 	nFrozen.synchronize(synchronizeHost);
 	frozen.resize(nFrozen[0]);
+	info("Freezing %d particles", nFrozen[0]);
 
 	nFrozen.   clear();
 	nRemaining.clear();
-	collectFrozen<<< (dpds.np + 127) / 128, 128 >>>(sdfTex, (float4*)dpds.coosvels.devdata, (float4*)dpds.pingPongBuf.devdata,
-			(float4*)frozen.devdata, nRemaining.devdata, nFrozen.devdata);
+	collectFrozen<<< (dpds.np + 127) / 128, 128 >>>(sdfTex, length, h, dpds.np,
+			(float4*)dpds.coosvels.devdata, (float4*)dpds.pingPongBuf.devdata, (float4*)frozen.devdata, nRemaining.devdata, nFrozen.devdata);
 
 	nRemaining.synchronize(synchronizeHost);
-	dpds.resize(nRemaining[0]);
 	swap(dpds.coosvels, dpds.pingPongBuf);
+	dpds.resize(nRemaining[0]);
+	info("Keeping %d particles", nRemaining[0]);
+
+
+	CUDA_Check( cudaDeviceSynchronize() );
 
 
 	nBoundaryCells.clear();
-	countBoundaryCells<<< (dpds.totcells + 127) / 128, 128 >>> (dpds.ncells, dpds.domainStart, rc, sdfTex, length, h, nBoundaryCells.devdata);
+	countBoundaryCells<<< (dpds.totcells + 127) / 128, 128 >>> (dpds.ncells, dpds.totcells, dpds.domainStart, rc, sdfTex, length, h, nBoundaryCells.devdata);
 
 	nBoundaryCells.synchronize(synchronizeHost);
+	info("Found %d boundary cells", nBoundaryCells[0]);
 	boundaryCells.resize(nBoundaryCells[0]);
 	nBoundaryCells.clear();
-	getBoundaryCells<<< (dpds.totcells + 127) / 128, 128 >>> (dpds.ncells, dpds.domainStart, rc, sdfTex, length, h, nBoundaryCells.devdata, boundaryCells.devdata);
+	getBoundaryCells<<< (dpds.totcells + 127) / 128, 128 >>> (dpds.ncells, dpds.totcells, dpds.domainStart, rc, sdfTex, length, h, nBoundaryCells.devdata, boundaryCells.devdata);
 }
 
 void Wall::bounce(cudaStream_t stream)
 {
-	const float dt = this->dt;
-
-	for (auto pv : particleVectors)
+	for (auto& pv : particleVectors)
 	{
 		flowMacroWrapper( (bounceBeforeIntegration<<< (boundaryCells.size + 127) / 128, 128, 0, stream >>>(
-				boundaryCells.devdata, pv->cellsStart.devdata, (float4*)pv->accs.devdata, sdfTex, length, h, 1.0 / h, (float4*)pv->coosvels.devdata, integrate)) );
+				boundaryCells.devdata, boundaryCells.size, pv->cellsStart.devdata, (float4*)pv->accs.devdata,
+				sdfTex, length, h, 1.0 / h, (float4*)pv->coosvels.devdata, dt, integrate)) );
 	}
 }
 
 void Wall::computeInteractions(cudaStream_t stream)
 {
+	if (frozen.size <= 0) return;
+
 	const float kBT = config.getFloat("Common", "kbt");
 	const float gammadpd = config.getFloat("Common", "gamma");
 	const float sigmadpd = sqrt(2 * gammadpd * kBT);
