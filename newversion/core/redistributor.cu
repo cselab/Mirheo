@@ -10,17 +10,16 @@
 #include <algorithm>
 #include <unistd.h>
 
-template<typename Transform>
-__global__ void getExitingParticles(const int* __restrict__ cellsStart, const float4* __restrict__ xyzouvwo, const float4* __restrict__ accs,
+__global__ void getExitingParticles(const int* __restrict__ cellsStart, const float4* __restrict__ xyzouvwo,
 		const int3 ncells, const int totcells, const float3 length, const float3 domainStart,
-		const int64_t __restrict__ dests[27], int counts[27], const float dt, Transform transform)
+		const int64_t __restrict__ dests[27], int counts[27])
 {
 	const int gid = blockIdx.x*blockDim.x + threadIdx.x;
 	const int variant = blockIdx.y;
 	int cid;
 	int cx, cy, cz;
 
-	// Select all the boundary cells WITH	OUT duplicates
+	// Select all the boundary cells WITHOUT repetitions
 	bool valid = true;
 
 	if (variant <= 1)  // x
@@ -80,14 +79,10 @@ __global__ void getExitingParticles(const int* __restrict__ cellsStart, const fl
 		const int srcId = start_size.x + i;
 		const float4 coo = xyzouvwo[2*srcId];
 		const float4 vel = xyzouvwo[2*srcId+1];
-		const float4 acc = accs[srcId];
 
-		float4 newcoo = coo, newvel = vel;
-		transform(newcoo, newvel, acc, dt, srcId);
-
-		int px = getCellIdAlongAxis<false>(newcoo.x, domainStart.x, ncells.x, 1.0f);
-		int py = getCellIdAlongAxis<false>(newcoo.y, domainStart.y, ncells.y, 1.0f);
-		int pz = getCellIdAlongAxis<false>(newcoo.z, domainStart.z, ncells.z, 1.0f);
+		int px = getCellIdAlongAxis<false>(coo.x, domainStart.x, ncells.x, 1.0f);
+		int py = getCellIdAlongAxis<false>(coo.y, domainStart.y, ncells.y, 1.0f);
+		int pz = getCellIdAlongAxis<false>(coo.z, domainStart.z, ncells.z, 1.0f);
 
 		if (px < 0) px = 0;
 		else if (px >= ncells.x) px = 2;
@@ -112,14 +107,12 @@ __global__ void getExitingParticles(const int* __restrict__ cellsStart, const fl
 
 					int myid = atomicAdd(counts + bufId, 1);
 
-					const int dstInd = 3*myid;
+					const int dstInd = 2*myid;
 
 					float4* addr = (float4*)dests[bufId];
 					addr[dstInd + 0] = coo - shift;
 					addr[dstInd + 1] = vel;
-					addr[dstInd + 2] = acc;
 				}
-
 	}
 }
 
@@ -131,9 +124,10 @@ Redistributor::Redistributor(MPI_Comm& comm, IniParser& config) : nActiveNeighbo
 	MPI_Check( MPI_Cart_get (redComm, 3, dims, periods, coords) );
 	MPI_Check( MPI_Comm_rank(redComm, &myrank));
 
-	MPI_Check( MPI_Type_contiguous(sizeof(PandA), MPI_BYTE, &mpiPandAType) );
-	MPI_Check( MPI_Type_commit(&mpiPandAType) );
+	MPI_Check( MPI_Type_contiguous(sizeof(Particle), MPI_BYTE, &mpiPartType) );
+	MPI_Check( MPI_Type_commit(&mpiPartType) );
 
+	int active = 0;
 	for(int i = 0; i < 27; ++i)
 	{
 		int d[3] = { i%3 - 1, (i/3) % 3 - 1, i/9 - 1 };
@@ -143,6 +137,8 @@ Redistributor::Redistributor(MPI_Comm& comm, IniParser& config) : nActiveNeighbo
 			coordsNeigh[c] = coords[c] + d[c];
 
 		MPI_Check( MPI_Cart_rank(redComm, coordsNeigh, dir2rank + i) );
+		if (dir2rank[i] >= 0 && i != 13)
+			compactedDirs[active++] = i;
 	}
 }
 
@@ -168,6 +164,7 @@ void Redistributor::attach(ParticleVector* pv, int ndens)
 		if (c > 0)
 		{
 			helper.sendBufs[i].resize( 3 * ndens * pow(maxdim, 3 - c) );
+			helper.recvBufs[i].resize( 3 * ndens * pow(maxdim, 3 - c) );
 			helper.sendAddrs[i] = (float4*)helper.sendBufs[i].devdata;
 		}
 	}
@@ -177,7 +174,7 @@ void Redistributor::attach(ParticleVector* pv, int ndens)
 void Redistributor::redistribute(float dt)
 {
 	for (int i=0; i<particleVectors.size(); i++)
-		__identify(i, dt);
+		_initialize(i, dt);
 
 	for (int i=0; i<particleVectors.size(); i++)
 	{
@@ -189,7 +186,7 @@ void Redistributor::redistribute(float dt)
 		receive(i);
 }
 
-void Redistributor::__identify(int n, float dt)
+void Redistributor::_initialize(int n, float dt)
 {
 	auto& pv = *particleVectors[n];
 	auto& helper = helpers[n];
@@ -201,10 +198,20 @@ void Redistributor::__identify(int n, float dt)
 
 	debug("Preparing %d-th leaving particles on the device", n);
 
-	flowMacroWrapper( (getExitingParticles<<< dim3((maxdim*maxdim + nthreads - 1) / nthreads, 6, 1),  dim3(nthreads, 1, 1), 0, helper.stream >>>
-				(pv.cellsStart.devdata, (float4*)pv.coosvels.devdata, (float4*)pv.accs.devdata,
+	helper.requests.clear();
+	for (int i=0; i<nActiveNeighbours; i++)
+		if (i != 13 && dir2rank[i] >= 0)
+		{
+			MPI_Request req;
+			const int tag = 27*n + i;
+			MPI_Check( MPI_Irecv(helper.recvBufs[i].hostdata, helper.recvBufs[i].size, mpiPartType, dir2rank[i], tag, redComm, &req) );
+			helper.requests.push_back(req);
+		}
+
+	getExitingParticles<<< dim3((maxdim*maxdim + nthreads - 1) / nthreads, 6, 1),  dim3(nthreads, 1, 1), 0, helper.stream >>>
+				(pv.cellsStart.devdata, (float4*)pv.coosvels.devdata,
 				 pv.ncells, pv.totcells, pv.length, pv.domainStart,
-				 (int64_t*)helper.sendAddrs.devdata, helper.counts.devdata, dt, integrate)) );
+				 (int64_t*)helper.sendAddrs.devdata, helper.counts.devdata);
 }
 
 void Redistributor::send(int n)
@@ -217,7 +224,7 @@ void Redistributor::send(int n)
 	for (int i=0; i<27; i++)
 		if (i != 13)
 			CUDA_Check( cudaMemcpyAsync(helper.sendBufs[i].hostdata, helper.sendBufs[i].devdata,
-					helper.counts[i]*sizeof(PandA), cudaMemcpyDeviceToHost, helper.stream) );
+					helper.counts[i]*sizeof(Particle), cudaMemcpyDeviceToHost, helper.stream) );
 	CUDA_Check( cudaStreamSynchronize(helper.stream) );
 
 	MPI_Request req;
@@ -226,7 +233,9 @@ void Redistributor::send(int n)
 		{
 			debug("Sending %d-th redistribution to rank %d in dircode %d [%2d %2d %2d], size %d",
 					n, dir2rank[i], i, i%3 - 1, (i/3)%3 - 1, i/9 - 1, helper.counts[i]);
-			MPI_Check( MPI_Isend(helper.sendBufs[i].hostdata, helper.counts[i], mpiPandAType, dir2rank[i], n, redComm, &req) );
+
+			const int tag = 27*n + i;
+			MPI_Check( MPI_Isend(helper.sendBufs[i].hostdata, helper.counts[i], mpiPartType, dir2rank[i], tag, redComm, &req) );
 		}
 }
 
@@ -235,45 +244,34 @@ void Redistributor::receive(int n)
 	auto& helper = helpers[n];
 	auto& pv = particleVectors[n];
 
-	int cur = 0;
-	helper.recvBuf.resize(0);
+	// Wait until messages are arrived
+	const int nMessages = helper.requests.size();
+	std::vector<MPI_Status> statuses(nMessages);
+	MPI_Check( MPI_Waitall(nMessages, &helper.requests[0], &statuses[0]) );
 
-	for (int i=0; i<nActiveNeighbours; i++)
+	// Excl scan of message sizes to know where we will upload them
+	std::vector<int> offsets(nMessages+1);
+	int totalRecvd = 0;
+	for (int i=0; i<nMessages; i++)
 	{
-		MPI_Status stat;
-		int recvd = 0;
-		while (recvd == 0)
-		{
-			MPI_Check( MPI_Iprobe(MPI_ANY_SOURCE, n, redComm, &recvd, &stat) );
-			if (recvd == 0) usleep(1);
-		}
+		offsets[i] = totalRecvd;
 
 		int msize;
-	    MPI_Check( MPI_Get_count(&stat, mpiPandAType, &msize) );
-	    helper.recvBuf.resize(helper.recvBuf.size + msize, resizePreserve);
-
-		debug("Receiving %d-th redistribution from rank %d, size %d", n, stat.MPI_SOURCE, msize);
-		MPI_Check( MPI_Recv(helper.recvBuf.hostdata+cur, msize, mpiPandAType, stat.MPI_SOURCE, n, redComm, &stat) );
-
-		cur += msize;
+		MPI_Check( MPI_Get_count(&statuses[i], mpiPartType, &msize) );
+		totalRecvd += msize;
 	}
-
-	int total = cur;
-	helper.recvPartBuf.resize(total);
-	helper.recvAccBuf. resize(total);
-
-	for (int i=0; i<total; i++)
-	{
-		helper.recvPartBuf[i] = helper.recvBuf[i].p;
-		helper.recvAccBuf [i] = helper.recvBuf[i].a;
-	}
+	offsets[nMessages] = totalRecvd;
 
 	int oldsize = pv->np;
-	pv->resize(oldsize + total, resizePreserve, helper.stream);
-	pv->received = total;
+	pv->resize(oldsize + totalRecvd, resizePreserve, helper.stream);
+	pv->received = totalRecvd; // TODO: get rid of this
 
-	CUDA_Check( cudaMemcpyAsync(pv->coosvels.devdata + oldsize, helper.recvPartBuf.hostdata, total*sizeof(Particle),     cudaMemcpyHostToDevice, helper.stream) );
-	CUDA_Check( cudaMemcpyAsync(pv->accs.    devdata + oldsize, helper.recvAccBuf. hostdata, total*sizeof(Acceleration), cudaMemcpyHostToDevice, helper.stream) );
+	// Load onto the device
+	for (int i=0; i<nMessages; i++)
+	{
+		CUDA_Check( cudaMemcpyAsync(pv->coosvels.devdata + oldsize + offsets[i], helper.recvBufs[compactedDirs[i]].hostdata,
+				(offsets[i+1] - offsets[i])*sizeof(Particle), cudaMemcpyHostToDevice, helper.stream) );
+	}
 
 	CUDA_Check( cudaStreamSynchronize(helper.stream) );
 }

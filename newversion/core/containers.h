@@ -7,7 +7,7 @@ struct ParticleVector
 	int np;
 
 	PinnedBuffer<Particle>     coosvels, pingPongBuf;
-	DeviceBuffer<Acceleration> accs;
+	DeviceBuffer<Force> forces;
 
 	DeviceBuffer<int> cellsStart;
 	DeviceBuffer<uint8_t> cellsSize;
@@ -33,7 +33,7 @@ struct ParticleVector
 	{
 		coosvels.resize(n, kind, stream);
 		pingPongBuf.resize(n, kind, stream);
-		accs.resize(n, kind, stream);
+		forces.resize(n, kind, stream);
 
 		np = n;
 	}

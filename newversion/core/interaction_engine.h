@@ -5,24 +5,24 @@
 #include "celllist.h"
 #include "non_cached_rw.h"
 
-__device__ __forceinline__ float3 readCoosFromAll4(const float4* xyzouvwo, int pid)
+__device__ __forceinline__ float3 readCoosFromAll4(const float4* coosvels, int pid)
 {
-	const float4 tmp = xyzouvwo[2*pid];
+	const float4 tmp = coosvels[2*pid];
 
 	return make_float3(tmp.x, tmp.y, tmp.z);
 }
 
-__device__ __forceinline__ float3 readVelsFromAll4(const float4* xyzouvwo, int pid)
+__device__ __forceinline__ float3 readVelsFromAll4(const float4* coosvels, int pid)
 {
-	const float4 tmp = xyzouvwo[2*pid+1];
+	const float4 tmp = coosvels[2*pid+1];
 
 	return make_float3(tmp.x, tmp.y, tmp.z);
 }
 
-__device__ __forceinline__ void readAll4(const float4* xyzouvwo, int pid, float3& coo, float3& vel)
+__device__ __forceinline__ void readAll4(const float4* coosvels, int pid, float3& coo, float3& vel)
 {
-	const float4 tmp1 = xyzouvwo[pid*2];
-	const float4 tmp2 = xyzouvwo[pid*2+1];
+	const float4 tmp1 = coosvels[pid*2];
+	const float4 tmp2 = coosvels[pid*2+1];
 
 	coo = make_float3(tmp1.x, tmp1.y, tmp1.z);
 	vel = make_float3(tmp2.x, tmp2.y, tmp2.z);
@@ -46,15 +46,15 @@ __device__ __forceinline__ float3 f4tof3(float4 v)
 
 template<typename Interaction>
 __launch_bounds__(128, 16)
-__global__ void computeSelfInteractions(const float4 * __restrict__ xyzouvwo, float* axayaz, const int * __restrict__ cellsStart, const uint8_t * cellsSize,
+__global__ void computeSelfInteractions(const float4 * __restrict__ coosvels, float* forces, const int * __restrict__ cellsStart, const uint8_t * cellsSize,
 		int3 ncells, float3 domainStart, int ncells_1, int np, Interaction interaction)
 {
 	const int dstId = blockIdx.x*blockDim.x + threadIdx.x;
 	if (dstId >= np) return;
 
 	float3 dstCoo, dstVel;
-	float3 dstAcc = make_float3(0.0f);
-	readAll4(xyzouvwo, dstId, dstCoo, dstVel);
+	float3 dstFrc = make_float3(0.0f);
+	readAll4(coosvels, dstId, dstCoo, dstVel);
 
 	const int cellX0 = getCellIdAlongAxis(dstCoo.x, domainStart.x, ncells.x, 1.0f);
 	const int cellY0 = getCellIdAlongAxis(dstCoo.y, domainStart.y, ncells.y, 1.0f);
@@ -93,20 +93,20 @@ __global__ void computeSelfInteractions(const float4 * __restrict__ xyzouvwo, fl
 #pragma unroll 2
 				for (int srcId = start_size.x; srcId < start_size.x + start_size.y; srcId ++)
 				{
-					const float3 srcCoo = readCoosFromAll4(xyzouvwo, srcId);
+					const float3 srcCoo = readCoosFromAll4(coosvels, srcId);
 
 					bool interacting = distance2(srcCoo, dstCoo) < 1.00f;
 					if (dstId <= srcId && cellY == cellY0 && cellZ == cellZ0) interacting = false;
 
 					if (interacting)
 					{
-						const float3 srcVel = readVelsFromAll4(xyzouvwo, srcId);
+						const float3 srcVel = readVelsFromAll4(coosvels, srcId);
 
 						float3 frc = interaction(dstCoo, dstVel, dstId, srcCoo, srcVel, srcId);
 
-						dstAcc += frc;
+						dstFrc += frc;
 
-						float* dest = axayaz + srcId*4;
+						float* dest = forces + srcId*4;
 						atomicAdd(dest,     -frc.x);
 						atomicAdd(dest + 1, -frc.y);
 						atomicAdd(dest + 2, -frc.z);
@@ -114,17 +114,17 @@ __global__ void computeSelfInteractions(const float4 * __restrict__ xyzouvwo, fl
 				}
 			}
 
-	float* dest = axayaz + dstId*4;
-	atomicAdd(dest,     dstAcc.x);
-	atomicAdd(dest + 1, dstAcc.y);
-	atomicAdd(dest + 2, dstAcc.z);
+	float* dest = forces + dstId*4;
+	atomicAdd(dest,     dstFrc.x);
+	atomicAdd(dest + 1, dstFrc.y);
+	atomicAdd(dest + 2, dstFrc.z);
 }
 
 template<bool NeedDstAcc, bool NeedSrcAcc, typename Interaction>
 //__launch_bounds__(128, 16)
 __global__ void computeHaloInteractions(
-		const float4 * dstData, float* dstAccs,
-		const float4 * __restrict__ srcData, float* srcAccs,
+		const float4 * dstData,              float* dstFrcs,
+		const float4 * __restrict__ srcData, float* srcFrcs,
 		const int * __restrict__ cellsStart, int3 ncells, float3 domainStart, int ncells_1, int ndst, Interaction interaction)
 {
 	static_assert(NeedDstAcc || NeedSrcAcc, "External interactions should return at least some accelerations");
@@ -133,7 +133,7 @@ __global__ void computeHaloInteractions(
 	if (dstId >= ndst) return;
 
 	float3 dstCoo, dstVel;
-	float3 dstAcc = make_float3(0.0f);
+	float3 dstFrc = make_float3(0.0f);
 //	readAll4(dstData, dstId, dstCoo, dstVel);
 	dstCoo = f4tof3(readNoCache(dstData+2*dstId));
 	dstVel = f4tof3(readNoCache(dstData+2*dstId+1));
@@ -164,10 +164,10 @@ __global__ void computeHaloInteractions(
 						float3 frc = interaction(dstCoo, dstVel, dstId, srcCoo, srcVel, srcId);
 
 						if (NeedDstAcc)
-							dstAcc += frc;
+							dstFrc += frc;
 						if (NeedSrcAcc)
 						{
-							float* dest = srcAccs + srcId*4;
+							float* dest = srcFrcs + srcId*4;
 
 							atomicAdd(dest,     -frc.x);
 							atomicAdd(dest + 1, -frc.y);
@@ -179,18 +179,19 @@ __global__ void computeHaloInteractions(
 
 	if (NeedDstAcc)
 	{
-		float* dest = dstAccs + dstId*4;
-		dest[0] += dstAcc.x;
-		dest[1] += dstAcc.y;
-		dest[2] += dstAcc.z;
+		float* dest = dstFrcs + dstId*4;
+		dest[0] += dstFrc.x;
+		dest[1] += dstFrc.y;
+		dest[2] += dstFrc.z;
 	}
 }
 
 
 template<bool NeedDstAcc, bool NeedSrcAcc, typename Interaction>
+__launch_bounds__(128, 16)
 __global__ void computeExternalInteractions(
-		const float4 * __restrict__ dstData, float* dstAccs,
-		const float4 * __restrict__ srcData, float* srcAccs,
+		const float4 * __restrict__ dstData, float* dstFrcs,
+		const float4 * __restrict__ srcData, float* srcFrcs,
 		const int * __restrict__ cellsStart, int3 ncells, float3 domainStart, int ncells_1, int ndst, Interaction interaction)
 {
 	static_assert(NeedDstAcc || NeedSrcAcc, "External interactions should return at least some accelerations");
@@ -199,7 +200,7 @@ __global__ void computeExternalInteractions(
 	if (dstId >= ndst) return;
 
 	float3 dstCoo, dstVel;
-	float3 dstAcc = make_float3(0.0f);
+	float3 dstFrc = make_float3(0.0f);
 	//	readAll4(dstData, dstId, dstCoo, dstVel);
 	dstCoo = f4tof3(readNoCache(dstData+2*dstId));
 	dstVel = f4tof3(readNoCache(dstData+2*dstId+1));
@@ -252,11 +253,11 @@ __global__ void computeExternalInteractions(
 						float3 frc = interaction(dstCoo, dstVel, dstId, srcCoo, srcVel, srcId);
 
 						if (NeedDstAcc)
-							dstAcc += frc;
+							dstFrc += frc;
 
 						if (NeedSrcAcc)
 						{
-							float* dest = srcAccs + srcId*4;
+							float* dest = srcFrcs + srcId*4;
 
 							atomicAdd(dest,     -frc.x);
 							atomicAdd(dest + 1, -frc.y);
@@ -268,9 +269,9 @@ __global__ void computeExternalInteractions(
 
 	if (NeedDstAcc)
 	{
-		float* dest = dstAccs + dstId*4;
-		dest[0] += dstAcc.x;
-		dest[1] += dstAcc.y;
-		dest[2] += dstAcc.z;
+		float* dest = dstFrcs + dstId*4;
+		dest[0] += dstFrc.x;
+		dest[1] += dstFrc.y;
+		dest[2] += dstFrc.z;
 	}
 }

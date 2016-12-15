@@ -11,20 +11,15 @@
 // Note: we need to send / rcv accelarations as well here
 // simply because integration is performed later on
 
-struct PandA
-{
-	Particle p;
-	Acceleration a;
-};
 
 struct RedistributorHelper
 {
 	PinnedBuffer<int> counts;
-	PinnedBuffer<PandA> sendBufs[27];
+	PinnedBuffer<Particle> sendBufs[27];
 	PinnedBuffer<float4*>  sendAddrs;
-	HostBuffer<PandA> recvBuf;
-	HostBuffer<Particle> recvPartBuf;
-	HostBuffer<Acceleration> recvAccBuf;
+	HostBuffer<Particle> recvBufs[27];
+
+	std::vector<MPI_Request> requests;
 
 	// Async should be beneficial for multiple redistributors
 	cudaStream_t stream;
@@ -35,9 +30,11 @@ class Redistributor
 {
 private:
 	int dir2rank[27];
+	int compactedDirs[26]; // nActiveNeighbours entries s.t. we need to send/recv to/from dir2rank[compactedDirs[i]], i=0..nActiveNeighbours
+
 	int nActiveNeighbours;
 	int myrank;
-	MPI_Datatype mpiPandAType;
+	MPI_Datatype mpiPartType;
 	MPI_Comm redComm;
 
 	std::vector<ParticleVector*> particleVectors;
@@ -53,7 +50,7 @@ private:
 public:
 
 	// Has to be private, but cuda doesn't support lambdas in private functions
-	void __identify(int vid, float dt);
+	void _initialize(int vid, float dt);
 
 	Redistributor(MPI_Comm& comm, IniParser& config);
 	void attach(ParticleVector* pv, int ndens);

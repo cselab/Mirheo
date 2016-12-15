@@ -80,7 +80,7 @@ int main(int argc, char ** argv)
 	const float aij = 50;
 
 
-	HostBuffer<Acceleration> hacc;
+	HostBuffer<Force> hacc;
 	HostBuffer<int> hcellsstart;
 	HostBuffer<uint8_t> hcellssize;
 	hcellsstart.copy(dpds.cellsStart);
@@ -102,9 +102,9 @@ int main(int argc, char ** argv)
 
 	printf("Checking (this is not necessarily a cubic domain)......\n");
 
-	std::vector<Acceleration> refAcc(hacc.size);
+	std::vector<Force> refAcc(hacc.size);
 
-	auto addForce = [&](int dstId, int srcId, Acceleration& a)
+	auto addForce = [&](int dstId, int srcId, Force& a)
 	{
 		const float _xr = dpds.coosvels[dstId].x[0] - dpds.coosvels[srcId].x[0];
 		const float _yr = dpds.coosvels[dstId].x[1] - dpds.coosvels[srcId].x[1];
@@ -149,7 +149,7 @@ int main(int argc, char ** argv)
 
 				for (int dstId = start_size.x; dstId < start_size.x + start_size.y; dstId++)
 				{
-					Acceleration a {0,0,0,0};
+					Force a {0,0,0,0};
 
 					for (int dx = -1; dx <= 1; dx++)
 						for (int dy = -1; dy <= 1; dy++)

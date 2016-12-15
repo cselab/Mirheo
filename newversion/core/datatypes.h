@@ -22,10 +22,10 @@ struct Particle
 	int32_t i2;
 };
 
-struct Acceleration
+struct Force
 {
 	// 4-th coordinate is void
-	float a[4];
+	float f[4];
 };
 
 

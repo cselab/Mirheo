@@ -41,13 +41,13 @@ void makeCells(Particle*& __restrict__ coos, Particle*& __restrict__ buffer, int
 	std::swap(coos, buffer);
 }
 
-void integrate(Particle* __restrict__ coos, Acceleration* __restrict__ accs, int np, float dt, float3 domainStart, float3 length)
+void integrate(Particle* __restrict__ coos, Force* __restrict__ accs, int np, float dt, float3 domainStart, float3 length)
 {
 	for (int i=0; i<np; i++)
 	{
-		coos[i].u[0] += accs[i].a[0]*dt;
-		coos[i].u[1] += accs[i].a[1]*dt;
-		coos[i].u[2] += accs[i].a[2]*dt;
+		coos[i].u[0] += accs[i].f[0]*dt;
+		coos[i].u[1] += accs[i].f[1]*dt;
+		coos[i].u[2] += accs[i].f[2]*dt;
 
 		coos[i].x[0] += coos[i].u[0]*dt;
 		coos[i].x[1] += coos[i].u[1]*dt;
@@ -79,7 +79,7 @@ T minabs(T arg, Args... other)
 }
 
 
-void forces(const Particle* __restrict__ coos, Acceleration* __restrict__ accs, const int* __restrict__ cellsStart, const int* __restrict__ cellsSize,
+void forces(const Particle* __restrict__ coos, Force* __restrict__ accs, const int* __restrict__ cellsStart, const int* __restrict__ cellsSize,
 		int3 ncells, int totcells, float3 domainStart, float3 length)
 {
 
@@ -90,7 +90,7 @@ void forces(const Particle* __restrict__ coos, Acceleration* __restrict__ accs, 
 	const float sigmaf = sigma / sqrt(dt);
 	const float aij = 50;
 
-	auto addForce = [=] (int dstId, int srcId, Acceleration& a)
+	auto addForce = [=] (int dstId, int srcId, Force& a)
 	{
 		float _xr = coos[dstId].x[0] - coos[srcId].x[0];
 		float _yr = coos[dstId].x[1] - coos[srcId].x[1];
@@ -123,9 +123,9 @@ void forces(const Particle* __restrict__ coos, Acceleration* __restrict__ accs, 
 
 		const float strength = aij * argwr - (gammadpd * wr * rdotv + sigmaf * myrandnr) * wr;
 
-		a.a[0] += strength * xr;
-		a.a[1] += strength * yr;
-		a.a[2] += strength * zr;
+		a.f[0] += strength * xr;
+		a.f[1] += strength * yr;
+		a.f[2] += strength * zr;
 	};
 
 #pragma omp parallel for collapse(3)
@@ -137,7 +137,7 @@ void forces(const Particle* __restrict__ coos, Acceleration* __restrict__ accs, 
 
 				for (int dstId = cellsStart[cid]; dstId < cellsStart[cid] + cellsSize[cid]; dstId++)
 				{
-					Acceleration a {0,0,0,0};
+					Force f {0,0,0,0};
 
 					for (int dx = -1; dx <= 1; dx++)
 						for (int dy = -1; dy <= 1; dy++)
@@ -154,15 +154,15 @@ void forces(const Particle* __restrict__ coos, Acceleration* __restrict__ accs, 
 								for (int srcId = cellsStart[srcCid]; srcId < cellsStart[srcCid] + cellsSize[srcCid]; srcId++)
 								{
 									if (dstId != srcId)
-										addForce(dstId, srcId, a);
+										addForce(dstId, srcId, f);
 
 									//printf("%d  %f %f %f\n", dstId, a.a[0], a.a[1], a.a[2]);
 								}
 							}
 
-					accs[dstId].a[0] = a.a[0];
-					accs[dstId].a[1] = a.a[1];
-					accs[dstId].a[2] = a.a[2];
+					accs[dstId].f[0] = f.f[0];
+					accs[dstId].f[1] = f.f[1];
+					accs[dstId].f[2] = f.f[2];
 				}
 			}
 }
@@ -225,7 +225,7 @@ int main(int argc, char ** argv)
 
 	dpds.resize(c);
 	dpds.coosvels.synchronize(synchronizeDevice);
-	dpds.accs.clear();
+	dpds.forces.clear();
 
 	HostBuffer<Particle> particles(dpds.np);
 	for (int i=0; i<dpds.np; i++)
@@ -239,11 +239,10 @@ int main(int argc, char ** argv)
 	Redistributor redist(cartComm, config);
 	redist.attach(&dpds, ndens);
 
-	buildCellList(dpds, config, defStream);
 	CUDA_Check( cudaStreamSynchronize(defStream) );
 
 	const float dt = 0.005;
-	const int niters = 500;
+	const int niters = 5;
 
 	printf("GPU execution\n");
 
@@ -252,18 +251,20 @@ int main(int argc, char ** argv)
 
 	for (int i=0; i<niters; i++)
 	{
-		dpds.accs.clear(defStream);
+		dpds.forces.clear(defStream);
+		buildCellList(dpds, defStream);
 		computeInternalDPD(dpds, defStream);
 
 		halo.exchangeInit();
 		halo.exchangeFinalize();
 
 		computeHaloDPD(dpds, defStream);
+
+		integrateNoFlow(dpds, dt, 1.0f, defStream);
 		CUDA_Check( cudaStreamSynchronize(defStream) );
 
 		redist.redistribute(dt);
 
-		buildCellListAndIntegrate(dpds, config, dt, defStream);
 		CUDA_Check( cudaStreamSynchronize(defStream) );
 	}
 
@@ -274,11 +275,13 @@ int main(int argc, char ** argv)
 
 	if (argc < 2) return 0;
 
+	buildCellList(dpds, defStream);
+
 	int np = particles.size;
 	int totcells = dpds.totcells;
 
 	HostBuffer<Particle> buffer(np);
-	HostBuffer<Acceleration> accs(np);
+	HostBuffer<Force> accs(np);
 	HostBuffer<int>   cellsStart(totcells+1), cellsSize(totcells+1);
 
 	printf("CPU execution\n");

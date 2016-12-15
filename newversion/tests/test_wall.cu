@@ -42,7 +42,7 @@ void makeCells(Particle*& __restrict__ coos, Particle*& __restrict__ buffer, int
 	std::swap(coos, buffer);
 }
 
-void integrate(Particle* __restrict__ coos, Acceleration* __restrict__ accs, int np, float dt, float3 domainStart, float3 length)
+void integrate(Particle* __restrict__ coos, Force* __restrict__ accs, int np, float dt, float3 domainStart, float3 length)
 {
 	for (int i=0; i<np; i++)
 	{
@@ -80,7 +80,7 @@ T minabs(T arg, Args... other)
 }
 
 
-void forces(const Particle* __restrict__ coos, Acceleration* __restrict__ accs, const int* __restrict__ cellsStart, const int* __restrict__ cellsSize,
+void forces(const Particle* __restrict__ coos, Force* __restrict__ accs, const int* __restrict__ cellsStart, const int* __restrict__ cellsSize,
 		int3 ncells, int totcells, float3 domainStart, float3 length)
 {
 
@@ -91,7 +91,7 @@ void forces(const Particle* __restrict__ coos, Acceleration* __restrict__ accs, 
 	const float sigmaf = sigma / sqrt(dt);
 	const float aij = 50;
 
-	auto addForce = [=] (int dstId, int srcId, Acceleration& a)
+	auto addForce = [=] (int dstId, int srcId, Force& a)
 	{
 		float _xr = coos[dstId].x[0] - coos[srcId].x[0];
 		float _yr = coos[dstId].x[1] - coos[srcId].x[1];
@@ -138,7 +138,7 @@ void forces(const Particle* __restrict__ coos, Acceleration* __restrict__ accs, 
 
 				for (int dstId = cellsStart[cid]; dstId < cellsStart[cid] + cellsSize[cid]; dstId++)
 				{
-					Acceleration a {0,0,0,0};
+					Force a {0,0,0,0};
 
 					for (int dx = -1; dx <= 1; dx++)
 						for (int dy = -1; dy <= 1; dy++)
@@ -424,7 +424,7 @@ int main(int argc, char ** argv)
 	int totcells = dpds.totcells;
 
 	HostBuffer<Particle> buffer(np);
-	HostBuffer<Acceleration> accs(np);
+	HostBuffer<Force> accs(np);
 	HostBuffer<int>   cellsStart(totcells+1), cellsSize(totcells+1);
 
 	printf("CPU execution\n");

@@ -48,7 +48,6 @@ int main(int argc, char **argv)
 	float3 domainStart = {-ncells.x / 2.0f, -ncells.y / 2.0f, -ncells.z / 2.0f};
 	float3 length{(float)ncells.x, (float)ncells.y, (float)ncells.z};
 	ParticleVector dpds(ncells, domainStart, length);
-	const float dt = 0.1;
 
 	const int ndens = 8;
 	dpds.resize(ncells.x*ncells.y*ncells.z * ndens);
@@ -77,25 +76,14 @@ int main(int argc, char **argv)
 	int np = c;
 
 	dpds.resize(np, resizePreserve);
-	dpds.accs.clear();
 	dpds.coosvels.synchronize(synchronizeDevice);
 
 	HostBuffer<Particle> initial(np);
-	HostBuffer<Acceleration> accInit(np);
-
 	for (int i=0; i<np; i++)
-	{
-		accInit[i].a[0] = drand48() - 0.5;
-		accInit[i].a[1] = drand48() - 0.5;
-		accInit[i].a[2] = drand48() - 0.5;
-
 		initial[i] = dpds.coosvels[i];
-	}
 
-	dpds.accs.copy(accInit);
-
-	for (int i=0; i<1; i++)
-		buildCellListAndIntegrate(dpds, config, dt, 0);
+	for (int i=0; i<50; i++)
+		buildCellList(dpds, 0);
 
 	dpds.coosvels.synchronize(synchronizeHost);
 	cudaDeviceSynchronize();
@@ -108,7 +96,7 @@ int main(int argc, char **argv)
 	hcellsSize. copy(dpds.cellsSize);
 
 	HostBuffer<int> cellscount(dpds.totcells+1);
-	for (int i=0; i<dpds.totcells; i++)
+	for (int i=0; i<dpds.totcells+1; i++)
 		cellscount[i] = 0;
 
 	int total = 0;
@@ -116,12 +104,11 @@ int main(int argc, char **argv)
 	{
 		float3 coo{initial[pid].x[0], initial[pid].x[1], initial[pid].x[2]};
 		float3 vel{initial[pid].u[0], initial[pid].u[1], initial[pid].u[2]};
-		float3 acc{accInit[pid].a[0], accInit[pid].a[1], accInit[pid].a[2]};
 
-		vel += acc * dt;
-		coo += vel * dt;
+		//vel += acc * dt;
+		//coo += vel * dt;
 
-		int actCid = getCellId<false>(coo, domainStart, ncells, 1.0f);
+		int actCid = getCellId(coo, domainStart, ncells, 1.0f);
 		if (actCid >= 0)
 		{
 			cellscount[actCid]++;
@@ -132,7 +119,7 @@ int main(int argc, char **argv)
 	printf("np = %d, vs reference  %d\n", dpds.np, total);
 	for (int cid=0; cid < dpds.totcells+1; cid++)
 		if ( (hcellsStart[cid] >> 26) != cellscount[cid] )
-			printf("cid %d:  %d (%d),  %d\n", cid, hcellsStart[cid] >> 26, cellscount[cid], hcellsStart[cid] & ((1<<26) - 1));
+			printf("cid %d:  %d (correct %d),  %d\n", cid, hcellsStart[cid] >> 26, cellscount[cid], hcellsStart[cid] & ((1<<26) - 1));
 
 	for (int cid=0; cid < dpds.totcells; cid++)
 	{
@@ -147,10 +134,9 @@ int main(int argc, char **argv)
 
 			float3 coo{initial[origId].x[0], initial[origId].x[1], initial[origId].x[2]};
 			float3 vel{initial[origId].u[0], initial[origId].u[1], initial[origId].u[2]};
-			float3 acc{accInit[origId].a[0], accInit[origId].a[1], accInit[origId].a[2]};
 
-			vel += acc * dt;
-			coo += vel * dt;
+//			vel += acc * dt;
+//			coo += vel * dt;
 
 			const float diff = std::max({
 				fabs(coo.x - cooDev.x), fabs(coo.y - cooDev.y), fabs(coo.z - cooDev.z),
@@ -159,9 +145,9 @@ int main(int argc, char **argv)
 			int actCid = getCellId<false>(cooDev, domainStart, ncells, 1.0f);
 
 			if (cid != actCid || diff > 1e-5)
-				printf("cid  %d,  correct cid  %d  for pid %d:  [%e %e %e  %d] [%e %e %e] correct: [%e %e %e  %d] [%e %e %e]\n",
-						cid, actCid, pid, cooDev.x, cooDev.y, cooDev.z, dpds.coosvels[pid].i1, velDev.x, velDev.y, velDev.z,
-						coo.x, coo.y, coo.z, initial[origId].i1, vel.x, vel.y, vel.z);
+				printf("cid  %d,  correct cid  %d  for pid %d:  [%e %e %e  %d]  correct: [%e %e %e  %d]\n",
+						cid, actCid, pid, cooDev.x, cooDev.y, cooDev.z, dpds.coosvels[pid].i1,
+						coo.x, coo.y, coo.z, initial[origId].i1);
 		}
 	}
 

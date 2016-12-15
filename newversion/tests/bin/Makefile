@@ -8,9 +8,9 @@ SRC_DIR = ../../core/ ../
 VPATH = $(SRC_DIR)
 NVCCFLAGS += $(addprefix -I,$(SRC_DIR))
 
-wall_obj = scan.o celllist.o halo_exchanger.o dpd.o test_wall.o redistributor.o wall.o
-onerank_obj = scan.o celllist.o halo_exchanger.o dpd.o test_onerank.o redistributor.o
-manyranks_obj = scan.o celllist.o halo_exchanger.o dpd.o test_manyranks.o redistributor.o
+wall_obj = scan.o celllist.o halo_exchanger.o dpd.o test_wall.o redistributor.o wall.o integrate.o
+onerank_obj = scan.o celllist.o halo_exchanger.o dpd.o test_onerank.o redistributor.o integrate.o
+manyranks_obj = scan.o celllist.o halo_exchanger.o dpd.o test_manyranks.o redistributor.o integrate.o
 halo_obj    = scan.o celllist.o halo_exchanger.o test_halo.o
 redist_obj  = scan.o celllist.o redistributor.o test_redist.o
 log_obj     = test_logger.o

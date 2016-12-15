@@ -8,8 +8,7 @@
 #include "logger.h"
 #include "iniparser.h"
 
-void buildCellList(ParticleVector& pv, IniParser& config, cudaStream_t stream);
-void buildCellListAndIntegrate(ParticleVector& pv, IniParser& config, float dt, cudaStream_t stream);
+void buildCellList(ParticleVector& pv, cudaStream_t stream);
 
 
 // ==========================================================================================================================================
