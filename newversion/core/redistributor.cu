@@ -169,10 +169,10 @@ void Redistributor::attach(ParticleVector* pv, int ndens)
 	helper.sendAddrs.synchronize(synchronizeDevice);
 }
 
-void Redistributor::redistribute(float dt)
+void Redistributor::redistribute()
 {
 	for (int i=0; i<particleVectors.size(); i++)
-		_initialize(i, dt);
+		_initialize(i);
 
 	for (int i=0; i<particleVectors.size(); i++)
 	{
@@ -184,7 +184,7 @@ void Redistributor::redistribute(float dt)
 		receive(i);
 }
 
-void Redistributor::_initialize(int n, float dt)
+void Redistributor::_initialize(int n)
 {
 	auto& pv = *particleVectors[n];
 	auto& helper = helpers[n];
@@ -219,6 +219,8 @@ void Redistributor::send(int n)
 
 	helper.counts.synchronize(synchronizeHost, helper.stream);
 	debug("Downloading %d-th leaving particles", n);
+
+	// Can't use synchronize here because we actually have only helper.counts[i] elements
 	for (int i=0; i<27; i++)
 		if (i != 13)
 			CUDA_Check( cudaMemcpyAsync(helper.sendBufs[i].hostdata, helper.sendBufs[i].devdata,

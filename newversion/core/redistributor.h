@@ -8,10 +8,6 @@
 #include <vector>
 #include <thread>
 
-// Note: we need to send / rcv accelarations as well here
-// simply because integration is performed later on
-
-
 struct RedistributorHelper
 {
 	PinnedBuffer<int> counts;
@@ -50,9 +46,9 @@ private:
 public:
 
 	// Has to be private, but cuda doesn't support lambdas in private functions
-	void _initialize(int vid, float dt);
+	void _initialize(int vid);
 
 	Redistributor(MPI_Comm& comm, IniParser& config);
 	void attach(ParticleVector* pv, int ndens);
-	void redistribute(float dt);
+	void redistribute();
 };

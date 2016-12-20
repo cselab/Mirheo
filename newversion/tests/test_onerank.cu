@@ -242,7 +242,7 @@ int main(int argc, char ** argv)
 	CUDA_Check( cudaStreamSynchronize(defStream) );
 
 	const float dt = 0.005;
-	const int niters = 5;
+	const int niters = 100;
 
 	printf("GPU execution\n");
 
@@ -255,15 +255,14 @@ int main(int argc, char ** argv)
 		buildCellList(dpds, defStream);
 		computeInternalDPD(dpds, defStream);
 
-		halo.exchangeInit();
-		halo.exchangeFinalize();
+		halo.exchange();
 
 		computeHaloDPD(dpds, defStream);
 
 		integrateNoFlow(dpds, dt, 1.0f, defStream);
 		CUDA_Check( cudaStreamSynchronize(defStream) );
 
-		redist.redistribute(dt);
+		redist.redistribute();
 
 		CUDA_Check( cudaStreamSynchronize(defStream) );
 	}
