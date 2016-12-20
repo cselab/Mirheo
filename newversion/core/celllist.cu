@@ -2,7 +2,6 @@
 #include "scan.h"
 #include "celllist.h"
 #include "non_cached_rw.h"
-#include "flows.h"
 
 __global__ void blendStartSize(uchar4* cellsSize, int4* cellsStart, const int totcells)
 {

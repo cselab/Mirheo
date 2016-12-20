@@ -1,5 +1,4 @@
 #include "wall.h"
-#include "flows.h"
 #include "celllist.h"
 #include "interactions.h"
 #include "interaction_engine.h"
@@ -315,10 +314,9 @@ __global__ void getBoundaryCells(const int3 ncells, const int totcells, const fl
 	}
 }
 
-template<typename Transform>
 __launch_bounds__(128, 8)
-__global__ void bounceBeforeIntegration(const int* wallCells, const int nWallCells, const int* __restrict__ cellsStart, const float4* accs,
-		cudaTextureObject_t sdfTex, const float3 length, const float3 h, const float3 invH, float4* xyzouvwo, const float dt, Transform transform)
+__global__ void bounceKernel(const int* wallCells, const int nWallCells, const int* __restrict__ cellsStart, const float4* accs,
+		cudaTextureObject_t sdfTex, const float3 length, const float3 h, const float3 invH, float4* xyzouvwo, const float dt)
 {
 	const int maxNIters = 20;
 	const float tolerance = 5e-6;
@@ -335,10 +333,9 @@ __global__ void bounceBeforeIntegration(const int* wallCells, const int nWallCel
 
 		float4 coo = xyzouvwo[2*pid];
 		float4 vel = xyzouvwo[2*pid+1];
-		float4 acc = accs[pid];
 
-		float4 oldCoo = coo;
-		transform(coo, vel, acc, dt, pid);
+		// Warning - this is only valid for VV
+		float4 oldCoo = coo - dt*vel;
 
 		vb = evalSdf(sdfTex, coo, length, h, invH);
 		if (vb < 0.0f) continue; // if inside - continue
@@ -394,18 +391,17 @@ __global__ void bounceBeforeIntegration(const int* wallCells, const int nWallCel
 			beta *= 0.5;
 			candidate = oldCoo - beta * (coo - oldCoo);
 		}
+
+		// Not sure why, but this assertion always fails
+		// even though everything seems allright
 		//assert(vcandidate < 1.0f);
-
-
-		float4 candVel = vel;
-		transform(candidate, candVel, -acc, dt, pid);
 
 		xyzouvwo[2*pid] = candidate;
 		xyzouvwo[2*pid + 1] = -vel;
 	}
 }
 
-__global__ void check(float4* data, const int n, cudaTextureObject_t sdfTex, const float3 length, const float3 h, const float3 invH)
+__global__ void checkKernel(float4* data, const int n, cudaTextureObject_t sdfTex, const float3 length, const float3 h, const float3 invH)
 {
 	const int pid = blockIdx.x * blockDim.x + threadIdx.x;
 	if (pid >= n) return;
@@ -421,7 +417,7 @@ void Wall::_check()
 {
 	for (auto& pv : particleVectors)
 	{
-		check<<< (pv->np + 127) / 128, 128 >>>( (float4*)pv->coosvels.devdata, pv->np, sdfTex, length, h, 1.0 / h);
+		checkKernel<<< (pv->np + 127) / 128, 128 >>>( (float4*)pv->coosvels.devdata, pv->np, sdfTex, length, h, 1.0 / h);
 	}
 }
 
@@ -626,9 +622,9 @@ void Wall::bounce(cudaStream_t stream)
 {
 	for (auto& pv : particleVectors)
 	{
-		flowMacroWrapper( (bounceBeforeIntegration<<< (boundaryCells.size + 63) / 64, 64, 0, stream >>>(
+		bounceKernel<<< (boundaryCells.size + 63) / 64, 64, 0, stream >>>(
 				boundaryCells.devdata, boundaryCells.size, pv->cellsStart.devdata, (float4*)pv->accs.devdata,
-				sdfTex, length, h, 1.0 / h, (float4*)pv->coosvels.devdata, dt, integrate)) );
+				sdfTex, length, h, 1.0 / h, (float4*)pv->coosvels.devdata, dt, integrate);
 	}
 }
 

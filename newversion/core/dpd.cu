@@ -53,7 +53,7 @@ void computeHaloDPD(ParticleVector& pv, cudaStream_t stream)
 	{
 		const int nth = 128;
 		debug("Computing halo forces for %d ext paricles", pv.halo.size);
-		computeHaloInteractions<false, true> <<< (pv.halo.size + nth - 1) / nth, nth, 0, stream >>>(
+		computeExternalInteractions<false, true> <<< (pv.halo.size + nth - 1) / nth, nth, 0, stream >>>(
 					(float4*)pv.halo.devdata, nullptr, (float4*)pv.coosvels.devdata, (float*)pv.forces.devdata, pv.cellsStart.devdata,
 					pv.ncells, pv.domainStart, pv.totcells+1, pv.halo.size, dpdInt);
 	}

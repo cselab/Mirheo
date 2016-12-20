@@ -44,9 +44,9 @@ void integrate(Particle* __restrict__ coos, Force* __restrict__ accs, int np, fl
 {
 	for (int i=0; i<np; i++)
 	{
-		coos[i].u[0] += accs[i].a[0]*dt;
-		coos[i].u[1] += accs[i].a[1]*dt;
-		coos[i].u[2] += accs[i].a[2]*dt;
+		coos[i].u[0] += accs[i].f[0]*dt;
+		coos[i].u[1] += accs[i].f[1]*dt;
+		coos[i].u[2] += accs[i].f[2]*dt;
 
 		coos[i].x[0] += coos[i].u[0]*dt;
 		coos[i].x[1] += coos[i].u[1]*dt;
@@ -122,9 +122,9 @@ void forces(const Particle* __restrict__ coos, Force* __restrict__ accs, const i
 
 		const float strength = aij * argwr - (gammadpd * wr * rdotv + sigmaf * myrandnr) * wr;
 
-		a.a[0] += strength * xr;
-		a.a[1] += strength * yr;
-		a.a[2] += strength * zr;
+		a.f[0] += strength * xr;
+		a.f[1] += strength * yr;
+		a.f[2] += strength * zr;
 	};
 
 #pragma omp parallel for collapse(3)
@@ -155,13 +155,13 @@ void forces(const Particle* __restrict__ coos, Force* __restrict__ accs, const i
 									if (dstId != srcId)
 										addForce(dstId, srcId, a);
 
-									//printf("%d  %f %f %f\n", dstId, a.a[0], a.a[1], a.a[2]);
+									//printf("%d  %f %f %f\n", dstId, a.f[0], a.f[1], a.f[2]);
 								}
 							}
 
-					accs[dstId].a[0] = a.a[0];
-					accs[dstId].a[1] = a.a[1];
-					accs[dstId].a[2] = a.a[2];
+					accs[dstId].f[0] = a.f[0];
+					accs[dstId].f[1] = a.f[1];
+					accs[dstId].f[2] = a.f[2];
 				}
 			}
 }
@@ -178,10 +178,12 @@ int main(int argc, char ** argv)
 	    MPI_Abort(MPI_COMM_WORLD, 1);
 	}
 
-	logger.init(MPI_COMM_WORLD, "manyranks.log", 0);
+	logger.init(MPI_COMM_WORLD, "manyranks.log", 9);
 
-	if (argc != 4)
+	if (argc < 4)
 		die("Need 3 command line arguments");
+
+	IniParser config("tests.cfg");
 
 	int nranks, rank;
 	int ranks[] = {std::stoi(argv[1]), std::stoi(argv[2]), std::stoi(argv[3])};
@@ -231,7 +233,7 @@ int main(int argc, char ** argv)
 	const int initialNP = c;
 	dpds.resize(c);
 	dpds.coosvels.synchronize(synchronizeDevice);
-	dpds.accs.clear();
+	dpds.forces.clear();
 
 	HostBuffer<Particle> locparticles(dpds.np);
 	for (int i=0; i<dpds.np; i++)
@@ -248,14 +250,12 @@ int main(int argc, char ** argv)
 
 	HaloExchanger halo(cartComm);
 	halo.attach(&dpds, ndens);
-	Redistributor redist(cartComm);
+	Redistributor redist(cartComm, config);
 	redist.attach(&dpds, ndens);
 
-	buildCellList(dpds,defStream);
-	CUDA_Check( cudaStreamSynchronize(defStream) );
 
-	const float dt = 0.002;
-	const int niters = 1000;
+	const float dt = 0.01;
+	const int niters = 3;
 
 	printf("GPU execution\n");
 
@@ -264,18 +264,20 @@ int main(int argc, char ** argv)
 
 	for (int i=0; i<niters; i++)
 	{
-		dpds.accs.clear(defStream);
+		dpds.forces.clear(defStream);
+		buildCellList(dpds, defStream);
 		computeInternalDPD(dpds, defStream);
 
 		halo.exchangeInit();
 		halo.exchangeFinalize();
 
 		computeHaloDPD(dpds, defStream);
+
+		integrateNoFlow(dpds, dt, 1.0f, defStream);
 		CUDA_Check( cudaStreamSynchronize(defStream) );
 
 		redist.redistribute(dt);
 
-		buildCellListAndIntegrate(dpds, dt, defStream);
 		CUDA_Check( cudaStreamSynchronize(defStream) );
 	}
 
@@ -283,9 +285,11 @@ int main(int argc, char ** argv)
 
 	printf("Finished in %f s, 1 step took %f ms\n", elapsed, elapsed / niters * 1000.0);
 
-	return 0;
+	if (argc < 5) return 0;
+	buildCellList(dpds, defStream);
 
-	dpds.coosvels.synchronize(synchronizeHost);
+
+	dpds.coosvels.synchronize(synchronizeHost, defStream);
 
 	for (int i=0; i<dpds.np; i++)
 	{
@@ -353,7 +357,7 @@ int main(int argc, char ** argv)
 		dpds.coosvels.synchronize(synchronizeHost);
 
 		std::vector<int> gpuid(np), cpuid(np);
-		for (int i=0; i<np; i++)
+		for (int i=0; i<min(np, particles.size); i++)
 		{
 			gpuid[all[i].i1] = i;
 			cpuid[particles[i].i1] = i;
@@ -362,7 +366,7 @@ int main(int argc, char ** argv)
 
 		double l2 = 0, linf = -1;
 
-		for (int i=0; i<totparts; i++)
+		for (int i=0; i<min(totparts, particles.size); i++)
 		{
 			Particle cpuP = particles[cpuid[i]];
 			Particle gpuP = all[gpuid[i]];
@@ -383,7 +387,7 @@ int main(int argc, char ** argv)
 						gpuP.x[0], gpuP.x[1], gpuP.x[2], gpuP.i1,
 						gpuP.u[0], gpuP.u[1], gpuP.u[2],
 						cpuP.x[0], cpuP.x[1], cpuP.x[2], cpuP.i1,
-						cpuP.u[0], cpuP.u[1], cpuP.u[2], accs[cpuid[i]].a[0], accs[cpuid[i]].a[1], accs[cpuid[i]].a[2]);
+						cpuP.u[0], cpuP.u[1], cpuP.u[2], accs[cpuid[i]].f[0], accs[cpuid[i]].f[1], accs[cpuid[i]].f[2]);
 			}
 		}
 

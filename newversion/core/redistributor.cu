@@ -3,14 +3,13 @@
 #include "redistributor.h"
 #include "celllist.h"
 #include "logger.h"
-#include "flows.h"
 
 #include <vector>
 #include <thread>
 #include <algorithm>
 #include <unistd.h>
 
-__global__ void getExitingParticles(const int* __restrict__ cellsStart, const float4* __restrict__ xyzouvwo,
+__global__ void getExitingParticles(const int* __restrict__ cellsStart, float4* xyzouvwo,
 		const int3 ncells, const int totcells, const float3 length, const float3 domainStart,
 		const int64_t __restrict__ dests[27], int counts[27])
 {
@@ -96,23 +95,22 @@ __global__ void getExitingParticles(const int* __restrict__ cellsStart, const fl
 		else if (pz >= ncells.z) pz = 2;
 		else pz = 1;
 
-		for (int ix = min(px, 1); ix <= max(px, 1); ix++)
-			for (int iy = min(py, 1); iy <= max(py, 1); iy++)
-				for (int iz = min(pz, 1); iz <= max(pz, 1); iz++)
-				{
-					if (ix == 1 && iy == 1 && iz == 1) continue;
+		if (px*py*pz != 1) // this means that the particle has to leave
+		{
+			const int bufId = (pz*3 + py)*3 + px;
+			const float4 shift{ length.x*(px-1), length.y*(py-1), length.z*(pz-1), 0 };
 
-					const int bufId = (iz*3 + iy)*3 + ix;
-					const float4 shift{ length.x*(ix-1), length.y*(iy-1), length.z*(iz-1), 0 };
+			int myid = atomicAdd(counts + bufId, 1);
 
-					int myid = atomicAdd(counts + bufId, 1);
+			const int dstInd = 2*myid;
 
-					const int dstInd = 2*myid;
+			float4* addr = (float4*)dests[bufId];
+			addr[dstInd + 0] = coo - shift;
+			addr[dstInd + 1] = vel;
 
-					float4* addr = (float4*)dests[bufId];
-					addr[dstInd + 0] = coo - shift;
-					addr[dstInd + 1] = vel;
-				}
+			// mark the particle as exited to assist cell-list building
+			xyzouvwo[2*srcId] = make_float4(-1000);
+		}
 	}
 }
 
@@ -269,6 +267,8 @@ void Redistributor::receive(int n)
 	// Load onto the device
 	for (int i=0; i<nMessages; i++)
 	{
+		debug("Receiving %d-th redistribution from rank %d in dircode %d [%2d %2d %2d], size %d",
+				n, dir2rank[compactedDirs[i]], compactedDirs[i], compactedDirs[i]%3 - 1, (compactedDirs[i]/3)%3 - 1, compactedDirs[i]/9 - 1, offsets[i+1] - offsets[i]);
 		CUDA_Check( cudaMemcpyAsync(pv->coosvels.devdata + oldsize + offsets[i], helper.recvBufs[compactedDirs[i]].hostdata,
 				(offsets[i+1] - offsets[i])*sizeof(Particle), cudaMemcpyHostToDevice, helper.stream) );
 	}
