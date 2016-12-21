@@ -9,7 +9,7 @@
 #include <algorithm>
 #include <unistd.h>
 
-__global__ void getHalos(const int* __restrict__ cellsStart, const float4* __restrict__ xyzouvwo, const int3 ncells, const int totcells, const float3 length,
+__global__ void getHalos(const float4* __restrict__ xyzouvwo, CellListInfo cinfo, const int* __restrict__ cellsStart,
 		const int64_t __restrict__ dests[27], int counts[27])
 {
 	const int gid = blockIdx.x*blockDim.x + threadIdx.x;
@@ -17,35 +17,36 @@ __global__ void getHalos(const int* __restrict__ cellsStart, const float4* __res
 	const int tid = threadIdx.x;
 	int cid;
 	int cx, cy, cz;
+	const int3 ncells = cinfo.ncells;
 
 	bool valid = true;
 
 	if (variant <= 1)  // x
 	{
-		if (gid >= ncells.y*ncells.z) valid = false;
+		if (gid >= ncells.y * ncells.z) valid = false;
 		cx = variant * (ncells.x - 1);
 		cy = gid % ncells.y;
 		cz = gid / ncells.y;
-		cid = encode(cx, cy, cz, ncells);
+		cid = cinfo.encode(cx, cy, cz);
 	}
 	else if (variant <= 3)  // y
 	{
-		if (gid >= ncells.x*ncells.z) valid = false;
+		if (gid >= ncells.x * ncells.z) valid = false;
 		cx = gid % ncells.x;
 		cy = (variant - 2) * (ncells.y - 1);
 		cz = gid / ncells.x;
-		cid = encode(cx, cy, cz, ncells);
+		cid = cinfo.encode(cx, cy, cz);
 	}
 	else   // z
 	{
-		if (gid >= ncells.x*ncells.y) valid = false;
+		if (gid >= ncells.x * ncells.y) valid = false;
 		cx = gid % ncells.x;
 		cy = gid / ncells.x;
 		cz = (variant - 4) * (ncells.z - 1);
-		cid = encode(cx, cy, cz, ncells);
+		cid = cinfo.encode(cx, cy, cz);
 	}
 
-	valid &= cid < totcells;
+	valid &= cid < cinfo.totcells;
 
 	// Find side codes
 	if (cx == 0) cx = 0;
@@ -66,7 +67,7 @@ __global__ void getHalos(const int* __restrict__ cellsStart, const float4* __res
 
 	if (__all(!valid) && tid > 27) return;
 
-	int2 start_size = valid ? decodeStartSize(cellsStart[cid]) : make_int2(0, 0);
+	int2 start_size = valid ? cinfo.decodeStartSize(cellsStart[cid]) : make_int2(0, 0);
 
 	// Use shared memory to decrease global atomics
 	// We're sending to max 7 halos (corner)
@@ -108,7 +109,7 @@ __global__ void getHalos(const int* __restrict__ cellsStart, const float4* __res
 		const int ix = bufId % 3;
 		const int iy = (bufId / 3) % 3;
 		const int iz = bufId / 9;
-		const float4 shift{ length.x*(ix-1), length.y*(iy-1), length.z*(iz-1), 0 };
+		const float4 shift{ cinfo.length.x*(ix-1), cinfo.length.y*(iy-1), cinfo.length.z*(iz-1), 0 };
 
 		for (int i = 0; i < start_size.y; i++)
 		{
@@ -151,19 +152,19 @@ HaloExchanger::HaloExchanger(MPI_Comm& comm) : nActiveNeighbours(26)
 	}
 }
 
-void HaloExchanger::attach(ParticleVector* pv, int ndens)
+void HaloExchanger::attach(ParticleVector* pv, CellList* cl, int ndens)
 {
-	particleVectors.push_back(pv);
+	particlesAndCells.push_back({pv, cl});
 
 	helpers.resize(helpers.size() + 1);
-	HaloHelper& helper = helpers[helpers.size() - 1];
+	auto& helper = helpers[helpers.size() - 1];
 
 	helper.sendAddrs.resize(27);
 	helper.counts.resize(27);
 
 	CUDA_Check( cudaStreamCreateWithPriority(&helper.stream, cudaStreamNonBlocking, -10) );
 
-	const int maxdim = std::max({pv->ncells.x, pv->ncells.y, pv->ncells.z});
+	const int maxdim = std::max({cl->ncells.x, cl->ncells.y, cl->ncells.z});
 
 	for(int i = 0; i < 27; ++i)
 	{
@@ -182,23 +183,24 @@ void HaloExchanger::attach(ParticleVector* pv, int ndens)
 
 void HaloExchanger::exchange()
 {
-	for (int i=0; i<particleVectors.size(); i++)
+	for (int i=0; i<particlesAndCells.size(); i++)
 		_initialize(i);
 
-	for (int i=0; i<particleVectors.size(); i++)
+	for (int i=0; i<particlesAndCells.size(); i++)
 	{
 		CUDA_Check( cudaStreamSynchronize(helpers[i].stream) );
 		send(i);
 	}
 
-	for (int i=0; i<particleVectors.size(); i++)
+	for (int i=0; i<particlesAndCells.size(); i++)
 		receive(i);
 }
 
 void HaloExchanger::_initialize(int n)
 {
-	auto pv = particleVectors[n];
-	HaloHelper& helper = helpers[n];
+	auto pv = particlesAndCells[n].first;
+	auto cl = particlesAndCells[n].second;
+	auto& helper = helpers[n];
 
 	helper.requests.clear();
 	for (int i=0; i<nActiveNeighbours; i++)
@@ -211,19 +213,18 @@ void HaloExchanger::_initialize(int n)
 		}
 
 
-	const int maxdim = std::max({pv->ncells.x, pv->ncells.y, pv->ncells.z});
+	const int maxdim = std::max({cl->ncells.x, cl->ncells.y, cl->ncells.z});
 	const int nthreads = 32;
 	helper.counts.clear(helper.stream);
 
 	debug("Preparing %d-th halo on the device", n);
 	getHalos<<< dim3((maxdim*maxdim + nthreads - 1) / nthreads, 6, 1),  dim3(nthreads, 1, 1), 0, helper.stream >>>
-			(pv->cellsStart.devdata, (float4*)pv->coosvels.devdata, pv->ncells, pv->totcells, pv->length,
-			 (int64_t*)helper.sendAddrs.devdata, helper.counts.devdata);
+			((float4*)pv->coosvels.devdata, cl->cellInfo(), cl->cellsStart.devdata, (int64_t*)helper.sendAddrs.devdata, helper.counts.devdata);
 }
 
 void HaloExchanger::send(int n)
 {
-	auto pv = particleVectors[n];
+	auto pv = particlesAndCells[n].first;
 	HaloHelper& helper = helpers[n];
 
 	helper.counts.synchronize(synchronizeHost, helper.stream);
@@ -248,8 +249,8 @@ void HaloExchanger::send(int n)
 
 void HaloExchanger::receive(int n)
 {
+	auto pv = particlesAndCells[n].first;
 	auto& helper = helpers[n];
-	auto& pv = particleVectors[n];
 
 	// Wait until messages are arrived
 	const int nMessages = helper.requests.size();

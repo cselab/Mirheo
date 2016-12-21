@@ -16,32 +16,32 @@
 Logger logger;
 
 void makeCells(Particle*& __restrict__ coos, Particle*& __restrict__ buffer, int* __restrict__ cellsStart, int* __restrict__ cellsSize,
-		int np, int3 ncells, int totcells, float3 domainStart, float invrc)
+		int np, CellListInfo cinfo)
 {
-	for (int i=0; i<totcells+1; i++)
+	for (int i=0; i<cinfo.totcells+1; i++)
 		cellsSize[i] = 0;
 
 	for (int i=0; i<np; i++)
-		cellsSize[getCellId(float3{coos[i].x[0], coos[i].x[1], coos[i].x[2]}, domainStart, ncells, invrc)]++;
+		cellsSize[cinfo.getCellId(float3{coos[i].x[0], coos[i].x[1], coos[i].x[2]})]++;
 
 	cellsStart[0] = 0;
-	for (int i=1; i<=totcells; i++)
+	for (int i=1; i<=cinfo.totcells; i++)
 		cellsStart[i] = cellsSize[i-1] + cellsStart[i-1];
 
 	for (int i=0; i<np; i++)
 	{
-		const int cid = getCellId(float3{coos[i].x[0], coos[i].x[1], coos[i].x[2]}, domainStart, ncells, invrc);
+		const int cid = cinfo.getCellId(float3{coos[i].x[0], coos[i].x[1], coos[i].x[2]});
 		buffer[cellsStart[cid]] = coos[i];
 		cellsStart[cid]++;
 	}
 
-	for (int i=0; i<totcells; i++)
+	for (int i=0; i<cinfo.totcells; i++)
 		cellsStart[i] -= cellsSize[i];
 
 	std::swap(coos, buffer);
 }
 
-void integrate(Particle* __restrict__ coos, Force* __restrict__ accs, int np, float dt, float3 domainStart, float3 length)
+void integrate(Particle* __restrict__ coos, Force* __restrict__ accs, int np, float dt, CellListInfo cinfo)
 {
 	for (int i=0; i<np; i++)
 	{
@@ -53,14 +53,14 @@ void integrate(Particle* __restrict__ coos, Force* __restrict__ accs, int np, fl
 		coos[i].x[1] += coos[i].u[1]*dt;
 		coos[i].x[2] += coos[i].u[2]*dt;
 
-		if (coos[i].x[0] >  domainStart.x+length.x) coos[i].x[0] -= length.x;
-		if (coos[i].x[0] <= domainStart.x)          coos[i].x[0] += length.x;
+		if (coos[i].x[0] >  cinfo.domainStart.x+cinfo.length.x) coos[i].x[0] -= cinfo.length.x;
+		if (coos[i].x[0] <= cinfo.domainStart.x)				coos[i].x[0] += cinfo.length.x;
 
-		if (coos[i].x[1] >  domainStart.y+length.y) coos[i].x[1] -= length.y;
-		if (coos[i].x[1] <= domainStart.y)          coos[i].x[1] += length.y;
+		if (coos[i].x[1] >  cinfo.domainStart.y+cinfo.length.y) coos[i].x[1] -= cinfo.length.y;
+		if (coos[i].x[1] <= cinfo.domainStart.y)				coos[i].x[1] += cinfo.length.y;
 
-		if (coos[i].x[2] >  domainStart.z+length.z) coos[i].x[2] -= length.z;
-		if (coos[i].x[2] <= domainStart.z)          coos[i].x[2] += length.z;
+		if (coos[i].x[2] >  cinfo.domainStart.z+cinfo.length.z) coos[i].x[2] -= cinfo.length.z;
+		if (coos[i].x[2] <= cinfo.domainStart.z)				coos[i].x[2] += cinfo.length.z;
 	}
 }
 
@@ -80,7 +80,7 @@ T minabs(T arg, Args... other)
 
 
 void forces(const Particle* __restrict__ coos, Force* __restrict__ accs, const int* __restrict__ cellsStart, const int* __restrict__ cellsSize,
-		int3 ncells, int totcells, float3 domainStart, float3 length)
+		CellListInfo cinfo)
 {
 
 	const float dt = 0.0025;
@@ -96,9 +96,9 @@ void forces(const Particle* __restrict__ coos, Force* __restrict__ accs, const i
 		float _yr = coos[dstId].x[1] - coos[srcId].x[1];
 		float _zr = coos[dstId].x[2] - coos[srcId].x[2];
 
-		_xr = minabs(_xr, _xr - length.x, _xr + length.x);
-		_yr = minabs(_yr, _yr - length.y, _yr + length.y);
-		_zr = minabs(_zr, _zr - length.z, _zr + length.z);
+		_xr = minabs(_xr, _xr - cinfo.length.x, _xr + cinfo.length.x);
+		_yr = minabs(_yr, _yr - cinfo.length.y, _yr + cinfo.length.y);
+		_zr = minabs(_zr, _zr - cinfo.length.z, _zr + cinfo.length.z);
 
 		const float rij2 = _xr * _xr + _yr * _yr + _zr * _zr;
 
@@ -128,12 +128,14 @@ void forces(const Particle* __restrict__ coos, Force* __restrict__ accs, const i
 		a.f[2] += strength * zr;
 	};
 
+	const int3 ncells = cinfo.ncells;
+
 #pragma omp parallel for collapse(3)
 	for (int cx = 0; cx < ncells.x; cx++)
 		for (int cy = 0; cy < ncells.y; cy++)
 			for (int cz = 0; cz < ncells.z; cz++)
 			{
-				const int cid = encode(cx, cy, cz, ncells);
+				const int cid = cinfo.encode(cx, cy, cz);
 
 				for (int dstId = cellsStart[cid]; dstId < cellsStart[cid] + cellsSize[cid]; dstId++)
 				{
@@ -148,8 +150,8 @@ void forces(const Particle* __restrict__ coos, Force* __restrict__ accs, const i
 								ncy = (cy+dy + ncells.y) % ncells.y;
 								ncz = (cz+dz + ncells.z) % ncells.z;
 
-								const int srcCid = encode(ncx, ncy, ncz, ncells);
-								if (srcCid >= totcells || srcCid < 0) continue;
+								const int srcCid = cinfo.encode(ncx, ncy, ncz);
+								if (srcCid >= cinfo.totcells || srcCid < 0) continue;
 
 								for (int srcId = cellsStart[srcCid]; srcId < cellsStart[srcCid] + cellsSize[srcCid]; srcId++)
 								{
@@ -193,10 +195,12 @@ int main(int argc, char ** argv)
 
 	// Initial cells
 
-	int3 ncells = {64, 64, 64};
-	float3 domainStart = {-ncells.x / 2.0f, -ncells.y / 2.0f, -ncells.z / 2.0f};
-	float3 length{(float)ncells.x, (float)ncells.y, (float)ncells.z};
-	ParticleVector dpds(ncells, domainStart, length);
+	float3 length{64, 64, 64};
+	float3 domainStart = -length / 2.0f;
+	const float rc = 1.0f;
+	ParticleVector dpds(domainStart, length);
+	CellList cells(&dpds, rc, domainStart, length);
+	const int3 ncells = cells.ncells;
 
 	const int ndens = 8;
 	dpds.resize(ncells.x*ncells.y*ncells.z * ndens);
@@ -235,14 +239,14 @@ int main(int argc, char ** argv)
 	CUDA_Check( cudaStreamCreateWithPriority(&defStream, cudaStreamNonBlocking, 10) );
 
 	HaloExchanger halo(cartComm);
-	halo.attach(&dpds, ndens);
+	halo.attach(&dpds, &cells, ndens);
 	Redistributor redist(cartComm, config);
-	redist.attach(&dpds, ndens);
+	redist.attach(&dpds, &cells, ndens);
 
 	CUDA_Check( cudaStreamSynchronize(defStream) );
 
 	const float dt = 0.005;
-	const int niters = 100;
+	const int niters = 200;
 
 	printf("GPU execution\n");
 
@@ -252,12 +256,12 @@ int main(int argc, char ** argv)
 	for (int i=0; i<niters; i++)
 	{
 		dpds.forces.clear(defStream);
-		buildCellList(dpds, defStream);
-		computeInternalDPD(dpds, defStream);
+		cells.build(defStream);
+		computeInternalDPD(dpds, cells, defStream);
 
 		halo.exchange();
 
-		computeHaloDPD(dpds, defStream);
+		computeHaloDPD(dpds, cells, defStream);
 
 		integrateNoFlow(dpds, dt, 1.0f, defStream);
 		CUDA_Check( cudaStreamSynchronize(defStream) );
@@ -274,10 +278,10 @@ int main(int argc, char ** argv)
 
 	if (argc < 2) return 0;
 
-	buildCellList(dpds, defStream);
+	cells.build(defStream);
 
 	int np = particles.size;
-	int totcells = dpds.totcells;
+	int totcells = cells.totcells;
 
 	HostBuffer<Particle> buffer(np);
 	HostBuffer<Force> accs(np);
@@ -289,9 +293,9 @@ int main(int argc, char ** argv)
 	{
 		printf("%d...", i);
 		fflush(stdout);
-		makeCells(particles.hostdata, buffer.hostdata, cellsStart.hostdata, cellsSize.hostdata, np, ncells, totcells, domainStart, 1.0f);
-		forces(particles.hostdata, accs.hostdata, cellsStart.hostdata, cellsSize.hostdata, ncells, totcells, domainStart, length);
-		integrate(particles.hostdata, accs.hostdata, np, dt, domainStart, length);
+		makeCells(particles.hostdata, buffer.hostdata, cellsStart.hostdata, cellsSize.hostdata, np, cells.cellInfo());
+		forces(particles.hostdata, accs.hostdata, cellsStart.hostdata, cellsSize.hostdata, cells.cellInfo());
+		integrate(particles.hostdata, accs.hostdata, np, dt, cells.cellInfo());
 	}
 
 	printf("\nDone, checking\n");

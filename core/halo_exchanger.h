@@ -3,6 +3,7 @@
 #include "datatypes.h"
 #include "containers.h"
 #include "logger.h"
+#include "celllist.h"
 
 #include <vector>
 #include <thread>
@@ -31,7 +32,7 @@ private:
 	MPI_Datatype mpiPartType;
 	MPI_Comm haloComm;
 
-	std::vector<ParticleVector*> particleVectors;
+	std::vector<std::pair<ParticleVector*, CellList*>> particlesAndCells;
 	std::vector<HaloHelper> helpers;
 
 
@@ -43,6 +44,6 @@ public:
 	void _initialize(int vid);
 
 	HaloExchanger(MPI_Comm& comm);
-	void attach(ParticleVector* pv, int ndens);
+	void attach(ParticleVector* pv, CellList* cl, int ndens);
 	void exchange();
 };

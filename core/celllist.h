@@ -8,105 +8,89 @@
 #include "logger.h"
 #include "iniparser.h"
 
-void buildCellList(ParticleVector& pv, cudaStream_t stream);
-
-
-// ==========================================================================================================================================
-// Morton or normal cells
-// ==========================================================================================================================================
-//#define __MORTON__
-
-#ifdef __MORTON__
-__device__ __host__ inline int getThirdBits(const int m)
+class CellListInfo
 {
-	int x = m;
-	x = x               & 0x09249249;
-	x = (x ^ (x >> 2))  & 0x030c30c3;
-	x = (x ^ (x >> 4))  & 0x0300f00f;
-	x = (x ^ (x >> 8))  & 0xff0000ff;
-	x = (x ^ (x >> 16)) & 0x000003ff;
+public:
+	int3 ncells;
+	int  totcells;
+	float3 domainStart, length;
+	float rc, invrc;
 
-	return x;
-}
-
-__device__ __host__ inline int splitBy3bits(const int a)
-{
-	int x = a;
-	x = x               & 0x000003ff;
-	x = (x | (x << 16)) & 0xff0000ff;
-	x = (x | (x << 8))  & 0x0300f00f;
-	x = (x | (x << 4))  & 0x030c30c3;
-	x = (x | (x << 2))  & 0x09249249;
-
-	return x;
-}
-
-__device__ __host__ int inline encode(int ix, int iy, int iz, int3 ncells)
-{
-    return splitBy3bits(ix) | (splitBy3bits(iy) << 1) | (splitBy3bits(iz) << 2);
-}
-
-__device__ __host__ int3 inline decode(int code, int3 ncells)
-{
-    return make_int3(
-    getThirdBits(code),
-    getThirdBits(code >> 1),
-    getThirdBits(code >> 2)
-	);
-}
-#else
-
-__device__ __host__ __forceinline__ int encode(int ix, int iy, int iz, int3 ncells)
-{
-	return (iz*ncells.y + iy)*ncells.x + ix;
-}
-
-__device__ __host__ __forceinline__ void decode(int cid, int& ix, int& iy, int& iz, int3 ncells)
-{
-	ix = cid % ncells.x;
-	iy = (cid / ncells.x) % ncells.y;
-	iz = cid / (ncells.x * ncells.y);
-}
-
-#endif
+	CellListInfo(float rc, float3 domainStart, float3 length);
 
 // ==========================================================================================================================================
 // Common cell functions
 // ==========================================================================================================================================
-
-__device__ __host__ __forceinline__ int encodeStartSize(int start, uint8_t size)
-{
-	return start + (size << 26);
-}
-
-__device__ __host__ __forceinline__ int2 decodeStartSize(int code)
-{
-	return make_int2(code & ((1<<26) - 1), code >> 26);
-}
-
-template<bool Clamp = true>
-__device__ __host__ __forceinline__ int getCellIdAlongAxis(const float x, const float start, const int ncells, const float invrc)
-{
-	const float v = floor(invrc * (x - start));
-
-	if (Clamp)
-		return min(ncells - 1, max(0, (int)v));
-	else
-		return v;
-}
-
-template<bool Clamp = true, typename T>
-__device__ __host__ __forceinline__ int getCellId(const T coo, const float3 domainStart, const int3 ncells, const float invrc)
-{
-	const int ix = getCellIdAlongAxis<Clamp>(coo.x, domainStart.x, ncells.x, 1.0f);
-	const int iy = getCellIdAlongAxis<Clamp>(coo.y, domainStart.y, ncells.y, 1.0f);
-	const int iz = getCellIdAlongAxis<Clamp>(coo.z, domainStart.z, ncells.z, 1.0f);
-
-	if (!Clamp)
+	__device__ __host__ __forceinline__ int encode(int ix, int iy, int iz) const
 	{
-		if (ix < 0 || ix >= ncells.x  ||  iy < 0 || iy >= ncells.y  ||  iz < 0 || iz >= ncells.z)
-			return -1;
+		return (iz*ncells.y + iy)*ncells.x + ix;
 	}
 
-	return encode(ix, iy, iz, ncells);
-}
+	__device__ __host__ __forceinline__ void decode(int cid, int& ix, int& iy, int& iz) const
+	{
+		ix = cid % ncells.x;
+		iy = (cid / ncells.x) % ncells.y;
+		iz = cid / (ncells.x * ncells.y);
+	}
+
+	__device__ __host__ __forceinline__ int encodeStartSize(int start, uint8_t size) const
+	{
+		return start + (size << 26);
+	}
+
+	__device__ __host__ __forceinline__ int2 decodeStartSize(int code) const
+	{
+		return make_int2(code & ((1<<26) - 1), code >> 26);
+	}
+
+	template<int dim, bool Clamp = true>
+	__device__ __host__ __forceinline__ int getCellIdAlongAxis(const float x) const
+	{
+		float start;
+		int cells;
+		if (dim == 0) { start = domainStart.x; cells = ncells.x; }
+		if (dim == 1) { start = domainStart.y; cells = ncells.y; }
+		if (dim == 2) { start = domainStart.z; cells = ncells.z; }
+
+		const float v = floor(invrc * (x - start));
+
+		if (Clamp)
+			return min(cells - 1, max(0, (int)v));
+		else
+			return v;
+	}
+
+	template<bool Clamp = true, typename T>
+	__device__ __host__ __forceinline__ int getCellId(const T coo) const
+	{
+		const int ix = getCellIdAlongAxis<0, Clamp>(coo.x);
+		const int iy = getCellIdAlongAxis<1, Clamp>(coo.y);
+		const int iz = getCellIdAlongAxis<2, Clamp>(coo.z);
+
+		if (!Clamp)
+		{
+			if (ix < 0 || ix >= ncells.x  ||  iy < 0 || iy >= ncells.y  ||  iz < 0 || iz >= ncells.z)
+				return -1;
+		}
+
+		return encode(ix, iy, iz);
+	}
+};
+
+class CellList : public CellListInfo
+{
+public:
+
+	ParticleVector* pv;
+
+	DeviceBuffer<int> cellsStart;
+	DeviceBuffer<uint8_t> cellsSize;
+
+	CellList(ParticleVector* pv, float rc, float3 domainStart, float3 length);
+
+	CellListInfo cellInfo()
+	{
+		return *((CellListInfo*)this);
+	}
+	void build(cudaStream_t stream);
+};

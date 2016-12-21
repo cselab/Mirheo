@@ -9,8 +9,8 @@
 #include <algorithm>
 #include <unistd.h>
 
-__global__ void getExitingParticles(const int* __restrict__ cellsStart, float4* xyzouvwo,
-		const int3 ncells, const int totcells, const float3 length, const float3 domainStart,
+__global__ void getExitingParticles(float4* xyzouvwo,
+		CellListInfo cinfo, const int* __restrict__ cellsStart,
 		const int64_t __restrict__ dests[27], int counts[27])
 {
 	const int gid = blockIdx.x*blockDim.x + threadIdx.x;
@@ -18,35 +18,37 @@ __global__ void getExitingParticles(const int* __restrict__ cellsStart, float4* 
 	int cid;
 	int cx, cy, cz;
 
+	const int3 ncells = cinfo.ncells;
+
 	// Select all the boundary cells WITHOUT repetitions
 	bool valid = true;
 
 	if (variant <= 1)  // x
 	{
-		if (gid >= ncells.y*ncells.z) valid = false;
+		if (gid >= ncells.y * ncells.z) valid = false;
 		cx = variant * (ncells.x - 1);
 		cy = gid % ncells.y;
 		cz = gid / ncells.y;
-		cid = encode(cx, cy, cz, ncells);
+		cid = cinfo.encode(cx, cy, cz);
 	}
 	else if (variant <= 3)  // y
 	{
-		if (gid >= ncells.x*ncells.z) valid = false;
+		if (gid >= ncells.x * ncells.z) valid = false;
 		cx = gid % ncells.x;
 		cy = (variant - 2) * (ncells.y - 1);
 		cz = gid / ncells.x;
-		cid = encode(cx, cy, cz, ncells);
+		cid = cinfo.encode(cx, cy, cz);
 	}
 	else   // z
 	{
-		if (gid >= ncells.x*ncells.y) valid = false;
+		if (gid >= ncells.x * ncells.y) valid = false;
 		cx = gid % ncells.x;
 		cy = gid / ncells.x;
 		cz = (variant - 4) * (ncells.z - 1);
-		cid = encode(cx, cy, cz, ncells);
+		cid = cinfo.encode(cx, cy, cz);
 	}
 
-	valid &= cid < totcells;
+	valid &= cid < cinfo.totcells;
 
 	// Find side codes
 	if (cx == 0) cx = 0;
@@ -71,17 +73,18 @@ __global__ void getExitingParticles(const int* __restrict__ cellsStart, float4* 
 	//
 	// Now for each cell we check its every particle if it needs to move
 
-	int2 start_size = valid ? decodeStartSize(cellsStart[cid]) : make_int2(0, 0);
+	int2 start_size = valid ? cinfo.decodeStartSize(cellsStart[cid]) : make_int2(0, 0);
 
+#pragma unroll 2
 	for (int i = 0; i < start_size.y; i++)
 	{
 		const int srcId = start_size.x + i;
 		const float4 coo = xyzouvwo[2*srcId];
 		const float4 vel = xyzouvwo[2*srcId+1];
 
-		int px = getCellIdAlongAxis<false>(coo.x, domainStart.x, ncells.x, 1.0f);
-		int py = getCellIdAlongAxis<false>(coo.y, domainStart.y, ncells.y, 1.0f);
-		int pz = getCellIdAlongAxis<false>(coo.z, domainStart.z, ncells.z, 1.0f);
+		int px = cinfo.getCellIdAlongAxis<0, false>(coo.x);
+		int py = cinfo.getCellIdAlongAxis<1, false>(coo.y);
+		int pz = cinfo.getCellIdAlongAxis<2, false>(coo.z);
 
 		if (px < 0) px = 0;
 		else if (px >= ncells.x) px = 2;
@@ -98,7 +101,7 @@ __global__ void getExitingParticles(const int* __restrict__ cellsStart, float4* 
 		if (px*py*pz != 1) // this means that the particle has to leave
 		{
 			const int bufId = (pz*3 + py)*3 + px;
-			const float4 shift{ length.x*(px-1), length.y*(py-1), length.z*(pz-1), 0 };
+			const float4 shift{ cinfo.length.x*(px-1), cinfo.length.y*(py-1), cinfo.length.z*(pz-1), 0 };
 
 			int myid = atomicAdd(counts + bufId, 1);
 
@@ -140,9 +143,9 @@ Redistributor::Redistributor(MPI_Comm& comm, IniParser& config) : nActiveNeighbo
 	}
 }
 
-void Redistributor::attach(ParticleVector* pv, int ndens)
+void Redistributor::attach(ParticleVector* pv, CellList* cl, int ndens)
 {
-	particleVectors.push_back(pv);
+	particlesAndCells.push_back({pv, cl});
 
 	helpers.resize(helpers.size() + 1);
 	auto& helper = helpers[helpers.size() - 1];
@@ -150,7 +153,7 @@ void Redistributor::attach(ParticleVector* pv, int ndens)
 	helper.sendAddrs.resize(27);
 	helper.counts.resize(27);
 
-	const int maxdim = std::max({pv->ncells.x, pv->ncells.y, pv->ncells.z});
+	const int maxdim = std::max({cl->ncells.x, cl->ncells.y, cl->ncells.z});
 
 	CUDA_Check( cudaStreamCreateWithPriority(&helper.stream, cudaStreamNonBlocking, -10) );
 
@@ -171,25 +174,26 @@ void Redistributor::attach(ParticleVector* pv, int ndens)
 
 void Redistributor::redistribute()
 {
-	for (int i=0; i<particleVectors.size(); i++)
+	for (int i=0; i<particlesAndCells.size(); i++)
 		_initialize(i);
 
-	for (int i=0; i<particleVectors.size(); i++)
+	for (int i=0; i<particlesAndCells.size(); i++)
 	{
 		CUDA_Check( cudaStreamSynchronize(helpers[i].stream) );
 		send(i);
 	}
 
-	for (int i=0; i<particleVectors.size(); i++)
+	for (int i=0; i<particlesAndCells.size(); i++)
 		receive(i);
 }
 
 void Redistributor::_initialize(int n)
 {
-	auto& pv = *particleVectors[n];
+	auto pv = particlesAndCells[n].first;
+	auto cl = particlesAndCells[n].second;
 	auto& helper = helpers[n];
 
-	const int maxdim = std::max({pv.ncells.x, pv.ncells.y, pv.ncells.z});
+	const int maxdim = std::max({cl->ncells.x, cl->ncells.y, cl->ncells.z});
 	const int nthreads = 32;
 	helper.counts.clear(helper.stream);
 	auto config = this->config;
@@ -207,14 +211,12 @@ void Redistributor::_initialize(int n)
 		}
 
 	getExitingParticles<<< dim3((maxdim*maxdim + nthreads - 1) / nthreads, 6, 1),  dim3(nthreads, 1, 1), 0, helper.stream >>>
-				(pv.cellsStart.devdata, (float4*)pv.coosvels.devdata,
-				 pv.ncells, pv.totcells, pv.length, pv.domainStart,
-				 (int64_t*)helper.sendAddrs.devdata, helper.counts.devdata);
+				( (float4*)pv->coosvels.devdata, cl->cellInfo(), cl->cellsStart.devdata, (int64_t*)helper.sendAddrs.devdata, helper.counts.devdata );
 }
 
 void Redistributor::send(int n)
 {
-	auto& pv = particleVectors[n];
+	auto pv = particlesAndCells[n].first;
 	auto& helper = helpers[n];
 
 	helper.counts.synchronize(synchronizeHost, helper.stream);
@@ -241,8 +243,8 @@ void Redistributor::send(int n)
 
 void Redistributor::receive(int n)
 {
+	auto pv = particlesAndCells[n].first;
 	auto& helper = helpers[n];
-	auto& pv = particleVectors[n];
 
 	// Wait until messages are arrived
 	const int nMessages = helper.requests.size();

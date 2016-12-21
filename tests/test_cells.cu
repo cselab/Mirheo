@@ -44,10 +44,12 @@ int main(int argc, char **argv)
 
 	// Initial cells
 
-	int3 ncells = {64, 64, 64};
-	float3 domainStart = {-ncells.x / 2.0f, -ncells.y / 2.0f, -ncells.z / 2.0f};
-	float3 length{(float)ncells.x, (float)ncells.y, (float)ncells.z};
-	ParticleVector dpds(ncells, domainStart, length);
+	float3 length{64, 64, 64};
+	float3 domainStart = -length / 2.0f;
+	const float rc = 1.0f;
+	ParticleVector dpds(domainStart, length);
+	CellList cells(&dpds, rc, domainStart, length);
+	const int3 ncells = cells.ncells;
 
 	const int ndens = 8;
 	dpds.resize(ncells.x*ncells.y*ncells.z * ndens);
@@ -83,20 +85,20 @@ int main(int argc, char **argv)
 		initial[i] = dpds.coosvels[i];
 
 	for (int i=0; i<50; i++)
-		buildCellList(dpds, 0);
+		cells.build(0);
 
 	dpds.coosvels.synchronize(synchronizeHost);
 	cudaDeviceSynchronize();
 
 
-	HostBuffer<int> hcellsStart(dpds.totcells+1);
-	HostBuffer<uint8_t> hcellsSize(dpds.totcells+1);
+	HostBuffer<int> hcellsStart(cells.totcells+1);
+	HostBuffer<uint8_t> hcellsSize(cells.totcells+1);
 
-	hcellsStart.copy(dpds.cellsStart);
-	hcellsSize. copy(dpds.cellsSize);
+	hcellsStart.copy(cells.cellsStart);
+	hcellsSize. copy(cells.cellsSize);
 
-	HostBuffer<int> cellscount(dpds.totcells+1);
-	for (int i=0; i<dpds.totcells+1; i++)
+	HostBuffer<int> cellscount(cells.totcells+1);
+	for (int i=0; i<cells.totcells+1; i++)
 		cellscount[i] = 0;
 
 	int total = 0;
@@ -108,7 +110,7 @@ int main(int argc, char **argv)
 		//vel += acc * dt;
 		//coo += vel * dt;
 
-		int actCid = getCellId(coo, domainStart, ncells, 1.0f);
+		int actCid = cells.getCellId(coo);
 		if (actCid >= 0)
 		{
 			cellscount[actCid]++;
@@ -117,11 +119,11 @@ int main(int argc, char **argv)
 	}
 
 	printf("np = %d, vs reference  %d\n", dpds.np, total);
-	for (int cid=0; cid < dpds.totcells+1; cid++)
+	for (int cid=0; cid < cells.totcells+1; cid++)
 		if ( (hcellsStart[cid] >> 26) != cellscount[cid] )
 			printf("cid %d:  %d (correct %d),  %d\n", cid, hcellsStart[cid] >> 26, cellscount[cid], hcellsStart[cid] & ((1<<26) - 1));
 
-	for (int cid=0; cid < dpds.totcells; cid++)
+	for (int cid=0; cid < cells.totcells; cid++)
 	{
 		const int start = hcellsStart[cid] & ((1<<26) - 1);
 		const int size = hcellsStart[cid] >> 26;
@@ -142,7 +144,7 @@ int main(int argc, char **argv)
 				fabs(coo.x - cooDev.x), fabs(coo.y - cooDev.y), fabs(coo.z - cooDev.z),
 				fabs(vel.x - velDev.x), fabs(vel.y - velDev.y), fabs(vel.z - velDev.z) });
 
-			int actCid = getCellId<false>(cooDev, domainStart, ncells, 1.0f);
+			int actCid = cells.getCellId<false>(cooDev);
 
 			if (cid != actCid || diff > 1e-5)
 				printf("cid  %d,  correct cid  %d  for pid %d:  [%e %e %e  %d]  correct: [%e %e %e  %d]\n",

@@ -107,9 +107,9 @@ int main(int argc, char ** argv)
 
 		coo += vel * dt;
 
-		int cx = getCellIdAlongAxis<false>(coo.x, domainStart.x, ncells.x, 1.0f);
-		int cy = getCellIdAlongAxis<false>(coo.y, domainStart.y, ncells.y, 1.0f);
-		int cz = getCellIdAlongAxis<false>(coo.z, domainStart.z, ncells.z, 1.0f);
+		int cx = getCellIdAlongAxis<0, false>(coo.x, domainStart.x, ncells.x, 1.0f);
+		int cy = getCellIdAlongAxis<1, false>(coo.y, domainStart.y, ncells.y, 1.0f);
+		int cz = getCellIdAlongAxis<2, false>(coo.z, domainStart.z, ncells.z, 1.0f);
 
 		//printf("%3d:  [%f %f %f]  %d %d %d\n", i, coo.x, coo.y, coo.z, cx, cy, cz);
 

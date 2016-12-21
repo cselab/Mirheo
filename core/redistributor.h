@@ -4,6 +4,7 @@
 #include "containers.h"
 #include "logger.h"
 #include "iniparser.h"
+#include "celllist.h"
 
 #include <vector>
 #include <thread>
@@ -33,7 +34,7 @@ private:
 	MPI_Datatype mpiPartType;
 	MPI_Comm redComm;
 
-	std::vector<ParticleVector*> particleVectors;
+	std::vector<std::pair<ParticleVector*, CellList*>> particlesAndCells;
 	std::vector<RedistributorHelper> helpers;
 
 
@@ -49,6 +50,6 @@ public:
 	void _initialize(int vid);
 
 	Redistributor(MPI_Comm& comm, IniParser& config);
-	void attach(ParticleVector* pv, int ndens);
+	void attach(ParticleVector* pv, CellList* cl, int ndens);
 	void redistribute();
 };

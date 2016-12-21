@@ -3,10 +3,12 @@
 #include "celllist.h"
 #include "non_cached_rw.h"
 
-__global__ void blendStartSize(uchar4* cellsSize, int4* cellsStart, const int totcells)
+#include "helper_math.h"
+
+__global__ void blendStartSize(uchar4* cellsSize, int4* cellsStart, const CellListInfo cinfo)
 {
 	const int gid = blockIdx.x * blockDim.x + threadIdx.x;
-	if (4*gid >= totcells) return;
+	if (4*gid >= cinfo.totcells) return;
 
 	uchar4 sizes  = cellsSize [gid];
 
@@ -14,7 +16,7 @@ __global__ void blendStartSize(uchar4* cellsSize, int4* cellsStart, const int to
 }
 
 __global__ void computeCellSizes(const float4* xyzouvwo, const int n, const int nMovable,
-		const float3 domainStart, const int3 ncells, const float invrc, uint* cellsSize)
+		const CellListInfo cinfo, uint* cellsSize)
 {
 	const int pid = blockIdx.x * blockDim.x + threadIdx.x;
 	if (pid >= n) return;
@@ -23,9 +25,9 @@ __global__ void computeCellSizes(const float4* xyzouvwo, const int n, const int 
 
 	int cid;
 	if (pid < nMovable)
-		cid = getCellId<false>(coo, domainStart, ncells, invrc);
+		cid = cinfo.getCellId<false>(coo);
 	else
-		cid = getCellId(coo, domainStart, ncells, invrc);
+		cid = cinfo.getCellId(coo);
 
 	// No atomic for chars
 	// Workaround: pad zeros around char in proper position and add as int
@@ -40,8 +42,8 @@ __global__ void computeCellSizes(const float4* xyzouvwo, const int n, const int 
 	}
 }
 
-__global__ void rearrangeParticles(const float4* in_xyzouvwo, const int n, const int nMovable, const float3 domainStart, const int3 ncells,
-		const float invrc, uint* cellsSize, int* cellsStart, float4* out_xyzouvwo)
+__global__ void rearrangeParticles(const float4* in_xyzouvwo, const int n, const int nMovable,
+		const CellListInfo cinfo, uint* cellsSize, int* cellsStart, float4* out_xyzouvwo)
 {
 	const int gid = blockIdx.x * blockDim.x + threadIdx.x;
 	const int pid = gid / 2;
@@ -60,9 +62,9 @@ __global__ void rearrangeParticles(const float4* in_xyzouvwo, const int n, const
 	if (sh == 0)
 	{
 		if (pid < nMovable)
-			cid = getCellId<false>(val, domainStart, ncells, invrc);
+			cid = cinfo.getCellId<false>(val);
 		else
-			cid = getCellId(val, domainStart, ncells, invrc);
+			cid = cinfo.getCellId(val);
 
 		if (cid >= 0)
 		{
@@ -74,7 +76,7 @@ __global__ void rearrangeParticles(const float4* in_xyzouvwo, const int n, const
 			const int rawOffset = atomicAdd(cellsSize + addr, -increment);
 			const int offset = ((rawOffset >> (slot*8)) & 255) - 1;
 
-			int2 start_size = decodeStartSize(cellsStart[cid]);
+			int2 start_size = cinfo.decodeStartSize(cellsStart[cid]);
 			dstId = start_size.x + offset;  // mask blended Start
 		}
 		else
@@ -91,35 +93,52 @@ __global__ void rearrangeParticles(const float4* in_xyzouvwo, const int n, const
 }
 
 
-void buildCellList(ParticleVector& pv, cudaStream_t stream)
+CellListInfo::CellListInfo(float rc, float3 domainStart, float3 length) :
+		rc(rc), invrc(1.0f/rc), domainStart(domainStart), length(length)
+{
+	ncells = make_int3( ceilf(length / rc - 1e-6) );
+	totcells = ncells.x * ncells.y * ncells.z;
+}
+
+
+CellList::CellList(ParticleVector* pv, float rc, float3 domainStart, float3 length) :
+		CellListInfo(rc, domainStart, length), pv(pv)
+{
+	cellsStart.resize(totcells + 1);
+	cellsSize.resize(totcells + 1);
+}
+
+void CellList::build(cudaStream_t stream)
 {
 	// Compute cell sizes
-	debug("Computing cell sizes for %d particles with %d newcomers", pv.np, pv.received);
-	CUDA_Check( cudaMemsetAsync(pv.cellsSize.devdata, 0, (pv.totcells + 1)*sizeof(uint8_t), stream) );  // +1 to have correct cellsStart[totcells]
+	debug("Computing cell sizes for %d particles with %d newcomers", pv->np, pv->received);
+	CUDA_Check( cudaMemsetAsync(cellsSize.devdata, 0, (totcells + 1)*sizeof(uint8_t), stream) );  // +1 to have correct cellsStart[totcells]
 
-	computeCellSizes<<< (pv.np+127)/128, 128, 0, stream >>> (
-						(float4*)pv.coosvels.devdata, pv.np, pv.np - pv.received, pv.domainStart, pv.ncells, 1.0f, (uint*)pv.cellsSize.devdata);
+	auto cinfo = cellInfo();
+
+	computeCellSizes<<< (pv->np+127)/128, 128, 0, stream >>> (
+						(float4*)pv->coosvels.devdata, pv->np, pv->np - pv->received, cinfo, (uint*)cellsSize.devdata);
 
 	// Scan to get cell starts
-	scan(pv.cellsSize.devdata, pv.totcells+1, pv.cellsStart.devdata, stream);
+	scan(cellsSize.devdata, totcells+1, cellsStart.devdata, stream);
 
 	// Blend size and start together
-	blendStartSize<<< ((pv.totcells+3)/4 + 127) / 128, 128, 0, stream >>>((uchar4*)pv.cellsSize.devdata, (int4*)pv.cellsStart.devdata, pv.totcells);
+	blendStartSize<<< ((totcells+3)/4 + 127) / 128, 128, 0, stream >>>((uchar4*)cellsSize.devdata, (int4*)cellsStart.devdata, cinfo);
 
 	// Rearrange the data
-	debug("Rearranging %d particles", pv.np);
+	debug("Rearranging %d particles", pv->np);
 
-	rearrangeParticles<<< (2*pv.np+127)/128, 128, 0, stream >>> (
-						(float4*)pv.coosvels.devdata, pv.np, pv.np - pv.received, pv.domainStart, pv.ncells, 1.0f,
-						(uint*)pv.cellsSize.devdata, pv.cellsStart.devdata, (float4*)pv.pingPongBuf.devdata);
+	rearrangeParticles<<< (2*pv->np+127)/128, 128, 0, stream >>> (
+						(float4*)pv->coosvels.devdata, pv->np, pv->np - pv->received, cinfo,
+						(uint*)cellsSize.devdata, cellsStart.devdata, (float4*)pv->pingPongBuf.devdata);
 
-	debug("Rearranging completed");
 
 	// Now we need the new size of particles array.
 	int newSize;
-	CUDA_Check( cudaMemcpyAsync(&newSize, pv.cellsStart.devdata + pv.totcells, sizeof(int), cudaMemcpyDeviceToHost, stream) );
+	CUDA_Check( cudaMemcpyAsync(&newSize, cellsStart.devdata + totcells, sizeof(int), cudaMemcpyDeviceToHost, stream) );
 	CUDA_Check( cudaStreamSynchronize(stream) );
-	pv.resize(newSize, resizePreserve, stream);
+	debug("Rearranging completed, new size of particle vector is %d", newSize);
 
-	swap(pv.coosvels, pv.pingPongBuf, stream);
+	pv->resize(newSize, resizePreserve, stream);
+	swap(pv->coosvels, pv->pingPongBuf, stream);
 }

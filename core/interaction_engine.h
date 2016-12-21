@@ -46,8 +46,8 @@ __device__ __forceinline__ float3 f4tof3(float4 v)
 
 template<typename Interaction>
 __launch_bounds__(128, 16)
-__global__ void computeSelfInteractions(const float4 * __restrict__ coosvels, float* forces, const int * __restrict__ cellsStart, const uint8_t * cellsSize,
-		int3 ncells, float3 domainStart, int ncells_1, int np, Interaction interaction)
+__global__ void computeSelfInteractions(const float4 * __restrict__ coosvels, float* forces,
+		CellListInfo cinfo,  const int* __restrict__ cellsStart, int np, Interaction interaction)
 {
 	const int dstId = blockIdx.x*blockDim.x + threadIdx.x;
 	if (dstId >= np) return;
@@ -56,38 +56,26 @@ __global__ void computeSelfInteractions(const float4 * __restrict__ coosvels, fl
 	float3 dstFrc = make_float3(0.0f);
 	readAll4(coosvels, dstId, dstCoo, dstVel);
 
-	const int cellX0 = getCellIdAlongAxis(dstCoo.x, domainStart.x, ncells.x, 1.0f);
-	const int cellY0 = getCellIdAlongAxis(dstCoo.y, domainStart.y, ncells.y, 1.0f);
-	const int cellZ0 = getCellIdAlongAxis(dstCoo.z, domainStart.z, ncells.z, 1.0f);
+	const int cellX0 = cinfo.getCellIdAlongAxis<0>(dstCoo.x);
+	const int cellY0 = cinfo.getCellIdAlongAxis<1>(dstCoo.y);
+	const int cellZ0 = cinfo.getCellIdAlongAxis<2>(dstCoo.z);
 
 	for (int cellZ = cellZ0-1; cellZ <= cellZ0+1; cellZ++)
 		for (int cellY = cellY0-1; cellY <= cellY0; cellY++)
-#ifdef __MORTON__
-			for (int cellX = cellX0-1; cellX <= cellX0+1; cellX++)
 			{
-				if ( !(cellX >= 0 && cellX < ncells.x && cellY >= 0 && cellY < ncells.y && cellZ >= 0 && cellZ < ncells.z) ) continue;
-				if ( cellY == cellY0 && cellZ > cellZ0) continue;
-				if ( cellY == cellY0 && cellZ == cellZ0 && cellX > cellX0) continue;
-
-				const int cid = encode(cellX, cellY, cellZ, ncells);
-
-				const int2 start_size = decodeStartSize(cellsStart[cid]);
-#else
-			{
-				if ( !(cellY >= 0 && cellY < ncells.y && cellZ >= 0 && cellZ < ncells.z) ) continue;
+				if ( !(cellY >= 0 && cellY < cinfo.ncells.y && cellZ >= 0 && cellZ < cinfo.ncells.z) ) continue;
 				if (cellY == cellY0 && cellZ > cellZ0) continue;
 
-				const int midCellId = encode(cellX0, cellY, cellZ, ncells);
+				const int midCellId = cinfo.encode(cellX0, cellY, cellZ);
 				int rowStart  = max(midCellId-1, 0);
-				int rowEnd    = min(midCellId+2, ncells_1);
+				int rowEnd    = min(midCellId+2, cinfo.totcells+1);
 
 				if ( cellY == cellY0 && cellZ == cellZ0 ) rowEnd = midCellId + 1; // this row is already partly covered
 
-				const int2 pstart = decodeStartSize(cellsStart[rowStart]);
-				const int2 pend   = decodeStartSize(cellsStart[rowEnd]);
+				const int2 pstart = cinfo.decodeStartSize(cellsStart[rowStart]);
+				const int2 pend   = cinfo.decodeStartSize(cellsStart[rowEnd]);
 
 				const int2 start_size = make_int2(pstart.x, pend.x - pstart.x);
-#endif
 
 
 #pragma unroll 2
@@ -125,7 +113,8 @@ __launch_bounds__(128, 16)
 __global__ void computeExternalInteractions(
 		const float4 * __restrict__ dstData, float* dstFrcs,
 		const float4 * __restrict__ srcData, float* srcFrcs,
-		const int * __restrict__ cellsStart, int3 ncells, float3 domainStart, int ncells_1, int ndst, Interaction interaction)
+		CellListInfo cinfo,  const int* __restrict__ cellsStart,
+		int ndst, Interaction interaction)
 {
 	static_assert(NeedDstAcc || NeedSrcAcc, "External interactions should return at least some accelerations");
 
@@ -138,30 +127,15 @@ __global__ void computeExternalInteractions(
 	dstCoo = f4tof3(readNoCache(dstData+2*dstId));
 	dstVel = f4tof3(readNoCache(dstData+2*dstId+1));
 
-	const int cellX0 = getCellIdAlongAxis<false>(dstCoo.x, domainStart.x, ncells.x, 1.0f);
-	const int cellY0 = getCellIdAlongAxis<false>(dstCoo.y, domainStart.y, ncells.y, 1.0f);
-	const int cellZ0 = getCellIdAlongAxis<false>(dstCoo.z, domainStart.z, ncells.z, 1.0f);
+	const int cellX0 = cinfo.getCellIdAlongAxis<0, false>(dstCoo.x);
+	const int cellY0 = cinfo.getCellIdAlongAxis<1, false>(dstCoo.y);
+	const int cellZ0 = cinfo.getCellIdAlongAxis<2, false>(dstCoo.z);
 
-	for (int cellZ = max(cellZ0-1, 0); cellZ <= min(cellZ0+1, ncells.z-1); cellZ++)
-		for (int cellY = max(cellY0-1, 0); cellY <= min(cellY0+1, ncells.y-1); cellY++)
-#if 1
-			for (int cellX = max(cellX0-1, 0); cellX <= min(cellX0+1, ncells.x-1); cellX++)
+	for (int cellZ = max(cellZ0-1, 0); cellZ <= min(cellZ0+1, cinfo.ncells.z-1); cellZ++)
+		for (int cellY = max(cellY0-1, 0); cellY <= min(cellY0+1, cinfo.ncells.y-1); cellY++)
+			for (int cellX = max(cellX0-1, 0); cellX <= min(cellX0+1, cinfo.ncells.x-1); cellX++)
 			{
-				const int2 start_size = decodeStartSize(cellsStart[encode(cellX, cellY, cellZ, ncells)]);
-#else
-			{
-				if ( !(cellY >= 0 && cellY < ncells.y && cellZ >= 0 && cellZ < ncells.z) ) continue;
-
-				const int midCellId = encode(cellX0, cellY, cellZ, ncells);
-				int rowStart  = max(midCellId-1, 0);
-				int rowEnd    = min(midCellId+2, ncells_1);
-
-				const int2 pstart = decodeStartSize(cellsStart[rowStart]);
-				const int2 pend   = decodeStartSize(cellsStart[rowEnd]);
-
-				const int2 start_size = make_int2(pstart.x, pend.x - pstart.x);
-#endif
-
+				const int2 start_size = cinfo.decodeStartSize(cellsStart[cinfo.encode(cellX, cellY, cellZ)]);
 
 #pragma unroll 2
 				for (int srcId = start_size.x; srcId < start_size.x + start_size.y; srcId ++)
