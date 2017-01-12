@@ -200,7 +200,7 @@ __device__ __forceinline__ int atomicAggInc(int *ctr)
 }
 
 
-__global__ void countFrozen(float4* particles, const int np, cudaTextureObject_t sdfTex, float3 length, float3 h, int* nFrozen)
+__global__ void countFrozen(const float4* particles, const int np, cudaTextureObject_t sdfTex, float3 length, float3 h, int* nFrozen)
 {
 	const int pid = blockIdx.x * blockDim.x + threadIdx.x;
 	if (pid >= np) return;
@@ -214,8 +214,6 @@ __global__ void countFrozen(float4* particles, const int np, cudaTextureObject_t
 	{
 		atomicAggInc(nFrozen);
 	}
-
-	particles[2*pid+1].w = vels.w;
 }
 
 __global__ void collectFrozen(cudaTextureObject_t sdfTex, float3 length, float3 h, const int np,
@@ -417,7 +415,7 @@ void Wall::_check()
 {
 	for (auto& pv : particleVectors)
 	{
-		checkKernel<<< (pv->np + 127) / 128, 128 >>>( (float4*)pv->coosvels.devdata, pv->np, sdfTex, length, h, 1.0 / h);
+		checkKernel<<< (pv->np + 127) / 128, 128 >>>( (float4*)pv->coosvels.constDevPtr(), pv->np, sdfTex, length, h, 1.0 / h);
 	}
 }
 
@@ -512,6 +510,7 @@ Wall::Wall(MPI_Comm& comm, IniParser& config): config(config)
 	int3 inputStart = make_int3( floorf(domainStart / sdfH) );
 
 	PinnedBuffer<float> inputSdfData ( inputResolution.x * inputResolution.y * inputResolution.z );
+	auto inpSdfDataPtr = inputSdfData.hostPtr();
 
 	for (int k = 0; k < inputResolution.z; k++)
 		for (int j = 0; j < inputResolution.y; j++)
@@ -521,10 +520,9 @@ Wall::Wall(MPI_Comm& comm, IniParser& config): config(config)
 				const int origIy = (j+inputStart.y-margin + fullSdfResolution.y) % fullSdfResolution.y;
 				const int origIz = (k+inputStart.z-margin + fullSdfResolution.z) % fullSdfResolution.z;
 
-				inputSdfData[ (k*inputResolution.y + j)*inputResolution.x + i ] =
+				inpSdfDataPtr[ (k*inputResolution.y + j)*inputResolution.x + i ] =
 						fullSdfData[ (origIz*fullSdfResolution.y + origIy)*fullSdfResolution.x + origIx ];
 			}
-	inputSdfData.synchronize(synchronizeDevice);
 
 	// Compute offset
 	float3 offset = margin*sdfH;
@@ -536,7 +534,7 @@ Wall::Wall(MPI_Comm& comm, IniParser& config): config(config)
 	dim3 threads(8, 8, 8);
 	dim3 blocks((resolution.x+threads.x-1) / threads.x, (resolution.y+threads.y-1) / threads.y, (resolution.z+threads.z-1) / threads.z);
 
-	cubicInterpolate3D<<< blocks, threads >>>(inputSdfData.devdata, inputResolution, sdfH, sdfRawData.devdata, resolution, h, offset);
+	cubicInterpolate3D<<< blocks, threads >>>(inputSdfData.constDevPtr(), inputResolution, sdfH, sdfRawData.devPtr(), resolution, h, offset);
 
 	// Redistance
 	// Need 2 arrays for redistancing
@@ -545,7 +543,7 @@ Wall::Wall(MPI_Comm& comm, IniParser& config): config(config)
 //	const float redistDt = 0.1;
 //	for (float t = 0; t < 200; t+=redistDt)
 //	{
-//		redistance<<< blocks, threads >>>(sdfData.devdata, resolution, h, redistDt, tmp.devdata);
+//		redistance<<< blocks, threads >>>(sdfData.constDevPtr(), resolution, h, redistDt, tmp.devPtr());
 //		swap(sdfData, tmp);
 //	}
 
@@ -554,7 +552,7 @@ Wall::Wall(MPI_Comm& comm, IniParser& config): config(config)
 	CUDA_Check( cudaMalloc3DArray(&sdfArray, &chDesc, make_cudaExtent(resolution.x, resolution.y, resolution.z)) );
 
 	cudaMemcpy3DParms copyParams = {};
-	copyParams.srcPtr = make_cudaPitchedPtr(sdfRawData.devdata, resolution.x*sizeof(float), resolution.y, resolution.z);
+	copyParams.srcPtr = make_cudaPitchedPtr(sdfRawData.constDevPtr(), resolution.x*sizeof(float), resolution.y, resolution.z);
 	copyParams.dstArray = sdfArray;
 	copyParams.extent = make_cudaExtent(resolution.x, resolution.y, resolution.z);
 	copyParams.kind = cudaMemcpyDeviceToDevice;
@@ -587,35 +585,34 @@ void Wall::create(ParticleVector& dpds)
 	PinnedBuffer<int> nFrozen(1), nRemaining(1), nBoundaryCells(1);
 
 	nFrozen.clear();
-	countFrozen<<< (dpds.np + 127) / 128, 128 >>>((float4*)dpds.coosvels.devdata, dpds.np, sdfTex, length, h, nFrozen.devdata);
+	countFrozen<<< (dpds.np + 127) / 128, 128 >>>((float4*)dpds.coosvels.constDevPtr(), dpds.np, sdfTex, length, h, nFrozen.devPtr());
 
-	nFrozen.synchronize(synchronizeHost);
-	frozen.resize(nFrozen[0]);
-	info("Freezing %d particles", nFrozen[0]);
+	frozen.resize(nFrozen.constHostPtr()[0]);
+	info("Freezing %d particles", nFrozen.constHostPtr()[0]);
 
 	nFrozen.   clear();
 	nRemaining.clear();
 	collectFrozen<<< (dpds.np + 127) / 128, 128 >>>(sdfTex, length, h, dpds.np,
-			(float4*)dpds.coosvels.devdata, (float4*)dpds.pingPongBuf.devdata, (float4*)frozen.devdata, nRemaining.devdata, nFrozen.devdata);
+			(float4*)dpds.coosvels.constDevPtr(), (float4*)dpds.pingPongBuf.devPtr(), (float4*)frozen.devPtr(),
+			nRemaining.devPtr(), nFrozen.devPtr());
 
-	nRemaining.synchronize(synchronizeHost);
 	swap(dpds.coosvels, dpds.pingPongBuf);
-	dpds.resize(nRemaining[0]);
-	info("Keeping %d particles", nRemaining[0]);
+	dpds.resize(nRemaining.constHostPtr()[0]);
+	info("Keeping %d particles", nRemaining.constHostPtr()[0]);
 
 
 	CUDA_Check( cudaDeviceSynchronize() );
 
 
 	nBoundaryCells.clear();
-	countBoundaryCells<<< (dpds.totcells + 127) / 128, 128 >>> (dpds.ncells, dpds.totcells, dpds.domainStart, rc, sdfTex, length, h, nBoundaryCells.devdata);
+	countBoundaryCells<<< (dpds.totcells + 127) / 128, 128 >>> (dpds.ncells, dpds.totcells, dpds.domainStart, rc, sdfTex, length, h, nBoundaryCells.devPtr());
 
-	nBoundaryCells.synchronize(synchronizeHost);
-	info("Found %d boundary cells", nBoundaryCells[0]);
-	boundaryCells.resize(nBoundaryCells[0]);
+	info("Found %d boundary cells", nBoundaryCells.constHostPtr()[0]);
+	boundaryCells.resize(nBoundaryCells.constHostPtr()[0]);
 
 	nBoundaryCells.clear();
-	getBoundaryCells<<< (dpds.totcells + 127) / 128, 128 >>> (dpds.ncells, dpds.totcells, dpds.domainStart, rc, sdfTex, length, h, nBoundaryCells.devdata, boundaryCells.devdata);
+	getBoundaryCells<<< (dpds.totcells + 127) / 128, 128 >>> (dpds.ncells, dpds.totcells, dpds.domainStart, rc, sdfTex, length, h,
+			nBoundaryCells.devPtr(), boundaryCells.devPtr());
 }
 
 void Wall::bounce(cudaStream_t stream)
@@ -623,8 +620,8 @@ void Wall::bounce(cudaStream_t stream)
 	for (auto& pv : particleVectors)
 	{
 		bounceKernel<<< (boundaryCells.size + 63) / 64, 64, 0, stream >>>(
-				boundaryCells.devdata, boundaryCells.size, pv->cellsStart.devdata, (float4*)pv->accs.devdata,
-				sdfTex, length, h, 1.0 / h, (float4*)pv->coosvels.devdata, dt, integrate);
+				boundaryCells.constDevPtr(), boundaryCells.size, pv->cellsStart.constDevPtr(), (float4*)pv->forces.constDevPtr(),
+				sdfTex, length, h, 1.0 / h, (float4*)pv->coosvels.devPtr(), dt, integrate);
 	}
 }
 
@@ -650,8 +647,8 @@ void Wall::computeInteractions(cudaStream_t stream)
 	{
 		debug("Computing wall forces for %d-th particle vector", i++);
 		computeExternalInteractions<false, true> <<< (frozen.size + nth - 1) / nth, nth, 0, stream >>>(
-				(float4*)frozen.devdata, nullptr, (float4*)pv->coosvels.devdata, (float*)pv->accs.devdata, pv->cellsStart.devdata,
-					pv->ncells, pv->domainStart, pv->totcells+1, frozen.size, dpdInt);
+				(float4*)frozen.constDevPtr(), nullptr, (float4*)pv->coosvels.constDevPtr(), (float*)pv->forces.devPtr(), pv->cellsStart.devPtr(),
+					pv->ncells, pv->domainStart, pv->totcells+1, frozen.size(), dpdInt);
 	}
 }
 

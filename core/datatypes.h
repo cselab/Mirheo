@@ -29,53 +29,53 @@ struct Force
 };
 
 
-//==================================================================================================================
-// Different data vectors
-//==================================================================================================================
-
 enum ResizeKind
 {
 	resizeAnew     = 0,
 	resizePreserve = 1
 };
 
-enum SynchroKind
-{
-	synchronizeDevice = 0,
-	synchronizeHost   = 1
-};
 
+//==================================================================================================================
+// Device Buffer
+//==================================================================================================================
 
 template<typename T>
-struct DeviceBuffer
+class DeviceBuffer
 {
-	int capacity, size;
-	T * devdata;
+private:
+	int capacity, _size;
+	T* devptr;
 
-	DeviceBuffer(int n = 0): capacity(0), size(0), devdata(nullptr) { resize(n, resizeAnew); }
+public:
+	DeviceBuffer(int n = 0): capacity(0), _size(0), devptr(nullptr) { resize(n, resizeAnew); }
 
 	~DeviceBuffer()
 	{
-		if (devdata != nullptr) CUDA_Check(cudaFree(devdata));
+		if (devptr != nullptr) CUDA_Check(cudaFree(devptr));
 	}
+
+	T* 		 devPtr() 			 { return devptr; }
+	const T* constDevPtr() const { return devptr; }
+	int		 size()				 { return _size; }
 
 	void resize(const int n, ResizeKind kind = resizeAnew, cudaStream_t stream = 0)
 	{
-		T * dold = devdata;
-		int oldsize = size;
+		T * dold = devptr;
+		int oldsize = _size;
 
 		assert(n >= 0);
-		size = n;
+		_size = n;
 		if (capacity >= n) return;
 
 		const int conservative_estimate = (int)ceil(1.1 * n + 10);
 		capacity = 128 * ((conservative_estimate + 129) / 128);
 
-		CUDA_Check(cudaMalloc(&devdata, sizeof(T) * capacity));
+		CUDA_Check(cudaMalloc(&devptr, sizeof(T) * capacity));
 
 		if (kind == resizePreserve && dold != nullptr)
 		{
-			CUDA_Check(cudaMemcpyAsync(devdata, dold, sizeof(T) * oldsize, cudaMemcpyDeviceToDevice, stream));
+			CUDA_Check(cudaMemcpyAsync(devptr, dold, sizeof(T) * oldsize, cudaMemcpyDeviceToDevice, stream));
 		}
 
 		CUDA_Check(cudaFree(dold));
@@ -83,171 +83,216 @@ struct DeviceBuffer
 
 	void clear(cudaStream_t stream = 0)
 	{
-		CUDA_Check( cudaMemsetAsync(devdata, 0, sizeof(T) * size, stream) );
+		CUDA_Check( cudaMemsetAsync(devptr, 0, sizeof(T) * _size, stream) );
 	}
 
 	template<typename Cont>
-	auto copy(Cont& cont, cudaStream_t stream = 0) -> decltype((void)(cont.devdata), void())
+	auto copy(Cont& cont, cudaStream_t stream = 0) -> decltype((void)(cont.devptr), void())
 	{
-		static_assert(std::is_same<decltype(devdata), decltype(cont.devdata)>::value, "can't copy buffers of different types");
+		static_assert(std::is_same<decltype(devptr), decltype(cont.devptr)>::value, "can't copy buffers of different types");
 
 		resize(cont.size);
-		CUDA_Check( cudaMemcpyAsync(devdata, cont.devdata, sizeof(T) * size, cudaMemcpyDeviceToDevice, stream) );
+		CUDA_Check( cudaMemcpyAsync(devptr, cont.devptr, sizeof(T) * _size, cudaMemcpyDeviceToDevice, stream) );
 	}
 
 	template<typename Cont>
-	auto copy(Cont& cont, cudaStream_t stream = 0) -> decltype((void)(cont.hostdata), void())
+	auto copy(Cont& cont, cudaStream_t stream = 0) -> decltype((void)(cont.hostptr), void())
 	{
-		static_assert(std::is_same<decltype(devdata), decltype(cont.hostdata)>::value, "can't copy buffers of different types");
+		static_assert(std::is_same<decltype(devptr), decltype(cont.hostptr)>::value, "can't copy buffers of different types");
 
 		resize(cont.size);
-		CUDA_Check( cudaMemcpyAsync(devdata, cont.hostdata, sizeof(T) * size, cudaMemcpyHostToDevice, stream) );
+		CUDA_Check( cudaMemcpyAsync(devptr, cont.hostptr, sizeof(T) * _size, cudaMemcpyHostToDevice, stream) );
 	}
 };
 
-template<typename T>
-struct PinnedBuffer
-{
-	int capacity, size;
-	T * hostdata, * devdata;
 
-	PinnedBuffer(int n = 0): capacity(0), size(0), hostdata(nullptr), devdata(nullptr) { resize(n, resizeAnew); }
+//==================================================================================================================
+// Pinned Buffer
+//==================================================================================================================
+
+template<typename T>
+class PinnedBuffer
+{
+private:
+	int capacity, _size;
+	T * hostptr, * devptr;
+	bool hostChanged, devChanged;
+	cudaStream_t stream;
+
+private:
+	void syncHost()
+	{
+		CUDA_Check(cudaMemcpyAsync(hostptr, devptr, sizeof(T) * _size, cudaMemcpyDeviceToHost, stream));
+		CUDA_Check(cudaStreamSynchronize(stream));
+	}
+
+	void syncDev()
+	{
+		CUDA_Check(cudaMemcpyAsync(devptr, hostptr, sizeof(T) * _size, cudaMemcpyHostToDevice, stream));
+	}
+
+public:
+	PinnedBuffer(int n = 0, cudaStream_t stream = 0) :
+		capacity(0), _size(0), hostptr(nullptr), devptr(nullptr), hostChanged(false), devChanged(false), stream(stream)
+	{
+		resize(n, resizeAnew);
+	}
 
 	~PinnedBuffer()
 	{
-		if (hostdata != nullptr) CUDA_Check(cudaFreeHost(hostdata));
+		if (hostptr != nullptr) CUDA_Check(cudaFreeHost(hostptr));
+	}
+
+	T* devPtr()
+	{
+		if (hostChanged) syncDev();
+		devChanged = true;
+		return devptr;
+	}
+	const T* constDevPtr() const
+	{
+		if (hostChanged) syncDev();
+		return devptr;
+	}
+
+	T* hostPtr()
+	{
+		if (devChanged) syncHost();
+		hostChanged = true;
+		return hostptr;
+	}
+	const T* constHostPtr() const
+	{
+		if (devChanged) syncHost();
+		hostChanged = true;
+		return hostptr;
+	}
+
+	int	size() const
+	{
+		return _size;
 	}
 
 	void resize(const int n, ResizeKind kind = resizeAnew, cudaStream_t stream = 0)
 	{
-		T * hold = hostdata;
-		T * dold = devdata;
-		int oldsize = size;
+		T * hold = hostptr;
+		T * dold = devptr;
+		int oldsize = _size;
 
 		assert(n >= 0);
-		size = n;
+		_size = n;
 		if (capacity >= n) return;
 
 		const int conservative_estimate = (int)ceil(1.1 * n + 10);
 		capacity = 128 * ((conservative_estimate + 129) / 128);
 
-		CUDA_Check(cudaHostAlloc(&hostdata, sizeof(T) * capacity, 0));
-		CUDA_Check(cudaMalloc(&devdata, sizeof(T) * capacity));
+		CUDA_Check(cudaHostAlloc(&hostptr, sizeof(T) * capacity, 0));
+		CUDA_Check(cudaMalloc(&devptr, sizeof(T) * capacity));
 
 		if (kind == resizePreserve && hold != nullptr)
 		{
-			memcpy(hostdata, hold, sizeof(T) * oldsize);
-			CUDA_Check(cudaMemcpyAsync(devdata, dold, sizeof(T) * oldsize, cudaMemcpyDeviceToDevice, stream));
+			memcpy(hostptr, hold, sizeof(T) * oldsize);
+			CUDA_Check(cudaMemcpyAsync(devptr, dold, sizeof(T) * oldsize, cudaMemcpyDeviceToDevice, stream));
 		}
 
 		CUDA_Check(cudaFreeHost(hold));
 		CUDA_Check(cudaFree(dold));
 	}
 
-	void synchronize(SynchroKind kind, cudaStream_t stream = 0)
-	{
-		if (kind == synchronizeDevice)
-			CUDA_Check(cudaMemcpyAsync(devdata, hostdata, sizeof(T) * size, cudaMemcpyHostToDevice, stream));
-		else
-		{
-			CUDA_Check(cudaMemcpyAsync(hostdata, devdata, sizeof(T) * size, cudaMemcpyDeviceToHost, stream));
-			CUDA_Check(cudaStreamSynchronize(stream));
-		}
-	}
-
-	T& operator[](const int i)
-	{
-		assert(0 <= i && i < size);
-		return hostdata[i];
-	}
-
 	void clear(cudaStream_t stream = 0)
 	{
-		CUDA_Check( cudaMemsetAsync(devdata, 0, sizeof(T) * size, stream) );
-		memset(hostdata, 0, sizeof(T) * size);
+		CUDA_Check( cudaMemsetAsync(devptr, 0, sizeof(T) * _size, stream) );
+		memset(hostptr, 0, sizeof(T) * _size);
+
+		hostChanged = devChanged = false;
 	}
 
 	template<typename Cont>
-	auto copy(Cont& cont, cudaStream_t stream = 0) -> decltype((void)(cont.devdata), void())
+	auto copy(Cont& cont, cudaStream_t stream = 0) -> decltype((void)(cont.devptr), void())
 	{
-		static_assert(std::is_same<decltype(devdata), decltype(cont.devdata)>::value, "can't copy buffers of different types");
+		static_assert(std::is_same<decltype(devptr), decltype(cont.devptr)>::value, "can't copy buffers of different types");
 
 		resize(cont.size);
-		CUDA_Check( cudaMemcpyAsync(devdata, cont.devdata, sizeof(T) * size, cudaMemcpyDeviceToDevice, stream) );
+		CUDA_Check( cudaMemcpyAsync(devptr, cont.devptr, sizeof(T) * _size, cudaMemcpyDeviceToDevice, stream) );
 	}
 
 	template<typename Cont>
-	auto copy(Cont& cont, cudaStream_t stream = 0) -> decltype((void)(cont.hostdata), void())
+	auto copy(Cont& cont, cudaStream_t stream = 0) -> decltype((void)(cont.hostptr), void())
 	{
-		static_assert(std::is_same<decltype(hostdata), decltype(cont.hostdata)>::value, "can't copy buffers of different types");
+		static_assert(std::is_same<decltype(hostptr), decltype(cont.hostptr)>::value, "can't copy buffers of different types");
 
 		resize(cont.size);
-		memcpy(hostdata, cont.hostdata, sizeof(T) * size);
+		memcpy(hostptr, cont.hostptr, sizeof(T) * _size);
 	}
 };
 
-template<typename T>
-struct HostBuffer
-{
-	int capacity, size;
-	T * hostdata;
 
-	HostBuffer(int n = 0): capacity(0), size(0), hostdata(nullptr) { resize(n); }
+//==================================================================================================================
+// Host Buffer
+//==================================================================================================================
+
+template<typename T>
+class HostBuffer
+{
+private:
+	int capacity, _size;
+	T * hostptr;
+
+public:
+	HostBuffer(int n = 0): capacity(0), _size(0), hostptr(nullptr) { resize(n); }
 
 	~HostBuffer()
 	{
-		if (hostdata != nullptr) free(hostdata);
+		if (hostptr != nullptr) free(hostptr);
 	}
+
+	T* 		 hostPtr() 				{ return hostptr; }
+	const T* constHostPtr() const	{ return hostptr; }
+	int		 size()					{ return _size; }
 
 	void resize(const int n, ResizeKind kind = resizeAnew)
 	{
-		T * hold = hostdata;
-		int oldsize = size;
+		T * hold = hostptr;
+		int oldsize = _size;
 
 		assert(n >= 0);
-		size = n;
+		_size = n;
 		if (capacity >= n) return;
 
 		const int conservative_estimate = (int)ceil(1.1 * n + 10);
 		capacity = 128 * ((conservative_estimate + 129) / 128);
 
-		hostdata = (T*) malloc(sizeof(T) * capacity);
+		hostptr = (T*) malloc(sizeof(T) * capacity);
 
 		if (kind == resizePreserve && hold != nullptr)
 		{
-			memcpy(hostdata, hold, sizeof(T) * oldsize);
+			memcpy(hostptr, hold, sizeof(T) * oldsize);
 		}
 
 		free(hold);
 	}
 
-	T& operator[](const int i)
+	void clear()
 	{
-		assert(0 <= i && i < size);
-		return hostdata[i];
-	}
-
-	void clear(cudaStream_t stream = 0)
-	{
-		memset(hostdata, 0, sizeof(T) * size);
+		memset(hostptr, 0, sizeof(T) * _size);
 	}
 
 	template<typename Cont>
-	auto copy(Cont& cont, cudaStream_t stream = 0) -> decltype((void)(cont.hostdata), void())
+	auto copy(Cont& cont, cudaStream_t stream = 0) -> decltype((void)(cont.hostptr), void())
 	{
-		static_assert(std::is_same<decltype(hostdata), decltype(cont.hostdata)>::value, "can't copy buffers of different types");
+		static_assert(std::is_same<decltype(hostptr), decltype(cont.hostptr)>::value, "can't copy buffers of different types");
 
 		resize(cont.size);
-		memcpy(hostdata, cont.hostdata, sizeof(T) * size);
+		memcpy(hostptr, cont.hostptr, sizeof(T) * _size);
 	}
 
 	template<typename Cont>
-	auto copy(Cont& cont, cudaStream_t stream = 0) -> decltype((void)(cont.devdata), void())
+	auto copy(Cont& cont, cudaStream_t stream = 0) -> decltype((void)(cont.devptr), void())
 	{
-		static_assert(std::is_same<decltype(hostdata), decltype(cont.devdata)>::value, "can't copy buffers of different types");
+		static_assert(std::is_same<decltype(hostptr), decltype(cont.devptr)>::value, "can't copy buffers of different types");
 
 		resize(cont.size);
-		CUDA_Check( cudaMemcpyAsync(hostdata, cont.devdata, sizeof(T) * size, cudaMemcpyDeviceToHost, stream) );
+		CUDA_Check( cudaMemcpyAsync(hostptr, cont.devptr, sizeof(T) * _size, cudaMemcpyDeviceToHost, stream) );
 	}
 };
 
@@ -258,7 +303,7 @@ void swap(DeviceBuffer<T>& a, DeviceBuffer<T>& b, cudaStream_t stream = 0)
 	a.resize(b.size, resizePreserve, stream);
 	b.resize(a.size, resizePreserve, stream);
 
-	std::swap(a.devdata, b.devdata);
+	std::swap(a.devptr, b.devptr);
 }
 
 template<typename T>
@@ -267,7 +312,7 @@ void swap(HostBuffer<T>& a, HostBuffer<T>& b, cudaStream_t stream = 0)
 	a.resize(b.size, resizePreserve, stream);
 	b.resize(a.size, resizePreserve, stream);
 
-	std::swap(a.hostdata, b.hostdata);
+	std::swap(a.hostptr, b.hostptr);
 }
 
 template<typename T>
@@ -276,8 +321,8 @@ void swap(PinnedBuffer<T>& a, PinnedBuffer<T>& b, cudaStream_t stream = 0)
 	a.resize(b.size, resizePreserve, stream);
 	b.resize(a.size, resizePreserve, stream);
 
-	std::swap(a.devdata,  b.devdata);
-	std::swap(a.hostdata, b.hostdata);
+	std::swap(a.devptr,  b.devptr);
+	std::swap(a.hostptr, b.hostptr);
 }
 
 

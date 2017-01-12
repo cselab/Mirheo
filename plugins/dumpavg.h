@@ -1,29 +1,58 @@
 #pragma once
+
 #include "plugin.h"
 #include "../core/datatypes.h"
 #include "../core/containers.h"
 #include "../core/celllist.h"
-
+#include "write_xdmf.h"
 
 #include <vector>
 
-class DumpAvg3D : public Plugin
+class Avg3DPlugin : public SimulationPlugin
 {
 private:
-	int sampleEvery;
+	int nTimeSteps, nSamples;
+	int sampleEvery, dumpEvery;
 	int3 resolution;
-	bool needDensity, needVelocity, needForce;
-	std::string namePrefix;
+	float3 h;
+	bool needDensity, needMomentum, needForce;
 
 	PinnedBuffer<float>  density;
-	PinnedBuffer<float4> velocity, force;
+	PinnedBuffer<float4> momentum, force;
+	HostBuffer<char> sendBuffer;
 
-	CellList cellList;
-
-	std::vector<ParticleVector*> particleVectors;
+	std::vector<std::pair<ParticleVector*, CellList*>> particlesAndCells;
 
 public:
-	DumpAvg3D(Simulation* sim, std::string pvNames, int sampleEvery, int3 resolution, bool needDensity, bool needVelocity, bool needForce, std::string namePrefix);
+	Avg3DPlugin(int id, Simulation* sim, const MPI_Comm& comm, int sendRank,
+			std::string pvNames, int sampleEvery, int dumpEvery, int3 resolution, float3 h,
+			bool needDensity, bool needMomentum, bool needForce);
 
-	void afterIntegration(cudaStream_t stream);
+	void handshake();
+	void afterIntegration(float t);
+	void serializeAndSend();
+
+	~Avg3DPlugin() {};
+};
+
+
+class Avg3DDumper : public PostprocessPlugin
+{
+private:
+	XDMFDumper* dumper;
+
+	int3 resolution;
+	float3 h;
+	bool needDensity, needMomentum, needForce;
+
+	PinnedBuffer<float>  density;
+	PinnedBuffer<float4> momentum, force;
+
+public:
+	Avg3DDumper(int id, MPI_Comm comm, int recvRank, std::string path);
+
+	void deserialize() {};
+	void handshake() {};
+
+	~Avg3DDumper() {};
 };

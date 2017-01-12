@@ -28,7 +28,7 @@ void computeInternalDPD(ParticleVector& pv, CellList& cl, cudaStream_t stream)
 	{
 		debug("Computing internal forces for %d paricles", pv.np);
 		computeSelfInteractions<<< (pv.np + nth - 1) / nth, nth, 0, stream >>>(
-				(float4*)pv.coosvels.devdata, (float*)pv.forces.devdata, cl.cellInfo(), cl.cellsStart.devdata, pv.np, dpdInt);
+				(float4*)pv.coosvels.constDevPtr(), (float*)pv.forces.devPtr(), cl.cellInfo(), cl.cellsStart.constDevPtr(), pv.np, dpdInt);
 	}
 }
 
@@ -53,6 +53,7 @@ void computeHaloDPD(ParticleVector& pv, CellList& cl, cudaStream_t stream)
 		const int nth = 128;
 		debug("Computing halo forces for %d ext paricles", pv.halo.size);
 		computeExternalInteractions<false, true> <<< (pv.halo.size + nth - 1) / nth, nth, 0, stream >>>(
-					(float4*)pv.halo.devdata, nullptr, (float4*)pv.coosvels.devdata, (float*)pv.forces.devdata, cl.cellInfo(), cl.cellsStart.devdata, pv.halo.size, dpdInt);
+					(float4*)pv.halo.constDevPtr(), nullptr, (float4*)pv.coosvels.constDevPtr(),
+					(float*)pv.forces.devPtr(), cl.cellInfo(), cl.cellsStart.constDevPtr(), pv.halo.size, dpdInt);
 	}
 }

@@ -5,7 +5,7 @@
 
 #include "helper_math.h"
 
-__global__ void blendStartSize(uchar4* cellsSize, int4* cellsStart, const CellListInfo cinfo)
+__global__ void blendStartSize(const uchar4* cellsSize, int4* cellsStart, const CellListInfo cinfo)
 {
 	const int gid = blockIdx.x * blockDim.x + threadIdx.x;
 	if (4*gid >= cinfo.totcells) return;
@@ -43,7 +43,7 @@ __global__ void computeCellSizes(const float4* xyzouvwo, const int n, const int 
 }
 
 __global__ void rearrangeParticles(const float4* in_xyzouvwo, const int n, const int nMovable,
-		const CellListInfo cinfo, uint* cellsSize, int* cellsStart, float4* out_xyzouvwo)
+		const CellListInfo cinfo, uint* cellsSize, const int* cellsStart, float4* out_xyzouvwo)
 {
 	const int gid = blockIdx.x * blockDim.x + threadIdx.x;
 	const int pid = gid / 2;
@@ -117,7 +117,7 @@ void CellList::build(cudaStream_t stream)
 	auto cinfo = cellInfo();
 
 	computeCellSizes<<< (pv->np+127)/128, 128, 0, stream >>> (
-						(float4*)pv->coosvels.devdata, pv->np, pv->np - pv->received, cinfo, (uint*)cellsSize.devdata);
+						(float4*)pv->coosvels.constDevPtr(), pv->np, pv->np - pv->received, cinfo, (uint*)cellsSize.devPtr());
 
 	// Scan to get cell starts
 	scan(cellsSize.devdata, totcells+1, cellsStart.devdata, stream);
@@ -129,13 +129,13 @@ void CellList::build(cudaStream_t stream)
 	debug("Rearranging %d particles", pv->np);
 
 	rearrangeParticles<<< (2*pv->np+127)/128, 128, 0, stream >>> (
-						(float4*)pv->coosvels.devdata, pv->np, pv->np - pv->received, cinfo,
-						(uint*)cellsSize.devdata, cellsStart.devdata, (float4*)pv->pingPongBuf.devdata);
+						(float4*)pv->coosvels.constDevPtr(), pv->np, pv->np - pv->received, cinfo,
+						(uint*)cellsSize.devPtr(), cellsStart.constDevPtr(), (float4*)pv->pingPongBuf.devPtr());
 
 
 	// Now we need the new size of particles array.
 	int newSize;
-	CUDA_Check( cudaMemcpyAsync(&newSize, cellsStart.devdata + totcells, sizeof(int), cudaMemcpyDeviceToHost, stream) );
+	CUDA_Check( cudaMemcpyAsync(&newSize, cellsStart.devPtr() + totcells, sizeof(int), cudaMemcpyDeviceToHost, stream) );
 	CUDA_Check( cudaStreamSynchronize(stream) );
 	debug("Rearranging completed, new size of particle vector is %d", newSize);
 

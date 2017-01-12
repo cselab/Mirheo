@@ -52,7 +52,7 @@ void integrateNoFlow(ParticleVector& pv, const float dt, const float mass, cudaS
 		x.z += v.z*dt;
 	};
 
-	integrationKernel<<< (2*pv.np + 127)/128, 128, 0, stream >>>((float4*)pv.coosvels.devdata, (float4*)pv.forces.devdata, pv.np, dt, noflow);
+	integrationKernel<<< (2*pv.np + 127)/128, 128, 0, stream >>>((float4*)pv.coosvels.devPtr(), (float4*)pv.forces.constDevPtr(), pv.np, dt, noflow);
 	CUDA_Check( cudaPeekAtLastError() );
 }
 
@@ -69,6 +69,6 @@ void integrateConstDP(ParticleVector& pv, const float dt, const float mass, cons
 		x.z += v.z*dt;
 	};
 
-	integrationKernel<<< (2*pv.np + 127)/128, 128, 0, stream >>>((float4*)pv.coosvels.devdata, (float4*)pv.forces.devdata, pv.np, dt, constDP);
+	integrationKernel<<< (2*pv.np + 127)/128, 128, 0, stream >>>((float4*)pv.coosvels.devPtr(), (float4*)pv.forces.constDevPtr(), pv.np, dt, constDP);
 	CUDA_Check( cudaPeekAtLastError() );
 }

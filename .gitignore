@@ -16,3 +16,6 @@
 *.ptx
 *.log*
 bin/
+.settings
+.cproject
+.project

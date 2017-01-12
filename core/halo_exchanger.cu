@@ -128,7 +128,7 @@ __global__ void getHalos(const float4* __restrict__ xyzouvwo, CellListInfo cinfo
 
 HaloExchanger::HaloExchanger(MPI_Comm& comm) : nActiveNeighbours(26)
 {
-	MPI_Check( MPI_Comm_dup(comm, &haloComm));
+	MPI_Check( MPI_Comm_dup(comm, &haloComm) );
 
 	int dims[3], periods[3], coords[3];
 	MPI_Check( MPI_Cart_get (haloComm, 3, dims, periods, coords) );
@@ -166,6 +166,7 @@ void HaloExchanger::attach(ParticleVector* pv, CellList* cl, int ndens)
 
 	const int maxdim = std::max({cl->ncells.x, cl->ncells.y, cl->ncells.z});
 
+	auto addrsPtr = helper.sendAddrs.hostPtr();
 	for(int i = 0; i < 27; ++i)
 	{
 		int d[3] = { i%3 - 1, (i/3) % 3 - 1, i/9 - 1 };
@@ -175,10 +176,10 @@ void HaloExchanger::attach(ParticleVector* pv, CellList* cl, int ndens)
 		{
 			helper.sendBufs[i].resize( 3 * ndens * pow(maxdim, 3 - c) );
 			helper.recvBufs[i].resize( 3 * ndens * pow(maxdim, 3 - c) );
-			helper.sendAddrs[i] = (float4*)helper.sendBufs[i].devdata;
+			addrsPtr[i] = (float4*)helper.sendBufs[i].constDevPtr();
 		}
 	}
-	helper.sendAddrs.synchronize(synchronizeDevice);
+	//helper.sendAddrs.synchronize(synchronizeDevice);
 }
 
 void HaloExchanger::exchange()
@@ -208,7 +209,7 @@ void HaloExchanger::_initialize(int n)
 		{
 			MPI_Request req;
 			const int tag = 27*n + i;
-			MPI_Check( MPI_Irecv(helper.recvBufs[i].hostdata, helper.recvBufs[i].size, mpiPartType, dir2rank[i], tag, haloComm, &req) );
+			MPI_Check( MPI_Irecv(helper.recvBufs[i].hostPtr(), helper.recvBufs[i].size, mpiPartType, dir2rank[i], tag, haloComm, &req) );
 			helper.requests.push_back(req);
 		}
 
@@ -219,7 +220,7 @@ void HaloExchanger::_initialize(int n)
 
 	debug("Preparing %d-th halo on the device", n);
 	getHalos<<< dim3((maxdim*maxdim + nthreads - 1) / nthreads, 6, 1),  dim3(nthreads, 1, 1), 0, helper.stream >>>
-			((float4*)pv->coosvels.devdata, cl->cellInfo(), cl->cellsStart.devdata, (int64_t*)helper.sendAddrs.devdata, helper.counts.devdata);
+			((float4*)pv->coosvels.constDevPtr(), cl->cellInfo(), cl->cellsStart.constDevPtr(), (int64_t*)helper.sendAddrs.constDevPtr(), helper.counts.devPtr());
 }
 
 void HaloExchanger::send(int n)
@@ -227,23 +228,24 @@ void HaloExchanger::send(int n)
 	auto pv = particlesAndCells[n].first;
 	HaloHelper& helper = helpers[n];
 
-	helper.counts.synchronize(synchronizeHost, helper.stream);
+	//helper.counts.synchronize(synchronizeHost, helper.stream);
 	debug("Downloading %d-th halo", n);
 
 	// Can't use synchronize here because we actually have only helper.counts[i] elements
+	auto cntPtr = helper.counts.constHostPtr();
 	for (int i=0; i<27; i++)
 		if (i != 13)
-			CUDA_Check( cudaMemcpyAsync(helper.sendBufs[i].hostdata, helper.sendBufs[i].devdata,
-					helper.counts[i]*sizeof(Particle), cudaMemcpyDeviceToHost, helper.stream) );
+			CUDA_Check( cudaMemcpyAsync(helper.sendBufs[i].hostPtr(), helper.sendBufs[i].constDevPtr(),
+					cntPtr[i]*sizeof(Particle), cudaMemcpyDeviceToHost, helper.stream) );
 	CUDA_Check( cudaStreamSynchronize(helper.stream) );
 
 	MPI_Request req;
 	for (int i=0; i<27; i++)
 		if (i != 13 && dir2rank[i] >= 0)
 		{
-			debug("Sending %d-th halo to rank %d in dircode %d [%2d %2d %2d], size %d", n, dir2rank[i], i, i%3 - 1, (i/3)%3 - 1, i/9 - 1, helper.counts[i]);
+			debug("Sending %d-th halo to rank %d in dircode %d [%2d %2d %2d], size %d", n, dir2rank[i], i, i%3 - 1, (i/3)%3 - 1, i/9 - 1, cntPtr[i]);
 			const int tag = 27*n + i;
-			MPI_Check( MPI_Isend(helper.sendBufs[i].hostdata, helper.counts[i], mpiPartType, dir2rank[i], tag, haloComm, &req) );
+			MPI_Check( MPI_Isend(helper.sendBufs[i].constHostPtr(), cntPtr[i], mpiPartType, dir2rank[i], tag, haloComm, &req) );
 		}
 }
 
@@ -277,7 +279,7 @@ void HaloExchanger::receive(int n)
 	{
 		debug("Receiving %d-th halo from rank %d, size %d",
 				n, dir2rank[compactedDirs[i]], compactedDirs[i], compactedDirs[i]%3 - 1, (compactedDirs[i]/3)%3 - 1, compactedDirs[i]/9 - 1, offsets[i+1] - offsets[i]);
-		CUDA_Check( cudaMemcpyAsync(pv->halo.devdata + offsets[i], helper.recvBufs[compactedDirs[i]].hostdata,
+		CUDA_Check( cudaMemcpyAsync(pv->halo.devPtr() + offsets[i], helper.recvBufs[compactedDirs[i]].constHostPtr(),
 				(offsets[i+1] - offsets[i])*sizeof(Particle), cudaMemcpyHostToDevice, helper.stream) );
 	}
 
