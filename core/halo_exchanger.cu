@@ -152,8 +152,9 @@ HaloExchanger::HaloExchanger(MPI_Comm& comm) : nActiveNeighbours(26)
 	}
 }
 
-void HaloExchanger::attach(ParticleVector* pv, CellList* cl, int ndens)
+void HaloExchanger::attach(ParticleVector* pv, CellList* cl)
 {
+	const float ndens = (float)pv->np / (cl->ncells.x * cl->ncells.y * cl->ncells.z);
 	particlesAndCells.push_back({pv, cl});
 
 	helpers.resize(helpers.size() + 1);

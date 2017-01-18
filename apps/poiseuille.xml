@@ -1,0 +1,23 @@
+<?xml version="1.0"?>
+<simulation name="poiseuille">
+
+	<domain size="64 32 32" />
+	<particle_vector name="dpd" density="8" />
+	<wall name="wall" sdffile="tube.sdf" creation_step="1000" />
+	
+	<interaction name="dpd_int" type="dpd" a="50" gamma="20" kbt="1.0" dt="0.01">
+		<apply_to pv1="dpd" pv2="dpd"/>
+		<apply_to pv1="dpd" pv2="wall"/>
+	</interaction>
+	
+	<integrator name="integrator" type="constDP" extra_force="0.01 0 0">
+		<apply_to pv="dpd" />
+	</integrator>
+	
+	<plugin name="avg" type="avg3D" sample_every="10" dump_every="5000" path="xdmf/avg_rho_u" h="0.5 0.5 0.5">
+		<apply_to pv="dpd" />
+	</plugin>
+	
+	<run dt="0.01" stop_time="10000" />
+
+</simulation>

@@ -49,7 +49,7 @@ public:
 	// Has to be private, but cuda doesn't support lambdas in private functions
 	void _initialize(int vid);
 
-	Redistributor(MPI_Comm& comm, IniParser& config);
+	Redistributor(MPI_Comm& comm);
 	void attach(ParticleVector* pv, CellList* cl, int ndens);
 	void redistribute();
 };

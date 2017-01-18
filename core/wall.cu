@@ -421,17 +421,17 @@ void Wall::_check()
 
 
 
-Wall::Wall(MPI_Comm& comm, IniParser& config): config(config)
+Wall::Wall(std::string sdfname, float3 length, float3 resolution, float3 fullDomainSize) :
+		sdfname(sdfname), length(length), resolution(resolution), fullDomainSize(fullDomainSize)
+{ }
+
+void Wall::attach(ParticleVector* pv)
 {
-	dt = config.getFloat("Common", "dt");
+	particleVectors.push_back(pv);
+}
 
-	std::string sdfname = config.getString("Wall", "SdfFileName");
-	std::string velname = config.getString("Wall", "VelocityFileName", "");
-
-	length = config.getFloat3("Common", "SubdomainSize");
-	resolution = config.getInt3("Wall", "Resolution", make_int3(256));
-	float floatMargin = config.getFloat("Wall", "margin");
-
+void Wall::create(MPI_Comm& comm, ParticleVector& dpds)
+{
 	MPI_Check( MPI_Comm_dup(comm, &wallComm) );
 
 	int nranks, rank;
@@ -573,15 +573,7 @@ Wall::Wall(MPI_Comm& comm, IniParser& config): config(config)
 	texDesc.normalizedCoords = 0;
 
 	CUDA_Check( cudaCreateTextureObject(&sdfTex, &resDesc, &texDesc, nullptr) );
-}
 
-void Wall::attach(ParticleVector* pv)
-{
-	particleVectors.push_back(pv);
-}
-
-void Wall::create(ParticleVector& dpds)
-{
 	PinnedBuffer<int> nFrozen(1), nRemaining(1), nBoundaryCells(1);
 
 	nFrozen.clear();

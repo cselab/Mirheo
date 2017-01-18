@@ -80,7 +80,6 @@ public:
 class CellList : public CellListInfo
 {
 public:
-
 	ParticleVector* pv;
 
 	DeviceBuffer<int> cellsStart;

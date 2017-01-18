@@ -23,8 +23,8 @@ protected:
 	}
 
 public:
-	SimulationPlugin(int id, Simulation* sim, cudaStream_t stream, const MPI_Comm& comm, int sendRank) :
-		sim(sim), comm(comm), sendRank(sendRank), id(id), req(MPI_REQUEST_NULL), stream(stream) {};
+	SimulationPlugin(const MPI_Comm& comm, int sendRank, int id = -1) :
+		comm(comm), sendRank(sendRank), id(id), req(MPI_REQUEST_NULL) {};
 
 	virtual void beforeForces(float t) {};
 	virtual void beforeIntegration(float t) {};
@@ -33,6 +33,12 @@ public:
 	virtual void serializeAndSend() {};
 	virtual void handshake() {};
 	virtual void talk() {};
+
+	void setup(Simulation* sim, cudaStream_t stream)
+	{
+		this->sim = sim;
+		this->stream = stream;
+	}
 
 	virtual ~SimulationPlugin() {};
 };
@@ -48,8 +54,8 @@ protected:
 	int id;
 
 public:
-	PostprocessPlugin(int id, const MPI_Comm& comm, int recvRank) :
-			comm(comm), recvRank(recvRank), id(id), req(MPI_REQUEST_NULL) {};
+	PostprocessPlugin(const MPI_Comm& comm, int recvRank, int id = -1) :
+			comm(comm), recvRank(recvRank), id(id) {};
 
 	MPI_Request postRecv()
 	{

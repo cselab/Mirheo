@@ -117,7 +117,7 @@ __global__ void getExitingParticles(float4* xyzouvwo,
 	}
 }
 
-Redistributor::Redistributor(MPI_Comm& comm, IniParser& config) : nActiveNeighbours(26), config(config)
+Redistributor::Redistributor(MPI_Comm& comm) : nActiveNeighbours(26)
 {
 	MPI_Check( MPI_Comm_dup(comm, &redComm));
 
@@ -143,8 +143,9 @@ Redistributor::Redistributor(MPI_Comm& comm, IniParser& config) : nActiveNeighbo
 	}
 }
 
-void Redistributor::attach(ParticleVector* pv, CellList* cl, int ndens)
+void Redistributor::attach(ParticleVector* pv, CellList* cl)
 {
+	const float ndens = (float)pv->np / (cl->ncells.x * cl->ncells.y * cl->ncells.z);
 	particlesAndCells.push_back({pv, cl});
 
 	helpers.resize(helpers.size() + 1);
@@ -197,7 +198,6 @@ void Redistributor::_initialize(int n)
 	const int maxdim = std::max({cl->ncells.x, cl->ncells.y, cl->ncells.z});
 	const int nthreads = 32;
 	helper.counts.clear(helper.stream);
-	auto config = this->config;
 
 	debug("Preparing %d-th leaving particles on the device", n);
 

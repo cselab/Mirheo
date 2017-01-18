@@ -46,9 +46,13 @@ class DeviceBuffer
 private:
 	int capacity, _size;
 	T* devptr;
+	cudaStream_t stream;
 
 public:
-	DeviceBuffer(int n = 0): capacity(0), _size(0), devptr(nullptr) { resize(n, resizeAnew); }
+	DeviceBuffer(int n = 0, cudaStream_t stream = 0) : capacity(0), _size(0), devptr(nullptr), stream(stream)
+	{
+		resize(n, resizeAnew);
+	}
 
 	~DeviceBuffer()
 	{
@@ -81,13 +85,13 @@ public:
 		CUDA_Check(cudaFree(dold));
 	}
 
-	void clear(cudaStream_t stream = 0)
+	void clear()
 	{
 		CUDA_Check( cudaMemsetAsync(devptr, 0, sizeof(T) * _size, stream) );
 	}
 
 	template<typename Cont>
-	auto copy(Cont& cont, cudaStream_t stream = 0) -> decltype((void)(cont.devptr), void())
+	auto copy(Cont& cont) -> decltype((void)(cont.devptr), void())
 	{
 		static_assert(std::is_same<decltype(devptr), decltype(cont.devptr)>::value, "can't copy buffers of different types");
 
@@ -96,7 +100,7 @@ public:
 	}
 
 	template<typename Cont>
-	auto copy(Cont& cont, cudaStream_t stream = 0) -> decltype((void)(cont.hostptr), void())
+	auto copy(Cont& cont) -> decltype((void)(cont.hostptr), void())
 	{
 		static_assert(std::is_same<decltype(devptr), decltype(cont.hostptr)>::value, "can't copy buffers of different types");
 
@@ -122,8 +126,8 @@ private:
 private:
 	void syncHost()
 	{
-		CUDA_Check(cudaMemcpyAsync(hostptr, devptr, sizeof(T) * _size, cudaMemcpyDeviceToHost, stream));
-		CUDA_Check(cudaStreamSynchronize(stream));
+		CUDA_Check( cudaMemcpyAsync(hostptr, devptr, sizeof(T) * _size, cudaMemcpyDeviceToHost, stream) );
+		CUDA_Check( cudaStreamSynchronize(stream) );
 	}
 
 	void syncDev()
@@ -149,7 +153,7 @@ public:
 		devChanged = true;
 		return devptr;
 	}
-	const T* constDevPtr() const
+	const T* constDevPtr()
 	{
 		if (hostChanged) syncDev();
 		return devptr;
@@ -161,7 +165,7 @@ public:
 		hostChanged = true;
 		return hostptr;
 	}
-	const T* constHostPtr() const
+	const T* constHostPtr()
 	{
 		if (devChanged) syncHost();
 		hostChanged = true;

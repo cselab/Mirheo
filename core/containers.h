@@ -15,15 +15,17 @@ struct ParticleVector
 
 	PinnedBuffer<Particle>	   halo;
 
-	ParticleVector(float3 domainStart, float3 domainLength) : domainStart(domainStart), domainLength(domainLength), received(0)
+	ParticleVector(float3 domainStart, float3 domainLength, cudaStream_t stream) :
+		domainStart(domainStart), domainLength(domainLength), received(0),
+		coosvels(0, stream), pingPongBuf(0, stream), forces(0, stream)
 	{
 	}
 
-	void resize(const int n, ResizeKind kind = ResizeKind::resizePreserve, cudaStream_t stream = 0)
+	void resize(const int n, ResizeKind kind = ResizeKind::resizePreserve)
 	{
-		coosvels.resize(n, kind, stream);
-		pingPongBuf.resize(n, kind, stream);
-		forces.resize(n, kind, stream);
+		coosvels.resize(n, kind);
+		pingPongBuf.resize(n, kind);
+		forces.resize(n, kind);
 
 		np = n;
 	}
