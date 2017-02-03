@@ -1,12 +1,11 @@
 #pragma once
 
 #include <cuda.h>
-#include "helper_math.h"
 #include <cstdint>
 
-#include "containers.h"
-#include "logger.h"
-#include "iniparser.h"
+#include <core/containers.h>
+#include <core/logger.h>
+#include <core/helper_math.h>
 
 class CellListInfo
 {
@@ -16,7 +15,7 @@ public:
 	float3 domainStart, length;
 	float rc, invrc;
 
-	CellListInfo(float rc, float3 domainStart, float3 length);
+	CellListInfo(float _rc, float3 domainStart, float3 length);
 
 // ==========================================================================================================================================
 // Common cell functions
@@ -86,10 +85,16 @@ public:
 	DeviceBuffer<uint8_t> cellsSize;
 
 	CellList(ParticleVector* pv, float rc, float3 domainStart, float3 length);
+	CellList(ParticleVector* pv, int3 resolution, float3 domainStart, float3 length);
 
 	CellListInfo cellInfo()
 	{
 		return *((CellListInfo*)this);
+	}
+	void setStream(cudaStream_t stream)
+	{
+		cellsSize.setStream(stream);
+		cellsStart.setStream(stream);
 	}
 	void build(cudaStream_t stream);
 };

@@ -1,25 +1,13 @@
 #include "dumpavg.h"
 #include "simple_serializer.h"
+#include "../core/simulation.h"
+#include "../core/containers.h"
+#include "../core/celllist.h"
+#include "../core/helper_math.h"
 #include <sstream>
 
-template<typename ValType>
-__device__ ValType clear()
-{ return 0; }
-
-__device__ float clear<float>()
-{ return 0.0f; }
-
-__device__ float2 clear<float2>()
-{ return make_float2(0.0f); }
-
-__device__ float3 clear<float3>()
-{ return make_float3(0.0f); }
-
-__device__ float4 clear<float4>()
-{ return make_float4(0.0f); }
-
 __global__ void sample(const int * const __restrict__ cellsStart, const float4* __restrict__ coosvels, const float4* __restrict__ forces,
-		const float mass, CellListInfo cinfo, float* avgDensity, float4* avgMomentum, float4* avgForce)
+		const float mass, CellListInfo cinfo, float* avgDensity, float3* avgMomentum, float3* avgForce)
 {
 	const int cid = threadIdx.x + blockIdx.x*blockDim.x;
 
@@ -37,13 +25,13 @@ __global__ void sample(const int * const __restrict__ cellsStart, const float4* 
 			if (avgMomentum != nullptr)
 			{
 				const float4 vel = coosvels[2*pid+1];
-				avgMomentum[cid] += vel * (mass * invnum);
+				avgMomentum[cid] += make_float3(vel * (mass * invnum));
 			}
 
 			if (avgForce != nullptr)
 			{
 				const float4 frc = forces[pid];
-				avgForce[cid] += frc * (mass * invnum);
+				avgForce[cid] += make_float3(frc * (mass * invnum));
 			}
 		}
 	}
@@ -59,17 +47,15 @@ __global__ void scale(int n, float a, float4* res)
 	}
 }
 
-Avg3DPlugin::Avg3DPlugin(int id, Simulation* sim, const MPI_Comm& comm, int sendRank,
-			std::string pvNames, int sampleEvery, dumpEvery, int3 resolution, float3 h,
+Avg3DPlugin::Avg3DPlugin(std::string pvNames, int sampleEvery, int dumpEvery, int3 resolution, float3 h,
 			bool needDensity, bool needMomentum, bool needForce) :
-	SimulationPlugin(id, sim, stream, comm, sendRank),
 	sampleEvery(sampleEvery), dumpEvery(dumpEvery), resolution(resolution), h(h),
-	needDensity(needDensity), needMoment(needMoment), needForce(needForce),
+	needDensity(needDensity), needMomentum(needMomentum), needForce(needForce),
 	nTimeSteps(-1), nSamples(0)
 {
 	const int total = resolution.x * resolution.y * resolution.z;
 	if (needDensity)  density .resize(total);
-	if (needVelocity) velocity.resize(total);
+	if (needMomentum) momentum.resize(total);
 	if (needForce)    force   .resize(total);
 
 	std::stringstream sstream(pvNames);
@@ -83,12 +69,13 @@ Avg3DPlugin::Avg3DPlugin(int id, Simulation* sim, const MPI_Comm& comm, int send
 
 	for (auto& nm : splitPvNames)
 	{
-		auto pvIter = sim->PVname2index.find(nm);
-		if (pvIter == sim->PVname2index.end())
+		auto pvMap = sim->getPvMap();
+		auto pvIter = pvMap.find(nm);
+		if (pvIter == pvMap.end())
 			die("No such particle vector registered: %s", nm.c_str());
 
-		auto pv = sim->particleVectors[pvIter->second];
-		auto cl = new CellList(pv, resolution, pv->domainStart, pv->length);
+		auto pv = sim->getParticleVectors()[pvIter->second];
+		auto cl = new CellList(pv, resolution, pv->domainStart, pv->domainLength);
 		particlesAndCells.push_back({pv, cl});
 	}
 }
@@ -111,7 +98,8 @@ void Avg3DPlugin::afterIntegration(float t)
 		cl->build(stream);
 
 		sample<<< (cl->totcells+127) / 128, 128 >>> (
-				cl->cellsStart.constDevPtr(), pv->coosvels.constDevPtr(), pv->forces.constDevPtr(), pv->mass, cl->cellInfo(),
+				(int*)cl->cellsStart.constDevPtr(), (float4*)pv->coosvels.constDevPtr(), (float4*)pv->forces.constDevPtr(),
+				pv->mass, cl->cellInfo(),
 				needDensity  ? density .devPtr() : nullptr,
 				needMomentum ? momentum.devPtr() : nullptr,
 				needForce    ? force   .devPtr() : nullptr );
@@ -119,40 +107,54 @@ void Avg3DPlugin::afterIntegration(float t)
 	nSamples++;
 }
 
-void Avg3DPlugin::handshake()
-{
-	HostBuffer<char> data;
-	SimpleSerializer::serialize(data, resolution, h, needDensity, needMomentum, needForce);
-	MPI_Check( MPI_Send(data.constHostPtr(), data.size(), MPI_BYTE, sendRank, id, comm) );
-}
-
 void Avg3DPlugin::serializeAndSend()
 {
 	if (nTimeSteps % dumpEvery != 0) return;
 
-	SimpleSerializer::serialize(sendBuffer, t, density, momentum, force);
+	SimpleSerializer::serialize(sendBuffer, tm, density, momentum, force);
 	send(sendBuffer.constHostPtr(), sendBuffer.size());
 }
 
-
-Avg3DDumper::Avg3DDumper(int id, MPI_Comm comm, int recvRank, std::string path, std::vector<std::string> channelNames) :
-		PostprocessPlugin(id, comm, recvRank)
+void Avg3DPlugin::handshake()
 {
+	HostBuffer<char> data;
+	SimpleSerializer::serialize(data, resolution, h, needDensity, needMomentum, needForce);
+	MPI_Check( MPI_Send(data.constHostPtr(), data.size(), MPI_BYTE, rank, id, interComm) );
 }
+
+
+
+
+
+Avg3DDumper::Avg3DDumper(std::string path, int3 nranks3D) : path(path), nranks3D(nranks3D) { }
 
 void Avg3DDumper::handshake()
 {
 	HostBuffer<char> buf(1000);
-	MPI_Check( MPI_Recv(buf.hostPtr(), buf.size(), MPI_BYTE, recvRank, id, comm) );
+	MPI_Check( MPI_Recv(buf.hostPtr(), buf.size(), MPI_BYTE, rank, id, interComm, MPI_STATUS_IGNORE) );
 	SimpleSerializer::deserialize(buf, resolution, h, needDensity, needMomentum, needForce);
 
 	std::vector<std::string> channelNames;
+	std::vector<XDMFDumper::ChannelType> channelTypes;
 
-	if (needDensity)  channelNames.push_back("density");
-	if (needMomentum) channelNames.push_back("momentum");
-	if (needForce)    channelNames.push_back("force");
+	if (needDensity)
+	{
+		channelNames.push_back("density");
+		channelTypes.push_back(XDMFDumper::ChannelType::Scalar);
+	}
+	if (needMomentum)
+	{
+		channelNames.push_back("momentum");
+		channelTypes.push_back(XDMFDumper::ChannelType::Vector);
+	}
+	if (needForce)
+	{
+		channelNames.push_back("force");
+		channelTypes.push_back(XDMFDumper::ChannelType::Vector);
+	}
 
-	dumper = new XDMFDumper(comm, path, dimensions, h, channelNames);
+
+	dumper = new XDMFDumper(comm, nranks3D, path, resolution, h, channelNames, channelTypes);
 }
 
 void Avg3DDumper::deserialize()
@@ -160,10 +162,10 @@ void Avg3DDumper::deserialize()
 	float t;
 	SimpleSerializer::deserialize(data, t, density, momentum, force);
 
-	std::vector<float*> channels;
+	std::vector<const float*> channels;
 	if (needDensity)  channels.push_back(density.constHostPtr());
-	if (needMomentum) channels.push_back(momentum.constHostPtr());
-	if (needForce)    channels.push_back(force.constHostPtr());
+	if (needMomentum) channels.push_back((const float*)momentum.constHostPtr());
+	if (needForce)    channels.push_back((const float*)force.constHostPtr());
 
 	dumper->dump(channels, t);
 }

@@ -44,6 +44,6 @@ public:
 	void _initialize(int vid);
 
 	HaloExchanger(MPI_Comm& comm);
-	void attach(ParticleVector* pv, CellList* cl, int ndens);
+	void attach(ParticleVector* pv, CellList* cl);
 	void exchange();
 };

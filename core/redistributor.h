@@ -1,13 +1,12 @@
 #pragma once
 
-#include "datatypes.h"
-#include "containers.h"
-#include "logger.h"
-#include "iniparser.h"
-#include "celllist.h"
+#include <core/datatypes.h>
 
 #include <vector>
 #include <thread>
+
+class ParticleVector;
+class CellList;
 
 struct RedistributorHelper
 {
@@ -37,12 +36,9 @@ private:
 	std::vector<std::pair<ParticleVector*, CellList*>> particlesAndCells;
 	std::vector<RedistributorHelper> helpers;
 
-
 	void postReceive(int vid);
 	void send(int vid);
 	void receive(int vid);
-
-	IniParser& config;
 
 public:
 
@@ -50,6 +46,6 @@ public:
 	void _initialize(int vid);
 
 	Redistributor(MPI_Comm& comm);
-	void attach(ParticleVector* pv, CellList* cl, int ndens);
+	void attach(ParticleVector* pv, CellList* cl);
 	void redistribute();
 };

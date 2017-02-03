@@ -2,11 +2,12 @@
 
 #include "plugin.h"
 #include "../core/datatypes.h"
-#include "../core/containers.h"
-#include "../core/celllist.h"
 #include "write_xdmf.h"
 
 #include <vector>
+
+class ParticleVector;
+class CellList;
 
 class Avg3DPlugin : public SimulationPlugin
 {
@@ -18,14 +19,13 @@ private:
 	bool needDensity, needMomentum, needForce;
 
 	PinnedBuffer<float>  density;
-	PinnedBuffer<float4> momentum, force;
+	PinnedBuffer<float3> momentum, force;
 	HostBuffer<char> sendBuffer;
 
 	std::vector<std::pair<ParticleVector*, CellList*>> particlesAndCells;
 
 public:
-	Avg3DPlugin(int id, Simulation* sim, const MPI_Comm& comm, int sendRank,
-			std::string pvNames, int sampleEvery, int dumpEvery, int3 resolution, float3 h,
+	Avg3DPlugin(std::string pvNames, int sampleEvery, int dumpEvery, int3 resolution, float3 h,
 			bool needDensity, bool needMomentum, bool needForce);
 
 	void handshake();
@@ -40,19 +40,21 @@ class Avg3DDumper : public PostprocessPlugin
 {
 private:
 	XDMFDumper* dumper;
+	std::string path;
 
+	int3 nranks3D;
 	int3 resolution;
 	float3 h;
 	bool needDensity, needMomentum, needForce;
 
 	PinnedBuffer<float>  density;
-	PinnedBuffer<float4> momentum, force;
+	PinnedBuffer<float3> momentum, force;
 
 public:
-	Avg3DDumper(int id, MPI_Comm comm, int recvRank, std::string path);
+	Avg3DDumper(std::string path, int3 nranks3D);
 
-	void deserialize() {};
-	void handshake() {};
+	void deserialize();
+	void handshake();
 
 	~Avg3DDumper() {};
 };

@@ -147,18 +147,18 @@ void scan(const uint8_t* in, const int n, int* out, cudaStream_t stream)
 
 	const int blockWarps     = 16;
 	const int blockThreads   = blockWarps * 32;
-	const int blockBlocks    = ((blockScan.size+3) / 4 + blockThreads - 1) / blockThreads;
+	const int blockBlocks    = ((blockScan.size()+3) / 4 + blockThreads - 1) / blockThreads;
 
 	const int globWarps      = initialWarps * 4;
 	const int globThreads    = blockWarps * 32;
 	const int globBlocks     = ((n+3) / 4 + blockThreads - 1) / blockThreads;
 
 	scanCharLocal<initialWarps> <<< initialBlocks, initialThreads, 0, stream >>>
-			((uint4*)in, n, blockScan.devdata);
+			((uint4*)in, n, blockScan.devPtr());
 
 	scanBlock<blockWarps>       <<< blockBlocks,   blockThreads,   0, stream >>>
-			((int4*)blockScan.devdata, blockScan.size);
+			((int4*)blockScan.devPtr(), blockScan.size());
 
 	addBlockScan<globWarps>  <<< globBlocks, globThreads, 0, stream >>>
-			((uchar4*)in, n, blockScan.devdata, (int4*)out);
+			((uchar4*)in, n, blockScan.devPtr(), (int4*)out);
 }

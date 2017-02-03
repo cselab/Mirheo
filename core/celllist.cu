@@ -108,11 +108,21 @@ CellList::CellList(ParticleVector* pv, float rc, float3 domainStart, float3 leng
 	cellsSize.resize(totcells + 1);
 }
 
+CellList::CellList(ParticleVector* pv, int3 resolution, float3 domainStart, float3 length) :
+		CellListInfo(1.0f, domainStart, length), pv(pv)
+{
+	ncells = resolution;
+	totcells = ncells.x * ncells.y * ncells.z;
+	rc = std::min({length.x / ncells.x, length.y / ncells.y, length.z / ncells.z});
+	cellsStart.resize(totcells + 1);
+	cellsSize.resize(totcells + 1);
+}
+
 void CellList::build(cudaStream_t stream)
 {
 	// Compute cell sizes
 	debug("Computing cell sizes for %d particles with %d newcomers", pv->np, pv->received);
-	CUDA_Check( cudaMemsetAsync(cellsSize.devdata, 0, (totcells + 1)*sizeof(uint8_t), stream) );  // +1 to have correct cellsStart[totcells]
+	CUDA_Check( cudaMemsetAsync(cellsSize.devPtr(), 0, (totcells + 1)*sizeof(uint8_t), stream) );  // +1 to have correct cellsStart[totcells]
 
 	auto cinfo = cellInfo();
 
@@ -120,10 +130,10 @@ void CellList::build(cudaStream_t stream)
 						(float4*)pv->coosvels.constDevPtr(), pv->np, pv->np - pv->received, cinfo, (uint*)cellsSize.devPtr());
 
 	// Scan to get cell starts
-	scan(cellsSize.devdata, totcells+1, cellsStart.devdata, stream);
+	scan(cellsSize.devPtr(), totcells+1, cellsStart.devPtr(), stream);
 
 	// Blend size and start together
-	blendStartSize<<< ((totcells+3)/4 + 127) / 128, 128, 0, stream >>>((uchar4*)cellsSize.devdata, (int4*)cellsStart.devdata, cinfo);
+	blendStartSize<<< ((totcells+3)/4 + 127) / 128, 128, 0, stream >>>((uchar4*)cellsSize.devPtr(), (int4*)cellsStart.devPtr(), cinfo);
 
 	// Rearrange the data
 	debug("Rearranging %d particles", pv->np);
@@ -139,6 +149,6 @@ void CellList::build(cudaStream_t stream)
 	CUDA_Check( cudaStreamSynchronize(stream) );
 	debug("Rearranging completed, new size of particle vector is %d", newSize);
 
-	pv->resize(newSize, resizePreserve, stream);
-	swap(pv->coosvels, pv->pingPongBuf, stream);
+	pv->resize(newSize, resizePreserve);
+	swap(pv->coosvels, pv->pingPongBuf);
 }

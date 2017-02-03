@@ -1,10 +1,11 @@
 #pragma once
 
-#include "datatypes.h"
-#include "containers.h"
-#include "components.h"
-#include "logger.h"
-#include "../plugins/plugin.h"
+#include <core/datatypes.h>
+#include <core/containers.h>
+#include <core/components.h>
+#include <core/celllist.h>
+#include <core/wall.h>
+#include <plugins/plugin.h>
 
 #include <vector>
 #include <string>
@@ -12,17 +13,19 @@
 
 class Simulation
 {
-	int3 nranks;
+	int3 nranks3D;
 	int rank;
 	int3 rank3D;
-	float3 fullDomainSize, subDomainSize, subDomainStart;
+	float3 globalDomainSize, subDomainSize, subDomainStart;
 	MPI_Comm cartComm;
+	MPI_Comm& interComm;
 
 private:
 
 	std::unordered_map<std::string, int> pvMap;
 	std::unordered_map<std::string, Interaction*> interactionMap;
 	std::unordered_map<std::string, Integrator*>  integratorMap;
+	std::unordered_map<std::string, Wall*>        wallMap;
 
 	std::vector<ParticleVector*> particleVectors;
 	std::vector<Interaction*>    interactions;
@@ -35,31 +38,36 @@ private:
 	std::vector<SimulationPlugin*> plugins;
 
 public:
-	Simulation(int3 nranks, float3 domainSize, MPI_Comm& comm);
+	Simulation(int3 nranks3D, float3 globalDomainSize, MPI_Comm& comm, MPI_Comm& interComm);
 
-	void registerParticleVector(std::string name, ParticleVector* pv);
-	void registerObjectVector  (std::string name, ObjectVector* ov);
-	void registerInteraction   (std::string name, Interaction* interaction);
-	void registerIntegrator    (std::string name, Integrator* integrator);
-	void registerWall          (std::string name, Wall* wall);
+	void registerParticleVector(ParticleVector* pv, InitialConditions* ic);
+	void registerObjectVector  (ObjectVector* ov);
+	void registerWall          (Wall* wall);
 
-	void registerPlugin(SimulationPlugin* plugin);
+	void registerInteraction   (Interaction* interaction);
+	void registerIntegrator    (Integrator* integrator);
 
 	void setIntegrator (std::string pvName, std::string integratorName);
 	void setInteraction(std::string pv1Name, std::string pv2Name, std::string interactionName);
 
+	void registerPlugin(SimulationPlugin* plugin);
+
 	void run(int nsteps);
+
+	const std::unordered_map<std::string, int>&   getPvMap() const { return pvMap; }
+	const std::vector<ParticleVector*>& getParticleVectors() const { return particleVectors; }
 };
 
 class Postprocess
 {
 private:
-	MPI_Comm comm;
+	MPI_Comm& comm;
+	MPI_Comm& interComm;
 	std::vector<PostprocessPlugin*> plugins;
 	std::vector<MPI_Request> requests;
 
 public:
-	Postprocess(MPI_Comm& comm);
+	Postprocess(MPI_Comm& comm, MPI_Comm& interComm);
 	void registerPlugin(PostprocessPlugin* plugin);
 	void run();
 };
@@ -67,11 +75,14 @@ public:
 class uDeviceX
 {
 	int pluginId = 0;
+	int computeTask;
 
 public:
 	Simulation* sim;
 	Postprocess* post;
 
-	void registerJointPlugins();
+	uDeviceX(int argc, char** argv, int3 nranks3D, float3 globalDomainSize, Logger& logger, std::string logFileName, int verbosity=3);
+	bool isComputeTask();
+	void registerJointPlugins(SimulationPlugin* simPl, PostprocessPlugin* postPl);
 	void run();
 };

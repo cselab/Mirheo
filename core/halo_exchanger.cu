@@ -154,7 +154,7 @@ HaloExchanger::HaloExchanger(MPI_Comm& comm) : nActiveNeighbours(26)
 
 void HaloExchanger::attach(ParticleVector* pv, CellList* cl)
 {
-	const float ndens = (float)pv->np / (cl->ncells.x * cl->ncells.y * cl->ncells.z);
+	const float ndens = (float)pv->np / (cl->ncells.x * cl->ncells.y * cl->ncells.z * cl->rc*cl->rc*cl->rc);
 	particlesAndCells.push_back({pv, cl});
 
 	helpers.resize(helpers.size() + 1);
@@ -178,9 +178,14 @@ void HaloExchanger::attach(ParticleVector* pv, CellList* cl)
 			helper.sendBufs[i].resize( 3 * ndens * pow(maxdim, 3 - c) );
 			helper.recvBufs[i].resize( 3 * ndens * pow(maxdim, 3 - c) );
 			addrsPtr[i] = (float4*)helper.sendBufs[i].constDevPtr();
+
+			helper.sendBufs[i].setStream(helper.stream);
 		}
 	}
-	//helper.sendAddrs.synchronize(synchronizeDevice);
+
+	helper.counts.setStream(helper.stream);
+	helper.sendAddrs.setStream(helper.stream);
+	pv->halo.setStream(helper.stream);
 }
 
 void HaloExchanger::exchange()
@@ -210,14 +215,14 @@ void HaloExchanger::_initialize(int n)
 		{
 			MPI_Request req;
 			const int tag = 27*n + i;
-			MPI_Check( MPI_Irecv(helper.recvBufs[i].hostPtr(), helper.recvBufs[i].size, mpiPartType, dir2rank[i], tag, haloComm, &req) );
+			MPI_Check( MPI_Irecv(helper.recvBufs[i].hostPtr(), helper.recvBufs[i].size(), mpiPartType, dir2rank[i], tag, haloComm, &req) );
 			helper.requests.push_back(req);
 		}
 
 
 	const int maxdim = std::max({cl->ncells.x, cl->ncells.y, cl->ncells.z});
 	const int nthreads = 32;
-	helper.counts.clear(helper.stream);
+	helper.counts.clear();
 
 	debug("Preparing %d-th halo on the device", n);
 	getHalos<<< dim3((maxdim*maxdim + nthreads - 1) / nthreads, 6, 1),  dim3(nthreads, 1, 1), 0, helper.stream >>>
@@ -244,7 +249,7 @@ void HaloExchanger::send(int n)
 	for (int i=0; i<27; i++)
 		if (i != 13 && dir2rank[i] >= 0)
 		{
-			debug("Sending %d-th halo to rank %d in dircode %d [%2d %2d %2d], size %d", n, dir2rank[i], i, i%3 - 1, (i/3)%3 - 1, i/9 - 1, cntPtr[i]);
+			debug2("Sending %d-th halo to rank %d in dircode %d [%2d %2d %2d], size %d", n, dir2rank[i], i, i%3 - 1, (i/3)%3 - 1, i/9 - 1, cntPtr[i]);
 			const int tag = 27*n + i;
 			MPI_Check( MPI_Isend(helper.sendBufs[i].constHostPtr(), cntPtr[i], mpiPartType, dir2rank[i], tag, haloComm, &req) );
 		}
@@ -273,12 +278,12 @@ void HaloExchanger::receive(int n)
 	}
 	offsets[nMessages] = totalRecvd;
 
-	pv->halo.resize(totalRecvd, resizeAnew, helper.stream);
+	pv->halo.resize(totalRecvd, resizeAnew);
 
 	// Load onto the device
 	for (int i=0; i<nMessages; i++)
 	{
-		debug("Receiving %d-th halo from rank %d, size %d",
+		debug2("Receiving %d-th halo from rank %d, size %d",
 				n, dir2rank[compactedDirs[i]], compactedDirs[i], compactedDirs[i]%3 - 1, (compactedDirs[i]/3)%3 - 1, compactedDirs[i]/9 - 1, offsets[i+1] - offsets[i]);
 		CUDA_Check( cudaMemcpyAsync(pv->halo.devPtr() + offsets[i], helper.recvBufs[compactedDirs[i]].constHostPtr(),
 				(offsets[i+1] - offsets[i])*sizeof(Particle), cudaMemcpyHostToDevice, helper.stream) );

@@ -1,43 +1,55 @@
 #pragma once
 
-#include "datatypes.h"
-#include "containers.h"
-#include "logger.h"
-#include "iniparser.h"
+#include <core/datatypes.h>
+#include <core/containers.h>
+#include <core/logger.h>
+#include <core/celllist.h>
 
 #include <mpi.h>
 #include <string>
 
 class Wall
 {
-private:
+public:
+	std::string name;
 
+private:
 	MPI_Comm wallComm;
 
 	std::vector<ParticleVector*> particleVectors;
+	PinnedBuffer<int> nBoundaryCells;
+	std::vector<DeviceBuffer<int>> boundaryCells;
+	std::vector<CellList*> cellLists;
 
-	DeviceBuffer<Particle> frozen;
+	ParticleVector frozen;
+
 	cudaTextureObject_t sdfTex;
 	cudaArray *sdfArray;
 	DeviceBuffer<float> sdfRawData;
-	DeviceBuffer<int> boundaryCells;
 
-	float3 length, h;
-	int3 resolution;
+	float3 sdfH;
+	float3 subDomainSize, globalDomainSize;
+	int3 subDomainResolution, globalResolution;
 
-	IniParser& config;
+	std::string sdfFileName;
+	float _creationTime;
 
 	float dt;
 	// TODO:
 	const float rc = 1.0f;
 
+	void readSdf(int64_t fullSdfSize_byte, int64_t endHeader_byte, int nranks, int rank, std::vector<float>& fullSdfData);
+	void readHeader(int3& sdfResolution, float3& sdfExtent, int64_t& fullSdfSize_byte, int64_t& endHeader_byte, int rank);
+
 public:
 
-	Wall(MPI_Comm& comm, IniParser& config);
+	Wall(std::string name, std::string sdfFileName, float3 sdfH, float _creationTime);
 
 	void _check();
-	void create(ParticleVector& dpds);
-	void attach(ParticleVector* pv);
-	void computeInteractions(cudaStream_t stream = 0);
+	void create(MPI_Comm& comm, float3 subDomainStart, float3 subDomaintSize, float3 globalDomainSize, ParticleVector* pv, CellList* cl);
+	void attach(ParticleVector* pv, CellList* cl);
 	void bounce(cudaStream_t stream = 0);
+
+	ParticleVector* getFrozen() { return &frozen; }
+	float creationTime() { return _creationTime; }
 };

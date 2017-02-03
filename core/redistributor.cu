@@ -1,13 +1,11 @@
-#include "datatypes.h"
-#include "containers.h"
-#include "redistributor.h"
-#include "celllist.h"
-#include "logger.h"
+#include <core/celllist.h>
+#include <core/containers.h>
+#include <core/redistributor.h>
+#include <core/helper_math.h>
 
 #include <vector>
 #include <thread>
 #include <algorithm>
-#include <unistd.h>
 
 __global__ void getExitingParticles(float4* xyzouvwo,
 		CellListInfo cinfo, const int* __restrict__ cellsStart,
@@ -158,7 +156,7 @@ void Redistributor::attach(ParticleVector* pv, CellList* cl)
 
 	CUDA_Check( cudaStreamCreateWithPriority(&helper.stream, cudaStreamNonBlocking, -10) );
 
-	auto addrPtr = helper.sendAddr.hostPtr();
+	auto addrPtr = helper.sendAddrs.hostPtr();
 	for(int i = 0; i < 27; ++i)
 	{
 		int d[3] = { i%3 - 1, (i/3) % 3 - 1, i/9 - 1 };
@@ -169,9 +167,13 @@ void Redistributor::attach(ParticleVector* pv, CellList* cl)
 			helper.sendBufs[i].resize( 3 * ndens * pow(maxdim, 3 - c) );
 			helper.recvBufs[i].resize( 3 * ndens * pow(maxdim, 3 - c) );
 			addrPtr[i] = (float4*)helper.sendBufs[i].devPtr();
+
+			helper.sendBufs[i].setStream(helper.stream);
 		}
 	}
-	//helper.sendAddrs.synchronize(synchronizeDevice);
+
+	helper.counts.setStream(helper.stream);
+	helper.sendAddrs.setStream(helper.stream);
 }
 
 void Redistributor::redistribute()
@@ -197,7 +199,7 @@ void Redistributor::_initialize(int n)
 
 	const int maxdim = std::max({cl->ncells.x, cl->ncells.y, cl->ncells.z});
 	const int nthreads = 32;
-	helper.counts.clear(helper.stream);
+	helper.counts.clear();
 
 	debug("Preparing %d-th leaving particles on the device", n);
 
@@ -207,7 +209,7 @@ void Redistributor::_initialize(int n)
 		{
 			MPI_Request req;
 			const int tag = 27*n + i;
-			MPI_Check( MPI_Irecv(helper.recvBufs[i].hostPtr(), helper.recvBufs[i].size, mpiPartType, dir2rank[i], tag, redComm, &req) );
+			MPI_Check( MPI_Irecv(helper.recvBufs[i].hostPtr(), helper.recvBufs[i].size(), mpiPartType, dir2rank[i], tag, redComm, &req) );
 			helper.requests.push_back(req);
 		}
 
@@ -235,7 +237,7 @@ void Redistributor::send(int n)
 	for (int i=0; i<27; i++)
 		if (i != 13 && dir2rank[i] >= 0)
 		{
-			debug("Sending %d-th redistribution to rank %d in dircode %d [%2d %2d %2d], size %d",
+			debug2("Sending %d-th redistribution to rank %d in dircode %d [%2d %2d %2d], size %d",
 					n, dir2rank[i], i, i%3 - 1, (i/3)%3 - 1, i/9 - 1, cntPtr[i]);
 
 			const int tag = 27*n + i;
@@ -267,13 +269,13 @@ void Redistributor::receive(int n)
 	offsets[nMessages] = totalRecvd;
 
 	int oldsize = pv->np;
-	pv->resize(oldsize + totalRecvd, resizePreserve, helper.stream);
+	pv->resize(oldsize + totalRecvd, resizePreserve);
 	pv->received = totalRecvd; // TODO: get rid of this
 
 	// Load onto the device
 	for (int i=0; i<nMessages; i++)
 	{
-		debug("Receiving %d-th redistribution from rank %d in dircode %d [%2d %2d %2d], size %d",
+		debug2("Receiving %d-th redistribution from rank %d in dircode %d [%2d %2d %2d], size %d",
 				n, dir2rank[compactedDirs[i]], compactedDirs[i], compactedDirs[i]%3 - 1, (compactedDirs[i]/3)%3 - 1, compactedDirs[i]/9 - 1, offsets[i+1] - offsets[i]);
 		CUDA_Check( cudaMemcpyAsync(pv->coosvels.devPtr() + oldsize + offsets[i], helper.recvBufs[compactedDirs[i]].constHostPtr(),
 				(offsets[i+1] - offsets[i])*sizeof(Particle), cudaMemcpyHostToDevice, helper.stream) );

@@ -35,6 +35,18 @@ enum ResizeKind
 	resizePreserve = 1
 };
 
+//==================================================================================================================
+// swap functions
+//==================================================================================================================
+
+template<typename T> class DeviceBuffer;
+template<typename T> class PinnedBuffer;
+template<typename T> class HostBuffer;
+
+template<typename T> void swap(DeviceBuffer<T>& a, DeviceBuffer<T>& b);
+template<typename T> void swap(HostBuffer<T>& a,   HostBuffer<T>& b);
+template<typename T> void swap(PinnedBuffer<T>& a, PinnedBuffer<T>& b);
+
 
 //==================================================================================================================
 // Device Buffer
@@ -49,6 +61,9 @@ private:
 	cudaStream_t stream;
 
 public:
+	friend void swap<>(DeviceBuffer<T>&, DeviceBuffer<T>&);
+
+
 	DeviceBuffer(int n = 0, cudaStream_t stream = 0) : capacity(0), _size(0), devptr(nullptr), stream(stream)
 	{
 		resize(n, resizeAnew);
@@ -59,11 +74,16 @@ public:
 		if (devptr != nullptr) CUDA_Check(cudaFree(devptr));
 	}
 
+	void setStream(cudaStream_t stream)
+	{
+		this->stream = stream;
+	}
+
 	T* 		 devPtr() 			 { return devptr; }
 	const T* constDevPtr() const { return devptr; }
 	int		 size()				 { return _size; }
 
-	void resize(const int n, ResizeKind kind = resizeAnew, cudaStream_t stream = 0)
+	void resize(const int n, ResizeKind kind = resizeAnew)
 	{
 		T * dold = devptr;
 		int oldsize = _size;
@@ -136,6 +156,9 @@ private:
 	}
 
 public:
+	friend void swap<>(PinnedBuffer<T>&, PinnedBuffer<T>&);
+
+
 	PinnedBuffer(int n = 0, cudaStream_t stream = 0) :
 		capacity(0), _size(0), hostptr(nullptr), devptr(nullptr), hostChanged(false), devChanged(false), stream(stream)
 	{
@@ -145,6 +168,11 @@ public:
 	~PinnedBuffer()
 	{
 		if (hostptr != nullptr) CUDA_Check(cudaFreeHost(hostptr));
+	}
+
+	void setStream(cudaStream_t stream)
+	{
+		this->stream = stream;
 	}
 
 	T* devPtr()
@@ -177,7 +205,7 @@ public:
 		return _size;
 	}
 
-	void resize(const int n, ResizeKind kind = resizeAnew, cudaStream_t stream = 0)
+	void resize(const int n, ResizeKind kind = resizeAnew)
 	{
 		T * hold = hostptr;
 		T * dold = devptr;
@@ -203,7 +231,7 @@ public:
 		CUDA_Check(cudaFree(dold));
 	}
 
-	void clear(cudaStream_t stream = 0)
+	void clear()
 	{
 		CUDA_Check( cudaMemsetAsync(devptr, 0, sizeof(T) * _size, stream) );
 		memset(hostptr, 0, sizeof(T) * _size);
@@ -243,6 +271,9 @@ private:
 	T * hostptr;
 
 public:
+	friend void swap<>(HostBuffer<T>&, HostBuffer<T>&);
+
+
 	HostBuffer(int n = 0): capacity(0), _size(0), hostptr(nullptr) { resize(n); }
 
 	~HostBuffer()
@@ -302,28 +333,28 @@ public:
 
 
 template<typename T>
-void swap(DeviceBuffer<T>& a, DeviceBuffer<T>& b, cudaStream_t stream = 0)
+void swap(DeviceBuffer<T>& a, DeviceBuffer<T>& b)
 {
-	a.resize(b.size, resizePreserve, stream);
-	b.resize(a.size, resizePreserve, stream);
+	a.resize(b.size(), resizePreserve);
+	b.resize(a.size(), resizePreserve);
 
 	std::swap(a.devptr, b.devptr);
 }
 
 template<typename T>
-void swap(HostBuffer<T>& a, HostBuffer<T>& b, cudaStream_t stream = 0)
+void swap(HostBuffer<T>& a, HostBuffer<T>& b)
 {
-	a.resize(b.size, resizePreserve, stream);
-	b.resize(a.size, resizePreserve, stream);
+	a.resize(b.size(), resizePreserve);
+	b.resize(a.size(), resizePreserve);
 
 	std::swap(a.hostptr, b.hostptr);
 }
 
 template<typename T>
-void swap(PinnedBuffer<T>& a, PinnedBuffer<T>& b, cudaStream_t stream = 0)
+void swap(PinnedBuffer<T>& a, PinnedBuffer<T>& b)
 {
-	a.resize(b.size, resizePreserve, stream);
-	b.resize(a.size, resizePreserve, stream);
+	a.resize(b.size(), resizePreserve);
+	b.resize(a.size(), resizePreserve);
 
 	std::swap(a.devptr,  b.devptr);
 	std::swap(a.hostptr, b.hostptr);

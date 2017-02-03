@@ -1,54 +1,51 @@
-#include "components.h"
-#include "integrate.h"
+#include <core/celllist.h>
+#include <core/containers.h>
+#include <core/components.h>
+#include <core/integrate.h>
+#include <core/interactions.h>
+#include <core/helper_math.h>
+#include <core/wall.h>
 
-namespace uDeviceX
-{
-	Integrator  createIntegrator(std::string name, pugi::xml_node node)
+#include <random>
+
+
+	Integrator  createIntegrator(pugi::xml_node node)
 	{
 		Integrator result;
-		result.name = name;
+		result.name = node.attribute("name").as_string("");
+		result.dt   = node.attribute("dt")  .as_float(0.01f);
 
 		std::string type = node.attribute("type").as_string();
 
 		if (type == "noflow")
 		{
-			result.integrate = [](ParticleVector* pv, const float dt, cudaStream_t stream) {
-				auto noflow = [] __device__ (float4& x, float4& v, const float4 f, const float invm, const float dt, const int pid) {
-					_noflow(x, v, f, invm, dt);
-				};
-
-				integrationKernel<<< (2*pv.np + 127)/128, 128, 0, stream >>>((float4*)pv.coosvels.devPtr(), (float4*)pv.forces.constDevPtr(), pv.np, dt, noflow);
-			};
+			result.integrate = integrateNoFlow;
 		}
 
-		if (type == "constDP")
+		if (type == "const_dp")
 		{
 			const float3 extraForce = node.attribute("extra_force").as_float3({0,0,0});
 
-			result.integrate = [=](ParticleVector* pv, const float dt, cudaStream_t stream) {
-				auto noflow = [extraForce] __device__ (float4& x, float4& v, const float4 f, const float invm, const float dt, const int pid) {
-					_constDP(x, v, f, invm, dt, extraForce);
-				};
-
-				integrationKernel<<< (2*pv.np + 127)/128, 128, 0, stream >>>((float4*)pv.coosvels.devPtr(), (float4*)pv.forces.constDevPtr(), pv.np, dt, constDP);
+			result.integrate = [extraForce](ParticleVector* pv, const float dt, cudaStream_t stream) {
+				integrateConstDP(pv, dt, stream, extraForce);
 			};
 		}
 
 		return result;
 	}
 
-
-	Interaction createInteraction(std::string name, pugi::xml_node node)
+	Interaction createInteraction(pugi::xml_node node)
 	{
 		Interaction result;
-		result.name = name;
+		result.name = node.attribute("name").as_string("");
 
-		rc = node.attribute("rc").as_float(1.0f);
+		result.rc = node.attribute("rc").as_float(1.0f);
 
 		std::string type = node.attribute("type").as_string();
 
 		if (type == "dpd")
 		{
+			const float rc = node.attribute("rc").as_float(1.0);
 			const float dt = node.attribute("dt").as_float();
 			const float kBT = node.attribute("kbt").as_float(1.0);
 			const float gammadpd = node.attribute("gamma").as_float(20);
@@ -56,61 +53,91 @@ namespace uDeviceX
 			const float adpd = node.attribute("a").as_float(50);
 			const float sigma_dt = sigmadpd / sqrt(dt);
 
-			result.self = [=] (ParticleVector* pv, CellList* cl, const float time, cudaStream_t stream) {
-				auto dpdInt = [=] __device__ ( const float3 dstCoo, const float3 dstVel, const int dstId,
-								   const float3 srcCoo, const float3 srcVel, const int srcId)
-				{
-					return dpd_interaction(dstCoo, dstVel, dstId, srcCoo, srcVel, srcId, adpd, gammadpd, sigma_dt, seed);
-				};
-
-				const int nth = 32 * 4;
-
-				if (pv->np > 0)
-				{
-					debug("Computing internal forces for %s (%d particles)", pv.name, pv.size());
-					computeSelfInteractions<<< (pv->np + nth - 1) / nth, nth, 0, stream >>>(
-							(float4*)pv->coosvels.constDevPtr(), (float*)pv->forces.devPtr(), cl->cellInfo(), cl->cellsStart.constDevPtr(), pv->np, dpdInt);
-				}
+			result.self = [=] (ParticleVector* pv, CellList* cl, const float t, cudaStream_t stream) {
+				interactionDPDSelf(pv, cl, t, stream, adpd, gammadpd, sigma_dt, rc);
 			};
 
-			result.halo = [=] (ParticleVector* pv1, ParticleVector* pv2, CellList* cl, const float time, cudaStream_t stream) {
-				auto dpdInt = [=] __device__ ( const float3 dstCoo, const float3 dstVel, const int dstId,
-								   const float3 srcCoo, const float3 srcVel, const int srcId)
-				{
-					return dpd_interaction(dstCoo, dstVel, dstId, srcCoo, srcVel, srcId, adpd, gammadpd, sigma_dt, seed);
-				};
-
-				const int nth = 32 * 4;
-
-				if (pv1->np > 0 && pv2->np > 0)
-				{
-					debug("Computing halo forces for %s with %d halo particles", pv->name, pv.halo.size());
-					computeExternalInteractions<false, true> <<< (pv2->halo.size() + nth - 1) / nth, nth, 0, stream >>>(
-								(float4*)pv2->halo.constDevPtr(), nullptr, (float4*)pv1->coosvels.constDevPtr(),
-								(float*)pv1->forces.devPtr(), cl->cellInfo(), cl->cellsStart.constDevPtr(), pv2->halo.size(), dpdInt);
-				}
+			result.halo     = [=] (ParticleVector* pv1, ParticleVector* pv2, CellList* cl, const float t, cudaStream_t stream) {
+				interactionDPDHalo(pv1, pv2, cl, t, stream, adpd, gammadpd, sigma_dt, rc);
 			};
 
-			result.external = [=] (ParticleVector* pv1, ParticleVector* pv2, CellList* cl, const float time, cudaStream_t stream) {
-				auto dpdInt = [=] __device__ ( const float3 dstCoo, const float3 dstVel, const int dstId,
-								   const float3 srcCoo, const float3 srcVel, const int srcId)
-				{
-					return dpd_interaction(dstCoo, dstVel, dstId, srcCoo, srcVel, srcId, adpd, gammadpd, sigma_dt, seed);
-				};
-
-				const int nth = 32 * 4;
-
-				if (pv1->np > 0 && pv2->np > 0)
-				{
-					debug("Computing external forces between %s (%d) and %s (%d) for %d ext paricles", pv.halo.size);
-							computeExternalInteractions<true, true> <<< (pv2->np + nth - 1) / nth, nth, 0, stream >>>(
-										(float4*)pv2->coosvels.constDevPtr(), nullptr, (float4*)pv1->coosvels.constDevPtr(),
-										(float*)pv1->forces.devPtr(), cl->cellInfo(), cl->cellsStart.constDevPtr(), pv2->np, dpdInt);
-				}
+			result.external = [=] (ParticleVector* pv1, ParticleVector* pv2, CellList* cl, const float t, cudaStream_t stream) {
+				interactionDPDExternal(pv1, pv2, cl, t, stream, adpd, gammadpd, sigma_dt, rc);
 			};
 		}
 
 		return result;
 	}
 
-}
+
+	InitialConditions createIC(pugi::xml_node node)
+	{
+		InitialConditions result;
+
+		const float mass = node.attribute("mass")   .as_float(1.0);
+		const float dens = node.attribute("density").as_float(1.0);
+
+		result.exec = [=] (ParticleVector* pv, float3 globalDomainStart, float3 subDomainSize) {
+
+			int3 ncells = make_int3( ceilf(subDomainSize) );
+			float3 h = subDomainSize / make_float3(ncells);
+
+			float volume = h.x*h.y*h.z;
+			float avg = volume * dens;
+			int predicted = round(avg * ncells.x*ncells.y*ncells.z * 1.05);
+			pv->resize(predicted);
+
+			std::random_device rd;
+			std::mt19937 gen(rd());
+			std::poisson_distribution<> particleDistribution(avg);
+			std::uniform_real_distribution<float> coordinateDistribution(0, 1);
+
+			int c = 0;
+			auto cooPtr = pv->coosvels.hostPtr();
+			for (int i=0; i<ncells.x; i++)
+				for (int j=0; j<ncells.y; j++)
+					for (int k=0; k<ncells.z; k++)
+					{
+						int nparts = particleDistribution(gen);
+						for (int p=0; p<nparts; p++)
+						{
+							pv->resize(c+1, resizePreserve);
+							cooPtr[c].x[0] = i*h.x - 0.5*subDomainSize.x + coordinateDistribution(gen);
+							cooPtr[c].x[1] = j*h.y - 0.5*subDomainSize.y + coordinateDistribution(gen);
+							cooPtr[c].x[2] = k*h.z - 0.5*subDomainSize.z + coordinateDistribution(gen);
+							cooPtr[c].i1 = c;
+
+							cooPtr[c].u[0] = 0;
+							cooPtr[c].u[1] = 0;
+							cooPtr[c].u[2] = 0;
+							c++;
+						}
+					}
+
+			 pv->domainLength = subDomainSize;
+			 pv->domainStart  = -subDomainSize*0.5;
+			 pv->mass = mass;
+		};
+
+		return result;
+	}
+
+	Wall createWall(pugi::xml_node node)
+	{
+		const float    createTm = node.attribute("creation_time").as_float(10.0);
+		const std::string fname = node.attribute("file_name").as_string("sdf.dat");
+		const float3          h = node.attribute("creation_time").as_float3({0.25, 0.25, 0.25});
+		const std::string  name = node.attribute("name").as_string("");
+
+
+		Wall wall(name, fname, h, createTm);
+		return wall;
+	}
+
+
+
+
+
+
+
+

@@ -21,6 +21,7 @@
 #include <string.h>
 #include <assert.h>
 #include <limits.h>
+#include <sstream>
 
 #ifdef PUGIXML_WCHAR_MODE
 #	include <wchar.h>
@@ -4534,7 +4535,7 @@ PUGI__NS_BEGIN
 	}
 
 
-	PUGI__FN int get_value_int(const char_t* value)
+	PUGI__FN int3 get_value_int3(const char_t* value)
 	{
 		std::istringstream stream(value);
 		int3 res;
@@ -4542,7 +4543,7 @@ PUGI__NS_BEGIN
 		return res;
 	}
 
-	PUGI__FN int get_value_double(const char_t* value)
+	PUGI__FN double3 get_value_double3(const char_t* value)
 	{
 		std::istringstream stream(value);
 		double3 res;
@@ -4550,7 +4551,7 @@ PUGI__NS_BEGIN
 		return res;
 	}
 
-	PUGI__FN int get_value_float(const char_t* value)
+	PUGI__FN float3 get_value_float3(const char_t* value)
 	{
 		std::istringstream stream(value);
 		float3 res;
@@ -5201,7 +5202,7 @@ namespace pugi
 
 	//=====================================================================================
 
-	PUGI__FN int3 xml_attribute::as_int3(bool3 def) const
+	PUGI__FN int3 xml_attribute::as_int3(int3 def) const
 	{
 		return (_attr && _attr->value) ? impl::get_value_int3(_attr->value) : def;
 	}

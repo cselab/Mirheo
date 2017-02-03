@@ -1,16 +1,19 @@
 #include <functional>
+#include <core/xml/pugixml.hpp>
+#include <core/wall.h>
 
-#include "containers.h"
-#include "xml/pugixml.hpp"
+class ParticleVector;
+class CellList;
 
 //namespace uDeviceX
 //{
 	struct Integrator
 	{
 		std::string name;
+		float dt;
 
 		std::function<void(ParticleVector*, const float, cudaStream_t)> integrate;
-		void exec (ParticleVector* pv, const float dt, cudaStream_t stream)
+		void exec (ParticleVector* pv, cudaStream_t stream)
 		{
 			integrate(pv, dt, stream);
 		}
@@ -22,25 +25,32 @@
 		std::string name;
 
 		std::function<void(ParticleVector*, CellList*, const float, cudaStream_t)> self;
-		std::function<void(ParticleVector*, CellList*, const float, cudaStream_t)> halo;
+		std::function<void(ParticleVector*, ParticleVector*, CellList*, const float, cudaStream_t)> halo;
 		std::function<void(ParticleVector*, ParticleVector*, CellList*, const float, cudaStream_t)> external;
 
-		void execSelf (ParticleVector* pv, CellList* cl, const float time, cudaStream_t stream)
+		void execSelf (ParticleVector* pv, CellList* cl, const float t, cudaStream_t stream)
 		{
-			self(pv, cl, time, stream);
+			self(pv, cl, t, stream);
 		}
 
-		void execHalo (ParticleVector* pv1, ParticleVector* pv2, CellList* cl, const float time, cudaStream_t stream)
+		void execHalo (ParticleVector* pv1, ParticleVector* pv2, CellList* cl, const float t, cudaStream_t stream)
 		{
-			external(pv1, pv2, cl, time, stream);
+			halo(pv1, pv2, cl, t, stream);
 		}
 
-		void execExternal (ParticleVector* pv1, ParticleVector* pv2, CellList* cl, const float time, cudaStream_t stream)
+		void execExternal (ParticleVector* pv1, ParticleVector* pv2, CellList* cl, const float t, cudaStream_t stream)
 		{
-			external(pv1, pv2, cl, time, stream);
+			external(pv1, pv2, cl, t, stream);
 		}
 	};
 
-	Integrator  createIntegrator(std::string name, pugi::xml_node node);
-	Interaction createInteraction(std::string name, pugi::xml_node node);
+	struct InitialConditions
+	{
+		std::function<void(ParticleVector*, float3, float3)> exec;
+	};
+
+	Integrator  createIntegrator(pugi::xml_node node);
+	Interaction createInteraction(pugi::xml_node node);
+	InitialConditions createIC(pugi::xml_node node);
+	Wall createWall(pugi::xml_node node);
 //}

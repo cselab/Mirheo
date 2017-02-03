@@ -100,26 +100,26 @@
 #endif
 
 // int3, float3, double3
-#ifndef int3
-struct int3
-{
-	int x, y, z;
-};
-#endif
-
-#ifndef float3
-struct float3
-{
-	float x, y, z;
-};
-#endif
-
-#ifndef double3
-struct double3
-{
-	double x, y, z;
-};
-#endif
+//#ifndef int3
+//struct int3
+//{
+//	int x, y, z;
+//};
+//#endif
+//
+//#ifndef float3
+//struct float3
+//{
+//	float x, y, z;
+//};
+//#endif
+//
+//#ifndef double3
+//struct double3
+//{
+//	double x, y, z;
+//};
+//#endif
 
 
 namespace pugi
@@ -388,9 +388,9 @@ namespace pugi
 		double as_double(double def = 0) const;
 		float as_float(float def = 0) const;
 
-		int as_int3(int def = 0) const;
-		double as_double3(double def = 0) const;
-		float as_float3(float def = 0) const;
+		int3 as_int3(int3 def = {0,0,0}) const;
+		double3 as_double3(double3 def = {0,0,0}) const;
+		float3 as_float3(float3 def = {0,0,0}) const;
 
 
 	#ifdef PUGIXML_HAS_LONG_LONG

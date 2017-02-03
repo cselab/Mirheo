@@ -1,11 +1,13 @@
 #pragma once
 
+#include <string>
 #include "datatypes.h"
 
 struct ParticleVector
 {
 	int np;
 	float mass;
+	std::string name;
 
 	PinnedBuffer<Particle>     coosvels, pingPongBuf;
 	DeviceBuffer<Force> forces;
@@ -15,10 +17,14 @@ struct ParticleVector
 
 	PinnedBuffer<Particle>	   halo;
 
-	ParticleVector(float3 domainStart, float3 domainLength, cudaStream_t stream) :
-		domainStart(domainStart), domainLength(domainLength), received(0),
-		coosvels(0, stream), pingPongBuf(0, stream), forces(0, stream)
+	ParticleVector(std::string name) : name(name) {}
+
+	void setStream(cudaStream_t stream)
 	{
+		coosvels.setStream(stream);
+		pingPongBuf.setStream(stream);
+		forces.setStream(stream);
+		halo.setStream(stream);
 	}
 
 	void resize(const int n, ResizeKind kind = ResizeKind::resizePreserve)

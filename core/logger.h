@@ -110,6 +110,12 @@ public:
 		log<4>(args...);
 	}
 
+	template<unsigned int EXTRA, class ... Args>
+	inline void _debugX(Args ... args)
+	{
+		log<EXTRA+4>(args...);
+	}
+
 	void _MPI_Check(const char* fname, const int lnum, const int code)
 	{
 		if (code != MPI_SUCCESS)
@@ -145,12 +151,14 @@ public:
 
 extern Logger logger;
 
-#define   say(...) logger._say  (__FILE__, __LINE__, ##__VA_ARGS__)
-#define   die(...) logger._die  (__FILE__, __LINE__, ##__VA_ARGS__)
-#define error(...) logger._error(__FILE__, __LINE__, ##__VA_ARGS__)
-#define  warn(...) logger._warn (__FILE__, __LINE__, ##__VA_ARGS__)
-#define  info(...) logger._info (__FILE__, __LINE__, ##__VA_ARGS__)
-#define debug(...) logger._debug(__FILE__, __LINE__, ##__VA_ARGS__)
+#define   say(...)  logger._say      (__FILE__, __LINE__, ##__VA_ARGS__)
+#define   die(...)  logger._die      (__FILE__, __LINE__, ##__VA_ARGS__)
+#define error(...)  logger._error    (__FILE__, __LINE__, ##__VA_ARGS__)
+#define  warn(...)  logger._warn     (__FILE__, __LINE__, ##__VA_ARGS__)
+#define  info(...)  logger._info     (__FILE__, __LINE__, ##__VA_ARGS__)
+#define debug(...)  logger._debug    (__FILE__, __LINE__, ##__VA_ARGS__)
+#define debug2(...) logger._debugX<1>(__FILE__, __LINE__, ##__VA_ARGS__)
+#define debug3(...) logger._debugX<2>(__FILE__, __LINE__, ##__VA_ARGS__)
 
 #define  MPI_Check(command) logger._MPI_Check (__FILE__, __LINE__, command)
 #define CUDA_Check(command) logger._CUDA_Check(__FILE__, __LINE__, command)
