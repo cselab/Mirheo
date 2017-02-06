@@ -23,7 +23,8 @@ int main(int argc, char** argv)
 		printf("ERROR: The MPI library does not have full thread support\n");
 		MPI_Abort(MPI_COMM_WORLD, 1);
 	}
-	logger.init(MPI_COMM_WORLD, "poiseuille.log", 4);
+	MPI_Errhandler_set(MPI_COMM_WORLD, MPI_ERRORS_RETURN);
+	logger.init(MPI_COMM_WORLD, "poiseuille.log", 0);
 
 	MPI_Comm comm;
 	MPI_Check( MPI_Comm_dup(MPI_COMM_WORLD, &comm) );

@@ -2,21 +2,15 @@
 #include "containers.h"
 
 template<typename Transform>
-__global__ void integrationKernel(float4* coosvels, const float4* forces, const float invmass, const int n, const float dt, Transform transform)
+__global__ void integrationKernel(float4* coosvels, const float4* forces, const int n, const float dt, const float invmass, Transform transform)
 {
 	const int gid = blockIdx.x * blockDim.x + threadIdx.x;
 	const int pid = gid / 2;
 	const int sh  = gid % 2;  // sh = 0 loads coordinate, sh = 1 -- velocity
 	if (pid >= n) return;
 
-	// instead of:
-	// const float4 val = in_xyzouvwo[gid];
-	//
-	// this is to allow more cache for atomics
-	// loads / stores here need no cache
 	float4 val = coosvels[gid]; //readNoCache(coosvels+gid);
 	float4 frc = forces[pid];
-
 
 	// Send velocity to adjacent thread that has the coordinate
 	float4 othval;
@@ -67,7 +61,8 @@ void integrateNoFlow(ParticleVector* pv, const float dt, cudaStream_t stream)
 		_noflow(x, v, f, invm, dt);
 	};
 
-	integrationKernel<<< (2*pv->np + 127)/128, 128, 0, stream >>>((float4*)pv->coosvels.devPtr(), (float4*)pv->forces.constDevPtr(), pv->np, 1.0/pv->mass, dt, noflow);
+	debug("Integrating %d %s particles, timestep is %f", pv->np, pv->name.c_str(), dt);
+	integrationKernel<<< (2*pv->np + 127)/128, 128, 0, stream >>>((float4*)pv->coosvels.devPtr(), (float4*)pv->forces.devPtr(), pv->np, dt, 1.0/pv->mass, noflow);
 }
 
 void integrateConstDP(ParticleVector* pv, const float dt, cudaStream_t stream, float3 extraForce)
@@ -76,7 +71,8 @@ void integrateConstDP(ParticleVector* pv, const float dt, cudaStream_t stream, f
 		_constDP(x, v, f, invm, dt, extraForce);
 	};
 
-	integrationKernel<<< (2*pv->np + 127)/128, 128, 0, stream >>>((float4*)pv->coosvels.devPtr(), (float4*)pv->forces.constDevPtr(), pv->np, dt, 1.0/pv->mass, constDP);
+	debug("Integrating %d %s particles, timestep is %f", pv->np, pv->name.c_str(), dt);
+	integrationKernel<<< (2*pv->np + 127)/128, 128, 0, stream >>>((float4*)pv->coosvels.devPtr(), (float4*)pv->forces.devPtr(), pv->np, dt, 1.0/pv->mass, constDP);
 }
 
 

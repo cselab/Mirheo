@@ -42,7 +42,7 @@ __device__ __forceinline__ float3 dpd_interaction(
 			yr * (dstVel.y - srcVel.y) +
 			zr * (dstVel.z - srcVel.z);
 
-	const float myrandnr = 0*Logistic::mean0var1(seed, min(srcId, dstId), max(srcId, dstId));
+	const float myrandnr = Logistic::mean0var1(seed, min(srcId, dstId), max(srcId, dstId));
 
 	const float strength = adpd * argwr - (gammadpd * wr * rdotv + sigmadpd * myrandnr) * wr;
 
@@ -65,7 +65,7 @@ void interactionDPDSelf (ParticleVector* pv, CellList* cl, const float t, cudaSt
 	{
 		debug("Computing internal forces for %s (%d particles)", pv->name.c_str(), pv->np);
 		computeSelfInteractions<<< (pv->np + nth - 1) / nth, nth, 0, stream >>>(
-				(float4*)pv->coosvels.constDevPtr(), (float*)pv->forces.devPtr(), cl->cellInfo(), cl->cellsStart.constDevPtr(), pv->np, dpdCore);
+				(float4*)pv->coosvels.devPtr(), (float*)pv->forces.devPtr(), cl->cellInfo(), cl->cellsStart.devPtr(), pv->np, dpdCore);
 	}
 }
 
@@ -84,8 +84,8 @@ void interactionDPDHalo (ParticleVector* pv1, ParticleVector* pv2, CellList* cl,
 	{
 		debug("Computing halo forces for %s - %s(halo) (%d - %d particles)", pv1->name.c_str(), pv2->name.c_str(), pv1->np, pv2->halo.size());
 		computeExternalInteractions<false, true> <<< (pv2->halo.size() + nth - 1) / nth, nth, 0, stream >>>(
-									(float4*)pv2->halo.constDevPtr(), nullptr, (float4*)pv1->coosvels.constDevPtr(),
-									(float*)pv1->forces.devPtr(), cl->cellInfo(), cl->cellsStart.constDevPtr(), pv2->halo.size(), dpdCore);
+									(float4*)pv2->halo.devPtr(), nullptr, (float4*)pv1->coosvels.devPtr(),
+									(float*)pv1->forces.devPtr(), cl->cellInfo(), cl->cellsStart.devPtr(), pv2->halo.size(), dpdCore);
 	}
 }
 
@@ -104,7 +104,7 @@ void interactionDPDExternal (ParticleVector* pv1, ParticleVector* pv2, CellList*
 	{
 		debug("Computing external forces for %s - %s (%d - %d particles)", pv1->name.c_str(), pv2->name.c_str(), pv1->np, pv2->np);
 		computeExternalInteractions<true, true> <<< (pv2->np + nth - 1) / nth, nth, 0, stream >>>(
-									(float4*)pv2->coosvels.constDevPtr(), nullptr, (float4*)pv1->coosvels.constDevPtr(),
-									(float*)pv1->forces.devPtr(), cl->cellInfo(), cl->cellsStart.constDevPtr(), pv2->np, dpdCore);
+									(float4*)pv2->coosvels.devPtr(), nullptr, (float4*)pv1->coosvels.devPtr(),
+									(float*)pv1->forces.devPtr(), cl->cellInfo(), cl->cellsStart.devPtr(), pv2->np, dpdCore);
 	}
 }

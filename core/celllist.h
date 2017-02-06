@@ -93,8 +93,8 @@ public:
 	}
 	void setStream(cudaStream_t stream)
 	{
-		cellsSize.setStream(stream);
-		cellsStart.setStream(stream);
+		cellsSize.pushStream(stream);
+		cellsStart.pushStream(stream);
 	}
 	void build(cudaStream_t stream);
 };

@@ -46,7 +46,7 @@ class CellList;
 
 	struct InitialConditions
 	{
-		std::function<void(ParticleVector*, float3, float3)> exec;
+		std::function<void(MPI_Comm&, ParticleVector*, float3, float3)> exec;
 	};
 
 	Integrator  createIntegrator(pugi::xml_node node);

@@ -1,5 +1,5 @@
 NVCC = nvcc
-NVCCFLAGS = -std=c++11 -arch=compute_61 -code=sm_61 -g -lineinfo --expt-extended-lambda -Xcompiler " -fopenmp"
+NVCCFLAGS = -std=c++11 -arch=compute_61 -code=sm_61 -g -lineinfo --expt-extended-lambda -Xcompiler "-fopenmp"
 
 HDF5_INC = /usr/include/hdf5/mpich/
 HDF5_LIB = /usr/lib/x86_64-linux-gnu/
@@ -13,7 +13,7 @@ DEBUG_DIR = debug
 VPATH = $(addsuffix :,$(SRC_DIR))
 NVCCFLAGS += -I../../ -I$(HDF5_INC)
 NVCC_RELEASE_FLAGS = $(NVCCFLAGS) -O3
-NVCC_DEBUG_FLAGS = $(NVCCFLAGS) -O0 -G -Xptxas -O0
+NVCC_DEBUG_FLAGS = $(NVCCFLAGS) -O0 -G -Xptxas -O0 -Xcompiler "-g"
 
 objects = scan.o celllist.o halo_exchanger.o redistributor.o wall.o integrate.o interactions.o simulation.o components.o write_xdmf.o dumpavg.o pugixml.o poiseuille.o
 

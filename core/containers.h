@@ -9,8 +9,8 @@ struct ParticleVector
 	float mass;
 	std::string name;
 
-	PinnedBuffer<Particle>     coosvels, pingPongBuf;
-	DeviceBuffer<Force> forces;
+	PinnedBuffer<Particle> coosvels, pingPongBuf;
+	PinnedBuffer<Force> forces;
 
 	float3 domainStart, domainLength; // assume 0,0,0 is center of the local domain
 	int received;
@@ -19,12 +19,18 @@ struct ParticleVector
 
 	ParticleVector(std::string name) : name(name) {}
 
-	void setStream(cudaStream_t stream)
+	void pushStreamWOhalo(cudaStream_t stream)
 	{
-		coosvels.setStream(stream);
-		pingPongBuf.setStream(stream);
-		forces.setStream(stream);
-		halo.setStream(stream);
+		coosvels.pushStream(stream);
+		pingPongBuf.pushStream(stream);
+		forces.pushStream(stream);
+	}
+
+	void popStreamWOhalo()
+	{
+		coosvels.popStream();
+		pingPongBuf.popStream();
+		forces.popStream();
 	}
 
 	void resize(const int n, ResizeKind kind = ResizeKind::resizePreserve)

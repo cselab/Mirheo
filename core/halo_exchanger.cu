@@ -175,17 +175,18 @@ void HaloExchanger::attach(ParticleVector* pv, CellList* cl)
 		int c = std::abs(d[0]) + std::abs(d[1]) + std::abs(d[2]);
 		if (c > 0)
 		{
-			helper.sendBufs[i].resize( 3 * ndens * pow(maxdim, 3 - c) );
-			helper.recvBufs[i].resize( 3 * ndens * pow(maxdim, 3 - c) );
-			addrsPtr[i] = (float4*)helper.sendBufs[i].constDevPtr();
+			helper.sendBufs[i].resize( 3 * ndens * pow(maxdim, 3 - c) + 128 );
+			helper.recvBufs[i].resize( 3 * ndens * pow(maxdim, 3 - c) + 128 );
+			addrsPtr[i] = (float4*)helper.sendBufs[i].devPtr();
 
-			helper.sendBufs[i].setStream(helper.stream);
+			helper.sendBufs[i].pushStream(helper.stream);
 		}
 	}
+	helper.sendAddrs.uploadToDevice();
 
-	helper.counts.setStream(helper.stream);
-	helper.sendAddrs.setStream(helper.stream);
-	pv->halo.setStream(helper.stream);
+	helper.counts.pushStream(helper.stream);
+	helper.sendAddrs.pushStream(helper.stream);
+	pv->halo.pushStream(helper.stream);
 }
 
 void HaloExchanger::exchange()
@@ -209,6 +210,9 @@ void HaloExchanger::_initialize(int n)
 	auto cl = particlesAndCells[n].second;
 	auto& helper = helpers[n];
 
+	debug("Preparing %s halo on the device", pv->name.c_str());
+
+	helper.counts.clear();
 	helper.requests.clear();
 	for (int i=0; i<nActiveNeighbours; i++)
 		if (i != 13 && dir2rank[i] >= 0)
@@ -219,39 +223,43 @@ void HaloExchanger::_initialize(int n)
 			helper.requests.push_back(req);
 		}
 
-
 	const int maxdim = std::max({cl->ncells.x, cl->ncells.y, cl->ncells.z});
 	const int nthreads = 32;
-	helper.counts.clear();
-
-	debug("Preparing %d-th halo on the device", n);
 	getHalos<<< dim3((maxdim*maxdim + nthreads - 1) / nthreads, 6, 1),  dim3(nthreads, 1, 1), 0, helper.stream >>>
-			((float4*)pv->coosvels.constDevPtr(), cl->cellInfo(), cl->cellsStart.constDevPtr(), (int64_t*)helper.sendAddrs.constDevPtr(), helper.counts.devPtr());
+			((float4*)pv->coosvels.devPtr(), cl->cellInfo(), cl->cellsStart.devPtr(), (int64_t*)helper.sendAddrs.devPtr(), helper.counts.devPtr());
+
+	helper.counts.downloadFromDevice(false);
 }
 
 void HaloExchanger::send(int n)
 {
 	auto pv = particlesAndCells[n].first;
-	HaloHelper& helper = helpers[n];
+	auto& helper = helpers[n];
 
-	//helper.counts.synchronize(synchronizeHost, helper.stream);
-	debug("Downloading %d-th halo", n);
+	debug("Downloading %s halo", pv->name.c_str());
 
-	// Can't use synchronize here because we actually have only helper.counts[i] elements
-	auto cntPtr = helper.counts.constHostPtr();
+	// Wait for the previous downloads
+	CUDA_Check( cudaStreamSynchronize(helper.stream) );
+	auto cntPtr = helper.counts.hostPtr();
 	for (int i=0; i<27; i++)
 		if (i != 13)
-			CUDA_Check( cudaMemcpyAsync(helper.sendBufs[i].hostPtr(), helper.sendBufs[i].constDevPtr(),
+		{
+			if (cntPtr[i] > helper.sendBufs[i].size())
+				die("Preallocated halo buffer %d for %s too small: size %d, but found %d particles",
+						i, pv->name.c_str(), helper.sendBufs[i].size(), cntPtr[i]);
+
+			CUDA_Check( cudaMemcpyAsync(helper.sendBufs[i].hostPtr(), helper.sendBufs[i].devPtr(),
 					cntPtr[i]*sizeof(Particle), cudaMemcpyDeviceToHost, helper.stream) );
+		}
 	CUDA_Check( cudaStreamSynchronize(helper.stream) );
 
 	MPI_Request req;
 	for (int i=0; i<27; i++)
 		if (i != 13 && dir2rank[i] >= 0)
 		{
-			debug2("Sending %d-th halo to rank %d in dircode %d [%2d %2d %2d], size %d", n, dir2rank[i], i, i%3 - 1, (i/3)%3 - 1, i/9 - 1, cntPtr[i]);
+			debug2("Sending %s halo to rank %d in dircode %d [%2d %2d %2d], size %d", pv->name.c_str(), dir2rank[i], i, i%3 - 1, (i/3)%3 - 1, i/9 - 1, cntPtr[i]);
 			const int tag = 27*n + i;
-			MPI_Check( MPI_Isend(helper.sendBufs[i].constHostPtr(), cntPtr[i], mpiPartType, dir2rank[i], tag, haloComm, &req) );
+			MPI_Check( MPI_Isend(helper.sendBufs[i].hostPtr(), cntPtr[i], mpiPartType, dir2rank[i], tag, haloComm, &req) );
 		}
 }
 
@@ -283,9 +291,11 @@ void HaloExchanger::receive(int n)
 	// Load onto the device
 	for (int i=0; i<nMessages; i++)
 	{
-		debug2("Receiving %d-th halo from rank %d, size %d",
-				n, dir2rank[compactedDirs[i]], compactedDirs[i], compactedDirs[i]%3 - 1, (compactedDirs[i]/3)%3 - 1, compactedDirs[i]/9 - 1, offsets[i+1] - offsets[i]);
-		CUDA_Check( cudaMemcpyAsync(pv->halo.devPtr() + offsets[i], helper.recvBufs[compactedDirs[i]].constHostPtr(),
+		debug2("Receiving %s halo from rank %d, size %d",
+				pv->name.c_str(), dir2rank[compactedDirs[i]], compactedDirs[i]/*,
+				compactedDirs[i]%3 - 1, (compactedDirs[i]/3)%3 - 1, compactedDirs[i]/9 - 1, offsets[i+1] - offsets[i]*/);
+
+		CUDA_Check( cudaMemcpyAsync(pv->halo.devPtr() + offsets[i], helper.recvBufs[compactedDirs[i]].hostPtr(),
 				(offsets[i+1] - offsets[i])*sizeof(Particle), cudaMemcpyHostToDevice, helper.stream) );
 	}
 

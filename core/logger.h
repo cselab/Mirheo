@@ -9,7 +9,13 @@
 #include <iomanip>
 #include <sstream>
 
+#include <execinfo.h>
+#include <unistd.h>
+#include <cstdio>
+
 #include <mpi.h>
+
+#include <core/stacktrace.h>
 
 #ifdef __CUDACC__
 #include <cuda.h>
@@ -82,7 +88,16 @@ public:
 	inline void _die(Args ... args)
 	{
 		log<0>(args...);
+
+		MPI_File_sync(fout);
 		MPI_File_close(&fout);
+
+		// Print backtrace
+//		backward::StackTrace st;
+//		st.load_here(32);
+//		backward::Printer p;
+//		p.print(st, stderr);
+
 		MPI_Abort(MPI_COMM_WORLD, -1);
 	}
 
@@ -116,7 +131,7 @@ public:
 		log<EXTRA+4>(args...);
 	}
 
-	void _MPI_Check(const char* fname, const int lnum, const int code)
+	inline void _MPI_Check(const char* fname, const int lnum, const int code)
 	{
 		if (code != MPI_SUCCESS)
 		{
@@ -124,9 +139,7 @@ public:
 			int nchar;
 			MPI_Error_string(code, buf, &nchar);
 
-			log<0>(fname, lnum, buf);
-			MPI_File_close(&fout);
-			MPI_Abort(MPI_COMM_WORLD, code);
+			_die(fname, lnum, buf);
 		}
 	}
 
@@ -137,14 +150,10 @@ public:
 
 
 #ifdef __CUDACC__
-	void _CUDA_Check(const char* fname, const int lnum, cudaError_t code)
+	inline void _CUDA_Check(const char* fname, const int lnum, cudaError_t code)
 	{
 		if (code != cudaSuccess)
-		{
-			log<0>(fname, lnum, cudaGetErrorString(code));
-			MPI_File_close(&fout);
-			MPI_Abort(MPI_COMM_WORLD, code);
-		}
+			_die(fname, lnum, cudaGetErrorString(code));
 	}
 #endif
 };

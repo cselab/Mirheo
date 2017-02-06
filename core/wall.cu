@@ -410,7 +410,7 @@ void Wall::_check()
 {
 	for (auto& pv : particleVectors)
 	{
-		checkKernel<<< (pv->np + 127) / 128, 128 >>>( (float4*)pv->coosvels.constDevPtr(), pv->np, sdfTex, subDomainSize, sdfH, 1.0 / sdfH);
+		checkKernel<<< (pv->np + 127) / 128, 128 >>>( (float4*)pv->coosvels.devPtr(), pv->np, sdfTex, subDomainSize, sdfH, 1.0 / sdfH);
 	}
 }
 
@@ -429,15 +429,18 @@ void Wall::attach(ParticleVector* pv, CellList* cl)
 
 	const int oldSize = nBoundaryCells.size();
 	boundaryCells.resize(oldSize+1);
-	nBoundaryCells.resize(oldSize+1, resizePreserve);
-	nBoundaryCells.hostPtr()[oldSize] = 0;
 
+	nBoundaryCells.resize(oldSize+1);
+	nBoundaryCells.hostPtr()[oldSize] = 0;
+	nBoundaryCells.uploadToDevice();
 	countBoundaryCells<<< (cl->totcells + 127) / 128, 128 >>> (cl->cellInfo(), sdfTex, subDomainSize, sdfH, nBoundaryCells.devPtr()+oldSize);
+	nBoundaryCells.downloadFromDevice();
 
-	info("Found %d boundary cells", nBoundaryCells.constHostPtr()[oldSize]);
-	boundaryCells[oldSize].resize(nBoundaryCells.constHostPtr()[oldSize]);
+	info("Found %d boundary cells", nBoundaryCells.hostPtr()[oldSize]);
+	boundaryCells[oldSize].resize(nBoundaryCells.hostPtr()[oldSize]);
 
 	nBoundaryCells.hostPtr()[oldSize] = 0;
+	nBoundaryCells.uploadToDevice();
 	getBoundaryCells<<< (cl->totcells + 127) / 128, 128 >>> (cl->cellInfo(), sdfTex, subDomainSize, sdfH,
 			nBoundaryCells.devPtr()+oldSize, boundaryCells[oldSize].devPtr());
 }
@@ -566,8 +569,9 @@ void Wall::create(MPI_Comm& comm, float3 subDomainStart, float3 subDomainSize, f
 				(subDomainResolution.y+threads.y-1) / threads.y,
 				(subDomainResolution.z+threads.z-1) / threads.z);
 
+	inputSdfData.uploadToDevice();
 	float lenScalingFactor = scale;
-	cubicInterpolate3D<<< blocks, threads >>>(inputSdfData.constDevPtr(), inputResolution, initialH, sdfRawData.devPtr(), subDomainResolution, sdfH, offset, lenScalingFactor);
+	cubicInterpolate3D<<< blocks, threads >>>(inputSdfData.devPtr(), inputResolution, initialH, sdfRawData.devPtr(), subDomainResolution, sdfH, offset, lenScalingFactor);
 
 	// Redistance
 	// Need 2 arrays for redistancing
@@ -576,8 +580,8 @@ void Wall::create(MPI_Comm& comm, float3 subDomainStart, float3 subDomainSize, f
 //	const float redistDt = 0.1;
 //	for (float t = 0; t < 200; t+=redistDt)
 //	{
-//		redistance<<< blocks, threads >>>(sdfData.constDevPtr(), resolution, h, redistDt, tmp.devPtr());
-//		swap(sdfData, tmp);
+//		redistance<<< blocks, threads >>>(sdfData.devPtr(), resolution, h, redistDt, tmp.devPtr());
+//		containerSwap(sdfData, tmp);
 //	}
 
 	// Prepare array to be transformed into texture
@@ -585,7 +589,7 @@ void Wall::create(MPI_Comm& comm, float3 subDomainStart, float3 subDomainSize, f
 	CUDA_Check( cudaMalloc3DArray(&sdfArray, &chDesc, make_cudaExtent(subDomainResolution.x, subDomainResolution.y, subDomainResolution.z)) );
 
 	cudaMemcpy3DParms copyParams = {};
-	copyParams.srcPtr = make_cudaPitchedPtr((void*)sdfRawData.constDevPtr(), subDomainResolution.x*sizeof(float), subDomainResolution.y, subDomainResolution.z);
+	copyParams.srcPtr = make_cudaPitchedPtr((void*)sdfRawData.devPtr(), subDomainResolution.x*sizeof(float), subDomainResolution.y, subDomainResolution.z);
 	copyParams.dstArray = sdfArray;
 	copyParams.extent = make_cudaExtent(subDomainResolution.x, subDomainResolution.y, subDomainResolution.z);
 	copyParams.kind = cudaMemcpyDeviceToDevice;
@@ -610,20 +614,25 @@ void Wall::create(MPI_Comm& comm, float3 subDomainStart, float3 subDomainSize, f
 	PinnedBuffer<int> nFrozen(1), nRemaining(1), nBoundaryCells(1);
 
 	nFrozen.clear();
-	countFrozen<<< (pv->np + 127) / 128, 128 >>>((float4*)pv->coosvels.constDevPtr(), pv->np, sdfTex, subDomainSize, sdfH, nFrozen.devPtr());
+	countFrozen<<< (pv->np + 127) / 128, 128 >>>((float4*)pv->coosvels.devPtr(), pv->np, sdfTex, subDomainSize, sdfH, nFrozen.devPtr());
+	nFrozen.downloadFromDevice();
 
-	frozen.resize(nFrozen.constHostPtr()[0]);
-	info("Freezing %d pv", nFrozen.constHostPtr()[0]);
+	frozen.resize(nFrozen.hostPtr()[0]);
+	info("Freezing %d pv", nFrozen.hostPtr()[0]);
 
 	nFrozen.   clear();
 	nRemaining.clear();
 	collectFrozen<<< (pv->np + 127) / 128, 128 >>>(sdfTex, subDomainSize, sdfH, pv->np,
-			(float4*)pv->coosvels.constDevPtr(), (float4*)pv->pingPongBuf.devPtr(), (float4*)frozen.coosvels.devPtr(),
+			(float4*)pv->coosvels.devPtr(), (float4*)pv->pingPongBuf.devPtr(), (float4*)frozen.coosvels.devPtr(),
 			nRemaining.devPtr(), nFrozen.devPtr());
+	nRemaining.downloadFromDevice();
+	nFrozen.   downloadFromDevice();
 
-	swap(pv->coosvels, pv->pingPongBuf);
-	pv->resize(nRemaining.constHostPtr()[0]);
-	info("Keeping %d pv", nRemaining.constHostPtr()[0]);
+
+	CUDA_Check( cudaStreamSynchronize(0) );
+	containerSwap(pv->coosvels, pv->pingPongBuf);
+	pv->resize(nRemaining.hostPtr()[0]);
+	info("Keeping %d pv", nRemaining.hostPtr()[0]);
 
 	CUDA_Check( cudaDeviceSynchronize() );
 }
@@ -636,7 +645,7 @@ void Wall::bounce(cudaStream_t stream)
 		auto cl = cellLists[i];
 
 		bounceKernel<<< (boundaryCells[i].size() + 63) / 64, 64, 0, stream >>>(
-				boundaryCells[i].constDevPtr(), boundaryCells[i].size(), cl->cellsStart.constDevPtr(), cl->cellInfo(), (float4*)pv->forces.constDevPtr(),
+				boundaryCells[i].devPtr(), boundaryCells[i].size(), cl->cellsStart.devPtr(), cl->cellInfo(), (float4*)pv->forces.devPtr(),
 				sdfTex, subDomainSize, sdfH, 1.0 / sdfH, (float4*)pv->coosvels.devPtr(), dt);
 	}
 }

@@ -106,11 +106,13 @@ __global__ void getExitingParticles(float4* xyzouvwo,
 			const int dstInd = 2*myid;
 
 			float4* addr = (float4*)dests[bufId];
-			addr[dstInd + 0] = coo - shift;
+			float4 newcoo = coo - shift;
+			newcoo.w = coo.w;
+			addr[dstInd + 0] = newcoo;
 			addr[dstInd + 1] = vel;
 
 			// mark the particle as exited to assist cell-list building
-			xyzouvwo[2*srcId] = make_float4(-1000);
+			xyzouvwo[2*srcId] = make_float4(-1000.0f, -1000.0f, -1000.0f, coo.w);
 		}
 	}
 }
@@ -143,7 +145,7 @@ Redistributor::Redistributor(MPI_Comm& comm) : nActiveNeighbours(26)
 
 void Redistributor::attach(ParticleVector* pv, CellList* cl)
 {
-	const float ndens = (float)pv->np / (cl->ncells.x * cl->ncells.y * cl->ncells.z);
+	const float ndens = (float)pv->np / (cl->ncells.x * cl->ncells.y * cl->ncells.z * cl->rc*cl->rc*cl->rc);
 	particlesAndCells.push_back({pv, cl});
 
 	helpers.resize(helpers.size() + 1);
@@ -152,11 +154,11 @@ void Redistributor::attach(ParticleVector* pv, CellList* cl)
 	helper.sendAddrs.resize(27);
 	helper.counts.resize(27);
 
-	const int maxdim = std::max({cl->ncells.x, cl->ncells.y, cl->ncells.z});
-
 	CUDA_Check( cudaStreamCreateWithPriority(&helper.stream, cudaStreamNonBlocking, -10) );
 
-	auto addrPtr = helper.sendAddrs.hostPtr();
+	const int maxdim = std::max({cl->ncells.x, cl->ncells.y, cl->ncells.z});
+
+	auto addrsPtr = helper.sendAddrs.hostPtr();
 	for(int i = 0; i < 27; ++i)
 	{
 		int d[3] = { i%3 - 1, (i/3) % 3 - 1, i/9 - 1 };
@@ -164,16 +166,17 @@ void Redistributor::attach(ParticleVector* pv, CellList* cl)
 		int c = std::abs(d[0]) + std::abs(d[1]) + std::abs(d[2]);
 		if (c > 0)
 		{
-			helper.sendBufs[i].resize( 3 * ndens * pow(maxdim, 3 - c) );
-			helper.recvBufs[i].resize( 3 * ndens * pow(maxdim, 3 - c) );
-			addrPtr[i] = (float4*)helper.sendBufs[i].devPtr();
+			helper.sendBufs[i].resize( 3 * ndens * pow(maxdim, 3 - c) + 64);
+			helper.recvBufs[i].resize( 3 * ndens * pow(maxdim, 3 - c) + 64);
+			addrsPtr[i] = (float4*)helper.sendBufs[i].devPtr();
 
-			helper.sendBufs[i].setStream(helper.stream);
+			helper.sendBufs[i].pushStream(helper.stream);
 		}
 	}
+	helper.sendAddrs.uploadToDevice();
 
-	helper.counts.setStream(helper.stream);
-	helper.sendAddrs.setStream(helper.stream);
+	helper.counts.pushStream(helper.stream);
+	helper.sendAddrs.pushStream(helper.stream);
 }
 
 void Redistributor::redistribute()
@@ -196,13 +199,10 @@ void Redistributor::_initialize(int n)
 	auto pv = particlesAndCells[n].first;
 	auto cl = particlesAndCells[n].second;
 	auto& helper = helpers[n];
+	
+	debug("Preparing leaving %s particles on the device", pv->name.c_str());
 
-	const int maxdim = std::max({cl->ncells.x, cl->ncells.y, cl->ncells.z});
-	const int nthreads = 32;
 	helper.counts.clear();
-
-	debug("Preparing %d-th leaving particles on the device", n);
-
 	helper.requests.clear();
 	for (int i=0; i<nActiveNeighbours; i++)
 		if (i != 13 && dir2rank[i] >= 0)
@@ -213,8 +213,12 @@ void Redistributor::_initialize(int n)
 			helper.requests.push_back(req);
 		}
 
+	const int maxdim = std::max({cl->ncells.x, cl->ncells.y, cl->ncells.z});
+	const int nthreads = 32;
 	getExitingParticles<<< dim3((maxdim*maxdim + nthreads - 1) / nthreads, 6, 1),  dim3(nthreads, 1, 1), 0, helper.stream >>>
-				( (float4*)pv->coosvels.constDevPtr(), cl->cellInfo(), cl->cellsStart.constDevPtr(), (int64_t*)helper.sendAddrs.constDevPtr(), helper.counts.devPtr() );
+				( (float4*)pv->coosvels.devPtr(), cl->cellInfo(), cl->cellsStart.devPtr(), (int64_t*)helper.sendAddrs.devPtr(), helper.counts.devPtr() );
+
+	helper.counts.downloadFromDevice(false);
 }
 
 void Redistributor::send(int n)
@@ -222,14 +226,16 @@ void Redistributor::send(int n)
 	auto pv = particlesAndCells[n].first;
 	auto& helper = helpers[n];
 
-	//helper.counts.synchronize(synchronizeHost, helper.stream);
-	debug("Downloading %d-th leaving particles", n);
+	//debug("Downloading %d leaving %s particles", totalLeaving, pv->name.c_str());
 
-	// Can't use synchronize here because we actually have only helper.counts[i] elements
-	auto cntPtr = helper.counts.constHostPtr();
+	// Wait for the previous downloads
+	CUDA_Check( cudaStreamSynchronize(helper.stream) );
+	auto cntPtr = helper.counts.hostPtr();
+
+
 	for (int i=0; i<27; i++)
 		if (i != 13)
-			CUDA_Check( cudaMemcpyAsync(helper.sendBufs[i].hostPtr(), helper.sendBufs[i].constDevPtr(),
+			CUDA_Check( cudaMemcpyAsync(helper.sendBufs[i].hostPtr(), helper.sendBufs[i].devPtr(),
 					cntPtr[i]*sizeof(Particle), cudaMemcpyDeviceToHost, helper.stream) );
 	CUDA_Check( cudaStreamSynchronize(helper.stream) );
 
@@ -237,11 +243,11 @@ void Redistributor::send(int n)
 	for (int i=0; i<27; i++)
 		if (i != 13 && dir2rank[i] >= 0)
 		{
-			debug2("Sending %d-th redistribution to rank %d in dircode %d [%2d %2d %2d], size %d",
-					n, dir2rank[i], i, i%3 - 1, (i/3)%3 - 1, i/9 - 1, cntPtr[i]);
+			debug2("Sending %s redistribution to rank %d in dircode %d [%2d %2d %2d], size %d",
+					pv->name.c_str(), dir2rank[i], i, i%3 - 1, (i/3)%3 - 1, i/9 - 1, cntPtr[i]);
 
 			const int tag = 27*n + i;
-			MPI_Check( MPI_Isend(helper.sendBufs[i].constHostPtr(), cntPtr[i], mpiPartType, dir2rank[i], tag, redComm, &req) );
+			MPI_Check( MPI_Isend(helper.sendBufs[i].hostPtr(), cntPtr[i], mpiPartType, dir2rank[i], tag, redComm, &req) );
 		}
 }
 
@@ -275,9 +281,10 @@ void Redistributor::receive(int n)
 	// Load onto the device
 	for (int i=0; i<nMessages; i++)
 	{
-		debug2("Receiving %d-th redistribution from rank %d in dircode %d [%2d %2d %2d], size %d",
-				n, dir2rank[compactedDirs[i]], compactedDirs[i], compactedDirs[i]%3 - 1, (compactedDirs[i]/3)%3 - 1, compactedDirs[i]/9 - 1, offsets[i+1] - offsets[i]);
-		CUDA_Check( cudaMemcpyAsync(pv->coosvels.devPtr() + oldsize + offsets[i], helper.recvBufs[compactedDirs[i]].constHostPtr(),
+		debug2("Receiving %s redistribution from rank %d in dircode %d [%2d %2d %2d], size %d",
+				pv->name.c_str(), dir2rank[compactedDirs[i]], compactedDirs[i],
+				compactedDirs[i]%3 - 1, (compactedDirs[i]/3)%3 - 1, compactedDirs[i]/9 - 1, offsets[i+1] - offsets[i]);
+		CUDA_Check( cudaMemcpyAsync(pv->coosvels.devPtr() + oldsize + offsets[i], helper.recvBufs[compactedDirs[i]].hostPtr(),
 				(offsets[i+1] - offsets[i])*sizeof(Particle), cudaMemcpyHostToDevice, helper.stream) );
 	}
 

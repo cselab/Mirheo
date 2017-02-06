@@ -30,7 +30,7 @@ void Simulation::registerParticleVector(ParticleVector* pv, InitialConditions* i
 		die("More than one particle vector is called %s", name.c_str());
 
 	pvMap[name] = particleVectors.size() - 1;
-	ic->exec(pv, globalDomainSize, subDomainSize);
+	ic->exec(cartComm, pv, globalDomainSize, subDomainSize);
 }
 
 void Simulation::registerObjectVector  (ObjectVector* ov)
@@ -131,7 +131,7 @@ void Simulation::setInteraction(std::string pv1Name, std::string pv2Name, std::s
 	}
 	if (cl == nullptr)
 	{
-		cl = new CellList(particleVectors[pv1Id], interaction->rc, subDomainStart, subDomainSize);
+		cl = new CellList(particleVectors[pv1Id], interaction->rc, -subDomainSize*0.5, subDomainSize);
 		cellListTable[pv1Id].push_back(cl);
 	}
 
@@ -166,7 +166,7 @@ void Simulation::run(int nsteps)
 			redist.attach(particleVectors[i], *it);
 		}
 
-		particleVectors[i]->setStream(defStream);
+		particleVectors[i]->pushStreamWOhalo(defStream);
 		for (auto& cl : cellListTable[i])
 			cl->setStream(defStream);
 	}
@@ -187,6 +187,7 @@ void Simulation::run(int nsteps)
 			pl->beforeForces(t);
 
 		//===================================================================================================
+
 		for (int i=0; i<interactionTable.size(); i++)
 			for (int j=0; j<interactionTable[i].size(); j++)
 				if (interactionTable[i][j].first != nullptr)

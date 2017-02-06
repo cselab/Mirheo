@@ -77,7 +77,7 @@
 		const float mass = node.attribute("mass")   .as_float(1.0);
 		const float dens = node.attribute("density").as_float(1.0);
 
-		result.exec = [=] (ParticleVector* pv, float3 globalDomainStart, float3 subDomainSize) {
+		result.exec = [=] (MPI_Comm& comm, ParticleVector* pv, float3 globalDomainStart, float3 subDomainSize) {
 
 			int3 ncells = make_int3( ceilf(subDomainSize) );
 			float3 h = subDomainSize / make_float3(ncells);
@@ -88,11 +88,11 @@
 			pv->resize(predicted);
 
 			std::random_device rd;
-			std::mt19937 gen(rd());
+			std::mt19937 gen(0);//rd());
 			std::poisson_distribution<> particleDistribution(avg);
 			std::uniform_real_distribution<float> coordinateDistribution(0, 1);
 
-			int c = 0;
+			int mycount = 0;
 			auto cooPtr = pv->coosvels.hostPtr();
 			for (int i=0; i<ncells.x; i++)
 				for (int j=0; j<ncells.y; j++)
@@ -101,22 +101,31 @@
 						int nparts = particleDistribution(gen);
 						for (int p=0; p<nparts; p++)
 						{
-							pv->resize(c+1, resizePreserve);
-							cooPtr[c].x[0] = i*h.x - 0.5*subDomainSize.x + coordinateDistribution(gen);
-							cooPtr[c].x[1] = j*h.y - 0.5*subDomainSize.y + coordinateDistribution(gen);
-							cooPtr[c].x[2] = k*h.z - 0.5*subDomainSize.z + coordinateDistribution(gen);
-							cooPtr[c].i1 = c;
+							pv->resize(mycount+1, resizePreserve);
+							cooPtr[mycount].x[0] = i*h.x - 0.5*subDomainSize.x + coordinateDistribution(gen);
+							cooPtr[mycount].x[1] = j*h.y - 0.5*subDomainSize.y + coordinateDistribution(gen);
+							cooPtr[mycount].x[2] = k*h.z - 0.5*subDomainSize.z + coordinateDistribution(gen);
+							cooPtr[mycount].i1 = mycount;
 
-							cooPtr[c].u[0] = 0;
-							cooPtr[c].u[1] = 0;
-							cooPtr[c].u[2] = 0;
-							c++;
+							cooPtr[mycount].u[0] = 0*coordinateDistribution(gen);
+							cooPtr[mycount].u[1] = 0*coordinateDistribution(gen);
+							cooPtr[mycount].u[2] = 0*coordinateDistribution(gen);
+
+							cooPtr[mycount].i1 = mycount;
+							mycount++;
 						}
 					}
 
 			 pv->domainLength = subDomainSize;
 			 pv->domainStart  = -subDomainSize*0.5;
 			 pv->mass = mass;
+
+			 int totalCount=0; // TODO: int64!
+			 MPI_Check( MPI_Exscan(&mycount, &totalCount, 1, MPI_INT, MPI_SUM, comm) );
+			 for (int i=0; i < pv->np; i++)
+				 cooPtr[i].i1 += totalCount;
+
+			 pv->coosvels.uploadToDevice();
 		};
 
 		return result;

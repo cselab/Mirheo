@@ -98,7 +98,7 @@ void Avg3DPlugin::afterIntegration(float t)
 		cl->build(stream);
 
 		sample<<< (cl->totcells+127) / 128, 128 >>> (
-				(int*)cl->cellsStart.constDevPtr(), (float4*)pv->coosvels.constDevPtr(), (float4*)pv->forces.constDevPtr(),
+				(int*)cl->cellsStart.devPtr(), (float4*)pv->coosvels.devPtr(), (float4*)pv->forces.devPtr(),
 				pv->mass, cl->cellInfo(),
 				needDensity  ? density .devPtr() : nullptr,
 				needMomentum ? momentum.devPtr() : nullptr,
@@ -111,15 +111,19 @@ void Avg3DPlugin::serializeAndSend()
 {
 	if (nTimeSteps % dumpEvery != 0) return;
 
+	if (needDensity)  density .downloadFromDevice();
+	if (needMomentum) momentum.downloadFromDevice();
+	if (needForce)    force   .downloadFromDevice();
+
 	SimpleSerializer::serialize(sendBuffer, tm, density, momentum, force);
-	send(sendBuffer.constHostPtr(), sendBuffer.size());
+	send(sendBuffer.hostPtr(), sendBuffer.size());
 }
 
 void Avg3DPlugin::handshake()
 {
 	HostBuffer<char> data;
 	SimpleSerializer::serialize(data, resolution, h, needDensity, needMomentum, needForce);
-	MPI_Check( MPI_Send(data.constHostPtr(), data.size(), MPI_BYTE, rank, id, interComm) );
+	MPI_Check( MPI_Send(data.hostPtr(), data.size(), MPI_BYTE, rank, id, interComm) );
 }
 
 
@@ -163,9 +167,9 @@ void Avg3DDumper::deserialize()
 	SimpleSerializer::deserialize(data, t, density, momentum, force);
 
 	std::vector<const float*> channels;
-	if (needDensity)  channels.push_back(density.constHostPtr());
-	if (needMomentum) channels.push_back((const float*)momentum.constHostPtr());
-	if (needForce)    channels.push_back((const float*)force.constHostPtr());
+	if (needDensity)  channels.push_back(density.hostPtr());
+	if (needMomentum) channels.push_back((const float*)momentum.hostPtr());
+	if (needForce)    channels.push_back((const float*)force.hostPtr());
 
 	dumper->dump(channels, t);
 }

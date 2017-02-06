@@ -120,6 +120,9 @@ CellList::CellList(ParticleVector* pv, int3 resolution, float3 domainStart, floa
 
 void CellList::build(cudaStream_t stream)
 {
+	// Containers setup
+	pv->pushStreamWOhalo(stream);
+
 	// Compute cell sizes
 	debug("Computing cell sizes for %d particles with %d newcomers", pv->np, pv->received);
 	CUDA_Check( cudaMemsetAsync(cellsSize.devPtr(), 0, (totcells + 1)*sizeof(uint8_t), stream) );  // +1 to have correct cellsStart[totcells]
@@ -127,7 +130,7 @@ void CellList::build(cudaStream_t stream)
 	auto cinfo = cellInfo();
 
 	computeCellSizes<<< (pv->np+127)/128, 128, 0, stream >>> (
-						(float4*)pv->coosvels.constDevPtr(), pv->np, pv->np - pv->received, cinfo, (uint*)cellsSize.devPtr());
+						(float4*)pv->coosvels.devPtr(), pv->np, pv->np - pv->received, cinfo, (uint*)cellsSize.devPtr());
 
 	// Scan to get cell starts
 	scan(cellsSize.devPtr(), totcells+1, cellsStart.devPtr(), stream);
@@ -139,8 +142,8 @@ void CellList::build(cudaStream_t stream)
 	debug("Rearranging %d particles", pv->np);
 
 	rearrangeParticles<<< (2*pv->np+127)/128, 128, 0, stream >>> (
-						(float4*)pv->coosvels.constDevPtr(), pv->np, pv->np - pv->received, cinfo,
-						(uint*)cellsSize.devPtr(), cellsStart.constDevPtr(), (float4*)pv->pingPongBuf.devPtr());
+						(float4*)pv->coosvels.devPtr(), pv->np, pv->np - pv->received, cinfo,
+						(uint*)cellsSize.devPtr(), cellsStart.devPtr(), (float4*)pv->pingPongBuf.devPtr());
 
 
 	// Now we need the new size of particles array.
@@ -150,5 +153,9 @@ void CellList::build(cudaStream_t stream)
 	debug("Rearranging completed, new size of particle vector is %d", newSize);
 
 	pv->resize(newSize, resizePreserve);
-	swap(pv->coosvels, pv->pingPongBuf);
+	CUDA_Check( cudaStreamSynchronize(stream) );
+	containerSwap(pv->coosvels, pv->pingPongBuf);
+
+	// Containers setup
+	pv->popStreamWOhalo();
 }

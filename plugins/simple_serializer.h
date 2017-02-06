@@ -57,7 +57,7 @@ private:
 	{
 		*((int*)buf) = v.size();
 		buf += sizeof(int);
-		memcpy(buf, v.constHostPtr(), sizeOfOne(v));
+		memcpy(buf, v.hostPtr(), sizeOfOne(v));
 	}
 
 	template<typename T>
@@ -65,7 +65,7 @@ private:
 	{
 		*((int*)buf) = v.size();
 		buf += sizeof(int);
-		memcpy(buf, v.constHostPtr(), sizeOfOne(v));
+		memcpy(buf, v.hostPtr(), sizeOfOne(v));
 	}
 
 	template<typename T>
