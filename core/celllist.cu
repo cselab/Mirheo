@@ -1,9 +1,8 @@
-#include "datatypes.h"
-#include "scan.h"
-#include "celllist.h"
-#include "non_cached_rw.h"
-
-#include "helper_math.h"
+#include <core/datatypes.h>
+#include <core/scan.h>
+#include <core/celllist.h>
+#include <core/non_cached_rw.h>
+#include <core/helper_math.h>
 
 __global__ void blendStartSize(const uchar4* cellsSize, int4* cellsStart, const CellListInfo cinfo)
 {

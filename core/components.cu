@@ -77,7 +77,7 @@
 		const float mass = node.attribute("mass")   .as_float(1.0);
 		const float dens = node.attribute("density").as_float(1.0);
 
-		result.exec = [=] (MPI_Comm& comm, ParticleVector* pv, float3 globalDomainStart, float3 subDomainSize) {
+		result.exec = [=] (const MPI_Comm& comm, ParticleVector* pv, float3 globalDomainStart, float3 subDomainSize) {
 
 			int3 ncells = make_int3( ceilf(subDomainSize) );
 			float3 h = subDomainSize / make_float3(ncells);

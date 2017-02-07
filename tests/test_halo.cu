@@ -1,11 +1,10 @@
 // Yo ho ho ho
 #define private public
 
-#include "../core/containers.h"
-#include "../core/celllist.h"
-#include "../core/dpd.h"
-#include "../core/halo_exchanger.h"
-#include "../core/logger.h"
+#include <core/containers.h>
+#include <core/celllist.h>
+#include <core/halo_exchanger.h>
+#include <core/logger.h>
 
 Logger logger;
 

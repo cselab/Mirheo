@@ -1,9 +1,10 @@
 
-#include "../core/containers.h"
-#include "../core/celllist.h"
-#include "../core/dpd.h"
-#include "../core/halo_exchanger.h"
-#include "../core/logger.h"
+#include <core/containers.h>
+#include <core/celllist.h>
+#include <core/halo_exchanger.h>
+#include <core/logger.h>
+#include <core/components.h>
+#include <core/interactions.h>
 
 #include <unistd.h>
 
@@ -23,71 +24,58 @@ int main(int argc, char ** argv)
 
 	logger.init(MPI_COMM_WORLD, "onerank.log", 9);
 
-	// Initial cells
+	std::string xml = R"(<node mass="1.0" density="8.0">)";
+	pugi::xml_document config;
+	config.load_string(xml.c_str());
 
-	int l = 64;
-	int3 ncells = {l, l, l};
-	float3 domainStart = {-ncells.x / 2.0f, -ncells.y / 2.0f, -ncells.z / 2.0f};
-	float3 length{(float)ncells.x, (float)ncells.y, (float)ncells.z};
-	ParticleVector dpds(ncells, domainStart, length);
+	float3 length{64,64,64};
+	float3 domainStart = -length / 2.0f;
+	const float rc = 1.0f;
+	ParticleVector dpds("dpd");
+	CellList cells(&dpds, rc, domainStart, length);
 
-	const int ndens = 8;
-	dpds.resize(ncells.x*ncells.y*ncells.z * ndens);
+	InitialConditions ic = createIC(config.child("node"));
+	ic.exec(MPI_COMM_WORLD, &dpds, {0,0,0}, length);
 
-	srand48(0);
+	const int np = dpds.np;
+	HostBuffer<Particle> initial(np);
+	auto initPtr = initial.hostPtr();
+	for (int i=0; i<np; i++)
+		initPtr[i] = dpds.coosvels[i];
 
-	printf("initializing...\n");
-
-	int c = 0;
-	for (int i=0; i<ncells.x; i++)
-		for (int j=0; j<ncells.y; j++)
-			for (int k=0; k<ncells.z; k++)
-				for (int p=0; p<ndens; p++)
-				{
-					dpds.coosvels[c].x[0] = i + drand48() + domainStart.x;
-					dpds.coosvels[c].x[1] = j + drand48() + domainStart.y;
-					dpds.coosvels[c].x[2] = k + drand48() + domainStart.z;
-					dpds.coosvels[c].i1 = c;
-
-					dpds.coosvels[c].u[0] = drand48() - 0.5;
-					dpds.coosvels[c].u[1] = drand48() - 0.5;
-					dpds.coosvels[c].u[2] = drand48() - 0.5;
-					c++;
-				}
-
-	dpds.resize(c);
-	dpds.coosvels.synchronize(synchronizeDevice);
-
-	cudaStream_t defStream;
-	CUDA_Check( cudaStreamCreateWithPriority(&defStream, cudaStreamNonBlocking, 10) );
-
-	buildCellList(dpds, defStream);
-	CUDA_Check( cudaStreamSynchronize(defStream) );
-
-	for (int i=0; i<100; i++)
-	{
-		dpds.accs.clear(defStream);
-		computeInternalDPD(dpds, defStream);
-
-		cudaDeviceSynchronize();
-	}
+	cells.build(0);
 
 	const float dt = 0.0025;
 	const float kBT = 1.0;
 	const float gammadpd = 20;
-	const float sigma = sqrt(2 * gammadpd * kBT);
-	const float sigmaf = sigma / sqrt(dt);
-	const float aij = 50;
+	const float sigmadpd = sqrt(2 * gammadpd * kBT);
+	const float sigma_dt = sigmadpd / sqrt(dt);
+	const float adpd = 50;
+
+	auto inter = [=] (ParticleVector* pv, CellList* cl, const float t, cudaStream_t stream) {
+		interactionDPDSelf(pv, cl, t, stream, adpd, gammadpd, sigma_dt, rc);
+	};
+
+	for (int i=0; i<100; i++)
+	{
+		dpds.forces.clear();
+		inter(&dpds, &cells, 0, 0);
+
+		cudaDeviceSynchronize();
+	}
+
+	dpds.coosvels.downloadFromDevice(false);
+	dpds.forces.downloadFromDevice(true);
+
 
 
 	HostBuffer<Force> hacc;
 	HostBuffer<int> hcellsstart;
 	HostBuffer<uint8_t> hcellssize;
-	hcellsstart.copy(dpds.cellsStart);
-	hcellssize.copy(dpds.cellsSize);
-	hacc.copy(dpds.accs);
+	hcellsstart.copy(cells.cellsStart, 0);
+	hcellssize.copy(cells.cellsSize, 0);
+	hacc.copy(dpds.forces);
 
-	dpds.coosvels.synchronize(synchronizeHost);
 	cudaDeviceSynchronize();
 
 	printf("finished, reducing acc\n");
@@ -95,14 +83,14 @@ int main(int argc, char ** argv)
 	for (int i=0; i<dpds.np; i++)
 	{
 		for (int c=0; c<3; c++)
-			a[c] += hacc[i].a[c];
+			a[c] += hacc[i].f[c];
 	}
 	printf("Reduced acc: %e %e %e\n\n", a[0], a[1], a[2]);
 
 
 	printf("Checking (this is not necessarily a cubic domain)......\n");
 
-	std::vector<Force> refAcc(hacc.size);
+	std::vector<Force> refAcc(hacc.size());
 
 	auto addForce = [&](int dstId, int srcId, Force& a)
 	{
@@ -131,21 +119,21 @@ int main(int argc, char ** argv)
 
 		const float myrandnr = 0;//Logistic::mean0var1(1, min(srcId, dstId), max(srcId, dstId));
 
-		const float strength = aij * argwr - (gammadpd * wr * rdotv + sigmaf * myrandnr) * wr;
+		const float strength = adpd * argwr - (gammadpd * wr * rdotv + sigma_dt * myrandnr) * wr;
 
-		a.a[0] += strength * xr;
-		a.a[1] += strength * yr;
-		a.a[2] += strength * zr;
+		a.f[0] += strength * xr;
+		a.f[1] += strength * yr;
+		a.f[2] += strength * zr;
 	};
 
 #pragma omp parallel for collapse(3)
-	for (int cx = 0; cx < ncells.x; cx++)
-		for (int cy = 0; cy < ncells.y; cy++)
-			for (int cz = 0; cz < ncells.z; cz++)
+	for (int cx = 0; cx < cells.ncells.x; cx++)
+		for (int cy = 0; cy < cells.ncells.y; cy++)
+			for (int cz = 0; cz < cells.ncells.z; cz++)
 			{
-				const int cid = encode(cx, cy, cz, ncells);
+				const int cid = cells.encode(cx, cy, cz);
 
-				const int2 start_size = decodeStartSize(hcellsstart[cid]);
+				const int2 start_size = cells.decodeStartSize(hcellsstart[cid]);
 
 				for (int dstId = start_size.x; dstId < start_size.x + start_size.y; dstId++)
 				{
@@ -155,10 +143,10 @@ int main(int argc, char ** argv)
 						for (int dy = -1; dy <= 1; dy++)
 							for (int dz = -1; dz <= 1; dz++)
 							{
-								const int srcCid = encode(cx+dx, cy+dy, cz+dz, ncells);
-								if (srcCid >= dpds.totcells || srcCid < 0) continue;
+								const int srcCid = cells.encode(cx+dx, cy+dy, cz+dz);
+								if (srcCid >= cells.totcells || srcCid < 0) continue;
 
-								const int2 srcStart_size = decodeStartSize(hcellsstart[srcCid]);
+								const int2 srcStart_size = cells.decodeStartSize(hcellsstart[srcCid]);
 
 								for (int srcId = srcStart_size.x; srcId < srcStart_size.x + srcStart_size.y; srcId++)
 								{
@@ -167,9 +155,9 @@ int main(int argc, char ** argv)
 								}
 							}
 
-					refAcc[dstId].a[0] = a.a[0];
-					refAcc[dstId].a[1] = a.a[1];
-					refAcc[dstId].a[2] = a.a[2];
+					refAcc[dstId].f[0] = a.f[0];
+					refAcc[dstId].f[1] = a.f[1];
+					refAcc[dstId].f[2] = a.f[2];
 				}
 			}
 
@@ -183,7 +171,7 @@ int main(int argc, char ** argv)
 		double toterr = 0;
 		for (int c=0; c<3; c++)
 		{
-			const double err = fabs(refAcc[i].a[c] - hacc[i].a[c]);
+			const double err = fabs(refAcc[i].f[c] - hacc[i].f[c]);
 			toterr += err;
 			linf = max(linf, err);
 			perr = max(perr, err);
@@ -194,9 +182,9 @@ int main(int argc, char ** argv)
 
 		{
 			printf("id %d,  %12f %12f %12f     ref %12f %12f %12f    diff   %12f %12f %12f\n", i,
-				hacc[i].a[0], hacc[i].a[1], hacc[i].a[2],
-				refAcc[i].a[0], refAcc[i].a[1], refAcc[i].a[2],
-				hacc[i].a[0]-refAcc[i].a[0], hacc[i].a[1]-refAcc[i].a[1], hacc[i].a[2]-refAcc[i].a[2]);
+				hacc[i].f[0], hacc[i].f[1], hacc[i].f[2],
+				refAcc[i].f[0], refAcc[i].f[1], refAcc[i].f[2],
+				hacc[i].f[0]-refAcc[i].f[0], hacc[i].f[1]-refAcc[i].f[1], hacc[i].f[2]-refAcc[i].f[2]);
 		}
 	}
 

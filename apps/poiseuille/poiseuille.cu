@@ -11,7 +11,7 @@ int main(int argc, char** argv)
 	pugi::xml_document config;
 	pugi::xml_parse_result result = config.load_file("poiseuille.xml");
 
-	float3 globalDomainSize{16, 16, 16};
+	float3 globalDomainSize{64, 64, 64};
 	int3 nranks3D{1, 1, 1};
 	//uDeviceX udevice(argc, argv, nranks3D, fullDomainSize, logger, "poiseuille.log", 9);
 
@@ -59,7 +59,7 @@ int main(int argc, char** argv)
 	//}
 
 	//udevice.registerJointPlugins(simPl, postPl);
-	sim->run(1000);
+	sim->run(100);
 
 	return 0;
 }

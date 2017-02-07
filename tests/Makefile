@@ -4,9 +4,11 @@ NVCCFLAGS = -std=c++11 -arch=compute_61 -code=sm_61 -O3 -g -lineinfo --expt-exte
 
 LIBS = -lmpi
 
-SRC_DIR = ../../core/ ../
-VPATH = $(SRC_DIR)
-NVCCFLAGS += $(addprefix -I,$(SRC_DIR))
+SRC_DIR = ../core ./ ../core/xml
+VPATH = $(addsuffix :,$(SRC_DIR))
+NVCCFLAGS += -I../
+
+OBJ_DIR = obj
 
 wall_obj = scan.o celllist.o halo_exchanger.o dpd.o test_wall.o redistributor.o wall.o integrate.o
 onerank_obj = scan.o celllist.o halo_exchanger.o dpd.o test_onerank.o redistributor.o integrate.o
@@ -14,46 +16,43 @@ manyranks_obj = scan.o celllist.o halo_exchanger.o dpd.o test_manyranks.o redist
 halo_obj    = scan.o celllist.o halo_exchanger.o test_halo.o
 redist_obj  = scan.o celllist.o redistributor.o test_redist.o
 log_obj     = test_logger.o
-cells_obj   = scan.o celllist.o test_cells.o
-dpd_obj     = scan.o celllist.o dpd.o test_dpd.o
-parse_obj   = test_parse.o
+cells_obj   = scan.o celllist.o test_cells.o pugixml.o components.o integrate.o interactions.o wall.o
+dpd_obj     = scan.o celllist.o test_dpd.o pugixml.o components.o integrate.o interactions.o wall.o
 
 
 default:
 	@echo "Please specify a target!"
 	
-test_wall: $(wall_obj)
+test_wall: $(addprefix $(OBJ_DIR)/,$(wall_obj))
 	$(NVCC) $(NVCCFLAGS) $(LIBS) $^ -o $@
 
-test_cells: $(cells_obj)
+test_cells: $(addprefix $(OBJ_DIR)/,$(cells_obj))
 	$(NVCC) $(NVCCFLAGS) $(LIBS) $^ -o $@
 
-test_logger: $(log_obj)
+test_logger: $(addprefix $(OBJ_DIR)/,$(log_obj))
 	$(NVCC) $(NVCCFLAGS) $(LIBS) $^ -o $@
 
-test_onerank: $(onerank_obj)
+test_onerank: $(addprefix $(OBJ_DIR)/,$(onerank_obj))
 	$(NVCC) $(NVCCFLAGS) $(LIBS) $^ -o $@
 	
-test_manyranks: $(manyranks_obj)
+test_manyranks: $(addprefix $(OBJ_DIR)/,$(manyranks_obj))
 	$(NVCC) $(NVCCFLAGS) $(LIBS) $^ -o $@
 	
-test_halo: $(halo_obj)
+test_halo: $(addprefix $(OBJ_DIR)/,$(halo_obj))
 	$(NVCC) $(NVCCFLAGS) $(LIBS) $^ -o $@
 	
-test_redist: $(redist_obj)
+test_redist: $(addprefix $(OBJ_DIR)/,$(redist_obj))
 	$(NVCC) $(NVCCFLAGS) $(LIBS) $^ -o $@
 	
-test_dpd: $(dpd_obj)
+test_dpd: $(addprefix $(OBJ_DIR)/,$(dpd_obj))
 	$(NVCC) $(NVCCFLAGS) $(LIBS) $^ -o $@
 	
-test_parse: $(parse_obj)
-	$(NVCC) $(NVCCFLAGS) $(LIBS) $^ -o $@
 
-%.d: %.cu
-	@$(NVCC) $(NVCCFLAGS) -M $< > $(patsubst %.d,%.TMPd,$@)
+$(OBJ_DIR)/%.d: %.cu
+	$(NVCC) $(NVCCFLAGS) -M $< > $(patsubst %.d,%.TMPd,$@)
 	@mv $(patsubst %.d,%.TMPd,$@) $@
 	
-%.o: %.cu
+$(OBJ_DIR)/%.o: %.cu
 	$(NVCC) $(NVCCFLAGS) -c $< -o $@
 	
 clean:
@@ -63,5 +62,5 @@ clean:
 
 
 ifneq "$(MAKECMDGOALS)" "clean"
--include $(patsubst %.cu,%.d,$(notdir $(wildcard $(addsuffix /*.cu,$(SRC_DIR)))))
+-include $(patsubst %.cu,$(OBJ_DIR)/%.d,$(notdir $(wildcard $(addsuffix /*.cu,$(SRC_DIR)))))
 endif

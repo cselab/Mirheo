@@ -14,9 +14,11 @@
 #include <cassert>
 #include <algorithm>
 
-#include "../core/datatypes.h"
-#include "../core/celllist.h"
-#include "../core/logger.h"
+#include <core/datatypes.h>
+#include <core/celllist.h>
+#include <core/logger.h>
+#include <core/components.h>
+#include <core/xml/pugixml.hpp>
 
 Logger logger;
 
@@ -36,73 +38,48 @@ int main(int argc, char **argv)
 	}
 
 	logger.init(MPI_COMM_WORLD, "cells.log", 9);
-	IniParser config("tests.cfg");
 
 	MPI_Check( MPI_Comm_size(MPI_COMM_WORLD, &nranks) );
 	MPI_Check( MPI_Comm_rank(MPI_COMM_WORLD, &rank) );
 	MPI_Check( MPI_Cart_create(MPI_COMM_WORLD, 3, ranks, periods, 0, &cartComm) );
 
-	// Initial cells
 
-	float3 length{64, 64, 64};
+	std::string xml = R"(<node mass="1.0" density="8.0">)";
+	pugi::xml_document config;
+	config.load_string(xml.c_str());
+
+	float3 length{64,64,64};
 	float3 domainStart = -length / 2.0f;
 	const float rc = 1.0f;
-	ParticleVector dpds(domainStart, length);
+	ParticleVector dpds("dpd");
 	CellList cells(&dpds, rc, domainStart, length);
-	const int3 ncells = cells.ncells;
 
-	const int ndens = 8;
-	dpds.resize(ncells.x*ncells.y*ncells.z * ndens);
+	InitialConditions ic = createIC(config.child("node"));
+	ic.exec(MPI_COMM_WORLD, &dpds, {0,0,0}, length);
 
-	srand48(0);
-
-	printf("initializing...\n");
-
-	int c = 0;
-	for (int i=0; i<ncells.x; i++)
-		for (int j=0; j<ncells.y; j++)
-			for (int k=0; k<ncells.z; k++)
-				for (int p=0; p<ndens; p++)
-				{
-					dpds.coosvels[c].x[0] = i + drand48() + domainStart.x;
-					dpds.coosvels[c].x[1] = j + drand48() + domainStart.y;
-					dpds.coosvels[c].x[2] = k + drand48() + domainStart.z;
-					dpds.coosvels[c].i1 = c;
-
-					dpds.coosvels[c].u[0] = (drand48() - 0.5);
-					dpds.coosvels[c].u[1] = (drand48() - 0.5);
-					dpds.coosvels[c].u[2] = (drand48() - 0.5);
-					c++;
-				}
-
-	int np = c;
-
-	dpds.resize(np, resizePreserve);
-	dpds.coosvels.synchronize(synchronizeDevice);
-
+	const int np = dpds.np;
 	HostBuffer<Particle> initial(np);
+	auto initPtr = initial.hostPtr();
 	for (int i=0; i<np; i++)
-		initial[i] = dpds.coosvels[i];
+		initPtr[i] = dpds.coosvels[i];
 
 	for (int i=0; i<50; i++)
 		cells.build(0);
 
-	dpds.coosvels.synchronize(synchronizeHost);
-	cudaDeviceSynchronize();
-
+	dpds.coosvels.downloadFromDevice(true);
 
 	HostBuffer<int> hcellsStart(cells.totcells+1);
 	HostBuffer<uint8_t> hcellsSize(cells.totcells+1);
 
-	hcellsStart.copy(cells.cellsStart);
-	hcellsSize. copy(cells.cellsSize);
+	hcellsStart.copy(cells.cellsStart, 0);
+	hcellsSize. copy(cells.cellsSize, 0);
 
 	HostBuffer<int> cellscount(cells.totcells+1);
 	for (int i=0; i<cells.totcells+1; i++)
 		cellscount[i] = 0;
 
 	int total = 0;
-	for (int pid=0; pid < initial.size; pid++)
+	for (int pid=0; pid < initial.size(); pid++)
 	{
 		float3 coo{initial[pid].x[0], initial[pid].x[1], initial[pid].x[2]};
 		float3 vel{initial[pid].u[0], initial[pid].u[1], initial[pid].u[2]};

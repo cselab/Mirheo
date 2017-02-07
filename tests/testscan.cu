@@ -1,5 +1,5 @@
-#include "../core/datatypes.h"
-#include "../core/scan.h"
+#include <core/datatypes.h>
+#include <core/scan.h>
 
 #include <cstdio>
 #include <cstdint>
