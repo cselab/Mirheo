@@ -246,7 +246,7 @@ int main(int argc, char ** argv)
 	pugi::xml_document config;
 	config.load_string(xml.c_str());
 
-	float3 length{32,32,32};
+	float3 length{64,64,64};
 	float3 domainStart = -length / 2.0f;
 	const float rc = 1.0f;
 	ParticleVector dpds("dpd");
@@ -287,12 +287,14 @@ int main(int argc, char ** argv)
 	cudaStream_t defStream;
 	CUDA_Check( cudaStreamCreateWithPriority(&defStream, cudaStreamNonBlocking, 10) );
 
+	dpds.pushStreamWOhalo(defStream);
+
 	HaloExchanger halo(cartComm);
 	halo.attach(&dpds, &cells);
 	Redistributor redist(cartComm);
 	redist.attach(&dpds, &cells);
 
-	const int niters = 10;
+	const int niters = 200;
 
 	printf("GPU execution\n");
 
@@ -301,23 +303,20 @@ int main(int argc, char ** argv)
 
 	for (int i=0; i<niters; i++)
 	{
-		dpds.forces.clear();
 		cells.build(defStream);
-		inter(&dpds, &cells, dt*i, defStream);
+		CUDA_Check( cudaStreamSynchronize(defStream) );
 
-		CUDA_Check( cudaDeviceSynchronize() );
+		dpds.forces.clear();
+		inter(&dpds, &cells, dt*i, defStream);
 
 		halo.exchange();
 
 		haloInt(&dpds, &dpds, &cells, dt*i, defStream);
-
 		integrateNoFlow(&dpds, dt, defStream);
 
 		CUDA_Check( cudaStreamSynchronize(defStream) );
 
 		redist.redistribute();
-
-		CUDA_Check( cudaStreamSynchronize(defStream) );
 	}
 
 	double elapsed = tm.elapsed() * 1e-9;
@@ -329,7 +328,6 @@ int main(int argc, char ** argv)
 
 
 	dpds.coosvels.downloadFromDevice(true);
-	dpds.forces.downloadFromDevice(true);
 
 	for (int i=0; i<dpds.np; i++)
 	{
@@ -444,10 +442,10 @@ int main(int argc, char ** argv)
 
 			if (argc > 5 && perr > 0.01)
 			{
-				printf("id %8d diff %8e  [%12f %12f %12f  %8d] [%12f %12f %12f] [%12f %12f %12f]\n"
+				printf("id %8d diff %8e  [%12f %12f %12f  %8d] [%12f %12f %12f] \n"
 						"                           ref [%12f %12f %12f  %8d] [%12f %12f %12f] [%12f %12f %12f] \n\n", i, perr,
 						gpuP.x[0], gpuP.x[1], gpuP.x[2], gpuP.i1,
-						gpuP.u[0], gpuP.u[1], gpuP.u[2], dpds.forces[gpuid[i]].f[0], dpds.forces[gpuid[i]].f[1], dpds.forces[gpuid[i]].f[2],
+						gpuP.u[0], gpuP.u[1], gpuP.u[2],
 						cpuP.x[0], cpuP.x[1], cpuP.x[2], cpuP.i1,
 						cpuP.u[0], cpuP.u[1], cpuP.u[2], accs[cpuid[i]].f[0], accs[cpuid[i]].f[1], accs[cpuid[i]].f[2]);
 			}

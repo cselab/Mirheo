@@ -199,14 +199,6 @@ void Redistributor::_initialize(int n)
 	auto pv = particlesAndCells[n].first;
 	auto cl = particlesAndCells[n].second;
 	auto& helper = helpers[n];
-	
-	int totalLeaving = 0;
-	auto cntPtr = helper.counts.hostPtr();
-	for (int i=0; i<27; i++)
-		if (i != 13)
-			totalLeaving += cntPtr[i];
-
-	debug("Preparing %d leaving %s particles on the device", totalLeaving, pv->name.c_str());
 
 	helper.counts.clear();
 	helper.requests.clear();
@@ -232,11 +224,16 @@ void Redistributor::send(int n)
 	auto pv = particlesAndCells[n].first;
 	auto& helper = helpers[n];
 
-	//debug("Downloading %d leaving %s particles", totalLeaving, pv->name.c_str());
-
 	// Wait for the previous downloads
 	CUDA_Check( cudaStreamSynchronize(helper.stream) );
+
+	int totalLeaving = 0;
 	auto cntPtr = helper.counts.hostPtr();
+	for (int i=0; i<27; i++)
+		if (i != 13)
+			totalLeaving += cntPtr[i];
+
+	debug("Preparing %d leaving %s particles on the device", totalLeaving, pv->name.c_str());
 
 
 	for (int i=0; i<27; i++)

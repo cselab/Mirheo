@@ -175,8 +175,8 @@ void HaloExchanger::attach(ParticleVector* pv, CellList* cl)
 		int c = std::abs(d[0]) + std::abs(d[1]) + std::abs(d[2]);
 		if (c > 0)
 		{
-			helper.sendBufs[i].resize( 3 * ndens * pow(maxdim, 3 - c) + 128 );
-			helper.recvBufs[i].resize( 3 * ndens * pow(maxdim, 3 - c) + 128 );
+			helper.sendBufs[i].resize( 4 * ndens * pow(maxdim, 3 - c) + 128 );
+			helper.recvBufs[i].resize( 4 * ndens * pow(maxdim, 3 - c) + 128 );
 			addrsPtr[i] = (float4*)helper.sendBufs[i].devPtr();
 
 			helper.sendBufs[i].pushStream(helper.stream);
@@ -202,6 +202,9 @@ void HaloExchanger::exchange()
 
 	for (int i=0; i<particlesAndCells.size(); i++)
 		receive(i);
+
+	for (auto& helper : helpers)
+		CUDA_Check( cudaStreamSynchronize(helper.stream) );
 }
 
 void HaloExchanger::_initialize(int n)
@@ -298,6 +301,4 @@ void HaloExchanger::receive(int n)
 		CUDA_Check( cudaMemcpyAsync(pv->halo.devPtr() + offsets[i], helper.recvBufs[compactedDirs[i]].hostPtr(),
 				(offsets[i+1] - offsets[i])*sizeof(Particle), cudaMemcpyHostToDevice, helper.stream) );
 	}
-
-	CUDA_Check( cudaStreamSynchronize(helper.stream) );
 }
