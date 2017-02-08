@@ -17,7 +17,10 @@ struct ParticleVector
 
 	PinnedBuffer<Particle>	   halo;
 
-	ParticleVector(std::string name) : name(name) {}
+	ParticleVector(std::string name) : name(name), received(0)
+	{
+		resize(0);
+	}
 
 	void pushStreamWOhalo(cudaStream_t stream)
 	{

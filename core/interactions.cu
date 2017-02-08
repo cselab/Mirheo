@@ -22,10 +22,8 @@ __device__ __forceinline__ float3 dpd_interaction(
 		const float adpd, const float gammadpd, const float sigmadpd,
 		const float rc2, const float invrc, const float seed)
 {
-	const float _xr = dstCoo.x - srcCoo.x;
-	const float _yr = dstCoo.y - srcCoo.y;
-	const float _zr = dstCoo.z - srcCoo.z;
-	const float rij2 = _xr * _xr + _yr * _yr + _zr * _zr;
+	const float3 dr = dstCoo - srcCoo;
+	const float rij2 = dr.x*dr.x + dr.y*dr.y + dr.z*dr.z;
 	if (rij2 > rc2) return make_float3(0.0f);
 
 	const float invrij = rsqrtf(rij2);
@@ -33,30 +31,26 @@ __device__ __forceinline__ float3 dpd_interaction(
 	const float argwr = 1.0f - rij*invrc;
 	const float wr = viscosity_function<0>(argwr);
 
-	const float xr = _xr * invrij;
-	const float yr = _yr * invrij;
-	const float zr = _zr * invrij;
-
-	const float rdotv =
-			xr * (dstVel.x - srcVel.x) +
-			yr * (dstVel.y - srcVel.y) +
-			zr * (dstVel.z - srcVel.z);
+	const float3 dr_r = dr * invrij;
+	const float rdotv = dot(dr_r, (dstVel - srcVel));
 
 	const float myrandnr = 0*Logistic::mean0var1(seed, min(srcId, dstId), max(srcId, dstId));
 
 	const float strength = adpd * argwr - (gammadpd * wr * rdotv + sigmadpd * myrandnr) * wr;
 
-	return make_float3(strength * xr, strength * yr, strength * zr);
+	return dr_r * strength;
 }
 
 
 void interactionDPDSelf (ParticleVector* pv, CellList* cl, const float t, cudaStream_t stream,
 		float adpd, float gammadpd, float sigma_dt, float rc)
 {
-	auto dpdCore = [=] __device__ ( const float3 dstCoo, const float3 dstVel, const int dstId,
-					   const float3 srcCoo, const float3 srcVel, const int srcId)
+	auto dpdCore = [=] __device__ ( const float4 dstCoo, const float4 dstVel, const int dstId,
+									const float4 srcCoo, const float4 srcVel, const int srcId)
 	{
-		return dpd_interaction(dstCoo, dstVel, dstId, srcCoo, srcVel, srcId, adpd, gammadpd, sigma_dt, rc*rc, 1.0f/rc, t);
+		return dpd_interaction( make_float3(dstCoo), make_float3(dstVel), dstId,
+								make_float3(srcCoo), make_float3(srcVel), srcId,
+								adpd, gammadpd, sigma_dt, rc*rc, 1.0f/rc, t);
 	};
 
 	const int nth = 32 * 4;
@@ -72,10 +66,12 @@ void interactionDPDSelf (ParticleVector* pv, CellList* cl, const float t, cudaSt
 void interactionDPDHalo (ParticleVector* pv1, ParticleVector* pv2, CellList* cl, const float t, cudaStream_t stream,
 		float adpd, float gammadpd, float sigma_dt, float rc)
 {
-	auto dpdCore = [=] __device__ ( const float3 dstCoo, const float3 dstVel, const int dstId,
-					   const float3 srcCoo, const float3 srcVel, const int srcId)
+	auto dpdCore = [=] __device__ ( const float4 dstCoo, const float4 dstVel, const int dstId,
+									const float4 srcCoo, const float4 srcVel, const int srcId)
 	{
-		return dpd_interaction(dstCoo, dstVel, dstId, srcCoo, srcVel, srcId, adpd, gammadpd, sigma_dt, rc*rc, 1.0f/rc, t);
+		return dpd_interaction( make_float3(dstCoo), make_float3(dstVel), dstId,
+								make_float3(srcCoo), make_float3(srcVel), srcId,
+								adpd, gammadpd, sigma_dt, rc*rc, 1.0f/rc, t);
 	};
 
 	const int nth = 32 * 4;
@@ -92,10 +88,12 @@ void interactionDPDHalo (ParticleVector* pv1, ParticleVector* pv2, CellList* cl,
 void interactionDPDExternal (ParticleVector* pv1, ParticleVector* pv2, CellList* cl, const float t, cudaStream_t stream,
 		float adpd, float gammadpd, float sigma_dt, float rc)
 {
-	auto dpdCore = [=] __device__ ( const float3 dstCoo, const float3 dstVel, const int dstId,
-					   const float3 srcCoo, const float3 srcVel, const int srcId)
+	auto dpdCore = [=] __device__ ( const float4 dstCoo, const float4 dstVel, const int dstId,
+									const float4 srcCoo, const float4 srcVel, const int srcId)
 	{
-		return dpd_interaction(dstCoo, dstVel, dstId, srcCoo, srcVel, srcId, adpd, gammadpd, sigma_dt, rc*rc, 1.0f/rc, t);
+		return dpd_interaction( make_float3(dstCoo), make_float3(dstVel), dstId,
+								make_float3(srcCoo), make_float3(srcVel), srcId,
+								adpd, gammadpd, sigma_dt, rc*rc, 1.0f/rc, t);
 	};
 
 	const int nth = 32 * 4;

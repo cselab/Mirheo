@@ -1,5 +1,5 @@
 NVCC = nvcc
-NVCCFLAGS = -std=c++11 -arch=compute_61 -code=sm_61 -O3 -g -lineinfo --expt-extended-lambda -Xcompiler " -fopenmp"
+NVCCFLAGS = -std=c++11 -arch=compute_61 -code=sm_61 -O3 -g -lineinfo --expt-extended-lambda -Xcompiler "-fopenmp -march=native"
 #-O0 -G -Xptxas -O0
 
 LIBS = -lmpi
@@ -12,8 +12,8 @@ OBJ_DIR = obj
 
 wall_obj = scan.o celllist.o halo_exchanger.o dpd.o test_wall.o redistributor.o wall.o integrate.o
 onerank_obj = scan.o celllist.o halo_exchanger.o dpd.o test_onerank.o redistributor.o integrate.o
-manyranks_obj = scan.o celllist.o halo_exchanger.o dpd.o test_manyranks.o redistributor.o integrate.o
-halo_obj    = scan.o celllist.o halo_exchanger.o test_halo.o
+manyranks_obj = scan.o celllist.o test_manyranks.o pugixml.o components.o integrate.o interactions.o wall.o halo_exchanger.o redistributor.o
+halo_obj    = scan.o celllist.o test_halo.o pugixml.o components.o integrate.o interactions.o wall.o halo_exchanger.o
 redist_obj  = scan.o celllist.o redistributor.o test_redist.o
 log_obj     = test_logger.o
 cells_obj   = scan.o celllist.o test_cells.o pugixml.o components.o integrate.o interactions.o wall.o
@@ -49,14 +49,15 @@ test_dpd: $(addprefix $(OBJ_DIR)/,$(dpd_obj))
 	
 
 $(OBJ_DIR)/%.d: %.cu
+	@mkdir -p $(OBJ_DIR)
 	$(NVCC) $(NVCCFLAGS) -M $< > $(patsubst %.d,%.TMPd,$@)
-	@mv $(patsubst %.d,%.TMPd,$@) $@
+	@printf "$(OBJ_DIR)/" | cat - $(patsubst %.d,%.TMPd,$@)  > $@ && rm $(patsubst %.d,%.TMPd,$@)
 	
 $(OBJ_DIR)/%.o: %.cu
 	$(NVCC) $(NVCCFLAGS) -c $< -o $@
 	
 clean:
-	rm -f *.o *.d test_onerank test_halo test_logger test_cells test_dpd test_redist
+	rm -f obj/* test_onerank test_halo test_logger test_cells test_dpd test_redist
 	
 .PHONY: clean default
 

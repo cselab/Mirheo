@@ -87,8 +87,11 @@
 			int predicted = round(avg * ncells.x*ncells.y*ncells.z * 1.05);
 			pv->resize(predicted);
 
-			std::random_device rd;
-			std::mt19937 gen(0);//rd());
+			int rank;
+			MPI_Check( MPI_Comm_rank(comm, &rank) );
+
+			const int seed = rank + 0;
+			std::mt19937 gen(seed);
 			std::poisson_distribution<> particleDistribution(avg);
 			std::uniform_real_distribution<float> coordinateDistribution(0, 1);
 
@@ -119,6 +122,7 @@
 			 pv->domainLength = subDomainSize;
 			 pv->domainStart  = -subDomainSize*0.5;
 			 pv->mass = mass;
+			 pv->received = 0;
 
 			 int totalCount=0; // TODO: int64!
 			 MPI_Check( MPI_Exscan(&mycount, &totalCount, 1, MPI_INT, MPI_SUM, comm) );
@@ -126,6 +130,8 @@
 				 cooPtr[i].i1 += totalCount;
 
 			 pv->coosvels.uploadToDevice();
+
+			 debug("Generated %d %s particles", pv->np, pv->name.c_str());
 		};
 
 		return result;

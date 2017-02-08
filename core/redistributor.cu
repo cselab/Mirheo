@@ -9,7 +9,7 @@
 
 __global__ void getExitingParticles(float4* xyzouvwo,
 		CellListInfo cinfo, const int* __restrict__ cellsStart,
-		const int64_t __restrict__ dests[27], int counts[27])
+		float4* __restrict__ dests[27], int counts[27])
 {
 	const int gid = blockIdx.x*blockDim.x + threadIdx.x;
 	const int variant = blockIdx.y;
@@ -105,7 +105,7 @@ __global__ void getExitingParticles(float4* xyzouvwo,
 
 			const int dstInd = 2*myid;
 
-			float4* addr = (float4*)dests[bufId];
+			float4* addr = dests[bufId];
 			float4 newcoo = coo - shift;
 			newcoo.w = coo.w;
 			addr[dstInd + 0] = newcoo;
@@ -200,11 +200,17 @@ void Redistributor::_initialize(int n)
 	auto cl = particlesAndCells[n].second;
 	auto& helper = helpers[n];
 	
-	debug("Preparing leaving %s particles on the device", pv->name.c_str());
+	int totalLeaving = 0;
+	auto cntPtr = helper.counts.hostPtr();
+	for (int i=0; i<27; i++)
+		if (i != 13)
+			totalLeaving += cntPtr[i];
+
+	debug("Preparing %d leaving %s particles on the device", totalLeaving, pv->name.c_str());
 
 	helper.counts.clear();
 	helper.requests.clear();
-	for (int i=0; i<nActiveNeighbours; i++)
+	for (int i=0; i<27; i++)
 		if (i != 13 && dir2rank[i] >= 0)
 		{
 			MPI_Request req;
@@ -216,7 +222,7 @@ void Redistributor::_initialize(int n)
 	const int maxdim = std::max({cl->ncells.x, cl->ncells.y, cl->ncells.z});
 	const int nthreads = 32;
 	getExitingParticles<<< dim3((maxdim*maxdim + nthreads - 1) / nthreads, 6, 1),  dim3(nthreads, 1, 1), 0, helper.stream >>>
-				( (float4*)pv->coosvels.devPtr(), cl->cellInfo(), cl->cellsStart.devPtr(), (int64_t*)helper.sendAddrs.devPtr(), helper.counts.devPtr() );
+				( (float4*)pv->coosvels.devPtr(), cl->cellInfo(), cl->cellsStart.devPtr(), helper.sendAddrs.devPtr(), helper.counts.devPtr() );
 
 	helper.counts.downloadFromDevice(false);
 }
@@ -277,6 +283,7 @@ void Redistributor::receive(int n)
 	int oldsize = pv->np;
 	pv->resize(oldsize + totalRecvd, resizePreserve);
 	pv->received = totalRecvd; // TODO: get rid of this
+	debug("Receiving %d total %s particles", totalRecvd, pv->name.c_str());
 
 	// Load onto the device
 	for (int i=0; i<nMessages; i++)

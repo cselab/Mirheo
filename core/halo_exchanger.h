@@ -6,7 +6,7 @@
 #include "celllist.h"
 
 #include <vector>
-#include <thread>
+//#include <thread>
 
 struct HaloHelper
 {
@@ -18,7 +18,7 @@ struct HaloHelper
 	std::vector<MPI_Request> requests;
 
 	cudaStream_t stream;
-	std::thread thread;
+	//std::thread thread;
 };
 
 class HaloExchanger

@@ -5,27 +5,20 @@
 #include "celllist.h"
 #include "non_cached_rw.h"
 
-__device__ __forceinline__ float3 readCoosFromAll4(const float4* coosvels, int pid)
+__device__ __forceinline__ float4 readCoosFromAll4(const float4* coosvels, int pid)
 {
-	const float4 tmp = coosvels[2*pid];
-
-	return make_float3(tmp.x, tmp.y, tmp.z);
+	return coosvels[2*pid];
 }
 
-__device__ __forceinline__ float3 readVelsFromAll4(const float4* coosvels, int pid)
+__device__ __forceinline__ float4 readVelsFromAll4(const float4* coosvels, int pid)
 {
-	const float4 tmp = coosvels[2*pid+1];
-
-	return make_float3(tmp.x, tmp.y, tmp.z);
+	return coosvels[2*pid+1];
 }
 
-__device__ __forceinline__ void readAll4(const float4* coosvels, int pid, float3& coo, float3& vel)
+__device__ __forceinline__ void readAll4(const float4* coosvels, int pid, float4& coo, float4& vel)
 {
-	const float4 tmp1 = coosvels[pid*2];
-	const float4 tmp2 = coosvels[pid*2+1];
-
-	coo = make_float3(tmp1.x, tmp1.y, tmp1.z);
-	vel = make_float3(tmp2.x, tmp2.y, tmp2.z);
+	coo = coosvels[pid*2];
+	vel = coosvels[pid*2+1];
 }
 
 __device__ __forceinline__ float sqr(float x)
@@ -52,7 +45,7 @@ __global__ void computeSelfInteractions(const float4 * __restrict__ coosvels, fl
 	const int dstId = blockIdx.x*blockDim.x + threadIdx.x;
 	if (dstId >= np) return;
 
-	float3 dstCoo, dstVel;
+	float4 dstCoo, dstVel;
 	float3 dstFrc = make_float3(0.0f);
 	readAll4(coosvels, dstId, dstCoo, dstVel);
 
@@ -81,14 +74,14 @@ __global__ void computeSelfInteractions(const float4 * __restrict__ coosvels, fl
 #pragma unroll 2
 				for (int srcId = start_size.x; srcId < start_size.x + start_size.y; srcId ++)
 				{
-					const float3 srcCoo = readCoosFromAll4(coosvels, srcId);
+					const float4 srcCoo = readCoosFromAll4(coosvels, srcId);
 
 					bool interacting = distance2(srcCoo, dstCoo) < 1.00f;
 					if (dstId <= srcId && cellY == cellY0 && cellZ == cellZ0) interacting = false;
 
 					if (interacting)
 					{
-						const float3 srcVel = readVelsFromAll4(coosvels, srcId);
+						const float4 srcVel = readVelsFromAll4(coosvels, srcId);
 
 						float3 frc = interaction(dstCoo, dstVel, dstId, srcCoo, srcVel, srcId);
 
@@ -121,11 +114,11 @@ __global__ void computeExternalInteractions(
 	const int dstId = blockIdx.x*blockDim.x + threadIdx.x;
 	if (dstId >= ndst) return;
 
-	float3 dstCoo, dstVel;
+	float4 dstCoo, dstVel;
 	float3 dstFrc = make_float3(0.0f);
 	//readAll4(dstData, dstId, dstCoo, dstVel);
-	dstCoo = f4tof3(readNoCache(dstData+2*dstId));
-	dstVel = f4tof3(readNoCache(dstData+2*dstId+1));
+	dstCoo = readNoCache(dstData+2*dstId);
+	dstVel = readNoCache(dstData+2*dstId+1);
 
 	const int cellX0 = cinfo.getCellIdAlongAxis<0, false>(dstCoo.x);
 	const int cellY0 = cinfo.getCellIdAlongAxis<1, false>(dstCoo.y);
@@ -140,13 +133,13 @@ __global__ void computeExternalInteractions(
 #pragma unroll 2
 				for (int srcId = start_size.x; srcId < start_size.x + start_size.y; srcId ++)
 				{
-					const float3 srcCoo = readCoosFromAll4(srcData, srcId);
+					const float4 srcCoo = readCoosFromAll4(srcData, srcId);
 
 					bool interacting = distance2(srcCoo, dstCoo) < 1.00f;
 
 					if (interacting)
 					{
-						const float3 srcVel = readVelsFromAll4(srcData, srcId);
+						const float4 srcVel = readVelsFromAll4(srcData, srcId);
 
 						float3 frc = interaction(dstCoo, dstVel, dstId, srcCoo, srcVel, srcId);
 
@@ -157,9 +150,9 @@ __global__ void computeExternalInteractions(
 						{
 							float* dest = srcFrcs + srcId*4;
 
-							atomicAdd(dest,     -frc.x);
-							atomicAdd(dest + 1, -frc.y);
-							atomicAdd(dest + 2, -frc.z);
+							float a = atomicAdd(dest,     -frc.x);
+							float b = atomicAdd(dest + 1, -frc.y);
+							float c = atomicAdd(dest + 2, -frc.z);
 						}
 					}
 				}

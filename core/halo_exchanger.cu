@@ -5,7 +5,7 @@
 #include "logger.h"
 
 #include <vector>
-#include <thread>
+//#include <thread>
 #include <algorithm>
 #include <unistd.h>
 
@@ -214,7 +214,7 @@ void HaloExchanger::_initialize(int n)
 
 	helper.counts.clear();
 	helper.requests.clear();
-	for (int i=0; i<nActiveNeighbours; i++)
+	for (int i=0; i<27; i++)
 		if (i != 13 && dir2rank[i] >= 0)
 		{
 			MPI_Request req;

@@ -5,8 +5,6 @@
 #include <core/helper_math.h>
 #include <core/wall.h>
 #include <core/celllist.h>
-#include <core/interactions.h>
-#include <core/interaction_engine.h>
 
 
 // This should be in helper_math.h, but not there for some reason
@@ -84,6 +82,7 @@ __global__ void cubicInterpolate3D(const float* in, int3 inDims, float3 inH, flo
 
 __forceinline__ __device__ float gRouyTourin(float a, float b, float c, float d, float e, float f)
 {
+	auto sqr = [] (float x) { return x*x; };
 	// Rouy-Tourin scheme
 	// http://epubs.siam.org/doi/pdf/10.1137/0729053
 
