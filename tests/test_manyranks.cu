@@ -224,7 +224,7 @@ int main(int argc, char ** argv)
 
 	MPI_Init(&argc, &argv);
 
-	logger.init(MPI_COMM_WORLD, "manyranks.log", 4);
+	logger.init(MPI_COMM_WORLD, "manyranks.log", 9);
 
 	if (argc < 4)
 		die("Need 3 command line arguments");
@@ -246,7 +246,7 @@ int main(int argc, char ** argv)
 	pugi::xml_document config;
 	config.load_string(xml.c_str());
 
-	float3 length{64,64,64};
+	float3 length{16,16,16};
 	float3 domainStart = -length / 2.0f;
 	const float rc = 1.0f;
 	ParticleVector dpds("dpd");
@@ -294,7 +294,7 @@ int main(int argc, char ** argv)
 	Redistributor redist(cartComm);
 	redist.attach(&dpds, &cells);
 
-	const int niters = 200;
+	const int niters = 3;
 
 	printf("GPU execution\n");
 
@@ -310,8 +310,8 @@ int main(int argc, char ** argv)
 		inter(&dpds, &cells, dt*i, defStream);
 
 		halo.exchange();
-
 		haloInt(&dpds, &dpds, &cells, dt*i, defStream);
+
 		integrateNoFlow(&dpds, dt, defStream);
 
 		CUDA_Check( cudaStreamSynchronize(defStream) );

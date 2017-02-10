@@ -158,5 +158,5 @@ void XDMFDumper::dump(std::vector<const float*> channelData, const float t)
 	if (myrank == 0) writeLight(fname, t);
 	writeHeavy(fname, channelData);
 
-	if (myrank == 0) debug("XDMF write successful: %s", (fname+"[.h5 .xmf]").c_str());
+	if (myrank == 0) debug2("XDMF write successful: %s", (fname+"[.h5 .xmf]").c_str());
 }

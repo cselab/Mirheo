@@ -26,7 +26,7 @@ __device__ __forceinline__ float3 dpd_interaction(
 	const float rij2 = dr.x*dr.x + dr.y*dr.y + dr.z*dr.z;
 	if (rij2 > rc2) return make_float3(0.0f);
 
-	const float invrij = rsqrtf(rij2);
+	const float invrij = rsqrtf(max(rij2, 1e-20f));
 	const float rij = rij2 * invrij;
 	const float argwr = 1.0f - rij*invrc;
 	const float wr = viscosity_function<0>(argwr);
@@ -34,7 +34,7 @@ __device__ __forceinline__ float3 dpd_interaction(
 	const float3 dr_r = dr * invrij;
 	const float rdotv = dot(dr_r, (dstVel - srcVel));
 
-	const float myrandnr = 0*Logistic::mean0var1(seed, min(srcId, dstId), max(srcId, dstId));
+	const float myrandnr = Logistic::mean0var1(seed, min(srcId, dstId), max(srcId, dstId));
 
 	const float strength = adpd * argwr - (gammadpd * wr * rdotv + sigmadpd * myrandnr) * wr;
 
@@ -57,7 +57,7 @@ void interactionDPDSelf (ParticleVector* pv, CellList* cl, const float t, cudaSt
 
 	if (pv->np > 0)
 	{
-		debug("Computing internal forces for %s (%d particles)", pv->name.c_str(), pv->np);
+		debug2("Computing internal forces for %s (%d particles)", pv->name.c_str(), pv->np);
 		computeSelfInteractions<<< (pv->np + nth - 1) / nth, nth, 0, stream >>>(
 				(float4*)pv->coosvels.devPtr(), (float*)pv->forces.devPtr(), cl->cellInfo(), cl->cellsStart.devPtr(), pv->np, dpdCore);
 	}
@@ -78,7 +78,7 @@ void interactionDPDHalo (ParticleVector* pv1, ParticleVector* pv2, CellList* cl,
 
 	if (pv1->np > 0 && pv2->np > 0)
 	{
-		debug("Computing halo forces for %s - %s(halo) (%d - %d particles)", pv1->name.c_str(), pv2->name.c_str(), pv1->np, pv2->halo.size());
+		debug2("Computing halo forces for %s - %s(halo) (%d - %d particles)", pv1->name.c_str(), pv2->name.c_str(), pv1->np, pv2->halo.size());
 		computeExternalInteractions<false, true> <<< (pv2->halo.size() + nth - 1) / nth, nth, 0, stream >>>(
 									(float4*)pv2->halo.devPtr(), nullptr, (float4*)pv1->coosvels.devPtr(),
 									(float*)pv1->forces.devPtr(), cl->cellInfo(), cl->cellsStart.devPtr(), pv2->halo.size(), dpdCore);
@@ -100,7 +100,7 @@ void interactionDPDExternal (ParticleVector* pv1, ParticleVector* pv2, CellList*
 
 	if (pv1->np > 0 && pv2->np > 0)
 	{
-		debug("Computing external forces for %s - %s (%d - %d particles)", pv1->name.c_str(), pv2->name.c_str(), pv1->np, pv2->np);
+		debug2("Computing external forces for %s - %s (%d - %d particles)", pv1->name.c_str(), pv2->name.c_str(), pv1->np, pv2->np);
 		computeExternalInteractions<true, true> <<< (pv2->np + nth - 1) / nth, nth, 0, stream >>>(
 									(float4*)pv2->coosvels.devPtr(), nullptr, (float4*)pv1->coosvels.devPtr(),
 									(float*)pv1->forces.devPtr(), cl->cellInfo(), cl->cellsStart.devPtr(), pv2->np, dpdCore);

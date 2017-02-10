@@ -10,6 +10,7 @@
 #include <vector>
 #include <string>
 #include <unordered_map>
+#include <mpi.h>
 
 class Simulation
 {
@@ -18,7 +19,7 @@ class Simulation
 	int3 rank3D;
 	float3 globalDomainSize, subDomainSize, subDomainStart;
 	MPI_Comm cartComm;
-	MPI_Comm& interComm;
+	MPI_Comm interComm;
 
 private:
 
@@ -38,7 +39,7 @@ private:
 	std::vector<SimulationPlugin*> plugins;
 
 public:
-	Simulation(int3 nranks3D, float3 globalDomainSize, MPI_Comm& comm, MPI_Comm& interComm);
+	Simulation(int3 nranks3D, float3 globalDomainSize, const MPI_Comm& comm, const MPI_Comm& interComm);
 
 	void registerParticleVector(ParticleVector* pv, InitialConditions* ic);
 	void registerObjectVector  (ObjectVector* ov);
@@ -61,8 +62,8 @@ public:
 class Postprocess
 {
 private:
-	MPI_Comm& comm;
-	MPI_Comm& interComm;
+	MPI_Comm comm;
+	MPI_Comm interComm;
 	std::vector<PostprocessPlugin*> plugins;
 	std::vector<MPI_Request> requests;
 

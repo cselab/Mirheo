@@ -126,7 +126,7 @@ void CellList::build(cudaStream_t stream)
 	pv->pushStreamWOhalo(stream);
 
 	// Compute cell sizes
-	debug("Computing cell sizes for %d particles with %d newcomers", pv->np, pv->received);
+	debug2("Computing cell sizes for %d particles with %d newcomers", pv->np, pv->received);
 	CUDA_Check( cudaMemsetAsync(cellsSize.devPtr(), 0, (totcells + 1)*sizeof(uint8_t), stream) );  // +1 to have correct cellsStart[totcells]
 
 	auto cinfo = cellInfo();
@@ -141,7 +141,7 @@ void CellList::build(cudaStream_t stream)
 	blendStartSize<<< ((totcells+3)/4 + 127) / 128, 128, 0, stream >>>((uchar4*)cellsSize.devPtr(), (int4*)cellsStart.devPtr(), cinfo);
 
 	// Rearrange the data
-	debug("Rearranging %d particles", pv->np);
+	debug2("Rearranging %d particles", pv->np);
 
 	rearrangeParticles<<< (2*pv->np+127)/128, 128, 0, stream >>> (
 						(float4*)pv->coosvels.devPtr(), pv->np, pv->np - pv->received, cinfo,
@@ -152,7 +152,7 @@ void CellList::build(cudaStream_t stream)
 	int newSize;
 	CUDA_Check( cudaMemcpyAsync(&newSize, cellsStart.devPtr() + totcells, sizeof(int), cudaMemcpyDeviceToHost, stream) );
 	CUDA_Check( cudaStreamSynchronize(stream) );
-	debug("Rearranging completed, new size of particle vector is %d", newSize);
+	debug2("Rearranging completed, new size of particle vector is %d", newSize);
 
 	pv->resize(newSize, resizePreserve);
 	CUDA_Check( cudaStreamSynchronize(stream) );

@@ -206,7 +206,15 @@ void Redistributor::_initialize(int n)
 		if (i != 13 && dir2rank[i] >= 0)
 		{
 			MPI_Request req;
-			const int tag = 27*n + i;
+
+			// Invert the direction index
+			const int cx = -( i%3 - 1 ) + 1;
+			const int cy = -( (i/3)%3 - 1 ) + 1;
+			const int cz = -( i/9 - 1 ) + 1;
+
+			const int dirCode = (cz*3 + cy)*3 + cx;
+			const int tag = 27*n + dirCode;
+
 			MPI_Check( MPI_Irecv(helper.recvBufs[i].hostPtr(), helper.recvBufs[i].size(), mpiPartType, dir2rank[i], tag, redComm, &req) );
 			helper.requests.push_back(req);
 		}
@@ -233,7 +241,7 @@ void Redistributor::send(int n)
 		if (i != 13)
 			totalLeaving += cntPtr[i];
 
-	debug("Preparing %d leaving %s particles on the device", totalLeaving, pv->name.c_str());
+	debug2("Preparing %d leaving %s particles on the device", totalLeaving, pv->name.c_str());
 
 
 	for (int i=0; i<27; i++)
@@ -246,7 +254,7 @@ void Redistributor::send(int n)
 	for (int i=0; i<27; i++)
 		if (i != 13 && dir2rank[i] >= 0)
 		{
-			debug2("Sending %s redistribution to rank %d in dircode %d [%2d %2d %2d], size %d",
+			debug3("Sending %s redistribution to rank %d in dircode %d [%2d %2d %2d], size %d",
 					pv->name.c_str(), dir2rank[i], i, i%3 - 1, (i/3)%3 - 1, i/9 - 1, cntPtr[i]);
 
 			const int tag = 27*n + i;
@@ -280,12 +288,12 @@ void Redistributor::receive(int n)
 	int oldsize = pv->np;
 	pv->resize(oldsize + totalRecvd, resizePreserve);
 	pv->received = totalRecvd; // TODO: get rid of this
-	debug("Receiving %d total %s particles", totalRecvd, pv->name.c_str());
+	debug2("Receiving %d total %s particles", totalRecvd, pv->name.c_str());
 
 	// Load onto the device
 	for (int i=0; i<nMessages; i++)
 	{
-		debug2("Receiving %s redistribution from rank %d in dircode %d [%2d %2d %2d], size %d",
+		debug3("Receiving %s redistribution from rank %d in dircode %d [%2d %2d %2d], size %d",
 				pv->name.c_str(), dir2rank[compactedDirs[i]], compactedDirs[i],
 				compactedDirs[i]%3 - 1, (compactedDirs[i]/3)%3 - 1, compactedDirs[i]/9 - 1, offsets[i+1] - offsets[i]);
 		CUDA_Check( cudaMemcpyAsync(pv->coosvels.devPtr() + oldsize + offsets[i], helper.recvBufs[compactedDirs[i]].hostPtr(),

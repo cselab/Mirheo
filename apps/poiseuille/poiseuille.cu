@@ -1,6 +1,6 @@
 #include <core/simulation.h>
 #include <plugins/plugin.h>
-#include <plugins/dumpavg.h>
+#include <plugins/stats.h>
 #include <core/xml/pugixml.hpp>
 #include <core/wall.h>
 
@@ -11,55 +11,41 @@ int main(int argc, char** argv)
 	pugi::xml_document config;
 	pugi::xml_parse_result result = config.load_file("poiseuille.xml");
 
-	float3 globalDomainSize{64, 64, 64};
+	float3 globalDomainSize{32, 32, 32};
 	int3 nranks3D{1, 1, 1};
-	//uDeviceX udevice(argc, argv, nranks3D, fullDomainSize, logger, "poiseuille.log", 9);
-
-
-	int provided;
-	MPI_Init_thread(&argc, &argv, MPI_THREAD_MULTIPLE, &provided);
-	if (provided < MPI_THREAD_MULTIPLE)
-	{
-		printf("ERROR: The MPI library does not have full thread support\n");
-		MPI_Abort(MPI_COMM_WORLD, 1);
-	}
-	MPI_Errhandler_set(MPI_COMM_WORLD, MPI_ERRORS_RETURN);
-	logger.init(MPI_COMM_WORLD, "poiseuille.log", 0);
-
-	MPI_Comm comm;
-	MPI_Check( MPI_Comm_dup(MPI_COMM_WORLD, &comm) );
-	Simulation* sim = new Simulation(nranks3D, globalDomainSize, comm, comm);
+	uDeviceX udevice(argc, argv, nranks3D, globalDomainSize, logger, "poiseuille.log", 4);
 
 	SimulationPlugin*  simPl;
 	PostprocessPlugin* postPl;
-	//if (udevice.isComputeTask())
+	if (udevice.isComputeTask())
 	{
 		Integrator  constDP = createIntegrator(config.child("simulation").child("integrator"));
 		Interaction dpdInt = createInteraction(config.child("simulation").child("interaction"));
 		InitialConditions dpdIc = createIC(config.child("simulation").child("particle_vector"));
 		Wall wall = createWall(config.child("simulation").child("wall"));
 
-
 		ParticleVector* dpd = new ParticleVector(config.child("simulation").child("particle_vector").attribute("name").as_string());
 
-		sim->registerParticleVector(dpd, &dpdIc);
+		udevice.sim->registerParticleVector(dpd, &dpdIc);
 
-		sim->registerIntegrator(&constDP);
-		sim->registerInteraction(&dpdInt);
-		sim->registerWall(&wall);
+		udevice.sim->registerIntegrator(&constDP);
+		udevice.sim->registerInteraction(&dpdInt);
+		udevice.sim->registerWall(&wall);
 
-		sim->setIntegrator("dpd", "const_dp");
-		sim->setInteraction("dpd", "dpd", "dpd_int");
+		udevice.sim->setIntegrator("dpd", "const_dp");
+		udevice.sim->setInteraction("dpd", "dpd", "dpd_int");
 
+		simPl = new SimulationStats("stats", 100);
 		//simPl = new Avg3DPlugin("dpd", 10, 2000, {32, 32, 32}, {0.5, 0.5, 0.5}, true, true, true);
 	}
-	//else
-	//{
-	//	postPl = new Avg3DDumper("xdmf/avgfields", nranks3D);
-	//}
+	else
+	{
+		postPl = new PostprocessStats("stats");
+		//postPl = new Avg3DDumper("xdmf/avgfields", nranks3D);
+	}
 
-	//udevice.registerJointPlugins(simPl, postPl);
-	sim->run(100);
+	udevice.registerJointPlugins(simPl, postPl);
+	udevice.run();
 
 	return 0;
 }

@@ -5,7 +5,7 @@
 #include <core/halo_exchanger.h>
 #include <core/logger.h>
 
-Simulation::Simulation(int3 nranks3D, float3 globalDomainSize, MPI_Comm& comm, MPI_Comm& interComm) :
+Simulation::Simulation(int3 nranks3D, float3 globalDomainSize, const MPI_Comm& comm, const MPI_Comm& interComm) :
 nranks3D(nranks3D), globalDomainSize(globalDomainSize), interComm(interComm)
 {
 	int ranksArr[] = {nranks3D.x, nranks3D.y, nranks3D.z};
@@ -19,6 +19,8 @@ nranks3D(nranks3D), globalDomainSize(globalDomainSize), interComm(interComm)
 
 	subDomainSize = globalDomainSize / make_float3(nranks3D);
 	subDomainStart = {subDomainSize.x * coords[0], subDomainSize.y * coords[1], subDomainSize.y * coords[2]};
+
+	debug("Simulation initialized");
 }
 
 void Simulation::registerParticleVector(ParticleVector* pv, InitialConditions* ic)
@@ -144,6 +146,7 @@ void Simulation::run(int nsteps)
 	cudaStream_t defStream;
 	CUDA_Check( cudaStreamCreateWithPriority(&defStream, cudaStreamNonBlocking, 10) );
 
+	debug("Simulation initiated, preparing plugins");
 	for (auto& pl : plugins)
 	{
 		pl->setup(this, defStream, cartComm, interComm);
@@ -155,6 +158,7 @@ void Simulation::run(int nsteps)
 	HaloExchanger halo(cartComm);
 	Redistributor redist(cartComm);
 
+	debug("Attaching particle vector to halo exchanger and redistributor");
 	cellListTable.resize(particleVectors.size());
 	for (int i=0; i<particleVectors.size(); i++)
 	{
@@ -172,22 +176,35 @@ void Simulation::run(int nsteps)
 	}
 
 	float t = 0;
+	debug("Started simulation");
 	for (int iter=0; iter<nsteps; iter++)
 	{
 		//===================================================================================================
-		for (auto& pv : particleVectors)
-			pv->forces.clear();
 
-		//===================================================================================================
+		debug("Building cell-lists");
 		for (auto& cllist : cellListTable)
 			for (auto& cl : cllist)
 				cl->build(defStream);
+		CUDA_Check( cudaStreamSynchronize(defStream) );
 
+		//===================================================================================================
+
+		for (auto& pv : particleVectors)
+			pv->forces.clear();
+
+		debug("Plugins: before forces");
 		for (auto& pl : plugins)
 			pl->beforeForces(t);
 
 		//===================================================================================================
 
+		// If this doesn't overlap well with cleaning forces, move right after the internal interactions
+		debug("Exchanging halos");
+		halo.exchange();
+
+		//===================================================================================================
+
+		debug("Computing local forces");
 		for (int i=0; i<interactionTable.size(); i++)
 			for (int j=0; j<interactionTable[i].size(); j++)
 				if (interactionTable[i][j].first != nullptr)
@@ -203,11 +220,15 @@ void Simulation::run(int nsteps)
 							interactionTable[i][j].first->execExternal(particleVectors[i], particleVectors[j], interactionTable[i][j].second, t, defStream);
 					}
 				}
+		//===================================================================================================
+
+		debug("Plugins: serialize and send");
+		for (auto& pl : plugins)
+			pl->serializeAndSend();
 
 		//===================================================================================================
-		halo.exchange();
 
-		//===================================================================================================
+		debug("Computing halo forces");
 		for (int i=0; i<interactionTable.size(); i++)
 			for (int j=0; j<interactionTable[i].size(); j++)
 				if (interactionTable[i][j].first != nullptr)
@@ -216,24 +237,41 @@ void Simulation::run(int nsteps)
 						interactionTable[i][j].first->execHalo(particleVectors[i], particleVectors[j], interactionTable[i][j].second, t, defStream);
 				}
 
+		//===================================================================================================
+
+		debug("Plugins: before integration");
 		for (auto& pl : plugins)
 			pl->beforeIntegration(t);
 
 		//===================================================================================================
+
+		debug("Performing integration");
 		for (int i=0; i<integrators.size(); i++)
 			if (integrators[i] != nullptr)
 				integrators[i]->exec(particleVectors[i], defStream);
-		CUDA_Check( cudaStreamSynchronize(defStream) );
 
+		//===================================================================================================
+
+		debug("Plugins: after integration");
 		for (auto& pl : plugins)
 			pl->afterIntegration(t);
 
 		//===================================================================================================
-		redist.redistribute();
+
+		debug("Redistributing particles");
 		CUDA_Check( cudaStreamSynchronize(defStream) );
+		redist.redistribute();
 	}
 
+	debug("Finished, exiting now");
+
 	MPI_Check( MPI_Barrier(cartComm) );
+
+	int dummy = -1;
+	int tag = 424242;
+
+	MPI_Request req;
+	MPI_Check( MPI_Isend(&dummy, 1, MPI_INT, rank, tag, interComm, &req) );
 }
 
 
@@ -241,7 +279,10 @@ void Simulation::run(int nsteps)
 // Postprocessing
 //===================================================================================================
 
-Postprocess::Postprocess(MPI_Comm& comm, MPI_Comm& interComm) : comm(comm), interComm(interComm) {};
+Postprocess::Postprocess(MPI_Comm& comm, MPI_Comm& interComm) : comm(comm), interComm(interComm)
+{
+	debug("Postprocessing initialized");
+}
 
 void Postprocess::registerPlugin(PostprocessPlugin* plugin)
 {
@@ -256,17 +297,39 @@ void Postprocess::run()
 		pl->handshake();
 	}
 
+	// Stopping condition
+	int dummy = 0;
+	int tag = 424242;
+	int rank;
+
+	MPI_Check( MPI_Comm_rank(comm, &rank) );
+
+	MPI_Request endReq;
+	MPI_Check( MPI_Irecv(&dummy, 1, MPI_INT, rank, tag, interComm, &endReq) );
+
 	std::vector<MPI_Request> requests;
 	for (auto& pl : plugins)
 		requests.push_back(pl->postRecv());
+	requests.push_back(endReq);
 
-	// TODO: need stopping criterion
 	while (true)
 	{
 		int index;
-		MPI_Check( MPI_Waitany(requests.size(), requests.data(), &index, MPI_STATUS_IGNORE) );
+		MPI_Status stat;
+		MPI_Check( MPI_Waitany(requests.size(), requests.data(), &index, &stat) );
 
-		plugins[index]->deserialize();
+		if (index == plugins.size())
+		{
+			if (dummy != -1)
+				die("Something went terribly wrong");
+
+			// TODO: Maybe cancel?
+			debug("Postprocess got a stopping message and will exit now");
+			break;
+		}
+
+		debug2("Postprocess got a request from plugin %s, executing now", plugins[index]->name.c_str());
+		plugins[index]->deserialize(stat);
 		requests[index] = plugins[index]->postRecv();
 	}
 }
@@ -281,13 +344,15 @@ uDeviceX::uDeviceX(int argc, char** argv, int3 nranks3D, float3 globalDomainSize
 {
 	int nranks, rank;
 
-	int provided;
-	MPI_Init_thread(&argc, &argv, MPI_THREAD_MULTIPLE, &provided);
-	if (provided < MPI_THREAD_MULTIPLE)
-	{
-		printf("ERROR: The MPI library does not have full thread support\n");
-		MPI_Abort(MPI_COMM_WORLD, 1);
-	}
+//	int provided;
+//	MPI_Init_thread(&argc, &argv, MPI_THREAD_MULTIPLE, &provided);
+//	if (provided < MPI_THREAD_MULTIPLE)
+//	{
+//		printf("ERROR: The MPI library does not have full thread support\n");
+//		MPI_Abort(MPI_COMM_WORLD, 1);
+//	}
+
+	MPI_Init(&argc, &argv);
 
 	logger.init(MPI_COMM_WORLD, logFileName, verbosity);
 
@@ -301,20 +366,24 @@ uDeviceX::uDeviceX(int argc, char** argv, int3 nranks3D, float3 globalDomainSize
 
 	debug("Program started, splitting commuticator");
 
-	computeTask = (rank+1) % 2;
+	computeTask = (rank) % 2;
 	MPI_Check( MPI_Comm_split(MPI_COMM_WORLD, computeTask, rank, &splitComm) );
 
 	if (isComputeTask())
 	{
 		MPI_Check( MPI_Comm_dup(splitComm, &compComm) );
-		MPI_Check( MPI_Intercomm_create(compComm, 0, MPI_COMM_WORLD, 0, 0, &interComm) );
+		MPI_Check( MPI_Intercomm_create(compComm, 0, MPI_COMM_WORLD, 1, 0, &interComm) );
+
+		MPI_Check( MPI_Comm_rank(compComm, &rank) );
 
 		sim = new Simulation(nranks3D, globalDomainSize, compComm, interComm);
 	}
 	else
 	{
 		MPI_Check( MPI_Comm_dup(splitComm, &ioComm) );
-		MPI_Check( MPI_Intercomm_create(ioComm,   0, MPI_COMM_WORLD, 1, 0, &interComm) );
+		MPI_Check( MPI_Intercomm_create(ioComm,   0, MPI_COMM_WORLD, 0, 0, &interComm) );
+
+		MPI_Check( MPI_Comm_rank(ioComm, &rank) );
 
 		post = new Postprocess(ioComm, interComm);
 	}
@@ -343,8 +412,10 @@ void uDeviceX::registerJointPlugins(SimulationPlugin* simPl, PostprocessPlugin* 
 
 void uDeviceX::run()
 {
-	if (computeTask)
-		sim->run(100000);
+	if (isComputeTask())
+	{
+		sim->run(1000);
+	}
 	else
 		post->run();
 

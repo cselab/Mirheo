@@ -1,8 +1,8 @@
 #pragma once
 
-#include "plugin.h"
-#include "../core/datatypes.h"
-#include "write_xdmf.h"
+#include <plugins/plugin.h>
+#include <core/datatypes.h>
+#include <plugins/write_xdmf.h>
 
 #include <vector>
 
@@ -25,7 +25,7 @@ private:
 	std::vector<std::pair<ParticleVector*, CellList*>> particlesAndCells;
 
 public:
-	Avg3DPlugin(std::string pvNames, int sampleEvery, int dumpEvery, int3 resolution, float3 h,
+	Avg3DPlugin(std::string name, std::string pvNames, int sampleEvery, int dumpEvery, int3 resolution, float3 h,
 			bool needDensity, bool needMomentum, bool needForce);
 
 	void handshake();
@@ -51,9 +51,9 @@ private:
 	PinnedBuffer<float3> momentum, force;
 
 public:
-	Avg3DDumper(std::string path, int3 nranks3D);
+	Avg3DDumper(std::string name, std::string path, int3 nranks3D);
 
-	void deserialize();
+	void deserialize(MPI_Status& stat);
 	void handshake();
 
 	~Avg3DDumper() {};

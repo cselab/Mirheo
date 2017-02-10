@@ -47,8 +47,9 @@ __global__ void scale(int n, float a, float4* res)
 	}
 }
 
-Avg3DPlugin::Avg3DPlugin(std::string pvNames, int sampleEvery, int dumpEvery, int3 resolution, float3 h,
+Avg3DPlugin::Avg3DPlugin(std::string name, std::string pvNames, int sampleEvery, int dumpEvery, int3 resolution, float3 h,
 			bool needDensity, bool needMomentum, bool needForce) :
+	SimulationPlugin(name),
 	sampleEvery(sampleEvery), dumpEvery(dumpEvery), resolution(resolution), h(h),
 	needDensity(needDensity), needMomentum(needMomentum), needForce(needForce),
 	nTimeSteps(-1), nSamples(0)
@@ -59,12 +60,12 @@ Avg3DPlugin::Avg3DPlugin(std::string pvNames, int sampleEvery, int dumpEvery, in
 	if (needForce)    force   .resize(total);
 
 	std::stringstream sstream(pvNames);
-	std::string name;
+	std::string pvName;
 	std::vector<std::string> splitPvNames;
 
-	while(std::getline(sstream, name, ','))
+	while(std::getline(sstream, pvName, ','))
 	{
-		splitPvNames.push_back(name);
+		splitPvNames.push_back(pvName);
 	}
 
 	for (auto& nm : splitPvNames)
@@ -130,7 +131,8 @@ void Avg3DPlugin::handshake()
 
 
 
-Avg3DDumper::Avg3DDumper(std::string path, int3 nranks3D) : path(path), nranks3D(nranks3D) { }
+Avg3DDumper::Avg3DDumper(std::string name, std::string path, int3 nranks3D) :
+		PostprocessPlugin(name), path(path), nranks3D(nranks3D) { }
 
 void Avg3DDumper::handshake()
 {
@@ -161,7 +163,7 @@ void Avg3DDumper::handshake()
 	dumper = new XDMFDumper(comm, nranks3D, path, resolution, h, channelNames, channelTypes);
 }
 
-void Avg3DDumper::deserialize()
+void Avg3DDumper::deserialize(MPI_Status& stat)
 {
 	float t;
 	SimpleSerializer::deserialize(data, t, density, momentum, force);

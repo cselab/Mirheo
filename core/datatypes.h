@@ -197,7 +197,7 @@ public:
 		return hostptr[i];
 	}
 
-	void downloadFromDevice(bool synchronize = true)
+	void __attribute__ ((noinline)) downloadFromDevice(bool synchronize = true)
 	{
 		// TODO: check if we really need to do that
 		// maybe everything is already downloaded

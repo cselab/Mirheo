@@ -141,7 +141,8 @@ __global__ void computeExternalInteractions(
 					{
 						const float4 srcVel = readVelsFromAll4(srcData, srcId);
 
-						float3 frc = interaction(dstCoo, dstVel, dstId, srcCoo, srcVel, srcId);
+						float3 frc = interaction(dstCoo, dstVel, __float_as_int(dstCoo.w),
+												 srcCoo, srcVel, __float_as_int(srcCoo.w));
 
 						if (NeedDstAcc)
 							dstFrc += frc;

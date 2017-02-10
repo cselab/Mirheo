@@ -22,7 +22,7 @@ private:
 	template<typename T>
 	static int sizeOfOne(std::vector<T>& v)
 	{
-		return v.size() * sizeof(T) + sizeof(int);
+		return (int)v.size() * sizeof(T) + sizeof(int);
 	}
 
 	template<typename Arg>
@@ -71,7 +71,7 @@ private:
 	template<typename T>
 	static void packOne(char* buf, std::vector<T>& v)
 	{
-		*((int*)buf) = v.size();
+		*((int*)buf) = (int)v.size();
 		buf += sizeof(int);
 		memcpy(buf, v.data(), sizeOfOne(v));
 	}

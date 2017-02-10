@@ -152,7 +152,8 @@ const static float sqrt2 = 1.41421356237309514547;
 __inline__ __device__ float mean0var1( float seed, int u, int v )
 {
     float p = rem( ( ( u & 0x3FF ) * gold ) + u * bronze + ( ( v & 0x3FF ) * silver ) + v * tin ); // safe for large u or v
-    float l = __logistic_core<N>( seed - p );
+    float q = rem( seed );
+    float l = __logistic_core<N>( q - p );
     return l * sqrt2;
 }
 
@@ -160,8 +161,10 @@ __inline__ __device__ float mean0var1( float seed, uint u, uint v )
 {
 	// 7 FLOPS
 	float p = rem( ( ( u & 0x3FFU ) * gold ) + u * bronze + ( ( v & 0x3FFU ) * silver ) + v * tin ); // safe for large u or v
+    float q = rem( seed );
+
 	// 45+1 FLOPS
-    float l = __logistic_core<N>( seed - p );
+    float l = __logistic_core<N>( q - p );
     // 1 FLOP
     return l * sqrt2;
 }
@@ -172,15 +175,19 @@ struct mean0var1_flops_counter {
 __inline__ __device__ float mean0var1( float seed, float u, float v )
 {
 	float p = rem( sqrtf(u) * gold + sqrtf(v) * silver ); // Acknowledging Dmitry for the use of sqrtf
-    float l = __logistic_core<N>( seed - p );
+    float q = rem( seed );
+
+    float l = __logistic_core<N>( q - p );
     return l * sqrt2;
 }
 
 __inline__ __device__ float mean0var1_dual( float seed, float u, float v )
 {
 	float p = rem( sqrtf(u) * gold + sqrtf(v) * silver ); // Acknowledging Dmitry for the use of sqrtf
-    float l = __logistic_core<N>( seed - p );
-    float z = __logistic_core<N>( seed + p - 1.f );
+    float q = rem( seed );
+
+    float l = __logistic_core<N>( q - p );
+    float z = __logistic_core<N>( q + p - 1.f );
     return l + z;
 }
 

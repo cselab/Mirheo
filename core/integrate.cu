@@ -61,7 +61,7 @@ void integrateNoFlow(ParticleVector* pv, const float dt, cudaStream_t stream)
 		_noflow(x, v, f, invm, dt);
 	};
 
-	debug("Integrating %d %s particles, timestep is %f", pv->np, pv->name.c_str(), dt);
+	debug2("Integrating %d %s particles, timestep is %f", pv->np, pv->name.c_str(), dt);
 	integrationKernel<<< (2*pv->np + 127)/128, 128, 0, stream >>>((float4*)pv->coosvels.devPtr(), (float4*)pv->forces.devPtr(), pv->np, dt, 1.0/pv->mass, noflow);
 }
 
@@ -71,7 +71,7 @@ void integrateConstDP(ParticleVector* pv, const float dt, cudaStream_t stream, f
 		_constDP(x, v, f, invm, dt, extraForce);
 	};
 
-	debug("Integrating %d %s particles, timestep is %f", pv->np, pv->name.c_str(), dt);
+	debug2("Integrating %d %s particles, timestep is %f", pv->np, pv->name.c_str(), dt);
 	integrationKernel<<< (2*pv->np + 127)/128, 128, 0, stream >>>((float4*)pv->coosvels.devPtr(), (float4*)pv->forces.devPtr(), pv->np, dt, 1.0/pv->mass, constDP);
 }
 

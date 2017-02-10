@@ -131,7 +131,7 @@
 
 			 pv->coosvels.uploadToDevice();
 
-			 debug("Generated %d %s particles", pv->np, pv->name.c_str());
+			 debug2("Generated %d %s particles", pv->np, pv->name.c_str());
 		};
 
 		return result;
