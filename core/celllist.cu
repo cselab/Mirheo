@@ -33,7 +33,7 @@ __global__ void computeCellSizes(const float4* xyzouvwo, const int n, const int 
 	// Care: BIG endian!
 
 	// XXX: the second part of the check should be enabled if some particles are being lost
-	if (cid >= 0) // || val.x > -900.0f)
+	if (cid >= 0 || coo.x > -900.0f)
 	{
 		const int addr = cid / 4;
 		const int slot = cid % 4;
@@ -68,7 +68,7 @@ __global__ void rearrangeParticles(const float4* in_xyzouvwo, const int n, const
 			cid = cinfo.getCellId(val);
 
 		// XXX: the second part of the check should be enabled if some particles are being lost
-		if (cid >= 0) // || val.x > -900.0f)
+		if (cid >= 0 || val.x > -900.0f)
 		{
 			// See above
 			const int addr = cid / 4;

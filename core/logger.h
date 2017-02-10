@@ -90,7 +90,9 @@ public:
 		log<0>(args...);
 
 		MPI_File_sync(fout);
-		MPI_File_close(&fout);
+
+		// May cause deadlock!
+		//MPI_File_close(&fout);
 
 		// Print backtrace
 //		backward::StackTrace st;

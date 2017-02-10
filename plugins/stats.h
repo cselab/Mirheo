@@ -12,7 +12,7 @@ class SimulationStats : public SimulationPlugin
 {
 private:
 	int fetchEvery;
-	int invoked = 0;
+	bool needToDump;
 
 	std::vector<Particle> allParticles;
 	HostBuffer<char> sendBuffer;
@@ -22,7 +22,7 @@ public:
 		SimulationPlugin(name), fetchEvery(fetchEvery) {}
 
 	void handshake();
-	void afterIntegration(float t);
+	void afterIntegration();
 	void serializeAndSend();
 
 	~SimulationStats() {};

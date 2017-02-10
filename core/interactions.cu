@@ -1,7 +1,7 @@
 #include "dpd-rng.h"
 #include "containers.h"
-#include "interaction_engine.h"
-#include "helper_math.h"
+#include <core/interaction_engine.h>
+#include <core/helper_math.h>
 
 //==================================================================================================================
 // DPD interactions
@@ -13,7 +13,7 @@ inline __device__ float viscosity_function(float x)
     return sqrtf(viscosity_function<s - 1>(x));
 }
 
-template<> inline __device__ float viscosity_function<1>(float x) { return sqrtf(x); }
+template<> inline __device__ float viscosity_function<1>(float x) { return sqrtf(max(x, 1e-20f)); }
 template<> inline __device__ float viscosity_function<0>(float x){ return x; }
 
 __device__ __forceinline__ float3 dpd_interaction(

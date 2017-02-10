@@ -175,10 +175,17 @@ void Simulation::run(int nsteps)
 			cl->setStream(defStream);
 	}
 
+	float dt = 1e9;
+	for (auto integr : integrators)
+		if (integr != nullptr)
+			dt = min(dt, integr->dt);
+
 	float t = 0;
 	debug("Started simulation");
 	for (int iter=0; iter<nsteps; iter++)
 	{
+		if (rank == 0)
+			info("===============================================================================\nTimestep: %d, simulation time: %f", iter, t);
 		//===================================================================================================
 
 		debug("Building cell-lists");
@@ -194,7 +201,10 @@ void Simulation::run(int nsteps)
 
 		debug("Plugins: before forces");
 		for (auto& pl : plugins)
-			pl->beforeForces(t);
+		{
+			pl->setTime(t, iter);
+			pl->beforeForces();
+		}
 
 		//===================================================================================================
 
@@ -241,7 +251,7 @@ void Simulation::run(int nsteps)
 
 		debug("Plugins: before integration");
 		for (auto& pl : plugins)
-			pl->beforeIntegration(t);
+			pl->beforeIntegration();
 
 		//===================================================================================================
 
@@ -254,13 +264,15 @@ void Simulation::run(int nsteps)
 
 		debug("Plugins: after integration");
 		for (auto& pl : plugins)
-			pl->afterIntegration(t);
+			pl->afterIntegration();
 
 		//===================================================================================================
 
 		debug("Redistributing particles");
 		CUDA_Check( cudaStreamSynchronize(defStream) );
 		redist.redistribute();
+
+		t += dt;
 	}
 
 	debug("Finished, exiting now");
@@ -414,7 +426,7 @@ void uDeviceX::run()
 {
 	if (isComputeTask())
 	{
-		sim->run(1000);
+		sim->run(100000);
 	}
 	else
 		post->run();

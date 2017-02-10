@@ -3,6 +3,7 @@
 #include <cuda.h>
 #include <cstdint>
 
+#include <core/datatypes.h>
 #include <core/containers.h>
 #include <core/logger.h>
 #include <core/helper_math.h>

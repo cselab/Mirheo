@@ -11,9 +11,9 @@ int main(int argc, char** argv)
 	pugi::xml_document config;
 	pugi::xml_parse_result result = config.load_file("poiseuille.xml");
 
-	float3 globalDomainSize{32, 32, 32};
-	int3 nranks3D{1, 1, 1};
-	uDeviceX udevice(argc, argv, nranks3D, globalDomainSize, logger, "poiseuille.log", 4);
+	float3 globalDomainSize = config.child("simulation").child("domain").attribute("size").as_float3({32, 32, 32});
+	int3 nranks3D{2, 2, 2};
+	uDeviceX udevice(argc, argv, nranks3D, globalDomainSize, logger, "poiseuille.log", 3);
 
 	SimulationPlugin*  simPl;
 	PostprocessPlugin* postPl;

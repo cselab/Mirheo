@@ -19,7 +19,9 @@ protected:
 	int rank;
 	MPI_Request req;
 	cudaStream_t stream;
-	float tm;
+
+	float currentTime;
+	int currentTimeStep;
 
 	int id;
 
@@ -32,13 +34,19 @@ protected:
 public:
 	SimulationPlugin(std::string name) : name(name), req(MPI_REQUEST_NULL) {};
 
-	virtual void beforeForces(float t) {};
-	virtual void beforeIntegration(float t) {};
-	virtual void afterIntegration(float t) {};
+	virtual void beforeForces() {};
+	virtual void beforeIntegration() {};
+	virtual void afterIntegration() {};
 
 	virtual void serializeAndSend() {};
 	virtual void handshake() {};
 	virtual void talk() {};
+
+	void setTime(float t, int tstep)
+	{
+		currentTime = t;
+		currentTimeStep = tstep;
+	}
 
 	void setup(Simulation* sim, cudaStream_t stream, const MPI_Comm& comm, const MPI_Comm& interComm)
 	{

@@ -15,9 +15,9 @@
 
 namespace Logistic
 {
-__device__ float mean0var1( float seed, uint i, uint j );
-__device__ float mean0var1( float seed, int i, int j );
-__device__ float mean0var1( float seed, float i, float j );
+	__device__ float mean0var1( float seed, uint i, uint j );
+	__device__ float mean0var1( float seed, int i, int j );
+	__device__ float mean0var1( float seed, float i, float j );
 }
 
 #include <cstdlib>
@@ -130,8 +130,6 @@ template<> struct __logistic_core_flops_counter<0> {
 	const static unsigned long long FLOPS = 0;
 };
 
-#if 1
-
 // random number from the ArcSine distribution on [-sqrt(2),sqrt(2)]
 // mean = 0
 // variance = 1
@@ -190,8 +188,17 @@ __inline__ __device__ float mean0var1_dual( float seed, float u, float v )
     float z = __logistic_core<N>( q + p - 1.f );
     return l + z;
 }
+}
 
-#else
+namespace Saru
+{
+	__device__ float mean0var1( float seed, uint i, uint j );
+	__device__ float mean0var1( float seed, int i, int j );
+	__device__ float mean0var1( float seed, float i, float j );
+}
+
+namespace Saru
+{
 __device__ inline float saru( unsigned int seed1, unsigned int seed2, unsigned int seed3 )
 {
     seed3 ^= ( seed1 << 7 ) ^ ( seed2 >> 6 );
@@ -241,6 +248,5 @@ struct mean0var1_flops_counter {
 	const static unsigned long long FLOPS = 2ULL;
 };
 
-#endif
 #endif
 }

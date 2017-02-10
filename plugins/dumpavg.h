@@ -12,7 +12,7 @@ class CellList;
 class Avg3DPlugin : public SimulationPlugin
 {
 private:
-	int nTimeSteps, nSamples;
+	int nSamples;
 	int sampleEvery, dumpEvery;
 	int3 resolution;
 	float3 h;
@@ -29,7 +29,7 @@ public:
 			bool needDensity, bool needMomentum, bool needForce);
 
 	void handshake();
-	void afterIntegration(float t);
+	void afterIntegration();
 	void serializeAndSend();
 
 	~Avg3DPlugin() {};

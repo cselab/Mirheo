@@ -52,7 +52,7 @@ Avg3DPlugin::Avg3DPlugin(std::string name, std::string pvNames, int sampleEvery,
 	SimulationPlugin(name),
 	sampleEvery(sampleEvery), dumpEvery(dumpEvery), resolution(resolution), h(h),
 	needDensity(needDensity), needMomentum(needMomentum), needForce(needForce),
-	nTimeSteps(-1), nSamples(0)
+	nSamples(0)
 {
 	const int total = resolution.x * resolution.y * resolution.z;
 	if (needDensity)  density .resize(total);
@@ -82,11 +82,9 @@ Avg3DPlugin::Avg3DPlugin(std::string name, std::string pvNames, int sampleEvery,
 }
 
 
-void Avg3DPlugin::afterIntegration(float t)
+void Avg3DPlugin::afterIntegration()
 {
-	tm = t;
-	nTimeSteps++;
-	if (nTimeSteps % sampleEvery != 0) return;
+	if (currentTimeStep % sampleEvery != 0 && currentTimeStep > 0) return;
 
 	if (needDensity)  density. clear();
 	if (needMomentum) momentum.clear();
@@ -110,13 +108,13 @@ void Avg3DPlugin::afterIntegration(float t)
 
 void Avg3DPlugin::serializeAndSend()
 {
-	if (nTimeSteps % dumpEvery != 0) return;
+	if (currentTimeStep % dumpEvery != 0 && currentTimeStep > 0) return;
 
 	if (needDensity)  density .downloadFromDevice();
 	if (needMomentum) momentum.downloadFromDevice();
 	if (needForce)    force   .downloadFromDevice();
 
-	SimpleSerializer::serialize(sendBuffer, tm, density, momentum, force);
+	SimpleSerializer::serialize(sendBuffer, currentTime, density, momentum, force);
 	send(sendBuffer.hostPtr(), sendBuffer.size());
 }
 

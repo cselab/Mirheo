@@ -46,23 +46,22 @@
 		if (type == "dpd")
 		{
 			const float rc = node.attribute("rc").as_float(1.0);
-			const float dt = node.attribute("dt").as_float();
+			const float dt = node.attribute("dt").as_float(0.01);
 			const float kBT = node.attribute("kbt").as_float(1.0);
 			const float gammadpd = node.attribute("gamma").as_float(20);
-			const float sigmadpd = sqrt(2 * gammadpd * kBT);
+			const float sigmadpd = sqrt(2 * gammadpd * kBT / dt);
 			const float adpd = node.attribute("a").as_float(50);
-			const float sigma_dt = sigmadpd / sqrt(dt);
 
 			result.self = [=] (ParticleVector* pv, CellList* cl, const float t, cudaStream_t stream) {
-				interactionDPDSelf(pv, cl, t, stream, adpd, gammadpd, sigma_dt, rc);
+				interactionDPDSelf(pv, cl, t, stream, adpd, gammadpd, sigmadpd, rc);
 			};
 
 			result.halo     = [=] (ParticleVector* pv1, ParticleVector* pv2, CellList* cl, const float t, cudaStream_t stream) {
-				interactionDPDHalo(pv1, pv2, cl, t, stream, adpd, gammadpd, sigma_dt, rc);
+				interactionDPDHalo(pv1, pv2, cl, t, stream, adpd, gammadpd, sigmadpd, rc);
 			};
 
 			result.external = [=] (ParticleVector* pv1, ParticleVector* pv2, CellList* cl, const float t, cudaStream_t stream) {
-				interactionDPDExternal(pv1, pv2, cl, t, stream, adpd, gammadpd, sigma_dt, rc);
+				interactionDPDExternal(pv1, pv2, cl, t, stream, adpd, gammadpd, sigmadpd, rc);
 			};
 		}
 
