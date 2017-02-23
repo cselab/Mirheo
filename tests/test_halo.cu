@@ -74,10 +74,8 @@ int main(int argc, char ** argv)
 		Particle& p = dpds.coosvels[i];
 		float3 coo{p.x[0], p.x[1], p.x[2]};
 
-		int cx = cells.getCellIdAlongAxis<0>(coo.x);
-		int cy = cells.getCellIdAlongAxis<1>(coo.y);
-		int cz = cells.getCellIdAlongAxis<2>(coo.z);
-
+		int3 code = cells.getCellIdAlongAxis(coo.x);
+		int cx = code.x,  cy = code.y,  cz = code.z;
 		auto ncells = cells.ncells;
 
 		// 6

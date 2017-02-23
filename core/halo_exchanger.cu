@@ -1,8 +1,8 @@
-#include "datatypes.h"
-#include "containers.h"
-#include "halo_exchanger.h"
-#include "celllist.h"
-#include "logger.h"
+#include <core/datatypes.h>
+#include <core/containers.h>
+#include <core/halo_exchanger.h>
+#include <core/celllist.h>
+#include <core/logger.h>
 
 #include <vector>
 //#include <thread>
@@ -189,7 +189,7 @@ void HaloExchanger::attach(ParticleVector* pv, CellList* cl)
 	pv->halo.pushStream(helper.stream);
 }
 
-void HaloExchanger::exchange()
+void HaloExchanger::init()
 {
 	for (int i=0; i<particlesAndCells.size(); i++)
 		_initialize(i);
@@ -199,7 +199,10 @@ void HaloExchanger::exchange()
 		CUDA_Check( cudaStreamSynchronize(helpers[i].stream) );
 		send(i);
 	}
+}
 
+void HaloExchanger::finalize()
+{
 	for (int i=0; i<particlesAndCells.size(); i++)
 		receive(i);
 
@@ -303,8 +306,8 @@ void HaloExchanger::receive(int n)
 	for (int i=0; i<nMessages; i++)
 	{
 		debug3("Receiving %s halo from rank %d, size %d",
-				pv->name.c_str(), dir2rank[compactedDirs[i]], compactedDirs[i]/*,
-				compactedDirs[i]%3 - 1, (compactedDirs[i]/3)%3 - 1, compactedDirs[i]/9 - 1, offsets[i+1] - offsets[i]*/);
+				pv->name.c_str(), dir2rank[compactedDirs[i]], offsets[i+1] - offsets[i]
+				/* compactedDirs[i], compactedDirs[i]%3 - 1, (compactedDirs[i]/3)%3 - 1, compactedDirs[i]/9 - 1, offsets[i+1] - offsets[i]*/);
 
 		CUDA_Check( cudaMemcpyAsync(pv->halo.devPtr() + offsets[i], helper.recvBufs[compactedDirs[i]].hostPtr(),
 				(offsets[i+1] - offsets[i])*sizeof(Particle), cudaMemcpyHostToDevice, helper.stream) );

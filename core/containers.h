@@ -10,7 +10,8 @@ struct ParticleVector
 	std::string name;
 
 	PinnedBuffer<Particle> coosvels, pingPongBuf;
-	PinnedBuffer<Force> forces;
+	//PinnedBuffer<Force> forces;
+	DeviceBuffer<Force> forces;
 
 	float3 domainStart, domainLength; // assume 0,0,0 is center of the local domain
 	int received;

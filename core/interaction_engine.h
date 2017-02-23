@@ -49,21 +49,19 @@ __global__ void computeSelfInteractions(const float4 * __restrict__ coosvels, fl
 	float3 dstFrc = make_float3(0.0f);
 	readAll4(coosvels, dstId, dstCoo, dstVel);
 
-	const int cellX0 = cinfo.getCellIdAlongAxis<0>(dstCoo.x);
-	const int cellY0 = cinfo.getCellIdAlongAxis<1>(dstCoo.y);
-	const int cellZ0 = cinfo.getCellIdAlongAxis<2>(dstCoo.z);
+	const int3 cell0 = cinfo.getCellIdAlongAxis(make_float3(dstCoo));
 
-	for (int cellZ = cellZ0-1; cellZ <= cellZ0+1; cellZ++)
-		for (int cellY = cellY0-1; cellY <= cellY0; cellY++)
+	for (int cellZ = cell0.z-1; cellZ <= cell0.z+1; cellZ++)
+		for (int cellY = cell0.y-1; cellY <= cell0.y; cellY++)
 			{
 				if ( !(cellY >= 0 && cellY < cinfo.ncells.y && cellZ >= 0 && cellZ < cinfo.ncells.z) ) continue;
-				if (cellY == cellY0 && cellZ > cellZ0) continue;
+				if (cellY == cell0.y && cellZ > cell0.z) continue;
 
-				const int midCellId = cinfo.encode(cellX0, cellY, cellZ);
+				const int midCellId = cinfo.encode(cell0.x, cellY, cellZ);
 				int rowStart  = max(midCellId-1, 0);
 				int rowEnd    = min(midCellId+2, cinfo.totcells+1);
 
-				if ( cellY == cellY0 && cellZ == cellZ0 ) rowEnd = midCellId + 1; // this row is already partly covered
+				if ( cellY == cell0.y && cellZ == cell0.z ) rowEnd = midCellId + 1; // this row is already partly covered
 
 				const int2 pstart = cinfo.decodeStartSize(cellsStart[rowStart]);
 				const int2 pend   = cinfo.decodeStartSize(cellsStart[rowEnd]);
@@ -77,7 +75,7 @@ __global__ void computeSelfInteractions(const float4 * __restrict__ coosvels, fl
 					const float4 srcCoo = readCoosFromAll4(coosvels, srcId);
 
 					bool interacting = distance2(srcCoo, dstCoo) < 1.00f;
-					if (dstId <= srcId && cellY == cellY0 && cellZ == cellZ0) interacting = false;
+					if (dstId <= srcId && cellY == cell0.y && cellZ == cell0.z) interacting = false;
 
 					if (interacting)
 					{
@@ -120,13 +118,11 @@ __global__ void computeExternalInteractions(
 	dstCoo = readNoCache(dstData+2*dstId);
 	dstVel = readNoCache(dstData+2*dstId+1);
 
-	const int cellX0 = cinfo.getCellIdAlongAxis<0, false>(dstCoo.x);
-	const int cellY0 = cinfo.getCellIdAlongAxis<1, false>(dstCoo.y);
-	const int cellZ0 = cinfo.getCellIdAlongAxis<2, false>(dstCoo.z);
+	const int3 cell0 = cinfo.getCellIdAlongAxis<false>(make_float3(dstCoo));
 
-	for (int cellZ = max(cellZ0-1, 0); cellZ <= min(cellZ0+1, cinfo.ncells.z-1); cellZ++)
-		for (int cellY = max(cellY0-1, 0); cellY <= min(cellY0+1, cinfo.ncells.y-1); cellY++)
-			for (int cellX = max(cellX0-1, 0); cellX <= min(cellX0+1, cinfo.ncells.x-1); cellX++)
+	for (int cellZ = max(cell0.z-1, 0); cellZ <= min(cell0.z+1, cinfo.ncells.z-1); cellZ++)
+		for (int cellY = max(cell0.y-1, 0); cellY <= min(cell0.y+1, cinfo.ncells.y-1); cellY++)
+			for (int cellX = max(cell0.x-1, 0); cellX <= min(cell0.x+1, cinfo.ncells.x-1); cellX++)
 			{
 				const int2 start_size = cinfo.decodeStartSize(cellsStart[cinfo.encode(cellX, cellY, cellZ)]);
 

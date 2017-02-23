@@ -12,9 +12,9 @@ public:
 
 private:
     MPI_Comm xdmfComm;
-    std::string path;
+    std::string path, fname;
     std::vector<std::string> channelNames;
-    int3 dimensions;
+    int3 localResolution, globalResolution;
     float3 h;
     bool deactivated;
     int timeStamp;
@@ -30,7 +30,7 @@ private:
     void writeHeavy(std::string fname, std::vector<const float*> channelData);
 
 public:
-    XDMFDumper(MPI_Comm comm, int3 nranks3D, std::string path, int3 dimensions, float3 h,
+    XDMFDumper(MPI_Comm comm, int3 nranks3D, std::string fileNamePrefix, int3 localResolution, float3 h,
     		std::vector<std::string> channelNames, std::vector<ChannelType> channelTypes);
 
     void dump(std::vector<const float*> channelData, const float t);

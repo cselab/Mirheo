@@ -33,6 +33,7 @@ private:
 
 	//============================================================================
 
+public:
 	static int totSize()
 	{
 		return 0;
@@ -52,6 +53,7 @@ private:
 
 	//============================================================================
 
+private:
 	template<typename T>
 	static void packOne(char* buf, HostBuffer<T>& v)
 	{
@@ -158,7 +160,6 @@ private:
 	//============================================================================
 
 public:
-
 	template<typename... Args>
 	static void serialize(HostBuffer<char>& buf, Args&... args)
 	{

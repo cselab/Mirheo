@@ -1,4 +1,5 @@
-#include "../core/logger.h"
+#include <core/logger.h>
+#include <core/helper_math.h>
 
 #include <hdf5.h>
 #include <regex>
@@ -6,10 +7,10 @@
 
 #include "write_xdmf.h"
 
-void XDMFDumper::writeLight(std::string fname, float t)
+void XDMFDumper::writeLight(std::string currentFname, float t)
 {
 	FILE* xmf;
-	xmf = fopen( (fname+".xmf").c_str(), "r" );
+	xmf = fopen( (path+currentFname+".xmf").c_str(), "w" );
 	if (xmf == nullptr)
 	{
 		if (myrank == 0) error("XMF write failed: %s", (fname+".xmf").c_str());
@@ -23,7 +24,7 @@ void XDMFDumper::writeLight(std::string fname, float t)
 	fprintf(xmf, "   <Grid Name=\"mesh\" GridType=\"Uniform\">\n");
 	fprintf(xmf, "     <Time Value=\"%.f\"/>\n", t);
 	fprintf(xmf, "     <Topology TopologyType=\"3DCORECTMesh\" Dimensions=\"%d %d %d\"/>\n",
-			dimensions.x+1, dimensions.y+1, dimensions.z+1);
+			globalResolution.x+1, globalResolution.y+1, globalResolution.z+1);
 
 	fprintf(xmf, "     <Geometry GeometryType=\"ORIGIN_DXDYDZ\">\n");
 	fprintf(xmf, "       <DataItem Name=\"Origin\" Dimensions=\"3\" NumberType=\"Float\" Precision=\"4\" Format=\"XML\">\n");
@@ -45,11 +46,11 @@ void XDMFDumper::writeLight(std::string fname, float t)
 			case ChannelType::Vector:  type = "Vector"; dims = 3;  break;
 		}
 
-		fprintf(xmf, "     <Attribute Name=\"%s\" AttributeType=\"%s\" Center=\"Cell\">\n", type.c_str(), channelNames[ichannel].c_str());
+		fprintf(xmf, "     <Attribute Name=\"%s\" AttributeType=\"%s\" Center=\"Cell\">\n", channelNames[ichannel].c_str(), type.c_str());
 		fprintf(xmf, "       <DataItem Dimensions=\"%d %d %d %d\" NumberType=\"Float\" Precision=\"4\" Format=\"HDF\">\n",
-				dimensions.x, dimensions.y, dimensions.z, dims);
+				globalResolution.x, globalResolution.y, globalResolution.z, dims);
 
-		fprintf(xmf, "        %s:/%s\n", (fname+".h5").c_str(), channelNames[ichannel].c_str());
+		fprintf(xmf, "        %s:/%s\n", (currentFname+".h5").c_str(), channelNames[ichannel].c_str());
 
 		fprintf(xmf, "       </DataItem>\n");
 		fprintf(xmf, "     </Attribute>\n");
@@ -62,15 +63,15 @@ void XDMFDumper::writeLight(std::string fname, float t)
 	fclose(xmf);
 }
 
-void XDMFDumper::writeHeavy(std::string fname, std::vector<const float*> channelData)
+void XDMFDumper::writeHeavy(std::string currentFname, std::vector<const float*> channelData)
 {
 	hid_t plist_id_access = H5Pcreate(H5P_FILE_ACCESS);
 	H5Pset_fapl_mpio(plist_id_access, xdmfComm, MPI_INFO_NULL);  // TODO: add smth here to speed shit up
 
-	hid_t file_id = H5Fcreate( (fname+".h5").c_str(), H5F_ACC_TRUNC, H5P_DEFAULT, plist_id_access );
+	hid_t file_id = H5Fcreate( (currentFname+".h5").c_str(), H5F_ACC_TRUNC, H5P_DEFAULT, plist_id_access );
 	if (file_id < 0)
 	{
-		if (myrank == 0) error("HDF5 write failed: %s", (fname+".h5").c_str());
+		if (myrank == 0) error("HDF5 write failed: %s", (currentFname+".h5").c_str());
 		return;
 	}
 
@@ -85,9 +86,9 @@ void XDMFDumper::writeHeavy(std::string fname, std::vector<const float*> channel
 			case ChannelType::Vector: dims = 3;  break;
 		}
 
-		hsize_t globalsize[4] = { (hsize_t)nranks[2] * dimensions.z,
-								  (hsize_t)nranks[1] * dimensions.y,
-								  (hsize_t)nranks[0] * dimensions.x,  dims};
+		hsize_t globalsize[4] = { (hsize_t)globalResolution.z,
+								  (hsize_t)globalResolution.y,
+								  (hsize_t)globalResolution.x,  dims};
 		hid_t filespace_simple = H5Screate_simple(4, globalsize, nullptr);
 
 		hid_t dset_id = H5Dcreate(file_id, channelNames[ichannel].c_str(), H5T_NATIVE_FLOAT, filespace_simple, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
@@ -95,11 +96,11 @@ void XDMFDumper::writeHeavy(std::string fname, std::vector<const float*> channel
 
 		H5Pset_dxpl_mpio(plist_id, H5FD_MPIO_COLLECTIVE);
 
-		hsize_t start[4] = { (hsize_t)my3Drank[2] * dimensions.z,
-							 (hsize_t)my3Drank[1] * dimensions.y,
-							 (hsize_t)my3Drank[0] * dimensions.x, (hsize_t)0 };
+		hsize_t start[4] = { (hsize_t)my3Drank[2] * localResolution.z,
+							 (hsize_t)my3Drank[1] * localResolution.y,
+							 (hsize_t)my3Drank[0] * localResolution.x, (hsize_t)0 };
 
-		hsize_t extent[4] = { (hsize_t)dimensions.z, (hsize_t)dimensions.y, (hsize_t)dimensions.x, dims };
+		hsize_t extent[4] = { (hsize_t)localResolution.z, (hsize_t)localResolution.y, (hsize_t)localResolution.x, dims };
 		hid_t filespace = H5Dget_space(dset_id);
 		H5Sselect_hyperslab(filespace, H5S_SELECT_SET, start, NULL, extent, NULL);
 
@@ -115,26 +116,29 @@ void XDMFDumper::writeHeavy(std::string fname, std::vector<const float*> channel
 	H5Fclose(file_id);
 }
 
-XDMFDumper::XDMFDumper(MPI_Comm comm, int3 nranks3D, std::string path, int3 dimensions, float3 h,
+XDMFDumper::XDMFDumper(MPI_Comm comm, int3 nranks3D, std::string fileNamePrefix, int3 localResolution, float3 h,
 		std::vector<std::string> channelNames, std::vector<ChannelType> channelTypes) :
-		path(path), dimensions(dimensions), h(h),
+		localResolution(localResolution), h(h),
 		channelNames(channelNames), channelTypes(channelTypes), deactivated(false), timeStamp(0)
 {
 	int ranksArr[] = {nranks3D.x, nranks3D.y, nranks3D.z};
+	globalResolution = nranks3D * localResolution;
 
 	MPI_Check( MPI_Cart_create(comm, 3, ranksArr, periods, 0, &xdmfComm) );
 	MPI_Check( MPI_Cart_get(xdmfComm, 3, nranks, periods, my3Drank) );
 	MPI_Check( MPI_Comm_rank(xdmfComm, &myrank));
 
-	// Create folder
-	if (myrank == 0)
+	// Create and setup folders
+
+	std::regex re(R".(^(.*/)(.+)).");
+	std::smatch match;
+	if (std::regex_match(fileNamePrefix, match, re))
 	{
-		std::regex re(R".(^(.*)/.+).");
-		std::smatch match;
-		if (std::regex_match(path, match, re))
+		path  = match[1].str();
+		fname = match[2].str();
+		std::string command = "mkdir -p " + path;
+		if (myrank == 0)
 		{
-			std::string folders = match[1].str();
-			std::string command = "mkdir -p " + folders;
 			if ( system(command.c_str()) != 0 )
 			{
 				error("Could not create folders or files by given path, dumping will be disabled.");
@@ -142,10 +146,11 @@ XDMFDumper::XDMFDumper(MPI_Comm comm, int3 nranks3D, std::string path, int3 dime
 			}
 		}
 	}
-
-	dimensions.x /= nranks3D.x;
-	dimensions.y /= nranks3D.y;
-	dimensions.z /= nranks3D.z;
+	else
+	{
+		path = "";
+		fname = fileNamePrefix;
+	}
 }
 
 void XDMFDumper::dump(std::vector<const float*> channelData, const float t)
@@ -153,10 +158,10 @@ void XDMFDumper::dump(std::vector<const float*> channelData, const float t)
 	if (deactivated) return;
 
 	std::string tstr = std::to_string(timeStamp++);
-	std::string fname = std::string(zeroPadding - tstr.length(), '0') + tstr;
+	std::string currentFname = fname + std::string(zeroPadding - tstr.length(), '0') + tstr;
 
-	if (myrank == 0) writeLight(fname, t);
-	writeHeavy(fname, channelData);
+	if (myrank == 0) writeLight(currentFname, t);
+	writeHeavy(path + currentFname, channelData);
 
-	if (myrank == 0) debug2("XDMF write successful: %s", (fname+"[.h5 .xmf]").c_str());
+	if (myrank == 0) debug2("XDMF written to: %s", (path + currentFname+"[.h5 .xmf]").c_str());
 }

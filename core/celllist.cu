@@ -11,7 +11,7 @@ __global__ void blendStartSize(const uchar4* cellsSize, int4* cellsStart, const 
 
 	uchar4 sizes  = cellsSize [gid];
 
-	cellsStart[gid] += make_int4(sizes.x << 26, sizes.y << 26, sizes.z << 26, sizes.w << 26);
+	cellsStart[gid] += make_int4(sizes.x << 24, sizes.y << 24, sizes.z << 24, sizes.w << 24);
 }
 
 __global__ void computeCellSizes(const float4* xyzouvwo, const int n, const int nMovable,
@@ -22,18 +22,14 @@ __global__ void computeCellSizes(const float4* xyzouvwo, const int n, const int 
 
 	float4 coo = readNoCache(xyzouvwo + pid*2);//xyzouvwo[gid*2];
 
-	int cid;
-	if (pid < nMovable)
-		cid = cinfo.getCellId<false>(coo);
-	else
-		cid = cinfo.getCellId(coo);
+	int cid = cinfo.getCellId(coo);
 
 	// No atomic for chars
 	// Workaround: pad zeros around char in proper position and add as int
 	// Care: BIG endian!
 
-	// XXX: the second part of the check should be enabled if some particles are being lost
-	if (cid >= 0 || coo.x > -900.0f)
+	// XXX: relying here only on redistribution
+	if (coo.x > -900.0f)
 	{
 		const int addr = cid / 4;
 		const int slot = cid % 4;
@@ -62,13 +58,10 @@ __global__ void rearrangeParticles(const float4* in_xyzouvwo, const int n, const
 	int cid;
 	if (sh == 0)
 	{
-		if (pid < nMovable)
-			cid = cinfo.getCellId<false>(val);
-		else
-			cid = cinfo.getCellId(val);
+		cid = cinfo.getCellId(val);
 
-		// XXX: the second part of the check should be enabled if some particles are being lost
-		if (cid >= 0 || val.x > -900.0f)
+		//  XXX: relying here only on redistribution
+		if (val.x > -900.0f)
 		{
 			// See above
 			const int addr = cid / 4;
@@ -96,9 +89,17 @@ __global__ void rearrangeParticles(const float4* in_xyzouvwo, const int n, const
 
 
 CellListInfo::CellListInfo(float rc, float3 domainStart, float3 length) :
-		rc(rc), invrc(1.0f/rc), domainStart(domainStart), length(length)
+		rc(rc), h(make_float3(rc)), invh(make_float3(1.0/rc)), domainStart(domainStart), length(length)
 {
 	ncells = make_int3( ceilf(length / rc - 1e-6) );
+	totcells = ncells.x * ncells.y * ncells.z;
+}
+
+CellListInfo::CellListInfo(float3 h, float3 domainStart, float3 length) :
+		domainStart(domainStart), length(length), h(h), invh(1.0f/h)
+{
+	rc = std::min( {h.x, h.y, h.z} );
+	ncells = make_int3( ceilf(length / h - 1e-6f) );
 	totcells = ncells.x * ncells.y * ncells.z;
 }
 
@@ -111,11 +112,8 @@ CellList::CellList(ParticleVector* pv, float rc, float3 domainStart, float3 leng
 }
 
 CellList::CellList(ParticleVector* pv, int3 resolution, float3 domainStart, float3 length) :
-		CellListInfo(1.0f, domainStart, length), pv(pv)
+		CellListInfo(length / make_float3(resolution), domainStart, length), pv(pv)
 {
-	ncells = resolution;
-	totcells = ncells.x * ncells.y * ncells.z;
-	rc = std::min({length.x / ncells.x, length.y / ncells.y, length.z / ncells.z});
 	cellsStart.resize(totcells + 1);
 	cellsSize.resize(totcells + 1);
 }
@@ -160,4 +158,7 @@ void CellList::build(cudaStream_t stream)
 
 	// Containers setup
 	pv->popStreamWOhalo();
+
+	// TODO: is this fine? need something for not the first celllist
+	pv->received = 0;//pv->np;
 }

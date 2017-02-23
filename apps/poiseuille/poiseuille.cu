@@ -1,6 +1,7 @@
 #include <core/simulation.h>
 #include <plugins/plugin.h>
 #include <plugins/stats.h>
+#include <plugins/dumpavg.h>
 #include <core/xml/pugixml.hpp>
 #include <core/wall.h>
 
@@ -12,11 +13,11 @@ int main(int argc, char** argv)
 	pugi::xml_parse_result result = config.load_file("poiseuille.xml");
 
 	float3 globalDomainSize = config.child("simulation").child("domain").attribute("size").as_float3({32, 32, 32});
-	int3 nranks3D{2, 2, 2};
-	uDeviceX udevice(argc, argv, nranks3D, globalDomainSize, logger, "poiseuille.log", 3);
+	int3 nranks3D{1, 2, 1};
+	uDeviceX udevice(argc, argv, nranks3D, globalDomainSize, logger, "poiseuille.log", 9, false);
 
-	SimulationPlugin*  simPl;
-	PostprocessPlugin* postPl;
+	SimulationPlugin  *simStat,  *simAvg;
+	PostprocessPlugin *postStat, *postAvg;
 	if (udevice.isComputeTask())
 	{
 		Integrator  constDP = createIntegrator(config.child("simulation").child("integrator"));
@@ -35,16 +36,17 @@ int main(int argc, char** argv)
 		udevice.sim->setIntegrator("dpd", "const_dp");
 		udevice.sim->setInteraction("dpd", "dpd", "dpd_int");
 
-		simPl = new SimulationStats("stats", 100);
-		//simPl = new Avg3DPlugin("dpd", 10, 2000, {32, 32, 32}, {0.5, 0.5, 0.5}, true, true, true);
+		simStat = new SimulationStats("stats", 500);
+		simAvg  = new Avg3DPlugin("averaging", "dpd", 10, 500, {24, 12, 24}, true, true, true);
 	}
 	else
 	{
-		postPl = new PostprocessStats("stats");
-		//postPl = new Avg3DDumper("xdmf/avgfields", nranks3D);
+		postStat = new PostprocessStats("stats");
+		postAvg = new Avg3DDumper("averaging", "xdmf/avgfields", nranks3D);
 	}
 
-	udevice.registerJointPlugins(simPl, postPl);
+	udevice.registerJointPlugins(simStat, postStat);
+	udevice.registerJointPlugins(simAvg,  postAvg);
 	udevice.run();
 
 	return 0;

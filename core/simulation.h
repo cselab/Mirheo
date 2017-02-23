@@ -10,16 +10,19 @@
 #include <vector>
 #include <string>
 #include <unordered_map>
+#include <map>
 #include <mpi.h>
 
 class Simulation
 {
-	int3 nranks3D;
 	int rank;
 	int3 rank3D;
-	float3 globalDomainSize, subDomainSize, subDomainStart;
 	MPI_Comm cartComm;
 	MPI_Comm interComm;
+
+public:
+	int3 nranks3D;
+	float3 globalDomainSize, subDomainSize, subDomainStart;
 
 private:
 
@@ -31,10 +34,22 @@ private:
 	std::vector<ParticleVector*> particleVectors;
 	std::vector<Interaction*>    interactions;
 	std::vector<Integrator*>     integrators;
-	std::vector<CellList*>       cellLists;
+	//std::vector<CellList*>       cellLists;
 
-	std::vector<std::vector<CellList*>> cellListTable;
-	std::vector<std::vector< std::pair<Interaction*, CellList*> >> interactionTable;
+	//std::vector<std::vector<CellList*>> cellListTable;
+	std::vector<float> largestRC;
+
+	// For each PV store sorted set of CellLists together
+	// with all the interactions that use this CL
+	struct CmpCellListsByRC
+	{
+		bool operator() (const CellList* a, const CellList* b)
+		{
+			return a->rc > b->rc;
+		}
+	};
+	std::vector<std::map< CellList*, std::vector<std::pair<Interaction*, int>>, CmpCellListsByRC >> interactionTable;
+
 
 	std::vector<SimulationPlugin*> plugins;
 
@@ -77,12 +92,14 @@ class uDeviceX
 {
 	int pluginId = 0;
 	int computeTask;
+	bool noPostprocess;
 
 public:
 	Simulation* sim;
 	Postprocess* post;
 
-	uDeviceX(int argc, char** argv, int3 nranks3D, float3 globalDomainSize, Logger& logger, std::string logFileName, int verbosity=3);
+	uDeviceX(int argc, char** argv, int3 nranks3D, float3 globalDomainSize,
+			Logger& logger, std::string logFileName, int verbosity=3, bool noPostprocess = false);
 	bool isComputeTask();
 	void registerJointPlugins(SimulationPlugin* simPl, PostprocessPlugin* postPl);
 	void run();

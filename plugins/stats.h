@@ -19,10 +19,10 @@ private:
 
 public:
 	SimulationStats(std::string name, int fetchEvery) :
-		SimulationPlugin(name), fetchEvery(fetchEvery) {}
+		SimulationPlugin(name), fetchEvery(fetchEvery), needToDump(false) {}
 
 	void handshake();
-	void afterIntegration();
+	void afterIntegration(bool& reordered);
 	void serializeAndSend();
 
 	~SimulationStats() {};

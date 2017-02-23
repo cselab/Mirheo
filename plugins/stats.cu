@@ -3,9 +3,10 @@
 #include <core/containers.h>
 #include <core/simulation.h>
 
-void SimulationStats::afterIntegration()
+void SimulationStats::afterIntegration(bool& reordered)
 {
-	if (currentTimeStep % fetchEvery != 0  && currentTimeStep > 0) return;
+	reordered = false;
+	if (currentTimeStep % fetchEvery != 0) return;
 
 	auto& pvs = sim->getParticleVectors();
 
@@ -47,6 +48,7 @@ void SimulationStats::handshake()
 
 	total *= sizeof(Particle);
 
+	// TODO: variable size maybe?
 	MPI_Check( MPI_Send(&total, 1, MPI_INT, rank, id, interComm) );
 }
 

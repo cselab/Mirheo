@@ -7,6 +7,8 @@
 
 class Simulation;
 
+// TODO: variable size messages
+
 class SimulationPlugin
 {
 public:
@@ -27,8 +29,10 @@ protected:
 
 	void send(const void* data, int sizeInBytes)
 	{
+		//debug3("Plugin %s is sending now", name.c_str());
 		MPI_Check( MPI_Wait(&req, MPI_STATUS_IGNORE) );
 		MPI_Check( MPI_Isend(data, sizeInBytes, MPI_BYTE, rank, id, interComm, &req) );
+		//debug3("Plugin %s has sent the data", name.c_str());
 	}
 
 public:
@@ -36,7 +40,7 @@ public:
 
 	virtual void beforeForces() {};
 	virtual void beforeIntegration() {};
-	virtual void afterIntegration() {};
+	virtual void afterIntegration(bool& reordered) {};
 
 	virtual void serializeAndSend() {};
 	virtual void handshake() {};
@@ -48,7 +52,7 @@ public:
 		currentTimeStep = tstep;
 	}
 
-	void setup(Simulation* sim, cudaStream_t stream, const MPI_Comm& comm, const MPI_Comm& interComm)
+	virtual void setup(Simulation* sim, cudaStream_t stream, const MPI_Comm& comm, const MPI_Comm& interComm)
 	{
 		this->sim       = sim;
 		this->stream    = stream;

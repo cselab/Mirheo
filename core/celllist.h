@@ -14,9 +14,11 @@ public:
 	int3 ncells;
 	int  totcells;
 	float3 domainStart, length;
-	float rc, invrc;
+	float3 h, invh;
+	float rc;
 
-	CellListInfo(float _rc, float3 domainStart, float3 length);
+	CellListInfo(float3 h, float3 domainStart, float3 length);
+	CellListInfo(float rc, float3 domainStart, float3 length);
 
 // ==========================================================================================================================================
 // Common cell functions
@@ -35,27 +37,21 @@ public:
 
 	__device__ __host__ __forceinline__ int encodeStartSize(int start, uint8_t size) const
 	{
-		return start + (size << 26);
+		return start + (size << 24);
 	}
 
 	__device__ __host__ __forceinline__ int2 decodeStartSize(int code) const
 	{
-		return make_int2(code & ((1<<26) - 1), code >> 26);
+		return make_int2(code & ((1<<24) - 1), code >> 24);
 	}
 
-	template<int dim, bool Clamp = true>
-	__device__ __host__ __forceinline__ int getCellIdAlongAxis(const float x) const
+	template<bool Clamp = true>
+	__device__ __host__ __forceinline__ int3 getCellIdAlongAxis(const float3 x) const
 	{
-		float start;
-		int cells;
-		if (dim == 0) { start = domainStart.x; cells = ncells.x; }
-		if (dim == 1) { start = domainStart.y; cells = ncells.y; }
-		if (dim == 2) { start = domainStart.z; cells = ncells.z; }
-
-		const float v = floor(invrc * (x - start));
+		const int3 v = make_int3( floorf(invh * (x - domainStart)) );
 
 		if (Clamp)
-			return min(cells - 1, max(0, (int)v));
+			return min( ncells - 1, max(make_int3(0), v) );
 		else
 			return v;
 	}
@@ -63,17 +59,15 @@ public:
 	template<bool Clamp = true, typename T>
 	__device__ __host__ __forceinline__ int getCellId(const T coo) const
 	{
-		const int ix = getCellIdAlongAxis<0, Clamp>(coo.x);
-		const int iy = getCellIdAlongAxis<1, Clamp>(coo.y);
-		const int iz = getCellIdAlongAxis<2, Clamp>(coo.z);
+		const int3 id = getCellIdAlongAxis<Clamp>(make_float3(coo));
 
 		if (!Clamp)
 		{
-			if (ix < 0 || ix >= ncells.x  ||  iy < 0 || iy >= ncells.y  ||  iz < 0 || iz >= ncells.z)
+			if (id.x < 0 || id.x >= ncells.x  ||  id.y < 0 || id.y >= ncells.y  ||  id.z < 0 || id.z >= ncells.z)
 				return -1;
 		}
 
-		return encode(ix, iy, iz);
+		return encode(id.x, id.y, id.z);
 	}
 };
 

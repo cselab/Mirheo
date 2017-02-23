@@ -23,7 +23,7 @@ __device__ __forceinline__ float3 dpd_interaction(
 		const float rc2, const float invrc, const float seed)
 {
 	const float3 dr = dstCoo - srcCoo;
-	const float rij2 = dr.x*dr.x + dr.y*dr.y + dr.z*dr.z;
+	const float rij2 = dr.x*dr.x + dr.y*dr.y + dr.z*dr.z; // dot(dr, dr)
 	if (rij2 > rc2) return make_float3(0.0f);
 
 	const float invrij = rsqrtf(max(rij2, 1e-20f));

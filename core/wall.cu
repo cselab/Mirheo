@@ -501,6 +501,7 @@ void Wall::readHeader(int3& sdfResolution, float3& sdfExtent, int64_t& fullSdfSi
 
 void Wall::create(MPI_Comm& comm, float3 subDomainStart, float3 subDomainSize, float3 globalDomainSize, ParticleVector* pv, CellList* cl)
 {
+	debug2("Creating wall");
 	MPI_Check( MPI_Comm_dup(comm, &wallComm) );
 
 	int nranks, rank;

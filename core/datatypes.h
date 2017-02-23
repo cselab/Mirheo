@@ -197,19 +197,17 @@ public:
 		return hostptr[i];
 	}
 
-	void __attribute__ ((noinline)) downloadFromDevice(bool synchronize = true)
+	void downloadFromDevice(bool synchronize = true)
 	{
 		// TODO: check if we really need to do that
 		// maybe everything is already downloaded
 		CUDA_Check( cudaMemcpyAsync(hostptr, devptr, sizeof(T) * _size, cudaMemcpyDeviceToHost, stream) );
 		if (synchronize) CUDA_Check( cudaStreamSynchronize(stream) );
-		devChanged = false;
 	}
 
 	void uploadToDevice()
 	{
 		CUDA_Check(cudaMemcpyAsync(devptr, hostptr, sizeof(T) * _size, cudaMemcpyHostToDevice, stream));
-		hostChanged = false;
 	}
 
 	void resize(const int n, ResizeKind kind = resizePreserve)
@@ -242,8 +240,11 @@ public:
 	{
 		CUDA_Check( cudaMemsetAsync(devptr, 0, sizeof(T) * _size, stream) );
 		memset(hostptr, 0, sizeof(T) * _size);
+	}
 
-		hostChanged = devChanged = false;
+	void clearDevice()
+	{
+		CUDA_Check( cudaMemsetAsync(devptr, 0, sizeof(T) * _size, stream) );
 	}
 
 	template<typename Cont>

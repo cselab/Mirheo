@@ -12,6 +12,7 @@ class CellList;
 class Avg3DPlugin : public SimulationPlugin
 {
 private:
+	std::string pvNames;
 	int nSamples;
 	int sampleEvery, dumpEvery;
 	int3 resolution;
@@ -25,11 +26,12 @@ private:
 	std::vector<std::pair<ParticleVector*, CellList*>> particlesAndCells;
 
 public:
-	Avg3DPlugin(std::string name, std::string pvNames, int sampleEvery, int dumpEvery, int3 resolution, float3 h,
+	Avg3DPlugin(std::string name, std::string pvNames, int sampleEvery, int dumpEvery, int3 resolution,
 			bool needDensity, bool needMomentum, bool needForce);
 
+	void setup(Simulation* sim, cudaStream_t stream, const MPI_Comm& comm, const MPI_Comm& interComm);
 	void handshake();
-	void afterIntegration();
+	void afterIntegration(bool& reordered);
 	void serializeAndSend();
 
 	~Avg3DPlugin() {};
@@ -47,8 +49,8 @@ private:
 	float3 h;
 	bool needDensity, needMomentum, needForce;
 
-	PinnedBuffer<float>  density;
-	PinnedBuffer<float3> momentum, force;
+	HostBuffer<float>  density;
+	HostBuffer<float3> momentum, force;
 
 public:
 	Avg3DDumper(std::string name, std::string path, int3 nranks3D);

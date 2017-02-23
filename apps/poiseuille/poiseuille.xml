@@ -1,16 +1,16 @@
 <?xml version="1.0"?>
 <simulation name="poiseuille">
 
-	<domain size="64 64 64" />
+	<domain size="48 48 48" />
 	<particle_vector name="dpd" density="8" />
-	<wall name="wall" sdffile="tube.sdf" creation_step="1000" />
+	<wall name="wall" sdffile="tube.sdf" source_pv="dpd" creation_step="1000" />
 	
-	<interaction name="dpd_int" type="dpd" a="25" gamma="45" kbt="0.1" dt="0.001" rc="1.0">
+	<interaction name="dpd_int" type="dpd" a="25" gamma="45" kbt="0.5" dt="0.002" rc="1.0">
 		<apply_to pv1="dpd" pv2="dpd"/>
 		<apply_to pv1="dpd" pv2="wall"/>
 	</interaction>
 	
-	<integrator name="const_dp" type="const_dp" extra_force="0.0 0 0" dt="0.001">
+	<integrator name="const_dp" type="const_dp" extra_force="0.0 0 0" dt="0.002">
 		<apply_to pv="dpd" />
 	</integrator>
 	
@@ -18,6 +18,6 @@
 		<apply_to pv="dpd" />
 	</plugin>
 	
-	<run dt="0.01" stop_time="5" />
+	<run dt="0.002" stop_time="5" />
 
 </simulation>

@@ -80,26 +80,24 @@ __global__ void getExitingParticles(float4* xyzouvwo,
 		const float4 coo = xyzouvwo[2*srcId];
 		const float4 vel = xyzouvwo[2*srcId+1];
 
-		int px = cinfo.getCellIdAlongAxis<0, false>(coo.x);
-		int py = cinfo.getCellIdAlongAxis<1, false>(coo.y);
-		int pz = cinfo.getCellIdAlongAxis<2, false>(coo.z);
+		int3 code = cinfo.getCellIdAlongAxis<false>(make_float3(coo));
 
-		if (px < 0) px = 0;
-		else if (px >= ncells.x) px = 2;
-		else px = 1;
+		if (code.x < 0) code.x = 0;
+		else if (code.x >= ncells.x) code.x = 2;
+		else code.x = 1;
 
-		if (py < 0) py = 0;
-		else if (py >= ncells.y) py = 2;
-		else py = 1;
+		if (code.y < 0) code.y = 0;
+		else if (code.y >= ncells.y) code.y = 2;
+		else code.y = 1;
 
-		if (pz < 0) pz = 0;
-		else if (pz >= ncells.z) pz = 2;
-		else pz = 1;
+		if (code.z < 0) code.z = 0;
+		else if (code.z >= ncells.z) code.z = 2;
+		else code.z = 1;
 
-		if (px*py*pz != 1) // this means that the particle has to leave
+		if (code.x*code.y*code.z != 1) // this means that the particle has to leave
 		{
-			const int bufId = (pz*3 + py)*3 + px;
-			const float4 shift{ cinfo.length.x*(px-1), cinfo.length.y*(py-1), cinfo.length.z*(pz-1), 0 };
+			const int bufId = (code.z*3 + code.y)*3 + code.x;
+			const float4 shift{ cinfo.length.x*(code.x-1), cinfo.length.y*(code.y-1), cinfo.length.z*(code.z-1), 0 };
 
 			int myid = atomicAdd(counts + bufId, 1);
 
