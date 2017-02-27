@@ -3,45 +3,55 @@
 #include <string>
 #include "datatypes.h"
 
+class CellList;
+
 struct ParticleVector
 {
 	int np;
 	float mass;
 	std::string name;
 
-	PinnedBuffer<Particle> coosvels, pingPongBuf;
-	//PinnedBuffer<Force> forces;
-	DeviceBuffer<Force> forces;
+	PinnedBuffer<Particle> coosvels, pingPongCoosvels;
+	//PinnedBuffer<Force> forces, pingPongForces;
+	DeviceBuffer<Force> forces, pingPongForces;
 
 	float3 domainStart, domainLength; // assume 0,0,0 is center of the local domain
-	int received;
 
-	PinnedBuffer<Particle>	   halo;
+	PinnedBuffer<Particle> halo;
+	CellList* activeCL;
 
-	ParticleVector(std::string name) : name(name), received(0)
+	ParticleVector(std::string name) : name(name), activeCL(nullptr)
 	{
 		resize(0);
+	}
+
+	int size()
+	{
+		return np;
 	}
 
 	void pushStreamWOhalo(cudaStream_t stream)
 	{
 		coosvels.pushStream(stream);
-		pingPongBuf.pushStream(stream);
+		pingPongCoosvels.pushStream(stream);
 		forces.pushStream(stream);
+		pingPongForces.pushStream(stream);
 	}
 
 	void popStreamWOhalo()
 	{
 		coosvels.popStream();
-		pingPongBuf.popStream();
+		pingPongCoosvels.popStream();
 		forces.popStream();
+		pingPongForces.popStream();
 	}
 
 	void resize(const int n, ResizeKind kind = ResizeKind::resizePreserve)
 	{
 		coosvels.resize(n, kind);
-		pingPongBuf.resize(n, kind);
+		pingPongCoosvels.resize(n, kind);
 		forces.resize(n, kind);
+		pingPongForces.resize(n, kind);
 
 		np = n;
 	}

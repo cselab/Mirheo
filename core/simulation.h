@@ -102,5 +102,5 @@ public:
 			Logger& logger, std::string logFileName, int verbosity=3, bool noPostprocess = false);
 	bool isComputeTask();
 	void registerJointPlugins(SimulationPlugin* simPl, PostprocessPlugin* postPl);
-	void run();
+	void run(int niters);
 };

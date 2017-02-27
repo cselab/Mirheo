@@ -6,47 +6,47 @@
 #include "../core/helper_math.h"
 #include <sstream>
 
-__global__ void sample(const int * const __restrict__ cellsStart, const float4* __restrict__ coosvels, const float4* __restrict__ forces,
+__global__ void sample(int np, const float4* coosvels, const float4* forces,
 		const float mass, CellListInfo cinfo, float* avgDensity, float3* avgMomentum, float3* avgForce)
 {
-	const int cid = threadIdx.x + blockIdx.x*blockDim.x;
+	const int pid = threadIdx.x + blockIdx.x*blockDim.x;
+	if (pid >= np) return;
 
-	if (cid < cinfo.totcells)
+	const float4 coo = coosvels[2*pid];
+	const int cid = cinfo.getCellId(coo);
+
+	if (avgDensity != nullptr)
+		atomicAdd(avgDensity+cid, mass);
+
+	if (avgMomentum != nullptr)
 	{
-		const int2 start_size = cinfo.decodeStartSize(cellsStart[cid]);
+		const float3 momentum = make_float3(coosvels[2*pid+1] * mass);
+		atomicAdd( (float*)(avgMomentum + cid)  , momentum.x);
+		atomicAdd( (float*)(avgMomentum + cid)+1, momentum.y);
+		atomicAdd( (float*)(avgMomentum + cid)+2, momentum.z);
+	}
 
-		if (avgDensity != nullptr)
-			avgDensity[cid] += mass * start_size.y;
-
-		// average!
-		const float invnum = 1.0f / (float) start_size.y;
-
-		float3 mymomentum{0.0f, 0.0f, 0.0f};
-		float3 myforce   {0.0f, 0.0f, 0.0f};
-		for (int pid = start_size.x; pid < start_size.x + start_size.y; pid++)
-		{
-			if (avgMomentum != nullptr)
-			{
-				const float4 vel = coosvels[2*pid+1];
-				mymomentum += make_float3(vel * (mass * invnum));
-			}
-
-			if (avgForce != nullptr)
-			{
-				const float4 frc = forces[pid];
-				myforce += make_float3(frc * invnum);
-			}
-		}
-
-		if (avgMomentum != nullptr) avgMomentum[cid] += mymomentum;
-		if (avgForce    != nullptr) avgForce   [cid] += myforce;
+	if (avgForce != nullptr)
+	{
+		const float3 frc = make_float3(forces[pid]);
+		atomicAdd( (float*)(avgForce + cid)  , frc.x);
+		atomicAdd( (float*)(avgForce + cid)+1, frc.y);
+		atomicAdd( (float*)(avgForce + cid)+2, frc.z);
 	}
 }
 
-__global__ void scale(int n, float a, float* res)
+__global__ void scaleVec(int n, float3* vectorField, const float* density, const float factor)
 {
 	const int id = threadIdx.x + blockIdx.x*blockDim.x;
-	if (id < n) res[id] *= a;
+	if (id < n)
+		vectorField[id] *= factor * __frcp_rn(density[id]);
+}
+
+__global__ void scaleDensity(int n, float* density, const float factor)
+{
+	const int id = threadIdx.x + blockIdx.x*blockDim.x;
+	if (id < n)
+		density[id] *= factor;
 }
 
 Avg3DPlugin::Avg3DPlugin(std::string name, std::string pvNames, int sampleEvery, int dumpEvery, int3 resolution,
@@ -77,7 +77,7 @@ void Avg3DPlugin::setup(Simulation* sim, cudaStream_t stream, const MPI_Comm& co
 		splitPvNames.push_back(pvName);
 	}
 
-	h =  sim->subDomainSize / make_float3(resolution);
+	h = sim->subDomainSize / make_float3(resolution);
 
 	density.pushStream(stream);
 	density.clearDevice();
@@ -96,9 +96,7 @@ void Avg3DPlugin::setup(Simulation* sim, cudaStream_t stream, const MPI_Comm& co
 			die("No such particle vector registered: %s", nm.c_str());
 
 		auto pv = sim->getParticleVectors()[pvIter->second];
-		auto cl = new CellList(pv, resolution, pv->domainStart, pv->domainLength);
-		cl->setStream(stream);
-		particlesAndCells.push_back({pv, cl});
+		particleVectors.push_back(pv);
 	}
 
 	info("Plugin %s was set up for the following particle vectors: %s", name.c_str(), pvNames.c_str());
@@ -106,34 +104,22 @@ void Avg3DPlugin::setup(Simulation* sim, cudaStream_t stream, const MPI_Comm& co
 
 
 
-void Avg3DPlugin::afterIntegration(bool& reordered)
+void Avg3DPlugin::afterIntegration()
 {
-	reordered = false;
 	if (currentTimeStep % sampleEvery != 0 || currentTimeStep == 0) return;
 
 	debug2("Plugin %s is sampling now", name.c_str());
-	//reordered = true;
 
-	for (auto pv_cl : particlesAndCells)
+	for (auto pv : particleVectors)
 	{
-		auto pv = pv_cl.first;
-		auto cl = pv_cl.second;
-		cl->build(stream);
+		CellListInfo cinfo(h, pv->domainStart, pv->domainLength);
 
-		sample<<< (cl->totcells+127) / 128, 128, 0, stream >>> (
-				(int*)cl->cellsStart.devPtr(), (float4*)pv->coosvels.devPtr(), (float4*)pv->forces.devPtr(),
-				pv->mass, cl->cellInfo(),
+		sample<<< (pv->np+127) / 128, 128, 0, stream >>> (
+				pv->np, (float4*)pv->coosvels.devPtr(), (float4*)pv->forces.devPtr(),
+				pv->mass, cinfo,
 				needDensity  ? density .devPtr() : nullptr,
 				needMomentum ? momentum.devPtr() : nullptr,
 				needForce    ? force   .devPtr() : nullptr );
-	}
-
-	// Roll back the reordering
-	CUDA_Check( cudaStreamSynchronize(stream) );
-	for (auto pv_cl : particlesAndCells)
-	{
-		auto pv = pv_cl.first;
-		containerSwap(pv->coosvels, pv->pingPongBuf);
 	}
 
 	nSamples++;
@@ -143,28 +129,29 @@ void Avg3DPlugin::serializeAndSend()
 {
 	if (currentTimeStep % dumpEvery != 0 || currentTimeStep == 0) return;
 
-	if (needDensity)
-	{
-		int sz = density.size();
-		scale<<< (sz+127)/128, 128, 0, stream >>> ( sz, 1.0/nSamples, (float*)density.devPtr() );
-		density.downloadFromDevice();
-		density.clearDevice();
-	}
-
+	// Order is important here! First mom and frc, only then dens
 	if (needMomentum)
 	{
-		int sz = momentum.size()*3;
-		scale<<< (sz+127)/128, 128, 0, stream >>> ( sz, 1.0/nSamples, (float*)momentum.devPtr() );
+		int sz = momentum.size();
+		scaleVec<<< (sz+127)/128, 128, 0, stream >>> ( sz, momentum.devPtr(), density.devPtr(), 1.0/nSamples);
 		momentum.downloadFromDevice();
 		momentum.clearDevice();
 	}
 
 	if (needForce)
 	{
-		int sz = force.size()*3;
-		scale<<< (sz+127)/128, 128, 0, stream >>> ( sz, 1.0/nSamples, (float*)force.devPtr() );
+		int sz = force.size();
+		scaleVec<<< (sz+127)/128, 128, 0, stream >>> ( sz, force.devPtr(),    density.devPtr(), 1.0/nSamples);
 		force.downloadFromDevice();
 		force.clearDevice();
+	}
+
+	if (needDensity)
+	{
+		int sz = density.size();
+		scaleDensity<<< (sz+127)/128, 128, 0, stream >>> ( sz, density.devPtr(), 1.0 / (nSamples * h.x*h.y*h.z) );
+		density.downloadFromDevice();
+		density.clearDevice();
 	}
 
 	debug2("Plugin %s is sending now data", name.c_str());

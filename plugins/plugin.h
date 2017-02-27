@@ -40,7 +40,7 @@ public:
 
 	virtual void beforeForces() {};
 	virtual void beforeIntegration() {};
-	virtual void afterIntegration(bool& reordered) {};
+	virtual void afterIntegration() {};
 
 	virtual void serializeAndSend() {};
 	virtual void handshake() {};

@@ -161,7 +161,7 @@ void Simulation::run(int nsteps)
 		pl->handshake();
 	}
 
-	HaloExchanger halo(cartComm);
+	HaloExchanger halo(cartComm, defStream);
 	Redistributor redist(cartComm);
 
 	debug("Determining halo and redistributor cell-lists for each PV");
@@ -223,7 +223,6 @@ void Simulation::run(int nsteps)
 		debug("Building halo cell-lists");
 		for (auto cl : haloLists)
 			if (cl != nullptr) cl->build(defStream);
-		CUDA_Check( cudaStreamSynchronize(defStream) );
 
 		//===================================================================================================
 
@@ -239,59 +238,26 @@ void Simulation::run(int nsteps)
 
 		//===================================================================================================
 
-
-		// We can compute now the forces ONLY for the halo cell-lists because they are ready
-		debug("Computing forces with halo cell-lists");
-		for (int i=0; i<interactionTable.size(); i++)
-		{
-			for (auto& cl_list : interactionTable[i])
-			{
-				auto& cl = cl_list.first;
-				auto& intList = cl_list.second;
-
-				if (cl == haloLists[i])
-					for (auto& entry : intList)
-					{
-						auto& interactionExec = entry.first;
-						int j = entry.second;
-
-						if (i == j)
-							interactionExec->execSelf(particleVectors[i], cl, t, defStream);
-						else
-							interactionExec->execExternal(particleVectors[i], particleVectors[j], cl, t, defStream);
-					}
-			}
-		}
-
-		// Overlapped with previous forces
+		// XXX: Not overlapped (do we need overlap at all?)
 		debug("Initializing halo exchange");
 		halo.init();
 
-		// Now continue with the forces for all the rest cell-lists
-		debug("Computing forces with all the other cell-lists");
+		//===================================================================================================
+
+		// TODO: Forces need to be rearranged here as well
+		debug("Computing internal forces");
 		for (int i=0; i<interactionTable.size(); i++)
-		{
-			for (auto& cl_list : interactionTable[i])
-			{
-				auto& cl = cl_list.first;
-				auto& intList = cl_list.second;
-
-				if (cl != haloLists[i])
+			for (auto& cl_intList : interactionTable[i])
+				for (auto& entry : cl_intList.second)
 				{
-					cl->build(defStream);
-					for (auto& entry : intList)
-					{
-						auto& interactionExec = entry.first;
-						int j = entry.second;
+					auto& interactionExec = entry.first;
+					int j = entry.second;
 
-						if (i == j)
-							interactionExec->execSelf(particleVectors[i], cl, t, defStream);
-						else
-							interactionExec->execExternal(particleVectors[i], particleVectors[j], cl, t, defStream);
-					}
+					cl_intList.first->build(defStream, true);
+					cudaDeviceSynchronize();
+
+					interactionExec->exec(InteractionType::Regular, particleVectors[i], particleVectors[j], cl_intList.first, t, defStream);
 				}
-			}
-		}
 
 		//===================================================================================================
 
@@ -307,24 +273,20 @@ void Simulation::run(int nsteps)
 		debug("Computing halo forces");
 		// Iterate over cell-lists in reverse order, because the last CL is already build
 		for (int i=0; i<interactionTable.size(); i++)
-		{
 			for (auto cl_listIter = interactionTable[i].rbegin(); cl_listIter != interactionTable[i].rend(); cl_listIter++)
 			{
 				auto& cl = cl_listIter->first;
 				auto& intList = cl_listIter->second;
-
-				if (cl_listIter != interactionTable[i].rbegin())
-					cl->build(defStream);
 
 				for (auto& entry : intList)
 				{
 					auto& interactionExec = entry.first;
 					int j = entry.second;
 
-					interactionExec->execHalo(particleVectors[i], particleVectors[j], cl, t, defStream);
+					cl->build(defStream, true);
+					interactionExec->exec(InteractionType::Halo, particleVectors[i], particleVectors[j], cl, t, defStream);
 				}
 			}
-		}
 
 		//===================================================================================================
 
@@ -338,31 +300,27 @@ void Simulation::run(int nsteps)
 		for (int i=0; i<integrators.size(); i++)
 			if (integrators[i] != nullptr)
 				integrators[i]->exec(particleVectors[i], defStream);
-
 		//===================================================================================================
 
 		// XXX: probably should go after redistr AND after cell-list
 		debug("Plugins: after integration");
-		bool reordered = false;
 		for (auto& pl : plugins)
-		{
-			bool oneReord = false;
-			pl->afterIntegration(oneReord);
-			reordered = reordered || oneReord;
-		}
+			pl->afterIntegration();
 
 		//===================================================================================================
 
-		debug("Redistributing particles");
-		if (reordered)
-		{
-			debug("Some plugins have changed ordering of the particles, rebuilding cell-lists for the redistribution");
-			for (auto cl : haloLists)
-				if (cl != nullptr) cl->build(defStream);
-		}
+		debug("Redistributing particles, cell-lists may need to be updated");
+		for (auto cl : redistLists)
+			if (cl != nullptr) cl->build(defStream);
+
 		CUDA_Check( cudaStreamSynchronize(defStream) );
 		redist.redistribute();
 
+		// Reset the cell-list flags, as all the CLs are invalid now
+		for (auto pv : particleVectors)
+			pv->activeCL = nullptr;
+
+		//===================================================================================================
 
 		t += dt;
 	}
@@ -529,11 +487,11 @@ void uDeviceX::registerJointPlugins(SimulationPlugin* simPl, PostprocessPlugin* 
 	}
 }
 
-void uDeviceX::run()
+void uDeviceX::run(int niters)
 {
 	if (isComputeTask())
 	{
-		sim->run(16000);
+		sim->run(niters);
 	}
 	else
 		post->run();

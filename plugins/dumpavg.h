@@ -23,7 +23,7 @@ private:
 	PinnedBuffer<float3> momentum, force;
 	HostBuffer<char> sendBuffer;
 
-	std::vector<std::pair<ParticleVector*, CellList*>> particlesAndCells;
+	std::vector<ParticleVector*> particleVectors;
 
 public:
 	Avg3DPlugin(std::string name, std::string pvNames, int sampleEvery, int dumpEvery, int3 resolution,
@@ -31,7 +31,7 @@ public:
 
 	void setup(Simulation* sim, cudaStream_t stream, const MPI_Comm& comm, const MPI_Comm& interComm);
 	void handshake();
-	void afterIntegration(bool& reordered);
+	void afterIntegration();
 	void serializeAndSend();
 
 	~Avg3DPlugin() {};

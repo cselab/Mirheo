@@ -32,6 +32,8 @@ private:
 	MPI_Datatype mpiPartType;
 	MPI_Comm haloComm;
 
+	cudaStream_t defStream;
+
 	std::vector<std::pair<ParticleVector*, CellList*>> particlesAndCells;
 	std::vector<HaloHelper> helpers;
 
@@ -43,7 +45,7 @@ public:
 
 	void _initialize(int vid);
 
-	HaloExchanger(MPI_Comm& comm);
+	HaloExchanger(MPI_Comm& comm, cudaStream_t defStream);
 	void attach(ParticleVector* pv, CellList* cl);
 	void init();
 	void finalize();

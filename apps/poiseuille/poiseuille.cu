@@ -13,8 +13,9 @@ int main(int argc, char** argv)
 	pugi::xml_parse_result result = config.load_file("poiseuille.xml");
 
 	float3 globalDomainSize = config.child("simulation").child("domain").attribute("size").as_float3({32, 32, 32});
-	int3 nranks3D{1, 2, 1};
-	uDeviceX udevice(argc, argv, nranks3D, globalDomainSize, logger, "poiseuille.log", 9, false);
+	int3 nranks3D{1, 1, 1};
+	uDeviceX udevice(argc, argv, nranks3D, globalDomainSize, logger, "poiseuille.log",
+			config.child("simulation").attribute("debug_lvl").as_int(5), false);
 
 	SimulationPlugin  *simStat,  *simAvg;
 	PostprocessPlugin *postStat, *postAvg;
@@ -36,8 +37,8 @@ int main(int argc, char** argv)
 		udevice.sim->setIntegrator("dpd", "const_dp");
 		udevice.sim->setInteraction("dpd", "dpd", "dpd_int");
 
-		simStat = new SimulationStats("stats", 500);
-		simAvg  = new Avg3DPlugin("averaging", "dpd", 10, 500, {24, 12, 24}, true, true, true);
+		simStat = new SimulationStats("stats", 100);
+		simAvg  = new Avg3DPlugin("averaging", "dpd", 10, 500, {32, 32, 32}, true, true, true);
 	}
 	else
 	{
@@ -47,7 +48,10 @@ int main(int argc, char** argv)
 
 	udevice.registerJointPlugins(simStat, postStat);
 	udevice.registerJointPlugins(simAvg,  postAvg);
-	udevice.run();
+
+	const int niters = config.child("simulation").child("run").attribute("stop_time").as_float(10.0f) /
+					   config.child("simulation").child("run").attribute("dt")       .as_float(0.01f);
+	udevice.run(niters);
 
 	return 0;
 }

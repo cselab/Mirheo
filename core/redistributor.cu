@@ -285,7 +285,6 @@ void Redistributor::receive(int n)
 
 	int oldsize = pv->np;
 	pv->resize(oldsize + totalRecvd, resizePreserve);
-	pv->received = totalRecvd; // TODO: get rid of this
 	debug2("Receiving %d total %s particles", totalRecvd, pv->name.c_str());
 
 	// Load onto the device

@@ -286,59 +286,43 @@ int main(int argc, char ** argv)
 	    MPI_Abort(MPI_COMM_WORLD, 1);
 	}
 
-	logger.init(MPI_COMM_WORLD, "wall.log", 1);
-	IniParser config("../wall.cfg");
+	logger.init(MPI_COMM_WORLD, "cells.log", 9);
 
 	MPI_Check( MPI_Comm_size(MPI_COMM_WORLD, &nranks) );
 	MPI_Check( MPI_Comm_rank(MPI_COMM_WORLD, &rank) );
 	MPI_Check( MPI_Cart_create(MPI_COMM_WORLD, 3, ranks, periods, 0, &cartComm) );
 
-	// Initial cells
 
-	float3 length = config.getFloat3("Common", "SubdomainSize");
+	std::string xml = R"(<node mass="1.0" density="2.0">)";
+	pugi::xml_document config;
+	config.load_string(xml.c_str());
+
+	float3 length{32,32,32};
 	float3 domainStart = -length / 2.0f;
-	int3 ncells = {(int)length.x, (int)length.y, (int)length.z};
+	const float rc = 1.0f;
+	ParticleVector dpds("dpd");
+	CellList cells(&dpds, rc, domainStart, length);
 
-	ParticleVector dpds(ncells, domainStart, length);
+	InitialConditions ic = createIC(config.child("node"));
+	ic.exec(MPI_COMM_WORLD, &dpds, {0,0,0}, length);
 
-	const int ndens = 10;
-	dpds.resize(ncells.x*ncells.y*ncells.z * ndens);
-
-	srand48(0);
-
-	printf("initializing...\n");
-
-	const float radius = 20;
+	const float radius = 10;
 	createSdf(make_int3(129), make_float3(ncells), radius, "sphere.sdf");
 
 	int c = 0;
-	for (int i=0; i<ncells.x; i++)
-		for (int j=0; j<ncells.y; j++)
-			for (int k=0; k<ncells.z; k++)
-				for (int p=0; p<ndens; p++)
-				{
-					dpds.coosvels[c].x[0] = i + drand48() + domainStart.x;
-					dpds.coosvels[c].x[1] = j + drand48() + domainStart.y;
-					dpds.coosvels[c].x[2] = k + drand48() + domainStart.z;
-					dpds.coosvels[c].i1 = c;
-
-					dpds.coosvels[c].u[0] = 0*(drand48() - 0.5);
-					dpds.coosvels[c].u[1] = 0*(drand48() - 0.5);
-					dpds.coosvels[c].u[2] = 0*(drand48() - 0.5);
-					c++;
-				}
-
-	HostBuffer<Particle> initial(c);
-	memcpy(initial.hostdata, dpds.coosvels.hostdata, c*sizeof(Particle));
-
-
-	dpds.resize(c);
-	dpds.coosvels.synchronize(synchronizeDevice);
-	dpds.accs.clear();
-
-	HostBuffer<Particle> particles(dpds.np);
 	for (int i=0; i<dpds.np; i++)
-		particles[i] = dpds.coosvels[i];
+	{
+		dpds.coosvels[i].u[0] = 20*(drand48() - 0.5);
+		dpds.coosvels[i].u[1] = 20*(drand48() - 0.5);
+		dpds.coosvels[i].u[2] = 20*(drand48() - 0.5);
+	}
+	dpds.coosvels.uploadToDevice();
+
+	HostBuffer<Particle> initial(dpds.np);
+	memcpy(initial.hostPtr(), dpds.coosvels.hostPtr(), dpds.np*sizeof(Particle));
+
+
+	dpds.forces.clear();
 
 	cudaStream_t defStream;
 	CUDA_Check( cudaStreamCreateWithPriority(&defStream, cudaStreamNonBlocking, 10) );
@@ -348,24 +332,23 @@ int main(int argc, char ** argv)
 	Redistributor redist(cartComm, config);
 	redist.attach(&dpds, ndens);
 
-	buildCellList(dpds, config, defStream);
+	cells.build(defStream);
 	CUDA_Check( cudaStreamSynchronize(defStream) );
 
 	const float dt = config.getFloat("Common", "dt");
 	printf("%f\n", dt);
 	const int niters = 50;
 
-	Wall wall(cartComm, config);
-	wall.create(dpds);
-	buildCellList(dpds, config, defStream);
+	Wall wall("wall", "sphere.sdf", {1, 1, 1}, -1);
+	wall.create(comm, domainStart, length, length, &dpds, &cells);
+	cells.build(defStream);
 	wall.attach(&dpds);
 
 	HostBuffer<Particle> frozen(wall.frozen.size);
 	HostBuffer<float> intSdf(wall.sdfRawData.size);
 
 	intSdf.copy(wall.sdfRawData);
-	frozen.copy(wall.frozen);
-	dpds.coosvels.synchronize(synchronizeHost);
+	frozen.copy(wall.frozen.coosvels);
 
 //	printf("============================================================================================\n");
 //	for (int i=0; i<wall.resolution.z; i++)
@@ -382,39 +365,35 @@ int main(int argc, char ** argv)
 //	}
 
 	if (argc > 1)
-		checkFrozenRemaining(frozen.hostdata, frozen.size, dpds.coosvels.hostdata, dpds.np, initial.hostdata, initial.size, make_float3(ncells), radius);
+		checkFrozenRemaining(frozen.hostPtr(), frozen.size, dpds.coosvels.hostPtr(), dpds.np, initial.hostPtr(), initial.size, make_float3(ncells), radius);
 
-	printf("GPU execution\n");
+	integrateNoFlow(&dpds, dt, defStream);
+	wall.bounce(defStream);
+	dpds.coosvels.downloadFromDevice();
 
-	Timer tm;
-	tm.start();
 
-	for (int i=0; i<niters; i++)
-	{
-		printf("Iteration %d\n", i);
-		dpds.accs.clear(defStream);
-		computeInternalDPD(dpds, defStream);
 
-		halo.exchangeInit();
-		halo.exchangeFinalize();
-
-		computeHaloDPD(dpds, defStream);
-		CUDA_Check( cudaStreamSynchronize(defStream) );
-
-		wall.computeInteractions(defStream);
-		wall.bounce(defStream);
-
-		redist.redistribute(dt);
-
-		buildCellListAndIntegrate(dpds, config, dt, defStream);
-		CUDA_Check( cudaStreamSynchronize(defStream) );
-		wall._check();
-	}
-
-	double elapsed = tm.elapsed() * 1e-9;
-
-	printf("Finished in %f s, 1 step took %f ms\n", elapsed, elapsed / niters * 1000.0);
-
+//	for (int i=0; i<niters; i++)
+//	{
+//		printf("Iteration %d\n", i);
+//		dpds.accs.clear(defStream);
+//		computeInternalDPD(dpds, defStream);
+//
+//		halo.exchangeInit();
+//		halo.exchangeFinalize();
+//
+//		computeHaloDPD(dpds, defStream);
+//		CUDA_Check( cudaStreamSynchronize(defStream) );
+//
+//		wall.computeInteractions(defStream);
+//		wall.bounce(defStream);
+//
+//		redist.redistribute(dt);
+//
+//		buildCellListAndIntegrate(dpds, config, dt, defStream);
+//		CUDA_Check( cudaStreamSynchronize(defStream) );
+//		wall._check();
+//	}
 
 	if (argc < 2) return 0;
 
@@ -431,9 +410,9 @@ int main(int argc, char ** argv)
 	{
 		printf("%d...", i);
 		fflush(stdout);
-		makeCells(particles.hostdata, buffer.hostdata, cellsStart.hostdata, cellsSize.hostdata, np, ncells, totcells, domainStart, 1.0f);
-		forces(particles.hostdata, accs.hostdata, cellsStart.hostdata, cellsSize.hostdata, ncells, totcells, domainStart, length);
-		integrate(particles.hostdata, accs.hostdata, np, dt, domainStart, length);
+		makeCells(particles.hostPtr(), buffer.hostPtr(), cellsStart.hostPtr(), cellsSize.hostPtr(), np, ncells, totcells, domainStart, 1.0f);
+		forces(particles.hostPtr(), accs.hostPtr(), cellsStart.hostPtr(), cellsSize.hostPtr(), ncells, totcells, domainStart, length);
+		integrate(particles.hostPtr(), accs.hostPtr(), np, dt, domainStart, length);
 	}
 
 	printf("\nDone, checking\n");

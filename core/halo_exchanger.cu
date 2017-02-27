@@ -126,7 +126,8 @@ __global__ void getHalos(const float4* __restrict__ xyzouvwo, CellListInfo cinfo
 	}
 }
 
-HaloExchanger::HaloExchanger(MPI_Comm& comm) : nActiveNeighbours(26)
+HaloExchanger::HaloExchanger(MPI_Comm& comm, cudaStream_t defStream) :
+		nActiveNeighbours(26), defStream(defStream)
 {
 	MPI_Check( MPI_Comm_dup(comm, &haloComm) );
 
@@ -191,18 +192,25 @@ void HaloExchanger::attach(ParticleVector* pv, CellList* cl)
 
 void HaloExchanger::init()
 {
+	// Determine halos, synchronize and initiate downloading
 	for (int i=0; i<particlesAndCells.size(); i++)
 		_initialize(i);
 
+	CUDA_Check( cudaStreamSynchronize(defStream) );
+
+	for (auto& helper : helpers)
+		helper.counts.downloadFromDevice(false);
+}
+
+void HaloExchanger::finalize()
+{
+	// Synchronize to finalize downloads, send, receive and sync again
 	for (int i=0; i<particlesAndCells.size(); i++)
 	{
 		CUDA_Check( cudaStreamSynchronize(helpers[i].stream) );
 		send(i);
 	}
-}
 
-void HaloExchanger::finalize()
-{
 	for (int i=0; i<particlesAndCells.size(); i++)
 		receive(i);
 
@@ -239,10 +247,8 @@ void HaloExchanger::_initialize(int n)
 
 	const int maxdim = std::max({cl->ncells.x, cl->ncells.y, cl->ncells.z});
 	const int nthreads = 32;
-	getHalos<<< dim3((maxdim*maxdim + nthreads - 1) / nthreads, 6, 1),  dim3(nthreads, 1, 1), 0, helper.stream >>>
+	getHalos<<< dim3((maxdim*maxdim + nthreads - 1) / nthreads, 6, 1),  dim3(nthreads, 1, 1), 0, defStream >>>
 			((float4*)pv->coosvels.devPtr(), cl->cellInfo(), cl->cellsStart.devPtr(), (int64_t*)helper.sendAddrs.devPtr(), helper.counts.devPtr());
-
-	helper.counts.downloadFromDevice(false);
 }
 
 void HaloExchanger::send(int n)

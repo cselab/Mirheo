@@ -11,10 +11,11 @@ __global__ void blendStartSize(const uchar4* cellsSize, int4* cellsStart, const 
 
 	uchar4 sizes  = cellsSize [gid];
 
-	cellsStart[gid] += make_int4(sizes.x << 24, sizes.y << 24, sizes.z << 24, sizes.w << 24);
+	cellsStart[gid] += make_int4(sizes.x << cinfo.blendingPower, sizes.y << cinfo.blendingPower,
+								 sizes.z << cinfo.blendingPower, sizes.w << cinfo.blendingPower);
 }
 
-__global__ void computeCellSizes(const float4* xyzouvwo, const int n, const int nMovable,
+__global__ void computeCellSizes(const float4* xyzouvwo, const int n,
 		const CellListInfo cinfo, uint* cellsSize)
 {
 	const int pid = blockIdx.x * blockDim.x + threadIdx.x;
@@ -33,14 +34,15 @@ __global__ void computeCellSizes(const float4* xyzouvwo, const int n, const int 
 	{
 		const int addr = cid / 4;
 		const int slot = cid % 4;
-		const int increment = 1 << (slot*8);
+		const uint increment = 1 << (slot*8);
 
 		atomicAdd(cellsSize + addr, increment);
 	}
 }
 
-__global__ void rearrangeParticles(const float4* in_xyzouvwo, const int n, const int nMovable,
-		const CellListInfo cinfo, uint* cellsSize, const int* cellsStart, float4* out_xyzouvwo)
+__global__ void rearrangeParticles(const CellListInfo cinfo, uint* cellsSize, const int* cellsStart,
+		const int n, const float4* in_xyzouvwo, float4* out_xyzouvwo,
+		bool rearrangeForces, const float4* in_forces, float4* out_forces)
 {
 	const int gid = blockIdx.x * blockDim.x + threadIdx.x;
 	const int pid = gid / 2;
@@ -66,9 +68,9 @@ __global__ void rearrangeParticles(const float4* in_xyzouvwo, const int n, const
 			// See above
 			const int addr = cid / 4;
 			const int slot = cid % 4;
-			const int increment = 1 << (slot*8);
+			const uint increment = 1 << (slot*8);
 
-			const int rawOffset = atomicAdd(cellsSize + addr, -increment);
+			const uint rawOffset = atomicSub(cellsSize + addr, increment);
 			const int offset = ((rawOffset >> (slot*8)) & 255) - 1;
 
 			int2 start_size = cinfo.decodeStartSize(cellsStart[cid]);
@@ -85,6 +87,12 @@ __global__ void rearrangeParticles(const float4* in_xyzouvwo, const int n, const
 		dstId = otherDst;
 
 	if (dstId >= 0) writeNoCache(out_xyzouvwo + 2*dstId+sh, val);
+
+	if (rearrangeForces && sh == 0)
+	{
+		float4 frc = readNoCache(in_forces + pid);
+		writeNoCache(out_forces + dstId, frc);
+	}
 }
 
 
@@ -118,19 +126,31 @@ CellList::CellList(ParticleVector* pv, int3 resolution, float3 domainStart, floa
 	cellsSize.resize(totcells + 1);
 }
 
-void CellList::build(cudaStream_t stream)
+void CellList::build(cudaStream_t stream, bool rearrangeForces)
 {
+	if (pv->activeCL == this)
+	{
+		debug2("Cell-list is already up-to-date, building skipped");
+		return;
+	}
+
+	if (pv->np >= (1<<blendingPower))
+		die("Too many particles for the cell-list");
+
+	if (pv->np / totcells >= (1<<(32-blendingPower)))
+		die("Too many particles for the cell-list");
+
 	// Containers setup
 	pv->pushStreamWOhalo(stream);
 
 	// Compute cell sizes
-	debug2("Computing cell sizes for %d particles with %d newcomers", pv->np, pv->received);
+	debug2("Computing cell sizes for %d particles", pv->np);
 	CUDA_Check( cudaMemsetAsync(cellsSize.devPtr(), 0, (totcells + 1)*sizeof(uint8_t), stream) );  // +1 to have correct cellsStart[totcells]
 
 	auto cinfo = cellInfo();
 
 	computeCellSizes<<< (pv->np+127)/128, 128, 0, stream >>> (
-						(float4*)pv->coosvels.devPtr(), pv->np, pv->np - pv->received, cinfo, (uint*)cellsSize.devPtr());
+						(float4*)pv->coosvels.devPtr(), pv->np, cinfo, (uint*)cellsSize.devPtr());
 
 	// Scan to get cell starts
 	scan(cellsSize.devPtr(), totcells+1, cellsStart.devPtr(), stream);
@@ -142,8 +162,11 @@ void CellList::build(cudaStream_t stream)
 	debug2("Rearranging %d particles", pv->np);
 
 	rearrangeParticles<<< (2*pv->np+127)/128, 128, 0, stream >>> (
-						(float4*)pv->coosvels.devPtr(), pv->np, pv->np - pv->received, cinfo,
-						(uint*)cellsSize.devPtr(), cellsStart.devPtr(), (float4*)pv->pingPongBuf.devPtr());
+			cinfo, (uint*)cellsSize.devPtr(), cellsStart.devPtr(),
+			pv->np,
+			(float4*)pv->coosvels.devPtr(), (float4*)pv->pingPongCoosvels.devPtr(),
+			rearrangeForces,
+			(float4*)pv->forces  .devPtr(), (float4*)pv->pingPongForces  .devPtr());
 
 
 	// Now we need the new size of particles array.
@@ -154,11 +177,12 @@ void CellList::build(cudaStream_t stream)
 
 	pv->resize(newSize, resizePreserve);
 	CUDA_Check( cudaStreamSynchronize(stream) );
-	containerSwap(pv->coosvels, pv->pingPongBuf);
+	containerSwap(pv->coosvels, pv->pingPongCoosvels);
+	if (rearrangeForces)
+		containerSwap(pv->forces, pv->pingPongForces);
 
 	// Containers setup
 	pv->popStreamWOhalo();
 
-	// TODO: is this fine? need something for not the first celllist
-	pv->received = 0;//pv->np;
+	pv->activeCL = this;
 }

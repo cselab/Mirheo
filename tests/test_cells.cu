@@ -48,7 +48,7 @@ int main(int argc, char **argv)
 	pugi::xml_document config;
 	config.load_string(xml.c_str());
 
-	float3 length{8,8,8};
+	float3 length{64,32,55};
 	float3 domainStart = -length / 2.0f;
 	const float rc = 1.2f;
 	ParticleVector dpds("dpd");
@@ -97,13 +97,13 @@ int main(int argc, char **argv)
 
 	printf("np = %d, vs reference  %d\n", dpds.np, total);
 	for (int cid=0; cid < cells.totcells+1; cid++)
-		if ( (hcellsStart[cid] >> 24) != cellscount[cid] )
-			printf("cid %d:  %d (correct %d),  %d\n", cid, hcellsStart[cid] >> 24, cellscount[cid], hcellsStart[cid] & ((1<<24) - 1));
+		if ( (hcellsStart[cid] >> cells.blendingPower) != cellscount[cid] )
+			printf("cid %d:  %d (correct %d),  %d\n", cid, hcellsStart[cid] >> cells.blendingPower, cellscount[cid], hcellsStart[cid] & ((1<<cells.blendingPower) - 1));
 
 	for (int cid=0; cid < cells.totcells; cid++)
 	{
-		const int start = hcellsStart[cid] & ((1<<24) - 1);
-		const int size = hcellsStart[cid] >> 24;
+		const int start = hcellsStart[cid] & ((1<<cells.blendingPower) - 1);
+		const int size = hcellsStart[cid] >> cells.blendingPower;
 		for (int pid=start; pid < start + size; pid++)
 		{
 			const float3 cooDev{dpds.coosvels[pid].x[0], dpds.coosvels[pid].x[1], dpds.coosvels[pid].x[2]};

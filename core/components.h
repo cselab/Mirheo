@@ -1,6 +1,7 @@
 #include <functional>
 #include <core/xml/pugixml.hpp>
 #include <core/wall.h>
+#include <core/interactions.h>
 
 class ParticleVector;
 class CellList;
@@ -12,10 +13,10 @@ class CellList;
 		std::string name;
 		float dt;
 
-		std::function<void(ParticleVector*, const float, cudaStream_t)> integrate;
+		std::function<void(ParticleVector*, const float, cudaStream_t)> integrator;
 		void exec (ParticleVector* pv, cudaStream_t stream)
 		{
-			integrate(pv, dt, stream);
+			integrator(pv, dt, stream);
 		}
 	};
 
@@ -24,23 +25,11 @@ class CellList;
 		float rc;
 		std::string name;
 
-		std::function<void(ParticleVector*, CellList*, const float, cudaStream_t)> self;
-		std::function<void(ParticleVector*, ParticleVector*, CellList*, const float, cudaStream_t)> halo;
-		std::function<void(ParticleVector*, ParticleVector*, CellList*, const float, cudaStream_t)> external;
+		std::function<void(InteractionType, ParticleVector*, ParticleVector*, CellList*, const float, cudaStream_t)> interaction;
 
-		void execSelf (ParticleVector* pv, CellList* cl, const float t, cudaStream_t stream)
+		void exec (InteractionType type, ParticleVector* pv1, ParticleVector* pv2, CellList* cl, const float t, cudaStream_t stream)
 		{
-			self(pv, cl, t, stream);
-		}
-
-		void execHalo (ParticleVector* pv1, ParticleVector* pv2, CellList* cl, const float t, cudaStream_t stream)
-		{
-			halo(pv1, pv2, cl, t, stream);
-		}
-
-		void execExternal (ParticleVector* pv1, ParticleVector* pv2, CellList* cl, const float t, cudaStream_t stream)
-		{
-			external(pv1, pv2, cl, t, stream);
+			interaction(type, pv1, pv2, cl, t, stream);
 		}
 	};
 

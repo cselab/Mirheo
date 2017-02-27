@@ -147,9 +147,9 @@ __global__ void computeExternalInteractions(
 						{
 							float* dest = srcFrcs + srcId*4;
 
-							float a = atomicAdd(dest,     -frc.x);
-							float b = atomicAdd(dest + 1, -frc.y);
-							float c = atomicAdd(dest + 2, -frc.z);
+							atomicAdd(dest,     -frc.x);
+							atomicAdd(dest + 1, -frc.y);
+							atomicAdd(dest + 2, -frc.z);
 						}
 					}
 				}

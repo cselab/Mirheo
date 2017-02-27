@@ -17,6 +17,10 @@ public:
 	float3 h, invh;
 	float rc;
 
+	// Cell-list can bear maximum 2^bp particles,
+	// with no more than 2^(32-bp) particles per cell
+	const int blendingPower = 24;
+
 	CellListInfo(float3 h, float3 domainStart, float3 length);
 	CellListInfo(float rc, float3 domainStart, float3 length);
 
@@ -37,12 +41,12 @@ public:
 
 	__device__ __host__ __forceinline__ int encodeStartSize(int start, uint8_t size) const
 	{
-		return start + (size << 24);
+		return start + (size << blendingPower);
 	}
 
 	__device__ __host__ __forceinline__ int2 decodeStartSize(int code) const
 	{
-		return make_int2(code & ((1<<24) - 1), code >> 24);
+		return make_int2(code & ((1<<blendingPower) - 1), code >> blendingPower);
 	}
 
 	template<bool Clamp = true>
@@ -91,5 +95,5 @@ public:
 		cellsSize.pushStream(stream);
 		cellsStart.pushStream(stream);
 	}
-	void build(cudaStream_t stream);
+	void build(cudaStream_t stream, bool rearrangeForces = false);
 };

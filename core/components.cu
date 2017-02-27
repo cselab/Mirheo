@@ -19,14 +19,14 @@
 
 		if (type == "noflow")
 		{
-			result.integrate = integrateNoFlow;
+			result.integrator = integrateNoFlow;
 		}
 
 		if (type == "const_dp")
 		{
 			const float3 extraForce = node.attribute("extra_force").as_float3({0,0,0});
 
-			result.integrate = [extraForce](ParticleVector* pv, const float dt, cudaStream_t stream) {
+			result.integrator = [extraForce](ParticleVector* pv, const float dt, cudaStream_t stream) {
 				integrateConstDP(pv, dt, stream, extraForce);
 			};
 		}
@@ -45,23 +45,15 @@
 
 		if (type == "dpd")
 		{
-			const float rc = node.attribute("rc").as_float(1.0);
-			const float dt = node.attribute("dt").as_float(0.01);
-			const float kBT = node.attribute("kbt").as_float(1.0);
+			const float adpd     = node.attribute("a")    .as_float(50);
+			const float rc       = node.attribute("rc")   .as_float(1.0);
+			const float dt       = node.attribute("dt")   .as_float(0.01);
+			const float kBT      = node.attribute("kbt")  .as_float(1.0);
 			const float gammadpd = node.attribute("gamma").as_float(20);
 			const float sigmadpd = sqrt(2 * gammadpd * kBT / dt);
-			const float adpd = node.attribute("a").as_float(50);
 
-			result.self = [=] (ParticleVector* pv, CellList* cl, const float t, cudaStream_t stream) {
-				interactionDPDSelf(pv, cl, t, stream, adpd, gammadpd, sigmadpd, rc);
-			};
-
-			result.halo     = [=] (ParticleVector* pv1, ParticleVector* pv2, CellList* cl, const float t, cudaStream_t stream) {
-				interactionDPDHalo(pv1, pv2, cl, t, stream, adpd, gammadpd, sigmadpd, rc);
-			};
-
-			result.external = [=] (ParticleVector* pv1, ParticleVector* pv2, CellList* cl, const float t, cudaStream_t stream) {
-				interactionDPDExternal(pv1, pv2, cl, t, stream, adpd, gammadpd, sigmadpd, rc);
+			result.interaction = [=] (InteractionType type, ParticleVector* pv1, ParticleVector* pv2, CellList* cl, const float t, cudaStream_t stream) {
+				interactionDPD(type, pv1, pv2, cl, t, stream, adpd, gammadpd, sigmadpd, rc);
 			};
 		}
 
@@ -121,7 +113,6 @@
 			 pv->domainLength = subDomainSize;
 			 pv->domainStart  = -subDomainSize*0.5;
 			 pv->mass = mass;
-			 pv->received = 0;
 
 			 int totalCount=0; // TODO: int64!
 			 MPI_Check( MPI_Exscan(&mycount, &totalCount, 1, MPI_INT, MPI_SUM, comm) );

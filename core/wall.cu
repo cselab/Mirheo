@@ -623,14 +623,14 @@ void Wall::create(MPI_Comm& comm, float3 subDomainStart, float3 subDomainSize, f
 	nFrozen.   clear();
 	nRemaining.clear();
 	collectFrozen<<< (pv->np + 127) / 128, 128 >>>(sdfTex, subDomainSize, sdfH, pv->np,
-			(float4*)pv->coosvels.devPtr(), (float4*)pv->pingPongBuf.devPtr(), (float4*)frozen.coosvels.devPtr(),
+			(float4*)pv->coosvels.devPtr(), (float4*)pv->pingPongCoosvels.devPtr(), (float4*)frozen.coosvels.devPtr(),
 			nRemaining.devPtr(), nFrozen.devPtr());
 	nRemaining.downloadFromDevice();
 	nFrozen.   downloadFromDevice();
 
 
 	CUDA_Check( cudaStreamSynchronize(0) );
-	containerSwap(pv->coosvels, pv->pingPongBuf);
+	containerSwap(pv->coosvels, pv->pingPongCoosvels);
 	pv->resize(nRemaining.hostPtr()[0]);
 	info("Keeping %d pv", nRemaining.hostPtr()[0]);
 
