@@ -96,34 +96,34 @@ __global__ void rearrangeParticles(const CellListInfo cinfo, uint* cellsSize, co
 }
 
 
-CellListInfo::CellListInfo(float rc, float3 domainStart, float3 length) :
-		rc(rc), h(make_float3(rc)), invh(make_float3(1.0/rc)), domainStart(domainStart), length(length)
+CellListInfo::CellListInfo(float rc, float3 domainSize) :
+		rc(rc), h(make_float3(rc)), invh(make_float3(1.0/rc)), domainSize(domainSize)
 {
-	ncells = make_int3( ceilf(length / rc - 1e-6) );
+	ncells = make_int3( ceilf(domainSize / rc - 1e-6) );
 	totcells = ncells.x * ncells.y * ncells.z;
 }
 
-CellListInfo::CellListInfo(float3 h, float3 domainStart, float3 length) :
-		domainStart(domainStart), length(length), h(h), invh(1.0f/h)
+CellListInfo::CellListInfo(float3 h, float3 domainSize) :
+		h(h), invh(1.0f/h), domainSize(domainSize)
 {
 	rc = std::min( {h.x, h.y, h.z} );
-	ncells = make_int3( ceilf(length / h - 1e-6f) );
+	ncells = make_int3( ceilf(domainSize / h - 1e-6f) );
 	totcells = ncells.x * ncells.y * ncells.z;
 }
 
 
-CellList::CellList(ParticleVector* pv, float rc, float3 domainStart, float3 length) :
-		CellListInfo(rc, domainStart, length), pv(pv)
+CellList::CellList(ParticleVector* pv, float rc, float3 domainSize) :
+		CellListInfo(rc, domainSize), pv(pv)
 {
 	cellsStart.resize(totcells + 1);
-	cellsSize.resize(totcells + 1);
+	cellsSize .resize(totcells + 1);
 }
 
-CellList::CellList(ParticleVector* pv, int3 resolution, float3 domainStart, float3 length) :
-		CellListInfo(length / make_float3(resolution), domainStart, length), pv(pv)
+CellList::CellList(ParticleVector* pv, int3 resolution, float3 domainSize) :
+		CellListInfo(domainSize / make_float3(resolution), domainSize), pv(pv)
 {
 	cellsStart.resize(totcells + 1);
-	cellsSize.resize(totcells + 1);
+	cellsSize .resize(totcells + 1);
 }
 
 void CellList::build(cudaStream_t stream, bool rearrangeForces)

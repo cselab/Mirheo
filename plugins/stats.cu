@@ -91,7 +91,7 @@ PostprocessStats::PostprocessStats(std::string name) :
 {
 	float f;
 	int   i;
-	DeviceBuffer<ReductionType> m(3), e(1);
+	std::vector<ReductionType> m(3), e(1);
 
 	// real exec time, simulation time,
 	// timestep; # of particles,
@@ -111,15 +111,15 @@ void PostprocessStats::deserialize(MPI_Status& stat)
 {
 	float currentTime, realTime;
 	int nparticles, currentTimeStep;
-	HostBuffer<ReductionType> momentum(3), energy(1);
+	std::vector<ReductionType> momentum(3), energy(1);
 
 	SimpleSerializer::deserialize(data, realTime, currentTime, currentTimeStep, nparticles, momentum, energy);
 
-    MPI_Check( MPI_Reduce(rank == 0 ? MPI_IN_PLACE : &nparticles,        &nparticles,        1, MPI_INT,          MPI_SUM, 0, comm) );
-    MPI_Check( MPI_Reduce(rank == 0 ? MPI_IN_PLACE : energy.hostPtr(),   energy.hostPtr(),   1, mpiReductionType, MPI_SUM, 0, comm) );
-    MPI_Check( MPI_Reduce(rank == 0 ? MPI_IN_PLACE : momentum.hostPtr(), momentum.hostPtr(), 3, mpiReductionType, MPI_SUM, 0, comm) );
+    MPI_Check( MPI_Reduce(rank == 0 ? MPI_IN_PLACE : &nparticles,     &nparticles,     1, MPI_INT,          MPI_SUM, 0, comm) );
+    MPI_Check( MPI_Reduce(rank == 0 ? MPI_IN_PLACE : energy.data(),   energy.data(),   1, mpiReductionType, MPI_SUM, 0, comm) );
+    MPI_Check( MPI_Reduce(rank == 0 ? MPI_IN_PLACE : momentum.data(), momentum.data(), 3, mpiReductionType, MPI_SUM, 0, comm) );
 
-    MPI_Check( MPI_Reduce(rank == 0 ? MPI_IN_PLACE : &realTime,          &realTime,          1, MPI_FLOAT,        MPI_MAX, 0, comm) );
+    MPI_Check( MPI_Reduce(rank == 0 ? MPI_IN_PLACE : &realTime,       &realTime,       1, MPI_FLOAT,        MPI_MAX, 0, comm) );
 
     if (rank == 0)
     {

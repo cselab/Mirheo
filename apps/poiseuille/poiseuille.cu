@@ -53,5 +53,8 @@ int main(int argc, char** argv)
 					   config.child("simulation").child("run").attribute("dt")       .as_float(0.01f);
 	udevice.run(niters);
 
+	// ???
+	MPI_Finalize();
+
 	return 0;
 }

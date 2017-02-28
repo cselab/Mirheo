@@ -49,8 +49,8 @@ private:
 	float3 h;
 	bool needDensity, needMomentum, needForce;
 
-	HostBuffer<float>  density;
-	HostBuffer<float3> momentum, force;
+	std::vector<float>  density;
+	std::vector<float3> momentum, force;
 
 public:
 	Avg3DDumper(std::string name, std::string path, int3 nranks3D);

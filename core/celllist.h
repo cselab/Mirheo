@@ -13,7 +13,7 @@ class CellListInfo
 public:
 	int3 ncells;
 	int  totcells;
-	float3 domainStart, length;
+	float3 domainSize;
 	float3 h, invh;
 	float rc;
 
@@ -21,8 +21,8 @@ public:
 	// with no more than 2^(32-bp) particles per cell
 	const int blendingPower = 24;
 
-	CellListInfo(float3 h, float3 domainStart, float3 length);
-	CellListInfo(float rc, float3 domainStart, float3 length);
+	CellListInfo(float3 h, float3 domainSize);
+	CellListInfo(float rc, float3 domainSize);
 
 // ==========================================================================================================================================
 // Common cell functions
@@ -52,7 +52,7 @@ public:
 	template<bool Clamp = true>
 	__device__ __host__ __forceinline__ int3 getCellIdAlongAxis(const float3 x) const
 	{
-		const int3 v = make_int3( floorf(invh * (x - domainStart)) );
+		const int3 v = make_int3( floorf(invh * (x + 0.5f*domainSize)) );
 
 		if (Clamp)
 			return min( ncells - 1, max(make_int3(0), v) );
@@ -83,8 +83,8 @@ public:
 	DeviceBuffer<int> cellsStart;
 	DeviceBuffer<uint8_t> cellsSize;
 
-	CellList(ParticleVector* pv, float rc, float3 domainStart, float3 length);
-	CellList(ParticleVector* pv, int3 resolution, float3 domainStart, float3 length);
+	CellList(ParticleVector* pv, float rc, float3 domainSize);
+	CellList(ParticleVector* pv, int3 resolution, float3 domainSize);
 
 	CellListInfo cellInfo()
 	{

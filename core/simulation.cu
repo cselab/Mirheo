@@ -496,13 +496,11 @@ void uDeviceX::run(int niters)
 	else
 		post->run();
 
-	if (computeTask)
+	if (isComputeTask())
 	{
 		CUDA_Check( cudaDeviceSynchronize() );
-		CUDA_Check( cudaDeviceReset() );
+		//CUDA_Check( cudaDeviceReset() );
 	}
-
-	MPI_Check( MPI_Finalize() );
 }
 
 

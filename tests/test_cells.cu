@@ -52,7 +52,7 @@ int main(int argc, char **argv)
 	float3 domainStart = -length / 2.0f;
 	const float rc = 1.2f;
 	ParticleVector dpds("dpd");
-	CellList cells(&dpds, rc, domainStart, length);
+	CellList cells(&dpds, rc, length);
 
 	InitialConditions ic = createIC(config.child("node"));
 	ic.exec(MPI_COMM_WORLD, &dpds, {0,0,0}, length);

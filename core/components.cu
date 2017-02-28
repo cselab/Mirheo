@@ -111,7 +111,6 @@
 					}
 
 			 pv->domainLength = subDomainSize;
-			 pv->domainStart  = -subDomainSize*0.5;
 			 pv->mass = mass;
 
 			 int totalCount=0; // TODO: int64!

@@ -109,7 +109,9 @@ __global__ void getHalos(const float4* __restrict__ xyzouvwo, CellListInfo cinfo
 		const int ix = bufId % 3;
 		const int iy = (bufId / 3) % 3;
 		const int iz = bufId / 9;
-		const float4 shift{ cinfo.length.x*(ix-1), cinfo.length.y*(iy-1), cinfo.length.z*(iz-1), 0 };
+		const float4 shift{ cinfo.domainSize.x*(ix-1),
+							cinfo.domainSize.y*(iy-1),
+							cinfo.domainSize.z*(iz-1), 0 };
 
 		for (int i = 0; i < start_size.y; i++)
 		{

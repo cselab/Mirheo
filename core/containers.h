@@ -15,7 +15,8 @@ struct ParticleVector
 	//PinnedBuffer<Force> forces, pingPongForces;
 	DeviceBuffer<Force> forces, pingPongForces;
 
-	float3 domainStart, domainLength; // assume 0,0,0 is center of the local domain
+	// Local coordinate system, (0,0,0) is center of the local domain
+	float3 domainLength;
 
 	PinnedBuffer<Particle> halo;
 	CellList* activeCL;

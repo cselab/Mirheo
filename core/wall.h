@@ -25,16 +25,15 @@ private:
 
 	cudaTextureObject_t sdfTex;
 	cudaArray *sdfArray;
-	DeviceBuffer<float> sdfRawData;
+	DeviceBuffer<float> sdfRawData; // TODO: this can be free'd after creation
 
 	float3 sdfH;
 	float3 subDomainSize, globalDomainSize;
-	int3 subDomainResolution, globalResolution;
+	int3 localSdfResolution, globalResolution;
 
 	std::string sdfFileName;
 	float _creationTime;
 
-	float dt;
 	// TODO:
 	const float rc = 1.0f;
 
@@ -45,10 +44,9 @@ public:
 
 	Wall(std::string name, std::string sdfFileName, float3 sdfH, float _creationTime);
 
-	void _check();
 	void create(MPI_Comm& comm, float3 subDomainStart, float3 subDomaintSize, float3 globalDomainSize, ParticleVector* pv, CellList* cl);
 	void attach(ParticleVector* pv, CellList* cl);
-	void bounce(cudaStream_t stream = 0);
+	void bounce(float dt, cudaStream_t stream);
 
 	ParticleVector* getFrozen() { return &frozen; }
 	float creationTime() { return _creationTime; }

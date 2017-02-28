@@ -1,5 +1,5 @@
 NVCC = nvcc
-NVCCFLAGS = -std=c++11 -arch=compute_61 -code=sm_61 -O3 -g -lineinfo --expt-extended-lambda -Xcompiler "-fopenmp -march=native"
+NVCCFLAGS = -std=c++11 -arch=compute_61 -code=sm_61 -O0 -G -Xptxas -O0 -g -lineinfo --expt-extended-lambda -Xcompiler "-fopenmp -march=native"
 #-O0 -G -Xptxas -O0
 
 LIBS = -lmpi
@@ -10,7 +10,7 @@ NVCCFLAGS += -I../
 
 OBJ_DIR = obj
 
-wall_obj = scan.o celllist.o halo_exchanger.o dpd.o test_wall.o redistributor.o wall.o integrate.o
+wall_obj =    scan.o celllist.o test_wall.o pugixml.o components.o integrate.o interactions.o wall.o halo_exchanger.o redistributor.o
 onerank_obj = scan.o celllist.o halo_exchanger.o dpd.o test_onerank.o redistributor.o integrate.o
 manyranks_obj = scan.o celllist.o test_manyranks.o pugixml.o components.o integrate.o interactions.o wall.o halo_exchanger.o redistributor.o
 halo_obj    = scan.o celllist.o test_halo.o pugixml.o components.o integrate.o interactions.o wall.o halo_exchanger.o

@@ -97,7 +97,9 @@ __global__ void getExitingParticles(float4* xyzouvwo,
 		if (code.x*code.y*code.z != 1) // this means that the particle has to leave
 		{
 			const int bufId = (code.z*3 + code.y)*3 + code.x;
-			const float4 shift{ cinfo.length.x*(code.x-1), cinfo.length.y*(code.y-1), cinfo.length.z*(code.z-1), 0 };
+			const float4 shift{ cinfo.domainSize.x*(code.x-1),
+								cinfo.domainSize.y*(code.y-1),
+								cinfo.domainSize.z*(code.z-1), 0 };
 
 			int myid = atomicAdd(counts + bufId, 1);
 
