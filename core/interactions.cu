@@ -61,35 +61,32 @@ void interactionDPD (InteractionType type, ParticleVector* pv1, ParticleVector* 
 		// Self interaction
 		if (pv1 == pv2)
 		{
+			debug2("Computing internal forces for %s (%d particles)", pv1->name.c_str(), pv1->np);
+
 			if (pv1->np > 0)
-			{
-				debug2("Computing internal forces for %s (%d particles)", pv1->name.c_str(), pv1->np);
 				computeSelfInteractions<<< (pv1->np + nth - 1) / nth, nth, 0, stream >>>(
 						(float4*)pv1->coosvels.devPtr(), (float*)pv1->forces.devPtr(), cl->cellInfo(), cl->cellsStart.devPtr(), pv1->np, dpdCore);
-			}
 		}
 		else // External interaction
 		{
+			debug2("Computing external forces for %s - %s (%d - %d particles)", pv1->name.c_str(), pv2->name.c_str(), pv1->np, pv2->np);
+
 			if (pv1->np > 0 && pv2->np > 0)
-			{
-				debug2("Computing external forces for %s - %s (%d - %d particles)", pv1->name.c_str(), pv2->name.c_str(), pv1->np, pv2->np);
 				computeExternalInteractions<true, true> <<< (pv2->np + nth - 1) / nth, nth, 0, stream >>>(
-											(float4*)pv2->coosvels.devPtr(), nullptr, (float4*)pv1->coosvels.devPtr(),
-											(float*)pv1->forces.devPtr(), cl->cellInfo(), cl->cellsStart.devPtr(), pv2->np, dpdCore);
-			}
+											(float4*)pv2->coosvels.devPtr(), (float*)pv2->forces.devPtr(),
+											(float4*)pv1->coosvels.devPtr(), (float*)pv1->forces.devPtr(),
+											cl->cellInfo(), cl->cellsStart.devPtr(), pv2->np, dpdCore);
 		}
 	}
 
 	// Halo interaction
 	if (type == InteractionType::Halo)
 	{
-		if (pv1->np > 0 && pv2->np > 0)
-		{
-			debug2("Computing halo forces for %s - %s(halo) (%d - %d particles)", pv1->name.c_str(), pv2->name.c_str(), pv1->np, pv2->halo.size());
-			computeExternalInteractions<false, true> <<< (pv2->halo.size() + nth - 1) / nth, nth, 0, stream >>>(
+		debug2("Computing halo forces for %s - %s(halo) (%d - %d particles)", pv1->name.c_str(), pv2->name.c_str(), pv1->np, pv2->halo.size());
+
+		if (pv1->np > 0 && pv2->halo.size() > 0)
+			computeExternalInteractions2<false, true> <<< (pv2->halo.size() + nth - 1) / nth, nth, 0, stream >>>(
 										(float4*)pv2->halo.devPtr(), nullptr, (float4*)pv1->coosvels.devPtr(),
 										(float*)pv1->forces.devPtr(), cl->cellInfo(), cl->cellsStart.devPtr(), pv2->halo.size(), dpdCore);
-		}
 	}
-
 }

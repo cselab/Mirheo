@@ -59,7 +59,7 @@ private:
 	{
 		*((int*)buf) = v.size();
 		buf += sizeof(int);
-		memcpy(buf, v.hostPtr(), sizeOfOne(v));
+		memcpy(buf, v.hostPtr(), v.size()*sizeof(T));
 	}
 
 	template<typename T>
@@ -67,7 +67,7 @@ private:
 	{
 		*((int*)buf) = v.size();
 		buf += sizeof(int);
-		memcpy(buf, v.hostPtr(), sizeOfOne(v));
+		memcpy(buf, v.hostPtr(), v.size()*sizeof(T));
 	}
 
 	template<typename T>
@@ -75,7 +75,7 @@ private:
 	{
 		*((int*)buf) = (int)v.size();
 		buf += sizeof(int);
-		memcpy(buf, v.data(), sizeOfOne(v));
+		memcpy(buf, v.data(), v.size()*sizeof(T));
 	}
 
 	template<typename T>
@@ -110,7 +110,7 @@ private:
 		v.resize(sz);
 		buf += sizeof(int);
 
-		memcpy(v.hostPtr(), buf, sizeOfOne(v));
+		memcpy(v.hostPtr(), buf, v.size()*sizeof(T));
 	}
 
 	template<typename T>
@@ -121,7 +121,7 @@ private:
 		v.resize(sz);
 		buf += sizeof(int);
 
-		memcpy(v.hostPtr(), buf, sizeOfOne(v));
+		memcpy(v.hostPtr(), buf, v.size()*sizeof(T));
 	}
 
 	template<typename T>
@@ -132,7 +132,7 @@ private:
 		v.resize(sz);
 		buf += sizeof(int);
 
-		memcpy(v.data(), buf, sizeOfOne(v));
+		memcpy(v.data(), buf, v.size()*sizeof(T));
 	}
 
 	template<typename T>
@@ -161,17 +161,17 @@ private:
 
 public:
 	template<typename... Args>
-	static void serialize(HostBuffer<char>& buf, Args&... args)
+	static void serialize(std::vector<char>& buf, Args&... args)
 	{
 		const int szInBytes = totSize(args...);
 		buf.resize(szInBytes);
-		pack(buf.hostPtr(), args...);
+		pack(buf.data(), args...);
 	}
 
 	template<typename... Args>
-	static void deserialize(HostBuffer<char>& buf, Args&... args)
+	static void deserialize(std::vector<char>& buf, Args&... args)
 	{
-		unpack(buf.hostPtr(), args...);
+		unpack(buf.data(), args...);
 	}
 };
 

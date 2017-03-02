@@ -75,7 +75,7 @@ public:
 protected:
 	MPI_Comm comm, interComm;
 	int rank;
-	HostBuffer<char> data;
+	std::vector<char> data;
 	int size;
 
 	int id;
@@ -86,7 +86,7 @@ public:
 	MPI_Request postRecv()
 	{
 		MPI_Request req;
-		MPI_Check( MPI_Irecv(data.hostPtr(), size, MPI_BYTE, rank, id, interComm, &req) );
+		MPI_Check( MPI_Irecv(data.data(), size, MPI_BYTE, rank, id, interComm, &req) );
 		return req;
 	}
 

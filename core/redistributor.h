@@ -34,7 +34,7 @@ private:
 	MPI_Comm redComm;
 
 	std::vector<std::pair<ParticleVector*, CellList*>> particlesAndCells;
-	std::vector<RedistributorHelper> helpers;
+	std::vector<RedistributorHelper*> helpers;
 
 	void postReceive(int vid);
 	void send(int vid);

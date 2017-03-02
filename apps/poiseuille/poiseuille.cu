@@ -15,7 +15,7 @@ int main(int argc, char** argv)
 	float3 globalDomainSize = config.child("simulation").child("domain").attribute("size").as_float3({32, 32, 32});
 	int3 nranks3D{1, 1, 1};
 	uDeviceX udevice(argc, argv, nranks3D, globalDomainSize, logger, "poiseuille.log",
-			config.child("simulation").attribute("debug_lvl").as_int(5), false);
+			config.child("simulation").attribute("debug_lvl").as_int(5), config.child("simulation").attribute("debug_lvl").as_int(5) >= 10);
 
 	SimulationPlugin  *simStat,  *simAvg;
 	PostprocessPlugin *postStat, *postAvg;
@@ -23,22 +23,31 @@ int main(int argc, char** argv)
 	{
 		Integrator  constDP = createIntegrator(config.child("simulation").child("integrator"));
 		Interaction dpdInt = createInteraction(config.child("simulation").child("interaction"));
-		InitialConditions dpdIc = createIC(config.child("simulation").child("particle_vector"));
+
+		InitialConditions dpdIc  = createIC(config.child("simulation").child("particle_vector"));
+		InitialConditions dpdIc2 = createIC(config.child("simulation").child("particle_vector").next_sibling());
+
 		Wall wall = createWall(config.child("simulation").child("wall"));
 
-		ParticleVector* dpd = new ParticleVector(config.child("simulation").child("particle_vector").attribute("name").as_string());
+		ParticleVector* dpd  = new ParticleVector(config.child("simulation").child("particle_vector").attribute("name").as_string());
+		ParticleVector* dpd2 = new ParticleVector(config.child("simulation").child("particle_vector").next_sibling().attribute("name").as_string());
 
 		udevice.sim->registerParticleVector(dpd, &dpdIc);
+		//udevice.sim->registerParticleVector(dpd2, &dpdIc2);
 
 		udevice.sim->registerIntegrator(&constDP);
 		udevice.sim->registerInteraction(&dpdInt);
 		udevice.sim->registerWall(&wall);
 
 		udevice.sim->setIntegrator("dpd", "const_dp");
+		//udevice.sim->setIntegrator("dpd2", "const_dp");
 		udevice.sim->setInteraction("dpd", "dpd", "dpd_int");
+		//udevice.sim->setInteraction("dpd2", "dpd", "dpd_int");
+		//udevice.sim->setInteraction("dpd2", "dpd2", "dpd_int");
+		udevice.sim->setInteraction("dpd", "wall", "dpd_int");
 
-		simStat = new SimulationStats("stats", 100);
-		simAvg  = new Avg3DPlugin("averaging", "dpd", 10, 500, {32, 32, 32}, true, true, true);
+		simStat = new SimulationStats("stats", 1000);
+		simAvg  = new Avg3DPlugin("averaging", "dpd", 10, 5000, {32, 32, 32}, true, true, true);
 	}
 	else
 	{

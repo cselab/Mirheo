@@ -35,7 +35,7 @@ private:
 	cudaStream_t defStream;
 
 	std::vector<std::pair<ParticleVector*, CellList*>> particlesAndCells;
-	std::vector<HaloHelper> helpers;
+	std::vector<HaloHelper*> helpers;
 
 
 	void send(int vid);

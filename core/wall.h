@@ -21,7 +21,7 @@ private:
 	std::vector<DeviceBuffer<int>> boundaryCells;
 	std::vector<CellList*> cellLists;
 
-	ParticleVector frozen;
+	ParticleVector* frozen;
 
 	cudaTextureObject_t sdfTex;
 	cudaArray *sdfArray;
@@ -44,10 +44,10 @@ public:
 
 	Wall(std::string name, std::string sdfFileName, float3 sdfH, float _creationTime);
 
-	void create(MPI_Comm& comm, float3 subDomainStart, float3 subDomaintSize, float3 globalDomainSize, ParticleVector* pv, CellList* cl);
+	void create(MPI_Comm& comm, float3 subDomainStart, float3 subDomaintSize, float3 globalDomainSize, ParticleVector* pv);
 	void attach(ParticleVector* pv, CellList* cl);
 	void bounce(float dt, cudaStream_t stream);
 
-	ParticleVector* getFrozen() { return &frozen; }
+	ParticleVector* getFrozen() { return frozen; }
 	float creationTime() { return _creationTime; }
 };

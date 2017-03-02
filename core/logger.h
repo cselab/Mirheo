@@ -15,8 +15,6 @@
 
 #include <mpi.h>
 
-#include <core/stacktrace.h>
-
 #ifdef __CUDACC__
 #include <cuda.h>
 #endif
@@ -93,12 +91,6 @@ public:
 
 		// May cause deadlock!
 		//MPI_File_close(&fout);
-
-		// Print backtrace
-//		backward::StackTrace st;
-//		st.load_here(32);
-//		backward::Printer p;
-//		p.print(st, stderr);
 
 		MPI_Abort(MPI_COMM_WORLD, -1);
 	}

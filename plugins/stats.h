@@ -19,7 +19,7 @@ private:
 
 	int nparticles;
 	PinnedBuffer<ReductionType> momentum, energy;
-	HostBuffer<char> sendBuffer;
+	std::vector<char> sendBuffer;
 
 	Timer<> timer;
 

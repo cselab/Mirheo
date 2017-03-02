@@ -130,7 +130,7 @@ void CellList::build(cudaStream_t stream, bool rearrangeForces)
 {
 	if (pv->activeCL == this)
 	{
-		debug2("Cell-list is already up-to-date, building skipped");
+		debug2("Cell-list for %s is already up-to-date, building skipped", pv->name.c_str());
 		return;
 	}
 
@@ -140,11 +140,17 @@ void CellList::build(cudaStream_t stream, bool rearrangeForces)
 	if (pv->np / totcells >= (1<<(32-blendingPower)))
 		die("Too many particles for the cell-list");
 
+	if (pv->np == 0)
+	{
+		debug2("%s consists of no particles, cell-list building skipped", pv->name.c_str());
+		return;
+	}
+
 	// Containers setup
 	pv->pushStreamWOhalo(stream);
 
 	// Compute cell sizes
-	debug2("Computing cell sizes for %d particles", pv->np);
+	debug2("Computing cell sizes for %d %s particles", pv->np, pv->name.c_str());
 	CUDA_Check( cudaMemsetAsync(cellsSize.devPtr(), 0, (totcells + 1)*sizeof(uint8_t), stream) );  // +1 to have correct cellsStart[totcells]
 
 	auto cinfo = cellInfo();
@@ -159,7 +165,7 @@ void CellList::build(cudaStream_t stream, bool rearrangeForces)
 	blendStartSize<<< ((totcells+3)/4 + 127) / 128, 128, 0, stream >>>((uchar4*)cellsSize.devPtr(), (int4*)cellsStart.devPtr(), cinfo);
 
 	// Rearrange the data
-	debug2("Rearranging %d particles", pv->np);
+	debug2("Rearranging %d %s particles", pv->np, pv->name.c_str());
 
 	rearrangeParticles<<< (2*pv->np+127)/128, 128, 0, stream >>> (
 			cinfo, (uint*)cellsSize.devPtr(), cellsStart.devPtr(),
@@ -173,7 +179,7 @@ void CellList::build(cudaStream_t stream, bool rearrangeForces)
 	int newSize;
 	CUDA_Check( cudaMemcpyAsync(&newSize, cellsStart.devPtr() + totcells, sizeof(int), cudaMemcpyDeviceToHost, stream) );
 	CUDA_Check( cudaStreamSynchronize(stream) );
-	debug2("Rearranging completed, new size of particle vector is %d", newSize);
+	debug2("Rearranging completed, new size of %s particle vector is %d", pv->name.c_str(), newSize);
 
 	pv->resize(newSize, resizePreserve);
 	CUDA_Check( cudaStreamSynchronize(stream) );

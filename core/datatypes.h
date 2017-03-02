@@ -112,7 +112,7 @@ public:
 
 		if (kind == resizePreserve && dold != nullptr)
 		{
-			CUDA_Check(cudaMemcpyAsync(devptr, dold, sizeof(T) * oldsize, cudaMemcpyDeviceToDevice, stream));
+			if (oldsize > 0) CUDA_Check(cudaMemcpyAsync(devptr, dold, sizeof(T) * oldsize, cudaMemcpyDeviceToDevice, stream));
 		}
 
 		CUDA_Check(cudaFree(dold));
@@ -124,21 +124,21 @@ public:
 	}
 
 	template<typename Cont>
-	auto copy(const Cont& cont) -> decltype((void)(cont.devptr), void())
+	auto copy(const Cont& cont) -> decltype((void)(cont.devPtr()), void())
 	{
-		static_assert(std::is_same<decltype(devptr), decltype(cont.devptr)>::value, "can't copy buffers of different types");
+		static_assert(std::is_same<decltype(devptr), decltype(cont.devPtr())>::value, "can't copy buffers of different types");
 
-		resize(cont.size);
-		CUDA_Check( cudaMemcpyAsync(devptr, cont.devptr, sizeof(T) * _size, cudaMemcpyDeviceToDevice, stream) );
+		resize(cont.size());
+		if (_size > 0) CUDA_Check( cudaMemcpyAsync(devptr, cont.devPtr(), sizeof(T) * _size, cudaMemcpyDeviceToDevice, stream) );
 	}
 
 	template<typename Cont>
-	auto copy(const Cont& cont) -> decltype((void)(cont.hostptr), void())
+	auto copy(const Cont& cont) -> decltype((void)(cont.hostPtr()), void())
 	{
-		static_assert(std::is_same<decltype(devptr), decltype(cont.hostptr)>::value, "can't copy buffers of different types");
+		static_assert(std::is_same<decltype(devptr), decltype(cont.hostPtr())>::value, "can't copy buffers of different types");
 
-		resize(cont.size);
-		CUDA_Check( cudaMemcpyAsync(devptr, cont.hostptr, sizeof(T) * _size, cudaMemcpyHostToDevice, stream) );
+		resize(cont.size());
+		if (_size > 0) CUDA_Check( cudaMemcpyAsync(devptr, cont.hostPtr(), sizeof(T) * _size, cudaMemcpyHostToDevice, stream) );
 	}
 };
 
@@ -201,13 +201,13 @@ public:
 	{
 		// TODO: check if we really need to do that
 		// maybe everything is already downloaded
-		CUDA_Check( cudaMemcpyAsync(hostptr, devptr, sizeof(T) * _size, cudaMemcpyDeviceToHost, stream) );
+		if (_size > 0) CUDA_Check( cudaMemcpyAsync(hostptr, devptr, sizeof(T) * _size, cudaMemcpyDeviceToHost, stream) );
 		if (synchronize) CUDA_Check( cudaStreamSynchronize(stream) );
 	}
 
 	void uploadToDevice()
 	{
-		CUDA_Check(cudaMemcpyAsync(devptr, hostptr, sizeof(T) * _size, cudaMemcpyHostToDevice, stream));
+		if (_size > 0) CUDA_Check(cudaMemcpyAsync(devptr, hostptr, sizeof(T) * _size, cudaMemcpyHostToDevice, stream));
 	}
 
 	void resize(const int n, ResizeKind kind = resizePreserve)
@@ -229,7 +229,7 @@ public:
 		if (kind == resizePreserve && hold != nullptr)
 		{
 			memcpy(hostptr, hold, sizeof(T) * oldsize);
-			CUDA_Check(cudaMemcpyAsync(devptr, dold, sizeof(T) * oldsize, cudaMemcpyDeviceToDevice, stream));
+			if (oldsize > 0) if (oldsize > 0) CUDA_Check(cudaMemcpyAsync(devptr, dold, sizeof(T) * oldsize, cudaMemcpyDeviceToDevice, stream));
 		}
 
 		CUDA_Check(cudaFreeHost(hold));
@@ -248,21 +248,21 @@ public:
 	}
 
 	template<typename Cont>
-	auto copy(const Cont& cont) -> decltype((void)(cont.devptr), void())
+	auto copy(const Cont& cont) -> decltype((void)(cont.devPtr()), void())
 	{
-		static_assert(std::is_same<decltype(devptr), decltype(cont.devptr)>::value, "can't copy buffers of different types");
+		static_assert(std::is_same<decltype(devptr), decltype(cont.devPtr())>::value, "can't copy buffers of different types");
 
-		resize(cont.size);
-		CUDA_Check( cudaMemcpyAsync(devptr, cont.devptr, sizeof(T) * _size, cudaMemcpyDeviceToDevice, stream) );
+		resize(cont.size());
+		if (_size > 0) CUDA_Check( cudaMemcpyAsync(devptr, cont.devPtr(), sizeof(T) * _size, cudaMemcpyDeviceToDevice, stream) );
 	}
 
 	template<typename Cont>
-	auto copy(const Cont& cont) -> decltype((void)(cont.hostptr), void())
+	auto copy(const Cont& cont) -> decltype((void)(cont.hostPtr()), void())
 	{
-		static_assert(std::is_same<decltype(hostptr), decltype(cont.hostptr)>::value, "can't copy buffers of different types");
+		static_assert(std::is_same<decltype(hostptr), decltype(cont.hostPtr())>::value, "can't copy buffers of different types");
 
-		resize(cont.size);
-		memcpy(hostptr, cont.hostptr, sizeof(T) * _size);
+		resize(cont.size());
+		memcpy(hostptr, cont.hostPtr(), sizeof(T) * _size);
 	}
 };
 
@@ -338,7 +338,7 @@ public:
 		static_assert(std::is_same<decltype(hostptr), decltype(cont.devPtr())>::value, "can't copy buffers of different types");
 
 		resize(cont.size());
-		CUDA_Check( cudaMemcpyAsync(hostptr, cont.devPtr(), sizeof(T) * _size, cudaMemcpyDeviceToHost, stream) );
+		if (_size > 0) CUDA_Check( cudaMemcpyAsync(hostptr, cont.devPtr(), sizeof(T) * _size, cudaMemcpyDeviceToHost, stream) );
 	}
 };
 

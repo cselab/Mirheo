@@ -81,7 +81,7 @@ void SimulationStats::serializeAndSend()
 	{
 		float tm = timer.elapsedAndReset() / (currentTimeStep < fetchEvery ? 1.0f : fetchEvery);
 		SimpleSerializer::serialize(sendBuffer, tm, currentTime, currentTimeStep, nparticles, momentum, energy);
-		send(sendBuffer.hostPtr(), sendBuffer.size());
+		send(sendBuffer.data(), sendBuffer.size());
 		needToDump = false;
 	}
 }
@@ -111,7 +111,7 @@ void PostprocessStats::deserialize(MPI_Status& stat)
 {
 	float currentTime, realTime;
 	int nparticles, currentTimeStep;
-	std::vector<ReductionType> momentum(3), energy(1);
+	std::vector<ReductionType> momentum, energy;
 
 	SimpleSerializer::deserialize(data, realTime, currentTime, currentTimeStep, nparticles, momentum, energy);
 

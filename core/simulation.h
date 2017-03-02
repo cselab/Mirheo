@@ -5,13 +5,17 @@
 #include <core/components.h>
 #include <core/celllist.h>
 #include <core/wall.h>
+#include <core/interactions.h>
 #include <plugins/plugin.h>
 
 #include <vector>
 #include <string>
-#include <unordered_map>
 #include <map>
 #include <mpi.h>
+
+class HaloExchanger;
+class Redistributor;
+class Wall;
 
 class Simulation
 {
@@ -25,30 +29,38 @@ public:
 	float3 globalDomainSize, subDomainSize, subDomainStart;
 
 private:
+	float currentTime;
+	int currentStep;
+	cudaStream_t defStream;
 
-	std::unordered_map<std::string, int> pvMap;
-	std::unordered_map<std::string, Interaction*> interactionMap;
-	std::unordered_map<std::string, Integrator*>  integratorMap;
-	std::unordered_map<std::string, Wall*>        wallMap;
+private:
 
+	HaloExchanger* halo;
+	Redistributor* redistributor;
+
+	std::map<std::string, int> pvIdMap;
 	std::vector<ParticleVector*> particleVectors;
-	std::vector<Interaction*>    interactions;
-	std::vector<Integrator*>     integrators;
-	//std::vector<CellList*>       cellLists;
 
-	//std::vector<std::vector<CellList*>> cellListTable;
-	std::vector<float> largestRC;
+	std::map<std::string, Interaction*> interactionMap;
+	std::map<std::string, Integrator*>  integratorMap;
+	std::map<std::string, Wall*>        wallMap;
 
-	// For each PV store sorted set of CellLists together
-	// with all the interactions that use this CL
-	struct CmpCellListsByRC
+//	std::vector<Interaction*>    interactions;
+
+	struct RobustFloatLess
 	{
-		bool operator() (const CellList* a, const CellList* b)
+		bool operator() (const float& a, const float& b)
 		{
-			return a->rc > b->rc;
+			const float eps = 1e-6;
+			if (fabs(a - b) < eps) return false;
+			return a < b;
 		}
 	};
-	std::vector<std::map< CellList*, std::vector<std::pair<Interaction*, int>>, CmpCellListsByRC >> interactionTable;
+
+	std::multimap< float, std::function<void(InteractionType, float, cudaStream_t)>, RobustFloatLess > forceCallers;
+
+	std::vector< std::map<float, CellList*, RobustFloatLess> > cellListMaps;
+	std::vector<Integrator*>     integrators;
 
 
 	std::vector<SimulationPlugin*> plugins;
@@ -68,9 +80,14 @@ public:
 
 	void registerPlugin(SimulationPlugin* plugin);
 
+	void init();
 	void run(int nsteps);
+	void createWalls();
+	void finalize();
 
-	const std::unordered_map<std::string, int>&   getPvMap() const { return pvMap; }
+	std::vector<int> getWallCreationSteps() const;
+
+	const std::map<std::string, int>&   getPvIdMap() const { return pvIdMap; }
 	const std::vector<ParticleVector*>& getParticleVectors() const { return particleVectors; }
 };
 

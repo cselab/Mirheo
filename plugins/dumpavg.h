@@ -21,7 +21,7 @@ private:
 
 	PinnedBuffer<float>  density;
 	PinnedBuffer<float3> momentum, force;
-	HostBuffer<char> sendBuffer;
+	std::vector<char> sendBuffer;
 
 	std::vector<ParticleVector*> particleVectors;
 

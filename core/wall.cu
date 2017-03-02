@@ -342,7 +342,10 @@ __global__ void bounceKernel(const int* wallCells, const int nWallCells, const i
 		if (vb < 0.0f) continue; // if inside - continue
 
 		va = evalSdf(sdfTex, oldCoo, cinfo.domainSize, h, invH);
-		assert( va < 0.0f ); // Accuracy issues here!
+
+		// Accuracy issues here!
+//		if (va > 0.0f)
+//			printf("A particle was inside already, bounce may fail\n");
 
 		// Determine where we cross
 		// Interpolation search
@@ -353,7 +356,6 @@ __global__ void bounceKernel(const int* wallCells, const int nWallCells, const i
 		float vmid;
 
 		int iters;
-
 		for (iters=0; iters<maxNIters; iters++)
 		{
 			const float lambda = min(max((vb / (vb - va)), 0.01f), 0.99f);  // va*l + (1-l)*vb = 0
@@ -373,10 +375,26 @@ __global__ void bounceKernel(const int* wallCells, const int nWallCells, const i
 
 			if (fabs(vmid) < tolerance) break;
 		}
-		assert(fabs(vmid) < tolerance);
+
+		// This should never happen, but smth may go wrong
+		if (fabs(vmid) > tolerance)
+		{
+//			printf("Solution was not found for bouncing!\n");
+			coosvels[2*pid] = oldCoo;
+			coosvels[2*pid + 1] = -vel;
+			return;
+		}
 
 		// Final intersection at old*alpha + new*(1-alpha)
-		const float alpha = (oldCoo.x - mid.x) / (oldCoo.x - coo.x);
+		// Take care if bounces are parallel to coo axes
+		float alpha;
+		if (oldCoo.x != coo.x)
+			alpha = (oldCoo.x - mid.x) / (oldCoo.x - coo.x);
+		else if (oldCoo.y != coo.y)
+			alpha = (oldCoo.y - mid.y) / (oldCoo.y - coo.y);
+		else if (oldCoo.z != coo.z)
+			alpha = (oldCoo.z - mid.z) / (oldCoo.z - coo.z);
+		else alpha = 1;
 
 		// Travel along alpha*(new - old), then bounces back along -(1-alpha)*(new - old)
 		float beta = 2*alpha - 1;
@@ -406,11 +424,14 @@ __global__ void bounceKernel(const int* wallCells, const int nWallCells, const i
  * We only set a few params here
  */
 Wall::Wall(std::string name, std::string sdfFileName, float3 sdfH,  float _creationTime) :
-		name(name), sdfFileName(sdfFileName), sdfH(sdfH), _creationTime(_creationTime), frozen(name)
-{ }
+		name(name), sdfFileName(sdfFileName), sdfH(sdfH), _creationTime(_creationTime)
+{
+	frozen = new ParticleVector(name);
+}
 
 void Wall::attach(ParticleVector* pv, CellList* cl)
 {
+	CUDA_Check( cudaDeviceSynchronize() );
 	particleVectors.push_back(pv);
 	cellLists.push_back(cl);
 
@@ -430,6 +451,7 @@ void Wall::attach(ParticleVector* pv, CellList* cl)
 	nBoundaryCells.uploadToDevice();
 	getBoundaryCells<<< (cl->totcells + 127) / 128, 128 >>> (cl->cellInfo(), sdfTex, sdfH,
 			nBoundaryCells.devPtr()+oldSize, boundaryCells[oldSize].devPtr());
+	CUDA_Check( cudaDeviceSynchronize() );
 }
 
 void Wall::readSdf(int64_t fullSdfSize_byte, int64_t endHeader_byte, int nranks, int rank, std::vector<float>& fullSdfData)
@@ -487,9 +509,11 @@ void Wall::readHeader(int3& sdfResolution, float3& sdfExtent, int64_t& fullSdfSi
 }
 
 
-void Wall::create(MPI_Comm& comm, float3 subDomainStart, float3 subDomainSize, float3 globalDomainSize, ParticleVector* pv, CellList* cl)
+void Wall::create(MPI_Comm& comm, float3 subDomainStart, float3 subDomainSize, float3 globalDomainSize, ParticleVector* pv)
 {
 	debug2("Creating wall");
+
+	CUDA_Check( cudaDeviceSynchronize() );
 	MPI_Check( MPI_Comm_dup(comm, &wallComm) );
 
 	int nranks, rank;
@@ -513,7 +537,6 @@ void Wall::create(MPI_Comm& comm, float3 subDomainStart, float3 subDomainSize, f
 
 	localSdfResolution = make_int3(ceilf(subDomainSize / sdfH));
 	sdfH = subDomainSize / make_float3(localSdfResolution-1);
-
 
 	// Find your relevant chunk of data
 	// We cannot send big sdf files directly, so we'll carve a piece now
@@ -545,7 +568,8 @@ void Wall::create(MPI_Comm& comm, float3 subDomainStart, float3 subDomainSize, f
 				const int origIy = (j+startId.y + initialSdfResolution.y) % initialSdfResolution.y;
 				const int origIz = (k+startId.z + initialSdfResolution.z) % initialSdfResolution.z;
 
-				locSdfDataPtr[ (k*inputResolution.y + j)*inputResolution.x + i ] =
+				// FIXME: AAAAAAAAAAAAAAAAA MINUS
+				locSdfDataPtr[ (k*inputResolution.y + j)*inputResolution.x + i ] = -
 						fullSdfData[ (origIz*initialSdfResolution.y + origIy)*initialSdfResolution.x + origIx ];
 			}
 
@@ -617,13 +641,16 @@ void Wall::create(MPI_Comm& comm, float3 subDomainStart, float3 subDomainSize, f
 	countFrozen<<< (pv->np + 127) / 128, 128 >>>((float4*)pv->coosvels.devPtr(), pv->np, sdfTex, subDomainSize, sdfH, nFrozen.devPtr());
 	nFrozen.downloadFromDevice();
 
-	frozen.resize(nFrozen.hostPtr()[0]);
+	frozen->resize(nFrozen.hostPtr()[0]);
+	frozen->mass = pv->mass;
+	frozen->domainLength = pv->domainLength;
+
 	info("Freezing %d pv", nFrozen.hostPtr()[0]);
 
 	nFrozen.   clear();
 	nRemaining.clear();
 	collectFrozen<<< (pv->np + 127) / 128, 128 >>>(sdfTex, subDomainSize, sdfH, pv->np,
-			(float4*)pv->coosvels.devPtr(), (float4*)pv->pingPongCoosvels.devPtr(), (float4*)frozen.coosvels.devPtr(),
+			(float4*)pv->coosvels.devPtr(), (float4*)pv->pingPongCoosvels.devPtr(), (float4*)frozen->coosvels.devPtr(),
 			nRemaining.devPtr(), nFrozen.devPtr());
 	nRemaining.downloadFromDevice();
 	nFrozen.   downloadFromDevice();

@@ -90,9 +90,9 @@ void Avg3DPlugin::setup(Simulation* sim, cudaStream_t stream, const MPI_Comm& co
 
 	for (auto& nm : splitPvNames)
 	{
-		auto& pvMap = sim->getPvMap();
-		auto pvIter = pvMap.find(nm);
-		if (pvIter == pvMap.end())
+		auto& pvIdMap = sim->getPvIdMap();
+		auto pvIter = pvIdMap.find(nm);
+		if (pvIter == pvIdMap.end())
 			die("No such particle vector registered: %s", nm.c_str());
 
 		auto pv = sim->getParticleVectors()[pvIter->second];
@@ -112,7 +112,7 @@ void Avg3DPlugin::afterIntegration()
 
 	for (auto pv : particleVectors)
 	{
-		CellListInfo cinfo(h, pv->domainStart, pv->domainLength);
+		CellListInfo cinfo(h, pv->domainLength);
 
 		sample<<< (pv->np+127) / 128, 128, 0, stream >>> (
 				pv->np, (float4*)pv->coosvels.devPtr(), (float4*)pv->forces.devPtr(),
@@ -156,17 +156,17 @@ void Avg3DPlugin::serializeAndSend()
 
 	debug2("Plugin %s is sending now data", name.c_str());
 	SimpleSerializer::serialize(sendBuffer, currentTime, density, momentum, force);
-	send(sendBuffer.hostPtr(), sendBuffer.size());
+	send(sendBuffer.data(), sendBuffer.size());
 
 	nSamples = 0;
 }
 
 void Avg3DPlugin::handshake()
 {
-	HostBuffer<char> data;
+	std::vector<char> data;
 	SimpleSerializer::serialize(data, resolution, h, needDensity, needMomentum, needForce);
 
-	MPI_Check( MPI_Send(data.hostPtr(), data.size(), MPI_BYTE, rank, id, interComm) );
+	MPI_Check( MPI_Send(data.data(), data.size(), MPI_BYTE, rank, id, interComm) );
 
 	debug2("Plugin %s was set up to sample%s%s%s for the following PVs: %s. Resolution %dx%dx%d", name.c_str(),
 			needDensity ? " density" : "", needMomentum ? " momentum" : "", needForce ? " force" : "", pvNames.c_str(),
@@ -182,8 +182,8 @@ Avg3DDumper::Avg3DDumper(std::string name, std::string path, int3 nranks3D) :
 
 void Avg3DDumper::handshake()
 {
-	HostBuffer<char> buf(1000);
-	MPI_Check( MPI_Recv(buf.hostPtr(), buf.size(), MPI_BYTE, rank, id, interComm, MPI_STATUS_IGNORE) );
+	std::vector<char> buf(1000);
+	MPI_Check( MPI_Recv(buf.data(), buf.size(), MPI_BYTE, rank, id, interComm, MPI_STATUS_IGNORE) );
 	SimpleSerializer::deserialize(buf, resolution, h, needDensity, needMomentum, needForce);
 	int totalPoints = resolution.x * resolution.y * resolution.z;
 
@@ -229,9 +229,9 @@ void Avg3DDumper::deserialize(MPI_Status& stat)
 	SimpleSerializer::deserialize(data, t, density, momentum, force);
 
 	std::vector<const float*> channels;
-	if (needDensity)  channels.push_back(density.hostPtr());
-	if (needMomentum) channels.push_back((const float*)momentum.hostPtr());
-	if (needForce)    channels.push_back((const float*)force.hostPtr());
+	if (needDensity)  channels.push_back(density.data());
+	if (needMomentum) channels.push_back((const float*)momentum.data());
+	if (needForce)    channels.push_back((const float*)force.data());
 
 	debug2("Plugin %s will dump right now", name.c_str());
 	dumper->dump(channels, t);
