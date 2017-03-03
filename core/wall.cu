@@ -89,84 +89,21 @@ __global__ void cubicInterpolate3D(const float* in, int3 inDims, float3 inH, flo
 	out[ (iz*outDims.y + iy) * outDims.x + ix ] = cubicInterpolate1D(interp1D, mu.z);
 }
 
-__forceinline__ __device__ float gRouyTourin(float a, float b, float c, float d, float e, float f)
-{
-	auto sqr = [] (float x) { return x*x; };
-	// Rouy-Tourin scheme
-	// http://epubs.siam.org/doi/pdf/10.1137/0729053
-
-	return sqrt(
-			max( sqr(max(a, 0.0f)), sqr(min(b, 0.0f)) ) +
-			max( sqr(max(c, 0.0f)), sqr(min(d, 0.0f)) ) +
-			max( sqr(max(e, 0.0f)), sqr(min(f, 0.0f)) )
-			);
-}
-
-__global__ void redistance(const float* in, int3 dims, float3 h, float dt, float* out)
-{
-	const int ix = blockIdx.x * blockDim.x + threadIdx.x;
-	const int iy = blockIdx.y * blockDim.y + threadIdx.y;
-	const int iz = blockIdx.z * blockDim.z + threadIdx.z;
-
-	auto sqr  = [](float x) { return x*x; };
-
-	auto encode = [=](int i, int j, int k) {
-		i = (i+dims.x) % dims.x;
-		j = (j+dims.y) % dims.y;
-		k = (k+dims.z) % dims.z;
-
-		return (k*dims.y + j) * dims.x + i;
-	};
-
-	const int id0 = encode(ix, iy, iz);
-
-	const float u = in[id0];
-
-	if (fabs(u) < max(h.x, max(h.y, h.z)))
-	{
-		out[id0] = in[id0];
-		return;
-	}
-
-	const float ux_minus = in[encode(ix-1, iy,   iz  )];
-	const float ux_plus  = in[encode(ix+1, iy,   iz  )];
-	const float uy_minus = in[encode(ix,   iy-1, iz  )];
-	const float uy_plus  = in[encode(ix,   iy+1, iz  )];
-	const float uz_minus = in[encode(ix,   iy,   iz-1)];
-	const float uz_plus  = in[encode(ix,   iy,   iz+1)];
-
-	const float dx_minus = (u - ux_minus) / h.x;
-	const float dx_plus  = (ux_plus  - u) / h.x;
-	const float dy_minus = (u - uy_minus) / h.y;
-	const float dy_plus  = (uy_plus  - u) / h.y;
-	const float dz_minus = (u - uz_minus) / h.z;
-	const float dz_plus  = (uz_plus  - u) / h.z;
-
-	const float grad = gRouyTourin(dx_minus, dx_plus, dy_minus, dy_plus, dz_minus, dz_plus);
-
-//	if (grad < 0.6f)
-//		printf("%f,  x %f %f %f,  y %f %f %f,  z %f %f %f,  %d %d %d\n", grad,
-//				ux_minus, u, ux_plus,  uy_minus, u, uy_plus,  uz_minus, u, uz_plus, ix, iy, iz);
-
-	const float S = fabs(u) / sqrt( u*u + sqr(grad * h.x) );
-	out[id0] = u + S * dt * (1-grad);
-}
-
 template<typename T>
-__device__ __forceinline__ float evalSdf(cudaTextureObject_t sdfTex, T x, float3 domainSize, float3 h, float3 invH)
+__device__ __forceinline__ float evalSdf(T x, Wall::SdfInfo sdfInfo)
 {
 	float3 x3{x.x, x.y, x.z};
-	float3 texcoord = floorf((x3 + domainSize*0.5f) * invH);
-	float3 lambda = (x3 - (texcoord * h - domainSize*0.5f)) * invH;
+	float3 texcoord = floorf((x3 + sdfInfo.extendedDomainSize*0.5f) * sdfInfo.invh);
+	float3 lambda = (x3 - (texcoord * sdfInfo.h - sdfInfo.extendedDomainSize*0.5f)) * sdfInfo.invh;
 
-	const float s000 = tex3D<float>(sdfTex, texcoord.x + 0, texcoord.y + 0, texcoord.z + 0);
-	const float s001 = tex3D<float>(sdfTex, texcoord.x + 1, texcoord.y + 0, texcoord.z + 0);
-	const float s010 = tex3D<float>(sdfTex, texcoord.x + 0, texcoord.y + 1, texcoord.z + 0);
-	const float s011 = tex3D<float>(sdfTex, texcoord.x + 1, texcoord.y + 1, texcoord.z + 0);
-	const float s100 = tex3D<float>(sdfTex, texcoord.x + 0, texcoord.y + 0, texcoord.z + 1);
-	const float s101 = tex3D<float>(sdfTex, texcoord.x + 1, texcoord.y + 0, texcoord.z + 1);
-	const float s110 = tex3D<float>(sdfTex, texcoord.x + 0, texcoord.y + 1, texcoord.z + 1);
-	const float s111 = tex3D<float>(sdfTex, texcoord.x + 1, texcoord.y + 1, texcoord.z + 1);
+	const float s000 = tex3D<float>(sdfInfo.sdfTex, texcoord.x + 0, texcoord.y + 0, texcoord.z + 0);
+	const float s001 = tex3D<float>(sdfInfo.sdfTex, texcoord.x + 1, texcoord.y + 0, texcoord.z + 0);
+	const float s010 = tex3D<float>(sdfInfo.sdfTex, texcoord.x + 0, texcoord.y + 1, texcoord.z + 0);
+	const float s011 = tex3D<float>(sdfInfo.sdfTex, texcoord.x + 1, texcoord.y + 1, texcoord.z + 0);
+	const float s100 = tex3D<float>(sdfInfo.sdfTex, texcoord.x + 0, texcoord.y + 0, texcoord.z + 1);
+	const float s101 = tex3D<float>(sdfInfo.sdfTex, texcoord.x + 1, texcoord.y + 0, texcoord.z + 1);
+	const float s110 = tex3D<float>(sdfInfo.sdfTex, texcoord.x + 0, texcoord.y + 1, texcoord.z + 1);
+	const float s111 = tex3D<float>(sdfInfo.sdfTex, texcoord.x + 1, texcoord.y + 1, texcoord.z + 1);
 
 	const float s00x = s000 * (1 - lambda.x) + lambda.x * s001;
 	const float s01x = s010 * (1 - lambda.x) + lambda.x * s011;
@@ -186,6 +123,7 @@ __device__ __forceinline__ float evalSdf(cudaTextureObject_t sdfTex, T x, float3
 
 // warp-aggregated atomic increment
 // https://devblogs.nvidia.com/parallelforall/cuda-pro-tip-optimized-filtering-warp-aggregated-atomics/
+// just4fun
 __device__ __forceinline__ int atomicAggInc(int *ctr)
 {
 	int lane_id = (threadIdx.x % 32);
@@ -204,14 +142,14 @@ __device__ __forceinline__ int atomicAggInc(int *ctr)
 }
 
 
-__global__ void countFrozen(const float4* pv, const int np, cudaTextureObject_t sdfTex, float3 subDomainSize, float3 h, int* nFrozen)
+__global__ void countFrozen(const float4* pv, const int np, Wall::SdfInfo sdfInfo, int* nFrozen)
 {
 	const int pid = blockIdx.x * blockDim.x + threadIdx.x;
 	if (pid >= np) return;
 
 	const float4 coos = pv[2*pid];
 
-	const float sdf = evalSdf(sdfTex, coos, subDomainSize, h, 1.0f / h);
+	const float sdf = evalSdf(coos, sdfInfo);
 
 	if (sdf > 0.0f && sdf < 1.2f)
 	{
@@ -219,8 +157,8 @@ __global__ void countFrozen(const float4* pv, const int np, cudaTextureObject_t 
 	}
 }
 
-__global__ void collectFrozen(cudaTextureObject_t sdfTex, float3 subDomainSize, float3 h, const int np,
-		const float4* input, float4* remaining, float4* frozen, int* nRemaining, int* nFrozen)
+__global__ void collectFrozen(const float4* input, const int np, Wall::SdfInfo sdfInfo,
+		float4* remaining, float4* frozen, int* nRemaining, int* nFrozen)
 {
 	const int pid = blockIdx.x * blockDim.x + threadIdx.x;
 	if (pid >= np) return;
@@ -228,7 +166,7 @@ __global__ void collectFrozen(cudaTextureObject_t sdfTex, float3 subDomainSize, 
 	const float4 coos = input[2*pid];
 	const float4 vels = input[2*pid+1];
 
-	const float sdf = evalSdf(sdfTex, coos, subDomainSize, h, 1.0f / h);
+	const float sdf = evalSdf(coos, sdfInfo);
 
 	if (sdf <= 0.0f)
 	{
@@ -245,29 +183,26 @@ __global__ void collectFrozen(cudaTextureObject_t sdfTex, float3 subDomainSize, 
 	}
 }
 
-__global__ void countBoundaryCells(CellListInfo cinfo, cudaTextureObject_t sdfTex, const float3 h, int* nBoundaryCells)
+__global__ void countBoundaryCells(CellListInfo cinfo, Wall::SdfInfo sdfInfo, int* nBoundaryCells)
 {
 	const int cid = blockIdx.x * blockDim.x + threadIdx.x;
 	if (cid >= cinfo.totcells) return;
 	int ix, iy, iz;
 
 	cinfo.decode(cid, ix, iy, iz);
-
-	const float3 invH = 1.0f / h;
-
 	const float cx = -0.5f*cinfo.domainSize.x + ix*cinfo.h.x;
 	const float cy = -0.5f*cinfo.domainSize.y + iy*cinfo.h.y;
 	const float cz = -0.5f*cinfo.domainSize.z + iz*cinfo.h.z;
 
 	const float l = cinfo.rc;
-	const float s000 = evalSdf(sdfTex, make_float3(cx,   cy,   cz),   cinfo.domainSize, h, invH);
-	const float s001 = evalSdf(sdfTex, make_float3(cx,   cy,   cz+l), cinfo.domainSize, h, invH);
-	const float s010 = evalSdf(sdfTex, make_float3(cx,   cy+l, cz),   cinfo.domainSize, h, invH);
-	const float s011 = evalSdf(sdfTex, make_float3(cx,   cy+l, cz+l), cinfo.domainSize, h, invH);
-	const float s100 = evalSdf(sdfTex, make_float3(cx+l, cy,   cz),   cinfo.domainSize, h, invH);
-	const float s101 = evalSdf(sdfTex, make_float3(cx+l, cy,   cz+l), cinfo.domainSize, h, invH);
-	const float s110 = evalSdf(sdfTex, make_float3(cx+l, cy+l, cz),   cinfo.domainSize, h, invH);
-	const float s111 = evalSdf(sdfTex, make_float3(cx+l, cy+l, cz+l), cinfo.domainSize, h, invH);
+	const float s000 = evalSdf( make_float3(cx,   cy,   cz),   sdfInfo );
+	const float s001 = evalSdf( make_float3(cx,   cy,   cz+l), sdfInfo );
+	const float s010 = evalSdf( make_float3(cx,   cy+l, cz),   sdfInfo );
+	const float s011 = evalSdf( make_float3(cx,   cy+l, cz+l), sdfInfo );
+	const float s100 = evalSdf( make_float3(cx+l, cy,   cz),   sdfInfo );
+	const float s101 = evalSdf( make_float3(cx+l, cy,   cz+l), sdfInfo );
+	const float s110 = evalSdf( make_float3(cx+l, cy+l, cz),   sdfInfo );
+	const float s111 = evalSdf( make_float3(cx+l, cy+l, cz+l), sdfInfo );
 
 	if ( (-1.1f < s000 && s000 < 0.1f) || (-1.1f < s001 && s001 < 0.1f) ||
 		 (-1.1f < s010 && s010 < 0.1f) || (-1.1f < s011 && s011 < 0.1f) ||
@@ -278,8 +213,8 @@ __global__ void countBoundaryCells(CellListInfo cinfo, cudaTextureObject_t sdfTe
 	}
 }
 
-__global__ void getBoundaryCells(CellListInfo cinfo, cudaTextureObject_t sdfTex,
-		const float3 h, int* nBoundaryCells, int* boundaryCells)
+__global__ void getBoundaryCells(CellListInfo cinfo, Wall::SdfInfo sdfInfo,
+		int* nBoundaryCells, int* boundaryCells)
 {
 	const int cid = blockIdx.x * blockDim.x + threadIdx.x;
 	if (cid >= cinfo.totcells) return;
@@ -287,22 +222,19 @@ __global__ void getBoundaryCells(CellListInfo cinfo, cudaTextureObject_t sdfTex,
 	int ix, iy, iz;
 
 	cinfo.decode(cid, ix, iy, iz);
-
-	const float3 invH = 1.0f / h;
-
 	const float cx = -0.5f*cinfo.domainSize.x + ix*cinfo.h.x;
 	const float cy = -0.5f*cinfo.domainSize.y + iy*cinfo.h.y;
 	const float cz = -0.5f*cinfo.domainSize.z + iz*cinfo.h.z;
 
 	const float l = cinfo.rc;
-	const float s000 = evalSdf(sdfTex, make_float3(cx,   cy,   cz),   cinfo.domainSize, h, invH);
-	const float s001 = evalSdf(sdfTex, make_float3(cx,   cy,   cz+l), cinfo.domainSize, h, invH);
-	const float s010 = evalSdf(sdfTex, make_float3(cx,   cy+l, cz),   cinfo.domainSize, h, invH);
-	const float s011 = evalSdf(sdfTex, make_float3(cx,   cy+l, cz+l), cinfo.domainSize, h, invH);
-	const float s100 = evalSdf(sdfTex, make_float3(cx+l, cy,   cz),   cinfo.domainSize, h, invH);
-	const float s101 = evalSdf(sdfTex, make_float3(cx+l, cy,   cz+l), cinfo.domainSize, h, invH);
-	const float s110 = evalSdf(sdfTex, make_float3(cx+l, cy+l, cz),   cinfo.domainSize, h, invH);
-	const float s111 = evalSdf(sdfTex, make_float3(cx+l, cy+l, cz+l), cinfo.domainSize, h, invH);
+	const float s000 = evalSdf( make_float3(cx,   cy,   cz),   sdfInfo );
+	const float s001 = evalSdf( make_float3(cx,   cy,   cz+l), sdfInfo );
+	const float s010 = evalSdf( make_float3(cx,   cy+l, cz),   sdfInfo );
+	const float s011 = evalSdf( make_float3(cx,   cy+l, cz+l), sdfInfo );
+	const float s100 = evalSdf( make_float3(cx+l, cy,   cz),   sdfInfo );
+	const float s101 = evalSdf( make_float3(cx+l, cy,   cz+l), sdfInfo );
+	const float s110 = evalSdf( make_float3(cx+l, cy+l, cz),   sdfInfo );
+	const float s111 = evalSdf( make_float3(cx+l, cy+l, cz+l), sdfInfo );
 
 	if ( (-1.1f < s000 && s000 < 0.1f) || (-1.1f < s001 && s001 < 0.1f) ||
 		 (-1.1f < s010 && s010 < 0.1f) || (-1.1f < s011 && s011 < 0.1f) ||
@@ -316,7 +248,7 @@ __global__ void getBoundaryCells(CellListInfo cinfo, cudaTextureObject_t sdfTex,
 
 __launch_bounds__(128, 8)
 __global__ void bounceKernel(const int* wallCells, const int nWallCells, const int* __restrict__ cellsStart, CellListInfo cinfo,
-		cudaTextureObject_t sdfTex, const float3 h, const float3 invH, float4* coosvels, const float dt)
+		Wall::SdfInfo sdfInfo, float4* coosvels, const float dt)
 {
 	const int maxNIters = 20;
 	const float tolerance = 5e-6;
@@ -337,15 +269,16 @@ __global__ void bounceKernel(const int* wallCells, const int nWallCells, const i
 		// Warning - this is only valid for VV
 		float4 oldCoo = coo - dt*vel;
 
-		vb = evalSdf(sdfTex, coo, cinfo.domainSize, h, invH);
+		vb = evalSdf(coo, sdfInfo);
 
 		if (vb < 0.0f) continue; // if inside - continue
 
-		va = evalSdf(sdfTex, oldCoo, cinfo.domainSize, h, invH);
+		va = evalSdf(oldCoo, sdfInfo);
 
 		// Accuracy issues here!
-//		if (va > 0.0f)
-//			printf("A particle was inside already, bounce may fail\n");
+		if (va > 0.0f)
+			printf("A particle [%d  %f %f %f,  %f %f %f] was inside already, bounce may fail\n",
+					__float_as_int(oldCoo.w), oldCoo.x, oldCoo.y, oldCoo.z, vel.x, vel.y, vel.z);
 
 		// Determine where we cross
 		// Interpolation search
@@ -360,7 +293,7 @@ __global__ void bounceKernel(const int* wallCells, const int nWallCells, const i
 		{
 			const float lambda = min(max((vb / (vb - va)), 0.01f), 0.99f);  // va*l + (1-l)*vb = 0
 			mid = a*lambda + b*(1.0f - lambda);
-			vmid = evalSdf(sdfTex, mid, cinfo.domainSize, h, invH);
+			vmid = evalSdf(mid, sdfInfo);
 
 			if (va * vmid < 0.0f)
 			{
@@ -376,10 +309,10 @@ __global__ void bounceKernel(const int* wallCells, const int nWallCells, const i
 			if (fabs(vmid) < tolerance) break;
 		}
 
-		// This should never happen, but smth may go wrong
+		// This shouldn't happen, but smth may go wrong
 		if (fabs(vmid) > tolerance)
 		{
-//			printf("Solution was not found for bouncing!\n");
+			printf("Solution was not found for bouncing!\n");
 			coosvels[2*pid] = oldCoo;
 			coosvels[2*pid + 1] = -vel;
 			return;
@@ -405,10 +338,19 @@ __global__ void bounceKernel(const int* wallCells, const int nWallCells, const i
 
 		for (int i=0; i<maxNIters; i++)
 		{
-			if ( (evalSdf(sdfTex, candidate, cinfo.domainSize, h, invH)) < 0.0f ) break;
+			if ( (evalSdf(candidate, sdfInfo)) < 0.0f ) break;
 
 			beta *= 0.5;
 			candidate = oldCoo - beta * (coo - oldCoo);
+		}
+
+		if (evalSdf(candidate, sdfInfo) > tolerance)
+		{
+			printf("Solution was not found for bouncing!\n");
+
+			coosvels[2*pid] = oldCoo;
+			coosvels[2*pid + 1] = -vel;
+			return;
 		}
 
 		// Not sure why, but this assertion always fails
@@ -424,8 +366,9 @@ __global__ void bounceKernel(const int* wallCells, const int nWallCells, const i
  * We only set a few params here
  */
 Wall::Wall(std::string name, std::string sdfFileName, float3 sdfH,  float _creationTime) :
-		name(name), sdfFileName(sdfFileName), sdfH(sdfH), _creationTime(_creationTime)
+		name(name), sdfFileName(sdfFileName), _creationTime(_creationTime)
 {
+	sdfInfo.h = sdfH;
 	frozen = new ParticleVector(name);
 }
 
@@ -441,7 +384,7 @@ void Wall::attach(ParticleVector* pv, CellList* cl)
 	nBoundaryCells.resize(oldSize+1);
 	nBoundaryCells.hostPtr()[oldSize] = 0;
 	nBoundaryCells.uploadToDevice();
-	countBoundaryCells<<< (cl->totcells + 127) / 128, 128 >>> (cl->cellInfo(), sdfTex, sdfH, nBoundaryCells.devPtr()+oldSize);
+	countBoundaryCells<<< (cl->totcells + 127) / 128, 128 >>> (cl->cellInfo(), sdfInfo, nBoundaryCells.devPtr()+oldSize);
 	nBoundaryCells.downloadFromDevice();
 
 	debug("Found %d boundary cells", nBoundaryCells.hostPtr()[oldSize]);
@@ -449,30 +392,9 @@ void Wall::attach(ParticleVector* pv, CellList* cl)
 
 	nBoundaryCells.hostPtr()[oldSize] = 0;
 	nBoundaryCells.uploadToDevice();
-	getBoundaryCells<<< (cl->totcells + 127) / 128, 128 >>> (cl->cellInfo(), sdfTex, sdfH,
+	getBoundaryCells<<< (cl->totcells + 127) / 128, 128 >>> (cl->cellInfo(), sdfInfo,
 			nBoundaryCells.devPtr()+oldSize, boundaryCells[oldSize].devPtr());
 	CUDA_Check( cudaDeviceSynchronize() );
-}
-
-void Wall::readSdf(int64_t fullSdfSize_byte, int64_t endHeader_byte, int nranks, int rank, std::vector<float>& fullSdfData)
-{
-	// Read part and allgather
-	const int64_t readPerProc_byte = (fullSdfSize_byte + nranks - 1) / (int64_t)nranks;
-	std::vector<char> readBuffer(readPerProc_byte);
-
-	// Limits in bytes
-	const int64_t readStart = readPerProc_byte * rank + endHeader_byte;
-	const int64_t readEnd   = std::min( readStart + readPerProc_byte, fullSdfSize_byte + endHeader_byte);
-
-	MPI_File fh;
-	MPI_Status status;
-	MPI_Check( MPI_File_open(wallComm, sdfFileName.c_str(), MPI_MODE_RDONLY, MPI_INFO_NULL, &fh) );  // TODO: MPI_Info
-	MPI_Check( MPI_File_read_at_all(fh, readStart, readBuffer.data(), readEnd - readStart, MPI_BYTE, &status) );
-	// TODO: check that we read just what we asked
-	// MPI_Get_count only return int though
-
-	fullSdfData.resize(readPerProc_byte * nranks / sizeof(float));  // May be bigger than fullSdfSize, to make gather easier
-	MPI_Check( MPI_Allgather(readBuffer.data(), readPerProc_byte, MPI_BYTE, fullSdfData.data(), readPerProc_byte, MPI_BYTE, wallComm) );
 }
 
 void Wall::readHeader(int3& sdfResolution, float3& sdfExtent, int64_t& fullSdfSize_byte, int64_t& endHeader_byte, int rank)
@@ -508,6 +430,74 @@ void Wall::readHeader(int3& sdfResolution, float3& sdfExtent, int64_t& fullSdfSi
 	MPI_Check( MPI_Bcast(&endHeader_byte,   1, MPI_INT64_T,   0, wallComm) );
 }
 
+void Wall::readSdf(int64_t fullSdfSize_byte, int64_t endHeader_byte, int nranks, int rank, std::vector<float>& fullSdfData)
+{
+	// Read part and allgather
+	const int64_t readPerProc_byte = (fullSdfSize_byte + nranks - 1) / (int64_t)nranks;
+	std::vector<char> readBuffer(readPerProc_byte);
+
+	// Limits in bytes
+	const int64_t readStart = readPerProc_byte * rank + endHeader_byte;
+	const int64_t readEnd   = std::min( readStart + readPerProc_byte, fullSdfSize_byte + endHeader_byte);
+
+	MPI_File fh;
+	MPI_Status status;
+	MPI_Check( MPI_File_open(wallComm, sdfFileName.c_str(), MPI_MODE_RDONLY, MPI_INFO_NULL, &fh) );  // TODO: MPI_Info
+	MPI_Check( MPI_File_read_at_all(fh, readStart, readBuffer.data(), readEnd - readStart, MPI_BYTE, &status) );
+	// TODO: check that we read just what we asked
+	// MPI_Get_count only return int though
+
+	fullSdfData.resize(readPerProc_byte * nranks / sizeof(float));  // May be bigger than fullSdfSize, to make gather easier
+	MPI_Check( MPI_Allgather(readBuffer.data(), readPerProc_byte, MPI_BYTE, fullSdfData.data(), readPerProc_byte, MPI_BYTE, wallComm) );
+}
+
+void Wall::prepareRelevantSdfPiece(const float* fullSdfData, float3 extendedDomainStart, float3 initialSdfH, int3 initialSdfResolution,
+		int3& resolution, float3& offset, PinnedBuffer<float>& localSdfData)
+{
+	// Find your relevant chunk of data
+	// We cannot send big sdf files directly, so we'll carve a piece now
+
+	const int margin = 3; // +2 from cubic interpolation, +1 from possible round-off errors
+	const int3 startId = make_int3( floorf( extendedDomainStart                             / initialSdfH) ) - margin;
+	const int3 endId   = make_int3( ceilf ((extendedDomainStart+sdfInfo.extendedDomainSize) / initialSdfH) ) + margin;
+
+	float3 startInLocalCoord = make_float3(startId)*initialSdfH - (extendedDomainStart + 0.5*sdfInfo.extendedDomainSize);
+	offset = -0.5*sdfInfo.extendedDomainSize - startInLocalCoord;
+
+	int rank;
+	MPI_Check( MPI_Comm_rank(wallComm, &rank) );
+//	printf("%d:  SDstart [%f %f %f]  sdfH [%f %f %f] startId [%d %d %d], endId [%d %d %d], localstart [%f %f %f]\n",
+//				rank,
+//				extendedDomainStart.x, extendedDomainStart.y, extendedDomainStart.z,
+//				initialSdfH.x, initialSdfH.y, initialSdfH.z,
+//				startId.x, startId.y, startId.z,
+//				endId.x, endId.y, endId.z,
+//				startInLocalCoord.x, startInLocalCoord.y, startInLocalCoord.z);
+
+	resolution = endId - startId;
+
+	localSdfData.resize( resolution.x * resolution.y * resolution.z );
+	auto locSdfDataPtr = localSdfData.hostPtr();
+
+//	printf("%d:  input [%d %d %d], initial [%d %d %d], start [%d %d %d]\n",
+//			rank, resolution.x, resolution.y, resolution.z,
+//			initialSdfResolution.x, initialSdfResolution.y, initialSdfResolution.z,
+//			startId.x, startId.y, startId.z);
+
+#warning "Minus here should be removed"
+	for (int k = 0; k < resolution.z; k++)
+		for (int j = 0; j < resolution.y; j++)
+			for (int i = 0; i < resolution.x; i++)
+			{
+				const int origIx = (i+startId.x + initialSdfResolution.x) % initialSdfResolution.x;
+				const int origIy = (j+startId.y + initialSdfResolution.y) % initialSdfResolution.y;
+				const int origIz = (k+startId.z + initialSdfResolution.z) % initialSdfResolution.z;
+
+				// FIXME: AAAAAAAAAAAAAAAAA MINUS
+				locSdfDataPtr[ (k*resolution.y + j)*resolution.x + i ] = -
+						fullSdfData[ (origIz*initialSdfResolution.y + origIy)*initialSdfResolution.x + origIx ];
+			}
+}
 
 void Wall::create(MPI_Comm& comm, float3 subDomainStart, float3 subDomainSize, float3 globalDomainSize, ParticleVector* pv)
 {
@@ -530,92 +520,51 @@ void Wall::create(MPI_Comm& comm, float3 subDomainStart, float3 subDomainSize, f
 
 	// Read header
 	readHeader(initialSdfResolution, initialSdfExtent, fullSdfSize_byte, endHeader_byte, rank);
+	float3 initialSdfH = globalDomainSize / make_float3(initialSdfResolution-1);
 
-	std::vector<float> fullSdfData;
 	// Read heavy data
+	std::vector<float> fullSdfData;
 	readSdf(fullSdfSize_byte, endHeader_byte, nranks, rank, fullSdfData);
 
-	localSdfResolution = make_int3(ceilf(subDomainSize / sdfH));
-	sdfH = subDomainSize / make_float3(localSdfResolution-1);
+	// We'll make sdf a bit bigger, so that particles that flew away
+	// would also be correctly bounced back
+	sdfInfo.extendedDomainSize = subDomainSize + 2.0f*margin3;
+	sdfInfo.resolution         = make_int3( ceilf(sdfInfo.extendedDomainSize / sdfInfo.h) );
+	sdfInfo.h                  = sdfInfo.extendedDomainSize / make_float3(sdfInfo.resolution-1);
+	sdfInfo.invh               = 1.0f / sdfInfo.h;
 
-	// Find your relevant chunk of data
-	// We cannot send big sdf files directly, so we'll carve a piece now
 	const float3 scale3 = globalDomainSize / initialSdfExtent;
 	if ( fabs(scale3.x - scale3.y) > 1e-5 || fabs(scale3.x - scale3.z) > 1e-5 )
 		die("Sdf size and domain size mismatch");
-	const float scale = (scale3.x + scale3.y + scale3.z) / 3;
+	const float lenScalingFactor = (scale3.x + scale3.y + scale3.z) / 3;
 
-	const int margin = 3; // +2 from cubic interpolation, +1 from possible round-off errors
-	float3 initialSdfH = initialSdfExtent / make_float3(initialSdfResolution-1);
-
-	const int3 startId = make_int3( floorf( subDomainStart                / initialSdfH) ) - margin;
-	const int3 endId   = make_int3( ceilf ((subDomainStart+subDomainSize) / initialSdfH) ) + margin;
-
-	float3 startInLocalCoord = make_float3(startId)*initialSdfH - (subDomainStart + 0.5*subDomainSize);
-	//float3 endInLocalCoord   = make_float3(endId   + margin)*initialH - (subDomainStart + 0.5*subDomainSize);
-	float3 offset = -0.5*subDomainSize - startInLocalCoord;
-
-	const int3 inputResolution = endId - startId;
-
-	PinnedBuffer<float> localSdfData ( inputResolution.x * inputResolution.y * inputResolution.z );
-	auto locSdfDataPtr = localSdfData.hostPtr();
-
-	for (int k = 0; k < inputResolution.z; k++)
-		for (int j = 0; j < inputResolution.y; j++)
-			for (int i = 0; i < inputResolution.x; i++)
-			{
-				const int origIx = (i+startId.x + initialSdfResolution.x) % initialSdfResolution.x;
-				const int origIy = (j+startId.y + initialSdfResolution.y) % initialSdfResolution.y;
-				const int origIz = (k+startId.z + initialSdfResolution.z) % initialSdfResolution.z;
-
-				// FIXME: AAAAAAAAAAAAAAAAA MINUS
-				locSdfDataPtr[ (k*inputResolution.y + j)*inputResolution.x + i ] = -
-						fullSdfData[ (origIz*initialSdfResolution.y + origIy)*initialSdfResolution.x + origIx ];
-			}
+	int3 resolutionBeforeInterpolation;
+	float3 offset;
+	PinnedBuffer<float> localSdfData;
+	prepareRelevantSdfPiece(fullSdfData.data(), subDomainStart - margin3, initialSdfH, initialSdfResolution,
+			resolutionBeforeInterpolation, offset, localSdfData);
 
 	// Interpolate
-	sdfRawData.resize(localSdfResolution.x * localSdfResolution.y * localSdfResolution.z);
+	sdfRawData.resize(sdfInfo.resolution.x * sdfInfo.resolution.y * sdfInfo.resolution.z);
 
 	dim3 threads(8, 8, 8);
-	dim3 blocks((localSdfResolution.x+threads.x-1) / threads.x,
-				(localSdfResolution.y+threads.y-1) / threads.y,
-				(localSdfResolution.z+threads.z-1) / threads.z);
+	dim3 blocks((sdfInfo.resolution.x+threads.x-1) / threads.x,
+				(sdfInfo.resolution.y+threads.y-1) / threads.y,
+				(sdfInfo.resolution.z+threads.z-1) / threads.z);
 
 	localSdfData.uploadToDevice();
-	float lenScalingFactor = scale;
-	cubicInterpolate3D<<< blocks, threads >>>(localSdfData.devPtr(), inputResolution, initialSdfH,
-			sdfRawData.devPtr(), localSdfResolution, sdfH, offset, lenScalingFactor);
+	cubicInterpolate3D<<< blocks, threads >>>(localSdfData.devPtr(), resolutionBeforeInterpolation, initialSdfH,
+			sdfRawData.devPtr(), sdfInfo.resolution, sdfInfo.h, offset, lenScalingFactor);
 
-//	// Debug
-//	HostBuffer<float> tmp;
-//	tmp.copy(sdfRawData, (cudaStream_t)0);
-//	for (int i=0; i<tmp.size(); i++)
-//	{
-//		if (i % localSdfResolution.y == 0) printf("\n");
-//		if (i % (localSdfResolution.y*localSdfResolution.z) == 0) printf("\n");
-//
-//		printf("%5.2f ", tmp[i]);
-//	}
-
-	// Redistance
-	// Need 2 arrays for redistancing
-
-//	DeviceBuffer<float> tmp(sdfData.size);
-//	const float redistDt = 0.1;
-//	for (float t = 0; t < 200; t+=redistDt)
-//	{
-//		redistance<<< blocks, threads >>>(sdfData.devPtr(), resolution, h, redistDt, tmp.devPtr());
-//		containerSwap(sdfData, tmp);
-//	}
 
 	// Prepare array to be transformed into texture
 	auto chDesc = cudaCreateChannelDesc<float>();
-	CUDA_Check( cudaMalloc3DArray(&sdfArray, &chDesc, make_cudaExtent(localSdfResolution.x, localSdfResolution.y, localSdfResolution.z)) );
+	CUDA_Check( cudaMalloc3DArray(&sdfArray, &chDesc, make_cudaExtent(sdfInfo.resolution.x, sdfInfo.resolution.y, sdfInfo.resolution.z)) );
 
 	cudaMemcpy3DParms copyParams = {};
-	copyParams.srcPtr = make_cudaPitchedPtr((void*)sdfRawData.devPtr(), localSdfResolution.x*sizeof(float), localSdfResolution.y, localSdfResolution.z);
+	copyParams.srcPtr = make_cudaPitchedPtr((void*)sdfRawData.devPtr(), sdfInfo.resolution.x*sizeof(float), sdfInfo.resolution.x, sdfInfo.resolution.y);
 	copyParams.dstArray = sdfArray;
-	copyParams.extent = make_cudaExtent(localSdfResolution.x, localSdfResolution.y, localSdfResolution.z);
+	copyParams.extent = make_cudaExtent(sdfInfo.resolution.x, sdfInfo.resolution.y, sdfInfo.resolution.z);
 	copyParams.kind = cudaMemcpyDeviceToDevice;
 
 	CUDA_Check( cudaMemcpy3D(&copyParams) );
@@ -633,12 +582,14 @@ void Wall::create(MPI_Comm& comm, float3 subDomainStart, float3 subDomainSize, f
 	texDesc.readMode         = cudaReadModeElementType;
 	texDesc.normalizedCoords = 0;
 
-	CUDA_Check( cudaCreateTextureObject(&sdfTex, &resDesc, &texDesc, nullptr) );
+	CUDA_Check( cudaCreateTextureObject(&sdfInfo.sdfTex, &resDesc, &texDesc, nullptr) );
 
+
+	// Now freeze and kill particles
 	PinnedBuffer<int> nFrozen(1), nRemaining(1), nBoundaryCells(1);
 
 	nFrozen.clear();
-	countFrozen<<< (pv->np + 127) / 128, 128 >>>((float4*)pv->coosvels.devPtr(), pv->np, sdfTex, subDomainSize, sdfH, nFrozen.devPtr());
+	countFrozen<<< (pv->np + 127) / 128, 128 >>>((float4*)pv->coosvels.devPtr(), pv->np, sdfInfo, nFrozen.devPtr());
 	nFrozen.downloadFromDevice();
 
 	frozen->resize(nFrozen.hostPtr()[0]);
@@ -649,8 +600,8 @@ void Wall::create(MPI_Comm& comm, float3 subDomainStart, float3 subDomainSize, f
 
 	nFrozen.   clear();
 	nRemaining.clear();
-	collectFrozen<<< (pv->np + 127) / 128, 128 >>>(sdfTex, subDomainSize, sdfH, pv->np,
-			(float4*)pv->coosvels.devPtr(), (float4*)pv->pingPongCoosvels.devPtr(), (float4*)frozen->coosvels.devPtr(),
+	collectFrozen<<< (pv->np + 127) / 128, 128 >>>( (float4*)pv->coosvels.devPtr(), pv->np, sdfInfo,
+			(float4*)pv->pingPongCoosvels.devPtr(), (float4*)frozen->coosvels.devPtr(),
 			nRemaining.devPtr(), nFrozen.devPtr());
 	nRemaining.downloadFromDevice();
 	nFrozen.   downloadFromDevice();
@@ -675,7 +626,7 @@ void Wall::bounce(float dt, cudaStream_t stream)
 		debug2("Bouncing %d %s particles", pv->size(), pv->name.c_str());
 		bounceKernel<<< (boundaryCells[i].size() + 63) / 64, 64, 0, stream >>>(
 				boundaryCells[i].devPtr(), boundaryCells[i].size(), cl->cellsStart.devPtr(), cl->cellInfo(),
-				sdfTex, sdfH, 1.0 / sdfH, (float4*)pv->coosvels.devPtr(), dt);
+				sdfInfo, (float4*)pv->coosvels.devPtr(), dt);
 	}
 }
 

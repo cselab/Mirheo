@@ -16,7 +16,7 @@ private:
 	int nSamples;
 	int sampleEvery, dumpEvery;
 	int3 resolution;
-	float3 h;
+	float3 binSize;
 	bool needDensity, needMomentum, needForce;
 
 	PinnedBuffer<float>  density;
@@ -26,8 +26,8 @@ private:
 	std::vector<ParticleVector*> particleVectors;
 
 public:
-	Avg3DPlugin(std::string name, std::string pvNames, int sampleEvery, int dumpEvery, int3 resolution,
-			bool needDensity, bool needMomentum, bool needForce);
+	Avg3DPlugin(std::string name, std::string pvNames, int sampleEvery, int dumpEvery, float3 binSize,
+			bool needMomentum, bool needForce);
 
 	void setup(Simulation* sim, cudaStream_t stream, const MPI_Comm& comm, const MPI_Comm& interComm);
 	void handshake();

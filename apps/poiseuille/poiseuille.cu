@@ -13,7 +13,7 @@ int main(int argc, char** argv)
 	pugi::xml_parse_result result = config.load_file("poiseuille.xml");
 
 	float3 globalDomainSize = config.child("simulation").child("domain").attribute("size").as_float3({32, 32, 32});
-	int3 nranks3D{1, 1, 1};
+	int3 nranks3D = config.child("simulation").attribute("mpi_ranks").as_int3({1, 1, 1});
 	uDeviceX udevice(argc, argv, nranks3D, globalDomainSize, logger, "poiseuille.log",
 			config.child("simulation").attribute("debug_lvl").as_int(5), config.child("simulation").attribute("debug_lvl").as_int(5) >= 10);
 
@@ -30,7 +30,7 @@ int main(int argc, char** argv)
 		Wall wall = createWall(config.child("simulation").child("wall"));
 
 		ParticleVector* dpd  = new ParticleVector(config.child("simulation").child("particle_vector").attribute("name").as_string());
-		ParticleVector* dpd2 = new ParticleVector(config.child("simulation").child("particle_vector").next_sibling().attribute("name").as_string());
+		//ParticleVector* dpd2 = new ParticleVector(config.child("simulation").child("particle_vector").next_sibling().attribute("name").as_string());
 
 		udevice.sim->registerParticleVector(dpd, &dpdIc);
 		//udevice.sim->registerParticleVector(dpd2, &dpdIc2);
@@ -46,8 +46,8 @@ int main(int argc, char** argv)
 		//udevice.sim->setInteraction("dpd2", "dpd2", "dpd_int");
 		udevice.sim->setInteraction("dpd", "wall", "dpd_int");
 
-		simStat = new SimulationStats("stats", 1000);
-		simAvg  = new Avg3DPlugin("averaging", "dpd", 10, 5000, {32, 32, 32}, true, true, true);
+		simStat = new SimulationStats("stats", 500);
+		simAvg  = new Avg3DPlugin("averaging", "dpd", 10, 5000, {1, 1, 1}, true, true);
 	}
 	else
 	{

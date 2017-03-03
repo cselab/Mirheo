@@ -23,8 +23,10 @@ void XDMFDumper::writeLight(std::string currentFname, float t)
 	fprintf(xmf, " <Domain>\n");
 	fprintf(xmf, "   <Grid Name=\"mesh\" GridType=\"Uniform\">\n");
 	fprintf(xmf, "     <Time Value=\"%.f\"/>\n", t);
+
+	// WTF resolution should go in Z-Y-X order! Achtung aliens attack!!
 	fprintf(xmf, "     <Topology TopologyType=\"3DCORECTMesh\" Dimensions=\"%d %d %d\"/>\n",
-			globalResolution.x+1, globalResolution.y+1, globalResolution.z+1);
+			globalResolution.z+1, globalResolution.y+1, globalResolution.x+1);
 
 	fprintf(xmf, "     <Geometry GeometryType=\"ORIGIN_DXDYDZ\">\n");
 	fprintf(xmf, "       <DataItem Name=\"Origin\" Dimensions=\"3\" NumberType=\"Float\" Precision=\"4\" Format=\"XML\">\n");

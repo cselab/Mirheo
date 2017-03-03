@@ -97,9 +97,13 @@ __global__ void rearrangeParticles(const CellListInfo cinfo, uint* cellsSize, co
 
 
 CellListInfo::CellListInfo(float rc, float3 domainSize) :
-		rc(rc), h(make_float3(rc)), invh(make_float3(1.0/rc)), domainSize(domainSize)
+		rc(rc), h(make_float3(rc)), domainSize(domainSize)
 {
-	ncells = make_int3( ceilf(domainSize / rc - 1e-6) );
+	ncells = make_int3( floorf(domainSize / rc + 1e-6) );
+	float3 h = make_float3(domainSize) / make_float3(ncells);
+	invh = 1.0f / h;
+	this->rc = std::min( {h.x, h.y, h.z} );
+
 	totcells = ncells.x * ncells.y * ncells.z;
 }
 
@@ -117,6 +121,8 @@ CellList::CellList(ParticleVector* pv, float rc, float3 domainSize) :
 {
 	cellsStart.resize(totcells + 1);
 	cellsSize .resize(totcells + 1);
+
+	debug("Initialized %s cell-list with %dx%dx%d cells and cut-off %f", pv->name.c_str(), ncells.x, ncells.y, ncells.z, this->rc);
 }
 
 CellList::CellList(ParticleVector* pv, int3 resolution, float3 domainSize) :
@@ -124,6 +130,8 @@ CellList::CellList(ParticleVector* pv, int3 resolution, float3 domainSize) :
 {
 	cellsStart.resize(totcells + 1);
 	cellsSize .resize(totcells + 1);
+
+	debug("Initialized %s cell-list with %dx%dx%d cells and cut-off %f", pv->name.c_str(), ncells.x, ncells.y, ncells.z, this->rc);
 }
 
 void CellList::build(cudaStream_t stream, bool rearrangeForces)

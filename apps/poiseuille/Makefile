@@ -1,5 +1,6 @@
 NVCC = nvcc
 NVCCFLAGS = -std=c++11 -arch=compute_61 -code=sm_61 -g -lineinfo --expt-extended-lambda -Xcompiler "-fopenmp"
+NOWARNFLAG = -Xcompiler "-Wno-cpp"
 
 HDF5_INC = /usr/include/hdf5/mpich/
 HDF5_LIB = /usr/lib/x86_64-linux-gnu/
@@ -24,7 +25,7 @@ poiseuille: $(addprefix $(BIN_DIR)/,$(objects))
 
 $(BIN_DIR)/%.d: %.cu
 	@mkdir -p $(BIN_DIR)
-	$(NVCC) $(NVCC_RELEASE_FLAGS) -M $< > $(patsubst %.d,%.TMPd,$@)
+	$(NVCC) $(NVCC_RELEASE_FLAGS) $(NOWARNFLAG) -M $< > $(patsubst %.d,%.TMPd,$@)
 	@printf "$(BIN_DIR)/" | cat - $(patsubst %.d,%.TMPd,$@)  > $@ && rm $(patsubst %.d,%.TMPd,$@)
 	@#| perl -n -e ' if (/\s+\./) { s/(\s+)\./$$1..\/./; } print; '
 	
@@ -43,7 +44,7 @@ poiseuille_debug: $(addprefix $(DEBUG_DIR)/,$(objects))
 
 $(DEBUG_DIR)/%.d: %.cu
 	@mkdir -p $(DEBUG_DIR)
-	$(NVCC) $(NVCC_DEBUG_FLAGS) -M $< > $(patsubst %.d,%.TMPd,$@)
+	$(NVCC) $(NVCC_DEBUG_FLAGS) $(NOWARNFLAG) -M $< > $(patsubst %.d,%.TMPd,$@)
 	@printf "$(DEBUG_DIR)/" | cat - $(patsubst %.d,%.TMPd,$@)  > $@ && rm $(patsubst %.d,%.TMPd,$@)
 	@#| perl -n -e ' if (/\s+\./) { s/(\s+)\./$$1..\/./; } print; '
 	

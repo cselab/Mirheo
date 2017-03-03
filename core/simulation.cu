@@ -20,7 +20,7 @@ nranks3D(nranks3D), globalDomainSize(globalDomainSize), interComm(interComm), cu
 	rank3D = {coords[0], coords[1], coords[2]};
 
 	subDomainSize = globalDomainSize / make_float3(nranks3D);
-	subDomainStart = {subDomainSize.x * coords[0], subDomainSize.y * coords[1], subDomainSize.y * coords[2]};
+	subDomainStart = {subDomainSize.x * coords[0], subDomainSize.y * coords[1], subDomainSize.z * coords[2]};
 
 	debug("Simulation initialized");
 }

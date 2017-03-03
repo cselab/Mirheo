@@ -35,11 +35,11 @@ __global__ void sample(int np, const float4* coosvels, const float4* forces,
 	}
 }
 
-__global__ void scaleVec(int n, float3* vectorField, const float* density, const float factor)
+__global__ void scaleVec(int n, float3* vectorField, const float* density)
 {
 	const int id = threadIdx.x + blockIdx.x*blockDim.x;
 	if (id < n)
-		vectorField[id] *= factor * __frcp_rn(density[id]);
+		vectorField[id] /= density[id];
 }
 
 __global__ void scaleDensity(int n, float* density, const float factor)
@@ -49,24 +49,26 @@ __global__ void scaleDensity(int n, float* density, const float factor)
 		density[id] *= factor;
 }
 
-Avg3DPlugin::Avg3DPlugin(std::string name, std::string pvNames, int sampleEvery, int dumpEvery, int3 resolution,
-			bool needDensity, bool needMomentum, bool needForce) :
+Avg3DPlugin::Avg3DPlugin(std::string name, std::string pvNames, int sampleEvery, int dumpEvery, float3 binSize,
+			bool needMomentum, bool needForce) :
 	SimulationPlugin(name), pvNames(pvNames),
-	sampleEvery(sampleEvery), dumpEvery(dumpEvery), resolution(resolution),
-	needDensity(needDensity), needMomentum(needMomentum), needForce(needForce),
+	sampleEvery(sampleEvery), dumpEvery(dumpEvery), binSize(binSize),
+	needDensity(true), needMomentum(needMomentum), needForce(needForce),
 	nSamples(0)
+{}
+
+void Avg3DPlugin::setup(Simulation* sim, cudaStream_t stream, const MPI_Comm& comm, const MPI_Comm& interComm)
 {
+	SimulationPlugin::setup(sim, stream, comm, interComm);
+
 	// TODO: this should be reworked if the domains are allowed to have different size
+	resolution = make_int3( floorf(sim->subDomainSize / binSize) );
+	binSize = sim->subDomainSize / make_float3(resolution);
 
 	const int total = resolution.x * resolution.y * resolution.z;
 	if (needDensity)  density .resize(total);
 	if (needMomentum) momentum.resize(total);
 	if (needForce)    force   .resize(total);
-}
-
-void Avg3DPlugin::setup(Simulation* sim, cudaStream_t stream, const MPI_Comm& comm, const MPI_Comm& interComm)
-{
-	SimulationPlugin::setup(sim, stream, comm, interComm);
 
 	std::stringstream sstream(pvNames);
 	std::string pvName;
@@ -76,8 +78,6 @@ void Avg3DPlugin::setup(Simulation* sim, cudaStream_t stream, const MPI_Comm& co
 	{
 		splitPvNames.push_back(pvName);
 	}
-
-	h = sim->subDomainSize / make_float3(resolution);
 
 	density.pushStream(stream);
 	density.clearDevice();
@@ -112,7 +112,7 @@ void Avg3DPlugin::afterIntegration()
 
 	for (auto pv : particleVectors)
 	{
-		CellListInfo cinfo(h, pv->domainLength);
+		CellListInfo cinfo(binSize, pv->domainLength);
 
 		sample<<< (pv->np+127) / 128, 128, 0, stream >>> (
 				pv->np, (float4*)pv->coosvels.devPtr(), (float4*)pv->forces.devPtr(),
@@ -133,7 +133,7 @@ void Avg3DPlugin::serializeAndSend()
 	if (needMomentum)
 	{
 		int sz = momentum.size();
-		scaleVec<<< (sz+127)/128, 128, 0, stream >>> ( sz, momentum.devPtr(), density.devPtr(), 1.0/nSamples);
+		scaleVec<<< (sz+127)/128, 128, 0, stream >>> ( sz, momentum.devPtr(), density.devPtr());
 		momentum.downloadFromDevice();
 		momentum.clearDevice();
 	}
@@ -141,7 +141,7 @@ void Avg3DPlugin::serializeAndSend()
 	if (needForce)
 	{
 		int sz = force.size();
-		scaleVec<<< (sz+127)/128, 128, 0, stream >>> ( sz, force.devPtr(),    density.devPtr(), 1.0/nSamples);
+		scaleVec<<< (sz+127)/128, 128, 0, stream >>> ( sz, force.devPtr(),    density.devPtr());
 		force.downloadFromDevice();
 		force.clearDevice();
 	}
@@ -149,7 +149,7 @@ void Avg3DPlugin::serializeAndSend()
 	if (needDensity)
 	{
 		int sz = density.size();
-		scaleDensity<<< (sz+127)/128, 128, 0, stream >>> ( sz, density.devPtr(), 1.0 / (nSamples * h.x*h.y*h.z) );
+		scaleDensity<<< (sz+127)/128, 128, 0, stream >>> ( sz, density.devPtr(), 1.0 / (nSamples * binSize.x*binSize.y*binSize.z) );
 		density.downloadFromDevice();
 		density.clearDevice();
 	}
@@ -164,11 +164,11 @@ void Avg3DPlugin::serializeAndSend()
 void Avg3DPlugin::handshake()
 {
 	std::vector<char> data;
-	SimpleSerializer::serialize(data, resolution, h, needDensity, needMomentum, needForce);
+	SimpleSerializer::serialize(data, resolution, binSize, needDensity, needMomentum, needForce);
 
 	MPI_Check( MPI_Send(data.data(), data.size(), MPI_BYTE, rank, id, interComm) );
 
-	debug2("Plugin %s was set up to sample%s%s%s for the following PVs: %s. Resolution %dx%dx%d", name.c_str(),
+	debug2("Plugin %s was set up to sample%s%s%s for the following PVs: %s. Local resolution %dx%dx%d", name.c_str(),
 			needDensity ? " density" : "", needMomentum ? " momentum" : "", needForce ? " force" : "", pvNames.c_str(),
 			resolution.x, resolution.y, resolution.z);
 }
