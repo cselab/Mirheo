@@ -183,34 +183,40 @@ __global__ void collectFrozen(const float4* input, const int np, Wall::SdfInfo s
 	}
 }
 
+__device__ inline bool isCellOnBoundary(float3 cornerCoo, float3 len, Wall::SdfInfo sdfInfo)
+{
+	// About maximum distance a particle can cover in one step
+	const float tol = 0.5f;
+
+#pragma unroll
+	for (int i=0; i<2; i++)
+#pragma unroll
+		for (int j=0; j<2; j++)
+#pragma unroll
+			for (int k=0; k<2; k++)
+			{
+				// Value in the cell corner
+				const float3 shift = make_float3(i ? len.x : 0.0f, j ? len.y : 0.0f, k ? len.z : 0.0f);
+				const float s = evalSdf( cornerCoo + shift,  sdfInfo );
+
+				if (-1.0f - tol < s && s < 0.0f + tol)
+					return true;
+			}
+
+	return false;
+}
+
 __global__ void countBoundaryCells(CellListInfo cinfo, Wall::SdfInfo sdfInfo, int* nBoundaryCells)
 {
 	const int cid = blockIdx.x * blockDim.x + threadIdx.x;
 	if (cid >= cinfo.totcells) return;
-	int ix, iy, iz;
 
-	cinfo.decode(cid, ix, iy, iz);
-	const float cx = -0.5f*cinfo.domainSize.x + ix*cinfo.h.x;
-	const float cy = -0.5f*cinfo.domainSize.y + iy*cinfo.h.y;
-	const float cz = -0.5f*cinfo.domainSize.z + iz*cinfo.h.z;
+	int3 ind;
+	cinfo.decode(cid, ind.x, ind.y, ind.z);
+	float3 cornerCoo = -0.5f*cinfo.domainSize + make_float3(ind)*cinfo.h;
 
-	const float l = cinfo.rc;
-	const float s000 = evalSdf( make_float3(cx,   cy,   cz),   sdfInfo );
-	const float s001 = evalSdf( make_float3(cx,   cy,   cz+l), sdfInfo );
-	const float s010 = evalSdf( make_float3(cx,   cy+l, cz),   sdfInfo );
-	const float s011 = evalSdf( make_float3(cx,   cy+l, cz+l), sdfInfo );
-	const float s100 = evalSdf( make_float3(cx+l, cy,   cz),   sdfInfo );
-	const float s101 = evalSdf( make_float3(cx+l, cy,   cz+l), sdfInfo );
-	const float s110 = evalSdf( make_float3(cx+l, cy+l, cz),   sdfInfo );
-	const float s111 = evalSdf( make_float3(cx+l, cy+l, cz+l), sdfInfo );
-
-	if ( (-1.1f < s000 && s000 < 0.1f) || (-1.1f < s001 && s001 < 0.1f) ||
-		 (-1.1f < s010 && s010 < 0.1f) || (-1.1f < s011 && s011 < 0.1f) ||
-		 (-1.1f < s100 && s100 < 0.1f) || (-1.1f < s101 && s101 < 0.1f) ||
-		 (-1.1f < s110 && s110 < 0.1f) || (-1.1f < s111 && s111 < 0.1f) )
-	{
+	if (isCellOnBoundary(cornerCoo, cinfo.h, sdfInfo))
 		atomicAggInc(nBoundaryCells);
-	}
 }
 
 __global__ void getBoundaryCells(CellListInfo cinfo, Wall::SdfInfo sdfInfo,
@@ -219,27 +225,11 @@ __global__ void getBoundaryCells(CellListInfo cinfo, Wall::SdfInfo sdfInfo,
 	const int cid = blockIdx.x * blockDim.x + threadIdx.x;
 	if (cid >= cinfo.totcells) return;
 
-	int ix, iy, iz;
+	int3 ind;
+	cinfo.decode(cid, ind.x, ind.y, ind.z);
+	float3 cornerCoo = -0.5f*cinfo.domainSize + make_float3(ind)*cinfo.h;
 
-	cinfo.decode(cid, ix, iy, iz);
-	const float cx = -0.5f*cinfo.domainSize.x + ix*cinfo.h.x;
-	const float cy = -0.5f*cinfo.domainSize.y + iy*cinfo.h.y;
-	const float cz = -0.5f*cinfo.domainSize.z + iz*cinfo.h.z;
-
-	const float l = cinfo.rc;
-	const float s000 = evalSdf( make_float3(cx,   cy,   cz),   sdfInfo );
-	const float s001 = evalSdf( make_float3(cx,   cy,   cz+l), sdfInfo );
-	const float s010 = evalSdf( make_float3(cx,   cy+l, cz),   sdfInfo );
-	const float s011 = evalSdf( make_float3(cx,   cy+l, cz+l), sdfInfo );
-	const float s100 = evalSdf( make_float3(cx+l, cy,   cz),   sdfInfo );
-	const float s101 = evalSdf( make_float3(cx+l, cy,   cz+l), sdfInfo );
-	const float s110 = evalSdf( make_float3(cx+l, cy+l, cz),   sdfInfo );
-	const float s111 = evalSdf( make_float3(cx+l, cy+l, cz+l), sdfInfo );
-
-	if ( (-1.1f < s000 && s000 < 0.1f) || (-1.1f < s001 && s001 < 0.1f) ||
-		 (-1.1f < s010 && s010 < 0.1f) || (-1.1f < s011 && s011 < 0.1f) ||
-		 (-1.1f < s100 && s100 < 0.1f) || (-1.1f < s101 && s101 < 0.1f) ||
-		 (-1.1f < s110 && s110 < 0.1f) || (-1.1f < s111 && s111 < 0.1f) )
+	if (isCellOnBoundary(cornerCoo, cinfo.h, sdfInfo))
 	{
 		int id = atomicAggInc(nBoundaryCells);
 		boundaryCells[id] = cid;
@@ -276,9 +266,9 @@ __global__ void bounceKernel(const int* wallCells, const int nWallCells, const i
 		va = evalSdf(oldCoo, sdfInfo);
 
 		// Accuracy issues here!
-		if (va > 0.0f)
-			printf("A particle [%d  %f %f %f,  %f %f %f] was inside already, bounce may fail\n",
-					__float_as_int(oldCoo.w), oldCoo.x, oldCoo.y, oldCoo.z, vel.x, vel.y, vel.z);
+//		if (va > 0.0f)
+//			printf("A particle %d: [%f %f %f] (%f)  -->  [%f %f %f] (%f) was inside already, bounce may fail\n",
+//					__float_as_int(oldCoo.w), oldCoo.x, oldCoo.y, oldCoo.z, va, coo.x, coo.y, coo.z, vb);
 
 		// Determine where we cross
 		// Interpolation search
@@ -312,7 +302,7 @@ __global__ void bounceKernel(const int* wallCells, const int nWallCells, const i
 		// This shouldn't happen, but smth may go wrong
 		if (fabs(vmid) > tolerance)
 		{
-			printf("Solution was not found for bouncing!\n");
+			//printf("Solution was not found for bouncing!\n");
 			coosvels[2*pid] = oldCoo;
 			coosvels[2*pid + 1] = -vel;
 			return;
@@ -344,18 +334,15 @@ __global__ void bounceKernel(const int* wallCells, const int nWallCells, const i
 			candidate = oldCoo - beta * (coo - oldCoo);
 		}
 
-		if (evalSdf(candidate, sdfInfo) > tolerance)
+		if (evalSdf(candidate, sdfInfo) > 0.0f)
 		{
-			printf("Solution was not found for bouncing!\n");
+//			printf("Bounce-back failed. Id %d: [%f %f %f] (%f)  -->  [%f %f %f] (%f)\n",
+//					__float_as_int(oldCoo.w), oldCoo.x, oldCoo.y, oldCoo.z, va, coo.x, coo.y, coo.z, vb);
 
 			coosvels[2*pid] = oldCoo;
 			coosvels[2*pid + 1] = -vel;
 			return;
 		}
-
-		// Not sure why, but this assertion always fails
-		// even though everything seems allright
-		//assert(vcandidate < 1.0f);
 
 		coosvels[2*pid] = candidate;
 		coosvels[2*pid + 1] = -vel;
@@ -628,5 +615,22 @@ void Wall::bounce(float dt, cudaStream_t stream)
 				boundaryCells[i].devPtr(), boundaryCells[i].size(), cl->cellsStart.devPtr(), cl->cellInfo(),
 				sdfInfo, (float4*)pv->coosvels.devPtr(), dt);
 	}
+}
+
+
+__global__ void _check(float4* coosvels, int n, Wall::SdfInfo sdfInfo)
+{
+	const int pid = blockIdx.x * blockDim.x + threadIdx.x;
+	if (pid >= n) return;
+
+	float4 coo = coosvels[2*pid];
+	float v = evalSdf(coo, sdfInfo);
+
+	if (v > 0) printf("Check failed %d (in array %d): [%f %f %f] (%f)\n", __float_as_int(coo.w), pid, coo.x, coo.y, coo.z, v);
+}
+
+void Wall::check(Particle* parts, int n, cudaStream_t stream)
+{
+	_check<<< (n+127)/128, 128, 0, stream >>> ((float4*)parts, n, sdfInfo);
 }
 

@@ -130,7 +130,7 @@
 	{
 		const float    createTm = node.attribute("creation_time").as_float(10.0);
 		const std::string fname = node.attribute("file_name").as_string("sdf.dat");
-		const float3          h = node.attribute("h").as_float3({0.2, 0.2, 0.2});
+		const float3          h = node.attribute("h").as_float3({0.25, 0.25, 0.25});
 		const std::string  name = node.attribute("name").as_string("");
 
 

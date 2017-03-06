@@ -59,6 +59,8 @@ public:
 	void attach(ParticleVector* pv, CellList* cl);
 	void bounce(float dt, cudaStream_t stream);
 
+	void check(Particle* parts, int n, cudaStream_t stream);
+
 	ParticleVector* getFrozen() { return frozen; }
 	float creationTime() { return _creationTime; }
 };

@@ -273,6 +273,7 @@ void Simulation::run(int nsteps)
 
 		//===================================================================================================
 
+
 		// TODO: correct dt should be attached to the wall
 		debug("Bounce from the walls");
 		for (auto wall : wallMap)
@@ -293,6 +294,8 @@ void Simulation::run(int nsteps)
 				clMap.begin()->second->build(defStream);
 
 		CUDA_Check( cudaStreamSynchronize(defStream) );
+
+		//int n = particleVectors[0]->size();
 		redistributor->redistribute();
 
 		//===================================================================================================
