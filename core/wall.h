@@ -1,12 +1,13 @@
 #pragma once
 
 #include <core/datatypes.h>
-#include <core/containers.h>
 #include <core/logger.h>
-#include <core/celllist.h>
 
 #include <mpi.h>
 #include <string>
+
+class ParticleVector;
+class CellList;
 
 class Wall
 {
@@ -38,7 +39,7 @@ private:
 	float3 sdfH;
 	//float3 subDomainSize, globalDomainSize;
 
-	const float3 margin3{2, 2, 2};
+	const float3 margin3{1, 1, 1};
 
 	std::string sdfFileName;
 	float _creationTime;
@@ -55,7 +56,8 @@ public:
 
 	Wall(std::string name, std::string sdfFileName, float3 sdfH, float _creationTime);
 
-	void create(MPI_Comm& comm, float3 subDomainStart, float3 subDomaintSize, float3 globalDomainSize, ParticleVector* pv);
+	void createSdf(MPI_Comm& comm, float3 subDomainStart, float3 subDomaintSize, float3 globalDomainSize);
+	void freezeParticles(ParticleVector* pv);
 	void attach(ParticleVector* pv, CellList* cl);
 	void bounce(float dt, cudaStream_t stream);
 

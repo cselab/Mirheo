@@ -1,5 +1,5 @@
 #include "integrate.h"
-#include "containers.h"
+#include <core/particle_vector.h>
 
 template<typename Transform>
 __global__ void integrationKernel(float4* coosvels, const float4* forces, const int n, const float dt, const float invmass, Transform transform)

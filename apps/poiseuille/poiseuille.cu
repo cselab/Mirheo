@@ -37,14 +37,14 @@ int main(int argc, char** argv)
 
 		udevice.sim->registerIntegrator(&constDP);
 		udevice.sim->registerInteraction(&dpdInt);
-		udevice.sim->registerWall(&wall);
+		//udevice.sim->registerWall(&wall);
 
 		udevice.sim->setIntegrator("dpd", "const_dp");
 		//udevice.sim->setIntegrator("dpd2", "const_dp");
 		udevice.sim->setInteraction("dpd", "dpd", "dpd_int");
 		//udevice.sim->setInteraction("dpd2", "dpd", "dpd_int");
 		//udevice.sim->setInteraction("dpd2", "dpd2", "dpd_int");
-		udevice.sim->setInteraction("dpd", "wall", "dpd_int");
+		//udevice.sim->setInteraction("dpd", "wall", "dpd_int");
 
 		simStat = new SimulationStats("stats", 500);
 		simAvg  = new Avg3DPlugin("averaging", "dpd", 10, 5000, {1, 1, 1}, true, true);

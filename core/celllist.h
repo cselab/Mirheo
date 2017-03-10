@@ -4,9 +4,10 @@
 #include <cstdint>
 
 #include <core/datatypes.h>
-#include <core/containers.h>
 #include <core/logger.h>
 #include <core/helper_math.h>
+
+class ParticleVector;
 
 class CellListInfo
 {
@@ -82,6 +83,7 @@ public:
 
 	DeviceBuffer<int> cellsStart;
 	DeviceBuffer<uint8_t> cellsSize;
+	DeviceBuffer<int> order;
 
 	CellList(ParticleVector* pv, float rc, float3 domainSize);
 	CellList(ParticleVector* pv, int3 resolution, float3 domainSize);

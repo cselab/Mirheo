@@ -2,6 +2,7 @@
 #include <core/xml/pugixml.hpp>
 #include <core/wall.h>
 #include <core/interactions.h>
+#include <core/particle_vector.h>
 
 class ParticleVector;
 class CellList;

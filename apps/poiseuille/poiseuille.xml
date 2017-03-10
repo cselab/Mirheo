@@ -1,11 +1,11 @@
 <?xml version="1.0"?>
-<simulation name="poiseuille" mpi_ranks="1 1 3" debug_lvl="5">
+<simulation name="poiseuille" mpi_ranks="1 1 1" debug_lvl="10">
 
 	<domain size="64 64 64" />
-	<particle_vector name="dpd" density="6" />
+	<particle_vector name="dpd" density="8" />
 	<particle_vector name="dpd2" density="2" />
 	
-	<wall name="wall" file_name="sphere.sdf" source_pv="dpd" creation_time="5" />
+	<wall name="wall" file_name="sphere.sdf" source_pv="dpd" creation_time="500" />
 	
 	<interaction name="dpd_int" type="dpd" a="25" gamma="45" kbt="0.4" dt="0.001" rc="1.1">
 		<apply_to pv1="dpd" pv2="dpd"/>
@@ -20,6 +20,6 @@
 		<apply_to pv="dpd" />
 	</plugin>
 	
-	<run dt="0.002" stop_time="100.123" />
+	<run dt="0.001" stop_time="0.033" />
 
 </simulation>

@@ -1,7 +1,7 @@
 #include <plugins/stats.h>
 #include <plugins/simple_serializer.h>
 #include <core/datatypes.h>
-#include <core/containers.h>
+#include <core/particle_vector.h>
 #include <core/simulation.h>
 #include <core/helper_math.h>
 

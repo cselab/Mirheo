@@ -6,6 +6,9 @@
 #include <core/redistributor.h>
 #include <core/halo_exchanger.h>
 #include <core/logger.h>
+#include <core/particle_vector.h>
+#include <core/object_vector.h>
+#include <core/celllist.h>
 
 Simulation::Simulation(int3 nranks3D, float3 globalDomainSize, const MPI_Comm& comm, const MPI_Comm& interComm) :
 nranks3D(nranks3D), globalDomainSize(globalDomainSize), interComm(interComm), currentTime(0), currentStep(0)
@@ -188,7 +191,8 @@ void Simulation::createWalls()
 {
 	for (auto wall : wallMap)
 	{
-		wall.second->create(cartComm, subDomainStart, subDomainSize, globalDomainSize, particleVectors[pvIdMap["dpd"]]);
+		wall.second->createSdf(cartComm, subDomainStart, subDomainSize, globalDomainSize);
+		wall.second->freezeParticles(particleVectors[pvIdMap["dpd"]]);
 		wall.second->attach(particleVectors[pvIdMap["dpd"]], cellListMaps[pvIdMap["dpd"]].begin()->second);
 		halo->attach( wall.second->getFrozen(), cellListMaps[pvIdMap[wall.first]].begin()->second );
 	}

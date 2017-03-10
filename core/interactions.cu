@@ -1,5 +1,5 @@
 #include <core/dpd-rng.h>
-#include <core/containers.h>
+#include <core/particle_vector.h>
 #include <core/interaction_engine.h>
 #include <core/helper_math.h>
 #include <core/interactions.h>
@@ -46,12 +46,14 @@ __device__ __forceinline__ float3 dpd_interaction(
 void interactionDPD (InteractionType type, ParticleVector* pv1, ParticleVector* pv2, CellList* cl, const float t, cudaStream_t stream,
 		float adpd, float gammadpd, float sigma_dt, float rc)
 {
+	// Hack: better to use random number in the seed instead of periodically changing time
+	const float seed = drand48();
 	auto dpdCore = [=] __device__ ( const float4 dstCoo, const float4 dstVel, const int dstId,
 									const float4 srcCoo, const float4 srcVel, const int srcId)
 	{
 		return dpd_interaction( make_float3(dstCoo), make_float3(dstVel), dstId,
 								make_float3(srcCoo), make_float3(srcVel), srcId,
-								adpd, gammadpd, sigma_dt, rc*rc, 1.0/rc, t);
+								adpd, gammadpd, sigma_dt, rc*rc, 1.0/rc, seed);
 	};
 
 	const int nth = 32 * 4;

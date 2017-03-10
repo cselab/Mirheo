@@ -1,7 +1,7 @@
 #include "dumpavg.h"
 #include "simple_serializer.h"
 #include "../core/simulation.h"
-#include "../core/containers.h"
+#include "../core/particle_vector.h"
 #include "../core/celllist.h"
 #include "../core/helper_math.h"
 #include <sstream>

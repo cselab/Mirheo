@@ -1,4 +1,5 @@
-#include <core/datatypes.h>
+#include <core/particle_vector.h>
+#include <core/object_vector.h>
 #include <core/scan.h>
 #include <core/celllist.h>
 #include <core/non_cached_rw.h>
@@ -15,13 +16,13 @@ __global__ void blendStartSize(const uchar4* cellsSize, int4* cellsStart, const 
 								 sizes.z << cinfo.blendingPower, sizes.w << cinfo.blendingPower);
 }
 
-__global__ void computeCellSizes(const float4* xyzouvwo, const int n,
+__global__ void computeCellSizes(const float4* coosvels, const int n,
 		const CellListInfo cinfo, uint* cellsSize)
 {
 	const int pid = blockIdx.x * blockDim.x + threadIdx.x;
 	if (pid >= n) return;
 
-	float4 coo = readNoCache(xyzouvwo + pid*2);//xyzouvwo[gid*2];
+	float4 coo = readNoCache(coosvels + pid*2);//coosvels[gid*2];
 
 	int cid = cinfo.getCellId(coo);
 
@@ -41,8 +42,9 @@ __global__ void computeCellSizes(const float4* xyzouvwo, const int n,
 }
 
 __global__ void rearrangeParticles(const CellListInfo cinfo, uint* cellsSize, const int* cellsStart,
-		const int n, const float4* in_xyzouvwo, float4* out_xyzouvwo,
-		bool rearrangeForces, const float4* in_forces, float4* out_forces)
+		const int n, const float4* in_coosvels, float4* out_coosvels,
+		bool rearrangeForces, const float4* in_forces, float4* out_forces,
+		bool needOrder, int* order)
 {
 	const int gid = blockIdx.x * blockDim.x + threadIdx.x;
 	const int pid = gid / 2;
@@ -51,11 +53,11 @@ __global__ void rearrangeParticles(const CellListInfo cinfo, uint* cellsSize, co
 
 	int dstId;
 	// instead of:
-	// const float4 val = in_xyzouvwo[gid];
+	// const float4 val = in_coosvels[gid];
 	//
 	// this is to allow more cache for atomics
 	// loads / stores here need no cache
-	float4 val = readNoCache(in_xyzouvwo+gid);
+	float4 val = readNoCache(in_coosvels+gid);
 
 	int cid;
 	if (sh == 0)
@@ -86,13 +88,24 @@ __global__ void rearrangeParticles(const CellListInfo cinfo, uint* cellsSize, co
 	if (sh == 1)
 		dstId = otherDst;
 
-	if (dstId >= 0) writeNoCache(out_xyzouvwo + 2*dstId+sh, val);
+	if (dstId >= 0) writeNoCache(out_coosvels + 2*dstId+sh, val);
 
 	if (rearrangeForces && sh == 0)
 	{
 		float4 frc = readNoCache(in_forces + pid);
 		writeNoCache(out_forces + dstId, frc);
 	}
+
+	if (needOrder && sh == 0)
+		order[pid] = dstId;
+}
+
+__global__ void reindex(int* index, const int* __restrict__ newOrder, int n)
+{
+	const int gid = blockIdx.x * blockDim.x + threadIdx.x;
+	if (gid >= n) return;
+
+	index[gid] = newOrder[index[gid]];
 }
 
 
@@ -175,12 +188,18 @@ void CellList::build(cudaStream_t stream, bool rearrangeForces)
 	// Rearrange the data
 	debug2("Rearranging %d %s particles", pv->np, pv->name.c_str());
 
+	// If dealing with object vectors, we need to output permutation indices as well
+	ObjectVector* ov = dynamic_cast<ObjectVector*>(pv);
+	bool isObjectVector = (ov != nullptr);
+	order.resize(pv->np);
+
 	rearrangeParticles<<< (2*pv->np+127)/128, 128, 0, stream >>> (
 			cinfo, (uint*)cellsSize.devPtr(), cellsStart.devPtr(),
 			pv->np,
 			(float4*)pv->coosvels.devPtr(), (float4*)pv->pingPongCoosvels.devPtr(),
 			rearrangeForces,
-			(float4*)pv->forces  .devPtr(), (float4*)pv->pingPongForces  .devPtr());
+			(float4*)pv->forces  .devPtr(), (float4*)pv->pingPongForces  .devPtr(),
+			isObjectVector, order.devPtr());
 
 
 	// Now we need the new size of particles array.
@@ -194,6 +213,10 @@ void CellList::build(cudaStream_t stream, bool rearrangeForces)
 	containerSwap(pv->coosvels, pv->pingPongCoosvels);
 	if (rearrangeForces)
 		containerSwap(pv->forces, pv->pingPongForces);
+
+	// For object vector we need to change particle ids
+	if (isObjectVector)
+		reindex<<< (pv->np+127)/128, 128, 0, stream >>> (ov->particles2objIds.devPtr(), order.devPtr(), pv->np);
 
 	// Containers setup
 	pv->popStreamWOhalo();

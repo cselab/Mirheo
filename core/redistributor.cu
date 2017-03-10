@@ -1,5 +1,5 @@
 #include <core/celllist.h>
-#include <core/containers.h>
+#include <core/particle_vector.h>
 #include <core/redistributor.h>
 #include <core/helper_math.h>
 

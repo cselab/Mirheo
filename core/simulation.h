@@ -1,9 +1,7 @@
 #pragma once
 
 #include <core/datatypes.h>
-#include <core/containers.h>
 #include <core/components.h>
-#include <core/celllist.h>
 #include <core/wall.h>
 #include <core/interactions.h>
 #include <plugins/plugin.h>
@@ -16,6 +14,9 @@
 class HaloExchanger;
 class Redistributor;
 class Wall;
+class ParticleVector;
+class ObjectVector;
+class CellList;
 
 class Simulation
 {
@@ -29,7 +30,7 @@ public:
 	float3 globalDomainSize, subDomainSize, subDomainStart;
 
 private:
-	float currentTime;
+	double currentTime;
 	int currentStep;
 	cudaStream_t defStream;
 

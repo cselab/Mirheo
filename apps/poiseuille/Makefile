@@ -16,7 +16,7 @@ NVCCFLAGS += -I../../ -I$(HDF5_INC)
 NVCC_RELEASE_FLAGS = $(NVCCFLAGS) -O3
 NVCC_DEBUG_FLAGS = $(NVCCFLAGS) -O0 -G -Xptxas -O0 -Xcompiler "-g"
 
-objects = scan.o celllist.o halo_exchanger.o redistributor.o wall.o integrate.o interactions.o simulation.o components.o write_xdmf.o dumpavg.o stats.o pugixml.o poiseuille.o
+objects = scan.o celllist.o halo_exchanger.o redistributor.o wall.o integrate.o interactions.o simulation.o components.o write_xdmf.o dumpavg.o stats.o pugixml.o poiseuille.o object_vector.o
 
 
 # Release binary

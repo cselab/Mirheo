@@ -1,5 +1,5 @@
 #include <core/celllist.h>
-#include <core/containers.h>
+#include <core/particle_vector.h>
 #include <core/components.h>
 #include <core/integrate.h>
 #include <core/interactions.h>
@@ -96,14 +96,14 @@
 						for (int p=0; p<nparts; p++)
 						{
 							pv->resize(mycount+1, resizePreserve);
-							cooPtr[mycount].x[0] = i*h.x - 0.5*subDomainSize.x + coordinateDistribution(gen);
-							cooPtr[mycount].x[1] = j*h.y - 0.5*subDomainSize.y + coordinateDistribution(gen);
-							cooPtr[mycount].x[2] = k*h.z - 0.5*subDomainSize.z + coordinateDistribution(gen);
+							cooPtr[mycount].r.x = i*h.x - 0.5*subDomainSize.x + coordinateDistribution(gen);
+							cooPtr[mycount].r.y = j*h.y - 0.5*subDomainSize.y + coordinateDistribution(gen);
+							cooPtr[mycount].r.z = k*h.z - 0.5*subDomainSize.z + coordinateDistribution(gen);
 							cooPtr[mycount].i1 = mycount;
 
-							cooPtr[mycount].u[0] = 0*coordinateDistribution(gen);
-							cooPtr[mycount].u[1] = 0*coordinateDistribution(gen);
-							cooPtr[mycount].u[2] = 0*coordinateDistribution(gen);
+							cooPtr[mycount].u.x = 0*coordinateDistribution(gen);
+							cooPtr[mycount].u.y = 0*coordinateDistribution(gen);
+							cooPtr[mycount].u.z = 0*coordinateDistribution(gen);
 
 							cooPtr[mycount].i1 = mycount;
 							mycount++;

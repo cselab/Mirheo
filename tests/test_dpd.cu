@@ -1,5 +1,5 @@
 
-#include <core/containers.h>
+#include <core/particle_vector.h>
 #include <core/celllist.h>
 #include <core/halo_exchanger.h>
 #include <core/logger.h>

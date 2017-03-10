@@ -31,7 +31,7 @@ struct ParticleVector
 		return np;
 	}
 
-	void pushStreamWOhalo(cudaStream_t stream)
+	virtual void pushStreamWOhalo(cudaStream_t stream)
 	{
 		coosvels.pushStream(stream);
 		pingPongCoosvels.pushStream(stream);
@@ -39,7 +39,7 @@ struct ParticleVector
 		pingPongForces.pushStream(stream);
 	}
 
-	void popStreamWOhalo()
+	virtual void popStreamWOhalo()
 	{
 		coosvels.popStream();
 		pingPongCoosvels.popStream();
@@ -47,7 +47,7 @@ struct ParticleVector
 		pingPongForces.popStream();
 	}
 
-	void resize(const int n, ResizeKind kind = ResizeKind::resizePreserve)
+	virtual void resize(const int n, ResizeKind kind = ResizeKind::resizePreserve)
 	{
 		coosvels.resize(n, kind);
 		pingPongCoosvels.resize(n, kind);
@@ -56,14 +56,7 @@ struct ParticleVector
 
 		np = n;
 	}
+
+	virtual ~ParticleVector() = default;
 };
 
-class ObjectVector: public ParticleVector
-{
-	DeviceBuffer<int> objStarts;
-};
-
-class UniformObjectVector: public ObjectVector
-{
-
-};

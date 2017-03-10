@@ -15,18 +15,32 @@
 // Basic types
 //==================================================================================================================
 
-struct Particle
+struct __align__(16) Particle
 {
-	// 4-th coordinate is void
-	float x[3];
-	int32_t i1;
-	float u[3];
-	int32_t i2;
+	// We're targeting little-endian systems here, note that!
+
+	// Free particles will have their id in i1 (or in s21*2^32 + i1)
+
+	// Object particles will have their id in s11 and object id in s12
+	// and local object id in s21
+
+	float3 r;
+	union
+	{
+		int32_t i1;
+		struct { int16_t s11 /*least significant*/, s12; };
+	};
+
+	float3 u;
+	union
+	{
+		int32_t i2;
+		struct { int16_t s21 /*least significant*/, s22; };
+	};
 };
 
 struct Force
 {
-	// 4-th coordinate is void
 	float f[4];
 };
 
@@ -46,7 +60,7 @@ template<typename T> class PinnedBuffer;
 template<typename T> class HostBuffer;
 
 template<typename T> void containerSwap(DeviceBuffer<T>& a, DeviceBuffer<T>& b);
-template<typename T> void containerSwap(HostBuffer<T>& a,   HostBuffer<T>& b);
+template<typename T> void containerSwap(HostBuffer  <T>& a, HostBuffer  <T>& b);
 template<typename T> void containerSwap(PinnedBuffer<T>& a, PinnedBuffer<T>& b);
 
 

@@ -5,6 +5,7 @@
 #include <core/helper_math.h>
 #include <core/wall.h>
 #include <core/celllist.h>
+#include <core/particle_vector.h>
 
 
 // This should be in helper_math.h, but not there for some reason
@@ -147,9 +148,9 @@ __global__ void countFrozen(const float4* pv, const int np, Wall::SdfInfo sdfInf
 	const int pid = blockIdx.x * blockDim.x + threadIdx.x;
 	if (pid >= np) return;
 
-	const float4 coos = pv[2*pid];
+	const float4 coo = pv[2*pid];
 
-	const float sdf = evalSdf(coos, sdfInfo);
+	const float sdf = evalSdf(coo, sdfInfo);
 
 	if (sdf > 0.0f && sdf < 1.2f)
 	{
@@ -163,23 +164,23 @@ __global__ void collectFrozen(const float4* input, const int np, Wall::SdfInfo s
 	const int pid = blockIdx.x * blockDim.x + threadIdx.x;
 	if (pid >= np) return;
 
-	const float4 coos = input[2*pid];
-	const float4 vels = input[2*pid+1];
+	const float4 coo = input[2*pid];
+	const float4 vel = input[2*pid+1];
 
-	const float sdf = evalSdf(coos, sdfInfo);
+	const float sdf = evalSdf(coo, sdfInfo);
 
 	if (sdf <= 0.0f)
 	{
 		const int ind = atomicAggInc(nRemaining);
-		remaining[2*ind] = coos;
-		remaining[2*ind + 1] = vels;
+		remaining[2*ind] = coo;
+		remaining[2*ind + 1] = vel;
 	}
 
 	if (sdf > 0.0f && sdf < 1.2f)
 	{
 		const int ind = atomicAggInc(nFrozen);
-		frozen[2*ind] = coos;
-		frozen[2*ind + 1] = vels;
+		frozen[2*ind] = coo;
+		frozen[2*ind + 1] = make_float4(0.0f, 0.0f, 0.0f, vel.w);
 	}
 }
 
@@ -486,7 +487,7 @@ void Wall::prepareRelevantSdfPiece(const float* fullSdfData, float3 extendedDoma
 			}
 }
 
-void Wall::create(MPI_Comm& comm, float3 subDomainStart, float3 subDomainSize, float3 globalDomainSize, ParticleVector* pv)
+void Wall::createSdf(MPI_Comm& comm, float3 subDomainStart, float3 subDomainSize, float3 globalDomainSize)
 {
 	debug2("Creating wall");
 
@@ -570,9 +571,10 @@ void Wall::create(MPI_Comm& comm, float3 subDomainStart, float3 subDomainSize, f
 	texDesc.normalizedCoords = 0;
 
 	CUDA_Check( cudaCreateTextureObject(&sdfInfo.sdfTex, &resDesc, &texDesc, nullptr) );
+}
 
-
-	// Now freeze and kill particles
+void Wall::freezeParticles(ParticleVector* pv)
+{
 	PinnedBuffer<int> nFrozen(1), nRemaining(1), nBoundaryCells(1);
 
 	nFrozen.clear();
