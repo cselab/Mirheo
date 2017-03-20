@@ -8,7 +8,7 @@
 #include <algorithm>
 
 __global__ void getExitingParticles(float4* xyzouvwo,
-		CellListInfo cinfo, const int* __restrict__ cellsStart,
+		CellListInfo cinfo, const uint* __restrict__ cellsStart,
 		float4* __restrict__ dests[27], int counts[27])
 {
 	const int gid = blockIdx.x*blockDim.x + threadIdx.x;

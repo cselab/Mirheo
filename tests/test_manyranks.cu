@@ -13,6 +13,7 @@
 
 #include "timer.h"
 #include <unistd.h>
+#include <algorithm>
 
 Logger logger;
 
@@ -23,7 +24,7 @@ void makeCells(const Particle* __restrict__ coos, Particle* __restrict__ buffer,
 		cellsSize[i] = 0;
 
 	for (int i=0; i<np; i++)
-		cellsSize[ cinfo.getCellId(make_float3(coos[i].x[0], coos[i].x[1], coos[i].x[2])) ]++;
+		cellsSize[ cinfo.getCellId(make_float3(coos[i].r.x, coos[i].r.y, coos[i].r.z)) ]++;
 
 	cellsStart[0] = 0;
 	for (int i=1; i<=cinfo.totcells; i++)
@@ -31,7 +32,7 @@ void makeCells(const Particle* __restrict__ coos, Particle* __restrict__ buffer,
 
 	for (int i=0; i<np; i++)
 	{
-		const int cid = cinfo.getCellId(make_float3(coos[i].x[0], coos[i].x[1], coos[i].x[2]));
+		const int cid = cinfo.getCellId(make_float3(coos[i].r.x, coos[i].r.y, coos[i].r.z));
 		buffer[cellsStart[cid]] = coos[i];
 		cellsStart[cid]++;
 	}
@@ -44,22 +45,22 @@ void integrate(Particle* __restrict__ coos, const Force* __restrict__ accs, int 
 {
 	for (int i=0; i<np; i++)
 	{
-		coos[i].u[0] += accs[i].f[0]*dt;
-		coos[i].u[1] += accs[i].f[1]*dt;
-		coos[i].u[2] += accs[i].f[2]*dt;
+		coos[i].u.x += accs[i].f[0]*dt;
+		coos[i].u.y += accs[i].f[1]*dt;
+		coos[i].u.z += accs[i].f[2]*dt;
 
-		coos[i].x[0] += coos[i].u[0]*dt;
-		coos[i].x[1] += coos[i].u[1]*dt;
-		coos[i].x[2] += coos[i].u[2]*dt;
+		coos[i].r.x += coos[i].u.x*dt;
+		coos[i].r.y += coos[i].u.y*dt;
+		coos[i].r.z += coos[i].u.z*dt;
 
-		if (coos[i].x[0] >  domainStart.x+length.x) coos[i].x[0] -= length.x;
-		if (coos[i].x[0] <= domainStart.x)          coos[i].x[0] += length.x;
+		if (coos[i].r.x >  domainStart.x+length.x) coos[i].r.x -= length.x;
+		if (coos[i].r.x <= domainStart.x)          coos[i].r.x += length.x;
 
-		if (coos[i].x[1] >  domainStart.y+length.y) coos[i].x[1] -= length.y;
-		if (coos[i].x[1] <= domainStart.y)          coos[i].x[1] += length.y;
+		if (coos[i].r.y >  domainStart.y+length.y) coos[i].r.y -= length.y;
+		if (coos[i].r.y <= domainStart.y)          coos[i].r.y += length.y;
 
-		if (coos[i].x[2] >  domainStart.z+length.z) coos[i].x[2] -= length.z;
-		if (coos[i].x[2] <= domainStart.z)          coos[i].x[2] += length.z;
+		if (coos[i].r.z >  domainStart.z+length.z) coos[i].r.z -= length.z;
+		if (coos[i].r.z <= domainStart.z)          coos[i].r.z += length.z;
 	}
 }
 
@@ -88,13 +89,13 @@ void forces(const Particle* __restrict__ coos, Force* __restrict__ accs, const i
 	const float sigmaf = sigma / sqrt(ddt);
 	const float aij = 50;
 
-	const float3 length = cinfo.length;
+	const float3 length = cinfo.domainSize;
 
 	auto addForce = [=] (int dstId, int srcId, Force& a)
 	{
-		float _xr = coos[dstId].x[0] - coos[srcId].x[0];
-		float _yr = coos[dstId].x[1] - coos[srcId].x[1];
-		float _zr = coos[dstId].x[2] - coos[srcId].x[2];
+		float _xr = coos[dstId].r.x - coos[srcId].r.x;
+		float _yr = coos[dstId].r.y - coos[srcId].r.y;
+		float _zr = coos[dstId].r.z - coos[srcId].r.z;
 
 		_xr = minabs(_xr, _xr - length.x, _xr + length.x);
 		_yr = minabs(_yr, _yr - length.y, _yr + length.y);
@@ -115,9 +116,9 @@ void forces(const Particle* __restrict__ coos, Force* __restrict__ accs, const i
 		const float zr = _zr * invrij;
 
 		const float rdotv =
-				xr * (coos[dstId].u[0] - coos[srcId].u[0]) +
-				yr * (coos[dstId].u[1] - coos[srcId].u[1]) +
-				zr * (coos[dstId].u[2] - coos[srcId].u[2]);
+				xr * (coos[dstId].u.x - coos[srcId].u.x) +
+				yr * (coos[dstId].u.y - coos[srcId].u.y) +
+				zr * (coos[dstId].u.z - coos[srcId].u.z);
 
 		const float myrandnr = 0;//Logistic::mean0var1(1, min(srcId, dstId), max(srcId, dstId));
 
@@ -129,8 +130,8 @@ void forces(const Particle* __restrict__ coos, Force* __restrict__ accs, const i
 
 //		if (dstId == 8)
 //			printf("%d -- %d  :  [%f %f %f %d] -- [%f %f %f %d] (dist2 %f) :  [%f %f %f]\n", dstId, srcId,
-//					coos[dstId].x[0], coos[dstId].x[1], coos[dstId].x[2], coos[dstId].i1,
-//					coos[srcId].x[0], coos[srcId].x[1], coos[srcId].x[2], coos[srcId].i1,
+//					coos[dstId].r.x, coos[dstId].r.y, coos[dstId].r.z, coos[dstId].i1,
+//					coos[srcId].r.x, coos[srcId].r.y, coos[srcId].r.z, coos[srcId].i1,
 //					rij2, strength * xr, strength * yr, strength * zr);
 	};
 
@@ -165,9 +166,9 @@ void forces(const Particle* __restrict__ coos, Force* __restrict__ accs, const i
 								{
 									if (dstId != srcId)
 									{
-										float _xr = coos[dstId].x[0] - coos[srcId].x[0];
-										float _yr = coos[dstId].x[1] - coos[srcId].x[1];
-										float _zr = coos[dstId].x[2] - coos[srcId].x[2];
+										float _xr = coos[dstId].r.x - coos[srcId].r.x;
+										float _yr = coos[dstId].r.y - coos[srcId].r.y;
+										float _zr = coos[dstId].r.z - coos[srcId].r.z;
 
 										_xr = minabs(_xr, _xr - length.x, _xr + length.x);
 										_yr = minabs(_yr, _yr - length.y, _yr + length.y);
@@ -187,9 +188,9 @@ void forces(const Particle* __restrict__ coos, Force* __restrict__ accs, const i
 											const float zr = _zr * invrij;
 
 											const float rdotv =
-													xr * (coos[dstId].u[0] - coos[srcId].u[0]) +
-													yr * (coos[dstId].u[1] - coos[srcId].u[1]) +
-													zr * (coos[dstId].u[2] - coos[srcId].u[2]);
+													xr * (coos[dstId].u.x - coos[srcId].u.x) +
+													yr * (coos[dstId].u.y - coos[srcId].u.y) +
+													zr * (coos[dstId].u.z - coos[srcId].u.z);
 
 											const float myrandnr = 0;//Logistic::mean0var1(1, min(srcId, dstId), max(srcId, dstId));
 
@@ -242,7 +243,7 @@ int main(int argc, char ** argv)
 	MPI_Check( MPI_Cart_get(cartComm, 3, ranks, periods, coords) );
 
 
-	std::string xml = R"(<node mass="1.0" density="8.0">)";
+	std::string xml = R"(<node mass="1.0" density="210.0">)";
 	pugi::xml_document config;
 	config.load_string(xml.c_str());
 
@@ -250,7 +251,7 @@ int main(int argc, char ** argv)
 	float3 domainStart = -length / 2.0f;
 	const float rc = 1.0f;
 	ParticleVector dpds("dpd");
-	CellList cells(&dpds, rc, domainStart, length);
+	CellList cells(&dpds, rc, length);
 
 	InitialConditions ic = createIC(config.child("node"));
 	ic.exec(MPI_COMM_WORLD, &dpds, {0,0,0}, length);
@@ -263,11 +264,11 @@ int main(int argc, char ** argv)
 	const float adpd = 50;
 
 	auto inter = [=] (ParticleVector* pv, CellList* cl, const float t, cudaStream_t stream) {
-		interactionDPDSelf(pv, cl, t, stream, adpd, gammadpd, sigma_dt, rc);
+		interactionDPD(InteractionType::Regular, pv, pv, cl, t, stream, adpd, gammadpd, sigma_dt, rc);
 	};
 
 	auto haloInt = [=] (ParticleVector* pv1, ParticleVector* pv2, CellList* cl, const float t, cudaStream_t stream) {
-		interactionDPDHalo(pv1, pv2, cl, t, stream, adpd, gammadpd, sigma_dt, rc);
+		interactionDPD(InteractionType::Halo, pv1, pv2, cl, t, stream, adpd, gammadpd, sigma_dt, rc);
 	};
 
 	dpds.coosvels.downloadFromDevice(true);
@@ -279,9 +280,9 @@ int main(int argc, char ** argv)
 	{
 		locparticles[i] = dpds.coosvels[i];
 
-		locparticles[i].x[0] += (coords[0] + 0.5 - 0.5*ranks[0]) * length.x;
-		locparticles[i].x[1] += (coords[1] + 0.5 - 0.5*ranks[1]) * length.z;
-		locparticles[i].x[2] += (coords[2] + 0.5 - 0.5*ranks[2]) * length.y;
+		locparticles[i].r.x += (coords[0] + 0.5 - 0.5*ranks[0]) * length.x;
+		locparticles[i].r.y += (coords[1] + 0.5 - 0.5*ranks[1]) * length.z;
+		locparticles[i].r.z += (coords[2] + 0.5 - 0.5*ranks[2]) * length.y;
 	}
 
 	cudaStream_t defStream;
@@ -289,12 +290,14 @@ int main(int argc, char ** argv)
 
 	dpds.pushStreamWOhalo(defStream);
 
-	HaloExchanger halo(cartComm);
+	HaloExchanger halo(cartComm, defStream);
 	halo.attach(&dpds, &cells);
 	Redistributor redist(cartComm);
 	redist.attach(&dpds, &cells);
 
-	const int niters = 3;
+	cells.build(defStream);
+
+	const int niters = 0;
 
 	printf("GPU execution\n");
 
@@ -309,7 +312,8 @@ int main(int argc, char ** argv)
 		dpds.forces.clear();
 		inter(&dpds, &cells, dt*i, defStream);
 
-		halo.exchange();
+		halo.init();
+		halo.finalize();
 		haloInt(&dpds, &dpds, &cells, dt*i, defStream);
 
 		integrateNoFlow(&dpds, dt, defStream);
@@ -331,9 +335,9 @@ int main(int argc, char ** argv)
 
 	for (int i=0; i<dpds.np; i++)
 	{
-		dpds.coosvels[i].x[0] += (coords[0] + 0.5 - 0.5*ranks[0]) * length.x;
-		dpds.coosvels[i].x[1] += (coords[1] + 0.5 - 0.5*ranks[1]) * length.z;
-		dpds.coosvels[i].x[2] += (coords[2] + 0.5 - 0.5*ranks[2]) * length.y;
+		dpds.coosvels[i].r.x += (coords[0] + 0.5 - 0.5*ranks[0]) * length.x;
+		dpds.coosvels[i].r.y += (coords[1] + 0.5 - 0.5*ranks[1]) * length.z;
+		dpds.coosvels[i].r.z += (coords[2] + 0.5 - 0.5*ranks[2]) * length.y;
 	}
 
 	int totalParticles;
@@ -377,7 +381,7 @@ int main(int argc, char ** argv)
 	if (rank == 0)
 	{
 		float3 globDomainSize = make_float3(length.x*ranks[0], length.y*ranks[1], length.z*ranks[2]);
-		CellListInfo globalCells(1.0f, -globDomainSize*0.5, globDomainSize);
+		CellListInfo globalCells(1.0f, globDomainSize);
 
 		HostBuffer<Particle> buffer(totalInitialPs);
 		HostBuffer<Force> accs(totalInitialPs);
@@ -409,7 +413,7 @@ int main(int argc, char ** argv)
 			else
 			{
 				printf("Wrong id on gpu: particle %d: [%f %f %f] %d\n", i,
-					finalParticles[i].x[0], finalParticles[i].x[1], finalParticles[i].x[2], finalParticles[i].i1);
+					finalParticles[i].r.x, finalParticles[i].r.y, finalParticles[i].r.z, finalParticles[i].i1);
 				return 0;
 			}
 
@@ -418,7 +422,7 @@ int main(int argc, char ** argv)
 			else
 			{
 				printf("Wrong id on cpu: particle %d: [%f %f %f] %d\n", i,
-					particles[i].x[0], particles[i].x[1], particles[i].x[2], particles[i].i1);
+					particles[i].r.x, particles[i].r.y, particles[i].r.z, particles[i].i1);
 				return 0;
 			}
 		}
@@ -426,28 +430,35 @@ int main(int argc, char ** argv)
 
 		double l2 = 0, linf = -1;
 
+		auto dot = [] (double3 a, double3 b) {
+			return a.x*b.x + a.y*b.y + a.z*b.z;
+		};
+
+		auto make_double3 = [] (float3 v) {
+			double3 res{v.x, v.y, v.z};
+			return res;
+		};
+
 		for (int i=0; i<min(totalParticles, totalInitialPs); i++)
 		{
 			Particle cpuP = particles[cpuid[i]];
 			Particle gpuP = finalParticles[gpuid[i]];
 
 			double perr = -1;
-			for (int c=0; c<3; c++)
-			{
-				const double err = fabs(cpuP.x[c] - gpuP.x[c]) + fabs(cpuP.u[c] - gpuP.u[c]);
-				linf = max(linf, err);
-				perr = max(perr, err);
-				l2 += err * err;
-			}
+
+			const double3 err = make_double3( fabs(cpuP.r - gpuP.r) + fabs(cpuP.u - gpuP.u) );
+			linf = std::max({linf, err.x, err.y, err.z});
+			perr = std::max({perr, err.x, err.y, err.z});
+			l2 += dot(err, err);
 
 			if (argc > 5 && perr > 0.01)
 			{
 				printf("id %8d diff %8e  [%12f %12f %12f  %8d] [%12f %12f %12f] \n"
 						"                           ref [%12f %12f %12f  %8d] [%12f %12f %12f] [%12f %12f %12f] \n\n", i, perr,
-						gpuP.x[0], gpuP.x[1], gpuP.x[2], gpuP.i1,
-						gpuP.u[0], gpuP.u[1], gpuP.u[2],
-						cpuP.x[0], cpuP.x[1], cpuP.x[2], cpuP.i1,
-						cpuP.u[0], cpuP.u[1], cpuP.u[2], accs[cpuid[i]].f[0], accs[cpuid[i]].f[1], accs[cpuid[i]].f[2]);
+						gpuP.r.x, gpuP.r.y, gpuP.r.z, gpuP.i1,
+						gpuP.u.x, gpuP.u.y, gpuP.u.z,
+						cpuP.r.x, cpuP.r.y, cpuP.r.z, cpuP.i1,
+						cpuP.u.x, cpuP.u.y, cpuP.u.z, accs[cpuid[i]].f[0], accs[cpuid[i]].f[1], accs[cpuid[i]].f[2]);
 			}
 		}
 

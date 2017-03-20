@@ -21,9 +21,9 @@ struct ParticleVector
 	PinnedBuffer<Particle> halo;
 	CellList* activeCL;
 
-	ParticleVector(std::string name) : name(name), activeCL(nullptr)
+	ParticleVector(std::string name, int n=0) : name(name), activeCL(nullptr)
 	{
-		resize(0);
+		resize(n);
 	}
 
 	int size()
@@ -49,6 +49,8 @@ struct ParticleVector
 
 	virtual void resize(const int n, ResizeKind kind = ResizeKind::resizePreserve)
 	{
+		assert(n>=0);
+
 		coosvels.resize(n, kind);
 		pingPongCoosvels.resize(n, kind);
 		forces.resize(n, kind);

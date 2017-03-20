@@ -13,9 +13,9 @@ Logger logger;
 Particle addShift(Particle p, float a, float b, float c)
 {
 	Particle res = p;
-	res.x[0] += a;
-	res.x[1] += b;
-	res.x[2] += c;
+	res.r.x += a;
+	res.r.y += b;
+	res.r.z += c;
 
 	return res;
 }
@@ -44,7 +44,7 @@ int main(int argc, char ** argv)
 	float3 domainStart = -length / 2.0f;
 	const float rc = 1.0f;
 	ParticleVector dpds("dpd");
-	CellList cells(&dpds, rc, domainStart, length);
+	CellList cells(&dpds, rc, length);
 
 	InitialConditions ic = createIC(config.child("node"));
 	ic.exec(MPI_COMM_WORLD, &dpds, {0,0,0}, length);
@@ -55,26 +55,27 @@ int main(int argc, char ** argv)
 
 	cudaStream_t defStream = 0;
 
-	HaloExchanger halo(cartComm);
+	HaloExchanger halo(cartComm, 0);
 	halo.attach(&dpds, &cells);
 
 	cells.build(defStream);
 	CUDA_Check( cudaStreamSynchronize(defStream) );
 
-	for (int i=0; i<100; i++)
+	for (int i=0; i<10; i++)
 	{
-		halo.exchange();
+		halo.init();
+		halo.finalize();
 	}
 
 	std::vector<Particle> bufs[27];
 	dpds.coosvels.downloadFromDevice(true);
+	dpds.halo.downloadFromDevice(true);
 
 	for (int i=0; i<dpds.np; i++)
 	{
 		Particle& p = dpds.coosvels[i];
-		float3 coo{p.x[0], p.x[1], p.x[2]};
 
-		int3 code = cells.getCellIdAlongAxis(coo.x);
+		int3 code = cells.getCellIdAlongAxis(p.r);
 		int cx = code.x,  cy = code.y,  cz = code.z;
 		auto ncells = cells.ncells;
 
@@ -118,36 +119,31 @@ int main(int argc, char ** argv)
 	{
 		std::sort(bufs[i].begin(), bufs[i].end(), [] (Particle& a, Particle& b) { return a.i1 < b.i1; });
 
-		std::sort(halo.helpers[0].sendBufs[i].hostPtr(), halo.helpers[0].sendBufs[i].hostPtr() + halo.helpers[0].counts[i],
+		std::sort((Particle*)halo.helpers[0]->sendBufs[i].hostPtr(), ((Particle*)halo.helpers[0]->sendBufs[i].hostPtr()) + halo.helpers[0]->counts[i],
 				[] (Particle& a, Particle& b) { return a.i1 < b.i1; });
 
-		if (bufs[i].size() != halo.helpers[0].counts[i])
-			printf("%2d-th halo differs in size: %5d, expected %5d\n", i, halo.helpers[0].counts[i], (int)bufs[i].size());
+		if (bufs[i].size() != halo.helpers[0]->counts[i])
+			printf("%2d-th halo differs in size: %5d, expected %5d\n", i, halo.helpers[0]->counts[i], (int)bufs[i].size());
 		else
-			for (int pid = 0; pid < halo.helpers[0].counts[i]; pid++)
+		{
+			auto ptr = (Particle*)halo.helpers[0]->sendBufs[i].hostPtr();
+			for (int pid = 0; pid < halo.helpers[0]->counts[i]; pid++)
 			{
 				const float diff = std::max({
-					fabs(halo.helpers[0].sendBufs[i][pid].x[0] - bufs[i][pid].x[0]),
-					fabs(halo.helpers[0].sendBufs[i][pid].x[1] - bufs[i][pid].x[1]),
-					fabs(halo.helpers[0].sendBufs[i][pid].x[2] - bufs[i][pid].x[2]) });
+					fabs(ptr[pid].r.x - bufs[i][pid].r.x),
+					fabs(ptr[pid].r.y - bufs[i][pid].r.y),
+					fabs(ptr[pid].r.z - bufs[i][pid].r.z) });
 
-				if (bufs[i][pid].i1 != halo.helpers[0].sendBufs[i][pid].i1 || diff > 1e-5)
+				if (bufs[i][pid].i1 != ptr[pid].i1 || diff > 1e-5)
 					printf("Halo %2d:  %5d [%10.3e %10.3e %10.3e], expected %5d [%10.3e %10.3e %10.3e]\n",
-							i, halo.helpers[0].sendBufs[i][pid].i1, halo.helpers[0].sendBufs[i][pid].x[0],
-							halo.helpers[0].sendBufs[i][pid].x[1], halo.helpers[0].sendBufs[i][pid].x[2],
-							bufs[i][pid].i1, bufs[i][pid].x[0], bufs[i][pid].x[1], bufs[i][pid].x[2]);
+							i, ptr[pid].i1, ptr[pid].r.x, ptr[pid].r.y, ptr[pid].r.z,
+							bufs[i][pid].i1, bufs[i][pid].r.x, bufs[i][pid].r.y, bufs[i][pid].r.z);
 			}
+		}
 	}
 
-	//for (int i=0; i<dpds.halo.size; i++)
-	//	printf("%d  %f %f %f\n", i, dpds.halo[i].x[0], dpds.halo[i].x[1], dpds.halo[i].x[2]);
-
-
-	// Forces
-	//   || Halo
-	// Integrate
-	// Redistribute
-	// Cell list
+//	for (int i=0; i<dpds.halo.size(); i++)
+//		printf("%d  %f %f %f\n", i, dpds.halo[i].r.x, dpds.halo[i].r.y, dpds.halo[i].r.z);
 
 	return 0;
 }

@@ -14,6 +14,7 @@ wall_obj =    scan.o celllist.o test_wall.o pugixml.o components.o integrate.o i
 onerank_obj = scan.o celllist.o halo_exchanger.o dpd.o test_onerank.o redistributor.o integrate.o
 manyranks_obj = scan.o celllist.o test_manyranks.o pugixml.o components.o integrate.o interactions.o wall.o halo_exchanger.o redistributor.o
 halo_obj    = scan.o celllist.o test_halo.o pugixml.o components.o integrate.o interactions.o wall.o halo_exchanger.o
+obj_halo_obj= scan.o celllist.o test_obj_halo.o pugixml.o components.o integrate.o interactions.o wall.o halo_exchanger.o object_vector.o
 redist_obj  = scan.o celllist.o redistributor.o test_redist.o
 log_obj     = test_logger.o
 cells_obj   = scan.o celllist.o test_cells.o pugixml.o components.o integrate.o interactions.o wall.o
@@ -39,6 +40,9 @@ test_manyranks: $(addprefix $(OBJ_DIR)/,$(manyranks_obj))
 	$(NVCC) $(NVCCFLAGS) $(LIBS) $^ -o $@
 	
 test_halo: $(addprefix $(OBJ_DIR)/,$(halo_obj))
+	$(NVCC) $(NVCCFLAGS) $(LIBS) $^ -o $@
+
+test_obj_halo: $(addprefix $(OBJ_DIR)/,$(obj_halo_obj))
 	$(NVCC) $(NVCCFLAGS) $(LIBS) $^ -o $@
 	
 test_redist: $(addprefix $(OBJ_DIR)/,$(redist_obj))

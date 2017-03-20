@@ -7,6 +7,7 @@
 
 #include <vector>
 #include <algorithm>
+#include <limits>
 
 __device__ inline bool isValidCell(int& cid, int& cx, int& cy, int& cz, int gid, int variant, CellListInfo cinfo)
 {
@@ -60,7 +61,7 @@ __device__ inline bool isValidCell(int& cid, int& cx, int& cy, int& cz, int gid,
 	return valid;
 }
 
-__global__ void getHalos(const float4* __restrict__ coosvels, const CellListInfo cinfo, const int* __restrict__ cellsStart,
+__global__ void getHalos(const float4* __restrict__ coosvels, const CellListInfo cinfo, const uint* __restrict__ cellsStart,
 		const int64_t dests[27], int counts[27])
 {
 	const int gid = blockIdx.x*blockDim.x + threadIdx.x;
@@ -140,7 +141,7 @@ __global__ void getObjectHalos(const float4* __restrict__ coosvels, const Object
 		const int* objParticleIds, const float3 domainSize, const float rc,
 		const int64_t dests[27], int counts[27], int* haloParticleIds)
 {
-	const int objId = blockIdx.x*blockDim.x;
+	const int objId = blockIdx.x;
 	const int tid = threadIdx.x;
 	const int sh  = tid % 2;
 
@@ -153,14 +154,16 @@ __global__ void getObjectHalos(const float4* __restrict__ coosvels, const Object
 	auto prop = props[objId];
 	int cx = 1, cy = 1, cz = 1;
 
-	if (prop.low.x  < -0.5*domainSize.x) cx = 0;
-	if (prop.low.y  < -0.5*domainSize.y) cy = 0;
-	if (prop.low.z  < -0.5*domainSize.z) cz = 0;
+	if (prop.low.x  < -0.5*domainSize.x + rc) cx = 0;
+	if (prop.low.y  < -0.5*domainSize.y + rc) cy = 0;
+	if (prop.low.z  < -0.5*domainSize.z + rc) cz = 0;
 
-	if (prop.high.x >  0.5*domainSize.x) cx = 2;
-	if (prop.high.y >  0.5*domainSize.y) cy = 2;
-	if (prop.high.z >  0.5*domainSize.z) cz = 2;
+	if (prop.high.x >  0.5*domainSize.x - rc) cx = 2;
+	if (prop.high.y >  0.5*domainSize.y - rc) cy = 2;
+	if (prop.high.z >  0.5*domainSize.z - rc) cz = 2;
 
+//	if (tid == 0) printf("Obj %d : [%f %f %f] -- [%f %f %f]\n", objId,
+//			prop.low.x, prop.low.y, prop.low.z, prop.high.x, prop.high.y, prop.high.z);
 
 	for (int ix = min(cx, 1); ix <= max(cx, 1); ix++)
 		for (int iy = min(cy, 1); iy <= max(cy, 1); iy++)
@@ -180,12 +183,19 @@ __global__ void getObjectHalos(const float4* __restrict__ coosvels, const Object
 	{
 		const int bufId = validHalos[i];
 
+		const int ix = bufId % 3;
+		const int iy = (bufId / 3) % 3;
+		const int iz = bufId / 9;
+		const float4 shift{ domainSize.x*(ix-1),
+							domainSize.y*(iy-1),
+							domainSize.z*(iz-1), 0.0f };
+
 		__syncthreads();
 		if (tid == 0)
 			shDstStart = atomicAdd(counts + bufId, objSize);
 		__syncthreads();
 
-		float4* dstAddr = (float4*) (dests[bufId]) + shDstStart;
+		float4* dstAddr = (float4*) (dests[bufId]) + 2*shDstStart;
 
 		for (int pid = tid/2; pid < objSize; pid += blockDim.x/2)
 		{
@@ -195,6 +205,9 @@ __global__ void getObjectHalos(const float4* __restrict__ coosvels, const Object
 			// Remember your origin, little particle!
 			if (sh == 1)
 				data.w = __int_as_float(pid);
+
+			if (sh == 0)
+				data -= shift;
 
 			dstAddr[2*pid + sh] = data;
 		}
@@ -208,18 +221,20 @@ __global__ void addHaloForces(const float4* haloForces, const float4* halo, floa
 
 	const int dstId = __float_as_int(halo[2*srcId].w);
 	const float4 frc = readNoCache(haloForces + srcId);
-	writeNoCache(forces + dstId, frc);
+	forces[dstId] += frc;
 }
 
 
 HaloHelper::HaloHelper(ParticleVector* pv, const int sizes[3])
 {
-	sendAddrs.resize(27);
-	counts.resize(27);
-	recvOffsets.resize(28);
-
 	CUDA_Check( cudaStreamCreateWithPriority(&stream, cudaStreamNonBlocking, 0) );
 
+	sendAddrs  .pushStream(stream);
+	counts     .pushStream(stream);
+
+	sendAddrs  .resize(27);
+	counts     .resize(27);
+	recvOffsets.resize(28);
 
 	auto addrsPtr = sendAddrs.hostPtr();
 	for(int i = 0; i < 27; ++i)
@@ -229,17 +244,16 @@ HaloHelper::HaloHelper(ParticleVector* pv, const int sizes[3])
 		int c = std::abs(d[0]) + std::abs(d[1]) + std::abs(d[2]);
 		if (c > 0)
 		{
+			sendBufs[i].pushStream(stream);
+			recvBufs[i].pushStream(stream);
+
 			sendBufs[i].resize( sizes[c-1]*sizeof(Particle) );
 			recvBufs[i].resize( sizes[c-1]*sizeof(Particle) );
 			addrsPtr[i] = sendBufs[i].devPtr();
-
-			sendBufs[i].pushStream(stream);
 		}
 	}
+	// implicit synchro
 	sendAddrs.uploadToDevice();
-
-	counts.pushStream(stream);
-	sendAddrs.pushStream(stream);
 }
 
 HaloExchanger::HaloExchanger(MPI_Comm& comm, cudaStream_t defStream) :
@@ -414,7 +428,7 @@ void HaloExchanger::exchange(std::string pvName, HaloHelper* helper, int typeSiz
 
 	// Excl scan of message sizes to know where we will upload them
 	int totalRecvd = 0;
-	std::fill(helper->recvOffsets.begin(), helper->recvOffsets.end(), 0);
+	std::fill(helper->recvOffsets.begin(), helper->recvOffsets.end(), std::numeric_limits<int>::max());
 	for (int i=0; i<nMessages; i++)
 	{
 		helper->recvOffsets[compactedDirs[i]] = totalRecvd;
@@ -428,9 +442,9 @@ void HaloExchanger::exchange(std::string pvName, HaloHelper* helper, int typeSiz
 	}
 
 	// Fill the holes in the offsets
-	for (int i=1; i<27; i++)
-		helper->recvOffsets[i] = std::max(helper->recvOffsets[i-1], helper->recvOffsets[i]);
 	helper->recvOffsets[27] = totalRecvd;
+	for (int i=0; i<27; i++)
+		helper->recvOffsets[i] = std::min(helper->recvOffsets[i+1], helper->recvOffsets[i]);
 }
 
 void HaloExchanger::_prepareHalos(ParticleVector* pv, CellList* cl, HaloHelper* helper)
@@ -459,7 +473,7 @@ void HaloExchanger::_prepareObjectHalos(ObjectVector* ov, float rc, HaloHelper* 
 
 	const int nthreads = 128;
 	if (ov->nObjects > 0)
-		getObjectHalos <<< (ov->nObjects + nthreads-1)/nthreads, nthreads, 0, defStream >>>
+		getObjectHalos <<< ov->nObjects, nthreads, 0, defStream >>>
 				((float4*)ov->coosvels.devPtr(), ov->properties.devPtr(), ov->nObjects, ov->objSize, ov->particles2objIds.devPtr(), ov->domainLength, rc,
 				 (int64_t*)helper->sendAddrs.devPtr(), helper->counts.devPtr(), ov->haloIds.devPtr());
 }

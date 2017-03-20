@@ -35,7 +35,7 @@ __device__ __forceinline__ float3 dpd_interaction(
 	const float3 dr_r = dr * invrij;
 	const float rdotv = dot(dr_r, (dstVel - srcVel));
 
-	const float myrandnr = Logistic::mean0var1(seed, min(srcId, dstId), max(srcId, dstId));
+	const float myrandnr = 0* Logistic::mean0var1(seed, min(srcId, dstId), max(srcId, dstId));
 
 	const float strength = adpd * argwr - (gammadpd * wr * rdotv + sigmadpd * myrandnr) * wr;
 

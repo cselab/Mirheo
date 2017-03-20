@@ -238,7 +238,7 @@ __global__ void getBoundaryCells(CellListInfo cinfo, Wall::SdfInfo sdfInfo,
 }
 
 __launch_bounds__(128, 8)
-__global__ void bounceKernel(const int* wallCells, const int nWallCells, const int* __restrict__ cellsStart, CellListInfo cinfo,
+__global__ void bounceKernel(const int* wallCells, const int nWallCells, const uint* __restrict__ cellsStart, CellListInfo cinfo,
 		Wall::SdfInfo sdfInfo, float4* coosvels, const float dt)
 {
 	const int maxNIters = 20;

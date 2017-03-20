@@ -10,25 +10,28 @@ struct ObjectVector: public ParticleVector
 {
 	struct __align__(16) Properties
 	{
-		float3 com, high, low;
+		float3 com, low, high;
 	};
 
 
 	int nObjects = 0;
 	int objSize  = 0;
-	PinnedBuffer<int> objStarts, objSizes;
 	DeviceBuffer<int> particles2objIds;
 	DeviceBuffer<Properties> properties;
 
 	PinnedBuffer<Force> haloForces;
 	DeviceBuffer<int>   haloIds;
 
+	ObjectVector(std::string name, const int objSize, const int nObjects = 0) :
+		ParticleVector(name, objSize*nObjects), objSize(objSize), nObjects(nObjects)
+	{
+		resize(nObjects*objSize, ResizeKind::resizeAnew);
+	};
 
 	virtual void pushStreamWOhalo(cudaStream_t stream)
 	{
 		ParticleVector::pushStreamWOhalo(stream);
-		objStarts.		 pushStream(stream);
-		objSizes.		 pushStream(stream);
+
 		particles2objIds.pushStream(stream);
 		properties.		 pushStream(stream);
 	}
@@ -36,19 +39,21 @@ struct ObjectVector: public ParticleVector
 	virtual void popStreamWOhalo()
 	{
 		ParticleVector::popStreamWOhalo();
-		objStarts.		 popStream();
-		objSizes.		 popStream();
+
 		particles2objIds.popStream();
 		properties.		 popStream();
 	}
 
-	virtual void resize(const int nObj, ResizeKind kind = ResizeKind::resizePreserve)
+	virtual void resize(const int np, ResizeKind kind = ResizeKind::resizePreserve)
 	{
-		ParticleVector::resize(nObj * objSize, kind);
+		if (np % objSize != 0)
+			die("Incorrect number of %s particles", name.c_str());
+
+		nObjects = np / objSize;
+
+		ParticleVector::resize(nObjects * objSize, kind);
 		particles2objIds.resize(np, kind);
-		objStarts. resize(nObj+1);
-		objSizes.  resize(nObj);
-		properties.resize(nObj);
+		properties.resize(nObjects);
 	}
 
 	virtual ~ObjectVector() = default;

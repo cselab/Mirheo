@@ -45,7 +45,7 @@ public:
 		return start + (size << blendingPower);
 	}
 
-	__device__ __host__ __forceinline__ int2 decodeStartSize(int code) const
+	__device__ __host__ __forceinline__ int2 decodeStartSize(uint code) const
 	{
 		return make_int2(code & ((1<<blendingPower) - 1), code >> blendingPower);
 	}
@@ -81,7 +81,7 @@ class CellList : public CellListInfo
 public:
 	ParticleVector* pv;
 
-	DeviceBuffer<int> cellsStart;
+	DeviceBuffer<uint> cellsStart;
 	DeviceBuffer<uint8_t> cellsSize;
 	DeviceBuffer<int> order;
 

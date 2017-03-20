@@ -257,7 +257,8 @@ int main(int argc, char ** argv)
 		cells.build(defStream);
 		computeInternalDPD(dpds, cells, defStream);
 
-		halo.exchange();
+		halo.init();
+		halo.finalize();
 
 		computeHaloDPD(dpds, cells, defStream);
 

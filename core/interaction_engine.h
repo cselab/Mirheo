@@ -5,17 +5,17 @@
 #include "celllist.h"
 #include "non_cached_rw.h"
 
-__device__ __forceinline__ float4 readCoosFromAll4(const float4* coosvels, int pid)
+__device__ __forceinline__ float4 readCoosFromAll4(const float4* __restrict__ coosvels, int pid)
 {
 	return coosvels[2*pid];
 }
 
-__device__ __forceinline__ float4 readVelsFromAll4(const float4* coosvels, int pid)
+__device__ __forceinline__ float4 readVelsFromAll4(const float4* __restrict__ coosvels, int pid)
 {
 	return coosvels[2*pid+1];
 }
 
-__device__ __forceinline__ void readAll4(const float4* coosvels, int pid, float4& coo, float4& vel)
+__device__ __forceinline__ void readAll4(const float4* __restrict__ coosvels, int pid, float4& coo, float4& vel)
 {
 	coo = coosvels[pid*2];
 	vel = coosvels[pid*2+1];
@@ -40,7 +40,7 @@ __device__ __forceinline__ float3 f4tof3(float4 v)
 template<typename Interaction>
 __launch_bounds__(128, 16)
 __global__ void computeSelfInteractions(const float4 * __restrict__ coosvels, float* forces,
-		CellListInfo cinfo,  const int* __restrict__ cellsStart, int np, Interaction interaction)
+		CellListInfo cinfo,  const uint* __restrict__ cellsStart, int np, Interaction interaction)
 {
 	const int dstId = blockIdx.x*blockDim.x + threadIdx.x;
 	if (dstId >= np) return;
@@ -104,7 +104,7 @@ __launch_bounds__(128, 16)
 __global__ void computeExternalInteractions(
 		const float4 * __restrict__ dstData, float* dstFrcs,
 		const float4 * __restrict__ srcData, float* srcFrcs,
-		CellListInfo cinfo,  const int* __restrict__ cellsStart,
+		CellListInfo cinfo,  const uint* __restrict__ cellsStart,
 		int ndst, Interaction interaction)
 {
 	static_assert(NeedDstAcc || NeedSrcAcc, "External interactions should return at least some accelerations");
@@ -183,7 +183,7 @@ __launch_bounds__(128, 16)
 __global__ void computeExternalInteractions2(
 		const float4 * __restrict__ dstData, float* dstFrcs,
 		const float4 * __restrict__ srcData, float* srcFrcs,
-		CellListInfo cinfo,  const int* __restrict__ cellsStart,
+		CellListInfo cinfo,  const uint* __restrict__ cellsStart,
 		int ndst, Interaction interaction)
 {
 	static_assert(NeedDstAcc || NeedSrcAcc, "External interactions should return at least some accelerations");

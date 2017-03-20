@@ -21,8 +21,8 @@ __global__ void min_max_com(const float4 * coosvels, ObjectVector::Properties* p
 	const int tid = gid & 0x1f;
 	if (objId >= nObj) return;
 
-	float3 mymin = make_float3(1e+10f);
-	float3 mymax = make_float3(1e-10f);
+	float3 mymin = make_float3( 1e+10f);
+	float3 mymax = make_float3(-1e+10f);
 	float3 mycom = make_float3(0);
 
 #pragma unroll 3
@@ -37,16 +37,12 @@ __global__ void min_max_com(const float4 * coosvels, ObjectVector::Properties* p
 		mycom += coo;
 	}
 
-	mycom = warpReduce( mycom, [] __device__ (float a, float b) { return a+b; } );
-	mymin = warpReduce( mymin, [] __device__ (float a, float b) { return min(a, b); } );
-	mymax = warpReduce( mymax, [] __device__ (float a, float b) { return max(a, b); } );
+	mycom = warpReduce( mycom, [] (float a, float b) { return a+b; } );
+	mymin = warpReduce( mymin, [] (float a, float b) { return fmin(a, b); } );
+	mymax = warpReduce( mymax, [] (float a, float b) { return fmax(a, b); } );
 
 	if (tid == 0)
-		props[objId] = {mymin, mymax, mycom / objSize};
-}
-
-void minmax_stupid(const Particle * const rbc, int nvert, int ncells, float3 *minrbc, float3 *maxrbc, cudaStream_t stream)
-{
+		props[objId] = {mycom / objSize, mymin, mymax};
 }
 
 void ObjectVector::findExtentAndCOM(cudaStream_t stream)
