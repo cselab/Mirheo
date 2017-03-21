@@ -1,34 +1,15 @@
-#include "helper_math.h"
 #include <cassert>
 #include <type_traits>
 
-#include "celllist.h"
-#include "non_cached_rw.h"
+#include <core/helper_math.h>
+#include <core/celllist.h>
+#include <core/non_cached_rw.h>
 
-__device__ __forceinline__ float4 readCoosFromAll4(const float4* __restrict__ coosvels, int pid)
-{
-	return coosvels[2*pid];
-}
-
-__device__ __forceinline__ float4 readVelsFromAll4(const float4* __restrict__ coosvels, int pid)
-{
-	return coosvels[2*pid+1];
-}
-
-__device__ __forceinline__ void readAll4(const float4* __restrict__ coosvels, int pid, float4& coo, float4& vel)
-{
-	coo = coosvels[pid*2];
-	vel = coosvels[pid*2+1];
-}
-
-__device__ __forceinline__ float sqr(float x)
-{
-	return x*x;
-}
 
 template<typename Ta, typename Tb>
 __device__ __forceinline__ float distance2(const Ta a, const Tb b)
 {
+	auto sqr = [] (float x) { return x*x; };
 	return sqr(a.x - b.x) + sqr(a.y - b.y) + sqr(a.z - b.z);
 }
 
@@ -37,17 +18,26 @@ __device__ __forceinline__ float3 f4tof3(float4 v)
 	return make_float3(v.x, v.y, v.z);
 }
 
-template<typename Interaction>
+__device__ __forceinline__ void atomicAdd(float* dest, float3 v)
+{
+	atomicAdd(dest,     v.x);
+	atomicAdd(dest + 1, v.y);
+	atomicAdd(dest + 2, v.z);
+}
+
+template<bool Ordered, typename Interaction>
 __launch_bounds__(128, 16)
-__global__ void computeSelfInteractions(const float4 * __restrict__ coosvels, float* forces,
-		CellListInfo cinfo,  const uint* __restrict__ cellsStart, int np, Interaction interaction)
+__global__ void computeSelfInteractions(
+		const int np, const float4 * __restrict__ coosvels, float* forces,
+		CellListInfo cinfo, const uint* __restrict__ cellsStartSize, const int* __restrict__ order,
+		const float rc2, Interaction interaction)
 {
 	const int dstId = blockIdx.x*blockDim.x + threadIdx.x;
 	if (dstId >= np) return;
 
-	float4 dstCoo, dstVel;
+	const float4 dstCoo = coosvels[2*dstId];
+	const float4 dstVel = coosvels[2*dstId+1];
 	float3 dstFrc = make_float3(0.0f);
-	readAll4(coosvels, dstId, dstCoo, dstVel);
 
 	const int3 cell0 = cinfo.getCellIdAlongAxis(make_float3(dstCoo));
 
@@ -63,91 +53,73 @@ __global__ void computeSelfInteractions(const float4 * __restrict__ coosvels, fl
 
 				if ( cellY == cell0.y && cellZ == cell0.z ) rowEnd = midCellId + 1; // this row is already partly covered
 
-				const int2 pstart = cinfo.decodeStartSize(cellsStart[rowStart]);
-				const int2 pend   = cinfo.decodeStartSize(cellsStart[rowEnd]);
+				const int2 pstart = cinfo.decodeStartSize(cellsStartSize[rowStart]);
+				const int2 pend   = cinfo.decodeStartSize(cellsStartSize[rowEnd]);
 
 				const int2 start_size = make_int2(pstart.x, pend.x - pstart.x);
 
 
 #pragma unroll 2
-				for (int srcId = start_size.x; srcId < start_size.x + start_size.y; srcId ++)
+				for (int mappedId = start_size.x; mappedId < start_size.x + start_size.y; mappedId ++)
 				{
-					const float4 srcCoo = readCoosFromAll4(coosvels, srcId);
+					const int srcId = Ordered ? mappedId : order[mappedId];
+					const float4 srcCoo = coosvels[2*srcId];
 
-					bool interacting = distance2(srcCoo, dstCoo) < 1.00f;
+					bool interacting = distance2(srcCoo, dstCoo) < rc2;
 					if (dstId <= srcId && cellY == cell0.y && cellZ == cell0.z) interacting = false;
 
 					if (interacting)
 					{
-						const float4 srcVel = readVelsFromAll4(coosvels, srcId);
+						const float4 srcVel = coosvels[2*srcId+1];
 
 						float3 frc = interaction(dstCoo, dstVel, dstId, srcCoo, srcVel, srcId);
 
 						dstFrc += frc;
-
-						float* dest = forces + srcId*4;
-						atomicAdd(dest,     -frc.x);
-						atomicAdd(dest + 1, -frc.y);
-						atomicAdd(dest + 2, -frc.z);
+						atomicAdd(forces + srcId*4, -frc);
 					}
 				}
 			}
 
-	float* dest = forces + dstId*4;
-	atomicAdd(dest,     dstFrc.x);
-	atomicAdd(dest + 1, dstFrc.y);
-	atomicAdd(dest + 2, dstFrc.z);
+	atomicAdd(forces + dstId*4, dstFrc);
 }
 
-template<bool NeedDstAcc, bool NeedSrcAcc, typename Interaction>
+
+/**
+ * variant == true  better for dense shit,
+ * variant == false better for halo and one-sided
+ */
+template<bool NeedDstAcc, bool NeedSrcAcc, bool Ordered, bool Variant, typename Interaction>
 __launch_bounds__(128, 16)
 __global__ void computeExternalInteractions(
+		const int ndst,
 		const float4 * __restrict__ dstData, float* dstFrcs,
 		const float4 * __restrict__ srcData, float* srcFrcs,
-		CellListInfo cinfo,  const uint* __restrict__ cellsStart,
-		int ndst, Interaction interaction)
+		CellListInfo cinfo,  const uint* __restrict__ cellsStartSize, const int* __restrict__ order,
+		const float rc2, Interaction interaction)
 {
 	static_assert(NeedDstAcc || NeedSrcAcc, "External interactions should return at least some accelerations");
 
 	const int dstId = blockIdx.x*blockDim.x + threadIdx.x;
 	if (dstId >= ndst) return;
 
-	float4 dstCoo, dstVel;
+	const float4 dstCoo = readNoCache(dstData+2*dstId);
+	const float4 dstVel = readNoCache(dstData+2*dstId+1);
 	float3 dstFrc = make_float3(0.0f);
-	//readAll4(dstData, dstId, dstCoo, dstVel);
-	dstCoo = readNoCache(dstData+2*dstId);
-	dstVel = readNoCache(dstData+2*dstId+1);
 
 	const int3 cell0 = cinfo.getCellIdAlongAxis<false>(make_float3(dstCoo));
 
-	for (int cellZ = max(cell0.z-1, 0); cellZ <= min(cell0.z+1, cinfo.ncells.z-1); cellZ++)
-		for (int cellY = max(cell0.y-1, 0); cellY <= min(cell0.y+1, cinfo.ncells.y-1); cellY++)
-#if 1
-		{
-						const int midCellId = cinfo.encode(cell0.x, cellY, cellZ);
-						int rowStart  = max(midCellId-1, 0);
-						int rowEnd    = min(midCellId+2, cinfo.totcells+1);
-
-						const int2 pstart = cinfo.decodeStartSize(cellsStart[rowStart]);
-						const int2 pend   = cinfo.decodeStartSize(cellsStart[rowEnd]);
-
-						const int2 start_size = make_int2(pstart.x, pend.x - pstart.x);
-#else
-			for (int cellX = max(cell0.x-1, 0); cellX <= min(cell0.x+1, cinfo.ncells.x-1); cellX++)
-			{
-				const int2 start_size = cinfo.decodeStartSize(cellsStart[cinfo.encode(cellX, cellY, cellZ)]);
-#endif
-
+	auto computeCell = [&] (int2 start_size) {
 #pragma unroll 2
-				for (int srcId = start_size.x; srcId < start_size.x + start_size.y; srcId ++)
+				for (int mappedId = start_size.x; mappedId < start_size.x + start_size.y; mappedId ++)
 				{
-					const float4 srcCoo = readCoosFromAll4(srcData, srcId);
+					const int srcId = Ordered ? mappedId : order[mappedId];
+					const float4 srcCoo = srcData[2*srcId];
 
-					bool interacting = distance2(srcCoo, dstCoo) < 1.00f;
+					bool interacting = distance2(srcCoo, dstCoo) < rc2;
 
 					if (interacting)
 					{
-						const float4 srcVel = readVelsFromAll4(srcData, srcId);
+						const float4 srcVel = srcData[2*srcId+1];
 
 						float3 frc = interaction(dstCoo, dstVel, __float_as_int(dstCoo.w),
 												 srcCoo, srcVel, __float_as_int(srcCoo.w));
@@ -156,101 +128,34 @@ __global__ void computeExternalInteractions(
 							dstFrc += frc;
 
 						if (NeedSrcAcc)
-						{
-							float* dest = srcFrcs + srcId*4;
-
-							atomicAdd(dest,     -frc.x);
-							atomicAdd(dest + 1, -frc.y);
-							atomicAdd(dest + 2, -frc.z);
-						}
+							atomicAdd(srcFrcs + srcId*4, -frc);
 					}
 				}
-			}
-
-	if (NeedDstAcc)
-	{
-		float* dest = dstFrcs + dstId*4;
-		dest[0] += dstFrc.x;
-		dest[1] += dstFrc.y;
-		dest[2] += dstFrc.z;
-	}
-}
-
-
-
-template<bool NeedDstAcc, bool NeedSrcAcc, typename Interaction>
-__launch_bounds__(128, 16)
-__global__ void computeExternalInteractions2(
-		const float4 * __restrict__ dstData, float* dstFrcs,
-		const float4 * __restrict__ srcData, float* srcFrcs,
-		CellListInfo cinfo,  const uint* __restrict__ cellsStart,
-		int ndst, Interaction interaction)
-{
-	static_assert(NeedDstAcc || NeedSrcAcc, "External interactions should return at least some accelerations");
-
-	const int dstId = blockIdx.x*blockDim.x + threadIdx.x;
-	if (dstId >= ndst) return;
-
-	float4 dstCoo, dstVel;
-	float3 dstFrc = make_float3(0.0f);
-	//readAll4(dstData, dstId, dstCoo, dstVel);
-	dstCoo = readNoCache(dstData+2*dstId);
-	dstVel = readNoCache(dstData+2*dstId+1);
-
-	const int3 cell0 = cinfo.getCellIdAlongAxis<false>(make_float3(dstCoo));
+	};
 
 	for (int cellZ = max(cell0.z-1, 0); cellZ <= min(cell0.z+1, cinfo.ncells.z-1); cellZ++)
 		for (int cellY = max(cell0.y-1, 0); cellY <= min(cell0.y+1, cinfo.ncells.y-1); cellY++)
-#if 0
-		{
-						const int midCellId = cinfo.encode(cell0.x, cellY, cellZ);
-						int rowStart  = max(midCellId-1, 0);
-						int rowEnd    = min(midCellId+2, cinfo.totcells+1);
-
-						const int2 pstart = cinfo.decodeStartSize(cellsStart[rowStart]);
-						const int2 pend   = cinfo.decodeStartSize(cellsStart[rowEnd]);
-
-						const int2 start_size = make_int2(pstart.x, pend.x - pstart.x);
-#else
-			for (int cellX = max(cell0.x-1, 0); cellX <= min(cell0.x+1, cinfo.ncells.x-1); cellX++)
+			if (Variant)
 			{
-				const int2 start_size = cinfo.decodeStartSize(cellsStart[cinfo.encode(cellX, cellY, cellZ)]);
-#endif
+				const int midCellId = cinfo.encode(cell0.x, cellY, cellZ);
+				int rowStart  = max(midCellId-1, 0);
+				int rowEnd    = min(midCellId+2, cinfo.totcells+1);
 
-#pragma unroll 2
-				for (int srcId = start_size.x; srcId < start_size.x + start_size.y; srcId ++)
+				const int2 pstart = cinfo.decodeStartSize(cellsStartSize[rowStart]);
+				const int2 pend   = cinfo.decodeStartSize(cellsStartSize[rowEnd]);
+
+				const int2 start_size = make_int2(pstart.x, pend.x - pstart.x);
+				computeCell(start_size);
+			}
+			else
+			{
+				for (int cellX = max(cell0.x-1, 0); cellX <= min(cell0.x+1, cinfo.ncells.x-1); cellX++)
 				{
-					const float4 srcCoo = readCoosFromAll4(srcData, srcId);
-
-					bool interacting = distance2(srcCoo, dstCoo) < 1.00f;
-
-					if (interacting)
-					{
-						const float4 srcVel = readVelsFromAll4(srcData, srcId);
-
-						float3 frc = interaction(dstCoo, dstVel, __float_as_int(dstCoo.w),
-												 srcCoo, srcVel, __float_as_int(srcCoo.w));
-
-						if (NeedDstAcc)
-							dstFrc += frc;
-
-						if (NeedSrcAcc)
-						{
-							float* dest = srcFrcs + srcId*4;
-
-							atomicAdd(dest,     -frc.x);
-							atomicAdd(dest + 1, -frc.y);
-							atomicAdd(dest + 2, -frc.z);
-						}
-					}
+					const int2 start_size = cinfo.decodeStartSize(cellsStartSize[cinfo.encode(cellX, cellY, cellZ)]);
+					computeCell(start_size);
 				}
 			}
 
 	if (NeedDstAcc)
-	{
-		float* dest = dstFrcs + dstId*4;
-		dest[0] += dstFrc.x;
-		dest[1] += dstFrc.y;
-		dest[2] += dstFrc.z;
-	}
+		atomicAdd(dstFrcs + dstId*4, dstFrc);
 }

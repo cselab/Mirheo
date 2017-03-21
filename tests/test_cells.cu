@@ -71,7 +71,7 @@ int main(int argc, char **argv)
 	HostBuffer<int> hcellsStart(cells.totcells+1);
 	HostBuffer<uint8_t> hcellsSize(cells.totcells+1);
 
-	hcellsStart.copy(cells.cellsStart, 0);
+	hcellsStart.copy(cells.cellsStartSize, 0);
 	hcellsSize. copy(cells.cellsSize, 0);
 
 	HostBuffer<int> cellscount(cells.totcells+1);

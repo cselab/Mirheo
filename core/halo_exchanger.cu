@@ -61,7 +61,7 @@ __device__ inline bool isValidCell(int& cid, int& cx, int& cy, int& cz, int gid,
 	return valid;
 }
 
-__global__ void getHalos(const float4* __restrict__ coosvels, const CellListInfo cinfo, const uint* __restrict__ cellsStart,
+__global__ void getHalos(const float4* __restrict__ coosvels, const CellListInfo cinfo, const uint* __restrict__ cellsStartSize,
 		const int64_t dests[27], int counts[27])
 {
 	const int gid = blockIdx.x*blockDim.x + threadIdx.x;
@@ -73,7 +73,7 @@ __global__ void getHalos(const float4* __restrict__ coosvels, const CellListInfo
 
 	if (__all(!valid) && tid > 27) return;
 
-	int2 start_size = valid ? cinfo.decodeStartSize(cellsStart[cid]) : make_int2(0, 0);
+	int2 start_size = valid ? cinfo.decodeStartSize(cellsStartSize[cid]) : make_int2(0, 0);
 
 	// Use shared memory to decrease number of global atomics
 	// We're sending to max 7 halos (corner)
@@ -459,7 +459,7 @@ void HaloExchanger::_prepareHalos(ParticleVector* pv, CellList* cl, HaloHelper* 
 	const int nthreads = 32;
 	if (pv->np > 0)
 		getHalos<<< dim3((maxdim*maxdim + nthreads - 1) / nthreads, 6, 1),  dim3(nthreads, 1, 1), 0, defStream >>>
-				((float4*)pv->coosvels.devPtr(), cl->cellInfo(), cl->cellsStart.devPtr(), (int64_t*)helper->sendAddrs.devPtr(), helper->counts.devPtr());
+				((float4*)pv->coosvels.devPtr(), cl->cellInfo(), cl->cellsStartSize.devPtr(), (int64_t*)helper->sendAddrs.devPtr(), helper->counts.devPtr());
 }
 
 

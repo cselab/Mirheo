@@ -16,7 +16,7 @@
 
 Logger logger;
 
-void makeCells(Particle*& __restrict__ coos, Particle*& __restrict__ buffer, int* __restrict__ cellsStart, int* __restrict__ cellsSize,
+void makeCells(Particle*& __restrict__ coos, Particle*& __restrict__ buffer, int* __restrict__ cellsStartSize, int* __restrict__ cellsSize,
 		int np, CellListInfo cinfo)
 {
 	for (int i=0; i<cinfo.totcells+1; i++)
@@ -25,19 +25,19 @@ void makeCells(Particle*& __restrict__ coos, Particle*& __restrict__ buffer, int
 	for (int i=0; i<np; i++)
 		cellsSize[cinfo.getCellId(float3{coos[i].x[0], coos[i].x[1], coos[i].x[2]})]++;
 
-	cellsStart[0] = 0;
+	cellsStartSize[0] = 0;
 	for (int i=1; i<=cinfo.totcells; i++)
-		cellsStart[i] = cellsSize[i-1] + cellsStart[i-1];
+		cellsStartSize[i] = cellsSize[i-1] + cellsStartSize[i-1];
 
 	for (int i=0; i<np; i++)
 	{
 		const int cid = cinfo.getCellId(float3{coos[i].x[0], coos[i].x[1], coos[i].x[2]});
-		buffer[cellsStart[cid]] = coos[i];
-		cellsStart[cid]++;
+		buffer[cellsStartSize[cid]] = coos[i];
+		cellsStartSize[cid]++;
 	}
 
 	for (int i=0; i<cinfo.totcells; i++)
-		cellsStart[i] -= cellsSize[i];
+		cellsStartSize[i] -= cellsSize[i];
 
 	std::swap(coos, buffer);
 }
@@ -80,7 +80,7 @@ T minabs(T arg, Args... other)
 }
 
 
-void forces(const Particle* __restrict__ coos, Force* __restrict__ accs, const int* __restrict__ cellsStart, const int* __restrict__ cellsSize,
+void forces(const Particle* __restrict__ coos, Force* __restrict__ accs, const int* __restrict__ cellsStartSize, const int* __restrict__ cellsSize,
 		CellListInfo cinfo)
 {
 
@@ -138,7 +138,7 @@ void forces(const Particle* __restrict__ coos, Force* __restrict__ accs, const i
 			{
 				const int cid = cinfo.encode(cx, cy, cz);
 
-				for (int dstId = cellsStart[cid]; dstId < cellsStart[cid] + cellsSize[cid]; dstId++)
+				for (int dstId = cellsStartSize[cid]; dstId < cellsStartSize[cid] + cellsSize[cid]; dstId++)
 				{
 					Force f {0,0,0,0};
 
@@ -154,7 +154,7 @@ void forces(const Particle* __restrict__ coos, Force* __restrict__ accs, const i
 								const int srcCid = cinfo.encode(ncx, ncy, ncz);
 								if (srcCid >= cinfo.totcells || srcCid < 0) continue;
 
-								for (int srcId = cellsStart[srcCid]; srcId < cellsStart[srcCid] + cellsSize[srcCid]; srcId++)
+								for (int srcId = cellsStartSize[srcCid]; srcId < cellsStartSize[srcCid] + cellsSize[srcCid]; srcId++)
 								{
 									if (dstId != srcId)
 										addForce(dstId, srcId, f);
@@ -475,7 +475,7 @@ int main(int argc, char ** argv)
 //
 //	HostBuffer<Particle> buffer(np);
 //	HostBuffer<Force> accs(np);
-//	HostBuffer<int>   cellsStart(totcells+1), cellsSize(totcells+1);
+//	HostBuffer<int>   cellsStartSize(totcells+1), cellsSize(totcells+1);
 //
 //	printf("CPU execution\n");
 //
@@ -483,8 +483,8 @@ int main(int argc, char ** argv)
 //	{
 //		printf("%d...", i);
 //		fflush(stdout);
-//		makeCells(particles.hostPtr(), buffer.hostPtr(), cellsStart.hostPtr(), cellsSize.hostPtr(), np, ncells, totcells, domainStart, 1.0f);
-//		forces(particles.hostPtr(), accs.hostPtr(), cellsStart.hostPtr(), cellsSize.hostPtr(), ncells, totcells, domainStart, length);
+//		makeCells(particles.hostPtr(), buffer.hostPtr(), cellsStartSize.hostPtr(), cellsSize.hostPtr(), np, ncells, totcells, domainStart, 1.0f);
+//		forces(particles.hostPtr(), accs.hostPtr(), cellsStartSize.hostPtr(), cellsSize.hostPtr(), ncells, totcells, domainStart, length);
 //		integrate(particles.hostPtr(), accs.hostPtr(), np, dt, domainStart, length);
 //	}
 //

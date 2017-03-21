@@ -121,21 +121,22 @@ void Simulation::setInteraction(std::string pv1Name, std::string pv2Name, std::s
 	auto interaction = interactionMap[interactionName];
 	float rc = interaction->rc;
 
+	// TODO: reorder?
 	CellList *cl1, *cl2;
 	cellListMaps.resize( std::max({pv1Id+1, pv2Id+1, (int)cellListMaps.size()}) );
 	if (cellListMaps[pv1Id].find(rc) != cellListMaps[pv1Id].end())
 		cl1 = cellListMaps[pv1Id][rc];
 	else
-		cellListMaps[pv1Id][rc] = cl1 = new CellList(particleVectors[pv1Id], rc, subDomainSize);
+		cellListMaps[pv1Id][rc] = cl1 = new CellList(particleVectors[pv1Id], rc, subDomainSize, CellList::Type::OrderOnly);
 
 	if (cellListMaps[pv2Id].find(rc) != cellListMaps[pv2Id].end())
 		cl2 = cellListMaps[pv2Id][rc];
 	else
-		cellListMaps[pv2Id][rc] = cl2 = new CellList(particleVectors[pv2Id], rc, subDomainSize);
+		cellListMaps[pv2Id][rc] = cl2 = new CellList(particleVectors[pv2Id], rc, subDomainSize, CellList::Type::OrderOnly);
 
 	auto frc = [=] (InteractionType type, float t, cudaStream_t stream) {
-		cl1->build(stream, true);
-		cl2->build(stream, true);
+		cl1->build();
+		cl2->build();
 		interaction->exec(type, pv1, pv2, cl1, cl2, t, stream);
 	};
 
@@ -219,7 +220,7 @@ void Simulation::run(int nsteps)
 		debug("Building halo cell-lists");
 		for (auto clMap : cellListMaps)
 			if (clMap.size() > 0)
-				clMap.begin()->second->build(defStream);
+				clMap.begin()->second->build();
 
 		//===================================================================================================
 
@@ -295,7 +296,7 @@ void Simulation::run(int nsteps)
 		debug("Redistributing particles, cell-lists may need to be updated");
 		for (auto clMap : cellListMaps)
 			if (clMap.size() > 0)
-				clMap.begin()->second->build(defStream);
+				clMap.begin()->second->build();
 
 		CUDA_Check( cudaStreamSynchronize(defStream) );
 

@@ -21,7 +21,7 @@ inline Particle addShift(Particle p, float3 sh)
 }
 
 
-void makeCells(const Particle* __restrict__ coos, Particle* __restrict__ buffer, int* __restrict__ cellsStart, int* __restrict__ cellsSize,
+void makeCells(const Particle* __restrict__ coos, Particle* __restrict__ buffer, int* __restrict__ cellsStartSize, int* __restrict__ cellsSize,
 		int np, CellListInfo cinfo)
 {
 	for (int i=0; i<cinfo.totcells+1; i++)
@@ -30,19 +30,19 @@ void makeCells(const Particle* __restrict__ coos, Particle* __restrict__ buffer,
 	for (int i=0; i<np; i++)
 		cellsSize[ cinfo.getCellId(coos[i].r) ]++;
 
-	cellsStart[0] = 0;
+	cellsStartSize[0] = 0;
 	for (int i=1; i<=cinfo.totcells; i++)
-		cellsStart[i] = cellsSize[i-1] + cellsStart[i-1];
+		cellsStartSize[i] = cellsSize[i-1] + cellsStartSize[i-1];
 
 	for (int i=0; i<np; i++)
 	{
 		const int cid = cinfo.getCellId(coos[i].r);
-		buffer[cellsStart[cid]] = coos[i];
-		cellsStart[cid]++;
+		buffer[cellsStartSize[cid]] = coos[i];
+		cellsStartSize[cid]++;
 	}
 
 	for (int i=0; i<cinfo.totcells; i++)
-		cellsStart[i] -= cellsSize[i];
+		cellsStartSize[i] -= cellsSize[i];
 }
 
 int main(int argc, char ** argv)
@@ -131,9 +131,9 @@ int main(int argc, char ** argv)
 	// =================================================================================================================
 
 //	std::vector<Particle> tmp(objs.np);
-//	std::vector<int> cellsStart(cells.totcells+1), cellsSize(cells.totcells);
+//	std::vector<int> cellsStartSize(cells.totcells+1), cellsSize(cells.totcells);
 //
-//	makeCells(objs.coosvels.hostPtr(), tmp.data(), cellsStart.data(), cellsSize.data(), objs.np, cells.cellInfo());
+//	makeCells(objs.coosvels.hostPtr(), tmp.data(), cellsStartSize.data(), cellsSize.data(), objs.np, cells.cellInfo());
 //
 //	for (int i=0; i<cells.totcells; i++)
 //	{

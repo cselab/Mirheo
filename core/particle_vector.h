@@ -19,9 +19,9 @@ struct ParticleVector
 	float3 domainLength;
 
 	PinnedBuffer<Particle> halo;
-	CellList* activeCL;
+	int changedStamp;
 
-	ParticleVector(std::string name, int n=0) : name(name), activeCL(nullptr)
+	ParticleVector(std::string name, int n=0) : name(name), changedStamp(0)
 	{
 		resize(n);
 	}

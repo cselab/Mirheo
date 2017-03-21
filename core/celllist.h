@@ -78,12 +78,22 @@ public:
 
 class CellList : public CellListInfo
 {
+private:
+	DeviceBuffer<uint8_t> cellsSize;
+	cudaStream_t stream;
+	int changedStamp = -1;
+
+	PinnedBuffer<Particle> _coosvels;
+	PinnedBuffer<Force>    _forces;
+
 public:
 	ParticleVector* pv;
 
-	DeviceBuffer<uint> cellsStart;
-	DeviceBuffer<uint8_t> cellsSize;
+	DeviceBuffer<uint> cellsStartSize;
 	DeviceBuffer<int> order;
+
+	PinnedBuffer<Particle> *coosvels;
+	PinnedBuffer<Force>    *forces;
 
 	CellList(ParticleVector* pv, float rc, float3 domainSize);
 	CellList(ParticleVector* pv, int3 resolution, float3 domainSize);
@@ -92,10 +102,21 @@ public:
 	{
 		return *((CellListInfo*)this);
 	}
+
 	void setStream(cudaStream_t stream)
 	{
+		this->stream = stream;
+
+		cellsSize.popStream();
 		cellsSize.pushStream(stream);
-		cellsStart.pushStream(stream);
+
+		cellsStartSize.popStream();
+		cellsStartSize.pushStream(stream);
+
+		order.popStream();
+		order.pushStream(stream);
 	}
-	void build(cudaStream_t stream, bool rearrangeForces = false);
+
+	void build(bool primary = false);
+	void addForces();
 };

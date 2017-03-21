@@ -238,7 +238,7 @@ __global__ void getBoundaryCells(CellListInfo cinfo, Wall::SdfInfo sdfInfo,
 }
 
 __launch_bounds__(128, 8)
-__global__ void bounceKernel(const int* wallCells, const int nWallCells, const uint* __restrict__ cellsStart, CellListInfo cinfo,
+__global__ void bounceKernel(const int* wallCells, const int nWallCells, const uint* __restrict__ cellsStartSize, CellListInfo cinfo,
 		Wall::SdfInfo sdfInfo, float4* coosvels, const float dt)
 {
 	const int maxNIters = 20;
@@ -248,7 +248,7 @@ __global__ void bounceKernel(const int* wallCells, const int nWallCells, const u
 	if (tid >= nWallCells) return;
 	const int cid = wallCells[tid];
 
-	const int2 startSize = cinfo.decodeStartSize(cellsStart[cid]);
+	const int2 startSize = cinfo.decodeStartSize(cellsStartSize[cid]);
 
 	for (int pid = startSize.x; pid < startSize.x + startSize.y; pid++)
 	{
@@ -599,7 +599,7 @@ void Wall::freezeParticles(ParticleVector* pv)
 	CUDA_Check( cudaStreamSynchronize(0) );
 	containerSwap(pv->coosvels, pv->pingPongCoosvels);
 	pv->resize(nRemaining.hostPtr()[0]);
-	pv->activeCL = nullptr;
+	pv->changedStamp++;
 	info("Keeping %d pv", nRemaining.hostPtr()[0]);
 
 	CUDA_Check( cudaDeviceSynchronize() );
@@ -614,7 +614,7 @@ void Wall::bounce(float dt, cudaStream_t stream)
 
 		debug2("Bouncing %d %s particles", pv->size(), pv->name.c_str());
 		bounceKernel<<< (boundaryCells[i].size() + 63) / 64, 64, 0, stream >>>(
-				boundaryCells[i].devPtr(), boundaryCells[i].size(), cl->cellsStart.devPtr(), cl->cellInfo(),
+				boundaryCells[i].devPtr(), boundaryCells[i].size(), cl->cellsStartSize.devPtr(), cl->cellInfo(),
 				sdfInfo, (float4*)pv->coosvels.devPtr(), dt);
 	}
 }

@@ -5,14 +5,14 @@
 #include <core/non_cached_rw.h>
 #include <core/helper_math.h>
 
-__global__ void blendStartSize(const uchar4* cellsSize, uint4* cellsStart, const CellListInfo cinfo)
+__global__ void blendStartSize(const uchar4* cellsSize, uint4* cellsStartSize, const CellListInfo cinfo)
 {
 	const int gid = blockIdx.x * blockDim.x + threadIdx.x;
 	if (4*gid >= cinfo.totcells) return;
 
 	uchar4 sizes  = cellsSize [gid];
 
-	cellsStart[gid] += make_uint4(sizes.x << cinfo.blendingPower, sizes.y << cinfo.blendingPower,
+	cellsStartSize[gid] += make_uint4(sizes.x << cinfo.blendingPower, sizes.y << cinfo.blendingPower,
 								  sizes.z << cinfo.blendingPower, sizes.w << cinfo.blendingPower);
 }
 
@@ -46,10 +46,8 @@ __global__ void computeCellSizes(const float4* coosvels, const int n,
 	}
 }
 
-__global__ void rearrangeParticles(const CellListInfo cinfo, uint* cellsSize, const uint* cellsStart,
-		const int n, const float4* in_coosvels, float4* out_coosvels,
-		bool rearrangeForces, const float4* in_forces, float4* out_forces,
-		bool needOrder, int* order)
+__global__ void reorderParticles(const CellListInfo cinfo, uint* cellsSize, const uint* cellsStartSize,
+		const int n, const float4* in_coosvels, float4* out_coosvels, int* order)
 {
 	const int gid = blockIdx.x * blockDim.x + threadIdx.x;
 	const int pid = gid / 2;
@@ -80,7 +78,7 @@ __global__ void rearrangeParticles(const CellListInfo cinfo, uint* cellsSize, co
 			const uint rawOffset = atomicSub(cellsSize + addr, increment);
 			const int offset = ((rawOffset >> (slot*8)) & 255) - 1;
 
-			int2 start_size = cinfo.decodeStartSize(cellsStart[cid]);
+			int2 start_size = cinfo.decodeStartSize(cellsStartSize[cid]);
 			dstId = start_size.x + offset;  // mask blended Start
 		}
 		else
@@ -93,26 +91,20 @@ __global__ void rearrangeParticles(const CellListInfo cinfo, uint* cellsSize, co
 	if (sh == 1)
 		dstId = otherDst;
 
-	if (dstId >= 0) writeNoCache(out_coosvels + 2*dstId+sh, val);
-
-	if (rearrangeForces && sh == 0)
+	if (dstId >= 0)
 	{
-		float4 frc = readNoCache(in_forces + pid);
-		writeNoCache(out_forces + dstId, frc);
+		writeNoCache(out_coosvels + 2*dstId+sh, val);
+		if (sh == 0) order[pid] = dstId;
 	}
-
-	if (needOrder && sh == 0)
-		order[pid] = dstId;
 }
 
-__global__ void reindex(int* index, const int* __restrict__ newOrder, int n)
+__global__ void addForcesKernel(const int n, const float4* in_forces, float4* out_forces, int* order)
 {
-	const int gid = blockIdx.x * blockDim.x + threadIdx.x;
-	if (gid >= n) return;
+	const int pid = blockIdx.x * blockDim.x + threadIdx.x;
+	if (pid >= n) return;
 
-	index[gid] = newOrder[index[gid]];
+	out_forces[pid] += in_forces[order[pid]];
 }
-
 
 CellListInfo::CellListInfo(float rc, float3 domainSize) :
 		rc(rc), h(make_float3(rc)), domainSize(domainSize)
@@ -135,26 +127,26 @@ CellListInfo::CellListInfo(float3 h, float3 domainSize) :
 
 
 CellList::CellList(ParticleVector* pv, float rc, float3 domainSize) :
-		CellListInfo(rc, domainSize), pv(pv)
+		CellListInfo(rc, domainSize), pv(pv), stream(0)
 {
-	cellsStart.resize(totcells + 1);
+	cellsStartSize.resize(totcells + 1);
 	cellsSize .resize(totcells + 1);
 
 	debug("Initialized %s cell-list with %dx%dx%d cells and cut-off %f", pv->name.c_str(), ncells.x, ncells.y, ncells.z, this->rc);
 }
 
 CellList::CellList(ParticleVector* pv, int3 resolution, float3 domainSize) :
-		CellListInfo(domainSize / make_float3(resolution), domainSize), pv(pv)
+		CellListInfo(domainSize / make_float3(resolution), domainSize), pv(pv), stream(0)
 {
-	cellsStart.resize(totcells + 1);
+	cellsStartSize.resize(totcells + 1);
 	cellsSize .resize(totcells + 1);
 
 	debug("Initialized %s cell-list with %dx%dx%d cells and cut-off %f", pv->name.c_str(), ncells.x, ncells.y, ncells.z, this->rc);
 }
 
-void CellList::build(cudaStream_t stream, bool rearrangeForces)
+void CellList::build(bool primary = false)
 {
-	if (pv->activeCL == this)
+	if (pv->changedStamp == changedStamp)
 	{
 		debug2("Cell-list for %s is already up-to-date, building skipped", pv->name.c_str());
 		return;
@@ -174,60 +166,61 @@ void CellList::build(cudaStream_t stream, bool rearrangeForces)
 
 	// Containers setup
 	pv->pushStreamWOhalo(stream);
-	order.pushStream(stream);
 
 	// Compute cell sizes
 	debug2("Computing cell sizes for %d %s particles", pv->np, pv->name.c_str());
-	CUDA_Check( cudaMemsetAsync(cellsSize.devPtr(), 0, (totcells + 1)*sizeof(uint8_t), stream) );  // +1 to have correct cellsStart[totcells]
-
-	auto cinfo = cellInfo();
+	CUDA_Check( cudaMemsetAsync(cellsSize.devPtr(), 0, (totcells + 1)*sizeof(uint8_t), stream) );  // +1 to have correct cellsStartSize[totcells]
 
 	computeCellSizes<<< (pv->np+127)/128, 128, 0, stream >>> (
-						(float4*)pv->coosvels.devPtr(), pv->np, cinfo, (uint*)cellsSize.devPtr());
+						(float4*)pv->coosvels.devPtr(), pv->np, cellInfo(), (uint*)cellsSize.devPtr());
 
 	// Scan to get cell starts
-	scan(cellsSize.devPtr(), totcells+1, (int*)cellsStart.devPtr(), stream);
+	scan(cellsSize.devPtr(), totcells+1, (int*)cellsStartSize.devPtr(), stream);
 
 	// Blend size and start together
-	blendStartSize<<< ((totcells+3)/4 + 127) / 128, 128, 0, stream >>>((uchar4*)cellsSize.devPtr(), (uint4*)cellsStart.devPtr(), cinfo);
+	blendStartSize<<< ((totcells+3)/4 + 127) / 128, 128, 0, stream >>>((uchar4*)cellsSize.devPtr(), (uint4*)cellsStartSize.devPtr(), cellInfo());
 
-	// Rearrange the data
-	debug2("Rearranging %d %s particles", pv->np, pv->name.c_str());
-
-	// If dealing with object vectors, we need to output permutation indices as well
-	ObjectVector* ov = dynamic_cast<ObjectVector*>(pv);
-	bool isObjectVector = (ov != nullptr);
+	// Reorder the data
+	debug2("Reordering %d %s particles", pv->np, pv->name.c_str());
 	order.resize(pv->np);
+	_coosvels.resize(pv->np);
+	_forces.resize(pv->np);
 
-	rearrangeParticles<<< (2*pv->np+127)/128, 128, 0, stream >>> (
-			cinfo, (uint*)cellsSize.devPtr(), cellsStart.devPtr(),
-			pv->np,
-			(float4*)pv->coosvels.devPtr(), (float4*)pv->pingPongCoosvels.devPtr(),
-			rearrangeForces,
-			(float4*)pv->forces  .devPtr(), (float4*)pv->pingPongForces  .devPtr(),
-			isObjectVector, order.devPtr());
+	reorderParticles<<< (2*pv->np+127)/128, 128, 0, stream >>> (
+			cellInfo(), (uint*)cellsSize.devPtr(), cellsStartSize.devPtr(),
+			pv->np, (float4*)pv->coosvels.devPtr(), (float4*)_coosvels.devPtr(), order.devPtr());
 
+	if (primary)
+	{
+		// Now we need the new size of particles array.
+		int newSize;
+		CUDA_Check( cudaMemcpyAsync(&newSize, cellsStartSize.devPtr() + totcells, sizeof(int), cudaMemcpyDeviceToHost, stream) );
+		CUDA_Check( cudaStreamSynchronize(stream) );
+		newSize = newSize & ((1<<blendingPower) - 1);
+		debug2("Reordering completed, new size of %s particle vector is %d", pv->name.c_str(), newSize);
 
-	// Now we need the new size of particles array.
-	int newSize;
-	CUDA_Check( cudaMemcpyAsync(&newSize, cellsStart.devPtr() + totcells, sizeof(int), cudaMemcpyDeviceToHost, stream) );
-	CUDA_Check( cudaStreamSynchronize(stream) );
-	newSize = newSize & ((1<<blendingPower) - 1);
-	debug2("Rearranging completed, new size of %s particle vector is %d", pv->name.c_str(), newSize);
+		pv->resize(newSize, resizePreserve);
+		_coosvels.resize(newSize, resizePreserve);
+		CUDA_Check( cudaStreamSynchronize(stream) );
 
-	pv->resize(newSize, resizePreserve);
-	CUDA_Check( cudaStreamSynchronize(stream) );
-	containerSwap(pv->coosvels, pv->pingPongCoosvels);
-	if (rearrangeForces)
-		containerSwap(pv->forces, pv->pingPongForces);
-
-	// For object vector we need to change particle ids
-	if (isObjectVector)
-		reindex<<< (pv->np+127)/128, 128, 0, stream >>> (ov->particles2objIds.devPtr(), order.devPtr(), pv->np);
+		containerSwap(pv->coosvels, _coosvels);
+		coosvels = &pv->coosvels;
+		forces   = &pv->forces;
+	}
+	else
+	{
+		coosvels = &_coosvels;
+		forces   = &_forces;
+	}
 
 	// Containers setup
-	order.popStream();
 	pv->popStreamWOhalo();
 
-	pv->activeCL = this;
+	changedStamp = pv->changedStamp;
+}
+
+void CellList::addForces()
+{
+	if (forces != &pv->forces)
+		addForcesKernel<<< (pv->np+127)/128, 128, 0, stream >>> (pv->np, (float4*)forces->devPtr(), (float4*)pv->forces.devPtr(), order.devPtr());
 }

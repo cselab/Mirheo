@@ -100,10 +100,7 @@ public:
 
 	void popStream()
 	{
-		streams.pop();
-
-		if (streams.size() == 0)
-			die("Error in stream manipulation");
+		if (streams.size() > 1) streams.pop();
 		stream = streams.top();
 	}
 
@@ -195,10 +192,7 @@ public:
 
 	void popStream()
 	{
-		streams.pop();
-
-		if (streams.size() == 0)
-			die("Error in stream manipulation");
+		if (streams.size() > 1) streams.pop();
 		stream = streams.top();
 	}
 

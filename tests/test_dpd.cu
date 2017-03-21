@@ -1,3 +1,4 @@
+#define private public
 
 #include <core/particle_vector.h>
 #include <core/celllist.h>
@@ -32,7 +33,7 @@ int main(int argc, char ** argv)
 	float3 domainStart = -length / 2.0f;
 	const float rc = 1.0f;
 	ParticleVector dpds("dpd");
-	CellList cells(&dpds, rc, domainStart, length);
+	CellList cells(&dpds, rc, length, CellList::Type::Reorder);
 
 	InitialConditions ic = createIC(config.child("node"));
 	ic.exec(MPI_COMM_WORLD, &dpds, {0,0,0}, length);
@@ -43,7 +44,8 @@ int main(int argc, char ** argv)
 	for (int i=0; i<np; i++)
 		initPtr[i] = dpds.coosvels[i];
 
-	cells.build(0);
+	cells.setStream(0);
+	cells.build();
 
 	const float dt = 0.0025;
 	const float kBT = 1.0;
@@ -53,10 +55,10 @@ int main(int argc, char ** argv)
 	const float adpd = 50;
 
 	auto inter = [=] (ParticleVector* pv, CellList* cl, const float t, cudaStream_t stream) {
-		interactionDPDSelf(pv, cl, t, stream, adpd, gammadpd, sigma_dt, rc);
+		interactionDPD(InteractionType::Regular, pv, pv, cl, t, stream, adpd, gammadpd, sigma_dt, rc);
 	};
 
-	for (int i=0; i<100; i++)
+	for (int i=0; i<1; i++)
 	{
 		dpds.forces.clear();
 		inter(&dpds, &cells, 0, 0);
@@ -64,17 +66,14 @@ int main(int argc, char ** argv)
 		cudaDeviceSynchronize();
 	}
 
-	dpds.coosvels.downloadFromDevice(false);
-	dpds.forces.downloadFromDevice(true);
-
-
+	dpds.coosvels.downloadFromDevice();
 
 	HostBuffer<Force> hacc;
-	HostBuffer<int> hcellsstart;
+	HostBuffer<uint> hcellsstart;
 	HostBuffer<uint8_t> hcellssize;
-	hcellsstart.copy(cells.cellsStart, 0);
+	hcellsstart.copy(cells.cellsStartSize, 0);
 	hcellssize.copy(cells.cellsSize, 0);
-	hacc.copy(dpds.forces);
+	hacc.copy(dpds.forces, 0);
 
 	cudaDeviceSynchronize();
 
@@ -94,9 +93,9 @@ int main(int argc, char ** argv)
 
 	auto addForce = [&](int dstId, int srcId, Force& a)
 	{
-		const float _xr = dpds.coosvels[dstId].x[0] - dpds.coosvels[srcId].x[0];
-		const float _yr = dpds.coosvels[dstId].x[1] - dpds.coosvels[srcId].x[1];
-		const float _zr = dpds.coosvels[dstId].x[2] - dpds.coosvels[srcId].x[2];
+		const float _xr = dpds.coosvels[dstId].r.x - dpds.coosvels[srcId].r.x;
+		const float _yr = dpds.coosvels[dstId].r.y - dpds.coosvels[srcId].r.y;
+		const float _zr = dpds.coosvels[dstId].r.z - dpds.coosvels[srcId].r.z;
 
 		const float rij2 = _xr * _xr + _yr * _yr + _zr * _zr;
 
@@ -113,9 +112,9 @@ int main(int argc, char ** argv)
 		const float zr = _zr * invrij;
 
 		const float rdotv =
-				xr * (dpds.coosvels[dstId].u[0] - dpds.coosvels[srcId].u[0]) +
-				yr * (dpds.coosvels[dstId].u[1] - dpds.coosvels[srcId].u[1]) +
-				zr * (dpds.coosvels[dstId].u[2] - dpds.coosvels[srcId].u[2]);
+				xr * (dpds.coosvels[dstId].u.x - dpds.coosvels[srcId].u.x) +
+				yr * (dpds.coosvels[dstId].u.y - dpds.coosvels[srcId].u.y) +
+				zr * (dpds.coosvels[dstId].u.z - dpds.coosvels[srcId].u.z);
 
 		const float myrandnr = 0;//Logistic::mean0var1(1, min(srcId, dstId), max(srcId, dstId));
 

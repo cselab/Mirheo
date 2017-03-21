@@ -8,7 +8,7 @@
 #include <algorithm>
 
 __global__ void getExitingParticles(float4* xyzouvwo,
-		CellListInfo cinfo, const uint* __restrict__ cellsStart,
+		CellListInfo cinfo, const uint* __restrict__ cellsStartSize,
 		float4* __restrict__ dests[27], int counts[27])
 {
 	const int gid = blockIdx.x*blockDim.x + threadIdx.x;
@@ -71,7 +71,7 @@ __global__ void getExitingParticles(float4* xyzouvwo,
 	//
 	// Now for each cell we check its every particle if it needs to move
 
-	int2 start_size = valid ? cinfo.decodeStartSize(cellsStart[cid]) : make_int2(0, 0);
+	int2 start_size = valid ? cinfo.decodeStartSize(cellsStartSize[cid]) : make_int2(0, 0);
 
 #pragma unroll 2
 	for (int i = 0; i < start_size.y; i++)
@@ -226,7 +226,7 @@ void Redistributor::_initialize(int n)
 	const int nthreads = 32;
 	if (pv->np > 0)
 		getExitingParticles<<< dim3((maxdim*maxdim + nthreads - 1) / nthreads, 6, 1),  dim3(nthreads, 1, 1), 0, helper->stream >>>
-					( (float4*)pv->coosvels.devPtr(), cl->cellInfo(), cl->cellsStart.devPtr(), helper->sendAddrs.devPtr(), helper->counts.devPtr() );
+					( (float4*)pv->coosvels.devPtr(), cl->cellInfo(), cl->cellsStartSize.devPtr(), helper->sendAddrs.devPtr(), helper->counts.devPtr() );
 
 	helper->counts.downloadFromDevice(false);
 }
@@ -304,7 +304,7 @@ void Redistributor::receive(int n)
 	}
 
 	// Reset the cell-list as we've brought in some new particles
-	pv->activeCL = nullptr;
+	pv->changedStamp++;
 	CUDA_Check( cudaStreamSynchronize(helper->stream) );
 }
 
