@@ -52,7 +52,7 @@ private:
 	{
 		bool operator() (const float& a, const float& b)
 		{
-			const float eps = 1e-6;
+			const float eps = 1e-5;
 			if (fabs(a - b) < eps) return false;
 			return a < b;
 		}

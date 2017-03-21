@@ -84,7 +84,7 @@ private:
 	int changedStamp = -1;
 
 	PinnedBuffer<Particle> _coosvels;
-	PinnedBuffer<Force>    _forces;
+	DeviceBuffer<Force>    _forces;
 
 public:
 	ParticleVector* pv;
@@ -93,7 +93,7 @@ public:
 	DeviceBuffer<int> order;
 
 	PinnedBuffer<Particle> *coosvels;
-	PinnedBuffer<Force>    *forces;
+	DeviceBuffer<Force>    *forces;
 
 	CellList(ParticleVector* pv, float rc, float3 domainSize);
 	CellList(ParticleVector* pv, int3 resolution, float3 domainSize);

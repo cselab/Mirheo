@@ -127,16 +127,14 @@ void Simulation::setInteraction(std::string pv1Name, std::string pv2Name, std::s
 	if (cellListMaps[pv1Id].find(rc) != cellListMaps[pv1Id].end())
 		cl1 = cellListMaps[pv1Id][rc];
 	else
-		cellListMaps[pv1Id][rc] = cl1 = new CellList(particleVectors[pv1Id], rc, subDomainSize, CellList::Type::OrderOnly);
+		cellListMaps[pv1Id][rc] = cl1 = new CellList(particleVectors[pv1Id], rc, subDomainSize);
 
 	if (cellListMaps[pv2Id].find(rc) != cellListMaps[pv2Id].end())
 		cl2 = cellListMaps[pv2Id][rc];
 	else
-		cellListMaps[pv2Id][rc] = cl2 = new CellList(particleVectors[pv2Id], rc, subDomainSize, CellList::Type::OrderOnly);
+		cellListMaps[pv2Id][rc] = cl2 = new CellList(particleVectors[pv2Id], rc, subDomainSize);
 
 	auto frc = [=] (InteractionType type, float t, cudaStream_t stream) {
-		cl1->build();
-		cl2->build();
 		interaction->exec(type, pv1, pv2, cl1, cl2, t, stream);
 	};
 
@@ -217,10 +215,17 @@ void Simulation::run(int nsteps)
 					currentStep, currentTime);
 		//===================================================================================================
 
-		debug("Building halo cell-lists");
+		debug("Building primary cell-lists");
 		for (auto clMap : cellListMaps)
 			if (clMap.size() > 0)
-				clMap.begin()->second->build();
+				clMap.begin()->second->build(true);
+
+
+		// Primary lists won't be affected
+		debug("Building all the cell-lists");
+		for (auto clMap : cellListMaps)
+			for (auto rc_cl : clMap)
+				rc_cl.second->build();
 
 		//===================================================================================================
 
@@ -265,6 +270,13 @@ void Simulation::run(int nsteps)
 
 		//===================================================================================================
 
+		debug("Collecting forces from cell-lists");
+		for (auto clMap : cellListMaps)
+			for (auto rc_cl : clMap)
+				rc_cl.second->addForces();
+
+		//===================================================================================================
+
 		debug("Plugins: before integration");
 		for (auto& pl : plugins)
 			pl->beforeIntegration();
@@ -277,7 +289,6 @@ void Simulation::run(int nsteps)
 				integrators[i]->exec(particleVectors[i], defStream);
 
 		//===================================================================================================
-
 
 		// TODO: correct dt should be attached to the wall
 		debug("Bounce from the walls");
@@ -300,7 +311,6 @@ void Simulation::run(int nsteps)
 
 		CUDA_Check( cudaStreamSynchronize(defStream) );
 
-		//int n = particleVectors[0]->size();
 		redistributor->redistribute();
 
 		//===================================================================================================

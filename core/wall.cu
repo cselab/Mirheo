@@ -589,15 +589,17 @@ void Wall::freezeParticles(ParticleVector* pv)
 
 	nFrozen.   clear();
 	nRemaining.clear();
+
+	PinnedBuffer<Particle> tmp(pv->np);
 	collectFrozen<<< (pv->np + 127) / 128, 128 >>>( (float4*)pv->coosvels.devPtr(), pv->np, sdfInfo,
-			(float4*)pv->pingPongCoosvels.devPtr(), (float4*)frozen->coosvels.devPtr(),
+			(float4*)tmp.devPtr(), (float4*)frozen->coosvels.devPtr(),
 			nRemaining.devPtr(), nFrozen.devPtr());
 	nRemaining.downloadFromDevice();
 	nFrozen.   downloadFromDevice();
 
 
 	CUDA_Check( cudaStreamSynchronize(0) );
-	containerSwap(pv->coosvels, pv->pingPongCoosvels);
+	containerSwap(pv->coosvels, tmp);
 	pv->resize(nRemaining.hostPtr()[0]);
 	pv->changedStamp++;
 	info("Keeping %d pv", nRemaining.hostPtr()[0]);

@@ -1,7 +1,7 @@
 #pragma once
 
 #include <string>
-#include "datatypes.h"
+#include <core/datatypes.h>
 
 class CellList;
 
@@ -11,7 +11,7 @@ struct ParticleVector
 	float mass;
 	std::string name;
 
-	PinnedBuffer<Particle> coosvels, pingPongCoosvels;
+	PinnedBuffer<Particle> coosvels;//, pingPongCoosvels;
 	//PinnedBuffer<Force> forces, pingPongForces;
 	DeviceBuffer<Force> forces, pingPongForces;
 
@@ -34,7 +34,7 @@ struct ParticleVector
 	virtual void pushStreamWOhalo(cudaStream_t stream)
 	{
 		coosvels.pushStream(stream);
-		pingPongCoosvels.pushStream(stream);
+		//pingPongCoosvels.pushStream(stream);
 		forces.pushStream(stream);
 		pingPongForces.pushStream(stream);
 	}
@@ -42,7 +42,7 @@ struct ParticleVector
 	virtual void popStreamWOhalo()
 	{
 		coosvels.popStream();
-		pingPongCoosvels.popStream();
+		//pingPongCoosvels.popStream();
 		forces.popStream();
 		pingPongForces.popStream();
 	}
@@ -52,7 +52,7 @@ struct ParticleVector
 		assert(n>=0);
 
 		coosvels.resize(n, kind);
-		pingPongCoosvels.resize(n, kind);
+		//pingPongCoosvels.resize(n, kind);
 		forces.resize(n, kind);
 		pingPongForces.resize(n, kind);
 

@@ -25,11 +25,11 @@ __device__ __forceinline__ void atomicAdd(float* dest, float3 v)
 	atomicAdd(dest + 2, v.z);
 }
 
-template<bool Ordered, typename Interaction>
+template<typename Interaction>
 __launch_bounds__(128, 16)
 __global__ void computeSelfInteractions(
 		const int np, const float4 * __restrict__ coosvels, float* forces,
-		CellListInfo cinfo, const uint* __restrict__ cellsStartSize, const int* __restrict__ order,
+		CellListInfo cinfo, const uint* __restrict__ cellsStartSize,
 		const float rc2, Interaction interaction)
 {
 	const int dstId = blockIdx.x*blockDim.x + threadIdx.x;
@@ -60,9 +60,8 @@ __global__ void computeSelfInteractions(
 
 
 #pragma unroll 2
-				for (int mappedId = start_size.x; mappedId < start_size.x + start_size.y; mappedId ++)
+				for (int srcId = start_size.x; srcId < start_size.x + start_size.y; srcId ++)
 				{
-					const int srcId = Ordered ? mappedId : order[mappedId];
 					const float4 srcCoo = coosvels[2*srcId];
 
 					bool interacting = distance2(srcCoo, dstCoo) < rc2;
@@ -88,13 +87,13 @@ __global__ void computeSelfInteractions(
  * variant == true  better for dense shit,
  * variant == false better for halo and one-sided
  */
-template<bool NeedDstAcc, bool NeedSrcAcc, bool Ordered, bool Variant, typename Interaction>
+template<bool NeedDstAcc, bool NeedSrcAcc, bool Variant, typename Interaction>
 __launch_bounds__(128, 16)
 __global__ void computeExternalInteractions(
 		const int ndst,
 		const float4 * __restrict__ dstData, float* dstFrcs,
 		const float4 * __restrict__ srcData, float* srcFrcs,
-		CellListInfo cinfo,  const uint* __restrict__ cellsStartSize, const int* __restrict__ order,
+		CellListInfo cinfo,  const uint* __restrict__ cellsStartSize,
 		const float rc2, Interaction interaction)
 {
 	static_assert(NeedDstAcc || NeedSrcAcc, "External interactions should return at least some accelerations");
@@ -110,9 +109,8 @@ __global__ void computeExternalInteractions(
 
 	auto computeCell = [&] (int2 start_size) {
 #pragma unroll 2
-				for (int mappedId = start_size.x; mappedId < start_size.x + start_size.y; mappedId ++)
+				for (int srcId = start_size.x; srcId < start_size.x + start_size.y; srcId ++)
 				{
-					const int srcId = Ordered ? mappedId : order[mappedId];
 					const float4 srcCoo = srcData[2*srcId];
 
 					bool interacting = distance2(srcCoo, dstCoo) < rc2;

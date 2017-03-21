@@ -144,7 +144,7 @@ CellList::CellList(ParticleVector* pv, int3 resolution, float3 domainSize) :
 	debug("Initialized %s cell-list with %dx%dx%d cells and cut-off %f", pv->name.c_str(), ncells.x, ncells.y, ncells.z, this->rc);
 }
 
-void CellList::build(bool primary = false)
+void CellList::build(bool primary)
 {
 	if (pv->changedStamp == changedStamp)
 	{
