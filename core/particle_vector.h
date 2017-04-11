@@ -11,12 +11,11 @@ struct ParticleVector
 	float mass;
 	std::string name;
 
-	PinnedBuffer<Particle> coosvels;//, pingPongCoosvels;
-	//PinnedBuffer<Force> forces, pingPongForces;
-	DeviceBuffer<Force> forces, pingPongForces;
+	PinnedBuffer<Particle> coosvels;
+	DeviceBuffer<Force> forces;
 
 	// Local coordinate system, (0,0,0) is center of the local domain
-	float3 domainLength;
+	float3 domainSize, globalDomainStart;
 
 	PinnedBuffer<Particle> halo;
 	int changedStamp;
@@ -34,17 +33,13 @@ struct ParticleVector
 	virtual void pushStreamWOhalo(cudaStream_t stream)
 	{
 		coosvels.pushStream(stream);
-		//pingPongCoosvels.pushStream(stream);
 		forces.pushStream(stream);
-		pingPongForces.pushStream(stream);
 	}
 
 	virtual void popStreamWOhalo()
 	{
 		coosvels.popStream();
-		//pingPongCoosvels.popStream();
 		forces.popStream();
-		pingPongForces.popStream();
 	}
 
 	virtual void resize(const int n, ResizeKind kind = ResizeKind::resizePreserve)
@@ -52,9 +47,7 @@ struct ParticleVector
 		assert(n>=0);
 
 		coosvels.resize(n, kind);
-		//pingPongCoosvels.resize(n, kind);
 		forces.resize(n, kind);
-		pingPongForces.resize(n, kind);
 
 		np = n;
 	}

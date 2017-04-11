@@ -4,7 +4,7 @@ NVCCFLAGS = -std=c++11 -arch=compute_61 -code=sm_61 -O0 -G -Xptxas -O0 -g -linei
 
 LIBS = -lmpi
 
-SRC_DIR = ../core ./ ../core/xml
+SRC_DIR = ../core ./ ../core/xml ../core/mpi
 VPATH = $(addsuffix :,$(SRC_DIR))
 NVCCFLAGS += -I../
 
@@ -13,12 +13,13 @@ OBJ_DIR = obj
 wall_obj =    scan.o celllist.o test_wall.o pugixml.o components.o integrate.o interactions.o wall.o halo_exchanger.o redistributor.o
 onerank_obj = scan.o celllist.o halo_exchanger.o dpd.o test_onerank.o redistributor.o integrate.o
 manyranks_obj = scan.o celllist.o test_manyranks.o pugixml.o components.o integrate.o interactions.o wall.o halo_exchanger.o redistributor.o
-halo_obj    = scan.o celllist.o test_halo.o pugixml.o components.o integrate.o interactions.o wall.o halo_exchanger.o
+halo_obj    = scan.o celllist.o test_halo.o pugixml.o components.o integrate.o interactions.o wall.o halo_exchanger.o particle_halo_exchanger.o
 obj_halo_obj= scan.o celllist.o test_obj_halo.o pugixml.o components.o integrate.o interactions.o wall.o halo_exchanger.o object_vector.o
 redist_obj  = scan.o celllist.o redistributor.o test_redist.o
 log_obj     = test_logger.o
 cells_obj   = scan.o celllist.o test_cells.o pugixml.o components.o integrate.o interactions.o wall.o
 dpd_obj     = scan.o celllist.o test_dpd.o pugixml.o components.o integrate.o interactions.o wall.o
+scheduler_obj = task_scheduler.o test_scheduler.o
 
 
 default:
@@ -49,6 +50,9 @@ test_redist: $(addprefix $(OBJ_DIR)/,$(redist_obj))
 	$(NVCC) $(NVCCFLAGS) $(LIBS) $^ -o $@
 	
 test_dpd: $(addprefix $(OBJ_DIR)/,$(dpd_obj))
+	$(NVCC) $(NVCCFLAGS) $(LIBS) $^ -o $@
+	
+test_scheduler: $(addprefix $(OBJ_DIR)/,$(scheduler_obj))
 	$(NVCC) $(NVCCFLAGS) $(LIBS) $^ -o $@
 	
 

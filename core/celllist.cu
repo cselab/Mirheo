@@ -2,7 +2,7 @@
 #include <core/object_vector.h>
 #include <core/scan.h>
 #include <core/celllist.h>
-#include <core/non_cached_rw.h>
+#include <core/cuda_common.h>
 #include <core/helper_math.h>
 
 __global__ void blendStartSize(const uchar4* cellsSize, uint4* cellsStartSize, const CellListInfo cinfo)
@@ -144,7 +144,7 @@ CellList::CellList(ParticleVector* pv, int3 resolution, float3 domainSize) :
 	debug("Initialized %s cell-list with %dx%dx%d cells and cut-off %f", pv->name.c_str(), ncells.x, ncells.y, ncells.z, this->rc);
 }
 
-void CellList::build(bool primary)
+void CellList::build()
 {
 	if (pv->changedStamp == changedStamp)
 	{

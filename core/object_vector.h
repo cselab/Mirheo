@@ -8,7 +8,7 @@ class CellList;
 
 struct ObjectVector: public ParticleVector
 {
-	struct __align__(16) Properties
+	struct __align__(16) COMandExtent
 	{
 		float3 com, low, high;
 	};
@@ -17,7 +17,7 @@ struct ObjectVector: public ParticleVector
 	int nObjects = 0;
 	int objSize  = 0;
 	DeviceBuffer<int> particles2objIds;
-	DeviceBuffer<Properties> properties;
+	DeviceBuffer<COMandExtent> com_extent;
 
 	PinnedBuffer<Force> haloForces;
 	DeviceBuffer<int>   haloIds;
@@ -33,7 +33,7 @@ struct ObjectVector: public ParticleVector
 		ParticleVector::pushStreamWOhalo(stream);
 
 		particles2objIds.pushStream(stream);
-		properties.		 pushStream(stream);
+		com_extent.		 pushStream(stream);
 	}
 
 	virtual void popStreamWOhalo()
@@ -41,7 +41,7 @@ struct ObjectVector: public ParticleVector
 		ParticleVector::popStreamWOhalo();
 
 		particles2objIds.popStream();
-		properties.		 popStream();
+		com_extent.		 popStream();
 	}
 
 	virtual void resize(const int np, ResizeKind kind = ResizeKind::resizePreserve)
@@ -53,7 +53,7 @@ struct ObjectVector: public ParticleVector
 
 		ParticleVector::resize(nObjects * objSize, kind);
 		particles2objIds.resize(np, kind);
-		properties.resize(nObjects);
+		com_extent.resize(nObjects);
 	}
 
 	virtual ~ObjectVector() = default;

@@ -1,6 +1,6 @@
 #include <core/celllist.h>
 #include <core/particle_vector.h>
-#include <core/redistributor.h>
+#include <core/mpi/redistributor.h>
 #include <core/helper_math.h>
 
 #include <vector>

@@ -3,7 +3,7 @@
 
 #include <core/helper_math.h>
 #include <core/celllist.h>
-#include <core/non_cached_rw.h>
+#include <core/cuda_common.h>
 
 
 template<typename Ta, typename Tb>

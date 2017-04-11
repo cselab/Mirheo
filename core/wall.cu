@@ -320,30 +320,9 @@ __global__ void bounceKernel(const int* wallCells, const int nWallCells, const u
 			alpha = (oldCoo.z - mid.z) / (oldCoo.z - coo.z);
 		else alpha = 1;
 
-		// Travel along alpha*(new - old), then bounces back along -(1-alpha)*(new - old)
-		float beta = 2*alpha - 1;
-
-		// In the corners long bounce may place the particle into another wall
-		// Need to find a safe step in that case
+		// Just place the particle almost onto the surface and reverse the velocity
+		float beta = alpha - 1e-6f;
 		float4 candidate = oldCoo + beta * (coo - oldCoo);
-
-		for (int i=0; i<maxNIters; i++)
-		{
-			if ( (evalSdf(candidate, sdfInfo)) < 0.0f ) break;
-
-			beta *= 0.5;
-			candidate = oldCoo - beta * (coo - oldCoo);
-		}
-
-		if (evalSdf(candidate, sdfInfo) > 0.0f)
-		{
-//			printf("Bounce-back failed. Id %d: [%f %f %f] (%f)  -->  [%f %f %f] (%f)\n",
-//					__float_as_int(oldCoo.w), oldCoo.x, oldCoo.y, oldCoo.z, va, coo.x, coo.y, coo.z, vb);
-
-			coosvels[2*pid] = oldCoo;
-			coosvels[2*pid + 1] = -vel;
-			return;
-		}
 
 		coosvels[2*pid] = candidate;
 		coosvels[2*pid + 1] = -vel;
@@ -472,7 +451,7 @@ void Wall::prepareRelevantSdfPiece(const float* fullSdfData, float3 extendedDoma
 //			initialSdfResolution.x, initialSdfResolution.y, initialSdfResolution.z,
 //			startId.x, startId.y, startId.z);
 
-#warning "Minus here should be removed"
+//#warning "Minus here should be removed"
 	for (int k = 0; k < resolution.z; k++)
 		for (int j = 0; j < resolution.y; j++)
 			for (int i = 0; i < resolution.x; i++)
@@ -482,7 +461,7 @@ void Wall::prepareRelevantSdfPiece(const float* fullSdfData, float3 extendedDoma
 				const int origIz = (k+startId.z + initialSdfResolution.z) % initialSdfResolution.z;
 
 				// FIXME: AAAAAAAAAAAAAAAAA MINUS
-				locSdfDataPtr[ (k*resolution.y + j)*resolution.x + i ] = -
+				locSdfDataPtr[ (k*resolution.y + j)*resolution.x + i ] =
 						fullSdfData[ (origIz*initialSdfResolution.y + origIy)*initialSdfResolution.x + origIx ];
 			}
 }
@@ -583,7 +562,7 @@ void Wall::freezeParticles(ParticleVector* pv)
 
 	frozen->resize(nFrozen.hostPtr()[0]);
 	frozen->mass = pv->mass;
-	frozen->domainLength = pv->domainLength;
+	frozen->domainSize = pv->domainSize;
 
 	info("Freezing %d pv", nFrozen.hostPtr()[0]);
 

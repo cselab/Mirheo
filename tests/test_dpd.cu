@@ -2,7 +2,7 @@
 
 #include <core/particle_vector.h>
 #include <core/celllist.h>
-#include <core/halo_exchanger.h>
+#include <core/mpi/api.h>
 #include <core/logger.h>
 #include <core/components.h>
 #include <core/interactions.h>

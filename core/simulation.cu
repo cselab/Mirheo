@@ -3,12 +3,11 @@
 #include <core/simulation.h>
 #include <core/integrate.h>
 #include <core/interactions.h>
-#include <core/redistributor.h>
-#include <core/halo_exchanger.h>
 #include <core/logger.h>
 #include <core/particle_vector.h>
 #include <core/object_vector.h>
 #include <core/celllist.h>
+#include <core/mpi/api.h>
 
 Simulation::Simulation(int3 nranks3D, float3 globalDomainSize, const MPI_Comm& comm, const MPI_Comm& interComm) :
 nranks3D(nranks3D), globalDomainSize(globalDomainSize), interComm(interComm), currentTime(0), currentStep(0)
@@ -208,6 +207,25 @@ void Simulation::run(int nsteps)
 
 	info("Will run %d iterations now", nsteps);
 	int begin = currentStep, end = currentStep + nsteps;
+
+	// cell lists
+	// plugins before forces
+	// init part halo
+	// internal object forces
+	// init obj halo
+	// internal particle-only forces
+	// both halos finalize
+	// halo forces
+	// send back obj forces  --> possible to move up and overlap
+	// plugins before integration
+	// integrate all internal
+	// integrate EXTERNAL objects
+	// plugins after integration
+	// wall bounce
+	// object bounce with EXTERNAL included
+	// send back obj forces
+	// redistribute
+
 	for (currentStep = begin; currentStep < end; currentStep++)
 	{
 		if (rank == 0)

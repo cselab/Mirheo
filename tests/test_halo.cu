@@ -1,12 +1,14 @@
 // Yo ho ho ho
-#define private public
+#define private   public
+#define protected public
 
 #include <core/particle_vector.h>
 #include <core/celllist.h>
-#include <core/halo_exchanger.h>
 #include <core/logger.h>
 #include <core/xml/pugixml.hpp>
 #include <core/components.h>
+
+#include <core/mpi/api.h>
 
 Logger logger;
 
@@ -36,29 +38,31 @@ int main(int argc, char ** argv)
 	MPI_Check( MPI_Comm_rank(MPI_COMM_WORLD, &rank) );
 	MPI_Check( MPI_Cart_create(MPI_COMM_WORLD, 3, ranks, periods, 0, &cartComm) );
 
-	std::string xml = R"(<node mass="1.0" density="8.0">)";
+	std::string xml = R"(<node mass="1.0" density="2.0">)";
 	pugi::xml_document config;
 	config.load_string(xml.c_str());
 
-	float3 length{64,64,64};
+	float3 length{4,4,4};
 	float3 domainStart = -length / 2.0f;
 	const float rc = 1.0f;
 	ParticleVector dpds("dpd");
 	CellList cells(&dpds, rc, length);
+	cells.setStream(0);
+	cells.makePrimary();
 
 	InitialConditions ic = createIC(config.child("node"));
 	ic.exec(MPI_COMM_WORLD, &dpds, {0,0,0}, length);
 
-	cells.build(0);
+	cells.build();
 
 	dpds.coosvels.downloadFromDevice(true);
 
 	cudaStream_t defStream = 0;
 
-	HaloExchanger halo(cartComm, 0);
+	ParticleHaloExchanger halo(cartComm, 0);
 	halo.attach(&dpds, &cells);
 
-	cells.build(defStream);
+	cells.build();
 	CUDA_Check( cudaStreamSynchronize(defStream) );
 
 	for (int i=0; i<10; i++)

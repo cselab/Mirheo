@@ -3,7 +3,7 @@
 
 #include <core/object_vector.h>
 #include <core/celllist.h>
-#include <core/halo_exchanger.h>
+#include <core/mpi/api.h>
 #include <core/logger.h>
 #include <core/xml/pugixml.hpp>
 #include <core/components.h>
@@ -98,7 +98,7 @@ int main(int argc, char ** argv)
 		}
 	}
 
-	objs.domainLength = length;
+	objs.domainSize = length;
 	objs.coosvels.uploadToDevice();
 	objs.particles2objIds.copy(p2obj);
 
@@ -142,8 +142,8 @@ int main(int argc, char ** argv)
 
 	// =================================================================================================================
 
-	HostBuffer<ObjectVector::Properties> props;
-	props.copy(objs.properties, defStream);
+	HostBuffer<ObjectVector::COMandExtent> props;
+	props.copy(objs.com_extent, defStream);
 	for (int i=0; i<objs.nObjects; i++)
 		printf("%3d:  [%8.3f %8.3f %8.3f] -- [%8.3f %8.3f %8.3f]\n", i,
 				props[i].low.x, props[i].low.y, props[i].low.z, props[i].high.x, props[i].high.y, props[i].high.z);

@@ -4,6 +4,11 @@
 #include <core/helper_math.h>
 #include <core/interactions.h>
 
+// Workaround for nsight
+#ifndef __CUDACC_EXTENDED_LAMBDA__
+#define __device__
+#endif
+
 //==================================================================================================================
 // DPD interactions
 //==================================================================================================================

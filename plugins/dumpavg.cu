@@ -112,7 +112,7 @@ void Avg3DPlugin::afterIntegration()
 
 	for (auto pv : particleVectors)
 	{
-		CellListInfo cinfo(binSize, pv->domainLength);
+		CellListInfo cinfo(binSize, pv->domainSize);
 
 		sample<<< (pv->np+127) / 128, 128, 0, stream >>> (
 				pv->np, (float4*)pv->coosvels.devPtr(), (float4*)pv->forces.devPtr(),

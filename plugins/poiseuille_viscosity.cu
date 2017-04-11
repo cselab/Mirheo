@@ -1,3 +1,5 @@
+#include <plugins/poiseuille_viscosity.h>
+
 __global__ void radialSample(const float4 coosvels, float *bins, int *binSize, int nRbins, int nPhibins, int npart,
 		float shY, float shZ, float Rpipe)
 {

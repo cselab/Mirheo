@@ -46,8 +46,6 @@ private:
 	std::map<std::string, Integrator*>  integratorMap;
 	std::map<std::string, Wall*>        wallMap;
 
-//	std::vector<Interaction*>    interactions;
-
 	struct RobustFloatLess
 	{
 		bool operator() (const float& a, const float& b)
@@ -58,7 +56,7 @@ private:
 		}
 	};
 
-	std::multimap< float, std::function<void(InteractionType, float, cudaStream_t)>, RobustFloatLess > forceCallers;
+	std::multimap< float, std::function<void(InteractionType, float, cudaStream_t)>, RobustFloatLess > forceCallers, objectForceCallers;
 
 	std::vector< std::map<float, CellList*, RobustFloatLess> > cellListMaps;
 	std::vector<Integrator*>     integrators;
@@ -90,6 +88,13 @@ public:
 
 	const std::map<std::string, int>&   getPvIdMap() const { return pvIdMap; }
 	const std::vector<ParticleVector*>& getParticleVectors() const { return particleVectors; }
+
+	ParticleVector* getPVbyName(std::string name) const
+	{
+		auto pvIt = pvIdMap.find(name);
+		return (pvIt != pvIdMap.end()) ? particleVectors[pvIt->second] : nullptr;
+	}
+
 };
 
 class Postprocess

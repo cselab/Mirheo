@@ -1,5 +1,18 @@
 #pragma once
 
+template<typename Operation>
+__inline__ __device__ float3 warpReduce(float3 val, Operation op)
+{
+#pragma unroll
+	for (int offset = warpSize/2; offset > 0; offset /= 2)
+	{
+		val.x = op(val.x, __shfl_down(val.x, offset));
+		val.y = op(val.y, __shfl_down(val.y, offset));
+		val.z = op(val.z, __shfl_down(val.z, offset));
+	}
+	return val;
+}
+
 __device__ __forceinline__ float4 readNoCache(const float4* addr)
 {
 	float4 res;

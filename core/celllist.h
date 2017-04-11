@@ -86,6 +86,8 @@ private:
 	PinnedBuffer<Particle> _coosvels;
 	DeviceBuffer<Force>    _forces;
 
+	bool primary = false;
+
 public:
 	ParticleVector* pv;
 
@@ -117,6 +119,7 @@ public:
 		order.pushStream(stream);
 	}
 
-	void build(bool primary = false);
+	void makePrimary() { primary = true; }
+	void build();
 	void addForces();
 };

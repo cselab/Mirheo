@@ -3,7 +3,7 @@
 
 #include <core/particle_vector.h>
 #include <core/celllist.h>
-#include <core/redistributor.h>
+#include <core/mpi/api.h>
 #include <core/logger.h>
 
 Logger logger;
