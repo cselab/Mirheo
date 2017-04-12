@@ -1,5 +1,6 @@
 // Yo ho ho ho
 #define private public
+#define protected public
 
 #include <core/particle_vector.h>
 #include <core/celllist.h>

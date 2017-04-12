@@ -42,7 +42,7 @@ int main(int argc, char ** argv)
 	pugi::xml_document config;
 	config.load_string(xml.c_str());
 
-	float3 length{4,4,4};
+	float3 length{24,24,24};
 	float3 domainStart = -length / 2.0f;
 	const float rc = 1.0f;
 	ParticleVector dpds("dpd");

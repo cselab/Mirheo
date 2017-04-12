@@ -6,7 +6,7 @@
 #include <vector>
 #include <string>
 
-struct HaloHelper
+struct ExchangeHelper
 {
 	std::string name;
 
@@ -19,14 +19,14 @@ struct HaloHelper
 	std::vector<int> recvOffsets;
 	std::vector<MPI_Request> requests;
 
-	PinnedBuffer<Particle>* halo;
+	char* target;
 
 	cudaStream_t stream;
 
-	HaloHelper(std::string name, const int sizes[3], PinnedBuffer<Particle>* halo);
+	ExchangeHelper(std::string name, const int sizes[3], PinnedBuffer<Particle>* halo);
 };
 
-class HaloExchanger
+class ParticleExchanger
 {
 protected:
 	int dir2rank[27];
@@ -39,18 +39,21 @@ protected:
 
 	cudaStream_t defStream;
 
-	std::vector<HaloHelper*> helpers;
+	std::vector<ExchangeHelper*> helpers;
 
-	void exchange(HaloHelper* helper, int typeSize);
-	void uploadHalos(HaloHelper* helper);
+	void postRecv(ExchangeHelper* helper, int typeSize);
+	void sendWait(ExchangeHelper* helper, int typeSize);
+
+	void combineAndUpload(int id, int typeSize);
+
+	virtual void prepareUploadTarget(int id) = 0;
+	virtual void prepareData(int id) = 0;
 
 public:
 
-	virtual void _prepareHalos(int id) = 0;
-
-	HaloExchanger(MPI_Comm& comm, cudaStream_t defStream);
+	ParticleExchanger(MPI_Comm& comm, cudaStream_t defStream);
 	void init();
 	void finalize();
 
-	virtual ~HaloExchanger() = default;
+	virtual ~ParticleExchanger() = default;
 };

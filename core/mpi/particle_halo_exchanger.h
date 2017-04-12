@@ -2,23 +2,25 @@
 
 #include <core/datatypes.h>
 #include <core/logger.h>
-#include <core/mpi/halo_exchanger.h>
+#include <core/mpi/particle_exchanger.h>
 
 #include <vector>
 
 class ParticleVector;
 class CellList;
 
-class ParticleHaloExchanger : public HaloExchanger
+class ParticleHaloExchanger : public ParticleExchanger
 {
 private:
 	std::vector<CellList*> cellLists;
 	std::vector<ParticleVector*> particles;
+	void prepareUploadTarget(int id);
+	void prepareData(int id);
+
 
 public:
-	ParticleHaloExchanger(MPI_Comm& comm, cudaStream_t defStream) : HaloExchanger(comm, defStream) {};
+	ParticleHaloExchanger(MPI_Comm& comm, cudaStream_t defStream) : ParticleExchanger(comm, defStream) {};
 
-	void _prepareHalos(int id);
 	void attach(ParticleVector* pv, CellList* cl);
 
 	~ParticleHaloExchanger() = default;

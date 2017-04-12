@@ -1,10 +1,10 @@
 #include <core/logger.h>
 #include <core/cuda_common.h>
-#include <core/mpi/halo_exchanger.h>
+#include <core/mpi/particle_exchanger.h>
 
 #include <algorithm>
 
-HaloHelper::HaloHelper(std::string name, const int sizes[3], PinnedBuffer<Particle>* halo)
+ExchangeHelper::ExchangeHelper(std::string name, const int sizes[3], PinnedBuffer<Particle>* halo)
 {
 	this->name = name;
 
@@ -16,9 +16,6 @@ HaloHelper::HaloHelper(std::string name, const int sizes[3], PinnedBuffer<Partic
 	sendAddrs  .resize(27);
 	counts     .resize(27);
 	recvOffsets.resize(28);
-
-	this->halo = halo;
-	this->halo->pushStream(stream);
 
 	auto addrsPtr = sendAddrs.hostPtr();
 	for(int i = 0; i < 27; ++i)
@@ -40,7 +37,7 @@ HaloHelper::HaloHelper(std::string name, const int sizes[3], PinnedBuffer<Partic
 	sendAddrs.uploadToDevice();
 }
 
-HaloExchanger::HaloExchanger(MPI_Comm& comm, cudaStream_t defStream) :
+ParticleExchanger::ParticleExchanger(MPI_Comm& comm, cudaStream_t defStream) :
 		nActiveNeighbours(26), defStream(defStream)
 {
 	MPI_Check( MPI_Comm_dup(comm, &haloComm) );
@@ -67,35 +64,43 @@ HaloExchanger::HaloExchanger(MPI_Comm& comm, cudaStream_t defStream) :
 	}
 }
 
-void HaloExchanger::init()
+void ParticleExchanger::init()
 {
+	// Post recv
+	for (auto helper : helpers)
+		postRecv(helper, sizeof(Particle));
+
 	// Determine halos
 	for (int i=0; i<helpers.size(); i++)
-		_prepareHalos(i);
+		prepareData(i);
 
 	CUDA_Check( cudaStreamSynchronize(defStream) );
 }
 
-void HaloExchanger::finalize()
+void ParticleExchanger::finalize()
 {
 	// Send, receive, upload to the device and sync
 	for (auto helper : helpers)
-		exchange(helper, sizeof(Particle));
+		sendWait(helper, sizeof(Particle));
 
-	for (auto helper : helpers)
-		uploadHalos(helper);
+	for (int i=0; i<helpers.size(); i++)
+	{
+		prepareUploadTarget(i);
+		combineAndUpload(i, sizeof(Particle));
+	}
 
 	for (auto helper : helpers)
 		CUDA_Check( cudaStreamSynchronize(helper->stream) );
 }
 
-void HaloExchanger::exchange(HaloHelper* helper, int typeSize)
+inline int tagByName(std::string name)
 {
-	auto tagByName = [] (std::string name) {
-		static std::hash<std::string> nameHash;
-		return (int)( nameHash(name) % 414243 );
-	};
+	static std::hash<std::string> nameHash;
+	return (int)( nameHash(name) % 414243 );
+}
 
+void ParticleExchanger::postRecv(ExchangeHelper* helper, int typeSize)
+{
 	std::string pvName = helper->name;
 
 	// Post receives
@@ -116,6 +121,11 @@ void HaloExchanger::exchange(HaloHelper* helper, int typeSize)
 			MPI_Check( MPI_Irecv(helper->recvBufs[i].hostPtr(), helper->recvBufs[i].size(), MPI_BYTE, dir2rank[i], tag, haloComm, &req) );
 			helper->requests.push_back(req);
 		}
+}
+
+void ParticleExchanger::sendWait(ExchangeHelper* helper, int typeSize)
+{
+	std::string pvName = helper->name;
 
 	// Prepare message sizes and send
 	helper->counts.downloadFromDevice();
@@ -170,16 +180,16 @@ void HaloExchanger::exchange(HaloHelper* helper, int typeSize)
 }
 
 
-void HaloExchanger::uploadHalos(HaloHelper* helper)
+void ParticleExchanger::combineAndUpload(int id, int typeSize)
 {
-	helper->halo->resize(helper->recvOffsets[27], resizeAnew);
+	auto helper = helpers[id];
 
 	for (int i=0; i < 27; i++)
 	{
 		const int msize = helper->recvOffsets[i+1] - helper->recvOffsets[i];
 		if (msize > 0)
-			CUDA_Check( cudaMemcpyAsync(helper->halo->devPtr() + helper->recvOffsets[i], helper->recvBufs[i].hostPtr(),
-					msize*sizeof(Particle), cudaMemcpyHostToDevice, helper->stream) );
+			CUDA_Check( cudaMemcpyAsync(helper->target + helper->recvOffsets[i]*typeSize, helper->recvBufs[i].hostPtr(),
+					msize*typeSize, cudaMemcpyHostToDevice, helper->stream) );
 	}
 }
 
