@@ -7,14 +7,17 @@
 #include <core/mpi/api.h>
 #include <core/logger.h>
 
+#include <core/xml/pugixml.hpp>
+#include <core/components.h>
+
 Logger logger;
 
 Particle addShift(Particle p, float a, float b, float c)
 {
 	Particle res = p;
-	res.x[0] += a;
-	res.x[1] += b;
-	res.x[2] += c;
+	res.r.x += a;
+	res.r.y += b;
+	res.r.z += c;
 
 	return res;
 }
@@ -35,83 +38,58 @@ int main(int argc, char ** argv)
 	MPI_Check( MPI_Comm_rank(MPI_COMM_WORLD, &rank) );
 	MPI_Check( MPI_Cart_create(MPI_COMM_WORLD, 3, ranks, periods, 0, &cartComm) );
 
-	// Initial cells
+	std::string xml = R"(<node mass="1.0" density="8.0">)";
+	pugi::xml_document config;
+	config.load_string(xml.c_str());
 
-	int3 ncells = {64, 64, 64};
-	float3 domainStart = {-ncells.x / 2.0f, -ncells.y / 2.0f, -ncells.z / 2.0f};
-	float3 length{(float)ncells.x, (float)ncells.y, (float)ncells.z};
+	float3 length{24,24,24};
+	float3 domainStart = -length / 2.0f;
+	const float rc = 1.0f;
+	ParticleVector dpds("dpd");
+	CellList cells(&dpds, rc, length);
+	cells.setStream(0);
+	cells.makePrimary();
 
-	const int ndens = 8;
+	InitialConditions ic = createIC(config.child("node"));
+	ic.exec(MPI_COMM_WORLD, &dpds, {0,0,0}, length);
 
-	ParticleVector dpds(ncells, domainStart, length);
+	const int initialNP = dpds.np;
+	HostBuffer<Particle> host(dpds.np);
+	const float dt = 0.1;
+	for (int i=0; i<dpds.np; i++)
+	{
+		dpds.coosvels[i].u.z = 5*(drand48() - 0.5);
+		dpds.coosvels[i].u.y = 5*(drand48() - 0.5);
+		dpds.coosvels[i].u.z = 5*(drand48() - 0.5);
 
-	dpds.resize(dpds.totcells*ndens);
+		dpds.coosvels[i].r += dt * dpds.coosvels[i].u;
 
-	srand48(0);
+		host[i] = dpds.coosvels[i];
+	}
 
-	printf("initializing...\n");
-
-	int c = 0;
-	for (int i=0; i<ncells.x; i++)
-		for (int j=0; j<ncells.y; j++)
-			for (int k=0; k<ncells.z; k++)
-				for (int p=0; p<ndens; p++)
-				{
-					dpds.coosvels[c].x[0] = i + drand48() + domainStart.x;
-					dpds.coosvels[c].x[1] = j + drand48() + domainStart.y;
-					dpds.coosvels[c].x[2] = k + drand48() + domainStart.z;
-					dpds.coosvels[c].i1 = c;
-
-					dpds.coosvels[c].u[0] = 0;
-					dpds.coosvels[c].u[1] = 0;
-					dpds.coosvels[c].u[2] = 0;
-					c++;
-				}
-
-	dpds.resize(c);
-	dpds.coosvels.synchronize(synchronizeDevice);
-	dpds.accs.clear();
+	dpds.coosvels.uploadToDevice();
 
 	cudaStream_t defStream = 0;
 
-	Redistributor redist(cartComm);
-	redist.attach(&dpds, 7);
-
-	buildCellList(dpds, defStream);
+	ParticleRedistributor redist(cartComm, defStream);
+	cells.build();
+	redist.attach(&dpds, &cells);
 	CUDA_Check( cudaStreamSynchronize(defStream) );
-	dpds.coosvels.synchronize(synchronizeHost);
-
-	for (int i=0; i<dpds.np; i++)
-	{
-		dpds.coosvels[i].u[0] = (drand48() - 0.5);
-		dpds.coosvels[i].u[1] = (drand48() - 0.5);
-		dpds.coosvels[i].u[2] = (drand48() - 0.5);
-	}
-
-	dpds.coosvels.synchronize(synchronizeDevice, defStream);
-	CUDA_Check( cudaStreamSynchronize(defStream) );
-
-	const float dt = 0.5;
 
 	for (int i=0; i<1; i++)
 	{
-		redist.redistribute(dt);
+		redist.redistribute();
 	}
 
 	std::vector<Particle> bufs[27];
-	for (int i=0; i<dpds.np; i++)
+
+	for (int i=0; i<initialNP; i++)
 	{
-		Particle& p = dpds.coosvels[i];
-		float3 coo{p.x[0], p.x[1], p.x[2]};
-		float3 vel{p.u[0], p.u[1], p.u[2]};
+		Particle& p = host[i];
 
-		coo += vel * dt;
-
-		int cx = getCellIdAlongAxis<0, false>(coo.x, domainStart.x, ncells.x, 1.0f);
-		int cy = getCellIdAlongAxis<1, false>(coo.y, domainStart.y, ncells.y, 1.0f);
-		int cz = getCellIdAlongAxis<2, false>(coo.z, domainStart.z, ncells.z, 1.0f);
-
-		//printf("%3d:  [%f %f %f]  %d %d %d\n", i, coo.x, coo.y, coo.z, cx, cy, cz);
+		int3 code = cells.getCellIdAlongAxis<false>(p.r);
+		int cx = code.x,  cy = code.y,  cz = code.z;
+		auto ncells = cells.ncells;
 
 		// 6
 		if (cx == -1)         bufs[ (1*3 + 1)*3 + 0 ].push_back(addShift(p,  length.x,         0,         0));
@@ -153,29 +131,28 @@ int main(int argc, char ** argv)
 	{
 		std::sort(bufs[i].begin(), bufs[i].end(), [] (Particle& a, Particle& b) { return a.i1 < b.i1; });
 
-		std::sort(redist.helpers[0].sendBufs[i].hostdata, redist.helpers[0].sendBufs[i].hostdata + redist.helpers[0].counts[i],
-				[] (PandA& a, PandA& b) { return a.p.i1 < b.p.i1; });
+		std::sort((Particle*)redist.helpers[0]->sendBufs[i].hostPtr(), ((Particle*)redist.helpers[0]->sendBufs[i].hostPtr()) + redist.helpers[0]->counts[i],
+				[] (Particle& a, Particle& b) { return a.i1 < b.i1; });
 
-		if (bufs[i].size() != redist.helpers[0].counts[i])
-			printf("%2d-th redist differs in size: %5d, expected %5d\n", i, redist.helpers[0].counts[i], (int)bufs[i].size());
-
-		for (int pid = 0; pid < std::min(redist.helpers[0].counts[i], (int)bufs[i].size()); pid++)
+		if (bufs[i].size() != redist.helpers[0]->counts[i])
+			printf("%2d-th redist differs in size: %5d, expected %5d\n", i, redist.helpers[0]->counts[i], (int)bufs[i].size());
+		else
 		{
-			const float diff = std::max({
-				fabs(redist.helpers[0].sendBufs[i][pid].p.x[0] - bufs[i][pid].x[0]),
-				fabs(redist.helpers[0].sendBufs[i][pid].p.x[1] - bufs[i][pid].x[1]),
-				fabs(redist.helpers[0].sendBufs[i][pid].p.x[2] - bufs[i][pid].x[2]) });
+			auto ptr = (Particle*)redist.helpers[0]->sendBufs[i].hostPtr();
+			for (int pid = 0; pid < redist.helpers[0]->counts[i]; pid++)
+			{
+				const float diff = std::max({
+					fabs(ptr[pid].r.x - bufs[i][pid].r.x),
+							fabs(ptr[pid].r.y - bufs[i][pid].r.y),
+							fabs(ptr[pid].r.z - bufs[i][pid].r.z) });
 
-			if (bufs[i][pid].i1 != redist.helpers[0].sendBufs[i][pid].p.i1 || diff > 1e-5)
-				printf("redist %2d:  %5d [%10.3e %10.3e %10.3e], expected %5d [%10.3e %10.3e %10.3e]\n",
-						i, redist.helpers[0].sendBufs[i][pid].p.i1, redist.helpers[0].sendBufs[i][pid].p.x[0],
-						redist.helpers[0].sendBufs[i][pid].p.x[1], redist.helpers[0].sendBufs[i][pid].p.x[2],
-						bufs[i][pid].i1, bufs[i][pid].x[0], bufs[i][pid].x[1], bufs[i][pid].x[2]);
+				if (bufs[i][pid].i1 != ptr[pid].i1 || diff > 1e-5)
+					printf("redist %2d:  %5d [%10.3e %10.3e %10.3e], expected %5d [%10.3e %10.3e %10.3e]\n",
+							i, ptr[pid].i1, ptr[pid].r.x, ptr[pid].r.y, ptr[pid].r.z,
+							bufs[i][pid].i1, bufs[i][pid].r.x, bufs[i][pid].r.y, bufs[i][pid].r.z);
+			}
 		}
 	}
-
-	//for (int i=0; i<dpds.redist.size; i++)
-	//	printf("%d  %f %f %f\n", i, dpds.redist[i].x[0], dpds.redist[i].x[1], dpds.redist[i].x[2]);
 
 	return 0;
 }

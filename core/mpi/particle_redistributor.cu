@@ -11,12 +11,12 @@
 
 __global__ void getExitingParticles(float4* xyzouvwo,
 		CellListInfo cinfo, const uint* __restrict__ cellsStartSize,
-		float4* __restrict__ dests[27], int counts[27])
+		const int64_t dests[27], int counts[27])
 {
 	const int gid = blockIdx.x*blockDim.x + threadIdx.x;
-	const int tid = threadIdx.x;
 	int cid;
 	int cx, cy, cz;
+	const int3 ncells = cinfo.ncells;
 
 	bool valid = isValidCell(cid, cx, cy, cz, gid, blockIdx.y, cinfo);
 
@@ -26,7 +26,7 @@ __global__ void getExitingParticles(float4* xyzouvwo,
 	//
 	// Now for each cell we check its every particle if it needs to move
 
-	int2 start_size = valid ? cinfo.decodeStartSize(cellsStartSize[cid]) : make_int2(0, 0);
+	int2 start_size = cinfo.decodeStartSize(cellsStartSize[cid]);
 
 #pragma unroll 2
 	for (int i = 0; i < start_size.y; i++)
@@ -60,7 +60,7 @@ __global__ void getExitingParticles(float4* xyzouvwo,
 
 			const int dstInd = 2*myid;
 
-			float4* addr = dests[bufId];
+			float4* addr = (float4*)dests[bufId];
 			float4 newcoo = coo - shift;
 			newcoo.w = coo.w;
 			addr[dstInd + 0] = newcoo;
@@ -109,61 +109,15 @@ void ParticleRedistributor::prepareData(int id)
 	const int nthreads = 32;
 	if (pv->np > 0)
 		getExitingParticles<<< dim3((maxdim*maxdim + nthreads - 1) / nthreads, 6, 1),  dim3(nthreads, 1, 1), 0, helper->stream >>>
-					( (float4*)pv->coosvels.devPtr(), cl->cellInfo(), cl->cellsStartSize.devPtr(), helper->sendAddrs.devPtr(), helper->counts.devPtr() );
+					( (float4*)pv->coosvels.devPtr(), cl->cellInfo(), cl->cellsStartSize.devPtr(), (int64_t*)helper->sendAddrs.devPtr(), helper->counts.devPtr() );
 }
 
-void ParticleHaloExchanger::prepareUploadTarget(int id)
+void ParticleRedistributor::prepareUploadTarget(int id)
 {
 	auto pv = particles[id];
 	auto helper = helpers[id];
 
 	int oldsize = pv->np;
-	pv->resize(oldsize + totalRecvd, resizePreserve);
-	helper->target = pv->coosvels.devPtr() + oldsize;
+	pv->resize(oldsize + helper->recvOffsets[27], resizePreserve);
+	helper->target = (char*) (pv->coosvels.devPtr() + oldsize);
 }
-
-void Redistributor::receive(int n)
-{
-	auto pv = particlesAndCells[n].first;
-	auto helper = helpers[n];
-
-	// Wait until messages are arrived
-	const int nMessages = helper->requests.size();
-	std::vector<MPI_Status> statuses(nMessages);
-	MPI_Check( MPI_Waitall(nMessages, &helper->requests[0], &statuses[0]) );
-
-	// Excl scan of message sizes to know where we will upload them
-	std::vector<int> offsets(nMessages+1);
-	int totalRecvd = 0;
-	for (int i=0; i<nMessages; i++)
-	{
-		offsets[i] = totalRecvd;
-
-		int msize;
-		MPI_Check( MPI_Get_count(&statuses[i], mpiPartType, &msize) );
-		totalRecvd += msize;
-	}
-	offsets[nMessages] = totalRecvd;
-
-	int oldsize = pv->np;
-	pv->resize(oldsize + totalRecvd, resizePreserve);
-	debug2("Receiving %d total %s particles", totalRecvd, pv->name.c_str());
-
-	// Load onto the device
-	for (int i=0; i<nMessages; i++)
-	{
-		debug3("Receiving %s redistribution from rank %d in dircode %d [%2d %2d %2d], size %d",
-				pv->name.c_str(), dir2rank[compactedDirs[i]], compactedDirs[i],
-				compactedDirs[i]%3 - 1, (compactedDirs[i]/3)%3 - 1, compactedDirs[i]/9 - 1, offsets[i+1] - offsets[i]);
-
-		if (offsets[i+1] - offsets[i] > 0)
-			CUDA_Check( cudaMemcpyAsync(pv->coosvels.devPtr() + oldsize + offsets[i], helper->recvBufs[compactedDirs[i]].hostPtr(),
-					(offsets[i+1] - offsets[i])*sizeof(Particle), cudaMemcpyHostToDevice, helper->stream) );
-	}
-
-	// Reset the cell-list as we've brought in some new particles
-	pv->changedStamp++;
-	CUDA_Check( cudaStreamSynchronize(helper->stream) );
-}
-
-
