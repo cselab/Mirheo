@@ -42,7 +42,7 @@ int main(int argc, char ** argv)
 	pugi::xml_document config;
 	config.load_string(xml.c_str());
 
-	float3 length{24,24,24};
+	float3 length{64,64,64};
 	float3 domainStart = -length / 2.0f;
 	const float rc = 1.0f;
 	ParticleVector dpds("dpd");
@@ -91,66 +91,87 @@ int main(int argc, char ** argv)
 		int cx = code.x,  cy = code.y,  cz = code.z;
 		auto ncells = cells.ncells;
 
-		// 6
-		if (cx == -1)         bufs[ (1*3 + 1)*3 + 0 ].push_back(addShift(p,  length.x,         0,         0));
-		if (cx == ncells.x  ) bufs[ (1*3 + 1)*3 + 2 ].push_back(addShift(p, -length.x,         0,         0));
-		if (cy == -1)         bufs[ (1*3 + 0)*3 + 1 ].push_back(addShift(p,         0,  length.y,         0));
-		if (cy == ncells.y  ) bufs[ (1*3 + 2)*3 + 1 ].push_back(addShift(p,         0, -length.y,         0));
-		if (cz == -1)         bufs[ (0*3 + 1)*3 + 1 ].push_back(addShift(p,         0,         0,  length.z));
-		if (cz == ncells.z  ) bufs[ (2*3 + 1)*3 + 1 ].push_back(addShift(p,         0,         0, -length.z));
+		// 8
+		if (cx == -1         && cy == -1         && cz == -1)         { bufs[ (0*3 + 0)*3 + 0 ].push_back(addShift(p,  length.x,  length.y,  length.z)); continue; }
+		if (cx == -1         && cy == -1         && cz == ncells.z  ) { bufs[ (2*3 + 0)*3 + 0 ].push_back(addShift(p,  length.x,  length.y, -length.z)); continue; }
+		if (cx == -1         && cy == ncells.y   && cz == -1)         { bufs[ (0*3 + 2)*3 + 0 ].push_back(addShift(p,  length.x, -length.y,  length.z)); continue; }
+		if (cx == -1         && cy == ncells.y   && cz == ncells.z  ) { bufs[ (2*3 + 2)*3 + 0 ].push_back(addShift(p,  length.x, -length.y, -length.z)); continue; }
+		if (cx == ncells.x   && cy == -1         && cz == -1)         { bufs[ (0*3 + 0)*3 + 2 ].push_back(addShift(p, -length.x,  length.y,  length.z)); continue; }
+		if (cx == ncells.x   && cy == -1         && cz == ncells.z  ) { bufs[ (2*3 + 0)*3 + 2 ].push_back(addShift(p, -length.x,  length.y, -length.z)); continue; }
+		if (cx == ncells.x   && cy == ncells.y   && cz == -1)         { bufs[ (0*3 + 2)*3 + 2 ].push_back(addShift(p, -length.x, -length.y,  length.z)); continue; }
+		if (cx == ncells.x   && cy == ncells.y   && cz == ncells.z  ) { bufs[ (2*3 + 2)*3 + 2 ].push_back(addShift(p, -length.x, -length.y, -length.z)); continue; }
 
 		// 12
-		if (cx == -1         && cy == -1)         bufs[ (1*3 + 0)*3 + 0 ].push_back(addShift(p,  length.x,  length.y,         0));
-		if (cx == ncells.x   && cy == -1)         bufs[ (1*3 + 0)*3 + 2 ].push_back(addShift(p, -length.x,  length.y,         0));
-		if (cx == -1         && cy == ncells.y  ) bufs[ (1*3 + 2)*3 + 0 ].push_back(addShift(p,  length.x, -length.y,         0));
-		if (cx == ncells.x   && cy == ncells.y  ) bufs[ (1*3 + 2)*3 + 2 ].push_back(addShift(p, -length.x, -length.y,         0));
+		if (cx == -1         && cy == -1)         { bufs[ (1*3 + 0)*3 + 0 ].push_back(addShift(p,  length.x,  length.y,         0)); continue; }
+		if (cx == ncells.x   && cy == -1)         { bufs[ (1*3 + 0)*3 + 2 ].push_back(addShift(p, -length.x,  length.y,         0)); continue; }
+		if (cx == -1         && cy == ncells.y  ) { bufs[ (1*3 + 2)*3 + 0 ].push_back(addShift(p,  length.x, -length.y,         0)); continue; }
+		if (cx == ncells.x   && cy == ncells.y  ) { bufs[ (1*3 + 2)*3 + 2 ].push_back(addShift(p, -length.x, -length.y,         0)); continue; }
 
-		if (cy == -1         && cz == -1)         bufs[ (0*3 + 0)*3 + 1 ].push_back(addShift(p,         0,  length.y,  length.z));
-		if (cy == ncells.y   && cz == -1)         bufs[ (0*3 + 2)*3 + 1 ].push_back(addShift(p,         0, -length.y,  length.z));
-		if (cy == -1         && cz == ncells.z  ) bufs[ (2*3 + 0)*3 + 1 ].push_back(addShift(p,         0,  length.y, -length.z));
-		if (cy == ncells.y   && cz == ncells.z  ) bufs[ (2*3 + 2)*3 + 1 ].push_back(addShift(p,         0, -length.y, -length.z));
+		if (cy == -1         && cz == -1)         { bufs[ (0*3 + 0)*3 + 1 ].push_back(addShift(p,         0,  length.y,  length.z)); continue; }
+		if (cy == ncells.y   && cz == -1)         { bufs[ (0*3 + 2)*3 + 1 ].push_back(addShift(p,         0, -length.y,  length.z)); continue; }
+		if (cy == -1         && cz == ncells.z  ) { bufs[ (2*3 + 0)*3 + 1 ].push_back(addShift(p,         0,  length.y, -length.z)); continue; }
+		if (cy == ncells.y   && cz == ncells.z  ) { bufs[ (2*3 + 2)*3 + 1 ].push_back(addShift(p,         0, -length.y, -length.z)); continue; }
 
 
-		if (cz == -1         && cx == -1)         bufs[ (0*3 + 1)*3 + 0 ].push_back(addShift(p,  length.x,         0,  length.z));
-		if (cz == ncells.z   && cx == -1)         bufs[ (2*3 + 1)*3 + 0 ].push_back(addShift(p,  length.x,         0, -length.z));
-		if (cz == -1         && cx == ncells.x  ) bufs[ (0*3 + 1)*3 + 2 ].push_back(addShift(p, -length.x,         0,  length.z));
-		if (cz == ncells.z   && cx == ncells.x  ) bufs[ (2*3 + 1)*3 + 2 ].push_back(addShift(p, -length.x,         0, -length.z));
+		if (cz == -1         && cx == -1)         { bufs[ (0*3 + 1)*3 + 0 ].push_back(addShift(p,  length.x,         0,  length.z)); continue; }
+		if (cz == ncells.z   && cx == -1)         { bufs[ (2*3 + 1)*3 + 0 ].push_back(addShift(p,  length.x,         0, -length.z)); continue; }
+		if (cz == -1         && cx == ncells.x  ) { bufs[ (0*3 + 1)*3 + 2 ].push_back(addShift(p, -length.x,         0,  length.z)); continue; }
+		if (cz == ncells.z   && cx == ncells.x  ) { bufs[ (2*3 + 1)*3 + 2 ].push_back(addShift(p, -length.x,         0, -length.z)); continue; }
 
-		// 8
-		if (cx == -1         && cy == -1         && cz == -1)         bufs[ (0*3 + 0)*3 + 0 ].push_back(addShift(p,  length.x,  length.y,  length.z));
-		if (cx == -1         && cy == -1         && cz == ncells.z  ) bufs[ (2*3 + 0)*3 + 0 ].push_back(addShift(p,  length.x,  length.y, -length.z));
-		if (cx == -1         && cy == ncells.y   && cz == -1)         bufs[ (0*3 + 2)*3 + 0 ].push_back(addShift(p,  length.x, -length.y,  length.z));
-		if (cx == -1         && cy == ncells.y   && cz == ncells.z  ) bufs[ (2*3 + 2)*3 + 0 ].push_back(addShift(p,  length.x, -length.y, -length.z));
-		if (cx == ncells.x   && cy == -1         && cz == -1)         bufs[ (0*3 + 0)*3 + 2 ].push_back(addShift(p, -length.x,  length.y,  length.z));
-		if (cx == ncells.x   && cy == -1         && cz == ncells.z  ) bufs[ (2*3 + 0)*3 + 2 ].push_back(addShift(p, -length.x,  length.y, -length.z));
-		if (cx == ncells.x   && cy == ncells.y   && cz == -1)         bufs[ (0*3 + 2)*3 + 2 ].push_back(addShift(p, -length.x, -length.y,  length.z));
-		if (cx == ncells.x   && cy == ncells.y   && cz == ncells.z  ) bufs[ (2*3 + 2)*3 + 2 ].push_back(addShift(p, -length.x, -length.y, -length.z));
+		// 6
+		if (cx == -1)         { bufs[ (1*3 + 1)*3 + 0 ].push_back(addShift(p,  length.x,         0,         0)); continue; }
+		if (cx == ncells.x  ) { bufs[ (1*3 + 1)*3 + 2 ].push_back(addShift(p, -length.x,         0,         0)); continue; }
+		if (cy == -1)         { bufs[ (1*3 + 0)*3 + 1 ].push_back(addShift(p,         0,  length.y,         0)); continue; }
+		if (cy == ncells.y  ) { bufs[ (1*3 + 2)*3 + 1 ].push_back(addShift(p,         0, -length.y,         0)); continue; }
+		if (cz == -1)         { bufs[ (0*3 + 1)*3 + 1 ].push_back(addShift(p,         0,         0,  length.z)); continue; }
+		if (cz == ncells.z  ) { bufs[ (2*3 + 1)*3 + 1 ].push_back(addShift(p,         0,         0, -length.z)); continue; }
 	}
 
 	for (int i = 0; i<27; i++)
 	{
-		std::sort(bufs[i].begin(), bufs[i].end(), [] (Particle& a, Particle& b) { return a.i1 < b.i1; });
-
-		std::sort((Particle*)redist.helpers[0]->sendBufs[i].hostPtr(), ((Particle*)redist.helpers[0]->sendBufs[i].hostPtr()) + redist.helpers[0]->counts[i],
-				[] (Particle& a, Particle& b) { return a.i1 < b.i1; });
-
 		if (bufs[i].size() != redist.helpers[0]->counts[i])
 			printf("%2d-th redist differs in size: %5d, expected %5d\n", i, redist.helpers[0]->counts[i], (int)bufs[i].size());
-		else
-		{
-			auto ptr = (Particle*)redist.helpers[0]->sendBufs[i].hostPtr();
-			for (int pid = 0; pid < redist.helpers[0]->counts[i]; pid++)
-			{
-				const float diff = std::max({
-					fabs(ptr[pid].r.x - bufs[i][pid].r.x),
-							fabs(ptr[pid].r.y - bufs[i][pid].r.y),
-							fabs(ptr[pid].r.z - bufs[i][pid].r.z) });
 
-				if (bufs[i][pid].i1 != ptr[pid].i1 || diff > 1e-5)
-					printf("redist %2d:  %5d [%10.3e %10.3e %10.3e], expected %5d [%10.3e %10.3e %10.3e]\n",
-							i, ptr[pid].i1, ptr[pid].r.x, ptr[pid].r.y, ptr[pid].r.z,
-							bufs[i][pid].i1, bufs[i][pid].r.x, bufs[i][pid].r.y, bufs[i][pid].r.z);
-			}
+		std::vector<Particle> got, reference;
+
+		auto cmp = [] (Particle a, Particle b) {
+			if (a.i1 < b.i1) return true;
+			if (a.i1 > b.i1) return false;
+
+			if (a.r.x > b.r.x + 1e-6) return true;
+			if (a.r.y > b.r.y + 1e-6) return true;
+			if (a.r.z > b.r.z + 1e-6) return true;
+
+			return false;
+		};
+
+		std::sort(bufs[i].begin(), bufs[i].end(), cmp);
+		std::sort((Particle*)redist.helpers[0]->sendBufs[i].hostPtr(), ((Particle*)redist.helpers[0]->sendBufs[i].hostPtr()) + redist.helpers[0]->counts[i], cmp);
+
+		std::set_difference(bufs[i].begin(), bufs[i].end(),
+				(Particle*)redist.helpers[0]->sendBufs[i].hostPtr(), ((Particle*)redist.helpers[0]->sendBufs[i].hostPtr()) + redist.helpers[0]->counts[i],
+				std::inserter(reference, reference.begin()), cmp);
+
+		std::set_difference(
+					(Particle*)redist.helpers[0]->sendBufs[i].hostPtr(), ((Particle*)redist.helpers[0]->sendBufs[i].hostPtr()) + redist.helpers[0]->counts[i],
+					bufs[i].begin(), bufs[i].end(),
+					std::inserter(got, got.begin()), cmp);
+
+		for (int pid = 0; pid < std::max(reference.size(), got.size()); pid++)
+		{
+			if (pid < got.size())
+				printf("redist %2d:  %5d [%12.5e %12.5e %12.5e], ",
+					i, got[pid].i1, got[pid].r.x, got[pid].r.y, got[pid].r.z);
+			else
+				printf("redist none,                                           ");
+
+			printf(" expected ");
+
+			if (pid < reference.size())
+				printf("%5d [%12.5e %12.5e %12.5e]\n",
+						reference[pid].i1, reference[pid].r.x, reference[pid].r.y, reference[pid].r.z);
+			else
+				printf("none\n");
 		}
 	}
 
