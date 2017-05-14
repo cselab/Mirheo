@@ -6,6 +6,7 @@
 #include <core/wall.h>
 #include <core/celllist.h>
 #include <core/particle_vector.h>
+#include <core/bounce.h>
 
 
 // This should be in helper_math.h, but not there for some reason
@@ -238,11 +239,12 @@ __global__ void getBoundaryCells(CellListInfo cinfo, Wall::SdfInfo sdfInfo,
 }
 
 __launch_bounds__(128, 8)
-__global__ void bounceKernel(const int* wallCells, const int nWallCells, const uint* __restrict__ cellsStartSize, CellListInfo cinfo,
+__global__ void bounceSDF(const int* wallCells, const int nWallCells, const uint* __restrict__ cellsStartSize, CellListInfo cinfo,
 		Wall::SdfInfo sdfInfo, float4* coosvels, const float dt)
 {
-	const int maxNIters = 20;
-	const float tolerance = 5e-6;
+	const auto F = [sdfInfo] (const float3 r) {
+		return evalSdf(r, sdfInfo);
+	};
 
 	const int tid = blockIdx.x * blockDim.x + threadIdx.x;
 	if (tid >= nWallCells) return;
@@ -254,71 +256,10 @@ __global__ void bounceKernel(const int* wallCells, const int nWallCells, const u
 	{
 		float va, vb;
 
-		float4 coo = coosvels[2*pid];
-		float4 vel = coosvels[2*pid+1];
+		float3 coo = make_float3(coosvels[2*pid]);
+		float3 vel = make_float3(coosvels[2*pid+1]);
 
-		// Warning - this is only valid for VV
-		float4 oldCoo = coo - dt*vel;
-
-		vb = evalSdf(coo, sdfInfo);
-
-		if (vb < 0.0f) continue; // if inside - continue
-
-		va = evalSdf(oldCoo, sdfInfo);
-
-		// Accuracy issues here!
-//		if (va > 0.0f)
-//			printf("A particle %d: [%f %f %f] (%f)  -->  [%f %f %f] (%f) was inside already, bounce may fail\n",
-//					__float_as_int(oldCoo.w), oldCoo.x, oldCoo.y, oldCoo.z, va, coo.x, coo.y, coo.z, vb);
-
-		// Determine where we cross
-		// Interpolation search
-
-		float3 a{oldCoo.x, oldCoo.y, oldCoo.z};
-		float3 b{coo.x, coo.y, coo.z};
-		float3 mid;
-		float vmid;
-
-		int iters;
-		for (iters=0; iters<maxNIters; iters++)
-		{
-			const float lambda = min(max((vb / (vb - va)), 0.01f), 0.99f);  // va*l + (1-l)*vb = 0
-			mid = a*lambda + b*(1.0f - lambda);
-			vmid = evalSdf(mid, sdfInfo);
-
-			if (va * vmid < 0.0f)
-			{
-				vb = vmid;
-				b = mid;
-			}
-			else
-			{
-				va = vmid;
-				a = mid;
-			}
-
-			if (fabs(vmid) < tolerance) break;
-		}
-
-		// This shouldn't happen, but smth may go wrong
-		if (fabs(vmid) > tolerance)
-		{
-			//printf("Solution was not found for bouncing!\n");
-			coosvels[2*pid] = oldCoo;
-			coosvels[2*pid + 1] = -vel;
-			return;
-		}
-
-		// Final intersection at old*alpha + new*(1-alpha)
-		// Take care if bounces are parallel to coo axes
-		float alpha;
-		if (oldCoo.x != coo.x)
-			alpha = (oldCoo.x - mid.x) / (oldCoo.x - coo.x);
-		else if (oldCoo.y != coo.y)
-			alpha = (oldCoo.y - mid.y) / (oldCoo.y - coo.y);
-		else if (oldCoo.z != coo.z)
-			alpha = (oldCoo.z - mid.z) / (oldCoo.z - coo.z);
-		else alpha = 1;
+		const float alpha = bounceLinSearch(coo, vel, dt, F);
 
 		// Just place the particle almost onto the surface and reverse the velocity
 		float beta = alpha - 1e-6f;

@@ -43,68 +43,6 @@ __global__ void integrationKernel(float4* coosvels, const float4* forces, const 
 	coosvels[gid] = val; //writeNoCache(coosvels + gid, val);
 }
 
-template<typename Transform>
-__global__ void integrateRigidKernel(float4 * coosvels, const float4 * forces, ObjectVector::COMandExtent* props, const int nObj, const int objSize,
-		const float invmass, const float dt, Transform transform)
-{
-	// http://math.stackexchange.com/questions/519200/dot-product-and-cross-product-solving-a-set-of-simultaneous-vector-equations
-
-	const int gid = threadIdx.x + blockDim.x * blockIdx.x;
-	const int objId = gid >> 5;
-	const int tid = gid & 0x1f;
-	if (objId >= nObj) return;
-
-	float3 force  = make_float3(0);
-	float3 torque = make_float3(0);
-	const float3 com = props[objId].com;
-
-	// Find the total force and torque
-#pragma unroll 3
-	for (int i = tid; i < objSize; i += warpSize)
-	{
-		const int offset = (objId * objSize + i);
-
-		const float3 frc = make_float3(coosvels[offset]);
-		const float3 r   = make_float3(coosvels[offset*2]) - com;
-
-		force += frc;
-		torque += cross(r, frc);
-	}
-
-	force  = warpReduce( force,  [] (float a, float b) { return a+b; } ) / objSize;
-	torque = warpReduce( torque, [] (float a, float b) { return a+b; } ) / objSize;
-
-	force.x  = __shfl(force.x, 0);
-	force.y  = __shfl(force.y, 0);
-	force.z  = __shfl(force.z, 0);
-
-	torque.x = __shfl(torque.x, 0);
-	torque.y = __shfl(torque.y, 0);
-	torque.z = __shfl(torque.z, 0);
-
-	// Distribute the force and torque per particle
-#pragma unroll 3
-	for (int i = tid; i < objSize; i += warpSize)
-	{
-		const int offset = (objId * objSize + i) * 2;
-
-		float4 r = coosvels[offset];
-		float4 v = coosvels[offset+1];
-
-		// Force consists of translational and rotational components
-		// first is just average force, second comes from a solution of:
-		//
-		//  torque = r x f,  f*r = 0
-		//
-		const float3 f = force + cross(torque, make_float3(r)) / dot(r, r);
-
-		transform(r, v, make_float4(f), invmass, dt);
-
-		coosvels[offset]   = r;
-		coosvels[offset+1] = v;
-	}
-}
-
 //==============================================================================================
 //==============================================================================================
 

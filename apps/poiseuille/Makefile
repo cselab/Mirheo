@@ -1,5 +1,5 @@
 NVCC = nvcc
-NVCCFLAGS = -std=c++11 -arch=compute_61 -code=sm_61 -g -lineinfo --expt-extended-lambda -Xcompiler "-fopenmp"
+NVCCFLAGS = -std=c++14 -arch=compute_61 -code=sm_61 -g -lineinfo --expt-extended-lambda -Xcompiler "-fopenmp"
 NOWARNFLAG = -Xcompiler "-Wno-cpp"
 
 HDF5_INC = /usr/include/hdf5/mpich/

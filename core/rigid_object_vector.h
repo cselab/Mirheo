@@ -8,12 +8,14 @@ class CellList;
 
 struct RigidObjectVector: public ObjectVector
 {
-	struct __align__(16) RigidMovement
+	struct __align__(16) RigidMotion
 	{
-		float3 vel, omega, force, torque;
+		float4 q;
+		float3 vel, omega;
+		float3 force, torque;
 	};
 
-	DeviceBuffer<RigidMovement> vs_fs_ts;  // vector of com velocity, force and torque
+	DeviceBuffer<RigidMotion> motion;  // vector of com velocity, force and torque
 
 
 	RigidObjectVector(std::string name, const int objSize, const int nObjects = 0) :
@@ -24,20 +26,20 @@ struct RigidObjectVector: public ObjectVector
 	{
 		ObjectVector::pushStreamWOhalo(stream);
 
-		vs_fs_ts.pushStream(stream);
+		motion.pushStream(stream);
 	}
 
 	virtual void popStreamWOhalo()
 	{
 		ObjectVector::popStreamWOhalo();
 
-		vs_fs_ts.popStream();
+		motion.popStream();
 	}
 
 	virtual void resize(const int np, ResizeKind kind = ResizeKind::resizePreserve)
 	{
 		ObjectVector::resize(np, kind);
-		vs_fs_ts.resize(nObjects, kind);
+		motion.resize(nObjects, kind);
 	}
 
 	virtual ~RigidObjectVector() = default;

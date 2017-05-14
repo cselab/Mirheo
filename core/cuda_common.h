@@ -1,5 +1,11 @@
 #pragma once
 
+template<typename T>
+__inline__ __device__ T sqr(T val)
+{
+	return val*val;
+}
+
 template<typename Operation>
 __inline__ __device__ float3 warpReduce(float3 val, Operation op)
 {

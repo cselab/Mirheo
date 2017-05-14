@@ -40,6 +40,20 @@ public:
 		iz = cid / (ncells.x * ncells.y);
 	}
 
+	__device__ __host__ __forceinline__ int encode(int3 cid3) const
+	{
+		return (cid3.z*ncells.y + cid3.y)*ncells.x + cid3.x;
+	}
+
+	__device__ __host__ __forceinline__ int3 decode(int cid) const
+	{
+		return make_int3(
+				cid % ncells.x,
+				(cid / ncells.x) % ncells.y,
+				cid / (ncells.x * ncells.y)
+		);
+	}
+
 	__device__ __host__ __forceinline__ int encodeStartSize(int start, uint8_t size) const
 	{
 		return start + (size << blendingPower);
