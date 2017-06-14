@@ -37,9 +37,10 @@ __global__ void computeSelfInteractions(
 
 	const float4 dstCoo = coosvels[2*dstId];
 	const float4 dstVel = coosvels[2*dstId+1];
+	const Particle dstP(dstCoo, dstVel);
 	float3 dstFrc = make_float3(0.0f);
 
-	const int3 cell0 = cinfo.getCellIdAlongAxis(make_float3(dstCoo));
+	const int3 cell0 = cinfo.getCellIdAlongAxis(dstP.r);
 
 	for (int cellZ = cell0.z-1; cellZ <= cell0.z+1; cellZ++)
 		for (int cellY = cell0.y-1; cellY <= cell0.y; cellY++)
@@ -64,17 +65,19 @@ __global__ void computeSelfInteractions(
 				{
 					const float4 srcCoo = coosvels[2*srcId];
 
-					bool interacting = distance2(srcCoo, dstCoo) < rc2;
+					bool interacting = distance2(srcCoo, dstP.r) < rc2;
 					if (dstId <= srcId && cellY == cell0.y && cellZ == cell0.z) interacting = false;
 
 					if (interacting)
 					{
 						const float4 srcVel = coosvels[2*srcId+1];
+						const Particle srcP(srcCoo, srcVel);
 
-						float3 frc = interaction(dstCoo, dstVel, dstId, srcCoo, srcVel, srcId);
+						float3 frc = interaction(dstP, srcP);
 
 						dstFrc += frc;
-						atomicAdd(forces + srcId*4, -frc);
+						if (dot(frc, frc) > 1e-6f)
+							atomicAdd(forces + srcId*4, -frc);
 					}
 				}
 			}
@@ -101,11 +104,10 @@ __global__ void computeExternalInteractions(
 	const int dstId = blockIdx.x*blockDim.x + threadIdx.x;
 	if (dstId >= ndst) return;
 
-	const float4 dstCoo = readNoCache(dstData+2*dstId);
-	const float4 dstVel = readNoCache(dstData+2*dstId+1);
+	const Particle dstP(readNoCache(dstData+2*dstId), readNoCache(dstData+2*dstId+1));
 	float3 dstFrc = make_float3(0.0f);
 
-	const int3 cell0 = cinfo.getCellIdAlongAxis<false>(make_float3(dstCoo));
+	const int3 cell0 = cinfo.getCellIdAlongAxis<false>(dstP.r);
 
 	auto computeCell = [&] (int2 start_size) {
 #pragma unroll 2
@@ -113,20 +115,21 @@ __global__ void computeExternalInteractions(
 				{
 					const float4 srcCoo = srcData[2*srcId];
 
-					bool interacting = distance2(srcCoo, dstCoo) < rc2;
+					bool interacting = distance2(srcCoo, dstP.r) < rc2;
 
 					if (interacting)
 					{
 						const float4 srcVel = srcData[2*srcId+1];
+						const Particle srcP(srcCoo, srcVel);
 
-						float3 frc = interaction(dstCoo, dstVel, __float_as_int(dstCoo.w),
-												 srcCoo, srcVel, __float_as_int(srcCoo.w));
+						float3 frc = interaction(dstP, srcP);
 
 						if (NeedDstAcc)
 							dstFrc += frc;
 
 						if (NeedSrcAcc)
-							atomicAdd(srcFrcs + srcId*4, -frc);
+							if (dot(frc, frc) > 1e-6f)
+								atomicAdd(srcFrcs + srcId*4, -frc);
 					}
 				}
 	};

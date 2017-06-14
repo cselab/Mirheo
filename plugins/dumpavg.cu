@@ -114,8 +114,8 @@ void Avg3DPlugin::afterIntegration()
 	{
 		CellListInfo cinfo(binSize, pv->domainSize);
 
-		sample<<< (pv->np+127) / 128, 128, 0, stream >>> (
-				pv->np, (float4*)pv->coosvels.devPtr(), (float4*)pv->forces.devPtr(),
+		sample<<< (pv->local()->size()+127) / 128, 128, 0, stream >>> (
+				pv->local()->size(), (float4*)pv->local()->coosvels.devPtr(), (float4*)pv->local()->forces.devPtr(),
 				pv->mass, cinfo,
 				needDensity  ? density .devPtr() : nullptr,
 				needMomentum ? momentum.devPtr() : nullptr,

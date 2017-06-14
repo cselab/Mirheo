@@ -88,23 +88,30 @@ void ParticleHaloExchanger::attach(ParticleVector* pv, CellList* cl)
 	particles.push_back(pv);
 	cellLists.push_back(cl);
 
-	const double ndens = (double)pv->np / (cl->ncells.x * cl->ncells.y * cl->ncells.z * cl->rc*cl->rc*cl->rc);
+	const double ndens = (double)pv->local()->size() / (cl->ncells.x * cl->ncells.y * cl->ncells.z * cl->rc*cl->rc*cl->rc);
 	const int maxdim = std::max({cl->domainSize.x, cl->domainSize.y, cl->domainSize.z});
 
 	// Sizes of buffers. 0 is side, 1 is edge, 2 is corner
 	const int sizes[3] = { (int)(4*ndens * maxdim*maxdim + 128), (int)(4*ndens * maxdim + 128), (int)(4*ndens + 128) };
 
-	auto helper = new ExchangeHelper(pv->name, sizes, &pv->halo);
+	auto helper = new ExchangeHelper(pv->name, sizeof(Particle), sizes);
 	helpers.push_back(helper);
 }
 
-void ParticleHaloExchanger::prepareUploadTarget(int id)
+void ParticleHaloExchanger::combineAndUploadData(int id)
 {
 	auto pv = particles[id];
 	auto helper = helpers[id];
 
-	pv->halo.resize(helper->recvOffsets[27], resizeAnew);
-	helper->target = (char*)pv->halo.devPtr();
+	pv->halo()->resize(helper->recvOffsets[27], resizeAnew);
+
+	for (int i=0; i < 27; i++)
+	{
+		const int msize = helper->recvOffsets[i+1] - helper->recvOffsets[i];
+		if (msize > 0)
+			CUDA_Check( cudaMemcpyAsync(pv->halo()->coosvels.devPtr() + helper->recvOffsets[i], helper->recvBufs[i].hostPtr(),
+					msize*sizeof(Particle), cudaMemcpyHostToDevice, helper->stream) );
+	}
 }
 
 void ParticleHaloExchanger::prepareData(int id)
@@ -115,14 +122,14 @@ void ParticleHaloExchanger::prepareData(int id)
 
 	debug2("Preparing %s halo on the device", pv->name.c_str());
 
-	helper->counts.pushStream(defStream);
-	helper->counts.clearDevice();
-	helper->counts.popStream();
+	helper->bufSizes.pushStream(defStream);
+	helper->bufSizes.clearDevice();
+	helper->bufSizes.popStream();
 
 	const int maxdim = std::max({cl->ncells.x, cl->ncells.y, cl->ncells.z});
 	const int nthreads = 32;
-	if (pv->np > 0)
+	if (pv->local()->size() > 0)
 		getHalos<<< dim3((maxdim*maxdim + nthreads - 1) / nthreads, 6, 1),  dim3(nthreads, 1, 1), 0, defStream >>>
-				((float4*)pv->coosvels.devPtr(), cl->cellInfo(), cl->cellsStartSize.devPtr(), (int64_t*)helper->sendAddrs.devPtr(), helper->counts.devPtr());
+				((float4*)pv->local()->coosvels.devPtr(), cl->cellInfo(), cl->cellsStartSize.devPtr(), (int64_t*)helper->sendAddrs.devPtr(), helper->bufSizes.devPtr());
 }
 

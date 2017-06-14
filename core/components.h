@@ -33,7 +33,7 @@ struct Interaction
 		// swell the code by a looooot
 		if (type == InteractionType::Regular)
 		{
-			if (pv1->np < pv2->np)
+			if (pv1->local()->size() < pv2->local()->size())
 				interaction(type, pv1, pv2, cl1, t, stream);
 			else
 				interaction(type, pv2, pv1, cl2, t, stream);

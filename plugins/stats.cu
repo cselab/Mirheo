@@ -65,8 +65,8 @@ void SimulationStats::afterIntegration()
 	nparticles = 0;
 	for (auto& pv : pvs)
 	{
-		totalMomentumEnergy<<< (pv->np+127)/128, 128, 0, stream >>> ((float4*)pv->coosvels.devPtr(), pv->mass, pv->np, momentum.devPtr(), energy.devPtr());
-		nparticles += pv->np;
+		totalMomentumEnergy<<< (pv->local()->size()+127)/128, 128, 0, stream >>> ((float4*)pv->local()->coosvels.devPtr(), pv->mass, pv->local()->size(), momentum.devPtr(), energy.devPtr());
+		nparticles += pv->local()->size();
 	}
 
 	momentum.downloadFromDevice();

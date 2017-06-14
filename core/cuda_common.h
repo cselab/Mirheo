@@ -1,5 +1,17 @@
 #pragma once
 
+#include <core/helper_math.h>
+
+// Workaround for nsight
+#ifndef __CUDACC_EXTENDED_LAMBDA__
+#define __device__
+#endif
+
+inline int getNblocks(const int n, const int nthreads)
+{
+	return (n+nthreads-1) / nthreads;
+}
+
 template<typename T>
 __inline__ __device__ T sqr(T val)
 {
@@ -30,3 +42,4 @@ __device__ __forceinline__ void writeNoCache(float4* addr, const float4 val)
 {
 	asm("st.global.wt.v4.f32 [%0], {%1, %2, %3, %4};" :: "l"(addr), "f"(val.x), "f"(val.y), "f"(val.z), "f"(val.w));
 }
+

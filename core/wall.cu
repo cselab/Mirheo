@@ -242,7 +242,7 @@ __launch_bounds__(128, 8)
 __global__ void bounceSDF(const int* wallCells, const int nWallCells, const uint* __restrict__ cellsStartSize, CellListInfo cinfo,
 		Wall::SdfInfo sdfInfo, float4* coosvels, const float dt)
 {
-	const auto F = [sdfInfo] (const float3 r) {
+	const auto F = [sdfInfo] (const float3 r, float dummy) {
 		return evalSdf(r, sdfInfo);
 	};
 
@@ -254,19 +254,24 @@ __global__ void bounceSDF(const int* wallCells, const int nWallCells, const uint
 
 	for (int pid = startSize.x; pid < startSize.x + startSize.y; pid++)
 	{
-		float va, vb;
+		Particle p(coosvels[2*pid], coosvels[2*pid+1]);
+		float3 oldCoo = p.r - p.u*dt;
 
-		float3 coo = make_float3(coosvels[2*pid]);
-		float3 vel = make_float3(coosvels[2*pid+1]);
+		const float alpha = bounceLinSearch(oldCoo, p.r, dt, F);
 
-		const float alpha = bounceLinSearch(coo, vel, dt, F);
-
+		// FIXME: ID!!
 		// Just place the particle almost onto the surface and reverse the velocity
 		float beta = alpha - 1e-6f;
-		float4 candidate = oldCoo + beta * (coo - oldCoo);
+		float3 candidate = oldCoo + beta * (p.r - oldCoo);
 
-		coosvels[2*pid] = candidate;
-		coosvels[2*pid + 1] = -vel;
+		if (F(candidate, 0.0f) >= 0.0f)
+		{
+			printf("Sdf bounce failed. Particle will simply return back to its location\n");
+			candidate = oldCoo;
+		}
+
+		coosvels[2*pid]     = make_float4(candidate, __float_as_int(p.i1));
+		coosvels[2*pid + 1] = make_float4(-p.u,      __float_as_int(p.i2));
 	}
 }
 
@@ -498,10 +503,10 @@ void Wall::freezeParticles(ParticleVector* pv)
 	PinnedBuffer<int> nFrozen(1), nRemaining(1), nBoundaryCells(1);
 
 	nFrozen.clear();
-	countFrozen<<< (pv->np + 127) / 128, 128 >>>((float4*)pv->coosvels.devPtr(), pv->np, sdfInfo, nFrozen.devPtr());
+	countFrozen<<< (pv->local()->size() + 127) / 128, 128 >>>((float4*)pv->local()->coosvels.devPtr(), pv->local()->size(), sdfInfo, nFrozen.devPtr());
 	nFrozen.downloadFromDevice();
 
-	frozen->resize(nFrozen.hostPtr()[0]);
+	frozen->local()->resize(nFrozen.hostPtr()[0]);
 	frozen->mass = pv->mass;
 	frozen->domainSize = pv->domainSize;
 
@@ -510,18 +515,18 @@ void Wall::freezeParticles(ParticleVector* pv)
 	nFrozen.   clear();
 	nRemaining.clear();
 
-	PinnedBuffer<Particle> tmp(pv->np);
-	collectFrozen<<< (pv->np + 127) / 128, 128 >>>( (float4*)pv->coosvels.devPtr(), pv->np, sdfInfo,
-			(float4*)tmp.devPtr(), (float4*)frozen->coosvels.devPtr(),
+	PinnedBuffer<Particle> tmp(pv->local()->size());
+	collectFrozen<<< (pv->local()->size() + 127) / 128, 128 >>>( (float4*)pv->local()->coosvels.devPtr(), pv->local()->size(), sdfInfo,
+			(float4*)tmp.devPtr(), (float4*)frozen->local()->coosvels.devPtr(),
 			nRemaining.devPtr(), nFrozen.devPtr());
 	nRemaining.downloadFromDevice();
 	nFrozen.   downloadFromDevice();
 
 
 	CUDA_Check( cudaStreamSynchronize(0) );
-	containerSwap(pv->coosvels, tmp);
-	pv->resize(nRemaining.hostPtr()[0]);
-	pv->changedStamp++;
+	containerSwap(pv->local()->coosvels, tmp);
+	pv->local()->resize(nRemaining.hostPtr()[0]);
+	pv->local()->changedStamp++;
 	info("Keeping %d pv", nRemaining.hostPtr()[0]);
 
 	CUDA_Check( cudaDeviceSynchronize() );
@@ -534,10 +539,10 @@ void Wall::bounce(float dt, cudaStream_t stream)
 		auto pv = particleVectors[i];
 		auto cl = cellLists[i];
 
-		debug2("Bouncing %d %s particles", pv->size(), pv->name.c_str());
-		bounceKernel<<< (boundaryCells[i].size() + 63) / 64, 64, 0, stream >>>(
+		debug2("Bouncing %d %s particles", pv->local()->size(), pv->name.c_str());
+		bounceSDF<<< (boundaryCells[i].size() + 63) / 64, 64, 0, stream >>>(
 				boundaryCells[i].devPtr(), boundaryCells[i].size(), cl->cellsStartSize.devPtr(), cl->cellInfo(),
-				sdfInfo, (float4*)pv->coosvels.devPtr(), dt);
+				sdfInfo, (float4*)pv->local()->coosvels.devPtr(), dt);
 	}
 }
 

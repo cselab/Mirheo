@@ -8,6 +8,11 @@
  * this software and related documentation outside the terms of the EULA
  * is strictly prohibited.
  */
+
+// Yo ho ho ho
+#define private   public
+#define protected public
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <cuda.h>
@@ -44,31 +49,32 @@ int main(int argc, char **argv)
 	MPI_Check( MPI_Cart_create(MPI_COMM_WORLD, 3, ranks, periods, 0, &cartComm) );
 
 
-	std::string xml = R"(<node mass="1.0" density="2.0">)";
+	std::string xml = R"(<node mass="1.0" density="8.0">)";
 	pugi::xml_document config;
 	config.load_string(xml.c_str());
 
-	float3 length{64,32,55};
+	float3 length{66,33,51};
 	float3 domainStart = -length / 2.0f;
 	const float rc = 1.2f;
 	ParticleVector dpds("dpd");
 	CellList cells(&dpds, rc, length);
+	cells.makePrimary();
 
 	InitialConditions ic = createIC(config.child("node"));
 	ic.exec(MPI_COMM_WORLD, &dpds, {0,0,0}, length);
 
-	const int np = dpds.np;
+	const int np = dpds.local()->size();
 	HostBuffer<Particle> initial(np);
 	auto initPtr = initial.hostPtr();
 	for (int i=0; i<np; i++)
-		initPtr[i] = dpds.coosvels[i];
+		initPtr[i] = dpds.local()->coosvels[i];
 
 	for (int i=0; i<50; i++)
-		cells.build(0);
+		cells.build();
 
-	dpds.coosvels.downloadFromDevice(true);
+	dpds.local()->coosvels.downloadFromDevice(true);
 
-	HostBuffer<int> hcellsStart(cells.totcells+1);
+	HostBuffer<uint> hcellsStart(cells.totcells+1);
 	HostBuffer<uint8_t> hcellsSize(cells.totcells+1);
 
 	hcellsStart.copy(cells.cellsStartSize, 0);
@@ -81,8 +87,8 @@ int main(int argc, char **argv)
 	int total = 0;
 	for (int pid=0; pid < initial.size(); pid++)
 	{
-		float3 coo{initial[pid].x[0], initial[pid].x[1], initial[pid].x[2]};
-		float3 vel{initial[pid].u[0], initial[pid].u[1], initial[pid].u[2]};
+		float3 coo{initial[pid].r.x, initial[pid].r.y, initial[pid].r.z};
+		float3 vel{initial[pid].u.x, initial[pid].u.y, initial[pid].u.z};
 
 		//vel += acc * dt;
 		//coo += vel * dt;
@@ -95,7 +101,7 @@ int main(int argc, char **argv)
 		}
 	}
 
-	printf("np = %d, vs reference  %d\n", dpds.np, total);
+	printf("np = %d, vs reference  %d\n", dpds.local()->size(), total);
 	for (int cid=0; cid < cells.totcells+1; cid++)
 		if ( (hcellsStart[cid] >> cells.blendingPower) != cellscount[cid] )
 			printf("cid %d:  %d (correct %d),  %d\n", cid, hcellsStart[cid] >> cells.blendingPower, cellscount[cid], hcellsStart[cid] & ((1<<cells.blendingPower) - 1));
@@ -106,13 +112,13 @@ int main(int argc, char **argv)
 		const int size = hcellsStart[cid] >> cells.blendingPower;
 		for (int pid=start; pid < start + size; pid++)
 		{
-			const float3 cooDev{dpds.coosvels[pid].x[0], dpds.coosvels[pid].x[1], dpds.coosvels[pid].x[2]};
-			const float3 velDev{dpds.coosvels[pid].u[0], dpds.coosvels[pid].u[1], dpds.coosvels[pid].u[2]};
+			const float3 cooDev{dpds.local()->coosvels[pid].r.x, dpds.local()->coosvels[pid].r.y, dpds.local()->coosvels[pid].r.z};
+			const float3 velDev{dpds.local()->coosvels[pid].u.x, dpds.local()->coosvels[pid].u.y, dpds.local()->coosvels[pid].u.z};
 
-			const int origId = dpds.coosvels[pid].i1;
+			const int origId = dpds.local()->coosvels[pid].i1;
 
-			float3 coo{initial[origId].x[0], initial[origId].x[1], initial[origId].x[2]};
-			float3 vel{initial[origId].u[0], initial[origId].u[1], initial[origId].u[2]};
+			float3 coo{initial[origId].r.x, initial[origId].r.y, initial[origId].r.z};
+			float3 vel{initial[origId].u.x, initial[origId].u.y, initial[origId].u.z};
 
 //			vel += acc * dt;
 //			coo += vel * dt;
@@ -125,7 +131,7 @@ int main(int argc, char **argv)
 
 			if (cid != actCid || diff > 1e-5)
 				printf("cid  %d,  correct cid  %d  for pid %d:  [%e %e %e  %d]  correct: [%e %e %e  %d]\n",
-						cid, actCid, pid, cooDev.x, cooDev.y, cooDev.z, dpds.coosvels[pid].i1,
+						cid, actCid, pid, cooDev.x, cooDev.y, cooDev.z, dpds.local()->coosvels[pid].i1,
 						coo.x, coo.y, coo.z, initial[origId].i1);
 		}
 	}

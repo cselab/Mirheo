@@ -270,14 +270,14 @@ int main(int argc, char ** argv)
 		interactionDPD(InteractionType::Halo, pv1, pv2, cl, t, stream, adpd, gammadpd, sigma_dt, rc);
 	};
 
-	dpds.coosvels.downloadFromDevice(true);
-	dpds.forces.clear();
-	int initialNP = dpds.np;
+	dpds.local()->coosvels.downloadFromDevice(true);
+	dpd.local()->forces.clear();
+	int initialNP = dpds.local()->size();
 
-	HostBuffer<Particle> locparticles(dpds.np);
-	for (int i=0; i<dpds.np; i++)
+	HostBuffer<Particle> locparticles(dpds.local()->size());
+	for (int i=0; i<dpds.local()->size(); i++)
 	{
-		locparticles[i] = dpds.coosvels[i];
+		locparticles[i] = dpds.local()->coosvels[i];
 
 		locparticles[i].r.x += (coords[0] + 0.5 - 0.5*ranks[0]) * length.x;
 		locparticles[i].r.y += (coords[1] + 0.5 - 0.5*ranks[1]) * length.z;
@@ -287,10 +287,10 @@ int main(int argc, char ** argv)
 	cudaStream_t defStream;
 	CUDA_Check( cudaStreamCreateWithPriority(&defStream, cudaStreamNonBlocking, 10) );
 
-	dpds.pushStreamWOhalo(defStream);
+	dpds.pushStream(defStream);
 
 	HaloExchanger halo(cartComm, defStream);
-	halo.attach(&dpds, &cells);
+	halo->attach(&dpds, &cells);
 	Redistributor redist(cartComm);
 	redist.attach(&dpds, &cells);
 
@@ -308,11 +308,11 @@ int main(int argc, char ** argv)
 		cells.build(defStream);
 		CUDA_Check( cudaStreamSynchronize(defStream) );
 
-		dpds.forces.clear();
+		dpd.local()->forces.clear();
 		inter(&dpds, &cells, dt*i, defStream);
 
-		halo.init();
-		halo.finalize();
+		halo->init();
+		halo->finalize();
 		haloInt(&dpds, &dpds, &cells, dt*i, defStream);
 
 		integrateNoFlow(&dpds, dt, defStream);
@@ -330,13 +330,13 @@ int main(int argc, char ** argv)
 	cells.build(defStream);
 
 
-	dpds.coosvels.downloadFromDevice(true);
+	dpds.local()->coosvels.downloadFromDevice(true);
 
-	for (int i=0; i<dpds.np; i++)
+	for (int i=0; i<dpds.local()->size(); i++)
 	{
-		dpds.coosvels[i].r.x += (coords[0] + 0.5 - 0.5*ranks[0]) * length.x;
-		dpds.coosvels[i].r.y += (coords[1] + 0.5 - 0.5*ranks[1]) * length.z;
-		dpds.coosvels[i].r.z += (coords[2] + 0.5 - 0.5*ranks[2]) * length.y;
+		dpds.local()->coosvels[i].r.x += (coords[0] + 0.5 - 0.5*ranks[0]) * length.x;
+		dpds.local()->coosvels[i].r.y += (coords[1] + 0.5 - 0.5*ranks[1]) * length.z;
+		dpds.local()->coosvels[i].r.z += (coords[2] + 0.5 - 0.5*ranks[2]) * length.y;
 	}
 
 	int totalParticles;
@@ -344,7 +344,7 @@ int main(int argc, char ** argv)
 	HostBuffer<int> sizes(ranks[0]*ranks[1]*ranks[2]), displs(ranks[0]*ranks[1]*ranks[2] + 1);
 	HostBuffer<int> initialSizes(ranks[0]*ranks[1]*ranks[2]), initialDispls(ranks[0]*ranks[1]*ranks[2] + 1);
 
-	MPI_Check( MPI_Gather(&dpds.np,   1, MPI_INT, sizes.hostPtr(),        1, MPI_INT, 0, MPI_COMM_WORLD) );
+	MPI_Check( MPI_Gather(&dpds.local()->size(),   1, MPI_INT, sizes.hostPtr(),        1, MPI_INT, 0, MPI_COMM_WORLD) );
 	MPI_Check( MPI_Gather(&initialNP, 1, MPI_INT, initialSizes.hostPtr(), 1, MPI_INT, 0, MPI_COMM_WORLD) );
 
 	displs[0] = 0;
@@ -373,7 +373,7 @@ int main(int argc, char ** argv)
 	MPI_Check( MPI_Type_contiguous(sizeof(Particle), MPI_BYTE, &mpiPart) );
 	MPI_Check( MPI_Type_commit(&mpiPart) );
 
-	MPI_Check( MPI_Gatherv(dpds.coosvels.hostPtr(), dpds.np,   mpiPart, finalParticles.hostPtr(), sizes       .hostPtr(), displs       .hostPtr(), mpiPart, 0, MPI_COMM_WORLD) );
+	MPI_Check( MPI_Gatherv(dpds.local()->coosvels.hostPtr(), dpds.local()->size(),   mpiPart, finalParticles.hostPtr(), sizes       .hostPtr(), displs       .hostPtr(), mpiPart, 0, MPI_COMM_WORLD) );
 	MPI_Check( MPI_Gatherv(locparticles.hostPtr(),  initialNP, mpiPart, particles     .hostPtr(), initialSizes.hostPtr(), initialDispls.hostPtr(), mpiPart, 0, MPI_COMM_WORLD) );
 
 
@@ -461,7 +461,7 @@ int main(int argc, char ** argv)
 			}
 		}
 
-		l2 = sqrt(l2 / dpds.np);
+		l2 = sqrt(l2 / dpds.local()->size());
 		printf("L2   norm: %f\n", l2);
 		printf("Linf norm: %f\n", linf);
 	}

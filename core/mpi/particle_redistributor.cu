@@ -77,7 +77,7 @@ void ParticleRedistributor::attach(ParticleVector* pv, CellList* cl)
 	particles.push_back(pv);
 	cellLists.push_back(cl);
 
-	const double ndens = (double)pv->np / (cl->ncells.x * cl->ncells.y * cl->ncells.z * cl->rc*cl->rc*cl->rc);
+	const double ndens = (double)pv->local()->size() / (cl->ncells.x * cl->ncells.y * cl->ncells.z * cl->rc*cl->rc*cl->rc);
 	const int maxdim = std::max({cl->domainSize.x, cl->domainSize.y, cl->domainSize.z});
 
 	// Sizes of buffers. 0 is side, 1 is edge, 2 is corner
@@ -107,9 +107,9 @@ void ParticleRedistributor::prepareData(int id)
 
 	const int maxdim = std::max({cl->ncells.x, cl->ncells.y, cl->ncells.z});
 	const int nthreads = 32;
-	if (pv->np > 0)
+	if (pv->local()->size() > 0)
 		getExitingParticles<<< dim3((maxdim*maxdim + nthreads - 1) / nthreads, 6, 1),  dim3(nthreads, 1, 1), 0, helper->stream >>>
-					( (float4*)pv->coosvels.devPtr(), cl->cellInfo(), cl->cellsStartSize.devPtr(), (int64_t*)helper->sendAddrs.devPtr(), helper->counts.devPtr() );
+					( (float4*)pv->local()->coosvels.devPtr(), cl->cellInfo(), cl->cellsStartSize.devPtr(), (int64_t*)helper->sendAddrs.devPtr(), helper->counts.devPtr() );
 }
 
 void ParticleRedistributor::prepareUploadTarget(int id)
@@ -117,7 +117,7 @@ void ParticleRedistributor::prepareUploadTarget(int id)
 	auto pv = particles[id];
 	auto helper = helpers[id];
 
-	int oldsize = pv->np;
-	pv->resize(oldsize + helper->recvOffsets[27], resizePreserve);
-	helper->target = (char*) (pv->coosvels.devPtr() + oldsize);
+	int oldsize = pv->local()->size();
+	pv->local()->resize(oldsize + helper->recvOffsets[27], resizePreserve);
+	helper->target = (char*) (pv->local()->coosvels.devPtr() + oldsize);
 }

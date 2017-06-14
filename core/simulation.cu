@@ -166,7 +166,7 @@ void Simulation::init()
 
 	debug("Attaching particle vectors to halo exchanger and redistributor");
 	for (int i=0; i<particleVectors.size(); i++)
-		if (cellListMaps[i].size() > 0 && particleVectors[i]->np > 0)
+		if (cellListMaps[i].size() > 0 && particleVectors[i]->local()->size() > 0)
 		{
 			auto cl = cellListMaps[i].begin()->second;
 
@@ -178,7 +178,7 @@ void Simulation::init()
 	// XXX: Is it really needed?
 	debug("Setting up streams");
 	for (auto pv : particleVectors)
-		pv->pushStreamWOhalo(defStream);
+		pv->local()->pushStream(defStream);
 
 	for (auto clMap : cellListMaps)
 		for (auto rc_cl : clMap)
@@ -248,7 +248,7 @@ void Simulation::run(int nsteps)
 		//===================================================================================================
 
 		for (auto& pv : particleVectors)
-			pv->forces.clear();
+			pv->local()->forces.clear();
 
 		debug("Plugins: before forces");
 		for (auto& pl : plugins)

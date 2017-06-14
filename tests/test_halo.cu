@@ -42,7 +42,7 @@ int main(int argc, char ** argv)
 	pugi::xml_document config;
 	config.load_string(xml.c_str());
 
-	float3 length{24,24,24};
+	float3 length{64,64,64};
 	float3 domainStart = -length / 2.0f;
 	const float rc = 1.0f;
 	ParticleVector dpds("dpd");
@@ -55,7 +55,7 @@ int main(int argc, char ** argv)
 
 	cells.build();
 
-	dpds.coosvels.downloadFromDevice(true);
+	dpds.local()->coosvels.downloadFromDevice(true);
 
 	cudaStream_t defStream = 0;
 
@@ -72,12 +72,12 @@ int main(int argc, char ** argv)
 	}
 
 	std::vector<Particle> bufs[27];
-	dpds.coosvels.downloadFromDevice(true);
-	dpds.halo.downloadFromDevice(true);
+	dpds.local()->coosvels.downloadFromDevice(true);
+	dpds.halo()->coosvels.downloadFromDevice(true);
 
-	for (int i=0; i<dpds.np; i++)
+	for (int i=0; i<dpds.local()->size(); i++)
 	{
-		Particle& p = dpds.coosvels[i];
+		Particle& p = dpds.local()->coosvels[i];
 
 		int3 code = cells.getCellIdAlongAxis(p.r);
 		int cx = code.x,  cy = code.y,  cz = code.z;
@@ -123,15 +123,15 @@ int main(int argc, char ** argv)
 	{
 		std::sort(bufs[i].begin(), bufs[i].end(), [] (Particle& a, Particle& b) { return a.i1 < b.i1; });
 
-		std::sort((Particle*)halo.helpers[0]->sendBufs[i].hostPtr(), ((Particle*)halo.helpers[0]->sendBufs[i].hostPtr()) + halo.helpers[0]->counts[i],
+		std::sort((Particle*)halo.helpers[0]->sendBufs[i].hostPtr(), ((Particle*)halo.helpers[0]->sendBufs[i].hostPtr()) + halo.helpers[0]->bufSizes[i],
 				[] (Particle& a, Particle& b) { return a.i1 < b.i1; });
 
-		if (bufs[i].size() != halo.helpers[0]->counts[i])
-			printf("%2d-th halo differs in size: %5d, expected %5d\n", i, halo.helpers[0]->counts[i], (int)bufs[i].size());
+		if (bufs[i].size() != halo.helpers[0]->bufSizes[i])
+			printf("%2d-th halo differs in size: %5d, expected %5d\n", i, halo.helpers[0]->bufSizes[i], (int)bufs[i].size());
 		else
 		{
 			auto ptr = (Particle*)halo.helpers[0]->sendBufs[i].hostPtr();
-			for (int pid = 0; pid < halo.helpers[0]->counts[i]; pid++)
+			for (int pid = 0; pid < halo.helpers[0]->bufSizes[i]; pid++)
 			{
 				const float diff = std::max({
 					fabs(ptr[pid].r.x - bufs[i][pid].r.x),
@@ -146,7 +146,7 @@ int main(int argc, char ** argv)
 		}
 	}
 
-//	for (int i=0; i<dpds.halo.size(); i++)
+//	for (int i=0; i<dpds.halo()->size(); i++)
 //		printf("%d  %f %f %f\n", i, dpds.halo[i].r.x, dpds.halo[i].r.y, dpds.halo[i].r.z);
 
 	return 0;

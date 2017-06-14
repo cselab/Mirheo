@@ -53,21 +53,21 @@ int main(int argc, char ** argv)
 	InitialConditions ic = createIC(config.child("node"));
 	ic.exec(MPI_COMM_WORLD, &dpds, {0,0,0}, length);
 
-	const int initialNP = dpds.np;
-	HostBuffer<Particle> host(dpds.np);
+	const int initialNP = dpds.local()->size();
+	HostBuffer<Particle> host(dpds.local()->size());
 	const float dt = 0.1;
-	for (int i=0; i<dpds.np; i++)
+	for (int i=0; i<dpds.local()->size(); i++)
 	{
-		dpds.coosvels[i].u.z = 5*(drand48() - 0.5);
-		dpds.coosvels[i].u.y = 5*(drand48() - 0.5);
-		dpds.coosvels[i].u.z = 5*(drand48() - 0.5);
+		dpds.local()->coosvels[i].u.z = 5*(drand48() - 0.5);
+		dpds.local()->coosvels[i].u.y = 5*(drand48() - 0.5);
+		dpds.local()->coosvels[i].u.z = 5*(drand48() - 0.5);
 
-		dpds.coosvels[i].r += dt * dpds.coosvels[i].u;
+		dpds.local()->coosvels[i].r += dt * dpds.local()->coosvels[i].u;
 
-		host[i] = dpds.coosvels[i];
+		host[i] = dpds.local()->coosvels[i];
 	}
 
-	dpds.coosvels.uploadToDevice();
+	dpds.local()->coosvels.uploadToDevice();
 
 	cudaStream_t defStream = 0;
 

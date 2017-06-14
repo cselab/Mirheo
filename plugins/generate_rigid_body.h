@@ -36,11 +36,11 @@ public:
 			return dot(tmp, tmp);
 		};
 
-		pv->coosvels.downloadFromDevice();
-		auto ptr = pv->coosvels.hostPtr();
+		pv->local()->coosvels.downloadFromDevice();
+		auto ptr = pv->local()->coosvels.hostPtr();
 		std::vector<float3> res;
 
-		for (int i=0; i<pv->size(); i++)
+		for (int i=0; i<pv->local()->size(); i++)
 			if (ellipsoid(ptr[i].r) <= 1.0f)
 				res.push_back(ptr[i].r - x0);
 

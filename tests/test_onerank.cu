@@ -212,31 +212,31 @@ int main(int argc, char ** argv)
 			for (int k=0; k<ncells.z; k++)
 				for (int p=0; p<ndens; p++)
 				{
-					dpds.coosvels[c].x[0] = i + drand48() + domainStart.x;
-					dpds.coosvels[c].x[1] = j + drand48() + domainStart.y;
-					dpds.coosvels[c].x[2] = k + drand48() + domainStart.z;
-					dpds.coosvels[c].i1 = c;
+					dpds.local()->coosvels[c].x[0] = i + drand48() + domainStart.x;
+					dpds.local()->coosvels[c].x[1] = j + drand48() + domainStart.y;
+					dpds.local()->coosvels[c].x[2] = k + drand48() + domainStart.z;
+					dpds.local()->coosvels[c].i1 = c;
 
-					dpds.coosvels[c].u[0] = 0*(drand48() - 0.5);
-					dpds.coosvels[c].u[1] = 0*(drand48() - 0.5);
-					dpds.coosvels[c].u[2] = 0*(drand48() - 0.5);
+					dpds.local()->coosvels[c].u[0] = 0*(drand48() - 0.5);
+					dpds.local()->coosvels[c].u[1] = 0*(drand48() - 0.5);
+					dpds.local()->coosvels[c].u[2] = 0*(drand48() - 0.5);
 					c++;
 				}
 
 
 	dpds.resize(c);
-	dpds.coosvels.synchronize(synchronizeDevice);
-	dpds.forces.clear();
+	dpds.local()->coosvels.synchronize(synchronizeDevice);
+	dpd.local()->forces.clear();
 
-	HostBuffer<Particle> particles(dpds.np);
-	for (int i=0; i<dpds.np; i++)
-		particles[i] = dpds.coosvels[i];
+	HostBuffer<Particle> particles(dpds.local()->size());
+	for (int i=0; i<dpds.local()->size(); i++)
+		particles[i] = dpds.local()->coosvels[i];
 
 	cudaStream_t defStream;
 	CUDA_Check( cudaStreamCreateWithPriority(&defStream, cudaStreamNonBlocking, 10) );
 
 	HaloExchanger halo(cartComm);
-	halo.attach(&dpds, &cells, ndens);
+	halo->attach(&dpds, &cells, ndens);
 	Redistributor redist(cartComm, config);
 	redist.attach(&dpds, &cells, ndens);
 
@@ -252,12 +252,12 @@ int main(int argc, char ** argv)
 
 	for (int i=0; i<niters; i++)
 	{
-		dpds.forces.clear(defStream);
+		dpd.local()->forces.clear(defStream);
 		cells.build(defStream);
 		computeInternalDPD(dpds, cells, defStream);
 
-		halo.init();
-		halo.finalize();
+		halo->init();
+		halo->finalize();
 
 		computeHaloDPD(dpds, cells, defStream);
 
@@ -297,15 +297,15 @@ int main(int argc, char ** argv)
 	}
 
 	printf("\nDone, checking\n");
-	printf("NP:  %d,  ref  %d\n", dpds.np, np);
+	printf("NP:  %d,  ref  %d\n", dpds.local()->size(), np);
 
 
-	dpds.coosvels.synchronize(synchronizeHost);
+	dpds.local()->coosvels.synchronize(synchronizeHost);
 
 	std::vector<int> gpuid(np), cpuid(np);
 	for (int i=0; i<np; i++)
 	{
-		gpuid[dpds.coosvels[i].i1] = i;
+		gpuid[dpds.local()->coosvels[i].i1] = i;
 		cpuid[particles[i].i1] = i;
 	}
 
@@ -315,7 +315,7 @@ int main(int argc, char ** argv)
 	for (int i=0; i<np; i++)
 	{
 		Particle cpuP = particles[cpuid[i]];
-		Particle gpuP = dpds.coosvels[gpuid[i]];
+		Particle gpuP = dpds.local()->coosvels[gpuid[i]];
 
 		double perr = -1;
 		for (int c=0; c<3; c++)
@@ -337,7 +337,7 @@ int main(int argc, char ** argv)
 		}
 	}
 
-	l2 = sqrt(l2 / dpds.np);
+	l2 = sqrt(l2 / dpds.local()->size());
 	printf("L2   norm: %f\n", l2);
 	printf("Linf norm: %f\n", linf);
 

@@ -1,5 +1,5 @@
 NVCC = nvcc
-NVCCFLAGS = -std=c++14 -arch=compute_61 -code=sm_61 -O0 -G -Xptxas -O0 -g -lineinfo --expt-extended-lambda -Xcompiler "-fopenmp -march=native"
+NVCCFLAGS = -std=c++11 -arch=compute_61 -code=sm_61 -O0 -G -Xptxas -O0 -g -lineinfo --expt-extended-lambda -Xcompiler "-fopenmp -march=native"
 #-O0 -G -Xptxas -O0
 
 LIBS = -lmpi
@@ -14,7 +14,7 @@ wall_obj =    scan.o celllist.o test_wall.o pugixml.o components.o integrate.o i
 onerank_obj = scan.o celllist.o halo_exchanger.o dpd.o test_onerank.o redistributor.o integrate.o
 manyranks_obj = scan.o celllist.o test_manyranks.o pugixml.o components.o integrate.o interactions.o wall.o halo_exchanger.o redistributor.o
 halo_obj    = scan.o celllist.o test_halo.o pugixml.o components.o integrate.o interactions.o wall.o particle_exchanger.o particle_halo_exchanger.o
-obj_halo_obj= scan.o celllist.o test_obj_halo.o pugixml.o components.o integrate.o interactions.o wall.o halo_exchanger.o object_vector.o
+obj_halo_obj= scan.o celllist.o test_obj_halo.o pugixml.o components.o integrate.o interactions.o wall.o object_halo_exchanger.o object_vector.o
 redist_obj  = scan.o celllist.o test_redist.o particle_exchanger.o particle_redistributor.o components.o pugixml.o wall.o interactions.o integrate.o
 log_obj     = test_logger.o
 cells_obj   = scan.o celllist.o test_cells.o pugixml.o components.o integrate.o interactions.o wall.o

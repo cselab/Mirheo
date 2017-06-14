@@ -33,20 +33,22 @@ int main(int argc, char ** argv)
 	float3 domainStart = -length / 2.0f;
 	const float rc = 1.0f;
 	ParticleVector dpds("dpd");
-	CellList cells(&dpds, rc, length, CellList::Type::Reorder);
+	CellList cells(&dpds, rc, length);
+	cells.makePrimary();
 
 	InitialConditions ic = createIC(config.child("node"));
 	ic.exec(MPI_COMM_WORLD, &dpds, {0,0,0}, length);
 
-	const int np = dpds.np;
+	const int np = dpds.local()->size();
 	HostBuffer<Particle> initial(np);
 	auto initPtr = initial.hostPtr();
 	for (int i=0; i<np; i++)
-		initPtr[i] = dpds.coosvels[i];
+		initPtr[i] = dpds.local()->coosvels[i];
 
 	cells.setStream(0);
 	cells.build();
 
+	const float k = 1;
 	const float dt = 0.0025;
 	const float kBT = 1.0;
 	const float gammadpd = 20;
@@ -55,36 +57,37 @@ int main(int argc, char ** argv)
 	const float adpd = 50;
 
 	auto inter = [=] (ParticleVector* pv, CellList* cl, const float t, cudaStream_t stream) {
-		interactionDPD(InteractionType::Regular, pv, pv, cl, t, stream, adpd, gammadpd, sigma_dt, rc);
+		interactionDPD(InteractionType::Regular, pv, pv, cl, t, stream, adpd, gammadpd, sigma_dt, k, rc);
 	};
 
 	for (int i=0; i<1; i++)
 	{
-		dpds.forces.clear();
+		dpds.local()->forces.clear();
 		inter(&dpds, &cells, 0, 0);
 
 		cudaDeviceSynchronize();
 	}
 
-	dpds.coosvels.downloadFromDevice();
+	dpds.local()->coosvels.downloadFromDevice();
 
 	HostBuffer<Force> hacc;
 	HostBuffer<uint> hcellsstart;
 	HostBuffer<uint8_t> hcellssize;
 	hcellsstart.copy(cells.cellsStartSize, 0);
 	hcellssize.copy(cells.cellsSize, 0);
-	hacc.copy(dpds.forces, 0);
+	hacc.copy(dpds.local()->forces, 0);
 
 	cudaDeviceSynchronize();
 
 	printf("finished, reducing acc\n");
-	double a[3] = {};
-	for (int i=0; i<dpds.np; i++)
+	double3 a = {};
+	for (int i=0; i<dpds.local()->size(); i++)
 	{
-		for (int c=0; c<3; c++)
-			a[c] += hacc[i].f[c];
+		a.x += hacc[i].f.x;
+		a.y += hacc[i].f.y;
+		a.z += hacc[i].f.z;
 	}
-	printf("Reduced acc: %e %e %e\n\n", a[0], a[1], a[2]);
+	printf("Reduced acc: %e %e %e\n\n", a.x, a.y, a.z);
 
 
 	printf("Checking (this is not necessarily a cubic domain)......\n");
@@ -93,9 +96,9 @@ int main(int argc, char ** argv)
 
 	auto addForce = [&](int dstId, int srcId, Force& a)
 	{
-		const float _xr = dpds.coosvels[dstId].r.x - dpds.coosvels[srcId].r.x;
-		const float _yr = dpds.coosvels[dstId].r.y - dpds.coosvels[srcId].r.y;
-		const float _zr = dpds.coosvels[dstId].r.z - dpds.coosvels[srcId].r.z;
+		const float _xr = dpds.local()->coosvels[dstId].r.x - dpds.local()->coosvels[srcId].r.x;
+		const float _yr = dpds.local()->coosvels[dstId].r.y - dpds.local()->coosvels[srcId].r.y;
+		const float _zr = dpds.local()->coosvels[dstId].r.z - dpds.local()->coosvels[srcId].r.z;
 
 		const float rij2 = _xr * _xr + _yr * _yr + _zr * _zr;
 
@@ -112,17 +115,17 @@ int main(int argc, char ** argv)
 		const float zr = _zr * invrij;
 
 		const float rdotv =
-				xr * (dpds.coosvels[dstId].u.x - dpds.coosvels[srcId].u.x) +
-				yr * (dpds.coosvels[dstId].u.y - dpds.coosvels[srcId].u.y) +
-				zr * (dpds.coosvels[dstId].u.z - dpds.coosvels[srcId].u.z);
+				xr * (dpds.local()->coosvels[dstId].u.x - dpds.local()->coosvels[srcId].u.x) +
+				yr * (dpds.local()->coosvels[dstId].u.y - dpds.local()->coosvels[srcId].u.y) +
+				zr * (dpds.local()->coosvels[dstId].u.z - dpds.local()->coosvels[srcId].u.z);
 
 		const float myrandnr = 0;//Logistic::mean0var1(1, min(srcId, dstId), max(srcId, dstId));
 
 		const float strength = adpd * argwr - (gammadpd * wr * rdotv + sigma_dt * myrandnr) * wr;
 
-		a.f[0] += strength * xr;
-		a.f[1] += strength * yr;
-		a.f[2] += strength * zr;
+		a.f.x += strength * xr;
+		a.f.y += strength * yr;
+		a.f.z += strength * zr;
 	};
 
 #pragma omp parallel for collapse(3)
@@ -154,23 +157,27 @@ int main(int argc, char ** argv)
 								}
 							}
 
-					refAcc[dstId].f[0] = a.f[0];
-					refAcc[dstId].f[1] = a.f[1];
-					refAcc[dstId].f[2] = a.f[2];
+					refAcc[dstId].f.x = a.f.x;
+					refAcc[dstId].f.y = a.f.y;
+					refAcc[dstId].f.z = a.f.z;
 				}
 			}
 
 
 	double l2 = 0, linf = -1;
 
-	for (int i=0; i<dpds.np; i++)
+	for (int i=0; i<dpds.local()->size(); i++)
 	{
 		double perr = -1;
 
 		double toterr = 0;
 		for (int c=0; c<3; c++)
 		{
-			const double err = fabs(refAcc[i].f[c] - hacc[i].f[c]);
+			double err;
+			if (c==0) err = fabs(refAcc[i].f.x - hacc[i].f.x);
+			if (c==1) err = fabs(refAcc[i].f.y - hacc[i].f.y);
+			if (c==2) err = fabs(refAcc[i].f.z - hacc[i].f.z);
+
 			toterr += err;
 			linf = max(linf, err);
 			perr = max(perr, err);
@@ -181,14 +188,14 @@ int main(int argc, char ** argv)
 
 		{
 			printf("id %d,  %12f %12f %12f     ref %12f %12f %12f    diff   %12f %12f %12f\n", i,
-				hacc[i].f[0], hacc[i].f[1], hacc[i].f[2],
-				refAcc[i].f[0], refAcc[i].f[1], refAcc[i].f[2],
-				hacc[i].f[0]-refAcc[i].f[0], hacc[i].f[1]-refAcc[i].f[1], hacc[i].f[2]-refAcc[i].f[2]);
+				hacc[i].f.x, hacc[i].f.y, hacc[i].f.z,
+				refAcc[i].f.x, refAcc[i].f.y, refAcc[i].f.z,
+				hacc[i].f.x-refAcc[i].f.x, hacc[i].f.y-refAcc[i].f.y, hacc[i].f.z-refAcc[i].f.z);
 		}
 	}
 
 
-	l2 = sqrt(l2 / dpds.np);
+	l2 = sqrt(l2 / dpds.local()->size());
 	printf("L2   norm: %f\n", l2);
 	printf("Linf norm: %f\n", linf);
 

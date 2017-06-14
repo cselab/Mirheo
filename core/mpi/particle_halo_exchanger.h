@@ -14,9 +14,9 @@ class ParticleHaloExchanger : public ParticleExchanger
 private:
 	std::vector<CellList*> cellLists;
 	std::vector<ParticleVector*> particles;
-	void prepareUploadTarget(int id);
-	void prepareData(int id);
 
+	void prepareData(int id);
+	void combineAndUploadData(int id);
 
 public:
 	ParticleHaloExchanger(MPI_Comm& comm, cudaStream_t defStream) : ParticleExchanger(comm, defStream) {};

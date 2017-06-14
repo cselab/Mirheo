@@ -37,11 +37,31 @@ struct __align__(16) Particle
 		int32_t i2;
 		struct { int16_t s21 /*least significant*/, s22; };
 	};
+
+	__host__ __device__ inline Particle() {};
+	__host__ __device__ inline Particle(const float4 r4, const float4 u4)
+	{
+		r = make_float3(r4.x, r4.y, r4.z);
+		u = make_float3(u4.x, u4.y, u4.z);
+
+#ifdef __CUDA_ARCH__
+		i1 = __float_as_int(r4.w);
+		i2 = __float_as_int(u4.w);
+#else
+		union {int i; float f;} u;
+		u.f = r4.w;
+		i1 = u.i;
+
+		u.f = u4.w;
+		i2 = u.i;
+#endif
+	}
 };
 
-struct Force
+struct __align__(16) Force
 {
-	float f[4];
+	float3 f;
+	int32_t i1;
 };
 
 
@@ -104,8 +124,8 @@ public:
 		stream = streams.top();
 	}
 
-	T* 	devPtr() const { return devptr; }
-	int	size()   const { return _size; }
+	__host__ __device__ T* 	devPtr() const { return devptr; }
+	__host__ __device__ int	size()   const { return _size; }
 
 	void resize(const int n, ResizeKind kind = resizePreserve)
 	{
@@ -196,9 +216,9 @@ public:
 		stream = streams.top();
 	}
 
-	T* devPtr()  const { return devptr; }
-	T* hostPtr() const { return hostptr; }
-	int	size()   const { return _size; }
+	__host__ __device__ T* devPtr()  const { return devptr; }
+	__host__            T* hostPtr() const { return hostptr; }
+	__host__ __device__ int	size()   const { return _size; }
 
 	T& operator[](int i)
 	{

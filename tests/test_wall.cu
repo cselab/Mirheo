@@ -374,25 +374,25 @@ int main(int argc, char ** argv)
 	createSdf(make_int3(189), make_float3(cells.ncells), radius, "sphere.sdf");
 
 	int c = 0;
-	for (int i=0; i<dpds.np; i++)
+	for (int i=0; i<dpds.local()->size(); i++)
 	{
-		dpds.coosvels[i].u[0] = 5*(drand48() - 0.5);
-		dpds.coosvels[i].u[1] = 5*(drand48() - 0.5);
-		dpds.coosvels[i].u[2] = 5*(drand48() - 0.5);
+		dpds.local()->coosvels[i].u[0] = 5*(drand48() - 0.5);
+		dpds.local()->coosvels[i].u[1] = 5*(drand48() - 0.5);
+		dpds.local()->coosvels[i].u[2] = 5*(drand48() - 0.5);
 	}
-	dpds.coosvels.uploadToDevice();
+	dpds.local()->coosvels.uploadToDevice();
 
-	HostBuffer<Particle> initial(dpds.np);
-	memcpy(initial.hostPtr(), dpds.coosvels.hostPtr(), dpds.np*sizeof(Particle));
+	HostBuffer<Particle> initial(dpds.local()->size());
+	memcpy(initial.hostPtr(), dpds.local()->coosvels.hostPtr(), dpds.local()->size()*sizeof(Particle));
 
-	dpds.forces.clear();
+	dpd.local()->forces.clear();
 
 	cudaStream_t defStream;
 	CUDA_Check( cudaStreamCreateWithPriority(&defStream, cudaStreamNonBlocking, 10) );
-	dpds.pushStreamWOhalo(defStream);
+	dpds.pushStream(defStream);
 
 	HaloExchanger halo(cartComm, defStream);
-	halo.attach(&dpds, &cells);
+	halo->attach(&dpds, &cells);
 	Redistributor redist(cartComm);
 	redist.attach(&dpds, &cells);
 
@@ -411,8 +411,8 @@ int main(int argc, char ** argv)
 	HostBuffer<float> intSdf(wall.sdfRawData.size());
 
 	intSdf.copy(wall.sdfRawData, defStream);
-	frozen.copy(wall.frozen.coosvels, defStream);
-	dpds.coosvels.downloadFromDevice();
+	frozen.copy(wall.frozen.local()->coosvels, defStream);
+	dpds.local()->coosvels.downloadFromDevice();
 
 //	printf("============================================================================================\n");
 //	for (int i=0; i<wall.resolution.z; i++)
@@ -429,16 +429,16 @@ int main(int argc, char ** argv)
 //	}
 
 	if (argc > 1)
-		checkFrozenRemaining(frozen.hostPtr(), frozen.size(), dpds.coosvels.hostPtr(), dpds.np, initial.hostPtr(), initial.size(), make_float3(cells.ncells), radius);
+		checkFrozenRemaining(frozen.hostPtr(), frozen.size(), dpds.local()->coosvels.hostPtr(), dpds.local()->size(), initial.hostPtr(), initial.size(), make_float3(cells.ncells), radius);
 
 	integrateNoFlow(&dpds, dt, defStream);
 
-	dpds.coosvels.downloadFromDevice();
-	HostBuffer<Particle> particles(dpds.np);
-	memcpy(particles.hostPtr(), dpds.coosvels.hostPtr(), dpds.np*sizeof(Particle));
+	dpds.local()->coosvels.downloadFromDevice();
+	HostBuffer<Particle> particles(dpds.local()->size());
+	memcpy(particles.hostPtr(), dpds.local()->coosvels.hostPtr(), dpds.local()->size()*sizeof(Particle));
 
 	wall.bounce(dt, defStream);
-	dpds.coosvels.downloadFromDevice();
+	dpds.local()->coosvels.downloadFromDevice();
 
 	bounceAll(particles.hostPtr(), particles.size(), radius, dt);
 
@@ -451,8 +451,8 @@ int main(int argc, char ** argv)
 //		dpds.accs.clear(defStream);
 //		computeInternalDPD(dpds, defStream);
 //
-//		halo.exchangeInit();
-//		halo.exchangeFinalize();
+//		halo->exchangeInit();
+//		halo->exchangeFinalize();
 //
 //		computeHaloDPD(dpds, defStream);
 //		CUDA_Check( cudaStreamSynchronize(defStream) );
@@ -488,16 +488,16 @@ int main(int argc, char ** argv)
 //	}
 //
 //	printf("\nDone, checking\n");
-//	printf("NP:  %d,  ref  %d\n", dpds.np, np);
+//	printf("NP:  %d,  ref  %d\n", dpds.local()->size(), np);
 //
 //
-//	dpds.coosvels.synchronize(synchronizeHost);
+//	dpds.local()->coosvels.synchronize(synchronizeHost);
 
-	int np = dpds.np;
+	int np = dpds.local()->size();
 //	std::vector<int> gpuid(np), cpuid(np);
 //	for (int i=0; i<np; i++)
 //	{
-//		gpuid[dpds.coosvels[i].i1] = i;
+//		gpuid[dpds.local()->coosvels[i].i1] = i;
 //		cpuid[particles[i].i1] = i;
 //	}
 
@@ -506,7 +506,7 @@ int main(int argc, char ** argv)
 	for (int i=0; i<np; i++)
 	{
 		Particle cpuP = particles[i];
-		Particle gpuP = dpds.coosvels[i];
+		Particle gpuP = dpds.local()->coosvels[i];
 
 		double perr = -1;
 		for (int c=0; c<3; c++)
@@ -526,7 +526,7 @@ int main(int argc, char ** argv)
 		}
 	}
 
-	l2 = sqrt(l2 / dpds.np);
+	l2 = sqrt(l2 / dpds.local()->size());
 	printf("L2   norm: %f\n", l2);
 	printf("Linf norm: %f\n", linf);
 

@@ -1,5 +1,6 @@
 // Yo ho ho ho
 #define private public
+#define protected public
 
 #include <core/object_vector.h>
 #include <core/celllist.h>
@@ -55,7 +56,7 @@ int main(int argc, char ** argv)
 	MPI_Comm cartComm;
 
 	MPI_Init(&argc, &argv);
-	logger.init(MPI_COMM_WORLD, "objhalo.log", 9);
+	logger.init(MPI_COMM_WORLD, "objhalo->log", 9);
 
 	MPI_Check( MPI_Comm_size(MPI_COMM_WORLD, &nranks) );
 	MPI_Check( MPI_Comm_rank(MPI_COMM_WORLD, &rank) );
@@ -93,47 +94,48 @@ int main(int argc, char ** argv)
 			p.s12 = i;
 			p.s21 = j;
 
-			objs.coosvels[i*objsize + j] = p;
+			objs.local()->coosvels[i*objsize + j] = p;
 			p2obj[i*objsize + j] = i*objsize + j;
 		}
 	}
 
 	objs.domainSize = length;
-	objs.coosvels.uploadToDevice();
+	objs.local()->coosvels.uploadToDevice();
 	objs.particles2objIds.copy(p2obj);
 
 	CellList cells(&objs, rc, length + make_float3(radius));
+	cells.makePrimary();
 
 	objs.findExtentAndCOM(0);
-	cells.build(0);
+	cells.build();
 
-	objs.coosvels.downloadFromDevice(true);
+	objs.local()->coosvels.downloadFromDevice(true);
 
 	cudaStream_t defStream = 0;
 
-	HaloExchanger halo(cartComm, 0);
-	halo.attach(&objs, rc);
+	ObjectHaloExchanger halo(cartComm, 0);
+	halo->attach(&objs, rc);
 
-	cells.build(defStream);
+	cells.build();
 	CUDA_Check( cudaStreamSynchronize(defStream) );
 
 	for (int i=0; i<1; i++)
 	{
-		halo.init();
-		halo.finalize();
+		halo->init();
+		halo->finalize();
 	}
 
 	std::vector<Particle> bufs[27];
-	objs.coosvels.downloadFromDevice(true);
-	objs.halo.downloadFromDevice(true);
+	objs.local()->coosvels.downloadFromDevice(true);
+	objs.halo()->downloadFromDevice(true);
 	p2obj.copy(objs.particles2objIds, 0);
 
 	// =================================================================================================================
 
-//	std::vector<Particle> tmp(objs.np);
+//	std::vector<Particle> tmp(objs.local()->size());
 //	std::vector<int> cellsStartSize(cells.totcells+1), cellsSize(cells.totcells);
 //
-//	makeCells(objs.coosvels.hostPtr(), tmp.data(), cellsStartSize.data(), cellsSize.data(), objs.np, cells.cellInfo());
+//	makeCells(objs.local()->coosvels.hostPtr(), tmp.data(), cellsStartSize.data(), cellsSize.data(), objs.local()->size(), cells.cellInfo());
 //
 //	for (int i=0; i<cells.totcells; i++)
 //	{
@@ -150,16 +152,28 @@ int main(int argc, char ** argv)
 
 	std::vector<std::array<bool, 27>> haloObj(objs.nObjects);
 	CellListInfo tightCells(1.0f, length);
-	for (int i=0; i<objs.np; i++)
+	for (int objId=0; objId<objs.nObjects; objId++)
 	{
-		Particle& p = objs.coosvels[i];
+		float3 high = make_float3(-1e10);
+		float3 low  = make_float3( 1e10);
+		for (int i=objId*objs.objSize; i<(objId+1)*objs.objSize; i++)
+		{
+			Particle& p = objs.local()->coosvels[i];
+			high = fmaxf(high, p.r);
+			low  = fminf(low,  p.r);
+		}
 
-		int3 code = tightCells.getCellIdAlongAxis(p.r);
-		int cx = code.x,  cy = code.y,  cz = code.z;
 		auto ncells = tightCells.ncells;
+		int cx=1, cy=1, cz=1;
 
-		if (p.s12 == 73)
-			printf("%d:  [%f %f %f] => [%d %d %d]\n", p.s11, p.r.x, p.r.y, p.r.z, cx, cy, cz);
+		if (low.x  < domainStart.x) cx = 0;
+		if (high.x > length.x) cx = ncells.x-1;
+
+		if (low.y  < domainStart.y) cy = 0;
+		if (high.y > length.y) cy = ncells.y-1;
+
+		if (low.z  < domainStart.z) cz = 0;
+		if (high.z > length.z) cz = ncells.z-1;
 
 		std::vector<std::pair<int, float3>> bufShift;
 		// 6
@@ -199,13 +213,12 @@ int main(int argc, char ** argv)
 
 		for (auto& entry : bufShift)
 		{
-			int objId = p.s12;
 			if (haloObj[objId][entry.first] == false)
 			{
 				for (int i=0; i<objsize; i++)
 				{
 					const int pid = p2obj[objId*objsize + i];
-					bufs[entry.first].push_back(addShift(objs.coosvels[pid], entry.second));
+					bufs[entry.first].push_back(addShift(objs.local()->coosvels[pid], entry.second));
 				}
 				haloObj[objId][entry.first] = true;
 			}
@@ -214,17 +227,17 @@ int main(int argc, char ** argv)
 
 	for (int i = 0; i<27; i++)
 	{
-		auto ptr = (Particle*)halo.objectHelpers[0]->sendBufs[i].hostPtr();
+		auto ptr = (Particle*)halo->helpers[0]->sendBufs[i].hostPtr();
 
-		std::sort(bufs[i].begin(), bufs[i].end(),				[] (Particle& a, Particle& b) { return a.i1 < b.i1; });
-		std::sort(ptr, ptr + halo.objectHelpers[0]->counts[i],  [] (Particle& a, Particle& b) { return a.i1 < b.i1; });
+		std::sort(bufs[i].begin(), bufs[i].end(),			[] (Particle& a, Particle& b) { return a.i1 < b.i1; });
+		std::sort(ptr, ptr + halo->helpers[0]->bufSizes[i],	[] (Particle& a, Particle& b) { return a.i1 < b.i1; });
 
-		if (bufs[i].size() != halo.objectHelpers[0]->counts[i])
+		if (bufs[i].size() != halo->helpers[0]->bufSizes[i])
 		{
-			printf("%2d-th halo differs in size: %5d, expected %5d\n", i, halo.objectHelpers[0]->counts[i], (int)bufs[i].size());
+			printf("%2d-th halo differs in size: %5d, expected %5d\n", i, halo->helpers[0]->bufSizes[i], (int)bufs[i].size());
 
 			printf("  Got:  ");
-			for (int j=0; j<halo.objectHelpers[0]->counts[i] / objs.objSize; j++)
+			for (int j=0; j<halo->helpers[0]->bufSizes[i] / objs.objSize; j++)
 				printf("%2d ", ptr[j*objs.objSize].s12);
 			printf("\n");
 
@@ -235,7 +248,7 @@ int main(int argc, char ** argv)
 		}
 		else
 		{
-			for (int pid = 0; pid < min(halo.objectHelpers[0]->counts[i], (int)bufs[i].size()); pid++)
+			for (int pid = 0; pid < min(halo->helpers[0]->bufSizes[i], (int)bufs[i].size()); pid++)
 			{
 				const float diff = std::max({
 					fabs(ptr[pid].r.x - bufs[i][pid].r.x),
@@ -250,7 +263,7 @@ int main(int argc, char ** argv)
 		}
 	}
 
-//	for (int i=0; i<objs.halo.size(); i++)
+//	for (int i=0; i<objs.halo()->size(); i++)
 //		printf("%d  %f %f %f\n", i, objs.halo[i].r.x, objs.halo[i].r.y, objs.halo[i].r.z);
 
 	return 0;

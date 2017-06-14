@@ -45,6 +45,7 @@
 
 		if (type == "dpd")
 		{
+			const float k        = node.attribute("k")    .as_float(1.0f);
 			const float adpd     = node.attribute("a")    .as_float(50);
 			const float rc       = node.attribute("rc")   .as_float(1.0);
 			const float dt       = node.attribute("dt")   .as_float(0.01);
@@ -53,7 +54,7 @@
 			const float sigmadpd = sqrt(2 * gammadpd * kBT / dt);
 
 			result.interaction = [=] (InteractionType type, ParticleVector* pv1, ParticleVector* pv2, CellList* cl, const float t, cudaStream_t stream) {
-				interactionDPD(type, pv1, pv2, cl, t, stream, adpd, gammadpd, sigmadpd, rc);
+				interactionDPD(type, pv1, pv2, cl, t, stream, adpd, gammadpd, sigmadpd, k, rc);
 			};
 		}
 
@@ -76,7 +77,7 @@
 			float volume = h.x*h.y*h.z;
 			float avg = volume * dens;
 			int predicted = round(avg * ncells.x*ncells.y*ncells.z * 1.05);
-			pv->resize(predicted);
+			pv->local()->resize(predicted);
 
 			int rank;
 			MPI_Check( MPI_Comm_rank(comm, &rank) );
@@ -87,7 +88,7 @@
 			std::uniform_real_distribution<float> coordinateDistribution(0, 1);
 
 			int mycount = 0;
-			auto cooPtr = pv->coosvels.hostPtr();
+			auto cooPtr = pv->local()->coosvels.hostPtr();
 			for (int i=0; i<ncells.x; i++)
 				for (int j=0; j<ncells.y; j++)
 					for (int k=0; k<ncells.z; k++)
@@ -95,7 +96,7 @@
 						int nparts = particleDistribution(gen);
 						for (int p=0; p<nparts; p++)
 						{
-							pv->resize(mycount+1, resizePreserve);
+							pv->local()->resize(mycount+1, resizePreserve);
 							cooPtr[mycount].r.x = i*h.x - 0.5*subDomainSize.x + coordinateDistribution(gen);
 							cooPtr[mycount].r.y = j*h.y - 0.5*subDomainSize.y + coordinateDistribution(gen);
 							cooPtr[mycount].r.z = k*h.z - 0.5*subDomainSize.z + coordinateDistribution(gen);
@@ -115,12 +116,12 @@
 
 			 int totalCount=0; // TODO: int64!
 			 MPI_Check( MPI_Exscan(&mycount, &totalCount, 1, MPI_INT, MPI_SUM, comm) );
-			 for (int i=0; i < pv->np; i++)
+			 for (int i=0; i < pv->local()->size(); i++)
 				 cooPtr[i].i1 += totalCount;
 
-			 pv->coosvels.uploadToDevice();
+			 pv->local()->coosvels.uploadToDevice();
 
-			 debug2("Generated %d %s particles", pv->np, pv->name.c_str());
+			 debug2("Generated %d %s particles", pv->local()->size(), pv->name.c_str());
 		};
 
 		return result;

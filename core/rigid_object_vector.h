@@ -4,43 +4,86 @@
 #include <core/datatypes.h>
 #include <core/object_vector.h>
 
-class CellList;
-
-struct RigidObjectVector: public ObjectVector
+class LocalRigidObjectVector: public LocalObjectVector
 {
+public:
+
 	struct __align__(16) RigidMotion
 	{
-		float4 q;
+		float3 r; float4 q;
 		float3 vel, omega;
 		float3 force, torque;
+
+		// Track the changes in the object position and rotation
+		// Used in updating the properties of the constituting particles
+		float3 deltaR;
+		float4 deltaQ;
+		float3 deltaV;
+		float3 deltaW;
 	};
 
-	DeviceBuffer<RigidMotion> motion;  // vector of com velocity, force and torque
+	DeviceBuffer<RigidMotion> motions;  // vector of com velocity, force and torque
 
-
-	RigidObjectVector(std::string name, const int objSize, const int nObjects = 0) :
-		ObjectVector(name, objSize, nObjects) { }
-
-
-	virtual void pushStreamWOhalo(cudaStream_t stream)
+	LocalRigidObjectVector(const int objSize, const int nObjects = 0) :
+		LocalObjectVector(objSize, nObjects)
 	{
-		ObjectVector::pushStreamWOhalo(stream);
+		resize(nObjects*objSize, ResizeKind::resizeAnew);
+		static_assert( sizeof(COMandExtent) % 4 == 0, "Extra data size in bytes should be divisible by 4" );
+		static_assert( sizeof(RigidMotion)  % 4 == 0, "Extra data size in bytes should be divisible by 4" );
 
-		motion.pushStream(stream);
+
+		_extraDataSizes.resize(2);
+		_extraDataPtrs .resize(2);
+
+		_extraDataSizes[0] = sizeof(COMandExtent) / 4;
+		_extraDataPtrs [0] = (int32_t*)comAndExtents.devPtr();
+
+		_extraDataSizes[1] = sizeof(RigidMotion) / 4;
+		_extraDataPtrs [1] = (int32_t*)motions.devPtr();
+
+		_extraDataSizes.uploadToDevice();
+		_extraDataPtrs .uploadToDevice();
 	}
 
-	virtual void popStreamWOhalo()
-	{
-		ObjectVector::popStreamWOhalo();
 
-		motion.popStream();
+	virtual void pushStream(cudaStream_t stream)
+	{
+		LocalObjectVector::pushStream(stream);
+		motions.pushStream(stream);
+	}
+
+	virtual void popStream()
+	{
+		LocalObjectVector::popStream();
+		motions.popStream();
 	}
 
 	virtual void resize(const int np, ResizeKind kind = ResizeKind::resizePreserve)
 	{
-		ObjectVector::resize(np, kind);
-		motion.resize(nObjects, kind);
+		LocalObjectVector::resize(np, kind);
+		motions.resize(nObjects, kind);
 	}
 
-	virtual ~RigidObjectVector() = default;
+	virtual ~LocalRigidObjectVector() = default;
 };
+
+class RigidObjectVector : public ObjectVector
+{
+public:
+
+	int nObjects, objSize;
+	float3 axes;
+
+	RigidObjectVector(std::string name, const int objSize, const int nObjects = 0) :
+		ObjectVector( name,
+					  new LocalRigidObjectVector(objSize, nObjects),
+					  new LocalRigidObjectVector(objSize, nObjects) )
+	{}
+
+	LocalRigidObjectVector* local() { return static_cast<LocalRigidObjectVector*>(_local); }
+	LocalRigidObjectVector* halo()  { return static_cast<LocalRigidObjectVector*>(_halo);  }
+
+	virtual ~RigidObjectVector() {};
+};
+
+
