@@ -160,7 +160,7 @@ int main(int argc, char ** argv)
 
 			// Inside
 			//if (ellipsoid(motion, invAxes, pOld) * ellipsoid(motion, invAxes, pInit) < 0)
-			if (pInit.i1 == 663)
+			if (pInit.i1 == 1040)
 			{
 				printf("Particle  %d,  obj  %d:\n"
 					   "   [%f %f %f] (%f)  -->  [%f %f %f] (%f)\n"
