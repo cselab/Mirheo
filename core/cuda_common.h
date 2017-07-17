@@ -13,7 +13,7 @@ inline int getNblocks(const int n, const int nthreads)
 }
 
 template<typename T>
-__inline__ __device__ T sqr(T val)
+__inline__ __host__ __device__ T sqr(T val)
 {
 	return val*val;
 }

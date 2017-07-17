@@ -14,7 +14,8 @@ wall_obj =    scan.o celllist.o test_wall.o pugixml.o components.o integrate.o i
 onerank_obj = scan.o celllist.o halo_exchanger.o dpd.o test_onerank.o redistributor.o integrate.o
 manyranks_obj = scan.o celllist.o test_manyranks.o pugixml.o components.o integrate.o interactions.o wall.o halo_exchanger.o redistributor.o
 halo_obj    = scan.o celllist.o test_halo.o pugixml.o components.o integrate.o interactions.o wall.o particle_exchanger.o particle_halo_exchanger.o
-obj_halo_obj= scan.o celllist.o test_obj_halo.o pugixml.o components.o integrate.o interactions.o wall.o object_halo_exchanger.o object_vector.o
+obj_halo_obj= scan.o celllist.o test_obj_halo.o pugixml.o components.o integrate.o interactions.o wall.o object_halo_exchanger.o object_vector.o particle_exchanger.o
+bounce_obj  = scan.o celllist.o test_bounce.o pugixml.o components.o integrate.o interactions.o wall.o object_halo_exchanger.o object_vector.o particle_exchanger.o
 redist_obj  = scan.o celllist.o test_redist.o particle_exchanger.o particle_redistributor.o components.o pugixml.o wall.o interactions.o integrate.o
 log_obj     = test_logger.o
 cells_obj   = scan.o celllist.o test_cells.o pugixml.o components.o integrate.o interactions.o wall.o
@@ -26,6 +27,9 @@ default:
 	@echo "Please specify a target!"
 	
 test_wall: $(addprefix $(OBJ_DIR)/,$(wall_obj))
+	$(NVCC) $(NVCCFLAGS) $(LIBS) $^ -o $@
+
+test_bounce: $(addprefix $(OBJ_DIR)/,$(bounce_obj))
 	$(NVCC) $(NVCCFLAGS) $(LIBS) $^ -o $@
 
 test_cells: $(addprefix $(OBJ_DIR)/,$(cells_obj))

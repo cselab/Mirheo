@@ -20,9 +20,8 @@ struct __align__(16) Particle
 	// We're targeting little-endian systems here, note that!
 
 	// Free particles will have their id in i1 (or in s21*2^32 + i1)
-
-	// Object particles will have their id in s11 and object id in s12
-	// and local object id in s21
+	// Object particles will have their id (in object) in s21 and object id in i1
+	// s22 is arbitrary
 
 	float3 r;
 	union
@@ -55,6 +54,48 @@ struct __align__(16) Particle
 		u.f = u4.w;
 		i2 = u.i;
 #endif
+	}
+};
+
+struct __align__(16) Float3_int
+{
+	float3 v;
+	union
+	{
+		int32_t i;
+		struct { int16_t s1, s2; };
+	};
+
+	__host__ __device__ inline Float3_int() {};
+	__host__ __device__ inline Float3_int(const float3 v, int i) : v(v), i(i) {};
+
+	__host__ __device__ inline Float3_int(const float4 f4)
+	{
+		v = make_float3(f4.x, f4.y, f4.z);
+
+#ifdef __CUDA_ARCH__
+		i = __float_as_int(f4.w);
+#else
+		union {int i; float f;} u;
+		u.f = f4.w;
+		i = u.i;
+#endif
+	}
+
+
+	__host__ __device__ inline float4 toFloat4()
+	{
+		float f;
+
+#ifdef __CUDA_ARCH__
+		f = __int_as_float(i);
+#else
+		union {int i; float f;} u;
+		u.i = i;
+		f = u.f;
+#endif
+
+		return make_float4(v.x, v.y, v.z, f);
 	}
 };
 

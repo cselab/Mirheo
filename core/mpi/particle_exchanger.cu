@@ -128,9 +128,9 @@ void ParticleExchanger::sendWait(ExchangeHelper* helper)
 	for (int i=0; i<27; i++)
 		if (i != 13)
 		{
-			if (cntPtr[i] * helper->datumSize > helper->sendBufs[i].size())
+			if (cntPtr[i] > helper->sendBufs[i].size())
 				die("Preallocated halo buffer %d for %s too small: size %d bytes, but need %d bytes",
-						i, pvName.c_str(), helper->sendBufs[i].size(), cntPtr[i] * helper->datumSize);
+						i, pvName.c_str(), helper->sendBufs[i].size() * helper->datumSize, cntPtr[i] * helper->datumSize);
 
 			if (cntPtr[i] > 0)
 				CUDA_Check( cudaMemcpyAsync(helper->sendBufs[i].hostPtr(), helper->sendBufs[i].devPtr(),
@@ -142,7 +142,7 @@ void ParticleExchanger::sendWait(ExchangeHelper* helper)
 	for (int i=0; i<27; i++)
 		if (i != 13 && dir2rank[i] >= 0)
 		{
-			debug3("Sending %s halo to rank %d in dircode %d [%2d %2d %2d], %d particles", pvName.c_str(), dir2rank[i], i, i%3 - 1, (i/3)%3 - 1, i/9 - 1, cntPtr[i]);
+			debug3("Sending %s halo to rank %d in dircode %d [%2d %2d %2d], %d entities", pvName.c_str(), dir2rank[i], i, i%3 - 1, (i/3)%3 - 1, i/9 - 1, cntPtr[i]);
 			const int tag = 27 * tagByName(pvName) + i;
 			MPI_Check( MPI_Isend(helper->sendBufs[i].hostPtr(), cntPtr[i] * helper->datumSize, MPI_BYTE, dir2rank[i], tag, haloComm, &req) );
 			MPI_Check( MPI_Request_free(&req) );
@@ -164,7 +164,7 @@ void ParticleExchanger::sendWait(ExchangeHelper* helper)
 		MPI_Check( MPI_Get_count(&statuses[i], MPI_BYTE, &msize) );
 		totalRecvd += msize / helper->datumSize;
 
-		debug3("Receiving %s halo from rank %d, %d particles", pvName.c_str(), dir2rank[compactedDirs[i]], msize);
+		debug3("Receiving %s halo from rank %d, %d entities", pvName.c_str(), dir2rank[compactedDirs[i]], msize /  helper->datumSize);
 	}
 
 	// Fill the holes in the offsets

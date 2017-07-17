@@ -2,7 +2,7 @@
 #include <core/helper_math.h>
 #include <core/cuda_common.h>
 
-__global__ void min_max_com(const float4 * coosvels, ObjectVector::COMandExtent* com_ext, const int nObj, const int objSize)
+__global__ void min_max_com(const float4 * coosvels, LocalObjectVector::COMandExtent* com_ext, const int nObj, const int objSize)
 {
 	const int gid = threadIdx.x + blockDim.x * blockIdx.x;
 	const int objId = gid >> 5;
@@ -33,8 +33,8 @@ __global__ void min_max_com(const float4 * coosvels, ObjectVector::COMandExtent*
 		com_ext[objId] = {mycom / objSize, mymin, mymax};
 }
 
-void ObjectVector::findExtentAndCOM(cudaStream_t stream)
+void LocalObjectVector::findExtentAndCOM(cudaStream_t stream)
 {
 	const int nthreads = 128;
-	min_max_com<<< (nObjects*32 + nthreads-1)/nthreads, nthreads, 0, stream >>> ((float4*)coosvels.devPtr(), com_extent.devPtr(), nObjects, objSize);
+	min_max_com<<< (nObjects*32 + nthreads-1)/nthreads, nthreads, 0, stream >>> ((float4*)coosvels.devPtr(), comAndExtents.devPtr(), nObjects, objSize);
 }

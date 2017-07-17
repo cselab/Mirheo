@@ -146,6 +146,9 @@ CellList::CellList(ParticleVector* pv, int3 resolution, float3 domainSize) :
 
 void CellList::build()
 {
+	if (primary && (dynamic_cast<ObjectVector*>(pv) != nullptr))
+		warn("Using primary cell-lists with objects is STRONGLY discouraged. This will very likely result in an error");
+
 	if (pv->local()->changedStamp == changedStamp)
 	{
 		debug2("Cell-list for %s is already up-to-date, building skipped", pv->name.c_str());

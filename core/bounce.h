@@ -8,9 +8,9 @@
 #pragma once
 
 template <typename InOutFunc>
-__device__ __inline__ float bounceLinSearch(const float3 oldCoo, const float3 coo, const float dt, InOutFunc F)
+__device__ __inline__ float bounceLinSearch(const float3 oldCoo, const float3 coo, InOutFunc F)
 {
-	// F is the function given 3D coordinate and time (0 to dt)
+	// F is the function given 3D coordinate and time (0 to 1)
 	// returns value signed + or - depending on whether
 	// coordinate is inside at the current time, or outside
 	// Sign mapping to inside/outside is irrelevant
@@ -22,12 +22,12 @@ __device__ __inline__ float bounceLinSearch(const float3 oldCoo, const float3 co
 	float3 b = coo;
 	float3 mid;
 
-	float ta = 0.0f;
-	float tb = dt;
-	float t = 0;
+	float la = 0.0f;
+	float lb = 1;
+	float l = 0;
 
-	float va = F(a, ta);
-	float vb = F(b, tb);
+	float va = F(a);
+	float vb = F(b);
 	float vmid;
 
 	// Check if the collision is there in the first place
@@ -38,30 +38,41 @@ __device__ __inline__ float bounceLinSearch(const float3 oldCoo, const float3 co
 	{
 		const float lambda = min(max((vb / (vb - va)), 0.1f), 0.9f);  // va*l + (1-l)*vb = 0
 		mid = a *lambda + b *(1.0f - lambda);
-		t   = ta*lambda + tb*(1.0f - lambda);
-		vmid = F(mid, t);
+		l   = la*lambda + lb*(1.0f - lambda);
+		vmid = F(mid);
 
 		if (va * vmid < 0.0f)
 		{
-			tb = t;
+			lb = l;
 			vb = vmid;
 			b  = mid;
 		}
 		else
 		{
-			ta = t;
+			la = l;
 			va = vmid;
 			a = mid;
 		}
 
-		if (fabs(vmid) < tolerance) break;
+		if (fabs(vmid) < tolerance)
+			break;
 	}
 
 	// This shouldn't happen, but smth may go wrong
 	// then will return 0 as this corresponds to the initial (outer) position
 	if (fabs(vmid) > tolerance)
 		return 0.0f;
+
+	// Make sure that the sign is the same as on the left (oldCoo) side
+	if (va*vmid > 0.0f)
+		return l;
 	else
-		return t;
+	{
+		do {
+			l -= tolerance;
+		} while (F(oldCoo + l*(coo-oldCoo)) * va < 0.0f);
+
+		return l;
+	}
 }
 

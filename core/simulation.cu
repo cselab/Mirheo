@@ -196,14 +196,27 @@ void Simulation::createWalls()
 	}
 }
 
-// TODO: wall has self-interactions
-void Simulation::run(int nsteps)
+void Sumulation::assemble()
 {
 	// XXX: different dt not implemented yet
 	float dt = 1e9;
 	for (auto integr : integrators)
 		if (integr != nullptr)
 			dt = min(dt, integr->dt);
+
+
+	scheduler.addTask("primary cell-lists", [] (cudaStream_t stream) {
+		for (auto clMap : cellListMaps)
+			if (clMap.size() > 0)
+				clMap.begin()->second->build(true);
+	});
+
+}
+
+// TODO: wall has self-interactions
+void Simulation::run(int nsteps)
+{
+
 
 	info("Will run %d iterations now", nsteps);
 	int begin = currentStep, end = currentStep + nsteps;

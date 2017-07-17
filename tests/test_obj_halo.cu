@@ -56,7 +56,7 @@ int main(int argc, char ** argv)
 	MPI_Comm cartComm;
 
 	MPI_Init(&argc, &argv);
-	logger.init(MPI_COMM_WORLD, "objhalo->log", 9);
+	logger.init(MPI_COMM_WORLD, "objhalo.log", 9);
 
 	MPI_Check( MPI_Comm_size(MPI_COMM_WORLD, &nranks) );
 	MPI_Check( MPI_Comm_rank(MPI_COMM_WORLD, &rank) );
@@ -66,7 +66,7 @@ int main(int argc, char ** argv)
 //	pugi::xml_document config;
 //	config.load_string(xml.c_str());
 
-	float3 length{24, 24, 24};
+	float3 length{64, 64, 64};
 	float3 domainStart = -length / 2.0f;
 	const float rc = 1.0f;
 
@@ -74,7 +74,7 @@ int main(int argc, char ** argv)
 	const int nobj = 100, objsize = 50;
 	const float radius = 5;
 	ObjectVector objs("obj", objsize, nobj);
-	HostBuffer<int> p2obj(objs.size());
+	HostBuffer<int> p2obj(objs.local()->size());
 
 	for (int i=0; i<nobj; i++)
 	{
@@ -101,22 +101,22 @@ int main(int argc, char ** argv)
 
 	objs.domainSize = length;
 	objs.local()->coosvels.uploadToDevice();
-	objs.particles2objIds.copy(p2obj);
+	objs.local()->particles2objIds.copy(p2obj);
 
-	CellList cells(&objs, rc, length + make_float3(radius));
-	cells.makePrimary();
+	//CellList cells(&objs, rc, length + make_float3(radius));
+	//cells.makePrimary();
 
-	objs.findExtentAndCOM(0);
-	cells.build();
+	objs.local()->findExtentAndCOM(0);
+	//cells.build();
 
 	objs.local()->coosvels.downloadFromDevice(true);
 
 	cudaStream_t defStream = 0;
 
-	ObjectHaloExchanger halo(cartComm, 0);
+	ObjectHaloExchanger* halo = new ObjectHaloExchanger(cartComm, 0);
 	halo->attach(&objs, rc);
 
-	cells.build();
+	//cells.build();
 	CUDA_Check( cudaStreamSynchronize(defStream) );
 
 	for (int i=0; i<1; i++)
@@ -127,8 +127,8 @@ int main(int argc, char ** argv)
 
 	std::vector<Particle> bufs[27];
 	objs.local()->coosvels.downloadFromDevice(true);
-	objs.halo()->downloadFromDevice(true);
-	p2obj.copy(objs.particles2objIds, 0);
+	objs.halo()->coosvels.downloadFromDevice(true);
+	p2obj.copy(objs.local()->particles2objIds, 0);
 
 	// =================================================================================================================
 
@@ -144,19 +144,19 @@ int main(int argc, char ** argv)
 
 	// =================================================================================================================
 
-	HostBuffer<ObjectVector::COMandExtent> props;
-	props.copy(objs.com_extent, defStream);
-	for (int i=0; i<objs.nObjects; i++)
+	HostBuffer<LocalObjectVector::COMandExtent> props;
+	props.copy(objs.local()->comAndExtents, defStream);
+	for (int i=0; i<objs.local()->nObjects; i++)
 		printf("%3d:  [%8.3f %8.3f %8.3f] -- [%8.3f %8.3f %8.3f]\n", i,
 				props[i].low.x, props[i].low.y, props[i].low.z, props[i].high.x, props[i].high.y, props[i].high.z);
 
-	std::vector<std::array<bool, 27>> haloObj(objs.nObjects);
+	std::vector<std::array<bool, 27>> haloObj(objs.local()->nObjects);
 	CellListInfo tightCells(1.0f, length);
-	for (int objId=0; objId<objs.nObjects; objId++)
+	for (int objId=0; objId<objs.local()->nObjects; objId++)
 	{
 		float3 high = make_float3(-1e10);
 		float3 low  = make_float3( 1e10);
-		for (int i=objId*objs.objSize; i<(objId+1)*objs.objSize; i++)
+		for (int i=objId*objs.local()->objSize; i<(objId+1)*objs.local()->objSize; i++)
 		{
 			Particle& p = objs.local()->coosvels[i];
 			high = fmaxf(high, p.r);
@@ -166,14 +166,14 @@ int main(int argc, char ** argv)
 		auto ncells = tightCells.ncells;
 		int cx=1, cy=1, cz=1;
 
-		if (low.x  < domainStart.x) cx = 0;
-		if (high.x > length.x) cx = ncells.x-1;
+		if (low.x-rc  < domainStart.x) cx = 0;
+		if (high.x+rc > domainStart.x+length.x) cx = ncells.x-1;
 
-		if (low.y  < domainStart.y) cy = 0;
-		if (high.y > length.y) cy = ncells.y-1;
+		if (low.y-rc  < domainStart.y) cy = 0;
+		if (high.y+rc > domainStart.y+length.y) cy = ncells.y-1;
 
-		if (low.z  < domainStart.z) cz = 0;
-		if (high.z > length.z) cz = ncells.z-1;
+		if (low.z-rc  < domainStart.z) cz = 0;
+		if (high.z+rc > domainStart.z+length.z) cz = ncells.z-1;
 
 		std::vector<std::pair<int, float3>> bufShift;
 		// 6
@@ -229,42 +229,55 @@ int main(int argc, char ** argv)
 	{
 		auto ptr = (Particle*)halo->helpers[0]->sendBufs[i].hostPtr();
 
-		std::sort(bufs[i].begin(), bufs[i].end(),			[] (Particle& a, Particle& b) { return a.i1 < b.i1; });
-		std::sort(ptr, ptr + halo->helpers[0]->bufSizes[i],	[] (Particle& a, Particle& b) { return a.i1 < b.i1; });
+		std::vector<Particle> tmp;
 
-		if (bufs[i].size() != halo->helpers[0]->bufSizes[i])
+		for (int pid = 0; pid < halo->helpers[0]->bufSizes[i] * objsize; pid++)
 		{
-			printf("%2d-th halo differs in size: %5d, expected %5d\n", i, halo->helpers[0]->bufSizes[i], (int)bufs[i].size());
+			if (pid % objsize == 0 && pid > 0)
+				ptr = (Particle*)((char*)ptr + sizeof(LocalObjectVector::COMandExtent));
+
+			tmp.push_back(ptr[pid]);
+		}
+
+		std::sort(tmp.begin(), tmp.end(), [] (Particle& a, Particle& b) { return a.i1 < b.i1; });
+		std::sort(bufs[i].begin(), bufs[i].end(), [] (Particle& a, Particle& b) { return a.i1 < b.i1; });
+
+		//if (bufs[i].size() / objsize != tmp.size())
+		{
+			printf("%2d-th halo differs in size: %5d, expected %5d\n", i, halo->helpers[0]->bufSizes[i], (int)bufs[i].size()/objsize);
 
 			printf("  Got:  ");
-			for (int j=0; j<halo->helpers[0]->bufSizes[i] / objs.objSize; j++)
-				printf("%2d ", ptr[j*objs.objSize].s12);
+			for (int j=0; j<halo->helpers[0]->bufSizes[i]; j++)
+				printf("%2d ", tmp[j*objs.local()->objSize].s12);
 			printf("\n");
 
 			printf("  Exp:  ");
-			for (int j=0; j<bufs[i].size() / objs.objSize; j++)
-				printf("%2d ", bufs[i][j*objs.objSize].s12);
+			for (int j=0; j<bufs[i].size() / objs.local()->objSize; j++)
+				printf("%2d ", bufs[i][j*objs.local()->objSize].s12);
 			printf("\n\n");
 		}
-		else
+		//else
 		{
-			for (int pid = 0; pid < min(halo->helpers[0]->bufSizes[i], (int)bufs[i].size()); pid++)
+
+
+
+			for (int pid = 0; pid < min(tmp.size(), bufs[i].size()); pid++)
 			{
 				const float diff = std::max({
-					fabs(ptr[pid].r.x - bufs[i][pid].r.x),
-					fabs(ptr[pid].r.y - bufs[i][pid].r.y),
-					fabs(ptr[pid].r.z - bufs[i][pid].r.z) });
+					fabs(tmp[pid].r.x - bufs[i][pid].r.x),
+					fabs(tmp[pid].r.y - bufs[i][pid].r.y),
+					fabs(tmp[pid].r.z - bufs[i][pid].r.z) });
 
-				if (bufs[i][pid].i1 != ptr[pid].i1 || diff > 1e-5)
-					printf("Halo %2d:  %3d obj %3d [%8.3f %8.3f %8.3f], expected %3d obj %3d [%8.3f %8.3f %8.3f]\n",
-							i, ptr[pid].s11, ptr[pid].s12, ptr[pid].r.x, ptr[pid].r.y, ptr[pid].r.z,
-							bufs[i][pid].s11, bufs[i][pid].s12, bufs[i][pid].r.x, bufs[i][pid].r.y, bufs[i][pid].r.z);
+				if (bufs[i][pid].i1 != tmp[pid].i1 || diff > 1e-5)
+					printf("Halo %2d:  %3d obj %3d [%8.3f %8.3f %8.3f   %d], expected %3d obj %3d [%8.3f %8.3f %8.3f  %d]\n",
+							i, tmp[pid].s11, tmp[pid].s12, tmp[pid].r.x, tmp[pid].r.y, tmp[pid].r.z, tmp[pid].i1,
+							bufs[i][pid].s11, bufs[i][pid].s12, bufs[i][pid].r.x, bufs[i][pid].r.y, bufs[i][pid].r.z, bufs[i][pid].i1);
 			}
 		}
 	}
 
-//	for (int i=0; i<objs.halo()->size(); i++)
-//		printf("%d  %f %f %f\n", i, objs.halo[i].r.x, objs.halo[i].r.y, objs.halo[i].r.z);
+//	for (int i=0; i<objs.local()->halo()->size(); i++)
+//		printf("%d  %f %f %f\n", i, objs.local()->halo[i].r.x, objs.local()->halo[i].r.y, objs.local()->halo[i].r.z);
 
 	return 0;
 }

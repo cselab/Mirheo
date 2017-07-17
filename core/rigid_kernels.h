@@ -5,6 +5,8 @@
 #include <core/celllist.h>
 #include <core/bounce.h>
 
+#pragma once
+
 // https://arxiv.org/pdf/0811.2889.pdf
 __device__ __forceinline__ float4 f3toQ(const float3 vec)
 {
@@ -40,13 +42,13 @@ __device__ __forceinline__ float4 compute_dq_dt(const float4 q, const float3 ome
 }
 
 
-__device__ inline float ellipse(const float3 r, const float3 invAxes)
+__device__ inline float ellipsoidF(const float3 r, const float3 invAxes)
 {
 	return sqr(r.x * invAxes.x) + sqr(r.y * invAxes.y) + sqr(r.z * invAxes.z) - 1;
 }
 
 __global__ void bounceEllipsoid(float4* coosvels, float mass, const LocalObjectVector::COMandExtent* props, LocalRigidObjectVector::RigidMotion* motions,
-		const int nObj, const float3 invAxes, const float r,
+		const int nObj, const float3 invAxes,
 		const uint* __restrict__ cellsStartSize, CellListInfo cinfo, const float dt)
 {
 	const int objId = blockDim.x * blockIdx.x;
@@ -54,7 +56,7 @@ __global__ void bounceEllipsoid(float4* coosvels, float mass, const LocalObjectV
 
 	const int3 cidLow  = cinfo.getCellIdAlongAxis(props[objId].low);
 	const int3 cidHigh = cinfo.getCellIdAlongAxis(props[objId].high);
-	const int3 span = cidHigh - cidLow;
+	const int3 span = cidHigh - cidLow + make_int3(1);
 	const int totCells = span.x * span.y * span.z;
 
 	auto motion = motions[objId];
@@ -70,29 +72,36 @@ __global__ void bounceEllipsoid(float4* coosvels, float mass, const LocalObjectV
 		{
 			const Particle p(coosvels[2*pid], coosvels[2*pid+1]);
 
-			float3 coo = rotate(p.r - props[objId].  com, invQ(motion.q));
+			float3 coo = rotate(p.r - props  [objId].com, invQ(motion.q));
 			float3 vel = rotate(p.u - motions[objId].vel, invQ(motion.q));
 
-			auto F = [invAxes, motion, dt] (const float3 r, const float dummy) {
-				return ellipse(r, invAxes);
+			float3 oldCoo = coo - vel*dt;
+
+
+			auto F = [invAxes, motion, dt] (const float3 r) {
+				return ellipsoidF(r, invAxes);
 			};
 
-			float t = bounceLinSearch(coo, vel, dt, F);
+			float alpha = bounceLinSearch(oldCoo, coo, F);
 
-			if (t > -0.1f)
+			if (alpha > -0.1f)
 			{
-				coo += (t-dt + 1e-5f)*vel;
+				printf("%d: %f -> %f  %f  ==> ", p.i1, F(oldCoo), F(coo), alpha);
+
+				coo =  oldCoo + (coo-oldCoo)*alpha;
 				vel = -vel;
+
+				printf("%f\n", F(coo));
 
 				const float3 frc = 2.0f*mass*vel;
 				motions[objId].force  += frc;
 				motions[objId].torque += cross(coo, frc);
 
-				coo = rotate(coo, motion.q) + props[objId].  com;
+				coo = rotate(coo, motion.q) + props  [objId].com;
 				vel = rotate(vel, motion.q) + motions[objId].vel;
 
-				coosvels[2*pid]   = make_float4(coo, __int_as_float(p.i1));
-				coosvels[2*pid+1] = make_float4(vel, __int_as_float(p.i2));
+				coosvels[2*pid]   = Float3_int(coo, p.i1).toFloat4();
+				coosvels[2*pid+1] = Float3_int(vel, p.i2).toFloat4();
 			}
 		}
 	}
@@ -161,9 +170,12 @@ __global__ void integrateRigidMotion(LocalRigidObjectVector::RigidMotion* motion
 	dq_dt += d2q_dt2 * dt;
 	q     += dq_dt   * dt;
 
+	// Normalize q
+	q = normalize(q);
+
 	motions[objId].q      = q;
 	motions[objId].omega  = omega;
-	motions[objId].deltaQ = dq_dt * dt;
+	motions[objId].deltaQ = q - motions[objId].q;
 	motions[objId].deltaV = dw_dt * dt;
 
 	//**********************************************************************************

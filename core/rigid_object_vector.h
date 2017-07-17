@@ -32,17 +32,19 @@ public:
 		static_assert( sizeof(RigidMotion)  % 4 == 0, "Extra data size in bytes should be divisible by 4" );
 
 
-		_extraDataSizes.resize(2);
-		_extraDataPtrs .resize(2);
+		extraDataSizes.resize(2);
+		extraDataPtrs .resize(2);
 
-		_extraDataSizes[0] = sizeof(COMandExtent) / 4;
-		_extraDataPtrs [0] = (int32_t*)comAndExtents.devPtr();
+		extraDataSizes[0] = sizeof(COMandExtent);
+		extraDataPtrs [0] = (int32_t*)comAndExtents.devPtr();
 
-		_extraDataSizes[1] = sizeof(RigidMotion) / 4;
-		_extraDataPtrs [1] = (int32_t*)motions.devPtr();
+		extraDataSizes[1] = sizeof(RigidMotion);
+		extraDataPtrs [1] = (int32_t*)motions.devPtr();
 
-		_extraDataSizes.uploadToDevice();
-		_extraDataPtrs .uploadToDevice();
+		extraDataSizes.uploadToDevice();
+		extraDataPtrs .uploadToDevice();
+
+		packedObjSize_bytes = ( (objSize*sizeof(Particle) + sizeof(COMandExtent) +sizeof(RigidMotion) + sizeof(float4)-1) / sizeof(float4) ) * sizeof(float4);
 	}
 
 

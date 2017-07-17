@@ -11,10 +11,43 @@
 #include <algorithm>
 #include <limits>
 
-__global__ void getObjectHalos(const float4* __restrict__ coosvels, const ObjectVector::COMandExtent* props, const int nObj, const int objSize,
-		const int* objParticleIds, const float3 domainSize, const float rc,
-		const int64_t dests[27], int bufSizes[27], int* haloParticleIds,
-		const int packedObjSize_float4, const int32_t** extraData, int nPtrsPerObj, const int* dataSizes)
+
+
+__device__ void packExtraData(int objId, int32_t** extraData, int nPtrsPerObj, const int* dataSizes, int32_t* destanation)
+{
+	int baseId = 0;
+
+	for (int ptrId = 0; ptrId < nPtrsPerObj; ptrId++)
+		{
+			// dataSizes are in bytes
+			const int size = dataSizes[ptrId] / 4;
+			for (int i = threadIdx.x; i < size; i += blockDim.x)
+				destanation[baseId+i] = extraData[ptrId][objId*size + i];
+
+			baseId += dataSizes[ptrId];
+		}
+}
+
+__device__ void unpackExtraData(int objId, int32_t** extraData, int nPtrsPerObj, const int* dataSizes, const int32_t* source)
+{
+	int baseId = 0;
+
+	for (int ptrId = 0; ptrId < nPtrsPerObj; ptrId++)
+	{
+		// dataSizes are in bytes
+		const int size = dataSizes[ptrId] / 4;
+		for (int i = threadIdx.x; i < size; i += blockDim.x)
+			extraData[ptrId][objId*size + i] = source[baseId+i];
+
+		baseId += dataSizes[ptrId];
+	}
+}
+
+
+__global__ void getObjectHalos(const float4* __restrict__ coosvels, const LocalObjectVector::COMandExtent* props, const int nObj, const int objSize,
+		const float3 domainSize, const float rc,
+		const int64_t dests[27], int bufSizes[27], /*int* haloParticleIds,*/
+		const int packedObjSize_byte, int32_t** extraData, int nPtrsPerObj, const int* dataSizes)
 {
 	const int objId = blockIdx.x;
 	const int tid = threadIdx.x;
@@ -60,30 +93,35 @@ __global__ void getObjectHalos(const float4* __restrict__ coosvels, const Object
 		const int ix = bufId % 3;
 		const int iy = (bufId / 3) % 3;
 		const int iz = bufId / 9;
-		const float4 shift{ domainSize.x*(ix-1),
+		const float3 shift{ domainSize.x*(ix-1),
 							domainSize.y*(iy-1),
-							domainSize.z*(iz-1), 0.0f };
+							domainSize.z*(iz-1) };
 
 		__syncthreads();
 		if (tid == 0)
 			shDstObjId = atomicAdd(bufSizes + bufId, 1);
 		__syncthreads();
 
-		float4* dstAddr = (float4*) (dests[bufId]) + packedObjSize_float4;
+//		if (tid == 0)
+//			if (objId == 5)
+//				printf("obj  %d  to halo  %d  [%f %f %f] - [%f %f %f]  %d %d %d\n", objId, bufId,
+//						prop.low.x, prop.low.y, prop.low.z, prop.high.x, prop.high.y, prop.high.z, cx, cy, cz);
+
+		float4* dstAddr = (float4*) (dests[bufId]) + packedObjSize_byte/sizeof(float4) * shDstObjId;
 
 		for (int pid = tid/2; pid < objSize; pid += blockDim.x/2)
 		{
-			const int srcId = objParticleIds[objId * objSize + pid];
-			float4 data = coosvels[2*srcId + sh];
+			const int srcId = objId * objSize + pid;
+			Float3_int data(coosvels[2*srcId + sh]);
 
 			// Remember your origin, little particle!
 			if (sh == 1)
-				data.w = __int_as_float(pid);
+				data.s2 = objId;
 
 			if (sh == 0)
-				data -= shift;
+				data.v -= shift;
 
-			dstAddr[2*pid + sh] = data;
+			dstAddr[2*pid + sh] = data.toFloat4();
 		}
 
 		// Add extra data at the end of the object
@@ -93,7 +131,7 @@ __global__ void getObjectHalos(const float4* __restrict__ coosvels, const Object
 }
 
 
-__global__ void unpackObject(const float4* from, float4* to, const int objSize, const int packedObjSize_float4, const int nObj,
+__global__ void unpackObject(const float4* from, float4* to, const int objSize, const int packedObjSize_byte, const int nObj,
 		int32_t** extraData, int nPtrsPerObj, const int* dataSizes)
 {
 	const int objId = blockIdx.x;
@@ -102,42 +140,15 @@ __global__ void unpackObject(const float4* from, float4* to, const int objSize, 
 
 	for (int pid = tid/2; pid < objSize; pid += blockDim.x/2)
 	{
-		const int srcId = objParticleIds[objId * packedObjSize_float4 + pid*2];
-		float4 data = coosvels[srcId + sh];
+		const int srcId = objId * packedObjSize_byte/sizeof(float4) + pid*2;
+		float4 data = from[srcId + sh];
 
-		to[objId*objSize + 2*pid + sh] = data;
+		to[2*(objId*objSize + pid) + sh] = data;
 	}
 
-	unpackExtraData(objId, extraData, nPtrsPerObj, dataSizes);
+	unpackExtraData(objId, extraData, nPtrsPerObj, dataSizes, (int32_t*)( ((char*)from) + objId * packedObjSize_byte + objSize*sizeof(Particle) ));
 }
 
-__device__ void packExtraData(int objId, const int32_t** extraData, int nPtrsPerObj, const int* dataSizes, int32_t* destanation)
-{
-	int baseId = 0;
-
-	for (int ptrId = 0; ptrId < nPtrsPerObj; ptrId++)
-		{
-			const int size = dataSizes[ptrId];
-			for (int i = threadIdx.x; i < size; i += blockDim.x)
-				destanation[baseId+i] = extraData[ptrId][objId*size + i];
-
-			baseId += dataSizes[ptrId];
-		}
-}
-
-__device__ void unpackExtraData(int objId, int32_t** extraData, int nPtrsPerObj, const int* dataSizes, const int32_t* source)
-{
-	int baseId = 0;
-
-	for (int ptrId = 0; ptrId < nPtrsPerObj; ptrId++)
-	{
-		const int size = dataSizes[ptrId];
-		for (int i = threadIdx.x; i < size; i += blockDim.x)
-			extraData[ptrId][objId*size + i] = source[baseId+i];
-
-		baseId += dataSizes[ptrId];
-	}
-}
 
 
 
@@ -147,39 +158,18 @@ void ObjectHaloExchanger::attach(ObjectVector* ov, float rc)
 	objects.push_back(ov);
 	rcs.push_back(rc);
 
+	const float objPerCell = 0.1f;
+
 	const int maxdim = std::max({ov->domainSize.x, ov->domainSize.y, ov->domainSize.z});
-	const float ndens = (double)ov->local()->size() / (ov->domainSize.x * ov->domainSize.y * ov->domainSize.z);
 
-	int extraSize_bytes = 0;
-	for (int i=0; i<ov->extraDataNumPtrs(); i++)
-		extraSize_bytes += ov->extraDataSize(i);
-	int totSize = ov->objSize + extraSize_bytes/sizeof(Particle);
+	const int sizes[3] = { (int)(4*objPerCell * maxdim*maxdim + 10),
+						   (int)(4*objPerCell * maxdim + 10),
+						   (int)(4*objPerCell + 10) };
 
 
-	const int sizes[3] = { (int)(4*ndens * maxdim*maxdim + 10*totSize),
-						   (int)(4*ndens * maxdim + 10*totSize),
-						   (int)(4*ndens + 10*totSize) };
-
-
-	ExchangeHelper* helper = new ExchangeHelper(ov->name, totSize * sizeof(Particle), sizes);
+	ExchangeHelper* helper = new ExchangeHelper(ov->name, ov->local()->packedObjSize_bytes, sizes);
 	ov->halo()->pushStream(helper->stream);
-	ov->haloForces.pushStream(helper->stream);
 	helpers.push_back(helper);
-
-	helper->extraDataPtrs_local.resize(ov->extraDataNumPtrs());
-	helper->extraDataPtrs_halo .resize(ov->extraDataNumPtrs());
-	helper->extraDataSizes     .resize(ov->extraDataNumPtrs());
-
-	for (int i=0; i<helper->extraDataPtrs.size(); i++)
-	{
-		helper->extraDataPtrs_local[i] = ov->extraDataPtr_local(i);
-		helper->extraDataPtrs_halo[i]  = ov->extraDataPtr_halo(i);
-		helper->extraDataSizes[i]      = ov->extraDataSize(i);
-	}
-
-	helper->extraDataPtrs_local.uploadToDevice();
-	helper->extraDataPtrs_halo .uploadToDevice();
-	helper->extraDataSizes     .uploadToDevice();
 }
 
 
@@ -196,22 +186,16 @@ void ObjectHaloExchanger::prepareData(int id)
 	helper->bufSizes.popStream();
 
 	const int nthreads = 128;
-	if (ov->nObjects > 0)
+	if (ov->local()->nObjects > 0)
 	{
-		const int  nPtrs = helper->extraDataPtrs.size();
-		int32_t**  dataPtrs  = helper->extraDataPtrs_local. devPtr();
-		const int* dataSizes = helper->extraDataSizes.devPtr();
+		int       nPtrs  = ov->local()->extraDataPtrs.size();
+		int totSize_byte = ov->local()->packedObjSize_bytes;
 
-		int extraSize_bytes = 0;
-		for (int i=0; i<nPtrs; i++)
-			extraSize_bytes += ov->extraDataSize(i);
-
-		int totalObjSize_float4 = ov->objSize*2 + (extraSize_bytes+sizeof(float4)-1)/sizeof(float4);
-
-		getObjectHalos <<< ov->nObjects, nthreads, 0, defStream >>>
-				((float4*)ov->local()->coosvels.devPtr(), ov->com_extent.devPtr(), ov->nObjects, ov->objSize, ov->particles2objIds.devPtr(), ov->domainSize, rc,
-				 (int64_t*)helper->sendAddrs.devPtr(), helper->bufSizes.devPtr(), ov->haloIds.devPtr(),
-				 totalObjSize_float4, dataPtrs, dataSizes);
+		getObjectHalos <<< ov->local()->nObjects, nthreads, 0, defStream >>> (
+				(float4*)ov->local()->coosvels.devPtr(), ov->local()->comAndExtents.devPtr(),
+				ov->local()->nObjects, ov->local()->objSize, ov->domainSize, rc,
+				(int64_t*)helper->sendAddrs.devPtr(), helper->bufSizes.devPtr(),
+				totSize_byte, ov->local()->extraDataPtrs.devPtr(), nPtrs, ov->local()->extraDataSizes.devPtr());
 	}
 }
 
@@ -220,34 +204,24 @@ void ObjectHaloExchanger::combineAndUploadData(int id)
 	auto ov = objects[id];
 	auto helper = helpers[id];
 
-	ov->halo()->resize(helper->recvOffsets[27] / sizeof(Particle), resizeAnew);
-	ov->halo()->resize(helper->recvOffsets[27] / sizeof(Particle), resizeAnew);
+	ov->halo()->resize(helper->recvOffsets[27] * ov->halo()->objSize, resizeAnew);
+	ov->halo()->resize(helper->recvOffsets[27] * ov->halo()->objSize, resizeAnew);
 
 	const int nthreads = 128;
 	for (int i=0; i < 27; i++)
 	{
-		const int msize = helper->recvOffsets[i+1] - helper->recvOffsets[i];
-		if (msize > 0)
+		const int nObjs = helper->recvOffsets[i+1] - helper->recvOffsets[i];
+		if (nObjs > 0)
 		{
-			const int nPtrs = helper->extraDataPtrs.size();
-			const int32_t** dataPtrs  = helper->extraDataPtrs. devPtr();
-			const int*      dataSizes = helper->extraDataSizes.devPtr();
-
-			int extraSize_bytes = 0;
-			for (int i=0; i<helper->local()->size()trs; i++)
-				extraSize_bytes += ov->extraDataSize(i);
-
-			const int nObjs     = msize                  / (ov->objSize*sizeof(Particle) + extraSize_bytes);
-			const int objOffset = helper->recvOffsets[i] / (ov->objSize*sizeof(Particle) + extraSize_bytes);
-
-			int totalObjSize_float4 = ov->objSize*2 + (extraSize_bytes+sizeof(float4)-1)/sizeof(float4);
+			int        nPtrs = ov->local()->extraDataPtrs.size();
+			int totSize_byte = ov->local()->packedObjSize_bytes;
 
 			unpackObject<<< nObjs, nthreads, 0, defStream >>>
-					(helper->recvBufs[i].devPtr(), (float4*)(ov->local()->coosvels.devPtr()+ov->objOffset*nObjs), ov->objSize, totalObjSize_float4, nObjs, extraData, dataSizes);
+					((float4*)helper->recvBufs[i].devPtr(), (float4*)(ov->halo()->coosvels.devPtr() + helper->recvOffsets[i]*nObjs), ov->local()->objSize, totSize_byte, nObjs,
+					 ov->halo()->extraDataPtrs.devPtr(), nPtrs, ov->halo()->extraDataSizes.devPtr());
 		}
 	}
 }
-
 
 
 

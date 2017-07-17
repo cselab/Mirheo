@@ -242,7 +242,7 @@ __launch_bounds__(128, 8)
 __global__ void bounceSDF(const int* wallCells, const int nWallCells, const uint* __restrict__ cellsStartSize, CellListInfo cinfo,
 		Wall::SdfInfo sdfInfo, float4* coosvels, const float dt)
 {
-	const auto F = [sdfInfo] (const float3 r, float dummy) {
+	const auto F = [sdfInfo] (const float3 r) {
 		return evalSdf(r, sdfInfo);
 	};
 
@@ -257,18 +257,10 @@ __global__ void bounceSDF(const int* wallCells, const int nWallCells, const uint
 		Particle p(coosvels[2*pid], coosvels[2*pid+1]);
 		float3 oldCoo = p.r - p.u*dt;
 
-		const float alpha = bounceLinSearch(oldCoo, p.r, dt, F);
+		const float alpha = bounceLinSearch(oldCoo, p.r, F);
 
 		// FIXME: ID!!
-		// Just place the particle almost onto the surface and reverse the velocity
-		float beta = alpha - 1e-6f;
-		float3 candidate = oldCoo + beta * (p.r - oldCoo);
-
-		if (F(candidate, 0.0f) >= 0.0f)
-		{
-			printf("Sdf bounce failed. Particle will simply return back to its location\n");
-			candidate = oldCoo;
-		}
+		float3 candidate = oldCoo + alpha * (p.r - oldCoo);
 
 		coosvels[2*pid]     = make_float4(candidate, __float_as_int(p.i1));
 		coosvels[2*pid + 1] = make_float4(-p.u,      __float_as_int(p.i2));

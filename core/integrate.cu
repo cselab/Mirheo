@@ -4,7 +4,7 @@
 #include <core/logger.h>
 #include <core/helper_math.h>
 #include <core/cuda_common.h>
-#include <core/rigid_kernels.h>
+//#include <core/rigid_kernels.h>
 
 /**
  * transform(float4& x, float4& v, const float4 f, const float invm, const float dt):
@@ -123,26 +123,26 @@ void integrateConstOmega(ParticleVector* pv, const float dt, cudaStream_t stream
  * Also integrate object's Q
  * Only VV integration now
  */
-void integrateRigid(RigidObjectVector* ov, const float dt, cudaStream_t stream, float3 extraForce)
-{
-	debug2("Integrating %d rigid objects %s, timestep is %f", ov->local()->nObjects, ov->name.c_str(), dt);
-
-	collectRigidForces<<< getNblocks(2*ov->local()->size(), 128), 128, 0, stream >>>
-			((float4*)ov->local()->coosvels.devPtr(), ov->local()->motions.devPtr(), ov->local()->comAndExtents.devPtr(), ov->local()->nObjects, ov->local()->objSize);
-
-	auto sq = [] (float x) { return x*x; };
-	const float3 J = 5.0/ov->mass * make_float3(
-			1.0/(sq(ov->axes.y) + sq(ov->axes.z)),
-			1.0/(sq(ov->axes.z) + sq(ov->axes.x)),
-			1.0/(sq(ov->axes.x) + sq(ov->axes.y)) );
-	const float3 J_1 = 1.0 / J;
-
-	integrateRigidMotion<<< getNblocks(ov->nObjects, 64), 64, 0, stream >>>(ov->local()->motions.devPtr(), J, J_1, ov->nObjects, dt);
-
-	applyRigidMotion<<< getNblocks(ov->local()->size(), 128), 128, 0, stream >>>((float4*)ov->local()->coosvels.devPtr(), ov->local()->motions.devPtr(), ov->nObjects, ov->objSize);
-
-	clearRigidForces<<< getNblocks(ov->nObjects, 64), 64, 0, stream >>>(ov->local()->motions.devPtr(), ov->nObjects);
-}
+//void integrateRigid(RigidObjectVector* ov, const float dt, cudaStream_t stream, float3 extraForce)
+//{
+//	debug2("Integrating %d rigid objects %s, timestep is %f", ov->local()->nObjects, ov->name.c_str(), dt);
+//
+//	collectRigidForces<<< getNblocks(2*ov->local()->size(), 128), 128, 0, stream >>>
+//			((float4*)ov->local()->coosvels.devPtr(), ov->local()->motions.devPtr(), ov->local()->comAndExtents.devPtr(), ov->local()->nObjects, ov->local()->objSize);
+//
+//	auto sq = [] (float x) { return x*x; };
+//	const float3 J = 5.0/ov->mass * make_float3(
+//			1.0/(sq(ov->axes.y) + sq(ov->axes.z)),
+//			1.0/(sq(ov->axes.z) + sq(ov->axes.x)),
+//			1.0/(sq(ov->axes.x) + sq(ov->axes.y)) );
+//	const float3 J_1 = 1.0 / J;
+//
+//	integrateRigidMotion<<< getNblocks(ov->nObjects, 64), 64, 0, stream >>>(ov->local()->motions.devPtr(), J, J_1, ov->nObjects, dt);
+//
+//	applyRigidMotion<<< getNblocks(ov->local()->size(), 128), 128, 0, stream >>>((float4*)ov->local()->coosvels.devPtr(), ov->local()->motions.devPtr(), ov->nObjects, ov->objSize);
+//
+//	clearRigidForces<<< getNblocks(ov->nObjects, 64), 64, 0, stream >>>(ov->local()->motions.devPtr(), ov->nObjects);
+//}
 
 
 

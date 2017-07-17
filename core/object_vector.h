@@ -6,11 +6,10 @@
 
 class LocalObjectVector: public LocalParticleVector
 {
-protected:
-	PinnedBuffer<int32_t*> _extraDataPtrs;
-	PinnedBuffer<int>      _extraDataSizes;
-
 public:
+
+	PinnedBuffer<int32_t*> extraDataPtrs;
+	PinnedBuffer<int>      extraDataSizes;
 
 	struct __align__(16) COMandExtent
 	{
@@ -19,6 +18,7 @@ public:
 
 	int nObjects = 0;
 	int objSize  = 0;
+	int packedObjSize_bytes = 0;
 	DeviceBuffer<int> particles2objIds;
 	DeviceBuffer<COMandExtent> comAndExtents;
 
@@ -28,14 +28,16 @@ public:
 		resize(nObjects*objSize, ResizeKind::resizeAnew);
 		static_assert( sizeof(COMandExtent) % 4 == 0, "Extra data size in bytes should be divisible by 4" );
 
-		_extraDataSizes.resize(1);
-		_extraDataPtrs .resize(1);
+		extraDataSizes.resize(1);
+		extraDataPtrs .resize(1);
 
-		_extraDataSizes[0] = sizeof(COMandExtent) / 4;
-		_extraDataPtrs [0] = (int32_t*)comAndExtents.devPtr();
+		extraDataSizes[0] = sizeof(COMandExtent);
+		extraDataPtrs [0] = (int32_t*)comAndExtents.devPtr();
 
-		_extraDataSizes.uploadToDevice();
-		_extraDataPtrs .uploadToDevice();
+		extraDataSizes.uploadToDevice();
+		extraDataPtrs .uploadToDevice();
+
+		packedObjSize_bytes = ( (objSize*sizeof(Particle) + sizeof(COMandExtent) + sizeof(float4)-1) / sizeof(float4) ) * sizeof(float4);
 	};
 
 	virtual void pushStream(cudaStream_t stream)
@@ -65,27 +67,6 @@ public:
 		particles2objIds.resize(np,       kind);
 		comAndExtents   .resize(nObjects, kind);
 	}
-
-	// Provide some data per object for MPI exchange
-	// ******************************************************************
-	int extraDataNumPtrs()
-	{
-		return _extraDataSizes.size();
-	}
-
-	// Size in bytes
-	// Device pointer!
-	int* extraDataSizes()
-	{
-		return _extraDataSizes.devPtr();
-	}
-
-	// Device array of extraDataNumPtrs() device pointers
-	int32_t** extraDataPtrs()
-	{
-		return _extraDataPtrs.devPtr();
-	}
-	// ******************************************************************
 
 	void findExtentAndCOM(cudaStream_t stream);
 

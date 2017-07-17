@@ -4,6 +4,7 @@
 #include <core/components.h>
 #include <core/wall.h>
 #include <core/interactions.h>
+#include <core/task_scheduler.h>
 #include <plugins/plugin.h>
 
 #include <vector>
@@ -20,21 +21,21 @@ class CellList;
 
 class Simulation
 {
-	int rank;
-	int3 rank3D;
-	MPI_Comm cartComm;
-	MPI_Comm interComm;
-
 public:
 	int3 nranks3D;
 	float3 globalDomainSize, subDomainSize, subDomainStart;
 
 private:
+	int rank;
+	int3 rank3D;
+	MPI_Comm cartComm;
+	MPI_Comm interComm;
+
 	double currentTime;
 	int currentStep;
 	cudaStream_t defStream;
 
-private:
+	TaskScheduler scheduler;
 
 	HaloExchanger* halo;
 	Redistributor* redistributor;
