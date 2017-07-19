@@ -24,15 +24,30 @@ Particle addShift(Particle p, float a, float b, float c)
 	return res;
 }
 
+float4 inv_q(float4 q)
+{
+	return make_float4(q.x, -q.y, -q.z, -q.w);
+}
+
+float3 rot(float3 v, float4 q)
+{
+	//https://en.wikipedia.org/wiki/Rodrigues%27_rotation_formula
+
+	double phi = 2.0*atan2( sqrt( (double)q.y*q.y + (double)q.z*q.z + (double)q.w*q.w),  (double)q.x );
+	double sphi_1 = 1.0 / sin(0.5*phi);
+	const float3 k = make_float3(q.y * sphi_1, q.z * sphi_1, q.w * sphi_1);
+
+	return v*cos(phi) + cross(k, v) * sin(phi) + k * dot(k, v) * (1-cos(phi));
+}
+
 float ellipsoid(LocalRigidObjectVector::RigidMotion motion, float3 invAxes, Particle p)
 {
 	const float3 v = p.r - motion.r;
+	const float3 vRot = rot(v, inv_q(motion.q));
 
-	//https://en.wikipedia.org/wiki/Rodrigues%27_rotation_formula
-	const float phi = -2*acos(motion.q.x);
-	const float3 k = make_float3(motion.q.y, motion.q.z, motion.q.w) / sin(phi*0.5f);
-
-	const float3 vRot = v*cos(phi) + cross(k, v) * sin(phi) + k * dot(k, v) * (1-cos(phi));
+//	if (p.i1 == 352474)
+//		printf(";lasjjjjj     [%f %f %f] --> [%f %f %f] -rot-> [%f %f %f]          %f\n",
+//				p.r.x, p.r.y, p.r.z, v.x, v.y, v.z, vRot.x, vRot.y, vRot.z, dot(motion.q, motion.q));
 
 	return sqr(vRot.x * invAxes.x) + sqr(vRot.y * invAxes.y) + sqr(vRot.z * invAxes.z) - 1.0f;
 }
@@ -53,11 +68,11 @@ int main(int argc, char ** argv)
 	MPI_Check( MPI_Comm_rank(MPI_COMM_WORLD, &rank) );
 	MPI_Check( MPI_Cart_create(MPI_COMM_WORLD, 3, ranks, periods, 0, &cartComm) );
 
-	std::string xml = R"(<node mass="1.0" density="20.0">)";
+	std::string xml = R"(<node mass="1.0" density="10.0">)";
 	pugi::xml_document config;
 	config.load_string(xml.c_str());
 
-	float3 length{4,4,4};
+	float3 length{40,40,40};
 	float3 domainStart = -length / 2.0f;
 	const float rc = 1.0f;
 	ParticleVector dpds("dpd");
@@ -73,7 +88,7 @@ int main(int argc, char ** argv)
 	const float dt = 0.1;
 	for (int i=0; i<dpds.local()->size(); i++)
 	{
-		dpds.local()->coosvels[i].u.z = 2*(drand48() - 0.5);
+		dpds.local()->coosvels[i].u.x = 2*(drand48() - 0.5);
 		dpds.local()->coosvels[i].u.y = 2*(drand48() - 0.5);
 		dpds.local()->coosvels[i].u.z = 2*(drand48() - 0.5);
 
@@ -86,8 +101,8 @@ int main(int argc, char ** argv)
 	initial.copy(dpds.local()->coosvels);
 
 
-	const int nobj = 1;
-	const float3 axes{0.4, 0.8, 1.0};
+	const int nobj = 10;
+	const float3 axes{4, 2, 3};
 	const float3 invAxes = 1.0f / axes;
 
 	const float maxAxis = std::max({axes.x, axes.y, axes.z});
@@ -112,7 +127,7 @@ int main(int argc, char ** argv)
 		motions[i].force  = make_float3(0);
 		motions[i].torque = make_float3(0);
 
-		const float phi = M_PI*drand48();
+		const float phi = 0.4*M_PI*drand48()+0.1;
 		const float sphi = sin(0.5f*phi);
 		const float cphi = cos(0.5f*phi);
 
@@ -122,13 +137,21 @@ int main(int argc, char ** argv)
 
 		motions[i].q = make_float4(cphi, sphi*v.x, sphi*v.y, sphi*v.z);
 
-		printf("Obj %d:\n"
-				"   r [%f %f %f]\n\n", i, motions[i].r.x, motions[i].r.y, motions[i].r.z);
-
 		com_ext[i].com  = motions[i].r;
 		com_ext[i].high = com_ext[i].com + make_float3(maxAxis);
 		com_ext[i].low  = com_ext[i].com - make_float3(maxAxis);
+
+		printf("Obj %d:\n"
+				"   r [%f %f %f]\n"
+				"   phi %f, v [%f %f %f]\n"
+				"   ext : [%f %f %f] -- [%f %f %f]\n\n",
+				i, motions[i].r.x, motions[i].r.y, motions[i].r.z,
+				phi, v.x, v.y, v.z,
+				com_ext[i].low.x,  com_ext[i].low.y,  com_ext[i].low.z,
+				com_ext[i].high.x, com_ext[i].high.y, com_ext[i].high.z);
 	}
+
+	printf(" =================================================\n\n");
 
 	motions.uploadToDevice();
 	com_ext.uploadToDevice();
@@ -149,6 +172,15 @@ int main(int argc, char ** argv)
 	for (int objId = 0; objId < nobj; objId++)
 	{
 		auto motion = motions[objId];
+		auto oldMot = motion;
+
+		float4 dq_dt = compute_dq_dt(motion.q, motion.omega);
+		oldMot.q = motion.q - dq_dt * dt;
+		oldMot.r = motion.r - motion.vel * dt;
+		oldMot.q = normalize(oldMot.q);
+
+//		printf("Obj %d: old  q [%f %f %f %f],  r [%f %f %f]\n",
+//				objId, oldMot.q.x, oldMot.q.y, oldMot.q.z, oldMot.q.w,  oldMot.r.x, oldMot.r.y, oldMot.r.z);
 
 		for (int pid = 0; pid < final.size(); pid++)
 		{
@@ -156,19 +188,46 @@ int main(int argc, char ** argv)
 			auto pFinal = dpds.local()->coosvels[pid];
 
 			Particle pOld = pInit;
-			pOld.r = pInit.r - dt*(pInit.u-motion.vel);
+			pOld.r = pInit.r - dt*pInit.u;
+
+			float vold  = ellipsoid(oldMot, invAxes, pOld);
+			float vinit = ellipsoid(motion, invAxes, pInit);
 
 			// Inside
-			//if (ellipsoid(motion, invAxes, pOld) * ellipsoid(motion, invAxes, pInit) < 0)
-			if (pInit.i1 == 1040)
+			if ( vold * vinit < 0)
 			{
-				printf("Particle  %d,  obj  %d:\n"
-					   "   [%f %f %f] (%f)  -->  [%f %f %f] (%f)\n"
-					   "   Moved to [%f %f %f] (%f)\n\n",
-						pInit.i1, objId,
-						pOld.r.x,   pOld.r.y,   pOld.r.z,   ellipsoid(motion, invAxes, pOld),
-						pInit.r.x,  pInit.r.y,  pInit.r.z,  ellipsoid(motion, invAxes, pInit),
-						pFinal.r.x, pFinal.r.y, pFinal.r.z, ellipsoid(motion, invAxes, pFinal) );
+				float vfin  = ellipsoid(motion, invAxes, pFinal);
+
+				bool wrong = vfin < 0.0f;
+
+				float3 r = pFinal.r;
+				float3 v = pInit.u;
+
+				r = rot(r - motion.r,   inv_q(motion.q));
+				v = rot(v - motion.vel, inv_q(motion.q));
+
+				v = v - cross(motion.omega, r);
+
+				v = -v;
+				v = v + cross(motion.omega, r);
+				v = rot(v, motion.q) + motion.vel;
+
+				wrong = wrong || dot(v - pFinal.u, v - pFinal.u) > 1e-4;
+
+				if (wrong)
+				{
+					int3 cid = cells.getCellIdAlongAxis(pInit.r);
+
+					printf("Particle  %d (cell %d %d %d),  obj  %d:\n"
+						   "   [%f %f %f] (%f)  -->  [%f %f %f] (%f)\n"
+						   "   Moved to [%f %f %f] (%f)\n"
+						   "   Vel from [%f %f %f] to [%f %f %f], reference vel [%f %f %f]\n\n",
+							pInit.i1, cid.x, cid.y, cid.z, objId,
+							pOld.r.x,   pOld.r.y,   pOld.r.z,   vold,
+							pInit.r.x,  pInit.r.y,  pInit.r.z,  vinit,
+							pFinal.r.x, pFinal.r.y, pFinal.r.z, vfin,
+							pInit.u.x,  pInit.u.y,  pInit.u.z, pFinal.u.x,  pFinal.u.y,  pFinal.u.z,  v.x, v.y, v.z);
+				}
 			}
 		}
 	}

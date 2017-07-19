@@ -16,7 +16,7 @@ __device__ __inline__ float bounceLinSearch(const float3 oldCoo, const float3 co
 	// Sign mapping to inside/outside is irrelevant
 
 	const int   maxNIters = 20;
-	const float tolerance = 5e-6;
+	const float tolerance = 2e-6;
 
 	float3 a = oldCoo;
 	float3 b = coo;
@@ -63,16 +63,6 @@ __device__ __inline__ float bounceLinSearch(const float3 oldCoo, const float3 co
 	if (fabs(vmid) > tolerance)
 		return 0.0f;
 
-	// Make sure that the sign is the same as on the left (oldCoo) side
-	if (va*vmid > 0.0f)
-		return l;
-	else
-	{
-		do {
-			l -= tolerance;
-		} while (F(oldCoo + l*(coo-oldCoo)) * va < 0.0f);
-
-		return l;
-	}
+	return l;
 }
 

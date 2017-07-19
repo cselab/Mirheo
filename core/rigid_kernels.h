@@ -7,28 +7,29 @@
 
 #pragma once
 
+// http://www.iri.upc.edu/people/jsola/JoanSola/objectes/notes/kinematics.pdf
 // https://arxiv.org/pdf/0811.2889.pdf
-__device__ __forceinline__ float4 f3toQ(const float3 vec)
+__device__ __host__ __forceinline__ float4 f3toQ(const float3 vec)
 {
 	return make_float4(0.0f, vec.x, vec.y, vec.z);
 }
-__device__ __forceinline__ float4 invQ(const float4 q)
+__device__ __host__ __forceinline__ float4 invQ(const float4 q)
 {
 	return make_float4(q.x, -q.y, -q.z, -q.w);
 }
 
-__device__ __forceinline__ float4 multiplyQ(const float4 q1, const float4 q2)
+__device__ __host__ __forceinline__ float4 multiplyQ(const float4 q1, const float4 q2)
 {
 	float4 res;
-	res.x =  q1.x * q2.w + q1.y * q2.z - q1.z * q2.y + q1.w * q2.x;
-	res.y = -q1.x * q2.z + q1.y * q2.w + q1.z * q2.x + q1.w * q2.y;
-	res.z =  q1.x * q2.y - q1.y * q2.x + q1.z * q2.w + q1.w * q2.z;
-	res.w = -q1.x * q2.x - q1.y * q2.y - q1.z * q2.z + q1.w * q2.w;
+	res.x =  q1.x * q2.x - q1.y * q2.y - q1.z * q2.z - q1.w * q2.w;
+	res.y =  q1.x * q2.y + q1.y * q2.x + q1.z * q2.w - q1.w * q2.z;
+	res.z =  q1.x * q2.z - q1.y * q2.w + q1.z * q2.x + q1.w * q2.y;
+	res.w =  q1.x * q2.w + q1.y * q2.z - q1.z * q2.y + q1.w * q2.x;
 	return res;
 }
 
 // rotate a point v in 3D space around the origin using this quaternion
-__device__ __forceinline__ float3 rotate(const float3 x, const float4 q)
+__device__ __host__ __forceinline__ float3 rotate(const float3 x, const float4 q)
 {
 	float4 qX = make_float4(0.0f, x);
 	qX = multiplyQ(multiplyQ(q, qX), invQ(q));
@@ -36,7 +37,7 @@ __device__ __forceinline__ float3 rotate(const float3 x, const float4 q)
 	return make_float3(qX.y, qX.z, qX.w);
 }
 
-__device__ __forceinline__ float4 compute_dq_dt(const float4 q, const float3 omega)
+__device__ __host__ __forceinline__ float4 compute_dq_dt(const float4 q, const float3 omega)
 {
 	return 0.5f*multiplyQ(f3toQ(omega), q);
 }
@@ -51,19 +52,35 @@ __global__ void bounceEllipsoid(float4* coosvels, float mass, const LocalObjectV
 		const int nObj, const float3 invAxes,
 		const uint* __restrict__ cellsStartSize, CellListInfo cinfo, const float dt)
 {
-	const int objId = blockDim.x * blockIdx.x;
+	const int objId = blockIdx.x;
+
 	if (objId >= nObj) return;
 
-	const int3 cidLow  = cinfo.getCellIdAlongAxis(props[objId].low);
-	const int3 cidHigh = cinfo.getCellIdAlongAxis(props[objId].high);
-	const int3 span = cidHigh - cidLow + make_int3(1);
+	const int3 cidLow  = cinfo.getCellIdAlongAxis(props[objId].low  - make_float3(0.3f));
+	const int3 cidHigh = cinfo.getCellIdAlongAxis(props[objId].high + make_float3(0.3f));
+	const int3 span = cidHigh - cidLow + make_int3(1,1,1);
 	const int totCells = span.x * span.y * span.z;
 
 	auto motion = motions[objId];
 
+	// Prepare rolling back in time
+	auto oldMotion = motion;
+	oldMotion.r = motion.r - motion.vel * dt;
+	oldMotion.q = motion.q - compute_dq_dt(motion.q, motion.omega) * dt;
+	oldMotion.q = normalize(oldMotion.q);
+
+//	if (threadIdx.x == 0)
+//	{
+//		printf("%d  : [%d %d %d] : [%d %d %d]\n", objId,
+//				cidLow.x, cidLow.y, cidLow.z, cidHigh.x, cidHigh.y, cidHigh.z);
+//		printf("GPU OLD OBj %d:  q [%f %f %f %f],  r [%f %f %f]\n",
+//				objId, oldMotion.q.x, oldMotion.q.y, oldMotion.q.z, oldMotion.q.w,
+//				oldMotion.r.x, oldMotion.r.y, oldMotion.r.z);
+//	}
+
 	for (int i=threadIdx.x; i<totCells; i+=blockDim.x)
 	{
-		const int3 cid3 = make_int3( i/(span.y*span.x), (i/span.x) % span.y, i % span.x ) + cidLow;
+		const int3 cid3 = make_int3( i % span.x, (i/span.x) % span.y, i / (span.x*span.y) ) + cidLow;
 		const int cid = cinfo.encode(cid3);
 
 		int2 start_size = cinfo.decodeStartSize(cellsStartSize[cid]);
@@ -72,36 +89,49 @@ __global__ void bounceEllipsoid(float4* coosvels, float mass, const LocalObjectV
 		{
 			const Particle p(coosvels[2*pid], coosvels[2*pid+1]);
 
-			float3 coo = rotate(p.r - props  [objId].com, invQ(motion.q));
-			float3 vel = rotate(p.u - motions[objId].vel, invQ(motion.q));
+			// Go to the obj frame where the obj is completely still
+			float3 coo = rotate(p.r - motion.r,   invQ(motion.q));
 
-			float3 oldCoo = coo - vel*dt;
-
+			// For the old coordinate use the motion description of past timestep
+			float3 oldCoo = p.r - p.u*dt;
+			oldCoo = rotate(oldCoo - oldMotion.r, invQ(oldMotion.q));
 
 			auto F = [invAxes, motion, dt] (const float3 r) {
-				return ellipsoidF(r, invAxes);
+				return ellipsoidF(r, invAxes) - 5e-6;
 			};
 
 			float alpha = bounceLinSearch(oldCoo, coo, F);
 
+//			if (p.i1 == 352474)
+//				printf("%8d   [%f %f %f] -> [%f %f %f] -rot-> [%f %f %f]  (%f)\n"
+//						"   oldCoo: [%f %f %f] -> [%f %f %f] -rot-> [%f %f %f] (%f)\n\n",
+//						p.i1, p.r.x, p.r.y, p.r.z,
+//						p.r.x - props[objId].com.x, p.r.y - props[objId].com.y, p.r.z - props[objId].com.z,
+//						coo.x, coo.y, coo.z, F(coo),
+//						p.r.x - p.u.x*dt, p.r.y - p.u.y*dt, p.r.z - p.u.z*dt,
+//						p.r.x - p.u.x*dt - oldMotion.r.x, p.r.y - p.u.y*dt - oldMotion.r.y, p.r.z - p.u.z*dt - oldMotion.r.z,
+//						oldCoo.x, oldCoo.y, oldCoo.z, F(oldCoo) + 5e-5);
+
 			if (alpha > -0.1f)
 			{
-				printf("%d: %f -> %f  %f  ==> ", p.i1, F(oldCoo), F(coo), alpha);
+				float3 bounced = oldCoo + (coo-oldCoo)*alpha;
 
-				coo =  oldCoo + (coo-oldCoo)*alpha;
+				float3 vel = rotate(p.u - motion.vel, invQ(motion.q));
+				vel -= cross(motion.omega, bounced);
 				vel = -vel;
+				vel += cross(motion.omega, bounced);
 
-				printf("%f\n", F(coo));
+//				printf("%d: %f -> %f  (%f)  ==> %f\n", p.i1, F(oldCoo) + 5e-6, F(coo) + 5e-6, alpha, F(bounced));
 
 				const float3 frc = 2.0f*mass*vel;
 				motions[objId].force  += frc;
 				motions[objId].torque += cross(coo, frc);
 
-				coo = rotate(coo, motion.q) + props  [objId].com;
-				vel = rotate(vel, motion.q) + motions[objId].vel;
+				bounced = rotate(bounced, motion.q) + props  [objId].com;
+				vel 	= rotate(vel, motion.q)     + motions[objId].vel;
 
-				coosvels[2*pid]   = Float3_int(coo, p.i1).toFloat4();
-				coosvels[2*pid+1] = Float3_int(vel, p.i2).toFloat4();
+				coosvels[2*pid]   = Float3_int(bounced, p.i1).toFloat4();
+				coosvels[2*pid+1] = Float3_int(vel,     p.i2).toFloat4();
 			}
 		}
 	}
