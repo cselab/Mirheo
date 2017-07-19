@@ -52,6 +52,15 @@ float ellipsoid(LocalRigidObjectVector::RigidMotion motion, float3 invAxes, Part
 	return sqr(vRot.x * invAxes.x) + sqr(vRot.y * invAxes.y) + sqr(vRot.z * invAxes.z) - 1.0f;
 }
 
+bool overlap(float3 r, LocalRigidObjectVector::RigidMotion* motions, int n, float dist2)
+{
+	for (int i=0; i<n; i++)
+		if (dot(r-motions[i].r, r-motions[i].r) < dist2)
+			return true;
+
+	return false;
+}
+
 int main(int argc, char ** argv)
 {
 	// Init
@@ -101,8 +110,8 @@ int main(int argc, char ** argv)
 	initial.copy(dpds.local()->coosvels);
 
 
-	const int nobj = 10;
-	const float3 axes{4, 2, 3};
+	const int nobj = 100;
+	const float3 axes{3, 2, 2.5};
 	const float3 invAxes = 1.0f / axes;
 
 	const float maxAxis = std::max({axes.x, axes.y, axes.z});
@@ -112,9 +121,12 @@ int main(int argc, char ** argv)
 
 	for (int i=0; i<nobj; i++)
 	{
-		motions[i].r.x = length.x*(drand48() - 0.5);
-		motions[i].r.y = length.y*(drand48() - 0.5);
-		motions[i].r.z = length.z*(drand48() - 0.5);
+		do {
+			motions[i].r.x = length.x*(drand48() - 0.5);
+			motions[i].r.y = length.y*(drand48() - 0.5);
+			motions[i].r.z = length.z*(drand48() - 0.5);
+		} while (overlap(motions[i].r, motions.hostPtr(), i, (2*maxAxis+0.2)*(2*maxAxis+0.2)));
+
 
 		motions[i].omega.x = 2*(drand48() - 0.5);
 		motions[i].omega.y = 2*(drand48() - 0.5);
@@ -141,14 +153,14 @@ int main(int argc, char ** argv)
 		com_ext[i].high = com_ext[i].com + make_float3(maxAxis);
 		com_ext[i].low  = com_ext[i].com - make_float3(maxAxis);
 
-		printf("Obj %d:\n"
-				"   r [%f %f %f]\n"
-				"   phi %f, v [%f %f %f]\n"
-				"   ext : [%f %f %f] -- [%f %f %f]\n\n",
-				i, motions[i].r.x, motions[i].r.y, motions[i].r.z,
-				phi, v.x, v.y, v.z,
-				com_ext[i].low.x,  com_ext[i].low.y,  com_ext[i].low.z,
-				com_ext[i].high.x, com_ext[i].high.y, com_ext[i].high.z);
+//		printf("Obj %d:\n"
+//				"   r [%f %f %f]\n"
+//				"   phi %f, v [%f %f %f]\n"
+//				"   ext : [%f %f %f] -- [%f %f %f]\n\n",
+//				i, motions[i].r.x, motions[i].r.y, motions[i].r.z,
+//				phi, v.x, v.y, v.z,
+//				com_ext[i].low.x,  com_ext[i].low.y,  com_ext[i].low.z,
+//				com_ext[i].high.x, com_ext[i].high.y, com_ext[i].high.z);
 	}
 
 	printf(" =================================================\n\n");
@@ -158,9 +170,14 @@ int main(int argc, char ** argv)
 
 
 
-	bounceEllipsoid<<< nobj, 32 >>> ((float4*)dpds.local()->coosvels.devPtr(), dpds.mass, com_ext.devPtr(), motions.devPtr(),
-			nobj, invAxes,
-			cells.cellsStartSize.devPtr(), cells.cellInfo(), dt);
+	for (int iter=0; iter<100; iter++)
+	{
+		bounceEllipsoid<<< nobj, 128 >>> ((float4*)dpds.local()->coosvels.devPtr(), dpds.mass, com_ext.devPtr(), motions.devPtr(),
+				nobj, invAxes,
+				cells.cellsStartSize.devPtr(), cells.cellInfo(), dt);
+	}
+
+	return 0;
 
 //			(float4* coosvels, float mass, const LocalObjectVector::COMandExtent* props, LocalRigidObjectVector::RigidMotion* motions,
 //			const int nObj, const float3 invAxes,
@@ -182,6 +199,7 @@ int main(int argc, char ** argv)
 //		printf("Obj %d: old  q [%f %f %f %f],  r [%f %f %f]\n",
 //				objId, oldMot.q.x, oldMot.q.y, oldMot.q.z, oldMot.q.w,  oldMot.r.x, oldMot.r.y, oldMot.r.z);
 
+#pragma omp parallel for
 		for (int pid = 0; pid < final.size(); pid++)
 		{
 			auto pInit  = initial[pid];
@@ -194,7 +212,7 @@ int main(int argc, char ** argv)
 			float vinit = ellipsoid(motion, invAxes, pInit);
 
 			// Inside
-			if ( vold * vinit < 0)
+			if ( vold * vinit < 0 && vinit < 0 )
 			{
 				float vfin  = ellipsoid(motion, invAxes, pFinal);
 
@@ -218,6 +236,7 @@ int main(int argc, char ** argv)
 				{
 					int3 cid = cells.getCellIdAlongAxis(pInit.r);
 
+#pragma omp critical
 					printf("Particle  %d (cell %d %d %d),  obj  %d:\n"
 						   "   [%f %f %f] (%f)  -->  [%f %f %f] (%f)\n"
 						   "   Moved to [%f %f %f] (%f)\n"
@@ -227,6 +246,8 @@ int main(int argc, char ** argv)
 							pInit.r.x,  pInit.r.y,  pInit.r.z,  vinit,
 							pFinal.r.x, pFinal.r.y, pFinal.r.z, vfin,
 							pInit.u.x,  pInit.u.y,  pInit.u.z, pFinal.u.x,  pFinal.u.y,  pFinal.u.z,  v.x, v.y, v.z);
+
+					//return 0;
 				}
 			}
 		}

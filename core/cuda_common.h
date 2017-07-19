@@ -43,3 +43,21 @@ __device__ __forceinline__ void writeNoCache(float4* addr, const float4 val)
 	asm("st.global.wt.v4.f32 [%0], {%1, %2, %3, %4};" :: "l"(addr), "f"(val.x), "f"(val.y), "f"(val.z), "f"(val.w));
 }
 
+// warp-aggregated atomic increment
+// https://devblogs.nvidia.com/parallelforall/cuda-pro-tip-optimized-filtering-warp-aggregated-atomics/
+__device__ __forceinline__ int atomicAggInc(int *ctr)
+{
+	int lane_id = (threadIdx.x % 32);
+
+	int mask = __ballot(1);
+	// select the leader
+	int leader = __ffs(mask) - 1;
+	// leader does the update
+	int res;
+	if(lane_id == leader)
+	res = atomicAdd(ctr, __popc(mask));
+	// broadcast result
+	res = __shfl(res, leader);
+	// each thread computes its own value
+	return res + __popc(mask & ((1 << lane_id) - 1));
+}

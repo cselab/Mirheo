@@ -123,26 +123,6 @@ __device__ __forceinline__ float evalSdf(T x, Wall::SdfInfo sdfInfo)
 	return szyx;
 }
 
-// warp-aggregated atomic increment
-// https://devblogs.nvidia.com/parallelforall/cuda-pro-tip-optimized-filtering-warp-aggregated-atomics/
-// just4fun
-__device__ __forceinline__ int atomicAggInc(int *ctr)
-{
-	int lane_id = (threadIdx.x % 32);
-
-	int mask = __ballot(1);
-	// select the leader
-	int leader = __ffs(mask) - 1;
-	// leader does the update
-	int res;
-	if(lane_id == leader)
-	res = atomicAdd(ctr, __popc(mask));
-	// broadcast result
-	res = __shfl(res, leader);
-	// each thread computes its own value
-	return res + __popc(mask & ((1 << lane_id) - 1));
-}
-
 
 __global__ void countFrozen(const float4* pv, const int np, Wall::SdfInfo sdfInfo, int* nFrozen)
 {
