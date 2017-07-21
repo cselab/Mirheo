@@ -10,7 +10,7 @@
 
 #include <core/xml/pugixml.hpp>
 #include <core/rigid_object_vector.h>
-#include <core/rigid_kernels.h>
+#include <core/rigid_kernels/bounce.h>
 
 Logger logger;
 

@@ -1,5 +1,6 @@
 // Yo ho ho ho
 #define private public
+#define protected public
 
 #include <core/particle_vector.h>
 #include <core/celllist.h>
@@ -44,13 +45,8 @@ void integrate(Particle* __restrict__ coos, const Force* __restrict__ accs, int 
 {
 	for (int i=0; i<np; i++)
 	{
-		coos[i].u.x += accs[i].f[0]*dt;
-		coos[i].u.y += accs[i].f[1]*dt;
-		coos[i].u.z += accs[i].f[2]*dt;
-
-		coos[i].r.x += coos[i].u.x*dt;
-		coos[i].r.y += coos[i].u.y*dt;
-		coos[i].r.z += coos[i].u.z*dt;
+		coos[i].u += accs[i].f*dt;
+		coos[i].r += coos[i].u*dt;
 
 		if (coos[i].r.x >  domainStart.x+length.x) coos[i].r.x -= length.x;
 		if (coos[i].r.x <= domainStart.x)          coos[i].r.x += length.x;
@@ -123,9 +119,9 @@ void forces(const Particle* __restrict__ coos, Force* __restrict__ accs, const i
 
 		const float strength = aij * argwr - (gammadpd * wr * rdotv + sigmaf * myrandnr) * wr;
 
-		a.f[0] += strength * xr;
-		a.f[1] += strength * yr;
-		a.f[2] += strength * zr;
+		a.f.x += strength * xr;
+		a.f.y += strength * yr;
+		a.f.z += strength * zr;
 
 //		if (dstId == 8)
 //			printf("%d -- %d  :  [%f %f %f %d] -- [%f %f %f %d] (dist2 %f) :  [%f %f %f]\n", dstId, srcId,
@@ -195,17 +191,15 @@ void forces(const Particle* __restrict__ coos, Force* __restrict__ accs, const i
 
 											const float strength = aij * argwr - (gammadpd * wr * rdotv + sigmaf * myrandnr) * wr;
 
-											a.f[0] += strength * xr;
-											a.f[1] += strength * yr;
-											a.f[2] += strength * zr;
+											a.f.x += strength * xr;
+											a.f.y += strength * yr;
+											a.f.z += strength * zr;
 										}
 									}
 								}
 							}
 
-					accs[dstId].f[0] = a.f[0];
-					accs[dstId].f[1] = a.f[1];
-					accs[dstId].f[2] = a.f[2];
+					accs[dstId].f = a.f;
 				}
 			}
 }
@@ -242,11 +236,11 @@ int main(int argc, char ** argv)
 	MPI_Check( MPI_Cart_get(cartComm, 3, ranks, periods, coords) );
 
 
-	std::string xml = R"(<node mass="1.0" density="210.0">)";
+	std::string xml = R"(<node mass="1.0" density="8.0">)";
 	pugi::xml_document config;
 	config.load_string(xml.c_str());
 
-	float3 length{16,16,16};
+	float3 length{32, 32, 32};
 	float3 domainStart = -length / 2.0f;
 	const float rc = 1.0f;
 	ParticleVector dpds("dpd");
@@ -255,7 +249,8 @@ int main(int argc, char ** argv)
 	InitialConditions ic = createIC(config.child("node"));
 	ic.exec(MPI_COMM_WORLD, &dpds, {0,0,0}, length);
 
-	const float dt = 0.003;
+	const float k = 1;
+	const float dt = 0.0025;
 	const float kBT = 1.0;
 	const float gammadpd = 20;
 	const float sigmadpd = sqrt(2 * gammadpd * kBT);
@@ -263,15 +258,15 @@ int main(int argc, char ** argv)
 	const float adpd = 50;
 
 	auto inter = [=] (ParticleVector* pv, CellList* cl, const float t, cudaStream_t stream) {
-		interactionDPD(InteractionType::Regular, pv, pv, cl, t, stream, adpd, gammadpd, sigma_dt, rc);
+		interactionDPD(InteractionType::Regular, pv, pv, cl, t, stream, adpd, gammadpd, sigma_dt, k, rc);
 	};
 
 	auto haloInt = [=] (ParticleVector* pv1, ParticleVector* pv2, CellList* cl, const float t, cudaStream_t stream) {
-		interactionDPD(InteractionType::Halo, pv1, pv2, cl, t, stream, adpd, gammadpd, sigma_dt, rc);
+		interactionDPD(InteractionType::Halo, pv1, pv2, cl, t, stream, adpd, gammadpd, sigma_dt, k, rc);
 	};
 
 	dpds.local()->coosvels.downloadFromDevice(true);
-	dpd.local()->forces.clear();
+	dpds.local()->forces.clear();
 	int initialNP = dpds.local()->size();
 
 	HostBuffer<Particle> locparticles(dpds.local()->size());
@@ -287,16 +282,18 @@ int main(int argc, char ** argv)
 	cudaStream_t defStream;
 	CUDA_Check( cudaStreamCreateWithPriority(&defStream, cudaStreamNonBlocking, 10) );
 
-	dpds.pushStream(defStream);
+	dpds.local()->pushStream(defStream);
 
-	HaloExchanger halo(cartComm, defStream);
-	halo->attach(&dpds, &cells);
-	Redistributor redist(cartComm);
+	ParticleHaloExchanger halo(cartComm, defStream);
+	halo.attach(&dpds, &cells);
+	ParticleRedistributor redist(cartComm, defStream);
 	redist.attach(&dpds, &cells);
 
-	cells.build(defStream);
+	cells.makePrimary();
+	cells.setStream(defStream);
+	cells.build();
 
-	const int niters = 0;
+	const int niters = 5;
 
 	printf("GPU execution\n");
 
@@ -305,14 +302,15 @@ int main(int argc, char ** argv)
 
 	for (int i=0; i<niters; i++)
 	{
-		cells.build(defStream);
+		cells.build();
 		CUDA_Check( cudaStreamSynchronize(defStream) );
 
-		dpd.local()->forces.clear();
-		inter(&dpds, &cells, dt*i, defStream);
+		dpds.local()->forces.clear();
 
-		halo->init();
-		halo->finalize();
+		halo.init();
+		inter(&dpds, &cells, dt*i, defStream);
+		halo.finalize();
+
 		haloInt(&dpds, &dpds, &cells, dt*i, defStream);
 
 		integrateNoFlow(&dpds, dt, defStream);
@@ -327,7 +325,8 @@ int main(int argc, char ** argv)
 	printf("Finished in %f s, 1 step took %f ms\n", elapsed, elapsed / niters * 1000.0);
 
 	if (argc < 5) return 0;
-	cells.build(defStream);
+	cells.build();
+	CUDA_Check( cudaStreamSynchronize(defStream) );
 
 
 	dpds.local()->coosvels.downloadFromDevice(true);
@@ -344,8 +343,8 @@ int main(int argc, char ** argv)
 	HostBuffer<int> sizes(ranks[0]*ranks[1]*ranks[2]), displs(ranks[0]*ranks[1]*ranks[2] + 1);
 	HostBuffer<int> initialSizes(ranks[0]*ranks[1]*ranks[2]), initialDispls(ranks[0]*ranks[1]*ranks[2] + 1);
 
-	MPI_Check( MPI_Gather(&dpds.local()->size(),   1, MPI_INT, sizes.hostPtr(),        1, MPI_INT, 0, MPI_COMM_WORLD) );
-	MPI_Check( MPI_Gather(&initialNP, 1, MPI_INT, initialSizes.hostPtr(), 1, MPI_INT, 0, MPI_COMM_WORLD) );
+	MPI_Check( MPI_Gather(&dpds.local()->np, 1, MPI_INT, sizes.hostPtr(),        1, MPI_INT, 0, MPI_COMM_WORLD) );
+	MPI_Check( MPI_Gather(&initialNP,        1, MPI_INT, initialSizes.hostPtr(), 1, MPI_INT, 0, MPI_COMM_WORLD) );
 
 	displs[0] = 0;
 	initialDispls[0] = 0;
@@ -373,8 +372,8 @@ int main(int argc, char ** argv)
 	MPI_Check( MPI_Type_contiguous(sizeof(Particle), MPI_BYTE, &mpiPart) );
 	MPI_Check( MPI_Type_commit(&mpiPart) );
 
-	MPI_Check( MPI_Gatherv(dpds.local()->coosvels.hostPtr(), dpds.local()->size(),   mpiPart, finalParticles.hostPtr(), sizes       .hostPtr(), displs       .hostPtr(), mpiPart, 0, MPI_COMM_WORLD) );
-	MPI_Check( MPI_Gatherv(locparticles.hostPtr(),  initialNP, mpiPart, particles     .hostPtr(), initialSizes.hostPtr(), initialDispls.hostPtr(), mpiPart, 0, MPI_COMM_WORLD) );
+	MPI_Check( MPI_Gatherv(dpds.local()->coosvels.hostPtr(), dpds.local()->size(), mpiPart, finalParticles.hostPtr(), sizes.hostPtr(),        displs.hostPtr(),        mpiPart, 0, MPI_COMM_WORLD) );
+	MPI_Check( MPI_Gatherv(locparticles.hostPtr(),           initialNP,            mpiPart, particles.hostPtr(),      initialSizes.hostPtr(), initialDispls.hostPtr(), mpiPart, 0, MPI_COMM_WORLD) );
 
 
 	if (rank == 0)
@@ -457,7 +456,7 @@ int main(int argc, char ** argv)
 						gpuP.r.x, gpuP.r.y, gpuP.r.z, gpuP.i1,
 						gpuP.u.x, gpuP.u.y, gpuP.u.z,
 						cpuP.r.x, cpuP.r.y, cpuP.r.z, cpuP.i1,
-						cpuP.u.x, cpuP.u.y, cpuP.u.z, accs[cpuid[i]].f[0], accs[cpuid[i]].f[1], accs[cpuid[i]].f[2]);
+						cpuP.u.x, cpuP.u.y, cpuP.u.z, accs[cpuid[i]].f.x, accs[cpuid[i]].f.y, accs[cpuid[i]].f.z);
 			}
 		}
 

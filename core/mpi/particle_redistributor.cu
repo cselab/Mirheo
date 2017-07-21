@@ -83,7 +83,7 @@ void ParticleRedistributor::attach(ParticleVector* pv, CellList* cl)
 	// Sizes of buffers. 0 is side, 1 is edge, 2 is corner
 	const int sizes[3] = { (int)(ndens * maxdim*maxdim + 128), (int)(ndens * maxdim + 128), (int)(ndens + 128) };
 
-	auto helper = new ExchangeHelper(pv->name, sizes, &pv->halo);
+	auto helper = new ExchangeHelper(pv->name, sizeof(Particle), sizes);
 	helpers.push_back(helper);
 }
 
@@ -101,23 +101,32 @@ void ParticleRedistributor::prepareData(int id)
 
 	debug2("Preparing %s leaving particles on the device", pv->name.c_str());
 
-	helper->counts.pushStream(defStream);
-	helper->counts.clearDevice();
-	helper->counts.popStream();
+	helper->bufSizes.pushStream(defStream);
+	helper->bufSizes.clearDevice();
+	helper->bufSizes.popStream();
 
 	const int maxdim = std::max({cl->ncells.x, cl->ncells.y, cl->ncells.z});
 	const int nthreads = 32;
 	if (pv->local()->size() > 0)
 		getExitingParticles<<< dim3((maxdim*maxdim + nthreads - 1) / nthreads, 6, 1),  dim3(nthreads, 1, 1), 0, helper->stream >>>
-					( (float4*)pv->local()->coosvels.devPtr(), cl->cellInfo(), cl->cellsStartSize.devPtr(), (int64_t*)helper->sendAddrs.devPtr(), helper->counts.devPtr() );
+					( (float4*)pv->local()->coosvels.devPtr(), cl->cellInfo(), cl->cellsStartSize.devPtr(), (int64_t*)helper->sendAddrs.devPtr(), helper->bufSizes.devPtr() );
 }
 
-void ParticleRedistributor::prepareUploadTarget(int id)
+void ParticleRedistributor::combineAndUploadData(int id)
 {
 	auto pv = particles[id];
 	auto helper = helpers[id];
 
 	int oldsize = pv->local()->size();
 	pv->local()->resize(oldsize + helper->recvOffsets[27], resizePreserve);
-	helper->target = (char*) (pv->local()->coosvels.devPtr() + oldsize);
+
+	auto ptr = pv->local()->coosvels.devPtr() + oldsize;
+
+	for (int i=0; i < 27; i++)
+	{
+		const int msize = helper->recvOffsets[i+1] - helper->recvOffsets[i];
+		if (msize > 0)
+			CUDA_Check( cudaMemcpyAsync(ptr + helper->recvOffsets[i], helper->recvBufs[i].hostPtr(),
+					msize*sizeof(Particle), cudaMemcpyHostToDevice, helper->stream) );
+	}
 }

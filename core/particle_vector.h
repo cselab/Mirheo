@@ -70,7 +70,7 @@ public:
 	ParticleVector(std::string name, int n=0) :
 		name(name),
 		_local( new LocalParticleVector(n) ),
-		_halo ( new LocalParticleVector(n) )
+		_halo ( new LocalParticleVector(0) )
 	{}
 
 	LocalParticleVector* local() { return _local; }

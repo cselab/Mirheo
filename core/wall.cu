@@ -2,11 +2,11 @@
 #include <cmath>
 #include <texture_types.h>
 
-#include <core/helper_math.h>
+#include <core/cuda_common.h>
 #include <core/wall.h>
 #include <core/celllist.h>
 #include <core/particle_vector.h>
-#include <core/bounce.h>
+#include <core/bounce_solver.h>
 
 
 // This should be in helper_math.h, but not there for some reason

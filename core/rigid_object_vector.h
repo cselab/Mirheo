@@ -22,7 +22,7 @@ public:
 		float3 deltaW;
 	};
 
-	DeviceBuffer<RigidMotion> motions;  // vector of com velocity, force and torque
+	PinnedBuffer<RigidMotion> motions;  // vector of com velocity, force and torque
 
 	LocalRigidObjectVector(const int objSize, const int nObjects = 0) :
 		LocalObjectVector(objSize, nObjects)
@@ -73,13 +73,13 @@ class RigidObjectVector : public ObjectVector
 {
 public:
 
-	int nObjects, objSize;
+	int objSize;
 	float3 axes;
 
 	RigidObjectVector(std::string name, const int objSize, const int nObjects = 0) :
 		ObjectVector( name,
 					  new LocalRigidObjectVector(objSize, nObjects),
-					  new LocalRigidObjectVector(objSize, nObjects) )
+					  new LocalRigidObjectVector(objSize, 0) )
 	{}
 
 	LocalRigidObjectVector* local() { return static_cast<LocalRigidObjectVector*>(_local); }

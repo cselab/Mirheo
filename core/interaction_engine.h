@@ -1,7 +1,6 @@
 #include <cassert>
 #include <type_traits>
 
-#include <core/helper_math.h>
 #include <core/celllist.h>
 #include <core/cuda_common.h>
 

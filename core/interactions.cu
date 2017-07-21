@@ -16,12 +16,12 @@
 		/*  Self interaction */                                                                                                                    \
 		if (pv1 == pv2)                                                                                                                            \
 		{                                                                                                                                          \
-			debug2("Computing internal forces for %s (%d particles)", pv1->name.c_str(), pv1->local()->size());                                                 \
+			debug2("Computing internal forces for %s (%d particles)", pv1->name.c_str(), pv1->local()->size());                                    \
                                                                                                                                                    \
 			const int nth = 128;                                                                                                                   \
-			if (pv1->local()->size() > 0)                                                                                                                       \
-				computeSelfInteractions<<< (pv1->local()->size() + nth - 1) / nth, nth, 0, stream >>>(                                                          \
-						pv1->local()->size(), (float4*)cl->coosvels->devPtr(), (float*)cl->forces->devPtr(),                                                    \
+			if (pv1->local()->size() > 0)                                                                                                          \
+				computeSelfInteractions<<< (pv1->local()->size() + nth - 1) / nth, nth, 0, stream >>>(                                             \
+						pv1->local()->size(), (float4*)cl->coosvels->devPtr(), (float*)cl->forces->devPtr(),                                       \
 						cl->cellInfo(), cl->cellsStartSize.devPtr(), rc*rc, INTERACTION_FUNCTION);                                                 \
 		}                                                                                                                                          \
 		else /*  External interaction */                                                                                                           \
@@ -87,7 +87,7 @@ __device__ __forceinline__ float3 pairwiseDPD(
 	const float3 dr_r = dr * invrij;
 	const float rdotv = dot(dr_r, (dst.u - src.u));
 
-	const float myrandnr = Logistic::mean0var1(seed, min(src.i1, dst.i1), max(src.i1, dst.i1));
+	const float myrandnr = 0*Logistic::mean0var1(seed, min(src.i1, dst.i1), max(src.i1, dst.i1));
 
 	const float strength = adpd * argwr - (gammadpd * wr * rdotv + sigmadpd * myrandnr) * wr;
 

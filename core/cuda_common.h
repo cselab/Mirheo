@@ -13,13 +13,13 @@ inline int getNblocks(const int n, const int nthreads)
 }
 
 template<typename T>
-__inline__ __host__ __device__ T sqr(T val)
+__host__ __device__ __forceinline__  T sqr(T val)
 {
 	return val*val;
 }
 
 template<typename Operation>
-__inline__ __device__ float3 warpReduce(float3 val, Operation op)
+__device__ __forceinline__  float3 warpReduce(float3 val, Operation op)
 {
 #pragma unroll
 	for (int offset = warpSize/2; offset > 0; offset /= 2)
@@ -29,6 +29,15 @@ __inline__ __device__ float3 warpReduce(float3 val, Operation op)
 		val.z = op(val.z, __shfl_down(val.z, offset));
 	}
 	return val;
+}
+
+__device__ __forceinline__ float3 atomicAdd(float3* addr, float3 v)
+{
+	float3 res;
+	res.x = atomicAdd((float*)addr,   v.x);
+	res.y = atomicAdd((float*)addr+1, v.y);
+	res.z = atomicAdd((float*)addr+2, v.z);
+	return res;
 }
 
 __device__ __forceinline__ float4 readNoCache(const float4* addr)

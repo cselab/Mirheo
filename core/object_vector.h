@@ -84,7 +84,7 @@ public:
 	ObjectVector(std::string name, const int objSize, const int nObjects = 0) :
 		ParticleVector( name,
 						new LocalObjectVector(objSize, nObjects),
-						new LocalObjectVector(objSize, nObjects) )
+						new LocalObjectVector(objSize, 0) )
 	{}
 
 	LocalObjectVector* local() { return static_cast<LocalObjectVector*>(_local); }

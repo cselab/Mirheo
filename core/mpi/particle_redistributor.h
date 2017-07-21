@@ -14,7 +14,7 @@ private:
 	std::vector<ParticleVector*> particles;
 	std::vector<CellList*> cellLists;
 
-	void prepareUploadTarget(int id);
+	void combineAndUploadData(int id);
 	void prepareData(int id);
 
 public:

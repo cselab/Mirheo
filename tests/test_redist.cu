@@ -129,8 +129,8 @@ int main(int argc, char ** argv)
 
 	for (int i = 0; i<27; i++)
 	{
-		if (bufs[i].size() != redist.helpers[0]->counts[i])
-			printf("%2d-th redist differs in size: %5d, expected %5d\n", i, redist.helpers[0]->counts[i], (int)bufs[i].size());
+		if (bufs[i].size() != redist.helpers[0]->bufSizes[i])
+			printf("%2d-th redist differs in size: %5d, expected %5d\n", i, redist.helpers[0]->bufSizes[i], (int)bufs[i].size());
 
 		std::vector<Particle> got, reference;
 
@@ -146,14 +146,14 @@ int main(int argc, char ** argv)
 		};
 
 		std::sort(bufs[i].begin(), bufs[i].end(), cmp);
-		std::sort((Particle*)redist.helpers[0]->sendBufs[i].hostPtr(), ((Particle*)redist.helpers[0]->sendBufs[i].hostPtr()) + redist.helpers[0]->counts[i], cmp);
+		std::sort((Particle*)redist.helpers[0]->sendBufs[i].hostPtr(), ((Particle*)redist.helpers[0]->sendBufs[i].hostPtr()) + redist.helpers[0]->bufSizes[i], cmp);
 
 		std::set_difference(bufs[i].begin(), bufs[i].end(),
-				(Particle*)redist.helpers[0]->sendBufs[i].hostPtr(), ((Particle*)redist.helpers[0]->sendBufs[i].hostPtr()) + redist.helpers[0]->counts[i],
+				(Particle*)redist.helpers[0]->sendBufs[i].hostPtr(), ((Particle*)redist.helpers[0]->sendBufs[i].hostPtr()) + redist.helpers[0]->bufSizes[i],
 				std::inserter(reference, reference.begin()), cmp);
 
 		std::set_difference(
-					(Particle*)redist.helpers[0]->sendBufs[i].hostPtr(), ((Particle*)redist.helpers[0]->sendBufs[i].hostPtr()) + redist.helpers[0]->counts[i],
+					(Particle*)redist.helpers[0]->sendBufs[i].hostPtr(), ((Particle*)redist.helpers[0]->sendBufs[i].hostPtr()) + redist.helpers[0]->bufSizes[i],
 					bufs[i].begin(), bufs[i].end(),
 					std::inserter(got, got.begin()), cmp);
 
