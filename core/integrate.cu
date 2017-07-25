@@ -127,18 +127,20 @@ void integrateConstOmega(ParticleVector* pv, const float dt, cudaStream_t stream
  */
 void integrateRigid(RigidObjectVector* ov, const float dt, cudaStream_t stream, float3 extraForce)
 {
-	debug2("Integrating %d rigid objects %s, timestep is %f", ov->local()->nObjects, ov->name.c_str(), dt);
+	debug2("Integrating %d rigid objects %s (total %d particles), timestep is %f", ov->local()->nObjects, ov->name.c_str(), ov->local()->size(), dt);
 
-	collectRigidForces<<< getNblocks(2*ov->local()->size(), 128), 128, 0, stream >>>
-			((float4*)ov->local()->coosvels.devPtr(), ov->local()->motions.devPtr(), ov->local()->comAndExtents.devPtr(), ov->local()->nObjects, ov->local()->objSize);
+	collectRigidForces<<< getNblocks(2*ov->local()->size(), 128), 128, 0, stream >>> (
+			(float4*)ov->local()->coosvels.devPtr(), (float4*)ov->local()->forces.devPtr(), ov->local()->motions.devPtr(),
+			ov->local()->comAndExtents.devPtr(), ov->local()->nObjects, ov->local()->objSize);
 
-	const float3 J = ov->mass / 5.0 * make_float3(
+	const float3 J = ov->objMass / 5.0 * make_float3(
 			sqr(ov->axes.y) + sqr(ov->axes.z),
 			sqr(ov->axes.z) + sqr(ov->axes.x),
 			sqr(ov->axes.x) + sqr(ov->axes.y) );
+
 	const float3 J_1 = 1.0 / J;
 
-	integrateRigidMotion<<< getNblocks(ov->local()->nObjects, 64), 64, 0, stream >>>(ov->local()->motions.devPtr(), J, J_1, 1.0 / ov->mass, ov->local()->nObjects, dt);
+	integrateRigidMotion<<< getNblocks(ov->local()->nObjects, 64), 64, 0, stream >>>(ov->local()->motions.devPtr(), J, J_1, 1.0 / ov->objMass, ov->local()->nObjects, dt);
 
 	applyRigidMotion<<< getNblocks(ov->local()->size(), 128), 128, 0, stream >>>(
 			(float4*)ov->local()->coosvels.devPtr(), ov->local()->motions.devPtr(), ov->local()->nObjects, ov->objSize);

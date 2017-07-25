@@ -237,7 +237,7 @@ __global__ void bounceSDF(const int* wallCells, const int nWallCells, const uint
 		Particle p(coosvels[2*pid], coosvels[2*pid+1]);
 		float3 oldCoo = p.r - p.u*dt;
 
-		const float alpha = bounceLinSearch(oldCoo, p.r, F);
+		const float alpha = bounceLinSearch(oldCoo, p.r, 0, F);
 
 		// FIXME: ID!!
 		float3 candidate = oldCoo + alpha * (p.r - oldCoo);

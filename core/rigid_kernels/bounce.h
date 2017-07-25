@@ -15,6 +15,10 @@ __device__ __forceinline__ void bounceCellArray(int* validCells, int nCells, int
 		float mass, LocalRigidObjectVector::RigidMotion* motions, const float3 invAxes,
 		const uint* __restrict__ cellsStartSize, CellListInfo cinfo, const float dt)
 {
+	const float threshold = 2e-6f;
+	const int maxIters = 100;
+	const float step = 0.01;
+
 	if (threadIdx.x >= nCells) return;
 
 	float3 objR = motions[objId].r;
@@ -22,11 +26,11 @@ __device__ __forceinline__ void bounceCellArray(int* validCells, int nCells, int
 
 	// Prepare rolling back in time
 	float3 oldR = objR - motions[objId].vel * dt;
-	float4 oldQ = objQ - compute_dq_dt(objQ, motions[objId].omega) * dt;
+	float4 oldQ = objQ - motions[objId].deltaQ;
 	oldQ = normalize(oldQ);
 
 	auto F = [invAxes, dt] (const float3 r) {
-		return ellipsoidF(r, invAxes) - 5e-6f;
+		return ellipsoidF(r, invAxes);
 	};
 
 	int2 start_size = cinfo.decodeStartSize(cellsStartSize[validCells[threadIdx.x]]);
@@ -38,40 +42,53 @@ __device__ __forceinline__ void bounceCellArray(int* validCells, int nCells, int
 
 		// Go to the obj frame where the obj is completely still
 		float3 coo = rotate(p.r - objR, invQ(objQ));
-		if (F(coo) > 0.0f) continue;
+
+		// If the particle is far - skip it, it's fine
+		if (F(coo) >= 0.0f) continue;
 
 		// For the old coordinate use the motion description of past timestep
+		// Correct the old position so that it is outside
 		float3 oldCoo = p.r - p.u*dt;
 		oldCoo = rotate(oldCoo - oldR, invQ(oldQ));
+		float3 dr = coo - oldCoo;
 
-		float alpha = bounceLinSearch(oldCoo, coo, F);
-
-		if (alpha > -0.1f)
+		int it;
+		for (it=0; it<maxIters; it++)
 		{
-			float3 bounced = oldCoo + (coo-oldCoo)*alpha;
-
-			// Change velocity's frame to the object frame, correct for rotation as well
-			float3 vel = rotate(p.u - motions[objId].vel, invQ(objQ));
-			vel -= cross(motions[objId].omega, bounced);
-			vel = -vel;
-			const float3 frc = 2.0f*mass*vel;
-			vel += cross(motions[objId].omega, bounced);
-
-			atomicAdd(&motions[objId].force, frc);
-			atomicAdd(&motions[objId].torque, cross(coo, frc));
-
-			if (F(bounced) < 0.0f)
-				printf("Fail on particle %d\n", p.i1);
-
-			// Return to the original frame
-			bounced = rotate(bounced, objQ) + objR;
-			vel 	= rotate(vel,     objQ) + motions[objId].vel;
-
-			coosvels[2*pid]   = Float3_int(bounced, p.i1).toFloat4();
-			coosvels[2*pid+1] = Float3_int(vel,     p.i2).toFloat4();
+			if (F(oldCoo) > 0.0f) break;
+			oldCoo -= dr*step;
 		}
-		else
-			printf("Fail on particle %d\n", p.i1);
+
+		if (it > 1)
+			printf("old: (%d)  %f -> %f\n", it, F( rotate(p.r - p.u*dt - oldR, invQ(oldQ)) ), F(oldCoo));
+
+		float alpha = bounceLinSearch(oldCoo, coo, threshold, F);
+		float3 newCoo = (alpha > -0.1f) ? newCoo = oldCoo + (coo-oldCoo)*alpha : make_float3(0.0f);
+
+		if (F(newCoo) < 0.0f)
+		{
+			newCoo = oldCoo;
+			printf("Bounce-back failed on particle %d (%f %f %f)  %f -> %f  to %f. Recovering to old position\n",
+					p.i1, p.r.x, p.r.y, p.r.z, F(oldCoo), F(coo), F(newCoo));
+		}
+
+
+		// Change velocity's frame to the object frame, correct for rotation as well
+		float3 vel = rotate(p.u - motions[objId].vel, invQ(objQ));
+		vel -= cross(motions[objId].omega, newCoo);
+		vel = -vel;
+		vel += cross(motions[objId].omega, newCoo);
+
+		// Return to the original frame
+		newCoo = rotate(newCoo, objQ) + objR;
+		vel    = rotate(vel,    objQ) + motions[objId].vel;
+
+		const float3 frc = -mass * (vel - p.u) / dt;
+		atomicAdd( &motions[objId].force,  frc);
+		atomicAdd( &motions[objId].torque, cross(newCoo - objR, frc) );
+
+		coosvels[2*pid]   = Float3_int(newCoo, p.i1).toFloat4();
+		coosvels[2*pid+1] = Float3_int(vel,    p.i2).toFloat4();
 	}
 }
 
@@ -92,8 +109,9 @@ __global__ void bounceEllipsoid(float4* coosvels, float mass,
 	nCells = 0;
 	__syncthreads();
 
-	const int3 cidLow  = cinfo.getCellIdAlongAxis(props[objId].low  - make_float3(0.3f));
-	const int3 cidHigh = cinfo.getCellIdAlongAxis(props[objId].high + make_float3(0.3f));
+	const int3 cidLow  = cinfo.getCellIdAlongAxis(props[objId].low  - 0.5f);
+	const int3 cidHigh = cinfo.getCellIdAlongAxis(props[objId].high + 1.5f);
+
 	const int3 span = cidHigh - cidLow + make_int3(1,1,1);
 	const int totCells = span.x * span.y * span.z;
 
@@ -117,14 +135,14 @@ __global__ void bounceEllipsoid(float4* coosvels, float mass,
 
 			v000 = rotate( v000, invq );
 
-			if ( ellipsoidF(v000, invAxes) < 0.0f ||
-				 ellipsoidF(v001, invAxes) < 0.0f ||
-				 ellipsoidF(v010, invAxes) < 0.0f ||
-				 ellipsoidF(v011, invAxes) < 0.0f ||
-				 ellipsoidF(v100, invAxes) < 0.0f ||
-				 ellipsoidF(v101, invAxes) < 0.0f ||
-				 ellipsoidF(v110, invAxes) < 0.0f ||
-				 ellipsoidF(v111, invAxes) < 0.0f )
+			if ( ellipsoidF(v000, invAxes) < 0.2f ||
+				 ellipsoidF(v001, invAxes) < 0.2f ||
+				 ellipsoidF(v010, invAxes) < 0.2f ||
+				 ellipsoidF(v011, invAxes) < 0.2f ||
+				 ellipsoidF(v100, invAxes) < 0.2f ||
+				 ellipsoidF(v101, invAxes) < 0.2f ||
+				 ellipsoidF(v110, invAxes) < 0.2f ||
+				 ellipsoidF(v111, invAxes) < 0.2f )
 			{
 				int id = atomicAggInc((int*)&nCells);
 				validCells[id] = cinfo.encode(cid3);

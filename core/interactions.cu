@@ -87,7 +87,7 @@ __device__ __forceinline__ float3 pairwiseDPD(
 	const float3 dr_r = dr * invrij;
 	const float rdotv = dot(dr_r, (dst.u - src.u));
 
-	const float myrandnr = 0*Logistic::mean0var1(seed, min(src.i1, dst.i1), max(src.i1, dst.i1));
+	const float myrandnr = Logistic::mean0var1(seed, min(src.i1, dst.i1), max(src.i1, dst.i1));
 
 	const float strength = adpd * argwr - (gammadpd * wr * rdotv + sigmadpd * myrandnr) * wr;
 
@@ -98,7 +98,7 @@ __device__ __forceinline__ float3 pairwiseDPD(
 void interactionDPD (InteractionType type, ParticleVector* pv1, ParticleVector* pv2, CellList* cl, const float t, cudaStream_t stream,
 		float adpd, float gammadpd, float sigma_dt, float power, float rc)
 {
-	// Hack: better to use random number in the seed instead of periodically changing time
+	// Better to use random number in the seed instead of periodically changing time
 	const float seed = drand48();
 	auto dpdCore = [=] __device__ ( Particle dst, Particle src )
 	{

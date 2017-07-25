@@ -72,12 +72,10 @@ public:
 class RigidObjectVector : public ObjectVector
 {
 public:
-
-	int objSize;
 	float3 axes;
 
 	RigidObjectVector(std::string name, const int objSize, const int nObjects = 0) :
-		ObjectVector( name,
+		ObjectVector( name, objSize,
 					  new LocalRigidObjectVector(objSize, nObjects),
 					  new LocalRigidObjectVector(objSize, 0) )
 	{}

@@ -77,14 +77,17 @@ public:
 class ObjectVector : public ParticleVector
 {
 protected:
-	ObjectVector(	std::string name, LocalObjectVector *local, LocalObjectVector *halo ) :
-		ParticleVector(name, local, halo) {}
+	ObjectVector( std::string name, int objSize, LocalObjectVector *local, LocalObjectVector *halo ) :
+		ParticleVector(name, local, halo), objSize(objSize) {}
 
 public:
+	int objSize;
+	float objMass;
+
 	ObjectVector(std::string name, const int objSize, const int nObjects = 0) :
-		ParticleVector( name,
-						new LocalObjectVector(objSize, nObjects),
-						new LocalObjectVector(objSize, 0) )
+		ObjectVector( name, objSize,
+					  new LocalObjectVector(objSize, nObjects),
+					  new LocalObjectVector(objSize, 0) )
 	{}
 
 	LocalObjectVector* local() { return static_cast<LocalObjectVector*>(_local); }
