@@ -15,48 +15,6 @@
 // Basic types
 //==================================================================================================================
 
-struct __align__(16) Particle
-{
-	// We're targeting little-endian systems here, note that!
-
-	// Free particles will have their id in i1 (or in s21*2^32 + i1)
-	// Object particles will have their id (in object) in s21 and object id in i1
-	// s22 is arbitrary
-
-	float3 r;
-	union
-	{
-		int32_t i1;
-		struct { int16_t s11 /*least significant*/, s12; };
-	};
-
-	float3 u;
-	union
-	{
-		int32_t i2;
-		struct { int16_t s21 /*least significant*/, s22; };
-	};
-
-	__host__ __device__ inline Particle() {};
-	__host__ __device__ inline Particle(const float4 r4, const float4 u4)
-	{
-		r = make_float3(r4.x, r4.y, r4.z);
-		u = make_float3(u4.x, u4.y, u4.z);
-
-#ifdef __CUDA_ARCH__
-		i1 = __float_as_int(r4.w);
-		i2 = __float_as_int(u4.w);
-#else
-		union {int i; float f;} u;
-		u.f = r4.w;
-		i1 = u.i;
-
-		u.f = u4.w;
-		i2 = u.i;
-#endif
-	}
-};
-
 struct __align__(16) Float3_int
 {
 	float3 v;
@@ -99,10 +57,64 @@ struct __align__(16) Float3_int
 	}
 };
 
+
+struct __align__(16) Particle
+{
+	// We're targeting little-endian systems here, note that!
+
+	// Free particles will have their id in i1 (or in s21*2^32 + i1)
+	// Object particles will have their id (in object) in s21 and object id in i1
+	// s22 is arbitrary
+
+	float3 r;
+	union
+	{
+		int32_t i1;
+		struct { int16_t s11 /*least significant*/, s12; };
+	};
+
+	float3 u;
+	union
+	{
+		int32_t i2;
+		struct { int16_t s21 /*least significant*/, s22; };
+	};
+
+	__host__ __device__ inline Particle() {};
+	__host__ __device__ inline Particle(const float4 r4, const float4 u4)
+	{
+		r = make_float3(r4.x, r4.y, r4.z);
+		u = make_float3(u4.x, u4.y, u4.z);
+
+#ifdef __CUDA_ARCH__
+		i1 = __float_as_int(r4.w);
+		i2 = __float_as_int(u4.w);
+#else
+		union {int i; float f;} u;
+		u.f = r4.w;
+		i1 = u.i;
+
+		u.f = u4.w;
+		i2 = u.i;
+#endif
+	}
+
+	__host__ __device__ inline float4 r2Float4()
+	{
+		return Float3_int{r, i1}.toFloat4();
+	}
+
+	__host__ __device__ inline float4 u2Float4()
+	{
+		return Float3_int{u, i2}.toFloat4();
+	}
+};
+
+
 struct __align__(16) Force
 {
 	float3 f;
-	int32_t i1;
+	int32_t i;
 };
 
 

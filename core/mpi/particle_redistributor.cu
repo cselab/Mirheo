@@ -77,6 +77,9 @@ void ParticleRedistributor::attach(ParticleVector* pv, CellList* cl)
 	particles.push_back(pv);
 	cellLists.push_back(cl);
 
+	if (!cl->isPrimary())
+		die("Redistributor (for %s) should be used with the primary cell-lists only!", pv->name.c_str());
+
 	const double ndens = (double)pv->local()->size() / (cl->ncells.x * cl->ncells.y * cl->ncells.z * cl->rc*cl->rc*cl->rc);
 	const int maxdim = std::max({cl->domainSize.x, cl->domainSize.y, cl->domainSize.z});
 

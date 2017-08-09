@@ -439,15 +439,13 @@ uDeviceX::uDeviceX(int argc, char** argv, int3 nranks3D, float3 globalDomainSize
 {
 	int nranks, rank;
 
-//	int provided;
-//	MPI_Init_thread(&argc, &argv, MPI_THREAD_MULTIPLE, &provided);
-//	if (provided < MPI_THREAD_MULTIPLE)
-//	{
-//		printf("ERROR: The MPI library does not have full thread support\n");
-//		MPI_Abort(MPI_COMM_WORLD, 1);
-//	}
-
-	MPI_Init(&argc, &argv);
+	int provided;
+	MPI_Init_thread(&argc, &argv, MPI_THREAD_MULTIPLE, &provided);
+	if (provided < MPI_THREAD_MULTIPLE)
+	{
+		printf("ERROR: The MPI library does not have full thread support\n");
+		MPI_Abort(MPI_COMM_WORLD, 1);
+	}
 
 	logger.init(MPI_COMM_WORLD, logFileName, verbosity);
 
@@ -468,7 +466,7 @@ uDeviceX::uDeviceX(int argc, char** argv, int3 nranks3D, float3 globalDomainSize
 	if (nranks % 2 != 0)
 		die("Number of MPI ranks should be even");
 
-	info("Program started, splitting commuticator");
+	info("Program started, splitting communicator");
 
 	computeTask = (rank) % 2;
 	MPI_Check( MPI_Comm_split(MPI_COMM_WORLD, computeTask, rank, &splitComm) );

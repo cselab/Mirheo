@@ -10,50 +10,49 @@
 // Interaction wrapper macro
 //==================================================================================================================
 
-#define WRAP_INTERACTON(INTERACTION_FUNCTION) \
-	if (type == InteractionType::Regular)                                                                                                          \
-	{                                                                                                                                              \
-		/*  Self interaction */                                                                                                                    \
-		if (pv1 == pv2)                                                                                                                            \
-		{                                                                                                                                          \
-			debug2("Computing internal forces for %s (%d particles)", pv1->name.c_str(), pv1->local()->size());                                    \
-                                                                                                                                                   \
-			const int nth = 128;                                                                                                                   \
-			if (pv1->local()->size() > 0)                                                                                                          \
-				computeSelfInteractions<<< (pv1->local()->size() + nth - 1) / nth, nth, 0, stream >>>(                                             \
-						pv1->local()->size(), (float4*)cl->coosvels->devPtr(), (float*)cl->forces->devPtr(),                                       \
-						cl->cellInfo(), cl->cellsStartSize.devPtr(), rc*rc, INTERACTION_FUNCTION);                                                 \
-		}                                                                                                                                          \
-		else /*  External interaction */                                                                                                           \
-		{                                                                                                                                          \
-			debug2("Computing external forces for %s - %s (%d - %d particles)", pv1->name.c_str(), pv2->name.c_str(), pv1->local()->size(), pv2->local()->size());           \
-                                                                                                                                                   \
-			const int nth = 128;                                                                                                                   \
-			if (pv1->local()->size() > 0 && pv2->local()->size() > 0)                                                                                                        \
-				computeExternalInteractions<true, true, true> <<< (pv2->local()->size() + nth - 1) / nth, nth, 0, stream >>>(                                   \
-						pv2->local()->size(),                                                                                                                   \
-						(float4*)pv2->local()->coosvels.devPtr(), (float*)pv2->local()->forces.devPtr(),                                                             \
-						(float4*)cl->coosvels->devPtr(), (float*)cl->forces->devPtr(),                                                             \
-						cl->cellInfo(), cl->cellsStartSize.devPtr(),                                                                               \
-						rc*rc, INTERACTION_FUNCTION);                                                                                              \
-		}                                                                                                                                          \
-	}                                                                                                                                              \
-                                                                                                                                                   \
-	/*  Halo interaction */                                                                                                                        \
-	if (type == InteractionType::Halo)                                                                                                             \
-	{                                                                                                                                              \
-		debug2("Computing halo forces for %s - %s(halo) (%d - %d particles)", pv1->name.c_str(), pv2->name.c_str(), pv1->local()->size(), pv2->halo()->size());    \
-                                                                                                                                                   \
-		const int nth = 128;                                                                                                                       \
-		if (pv1->local()->size() > 0 && pv2->halo()->size() > 0)                                                                                   \
-			computeExternalInteractions<false, true, false> <<< (pv2->halo()->size() + nth - 1) / nth, nth, 0, stream >>>(                         \
-					pv2->halo()->size(),                                                                                                           \
-					(float4*)pv2->halo()->coosvels.devPtr(), nullptr,                                                                              \
-					(float4*)cl->coosvels->devPtr(), (float*)cl->forces->devPtr(),                                                                 \
-					cl->cellInfo(), cl->cellsStartSize.devPtr(),                                                                                   \
-					rc*rc, INTERACTION_FUNCTION);                                                                                                  \
+#define WRAP_INTERACTON(INTERACTION_FUNCTION)                                                                                                                         \
+	if (type == InteractionType::Regular)                                                                                                                             \
+	{                                                                                                                                                                 \
+		/*  Self interaction */                                                                                                                                       \
+		if (pv1 == pv2)                                                                                                                                               \
+		{                                                                                                                                                             \
+			debug2("Computing internal forces for %s (%d particles)", pv1->name.c_str(), pv1->local()->size());                                                       \
+                                                                                                                                                                      \
+			const int nth = 128;                                                                                                                                      \
+			if (pv1->local()->size() > 0)                                                                                                                             \
+				computeSelfInteractions<<< (pv1->local()->size() + nth - 1) / nth, nth, 0, stream >>>(                                                                \
+						pv1->local()->size(), (float4*)cl->coosvels->devPtr(), (float*)cl->forces->devPtr(),                                                          \
+						cl->cellInfo(), cl->cellsStartSize.devPtr(), rc*rc, INTERACTION_FUNCTION);                                                                    \
+		}                                                                                                                                                             \
+		else /*  External interaction */                                                                                                                              \
+		{                                                                                                                                                             \
+			debug2("Computing external forces for %s - %s (%d - %d particles)", pv1->name.c_str(), pv2->name.c_str(), pv1->local()->size(), pv2->local()->size());    \
+                                                                                                                                                                      \
+			const int nth = 128;                                                                                                                                      \
+			if (pv1->local()->size() > 0 && pv2->local()->size() > 0)                                                                                                 \
+				computeExternalInteractions<true, true, true> <<< (pv2->local()->size() + nth - 1) / nth, nth, 0, stream >>>(                                         \
+						pv2->local()->size(),                                                                                                                         \
+						(float4*)pv2->local()->coosvels.devPtr(), (float*)pv2->local()->forces.devPtr(),                                                              \
+						(float4*)cl->coosvels->devPtr(), (float*)cl->forces->devPtr(),                                                                                \
+						cl->cellInfo(), cl->cellsStartSize.devPtr(),                                                                                                  \
+						rc*rc, INTERACTION_FUNCTION);                                                                                                                 \
+		}                                                                                                                                                             \
+	}                                                                                                                                                                 \
+                                                                                                                                                                      \
+	/*  Halo interaction */                                                                                                                                           \
+	if (type == InteractionType::Halo)                                                                                                                                \
+	{                                                                                                                                                                 \
+		debug2("Computing halo forces for %s - %s(halo) (%d - %d particles)", pv1->name.c_str(), pv2->name.c_str(), pv1->local()->size(), pv2->halo()->size());       \
+                                                                                                                                                                      \
+		const int nth = 128;                                                                                                                                          \
+		if (pv1->local()->size() > 0 && pv2->halo()->size() > 0)                                                                                                      \
+			computeExternalInteractions<false, true, false> <<< (pv2->halo()->size() + nth - 1) / nth, nth, 0, stream >>>(                                            \
+					pv2->halo()->size(),                                                                                                                              \
+					(float4*)pv2->halo()->coosvels.devPtr(), nullptr,                                                                                                 \
+					(float4*)cl->coosvels->devPtr(), (float*)cl->forces->devPtr(),                                                                                    \
+					cl->cellInfo(), cl->cellsStartSize.devPtr(),                                                                                                      \
+					rc*rc, INTERACTION_FUNCTION);                                                                                                                     \
 	}
-
 
 
 //==================================================================================================================
@@ -95,20 +94,6 @@ __device__ __forceinline__ float3 pairwiseDPD(
 }
 
 
-void interactionDPD (InteractionType type, ParticleVector* pv1, ParticleVector* pv2, CellList* cl, const float t, cudaStream_t stream,
-		float adpd, float gammadpd, float sigma_dt, float power, float rc)
-{
-	// Better to use random number in the seed instead of periodically changing time
-	const float seed = drand48();
-	auto dpdCore = [=] __device__ ( Particle dst, Particle src )
-	{
-		return pairwiseDPD( dst, src, adpd, gammadpd, sigma_dt, rc*rc, 1.0/rc, power, seed);
-	};
-
-	WRAP_INTERACTON(dpdCore)
-}
-
-
 //==================================================================================================================
 // LJ interactions
 //==================================================================================================================
@@ -145,9 +130,53 @@ __device__ inline float3 pairwiseLJ_objectAware(Particle dst, Particle src,
 	return pairwiseLJ(dst, src, sigma, epsx24_sigma, rc2);
 }
 
+//==================================================================================================================
+//==================================================================================================================
 
-void interactionLJ_objectAware(InteractionType type, ParticleVector* pv1, ParticleVector* pv2, CellList* cl, const float t, cudaStream_t stream,
-		float epsilon, float sigma, float rc)
+
+/**
+ * Regular DPD interaction
+ */
+InteractionDPD::InteractionDPD(pugi::xml_node node)
+{
+	name = node.attribute("name").as_string("");
+	rc   = node.attribute("rc").as_float(1.0f);
+
+	power = node.attribute("power").as_float(1.0f);
+	a     = node.attribute("a")    .as_float(50);
+	gamma = node.attribute("gamma").as_float(20);
+
+	const float dt  = node.attribute("dt") .as_float(0.01);
+	const float kBT = node.attribute("kbt").as_float(1.0);
+
+	sigma = sqrt(2 * gamma * kBT / dt);
+}
+
+void InteractionDPD::compute(InteractionType type, ParticleVector* pv1, ParticleVector* pv2, CellList* cl, const float t, cudaStream_t stream)
+{
+	// Better to use random number in the seed instead of periodically changing time
+	const float seed = drand48();
+	auto dpdCore = [=] __device__ ( Particle dst, Particle src )
+	{
+		return pairwiseDPD( dst, src, a, gamma, sigma, rc*rc, 1.0/rc, power, seed);
+	};
+
+	WRAP_INTERACTON(dpdCore)
+}
+
+/**
+ * LJ interaction, to prevent overlap of the rigid objects
+ */
+InteractionLJ_objectAware::InteractionLJ_objectAware(pugi::xml_node node)
+{
+	name = node.attribute("name").as_string("");
+	rc   = node.attribute("rc").as_float(1.0f);
+
+	epsilon = node.attribute("power").as_float(10.0f);
+	sigma   = node.attribute("a")    .as_float(0.5f);
+}
+
+void InteractionLJ_objectAware::compute(InteractionType type, ParticleVector* pv1, ParticleVector* pv2, CellList* cl, const float t, cudaStream_t stream)
 {
 	auto ov1 = dynamic_cast<ObjectVector*>(pv1);
 	auto ov2 = dynamic_cast<ObjectVector*>(pv2);
@@ -156,12 +185,12 @@ void interactionLJ_objectAware(InteractionType type, ParticleVector* pv1, Partic
 
 	const float epsx24_sigma = 24.0*epsilon/sigma;
 	const float rc2 = rc*rc;
-	const bool self = pv1 == pv2;
+	const bool self = (pv1 == pv2);
 
 	const LocalObjectVector::COMandExtent* dstComExt = (ov1 != nullptr) ? ov1->local()->comAndExtents.devPtr() : nullptr;
 	const LocalObjectVector::COMandExtent* srcComExt = (ov2 != nullptr) ? ov2->local()->comAndExtents.devPtr() : nullptr;
 
-	auto dpdCore = [=] __device__ ( Particle dst, Particle src )
+	auto ljCore = [=] __device__ ( Particle dst, Particle src )
 	{
 		const int dstObjId = dst.s21;
 		const int srcObjId = src.s21;
@@ -176,7 +205,7 @@ void interactionLJ_objectAware(InteractionType type, ParticleVector* pv1, Partic
 		return pairwiseLJ_objectAware( dst, src, (dstComExt != nullptr), dstCom, (srcComExt != nullptr), srcCom, sigma, epsx24_sigma, rc2);
 	};
 
-	WRAP_INTERACTON(dpdCore)
+	WRAP_INTERACTON(ljCore)
 }
 
 

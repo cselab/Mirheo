@@ -18,7 +18,6 @@ ExchangeHelper::ExchangeHelper(std::string name, const int datumSize, const int 
 	bufSizes   .resize(27);
 	recvOffsets.resize(28);
 
-	auto addrsPtr = sendAddrs.hostPtr();
 	for(int i = 0; i < 27; ++i)
 	{
 		int d[3] = { i%3 - 1, (i/3) % 3 - 1, i/9 - 1 };
@@ -31,7 +30,7 @@ ExchangeHelper::ExchangeHelper(std::string name, const int datumSize, const int 
 
 			sendBufs[i].resize( sizes[c-1]*datumSize );
 			recvBufs[i].resize( sizes[c-1]*datumSize );
-			addrsPtr[i] = sendBufs[i].devPtr();
+			sendAddrs[i] = sendBufs[i].devPtr();
 		}
 	}
 	// implicit synchro

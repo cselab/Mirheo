@@ -7,7 +7,7 @@
 #include <core/rigid_kernels/integration.h>
 
 /**
- * transform(float4& x, float4& v, const float4 f, const float invm, const float dt):
+ * transform(Particle&p, const float3 f, const float invm, const float dt):
  *  performs integration
  */
 template<typename Transform>
@@ -19,9 +19,10 @@ __global__ void integrationKernel(float4* coosvels, const float4* forces, const 
 	if (pid >= n) return;
 
 	float4 val = coosvels[gid]; //readNoCache(coosvels+gid);
-	float4 frc = forces[pid];
+	Float3_int frc(forces[pid]);
 
 	// Send velocity to adjacent thread that has the coordinate
+	Particle p;
 	float4 othval;
 	othval.x = __shfl_down(val.x, 1);
 	othval.y = __shfl_down(val.y, 1);
@@ -30,11 +31,19 @@ __global__ void integrationKernel(float4* coosvels, const float4* forces, const 
 
 	// val is coordinate, othval is corresponding velocity
 	if (sh == 0)
-		transform(val, othval, frc, invmass, dt);
+	{
+		p = Particle(val, othval);
+		transform(p, frc.v, invmass, dt);
+		val = p.r2Float4();
+	}
 
 	// val is velocity, othval is rubbish
 	if (sh == 1)
-		transform(othval, val, frc, invmass, dt);
+	{
+		p = Particle(othval, val);
+		transform(p, frc.v, invmass, dt);
+		val = p.u2Float4();
+	}
 
 	coosvels[gid] = val; //writeNoCache(coosvels + gid, val);
 }
@@ -42,65 +51,74 @@ __global__ void integrationKernel(float4* coosvels, const float4* forces, const 
 //==============================================================================================
 //==============================================================================================
 
-__device__ __forceinline__ void _noflow (float4& x, float4& v, const float4 f, const float invm, const float dt)
-{
-	v.x += f.x*invm*dt;
-	v.y += f.y*invm*dt;
-	v.z += f.z*invm*dt;
-
-	x.x += v.x*dt;
-	x.y += v.y*dt;
-	x.z += v.z*dt;
-}
-
-__device__ __forceinline__ void _constDP (float4& x, float4& v, const float4 f, const float invm, const float dt, const float3 extraForce)
-{
-	v.x += (f.x+extraForce.x) * invm*dt;
-	v.y += (f.y+extraForce.y) * invm*dt;
-	v.z += (f.z+extraForce.z) * invm*dt;
-
-	x.x += v.x*dt;
-	x.y += v.y*dt;
-	x.z += v.z*dt;
-}
-
 /**
  * Free flow
  */
-void integrateNoFlow(ParticleVector* pv, const float dt, cudaStream_t stream)
+void IntegratorVVNoFlow::stage1(ParticleVector* pv, cudaStream_t stream)
 {
-	auto noflow = [] __device__ (float4& x, float4& v, const float4 f, const float invm, const float dt) {
-		_noflow(x, v, f, invm, dt);
+	auto st1 = [] __device__ (Particle& p, const float3 f, const float invm, const float dt) {
+		p.u += 0.5*f*invm*dt;
+		p.r += p.u*dt;
 	};
 
-	debug2("Integrating %d %s particles, timestep is %f", pv->local()->size(), pv->name.c_str(), dt);
-	integrationKernel<<< (2*pv->local()->size() + 127)/128, 128, 0, stream >>>((float4*)pv->local()->coosvels.devPtr(), (float4*)pv->local()->forces.devPtr(), pv->local()->size(), 1.0/pv->mass, dt, noflow);
+	int nthreads = 128;
+	debug2("Integrating (stage 1) %d %s particles, timestep is %f", pv->local()->size(), pv->name.c_str(), dt);
+	integrationKernel<<< getNblocks(2*pv->local()->size(), nthreads), nthreads, 0, stream >>>(
+			(float4*)pv->local()->coosvels.devPtr(), (float4*)pv->local()->forces.devPtr(), pv->local()->size(), 1.0/pv->mass, dt, st1);
+	pv->local()->changedStamp++;
+}
+
+void IntegratorVVNoFlow::stage2(ParticleVector* pv, cudaStream_t stream)
+{
+	auto st2 = [] __device__ (Particle& p, const float3 f, const float invm, const float dt) {
+		p.u += 0.5*f*invm*dt;
+	};
+
+	int nthreads = 128;
+	debug2("Integrating (stage 2) %d %s particles, timestep is %f", pv->local()->size(), pv->name.c_str(), dt);
+	integrationKernel<<< getNblocks(2*pv->local()->size(), nthreads), nthreads, 0, stream >>>(
+			(float4*)pv->local()->coosvels.devPtr(), (float4*)pv->local()->forces.devPtr(), pv->local()->size(), 1.0/pv->mass, dt, st2);
 	pv->local()->changedStamp++;
 }
 
 /**
  * Applied additional force to every particle
  */
-void integrateConstDP(ParticleVector* pv, const float dt, cudaStream_t stream, float3 extraForce)
+void IntegratorVVConstDP::stage1(ParticleVector* pv, cudaStream_t stream)
 {
-	auto constDP = [extraForce] __device__ (float4& x, float4& v, const float4 f, const float invm, const float dt) {
-		_constDP(x, v, f, invm, dt, extraForce);
+	auto st1 = [] __device__ (Particle& p, const float3 f, const float invm, const float dt) {
+		p.u += 0.5*(f+extraForce)*invm*dt;
+		p.r += p.u*dt;
 	};
 
-	debug2("Integrating %d %s particles with extra force [%8.5f %8.5f %8.5f], timestep is %f",
-			pv->local()->size(), pv->name.c_str(), extraForce.x, extraForce.y, extraForce.z, dt);
-	integrationKernel<<< getNblocks(2*pv->local()->size(), 128), 128, 0, stream >>>((float4*)pv->local()->coosvels.devPtr(), (float4*)pv->local()->forces.devPtr(), pv->local()->size(), 1.0/pv->mass, dt, constDP);
+	int nthreads = 128;
+	debug2("Integrating (stage 1) %d %s particles with extra force [%8.5f %8.5f %8.5f], timestep is %f", pv->local()->size(), pv->name.c_str(), dt);
+	integrationKernel<<< getNblocks(2*pv->local()->size(), nthreads), nthreads, 0, stream >>>(
+			(float4*)pv->local()->coosvels.devPtr(), (float4*)pv->local()->forces.devPtr(), pv->local()->size(), 1.0/pv->mass, dt, st1);
+	pv->local()->changedStamp++;
+}
+
+void IntegratorVVConstDP::stage2(ParticleVector* pv, cudaStream_t stream)
+{
+	auto st2 = [] __device__ (Particle& p, const float3 f, const float invm, const float dt) {
+		p.u += 0.5*f*invm*dt;
+	};
+
+	int nthreads = 128;
+	debug2("Integrating (stage 2) %d %s particles with extra force [%8.5f %8.5f %8.5f], timestep is %f", pv->local()->size(), pv->name.c_str(), dt);
+	integrationKernel<<< getNblocks(2*pv->local()->size(), nthreads), nthreads, 0, stream >>>(
+			(float4*)pv->local()->coosvels.devPtr(), (float4*)pv->local()->forces.devPtr(), pv->local()->size(), 1.0/pv->mass, dt, st2);
 	pv->local()->changedStamp++;
 }
 
 /**
  * Rotate with constant angular velocity omega around x0, regardless force
  */
-void integrateConstOmega(ParticleVector* pv, const float dt, cudaStream_t stream, const float3 omega, const float3 x0)
+void IntegratorConstOmega::stage2(ParticleVector* pv, cudaStream_t stream)
 {
 	// https://en.wikipedia.org/wiki/Rodrigues%27_rotation_formula
 
-	const float3 locX0 = x0 - pv->globalDomainStart;
+	const float3 locX0 = center - pv->globalDomainStart;
 
 	const float IomegaI = sqrt(dot(omega, omega));
 	const float phi     = IomegaI * dt;
@@ -109,15 +127,15 @@ void integrateConstOmega(ParticleVector* pv, const float dt, cudaStream_t stream
 
 	const float3 k = omega / IomegaI;
 
-	auto rotate = [k, sphi, cphi, locX0] __device__ (float4& x, float4& v, const float4 f, const float invm, const float dt) {
-		float3 r = make_float3(x) - locX0;
+	auto rotate = [k, sphi, cphi, locX0] __device__ (Particle& p, const float3 f, const float invm, const float dt) {
+		float3 r = p.r - locX0;
 		r = r * cphi + cross(k, r)*sphi * k*dot(k, r) * (1-cphi);
-		x.x = r.x;
-		x.y = r.y;
-		x.z = r.z;
+		p.r = r + locX0;
 	};
 
-	integrationKernel<<< getNblocks(2*pv->local()->size(), 128), 128, 0, stream >>>((float4*)pv->local()->coosvels.devPtr(), (float4*)pv->local()->forces.devPtr(), pv->local()->size(), 1.0/pv->mass, dt, rotate);
+	int nthreads = 128;
+	integrationKernel<<< getNblocks(2*pv->local()->size(), nthreads), nthreads, 0, stream >>>(
+			(float4*)pv->local()->coosvels.devPtr(), (float4*)pv->local()->forces.devPtr(), pv->local()->size(), 1.0/pv->mass, dt, rotate);
 }
 
 /**
@@ -125,8 +143,12 @@ void integrateConstOmega(ParticleVector* pv, const float dt, cudaStream_t stream
  * Also integrate object's Q
  * Only VV integration now
  */
-void integrateRigid(RigidObjectVector* ov, const float dt, cudaStream_t stream, float3 extraForce)
+// FIXME: split VV into two stages
+void IntegratorVVRigid::stage2(ParticleVector* pv, cudaStream_t stream)
 {
+	RigidObjectVector* ov = dynamic_cast<RigidObjectVector*> (pv);
+	if (ov == nullptr) die("Rigid integration only works with rigid objects, can't work with %s", pv->name.c_str());
+
 	debug2("Integrating %d rigid objects %s (total %d particles), timestep is %f", ov->local()->nObjects, ov->name.c_str(), ov->local()->size(), dt);
 
 	collectRigidForces<<< getNblocks(2*ov->local()->size(), 128), 128, 0, stream >>> (
@@ -147,13 +169,6 @@ void integrateRigid(RigidObjectVector* ov, const float dt, cudaStream_t stream, 
 
 	clearRigidForces<<< getNblocks(ov->local()->nObjects, 64), 64, 0, stream >>>(ov->local()->motions.devPtr(), ov->local()->nObjects);
 }
-
-
-
-
-
-
-
 
 
 

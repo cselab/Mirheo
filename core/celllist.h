@@ -133,6 +133,7 @@ public:
 		order.pushStream(stream);
 	}
 
+	bool isPrimary()   { return primary; }
 	void makePrimary() { primary = true; }
 	void build();
 	void addForces();
