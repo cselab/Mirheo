@@ -7,6 +7,11 @@
 #define __device__
 #endif
 
+inline float3 f4tof3(float4 x)
+{
+	return make_float3(x.x, x.y, x.z);
+}
+
 inline int getNblocks(const int n, const int nthreads)
 {
 	return (n+nthreads-1) / nthreads;
@@ -27,6 +32,18 @@ __device__ __forceinline__  float3 warpReduce(float3 val, Operation op)
 		val.x = op(val.x, __shfl_down(val.x, offset));
 		val.y = op(val.y, __shfl_down(val.y, offset));
 		val.z = op(val.z, __shfl_down(val.z, offset));
+	}
+	return val;
+}
+
+template<typename Operation>
+__device__ __forceinline__  float2 warpReduce(float2 val, Operation op)
+{
+#pragma unroll
+	for (int offset = warpSize/2; offset > 0; offset /= 2)
+	{
+		val.x = op(val.x, __shfl_down(val.x, offset));
+		val.y = op(val.y, __shfl_down(val.y, offset));
 	}
 	return val;
 }

@@ -17,9 +17,9 @@ public:
 
 	// Local coordinate system; (0,0,0) is center of the local domain
 
-	LocalParticleVector(int n=0)
+	LocalParticleVector(int n=0, cudaStream_t stream = 0)
 	{
-		resize(n);
+		resize(n, stream);
 	}
 
 	int size()
@@ -27,24 +27,12 @@ public:
 		return np;
 	}
 
-	virtual void pushStream(cudaStream_t stream)
-	{
-		coosvels.pushStream(stream);
-		forces  .pushStream(stream);
-	}
-
-	virtual void popStream()
-	{
-		coosvels.popStream();
-		forces  .popStream();
-	}
-
-	virtual void resize(const int n, ResizeKind kind = ResizeKind::resizePreserve)
+	virtual void resize(const int n, cudaStream_t stream, ResizeKind kind = ResizeKind::resizePreserve)
 	{
 		assert(n>=0);
 
-		coosvels.resize(n, kind);
-		forces  .resize(n, kind);
+		coosvels.resize(n, stream, kind);
+		forces  .resize(n, stream, kind);
 
 		np = n;
 	}

@@ -39,7 +39,7 @@ void Simulation::registerParticleVector(ParticleVector* pv, InitialConditions* i
 	ic->exec(cartComm, pv, globalDomainSize, subDomainSize);
 }
 
-void Simulation::registerObjectVector  (ObjectVector* ov)
+void Simulation::registerObjectVector(ObjectVector* ov)
 {
 	std::string name = ov->name;
 	particleVectors.push_back(static_cast<ParticleVector*>(ov));
@@ -50,7 +50,7 @@ void Simulation::registerObjectVector  (ObjectVector* ov)
 	pvIdMap[name] = particleVectors.size() - 1;
 }
 
-void Simulation::registerWall          (Wall* wall)
+void Simulation::registerWall(Wall* wall)
 {
 	std::string name = wall->name;
 
@@ -208,7 +208,7 @@ void Sumulation::assemble()
 	scheduler.addTask("primary cell-lists", [] (cudaStream_t stream) {
 		for (auto clMap : cellListMaps)
 			if (clMap.size() > 0)
-				clMap.begin()->second->build(true);
+				clMap.begin()->second->build(true, stream);
 	});
 
 }

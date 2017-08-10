@@ -127,26 +127,83 @@ CellListInfo::CellListInfo(float3 h, float3 domainSize) :
 
 
 CellList::CellList(ParticleVector* pv, float rc, float3 domainSize) :
-		CellListInfo(rc, domainSize), pv(pv), stream(0)
+		CellListInfo(rc, domainSize), pv(pv)
 {
-	cellsStartSize.resize(totcells + 1);
-	cellsSize .resize(totcells + 1);
+	cellsStartSize.resize(totcells + 1, 0);
+	cellsSize.     resize(totcells + 1, 0);
 
 	debug("Initialized %s cell-list with %dx%dx%d cells and cut-off %f", pv->name.c_str(), ncells.x, ncells.y, ncells.z, this->rc);
 }
 
 CellList::CellList(ParticleVector* pv, int3 resolution, float3 domainSize) :
-		CellListInfo(domainSize / make_float3(resolution), domainSize), pv(pv), stream(0)
+		CellListInfo(domainSize / make_float3(resolution), domainSize), pv(pv)
 {
-	cellsStartSize.resize(totcells + 1);
-	cellsSize .resize(totcells + 1);
+	cellsStartSize.resize(totcells + 1, 0);
+	cellsSize.     resize(totcells + 1, 0);
 
 	debug("Initialized %s cell-list with %dx%dx%d cells and cut-off %f", pv->name.c_str(), ncells.x, ncells.y, ncells.z, this->rc);
 }
 
-void CellList::build()
+void CellList::build(cudaStream_t stream)
 {
-	if (primary && (dynamic_cast<ObjectVector*>(pv) != nullptr))
+	if (pv->local()->changedStamp == changedStamp)
+	{
+		debug2("Cell-list for %s is already up-to-date, building skipped", pv->name.c_str());
+		return;
+	}
+
+	if (pv->local()->size() >= (1<<blendingPower))
+		die("Too many particles for the cell-list");
+
+	if (pv->local()->size() / totcells >= (1<<(32-blendingPower)))
+		die("Too many particles for the cell-list");
+
+	if (pv->local()->size() == 0)
+	{
+		debug2("%s consists of no particles, cell-list building skipped", pv->name.c_str());
+		return;
+	}
+
+	// Compute cell sizes
+	debug2("Computing cell sizes for %d %s particles", pv->local()->size(), pv->name.c_str());
+	CUDA_Check( cudaMemsetAsync(cellsSize.devPtr(), 0, (totcells + 1)*sizeof(uint8_t), stream) );  // +1 to have correct cellsStartSize[totcells]
+
+	computeCellSizes<<< (pv->local()->size()+127)/128, 128, 0, stream >>> (
+						(float4*)pv->local()->coosvels.devPtr(), pv->local()->size(), cellInfo(), (uint*)cellsSize.devPtr());
+
+	// Scan to get cell starts
+	scan(cellsSize.devPtr(), totcells+1, (int*)cellsStartSize.devPtr(), stream);
+
+	// Blend size and start together
+	blendStartSize<<< ((totcells+3)/4 + 127) / 128, 128, 0, stream >>>((uchar4*)cellsSize.devPtr(), (uint4*)cellsStartSize.devPtr(), cellInfo());
+
+	// Reorder the data
+	debug2("Reordering %d %s particles", pv->local()->size(), pv->name.c_str());
+	order.    resize(pv->local()->size(), stream);
+	_coosvels.resize(pv->local()->size(), stream);
+	_forces.  resize(pv->local()->size(), stream);
+
+	reorderParticles<<< (2*pv->local()->size()+127)/128, 128, 0, stream >>> (
+			cellInfo(), (uint*)cellsSize.devPtr(), cellsStartSize.devPtr(),
+			pv->local()->size(), (float4*)pv->local()->coosvels.devPtr(), (float4*)_coosvels.devPtr(), order.devPtr());
+
+	coosvels = &_coosvels;
+	forces   = &_forces;
+
+	// Change time of last update
+	changedStamp = pv->local()->changedStamp;
+}
+
+void CellList::addForces(cudaStream_t stream)
+{
+	if (forces != &pv->local()->forces)
+		addForcesKernel<<< (pv->local()->size()+127)/128, 128, 0, stream >>> (pv->local()->size(), (float4*)forces->devPtr(), (float4*)pv->local()->forces.devPtr(), order.devPtr());
+}
+
+
+void PrimaryCellList::build(cudaStream_t stream)
+{
+	if (dynamic_cast<ObjectVector*>(pv) != nullptr)
 		warn("Using primary cell-lists with objects is STRONGLY discouraged. This will very likely result in an error");
 
 	if (pv->local()->changedStamp == changedStamp)
@@ -167,9 +224,6 @@ void CellList::build()
 		return;
 	}
 
-	// Containers setup
-	pv->local()->pushStream(stream);
-
 	// Compute cell sizes
 	debug2("Computing cell sizes for %d %s particles", pv->local()->size(), pv->name.c_str());
 	CUDA_Check( cudaMemsetAsync(cellsSize.devPtr(), 0, (totcells + 1)*sizeof(uint8_t), stream) );  // +1 to have correct cellsStartSize[totcells]
@@ -185,45 +239,42 @@ void CellList::build()
 
 	// Reorder the data
 	debug2("Reordering %d %s particles", pv->local()->size(), pv->name.c_str());
-	order.resize(pv->local()->size());
-	_coosvels.resize(pv->local()->size());
-	_forces.resize(pv->local()->size());
+	order.    resize(pv->local()->size(), stream);
+	_coosvels.resize(pv->local()->size(), stream);
+	_forces.  resize(pv->local()->size(), stream);
 
 	reorderParticles<<< (2*pv->local()->size()+127)/128, 128, 0, stream >>> (
 			cellInfo(), (uint*)cellsSize.devPtr(), cellsStartSize.devPtr(),
 			pv->local()->size(), (float4*)pv->local()->coosvels.devPtr(), (float4*)_coosvels.devPtr(), order.devPtr());
 
-	if (primary)
-	{
-		// Now we need the new size of particles array.
-		int newSize;
-		CUDA_Check( cudaMemcpyAsync(&newSize, cellsStartSize.devPtr() + totcells, sizeof(int), cudaMemcpyDeviceToHost, stream) );
-		CUDA_Check( cudaStreamSynchronize(stream) );
-		newSize = newSize & ((1<<blendingPower) - 1);
-		debug2("Reordering completed, new size of %s particle vector is %d", pv->name.c_str(), newSize);
+	// Now we need the new size of particles array.
+	int newSize;
+	CUDA_Check( cudaMemcpyAsync(&newSize, cellsStartSize.devPtr() + totcells, sizeof(int), cudaMemcpyDeviceToHost, stream) );
+	CUDA_Check( cudaStreamSynchronize(stream) );
+	newSize = newSize & ((1<<blendingPower) - 1);
+	debug2("Reordering completed, new size of %s particle vector is %d", pv->name.c_str(), newSize);
 
-		pv->local()->resize(newSize, resizePreserve);
-		_coosvels.resize(newSize, resizePreserve);
-		CUDA_Check( cudaStreamSynchronize(stream) );
+	pv->local()->resize(newSize, stream, resizePreserve);
+	_coosvels.resize(newSize, stream, resizePreserve);
+	CUDA_Check( cudaStreamSynchronize(stream) );
 
-		containerSwap(pv->local()->coosvels, _coosvels);
-		coosvels = &pv->local()->coosvels;
-		forces   = &pv->local()->forces;
-	}
-	else
-	{
-		coosvels = &_coosvels;
-		forces   = &_forces;
-	}
+	containerSwap(pv->local()->coosvels, _coosvels, stream);
+	coosvels = &pv->local()->coosvels;
+	forces   = &pv->local()->forces;
 
-	// Containers setup
-	pv->local()->popStream();
-
+	// Change time of last update
 	changedStamp = pv->local()->changedStamp;
 }
 
-void CellList::addForces()
-{
-	if (forces != &pv->local()->forces)
-		addForcesKernel<<< (pv->local()->size()+127)/128, 128, 0, stream >>> (pv->local()->size(), (float4*)forces->devPtr(), (float4*)pv->local()->forces.devPtr(), order.devPtr());
-}
+
+
+
+
+
+
+
+
+
+
+
+

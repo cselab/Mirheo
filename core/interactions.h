@@ -65,3 +65,15 @@ public:
 	~InteractionLJ_objectAware() = default;
 };
 
+
+class InteractionRBCMembrane : Interaction
+{
+	float epsilon, sigma;
+
+public:
+	void compute(InteractionType type, ParticleVector* pv1, ParticleVector* pv2, CellList* cl, const float t, cudaStream_t stream);
+
+	InteractionRBCMembrane(pugi::xml_node node);
+
+	~InteractionRBCMembrane() = default;
+};

@@ -1,11 +1,11 @@
 #pragma once
 
-#include <cuda.h>
 #include <cstdint>
 
 #include <core/datatypes.h>
+#include <core/containers.h>
 #include <core/logger.h>
-#include <core/helper_math.h>
+#include <core/cuda_common.h>
 
 class ParticleVector;
 
@@ -94,13 +94,11 @@ class CellList : public CellListInfo
 {
 private:
 	DeviceBuffer<uint8_t> cellsSize;
-	cudaStream_t stream;
-	int changedStamp = -1;
 
 	PinnedBuffer<Particle> _coosvels;
 	DeviceBuffer<Force>    _forces;
 
-	bool primary = false;
+	int changedStamp = -1;
 
 public:
 	ParticleVector* pv;
@@ -119,22 +117,23 @@ public:
 		return *((CellListInfo*)this);
 	}
 
-	void setStream(cudaStream_t stream)
-	{
-		this->stream = stream;
+	virtual void build(cudaStream_t stream);
+	virtual void addForces(cudaStream_t stream);
 
-		cellsSize.popStream();
-		cellsSize.pushStream(stream);
-
-		cellsStartSize.popStream();
-		cellsStartSize.pushStream(stream);
-
-		order.popStream();
-		order.pushStream(stream);
-	}
-
-	bool isPrimary()   { return primary; }
-	void makePrimary() { primary = true; }
-	void build();
-	void addForces();
+	virtual ~CellList() = default;
 };
+
+class PrimaryCellList : public CellList
+{
+public:
+
+	PrimaryCellList(ParticleVector* pv, float rc, float3 domainSize);
+	PrimaryCellList(ParticleVector* pv, int3 resolution, float3 domainSize);
+
+	void build(cudaStream_t stream);
+	void addForces(cudaStream_t stream) {};
+
+	~PrimaryCellList() = default;
+};
+
+
