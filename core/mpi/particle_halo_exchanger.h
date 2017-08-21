@@ -15,11 +15,11 @@ private:
 	std::vector<CellList*> cellLists;
 	std::vector<ParticleVector*> particles;
 
-	void prepareData(int id);
+	void prepareData(int id, cudaStream_t defStream);
 	void combineAndUploadData(int id);
 
 public:
-	ParticleHaloExchanger(MPI_Comm& comm, cudaStream_t defStream) : ParticleExchanger(comm, defStream) {};
+	ParticleHaloExchanger(MPI_Comm& comm) : ParticleExchanger(comm) {};
 
 	void attach(ParticleVector* pv, CellList* cl);
 

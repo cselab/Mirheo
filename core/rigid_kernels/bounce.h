@@ -12,12 +12,11 @@ __device__ inline float ellipsoidF(const float3 r, const float3 invAxes)
 }
 
 __device__ __forceinline__ void bounceCellArray(int* validCells, int nCells, int objId, float4* coosvels,
-		float mass, LocalRigidObjectVector::RigidMotion* motions, const float3 invAxes,
+		float mass, LocalRigidObjectVector::RigidMotion* motions, const float3 invAxes, const float3 axes,
 		const uint* __restrict__ cellsStartSize, CellListInfo cinfo, const float dt)
 {
 	const float threshold = 2e-6f;
 	const int maxIters = 100;
-	const float step = 0.01;
 
 	if (threadIdx.x >= nCells) return;
 
@@ -26,12 +25,9 @@ __device__ __forceinline__ void bounceCellArray(int* validCells, int nCells, int
 
 	// Prepare rolling back in time
 	float3 oldR = objR - motions[objId].vel * dt;
-	float4 oldQ = objQ - motions[objId].deltaQ;
+	float4 oldQ = motions[objId].prevQ;
 	oldQ = normalize(oldQ);
 
-	auto F = [invAxes, dt] (const float3 r) {
-		return ellipsoidF(r, invAxes);
-	};
 
 	int2 start_size = cinfo.decodeStartSize(cellsStartSize[validCells[threadIdx.x]]);
 
@@ -43,35 +39,58 @@ __device__ __forceinline__ void bounceCellArray(int* validCells, int nCells, int
 		// Go to the obj frame where the obj is completely still
 		float3 coo = rotate(p.r - objR, invQ(objQ));
 
-		// If the particle is far - skip it, it's fine
-		if (F(coo) >= 0.0f) continue;
-
 		// For the old coordinate use the motion description of past timestep
-		// Correct the old position so that it is outside
 		float3 oldCoo = p.r - p.u*dt;
 		oldCoo = rotate(oldCoo - oldR, invQ(oldQ));
 		float3 dr = coo - oldCoo;
 
-		int it;
-		for (it=0; it<maxIters; it++)
+		float vold = ellipsoidF(oldCoo, invAxes);
+		float vcur = ellipsoidF(coo,    invAxes);
+
+		// If the particle is outside - skip it, it's fine
+		if (vcur >= 0.0f) continue;
+
+		// Correct the old position so that it is outside
+		// Inside may happen because of imprecise arithmetics
+		if (vold <= 0.0f)
 		{
-			if (F(oldCoo) > 0.0f) break;
-			oldCoo -= dr*step;
+			float3 normal = normalize(make_float3(
+					axes.y*axes.y * axes.z*axes.z * oldCoo.x,
+					axes.z*axes.z * axes.x*axes.x * oldCoo.y,
+					axes.x*axes.x * axes.y*axes.y * oldCoo.z));
+
+			for (int i=0; i<maxIters; i++)
+			{
+				oldCoo += 5*threshold*normal;
+				vold = ellipsoidF(oldCoo, invAxes);
+				if (vold > 0.0f) break;
+			}
 		}
 
-		if (it > 1)
-			printf("old: (%d)  %f -> %f\n", it, F( rotate(p.r - p.u*dt - oldR, invQ(oldQ)) ), F(oldCoo));
+		float alpha = solveLinSearch( [=] (const float lambda) { return ellipsoidF(oldCoo + (coo-oldCoo)*lambda, invAxes);} );
+		float3 newCoo = oldCoo + (coo-oldCoo)*alpha;
 
-		float alpha = bounceLinSearch(oldCoo, coo, threshold, F);
-		float3 newCoo = (alpha > -0.1f) ? newCoo = oldCoo + (coo-oldCoo)*alpha : make_float3(0.0f);
+		// Push out a little bit
+		float3 normal = normalize(make_float3(
+				axes.y*axes.y * axes.z*axes.z * newCoo.x,
+				axes.z*axes.z * axes.x*axes.x * newCoo.y,
+				axes.x*axes.x * axes.y*axes.y * newCoo.z));
 
-		if (F(newCoo) < 0.0f)
+		for (int i=0; i<maxIters; i++)
 		{
+			newCoo += 5*threshold*normal;
+			if (ellipsoidF(newCoo, invAxes) > 0.0f) break;
+		}
+
+		if (ellipsoidF(newCoo, invAxes) < 0.0f)
+		{
+			printf("Bounce-back failed on particle %d (%f %f %f)  %f -> %f to %f, alpha %f. Recovering to old position\n",
+					p.i1, p.r.x, p.r.y, p.r.z,
+					ellipsoidF(oldCoo, invAxes), ellipsoidF(coo, invAxes),
+					ellipsoidF(newCoo, invAxes), alpha);
+
 			newCoo = oldCoo;
-			printf("Bounce-back failed on particle %d (%f %f %f)  %f -> %f  to %f. Recovering to old position\n",
-					p.i1, p.r.x, p.r.y, p.r.z, F(oldCoo), F(coo), F(newCoo));
 		}
-
 
 		// Change velocity's frame to the object frame, correct for rotation as well
 		float3 vel = rotate(p.u - motions[objId].vel, invQ(objQ));
@@ -92,10 +111,9 @@ __device__ __forceinline__ void bounceCellArray(int* validCells, int nCells, int
 	}
 }
 
-__launch_bounds__(128, 7)
 __global__ void bounceEllipsoid(float4* coosvels, float mass,
 		const LocalRigidObjectVector::COMandExtent* props, LocalRigidObjectVector::RigidMotion* motions,
-		const int nObj, const float3 invAxes,
+		const int nObj, const float3 invAxes, const float3 axes,
 		const uint* __restrict__ cellsStartSize, CellListInfo cinfo, const float dt)
 {
 	const int objId = blockIdx.x;
@@ -104,7 +122,7 @@ __global__ void bounceEllipsoid(float4* coosvels, float mass,
 
 	// Preparation step. Filter out all the cells that don't intersect the surface
 	__shared__ volatile int nCells;
-	__shared__ int validCells[256];
+	extern __shared__ int validCells[];
 
 	nCells = 0;
 	__syncthreads();
@@ -155,7 +173,7 @@ __global__ void bounceEllipsoid(float4* coosvels, float mass,
 		if (nCells >= blockDim.x)
 		{
 			bounceCellArray(validCells, blockDim.x, objId, coosvels,
-					mass, motions, invAxes,
+					mass, motions, invAxes, axes,
 					cellsStartSize, cinfo, dt);
 
 			__syncthreads();
@@ -171,7 +189,7 @@ __global__ void bounceEllipsoid(float4* coosvels, float mass,
 
 	// Process remaining
 	bounceCellArray(validCells, nCells, objId, coosvels,
-						mass, motions, invAxes,
+						mass, motions, invAxes, axes,
 						cellsStartSize, cinfo, dt);
 }
 

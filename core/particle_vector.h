@@ -2,6 +2,7 @@
 
 #include <string>
 #include <core/datatypes.h>
+#include <core/containers.h>
 #include <core/cuda_common.h>
 
 class LocalParticleVector

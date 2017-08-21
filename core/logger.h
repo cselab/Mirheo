@@ -27,7 +27,7 @@ class Logger
 {
 	int runtimeDebugLvl;
 
-	MPI_File fout;
+	FILE* fout;
 	int rank;
 
 	const std::array<std::string, 5> lvl2text{ {"FATAL", "ERROR", "WARNING", "INFO", "DEBUG"} };
@@ -37,19 +37,21 @@ class Logger
 	{
 		if (level <= DEBUGLVL && level <= runtimeDebugLvl)
 		{
-			auto now   = std::chrono::system_clock::now();
-			auto now_c = std::chrono::system_clock::to_time_t(now);
+			using namespace std::chrono;
+
+			auto now   = system_clock::now();
+			auto now_c = system_clock::to_time_t(now);
+			auto ms = duration_cast<milliseconds>(now.time_since_epoch()) % 1000;
+
 			std::ostringstream tmout;
-			tmout << std::put_time(std::localtime(&now_c), "%T");
+			tmout << std::put_time(std::localtime(&now_c), "%T") << ':' << std::setfill('0') << std::setw(3) << ms.count();
 
 			const int cappedLvl = std::min((int)lvl2text.size() - 1, level);
-			std::string intro = tmout.str() + "   " + std::string("Rank %03d %7s at ")
+			std::string intro = tmout.str() + "   " + std::string("Rank %04d %7s at ")
 				+ fname + ":" + std::to_string(lnum) + "  " +pattern + "\n";
 
-			MPI_Status status;
-			char buf[2000];
-			int nchar = sprintf(buf, intro.c_str(), rank, (cappedLvl >= 0 ? lvl2text[cappedLvl] : "").c_str(), args...);
-			MPI_File_write_shared(fout, buf, nchar, MPI_CHAR, &status);
+			fprintf(fout, intro.c_str(), rank, (cappedLvl >= 0 ? lvl2text[cappedLvl] : "").c_str(), args...);
+			fflush(fout);
 		}
 	}
 
@@ -62,17 +64,13 @@ public:
 	{
 		runtimeDebugLvl = debugLvl;
 
-		MPI_Info infoin;
-		MPI_Info_create(&infoin);
-		MPI_Info_set(infoin, "access_style", "write_once,random");
+		std::string rankStr = std::string(5 - std::to_string(rank).length(), '0') + std::to_string(rank);
 
-		// If file exists - delete it
-		MPI_File_open(comm, fname.c_str(), MPI_MODE_WRONLY | MPI_MODE_CREATE | MPI_MODE_DELETE_ON_CLOSE, infoin, &fout);
-		MPI_File_close(&fout);
+		auto pos = fname.find_last_of('.');
+		auto start = fname.substr(0, pos);
+		auto end = fname.substr(pos);
 
-		MPI_File_open(comm, fname.c_str(), MPI_MODE_WRONLY | MPI_MODE_CREATE, infoin, &fout);
-		MPI_File_set_atomicity(fout, true);
-		MPI_Comm_rank(comm, &rank);
+		fout = fopen( (start+"_"+rankStr+end).c_str(), "w");
 	}
 
 
@@ -87,10 +85,7 @@ public:
 	{
 		log<0>(args...);
 
-		MPI_File_sync(fout);
-
-		// May cause deadlock!
-		//MPI_File_close(&fout);
+		fclose(fout);
 
 		MPI_Abort(MPI_COMM_WORLD, -1);
 	}

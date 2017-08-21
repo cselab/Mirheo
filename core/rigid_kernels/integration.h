@@ -34,7 +34,7 @@ __global__ void collectRigidForces(const float4 * coosvels, const float4 * force
 	force  = warpReduce( force,  [] (float a, float b) { return a+b; } );
 	torque = warpReduce( torque, [] (float a, float b) { return a+b; } );
 
-	if (tid % warpSize == 0)
+	if ( (tid % warpSize) == 0)
 	{
 		atomicAdd(&motion[objId].force,  force);
 		atomicAdd(&motion[objId].torque, torque);
@@ -59,7 +59,7 @@ __global__ void integrateRigidMotion(LocalRigidObjectVector::RigidMotion* motion
 	float3 tau   = motions[objId].torque;
 
 	// tau = J dw/dt + w x Jw  =>  dw/dt = J'*tau - J'*(w x Jw)
-	float3 dw_dt = J_1 * tau ;//- J_1 * cross(omega, J*omega);
+	float3 dw_dt = J_1 * tau - J_1 * cross(omega, J*omega);
 	omega += dw_dt * dt;
 
 	// XXX: using OLD q and NEW w ?
@@ -73,8 +73,7 @@ __global__ void integrateRigidMotion(LocalRigidObjectVector::RigidMotion* motion
 	// Normalize q
 	q = normalize(q);
 
-	motions[objId].deltaQ = q - motions[objId].q;
-	motions[objId].deltaW = dw_dt * dt;
+	motions[objId].prevQ  = motions[objId].q;
 	motions[objId].q      = q;
 	motions[objId].omega  = omega;
 
@@ -87,58 +86,27 @@ __global__ void integrateRigidMotion(LocalRigidObjectVector::RigidMotion* motion
 
 	motions[objId].r     += vel*dt;
 	motions[objId].vel    = vel;
-	motions[objId].deltaV = force*dt * invMass;
-	motions[objId].deltaR = vel*dt;
-
-
-//	printf("obj  %d  f [%f %f %f],  t [%f %f %f],  r [%f %f %f]   v [%f %f %f] \n"
-//				"    q [%f %f %f %f]   w [%f %f %f],  dq [%f %f %f %f] \n", objId,
-//				motions[objId].force.x,  motions[objId].force.y,  motions[objId].force.z,
-//				motions[objId].torque.x, motions[objId].torque.y, motions[objId].torque.z,
-//				motions[objId].r.x,  motions[objId].r.y,  motions[objId].r.z,
-//				motions[objId].vel.x,  motions[objId].vel.y,  motions[objId].vel.z,
-//				motions[objId].q.x,  motions[objId].q.y,  motions[objId].q.z, motions[objId].q.w,
-//				motions[objId].omega.x,  motions[objId].omega.y,  motions[objId].omega.z,
-//				motions[objId].deltaQ.x,  motions[objId].deltaQ.y,  motions[objId].deltaQ.z, motions[objId].deltaQ.w);
-//
-//		printf("    dr [%f %f %f]   dv [%f %f %f]   dw [%f %f %f]\n\n",
-//				motions[objId].deltaR.x,  motions[objId].deltaR.y,  motions[objId].deltaR.z,
-//				motions[objId].deltaV.x,  motions[objId].deltaV.y,  motions[objId].deltaV.z,
-//				motions[objId].deltaW.x,  motions[objId].deltaW.y,  motions[objId].deltaW.z);
 }
 
 
 // TODO: rotate initial config instead of incremental rotations
-__global__ void applyRigidMotion(float4 * coosvels, LocalRigidObjectVector::RigidMotion* motions, const int nObj, const int objSize)
+__global__ void applyRigidMotion(float4 * coosvels, const float4 * __restrict__ initial, LocalRigidObjectVector::RigidMotion* motions, const int nObj, const int objSize)
 {
 	const int pid = threadIdx.x + blockDim.x * blockIdx.x;
 	const int objId = pid / objSize;
+	const int locId = pid % objSize;
 
 	if (pid >= nObj*objSize) return;
 
 	const auto motion = motions[objId];
 
-	const Particle p_orig(coosvels[2*pid], coosvels[2*pid+1]);
-	Particle p = p_orig;
+	Particle p(coosvels, pid);
 
-	// Translation
-	p.r += motion.deltaR;
-
-	// Rotation
-	float4 dq = multiplyQ(motion.q, invQ(motion.q - motion.deltaQ));
-
-	p.r = rotate(p.r - motion.r, dq) + motion.r;
+	p.r = motion.r + rotate( f4tof3(initial[locId]), motion.q );
 	p.u = motion.vel + cross(motion.omega, p.r - motion.r);
-//
-//	if (p.s21 == 42)
-//	{
-//		float3 tmp = rotate(p.r - motion.r, invQ(motion.q));
-//		printf("rotatatataing %d :  %f %f %f\n", p.s21,  tmp.x, tmp.y, tmp.z);
-//	}
 
-
-	coosvels[2*pid]   = make_float4(p.r, __int_as_float(p.i1));
-	coosvels[2*pid+1] = make_float4(p.u, __int_as_float(p.i2));
+	coosvels[2*pid]   = p.r2Float4();
+	coosvels[2*pid+1] = p.u2Float4();
 }
 
 __global__ void clearRigidForces(LocalRigidObjectVector::RigidMotion* motions, const int nObj)

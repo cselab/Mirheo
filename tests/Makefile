@@ -1,5 +1,5 @@
 NVCC = nvcc
-NVCCFLAGS = -std=c++11 -arch=compute_61 -code=sm_61 -O3 -g -lineinfo --expt-extended-lambda -Xcompiler "-fopenmp -march=native"
+NVCCFLAGS = -std=c++11 -arch=compute_61 -code=sm_61 -O3  -g -lineinfo --expt-extended-lambda -Xcompiler "-fopenmp -march=native"
 #-O0 -G -Xptxas -O0
 
 LIBS = -lmpi
@@ -18,9 +18,9 @@ obj_halo_obj= scan.o celllist.o test_obj_halo.o pugixml.o components.o integrate
 bounce_obj  = scan.o celllist.o test_bounce.o pugixml.o components.o integrate.o interactions.o wall.o object_halo_exchanger.o object_vector.o particle_exchanger.o
 redist_obj  = scan.o celllist.o test_redist.o particle_exchanger.o particle_redistributor.o components.o pugixml.o wall.o interactions.o integrate.o
 log_obj     = test_logger.o
-cells_obj   = scan.o celllist.o test_cells.o pugixml.o components.o integrate.o interactions.o wall.o
+cells_obj   = scan.o celllist.o test_cells.o pugixml.o initial_conditions.o
 dpd_obj     = scan.o celllist.o test_dpd.o pugixml.o components.o integrate.o interactions.o wall.o
-rigid_obj   = scan.o celllist.o test_rigid.o pugixml.o components.o integrate.o interactions.o wall.o particle_exchanger.o particle_halo_exchanger.o particle_redistributor.o bounce.o object_vector.o
+rigid_obj   = scan.o celllist.o test_rigid.o pugixml.o integrate.o interactions.o particle_exchanger.o particle_halo_exchanger.o particle_redistributor.o bounce.o object_vector.o
 scheduler_obj = task_scheduler.o test_scheduler.o
 
 

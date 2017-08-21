@@ -77,7 +77,7 @@ void ParticleRedistributor::attach(ParticleVector* pv, CellList* cl)
 	particles.push_back(pv);
 	cellLists.push_back(cl);
 
-	if (!cl->isPrimary())
+	if (dynamic_cast<PrimaryCellList*>(cl) == nullptr)
 		die("Redistributor (for %s) should be used with the primary cell-lists only!", pv->name.c_str());
 
 	const double ndens = (double)pv->local()->size() / (cl->ncells.x * cl->ncells.y * cl->ncells.z * cl->rc*cl->rc*cl->rc);
@@ -90,13 +90,13 @@ void ParticleRedistributor::attach(ParticleVector* pv, CellList* cl)
 	helpers.push_back(helper);
 }
 
-void ParticleRedistributor::redistribute()
+void ParticleRedistributor::redistribute(cudaStream_t defStream)
 {
-	init();
+	init(defStream);
 	finalize();
 }
 
-void ParticleRedistributor::prepareData(int id)
+void ParticleRedistributor::prepareData(int id, cudaStream_t defStream)
 {
 	auto pv = particles[id];
 	auto cl = cellLists[id];
@@ -104,14 +104,12 @@ void ParticleRedistributor::prepareData(int id)
 
 	debug2("Preparing %s leaving particles on the device", pv->name.c_str());
 
-	helper->bufSizes.pushStream(defStream);
-	helper->bufSizes.clearDevice();
-	helper->bufSizes.popStream();
+	helper->bufSizes.clear(defStream);
 
 	const int maxdim = std::max({cl->ncells.x, cl->ncells.y, cl->ncells.z});
 	const int nthreads = 32;
 	if (pv->local()->size() > 0)
-		getExitingParticles<<< dim3((maxdim*maxdim + nthreads - 1) / nthreads, 6, 1),  dim3(nthreads, 1, 1), 0, helper->stream >>>
+		getExitingParticles<<< dim3((maxdim*maxdim + nthreads - 1) / nthreads, 6, 1),  dim3(nthreads, 1, 1), 0, defStream>>>
 					( (float4*)pv->local()->coosvels.devPtr(), cl->cellInfo(), cl->cellsStartSize.devPtr(), (int64_t*)helper->sendAddrs.devPtr(), helper->bufSizes.devPtr() );
 }
 
@@ -121,7 +119,7 @@ void ParticleRedistributor::combineAndUploadData(int id)
 	auto helper = helpers[id];
 
 	int oldsize = pv->local()->size();
-	pv->local()->resize(oldsize + helper->recvOffsets[27], resizePreserve);
+	pv->local()->resize(oldsize + helper->recvOffsets[27], helper->stream, ResizeKind::resizePreserve);
 
 	auto ptr = pv->local()->coosvels.devPtr() + oldsize;
 

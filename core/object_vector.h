@@ -1,7 +1,5 @@
 #pragma once
 
-#include <string>
-#include <core/datatypes.h>
 #include <core/particle_vector.h>
 
 class LocalObjectVector: public LocalParticleVector

@@ -36,12 +36,12 @@ private:
 	T* devptr;
 
 public:
-	friend void containerSwap<>(DeviceBuffer<T>&, DeviceBuffer<T>&);
+	friend void containerSwap<>(DeviceBuffer<T>&, DeviceBuffer<T>&, cudaStream_t stream);
 
 	DeviceBuffer(int n = 0, cudaStream_t stream = 0) :
 		capacity(0), _size(0), devptr(nullptr)
 	{
-		resize(n, stream, resizeAnew);
+		resize(n, stream, ResizeKind::resizeAnew);
 	}
 
 	~DeviceBuffer()
@@ -62,7 +62,7 @@ public:
 		return devptr[i];
 	}
 
-	void resize(const int n, cudaStream_t stream, ResizeKind kind = resizePreserve)
+	void resize(const int n, cudaStream_t stream, ResizeKind kind = ResizeKind::resizePreserve)
 	{
 		T * dold = devptr;
 		int oldsize = _size;
@@ -76,7 +76,7 @@ public:
 
 		CUDA_Check(cudaMalloc(&devptr, sizeof(T) * capacity));
 
-		if (kind == resizePreserve && dold != nullptr)
+		if (kind == ResizeKind::resizePreserve && dold != nullptr)
 		{
 			if (oldsize > 0) CUDA_Check(cudaMemcpyAsync(devptr, dold, sizeof(T) * oldsize, cudaMemcpyDeviceToDevice, stream));
 		}
@@ -94,7 +94,7 @@ public:
 	{
 		static_assert(std::is_same<decltype(devptr), decltype(cont.devPtr())>::value, "can't copy buffers of different types");
 
-		resize(cont.size(), stream, resizeAnew);
+		resize(cont.size(), stream, ResizeKind::resizeAnew);
 		if (_size > 0) CUDA_Check( cudaMemcpyAsync(devptr, cont.devPtr(), sizeof(T) * _size, cudaMemcpyDeviceToDevice, stream) );
 	}
 
@@ -103,7 +103,7 @@ public:
 	{
 		static_assert(std::is_same<decltype(devptr), decltype(cont.hostPtr())>::value, "can't copy buffers of different types");
 
-		resize(cont.size(), stream, resizeAnew);
+		resize(cont.size(), stream, ResizeKind::resizeAnew);
 		if (_size > 0) CUDA_Check( cudaMemcpyAsync(devptr, cont.hostPtr(), sizeof(T) * _size, cudaMemcpyHostToDevice, stream) );
 	}
 };
@@ -122,12 +122,12 @@ private:
 	bool hostChanged, devChanged;
 
 public:
-	friend void containerSwap<>(PinnedBuffer<T>&, PinnedBuffer<T>&);
+	friend void containerSwap<>(PinnedBuffer<T>&, PinnedBuffer<T>&, cudaStream_t stream);
 
 	PinnedBuffer(int n = 0, cudaStream_t stream = 0) :
 		capacity(0), _size(0), hostptr(nullptr), devptr(nullptr), hostChanged(false), devChanged(false)
 	{
-		resize(n, stream, resizeAnew);
+		resize(n, stream, ResizeKind::resizeAnew);
 	}
 
 	~PinnedBuffer()
@@ -171,7 +171,7 @@ public:
 		if (_size > 0) CUDA_Check(cudaMemcpyAsync(devptr, hostptr, sizeof(T) * _size, cudaMemcpyHostToDevice, stream));
 	}
 
-	void resize(const int n, cudaStream_t stream, ResizeKind kind = resizePreserve)
+	void resize(const int n, cudaStream_t stream, ResizeKind kind = ResizeKind::resizePreserve)
 	{
 		T * hold = hostptr;
 		T * dold = devptr;
@@ -187,10 +187,10 @@ public:
 		CUDA_Check(cudaHostAlloc(&hostptr, sizeof(T) * capacity, 0));
 		CUDA_Check(cudaMalloc(&devptr, sizeof(T) * capacity));
 
-		if (kind == resizePreserve && hold != nullptr)
+		if (kind == ResizeKind::resizePreserve && hold != nullptr)
 		{
-			memcpy(hostptr, hold, sizeof(T) * oldsize);
-			if (oldsize > 0) if (oldsize > 0) CUDA_Check(cudaMemcpyAsync(devptr, dold, sizeof(T) * oldsize, cudaMemcpyDeviceToDevice, stream));
+			if (oldsize > 0) memcpy(hostptr, hold, sizeof(T) * oldsize);
+			if (oldsize > 0) CUDA_Check(cudaMemcpyAsync(devptr, dold, sizeof(T) * oldsize, cudaMemcpyDeviceToDevice, stream));
 		}
 
 		CUDA_Check(cudaFreeHost(hold));
@@ -209,11 +209,11 @@ public:
 	}
 
 	template<typename Cont>
-	void copy(const Cont& cont, cudaStream_t stream) -> decltype((void)(cont.devPtr()), void())
+	auto copy(const Cont& cont, cudaStream_t stream) -> decltype((void)(cont.devPtr()), void())
 	{
 		static_assert(std::is_same<decltype(devptr), decltype(cont.devPtr())>::value, "can't copy buffers of different types");
 
-		resize(cont.size(), stream, resizeAnew);
+		resize(cont.size(), stream, ResizeKind::resizeAnew);
 		if (_size > 0) CUDA_Check( cudaMemcpyAsync(devptr, cont.devPtr(), sizeof(T) * _size, cudaMemcpyDeviceToDevice, stream) );
 	}
 
@@ -222,7 +222,7 @@ public:
 	{
 		static_assert(std::is_same<decltype(hostptr), decltype(cont.hostPtr())>::value, "can't copy buffers of different types");
 
-		resize(cont.size(), resizeAnew);
+		resize(cont.size(), ResizeKind::resizeAnew);
 		memcpy(hostptr, cont.hostPtr(), sizeof(T) * _size);
 	}
 };
@@ -240,7 +240,7 @@ private:
 	T * hostptr;
 
 public:
-	friend void containerSwap<>(HostBuffer<T>&, HostBuffer<T>&);
+	friend void containerSwap<>(HostBuffer<T>&, HostBuffer<T>&, cudaStream_t stream);
 
 	HostBuffer(int n = 0): capacity(0), _size(0), hostptr(nullptr) { resize(n); }
 
@@ -262,7 +262,7 @@ public:
 		return hostptr[i];
 	}
 
-	void resize(const int n, ResizeKind kind = resizePreserve)
+	void resize(const int n, ResizeKind kind = ResizeKind::resizePreserve)
 	{
 		T * hold = hostptr;
 		int oldsize = _size;
@@ -276,9 +276,9 @@ public:
 
 		hostptr = (T*) malloc(sizeof(T) * capacity);
 
-		if (kind == resizePreserve && hold != nullptr)
+		if (kind == ResizeKind::resizePreserve && hold != nullptr)
 		{
-			memcpy(hostptr, hold, sizeof(T) * oldsize);
+			if (oldsize > 0) memcpy(hostptr, hold, sizeof(T) * oldsize);
 		}
 
 		free(hold);
@@ -315,8 +315,8 @@ void containerSwap(DeviceBuffer<T>& a, DeviceBuffer<T>& b, cudaStream_t stream)
 {
 	std::swap(a.devptr, b.devptr);
 
-	a.resize(b.size(), stream, resizePreserve);
-	b.resize(a.size(), stream, resizePreserve);
+	a.resize(b.size(), stream, ResizeKind::resizePreserve);
+	b.resize(a.size(), stream, ResizeKind::resizePreserve);
 }
 
 template<typename T>
@@ -324,8 +324,8 @@ void containerSwap(HostBuffer<T>& a, HostBuffer<T>& b, cudaStream_t stream)
 {
 	std::swap(a.hostptr, b.hostptr);
 
-	a.resize(b.size(), resizePreserve);
-	b.resize(a.size(), resizePreserve);
+	a.resize(b.size(), ResizeKind::resizePreserve);
+	b.resize(a.size(), ResizeKind::resizePreserve);
 }
 
 template<typename T>
@@ -337,8 +337,8 @@ void containerSwap(PinnedBuffer<T>& a, PinnedBuffer<T>& b, cudaStream_t stream)
 	std::swap(a.devChanged,  b.devChanged);
 	std::swap(a.hostChanged, b.hostChanged);
 
-	a.resize(b.size(), resizePreserve);
-	b.resize(a.size(), resizePreserve);
+	a.resize(b.size(), stream, ResizeKind::resizePreserve);
+	b.resize(a.size(), stream, ResizeKind::resizePreserve);
 }
 
 namespace std

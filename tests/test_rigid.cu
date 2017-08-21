@@ -1,5 +1,6 @@
 // Yo ho ho ho
 #define private public
+#define protected public
 
 #include <core/particle_vector.h>
 #include <core/rigid_object_vector.h>
@@ -7,8 +8,8 @@
 #include <core/mpi/api.h>
 #include <core/logger.h>
 #include <core/integrate.h>
+#include <core/interactions.h>
 #include <core/bounce.h>
-#include <core/components.h>
 
 #include "timer.h"
 #include <unistd.h>
@@ -102,7 +103,7 @@ int main(int argc, char ** argv)
 	}
 
 	logger.init(MPI_COMM_WORLD, "rigid.log", 9);
-	srand48(0);
+	srand48(2);
 
 	MPI_Check( MPI_Comm_size(MPI_COMM_WORLD, &nranks) );
 	MPI_Check( MPI_Comm_rank(MPI_COMM_WORLD, &rank) );
@@ -111,7 +112,7 @@ int main(int argc, char ** argv)
 	cudaStream_t defStream;
 	CUDA_Check( cudaStreamCreateWithPriority(&defStream, cudaStreamNonBlocking, 10) );
 
-	float3 length{40, 40, 40};
+	float3 length{32, 32, 32};
 	float3 domainStart = -length / 2.0f;
 	const float rc = 1.0f;
 	const int ndens = 8;
@@ -120,16 +121,17 @@ int main(int argc, char ** argv)
 	float3 invAxes = 1.0 / axes;
 	const float maxAxis = std::max({axes.x, axes.y, axes.z});
 
-	int objSize = 4/3.0 * M_PI * axes.x*axes.y*axes.z * ndens;
+	int objSize = 4/3.0 * M_PI * axes.x*axes.y*axes.z * ndens + 1;
 	RigidObjectVector obj("obj", objSize, 1);
 
 	// Init object
+	obj.initialPositions.resize(objSize, defStream);
 	memset(&obj.local()->motions[0], 0, sizeof(LocalRigidObjectVector::RigidMotion));
 	obj.local()->motions[0].r = make_float3(0);
 
-	obj.local()->motions[0].omega.x = 0*(drand48() - 0.5);
-	obj.local()->motions[0].omega.y = 0*(drand48() - 0.5);
-	obj.local()->motions[0].omega.z = 0*(drand48() - 0.5);
+	obj.local()->motions[0].omega.x = 0;//0*(drand48() - 0.5);
+	obj.local()->motions[0].omega.y = 0;//0*(drand48() - 0.5);
+	obj.local()->motions[0].omega.z = 10;//0*(drand48() - 0.5);
 
 	obj.local()->motions[0].vel.x = 0*(drand48() - 0.5);
 	obj.local()->motions[0].vel.y = 0*(drand48() - 0.5);
@@ -138,7 +140,7 @@ int main(int argc, char ** argv)
 	obj.local()->motions[0].force  = make_float3(0);
 	obj.local()->motions[0].torque = make_float3(0);
 
-	const float phi = M_PI*drand48();
+	const float phi = M_PI*drand48()*0.001;
 	const float sphi = sin(0.5f*phi);
 	const float cphi = cos(0.5f*phi);
 
@@ -147,27 +149,41 @@ int main(int argc, char ** argv)
 
 	float4 q = obj.local()->motions[0].q = make_float4(cphi, sphi*v.x, sphi*v.y, sphi*v.z);
 
+	LocalRigidObjectVector::RigidMotion m;
+	m.r = make_float3(0);
+	m.q = make_float4(0.999, 0, 0, 0.0447101778);
+	m.vel = make_float3(0);
 
 	for (int i=0; i<obj.objSize; i++)
 	{
-		Particle p;
-		p.u = make_float3(0);
-		p.i1 = 0;
-		p.s21 = (short)i;
+		float4 pos;
 
 		do
 		{
-			p.r.x = 2*maxAxis*(drand48() - 0.5);
-			p.r.y = 2*maxAxis*(drand48() - 0.5);
-			p.r.z = 2*maxAxis*(drand48() - 0.5);
+			pos.x = 2*maxAxis*(drand48() - 0.5);
+			pos.y = 2*maxAxis*(drand48() - 0.5);
+			pos.z = 2*maxAxis*(drand48() - 0.5);
 
-		} while ( ellipsoid(obj.local()->motions[0], invAxes, p.r) > 0 );
+		} while ( ellipsoid(m, invAxes, f4tof3(pos)) > 0 );
+
+		obj.initialPositions[i] = pos;
+	}
+
+	for (int i=0; i<obj.local()->size(); i++)
+	{
+		Particle p;
+		p.i1 = 0;
+		p.s21 = (short)i;
+
+		p.r = rot( f4tof3(obj.initialPositions[i % obj.objSize]), obj.local()->motions[i / objSize].q);
+		p.u = make_float3(0);
 
 		obj.local()->coosvels[i] = p;
 	}
 
-	obj.local()->motions. uploadToDevice();
-	obj.local()->coosvels.uploadToDevice();
+	obj.initialPositions. uploadToDevice(defStream);
+	obj.local()->motions. uploadToDevice(defStream);
+	obj.local()->coosvels.uploadToDevice(defStream);
 	obj.local()->findExtentAndCOM(0);
 
 	obj.objMass = objSize * 1.0f;
@@ -186,28 +202,26 @@ int main(int argc, char ** argv)
 
 
 	ParticleVector dpds("dpd");
-	dpds.local()->pushStream(defStream);
-	CellList cells(&dpds, rc, length);
-	cells.setStream(defStream);
-	cells.makePrimary();
+	CellList *cells = new PrimaryCellList(&dpds, rc, length);
+	CellList *objCells = new CellList(&obj, rc, length);
 
-	dpds.local()->resize(cells.ncells.x*cells.ncells.y*cells.ncells.z * ndens);
+	dpds.local()->resize(cells->ncells.x*cells->ncells.y*cells->ncells.z * ndens, defStream);
 
 	printf("initializing...\n");
 
 	auto motion = obj.local()->motions[0];
 	int c = 0;
 	float3 totU = make_float3(0);
-	for (int i=0; i<cells.ncells.x; i++)
-		for (int j=0; j<cells.ncells.y; j++)
-			for (int k=0; k<cells.ncells.z; k++)
+	for (int i=0; i<cells->ncells.x; i++)
+		for (int j=0; j<cells->ncells.y; j++)
+			for (int k=0; k<cells->ncells.z; k++)
 				for (int p=0; p<ndens; p++)
 				{
 					dpds.local()->coosvels[c].r.x = i + drand48() + domainStart.x;
 					dpds.local()->coosvels[c].r.y = j + drand48() + domainStart.y;
 					dpds.local()->coosvels[c].r.z = k + drand48() + domainStart.z;
 
-					if (ellipsoid(motion, invAxes, dpds.local()->coosvels[c].r) < 0.5)
+					if (ellipsoid(motion, invAxes, dpds.local()->coosvels[c].r) < 0.02)
 						continue;
 
 					dpds.local()->coosvels[c].i1 = c;
@@ -226,30 +240,29 @@ int main(int argc, char ** argv)
 		dpds.local()->coosvels[i].u -= totU;
 
 	printf("generated %d particles\n", c);
-	dpds.local()->resize(c);
+	dpds.local()->resize(c, defStream);
 	dpds.domainSize = length;
 	dpds.mass = 1.0f;
-	dpds.local()->coosvels.uploadToDevice();
+	dpds.local()->coosvels.uploadToDevice(defStream);
 
-	ParticleHaloExchanger halo(cartComm, defStream);
-	halo.attach(&dpds, &cells);
-	ParticleRedistributor redist(cartComm, defStream);
-	redist.attach(&dpds, &cells);
+	ParticleHaloExchanger halo(cartComm);
+	halo.attach(&dpds, cells);
+	ParticleRedistributor redist(cartComm);
+	redist.attach(&dpds, cells);
 
 	CUDA_Check( cudaStreamSynchronize(defStream) );
 
+	const int niters = 4200000;
 	const float dt = 0.002;
-	const int niters = 300;
 
-	const float kBT = 1.0;
-	const float gammadpd = 20;
-	const float sigmadpd = sqrt(2 * gammadpd * kBT);
-	const float sigma_dt = sigmadpd / sqrt(dt);
-	const float adpd = 50;
+	std::string xml = R"(<interaction name="dpd" kbt="1.0" gamma="20" a="50" dt="0.002"/>
+    <integrate dt="0.002"/>)";
+	pugi::xml_document config;
+	config.load_string(xml.c_str());
 
-	auto inter = [=] (InteractionType type, ParticleVector* pv1, ParticleVector* pv2, CellList* cl, const float t, cudaStream_t stream) {
-		interactionDPD(type, pv1, pv2, cl, t, stream, adpd, gammadpd, sigma_dt, 1, rc);
-	};
+	Interaction *inter = new InteractionDPD(config.child("interaction"));
+	Integrator  *noflow = new IntegratorVVNoFlow(config.child("integrate"));
+	Integrator  *rigInt = new IntegratorVVRigid(config.child("integrate"));
 
 	printf("GPU execution\n");
 
@@ -259,14 +272,24 @@ int main(int argc, char ** argv)
 	HostBuffer<Force> frcs;
 
 	PinnedBuffer<double> energy(1), momentum(3);
-	energy.pushStream(defStream);
-	momentum.pushStream(defStream);
 
+	cudaDeviceSynchronize();
 
+	auto prnCoosvels = [defStream] (ParticleVector* pv) {
+		pv->local()->coosvels.downloadFromDevice(defStream, true);
+		auto ptr = pv->local()->coosvels.hostPtr();
+		for (int j=0; j<pv->local()->size(); j++)
+		{
+			if (ptr[j].s21 == 42)
+				printf("??? %4d :  [%f %f %f] [%f %f %f]\n", ptr[j].s21, ptr[j].r.x, ptr[j].r.y, ptr[j].r.z, ptr[j].u.x, ptr[j].u.y, ptr[j].u.z);
+		}
+	};
+
+	const int nparticles = dpds.local()->size() + obj.local()->size();
 	for (int i=0; i<niters; i++)
 	{
-		energy.clear();
-		momentum.clear();
+		energy.clear(defStream);
+		momentum.clear(defStream);
 
 		totalMomentumEnergy<<< getNblocks(dpds.local()->size(), 128), 128, 0, defStream >>> (
 				(float4*)dpds.local()->coosvels.devPtr(), dpds.mass, dpds.local()->size(), momentum.devPtr(), energy.devPtr());
@@ -274,42 +297,58 @@ int main(int argc, char ** argv)
 		totalMomentumEnergy<<< getNblocks(obj.local()->size(), 128), 128, 0, defStream >>> (
 				(float4*)obj.local()->coosvels.devPtr(), 1.0f, obj.local()->size(), momentum.devPtr(), energy.devPtr());
 
-//		momentum.downloadFromDevice();
-//		energy.downloadFromDevice(true);
-//
-//		printf("Iteration %d, energy %f, momentum  %f %f %f\n", i, energy[0], momentum[0], momentum[1], momentum[2]);
-		cells.build();
-		CUDA_Check( cudaStreamSynchronize(defStream) );
+		momentum.downloadFromDevice(defStream, false);
+		energy.  downloadFromDevice(defStream, true);
 
-		dpds.local()->forces.clear();
-		obj.local()->forces.clear();
+		if (i % 100 == 0)
+		{
+			printf("Iteration %d, temp %f, momentum  %.2e %.2e %.2e\n",
+					i, energy[0]/ ( (3/2.0)*nparticles ), momentum[0] / nparticles, momentum[1] / nparticles, momentum[2] / nparticles);
 
-		halo.init();
-		inter(InteractionType::Regular, &dpds, &dpds, &cells, dt*i, defStream);
-		inter(InteractionType::Regular, &dpds, &obj,  &cells, dt*i, defStream);
+			obj.local()->motions.downloadFromDevice(defStream, true);
+			auto motion = obj.local()->motions[0];
+
+			printf("obj  %d  f [%f %f %f],  t [%f %f %f],  r [%f %f %f]   v [%f %f %f] \n"
+					"    q [%f %f %f %f]   w [%f %f %f] \n", 0,
+					motion.force.x,  motion.force.y,  motion.force.z,
+					motion.torque.x, motion.torque.y, motion.torque.z,
+					motion.r.x,  motion.r.y,  motion.r.z,
+					motion.vel.x,  motion.vel.y,  motion.vel.z,
+					motion.q.x,  motion.q.y,  motion.q.z, motion.q.w,
+					motion.omega.x,  motion.omega.y,  motion.omega.z);
+		}
+
+		cells->build(defStream);
+		objCells->build(defStream);
+
+		dpds.local()->forces.clear(defStream);
+		obj.local()->forces.clear(defStream);
+
+		cells->forces->clear(defStream);
+		objCells->forces->clear(defStream);
+
+		halo.init(defStream);
+		inter->regular(&dpds, &dpds, cells, cells,    dt*i, defStream);
+		inter->regular(&dpds, &obj,  cells, objCells, dt*i, defStream);
 		halo.finalize();
 
-		inter(InteractionType::Halo, &dpds, &dpds, &cells, dt*i, defStream);
-
-//		dpds.local()->coosvels.downloadFromDevice();
 //		CUDA_Check( cudaStreamSynchronize(defStream) );
-//		frcs.copy(dpds.local()->forces, defStream);
-//		for (int j=0; j<dpds.local()->size(); j++)
-//			if (dpds.local()->coosvels[j].i1 == 42)
-//			{
-//				printf("%d :  %f %f %f\n", dpds.local()->coosvels[j].i1, frcs[j].f.x, frcs[j].f.y, frcs[j].f.z);
-//				break;
-//			}
 
-		integrateNoFlow(&dpds, dt, defStream);
-		integrateRigid(&obj, dt, defStream, make_float3(0));
+		inter->halo(&dpds, &dpds, cells, cells, dt*i, defStream);
+
+		objCells->addForces(defStream);
+
+		noflow->stage1(&dpds, defStream);
+		rigInt->stage1(&obj,  defStream);
+		noflow->stage2(&dpds, defStream);
+		rigInt->stage2(&obj,  defStream);
 
 		obj.local()->findExtentAndCOM(defStream);
-		bounceFromRigidEllipsoid(&dpds, &cells, &obj, dt, true, defStream);
+		bounceFromRigidEllipsoid(&dpds, cells, &obj, dt, true, defStream);
 
 		CUDA_Check( cudaStreamSynchronize(defStream) );
 
-		redist.redistribute();
+		redist.redistribute(defStream);
 	}
 
 	double elapsed = tm.elapsed() * 1e-9;

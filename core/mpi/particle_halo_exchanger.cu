@@ -103,7 +103,7 @@ void ParticleHaloExchanger::combineAndUploadData(int id)
 	auto pv = particles[id];
 	auto helper = helpers[id];
 
-	pv->halo()->resize(helper->recvOffsets[27], resizeAnew);
+	pv->halo()->resize(helper->recvOffsets[27], helper->stream, ResizeKind::resizeAnew);
 
 	for (int i=0; i < 27; i++)
 	{
@@ -114,7 +114,7 @@ void ParticleHaloExchanger::combineAndUploadData(int id)
 	}
 }
 
-void ParticleHaloExchanger::prepareData(int id)
+void ParticleHaloExchanger::prepareData(int id, cudaStream_t defStream)
 {
 	auto pv = particles[id];
 	auto cl = cellLists[id];
@@ -122,9 +122,7 @@ void ParticleHaloExchanger::prepareData(int id)
 
 	debug2("Preparing %s halo on the device", pv->name.c_str());
 
-	helper->bufSizes.pushStream(defStream);
-	helper->bufSizes.clearDevice();
-	helper->bufSizes.popStream();
+	helper->bufSizes.clearDevice(defStream);
 
 	const int maxdim = std::max({cl->ncells.x, cl->ncells.y, cl->ncells.z});
 	const int nthreads = 32;

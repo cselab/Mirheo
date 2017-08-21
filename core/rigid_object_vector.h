@@ -1,8 +1,5 @@
 #pragma once
 
-#include <string>
-#include <core/containers.h>
-#include <core/datatypes.h>
 #include <core/object_vector.h>
 
 class LocalRigidObjectVector: public LocalObjectVector
@@ -15,12 +12,7 @@ public:
 		float3 vel, omega;
 		float3 force, torque;
 
-		// Track the changes in the object position and rotation
-		// Used in updating the properties of the constituting particles
-		float3 deltaR;
-		float4 deltaQ;
-		float3 deltaV;
-		float3 deltaW;
+		float4 prevQ;
 	};
 
 	PinnedBuffer<RigidMotion> motions;  // vector of com velocity, force and torque
@@ -60,6 +52,7 @@ class RigidObjectVector : public ObjectVector
 {
 public:
 	float3 axes;
+	PinnedBuffer<float4> initialPositions;
 
 	RigidObjectVector(std::string name, const int objSize, const int nObjects = 0) :
 		ObjectVector( name, objSize,

@@ -7,9 +7,9 @@ class ParticleVector;
 
 struct InitialConditions
 {
-	virtual void exec(const MPI_Comm& comm, ParticleVector* pv, float3 globalDomainStart, float3 subDomainSize) = 0;
+	virtual void exec(const MPI_Comm& comm, ParticleVector* pv, float3 globalDomainStart, float3 subDomainSize, cudaStream_t stream) = 0;
 
-	virtual ~InitialConditions();
+	virtual ~InitialConditions() = default;
 };
 
 struct UniformIC : InitialConditions
@@ -18,7 +18,7 @@ struct UniformIC : InitialConditions
 
 	UniformIC(pugi::xml_node node);
 
-	void exec(const MPI_Comm& comm, ParticleVector* pv, float3 globalDomainStart, float3 subDomainSize);
+	void exec(const MPI_Comm& comm, ParticleVector* pv, float3 globalDomainStart, float3 subDomainSize, cudaStream_t stream);
 
-	virtual ~UniformIC() = default;
+	~UniformIC() = default;
 };

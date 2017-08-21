@@ -62,12 +62,12 @@
 
 inline __device__ float viscosityKernel(const float x, const float k)
 {
-	if (k == 1.0f)   return x;
-	if (k == 0.5f)   return sqrtf(max(x, 1e-10f));
-	if (k == 0.25f)  return sqrtf(sqrtf(max(x, 1e-10f)));
-	if (k == 0.125f) return sqrtf(sqrtf(sqrtf(max(x, 1e-10f))));
+	if (fabs(k - 1.0f)   < 1e-6f) return x;
+	if (fabs(k - 0.5f)   < 1e-6f) return sqrtf(fabs(x));
+	if (fabs(k - 0.25f)  < 1e-6f) return sqrtf(fabs(sqrtf(fabs(x))));
+	if (fabs(k - 0.125f) < 1e-6f) return sqrtf(fabs(sqrtf(fabs(sqrtf(fabs(x))))));
 
-    return powf(x, k);
+    return powf(fabs(x), k);
 }
 
 __device__ __forceinline__ float3 pairwiseDPD(
@@ -85,7 +85,8 @@ __device__ __forceinline__ float3 pairwiseDPD(
 	const float wr = viscosityKernel(argwr, k);
 
 	const float3 dr_r = dr * invrij;
-	const float rdotv = dot(dr_r, (dst.u - src.u));
+	const float3 du = dst.u - src.u;
+	const float rdotv = dot(dr_r, du);
 
 	const float myrandnr = Logistic::mean0var1(seed, min(src.i1, dst.i1), max(src.i1, dst.i1));
 
@@ -153,13 +154,14 @@ InteractionDPD::InteractionDPD(pugi::xml_node node)
 	sigma = sqrt(2 * gamma * kBT / dt);
 }
 
-void InteractionDPD::compute(InteractionType type, ParticleVector* pv1, ParticleVector* pv2, CellList* cl, const float t, cudaStream_t stream)
+void InteractionDPD::_compute(InteractionType type, ParticleVector* pv1, ParticleVector* pv2, CellList* cl, const float t, cudaStream_t stream)
 {
 	// Better to use random number in the seed instead of periodically changing time
 	const float seed = drand48();
-	auto dpdCore = [=] __device__ ( Particle dst, Particle src )
-	{
-		return pairwiseDPD( dst, src, a, gamma, sigma, rc*rc, 1.0/rc, power, seed);
+	const float rc2 = rc*rc;
+	const float rc_1 = 1.0 / rc;
+	auto dpdCore = [=, *this] __device__ ( Particle dst, Particle src ) {
+		return pairwiseDPD( dst, src, a, gamma, sigma, rc2, rc_1, power, seed);
 	};
 
 	WRAP_INTERACTON(dpdCore)
@@ -177,7 +179,7 @@ InteractionLJ_objectAware::InteractionLJ_objectAware(pugi::xml_node node)
 	sigma   = node.attribute("a")    .as_float(0.5f);
 }
 
-void InteractionLJ_objectAware::compute(InteractionType type, ParticleVector* pv1, ParticleVector* pv2, CellList* cl, const float t, cudaStream_t stream)
+void InteractionLJ_objectAware::_compute(InteractionType type, ParticleVector* pv1, ParticleVector* pv2, CellList* cl, const float t, cudaStream_t stream)
 {
 	auto ov1 = dynamic_cast<ObjectVector*>(pv1);
 	auto ov2 = dynamic_cast<ObjectVector*>(pv2);
@@ -191,8 +193,7 @@ void InteractionLJ_objectAware::compute(InteractionType type, ParticleVector* pv
 	const LocalObjectVector::COMandExtent* dstComExt = (ov1 != nullptr) ? ov1->local()->comAndExtents.devPtr() : nullptr;
 	const LocalObjectVector::COMandExtent* srcComExt = (ov2 != nullptr) ? ov2->local()->comAndExtents.devPtr() : nullptr;
 
-	auto ljCore = [=] __device__ ( Particle dst, Particle src )
-	{
+	auto ljCore = [=, *this] __device__ ( Particle dst, Particle src ) {
 		const int dstObjId = dst.s21;
 		const int srcObjId = src.s21;
 
@@ -210,7 +211,7 @@ void InteractionLJ_objectAware::compute(InteractionType type, ParticleVector* pv
 }
 
 
-void InteractionRBCMembrane::compute(InteractionType type, ParticleVector* pv1, ParticleVector* pv2, CellList* cl, const float t, cudaStream_t stream)
+void InteractionRBCMembrane::_compute(InteractionType type, ParticleVector* pv1, ParticleVector* pv2, CellList* cl, const float t, cudaStream_t stream)
 {
 	if (pv1 != pv2)
 		die("Internal RBC forces can't be computed between two different particle vectors");
@@ -226,16 +227,16 @@ void InteractionRBCMembrane::compute(InteractionType type, ParticleVector* pv1, 
 
 	dim3 avThreads(256, 1);
 	dim3 avBlocks( 1, nRbcs );
-	computeAreaAndVolume <<< avBlocks, avThreads, 0, stream >>> (
-			(float4*)rbcv->local()->coosvels.devPtr(), rbcv->local()->mesh, nRbcs,
-			rbcv->local()->areas.devPtr(), rbcv->local()->volumes.devPtr());
+//	computeAreaAndVolume <<< avBlocks, avThreads, 0, stream >>> (
+//			(float4*)rbcv->local()->coosvels.devPtr(), rbcv->local()->mesh, nRbcs,
+//			rbcv->local()->areas.devPtr(), rbcv->local()->volumes.devPtr());
 
-	int blocks  = getNblocks(nRbcs*nVerts*rbcv->local()->mesh.maxDegree, nthreads);
+	int blocks = getNblocks(nRbcs*nVerts*rbcv->local()->mesh.maxDegree, nthreads);
 
-	computeMembraneForces <<<blocks, nthreads, 0, stream>>> (
-			(float4*)rbcv->local()->coosvels.devPtr(), rbcv->local()->mesh, nRbcs,
-			rbcv->local()->areas.devPtr(), rbcv->local()->volumes.devPtr(),
-			(float4*)rbcv->local()->forces.devPtr());
+//	computeMembraneForces <<<blocks, nthreads, 0, stream>>> (
+//			(float4*)rbcv->local()->coosvels.devPtr(), rbcv->local()->mesh, nRbcs,
+//			rbcv->local()->areas.devPtr(), rbcv->local()->volumes.devPtr(),
+//			(float4*)rbcv->local()->forces.devPtr());
 }
 
 

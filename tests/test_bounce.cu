@@ -6,7 +6,7 @@
 #include <core/celllist.h>
 #include <core/mpi/api.h>
 #include <core/logger.h>
-#include <core/components.h>
+#include <core/containers.h>
 
 #include <core/xml/pugixml.hpp>
 #include <core/rigid_object_vector.h>

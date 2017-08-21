@@ -1,6 +1,7 @@
 #pragma once
 
 #include <core/datatypes.h>
+#include <core/containers.h>
 #include <core/logger.h>
 
 #include <vector>
@@ -36,20 +37,18 @@ protected:
 	int myrank;
 	MPI_Comm haloComm;
 
-	cudaStream_t defStream;
-
 	std::vector<ExchangeHelper*> helpers;
 
 	void postRecv(ExchangeHelper* helper);
 	void sendWait(ExchangeHelper* helper);
 
-	virtual void prepareData(int id) = 0;
+	virtual void prepareData(int id, cudaStream_t defStream) = 0;
 	virtual void combineAndUploadData(int id) = 0;
 
 public:
 
-	ParticleExchanger(MPI_Comm& comm, cudaStream_t defStream);
-	void init();
+	ParticleExchanger(MPI_Comm& comm);
+	void init(cudaStream_t defStream);
 	void finalize();
 
 	virtual ~ParticleExchanger() = default;

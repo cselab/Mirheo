@@ -15,14 +15,14 @@ private:
 	std::vector<CellList*> cellLists;
 
 	void combineAndUploadData(int id);
-	void prepareData(int id);
+	void prepareData(int id, cudaStream_t defStream);
 
 public:
 	void _prepareData(int id);
 
-	ParticleRedistributor(MPI_Comm& comm, cudaStream_t stream) : ParticleExchanger(comm, stream) {};
+	ParticleRedistributor(MPI_Comm& comm) : ParticleExchanger(comm) {};
 	void attach(ParticleVector* pv, CellList* cl);
-	void redistribute();
+	void redistribute(cudaStream_t defStream);
 
 	~ParticleRedistributor() = default;
 };

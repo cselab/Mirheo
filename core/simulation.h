@@ -1,8 +1,9 @@
 #pragma once
 
 #include <core/datatypes.h>
-#include <core/components.h>
 #include <core/wall.h>
+#include <core/interactions.h>
+#include <core/interactions.h>
 #include <core/interactions.h>
 #include <core/task_scheduler.h>
 #include <plugins/plugin.h>

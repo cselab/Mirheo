@@ -173,7 +173,7 @@ void ObjectHaloExchanger::attach(ObjectVector* ov, float rc)
 }
 
 
-void ObjectHaloExchanger::prepareData(int id)
+void ObjectHaloExchanger::prepareData(int id, cudaStream_t defStream)
 {
 	auto ov = objects[id];
 	auto rc = rcs[id];

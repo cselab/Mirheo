@@ -4,6 +4,7 @@
 #include <core/celllist.h>
 #include <core/cuda_common.h>
 #include <core/helper_math.h>
+#include <core/logger.h>
 
 __global__ void blendStartSize(const uchar4* cellsSize, uint4* cellsStartSize, const CellListInfo cinfo)
 {
@@ -201,11 +202,20 @@ void CellList::addForces(cudaStream_t stream)
 }
 
 
-void PrimaryCellList::build(cudaStream_t stream)
+PrimaryCellList::PrimaryCellList(ParticleVector* pv, float rc, float3 domainSize) : CellList(pv, rc, domainSize)
 {
 	if (dynamic_cast<ObjectVector*>(pv) != nullptr)
 		warn("Using primary cell-lists with objects is STRONGLY discouraged. This will very likely result in an error");
+}
 
+PrimaryCellList::PrimaryCellList(ParticleVector* pv, int3 resolution, float3 domainSize) : CellList(pv, resolution, domainSize)
+{
+	if (dynamic_cast<ObjectVector*>(pv) != nullptr)
+		warn("Using primary cell-lists with objects is STRONGLY discouraged. This will very likely result in an error");
+}
+
+void PrimaryCellList::build(cudaStream_t stream)
+{
 	if (pv->local()->changedStamp == changedStamp)
 	{
 		debug2("Cell-list for %s is already up-to-date, building skipped", pv->name.c_str());
@@ -254,11 +264,10 @@ void PrimaryCellList::build(cudaStream_t stream)
 	newSize = newSize & ((1<<blendingPower) - 1);
 	debug2("Reordering completed, new size of %s particle vector is %d", pv->name.c_str(), newSize);
 
-	pv->local()->resize(newSize, stream, resizePreserve);
-	_coosvels.resize(newSize, stream, resizePreserve);
+	containerSwap(pv->local()->coosvels, _coosvels, stream);
+	pv->local()->resize(newSize, stream, ResizeKind::resizePreserve);
 	CUDA_Check( cudaStreamSynchronize(stream) );
 
-	containerSwap(pv->local()->coosvels, _coosvels, stream);
 	coosvels = &pv->local()->coosvels;
 	forces   = &pv->local()->forces;
 

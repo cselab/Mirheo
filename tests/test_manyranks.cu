@@ -8,7 +8,7 @@
 #include <core/logger.h>
 #include <core/integrate.h>
 #include <core/interactions.h>
-#include <core/components.h>
+#include <core/containers.h>
 #include <core/xml/pugixml.hpp>
 
 #include "timer.h"

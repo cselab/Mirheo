@@ -12,11 +12,6 @@ __device__ __forceinline__ float distance2(const Ta a, const Tb b)
 	return sqr(a.x - b.x) + sqr(a.y - b.y) + sqr(a.z - b.z);
 }
 
-__device__ __forceinline__ float3 f4tof3(float4 v)
-{
-	return make_float3(v.x, v.y, v.z);
-}
-
 __device__ __forceinline__ void atomicAdd(float* dest, float3 v)
 {
 	atomicAdd(dest,     v.x);
@@ -34,9 +29,7 @@ __global__ void computeSelfInteractions(
 	const int dstId = blockIdx.x*blockDim.x + threadIdx.x;
 	if (dstId >= np) return;
 
-	const float4 dstCoo = coosvels[2*dstId];
-	const float4 dstVel = coosvels[2*dstId+1];
-	const Particle dstP(dstCoo, dstVel);
+	const Particle dstP(coosvels, dstId);
 	float3 dstFrc = make_float3(0.0f);
 
 	const int3 cell0 = cinfo.getCellIdAlongAxis(dstP.r);
@@ -57,7 +50,6 @@ __global__ void computeSelfInteractions(
 				const int2 pend   = cinfo.decodeStartSize(cellsStartSize[rowEnd]);
 
 				const int2 start_size = make_int2(pstart.x, pend.x - pstart.x);
-
 
 #pragma unroll 2
 				for (int srcId = start_size.x; srcId < start_size.x + start_size.y; srcId ++)

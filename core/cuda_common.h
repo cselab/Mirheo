@@ -7,7 +7,7 @@
 #define __device__
 #endif
 
-inline float3 f4tof3(float4 x)
+__host__ __device__ __forceinline__ float3 f4tof3(float4 x)
 {
 	return make_float3(x.x, x.y, x.z);
 }

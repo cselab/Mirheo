@@ -4,7 +4,7 @@
 #include <core/celllist.h>
 #include <core/mpi/api.h>
 #include <core/logger.h>
-#include <core/components.h>
+#include <core/containers.h>
 #include <core/interactions.h>
 
 #include <unistd.h>

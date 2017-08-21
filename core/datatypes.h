@@ -89,6 +89,14 @@ struct __align__(16) Particle
 		u  = utmp.v;
 		i2 = utmp.i;
 	}
+	__host__ __device__ inline Particle(const float4* coosvels, int pid)
+	{
+		Float3_int rtmp(coosvels[2*pid]), utmp(coosvels[2*pid+1]);
+		r  = rtmp.v;
+		i1 = rtmp.i;
+		u  = utmp.v;
+		i2 = utmp.i;
+	}
 
 	__host__ __device__ inline float4 r2Float4()
 	{

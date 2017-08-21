@@ -17,8 +17,9 @@ void bounceFromRigidEllipsoid(ParticleVector* pv, CellList* cl, RigidObjectVecto
 	debug("Bouncing %s particles from %s objects\n", pv->name.c_str(), rov->name.c_str());
 	auto activeROV = local ? rov->local() : rov->halo();
 
-	bounceEllipsoid<<< activeROV->nObjects, 128, 0, stream >>> (
+	int nthreads = 512;
+	bounceEllipsoid<<< activeROV->nObjects, nthreads, 2*nthreads*sizeof(int), stream >>> (
 			(float4*)pv->local()->coosvels.devPtr(), pv->mass, activeROV->comAndExtents.devPtr(), activeROV->motions.devPtr(),
-			activeROV->nObjects, 1.0f / rov->axes,
+			activeROV->nObjects, 1.0f / rov->axes, rov->axes,
 			cl->cellsStartSize.devPtr(), cl->cellInfo(), dt);
 }

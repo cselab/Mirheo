@@ -56,22 +56,23 @@ __global__ void integrationKernel(float4* coosvels, const float4* forces, const 
  */
 void IntegratorVVNoFlow::stage1(ParticleVector* pv, cudaStream_t stream)
 {
-	auto st1 = [] __device__ (Particle& p, const float3 f, const float invm, const float dt) {
-		p.u += 0.5*f*invm*dt;
-		p.r += p.u*dt;
-	};
-
-	int nthreads = 128;
-	debug2("Integrating (stage 1) %d %s particles, timestep is %f", pv->local()->size(), pv->name.c_str(), dt);
-	integrationKernel<<< getNblocks(2*pv->local()->size(), nthreads), nthreads, 0, stream >>>(
-			(float4*)pv->local()->coosvels.devPtr(), (float4*)pv->local()->forces.devPtr(), pv->local()->size(), 1.0/pv->mass, dt, st1);
-	pv->local()->changedStamp++;
+//	auto st1 = [] __device__ (Particle& p, const float3 f, const float invm, const float dt) {
+//		p.u += 0.5*f*invm*dt;
+//		p.r += p.u*dt;
+//	};
+//
+//	int nthreads = 128;
+//	debug2("Integrating (stage 1) %d %s particles, timestep is %f", pv->local()->size(), pv->name.c_str(), dt);
+//	integrationKernel<<< getNblocks(2*pv->local()->size(), nthreads), nthreads, 0, stream >>>(
+//			(float4*)pv->local()->coosvels.devPtr(), (float4*)pv->local()->forces.devPtr(), pv->local()->size(), 1.0/pv->mass, dt, st1);
+//	pv->local()->changedStamp++;
 }
 
 void IntegratorVVNoFlow::stage2(ParticleVector* pv, cudaStream_t stream)
 {
 	auto st2 = [] __device__ (Particle& p, const float3 f, const float invm, const float dt) {
-		p.u += 0.5*f*invm*dt;
+		p.u += f*invm*dt;
+		p.r += p.u*dt;
 	};
 
 	int nthreads = 128;
@@ -86,22 +87,23 @@ void IntegratorVVNoFlow::stage2(ParticleVector* pv, cudaStream_t stream)
  */
 void IntegratorVVConstDP::stage1(ParticleVector* pv, cudaStream_t stream)
 {
-	auto st1 = [] __device__ (Particle& p, const float3 f, const float invm, const float dt) {
-		p.u += 0.5*(f+extraForce)*invm*dt;
-		p.r += p.u*dt;
-	};
-
-	int nthreads = 128;
-	debug2("Integrating (stage 1) %d %s particles with extra force [%8.5f %8.5f %8.5f], timestep is %f", pv->local()->size(), pv->name.c_str(), dt);
-	integrationKernel<<< getNblocks(2*pv->local()->size(), nthreads), nthreads, 0, stream >>>(
-			(float4*)pv->local()->coosvels.devPtr(), (float4*)pv->local()->forces.devPtr(), pv->local()->size(), 1.0/pv->mass, dt, st1);
-	pv->local()->changedStamp++;
+//	auto st1 = [=] __device__ (Particle& p, const float3 f, const float invm, const float dt) {
+//		p.u += 0.5*(f+extraForce)*invm*dt;
+//		p.r += p.u*dt;
+//	};
+//
+//	int nthreads = 128;
+//	debug2("Integrating (stage 1) %d %s particles with extra force [%8.5f %8.5f %8.5f], timestep is %f", pv->local()->size(), pv->name.c_str(), dt);
+//	integrationKernel<<< getNblocks(2*pv->local()->size(), nthreads), nthreads, 0, stream >>>(
+//			(float4*)pv->local()->coosvels.devPtr(), (float4*)pv->local()->forces.devPtr(), pv->local()->size(), 1.0/pv->mass, dt, st1);
+//	pv->local()->changedStamp++;
 }
 
 void IntegratorVVConstDP::stage2(ParticleVector* pv, cudaStream_t stream)
 {
-	auto st2 = [] __device__ (Particle& p, const float3 f, const float invm, const float dt) {
-		p.u += 0.5*f*invm*dt;
+	auto st2 = [*this] __device__ (Particle& p, const float3 f, const float invm, const float dt) {
+		p.u += (f+extraForce)*invm*dt;
+		p.r += p.u*dt;
 	};
 
 	int nthreads = 128;
@@ -136,6 +138,8 @@ void IntegratorConstOmega::stage2(ParticleVector* pv, cudaStream_t stream)
 	int nthreads = 128;
 	integrationKernel<<< getNblocks(2*pv->local()->size(), nthreads), nthreads, 0, stream >>>(
 			(float4*)pv->local()->coosvels.devPtr(), (float4*)pv->local()->forces.devPtr(), pv->local()->size(), 1.0/pv->mass, dt, rotate);
+
+	pv->local()->changedStamp++;
 }
 
 /**
@@ -165,9 +169,11 @@ void IntegratorVVRigid::stage2(ParticleVector* pv, cudaStream_t stream)
 	integrateRigidMotion<<< getNblocks(ov->local()->nObjects, 64), 64, 0, stream >>>(ov->local()->motions.devPtr(), J, J_1, 1.0 / ov->objMass, ov->local()->nObjects, dt);
 
 	applyRigidMotion<<< getNblocks(ov->local()->size(), 128), 128, 0, stream >>>(
-			(float4*)ov->local()->coosvels.devPtr(), ov->local()->motions.devPtr(), ov->local()->nObjects, ov->objSize);
+			(float4*)ov->local()->coosvels.devPtr(), ov->initialPositions.devPtr(), ov->local()->motions.devPtr(), ov->local()->nObjects, ov->objSize);
 
 	clearRigidForces<<< getNblocks(ov->local()->nObjects, 64), 64, 0, stream >>>(ov->local()->motions.devPtr(), ov->local()->nObjects);
+
+	pv->local()->changedStamp++;
 }
 
 

@@ -1,8 +1,9 @@
-#include "scan.h"
-#include "datatypes.h"
+#include <core/scan.h>
+#include <core/datatypes.h>
+#include <core/containers.h>
+#include <core/cuda_common.h>
 
-#include <cstdio>
-#include "helper_math.h"
+//#include <cstdio>
 
 
 __device__ __forceinline__ void int2_4ints(const uint v, int res[4])
@@ -143,7 +144,7 @@ void scan(const uint8_t* in, const int n, int* out, cudaStream_t stream)
 	const int initialBlocks  = ((n+15) / 16 + initialThreads - 1) / initialThreads;
 
 	static DeviceBuffer<int> blockScan;
-	blockScan.resize( n / (initialWarps*32*16) + 1);
+	blockScan.resize( n / (initialWarps*32*16) + 1, stream );
 
 	const int blockWarps     = 16;
 	const int blockThreads   = blockWarps * 32;

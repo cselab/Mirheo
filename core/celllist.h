@@ -92,7 +92,7 @@ public:
 
 class CellList : public CellListInfo
 {
-private:
+protected:
 	DeviceBuffer<uint8_t> cellsSize;
 
 	PinnedBuffer<Particle> _coosvels;

@@ -11,7 +11,7 @@ UniformIC::UniformIC(pugi::xml_node node)
 	density = node.attribute("density").as_float(1.0);
 }
 
-void UniformIC::exec(const MPI_Comm& comm, ParticleVector* pv, float3 globalDomainStart, float3 subDomainSize)
+void UniformIC::exec(const MPI_Comm& comm, ParticleVector* pv, float3 globalDomainStart, float3 subDomainSize, cudaStream_t stream)
 {
 	int3 ncells = make_int3( ceilf(subDomainSize) );
 	float3 h = subDomainSize / make_float3(ncells);
@@ -19,7 +19,7 @@ void UniformIC::exec(const MPI_Comm& comm, ParticleVector* pv, float3 globalDoma
 	float volume = h.x*h.y*h.z;
 	float avg = volume * density;
 	int predicted = round(avg * ncells.x*ncells.y*ncells.z * 1.05);
-	pv->local()->resize(predicted);
+	pv->local()->resize(predicted, stream, ResizeKind::resizeAnew);
 
 	int rank;
 	MPI_Check( MPI_Comm_rank(comm, &rank) );
@@ -38,7 +38,7 @@ void UniformIC::exec(const MPI_Comm& comm, ParticleVector* pv, float3 globalDoma
 				int nparts = particleDistribution(gen);
 				for (int p=0; p<nparts; p++)
 				{
-					pv->local()->resize(mycount+1, resizePreserve);
+					pv->local()->resize(mycount+1, stream, ResizeKind::resizePreserve);
 					cooPtr[mycount].r.x = i*h.x - 0.5*subDomainSize.x + coordinateDistribution(gen);
 					cooPtr[mycount].r.y = j*h.y - 0.5*subDomainSize.y + coordinateDistribution(gen);
 					cooPtr[mycount].r.z = k*h.z - 0.5*subDomainSize.z + coordinateDistribution(gen);
@@ -61,7 +61,7 @@ void UniformIC::exec(const MPI_Comm& comm, ParticleVector* pv, float3 globalDoma
 	for (int i=0; i < pv->local()->size(); i++)
 		cooPtr[i].i1 += totalCount;
 
-	pv->local()->coosvels.uploadToDevice();
+	pv->local()->coosvels.uploadToDevice(stream);
 
 	debug2("Generated %d %s particles", pv->local()->size(), pv->name.c_str());
 }

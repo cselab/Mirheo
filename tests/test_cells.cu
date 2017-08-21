@@ -19,11 +19,10 @@
 #include <cassert>
 #include <algorithm>
 
-#include <core/datatypes.h>
+#include <core/particle_vector.h>
 #include <core/celllist.h>
 #include <core/logger.h>
-#include <core/components.h>
-#include <core/xml/pugixml.hpp>
+#include <core/initial_conditions.h>
 
 Logger logger;
 
@@ -42,7 +41,7 @@ int main(int argc, char **argv)
 		MPI_Abort(MPI_COMM_WORLD, 1);
 	}
 
-	logger.init(MPI_COMM_WORLD, "cells.log", 9);
+	logger.init(MPI_COMM_WORLD, "cells->log", 9);
 
 	MPI_Check( MPI_Comm_size(MPI_COMM_WORLD, &nranks) );
 	MPI_Check( MPI_Comm_rank(MPI_COMM_WORLD, &rank) );
@@ -57,11 +56,10 @@ int main(int argc, char **argv)
 	float3 domainStart = -length / 2.0f;
 	const float rc = 1.2f;
 	ParticleVector dpds("dpd");
-	CellList cells(&dpds, rc, length);
-	cells.makePrimary();
+	CellList *cells = new PrimaryCellList(&dpds, rc, length);
 
-	InitialConditions ic = createIC(config.child("node"));
-	ic.exec(MPI_COMM_WORLD, &dpds, {0,0,0}, length);
+	UniformIC ic(config.child("node"));
+	ic.exec(MPI_COMM_WORLD, &dpds, {0,0,0}, length, 0);
 
 	const int np = dpds.local()->size();
 	HostBuffer<Particle> initial(np);
@@ -70,18 +68,18 @@ int main(int argc, char **argv)
 		initPtr[i] = dpds.local()->coosvels[i];
 
 	for (int i=0; i<50; i++)
-		cells.build();
+		cells->build(0);
 
-	dpds.local()->coosvels.downloadFromDevice(true);
+	dpds.local()->coosvels.downloadFromDevice(0, true);
 
-	HostBuffer<uint> hcellsStart(cells.totcells+1);
-	HostBuffer<uint8_t> hcellsSize(cells.totcells+1);
+	HostBuffer<uint> hcellsStart(cells->totcells+1);
+	HostBuffer<uint8_t> hcellsSize(cells->totcells+1);
 
-	hcellsStart.copy(cells.cellsStartSize, 0);
-	hcellsSize. copy(cells.cellsSize, 0);
+	hcellsStart.copy(cells->cellsStartSize, 0);
+	hcellsSize. copy(cells->cellsSize, 0);
 
-	HostBuffer<int> cellscount(cells.totcells+1);
-	for (int i=0; i<cells.totcells+1; i++)
+	HostBuffer<int> cellscount(cells->totcells+1);
+	for (int i=0; i<cells->totcells+1; i++)
 		cellscount[i] = 0;
 
 	int total = 0;
@@ -93,7 +91,7 @@ int main(int argc, char **argv)
 		//vel += acc * dt;
 		//coo += vel * dt;
 
-		int actCid = cells.getCellId(coo);
+		int actCid = cells->getCellId(coo);
 		if (actCid >= 0)
 		{
 			cellscount[actCid]++;
@@ -102,14 +100,14 @@ int main(int argc, char **argv)
 	}
 
 	printf("np = %d, vs reference  %d\n", dpds.local()->size(), total);
-	for (int cid=0; cid < cells.totcells+1; cid++)
-		if ( (hcellsStart[cid] >> cells.blendingPower) != cellscount[cid] )
-			printf("cid %d:  %d (correct %d),  %d\n", cid, hcellsStart[cid] >> cells.blendingPower, cellscount[cid], hcellsStart[cid] & ((1<<cells.blendingPower) - 1));
+	for (int cid=0; cid < cells->totcells+1; cid++)
+		if ( (hcellsStart[cid] >> cells->blendingPower) != cellscount[cid] )
+			printf("cid %d:  %d (correct %d),  %d\n", cid, hcellsStart[cid] >> cells->blendingPower, cellscount[cid], hcellsStart[cid] & ((1<<cells->blendingPower) - 1));
 
-	for (int cid=0; cid < cells.totcells; cid++)
+	for (int cid=0; cid < cells->totcells; cid++)
 	{
-		const int start = hcellsStart[cid] & ((1<<cells.blendingPower) - 1);
-		const int size = hcellsStart[cid] >> cells.blendingPower;
+		const int start = hcellsStart[cid] & ((1<<cells->blendingPower) - 1);
+		const int size = hcellsStart[cid] >> cells->blendingPower;
 		for (int pid=start; pid < start + size; pid++)
 		{
 			const float3 cooDev{dpds.local()->coosvels[pid].r.x, dpds.local()->coosvels[pid].r.y, dpds.local()->coosvels[pid].r.z};
@@ -127,7 +125,7 @@ int main(int argc, char **argv)
 				fabs(coo.x - cooDev.x), fabs(coo.y - cooDev.y), fabs(coo.z - cooDev.z),
 				fabs(vel.x - velDev.x), fabs(vel.y - velDev.y), fabs(vel.z - velDev.z) });
 
-			int actCid = cells.getCellId<false>(cooDev);
+			int actCid = cells->getCellId<false>(cooDev);
 
 			if (cid != actCid || diff > 1e-5)
 				printf("cid  %d,  correct cid  %d  for pid %d:  [%e %e %e  %d]  correct: [%e %e %e  %d]\n",

@@ -15,11 +15,11 @@ private:
 	std::vector<float> rcs;
 	std::vector<ObjectVector*> objects;
 
-	virtual void prepareData(int id);
+	virtual void prepareData(int id, cudaStream_t defStream);
 	virtual void combineAndUploadData(int id);
 
 public:
-	ObjectHaloExchanger(MPI_Comm& comm, cudaStream_t defStream) : ParticleExchanger(comm, defStream) {};
+	ObjectHaloExchanger(MPI_Comm& comm) : ParticleExchanger(comm) {};
 
 	void attach(ObjectVector* ov, float rc);
 

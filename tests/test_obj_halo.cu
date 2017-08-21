@@ -7,7 +7,7 @@
 #include <core/mpi/api.h>
 #include <core/logger.h>
 #include <core/xml/pugixml.hpp>
-#include <core/components.h>
+#include <core/containers.h>
 
 #include <array>
 

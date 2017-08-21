@@ -11,11 +11,8 @@ ExchangeHelper::ExchangeHelper(std::string name, const int datumSize, const int 
 
 	CUDA_Check( cudaStreamCreateWithPriority(&stream, cudaStreamNonBlocking, 0) );
 
-	sendAddrs  .pushStream(stream);
-	bufSizes   .pushStream(stream);
-
-	sendAddrs  .resize(27);
-	bufSizes   .resize(27);
+	sendAddrs  .resize(27, stream);
+	bufSizes   .resize(27, stream);
 	recvOffsets.resize(28);
 
 	for(int i = 0; i < 27; ++i)
@@ -25,20 +22,19 @@ ExchangeHelper::ExchangeHelper(std::string name, const int datumSize, const int 
 		int c = std::abs(d[0]) + std::abs(d[1]) + std::abs(d[2]);
 		if (c > 0)
 		{
-			sendBufs[i].pushStream(stream);
-			recvBufs[i].pushStream(stream);
-
-			sendBufs[i].resize( sizes[c-1]*datumSize );
-			recvBufs[i].resize( sizes[c-1]*datumSize );
+			sendBufs[i].resize( sizes[c-1]*datumSize, stream );
+			recvBufs[i].resize( sizes[c-1]*datumSize, stream );
 			sendAddrs[i] = sendBufs[i].devPtr();
 		}
 	}
 	// implicit synchro
-	sendAddrs.uploadToDevice();
+	sendAddrs.uploadToDevice(stream);
+
+	CUDA_Check( cudaStreamSynchronize(stream) );
 }
 
-ParticleExchanger::ParticleExchanger(MPI_Comm& comm, cudaStream_t defStream) :
-		nActiveNeighbours(26), defStream(defStream)
+ParticleExchanger::ParticleExchanger(MPI_Comm& comm) :
+		nActiveNeighbours(26)
 {
 	MPI_Check( MPI_Comm_dup(comm, &haloComm) );
 
@@ -61,7 +57,7 @@ ParticleExchanger::ParticleExchanger(MPI_Comm& comm, cudaStream_t defStream) :
 	}
 }
 
-void ParticleExchanger::init()
+void ParticleExchanger::init(cudaStream_t defStream)
 {
 	// Post recv
 	for (auto helper : helpers)
@@ -69,7 +65,7 @@ void ParticleExchanger::init()
 
 	// Determine halos
 	for (int i=0; i<helpers.size(); i++)
-		prepareData(i);
+		prepareData(i, defStream);
 
 	CUDA_Check( cudaStreamSynchronize(defStream) );
 }
@@ -122,14 +118,14 @@ void ParticleExchanger::sendWait(ExchangeHelper* helper)
 	std::string pvName = helper->name;
 
 	// Prepare message sizes and send
-	helper->bufSizes.downloadFromDevice();
+	helper->bufSizes.downloadFromDevice(helper->stream, true);
 	auto cntPtr = helper->bufSizes.hostPtr();
 	for (int i=0; i<27; i++)
 		if (i != 13)
 		{
-			if (cntPtr[i] > helper->sendBufs[i].size())
+			if (cntPtr[i] * helper->datumSize > helper->sendBufs[i].size())
 				die("Preallocated halo buffer %d for %s too small: size %d bytes, but need %d bytes",
-						i, pvName.c_str(), helper->sendBufs[i].size() * helper->datumSize, cntPtr[i] * helper->datumSize);
+						i, pvName.c_str(), helper->sendBufs[i].size(), cntPtr[i] * helper->datumSize);
 
 			if (cntPtr[i] > 0)
 				CUDA_Check( cudaMemcpyAsync(helper->sendBufs[i].hostPtr(), helper->sendBufs[i].devPtr(),

@@ -7,7 +7,7 @@
 
 struct MembraneMesh
 {
-	const int maxDegree = 7;
+	static const int maxDegree = 7;
 	int nvertices, ntriangles;
 
 	PinnedBuffer<int3> triangles;
@@ -41,7 +41,13 @@ public:
 class RBCvector : public ObjectVector
 {
 public:
-	float3 axes;
+	struct Parameters
+	{
+		float kbT, p, lmax, q, Cq, totArea0, totVolume0, l0, ka, kv, gammaC, gammaT, kb;
+		float kbToverp, cost0kb, sint0kb;
+	};
+
+	Parameters parameters;
 
 	RBCvector(std::string name, const int objSize, const int nObjects = 0) :
 		ObjectVector( name, objSize,
