@@ -116,6 +116,8 @@ __global__ void bounceEllipsoid(float4* coosvels, float mass,
 		const int nObj, const float3 invAxes, const float3 axes,
 		const uint* __restrict__ cellsStartSize, CellListInfo cinfo, const float dt)
 {
+	const float threshold = 0.2f;
+
 	const int objId = blockIdx.x;
 	const int tid = threadIdx.x;
 	if (objId >= nObj) return;
@@ -153,14 +155,14 @@ __global__ void bounceEllipsoid(float4* coosvels, float mass,
 
 			v000 = rotate( v000, invq );
 
-			if ( ellipsoidF(v000, invAxes) < 0.2f ||
-				 ellipsoidF(v001, invAxes) < 0.2f ||
-				 ellipsoidF(v010, invAxes) < 0.2f ||
-				 ellipsoidF(v011, invAxes) < 0.2f ||
-				 ellipsoidF(v100, invAxes) < 0.2f ||
-				 ellipsoidF(v101, invAxes) < 0.2f ||
-				 ellipsoidF(v110, invAxes) < 0.2f ||
-				 ellipsoidF(v111, invAxes) < 0.2f )
+			if ( ellipsoidF(v000, invAxes) < threshold ||
+				 ellipsoidF(v001, invAxes) < threshold ||
+				 ellipsoidF(v010, invAxes) < threshold ||
+				 ellipsoidF(v011, invAxes) < threshold ||
+				 ellipsoidF(v100, invAxes) < threshold ||
+				 ellipsoidF(v101, invAxes) < threshold ||
+				 ellipsoidF(v110, invAxes) < threshold ||
+				 ellipsoidF(v111, invAxes) < threshold )
 			{
 				int id = atomicAggInc((int*)&nCells);
 				validCells[id] = cinfo.encode(cid3);

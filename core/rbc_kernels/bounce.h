@@ -32,9 +32,61 @@ __device__ __forceinline__ float3 computeBaricentric(float3 r0, float3 r1, float
 	return make_float3(l0, l1, l2);
 }
 
+// Particle with mass M and velocity U hits triangle (x0, x1, x2)
+// into point O. Vertex masses are m. Treated as rigid and stationary,
+// what are the vertex forces induced by the collision?
+__device__ __forceinline__ void triangleForces(
+		float3 x0, float3 x1, float3 x2, float m,
+		float3 O_baricentric, float3 U, float M,
+		float dt,
+		float3& f0, float3& f1, float3& f2)
+{
+	auto invLen = [] (float3 x) {
+		return rsqrt(dot(x, x));
+	};
 
-// True if bounced, false if not
-__device__ __forceinline__ float3 intersectParticleTriangle(
+	const float3 n = cross(x1-x0, x2-x0);
+
+	const float IU_ortI = dot(U, n);
+	const float3 U_par = U - IU_ortI * n;
+
+	const float a = 2.0f*M/m * IU_ortI;
+	const float v0_ort = O_baricentric.x * a;
+	const float v1_ort = O_baricentric.y * a;
+	const float v2_ort = O_baricentric.z * a;
+
+	const float3 C = 0.333333333f * (x0+x1+x2);
+	const float3 Vc = 0.666666666f * M/m * U_par;
+
+	const float Ir0I_1 = invLen(C-x0);
+	const float Ir1I_1 = invLen(C-x1);
+	const float Ir2I_1 = invLen(C-x2);
+
+	const float3 O = O_baricentric.x * x0 + O_baricentric.x * x1 + O_baricentric.x * x2;
+	const float3 L = 2.0f*M * cross(C-O, U_par);
+	const float b = dot(L, n)/m;
+
+	const float3 normal2r0 = normalize(cross(C-x0, n));
+	const float3 normal2r1 = normalize(cross(C-x1, n));
+	const float3 normal2r2 = normalize(cross(C-x2, n));
+
+	const float3 u0 = b * Ir0I_1 * normal2r0;
+	const float3 u1 = b * Ir1I_1 * normal2r1;
+	const float3 u2 = b * Ir2I_1 * normal2r2;
+
+	const float3 v0 = v0_ort*n + Vc + u0;
+	const float3 v1 = v1_ort*n + Vc + u1;
+	const float3 v2 = v2_ort*n + Vc + u2;
+
+	const float invdt = 1.0f / dt;
+	f0 += v0 * m * invdt;
+	f1 += v1 * m * invdt;
+	f2 += v2 * m * invdt;
+}
+
+// find baricentric coordinates of the collision
+// if at least one of the value returned negative there was no collision
+__device__ __forceinline__ float3 intersectParticleTriangleBaricentric(
 		Particle v0, Particle v1, Particle v2, float3 n,
 		Particle p, float dt, float threshold)
 {
@@ -56,6 +108,7 @@ __device__ __forceinline__ float3 intersectParticleTriangle(
 	float vnew = F(1.0f);
 
 	// Particle is far
+	// No need for baricentric coordinates, skip it
 	if ( fabs(vnew) > threshold ) return make_float3(-1000.0f);
 
 	float3 projected;
@@ -74,7 +127,7 @@ __device__ __forceinline__ float3 intersectParticleTriangle(
 			printf("Something awful happened with mesh bounce");
 
 		// This is the collision point with the MOVING triangle
-		float3 coll = v0.r - v0.u*(1.0f - alpha)*dt;
+		float3 projected = v0.r - v0.u*(1.0f - alpha)*dt;
 	}
 
 	// The triangle with which the collision was detected has a timestamp (1.0f - alpha)*dt
@@ -83,10 +136,13 @@ __device__ __forceinline__ float3 intersectParticleTriangle(
 	float3 r1 = v1.r - v1.u*t;
 	float3 r2 = v2.r - v2.u*t;
 
-	// If the projected point is inside the triangle we've detected collision
-	return computeBaricentric(v0.r, v1.r, v2.r, projected);
+	// Return the baricentric coordinates of the projected position
+	// on the corresponding moving triangle
+	return computeBaricentric(r0, r1, r2, projected);
 }
 
+
+// FIXME: add different masses
 __device__ __forceinline__ void bounceParticleArray(
 		int* validParticles, int nParticles,
 		Particle v0, Particle v1, Particle v2,
@@ -95,8 +151,6 @@ __device__ __forceinline__ void bounceParticleArray(
 {
 	const int tid = threadIdx.x / warpSize;
 	const float threshold = 2e-6f;
-	const int maxIters = 100;
-	const float step = 0.01;
 
 	expandBy(v0.r, v1.r, v2.r, 2.0f*threshold);
 	const float3 n = normalize(cross(v1.r-v0.r, v2.r-v0.r));
@@ -106,23 +160,22 @@ __device__ __forceinline__ void bounceParticleArray(
 		const int pid = validParticles[i];
 		Particle p(coosvels[2*pid], coosvels[2*pid+1]);
 
-		float3 baricentricCoo = intersectParticleTriangle(v0, v1, v2, n, p, dt, threshold);
+		float3 baricentricCoo = intersectParticleTriangleBaricentric(v0, v1, v2, n, p, dt, threshold);
 		if (baricentricCoo.x >= 0.0f && baricentricCoo.y >= 0.0f && baricentricCoo.z >= 0.0f)
 		{
+			// A collision is found here
 			const float3 vtri = baricentricCoo.x*v0.u + baricentricCoo.y*v1.u + baricentricCoo.z*v2.u;
-			float3 newV = 2.0f*vtri-p.u;
-			float3 dv = newV - p.u;
+			const float3 coo  = baricentricCoo.x*v0.r + baricentricCoo.y*v1.r + baricentricCoo.z*v2.r;
 
-			p.r = baricentricCoo.x*v0.r + baricentricCoo.y*v1.r + baricentricCoo.z*v2.r + n * threshold;
+			triangleForces(v0.r, v1.r, v2.r, mass, baricentricCoo, p.u - vtri, mass, dt, f0, f1, f2);
+
+			float3 newV = 2.0f*vtri-p.u;
+			const float s = dot(p.r - coo, n);
+			p.r = coo + s*2.0f*threshold;
 			p.u = newV;
 
 			coosvels[2*pid]   = Float3_int(p.r, p.i1).toFloat4();
 			coosvels[2*pid+1] = Float3_int(p.u, p.i2).toFloat4();
-
-			const float3 f = -mass * dv / dt;
-			f0 += baricentricCoo.x*f;
-			f1 += baricentricCoo.y*f;
-			f2 += baricentricCoo.z*f;
 		}
 	}
 }
@@ -133,6 +186,8 @@ __global__ void bounceMesh(
 		const int nObj, const int nvertices, const int ntriangles, const int3* __restrict__ triangles, float4* objCoosvels, float* objForces,
 		const float dt)
 {
+	const float threshold = 0.2f;
+
 	// One warp per triangle
 	const int gid = blockIdx.x * blockDim.x + threadIdx.x;
 	const int wid = gid / warpSize;
@@ -188,36 +243,36 @@ __global__ void bounceMesh(
 			float tmp;
 
 			tmp = dot(n, v000-v0.r);
-			pos += ( tmp > -0.2f );
-			neg += ( tmp <  0.2f );
+			pos += ( tmp > -threshold );
+			neg += ( tmp <  threshold );
 
 			tmp = dot(n, v001-v0.r);
-			pos += ( tmp > -0.2f );
-			neg += ( tmp <  0.2f );
+			pos += ( tmp > -threshold );
+			neg += ( tmp <  threshold );
 
 			tmp = dot(n, v010-v0.r);
-			pos += ( tmp > -0.2f );
-			neg += ( tmp <  0.2f );
+			pos += ( tmp > -threshold );
+			neg += ( tmp <  threshold );
 
 			tmp = dot(n, v011-v0.r);
-			pos += ( tmp > -0.2f );
-			neg += ( tmp <  0.2f );
+			pos += ( tmp > -threshold );
+			neg += ( tmp <  threshold );
 
 			tmp = dot(n, v100-v0.r);
-			pos += ( tmp > -0.2f );
-			neg += ( tmp <  0.2f );
+			pos += ( tmp > -threshold );
+			neg += ( tmp <  threshold );
 
 			tmp = dot(n, v101-v0.r);
-			pos += ( tmp > -0.2f );
-			neg += ( tmp <  0.2f );
+			pos += ( tmp > -threshold );
+			neg += ( tmp <  threshold );
 
 			tmp = dot(n, v110-v0.r);
-			pos += ( tmp > -0.2f );
-			neg += ( tmp <  0.2f );
+			pos += ( tmp > -threshold );
+			neg += ( tmp <  threshold );
 
 			tmp = dot(n, v111-v0.r);
-			pos += ( tmp > -0.2f );
-			neg += ( tmp <  0.2f );
+			pos += ( tmp > -threshold );
+			neg += ( tmp <  threshold );
 
 
 			if (pos != 8 && neg != 8)
@@ -246,6 +301,9 @@ __global__ void bounceMesh(
 		{
 			bounceParticleArray(validParticles, particleBufSize/2, v0, v1, v2, f0, f1, f2, coosvels, mass, dt);
 			count -= particleBufSize/2;
+
+			for (int i=tid; i<particleBufSize/2; i+=warpSize)
+				validParticles[i] = validParticles[i + particleBufSize/2];
 		}
 	}
 
