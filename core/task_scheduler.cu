@@ -85,6 +85,7 @@ void TaskScheduler::run()
 	// https://en.wikipedia.org/wiki/Topological_sorting
 
 	std::queue<Node*> S;
+	std::vector<std::pair<cudaStream_t, Node*>> workMap;
 
 	for (auto n : nodes)
 	{
@@ -97,54 +98,53 @@ void TaskScheduler::run()
 	int completed = 0;
 	const int total = nodes.size();
 
-	#pragma omp parallel
+	while (true)
 	{
-		#pragma omp single
+		// Check the status of all running kernels
+		while (completed < total && S.empty())
 		{
-			while (true)
+			for (auto streamNode_it = workMap.begin(); streamNode_it != workMap.end(); )
 			{
-				while (completed < total && S.empty())
-					usleep(1);
-				if (completed == total)
-					break;
-
-				Node* node = S.front();
-				S.pop();
-
-				cudaStream_t stream;
-				if (streams.empty())
-					CUDA_Check( cudaStreamCreateWithPriority(&stream, cudaStreamNonBlocking, 0) );
-				else
+				if ( cudaStreamQuery(streamNode_it->first) == cudaSuccess )
 				{
-					stream = streams.front();
-					streams.pop();
-				}
+					streams.push(streamNode_it->first);
 
-				#pragma omp task firstprivate(node, stream)
-				{
-					debug("Executing group %s on stream %lld", node->label.c_str(), (int64_t)stream);
-
-					for (auto func : node->funcs)
-						func(stream);
-
-					CUDA_Check( cudaStreamSynchronize(stream) );
-
-					#pragma omp critical
+					auto node = streamNode_it->second;
+					for (auto dep : node->to)
 					{
-						streams.push(stream);
-
-						for (auto dep : node->to)
-						{
-							dep->from.remove(node);
-							if (dep->from.empty())
-								S.push(dep);
-						}
-
-						completed++;
+						dep->from.remove(node);
+						if (dep->from.empty())
+							S.push(dep);
 					}
+
+					completed++;
+					streamNode_it = workMap.erase(streamNode_it);
 				}
+				else
+					streamNode_it++;
 			}
 		}
+
+		if (completed == total)
+			break;
+
+		Node* node = S.front();
+		S.pop();
+
+		cudaStream_t stream;
+		if (streams.empty())
+			CUDA_Check( cudaStreamCreateWithPriority(&stream, cudaStreamNonBlocking, 0) );
+		else
+		{
+			stream = streams.front();
+			streams.pop();
+		}
+
+		debug("Executing group %s on stream %lld", node->label.c_str(), (int64_t)stream);
+		workMap.push_back({stream, node});
+
+		for (auto& func : node->funcs)
+			func(stream);
 	}
 }
 
