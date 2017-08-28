@@ -11,7 +11,7 @@
  * Find alpha such that F( alpha ) = 0, 0 <= alpha <= 1
  */
 template <typename Equation>
-__device__ __inline__ float solveLinSearch(Equation F)
+__device__ __host__ __inline__ float solveLinSearch(Equation F)
 {
 	// F is one dimensional equation
 	// It returns value signed + or - depending on whether

@@ -1,5 +1,7 @@
 #pragma once
 
+#include <core/logger.h>
+
 #include <cassert>
 #include <type_traits>
 #include <utility>

@@ -41,64 +41,45 @@ __device__ __host__ __forceinline__ void triangleForces(
 		float dt,
 		float3& f0, float3& f1, float3& f2)
 {
-	auto dot = [] (double3 a, double3 b) { return a.x*b.x + a.y*b.y + a.z*b.z; };
-	auto len = [=] (double3 x) {
-		return sqrt(dot(x, x));
-	};
-	auto cross = [=] (double3 a, double3 b)
-	{
-	    return make_double3(a.y*b.z - a.z*b.y, a.z*b.x - a.x*b.z, a.x*b.y - a.y*b.x);
-	};
-	auto normalize = [=](double3 v)
-	{
-	    float invLen = rsqrt(dot(v, v));
-	    return v * invLen;
-	};
-	auto d3tof3 = [] (double3 a) {
-		return make_float3(a.x, a.y, a.z);
+	auto len2 = [] (float3 x) {
+		return dot(x, x);
 	};
 
-	double3 y0 = make_double3(x0.x, x0.y, x0.z);
-	double3 y1 = make_double3(x1.x, x1.y, x1.z);
-	double3 y2 = make_double3(x2.x, x2.y, x2.z);
+	const float3 n = normalize(cross(x1-x0, x2-x0));
 
-	const double3 n = normalize(cross(y1-y0, y2-y0));
+	const float IU_ortI = dot(U, n);
+	const float3 U_par = U - IU_ortI * n;
 
-	const double IU_ortI = dot(make_double3(U.x, U.y, U.z), n);
-	const double3 U_par = make_double3(U.x, U.y, U.z) - IU_ortI * n;
+	const float a = 2.0f*M/m * IU_ortI;
+	const float v0_ort = O_baricentric.x * a;
+	const float v1_ort = O_baricentric.y * a;
+	const float v2_ort = O_baricentric.z * a;
 
-	const double a = 2.0f*M/m * IU_ortI;
-	const double v0_ort = O_baricentric.x * a;
-	const double v1_ort = O_baricentric.y * a;
-	const double v2_ort = O_baricentric.z * a;
+	const float3 C = 0.333333333f * (x0+x1+x2);
+	const float3 Vc = 0.666666666f * M/m * U_par;
 
-	const double3 C = 0.333333333f * (y0+y1+y2);
-	const double3 Vc = 0.666666666f * M/m * U_par;
+	const float3 O = O_baricentric.x * x0 + O_baricentric.y * x1 + O_baricentric.z * x2;
+	const float3 L = 2.0f*M * cross(C-O, U_par);
 
-	const double Ir0I = len(C-y0);
-	const double Ir1I = len(C-y1);
-	const double Ir2I = len(C-y2);
+	const float J = m * (len2(C-x0) + len2(C-x1) + len2(C-x2));
+	const float w = -dot(L, n) / J;
 
-	const double3 O = O_baricentric.x * y0 + O_baricentric.y * y1 + O_baricentric.z * y2;
-	const double3 L = 2.0f*M * cross(C-O, U_par);
-	const double b = -dot(L, n)/m;
+	const float3 orth_r0 = cross(C-x0, n);
+	const float3 orth_r1 = cross(C-x1, n);
+	const float3 orth_r2 = cross(C-x2, n);
 
-	const double3 orth_r0 = cross(C-y0, n);
-	const double3 orth_r1 = cross(C-y1, n);
-	const double3 orth_r2 = cross(C-y2, n);
+	const float3 u0 = w * orth_r0;
+	const float3 u1 = w * orth_r1;
+	const float3 u2 = w * orth_r2;
 
-	const double3 u0 = b * orth_r0;
-	const double3 u1 = b * orth_r1;
-	const double3 u2 = b * orth_r2;
+	const float3 v0 = v0_ort*n + Vc + u0;
+	const float3 v1 = v1_ort*n + Vc + u1;
+	const float3 v2 = v2_ort*n + Vc + u2;
 
-	const double3 v0 = v0_ort*n + Vc + u0;
-	const double3 v1 = v1_ort*n + Vc + u1;
-	const double3 v2 = v2_ort*n + Vc + u2;
-
-	const double invdt = 1.0f / dt;
-	f0 += d3tof3(v0 * m * invdt);
-	f1 += d3tof3(v1 * m * invdt);
-	f2 += d3tof3(v2 * m * invdt);
+	const float invdt = 1.0f / dt;
+	f0 += v0 * m * invdt;
+	f1 += v1 * m * invdt;
+	f2 += v2 * m * invdt;
 }
 
 // find baricentric coordinates of the collision
@@ -165,7 +146,7 @@ __device__ __forceinline__ void bounceParticleArray(
 		int* validParticles, int nParticles,
 		Particle v0, Particle v1, Particle v2,
 		float3& f0, float3& f1, float3& f2,
-		float4* coosvels, float mass, const float dt)
+		float4* coosvels, float particleMass, float vertexMass, const float dt)
 {
 	const int tid = threadIdx.x / warpSize;
 	const float threshold = 2e-6f;
@@ -186,10 +167,10 @@ __device__ __forceinline__ void bounceParticleArray(
 			const float3 vtri = baricentricCoo.x*v0.u + baricentricCoo.y*v1.u + baricentricCoo.z*v2.u;
 			const float3 coo  = baricentricCoo.x*v0.r + baricentricCoo.y*v1.r + baricentricCoo.z*v2.r;
 
-			triangleForces(v0.r, v1.r, v2.r, mass, baricentricCoo, p.u - vtri, mass, dt, f0, f1, f2);
+			triangleForces(v0.r, v1.r, v2.r, vertexMass, baricentricCoo, p.u - vtri, particleMass, dt, f0, f1, f2);
 
 			float3 newV = 2.0f*vtri-p.u;
-			p.r = coo + threshold * ((oldSign > 0) ? 2.0f : -2.0f);
+			p.r = coo + threshold * n * ((oldSign > 0) ? 2.0f : -2.0f);
 			p.u = newV;
 
 			coosvels[2*pid]   = Float3_int(p.r, p.i1).toFloat4();
@@ -200,9 +181,9 @@ __device__ __forceinline__ void bounceParticleArray(
 
 //__launch_bounds__(128, 7)
 __global__ void bounceMesh(
-		float4* coosvels, float mass, const uint* __restrict__ cellsStartSize, CellListInfo cinfo,
+		float4* coosvels, const uint* __restrict__ cellsStartSize, CellListInfo cinfo,
 		const int nObj, const int nvertices, const int ntriangles, const int3* __restrict__ triangles, float4* objCoosvels, float* objForces,
-		const float dt)
+		float particleMass, float vertexMass, const float dt)
 {
 	const float threshold = 0.2f;
 
@@ -317,7 +298,7 @@ __global__ void bounceMesh(
 
 		if (*count >= particleBufSize/2)
 		{
-			bounceParticleArray(validParticles, particleBufSize/2, v0, v1, v2, f0, f1, f2, coosvels, mass, dt);
+			bounceParticleArray(validParticles, particleBufSize/2, v0, v1, v2, f0, f1, f2, coosvels, particleMass, vertexMass, dt);
 			*count -= particleBufSize/2;
 
 			for (int i=tid; i<particleBufSize/2; i+=warpSize)
@@ -327,7 +308,7 @@ __global__ void bounceMesh(
 
 
 	// Process remaining
-	bounceParticleArray(validParticles, *count, v0, v1, v2, f0, f1, f2, coosvels, mass, dt);
+	bounceParticleArray(validParticles, *count, v0, v1, v2, f0, f1, f2, coosvels, particleMass, vertexMass, dt);
 
 	auto plus = [] (float a, float b) {return a+b;};
 	warpReduce(f0, plus);
@@ -346,3 +327,4 @@ __global__ void bounceMesh(
 	atomicAdd(objForces + 3*(nvertices*objId + triangle.z)+1, f2.y);
 	atomicAdd(objForces + 3*(nvertices*objId + triangle.z)+2, f2.z);
 }
+

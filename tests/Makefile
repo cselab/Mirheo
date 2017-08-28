@@ -21,12 +21,16 @@ log_obj     = test_logger.o
 cells_obj   = scan.o celllist.o test_cells.o pugixml.o initial_conditions.o
 dpd_obj     = scan.o celllist.o test_dpd.o pugixml.o components.o integrate.o interactions.o wall.o
 rigid_obj   = scan.o celllist.o test_rigid.o pugixml.o integrate.o interactions.o particle_exchanger.o particle_halo_exchanger.o particle_redistributor.o bounce.o object_vector.o
+mesh_bounce_obj = test_mesh_bounce.o
 scheduler_obj = task_scheduler.o test_scheduler.o
 
 
 default:
 	@echo "Please specify a target!"
 	
+test_mesh_bounce: $(addprefix $(OBJ_DIR)/,$(mesh_bounce_obj))
+	$(NVCC) $(NVCCFLAGS) $(LIBS) $^ -o $@
+
 test_wall: $(addprefix $(OBJ_DIR)/,$(wall_obj))
 	$(NVCC) $(NVCCFLAGS) $(LIBS) $^ -o $@
 
