@@ -2,9 +2,9 @@
 
 #include <functional>
 #include <string>
+#include <core/particle_vector.h>
 #include <core/xml/pugixml.hpp>
 
-class ParticleVector;
 class CellList;
 
 //==================================================================================================================

@@ -103,6 +103,7 @@ void TaskScheduler::run()
 		// Check the status of all running kernels
 		while (completed < total && S.empty())
 		{
+			usleep(1);
 			for (auto streamNode_it = workMap.begin(); streamNode_it != workMap.end(); )
 			{
 				if ( cudaStreamQuery(streamNode_it->first) == cudaSuccess )
@@ -146,6 +147,9 @@ void TaskScheduler::run()
 		for (auto& func : node->funcs)
 			func(stream);
 	}
+
+	for (auto& stream_node : workMap)
+		CUDA_Check( cudaStreamSynchronize(stream_node.first) );
 }
 
 

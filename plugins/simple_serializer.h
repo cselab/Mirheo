@@ -1,6 +1,7 @@
 #pragma once
 
-#include "../core/datatypes.h"
+#include <core/containers.h>
+#include <core/datatypes.h>
 
 // Only POD types and vectors/HostBuffers/PinnedBuffers of POD are supported
 // Container size will be serialized too

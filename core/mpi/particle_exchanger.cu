@@ -57,7 +57,7 @@ ParticleExchanger::ParticleExchanger(MPI_Comm& comm) :
 	}
 }
 
-void ParticleExchanger::init(cudaStream_t defStream)
+void ParticleExchanger::init(cudaStream_t stream)
 {
 	// Post recv
 	for (auto helper : helpers)
@@ -65,9 +65,7 @@ void ParticleExchanger::init(cudaStream_t defStream)
 
 	// Determine halos
 	for (int i=0; i<helpers.size(); i++)
-		prepareData(i, defStream);
-
-	CUDA_Check( cudaStreamSynchronize(defStream) );
+		prepareData(i, stream);
 }
 
 void ParticleExchanger::finalize()
@@ -124,7 +122,7 @@ void ParticleExchanger::sendWait(ExchangeHelper* helper)
 		if (i != 13)
 		{
 			if (cntPtr[i] * helper->datumSize > helper->sendBufs[i].size())
-				die("Preallocated halo buffer %d for %s too small: size %d bytes, but need %d bytes",
+				die("Preallocated buffer %d for %s too small: size %d bytes, but need %d bytes",
 						i, pvName.c_str(), helper->sendBufs[i].size(), cntPtr[i] * helper->datumSize);
 
 			if (cntPtr[i] > 0)
@@ -134,14 +132,18 @@ void ParticleExchanger::sendWait(ExchangeHelper* helper)
 	CUDA_Check( cudaStreamSynchronize(helper->stream) );
 
 	MPI_Request req;
+	int totSent = 0;
 	for (int i=0; i<27; i++)
 		if (i != 13 && dir2rank[i] >= 0)
 		{
-			debug3("Sending %s halo to rank %d in dircode %d [%2d %2d %2d], %d entities", pvName.c_str(), dir2rank[i], i, i%3 - 1, (i/3)%3 - 1, i/9 - 1, cntPtr[i]);
+			debug3("Sending %s entities to rank %d in dircode %d [%2d %2d %2d], %d entities", pvName.c_str(), dir2rank[i], i, i%3 - 1, (i/3)%3 - 1, i/9 - 1, cntPtr[i]);
 			const int tag = 27 * tagByName(pvName) + i;
 			MPI_Check( MPI_Isend(helper->sendBufs[i].hostPtr(), cntPtr[i] * helper->datumSize, MPI_BYTE, dir2rank[i], tag, haloComm, &req) );
 			MPI_Check( MPI_Request_free(&req) );
+
+			totSent += cntPtr[i];
 		}
+	debug("Sent total %d %s entities", totSent, pvName.c_str());
 
 	// Wait until messages are arrived
 	const int nMessages = helper->requests.size();
@@ -159,13 +161,15 @@ void ParticleExchanger::sendWait(ExchangeHelper* helper)
 		MPI_Check( MPI_Get_count(&statuses[i], MPI_BYTE, &msize) );
 		totalRecvd += msize / helper->datumSize;
 
-		debug3("Receiving %s halo from rank %d, %d entities", pvName.c_str(), dir2rank[compactedDirs[i]], msize /  helper->datumSize);
+		debug3("Receiving %s entities from rank %d, %d entities", pvName.c_str(), dir2rank[compactedDirs[i]], msize /  helper->datumSize);
 	}
 
 	// Fill the holes in the offsets
 	helper->recvOffsets[27] = totalRecvd;
 	for (int i=0; i<27; i++)
 		helper->recvOffsets[i] = std::min(helper->recvOffsets[i+1], helper->recvOffsets[i]);
+
+	debug("Received total %d %s entities", totalRecvd, pvName.c_str());
 }
 
 

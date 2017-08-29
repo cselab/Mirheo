@@ -20,7 +20,6 @@ protected:
 	MPI_Comm interComm;
 	int rank;
 	MPI_Request req;
-	cudaStream_t stream;
 
 	float currentTime;
 	int currentTimeStep;
@@ -38,11 +37,11 @@ protected:
 public:
 	SimulationPlugin(std::string name) : name(name), req(MPI_REQUEST_NULL) {};
 
-	virtual void beforeForces() {};
-	virtual void beforeIntegration() {};
-	virtual void afterIntegration() {};
+	virtual void beforeForces(cudaStream_t stream) {};
+	virtual void beforeIntegration(cudaStream_t stream) {};
+	virtual void afterIntegration(cudaStream_t stream) {};
 
-	virtual void serializeAndSend() {};
+	virtual void serializeAndSend(cudaStream_t stream) {};
 	virtual void handshake() {};
 	virtual void talk() {};
 
@@ -52,19 +51,18 @@ public:
 		currentTimeStep = tstep;
 	}
 
-	virtual void setup(Simulation* sim, cudaStream_t stream, const MPI_Comm& comm, const MPI_Comm& interComm)
+	virtual void setup(Simulation* sim, const MPI_Comm& comm, const MPI_Comm& interComm)
 	{
-		this->sim       = sim;
-		this->stream    = stream;
+		this->sim = sim;
 
-		MPI_Check( MPI_Comm_dup(comm,      &this->comm) );
-		MPI_Check( MPI_Comm_dup(interComm, &this->interComm) );
+		MPI_Check( MPI_Comm_dup(comm, &this->comm) );
+		this->interComm = interComm;
 
 		MPI_Check( MPI_Comm_rank(this->comm, &rank) );
 	}
 	void setId(int id) { this->id = id; }
 
-	virtual ~SimulationPlugin() {};
+	virtual ~SimulationPlugin() = default;
 };
 
 class PostprocessPlugin
@@ -96,14 +94,14 @@ public:
 
 	void setup(const MPI_Comm& comm, const MPI_Comm& interComm)
 	{
-		MPI_Check( MPI_Comm_dup(comm,      &this->comm) );
-		MPI_Check( MPI_Comm_dup(interComm, &this->interComm) );
+		MPI_Check( MPI_Comm_dup(comm, &this->comm) );
+		this->interComm = interComm;
 
 		MPI_Check( MPI_Comm_rank(this->comm, &rank) );
 	}
 	void setId(int id) { this->id = id; }
 
-	virtual ~PostprocessPlugin() {};
+	virtual ~PostprocessPlugin() = default;
 };
 
 

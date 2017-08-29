@@ -22,7 +22,6 @@ public:
 
 	ParticleRedistributor(MPI_Comm& comm) : ParticleExchanger(comm) {};
 	void attach(ParticleVector* pv, CellList* cl);
-	void redistribute(cudaStream_t defStream);
 
 	~ParticleRedistributor() = default;
 };

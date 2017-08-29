@@ -36,7 +36,7 @@ void Simulation::registerParticleVector(ParticleVector* pv, InitialConditions* i
 		die("More than one particle vector is called %s", name.c_str());
 
 	pvIdMap[name] = particleVectors.size() - 1;
-	ic->exec(cartComm, pv, globalDomainSize, subDomainSize);
+	ic->exec(cartComm, pv, globalDomainSize, subDomainSize, 0);
 }
 
 void Simulation::registerObjectVector(ObjectVector* ov)
@@ -50,7 +50,7 @@ void Simulation::registerObjectVector(ObjectVector* ov)
 	pvIdMap[name] = particleVectors.size() - 1;
 }
 
-void Simulation::registerWall(Wall* wall)
+void Simulation::registerWall(Wall* wall, std::string sourcePV, float creationTime)
 {
 	std::string name = wall->name;
 
@@ -60,10 +60,15 @@ void Simulation::registerWall(Wall* wall)
 	if (pvIdMap.find(name) != pvIdMap.end())
 		die("Wall has the same name as particle vector: %s", name.c_str());
 
+	if (pvIdMap.find(sourcePV) == pvIdMap.end())
+		die("Source particle vector %s for wall %s not found", sourcePV.c_str(), name.c_str());
+
 	wallMap[name] = wall;
 
 	particleVectors.push_back(wall->getFrozen());
 	pvIdMap[name] = particleVectors.size() - 1;
+
+	wallProtorypes.push_back(std::make_tuple(wall, getPVbyName(sourcePV), creationTime));
 }
 
 void Simulation::registerInteraction   (Interaction* interaction)
@@ -120,106 +125,178 @@ void Simulation::setInteraction(std::string pv1Name, std::string pv2Name, std::s
 	auto interaction = interactionMap[interactionName];
 	float rc = interaction->rc;
 
-	// TODO: reorder?
-	CellList *cl1, *cl2;
-	cellListMaps.resize( std::max({pv1Id+1, pv2Id+1, (int)cellListMaps.size()}) );
-	if (cellListMaps[pv1Id].find(rc) != cellListMaps[pv1Id].end())
-		cl1 = cellListMaps[pv1Id][rc];
-	else
-		cellListMaps[pv1Id][rc] = cl1 = new CellList(particleVectors[pv1Id], rc, subDomainSize);
-
-	if (cellListMaps[pv2Id].find(rc) != cellListMaps[pv2Id].end())
-		cl2 = cellListMaps[pv2Id][rc];
-	else
-		cellListMaps[pv2Id][rc] = cl2 = new CellList(particleVectors[pv2Id], rc, subDomainSize);
-
-	auto frc = [=] (InteractionType type, float t, cudaStream_t stream) {
-		interaction->exec(type, pv1, pv2, cl1, cl2, t, stream);
-	};
-
-	forceCallers.insert({rc, frc});
-}
-
-std::vector<int> Simulation::getWallCreationSteps() const
-{
-	std::vector<int> res;
-	for (auto wall : wallMap)
-		res.push_back(wall.second->creationTime());
-
-	std::sort(res.begin(), res.end());
-	return res;
+	interactionPrototypes.push_back(std::make_tuple(rc, pv1, pv2, interaction));
 }
 
 void Simulation::init()
 {
+	const float rcTolerance = 1e-4;
+
+	std::map<ParticleVector*, std::vector<float>> cutOffMap;
+
+	// Deal with the cell-lists and interactions
+	for (auto prototype : interactionPrototypes)
+	{
+		float rc = std::get<0>(prototype);
+		cutOffMap[std::get<1>(prototype)].push_back(rc);
+		cutOffMap[std::get<2>(prototype)].push_back(rc);
+	}
+
+	for (auto& cutoffs : cutOffMap)
+	{
+		std::sort(cutoffs.second.begin(), cutoffs.second.end(), [] (float a, float b) { return a > b; });
+
+		auto it = std::unique(cutoffs.second.begin(), cutoffs.second.end(), [=] (float a, float b) { return fabs(a - b) < rcTolerance; });
+		cutoffs.second.resize( std::distance(cutoffs.second.begin(), it) );
+
+		bool first = true;
+		for (auto rc : cutoffs.second)
+		{
+			cellListMap[cutoffs.first].push_back(first ? new PrimaryCellList(cutoffs.first, rc, subDomainSize) : new CellList(cutoffs.first, rc, subDomainSize));
+			first = false;
+		}
+	}
+
+	for (auto prototype : interactionPrototypes)
+	{
+		float rc = std::get<0>(prototype);
+		auto pv1 = std::get<1>(prototype);
+		auto pv2 = std::get<2>(prototype);
+
+		auto& clVec1 = cellListMap[pv1];
+		auto& clVec2 = cellListMap[pv2];
+
+		CellList *cl1, *cl2;
+
+		for (auto cl : clVec1)
+			if (fabs(cl->rc - rc) <= rcTolerance)
+				cl1 = cl;
+
+		for (auto cl : clVec2)
+			if (fabs(cl->rc - rc) <= rcTolerance)
+				cl2 = cl;
+
+		auto inter = std::get<3>(prototype);
+
+		regularInteractions.push_back([inter, pv1, pv2, cl1, cl2] (float t, cudaStream_t stream) {
+			inter->regular(pv1, pv2, cl1, cl2, t, stream);
+		});
+
+		haloInteractions.push_back([inter, pv1, pv2, cl1, cl2] (float t, cudaStream_t stream) {
+			inter->halo(pv1, pv2, cl1, cl2, t, stream);
+		});
+	}
+
 	CUDA_Check( cudaStreamCreateWithPriority(&defStream, cudaStreamNonBlocking, 0) );
 
 	debug("Simulation initiated, preparing plugins");
 	for (auto& pl : plugins)
 	{
-		pl->setup(this, defStream, cartComm, interComm);
+		pl->setup(this, cartComm, interComm);
 		pl->handshake();
 	}
 
-	halo = new HaloExchanger(cartComm, defStream);
-	redistributor = new Redistributor(cartComm);
+	halo = new ParticleHaloExchanger(cartComm);
+	redistributor = new ParticleRedistributor(cartComm);
 
 	debug("Attaching particle vectors to halo exchanger and redistributor");
-	for (int i=0; i<particleVectors.size(); i++)
-		if (cellListMaps[i].size() > 0 && particleVectors[i]->local()->size() > 0)
+	for (auto pv : particleVectors)
+		if (cellListMap[pv].size() > 0)
 		{
-			auto cl = cellListMaps[i].begin()->second;
+			auto cl = cellListMap[pv][0];
 
-			halo->attach         (particleVectors[i], cl);
-			redistributor->attach(particleVectors[i], cl);
+			halo->attach         (pv, cl);
+			redistributor->attach(pv, cl);
 		}
 
-	// Manage streams
-	// XXX: Is it really needed?
-	debug("Setting up streams");
-	for (auto pv : particleVectors)
-		pv->local()->pushStream(defStream);
-
-	for (auto clMap : cellListMaps)
-		for (auto rc_cl : clMap)
-			rc_cl.second->setStream(defStream);
+	assemble();
 }
 
-void Simulation::createWalls()
+void Simulation::assemble()
 {
-	for (auto wall : wallMap)
-	{
-		wall.second->createSdf(cartComm, subDomainStart, subDomainSize, globalDomainSize);
-		wall.second->freezeParticles(particleVectors[pvIdMap["dpd"]]);
-		wall.second->attach(particleVectors[pvIdMap["dpd"]], cellListMaps[pvIdMap["dpd"]].begin()->second);
-		halo->attach( wall.second->getFrozen(), cellListMaps[pvIdMap[wall.first]].begin()->second );
-	}
-}
-
-void Sumulation::assemble()
-{
-	// XXX: different dt not implemented yet
-	float dt = 1e9;
+	// XXX: different dt not implemented
+	dt = 1e9;
 	for (auto integr : integrators)
 		if (integr != nullptr)
 			dt = min(dt, integr->dt);
 
 
-	scheduler.addTask("primary cell-lists", [] (cudaStream_t stream) {
-		for (auto clMap : cellListMaps)
-			if (clMap.size() > 0)
-				clMap.begin()->second->build(true, stream);
+	scheduler.addTask("Сell-lists", [&] (cudaStream_t stream) {
+		for (auto clVec : cellListMap)
+			for (auto cl : clVec.second)
+				cl->build(stream);
 	});
 
-}
+	scheduler.addTask("Clear forces", [&] (cudaStream_t stream) {
+		for (auto& pv : particleVectors)
+			pv->local()->forces.clear(stream);
+	});
 
-// TODO: wall has self-interactions
-void Simulation::run(int nsteps)
-{
+	scheduler.addTask("Plugins: before forces", [&] (cudaStream_t stream) {
+		for (auto& pl : plugins)
+			{
+				pl->setTime(currentTime, currentStep);
+				pl->beforeForces(stream);
+			}
+	});
 
+	scheduler.addTask("Halo init", [&] (cudaStream_t stream) {
+		halo->init(stream);
+	});
 
-	info("Will run %d iterations now", nsteps);
-	int begin = currentStep, end = currentStep + nsteps;
+	scheduler.addTask("Internal forces", [&] (cudaStream_t stream) {
+		for (auto& inter : regularInteractions)
+			inter(currentTime, stream);
+	});
+
+	scheduler.addTask("Plugins: serialize and send", [&] (cudaStream_t stream) {
+		for (auto& pl : plugins)
+			pl->serializeAndSend(stream);
+	});
+
+	scheduler.addTask("Halo finalize", [&] (cudaStream_t stream) {
+		halo->finalize();
+	});
+
+	scheduler.addTask("Halo forces", [&] (cudaStream_t stream) {
+		for (auto& inter : haloInteractions)
+			inter(currentTime, stream);
+	});
+
+	scheduler.addTask("Accumulate forces", [&] (cudaStream_t stream) {
+		for (auto clVec : cellListMap)
+			for (auto cl : clVec.second)
+				cl->addForces(stream);
+	});
+
+	scheduler.addTask("Plugins: before integration", [&] (cudaStream_t stream) {
+		for (auto& pl : plugins)
+			pl->beforeIntegration(stream);
+	});
+
+	scheduler.addTask("Integration", [&] (cudaStream_t stream) {
+		for (int i=0; i<integrators.size(); i++)
+			if (integrators[i] != nullptr)
+				integrators[i]->stage2(particleVectors[i], stream);
+	});
+
+	scheduler.addTask("Wall bounce", [&] (cudaStream_t stream) {
+		for (auto wall : wallMap)
+			wall.second->bounce(dt, stream);
+	});
+
+	scheduler.addTask("Plugins: after integration", [&] (cudaStream_t stream) {
+		for (auto pl : plugins)
+			pl->afterIntegration(stream);
+	});
+
+	scheduler.addTask("Redistribute init", [&] (cudaStream_t stream) {
+		redistributor->init(stream);
+	});
+
+	scheduler.addTask("Redistribute finalize", [&] (cudaStream_t stream) {
+		redistributor->finalize();
+	});
 
 	// cell lists
 	// plugins before forces
@@ -239,112 +316,60 @@ void Simulation::run(int nsteps)
 	// send back obj forces
 	// redistribute
 
+
+	scheduler.addDependency("Сell-lists", {"Internal forces", "Halo init"}, {});
+	scheduler.addDependency("Plugins: before forces", {"Internal forces", "Halo init"}, {});
+	scheduler.addDependency("Internal forces", {}, {"Clear forces"});
+	scheduler.addDependency("Plugins: serialize and send", {}, {"Internal forces"});
+	scheduler.addDependency("Halo init", {"Internal forces"}, {});
+	scheduler.addDependency("Halo finalize", {}, {"Halo init"});
+	scheduler.addDependency("Halo forces", {}, {"Halo finalize"});
+	scheduler.addDependency("Accumulate forces", {"Integration"}, {"Halo forces", "Internal forces"});
+	scheduler.addDependency("Plugins: before integration", {"Integration"}, {});
+	scheduler.addDependency("Wall bounce", {}, {"Integration"});
+	scheduler.addDependency("Plugins: after integration", {}, {"Integration", "Wall bounce"});
+	scheduler.addDependency("Redistribute init", {}, {"Integration", "Wall bounce", "Plugins: after integration"});
+	scheduler.addDependency("Redistribute finalize", {}, {"Redistribute init"});
+
+	scheduler.compile();
+
+}
+
+// TODO: wall has self-interactions
+void Simulation::run(int nsteps)
+{
+	info("Will run %d iterations now", nsteps);
+	int begin = currentStep, end = currentStep + nsteps;
+
 	for (currentStep = begin; currentStep < end; currentStep++)
 	{
 		if (rank == 0)
 			info("===============================================================================\nTimestep: %d, simulation time: %f",
 					currentStep, currentTime);
-		//===================================================================================================
 
-		debug("Building primary cell-lists");
-		for (auto clMap : cellListMaps)
-			if (clMap.size() > 0)
-				clMap.begin()->second->build(true);
-
-
-		// Primary lists won't be affected
-		debug("Building all the cell-lists");
-		for (auto clMap : cellListMaps)
-			for (auto rc_cl : clMap)
-				rc_cl.second->build();
-
-		//===================================================================================================
-
-		for (auto& pv : particleVectors)
-			pv->local()->forces.clear();
-
-		debug("Plugins: before forces");
-		for (auto& pl : plugins)
+		for (auto prototype_it = wallProtorypes.begin(); prototype_it != wallProtorypes.end(); )
 		{
-			pl->setTime(currentTime, currentStep);
-			pl->beforeForces();
+			if (currentTime >= std::get<2>(*prototype_it))
+			{
+				auto wall  = std::get<0>(*prototype_it);
+				auto srcPV = std::get<1>(*prototype_it);
+
+				wall->createSdf(cartComm, subDomainStart, subDomainSize, globalDomainSize);
+				wall->freezeParticles(srcPV);
+
+				for (auto pv : particleVectors)
+					if (pv != wall->getFrozen())
+						wall->attach(pv, cellListMap[pv][0]);
+
+				halo->attach( wall->getFrozen(), cellListMap[ wall->getFrozen() ][0] );
+
+				prototype_it = wallProtorypes.erase(prototype_it);
+			}
+			else
+				prototype_it++;
 		}
 
-		//===================================================================================================
-
-		// XXX: Not overlapped (do we need overlap at all?)
-		debug("Initializing halo exchange");
-		halo->init();
-
-		//===================================================================================================
-
-		// TODO: Forces need to be rearranged here as well
-		debug("Computing internal forces");
-		for (auto& rc_frc : forceCallers)
-			rc_frc.second(InteractionType::Regular, currentTime, defStream);
-
-		//===================================================================================================
-
-		debug("Plugins: serialize and send");
-		for (auto& pl : plugins)
-			pl->serializeAndSend();
-
-		//===================================================================================================
-
-		debug("Finalizing halo exchange");
-		halo->finalize();
-
-		debug("Computing halo forces");
-		// Iterate over cell-lists in reverse order, because the last CLs are already built
-		for (auto rc_frc = forceCallers.rbegin(); rc_frc != forceCallers.rend(); rc_frc++)
-			rc_frc->second(InteractionType::Halo, currentTime, defStream);
-
-		//===================================================================================================
-
-		debug("Collecting forces from cell-lists");
-		for (auto clMap : cellListMaps)
-			for (auto rc_cl : clMap)
-				rc_cl.second->addForces();
-
-		//===================================================================================================
-
-		debug("Plugins: before integration");
-		for (auto& pl : plugins)
-			pl->beforeIntegration();
-
-		//===================================================================================================
-
-		debug("Performing integration");
-		for (int i=0; i<integrators.size(); i++)
-			if (integrators[i] != nullptr)
-				integrators[i]->exec(particleVectors[i], defStream);
-
-		//===================================================================================================
-
-		// TODO: correct dt should be attached to the wall
-		debug("Bounce from the walls");
-		for (auto wall : wallMap)
-			wall.second->bounce(dt, defStream);
-
-		//===================================================================================================
-
-		// XXX: probably should go after redistr AND after cell-list
-		debug("Plugins: after integration");
-		for (auto pl : plugins)
-			pl->afterIntegration();
-
-		//===================================================================================================
-
-		debug("Redistributing particles, cell-lists may need to be updated");
-		for (auto clMap : cellListMaps)
-			if (clMap.size() > 0)
-				clMap.begin()->second->build();
-
-		CUDA_Check( cudaStreamSynchronize(defStream) );
-
-		redistributor->redistribute();
-
-		//===================================================================================================
+		scheduler.run();
 
 		currentTime += dt;
 	}
@@ -518,19 +543,8 @@ void uDeviceX::run(int nsteps)
 {
 	if (isComputeTask())
 	{
-		auto wallCreationSteps = sim->getWallCreationSteps();
-
 		sim->init();
-
-		int totSteps = 0;
-		for (int i=0; i<wallCreationSteps.size(); i++)
-		{
-			sim->run(wallCreationSteps[i] - totSteps);
-			sim->createWalls();
-			totSteps += wallCreationSteps[i];
-		}
-		sim->run(nsteps - totSteps);
-
+		sim->run(nsteps);
 		sim->finalize();
 
 		CUDA_Check( cudaDeviceSynchronize() );

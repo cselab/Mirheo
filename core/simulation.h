@@ -3,10 +3,13 @@
 #include <core/datatypes.h>
 #include <core/wall.h>
 #include <core/interactions.h>
-#include <core/interactions.h>
-#include <core/interactions.h>
+#include <core/integrate.h>
+#include <core/initial_conditions.h>
 #include <core/task_scheduler.h>
+#include <core/mpi/api.h>
 #include <plugins/plugin.h>
+
+#include <tuple>
 
 #include <vector>
 #include <string>
@@ -27,6 +30,7 @@ public:
 	float3 globalDomainSize, subDomainSize, subDomainStart;
 
 private:
+	float dt;
 	int rank;
 	int3 rank3D;
 	MPI_Comm cartComm;
@@ -38,8 +42,8 @@ private:
 
 	TaskScheduler scheduler;
 
-	HaloExchanger* halo;
-	Redistributor* redistributor;
+	ParticleHaloExchanger* halo;
+	ParticleRedistributor* redistributor;
 
 	std::map<std::string, int> pvIdMap;
 	std::vector<ParticleVector*> particleVectors;
@@ -48,30 +52,23 @@ private:
 	std::map<std::string, Integrator*>  integratorMap;
 	std::map<std::string, Wall*>        wallMap;
 
-	struct RobustFloatLess
-	{
-		bool operator() (const float& a, const float& b)
-		{
-			const float eps = 1e-5;
-			if (fabs(a - b) < eps) return false;
-			return a < b;
-		}
-	};
+	std::vector<std::tuple<float, ParticleVector*, ParticleVector*, Interaction*>> interactionPrototypes;
+	std::vector<std::tuple<Wall*, ParticleVector*, float>> wallProtorypes;
 
-	std::multimap< float, std::function<void(InteractionType, float, cudaStream_t)>, RobustFloatLess > forceCallers, objectForceCallers;
+	std::vector<std::function<void(float, cudaStream_t)>> regularInteractions, haloInteractions;
+	std::map<ParticleVector*, std::vector<CellList*>> cellListMap;
 
-	std::vector< std::map<float, CellList*, RobustFloatLess> > cellListMaps;
 	std::vector<Integrator*>     integrators;
-
-
 	std::vector<SimulationPlugin*> plugins;
+
+	void assemble();
 
 public:
 	Simulation(int3 nranks3D, float3 globalDomainSize, const MPI_Comm& comm, const MPI_Comm& interComm);
 
 	void registerParticleVector(ParticleVector* pv, InitialConditions* ic);
 	void registerObjectVector  (ObjectVector* ov);
-	void registerWall          (Wall* wall);
+	void registerWall          (Wall* wall, std::string sourcePV, float creationTime);
 
 	void registerInteraction   (Interaction* interaction);
 	void registerIntegrator    (Integrator* integrator);
@@ -86,7 +83,6 @@ public:
 	void createWalls();
 	void finalize();
 
-	std::vector<int> getWallCreationSteps() const;
 
 	const std::map<std::string, int>&   getPvIdMap() const { return pvIdMap; }
 	const std::vector<ParticleVector*>& getParticleVectors() const { return particleVectors; }

@@ -1,9 +1,14 @@
 #include <core/simulation.h>
+#include <core/xml/pugixml.hpp>
+#include <core/wall.h>
+#include <core/interactions.h>
+#include <core/integrate.h>
+#include <core/initial_conditions.h>
+
 #include <plugins/plugin.h>
 #include <plugins/stats.h>
 #include <plugins/dumpavg.h>
-#include <core/xml/pugixml.hpp>
-#include <core/wall.h>
+#include <plugins/temperaturize.h>
 
 Logger logger;
 
@@ -14,37 +19,41 @@ int main(int argc, char** argv)
 
 	float3 globalDomainSize = config.child("simulation").child("domain").attribute("size").as_float3({32, 32, 32});
 	int3 nranks3D = config.child("simulation").attribute("mpi_ranks").as_int3({1, 1, 1});
+	bool noplugins = config.child("simulation").attribute("noplugins").as_bool(false);
+
 	uDeviceX udevice(argc, argv, nranks3D, globalDomainSize, logger, "poiseuille.log",
-			config.child("simulation").attribute("debug_lvl").as_int(5), config.child("simulation").attribute("debug_lvl").as_int(5) >= 10);
+			config.child("simulation").attribute("debug_lvl").as_int(5), noplugins);
 
 	SimulationPlugin  *simStat,  *simAvg;
 	PostprocessPlugin *postStat, *postAvg;
 	if (udevice.isComputeTask())
 	{
-		Integrator  constDP = createIntegrator(config.child("simulation").child("integrator"));
-		Interaction dpdInt = createInteraction(config.child("simulation").child("interaction"));
-
-		InitialConditions dpdIc  = createIC(config.child("simulation").child("particle_vector"));
-		InitialConditions dpdIc2 = createIC(config.child("simulation").child("particle_vector").next_sibling());
-
-		Wall wall = createWall(config.child("simulation").child("wall"));
-
+		// PVs
 		ParticleVector* dpd  = new ParticleVector(config.child("simulation").child("particle_vector").attribute("name").as_string());
-		//ParticleVector* dpd2 = new ParticleVector(config.child("simulation").child("particle_vector").next_sibling().attribute("name").as_string());
+		InitialConditions* dpdIc  = new UniformIC(config.child("simulation").child("particle_vector"));
+		udevice.sim->registerParticleVector(dpd, dpdIc);
 
-		udevice.sim->registerParticleVector(dpd, &dpdIc);
-		//udevice.sim->registerParticleVector(dpd2, &dpdIc2);
+		Wall* wall = new Wall(
+				config.child("simulation").child("wall").attribute("name").as_string(),
+				config.child("simulation").child("wall").attribute("file_name").as_string(),
+				config.child("simulation").child("wall").attribute("h").as_float3({0.25, 0.25, 0.25}));
 
-		udevice.sim->registerIntegrator(&constDP);
-		udevice.sim->registerInteraction(&dpdInt);
-		//udevice.sim->registerWall(&wall);
+		udevice.sim->registerWall( wall, "dpd", config.child("simulation").child("wall").attribute("creation_time").as_float(1.0) );
+
+
+		// Manipulators
+		Integrator*  constDP = new IntegratorVVConstDP(config.child("simulation").child("integrator"));
+		Interaction* dpdInt = new InteractionDPD(config.child("simulation").child("interaction"));
+
+		udevice.sim->registerIntegrator(constDP);
+		udevice.sim->registerInteraction(dpdInt);
 
 		udevice.sim->setIntegrator("dpd", "const_dp");
-		//udevice.sim->setIntegrator("dpd2", "const_dp");
 		udevice.sim->setInteraction("dpd", "dpd", "dpd_int");
-		//udevice.sim->setInteraction("dpd2", "dpd", "dpd_int");
-		//udevice.sim->setInteraction("dpd2", "dpd2", "dpd_int");
-		//udevice.sim->setInteraction("dpd", "wall", "dpd_int");
+		udevice.sim->setInteraction("dpd", "wall", "dpd_int");
+
+		SimulationPlugin* temp = new TemperaturizePlugin("temp", {"wall"}, 1.0);
+		udevice.sim->registerPlugin(temp);
 
 		simStat = new SimulationStats("stats", 500);
 		simAvg  = new Avg3DPlugin("averaging", "dpd", 10, 5000, {1, 1, 1}, true, true);

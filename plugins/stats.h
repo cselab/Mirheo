@@ -1,6 +1,7 @@
 #pragma once
 
 #include <plugins/plugin.h>
+#include <core/containers.h>
 #include <core/datatypes.h>
 #include <plugins/timer.h>
 
@@ -9,7 +10,7 @@
 class ParticleVector;
 class CellList;
 
-using ReductionType = double;
+using ReductionType = float;
 
 class SimulationStats : public SimulationPlugin
 {
@@ -30,8 +31,8 @@ public:
 		timer.start();
 	}
 
-	void afterIntegration();
-	void serializeAndSend();
+	void afterIntegration(cudaStream_t stream);
+	void serializeAndSend(cudaStream_t stream);
 
 	~SimulationStats() {};
 };

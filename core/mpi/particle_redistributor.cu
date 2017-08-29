@@ -90,13 +90,7 @@ void ParticleRedistributor::attach(ParticleVector* pv, CellList* cl)
 	helpers.push_back(helper);
 }
 
-void ParticleRedistributor::redistribute(cudaStream_t defStream)
-{
-	init(defStream);
-	finalize();
-}
-
-void ParticleRedistributor::prepareData(int id, cudaStream_t defStream)
+void ParticleRedistributor::prepareData(int id, cudaStream_t stream)
 {
 	auto pv = particles[id];
 	auto cl = cellLists[id];
@@ -104,12 +98,12 @@ void ParticleRedistributor::prepareData(int id, cudaStream_t defStream)
 
 	debug2("Preparing %s leaving particles on the device", pv->name.c_str());
 
-	helper->bufSizes.clear(defStream);
+	helper->bufSizes.clear(stream);
 
 	const int maxdim = std::max({cl->ncells.x, cl->ncells.y, cl->ncells.z});
 	const int nthreads = 32;
 	if (pv->local()->size() > 0)
-		getExitingParticles<<< dim3((maxdim*maxdim + nthreads - 1) / nthreads, 6, 1),  dim3(nthreads, 1, 1), 0, defStream>>>
+		getExitingParticles<<< dim3((maxdim*maxdim + nthreads - 1) / nthreads, 6, 1),  dim3(nthreads, 1, 1), 0, stream>>>
 					( (float4*)pv->local()->coosvels.devPtr(), cl->cellInfo(), cl->cellsStartSize.devPtr(), (int64_t*)helper->sendAddrs.devPtr(), helper->bufSizes.devPtr() );
 }
 

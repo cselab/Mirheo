@@ -1,6 +1,7 @@
 #pragma once
 
 #include <plugins/plugin.h>
+#include <core/containers.h>
 #include <core/datatypes.h>
 #include <plugins/write_xdmf.h>
 
@@ -29,10 +30,10 @@ public:
 	Avg3DPlugin(std::string name, std::string pvNames, int sampleEvery, int dumpEvery, float3 binSize,
 			bool needMomentum, bool needForce);
 
-	void setup(Simulation* sim, cudaStream_t stream, const MPI_Comm& comm, const MPI_Comm& interComm);
+	void setup(Simulation* sim, const MPI_Comm& comm, const MPI_Comm& interComm);
 	void handshake();
-	void afterIntegration();
-	void serializeAndSend();
+	void afterIntegration(cudaStream_t stream);
+	void serializeAndSend(cudaStream_t stream);
 
 	~Avg3DPlugin() {};
 };

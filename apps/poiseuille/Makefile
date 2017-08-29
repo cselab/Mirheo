@@ -1,5 +1,5 @@
 NVCC = nvcc
-NVCCFLAGS = -std=c++14 -arch=compute_61 -code=sm_61 -g -lineinfo --expt-extended-lambda -Xcompiler "-fopenmp"
+NVCCFLAGS = -std=c++11 -arch=compute_61 -code=sm_61 -g -lineinfo --expt-extended-lambda -Xcompiler "-fopenmp"
 NOWARNFLAG = -Xcompiler "-Wno-cpp"
 
 HDF5_INC = /usr/include/hdf5/mpich/
@@ -7,7 +7,7 @@ HDF5_LIB = /usr/lib/x86_64-linux-gnu/
 
 LIBS = -lmpi -lhdf5_mpich -L$(HDF5_LIB)
 
-SRC_DIR = ../../core/ ../../core/xml ../../plugins ./
+SRC_DIR = ../../core/ ../../core/xml ../../core/mpi ../../plugins ./
 BIN_DIR = bin
 DEBUG_DIR = debug
 
@@ -16,7 +16,10 @@ NVCCFLAGS += -I../../ -I$(HDF5_INC)
 NVCC_RELEASE_FLAGS = $(NVCCFLAGS) -O3
 NVCC_DEBUG_FLAGS = $(NVCCFLAGS) -O0 -G -Xptxas -O0 -Xcompiler "-g"
 
-objects = scan.o celllist.o halo_exchanger.o redistributor.o wall.o integrate.o interactions.o simulation.o components.o write_xdmf.o dumpavg.o stats.o pugixml.o poiseuille.o object_vector.o
+objects = poiseuille.o scan.o celllist.o wall.o integrate.o interactions.o simulation.o pugixml.o task_scheduler.o initial_conditions.o \
+	object_vector.o \
+	particle_exchanger.o particle_halo_exchanger.o particle_redistributor.o \
+	write_xdmf.o dumpavg.o stats.o temperaturize.o
 
 
 # Release binary

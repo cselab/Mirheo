@@ -222,10 +222,6 @@ __launch_bounds__(128, 8)
 __global__ void bounceSDF(const int* wallCells, const int nWallCells, const uint* __restrict__ cellsStartSize, CellListInfo cinfo,
 		Wall::SdfInfo sdfInfo, float4* coosvels, const float dt)
 {
-	const auto F = [sdfInfo] (const float3 r) {
-		return evalSdf(r, sdfInfo);
-	};
-
 	const int tid = blockIdx.x * blockDim.x + threadIdx.x;
 	if (tid >= nWallCells) return;
 	const int cid = wallCells[tid];
@@ -237,21 +233,21 @@ __global__ void bounceSDF(const int* wallCells, const int nWallCells, const uint
 		Particle p(coosvels[2*pid], coosvels[2*pid+1]);
 		float3 oldCoo = p.r - p.u*dt;
 
-		const float alpha = bounceLinSearch(oldCoo, p.r, 0, F);
+		if (evalSdf(p.r, sdfInfo) <= 0.0f) continue;
 
-		// FIXME: ID!!
-		float3 candidate = oldCoo + alpha * (p.r - oldCoo);
+		const float alpha = solveLinSearch([=] (float lambda) { return evalSdf(oldCoo + (p.r-oldCoo)*lambda, sdfInfo); });
+		float3 candidate = (alpha >= 0.0f) ? oldCoo + alpha * (p.r - oldCoo) : oldCoo;
 
-		coosvels[2*pid]     = make_float4(candidate, __float_as_int(p.i1));
-		coosvels[2*pid + 1] = make_float4(-p.u,      __float_as_int(p.i2));
+		coosvels[2*pid]     = Float3_int(candidate, p.i1).toFloat4();
+		coosvels[2*pid + 1] = Float3_int(-p.u, p.i2).toFloat4();
 	}
 }
 
 /*
  * We only set a few params here
  */
-Wall::Wall(std::string name, std::string sdfFileName, float3 sdfH,  float _creationTime) :
-		name(name), sdfFileName(sdfFileName), _creationTime(_creationTime)
+Wall::Wall(std::string name, std::string sdfFileName, float3 sdfH) :
+		name(name), sdfFileName(sdfFileName)
 {
 	sdfInfo.h = sdfH;
 	frozen = new ParticleVector(name);
@@ -266,18 +262,18 @@ void Wall::attach(ParticleVector* pv, CellList* cl)
 	const int oldSize = nBoundaryCells.size();
 	boundaryCells.resize(oldSize+1);
 
-	nBoundaryCells.resize(oldSize+1);
+	nBoundaryCells.resize(oldSize+1, 0);
 	nBoundaryCells.hostPtr()[oldSize] = 0;
-	nBoundaryCells.uploadToDevice();
-	countBoundaryCells<<< (cl->totcells + 127) / 128, 128 >>> (cl->cellInfo(), sdfInfo, nBoundaryCells.devPtr()+oldSize);
-	nBoundaryCells.downloadFromDevice();
+	nBoundaryCells.uploadToDevice(0);
+	countBoundaryCells<<< (cl->totcells + 127) / 128, 128, 0, 0 >>> (cl->cellInfo(), sdfInfo, nBoundaryCells.devPtr()+oldSize);
+	nBoundaryCells.downloadFromDevice(0);
 
 	debug("Found %d boundary cells", nBoundaryCells.hostPtr()[oldSize]);
-	boundaryCells[oldSize].resize(nBoundaryCells.hostPtr()[oldSize]);
+	boundaryCells[oldSize].resize(nBoundaryCells.hostPtr()[oldSize], 0);
 
 	nBoundaryCells.hostPtr()[oldSize] = 0;
-	nBoundaryCells.uploadToDevice();
-	getBoundaryCells<<< (cl->totcells + 127) / 128, 128 >>> (cl->cellInfo(), sdfInfo,
+	nBoundaryCells.uploadToDevice(0);
+	getBoundaryCells<<< (cl->totcells + 127) / 128, 128, 0, 0 >>> (cl->cellInfo(), sdfInfo,
 			nBoundaryCells.devPtr()+oldSize, boundaryCells[oldSize].devPtr());
 	CUDA_Check( cudaDeviceSynchronize() );
 }
@@ -361,7 +357,7 @@ void Wall::prepareRelevantSdfPiece(const float* fullSdfData, float3 extendedDoma
 
 	resolution = endId - startId;
 
-	localSdfData.resize( resolution.x * resolution.y * resolution.z );
+	localSdfData.resize( resolution.x * resolution.y * resolution.z, 0 );
 	auto locSdfDataPtr = localSdfData.hostPtr();
 
 //	printf("%d:  input [%d %d %d], initial [%d %d %d], start [%d %d %d]\n",
@@ -378,7 +374,6 @@ void Wall::prepareRelevantSdfPiece(const float* fullSdfData, float3 extendedDoma
 				const int origIy = (j+startId.y + initialSdfResolution.y) % initialSdfResolution.y;
 				const int origIz = (k+startId.z + initialSdfResolution.z) % initialSdfResolution.z;
 
-				// FIXME: AAAAAAAAAAAAAAAAA MINUS
 				locSdfDataPtr[ (k*resolution.y + j)*resolution.x + i ] =
 						fullSdfData[ (origIz*initialSdfResolution.y + origIy)*initialSdfResolution.x + origIx ];
 			}
@@ -430,14 +425,14 @@ void Wall::createSdf(MPI_Comm& comm, float3 subDomainStart, float3 subDomainSize
 			resolutionBeforeInterpolation, offset, localSdfData);
 
 	// Interpolate
-	sdfRawData.resize(sdfInfo.resolution.x * sdfInfo.resolution.y * sdfInfo.resolution.z);
+	sdfRawData.resize(sdfInfo.resolution.x * sdfInfo.resolution.y * sdfInfo.resolution.z, 0);
 
 	dim3 threads(8, 8, 8);
 	dim3 blocks((sdfInfo.resolution.x+threads.x-1) / threads.x,
 				(sdfInfo.resolution.y+threads.y-1) / threads.y,
 				(sdfInfo.resolution.z+threads.z-1) / threads.z);
 
-	localSdfData.uploadToDevice();
+	localSdfData.uploadToDevice(0);
 	cubicInterpolate3D<<< blocks, threads >>>(localSdfData.devPtr(), resolutionBeforeInterpolation, initialSdfH,
 			sdfRawData.devPtr(), sdfInfo.resolution, sdfInfo.h, offset, lenScalingFactor);
 
@@ -468,36 +463,38 @@ void Wall::createSdf(MPI_Comm& comm, float3 subDomainStart, float3 subDomainSize
 	texDesc.normalizedCoords = 0;
 
 	CUDA_Check( cudaCreateTextureObject(&sdfInfo.sdfTex, &resDesc, &texDesc, nullptr) );
+
+	CUDA_Check( cudaDeviceSynchronize() );
 }
 
 void Wall::freezeParticles(ParticleVector* pv)
 {
+	CUDA_Check( cudaDeviceSynchronize() );
+
 	PinnedBuffer<int> nFrozen(1), nRemaining(1), nBoundaryCells(1);
 
-	nFrozen.clear();
-	countFrozen<<< (pv->local()->size() + 127) / 128, 128 >>>((float4*)pv->local()->coosvels.devPtr(), pv->local()->size(), sdfInfo, nFrozen.devPtr());
-	nFrozen.downloadFromDevice();
+	nFrozen.clear(0);
+	countFrozen<<< (pv->local()->size() + 127) / 128, 128, 0, 0 >>>((float4*)pv->local()->coosvels.devPtr(), pv->local()->size(), sdfInfo, nFrozen.devPtr());
+	nFrozen.downloadFromDevice(0);
 
-	frozen->local()->resize(nFrozen.hostPtr()[0]);
+	frozen->local()->resize(nFrozen.hostPtr()[0], 0);
 	frozen->mass = pv->mass;
 	frozen->domainSize = pv->domainSize;
 
 	info("Freezing %d pv", nFrozen.hostPtr()[0]);
 
-	nFrozen.   clear();
-	nRemaining.clear();
+	nFrozen.   clear(0);
+	nRemaining.clear(0);
 
-	PinnedBuffer<Particle> tmp(pv->local()->size());
-	collectFrozen<<< (pv->local()->size() + 127) / 128, 128 >>>( (float4*)pv->local()->coosvels.devPtr(), pv->local()->size(), sdfInfo,
+	PinnedBuffer<Particle> tmp(pv->local()->size(), 0);
+	collectFrozen<<< (pv->local()->size() + 127) / 128, 128, 0, 0 >>>( (float4*)pv->local()->coosvels.devPtr(), pv->local()->size(), sdfInfo,
 			(float4*)tmp.devPtr(), (float4*)frozen->local()->coosvels.devPtr(),
 			nRemaining.devPtr(), nFrozen.devPtr());
-	nRemaining.downloadFromDevice();
-	nFrozen.   downloadFromDevice();
+	nRemaining.downloadFromDevice(0, false);
+	nFrozen.   downloadFromDevice(0);
 
-
-	CUDA_Check( cudaStreamSynchronize(0) );
-	containerSwap(pv->local()->coosvels, tmp);
-	pv->local()->resize(nRemaining.hostPtr()[0]);
+	containerSwap(pv->local()->coosvels, tmp, 0);
+	pv->local()->resize(nRemaining.hostPtr()[0], 0);
 	pv->local()->changedStamp++;
 	info("Keeping %d pv", nRemaining.hostPtr()[0]);
 

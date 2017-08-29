@@ -1,5 +1,6 @@
 #pragma once
 
+#include <core/containers.h>
 #include <core/datatypes.h>
 #include <core/logger.h>
 
@@ -42,7 +43,6 @@ private:
 	const float3 margin3{1, 1, 1};
 
 	std::string sdfFileName;
-	float _creationTime;
 
 	// TODO:
 	const float rc = 1.0f;
@@ -54,7 +54,7 @@ private:
 
 public:
 
-	Wall(std::string name, std::string sdfFileName, float3 sdfH, float _creationTime);
+	Wall(std::string name, std::string sdfFileName, float3 sdfH);
 
 	void createSdf(MPI_Comm& comm, float3 subDomainStart, float3 subDomaintSize, float3 globalDomainSize);
 	void freezeParticles(ParticleVector* pv);
@@ -64,5 +64,4 @@ public:
 	void check(Particle* parts, int n, cudaStream_t stream);
 
 	ParticleVector* getFrozen() { return frozen; }
-	float creationTime() { return _creationTime; }
 };

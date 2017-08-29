@@ -57,18 +57,18 @@ Avg3DPlugin::Avg3DPlugin(std::string name, std::string pvNames, int sampleEvery,
 	nSamples(0)
 {}
 
-void Avg3DPlugin::setup(Simulation* sim, cudaStream_t stream, const MPI_Comm& comm, const MPI_Comm& interComm)
+void Avg3DPlugin::setup(Simulation* sim, const MPI_Comm& comm, const MPI_Comm& interComm)
 {
-	SimulationPlugin::setup(sim, stream, comm, interComm);
+	SimulationPlugin::setup(sim, comm, interComm);
 
 	// TODO: this should be reworked if the domains are allowed to have different size
 	resolution = make_int3( floorf(sim->subDomainSize / binSize) );
 	binSize = sim->subDomainSize / make_float3(resolution);
 
 	const int total = resolution.x * resolution.y * resolution.z;
-	if (needDensity)  density .resize(total);
-	if (needMomentum) momentum.resize(total);
-	if (needForce)    force   .resize(total);
+	if (needDensity)  density .resize(total, 0);
+	if (needMomentum) momentum.resize(total, 0);
+	if (needForce)    force   .resize(total, 0);
 
 	std::stringstream sstream(pvNames);
 	std::string pvName;
@@ -79,14 +79,9 @@ void Avg3DPlugin::setup(Simulation* sim, cudaStream_t stream, const MPI_Comm& co
 		splitPvNames.push_back(pvName);
 	}
 
-	density.pushStream(stream);
-	density.clearDevice();
-
-	momentum.pushStream(stream);
-	momentum.clearDevice();
-
-	force.pushStream(stream);
-	force.clearDevice();
+	density.clear(0);
+	momentum.clear(0);
+	force.clear(0);
 
 	for (auto& nm : splitPvNames)
 	{
@@ -104,7 +99,7 @@ void Avg3DPlugin::setup(Simulation* sim, cudaStream_t stream, const MPI_Comm& co
 
 
 
-void Avg3DPlugin::afterIntegration()
+void Avg3DPlugin::afterIntegration(cudaStream_t stream)
 {
 	if (currentTimeStep % sampleEvery != 0 || currentTimeStep == 0) return;
 
@@ -125,7 +120,7 @@ void Avg3DPlugin::afterIntegration()
 	nSamples++;
 }
 
-void Avg3DPlugin::serializeAndSend()
+void Avg3DPlugin::serializeAndSend(cudaStream_t stream)
 {
 	if (currentTimeStep % dumpEvery != 0 || currentTimeStep == 0) return;
 
@@ -134,24 +129,24 @@ void Avg3DPlugin::serializeAndSend()
 	{
 		int sz = momentum.size();
 		scaleVec<<< (sz+127)/128, 128, 0, stream >>> ( sz, momentum.devPtr(), density.devPtr());
-		momentum.downloadFromDevice();
-		momentum.clearDevice();
+		momentum.downloadFromDevice(stream);
+		momentum.clearDevice(stream);
 	}
 
 	if (needForce)
 	{
 		int sz = force.size();
 		scaleVec<<< (sz+127)/128, 128, 0, stream >>> ( sz, force.devPtr(),    density.devPtr());
-		force.downloadFromDevice();
-		force.clearDevice();
+		force.downloadFromDevice(stream);
+		force.clearDevice(stream);
 	}
 
 	if (needDensity)
 	{
 		int sz = density.size();
 		scaleDensity<<< (sz+127)/128, 128, 0, stream >>> ( sz, density.devPtr(), 1.0 / (nSamples * binSize.x*binSize.y*binSize.z) );
-		density.downloadFromDevice();
-		density.clearDevice();
+		density.downloadFromDevice(stream);
+		density.clearDevice(stream);
 	}
 
 	debug2("Plugin %s is sending now data", name.c_str());

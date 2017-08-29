@@ -50,17 +50,14 @@ __global__ void totalMomentumEnergy(const float4* coosvels, const float mass, in
 	}
 }
 
-void SimulationStats::afterIntegration()
+void SimulationStats::afterIntegration(cudaStream_t stream)
 {
 	if (currentTimeStep % fetchEvery != 0) return;
 
 	auto& pvs = sim->getParticleVectors();
 
-	momentum.pushStream(stream);
-	energy  .pushStream(stream);
-
-	momentum.clear();
-	energy  .clear();
+	momentum.clear(stream);
+	energy  .clear(stream);
 
 	nparticles = 0;
 	for (auto& pv : pvs)
@@ -69,13 +66,13 @@ void SimulationStats::afterIntegration()
 		nparticles += pv->local()->size();
 	}
 
-	momentum.downloadFromDevice();
-	energy  .downloadFromDevice();
+	momentum.downloadFromDevice(stream, false);
+	energy  .downloadFromDevice(stream);
 
 	needToDump = true;
 }
 
-void SimulationStats::serializeAndSend()
+void SimulationStats::serializeAndSend(cudaStream_t stream)
 {
 	if (needToDump)
 	{
