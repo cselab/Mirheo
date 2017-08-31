@@ -130,17 +130,14 @@ __global__ void countFrozen(const float4* pv, const int np, Wall::SdfInfo sdfInf
 	if (pid >= np) return;
 
 	const float4 coo = pv[2*pid];
-
 	const float sdf = evalSdf(coo, sdfInfo);
 
 	if (sdf > 0.0f && sdf < 1.2f)
-	{
 		atomicAggInc(nFrozen);
-	}
 }
 
 __global__ void collectFrozen(const float4* input, const int np, Wall::SdfInfo sdfInfo,
-		float4* remaining, float4* frozen, int* nRemaining, int* nFrozen)
+		float4* frozen, int* nFrozen)
 {
 	const int pid = blockIdx.x * blockDim.x + threadIdx.x;
 	if (pid >= np) return;
@@ -150,13 +147,6 @@ __global__ void collectFrozen(const float4* input, const int np, Wall::SdfInfo s
 
 	const float sdf = evalSdf(coo, sdfInfo);
 
-	if (sdf <= 0.0f)
-	{
-		const int ind = atomicAggInc(nRemaining);
-		remaining[2*ind] = coo;
-		remaining[2*ind + 1] = vel;
-	}
-
 	if (sdf > 0.0f && sdf < 1.2f)
 	{
 		const int ind = atomicAggInc(nFrozen);
@@ -165,10 +155,48 @@ __global__ void collectFrozen(const float4* input, const int np, Wall::SdfInfo s
 	}
 }
 
+
+__global__ void countRemaining(const float4* pv, const int np, Wall::SdfInfo sdfInfo, int* nRemaining)
+{
+	const float tolerance = 1e-6f;
+
+	const int pid = blockIdx.x * blockDim.x + threadIdx.x;
+	if (pid >= np) return;
+
+	const float4 coo = pv[2*pid];
+	const float sdf = evalSdf(coo, sdfInfo);
+
+	if (sdf <= -tolerance)
+		atomicAggInc(nRemaining);
+}
+
+__global__ void collectRemaining(const float4* input, const int np, Wall::SdfInfo sdfInfo,
+		float4* remaining, int* nRemaining)
+{
+	const float tolerance = 1e-6f;
+
+	const int pid = blockIdx.x * blockDim.x + threadIdx.x;
+	if (pid >= np) return;
+
+	const float4 coo = input[2*pid];
+	const float4 vel = input[2*pid+1];
+
+	const float sdf = evalSdf(coo, sdfInfo);
+
+	if (sdf <= -tolerance)
+	{
+		const int ind = atomicAggInc(nRemaining);
+		remaining[2*ind] = coo;
+		remaining[2*ind + 1] = vel;
+	}
+}
+
+
+
 __device__ inline bool isCellOnBoundary(float3 cornerCoo, float3 len, Wall::SdfInfo sdfInfo)
 {
 	// About maximum distance a particle can cover in one step
-	const float tol = 0.5f;
+	const float tol = 0.25f;
 
 #pragma unroll
 	for (int i=0; i<2; i++)
@@ -218,10 +246,12 @@ __global__ void getBoundaryCells(CellListInfo cinfo, Wall::SdfInfo sdfInfo,
 	}
 }
 
-__launch_bounds__(128, 8)
 __global__ void bounceSDF(const int* wallCells, const int nWallCells, const uint* __restrict__ cellsStartSize, CellListInfo cinfo,
 		Wall::SdfInfo sdfInfo, float4* coosvels, const float dt)
 {
+	const int maxIters = 20;
+	const float corrStep = (2.0f / (float)maxIters) * dt;
+
 	const int tid = blockIdx.x * blockDim.x + threadIdx.x;
 	if (tid >= nWallCells) return;
 	const int cid = wallCells[tid];
@@ -231,12 +261,24 @@ __global__ void bounceSDF(const int* wallCells, const int nWallCells, const uint
 	for (int pid = startSize.x; pid < startSize.x + startSize.y; pid++)
 	{
 		Particle p(coosvels[2*pid], coosvels[2*pid+1]);
+		if (evalSdf(p.r, sdfInfo) <= 0.0f) continue;
+
 		float3 oldCoo = p.r - p.u*dt;
 
-		if (evalSdf(p.r, sdfInfo) <= 0.0f) continue;
+		for (int i=0; i<maxIters; i++)
+		{
+			if (evalSdf(oldCoo, sdfInfo) < 0.0f) break;
+			oldCoo -= p.u*corrStep;
+		}
 
 		const float alpha = solveLinSearch([=] (float lambda) { return evalSdf(oldCoo + (p.r-oldCoo)*lambda, sdfInfo); });
 		float3 candidate = (alpha >= 0.0f) ? oldCoo + alpha * (p.r - oldCoo) : oldCoo;
+
+		for (int i=0; i<maxIters; i++)
+		{
+			if (evalSdf(candidate, sdfInfo) < 0.0f) break;
+			candidate -= p.u*corrStep;
+		}
 
 		coosvels[2*pid]     = Float3_int(candidate, p.i1).toFloat4();
 		coosvels[2*pid + 1] = Float3_int(-p.u, p.i2).toFloat4();
@@ -471,32 +513,42 @@ void Wall::freezeParticles(ParticleVector* pv)
 {
 	CUDA_Check( cudaDeviceSynchronize() );
 
-	PinnedBuffer<int> nFrozen(1), nRemaining(1), nBoundaryCells(1);
+	PinnedBuffer<int> nFrozen(1);
 
 	nFrozen.clear(0);
 	countFrozen<<< (pv->local()->size() + 127) / 128, 128, 0, 0 >>>((float4*)pv->local()->coosvels.devPtr(), pv->local()->size(), sdfInfo, nFrozen.devPtr());
 	nFrozen.downloadFromDevice(0);
 
-	frozen->local()->resize(nFrozen.hostPtr()[0], 0);
+	frozen->local()->resize(nFrozen[0], 0);
 	frozen->mass = pv->mass;
 	frozen->domainSize = pv->domainSize;
 
-	info("Freezing %d pv", nFrozen.hostPtr()[0]);
+	info("Freezing %d pv", nFrozen[0]);
 
-	nFrozen.   clear(0);
+	nFrozen.clear(0);
+	collectFrozen<<< (pv->local()->size() + 127) / 128, 128, 0, 0 >>>( (float4*)pv->local()->coosvels.devPtr(), pv->local()->size(), sdfInfo,
+			(float4*)frozen->local()->coosvels.devPtr(), nFrozen.devPtr());
+	nFrozen.downloadFromDevice(0);
+
+	CUDA_Check( cudaDeviceSynchronize() );
+}
+
+void Wall::removeInner(ParticleVector* pv)
+{
+	CUDA_Check( cudaDeviceSynchronize() );
+
+	PinnedBuffer<int> nRemaining(1);
 	nRemaining.clear(0);
 
 	PinnedBuffer<Particle> tmp(pv->local()->size(), 0);
-	collectFrozen<<< (pv->local()->size() + 127) / 128, 128, 0, 0 >>>( (float4*)pv->local()->coosvels.devPtr(), pv->local()->size(), sdfInfo,
-			(float4*)tmp.devPtr(), (float4*)frozen->local()->coosvels.devPtr(),
-			nRemaining.devPtr(), nFrozen.devPtr());
-	nRemaining.downloadFromDevice(0, false);
-	nFrozen.   downloadFromDevice(0);
+	collectRemaining<<< (pv->local()->size() + 127) / 128, 128, 0, 0 >>>( (float4*)pv->local()->coosvels.devPtr(), pv->local()->size(), sdfInfo,
+			(float4*)tmp.devPtr(), nRemaining.devPtr());
+	nRemaining.downloadFromDevice(0);
 
 	containerSwap(pv->local()->coosvels, tmp, 0);
-	pv->local()->resize(nRemaining.hostPtr()[0], 0);
+	pv->local()->resize(nRemaining[0], 0);
 	pv->local()->changedStamp++;
-	info("Keeping %d pv", nRemaining.hostPtr()[0]);
+	info("Keeping %d particles of %s", nRemaining[0], pv);
 
 	CUDA_Check( cudaDeviceSynchronize() );
 }
@@ -509,7 +561,9 @@ void Wall::bounce(float dt, cudaStream_t stream)
 		auto cl = cellLists[i];
 
 		debug2("Bouncing %d %s particles", pv->local()->size(), pv->name.c_str());
-		bounceSDF<<< (boundaryCells[i].size() + 63) / 64, 64, 0, stream >>>(
+
+		const int nthreads = 64;
+		bounceSDF<<< getNblocks(boundaryCells[i].size(), nthreads), nthreads, 0, stream >>>(
 				boundaryCells[i].devPtr(), boundaryCells[i].size(), cl->cellsStartSize.devPtr(), cl->cellInfo(),
 				sdfInfo, (float4*)pv->local()->coosvels.devPtr(), dt);
 	}

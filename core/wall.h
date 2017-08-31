@@ -58,6 +58,7 @@ public:
 
 	void createSdf(MPI_Comm& comm, float3 subDomainStart, float3 subDomaintSize, float3 globalDomainSize);
 	void freezeParticles(ParticleVector* pv);
+	void removeInner(ParticleVector* pv);
 	void attach(ParticleVector* pv, CellList* cl);
 	void bounce(float dt, cudaStream_t stream);
 
