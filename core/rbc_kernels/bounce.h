@@ -84,7 +84,7 @@ __device__ __host__ __forceinline__ void triangleForces(
 
 // find baricentric coordinates of the collision
 // if at least one of the value returned negative there was no collision
-__device__ __host__ __forceinline__ float3 intersectParticleTriangleBaricentric(
+__device__ __forceinline__ float3 intersectParticleTriangleBaricentric(
 		Particle v0, Particle v1, Particle v2, float3 n,
 		Particle p, float dt, float threshold, float& oldSign)
 {
@@ -106,9 +106,16 @@ __device__ __host__ __forceinline__ float3 intersectParticleTriangleBaricentric(
 	float vnew = F(1.0f);
 	oldSign = vold;
 
+	int trid = (blockIdx.x * blockDim.x + threadIdx.x) / warpSize;
+	if (p.i1 == 20886 && trid == 184)
+		printf(" %d with tr %d: %f  ->  %f\n",
+					p.i1, trid, vold, vnew);
+
 	// Particle is far and not crossing
 	// No need for baricentric coordinates, skip it
 	if ( fabs(vnew) > threshold && vold*vnew >= 0.0f ) return make_float3(-1000.0f);
+
+	const float3 C = 0.333333333f * (v0.r+v1.r+v2.r);
 
 	float3 projected;
 	float alpha = 1.0f;
@@ -135,9 +142,17 @@ __device__ __host__ __forceinline__ float3 intersectParticleTriangleBaricentric(
 	float3 r1 = v1.r - v1.u*t;
 	float3 r2 = v2.r - v2.u*t;
 
+	float3 baricentric = computeBaricentric(r0, r1, r2, projected);
+
+	if (p.i1 == 20886)
+		printf(" %d with tr %d: %f  ->  %f , dist to center: %f. T = %f,  bar_coo = %f %f %f,  real coo  %f %f %f\n",
+				p.i1, (blockIdx.x * blockDim.x + threadIdx.x) / warpSize,
+				vold, vnew, sqrtf(dot(p.r - C, p.r - C)), alpha, baricentric.x, baricentric.y, baricentric.z,
+				p.r.x, p.r.y, p.r.z);
+
 	// Return the baricentric coordinates of the projected position
 	// on the corresponding moving triangle
-	return computeBaricentric(r0, r1, r2, projected);
+	return baricentric;
 }
 
 
@@ -148,7 +163,7 @@ __device__ __forceinline__ void bounceParticleArray(
 		float3& f0, float3& f1, float3& f2,
 		float4* coosvels, float particleMass, float vertexMass, const float dt)
 {
-	const int tid = threadIdx.x / warpSize;
+	const int tid = threadIdx.x % warpSize;
 	const float threshold = 2e-6f;
 
 	expandBy(v0.r, v1.r, v2.r, 2.0f*threshold);
@@ -158,6 +173,9 @@ __device__ __forceinline__ void bounceParticleArray(
 	{
 		const int pid = validParticles[i];
 		Particle p(coosvels[2*pid], coosvels[2*pid+1]);
+
+		if (p.i1 == 20886 && (blockIdx.x * blockDim.x + threadIdx.x) / warpSize == 184)
+			printf(" YYYYYYYYYYYAAAAAAAAAAAAAAAAAAAAAAAYYYYYY  pid %d\n", pid);
 
 		float oldSign;
 		float3 baricentricCoo = intersectParticleTriangleBaricentric(v0, v1, v2, n, p, dt, threshold, oldSign);
@@ -169,14 +187,40 @@ __device__ __forceinline__ void bounceParticleArray(
 
 			triangleForces(v0.r, v1.r, v2.r, vertexMass, baricentricCoo, p.u - vtri, particleMass, dt, f0, f1, f2);
 
+			float3 old = p.r;
+
 			float3 newV = 2.0f*vtri-p.u;
 			p.r = coo + threshold * n * ((oldSign > 0) ? 2.0f : -2.0f);
 			p.u = newV;
+
+			if (p.i1 == 20886)
+				printf(" Moving by %d %d!! %f %f %f  ->  %f %f %f\n", blockIdx.x, threadIdx.x, old.x, old.y, old.z, p.r.x, p.r.y, p.r.z);
 
 			coosvels[2*pid]   = Float3_int(p.r, p.i1).toFloat4();
 			coosvels[2*pid+1] = Float3_int(p.u, p.i2).toFloat4();
 		}
 	}
+}
+
+__device__ inline bool isCellCrossingTriangle(float3 cornerCoo, float3 len, float3 n, float3 r0, float tol)
+{
+	int pos = 0, neg = 0;
+
+#pragma unroll
+	for (int i=0; i<2; i++)
+#pragma unroll
+		for (int j=0; j<2; j++)
+#pragma unroll
+			for (int k=0; k<2; k++)
+			{
+				// Value in the cell corner
+				const float3 shift = make_float3(i ? len.x : 0.0f, j ? len.y : 0.0f, k ? len.z : 0.0f);
+				const float s = dot(n, cornerCoo + shift - r0);
+				if (s >  tol) pos++;
+				if (s < -tol) neg++;
+			}
+
+	return (pos != 8 && neg != 8);
 }
 
 //__launch_bounds__(128, 7)
@@ -185,7 +229,8 @@ __global__ void bounceMesh(
 		const int nObj, const int nvertices, const int ntriangles, const int3* __restrict__ triangles, float4* objCoosvels, float* objForces,
 		float particleMass, float vertexMass, const float dt)
 {
-	const float threshold = 0.2f;
+	// About maximum distance a particle can cover in one step
+	const float tol = 0.25f;
 
 	// One warp per triangle
 	const int gid = blockIdx.x * blockDim.x + threadIdx.x;
@@ -196,7 +241,7 @@ __global__ void bounceMesh(
 	if (objId >= nObj) return;
 
 	// Preparation step. Filter out all the cells that don't intersect the triangle
-	const int maxValidCells = 64;
+	const int maxValidCells = 128;
 	const int particleBufSize = 128;
 
 	extern __shared__ int buffer[];
@@ -215,91 +260,65 @@ __global__ void bounceMesh(
 	float3 lo = fminf(v0.r, fminf(v1.r, v2.r));
 	float3 hi = fmaxf(v0.r, fmaxf(v1.r, v2.r));
 
-	const int3 cidLow  = cinfo.getCellIdAlongAxis(lo - 0.5f);
-	const int3 cidHigh = cinfo.getCellIdAlongAxis(hi + 0.5f);
+	if (tid == 0 && trid == 184)
+		printf("   %f %f %f - %f %f %f\n", lo.x, lo.y, lo.z, hi.x, hi.y, hi.z);
+
+
+	const int3 cidLow  = cinfo.getCellIdAlongAxis(lo - tol);
+	const int3 cidHigh = cinfo.getCellIdAlongAxis(hi + tol);
+
+	if (tid == 0 && trid == 184)
+		printf("   %d %d %d - %d %d %d\n", cidLow.x, cidLow.y, cidLow.z, cidHigh.x, cidHigh.y, cidHigh.z);
 
 	const int3 span = cidHigh - cidLow + make_int3(1,1,1);
 	const int totCells = span.x * span.y * span.z;
 
 	for (int i=tid; i<totCells+warpSize; i+=warpSize)
-	{
 		if (i < totCells)
 		{
 			const int3 cid3 = make_int3( i % span.x, (i/span.x) % span.y, i / (span.x*span.y) ) + cidLow;
 
 			float3 v000 = make_float3(cid3) * cinfo.h - cinfo.domainSize*0.5f;
+			bool valid = isCellCrossingTriangle(v000, cinfo.h, n, v0.r, tol);
 
-			float3 v001 = v000 + make_float3(        0,         0, cinfo.h.z);
-			float3 v010 = v000 + make_float3(        0, cinfo.h.y,         0);
-			float3 v011 = v000 + make_float3(        0, cinfo.h.y, cinfo.h.z);
-			float3 v100 = v000 + make_float3(cinfo.h.x,         0,         0);
-			float3 v101 = v000 + make_float3(cinfo.h.x,         0, cinfo.h.z);
-			float3 v110 = v000 + make_float3(cinfo.h.x, cinfo.h.y,         0);
-			float3 v111 = v000 + make_float3(cinfo.h.x, cinfo.h.y, cinfo.h.z);
-
-			int pos = 0;
-			int neg = 0;
-			float tmp;
-
-			tmp = dot(n, v000-v0.r);
-			pos += ( tmp > -threshold );
-			neg += ( tmp <  threshold );
-
-			tmp = dot(n, v001-v0.r);
-			pos += ( tmp > -threshold );
-			neg += ( tmp <  threshold );
-
-			tmp = dot(n, v010-v0.r);
-			pos += ( tmp > -threshold );
-			neg += ( tmp <  threshold );
-
-			tmp = dot(n, v011-v0.r);
-			pos += ( tmp > -threshold );
-			neg += ( tmp <  threshold );
-
-			tmp = dot(n, v100-v0.r);
-			pos += ( tmp > -threshold );
-			neg += ( tmp <  threshold );
-
-			tmp = dot(n, v101-v0.r);
-			pos += ( tmp > -threshold );
-			neg += ( tmp <  threshold );
-
-			tmp = dot(n, v110-v0.r);
-			pos += ( tmp > -threshold );
-			neg += ( tmp <  threshold );
-
-			tmp = dot(n, v111-v0.r);
-			pos += ( tmp > -threshold );
-			neg += ( tmp <  threshold );
-
-
-			if (pos != 8 && neg != 8)
+			if (valid)
 			{
 				int id = atomicAggInc(count);
 				validCells[id] = cinfo.encode(cid3);
 			}
 		}
-	}
-
 
 	// Second step. Make particle queue and process it
 	const int nCells = *count;
 	*count = 0;
 
 	float3 f0 = make_float3(0.0f), f1 = make_float3(0.0f), f2 = make_float3(0.0f);
-	for (int i=tid; i<nCells; i+=warpSize)
+	for (int i=tid; i<nCells+warpSize; i+=warpSize)
 	{
-		int2 start_size = cinfo.decodeStartSize(cellsStartSize[validCells[i]]);
+		if (i < nCells)
+		{
+			int2 start_size = cinfo.decodeStartSize(cellsStartSize[validCells[i]]);
 
-		int id = atomicAdd(count, start_size.y);
-		for (int j = 0; j < start_size.y; j++)
-			validParticles[id + j] = j + start_size.x;
+			int id = atomicAdd(count, start_size.y);
+			for (int j = 0; j < start_size.y; j++)
+			{
+				validParticles[id + j] = j + start_size.x;
+				Particle p(coosvels, j + start_size.x);
+				if (trid == 184 && p.i1 == 20886)
+					printf("  %d  with  %d\n", trid, j + start_size.x);
+			}
+		}
+
+		if (trid == 184)
+			printf("  COUNT %d, %d\n", tid, *count);
 
 		if (*count >= particleBufSize/2)
 		{
 			bounceParticleArray(validParticles, particleBufSize/2, v0, v1, v2, f0, f1, f2, coosvels, particleMass, vertexMass, dt);
 			*count -= particleBufSize/2;
+
+			if (trid == 184)
+				printf("  COUNT %d, %d\n", tid, *count);
 
 			for (int i=tid; i<particleBufSize/2; i+=warpSize)
 				validParticles[i] = validParticles[i + particleBufSize/2];
