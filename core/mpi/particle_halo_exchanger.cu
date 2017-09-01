@@ -88,7 +88,8 @@ void ParticleHaloExchanger::attach(ParticleVector* pv, CellList* cl)
 	particles.push_back(pv);
 	cellLists.push_back(cl);
 
-	const double ndens = (double)pv->local()->size() / (cl->ncells.x * cl->ncells.y * cl->ncells.z * cl->rc*cl->rc*cl->rc);
+	// TODO: change ndens
+	const double ndens = 16;//(double)pv->local()->size() / (cl->ncells.x * cl->ncells.y * cl->ncells.z * cl->rc*cl->rc*cl->rc);
 	const int maxdim = std::max({cl->domainSize.x, cl->domainSize.y, cl->domainSize.z});
 
 	// Sizes of buffers. 0 is side, 1 is edge, 2 is corner

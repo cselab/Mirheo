@@ -22,3 +22,16 @@ struct UniformIC : InitialConditions
 
 	~UniformIC() = default;
 };
+
+struct EllipsoidIC : InitialConditions
+{
+	float mass;
+	float3 axes;
+	int nObjs, objSize;
+
+	EllipsoidIC(pugi::xml_node node);
+
+	void exec(const MPI_Comm& comm, ParticleVector* pv, float3 globalDomainStart, float3 subDomainSize, cudaStream_t stream);
+
+	~EllipsoidIC() = default;
+};

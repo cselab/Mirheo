@@ -30,6 +30,7 @@ int main(int argc, char** argv)
 	{
 		// PVs
 		ParticleVector* dpd  = new ParticleVector(config.child("simulation").child("particle_vector").attribute("name").as_string());
+
 		InitialConditions* dpdIc  = new UniformIC(config.child("simulation").child("particle_vector"));
 		udevice.sim->registerParticleVector(dpd, dpdIc);
 
@@ -53,10 +54,10 @@ int main(int argc, char** argv)
 		udevice.sim->setInteraction("dpd", "wall", "dpd_int");
 
 		SimulationPlugin* temp = new TemperaturizePlugin("temp", {"wall"}, 1.0);
-		udevice.sim->registerPlugin(temp);
+		//udevice.sim->registerPlugin(temp);
 
-		simStat = new SimulationStats("stats", 500);
-		simAvg  = new Avg3DPlugin("averaging", "dpd", 10, 5000, {1, 1, 1}, true, true);
+		simStat = new SimulationStats("stats", 300);
+		simAvg  = new Avg3DPlugin("averaging", "dpd", 10, 300, {1, 1, 1}, true, true);
 	}
 	else
 	{

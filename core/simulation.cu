@@ -359,7 +359,10 @@ void Simulation::run(int nsteps)
 
 				for (auto pv : particleVectors)
 					if (pv != wall->getFrozen())
+					{
+						wall->removeInner(pv);
 						wall->attach(pv, cellListMap[pv][0]);
+					}
 
 				halo->attach( wall->getFrozen(), cellListMap[ wall->getFrozen() ][0] );
 

@@ -10,7 +10,7 @@ NVCCFLAGS += -I../
 
 OBJ_DIR = obj
 
-wall_obj =    scan.o celllist.o test_wall.o pugixml.o components.o integrate.o interactions.o wall.o halo_exchanger.o redistributor.o
+wall_obj =    scan.o celllist.o test_wall.o pugixml.o integrate.o interactions.o initial_conditions.o wall.o particle_exchanger.o particle_halo_exchanger.o particle_redistributor.o
 onerank_obj = scan.o celllist.o halo_exchanger.o dpd.o test_onerank.o redistributor.o integrate.o
 manyranks_obj = scan.o celllist.o test_manyranks.o pugixml.o components.o integrate.o interactions.o wall.o particle_exchanger.o particle_halo_exchanger.o particle_redistributor.o
 halo_obj    = scan.o celllist.o test_halo.o pugixml.o components.o integrate.o interactions.o wall.o particle_exchanger.o particle_halo_exchanger.o
@@ -22,12 +22,16 @@ cells_obj   = scan.o celllist.o test_cells.o pugixml.o initial_conditions.o
 dpd_obj     = scan.o celllist.o test_dpd.o pugixml.o components.o integrate.o interactions.o wall.o
 rigid_obj   = scan.o celllist.o test_rigid.o pugixml.o integrate.o interactions.o particle_exchanger.o particle_halo_exchanger.o particle_redistributor.o bounce.o object_vector.o
 mesh_bounce_obj = test_mesh_bounce.o
+mesh_bounce_full_obj = test_mesh_bounce_full.o scan.o celllist.o pugixml.o integrate.o interactions.o particle_exchanger.o particle_halo_exchanger.o particle_redistributor.o
 scheduler_obj = task_scheduler.o test_scheduler.o
 
 
 default:
 	@echo "Please specify a target!"
-	
+
+test_mesh_bounce_full: $(addprefix $(OBJ_DIR)/,$(mesh_bounce_full_obj))
+	$(NVCC) $(NVCCFLAGS) $(LIBS) $^ -o $@	
+
 test_mesh_bounce: $(addprefix $(OBJ_DIR)/,$(mesh_bounce_obj))
 	$(NVCC) $(NVCCFLAGS) $(LIBS) $^ -o $@
 

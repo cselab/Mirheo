@@ -39,7 +39,7 @@ __global__ void scaleVec(int n, float3* vectorField, const float* density)
 {
 	const int id = threadIdx.x + blockIdx.x*blockDim.x;
 	if (id < n)
-		vectorField[id] /= density[id];
+		vectorField[id] /= (density[id] + 1e-8f);
 }
 
 __global__ void scaleDensity(int n, float* density, const float factor)

@@ -33,10 +33,9 @@ int main(int argc, char ** argv)
 	float3 domainStart = -length / 2.0f;
 	const float rc = 1.0f;
 	ParticleVector dpds("dpd");
-	CellList cells(&dpds, rc, length);
-	cells.makePrimary();
+	CellList* cells = new PrimaryCellList(&dpds, rc, length);
 
-	InitialConditions ic = createIC(config.child("node"));
+	InitialConditions* ic = UniformIC(config.child("node"));
 	ic.exec(MPI_COMM_WORLD, &dpds, {0,0,0}, length);
 
 	const int np = dpds.local()->size();
@@ -45,24 +44,25 @@ int main(int argc, char ** argv)
 	for (int i=0; i<np; i++)
 		initPtr[i] = dpds.local()->coosvels[i];
 
-	cells.setStream(0);
-	cells.build();
+	cells->build(0);
 
 	const float k = 1;
-	const float dt = 0.0025;
-	const float kBT = 1.0;
+	const float dt = 5e-4;
+	const float kBT = 0.0444302;
 	const float gammadpd = 20;
 	const float sigmadpd = sqrt(2 * gammadpd * kBT);
 	const float sigma_dt = sigmadpd / sqrt(dt);
 	const float adpd = 50;
 
-	auto inter = [=] (ParticleVector* pv, CellList* cl, const float t, cudaStream_t stream) {
-		interactionDPD(InteractionType::Regular, pv, pv, cl, t, stream, adpd, gammadpd, sigma_dt, k, rc);
-	};
+	std::string xml = R"(<interaction name="dpd" kbt="1.0" gamma="20" a="50" dt="0.002"/>)";
+	pugi::xml_document config;
+	config.load_string(xml.c_str());
+
+	Interaction *inter = new InteractionDPD(config.child("interaction"));
 
 	for (int i=0; i<1; i++)
 	{
-		dpds.local()->forces.clear();
+		dpds.local()->forces.clear(0);
 		inter(&dpds, &cells, 0, 0);
 
 		cudaDeviceSynchronize();
@@ -73,8 +73,8 @@ int main(int argc, char ** argv)
 	HostBuffer<Force> hacc;
 	HostBuffer<uint> hcellsstart;
 	HostBuffer<uint8_t> hcellssize;
-	hcellsstart.copy(cells.cellsStartSize, 0);
-	hcellssize.copy(cells.cellsSize, 0);
+	hcellsstart.copy(cells->cellsStartSize, 0);
+	hcellssize.copy(cells->cellsSize, 0);
 	hacc.copy(dpds.local()->forces, 0);
 
 	cudaDeviceSynchronize();
@@ -129,13 +129,13 @@ int main(int argc, char ** argv)
 	};
 
 #pragma omp parallel for collapse(3)
-	for (int cx = 0; cx < cells.ncells.x; cx++)
-		for (int cy = 0; cy < cells.ncells.y; cy++)
-			for (int cz = 0; cz < cells.ncells.z; cz++)
+	for (int cx = 0; cx < cells->ncells->x; cx++)
+		for (int cy = 0; cy < cells->ncells->y; cy++)
+			for (int cz = 0; cz < cells->ncells->z; cz++)
 			{
-				const int cid = cells.encode(cx, cy, cz);
+				const int cid = cells->encode(cx, cy, cz);
 
-				const int2 start_size = cells.decodeStartSize(hcellsstart[cid]);
+				const int2 start_size = cells->decodeStartSize(hcellsstart[cid]);
 
 				for (int dstId = start_size.x; dstId < start_size.x + start_size.y; dstId++)
 				{
@@ -145,10 +145,10 @@ int main(int argc, char ** argv)
 						for (int dy = -1; dy <= 1; dy++)
 							for (int dz = -1; dz <= 1; dz++)
 							{
-								const int srcCid = cells.encode(cx+dx, cy+dy, cz+dz);
-								if (srcCid >= cells.totcells || srcCid < 0) continue;
+								const int srcCid = cells->encode(cx+dx, cy+dy, cz+dz);
+								if (srcCid >= cells->totcells || srcCid < 0) continue;
 
-								const int2 srcStart_size = cells.decodeStartSize(hcellsstart[srcCid]);
+								const int2 srcStart_size = cells->decodeStartSize(hcellsstart[srcCid]);
 
 								for (int srcId = srcStart_size.x; srcId < srcStart_size.x + srcStart_size.y; srcId++)
 								{

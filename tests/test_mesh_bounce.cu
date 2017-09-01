@@ -64,10 +64,10 @@ int main()
 
 			float oldSign;
 			float3 oldCoo = p.r - dt*p.u;
-			float3 baricentric = intersectParticleTriangleBaricentric(v0, v1, v2, n, p, dt, 2e-6, oldSign);
+			float3 barycentric = intersectParticleTriangleBarycentric(v0, v1, v2, n, p, dt, 2e-6, oldSign);
 
 			i++;
-			float3 real = baricentric.x*v0.r + baricentric.y*v1.r + baricentric.z*v2.r;
+			float3 real = barycentric.x*v0.r + barycentric.y*v1.r + barycentric.z*v2.r;
 			const float v = dot(real-v0.r, n);
 
 			auto len = [] (float3 v) { return sqrt(dot(v, v)); };
@@ -83,29 +83,29 @@ int main()
 			float3 r2 = v2.r - v2.u*dt;
 
 
-			if ( dot(p.r-v0.r, n) * dot(oldCoo-r0, cross(r1-r0, r2-r0)) < 0 && baricentric.x < -900 )
+			if ( dot(p.r-v0.r, n) * dot(oldCoo-r0, cross(r1-r0, r2-r0)) < 0 && barycentric.x < -900 )
 			{
 				printf("1. [%f %f %f]  -->  [%f %f %f] (%f -> %f):   [%f %f %f] ==> [%f %f %f] (%f)\n",
 						oldCoo.x, oldCoo.y, oldCoo.z, p.r.x, p.r.y, p.r.z,
 						dot(oldCoo-v0.r, n), dot(p.r-v0.r, n),
-						baricentric.x, baricentric.y, baricentric.z,
+						barycentric.x, barycentric.y, barycentric.z,
 						real.x, real.y, real.z, v);
 				continue;
 			}
 
-			if ( (a1+a2+a3) - atot > 1e-4 && (baricentric.x >= 0 && baricentric.y >= 0 && baricentric.z >= 0) )
+			if ( (a1+a2+a3) - atot > 1e-4 && (barycentric.x >= 0 && barycentric.y >= 0 && barycentric.z >= 0) )
 			{
 				printf("2. %f + %f + %f = %f  vs  %f\n", a1, a2, a3, a1+a2+a3, atot);
 				printf("2. [%f %f %f]  -->  [%f %f %f] (%f -> %f):   [%f %f %f] ==> [%f %f %f] (%f)\n",
 						oldCoo.x, oldCoo.y, oldCoo.z, p.r.x, p.r.y, p.r.z,
 						dot(oldCoo-v0.r, n), dot(p.r-v0.r, n),
-						baricentric.x, baricentric.y, baricentric.z,
+						barycentric.x, barycentric.y, barycentric.z,
 						real.x, real.y, real.z, v);
 				continue;
 			}
 
 
-			if (baricentric.x < -900)
+			if (barycentric.x < -900)
 				real = p.r;
 
 			real = real + 2e-6f * n * ((oldSign > 0) ? 2.0f : -2.0f);
@@ -117,7 +117,7 @@ int main()
 				printf("3. [%f %f %f]  -->  [%f %f %f] (%f -> %f):   [%f %f %f] ==> [%f %f %f] (%f,  %f)\n",
 						oldCoo.x, oldCoo.y, oldCoo.z, p.r.x, p.r.y, p.r.z,
 						dot(oldCoo-v0.r, n), dot(p.r-v0.r, n),
-						baricentric.x, baricentric.y, baricentric.z,
+						barycentric.x, barycentric.y, barycentric.z,
 						real.x, real.y, real.z, oldSign, dot(real-v0.r, n));
 
 				continue;
@@ -139,20 +139,20 @@ int main()
 			float oldSign;
 
 			float3 oldCoo = p.r - dt*p.u;
-			float3 baricentric = intersectParticleTriangleBaricentric(v0, v1, v2, n, p, dt, 2e-6, oldSign);
+			float3 barycentric = intersectParticleTriangleBarycentric(v0, v1, v2, n, p, dt, 2e-6, oldSign);
 
-			if (baricentric.x >= 0.0f && baricentric.y >= 0.0f && baricentric.z >= 0.0f)
+			if (barycentric.x >= 0.0f && barycentric.y >= 0.0f && barycentric.z >= 0.0f)
 			{
 				i++;
 
-				float3 real = baricentric.x*v0.r + baricentric.y*v1.r + baricentric.z*v2.r;
-				float3 vtri = baricentric.x*v0.u + baricentric.y*v1.u + baricentric.z*v2.u;
+				float3 real = barycentric.x*v0.r + barycentric.y*v1.r + barycentric.z*v2.r;
+				float3 vtri = barycentric.x*v0.u + barycentric.y*v1.u + barycentric.z*v2.u;
 
 
 				float3 f0 = make_float3(0.0f), f1 = make_float3(0.0f), f2 = make_float3(0.0f);
 
 				float3 U = p.u - vtri;
-				triangleForces(v0.r, v1.r, v2.r, 1.0f, baricentric, p.u - vtri, 1.0f, dt, f0, f1, f2);
+				triangleForces(v0.r, v1.r, v2.r, 1.0f, barycentric, p.u - vtri, 1.0f, dt, f0, f1, f2);
 
 				float3 mom0 = p.u + v0.u + v1.u + v2.u;
 				float3 mom  = p.u - 2*U + v0.u + v1.u + v2.u + (f0 + f1 + f2)*dt;

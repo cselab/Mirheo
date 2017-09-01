@@ -80,7 +80,8 @@ void ParticleRedistributor::attach(ParticleVector* pv, CellList* cl)
 	if (dynamic_cast<PrimaryCellList*>(cl) == nullptr)
 		die("Redistributor (for %s) should be used with the primary cell-lists only!", pv->name.c_str());
 
-	const double ndens = (double)pv->local()->size() / (cl->ncells.x * cl->ncells.y * cl->ncells.z * cl->rc*cl->rc*cl->rc);
+	// TODO: change ndens
+	const double ndens = 16;//(double)pv->local()->size() / (cl->ncells.x * cl->ncells.y * cl->ncells.z * cl->rc*cl->rc*cl->rc);
 	const int maxdim = std::max({cl->domainSize.x, cl->domainSize.y, cl->domainSize.z});
 
 	// Sizes of buffers. 0 is side, 1 is edge, 2 is corner

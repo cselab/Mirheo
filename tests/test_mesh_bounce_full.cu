@@ -15,6 +15,8 @@
 
 #include <core/rbc_kernels/bounce.h>
 
+#include <core/cub/device/device_radix_sort.cuh>
+
 #include "timer.h"
 #include <unistd.h>
 
@@ -79,9 +81,9 @@ __global__ void checkIn(const Particle* ps, float3 center, int n)
 	Particle p = ps[pid];
 
 	float v = sqrtf(dot(p.r-center, p.r-center));
-	//if ( v < 4.9 )
+	if ( v < 4.9 )
 	//if (p.i1 == 28218)
-	//	printf("bad particle %d  value  %f pos %f %f %f\n", p.i1, v, p.r.x, p.r.y, p.r.z);
+		printf("bad particle %d  value  %f pos %f %f %f\n", p.i1, v, p.r.x, p.r.y, p.r.z);
 }
 
 
@@ -118,21 +120,21 @@ void readIC(std::string fname, MembraneMesh& mesh, PinnedBuffer<Particle>* coosv
 		fin >> dummy2 >> mesh.triangles[i].x >> mesh.triangles[i].y >> mesh.triangles[i].z;
 		if (i == 185 || i == 184)
 			printf("triangle %d: %f %f %f,  %f %f %f,  %f %f %f\n", i,
-					(*coosvels)[mesh.triangles[i].x].r.x, (*coosvels)[mesh.triangles[i].x].r.y, (*coosvels)[mesh.triangles[i].x].r.z,
-					(*coosvels)[mesh.triangles[i].y].r.x, (*coosvels)[mesh.triangles[i].y].r.y, (*coosvels)[mesh.triangles[i].y].r.z,
-					(*coosvels)[mesh.triangles[i].z].r.x, (*coosvels)[mesh.triangles[i].z].r.y, (*coosvels)[mesh.triangles[i].z].r.z);
+					(*coosvels)[mesh.triangles[i].x].r.x,
+					(*coosvels)[mesh.triangles[i].x].r.y,
+					(*coosvels)[mesh.triangles[i].x].r.z,
+
+					(*coosvels)[mesh.triangles[i].y].r.x,
+					(*coosvels)[mesh.triangles[i].y].r.y,
+					(*coosvels)[mesh.triangles[i].y].r.z,
+
+					(*coosvels)[mesh.triangles[i].z].r.x,
+					(*coosvels)[mesh.triangles[i].z].r.y,
+					(*coosvels)[mesh.triangles[i].z].r.z);
 	}
 
 	mesh.triangles.uploadToDevice(0);
 	coosvels->uploadToDevice(0);
-}
-
-__global__ void setBig(int* tm, int n)
-{
-	const int id = blockIdx.x * blockDim.x + threadIdx.x;
-	if (id >= n) return;
-
-	tm[id] = __float_as_int(1000.0f);
 }
 
 
@@ -169,10 +171,10 @@ int main(int argc, char ** argv)
 
 	MembraneMesh mesh;
 	PinnedBuffer<Particle> meshPV;
-	PinnedBuffer<float4> frc;
+	PinnedBuffer<float4> meshFrcs;
 	readIC("../walls/sphere.off", mesh, &meshPV);
-	frc.resize(mesh.nvertices, 0);
-	frc.clear(0);
+	meshFrcs.resize(mesh.nvertices, 0);
+	meshFrcs.clear(0);
 
 	ParticleVector dpds("dpd");
 	CellList *cells = new PrimaryCellList(&dpds, rc, length);
@@ -218,8 +220,9 @@ int main(int argc, char ** argv)
 	dpds.domainSize = length;
 	dpds.mass = 1.0f;
 	dpds.local()->coosvels.uploadToDevice(defStream);
-	DeviceBuffer<int> collisionTime(c);
-	PinnedBuffer<Particle> buffer(c);
+	PinnedBuffer<int> nCollisions(1);
+	DeviceBuffer<int2> collisionTable, tmp_collisionTable;
+	DeviceBuffer<char> sortBuffer;
 
 	ParticleHaloExchanger halo(cartComm);
 	halo.attach(&dpds, cells);
@@ -228,7 +231,7 @@ int main(int argc, char ** argv)
 
 	CUDA_Check( cudaStreamSynchronize(defStream) );
 
-	const int niters = 100;
+	const int niters = 50;
 	const float dt = 0.01;
 
 	std::string xml = R"(<interaction name="dpd" kbt="1.0" gamma="20" a="50" dt="0.01"/>
@@ -257,7 +260,8 @@ int main(int argc, char ** argv)
 		for (int j=0; j<pv->local()->size(); j++)
 		{
 			if (ptr[j].s21 == 42)
-				printf("??? %4d :  [%f %f %f] [%f %f %f]\n", ptr[j].s21, ptr[j].r.x, ptr[j].r.y, ptr[j].r.z, ptr[j].u.x, ptr[j].u.y, ptr[j].u.z);
+				printf("??? %4d :  [%f %f %f] [%f %f %f]\n",
+						ptr[j].s21, ptr[j].r.x, ptr[j].r.y, ptr[j].r.z, ptr[j].u.x, ptr[j].u.y, ptr[j].u.z);
 		}
 	};
 
@@ -279,7 +283,8 @@ int main(int argc, char ** argv)
 //		if (i % 100 == 0)
 //		{
 //			printf("Iteration %d, temp %f, momentum  %.2e %.2e %.2e\n",
-//					i, energy[0]/ ( (3/2.0)*nparticles ), momentum[0] / nparticles, momentum[1] / nparticles, momentum[2] / nparticles);
+//					i, energy[0]/ ( (3/2.0)*nparticles )
+//					momentum[0] / nparticles, momentum[1] / nparticles, momentum[2] / nparticles);
 //		}
 
 		cells->build(defStream);
@@ -297,24 +302,39 @@ int main(int argc, char ** argv)
 		noflow->stage1(&dpds, defStream);
 		noflow->stage2(&dpds, defStream);
 
-		const int total = 32*mesh.ntriangles;
 		const int nthreads = 128;
 
-		const int nwarps = nthreads / 32;
-		const int shmem = nwarps*(1 + 128 + 128) * sizeof(int);
+		nCollisions.clear(0);
+		collisionTable.resize(2*mesh.ntriangles, 0);
+		tmp_collisionTable.resize(2*mesh.ntriangles, 0);
+		meshFrcs.clear(0);
 
-		setBig<<< getNblocks(collisionTime.size(), nthreads), nthreads >>> (collisionTime.devPtr(), collisionTime.size());
+		findBouncesInMesh<<<getNblocks(mesh.ntriangles, nthreads), nthreads>>> (
+				(const float4*)dpds.local()->coosvels.devPtr(), cells->cellsStartSize.devPtr(),
+				cells->cellInfo(), nCollisions.devPtr(), collisionTable.devPtr(),
+				1, mesh.nvertices, mesh.ntriangles, mesh.triangles.devPtr(), (float4*)meshPV.devPtr(), dt);
 
-		buffer.copy(dpds.local()->coosvels, 0);
+		nCollisions.downloadFromDevice(0);
 
-		bounceMesh<<<getNblocks(total, nthreads), nthreads, shmem>>> (
-				(const float4*)dpds.local()->coosvels.devPtr(), cells->cellsStartSize.devPtr(), cells->cellInfo(), collisionTime.devPtr(), (float4*) buffer.devPtr(),
-				1, mesh.nvertices, mesh.ntriangles, mesh.triangles.devPtr(), (float4*)meshPV.devPtr(), (float*)frc.devPtr(),
-				1.0f, 0.5f, dt);
+		printf("Found %d collisions\n", nCollisions[0]);
 
-		containerSwap(dpds.local()->coosvels, buffer, 0);
+		size_t bufSize;
+		// Query for buffer size
+		cub::DeviceRadixSort::SortKeys(nullptr, bufSize, (int64_t*)collisionTable.devPtr(), (int64_t*)tmp_collisionTable.devPtr(), nCollisions[0], 0, 32);
+		// Allocate temporary storage
+		sortBuffer.resize(bufSize, 0);
+		// Run sorting operation
+		cub::DeviceRadixSort::SortKeys(sortBuffer.devPtr(), bufSize, (int64_t*)collisionTable.devPtr(), (int64_t*)tmp_collisionTable.devPtr(), nCollisions[0], 0, 32);
 
-		checkIn<<< getNblocks(dpds.local()->size(), nthreads), nthreads >>> (dpds.local()->coosvels.devPtr(), center, dpds.local()->size());
+		performBouncing<<< getNblocks(nCollisions[0], nthreads), nthreads >>> (
+				nCollisions[0], tmp_collisionTable.devPtr(),
+				(float4*)dpds.local()->coosvels.devPtr(), dpds.mass,
+				mesh.nvertices, mesh.ntriangles, mesh.triangles.devPtr(), (float4*)meshPV.devPtr(), (float*)meshFrcs.devPtr(), 1.0f,
+				dt);
+
+
+		checkIn<<< getNblocks(dpds.local()->size(), nthreads), nthreads >>> (
+				dpds.local()->coosvels.devPtr(), center, dpds.local()->size());
 
 
 		CUDA_Check( cudaStreamSynchronize(defStream) );
@@ -322,7 +342,8 @@ int main(int argc, char ** argv)
 		redist.init(defStream);
 		redist.finalize();
 
-		printf("It %d\n\n", i);
+		//if (i%100==0)
+			printf("It %d\n\n", i);
 	}
 
 	double elapsed = tm.elapsed() * 1e-9;
