@@ -3,7 +3,7 @@
 #include <core/rbc_vector.h>
 #include <core/cuda_common.h>
 
-__global__ void computeAreaAndVolume(const float4* coosvels, MembraneMesh mesh, int nRbcs, float* areas, float* volumes)
+__global__ void computeAreaAndVolume(const float4* coosvels, ObjectMesh mesh, int nRbcs, float* areas, float* volumes)
 {
 	float2 a_v = make_float2(0.0f, 0.0f);
 	const int cid = blockIdx.y;

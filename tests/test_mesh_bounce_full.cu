@@ -13,10 +13,6 @@
 #include <core/interactions.h>
 #include <core/bounce.h>
 
-#include <core/rbc_kernels/bounce.h>
-
-#include <core/cub/device/device_radix_sort.cuh>
-
 #include "timer.h"
 #include <unistd.h>
 
@@ -87,7 +83,7 @@ __global__ void checkIn(const Particle* ps, float3 center, int n)
 }
 
 
-void readIC(std::string fname, MembraneMesh& mesh, PinnedBuffer<Particle>* coosvels)
+void readIC(std::string fname, ObjectMesh& mesh, PinnedBuffer<Particle>* coosvels)
 {
 	std::ifstream fin(fname);
 
@@ -169,12 +165,9 @@ int main(int argc, char ** argv)
 	const float rc = 1.0f;
 	const int ndens = 8;
 
-	MembraneMesh mesh;
+	ObjectMesh mesh;
 	PinnedBuffer<Particle> meshPV;
-	PinnedBuffer<float4> meshFrcs;
 	readIC("../walls/sphere.off", mesh, &meshPV);
-	meshFrcs.resize(mesh.nvertices, 0);
-	meshFrcs.clear(0);
 
 	ParticleVector dpds("dpd");
 	CellList *cells = new PrimaryCellList(&dpds, rc, length);
@@ -220,9 +213,14 @@ int main(int argc, char ** argv)
 	dpds.domainSize = length;
 	dpds.mass = 1.0f;
 	dpds.local()->coosvels.uploadToDevice(defStream);
-	PinnedBuffer<int> nCollisions(1);
-	DeviceBuffer<int2> collisionTable, tmp_collisionTable;
-	DeviceBuffer<char> sortBuffer;
+
+	ObjectVector ov("mesh", mesh.nvertices, 1);
+
+	ov.mesh.ntriangles = mesh.ntriangles;
+	ov.mesh.nvertices  = mesh.nvertices;
+	ov.mesh.triangles.copy(mesh.triangles, 0);
+
+	ov.local()->coosvels.copy(meshPV, 0);
 
 	ParticleHaloExchanger halo(cartComm);
 	halo.attach(&dpds, cells);
@@ -242,6 +240,9 @@ int main(int argc, char ** argv)
 	Interaction *inter = new InteractionDPD(config.child("interaction"));
 	Integrator  *noflow = new IntegratorVVNoFlow(config.child("integrate"));
 	Integrator  *rigInt = new IntegratorVVRigid(config.child("integrate"));
+
+	Bounce* mbounce = new BounceFromMesh(dt);
+	mbounce->setup(&ov, &dpds, cells);
 
 	printf("GPU execution\n");
 
@@ -302,37 +303,10 @@ int main(int argc, char ** argv)
 		noflow->stage1(&dpds, defStream);
 		noflow->stage2(&dpds, defStream);
 
-		const int nthreads = 128;
+		ov.local()->forces.clear(0);
+		mbounce->bounceLocal(defStream);
 
-		nCollisions.clear(0);
-		collisionTable.resize(2*mesh.ntriangles, 0);
-		tmp_collisionTable.resize(2*mesh.ntriangles, 0);
-		meshFrcs.clear(0);
-
-		findBouncesInMesh<<<getNblocks(mesh.ntriangles, nthreads), nthreads>>> (
-				(const float4*)dpds.local()->coosvels.devPtr(), cells->cellsStartSize.devPtr(),
-				cells->cellInfo(), nCollisions.devPtr(), collisionTable.devPtr(),
-				1, mesh.nvertices, mesh.ntriangles, mesh.triangles.devPtr(), (float4*)meshPV.devPtr(), dt);
-
-		nCollisions.downloadFromDevice(0);
-
-		printf("Found %d collisions\n", nCollisions[0]);
-
-		size_t bufSize;
-		// Query for buffer size
-		cub::DeviceRadixSort::SortKeys(nullptr, bufSize, (int64_t*)collisionTable.devPtr(), (int64_t*)tmp_collisionTable.devPtr(), nCollisions[0], 0, 32);
-		// Allocate temporary storage
-		sortBuffer.resize(bufSize, 0);
-		// Run sorting operation
-		cub::DeviceRadixSort::SortKeys(sortBuffer.devPtr(), bufSize, (int64_t*)collisionTable.devPtr(), (int64_t*)tmp_collisionTable.devPtr(), nCollisions[0], 0, 32);
-
-		performBouncing<<< getNblocks(nCollisions[0], nthreads), nthreads >>> (
-				nCollisions[0], tmp_collisionTable.devPtr(),
-				(float4*)dpds.local()->coosvels.devPtr(), dpds.mass,
-				mesh.nvertices, mesh.ntriangles, mesh.triangles.devPtr(), (float4*)meshPV.devPtr(), (float*)meshFrcs.devPtr(), 1.0f,
-				dt);
-
-
+		int nthreads = 128;
 		checkIn<<< getNblocks(dpds.local()->size(), nthreads), nthreads >>> (
 				dpds.local()->coosvels.devPtr(), center, dpds.local()->size());
 

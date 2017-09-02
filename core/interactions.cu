@@ -222,7 +222,7 @@ void InteractionRBCMembrane::_compute(InteractionType type, ParticleVector* pv1,
 
 	int nthreads = 128;
 	int nRbcs  = rbcv->local()->nObjects;
-	int nVerts = rbcv->local()->mesh.nvertices;
+	int nVerts = rbcv->mesh.nvertices;
 
 
 	dim3 avThreads(256, 1);
@@ -231,7 +231,7 @@ void InteractionRBCMembrane::_compute(InteractionType type, ParticleVector* pv1,
 //			(float4*)rbcv->local()->coosvels.devPtr(), rbcv->local()->mesh, nRbcs,
 //			rbcv->local()->areas.devPtr(), rbcv->local()->volumes.devPtr());
 
-	int blocks = getNblocks(nRbcs*nVerts*rbcv->local()->mesh.maxDegree, nthreads);
+	int blocks = getNblocks(nRbcs*nVerts*rbcv->mesh.maxDegree, nthreads);
 
 //	computeMembraneForces <<<blocks, nthreads, 0, stream>>> (
 //			(float4*)rbcv->local()->coosvels.devPtr(), rbcv->local()->mesh, nRbcs,

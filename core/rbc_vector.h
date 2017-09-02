@@ -5,23 +5,10 @@
 #include <core/datatypes.h>
 #include <core/object_vector.h>
 
-struct MembraneMesh
-{
-	static const int maxDegree = 7;
-	int nvertices, ntriangles;
-
-	PinnedBuffer<int3> triangles;
-	PinnedBuffer<int> adjacent, adjacent_second;
-
-	void initFromFile();
-};
 
 class LocalRBCvector : public LocalObjectVector
 {
 public:
-
-	MembraneMesh mesh;
-
 	DeviceBuffer<float> volumes, areas;
 
 	LocalRBCvector(const int rbcSize, const int nRbcs = 0, cudaStream_t stream = 0) :

@@ -1,6 +1,17 @@
 #pragma once
 
+#include <core/logger.h>
+#include <core/containers.h>
 #include <core/particle_vector.h>
+
+struct ObjectMesh
+{
+	static const int maxDegree = 7;
+	int nvertices, ntriangles;
+
+	PinnedBuffer<int3> triangles;
+	PinnedBuffer<int> adjacent, adjacent_second;
+};
 
 class LocalObjectVector: public LocalParticleVector
 {
@@ -66,6 +77,7 @@ protected:
 public:
 	int objSize;
 	float objMass;
+	ObjectMesh mesh;
 
 	ObjectVector(std::string name, const int objSize, const int nObjects = 0) :
 		ObjectVector( name, objSize,
@@ -76,5 +88,5 @@ public:
 	LocalObjectVector* local() { return static_cast<LocalObjectVector*>(_local); }
 	LocalObjectVector* halo()  { return static_cast<LocalObjectVector*>(_halo);  }
 
-	virtual ~ObjectVector() {};
+	virtual ~ObjectVector() = default;
 };

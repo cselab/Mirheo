@@ -22,7 +22,7 @@ cells_obj   = scan.o celllist.o test_cells.o pugixml.o initial_conditions.o
 dpd_obj     = scan.o celllist.o test_dpd.o pugixml.o components.o integrate.o interactions.o wall.o
 rigid_obj   = scan.o celllist.o test_rigid.o pugixml.o integrate.o interactions.o particle_exchanger.o particle_halo_exchanger.o particle_redistributor.o bounce.o object_vector.o
 mesh_bounce_obj = test_mesh_bounce.o
-mesh_bounce_full_obj = test_mesh_bounce_full.o scan.o celllist.o pugixml.o integrate.o interactions.o particle_exchanger.o particle_halo_exchanger.o particle_redistributor.o
+mesh_bounce_full_obj = test_mesh_bounce_full.o scan.o celllist.o pugixml.o integrate.o interactions.o particle_exchanger.o particle_halo_exchanger.o particle_redistributor.o bounce.o
 scheduler_obj = task_scheduler.o test_scheduler.o
 
 

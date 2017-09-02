@@ -213,9 +213,10 @@ __device__ inline bool isCellCrossingTriangle(float3 cornerCoo, float3 len, floa
 }
 
 __global__ void findBouncesInMesh(
-		const float4* coosvels, const uint* __restrict__ cellsStartSize, CellListInfo cinfo,
+		const float4* __restrict__ coosvels, const uint* __restrict__ cellsStartSize, CellListInfo cinfo,
 		int* nCollisions, int2* collisionTable,
-		const int nObj, const int nvertices, const int ntriangles, const int3* __restrict__ triangles, float4* objCoosvels,
+		const int nObj, const int nvertices, const int ntriangles,
+		const int3* __restrict__ triangles, const float4* __restrict__ objCoosvels,
 		const float dt)
 {
 	// About maximum distance a particle can cover in one step
@@ -267,7 +268,8 @@ __global__ void findBouncesInMesh(
 
 __global__ void performBouncing(int nCollisions, int2* collisionTable,
 		float4* coosvels, const float partMass,
-		const int nvertices, const int ntriangles, const int3* __restrict__ triangles, float4* objCoosvels, float* objForces, float vertMass,
+		const int nvertices, const int ntriangles,
+		const int3* __restrict__ triangles, const float4* __restrict__ objCoosvels, float* objForces, float vertMass,
 		const float dt)
 {
 	const float eps = 2e-6f;
