@@ -69,6 +69,13 @@ public:
 	{
 		return x + globalDomainStart + 0.5f * domainSize;
 	}
+	__forceinline__ __host__ __device__ float3 global2local(float3 x)
+	{
+		return x - globalDomainStart - 0.5f * domainSize;
+	}
+
+	virtual void checkpoint(MPI_Comm comm, std::string path);
+	virtual void restart(MPI_Comm comm, std::string path);
 
 	virtual ~ParticleVector() { delete _local; delete _halo; }
 };

@@ -153,33 +153,11 @@ __global__ void mcmcSample(int3 shift,
 	float Enew = E_inCell(pnew, cell_new, particles, cinfo, cellsStartSize, rc2, potential);
 	float dE = Enew - E0;
 
-//	float3 d = pnew.r - p0.r;
-//	//if (p0.i1 == 594)
-//	{
-//		printf(" %d [%f %f %f] + [%f %f %f] -> %f (%f - %f)\n",
-//			p0.i1, p0.r.x, p0.r.y, p0.r.z,
-//			d.x, d.y, d.z, dE, Enew, E0);
-//
-//		printf("  cells: old [%d %d %d]  new [%d %d %d]\n", cell0.x, cell0.y, cell0.z, cell_new.x, cell_new.y, cell_new.z);
-//		printf("  %f  vs  rand %f\n", expf(-dE/kbT), rnd4);
-//	}
-
 	// Accept if dE < 0 or with probability e^(-dE/kbT)
 	if ( dE <= 0 || (dE > 0 && rnd4 < expf(-dE/kbT)) )
 	{
 		atomicAggInc(nAccepted);
 		particles[pid] = pnew;
-
-//		float3 d = pnew.r - p0.r;
-//		if (cell0.x != cell_new.x)
-//		{
-//			printf(" %d [%f %f %f] + [%f %f %f] -> %f (%f - %f)\n",
-//				p0.i1, p0.r.x, p0.r.y, p0.r.z,
-//				d.x, d.y, d.z, dE, Enew, E0);
-//
-//			printf("  cells: old [%d %d %d]  new [%d %d %d]\n", cell0.x, cell0.y, cell0.z, cell_new.x, cell_new.y, cell_new.z);
-//			printf("  %f  vs  rand %f\n", expf(-dE/kbT), rnd4);
-//		}
 	}
 	else
 	{
@@ -225,7 +203,7 @@ MCMCSampler::MCMCSampler(pugi::xml_node node, Wall* wall) : nAccepted(1), nRejec
 	combined = new ParticleVector("combined");
 	combinedCL = nullptr;
 
-	proposalFactor = 1e-3f;
+	proposalFactor = 0.2f*rc;
 }
 
 void MCMCSampler::_compute(InteractionType type, ParticleVector* pv1, ParticleVector* pv2, CellList* cl, const float t, cudaStream_t stream)
@@ -301,20 +279,10 @@ void MCMCSampler::_compute(InteractionType type, ParticleVector* pv1, ParticleVe
 				cudaDeviceSynchronize();
 			}
 
-//	nAccepted.downloadFromDevice(stream);
-//	nRejected.downloadFromDevice(stream);
-//	printf(" acc %d, rej %d, prob %f\n", nAccepted[0], nRejected[0], (float)nAccepted[0] / (nAccepted[0] + nRejected[0]));
-
-	//exit(0);
-
 	// Update the proposalFactor
 	nAccepted.downloadFromDevice(stream);
 	nRejected.downloadFromDevice(stream);
 	float prob = (float)nAccepted[0] / (nAccepted[0] + nRejected[0]);
-	if (prob > 0.45f) proposalFactor *= 1.1f;
-	if (prob < 0.35f) proposalFactor /= 1.1f;
-	proposalFactor = min(proposalFactor, 0.5f*rc);
-	proposalFactor = max(proposalFactor, 1e-5f);
 
 	debug("MCMC yielded %f acceptance probability, proposal scaling factor changed to %f", prob, proposalFactor);
 
@@ -335,15 +303,6 @@ void MCMCSampler::_compute(InteractionType type, ParticleVector* pv1, ParticleVe
 
 	totE.downloadFromDevice(stream);
 	printf("Total energy: %f, difference: %f\n", totE[0], totE[0] - old);
-
-//	HostBuffer<Force> frcs;
-//	frcs.copy(*combinedCL->forces, stream);
-//	combinedCL->coosvels->downloadFromDevice(stream);
-//
-//	auto ps = combinedCL->coosvels->hostPtr();
-//	for (int i=0; i<frcs.size(); i++)
-//		if (ps[i].i1 == 594)
-//			printf("\n\nWOWOWOW  %f\n\n", frcs[i].f.x);
 
 	// KILL ALL HUMANS
 	/* piu piu piu */

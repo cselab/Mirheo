@@ -1,16 +1,16 @@
 #include <plugins/temperaturize.h>
 #include <core/datatypes.h>
-#include <core/particle_vector.h>
+#include <core/pvs/particle_vector.h>
 #include <core/simulation.h>
 #include <core/cuda_common.h>
 
-#include <core/dpd-rng.h>
+#include <core/cuda-rng.h>
 
 
 __device__ __forceinline__ float2 normal_BoxMuller(float seed)
 {
-	float u1 = Saru::mean0var1(seed, threadIdx.x, blockIdx.x);
-	float u2 = Saru::mean0var1(u1,   blockIdx.x, threadIdx.x);
+	float u1 = Saru::uniform01(seed, threadIdx.x, blockIdx.x);
+	float u2 = Saru::uniform01(u1,   blockIdx.x, threadIdx.x);
 
 	float r = sqrtf(-2.0f * logf(u1));
 	float theta = 2.0f * M_PI * u2;

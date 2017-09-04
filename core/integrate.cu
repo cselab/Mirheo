@@ -1,6 +1,6 @@
 #include <core/integrate.h>
-#include <core/particle_vector.h>
-#include <core/object_vector.h>
+#include <core/pvs/particle_vector.h>
+#include <core/pvs/object_vector.h>
 #include <core/logger.h>
 #include <core/helper_math.h>
 #include <core/cuda_common.h>

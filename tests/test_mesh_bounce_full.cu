@@ -4,8 +4,8 @@
 
 #include <core/cuda_common.h>
 #include <core/containers.h>
-#include <core/particle_vector.h>
-#include <core/rbc_vector.h>
+#include <core/pvs/particle_vector.h>
+#include <core/pvs/rbc_vector.h>
 #include <core/celllist.h>
 #include <core/mpi/api.h>
 #include <core/logger.h>

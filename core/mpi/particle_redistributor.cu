@@ -1,5 +1,5 @@
 #include <core/celllist.h>
-#include <core/particle_vector.h>
+#include <core/pvs/particle_vector.h>
 #include <core/helper_math.h>
 
 #include <core/mpi/particle_redistributor.h>
@@ -9,7 +9,7 @@
 #include <thread>
 #include <algorithm>
 
-__global__ void getExitingParticles(float4* xyzouvwo,
+__global__ void getExitingParticles(float4* coosvels,
 		CellListInfo cinfo, const uint* __restrict__ cellsStartSize,
 		const int64_t dests[27], int counts[27])
 {
@@ -32,10 +32,9 @@ __global__ void getExitingParticles(float4* xyzouvwo,
 	for (int i = 0; i < start_size.y; i++)
 	{
 		const int srcId = start_size.x + i;
-		const float4 coo = xyzouvwo[2*srcId];
-		const float4 vel = xyzouvwo[2*srcId+1];
+		Particle p(coosvels, srcId);
 
-		int3 code = cinfo.getCellIdAlongAxis<false>(make_float3(coo));
+		int3 code = cinfo.getCellIdAlongAxis<false>(make_float3(p.r));
 
 		if (code.x < 0) code.x = 0;
 		else if (code.x >= ncells.x) code.x = 2;
@@ -52,22 +51,21 @@ __global__ void getExitingParticles(float4* xyzouvwo,
 		if (code.x*code.y*code.z != 1) // this means that the particle has to leave
 		{
 			const int bufId = (code.z*3 + code.y)*3 + code.x;
-			const float4 shift{ cinfo.domainSize.x*(code.x-1),
+			const float3 shift{ cinfo.domainSize.x*(code.x-1),
 								cinfo.domainSize.y*(code.y-1),
-								cinfo.domainSize.z*(code.z-1), 0 };
+								cinfo.domainSize.z*(code.z-1) };
+			p.r -= shift;
 
 			int myid = atomicAdd(counts + bufId, 1);
 
-			const int dstInd = 2*myid;
+			const int dstInd = myid;
 
 			float4* addr = (float4*)dests[bufId];
-			float4 newcoo = coo - shift;
-			newcoo.w = coo.w;
-			addr[dstInd + 0] = newcoo;
-			addr[dstInd + 1] = vel;
+			addr[2*dstInd + 0] = p.r2Float4();
+			addr[2*dstInd + 1] = p.u2Float4();
 
 			// mark the particle as exited to assist cell-list building
-			xyzouvwo[2*srcId] = make_float4(-1000.0f, -1000.0f, -1000.0f, coo.w);
+			coosvels[2*srcId] = Float3_int(make_float3(-1e5), p.i1).toFloat4();
 		}
 	}
 }

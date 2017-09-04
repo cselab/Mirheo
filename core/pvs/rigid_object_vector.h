@@ -1,6 +1,6 @@
 #pragma once
 
-#include <core/object_vector.h>
+#include <core/pvs/object_vector.h>
 
 class LocalRigidObjectVector: public LocalObjectVector
 {

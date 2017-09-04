@@ -7,23 +7,24 @@ HDF5_LIB = /usr/lib/x86_64-linux-gnu/
 
 LIBS = -lmpi -lhdf5_mpich -L$(HDF5_LIB)
 
-SRC_DIR = ../../core/ ../../core/xml ../../core/mpi ../../plugins ./
+SRC_DIR = ../../core/ ../../core/interactions ../../core/pvs ../../core/xml ../../core/mpi ../../plugins ./
 BIN_DIR = bin
 DEBUG_DIR = debug
 
 VPATH = $(addsuffix :,$(SRC_DIR))
 NVCCFLAGS += -I../../ -I$(HDF5_INC)
 NVCC_RELEASE_FLAGS = $(NVCCFLAGS) -O3
-NVCC_DEBUG_FLAGS = $(NVCCFLAGS) -G
+NVCC_DEBUG_FLAGS = $(NVCCFLAGS) -G -Xcompiler "-O0"
 
-objects = poiseuille.o scan.o celllist.o wall.o integrate.o interactions.o simulation.o pugixml.o task_scheduler.o initial_conditions.o \
-	object_vector.o \
+objects = main.o scan.o celllist.o wall.o sampler.o simulation.o pugixml.o task_scheduler.o initial_conditions.o \
+	particle_vector.o object_vector.o \
 	particle_exchanger.o particle_halo_exchanger.o particle_redistributor.o \
-	write_xdmf.o dumpavg.o stats.o temperaturize.o
+	write_xdmf.o dumpavg.o stats.o temperaturize.o \
+	ArgumentParser.o
 
 
 # Release binary
-poiseuille: $(addprefix $(BIN_DIR)/,$(objects))
+genwall: $(addprefix $(BIN_DIR)/,$(objects))
 	$(NVCC) $(NVCC_RELEASE_FLAGS) $(LIBS) $^ -o $@
 
 $(BIN_DIR)/%.d: %.cu
@@ -42,7 +43,7 @@ clean_release:
 
 
 # Debug binary
-poiseuille_debug: $(addprefix $(DEBUG_DIR)/,$(objects))
+genwall_debug: $(addprefix $(DEBUG_DIR)/,$(objects))
 	$(NVCC) $(NVCC_DEBUG_FLAGS) $(LIBS) $^ -o $@
 
 $(DEBUG_DIR)/%.d: %.cu

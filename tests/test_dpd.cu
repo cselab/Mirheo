@@ -1,11 +1,13 @@
+#define protected public
 #define private public
 
-#include <core/particle_vector.h>
+#include <core/pvs/particle_vector.h>
 #include <core/celllist.h>
 #include <core/mpi/api.h>
 #include <core/logger.h>
 #include <core/containers.h>
 #include <core/interactions.h>
+#include <core/initial_conditions.h>
 
 #include <unistd.h>
 
@@ -25,7 +27,8 @@ int main(int argc, char ** argv)
 
 	logger.init(MPI_COMM_WORLD, "onerank.log", 9);
 
-	std::string xml = R"(<node mass="1.0" density="8.0">)";
+	std::string xml = R"(<node mass="1.0" density="8.0"/>
+        <interaction name="dpd" kbt="1.0" gamma="20" a="50" dt="0.002"/>)";
 	pugi::xml_document config;
 	config.load_string(xml.c_str());
 
@@ -35,8 +38,8 @@ int main(int argc, char ** argv)
 	ParticleVector dpds("dpd");
 	CellList* cells = new PrimaryCellList(&dpds, rc, length);
 
-	InitialConditions* ic = UniformIC(config.child("node"));
-	ic.exec(MPI_COMM_WORLD, &dpds, {0,0,0}, length);
+	InitialConditions* ic = new UniformIC(config.child("node"));
+	ic->exec(MPI_COMM_WORLD, &dpds, {0,0,0}, length, 0);
 
 	const int np = dpds.local()->size();
 	HostBuffer<Particle> initial(np);
@@ -47,28 +50,24 @@ int main(int argc, char ** argv)
 	cells->build(0);
 
 	const float k = 1;
-	const float dt = 5e-4;
-	const float kBT = 0.0444302;
+	const float dt = 0.002;
+	const float kBT = 1.0f;
 	const float gammadpd = 20;
 	const float sigmadpd = sqrt(2 * gammadpd * kBT);
 	const float sigma_dt = sigmadpd / sqrt(dt);
 	const float adpd = 50;
 
-	std::string xml = R"(<interaction name="dpd" kbt="1.0" gamma="20" a="50" dt="0.002"/>)";
-	pugi::xml_document config;
-	config.load_string(xml.c_str());
-
 	Interaction *inter = new InteractionDPD(config.child("interaction"));
 
-	for (int i=0; i<1; i++)
+	for (int i=0; i<10; i++)
 	{
 		dpds.local()->forces.clear(0);
-		inter(&dpds, &cells, 0, 0);
+		inter->regular(&dpds, &dpds, cells, cells, 0, 0);
 
 		cudaDeviceSynchronize();
 	}
 
-	dpds.local()->coosvels.downloadFromDevice();
+	dpds.local()->coosvels.downloadFromDevice(0);
 
 	HostBuffer<Force> hacc;
 	HostBuffer<uint> hcellsstart;
@@ -129,9 +128,9 @@ int main(int argc, char ** argv)
 	};
 
 #pragma omp parallel for collapse(3)
-	for (int cx = 0; cx < cells->ncells->x; cx++)
-		for (int cy = 0; cy < cells->ncells->y; cy++)
-			for (int cz = 0; cz < cells->ncells->z; cz++)
+	for (int cx = 0; cx < cells->ncells.x; cx++)
+		for (int cy = 0; cy < cells->ncells.y; cy++)
+			for (int cz = 0; cz < cells->ncells.z; cz++)
 			{
 				const int cid = cells->encode(cx, cy, cz);
 
@@ -139,7 +138,7 @@ int main(int argc, char ** argv)
 
 				for (int dstId = start_size.x; dstId < start_size.x + start_size.y; dstId++)
 				{
-					Force a {0,0,0,0};
+					Force a {{0,0,0},0};
 
 					for (int dx = -1; dx <= 1; dx++)
 						for (int dy = -1; dy <= 1; dy++)

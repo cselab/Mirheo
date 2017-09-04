@@ -3,7 +3,7 @@
 #include <string>
 #include <core/containers.h>
 #include <core/datatypes.h>
-#include <core/object_vector.h>
+#include <core/pvs/object_vector.h>
 
 
 class LocalRBCvector : public LocalObjectVector

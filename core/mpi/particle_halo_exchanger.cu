@@ -1,4 +1,4 @@
-#include <core/particle_vector.h>
+#include <core/pvs/particle_vector.h>
 #include <core/celllist.h>
 #include <core/logger.h>
 #include <core/cuda_common.h>
@@ -63,22 +63,22 @@ __global__ void getHalos(const float4* __restrict__ coosvels, const CellListInfo
 		const int ix = bufId % 3;
 		const int iy = (bufId / 3) % 3;
 		const int iz = bufId / 9;
-		const float4 shift{ cinfo.domainSize.x*(ix-1),
+		const float3 shift{ cinfo.domainSize.x*(ix-1),
 							cinfo.domainSize.y*(iy-1),
-							cinfo.domainSize.z*(iz-1), 0.0f };
+							cinfo.domainSize.z*(iz-1) };
 
 #pragma unroll 2
 		for (int i = 0; i < start_size.y; i++)
 		{
-			const int dstInd = 2*(myid         + i);
-			const int srcInd = 2*(start_size.x + i);
+			const int dstInd = myid         + i;
+			const int srcInd = start_size.x + i;
 
-			float4 tmp1 = coosvels[srcInd] - shift;
-			float4 tmp2 = coosvels[srcInd+1];
+			Particle p(coosvels, srcInd);
+			p.r -= shift;
 
 			float4* addr = (float4*)dests  [bufId];
-			addr[dstInd + 0] = tmp1;
-			addr[dstInd + 1] = tmp2;
+			addr[2*dstInd + 0] = p.r2Float4();
+			addr[2*dstInd + 1] = p.u2Float4();
 		}
 	}
 }
@@ -115,7 +115,7 @@ void ParticleHaloExchanger::combineAndUploadData(int id)
 	}
 }
 
-void ParticleHaloExchanger::prepareData(int id, cudaStream_t defStream)
+void ParticleHaloExchanger::prepareData(int id, cudaStream_t stream)
 {
 	auto pv = particles[id];
 	auto cl = cellLists[id];
@@ -123,12 +123,12 @@ void ParticleHaloExchanger::prepareData(int id, cudaStream_t defStream)
 
 	debug2("Preparing %s halo on the device", pv->name.c_str());
 
-	helper->bufSizes.clearDevice(defStream);
+	helper->bufSizes.clearDevice(stream);
 
 	const int maxdim = std::max({cl->ncells.x, cl->ncells.y, cl->ncells.z});
 	const int nthreads = 32;
 	if (pv->local()->size() > 0)
-		getHalos<<< dim3((maxdim*maxdim + nthreads - 1) / nthreads, 6, 1),  dim3(nthreads, 1, 1), 0, defStream >>>
+		getHalos<<< dim3((maxdim*maxdim + nthreads - 1) / nthreads, 6, 1),  dim3(nthreads, 1, 1), 0, stream >>>
 				((float4*)pv->local()->coosvels.devPtr(), cl->cellInfo(), cl->cellsStartSize.devPtr(), (int64_t*)helper->sendAddrs.devPtr(), helper->bufSizes.devPtr());
 }
 

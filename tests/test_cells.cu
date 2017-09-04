@@ -19,7 +19,7 @@
 #include <cassert>
 #include <algorithm>
 
-#include <core/particle_vector.h>
+#include <core/pvs/particle_vector.h>
 #include <core/celllist.h>
 #include <core/logger.h>
 #include <core/initial_conditions.h>

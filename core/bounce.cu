@@ -6,9 +6,9 @@
  */
 
 #include <core/bounce.h>
-#include <core/particle_vector.h>
+#include <core/pvs/particle_vector.h>
 #include <core/celllist.h>
-#include <core/rigid_object_vector.h>
+#include <core/pvs/rigid_object_vector.h>
 #include <core/rigid_kernels/bounce.h>
 
 #include <core/rbc_kernels/bounce.h>
@@ -40,7 +40,7 @@ void BounceFromRigidEllipsoid::exec(bool local, cudaStream_t stream)
  * Firstly find all the collisions and generate array of colliding pairs Pid <--> TRid
  * Work is per-triangle, so only particle cell-lists are needed
  *
- * Secondly sort the array WRT Pid
+ * Secondly sort the array with respect to Pid
  *
  * Lastly resolve the collisions, choosing the first one in time for the same Pid
  */
@@ -65,7 +65,7 @@ void BounceFromMesh::exec(bool local, cudaStream_t stream)
 
 	nCollisions.downloadFromDevice(0);
 
-	debug2("Found %d collisions", nCollisions[0]);
+	debug("Found %d collisions", nCollisions[0]);
 
 	size_t bufSize;
 	// Query for buffer size

@@ -1,7 +1,7 @@
 #pragma once
 
-#include <core/object_vector.h>
-#include <core/rigid_object_vector.h>
+#include <core/pvs/object_vector.h>
+#include <core/pvs/rigid_object_vector.h>
 #include <core/cuda_common.h>
 #include <core/rigid_kernels/quaternion.h>
 

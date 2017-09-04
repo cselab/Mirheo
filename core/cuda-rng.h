@@ -226,12 +226,17 @@ namespace Saru
 		return res;
 	}
 
-	__inline__ __device__ float mean0var1( float seed, uint i, uint j )
+	__inline__ __device__ float uniform01( float seed, uint i, uint j )
 	{
 		float t = seed;
 		unsigned int tag = *( int * )&t;
 
 		return saru( tag, i, j );
+	}
+
+	__inline__ __device__ float mean0var1( float seed, uint i, uint j )
+	{
+		return uniform01(seed, i, j) * 3.464101615f - 1.732050807f;
 	}
 
 	__inline__ __device__ float mean0var1( float seed, int i, int j )

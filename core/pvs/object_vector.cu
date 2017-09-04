@@ -1,6 +1,4 @@
-#include <core/object_vector.h>
-#include <core/helper_math.h>
-#include <core/cuda_common.h>
+#include "object_vector.h"
 
 __global__ void min_max_com(const float4 * coosvels, LocalObjectVector::COMandExtent* com_ext, const int nObj, const int objSize)
 {

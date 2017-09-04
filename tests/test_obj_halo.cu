@@ -2,7 +2,7 @@
 #define private public
 #define protected public
 
-#include <core/object_vector.h>
+#include <core/pvs/object_vector.h>
 #include <core/celllist.h>
 #include <core/mpi/api.h>
 #include <core/logger.h>

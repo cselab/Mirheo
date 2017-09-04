@@ -1,13 +1,6 @@
-#include <algorithm>
+#include "simulation.h"
 
-#include <core/simulation.h>
-#include <core/integrate.h>
-#include <core/interactions.h>
-#include <core/logger.h>
-#include <core/particle_vector.h>
-#include <core/object_vector.h>
-#include <core/celllist.h>
-#include <core/mpi/api.h>
+#include <algorithm>
 
 Simulation::Simulation(int3 nranks3D, float3 globalDomainSize, const MPI_Comm& comm, const MPI_Comm& interComm) :
 nranks3D(nranks3D), globalDomainSize(globalDomainSize), interComm(interComm), currentTime(0), currentStep(0)
@@ -187,8 +180,6 @@ void Simulation::init()
 		});
 	}
 
-	CUDA_Check( cudaStreamCreateWithPriority(&defStream, cudaStreamNonBlocking, 0) );
-
 	debug("Simulation initiated, preparing plugins");
 	for (auto& pl : plugins)
 	{
@@ -358,13 +349,11 @@ void Simulation::run(int nsteps)
 				wall->freezeParticles(srcPV);
 
 				for (auto pv : particleVectors)
-					if (pv != wall->getFrozen())
+					if (pv != wall->getFrozen() && cellListMap[pv].size() > 0)
 					{
 						wall->removeInner(pv);
 						wall->attach(pv, cellListMap[pv][0]);
 					}
-
-				halo->attach( wall->getFrozen(), cellListMap[ wall->getFrozen() ][0] );
 
 				prototype_it = wallProtorypes.erase(prototype_it);
 			}

@@ -1,8 +1,8 @@
 #pragma once
 
+#include "particle_vector.h"
+
 #include <core/logger.h>
-#include <core/containers.h>
-#include <core/particle_vector.h>
 
 struct ObjectMesh
 {

@@ -5,23 +5,9 @@
 #include <core/cuda_common.h>
 #include <core/wall.h>
 #include <core/celllist.h>
-#include <core/particle_vector.h>
+#include <core/pvs/particle_vector.h>
+#include <core/pvs/object_vector.h>
 #include <core/bounce_solver.h>
-
-
-// This should be in helper_math.h, but not there for some reason
-//***************************************************************
-inline __host__ __device__ int3 operator%(int3 a, int3 b)
-{
-    return make_int3(a.x % b.x, a.y % b.y, a.z % b.z);
-}
-
-inline __host__ __device__ int3 operator/(int3 a, int b)
-{
-    return make_int3(a.x / b, a.y / b, a.z / b);
-}
-
-//***************************************************************
 
 
 __device__ __forceinline__ float cubicInterpolate1D(float y[4], float mu)
@@ -124,7 +110,7 @@ __device__ __forceinline__ float evalSdf(T x, Wall::SdfInfo sdfInfo)
 }
 
 
-__global__ void countFrozen(const float4* pv, const int np, Wall::SdfInfo sdfInfo, int* nFrozen)
+__global__ void countFrozen(const float4* pv, const int np, Wall::SdfInfo sdfInfo, float minSdf, float maxSdf, int* nFrozen)
 {
 	const int pid = blockIdx.x * blockDim.x + threadIdx.x;
 	if (pid >= np) return;
@@ -132,11 +118,11 @@ __global__ void countFrozen(const float4* pv, const int np, Wall::SdfInfo sdfInf
 	const float4 coo = pv[2*pid];
 	const float sdf = evalSdf(coo, sdfInfo);
 
-	if (sdf > 0.0f && sdf < 1.2f)
+	if (sdf > minSdf && sdf < maxSdf)
 		atomicAggInc(nFrozen);
 }
 
-__global__ void collectFrozen(const float4* input, const int np, Wall::SdfInfo sdfInfo,
+__global__ void collectFrozen(const float4* input, const int np, Wall::SdfInfo sdfInfo, float minSdf, float maxSdf,
 		float4* frozen, int* nFrozen)
 {
 	const int pid = blockIdx.x * blockDim.x + threadIdx.x;
@@ -147,7 +133,7 @@ __global__ void collectFrozen(const float4* input, const int np, Wall::SdfInfo s
 
 	const float sdf = evalSdf(coo, sdfInfo);
 
-	if (sdf > 0.0f && sdf < 1.2f)
+	if (sdf > minSdf && sdf < maxSdf)
 	{
 		const int ind = atomicAggInc(nFrozen);
 		frozen[2*ind] = coo;
@@ -188,6 +174,42 @@ __global__ void collectRemaining(const float4* input, const int np, Wall::SdfInf
 		const int ind = atomicAggInc(nRemaining);
 		remaining[2*ind] = coo;
 		remaining[2*ind + 1] = vel;
+	}
+}
+
+__global__ void collectRemainingObjects(const float4* input, const int nObjects, const int objSize, Wall::SdfInfo sdfInfo,
+		float4* remaining, int* nRemaining)
+{
+	const float tolerance = 1e-6f;
+
+	// One warp per object
+	const int gid = blockIdx.x * blockDim.x + threadIdx.x;
+	const int objId = gid / warpSize;
+	const int tid = gid % warpSize;
+
+	if (objId >= nObjects) return;
+
+	bool isRemaining = true;
+	for (int i=tid; i<objSize; i++)
+	{
+		Particle p(input, objId*objSize + i);
+		if (evalSdf(p.r, sdfInfo) <= -tolerance)
+		{
+			isRemaining = false;
+			break;
+		}
+	}
+
+	if (!isRemaining) return;
+
+	int dstId = atomicAdd(nRemaining, objSize);
+
+	for (int i=tid; i<objSize; i++)
+	{
+		Particle p(input, objId*objSize + i);
+		float4* dstAddr = remaining + 2*(dstId + i);
+		dstAddr[0] = p.r2Float4();
+		dstAddr[1] = p.u2Float4();
 	}
 }
 
@@ -288,8 +310,8 @@ __global__ void bounceSDF(const int* wallCells, const int nWallCells, const uint
 /*
  * We only set a few params here
  */
-Wall::Wall(std::string name, std::string sdfFileName, float3 sdfH) :
-		name(name), sdfFileName(sdfFileName)
+Wall::Wall(std::string name, std::string sdfFileName, float3 sdfH, float minSdf, float maxSdf) :
+		name(name), sdfFileName(sdfFileName), minSdf(minSdf), maxSdf(maxSdf)
 {
 	sdfInfo.h = sdfH;
 	frozen = new ParticleVector(name);
@@ -516,17 +538,20 @@ void Wall::freezeParticles(ParticleVector* pv)
 	PinnedBuffer<int> nFrozen(1);
 
 	nFrozen.clear(0);
-	countFrozen<<< (pv->local()->size() + 127) / 128, 128, 0, 0 >>>((float4*)pv->local()->coosvels.devPtr(), pv->local()->size(), sdfInfo, nFrozen.devPtr());
+	countFrozen<<< (pv->local()->size() + 127) / 128, 128, 0, 0 >>>(
+			(float4*)pv->local()->coosvels.devPtr(), pv->local()->size(), sdfInfo, minSdf, maxSdf, nFrozen.devPtr());
 	nFrozen.downloadFromDevice(0);
 
 	frozen->local()->resize(nFrozen[0], 0);
 	frozen->mass = pv->mass;
+	frozen->globalDomainStart = pv->globalDomainStart;
 	frozen->domainSize = pv->domainSize;
 
 	info("Freezing %d pv", nFrozen[0]);
 
 	nFrozen.clear(0);
-	collectFrozen<<< (pv->local()->size() + 127) / 128, 128, 0, 0 >>>( (float4*)pv->local()->coosvels.devPtr(), pv->local()->size(), sdfInfo,
+	collectFrozen<<< (pv->local()->size() + 127) / 128, 128, 0, 0 >>>(
+			(float4*)pv->local()->coosvels.devPtr(), pv->local()->size(), sdfInfo, minSdf, maxSdf,
 			(float4*)frozen->local()->coosvels.devPtr(), nFrozen.devPtr());
 	nFrozen.downloadFromDevice(0);
 
@@ -539,12 +564,25 @@ void Wall::removeInner(ParticleVector* pv)
 
 	PinnedBuffer<int> nRemaining(1);
 	nRemaining.clear(0);
-
 	PinnedBuffer<Particle> tmp(pv->local()->size(), 0);
-	collectRemaining<<< (pv->local()->size() + 127) / 128, 128, 0, 0 >>>( (float4*)pv->local()->coosvels.devPtr(), pv->local()->size(), sdfInfo,
-			(float4*)tmp.devPtr(), nRemaining.devPtr());
-	nRemaining.downloadFromDevice(0);
 
+	const int nthreads = 128;
+	// Need a different path for objects
+	ObjectVector* ov = dynamic_cast<ObjectVector*>(pv);
+	if (ov == nullptr)
+	{
+		collectRemaining<<< getNblocks(pv->local()->size(), nthreads), nthreads, 0, 0 >>>(
+				(float4*)pv->local()->coosvels.devPtr(), pv->local()->size(), sdfInfo,
+				(float4*)tmp.devPtr(), nRemaining.devPtr() );
+	}
+	else
+	{
+		collectRemainingObjects<<<  getNblocks(ov->local()->nObjects*32, nthreads), nthreads, 0, 0 >>> (
+				(float4*)ov->local()->coosvels.devPtr(), ov->local()->nObjects, ov->objSize, sdfInfo,
+				(float4*)tmp.devPtr(), nRemaining.devPtr() );
+	}
+
+	nRemaining.downloadFromDevice(0);
 	containerSwap(pv->local()->coosvels, tmp, 0);
 	pv->local()->resize(nRemaining[0], 0);
 	pv->local()->changedStamp++;

@@ -2,8 +2,8 @@
 #define private public
 #define protected public
 
-#include <core/particle_vector.h>
-#include <core/rigid_object_vector.h>
+#include <core/pvs/particle_vector.h>
+#include <core/pvs/rigid_object_vector.h>
 #include <core/celllist.h>
 #include <core/mpi/api.h>
 #include <core/logger.h>

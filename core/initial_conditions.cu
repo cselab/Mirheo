@@ -1,6 +1,6 @@
 #include <core/celllist.h>
-#include <core/particle_vector.h>
-#include <core/rigid_object_vector.h>
+#include <core/pvs/particle_vector.h>
+#include <core/pvs/rigid_object_vector.h>
 #include <core/initial_conditions.h>
 #include <core/helper_math.h>
 
@@ -54,6 +54,7 @@ void UniformIC::exec(const MPI_Comm& comm, ParticleVector* pv, float3 globalDoma
 				}
 			}
 
+	pv->globalDomainStart = globalDomainStart;
 	pv->domainSize = subDomainSize;
 	pv->mass = mass;
 

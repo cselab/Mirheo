@@ -98,6 +98,20 @@ struct __align__(16) Particle
 		i2 = utmp.i;
 	}
 
+	__host__ __device__ inline void readCoordinate(const float4* addr, const int pid)
+	{
+		const Float3_int tmp = addr[2*pid];
+		r  = tmp.v;
+		i1 = tmp.i;
+	}
+
+	__host__ __device__ inline void readVelocity(const float4* addr, const int pid)
+	{
+		const Float3_int tmp = addr[2*pid+1];
+		u  = tmp.v;
+		i2 = tmp.i;
+	}
+
 	__host__ __device__ inline float4 r2Float4()
 	{
 		return Float3_int{r, i1}.toFloat4();

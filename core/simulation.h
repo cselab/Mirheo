@@ -1,27 +1,25 @@
 #pragma once
 
+#include <core/logger.h>
 #include <core/datatypes.h>
+#include <core/containers.h>
+#include <core/celllist.h>
+#include <core/pvs/particle_vector.h>
+#include <core/pvs/object_vector.h>
 #include <core/wall.h>
-#include <core/interactions.h>
+#include <core/interactions/interface.h>
 #include <core/integrate.h>
 #include <core/initial_conditions.h>
 #include <core/task_scheduler.h>
 #include <core/mpi/api.h>
 #include <plugins/plugin.h>
 
-#include <tuple>
 
+#include <tuple>
 #include <vector>
 #include <string>
 #include <map>
 #include <mpi.h>
-
-class HaloExchanger;
-class Redistributor;
-class Wall;
-class ParticleVector;
-class ObjectVector;
-class CellList;
 
 class Simulation
 {
@@ -38,7 +36,6 @@ private:
 
 	double currentTime;
 	int currentStep;
-	cudaStream_t defStream;
 
 	TaskScheduler scheduler;
 
@@ -92,6 +89,8 @@ public:
 		auto pvIt = pvIdMap.find(name);
 		return (pvIt != pvIdMap.end()) ? particleVectors[pvIt->second] : nullptr;
 	}
+
+	MPI_Comm getCartComm() const { return cartComm; }
 
 };
 

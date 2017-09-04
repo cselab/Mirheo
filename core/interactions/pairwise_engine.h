@@ -54,15 +54,15 @@ __global__ void computeSelfInteractions(
 #pragma unroll 2
 				for (int srcId = start_size.x; srcId < start_size.x + start_size.y; srcId ++)
 				{
-					const float4 srcCoo = coosvels[2*srcId];
+					Particle srcP;
+					srcP.readCoordinate(coosvels, srcId);
 
-					bool interacting = distance2(srcCoo, dstP.r) < rc2;
+					bool interacting = distance2(srcP.r, dstP.r) < rc2;
 					if (dstId <= srcId && cellY == cell0.y && cellZ == cell0.z) interacting = false;
 
 					if (interacting)
 					{
-						const float4 srcVel = coosvels[2*srcId+1];
-						const Particle srcP(srcCoo, srcVel);
+						srcP.readVelocity(coosvels, srcId);
 
 						float3 frc = interaction(dstP, srcP);
 
@@ -104,14 +104,14 @@ __global__ void computeExternalInteractions(
 #pragma unroll 2
 				for (int srcId = start_size.x; srcId < start_size.x + start_size.y; srcId ++)
 				{
-					const float4 srcCoo = srcData[2*srcId];
+					Particle srcP;
+					srcP.readCoordinate(srcData, srcId);
 
-					bool interacting = distance2(srcCoo, dstP.r) < rc2;
+					bool interacting = distance2(srcP.r, dstP.r) < rc2;
 
 					if (interacting)
 					{
-						const float4 srcVel = srcData[2*srcId+1];
-						const Particle srcP(srcCoo, srcVel);
+						srcP.readVelocity(srcData, srcId);
 
 						float3 frc = interaction(dstP, srcP);
 

@@ -12,6 +12,8 @@ class CellList;
 
 class Wall
 {
+	friend class MCMCSampler;
+
 public:
 	std::string name;
 
@@ -38,7 +40,7 @@ private:
 	DeviceBuffer<float> sdfRawData; // TODO: this can be free'd after creation
 
 	float3 sdfH;
-	//float3 subDomainSize, globalDomainSize;
+	float minSdf, maxSdf;
 
 	const float3 margin3{1, 1, 1};
 
@@ -54,7 +56,7 @@ private:
 
 public:
 
-	Wall(std::string name, std::string sdfFileName, float3 sdfH);
+	Wall(std::string name, std::string sdfFileName, float3 sdfH, float minSdf = 0.0f, float maxSdf = 1.2f);
 
 	void createSdf(MPI_Comm& comm, float3 subDomainStart, float3 subDomaintSize, float3 globalDomainSize);
 	void freezeParticles(ParticleVector* pv);

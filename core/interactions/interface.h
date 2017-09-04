@@ -2,8 +2,7 @@
 
 #include <functional>
 #include <string>
-#include <core/particle_vector.h>
-#include <core/xml/pugixml.hpp>
+#include <core/pvs/particle_vector.h>
 
 class CellList;
 
@@ -43,42 +42,4 @@ public:
 	}
 
 	virtual ~Interaction() = default;
-};
-
-
-class InteractionDPD : public Interaction
-{
-	float a, gamma, sigma, power;
-
-public:
-	void _compute(InteractionType type, ParticleVector* pv1, ParticleVector* pv2, CellList* cl, const float t, cudaStream_t stream);
-
-	InteractionDPD(pugi::xml_node node);
-
-	~InteractionDPD() = default;
-};
-
-class InteractionLJ_objectAware : public Interaction
-{
-	float epsilon, sigma;
-
-public:
-	void _compute(InteractionType type, ParticleVector* pv1, ParticleVector* pv2, CellList* cl, const float t, cudaStream_t stream);
-
-	InteractionLJ_objectAware(pugi::xml_node node);
-
-	~InteractionLJ_objectAware() = default;
-};
-
-
-class InteractionRBCMembrane : public Interaction
-{
-	float epsilon, sigma;
-
-public:
-	void _compute(InteractionType type, ParticleVector* pv1, ParticleVector* pv2, CellList* cl, const float t, cudaStream_t stream);
-
-	InteractionRBCMembrane(pugi::xml_node node);
-
-	~InteractionRBCMembrane() = default;
 };

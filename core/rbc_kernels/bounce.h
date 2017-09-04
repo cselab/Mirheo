@@ -1,6 +1,6 @@
 #pragma once
 
-#include <core/rbc_vector.h>
+#include <core/pvs/rbc_vector.h>
 #include <core/cuda_common.h>
 #include <core/celllist.h>
 #include <core/bounce_solver.h>
