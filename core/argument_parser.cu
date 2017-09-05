@@ -11,7 +11,7 @@
 #include <cstdlib>
 #include <cstdio>
 
-#include "ArgumentParser.h"
+#include "argument_parser.h"
 
 typedef float real;
 

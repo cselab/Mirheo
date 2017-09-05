@@ -148,8 +148,7 @@ void TaskScheduler::run()
 			func(stream);
 	}
 
-	for (auto& stream_node : workMap)
-		CUDA_Check( cudaStreamSynchronize(stream_node.first) );
+	CUDA_Check( cudaDeviceSynchronize() );
 }
 
 

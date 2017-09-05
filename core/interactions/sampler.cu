@@ -4,43 +4,9 @@
 #include <core/celllist.h>
 #include <core/wall.h>
 #include <core/cuda-rng.h>
+#include <core/sdf_kernels.h>
+
 #include "pairwise_engine.h"
-
-//=============================================================================================
-// SDF sampling from the wall
-//=============================================================================================
-
-template<typename T>
-__device__ __forceinline__ float evalSdf(T x, Wall::SdfInfo sdfInfo)
-{
-	float3 x3{x.x, x.y, x.z};
-	float3 texcoord = floorf((x3 + sdfInfo.extendedDomainSize*0.5f) * sdfInfo.invh);
-	float3 lambda = (x3 - (texcoord * sdfInfo.h - sdfInfo.extendedDomainSize*0.5f)) * sdfInfo.invh;
-
-	const float s000 = tex3D<float>(sdfInfo.sdfTex, texcoord.x + 0, texcoord.y + 0, texcoord.z + 0);
-	const float s001 = tex3D<float>(sdfInfo.sdfTex, texcoord.x + 1, texcoord.y + 0, texcoord.z + 0);
-	const float s010 = tex3D<float>(sdfInfo.sdfTex, texcoord.x + 0, texcoord.y + 1, texcoord.z + 0);
-	const float s011 = tex3D<float>(sdfInfo.sdfTex, texcoord.x + 1, texcoord.y + 1, texcoord.z + 0);
-	const float s100 = tex3D<float>(sdfInfo.sdfTex, texcoord.x + 0, texcoord.y + 0, texcoord.z + 1);
-	const float s101 = tex3D<float>(sdfInfo.sdfTex, texcoord.x + 1, texcoord.y + 0, texcoord.z + 1);
-	const float s110 = tex3D<float>(sdfInfo.sdfTex, texcoord.x + 0, texcoord.y + 1, texcoord.z + 1);
-	const float s111 = tex3D<float>(sdfInfo.sdfTex, texcoord.x + 1, texcoord.y + 1, texcoord.z + 1);
-
-	const float s00x = s000 * (1 - lambda.x) + lambda.x * s001;
-	const float s01x = s010 * (1 - lambda.x) + lambda.x * s011;
-	const float s10x = s100 * (1 - lambda.x) + lambda.x * s101;
-	const float s11x = s110 * (1 - lambda.x) + lambda.x * s111;
-
-	const float s0yx = s00x * (1 - lambda.y) + lambda.y * s01x;
-	const float s1yx = s10x * (1 - lambda.y) + lambda.y * s11x;
-
-	const float szyx = s0yx * (1 - lambda.z) + lambda.z * s1yx;
-
-//	printf("[%f %f %f]  [%f %f %f]  [%f %f %f]  = %f  vs  %f\n", x.x, x.y, x.z,  texcoord.x, texcoord.y, texcoord.z,
-//			lambda.x, lambda.y, lambda.z, szyx, sqrt(x.x*x.x + x.y*x.y + x.z*x.z) - 5);
-
-	return szyx;
-}
 
 //=============================================================================================
 // Pairwise energy
@@ -106,7 +72,7 @@ __device__ __forceinline__ float E_inCell(Particle p, int3 cell,
 template<typename Potential>
 __global__ void mcmcSample(int3 shift,
 		Particle* particles, const int np, CellListInfo cinfo, const uint* __restrict__ cellsStartSize,
-		const float rc2, const float kbT, const float seed,
+		const float rc, const float rc2, const float p, const float kbT, const float seed,
 		Wall::SdfInfo sdfInfo, const float minSdf, const float maxSdf,
 		const float proposalFactor, int* nAccepted, int* nRejected, Potential potential)
 {
@@ -119,49 +85,61 @@ __global__ void mcmcSample(int3 shift,
 	const int cid = cinfo.encode(cell0);
 	const int2 start_size = cinfo.decodeStartSize(cellsStartSize[cid]);
 
-	// Random particle, 3x random translations, acc probability = 5 rands
-	const float rnd0 = Saru::uniform01(seed, cid, start_size.x);
-	const float rnd1 = Saru::uniform01(rnd0, cid, start_size.x);
-	const float rnd2 = Saru::uniform01(rnd1, cid, start_size.x);
-	const float rnd3 = Saru::uniform01(rnd2, cid, start_size.x);
-	const float rnd4 = Saru::uniform01(rnd3, cid, start_size.x);
-
-	// Choose one random particle
-	int pid = start_size.x + floorf(rnd0 * start_size.y);
-	Particle p0 = particles[pid];
-
-	// Just not the one initially in halo
-	if (p0.i2 == 424242) return;
-
-	// Propose a move
-	Particle pnew = p0;
-	pnew.r += proposalFactor * 2.0f*make_float3(rnd1 - 0.5f, rnd2 - 0.5f, rnd3 - 0.5f);
-	int3 cell_new = cinfo.getCellIdAlongAxis(pnew.r);
-
-	// Reject if the particle left sdf-bounded domain
-	const float sdf = evalSdf(pnew.r, sdfInfo);
-	if (sdf <= minSdf || sdf >= maxSdf)
+	for (int i=0; i<start_size.y; i++)
 	{
-		atomicAggInc(nRejected);
-		return;
-	}
+		// Random particle, 3x random translations, acc probability = 5 rands
+		const float rnd0 = Saru::uniform01(seed, cid, start_size.x);
+		const float rnd1 = Saru::uniform01(rnd0, cid, start_size.x);
+		const float rnd2 = Saru::uniform01(rnd1, cid, start_size.x);
+		const float rnd3 = Saru::uniform01(rnd2, cid, start_size.x);
+		const float rnd4 = Saru::uniform01(rnd3, cid, start_size.x);
 
-	// !!! COMPILER FUCKING ERROR SHISHISHI
-	// LAMBDA KILLS NVCCCCCC !!1
+		// Choose one random particle
+		int pid = start_size.x + floorf(rnd0 * start_size.y);
+		Particle p0 = particles[pid];
 
-	float E0   = E_inCell(p0,   cell0,    particles, cinfo, cellsStartSize, rc2, potential);
-	float Enew = E_inCell(pnew, cell_new, particles, cinfo, cellsStartSize, rc2, potential);
-	float dE = Enew - E0;
+		// Just not the one initially in halo
+		if (p0.i2 == 424242) continue;
 
-	// Accept if dE < 0 or with probability e^(-dE/kbT)
-	if ( dE <= 0 || (dE > 0 && rnd4 < expf(-dE/kbT)) )
-	{
-		atomicAggInc(nAccepted);
-		particles[pid] = pnew;
-	}
-	else
-	{
-		atomicAggInc(nRejected);
+		// Propose a move
+		Particle pnew = p0;
+		pnew.r += proposalFactor * 2.0f*make_float3(rnd1 - 0.5f, rnd2 - 0.5f, rnd3 - 0.5f);
+		int3 cell_new = cinfo.getCellIdAlongAxis(pnew.r);
+
+		// Reject if the particle left sdf-bounded domain
+		const float sdf = evalSdf(p0.r, sdfInfo);
+		const float sdf_new = evalSdf(pnew.r, sdfInfo);
+		if (sdf_new <= minSdf || sdf_new >= maxSdf)
+		{
+			atomicAggInc(nRejected);
+			return;
+		}
+
+		// !!! COMPILER FUCKING ERROR SHISHISHI
+		// LAMBDA KILLS NVCCCCCC !!1
+
+		float E0   = E_inCell(p0,   cell0,    particles, cinfo, cellsStartSize, rc2, potential);
+		float Enew = E_inCell(pnew, cell_new, particles, cinfo, cellsStartSize, rc2, potential);
+
+		float kbT_mod = kbT;
+		float dist2bound = min(
+				min(sdf - minSdf, maxSdf - sdf),
+				min(sdf_new - minSdf, maxSdf - sdf_new) );
+		if (dist2bound < rc)
+			kbT_mod /= dist2bound;
+
+		float dE = Enew - E0;
+
+		// Accept if dE < 0 or with probability e^(-dE/kbT)
+		if ( dE <= 0 || (dE > 0 && rnd4 < expf(-dE/kbT_mod)) )
+		{
+			atomicAggInc(nAccepted);
+			particles[pid] = pnew;
+		}
+		else
+		{
+			atomicAggInc(nRejected);
+		}
 	}
 }
 
@@ -191,7 +169,8 @@ __global__ void writeBackLocal(Particle* srcs, int nSrc, Particle* dsts, int* nD
 }
 
 
-MCMCSampler::MCMCSampler(pugi::xml_node node, Wall* wall) : nAccepted(1), nRejected(1), nDst(1), totE(1), wall(wall)
+MCMCSampler::MCMCSampler(pugi::xml_node node, Wall* wall, float minSdf, float maxSdf) :
+		nAccepted(1), nRejected(1), nDst(1), totE(1), wall(wall), minSdf(minSdf), maxSdf(maxSdf)
 {
 	name = node.attribute("name").as_string("");
 	rc   = node.attribute("rc").as_float(1.0f);
@@ -221,9 +200,9 @@ void MCMCSampler::_compute(InteractionType type, ParticleVector* pv1, ParticleVe
 	// Make combinedCL include halo as well
 	if (combinedCL == nullptr)
 	{
-		combined->domainSize = pv->domainSize;
+		combined->localDomainSize = pv->localDomainSize;
 		combined->globalDomainStart = pv->globalDomainStart;
-		combinedCL = new PrimaryCellList(combined, rc, pv->domainSize + make_float3(2.0f));
+		combinedCL = new PrimaryCellList(combined, rc, pv->localDomainSize + make_float3(2.0f));
 	}
 
 
@@ -272,7 +251,7 @@ void MCMCSampler::_compute(InteractionType type, ParticleVector* pv1, ParticleVe
 				mcmcSample <<< blocks3, threads3, 0, stream >>> (
 						shift,
 						combinedCL->coosvels->devPtr(), nLocal+nHalo, combinedCL->cellInfo(), combinedCL->cellsStartSize.devPtr(),
-						rc2, kbT, drand48(),
+						rc, rc2, power, kbT, drand48(),
 						wall->sdfInfo, minSdf, maxSdf,
 						proposalFactor, nAccepted.devPtr(), nRejected.devPtr(), potential);
 
@@ -302,7 +281,7 @@ void MCMCSampler::_compute(InteractionType type, ParticleVector* pv1, ParticleVe
 			combinedCL->cellInfo(), combinedCL->cellsStartSize.devPtr(), rc*rc, totEinter);
 
 	totE.downloadFromDevice(stream);
-	printf("Total energy: %f, difference: %f\n", totE[0], totE[0] - old);
+	debug("Total energy: %f, difference: %f", totE[0], totE[0] - old);
 
 	// KILL ALL HUMANS
 	/* piu piu piu */
@@ -312,6 +291,7 @@ void MCMCSampler::_compute(InteractionType type, ParticleVector* pv1, ParticleVe
 	writeBackLocal<<< getNblocks(nLocal+nHalo, nthreads), nthreads, 0, stream >>>(
 			combinedCL->coosvels->devPtr(), nLocal+nHalo, pv->local()->coosvels.devPtr(), nDst.devPtr());
 
-	// Mark globalPV as changed
+	// Mark pv as changed and rebuild cell-lists as the particles may have moved significantly
 	pv->local()->changedStamp++;
+	cl->build(stream);
 }

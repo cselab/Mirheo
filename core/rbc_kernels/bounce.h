@@ -251,7 +251,7 @@ __global__ void findBouncesInMesh(
 		for (cid3.y = cidLow.y; cid3.y <= cidHigh.y; cid3.y++)
 			for (cid3.z = cidLow.z; cid3.z <= cidHigh.z; cid3.z++)
 			{
-				const float3 v000 = make_float3(cid3) * cinfo.h - cinfo.domainSize*0.5f;
+				const float3 v000 = make_float3(cid3) * cinfo.h - cinfo.localDomainSize*0.5f;
 				const bool valid = isCellCrossingTriangle(v000, cinfo.h, n, v0.r, tol);
 
 				if (valid)

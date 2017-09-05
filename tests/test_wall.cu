@@ -58,14 +58,14 @@ void integrate(Particle* __restrict__ coos, Force* __restrict__ accs, int np, fl
 		coos[i].r.y += coos[i].u.y*dt;
 		coos[i].r.z += coos[i].u.z*dt;
 
-		if (coos[i].r.x >   0.5f * cinfo.domainSize.x) coos[i].r.x -= cinfo.domainSize.x;
-		if (coos[i].r.x <= -0.5f * cinfo.domainSize.x)	coos[i].r.x += cinfo.domainSize.x;
+		if (coos[i].r.x >   0.5f * cinfo.localDomainSize.x) coos[i].r.x -= cinfo.localDomainSize.x;
+		if (coos[i].r.x <= -0.5f * cinfo.localDomainSize.x)	coos[i].r.x += cinfo.localDomainSize.x;
 
-		if (coos[i].r.y >   0.5f * cinfo.domainSize.y) coos[i].r.y -= cinfo.domainSize.y;
-		if (coos[i].r.y <= -0.5f * cinfo.domainSize.x)	coos[i].r.y += cinfo.domainSize.y;
+		if (coos[i].r.y >   0.5f * cinfo.localDomainSize.y) coos[i].r.y -= cinfo.localDomainSize.y;
+		if (coos[i].r.y <= -0.5f * cinfo.localDomainSize.x)	coos[i].r.y += cinfo.localDomainSize.y;
 
-		if (coos[i].r.z >   0.5f * cinfo.domainSize.z) coos[i].r.z -= cinfo.domainSize.z;
-		if (coos[i].r.z <= -0.5f * cinfo.domainSize.x)	coos[i].r.z += cinfo.domainSize.z;
+		if (coos[i].r.z >   0.5f * cinfo.localDomainSize.z) coos[i].r.z -= cinfo.localDomainSize.z;
+		if (coos[i].r.z <= -0.5f * cinfo.localDomainSize.x)	coos[i].r.z += cinfo.localDomainSize.z;
 	}
 }
 
@@ -101,9 +101,9 @@ void forces(const Particle* __restrict__ coos, Force* __restrict__ accs, const i
 		float _yr = coos[dstId].r.y - coos[srcId].r.y;
 		float _zr = coos[dstId].r.z - coos[srcId].r.z;
 
-		_xr = minabs(_xr, _xr - cinfo.domainSize.x, _xr + cinfo.domainSize.x);
-		_yr = minabs(_yr, _yr - cinfo.domainSize.y, _yr + cinfo.domainSize.y);
-		_zr = minabs(_zr, _zr - cinfo.domainSize.z, _zr + cinfo.domainSize.z);
+		_xr = minabs(_xr, _xr - cinfo.localDomainSize.x, _xr + cinfo.localDomainSize.x);
+		_yr = minabs(_yr, _yr - cinfo.localDomainSize.y, _yr + cinfo.localDomainSize.y);
+		_zr = minabs(_zr, _zr - cinfo.localDomainSize.z, _zr + cinfo.localDomainSize.z);
 
 		const float rij2 = _xr * _xr + _yr * _yr + _zr * _zr;
 

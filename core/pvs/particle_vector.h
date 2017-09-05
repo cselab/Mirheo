@@ -49,7 +49,7 @@ public:
 	float mass;
 	std::string name;
 	// Local coordinate system; (0,0,0) is center of the local domain
-	float3 domainSize, globalDomainStart;
+	float3 localDomainSize, globalDomainStart;
 
 protected:
 	ParticleVector(	std::string name, LocalParticleVector *local, LocalParticleVector *halo ) :
@@ -67,11 +67,11 @@ public:
 
 	__forceinline__ __host__ __device__ float3 local2global(float3 x)
 	{
-		return x + globalDomainStart + 0.5f * domainSize;
+		return x + globalDomainStart + 0.5f * localDomainSize;
 	}
 	__forceinline__ __host__ __device__ float3 global2local(float3 x)
 	{
-		return x - globalDomainStart - 0.5f * domainSize;
+		return x - globalDomainStart - 0.5f * localDomainSize;
 	}
 
 	virtual void checkpoint(MPI_Comm comm, std::string path);

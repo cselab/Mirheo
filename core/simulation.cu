@@ -14,10 +14,23 @@ nranks3D(nranks3D), globalDomainSize(globalDomainSize), interComm(interComm), cu
 	MPI_Check( MPI_Cart_get(cartComm, 3, ranksArr, periods, coords) );
 	rank3D = {coords[0], coords[1], coords[2]};
 
-	subDomainSize = globalDomainSize / make_float3(nranks3D);
-	subDomainStart = {subDomainSize.x * coords[0], subDomainSize.y * coords[1], subDomainSize.z * coords[2]};
+	localDomainSize = globalDomainSize / make_float3(nranks3D);
+	globalDomainStart = {localDomainSize.x * coords[0], localDomainSize.y * coords[1], localDomainSize.z * coords[2]};
 
-	debug("Simulation initialized");
+	restartFolder  = "./restart/";
+	std::string command = "mkdir -p " + restartFolder;
+	if (rank == 0)
+	{
+		if ( system(command.c_str()) != 0 )
+		{
+			error("Could not create folder for restart files, will try to use ./");
+			restartFolder = "./";
+		}
+	}
+
+	debug("Simulation initialized, subdomain size is [%f %f %f], subdomain starts at [%f %f %f]",
+			localDomainSize.x,  localDomainSize.y,  localDomainSize.z,
+			globalDomainStart.x, globalDomainStart.y, globalDomainStart.z);
 }
 
 void Simulation::registerParticleVector(ParticleVector* pv, InitialConditions* ic)
@@ -29,7 +42,7 @@ void Simulation::registerParticleVector(ParticleVector* pv, InitialConditions* i
 		die("More than one particle vector is called %s", name.c_str());
 
 	pvIdMap[name] = particleVectors.size() - 1;
-	ic->exec(cartComm, pv, globalDomainSize, subDomainSize, 0);
+	ic->exec(cartComm, pv, globalDomainStart, localDomainSize, 0);
 }
 
 void Simulation::registerObjectVector(ObjectVector* ov)
@@ -43,25 +56,28 @@ void Simulation::registerObjectVector(ObjectVector* ov)
 	pvIdMap[name] = particleVectors.size() - 1;
 }
 
-void Simulation::registerWall(Wall* wall, std::string sourcePV, float creationTime)
+void Simulation::registerWall(Wall* wall, bool addCorrespondingPV)
 {
 	std::string name = wall->name;
 
 	if (wallMap.find(name) != wallMap.end())
 		die("More than one wall is called %s", name.c_str());
 
-	if (pvIdMap.find(name) != pvIdMap.end())
-		die("Wall has the same name as particle vector: %s", name.c_str());
-
-	if (pvIdMap.find(sourcePV) == pvIdMap.end())
-		die("Source particle vector %s for wall %s not found", sourcePV.c_str(), name.c_str());
-
 	wallMap[name] = wall;
+	wall->createSdf(cartComm, globalDomainSize, globalDomainStart, localDomainSize);
 
-	particleVectors.push_back(wall->getFrozen());
-	pvIdMap[name] = particleVectors.size() - 1;
+	if (addCorrespondingPV)
+	{
+		if (pvIdMap.find(name) != pvIdMap.end())
+			die("Wall has the same name as particle vector: %s", name.c_str());
 
-	wallProtorypes.push_back(std::make_tuple(wall, getPVbyName(sourcePV), creationTime));
+		auto pv = new ParticleVector(wall->name);
+		pv->globalDomainStart = globalDomainStart;
+		pv->localDomainSize = localDomainSize;
+		pv->restart(cartComm, restartFolder);
+		particleVectors.push_back(pv);
+		pvIdMap[name] = particleVectors.size() - 1;
+	}
 }
 
 void Simulation::registerInteraction   (Interaction* interaction)
@@ -145,7 +161,7 @@ void Simulation::init()
 		bool first = true;
 		for (auto rc : cutoffs.second)
 		{
-			cellListMap[cutoffs.first].push_back(first ? new PrimaryCellList(cutoffs.first, rc, subDomainSize) : new CellList(cutoffs.first, rc, subDomainSize));
+			cellListMap[cutoffs.first].push_back(first ? new PrimaryCellList(cutoffs.first, rc, localDomainSize) : new CellList(cutoffs.first, rc, localDomainSize));
 			first = false;
 		}
 	}
@@ -200,13 +216,24 @@ void Simulation::init()
 			redistributor->attach(pv, cl);
 		}
 
+	// Remove stuff from inside the wall, attach for bounce
+	for (auto pv : particleVectors)
+		for (auto wall : wallMap)
+			if (cellListMap[pv].size() > 0 && pv->name != wall.second->name)
+			{
+				wall.second->removeInner(pv);
+
+				// TODO: select what to bounce
+				wall.second->attach(pv, cellListMap[pv][0]);
+			}
+
 	assemble();
 }
 
 void Simulation::assemble()
 {
 	// XXX: different dt not implemented
-	dt = 1e9;
+	dt = 1.0;
 	for (auto integr : integrators)
 		if (integr != nullptr)
 			dt = min(dt, integr->dt);
@@ -338,33 +365,15 @@ void Simulation::run(int nsteps)
 			info("===============================================================================\nTimestep: %d, simulation time: %f",
 					currentStep, currentTime);
 
-		for (auto prototype_it = wallProtorypes.begin(); prototype_it != wallProtorypes.end(); )
-		{
-			if (currentTime >= std::get<2>(*prototype_it))
-			{
-				auto wall  = std::get<0>(*prototype_it);
-				auto srcPV = std::get<1>(*prototype_it);
-
-				wall->createSdf(cartComm, subDomainStart, subDomainSize, globalDomainSize);
-				wall->freezeParticles(srcPV);
-
-				for (auto pv : particleVectors)
-					if (pv != wall->getFrozen() && cellListMap[pv].size() > 0)
-					{
-						wall->removeInner(pv);
-						wall->attach(pv, cellListMap[pv][0]);
-					}
-
-				prototype_it = wallProtorypes.erase(prototype_it);
-			}
-			else
-				prototype_it++;
-		}
-
 		scheduler.run();
 
 		currentTime += dt;
 	}
+
+	// Finish the redistribution by rebuilding the primary cell-lists
+	for (auto clVec : cellListMap)
+		if (clVec.second.size() > 0)
+			clVec.second[0]->build(0);
 
 	info("Finished with %d iterations", nsteps);
 }

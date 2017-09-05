@@ -8,6 +8,7 @@
 
 #include <algorithm>
 
+template<bool QUERY=false>
 __global__ void getHalos(const float4* __restrict__ coosvels, const CellListInfo cinfo, const uint* __restrict__ cellsStartSize,
 		const int64_t dests[27], int counts[27])
 {
@@ -52,6 +53,8 @@ __global__ void getHalos(const float4* __restrict__ coosvels, const CellListInfo
 	if (tid < 27 && blockSum[tid] > 0)
 		blockSum[tid] = atomicAdd(counts + tid, blockSum[tid]);
 
+	if (QUERY) return;
+
 	__syncthreads();
 
 #pragma unroll 3
@@ -63,9 +66,9 @@ __global__ void getHalos(const float4* __restrict__ coosvels, const CellListInfo
 		const int ix = bufId % 3;
 		const int iy = (bufId / 3) % 3;
 		const int iz = bufId / 9;
-		const float3 shift{ cinfo.domainSize.x*(ix-1),
-							cinfo.domainSize.y*(iy-1),
-							cinfo.domainSize.z*(iz-1) };
+		const float3 shift{ cinfo.localDomainSize.x*(ix-1),
+							cinfo.localDomainSize.y*(iy-1),
+							cinfo.localDomainSize.z*(iz-1) };
 
 #pragma unroll 2
 		for (int i = 0; i < start_size.y; i++)
@@ -90,10 +93,10 @@ void ParticleHaloExchanger::attach(ParticleVector* pv, CellList* cl)
 
 	// TODO: change ndens
 	const double ndens = 16;//(double)pv->local()->size() / (cl->ncells.x * cl->ncells.y * cl->ncells.z * cl->rc*cl->rc*cl->rc);
-	const int maxdim = std::max({cl->domainSize.x, cl->domainSize.y, cl->domainSize.z});
+	const int maxdim = std::max({cl->localDomainSize.x, cl->localDomainSize.y, cl->localDomainSize.z});
 
 	// Sizes of buffers. 0 is side, 1 is edge, 2 is corner
-	const int sizes[3] = { (int)(4*ndens * maxdim*maxdim + 128), (int)(4*ndens * maxdim + 128), (int)(4*ndens + 128) };
+	const int sizes[3] = { (int)(4*ndens * maxdim*maxdim + 128), (int)(4*ndens * maxdim + 128), (int)(4*ndens + 1024) };
 
 	auto helper = new ExchangeHelper(pv->name, sizeof(Particle), sizes);
 	helpers.push_back(helper);

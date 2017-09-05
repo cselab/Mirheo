@@ -99,7 +99,7 @@ int main(int argc, char ** argv)
 		}
 	}
 
-	objs.domainSize = length;
+	objs.localDomainSize = length;
 	objs.local()->coosvels.uploadToDevice();
 	objs.local()->particles2objIds.copy(p2obj);
 

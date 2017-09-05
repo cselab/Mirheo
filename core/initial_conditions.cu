@@ -12,10 +12,10 @@ UniformIC::UniformIC(pugi::xml_node node)
 	density = node.attribute("density").as_float(1.0);
 }
 
-void UniformIC::exec(const MPI_Comm& comm, ParticleVector* pv, float3 globalDomainStart, float3 subDomainSize, cudaStream_t stream)
+void UniformIC::exec(const MPI_Comm& comm, ParticleVector* pv, float3 globalDomainStart, float3 localDomainSize, cudaStream_t stream)
 {
-	int3 ncells = make_int3( ceilf(subDomainSize) );
-	float3 h = subDomainSize / make_float3(ncells);
+	int3 ncells = make_int3( ceilf(localDomainSize) );
+	float3 h = localDomainSize / make_float3(ncells);
 
 	float volume = h.x*h.y*h.z;
 	float avg = volume * density;
@@ -40,9 +40,9 @@ void UniformIC::exec(const MPI_Comm& comm, ParticleVector* pv, float3 globalDoma
 				for (int p=0; p<nparts; p++)
 				{
 					pv->local()->resize(mycount+1, stream, ResizeKind::resizePreserve);
-					cooPtr[mycount].r.x = i*h.x - 0.5*subDomainSize.x + coordinateDistribution(gen);
-					cooPtr[mycount].r.y = j*h.y - 0.5*subDomainSize.y + coordinateDistribution(gen);
-					cooPtr[mycount].r.z = k*h.z - 0.5*subDomainSize.z + coordinateDistribution(gen);
+					cooPtr[mycount].r.x = i*h.x - 0.5*localDomainSize.x + coordinateDistribution(gen);
+					cooPtr[mycount].r.y = j*h.y - 0.5*localDomainSize.y + coordinateDistribution(gen);
+					cooPtr[mycount].r.z = k*h.z - 0.5*localDomainSize.z + coordinateDistribution(gen);
 					cooPtr[mycount].i1 = mycount;
 
 					cooPtr[mycount].u.x = 0*coordinateDistribution(gen);
@@ -55,7 +55,7 @@ void UniformIC::exec(const MPI_Comm& comm, ParticleVector* pv, float3 globalDoma
 			}
 
 	pv->globalDomainStart = globalDomainStart;
-	pv->domainSize = subDomainSize;
+	pv->localDomainSize = localDomainSize;
 	pv->mass = mass;
 
 	int totalCount=0; // TODO: int64!
@@ -76,7 +76,7 @@ EllipsoidIC::EllipsoidIC(pugi::xml_node node)
 	nObjs   = node.attribute("nobjs")  .as_int(0);
 }
 
-void EllipsoidIC::exec(const MPI_Comm& comm, ParticleVector* pv, float3 globalDomainStart, float3 subDomainSize, cudaStream_t stream)
+void EllipsoidIC::exec(const MPI_Comm& comm, ParticleVector* pv, float3 globalDomainStart, float3 localDomainSize, cudaStream_t stream)
 {
 	auto ov = dynamic_cast<RigidObjectVector*>(pv);
 	if (ov == nullptr)
@@ -97,9 +97,9 @@ void EllipsoidIC::exec(const MPI_Comm& comm, ParticleVector* pv, float3 globalDo
 		memset(&motions[i], 0, sizeof(LocalRigidObjectVector::RigidMotion));
 
 		do {
-			motions[i].r.x = subDomainSize.x*(drand48() - 0.5);
-			motions[i].r.y = subDomainSize.y*(drand48() - 0.5);
-			motions[i].r.z = subDomainSize.z*(drand48() - 0.5);
+			motions[i].r.x = localDomainSize.x*(drand48() - 0.5);
+			motions[i].r.y = localDomainSize.y*(drand48() - 0.5);
+			motions[i].r.z = localDomainSize.z*(drand48() - 0.5);
 		} while (overlap(motions[i].r, i, (2*maxAxis+0.2)*(2*maxAxis+0.2)));
 
 		const float phi = M_PI*drand48();

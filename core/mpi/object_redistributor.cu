@@ -45,7 +45,7 @@ __device__ void unpackExtraData(int objId, int32_t** extraData, int nPtrsPerObj,
 
 
 __global__ void getExitingObjects(const float4* __restrict__ coosvels, const LocalObjectVector::COMandExtent* props, const int nObj, const int objSize,
-		const float3 domainSize,
+		const float3 localDomainSize,
 		const int64_t dests[27], int bufSizes[27], /*int* haloParticleIds,*/
 		const int packedObjSize_byte, int32_t** extraData, int nPtrsPerObj, const int* dataSizes)
 {
@@ -59,13 +59,13 @@ __global__ void getExitingObjects(const float4* __restrict__ coosvels, const Loc
 	auto prop = props[objId];
 	int cx = 1, cy = 1, cz = 1;
 
-	if (prop.com.x  < -0.5*domainSize.x) cx = 0;
-	if (prop.com.y  < -0.5*domainSize.y) cy = 0;
-	if (prop.com.z  < -0.5*domainSize.z) cz = 0;
+	if (prop.com.x  < -0.5*localDomainSize.x) cx = 0;
+	if (prop.com.y  < -0.5*localDomainSize.y) cy = 0;
+	if (prop.com.z  < -0.5*localDomainSize.z) cz = 0;
 
-	if (prop.com.x >=  0.5*domainSize.x) cx = 2;
-	if (prop.com.y >=  0.5*domainSize.y) cy = 2;
-	if (prop.com.z >=  0.5*domainSize.z) cz = 2;
+	if (prop.com.x >=  0.5*localDomainSize.x) cx = 2;
+	if (prop.com.y >=  0.5*localDomainSize.y) cy = 2;
+	if (prop.com.z >=  0.5*localDomainSize.z) cz = 2;
 
 //	if (tid == 0) printf("Obj %d : [%f %f %f] -- [%f %f %f]\n", objId,
 //			prop.low.x, prop.low.y, prop.low.z, prop.high.x, prop.high.y, prop.high.z);
@@ -75,9 +75,9 @@ __global__ void getExitingObjects(const float4* __restrict__ coosvels, const Loc
 
 	__shared__ int shDstObjId;
 
-	const float3 shift{ domainSize.x*(cx-1),
-						domainSize.y*(cy-1),
-						domainSize.z*(cz-1) };
+	const float3 shift{ localDomainSize.x*(cx-1),
+						localDomainSize.y*(cy-1),
+						localDomainSize.z*(cz-1) };
 
 	__syncthreads();
 	if (tid == 0)
@@ -135,7 +135,7 @@ void ObjectRedistributor::attach(ObjectVector* ov, float rc)
 
 	const float objPerCell = 0.1f;
 
-	const int maxdim = std::max({ov->domainSize.x, ov->domainSize.y, ov->domainSize.z});
+	const int maxdim = std::max({ov->localDomainSize.x, ov->localDomainSize.y, ov->localDomainSize.z});
 
 	const int sizes[3] = { (int)(4*objPerCell * maxdim*maxdim + 10),
 						   (int)(4*objPerCell * maxdim + 10),
@@ -182,7 +182,7 @@ void ObjectRedistributor::prepareData(int id)
 
 		getExitingObjects <<< ov->local()->nObjects, nthreads, 0, defStream >>> (
 				(float4*)ov->local()->coosvels.devPtr(), ov->local()->comAndExtents.devPtr(),
-				ov->local()->nObjects, ov->local()->objSize, ov->domainSize,
+				ov->local()->nObjects, ov->local()->objSize, ov->localDomainSize,
 				(int64_t*)helper->sendAddrs.devPtr(), helper->bufSizes.devPtr(),
 				totSize_byte, ov->local()->extraDataPtrs.devPtr(), nPtrs, ov->local()->extraDataSizes.devPtr());
 

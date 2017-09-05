@@ -1,10 +1,12 @@
 <?xml version="1.0"?>
-<simulation name="poiseuille" mpi_ranks="3 1 1" debug_lvl="5" noplugins="false">
+<simulation name="poiseuille" mpi_ranks="2 1 2" debug_lvl="5" noplugins="false">
 
-	<domain size="16 16 16" />
-	<particle_vector name="dpd" density="10" />
+	<domain size="64 64 64" />
+	<particle_vector name="dpd" density="8" />
 	
-	<wall name="wall" file_name="../../walls/cyl.dat" source_pv="dpd" creation_time="0.05" />
+	<wall name="wall" file_name="../../walls/cylinder_r5_h32.sdf">
+		<generate mass="1.0" density="10" a="2.6666667" kbt="0.05" rc="1.0" power="0.5" />
+	</wall>
 	
 	<interaction name="dpd_int" type="dpd" a="2.6666667" gamma="8" kbt="0.0444302" dt="0.0005" rc="1.0" power="0.25">
 		<apply_to pv1="dpd" pv2="dpd"/>
@@ -19,6 +21,7 @@
 		<apply_to pv="dpd" />
 	</plugin>
 	
-	<run dt="0.0005" stop_time="4.000" />
+	<run dt="0.0005" stop_time="4.010" />
 
 </simulation>
+

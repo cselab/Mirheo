@@ -107,28 +107,28 @@ __global__ void addForcesKernel(const int n, const float4* in_forces, float4* ou
 	out_forces[pid] += in_forces[order[pid]];
 }
 
-CellListInfo::CellListInfo(float rc, float3 domainSize) :
-		rc(rc), h(make_float3(rc)), domainSize(domainSize)
+CellListInfo::CellListInfo(float rc, float3 localDomainSize) :
+		rc(rc), h(make_float3(rc)), localDomainSize(localDomainSize)
 {
-	ncells = make_int3( floorf(domainSize / rc + 1e-6) );
-	float3 h = make_float3(domainSize) / make_float3(ncells);
+	ncells = make_int3( floorf(localDomainSize / rc + 1e-6) );
+	float3 h = make_float3(localDomainSize) / make_float3(ncells);
 	invh = 1.0f / h;
 	this->rc = std::min( {h.x, h.y, h.z} );
 
 	totcells = ncells.x * ncells.y * ncells.z;
 }
 
-CellListInfo::CellListInfo(float3 h, float3 domainSize) :
-		h(h), invh(1.0f/h), domainSize(domainSize)
+CellListInfo::CellListInfo(float3 h, float3 localDomainSize) :
+		h(h), invh(1.0f/h), localDomainSize(localDomainSize)
 {
 	rc = std::min( {h.x, h.y, h.z} );
-	ncells = make_int3( ceilf(domainSize / h - 1e-6f) );
+	ncells = make_int3( ceilf(localDomainSize / h - 1e-6f) );
 	totcells = ncells.x * ncells.y * ncells.z;
 }
 
 
-CellList::CellList(ParticleVector* pv, float rc, float3 domainSize) :
-		CellListInfo(rc, domainSize), pv(pv)
+CellList::CellList(ParticleVector* pv, float rc, float3 localDomainSize) :
+		CellListInfo(rc, localDomainSize), pv(pv)
 {
 	cellsStartSize.resize(totcells + 1, 0);
 	cellsSize.     resize(totcells + 1, 0);
@@ -136,8 +136,8 @@ CellList::CellList(ParticleVector* pv, float rc, float3 domainSize) :
 	debug("Initialized %s cell-list with %dx%dx%d cells and cut-off %f", pv->name.c_str(), ncells.x, ncells.y, ncells.z, this->rc);
 }
 
-CellList::CellList(ParticleVector* pv, int3 resolution, float3 domainSize) :
-		CellListInfo(domainSize / make_float3(resolution), domainSize), pv(pv)
+CellList::CellList(ParticleVector* pv, int3 resolution, float3 localDomainSize) :
+		CellListInfo(localDomainSize / make_float3(resolution), localDomainSize), pv(pv)
 {
 	cellsStartSize.resize(totcells + 1, 0);
 	cellsSize.     resize(totcells + 1, 0);
@@ -202,13 +202,13 @@ void CellList::addForces(cudaStream_t stream)
 }
 
 
-PrimaryCellList::PrimaryCellList(ParticleVector* pv, float rc, float3 domainSize) : CellList(pv, rc, domainSize)
+PrimaryCellList::PrimaryCellList(ParticleVector* pv, float rc, float3 localDomainSize) : CellList(pv, rc, localDomainSize)
 {
 	if (dynamic_cast<ObjectVector*>(pv) != nullptr)
 		warn("Using primary cell-lists with objects is STRONGLY discouraged. This will very likely result in an error");
 }
 
-PrimaryCellList::PrimaryCellList(ParticleVector* pv, int3 resolution, float3 domainSize) : CellList(pv, resolution, domainSize)
+PrimaryCellList::PrimaryCellList(ParticleVector* pv, int3 resolution, float3 localDomainSize) : CellList(pv, resolution, localDomainSize)
 {
 	if (dynamic_cast<ObjectVector*>(pv) != nullptr)
 		warn("Using primary cell-lists with objects is STRONGLY discouraged. This will very likely result in an error");

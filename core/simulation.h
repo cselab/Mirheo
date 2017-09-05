@@ -25,9 +25,11 @@ class Simulation
 {
 public:
 	int3 nranks3D;
-	float3 globalDomainSize, subDomainSize, subDomainStart;
+	float3 globalDomainSize, globalDomainStart, localDomainSize;
 
 private:
+	std::string restartFolder;
+
 	float dt;
 	int rank;
 	int3 rank3D;
@@ -65,7 +67,7 @@ public:
 
 	void registerParticleVector(ParticleVector* pv, InitialConditions* ic);
 	void registerObjectVector  (ObjectVector* ov);
-	void registerWall          (Wall* wall, std::string sourcePV, float creationTime);
+	void registerWall          (Wall* wall, bool addCorrespondingPV);
 
 	void registerInteraction   (Interaction* interaction);
 	void registerIntegrator    (Integrator* integrator);

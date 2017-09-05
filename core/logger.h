@@ -64,6 +64,7 @@ public:
 	{
 		runtimeDebugLvl = debugLvl;
 
+		MPI_Comm_rank(comm, &rank);
 		std::string rankStr = std::string(5 - std::to_string(rank).length(), '0') + std::to_string(rank);
 
 		auto pos = fname.find_last_of('.');

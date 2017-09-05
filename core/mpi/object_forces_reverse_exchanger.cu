@@ -33,7 +33,7 @@ void ObjectForcesReverseExchanger::attach(ObjectVector* ov, int* offsetPtr)
 	offsetPtrs.push_back(offsetPtr)
 
 	const float objPerCell = 0.1f;
-	const int maxdim = std::max({ov->domainSize.x, ov->domainSize.y, ov->domainSize.z});
+	const int maxdim = std::max({ov->localDomainSize.x, ov->localDomainSize.y, ov->localDomainSize.z});
 
 	const int sizes[3] = { (int)(4*objPerCell * maxdim*maxdim + 10),
 						   (int)(4*objPerCell * maxdim + 10),

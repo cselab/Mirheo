@@ -15,18 +15,14 @@ protected:
 	PinnedBuffer<int> nAccepted, nRejected, nDst;
 	PinnedBuffer<double> totE;
 	float proposalFactor;
-
+	float minSdf, maxSdf;
 
 public:
-	static constexpr float minSdf = -2.0f;
-	static constexpr float maxSdf = 3.0f;
-
-
 	float a, kbT, power;
 
 	void _compute(InteractionType type, ParticleVector* pv1, ParticleVector* pv2, CellList* cl, const float t, cudaStream_t stream);
 
-	MCMCSampler(pugi::xml_node node, Wall* wall);
+	MCMCSampler(pugi::xml_node node, Wall* wall, float minSdf, float maxSdf);
 
 	~MCMCSampler() = default;
 };

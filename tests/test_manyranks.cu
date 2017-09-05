@@ -84,7 +84,7 @@ void forces(const Particle* __restrict__ coos, Force* __restrict__ accs, const i
 	const float sigmaf = sigma / sqrt(ddt);
 	const float aij = 50;
 
-	const float3 length = cinfo.domainSize;
+	const float3 length = cinfo.localDomainSize;
 
 	auto addForce = [=] (int dstId, int srcId, Force& a)
 	{

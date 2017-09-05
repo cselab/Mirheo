@@ -4,7 +4,7 @@ NVCCFLAGS = -std=c++11 -arch=compute_61 -code=sm_61 -O3  -g -lineinfo --expt-ext
 
 LIBS = -lmpi
 
-SRC_DIR = ../core ./ ../core/xml ../core/mpi
+SRC_DIR = ../core ./ ../core/xml ../core/mpi ../core/pvs
 VPATH = $(addsuffix :,$(SRC_DIR))
 NVCCFLAGS += -I../
 
@@ -16,7 +16,7 @@ manyranks_obj = scan.o celllist.o test_manyranks.o pugixml.o components.o integr
 halo_obj    = scan.o celllist.o test_halo.o pugixml.o components.o integrate.o interactions.o wall.o particle_exchanger.o particle_halo_exchanger.o
 obj_halo_obj= scan.o celllist.o test_obj_halo.o pugixml.o components.o integrate.o interactions.o wall.o object_halo_exchanger.o object_vector.o particle_exchanger.o
 bounce_obj  = scan.o celllist.o test_bounce.o pugixml.o components.o integrate.o interactions.o wall.o object_halo_exchanger.o object_vector.o particle_exchanger.o
-redist_obj  = scan.o celllist.o test_redist.o particle_exchanger.o particle_redistributor.o components.o pugixml.o wall.o interactions.o integrate.o
+redist_obj  = scan.o celllist.o test_redist.o particle_exchanger.o particle_redistributor.o pugixml.o initial_conditions.o particle_vector.o
 log_obj     = test_logger.o
 cells_obj   = scan.o celllist.o test_cells.o pugixml.o initial_conditions.o
 dpd_obj     = scan.o celllist.o test_dpd.o pugixml.o initial_conditions.o integrate.o interactions.o wall.o

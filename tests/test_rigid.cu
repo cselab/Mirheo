@@ -241,7 +241,7 @@ int main(int argc, char ** argv)
 
 	printf("generated %d particles\n", c);
 	dpds.local()->resize(c, defStream);
-	dpds.domainSize = length;
+	dpds.localDomainSize = length;
 	dpds.mass = 1.0f;
 	dpds.local()->coosvels.uploadToDevice(defStream);
 

@@ -9,6 +9,11 @@
 #include <core/pvs/object_vector.h>
 #include <core/bounce_solver.h>
 
+#include "sdf_kernels.h"
+
+//===============================================================================================
+// Interpolation kernels
+//===============================================================================================
 
 __device__ __forceinline__ float cubicInterpolate1D(float y[4], float mu)
 {
@@ -20,7 +25,6 @@ __device__ __forceinline__ float cubicInterpolate1D(float y[4], float mu)
 
 	return ((a0*mu + a1)*mu + a2)*mu + a3;
 }
-
 
 __global__ void cubicInterpolate3D(const float* in, int3 inDims, float3 inH, float* out, int3 outDims, float3 outH, float3 offset, float scalingFactor)
 {
@@ -77,70 +81,9 @@ __global__ void cubicInterpolate3D(const float* in, int3 inDims, float3 inH, flo
 	out[ (iz*outDims.y + iy) * outDims.x + ix ] = cubicInterpolate1D(interp1D, mu.z);
 }
 
-template<typename T>
-__device__ __forceinline__ float evalSdf(T x, Wall::SdfInfo sdfInfo)
-{
-	float3 x3{x.x, x.y, x.z};
-	float3 texcoord = floorf((x3 + sdfInfo.extendedDomainSize*0.5f) * sdfInfo.invh);
-	float3 lambda = (x3 - (texcoord * sdfInfo.h - sdfInfo.extendedDomainSize*0.5f)) * sdfInfo.invh;
-
-	const float s000 = tex3D<float>(sdfInfo.sdfTex, texcoord.x + 0, texcoord.y + 0, texcoord.z + 0);
-	const float s001 = tex3D<float>(sdfInfo.sdfTex, texcoord.x + 1, texcoord.y + 0, texcoord.z + 0);
-	const float s010 = tex3D<float>(sdfInfo.sdfTex, texcoord.x + 0, texcoord.y + 1, texcoord.z + 0);
-	const float s011 = tex3D<float>(sdfInfo.sdfTex, texcoord.x + 1, texcoord.y + 1, texcoord.z + 0);
-	const float s100 = tex3D<float>(sdfInfo.sdfTex, texcoord.x + 0, texcoord.y + 0, texcoord.z + 1);
-	const float s101 = tex3D<float>(sdfInfo.sdfTex, texcoord.x + 1, texcoord.y + 0, texcoord.z + 1);
-	const float s110 = tex3D<float>(sdfInfo.sdfTex, texcoord.x + 0, texcoord.y + 1, texcoord.z + 1);
-	const float s111 = tex3D<float>(sdfInfo.sdfTex, texcoord.x + 1, texcoord.y + 1, texcoord.z + 1);
-
-	const float s00x = s000 * (1 - lambda.x) + lambda.x * s001;
-	const float s01x = s010 * (1 - lambda.x) + lambda.x * s011;
-	const float s10x = s100 * (1 - lambda.x) + lambda.x * s101;
-	const float s11x = s110 * (1 - lambda.x) + lambda.x * s111;
-
-	const float s0yx = s00x * (1 - lambda.y) + lambda.y * s01x;
-	const float s1yx = s10x * (1 - lambda.y) + lambda.y * s11x;
-
-	const float szyx = s0yx * (1 - lambda.z) + lambda.z * s1yx;
-
-//	printf("[%f %f %f]  [%f %f %f]  [%f %f %f]  = %f  vs  %f\n", x.x, x.y, x.z,  texcoord.x, texcoord.y, texcoord.z,
-//			lambda.x, lambda.y, lambda.z, szyx, sqrt(x.x*x.x + x.y*x.y + x.z*x.z) - 5);
-
-	return szyx;
-}
-
-
-__global__ void countFrozen(const float4* pv, const int np, Wall::SdfInfo sdfInfo, float minSdf, float maxSdf, int* nFrozen)
-{
-	const int pid = blockIdx.x * blockDim.x + threadIdx.x;
-	if (pid >= np) return;
-
-	const float4 coo = pv[2*pid];
-	const float sdf = evalSdf(coo, sdfInfo);
-
-	if (sdf > minSdf && sdf < maxSdf)
-		atomicAggInc(nFrozen);
-}
-
-__global__ void collectFrozen(const float4* input, const int np, Wall::SdfInfo sdfInfo, float minSdf, float maxSdf,
-		float4* frozen, int* nFrozen)
-{
-	const int pid = blockIdx.x * blockDim.x + threadIdx.x;
-	if (pid >= np) return;
-
-	const float4 coo = input[2*pid];
-	const float4 vel = input[2*pid+1];
-
-	const float sdf = evalSdf(coo, sdfInfo);
-
-	if (sdf > minSdf && sdf < maxSdf)
-	{
-		const int ind = atomicAggInc(nFrozen);
-		frozen[2*ind] = coo;
-		frozen[2*ind + 1] = make_float4(0.0f, 0.0f, 0.0f, vel.w);
-	}
-}
-
+//===============================================================================================
+// Removing kernels
+//===============================================================================================
 
 __global__ void countRemaining(const float4* pv, const int np, Wall::SdfInfo sdfInfo, int* nRemaining)
 {
@@ -213,7 +156,9 @@ __global__ void collectRemainingObjects(const float4* input, const int nObjects,
 	}
 }
 
-
+//===============================================================================================
+// Boundary walls kernels
+//===============================================================================================
 
 __device__ inline bool isCellOnBoundary(float3 cornerCoo, float3 len, Wall::SdfInfo sdfInfo)
 {
@@ -245,7 +190,7 @@ __global__ void countBoundaryCells(CellListInfo cinfo, Wall::SdfInfo sdfInfo, in
 
 	int3 ind;
 	cinfo.decode(cid, ind.x, ind.y, ind.z);
-	float3 cornerCoo = -0.5f*cinfo.domainSize + make_float3(ind)*cinfo.h;
+	float3 cornerCoo = -0.5f*cinfo.localDomainSize + make_float3(ind)*cinfo.h;
 
 	if (isCellOnBoundary(cornerCoo, cinfo.h, sdfInfo))
 		atomicAggInc(nBoundaryCells);
@@ -259,7 +204,7 @@ __global__ void getBoundaryCells(CellListInfo cinfo, Wall::SdfInfo sdfInfo,
 
 	int3 ind;
 	cinfo.decode(cid, ind.x, ind.y, ind.z);
-	float3 cornerCoo = -0.5f*cinfo.domainSize + make_float3(ind)*cinfo.h;
+	float3 cornerCoo = -0.5f*cinfo.localDomainSize + make_float3(ind)*cinfo.h;
 
 	if (isCellOnBoundary(cornerCoo, cinfo.h, sdfInfo))
 	{
@@ -267,6 +212,10 @@ __global__ void getBoundaryCells(CellListInfo cinfo, Wall::SdfInfo sdfInfo,
 		boundaryCells[id] = cid;
 	}
 }
+
+//===============================================================================================
+// SDF bouncing kernel
+//===============================================================================================
 
 __global__ void bounceSDF(const int* wallCells, const int nWallCells, const uint* __restrict__ cellsStartSize, CellListInfo cinfo,
 		Wall::SdfInfo sdfInfo, float4* coosvels, const float dt)
@@ -310,11 +259,10 @@ __global__ void bounceSDF(const int* wallCells, const int nWallCells, const uint
 /*
  * We only set a few params here
  */
-Wall::Wall(std::string name, std::string sdfFileName, float3 sdfH, float minSdf, float maxSdf) :
-		name(name), sdfFileName(sdfFileName), minSdf(minSdf), maxSdf(maxSdf)
+Wall::Wall(std::string name, std::string sdfFileName, float3 sdfH) :
+		name(name), sdfFileName(sdfFileName)
 {
 	sdfInfo.h = sdfH;
-	frozen = new ParticleVector(name);
 }
 
 void Wall::attach(ParticleVector* pv, CellList* cl)
@@ -443,9 +391,9 @@ void Wall::prepareRelevantSdfPiece(const float* fullSdfData, float3 extendedDoma
 			}
 }
 
-void Wall::createSdf(MPI_Comm& comm, float3 subDomainStart, float3 subDomainSize, float3 globalDomainSize)
+void Wall::createSdf(MPI_Comm& comm, float3 globalDomainSize, float3 globalDomainStart, float3 localDomainSize)
 {
-	debug2("Creating wall");
+	info("Creating wall %s", name.c_str());
 
 	CUDA_Check( cudaDeviceSynchronize() );
 	MPI_Check( MPI_Comm_dup(comm, &wallComm) );
@@ -472,7 +420,7 @@ void Wall::createSdf(MPI_Comm& comm, float3 subDomainStart, float3 subDomainSize
 
 	// We'll make sdf a bit bigger, so that particles that flew away
 	// would also be correctly bounced back
-	sdfInfo.extendedDomainSize = subDomainSize + 2.0f*margin3;
+	sdfInfo.extendedDomainSize = localDomainSize + 2.0f*margin3;
 	sdfInfo.resolution         = make_int3( ceilf(sdfInfo.extendedDomainSize / sdfInfo.h) );
 	sdfInfo.h                  = sdfInfo.extendedDomainSize / make_float3(sdfInfo.resolution-1);
 	sdfInfo.invh               = 1.0f / sdfInfo.h;
@@ -485,7 +433,7 @@ void Wall::createSdf(MPI_Comm& comm, float3 subDomainStart, float3 subDomainSize
 	int3 resolutionBeforeInterpolation;
 	float3 offset;
 	PinnedBuffer<float> localSdfData;
-	prepareRelevantSdfPiece(fullSdfData.data(), subDomainStart - margin3, initialSdfH, initialSdfResolution,
+	prepareRelevantSdfPiece(fullSdfData.data(), globalDomainStart - margin3, initialSdfH, initialSdfResolution,
 			resolutionBeforeInterpolation, offset, localSdfData);
 
 	// Interpolate
@@ -531,33 +479,6 @@ void Wall::createSdf(MPI_Comm& comm, float3 subDomainStart, float3 subDomainSize
 	CUDA_Check( cudaDeviceSynchronize() );
 }
 
-void Wall::freezeParticles(ParticleVector* pv)
-{
-	CUDA_Check( cudaDeviceSynchronize() );
-
-	PinnedBuffer<int> nFrozen(1);
-
-	nFrozen.clear(0);
-	countFrozen<<< (pv->local()->size() + 127) / 128, 128, 0, 0 >>>(
-			(float4*)pv->local()->coosvels.devPtr(), pv->local()->size(), sdfInfo, minSdf, maxSdf, nFrozen.devPtr());
-	nFrozen.downloadFromDevice(0);
-
-	frozen->local()->resize(nFrozen[0], 0);
-	frozen->mass = pv->mass;
-	frozen->globalDomainStart = pv->globalDomainStart;
-	frozen->domainSize = pv->domainSize;
-
-	info("Freezing %d pv", nFrozen[0]);
-
-	nFrozen.clear(0);
-	collectFrozen<<< (pv->local()->size() + 127) / 128, 128, 0, 0 >>>(
-			(float4*)pv->local()->coosvels.devPtr(), pv->local()->size(), sdfInfo, minSdf, maxSdf,
-			(float4*)frozen->local()->coosvels.devPtr(), nFrozen.devPtr());
-	nFrozen.downloadFromDevice(0);
-
-	CUDA_Check( cudaDeviceSynchronize() );
-}
-
 void Wall::removeInner(ParticleVector* pv)
 {
 	CUDA_Check( cudaDeviceSynchronize() );
@@ -586,7 +507,7 @@ void Wall::removeInner(ParticleVector* pv)
 	containerSwap(pv->local()->coosvels, tmp, 0);
 	pv->local()->resize(nRemaining[0], 0);
 	pv->local()->changedStamp++;
-	info("Keeping %d particles of %s", nRemaining[0], pv);
+	info("Keeping %d particles of %s", nRemaining[0], pv->name.c_str());
 
 	CUDA_Check( cudaDeviceSynchronize() );
 }

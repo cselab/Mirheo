@@ -9,6 +9,7 @@
 #include <thread>
 #include <algorithm>
 
+template<bool QUERY=false>
 __global__ void getExitingParticles(float4* coosvels,
 		CellListInfo cinfo, const uint* __restrict__ cellsStartSize,
 		const int64_t dests[27], int counts[27])
@@ -51,15 +52,16 @@ __global__ void getExitingParticles(float4* coosvels,
 		if (code.x*code.y*code.z != 1) // this means that the particle has to leave
 		{
 			const int bufId = (code.z*3 + code.y)*3 + code.x;
-			const float3 shift{ cinfo.domainSize.x*(code.x-1),
-								cinfo.domainSize.y*(code.y-1),
-								cinfo.domainSize.z*(code.z-1) };
+			const float3 shift{ cinfo.localDomainSize.x*(code.x-1),
+								cinfo.localDomainSize.y*(code.y-1),
+								cinfo.localDomainSize.z*(code.z-1) };
 			p.r -= shift;
 
 			int myid = atomicAdd(counts + bufId, 1);
 
-			const int dstInd = myid;
+			if (QUERY) continue;
 
+			const int dstInd = myid;
 			float4* addr = (float4*)dests[bufId];
 			addr[2*dstInd + 0] = p.r2Float4();
 			addr[2*dstInd + 1] = p.u2Float4();
@@ -80,10 +82,10 @@ void ParticleRedistributor::attach(ParticleVector* pv, CellList* cl)
 
 	// TODO: change ndens
 	const double ndens = 16;//(double)pv->local()->size() / (cl->ncells.x * cl->ncells.y * cl->ncells.z * cl->rc*cl->rc*cl->rc);
-	const int maxdim = std::max({cl->domainSize.x, cl->domainSize.y, cl->domainSize.z});
+	const int maxdim = std::max({cl->localDomainSize.x, cl->localDomainSize.y, cl->localDomainSize.z});
 
 	// Sizes of buffers. 0 is side, 1 is edge, 2 is corner
-	const int sizes[3] = { (int)(ndens * maxdim*maxdim + 128), (int)(ndens * maxdim + 128), (int)(ndens + 128) };
+	const int sizes[3] = { (int)(ndens * maxdim*maxdim + 128), (int)(ndens * maxdim + 128), (int)(ndens + 1024) };
 
 	auto helper = new ExchangeHelper(pv->name, sizeof(Particle), sizes);
 	helpers.push_back(helper);
@@ -123,4 +125,7 @@ void ParticleRedistributor::combineAndUploadData(int id)
 			CUDA_Check( cudaMemcpyAsync(ptr + helper->recvOffsets[i], helper->recvBufs[i].hostPtr(),
 					msize*sizeof(Particle), cudaMemcpyHostToDevice, helper->stream) );
 	}
+
+	// The PV has changed significantly, need to update che cell-lists now
+	pv->local()->changedStamp++;
 }

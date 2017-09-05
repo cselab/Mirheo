@@ -10,6 +10,8 @@
 #include <core/xml/pugixml.hpp>
 #include <core/containers.h>
 
+#include <core/initial_conditions.h>
+
 Logger logger;
 
 Particle addShift(Particle p, float a, float b, float c)
@@ -42,16 +44,14 @@ int main(int argc, char ** argv)
 	pugi::xml_document config;
 	config.load_string(xml.c_str());
 
-	float3 length{64,64,64};
+	float3 length{4,4,4};
 	float3 domainStart = -length / 2.0f;
 	const float rc = 1.0f;
 	ParticleVector dpds("dpd");
-	CellList cells(&dpds, rc, length);
-	cells.setStream(0);
-	cells.makePrimary();
+	CellList* cells = new PrimaryCellList (&dpds, rc, length);
 
-	InitialConditions ic = createIC(config.child("node"));
-	ic.exec(MPI_COMM_WORLD, &dpds, {0,0,0}, length);
+	InitialConditions* ic = new UniformIC(config.child("node"));
+	ic->exec(MPI_COMM_WORLD, &dpds, {0,0,0}, length, 0);
 
 	const int initialNP = dpds.local()->size();
 	HostBuffer<Particle> host(dpds.local()->size());
@@ -67,18 +67,17 @@ int main(int argc, char ** argv)
 		host[i] = dpds.local()->coosvels[i];
 	}
 
-	dpds.local()->coosvels.uploadToDevice();
+	dpds.local()->coosvels.uploadToDevice(0);
 
-	cudaStream_t defStream = 0;
-
-	ParticleRedistributor redist(cartComm, defStream);
-	cells.build();
-	redist.attach(&dpds, &cells);
-	CUDA_Check( cudaStreamSynchronize(defStream) );
+	ParticleRedistributor redist(cartComm);
+	cells->build(0);
+	redist.attach(&dpds, cells);
 
 	for (int i=0; i<1; i++)
 	{
-		redist.redistribute();
+		redist.init(0);
+		cudaStreamSynchronize(0);
+		redist.finalize();
 	}
 
 	std::vector<Particle> bufs[27];
@@ -87,9 +86,9 @@ int main(int argc, char ** argv)
 	{
 		Particle& p = host[i];
 
-		int3 code = cells.getCellIdAlongAxis<false>(p.r);
+		int3 code = cells->getCellIdAlongAxis<false>(p.r);
 		int cx = code.x,  cy = code.y,  cz = code.z;
-		auto ncells = cells.ncells;
+		auto ncells = cells->ncells;
 
 		// 8
 		if (cx == -1         && cy == -1         && cz == -1)         { bufs[ (0*3 + 0)*3 + 0 ].push_back(addShift(p,  length.x,  length.y,  length.z)); continue; }

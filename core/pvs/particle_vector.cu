@@ -83,7 +83,7 @@ void ParticleVector::restart(MPI_Comm comm, std::string path)
 	std::vector<std::vector<Particle>> sendBufs(commSize);
 	for (auto& p : readBuf)
 	{
-		int3 procId3 = make_int3(floorf(p.r / domainSize));
+		int3 procId3 = make_int3(floorf(p.r / localDomainSize));
 		int procId;
 		MPI_Check( MPI_Cart_rank(comm, (int*)&procId3, &procId) );
 		sendBufs[procId].push_back(p);
@@ -110,9 +110,14 @@ void ParticleVector::restart(MPI_Comm comm, std::string path)
 		MPI_Check( MPI_Recv(addr, msize, ptype, MPI_ANY_SOURCE, 0, comm, MPI_STATUS_IGNORE) );
 	}
 
+	for (int i=0; i<local()->coosvels.size(); i++)
+		local()->coosvels[i].r = global2local(local()->coosvels[i].r);
+
 	local()->coosvels.uploadToDevice(0);
 
 	CUDA_Check( cudaDeviceSynchronize() );
+
+	info("Successfully grabbed %d particles out of total %lld", local()->coosvels.size(), total);
 
 	MPI_Check( MPI_Type_free(&ptype) );
 }

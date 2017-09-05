@@ -12,6 +12,7 @@ class CellList;
 
 class Wall
 {
+	friend void freezeParticlesInWall(Wall*, ParticleVector*, ParticleVector*, float, float);
 	friend class MCMCSampler;
 
 public:
@@ -32,16 +33,12 @@ private:
 	std::vector<DeviceBuffer<int>> boundaryCells;
 	std::vector<CellList*> cellLists;
 
-	ParticleVector* frozen;
-
 	SdfInfo sdfInfo;
 
 	cudaArray *sdfArray;
 	DeviceBuffer<float> sdfRawData; // TODO: this can be free'd after creation
 
 	float3 sdfH;
-	float minSdf, maxSdf;
-
 	const float3 margin3{1, 1, 1};
 
 	std::string sdfFileName;
@@ -56,15 +53,12 @@ private:
 
 public:
 
-	Wall(std::string name, std::string sdfFileName, float3 sdfH, float minSdf = 0.0f, float maxSdf = 1.2f);
+	Wall(std::string name, std::string sdfFileName, float3 sdfH);
 
-	void createSdf(MPI_Comm& comm, float3 subDomainStart, float3 subDomaintSize, float3 globalDomainSize);
-	void freezeParticles(ParticleVector* pv);
+	void createSdf(MPI_Comm& comm, float3 globalDomainSize, float3 globalDomainStart, float3 localDomainSize);
 	void removeInner(ParticleVector* pv);
 	void attach(ParticleVector* pv, CellList* cl);
 	void bounce(float dt, cudaStream_t stream);
 
 	void check(Particle* parts, int n, cudaStream_t stream);
-
-	ParticleVector* getFrozen() { return frozen; }
 };

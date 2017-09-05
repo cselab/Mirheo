@@ -45,7 +45,7 @@ __device__ void unpackExtraData(int objId, int32_t** extraData, int nPtrsPerObj,
 
 
 __global__ void getObjectHalos(const float4* __restrict__ coosvels, const LocalObjectVector::COMandExtent* props, const int nObj, const int objSize,
-		const float3 domainSize, const float rc,
+		const float3 localDomainSize, const float rc,
 		const int64_t dests[27], int bufSizes[27], /*int* haloParticleIds,*/
 		const int packedObjSize_byte, int32_t** extraData, int nPtrsPerObj, const int* dataSizes)
 {
@@ -62,13 +62,13 @@ __global__ void getObjectHalos(const float4* __restrict__ coosvels, const LocalO
 	auto prop = props[objId];
 	int cx = 1, cy = 1, cz = 1;
 
-	if (prop.low.x  < -0.5*domainSize.x + rc) cx = 0;
-	if (prop.low.y  < -0.5*domainSize.y + rc) cy = 0;
-	if (prop.low.z  < -0.5*domainSize.z + rc) cz = 0;
+	if (prop.low.x  < -0.5*localDomainSize.x + rc) cx = 0;
+	if (prop.low.y  < -0.5*localDomainSize.y + rc) cy = 0;
+	if (prop.low.z  < -0.5*localDomainSize.z + rc) cz = 0;
 
-	if (prop.high.x >  0.5*domainSize.x - rc) cx = 2;
-	if (prop.high.y >  0.5*domainSize.y - rc) cy = 2;
-	if (prop.high.z >  0.5*domainSize.z - rc) cz = 2;
+	if (prop.high.x >  0.5*localDomainSize.x - rc) cx = 2;
+	if (prop.high.y >  0.5*localDomainSize.y - rc) cy = 2;
+	if (prop.high.z >  0.5*localDomainSize.z - rc) cz = 2;
 
 //	if (tid == 0) printf("Obj %d : [%f %f %f] -- [%f %f %f]\n", objId,
 //			prop.low.x, prop.low.y, prop.low.z, prop.high.x, prop.high.y, prop.high.z);
@@ -93,9 +93,9 @@ __global__ void getObjectHalos(const float4* __restrict__ coosvels, const LocalO
 		const int ix = bufId % 3;
 		const int iy = (bufId / 3) % 3;
 		const int iz = bufId / 9;
-		const float3 shift{ domainSize.x*(ix-1),
-							domainSize.y*(iy-1),
-							domainSize.z*(iz-1) };
+		const float3 shift{ localDomainSize.x*(ix-1),
+							localDomainSize.y*(iy-1),
+							localDomainSize.z*(iz-1) };
 
 		__syncthreads();
 		if (tid == 0)
@@ -160,7 +160,7 @@ void ObjectHaloExchanger::attach(ObjectVector* ov, float rc)
 
 	const float objPerCell = 0.1f;
 
-	const int maxdim = std::max({ov->domainSize.x, ov->domainSize.y, ov->domainSize.z});
+	const int maxdim = std::max({ov->localDomainSize.x, ov->localDomainSize.y, ov->localDomainSize.z});
 
 	const int sizes[3] = { (int)(4*objPerCell * maxdim*maxdim + 10),
 						   (int)(4*objPerCell * maxdim + 10),
@@ -193,7 +193,7 @@ void ObjectHaloExchanger::prepareData(int id, cudaStream_t defStream)
 
 		getObjectHalos <<< ov->local()->nObjects, nthreads, 0, defStream >>> (
 				(float4*)ov->local()->coosvels.devPtr(), ov->local()->comAndExtents.devPtr(),
-				ov->local()->nObjects, ov->local()->objSize, ov->domainSize, rc,
+				ov->local()->nObjects, ov->local()->objSize, ov->localDomainSize, rc,
 				(int64_t*)helper->sendAddrs.devPtr(), helper->bufSizes.devPtr(),
 				totSize_byte, ov->local()->extraDataPtrs.devPtr(), nPtrs, ov->local()->extraDataSizes.devPtr());
 	}

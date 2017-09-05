@@ -1,9 +1,5 @@
 #include <core/simulation.h>
-#include <core/xml/pugixml.hpp>
-#include <core/wall.h>
-#include <core/interactions.h>
-#include <core/integrate.h>
-#include <core/initial_conditions.h>
+#include <core/interactions/dpd.h>
 
 #include <plugins/plugin.h>
 #include <plugins/stats.h>
@@ -39,7 +35,7 @@ int main(int argc, char** argv)
 				config.child("simulation").child("wall").attribute("file_name").as_string(),
 				config.child("simulation").child("wall").attribute("h").as_float3({0.25, 0.25, 0.25}));
 
-		udevice.sim->registerWall( wall, "dpd", config.child("simulation").child("wall").attribute("creation_time").as_float(1.0) );
+		udevice.sim->registerWall( wall, true );
 
 
 		// Manipulators

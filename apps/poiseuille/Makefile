@@ -7,7 +7,7 @@ HDF5_LIB = /usr/lib/x86_64-linux-gnu/
 
 LIBS = -lmpi -lhdf5_mpich -L$(HDF5_LIB)
 
-SRC_DIR = ../../core/ ../../core/xml ../../core/mpi ../../plugins ./
+SRC_DIR = ../../core/ ../../core/interactions ../../core/pvs ../../core/xml ../../core/mpi ../../plugins ./
 BIN_DIR = bin
 DEBUG_DIR = debug
 
@@ -16,10 +16,11 @@ NVCCFLAGS += -I../../ -I$(HDF5_INC)
 NVCC_RELEASE_FLAGS = $(NVCCFLAGS) -O3
 NVCC_DEBUG_FLAGS = $(NVCCFLAGS) -G
 
-objects = poiseuille.o scan.o celllist.o wall.o integrate.o interactions.o simulation.o pugixml.o task_scheduler.o initial_conditions.o \
-	object_vector.o \
+objects = poiseuille.o scan.o celllist.o wall.o sampler.o simulation.o pugixml.o task_scheduler.o initial_conditions.o argument_parser.o\
+	particle_vector.o object_vector.o \
+	integrate.o dpd.o \
 	particle_exchanger.o particle_halo_exchanger.o particle_redistributor.o \
-	write_xdmf.o dumpavg.o stats.o temperaturize.o
+	write_xdmf.o dumpavg.o stats.o temperaturize.o \
 
 
 # Release binary

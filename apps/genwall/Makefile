@@ -16,11 +16,11 @@ NVCCFLAGS += -I../../ -I$(HDF5_INC)
 NVCC_RELEASE_FLAGS = $(NVCCFLAGS) -O3
 NVCC_DEBUG_FLAGS = $(NVCCFLAGS) -G -Xcompiler "-O0"
 
-objects = main.o scan.o celllist.o wall.o sampler.o simulation.o pugixml.o task_scheduler.o initial_conditions.o \
+objects = main.o scan.o celllist.o wall.o sampler.o simulation.o pugixml.o task_scheduler.o initial_conditions.o argument_parser.o\
 	particle_vector.o object_vector.o \
 	particle_exchanger.o particle_halo_exchanger.o particle_redistributor.o \
 	write_xdmf.o dumpavg.o stats.o temperaturize.o \
-	ArgumentParser.o
+	freeze_particles.o
 
 
 # Release binary

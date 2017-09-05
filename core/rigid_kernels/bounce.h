@@ -143,7 +143,7 @@ __global__ void bounceEllipsoid(float4* coosvels, float mass,
 		{
 			const int3 cid3 = make_int3( i % span.x, (i/span.x) % span.y, i / (span.x*span.y) ) + cidLow;
 
-			float3 v000 = make_float3(cid3) * cinfo.h - cinfo.domainSize*0.5f - motions[objId].r;
+			float3 v000 = make_float3(cid3) * cinfo.h - cinfo.localDomainSize*0.5f - motions[objId].r;
 
 			float3 v001 = rotate( v000 + make_float3(        0,         0, cinfo.h.z), invq );
 			float3 v010 = rotate( v000 + make_float3(        0, cinfo.h.y,         0), invq );
