@@ -17,7 +17,7 @@ NVCC_DEBUG_FLAGS = $(NVCCFLAGS) -G
 LIBS += -L$(HDF5_LIB)
 
 LINK_RELEASE_FLAGS = $(LINKFLAGS) -O3 $(LIBS)
-LINK_DEBUG_FLAGS = $(LINKFLAGS) -G $(LIBS)
+LINK_DEBUG_FLAGS = $(LINKFLAGS) -O0 $(LIBS)
 
 # Misc
 SRC_DIR = ../../core/ ../../core/interactions ../../core/pvs ../../core/xml ../../core/mpi ../../plugins ./

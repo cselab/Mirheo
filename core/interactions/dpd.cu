@@ -64,8 +64,12 @@ void InteractionDPD::_compute(InteractionType type, ParticleVector* pv1, Particl
 	const float seed = drand48();
 	const float rc2 = rc*rc;
 	const float rc_1 = 1.0 / rc;
-	auto dpdCore = [=, *this] __device__ ( Particle dst, Particle src ) {
-		return pairwiseDPD( dst, src, a, gamma, sigma, rc2, rc_1, power, seed);
+	const float _a = a;
+	const float _gamma = gamma;
+	const float _sigma = sigma;
+	const float _power = power;
+	auto dpdCore = [=] __device__ ( Particle dst, Particle src ) {
+		return pairwiseDPD( dst, src, _a, _gamma, _sigma, rc2, rc_1, _power, seed);
 	};
 
 	WRAP_INTERACTON(dpdCore)

@@ -83,8 +83,9 @@ void ParticleExchanger::finalize()
 
 inline int tagByName(std::string name)
 {
+	// TODO: better tagging policy (unique id?)
 	static std::hash<std::string> nameHash;
-	return (int)( nameHash(name) % 414243 );
+	return (int)( nameHash(name) % (32767 / 27) );
 }
 
 void ParticleExchanger::postRecv(ExchangeHelper* helper)

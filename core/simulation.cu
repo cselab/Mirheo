@@ -465,14 +465,8 @@ uDeviceX::uDeviceX(int argc, char** argv, int3 nranks3D, float3 globalDomainSize
 {
 	int nranks, rank;
 
-	int provided;
-	MPI_Init_thread(&argc, &argv, MPI_THREAD_MULTIPLE, &provided);
-	if (provided < MPI_THREAD_MULTIPLE)
-	{
-		printf("ERROR: The MPI library does not have full thread support\n");
-		MPI_Abort(MPI_COMM_WORLD, 1);
-	}
-
+	MPI_Init(&argc, &argv);
+	
 	logger.init(MPI_COMM_WORLD, logFileName, verbosity);
 
 	MPI_Check( MPI_Comm_size(MPI_COMM_WORLD, &nranks) );
