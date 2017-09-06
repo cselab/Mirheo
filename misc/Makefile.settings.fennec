@@ -1,0 +1,12 @@
+NVCC = mpinvcc
+CUDA_ARCH = compute_61
+CUDA_CODE = sm_61
+
+LINKER = mpinvcc
+LINKFLAGS = -arch=$(CUDA_ARCH) -code=$(CUDA_CODE)
+
+HDF5_INC = /usr/include/hdf5/mpich/
+HDF5_LIB = /usr/lib/x86_64-linux-gnu/
+
+INCLUDES =
+LIBS = -lmpi -lhdf5_mpich

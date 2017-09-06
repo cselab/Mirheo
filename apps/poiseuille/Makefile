@@ -1,21 +1,32 @@
-NVCC = nvcc
-NVCCFLAGS = -std=c++11 -arch=compute_61 -code=sm_61 -g -lineinfo --expt-extended-lambda -Xcompiler "-fopenmp"
+HOSTRAW=$(shell hostname)
+HOST=$(shell echo $(HOSTRAW) | perl -pe 's/daint\d*/daint/') # Remove trailing digits after 'daint' : 'daint101' ==> 'daint'
+
+-include ../../misc/Makefile.settings.$(HOST)
+
+# Compiling parameters
+NVCCFLAGS += -std=c++11 -g -lineinfo --expt-extended-lambda -Xcompiler "-fopenmp"
+NVCCFLAGS += -I../../ -I$(HDF5_INC) $(INCLUDES)
+NVCCFLAGS += -arch=$(CUDA_ARCH) -code=$(CUDA_CODE)
+
 NOWARNFLAG = -Xcompiler "-Wno-cpp"
 
-HDF5_INC = /usr/include/hdf5/mpich/
-HDF5_LIB = /usr/lib/x86_64-linux-gnu/
+NVCC_RELEASE_FLAGS = $(NVCCFLAGS) -O3
+NVCC_DEBUG_FLAGS = $(NVCCFLAGS) -G
 
-LIBS = -lmpi -lhdf5_mpich -L$(HDF5_LIB)
+# Linking parameters
+LIBS += -L$(HDF5_LIB)
 
+LINK_RELEASE_FLAGS = $(LINKFLAGS) -O3 $(LIBS)
+LINK_DEBUG_FLAGS = $(LINKFLAGS) -G $(LIBS)
+
+# Misc
 SRC_DIR = ../../core/ ../../core/interactions ../../core/pvs ../../core/xml ../../core/mpi ../../plugins ./
 BIN_DIR = bin
 DEBUG_DIR = debug
 
 VPATH = $(addsuffix :,$(SRC_DIR))
-NVCCFLAGS += -I../../ -I$(HDF5_INC)
-NVCC_RELEASE_FLAGS = $(NVCCFLAGS) -O3
-NVCC_DEBUG_FLAGS = $(NVCCFLAGS) -G
 
+# Targets
 objects = poiseuille.o scan.o celllist.o wall.o sampler.o simulation.o pugixml.o task_scheduler.o initial_conditions.o argument_parser.o\
 	particle_vector.o object_vector.o \
 	integrate.o dpd.o \
@@ -25,7 +36,7 @@ objects = poiseuille.o scan.o celllist.o wall.o sampler.o simulation.o pugixml.o
 
 # Release binary
 poiseuille: $(addprefix $(BIN_DIR)/,$(objects))
-	$(NVCC) $(NVCC_RELEASE_FLAGS) $(LIBS) $^ -o $@
+	$(LINKER) $(LINK_RELEASE_FLAGS) $^ -o $@
 
 $(BIN_DIR)/%.d: %.cu
 	@mkdir -p $(BIN_DIR)
@@ -44,7 +55,7 @@ clean_release:
 
 # Debug binary
 poiseuille_debug: $(addprefix $(DEBUG_DIR)/,$(objects))
-	$(NVCC) $(NVCC_DEBUG_FLAGS) $(LIBS) $^ -o $@
+	$(LINKER) $(LINK_DEBUG_FLAGS)  $^ -o $@
 
 $(DEBUG_DIR)/%.d: %.cu
 	@mkdir -p $(DEBUG_DIR)

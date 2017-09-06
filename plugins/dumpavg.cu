@@ -1,9 +1,9 @@
 #include "dumpavg.h"
 #include "simple_serializer.h"
-#include "../core/simulation.h"
-#include "../core/pvs/particle_vector.h"
-#include "../core/celllist.h"
-#include "../core/helper_math.h"
+#include <core/simulation.h>
+#include <core/pvs/particle_vector.h>
+#include <core/celllist.h>
+#include <core/cuda_common.h>
 #include <sstream>
 
 __global__ void sample(int np, const float4* coosvels, const float4* forces,

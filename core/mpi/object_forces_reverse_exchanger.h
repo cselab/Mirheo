@@ -3,7 +3,7 @@
 #include <core/datatypes.h>
 #include <core/logger.h>
 
-#include <core/mpi/particle_exchanger.h>
+#include "particle_exchanger.h"
 
 #include <vector>
 
@@ -15,11 +15,11 @@ private:
 	std::vector<ObjectVector*> objects;
 	std::vector<int*> offsetPtrs;
 
-	virtual void prepareData(int id);
+	virtual void prepareData(int id, cudaStream_t stream);
 	virtual void combineAndUploadData(int id);
 
 public:
-	ObjectForcesReverseExchanger(MPI_Comm& comm, cudaStream_t defStream) : ParticleExchanger(comm, defStream) {};
+	ObjectForcesReverseExchanger(MPI_Comm& comm) : ParticleExchanger(comm) {};
 
 	void attach(ObjectVector* ov, int* offsetPtr);
 

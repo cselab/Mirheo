@@ -44,8 +44,13 @@ private:
 	ParticleHaloExchanger* halo;
 	ParticleRedistributor* redistributor;
 
+	ObjectHaloExchanger* objHalo;
+	ObjectRedistributor* objRedistibutor;
+	ObjectForcesReverseExchanger* objHaloForces;
+
 	std::map<std::string, int> pvIdMap;
 	std::vector<ParticleVector*> particleVectors;
+	std::vector<ObjectVector*>   objectVectors;
 
 	std::map<std::string, Interaction*> interactionMap;
 	std::map<std::string, Integrator*>  integratorMap;

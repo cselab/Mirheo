@@ -46,7 +46,7 @@ void ObjectForcesReverseExchanger::attach(ObjectVector* ov, int* offsetPtr)
 }
 
 
-void ObjectForcesReverseExchanger::prepareData(int id)
+void ObjectForcesReverseExchanger::prepareData(int id, cudaStream_t stream)
 {
 	auto ov = objects[id];
 	auto helper = helpers[id];
@@ -54,9 +54,7 @@ void ObjectForcesReverseExchanger::prepareData(int id)
 
 	debug2("Preparing %s forces to sending back", ov->name.c_str());
 
-	helper->bufSizes.pushStream(defStream);
-	helper->bufSizes.clearDevice();
-	helper->bufSizes.popStream();
+	helper->bufSizes.clearDevice(stream);
 
 	for (int i=0; i<27; i++)
 	{
@@ -65,11 +63,10 @@ void ObjectForcesReverseExchanger::prepareData(int id)
 			CUDA_Check( cudaMemcpyAsync(ov->halo()->forces.devPtr() + offsets[i]*ov->halo()->objSize,
 										helper->sendBufs[i].hostPtr(),
 										helper->bufSizes[i]*sizeof(Force)*ov->halo()->objSize,
-										cudaMemcpyHostToDevice, helper->stream) );
+										cudaMemcpyHostToDevice, stream) );
 	}
 
-	// implicit synchronization here
-	helper->bufSizes.uploadToDevice();
+	helper->bufSizes.uploadToDevice(stream, false);
 }
 
 void ObjectForcesReverseExchanger::combineAndUploadData(int id)

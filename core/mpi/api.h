@@ -1,6 +1,8 @@
 #pragma once
 
-#include <core/mpi/particle_halo_exchanger.h>
-#include <core/mpi/object_halo_exchanger.h>
+#include "particle_halo_exchanger.h"
+#include "object_halo_exchanger.h"
 
-#include <core/mpi/particle_redistributor.h>
+#include "particle_redistributor.h"
+#include "object_redistributor.h"
+#include "object_forces_reverse_exchanger.h"
