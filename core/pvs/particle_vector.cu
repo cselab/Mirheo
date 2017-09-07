@@ -70,14 +70,15 @@ void ParticleVector::restart(MPI_Comm comm, std::string path)
 
 	int64_t sizePerProc = (total+commSize-1) / commSize;
 	int64_t offset = sizePerProc * myrank;
-	int64_t mysize = std::max(offset+sizePerProc, total) - offset;
+	int64_t mysize = std::min(offset+sizePerProc, total) - offset;
+
+	debug2("Will read %lld particles from the file", mysize);
 
 	// Read your chunk
 	std::vector<Particle> readBuf(mysize);
 	const int64_t header = (sizeof(int64_t) + sizeof(Particle) - 1) / sizeof(Particle);
 	MPI_Check( MPI_File_read_at_all(f, (offset + header)*sizeof(Particle), readBuf.data(), mysize, ptype, &status) );
 	MPI_Check( MPI_File_close(&f) );
-
 
 	// Find where to send the read particles
 	std::vector<std::vector<Particle>> sendBufs(commSize);
@@ -92,7 +93,10 @@ void ParticleVector::restart(MPI_Comm comm, std::string path)
 	// Do the send
 	std::vector<MPI_Request> reqs(commSize);
 	for (int i=0; i<commSize; i++)
+	{
+		debug3("Sending %d paricles to rank %d", sendBufs[i].size(), i);
 		MPI_Check( MPI_Isend(sendBufs[i].data(), sendBufs[i].size(), ptype, i, 0, comm, reqs.data()+i) );
+	}
 
 	int curSize = 0;
 	local()->resize(curSize, 0);
@@ -107,6 +111,7 @@ void ParticleVector::restart(MPI_Comm comm, std::string path)
 		Particle* addr = local()->coosvels.hostPtr() + curSize;
 		curSize += msize;
 
+		debug3("Receiving %d particles from ???", msize);
 		MPI_Check( MPI_Recv(addr, msize, ptype, MPI_ANY_SOURCE, 0, comm, MPI_STATUS_IGNORE) );
 	}
 

@@ -51,7 +51,7 @@ class Logger
 				+ fname + ":" + std::to_string(lnum) + "  " +pattern + "\n";
 
 			fprintf(fout, intro.c_str(), rank, (cappedLvl >= 0 ? lvl2text[cappedLvl] : "").c_str(), args...);
-			fflush(fout);
+			//fflush(fout);
 		}
 	}
 
@@ -85,7 +85,8 @@ public:
 	inline void _die(Args ... args)
 	{
 		log<0>(args...);
-
+		
+		fflush(fout);
 		fclose(fout);
 
 		MPI_Abort(MPI_COMM_WORLD, -1);
