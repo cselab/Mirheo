@@ -9,6 +9,8 @@
 #include <core/pvs/object_vector.h>
 #include <core/bounce_solver.h>
 
+#include <core/cuda-rng.h>
+
 #include "sdf_kernels.h"
 
 //===============================================================================================
@@ -220,8 +222,8 @@ __global__ void getBoundaryCells(CellListInfo cinfo, Wall::SdfInfo sdfInfo,
 __global__ void bounceSDF(const int* wallCells, const int nWallCells, const uint* __restrict__ cellsStartSize, CellListInfo cinfo,
 		Wall::SdfInfo sdfInfo, float4* coosvels, const float dt)
 {
-	const int maxIters = 20;
-	const float corrStep = (2.0f / (float)maxIters) * dt;
+	const int maxIters = 50;
+	const float corrStep = (1.0f / (float)maxIters) * dt;
 
 	const int tid = blockIdx.x * blockDim.x + threadIdx.x;
 	if (tid >= nWallCells) return;
@@ -248,7 +250,13 @@ __global__ void bounceSDF(const int* wallCells, const int nWallCells, const uint
 		for (int i=0; i<maxIters; i++)
 		{
 			if (evalSdf(candidate, sdfInfo) < 0.0f) break;
-			candidate -= p.u*corrStep;
+
+			float3 rndShift;
+			rndShift.x = Saru::mean0var1(p.r.x - floorf(p.r.x), p.i1, p.i1*p.i1);
+			rndShift.y = Saru::mean0var1(rndShift.x,            p.i1, p.i1*p.i1);
+			rndShift.z = Saru::mean0var1(rndShift.y,            p.i1, p.i1*p.i1);
+
+			candidate -= rndShift*corrStep;
 		}
 
 		coosvels[2*pid]     = Float3_int(candidate, p.i1).toFloat4();
