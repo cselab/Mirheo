@@ -58,6 +58,8 @@ __global__ void integrateRigidMotion(LocalRigidObjectVector::RigidMotion* motion
 	float3 omega = motions[objId].omega;
 	float3 tau   = motions[objId].torque;
 
+	// FIXME allow for non-diagonal inertia tensors
+
 	// tau = J dw/dt + w x Jw  =>  dw/dt = J'*tau - J'*(w x Jw)
 	float3 dw_dt = J_1 * tau - J_1 * cross(omega, J*omega);
 	omega += dw_dt * dt;

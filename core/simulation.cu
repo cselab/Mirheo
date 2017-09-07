@@ -300,7 +300,10 @@ void Simulation::assemble()
 
 	scheduler.addTask("Wall bounce", [&] (cudaStream_t stream) {
 		for (auto wall : wallMap)
+		{
 			wall.second->bounce(dt, stream);
+			wall.second->check(stream);
+		}
 	});
 
 	scheduler.addTask("Plugins: after integration", [&] (cudaStream_t stream) {

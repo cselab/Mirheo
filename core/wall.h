@@ -43,8 +43,7 @@ private:
 
 	std::string sdfFileName;
 
-	// TODO:
-	const float rc = 1.0f;
+	PinnedBuffer<int> nInside;
 
 	void readSdf(int64_t fullSdfSize_byte, int64_t endHeader_byte, int nranks, int rank, std::vector<float>& fullSdfData);
 	void readHeader(int3& sdfResolution, float3& sdfExtent, int64_t& fullSdfSize_byte, int64_t& endHeader_byte, int rank);
@@ -60,5 +59,5 @@ public:
 	void attach(ParticleVector* pv, CellList* cl);
 	void bounce(float dt, cudaStream_t stream);
 
-	void check(Particle* parts, int n, cudaStream_t stream);
+	void check(cudaStream_t stream);
 };

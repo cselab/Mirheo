@@ -256,11 +256,23 @@ __global__ void bounceSDF(const int* wallCells, const int nWallCells, const uint
 	}
 }
 
+__global__ void checkInside(const float4* coosvels, int np, Wall::SdfInfo sdfInfo, int* nInside)
+{
+	const int pid = blockIdx.x * blockDim.x + threadIdx.x;
+	if (pid >= np) return;
+
+	float4 coo = coosvels[2*pid];
+	float v = evalSdf(coo, sdfInfo);
+
+	if (v > 0)
+		atomicAggInc(nInside);
+}
+
 /*
  * We only set a few params here
  */
 Wall::Wall(std::string name, std::string sdfFileName, float3 sdfH) :
-		name(name), sdfFileName(sdfFileName)
+		name(name), sdfFileName(sdfFileName), nInside(1)
 {
 	sdfInfo.h = sdfH;
 }
@@ -528,20 +540,20 @@ void Wall::bounce(float dt, cudaStream_t stream)
 	}
 }
 
-
-__global__ void _check(float4* coosvels, int n, Wall::SdfInfo sdfInfo)
+void Wall::check(cudaStream_t stream)
 {
-	const int pid = blockIdx.x * blockDim.x + threadIdx.x;
-	if (pid >= n) return;
+	const int nthreads = 128;
+	for (auto pv : particleVectors)
+	{
+		nInside.clearDevice(stream);
+		checkInside<<< getNblocks(pv->local()->size(), nthreads), nthreads, 0, stream >>> (
+				(float4*)pv->local()->coosvels.devPtr(), pv->local()->size(), sdfInfo, nInside.devPtr());
+		nInside.downloadFromDevice(stream);
 
-	float4 coo = coosvels[2*pid];
-	float v = evalSdf(coo, sdfInfo);
-
-	if (v > 0) printf("Check failed %d (in array %d): [%f %f %f] (%f)\n", __float_as_int(coo.w), pid, coo.x, coo.y, coo.z, v);
+		debug("%d particles of %s are inside the wall %s", nInside[0], pv->name.c_str(), name.c_str());
+	}
 }
 
-void Wall::check(Particle* parts, int n, cudaStream_t stream)
-{
-	_check<<< (n+127)/128, 128, 0, stream >>> ((float4*)parts, n, sdfInfo);
-}
+
+
 

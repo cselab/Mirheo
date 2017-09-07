@@ -62,7 +62,8 @@ public:
 		comAndExtents   .resize(nObjects, stream, kind);
 	}
 
-	void findExtentAndCOM(cudaStream_t stream);
+	virtual void findExtentAndCOM(cudaStream_t stream);
+	virtual void inside(ParticleVector* pv, PinnedBuffer<int>& tag, int& totalInside, int& totalOutsize);
 
 	virtual ~LocalObjectVector() = default;
 };

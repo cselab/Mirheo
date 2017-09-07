@@ -1,6 +1,6 @@
 #pragma once
 
-#include <core/pvs/object_vector.h>
+#include "object_vector.h"
 
 class LocalRigidObjectVector: public LocalObjectVector
 {
@@ -51,7 +51,6 @@ public:
 class RigidObjectVector : public ObjectVector
 {
 public:
-	float3 axes;
 	PinnedBuffer<float4> initialPositions;
 
 	RigidObjectVector(std::string name, const int objSize, const int nObjects = 0) :

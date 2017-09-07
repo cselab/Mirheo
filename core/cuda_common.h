@@ -71,11 +71,31 @@ __device__ __forceinline__ void writeNoCache(float4* addr, const float4 val)
 
 // warp-aggregated atomic increment
 // https://devblogs.nvidia.com/parallelforall/cuda-pro-tip-optimized-filtering-warp-aggregated-atomics/
-// For 1d thread indexing use with first line uncommented instead of second
+template<int DIMS>
+__device__ __forceinline__ uint getLaneId();
+
+template<>
+__device__ __forceinline__ uint getLaneId<1>()
+{
+	return threadIdx.x & 31;
+}
+
+template<>
+__device__ __forceinline__ uint getLaneId<2>()
+{
+	return ((threadIdx.y * blockDim.x) + threadIdx.x) & 31;
+}
+
+template<>
+__device__ __forceinline__ uint getLaneId<3>()
+{
+	return (threadIdx.z * (blockDim.x * blockDim.y) + (threadIdx.y * blockDim.x) + threadIdx.x) & 31;
+}
+
+template<int DIMS=1>
 __device__ __forceinline__ int atomicAggInc(int *ctr)
 {
-	//int lane_id = (threadIdx.x % 32);
-	int lane_id = ( (threadIdx.z * (blockDim.x * blockDim.y) + (threadIdx.y * blockDim.x) + threadIdx.x) % 32 );
+	int lane_id = getLaneId<DIMS>();
 
 	int mask = __ballot(1);
 	// select the leader

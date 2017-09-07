@@ -36,3 +36,6 @@ void LocalObjectVector::findExtentAndCOM(cudaStream_t stream)
 	const int nthreads = 128;
 	min_max_com<<< (nObjects*32 + nthreads-1)/nthreads, nthreads, 0, stream >>> ((float4*)coosvels.devPtr(), comAndExtents.devPtr(), nObjects, objSize);
 }
+
+void LocalObjectVector::inside(ParticleVector* pv, PinnedBuffer<int>& tag, int& totalInside, int& totalOutsize)
+{ }

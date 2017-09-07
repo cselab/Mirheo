@@ -1,6 +1,5 @@
 #include <core/integrate.h>
-#include <core/pvs/particle_vector.h>
-#include <core/pvs/object_vector.h>
+#include <core/pvs/rigid_ellipsoid_object_vector.h>
 #include <core/logger.h>
 #include <core/helper_math.h>
 #include <core/cuda_common.h>
@@ -153,7 +152,7 @@ void IntegratorConstOmega::stage2(ParticleVector* pv, cudaStream_t stream)
 // FIXME: split VV into two stages
 void IntegratorVVRigid::stage2(ParticleVector* pv, cudaStream_t stream)
 {
-	RigidObjectVector* ov = dynamic_cast<RigidObjectVector*> (pv);
+	RigidEllipsoidObjectVector* ov = dynamic_cast<RigidEllipsoidObjectVector*> (pv);
 	if (ov == nullptr) die("Rigid integration only works with rigid objects, can't work with %s", pv->name.c_str());
 
 	debug2("Integrating %d rigid objects %s (total %d particles), timestep is %f", ov->local()->nObjects, ov->name.c_str(), ov->local()->size(), dt);
