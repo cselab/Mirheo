@@ -1,4 +1,4 @@
-#include <plugins/stats.h>
+#include "stats.h"
 #include <plugins/simple_serializer.h>
 #include <core/datatypes.h>
 #include <core/pvs/particle_vector.h>

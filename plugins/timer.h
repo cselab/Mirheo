@@ -33,18 +33,18 @@ public:
         _end = std::chrono::high_resolution_clock::now();
     }
 
-    inline float elapsed()
+    inline double elapsed()
     {
         if (_end == none) _end = std::chrono::high_resolution_clock::now();
 
-        return std::chrono::duration <float, Ratio>(_end - _start).count();
+        return std::chrono::duration <double, Ratio>(_end - _start).count();
     }
 
-    inline float elapsedAndReset()
+    inline double elapsedAndReset()
     {
         if (_end == none) _end = std::chrono::high_resolution_clock::now();
 
-        float t = std::chrono::duration <float, Ratio>(_end - _start).count();
+        double t = std::chrono::duration <double, Ratio>(_end - _start).count();
 
         _start = _end;
         _end = none;

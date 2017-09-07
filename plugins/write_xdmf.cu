@@ -5,6 +5,7 @@
 #include <regex>
 #include <string>
 
+#include "timer.h"
 #include "write_xdmf.h"
 
 void XDMFDumper::writeLight(std::string currentFname, float t)
@@ -162,8 +163,10 @@ void XDMFDumper::dump(std::vector<const float*> channelData, const float t)
 	std::string tstr = std::to_string(timeStamp++);
 	std::string currentFname = fname + std::string(zeroPadding - tstr.length(), '0') + tstr;
 
+	Timer<> timer;
+	timer.start();
 	if (myrank == 0) writeLight(currentFname, t);
 	writeHeavy(path + currentFname, channelData);
 
-	if (myrank == 0) debug2("XDMF written to: %s", (path + currentFname+"[.h5 .xmf]").c_str());
+	info("XDMF written to: %s in %f ms", (path + currentFname+"[.h5 .xmf]").c_str(), timer.elapsed());
 }
