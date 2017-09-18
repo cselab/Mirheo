@@ -49,7 +49,7 @@ __global__ void scaleDensity(int n, float* density, const float factor)
 		density[id] *= factor;
 }
 
-Avg3DPlugin::Avg3DPlugin(std::string name, std::string pvNames, int sampleEvery, int dumpEvery, float3 binSize,
+Avg3DPlugin::Avg3DPlugin(std::string name, std::vector<std::string> pvNames, int sampleEvery, int dumpEvery, float3 binSize,
 			bool needMomentum, bool needForce) :
 	SimulationPlugin(name), pvNames(pvNames),
 	sampleEvery(sampleEvery), dumpEvery(dumpEvery), binSize(binSize),
@@ -70,31 +70,20 @@ void Avg3DPlugin::setup(Simulation* sim, const MPI_Comm& comm, const MPI_Comm& i
 	if (needMomentum) momentum.resize(total, 0);
 	if (needForce)    force   .resize(total, 0);
 
-	std::stringstream sstream(pvNames);
-	std::string pvName;
-	std::vector<std::string> splitPvNames;
-
-	while(std::getline(sstream, pvName, ','))
-	{
-		splitPvNames.push_back(pvName);
-	}
-
 	density.clear(0);
 	momentum.clear(0);
 	force.clear(0);
 
-	for (auto& nm : splitPvNames)
+	for (auto& name : pvNames)
 	{
-		auto& pvIdMap = sim->getPvIdMap();
-		auto pvIter = pvIdMap.find(nm);
-		if (pvIter == pvIdMap.end())
-			die("No such particle vector registered: %s", nm.c_str());
+		auto pv = sim->getPVbyName(name);
+		if (pv == nullptr)
+			die("No such particle vector registered: %s", name.c_str());
 
-		auto pv = sim->getParticleVectors()[pvIter->second];
 		particleVectors.push_back(pv);
 	}
 
-	info("Plugin %s was set up for the following particle vectors: %s", name.c_str(), pvNames.c_str());
+	info("Plugin %s was successfully set up", name.c_str());
 }
 
 
@@ -163,8 +152,8 @@ void Avg3DPlugin::handshake()
 
 	MPI_Check( MPI_Send(data.data(), data.size(), MPI_BYTE, rank, id, interComm) );
 
-	debug2("Plugin %s was set up to sample%s%s%s for the following PVs: %s. Local resolution %dx%dx%d", name.c_str(),
-			needDensity ? " density" : "", needMomentum ? " momentum" : "", needForce ? " force" : "", pvNames.c_str(),
+	debug2("Plugin %s was set up to sample%s%s%s. Local resolution %dx%dx%d", name.c_str(),
+			needDensity ? " density" : "", needMomentum ? " momentum" : "", needForce ? " force" : "",
 			resolution.x, resolution.y, resolution.z);
 }
 

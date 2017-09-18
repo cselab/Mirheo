@@ -13,7 +13,7 @@ class CellList;
 class Avg3DPlugin : public SimulationPlugin
 {
 private:
-	std::string pvNames;
+	std::vector<std::string> pvNames;
 	int nSamples;
 	int sampleEvery, dumpEvery;
 	int3 resolution;
@@ -27,7 +27,7 @@ private:
 	std::vector<ParticleVector*> particleVectors;
 
 public:
-	Avg3DPlugin(std::string name, std::string pvNames, int sampleEvery, int dumpEvery, float3 binSize,
+	Avg3DPlugin(std::string name, std::vector<std::string> pvNames, int sampleEvery, int dumpEvery, float3 binSize,
 			bool needMomentum, bool needForce);
 
 	void setup(Simulation* sim, const MPI_Comm& comm, const MPI_Comm& interComm);
