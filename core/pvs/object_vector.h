@@ -62,9 +62,6 @@ public:
 		comAndExtents   .resize(nObjects, stream, kind);
 	}
 
-	virtual void findExtentAndCOM(cudaStream_t stream);
-	virtual void inside(ParticleVector* pv, PinnedBuffer<int>& tag, int& totalInside, int& totalOutsize);
-
 	virtual ~LocalObjectVector() = default;
 };
 
@@ -85,6 +82,9 @@ public:
 					  new LocalObjectVector(objSize, nObjects),
 					  new LocalObjectVector(objSize, 0) )
 	{}
+
+	virtual void getMeshWithVertices(ObjectMesh* mesh, PinnedBuffer<Particle>* vertices, cudaStream_t stream);
+	virtual void findExtentAndCOM(cudaStream_t stream);
 
 	LocalObjectVector* local() { return static_cast<LocalObjectVector*>(_local); }
 	LocalObjectVector* halo()  { return static_cast<LocalObjectVector*>(_halo);  }

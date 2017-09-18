@@ -31,11 +31,15 @@ __global__ void min_max_com(const float4 * coosvels, LocalObjectVector::COMandEx
 		com_ext[objId] = {mycom / objSize, mymin, mymax};
 }
 
-void LocalObjectVector::findExtentAndCOM(cudaStream_t stream)
+void ObjectVector::findExtentAndCOM(cudaStream_t stream)
 {
 	const int nthreads = 128;
-	min_max_com<<< (nObjects*32 + nthreads-1)/nthreads, nthreads, 0, stream >>> ((float4*)coosvels.devPtr(), comAndExtents.devPtr(), nObjects, objSize);
+	min_max_com<<< (local()->nObjects*32 + nthreads-1)/nthreads, nthreads, 0, stream >>> (
+			(float4*)local()->coosvels.devPtr(), local()->comAndExtents.devPtr(), local()->nObjects, objSize);
 }
 
-void LocalObjectVector::inside(ParticleVector* pv, PinnedBuffer<int>& tag, int& totalInside, int& totalOutsize)
-{ }
+void ObjectVector::getMeshWithVertices(ObjectMesh* mesh, PinnedBuffer<Particle>* vertices, cudaStream_t stream)
+{
+	mesh = &this->mesh;
+	vertices = &local()->coosvels;
+}
