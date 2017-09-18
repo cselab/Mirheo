@@ -6,6 +6,7 @@
 
 #include <mpi.h>
 #include <string>
+#include <vector>
 
 class ParticleVector;
 class CellList;

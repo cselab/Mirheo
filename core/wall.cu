@@ -1,6 +1,7 @@
 #include <fstream>
 #include <cmath>
 #include <texture_types.h>
+#include <cassert>
 
 #include <core/cuda_common.h>
 #include <core/wall.h>
@@ -122,8 +123,10 @@ __global__ void collectRemaining(const float4* input, const int np, Wall::SdfInf
 	}
 }
 
-__global__ void collectRemainingObjects(const float4* input, const int nObjects, const int objSize, Wall::SdfInfo sdfInfo,
-		float4* remaining, int* nRemaining)
+__global__ void collectRemainingObjects(
+		const Particle* input, const int nObjects, const int objSize, Wall::SdfInfo sdfInfo,
+		Particle* output, int* nRemaining,
+		char** extraData_input, char** extraData_output, int nPtrsPerObj, const int* dataSizes)
 {
 	const float tolerance = 1e-6f;
 
@@ -137,7 +140,7 @@ __global__ void collectRemainingObjects(const float4* input, const int nObjects,
 	bool isRemaining = true;
 	for (int i=tid; i<objSize; i++)
 	{
-		Particle p(input, objId*objSize + i);
+		Particle p = input[objId*objSize + i];
 		if (evalSdf(p.r, sdfInfo) <= -tolerance)
 		{
 			isRemaining = false;
@@ -147,19 +150,31 @@ __global__ void collectRemainingObjects(const float4* input, const int nObjects,
 
 	if (!isRemaining) return;
 
-	int dstId = atomicAdd(nRemaining, objSize);
+	int dstObjId;
+	if (tid == 0)
+		dstObjId = atomicAggInc(nRemaining);
+	dstObjId = __shfl(dstObjId, 0);
 
-	for (int i=tid; i<objSize; i++)
+	for (int i=tid; i<objSize; i+=warpSize)
 	{
 		Particle p(input, objId*objSize + i);
-		float4* dstAddr = remaining + 2*(dstId + i);
+		float4* dstAddr = output + 2*(dstId + i);
 		dstAddr[0] = p.r2Float4();
 		dstAddr[1] = p.u2Float4();
+	}
+
+	// Also copy other object properties
+	for (int ptrId = 0; ptrId < nPtrsPerObj; ptrId++)
+	{
+		// dataSizes are in bytes
+		const int size = dataSizes[ptrId];
+		for (int i = tid; i < size; i += warpSize)
+			extraData_input[ptrId][objId*size + i] = extraData_output[ptrId][dstObjId*size + i];
 	}
 }
 
 //===============================================================================================
-// Boundary walls kernels
+// Boundary cells kernels
 //===============================================================================================
 
 __device__ inline bool isCellOnBoundary(float3 cornerCoo, float3 len, Wall::SdfInfo sdfInfo)
@@ -523,9 +538,31 @@ void Wall::removeInner(ParticleVector* pv)
 	}
 	else
 	{
+		// Prepare temp storage for extra object data
+		int nObjs = ov->local()->nObjects;
+
+		auto extraDataSizes = ov->local()->extraDataSizes;
+		int nExtra = extraDataSizes.size();
+		PinnedBuffer<char*> extraDataPtrs_tmp(nExtra);
+		std::vector<PinnedBuffer<char>> extraDataBufs(nExtra);
+
+		for (int i=0; i<nExtra; i++)
+		{
+			extraDataBufs[i].resize(nObjs * extraDataSizes[i]);
+			extraDataPtrs_tmp[i] = extraDataBufs[i].devPtr();
+		}
+
 		collectRemainingObjects<<<  getNblocks(ov->local()->nObjects*32, nthreads), nthreads, 0, 0 >>> (
 				(float4*)ov->local()->coosvels.devPtr(), ov->local()->nObjects, ov->objSize, sdfInfo,
-				(float4*)tmp.devPtr(), nRemaining.devPtr() );
+				(float4*)tmp.devPtr(), nRemaining.devPtr(),
+				ov->local()->extraDataPtrs, extraDataPtrs_tmp, nExtra, extraDataSizes);
+
+		// Copy temporary buffers back
+		nRemaining.downloadFromDevice(0);
+		for (int i=0; i<nExtra; i++)
+			CUDA_Check( cudaMemcpyAsync(
+					ov->local()->extraDataPtrs[i], extraDataPtrs_tmp[i],
+					extraDataSizes[i]*nRemaining[0], cudaMemcpyDeviceToDevice, 0) );
 	}
 
 	nRemaining.downloadFromDevice(0);
