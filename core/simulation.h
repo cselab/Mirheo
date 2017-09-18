@@ -6,6 +6,7 @@
 #include <core/celllist.h>
 #include <core/pvs/particle_vector.h>
 #include <core/pvs/object_vector.h>
+#include <core/bounce.h>
 #include <core/wall.h>
 #include <core/interactions/interface.h>
 #include <core/integrate.h>
@@ -59,11 +60,13 @@ private:
 	std::vector<std::tuple<float, ParticleVector*, ParticleVector*, Interaction*>> interactionPrototypes;
 	std::vector<std::tuple<Wall*, ParticleVector*, float>> wallProtorypes;
 
-	std::vector<std::function<void(float, cudaStream_t)>> regularInteractions, haloInteractions;
-	std::map<ParticleVector*, std::vector<CellList*>> cellListMap;
+	std::vector<std::function<void(float, cudaStream_t)>> regularInteractions, haloInteractions,  objRegularInteractions, objHaloInteractions;
+	std::map<ParticleVector*, std::vector<CellList*>> cellListMap, objCellListMap;
 
-	std::vector<Integrator*>     integrators;
+	std::vector<Integrator*> integrators, objIntegrators;
 	std::vector<SimulationPlugin*> plugins;
+
+	std::vector<Bouncer*> bouncers;
 
 	void assemble();
 

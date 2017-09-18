@@ -287,15 +287,58 @@ void Simulation::assemble()
 				cl->addForces(stream);
 	});
 
-	scheduler.addTask("Plugins: before integration", [&] (cudaStream_t stream) {
-		for (auto& pl : plugins)
-			pl->beforeIntegration(stream);
-	});
+//	scheduler.addTask("Plugins: before integration", [&] (cudaStream_t stream) {
+//		for (auto& pl : plugins)
+//			pl->beforeIntegration(stream);
+//	});
 
 	scheduler.addTask("Integration", [&] (cudaStream_t stream) {
 		for (int i=0; i<integrators.size(); i++)
 			if (integrators[i] != nullptr)
 				integrators[i]->stage2(particleVectors[i], stream);
+	});
+
+
+	scheduler.addTask("Object internal forces", [&] (cudaStream_t stream) {
+		for (auto& inter : objRegularInteractions)
+			inter(currentTime, stream);
+	});
+
+	scheduler.addTask("Object halo forces", [&] (cudaStream_t stream) {
+		for (auto& inter : ojbHaloInteractions)
+			inter(currentTime, stream);
+	});
+
+	scheduler.addTask("Object accumulate forces", [&] (cudaStream_t stream) {
+		for (auto clVec : objCellListMap)
+			for (auto cl : clVec.second)
+				cl->addForces(stream);
+	});
+
+	scheduler.addTask("Object integrate", [&] (cudaStream_t stream) {
+		for (int i=0; i<objIntegrators.size(); i++)
+			if (objIntegrators[i] != nullptr)
+				objIntegrators[i]->stage2(objectVectors[i], stream);
+	});
+
+	scheduler.addTask("Object halo init", [&] (cudaStream_t stream) {
+		objHalo->init(stream);
+	});
+	scheduler.addTask("Object halo finalize", [&] (cudaStream_t stream) {
+		objHalo->finalize();
+	});
+
+	scheduler.addTask("Object bounce", [&] (cudaStream_t stream) {
+		for (auto bouncer : bouncers)
+			bouncer.first->exec(dt, bouncer.second, stream);
+	});
+
+	scheduler.addTask("Obj forces exchange: init", [&] (cudaStream_t stream) {
+		objForceExchanger->init(stream);
+	});
+
+	scheduler.addTask("Obj forces exchange: finalize", [&] (cudaStream_t stream) {
+		objForceExchanger->finalize();
 	});
 
 	scheduler.addTask("Wall bounce", [&] (cudaStream_t stream) {
@@ -319,38 +362,39 @@ void Simulation::assemble()
 		redistributor->finalize();
 	});
 
-	// cell lists
-	// plugins before forces
-	// init part halo
-	// internal object forces
-	// init obj halo
-	// internal particle-only forces
-	// both halos finalize
-	// halo forces
-	// send back obj forces  --> possible to move up and overlap
-	// plugins before integration
-	// integrate all internal
-	// integrate EXTERNAL objects
-	// plugins after integration
-	// wall bounce
-	// object bounce with EXTERNAL included
-	// send back obj forces
-	// redistribute
 
 
-	scheduler.addDependency("Сell-lists", {"Internal forces", "Halo init"}, {});
-	scheduler.addDependency("Plugins: before forces", {"Internal forces", "Halo init"}, {});
+	scheduler.addDependency("Сell-lists", {"Clear forces", "Halo init", "Object internal forces"}, {});
+
+	scheduler.addDependency("Plugins: before forces", {"Internal forces", "Halo forces", "Object internal forces"}, {});
 	scheduler.addDependency("Internal forces", {}, {"Clear forces"});
 	scheduler.addDependency("Plugins: serialize and send", {}, {"Internal forces"});
 	scheduler.addDependency("Halo init", {"Internal forces"}, {});
 	scheduler.addDependency("Halo finalize", {}, {"Halo init"});
 	scheduler.addDependency("Halo forces", {}, {"Halo finalize"});
 	scheduler.addDependency("Accumulate forces", {"Integration"}, {"Halo forces", "Internal forces"});
-	scheduler.addDependency("Plugins: before integration", {"Integration"}, {});
-	scheduler.addDependency("Wall bounce", {}, {"Integration"});
-	scheduler.addDependency("Plugins: after integration", {}, {"Integration", "Wall bounce"});
-	scheduler.addDependency("Redistribute init", {}, {"Integration", "Wall bounce", "Plugins: after integration"});
+	//scheduler.addDependency("Plugins: before integration", {"Integration"}, {});
+
+	scheduler.addDependency("Object internal forces", {}, {"Cell-lists"});
+	scheduler.addDependency("Object halo forces", {}, {"Cell-lists"});
+	scheduler.addDependency("Object accumulate forces", {"Object integration"}, {"Object halo forces", "Object internal forces"});
+	scheduler.addDependency("Object halo init", {}, {"Object integrate"});
+	scheduler.addDependency("Object halo finalize", {}, {"Object halo init"});
+
+	scheduler.addDependency("Object bounce", {}, {"Object halo finalize", "Object integration", "Integration"});
+	scheduler.addDependency("Obj forces exchange: init", {"Redistribute init"}, {"Object bounce", "Object internal forces"});
+	scheduler.addDependency("Obj forces exchange: finalize", {}, {"Obj forces exchange: init"});
+
+	scheduler.addDependency("Plugins: after integration", {}, {"Integration", "Wall bounce", "Send obj forces"});
+	scheduler.addDependency("Redistribute init", {}, {"Integration", "Wall bounce", "Send obj forces", "Plugins: after integration"});
 	scheduler.addDependency("Redistribute finalize", {}, {"Redistribute init"});
+
+	scheduler.setHighPriority("Object internal forces");
+	scheduler.setHighPriority("Object halo init");
+	scheduler.setHighPriority("Object halo finalize");
+	scheduler.setHighPriority("Object halo forces");
+	scheduler.setHighPriority("Object accumulate forces");
+	scheduler.setHighPriority("Object integrate");
 
 	scheduler.compile();
 
