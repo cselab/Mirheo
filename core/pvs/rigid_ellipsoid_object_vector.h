@@ -2,6 +2,17 @@
 
 #include "rigid_object_vector.h"
 
+class LocalRigidEllipsoidObjectVector: public LocalRigidObjectVector
+{
+public:
+
+	LocalRigidEllipsoidObjectVector(const int objSize, const int nObjects = 0, cudaStream_t stream = 0) :
+		LocalRigidObjectVector(objSize, nObjects)
+	{ }
+
+	virtual ~LocalRigidEllipsoidObjectVector() = default;
+};
+
 class RigidEllipsoidObjectVector : public RigidObjectVector
 {
 public:
@@ -11,8 +22,9 @@ public:
 		RigidObjectVector(name, objSize, nObjects)
 	{}
 
-	LocalRigidObjectVector* local() { return static_cast<LocalRigidObjectVector*>(_local); }
-	LocalRigidObjectVector* halo()  { return static_cast<LocalRigidObjectVector*>(_halo);  }
+
+	LocalRigidEllipsoidObjectVector* local() { return static_cast<LocalRigidEllipsoidObjectVector*>(_local); }
+	LocalRigidEllipsoidObjectVector* halo()  { return static_cast<LocalRigidEllipsoidObjectVector*>(_halo);  }
 
 	virtual ~RigidEllipsoidObjectVector() {};
 };
