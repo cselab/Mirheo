@@ -6,7 +6,8 @@
 #include <core/mpi/api.h>
 #include <core/logger.h>
 #include <core/containers.h>
-#include <core/interactions.h>
+#include <core/interactions/interface.h>
+#include <core/interactions/dpd.h>
 #include <core/initial_conditions.h>
 
 #include <unistd.h>

@@ -1,10 +1,10 @@
-NVCC = nvcc
+NVCC = mpinvcc
 NVCCFLAGS = -std=c++11 -arch=compute_61 -code=sm_61 -O3  -g -lineinfo --expt-extended-lambda -Xcompiler "-fopenmp -march=native"
 #-O0 -G -Xptxas -O0
 
 LIBS = -lmpi
 
-SRC_DIR = ../core ./ ../core/xml ../core/mpi ../core/pvs
+SRC_DIR = ../core ./ ../core/xml ../core/mpi ../core/pvs ../core/interactions
 VPATH = $(addsuffix :,$(SRC_DIR))
 NVCCFLAGS += -I../
 
@@ -19,7 +19,7 @@ bounce_obj  = scan.o celllist.o test_bounce.o pugixml.o components.o integrate.o
 redist_obj  = scan.o celllist.o test_redist.o particle_exchanger.o particle_redistributor.o pugixml.o initial_conditions.o particle_vector.o
 log_obj     = test_logger.o
 cells_obj   = scan.o celllist.o test_cells.o pugixml.o initial_conditions.o
-dpd_obj     = scan.o celllist.o test_dpd.o pugixml.o initial_conditions.o integrate.o interactions.o wall.o
+dpd_obj     = scan.o celllist.o test_dpd.o pugixml.o initial_conditions.o integrate.o dpd.o particle_vector.o
 rigid_obj   = scan.o celllist.o test_rigid.o pugixml.o integrate.o interactions.o particle_exchanger.o particle_halo_exchanger.o particle_redistributor.o bounce.o object_vector.o
 mesh_bounce_obj = test_mesh_bounce.o
 mesh_bounce_full_obj = test_mesh_bounce_full.o scan.o celllist.o pugixml.o integrate.o interactions.o particle_exchanger.o particle_halo_exchanger.o particle_redistributor.o bounce.o

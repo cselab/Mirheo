@@ -8,7 +8,7 @@
 
 __device__ inline float ellipsoidF(const float3 r, const float3 invAxes)
 {
-	return sqr(r.x * invAxes.x) + sqr(r.y * invAxes.y) + sqr(r.z * invAxes.z) - 1;
+	return sqr(r.x * invAxes.x) + sqr(r.y * invAxes.y) + sqr(r.z * invAxes.z) - 1.0f;
 }
 
 __device__ __forceinline__ void bounceCellArray(int* validCells, int nCells, int objId, float4* coosvels,

@@ -7,7 +7,7 @@
 #include "pairwise_engine.h"
 #include "wrapper_macro.h"
 
-inline __device__ float fastPower(const float x, const float k)
+__device__ __forceinline__ float fastPower(const float x, const float k)
 {
 	if (fabs(k - 1.0f)   < 1e-6f) return x;
 	if (fabs(k - 0.5f)   < 1e-6f) return sqrtf(fabs(x));
