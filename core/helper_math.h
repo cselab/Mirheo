@@ -23,7 +23,11 @@
 #ifndef HELPER_MATH_H
 #define HELPER_MATH_H
 
+#ifdef __CUDA_RUNTIME_H__
+#undef __CUDA_RUNTIME_H__
 #include "cuda_runtime.h"
+#define __CUDA_RUNTIME_H__
+#endif
 
 typedef unsigned int uint;
 typedef unsigned short ushort;

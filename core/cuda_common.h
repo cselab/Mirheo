@@ -2,19 +2,19 @@
 
 #include <core/helper_math.h>
 
-// Workaround for nsight
-#ifndef __CUDACC_EXTENDED_LAMBDA__
-#define __device__
-#endif
-
-__host__ __device__ __forceinline__ float3 f4tof3(float4 x)
-{
-	return make_float3(x.x, x.y, x.z);
-}
+//// Workaround for nsight
+//#ifndef __CUDACC_EXTENDED_LAMBDA__
+//#define __device__
+//#endif
 
 inline int getNblocks(const int n, const int nthreads)
 {
 	return (n+nthreads-1) / nthreads;
+}
+
+__host__ __device__ __forceinline__ float3 f4tof3(float4 x)
+{
+	return make_float3(x.x, x.y, x.z);
 }
 
 template<typename T>
