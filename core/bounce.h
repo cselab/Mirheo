@@ -8,7 +8,7 @@ class ParticleVector;
 class ObjectVector;
 class RigidObjectVector;
 
-class Bounce
+class Bouncer
 {
 protected:
 	ParticleVector* pv;
@@ -21,7 +21,7 @@ protected:
 
 public:
 
-	Bounce(float dt) : dt(dt) {};
+	Bouncer(float dt) : dt(dt) {};
 
 	virtual void setup(ObjectVector* ov, ParticleVector* pv, CellList* cl)
 	{
@@ -33,17 +33,17 @@ public:
 	void bounceLocal(cudaStream_t stream) { exec(true,  stream); }
 	void bounceHalo(cudaStream_t stream)  { exec(false, stream); }
 
-	virtual ~Bounce() = default;
+	virtual ~Bouncer() = default;
 };
 
-class BounceFromRigidEllipsoid : public Bounce
+class BounceFromRigidEllipsoid : public Bouncer
 {
 protected:
 	void exec(bool local, cudaStream_t stream) override;
 	RigidObjectVector* rov;
 
 public:
-	BounceFromRigidEllipsoid(float dt) : Bounce(dt) {}
+	BounceFromRigidEllipsoid(float dt) : Bouncer(dt) {}
 
 	void setup(ObjectVector* ov, ParticleVector* pv, CellList* cl) override;
 
@@ -51,7 +51,7 @@ public:
 };
 
 
-class BounceFromMesh : public Bounce
+class BounceFromMesh : public Bouncer
 {
 protected:
 	static const int bouncePerTri = 2;
@@ -64,7 +64,7 @@ protected:
 
 
 public:
-	BounceFromMesh(float dt) : Bounce(dt), nCollisions(1) {}
+	BounceFromMesh(float dt) : Bouncer(dt), nCollisions(1) {}
 
 	~BounceFromMesh() = default;
 };
