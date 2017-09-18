@@ -27,8 +27,8 @@ struct Integrator
 
 struct IntegratorVVNoFlow : Integrator
 {
-	void stage1(ParticleVector* pv, cudaStream_t stream);
-	void stage2(ParticleVector* pv, cudaStream_t stream);
+	void stage1(ParticleVector* pv, cudaStream_t stream) override;
+	void stage2(ParticleVector* pv, cudaStream_t stream) override;
 
 	IntegratorVVNoFlow(pugi::xml_node node) :
 		Integrator(node)
@@ -41,8 +41,8 @@ struct IntegratorVVConstDP : Integrator
 {
 	float3 extraForce;
 
-	void stage1(ParticleVector* pv, cudaStream_t stream);
-	void stage2(ParticleVector* pv, cudaStream_t stream);
+	void stage1(ParticleVector* pv, cudaStream_t stream) override;
+	void stage2(ParticleVector* pv, cudaStream_t stream) override;
 
 	IntegratorVVConstDP(pugi::xml_node node) :
 		Integrator(node),
@@ -56,8 +56,8 @@ struct IntegratorConstOmega : Integrator
 {
 	float3 center, omega;
 
-	void stage1(ParticleVector* pv, cudaStream_t stream) {};
-	void stage2(ParticleVector* pv, cudaStream_t stream);
+	void stage1(ParticleVector* pv, cudaStream_t stream) override {};
+	void stage2(ParticleVector* pv, cudaStream_t stream) override;
 
 	IntegratorConstOmega(pugi::xml_node node) :
 		Integrator(node),
@@ -70,8 +70,8 @@ struct IntegratorConstOmega : Integrator
 
 struct IntegratorVVRigid : Integrator
 {
-	void stage1(ParticleVector* pv, cudaStream_t stream) {};
-	void stage2(ParticleVector* pv, cudaStream_t stream);
+	void stage1(ParticleVector* pv, cudaStream_t stream) override {};
+	void stage2(ParticleVector* pv, cudaStream_t stream) override;
 
 	IntegratorVVRigid(pugi::xml_node node) :
 		Integrator(node)
