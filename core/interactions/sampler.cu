@@ -133,12 +133,12 @@ __global__ void mcmcSample(int3 shift,
 		// Accept if dE < 0 or with probability e^(-dE/kbT)
 		if ( dE <= 0 || (dE > 0 && rnd4 < expf(-dE/kbT_mod)) )
 		{
-			atomicAggInc(nAccepted);
+			atomicAggInc<3>(nAccepted);
 			particles[pid] = pnew;
 		}
 		else
 		{
-			atomicAggInc(nRejected);
+			atomicAggInc<3>(nRejected);
 		}
 	}
 }
