@@ -1,5 +1,6 @@
 #pragma once
 
+#include <core/containers.h>
 #include "particle_vector.h"
 
 #include <core/logger.h>
@@ -17,8 +18,8 @@ class LocalObjectVector: public LocalParticleVector
 {
 public:
 
-	PinnedBuffer<int32_t*> extraDataPtrs;
-	PinnedBuffer<int>      extraDataSizes;
+	PinnedBuffer<char*> extraDataPtrs;
+	PinnedBuffer<int>   extraDataSizes;
 
 	struct __align__(16) COMandExtent
 	{
@@ -35,20 +36,19 @@ public:
 		LocalParticleVector(objSize*nObjects), objSize(objSize), nObjects(nObjects)
 	{
 		resize(nObjects*objSize, stream, ResizeKind::resizeAnew);
-		static_assert( sizeof(COMandExtent) % 4 == 0, "Extra data size in bytes should be divisible by 4" );
 
 		extraDataSizes.resize(1, stream);
 		extraDataPtrs .resize(1, stream);
 
 		extraDataSizes[0] = sizeof(COMandExtent);
-		extraDataPtrs [0] = (int32_t*)comAndExtents.devPtr();
+		extraDataPtrs [0] = (char*)comAndExtents.devPtr();
 
 		extraDataSizes.uploadToDevice(stream);
 		extraDataPtrs .uploadToDevice(stream);
 
+		// Provide necessary alignment
 		packedObjSize_bytes = ( (objSize*sizeof(Particle) + sizeof(COMandExtent) + sizeof(float4)-1) / sizeof(float4) ) * sizeof(float4);
 	};
-
 
 	virtual void resize(const int np, cudaStream_t stream, ResizeKind kind = ResizeKind::resizePreserve)
 	{

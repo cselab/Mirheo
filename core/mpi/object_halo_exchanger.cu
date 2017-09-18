@@ -13,14 +13,14 @@
 
 
 
-__device__ void packExtraData(int objId, int32_t** extraData, int nPtrsPerObj, const int* dataSizes, int32_t* destanation)
+__device__ void packExtraData(int objId, char** extraData, int nPtrsPerObj, const int* dataSizes, char* destanation)
 {
 	int baseId = 0;
 
 	for (int ptrId = 0; ptrId < nPtrsPerObj; ptrId++)
 		{
 			// dataSizes are in bytes
-			const int size = dataSizes[ptrId] / 4;
+			const int size = dataSizes[ptrId];
 			for (int i = threadIdx.x; i < size; i += blockDim.x)
 				destanation[baseId+i] = extraData[ptrId][objId*size + i];
 
@@ -28,14 +28,14 @@ __device__ void packExtraData(int objId, int32_t** extraData, int nPtrsPerObj, c
 		}
 }
 
-__device__ void unpackExtraData(int objId, int32_t** extraData, int nPtrsPerObj, const int* dataSizes, const int32_t* source)
+__device__ void unpackExtraData(int objId, char** extraData, int nPtrsPerObj, const int* dataSizes, const char* source)
 {
 	int baseId = 0;
 
 	for (int ptrId = 0; ptrId < nPtrsPerObj; ptrId++)
 	{
 		// dataSizes are in bytes
-		const int size = dataSizes[ptrId] / 4;
+		const int size = dataSizes[ptrId];
 		for (int i = threadIdx.x; i < size; i += blockDim.x)
 			extraData[ptrId][objId*size + i] = source[baseId+i];
 
@@ -47,7 +47,7 @@ __device__ void unpackExtraData(int objId, int32_t** extraData, int nPtrsPerObj,
 __global__ void getObjectHalos(const float4* __restrict__ coosvels, const LocalObjectVector::COMandExtent* props, const int nObj, const int objSize,
 		const float3 localDomainSize, const float rc,
 		const int64_t dests[27], int bufSizes[27], /*int* haloParticleIds,*/
-		const int packedObjSize_byte, int32_t** extraData, int nPtrsPerObj, const int* dataSizes)
+		const int packedObjSize_byte, char** extraData, int nPtrsPerObj, const int* dataSizes)
 {
 	const int objId = blockIdx.x;
 	const int tid = threadIdx.x;
@@ -132,7 +132,7 @@ __global__ void getObjectHalos(const float4* __restrict__ coosvels, const LocalO
 
 
 __global__ void unpackObject(const float4* from, float4* to, const int objSize, const int packedObjSize_byte, const int nObj,
-		int32_t** extraData, int nPtrsPerObj, const int* dataSizes)
+		char** extraData, int nPtrsPerObj, const int* dataSizes)
 {
 	const int objId = blockIdx.x;
 	const int tid = threadIdx.x;
