@@ -1,8 +1,10 @@
+#include "initial_conditions.h"
+
 #include <core/celllist.h>
 #include <core/pvs/particle_vector.h>
 #include <core/pvs/rigid_object_vector.h>
-#include <core/initial_conditions.h>
 #include <core/helper_math.h>
+#include <core/integrate.h>
 
 #include <random>
 
@@ -70,10 +72,25 @@ void UniformIC::exec(const MPI_Comm& comm, ParticleVector* pv, float3 globalDoma
 
 EllipsoidIC::EllipsoidIC(pugi::xml_node node)
 {
-	mass    = node.attribute("objmass").as_float(10.0);
+	mass     = node.attribute("objmass") .as_float(10.0);
 
-	axes    = node.attribute("axes")   .as_float3({1, 1, 1});
-	nObjs   = node.attribute("nobjs")  .as_int(0);
+	axes     = node.attribute("axes")    .as_float3({1, 1, 1});
+	nObjs    = node.attribute("nobjs")   .as_int(0);
+	distance = node.attribute("distance").as_float("0.2");
+	xyzfname = node.attribute("xyzfname").as_string("ellipsoid.xyz");
+}
+
+EllipsoidIC::readXYZ(std::string fname, PinnedBuffer<float4>& positions)
+{
+	int n;
+	float dummy;
+
+	std::ifstream fin(fname);
+	fin >> n;
+
+	particles.resize(n, stream, ResizeKind::resizeAnew);
+	for (int i=0; i<n; i++)
+		fin >> dummy >> positions[i].x >>positions[i].y >>positions[i].z;
 }
 
 void EllipsoidIC::exec(const MPI_Comm& comm, ParticleVector* pv, float3 globalDomainStart, float3 localDomainSize, cudaStream_t stream)
@@ -114,26 +131,15 @@ void EllipsoidIC::exec(const MPI_Comm& comm, ParticleVector* pv, float3 globalDo
 
 	float3 invAxes = 1.0f / axes;
 
-	for (int i=0; i<objSize; i++)
-	{
-		float4 pos;
-		auto sqr = [] (float x) { return x*x; };
+	readXYZ(xyzfname, ov->initialPositions);
 
-		do
-		{
-			pos.x = 2*axes.x*(drand48() - 0.5);
-			pos.y = 2*axes.y*(drand48() - 0.5);
-			pos.z = 2*axes.z*(drand48() - 0.5);
-
-		} while ( sqr(pos.x * invAxes.x) + sqr(pos.y * invAxes.y) + sqr(pos.z * invAxes.z) - 1.0f > 0.0f );
-
-		ov->initialPositions[i] = pos;
-	}
+	if (objSize != ov->initialPositions.size())
+		die("Object size and XYZ initial conditions don't match in size for %s", ov->name.c_str());
 
 	ov->local()->motions.uploadToDevice(stream);
 	ov->initialPositions.uploadToDevice(stream);
 
-
+	IntegratorVVRigid integrator(pugi::node_null);
 }
 
 
