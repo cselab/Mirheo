@@ -4,6 +4,11 @@
 #include <core/task_scheduler.h>
 #include <core/logger.h>
 
+TaskScheduler::TaskScheduler()
+{
+	CUDA_Check( cudaDeviceGetStreamPriorityRange(&cudaPriorityLow, &cudaPriorityHigh) );
+}
+
 void TaskScheduler::addTask(std::string label, std::function<void(cudaStream_t)> task)
 {
 	Node* node = nullptr;
@@ -14,6 +19,7 @@ void TaskScheduler::addTask(std::string label, std::function<void(cudaStream_t)>
 	{
 		node = new Node();
 		node->label = label;
+		node->priority = cudaPriorityLow;
 		nodes.push_back(node);
 	}
 
@@ -39,10 +45,31 @@ void TaskScheduler::addDependency(std::string label, std::vector<std::string> be
 	node->after .insert(node->after .end(), after .begin(), after .end());
 }
 
+void TaskScheduler::setHighPriority(std::string label)
+{
+	Node* node = nullptr;
+	for (auto n : nodes)
+		if (n->label == label) node = n;
+
+	if (node == nullptr)
+		die("Task group with label %s not found", label.c_str());
+
+	node->priority = cudaPriorityHigh;
+}
+
 void TaskScheduler::compile()
 {
-	for (auto n : nodes)
+	for (auto& n : nodes)
 	{
+		// Set streams member according to priority
+		if      (n->priority == cudaPriorityLow)
+			n->streams = &streamsLo;
+		else if (n->priority == cudaPriorityHigh)
+			n->streams = &streamsHi;
+		else
+			n->streams = &streamsLo;
+
+		// Set dependencies
 		for (auto& dep : n->before)
 		{
 			Node* depPtr = nullptr;
@@ -79,6 +106,7 @@ void TaskScheduler::compile()
 	}
 }
 
+
 void TaskScheduler::run()
 {
 	// Kahn's algorithm
@@ -103,14 +131,16 @@ void TaskScheduler::run()
 		// Check the status of all running kernels
 		while (completed < total && S.empty())
 		{
-			usleep(1);
 			for (auto streamNode_it = workMap.begin(); streamNode_it != workMap.end(); )
 			{
 				if ( cudaStreamQuery(streamNode_it->first) == cudaSuccess )
 				{
-					streams.push(streamNode_it->first);
-
 					auto node = streamNode_it->second;
+
+					// Return freed stream back to the corresponding queue
+					node->streams->push(streamNode_it->first);
+
+					// Remove resolved dependencies
 					for (auto dep : node->to)
 					{
 						dep->from.remove(node);
@@ -118,6 +148,7 @@ void TaskScheduler::run()
 							S.push(dep);
 					}
 
+					// Remove task from the list of currently in progress
 					completed++;
 					streamNode_it = workMap.erase(streamNode_it);
 				}
@@ -133,15 +164,15 @@ void TaskScheduler::run()
 		S.pop();
 
 		cudaStream_t stream;
-		if (streams.empty())
-			CUDA_Check( cudaStreamCreateWithPriority(&stream, cudaStreamNonBlocking, 0) );
+		if (node->streams->empty())
+			CUDA_Check( cudaStreamCreateWithPriority(&stream, cudaStreamNonBlocking, node->priority) );
 		else
 		{
-			stream = streams.front();
-			streams.pop();
+			stream = node->streams->front();
+			node->streams->pop();
 		}
 
-		debug("Executing group %s on stream %lld", node->label.c_str(), (int64_t)stream);
+		debug("Executing group %s on stream %lld with priority %d", node->label.c_str(), (int64_t)stream, node->priority);
 		workMap.push_back({stream, node});
 
 		for (auto& func : node->funcs)

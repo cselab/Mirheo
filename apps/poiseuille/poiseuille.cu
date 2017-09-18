@@ -35,7 +35,7 @@ int main(int argc, char** argv)
 				config.child("simulation").child("wall").attribute("file_name").as_string(),
 				config.child("simulation").child("wall").attribute("h").as_float3({0.25, 0.25, 0.25}));
 
-		udevice.sim->registerWall( wall, true );
+		//udevice.sim->registerWall( wall, true );
 
 
 		// Manipulators
@@ -47,13 +47,13 @@ int main(int argc, char** argv)
 
 		udevice.sim->setIntegrator("dpd", "const_dp");
 		udevice.sim->setInteraction("dpd", "dpd", "dpd_int");
-		udevice.sim->setInteraction("dpd", "wall", "dpd_int");
+		//udevice.sim->setInteraction("dpd", "wall", "dpd_int");
 
-		SimulationPlugin* temp = new TemperaturizePlugin("temp", {"wall"}, 1.0);
+		//SimulationPlugin* temp = new TemperaturizePlugin("temp", {"wall"}, 1.0);
 		//udevice.sim->registerPlugin(temp);
 
 		simStat = new SimulationStats("stats", 300);
-		simAvg  = new Avg3DPlugin("averaging", "dpd", 10, 300, {1, 1, 1}, true, true);
+		simAvg  = new Avg3DPlugin("averaging", "dpd", 10, 1000, {1, 1, 1}, true, true);
 	}
 	else
 	{

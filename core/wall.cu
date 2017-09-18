@@ -248,19 +248,21 @@ __global__ void bounceSDF(const int* wallCells, const int nWallCells, const uint
 		float3 candidate = (alpha >= 0.0f) ? oldCoo + alpha * (p.r - oldCoo) : oldCoo;
 
 		if (evalSdf(candidate, sdfInfo) >= 0.0f)
-			for (int i=0; i<maxIters; i++)
-			{
-				float3 rndShift;
+		for (int i=0; i<maxIters; i++)
+		{
+			if (evalSdf(candidate, sdfInfo) < 0.0f) break;
+
+			float3 rndShift;
 				rndShift.x = Saru::mean0var1(p.r.x - floorf(p.r.x), p.i1+i, p.i1*p.i1);
 				rndShift.y = Saru::mean0var1(rndShift.x,            p.i1+i, p.i1*p.i1);
 				rndShift.z = Saru::mean0var1(rndShift.y,            p.i1+i, p.i1*p.i1);
-	
+
 				if (evalSdf(candidate + 5.0f*rndShift*dt, sdfInfo) < 0.0f)
 				{
 					candidate += 5.0f*rndShift*dt;
 					break;
 				}
-			}
+		}
 
 		coosvels[2*pid]     = Float3_int(candidate, p.i1).toFloat4();
 		coosvels[2*pid + 1] = Float3_int(-p.u, p.i2).toFloat4();
@@ -561,10 +563,7 @@ void Wall::check(cudaStream_t stream)
 				(float4*)pv->local()->coosvels.devPtr(), pv->local()->size(), sdfInfo, nInside.devPtr());
 		nInside.downloadFromDevice(stream);
 
-		if (nInside[0] > 0)
-			warn ("%d particles of %s are inside the wall %s", nInside[0], pv->name.c_str(), name.c_str());
-		else
-			debug("%d particles of %s are inside the wall %s", nInside[0], pv->name.c_str(), name.c_str());
+		debug("%d particles of %s are inside the wall %s", nInside[0], pv->name.c_str(), name.c_str());
 	}
 }
 
