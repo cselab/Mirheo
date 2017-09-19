@@ -2,9 +2,9 @@
 
 #include <core/cuda_common.h>
 #include <core/celllist.h>
-#include <core/wall.h>
+#include <core/walls/sdf_wall.h>
 #include <core/cuda-rng.h>
-#include <core/sdf_kernels.h>
+#include <core/walls/sdf_kernels.h>
 
 #include "pairwise_engine.h"
 
@@ -169,16 +169,10 @@ __global__ void writeBackLocal(Particle* srcs, int nSrc, Particle* dsts, int* nD
 }
 
 
-MCMCSampler::MCMCSampler(pugi::xml_node node, Wall* wall, float minSdf, float maxSdf) :
+MCMCSampler::MCMCSampler(std::string name, float rc, float a, float kbT, float power, Wall* wall, float minSdf, float maxSdf) :
+		name(name), rc(rc), a(a), kbT(kbT), power(power),
 		nAccepted(1), nRejected(1), nDst(1), totE(1), wall(wall), minSdf(minSdf), maxSdf(maxSdf)
 {
-	name = node.attribute("name").as_string("");
-	rc   = node.attribute("rc").as_float(1.0f);
-
-	power = node.attribute("power").as_float(1.0f);
-	a     = node.attribute("a")    .as_float(50);
-	kbT   = node.attribute("kbt")  .as_float(1.0);
-
 	combined = new ParticleVector("combined");
 	combinedCL = nullptr;
 
@@ -215,7 +209,7 @@ void MCMCSampler::_compute(InteractionType type, ParticleVector* pv1, ParticleVe
 	CUDA_Check( cudaMemcpyAsync(combined->local()->coosvels.devPtr(), pv->halo()->coosvels.devPtr(),
 			nHalo * sizeof(Particle), cudaMemcpyDeviceToDevice, stream) );
 
-	//   mark halo particleS
+	// mark halo particles
 	markHalo<<< getNblocks(nHalo, nthreads), nthreads, 0, stream >>>(combined->local()->coosvels.devPtr(), pv->halo()->size());
 
 	CUDA_Check( cudaMemcpyAsync(combined->local()->coosvels.devPtr() + nHalo, pv->local()->coosvels.devPtr(),

@@ -6,21 +6,22 @@
 #include <core/celllist.h>
 #include <core/pvs/particle_vector.h>
 #include <core/pvs/object_vector.h>
-#include <core/bounce.h>
-#include <core/wall.h>
+
+#include <core/bouncers/interface.h>
+#include <core/initial_conditions/interface.h>
+#include <core/integrators/interface.h>
 #include <core/interactions/interface.h>
-#include <core/integrate.h>
-#include <core/initial_conditions.h>
+#include <core/walls/interface.h>
+
 #include <core/task_scheduler.h>
 #include <core/mpi/api.h>
-#include <plugins/plugin.h>
+#include <plugins/interface.h>
 
 
 #include <tuple>
 #include <vector>
 #include <string>
 #include <map>
-#include <mpi.h>
 
 class Simulation
 {
@@ -53,20 +54,26 @@ private:
 	std::vector<ParticleVector*> particleVectors;
 	std::vector<ObjectVector*>   objectVectors;
 
-	std::map<std::string, Interaction*> interactionMap;
+	std::map<std::string, Bouncer*>     bouncerMap;
 	std::map<std::string, Integrator*>  integratorMap;
+	std::map<std::string, Interaction*> interactionMap;
 	std::map<std::string, Wall*>        wallMap;
 
+	std::map<ParticleVector*, std::vector<CellList*>> cellListMap;
+
 	std::vector<std::tuple<float, ParticleVector*, ParticleVector*, Interaction*>> interactionPrototypes;
-	std::vector<std::tuple<Wall*, ParticleVector*, float>> wallProtorypes;
+	std::vector<std::pair<Wall*,   ParticleVector*>> wallPrototypes;
+	std::vector<std::pair<Bouncer*, ParticleVector*>> bouncerPrototypes;
 
-	std::vector<std::function<void(float, cudaStream_t)>> regularInteractions, haloInteractions,  objRegularInteractions, objHaloInteractions;
-	std::map<ParticleVector*, std::vector<CellList*>> cellListMap, objCellListMap;
+	std::vector<std::function<void(float, cudaStream_t)>> regularInteractions, haloInteractions;
+	std::vector<std::function<void(cudaStream_t)>> regularBouncers, haloBouncers, integrators;
 
-	std::vector<Integrator*> integrators, objIntegrators;
 	std::vector<SimulationPlugin*> plugins;
 
-	std::vector<Bouncer*> bouncers;
+	void prepareCellLists();
+	void prepareInteractions();
+	void prepareBouncers();
+	void prepareWalls();
 
 	void assemble();
 
@@ -74,14 +81,15 @@ public:
 	Simulation(int3 nranks3D, float3 globalDomainSize, const MPI_Comm& comm, const MPI_Comm& interComm);
 
 	void registerParticleVector(ParticleVector* pv, InitialConditions* ic);
-	void registerObjectVector  (ObjectVector* ov);
-	void registerWall          (Wall* wall, bool addCorrespondingPV);
-
+	void registerWall          (Wall* wall);
 	void registerInteraction   (Interaction* interaction);
-	void registerIntegrator    (Integrator* integrator);
+	void registerIntegrator    (Integrator*  integrator);
+	void registerBouncer       (Bouncer*     integrator);
 
-	void setIntegrator (std::string pvName, std::string integratorName);
-	void setInteraction(std::string pv1Name, std::string pv2Name, std::string interactionName);
+	void setIntegrator (std::string integratorName,  std::string pvName);
+	void setInteraction(std::string interactionName, std::string pv1Name, std::string pv2Name);
+	void setBouncer    (std::string bouncerName,     std::string objName, std::string pvName);
+	void setWallBounce (std::string wallName,        std::string pvName);
 
 	void registerPlugin(SimulationPlugin* plugin);
 
@@ -91,7 +99,6 @@ public:
 	void finalize();
 
 
-	const std::map<std::string, int>&   getPvIdMap() const { return pvIdMap; }
 	const std::vector<ParticleVector*>& getParticleVectors() const { return particleVectors; }
 
 	ParticleVector* getPVbyName(std::string name) const
@@ -101,36 +108,10 @@ public:
 	}
 
 	MPI_Comm getCartComm() const { return cartComm; }
-
 };
 
-class Postprocess
-{
-private:
-	MPI_Comm comm;
-	MPI_Comm interComm;
-	std::vector<PostprocessPlugin*> plugins;
-	std::vector<MPI_Request> requests;
 
-public:
-	Postprocess(MPI_Comm& comm, MPI_Comm& interComm);
-	void registerPlugin(PostprocessPlugin* plugin);
-	void run();
-};
 
-class uDeviceX
-{
-	int pluginId = 0;
-	int computeTask;
-	bool noPostprocess;
 
-public:
-	Simulation* sim;
-	Postprocess* post;
 
-	uDeviceX(int argc, char** argv, int3 nranks3D, float3 globalDomainSize,
-			Logger& logger, std::string logFileName, int verbosity=3, bool noPostprocess = false);
-	bool isComputeTask();
-	void registerJointPlugins(SimulationPlugin* simPl, PostprocessPlugin* postPl);
-	void run(int niters);
-};
+

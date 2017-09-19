@@ -18,10 +18,11 @@ class RigidEllipsoidObjectVector : public RigidObjectVector
 public:
 	float3 axes;
 
-	RigidEllipsoidObjectVector(std::string name, const int objSize, const int nObjects = 0) :
-		RigidObjectVector(name, objSize, nObjects)
+	RigidEllipsoidObjectVector(std::string name, float mass, const int objSize, float3 axes, const int nObjects = 0) :
+		RigidObjectVector(name, mass, objSize, nObjects), axes(axes)
 	{}
 
+	float3 getInertiaTensor() override;
 
 	LocalRigidEllipsoidObjectVector* local() { return static_cast<LocalRigidEllipsoidObjectVector*>(_local); }
 	LocalRigidEllipsoidObjectVector* halo()  { return static_cast<LocalRigidEllipsoidObjectVector*>(_halo);  }

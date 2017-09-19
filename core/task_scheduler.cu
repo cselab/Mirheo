@@ -172,7 +172,7 @@ void TaskScheduler::run()
 			node->streams->pop();
 		}
 
-		debug("Executing group %s on stream %lld with priority %d", node->label.c_str(), (int64_t)stream, node->priority);
+		info("Executing group %s on stream %lld with priority %d", node->label.c_str(), (int64_t)stream, node->priority);
 		workMap.push_back({stream, node});
 
 		for (auto& func : node->funcs)

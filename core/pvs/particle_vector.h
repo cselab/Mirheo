@@ -52,12 +52,12 @@ public:
 	float3 localDomainSize, globalDomainStart;
 
 protected:
-	ParticleVector(	std::string name, LocalParticleVector *local, LocalParticleVector *halo ) :
+	ParticleVector(	std::string name, float mass, LocalParticleVector *local, LocalParticleVector *halo ) :
 		name(name), _local(local), _halo(halo) {}
 
 public:
-	ParticleVector(std::string name, int n=0) :
-		name(name),
+	ParticleVector(std::string name, float mass, int n=0) :
+		name(name), mass(mass),
 		_local( new LocalParticleVector(n) ),
 		_halo ( new LocalParticleVector(0) )
 	{}

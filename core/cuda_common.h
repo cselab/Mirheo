@@ -2,11 +2,6 @@
 
 #include <core/helper_math.h>
 
-//// Workaround for nsight
-//#ifndef __CUDACC_EXTENDED_LAMBDA__
-//#define __device__
-//#endif
-
 inline int getNblocks(const int n, const int nthreads)
 {
 	return (n+nthreads-1) / nthreads;

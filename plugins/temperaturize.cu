@@ -1,9 +1,9 @@
-#include <plugins/temperaturize.h>
-#include <core/datatypes.h>
+#include "temperaturize.h"
+
 #include <core/pvs/particle_vector.h>
 #include <core/simulation.h>
-#include <core/cuda_common.h>
 
+#include <core/cuda_common.h>
 #include <core/cuda-rng.h>
 
 

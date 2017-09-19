@@ -28,59 +28,49 @@ nranks3D(nranks3D), globalDomainSize(globalDomainSize), interComm(interComm), cu
 		}
 	}
 
-	debug("Simulation initialized, subdomain size is [%f %f %f], subdomain starts at [%f %f %f]",
+	info("Simulation initialized, subdomain size is [%f %f %f], subdomain starts at [%f %f %f]",
 			localDomainSize.x,  localDomainSize.y,  localDomainSize.z,
 			globalDomainStart.x, globalDomainStart.y, globalDomainStart.z);
 }
+
+//================================================================================================
+// Registration
+//================================================================================================
 
 void Simulation::registerParticleVector(ParticleVector* pv, InitialConditions* ic)
 {
 	std::string name = pv->name;
 	particleVectors.push_back(pv);
 
+	auto ov = dynamic_cast<ObjectVector*>(pv);
+	if(ov != nullptr)
+		objectVectors.push_back(ov);
+
 	if (pvIdMap.find(name) != pvIdMap.end())
 		die("More than one particle vector is called %s", name.c_str());
+
+	if (wallMap.find(name) != wallMap.end())
+		die("Particle vector cannot be called as another wall %s", name.c_str());
 
 	pvIdMap[name] = particleVectors.size() - 1;
 	ic->exec(cartComm, pv, globalDomainStart, localDomainSize, 0);
 }
 
-void Simulation::registerObjectVector(ObjectVector* ov)
-{
-	std::string name = ov->name;
-	particleVectors.push_back(static_cast<ParticleVector*>(ov));
-
-	if (pvIdMap.find(name) != pvIdMap.end())
-		die("More than one particle vector is called %s", name.c_str());
-
-	pvIdMap[name] = particleVectors.size() - 1;
-}
-
-void Simulation::registerWall(Wall* wall, bool addCorrespondingPV)
+void Simulation::registerWall(Wall* wall)
 {
 	std::string name = wall->name;
 
 	if (wallMap.find(name) != wallMap.end())
 		die("More than one wall is called %s", name.c_str());
 
+	if (pvIdMap.find(name) != pvIdMap.end())
+		die("Wall cannot be called as another particle vector %s", name.c_str());
+
 	wallMap[name] = wall;
 	wall->createSdf(cartComm, globalDomainSize, globalDomainStart, localDomainSize);
-
-	if (addCorrespondingPV)
-	{
-		if (pvIdMap.find(name) != pvIdMap.end())
-			die("Wall has the same name as particle vector: %s", name.c_str());
-
-		auto pv = new ParticleVector(wall->name);
-		pv->globalDomainStart = globalDomainStart;
-		pv->localDomainSize = localDomainSize;
-		pv->restart(cartComm, restartFolder);
-		particleVectors.push_back(pv);
-		pvIdMap[name] = particleVectors.size() - 1;
-	}
 }
 
-void Simulation::registerInteraction   (Interaction* interaction)
+void Simulation::registerInteraction(Interaction* interaction)
 {
 	std::string name = interaction->name;
 	if (interactionMap.find(name) != interactionMap.end())
@@ -89,7 +79,7 @@ void Simulation::registerInteraction   (Interaction* interaction)
 	interactionMap[name] = interaction;
 }
 
-void Simulation::registerIntegrator    (Integrator* integrator)
+void Simulation::registerIntegrator(Integrator* integrator)
 {
 	std::string name = integrator->name;
 	if (integratorMap.find(name) != integratorMap.end())
@@ -98,46 +88,95 @@ void Simulation::registerIntegrator    (Integrator* integrator)
 	integratorMap[name] = integrator;
 }
 
+void Simulation::registerBouncer(Bouncer* bouncer)
+{
+	std::string name = bouncer->name;
+	if (bouncerMap.find(name) != bouncerMap.end())
+		die("More than one bouncer is called %s", name.c_str());
+
+	bouncerMap[name] = bouncer;
+}
+
 void Simulation::registerPlugin(SimulationPlugin* plugin)
 {
 	plugins.push_back(plugin);
 }
 
-void Simulation::setIntegrator(std::string pvName, std::string integratorName)
-{
-	if (pvIdMap.find(pvName) == pvIdMap.end())
-		die("No such particle vector: %s", pvName.c_str());
+//================================================================================================
+// Applying something to something else
+//================================================================================================
 
+void Simulation::setIntegrator(std::string integratorName, std::string pvName)
+{
 	if (integratorMap.find(integratorName) == integratorMap.end())
 		die("No such integrator: %s", integratorName.c_str());
 
-	const int pvId = pvIdMap[pvName];
-	integrators.resize(std::max((int)integrators.size(), pvId+1), nullptr);
-	integrators[pvId] = integratorMap[integratorName];
+	auto pv = getPVbyName(pvName);
+	if (pv == nullptr)
+		die("No such particle vector: %s", pvName.c_str());
+
+	integrator = integratorMap[integratorName];
+
+	integratorsStage1.push_back([integrator, pv] (cudaStream_t stream) {
+		integrator->stage1(pv, stream);
+	});
+
+	integratorsStage2.push_back([integrator, pv] (cudaStream_t stream) {
+		integrator->stage1(pv, stream);
+	});
 }
 
-void Simulation::setInteraction(std::string pv1Name, std::string pv2Name, std::string interactionName)
+void Simulation::setInteraction(std::string interactionName, std::string pv1Name, std::string pv2Name)
 {
-	if (pvIdMap.find(pv1Name) == pvIdMap.end())
+	auto pv1 = getPVbyName(pv1Name);
+	if (pv1 == nullptr)
 		die("No such particle vector: %s", pv1Name.c_str());
 
-	if (pvIdMap.find(pv2Name) == pvIdMap.end())
+	auto pv2 = getPVbyName(pv2Name);
+	if (pv2 == nullptr)
 		die("No such particle vector: %s", pv2Name.c_str());
 
 	if (interactionMap.find(interactionName) == interactionMap.end())
 		die("No such integrator: %s", interactionName.c_str());
-
-	auto pv1Id = pvIdMap[pv1Name];
-	auto pv2Id = pvIdMap[pv2Name];
-	auto pv1 = particleVectors[pv1Id];
-	auto pv2 = particleVectors[pv2Id];
 	auto interaction = interactionMap[interactionName];
-	float rc = interaction->rc;
 
+
+	float rc = interaction->rc;
 	interactionPrototypes.push_back(std::make_tuple(rc, pv1, pv2, interaction));
 }
 
-void Simulation::init()
+void Simulation::setBouncer(std::string bouncerName, std::string objName, std::string pvName)
+{
+	auto pv = getPVbyName(pvName);
+	if (pv == nullptr)
+		die("No such particle vector: %s", pvName.c_str());
+
+	auto ov = dynamic_cast<ObjectVector*> (getPVbyName(objName));
+	if (ov == nullptr)
+		die("No such object vector: %s", objName.c_str());
+
+	if (bouncerMap.find(bouncerName) == bouncerMap.end())
+		die("No such bouncer: %s", bouncerName.c_str());
+	auto bouncer = bouncerMap[bouncerName];
+
+	bouncerPrototypes.push_back(std::make_tuple(bouncer, ov, pv));
+}
+
+void Simulation::setWallBounce(std::string wallName, std::string pvName)
+{
+	auto pv = getPVbyName(pvName);
+	if (pv == nullptr)
+		die("No such particle vector: %s", pvName.c_str());
+
+	if (wallMap.find(wallName) == wallMap.end())
+		die("No such wall: %s", wallName.c_str());
+	auto wall = wallMap[wallName];
+
+	wallPrototypes.push_back( {wall, pv} );
+}
+
+
+void Simulation::prepareCellLists()
 {
 	const float rcTolerance = 1e-4;
 
@@ -158,14 +197,24 @@ void Simulation::init()
 		auto it = std::unique(cutoffs.second.begin(), cutoffs.second.end(), [=] (float a, float b) { return fabs(a - b) < rcTolerance; });
 		cutoffs.second.resize( std::distance(cutoffs.second.begin(), it) );
 
-		bool first = true;
+		bool primary = true;
+
+		// Don't use primary cell-lists with ObjectVectors
+		if (dynamic_cast<ObjectVector*>(cutoffs.first) != nullptr)
+			primary = false;
+
 		for (auto rc : cutoffs.second)
 		{
-			cellListMap[cutoffs.first].push_back(first ? new PrimaryCellList(cutoffs.first, rc, localDomainSize) : new CellList(cutoffs.first, rc, localDomainSize));
-			first = false;
+			cellListMap[cutoffs.first].push_back(first ?
+					new PrimaryCellList(cutoffs.first, rc, localDomainSize) :
+					new CellList       (cutoffs.first, rc, localDomainSize));
+			primary = false;
 		}
 	}
+}
 
+void Simulation::prepareInteractions()
+{
 	for (auto prototype : interactionPrototypes)
 	{
 		float rc = std::get<0>(prototype);
@@ -195,6 +244,61 @@ void Simulation::init()
 			inter->halo(pv1, pv2, cl1, cl2, t, stream);
 		});
 	}
+}
+
+void Simulation::prepareBouncers()
+{
+	for (auto prototype : bouncerPrototypes)
+	{
+		auto bouncer = std::get<0>(prototype);
+		auto ov = std::get<1>(prototype);
+		auto pv = std::get<2>(prototype);
+
+		auto& clVec = cellListMap[pv];
+
+		if (clVec.empty()) continue;
+
+		CellList *cl = clVec[0];
+
+		regularBouncers.push_back([bouncer, ov, pv, cl] (cudaStream_t stream) {
+			bouncer->bounceLocal(ov, pv, cl, stream);
+		});
+
+		haloBouncers.   push_back([bouncer, ov, pv, cl] (cudaStream_t stream) {
+			bouncer->bounceLocal(ov, pv, cl, stream);
+		});
+	}
+}
+
+void Simulation::prepareWalls()
+{
+	for (auto prototype : wallPrototypes)
+	{
+		auto wall = prototype.first;
+		auto pv   = prototype.second;
+
+		auto& clVec = cellListMap[pv];
+
+		if (clVec.empty()) continue;
+
+		CellList *cl = clVec[0];
+
+		wall->attach(pv, cl);
+	}
+
+	for (auto pv : particleVectors)
+		for (auto wall : wallMap)
+			if (cellListMap[pv].size() > 0 && pv->name != wall.second->name)
+				wall.second->removeInner(pv);
+}
+
+void Simulation::init()
+{
+	prepareCellLists();
+
+	prepareInteractions();
+	prepareBouncers();
+	prepareWalls();
 
 	debug("Simulation initiated, preparing plugins");
 	for (auto& pl : plugins)
@@ -209,22 +313,20 @@ void Simulation::init()
 	debug("Attaching particle vectors to halo exchanger and redistributor");
 	for (auto pv : particleVectors)
 		if (cellListMap[pv].size() > 0)
-		{
-			auto cl = cellListMap[pv][0];
-
-			halo->attach         (pv, cl);
-			redistributor->attach(pv, cl);
-		}
-
-	// Remove stuff from inside the wall, attach for bounce
-	for (auto pv : particleVectors)
-		for (auto wall : wallMap)
-			if (cellListMap[pv].size() > 0 && pv->name != wall.second->name)
+			if (dynamic_cast<ObjectVector*>(pv) == nullptr)
 			{
-				wall.second->removeInner(pv);
+				auto cl = cellListMap[pv][0];
 
-				// TODO: select what to bounce
-				wall.second->attach(pv, cellListMap[pv][0]);
+				halo->attach         (pv, cl);
+				redistributor->attach(pv, cl);
+			}
+			else
+			{
+				auto cl = cellListMap[pv][0];
+				auto ov = dynamic_cast<ObjectVector*>(pv);
+
+				objHalo->attach        (ov, cl->rc);
+				objRedistibutor->attach(ov, cl->rc);
 			}
 
 	assemble();
@@ -287,10 +389,10 @@ void Simulation::assemble()
 				cl->addForces(stream);
 	});
 
-//	scheduler.addTask("Plugins: before integration", [&] (cudaStream_t stream) {
-//		for (auto& pl : plugins)
-//			pl->beforeIntegration(stream);
-//	});
+	scheduler.addTask("Plugins: before integration", [&] (cudaStream_t stream) {
+		for (auto& pl : plugins)
+			pl->beforeIntegration(stream);
+	});
 
 	scheduler.addTask("Integration", [&] (cudaStream_t stream) {
 		for (int i=0; i<integrators.size(); i++)
@@ -298,28 +400,6 @@ void Simulation::assemble()
 				integrators[i]->stage2(particleVectors[i], stream);
 	});
 
-
-	scheduler.addTask("Object internal forces", [&] (cudaStream_t stream) {
-		for (auto& inter : objRegularInteractions)
-			inter(currentTime, stream);
-	});
-
-	scheduler.addTask("Object halo forces", [&] (cudaStream_t stream) {
-		for (auto& inter : ojbHaloInteractions)
-			inter(currentTime, stream);
-	});
-
-	scheduler.addTask("Object accumulate forces", [&] (cudaStream_t stream) {
-		for (auto clVec : objCellListMap)
-			for (auto cl : clVec.second)
-				cl->addForces(stream);
-	});
-
-	scheduler.addTask("Object integrate", [&] (cudaStream_t stream) {
-		for (int i=0; i<objIntegrators.size(); i++)
-			if (objIntegrators[i] != nullptr)
-				objIntegrators[i]->stage2(objectVectors[i], stream);
-	});
 
 	scheduler.addTask("Object halo init", [&] (cudaStream_t stream) {
 		objHalo->init(stream);
@@ -373,12 +453,9 @@ void Simulation::assemble()
 	scheduler.addDependency("Halo finalize", {}, {"Halo init"});
 	scheduler.addDependency("Halo forces", {}, {"Halo finalize"});
 	scheduler.addDependency("Accumulate forces", {"Integration"}, {"Halo forces", "Internal forces"});
-	//scheduler.addDependency("Plugins: before integration", {"Integration"}, {});
+	scheduler.addDependency("Plugins: before integration", {"Integration"}, {});
 
-	scheduler.addDependency("Object internal forces", {}, {"Cell-lists"});
-	scheduler.addDependency("Object halo forces", {}, {"Cell-lists"});
-	scheduler.addDependency("Object accumulate forces", {"Object integration"}, {"Object halo forces", "Object internal forces"});
-	scheduler.addDependency("Object halo init", {}, {"Object integrate"});
+	scheduler.addDependency("Object halo init", {}, {"Integrate"});
 	scheduler.addDependency("Object halo finalize", {}, {"Object halo init"});
 
 	scheduler.addDependency("Object bounce", {}, {"Object halo finalize", "Object integration", "Integration"});
@@ -397,7 +474,6 @@ void Simulation::assemble()
 	scheduler.setHighPriority("Object integrate");
 
 	scheduler.compile();
-
 }
 
 // TODO: wall has self-interactions
@@ -440,161 +516,6 @@ void Simulation::finalize()
 		MPI_Check( MPI_Isend(&dummy, 1, MPI_INT, rank, tag, interComm, &req) );
 	}
 }
-
-
-//===================================================================================================
-// Postprocessing
-//===================================================================================================
-
-Postprocess::Postprocess(MPI_Comm& comm, MPI_Comm& interComm) : comm(comm), interComm(interComm)
-{
-	debug("Postprocessing initialized");
-}
-
-void Postprocess::registerPlugin(PostprocessPlugin* plugin)
-{
-	plugins.push_back(plugin);
-}
-
-void Postprocess::run()
-{
-	for (auto& pl : plugins)
-	{
-		pl->setup(comm, interComm);
-		pl->handshake();
-	}
-
-	// Stopping condition
-	int dummy = 0;
-	int tag = 424242;
-	int rank;
-
-	MPI_Check( MPI_Comm_rank(comm, &rank) );
-
-	MPI_Request endReq;
-	MPI_Check( MPI_Irecv(&dummy, 1, MPI_INT, rank, tag, interComm, &endReq) );
-
-	std::vector<MPI_Request> requests;
-	for (auto& pl : plugins)
-		requests.push_back(pl->postRecv());
-	requests.push_back(endReq);
-
-	while (true)
-	{
-		int index;
-		MPI_Status stat;
-		MPI_Check( MPI_Waitany(requests.size(), requests.data(), &index, &stat) );
-
-		if (index == plugins.size())
-		{
-			if (dummy != -1)
-				die("Something went terribly wrong");
-
-			// TODO: Maybe cancel?
-			debug("Postprocess got a stopping message and will exit now");
-			break;
-		}
-
-		debug2("Postprocess got a request from plugin %s, executing now", plugins[index]->name.c_str());
-		plugins[index]->deserialize(stat);
-		requests[index] = plugins[index]->postRecv();
-	}
-}
-
-
-
-//===================================================================================================
-// uDeviceX
-//===================================================================================================
-
-uDeviceX::uDeviceX(int argc, char** argv, int3 nranks3D, float3 globalDomainSize,
-		Logger& logger, std::string logFileName, int verbosity, bool noPostprocess) : noPostprocess(noPostprocess)
-{
-	int nranks, rank;
-
-	MPI_Init(&argc, &argv);
-	
-	logger.init(MPI_COMM_WORLD, logFileName, verbosity);
-
-	MPI_Check( MPI_Comm_size(MPI_COMM_WORLD, &nranks) );
-	MPI_Check( MPI_Comm_rank(MPI_COMM_WORLD, &rank) );
-
-	MPI_Comm ioComm, compComm, interComm, splitComm;
-
-	if (noPostprocess)
-	{
-		warn("No postprocess will be started now, use this mode for debugging. All the joint plugins will be turned off too.");
-
-		sim = new Simulation(nranks3D, globalDomainSize, MPI_COMM_WORLD, MPI_COMM_NULL);
-		computeTask = 0;
-		return;
-	}
-
-	if (nranks % 2 != 0)
-		die("Number of MPI ranks should be even");
-
-	info("Program started, splitting communicator");
-
-	computeTask = (rank) % 2;
-	MPI_Check( MPI_Comm_split(MPI_COMM_WORLD, computeTask, rank, &splitComm) );
-
-	if (isComputeTask())
-	{
-		MPI_Check( MPI_Comm_dup(splitComm, &compComm) );
-		MPI_Check( MPI_Intercomm_create(compComm, 0, MPI_COMM_WORLD, 1, 0, &interComm) );
-
-		MPI_Check( MPI_Comm_rank(compComm, &rank) );
-
-		sim = new Simulation(nranks3D, globalDomainSize, compComm, interComm);
-	}
-	else
-	{
-		MPI_Check( MPI_Comm_dup(splitComm, &ioComm) );
-		MPI_Check( MPI_Intercomm_create(ioComm,   0, MPI_COMM_WORLD, 0, 0, &interComm) );
-
-		MPI_Check( MPI_Comm_rank(ioComm, &rank) );
-
-		post = new Postprocess(ioComm, interComm);
-	}
-}
-
-bool uDeviceX::isComputeTask()
-{
-	return computeTask == 0;
-}
-
-void uDeviceX::registerJointPlugins(SimulationPlugin* simPl, PostprocessPlugin* postPl)
-{
-	if (noPostprocess) return;
-
-	const int id = pluginId++;
-
-	if (isComputeTask())
-	{
-		simPl->setId(id);
-		sim->registerPlugin(simPl);
-	}
-	else
-	{
-		postPl->setId(id);
-		post->registerPlugin(postPl);
-	}
-}
-
-void uDeviceX::run(int nsteps)
-{
-	if (isComputeTask())
-	{
-		sim->init();
-		sim->run(nsteps);
-		sim->finalize();
-
-		CUDA_Check( cudaDeviceSynchronize() );
-	}
-	else
-		post->run();
-}
-
 
 
 

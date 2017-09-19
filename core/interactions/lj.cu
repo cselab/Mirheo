@@ -41,14 +41,9 @@ __device__ inline float3 pairwiseLJ_objectAware(Particle dst, Particle src,
 
 
 
-InteractionLJ::InteractionLJ(pugi::xml_node node)
-{
-	name = node.attribute("name").as_string("");
-	rc   = node.attribute("rc").as_float(1.0f);
-
-	epsilon = node.attribute("power").as_float(10.0f);
-	sigma   = node.attribute("a")    .as_float(0.5f);
-}
+InteractionLJ::InteractionLJ(std::string name, float rc, float sigma, float epsilon) :
+		name(name), rc(rc), sigma(sigma), epsilon(epsilon)
+{ }
 
 void InteractionLJ::_compute(InteractionType type, ParticleVector* pv1, ParticleVector* pv2, CellList* cl, const float t, cudaStream_t stream)
 {
@@ -66,14 +61,9 @@ void InteractionLJ::_compute(InteractionType type, ParticleVector* pv1, Particle
 /**
  * LJ interaction, to prevent overlap of the rigid objects
  */
-InteractionLJ_objectAware::InteractionLJ_objectAware(pugi::xml_node node)
-{
-	name = node.attribute("name").as_string("");
-	rc   = node.attribute("rc").as_float(1.0f);
-
-	epsilon = node.attribute("power").as_float(10.0f);
-	sigma   = node.attribute("a")    .as_float(0.5f);
-}
+InteractionLJ_objectAware::InteractionLJ_objectAware(std::string name, float rc, float sigma, float epsilon) :
+				name(name), rc(rc), sigma(sigma), epsilon(epsilon)
+{ }
 
 void InteractionLJ_objectAware::_compute(InteractionType type, ParticleVector* pv1, ParticleVector* pv2, CellList* cl, const float t, cudaStream_t stream)
 {

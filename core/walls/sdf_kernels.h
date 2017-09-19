@@ -1,10 +1,10 @@
 #pragma once
 
 #include <core/cuda_common.h>
-#include <core/wall.h>
+#include <core/walls/sdf_wall.h>
 
 template<typename T>
-__device__ __forceinline__ float evalSdf(T x, Wall::SdfInfo sdfInfo)
+__device__ __forceinline__ float evalSdf(T x, SDFWall::SdfInfo sdfInfo)
 {
 	float3 x3{x.x, x.y, x.z};
 	float3 texcoord = floorf((x3 + sdfInfo.extendedDomainSize*0.5f) * sdfInfo.invh);

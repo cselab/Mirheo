@@ -14,6 +14,8 @@ class SimulationPlugin
 public:
 	std::string name;
 
+	bool requirePostproc;
+
 protected:
 	Simulation* sim;
 	MPI_Comm comm;
@@ -28,20 +30,22 @@ protected:
 
 	void send(const void* data, int sizeInBytes)
 	{
-		//debug3("Plugin %s is sending now", name.c_str());
+		debug3("Plugin %s is sending now", name.c_str());
 		MPI_Check( MPI_Wait(&req, MPI_STATUS_IGNORE) );
 		MPI_Check( MPI_Isend(data, sizeInBytes, MPI_BYTE, rank, id, interComm, &req) );
-		//debug3("Plugin %s has sent the data", name.c_str());
+		debug3("Plugin %s has sent the data", name.c_str());
 	}
 
 public:
-	SimulationPlugin(std::string name) : name(name), req(MPI_REQUEST_NULL) {};
+	SimulationPlugin(std::string name, bool requirePostproc = false) :
+		name(name), req(MPI_REQUEST_NULL), requirePostproc(requirePostproc)
+	{}
 
-	virtual void beforeForces(cudaStream_t stream) {};
+	virtual void beforeForces     (cudaStream_t stream) {};
 	virtual void beforeIntegration(cudaStream_t stream) {};
-	virtual void afterIntegration(cudaStream_t stream) {};
+	virtual void afterIntegration (cudaStream_t stream) {};
 
-	virtual void serializeAndSend(cudaStream_t stream) {};
+	virtual void serializeAndSend (cudaStream_t stream) {};
 	virtual void handshake() {};
 	virtual void talk() {};
 

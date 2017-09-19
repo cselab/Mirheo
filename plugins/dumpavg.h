@@ -1,6 +1,6 @@
 #pragma once
 
-#include <plugins/plugin.h>
+#include <plugins/interface.h>
 #include <core/containers.h>
 #include <core/datatypes.h>
 #include <plugins/write_xdmf.h>
@@ -27,7 +27,7 @@ private:
 	std::vector<ParticleVector*> particleVectors;
 
 public:
-	Avg3DPlugin(std::string name, std::vector<std::string> pvNames, int sampleEvery, int dumpEvery, float3 binSize,
+	Avg3DPlugin(std::string name, std::string pvNames, int sampleEvery, int dumpEvery, float3 binSize,
 			bool needMomentum, bool needForce);
 
 	void setup(Simulation* sim, const MPI_Comm& comm, const MPI_Comm& interComm);
@@ -54,7 +54,7 @@ private:
 	std::vector<float3> momentum, force;
 
 public:
-	Avg3DDumper(std::string name, std::string path, int3 nranks3D);
+	Avg3DDumper(std::string name, std::string path);
 
 	void deserialize(MPI_Status& stat);
 	void handshake();

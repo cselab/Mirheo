@@ -43,18 +43,9 @@ __device__ __forceinline__ float3 pairwiseDPD(
 }
 
 
-InteractionDPD::InteractionDPD(pugi::xml_node node)
+InteractionDPD::InteractionDPD(std::string name, float rc, float a, float gamma, float kbT, float dt, float power) :
+		name(name), rc(rc), a(a), gamma(gamma), kbT(kbT), dt(dt), power(power)
 {
-	name = node.attribute("name").as_string("");
-	rc   = node.attribute("rc").as_float(1.0f);
-
-	power = node.attribute("power").as_float(1.0f);
-	a     = node.attribute("a")    .as_float(50);
-	gamma = node.attribute("gamma").as_float(20);
-
-	const float dt  = node.attribute("dt") .as_float(0.01);
-	const float kBT = node.attribute("kbt").as_float(1.0);
-
 	sigma = sqrt(2 * gamma * kBT / dt);
 }
 

@@ -43,3 +43,4 @@ void ObjectVector::getMeshWithVertices(ObjectMesh* mesh, PinnedBuffer<Particle>*
 	mesh = &this->mesh;
 	vertices = &local()->coosvels;
 }
+

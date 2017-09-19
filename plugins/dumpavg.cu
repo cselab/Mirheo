@@ -1,10 +1,11 @@
 #include "dumpavg.h"
 #include "simple_serializer.h"
+#include "string2vector.h"
+
 #include <core/simulation.h>
 #include <core/pvs/particle_vector.h>
 #include <core/celllist.h>
 #include <core/cuda_common.h>
-#include <sstream>
 
 __global__ void sample(int np, const float4* coosvels, const float4* forces,
 		const float mass, CellListInfo cinfo, float* avgDensity, float3* avgMomentum, float3* avgForce)
@@ -49,9 +50,9 @@ __global__ void scaleDensity(int n, float* density, const float factor)
 		density[id] *= factor;
 }
 
-Avg3DPlugin::Avg3DPlugin(std::string name, std::vector<std::string> pvNames, int sampleEvery, int dumpEvery, float3 binSize,
+Avg3DPlugin::Avg3DPlugin(std::string name, std::string pvNames, int sampleEvery, int dumpEvery, float3 binSize,
 			bool needMomentum, bool needForce) :
-	SimulationPlugin(name), pvNames(pvNames),
+	SimulationPlugin(name, true), pvNames(pvNames),
 	sampleEvery(sampleEvery), dumpEvery(dumpEvery), binSize(binSize),
 	needDensity(true), needMomentum(needMomentum), needForce(needForce),
 	nSamples(0)
@@ -70,20 +71,24 @@ void Avg3DPlugin::setup(Simulation* sim, const MPI_Comm& comm, const MPI_Comm& i
 	if (needMomentum) momentum.resize(total, 0);
 	if (needForce)    force   .resize(total, 0);
 
+	auto splitPvNames = splitByDelim(pvNames);
+
 	density.clear(0);
 	momentum.clear(0);
 	force.clear(0);
 
-	for (auto& name : pvNames)
+	for (auto& nm : splitPvNames)
 	{
-		auto pv = sim->getPVbyName(name);
-		if (pv == nullptr)
-			die("No such particle vector registered: %s", name.c_str());
+		auto& pvIdMap = sim->getPvIdMap();
+		auto pvIter = pvIdMap.find(nm);
+		if (pvIter == pvIdMap.end())
+			die("No such particle vector registered: %s", nm.c_str());
 
+		auto pv = sim->getParticleVectors()[pvIter->second];
 		particleVectors.push_back(pv);
 	}
 
-	info("Plugin %s was successfully set up", name.c_str());
+	info("Plugin %s was set up for the following particle vectors: %s", name.c_str(), pvNames.c_str());
 }
 
 
@@ -148,27 +153,26 @@ void Avg3DPlugin::serializeAndSend(cudaStream_t stream)
 void Avg3DPlugin::handshake()
 {
 	std::vector<char> data;
-	SimpleSerializer::serialize(data, resolution, binSize, needDensity, needMomentum, needForce);
+	SimpleSerializer::serialize(data, sim->nranks3D, resolution, binSize, needDensity, needMomentum, needForce);
 
 	MPI_Check( MPI_Send(data.data(), data.size(), MPI_BYTE, rank, id, interComm) );
 
-	debug2("Plugin %s was set up to sample%s%s%s. Local resolution %dx%dx%d", name.c_str(),
-			needDensity ? " density" : "", needMomentum ? " momentum" : "", needForce ? " force" : "",
+	debug2("Plugin %s was set up to sample%s%s%s for the following PVs: %s. Local resolution %dx%dx%d", name.c_str(),
+			needDensity ? " density" : "", needMomentum ? " momentum" : "", needForce ? " force" : "", pvNames.c_str(),
 			resolution.x, resolution.y, resolution.z);
 }
 
 
 
 
-
-Avg3DDumper::Avg3DDumper(std::string name, std::string path, int3 nranks3D) :
-		PostprocessPlugin(name), path(path), nranks3D(nranks3D) { }
+Avg3DDumper::Avg3DDumper(std::string name, std::string path) :
+		PostprocessPlugin(name), path(path) { }
 
 void Avg3DDumper::handshake()
 {
 	std::vector<char> buf(1000);
 	MPI_Check( MPI_Recv(buf.data(), buf.size(), MPI_BYTE, rank, id, interComm, MPI_STATUS_IGNORE) );
-	SimpleSerializer::deserialize(buf, resolution, h, needDensity, needMomentum, needForce);
+	SimpleSerializer::deserialize(buf, nranks3D, resolution, h, needDensity, needMomentum, needForce);
 	int totalPoints = resolution.x * resolution.y * resolution.z;
 
 	std::vector<std::string> channelNames;

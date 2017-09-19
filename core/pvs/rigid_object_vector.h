@@ -52,11 +52,13 @@ class RigidObjectVector : public ObjectVector
 public:
 	PinnedBuffer<float4> initialPositions;
 
-	RigidObjectVector(std::string name, const int objSize, const int nObjects = 0) :
-		ObjectVector( name, objSize,
+	RigidObjectVector(std::string name, float mass, const int objSize, const int nObjects = 0) :
+		ObjectVector( name, mass, objSize,
 					  new LocalRigidObjectVector(objSize, nObjects),
 					  new LocalRigidObjectVector(objSize, 0) )
 	{}
+
+	virtual float3 getInertiaTensor() { return make_float3(1); }
 
 	LocalRigidObjectVector* local() { return static_cast<LocalRigidObjectVector*>(_local); }
 	LocalRigidObjectVector* halo()  { return static_cast<LocalRigidObjectVector*>(_halo);  }

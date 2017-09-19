@@ -1,11 +1,16 @@
+
+ifneq ("$(wildcard Makefile.settings.override)","")
+HOST=override
+else
 HOSTRAW=$(shell hostname)
 HOST=$(shell echo $(HOSTRAW) | perl -pe 's/daint\d*/daint/') # Remove trailing digits after 'daint' : 'daint101' ==> 'daint'
+endif
 
--include ../../misc/Makefile.settings.$(HOST)
+include $(UDEVICEX_PATH)/makefiles/Makefile.settings.$(HOST)
 
 # Compiling parameters
 NVCCFLAGS += -std=c++11 -g -lineinfo --expt-extended-lambda -Xcompiler "-fopenmp"
-NVCCFLAGS += -I../../ -I$(HDF5_INC) $(INCLUDES)
+NVCCFLAGS += -I$(UDEVICEX_PATH)/ -I$(HDF5_INC) $(INCLUDES)
 NVCCFLAGS += -arch=$(CUDA_ARCH) -code=$(CUDA_CODE)
 
 NOWARNFLAG = -Xcompiler "-Wno-cpp"
@@ -20,22 +25,17 @@ LINK_RELEASE_FLAGS = $(LINKFLAGS) -O3 $(LIBS)
 LINK_DEBUG_FLAGS = $(LINKFLAGS) -O0 $(LIBS)
 
 # Misc
-SRC_DIR = ../../core/ ../../core/interactions ../../core/pvs ../../core/xml ../../core/mpi ../../plugins ./
+SRC_DIR = $(UDEVICEX_PATH)/core $(UDEVICEX_PATH)/core/bouncers $(UDEVICEX_PATH)/core/initial_conditions \
+	$(UDEVICEX_PATH)/core/integrators $(UDEVICEX_PATH)/core/interactions $(UDEVICEX_PATH)/core/mpi \
+	$(UDEVICEX_PATH)/core/pvs $(UDEVICEX_PATH)/core/walls $(UDEVICEX_PATH)/core/xml $(UDEVICEX_PATH)/plugins ./
+
 BIN_DIR = bin
 DEBUG_DIR = debug
 
 VPATH = $(addsuffix :,$(SRC_DIR))
 
-# Targets
-objects = poiseuille.o scan.o celllist.o wall.o sampler.o simulation.o pugixml.o task_scheduler.o initial_conditions.o argument_parser.o\
-	particle_vector.o object_vector.o \
-	integrate.o dpd.o \
-	particle_exchanger.o particle_halo_exchanger.o particle_redistributor.o \
-	write_xdmf.o dumpavg.o stats.o temperaturize.o \
-
-
 # Release binary
-poiseuille: $(addprefix $(BIN_DIR)/,$(objects))
+$(binary): $(addprefix $(BIN_DIR)/,$(objects))
 	$(LINKER) $(LINK_RELEASE_FLAGS) $^ -o $@
 
 $(BIN_DIR)/%.d: %.cu
@@ -50,11 +50,11 @@ $(BIN_DIR)/%.o: %.cu
 clean_release:
 	rm -f $(BIN_DIR)/*
 	@test -e $(BIN_DIR) && rmdir -p $(BIN_DIR); true
-	rm -f poiseuille
+	rm -f $(binary)
 
 
 # Debug binary
-poiseuille_debug: $(addprefix $(DEBUG_DIR)/,$(objects))
+$(binary)_debug: $(addprefix $(DEBUG_DIR)/,$(objects))
 	$(LINKER) $(LINK_DEBUG_FLAGS)  $^ -o $@
 
 $(DEBUG_DIR)/%.d: %.cu
@@ -69,7 +69,7 @@ $(DEBUG_DIR)/%.o: %.cu
 clean_debug:
 	rm -f $(DEBUG_DIR)/*
 	@test -e $(DEBUG_DIR) && rmdir -p $(DEBUG_DIR); true
-	rm -f poiseuille_debug
+	rm -f $(binary)_debug
 	
 	
 

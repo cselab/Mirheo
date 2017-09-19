@@ -9,7 +9,7 @@ class InteractionLJ : public Interaction
 public:
 	void _compute(InteractionType type, ParticleVector* pv1, ParticleVector* pv2, CellList* cl, const float t, cudaStream_t stream) override;
 
-	InteractionLJ(pugi::xml_node node);
+	InteractionLJ(std::string name, float rc, float sigma, float epsilon);
 
 	~InteractionLJ() = default;
 };
@@ -21,7 +21,7 @@ class InteractionLJ_objectAware : public Interaction
 public:
 	void _compute(InteractionType type, ParticleVector* pv1, ParticleVector* pv2, CellList* cl, const float t, cudaStream_t stream) override;
 
-	InteractionLJ_objectAware(pugi::xml_node node);
+	InteractionLJ_objectAware(std::string name, float rc, float sigma, float epsilon);
 
 	~InteractionLJ_objectAware() = default;
 };

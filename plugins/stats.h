@@ -1,6 +1,6 @@
 #pragma once
 
-#include <plugins/plugin.h>
+#include <plugins/interface.h>
 #include <core/containers.h>
 #include <core/datatypes.h>
 #include <plugins/timer.h>
@@ -26,7 +26,7 @@ private:
 
 public:
 	SimulationStats(std::string name, int fetchEvery) :
-		SimulationPlugin(name), fetchEvery(fetchEvery), needToDump(false), momentum(3), energy(1)
+		SimulationPlugin(name, true), fetchEvery(fetchEvery), needToDump(false), momentum(3), energy(1)
 	{
 		timer.start();
 	}

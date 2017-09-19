@@ -22,7 +22,7 @@ public:
 
 	void _compute(InteractionType type, ParticleVector* pv1, ParticleVector* pv2, CellList* cl, const float t, cudaStream_t stream) override;
 
-	MCMCSampler(pugi::xml_node node, Wall* wall, float minSdf, float maxSdf);
+	MCMCSampler(std::string name, float rc, float a, float kbT, float power, Wall* wall, float minSdf, float maxSdf);
 
 	~MCMCSampler() = default;
 };

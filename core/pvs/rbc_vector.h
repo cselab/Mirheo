@@ -36,11 +36,13 @@ public:
 
 	Parameters parameters;
 
-	RBCvector(std::string name, const int objSize, const int nObjects = 0) :
-		ObjectVector( name, objSize,
+	RBCvector(std::string name, float mass, const int objSize, ObjectMesh mesh, const int nObjects = 0) :
+		ObjectVector( name, mass, objSize,
 					  new LocalRBCvector(objSize, nObjects),
 					  new LocalRBCvector(objSize, 0) )
-	{}
+	{
+		this->mesh = mesh;
+	}
 
 	LocalRBCvector* local() { return static_cast<LocalRBCvector*>(_local); }
 	LocalRBCvector* halo()  { return static_cast<LocalRBCvector*>(_halo);  }

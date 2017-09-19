@@ -1,10 +1,10 @@
 #pragma once
 
-#include <plugins/plugin.h>
-#include <core/datatypes.h>
-#include <plugins/timer.h>
-
+#include <plugins/interface.h>
 #include <vector>
+#include <string>
+
+#include "string2vector.h"
 
 class ParticleVector;
 
@@ -16,9 +16,11 @@ private:
 	float kbT;
 
 public:
-	TemperaturizePlugin(std::string name, std::vector<std::string> pvNames, float kbT) :
-		SimulationPlugin(name), pvNames(pvNames), kbT(kbT)
-	{}
+	TemperaturizePlugin(std::string name, std::string pvNames, float kbT) :
+		SimulationPlugin(name), kbT(kbT)
+	{
+		this->pvNames = splitByDelim(pvNames);
+	}
 
 	void setup(Simulation* sim, const MPI_Comm& comm, const MPI_Comm& interComm);
 	void beforeForces(cudaStream_t stream);

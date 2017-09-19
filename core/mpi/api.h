@@ -1,5 +1,7 @@
 #pragma once
 
+#include <mpi.h>
+
 #include "particle_halo_exchanger.h"
 #include "object_halo_exchanger.h"
 

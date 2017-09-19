@@ -1,24 +1,18 @@
 #pragma once
 
-#include <core/containers.h>
-#include <core/datatypes.h>
-#include <core/logger.h>
+#include "interface.h"
 
-#include <mpi.h>
-#include <string>
-#include <vector>
+#include <core/containers.h>
 
 class ParticleVector;
 class CellList;
 
-class Wall
+class SDFWall : public Wall
 {
 	friend void freezeParticlesInWall(Wall*, ParticleVector*, ParticleVector*, float, float);
 	friend class MCMCSampler;
 
 public:
-	std::string name;
-
 	struct SdfInfo
 	{
 		cudaTextureObject_t sdfTex;
@@ -29,10 +23,8 @@ public:
 private:
 	MPI_Comm wallComm;
 
-	std::vector<ParticleVector*> particleVectors;
 	PinnedBuffer<int> nBoundaryCells;
 	std::vector<DeviceBuffer<int>> boundaryCells;
-	std::vector<CellList*> cellLists;
 
 	SdfInfo sdfInfo;
 
@@ -53,12 +45,13 @@ private:
 
 public:
 
-	Wall(std::string name, std::string sdfFileName, float3 sdfH);
+	SDFWall(std::string name, std::string sdfFileName, float3 sdfH);
 
 	void createSdf(MPI_Comm& comm, float3 globalDomainSize, float3 globalDomainStart, float3 localDomainSize);
-	void removeInner(ParticleVector* pv);
-	void attach(ParticleVector* pv, CellList* cl);
-	void bounce(float dt, cudaStream_t stream);
 
-	void check(cudaStream_t stream);
+	void removeInner(ParticleVector* pv) override;
+	void attach(ParticleVector* pv, CellList* cl) override;
+	void bounce(float dt, cudaStream_t stream) override;
+
+	void check(cudaStream_t stream) override;
 };

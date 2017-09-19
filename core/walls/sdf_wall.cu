@@ -1,18 +1,18 @@
+#include "sdf_wall.h"
+#include "sdf_kernels.h"
+
 #include <fstream>
 #include <cmath>
 #include <texture_types.h>
 #include <cassert>
 
 #include <core/cuda_common.h>
-#include <core/wall.h>
 #include <core/celllist.h>
 #include <core/pvs/particle_vector.h>
 #include <core/pvs/object_vector.h>
 #include <core/bounce_solver.h>
 
 #include <core/cuda-rng.h>
-
-#include "sdf_kernels.h"
 
 //===============================================================================================
 // Interpolation kernels
@@ -158,7 +158,7 @@ __global__ void collectRemainingObjects(
 	for (int i=tid; i<objSize; i+=warpSize)
 	{
 		Particle p(input, objId*objSize + i);
-		float4* dstAddr = output + 2*(dstId + i);
+		float4* dstAddr = output + 2*(dstObjId*objSize + i);
 		dstAddr[0] = p.r2Float4();
 		dstAddr[1] = p.u2Float4();
 	}
@@ -299,13 +299,13 @@ __global__ void checkInside(const float4* coosvels, int np, Wall::SdfInfo sdfInf
 /*
  * We only set a few params here
  */
-Wall::Wall(std::string name, std::string sdfFileName, float3 sdfH) :
-		name(name), sdfFileName(sdfFileName), nInside(1)
+SDFWall::SDFWall(std::string name, std::string sdfFileName, float3 sdfH) :
+		Wall(name), sdfFileName(sdfFileName), nInside(1)
 {
 	sdfInfo.h = sdfH;
 }
 
-void Wall::attach(ParticleVector* pv, CellList* cl)
+void SDFWall::attach(ParticleVector* pv, CellList* cl)
 {
 	CUDA_Check( cudaDeviceSynchronize() );
 	particleVectors.push_back(pv);
@@ -330,7 +330,7 @@ void Wall::attach(ParticleVector* pv, CellList* cl)
 	CUDA_Check( cudaDeviceSynchronize() );
 }
 
-void Wall::readHeader(int3& sdfResolution, float3& sdfExtent, int64_t& fullSdfSize_byte, int64_t& endHeader_byte, int rank)
+void SDFWall::readHeader(int3& sdfResolution, float3& sdfExtent, int64_t& fullSdfSize_byte, int64_t& endHeader_byte, int rank)
 {
 	if (rank == 0)
 	{
@@ -363,7 +363,7 @@ void Wall::readHeader(int3& sdfResolution, float3& sdfExtent, int64_t& fullSdfSi
 	MPI_Check( MPI_Bcast(&endHeader_byte,   1, MPI_INT64_T,   0, wallComm) );
 }
 
-void Wall::readSdf(int64_t fullSdfSize_byte, int64_t endHeader_byte, int nranks, int rank, std::vector<float>& fullSdfData)
+void SDFWall::readSdf(int64_t fullSdfSize_byte, int64_t endHeader_byte, int nranks, int rank, std::vector<float>& fullSdfData)
 {
 	// Read part and allgather
 	const int64_t readPerProc_byte = (fullSdfSize_byte + nranks - 1) / (int64_t)nranks;
@@ -384,7 +384,7 @@ void Wall::readSdf(int64_t fullSdfSize_byte, int64_t endHeader_byte, int nranks,
 	MPI_Check( MPI_Allgather(readBuffer.data(), readPerProc_byte, MPI_BYTE, fullSdfData.data(), readPerProc_byte, MPI_BYTE, wallComm) );
 }
 
-void Wall::prepareRelevantSdfPiece(const float* fullSdfData, float3 extendedDomainStart, float3 initialSdfH, int3 initialSdfResolution,
+void SDFWall::prepareRelevantSdfPiece(const float* fullSdfData, float3 extendedDomainStart, float3 initialSdfH, int3 initialSdfResolution,
 		int3& resolution, float3& offset, PinnedBuffer<float>& localSdfData)
 {
 	// Find your relevant chunk of data
@@ -417,7 +417,6 @@ void Wall::prepareRelevantSdfPiece(const float* fullSdfData, float3 extendedDoma
 //			initialSdfResolution.x, initialSdfResolution.y, initialSdfResolution.z,
 //			startId.x, startId.y, startId.z);
 
-//#warning "Minus here should be removed"
 	for (int k = 0; k < resolution.z; k++)
 		for (int j = 0; j < resolution.y; j++)
 			for (int i = 0; i < resolution.x; i++)
@@ -431,7 +430,7 @@ void Wall::prepareRelevantSdfPiece(const float* fullSdfData, float3 extendedDoma
 			}
 }
 
-void Wall::createSdf(MPI_Comm& comm, float3 globalDomainSize, float3 globalDomainStart, float3 localDomainSize)
+void SDFWall::createSdf(MPI_Comm& comm, float3 globalDomainSize, float3 globalDomainStart, float3 localDomainSize)
 {
 	info("Creating wall %s", name.c_str());
 
@@ -519,7 +518,7 @@ void Wall::createSdf(MPI_Comm& comm, float3 globalDomainSize, float3 globalDomai
 	CUDA_Check( cudaDeviceSynchronize() );
 }
 
-void Wall::removeInner(ParticleVector* pv)
+void SDFWall::removeInner(ParticleVector* pv)
 {
 	CUDA_Check( cudaDeviceSynchronize() );
 
@@ -574,7 +573,7 @@ void Wall::removeInner(ParticleVector* pv)
 	CUDA_Check( cudaDeviceSynchronize() );
 }
 
-void Wall::bounce(float dt, cudaStream_t stream)
+void SDFWall::bounce(float dt, cudaStream_t stream)
 {
 	for (int i=0; i<particleVectors.size(); i++)
 	{
@@ -590,7 +589,7 @@ void Wall::bounce(float dt, cudaStream_t stream)
 	}
 }
 
-void Wall::check(cudaStream_t stream)
+void SDFWall::check(cudaStream_t stream)
 {
 	const int nthreads = 128;
 	for (auto pv : particleVectors)
