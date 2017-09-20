@@ -2,18 +2,27 @@
 
 #include <mpi.h>
 #include <core/logger.h>
+#include <core/simulation.h>
+#include <core/postproc.h>
+#include <plugins/interface.h>
 
-uDeviceX::uDeviceX(int argc, char** argv, int3 nranks3D, float3 globalDomainSize,
+uDeviceX::uDeviceX(int3 nranks3D, float3 globalDomainSize,
 		Logger& logger, std::string logFileName, int verbosity, bool noPostprocess) : noPostprocess(noPostprocess)
 {
 	int nranks, rank;
 
-	MPI_Init(&argc, &argv);
-
-	logger.init(MPI_COMM_WORLD, logFileName, verbosity);
+	if (logFileName == "stdout")
+		logger.init(MPI_COMM_WORLD, stdout, verbosity);
+	else if (logFileName == "stderr")
+		logger.init(MPI_COMM_WORLD, stderr, verbosity);
+	else
+		logger.init(MPI_COMM_WORLD, logFileName+".log", verbosity);
 
 	MPI_Check( MPI_Comm_size(MPI_COMM_WORLD, &nranks) );
 	MPI_Check( MPI_Comm_rank(MPI_COMM_WORLD, &rank) );
+
+	if (rank == 0)
+		sayHello();
 
 	MPI_Comm ioComm, compComm, interComm, splitComm;
 
@@ -52,6 +61,16 @@ uDeviceX::uDeviceX(int argc, char** argv, int3 nranks3D, float3 globalDomainSize
 
 		post = new Postprocess(ioComm, interComm);
 	}
+}
+
+void uDeviceX::sayHello()
+{
+	printf("\n");
+	printf("************************************************\n");
+	printf("*                   uDeviceX                   *\n");
+	printf("*     compiled: on %s at %s     *\n", __DATE__, __TIME__);
+	printf("************************************************\n");
+	printf("\n");
 }
 
 bool uDeviceX::isComputeTask()

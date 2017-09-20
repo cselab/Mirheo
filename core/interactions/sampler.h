@@ -3,14 +3,14 @@
 #include <core/containers.h>
 #include <core/xml/pugixml.hpp>
 
-class Wall;
+class SDFWall;
 
 class MCMCSampler : public Interaction
 {
 protected:
 	ParticleVector* combined;
 	CellList* combinedCL;
-	Wall* wall;
+	SDFWall* wall;
 
 	PinnedBuffer<int> nAccepted, nRejected, nDst;
 	PinnedBuffer<double> totE;
@@ -22,7 +22,7 @@ public:
 
 	void _compute(InteractionType type, ParticleVector* pv1, ParticleVector* pv2, CellList* cl, const float t, cudaStream_t stream) override;
 
-	MCMCSampler(std::string name, float rc, float a, float kbT, float power, Wall* wall, float minSdf, float maxSdf);
+	MCMCSampler(std::string name, float rc, float a, float kbT, float power, SDFWall* wall, float minSdf, float maxSdf);
 
 	~MCMCSampler() = default;
 };

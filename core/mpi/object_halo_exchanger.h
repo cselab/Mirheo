@@ -1,9 +1,6 @@
 #pragma once
 
-#include <core/datatypes.h>
-#include <core/logger.h>
-
-#include <core/mpi/particle_exchanger.h>
+#include "particle_exchanger.h"
 
 #include <vector>
 
@@ -11,12 +8,14 @@ class ObjectVector;
 
 class ObjectHaloExchanger : public ParticleExchanger
 {
-private:
+	friend class ObjectForcesReverseExchanger;
+
+protected:
 	std::vector<float> rcs;
 	std::vector<ObjectVector*> objects;
 
-	virtual void prepareData(int id, cudaStream_t defStream);
-	virtual void combineAndUploadData(int id);
+	void prepareData(int id, cudaStream_t stream) override;
+	void combineAndUploadData(int id, cudaStream_t stream) override;
 
 public:
 	ObjectHaloExchanger(MPI_Comm& comm) : ParticleExchanger(comm) {};

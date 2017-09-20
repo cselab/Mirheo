@@ -14,6 +14,6 @@ class Parser
 public:
 	Parser(std::string xmlname);
 
-	uDeviceX* setup_uDeviceX(int argc, char** argv, Logger& logger);
+	uDeviceX* setup_uDeviceX(Logger& logger);
 	int getNIterations();
 };

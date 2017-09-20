@@ -30,6 +30,8 @@ public:
 	float3 globalDomainSize, globalDomainStart, localDomainSize;
 
 private:
+	const float rcTolerance = 1e-5;
+
 	std::string restartFolder;
 
 	float dt;
@@ -63,10 +65,11 @@ private:
 
 	std::vector<std::tuple<float, ParticleVector*, ParticleVector*, Interaction*>> interactionPrototypes;
 	std::vector<std::pair<Wall*,   ParticleVector*>> wallPrototypes;
-	std::vector<std::pair<Bouncer*, ParticleVector*>> bouncerPrototypes;
+	std::vector<std::tuple<Bouncer*, ObjectVector*, ParticleVector*>> bouncerPrototypes;
 
 	std::vector<std::function<void(float, cudaStream_t)>> regularInteractions, haloInteractions;
-	std::vector<std::function<void(cudaStream_t)>> regularBouncers, haloBouncers, integrators;
+	std::vector<std::function<void(cudaStream_t)>> integratorsStage1, integratorsStage2;
+	std::vector<std::function<void(float, cudaStream_t)>> regularBouncers, haloBouncers;
 
 	std::vector<SimulationPlugin*> plugins;
 

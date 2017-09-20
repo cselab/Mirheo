@@ -1,8 +1,6 @@
 #pragma once
 
-#include <core/datatypes.h>
 #include <core/containers.h>
-#include <core/logger.h>
 
 #include <vector>
 #include <string>
@@ -22,8 +20,6 @@ struct ExchangeHelper
 	std::vector<int> recvOffsets;
 	std::vector<MPI_Request> requests;
 
-	cudaStream_t stream;
-
 	ExchangeHelper(std::string name, const int datumSize, const int sizes[3]);
 };
 
@@ -40,16 +36,16 @@ protected:
 	std::vector<ExchangeHelper*> helpers;
 
 	void postRecv(ExchangeHelper* helper);
-	void sendWait(ExchangeHelper* helper);
+	void sendWait(ExchangeHelper* helper, cudaStream_t stream);
 
-	virtual void prepareData(int id, cudaStream_t defStream) = 0;
-	virtual void combineAndUploadData(int id) = 0;
+	virtual void prepareData(int id, cudaStream_t stream) = 0;
+	virtual void combineAndUploadData(int id, cudaStream_t stream) = 0;
 
 public:
 
 	ParticleExchanger(MPI_Comm& comm);
-	void init(cudaStream_t defStream);
-	void finalize();
+	void init(cudaStream_t stream);
+	void finalize(cudaStream_t stream);
 
 	virtual ~ParticleExchanger() = default;
 };

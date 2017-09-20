@@ -73,7 +73,7 @@ template<typename Potential>
 __global__ void mcmcSample(int3 shift,
 		Particle* particles, const int np, CellListInfo cinfo, const uint* __restrict__ cellsStartSize,
 		const float rc, const float rc2, const float p, const float kbT, const float seed,
-		Wall::SdfInfo sdfInfo, const float minSdf, const float maxSdf,
+		SDFWall::SdfInfo sdfInfo, const float minSdf, const float maxSdf,
 		const float proposalFactor, int* nAccepted, int* nRejected, Potential potential)
 {
 	const uint3 uint3_blockDim{blockDim.x, blockDim.y, blockDim.z};
@@ -169,11 +169,11 @@ __global__ void writeBackLocal(Particle* srcs, int nSrc, Particle* dsts, int* nD
 }
 
 
-MCMCSampler::MCMCSampler(std::string name, float rc, float a, float kbT, float power, Wall* wall, float minSdf, float maxSdf) :
-		name(name), rc(rc), a(a), kbT(kbT), power(power),
+MCMCSampler::MCMCSampler(std::string name, float rc, float a, float kbT, float power,SDFWall* wall, float minSdf, float maxSdf) :
+		Interaction(name, rc), a(a), kbT(kbT), power(power),
 		nAccepted(1), nRejected(1), nDst(1), totE(1), wall(wall), minSdf(minSdf), maxSdf(maxSdf)
 {
-	combined = new ParticleVector("combined");
+	combined = new ParticleVector("combined", 1.0);
 	combinedCL = nullptr;
 
 	proposalFactor = 0.2f*rc;

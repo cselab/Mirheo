@@ -12,12 +12,14 @@ class Wall
 public:
 	std::string name;
 
-private:
+protected:
 	std::vector<ParticleVector*> particleVectors;
 	std::vector<CellList*> cellLists;
 
 public:
 	Wall(std::string name) : name(name) {};
+
+	virtual void setup(MPI_Comm& comm, float3 globalDomainSize, float3 globalDomainStart, float3 localDomainSize) = 0;
 
 	virtual void removeInner(ParticleVector* pv) = 0;
 	virtual void attach(ParticleVector* pv, CellList* cl) = 0;

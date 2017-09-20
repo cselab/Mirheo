@@ -1,26 +1,17 @@
+#include "object_redistributor.h"
+
 #include <core/pvs/particle_vector.h>
 #include <core/pvs/object_vector.h>
-#include <core/celllist.h>
 #include <core/logger.h>
 #include <core/cuda_common.h>
 
-#include <core/mpi/object_redistributor.h>
-#include <core/mpi/valid_cell.h>
-
-#include <vector>
-#include <algorithm>
-#include <limits>
-
-
-
-__device__ void packExtraData(int objId, int32_t** extraData, int nPtrsPerObj, const int* dataSizes, int32_t* destanation)
+__device__ static inline void packExtraData(int objId, char** extraData, int nPtrsPerObj, const int* dataSizes, char* destanation)
 {
 	int baseId = 0;
 
 	for (int ptrId = 0; ptrId < nPtrsPerObj; ptrId++)
 		{
-			// dataSizes are in bytes
-			const int size = dataSizes[ptrId] / 4;
+			const int size = dataSizes[ptrId];
 			for (int i = threadIdx.x; i < size; i += blockDim.x)
 				destanation[baseId+i] = extraData[ptrId][objId*size + i];
 
@@ -28,14 +19,13 @@ __device__ void packExtraData(int objId, int32_t** extraData, int nPtrsPerObj, c
 		}
 }
 
-__device__ void unpackExtraData(int objId, int32_t** extraData, int nPtrsPerObj, const int* dataSizes, const int32_t* source)
+__device__ static inline void unpackExtraData(int objId, char** extraData, int nPtrsPerObj, const int* dataSizes, const char* source)
 {
 	int baseId = 0;
 
 	for (int ptrId = 0; ptrId < nPtrsPerObj; ptrId++)
 	{
-		// dataSizes are in bytes
-		const int size = dataSizes[ptrId] / 4;
+		const int size = dataSizes[ptrId];
 		for (int i = threadIdx.x; i < size; i += blockDim.x)
 			extraData[ptrId][objId*size + i] = source[baseId+i];
 
@@ -47,7 +37,7 @@ __device__ void unpackExtraData(int objId, int32_t** extraData, int nPtrsPerObj,
 __global__ void getExitingObjects(const float4* __restrict__ coosvels, const LocalObjectVector::COMandExtent* props, const int nObj, const int objSize,
 		const float3 localDomainSize,
 		const int64_t dests[27], int bufSizes[27], /*int* haloParticleIds,*/
-		const int packedObjSize_byte, int32_t** extraData, int nPtrsPerObj, const int* dataSizes)
+		const int packedObjSize_byte, char** extraData, int nPtrsPerObj, const int* dataSizes)
 {
 	const int objId = blockIdx.x;
 	const int tid = threadIdx.x;
@@ -103,12 +93,12 @@ __global__ void getExitingObjects(const float4* __restrict__ coosvels, const Loc
 
 	// Add extra data at the end of the object
 	dstAddr += objSize*2;
-	packExtraData(objId, extraData, nPtrsPerObj, dataSizes, (int32_t*)dstAddr);
+	packExtraData(objId, extraData, nPtrsPerObj, dataSizes, (char*)dstAddr);
 }
 
 
-__global__ void unpackObject(const float4* from, float4* to, const int objSize, const int packedObjSize_byte, const int nObj,
-		int32_t** extraData, int nPtrsPerObj, const int* dataSizes)
+__global__ static void unpackObject(const float4* from, float4* to, const int objSize, const int packedObjSize_byte, const int nObj,
+		char** extraData, int nPtrsPerObj, const int* dataSizes)
 {
 	const int objId = blockIdx.x;
 	const int tid = threadIdx.x;
@@ -122,7 +112,7 @@ __global__ void unpackObject(const float4* from, float4* to, const int objSize, 
 		to[2*(objId*objSize + pid) + sh] = data;
 	}
 
-	unpackExtraData(objId, extraData, nPtrsPerObj, dataSizes, (int32_t*)( ((char*)from) + objId * packedObjSize_byte + objSize*sizeof(Particle) ));
+	unpackExtraData( objId, extraData, nPtrsPerObj, dataSizes, (char*)from + objId * packedObjSize_byte + objSize*sizeof(Particle) );
 }
 
 
@@ -146,12 +136,10 @@ void ObjectRedistributor::attach(ObjectVector* ov, float rc)
 
 	//  Central buffer will be used to move the data around
 	// while removing exiting objects
-	helper->sendBufs[13].pushStream(stream);
-	helper->sendBufs[13].resize( ov->local()->packedObjSize_bytes * (ov->local()->nObjects + 5) * 1.5 );
-	helper->sendAddrs[13] = sendBufs[i].devPtr();
-	helper->sendAddrs.uploadToDevice();
+	helper->sendBufs[13].resize( ov->local()->packedObjSize_bytes * (ov->local()->nObjects + 5) * 1.5, 0, ResizeKind::resizeAnew );
+	helper->sendAddrs[13] = helper->sendBufs[13].devPtr();
+	helper->sendAddrs.uploadToDevice(0);
 
-	ov->halo()->pushStream(helper->stream);
 	helpers.push_back(helper);
 }
 
@@ -167,8 +155,8 @@ void ObjectRedistributor::prepareData(int id, cudaStream_t stream)
 
 	if ( helper->sendBufs[13].size() < ov->local()->packedObjSize_bytes * ov->local()->nObjects )
 	{
-		helper->sendBufs[13].resize( ov->local()->packedObjSize_bytes * ov->local()->nObjects, stream, resizeAnew );
-		helper->sendAddrs[13] = sendBufs[i].devPtr();
+		helper->sendBufs[13].resize( ov->local()->packedObjSize_bytes * ov->local()->nObjects, stream, ResizeKind::resizeAnew );
+		helper->sendAddrs[13] = helper->sendBufs[13].devPtr();
 	}
 
 	const int nthreads = 128;
@@ -186,19 +174,22 @@ void ObjectRedistributor::prepareData(int id, cudaStream_t stream)
 		// Unpack the central buffer into the object vector itself
 		helper->bufSizes.downloadFromDevice(stream);
 		int nObjs = helper->bufSizes[13];
-		unpackObject<<< nObjs, nthreads, 0, stream >>>
-				(((float4*)helper->sendBufs[13].devPtr(), (float4*)ov->local()->coosvels.devPtr(), ov->local()->objSize, ov->local()->packedObjSize_bytes, nObjs,
-				 ov->local()->extraDataPtrs.devPtr(), nPtrs, ov->local()->extraDataSizes.devPtr())
+		unpackObject<<< nObjs, nthreads, 0, stream >>> (
+				(float4*)helper->sendBufs[13].devPtr(), (float4*)ov->local()->coosvels.devPtr(), ov->local()->objSize, ov->local()->packedObjSize_bytes,
+				helper->bufSizes[13],
+				ov->local()->extraDataPtrs.devPtr(), nPtrs, ov->local()->extraDataSizes.devPtr());
+
+		ov->local()->resize(helper->bufSizes[13], stream);
 	}
 }
 
-void ObjectRedistributor::combineAndUploadData(int id)
+void ObjectRedistributor::combineAndUploadData(int id, cudaStream_t stream)
 {
 	auto ov = objects[id];
 	auto helper = helpers[id];
 
-	ov->halo()->resize(helper->recvOffsets[27] * ov->halo()->objSize, halo->stream, resizeAnew);
-	ov->halo()->resize(helper->recvOffsets[27] * ov->halo()->objSize, halo->stream, resizeAnew);
+	ov->halo()->resize(helper->recvOffsets[27] * ov->halo()->objSize, stream, ResizeKind::resizeAnew);
+	ov->halo()->resize(helper->recvOffsets[27] * ov->halo()->objSize, stream, ResizeKind::resizeAnew);
 
 	const int nthreads = 128;
 	for (int i=0; i < 27; i++)
@@ -209,7 +200,7 @@ void ObjectRedistributor::combineAndUploadData(int id)
 			int        nPtrs = ov->local()->extraDataPtrs.size();
 			int totSize_byte = ov->local()->packedObjSize_bytes;
 
-			unpackObject<<< nObjs, nthreads, 0, helper->stream >>>
+			unpackObject<<< nObjs, nthreads, 0, stream >>>
 					((float4*)helper->recvBufs[i].devPtr(), (float4*)(ov->halo()->coosvels.devPtr() + helper->recvOffsets[i]*nObjs), ov->local()->objSize, totSize_byte, nObjs,
 					 ov->halo()->extraDataPtrs.devPtr(), nPtrs, ov->halo()->extraDataSizes.devPtr());
 		}

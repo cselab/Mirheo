@@ -1,20 +1,26 @@
 #pragma once
 
-#include <core/simulation.h>
-#include <core/postproc.h>
-#include <plugins/interface.h>
+#include <core/logger.h>
+
+class Simulation;
+class Postprocess;
+class SimulationPlugin;
+class PostprocessPlugin;
 
 class uDeviceX
 {
+private:
 	int pluginId = 0;
 	int computeTask;
 	bool noPostprocess;
+
+	void sayHello();
 
 public:
 	Simulation* sim;
 	Postprocess* post;
 
-	uDeviceX(int argc, char** argv, int3 nranks3D, float3 globalDomainSize,
+	uDeviceX(int3 nranks3D, float3 globalDomainSize,
 			Logger& logger, std::string logFileName, int verbosity=3, bool noPostprocess = false);
 
 	bool isComputeTask();

@@ -43,6 +43,7 @@ namespace ArgumentParser
 	class Parser
 	{
 	private:
+		bool output;
 		int nOpt;
 		vector<OptionStruct> opts;
 		map<char, OptionStruct> optsMap;
@@ -51,7 +52,7 @@ namespace ArgumentParser
 		
 	public:
 		
-		Parser(const std::vector<OptionStruct>& optionsMap);
+		Parser(const std::vector<OptionStruct>& optionsMap, bool output = false);
 		void parse(int argc, char * const * argv);
 	};
 }

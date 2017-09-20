@@ -19,7 +19,7 @@ void BounceFromRigidEllipsoid::exec(ObjectVector* ov, ParticleVector* pv, CellLi
 	if (reov == nullptr)
 		die("Analytic ellispoid bounce only works with RigidObjectVector");
 
-	debug("Bouncing %s particles from %s object vector", pv->name.c_str(), rov->name.c_str());
+	debug("Bouncing %s particles from %s object vector", pv->name.c_str(), reov->name.c_str());
 	auto activeREOV = local ? reov->local() : reov->halo();
 
 	int nthreads = 512;

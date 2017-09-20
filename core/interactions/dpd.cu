@@ -44,9 +44,9 @@ __device__ __forceinline__ float3 pairwiseDPD(
 
 
 InteractionDPD::InteractionDPD(std::string name, float rc, float a, float gamma, float kbT, float dt, float power) :
-		name(name), rc(rc), a(a), gamma(gamma), kbT(kbT), dt(dt), power(power)
+		Interaction(name, rc), a(a), gamma(gamma), power(power)
 {
-	sigma = sqrt(2 * gamma * kBT / dt);
+	sigma = sqrt(2 * gamma * kbT / dt);
 }
 
 void InteractionDPD::_compute(InteractionType type, ParticleVector* pv1, ParticleVector* pv2, CellList* cl, const float t, cudaStream_t stream)

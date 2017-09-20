@@ -47,7 +47,7 @@ public:
 
 	SDFWall(std::string name, std::string sdfFileName, float3 sdfH);
 
-	void createSdf(MPI_Comm& comm, float3 globalDomainSize, float3 globalDomainStart, float3 localDomainSize);
+	void setup(MPI_Comm& comm, float3 globalDomainSize, float3 globalDomainStart, float3 localDomainSize) override;
 
 	void removeInner(ParticleVector* pv) override;
 	void attach(ParticleVector* pv, CellList* cl) override;

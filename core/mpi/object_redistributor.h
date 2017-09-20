@@ -1,8 +1,5 @@
 #pragma once
 
-#include <core/datatypes.h>
-#include <core/logger.h>
-
 #include "particle_exchanger.h"
 
 #include <vector>
@@ -15,7 +12,7 @@ private:
 	std::vector<ObjectVector*> objects;
 
 	virtual void prepareData(int id, cudaStream_t stream);
-	virtual void combineAndUploadData(int id);
+	virtual void combineAndUploadData(int id, cudaStream_t stream);
 
 public:
 	ObjectRedistributor(MPI_Comm& comm) : ParticleExchanger(comm) {};

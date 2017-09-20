@@ -1,6 +1,7 @@
 #pragma once
 
 #include <core/cuda_common.h>
+#include <core/datatypes.h>
 
 
 /**

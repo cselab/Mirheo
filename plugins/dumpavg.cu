@@ -56,7 +56,7 @@ Avg3DPlugin::Avg3DPlugin(std::string name, std::string pvNames, int sampleEvery,
 	sampleEvery(sampleEvery), dumpEvery(dumpEvery), binSize(binSize),
 	needDensity(true), needMomentum(needMomentum), needForce(needForce),
 	nSamples(0)
-{}
+{ }
 
 void Avg3DPlugin::setup(Simulation* sim, const MPI_Comm& comm, const MPI_Comm& interComm)
 {
@@ -79,12 +79,10 @@ void Avg3DPlugin::setup(Simulation* sim, const MPI_Comm& comm, const MPI_Comm& i
 
 	for (auto& nm : splitPvNames)
 	{
-		auto& pvIdMap = sim->getPvIdMap();
-		auto pvIter = pvIdMap.find(nm);
-		if (pvIter == pvIdMap.end())
+		auto pv = sim->getPVbyName(nm);
+		if (pv == nullptr)
 			die("No such particle vector registered: %s", nm.c_str());
 
-		auto pv = sim->getParticleVectors()[pvIter->second];
 		particleVectors.push_back(pv);
 	}
 

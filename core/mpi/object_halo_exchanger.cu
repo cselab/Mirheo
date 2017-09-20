@@ -1,19 +1,11 @@
+#include "object_halo_exchanger.h"
+
 #include <core/pvs/particle_vector.h>
 #include <core/pvs/object_vector.h>
-#include <core/celllist.h>
 #include <core/logger.h>
 #include <core/cuda_common.h>
 
-#include <core/mpi/object_halo_exchanger.h>
-#include <core/mpi/valid_cell.h>
-
-#include <vector>
-#include <algorithm>
-#include <limits>
-
-
-
-__device__ void packExtraData(int objId, char** extraData, int nPtrsPerObj, const int* dataSizes, char* destanation)
+__device__ static inline void packExtraData(int objId, char** extraData, int nPtrsPerObj, const int* dataSizes, char* destanation)
 {
 	int baseId = 0;
 
@@ -28,7 +20,7 @@ __device__ void packExtraData(int objId, char** extraData, int nPtrsPerObj, cons
 		}
 }
 
-__device__ void unpackExtraData(int objId, char** extraData, int nPtrsPerObj, const int* dataSizes, const char* source)
+__device__ static inline void unpackExtraData(int objId, char** extraData, int nPtrsPerObj, const int* dataSizes, const char* source)
 {
 	int baseId = 0;
 
@@ -126,7 +118,7 @@ __global__ void getObjectHalos(const float4* __restrict__ coosvels, const LocalO
 
 		// Add extra data at the end of the object
 		dstAddr += objSize*2;
-		packExtraData(objId, extraData, nPtrsPerObj, dataSizes, (int32_t*)dstAddr);
+		packExtraData(objId, extraData, nPtrsPerObj, dataSizes, (char*)dstAddr);
 	}
 }
 
@@ -146,7 +138,7 @@ __global__ void unpackObject(const float4* from, float4* to, const int objSize, 
 		to[2*(objId*objSize + pid) + sh] = data;
 	}
 
-	unpackExtraData(objId, extraData, nPtrsPerObj, dataSizes, (int32_t*)( ((char*)from) + objId * packedObjSize_byte + objSize*sizeof(Particle) ));
+	unpackExtraData(objId, extraData, nPtrsPerObj, dataSizes, (char*)from + objId * packedObjSize_byte + objSize*sizeof(Particle) );
 }
 
 
@@ -168,12 +160,11 @@ void ObjectHaloExchanger::attach(ObjectVector* ov, float rc)
 
 
 	ExchangeHelper* helper = new ExchangeHelper(ov->name, ov->local()->packedObjSize_bytes, sizes);
-	ov->halo()->pushStream(helper->stream);
 	helpers.push_back(helper);
 }
 
 
-void ObjectHaloExchanger::prepareData(int id, cudaStream_t defStream)
+void ObjectHaloExchanger::prepareData(int id, cudaStream_t stream)
 {
 	auto ov = objects[id];
 	auto rc = rcs[id];
@@ -181,9 +172,7 @@ void ObjectHaloExchanger::prepareData(int id, cudaStream_t defStream)
 
 	debug2("Preparing %s halo on the device", ov->name.c_str());
 
-	helper->bufSizes.pushStream(defStream);
-	helper->bufSizes.clearDevice();
-	helper->bufSizes.popStream();
+	helper->bufSizes.clearDevice(stream);
 
 	const int nthreads = 128;
 	if (ov->local()->nObjects > 0)
@@ -191,7 +180,7 @@ void ObjectHaloExchanger::prepareData(int id, cudaStream_t defStream)
 		int       nPtrs  = ov->local()->extraDataPtrs.size();
 		int totSize_byte = ov->local()->packedObjSize_bytes;
 
-		getObjectHalos <<< ov->local()->nObjects, nthreads, 0, defStream >>> (
+		getObjectHalos <<< ov->local()->nObjects, nthreads, 0, stream >>> (
 				(float4*)ov->local()->coosvels.devPtr(), ov->local()->comAndExtents.devPtr(),
 				ov->local()->nObjects, ov->local()->objSize, ov->localDomainSize, rc,
 				(int64_t*)helper->sendAddrs.devPtr(), helper->bufSizes.devPtr(),
@@ -199,13 +188,13 @@ void ObjectHaloExchanger::prepareData(int id, cudaStream_t defStream)
 	}
 }
 
-void ObjectHaloExchanger::combineAndUploadData(int id)
+void ObjectHaloExchanger::combineAndUploadData(int id, cudaStream_t stream)
 {
 	auto ov = objects[id];
 	auto helper = helpers[id];
 
-	ov->halo()->resize(helper->recvOffsets[27] * ov->halo()->objSize, resizeAnew);
-	ov->halo()->resize(helper->recvOffsets[27] * ov->halo()->objSize, resizeAnew);
+	ov->halo()->resize(helper->recvOffsets[27] * ov->halo()->objSize, stream, ResizeKind::resizeAnew);
+	ov->halo()->resize(helper->recvOffsets[27] * ov->halo()->objSize, stream, ResizeKind::resizeAnew);
 
 	const int nthreads = 128;
 	for (int i=0; i < 27; i++)
@@ -216,7 +205,7 @@ void ObjectHaloExchanger::combineAndUploadData(int id)
 			int        nPtrs = ov->local()->extraDataPtrs.size();
 			int totSize_byte = ov->local()->packedObjSize_bytes;
 
-			unpackObject<<< nObjs, nthreads, 0, defStream >>>
+			unpackObject<<< nObjs, nthreads, 0, stream >>>
 					((float4*)helper->recvBufs[i].devPtr(), (float4*)(ov->halo()->coosvels.devPtr() + helper->recvOffsets[i]*nObjs), ov->local()->objSize, totSize_byte, nObjs,
 					 ov->halo()->extraDataPtrs.devPtr(), nPtrs, ov->halo()->extraDataSizes.devPtr());
 		}

@@ -2,6 +2,8 @@
 
 #include "interface.h"
 
+#include <core/containers.h>
+
 class BounceFromMesh : public Bouncer
 {
 protected:

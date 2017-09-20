@@ -42,14 +42,13 @@ __device__ inline float3 pairwiseLJ_objectAware(Particle dst, Particle src,
 
 
 InteractionLJ::InteractionLJ(std::string name, float rc, float sigma, float epsilon) :
-		name(name), rc(rc), sigma(sigma), epsilon(epsilon)
+		Interaction(name, rc), sigma(sigma), epsilon(epsilon)
 { }
 
 void InteractionLJ::_compute(InteractionType type, ParticleVector* pv1, ParticleVector* pv2, CellList* cl, const float t, cudaStream_t stream)
 {
 	const float epsx24_sigma = 24.0*epsilon/sigma;
 	const float rc2 = rc*rc;
-	const bool self = (pv1 == pv2);
 
 	auto ljCore = [=, *this] __device__ ( Particle dst, Particle src ) {
 		return pairwiseLJ( dst, src, sigma, epsx24_sigma, rc2);
@@ -62,7 +61,7 @@ void InteractionLJ::_compute(InteractionType type, ParticleVector* pv1, Particle
  * LJ interaction, to prevent overlap of the rigid objects
  */
 InteractionLJ_objectAware::InteractionLJ_objectAware(std::string name, float rc, float sigma, float epsilon) :
-				name(name), rc(rc), sigma(sigma), epsilon(epsilon)
+		Interaction(name, rc), sigma(sigma), epsilon(epsilon)
 { }
 
 void InteractionLJ_objectAware::_compute(InteractionType type, ParticleVector* pv1, ParticleVector* pv2, CellList* cl, const float t, cudaStream_t stream)

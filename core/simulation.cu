@@ -49,9 +49,6 @@ void Simulation::registerParticleVector(ParticleVector* pv, InitialConditions* i
 	if (pvIdMap.find(name) != pvIdMap.end())
 		die("More than one particle vector is called %s", name.c_str());
 
-	if (wallMap.find(name) != wallMap.end())
-		die("Particle vector cannot be called as another wall %s", name.c_str());
-
 	pvIdMap[name] = particleVectors.size() - 1;
 	ic->exec(cartComm, pv, globalDomainStart, localDomainSize, 0);
 }
@@ -63,11 +60,8 @@ void Simulation::registerWall(Wall* wall)
 	if (wallMap.find(name) != wallMap.end())
 		die("More than one wall is called %s", name.c_str());
 
-	if (pvIdMap.find(name) != pvIdMap.end())
-		die("Wall cannot be called as another particle vector %s", name.c_str());
-
 	wallMap[name] = wall;
-	wall->createSdf(cartComm, globalDomainSize, globalDomainStart, localDomainSize);
+	wall->setup(cartComm, globalDomainSize, globalDomainStart, localDomainSize);
 }
 
 void Simulation::registerInteraction(Interaction* interaction)
@@ -115,14 +109,14 @@ void Simulation::setIntegrator(std::string integratorName, std::string pvName)
 	if (pv == nullptr)
 		die("No such particle vector: %s", pvName.c_str());
 
-	integrator = integratorMap[integratorName];
+	auto integrator = integratorMap[integratorName];
 
 	integratorsStage1.push_back([integrator, pv] (cudaStream_t stream) {
 		integrator->stage1(pv, stream);
 	});
 
 	integratorsStage2.push_back([integrator, pv] (cudaStream_t stream) {
-		integrator->stage1(pv, stream);
+		integrator->stage2(pv, stream);
 	});
 }
 
@@ -178,7 +172,7 @@ void Simulation::setWallBounce(std::string wallName, std::string pvName)
 
 void Simulation::prepareCellLists()
 {
-	const float rcTolerance = 1e-4;
+	info("Preparing cell-lists");
 
 	std::map<ParticleVector*, std::vector<float>> cutOffMap;
 
@@ -205,7 +199,7 @@ void Simulation::prepareCellLists()
 
 		for (auto rc : cutoffs.second)
 		{
-			cellListMap[cutoffs.first].push_back(first ?
+			cellListMap[cutoffs.first].push_back(primary ?
 					new PrimaryCellList(cutoffs.first, rc, localDomainSize) :
 					new CellList       (cutoffs.first, rc, localDomainSize));
 			primary = false;
@@ -215,6 +209,8 @@ void Simulation::prepareCellLists()
 
 void Simulation::prepareInteractions()
 {
+	info("Preparing interactions");
+
 	for (auto prototype : interactionPrototypes)
 	{
 		float rc = std::get<0>(prototype);
@@ -248,6 +244,8 @@ void Simulation::prepareInteractions()
 
 void Simulation::prepareBouncers()
 {
+	info("Preparing object bouncers");
+
 	for (auto prototype : bouncerPrototypes)
 	{
 		auto bouncer = std::get<0>(prototype);
@@ -260,18 +258,20 @@ void Simulation::prepareBouncers()
 
 		CellList *cl = clVec[0];
 
-		regularBouncers.push_back([bouncer, ov, pv, cl] (cudaStream_t stream) {
-			bouncer->bounceLocal(ov, pv, cl, stream);
+		regularBouncers.push_back([bouncer, ov, pv, cl] (float dt, cudaStream_t stream) {
+			bouncer->bounceLocal(ov, pv, cl, dt, stream);
 		});
 
-		haloBouncers.   push_back([bouncer, ov, pv, cl] (cudaStream_t stream) {
-			bouncer->bounceLocal(ov, pv, cl, stream);
+		haloBouncers.   push_back([bouncer, ov, pv, cl] (float dt, cudaStream_t stream) {
+			bouncer->bounceHalo (ov, pv, cl, dt, stream);
 		});
 	}
 }
 
 void Simulation::prepareWalls()
 {
+	info("Preparing walls");
+
 	for (auto prototype : wallPrototypes)
 	{
 		auto wall = prototype.first;
@@ -284,23 +284,23 @@ void Simulation::prepareWalls()
 		CellList *cl = clVec[0];
 
 		wall->attach(pv, cl);
+		wall->removeInner(pv);
 	}
-
-	for (auto pv : particleVectors)
-		for (auto wall : wallMap)
-			if (cellListMap[pv].size() > 0 && pv->name != wall.second->name)
-				wall.second->removeInner(pv);
 }
 
 void Simulation::init()
 {
+	info("Simulation initiated");
+
 	prepareCellLists();
 
 	prepareInteractions();
 	prepareBouncers();
 	prepareWalls();
 
-	debug("Simulation initiated, preparing plugins");
+	CUDA_Check( cudaDeviceSynchronize() );
+
+	info("Preparing plugins");
 	for (auto& pl : plugins)
 	{
 		pl->setup(this, cartComm, interComm);
@@ -309,6 +309,10 @@ void Simulation::init()
 
 	halo = new ParticleHaloExchanger(cartComm);
 	redistributor = new ParticleRedistributor(cartComm);
+
+	objHalo = new ObjectHaloExchanger(cartComm);
+	objRedistibutor = new ObjectRedistributor(cartComm);
+	objHaloForces = new ObjectForcesReverseExchanger(cartComm, objHalo);
 
 	debug("Attaching particle vectors to halo exchanger and redistributor");
 	for (auto pv : particleVectors)
@@ -325,7 +329,8 @@ void Simulation::init()
 				auto cl = cellListMap[pv][0];
 				auto ov = dynamic_cast<ObjectVector*>(pv);
 
-				objHalo->attach        (ov, cl->rc);
+				objHalo->        attach(ov, cl->rc);
+				objHaloForces->  attach(ov);
 				objRedistibutor->attach(ov, cl->rc);
 			}
 
@@ -336,9 +341,8 @@ void Simulation::assemble()
 {
 	// XXX: different dt not implemented
 	dt = 1.0;
-	for (auto integr : integrators)
-		if (integr != nullptr)
-			dt = min(dt, integr->dt);
+	for (auto integr : integratorMap)
+		dt = min(dt, integr.second->dt);
 
 
 	scheduler.addTask("Сell-lists", [&] (cudaStream_t stream) {
@@ -375,7 +379,7 @@ void Simulation::assemble()
 	});
 
 	scheduler.addTask("Halo finalize", [&] (cudaStream_t stream) {
-		halo->finalize();
+		halo->finalize(stream);
 	});
 
 	scheduler.addTask("Halo forces", [&] (cudaStream_t stream) {
@@ -395,9 +399,8 @@ void Simulation::assemble()
 	});
 
 	scheduler.addTask("Integration", [&] (cudaStream_t stream) {
-		for (int i=0; i<integrators.size(); i++)
-			if (integrators[i] != nullptr)
-				integrators[i]->stage2(particleVectors[i], stream);
+		for (auto& integrator : integratorsStage2)
+			integrator(stream);
 	});
 
 
@@ -405,20 +408,20 @@ void Simulation::assemble()
 		objHalo->init(stream);
 	});
 	scheduler.addTask("Object halo finalize", [&] (cudaStream_t stream) {
-		objHalo->finalize();
+		objHalo->finalize(stream);
 	});
 
 	scheduler.addTask("Object bounce", [&] (cudaStream_t stream) {
-		for (auto bouncer : bouncers)
-			bouncer.first->exec(dt, bouncer.second, stream);
+		for (auto& bouncer : regularBouncers)
+			bouncer(dt, stream);
 	});
 
 	scheduler.addTask("Obj forces exchange: init", [&] (cudaStream_t stream) {
-		objForceExchanger->init(stream);
+		objHaloForces->init(stream);
 	});
 
 	scheduler.addTask("Obj forces exchange: finalize", [&] (cudaStream_t stream) {
-		objForceExchanger->finalize();
+		objHaloForces->finalize(stream);
 	});
 
 	scheduler.addTask("Wall bounce", [&] (cudaStream_t stream) {
@@ -439,39 +442,46 @@ void Simulation::assemble()
 	});
 
 	scheduler.addTask("Redistribute finalize", [&] (cudaStream_t stream) {
-		redistributor->finalize();
+		redistributor->finalize(stream);
+	});
+
+	scheduler.addTask("Object redistribute init", [&] (cudaStream_t stream) {
+		objRedistibutor->init(stream);
+	});
+
+	scheduler.addTask("Object redistribute finalize", [&] (cudaStream_t stream) {
+		objRedistibutor->finalize(stream);
 	});
 
 
 
-	scheduler.addDependency("Сell-lists", {"Clear forces", "Halo init", "Object internal forces"}, {});
+	scheduler.addDependency("Сell-lists", {"Clear forces", "Halo init"}, {});
 
-	scheduler.addDependency("Plugins: before forces", {"Internal forces", "Halo forces", "Object internal forces"}, {});
+	scheduler.addDependency("Plugins: before forces", {"Internal forces", "Halo forces"}, {"Clear forces"});
+	scheduler.addDependency("Plugins: serialize and send", {}, {"Plugins: before forces"});
+
 	scheduler.addDependency("Internal forces", {}, {"Clear forces"});
-	scheduler.addDependency("Plugins: serialize and send", {}, {"Internal forces"});
 	scheduler.addDependency("Halo init", {"Internal forces"}, {});
 	scheduler.addDependency("Halo finalize", {}, {"Halo init"});
 	scheduler.addDependency("Halo forces", {}, {"Halo finalize"});
 	scheduler.addDependency("Accumulate forces", {"Integration"}, {"Halo forces", "Internal forces"});
-	scheduler.addDependency("Plugins: before integration", {"Integration"}, {});
+	scheduler.addDependency("Plugins: before integration", {"Integration"}, {"Accumulate forces"});
+	scheduler.addDependency("Wall bounce", {}, {"Integration"});
 
-	scheduler.addDependency("Object halo init", {}, {"Integrate"});
+	scheduler.addDependency("Object halo init", {}, {"Integration"});
 	scheduler.addDependency("Object halo finalize", {}, {"Object halo init"});
 
-	scheduler.addDependency("Object bounce", {}, {"Object halo finalize", "Object integration", "Integration"});
-	scheduler.addDependency("Obj forces exchange: init", {"Redistribute init"}, {"Object bounce", "Object internal forces"});
+	scheduler.addDependency("Object bounce", {}, {"Object halo finalize", "Integration"});
+	scheduler.addDependency("Obj forces exchange: init", {"Redistribute init"}, {"Object bounce"});
 	scheduler.addDependency("Obj forces exchange: finalize", {}, {"Obj forces exchange: init"});
 
-	scheduler.addDependency("Plugins: after integration", {}, {"Integration", "Wall bounce", "Send obj forces"});
-	scheduler.addDependency("Redistribute init", {}, {"Integration", "Wall bounce", "Send obj forces", "Plugins: after integration"});
+	scheduler.addDependency("Plugins: after integration", {}, {"Integration", "Wall bounce", "Obj forces exchange: finalize"});
+
+	scheduler.addDependency("Redistribute init", {}, {"Integration", "Wall bounce", "Obj forces exchange: finalize", "Plugins: after integration"});
 	scheduler.addDependency("Redistribute finalize", {}, {"Redistribute init"});
 
-	scheduler.setHighPriority("Object internal forces");
-	scheduler.setHighPriority("Object halo init");
-	scheduler.setHighPriority("Object halo finalize");
-	scheduler.setHighPriority("Object halo forces");
-	scheduler.setHighPriority("Object accumulate forces");
-	scheduler.setHighPriority("Object integrate");
+	scheduler.addDependency("Object redistribute init", {}, {"Integration", "Wall bounce", "Obj forces exchange: finalize", "Plugins: after integration"});
+	scheduler.addDependency("Object redistribute finalize", {}, {"Object redistribute init"});
 
 	scheduler.compile();
 }

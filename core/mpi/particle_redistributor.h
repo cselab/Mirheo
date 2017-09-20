@@ -1,7 +1,6 @@
 #pragma once
 
-#include <core/datatypes.h>
-#include <core/mpi/particle_exchanger.h>
+#include "particle_exchanger.h"
 
 #include <vector>
 
@@ -14,8 +13,8 @@ private:
 	std::vector<ParticleVector*> particles;
 	std::vector<CellList*> cellLists;
 
-	void combineAndUploadData(int id);
-	void prepareData(int id, cudaStream_t defStream);
+	void combineAndUploadData(int id, cudaStream_t stream) override;
+	void prepareData(int id, cudaStream_t stream) override;
 
 public:
 	void _prepareData(int id);

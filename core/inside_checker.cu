@@ -6,6 +6,7 @@
 
 #include <core/rigid_kernels/quaternion.h>
 
+
 __global__ void copyLeftRight(const Particle* srcs, const int n,
 		const int* tags, Particle* lefts, Particle* rights, int* nLeft, int* nRight)
 {

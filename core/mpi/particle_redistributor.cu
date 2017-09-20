@@ -1,13 +1,10 @@
+#include "particle_redistributor.h"
+
 #include <core/celllist.h>
 #include <core/pvs/particle_vector.h>
-#include <core/helper_math.h>
+#include <core/cuda_common.h>
 
-#include <core/mpi/particle_redistributor.h>
 #include <core/mpi/valid_cell.h>
-
-#include <vector>
-#include <thread>
-#include <algorithm>
 
 template<bool QUERY=false>
 __global__ void getExitingParticles(float4* coosvels,
@@ -108,13 +105,13 @@ void ParticleRedistributor::prepareData(int id, cudaStream_t stream)
 					( (float4*)pv->local()->coosvels.devPtr(), cl->cellInfo(), cl->cellsStartSize.devPtr(), (int64_t*)helper->sendAddrs.devPtr(), helper->bufSizes.devPtr() );
 }
 
-void ParticleRedistributor::combineAndUploadData(int id)
+void ParticleRedistributor::combineAndUploadData(int id, cudaStream_t stream)
 {
 	auto pv = particles[id];
 	auto helper = helpers[id];
 
 	int oldsize = pv->local()->size();
-	pv->local()->resize(oldsize + helper->recvOffsets[27], helper->stream, ResizeKind::resizePreserve);
+	pv->local()->resize(oldsize + helper->recvOffsets[27], stream, ResizeKind::resizePreserve);
 
 	auto ptr = pv->local()->coosvels.devPtr() + oldsize;
 
@@ -123,7 +120,7 @@ void ParticleRedistributor::combineAndUploadData(int id)
 		const int msize = helper->recvOffsets[i+1] - helper->recvOffsets[i];
 		if (msize > 0)
 			CUDA_Check( cudaMemcpyAsync(ptr + helper->recvOffsets[i], helper->recvBufs[i].hostPtr(),
-					msize*sizeof(Particle), cudaMemcpyHostToDevice, helper->stream) );
+					msize*sizeof(Particle), cudaMemcpyHostToDevice, stream) );
 	}
 
 	// The PV has changed significantly, need to update che cell-lists now

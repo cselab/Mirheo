@@ -88,7 +88,7 @@ __global__ void cubicInterpolate3D(const float* in, int3 inDims, float3 inH, flo
 // Removing kernels
 //===============================================================================================
 
-__global__ void countRemaining(const float4* pv, const int np, Wall::SdfInfo sdfInfo, int* nRemaining)
+__global__ void countRemaining(const float4* pv, const int np, SDFWall::SdfInfo sdfInfo, int* nRemaining)
 {
 	const float tolerance = 1e-6f;
 
@@ -102,7 +102,7 @@ __global__ void countRemaining(const float4* pv, const int np, Wall::SdfInfo sdf
 		atomicAggInc(nRemaining);
 }
 
-__global__ void collectRemaining(const float4* input, const int np, Wall::SdfInfo sdfInfo,
+__global__ void collectRemaining(const float4* input, const int np, SDFWall::SdfInfo sdfInfo,
 		float4* remaining, int* nRemaining)
 {
 	const float tolerance = 1e-6f;
@@ -124,7 +124,7 @@ __global__ void collectRemaining(const float4* input, const int np, Wall::SdfInf
 }
 
 __global__ void collectRemainingObjects(
-		const Particle* input, const int nObjects, const int objSize, Wall::SdfInfo sdfInfo,
+		const Particle* input, const int nObjects, const int objSize, SDFWall::SdfInfo sdfInfo,
 		Particle* output, int* nRemaining,
 		char** extraData_input, char** extraData_output, int nPtrsPerObj, const int* dataSizes)
 {
@@ -156,12 +156,7 @@ __global__ void collectRemainingObjects(
 	dstObjId = __shfl(dstObjId, 0);
 
 	for (int i=tid; i<objSize; i+=warpSize)
-	{
-		Particle p(input, objId*objSize + i);
-		float4* dstAddr = output + 2*(dstObjId*objSize + i);
-		dstAddr[0] = p.r2Float4();
-		dstAddr[1] = p.u2Float4();
-	}
+		output[dstObjId*objSize + i] = input[objId*objSize + i];
 
 	// Also copy other object properties
 	for (int ptrId = 0; ptrId < nPtrsPerObj; ptrId++)
@@ -177,7 +172,7 @@ __global__ void collectRemainingObjects(
 // Boundary cells kernels
 //===============================================================================================
 
-__device__ inline bool isCellOnBoundary(float3 cornerCoo, float3 len, Wall::SdfInfo sdfInfo)
+__device__ inline bool isCellOnBoundary(float3 cornerCoo, float3 len, SDFWall::SdfInfo sdfInfo)
 {
 	// About maximum distance a particle can cover in one step
 	const float tol = 0.25f;
@@ -200,7 +195,7 @@ __device__ inline bool isCellOnBoundary(float3 cornerCoo, float3 len, Wall::SdfI
 	return false;
 }
 
-__global__ void countBoundaryCells(CellListInfo cinfo, Wall::SdfInfo sdfInfo, int* nBoundaryCells)
+__global__ void countBoundaryCells(CellListInfo cinfo, SDFWall::SdfInfo sdfInfo, int* nBoundaryCells)
 {
 	const int cid = blockIdx.x * blockDim.x + threadIdx.x;
 	if (cid >= cinfo.totcells) return;
@@ -213,7 +208,7 @@ __global__ void countBoundaryCells(CellListInfo cinfo, Wall::SdfInfo sdfInfo, in
 		atomicAggInc(nBoundaryCells);
 }
 
-__global__ void getBoundaryCells(CellListInfo cinfo, Wall::SdfInfo sdfInfo,
+__global__ void getBoundaryCells(CellListInfo cinfo, SDFWall::SdfInfo sdfInfo,
 		int* nBoundaryCells, int* boundaryCells)
 {
 	const int cid = blockIdx.x * blockDim.x + threadIdx.x;
@@ -235,7 +230,7 @@ __global__ void getBoundaryCells(CellListInfo cinfo, Wall::SdfInfo sdfInfo,
 //===============================================================================================
 
 __global__ void bounceSDF(const int* wallCells, const int nWallCells, const uint* __restrict__ cellsStartSize, CellListInfo cinfo,
-		Wall::SdfInfo sdfInfo, float4* coosvels, const float dt)
+		SDFWall::SdfInfo sdfInfo, float4* coosvels, const float dt)
 {
 	const int maxIters = 50;
 	const float corrStep = (1.0f / (float)maxIters) * dt;
@@ -284,7 +279,7 @@ __global__ void bounceSDF(const int* wallCells, const int nWallCells, const uint
 	}
 }
 
-__global__ void checkInside(const float4* coosvels, int np, Wall::SdfInfo sdfInfo, int* nInside)
+__global__ void checkInside(const float4* coosvels, int np, SDFWall::SdfInfo sdfInfo, int* nInside)
 {
 	const int pid = blockIdx.x * blockDim.x + threadIdx.x;
 	if (pid >= np) return;
@@ -430,7 +425,7 @@ void SDFWall::prepareRelevantSdfPiece(const float* fullSdfData, float3 extendedD
 			}
 }
 
-void SDFWall::createSdf(MPI_Comm& comm, float3 globalDomainSize, float3 globalDomainStart, float3 localDomainSize)
+void SDFWall::setup(MPI_Comm& comm, float3 globalDomainSize, float3 globalDomainStart, float3 localDomainSize)
 {
 	info("Creating wall %s", name.c_str());
 
@@ -547,14 +542,15 @@ void SDFWall::removeInner(ParticleVector* pv)
 
 		for (int i=0; i<nExtra; i++)
 		{
-			extraDataBufs[i].resize(nObjs * extraDataSizes[i]);
+			extraDataBufs[i].resize(nObjs * extraDataSizes[i], 0);
 			extraDataPtrs_tmp[i] = extraDataBufs[i].devPtr();
 		}
+		extraDataPtrs_tmp.uploadToDevice(0);
 
 		collectRemainingObjects<<<  getNblocks(ov->local()->nObjects*32, nthreads), nthreads, 0, 0 >>> (
-				(float4*)ov->local()->coosvels.devPtr(), ov->local()->nObjects, ov->objSize, sdfInfo,
-				(float4*)tmp.devPtr(), nRemaining.devPtr(),
-				ov->local()->extraDataPtrs, extraDataPtrs_tmp, nExtra, extraDataSizes);
+				ov->local()->coosvels.devPtr(), ov->local()->nObjects, ov->objSize, sdfInfo,
+				tmp.devPtr(), nRemaining.devPtr(),
+				ov->local()->extraDataPtrs.devPtr(), extraDataPtrs_tmp.devPtr(), nExtra, extraDataSizes.devPtr());
 
 		// Copy temporary buffers back
 		nRemaining.downloadFromDevice(0);
@@ -566,9 +562,10 @@ void SDFWall::removeInner(ParticleVector* pv)
 
 	nRemaining.downloadFromDevice(0);
 	containerSwap(pv->local()->coosvels, tmp, 0);
+	int oldSize = pv->local()->size();
 	pv->local()->resize(nRemaining[0], 0);
 	pv->local()->changedStamp++;
-	info("Keeping %d particles of %s", nRemaining[0], pv->name.c_str());
+	info("Removed inner entities of %s, keeping %d out of %d particles", pv->name.c_str(), nRemaining[0], oldSize);
 
 	CUDA_Check( cudaDeviceSynchronize() );
 }

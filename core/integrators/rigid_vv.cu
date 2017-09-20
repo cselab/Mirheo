@@ -5,6 +5,8 @@
 #include <core/pvs/object_vector.h>
 #include <core/pvs/rigid_object_vector.h>
 
+#include <core/rigid_kernels/integration.h>
+
 
 /**
  * Assume that the forces are not yet distributed

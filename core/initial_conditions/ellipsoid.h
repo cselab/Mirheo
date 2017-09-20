@@ -15,7 +15,7 @@ private:
 public:
 	EllipsoidIC(float separation, std::string xyzfname) : separation(separation), xyzfname(xyzfname) {}
 
-	void readXYZ(std::string fname, PinnedBuffer<float4>& positions);
+	void readXYZ(std::string fname, PinnedBuffer<float4>& positions, cudaStream_t stream);
 	void exec(const MPI_Comm& comm, ParticleVector* pv, float3 globalDomainStart, float3 localDomainSize, cudaStream_t stream) override;
 
 	~EllipsoidIC() = default;

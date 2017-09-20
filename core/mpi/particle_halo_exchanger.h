@@ -1,8 +1,6 @@
 #pragma once
 
-#include <core/datatypes.h>
-#include <core/logger.h>
-#include <core/mpi/particle_exchanger.h>
+#include "particle_exchanger.h"
 
 #include <vector>
 
@@ -15,8 +13,8 @@ private:
 	std::vector<CellList*> cellLists;
 	std::vector<ParticleVector*> particles;
 
-	void prepareData(int id, cudaStream_t defStream);
-	void combineAndUploadData(int id);
+	void prepareData(int id, cudaStream_t stream);
+	void combineAndUploadData(int id, cudaStream_t stream);
 
 public:
 	ParticleHaloExchanger(MPI_Comm& comm) : ParticleExchanger(comm) {};

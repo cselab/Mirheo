@@ -1,12 +1,11 @@
+#include "particle_halo_exchanger.h"
+
 #include <core/pvs/particle_vector.h>
 #include <core/celllist.h>
 #include <core/logger.h>
 #include <core/cuda_common.h>
 
-#include <core/mpi/particle_halo_exchanger.h>
-#include <core/mpi/valid_cell.h>
-
-#include <algorithm>
+#include "valid_cell.h"
 
 template<bool QUERY=false>
 __global__ void getHalos(const float4* __restrict__ coosvels, const CellListInfo cinfo, const uint* __restrict__ cellsStartSize,
@@ -102,19 +101,19 @@ void ParticleHaloExchanger::attach(ParticleVector* pv, CellList* cl)
 	helpers.push_back(helper);
 }
 
-void ParticleHaloExchanger::combineAndUploadData(int id)
+void ParticleHaloExchanger::combineAndUploadData(int id, cudaStream_t stream)
 {
 	auto pv = particles[id];
 	auto helper = helpers[id];
 
-	pv->halo()->resize(helper->recvOffsets[27], helper->stream, ResizeKind::resizeAnew);
+	pv->halo()->resize(helper->recvOffsets[27], stream, ResizeKind::resizeAnew);
 
 	for (int i=0; i < 27; i++)
 	{
 		const int msize = helper->recvOffsets[i+1] - helper->recvOffsets[i];
 		if (msize > 0)
 			CUDA_Check( cudaMemcpyAsync(pv->halo()->coosvels.devPtr() + helper->recvOffsets[i], helper->recvBufs[i].hostPtr(),
-					msize*sizeof(Particle), cudaMemcpyHostToDevice, helper->stream) );
+					msize*sizeof(Particle), cudaMemcpyHostToDevice, stream) );
 	}
 }
 
@@ -131,7 +130,8 @@ void ParticleHaloExchanger::prepareData(int id, cudaStream_t stream)
 	const int maxdim = std::max({cl->ncells.x, cl->ncells.y, cl->ncells.z});
 	const int nthreads = 32;
 	if (pv->local()->size() > 0)
-		getHalos<<< dim3((maxdim*maxdim + nthreads - 1) / nthreads, 6, 1),  dim3(nthreads, 1, 1), 0, stream >>>
-				((float4*)pv->local()->coosvels.devPtr(), cl->cellInfo(), cl->cellsStartSize.devPtr(), (int64_t*)helper->sendAddrs.devPtr(), helper->bufSizes.devPtr());
+		getHalos<<< dim3((maxdim*maxdim + nthreads - 1) / nthreads, 6, 1),  dim3(nthreads, 1, 1), 0, stream >>> (
+				(float4*)pv->local()->coosvels.devPtr(), cl->cellInfo(), cl->cellsStartSize.devPtr(),
+				(int64_t*)helper->sendAddrs.devPtr(), helper->bufSizes.devPtr() );
 }
 

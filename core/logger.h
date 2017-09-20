@@ -60,6 +60,12 @@ public:
 
 	Logger() : runtimeDebugLvl(-100) {}
 
+	~Logger()
+	{
+		fflush(fout);
+		fclose(fout);
+	}
+
 	void init(MPI_Comm&& comm, const std::string fname, int debugLvl = 3)
 	{
 		runtimeDebugLvl = debugLvl;
@@ -72,6 +78,13 @@ public:
 		auto end = fname.substr(pos);
 
 		fout = fopen( (start+"_"+rankStr+end).c_str(), "w");
+	}
+
+	void init(MPI_Comm&& comm, FILE* fout, int debugLvl = 3)
+	{
+		runtimeDebugLvl = debugLvl;
+		MPI_Comm_rank(comm, &rank);
+		this->fout = fout;
 	}
 
 

@@ -1,6 +1,7 @@
+#include "particle_exchanger.h"
+
 #include <core/logger.h>
 #include <core/cuda_common.h>
-#include <core/mpi/particle_exchanger.h>
 
 #include <algorithm>
 
@@ -9,10 +10,9 @@ ExchangeHelper::ExchangeHelper(std::string name, const int datumSize, const int 
 	this->name = name;
 	this->datumSize = datumSize;
 
-	CUDA_Check( cudaStreamCreateWithPriority(&stream, cudaStreamNonBlocking, 0) );
 
-	sendAddrs  .resize(27, stream);
-	bufSizes   .resize(27, stream);
+	sendAddrs  .resize(27, 0);
+	bufSizes   .resize(27, 0);
 	recvOffsets.resize(28);
 
 	for(int i = 0; i < 27; ++i)
@@ -22,15 +22,13 @@ ExchangeHelper::ExchangeHelper(std::string name, const int datumSize, const int 
 		int c = std::abs(d[0]) + std::abs(d[1]) + std::abs(d[2]);
 		if (c > 0)
 		{
-			sendBufs[i].resize( sizes[c-1]*datumSize, stream );
-			recvBufs[i].resize( sizes[c-1]*datumSize, stream );
+			sendBufs[i].resize( sizes[c-1]*datumSize, 0 );
+			recvBufs[i].resize( sizes[c-1]*datumSize, 0 );
 			sendAddrs[i] = sendBufs[i].devPtr();
 		}
 	}
 	// implicit synchro
-	sendAddrs.uploadToDevice(stream);
-
-	CUDA_Check( cudaStreamSynchronize(stream) );
+	sendAddrs.uploadToDevice(0);
 }
 
 ParticleExchanger::ParticleExchanger(MPI_Comm& comm) :
@@ -68,17 +66,14 @@ void ParticleExchanger::init(cudaStream_t stream)
 		prepareData(i, stream);
 }
 
-void ParticleExchanger::finalize()
+void ParticleExchanger::finalize(cudaStream_t stream)
 {
 	// Send, receive, upload to the device and sync
 	for (auto helper : helpers)
-		sendWait(helper);
+		sendWait(helper, stream);
 
 	for (int i=0; i<helpers.size(); i++)
-		combineAndUploadData(i);
-
-	for (auto helper : helpers)
-		CUDA_Check( cudaStreamSynchronize(helper->stream) );
+		combineAndUploadData(i, stream);
 }
 
 inline int tagByName(std::string name)
@@ -112,12 +107,12 @@ void ParticleExchanger::postRecv(ExchangeHelper* helper)
 		}
 }
 
-void ParticleExchanger::sendWait(ExchangeHelper* helper)
+void ParticleExchanger::sendWait(ExchangeHelper* helper, cudaStream_t stream)
 {
 	std::string pvName = helper->name;
 
 	// Prepare message sizes and send
-	helper->bufSizes.downloadFromDevice(helper->stream, true);
+	helper->bufSizes.downloadFromDevice(stream, true);
 	auto cntPtr = helper->bufSizes.hostPtr();
 	for (int i=0; i<27; i++)
 		if (i != 13)
@@ -128,9 +123,9 @@ void ParticleExchanger::sendWait(ExchangeHelper* helper)
 
 			if (cntPtr[i] > 0)
 				CUDA_Check( cudaMemcpyAsync(helper->sendBufs[i].hostPtr(), helper->sendBufs[i].devPtr(),
-						cntPtr[i] * helper->datumSize, cudaMemcpyDeviceToHost, helper->stream) );
+						cntPtr[i] * helper->datumSize, cudaMemcpyDeviceToHost, stream) );
 		}
-	CUDA_Check( cudaStreamSynchronize(helper->stream) );
+	CUDA_Check( cudaStreamSynchronize(stream) );
 
 	MPI_Request req;
 	int totSent = 0;

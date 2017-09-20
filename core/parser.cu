@@ -1,6 +1,7 @@
 #include "parser.h"
 
 #include <core/udevicex.h>
+#include <core/simulation.h>
 
 #include <core/pvs/particle_vector.h>
 #include <core/pvs/object_vector.h>
@@ -84,7 +85,7 @@ public:
 		if (type == "rbcs")
 			return createRbcs(node);
 
-		die("Unable to parse input at %s", node.path().c_str());
+		die("Unable to parse input at %s, unknown 'type' %s", node.path().c_str(), type.c_str());
 		return nullptr;
 	}
 };
@@ -131,7 +132,8 @@ public:
 			return createRestartIC(node);
 
 
-		die("Unable to parse input at %s", node.path().c_str());
+		die("Unable to parse input at %s, unknown 'type' %s", node.path().c_str(), type.c_str());
+
 		return nullptr;
 	}
 };
@@ -192,7 +194,8 @@ public:
 		if (type == "rigid_vv")
 			return createRigidVV(node);
 
-		die("Unable to parse input at %s", node.path().c_str());
+		die("Unable to parse input at %s, unknown 'type' %s", node.path().c_str(), type.c_str());
+
 		return nullptr;
 	}
 };
@@ -266,7 +269,8 @@ public:
 //		if (type == "sampler")
 //			return createMCMCSampler(node);
 
-		die("Unable to parse input at %s", node.path().c_str());
+		die("Unable to parse input at %s, unknown 'type' %s", node.path().c_str(), type.c_str());
+
 		return nullptr;
 	}
 };
@@ -296,7 +300,8 @@ public:
 		if (type == "sdf")
 			return createSDFWall(node);
 
-		die("Unable to parse input at %s", node.path().c_str());
+		die("Unable to parse input at %s, unknown 'type' %s", node.path().c_str(), type.c_str());
+
 		return nullptr;
 	}
 };
@@ -333,7 +338,8 @@ public:
 		if (type == "from_ellipsoids")
 			return createEllipsoidBouncer(node);
 
-		die("Unable to parse input at %s", node.path().c_str());
+		die("Unable to parse input at %s, unknown 'type' %s", node.path().c_str(), type.c_str());
+
 		return nullptr;
 	}
 };
@@ -377,7 +383,7 @@ private:
 		bool momentum       = node.attribute("need_momentum").as_bool(true);
 		bool force          = node.attribute("need_force").as_bool(false);
 
-		std::string path    = node.attribute("folder").as_string("xdmf");
+		std::string path    = node.attribute("path").as_string("xdmf");
 
 		auto simPl  = computeTask ? new Avg3DPlugin(name, pvNames, sampleEvery, dumpEvery, binSize, momentum, force) : nullptr;
 		auto postPl = computeTask ? nullptr : new Avg3DDumper(name, path);
@@ -398,7 +404,8 @@ public:
 		if (type == "dump_avg_flow")
 			return createDumpavgPlugin(node, computeTask);
 
-		die("Unable to parse input at %s", node.path().c_str());
+		die("Unable to parse input at %s, unknown 'type' %s", node.path().c_str(), type.c_str());
+
 		return {nullptr, nullptr};
 	}
 };
@@ -411,8 +418,11 @@ Parser::Parser(std::string xmlname)
 {
 	pugi::xml_parse_result result = config.load_file(xmlname.c_str());
 
-	if (!result)
-		die("Couldn't open script file, xml parser says: \"%s\"", result.description());
+	if (!result) // Can't die here, logger is not yet setup
+	{
+		fprintf(stderr, "Couldn't open script file, xml parser says: \"%s\"\n", result.description());
+		exit(1);
+	}
 }
 
 int Parser::getNIterations()
@@ -424,7 +434,7 @@ int Parser::getNIterations()
 	return simNode.child("run").attribute("niters").as_int(1);
 }
 
-uDeviceX* Parser::setup_uDeviceX(int argc, char** argv, Logger& logger)
+uDeviceX* Parser::setup_uDeviceX(Logger& logger)
 {
 	auto simNode = config.child("simulation");
 	if (simNode.type() == pugi::node_null)
@@ -432,13 +442,14 @@ uDeviceX* Parser::setup_uDeviceX(int argc, char** argv, Logger& logger)
 
 	// A few global simulation parameters
 	std::string name = simNode.attribute("name").as_string();
+	std::string logname = simNode.attribute("logfile").as_string(name.c_str());
 	float3 globalDomainSize = simNode.child("domain").attribute("size").as_float3({32, 32, 32});
 
 	int3 nranks3D  = simNode.attribute("mpi_ranks").as_int3({1, 1, 1});
 	bool noplugins = simNode.attribute("noplugins").as_bool(false);
 	int debugLvl   = simNode.attribute("debug_lvl").as_int(5);
 
-	uDeviceX* udx = new uDeviceX(argc, argv, nranks3D, globalDomainSize, logger, name+".log", debugLvl, noplugins);
+	uDeviceX* udx = new uDeviceX(nranks3D, globalDomainSize, logger, logname, debugLvl, noplugins);
 
 	if (udx->isComputeTask())
 	{
@@ -447,7 +458,7 @@ uDeviceX* Parser::setup_uDeviceX(int argc, char** argv, Logger& logger)
 			if ( std::string(node.name()) == "particle_vector" )
 			{
 				auto pv = ParticleVectorFactory::create(node);
-				auto ic = InitialConditionsFactory::create(node);
+				auto ic = InitialConditionsFactory::create(node.child("generate"));
 				udx->sim->registerParticleVector(pv, ic);
 			}
 

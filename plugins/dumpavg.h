@@ -13,7 +13,7 @@ class CellList;
 class Avg3DPlugin : public SimulationPlugin
 {
 private:
-	std::vector<std::string> pvNames;
+	std::string pvNames;
 	int nSamples;
 	int sampleEvery, dumpEvery;
 	int3 resolution;

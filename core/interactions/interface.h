@@ -19,6 +19,8 @@ public:
 	float rc;
 	std::string name;
 
+	Interaction(std::string name, float rc) : name(name), rc(rc) {}
+
 	/**
 	 * This function is not supposed to be called directly.
 	 * Cannot make it private because of CUDA limitations

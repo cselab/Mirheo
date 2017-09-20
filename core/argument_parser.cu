@@ -18,7 +18,8 @@ typedef float real;
 namespace ArgumentParser
 {
 	
-	Parser::Parser(const std::vector<OptionStruct>& optionsMap):opts(optionsMap)
+	Parser::Parser(const std::vector<OptionStruct>& optionsMap, bool output) :
+			opts(optionsMap), output(output)
 	{
 		ctrlString = "";
 		nOpt = (int)opts.size();
@@ -39,7 +40,8 @@ namespace ArgumentParser
 			
 			if (optsMap.find(long_options[i].val) != optsMap.end())
 			{
-				fprintf(stderr, "Duplicate short options in declaration, please correct the source code\n");
+				if (output)
+					fprintf(stderr, "Duplicate short options in declaration, please correct the source code\n");
 				exit(1);
 			}
 			else optsMap[long_options[i].val] = opts[i];
@@ -62,20 +64,20 @@ namespace ArgumentParser
 			if (c == 0) continue;
 			if (optsMap.find(c) == optsMap.end())
 			{
-				printf("Available options:\n");
-				
-				for (int i=0; i<nOpt; i++)
+				if (output)
 				{
-					OptionStruct& myOpt = opts[i];
-					if (myOpt.longOpt.length() > 4)
+					printf("Available options:\n");
+
+					for (int i=0; i<nOpt; i++)
 					{
-						printf("-%c  or  --%s \t: %s\n", myOpt.shortOpt, myOpt.longOpt.c_str(), myOpt.description.c_str());
-					}
-					else
-					{
-						printf("-%c  or  --%s \t\t: %s\n", myOpt.shortOpt, myOpt.longOpt.c_str(), myOpt.description.c_str());
+						OptionStruct& myOpt = opts[i];
+						if (myOpt.longOpt.length() > 4)
+							printf("-%c  or  --%s \t: %s\n", myOpt.shortOpt, myOpt.longOpt.c_str(), myOpt.description.c_str());
+						else
+							printf("-%c  or  --%s \t\t: %s\n", myOpt.shortOpt, myOpt.longOpt.c_str(), myOpt.description.c_str());
 					}
 				}
+
 				exit(1);
 			}
 			
@@ -106,36 +108,38 @@ namespace ArgumentParser
 			}
 		}
 		
-		for (int i=0; i<nOpt; i++)
+		if (output)
 		{
-			OptionStruct& myOpt = opts[i];
-			printf("%s: ", myOpt.description.c_str());
-			
-			switch (myOpt.type)
+			for (int i=0; i<nOpt; i++)
 			{
-				case NONE:
-					printf( ( *((bool*)myOpt.value)) ? "enabled" : "disabled" );
-					break;
-					
-				case INT:
-					printf("%d", *((int*)myOpt.value));
-					break;
-					
-				case DOUBLE:
-					printf("%f", *((real*)myOpt.value));
-					break;
-                    
-                case CHAR:
-					printf("%c", *((char*)myOpt.value));
-					break;
-					
-				case STRING:
-					printf("%s", ((string*)myOpt.value)->c_str());
-					break;
+				OptionStruct& myOpt = opts[i];
+				printf("%s: ", myOpt.description.c_str());
+
+				switch (myOpt.type)
+				{
+					case NONE:
+						printf( ( *((bool*)myOpt.value)) ? "enabled" : "disabled" );
+						break;
+
+					case INT:
+						printf("%d", *((int*)myOpt.value));
+						break;
+
+					case DOUBLE:
+						printf("%f", *((real*)myOpt.value));
+						break;
+
+					case CHAR:
+						printf("%c", *((char*)myOpt.value));
+						break;
+
+					case STRING:
+						printf("%s", ((string*)myOpt.value)->c_str());
+						break;
+				}
+
+				printf("\n");
 			}
-			
-			printf("\n");
 		}
-			
 	}
 }

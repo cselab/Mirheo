@@ -11,7 +11,7 @@ private:
 	std::string path;
 
 public:
-	RestartIC(std::string path);
+	RestartIC(std::string path) : path(path) {};
 
 	void exec(const MPI_Comm& comm, ParticleVector* pv, float3 globalDomainStart, float3 localDomainSize, cudaStream_t stream) override
 	{
