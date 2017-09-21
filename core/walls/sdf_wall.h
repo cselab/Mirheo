@@ -23,6 +23,8 @@ public:
 private:
 	MPI_Comm wallComm;
 
+	std::vector<bool> needCheck;
+
 	PinnedBuffer<int> nBoundaryCells;
 	std::vector<DeviceBuffer<int>> boundaryCells;
 
@@ -50,7 +52,7 @@ public:
 	void setup(MPI_Comm& comm, float3 globalDomainSize, float3 globalDomainStart, float3 localDomainSize) override;
 
 	void removeInner(ParticleVector* pv) override;
-	void attach(ParticleVector* pv, CellList* cl) override;
+	void attach(ParticleVector* pv, CellList* cl, bool check=false) override;
 	void bounce(float dt, cudaStream_t stream) override;
 
 	void check(cudaStream_t stream) override;

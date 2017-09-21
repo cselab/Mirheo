@@ -156,7 +156,7 @@ void Simulation::setBouncer(std::string bouncerName, std::string objName, std::s
 	bouncerPrototypes.push_back(std::make_tuple(bouncer, ov, pv));
 }
 
-void Simulation::setWallBounce(std::string wallName, std::string pvName)
+void Simulation::setWallBounce(std::string wallName, std::string pvName, bool check)
 {
 	auto pv = getPVbyName(pvName);
 	if (pv == nullptr)
@@ -166,7 +166,7 @@ void Simulation::setWallBounce(std::string wallName, std::string pvName)
 		die("No such wall: %s", wallName.c_str());
 	auto wall = wallMap[wallName];
 
-	wallPrototypes.push_back( {wall, pv} );
+	wallPrototypes.push_back( std::make_tuple(wall, pv, check) );
 }
 
 
@@ -274,8 +274,9 @@ void Simulation::prepareWalls()
 
 	for (auto prototype : wallPrototypes)
 	{
-		auto wall = prototype.first;
-		auto pv   = prototype.second;
+		auto wall  = std::get<0>(prototype);
+		auto pv    = std::get<1>(prototype);
+		auto check = std::get<2>(prototype);
 
 		auto& clVec = cellListMap[pv];
 
@@ -283,7 +284,7 @@ void Simulation::prepareWalls()
 
 		CellList *cl = clVec[0];
 
-		wall->attach(pv, cl);
+		wall->attach(pv, cl, check);
 		wall->removeInner(pv);
 	}
 }
@@ -452,7 +453,6 @@ void Simulation::assemble()
 	scheduler.addTask("Object redistribute finalize", [&] (cudaStream_t stream) {
 		objRedistibutor->finalize(stream);
 	});
-
 
 
 	scheduler.addDependency("Сell-lists", {"Clear forces", "Halo init"}, {});

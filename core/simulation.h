@@ -64,7 +64,7 @@ private:
 	std::map<ParticleVector*, std::vector<CellList*>> cellListMap;
 
 	std::vector<std::tuple<float, ParticleVector*, ParticleVector*, Interaction*>> interactionPrototypes;
-	std::vector<std::pair<Wall*,   ParticleVector*>> wallPrototypes;
+	std::vector<std::tuple<Wall*, ParticleVector*, bool>> wallPrototypes;
 	std::vector<std::tuple<Bouncer*, ObjectVector*, ParticleVector*>> bouncerPrototypes;
 
 	std::vector<std::function<void(float, cudaStream_t)>> regularInteractions, haloInteractions;
@@ -92,7 +92,7 @@ public:
 	void setIntegrator (std::string integratorName,  std::string pvName);
 	void setInteraction(std::string interactionName, std::string pv1Name, std::string pv2Name);
 	void setBouncer    (std::string bouncerName,     std::string objName, std::string pvName);
-	void setWallBounce (std::string wallName,        std::string pvName);
+	void setWallBounce (std::string wallName,        std::string pvName, bool check);
 
 	void registerPlugin(SimulationPlugin* plugin);
 

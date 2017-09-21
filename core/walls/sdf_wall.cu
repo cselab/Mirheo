@@ -300,11 +300,12 @@ SDFWall::SDFWall(std::string name, std::string sdfFileName, float3 sdfH) :
 	sdfInfo.h = sdfH;
 }
 
-void SDFWall::attach(ParticleVector* pv, CellList* cl)
+void SDFWall::attach(ParticleVector* pv, CellList* cl, bool check)
 {
 	CUDA_Check( cudaDeviceSynchronize() );
 	particleVectors.push_back(pv);
 	cellLists.push_back(cl);
+	needCheck.push_back(check);
 
 	const int oldSize = nBoundaryCells.size();
 	boundaryCells.resize(oldSize+1);
@@ -589,14 +590,18 @@ void SDFWall::bounce(float dt, cudaStream_t stream)
 void SDFWall::check(cudaStream_t stream)
 {
 	const int nthreads = 128;
-	for (auto pv : particleVectors)
+	for (int i=0; i<particleVectors.size(); i++)
 	{
-		nInside.clearDevice(stream);
-		checkInside<<< getNblocks(pv->local()->size(), nthreads), nthreads, 0, stream >>> (
-				(float4*)pv->local()->coosvels.devPtr(), pv->local()->size(), sdfInfo, nInside.devPtr());
-		nInside.downloadFromDevice(stream);
+		auto pv = particleVectors[i];
+		if (needCheck[i])
+		{
+			nInside.clearDevice(stream);
+			checkInside<<< getNblocks(pv->local()->size(), nthreads), nthreads, 0, stream >>> (
+					(float4*)pv->local()->coosvels.devPtr(), pv->local()->size(), sdfInfo, nInside.devPtr());
+			nInside.downloadFromDevice(stream);
 
-		debug("%d particles of %s are inside the wall %s", nInside[0], pv->name.c_str(), name.c_str());
+			debug("%d particles of %s are inside the wall %s", nInside[0], pv->name.c_str(), name.c_str());
+		}
 	}
 }
 
