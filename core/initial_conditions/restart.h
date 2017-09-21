@@ -15,6 +15,8 @@ public:
 
 	void exec(const MPI_Comm& comm, ParticleVector* pv, float3 globalDomainStart, float3 localDomainSize, cudaStream_t stream) override
 	{
+		pv->globalDomainStart = globalDomainStart;
+		pv->localDomainSize = localDomainSize;
 		pv->restart(comm, path);
 	}
 

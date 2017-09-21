@@ -85,6 +85,10 @@ void ParticleVector::restart(MPI_Comm comm, std::string path)
 	for (auto& p : readBuf)
 	{
 		int3 procId3 = make_int3(floorf(p.r / localDomainSize));
+
+		if (procId3.x >= dims[0] || procId3.y >= dims[1] || procId3.z >= dims[2])
+			continue;
+
 		int procId;
 		MPI_Check( MPI_Cart_rank(comm, (int*)&procId3, &procId) );
 		sendBufs[procId].push_back(p);
