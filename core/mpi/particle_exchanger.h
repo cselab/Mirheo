@@ -15,11 +15,11 @@ struct ExchangeHelper
 	std::vector<int>  recvBufSizes, recvOffsets;
 
 	PinnedBuffer<char>  sendBufs[27], recvBufs[27];
-	PinnedBuffer<char*> sendAddrs, recvAddrs;
+	PinnedBuffer<char*> sendAddrs;
 
 	std::vector<MPI_Request> requests;
 
-	ExchangeHelper(std::string name, const int datumSize, const int sizes[3]);
+	ExchangeHelper(std::string name, const int datumSize);
 
 	void resizeSendBufs();
 	void resizeRecvBufs();
@@ -36,6 +36,8 @@ protected:
 	MPI_Comm haloComm;
 
 	std::vector<ExchangeHelper*> helpers;
+
+	int tagByName(std::string);
 
 	void recv(ExchangeHelper* helper);
 	void send(ExchangeHelper* helper, cudaStream_t stream);

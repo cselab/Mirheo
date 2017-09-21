@@ -78,7 +78,7 @@ __global__ void getHalos(const float4* __restrict__ coosvels, const CellListInfo
 			Particle p(coosvels, srcInd);
 			p.r -= shift;
 
-			float4* addr = (float4*)dests  [bufId];
+			float4* addr = (float4*)dests[bufId];
 			addr[2*dstInd + 0] = p.r2Float4();
 			addr[2*dstInd + 1] = p.u2Float4();
 		}
@@ -90,15 +90,10 @@ void ParticleHaloExchanger::attach(ParticleVector* pv, CellList* cl)
 	particles.push_back(pv);
 	cellLists.push_back(cl);
 
-	// TODO: change ndens
-	const double ndens = (double)pv->local()->size() / (cl->ncells.x * cl->ncells.y * cl->ncells.z * cl->rc*cl->rc*cl->rc);
-	const int maxdim = std::max({cl->localDomainSize.x, cl->localDomainSize.y, cl->localDomainSize.z});
-
-	// Sizes of buffers. 0 is side, 1 is edge, 2 is corner
-	const int sizes[3] = { (int)(ndens * maxdim*maxdim + 128), (int)(ndens * maxdim + 128), (int)(ndens + 128) };
-
-	auto helper = new ExchangeHelper(pv->name, sizeof(Particle), sizes);
+	auto helper = new ExchangeHelper(pv->name, sizeof(Particle));
 	helpers.push_back(helper);
+
+	info("Particle halo exchanger takes pv %s, base tag %d", pv->name.c_str(), tagByName(pv->name));
 }
 
 void ParticleHaloExchanger::combineAndUploadData(int id, cudaStream_t stream)
@@ -125,24 +120,26 @@ void ParticleHaloExchanger::prepareData(int id, cudaStream_t stream)
 
 	debug2("Preparing %s halo on the device", pv->name.c_str());
 
-	helper->sendBufSizes.clearDevice(stream);
 
 	const int maxdim = std::max({cl->ncells.x, cl->ncells.y, cl->ncells.z});
 	const int nthreads = 32;
 	if (pv->local()->size() > 0)
 	{
+		helper->sendBufSizes.clearDevice(stream);
 		getHalos<true>  <<< dim3((maxdim*maxdim + nthreads - 1) / nthreads, 6, 1),  dim3(nthreads, 1, 1), 0, stream >>> (
 				(float4*)pv->local()->coosvels.devPtr(), cl->cellInfo(), cl->cellsStartSize.devPtr(),
 				(int64_t*)helper->sendAddrs.devPtr(), helper->sendBufSizes.devPtr() );
 
 		helper->sendBufSizes.downloadFromDevice(stream);
 		helper->resizeSendBufs();
-		helper->sendBufSizes.clearDevice(stream);
 
+		helper->sendBufSizes.clearDevice(stream);
 		getHalos<false> <<< dim3((maxdim*maxdim + nthreads - 1) / nthreads, 6, 1),  dim3(nthreads, 1, 1), 0, stream >>> (
 				(float4*)pv->local()->coosvels.devPtr(), cl->cellInfo(), cl->cellsStartSize.devPtr(),
 				(int64_t*)helper->sendAddrs.devPtr(), helper->sendBufSizes.devPtr() );
 	}
+
+	debug2("%s halo prepared", pv->name.c_str());
 }
 
 

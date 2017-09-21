@@ -251,7 +251,6 @@ void PrimaryCellList::build(cudaStream_t stream)
 	debug2("Reordering %d %s particles", pv->local()->size(), pv->name.c_str());
 	order.    resize(pv->local()->size(), stream);
 	_coosvels.resize(pv->local()->size(), stream);
-	_forces.  resize(pv->local()->size(), stream);
 
 	reorderParticles<<< (2*pv->local()->size()+127)/128, 128, 0, stream >>> (
 			cellInfo(), (uint*)cellsSize.devPtr(), cellsStartSize.devPtr(),

@@ -86,7 +86,7 @@ void Avg3DPlugin::setup(Simulation* sim, const MPI_Comm& comm, const MPI_Comm& i
 		particleVectors.push_back(pv);
 	}
 
-	info("Plugin %s was set up for the following particle vectors: %s", name.c_str(), pvNames.c_str());
+	info("Plugin %s initialized for the following particle vectors: %s", name.c_str(), pvNames.c_str());
 }
 
 

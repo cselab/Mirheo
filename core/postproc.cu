@@ -9,6 +9,7 @@ Postprocess::Postprocess(MPI_Comm& comm, MPI_Comm& interComm) : comm(comm), inte
 
 void Postprocess::registerPlugin(PostprocessPlugin* plugin)
 {
+	info("New plugin registered: %s", plugin->name.c_str());
 	plugins.push_back(plugin);
 }
 
@@ -16,6 +17,7 @@ void Postprocess::run()
 {
 	for (auto& pl : plugins)
 	{
+		debug("Setup and handshake of %s", pl->name.c_str());
 		pl->setup(comm, interComm);
 		pl->handshake();
 	}
@@ -46,7 +48,6 @@ void Postprocess::run()
 			if (dummy != -1)
 				die("Something went terribly wrong");
 
-			// TODO: Maybe cancel?
 			info("Postprocess got a stopping message and will exit now");
 			break;
 		}

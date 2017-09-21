@@ -75,7 +75,7 @@ public:
 		if (capacity >= n) return;
 
 		const int conservative_estimate = (int)ceil(1.1 * n + 10);
-		capacity = 128 * ((conservative_estimate + 129) / 128);
+		capacity = 128 * ((conservative_estimate + 127) / 128);
 
 		CUDA_Check(cudaMalloc(&devptr, sizeof(T) * capacity));
 
@@ -185,7 +185,7 @@ public:
 		if (capacity >= n) return;
 
 		const int conservative_estimate = (int)ceil(1.1 * n + 10);
-		capacity = 128 * ((conservative_estimate + 129) / 128);
+		capacity = 128 * ((conservative_estimate + 127) / 128);
 
 		CUDA_Check(cudaHostAlloc(&hostptr, sizeof(T) * capacity, 0));
 		CUDA_Check(cudaMalloc(&devptr, sizeof(T) * capacity));
@@ -275,7 +275,7 @@ public:
 		if (capacity >= n) return;
 
 		const int conservative_estimate = (int)ceil(1.1 * n + 10);
-		capacity = 128 * ((conservative_estimate + 129) / 128);
+		capacity = 128 * ((conservative_estimate + 127) / 128);
 
 		hostptr = (T*) malloc(sizeof(T) * capacity);
 

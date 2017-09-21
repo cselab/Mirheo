@@ -5,7 +5,7 @@
 
 #include <algorithm>
 
-ExchangeHelper::ExchangeHelper(std::string name, const int datumSize, const int sizes[3])
+ExchangeHelper::ExchangeHelper(std::string name, const int datumSize)
 {
 	this->name = name;
 	this->datumSize = datumSize;
@@ -13,23 +13,13 @@ ExchangeHelper::ExchangeHelper(std::string name, const int datumSize, const int 
 	sendAddrs   .resize(27, 0);
 	sendBufSizes.resize(27, 0);
 
-	recvBufSizes.resize(27);
-	recvOffsets .resize(28);
+	recvBufSizes.resize(27, 0);
+	recvOffsets .resize(28, 0);
 
-	for(int i = 0; i < 27; ++i)
-	{
-		int d[3] = { i%3 - 1, (i/3) % 3 - 1, i/9 - 1 };
+	sendBufSizes.clear(0);
 
-		int c = std::abs(d[0]) + std::abs(d[1]) + std::abs(d[2]);
-		if (c > 0)
-		{
-			sendBufs[i].resize( sizes[c-1]*datumSize, 0, ResizeKind::resizeAnew);
-			recvBufs[i].resize( sizes[c-1]*datumSize, 0, ResizeKind::resizeAnew);
-			sendAddrs[i] = sendBufs[i].devPtr();
-		}
-	}
-	// implicit synchro
-	sendAddrs.uploadToDevice(0);
+	resizeSendBufs();
+	resizeRecvBufs();
 }
 
 void ExchangeHelper::resizeSendBufs()
@@ -39,6 +29,7 @@ void ExchangeHelper::resizeSendBufs()
 		sendBufs[i].resize( sendBufSizes[i]*datumSize, 0, ResizeKind::resizeAnew );
 		sendAddrs[i] = sendBufs[i].devPtr();
 	}
+	sendAddrs.uploadToDevice(0);
 }
 
 void ExchangeHelper::resizeRecvBufs()
@@ -91,7 +82,7 @@ void ParticleExchanger::finalize(cudaStream_t stream)
 		combineAndUploadData(i, stream);
 }
 
-inline int tagByName(std::string name)
+int ParticleExchanger::tagByName(std::string name)
 {
 	// TODO: better tagging policy (unique id?)
 	static std::hash<std::string> nameHash;

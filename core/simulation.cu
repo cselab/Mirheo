@@ -17,16 +17,16 @@ nranks3D(nranks3D), globalDomainSize(globalDomainSize), interComm(interComm), cu
 	localDomainSize = globalDomainSize / make_float3(nranks3D);
 	globalDomainStart = {localDomainSize.x * coords[0], localDomainSize.y * coords[1], localDomainSize.z * coords[2]};
 
-	restartFolder  = "./restart/";
-	std::string command = "mkdir -p " + restartFolder;
-	if (rank == 0)
-	{
-		if ( system(command.c_str()) != 0 )
-		{
-			error("Could not create folder for restart files, will try to use ./");
-			restartFolder = "./";
-		}
-	}
+//	restartFolder  = "./restart/";
+//	std::string command = "mkdir -p " + restartFolder;
+//	if (rank == 0)
+//	{
+//		if ( system(command.c_str()) != 0 )
+//		{
+//			error("Could not create folder for restart files, will try to use ./");
+//			restartFolder = "./";
+//		}
+//	}
 
 	info("Simulation initialized, subdomain size is [%f %f %f], subdomain starts at [%f %f %f]",
 			localDomainSize.x,  localDomainSize.y,  localDomainSize.z,
@@ -304,6 +304,7 @@ void Simulation::init()
 	info("Preparing plugins");
 	for (auto& pl : plugins)
 	{
+		debug("Setup and handshake of plugin %s", pl->name.c_str());
 		pl->setup(this, cartComm, interComm);
 		pl->handshake();
 	}

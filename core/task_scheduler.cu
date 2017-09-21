@@ -137,6 +137,8 @@ void TaskScheduler::run()
 				{
 					auto node = streamNode_it->second;
 
+					info("Completed group %s ", node->label.c_str());
+
 					// Return freed stream back to the corresponding queue
 					node->streams->push(streamNode_it->first);
 

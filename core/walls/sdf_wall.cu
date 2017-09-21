@@ -307,22 +307,19 @@ void SDFWall::attach(ParticleVector* pv, CellList* cl, bool check)
 	cellLists.push_back(cl);
 	needCheck.push_back(check);
 
-	const int oldSize = nBoundaryCells.size();
-	boundaryCells.resize(oldSize+1);
-
-	nBoundaryCells.resize(oldSize+1, 0);
-	nBoundaryCells.hostPtr()[oldSize] = 0;
-	nBoundaryCells.uploadToDevice(0);
-	countBoundaryCells<<< (cl->totcells + 127) / 128, 128, 0, 0 >>> (cl->cellInfo(), sdfInfo, nBoundaryCells.devPtr()+oldSize);
+	PinnedBuffer<int> nBoundaryCells(1);
+	nBoundaryCells.clear(0);
+	countBoundaryCells<<< (cl->totcells + 127) / 128, 128, 0, 0 >>> (cl->cellInfo(), sdfInfo, nBoundaryCells.devPtr());
 	nBoundaryCells.downloadFromDevice(0);
 
-	debug("Found %d boundary cells", nBoundaryCells.hostPtr()[oldSize]);
-	boundaryCells[oldSize].resize(nBoundaryCells.hostPtr()[oldSize], 0);
+	debug("Found %d boundary cells", nBoundaryCells[0]);
+	auto bc = new DeviceBuffer<int>(nBoundaryCells[0]);
 
-	nBoundaryCells.hostPtr()[oldSize] = 0;
-	nBoundaryCells.uploadToDevice(0);
+	nBoundaryCells.clear(0);
 	getBoundaryCells<<< (cl->totcells + 127) / 128, 128, 0, 0 >>> (cl->cellInfo(), sdfInfo,
-			nBoundaryCells.devPtr()+oldSize, boundaryCells[oldSize].devPtr());
+			nBoundaryCells.devPtr(), bc->devPtr());
+
+	boundaryCells.push_back(bc);
 	CUDA_Check( cudaDeviceSynchronize() );
 }
 
@@ -577,13 +574,16 @@ void SDFWall::bounce(float dt, cudaStream_t stream)
 	{
 		auto pv = particleVectors[i];
 		auto cl = cellLists[i];
+		auto bc = boundaryCells[i];
 
 		debug2("Bouncing %d %s particles", pv->local()->size(), pv->name.c_str());
 
 		const int nthreads = 64;
-		bounceSDF<<< getNblocks(boundaryCells[i].size(), nthreads), nthreads, 0, stream >>>(
-				boundaryCells[i].devPtr(), boundaryCells[i].size(), cl->cellsStartSize.devPtr(), cl->cellInfo(),
+		bounceSDF<<< getNblocks(bc->size(), nthreads), nthreads, 0, stream >>>(
+				bc->devPtr(), bc->size(), cl->cellsStartSize.devPtr(), cl->cellInfo(),
 				sdfInfo, (float4*)pv->local()->coosvels.devPtr(), dt);
+
+		CUDA_Check( cudaPeekAtLastError() );
 	}
 }
 

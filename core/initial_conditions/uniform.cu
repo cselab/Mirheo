@@ -18,7 +18,8 @@ void UniformIC::exec(const MPI_Comm& comm, ParticleVector* pv, float3 globalDoma
 	int rank;
 	MPI_Check( MPI_Comm_rank(comm, &rank) );
 
-	const int seed = rank + 0;
+	std::hash<std::string> nameHash;
+	const int seed = rank + nameHash(pv->name);
 	std::mt19937 gen(seed);
 	std::poisson_distribution<> particleDistribution(avg);
 	std::uniform_real_distribution<float> udistr(0, 1);

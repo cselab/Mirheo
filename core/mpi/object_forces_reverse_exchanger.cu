@@ -28,16 +28,7 @@ __global__ void addHaloForces(const float4* haloForces, const float4* halo, floa
 void ObjectForcesReverseExchanger::attach(ObjectVector* ov)
 {
 	objects.push_back(ov);
-
-	const float objPerCell = 0.1f;
-	const int maxdim = std::max({ov->localDomainSize.x, ov->localDomainSize.y, ov->localDomainSize.z});
-
-	const int sizes[3] = { (int)(4*objPerCell * maxdim*maxdim + 10),
-						   (int)(4*objPerCell * maxdim + 10),
-						   (int)(4*objPerCell + 10) };
-
-
-	ExchangeHelper* helper = new ExchangeHelper(ov->name, ov->local()->objSize*sizeof(Force), sizes);
+	ExchangeHelper* helper = new ExchangeHelper(ov->name, ov->local()->objSize*sizeof(Force));
 	helpers.push_back(helper);
 }
 
@@ -50,11 +41,12 @@ void ObjectForcesReverseExchanger::prepareData(int id, cudaStream_t stream)
 
 	debug2("Preparing %s forces to sending back", ov->name.c_str());
 
-	helper->sendBufSizes.clearDevice(stream);
+	for (int i=0; i<27; i++)
+		helper->sendBufSizes[i] = offsets[i+1] - offsets[i];
+	helper->resizeSendBufs();
 
 	for (int i=0; i<27; i++)
 	{
-		helper->sendBufSizes[i] = offsets[i+1] - offsets[i];
 		if (helper->sendBufSizes[i] > 0)
 			CUDA_Check( cudaMemcpyAsync( helper->sendBufs[i].hostPtr(),
 										 ov->halo()->forces.devPtr() + offsets[i]*ov->halo()->objSize,

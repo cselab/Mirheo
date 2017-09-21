@@ -24,9 +24,7 @@ private:
 	MPI_Comm wallComm;
 
 	std::vector<bool> needCheck;
-
-	PinnedBuffer<int> nBoundaryCells;
-	std::vector<DeviceBuffer<int>> boundaryCells;
+	std::vector<DeviceBuffer<int>*> boundaryCells;
 
 	SdfInfo sdfInfo;
 
