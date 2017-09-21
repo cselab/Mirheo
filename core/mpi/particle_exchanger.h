@@ -11,16 +11,18 @@ struct ExchangeHelper
 
 	std::string name;
 
-	PinnedBuffer<int>   bufSizes;
-	PinnedBuffer<char>  sendBufs[27];
-	PinnedBuffer<char*> sendAddrs;
-	PinnedBuffer<char>  recvBufs[27];
-	PinnedBuffer<char*> recvAddrs;
+	PinnedBuffer<int> sendBufSizes;
+	std::vector<int>  recvBufSizes, recvOffsets;
 
-	std::vector<int> recvOffsets;
+	PinnedBuffer<char>  sendBufs[27], recvBufs[27];
+	PinnedBuffer<char*> sendAddrs, recvAddrs;
+
 	std::vector<MPI_Request> requests;
 
 	ExchangeHelper(std::string name, const int datumSize, const int sizes[3]);
+
+	void resizeSendBufs();
+	void resizeRecvBufs();
 };
 
 class ParticleExchanger
@@ -35,8 +37,8 @@ protected:
 
 	std::vector<ExchangeHelper*> helpers;
 
-	void postRecv(ExchangeHelper* helper);
-	void sendWait(ExchangeHelper* helper, cudaStream_t stream);
+	void recv(ExchangeHelper* helper);
+	void send(ExchangeHelper* helper, cudaStream_t stream);
 
 	virtual void prepareData(int id, cudaStream_t stream) = 0;
 	virtual void combineAndUploadData(int id, cudaStream_t stream) = 0;

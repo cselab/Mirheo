@@ -91,11 +91,11 @@ void ParticleHaloExchanger::attach(ParticleVector* pv, CellList* cl)
 	cellLists.push_back(cl);
 
 	// TODO: change ndens
-	const double ndens = 16;//(double)pv->local()->size() / (cl->ncells.x * cl->ncells.y * cl->ncells.z * cl->rc*cl->rc*cl->rc);
+	const double ndens = (double)pv->local()->size() / (cl->ncells.x * cl->ncells.y * cl->ncells.z * cl->rc*cl->rc*cl->rc);
 	const int maxdim = std::max({cl->localDomainSize.x, cl->localDomainSize.y, cl->localDomainSize.z});
 
 	// Sizes of buffers. 0 is side, 1 is edge, 2 is corner
-	const int sizes[3] = { (int)(4*ndens * maxdim*maxdim + 128), (int)(4*ndens * maxdim + 128), (int)(4*ndens + 1024) };
+	const int sizes[3] = { (int)(ndens * maxdim*maxdim + 128), (int)(ndens * maxdim + 128), (int)(ndens + 128) };
 
 	auto helper = new ExchangeHelper(pv->name, sizeof(Particle), sizes);
 	helpers.push_back(helper);
@@ -125,13 +125,26 @@ void ParticleHaloExchanger::prepareData(int id, cudaStream_t stream)
 
 	debug2("Preparing %s halo on the device", pv->name.c_str());
 
-	helper->bufSizes.clearDevice(stream);
+	helper->sendBufSizes.clearDevice(stream);
 
 	const int maxdim = std::max({cl->ncells.x, cl->ncells.y, cl->ncells.z});
 	const int nthreads = 32;
 	if (pv->local()->size() > 0)
-		getHalos<<< dim3((maxdim*maxdim + nthreads - 1) / nthreads, 6, 1),  dim3(nthreads, 1, 1), 0, stream >>> (
+	{
+		getHalos<true>  <<< dim3((maxdim*maxdim + nthreads - 1) / nthreads, 6, 1),  dim3(nthreads, 1, 1), 0, stream >>> (
 				(float4*)pv->local()->coosvels.devPtr(), cl->cellInfo(), cl->cellsStartSize.devPtr(),
-				(int64_t*)helper->sendAddrs.devPtr(), helper->bufSizes.devPtr() );
+				(int64_t*)helper->sendAddrs.devPtr(), helper->sendBufSizes.devPtr() );
+
+		helper->sendBufSizes.downloadFromDevice(stream);
+		helper->resizeSendBufs();
+		helper->sendBufSizes.clearDevice(stream);
+
+		getHalos<false> <<< dim3((maxdim*maxdim + nthreads - 1) / nthreads, 6, 1),  dim3(nthreads, 1, 1), 0, stream >>> (
+				(float4*)pv->local()->coosvels.devPtr(), cl->cellInfo(), cl->cellsStartSize.devPtr(),
+				(int64_t*)helper->sendAddrs.devPtr(), helper->sendBufSizes.devPtr() );
+	}
 }
+
+
+
 

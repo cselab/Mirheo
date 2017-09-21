@@ -38,7 +38,7 @@ __device__ static inline void unpackExtraData(int objId, char** extraData, int n
 
 __global__ void getObjectHalos(const float4* __restrict__ coosvels, const LocalObjectVector::COMandExtent* props, const int nObj, const int objSize,
 		const float3 localDomainSize, const float rc,
-		const int64_t dests[27], int bufSizes[27], /*int* haloParticleIds,*/
+		const int64_t dests[27], int sendBufSizes[27], /*int* haloParticleIds,*/
 		const int packedObjSize_byte, char** extraData, int nPtrsPerObj, const int* dataSizes)
 {
 	const int objId = blockIdx.x;
@@ -91,7 +91,7 @@ __global__ void getObjectHalos(const float4* __restrict__ coosvels, const LocalO
 
 		__syncthreads();
 		if (tid == 0)
-			shDstObjId = atomicAdd(bufSizes + bufId, 1);
+			shDstObjId = atomicAdd(sendBufSizes + bufId, 1);
 		__syncthreads();
 
 //		if (tid == 0)
@@ -172,7 +172,7 @@ void ObjectHaloExchanger::prepareData(int id, cudaStream_t stream)
 
 	debug2("Preparing %s halo on the device", ov->name.c_str());
 
-	helper->bufSizes.clearDevice(stream);
+	helper->sendBufSizes.clearDevice(stream);
 
 	const int nthreads = 128;
 	if (ov->local()->nObjects > 0)
@@ -183,7 +183,7 @@ void ObjectHaloExchanger::prepareData(int id, cudaStream_t stream)
 		getObjectHalos <<< ov->local()->nObjects, nthreads, 0, stream >>> (
 				(float4*)ov->local()->coosvels.devPtr(), ov->local()->comAndExtents.devPtr(),
 				ov->local()->nObjects, ov->local()->objSize, ov->localDomainSize, rc,
-				(int64_t*)helper->sendAddrs.devPtr(), helper->bufSizes.devPtr(),
+				(int64_t*)helper->sendAddrs.devPtr(), helper->sendBufSizes.devPtr(),
 				totSize_byte, ov->local()->extraDataPtrs.devPtr(), nPtrs, ov->local()->extraDataSizes.devPtr());
 	}
 }

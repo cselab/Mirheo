@@ -36,7 +36,7 @@ __device__ static inline void unpackExtraData(int objId, char** extraData, int n
 
 __global__ void getExitingObjects(const float4* __restrict__ coosvels, const LocalObjectVector::COMandExtent* props, const int nObj, const int objSize,
 		const float3 localDomainSize,
-		const int64_t dests[27], int bufSizes[27], /*int* haloParticleIds,*/
+		const int64_t dests[27], int sendBufSizes[27], /*int* haloParticleIds,*/
 		const int packedObjSize_byte, char** extraData, int nPtrsPerObj, const int* dataSizes)
 {
 	const int objId = blockIdx.x;
@@ -71,7 +71,7 @@ __global__ void getExitingObjects(const float4* __restrict__ coosvels, const Loc
 
 	__syncthreads();
 	if (tid == 0)
-		shDstObjId = atomicAdd(bufSizes + bufId, 1);
+		shDstObjId = atomicAdd(sendBufSizes + bufId, 1);
 	__syncthreads();
 
 //		if (tid == 0)
@@ -151,7 +151,7 @@ void ObjectRedistributor::prepareData(int id, cudaStream_t stream)
 
 	debug2("Preparing %s halo on the device", ov->name.c_str());
 
-	helper->bufSizes.clearDevice(stream);
+	helper->sendBufSizes.clearDevice(stream);
 
 	if ( helper->sendBufs[13].size() < ov->local()->packedObjSize_bytes * ov->local()->nObjects )
 	{
@@ -168,18 +168,18 @@ void ObjectRedistributor::prepareData(int id, cudaStream_t stream)
 		getExitingObjects <<< ov->local()->nObjects, nthreads, 0, stream >>> (
 				(float4*)ov->local()->coosvels.devPtr(), ov->local()->comAndExtents.devPtr(),
 				ov->local()->nObjects, ov->local()->objSize, ov->localDomainSize,
-				(int64_t*)helper->sendAddrs.devPtr(), helper->bufSizes.devPtr(),
+				(int64_t*)helper->sendAddrs.devPtr(), helper->sendBufSizes.devPtr(),
 				totSize_byte, ov->local()->extraDataPtrs.devPtr(), nPtrs, ov->local()->extraDataSizes.devPtr());
 
 		// Unpack the central buffer into the object vector itself
-		helper->bufSizes.downloadFromDevice(stream);
-		int nObjs = helper->bufSizes[13];
+		helper->sendBufSizes.downloadFromDevice(stream);
+		int nObjs = helper->sendBufSizes[13];
 		unpackObject<<< nObjs, nthreads, 0, stream >>> (
 				(float4*)helper->sendBufs[13].devPtr(), (float4*)ov->local()->coosvels.devPtr(), ov->local()->objSize, ov->local()->packedObjSize_bytes,
-				helper->bufSizes[13],
+				helper->sendBufSizes[13],
 				ov->local()->extraDataPtrs.devPtr(), nPtrs, ov->local()->extraDataSizes.devPtr());
 
-		ov->local()->resize(helper->bufSizes[13], stream);
+		ov->local()->resize(helper->sendBufSizes[13], stream);
 	}
 }
 

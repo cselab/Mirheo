@@ -50,15 +50,15 @@ void ObjectForcesReverseExchanger::prepareData(int id, cudaStream_t stream)
 
 	debug2("Preparing %s forces to sending back", ov->name.c_str());
 
-	helper->bufSizes.clearDevice(stream);
+	helper->sendBufSizes.clearDevice(stream);
 
 	for (int i=0; i<27; i++)
 	{
-		helper->bufSizes[i] = offsets[i+1] - offsets[i];
-		if (helper->bufSizes[i] > 0)
+		helper->sendBufSizes[i] = offsets[i+1] - offsets[i];
+		if (helper->sendBufSizes[i] > 0)
 			CUDA_Check( cudaMemcpyAsync( helper->sendBufs[i].hostPtr(),
 										 ov->halo()->forces.devPtr() + offsets[i]*ov->halo()->objSize,
-										 helper->bufSizes[i]*sizeof(Force)*ov->halo()->objSize,
+										 helper->sendBufSizes[i]*sizeof(Force)*ov->halo()->objSize,
 										 cudaMemcpyHostToDevice, stream ) );
 	}
 }
