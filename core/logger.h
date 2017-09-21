@@ -27,7 +27,7 @@ class Logger
 {
 	int runtimeDebugLvl;
 
-	FILE* fout;
+	FILE* fout = nullptr;
 	int rank;
 
 	const std::array<std::string, 5> lvl2text{ {"FATAL", "ERROR", "WARNING", "INFO", "DEBUG"} };
@@ -62,8 +62,11 @@ public:
 
 	~Logger()
 	{
-		fflush(fout);
-		fclose(fout);
+		if (fout != nullptr)
+		{
+			fflush(fout);
+			fclose(fout);
+		}
 	}
 
 	void init(MPI_Comm&& comm, const std::string fname, int debugLvl = 3)
