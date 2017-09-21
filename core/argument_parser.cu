@@ -31,12 +31,12 @@ namespace ArgumentParser
 			long_options[i].flag = NULL;
 			long_options[i].val = opts[i].shortOpt;
 
-			if (opts[i].type == NONE) long_options[i].has_arg = no_argument;
+			if (opts[i].type == BOOL) long_options[i].has_arg = no_argument;
 			else                      long_options[i].has_arg = required_argument;
 
 			
 			ctrlString += opts[i].shortOpt;
-			if (opts[i].type != NONE) ctrlString += ':';
+			if (opts[i].type != BOOL) ctrlString += ':';
 			
 			if (optsMap.find(long_options[i].val) != optsMap.end())
 			{
@@ -85,7 +85,7 @@ namespace ArgumentParser
 			
 			switch (myOpt.type)
 			{
-				case NONE:
+				case BOOL:
 					*((bool*)myOpt.value) = true;
 					break;
 					
@@ -117,7 +117,7 @@ namespace ArgumentParser
 
 				switch (myOpt.type)
 				{
-					case NONE:
+					case BOOL:
 						printf( ( *((bool*)myOpt.value)) ? "enabled" : "disabled" );
 						break;
 

@@ -19,7 +19,7 @@ using namespace std;
 
 namespace ArgumentParser
 {
-	enum Types { NONE, INT, DOUBLE, CHAR, STRING };
+	enum Types { BOOL, INT, DOUBLE, CHAR, STRING };
 	
 	struct OptionStruct
 	{
@@ -52,7 +52,7 @@ namespace ArgumentParser
 		
 	public:
 		
-		Parser(const std::vector<OptionStruct>& optionsMap, bool output = false);
+		Parser(const std::vector<OptionStruct>& optionsMap, bool output = true);
 		void parse(int argc, char * const * argv);
 	};
 }
