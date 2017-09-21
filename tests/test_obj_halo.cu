@@ -231,7 +231,7 @@ int main(int argc, char ** argv)
 
 		std::vector<Particle> tmp;
 
-		for (int pid = 0; pid < halo->helpers[0]->bufSizes[i] * objsize; pid++)
+		for (int pid = 0; pid < halo->helpers[0]->sendBufSizes[i] * objsize; pid++)
 		{
 			if (pid % objsize == 0 && pid > 0)
 				ptr = (Particle*)((char*)ptr + sizeof(LocalObjectVector::COMandExtent));
@@ -244,10 +244,10 @@ int main(int argc, char ** argv)
 
 		//if (bufs[i].size() / objsize != tmp.size())
 		{
-			printf("%2d-th halo differs in size: %5d, expected %5d\n", i, halo->helpers[0]->bufSizes[i], (int)bufs[i].size()/objsize);
+			printf("%2d-th halo differs in size: %5d, expected %5d\n", i, halo->helpers[0]->sendBufSizes[i], (int)bufs[i].size()/objsize);
 
 			printf("  Got:  ");
-			for (int j=0; j<halo->helpers[0]->bufSizes[i]; j++)
+			for (int j=0; j<halo->helpers[0]->sendBufSizes[i]; j++)
 				printf("%2d ", tmp[j*objs.local()->objSize].s12);
 			printf("\n");
 

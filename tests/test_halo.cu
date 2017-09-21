@@ -123,15 +123,15 @@ int main(int argc, char ** argv)
 	{
 		std::sort(bufs[i].begin(), bufs[i].end(), [] (Particle& a, Particle& b) { return a.i1 < b.i1; });
 
-		std::sort((Particle*)halo.helpers[0]->sendBufs[i].hostPtr(), ((Particle*)halo.helpers[0]->sendBufs[i].hostPtr()) + halo.helpers[0]->bufSizes[i],
+		std::sort((Particle*)halo.helpers[0]->sendBufs[i].hostPtr(), ((Particle*)halo.helpers[0]->sendBufs[i].hostPtr()) + halo.helpers[0]->sendBufSizes[i],
 				[] (Particle& a, Particle& b) { return a.i1 < b.i1; });
 
-		if (bufs[i].size() != halo.helpers[0]->bufSizes[i])
-			printf("%2d-th halo differs in size: %5d, expected %5d\n", i, halo.helpers[0]->bufSizes[i], (int)bufs[i].size());
+		if (bufs[i].size() != halo.helpers[0]->sendBufSizes[i])
+			printf("%2d-th halo differs in size: %5d, expected %5d\n", i, halo.helpers[0]->sendBufSizes[i], (int)bufs[i].size());
 		else
 		{
 			auto ptr = (Particle*)halo.helpers[0]->sendBufs[i].hostPtr();
-			for (int pid = 0; pid < halo.helpers[0]->bufSizes[i]; pid++)
+			for (int pid = 0; pid < halo.helpers[0]->sendBufSizes[i]; pid++)
 			{
 				const float diff = std::max({
 					fabs(ptr[pid].r.x - bufs[i][pid].r.x),
