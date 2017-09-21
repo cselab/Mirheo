@@ -1,6 +1,6 @@
 #pragma once
 
-class Wall;
+class SDFWall;
 class ParticleVector;
 
-void freezeParticlesInWall(Wall* wall, ParticleVector* pv, ParticleVector* frozen, float minSdf=0.0f, float maxSdf=1.2f);
+void freezeParticlesInWall(SDFWall* wall, ParticleVector* pv, ParticleVector* frozen, float minSdf=0.0f, float maxSdf=1.2f);

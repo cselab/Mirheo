@@ -3,6 +3,9 @@
 #include <core/simulation.h>
 #include "freeze_particles.h"
 #include <core/interactions/sampler.h>
+#include <core/initial_conditions/dummy.h>
+#include <core/initial_conditions/uniform.h>
+#include <core/walls/sdf_wall.h>
 
 #include <core/argument_parser.h>
 
@@ -64,8 +67,13 @@ int main(int argc, char** argv)
 {
 	srand48(0);
 
+	int rank;
+	MPI_Init(&argc, &argv);
+	MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+
 	std::string xmlname, wname;
 	int nepochs;
+	bool needXYZ;
 
 	{
 		using namespace ArgumentParser;
@@ -74,30 +82,36 @@ int main(int argc, char** argv)
 		({
 			{'i', "input",  STRING, "Input script",                &xmlname,   std::string("script.xml")},
 			{'n', "name",   STRING, "Name of the wall to process", &wname,     std::string("wall")},
-			{'e', "epochs", INT,    "Number of sampling epochs",   &nepochs,   100}
+			{'e', "epochs", INT,    "Number of sampling epochs",   &nepochs,   50},
+			{'x', "xyz",    BOOL,   "Also dump .xyz files",        &needXYZ,   false}
 		});
 
-		Parser parser(opts);
+		Parser parser(opts, rank == 0);
 		parser.parse(argc, argv);
 	}
 
-	MPI_Init(&argc, &argv);
 	logger.init(MPI_COMM_WORLD, "genwall.log", 9);
+
 
 	pugi::xml_document config;
 	pugi::xml_parse_result result = config.load_file(xmlname.c_str());
 	if (!result)
 		die("Couldn't open script file, parser says: \"%s\"", result.description());
 
-	pugi::xml_node wallXML;
+	pugi::xml_node wallNode, wallGenNode;
 	for (auto node : config.child("simulation").children("wall"))
 	{
 		if ( std::string(node.attribute("name").as_string()) == wname )
-			wallXML = node;
+		{
+			wallNode = node;
+			wallGenNode = node.child("generate_frozen");
+		}
 	}
 
-	if (wallXML.type() == pugi::node_null)
+	if (wallNode.type() == pugi::node_null)
 		die("Wall %s was not found in the script", wname.c_str());
+	if (wallGenNode.type() == pugi::node_null)
+		die("Wall %s has no generation instructions", wname.c_str());
 
 
 	float3 globalDomainSize = config.child("simulation").child("domain").attribute("size").as_float3({32, 32, 32});
@@ -105,39 +119,47 @@ int main(int argc, char** argv)
 
 	Simulation* sim = new Simulation(nranks3D, globalDomainSize, MPI_COMM_WORLD, MPI_COMM_NULL);
 
-	ParticleVector *startingPV = new ParticleVector("starting");
-	ParticleVector *wallPV     = new ParticleVector("wall");
-	ParticleVector *final      = new ParticleVector("final");
-	InitialConditions* ic = new UniformIC(wallXML.child("generate"));
+	ParticleVector *startingPV = new ParticleVector("starting", 1.0);
+	ParticleVector *wallPV     = new ParticleVector("wall", 1.0);
+	ParticleVector *final      = new ParticleVector(wallGenNode.attribute("name").as_string("final"), 1.0);
+	InitialConditions* ic      = new UniformIC(wallGenNode.attribute("density").as_float(4));
 	InitialConditions* dummyIC = new DummyIC();
 
-	Wall* wall = new Wall(
-			wallXML.attribute("name").as_string(),
-			wallXML.attribute("file_name").as_string(),
-			wallXML.attribute("h").as_float3({0.25, 0.25, 0.25}));
+	SDFWall* wall = new SDFWall(
+			wallNode.attribute("name").as_string(),
+			wallNode.attribute("sdf_filename").as_string(),
+			wallNode.attribute("sdf_h").as_float3({0.25, 0.25, 0.25}));
 
 	// Generate pv, but don't register it
 	ic->exec(sim->getCartComm(), startingPV, sim->globalDomainStart, sim->localDomainSize, 0);
 
 	// Register and create sdf
-	sim->registerWall(wall, false);
+	sim->registerWall((Wall*)wall);
 	// Produce new pv out of particles inside the wall
 	freezeParticlesInWall(wall, startingPV, wallPV, -3, 4);
 	sim->registerParticleVector(wallPV, dummyIC);
 
-	Interaction* sampler = new MCMCSampler(wallXML.child("generate"), wall, -3, 4);
-	sampler->name = "sampler";
+	auto rc    = wallGenNode.attribute("rc")   .as_float(1.0f);
+	auto a     = wallGenNode.attribute("a")    .as_float(50);
+	auto kbT   = wallGenNode.attribute("kbt")  .as_float(1.0);
+	auto power = wallGenNode.attribute("power").as_float(1.0f);
+
+	Interaction* sampler = new MCMCSampler("sampler",rc, a, kbT, power, wall, -3, 4);
 	sim->registerInteraction(sampler);
-	sim->setInteraction("wall", "wall", "sampler");
+	sim->setInteraction("sampler", "wall", "wall");
 
 	sim->init();
 	sim->run(nepochs);
 
 	freezeParticlesInWall(wall, wallPV, final, 0, 1.2);
 
-	writeXYZ(sim->getCartComm(), "wall.xyz", wallPV);
-	writeXYZ(sim->getCartComm(), "final.xyz", final);
-	final->checkpoint(sim->getCartComm(), "./");
+	if (needXYZ)
+	{
+		writeXYZ(sim->getCartComm(), "wall.xyz", wallPV);
+		writeXYZ(sim->getCartComm(), final->name+".xyz", final);
+	}
+
+	final->checkpoint(sim->getCartComm(), wallGenNode.attribute("path").as_string("./"));
 
 	sim->finalize();
 }

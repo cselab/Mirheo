@@ -9,7 +9,7 @@ class CellList;
 
 class SDFWall : public Wall
 {
-	friend void freezeParticlesInWall(Wall*, ParticleVector*, ParticleVector*, float, float);
+	friend void freezeParticlesInWall(SDFWall*, ParticleVector*, ParticleVector*, float, float);
 	friend class MCMCSampler;
 
 public:

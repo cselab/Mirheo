@@ -2,12 +2,12 @@
 
 #include <core/logger.h>
 #include <core/pvs/particle_vector.h>
-#include <core/wall.h>
+#include <core/walls/sdf_wall.h>
 #include <core/cuda_common.h>
-#include <core/sdf_kernels.h>
+#include <core/walls/sdf_kernels.h>
 
 
-__global__ void countFrozen(const float4* pv, const int np, Wall::SdfInfo sdfInfo, float minSdf, float maxSdf, int* nFrozen)
+__global__ void countFrozen(const float4* pv, const int np, SDFWall::SdfInfo sdfInfo, float minSdf, float maxSdf, int* nFrozen)
 {
 	const int pid = blockIdx.x * blockDim.x + threadIdx.x;
 	if (pid >= np) return;
@@ -19,7 +19,7 @@ __global__ void countFrozen(const float4* pv, const int np, Wall::SdfInfo sdfInf
 		atomicAggInc(nFrozen);
 }
 
-__global__ void collectFrozen(const float4* input, const int np, Wall::SdfInfo sdfInfo, float minSdf, float maxSdf,
+__global__ void collectFrozen(const float4* input, const int np, SDFWall::SdfInfo sdfInfo, float minSdf, float maxSdf,
 		float4* frozen, int* nFrozen)
 {
 	const int pid = blockIdx.x * blockDim.x + threadIdx.x;
@@ -38,7 +38,7 @@ __global__ void collectFrozen(const float4* input, const int np, Wall::SdfInfo s
 	}
 }
 
-void freezeParticlesInWall(Wall* wall, ParticleVector* pv, ParticleVector* frozen, float minSdf, float maxSdf)
+void freezeParticlesInWall(SDFWall* wall, ParticleVector* pv, ParticleVector* frozen, float minSdf, float maxSdf)
 {
 	CUDA_Check( cudaDeviceSynchronize() );
 
