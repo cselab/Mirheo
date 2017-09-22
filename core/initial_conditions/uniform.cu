@@ -25,7 +25,6 @@ void UniformIC::exec(const MPI_Comm& comm, ParticleVector* pv, float3 globalDoma
 	std::uniform_real_distribution<float> udistr(0, 1);
 
 	int mycount = 0;
-	auto cooPtr = pv->local()->coosvels.hostPtr();
 	for (int i=0; i<ncells.x; i++)
 		for (int j=0; j<ncells.y; j++)
 			for (int k=0; k<ncells.z; k++)
@@ -34,6 +33,8 @@ void UniformIC::exec(const MPI_Comm& comm, ParticleVector* pv, float3 globalDoma
 				for (int p=0; p<nparts; p++)
 				{
 					pv->local()->resize(mycount+1, stream, ResizeKind::resizePreserve);
+					auto cooPtr = pv->local()->coosvels.hostPtr();
+
 					cooPtr[mycount].r.x = i*h.x - 0.5*localDomainSize.x + udistr(gen);
 					cooPtr[mycount].r.y = j*h.y - 0.5*localDomainSize.y + udistr(gen);
 					cooPtr[mycount].r.z = k*h.z - 0.5*localDomainSize.z + udistr(gen);
@@ -54,7 +55,7 @@ void UniformIC::exec(const MPI_Comm& comm, ParticleVector* pv, float3 globalDoma
 	int totalCount=0; // TODO: int64!
 	MPI_Check( MPI_Exscan(&mycount, &totalCount, 1, MPI_INT, MPI_SUM, comm) );
 	for (int i=0; i < pv->local()->size(); i++)
-		cooPtr[i].i1 += totalCount;
+		pv->local()->coosvels[i].i1 += totalCount;
 
 	pv->local()->coosvels.uploadToDevice(stream);
 

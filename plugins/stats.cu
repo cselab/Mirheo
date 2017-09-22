@@ -86,16 +86,6 @@ void SimulationStats::serializeAndSend(cudaStream_t stream)
 PostprocessStats::PostprocessStats(std::string name) :
 		PostprocessPlugin(name)
 {
-	float f;
-	int   i;
-	std::vector<ReductionType> m(3), e(1);
-
-	// real exec time, simulation time,
-	// timestep; # of particles,
-	// momentum, energy
-	size = SimpleSerializer::totSize(f, f, i, i, m, e);
-	data.resize(size);
-
 	if (std::is_same<ReductionType, float>::value)
 		mpiReductionType = MPI_FLOAT;
 	else if (std::is_same<ReductionType, double>::value)

@@ -75,11 +75,23 @@ clean_debug:
 
 clean: clean_release clean_debug
 
+release: $(binary)
+
+debug: $(binary)_debug
 	
-.PHONY: clean clean_release clean_debug default
+.PHONY: clean clean_release clean_debug release debug default
 
 
 ifeq (,$(findstring clean,$(MAKECMDGOALS)))
--include $(patsubst %.cu,$(BIN_DIR)/%.d,  $(notdir $(wildcard $(addsuffix /*.cu,$(SRC_DIR)))))
--include $(patsubst %.cu,$(DEBUG_DIR)/%.d,$(notdir $(wildcard $(addsuffix /*.cu,$(SRC_DIR)))))
+ifeq (,$(findstring debug,$(MAKECMDGOALS)))
+-include $(patsubst %.o,$(BIN_DIR)/%.d,  $(notdir $(objects)))
+else
+-include $(patsubst %.o,$(DEBUG_DIR)/%.d,$(notdir $(objects)))
 endif
+endif
+
+
+
+
+
+

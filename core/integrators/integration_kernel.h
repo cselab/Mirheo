@@ -38,6 +38,9 @@ __global__ void integrationKernel(float4* coosvels, const float4* forces, const 
 	// val is velocity, othval is rubbish
 	if (sh == 1)
 	{
+		// to distinguish this case
+		othval.w = __int_as_float(-1);
+
 		p = Particle(othval, val);
 		transform(p, frc.v, invmass, dt);
 		val = p.u2Float4();

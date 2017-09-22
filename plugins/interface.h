@@ -32,8 +32,12 @@ protected:
 	{
 		debug3("Plugin %s is sending now", name.c_str());
 		MPI_Check( MPI_Wait(&req, MPI_STATUS_IGNORE) );
+
+		MPI_Check( MPI_Isend(&sizeInBytes, 1, MPI_INT, rank, id, interComm, &req) );
+		MPI_Check( MPI_Request_free(&req) );
 		MPI_Check( MPI_Isend(data, sizeInBytes, MPI_BYTE, rank, id, interComm, &req) );
-		debug3("Plugin %s has sent the data", name.c_str());
+
+		debug3("Plugin %s has sent the data (%d bytes)", name.c_str(), sizeInBytes);
 	}
 
 public:
@@ -75,21 +79,27 @@ public:
 	std::string name;
 
 protected:
+	int id;
+
 	MPI_Comm comm, interComm;
 	int rank;
 	std::vector<char> data;
 	int size;
 
-	int id;
-
 public:
 	PostprocessPlugin(std::string name) : name(name) { }
 
-	MPI_Request postRecv()
+	MPI_Request waitData()
 	{
 		MPI_Request req;
-		MPI_Check( MPI_Irecv(data.data(), size, MPI_BYTE, rank, id, interComm, &req) );
+		MPI_Check( MPI_Irecv(&size, 1, MPI_INT, rank, id, interComm, &req) );
 		return req;
+	}
+
+	void recv()
+	{
+		data.resize(size);
+		MPI_Check( MPI_Recv(data.data(), size, MPI_BYTE, rank, id, interComm, MPI_STATUS_IGNORE) );
 	}
 
 	virtual void deserialize(MPI_Status& stat) {};

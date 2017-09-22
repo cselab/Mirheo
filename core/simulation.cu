@@ -459,7 +459,7 @@ void Simulation::assemble()
 	scheduler.addDependency("Сell-lists", {"Clear forces", "Halo init"}, {});
 
 	scheduler.addDependency("Plugins: before forces", {"Internal forces", "Halo forces"}, {"Clear forces"});
-	scheduler.addDependency("Plugins: serialize and send", {}, {"Plugins: before forces"});
+	scheduler.addDependency("Plugins: serialize and send", {"Redistribute init", "Object redistribute init"}, {"Plugins: before forces"});
 
 	scheduler.addDependency("Internal forces", {}, {"Clear forces"});
 	scheduler.addDependency("Halo init", {"Internal forces"}, {});

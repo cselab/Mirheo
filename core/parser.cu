@@ -15,6 +15,7 @@
 
 #include <core/integrators/vv.h>
 #include <core/integrators/vv_const_dp.h>
+#include <core/integrators/vv_periodic_poiseuille.h>
 #include <core/integrators/const_omega.h>
 #include <core/integrators/rigid_vv.h>
 
@@ -29,6 +30,7 @@
 #include <core/bouncers/from_ellipsoid.h>
 
 #include <plugins/dumpavg.h>
+#include <plugins/dumpxyz.h>
 #include <plugins/stats.h>
 #include <plugins/temperaturize.h>
 
@@ -162,6 +164,22 @@ private:
 		return (Integrator*) new IntegratorVVConstDP(name, dt, extraForce);
 	}
 
+	static Integrator* createVV_PeriodicPoiseuille(pugi::xml_node node)
+	{
+		std::string name = node.attribute("name").as_string();
+		float dt = node.attribute("dt").as_float(0.01);
+		float force = node.attribute("force").as_float();
+		// TODO: make all see simulation instead
+		float3 domain = node.root().child("simulation").child("domain").attribute("size").as_float3();
+		std::string dirStr = node.attribute("direction").as_string("x");
+
+		IntegratorVVPeriodicPoiseuille::Direction dir;
+		if (dirStr == "x") dir = IntegratorVVPeriodicPoiseuille::Direction::x;
+		if (dirStr == "y") dir = IntegratorVVPeriodicPoiseuille::Direction::y;
+		if (dirStr == "z") dir = IntegratorVVPeriodicPoiseuille::Direction::z;
+
+		return (Integrator*) new IntegratorVVPeriodicPoiseuille(name, dt, force, dir, domain);
+	}
 	static Integrator* createConstOmega(pugi::xml_node node)
 	{
 		std::string name = node.attribute("name").as_string();
@@ -189,6 +207,8 @@ public:
 			return createVV(node);
 		if (type == "vv_const_dp")
 			return createVV_constDP(node);
+		if (type == "vv_periodic_poiseuille")
+			return createVV_PeriodicPoiseuille(node);
 		if (type == "const_omega")
 			return createConstOmega(node);
 		if (type == "rigid_vv")
@@ -391,6 +411,20 @@ private:
 		return { (SimulationPlugin*) simPl, (PostprocessPlugin*) postPl };
 	}
 
+	static std::pair<SimulationPlugin*, PostprocessPlugin*> createDumpXYZPlugin(pugi::xml_node node, bool computeTask)
+	{
+		std::string name   = node.attribute("name").as_string();
+		std::string pvName = node.attribute("pv_name").as_string();
+		int dumpEvery      = node.attribute("dump_every").as_int(5000);
+
+		std::string path   = node.attribute("path").as_string( ("xyz/" + name).c_str() );
+
+		auto simPl  = computeTask ? new XYZPlugin(name, pvName, dumpEvery) : nullptr;
+		auto postPl = computeTask ? nullptr : new XYZDumper(name, path);
+
+		return { (SimulationPlugin*) simPl, (PostprocessPlugin*) postPl };
+	}
+
 
 public:
 	static std::pair<SimulationPlugin*, PostprocessPlugin*> create(pugi::xml_node node, bool computeTask)
@@ -403,6 +437,8 @@ public:
 			return createStatsPlugin(node, computeTask);
 		if (type == "dump_avg_flow")
 			return createDumpavgPlugin(node, computeTask);
+		if (type == "dump_xyz")
+			return createDumpXYZPlugin(node, computeTask);
 
 		die("Unable to parse input at %s, unknown 'type' %s", node.path().c_str(), type.c_str());
 

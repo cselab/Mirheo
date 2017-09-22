@@ -35,10 +35,8 @@ public:
 	LocalObjectVector(const int objSize, const int nObjects = 0, cudaStream_t stream = 0) :
 		LocalParticleVector(objSize*nObjects), objSize(objSize), nObjects(nObjects)
 	{
-		resize(nObjects*objSize, stream, ResizeKind::resizeAnew);
-
-		extraDataSizes.resize(1, stream);
-		extraDataPtrs .resize(1, stream);
+		extraDataSizes.resize(1, stream, ResizeKind::resizeAnew);
+		extraDataPtrs .resize(1, stream, ResizeKind::resizeAnew);
 
 		extraDataSizes[0] = sizeof(COMandExtent);
 		extraDataPtrs [0] = (char*)comAndExtents.devPtr();
@@ -46,9 +44,12 @@ public:
 		extraDataSizes.uploadToDevice(stream);
 		extraDataPtrs .uploadToDevice(stream);
 
+		resize(nObjects*objSize, stream, ResizeKind::resizeAnew);
+
 		// Provide necessary alignment
 		packedObjSize_bytes = ( (objSize*sizeof(Particle) + sizeof(COMandExtent) + sizeof(float4)-1) / sizeof(float4) ) * sizeof(float4);
 	};
+
 
 	virtual void resize(const int np, cudaStream_t stream, ResizeKind kind = ResizeKind::resizePreserve)
 	{
@@ -57,9 +58,15 @@ public:
 
 		nObjects = np / objSize;
 
-		LocalParticleVector::resize(nObjects * objSize, stream, kind);
+		LocalParticleVector::resize(np, stream, kind);
 		particles2objIds.resize(np,       stream, kind);
 		comAndExtents   .resize(nObjects, stream, kind);
+
+		if ((char*)comAndExtents.devPtr() != extraDataPtrs[0])
+		{
+			extraDataPtrs[0] = (char*)comAndExtents.devPtr();
+			extraDataPtrs.uploadToDevice(stream);
+		}
 	}
 
 	virtual ~LocalObjectVector() = default;

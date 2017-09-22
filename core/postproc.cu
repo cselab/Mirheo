@@ -34,7 +34,7 @@ void Postprocess::run()
 
 	std::vector<MPI_Request> requests;
 	for (auto& pl : plugins)
-		requests.push_back(pl->postRecv());
+		requests.push_back(pl->waitData());
 	requests.push_back(endReq);
 
 	while (true)
@@ -53,8 +53,9 @@ void Postprocess::run()
 		}
 
 		debug2("Postprocess got a request from plugin %s, executing now", plugins[index]->name.c_str());
+		plugins[index]->recv();
 		plugins[index]->deserialize(stat);
-		requests[index] = plugins[index]->postRecv();
+		requests[index] = plugins[index]->waitData();
 	}
 }
 

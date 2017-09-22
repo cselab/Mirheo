@@ -42,6 +42,12 @@ public:
 	{
 		LocalObjectVector::resize(np, stream, kind);
 		motions.resize(nObjects, stream, kind);
+
+		if ((char*)motions.devPtr() != extraDataPtrs[1])
+		{
+			extraDataPtrs[1] = (char*)motions.devPtr();
+			extraDataPtrs.uploadToDevice(stream);
+		}
 	}
 
 	virtual ~LocalRigidObjectVector() = default;

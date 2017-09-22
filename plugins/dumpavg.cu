@@ -152,8 +152,7 @@ void Avg3DPlugin::handshake()
 {
 	std::vector<char> data;
 	SimpleSerializer::serialize(data, sim->nranks3D, resolution, binSize, needDensity, needMomentum, needForce);
-
-	MPI_Check( MPI_Send(data.data(), data.size(), MPI_BYTE, rank, id, interComm) );
+	send(data.data(), data.size());
 
 	debug2("Plugin %s was set up to sample%s%s%s for the following PVs: %s. Local resolution %dx%dx%d", name.c_str(),
 			needDensity ? " density" : "", needMomentum ? " momentum" : "", needForce ? " force" : "", pvNames.c_str(),
@@ -168,9 +167,11 @@ Avg3DDumper::Avg3DDumper(std::string name, std::string path) :
 
 void Avg3DDumper::handshake()
 {
-	std::vector<char> buf(1000);
-	MPI_Check( MPI_Recv(buf.data(), buf.size(), MPI_BYTE, rank, id, interComm, MPI_STATUS_IGNORE) );
-	SimpleSerializer::deserialize(buf, nranks3D, resolution, h, needDensity, needMomentum, needForce);
+	auto req = waitData();
+	MPI_Check( MPI_Wait(&req, MPI_STATUS_IGNORE) );
+	recv();
+
+	SimpleSerializer::deserialize(data, nranks3D, resolution, h, needDensity, needMomentum, needForce);
 	int totalPoints = resolution.x * resolution.y * resolution.z;
 
 	std::vector<std::string> channelNames;
@@ -197,16 +198,11 @@ void Avg3DDumper::handshake()
 		force.resize(totalPoints);
 	}
 
-	float t;
-	data.resize(SimpleSerializer::totSize(t, density, momentum, force));
-
 	debug2("Plugin %s was set up to dump%s%s%s. Resolution %dx%dx%d. Path %s", name.c_str(),
 			needDensity ? " density" : "", needMomentum ? " momentum" : "", needForce ? " force" : "",
 			resolution.x, resolution.y, resolution.z, path.c_str());
 
 	dumper = new XDMFDumper(comm, nranks3D, path, resolution, h, channelNames, channelTypes);
-
-	size = data.size();
 }
 
 void Avg3DDumper::deserialize(MPI_Status& stat)

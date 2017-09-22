@@ -41,7 +41,22 @@ public:
 	virtual ~LocalParticleVector() = default;
 };
 
-class ParticleVector
+class PVinfo
+{
+public:
+	float3 localDomainSize, globalDomainStart;
+
+	__forceinline__ __host__ __device__ float3 local2global(float3 x) const
+	{
+		return x + globalDomainStart + 0.5f * localDomainSize;
+	}
+	__forceinline__ __host__ __device__ float3 global2local(float3 x) const
+	{
+		return x - globalDomainStart - 0.5f * localDomainSize;
+	}
+};
+
+class ParticleVector : public PVinfo
 {
 public:
 	LocalParticleVector *_local, *_halo;
@@ -49,7 +64,6 @@ public:
 	float mass;
 	std::string name;
 	// Local coordinate system; (0,0,0) is center of the local domain
-	float3 localDomainSize, globalDomainStart;
 
 protected:
 	ParticleVector(	std::string name, float mass, LocalParticleVector *local, LocalParticleVector *halo ) :
@@ -65,17 +79,9 @@ public:
 	LocalParticleVector* local() { return _local; }
 	LocalParticleVector* halo()  { return _halo;  }
 
-	__forceinline__ __host__ __device__ float3 local2global(float3 x)
-	{
-		return x + globalDomainStart + 0.5f * localDomainSize;
-	}
-	__forceinline__ __host__ __device__ float3 global2local(float3 x)
-	{
-		return x - globalDomainStart - 0.5f * localDomainSize;
-	}
-
 	virtual void checkpoint(MPI_Comm comm, std::string path);
 	virtual void restart(MPI_Comm comm, std::string path);
+	PVinfo pvInfo() { return *((PVinfo*)this); }
 
 	virtual ~ParticleVector() { delete _local; delete _halo; }
 };

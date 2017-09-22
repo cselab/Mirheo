@@ -31,6 +31,10 @@ void EllipsoidIC::exec(const MPI_Comm& comm, ParticleVector* pv, float3 globalDo
 	int rank;
 	MPI_Check( MPI_Comm_rank(comm, &rank) );
 
+	readXYZ(xyzfname, ov->initialPositions, stream);
+	if (ov->objSize != ov->initialPositions.size())
+		die("Object size and XYZ initial conditions don't match in size for %s", ov->name.c_str());
+
 	const int seed = rank + 0;
 	std::mt19937 gen(seed);
 	std::uniform_real_distribution<float> udistr(0, 1);
@@ -86,11 +90,14 @@ void EllipsoidIC::exec(const MPI_Comm& comm, ParticleVector* pv, float3 globalDo
 	int totalCount=0; // TODO: int64!
 	MPI_Check( MPI_Exscan(&generated, &totalCount, 1, MPI_INT, MPI_SUM, comm) );
 	for (int i=0; i < ov->local()->size(); i++)
+	{
+		ov->local()->coosvels[i] = Particle{};
 		ov->local()->coosvels[i].i1 = totalCount + i;
+	}
 
-	readXYZ(xyzfname, ov->initialPositions, stream);
-	if (ov->objSize != ov->initialPositions.size())
-		die("Object size and XYZ initial conditions don't match in size for %s", ov->name.c_str());
+	ov->local()->coosvels.uploadToDevice(stream);
+
+	info("Generated %d %s objects", generated, ov->name.c_str());
 
 	// Do the initial rotation
 	IntegratorVVRigid integrator("dummy", 0.0f);
