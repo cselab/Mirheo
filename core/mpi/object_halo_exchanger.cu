@@ -183,7 +183,7 @@ void ObjectHaloExchanger::prepareData(int id, cudaStream_t stream)
 				totSize_byte, lov->extraDataPtrs.devPtr(), nPtrs, lov->extraDataSizes.devPtr());
 
 		helper->sendBufSizes.downloadFromDevice(stream);
-		helper->resizeSendBufs();
+		helper->resizeSendBufs(stream);
 
 		helper->sendBufSizes.clearDevice(stream);
 		getObjectHalos<false> <<< lov->nObjects, nthreads, 0, stream >>> (

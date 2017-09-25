@@ -3,10 +3,10 @@ CUDA_ARCH = compute_60
 CUDA_CODE = sm_60
 
 LINKER = CC
-LINKFLAGS =
+LINKFLAGS +=
 
 HDF5_INC = $(HDF5_DIR)/include
 HDF5_LIB = $(HDF5_DIR)/lib
 
-INCLUDES =
-LIBS = -lhdf5
+INCLUDES +=
+LIBS += -lhdf5

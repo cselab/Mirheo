@@ -62,7 +62,7 @@ void EllipsoidIC::exec(const MPI_Comm& comm, ParticleVector* pv, float3 globalDo
 	{
 		int tries = 0;
 		int maxTries = 1000;
-		LocalRigidObjectVector::RigidMotion motion = {};
+		LocalRigidObjectVector::RigidMotion motion{};
 
 		for (tries=0; tries<maxTries; tries++)
 		{
@@ -89,20 +89,19 @@ void EllipsoidIC::exec(const MPI_Comm& comm, ParticleVector* pv, float3 globalDo
 
 		motions.resize(generated, stream, ResizeKind::resizePreserve);
 		motions[generated-1] = motion;
-
 	}
-	ov->local()->motions.uploadToDevice(stream);
-
 	ov->local()->resize(generated * ov->objSize, stream, ResizeKind::resizePreserve);
+	ov->local()->motions.uploadToDevice(stream);
 
 	int totalCount=0; // TODO: int64!
 	MPI_Check( MPI_Exscan(&generated, &totalCount, 1, MPI_INT, MPI_SUM, comm) );
 	for (int i=0; i < ov->local()->size(); i++)
 	{
-		ov->local()->coosvels[i] = Particle{};
-		ov->local()->coosvels[i].i1 = totalCount + i;
-	}
+		Particle p(make_float4(0), make_float4(0));
+		p.i1 = totalCount + i;
+		ov->local()->coosvels[i] = p;
 
+	}
 	ov->local()->coosvels.uploadToDevice(stream);
 
 	info("Generated %d %s objects", generated, ov->name.c_str());
@@ -111,5 +110,7 @@ void EllipsoidIC::exec(const MPI_Comm& comm, ParticleVector* pv, float3 globalDo
 	ov->local()->forces.clear(stream);
 	IntegratorVVRigid integrator("dummy", 0.0f);
 	integrator.stage2(pv, stream);
+
+	ov->local()->coosvels.downloadFromDevice(stream);
 }
 

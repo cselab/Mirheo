@@ -80,8 +80,8 @@ __global__ void getExitingObjects(const float4* __restrict__ coosvels, const Loc
 	__syncthreads();
 
 //		if (tid == 0)
-//			if (objId == 5)
-//				printf("obj  %d  to halo  %d  [%f %f %f] - [%f %f %f]  %d %d %d\n", objId, bufId,
+//			//if (objId == 5)
+//				printf("obj  %d  to redist  %d  [%f %f %f] - [%f %f %f]  %d %d %d\n", objId, bufId,
 //						prop.low.x, prop.low.y, prop.low.z, prop.high.x, prop.high.y, prop.high.z, cx, cy, cz);
 
 	float4* dstAddr = (float4*) (dests[bufId]) + packedObjSize_byte/sizeof(float4) * shDstObjId;
@@ -140,7 +140,7 @@ void ObjectRedistributor::prepareData(int id, cudaStream_t stream)
 	const int nthreads = 128;
 	if (ov->local()->nObjects > 0)
 	{
-		int       nPtrs  = lov->extraDataPtrs.size();
+		int nPtrs  = lov->extraDataPtrs.size();
 		int totSize_byte = lov->packedObjSize_bytes;
 
 		helper->sendBufSizes.clearDevice(stream);
@@ -151,7 +151,7 @@ void ObjectRedistributor::prepareData(int id, cudaStream_t stream)
 				totSize_byte, lov->extraDataPtrs.devPtr(), nPtrs, lov->extraDataSizes.devPtr());
 
 		helper->sendBufSizes.downloadFromDevice(stream);
-		helper->resizeSendBufs();
+		helper->resizeSendBufs(stream);
 
 		helper->sendBufSizes.clearDevice(stream);
 		getExitingObjects<false> <<< lov->nObjects, nthreads, 0, stream >>> (
@@ -179,6 +179,7 @@ void ObjectRedistributor::combineAndUploadData(int id, cudaStream_t stream)
 	ov->halo()->resize(helper->recvOffsets[27] * ov->halo()->objSize, stream, ResizeKind::resizeAnew);
 	ov->halo()->resize(helper->recvOffsets[27] * ov->halo()->objSize, stream, ResizeKind::resizeAnew);
 
+	// TODO: combine in one unpack call
 	const int nthreads = 128;
 	for (int i=0; i < 27; i++)
 	{

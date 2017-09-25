@@ -29,7 +29,7 @@ void IntegratorVVRigid::stage2(ParticleVector* pv, cudaStream_t stream)
 
 	collectRigidForces<<< getNblocks(2*ov->local()->size(), 128), 128, 0, stream >>> (
 			(float4*)ov->local()->coosvels.devPtr(), (float4*)ov->local()->forces.devPtr(), ov->local()->motions.devPtr(),
-			ov->local()->comAndExtents.devPtr(), ov->local()->nObjects, ov->local()->objSize);
+			ov->local()->nObjects, ov->local()->objSize);
 
 	const float3 J = ov->getInertiaTensor();
 	const float3 J_1 = 1.0 / J;

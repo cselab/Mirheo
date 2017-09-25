@@ -447,6 +447,11 @@ void Simulation::assemble()
 		redistributor->finalize(stream);
 	});
 
+	scheduler.addTask("Object extents", [&] (cudaStream_t stream) {
+		for (auto& ov : objectVectors)
+			ov->findExtentAndCOM(stream);
+	});
+
 	scheduler.addTask("Object redistribute init", [&] (cudaStream_t stream) {
 		objRedistibutor->init(stream);
 	});
@@ -456,15 +461,20 @@ void Simulation::assemble()
 	});
 
 
-	scheduler.addDependency("Сell-lists", {"Clear forces", "Halo init"}, {});
+	scheduler.addDependency("Сell-lists", {"Clear forces"}, {});
 
 	scheduler.addDependency("Plugins: before forces", {"Internal forces", "Halo forces"}, {"Clear forces"});
 	scheduler.addDependency("Plugins: serialize and send", {"Redistribute init", "Object redistribute init"}, {"Plugins: before forces"});
 
 	scheduler.addDependency("Internal forces", {}, {"Clear forces"});
-	scheduler.addDependency("Halo init", {"Internal forces"}, {});
+
+	scheduler.addDependency("Obj forces exchange: init", {}, {"Plugins: before forces"});
+	scheduler.addDependency("Obj forces exchange: finalize", {"Accumulate forces"}, {"Obj forces exchange: init"});
+
+	scheduler.addDependency("Halo init", {}, {"Plugins: before forces"});
 	scheduler.addDependency("Halo finalize", {}, {"Halo init"});
 	scheduler.addDependency("Halo forces", {}, {"Halo finalize"});
+
 	scheduler.addDependency("Accumulate forces", {"Integration"}, {"Halo forces", "Internal forces"});
 	scheduler.addDependency("Plugins: before integration", {"Integration"}, {"Accumulate forces"});
 	scheduler.addDependency("Wall bounce", {}, {"Integration"});
@@ -473,16 +483,19 @@ void Simulation::assemble()
 	scheduler.addDependency("Object halo finalize", {}, {"Object halo init"});
 
 	scheduler.addDependency("Object bounce", {}, {"Object halo finalize", "Integration"});
-	scheduler.addDependency("Obj forces exchange: init", {"Redistribute init"}, {"Object bounce"});
-	scheduler.addDependency("Obj forces exchange: finalize", {}, {"Obj forces exchange: init"});
 
 	scheduler.addDependency("Plugins: after integration", {}, {"Integration", "Wall bounce", "Obj forces exchange: finalize"});
 
 	scheduler.addDependency("Redistribute init", {}, {"Integration", "Wall bounce", "Obj forces exchange: finalize", "Plugins: after integration"});
-	scheduler.addDependency("Redistribute finalize", {}, {"Redistribute init"});
+	scheduler.addDependency("Redistribute finalize", {}, {"Object redistribute init", "Redistribute init"});
 
+	scheduler.addDependency("Object extents", {"Object redistribute init"}, {"Plugins: after integration"});
 	scheduler.addDependency("Object redistribute init", {}, {"Integration", "Wall bounce", "Obj forces exchange: finalize", "Plugins: after integration"});
-	scheduler.addDependency("Object redistribute finalize", {}, {"Object redistribute init"});
+	scheduler.addDependency("Object redistribute finalize", {}, {"Redistribute init", "Object redistribute init"});
+
+	scheduler.setHighPriority("Obj forces exchange: init");
+	scheduler.setHighPriority("Halo init");
+	scheduler.setHighPriority("Plugins: serialize and send");
 
 	scheduler.compile();
 }

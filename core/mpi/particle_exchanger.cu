@@ -18,24 +18,31 @@ ExchangeHelper::ExchangeHelper(std::string name, const int datumSize)
 
 	sendBufSizes.clear(0);
 
-	resizeSendBufs();
-	resizeRecvBufs();
+	resizeSendBufs(0);
+	resizeRecvBufs(0);
 }
 
-void ExchangeHelper::resizeSendBufs()
+void ExchangeHelper::resizeSendBufs(cudaStream_t stream)
 {
+	bool changed = false;
 	for (int i=0; i<sendBufSizes.size(); i++)
 	{
-		sendBufs[i].resize( sendBufSizes[i]*datumSize, 0, ResizeKind::resizeAnew );
-		sendAddrs[i] = sendBufs[i].devPtr();
+		sendBufs[i].resize( sendBufSizes[i]*datumSize, stream, ResizeKind::resizeAnew );
+		if (sendAddrs[i] != sendBufs[i].devPtr())
+		{
+			sendAddrs[i] = sendBufs[i].devPtr();
+			changed = true;
+		}
 	}
-	sendAddrs.uploadToDevice(0);
+
+	if (changed)
+		sendAddrs.uploadToDevice(stream);
 }
 
-void ExchangeHelper::resizeRecvBufs()
+void ExchangeHelper::resizeRecvBufs(cudaStream_t stream)
 {
 	for (int i=0; i<recvBufSizes.size(); i++)
-		recvBufs[i].resize( recvBufSizes[i]*datumSize, 0, ResizeKind::resizeAnew );
+		recvBufs[i].resize( recvBufSizes[i]*datumSize, stream, ResizeKind::resizeAnew );
 }
 
 ParticleExchanger::ParticleExchanger(MPI_Comm& comm) :
@@ -76,7 +83,7 @@ void ParticleExchanger::finalize(cudaStream_t stream)
 
 	// Post recv
 	for (auto helper : helpers)
-		recv(helper);
+		recv(helper, stream);
 
 	for (int i=0; i<helpers.size(); i++)
 		combineAndUploadData(i, stream);
@@ -89,7 +96,7 @@ int ParticleExchanger::tagByName(std::string name)
 	return (int)( nameHash(name) % (32767 / 27) );
 }
 
-void ParticleExchanger::recv(ExchangeHelper* helper)
+void ParticleExchanger::recv(ExchangeHelper* helper, cudaStream_t stream)
 {
 	std::string pvName = helper->name;
 
@@ -118,7 +125,7 @@ void ParticleExchanger::recv(ExchangeHelper* helper)
 	// Now do the actual data receive
 	int totalRecvd = 0;
 	std::fill(helper->recvOffsets.begin(), helper->recvOffsets.end(), std::numeric_limits<int>::max());
-	helper->resizeRecvBufs();
+	helper->resizeRecvBufs(stream);
 
 	helper->requests.clear();
 	for (int i=0; i<27; i++)

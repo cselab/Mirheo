@@ -21,8 +21,8 @@ struct ExchangeHelper
 
 	ExchangeHelper(std::string name, const int datumSize);
 
-	void resizeSendBufs();
-	void resizeRecvBufs();
+	void resizeSendBufs(cudaStream_t stream);
+	void resizeRecvBufs(cudaStream_t stream);
 };
 
 class ParticleExchanger
@@ -39,7 +39,7 @@ protected:
 
 	int tagByName(std::string);
 
-	void recv(ExchangeHelper* helper);
+	void recv(ExchangeHelper* helper, cudaStream_t stream);
 	void send(ExchangeHelper* helper, cudaStream_t stream);
 
 	virtual void prepareData(int id, cudaStream_t stream) = 0;

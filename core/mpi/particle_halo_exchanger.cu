@@ -131,7 +131,7 @@ void ParticleHaloExchanger::prepareData(int id, cudaStream_t stream)
 				(int64_t*)helper->sendAddrs.devPtr(), helper->sendBufSizes.devPtr() );
 
 		helper->sendBufSizes.downloadFromDevice(stream);
-		helper->resizeSendBufs();
+		helper->resizeSendBufs(stream);
 
 		helper->sendBufSizes.clearDevice(stream);
 		getHalos<false> <<< dim3((maxdim*maxdim + nthreads - 1) / nthreads, 6, 1),  dim3(nthreads, 1, 1), 0, stream >>> (

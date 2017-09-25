@@ -112,7 +112,11 @@ void TaskScheduler::run()
 	// Kahn's algorithm
 	// https://en.wikipedia.org/wiki/Topological_sorting
 
-	std::queue<Node*> S;
+	auto compareNodes = [] (Node* a, Node* b) {
+		// lower number means higher priority
+		return a->priority < b->priority;
+	};
+	std::priority_queue<Node*, std::vector<Node*>, decltype(compareNodes)> S(compareNodes);
 	std::vector<std::pair<cudaStream_t, Node*>> workMap;
 
 	for (auto n : nodes)
@@ -145,9 +149,12 @@ void TaskScheduler::run()
 					// Remove resolved dependencies
 					for (auto dep : node->to)
 					{
-						dep->from.remove(node);
-						if (dep->from.empty())
-							S.push(dep);
+						if (!dep->from.empty())
+						{
+							dep->from.remove(node);
+							if (dep->from.empty())
+								S.push(dep);
+						}
 					}
 
 					// Remove task from the list of currently in progress
@@ -162,7 +169,7 @@ void TaskScheduler::run()
 		if (completed == total)
 			break;
 
-		Node* node = S.front();
+		Node* node = S.top();
 		S.pop();
 
 		cudaStream_t stream;

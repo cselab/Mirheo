@@ -7,8 +7,7 @@
 
 
 __global__ void collectRigidForces(const float4 * coosvels, const float4 * forces,
-		LocalRigidObjectVector::RigidMotion* motion, LocalRigidObjectVector::COMandExtent* props,
-		const int nObj, const int objSize)
+		LocalRigidObjectVector::RigidMotion* motions, const int nObj, const int objSize)
 {
 	const int objId = blockIdx.x;
 	const int tid = threadIdx.x;
@@ -16,7 +15,7 @@ __global__ void collectRigidForces(const float4 * coosvels, const float4 * force
 
 	float3 force  = make_float3(0);
 	float3 torque = make_float3(0);
-	const float3 com = props[objId].com;
+	const float3 com = motions[objId].r;
 
 	// Find the total force and torque
 #pragma unroll 3
@@ -36,8 +35,8 @@ __global__ void collectRigidForces(const float4 * coosvels, const float4 * force
 
 	if ( (tid % warpSize) == 0)
 	{
-		atomicAdd(&motion[objId].force,  force);
-		atomicAdd(&motion[objId].torque, torque);
+		atomicAdd(&motions[objId].force,  force);
+		atomicAdd(&motions[objId].torque, torque);
 	}
 }
 

@@ -8,7 +8,8 @@ public:
 
 	struct __align__(16) RigidMotion
 	{
-		float3 r; float4 q;
+		float3 r;
+		float4 q;
 		float3 vel, omega;
 		float3 force, torque;
 

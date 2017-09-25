@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
-<simulation name="poiseuille" mpi_ranks="1 1 1" debug_lvl="5" noplugins="false">
+<simulation name="poiseuille" mpi_ranks="1 1 1" debug_lvl="5" noplugins="true">
 
 	<domain size="32 32 32" />
 	<particle_vector name="dpd" density="10" />

@@ -101,7 +101,7 @@ void ParticleRedistributor::prepareData(int id, cudaStream_t stream)
 				(int64_t*)helper->sendAddrs.devPtr(), helper->sendBufSizes.devPtr() );
 
 		helper->sendBufSizes.downloadFromDevice(stream);
-		helper->resizeSendBufs();
+		helper->resizeSendBufs(stream);
 
 		helper->sendBufSizes.clearDevice(stream);
 		getExitingParticles<false> <<< dim3((maxdim*maxdim + nthreads - 1) / nthreads, 6, 1),  dim3(nthreads, 1, 1), 0, stream>>> (
@@ -118,15 +118,17 @@ void ParticleRedistributor::combineAndUploadData(int id, cudaStream_t stream)
 	int oldsize = pv->local()->size();
 	pv->local()->resize(oldsize + helper->recvOffsets[27], stream, ResizeKind::resizePreserve);
 
-	auto ptr = pv->local()->coosvels.devPtr() + oldsize;
+	auto hptr = pv->local()->coosvels.hostPtr() + oldsize;
+	auto dptr = pv->local()->coosvels.devPtr() + oldsize;
 
 	for (int i=0; i < 27; i++)
 	{
 		const int msize = helper->recvOffsets[i+1] - helper->recvOffsets[i];
 		if (msize > 0)
-			CUDA_Check( cudaMemcpyAsync(ptr + helper->recvOffsets[i], helper->recvBufs[i].hostPtr(),
-					msize*sizeof(Particle), cudaMemcpyHostToDevice, stream) );
+			memcpy(hptr + helper->recvOffsets[i], helper->recvBufs[i].hostPtr(), msize*sizeof(Particle));
 	}
+
+	CUDA_Check( cudaMemcpyAsync(dptr, hptr, helper->recvOffsets[27]*sizeof(Particle), cudaMemcpyHostToDevice, stream) );
 
 	// The PV has changed significantly, need to update che cell-lists now
 	pv->local()->changedStamp++;

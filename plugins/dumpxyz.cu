@@ -25,14 +25,14 @@ void XYZPlugin::setup(Simulation* sim, const MPI_Comm& comm, const MPI_Comm& int
 
 void XYZPlugin::beforeForces(cudaStream_t stream)
 {
-	//if (currentTimeStep % dumpEvery != 0 || currentTimeStep == 0) return;
+	if (currentTimeStep % dumpEvery != 0 || currentTimeStep == 0) return;
 
 	pv->local()->coosvels.downloadFromDevice(stream);
 }
 
 void XYZPlugin::serializeAndSend(cudaStream_t stream)
 {
-	//if (currentTimeStep % dumpEvery != 0 || currentTimeStep == 0) return;
+	if (currentTimeStep % dumpEvery != 0 || currentTimeStep == 0) return;
 
 	debug2("Plugin %s is sending now data", name.c_str());
 

@@ -17,7 +17,9 @@ if (type == InteractionType::Regular)                                           
 	else /*  External interaction */                                                                                                                              \
 	{                                                                                                                                                             \
 		debug2("Computing external forces for %s - %s (%d - %d particles)", pv1->name.c_str(), pv2->name.c_str(), pv1->local()->size(), pv2->local()->size());    \
-																																								  \
+		if (pv1->local()->size() < pv2->local()->size())                                                                                                          \
+			std::swap(pv1, pv2);                                                                                                                                  \
+			                                                                                                                                                      \
 		const int nth = 128;                                                                                                                                      \
 		if (pv1->local()->size() > 0 && pv2->local()->size() > 0)                                                                                                 \
 			computeExternalInteractions<true, true, true> <<< (pv2->local()->size() + nth - 1) / nth, nth, 0, stream >>>(                                         \

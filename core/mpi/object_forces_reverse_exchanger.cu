@@ -43,7 +43,7 @@ void ObjectForcesReverseExchanger::prepareData(int id, cudaStream_t stream)
 
 	for (int i=0; i<27; i++)
 		helper->sendBufSizes[i] = offsets[i+1] - offsets[i];
-	helper->resizeSendBufs();
+	helper->resizeSendBufs(stream);
 
 	for (int i=0; i<27; i++)
 	{
