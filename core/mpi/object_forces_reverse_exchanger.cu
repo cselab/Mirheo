@@ -60,9 +60,11 @@ void ObjectForcesReverseExchanger::combineAndUploadData(int id, cudaStream_t str
 	auto ov = objects[id];
 	auto helper = helpers[id];
 
-	for (int i=0; i < helper->recvOffsets.size(); i++)
+	for (int i=0; i < helper->recvOffsets.size() - 1; i++)
 	{
 		const int msize = helper->recvOffsets[i+1] - helper->recvOffsets[i];
+
+		debug3("Updating forces for %d %s objects", msize, ov->name.c_str());
 
 		if (msize > 0)
 			CUDA_Check( cudaMemcpyAsync(ov->halo()->forces.devPtr() + helper->recvOffsets[i]*ov->halo()->objSize,
@@ -72,11 +74,12 @@ void ObjectForcesReverseExchanger::combineAndUploadData(int id, cudaStream_t str
 	}
 
 	const int np = helper->recvOffsets[27];
-	addHaloForces<<< (np+127)/128, 128, 0, stream >>> (
-			(float4*)ov->halo()->forces.devPtr(),    /* add to */
-			(float4*)ov->halo()->coosvels.devPtr(),  /* destination id here */
-			(float4*)ov->local()->forces.devPtr(),   /* source */
-			ov->objSize, np );
+	if (np > 0)
+		addHaloForces<<< (np+127)/128, 128, 0, stream >>> (
+				(float4*)ov->halo()->forces.devPtr(),    /* add to */
+				(float4*)ov->halo()->coosvels.devPtr(),  /* destination id here */
+				(float4*)ov->local()->forces.devPtr(),   /* source */
+				ov->objSize, np );
 }
 
 

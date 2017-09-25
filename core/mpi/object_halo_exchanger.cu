@@ -113,7 +113,10 @@ __global__ void getObjectHalos(const float4* __restrict__ coosvels, const LocalO
 
 			// Remember your origin, little particle!
 			if (sh == 1)
+			{
 				data.s2 = objId;
+				data.s1 = pid;
+			}
 
 			if (sh == 0)
 				data.v -= shift;

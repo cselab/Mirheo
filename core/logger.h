@@ -51,7 +51,10 @@ class Logger
 				+ fname + ":" + std::to_string(lnum) + "  " +pattern + "\n";
 
 			fprintf(fout, intro.c_str(), rank, (cappedLvl >= 0 ? lvl2text[cappedLvl] : "").c_str(), args...);
+
+#ifndef __OPTIMIZE__
 			fflush(fout);
+#endif
 		}
 	}
 

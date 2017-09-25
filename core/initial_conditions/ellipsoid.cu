@@ -11,9 +11,14 @@ void EllipsoidIC::readXYZ(std::string fname, PinnedBuffer<float4>& positions, cu
 {
 	int n;
 	float dummy;
+	std::string line;
 
 	std::ifstream fin(fname);
 	fin >> n;
+
+	// skip the comment line
+	std::getline(fin, line);
+	std::getline(fin, line);
 
 	positions.resize(n, stream, ResizeKind::resizeAnew);
 	for (int i=0; i<n; i++)
@@ -27,6 +32,9 @@ void EllipsoidIC::exec(const MPI_Comm& comm, ParticleVector* pv, float3 globalDo
 	auto ov = dynamic_cast<RigidEllipsoidObjectVector*>(pv);
 	if (ov == nullptr)
 		die("Ellipsoids can only be generated out of rigid object vectors");
+
+	pv->globalDomainStart = globalDomainStart;
+	pv->localDomainSize = localDomainSize;
 
 	int rank;
 	MPI_Check( MPI_Comm_rank(comm, &rank) );
@@ -77,9 +85,9 @@ void EllipsoidIC::exec(const MPI_Comm& comm, ParticleVector* pv, float3 globalDo
 
 		float3 v = make_float3(udistr(gen), udistr(gen), udistr(gen));
 		v = normalize(v);
+		motion.q = make_float4(cphi, sphi*v.x, sphi*v.y, sphi*v.z);
 
 		motions.resize(generated, stream, ResizeKind::resizePreserve);
-		motions[generated-1].q = make_float4(cphi, sphi*v.x, sphi*v.y, sphi*v.z);
 		motions[generated-1] = motion;
 
 	}
@@ -100,6 +108,7 @@ void EllipsoidIC::exec(const MPI_Comm& comm, ParticleVector* pv, float3 globalDo
 	info("Generated %d %s objects", generated, ov->name.c_str());
 
 	// Do the initial rotation
+	ov->local()->forces.clear(stream);
 	IntegratorVVRigid integrator("dummy", 0.0f);
 	integrator.stage2(pv, stream);
 }

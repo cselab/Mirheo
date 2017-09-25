@@ -77,7 +77,7 @@ class ObjectVector : public ParticleVector
 {
 protected:
 	ObjectVector( std::string name, float mass, int objSize, LocalObjectVector *local, LocalObjectVector *halo ) :
-		ParticleVector(name, mass, local, halo), objSize(objSize) {}
+		ParticleVector(name, mass, local, halo), objSize(objSize), objMass(objSize*mass) {}
 
 public:
 	int objSize;

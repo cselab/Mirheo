@@ -167,7 +167,7 @@ void ObjectRedistributor::prepareData(int id, cudaStream_t stream)
 				helper->sendBufSizes[13],
 				lov->extraDataPtrs.devPtr(), nPtrs, lov->extraDataSizes.devPtr());
 
-		lov->resize(helper->sendBufSizes[13], stream);
+		lov->resize(helper->sendBufSizes[13]*ov->objSize, stream);
 	}
 }
 
