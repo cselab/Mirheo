@@ -11,12 +11,18 @@ __device__ inline float ellipsoidF(const float3 r, const float3 invAxes)
 	return sqr(r.x * invAxes.x) + sqr(r.y * invAxes.y) + sqr(r.z * invAxes.z) - 1.0f;
 }
 
-__device__ __forceinline__ void bounceCellArray(int* validCells, int nCells, int objId, float4* coosvels,
-		float mass, LocalRigidObjectVector::RigidMotion* motions, const float3 invAxes, const float3 axes,
+__device__ __forceinline__ void bounceCellArray(
+		REOVview ovView, PVview pvView, int objId,
+		int* validCells, int nCells,
 		const uint* __restrict__ cellsStartSize, CellListInfo cinfo, const float dt)
 {
 	const float threshold = 2e-6f;
 	const int maxIters = 100;
+
+	auto motions = ovView.motions;
+	float3 axes = ovView.axes;
+	float3 invAxes = ovView.invAxes;
+
 
 	if (threadIdx.x >= nCells) return;
 
@@ -34,7 +40,7 @@ __device__ __forceinline__ void bounceCellArray(int* validCells, int nCells, int
 	// XXX: changing reading layout may improve performance here
 	for (int pid = start_size.x; pid < start_size.x + start_size.y; pid++)
 	{
-		const Particle p(coosvels[2*pid], coosvels[2*pid+1]);
+		const Particle p(pvView.particles, pid);
 
 		// Go to the obj frame where the obj is completely still
 		float3 coo = rotate(p.r - objR, invQ(objQ));
@@ -102,25 +108,23 @@ __device__ __forceinline__ void bounceCellArray(int* validCells, int nCells, int
 		newCoo = rotate(newCoo, objQ) + objR;
 		vel    = rotate(vel,    objQ) + motions[objId].vel;
 
-		const float3 frc = -mass * (vel - p.u) / dt;
+		const float3 frc = -pvView.mass * (vel - p.u) / dt;
 		atomicAdd( &motions[objId].force,  frc);
 		atomicAdd( &motions[objId].torque, cross(newCoo - objR, frc) );
 
-		coosvels[2*pid]   = Float3_int(newCoo, p.i1).toFloat4();
-		coosvels[2*pid+1] = Float3_int(vel,    p.i2).toFloat4();
+		pvView.particles[2*pid]   = Float3_int(newCoo, p.i1).toFloat4();
+		pvView.particles[2*pid+1] = Float3_int(vel,    p.i2).toFloat4();
 	}
 }
 
-__global__ void bounceEllipsoid(float4* coosvels, float mass,
-		const LocalRigidObjectVector::COMandExtent* props, LocalRigidObjectVector::RigidMotion* motions,
-		const int nObj, const float3 invAxes, const float3 axes,
+__global__ void bounceEllipsoid(REOVview ovView, PVview pvView,
 		const uint* __restrict__ cellsStartSize, CellListInfo cinfo, const float dt)
 {
 	const float threshold = 0.2f;
 
 	const int objId = blockIdx.x;
 	const int tid = threadIdx.x;
-	if (objId >= nObj) return;
+	if (objId >= ovView.nObjects) return;
 
 	// Preparation step. Filter out all the cells that don't intersect the surface
 	__shared__ volatile int nCells;
@@ -129,13 +133,13 @@ __global__ void bounceEllipsoid(float4* coosvels, float mass,
 	nCells = 0;
 	__syncthreads();
 
-	const int3 cidLow  = cinfo.getCellIdAlongAxis(props[objId].low  - 0.5f);
-	const int3 cidHigh = cinfo.getCellIdAlongAxis(props[objId].high + 1.5f);
+	const int3 cidLow  = cinfo.getCellIdAlongAxis(ovView.comAndExtents[objId].low  - 0.5f);
+	const int3 cidHigh = cinfo.getCellIdAlongAxis(ovView.comAndExtents[objId].high + 1.5f);
 
 	const int3 span = cidHigh - cidLow + make_int3(1,1,1);
 	const int totCells = span.x * span.y * span.z;
 
-	const float4 invq = invQ(motions[objId].q);
+	const float4 invq = invQ(ovView.motions[objId].q);
 
 	for (int i=tid; i<totCells + blockDim.x-1; i+=blockDim.x)
 	{
@@ -143,7 +147,7 @@ __global__ void bounceEllipsoid(float4* coosvels, float mass,
 		{
 			const int3 cid3 = make_int3( i % span.x, (i/span.x) % span.y, i / (span.x*span.y) ) + cidLow;
 
-			float3 v000 = make_float3(cid3) * cinfo.h - cinfo.localDomainSize*0.5f - motions[objId].r;
+			float3 v000 = make_float3(cid3) * cinfo.h - cinfo.localDomainSize*0.5f - ovView.motions[objId].r;
 
 			float3 v001 = rotate( v000 + make_float3(        0,         0, cinfo.h.z), invq );
 			float3 v010 = rotate( v000 + make_float3(        0, cinfo.h.y,         0), invq );
@@ -155,14 +159,14 @@ __global__ void bounceEllipsoid(float4* coosvels, float mass,
 
 			v000 = rotate( v000, invq );
 
-			if ( ellipsoidF(v000, invAxes) < threshold ||
-				 ellipsoidF(v001, invAxes) < threshold ||
-				 ellipsoidF(v010, invAxes) < threshold ||
-				 ellipsoidF(v011, invAxes) < threshold ||
-				 ellipsoidF(v100, invAxes) < threshold ||
-				 ellipsoidF(v101, invAxes) < threshold ||
-				 ellipsoidF(v110, invAxes) < threshold ||
-				 ellipsoidF(v111, invAxes) < threshold )
+			if ( ellipsoidF(v000, ovView.invAxes) < threshold ||
+				 ellipsoidF(v001, ovView.invAxes) < threshold ||
+				 ellipsoidF(v010, ovView.invAxes) < threshold ||
+				 ellipsoidF(v011, ovView.invAxes) < threshold ||
+				 ellipsoidF(v100, ovView.invAxes) < threshold ||
+				 ellipsoidF(v101, ovView.invAxes) < threshold ||
+				 ellipsoidF(v110, ovView.invAxes) < threshold ||
+				 ellipsoidF(v111, ovView.invAxes) < threshold )
 			{
 				int id = atomicAggInc((int*)&nCells);
 				validCells[id] = cinfo.encode(cid3);
@@ -174,9 +178,7 @@ __global__ void bounceEllipsoid(float4* coosvels, float mass,
 		// If we have enough cells ready - process them
 		if (nCells >= blockDim.x)
 		{
-			bounceCellArray(validCells, blockDim.x, objId, coosvels,
-					mass, motions, invAxes, axes,
-					cellsStartSize, cinfo, dt);
+			bounceCellArray(ovView, pvView, objId, validCells, blockDim.x, cellsStartSize, cinfo, dt);
 
 			__syncthreads();
 
@@ -190,9 +192,7 @@ __global__ void bounceEllipsoid(float4* coosvels, float mass,
 	__syncthreads();
 
 	// Process remaining
-	bounceCellArray(validCells, nCells, objId, coosvels,
-						mass, motions, invAxes, axes,
-						cellsStartSize, cinfo, dt);
+	bounceCellArray(ovView, pvView, objId, validCells, nCells, cellsStartSize, cinfo, dt);
 }
 
 

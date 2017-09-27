@@ -41,24 +41,10 @@ public:
 	virtual ~LocalParticleVector() = default;
 };
 
-class PVinfo
+class ParticleVector
 {
 public:
 	float3 localDomainSize, globalDomainStart;
-
-	__forceinline__ __host__ __device__ float3 local2global(float3 x) const
-	{
-		return x + globalDomainStart + 0.5f * localDomainSize;
-	}
-	__forceinline__ __host__ __device__ float3 global2local(float3 x) const
-	{
-		return x - globalDomainStart - 0.5f * localDomainSize;
-	}
-};
-
-class ParticleVector : public PVinfo
-{
-public:
 	LocalParticleVector *_local, *_halo;
 
 	float mass;
@@ -67,7 +53,7 @@ public:
 
 protected:
 	ParticleVector(	std::string name, float mass, LocalParticleVector *local, LocalParticleVector *halo ) :
-		name(name), _local(local), _halo(halo) {}
+		name(name), mass(mass), _local(local), _halo(halo) {}
 
 public:
 	ParticleVector(std::string name, float mass, int n=0) :
@@ -81,7 +67,44 @@ public:
 
 	virtual void checkpoint(MPI_Comm comm, std::string path);
 	virtual void restart(MPI_Comm comm, std::string path);
-	PVinfo pvInfo() { return *((PVinfo*)this); }
 
 	virtual ~ParticleVector() { delete _local; delete _halo; }
+};
+
+
+/**
+ * GPU-compatibe struct of all the relevant data
+ */
+struct PVview
+{
+	float3 localDomainSize, globalDomainStart;
+
+	int size;
+	float4 *particles, *forces;
+
+	float mass, invMass;
+
+
+	__forceinline__ __host__ __device__ float3 local2global(float3 x) const
+	{
+		return x + globalDomainStart + 0.5f * localDomainSize;
+	}
+	__forceinline__ __host__ __device__ float3 global2local(float3 x) const
+	{
+		return x - globalDomainStart - 0.5f * localDomainSize;
+	}
+
+
+	PVview(ParticleVector* pv, LocalParticleVector* lpv)
+	{
+		localDomainSize = pv->localDomainSize;
+		globalDomainStart = pv->globalDomainStart;
+
+		size = lpv->size();
+		particles = reinterpret_cast<float4*>(lpv->coosvels.devPtr());
+		forces    = reinterpret_cast<float4*>(lpv->forces.devPtr());
+
+		mass = pv->mass;
+		invMass = 1.0 / mass;
+	}
 };

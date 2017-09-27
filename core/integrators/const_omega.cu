@@ -28,8 +28,10 @@ void IntegratorConstOmega::stage2(ParticleVector* pv, cudaStream_t stream)
 	int nthreads = 128;
 
 	if (pv->local()->size() > 0)
-		integrationKernel<<< getNblocks(2*pv->local()->size(), nthreads), nthreads, 0, stream >>>(
-				(float4*)pv->local()->coosvels.devPtr(), (float4*)pv->local()->forces.devPtr(), pv->local()->size(), 1.0/pv->mass, dt, rotate);
+	{
+		auto pvView = PVview(pv, pv->local());
+		integrationKernel<<< getNblocks(2*pvView.size, nthreads), nthreads, 0, stream >>>(pvView, dt, rotate);
+	}
 
 	pv->local()->changedStamp++;
 }

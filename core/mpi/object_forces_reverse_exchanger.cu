@@ -28,7 +28,7 @@ __global__ void addHaloForces(const float4* haloForces, const float4* halo, floa
 void ObjectForcesReverseExchanger::attach(ObjectVector* ov)
 {
 	objects.push_back(ov);
-	ExchangeHelper* helper = new ExchangeHelper(ov->name, ov->local()->objSize*sizeof(Force));
+	ExchangeHelper* helper = new ExchangeHelper(ov->name, ov->objSize*sizeof(Force));
 	helpers.push_back(helper);
 }
 
@@ -49,8 +49,8 @@ void ObjectForcesReverseExchanger::prepareData(int id, cudaStream_t stream)
 	{
 		if (helper->sendBufSizes[i] > 0)
 			CUDA_Check( cudaMemcpyAsync( helper->sendBufs[i].hostPtr(),
-										 ov->halo()->forces.devPtr() + offsets[i]*ov->halo()->objSize,
-										 helper->sendBufSizes[i]*sizeof(Force)*ov->halo()->objSize,
+										 ov->halo()->forces.devPtr() + offsets[i]*ov->objSize,
+										 helper->sendBufSizes[i]*sizeof(Force)*ov->objSize,
 										 cudaMemcpyHostToDevice, stream ) );
 	}
 }
@@ -67,9 +67,9 @@ void ObjectForcesReverseExchanger::combineAndUploadData(int id, cudaStream_t str
 		debug3("Updating forces for %d %s objects", msize, ov->name.c_str());
 
 		if (msize > 0)
-			CUDA_Check( cudaMemcpyAsync(ov->halo()->forces.devPtr() + helper->recvOffsets[i]*ov->halo()->objSize,
+			CUDA_Check( cudaMemcpyAsync(ov->halo()->forces.devPtr() + helper->recvOffsets[i]*ov->objSize,
 										helper->recvBufs[compactedDirs[i]].hostPtr(),
-										msize*sizeof(Force)*ov->halo()->objSize,
+										msize*sizeof(Force)*ov->objSize,
 										cudaMemcpyHostToDevice, stream) );
 	}
 

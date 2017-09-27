@@ -5,7 +5,7 @@
 
 float3 RigidEllipsoidObjectVector::getInertiaTensor()
 {
-	return objMass / 5.0 * make_float3(
+	return mass*objSize / 5.0 * make_float3(
 			sqr(axes.y) + sqr(axes.z),
 			sqr(axes.z) + sqr(axes.x),
 			sqr(axes.x) + sqr(axes.y) );

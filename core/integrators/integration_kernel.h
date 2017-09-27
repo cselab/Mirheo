@@ -2,22 +2,22 @@
 
 #include <core/cuda_common.h>
 #include <core/datatypes.h>
-
+#include <core/pvs/particle_vector.h>
 
 /**
  * transform(Particle&p, const float3 f, const float invm, const float dt):
  *  performs integration
  */
 template<typename Transform>
-__global__ void integrationKernel(float4* coosvels, const float4* forces, const int n, const float invmass, const float dt, Transform transform)
+__global__ void integrationKernel(PVview pvView, const float dt, Transform transform)
 {
 	const int gid = blockIdx.x * blockDim.x + threadIdx.x;
 	const int pid = gid / 2;
 	const int sh  = gid % 2;  // sh = 0 loads coordinate, sh = 1 -- velocity
-	if (pid >= n) return;
+	if (pid >= pvView.size) return;
 
-	float4 val = coosvels[gid]; //readNoCache(coosvels+gid);
-	Float3_int frc(forces[pid]);
+	float4 val = pvView.particles[gid]; //readNoCache(coosvels+gid);
+	Float3_int frc(pvView.forces[pid]);
 
 	// Send velocity to adjacent thread that has the coordinate
 	Particle p;
@@ -31,7 +31,7 @@ __global__ void integrationKernel(float4* coosvels, const float4* forces, const 
 	if (sh == 0)
 	{
 		p = Particle(val, othval);
-		transform(p, frc.v, invmass, dt);
+		transform(p, frc.v, pvView.invMass, dt);
 		val = p.r2Float4();
 	}
 
@@ -42,9 +42,9 @@ __global__ void integrationKernel(float4* coosvels, const float4* forces, const 
 		othval.w = __int_as_float(-1);
 
 		p = Particle(othval, val);
-		transform(p, frc.v, invmass, dt);
+		transform(p, frc.v, pvView.invMass, dt);
 		val = p.u2Float4();
 	}
 
-	coosvels[gid] = val; //writeNoCache(coosvels + gid, val);
+	pvView.particles[gid] = val; //writeNoCache(coosvels + gid, val);
 }

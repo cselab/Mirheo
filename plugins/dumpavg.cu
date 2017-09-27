@@ -7,21 +7,20 @@
 #include <core/celllist.h>
 #include <core/cuda_common.h>
 
-__global__ void sample(int np, const float4* coosvels, const float4* forces,
-		const float mass, CellListInfo cinfo, float* avgDensity, float3* avgMomentum, float3* avgForce)
+__global__ void sample(PVview pvView, CellListInfo cinfo, float* avgDensity, float3* avgMomentum, float3* avgForce)
 {
 	const int pid = threadIdx.x + blockIdx.x*blockDim.x;
-	if (pid >= np) return;
+	if (pid >= pvView.size) return;
 
-	const float4 coo = coosvels[2*pid];
+	const float4 coo = pvView.particles[2*pid];
 	const int cid = cinfo.getCellId(coo);
 
 	if (avgDensity != nullptr)
-		atomicAdd(avgDensity+cid, mass);
+		atomicAdd(avgDensity+cid, pvView.mass);
 
 	if (avgMomentum != nullptr)
 	{
-		const float3 momentum = make_float3(coosvels[2*pid+1] * mass);
+		const float3 momentum = make_float3(pvView.particles[2*pid+1] * pvView.mass);
 		atomicAdd( (float*)(avgMomentum + cid)  , momentum.x);
 		atomicAdd( (float*)(avgMomentum + cid)+1, momentum.y);
 		atomicAdd( (float*)(avgMomentum + cid)+2, momentum.z);
@@ -29,7 +28,7 @@ __global__ void sample(int np, const float4* coosvels, const float4* forces,
 
 	if (avgForce != nullptr)
 	{
-		const float3 frc = make_float3(forces[pid]);
+		const float3 frc = make_float3(pvView.forces[pid]);
 		atomicAdd( (float*)(avgForce + cid)  , frc.x);
 		atomicAdd( (float*)(avgForce + cid)+1, frc.y);
 		atomicAdd( (float*)(avgForce + cid)+2, frc.z);
@@ -100,10 +99,10 @@ void Avg3DPlugin::afterIntegration(cudaStream_t stream)
 	for (auto pv : particleVectors)
 	{
 		CellListInfo cinfo(binSize, pv->localDomainSize);
+		auto pvView = PVview(pv, pv->local());
 
-		sample<<< (pv->local()->size()+127) / 128, 128, 0, stream >>> (
-				pv->local()->size(), (float4*)pv->local()->coosvels.devPtr(), (float4*)pv->local()->forces.devPtr(),
-				pv->mass, cinfo,
+		sample<<< (pvView.size+127) / 128, 128, 0, stream >>> (
+				pvView, cinfo,
 				needDensity  ? density .devPtr() : nullptr,
 				needMomentum ? momentum.devPtr() : nullptr,
 				needForce    ? force   .devPtr() : nullptr );
@@ -120,7 +119,7 @@ void Avg3DPlugin::serializeAndSend(cudaStream_t stream)
 	if (needMomentum)
 	{
 		int sz = momentum.size();
-		scaleVec<<< (sz+127)/128, 128, 0, stream >>> ( sz, momentum.devPtr(), density.devPtr());
+		scaleVec<<< (sz+127)/128, 128, 0, stream >>> (sz, momentum.devPtr(), density.devPtr());
 		momentum.downloadFromDevice(stream);
 		momentum.clearDevice(stream);
 	}
@@ -128,7 +127,7 @@ void Avg3DPlugin::serializeAndSend(cudaStream_t stream)
 	if (needForce)
 	{
 		int sz = force.size();
-		scaleVec<<< (sz+127)/128, 128, 0, stream >>> ( sz, force.devPtr(),    density.devPtr());
+		scaleVec<<< (sz+127)/128, 128, 0, stream >>> (sz, force.devPtr(), density.devPtr());
 		force.downloadFromDevice(stream);
 		force.clearDevice(stream);
 	}

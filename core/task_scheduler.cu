@@ -57,6 +57,19 @@ void TaskScheduler::setHighPriority(std::string label)
 	node->priority = cudaPriorityHigh;
 }
 
+void TaskScheduler::forceExec(std::string label)
+{
+	Node* node = nullptr;
+	for (auto n : nodes)
+		if (n->label == label) node = n;
+
+	if (node == nullptr)
+		die("Task group with label %s not found", label.c_str());
+
+	for (auto& func : node->funcs)
+		func(0);
+}
+
 void TaskScheduler::compile()
 {
 	for (auto& n : nodes)

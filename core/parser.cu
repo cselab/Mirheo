@@ -107,10 +107,10 @@ private:
 
 	static InitialConditions* createEllipsoidIC(pugi::xml_node node)
 	{
-		float sep = node.attribute("separation").as_float(0.2);
-		std::string xyzfname = node.attribute("xyzfname").as_string("ellipsoid.xyz");
+		std::string icfname  = node.attribute("ic_filename").as_string("ellipsoids.ic");
+		std::string xyzfname = node.attribute("xyz_filename").as_string("ellipsoid.xyz");
 
-		return (InitialConditions*) new EllipsoidIC(sep, xyzfname);
+		return (InitialConditions*) new EllipsoidIC(xyzfname, icfname);
 	}
 
 	static InitialConditions* createRestartIC(pugi::xml_node node)
@@ -128,7 +128,7 @@ public:
 
 		if (type == "uniform")
 			return createUniformIC(node);
-		if (type == "uniform_ellipsoids")
+		if (type == "read_ellipsoids")
 			return createEllipsoidIC(node);
 		if (type == "restart")
 			return createRestartIC(node);

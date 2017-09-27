@@ -8,7 +8,7 @@ public:
 
 	struct __align__(16) RigidMotion
 	{
-		float3 r;
+		float3 r; 		// R is in the GLOBAL reference frame!
 		float4 q;
 		float3 vel, omega;
 		float3 force, torque;
@@ -72,5 +72,30 @@ public:
 
 	virtual ~RigidObjectVector() {};
 };
+
+/**
+ * GPU-compatibe struct of all the relevant data
+ */
+struct ROVview : public OVview
+{
+	LocalRigidObjectVector::RigidMotion *motions;
+
+	float3 J, J_1;
+
+	// TODO: implement this
+	//float inertia[9];
+
+	ROVview(RigidObjectVector* ov, LocalRigidObjectVector* lov) :
+		OVview(static_cast<ObjectVector*>(ov), static_cast<LocalObjectVector*>(lov))
+	{
+		motions = lov->motions.devPtr();
+		J = ov->getInertiaTensor();
+		J_1 = 1.0 / J;
+	}
+};
+
+
+
+
 
 

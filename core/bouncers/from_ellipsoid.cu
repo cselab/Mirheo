@@ -20,13 +20,12 @@ void BounceFromRigidEllipsoid::exec(ObjectVector* ov, ParticleVector* pv, CellLi
 		die("Analytic ellispoid bounce only works with RigidObjectVector");
 
 	debug("Bouncing %s particles from %s object vector", pv->name.c_str(), reov->name.c_str());
-	auto activeREOV = local ? reov->local() : reov->halo();
+
+	auto ovView = REOVview(reov, local ? reov->local() : reov->halo());
+	auto pvView = PVview(pv, pv->local());
 
 	int nthreads = 512;
-	bounceEllipsoid<<< activeREOV->nObjects, nthreads, 2*nthreads*sizeof(int), stream >>> (
-			(float4*)pv->local()->coosvels.devPtr(), pv->mass, activeREOV->comAndExtents.devPtr(), activeREOV->motions.devPtr(),
-			activeREOV->nObjects, 1.0f / reov->axes, reov->axes,
-			cl->cellsStartSize.devPtr(), cl->cellInfo(), dt);
+	bounceEllipsoid<<< ovView.nObjects, nthreads, 2*nthreads*sizeof(int), stream >>> (ovView, pvView, cl->cellsStartSize.devPtr(), cl->cellInfo(), dt);
 }
 
 

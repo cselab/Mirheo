@@ -92,7 +92,7 @@ void ParticleRedistributor::prepareData(int id, cudaStream_t stream)
 	debug2("Preparing %s leaving particles on the device", pv->name.c_str());
 
 	const int maxdim = std::max({cl->ncells.x, cl->ncells.y, cl->ncells.z});
-	const int nthreads = 32;
+	const int nthreads = 64;
 	if (pv->local()->size() > 0)
 	{
 		helper->sendBufSizes.clear(stream);

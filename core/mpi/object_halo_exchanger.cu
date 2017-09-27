@@ -55,16 +55,16 @@ __global__ void getObjectHalos(const float4* __restrict__ coosvels, const LocalO
 	auto prop = props[objId];
 	int cx = 1, cy = 1, cz = 1;
 
-	if (prop.low.x  < -0.5*localDomainSize.x + rc) cx = 0;
-	if (prop.low.y  < -0.5*localDomainSize.y + rc) cy = 0;
-	if (prop.low.z  < -0.5*localDomainSize.z + rc) cz = 0;
+	if (prop.low.x  < -0.5f*localDomainSize.x + rc) cx = 0;
+	if (prop.low.y  < -0.5f*localDomainSize.y + rc) cy = 0;
+	if (prop.low.z  < -0.5f*localDomainSize.z + rc) cz = 0;
 
-	if (prop.high.x >  0.5*localDomainSize.x - rc) cx = 2;
-	if (prop.high.y >  0.5*localDomainSize.y - rc) cy = 2;
-	if (prop.high.z >  0.5*localDomainSize.z - rc) cz = 2;
+	if (prop.high.x >  0.5f*localDomainSize.x - rc) cx = 2;
+	if (prop.high.y >  0.5f*localDomainSize.y - rc) cy = 2;
+	if (prop.high.z >  0.5f*localDomainSize.z - rc) cz = 2;
 
 //	if (tid == 0) printf("Obj %d : [%f %f %f] -- [%f %f %f]\n", objId,
-//			prop.low.x, prop.low.y, prop.low.z, prop.high.x, prop.high.y, prop.high.z);
+//		prop.low.x, prop.low.y, prop.low.z, prop.high.x, prop.high.y, prop.high.z);
 
 	for (int ix = min(cx, 1); ix <= max(cx, 1); ix++)
 		for (int iy = min(cy, 1); iy <= max(cy, 1); iy++)
@@ -100,9 +100,8 @@ __global__ void getObjectHalos(const float4* __restrict__ coosvels, const LocalO
 		__syncthreads();
 
 //		if (tid == 0)
-//			if (objId == 5)
-//				printf("obj  %d  to halo  %d  [%f %f %f] - [%f %f %f]  %d %d %d\n", objId, bufId,
-//						prop.low.x, prop.low.y, prop.low.z, prop.high.x, prop.high.y, prop.high.z, cx, cy, cz);
+//			printf("obj  %d  to halo  %d  [%f %f %f] - [%f %f %f]  %d %d %d\n", objId, bufId,
+//				prop.low.x, prop.low.y, prop.low.z, prop.high.x, prop.high.y, prop.high.z, cx, cy, cz);
 
 		float4* dstAddr = (float4*) (dests[bufId]) + packedObjSize_byte/sizeof(float4) * shDstObjId;
 
@@ -157,6 +156,8 @@ void ObjectHaloExchanger::attach(ObjectVector* ov, float rc)
 	rcs.push_back(rc);
 	ExchangeHelper* helper = new ExchangeHelper(ov->name, ov->local()->packedObjSize_bytes);
 	helpers.push_back(helper);
+
+	info("Object vector %s (rc %f) was attached to halo exchanger", ov->name.c_str(), rc);
 }
 
 
@@ -178,7 +179,7 @@ void ObjectHaloExchanger::prepareData(int id, cudaStream_t stream)
 		helper->sendBufSizes.clearDevice(stream);
 		getObjectHalos<true>  <<< lov->nObjects, nthreads, 0, stream >>> (
 				(float4*)lov->coosvels.devPtr(), lov->comAndExtents.devPtr(),
-				lov->nObjects, lov->objSize, ov->localDomainSize, rc,
+				lov->nObjects, ov->objSize, ov->localDomainSize, rc,
 				(int64_t*)helper->sendAddrs.devPtr(), helper->sendBufSizes.devPtr(),
 				totSize_byte, lov->extraDataPtrs.devPtr(), nPtrs, lov->extraDataSizes.devPtr());
 
@@ -188,7 +189,7 @@ void ObjectHaloExchanger::prepareData(int id, cudaStream_t stream)
 		helper->sendBufSizes.clearDevice(stream);
 		getObjectHalos<false> <<< lov->nObjects, nthreads, 0, stream >>> (
 				(float4*)lov->coosvels.devPtr(), lov->comAndExtents.devPtr(),
-				lov->nObjects, lov->objSize, ov->localDomainSize, rc,
+				lov->nObjects, ov->objSize, ov->localDomainSize, rc,
 				(int64_t*)helper->sendAddrs.devPtr(), helper->sendBufSizes.devPtr(),
 				totSize_byte, lov->extraDataPtrs.devPtr(), nPtrs, lov->extraDataSizes.devPtr());
 	}
@@ -199,7 +200,7 @@ void ObjectHaloExchanger::combineAndUploadData(int id, cudaStream_t stream)
 	auto ov = objects[id];
 	auto helper = helpers[id];
 
-	ov->halo()->resize(helper->recvOffsets[27] * ov->halo()->objSize, stream, ResizeKind::resizeAnew);
+	ov->halo()->resize(helper->recvOffsets[27] * ov->objSize, stream, ResizeKind::resizeAnew);
 
 	const int nthreads = 128;
 	for (int i=0; i < 27; i++)
@@ -211,7 +212,7 @@ void ObjectHaloExchanger::combineAndUploadData(int id, cudaStream_t stream)
 			int totSize_byte = ov->local()->packedObjSize_bytes;
 
 			unpackObject<<< nObjs, nthreads, 0, stream >>>
-					((float4*)helper->recvBufs[i].devPtr(), (float4*)(ov->halo()->coosvels.devPtr() + helper->recvOffsets[i]*nObjs), ov->local()->objSize, totSize_byte, nObjs,
+					((float4*)helper->recvBufs[i].devPtr(), (float4*)(ov->halo()->coosvels.devPtr() + helper->recvOffsets[i]*nObjs), ov->objSize, totSize_byte, nObjs,
 					 ov->halo()->extraDataPtrs.devPtr(), nPtrs, ov->halo()->extraDataSizes.devPtr());
 		}
 	}

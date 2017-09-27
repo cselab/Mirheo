@@ -8,7 +8,8 @@
 #include "valid_cell.h"
 
 template<bool QUERY=false>
-__global__ void getHalos(const float4* __restrict__ coosvels, const CellListInfo cinfo, const uint* __restrict__ cellsStartSize,
+__global__ void getHalos(const float4* __restrict__ coosvels,
+		const CellListInfo cinfo, const uint* __restrict__ cellsStartSize,
 		const int64_t dests[27], int counts[27])
 {
 	const int gid = blockIdx.x*blockDim.x + threadIdx.x;
@@ -122,7 +123,7 @@ void ParticleHaloExchanger::prepareData(int id, cudaStream_t stream)
 
 
 	const int maxdim = std::max({cl->ncells.x, cl->ncells.y, cl->ncells.z});
-	const int nthreads = 32;
+	const int nthreads = 64;
 	if (pv->local()->size() > 0)
 	{
 		helper->sendBufSizes.clearDevice(stream);

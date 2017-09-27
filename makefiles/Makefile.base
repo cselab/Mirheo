@@ -9,14 +9,14 @@ endif
 include $(UDEVICEX_PATH)/makefiles/Makefile.settings.$(HOST)
 
 # Compiling parameters
-NVCCFLAGS += -std=c++11 -g -lineinfo --expt-extended-lambda -Xcompiler "-fopenmp"
+NVCCFLAGS += -std=c++11 --expt-extended-lambda -Xcompiler "-fopenmp"
 NVCCFLAGS += -I$(UDEVICEX_PATH)/ -I$(HDF5_INC) $(INCLUDES)
 NVCCFLAGS += -arch=$(CUDA_ARCH) -code=$(CUDA_CODE)
 
 NOWARNFLAG = -Xcompiler "-Wno-cpp"
 
 NVCC_RELEASE_FLAGS = $(NVCCFLAGS) -O3
-NVCC_DEBUG_FLAGS = $(NVCCFLAGS) -G
+NVCC_DEBUG_FLAGS = $(NVCCFLAGS) -G -g
 
 # Linking parameters
 LIBS += -L$(HDF5_LIB)

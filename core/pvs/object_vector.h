@@ -16,6 +16,9 @@ struct ObjectMesh
 
 class LocalObjectVector: public LocalParticleVector
 {
+protected:
+	int objSize  = 0;
+
 public:
 
 	PinnedBuffer<char*> extraDataPtrs;
@@ -27,9 +30,7 @@ public:
 	};
 
 	int nObjects = 0;
-	int objSize  = 0;
 	int packedObjSize_bytes = 0;
-	DeviceBuffer<int> particles2objIds;
 	DeviceBuffer<COMandExtent> comAndExtents;
 
 	LocalObjectVector(const int objSize, const int nObjects = 0, cudaStream_t stream = 0) :
@@ -59,7 +60,6 @@ public:
 		nObjects = np / objSize;
 
 		LocalParticleVector::resize(np, stream, kind);
-		particles2objIds.resize(np,       stream, kind);
 		comAndExtents   .resize(nObjects, stream, kind);
 
 		if ((char*)comAndExtents.devPtr() != extraDataPtrs[0])
@@ -77,11 +77,10 @@ class ObjectVector : public ParticleVector
 {
 protected:
 	ObjectVector( std::string name, float mass, int objSize, LocalObjectVector *local, LocalObjectVector *halo ) :
-		ParticleVector(name, mass, local, halo), objSize(objSize), objMass(objSize*mass) {}
+		ParticleVector(name, mass, local, halo), objSize(objSize) {}
 
 public:
 	int objSize;
-	float objMass;
 	ObjectMesh mesh;
 
 	ObjectVector(std::string name, float mass, const int objSize, const int nObjects = 0) :
@@ -98,3 +97,71 @@ public:
 
 	virtual ~ObjectVector() = default;
 };
+
+
+/**
+ * GPU-compatibe struct of all the relevant data
+ */
+struct OVview : public PVview
+{
+	int nObjects, objSize;
+	float objMass;
+
+	LocalObjectVector::COMandExtent *comAndExtents;
+
+	int extraDataNum;
+	const int* extraDataSizes;  // extraDataNum integers
+	char** extraData;           // extraDataNum arrays of extraDataSizes[i] bytes
+	int packedObjSize_byte;     // total size of a packed object in bytes
+
+
+	// TODO: can be improved with binsearch of ptr per warp
+	__forceinline__ __device__ void packExtraData(int srcObjId, char* destanation) const
+	{
+		int baseId = 0;
+
+		for (int ptrId = 0; ptrId < extraDataNum; ptrId++)
+		{
+			const int size = extraDataSizes[ptrId];
+			for (int i = threadIdx.x; i < size; i += blockDim.x)
+				destanation[baseId+i] = extraData[ptrId][srcObjId*size + i];
+
+			baseId += extraDataSizes[ptrId];
+		}
+	}
+	__forceinline__ __device__ void unpackExtraData(int dstObjId, const char* source) const
+	{
+		int baseId = 0;
+
+		for (int ptrId = 0; ptrId < extraDataNum; ptrId++)
+		{
+			const int size = extraDataSizes[ptrId];
+			for (int i = threadIdx.x; i < size; i += blockDim.x)
+				extraData[ptrId][dstObjId*size + i] = source[baseId+i];
+
+			baseId += extraDataSizes[ptrId];
+		}
+	}
+
+
+	OVview(ObjectVector* ov, LocalObjectVector* lov) :
+		PVview(static_cast<ParticleVector*>(ov), static_cast<LocalParticleVector*>(lov))
+	{
+		nObjects = lov->nObjects;
+		objSize = ov->objSize;
+		objMass = nObjects * mass;
+
+		comAndExtents = lov->comAndExtents.devPtr();
+
+		extraDataNum       = lov->extraDataSizes.size();
+		extraDataSizes     = lov->extraDataSizes.devPtr();
+		extraData          = lov->extraDataPtrs.devPtr();
+		packedObjSize_byte = lov->packedObjSize_bytes;
+	}
+};
+
+
+
+
+
+

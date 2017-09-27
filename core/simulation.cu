@@ -354,8 +354,9 @@ void Simulation::assemble()
 	});
 
 	scheduler.addTask("Clear forces", [&] (cudaStream_t stream) {
-		for (auto& pv : particleVectors)
-			pv->local()->forces.clear(stream);
+		for (auto clVec : cellListMap)
+			for (auto cl : clVec.second)
+				cl->forces->clear(stream);
 	});
 
 	scheduler.addTask("Plugins: before forces", [&] (cudaStream_t stream) {
@@ -506,6 +507,11 @@ void Simulation::run(int nsteps)
 	info("Will run %d iterations now", nsteps);
 	int begin = currentStep, end = currentStep + nsteps;
 
+	// Initial preparation
+	scheduler.forceExec("Object extents");
+	scheduler.forceExec("Object halo init");
+	scheduler.forceExec("Object halo finalize");
+
 	for (currentStep = begin; currentStep < end; currentStep++)
 	{
 		if (rank == 0)
@@ -517,10 +523,8 @@ void Simulation::run(int nsteps)
 		currentTime += dt;
 	}
 
-	// Finish the redistribution by rebuilding the primary cell-lists
-	for (auto clVec : cellListMap)
-		if (clVec.second.size() > 0)
-			clVec.second[0]->build(0);
+	// Finish the redistribution by rebuilding the cell-lists
+	scheduler.forceExec("Сell-lists");
 
 	info("Finished with %d iterations", nsteps);
 }

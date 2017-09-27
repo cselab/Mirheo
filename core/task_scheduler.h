@@ -44,4 +44,6 @@ public:
 
 	void compile();
 	void run();
+
+	void forceExec(std::string label);
 };

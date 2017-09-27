@@ -10,8 +10,9 @@ void ParticleVector::checkpoint(MPI_Comm comm, std::string path)
 	info("Checkpoint for particle vector %s, writing file %s", name.c_str(), fname.c_str());
 
 	local()->coosvels.downloadFromDevice(0, true);
+	auto pvView = PVview(this, local());
 	for (int i=0; i<local()->coosvels.size(); i++)
-		local()->coosvels[i].r = local2global(local()->coosvels[i].r);
+		local()->coosvels[i].r = pvView.local2global(local()->coosvels[i].r);
 
 	int myrank, size;
 	MPI_Check( MPI_Comm_rank(comm, &myrank) );
@@ -116,11 +117,12 @@ void ParticleVector::restart(MPI_Comm comm, std::string path)
 		curSize += msize;
 
 		debug3("Receiving %d particles from ???", msize);
-		MPI_Check( MPI_Recv(addr, msize, ptype, MPI_ANY_SOURCE, 0, comm, MPI_STATUS_IGNORE) );
+		MPI_Check( MPI_Recv(addr, msize, ptype, status.MPI_SOURCE, 0, comm, MPI_STATUS_IGNORE) );
 	}
 
+	auto pvView = PVview(this, local());
 	for (int i=0; i<local()->coosvels.size(); i++)
-		local()->coosvels[i].r = global2local(local()->coosvels[i].r);
+		local()->coosvels[i].r = pvView.global2local(local()->coosvels[i].r);
 
 	local()->coosvels.uploadToDevice(0);
 

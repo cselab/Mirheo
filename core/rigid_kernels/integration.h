@@ -6,25 +6,24 @@
 #include <core/rigid_kernels/quaternion.h>
 
 
-__global__ void collectRigidForces(const float4 * coosvels, const float4 * forces,
-		LocalRigidObjectVector::RigidMotion* motions, const int nObj, const int objSize)
+__global__ void collectRigidForces(ROVview ovView)
 {
 	const int objId = blockIdx.x;
 	const int tid = threadIdx.x;
-	if (objId >= nObj) return;
+	if (objId >= ovView.nObjects) return;
 
 	float3 force  = make_float3(0);
 	float3 torque = make_float3(0);
-	const float3 com = motions[objId].r;
+	const float3 com = ovView.motions[objId].r;
 
 	// Find the total force and torque
 #pragma unroll 3
-	for (int i = tid; i < objSize; i += blockDim.x)
+	for (int i = tid; i < ovView.objSize; i += blockDim.x)
 	{
-		const int offset = (objId * objSize + i);
+		const int offset = (objId * ovView.objSize + i);
 
-		const float3 frc = make_float3(forces[offset]);
-		const float3 r   = make_float3(coosvels[offset*2]) - com;
+		const float3 frc = make_float3(ovView.forces[offset]);
+		const float3 r   = make_float3(ovView.particles[offset*2]) - com;
 
 		force += frc;
 		torque += cross(r, frc);
@@ -35,8 +34,8 @@ __global__ void collectRigidForces(const float4 * coosvels, const float4 * force
 
 	if ( (tid % warpSize) == 0)
 	{
-		atomicAdd(&motions[objId].force,  force);
-		atomicAdd(&motions[objId].torque, torque);
+		atomicAdd(&ovView.motions[objId].force,  force);
+		atomicAdd(&ovView.motions[objId].torque, torque);
 	}
 }
 
@@ -44,11 +43,12 @@ __global__ void collectRigidForces(const float4 * coosvels, const float4 * force
  * J is the diagonal moment of inertia tensor, J_1 is its inverse (simply 1/Jii)
  * Velocity-Verlet fused is used at the moment
  */
-__global__ void integrateRigidMotion(LocalRigidObjectVector::RigidMotion* motions,
-		const float3 J, const float3 J_1, const float invMass, const int nObj, const float dt)
+__global__ void integrateRigidMotion(ROVview ovView, const float dt)
 {
 	const int objId = threadIdx.x + blockDim.x * blockIdx.x;
-	if (objId >= nObj) return;
+	if (objId >= ovView.nObjects) return;
+
+	auto motions = ovView.motions;
 
 	//**********************************************************************************
 	// Rotation
@@ -60,7 +60,7 @@ __global__ void integrateRigidMotion(LocalRigidObjectVector::RigidMotion* motion
 	// FIXME allow for non-diagonal inertia tensors
 
 	// tau = J dw/dt + w x Jw  =>  dw/dt = J'*tau - J'*(w x Jw)
-	float3 dw_dt = J_1 * tau - J_1 * cross(omega, J*omega);
+	float3 dw_dt = ovView.J_1 * tau - ovView.J_1 * cross(omega, ovView.J*omega);
 	omega += dw_dt * dt;
 
 	// XXX: using OLD q and NEW w ?
@@ -83,40 +83,40 @@ __global__ void integrateRigidMotion(LocalRigidObjectVector::RigidMotion* motion
 	//**********************************************************************************
 	float3 force = motions[objId].force;
 	float3 vel = motions[objId].vel;
-	vel += force*dt * invMass;
+	vel += force*dt * ovView.invMass;
 
-	motions[objId].r     += vel*dt;
-	motions[objId].vel    = vel;
+	motions[objId].r += vel*dt;
+	motions[objId].vel = vel;
 }
 
 
 // TODO: rotate initial config instead of incremental rotations
-__global__ void applyRigidMotion(float4 * coosvels, const float4 * __restrict__ initial, LocalRigidObjectVector::RigidMotion* motions, const int nObj, const int objSize)
+__global__ void applyRigidMotion(ROVview ovView, const float4 * __restrict__ initial)
 {
 	const int pid = threadIdx.x + blockDim.x * blockIdx.x;
-	const int objId = pid / objSize;
-	const int locId = pid % objSize;
+	const int objId = pid / ovView.objSize;
+	const int locId = pid % ovView.objSize;
 
-	if (pid >= nObj*objSize) return;
+	if (pid >= ovView.nObjects*ovView.objSize) return;
 
-	const auto motion = motions[objId];
+	const auto motion = ovView.motions[objId];
 
-	Particle p(coosvels, pid);
+	Particle p(ovView.particles, pid);
 
 	p.r = motion.r + rotate( f4tof3(initial[locId]), motion.q );
 	p.u = motion.vel + cross(motion.omega, p.r - motion.r);
 
-	coosvels[2*pid]   = p.r2Float4();
-	coosvels[2*pid+1] = p.u2Float4();
+	ovView.particles[2*pid]   = p.r2Float4();
+	ovView.particles[2*pid+1] = p.u2Float4();
 }
 
-__global__ void clearRigidForces(LocalRigidObjectVector::RigidMotion* motions, const int nObj)
+__global__ void clearRigidForces(ROVview ovView)
 {
 	const int objId = threadIdx.x + blockDim.x * blockIdx.x;
-	if (objId >= nObj) return;
+	if (objId >= ovView.nObjects) return;
 
-	motions[objId].force  = make_float3(0.0f);
-	motions[objId].torque = make_float3(0.0f);
+	ovView.motions[objId].force  = make_float3(0.0f);
+	ovView.motions[objId].torque = make_float3(0.0f);
 }
 
 
