@@ -14,60 +14,89 @@ struct ObjectMesh
 	PinnedBuffer<int> adjacent, adjacent_second;
 };
 
+
 class LocalObjectVector: public LocalParticleVector
 {
 protected:
 	int objSize  = 0;
+	DataMap dataPerObject;
 
 public:
+	int nObjects = 0;
 
+	// Helper buffers, used when a view is created
+	PinnedBuffer<int> extraDataSizes;
 	PinnedBuffer<char*> extraDataPtrs;
-	PinnedBuffer<int>   extraDataSizes;
 
 	struct __align__(16) COMandExtent
 	{
 		float3 com, low, high;
 	};
 
-	int nObjects = 0;
-	int packedObjSize_bytes = 0;
-	DeviceBuffer<COMandExtent> comAndExtents;
 
 	LocalObjectVector(const int objSize, const int nObjects = 0, cudaStream_t stream = 0) :
 		LocalParticleVector(objSize*nObjects), objSize(objSize), nObjects(nObjects)
 	{
-		extraDataSizes.resize(1, stream, ResizeKind::resizeAnew);
-		extraDataPtrs .resize(1, stream, ResizeKind::resizeAnew);
-
-		extraDataSizes[0] = sizeof(COMandExtent);
-		extraDataPtrs [0] = (char*)comAndExtents.devPtr();
-
-		extraDataSizes.uploadToDevice(stream);
-		extraDataPtrs .uploadToDevice(stream);
-
-		resize(nObjects*objSize, stream, ResizeKind::resizeAnew);
-
-		// Provide necessary alignment
-		packedObjSize_bytes = ( (objSize*sizeof(Particle) + sizeof(COMandExtent) + sizeof(float4)-1) / sizeof(float4) ) * sizeof(float4);
+		resize(nObjects*objSize, stream);
+		dataPerObject["com_extents"] = std::make_unique< PinnedBuffer<COMandExtent> >(nObjects);
+		dataPerObject["ids"] = std::make_unique< PinnedBuffer<int> >(nObjects);
 	};
 
 
-	virtual void resize(const int np, cudaStream_t stream, ResizeKind kind = ResizeKind::resizePreserve)
+	virtual void resize(const int np, cudaStream_t stream)
 	{
 		if (np % objSize != 0)
 			die("Incorrect number of particles in object");
 
 		nObjects = np / objSize;
+		LocalParticleVector::resize(np, stream);
 
-		LocalParticleVector::resize(np, stream, kind);
-		comAndExtents   .resize(nObjects, stream, kind);
-
-		if ((char*)comAndExtents.devPtr() != extraDataPtrs[0])
-		{
-			extraDataPtrs[0] = (char*)comAndExtents.devPtr();
-			extraDataPtrs.uploadToDevice(stream);
-		}
+		for (auto& kv : dataPerObject)
+			kv.second->resize(nObjects, stream);
 	}
+
+	virtual void resize_anew(const int np)
+	{
+		if (np % objSize != 0)
+			die("Incorrect number of particles in object");
+
+		nObjects = np / objSize;
+		LocalParticleVector::resize_anew(np);
+
+		for (auto& kv : dataPerObject)
+			kv.second->resize_anew(nObjects);
+	}
+
+	template<typename T>
+	PinnedBuffer<T>* getDataPerObject(const std::string& name)
+	{
+		GPUcontainer *contPtr;
+		auto it = dataPerObject.find(name);
+		if (it == dataPerObject.end())
+		{
+			warn("Requested extra data entry PER OBJECT '%s' was absent, creating now", name.c_str());
+
+			auto ptr = std::make_unique< PinnedBuffer<T> >(size());
+			contPtr = ptr.get();
+			dataPerObject[name] = std::move(ptr);
+		}
+		else
+		{
+			contPtr = it->second.get();
+		}
+
+		auto res = dynamic_cast< PinnedBuffer<T>* > (contPtr);
+		if (res == nullptr)
+			error("Wrong type of particle extra data entry '%s'", name.c_str());
+
+		return res;
+	}
+
+	const DataMap& getDataPerObjectMap() const
+	{
+		return dataPerObject;
+	}
+
 
 	virtual ~LocalObjectVector() = default;
 };
@@ -98,70 +127,7 @@ public:
 	virtual ~ObjectVector() = default;
 };
 
-
-/**
- * GPU-compatibe struct of all the relevant data
- */
-struct OVview : public PVview
-{
-	int nObjects, objSize;
-	float objMass;
-
-	LocalObjectVector::COMandExtent *comAndExtents;
-
-	int extraDataNum;
-	const int* extraDataSizes;  // extraDataNum integers
-	char** extraData;           // extraDataNum arrays of extraDataSizes[i] bytes
-	int packedObjSize_byte;     // total size of a packed object in bytes
-
-
-	// TODO: can be improved with binsearch of ptr per warp
-	__forceinline__ __device__ void packExtraData(int srcObjId, char* destanation) const
-	{
-		int baseId = 0;
-
-		for (int ptrId = 0; ptrId < extraDataNum; ptrId++)
-		{
-			const int size = extraDataSizes[ptrId];
-			for (int i = threadIdx.x; i < size; i += blockDim.x)
-				destanation[baseId+i] = extraData[ptrId][srcObjId*size + i];
-
-			baseId += extraDataSizes[ptrId];
-		}
-	}
-	__forceinline__ __device__ void unpackExtraData(int dstObjId, const char* source) const
-	{
-		int baseId = 0;
-
-		for (int ptrId = 0; ptrId < extraDataNum; ptrId++)
-		{
-			const int size = extraDataSizes[ptrId];
-			for (int i = threadIdx.x; i < size; i += blockDim.x)
-				extraData[ptrId][dstObjId*size + i] = source[baseId+i];
-
-			baseId += extraDataSizes[ptrId];
-		}
-	}
-
-
-	OVview(ObjectVector* ov, LocalObjectVector* lov) :
-		PVview(static_cast<ParticleVector*>(ov), static_cast<LocalParticleVector*>(lov))
-	{
-		nObjects = lov->nObjects;
-		objSize = ov->objSize;
-		objMass = nObjects * mass;
-
-		comAndExtents = lov->comAndExtents.devPtr();
-
-		extraDataNum       = lov->extraDataSizes.size();
-		extraDataSizes     = lov->extraDataSizes.devPtr();
-		extraData          = lov->extraDataPtrs.devPtr();
-		packedObjSize_byte = lov->packedObjSize_bytes;
-	}
-};
-
-
-
+#include "views/ov.h"
 
 
 

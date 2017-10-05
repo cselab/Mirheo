@@ -6,7 +6,7 @@ use Text::Tabs;
 
 chomp(my @text = <>);
 
-$_ =~ s/^(.*?)\s+\\$/$1/ foreach (@text);
+$_ =~ s/^(.*?)\s*\\$/$1/ foreach (@text);
 
 print map {"// ".$_."\n"} @text;
 print "\n";

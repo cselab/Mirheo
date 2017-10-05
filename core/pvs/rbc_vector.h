@@ -9,17 +9,10 @@
 class LocalRBCvector : public LocalObjectVector
 {
 public:
-	DeviceBuffer<float> volumes, areas;
-
 	LocalRBCvector(const int rbcSize, const int nRbcs = 0, cudaStream_t stream = 0) :
 		LocalObjectVector(rbcSize, nRbcs)
-	{ }
-
-	virtual void resize(const int np, cudaStream_t stream, ResizeKind kind = ResizeKind::resizePreserve)
 	{
-		LocalObjectVector::resize(np, stream, kind);
-		areas.  resize(nObjects, stream, kind);
-		volumes.resize(nObjects, stream, kind);
+		dataPerObject["areas_volumes"] = std::unique_ptr<GPUcontainer> (new PinnedBuffer<float2>(nObjects));
 	}
 
 	virtual ~LocalRBCvector() = default;
@@ -36,12 +29,13 @@ public:
 
 	Parameters parameters;
 
-	RBCvector(std::string name, float mass, const int objSize, ObjectMesh mesh, const int nObjects = 0) :
+	RBCvector(std::string name, float mass, const int objSize, /*ObjectMesh mesh,*/ const int nObjects = 0) :
 		ObjectVector( name, mass, objSize,
 					  new LocalRBCvector(objSize, nObjects),
 					  new LocalRBCvector(objSize, 0) )
 	{
-		this->mesh = mesh;
+		// FIXME shit is everywhere
+		//this->mesh = mesh;
 	}
 
 	LocalRBCvector* local() { return static_cast<LocalRBCvector*>(_local); }

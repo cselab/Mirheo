@@ -414,6 +414,16 @@ void Simulation::assemble()
 		objHalo->finalize(stream);
 	});
 
+	scheduler.addTask("Clear obj halo forces", [&] (cudaStream_t stream) {
+		for (auto& ov : objectVectors)
+			ov->halo()->forces.clear(stream);
+	});
+
+	scheduler.addTask("Clear obj local forces", [&] (cudaStream_t stream) {
+		for (auto& ov : objectVectors)
+			ov->local()->forces.clear(stream);
+	});
+
 	scheduler.addTask("Object bounce", [&] (cudaStream_t stream) {
 		for (auto& bouncer : regularBouncers)
 			bouncer(dt, stream);
@@ -462,6 +472,7 @@ void Simulation::assemble()
 	});
 
 
+
 	scheduler.addDependency("Сell-lists", {"Clear forces"}, {});
 
 	scheduler.addDependency("Plugins: before forces", {"Internal forces", "Halo forces"}, {"Clear forces"});
@@ -469,7 +480,9 @@ void Simulation::assemble()
 
 	scheduler.addDependency("Internal forces", {}, {"Clear forces"});
 
-	scheduler.addDependency("Obj forces exchange: init", {}, {"Plugins: before forces"});
+	scheduler.addDependency("Clear obj halo forces", {"Object bounce"}, {"Object halo finalize"});
+
+	scheduler.addDependency("Obj forces exchange: init", {}, {"Halo forces", "Internal forces"});
 	scheduler.addDependency("Obj forces exchange: finalize", {"Accumulate forces"}, {"Obj forces exchange: init"});
 
 	scheduler.addDependency("Halo init", {}, {"Plugins: before forces"});
@@ -480,19 +493,20 @@ void Simulation::assemble()
 	scheduler.addDependency("Plugins: before integration", {"Integration"}, {"Accumulate forces"});
 	scheduler.addDependency("Wall bounce", {}, {"Integration"});
 
-	scheduler.addDependency("Object halo init", {}, {"Integration"});
+	scheduler.addDependency("Object halo init", {}, {"Integration", "Object redistribute finalize"});
 	scheduler.addDependency("Object halo finalize", {}, {"Object halo init"});
 
 	scheduler.addDependency("Object bounce", {}, {"Object halo finalize", "Integration"});
 
 	scheduler.addDependency("Plugins: after integration", {}, {"Integration", "Wall bounce", "Obj forces exchange: finalize"});
 
-	scheduler.addDependency("Redistribute init", {}, {"Integration", "Wall bounce", "Obj forces exchange: finalize", "Plugins: after integration"});
-	scheduler.addDependency("Redistribute finalize", {}, {"Object redistribute init", "Redistribute init"});
+	scheduler.addDependency("Redistribute init", {}, {"Integration", "Wall bounce", "Object bounce", "Plugins: after integration"});
+	scheduler.addDependency("Redistribute finalize", {}, {"Redistribute init"});
 
 	scheduler.addDependency("Object extents", {"Object redistribute init"}, {"Plugins: after integration"});
 	scheduler.addDependency("Object redistribute init", {}, {"Integration", "Wall bounce", "Obj forces exchange: finalize", "Plugins: after integration"});
-	scheduler.addDependency("Object redistribute finalize", {}, {"Redistribute init", "Object redistribute init"});
+	scheduler.addDependency("Object redistribute finalize", {}, {"Object redistribute init"});
+	scheduler.addDependency("Clear obj local forces", {}, {"Object redistribute finalize"});
 
 	scheduler.setHighPriority("Obj forces exchange: init");
 	scheduler.setHighPriority("Halo init");
@@ -504,13 +518,16 @@ void Simulation::assemble()
 // TODO: wall has self-interactions
 void Simulation::run(int nsteps)
 {
-	info("Will run %d iterations now", nsteps);
 	int begin = currentStep, end = currentStep + nsteps;
 
 	// Initial preparation
 	scheduler.forceExec("Object extents");
 	scheduler.forceExec("Object halo init");
 	scheduler.forceExec("Object halo finalize");
+	scheduler.forceExec("Clear obj halo forces");
+
+	info("Will run %d iterations now", nsteps);
+
 
 	for (currentStep = begin; currentStep < end; currentStep++)
 	{

@@ -66,6 +66,8 @@ void TaskScheduler::forceExec(std::string label)
 	if (node == nullptr)
 		die("Task group with label %s not found", label.c_str());
 
+	info("Forced execution of group %s", node->label.c_str());
+
 	for (auto& func : node->funcs)
 		func(0);
 }
@@ -150,7 +152,8 @@ void TaskScheduler::run()
 		{
 			for (auto streamNode_it = workMap.begin(); streamNode_it != workMap.end(); )
 			{
-				if ( cudaStreamQuery(streamNode_it->first) == cudaSuccess )
+				auto result = cudaStreamQuery(streamNode_it->first);
+				if ( result == cudaSuccess )
 				{
 					auto node = streamNode_it->second;
 
@@ -174,8 +177,11 @@ void TaskScheduler::run()
 					completed++;
 					streamNode_it = workMap.erase(streamNode_it);
 				}
-				else
+				else if (result == cudaErrorNotReady)
+				{
 					streamNode_it++;
+				}
+				else CUDA_Check( result );
 			}
 		}
 

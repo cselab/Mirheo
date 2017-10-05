@@ -8,20 +8,26 @@
 #include <core/cuda_common.h>
 
 
-// TODO: change id scheme
-__global__ void addHaloForces(const float4* haloForces, const float4* halo, float4* forces, int objSize, int n)
+__device__ __forceinline__ void atomicAdd(float4* dest, float3 v)
 {
+	float* fdest = (float*)dest;
+	atomicAdd(fdest,     v.x);
+	atomicAdd(fdest + 1, v.y);
+	atomicAdd(fdest + 2, v.z);
+}
+
+// TODO: change id scheme
+__global__ void addHaloForces(const float4** recvForces, const int** origins, float4* forces, int* bufSizes)
+{
+	const int bufId = blockIdx.y;
 	const int srcId = blockIdx.x*blockDim.x + threadIdx.x;
-	if (srcId >= n) return;
+	if (srcId >= bufSizes[bufId]) return;
 
-	const Particle p(halo[2*srcId], halo[2*srcId+1]);
-	const int dstId = p.s22 /* objId */ * objSize + p.s21 /* pid in object */;
+	const int dstId = origins[bufId][srcId];
 
-	const Float3_int extraFrc = readNoCache(haloForces + srcId);
-	Float3_int frc0 = forces[dstId];
-	frc0.v += extraFrc.v;
+	const Float3_int extraFrc( recvForces[bufId][srcId] );
 
-	forces[dstId] = frc0.toFloat4();
+	atomicAdd(forces + dstId, extraFrc.v);
 }
 
 
@@ -37,22 +43,29 @@ void ObjectForcesReverseExchanger::prepareData(int id, cudaStream_t stream)
 {
 	auto ov = objects[id];
 	auto helper = helpers[id];
-	auto offsets = entangledHaloExchanger->helpers[id]->recvOffsets;
+	auto& offsets = entangledHaloExchanger->getRecvOffsets(id);
 
 	debug2("Preparing %s forces to sending back", ov->name.c_str());
 
 	for (int i=0; i<27; i++)
 		helper->sendBufSizes[i] = offsets[i+1] - offsets[i];
-	helper->resizeSendBufs(stream);
+	helper->resizeSendBufs();
+
+	HostBuffer<Force> tmp(ov->halo()->forces.size());
+	tmp.copy(ov->halo()->forces, stream);
 
 	for (int i=0; i<27; i++)
 	{
 		if (helper->sendBufSizes[i] > 0)
-			CUDA_Check( cudaMemcpyAsync( helper->sendBufs[i].hostPtr(),
+			CUDA_Check( cudaMemcpyAsync( helper->sendBufs[i].devPtr(),
 										 ov->halo()->forces.devPtr() + offsets[i]*ov->objSize,
 										 helper->sendBufSizes[i]*sizeof(Force)*ov->objSize,
-										 cudaMemcpyHostToDevice, stream ) );
+										 cudaMemcpyDeviceToDevice, stream ) );
 	}
+
+	//FIXME hack
+	helper->sendBufSizes.uploadToDevice(stream);
+	debug2("Will send back forces for %d objects", offsets[27]);
 }
 
 void ObjectForcesReverseExchanger::combineAndUploadData(int id, cudaStream_t stream)
@@ -60,26 +73,32 @@ void ObjectForcesReverseExchanger::combineAndUploadData(int id, cudaStream_t str
 	auto ov = objects[id];
 	auto helper = helpers[id];
 
+	sizes.resize_anew(helper->recvOffsets.size());
+	int maximum = 0;
 	for (int i=0; i < helper->recvOffsets.size() - 1; i++)
 	{
-		const int msize = helper->recvOffsets[i+1] - helper->recvOffsets[i];
-
-		debug3("Updating forces for %d %s objects", msize, ov->name.c_str());
-
-		if (msize > 0)
-			CUDA_Check( cudaMemcpyAsync(ov->halo()->forces.devPtr() + helper->recvOffsets[i]*ov->objSize,
-										helper->recvBufs[compactedDirs[i]].hostPtr(),
-										msize*sizeof(Force)*ov->objSize,
-										cudaMemcpyHostToDevice, stream) );
+		helper->recvBufs[i].uploadToDevice(stream);
+		sizes[i] = (helper->recvOffsets[i+1] - helper->recvOffsets[i]) * ov->objSize;
+		maximum = max(sizes[i], maximum);
 	}
+	sizes.uploadToDevice(stream);
 
-	const int np = helper->recvOffsets[27];
-	if (np > 0)
-		addHaloForces<<< (np+127)/128, 128, 0, stream >>> (
-				(float4*)ov->halo()->forces.devPtr(),    /* add to */
-				(float4*)ov->halo()->coosvels.devPtr(),  /* destination id here */
-				(float4*)ov->local()->forces.devPtr(),   /* source */
-				ov->objSize, np );
+	debug("Updating forces for %d %s objects", helper->recvOffsets[27], ov->name.c_str());
+
+	if (maximum > 0)
+	{
+		int nthreads = 128;
+		dim3 blocks;
+
+		blocks.y = sizes.size();
+		blocks.x = getNblocks(maximum, nthreads);
+
+		addHaloForces<<< blocks, nthreads, 0, stream >>> (
+				(const float4**)helper->recvAddrs.devPtr(),                        /* source */
+				(const int**)entangledHaloExchanger->getOriginAddrs(id).devPtr(),  /* destination ids here */
+				(float4*)ov->local()->forces.devPtr(),                             /* add to */
+				sizes.devPtr());
+	}
 }
 
 

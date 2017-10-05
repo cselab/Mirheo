@@ -13,7 +13,7 @@ InteractionRBCMembrane::InteractionRBCMembrane(pugi::xml_node node)
 	// TODO: parameter setup
 }
 
-void InteractionRBCMembrane::_compute(InteractionType type, ParticleVector* pv1, ParticleVector* pv2, CellList* cl, const float t, cudaStream_t stream)
+void InteractionRBCMembrane::_compute(InteractionType type, ParticleVector* pv1, ParticleVector* pv2, CellList* cl1, CellList* cl2, const float t, cudaStream_t stream)
 {
 	if (pv1 != pv2)
 		die("Internal RBC forces can't be computed between two different particle vectors");

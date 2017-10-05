@@ -23,8 +23,8 @@ void BounceFromMesh::exec(ObjectVector* ov, ParticleVector* pv, CellList* cl, fl
 	int totalTriangles = ov->mesh.ntriangles * activeOV->nObjects;
 
 	nCollisions.clear(stream);
-	collisionTable.resize(bouncePerTri*totalTriangles, stream, ResizeKind::resizeAnew);
-	tmp_collisionTable.resize(bouncePerTri*totalTriangles, stream, ResizeKind::resizeAnew);
+	collisionTable.resize_anew(bouncePerTri*totalTriangles);
+	tmp_collisionTable.resize_anew(bouncePerTri*totalTriangles);
 
 	int nthreads = 128;
 
@@ -44,7 +44,7 @@ void BounceFromMesh::exec(ObjectVector* ov, ParticleVector* pv, CellList* cl, fl
 			(int64_t*)collisionTable.devPtr(), (int64_t*)tmp_collisionTable.devPtr(), nCollisions[0],
 			0, 32, stream);
 	// Allocate temporary storage
-	sortBuffer.resize(bufSize, stream, ResizeKind::resizeAnew);
+	sortBuffer.resize_anew(bufSize);
 	// Run sorting operation
 	cub::DeviceRadixSort::SortKeys(sortBuffer.devPtr(), bufSize,
 			(int64_t*)collisionTable.devPtr(), (int64_t*)tmp_collisionTable.devPtr(), nCollisions[0],

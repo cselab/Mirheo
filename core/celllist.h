@@ -94,11 +94,14 @@ class CellList : public CellListInfo
 {
 protected:
 	DeviceBuffer<uint8_t> cellsSize;
+	DeviceBuffer<char> scanBuffer;
 
 	PinnedBuffer<Particle> _coosvels;
 	DeviceBuffer<Force>    _forces;
 
 	int changedStamp = -1;
+
+	void _build(cudaStream_t stream);
 
 public:
 	ParticleVector* pv;

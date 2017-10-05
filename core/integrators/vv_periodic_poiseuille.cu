@@ -10,20 +10,32 @@ void IntegratorVVPeriodicPoiseuille::stage1(ParticleVector* pv, cudaStream_t str
 
 void IntegratorVVPeriodicPoiseuille::stage2(ParticleVector* pv, cudaStream_t stream)
 {
-	auto pvView = PVview(pv, pv->local());
+	auto pvView = create_PVview(pv, pv->local());
 
-	auto st2 = [*this, pvView] __device__ (Particle& p, const float3 f, const float invm, const float dt) {
+	// Workaround for debug
+	int _dir;
+	switch (dir)
+	{
+		case Direction::x: _dir = 0; break;
+		case Direction::y: _dir = 1; break;
+		case Direction::z: _dir = 2; break;
+	}
+
+	auto _globalDomainSize = globalDomainSize;
+	auto _force = force;
+
+	auto st2 = [_dir, _globalDomainSize, _force, pvView] __device__ (Particle& p, const float3 f, const float invm, const float dt) {
 		float3 gr = pvView.local2global(p.r);
 		float3 ef{0.0f,0.0f,0.0f};
 
-		if (dir == Direction::x)
-			ef.x = gr.y > 0.5f*globalDomainSize.y ? force : -force;
+		if (_dir == 0)
+			ef.x = gr.y > 0.5f*_globalDomainSize.y ? _force : -_force;
 
-		if (dir == Direction::y)
-			ef.y = gr.z > 0.5f*globalDomainSize.z ? force : -force;
+		if (_dir == 1)
+			ef.y = gr.z > 0.5f*_globalDomainSize.z ? _force : -_force;
 
-		if (dir == Direction::z)
-			ef.z = gr.x > 0.5f*globalDomainSize.x ? force : -force;
+		if (_dir == 2)
+			ef.z = gr.x > 0.5f*_globalDomainSize.x ? _force : -_force;
 
 		p.u += (f+ef)*invm*dt;
 		p.r += p.u*dt;

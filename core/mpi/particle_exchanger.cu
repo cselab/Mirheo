@@ -5,44 +5,67 @@
 
 #include <algorithm>
 
-ExchangeHelper::ExchangeHelper(std::string name, const int datumSize)
+ExchangeHelper::ExchangeHelper(std::string name, const int datumSize) :
+	name(name), datumSize(datumSize)
 {
-	this->name = name;
-	this->datumSize = datumSize;
+	recvBufSizes.resize(nBuffers);
+	recvOffsets. resize(nBuffers+1);
+	recvBufs.    resize(nBuffers);
+	recvAddrs.   resize_anew(nBuffers);
 
-	sendAddrs   .resize(27, 0);
-	sendBufSizes.resize(27, 0);
+	sendBufSizes.resize_anew(nBuffers);
+	sendBufs.    resize(nBuffers);
+	sendAddrs.   resize_anew(nBuffers);
 
-	recvBufSizes.resize(27, 0);
-	recvOffsets .resize(28, 0);
-
-	sendBufSizes.clear(0);
-
-	resizeSendBufs(0);
-	resizeRecvBufs(0);
+	resizeSendBufs();
+	resizeRecvBufs();
 }
 
-void ExchangeHelper::resizeSendBufs(cudaStream_t stream)
+void ExchangeHelper::resizeSendBufs()
 {
 	bool changed = false;
 	for (int i=0; i<sendBufSizes.size(); i++)
 	{
-		sendBufs[i].resize( sendBufSizes[i]*datumSize, stream, ResizeKind::resizeAnew );
+		sendBufs[i].resize_anew(sendBufSizes[i]*datumSize);
 		if (sendAddrs[i] != sendBufs[i].devPtr())
-		{
-			sendAddrs[i] = sendBufs[i].devPtr();
 			changed = true;
-		}
+
+		sendAddrs[i] = sendBufs[i].devPtr();
 	}
 
 	if (changed)
-		sendAddrs.uploadToDevice(stream);
+	{
+		sendAddrs.uploadToDevice(0);
+		CUDA_Check( cudaStreamSynchronize(0) );
+	}
 }
 
-void ExchangeHelper::resizeRecvBufs(cudaStream_t stream)
+void ExchangeHelper::resizeRecvBufs()
 {
+	bool changed = false;
 	for (int i=0; i<recvBufSizes.size(); i++)
-		recvBufs[i].resize( recvBufSizes[i]*datumSize, stream, ResizeKind::resizeAnew );
+	{
+		recvBufs[i].resize_anew(recvBufSizes[i]*datumSize);
+		if (recvAddrs[i] != recvBufs[i].devPtr())
+			changed = true;
+
+		recvAddrs[i] = recvBufs[i].devPtr();
+	}
+
+	if (changed)
+	{
+		recvAddrs.uploadToDevice(0);
+		CUDA_Check( cudaStreamSynchronize(0) );
+	}
+}
+
+void ExchangeHelper::setDatumSize(int size)
+{
+	if (size == datumSize) return;
+
+	datumSize = size;
+	resizeSendBufs();
+	resizeRecvBufs();
 }
 
 ParticleExchanger::ParticleExchanger(MPI_Comm& comm) :
@@ -54,7 +77,6 @@ ParticleExchanger::ParticleExchanger(MPI_Comm& comm) :
 	MPI_Check( MPI_Cart_get (haloComm, 3, dims, periods, coords) );
 	MPI_Check( MPI_Comm_rank(haloComm, &myrank));
 
-	int active = 0;
 	for(int i = 0; i < 27; ++i)
 	{
 		int d[3] = { i%3 - 1, (i/3) % 3 - 1, i/9 - 1 };
@@ -64,8 +86,13 @@ ParticleExchanger::ParticleExchanger(MPI_Comm& comm) :
 			coordsNeigh[c] = coords[c] + d[c];
 
 		MPI_Check( MPI_Cart_rank(haloComm, coordsNeigh, dir2rank + i) );
-		if (dir2rank[i] >= 0 && i != 13)
-			compactedDirs[active++] = i;
+
+		dir2sendTag[i] = i;
+
+		int cx = -( i%3 - 1 ) + 1;
+		int cy = -( (i/3)%3 - 1 ) + 1;
+		int cz = -( i/9 - 1 ) + 1;
+		dir2recvTag[i] = (cz*3 + cy)*3 + cx;
 	}
 }
 
@@ -89,6 +116,7 @@ void ParticleExchanger::finalize(cudaStream_t stream)
 		combineAndUploadData(i, stream);
 }
 
+
 int ParticleExchanger::tagByName(std::string name)
 {
 	// TODO: better tagging policy (unique id?)
@@ -106,14 +134,7 @@ void ParticleExchanger::recv(ExchangeHelper* helper, cudaStream_t stream)
 		if (i != 13 && dir2rank[i] >= 0)
 		{
 			MPI_Request req;
-
-			// Invert the direction index
-			const int cx = -( i%3 - 1 ) + 1;
-			const int cy = -( (i/3)%3 - 1 ) + 1;
-			const int cz = -( i/9 - 1 ) + 1;
-
-			const int invDirCode = (cz*3 + cy)*3 + cx;
-			const int tag = 27 * tagByName(pvName) + invDirCode;
+			const int tag = 27 * tagByName(pvName) + dir2recvTag[i];
 
 			MPI_Check( MPI_Irecv(helper->recvBufSizes.data() + i, 1, MPI_INT, dir2rank[i], tag, haloComm, &req) );
 			helper->requests.push_back(req);
@@ -125,23 +146,17 @@ void ParticleExchanger::recv(ExchangeHelper* helper, cudaStream_t stream)
 	// Now do the actual data receive
 	int totalRecvd = 0;
 	std::fill(helper->recvOffsets.begin(), helper->recvOffsets.end(), std::numeric_limits<int>::max());
-	helper->resizeRecvBufs(stream);
+	helper->resizeRecvBufs();
 
 	helper->requests.clear();
 	for (int i=0; i<27; i++)
 		if (i != 13 && dir2rank[i] >= 0)
 		{
 			MPI_Request req;
+			const int tag = 27 * tagByName(pvName) + dir2recvTag[i];
 
-			// Invert the direction index
-			const int cx = -( i%3 - 1 ) + 1;
-			const int cy = -( (i/3)%3 - 1 ) + 1;
-			const int cz = -( i/9 - 1 ) + 1;
-
-			const int invDirCode = (cz*3 + cy)*3 + cx;
-			const int tag = 27 * tagByName(pvName) + invDirCode;
-
-			debug3("Receiving %s entities from rank %d, %d entities", pvName.c_str(), dir2rank[i], helper->recvBufSizes[i]);
+			debug3("Receiving %s entities from rank %d, %d entities (buffer %d)",
+					pvName.c_str(), dir2rank[i], helper->recvBufSizes[i], i);
 
 			helper->recvOffsets[i] = totalRecvd;
 			totalRecvd += helper->recvBufSizes[i];
@@ -189,7 +204,7 @@ void ParticleExchanger::send(ExchangeHelper* helper, cudaStream_t stream)
 		{
 			debug3("Sending %s entities to rank %d in dircode %d [%2d %2d %2d], %d entities",
 					pvName.c_str(), dir2rank[i], i, i%3 - 1, (i/3)%3 - 1, i/9 - 1, cntPtr[i]);
-			const int tag = 27 * tagByName(pvName) + i;
+			const int tag = 27 * tagByName(pvName) + dir2sendTag[i];
 
 			MPI_Check( MPI_Isend(cntPtr+i, 1, MPI_INT, dir2rank[i], tag, haloComm, &req) );
 			MPI_Check( MPI_Request_free(&req) );

@@ -179,7 +179,7 @@ MCMCSampler::MCMCSampler(std::string name, float rc, float a, float kbT, float p
 	proposalFactor = 0.2f*rc;
 }
 
-void MCMCSampler::_compute(InteractionType type, ParticleVector* pv1, ParticleVector* pv2, CellList* cl, const float t, cudaStream_t stream)
+void MCMCSampler::_compute(InteractionType type, ParticleVector* pv1, ParticleVector* pv2, CellList* cl1, CellList* cl2, const float t, cudaStream_t stream)
 {
 	const int nthreads = 128;
 
@@ -287,5 +287,5 @@ void MCMCSampler::_compute(InteractionType type, ParticleVector* pv1, ParticleVe
 
 	// Mark pv as changed and rebuild cell-lists as the particles may have moved significantly
 	pv->local()->changedStamp++;
-	cl->build(stream);
+	cl1->build(stream);
 }

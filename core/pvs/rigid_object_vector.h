@@ -8,7 +8,7 @@ public:
 
 	struct __align__(16) RigidMotion
 	{
-		float3 r; 		// R is in the GLOBAL reference frame!
+		float3 r;
 		float4 q;
 		float3 vel, omega;
 		float3 force, torque;
@@ -16,39 +16,10 @@ public:
 		float4 prevQ;
 	};
 
-	PinnedBuffer<RigidMotion> motions;  // vector of com velocity, force and torque
-
 	LocalRigidObjectVector(const int objSize, const int nObjects = 0, cudaStream_t stream = 0) :
 		LocalObjectVector(objSize, nObjects)
 	{
-		resize(nObjects*objSize, stream, ResizeKind::resizeAnew);
-
-		extraDataSizes.resize(2, stream);
-		extraDataPtrs .resize(2, stream);
-
-		extraDataSizes[0] = sizeof(COMandExtent);
-		extraDataPtrs [0] = (char*)comAndExtents.devPtr();
-
-		extraDataSizes[1] = sizeof(RigidMotion);
-		extraDataPtrs [1] = (char*)motions.devPtr();
-
-		extraDataSizes.uploadToDevice(stream);
-		extraDataPtrs .uploadToDevice(stream);
-
-		// Provide necessary alignment
-		packedObjSize_bytes = ( (objSize*sizeof(Particle) + sizeof(COMandExtent) +sizeof(RigidMotion) + sizeof(float4)-1) / sizeof(float4) ) * sizeof(float4);
-	}
-
-	virtual void resize(const int np, cudaStream_t stream, ResizeKind kind = ResizeKind::resizePreserve)
-	{
-		LocalObjectVector::resize(np, stream, kind);
-		motions.resize(nObjects, stream, kind);
-
-		if ((char*)motions.devPtr() != extraDataPtrs[1])
-		{
-			extraDataPtrs[1] = (char*)motions.devPtr();
-			extraDataPtrs.uploadToDevice(stream);
-		}
+		dataPerObject["motions"] = std::make_unique< PinnedBuffer<RigidMotion> >(nObjects);
 	}
 
 	virtual ~LocalRigidObjectVector() = default;
@@ -73,29 +44,7 @@ public:
 	virtual ~RigidObjectVector() {};
 };
 
-/**
- * GPU-compatibe struct of all the relevant data
- */
-struct ROVview : public OVview
-{
-	LocalRigidObjectVector::RigidMotion *motions;
-
-	float3 J, J_1;
-
-	// TODO: implement this
-	//float inertia[9];
-
-	ROVview(RigidObjectVector* ov, LocalRigidObjectVector* lov) :
-		OVview(static_cast<ObjectVector*>(ov), static_cast<LocalObjectVector*>(lov))
-	{
-		motions = lov->motions.devPtr();
-		J = ov->getInertiaTensor();
-		J_1 = 1.0 / J;
-	}
-};
-
-
-
+#include "views/rov.h"
 
 
 

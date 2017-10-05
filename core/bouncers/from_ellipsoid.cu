@@ -21,8 +21,8 @@ void BounceFromRigidEllipsoid::exec(ObjectVector* ov, ParticleVector* pv, CellLi
 
 	debug("Bouncing %s particles from %s object vector", pv->name.c_str(), reov->name.c_str());
 
-	auto ovView = REOVview(reov, local ? reov->local() : reov->halo());
-	auto pvView = PVview(pv, pv->local());
+	auto ovView = create_REOVview(reov, local ? reov->local() : reov->halo());
+	auto pvView = create_PVview(pv, pv->local());
 
 	int nthreads = 512;
 	bounceEllipsoid<<< ovView.nObjects, nthreads, 2*nthreads*sizeof(int), stream >>> (ovView, pvView, cl->cellsStartSize.devPtr(), cl->cellInfo(), dt);

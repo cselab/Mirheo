@@ -13,7 +13,7 @@ void UniformIC::exec(const MPI_Comm& comm, ParticleVector* pv, float3 globalDoma
 	float volume = h.x*h.y*h.z;
 	float avg = volume * density;
 	int predicted = round(avg * ncells.x*ncells.y*ncells.z * 1.05);
-	pv->local()->resize(predicted, stream, ResizeKind::resizeAnew);
+	pv->local()->resize_anew(predicted);
 
 	int rank;
 	MPI_Check( MPI_Comm_rank(comm, &rank) );
@@ -32,7 +32,7 @@ void UniformIC::exec(const MPI_Comm& comm, ParticleVector* pv, float3 globalDoma
 				int nparts = particleDistribution(gen);
 				for (int p=0; p<nparts; p++)
 				{
-					pv->local()->resize(mycount+1, stream, ResizeKind::resizePreserve);
+					pv->local()->resize(mycount+1,  stream);
 					auto cooPtr = pv->local()->coosvels.hostPtr();
 
 					cooPtr[mycount].r.x = i*h.x - 0.5*localDomainSize.x + udistr(gen);

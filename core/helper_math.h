@@ -1,5 +1,5 @@
 /**
- * Copyright 1993-2013 NVIDIA Corporation.  All rights reserved.
+ * Copyright 1993-2013 NVIDIA Corporation.  All rights reserved.q
  *
  * Please refer to the NVIDIA end user license agreement (EULA) associated
  * with this source code for terms and conditions that govern your use of
@@ -22,6 +22,8 @@
 
 #ifndef HELPER_MATH_H
 #define HELPER_MATH_H
+
+#include "cuda_runtime.h"
 
 typedef unsigned int uint;
 typedef unsigned short ushort;

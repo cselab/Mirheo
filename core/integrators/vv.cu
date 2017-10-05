@@ -30,7 +30,7 @@ void IntegratorVV::stage2(ParticleVector* pv, cudaStream_t stream)
 
 	if (pv->local()->size() > 0)
 	{
-		auto pvView = PVview(pv, pv->local());
+		auto pvView = create_PVview(pv, pv->local());
 		integrationKernel<<< getNblocks(2*pvView.size, nthreads), nthreads, 0, stream >>>(pvView, dt, st2);
 	}
 	pv->local()->changedStamp++;

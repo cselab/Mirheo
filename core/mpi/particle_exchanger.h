@@ -2,34 +2,39 @@
 
 #include <core/containers.h>
 
+#include <mpi.h>
+
 #include <vector>
 #include <string>
 
 struct ExchangeHelper
 {
 	int datumSize;
+	const int nBuffers = 27;
 
 	std::string name;
 
-	PinnedBuffer<int> sendBufSizes;
-	std::vector<int>  recvBufSizes, recvOffsets;
+	std::vector<int> recvBufSizes, recvOffsets;
+	std::vector<PinnedBuffer<char>> recvBufs;
+	PinnedBuffer<char*> recvAddrs;
 
-	PinnedBuffer<char>  sendBufs[27], recvBufs[27];
+	PinnedBuffer<int> sendBufSizes;
+	std::vector<PinnedBuffer<char>> sendBufs;
 	PinnedBuffer<char*> sendAddrs;
 
 	std::vector<MPI_Request> requests;
 
-	ExchangeHelper(std::string name, const int datumSize);
+	ExchangeHelper(std::string name, const int datumSize = 0);
 
-	void resizeSendBufs(cudaStream_t stream);
-	void resizeRecvBufs(cudaStream_t stream);
+	void resizeSendBufs();
+	void resizeRecvBufs();
+	void setDatumSize(int size);
 };
 
 class ParticleExchanger
 {
 protected:
-	int dir2rank[27];
-	int compactedDirs[27];
+	int dir2rank[27], dir2sendTag[27], dir2recvTag[27];
 	int nActiveNeighbours;
 
 	int myrank;

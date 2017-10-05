@@ -83,10 +83,20 @@ __global__ void integrateRigidMotion(ROVview ovView, const float dt)
 	//**********************************************************************************
 	float3 force = motions[objId].force;
 	float3 vel = motions[objId].vel;
-	vel += force*dt * ovView.invMass;
+	vel += force*dt * ovView.invObjMass;
 
 	motions[objId].r += vel*dt;
 	motions[objId].vel = vel;
+//
+//	printf("obj  %d  r [%f %f %f]   v [%f %f %f],  f [%f %f %f],  t [%f %f %f],   \n"
+//			/*"    q [%f %f %f %f]   w [%f %f %f],  ooldq [%f %f %f %f] \n"*/, ovView.ids[objId],
+//			motions[objId].r.x,  motions[objId].r.y,  motions[objId].r.z,
+//			motions[objId].vel.x,  motions[objId].vel.y,  motions[objId].vel.z,
+//			motions[objId].force.x,  motions[objId].force.y,  motions[objId].force.z,
+//			motions[objId].torque.x, motions[objId].torque.y, motions[objId].torque.z /*,
+//			motions[objId].q.x,  motions[objId].q.y,  motions[objId].q.z, motions[objId].q.w,
+//			motions[objId].omega.x,  motions[objId].omega.y,  motions[objId].omega.z,
+//			motions[objId].prevQ.x,  motions[objId].prevQ.y,  motions[objId].prevQ.z, motions[objId].prevQ.w */);
 }
 
 

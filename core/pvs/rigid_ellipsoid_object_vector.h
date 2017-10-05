@@ -30,21 +30,4 @@ public:
 	virtual ~RigidEllipsoidObjectVector() {};
 };
 
-
-/**
- * GPU-compatibe struct of all the relevant data
- */
-struct REOVview : public ROVview
-{
-	float3 axes, invAxes;
-
-
-	REOVview(RigidEllipsoidObjectVector* ov, LocalRigidEllipsoidObjectVector* lov) :
-		ROVview(static_cast<RigidObjectVector*>(ov), static_cast<LocalRigidObjectVector*>(lov))
-	{
-		axes = ov->axes;
-		invAxes = 1.0 / axes;
-	}
-};
-
-
+#include "views/reov.h"

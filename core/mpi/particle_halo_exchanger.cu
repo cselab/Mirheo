@@ -19,8 +19,6 @@ __global__ void getHalos(const float4* __restrict__ coosvels,
 
 	bool valid = isValidCell(cid, cx, cy, cz, gid, blockIdx.y, cinfo);
 
-	if (__all(!valid) && tid > 27) return;
-
 	int2 start_size = valid ? cinfo.decodeStartSize(cellsStartSize[cid]) : make_int2(0, 0);
 
 	// Use shared memory to decrease number of global atomics
@@ -102,7 +100,7 @@ void ParticleHaloExchanger::combineAndUploadData(int id, cudaStream_t stream)
 	auto pv = particles[id];
 	auto helper = helpers[id];
 
-	pv->halo()->resize(helper->recvOffsets[27], stream, ResizeKind::resizeAnew);
+	pv->halo()->resize_anew(helper->recvOffsets[27]);
 
 	for (int i=0; i < 27; i++)
 	{
@@ -132,7 +130,7 @@ void ParticleHaloExchanger::prepareData(int id, cudaStream_t stream)
 				(int64_t*)helper->sendAddrs.devPtr(), helper->sendBufSizes.devPtr() );
 
 		helper->sendBufSizes.downloadFromDevice(stream);
-		helper->resizeSendBufs(stream);
+		helper->resizeSendBufs();
 
 		helper->sendBufSizes.clearDevice(stream);
 		getHalos<false> <<< dim3((maxdim*maxdim + nthreads - 1) / nthreads, 6, 1),  dim3(nthreads, 1, 1), 0, stream >>> (

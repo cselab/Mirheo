@@ -99,7 +99,7 @@ void Avg3DPlugin::afterIntegration(cudaStream_t stream)
 	for (auto pv : particleVectors)
 	{
 		CellListInfo cinfo(binSize, pv->localDomainSize);
-		auto pvView = PVview(pv, pv->local());
+		auto pvView = create_PVview(pv, pv->local());
 
 		sample<<< (pvView.size+127) / 128, 128, 0, stream >>> (
 				pvView, cinfo,

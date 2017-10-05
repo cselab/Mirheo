@@ -45,7 +45,7 @@ InteractionLJ::InteractionLJ(std::string name, float rc, float sigma, float epsi
 		Interaction(name, rc), sigma(sigma), epsilon(epsilon)
 { }
 
-void InteractionLJ::_compute(InteractionType type, ParticleVector* pv1, ParticleVector* pv2, CellList* cl, const float t, cudaStream_t stream)
+void InteractionLJ::_compute(InteractionType type, ParticleVector* pv1, ParticleVector* pv2, CellList* cl1, CellList* cl2, const float t, cudaStream_t stream)
 {
 	const float epsx24_sigma = 24.0*epsilon/sigma;
 	const float rc2 = rc*rc;
@@ -64,7 +64,7 @@ InteractionLJ_objectAware::InteractionLJ_objectAware(std::string name, float rc,
 		Interaction(name, rc), sigma(sigma), epsilon(epsilon)
 { }
 
-void InteractionLJ_objectAware::_compute(InteractionType type, ParticleVector* pv1, ParticleVector* pv2, CellList* cl, const float t, cudaStream_t stream)
+void InteractionLJ_objectAware::_compute(InteractionType type, ParticleVector* pv1, ParticleVector* pv2, CellList* cl1, CellList* cl2, const float t, cudaStream_t stream)
 {
 	auto ov1 = dynamic_cast<ObjectVector*>(pv1);
 	auto ov2 = dynamic_cast<ObjectVector*>(pv2);
@@ -75,8 +75,12 @@ void InteractionLJ_objectAware::_compute(InteractionType type, ParticleVector* p
 	const float rc2 = rc*rc;
 	const bool self = (pv1 == pv2);
 
-	const LocalObjectVector::COMandExtent* dstComExt = (ov1 != nullptr) ? ov1->local()->comAndExtents.devPtr() : nullptr;
-	const LocalObjectVector::COMandExtent* srcComExt = (ov2 != nullptr) ? ov2->local()->comAndExtents.devPtr() : nullptr;
+	const auto view1 = create_OVview(ov1, ov1 ? ov1->local() : nullptr);
+	const auto view2 = create_OVview(ov2, ov2 ? ov2->local() : nullptr);
+
+	if (view1.comAndExtents == nullptr && view2.comAndExtents == nullptr)
+		warn("Neither of the pvs (%s or %s) has required property 'com_extents', trying to move on",
+				pv1->name.c_str(), pv2->name.c_str());
 
 	auto ljCore_Obj = [=, *this] __device__ ( Particle dst, Particle src ) {
 		const int dstObjId = dst.s21;
@@ -86,10 +90,13 @@ void InteractionLJ_objectAware::_compute(InteractionType type, ParticleVector* p
 
 		float3 dstCom = make_float3(0.0f);
 		float3 srcCom = make_float3(0.0f);
-		if (dstComExt != nullptr) dstCom = dstComExt[dstObjId].com;
-		if (srcComExt != nullptr) srcCom = srcComExt[srcObjId].com;
+		if (view1.comAndExtents != nullptr) dstCom = view1.comAndExtents[dstObjId].com;
+		if (view2.comAndExtents != nullptr) srcCom = view2.comAndExtents[srcObjId].com;
 
-		return pairwiseLJ_objectAware( dst, src, (dstComExt != nullptr), dstCom, (srcComExt != nullptr), srcCom, sigma, epsx24_sigma, rc2);
+		return pairwiseLJ_objectAware( dst, src,
+				(view1.comAndExtents != nullptr), dstCom,
+				(view2.comAndExtents != nullptr), srcCom,
+				sigma, epsx24_sigma, rc2);
 	};
 
 	WRAP_INTERACTON(ljCore_Obj)

@@ -72,7 +72,7 @@ private:
 		std::string meshFname = node.attribute("mesh_filename").as_string("rbcmesh.topo");
 		ObjectMesh mesh;// = readMeshTopology(meshFname);
 
-		return (ParticleVector*) new RBCvector(name, mass, objSize, mesh);
+		return (ParticleVector*) new RBCvector(name, mass, objSize);//, mesh);
 	}
 
 public:
@@ -169,9 +169,10 @@ private:
 		std::string name = node.attribute("name").as_string();
 		float dt = node.attribute("dt").as_float(0.01);
 		float force = node.attribute("force").as_float();
+		std::string dirStr = node.attribute("direction").as_string("x");
+
 		// TODO: make all see simulation instead
 		float3 domain = node.root().child("simulation").child("domain").attribute("size").as_float3();
-		std::string dirStr = node.attribute("direction").as_string("x");
 
 		IntegratorVVPeriodicPoiseuille::Direction dir;
 		if (dirStr == "x") dir = IntegratorVVPeriodicPoiseuille::Direction::x;

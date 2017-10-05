@@ -17,6 +17,7 @@
 
 struct __align__(16) Float3_int
 {
+	// Variables
 	float3 v;
 	union
 	{
@@ -24,36 +25,35 @@ struct __align__(16) Float3_int
 		struct { int16_t s1, s2; };
 	};
 
+
+	// Default stuff
+	__host__ __device__ inline Float3_int(const Float3_int& x)
+	{
+		*((float4*)this) = *((float4*)&x);
+	}
+
+	__host__ __device__ inline Float3_int& operator=(Float3_int x)
+	{
+		*((float4*)this) = *((float4*)&x);
+		return *this;
+	}
+
+
+	// Constructors
 	__host__ __device__ inline Float3_int() {};
 	__host__ __device__ inline Float3_int(const float3 v, int i) : v(v), i(i) {};
 
 	__host__ __device__ inline Float3_int(const float4 f4)
 	{
-		v = make_float3(f4.x, f4.y, f4.z);
-
-#ifdef __CUDA_ARCH__
-		i = __float_as_int(f4.w);
-#else
-		union {int i; float f;} u;
-		u.f = f4.w;
-		i = u.i;
-#endif
+		*((float4*)this) = f4;
 	}
 
 
+	// Methods
 	__host__ __device__ inline float4 toFloat4()
 	{
-		float f;
-
-#ifdef __CUDA_ARCH__
-		f = __int_as_float(i);
-#else
-		union {int i; float f;} u;
-		u.i = i;
-		f = u.f;
-#endif
-
-		return make_float4(v.x, v.y, v.z, f);
+		float4 f = *((float4*)this);
+		return f;
 	}
 };
 
@@ -66,6 +66,7 @@ struct __align__(16) Particle
 	// Object particles will have their id (in object) in s21 and object id in i1
 	// s22 is arbitrary
 
+	// Variables
 	float3 r;
 	union
 	{
@@ -80,6 +81,29 @@ struct __align__(16) Particle
 		struct { int16_t s21 /*least significant*/, s22; };
 	};
 
+
+	// Default stuff
+	__host__ __device__ inline Particle(const Particle& x)
+	{
+		auto f4this = (float4*)this;
+		auto f4x    = (float4*)&x;
+
+		f4this[0] = f4x[0];
+		f4this[1] = f4x[1];
+	}
+
+	__host__ __device__ inline Particle& operator=(Particle x)
+	{
+		auto f4this = (float4*)this;
+		auto f4x    = (float4*)&x;
+
+		f4this[0] = f4x[0];
+		f4this[1] = f4x[1];
+
+		return *this;
+	}
+
+	// Constructors
 	__host__ __device__ inline Particle() {};
 	__host__ __device__ inline Particle(const float4 r4, const float4 u4)
 	{
@@ -89,15 +113,14 @@ struct __align__(16) Particle
 		u  = utmp.v;
 		i2 = utmp.i;
 	}
-	__host__ __device__ inline Particle(const float4* coosvels, int pid)
+	__host__ __device__ inline Particle(const float4* addr, int pid)
 	{
-		Float3_int rtmp(coosvels[2*pid]), utmp(coosvels[2*pid+1]);
-		r  = rtmp.v;
-		i1 = rtmp.i;
-		u  = utmp.v;
-		i2 = utmp.i;
+		readCoordinate(addr, pid);
+		readVelocity  (addr, pid);
 	}
 
+
+	// Methods
 	__host__ __device__ inline void readCoordinate(const float4* addr, const int pid)
 	{
 		const Float3_int tmp = addr[2*pid];

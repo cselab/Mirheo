@@ -35,11 +35,13 @@ void ObjectVector::findExtentAndCOM(cudaStream_t stream)
 {
 	const int nthreads = 128;
 
-	auto ovView = OVview(this, local());
-	min_max_com<<< (ovView.nObjects*32 + nthreads-1)/nthreads, nthreads, 0, stream >>> (ovView);
+	auto ovView = create_OVview(this, local());
+	if (ovView.nObjects > 0)
+		min_max_com <<< (ovView.nObjects*32 + nthreads-1)/nthreads, nthreads, 0, stream >>> (ovView);
 
-	ovView = OVview(this, halo());
-	min_max_com<<< (ovView.nObjects*32 + nthreads-1)/nthreads, nthreads, 0, stream >>> (ovView);
+	ovView = create_OVview(this, halo());
+	if (ovView.nObjects > 0)
+		min_max_com <<< (ovView.nObjects*32 + nthreads-1)/nthreads, nthreads, 0, stream >>> (ovView);
 }
 
 void ObjectVector::getMeshWithVertices(ObjectMesh* mesh, PinnedBuffer<Particle>* vertices, cudaStream_t stream)

@@ -49,7 +49,7 @@ InteractionDPD::InteractionDPD(std::string name, float rc, float a, float gamma,
 	sigma = sqrt(2 * gamma * kbT / dt);
 }
 
-void InteractionDPD::_compute(InteractionType type, ParticleVector* pv1, ParticleVector* pv2, CellList* cl, const float t, cudaStream_t stream)
+void InteractionDPD::_compute(InteractionType type, ParticleVector* pv1, ParticleVector* pv2, CellList* cl1, CellList* cl2, const float t, cudaStream_t stream)
 {
 	// Better to use random number in the seed instead of periodically changing time
 	const float seed = drand48();

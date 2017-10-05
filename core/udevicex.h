@@ -1,6 +1,7 @@
 #pragma once
 
 #include <core/logger.h>
+#include <core/cuda_common.h>
 
 class Simulation;
 class Postprocess;

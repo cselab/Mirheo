@@ -20,7 +20,7 @@ protected:
 public:
 	float a, kbT, power;
 
-	void _compute(InteractionType type, ParticleVector* pv1, ParticleVector* pv2, CellList* cl, const float t, cudaStream_t stream) override;
+	void _compute(InteractionType type, ParticleVector* pv1, ParticleVector* pv2, CellList* cl1, CellList* cl2, const float t, cudaStream_t stream) override;
 
 	MCMCSampler(std::string name, float rc, float a, float kbT, float power, SDFWall* wall, float minSdf, float maxSdf);
 

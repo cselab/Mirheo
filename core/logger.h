@@ -12,6 +12,9 @@
 #include <execinfo.h>
 #include <unistd.h>
 #include <cstdio>
+#include <string>
+
+#include "stacktrace.h"
 
 #include <mpi.h>
 
@@ -50,11 +53,11 @@ class Logger
 			std::string intro = tmout.str() + "   " + std::string("Rank %04d %7s at ")
 				+ fname + ":" + std::to_string(lnum) + "  " +pattern + "\n";
 
-			fprintf(fout, intro.c_str(), rank, (cappedLvl >= 0 ? lvl2text[cappedLvl] : "").c_str(), args...);
+			FILE* ftmp = (fout != nullptr) ? fout : stdout;
+			fprintf(ftmp, intro.c_str(), rank, (cappedLvl >= 0 ? lvl2text[cappedLvl] : "").c_str(), args...);
 
-#ifndef __OPTIMIZE__
-			fflush(fout);
-#endif
+			if (runtimeDebugLvl >= 7)
+				fflush(fout);
 		}
 	}
 
@@ -108,6 +111,16 @@ public:
 		fflush(fout);
 		fclose(fout);
 		fout = nullptr;
+
+		using namespace backward;
+		StackTrace st;
+		st.load_here(32);
+		Printer p;
+		p.object = true;
+		p.color_mode = ColorMode::automatic;
+		p.address = true;
+		p.print(st, stderr);
+		fflush(stderr);
 
 		MPI_Abort(MPI_COMM_WORLD, -1);
 	}

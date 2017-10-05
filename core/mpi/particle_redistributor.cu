@@ -101,7 +101,7 @@ void ParticleRedistributor::prepareData(int id, cudaStream_t stream)
 				(int64_t*)helper->sendAddrs.devPtr(), helper->sendBufSizes.devPtr() );
 
 		helper->sendBufSizes.downloadFromDevice(stream);
-		helper->resizeSendBufs(stream);
+		helper->resizeSendBufs();
 
 		helper->sendBufSizes.clearDevice(stream);
 		getExitingParticles<false> <<< dim3((maxdim*maxdim + nthreads - 1) / nthreads, 6, 1),  dim3(nthreads, 1, 1), 0, stream>>> (
@@ -116,7 +116,7 @@ void ParticleRedistributor::combineAndUploadData(int id, cudaStream_t stream)
 	auto helper = helpers[id];
 
 	int oldsize = pv->local()->size();
-	pv->local()->resize(oldsize + helper->recvOffsets[27], stream, ResizeKind::resizePreserve);
+	pv->local()->resize(oldsize + helper->recvOffsets[27],  stream);
 
 	auto hptr = pv->local()->coosvels.hostPtr() + oldsize;
 	auto dptr = pv->local()->coosvels.devPtr() + oldsize;

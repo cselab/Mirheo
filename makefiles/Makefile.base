@@ -12,17 +12,20 @@ include $(UDEVICEX_PATH)/makefiles/Makefile.settings.$(HOST)
 NVCCFLAGS += -std=c++11 --expt-extended-lambda -Xcompiler "-fopenmp"
 NVCCFLAGS += -I$(UDEVICEX_PATH)/ -I$(HDF5_INC) $(INCLUDES)
 NVCCFLAGS += -arch=$(CUDA_ARCH) -code=$(CUDA_CODE)
+NVCCFLAGS += -lineinfo -g -Xcompiler -rdynamic
 
 NOWARNFLAG = -Xcompiler "-Wno-cpp"
 
-NVCC_RELEASE_FLAGS = $(NVCCFLAGS) -O3
-NVCC_DEBUG_FLAGS = $(NVCCFLAGS) -G -g
+NVCC_RELEASE_FLAGS = $(NVCCFLAGS) -O3 
+NVCC_DEBUG_FLAGS = $(NVCCFLAGS) -G
 
 # Linking parameters
-LIBS += -L$(HDF5_LIB)
+LIBS += -L$(HDF5_LIB) -lbfd
 
-LINK_RELEASE_FLAGS = $(LINKFLAGS) -O3 $(LIBS)
-LINK_DEBUG_FLAGS = $(LINKFLAGS) -O0 $(LIBS)
+LINKFLAGS += -Xcompiler "-fopenmp -rdynamic" -g $(LIBS)
+
+LINK_RELEASE_FLAGS += $(LINKFLAGS) -O3 -Xcompiler -flto
+LINK_DEBUG_FLAGS += $(LINKFLAGS) -G
 
 # Misc
 SRC_DIR = $(UDEVICEX_PATH)/core $(UDEVICEX_PATH)/core/bouncers $(UDEVICEX_PATH)/core/initial_conditions \

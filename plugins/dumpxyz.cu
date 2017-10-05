@@ -36,7 +36,7 @@ void XYZPlugin::serializeAndSend(cudaStream_t stream)
 
 	debug2("Plugin %s is sending now data", name.c_str());
 
-	auto pvView = PVview(pv, pv->local());
+	auto pvView = create_PVview(pv, pv->local());
 	for (int i=0; i < pv->local()->size(); i++)
 		pv->local()->coosvels[i].r = pvView.local2global(pv->local()->coosvels[i].r);
 

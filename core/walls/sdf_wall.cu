@@ -123,10 +123,10 @@ __global__ void collectRemaining(const float4* input, const int np, SDFWall::Sdf
 	}
 }
 
-__global__ void collectRemainingObjects(
-		const Particle* input, const int nObjects, const int objSize, SDFWall::SdfInfo sdfInfo,
-		Particle* output, int* nRemaining,
-		char** extraData_input, char** extraData_output, int nPtrsPerObj, const int* dataSizes)
+__global__ void packRemainingObjects(
+		OVviewWithExtraData view,
+		SDFWall::SdfInfo sdfInfo,
+		char* output, int* nRemaining)
 {
 	const float tolerance = 1e-6f;
 
@@ -135,12 +135,12 @@ __global__ void collectRemainingObjects(
 	const int objId = gid / warpSize;
 	const int tid = gid % warpSize;
 
-	if (objId >= nObjects) return;
+	if (objId >= view.nObjects) return;
 
 	bool isRemaining = true;
-	for (int i=tid; i<objSize; i++)
+	for (int i=tid; i < view.objSize; i++)
 	{
-		Particle p = input[objId*objSize + i];
+		Particle p(view.particles, objId * view.objSize + i);
 		if (evalSdf(p.r, sdfInfo) <= -tolerance)
 		{
 			isRemaining = false;
@@ -155,19 +155,31 @@ __global__ void collectRemainingObjects(
 		dstObjId = atomicAggInc(nRemaining);
 	dstObjId = __shfl(dstObjId, 0);
 
-	for (int i=tid; i<objSize; i+=warpSize)
-		output[dstObjId*objSize + i] = input[objId*objSize + i];
 
-	// Also copy other object properties
-	for (int ptrId = 0; ptrId < nPtrsPerObj; ptrId++)
-	{
-		// dataSizes are in bytes
-		const int size = dataSizes[ptrId];
-		for (int i = tid; i < size; i += warpSize)
-			extraData_input[ptrId][objId*size + i] = extraData_output[ptrId][dstObjId*size + i];
-	}
+	Particle* dstAddr = (Particle*)(output + dstObjId * view.packedObjSize_byte);
+	for (int i=tid; i < view.objSize; i+=warpSize)
+		dstAddr[i] = Particle(view.particles, objId * view.objSize + i);
+
+	view.packExtraData(objId, (char*)(dstAddr+view.objSize));
 }
 
+__global__ void unpackRemainingObjects(
+		OVviewWithExtraData view,
+		const char* input)
+{
+	// One warp per object
+	const int gid = blockIdx.x * blockDim.x + threadIdx.x;
+	const int objId = gid / warpSize;
+	const int tid = gid % warpSize;
+
+	if (objId >= view.nObjects) return;
+
+	Particle* srcAddr = (Particle*)(input + objId * view.packedObjSize_byte);
+	for (int i=tid; i < view.objSize; i+=warpSize)
+		((Particle*)view.particles)[objId * view.objSize + i] = srcAddr[i];
+
+	view.unpackExtraData(objId, (char*)(srcAddr+view.objSize));
+}
 //===============================================================================================
 // Boundary cells kernels
 //===============================================================================================
@@ -517,53 +529,46 @@ void SDFWall::removeInner(ParticleVector* pv)
 
 	PinnedBuffer<int> nRemaining(1);
 	nRemaining.clear(0);
-	PinnedBuffer<Particle> tmp(pv->local()->size(), 0);
+
+	int oldSize = pv->local()->size();
 
 	const int nthreads = 128;
 	// Need a different path for objects
 	ObjectVector* ov = dynamic_cast<ObjectVector*>(pv);
 	if (ov == nullptr)
 	{
-		collectRemaining<<< getNblocks(pv->local()->size(), nthreads), nthreads, 0, 0 >>>(
+		PinnedBuffer<Particle> tmp(pv->local()->size());
+
+		collectRemaining<<< getNblocks(pv->local()->size(), nthreads), nthreads >>>(
 				(float4*)pv->local()->coosvels.devPtr(), pv->local()->size(), sdfInfo,
 				(float4*)tmp.devPtr(), nRemaining.devPtr() );
+
+		nRemaining.downloadFromDevice(0);
+		std::swap(pv->local()->coosvels, tmp);
+		int oldSize = pv->local()->size();
+		pv->local()->resize(nRemaining[0], 0);
 	}
 	else
 	{
 		// Prepare temp storage for extra object data
-		int nObjs = ov->local()->nObjects;
+		auto ovView = create_OVviewWithExtraData(ov, ov->local(), 0);
 
-		auto extraDataSizes = ov->local()->extraDataSizes;
-		int nExtra = extraDataSizes.size();
-		PinnedBuffer<char*> extraDataPtrs_tmp(nExtra);
-		std::vector<PinnedBuffer<char>> extraDataBufs(nExtra);
+		DeviceBuffer<char> tmp(ovView.nObjects * ovView.packedObjSize_byte);
 
-		for (int i=0; i<nExtra; i++)
-		{
-			extraDataBufs[i].resize(nObjs * extraDataSizes[i], 0);
-			extraDataPtrs_tmp[i] = extraDataBufs[i].devPtr();
-		}
-		extraDataPtrs_tmp.uploadToDevice(0);
-
-		collectRemainingObjects<<<  getNblocks(ov->local()->nObjects*32, nthreads), nthreads, 0, 0 >>> (
-				ov->local()->coosvels.devPtr(), ov->local()->nObjects, ov->objSize, sdfInfo,
-				tmp.devPtr(), nRemaining.devPtr(),
-				ov->local()->extraDataPtrs.devPtr(), extraDataPtrs_tmp.devPtr(), nExtra, extraDataSizes.devPtr());
+		packRemainingObjects<<< getNblocks(ovView.nObjects*32, nthreads), nthreads >>> (
+				ovView, sdfInfo,
+				tmp.devPtr(), nRemaining.devPtr());
 
 		// Copy temporary buffers back
 		nRemaining.downloadFromDevice(0);
-		for (int i=0; i<nExtra; i++)
-			CUDA_Check( cudaMemcpyAsync(
-					ov->local()->extraDataPtrs[i], extraDataPtrs_tmp[i],
-					extraDataSizes[i]*nRemaining[0], cudaMemcpyDeviceToDevice, 0) );
+		ov->local()->resize_anew(nRemaining[0]);
+		ovView = create_OVviewWithExtraData(ov, ov->local(), 0);
+		unpackRemainingObjects <<< getNblocks(ovView.nObjects*32, nthreads), nthreads >>> (ovView, tmp.devPtr());
 	}
 
-	nRemaining.downloadFromDevice(0);
-	containerSwap(pv->local()->coosvels, tmp, 0);
-	int oldSize = pv->local()->size();
-	pv->local()->resize(nRemaining[0], 0);
 	pv->local()->changedStamp++;
-	info("Removed inner entities of %s, keeping %d out of %d particles", pv->name.c_str(), nRemaining[0], oldSize);
+	info("Removed inner entities of %s, keeping %d out of %d particles",
+			pv->name.c_str(), pv->name.c_str(), oldSize);
 
 	CUDA_Check( cudaDeviceSynchronize() );
 }

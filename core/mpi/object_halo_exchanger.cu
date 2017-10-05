@@ -2,79 +2,48 @@
 
 #include <core/pvs/particle_vector.h>
 #include <core/pvs/object_vector.h>
+#include <core/pvs/rigid_object_vector.h>
 #include <core/logger.h>
 #include <core/cuda_common.h>
 
-__device__ static inline void packExtraData(int objId, char** extraData, int nPtrsPerObj, const int* dataSizes, char* destanation)
-{
-	int baseId = 0;
-
-	for (int ptrId = 0; ptrId < nPtrsPerObj; ptrId++)
-		{
-			// dataSizes are in bytes
-			const int size = dataSizes[ptrId];
-			for (int i = threadIdx.x; i < size; i += blockDim.x)
-				destanation[baseId+i] = extraData[ptrId][objId*size + i];
-
-			baseId += dataSizes[ptrId];
-		}
-}
-
-__device__ static inline void unpackExtraData(int objId, char** extraData, int nPtrsPerObj, const int* dataSizes, const char* source)
-{
-	int baseId = 0;
-
-	for (int ptrId = 0; ptrId < nPtrsPerObj; ptrId++)
-	{
-		// dataSizes are in bytes
-		const int size = dataSizes[ptrId];
-		for (int i = threadIdx.x; i < size; i += blockDim.x)
-			extraData[ptrId][objId*size + i] = source[baseId+i];
-
-		baseId += dataSizes[ptrId];
-	}
-}
-
-
 template<bool QUERY=false>
-__global__ void getObjectHalos(const float4* __restrict__ coosvels, const LocalObjectVector::COMandExtent* props, const int nObj, const int objSize,
-		const float3 localDomainSize, const float rc,
-		const int64_t dests[27], int sendBufSizes[27], /*int* haloParticleIds,*/
-		const int packedObjSize_byte, char** extraData, int nPtrsPerObj, const int* dataSizes)
+__global__ void getObjectHalos(const OVviewWithExtraData ovView, const ROVview rovView,
+		const float rc, char** dests, int* sendBufSizes, int** haloParticleIds = nullptr)
 {
 	const int objId = blockIdx.x;
 	const int tid = threadIdx.x;
 	const int sh  = tid % 2;
 
-	if (objId >= nObj) return;
-
 	int nHalos = 0;
 	short validHalos[7];
 
-	// Find to which halos this object should go
-	auto prop = props[objId];
-	int cx = 1, cy = 1, cz = 1;
+	if (objId < ovView.nObjects)
+	{
+		// Find to which halos this object should go
+		auto prop = ovView.comAndExtents[objId];
+		int cx = 1, cy = 1, cz = 1;
 
-	if (prop.low.x  < -0.5f*localDomainSize.x + rc) cx = 0;
-	if (prop.low.y  < -0.5f*localDomainSize.y + rc) cy = 0;
-	if (prop.low.z  < -0.5f*localDomainSize.z + rc) cz = 0;
+		if (prop.low.x  < -0.5f*ovView.localDomainSize.x + rc) cx = 0;
+		if (prop.low.y  < -0.5f*ovView.localDomainSize.y + rc) cy = 0;
+		if (prop.low.z  < -0.5f*ovView.localDomainSize.z + rc) cz = 0;
 
-	if (prop.high.x >  0.5f*localDomainSize.x - rc) cx = 2;
-	if (prop.high.y >  0.5f*localDomainSize.y - rc) cy = 2;
-	if (prop.high.z >  0.5f*localDomainSize.z - rc) cz = 2;
+		if (prop.high.x >  0.5f*ovView.localDomainSize.x - rc) cx = 2;
+		if (prop.high.y >  0.5f*ovView.localDomainSize.y - rc) cy = 2;
+		if (prop.high.z >  0.5f*ovView.localDomainSize.z - rc) cz = 2;
 
-//	if (tid == 0) printf("Obj %d : [%f %f %f] -- [%f %f %f]\n", objId,
-//		prop.low.x, prop.low.y, prop.low.z, prop.high.x, prop.high.y, prop.high.z);
+//			if (tid == 0 && !QUERY) printf("Obj %d : [%f %f %f] -- [%f %f %f]\n", objId,
+//			prop.low.x, prop.low.y, prop.low.z, prop.high.x, prop.high.y, prop.high.z);
 
-	for (int ix = min(cx, 1); ix <= max(cx, 1); ix++)
-		for (int iy = min(cy, 1); iy <= max(cy, 1); iy++)
-			for (int iz = min(cz, 1); iz <= max(cz, 1); iz++)
-			{
-				if (ix == 1 && iy == 1 && iz == 1) continue;
-				const int bufId = (iz*3 + iy)*3 + ix;
-				validHalos[nHalos] = bufId;
-				nHalos++;
-			}
+		for (int ix = min(cx, 1); ix <= max(cx, 1); ix++)
+			for (int iy = min(cy, 1); iy <= max(cy, 1); iy++)
+				for (int iz = min(cz, 1); iz <= max(cz, 1); iz++)
+				{
+					if (ix == 1 && iy == 1 && iz == 1) continue;
+					const int bufId = (iz*3 + iy)*3 + ix;
+					validHalos[nHalos] = bufId;
+					nHalos++;
+				}
+	}
 
 	// Copy objects to each halo
 	// TODO: maybe other loop order?
@@ -86,9 +55,9 @@ __global__ void getObjectHalos(const float4* __restrict__ coosvels, const LocalO
 		const int ix = bufId % 3;
 		const int iy = (bufId / 3) % 3;
 		const int iz = bufId / 9;
-		const float3 shift{ localDomainSize.x*(ix-1),
-							localDomainSize.y*(iy-1),
-							localDomainSize.z*(iz-1) };
+		const float3 shift{ ovView.localDomainSize.x*(ix-1),
+							ovView.localDomainSize.y*(iy-1),
+							ovView.localDomainSize.z*(iz-1) };
 
 		__syncthreads();
 		if (tid == 0)
@@ -100,19 +69,20 @@ __global__ void getObjectHalos(const float4* __restrict__ coosvels, const LocalO
 		__syncthreads();
 
 //		if (tid == 0)
-//			printf("obj  %d  to halo  %d  [%f %f %f] - [%f %f %f]  %d %d %d\n", objId, bufId,
-//				prop.low.x, prop.low.y, prop.low.z, prop.high.x, prop.high.y, prop.high.z, cx, cy, cz);
+//			printf("obj  %d  to halo  %d\n", objId, bufId);
 
-		float4* dstAddr = (float4*) (dests[bufId]) + packedObjSize_byte/sizeof(float4) * shDstObjId;
+		float4* dstAddr = (float4*) (dests[bufId]) + ovView.packedObjSize_byte/sizeof(float4) * shDstObjId;
 
-		for (int pid = tid/2; pid < objSize; pid += blockDim.x/2)
+		for (int pid = tid/2; pid < ovView.objSize; pid += blockDim.x/2)
 		{
-			const int srcId = objId * objSize + pid;
-			Float3_int data(coosvels[2*srcId + sh]);
+			const int srcId = objId * ovView.objSize + pid;
+			Float3_int data(ovView.particles[2*srcId + sh]);
 
 			// Remember your origin, little particle!
 			if (sh == 1)
 			{
+				haloParticleIds[bufId][shDstObjId * ovView.objSize + pid] = srcId;
+
 				data.s2 = objId;
 				data.s1 = pid;
 			}
@@ -124,38 +94,41 @@ __global__ void getObjectHalos(const float4* __restrict__ coosvels, const LocalO
 		}
 
 		// Add extra data at the end of the object
-		dstAddr += objSize*2;
-		packExtraData(objId, extraData, nPtrsPerObj, dataSizes, (char*)dstAddr);
+		dstAddr += ovView.objSize*2;
+		ovView.packExtraData(objId, (char*)dstAddr);
+
+		if (rovView.objSize == ovView.objSize)
+			rovView.applyShift2extraData((char*)dstAddr, shift);
 	}
 }
 
-
-__global__ void unpackObject(const float4* from, float4* to, const int objSize, const int packedObjSize_byte, const int nObj,
-		char** extraData, int nPtrsPerObj, const int* dataSizes)
+__global__ static void unpackObject(const float4* from, const int startDstObjId, OVviewWithExtraData ovView)
 {
 	const int objId = blockIdx.x;
 	const int tid = threadIdx.x;
 	const int sh  = tid % 2;
 
-	for (int pid = tid/2; pid < objSize; pid += blockDim.x/2)
-	{
-		const int srcId = objId * packedObjSize_byte/sizeof(float4) + pid*2;
-		float4 data = from[srcId + sh];
+	const float4* srcAddr = from + ovView.packedObjSize_byte/sizeof(float4) * objId;
 
-		to[2*(objId*objSize + pid) + sh] = data;
+	for (int pid = tid/2; pid < ovView.objSize; pid += blockDim.x/2)
+	{
+		const int dstId = (startDstObjId+objId)*ovView.objSize + pid;
+		ovView.particles[2*dstId + sh] = srcAddr[2*pid + sh];
 	}
 
-	unpackExtraData(objId, extraData, nPtrsPerObj, dataSizes, (char*)from + objId * packedObjSize_byte + objSize*sizeof(Particle) );
+	ovView.unpackExtraData( startDstObjId+objId, (char*)(srcAddr + 2*ovView.objSize));
 }
-
 
 
 void ObjectHaloExchanger::attach(ObjectVector* ov, float rc)
 {
 	objects.push_back(ov);
 	rcs.push_back(rc);
-	ExchangeHelper* helper = new ExchangeHelper(ov->name, ov->local()->packedObjSize_bytes);
+	ExchangeHelper* helper = new ExchangeHelper(ov->name);
 	helpers.push_back(helper);
+
+	ExchangeHelper* originHelper = new ExchangeHelper(ov->name, sizeof(int)*ov->objSize);
+	originHelpers.push_back(originHelper);
 
 	info("Object vector %s (rc %f) was attached to halo exchanger", ov->name.c_str(), rc);
 }
@@ -164,34 +137,38 @@ void ObjectHaloExchanger::attach(ObjectVector* ov, float rc)
 void ObjectHaloExchanger::prepareData(int id, cudaStream_t stream)
 {
 	auto ov  = objects[id];
-	auto lov = ov->local();
 	auto rc  = rcs[id];
 	auto helper = helpers[id];
+	auto originHelper = originHelpers[id];
 
 	debug2("Preparing %s halo on the device", ov->name.c_str());
 
+	auto ovView = create_OVviewWithExtraData(ov, ov->local(), stream);
+	helper->setDatumSize(ovView.packedObjSize_byte);
+
 	const int nthreads = 128;
-	if (lov->nObjects > 0)
+	if (ovView.nObjects > 0)
 	{
-		int       nPtrs  = lov->extraDataPtrs.size();
-		int totSize_byte = lov->packedObjSize_bytes;
+		// FIXME: this is a hack
+		auto rovView = create_ROVview(nullptr, nullptr);
+		RigidObjectVector* rov;
+		if ( (rov = dynamic_cast<RigidObjectVector*>(ov)) != 0 )
+			rovView = create_ROVview(rov, rov->local());
 
 		helper->sendBufSizes.clearDevice(stream);
-		getObjectHalos<true>  <<< lov->nObjects, nthreads, 0, stream >>> (
-				(float4*)lov->coosvels.devPtr(), lov->comAndExtents.devPtr(),
-				lov->nObjects, ov->objSize, ov->localDomainSize, rc,
-				(int64_t*)helper->sendAddrs.devPtr(), helper->sendBufSizes.devPtr(),
-				totSize_byte, lov->extraDataPtrs.devPtr(), nPtrs, lov->extraDataSizes.devPtr());
+		getObjectHalos<true>  <<< ovView.nObjects, nthreads, 0, stream >>> (
+				ovView, rovView, rc, helper->sendAddrs.devPtr(), helper->sendBufSizes.devPtr());
 
 		helper->sendBufSizes.downloadFromDevice(stream);
-		helper->resizeSendBufs(stream);
+		for (int i=0; i<helper->sendBufSizes.size(); i++)
+			originHelper->sendBufSizes[i] = helper->sendBufSizes[i];
+
+		helper->resizeSendBufs();
+		originHelper->resizeSendBufs();
 
 		helper->sendBufSizes.clearDevice(stream);
-		getObjectHalos<false> <<< lov->nObjects, nthreads, 0, stream >>> (
-				(float4*)lov->coosvels.devPtr(), lov->comAndExtents.devPtr(),
-				lov->nObjects, ov->objSize, ov->localDomainSize, rc,
-				(int64_t*)helper->sendAddrs.devPtr(), helper->sendBufSizes.devPtr(),
-				totSize_byte, lov->extraDataPtrs.devPtr(), nPtrs, lov->extraDataSizes.devPtr());
+		getObjectHalos<false> <<< ovView.nObjects, nthreads, 0, stream >>> (
+				ovView, rovView, rc, helper->sendAddrs.devPtr(), helper->sendBufSizes.devPtr(), (int**)originHelper->sendAddrs.devPtr());
 	}
 }
 
@@ -200,21 +177,32 @@ void ObjectHaloExchanger::combineAndUploadData(int id, cudaStream_t stream)
 	auto ov = objects[id];
 	auto helper = helpers[id];
 
-	ov->halo()->resize(helper->recvOffsets[27] * ov->objSize, stream, ResizeKind::resizeAnew);
+	ov->halo()->resize_anew(helper->recvOffsets[27] * ov->objSize);
+	auto ovView = create_OVviewWithExtraData(ov, ov->halo(), stream);
 
+	// TODO: unite into one unpack call
 	const int nthreads = 128;
 	for (int i=0; i < 27; i++)
 	{
 		const int nObjs = helper->recvOffsets[i+1] - helper->recvOffsets[i];
 		if (nObjs > 0)
 		{
-			int        nPtrs = ov->local()->extraDataPtrs.size();
-			int totSize_byte = ov->local()->packedObjSize_bytes;
-
-			unpackObject<<< nObjs, nthreads, 0, stream >>>
-					((float4*)helper->recvBufs[i].devPtr(), (float4*)(ov->halo()->coosvels.devPtr() + helper->recvOffsets[i]*nObjs), ov->objSize, totSize_byte, nObjs,
-					 ov->halo()->extraDataPtrs.devPtr(), nPtrs, ov->halo()->extraDataSizes.devPtr());
+			helper->recvBufs[i].uploadToDevice(stream);
+			unpackObject<<< nObjs, nthreads, 0, stream >>> ( (float4*)helper->recvBufs[i].devPtr(),  helper->recvOffsets[i], ovView );
 		}
 	}
 }
+
+std::vector<int>& ObjectHaloExchanger::getRecvOffsets(int id)
+{
+	return helpers[id]->recvOffsets;
+}
+
+PinnedBuffer<char*>& ObjectHaloExchanger::getOriginAddrs(int id)
+{
+	return originHelpers[id]->sendAddrs;
+}
+
+
+
 

@@ -21,8 +21,9 @@ void IntegratorVVConstDP::stage1(ParticleVector* pv, cudaStream_t stream)
 
 void IntegratorVVConstDP::stage2(ParticleVector* pv, cudaStream_t stream)
 {
-	auto st2 = [*this] __device__ (Particle& p, const float3 f, const float invm, const float dt) {
-		p.u += (f+extraForce)*invm*dt;
+	auto _extraForce = extraForce;
+	auto st2 = [_extraForce] __device__ (Particle& p, const float3 f, const float invm, const float dt) {
+		p.u += (f+_extraForce)*invm*dt;
 		p.r += p.u*dt;
 	};
 
@@ -32,7 +33,7 @@ void IntegratorVVConstDP::stage2(ParticleVector* pv, cudaStream_t stream)
 
 	if (pv->local()->size() > 0)
 	{
-		auto pvView = PVview(pv, pv->local());
+		auto pvView = create_PVview(pv, pv->local());
 		integrationKernel<<< getNblocks(2*pvView.size, nthreads), nthreads, 0, stream >>>(pvView, dt, st2);
 	}
 	pv->local()->changedStamp++;
