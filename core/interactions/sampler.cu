@@ -45,7 +45,7 @@ __device__ __forceinline__ float E_DPD(
 
 template<typename Potential>
 __device__ __forceinline__ float E_inCell(Particle p, int3 cell,
-		Particle* particles, CellListInfo cinfo, const uint* __restrict__ cellsStartSize,
+		Particle* particles, CellListInfo cinfo,
 		const float rc2, Potential potential)
 {
 	float E = 0.0f;
@@ -53,9 +53,11 @@ __device__ __forceinline__ float E_inCell(Particle p, int3 cell,
 		for (int cellY = max(cell.y-1, 0); cellY <= min(cell.y+1, cinfo.ncells.y-1); cellY++)
 			for (int cellX = max(cell.x-1, 0); cellX <= min(cell.x+1, cinfo.ncells.x-1); cellX++)
 			{
-				const int2 start_size = cinfo.decodeStartSize(cellsStartSize[cinfo.encode(cellX, cellY, cellZ)]);
+				const int cid = cinfo.encode(cellX, cellY, cellZ);
+				const int pstart = cinfo.cellStarts[cid];
+				const int pend   = cinfo.cellStarts[cid+1];
 
-				for (int othId = start_size.x; othId < start_size.x + start_size.y; othId++)
+				for (int othId = pstart; othId < pend; othId++)
 				{
 					Particle othP = particles[othId];
 
@@ -71,7 +73,7 @@ __device__ __forceinline__ float E_inCell(Particle p, int3 cell,
 
 template<typename Potential>
 __global__ void mcmcSample(int3 shift,
-		Particle* particles, const int np, CellListInfo cinfo, const uint* __restrict__ cellsStartSize,
+		Particle* particles, const int np, CellListInfo cinfo,
 		const float rc, const float rc2, const float p, const float kbT, const float seed,
 		SDFWall::SdfInfo sdfInfo, const float minSdf, const float maxSdf,
 		const float proposalFactor, int* nAccepted, int* nRejected, Potential potential)
@@ -83,19 +85,20 @@ __global__ void mcmcSample(int3 shift,
 		return;
 
 	const int cid = cinfo.encode(cell0);
-	const int2 start_size = cinfo.decodeStartSize(cellsStartSize[cid]);
+	const int pstart = cinfo.cellStarts[cid];
+	const int pend   = cinfo.cellStarts[cid+1];
 
-	for (int i=0; i<start_size.y; i++)
+	for (int i=0; i<pend-pstart; i++)
 	{
 		// Random particle, 3x random translations, acc probability = 5 rands
-		const float rnd0 = Saru::uniform01(seed, cid, start_size.x);
-		const float rnd1 = Saru::uniform01(rnd0, cid, start_size.x);
-		const float rnd2 = Saru::uniform01(rnd1, cid, start_size.x);
-		const float rnd3 = Saru::uniform01(rnd2, cid, start_size.x);
-		const float rnd4 = Saru::uniform01(rnd3, cid, start_size.x);
+		const float rnd0 = Saru::uniform01(seed, cid, pstart);
+		const float rnd1 = Saru::uniform01(rnd0, cid, pstart);
+		const float rnd2 = Saru::uniform01(rnd1, cid, pstart);
+		const float rnd3 = Saru::uniform01(rnd2, cid, pstart);
+		const float rnd4 = Saru::uniform01(rnd3, cid, pstart);
 
 		// Choose one random particle
-		int pid = start_size.x + floorf(rnd0 * start_size.y);
+		int pid = pstart + floorf(rnd0 * pend-pstart);
 		Particle p0 = particles[pid];
 
 		// Just not the one initially in halo
@@ -118,8 +121,8 @@ __global__ void mcmcSample(int3 shift,
 		// !!! COMPILER FUCKING ERROR SHISHISHI
 		// LAMBDA KILLS NVCCCCCC !!1
 
-		float E0   = E_inCell(p0,   cell0,    particles, cinfo, cellsStartSize, rc2, potential);
-		float Enew = E_inCell(pnew, cell_new, particles, cinfo, cellsStartSize, rc2, potential);
+		float E0   = E_inCell(p0,   cell0,    particles, cinfo, rc2, potential);
+		float Enew = E_inCell(pnew, cell_new, particles, cinfo, rc2, potential);
 
 		float kbT_mod = kbT;
 		float dist2bound = min(
@@ -244,7 +247,7 @@ void MCMCSampler::_compute(InteractionType type, ParticleVector* pv1, ParticleVe
 
 				mcmcSample <<< blocks3, threads3, 0, stream >>> (
 						shift,
-						combinedCL->coosvels->devPtr(), nLocal+nHalo, combinedCL->cellInfo(), combinedCL->cellsStartSize.devPtr(),
+						combinedCL->particles->devPtr(), nLocal+nHalo, combinedCL->cellInfo(),
 						rc, rc2, power, kbT, drand48(),
 						wall->sdfInfo, minSdf, maxSdf,
 						proposalFactor, nAccepted.devPtr(), nRejected.devPtr(), potential);
@@ -271,8 +274,7 @@ void MCMCSampler::_compute(InteractionType type, ParticleVector* pv1, ParticleVe
 	};
 	combinedCL->forces->clear(stream);
 	computeSelfInteractions<<< (nLocal+nHalo + nthreads - 1) / nthreads, nthreads, 0, stream >>>(
-			nLocal+nHalo, (float4*)combinedCL->coosvels->devPtr(), (float*)combinedCL->forces->devPtr(),
-			combinedCL->cellInfo(), combinedCL->cellsStartSize.devPtr(), rc*rc, totEinter);
+			nLocal+nHalo, combinedCL->cellInfo(), rc*rc, totEinter);
 
 	totE.downloadFromDevice(stream);
 	debug("Total energy: %f, difference: %f", totE[0], totE[0] - old);
@@ -283,7 +285,7 @@ void MCMCSampler::_compute(InteractionType type, ParticleVector* pv1, ParticleVe
 	// Copy back the particles
 	nDst.clear(stream);
 	writeBackLocal<<< getNblocks(nLocal+nHalo, nthreads), nthreads, 0, stream >>>(
-			combinedCL->coosvels->devPtr(), nLocal+nHalo, pv->local()->coosvels.devPtr(), nDst.devPtr());
+			combinedCL->particles->devPtr(), nLocal+nHalo, pv->local()->coosvels.devPtr(), nDst.devPtr());
 
 	// Mark pv as changed and rebuild cell-lists as the particles may have moved significantly
 	pv->local()->changedStamp++;

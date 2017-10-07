@@ -25,7 +25,7 @@ void BounceFromRigidEllipsoid::exec(ObjectVector* ov, ParticleVector* pv, CellLi
 	auto pvView = create_PVview(pv, pv->local());
 
 	int nthreads = 512;
-	bounceEllipsoid<<< ovView.nObjects, nthreads, 2*nthreads*sizeof(int), stream >>> (ovView, pvView, cl->cellsStartSize.devPtr(), cl->cellInfo(), dt);
+	bounceEllipsoid<<< ovView.nObjects, nthreads, 2*nthreads*sizeof(int), stream >>> (ovView, pvView, cl->cellInfo(), dt);
 }
 
 

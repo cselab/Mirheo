@@ -28,8 +28,9 @@ void BounceFromMesh::exec(ObjectVector* ov, ParticleVector* pv, CellList* cl, fl
 
 	int nthreads = 128;
 
+	// TODO: ovview with mesh
 	findBouncesInMesh <<<getNblocks(totalTriangles, nthreads), nthreads, 0, stream>>> (
-			(const float4*)pv->local()->coosvels.devPtr(), cl->cellsStartSize.devPtr(),
+			(const float4*)pv->local()->coosvels.devPtr(),
 			cl->cellInfo(), nCollisions.devPtr(), collisionTable.devPtr(),
 			activeOV->nObjects, ov->mesh.nvertices, ov->mesh.ntriangles, ov->mesh.triangles.devPtr(),
 			(const float4*)activeOV->coosvels.devPtr(), dt);

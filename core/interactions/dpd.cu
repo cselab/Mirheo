@@ -35,7 +35,7 @@ __device__ __forceinline__ float3 pairwiseDPD(
 	const float3 du = dst.u - src.u;
 	const float rdotv = dot(dr_r, du);
 
-	const float myrandnr = Logistic::mean0var1(seed, min(src.i1, dst.i1), max(src.i1, dst.i1));
+	const float myrandnr = 0*Logistic::mean0var1(seed, min(src.i1, dst.i1), max(src.i1, dst.i1));
 
 	const float strength = adpd * argwr - (gammadpd * wr * rdotv + sigmadpd * myrandnr) * wr;
 

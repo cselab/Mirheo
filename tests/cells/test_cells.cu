@@ -42,7 +42,7 @@ int main(int argc, char **argv)
 	MPI_Check( MPI_Cart_create(MPI_COMM_WORLD, 3, ranks, periods, 0, &cartComm) );
 
 
-	float3 length{66,33,51};
+	float3 length{64,64,64};
 	float3 domainStart = -length / 2.0f;
 	const float rc = 1.2f;
 	ParticleVector dpds("dpd", 1.0f);
@@ -65,11 +65,11 @@ int main(int argc, char **argv)
 
 	dpds.local()->coosvels.downloadFromDevice(0, true);
 
-	HostBuffer<uint> hcellsStart(cells->totcells+1);
-	HostBuffer<uint8_t> hcellsSize(cells->totcells+1);
+	HostBuffer<int> hcellsStart(cells->totcells+1);
+	HostBuffer<int> hcellsSize(cells->totcells+1);
 
-	hcellsStart.copy(cells->cellsStartSize, 0);
-	hcellsSize. copy(cells->cellsSize, 0);
+	hcellsStart.copy(cells->cellStarts, 0);
+	hcellsSize. copy(cells->cellSizes, 0);
 
 	HostBuffer<int> cellscount(cells->totcells+1);
 	for (int i=0; i<cells->totcells+1; i++)
@@ -94,13 +94,14 @@ int main(int argc, char **argv)
 
 	printf("np = %d, vs reference  %d\n", dpds.local()->size(), total);
 	for (int cid=0; cid < cells->totcells+1; cid++)
-		if ( (hcellsStart[cid] >> cells->blendingPower) != cellscount[cid] )
-			printf("cid %d:  %d (correct %d),  %d\n", cid, hcellsStart[cid] >> cells->blendingPower, cellscount[cid], hcellsStart[cid] & ((1<<cells->blendingPower) - 1));
+		if ( (hcellsSize[cid]) != cellscount[cid] )
+			printf("cid %d:  %d (correct %d),  %d\n",
+					cid, hcellsSize[cid], cellscount[cid], hcellsStart[cid]);
 
 	for (int cid=0; cid < cells->totcells; cid++)
 	{
-		const int start = hcellsStart[cid] & ((1<<cells->blendingPower) - 1);
-		const int size = hcellsStart[cid] >> cells->blendingPower;
+		const int start = hcellsStart[cid];
+		const int size = hcellsSize[cid];
 		for (int pid=start; pid < start + size; pid++)
 		{
 			const float3 cooDev{dpds.local()->coosvels[pid].r.x, dpds.local()->coosvels[pid].r.y, dpds.local()->coosvels[pid].r.z};

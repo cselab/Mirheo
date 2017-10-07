@@ -145,6 +145,7 @@ void ObjectHaloExchanger::prepareData(int id, cudaStream_t stream)
 
 	auto ovView = create_OVviewWithExtraData(ov, ov->local(), stream);
 	helper->setDatumSize(ovView.packedObjSize_byte);
+	helper->sendBufSizes.clear(stream);
 
 	const int nthreads = 128;
 	if (ovView.nObjects > 0)
@@ -155,7 +156,6 @@ void ObjectHaloExchanger::prepareData(int id, cudaStream_t stream)
 		if ( (rov = dynamic_cast<RigidObjectVector*>(ov)) != 0 )
 			rovView = create_ROVview(rov, rov->local());
 
-		helper->sendBufSizes.clearDevice(stream);
 		getObjectHalos<true>  <<< ovView.nObjects, nthreads, 0, stream >>> (
 				ovView, rovView, rc, helper->sendAddrs.devPtr(), helper->sendBufSizes.devPtr());
 

@@ -13,28 +13,71 @@
 
 Logger logger;
 
+void makeCells(const Particle* __restrict__ input, Particle* __restrict__ output, int* __restrict__ cellsStartSize, int* __restrict__ cellsSize,
+		int* __restrict__ order, int np, CellListInfo cinfo)
+{
+	for (int i=0; i<cinfo.totcells+1; i++)
+		cellsSize[i] = 0;
+
+	for (int i=0; i<np; i++)
+		cellsSize[cinfo.getCellId(input[i].r)]++;
+
+	cellsStartSize[0] = 0;
+	for (int i=1; i<=cinfo.totcells; i++)
+		cellsStartSize[i] = cellsSize[i-1] + cellsStartSize[i-1];
+
+	for (int i=0; i<np; i++)
+	{
+		const int cid = cinfo.getCellId(input[i].r);
+		output[cellsStartSize[cid]] = input[i];
+		order[cellsStartSize[cid]] = i;
+
+		cellsStartSize[cid]++;
+	}
+
+	for (int i=0; i<cinfo.totcells; i++)
+		cellsStartSize[i] -= cellsSize[i];
+}
+
 int main(int argc, char ** argv)
 {
 	MPI_Init(&argc, &argv);
 
 	logger.init(MPI_COMM_WORLD, "dpd.log", 9);
 
-	float3 length{64,64,64};
+	float3 length{64, 64, 64};
 	float3 domainStart = -length / 2.0f;
 	const float rc = 1.0f;
-	ParticleVector dpds("dpd", 1.0f);
-	CellList* cells = new PrimaryCellList(&dpds, rc, length);
+	ParticleVector dpds1("dpd1", 1.0f);
+	ParticleVector dpds2("dpd2", 1.0f);
+	CellList* cells1 = new PrimaryCellList(&dpds1, rc, length);
+	CellList* cells2 = new PrimaryCellList(&dpds2, rc, length);
 
 	UniformIC ic(8.0);
-	ic.exec(MPI_COMM_WORLD, &dpds, {0,0,0}, length, 0);
+	ic.exec(MPI_COMM_WORLD, &dpds1, {0,0,0}, length, 0);
+	ic.exec(MPI_COMM_WORLD, &dpds2, {0,0,0}, length, 0);
 
-	const int np = dpds.local()->size();
-	HostBuffer<Particle> initial(np);
-	auto initPtr = initial.hostPtr();
+	dpds2.local()->resize(1000, 0);
+
+	const int np = dpds1.local()->size() + dpds2.local()->size();
+
+	printf(" First part %d, second %d, total %d\n", dpds1.local()->size(), dpds2.local()->size(), np);
+
+	cells1->build(0);
+	cells2->build(0);
+
+	cudaDeviceSynchronize();
+
+	dpds1.local()->coosvels.downloadFromDevice(0);
+	dpds2.local()->coosvels.downloadFromDevice(0);
+
+	std::vector<Particle> initial(np), rearranged(np);
 	for (int i=0; i<np; i++)
-		initPtr[i] = dpds.local()->coosvels[i];
-
-	cells->build(0);
+	{
+		initial[i] = ( i < dpds1.local()->size() ) ?
+				dpds1.local()->coosvels[i] :
+				dpds2.local()->coosvels[i - dpds1.local()->size()];
+	}
 
 	const float k = 1;
 	const float dt = 0.002;
@@ -48,26 +91,34 @@ int main(int argc, char ** argv)
 
 	for (int i=0; i<100; i++)
 	{
-		dpds.local()->forces.clear(0);
-		inter->regular(&dpds, &dpds, cells, cells, 0, 0);
+		dpds1.local()->forces.clear(0);
+		dpds2.local()->forces.clear(0);
+		inter->regular(&dpds1, &dpds1, cells1, cells1, 0, 0);
+		inter->regular(&dpds2, &dpds2, cells2, cells2, 0, 0);
+		inter->regular(&dpds1, &dpds2, cells1, cells2, 0, 0);
 
 		cudaDeviceSynchronize();
 	}
 
-	dpds.local()->coosvels.downloadFromDevice(0);
+	HostBuffer<Force> frcs1, frcs2;
+	frcs1.copy(dpds1.local()->forces, 0);
+	frcs2.copy(dpds2.local()->forces, 0);
 
-	HostBuffer<Force> hacc;
-	HostBuffer<uint> hcellsstart;
-	HostBuffer<uint8_t> hcellssize;
-	hcellsstart.copy(cells->cellsStartSize, 0);
-	hcellssize.copy(cells->cellsSize, 0);
-	hacc.copy(dpds.local()->forces, 0);
+	std::vector<Force> hacc(np);
+	for (int i=0; i<np; i++)
+		hacc[i] = ( i < dpds1.local()->size() ) ?
+				frcs1[i] :
+				frcs2[i - dpds1.local()->size()];
+
+	std::vector<int> hcellsstart(cells1->totcells+1);
+	std::vector<int> hcellssize(cells1->totcells);
+	std::vector<int> order(np);
 
 	cudaDeviceSynchronize();
 
 	printf("finished, reducing acc\n");
 	double3 a = {};
-	for (int i=0; i<dpds.local()->size(); i++)
+	for (int i=0; i<np; i++)
 	{
 		a.x += hacc[i].f.x;
 		a.y += hacc[i].f.y;
@@ -78,13 +129,15 @@ int main(int argc, char ** argv)
 
 	printf("Checking (this is not necessarily a cubic domain)......\n");
 
+	makeCells(initial.data(), rearranged.data(), hcellsstart.data(), hcellssize.data(), order.data(), np, cells1->cellInfo());
+
 	std::vector<Force> refAcc(hacc.size());
 
 	auto addForce = [&](int dstId, int srcId, Force& a)
 	{
-		const float _xr = dpds.local()->coosvels[dstId].r.x - dpds.local()->coosvels[srcId].r.x;
-		const float _yr = dpds.local()->coosvels[dstId].r.y - dpds.local()->coosvels[srcId].r.y;
-		const float _zr = dpds.local()->coosvels[dstId].r.z - dpds.local()->coosvels[srcId].r.z;
+		const float _xr = rearranged[dstId].r.x - rearranged[srcId].r.x;
+		const float _yr = rearranged[dstId].r.y - rearranged[srcId].r.y;
+		const float _zr = rearranged[dstId].r.z - rearranged[srcId].r.z;
 
 		const float rij2 = _xr * _xr + _yr * _yr + _zr * _zr;
 
@@ -101,9 +154,9 @@ int main(int argc, char ** argv)
 		const float zr = _zr * invrij;
 
 		const float rdotv =
-				xr * (dpds.local()->coosvels[dstId].u.x - dpds.local()->coosvels[srcId].u.x) +
-				yr * (dpds.local()->coosvels[dstId].u.y - dpds.local()->coosvels[srcId].u.y) +
-				zr * (dpds.local()->coosvels[dstId].u.z - dpds.local()->coosvels[srcId].u.z);
+				xr * (rearranged[dstId].u.x - rearranged[srcId].u.x) +
+				yr * (rearranged[dstId].u.y - rearranged[srcId].u.y) +
+				zr * (rearranged[dstId].u.z - rearranged[srcId].u.z);
 
 		const float myrandnr = 0;//Logistic::mean0var1(1, min(srcId, dstId), max(srcId, dstId));
 
@@ -115,13 +168,13 @@ int main(int argc, char ** argv)
 	};
 
 #pragma omp parallel for collapse(3)
-	for (int cx = 0; cx < cells->ncells.x; cx++)
-		for (int cy = 0; cy < cells->ncells.y; cy++)
-			for (int cz = 0; cz < cells->ncells.z; cz++)
+	for (int cx = 0; cx < cells1->ncells.x; cx++)
+		for (int cy = 0; cy < cells1->ncells.y; cy++)
+			for (int cz = 0; cz < cells1->ncells.z; cz++)
 			{
-				const int cid = cells->encode(cx, cy, cz);
+				const int cid = cells1->encode(cx, cy, cz);
 
-				const int2 start_size = cells->decodeStartSize(hcellsstart[cid]);
+				const int2 start_size = make_int2(hcellsstart[cid], hcellssize[cid]);
 
 				for (int dstId = start_size.x; dstId < start_size.x + start_size.y; dstId++)
 				{
@@ -131,10 +184,10 @@ int main(int argc, char ** argv)
 						for (int dy = -1; dy <= 1; dy++)
 							for (int dz = -1; dz <= 1; dz++)
 							{
-								const int srcCid = cells->encode(cx+dx, cy+dy, cz+dz);
-								if (srcCid >= cells->totcells || srcCid < 0) continue;
+								const int srcCid = cells1->encode(cx+dx, cy+dy, cz+dz);
+								if (srcCid >= cells1->totcells || srcCid < 0) continue;
 
-								const int2 srcStart_size = cells->decodeStartSize(hcellsstart[srcCid]);
+								const int2 srcStart_size = make_int2(hcellsstart[srcCid], hcellssize[srcCid]);
 
 								for (int srcId = srcStart_size.x; srcId < srcStart_size.x + srcStart_size.y; srcId++)
 								{
@@ -149,10 +202,15 @@ int main(int argc, char ** argv)
 				}
 			}
 
-
 	double l2 = 0, linf = -1;
 
-	for (int i=0; i<dpds.local()->size(); i++)
+	std::vector<Force> finalFrcs(np);
+	for (int i=0; i<np; i++)
+	{
+		finalFrcs[order[i]] = refAcc[i];
+	}
+
+	for (int i=0; i<np; i++)
 	{
 		double perr = -1;
 
@@ -160,9 +218,9 @@ int main(int argc, char ** argv)
 		for (int c=0; c<3; c++)
 		{
 			double err;
-			if (c==0) err = fabs(refAcc[i].f.x - hacc[i].f.x);
-			if (c==1) err = fabs(refAcc[i].f.y - hacc[i].f.y);
-			if (c==2) err = fabs(refAcc[i].f.z - hacc[i].f.z);
+			if (c==0) err = fabs(finalFrcs[i].f.x - hacc[i].f.x);
+			if (c==1) err = fabs(finalFrcs[i].f.y - hacc[i].f.y);
+			if (c==2) err = fabs(finalFrcs[i].f.z - hacc[i].f.z);
 
 			toterr += err;
 			linf = max(linf, err);
@@ -171,17 +229,16 @@ int main(int argc, char ** argv)
 		}
 
 		if (argc > 1 && (perr > 0.1 || std::isnan(toterr)))
-
 		{
-			printf("id %d,  %12f %12f %12f     ref %12f %12f %12f    diff   %12f %12f %12f\n", i,
+			printf("id %d (%d),  %12f %12f %12f     ref %12f %12f %12f    diff   %12f %12f %12f\n", i, (initial[i].i1),
 				hacc[i].f.x, hacc[i].f.y, hacc[i].f.z,
-				refAcc[i].f.x, refAcc[i].f.y, refAcc[i].f.z,
-				hacc[i].f.x-refAcc[i].f.x, hacc[i].f.y-refAcc[i].f.y, hacc[i].f.z-refAcc[i].f.z);
+				finalFrcs[i].f.x, finalFrcs[i].f.y, finalFrcs[i].f.z,
+				hacc[i].f.x-finalFrcs[i].f.x, hacc[i].f.y-finalFrcs[i].f.y, hacc[i].f.z-finalFrcs[i].f.z);
 		}
 	}
 
 
-	l2 = sqrt(l2 / dpds.local()->size());
+	l2 = sqrt(l2 / np);
 	printf("L2   norm: %f\n", l2);
 	printf("Linf norm: %f\n", linf);
 

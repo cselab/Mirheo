@@ -165,7 +165,7 @@ __device__ __forceinline__ float4 intersectParticleTriangleBarycentric(
 
 // FIXME: add different masses
 __device__ __forceinline__ void findBouncesInCell(
-		int2 start_size, int globTrid,
+		int pstart, int pend, int globTrid,
 		Particle v0, Particle v1, Particle v2,
 		const float4* coosvels, int* nCollisions, int2* collisionTable,
 		const float dt)
@@ -174,7 +174,7 @@ __device__ __forceinline__ void findBouncesInCell(
 
 	const float3 n = normalize(cross(v1.r-v0.r, v2.r-v0.r));
 
-	for (int pid=start_size.x; pid < start_size.x+start_size.y; pid++)
+	for (int pid=pstart; pid<pend; pid++)
 	{
 		Particle p(coosvels[2*pid], coosvels[2*pid+1]);
 
@@ -213,7 +213,7 @@ __device__ inline bool isCellCrossingTriangle(float3 cornerCoo, float3 len, floa
 }
 
 __global__ void findBouncesInMesh(
-		const float4* __restrict__ coosvels, const uint* __restrict__ cellsStartSize, CellListInfo cinfo,
+		const float4* __restrict__ coosvels, CellListInfo cinfo,
 		int* nCollisions, int2* collisionTable,
 		const int nObj, const int nvertices, const int ntriangles,
 		const int3* __restrict__ triangles, const float4* __restrict__ objCoosvels,
@@ -256,9 +256,11 @@ __global__ void findBouncesInMesh(
 
 				if (valid)
 				{
-					int2 start_size = cinfo.decodeStartSize(cellsStartSize[cinfo.encode(cid3)]);
+					int cid = cinfo.encode(cid3);
+					int pstart = cinfo.cellStarts[cid];
+					int pend = cinfo.cellStarts[cid+1];
 
-					findBouncesInCell(start_size, blockIdx.x * blockDim.x + threadIdx.x, v0, v1, v2,
+					findBouncesInCell(pstart, pend, blockIdx.x * blockDim.x + threadIdx.x, v0, v1, v2,
 								coosvels, nCollisions, collisionTable,  dt);
 				}
 			}

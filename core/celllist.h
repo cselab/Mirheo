@@ -18,9 +18,8 @@ public:
 	float3 h, invh;
 	float rc;
 
-	// Cell-list can bear maximum 2^bp particles,
-	// with no more than 2^(32-bp) particles per cell
-	const int blendingPower = 24;
+	int *cellSizes, *cellStarts, *order;
+	float4 *particles, *forces;
 
 	CellListInfo(float3 h, float3 localDomainSize);
 	CellListInfo(float rc, float3 localDomainSize);
@@ -42,26 +41,14 @@ public:
 
 	__device__ __host__ __forceinline__ int encode(int3 cid3) const
 	{
-		return (cid3.z*ncells.y + cid3.y)*ncells.x + cid3.x;
+		return encode(cid3.x, cid3.y, cid3.z);
 	}
 
 	__device__ __host__ __forceinline__ int3 decode(int cid) const
 	{
-		return make_int3(
-				cid % ncells.x,
-				(cid / ncells.x) % ncells.y,
-				cid / (ncells.x * ncells.y)
-		);
-	}
-
-	__device__ __host__ __forceinline__ int encodeStartSize(int start, uint8_t size) const
-	{
-		return start + (size << blendingPower);
-	}
-
-	__device__ __host__ __forceinline__ int2 decodeStartSize(uint code) const
-	{
-		return make_int2(code & ((1<<blendingPower) - 1), code >> blendingPower);
+		int3 res;
+		decode(cid, res.x, res.y, res.z);
+		return res;
 	}
 
 	template<bool Clamp = true>
@@ -93,30 +80,35 @@ public:
 class CellList : public CellListInfo
 {
 protected:
-	DeviceBuffer<uint8_t> cellsSize;
-	DeviceBuffer<char> scanBuffer;
-
-	PinnedBuffer<Particle> _coosvels;
-	DeviceBuffer<Force>    _forces;
-
 	int changedStamp = -1;
+
+	DeviceBuffer<char> scanBuffer;
+	PinnedBuffer<Particle> particlesContainer = {};
+	DeviceBuffer<Force>    forcesContainer = {};
+
+	ParticleVector* pv;
 
 	void _build(cudaStream_t stream);
 
 public:
-	ParticleVector* pv;
 
-	DeviceBuffer<uint> cellsStartSize;
-	DeviceBuffer<int> order;
+	DeviceBuffer<int> cellStarts, cellSizes, order;
 
-	PinnedBuffer<Particle> *coosvels;
-	DeviceBuffer<Force>    *forces;
+	// TODO: hide this?
+	PinnedBuffer<Particle>* particles;
+	DeviceBuffer<Force>*    forces;
 
 	CellList(ParticleVector* pv, float rc, float3 localDomainSize);
 	CellList(ParticleVector* pv, int3 resolution, float3 localDomainSize);
 
-	CellListInfo cellInfo()
+	inline CellListInfo cellInfo()
 	{
+		CellListInfo::particles  = reinterpret_cast<float4*>(particles->devPtr());
+		CellListInfo::forces     = reinterpret_cast<float4*>(forces->devPtr());
+		CellListInfo::cellSizes  = cellSizes.devPtr();
+		CellListInfo::cellStarts = cellStarts.devPtr();
+		CellListInfo::order      = order.devPtr();
+
 		return *((CellListInfo*)this);
 	}
 

@@ -14,7 +14,7 @@ __device__ inline float ellipsoidF(const float3 r, const float3 invAxes)
 __device__ __forceinline__ void bounceCellArray(
 		REOVview ovView, PVview pvView, int objId,
 		int* validCells, int nCells,
-		const uint* __restrict__ cellsStartSize, CellListInfo cinfo, const float dt)
+		CellListInfo cinfo, const float dt)
 {
 	const float threshold = 2e-6f;
 	const int maxIters = 100;
@@ -34,11 +34,12 @@ __device__ __forceinline__ void bounceCellArray(
 	float4 oldQ = motions[objId].prevQ;
 	oldQ = normalize(oldQ);
 
-
-	int2 start_size = cinfo.decodeStartSize(cellsStartSize[validCells[threadIdx.x]]);
+	int cid = validCells[threadIdx.x];
+	int pstart = cinfo.cellStarts[cid];
+	int pend = cinfo.cellStarts[cid+1];
 
 	// XXX: changing reading layout may improve performance here
-	for (int pid = start_size.x; pid < start_size.x + start_size.y; pid++)
+	for (int pid = pstart; pid < pend; pid++)
 	{
 		const Particle p(pvView.particles, pid);
 
@@ -118,7 +119,7 @@ __device__ __forceinline__ void bounceCellArray(
 }
 
 __global__ void bounceEllipsoid(REOVview ovView, PVview pvView,
-		const uint* __restrict__ cellsStartSize, CellListInfo cinfo, const float dt)
+		CellListInfo cinfo, const float dt)
 {
 	const float threshold = 0.2f;
 
@@ -178,7 +179,7 @@ __global__ void bounceEllipsoid(REOVview ovView, PVview pvView,
 		// If we have enough cells ready - process them
 		if (nCells >= blockDim.x)
 		{
-			bounceCellArray(ovView, pvView, objId, validCells, blockDim.x, cellsStartSize, cinfo, dt);
+			bounceCellArray(ovView, pvView, objId, validCells, blockDim.x, cinfo, dt);
 
 			__syncthreads();
 
@@ -192,7 +193,7 @@ __global__ void bounceEllipsoid(REOVview ovView, PVview pvView,
 	__syncthreads();
 
 	// Process remaining
-	bounceCellArray(ovView, pvView, objId, validCells, nCells, cellsStartSize, cinfo, dt);
+	bounceCellArray(ovView, pvView, objId, validCells, nCells, cinfo, dt);
 }
 
 

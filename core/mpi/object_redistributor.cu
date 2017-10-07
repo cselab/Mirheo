@@ -105,6 +105,7 @@ void ObjectRedistributor::prepareData(int id, cudaStream_t stream)
 	auto helper = helpers[id];
 	auto ovView = create_OVviewWithExtraData(ov, ov->local(), stream);
 	helper->setDatumSize(ovView.packedObjSize_byte);
+	helper->sendBufSizes.clear(stream);
 
 	debug2("Preparing %s halo on the device", ov->name.c_str());
 
@@ -117,7 +118,6 @@ void ObjectRedistributor::prepareData(int id, cudaStream_t stream)
 		if ( (rov = dynamic_cast<RigidObjectVector*>(ov)) != 0 )
 			rovView = create_ROVview(rov, rov->local());
 
-		helper->sendBufSizes.clearDevice(stream);
 		getExitingObjects<true>  <<< ovView.nObjects, nthreads, 0, stream >>> (
 				ovView, rovView, helper->sendAddrs.devPtr(), helper->sendBufSizes.devPtr());
 

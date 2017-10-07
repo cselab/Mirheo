@@ -241,7 +241,7 @@ __global__ void getBoundaryCells(CellListInfo cinfo, SDFWall::SdfInfo sdfInfo,
 // SDF bouncing kernel
 //===============================================================================================
 
-__global__ void bounceSDF(const int* wallCells, const int nWallCells, const uint* __restrict__ cellsStartSize, CellListInfo cinfo,
+__global__ void bounceSDF(const int* wallCells, const int nWallCells, CellListInfo cinfo,
 		SDFWall::SdfInfo sdfInfo, float4* coosvels, const float dt)
 {
 	const int maxIters = 50;
@@ -250,10 +250,10 @@ __global__ void bounceSDF(const int* wallCells, const int nWallCells, const uint
 	const int tid = blockIdx.x * blockDim.x + threadIdx.x;
 	if (tid >= nWallCells) return;
 	const int cid = wallCells[tid];
+	const int pstart = cinfo.cellStarts[cid];
+	const int pend   = cinfo.cellStarts[cid+1];
 
-	const int2 startSize = cinfo.decodeStartSize(cellsStartSize[cid]);
-
-	for (int pid = startSize.x; pid < startSize.x + startSize.y; pid++)
+	for (int pid = pstart; pid < pend; pid++)
 	{
 		Particle p(coosvels[2*pid], coosvels[2*pid+1]);
 		if (evalSdf(p.r, sdfInfo) <= 0.0f) continue;
@@ -585,7 +585,7 @@ void SDFWall::bounce(float dt, cudaStream_t stream)
 
 		const int nthreads = 64;
 		bounceSDF<<< getNblocks(bc->size(), nthreads), nthreads, 0, stream >>>(
-				bc->devPtr(), bc->size(), cl->cellsStartSize.devPtr(), cl->cellInfo(),
+				bc->devPtr(), bc->size(), cl->cellInfo(),
 				sdfInfo, (float4*)pv->local()->coosvels.devPtr(), dt);
 
 		CUDA_Check( cudaPeekAtLastError() );
