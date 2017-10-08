@@ -27,16 +27,16 @@ __inline__ __device__ float3 warpReduceSum(float3 val)
 	return val;
 }
 
-__global__ void totalMomentumEnergy(const float4* coosvels, const float mass, int n, ReductionType* momentum, ReductionType* energy)
+__global__ void totalMomentumEnergy(PVview view, ReductionType* momentum, ReductionType* energy)
 {
 	const int tid = blockIdx.x * blockDim.x + threadIdx.x;
 	const int wid = tid % warpSize;
-	if (tid >= n) return;
+	if (tid >= view.size) return;
 
-	const float3 vel = make_float3(coosvels[2*tid+1]);
+	const float3 vel = make_float3(view.particles[2*tid+1]);
 
-	float3 myMomentum = vel*mass;
-	float myEnergy = dot(vel, vel) * mass*0.5f;
+	float3 myMomentum = vel * view.mass;
+	float myEnergy = dot(vel, vel) * view.mass*0.5f;
 
 	myMomentum = warpReduceSum(myMomentum);
 	myEnergy   = warpReduceSum(myEnergy);
@@ -62,8 +62,13 @@ void SimulationStats::afterIntegration(cudaStream_t stream)
 	nparticles = 0;
 	for (auto& pv : pvs)
 	{
-		totalMomentumEnergy<<< (pv->local()->size()+127)/128, 128, 0, stream >>> ((float4*)pv->local()->coosvels.devPtr(), pv->mass, pv->local()->size(), momentum.devPtr(), energy.devPtr());
-		nparticles += pv->local()->size();
+		auto view = create_PVview(pv, pv->local());
+
+		if (view.size > 0)
+			totalMomentumEnergy<<< getNblocks(view.size, 128), 128, 0, stream >>> (
+					view, momentum.devPtr(), energy.devPtr());
+
+		nparticles += view.size;
 	}
 
 	momentum.downloadFromDevice(stream, false);
