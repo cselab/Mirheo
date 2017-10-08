@@ -51,9 +51,6 @@ void ObjectForcesReverseExchanger::prepareData(int id, cudaStream_t stream)
 		helper->sendBufSizes[i] = offsets[i+1] - offsets[i];
 	helper->resizeSendBufs();
 
-	HostBuffer<Force> tmp(ov->halo()->forces.size());
-	tmp.copy(ov->halo()->forces, stream);
-
 	for (int i=0; i<27; i++)
 	{
 		if (helper->sendBufSizes[i] > 0)
