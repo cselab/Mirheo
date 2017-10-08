@@ -3,7 +3,7 @@
 // TODO: change to particle and cell-list views
 
 #define DISPATCH_EXTERNAL(P1, P2, P3, TPP, INTERACTION_FUNCTION)                                                 \
-do{ debug2("Dispatched to ##TPP## thread(s) per particle variant");                                            \
+do{ debug2("Dispatched to "#TPP" thread(s) per particle variant");                                               \
 	computeExternalInteractions_##TPP##tpp<P1, P2, P3> <<< getNblocks(TPP*view.size, nth), nth, 0, stream >>>(   \
 		view, cl2->cellInfo(), rc*rc, INTERACTION_FUNCTION); } while (0)
 
