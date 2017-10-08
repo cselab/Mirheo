@@ -173,7 +173,9 @@ void CellList::addForces(cudaStream_t stream)
 {
 	auto view = create_PVview(pv, pv->local());
 	int nthreads = 128;
-	addForcesKernel <<< getNblocks(view.size, nthreads), nthreads, 0, stream >>> (view, cellInfo());
+
+	if (view.size > 0)
+		addForcesKernel <<< getNblocks(view.size, nthreads), nthreads, 0, stream >>> (view, cellInfo());
 }
 
 //=================================================================================
