@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
-<simulation name="poiseuille" logfile="log" mpi_ranks="1 1 1" debug_lvl="1" noplugins="true">
+<simulation name="poiseuille" logfile="log" mpi_ranks="1 1 1" debug_lvl="6" noplugins="true">
 
 	<domain size="32 32 32" />
 	

@@ -16,7 +16,7 @@ NVCCFLAGS += -lineinfo -g -Xcompiler -rdynamic
 
 NOWARNFLAG = -Xcompiler "-Wno-cpp"
 
-NVCC_RELEASE_FLAGS = $(NVCCFLAGS) -O3 
+NVCC_RELEASE_FLAGS = $(NVCCFLAGS) -O3 --use_fast_math
 NVCC_DEBUG_FLAGS = $(NVCCFLAGS) -G
 
 # Linking parameters

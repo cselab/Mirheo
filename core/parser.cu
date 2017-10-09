@@ -14,15 +14,20 @@
 #include <core/initial_conditions/restart.h>
 
 #include <core/integrators/vv.h>
-#include <core/integrators/vv_const_dp.h>
-#include <core/integrators/vv_periodic_poiseuille.h>
 #include <core/integrators/const_omega.h>
 #include <core/integrators/rigid_vv.h>
 
-#include <core/interactions/dpd.h>
-#include <core/interactions/lj.h>
+#include <core/integrators/forcing_terms/none.h>
+#include <core/integrators/forcing_terms/const_dp.h>
+#include <core/integrators/forcing_terms/periodic_poiseuille.h>
+
+#include <core/interactions/pairwise.h>
 #include <core/interactions/sampler.h>
 #include <core/interactions/rbc.h>
+
+#include <core/interactions/pairwise_interactions/dpd.h>
+#include <core/interactions/pairwise_interactions/lj.h>
+#include <core/interactions/pairwise_interactions/lj_object_aware.h>
 
 #include <core/walls/sdf_wall.h>
 
@@ -152,7 +157,9 @@ private:
 		std::string name = node.attribute("name").as_string();
 		float dt = node.attribute("dt").as_float(0.01);
 
-		return (Integrator*) new IntegratorVV(name, dt);
+		Forcing_None forcing;
+
+		return (Integrator*) new IntegratorVV<Forcing_None>(name, dt, forcing);
 	}
 
 	static Integrator* createVV_constDP(pugi::xml_node node)
@@ -161,7 +168,9 @@ private:
 		float dt = node.attribute("dt").as_float(0.01);
 		float3 extraForce = node.attribute("extra_force").as_float3();
 
-		return (Integrator*) new IntegratorVVConstDP(name, dt, extraForce);
+		Forcing_ConstDP forcing(extraForce);
+
+		return (Integrator*) new IntegratorVV<Forcing_ConstDP>(name, dt, forcing);
 	}
 
 	static Integrator* createVV_PeriodicPoiseuille(pugi::xml_node node)
@@ -174,12 +183,14 @@ private:
 		// TODO: make all see simulation instead
 		float3 domain = node.root().child("simulation").child("domain").attribute("size").as_float3();
 
-		IntegratorVVPeriodicPoiseuille::Direction dir;
-		if (dirStr == "x") dir = IntegratorVVPeriodicPoiseuille::Direction::x;
-		if (dirStr == "y") dir = IntegratorVVPeriodicPoiseuille::Direction::y;
-		if (dirStr == "z") dir = IntegratorVVPeriodicPoiseuille::Direction::z;
+		Forcing_PeriodicPoiseuille::Direction dir;
+		if (dirStr == "x") dir = Forcing_PeriodicPoiseuille::Direction::x;
+		if (dirStr == "y") dir = Forcing_PeriodicPoiseuille::Direction::y;
+		if (dirStr == "z") dir = Forcing_PeriodicPoiseuille::Direction::z;
 
-		return (Integrator*) new IntegratorVVPeriodicPoiseuille(name, dt, force, dir, domain);
+		Forcing_PeriodicPoiseuille forcing(force, dir, domain);
+
+		return (Integrator*) new IntegratorVV<Forcing_PeriodicPoiseuille>(name, dt, forcing);
 	}
 	static Integrator* createConstOmega(pugi::xml_node node)
 	{
@@ -239,7 +250,9 @@ private:
 		auto dt    = node.attribute("dt")   .as_float(0.01);
 		auto power = node.attribute("power").as_float(1.0f);
 
-		return (Interaction*) new InteractionDPD(name, rc, a, gamma, kbT, dt, power);
+		Pairwise_DPD dpd(rc, a, gamma, kbT, dt, power);
+
+		return (Interaction*) new InteractionPair<Pairwise_DPD>(name, rc, dpd);
 	}
 
 	static Interaction* createLJ(pugi::xml_node node)
@@ -250,7 +263,9 @@ private:
 		auto epsilon = node.attribute("epsilon").as_float(10.0f);
 		auto sigma   = node.attribute("sigma")  .as_float(0.5f);
 
-		return (Interaction*) new InteractionLJ(name, rc, epsilon, sigma);
+		Pairwise_LJ lj(rc, sigma, epsilon);
+
+		return (Interaction*) new InteractionPair<Pairwise_LJ>(name, rc, lj);
 	}
 
 	static Interaction* createLJ_objectAware(pugi::xml_node node)
@@ -261,7 +276,9 @@ private:
 		auto epsilon = node.attribute("epsilon").as_float(10.0f);
 		auto sigma   = node.attribute("sigma")  .as_float(0.5f);
 
-		return (Interaction*) new InteractionLJ_objectAware(name, rc, epsilon, sigma);
+		Pairwise_LJObjectAware ljo(rc, sigma, epsilon);
+
+		return (Interaction*) new InteractionPair<Pairwise_LJObjectAware>(name, rc, ljo);
 	}
 
 //	static Interaction* createMCMCSampler(pugi::xml_node node)

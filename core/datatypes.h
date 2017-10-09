@@ -135,12 +135,12 @@ struct __align__(16) Particle
 		i2 = tmp.i;
 	}
 
-	__host__ __device__ inline float4 r2Float4()
+	__host__ __device__ inline float4 r2Float4() const
 	{
 		return Float3_int{r, i1}.toFloat4();
 	}
 
-	__host__ __device__ inline float4 u2Float4()
+	__host__ __device__ inline float4 u2Float4() const
 	{
 		return Float3_int{u, i2}.toFloat4();
 	}

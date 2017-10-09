@@ -9,8 +9,8 @@ struct Integrator
 	std::string name;
 	float dt;
 
-	virtual void stage1(ParticleVector* pv, cudaStream_t stream) = 0;
-	virtual void stage2(ParticleVector* pv, cudaStream_t stream) = 0;
+	virtual void stage1(ParticleVector* pv, float t, cudaStream_t stream) = 0;
+	virtual void stage2(ParticleVector* pv, float t, cudaStream_t stream) = 0;
 
 	Integrator(std::string name, float dt) : dt(dt), name(name) {}
 

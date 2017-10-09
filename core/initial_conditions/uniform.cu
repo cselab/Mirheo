@@ -21,15 +21,20 @@ void UniformIC::exec(const MPI_Comm& comm, ParticleVector* pv, float3 globalDoma
 	std::hash<std::string> nameHash;
 	const int seed = rank + nameHash(pv->name);
 	std::mt19937 gen(seed);
-	std::poisson_distribution<> particleDistribution(avg);
 	std::uniform_real_distribution<float> udistr(0, 1);
 
+	int wholeInCell = floor(density);
+	float fracInCell = density - wholeInCell;
+
+	double3 avgMomentum{0,0,0};
 	int mycount = 0;
 	for (int i=0; i<ncells.x; i++)
 		for (int j=0; j<ncells.y; j++)
 			for (int k=0; k<ncells.z; k++)
 			{
-				int nparts = particleDistribution(gen);
+				int nparts = wholeInCell;
+				if (udistr(gen) < fracInCell) nparts++;
+
 				for (int p=0; p<nparts; p++)
 				{
 					pv->local()->resize(mycount+1,  stream);
@@ -40,14 +45,30 @@ void UniformIC::exec(const MPI_Comm& comm, ParticleVector* pv, float3 globalDoma
 					cooPtr[mycount].r.z = k*h.z - 0.5*localDomainSize.z + udistr(gen);
 					cooPtr[mycount].i1 = mycount;
 
-					cooPtr[mycount].u.x = 0*udistr(gen);
-					cooPtr[mycount].u.y = 0*udistr(gen);
-					cooPtr[mycount].u.z = 0*udistr(gen);
+					cooPtr[mycount].u.x = 0.1f * (udistr(gen) - 0.5);
+					cooPtr[mycount].u.y = 0.1f * (udistr(gen) - 0.5);
+					cooPtr[mycount].u.z = 0.1f * (udistr(gen) - 0.5);
+
+					avgMomentum.x += cooPtr[mycount].u.x;
+					avgMomentum.y += cooPtr[mycount].u.y;
+					avgMomentum.z += cooPtr[mycount].u.z;
 
 					cooPtr[mycount].i1 = mycount;
 					mycount++;
 				}
 			}
+
+	avgMomentum.x /= mycount;
+	avgMomentum.y /= mycount;
+	avgMomentum.z /= mycount;
+
+	auto cooPtr = pv->local()->coosvels.hostPtr();
+	for (int i=0; i<mycount; i++)
+	{
+		cooPtr[i].u.x -= avgMomentum.x;
+		cooPtr[i].u.y -= avgMomentum.y;
+		cooPtr[i].u.z -= avgMomentum.z;
+	}
 
 	pv->globalDomainStart = globalDomainStart;
 	pv->localDomainSize = localDomainSize;

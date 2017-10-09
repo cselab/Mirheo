@@ -6,7 +6,8 @@
 //#include <core/mpi/api.h>
 #include <core/logger.h>
 #include <core/containers.h>
-#include <core/interactions/dpd.h>
+#include <core/interactions/pairwise.h>
+#include <core/interactions/pairwise_interactions/dpd.h>
 #include <core/initial_conditions/uniform.h>
 
 #include <unistd.h>
@@ -53,11 +54,11 @@ int main(int argc, char ** argv)
 	CellList* cells1 = new PrimaryCellList(&dpds1, rc, length);
 	CellList* cells2 = new PrimaryCellList(&dpds2, rc, length);
 
-	UniformIC ic(8.0);
+	UniformIC ic(4.0);
 	ic.exec(MPI_COMM_WORLD, &dpds1, {0,0,0}, length, 0);
 	ic.exec(MPI_COMM_WORLD, &dpds2, {0,0,0}, length, 0);
 
-	dpds2.local()->resize(1000, 0);
+	//dpds2.local()->resize(1000, 0);
 
 	const int np = dpds1.local()->size() + dpds2.local()->size();
 
@@ -81,15 +82,16 @@ int main(int argc, char ** argv)
 
 	const float k = 1;
 	const float dt = 0.002;
-	const float kBT = 1.0f;
+	const float kbT = 1.0f;
 	const float gammadpd = 20;
-	const float sigmadpd = sqrt(2 * gammadpd * kBT);
+	const float sigmadpd = sqrt(2 * gammadpd * kbT);
 	const float sigma_dt = sigmadpd / sqrt(dt);
 	const float adpd = 50;
 
-	Interaction *inter = new InteractionDPD("dpd", rc, adpd, gammadpd, kBT, dt, k);
+	Pairwise_DPD dpdInt(rc, adpd, gammadpd, kbT, dt, k);
+	Interaction *inter = new InteractionPair<Pairwise_DPD>("dpd", rc, dpdInt);
 
-	for (int i=0; i<100; i++)
+	for (int i=0; i<200; i++)
 	{
 		dpds1.local()->forces.clear(0);
 		dpds2.local()->forces.clear(0);

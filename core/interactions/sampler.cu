@@ -6,7 +6,7 @@
 #include <core/cuda-rng.h>
 #include <core/walls/sdf_kernels.h>
 
-#include "pairwise_engine.h"
+#include "pairwise_kernels.h"
 
 //=============================================================================================
 // Pairwise energy
@@ -44,7 +44,7 @@ __device__ __forceinline__ float E_DPD(
 //=============================================================================================
 
 template<typename Potential>
-__device__ __forceinline__ float E_inCell(Particle p, int3 cell,
+__device__ __forceinline__ float E_inCell(Particle p, int id, int3 cell,
 		Particle* particles, CellListInfo cinfo,
 		const float rc2, Potential potential)
 {
@@ -64,7 +64,7 @@ __device__ __forceinline__ float E_inCell(Particle p, int3 cell,
 					bool interacting = distance2(p.r, othP.r) < rc2;
 
 					if (interacting && p.i1 != othP.i1)
-						E += potential(p, othP);
+						E += potential(p, id, othP, othId);
 				}
 			}
 
@@ -107,7 +107,7 @@ __global__ void mcmcSample(int3 shift,
 		// Propose a move
 		Particle pnew = p0;
 		pnew.r += proposalFactor * 2.0f*make_float3(rnd1 - 0.5f, rnd2 - 0.5f, rnd3 - 0.5f);
-		int3 cell_new = cinfo.getCellIdAlongAxis(pnew.r);
+		int3 cell_new = cinfo.getCellIdAlongAxes(pnew.r);
 
 		// Reject if the particle left sdf-bounded domain
 		const float sdf = evalSdf(p0.r, sdfInfo);
@@ -121,8 +121,8 @@ __global__ void mcmcSample(int3 shift,
 		// !!! COMPILER FUCKING ERROR SHISHISHI
 		// LAMBDA KILLS NVCCCCCC !!1
 
-		float E0   = E_inCell(p0,   cell0,    particles, cinfo, rc2, potential);
-		float Enew = E_inCell(pnew, cell_new, particles, cinfo, rc2, potential);
+		float E0   = E_inCell(p0,   pid, cell0,    particles, cinfo, rc2, potential);
+		float Enew = E_inCell(pnew, pid, cell_new, particles, cinfo, rc2, potential);
 
 		float kbT_mod = kbT;
 		float dist2bound = min(
@@ -227,7 +227,7 @@ void MCMCSampler::_compute(InteractionType type, ParticleVector* pv1, ParticleVe
 	float _rc = rc;
 	float _a = a;
 	float _power = power;
-	auto potential = [=] __device__ (const Particle p1, const Particle p2) {
+	auto potential = [=] __device__ (const Particle p1, int dstId, const Particle p2, int srcId) {
 		return E_DPD(p1, p2, _a, _rc, rc2, invrc, _power);
 	};
 
@@ -267,7 +267,7 @@ void MCMCSampler::_compute(InteractionType type, ParticleVector* pv1, ParticleVe
 	totE.clear(0);
 	auto totalEptr = totE.devPtr();
 
-	auto totEinter = [=] __device__ (const Particle p1, const Particle p2) {
+	auto totEinter = [=] __device__ (const Particle p1, int dstId, const Particle p2, int srcId) {
 		float E = E_DPD(p1, p2, _a, _rc, rc2, invrc, _power);
 		atomicAdd(totalEptr, E);
 		return make_float3(E, 0, 0);

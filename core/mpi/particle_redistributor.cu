@@ -33,7 +33,7 @@ __global__ void getExitingParticles(float4* particles,
 		const int srcId = pstart + i;
 		Particle p(particles, srcId);
 
-		int3 code = cinfo.getCellIdAlongAxis<false>(make_float3(p.r));
+		int3 code = cinfo.getCellIdAlongAxes<false>(make_float3(p.r));
 
 		if (code.x < 0) code.x = 0;
 		else if (code.x >= ncells.x) code.x = 2;

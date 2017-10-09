@@ -27,7 +27,6 @@ __device__ __forceinline__ void computeCell(
 		CellListInfo cinfo,
 		float rc2, Interaction& interaction)
 {
-#pragma unroll 2
 	for (int srcId = pstart; srcId < pend; srcId++)
 	{
 		Particle srcP;
@@ -42,20 +41,19 @@ __device__ __forceinline__ void computeCell(
 		{
 			srcP.readVelocity(cinfo.particles, srcId);
 
-			float3 frc = interaction(dstP, srcP);
+			float3 frc = interaction(dstP, dstId, srcP, srcId);
 
 			if (NeedDstAcc)
 				dstFrc += frc;
 
 			if (NeedSrcAcc)
-				if (dot(frc, frc) > 1e-6f)
-					atomicAdd(cinfo.forces + srcId, -frc);
+				atomicAdd(cinfo.forces + srcId, -frc);
 		}
 	}
 }
 
 template<typename Interaction>
-__launch_bounds__(128, 16)
+//__launch_bounds__(128, 16)
 __global__ void computeSelfInteractions(
 		const int np, CellListInfo cinfo,
 		const float rc2, Interaction interaction)
@@ -66,7 +64,7 @@ __global__ void computeSelfInteractions(
 	const Particle dstP(cinfo.particles, dstId);
 	float3 dstFrc = make_float3(0.0f);
 
-	const int3 cell0 = cinfo.getCellIdAlongAxis(dstP.r);
+	const int3 cell0 = cinfo.getCellIdAlongAxes(dstP.r);
 
 	for (int cellZ = cell0.z-1; cellZ <= cell0.z+1; cellZ++)
 		for (int cellY = cell0.y-1; cellY <= cell0.y; cellY++)
@@ -92,7 +90,6 @@ __global__ void computeSelfInteractions(
 	atomicAdd(cinfo.forces + dstId, dstFrc);
 }
 
-
 /**
  * variant == true  better for dense shit,
  * variant == false better for halo and one-sided
@@ -114,7 +111,7 @@ __global__ void computeExternalInteractions_1tpp(
 
 	float3 dstFrc = make_float3(0.0f);
 
-	const int3 cell0 = srcCinfo.getCellIdAlongAxis<false>(dstP.r);
+	const int3 cell0 = srcCinfo.getCellIdAlongAxes<false>(dstP.r);
 
 	for (int cellZ = cell0.z-1; cellZ <= cell0.z+1; cellZ++)
 		for (int cellY = cell0.y-1; cellY <= cell0.y+1; cellY++)
@@ -174,7 +171,7 @@ __global__ void computeExternalInteractions_3tpp(
 
 	float3 dstFrc = make_float3(0.0f);
 
-	const int3 cell0 = srcCinfo.getCellIdAlongAxis<false>(dstP.r);
+	const int3 cell0 = srcCinfo.getCellIdAlongAxes<false>(dstP.r);
 
 	int cellZ = cell0.z + dircode;
 
@@ -231,7 +228,7 @@ __global__ void computeExternalInteractions_9tpp(
 
 	float3 dstFrc = make_float3(0.0f);
 
-	const int3 cell0 = srcCinfo.getCellIdAlongAxis<false>(dstP.r);
+	const int3 cell0 = srcCinfo.getCellIdAlongAxes<false>(dstP.r);
 
 	int cellZ = cell0.z + dircode / 3 - 1;
 	int cellY = cell0.y + dircode % 3 - 1;
@@ -288,7 +285,7 @@ __global__ void computeExternalInteractions_27tpp(
 
 	float3 dstFrc = make_float3(0.0f);
 
-	const int3 cell0 = srcCinfo.getCellIdAlongAxis<false>(dstP.r);
+	const int3 cell0 = srcCinfo.getCellIdAlongAxes<false>(dstP.r);
 
 	int cellZ = cell0.z +  dircode / 9      - 1;
 	int cellY = cell0.y + (dircode / 3) % 3 - 1;

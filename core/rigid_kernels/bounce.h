@@ -134,8 +134,8 @@ __global__ void bounceEllipsoid(REOVview ovView, PVview pvView,
 	nCells = 0;
 	__syncthreads();
 
-	const int3 cidLow  = cinfo.getCellIdAlongAxis(ovView.comAndExtents[objId].low  - 0.5f);
-	const int3 cidHigh = cinfo.getCellIdAlongAxis(ovView.comAndExtents[objId].high + 1.5f);
+	const int3 cidLow  = cinfo.getCellIdAlongAxes(ovView.comAndExtents[objId].low  - 0.5f);
+	const int3 cidHigh = cinfo.getCellIdAlongAxes(ovView.comAndExtents[objId].high + 1.5f);
 
 	const int3 span = cidHigh - cidLow + make_int3(1,1,1);
 	const int totCells = span.x * span.y * span.z;

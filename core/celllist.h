@@ -52,7 +52,7 @@ public:
 	}
 
 	template<bool Clamp = true>
-	__device__ __host__ __forceinline__ int3 getCellIdAlongAxis(const float3 x) const
+	__device__ __host__ __forceinline__ int3 getCellIdAlongAxes(const float3 x) const
 	{
 		const int3 v = make_int3( floorf(invh * (x + 0.5f*localDomainSize)) );
 
@@ -65,7 +65,7 @@ public:
 	template<bool Clamp = true, typename T>
 	__device__ __host__ __forceinline__ int getCellId(const T coo) const
 	{
-		const int3 id = getCellIdAlongAxis<Clamp>(make_float3(coo));
+		const int3 id = getCellIdAlongAxes<Clamp>(make_float3(coo));
 
 		if (!Clamp)
 		{

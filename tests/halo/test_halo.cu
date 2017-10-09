@@ -79,7 +79,7 @@ int main(int argc, char ** argv)
 	{
 		Particle& p = dpds.local()->coosvels[i];
 
-		int3 code = cells.getCellIdAlongAxis(p.r);
+		int3 code = cells.getCellIdAlongAxes(p.r);
 		int cx = code.x,  cy = code.y,  cz = code.z;
 		auto ncells = cells.ncells;
 

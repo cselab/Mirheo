@@ -1,27 +1,37 @@
 #include "vv.h"
-#include "integration_kernel.h"
 
 #include <core/logger.h>
 #include <core/pvs/particle_vector.h>
 
-void IntegratorVV::stage1(ParticleVector* pv, cudaStream_t stream)
-{
-//	auto st1 = [] __device__ (Particle& p, const float3 f, const float invm, const float dt) {
-//		p.u += 0.5f*f*invm*dt;
-//		p.r += p.u*dt;
-//	};
-//
-//	int nthreads = 128;
-//	debug2("Integrating (stage 1) %d %s particles, timestep is %f", pv->local()->size(), pv->name.c_str(), dt);
-//	integrationKernel<<< getNblocks(2*pv->local()->size(), nthreads), nthreads, 0, stream >>>(
-//			(float4*)pv->local()->coosvels.devPtr(), (float4*)pv->local()->forces.devPtr(), pv->local()->size(), 1.0/pv->mass, dt, st1);
-//	pv->local()->changedStamp++;
-}
+#include "integration_kernel.h"
 
-void IntegratorVV::stage2(ParticleVector* pv, cudaStream_t stream)
+#include "forcing_terms/none.h"
+#include "forcing_terms/const_dp.h"
+#include "forcing_terms/periodic_poiseuille.h"
+
+template<class ForcingTerm>
+void IntegratorVV<ForcingTerm>::stage1(ParticleVector* pv, float t, cudaStream_t stream)
+{}
+
+template<class ForcingTerm>
+void IntegratorVV<ForcingTerm>::stage2(ParticleVector* pv, float t, cudaStream_t stream)
 {
-	auto st2 = [] __device__ (Particle& p, const float3 f, const float invm, const float dt) {
-		p.u += f*invm*dt;
+	static_assert(std::is_same<decltype(forcingTerm.setup(pv, t)), void>::value,
+			"Forcing term functor must provide member"
+			"void setup(ParticleVector*, float)");
+
+	auto& _fterm = forcingTerm;
+	_fterm.setup(pv, t);
+
+	auto st2 = [_fterm] __device__ (Particle& p, const float3 f, const float invm, const float dt) {
+
+		static_assert(std::is_same<decltype(_fterm(f, p)), float3>::value,
+				"Forcing term functor must provide member"
+				" __device__ float3 operator()(float3, Particle)");
+
+		float3 modF = _fterm(f, p);
+
+		p.u += modF*invm*dt;
 		p.r += p.u*dt;
 	};
 
@@ -35,3 +45,7 @@ void IntegratorVV::stage2(ParticleVector* pv, cudaStream_t stream)
 	}
 	pv->local()->changedStamp++;
 }
+
+template class IntegratorVV<Forcing_None>;
+template class IntegratorVV<Forcing_ConstDP>;
+template class IntegratorVV<Forcing_PeriodicPoiseuille>;

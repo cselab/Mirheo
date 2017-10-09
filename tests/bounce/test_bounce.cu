@@ -234,7 +234,7 @@ int main(int argc, char ** argv)
 
 				if (wrong)
 				{
-					int3 cid = cells.getCellIdAlongAxis(pInit.r);
+					int3 cid = cells.getCellIdAlongAxes(pInit.r);
 
 #pragma omp critical
 					printf("Particle  %d (cell %d %d %d),  obj  %d:\n"

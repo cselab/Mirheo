@@ -86,7 +86,7 @@ int main(int argc, char ** argv)
 	{
 		Particle& p = host[i];
 
-		int3 code = cells->getCellIdAlongAxis<false>(p.r);
+		int3 code = cells->getCellIdAlongAxes<false>(p.r);
 		int cx = code.x,  cy = code.y,  cz = code.z;
 		auto ncells = cells->ncells;
 

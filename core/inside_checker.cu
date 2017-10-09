@@ -47,8 +47,8 @@ __global__ void insideEllipsoid(
 	const int tid = threadIdx.x;
 	if (objId >= nObj) return;
 
-	const int3 cidLow  = cinfo.getCellIdAlongAxis(props[objId].low  - 0.5f);
-	const int3 cidHigh = cinfo.getCellIdAlongAxis(props[objId].high + 1.5f);
+	const int3 cidLow  = cinfo.getCellIdAlongAxes(props[objId].low  - 0.5f);
+	const int3 cidHigh = cinfo.getCellIdAlongAxes(props[objId].high + 1.5f);
 
 	const int3 span = cidHigh - cidLow + make_int3(1,1,1);
 	const int totCells = span.x * span.y * span.z;

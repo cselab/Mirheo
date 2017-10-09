@@ -239,8 +239,8 @@ __global__ void findBouncesInMesh(
 	const float3 lo = fminf(v0.r, fminf(v1.r, v2.r));
 	const float3 hi = fmaxf(v0.r, fmaxf(v1.r, v2.r));
 
-	const int3 cidLow  = cinfo.getCellIdAlongAxis(lo - tol);
-	const int3 cidHigh = cinfo.getCellIdAlongAxis(hi + tol);
+	const int3 cidLow  = cinfo.getCellIdAlongAxes(lo - tol);
+	const int3 cidHigh = cinfo.getCellIdAlongAxes(hi + tol);
 
 	float3 f0 = make_float3(0.0f);
 	float3 f1 = make_float3(0.0f);

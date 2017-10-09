@@ -111,12 +111,12 @@ void Simulation::setIntegrator(std::string integratorName, std::string pvName)
 
 	auto integrator = integratorMap[integratorName];
 
-	integratorsStage1.push_back([integrator, pv] (cudaStream_t stream) {
-		integrator->stage1(pv, stream);
+	integratorsStage1.push_back([integrator, pv] (float t, cudaStream_t stream) {
+		integrator->stage1(pv, t, stream);
 	});
 
-	integratorsStage2.push_back([integrator, pv] (cudaStream_t stream) {
-		integrator->stage2(pv, stream);
+	integratorsStage2.push_back([integrator, pv] (float t, cudaStream_t stream) {
+		integrator->stage2(pv, t, stream);
 	});
 }
 
@@ -403,7 +403,7 @@ void Simulation::assemble()
 
 	scheduler.addTask("Integration", [&] (cudaStream_t stream) {
 		for (auto& integrator : integratorsStage2)
-			integrator(stream);
+			integrator(currentTime, stream);
 	});
 
 

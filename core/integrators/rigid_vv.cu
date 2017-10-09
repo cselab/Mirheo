@@ -14,10 +14,10 @@
  * VV integration now
  */
 // FIXME: split VV into two stages
-void IntegratorVVRigid::stage1(ParticleVector* pv, cudaStream_t stream)
+void IntegratorVVRigid::stage1(ParticleVector* pv, float t, cudaStream_t stream)
 {}
 
-void IntegratorVVRigid::stage2(ParticleVector* pv, cudaStream_t stream)
+void IntegratorVVRigid::stage2(ParticleVector* pv, float t, cudaStream_t stream)
 {
 	auto ov = dynamic_cast<RigidObjectVector*> (pv);
 	if (ov == nullptr)

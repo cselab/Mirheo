@@ -99,7 +99,7 @@ void EllipsoidIC::exec(const MPI_Comm& comm, ParticleVector* pv, float3 globalDo
 	// Do the initial rotation
 	ov->local()->forces.clear(stream);
 	IntegratorVVRigid integrator("dummy", 0.0f);
-	integrator.stage2(pv, stream);
+	integrator.stage2(pv, 0, stream);
 
 //	//for (auto& ov: objectVectors)
 //	{

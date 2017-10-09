@@ -7,7 +7,7 @@
 /**
  * Rotate with constant angular velocity omega around x0, regardless force
  */
-void IntegratorConstOmega::stage2(ParticleVector* pv, cudaStream_t stream)
+void IntegratorConstOmega::stage2(ParticleVector* pv, float t, cudaStream_t stream)
 {
 	const float3 locX0 = center - pv->globalDomainStart;
 
