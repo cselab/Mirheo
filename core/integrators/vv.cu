@@ -1,5 +1,6 @@
 #include "vv.h"
 
+#include <core/utils/kernel_launch.h>
 #include <core/logger.h>
 #include <core/pvs/particle_vector.h>
 
@@ -38,11 +39,12 @@ void IntegratorVV<ForcingTerm>::stage2(ParticleVector* pv, float t, cudaStream_t
 	int nthreads = 128;
 	debug2("Integrating (stage 2) %d %s particles, timestep is %f", pv->local()->size(), pv->name.c_str(), dt);
 
-	if (pv->local()->size() > 0)
-	{
-		auto pvView = create_PVview(pv, pv->local());
-		integrationKernel<<< getNblocks(2*pvView.size, nthreads), nthreads, 0, stream >>>(pvView, dt, st2);
-	}
+	auto pvView = create_PVview(pv, pv->local());
+	SAFE_KERNEL_LAUNCH(
+			integrationKernel,
+			getNblocks(2*pvView.size, nthreads), nthreads, 0, stream,
+			pvView, dt, st2 );
+
 	pv->local()->changedStamp++;
 }
 

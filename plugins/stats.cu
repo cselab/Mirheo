@@ -3,7 +3,8 @@
 #include <core/datatypes.h>
 #include <core/pvs/particle_vector.h>
 #include <core/simulation.h>
-#include <core/helper_math.h>
+#include <core/utils/cuda_common.h>
+#include <core/utils/kernel_launch.h>
 
 __inline__ __device__ float warpReduceSum(float val)
 {
@@ -64,9 +65,10 @@ void SimulationStats::afterIntegration(cudaStream_t stream)
 	{
 		auto view = create_PVview(pv, pv->local());
 
-		if (view.size > 0)
-			totalMomentumEnergy<<< getNblocks(view.size, 128), 128, 0, stream >>> (
-					view, momentum.devPtr(), energy.devPtr());
+		SAFE_KERNEL_LAUNCH(
+				totalMomentumEnergy,
+				getNblocks(view.size, 128), 128, 0, stream,
+				view, momentum.devPtr(), energy.devPtr() );
 
 		nparticles += view.size;
 	}

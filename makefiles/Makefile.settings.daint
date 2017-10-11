@@ -1,4 +1,4 @@
-NVCC = nvcc -I/$(CRAY_MPICH_DIR)/include
+NVCC = nvcc
 CUDA_ARCH = compute_60
 CUDA_CODE = sm_60
 
@@ -8,5 +8,5 @@ LINKFLAGS +=
 HDF5_INC = $(HDF5_DIR)/include
 HDF5_LIB = $(HDF5_DIR)/lib
 
-INCLUDES +=
-LIBS += -lhdf5
+INCLUDES += -I/$(CRAY_MPICH_DIR)/include
+LIBS += -lhdf5 -ldl -lbfd-2.26.1

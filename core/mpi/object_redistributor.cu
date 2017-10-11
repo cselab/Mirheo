@@ -1,5 +1,6 @@
 #include "object_redistributor.h"
 
+#include <core/utils/kernel_launch.h>
 #include <core/pvs/particle_vector.h>
 #include <core/pvs/object_vector.h>
 #include <core/pvs/rigid_object_vector.h>
@@ -105,33 +106,40 @@ void ObjectRedistributor::prepareData(int id, cudaStream_t stream)
 	auto helper = helpers[id];
 	auto ovView = create_OVviewWithExtraData(ov, ov->local(), stream);
 	helper->setDatumSize(ovView.packedObjSize_byte);
-	helper->sendBufSizes.clear(stream);
 
 	debug2("Preparing %s halo on the device", ov->name.c_str());
 
-	const int nthreads = 128;
+	helper->sendBufSizes.clear(stream);
 	if (ovView.nObjects > 0)
 	{
+		const int nthreads = 128;
+
 		// FIXME: this is a hack
 		auto rovView = create_ROVview(nullptr, nullptr);
 		RigidObjectVector* rov;
 		if ( (rov = dynamic_cast<RigidObjectVector*>(ov)) != 0 )
 			rovView = create_ROVview(rov, rov->local());
 
-		getExitingObjects<true>  <<< ovView.nObjects, nthreads, 0, stream >>> (
-				ovView, rovView, helper->sendAddrs.devPtr(), helper->sendBufSizes.devPtr());
+		SAFE_KERNEL_LAUNCH(
+				getExitingObjects<true>,
+				ovView.nObjects, nthreads, 0, stream,
+				ovView, rovView, helper->sendAddrs.devPtr(), helper->sendBufSizes.devPtr() );
 
 		helper->sendBufSizes.downloadFromDevice(stream);
 		helper->resizeSendBufs();
 
 		helper->sendBufSizes.clearDevice(stream);
-		getExitingObjects<false> <<< lov->nObjects, nthreads, 0, stream >>> (
-				ovView, rovView, helper->sendAddrs.devPtr(), helper->sendBufSizes.devPtr());
+		SAFE_KERNEL_LAUNCH(
+				getExitingObjects<false>,
+				lov->nObjects, nthreads, 0, stream,
+				ovView, rovView, helper->sendAddrs.devPtr(), helper->sendBufSizes.devPtr() );
 
 		// Unpack the central buffer into the object vector itself
 		int nObjs = helper->sendBufSizes[13];
-		if (nObjs > 0)
-			unpackObject<<< nObjs, nthreads, 0, stream >>> ( (float4*)helper->sendBufs[13].devPtr(), 0, ovView );
+		SAFE_KERNEL_LAUNCH(
+				unpackObject,
+				nObjs, nthreads, 0, stream,
+				(float4*)helper->sendBufs[13].devPtr(), 0, ovView );
 
 		lov->resize(helper->sendBufSizes[13]*ov->objSize, stream);
 	}
@@ -153,12 +161,12 @@ void ObjectRedistributor::combineAndUploadData(int id, cudaStream_t stream)
 	for (int i=0; i < 27; i++)
 	{
 		const int nObjs = helper->recvOffsets[i+1] - helper->recvOffsets[i];
-		if (nObjs > 0)
-		{
-			helper->recvBufs[i].uploadToDevice(stream);
-			unpackObject<<< nObjs, nthreads, 0, stream >>> (
-					(float4*)helper->recvBufs[i].devPtr(), oldNObjs+helper->recvOffsets[i], ovView);
-		}
+
+		helper->recvBufs[i].uploadToDevice(stream);
+		SAFE_KERNEL_LAUNCH(
+				unpackObject,
+				nObjs, nthreads, 0, stream,
+				(float4*)helper->recvBufs[i].devPtr(), oldNObjs+helper->recvOffsets[i], ovView );
 	}
 }
 

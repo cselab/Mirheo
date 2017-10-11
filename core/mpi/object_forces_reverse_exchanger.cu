@@ -2,6 +2,7 @@
 
 #include "object_halo_exchanger.h"
 
+#include <core/utils/kernel_launch.h>
 #include <core/pvs/particle_vector.h>
 #include <core/pvs/object_vector.h>
 #include <core/logger.h>
@@ -82,20 +83,19 @@ void ObjectForcesReverseExchanger::combineAndUploadData(int id, cudaStream_t str
 
 	debug("Updating forces for %d %s objects", helper->recvOffsets[27], ov->name.c_str());
 
-	if (maximum > 0)
-	{
-		int nthreads = 128;
-		dim3 blocks;
+	int nthreads = 128;
+	dim3 blocks;
 
-		blocks.y = sizes.size();
-		blocks.x = getNblocks(maximum, nthreads);
+	blocks.y = sizes.size();
+	blocks.x = getNblocks(maximum, nthreads);
 
-		addHaloForces<<< blocks, nthreads, 0, stream >>> (
-				(const float4**)helper->recvAddrs.devPtr(),                        /* source */
-				(const int**)entangledHaloExchanger->getOriginAddrs(id).devPtr(),  /* destination ids here */
-				(float4*)ov->local()->forces.devPtr(),                             /* add to */
-				sizes.devPtr());
-	}
+	SAFE_KERNEL_LAUNCH(
+			addHaloForces,
+			blocks, nthreads, 0, stream,
+			(const float4**)helper->recvAddrs.devPtr(),                        /* source */
+			(const int**)entangledHaloExchanger->getOriginAddrs(id).devPtr(),  /* destination ids here */
+			(float4*)ov->local()->forces.devPtr(),                             /* add to */
+			sizes.devPtr() );
 }
 
 

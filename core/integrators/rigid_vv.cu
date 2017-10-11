@@ -1,5 +1,6 @@
 #include "rigid_vv.h"
 
+#include <core/utils/kernel_launch.h>
 #include <core/logger.h>
 #include <core/pvs/particle_vector.h>
 #include <core/pvs/object_vector.h>
@@ -33,13 +34,25 @@ void IntegratorVVRigid::stage2(ParticleVector* pv, float t, cudaStream_t stream)
 
 	warn("Only objects with diagonal inertia tensors are supported now for rigid integration");
 
-	collectRigidForces<<< getNblocks(2*ovView.size, 128), 128, 0, stream >>> (ovView);
+	SAFE_KERNEL_LAUNCH(
+			collectRigidForces,
+			getNblocks(2*ovView.size, 128), 128, 0, stream,
+			ovView );
 
-	integrateRigidMotion<<< getNblocks(ovView.nObjects, 64), 64, 0, stream >>> (ovView, dt);
+	SAFE_KERNEL_LAUNCH(
+			integrateRigidMotion,
+			getNblocks(ovView.nObjects, 64), 64, 0, stream,
+			ovView, dt );
 
-	applyRigidMotion<<< getNblocks(ovView.size, 128), 128, 0, stream >>>(ovView, ov->initialPositions.devPtr());
+	SAFE_KERNEL_LAUNCH(
+			applyRigidMotion,
+			getNblocks(ovView.size, 128), 128, 0, stream,
+			ovView, ov->initialPositions.devPtr() );
 
-	clearRigidForces<<< getNblocks(ovView.nObjects, 64), 64, 0, stream >>>(ovView);
+	SAFE_KERNEL_LAUNCH(
+			clearRigidForces,
+			getNblocks(ovView.nObjects, 64), 64, 0, stream,
+			ovView );
 
 	pv->local()->changedStamp++;
 }

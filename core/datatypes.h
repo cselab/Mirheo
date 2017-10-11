@@ -144,6 +144,12 @@ struct __align__(16) Particle
 	{
 		return Float3_int{u, i2}.toFloat4();
 	}
+
+	__host__ __device__ inline void write2Float4(float4* dst, int pid) const
+	{
+		dst[2*pid]   = r2Float4();
+		dst[2*pid+1] = u2Float4();
+	}
 };
 
 

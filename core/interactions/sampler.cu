@@ -1,5 +1,6 @@
 #include "sampler.h"
 
+#include <core/utils/kernel_launch.h>
 #include <core/utils/cuda_common.h>
 #include <core/celllist.h>
 #include <core/walls/sdf_wall.h>
@@ -213,7 +214,10 @@ void MCMCSampler::_compute(InteractionType type, ParticleVector* pv1, ParticleVe
 			nHalo * sizeof(Particle), cudaMemcpyDeviceToDevice, stream) );
 
 	// mark halo particles
-	markHalo<<< getNblocks(nHalo, nthreads), nthreads, 0, stream >>>(combined->local()->coosvels.devPtr(), pv->halo()->size());
+	SAFE_KERNEL_LAUNCH(
+			markHalo,
+			getNblocks(nHalo, nthreads), nthreads, 0, stream,
+			combined->local()->coosvels.devPtr(), pv->halo()->size() );
 
 	CUDA_Check( cudaMemcpyAsync(combined->local()->coosvels.devPtr() + nHalo, pv->local()->coosvels.devPtr(),
 			pv->local()->size() * sizeof(Particle), cudaMemcpyDeviceToDevice, stream) );
@@ -245,12 +249,14 @@ void MCMCSampler::_compute(InteractionType type, ParticleVector* pv1, ParticleVe
 			{
 				int3 shift = make_int3(sx, sy, sz);
 
-				mcmcSample <<< blocks3, threads3, 0, stream >>> (
+				SAFE_KERNEL_LAUNCH(
+						mcmcSample,
+						blocks3, threads3, 0, stream,
 						shift,
 						combinedCL->particles->devPtr(), nLocal+nHalo, combinedCL->cellInfo(),
 						rc, rc2, power, kbT, drand48(),
 						wall->sdfInfo, minSdf, maxSdf,
-						proposalFactor, nAccepted.devPtr(), nRejected.devPtr(), potential);
+						proposalFactor, nAccepted.devPtr(), nRejected.devPtr(), potential );
 
 				cudaDeviceSynchronize();
 			}
@@ -273,8 +279,10 @@ void MCMCSampler::_compute(InteractionType type, ParticleVector* pv1, ParticleVe
 		return make_float3(E, 0, 0);
 	};
 	combinedCL->forces->clear(stream);
-	computeSelfInteractions<<< (nLocal+nHalo + nthreads - 1) / nthreads, nthreads, 0, stream >>>(
-			nLocal+nHalo, combinedCL->cellInfo(), rc*rc, totEinter);
+	SAFE_KERNEL_LAUNCH(
+			computeSelfInteractions,
+			(nLocal+nHalo + nthreads - 1) / nthreads, nthreads, 0, stream,
+			nLocal+nHalo, combinedCL->cellInfo(), rc*rc, totEinter );
 
 	totE.downloadFromDevice(stream);
 	debug("Total energy: %f, difference: %f", totE[0], totE[0] - old);
@@ -284,8 +292,10 @@ void MCMCSampler::_compute(InteractionType type, ParticleVector* pv1, ParticleVe
 
 	// Copy back the particles
 	nDst.clear(stream);
-	writeBackLocal<<< getNblocks(nLocal+nHalo, nthreads), nthreads, 0, stream >>>(
-			combinedCL->particles->devPtr(), nLocal+nHalo, pv->local()->coosvels.devPtr(), nDst.devPtr());
+	SAFE_KERNEL_LAUNCH(
+			writeBackLocal,
+			getNblocks(nLocal+nHalo, nthreads), nthreads, 0, stream,
+			combinedCL->particles->devPtr(), nLocal+nHalo, pv->local()->coosvels.devPtr(), nDst.devPtr() );
 
 	// Mark pv as changed and rebuild cell-lists as the particles may have moved significantly
 	pv->local()->changedStamp++;

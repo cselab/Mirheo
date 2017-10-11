@@ -1,5 +1,6 @@
 #include "particle_redistributor.h"
 
+#include <core/utils/kernel_launch.h>
 #include <core/celllist.h>
 #include <core/pvs/particle_vector.h>
 #include <core/utils/cuda_common.h>
@@ -7,9 +8,7 @@
 #include <core/mpi/valid_cell.h>
 
 template<bool QUERY=false>
-__global__ void getExitingParticles(float4* particles,
-		CellListInfo cinfo,
-		char** dests, int* counts)
+__global__ void getExitingParticles(CellListInfo cinfo,	char** dests, int* counts)
 {
 	const int gid = blockIdx.x*blockDim.x + threadIdx.x;
 	int cid;
@@ -31,7 +30,7 @@ __global__ void getExitingParticles(float4* particles,
 	for (int i = 0; i < pend-pstart; i++)
 	{
 		const int srcId = pstart + i;
-		Particle p(particles, srcId);
+		Particle p(cinfo.particles, srcId);
 
 		int3 code = cinfo.getCellIdAlongAxes<false>(make_float3(p.r));
 
@@ -65,7 +64,7 @@ __global__ void getExitingParticles(float4* particles,
 			addr[2*dstInd + 1] = p.u2Float4();
 
 			// mark the particle as exited to assist cell-list building
-			particles[2*srcId] = Float3_int(make_float3(-1e5), p.i1).toFloat4();
+			cinfo.particles[2*srcId] = Float3_int(make_float3(-1e5), p.i1).toFloat4();
 		}
 	}
 }
@@ -92,23 +91,27 @@ void ParticleRedistributor::prepareData(int id, cudaStream_t stream)
 
 	debug2("Preparing %s leaving particles on the device", pv->name.c_str());
 
-	const int maxdim = std::max({cl->ncells.x, cl->ncells.y, cl->ncells.z});
-	const int nthreads = 64;
+	helper->sendBufSizes.clear(stream);
 	if (pv->local()->size() > 0)
 	{
-		const dim3 blocks = dim3(getNblocks(maxdim*maxdim, nthreads), 6, 1);
+		const int maxdim = std::max({cl->ncells.x, cl->ncells.y, cl->ncells.z});
+		const int nthreads = 64;
+		const dim3 nblocks = dim3(getNblocks(maxdim*maxdim, nthreads), 6, 1);
 
-		helper->sendBufSizes.clear(stream);
-		getExitingParticles<true>  <<< blocks, nthreads, 0, stream >>> (
-				(float4*)pv->local()->coosvels.devPtr(), cl->cellInfo(),
+		SAFE_KERNEL_LAUNCH(
+				getExitingParticles<true>,
+				nblocks, nthreads, 0, stream,
+				cl->cellInfo(),
 				helper->sendAddrs.devPtr(), helper->sendBufSizes.devPtr() );
 
 		helper->sendBufSizes.downloadFromDevice(stream);
 		helper->resizeSendBufs();
 
 		helper->sendBufSizes.clearDevice(stream);
-		getExitingParticles<false> <<< blocks, nthreads, 0, stream >>> (
-				(float4*)pv->local()->coosvels.devPtr(), cl->cellInfo(),
+		SAFE_KERNEL_LAUNCH(
+				getExitingParticles<false>,
+				nblocks, nthreads, 0, stream,
+				cl->cellInfo(),
 				helper->sendAddrs.devPtr(), helper->sendBufSizes.devPtr() );
 	}
 }
@@ -127,11 +130,11 @@ void ParticleRedistributor::combineAndUploadData(int id, cudaStream_t stream)
 	for (int i=0; i < 27; i++)
 	{
 		const int msize = helper->recvOffsets[i+1] - helper->recvOffsets[i];
-		if (msize > 0)
-			memcpy(hptr + helper->recvOffsets[i], helper->recvBufs[i].hostPtr(), msize*sizeof(Particle));
+		memcpy(hptr + helper->recvOffsets[i], helper->recvBufs[i].hostPtr(), msize*sizeof(Particle));
 	}
 
-	CUDA_Check( cudaMemcpyAsync(dptr, hptr, helper->recvOffsets[27]*sizeof(Particle), cudaMemcpyHostToDevice, stream) );
+	if (helper->recvOffsets[27] > 0)
+		CUDA_Check( cudaMemcpyAsync(dptr, hptr, helper->recvOffsets[27]*sizeof(Particle), cudaMemcpyHostToDevice, stream) );
 
 	// The PV may has changed significantly, need to update the cell-lists now
 	pv->local()->changedStamp++;

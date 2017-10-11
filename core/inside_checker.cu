@@ -1,5 +1,6 @@
 #include "inside_checker.h"
 
+#include <core/utils/kernel_launch.h>
 #include <core/pvs/particle_vector.h>
 #include <core/pvs/object_vector.h>
 #include <core/celllist.h>
@@ -94,7 +95,9 @@ static void InsideChecker::splitByTags(ParticleVector* src, PinnedBuffer<int>& t
 	if (pvIn != nullptr)  pvIn-> local()->resize(nInside, stream);
 	if (pvOut != nullptr) pvOut->local()->resize(nInside, stream);
 
-	copyLeftRight <<< getNblocks(src->local()->size(), 128), 128, 0, stream >>> (
+	SAFE_KERNEL_LAUNCH(
+			copyLeftRight,
+			getNblocks(src->local()->size(), 128), 128, 0, stream,
 			src->local()->coosvels.devPtr(), src->local()->size(),
 			tags.devPtr(),
 			pvIn ?  pvIn-> local()->coosvels.devPtr() : nullptr,
@@ -111,16 +114,20 @@ void EllipsoidInsideChecker::tagInner(ParticleVector* pv, CellList* cl, PinnedBu
 	int nthreads = 512;
 
 	auto activeROV = rov->local();
-	insideEllipsoid<<< activeROV->nObjects, nthreads, 2*nthreads*sizeof(int), stream >>> (
+	SAFE_KERNEL_LAUNCH(
+			insideEllipsoid,
+			activeROV->nObjects, nthreads, 2*nthreads*sizeof(int), stream,
 			activeROV->comAndExtents.devPtr(), activeROV->motions.devPtr(), 1.0f / rov->axes, activeROV->nObjects,
 			pv->local()->coosvels.devPtr(), cl->cellsStartSize.devPtr(), cl->cellInfo(),
-			tags.devPtr(), nIn.devPtr(), nOut.devPtr());
+			tags.devPtr(), nIn.devPtr(), nOut.devPtr() );
 
 	activeROV = rov->halo();
-	insideEllipsoid<<< activeROV->nObjects, nthreads, 2*nthreads*sizeof(int), stream >>> (
+	SAFE_KERNEL_LAUNCH(
+			insideEllipsoid,
+			activeROV->nObjects, nthreads, 2*nthreads*sizeof(int), stream,
 			activeROV->comAndExtents.devPtr(), activeROV->motions.devPtr(), 1.0f / rov->axes, activeROV->nObjects,
 			pv->local()->coosvels.devPtr(), cl->cellsStartSize.devPtr(), cl->cellInfo(),
-			tags.devPtr(), nIn.devPtr(), nOut.devPtr());
+			tags.devPtr(), nIn.devPtr(), nOut.devPtr() );
 
 	nIn. downloadFromDevice(stream);
 	nOut.downloadFromDevice(stream);

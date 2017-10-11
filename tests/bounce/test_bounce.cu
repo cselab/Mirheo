@@ -172,9 +172,12 @@ int main(int argc, char ** argv)
 
 	for (int iter=0; iter<100; iter++)
 	{
-		bounceEllipsoid<<< nobj, 128 >>> ((float4*)dpds.local()->coosvels.devPtr(), dpds.mass, com_ext.devPtr(), motions.devPtr(),
+		SAFE_KERNEL_LAUNCH(
+				bounceEllipsoid,
+				nobj, 128,
+				(float4*)dpds.local()->coosvels.devPtr(), dpds.mass, com_ext.devPtr(), motions.devPtr(),
 				nobj, invAxes,
-				cells.cellsStartSize.devPtr(), cells.cellInfo(), dt);
+				cells.cellsStartSize.devPtr(), cells.cellInfo(), dt );
 	}
 
 	return 0;

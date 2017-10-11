@@ -9,22 +9,18 @@ endif
 include $(UDEVICEX_PATH)/makefiles/Makefile.settings.$(HOST)
 
 # Compiling parameters
-NVCCFLAGS += -std=c++11 --expt-extended-lambda -Xcompiler "-fopenmp"
-NVCCFLAGS += -I$(UDEVICEX_PATH)/ -I$(HDF5_INC) $(INCLUDES)
+NVCCFLAGS += -std=c++11 --expt-extended-lambda
+NVCCFLAGS += -I$(UDEVICEX_PATH)/ $(HDF5_INC) $(INCLUDES)
 NVCCFLAGS += -arch=$(CUDA_ARCH) -code=$(CUDA_CODE)
-NVCCFLAGS += -lineinfo -g -Xcompiler -rdynamic
-
-NOWARNFLAG = -Xcompiler "-Wno-cpp"
+NVCCFLAGS += -lineinfo -g
 
 NVCC_RELEASE_FLAGS = $(NVCCFLAGS) -O3 --use_fast_math
 NVCC_DEBUG_FLAGS = $(NVCCFLAGS) -G
 
 # Linking parameters
-LIBS += -L$(HDF5_LIB) -lbfd
-
-LINKFLAGS += -Xcompiler "-fopenmp -rdynamic" -g $(LIBS)
-
-LINK_RELEASE_FLAGS += $(LINKFLAGS) -O3 -Xcompiler -flto
+LIBS += $(HDF5_LIB)
+LINKFLAGS += -g
+LINK_RELEASE_FLAGS += $(LINKFLAGS) -O3
 LINK_DEBUG_FLAGS += $(LINKFLAGS) -G
 
 # Misc
@@ -39,11 +35,11 @@ VPATH = $(addsuffix :,$(SRC_DIR))
 
 # Release binary
 $(binary): $(addprefix $(BIN_DIR)/,$(objects))
-	$(LINKER) $(LINK_RELEASE_FLAGS) $^ -o $@
+	$(LINKER) $(LINK_RELEASE_FLAGS) $^ $(LIBS) -o $@
 
 $(BIN_DIR)/%.d: %.cu
 	@mkdir -p $(BIN_DIR)
-	$(NVCC) $(NVCC_RELEASE_FLAGS) $(NOWARNFLAG) -M $< > $(patsubst %.d,%.TMPd,$@)
+	$(NVCC) $(NVCC_RELEASE_FLAGS) -M $< > $(patsubst %.d,%.TMPd,$@)
 	@printf "$(BIN_DIR)/" | cat - $(patsubst %.d,%.TMPd,$@)  > $@ && rm $(patsubst %.d,%.TMPd,$@)
 	@#| perl -n -e ' if (/\s+\./) { s/(\s+)\./$$1..\/./; } print; '
 	
@@ -58,11 +54,11 @@ clean_release:
 
 # Debug binary
 $(binary)_debug: $(addprefix $(DEBUG_DIR)/,$(objects))
-	$(LINKER) $(LINK_DEBUG_FLAGS)  $^ -o $@
+	$(LINKER) $(LINK_DEBUG_FLAGS) $^ $(LIBS) -o $@
 
 $(DEBUG_DIR)/%.d: %.cu
 	@mkdir -p $(DEBUG_DIR)
-	$(NVCC) $(NVCC_DEBUG_FLAGS) $(NOWARNFLAG) -M $< > $(patsubst %.d,%.TMPd,$@)
+	$(NVCC) $(NVCC_DEBUG_FLAGS) -M $< > $(patsubst %.d,%.TMPd,$@)
 	@printf "$(DEBUG_DIR)/" | cat - $(patsubst %.d,%.TMPd,$@)  > $@ && rm $(patsubst %.d,%.TMPd,$@)
 	@#| perl -n -e ' if (/\s+\./) { s/(\s+)\./$$1..\/./; } print; '
 	

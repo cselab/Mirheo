@@ -1,5 +1,4 @@
 #include <core/logger.h>
-#include <core/helper_math.h>
 
 #include <hdf5.h>
 #include <regex>
@@ -7,6 +6,7 @@
 
 #include "timer.h"
 #include "write_xdmf.h"
+
 
 void XDMFDumper::writeLight(std::string currentFname, float t)
 {
@@ -125,7 +125,9 @@ XDMFDumper::XDMFDumper(MPI_Comm comm, int3 nranks3D, std::string fileNamePrefix,
 		channelNames(channelNames), channelTypes(channelTypes), deactivated(false), timeStamp(0)
 {
 	int ranksArr[] = {nranks3D.x, nranks3D.y, nranks3D.z};
-	globalResolution = nranks3D * localResolution;
+	globalResolution.x = nranks3D.x * localResolution.x;
+	globalResolution.y = nranks3D.y * localResolution.y;
+	globalResolution.z = nranks3D.z * localResolution.z;
 
 	MPI_Check( MPI_Cart_create(comm, 3, ranksArr, periods, 0, &xdmfComm) );
 	MPI_Check( MPI_Cart_get(xdmfComm, 3, nranks, periods, my3Drank) );

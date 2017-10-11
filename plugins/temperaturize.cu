@@ -1,5 +1,6 @@
 #include "temperaturize.h"
 
+#include <core/utils/kernel_launch.h>
 #include <core/pvs/particle_vector.h>
 #include <core/simulation.h>
 
@@ -54,9 +55,10 @@ void TemperaturizePlugin::beforeForces(cudaStream_t stream)
 {
 	for (auto pv : pvs)
 	{
-		if (pv->local()->size() > 0)
-			applyTemperature<<<getNblocks(pv->local()->size(), 128), 128, 0, stream>>>(
-					(float4*)pv->local()->coosvels.devPtr(), pv->local()->size(), 1.0/pv->mass, kbT, drand48(), drand48());
+		SAFE_KERNEL_LAUNCH(
+				applyTemperature,
+				getNblocks(pv->local()->size(), 128), 128, 0, stream,
+				(float4*)pv->local()->coosvels.devPtr(), pv->local()->size(), 1.0/pv->mass, kbT, drand48(), drand48() );
 	}
 }
 

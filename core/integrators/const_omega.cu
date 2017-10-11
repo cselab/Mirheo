@@ -1,6 +1,7 @@
 #include "const_omega.h"
 #include "integration_kernel.h"
 
+#include <core/utils/kernel_launch.h>
 #include <core/logger.h>
 #include <core/pvs/particle_vector.h>
 
@@ -27,11 +28,11 @@ void IntegratorConstOmega::stage2(ParticleVector* pv, float t, cudaStream_t stre
 
 	int nthreads = 128;
 
-	if (pv->local()->size() > 0)
-	{
-		auto pvView = create_PVview(pv, pv->local());
-		integrationKernel<<< getNblocks(2*pvView.size, nthreads), nthreads, 0, stream >>>(pvView, dt, rotate);
-	}
+	auto pvView = create_PVview(pv, pv->local());
+	SAFE_KERNEL_LAUNCH(
+			integrationKernel,
+			getNblocks(2*pvView.size, nthreads), nthreads, 0, stream,
+			pvView, dt, rotate );
 
 	pv->local()->changedStamp++;
 }

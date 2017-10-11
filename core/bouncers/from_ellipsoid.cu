@@ -7,6 +7,7 @@
 
 #include "from_ellipsoid.h"
 
+#include <core/utils/kernel_launch.h>
 #include <core/celllist.h>
 #include <core/pvs/particle_vector.h>
 #include <core/pvs/rigid_ellipsoid_object_vector.h>
@@ -25,7 +26,10 @@ void BounceFromRigidEllipsoid::exec(ObjectVector* ov, ParticleVector* pv, CellLi
 	auto pvView = create_PVview(pv, pv->local());
 
 	int nthreads = 512;
-	bounceEllipsoid<<< ovView.nObjects, nthreads, 2*nthreads*sizeof(int), stream >>> (ovView, pvView, cl->cellInfo(), dt);
+	SAFE_KERNEL_LAUNCH(
+			bounceEllipsoid,
+			ovView.nObjects, nthreads, 2*nthreads*sizeof(int), stream,
+			ovView, pvView, cl->cellInfo(), dt );
 }
 
 

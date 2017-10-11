@@ -2,6 +2,7 @@
 #include "simple_serializer.h"
 #include "string2vector.h"
 
+#include <core/utils/kernel_launch.h>
 #include <core/simulation.h>
 #include <core/pvs/particle_vector.h>
 #include <core/celllist.h>
@@ -101,7 +102,9 @@ void Avg3DPlugin::afterIntegration(cudaStream_t stream)
 		CellListInfo cinfo(binSize, pv->localDomainSize);
 		auto pvView = create_PVview(pv, pv->local());
 
-		sample<<< (pvView.size+127) / 128, 128, 0, stream >>> (
+		SAFE_KERNEL_LAUNCH(
+				sample,
+				(pvView.size+127) / 128, 128, 0, stream,
 				pvView, cinfo,
 				needDensity  ? density .devPtr() : nullptr,
 				needMomentum ? momentum.devPtr() : nullptr,
@@ -119,7 +122,11 @@ void Avg3DPlugin::serializeAndSend(cudaStream_t stream)
 	if (needMomentum)
 	{
 		int sz = momentum.size();
-		scaleVec<<< (sz+127)/128, 128, 0, stream >>> (sz, momentum.devPtr(), density.devPtr());
+		SAFE_KERNEL_LAUNCH(
+				scaleVec,
+				(sz+127)/128, 128, 0, stream,
+				sz, momentum.devPtr(), density.devPtr() );
+
 		momentum.downloadFromDevice(stream);
 		momentum.clearDevice(stream);
 	}
@@ -127,7 +134,11 @@ void Avg3DPlugin::serializeAndSend(cudaStream_t stream)
 	if (needForce)
 	{
 		int sz = force.size();
-		scaleVec<<< (sz+127)/128, 128, 0, stream >>> (sz, force.devPtr(), density.devPtr());
+		SAFE_KERNEL_LAUNCH(
+				scaleVec,
+				(sz+127)/128, 128, 0, stream,
+				sz, force.devPtr(), density.devPtr() );
+
 		force.downloadFromDevice(stream);
 		force.clearDevice(stream);
 	}
@@ -135,7 +146,11 @@ void Avg3DPlugin::serializeAndSend(cudaStream_t stream)
 	if (needDensity)
 	{
 		int sz = density.size();
-		scaleDensity<<< (sz+127)/128, 128, 0, stream >>> ( sz, density.devPtr(), 1.0 / (nSamples * binSize.x*binSize.y*binSize.z) );
+		SAFE_KERNEL_LAUNCH(
+				scaleDensity,
+				(sz+127)/128, 128, 0, stream,
+				sz, density.devPtr(), 1.0 / (nSamples * binSize.x*binSize.y*binSize.z) );
+
 		density.downloadFromDevice(stream);
 		density.clearDevice(stream);
 	}

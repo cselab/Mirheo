@@ -272,11 +272,15 @@ int main(int argc, char ** argv)
 //		energy.clear(defStream);
 //		momentum.clear(defStream);
 //
-//		totalMomentumEnergy<<< getNblocks(dpds.local()->size(), 128), 128, 0, defStream >>> (
-//				(float4*)dpds.local()->coosvels.devPtr(), dpds.mass, dpds.local()->size(), momentum.devPtr(), energy.devPtr());
+//		SAFE_KERNEL_LAUNCH(
+//				totalMomentumEnergy,
+//				getNblocks(dpds.local()->size(), 128), 128, 0, defStream,
+				//				(float4*)dpds.local()->coosvels.devPtr(), dpds.mass, dpds.local()->size(), momentum.devPtr(), energy.devPtr() );
 //
-//		totalMomentumEnergy<<< getNblocks(obj.local()->size(), 128), 128, 0, defStream >>> (
-//				(float4*)obj.local()->coosvels.devPtr(), 1.0f, obj.local()->size(), momentum.devPtr(), energy.devPtr());
+//		SAFE_KERNEL_LAUNCH(
+//				totalMomentumEnergy,
+//				getNblocks(obj.local()->size(), 128), 128, 0, defStream,
+				//				(float4*)obj.local()->coosvels.devPtr(), 1.0f, obj.local()->size(), momentum.devPtr(), energy.devPtr() );
 //
 //		momentum.downloadFromDevice(defStream, false);
 //		energy.  downloadFromDevice(defStream, true);
@@ -307,8 +311,10 @@ int main(int argc, char ** argv)
 		mbounce->bounceLocal(defStream);
 
 		int nthreads = 128;
-		checkIn<<< getNblocks(dpds.local()->size(), nthreads), nthreads >>> (
-				dpds.local()->coosvels.devPtr(), center, dpds.local()->size());
+		SAFE_KERNEL_LAUNCH(
+				checkIn,
+				getNblocks(dpds.local()->size(), nthreads), nthreads,
+				dpds.local()->coosvels.devPtr(), center, dpds.local()->size() );
 
 
 		CUDA_Check( cudaStreamSynchronize(defStream) );

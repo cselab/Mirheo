@@ -1,5 +1,6 @@
 #include "object_halo_exchanger.h"
 
+#include <core/utils/kernel_launch.h>
 #include <core/pvs/particle_vector.h>
 #include <core/pvs/object_vector.h>
 #include <core/pvs/rigid_object_vector.h>
@@ -145,19 +146,22 @@ void ObjectHaloExchanger::prepareData(int id, cudaStream_t stream)
 
 	auto ovView = create_OVviewWithExtraData(ov, ov->local(), stream);
 	helper->setDatumSize(ovView.packedObjSize_byte);
-	helper->sendBufSizes.clear(stream);
 
-	const int nthreads = 128;
+	helper->sendBufSizes.clear(stream);
 	if (ovView.nObjects > 0)
 	{
+		const int nthreads = 128;
+
 		// FIXME: this is a hack
 		auto rovView = create_ROVview(nullptr, nullptr);
 		RigidObjectVector* rov;
 		if ( (rov = dynamic_cast<RigidObjectVector*>(ov)) != 0 )
 			rovView = create_ROVview(rov, rov->local());
 
-		getObjectHalos<true>  <<< ovView.nObjects, nthreads, 0, stream >>> (
-				ovView, rovView, rc, helper->sendAddrs.devPtr(), helper->sendBufSizes.devPtr());
+		SAFE_KERNEL_LAUNCH(
+				getObjectHalos<true>,
+				ovView.nObjects, nthreads, 0, stream,
+				ovView, rovView, rc, helper->sendAddrs.devPtr(), helper->sendBufSizes.devPtr() );
 
 		helper->sendBufSizes.downloadFromDevice(stream);
 		for (int i=0; i<helper->sendBufSizes.size(); i++)
@@ -167,8 +171,10 @@ void ObjectHaloExchanger::prepareData(int id, cudaStream_t stream)
 		originHelper->resizeSendBufs();
 
 		helper->sendBufSizes.clearDevice(stream);
-		getObjectHalos<false> <<< ovView.nObjects, nthreads, 0, stream >>> (
-				ovView, rovView, rc, helper->sendAddrs.devPtr(), helper->sendBufSizes.devPtr(), (int**)originHelper->sendAddrs.devPtr());
+		SAFE_KERNEL_LAUNCH(
+				getObjectHalos<false>,
+				ovView.nObjects, nthreads, 0, stream,
+				ovView, rovView, rc, helper->sendAddrs.devPtr(), helper->sendBufSizes.devPtr(), (int**)originHelper->sendAddrs.devPtr() );
 	}
 }
 
@@ -185,11 +191,12 @@ void ObjectHaloExchanger::combineAndUploadData(int id, cudaStream_t stream)
 	for (int i=0; i < 27; i++)
 	{
 		const int nObjs = helper->recvOffsets[i+1] - helper->recvOffsets[i];
-		if (nObjs > 0)
-		{
-			helper->recvBufs[i].uploadToDevice(stream);
-			unpackObject<<< nObjs, nthreads, 0, stream >>> ( (float4*)helper->recvBufs[i].devPtr(),  helper->recvOffsets[i], ovView );
-		}
+
+		helper->recvBufs[i].uploadToDevice(stream);
+		SAFE_KERNEL_LAUNCH(
+				unpackObject,
+				nObjs, nthreads, 0, stream,
+				(float4*)helper->recvBufs[i].devPtr(),  helper->recvOffsets[i], ovView );
 	}
 }
 

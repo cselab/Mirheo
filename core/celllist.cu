@@ -2,6 +2,7 @@
 #include <core/pvs/object_vector.h>
 #include <core/celllist.h>
 #include <core/utils/cuda_common.h>
+#include <core/utils/kernel_launch.h>
 #include <core/logger.h>
 
 #include <core/cub/device/device_scan.cuh>
@@ -118,18 +119,6 @@ CellList::CellList(ParticleVector* pv, int3 resolution, float3 localDomainSize) 
 
 void CellList::_build(cudaStream_t stream)
 {
-	if (pv->local()->changedStamp == changedStamp)
-	{
-		debug2("Cell-list for %s is already up-to-date, building skipped", pv->name.c_str());
-		return;
-	}
-
-	if (pv->local()->size() == 0)
-	{
-		debug2("%s consists of no particles, cell-list building skipped", pv->name.c_str());
-		return;
-	}
-
 	// Compute cell sizes
 	debug2("Computing cell sizes for %d %s particles", pv->local()->size(), pv->name.c_str());
 	cellSizes.clear(stream);
@@ -137,7 +126,10 @@ void CellList::_build(cudaStream_t stream)
 	auto view = create_PVview(pv, pv->local());
 
 	int nthreads = 128;
-	computeCellSizes <<< getNblocks(view.size, nthreads), nthreads, 0, stream >>> (view, cellInfo());
+	SAFE_KERNEL_LAUNCH(
+			computeCellSizes,
+			getNblocks(view.size, nthreads), nthreads, 0, stream,
+			view, cellInfo() );
 
 	// Scan to get cell starts
 	size_t bufSize;
@@ -153,8 +145,10 @@ void CellList::_build(cudaStream_t stream)
 	particlesContainer.resize_anew(view.size);
 	cellSizes.clear(stream);
 
-	reorderParticles <<< getNblocks(2*view.size, nthreads), nthreads, 0, stream >>> (
-			view, cellInfo(), (float4*)particlesContainer.devPtr());
+	SAFE_KERNEL_LAUNCH(
+			reorderParticles,
+			getNblocks(2*view.size, nthreads), nthreads, 0, stream,
+			view, cellInfo(), (float4*)particlesContainer.devPtr() );
 
 	// Change time of last update
 	changedStamp = pv->local()->changedStamp;
@@ -162,6 +156,18 @@ void CellList::_build(cudaStream_t stream)
 
 void CellList::build(cudaStream_t stream)
 {
+	if (pv->local()->changedStamp == changedStamp)
+	{
+		debug2("Cell-list for %s is already up-to-date, building skipped", pv->name.c_str());
+		return;
+	}
+
+	if (pv->local()->size() == 0)
+	{
+		debug2("%s consists of no particles, cell-list building skipped", pv->name.c_str());
+		return;
+	}
+
 	_build(stream);
 
 	forcesContainer.resize_anew(pv->local()->size());
@@ -172,8 +178,10 @@ void CellList::addForces(cudaStream_t stream)
 	auto view = create_PVview(pv, pv->local());
 	int nthreads = 128;
 
-	if (view.size > 0)
-		addForcesKernel <<< getNblocks(view.size, nthreads), nthreads, 0, stream >>> (view, cellInfo());
+	SAFE_KERNEL_LAUNCH(
+			addForcesKernel,
+			getNblocks(view.size, nthreads), nthreads, 0, stream,
+			view, cellInfo() );
 }
 
 //=================================================================================
@@ -203,6 +211,18 @@ PrimaryCellList::PrimaryCellList(ParticleVector* pv, int3 resolution, float3 loc
 void PrimaryCellList::build(cudaStream_t stream)
 {
 	warn("Reordering extra data is not yet implemented in cell-lists");
+
+	if (pv->local()->changedStamp == changedStamp)
+	{
+		debug2("Cell-list for %s is already up-to-date, building skipped", pv->name.c_str());
+		return;
+	}
+
+	if (pv->local()->size() == 0)
+	{
+		debug2("%s consists of no particles, cell-list building skipped", pv->name.c_str());
+		return;
+	}
 
 	_build(stream);
 

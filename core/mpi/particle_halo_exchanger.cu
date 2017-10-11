@@ -1,5 +1,6 @@
 #include "particle_halo_exchanger.h"
 
+#include <core/utils/kernel_launch.h>
 #include <core/pvs/particle_vector.h>
 #include <core/celllist.h>
 #include <core/logger.h>
@@ -8,9 +9,7 @@
 #include "valid_cell.h"
 
 template<bool QUERY=false>
-__global__ void getHalos(const float4* __restrict__ particles,
-		const CellListInfo cinfo,
-		char** dests, int* counts)
+__global__ void getHalos(const CellListInfo cinfo, char** dests, int* counts)
 {
 	const int gid = blockIdx.x*blockDim.x + threadIdx.x;
 	const int tid = threadIdx.x;
@@ -75,7 +74,7 @@ __global__ void getHalos(const float4* __restrict__ particles,
 			const int dstInd = myid   + i;
 			const int srcInd = pstart + i;
 
-			Particle p(particles, srcInd);
+			Particle p(cinfo.particles, srcInd);
 			p.r -= shift;
 
 			float4* addr = (float4*)dests[bufId];
@@ -120,22 +119,27 @@ void ParticleHaloExchanger::prepareData(int id, cudaStream_t stream)
 
 	debug2("Preparing %s halo on the device", pv->name.c_str());
 
-
-	const int maxdim = std::max({cl->ncells.x, cl->ncells.y, cl->ncells.z});
-	const int nthreads = 64;
+	helper->sendBufSizes.clear(stream);
 	if (pv->local()->size() > 0)
 	{
-		helper->sendBufSizes.clearDevice(stream);
-		getHalos<true>  <<< dim3((maxdim*maxdim + nthreads - 1) / nthreads, 6, 1),  dim3(nthreads, 1, 1), 0, stream >>> (
-				(float4*)pv->local()->coosvels.devPtr(), cl->cellInfo(),
+		const int maxdim = std::max({cl->ncells.x, cl->ncells.y, cl->ncells.z});
+		const int nthreads = 64;
+		const dim3 nblocks = dim3(getNblocks(maxdim*maxdim, nthreads), 6, 1);
+
+		SAFE_KERNEL_LAUNCH(
+				getHalos<true>,
+				nblocks, nthreads, 0, stream,
+				cl->cellInfo(),
 				helper->sendAddrs.devPtr(), helper->sendBufSizes.devPtr() );
 
 		helper->sendBufSizes.downloadFromDevice(stream);
 		helper->resizeSendBufs();
 
 		helper->sendBufSizes.clearDevice(stream);
-		getHalos<false> <<< dim3((maxdim*maxdim + nthreads - 1) / nthreads, 6, 1),  dim3(nthreads, 1, 1), 0, stream >>> (
-				(float4*)pv->local()->coosvels.devPtr(), cl->cellInfo(),
+		SAFE_KERNEL_LAUNCH(
+				getHalos<false>,
+				nblocks, nthreads, 0, stream,
+				cl->cellInfo(),
 				helper->sendAddrs.devPtr(), helper->sendBufSizes.devPtr() );
 	}
 

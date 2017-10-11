@@ -27,13 +27,14 @@ template <> bool isValid_nBlocks<dim3>(dim3 blocks)
 	return blocks.x > 0 && blocks.y > 0 && blocks.z > 0;
 }
 
+#define COMMA ,
 
 #define  SAFE_KERNEL_LAUNCH(kernel, blocks, threads, shmem, stream, ...)                \
 do {                                                                                    \
 	if (isValid_nBlocks(blocks))                                                        \
 	{                                                                                   \
 		debug4("Launching kernel "#kernel);                                             \
-		kernel <<< blocks, threads, shmem, stream >>> (__VA_ARGS__);                    \
+		kernel <<< blocks, threads, shmem, stream >>> ( __VA_ARGS__ );                  \
 		if (logger.getDebugLvl() >= 9)                                                  \
 		{                                                                               \
 			cudaStreamSynchronize(stream);                                              \

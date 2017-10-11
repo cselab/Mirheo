@@ -6,6 +6,7 @@
 #include <texture_types.h>
 #include <cassert>
 
+#include <core/utils/kernel_launch.h>
 #include <core/utils/cuda_common.h>
 #include <core/celllist.h>
 #include <core/pvs/particle_vector.h>
@@ -88,30 +89,30 @@ __global__ void cubicInterpolate3D(const float* in, int3 inDims, float3 inH, flo
 // Removing kernels
 //===============================================================================================
 
-__global__ void countRemaining(const float4* pv, const int np, SDFWall::SdfInfo sdfInfo, int* nRemaining)
+__global__ void countRemaining(PVview view, SDFWall::SdfInfo sdfInfo, int* nRemaining)
 {
 	const float tolerance = 1e-6f;
 
 	const int pid = blockIdx.x * blockDim.x + threadIdx.x;
-	if (pid >= np) return;
+	if (pid >= view.size) return;
 
-	const float4 coo = pv[2*pid];
+	const float4 coo = view.particles[2*pid];
 	const float sdf = evalSdf(coo, sdfInfo);
 
 	if (sdf <= -tolerance)
 		atomicAggInc(nRemaining);
 }
 
-__global__ void collectRemaining(const float4* input, const int np, SDFWall::SdfInfo sdfInfo,
+__global__ void collectRemaining(PVview view, SDFWall::SdfInfo sdfInfo,
 		float4* remaining, int* nRemaining)
 {
 	const float tolerance = 1e-6f;
 
 	const int pid = blockIdx.x * blockDim.x + threadIdx.x;
-	if (pid >= np) return;
+	if (pid >= view.size) return;
 
-	const float4 coo = input[2*pid];
-	const float4 vel = input[2*pid+1];
+	const float4 coo = view.particles[2*pid];
+	const float4 vel = view.particles[2*pid+1];
 
 	const float sdf = evalSdf(coo, sdfInfo);
 
@@ -242,7 +243,7 @@ __global__ void getBoundaryCells(CellListInfo cinfo, SDFWall::SdfInfo sdfInfo,
 //===============================================================================================
 
 __global__ void bounceSDF(const int* wallCells, const int nWallCells, CellListInfo cinfo,
-		SDFWall::SdfInfo sdfInfo, float4* coosvels, const float dt)
+		SDFWall::SdfInfo sdfInfo, const float dt)
 {
 	const int maxIters = 50;
 	const float corrStep = (1.0f / (float)maxIters) * dt;
@@ -255,7 +256,7 @@ __global__ void bounceSDF(const int* wallCells, const int nWallCells, CellListIn
 
 	for (int pid = pstart; pid < pend; pid++)
 	{
-		Particle p(coosvels[2*pid], coosvels[2*pid+1]);
+		Particle p(cinfo.particles, pid);
 		if (evalSdf(p.r, sdfInfo) <= 0.0f) continue;
 
 		float3 oldCoo = p.r - p.u*dt;
@@ -286,17 +287,19 @@ __global__ void bounceSDF(const int* wallCells, const int nWallCells, CellListIn
 				}
 		}
 
-		coosvels[2*pid]     = Float3_int(candidate, p.i1).toFloat4();
-		coosvels[2*pid + 1] = Float3_int(-p.u, p.i2).toFloat4();
+		p.r = candidate;
+		p.u = -p.u;
+
+		p.write2Float4(cinfo.particles, pid);
 	}
 }
 
-__global__ void checkInside(const float4* coosvels, int np, SDFWall::SdfInfo sdfInfo, int* nInside)
+__global__ void checkInside(PVview view, SDFWall::SdfInfo sdfInfo, int* nInside)
 {
 	const int pid = blockIdx.x * blockDim.x + threadIdx.x;
-	if (pid >= np) return;
+	if (pid >= view.size) return;
 
-	float4 coo = coosvels[2*pid];
+	float4 coo = view.particles[2*pid];
 	float v = evalSdf(coo, sdfInfo);
 
 	if (v > 0)
@@ -314,6 +317,10 @@ SDFWall::SDFWall(std::string name, std::string sdfFileName, float3 sdfH) :
 
 void SDFWall::attach(ParticleVector* pv, CellList* cl, bool check)
 {
+	if (dynamic_cast<PrimaryCellList*>(cl) == nullptr)
+		die("PVs should only be attached to walls with the primary cell-lists! "
+				"Invalid combination: wall %s, pv %s", name.c_str(), pv->name.c_str());
+
 	CUDA_Check( cudaDeviceSynchronize() );
 	particleVectors.push_back(pv);
 	cellLists.push_back(cl);
@@ -321,15 +328,21 @@ void SDFWall::attach(ParticleVector* pv, CellList* cl, bool check)
 
 	PinnedBuffer<int> nBoundaryCells(1);
 	nBoundaryCells.clear(0);
-	countBoundaryCells<<< (cl->totcells + 127) / 128, 128, 0, 0 >>> (cl->cellInfo(), sdfInfo, nBoundaryCells.devPtr());
+	SAFE_KERNEL_LAUNCH(
+			countBoundaryCells,
+			(cl->totcells + 127) / 128, 128, 0, 0,
+			cl->cellInfo(), sdfInfo, nBoundaryCells.devPtr() );
 	nBoundaryCells.downloadFromDevice(0);
 
 	debug("Found %d boundary cells", nBoundaryCells[0]);
 	auto bc = new DeviceBuffer<int>(nBoundaryCells[0]);
 
 	nBoundaryCells.clear(0);
-	getBoundaryCells<<< (cl->totcells + 127) / 128, 128, 0, 0 >>> (cl->cellInfo(), sdfInfo,
-			nBoundaryCells.devPtr(), bc->devPtr());
+	SAFE_KERNEL_LAUNCH(
+			getBoundaryCells,
+			(cl->totcells + 127) / 128, 128, 0, 0,
+			cl->cellInfo(), sdfInfo,
+			nBoundaryCells.devPtr(), bc->devPtr() );
 
 	boundaryCells.push_back(bc);
 	CUDA_Check( cudaDeviceSynchronize() );
@@ -489,8 +502,11 @@ void SDFWall::setup(MPI_Comm& comm, float3 globalDomainSize, float3 globalDomain
 				(sdfInfo.resolution.z+threads.z-1) / threads.z);
 
 	localSdfData.uploadToDevice(0);
-	cubicInterpolate3D<<< blocks, threads >>>(localSdfData.devPtr(), resolutionBeforeInterpolation, initialSdfH,
-			sdfRawData.devPtr(), sdfInfo.resolution, sdfInfo.h, offset, lenScalingFactor);
+	SAFE_KERNEL_LAUNCH(
+			cubicInterpolate3D,
+			blocks, threads, 0, 0,
+			localSdfData.devPtr(), resolutionBeforeInterpolation, initialSdfH,
+			sdfRawData.devPtr(), sdfInfo.resolution, sdfInfo.h, offset, lenScalingFactor );
 
 
 	// Prepare array to be transformed into texture
@@ -538,10 +554,13 @@ void SDFWall::removeInner(ParticleVector* pv)
 	ObjectVector* ov = dynamic_cast<ObjectVector*>(pv);
 	if (ov == nullptr)
 	{
-		PinnedBuffer<Particle> tmp(pv->local()->size());
+		auto view = create_PVview(pv, pv->local());
+		PinnedBuffer<Particle> tmp(view.size);
 
-		collectRemaining<<< getNblocks(pv->local()->size(), nthreads), nthreads >>>(
-				(float4*)pv->local()->coosvels.devPtr(), pv->local()->size(), sdfInfo,
+		SAFE_KERNEL_LAUNCH(
+				collectRemaining,
+				getNblocks(view.size, nthreads), nthreads, 0, 0,
+				view, sdfInfo,
 				(float4*)tmp.devPtr(), nRemaining.devPtr() );
 
 		nRemaining.downloadFromDevice(0);
@@ -553,23 +572,27 @@ void SDFWall::removeInner(ParticleVector* pv)
 	{
 		// Prepare temp storage for extra object data
 		auto ovView = create_OVviewWithExtraData(ov, ov->local(), 0);
-
 		DeviceBuffer<char> tmp(ovView.nObjects * ovView.packedObjSize_byte);
 
-		packRemainingObjects<<< getNblocks(ovView.nObjects*32, nthreads), nthreads >>> (
+		SAFE_KERNEL_LAUNCH(
+				packRemainingObjects,
+				getNblocks(ovView.nObjects*32, nthreads), nthreads, 0, 0,
 				ovView, sdfInfo,
-				tmp.devPtr(), nRemaining.devPtr());
+				tmp.devPtr(), nRemaining.devPtr() );
 
 		// Copy temporary buffers back
 		nRemaining.downloadFromDevice(0);
 		ov->local()->resize_anew(nRemaining[0]);
 		ovView = create_OVviewWithExtraData(ov, ov->local(), 0);
-		unpackRemainingObjects <<< getNblocks(ovView.nObjects*32, nthreads), nthreads >>> (ovView, tmp.devPtr());
+		SAFE_KERNEL_LAUNCH(
+				unpackRemainingObjects,
+				getNblocks(ovView.nObjects*32, nthreads), nthreads, 0, 0,
+				ovView, tmp.devPtr() );
 	}
 
 	pv->local()->changedStamp++;
 	info("Removed inner entities of %s, keeping %d out of %d particles",
-			pv->name.c_str(), pv->name.c_str(), oldSize);
+			pv->name.c_str(), pv->local()->size(), oldSize);
 
 	CUDA_Check( cudaDeviceSynchronize() );
 }
@@ -586,10 +609,11 @@ void SDFWall::bounce(float dt, cudaStream_t stream)
 				pv->local()->size(), pv->name.c_str(), bc->size());
 
 		const int nthreads = 64;
-		if (bc->size() > 0)
-			bounceSDF<<< getNblocks(bc->size(), nthreads), nthreads, 0, stream >>>(
-					bc->devPtr(), bc->size(), cl->cellInfo(),
-					sdfInfo, (float4*)pv->local()->coosvels.devPtr(), dt);
+		SAFE_KERNEL_LAUNCH(
+				bounceSDF,
+				getNblocks(bc->size(), nthreads), nthreads, 0, stream,
+				bc->devPtr(), bc->size(), cl->cellInfo(),
+				sdfInfo, dt );
 
 		CUDA_Check( cudaPeekAtLastError() );
 	}
@@ -601,11 +625,15 @@ void SDFWall::check(cudaStream_t stream)
 	for (int i=0; i<particleVectors.size(); i++)
 	{
 		auto pv = particleVectors[i];
-		if (needCheck[i] || pv->local()->size() > 0)
+		if (needCheck[i])
 		{
 			nInside.clearDevice(stream);
-			checkInside<<< getNblocks(pv->local()->size(), nthreads), nthreads, 0, stream >>> (
-					(float4*)pv->local()->coosvels.devPtr(), pv->local()->size(), sdfInfo, nInside.devPtr());
+			auto view = create_PVview(pv, pv->local());
+			SAFE_KERNEL_LAUNCH(
+					checkInside,
+					getNblocks(view.size, nthreads), nthreads, 0, stream,
+					view, sdfInfo, nInside.devPtr() );
+
 			nInside.downloadFromDevice(stream);
 
 			info("%d particles of %s are inside the wall %s", nInside[0], pv->name.c_str(), name.c_str());

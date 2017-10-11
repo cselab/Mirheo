@@ -3,7 +3,7 @@ UDEVICEX_PATH = ../..
 binary = udevicex
 
 # Targets
-objects = main.o argument_parser.o celllist.o parser.o postproc.o scan.o simulation.o task_scheduler.o udevicex.o pugixml.o \
+objects = main.o argument_parser.o celllist.o parser.o postproc.o simulation.o task_scheduler.o udevicex.o pugixml.o \
 	from_mesh.o from_ellipsoid.o \
 	ellipsoid.o uniform.o \
 	const_omega.o rigid_vv.o vv.o \

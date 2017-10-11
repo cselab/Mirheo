@@ -29,16 +29,20 @@ void InteractionRBCMembrane::_compute(InteractionType type, ParticleVector* pv1,
 
 	dim3 avThreads(256, 1);
 	dim3 avBlocks( 1, nRbcs );
-	computeAreaAndVolume <<< avBlocks, avThreads, 0, stream >>> (
+	SAFE_KERNEL_LAUNCH(
+			computeAreaAndVolume,
+			avBlocks, avThreads, 0, stream,
 			(float4*)rbcv->local()->coosvels.devPtr(), rbcv->mesh, nRbcs,
-			rbcv->local()->areas.devPtr(), rbcv->local()->volumes.devPtr());
+			rbcv->local()->areas.devPtr(), rbcv->local()->volumes.devPtr() );
 
 	int blocks = getNblocks(nRbcs*nVerts*rbcv->mesh.maxDegree, nthreads);
 
-	computeMembraneForces <<<blocks, nthreads, 0, stream>>> (
+	SAFE_KERNEL_LAUNCH(
+			computeMembraneForces,
+			blocks, nthreads, 0, stream,
 			(float4*)rbcv->local()->coosvels.devPtr(), rbcv->mesh, nRbcs,
 			rbcv->local()->areas.devPtr(), rbcv->local()->volumes.devPtr(),
-			(float4*)rbcv->local()->forces.devPtr());
+			(float4*)rbcv->local()->forces.devPtr() );
 }
 
 

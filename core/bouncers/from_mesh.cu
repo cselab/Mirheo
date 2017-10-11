@@ -1,5 +1,6 @@
 #include "from_mesh.h"
 
+#include <core/utils/kernel_launch.h>
 #include <core/celllist.h>
 #include <core/pvs/particle_vector.h>
 #include <core/pvs/rigid_ellipsoid_object_vector.h>
@@ -29,11 +30,13 @@ void BounceFromMesh::exec(ObjectVector* ov, ParticleVector* pv, CellList* cl, fl
 	int nthreads = 128;
 
 	// TODO: ovview with mesh
-	findBouncesInMesh <<<getNblocks(totalTriangles, nthreads), nthreads, 0, stream>>> (
+	SAFE_KERNEL_LAUNCH(
+			findBouncesInMesh,
+			getNblocks(totalTriangles, nthreads), nthreads, 0, stream,
 			(const float4*)pv->local()->coosvels.devPtr(),
 			cl->cellInfo(), nCollisions.devPtr(), collisionTable.devPtr(),
 			activeOV->nObjects, ov->mesh.nvertices, ov->mesh.ntriangles, ov->mesh.triangles.devPtr(),
-			(const float4*)activeOV->coosvels.devPtr(), dt);
+			(const float4*)activeOV->coosvels.devPtr(), dt );
 
 	nCollisions.downloadFromDevice(stream);
 
@@ -51,10 +54,12 @@ void BounceFromMesh::exec(ObjectVector* ov, ParticleVector* pv, CellList* cl, fl
 			(int64_t*)collisionTable.devPtr(), (int64_t*)tmp_collisionTable.devPtr(), nCollisions[0],
 			0, 32, stream);
 
-	performBouncing<<< getNblocks(nCollisions[0], nthreads), nthreads, 0, stream >>> (
+	SAFE_KERNEL_LAUNCH(
+			performBouncing,
+			getNblocks(nCollisions[0], nthreads), nthreads, 0, stream,
 			nCollisions[0], tmp_collisionTable.devPtr(),
 			(float4*)pv->local()->coosvels.devPtr(), pv->mass,
 			ov->mesh.nvertices, ov->mesh.ntriangles, ov->mesh.triangles.devPtr(),
 			(const float4*)activeOV->coosvels.devPtr(), (float*)activeOV->forces.devPtr(), ov->mass,
-			dt);
+			dt );
 }

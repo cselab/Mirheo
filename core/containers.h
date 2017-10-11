@@ -7,6 +7,7 @@
 #include <type_traits>
 #include <utility>
 #include <algorithm>
+#include <typeinfo>
 
 
 class GPUcontainer
@@ -52,6 +53,11 @@ private:
 			if (oldsize > 0) CUDA_Check(cudaMemcpyAsync(devptr, dold, sizeof(T) * oldsize, cudaMemcpyDeviceToDevice, stream));
 
 		CUDA_Check(cudaFree(dold));
+
+		debug4("Allocating DeviceBuffer<%s> from %d x %d  to %d x %d",
+				typeid(T).name(),
+				oldsize, datatype_size(),
+				_size,   datatype_size());
 	}
 
 public:
@@ -86,7 +92,11 @@ public:
 
 	~DeviceBuffer()
 	{
-		CUDA_Check(cudaFree(devptr));
+		if (devptr != nullptr)
+		{
+			CUDA_Check(cudaFree(devptr));
+			debug4("Destroying DeviceBuffer<%s>", typeid(T).name());
+		}
 	}
 
 	// Override section
@@ -162,6 +172,11 @@ private:
 
 		CUDA_Check(cudaFreeHost(hold));
 		CUDA_Check(cudaFree(dold));
+
+		debug4("Allocating PinnedBuffer<%s> from %d x %d  to %d x %d",
+				typeid(T).name(),
+				oldsize, datatype_size(),
+				_size,   datatype_size());
 	}
 
 public:
@@ -197,8 +212,12 @@ public:
 
 	~PinnedBuffer()
 	{
-		CUDA_Check(cudaFreeHost(hostptr));
-		CUDA_Check(cudaFree(devptr));
+		if (devptr != nullptr)
+		{
+			CUDA_Check(cudaFreeHost(hostptr));
+			CUDA_Check(cudaFree(devptr));
+			debug4("Destroying PinnedBuffer<%s>", typeid(T).name());
+		}
 	}
 
 	// Override section
@@ -294,6 +313,11 @@ private:
 			if (oldsize > 0) memcpy(hostptr, hold, sizeof(T) * oldsize);
 
 		free(hold);
+
+		debug4("Allocating HostBuffer<%s> from %d x %d  to %d x %d",
+				typeid(T).name(),
+				oldsize, datatype_size(),
+				_size,   datatype_size());
 	}
 
 public:
@@ -324,6 +348,7 @@ public:
 	~HostBuffer()
 	{
 		free(hostptr);
+		debug4("Destroying HostBuffer<%s>", typeid(T).name());
 	}
 
 	inline int datatype_size() const { return sizeof(T); }

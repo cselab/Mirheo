@@ -1,6 +1,7 @@
 #include "pairwise.h"
 
 #include <core/utils/cuda_common.h>
+#include <core/utils/kernel_launch.h>
 #include <core/celllist.h>
 #include <core/pvs/particle_vector.h>
 #include <core/logger.h>
@@ -13,10 +14,12 @@
 
 // Some not nice macro wrappers
 // Cuda requires lambda defined in the same scope as where it is called...
-#define DISPATCH_EXTERNAL(P1, P2, P3, TPP, INTERACTION_FUNCTION)                                                 \
-do{ debug2("Dispatched to "#TPP" thread(s) per particle variant");                                               \
-	computeExternalInteractions_##TPP##tpp<P1, P2, P3> <<< getNblocks(TPP*view.size, nth), nth, 0, stream >>>(   \
-		view, cl2->cellInfo(), rc*rc, INTERACTION_FUNCTION); } while (0)
+#define DISPATCH_EXTERNAL(P1, P2, P3, TPP, INTERACTION_FUNCTION)                \
+do{ debug2("Dispatched to "#TPP" thread(s) per particle variant");              \
+	SAFE_KERNEL_LAUNCH(                                                         \
+			computeExternalInteractions_##TPP##tpp<P1 COMMA P2 COMMA P3>,       \
+			getNblocks(TPP*view.size, nth), nth, 0, stream,                     \
+			view, cl2->cellInfo(), rc*rc, INTERACTION_FUNCTION ); } while (0)
 
 #define CHOOSE_EXTERNAL(P1, P2, P3, INTERACTION_FUNCTION)                                              \
 do{  if (view.size < 1000  ) { DISPATCH_EXTERNAL(P1, P2, P3, 27, INTERACTION_FUNCTION); }              \
@@ -56,12 +59,12 @@ void InteractionPair<PariwiseInteraction>::_compute(InteractionType type,
 			debug("Computing internal forces for %s (%d particles)", pv1->name.c_str(), np);
 
 			const int nth = 128;
-//			if (np > 0)
-//				computeSelfInteractions<<< getNblocks(np, nth), nth, 0, stream >>>(np, cl1->cellInfo(), rc*rc, core);
+
 			auto cinfo = cl1->cellInfo();
-			if (np > 0)
-				computeSelfInteractions <<<getNblocks(np, nth), nth, 0, stream>>> (
-						np, cinfo, rc*rc, core);
+			SAFE_KERNEL_LAUNCH(
+					computeSelfInteractions,
+					getNblocks(np, nth), nth, 0, stream,
+					np, cinfo, rc*rc, core );
 		}
 		else /*  External interaction */
 		{
