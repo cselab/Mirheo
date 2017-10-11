@@ -2,7 +2,7 @@
 #include <type_traits>
 
 #include <core/celllist.h>
-#include <core/cuda_common.h>
+#include <core/utils/cuda_common.h>
 
 
 template<typename Ta, typename Tb>

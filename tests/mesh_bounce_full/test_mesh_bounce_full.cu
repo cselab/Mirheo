@@ -2,7 +2,7 @@
 #define private public
 #define protected public
 
-#include <core/cuda_common.h>
+#include <core/utils/cuda_common.h>
 #include <core/containers.h>
 #include <core/pvs/particle_vector.h>
 #include <core/pvs/rbc_vector.h>

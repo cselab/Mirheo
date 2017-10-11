@@ -3,8 +3,8 @@
 #include <core/pvs/particle_vector.h>
 #include <core/simulation.h>
 
-#include <core/cuda_common.h>
-#include <core/cuda-rng.h>
+#include <core/utils/cuda_common.h>
+#include <core/utils/cuda_rng.h>
 
 
 __device__ __forceinline__ float2 normal_BoxMuller(float seed)

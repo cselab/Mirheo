@@ -40,11 +40,12 @@ void writeXYZ(MPI_Comm comm, std::string fname, ParticleVector* pv)
 		info("xyz dump of %s: total number of particles: %d", pv->name.c_str(), n);
 	}
 
+	auto view = create_PVview(pv, pv->local());
 	pv->local()->coosvels.downloadFromDevice(0);
 	for(int i = 0; i < nlocal; ++i)
 	{
 		Particle p = pv->local()->coosvels[i];
-		p.r = pv->local2global(p.r);
+		p.r = view.local2global(p.r);
 
 		ss << rank << " "
 				<< std::setw(10) << p.r.x << " "

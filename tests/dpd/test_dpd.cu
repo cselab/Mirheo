@@ -54,9 +54,9 @@ int main(int argc, char ** argv)
 	CellList* cells1 = new PrimaryCellList(&dpds1, rc, length);
 	CellList* cells2 = new PrimaryCellList(&dpds2, rc, length);
 
-	UniformIC ic(4.0);
+	UniformIC ic(8.0);
 	ic.exec(MPI_COMM_WORLD, &dpds1, {0,0,0}, length, 0);
-	ic.exec(MPI_COMM_WORLD, &dpds2, {0,0,0}, length, 0);
+	//ic.exec(MPI_COMM_WORLD, &dpds2, {0,0,0}, length, 0);
 
 	//dpds2.local()->resize(1000, 0);
 

@@ -1,9 +1,9 @@
 #include "sampler.h"
 
-#include <core/cuda_common.h>
+#include <core/utils/cuda_common.h>
 #include <core/celllist.h>
 #include <core/walls/sdf_wall.h>
-#include <core/cuda-rng.h>
+#include <core/utils/cuda_rng.h>
 #include <core/walls/sdf_kernels.h>
 
 #include "pairwise_kernels.h"

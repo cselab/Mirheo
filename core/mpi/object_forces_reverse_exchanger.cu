@@ -5,7 +5,7 @@
 #include <core/pvs/particle_vector.h>
 #include <core/pvs/object_vector.h>
 #include <core/logger.h>
-#include <core/cuda_common.h>
+#include <core/utils/cuda_common.h>
 
 
 __device__ __forceinline__ void atomicAdd(float4* dest, float3 v)

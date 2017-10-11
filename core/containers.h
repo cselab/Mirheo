@@ -1,6 +1,6 @@
 #pragma once
 
-#include <core/cuda_common.h>
+#include <core/utils/cuda_common.h>
 #include <core/logger.h>
 
 #include <cassert>

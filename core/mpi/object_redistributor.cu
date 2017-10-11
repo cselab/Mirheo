@@ -4,7 +4,7 @@
 #include <core/pvs/object_vector.h>
 #include <core/pvs/rigid_object_vector.h>
 #include <core/logger.h>
-#include <core/cuda_common.h>
+#include <core/utils/cuda_common.h>
 
 template<bool QUERY>
 __global__ void getExitingObjects(const OVviewWithExtraData ovView, const ROVview rovView, char** dests, int* sendBufSizes /*, int* haloParticleIds*/)

@@ -3,7 +3,7 @@
 #include <string>
 #include <core/datatypes.h>
 #include <core/containers.h>
-#include <core/cuda_common.h>
+#include <core/utils/cuda_common.h>
 
 #include <map>
 

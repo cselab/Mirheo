@@ -10,6 +10,14 @@
 	<particle_vector type="rigid_ellipsoids" name="ellipsoids" mass="1" particles_per_obj="500" axes="3 4 5" >
 		<generate type="read_ellipsoids" ic_filename="ellipsoids.ic" xyz_filename="../../scripts/el_3_4_5_500.xyz" />
 	</particle_vector>
+	
+	<pv_splitter object_vector="rigid_ellipsoids" type="analytical">
+		<apply_to pv="dpd" inside="none" outside="dpd" /> 
+	</pv_splitter>
+	
+	<object_bouncer name="ell_bounce" object_vector="rigid_ellipsoid" type="analytical">
+		<apply_to pv="dpd" />
+	</object_bouncer>
 
 	<!-- <particle_vector type="regular" name="frozen" mass="1">
 		<generate type="restart" path="restart/" />

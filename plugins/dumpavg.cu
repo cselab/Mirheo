@@ -5,7 +5,7 @@
 #include <core/simulation.h>
 #include <core/pvs/particle_vector.h>
 #include <core/celllist.h>
-#include <core/cuda_common.h>
+#include <core/utils/cuda_common.h>
 
 __global__ void sample(PVview pvView, CellListInfo cinfo, float* avgDensity, float3* avgMomentum, float3* avgForce)
 {

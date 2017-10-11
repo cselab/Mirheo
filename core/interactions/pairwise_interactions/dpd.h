@@ -2,7 +2,7 @@
 
 #include <core/datatypes.h>
 #include <core/pvs/particle_vector.h>
-#include <core/cuda-rng.h>
+#include <core/utils/cuda_rng.h>
 
 class ParticleVector;
 class CellList;

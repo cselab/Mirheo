@@ -1,9 +1,7 @@
 #include <core/pvs/particle_vector.h>
 #include <core/pvs/object_vector.h>
-#include <core/scan.h>
 #include <core/celllist.h>
-#include <core/cuda_common.h>
-#include <core/helper_math.h>
+#include <core/utils/cuda_common.h>
 #include <core/logger.h>
 
 #include <core/cub/device/device_scan.cuh>

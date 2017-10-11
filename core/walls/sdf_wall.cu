@@ -6,13 +6,13 @@
 #include <texture_types.h>
 #include <cassert>
 
-#include <core/cuda_common.h>
+#include <core/utils/cuda_common.h>
 #include <core/celllist.h>
 #include <core/pvs/particle_vector.h>
 #include <core/pvs/object_vector.h>
 #include <core/bounce_solver.h>
 
-#include <core/cuda-rng.h>
+#include <core/utils/cuda_rng.h>
 
 //===============================================================================================
 // Interpolation kernels
@@ -531,6 +531,7 @@ void SDFWall::removeInner(ParticleVector* pv)
 	nRemaining.clear(0);
 
 	int oldSize = pv->local()->size();
+	if (oldSize == 0) return;
 
 	const int nthreads = 128;
 	// Need a different path for objects
@@ -581,12 +582,14 @@ void SDFWall::bounce(float dt, cudaStream_t stream)
 		auto cl = cellLists[i];
 		auto bc = boundaryCells[i];
 
-		debug2("Bouncing %d %s particles", pv->local()->size(), pv->name.c_str());
+		debug2("Bouncing %d %s particles, %d boundary cells",
+				pv->local()->size(), pv->name.c_str(), bc->size());
 
 		const int nthreads = 64;
-		bounceSDF<<< getNblocks(bc->size(), nthreads), nthreads, 0, stream >>>(
-				bc->devPtr(), bc->size(), cl->cellInfo(),
-				sdfInfo, (float4*)pv->local()->coosvels.devPtr(), dt);
+		if (bc->size() > 0)
+			bounceSDF<<< getNblocks(bc->size(), nthreads), nthreads, 0, stream >>>(
+					bc->devPtr(), bc->size(), cl->cellInfo(),
+					sdfInfo, (float4*)pv->local()->coosvels.devPtr(), dt);
 
 		CUDA_Check( cudaPeekAtLastError() );
 	}
@@ -598,14 +601,14 @@ void SDFWall::check(cudaStream_t stream)
 	for (int i=0; i<particleVectors.size(); i++)
 	{
 		auto pv = particleVectors[i];
-		if (needCheck[i])
+		if (needCheck[i] || pv->local()->size() > 0)
 		{
 			nInside.clearDevice(stream);
 			checkInside<<< getNblocks(pv->local()->size(), nthreads), nthreads, 0, stream >>> (
 					(float4*)pv->local()->coosvels.devPtr(), pv->local()->size(), sdfInfo, nInside.devPtr());
 			nInside.downloadFromDevice(stream);
 
-			debug("%d particles of %s are inside the wall %s", nInside[0], pv->name.c_str(), name.c_str());
+			info("%d particles of %s are inside the wall %s", nInside[0], pv->name.c_str(), name.c_str());
 		}
 	}
 }

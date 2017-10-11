@@ -1,7 +1,7 @@
 #pragma once
 
 #include <core/pvs/rbc_vector.h>
-#include <core/cuda_common.h>
+#include <core/utils/cuda_common.h>
 
 __global__ void computeAreaAndVolume(const float4* coosvels, ObjectMesh mesh, int nRbcs, float* areas, float* volumes)
 {

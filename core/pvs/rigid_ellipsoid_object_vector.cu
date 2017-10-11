@@ -1,7 +1,7 @@
 #include "rigid_ellipsoid_object_vector.h"
 
 #include <core/rigid_kernels/quaternion.h>
-#include <core/cuda_common.h>
+#include <core/utils/cuda_common.h>
 
 float3 RigidEllipsoidObjectVector::getInertiaTensor()
 {

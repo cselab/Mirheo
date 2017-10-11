@@ -9,12 +9,10 @@
 #include <iomanip>
 #include <sstream>
 
-#include <execinfo.h>
-#include <unistd.h>
 #include <cstdio>
 #include <string>
 
-#include "stacktrace.h"
+#include <core/utils/stacktrace.h>
 
 #include <mpi.h>
 
@@ -29,7 +27,7 @@
 class Logger
 {
 	int runtimeDebugLvl;
-	const int flushThreshold = 7;
+	const int flushThreshold = 8;
 
 	FILE* fout = nullptr;
 	int rank;
@@ -116,19 +114,25 @@ public:
 	{
 		log<0>(args...);
 		
+		{
+			// print backtrace
+			std::ostringstream strace;
+
+			using namespace backward;
+			StackTrace st;
+			st.load_here(32);
+			Printer p;
+			p.object = true;
+			p.color_mode = ColorMode::automatic;
+			p.address = true;
+			p.print(st, strace);
+
+			fwrite(strace.str().c_str(), sizeof(char), strace.str().size(), fout);
+		}
+
 		fflush(fout);
 		fclose(fout);
 		fout = nullptr;
-
-		using namespace backward;
-		StackTrace st;
-		st.load_here(32);
-		Printer p;
-		p.object = true;
-		p.color_mode = ColorMode::automatic;
-		p.address = true;
-		p.print(st, stderr);
-		fflush(stderr);
 
 		MPI_Abort(MPI_COMM_WORLD, -1);
 	}
@@ -237,10 +241,16 @@ extern Logger logger;
 #define debug2(...)  do { } while(0)
 #endif
 
-#if COMPILE_DEBUG_LVL >= 5
+#if COMPILE_DEBUG_LVL >= 6
 #define debug3(...) logger._debugX<2>(__FILE__, __LINE__, ##__VA_ARGS__)
 #else
 #define debug3(...)  do { } while(0)
+#endif
+
+#if COMPILE_DEBUG_LVL >= 7
+#define debug4(...) logger._debugX<3>(__FILE__, __LINE__, ##__VA_ARGS__)
+#else
+#define debug4(...)  do { } while(0)
 #endif
 
 #define  MPI_Check(command) logger._MPI_Check (__FILE__, __LINE__, command)

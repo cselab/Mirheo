@@ -3,30 +3,31 @@
 #include <core/logger.h>
 #include <core/pvs/particle_vector.h>
 #include <core/walls/sdf_wall.h>
-#include <core/cuda_common.h>
+#include <core/utils/cuda_common.h>
+#include <core/utils/kernel_launch.h>
 #include <core/walls/sdf_kernels.h>
 
 
-__global__ void countFrozen(const float4* pv, const int np, SDFWall::SdfInfo sdfInfo, float minSdf, float maxSdf, int* nFrozen)
+__global__ void countFrozen(PVview view, SDFWall::SdfInfo sdfInfo, float minSdf, float maxSdf, int* nFrozen)
 {
 	const int pid = blockIdx.x * blockDim.x + threadIdx.x;
-	if (pid >= np) return;
+	if (pid >= view.size) return;
 
-	const float4 coo = pv[2*pid];
+	const float4 coo = view.particles[2*pid];
 	const float sdf = evalSdf(coo, sdfInfo);
 
 	if (sdf > minSdf && sdf < maxSdf)
 		atomicAggInc(nFrozen);
 }
 
-__global__ void collectFrozen(const float4* input, const int np, SDFWall::SdfInfo sdfInfo, float minSdf, float maxSdf,
+__global__ void collectFrozen(PVview view, SDFWall::SdfInfo sdfInfo, float minSdf, float maxSdf,
 		float4* frozen, int* nFrozen)
 {
 	const int pid = blockIdx.x * blockDim.x + threadIdx.x;
-	if (pid >= np) return;
+	if (pid >= view.size) return;
 
-	const float4 coo = input[2*pid];
-	const float4 vel = input[2*pid+1];
+	const float4 coo = view.particles[2*pid];
+	const float4 vel = view.particles[2*pid+1];
 
 	const float sdf = evalSdf(coo, sdfInfo);
 
@@ -44,9 +45,15 @@ void freezeParticlesInWall(SDFWall* wall, ParticleVector* pv, ParticleVector* fr
 
 	PinnedBuffer<int> nFrozen(1);
 
+	auto view = create_PVview(pv, pv->local());
+	const int nthreads = 128;
+	const int nblocks = getNblocks(view.size, nthreads);
+
 	nFrozen.clear(0);
-	countFrozen<<< (pv->local()->size() + 127) / 128, 128, 0, 0 >>>(
-			(float4*)pv->local()->coosvels.devPtr(), pv->local()->size(), wall->sdfInfo, minSdf, maxSdf, nFrozen.devPtr());
+	SAFE_KERNEL_LAUNCH( countFrozen,
+			nblocks, nthreads, 0, 0,
+			view, wall->sdfInfo, minSdf, maxSdf, nFrozen.devPtr());
+
 	nFrozen.downloadFromDevice(0);
 
 	frozen->local()->resize(nFrozen[0], 0);
@@ -57,8 +64,9 @@ void freezeParticlesInWall(SDFWall* wall, ParticleVector* pv, ParticleVector* fr
 	debug("Freezing %d particles", nFrozen[0]);
 
 	nFrozen.clear(0);
-	collectFrozen<<< (pv->local()->size() + 127) / 128, 128, 0, 0 >>>(
-			(float4*)pv->local()->coosvels.devPtr(), pv->local()->size(), wall->sdfInfo, minSdf, maxSdf,
+	SAFE_KERNEL_LAUNCH(collectFrozen,
+			nblocks, nthreads, 0, 0,
+			view, wall->sdfInfo, minSdf, maxSdf,
 			(float4*)frozen->local()->coosvels.devPtr(), nFrozen.devPtr());
 	nFrozen.downloadFromDevice(0);
 

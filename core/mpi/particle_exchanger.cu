@@ -1,7 +1,7 @@
 #include "particle_exchanger.h"
 
 #include <core/logger.h>
-#include <core/cuda_common.h>
+#include <core/utils/cuda_common.h>
 
 #include <algorithm>
 

@@ -1,6 +1,6 @@
 #pragma once
 
-#include <core/helper_math.h>
+#include "helper_math.h"
 
 inline int getNblocks(const int n, const int nthreads)
 {
