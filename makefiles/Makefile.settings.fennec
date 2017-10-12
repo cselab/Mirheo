@@ -1,9 +1,14 @@
-NVCC = mpinvcc
+CXX = mpinvcc
+
 CUDA_ARCH = compute_61
 CUDA_CODE = sm_61
 
-LINKER = mpinvcc
-LINKFLAGS += -arch=$(CUDA_ARCH) -code=$(CUDA_CODE) -Xcompiler -rdynamic -Xcompiler -flto
+CXXFLAGS += -arch=$(CUDA_ARCH) -code=$(CUDA_CODE) --expt-extended-lambda -lineinfo
+
+FMATH_FLAG = --use_fast_math
+
+LD = mpinvcc
+LDFLAGS += -arch=$(CUDA_ARCH) -code=$(CUDA_CODE) -Xcompiler -rdynamic -Xcompiler -flto
 
 HDF5_INC = -I/usr/include/hdf5/mpich/
 HDF5_LIB = -L/usr/lib/x86_64-linux-gnu/

@@ -123,7 +123,7 @@ void CellList::_build(cudaStream_t stream)
 	debug2("Computing cell sizes for %d %s particles", pv->local()->size(), pv->name.c_str());
 	cellSizes.clear(stream);
 
-	auto view = create_PVview(pv, pv->local());
+	PVview view(pv, pv->local());
 
 	int nthreads = 128;
 	SAFE_KERNEL_LAUNCH(
@@ -175,7 +175,7 @@ void CellList::build(cudaStream_t stream)
 
 void CellList::addForces(cudaStream_t stream)
 {
-	auto view = create_PVview(pv, pv->local());
+	PVview view(pv, pv->local());
 	int nthreads = 128;
 
 	SAFE_KERNEL_LAUNCH(

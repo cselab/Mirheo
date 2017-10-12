@@ -1,5 +1,7 @@
 #pragma once
 
+#include <core/utils/cuda_common.h>
+
 /**
  * GPU-compatible struct of all the relevant data
  */
@@ -23,42 +25,35 @@ struct PVview
 	{
 		return x - globalDomainStart - 0.5f * localDomainSize;
 	}
+
+	PVview(ParticleVector* pv = nullptr, LocalParticleVector* lpv = nullptr)
+	{
+		if (pv == nullptr || lpv == nullptr) return;
+
+		localDomainSize = pv->localDomainSize;
+		globalDomainStart = pv->globalDomainStart;
+
+		size = lpv->size();
+		particles = reinterpret_cast<float4*>(lpv->coosvels.devPtr());
+		forces    = reinterpret_cast<float4*>(lpv->forces.devPtr());
+
+		mass = pv->mass;
+		invMass = 1.0 / mass;
+	}
 };
-
-static PVview create_PVview(ParticleVector* pv, LocalParticleVector* lpv)
-{
-	PVview view;
-	if (pv == nullptr || lpv == nullptr)
-		return view;
-
-	view.localDomainSize = pv->localDomainSize;
-	view.globalDomainStart = pv->globalDomainStart;
-
-	view.size = lpv->size();
-	view.particles = reinterpret_cast<float4*>(lpv->coosvels.devPtr());
-	view.forces    = reinterpret_cast<float4*>(lpv->forces.devPtr());
-
-	view.mass = pv->mass;
-	view.invMass = 1.0 / view.mass;
-
-	return view;
-}
 
 
 struct PVviewWithOldParticles : PVview
 {
 	float4 *oldParticles = nullptr;
+
+	PVviewWithOldParticles(ParticleVector* pv = nullptr, LocalParticleVector* lpv = nullptr) :
+		PVview(pv, lpv)
+	{
+		// Setup extra fields
+		if (lpv != nullptr)
+			oldParticles = lpv->getDataPerParticle<float4>("old_particles")->devPtr();
+	}
 };
 
-static PVview create_PVviewWithOldParticles(ParticleVector* pv, LocalParticleVector* lpv)
-{
-	// Create a default view
-	PVviewWithOldParticles view;
-	view.PVview::operator= ( create_PVview(pv, lpv) );
-
-	// Setup extra fields
-
-	view.oldParticles = lpv->getDataPerParticle<float4>("old_particles")->devPtr();
-	return view;
-}
 

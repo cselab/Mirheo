@@ -7,6 +7,8 @@
 #include <core/celllist.h>
 #include <core/utils/cuda_common.h>
 
+#include <regex>
+
 XYZPlugin::XYZPlugin(std::string name, std::string pvName, int dumpEvery) :
 	SimulationPlugin(name, true), pvName(pvName),
 	dumpEvery(dumpEvery)
@@ -36,7 +38,7 @@ void XYZPlugin::serializeAndSend(cudaStream_t stream)
 
 	debug2("Plugin %s is sending now data", name.c_str());
 
-	auto pvView = create_PVview(pv, pv->local());
+	PVview pvView(pv, pv->local());
 	for (int i=0; i < pv->local()->size(); i++)
 		pv->local()->coosvels[i].r = pvView.local2global(pv->local()->coosvels[i].r);
 
@@ -92,7 +94,27 @@ void writeXYZ(MPI_Comm comm, std::string fname, Particle* particles, int np)
 }
 
 XYZDumper::XYZDumper(std::string name, std::string path) :
-		PostprocessPlugin(name), path(path) { }
+		PostprocessPlugin(name), path(path)
+{
+	int rank;
+	MPI_Check( MPI_Comm_rank(comm, &rank) );
+
+	std::regex re(R".(^(.*/)(.+)).");
+	std::smatch match;
+	if (std::regex_match(path, match, re))
+	{
+		std::string folders  = match[1].str();
+		std::string command = "mkdir -p " + folders;
+		if (rank == 0)
+		{
+			if ( system(command.c_str()) != 0 )
+			{
+				error("Could not create folders or files by given path, dumping will be disabled.");
+				activated = false;
+			}
+		}
+	}
+}
 
 
 void XYZDumper::deserialize(MPI_Status& stat)
@@ -102,6 +124,9 @@ void XYZDumper::deserialize(MPI_Status& stat)
 	std::string tstr = std::to_string(timeStamp++);
 	std::string currentFname = path + std::string(5 - tstr.length(), '0') + tstr + ".xyz";
 
-	writeXYZ(comm, currentFname, (Particle*)data.data(), np);
+	if (activated)
+		writeXYZ(comm, currentFname, (Particle*)data.data(), np);
 }
+
+
 

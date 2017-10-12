@@ -4563,6 +4563,31 @@ PUGI__NS_BEGIN
 	}
 
 
+	PUGI__FN int2 get_value_int2(const char_t* value)
+	{
+		std::istringstream stream(value);
+		int2 res;
+		stream >> res.x >> res.y;
+		return res;
+	}
+
+	PUGI__FN double2 get_value_double2(const char_t* value)
+	{
+		std::istringstream stream(value);
+		double2 res;
+		stream >> res.x >> res.y;
+		return res;
+	}
+
+	PUGI__FN float2 get_value_float2(const char_t* value)
+	{
+		std::istringstream stream(value);
+		float2 res;
+		stream >> res.x >> res.y;
+		return res;
+	}
+
+
 	PUGI__FN int get_value_int(const char_t* value)
 	{
 		return string_to_integer<unsigned int>(value, 0 - static_cast<unsigned int>(INT_MIN), INT_MAX);
@@ -5218,6 +5243,22 @@ namespace pugi
 	PUGI__FN float3 xml_attribute::as_float3(float3 def) const
 	{
 		return (_attr && _attr->value) ? impl::get_value_float3(_attr->value) : def;
+	}
+
+
+	PUGI__FN int2 xml_attribute::as_int2(int2 def) const
+	{
+		return (_attr && _attr->value) ? impl::get_value_int2(_attr->value) : def;
+	}
+
+	PUGI__FN double2 xml_attribute::as_double2(double2 def) const
+	{
+		return (_attr && _attr->value) ? impl::get_value_double2(_attr->value) : def;
+	}
+
+	PUGI__FN float2 xml_attribute::as_float2(float2 def) const
+	{
+		return (_attr && _attr->value) ? impl::get_value_float2(_attr->value) : def;
 	}
 
 	//=====================================================================================

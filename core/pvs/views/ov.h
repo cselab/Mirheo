@@ -10,6 +10,22 @@ struct OVview : public PVview
 
 	LocalObjectVector::COMandExtent *comAndExtents = nullptr;
 	int* ids = nullptr;
+
+	OVview(ObjectVector* ov = nullptr, LocalObjectVector* lov = nullptr) :
+		PVview(ov, lov)
+	{
+		if (ov == nullptr || lov == nullptr) return;
+
+		// More fields
+		nObjects = lov->nObjects;
+		objSize = ov->objSize;
+		objMass = objSize * mass;
+		invObjMass = 1.0 / objMass;
+
+		// Required data per object
+		comAndExtents = lov->getDataPerObject<LocalObjectVector::COMandExtent>("com_extents")->devPtr();
+		ids           = lov->getDataPerObject<int>("ids")->devPtr();
+	}
 };
 
 struct OVviewWithExtraData : public OVview
@@ -35,6 +51,7 @@ struct OVviewWithExtraData : public OVview
 			baseId += extraDataSizes[ptrId];
 		}
 	}
+
 	__forceinline__ __device__ void unpackExtraData(int dstObjId, const char* source) const
 	{
 		int baseId = 0;
@@ -47,75 +64,46 @@ struct OVviewWithExtraData : public OVview
 
 			baseId += extraDataSizes[ptrId];
 		}
+	}
 
+	OVviewWithExtraData(ObjectVector* ov = nullptr, LocalObjectVector* lov = nullptr, cudaStream_t stream = 0) :
+		OVview(ov, lov)
+	{
+		if (ov == nullptr || lov == nullptr) return;
+
+		// Extra data per object
+		extraDataNum = lov->getDataPerObjectMap().size();
+
+		lov->extraDataPtrs. resize_anew(extraDataNum);
+		lov->extraDataSizes.resize_anew(extraDataNum);
+
+		int n = 0;
+		bool upload = false;
+
+		packedObjSize_byte = objSize * sizeof(Particle);
+		for (const auto& kv : lov->getDataPerObjectMap())
+		{
+			lov->extraDataSizes[n] = kv.second->datatype_size();
+			packedObjSize_byte += lov->extraDataSizes[n];
+
+			void* ptr = kv.second->genericDevPtr();
+			if (ptr != lov->extraDataPtrs[n]) upload = true;
+			lov->extraDataPtrs[n] = reinterpret_cast<char*>(ptr);
+
+			n++;
+		}
+
+		// Align packed size to float4 size
+		packedObjSize_byte = ( (packedObjSize_byte + sizeof(float4) - 1) / sizeof(float4) ) * sizeof(float4);
+
+		if (upload)
+		{
+			lov->extraDataPtrs. uploadToDevice(stream);
+			lov->extraDataSizes.uploadToDevice(stream);
+		}
+
+		extraDataSizes = lov->extraDataSizes.devPtr();
+		extraData      = lov->extraDataPtrs. devPtr();
 	}
 };
 
-static OVview create_OVview(ObjectVector* ov, LocalObjectVector* lov)
-{
-	// Create a default view
-	OVview view;
-	if (ov == nullptr || lov == nullptr)
-		return view;
-
-	view.PVview::operator= ( create_PVview(ov, lov) );
-
-	// More fields
-	view.nObjects = lov->nObjects;
-	view.objSize = ov->objSize;
-	view.objMass = view.objSize * view.mass;
-	view.invObjMass = 1.0 / view.objMass;
-
-	// Required data per object
-	view.comAndExtents = lov->getDataPerObject<LocalObjectVector::COMandExtent>("com_extents")->devPtr();
-	view.ids           = lov->getDataPerObject<int>("ids")->devPtr();
-
-	return view;
-}
-
-static OVviewWithExtraData create_OVviewWithExtraData(ObjectVector* ov, LocalObjectVector* lov, cudaStream_t stream)
-{
-	// Create a default view
-	OVviewWithExtraData view;
-	if (ov == nullptr || lov == nullptr)
-		return view;
-
-	view.OVview::operator= ( create_OVview(ov, lov) );
-
-	// Extra data per object
-	view.extraDataNum = lov->getDataPerObjectMap().size();
-
-	lov->extraDataPtrs. resize_anew(view.extraDataNum);
-	lov->extraDataSizes.resize_anew(view.extraDataNum);
-
-	int n = 0;
-	bool upload = false;
-
-	view.packedObjSize_byte = view.objSize * sizeof(Particle);
-	for (const auto& kv : lov->getDataPerObjectMap())
-	{
-		lov->extraDataSizes[n] = kv.second->datatype_size();
-		view.packedObjSize_byte += lov->extraDataSizes[n];
-
-		void* ptr = kv.second->genericDevPtr();
-		if (ptr != lov->extraDataPtrs[n]) upload = true;
-		lov->extraDataPtrs[n] = reinterpret_cast<char*>(ptr);
-
-		n++;
-	}
-
-	// Align packed size to float4 size
-	view.packedObjSize_byte = ( (view.packedObjSize_byte + sizeof(float4) - 1) / sizeof(float4) ) * sizeof(float4);
-
-
-	if (upload)
-	{
-		lov->extraDataPtrs.uploadToDevice(stream);
-		lov->extraDataSizes.uploadToDevice(stream);
-	}
-
-	view.extraDataSizes     = lov->extraDataSizes.devPtr();
-	view.extraData          = lov->extraDataPtrs.devPtr();
-
-	return view;
-}

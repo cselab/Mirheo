@@ -3,14 +3,16 @@ UDEVICEX_PATH = ../..
 binary = udevicex
 
 # Targets
-objects = main.o argument_parser.o celllist.o parser.o postproc.o simulation.o task_scheduler.o udevicex.o pugixml.o \
+objects = main.o \
+	argument_parser.o pugixml.o stacktrace_explicit.o \
+	celllist.o parser.o postproc.o simulation.o task_scheduler.o udevicex.o \
 	from_mesh.o from_ellipsoid.o \
 	ellipsoid.o uniform.o \
 	const_omega.o rigid_vv.o vv.o \
-	pairwise.o sampler.o \
+	pairwise.o \
 	particle_exchanger.o particle_halo_exchanger.o particle_redistributor.o object_halo_exchanger.o object_redistributor.o object_forces_reverse_exchanger.o \
 	particle_vector.o object_vector.o rigid_ellipsoid_object_vector.o \
-	sdf_wall.o \
+	simple_stationary_wall.o sdf.o \
 	write_xdmf.o dumpavg.o stats.o temperaturize.o dumpxyz.o
 	
 include ../../makefiles/Makefile.base

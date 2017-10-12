@@ -63,7 +63,7 @@ void SimulationStats::afterIntegration(cudaStream_t stream)
 	nparticles = 0;
 	for (auto& pv : pvs)
 	{
-		auto view = create_PVview(pv, pv->local());
+		PVview view(pv, pv->local());
 
 		SAFE_KERNEL_LAUNCH(
 				totalMomentumEnergy,

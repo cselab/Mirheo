@@ -29,7 +29,11 @@
 #include <core/interactions/pairwise_interactions/lj.h>
 #include <core/interactions/pairwise_interactions/lj_object_aware.h>
 
-#include <core/walls/sdf_wall.h>
+#include <core/walls/simple_stationary_wall.h>
+
+#include <core/walls/stationary_walls/sdf.h>
+#include <core/walls/stationary_walls/sphere.h>
+#include <core/walls/stationary_walls/cylinder.h>
 
 #include <core/bouncers/from_mesh.h>
 #include <core/bouncers/from_ellipsoid.h>
@@ -154,8 +158,8 @@ class IntegratorFactory
 private:
 	static Integrator* createVV(pugi::xml_node node)
 	{
-		std::string name = node.attribute("name").as_string();
-		float dt = node.attribute("dt").as_float(0.01);
+		auto name = node.attribute("name").as_string();
+		auto dt   = node.attribute("dt").as_float(0.01);
 
 		Forcing_None forcing;
 
@@ -164,9 +168,10 @@ private:
 
 	static Integrator* createVV_constDP(pugi::xml_node node)
 	{
-		std::string name = node.attribute("name").as_string();
-		float dt = node.attribute("dt").as_float(0.01);
-		float3 extraForce = node.attribute("extra_force").as_float3();
+		auto name       = node.attribute("name").as_string();
+		auto dt         = node.attribute("dt").as_float(0.01);
+
+		auto extraForce = node.attribute("extra_force").as_float3();
 
 		Forcing_ConstDP forcing(extraForce);
 
@@ -175,9 +180,11 @@ private:
 
 	static Integrator* createVV_PeriodicPoiseuille(pugi::xml_node node)
 	{
-		std::string name = node.attribute("name").as_string();
-		float dt = node.attribute("dt").as_float(0.01);
-		float force = node.attribute("force").as_float();
+		auto name  = node.attribute("name").as_string();
+		auto dt    = node.attribute("dt").as_float(0.01);
+
+		auto force = node.attribute("force").as_float();
+
 		std::string dirStr = node.attribute("direction").as_string("x");
 
 		// TODO: make all see simulation instead
@@ -194,18 +201,19 @@ private:
 	}
 	static Integrator* createConstOmega(pugi::xml_node node)
 	{
-		std::string name = node.attribute("name").as_string();
-		float dt = node.attribute("dt").as_float(0.01);
-		float3 center = node.attribute("center").as_float3();
-		float3 omega  = node.attribute("omega") .as_float3();
+		auto name   = node.attribute("name").as_string();
+		auto dt     = node.attribute("dt").as_float(0.01);
+
+		auto center = node.attribute("center").as_float3();
+		auto omega  = node.attribute("omega") .as_float3();
 
 		return (Integrator*) new IntegratorConstOmega(name, dt, center, omega);
 	}
 
 	static Integrator* createRigidVV(pugi::xml_node node)
 	{
-		std::string name = node.attribute("name").as_string();
-		float dt = node.attribute("dt").as_float(0.01);
+		auto name = node.attribute("name").as_string();
+		auto dt   = node.attribute("dt").as_float(0.01);
 
 		return (Integrator*) new IntegratorVVRigid(name, dt);
 	}
@@ -320,6 +328,39 @@ public:
 class WallFactory
 {
 private:
+	static Wall* createSphereWall(pugi::xml_node node)
+	{
+		auto name   = node.attribute("name").as_string("");
+
+		auto center = node.attribute("center").as_float3();
+		auto radius = node.attribute("radius").as_float(1);
+		auto inside = node.attribute("inside").as_bool(false);
+
+		StationaryWall_Sphere sphere(center, radius, inside);
+
+		return (Wall*) new SimpleStationaryWall<StationaryWall_Sphere>(name, std::move(sphere));
+	}
+
+	static Wall* createCylinderWall(pugi::xml_node node)
+	{
+		auto name   = node.attribute("name").as_string("");
+
+		auto center = node.attribute("center").as_float2();
+		auto radius = node.attribute("radius").as_float(1);
+		auto inside = node.attribute("inside").as_bool(false);
+
+		std::string dirStr = node.attribute("axis").as_string("x");
+
+		StationaryWall_Cylinder::Direction dir;
+		if (dirStr == "x") dir = StationaryWall_Cylinder::Direction::x;
+		if (dirStr == "y") dir = StationaryWall_Cylinder::Direction::y;
+		if (dirStr == "z") dir = StationaryWall_Cylinder::Direction::z;
+
+		StationaryWall_Cylinder cylinder(center, radius, dir, inside);
+
+		return (Wall*) new SimpleStationaryWall<StationaryWall_Cylinder>(name, std::move(cylinder));
+	}
+
 	static Wall* createSDFWall(pugi::xml_node node)
 	{
 		auto name    = node.attribute("name").as_string("");
@@ -327,7 +368,9 @@ private:
 		auto sdfFile = node.attribute("sdf_filename").as_string("wall.sdf");
 		auto sdfH    = node.attribute("sdf_h").as_float3( make_float3(0.25f) );
 
-		return (Wall*) new SDFWall(name, sdfFile, sdfH);
+		StationaryWall_SDF sdf(sdfFile, sdfH);
+
+		return (Wall*) new SimpleStationaryWall<StationaryWall_SDF>(name, std::move(sdf));
 	}
 
 public:
@@ -335,6 +378,10 @@ public:
 	{
 		std::string type = node.attribute("type").as_string();
 
+		if (type == "cylinder")
+			return createCylinderWall(node);
+		if (type == "sphere")
+			return createSphereWall(node);
 		if (type == "sdf")
 			return createSDFWall(node);
 

@@ -26,20 +26,16 @@ void IntegratorVV<ForcingTerm>::stage2(ParticleVector* pv, float t, cudaStream_t
 
 	auto st2 = [_fterm] __device__ (Particle& p, const float3 f, const float invm, const float dt) {
 
-		static_assert(std::is_same<decltype(_fterm(f, p)), float3>::value,
-				"Forcing term functor must provide member"
-				" __device__ float3 operator()(float3, Particle)");
-
 		float3 modF = _fterm(f, p);
 
-		p.u += modF*invm*dt;
+		p.u += f*invm*dt;
 		p.r += p.u*dt;
 	};
 
 	int nthreads = 128;
 	debug2("Integrating (stage 2) %d %s particles, timestep is %f", pv->local()->size(), pv->name.c_str(), dt);
 
-	auto pvView = create_PVview(pv, pv->local());
+	PVview pvView(pv, pv->local());
 	SAFE_KERNEL_LAUNCH(
 			integrationKernel,
 			getNblocks(2*pvView.size, nthreads), nthreads, 0, stream,

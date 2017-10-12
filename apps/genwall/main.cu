@@ -40,7 +40,7 @@ void writeXYZ(MPI_Comm comm, std::string fname, ParticleVector* pv)
 		info("xyz dump of %s: total number of particles: %d", pv->name.c_str(), n);
 	}
 
-	auto view = create_PVview(pv, pv->local());
+	PVview view(pv, pv->local());
 	pv->local()->coosvels.downloadFromDevice(0);
 	for(int i = 0; i < nlocal; ++i)
 	{
@@ -160,7 +160,17 @@ int main(int argc, char** argv)
 		writeXYZ(sim->getCartComm(), final->name+".xyz", final);
 	}
 
-	final->checkpoint(sim->getCartComm(), wallGenNode.attribute("path").as_string("./"));
+
+	std::string path = wallGenNode.attribute("path").as_string("./");
+	std::string command = "mkdir -p " + path;
+	if (rank == 0)
+	{
+		if ( system(command.c_str()) != 0 )
+			die("Could not create folders by given path %s", path.c_str());
+	}
+
+	final->checkpoint(sim->getCartComm(), path);
+
 
 	sim->finalize();
 }

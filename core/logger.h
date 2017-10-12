@@ -12,13 +12,9 @@
 #include <cstdio>
 #include <string>
 
-#include <core/utils/stacktrace.h>
+#include <core/utils/stacktrace_explicit.h>
 
 #include <mpi.h>
-
-#ifdef __CUDACC__
-#include <cuda.h>
-#endif
 
 #ifndef COMPILE_DEBUG_LVL
 #define COMPILE_DEBUG_LVL 10
@@ -114,21 +110,10 @@ public:
 	{
 		log<0>(args...);
 		
-		{
-			// print backtrace
-			std::ostringstream strace;
-
-			using namespace backward;
-			StackTrace st;
-			st.load_here(32);
-			Printer p;
-			p.object = true;
-			p.color_mode = ColorMode::automatic;
-			p.address = true;
-			p.print(st, strace);
-
-			fwrite(strace.str().c_str(), sizeof(char), strace.str().size(), fout);
-		}
+		// print stacktrace
+		std::ostringstream strace;
+		pretty_stacktrace(strace);
+		fwrite(strace.str().c_str(), sizeof(char), strace.str().size(), fout);
 
 		fflush(fout);
 		fclose(fout);
@@ -186,7 +171,7 @@ public:
 
 	void setDebugLvl(int debugLvl)
 	{
-		runtimeDebugLvl = max(min(debugLvl, COMPILE_DEBUG_LVL), 0);
+		runtimeDebugLvl = std::max(std::min(debugLvl, COMPILE_DEBUG_LVL), 0);
 		_say(__FILE__, __LINE__, "Compiled with maximum debug level %d", COMPILE_DEBUG_LVL);
 		_say(__FILE__, __LINE__, "Debug level requested %d, set to %d", debugLvl, runtimeDebugLvl);
 	}

@@ -1,9 +1,8 @@
 #pragma once
 
-#include <string>
 #include <core/containers.h>
 #include <core/datatypes.h>
-#include <core/pvs/object_vector.h>
+#include "object_vector.h"
 
 
 class LocalRBCvector : public LocalObjectVector

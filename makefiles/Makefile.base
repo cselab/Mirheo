@@ -1,6 +1,5 @@
-
-ifneq ("$(wildcard Makefile.settings.override)","")
-HOST=override
+ifneq ("$(force_host)","")
+HOST=$(force_host)
 else
 HOSTRAW=$(shell hostname)
 HOST=$(shell echo $(HOSTRAW) | perl -pe 's/daint\d*/daint/') # Remove trailing digits after 'daint' : 'daint101' ==> 'daint'
@@ -9,24 +8,21 @@ endif
 include $(UDEVICEX_PATH)/makefiles/Makefile.settings.$(HOST)
 
 # Compiling parameters
-NVCCFLAGS += -std=c++11 --expt-extended-lambda
-NVCCFLAGS += -I$(UDEVICEX_PATH)/ $(HDF5_INC) $(INCLUDES)
-NVCCFLAGS += -arch=$(CUDA_ARCH) -code=$(CUDA_CODE)
-NVCCFLAGS += -lineinfo -g
-
-NVCC_RELEASE_FLAGS = $(NVCCFLAGS) -O3 --use_fast_math
-NVCC_DEBUG_FLAGS = $(NVCCFLAGS) -G
+CXXFLAGS += -std=c++11 -g -I$(UDEVICEX_PATH)/ $(HDF5_INC) $(INCLUDES)
+CXX_RELEASE_FLAGS = $(CXXFLAGS) -O3 $(FMATH_FLAG)
+CXX_DEBUG_FLAGS = $(CXXFLAGS) -G
 
 # Linking parameters
 LIBS += $(HDF5_LIB)
-LINKFLAGS += -g
-LINK_RELEASE_FLAGS += $(LINKFLAGS) -O3
-LINK_DEBUG_FLAGS += $(LINKFLAGS) -G
+LDFLAGS += -g
+LINK_RELEASE_FLAGS += $(LDFLAGS) -O3
+LINK_DEBUG_FLAGS += $(LDFLAGS) -G
 
 # Misc
 SRC_DIR = $(UDEVICEX_PATH)/core $(UDEVICEX_PATH)/core/bouncers $(UDEVICEX_PATH)/core/initial_conditions \
 	$(UDEVICEX_PATH)/core/integrators $(UDEVICEX_PATH)/core/interactions $(UDEVICEX_PATH)/core/mpi \
-	$(UDEVICEX_PATH)/core/pvs $(UDEVICEX_PATH)/core/walls $(UDEVICEX_PATH)/core/xml $(UDEVICEX_PATH)/plugins ./
+	$(UDEVICEX_PATH)/core/pvs $(UDEVICEX_PATH)/core/walls $(UDEVICEX_PATH)/core/walls/stationary_walls \
+	$(UDEVICEX_PATH)/core/xml $(UDEVICEX_PATH)/plugins $(UDEVICEX_PATH)/core/utils ./
 
 BIN_DIR = bin
 DEBUG_DIR = debug
@@ -35,16 +31,16 @@ VPATH = $(addsuffix :,$(SRC_DIR))
 
 # Release binary
 $(binary): $(addprefix $(BIN_DIR)/,$(objects))
-	$(LINKER) $(LINK_RELEASE_FLAGS) $^ $(LIBS) -o $@
+	$(LD) $(LINK_RELEASE_FLAGS) $^ $(LIBS) -o $@
 
 $(BIN_DIR)/%.d: %.cu
 	@mkdir -p $(BIN_DIR)
-	$(NVCC) $(NVCC_RELEASE_FLAGS) -M $< > $(patsubst %.d,%.TMPd,$@)
+	$(CXX) $(CXX_RELEASE_FLAGS) -M $< > $(patsubst %.d,%.TMPd,$@)
 	@printf "$(BIN_DIR)/" | cat - $(patsubst %.d,%.TMPd,$@)  > $@ && rm $(patsubst %.d,%.TMPd,$@)
 	@#| perl -n -e ' if (/\s+\./) { s/(\s+)\./$$1..\/./; } print; '
 	
 $(BIN_DIR)/%.o: %.cu
-	$(NVCC) $(NVCC_RELEASE_FLAGS) -c $< -o $@
+	$(CXX) $(CXX_RELEASE_FLAGS) -c $< -o $@
 	
 clean_release:
 	rm -f $(BIN_DIR)/*
@@ -54,16 +50,16 @@ clean_release:
 
 # Debug binary
 $(binary)_debug: $(addprefix $(DEBUG_DIR)/,$(objects))
-	$(LINKER) $(LINK_DEBUG_FLAGS) $^ $(LIBS) -o $@
+	$(LD) $(LINK_DEBUG_FLAGS) $^ $(LIBS) -o $@
 
 $(DEBUG_DIR)/%.d: %.cu
 	@mkdir -p $(DEBUG_DIR)
-	$(NVCC) $(NVCC_DEBUG_FLAGS) -M $< > $(patsubst %.d,%.TMPd,$@)
+	$(CXX) $(CXX_DEBUG_FLAGS) -M $< > $(patsubst %.d,%.TMPd,$@)
 	@printf "$(DEBUG_DIR)/" | cat - $(patsubst %.d,%.TMPd,$@)  > $@ && rm $(patsubst %.d,%.TMPd,$@)
 	@#| perl -n -e ' if (/\s+\./) { s/(\s+)\./$$1..\/./; } print; '
 	
 $(DEBUG_DIR)/%.o: %.cu
-	$(NVCC) $(NVCC_DEBUG_FLAGS) -c $< -o $@
+	$(CXX) $(CXX_DEBUG_FLAGS) -c $< -o $@
 
 clean_debug:
 	rm -f $(DEBUG_DIR)/*

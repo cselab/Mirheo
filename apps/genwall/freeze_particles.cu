@@ -45,7 +45,7 @@ void freezeParticlesInWall(SDFWall* wall, ParticleVector* pv, ParticleVector* fr
 
 	PinnedBuffer<int> nFrozen(1);
 
-	auto view = create_PVview(pv, pv->local());
+	PVview view(pv, pv->local());
 	const int nthreads = 128;
 	const int nblocks = getNblocks(view.size, nthreads);
 

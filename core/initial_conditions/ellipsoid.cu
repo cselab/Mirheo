@@ -44,7 +44,7 @@ void EllipsoidIC::exec(const MPI_Comm& comm, ParticleVector* pv, float3 globalDo
 
 	std::ifstream fic(icfname);
 	int nObjs=0;
-	auto pvView = create_PVview(ov, ov->local());
+	PVview pvView(ov, ov->local());
 
 	HostBuffer<LocalRigidObjectVector::RigidMotion> motions;
 

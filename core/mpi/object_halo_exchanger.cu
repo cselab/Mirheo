@@ -144,7 +144,7 @@ void ObjectHaloExchanger::prepareData(int id, cudaStream_t stream)
 
 	debug2("Preparing %s halo on the device", ov->name.c_str());
 
-	auto ovView = create_OVviewWithExtraData(ov, ov->local(), stream);
+	OVviewWithExtraData ovView(ov, ov->local(), stream);
 	helper->setDatumSize(ovView.packedObjSize_byte);
 
 	helper->sendBufSizes.clear(stream);
@@ -153,10 +153,10 @@ void ObjectHaloExchanger::prepareData(int id, cudaStream_t stream)
 		const int nthreads = 128;
 
 		// FIXME: this is a hack
-		auto rovView = create_ROVview(nullptr, nullptr);
+		ROVview rovView(nullptr, nullptr);
 		RigidObjectVector* rov;
 		if ( (rov = dynamic_cast<RigidObjectVector*>(ov)) != 0 )
-			rovView = create_ROVview(rov, rov->local());
+			rovView = ROVview(rov, rov->local());
 
 		SAFE_KERNEL_LAUNCH(
 				getObjectHalos<true>,
@@ -184,7 +184,7 @@ void ObjectHaloExchanger::combineAndUploadData(int id, cudaStream_t stream)
 	auto helper = helpers[id];
 
 	ov->halo()->resize_anew(helper->recvOffsets[27] * ov->objSize);
-	auto ovView = create_OVviewWithExtraData(ov, ov->halo(), stream);
+	OVviewWithExtraData ovView(ov, ov->halo(), stream);
 
 	// TODO: unite into one unpack call
 	const int nthreads = 128;

@@ -12,11 +12,14 @@
 	</particle_vector>
 	
 	<pv_splitter object_vector="rigid_ellipsoids" type="analytical">
-		<apply_to pv="dpd" inside="none" outside="dpd" /> 
+		<apply_to pv="dpd">
+			<inside  "none" />
+			<outside "dpd" />
+		</apply_to> 
 	</pv_splitter>
 	
 	<object_bouncer name="ell_bounce" object_vector="rigid_ellipsoid" type="analytical">
-		<apply_to pv="dpd" />
+		<apply_to pv="dpd" check="true"/>
 	</object_bouncer>
 
 	<!-- <particle_vector type="regular" name="frozen" mass="1">

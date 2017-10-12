@@ -104,7 +104,7 @@ void ObjectRedistributor::prepareData(int id, cudaStream_t stream)
 	auto ov  = objects[id];
 	auto lov = ov->local();
 	auto helper = helpers[id];
-	auto ovView = create_OVviewWithExtraData(ov, ov->local(), stream);
+	OVviewWithExtraData ovView(ov, ov->local(), stream);
 	helper->setDatumSize(ovView.packedObjSize_byte);
 
 	debug2("Preparing %s halo on the device", ov->name.c_str());
@@ -115,10 +115,10 @@ void ObjectRedistributor::prepareData(int id, cudaStream_t stream)
 		const int nthreads = 128;
 
 		// FIXME: this is a hack
-		auto rovView = create_ROVview(nullptr, nullptr);
+		ROVview rovView(nullptr, nullptr);
 		RigidObjectVector* rov;
 		if ( (rov = dynamic_cast<RigidObjectVector*>(ov)) != 0 )
-			rovView = create_ROVview(rov, rov->local());
+			rovView = ROVview(rov, rov->local());
 
 		SAFE_KERNEL_LAUNCH(
 				getExitingObjects<true>,
@@ -154,7 +154,7 @@ void ObjectRedistributor::combineAndUploadData(int id, cudaStream_t stream)
 	int objSize = ov->objSize;
 
 	ov->local()->resize_anew(ov->local()->size() + helper->recvOffsets[27] * objSize);
-	auto ovView = create_OVviewWithExtraData(ov, ov->local(), stream);
+	OVviewWithExtraData ovView(ov, ov->local(), stream);
 
 	// TODO: combine in one unpack call
 	const int nthreads = 128;

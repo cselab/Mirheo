@@ -1,12 +1,17 @@
-NVCC = nvcc
+CXX = nvcc
+
 CUDA_ARCH = compute_60
 CUDA_CODE = sm_60
 
-LINKER = CC
-LINKFLAGS +=
+CXXFLAGS += -arch=$(CUDA_ARCH) -code=$(CUDA_CODE) --expt-extended-lambda -lineinfo
 
-HDF5_INC = $(HDF5_DIR)/include
-HDF5_LIB = $(HDF5_DIR)/lib
+FMATH_FLAG = --use_fast_math
+
+LD = CC
+LDFLAGS += -rdynamic -flto
+
+HDF5_INC = -I/usr/include/hdf5/mpich/
+HDF5_LIB = -L/usr/lib/x86_64-linux-gnu/
 
 INCLUDES += -I/$(CRAY_MPICH_DIR)/include
 LIBS += -lhdf5 -ldl -lbfd-2.26.1

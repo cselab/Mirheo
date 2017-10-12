@@ -32,7 +32,7 @@ typedef unsigned short ushort;
 #define EXIT_WAIVED 2
 #endif
 
-#ifndef __CUDACC__
+#if !defined(__CUDACC__) || defined(__clang__)
 #include <math.h>
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -58,7 +58,10 @@ inline int min(int a, int b)
 {
     return a < b ? a : b;
 }
+#endif
 
+
+#if !defined(__CUDACC__)
 inline float rsqrtf(float x)
 {
     return 1.0f / sqrtf(x);

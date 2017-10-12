@@ -28,7 +28,7 @@ void IntegratorConstOmega::stage2(ParticleVector* pv, float t, cudaStream_t stre
 
 	int nthreads = 128;
 
-	auto pvView = create_PVview(pv, pv->local());
+	PVview pvView(pv, pv->local());
 	SAFE_KERNEL_LAUNCH(
 			integrationKernel,
 			getNblocks(2*pvView.size, nthreads), nthreads, 0, stream,

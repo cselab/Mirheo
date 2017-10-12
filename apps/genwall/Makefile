@@ -3,7 +3,7 @@ UDEVICEX_PATH = ../..
 binary = genwall
 
 # Targets
-objects = main.o argument_parser.o celllist.o scan.o simulation.o task_scheduler.o pugixml.o \
+objects = main.o argument_parser.o celllist.o simulation.o task_scheduler.o pugixml.o \
 	uniform.o \
 	sampler.o \
 	particle_exchanger.o particle_halo_exchanger.o particle_redistributor.o object_halo_exchanger.o object_redistributor.o object_forces_reverse_exchanger.o \

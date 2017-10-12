@@ -40,6 +40,7 @@ private:
 	std::string path;
 	int3 nranks3D;
 
+	bool activated = true;
 	int timeStamp = 0;
 
 public:

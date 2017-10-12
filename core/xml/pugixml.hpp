@@ -369,6 +369,10 @@ namespace pugi
 		double3 as_double3(double3 def = make_double3(0, 0, 0)) const;
 		float3 as_float3(float3 def = make_float3(0, 0, 0)) const;
 
+		int2 as_int2(int2 def = make_int2(0, 0)) const;
+		double2 as_double2(double2 def = make_double2(0, 0)) const;
+		float2 as_float2(float2 def = make_float2(0, 0)) const;
+
 
 	#ifdef PUGIXML_HAS_LONG_LONG
 		long long as_llong(long long def = 0) const;

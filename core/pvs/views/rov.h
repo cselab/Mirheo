@@ -13,7 +13,7 @@ struct ROVview : public OVview
 	/**
 	 * FIXME: this is a hack.
 	 */
-	int motionsOffset;
+	int motionsOffset = 0;
 	__forceinline__ __device__ void applyShift2extraData(char* packedExtra, float3 shift) const
 	{
 		LocalRigidObjectVector::RigidMotion motion;
@@ -25,32 +25,27 @@ struct ROVview : public OVview
 
 	// TODO: implement this
 	//float inertia[9];
+
+	ROVview(RigidObjectVector* rov = nullptr, LocalRigidObjectVector* lrov = nullptr) :
+		OVview(rov, lrov)
+	{
+		if (rov == nullptr || lrov == nullptr) return;
+
+		motions = lrov->getDataPerObject<LocalRigidObjectVector::RigidMotion>("motions")->devPtr();
+
+		// More fields
+		J = rov->getInertiaTensor();
+		J_1 = 1.0 / J;
+
+		// Setup for the hack
+		motionsOffset = 0;
+
+		for (const auto& kv : lrov->getDataPerObjectMap())
+		{
+			if (kv.first == "motions") break;
+			motionsOffset += kv.second->datatype_size();
+		}
+	}
 };
 
 
-static ROVview create_ROVview(RigidObjectVector* rov, LocalRigidObjectVector* lrov)
-{
-	// Create a default view
-	ROVview view;
-	if (rov == nullptr || lrov == nullptr)
-		return view;
-
-	view.motions = lrov->getDataPerObject<LocalRigidObjectVector::RigidMotion>("motions")->devPtr();
-
-	view.OVview::operator= ( create_OVview(rov, lrov) );
-
-	// More fields
-	view.J = rov->getInertiaTensor();
-	view.J_1 = 1.0 / view.J;
-
-	// Setup for the hack
-	view.motionsOffset = 0;
-
-	for (const auto& kv : lrov->getDataPerObjectMap())
-	{
-		if (kv.first == "motions") break;
-		view.motionsOffset += kv.second->datatype_size();
-	}
-
-	return view;
-}

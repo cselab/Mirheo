@@ -20,8 +20,8 @@ public:
 
 		self = (pv1 == pv2);
 
-		view1 = create_OVview(ov1, ov1 ? ov1->local() : nullptr);
-		view2 = create_OVview(ov2, ov2 ? ov2->local() : nullptr);
+		view1 = OVview(ov1, ov1 ? ov1->local() : nullptr);
+		view2 = OVview(ov2, ov2 ? ov2->local() : nullptr);
 
 		if (view1.comAndExtents == nullptr && view2.comAndExtents == nullptr)
 			warn("Neither of the pvs (%s or %s) has required property 'com_extents', trying to move on regardless",

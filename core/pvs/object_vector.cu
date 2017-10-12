@@ -1,6 +1,7 @@
 #include "object_vector.h"
 
 #include <core/utils/kernel_launch.h>
+#include <core/utils/cuda_common.h>
 
 __global__ void min_max_com(OVview ovView)
 {
@@ -37,13 +38,13 @@ void ObjectVector::findExtentAndCOM(cudaStream_t stream)
 {
 	const int nthreads = 128;
 
-	auto ovView = create_OVview(this, local());
+	OVview ovView(this, local());
 	SAFE_KERNEL_LAUNCH(
 			min_max_com,
 			(ovView.nObjects*32 + nthreads-1)/nthreads, nthreads, 0, stream,
 			ovView );
 
-	ovView = create_OVview(this, halo());
+	ovView = OVview(this, halo());
 	SAFE_KERNEL_LAUNCH(
 			min_max_com,
 			(ovView.nObjects*32 + nthreads-1)/nthreads, nthreads, 0, stream,
