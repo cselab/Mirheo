@@ -10,8 +10,8 @@ FMATH_FLAG = --use_fast_math
 LD = CC
 LDFLAGS += -rdynamic -flto
 
-HDF5_INC = -I/usr/include/hdf5/mpich/
-HDF5_LIB = -L/usr/lib/x86_64-linux-gnu/
+HDF5_INC = -I/$(HDF5_DIR)/include
+HDF5_LIB = -L/$(HDF5_DIR)/lib
 
 INCLUDES += -I/$(CRAY_MPICH_DIR)/include
 LIBS += -lhdf5 -ldl -lbfd-2.26.1
