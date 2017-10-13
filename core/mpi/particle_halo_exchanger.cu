@@ -84,6 +84,15 @@ __global__ void getHalos(const CellListInfo cinfo, char** dests, int* counts)
 	}
 }
 
+//===============================================================================================
+// Member functions
+//===============================================================================================
+
+bool ParticleHaloExchanger::needExchange(int id)
+{
+	return !particles[id]->haloValid;
+}
+
 void ParticleHaloExchanger::attach(ParticleVector* pv, CellList* cl)
 {
 	particles.push_back(pv);
@@ -109,6 +118,7 @@ void ParticleHaloExchanger::combineAndUploadData(int id, cudaStream_t stream)
 			CUDA_Check( cudaMemcpyAsync(pv->halo()->coosvels.devPtr() + helper->recvOffsets[i], helper->recvBufs[i].hostPtr(),
 					msize*sizeof(Particle), cudaMemcpyHostToDevice, stream) );
 	}
+	pv->haloValid = true;
 }
 
 void ParticleHaloExchanger::prepareData(int id, cudaStream_t stream)

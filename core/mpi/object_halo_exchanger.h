@@ -16,6 +16,7 @@ protected:
 
 	void prepareData(int id, cudaStream_t stream) override;
 	void combineAndUploadData(int id, cudaStream_t stream) override;
+	bool needExchange(int id) override;
 
 public:
 	ObjectHaloExchanger(MPI_Comm& comm) : ParticleExchanger(comm) {};

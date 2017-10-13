@@ -90,6 +90,14 @@ __global__ static void unpackObject(const float4* from, const int startDstObjId,
 	ovView.unpackExtraData( startDstObjId+objId, (char*)(srcAddr + 2*ovView.objSize));
 }
 
+//===============================================================================================
+// Member functions
+//===============================================================================================
+
+bool ObjectRedistributor::needExchange(int id)
+{
+	return !objects[id]->redistValid;
+}
 
 void ObjectRedistributor::attach(ObjectVector* ov, float rc)
 {
@@ -97,7 +105,6 @@ void ObjectRedistributor::attach(ObjectVector* ov, float rc)
 	ExchangeHelper* helper = new ExchangeHelper(ov->name);
 	helpers.push_back(helper);
 }
-
 
 void ObjectRedistributor::prepareData(int id, cudaStream_t stream)
 {
@@ -153,7 +160,9 @@ void ObjectRedistributor::combineAndUploadData(int id, cudaStream_t stream)
 	int oldNObjs = ov->local()->nObjects;
 	int objSize = ov->objSize;
 
-	ov->local()->resize_anew(ov->local()->size() + helper->recvOffsets[27] * objSize);
+	int totalRecvd = helper->recvOffsets[27];
+
+	ov->local()->resize_anew(ov->local()->size() + totalRecvd * objSize);
 	OVviewWithExtraData ovView(ov, ov->local(), stream);
 
 	// TODO: combine in one unpack call
@@ -168,6 +177,8 @@ void ObjectRedistributor::combineAndUploadData(int id, cudaStream_t stream)
 				nObjs, nthreads, 0, stream,
 				(float4*)helper->recvBufs[i].devPtr(), oldNObjs+helper->recvOffsets[i], ovView );
 	}
+
+	ov->redistValid = true;
 }
 
 

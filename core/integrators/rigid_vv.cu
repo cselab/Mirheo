@@ -54,6 +54,9 @@ void IntegratorVVRigid::stage2(ParticleVector* pv, float t, cudaStream_t stream)
 			getNblocks(ovView.nObjects, 64), 64, 0, stream,
 			ovView );
 
-	pv->local()->changedStamp++;
+	// PV may have changed, invalidate all
+	pv->haloValid = false;
+	pv->redistValid = false;
+	pv->celllistValid = false;
 }
 

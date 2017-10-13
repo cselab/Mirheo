@@ -318,7 +318,10 @@ void SimpleStationaryWall<InsideWallChecker>::removeInner(ParticleVector* pv)
 				ovView, tmp.devPtr() );
 	}
 
-	pv->local()->changedStamp++;
+	pv->haloValid = false;
+	pv->redistValid = false;
+	pv->celllistValid = false;
+
 	info("Removed inner entities of %s, keeping %d out of %d particles",
 			pv->name.c_str(), pv->local()->size(), oldSize);
 

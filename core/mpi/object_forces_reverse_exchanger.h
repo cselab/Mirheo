@@ -16,6 +16,7 @@ protected:
 
 	virtual void prepareData(int id, cudaStream_t stream);
 	virtual void combineAndUploadData(int id, cudaStream_t stream);
+	bool needExchange(int id) override;
 
 public:
 	ObjectForcesReverseExchanger(MPI_Comm& comm, ObjectHaloExchanger* entangledHaloExchanger) :

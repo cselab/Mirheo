@@ -99,22 +99,24 @@ ParticleExchanger::ParticleExchanger(MPI_Comm& comm) :
 
 void ParticleExchanger::init(cudaStream_t stream)
 {
-	// Determine what to send
+	// Derived class determines what to send
 	for (int i=0; i<helpers.size(); i++)
-		prepareData(i, stream);
+		if (needExchange(i)) prepareData(i, stream);
 }
 
 void ParticleExchanger::finalize(cudaStream_t stream)
 {
-	for (auto helper : helpers)
-		send(helper, stream);
-
-	// Post recv
-	for (auto helper : helpers)
-		recv(helper, stream);
+	// Internal functions to exchange data
+	for (int i=0; i<helpers.size(); i++)
+		if (needExchange(i)) send(helpers[i], stream);
 
 	for (int i=0; i<helpers.size(); i++)
-		combineAndUploadData(i, stream);
+		if (needExchange(i)) recv(helpers[i], stream);
+
+
+	// Derived class unpack implementation
+	for (int i=0; i<helpers.size(); i++)
+		if (needExchange(i)) combineAndUploadData(i, stream);
 }
 
 

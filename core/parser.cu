@@ -199,6 +199,7 @@ private:
 
 		return (Integrator*) new IntegratorVV<Forcing_PeriodicPoiseuille>(name, dt, forcing);
 	}
+
 	static Integrator* createConstOmega(pugi::xml_node node)
 	{
 		auto name   = node.attribute("name").as_string();

@@ -13,6 +13,7 @@ private:
 
 	virtual void prepareData(int id, cudaStream_t stream);
 	virtual void combineAndUploadData(int id, cudaStream_t stream);
+	bool needExchange(int id) override;
 
 public:
 	ObjectRedistributor(MPI_Comm& comm) : ParticleExchanger(comm) {};

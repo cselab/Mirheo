@@ -27,8 +27,6 @@ protected:
 	DataMap dataPerParticle;
 
 public:
-	int changedStamp = 0;
-
 	PinnedBuffer<Particle> coosvels;
 	DeviceBuffer<Force> forces;
 
@@ -108,6 +106,10 @@ public:
 	float mass;
 	std::string name;
 	// Local coordinate system; (0,0,0) is center of the local domain
+
+	bool haloValid = false;
+	bool celllistValid = false;
+	bool redistValid = false;
 
 protected:
 	ParticleVector(	std::string name, float mass, LocalParticleVector *local, LocalParticleVector *halo ) :

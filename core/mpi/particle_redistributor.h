@@ -15,6 +15,7 @@ private:
 
 	void combineAndUploadData(int id, cudaStream_t stream) override;
 	void prepareData(int id, cudaStream_t stream) override;
+	bool needExchange(int id) override;
 
 public:
 	void _prepareData(int id);

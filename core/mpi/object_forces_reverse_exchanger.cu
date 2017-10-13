@@ -31,6 +31,14 @@ __global__ void addHaloForces(const float4** recvForces, const int** origins, fl
 	atomicAdd(forces + dstId, extraFrc.v);
 }
 
+//===============================================================================================
+// Member functions
+//===============================================================================================
+
+bool ObjectForcesReverseExchanger::needExchange(int id)
+{
+	return true;
+}
 
 void ObjectForcesReverseExchanger::attach(ObjectVector* ov)
 {

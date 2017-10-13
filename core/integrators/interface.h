@@ -4,8 +4,9 @@
 
 class ParticleVector;
 
-struct Integrator
+class Integrator
 {
+public:
 	std::string name;
 	float dt;
 

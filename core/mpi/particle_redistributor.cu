@@ -69,6 +69,15 @@ __global__ void getExitingParticles(CellListInfo cinfo,	char** dests, int* count
 	}
 }
 
+//===============================================================================================
+// Member functions
+//===============================================================================================
+
+bool ParticleRedistributor::needExchange(int id)
+{
+	return !particles[id]->redistValid;
+}
+
 void ParticleRedistributor::attach(ParticleVector* pv, CellList* cl)
 {
 	particles.push_back(pv);
@@ -122,7 +131,8 @@ void ParticleRedistributor::combineAndUploadData(int id, cudaStream_t stream)
 	auto helper = helpers[id];
 
 	int oldsize = pv->local()->size();
-	pv->local()->resize(oldsize + helper->recvOffsets[27],  stream);
+	int totalRecvd = helper->recvOffsets[27];
+	pv->local()->resize(oldsize + totalRecvd,  stream);
 
 	auto hptr = pv->local()->coosvels.hostPtr() + oldsize;
 	auto dptr = pv->local()->coosvels.devPtr() + oldsize;
@@ -133,9 +143,8 @@ void ParticleRedistributor::combineAndUploadData(int id, cudaStream_t stream)
 		memcpy(hptr + helper->recvOffsets[i], helper->recvBufs[i].hostPtr(), msize*sizeof(Particle));
 	}
 
-	if (helper->recvOffsets[27] > 0)
+	if (totalRecvd > 0)
 		CUDA_Check( cudaMemcpyAsync(dptr, hptr, helper->recvOffsets[27]*sizeof(Particle), cudaMemcpyHostToDevice, stream) );
 
-	// The PV may has changed significantly, need to update the cell-lists now
-	pv->local()->changedStamp++;
+	pv->redistValid = true;
 }

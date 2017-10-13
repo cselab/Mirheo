@@ -34,5 +34,8 @@ void IntegratorConstOmega::stage2(ParticleVector* pv, float t, cudaStream_t stre
 			getNblocks(2*pvView.size, nthreads), nthreads, 0, stream,
 			pvView, dt, rotate );
 
-	pv->local()->changedStamp++;
+	// PV may have changed, invalidate all
+	pv->haloValid = false;
+	pv->redistValid = false;
+	pv->celllistValid = false;
 }

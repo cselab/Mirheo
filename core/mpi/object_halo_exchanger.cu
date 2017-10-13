@@ -120,6 +120,14 @@ __global__ static void unpackObject(const float4* from, const int startDstObjId,
 	ovView.unpackExtraData( startDstObjId+objId, (char*)(srcAddr + 2*ovView.objSize));
 }
 
+//===============================================================================================
+// Member functions
+//===============================================================================================
+
+bool ObjectHaloExchanger::needExchange(int id)
+{
+	return !objects[id]->haloValid;
+}
 
 void ObjectHaloExchanger::attach(ObjectVector* ov, float rc)
 {
@@ -133,7 +141,6 @@ void ObjectHaloExchanger::attach(ObjectVector* ov, float rc)
 
 	info("Object vector %s (rc %f) was attached to halo exchanger", ov->name.c_str(), rc);
 }
-
 
 void ObjectHaloExchanger::prepareData(int id, cudaStream_t stream)
 {
@@ -198,6 +205,8 @@ void ObjectHaloExchanger::combineAndUploadData(int id, cudaStream_t stream)
 				nObjs, nthreads, 0, stream,
 				(float4*)helper->recvBufs[i].devPtr(),  helper->recvOffsets[i], ovView );
 	}
+
+	ov->haloValid = true;
 }
 
 std::vector<int>& ObjectHaloExchanger::getRecvOffsets(int id)

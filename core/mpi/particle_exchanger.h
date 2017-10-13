@@ -49,6 +49,7 @@ protected:
 
 	virtual void prepareData(int id, cudaStream_t stream) = 0;
 	virtual void combineAndUploadData(int id, cudaStream_t stream) = 0;
+	virtual bool needExchange(int id) = 0;
 
 public:
 
