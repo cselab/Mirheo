@@ -17,7 +17,7 @@
 	</wall> -->
 	<wall type="cylinder" name="wall" center="32 32" radius="10" axis="z">
 		<generate_frozen name="frozen" path="restart" mass="1.0" density="8" a="2.6666667" kbt="0.05" rc="1.0" power="0.5" />
-		<apply_to pv="dpd" check="true" />
+		<apply_to pv="dpd" check_every="10" />
 	</wall>
 	
 	<interaction type="dpd" name="dpd_int" a="2.6666667" gamma="8" kbt="0.0444302" dt="0.0005" rc="1.0" power="0.5">

@@ -19,7 +19,7 @@ public:
 	void setup(MPI_Comm& comm, float3 globalDomainSize, float3 globalDomainStart, float3 localDomainSize) override;
 
 	void removeInner(ParticleVector* pv) override;
-	void attach(ParticleVector* pv, CellList* cl, bool check=false) override;
+	void attach(ParticleVector* pv, CellList* cl, int check=0) override;
 	void bounce(float dt, cudaStream_t stream) override;
 
 	void check(cudaStream_t stream) override;
@@ -29,7 +29,11 @@ private:
 
 	InsideWallChecker insideWallChecker;
 
-	std::vector<bool> needCheck;
+	std::vector<ParticleVector*> particleVectors;
+	std::vector<CellList*> cellLists;
+
+	std::vector<int> checkEvery, nBounceCalls;
+
 	std::vector<DeviceBuffer<int>*> boundaryCells;
 	PinnedBuffer<int> nInside{1};
 };

@@ -595,7 +595,7 @@ uDeviceX* Parser::setup_uDeviceX(Logger& logger)
 				for (auto apply_to : node.children("apply_to"))
 					udx->sim->setWallBounce(name,
 							apply_to.attribute("pv").as_string(),
-							apply_to.attribute("check").as_bool(false));
+							apply_to.attribute("check_every").as_int(0));
 			}
 
 			if ( std::string(node.name()) == "bounce" )

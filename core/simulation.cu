@@ -156,7 +156,7 @@ void Simulation::setBouncer(std::string bouncerName, std::string objName, std::s
 	bouncerPrototypes.push_back(std::make_tuple(bouncer, ov, pv));
 }
 
-void Simulation::setWallBounce(std::string wallName, std::string pvName, bool check)
+void Simulation::setWallBounce(std::string wallName, std::string pvName, int check)
 {
 	auto pv = getPVbyName(pvName);
 	if (pv == nullptr)

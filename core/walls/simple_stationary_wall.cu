@@ -232,7 +232,7 @@ void SimpleStationaryWall<InsideWallChecker>::setup(MPI_Comm& comm, float3 globa
 
 
 template<class InsideWallChecker>
-void SimpleStationaryWall<InsideWallChecker>::attach(ParticleVector* pv, CellList* cl, bool check)
+void SimpleStationaryWall<InsideWallChecker>::attach(ParticleVector* pv, CellList* cl, int check)
 {
 	if (dynamic_cast<PrimaryCellList*>(cl) == nullptr)
 		die("PVs should only be attached to walls with the primary cell-lists! "
@@ -241,7 +241,8 @@ void SimpleStationaryWall<InsideWallChecker>::attach(ParticleVector* pv, CellLis
 	CUDA_Check( cudaDeviceSynchronize() );
 	particleVectors.push_back(pv);
 	cellLists.push_back(cl);
-	needCheck.push_back(check);
+	checkEvery.push_back(check);
+	nBounceCalls.push_back(0);
 
 	PVview view(pv, pv->local());
 	PinnedBuffer<int> nBoundaryCells(1);
@@ -348,6 +349,7 @@ void SimpleStationaryWall<InsideWallChecker>::bounce(float dt, cudaStream_t stre
 				view, bc->devPtr(), bc->size(), cl->cellInfo(), dt, insideWallChecker.handler() );
 
 		CUDA_Check( cudaPeekAtLastError() );
+		nBounceCalls[i]++;
 	}
 }
 
@@ -358,7 +360,7 @@ void SimpleStationaryWall<InsideWallChecker>::check(cudaStream_t stream)
 	for (int i=0; i<particleVectors.size(); i++)
 	{
 		auto pv = particleVectors[i];
-		if (needCheck[i])
+		if ( checkEvery[i] > 0 && (nBounceCalls[i] % checkEvery[i] == 0) )
 		{
 			nInside.clearDevice(stream);
 			PVview view(pv, pv->local());
