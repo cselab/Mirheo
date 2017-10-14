@@ -51,10 +51,10 @@
 		bin_size="0.5 0.5 0.5"
 		path="xdmf/avg_rho_u" />
 	
-	 <plugin type="dump_xyz" name="solid"
+	<!-- <plugin type="dump_xyz" name="solid"
 		pv_name="ellipsoids"
 		dump_every="100"
-		path="xyz/ellipsoids" />
+		path="xyz/ellipsoids" /> -->
 	
 	
 	<plugin type="stats" name="stats" every="100" />
