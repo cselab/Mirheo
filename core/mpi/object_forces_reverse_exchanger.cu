@@ -22,7 +22,7 @@ __global__ void addHaloForces(const float4* recvForces, const int* origins, floa
 {
 	const int srcId = blockIdx.x*blockDim.x + threadIdx.x;
 	if (srcId >= np) return;
-
+	
 	const int dstId = origins[srcId];
 	Float3_int extraFrc( recvForces[srcId] );
 

@@ -37,7 +37,7 @@
 	
 	<plugin type="stats" name="stats" every="100" />
 	
-	<run niters="50" />
+	<run niters="5000" />
 
 </simulation>
 

@@ -74,7 +74,7 @@ __global__ void getObjectHalos(const OVviewWithExtraData ovView, const ROVview r
 
 		int myOffset = dataWrap.offsets[bufId] + shDstObjId;
 		float4* dstAddr = (float4*) ( dataWrap.buffer + ovView.packedObjSize_byte  * myOffset );
-		int* partIdsAddr = (int*)   ( haloParticleIds + ovView.objSize*sizeof(int) * myOffset );
+		int* partIdsAddr = haloParticleIds + ovView.objSize * myOffset;
 
 		for (int pid = tid/2; pid < ovView.objSize; pid += blockDim.x/2)
 		{
@@ -175,7 +175,7 @@ void ObjectHaloExchanger::prepareData(int id, cudaStream_t stream)
 		helper->resizeSendBuf();
 
 		// 1 int per particle: #objects x objSize x int
-		origin->resize_anew(helper->sendOffsets[helper->nBuffers] * ovView.size * sizeof(int));
+		origin->resize_anew(helper->sendOffsets[helper->nBuffers] * ovView.objSize * sizeof(int));
 
 		helper->sendSizes.clearDevice(stream);
 		SAFE_KERNEL_LAUNCH(
