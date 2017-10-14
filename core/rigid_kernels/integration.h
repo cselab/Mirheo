@@ -74,9 +74,9 @@ __global__ void integrateRigidMotion(ROVview ovView, const float dt)
 	// Normalize q
 	q = normalize(q);
 
-	motions[objId].prevQ  = motions[objId].q;
-	motions[objId].q      = q;
-	motions[objId].omega  = omega;
+	motions[objId].prevQ = motions[objId].q;
+	motions[objId].q     = q;
+	motions[objId].omega = omega;
 
 	//**********************************************************************************
 	// Translation

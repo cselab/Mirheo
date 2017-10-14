@@ -531,9 +531,8 @@ void Simulation::run(int nsteps)
 
 	for (currentStep = begin; currentStep < end; currentStep++)
 	{
-		if (rank == 0)
-			info("===============================================================================\nTimestep: %d, simulation time: %f",
-					currentStep, currentTime);
+		info("===============================================================================\n"
+				"Timestep: %d, simulation time: %f", currentStep, currentTime);
 
 		scheduler.run();
 

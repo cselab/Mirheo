@@ -7,10 +7,9 @@
 #include <core/mpi/api.h>
 #include <core/logger.h>
 
-#include <core/xml/pugixml.hpp>
 #include <core/containers.h>
 
-#include <core/initial_conditions.h>
+#include <core/initial_conditions/uniform.h>
 
 Logger logger;
 
@@ -40,17 +39,13 @@ int main(int argc, char ** argv)
 	MPI_Check( MPI_Comm_rank(MPI_COMM_WORLD, &rank) );
 	MPI_Check( MPI_Cart_create(MPI_COMM_WORLD, 3, ranks, periods, 0, &cartComm) );
 
-	std::string xml = R"(<node mass="1.0" density="8.0">)";
-	pugi::xml_document config;
-	config.load_string(xml.c_str());
-
-	float3 length{4,4,4};
+	float3 length{80,70,55};
 	float3 domainStart = -length / 2.0f;
 	const float rc = 1.0f;
-	ParticleVector dpds("dpd");
+	ParticleVector dpds("dpd", 1.0f);
 	CellList* cells = new PrimaryCellList (&dpds, rc, length);
 
-	InitialConditions* ic = new UniformIC(config.child("node"));
+	InitialConditions* ic = new UniformIC(8.0);
 	ic->exec(MPI_COMM_WORLD, &dpds, {0,0,0}, length, 0);
 
 	const int initialNP = dpds.local()->size();
@@ -58,9 +53,9 @@ int main(int argc, char ** argv)
 	const float dt = 0.1;
 	for (int i=0; i<dpds.local()->size(); i++)
 	{
-		dpds.local()->coosvels[i].u.z = 5*(drand48() - 0.5);
-		dpds.local()->coosvels[i].u.y = 5*(drand48() - 0.5);
-		dpds.local()->coosvels[i].u.z = 5*(drand48() - 0.5);
+		dpds.local()->coosvels[i].u.x = 10*(drand48() - 0.5);
+		dpds.local()->coosvels[i].u.y = 10*(drand48() - 0.5);
+		dpds.local()->coosvels[i].u.z = 10*(drand48() - 0.5);
 
 		dpds.local()->coosvels[i].r += dt * dpds.local()->coosvels[i].u;
 
@@ -77,7 +72,9 @@ int main(int argc, char ** argv)
 	{
 		redist.init(0);
 		cudaStreamSynchronize(0);
-		redist.finalize();
+		redist.finalize(0);
+
+		dpds.redistValid = false;
 	}
 
 	std::vector<Particle> bufs[27];
@@ -128,8 +125,8 @@ int main(int argc, char ** argv)
 
 	for (int i = 0; i<27; i++)
 	{
-		if (bufs[i].size() != redist.helpers[0]->sendBufSizes[i])
-			printf("%2d-th redist differs in size: %5d, expected %5d\n", i, redist.helpers[0]->sendBufSizes[i], (int)bufs[i].size());
+		//if (bufs[i].size() != redist.helpers[0]->sendSizes[i])
+			printf("%2d-th redist differs in size: %5d, expected %5d\n", i, redist.helpers[0]->sendSizes[i], (int)bufs[i].size());
 
 		std::vector<Particle> got, reference;
 
@@ -144,17 +141,19 @@ int main(int argc, char ** argv)
 			return false;
 		};
 
+		auto& helper = redist.helpers[0];
 		std::sort(bufs[i].begin(), bufs[i].end(), cmp);
-		std::sort((Particle*)redist.helpers[0]->sendBufs[i].hostPtr(), ((Particle*)redist.helpers[0]->sendBufs[i].hostPtr()) + redist.helpers[0]->sendBufSizes[i], cmp);
+		std::sort((Particle*)helper->sendBuf.hostPtr() + helper->sendOffsets[i],
+				  (Particle*)helper->sendBuf.hostPtr() + helper->sendOffsets[i+1], cmp);
 
 		std::set_difference(bufs[i].begin(), bufs[i].end(),
-				(Particle*)redist.helpers[0]->sendBufs[i].hostPtr(), ((Particle*)redist.helpers[0]->sendBufs[i].hostPtr()) + redist.helpers[0]->sendBufSizes[i],
+				(Particle*)helper->sendBuf.hostPtr() + helper->sendOffsets[i], (Particle*)helper->sendBuf.hostPtr() + helper->sendOffsets[i+1],
 				std::inserter(reference, reference.begin()), cmp);
 
 		std::set_difference(
-					(Particle*)redist.helpers[0]->sendBufs[i].hostPtr(), ((Particle*)redist.helpers[0]->sendBufs[i].hostPtr()) + redist.helpers[0]->sendBufSizes[i],
-					bufs[i].begin(), bufs[i].end(),
-					std::inserter(got, got.begin()), cmp);
+				(Particle*)helper->sendBuf.hostPtr() + helper->sendOffsets[i], (Particle*)helper->sendBuf.hostPtr() + helper->sendOffsets[i+1],
+				bufs[i].begin(), bufs[i].end(),
+				std::inserter(got, got.begin()), cmp);
 
 		for (int pid = 0; pid < std::max(reference.size(), got.size()); pid++)
 		{

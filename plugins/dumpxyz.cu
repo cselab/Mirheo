@@ -95,7 +95,12 @@ void writeXYZ(MPI_Comm comm, std::string fname, Particle* particles, int np)
 
 XYZDumper::XYZDumper(std::string name, std::string path) :
 		PostprocessPlugin(name), path(path)
+{	}
+
+void XYZDumper::setup(const MPI_Comm& comm, const MPI_Comm& interComm)
 {
+	PostprocessPlugin::setup(comm, interComm);
+
 	int rank;
 	MPI_Check( MPI_Comm_rank(comm, &rank) );
 
@@ -115,7 +120,6 @@ XYZDumper::XYZDumper(std::string name, std::string path) :
 		}
 	}
 }
-
 
 void XYZDumper::deserialize(MPI_Status& stat)
 {

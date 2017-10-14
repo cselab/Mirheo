@@ -7,7 +7,7 @@
 #include <plugins/interface.h>
 
 uDeviceX::uDeviceX(int3 nranks3D, float3 globalDomainSize,
-		Logger& logger, std::string logFileName, int verbosity, bool noPostprocess) : noPostprocess(noPostprocess)
+		Logger& logger, std::string logFileName, int verbosity)
 {
 	int nranks, rank;
 
@@ -18,11 +18,16 @@ uDeviceX::uDeviceX(int3 nranks3D, float3 globalDomainSize,
 	else
 		logger.init(MPI_COMM_WORLD, logFileName+".log", verbosity);
 
+	MPI_Errhandler_set(MPI_COMM_WORLD, MPI_ERRORS_RETURN);
+
 	MPI_Check( MPI_Comm_size(MPI_COMM_WORLD, &nranks) );
 	MPI_Check( MPI_Comm_rank(MPI_COMM_WORLD, &rank) );
 
-	if (rank == 0)
-		sayHello();
+	if      (nranks3D.x * nranks3D.y * nranks3D.z     == nranks) noPostprocess = true;
+	else if (nranks3D.x * nranks3D.y * nranks3D.z * 2 == nranks) noPostprocess = false;
+	else die("Asked for %d x %d x %d processes, but provided %d", nranks3D.x, nranks3D.y, nranks3D.z, nranks);
+
+	if (rank == 0) sayHello();
 
 	MPI_Comm ioComm, compComm, interComm, splitComm;
 
@@ -34,9 +39,6 @@ uDeviceX::uDeviceX(int3 nranks3D, float3 globalDomainSize,
 		computeTask = 0;
 		return;
 	}
-
-	if (nranks % 2 != 0)
-		die("Number of MPI ranks should be even");
 
 	info("Program started, splitting communicator");
 

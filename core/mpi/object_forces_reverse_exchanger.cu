@@ -18,15 +18,13 @@ __device__ __forceinline__ void atomicAdd(float4* dest, float3 v)
 }
 
 // TODO: change id scheme
-__global__ void addHaloForces(const float4** recvForces, const int** origins, float4* forces, int* bufSizes)
+__global__ void addHaloForces(const float4* recvForces, const int* origins, float4* forces, int np)
 {
-	const int bufId = blockIdx.y;
 	const int srcId = blockIdx.x*blockDim.x + threadIdx.x;
-	if (srcId >= bufSizes[bufId]) return;
+	if (srcId >= np) return;
 
-	const int dstId = origins[bufId][srcId];
-
-	const Float3_int extraFrc( recvForces[bufId][srcId] );
+	const int dstId = origins[srcId];
+	Float3_int extraFrc( recvForces[srcId] );
 
 	atomicAdd(forces + dstId, extraFrc.v);
 }
@@ -56,21 +54,17 @@ void ObjectForcesReverseExchanger::prepareData(int id, cudaStream_t stream)
 
 	debug2("Preparing %s forces to sending back", ov->name.c_str());
 
-	for (int i=0; i<27; i++)
-		helper->sendBufSizes[i] = offsets[i+1] - offsets[i];
-	helper->resizeSendBufs();
+	for (int i=0; i < helper->nBuffers; i++)
+		helper->sendSizes[i] = offsets[i+1] - offsets[i];
 
-	for (int i=0; i<27; i++)
-	{
-		if (helper->sendBufSizes[i] > 0)
-			CUDA_Check( cudaMemcpyAsync( helper->sendBufs[i].devPtr(),
-										 ov->halo()->forces.devPtr() + offsets[i]*ov->objSize,
-										 helper->sendBufSizes[i]*sizeof(Force)*ov->objSize,
-										 cudaMemcpyDeviceToDevice, stream ) );
-	}
+	helper->makeSendOffsets();
+	helper->resizeSendBuf();
 
-	//FIXME hack
-	helper->sendBufSizes.uploadToDevice(stream);
+
+	CUDA_Check( cudaMemcpyAsync( helper->sendBuf.devPtr(),
+								 ov->halo()->forces.devPtr(),
+								 helper->sendBuf.size(), cudaMemcpyDeviceToDevice, stream ) );
+
 	debug2("Will send back forces for %d objects", offsets[27]);
 }
 
@@ -79,31 +73,19 @@ void ObjectForcesReverseExchanger::combineAndUploadData(int id, cudaStream_t str
 	auto ov = objects[id];
 	auto helper = helpers[id];
 
-	sizes.resize_anew(helper->recvOffsets.size());
-	int maximum = 0;
-	for (int i=0; i < helper->recvOffsets.size() - 1; i++)
-	{
-		helper->recvBufs[i].uploadToDevice(stream);
-		sizes[i] = (helper->recvOffsets[i+1] - helper->recvOffsets[i]) * ov->objSize;
-		maximum = max(sizes[i], maximum);
-	}
-	sizes.uploadToDevice(stream);
+	int totalRecvd = helper->recvOffsets[helper->nBuffers];
+	auto& origins = entangledHaloExchanger->getOrigins(id);
 
-	debug("Updating forces for %d %s objects", helper->recvOffsets[27], ov->name.c_str());
+	debug("Updating forces for %d %s objects", totalRecvd, ov->name.c_str());
 
-	int nthreads = 128;
-	dim3 blocks;
-
-	blocks.y = sizes.size();
-	blocks.x = getNblocks(maximum, nthreads);
-
+	const int nthreads = 128;
 	SAFE_KERNEL_LAUNCH(
 			addHaloForces,
-			blocks, nthreads, 0, stream,
-			(const float4**)helper->recvAddrs.devPtr(),                        /* source */
-			(const int**)entangledHaloExchanger->getOriginAddrs(id).devPtr(),  /* destination ids here */
-			(float4*)ov->local()->forces.devPtr(),                             /* add to */
-			sizes.devPtr() );
+			getNblocks(totalRecvd*ov->objSize, nthreads), nthreads, 0, stream,
+			(const float4*)helper->recvBuf.devPtr(),     /* source */
+			(const int*)origins.devPtr(),                /* destination ids here */
+			(float4*)ov->local()->forces.devPtr(),       /* add to */
+			totalRecvd*ov->objSize );
 }
 
 

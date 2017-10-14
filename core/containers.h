@@ -251,16 +251,18 @@ public:
 
 	inline void clear(cudaStream_t stream)
 	{
-		if (_size > 0)
-		{
-			CUDA_Check( cudaMemsetAsync(devptr, 0, sizeof(T) * _size, stream) );
-			memset(hostptr, 0, sizeof(T) * _size);
-		}
+		clearDevice(stream);
+		clearHost();
 	}
 
 	inline void clearDevice(cudaStream_t stream)
 	{
 		if (_size > 0) CUDA_Check( cudaMemsetAsync(devptr, 0, sizeof(T) * _size, stream) );
+	}
+
+	inline void clearHost()
+	{
+		if (_size > 0) memset(hostptr, 0, sizeof(T) * _size);
 	}
 
 	template<typename Cont>

@@ -106,7 +106,7 @@ public:
 	virtual void handshake() {};
 	virtual void talk() {};
 
-	void setup(const MPI_Comm& comm, const MPI_Comm& interComm)
+	virtual void setup(const MPI_Comm& comm, const MPI_Comm& interComm)
 	{
 		MPI_Check( MPI_Comm_dup(comm, &this->comm) );
 		this->interComm = interComm;

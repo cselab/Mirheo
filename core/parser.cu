@@ -547,11 +547,10 @@ uDeviceX* Parser::setup_uDeviceX(Logger& logger)
 	std::string logname = simNode.attribute("logfile").as_string(name.c_str());
 	float3 globalDomainSize = simNode.child("domain").attribute("size").as_float3({32, 32, 32});
 
-	int3 nranks3D  = simNode.attribute("mpi_ranks").as_int3({1, 1, 1});
-	bool noplugins = simNode.attribute("noplugins").as_bool(false);
-	int debugLvl   = simNode.attribute("debug_lvl").as_int(5);
+	int3 nranks3D = simNode.attribute("mpi_ranks").as_int3({1, 1, 1});
+	int debugLvl  = simNode.attribute("debug_lvl").as_int(5);
 
-	uDeviceX* udx = new uDeviceX(nranks3D, globalDomainSize, logger, logname, debugLvl, noplugins);
+	uDeviceX* udx = new uDeviceX(nranks3D, globalDomainSize, logger, logname, debugLvl);
 
 	if (udx->isComputeTask())
 	{

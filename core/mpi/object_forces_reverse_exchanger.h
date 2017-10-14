@@ -12,7 +12,10 @@ class ObjectForcesReverseExchanger : public ParticleExchanger
 protected:
 	std::vector<ObjectVector*> objects;
 	ObjectHaloExchanger* entangledHaloExchanger;
-	PinnedBuffer<int> sizes;
+
+	DeviceBuffer<char>   sortBuffer;
+	DeviceBuffer<float4> sortedForces;
+	DeviceBuffer<int>    sortedOrigins;
 
 	virtual void prepareData(int id, cudaStream_t stream);
 	virtual void combineAndUploadData(int id, cudaStream_t stream);

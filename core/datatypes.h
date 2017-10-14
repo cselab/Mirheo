@@ -50,7 +50,7 @@ struct __align__(16) Float3_int
 
 
 	// Methods
-	__host__ __device__ inline float4 toFloat4()
+	__host__ __device__ inline float4 toFloat4() const
 	{
 		float4 f = *((float4*)this);
 		return f;

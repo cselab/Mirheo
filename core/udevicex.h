@@ -22,7 +22,7 @@ public:
 	Postprocess* post;
 
 	uDeviceX(int3 nranks3D, float3 globalDomainSize,
-			Logger& logger, std::string logFileName, int verbosity=3, bool noPostprocess = false);
+			Logger& logger, std::string logFileName, int verbosity=3);
 
 	bool isComputeTask();
 	void registerJointPlugins(SimulationPlugin* simPl, PostprocessPlugin* postPl);

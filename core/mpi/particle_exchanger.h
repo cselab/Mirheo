@@ -7,28 +7,53 @@
 #include <vector>
 #include <string>
 
-struct ExchangeHelper
+
+struct BufferOffsetsSizesWrap
 {
+	int nBuffers;
+
+	char* buffer;
+	int *offsets, *sizes;
+};
+
+class ExchangeHelper
+{
+public:
 	int datumSize;
 	const int nBuffers = 27;
 
 	std::string name;
 
-	std::vector<int> recvBufSizes, recvOffsets;
-	std::vector<PinnedBuffer<char>> recvBufs;
-	PinnedBuffer<char*> recvAddrs;
+	PinnedBuffer<int>  recvSizes, recvOffsets;
+	PinnedBuffer<char> recvBuf;
 
-	PinnedBuffer<int> sendBufSizes;
-	std::vector<PinnedBuffer<char>> sendBufs;
-	PinnedBuffer<char*> sendAddrs;
+	PinnedBuffer<int>  sendSizes, sendOffsets;
+	PinnedBuffer<char> sendBuf;
 
 	std::vector<MPI_Request> requests;
 
 	ExchangeHelper(std::string name, const int datumSize = 0);
+	inline void setDatumSize(int size) { datumSize = size; }
 
-	void resizeSendBufs();
-	void resizeRecvBufs();
-	void setDatumSize(int size);
+	inline void makeRecvOffsets() { makeOffsets(recvSizes, recvOffsets); }
+	inline void makeSendOffsets() { makeOffsets(sendSizes, sendOffsets); }
+	inline void makeSendOffsets_Dev2Dev(cudaStream_t stream)
+	{
+		sendSizes.downloadFromDevice(stream);
+		makeSendOffsets();
+		sendOffsets.uploadToDevice(stream);
+	}
+
+	inline void resizeSendBuf() { sendBuf.resize_anew(sendOffsets[nBuffers] * datumSize); }
+	inline void resizeRecvBuf() { recvBuf.resize_anew(recvOffsets[nBuffers] * datumSize); }
+
+	inline BufferOffsetsSizesWrap wrapSendData()
+	{
+		return {nBuffers, sendBuf.devPtr(), sendOffsets.devPtr(), sendSizes.devPtr()};
+	}
+
+private:
+	void makeOffsets(const PinnedBuffer<int>& sz, PinnedBuffer<int>& of);
 };
 
 class ParticleExchanger

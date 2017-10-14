@@ -8,7 +8,7 @@
 #include <core/utils/cuda_common.h>
 
 template<bool QUERY>
-__global__ void getExitingObjects(const OVviewWithExtraData ovView, const ROVview rovView, char** dests, int* sendBufSizes /*, int* haloParticleIds*/)
+__global__ void getExitingObjects(const OVviewWithExtraData ovView, const ROVview rovView, BufferOffsetsSizesWrap dataWrap)
 {
 	const int objId = blockIdx.x;
 	const int tid = threadIdx.x;
@@ -41,7 +41,7 @@ __global__ void getExitingObjects(const OVviewWithExtraData ovView, const ROVvie
 
 	__syncthreads();
 	if (tid == 0)
-		shDstObjId = atomicAdd(sendBufSizes + bufId, 1);
+		shDstObjId = atomicAdd(dataWrap.sizes + bufId, 1);
 
 	if (QUERY)
 		return;
@@ -52,7 +52,7 @@ __global__ void getExitingObjects(const OVviewWithExtraData ovView, const ROVvie
 //		printf("REDIST  obj  %d  to redist  %d  [%f %f %f] - [%f %f %f]  %d %d %d\n", ovView.ids[objId], bufId,
 //				prop.low.x, prop.low.y, prop.low.z, prop.high.x, prop.high.y, prop.high.z, cx, cy, cz);
 
-	float4* dstAddr = (float4*) (dests[bufId]) + ovView.packedObjSize_byte/sizeof(float4) * shDstObjId;
+	float4* dstAddr = (float4*) ( dataWrap.buffer + ovView.packedObjSize_byte * (dataWrap.offsets[bufId] + shDstObjId) );
 
 	for (int pid = tid/2; pid < ovView.objSize; pid += blockDim.x/2)
 	{
@@ -116,10 +116,10 @@ void ObjectRedistributor::prepareData(int id, cudaStream_t stream)
 
 	debug2("Preparing %s halo on the device", ov->name.c_str());
 
-	helper->sendBufSizes.clear(stream);
+	helper->sendSizes.clear(stream);
 	if (ovView.nObjects > 0)
 	{
-		const int nthreads = 128;
+		const int nthreads = 256;
 
 		// FIXME: this is a hack
 		ROVview rovView(nullptr, nullptr);
@@ -130,26 +130,28 @@ void ObjectRedistributor::prepareData(int id, cudaStream_t stream)
 		SAFE_KERNEL_LAUNCH(
 				getExitingObjects<true>,
 				ovView.nObjects, nthreads, 0, stream,
-				ovView, rovView, helper->sendAddrs.devPtr(), helper->sendBufSizes.devPtr() );
+				ovView, rovView, helper->wrapSendData() );
 
-		helper->sendBufSizes.downloadFromDevice(stream);
-		helper->resizeSendBufs();
+		helper->makeSendOffsets_Dev2Dev(stream);
+		helper->resizeSendBuf();
 
-		helper->sendBufSizes.clearDevice(stream);
+		helper->sendSizes.clearDevice(stream);
 		SAFE_KERNEL_LAUNCH(
 				getExitingObjects<false>,
 				lov->nObjects, nthreads, 0, stream,
-				ovView, rovView, helper->sendAddrs.devPtr(), helper->sendBufSizes.devPtr() );
-
-		// Unpack the central buffer into the object vector itself
-		int nObjs = helper->sendBufSizes[13];
-		SAFE_KERNEL_LAUNCH(
-				unpackObject,
-				nObjs, nthreads, 0, stream,
-				(float4*)helper->sendBufs[13].devPtr(), 0, ovView );
-
-		lov->resize(helper->sendBufSizes[13]*ov->objSize, stream);
+				ovView, rovView, helper->wrapSendData() );
 	}
+
+	// Unpack the central buffer into the object vector itself
+	int nObjs = helper->sendSizes[13];
+	lov->resize_anew(nObjs*ov->objSize);
+	ovView = OVviewWithExtraData(ov, ov->local(), stream);
+
+	const int nthreads = 128;
+	SAFE_KERNEL_LAUNCH(
+			unpackObject,
+			nObjs, nthreads, 0, stream,
+			(float4*) (helper->sendBuf.devPtr() + helper->sendOffsets[13] * ovView.packedObjSize_byte), 0, ovView );
 }
 
 void ObjectRedistributor::combineAndUploadData(int id, cudaStream_t stream)
@@ -160,23 +162,16 @@ void ObjectRedistributor::combineAndUploadData(int id, cudaStream_t stream)
 	int oldNObjs = ov->local()->nObjects;
 	int objSize = ov->objSize;
 
-	int totalRecvd = helper->recvOffsets[27];
+	int totalRecvd = helper->recvOffsets[helper->nBuffers];
 
-	ov->local()->resize_anew(ov->local()->size() + totalRecvd * objSize);
+	ov->local()->resize(ov->local()->size() + totalRecvd * objSize, stream);
 	OVviewWithExtraData ovView(ov, ov->local(), stream);
 
-	// TODO: combine in one unpack call
 	const int nthreads = 128;
-	for (int i=0; i < 27; i++)
-	{
-		const int nObjs = helper->recvOffsets[i+1] - helper->recvOffsets[i];
-
-		helper->recvBufs[i].uploadToDevice(stream);
-		SAFE_KERNEL_LAUNCH(
-				unpackObject,
-				nObjs, nthreads, 0, stream,
-				(float4*)helper->recvBufs[i].devPtr(), oldNObjs+helper->recvOffsets[i], ovView );
-	}
+	SAFE_KERNEL_LAUNCH(
+			unpackObject,
+			totalRecvd, nthreads, 0, stream,
+			(float4*)helper->recvBuf.devPtr(), oldNObjs, ovView );
 
 	ov->redistValid = true;
 }

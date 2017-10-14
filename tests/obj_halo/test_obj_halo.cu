@@ -6,7 +6,6 @@
 #include <core/celllist.h>
 #include <core/mpi/api.h>
 #include <core/logger.h>
-#include <core/xml/pugixml.hpp>
 #include <core/containers.h>
 
 #include <array>
@@ -101,7 +100,6 @@ int main(int argc, char ** argv)
 
 	objs.localDomainSize = length;
 	objs.local()->coosvels.uploadToDevice(0);
-	objs.local()->particles2objIds.copy(p2obj, 0);
 
 	//CellList cells(&objs, rc, length + make_float3(radius));
 	//cells.makePrimary();
@@ -128,7 +126,6 @@ int main(int argc, char ** argv)
 	std::vector<Particle> bufs[27];
 	objs.local()->coosvels.downloadFromDevice(0);
 	objs.halo()->coosvels.downloadFromDevice(0);
-	p2obj.copy(objs.local()->particles2objIds, 0);
 
 	// =================================================================================================================
 

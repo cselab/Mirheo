@@ -9,7 +9,7 @@
 
 template<bool QUERY=false>
 __global__ void getObjectHalos(const OVviewWithExtraData ovView, const ROVview rovView,
-		const float rc, char** dests, int* sendBufSizes, int** haloParticleIds = nullptr)
+		const float rc, BufferOffsetsSizesWrap dataWrap, int* haloParticleIds = nullptr)
 {
 	const int objId = blockIdx.x;
 	const int tid = threadIdx.x;
@@ -62,7 +62,7 @@ __global__ void getObjectHalos(const OVviewWithExtraData ovView, const ROVview r
 
 		__syncthreads();
 		if (tid == 0)
-			shDstObjId = atomicAdd(sendBufSizes + bufId, 1);
+			shDstObjId = atomicAdd(dataWrap.sizes + bufId, 1);
 
 		if (QUERY)
 			continue;
@@ -72,7 +72,9 @@ __global__ void getObjectHalos(const OVviewWithExtraData ovView, const ROVview r
 //		if (tid == 0)
 //			printf("obj  %d  to halo  %d\n", objId, bufId);
 
-		float4* dstAddr = (float4*) (dests[bufId]) + ovView.packedObjSize_byte/sizeof(float4) * shDstObjId;
+		int myOffset = dataWrap.offsets[bufId] + shDstObjId;
+		float4* dstAddr = (float4*) ( dataWrap.buffer + ovView.packedObjSize_byte  * myOffset );
+		int* partIdsAddr = (int*)   ( haloParticleIds + ovView.objSize*sizeof(int) * myOffset );
 
 		for (int pid = tid/2; pid < ovView.objSize; pid += blockDim.x/2)
 		{
@@ -82,7 +84,7 @@ __global__ void getObjectHalos(const OVviewWithExtraData ovView, const ROVview r
 			// Remember your origin, little particle!
 			if (sh == 1)
 			{
-				haloParticleIds[bufId][shDstObjId * ovView.objSize + pid] = srcId;
+				partIdsAddr[pid] = srcId;
 
 				data.s2 = objId;
 				data.s1 = pid;
@@ -136,8 +138,7 @@ void ObjectHaloExchanger::attach(ObjectVector* ov, float rc)
 	ExchangeHelper* helper = new ExchangeHelper(ov->name);
 	helpers.push_back(helper);
 
-	ExchangeHelper* originHelper = new ExchangeHelper(ov->name, sizeof(int)*ov->objSize);
-	originHelpers.push_back(originHelper);
+	origins.push_back(new PinnedBuffer<int>(ov->local()->size()));
 
 	info("Object vector %s (rc %f) was attached to halo exchanger", ov->name.c_str(), rc);
 }
@@ -147,17 +148,17 @@ void ObjectHaloExchanger::prepareData(int id, cudaStream_t stream)
 	auto ov  = objects[id];
 	auto rc  = rcs[id];
 	auto helper = helpers[id];
-	auto originHelper = originHelpers[id];
+	auto origin = origins[id];
 
 	debug2("Preparing %s halo on the device", ov->name.c_str());
 
 	OVviewWithExtraData ovView(ov, ov->local(), stream);
 	helper->setDatumSize(ovView.packedObjSize_byte);
 
-	helper->sendBufSizes.clear(stream);
+	helper->sendSizes.clear(stream);
 	if (ovView.nObjects > 0)
 	{
-		const int nthreads = 128;
+		const int nthreads = 256;
 
 		// FIXME: this is a hack
 		ROVview rovView(nullptr, nullptr);
@@ -168,20 +169,19 @@ void ObjectHaloExchanger::prepareData(int id, cudaStream_t stream)
 		SAFE_KERNEL_LAUNCH(
 				getObjectHalos<true>,
 				ovView.nObjects, nthreads, 0, stream,
-				ovView, rovView, rc, helper->sendAddrs.devPtr(), helper->sendBufSizes.devPtr() );
+				ovView, rovView, rc, helper->wrapSendData() );
 
-		helper->sendBufSizes.downloadFromDevice(stream);
-		for (int i=0; i<helper->sendBufSizes.size(); i++)
-			originHelper->sendBufSizes[i] = helper->sendBufSizes[i];
+		helper->makeSendOffsets_Dev2Dev(stream);
+		helper->resizeSendBuf();
 
-		helper->resizeSendBufs();
-		originHelper->resizeSendBufs();
+		// 1 int per particle: #objects x objSize x int
+		origin->resize_anew(helper->sendOffsets[helper->nBuffers] * ovView.size * sizeof(int));
 
-		helper->sendBufSizes.clearDevice(stream);
+		helper->sendSizes.clearDevice(stream);
 		SAFE_KERNEL_LAUNCH(
 				getObjectHalos<false>,
 				ovView.nObjects, nthreads, 0, stream,
-				ovView, rovView, rc, helper->sendAddrs.devPtr(), helper->sendBufSizes.devPtr(), (int**)originHelper->sendAddrs.devPtr() );
+				ovView, rovView, rc, helper->wrapSendData(), origin->devPtr() );
 	}
 }
 
@@ -190,33 +190,28 @@ void ObjectHaloExchanger::combineAndUploadData(int id, cudaStream_t stream)
 	auto ov = objects[id];
 	auto helper = helpers[id];
 
-	ov->halo()->resize_anew(helper->recvOffsets[27] * ov->objSize);
+	int totalRecvd = helper->recvOffsets[helper->nBuffers];
+
+	ov->halo()->resize_anew(totalRecvd * ov->objSize);
 	OVviewWithExtraData ovView(ov, ov->halo(), stream);
 
-	// TODO: unite into one unpack call
 	const int nthreads = 128;
-	for (int i=0; i < 27; i++)
-	{
-		const int nObjs = helper->recvOffsets[i+1] - helper->recvOffsets[i];
-
-		helper->recvBufs[i].uploadToDevice(stream);
-		SAFE_KERNEL_LAUNCH(
-				unpackObject,
-				nObjs, nthreads, 0, stream,
-				(float4*)helper->recvBufs[i].devPtr(),  helper->recvOffsets[i], ovView );
-	}
+	SAFE_KERNEL_LAUNCH(
+			unpackObject,
+			totalRecvd, nthreads, 0, stream,
+			(float4*)helper->recvBuf.devPtr(), 0, ovView );
 
 	ov->haloValid = true;
 }
 
-std::vector<int>& ObjectHaloExchanger::getRecvOffsets(int id)
+PinnedBuffer<int>& ObjectHaloExchanger::getRecvOffsets(int id)
 {
 	return helpers[id]->recvOffsets;
 }
 
-PinnedBuffer<char*>& ObjectHaloExchanger::getOriginAddrs(int id)
+PinnedBuffer<int>& ObjectHaloExchanger::getOrigins(int id)
 {
-	return originHelpers[id]->sendAddrs;
+	return *origins[id];
 }
 
 

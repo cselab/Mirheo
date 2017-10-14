@@ -12,7 +12,7 @@ protected:
 	std::vector<float> rcs;
 	std::vector<ObjectVector*> objects;
 
-	std::vector<ExchangeHelper*> originHelpers;
+	std::vector<PinnedBuffer<int>*> origins;
 
 	void prepareData(int id, cudaStream_t stream) override;
 	void combineAndUploadData(int id, cudaStream_t stream) override;
@@ -23,8 +23,8 @@ public:
 
 	void attach(ObjectVector* ov, float rc);
 
-	std::vector<int>& getRecvOffsets(int id);
-	PinnedBuffer<char*>& getOriginAddrs(int id);
+	PinnedBuffer<int>& getRecvOffsets(int id);
+	PinnedBuffer<int>& getOrigins    (int id);
 
 	virtual ~ObjectHaloExchanger() = default;
 };

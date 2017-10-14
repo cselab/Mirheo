@@ -4,11 +4,12 @@
 
 #include <core/pvs/particle_vector.h>
 #include <core/celllist.h>
+#include <core/mpi/api.h>
 #include <core/logger.h>
-#include <core/xml/pugixml.hpp>
+
 #include <core/containers.h>
 
-#include <core/mpi/api.h>
+#include <core/initial_conditions/uniform.h>
 
 Logger logger;
 
@@ -38,42 +39,36 @@ int main(int argc, char ** argv)
 	MPI_Check( MPI_Comm_rank(MPI_COMM_WORLD, &rank) );
 	MPI_Check( MPI_Cart_create(MPI_COMM_WORLD, 3, ranks, periods, 0, &cartComm) );
 
-	std::string xml = R"(<node mass="1.0" density="2.0">)";
-	pugi::xml_document config;
-	config.load_string(xml.c_str());
-
-	float3 length{64,64,64};
+	float3 length{80,70,55};
 	float3 domainStart = -length / 2.0f;
 	const float rc = 1.0f;
-	ParticleVector dpds("dpd");
-	CellList cells(&dpds, rc, length);
-	cells.setStream(0);
-	cells.makePrimary();
+	ParticleVector dpds("dpd", 1.0f);
+	PrimaryCellList cells(&dpds, rc, length);
 
-	InitialConditions ic = createIC(config.child("node"));
-	ic.exec(MPI_COMM_WORLD, &dpds, {0,0,0}, length);
+	InitialConditions* ic = new UniformIC(8.0);
+	ic->exec(MPI_COMM_WORLD, &dpds, {0,0,0}, length, 0);
 
-	cells.build();
+	cells.build(0);
 
-	dpds.local()->coosvels.downloadFromDevice(true);
+	dpds.local()->coosvels.downloadFromDevice(0);
 
-	cudaStream_t defStream = 0;
-
-	ParticleHaloExchanger halo(cartComm, 0);
+	ParticleHaloExchanger halo(cartComm);
 	halo.attach(&dpds, &cells);
 
-	cells.build();
-	CUDA_Check( cudaStreamSynchronize(defStream) );
+	cells.build(0);
+	CUDA_Check( cudaStreamSynchronize(0) );
 
 	for (int i=0; i<10; i++)
 	{
-		halo.init();
-		halo.finalize();
+		halo.init(0);
+		halo.finalize(0);
+
+		dpds.haloValid = false;
 	}
 
 	std::vector<Particle> bufs[27];
-	dpds.local()->coosvels.downloadFromDevice(true);
-	dpds.halo()->coosvels.downloadFromDevice(true);
+	dpds.local()->coosvels.downloadFromDevice(0);
+	dpds.halo()->coosvels.downloadFromDevice(0);
 
 	for (int i=0; i<dpds.local()->size(); i++)
 	{
@@ -119,19 +114,22 @@ int main(int argc, char ** argv)
 		if (cx == ncells.x-1 && cy == ncells.y-1 && cz == ncells.z-1) bufs[ (2*3 + 2)*3 + 2 ].push_back(addShift(p, -length.x, -length.y, -length.z));
 	}
 
+	auto& helper = halo.helpers[0];
+
 	for (int i = 0; i<27; i++)
 	{
 		std::sort(bufs[i].begin(), bufs[i].end(), [] (Particle& a, Particle& b) { return a.i1 < b.i1; });
 
-		std::sort((Particle*)halo.helpers[0]->sendBufs[i].hostPtr(), ((Particle*)halo.helpers[0]->sendBufs[i].hostPtr()) + halo.helpers[0]->sendBufSizes[i],
-				[] (Particle& a, Particle& b) { return a.i1 < b.i1; });
+		std::sort((Particle*)helper->sendBuf.hostPtr() + helper->sendOffsets[i],
+				  (Particle*)helper->sendBuf.hostPtr() + helper->sendOffsets[i+1], [] (Particle& a, Particle& b) { return a.i1 < b.i1; });
 
-		if (bufs[i].size() != halo.helpers[0]->sendBufSizes[i])
-			printf("%2d-th halo differs in size: %5d, expected %5d\n", i, halo.helpers[0]->sendBufSizes[i], (int)bufs[i].size());
-		else
+
+		//if (bufs[i].size() != helper->sendSizes[i])
+			printf("%2d-th halo differs in size: %5d, expected %5d\n", i, helper->sendSizes[i], (int)bufs[i].size());
+		//else
 		{
-			auto ptr = (Particle*)halo.helpers[0]->sendBufs[i].hostPtr();
-			for (int pid = 0; pid < halo.helpers[0]->sendBufSizes[i]; pid++)
+			auto ptr = (Particle*)helper->sendBuf.hostPtr() + helper->sendOffsets[i];
+			for (int pid = 0; pid < helper->sendSizes[i]; pid++)
 			{
 				const float diff = std::max({
 					fabs(ptr[pid].r.x - bufs[i][pid].r.x),
