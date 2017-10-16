@@ -24,6 +24,8 @@ public:
 
 	void check(cudaStream_t stream) override;
 
+	InsideWallChecker& getChecker() { return insideWallChecker; }
+
 private:
 	MPI_Comm wallComm;
 

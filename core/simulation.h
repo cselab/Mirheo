@@ -29,6 +29,37 @@ public:
 	int3 nranks3D;
 	float3 globalDomainSize, globalDomainStart, localDomainSize;
 
+	Simulation(int3 nranks3D, float3 globalDomainSize, const MPI_Comm& comm, const MPI_Comm& interComm);
+
+	void registerParticleVector(ParticleVector* pv, InitialConditions* ic);
+	void registerWall          (Wall* wall);
+	void registerInteraction   (Interaction* interaction);
+	void registerIntegrator    (Integrator*  integrator);
+	void registerBouncer       (Bouncer*     integrator);
+
+	void setIntegrator (std::string integratorName,  std::string pvName);
+	void setInteraction(std::string interactionName, std::string pv1Name, std::string pv2Name);
+	void setBouncer    (std::string bouncerName,     std::string objName, std::string pvName);
+	void setWallBounce (std::string wallName,        std::string pvName, int check);
+
+	void registerPlugin(SimulationPlugin* plugin);
+
+	void init();
+	void run(int nsteps);
+	void createWalls();
+	void finalize();
+
+
+	const std::vector<ParticleVector*>& getParticleVectors() const { return particleVectors; }
+
+	ParticleVector* getPVbyName(std::string name) const
+	{
+		auto pvIt = pvIdMap.find(name);
+		return (pvIt != pvIdMap.end()) ? particleVectors[pvIt->second] : nullptr;
+	}
+
+	MPI_Comm getCartComm() const { return cartComm; }
+
 private:
 	const float rcTolerance = 1e-5;
 
@@ -79,38 +110,6 @@ private:
 	void prepareWalls();
 
 	void assemble();
-
-public:
-	Simulation(int3 nranks3D, float3 globalDomainSize, const MPI_Comm& comm, const MPI_Comm& interComm);
-
-	void registerParticleVector(ParticleVector* pv, InitialConditions* ic);
-	void registerWall          (Wall* wall);
-	void registerInteraction   (Interaction* interaction);
-	void registerIntegrator    (Integrator*  integrator);
-	void registerBouncer       (Bouncer*     integrator);
-
-	void setIntegrator (std::string integratorName,  std::string pvName);
-	void setInteraction(std::string interactionName, std::string pv1Name, std::string pv2Name);
-	void setBouncer    (std::string bouncerName,     std::string objName, std::string pvName);
-	void setWallBounce (std::string wallName,        std::string pvName, int check);
-
-	void registerPlugin(SimulationPlugin* plugin);
-
-	void init();
-	void run(int nsteps);
-	void createWalls();
-	void finalize();
-
-
-	const std::vector<ParticleVector*>& getParticleVectors() const { return particleVectors; }
-
-	ParticleVector* getPVbyName(std::string name) const
-	{
-		auto pvIt = pvIdMap.find(name);
-		return (pvIt != pvIdMap.end()) ? particleVectors[pvIt->second] : nullptr;
-	}
-
-	MPI_Comm getCartComm() const { return cartComm; }
 };
 
 

@@ -2,44 +2,38 @@
 
 #include <core/logger.h>
 #include <core/pvs/particle_vector.h>
-#include <core/walls/sdf_wall.h>
 #include <core/utils/cuda_common.h>
 #include <core/utils/kernel_launch.h>
-#include <core/walls/sdf_kernels.h>
+
+#include <core/walls/simple_stationary_wall.h>
+
+#include <core/walls/stationary_walls/cylinder.h>
+#include <core/walls/stationary_walls/sphere.h>
+#include <core/walls/stationary_walls/sdf.h>
 
 
-__global__ void countFrozen(PVview view, SDFWall::SdfInfo sdfInfo, float minSdf, float maxSdf, int* nFrozen)
+template<bool QUERY, typename InsideWallChecker>
+__global__ void collectFrozen(PVview view, float minVal, float maxVal, float4* frozen, int* nFrozen, InsideWallChecker checker)
 {
 	const int pid = blockIdx.x * blockDim.x + threadIdx.x;
 	if (pid >= view.size) return;
 
-	const float4 coo = view.particles[2*pid];
-	const float sdf = evalSdf(coo, sdfInfo);
+	Particle p(view.particles, pid);
+	p.u = make_float3(0);
 
-	if (sdf > minSdf && sdf < maxSdf)
-		atomicAggInc(nFrozen);
-}
+	const float val = checker(view, p.r);
 
-__global__ void collectFrozen(PVview view, SDFWall::SdfInfo sdfInfo, float minSdf, float maxSdf,
-		float4* frozen, int* nFrozen)
-{
-	const int pid = blockIdx.x * blockDim.x + threadIdx.x;
-	if (pid >= view.size) return;
-
-	const float4 coo = view.particles[2*pid];
-	const float4 vel = view.particles[2*pid+1];
-
-	const float sdf = evalSdf(coo, sdfInfo);
-
-	if (sdf > minSdf && sdf < maxSdf)
+	if (val > minVal && val < maxVal)
 	{
 		const int ind = atomicAggInc(nFrozen);
-		frozen[2*ind] = coo;
-		frozen[2*ind + 1] = make_float4(0.0f, 0.0f, 0.0f, vel.w);
+
+		if (!QUERY)
+			p.write2Float4(frozen, ind);
 	}
 }
 
-void freezeParticlesInWall(SDFWall* wall, ParticleVector* pv, ParticleVector* frozen, float minSdf, float maxSdf)
+template<typename InsideWallChecker>
+void freezeParticlesInWall(const InsideWallChecker& checker, ParticleVector* pv, ParticleVector* frozen, float minVal, float maxVal)
 {
 	CUDA_Check( cudaDeviceSynchronize() );
 
@@ -50,9 +44,10 @@ void freezeParticlesInWall(SDFWall* wall, ParticleVector* pv, ParticleVector* fr
 	const int nblocks = getNblocks(view.size, nthreads);
 
 	nFrozen.clear(0);
-	SAFE_KERNEL_LAUNCH( countFrozen,
-			nblocks, nthreads, 0, 0,
-			view, wall->sdfInfo, minSdf, maxSdf, nFrozen.devPtr());
+	SAFE_KERNEL_LAUNCH(collectFrozen<true>,
+				nblocks, nthreads, 0, 0,
+				view, minVal, maxVal,
+				(float4*)frozen->local()->coosvels.devPtr(), nFrozen.devPtr(), checker.handler());
 
 	nFrozen.downloadFromDevice(0);
 
@@ -64,11 +59,33 @@ void freezeParticlesInWall(SDFWall* wall, ParticleVector* pv, ParticleVector* fr
 	debug("Freezing %d particles", nFrozen[0]);
 
 	nFrozen.clear(0);
-	SAFE_KERNEL_LAUNCH(collectFrozen,
+	SAFE_KERNEL_LAUNCH(collectFrozen<false>,
 			nblocks, nthreads, 0, 0,
-			view, wall->sdfInfo, minSdf, maxSdf,
-			(float4*)frozen->local()->coosvels.devPtr(), nFrozen.devPtr());
+			view, minVal, maxVal,
+			(float4*)frozen->local()->coosvels.devPtr(), nFrozen.devPtr(), checker.handler());
 	nFrozen.downloadFromDevice(0);
 
 	CUDA_Check( cudaDeviceSynchronize() );
 }
+
+void freezeParticlesWrapper(Wall* wall, ParticleVector* pv, ParticleVector* frozen, float minVal, float maxVal)
+{
+	{
+		SimpleStationaryWall<StationaryWall_Cylinder>* w;
+		if ( (w = dynamic_cast< SimpleStationaryWall<StationaryWall_Cylinder>* >(wall)) != nullptr)
+			freezeParticlesInWall<StationaryWall_Cylinder> (w->getChecker(), pv, frozen, minVal, maxVal);
+	}
+
+	{
+		SimpleStationaryWall<StationaryWall_Sphere>* w;
+		if ( (w = dynamic_cast< SimpleStationaryWall<StationaryWall_Sphere>* >(wall)) != nullptr)
+			freezeParticlesInWall<StationaryWall_Sphere> (w->getChecker(), pv, frozen, minVal, maxVal);
+	}
+
+	{
+		SimpleStationaryWall<StationaryWall_SDF>* w;
+		if ( (w = dynamic_cast< SimpleStationaryWall<StationaryWall_SDF>* >(wall)) != nullptr)
+			freezeParticlesInWall<StationaryWall_SDF> (w->getChecker(), pv, frozen, minVal, maxVal);
+	}
+}
+

@@ -23,7 +23,7 @@ public:
 
 	void setup(MPI_Comm& comm, float3 globalDomainSize, float3 globalDomainStart, float3 localDomainSize) {}
 
-	StationaryWall_Cylinder& handler() { return *this; };
+	const StationaryWall_Cylinder& handler() const { return *this; }
 
 	__device__ __forceinline__ float operator()(const PVview view, float3 coo) const
 	{

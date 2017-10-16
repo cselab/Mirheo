@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <simulation name="poiseuille" logfile="log" mpi_ranks="1 1 1" debug_lvl="1">
 
-	<domain size="24 24 24" />
+	<domain size="32 32 32" />
 	
 	<particle_vector type="regular" name="dpd" mass="1">
 		<generate type="uniform" density="10" />

@@ -152,6 +152,22 @@ void ObjectRedistributor::prepareData(int id, cudaStream_t stream)
 			unpackObject,
 			nObjs, nthreads, 0, stream,
 			(float4*) (helper->sendBuf.devPtr() + helper->sendOffsets[13] * ovView.packedObjSize_byte), 0, ovView );
+
+	// Finally need to compact the buffers
+	// TODO: remove this, own buffer should be last
+//	if (helper->sendSizes[13] > 0)
+//	{
+//		int oldOffset14 = helper->sendOffsets[14]; // 14 !!
+//		helper->sendSizes[13] = 0;
+//		helper->makeSendOffsets();
+//		CUDA_Check( cudaMemcpyAsync(
+//				helper->sendBuf.devPtr() + helper->sendOffsets[13],
+//				helper->sendBuf.devPtr() + oldOffset14,            /* 14 !! */
+//				(helper->sendOffsets[helper->nBuffers] - helper->sendOffsets[14]) * helper->datumSize,
+//				cudaMemcpyDeviceToDevice, stream));
+//
+//		helper->resizeSendBuf();
+//	}
 }
 
 void ObjectRedistributor::combineAndUploadData(int id, cudaStream_t stream)

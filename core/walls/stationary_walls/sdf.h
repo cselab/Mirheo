@@ -49,7 +49,7 @@ public:
 
 
 	StationaryWall_SDF(StationaryWall_SDF&&) = default;
-	StationaryWall_SDF_Handler& handler() { return *(StationaryWall_SDF_Handler*)this; };
+	const StationaryWall_SDF_Handler& handler() const { return *(StationaryWall_SDF_Handler*)this; }
 
 private:
 

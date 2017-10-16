@@ -3,9 +3,8 @@
 #include <core/utils/kernel_launch.h>
 #include <core/utils/cuda_common.h>
 #include <core/celllist.h>
-#include <core/walls/sdf_wall.h>
 #include <core/utils/cuda_rng.h>
-#include <core/walls/sdf_kernels.h>
+
 
 #include "pairwise_kernels.h"
 
@@ -46,7 +45,7 @@ __device__ __forceinline__ float E_DPD(
 
 template<typename Potential>
 __device__ __forceinline__ float E_inCell(Particle p, int id, int3 cell,
-		Particle* particles, CellListInfo cinfo,
+		float4* particles, CellListInfo cinfo,
 		const float rc2, Potential potential)
 {
 	float E = 0.0f;
@@ -60,7 +59,7 @@ __device__ __forceinline__ float E_inCell(Particle p, int id, int3 cell,
 
 				for (int othId = pstart; othId < pend; othId++)
 				{
-					Particle othP = particles[othId];
+					Particle othP(particles, othId);
 
 					bool interacting = distance2(p.r, othP.r) < rc2;
 
@@ -72,12 +71,12 @@ __device__ __forceinline__ float E_inCell(Particle p, int id, int3 cell,
 	return E;
 }
 
-template<typename Potential>
+template<typename Potential, typename InsideWallChecker>
 __global__ void mcmcSample(int3 shift,
-		Particle* particles, const int np, CellListInfo cinfo,
+		PVview view, CellListInfo cinfo,
 		const float rc, const float rc2, const float p, const float kbT, const float seed,
-		SDFWall::SdfInfo sdfInfo, const float minSdf, const float maxSdf,
-		const float proposalFactor, int* nAccepted, int* nRejected, Potential potential)
+		const float minVal, const float maxVal,
+		const float proposalFactor, int* nAccepted, int* nRejected, Potential potential, InsideWallChecker checker)
 {
 	const uint3 uint3_blockDim{blockDim.x, blockDim.y, blockDim.z};
 	const int3 cell0 = make_int3(blockIdx * uint3_blockDim + threadIdx) * make_int3(3) + shift;
@@ -100,7 +99,7 @@ __global__ void mcmcSample(int3 shift,
 
 		// Choose one random particle
 		int pid = pstart + floorf(rnd0 * pend-pstart);
-		Particle p0 = particles[pid];
+		Particle p0(view.particles, pid);
 
 		// Just not the one initially in halo
 		if (p0.i2 == 424242) continue;
@@ -111,9 +110,9 @@ __global__ void mcmcSample(int3 shift,
 		int3 cell_new = cinfo.getCellIdAlongAxes(pnew.r);
 
 		// Reject if the particle left sdf-bounded domain
-		const float sdf = evalSdf(p0.r, sdfInfo);
-		const float sdf_new = evalSdf(pnew.r, sdfInfo);
-		if (sdf_new <= minSdf || sdf_new >= maxSdf)
+		const float val = checker(p0.r, view);
+		const float val_new = checker(pnew.r, view);
+		if (val_new <= minVal || val_new >= maxVal)
 		{
 			atomicAggInc(nRejected);
 			return;
@@ -122,13 +121,13 @@ __global__ void mcmcSample(int3 shift,
 		// !!! COMPILER FUCKING ERROR SHISHISHI
 		// LAMBDA KILLS NVCCCCCC !!1
 
-		float E0   = E_inCell(p0,   pid, cell0,    particles, cinfo, rc2, potential);
-		float Enew = E_inCell(pnew, pid, cell_new, particles, cinfo, rc2, potential);
+		float E0   = E_inCell(p0,   pid, cell0,    view.particles, cinfo, rc2, potential);
+		float Enew = E_inCell(pnew, pid, cell_new, view.particles, cinfo, rc2, potential);
 
 		float kbT_mod = kbT;
 		float dist2bound = min(
-				min(sdf - minSdf, maxSdf - sdf),
-				min(sdf_new - minSdf, maxSdf - sdf_new) );
+				min(val - minVal, maxVal - val),
+				min(val_new - minVal, maxVal - val_new) );
 		if (dist2bound < rc)
 			kbT_mod /= dist2bound;
 
@@ -138,7 +137,7 @@ __global__ void mcmcSample(int3 shift,
 		if ( dE <= 0 || (dE > 0 && rnd4 < expf(-dE/kbT_mod)) )
 		{
 			atomicAggInc<3>(nAccepted);
-			particles[pid] = pnew;
+			pnew.write2Float4(view.particles, pid);
 		}
 		else
 		{
@@ -173,9 +172,14 @@ __global__ void writeBackLocal(Particle* srcs, int nSrc, Particle* dsts, int* nD
 }
 
 
-MCMCSampler::MCMCSampler(std::string name, float rc, float a, float kbT, float power,SDFWall* wall, float minSdf, float maxSdf) :
+template<class InsideWallChecker>
+MCMCSampler<InsideWallChecker>::MCMCSampler(std::string name,
+		float rc, float a, float kbT, float power,
+		float minVal, float maxVal, const InsideWallChecker& insideWallChecker) :
+
 		Interaction(name, rc), a(a), kbT(kbT), power(power),
-		nAccepted(1), nRejected(1), nDst(1), totE(1), wall(wall), minSdf(minSdf), maxSdf(maxSdf)
+		nAccepted(1), nRejected(1), nDst(1), totE(1),
+		insideWallChecker(insideWallChecker), minVal(minVal), maxVal(maxVal)
 {
 	combined = new ParticleVector("combined", 1.0);
 	combinedCL = nullptr;
@@ -183,7 +187,12 @@ MCMCSampler::MCMCSampler(std::string name, float rc, float a, float kbT, float p
 	proposalFactor = 0.2f*rc;
 }
 
-void MCMCSampler::_compute(InteractionType type, ParticleVector* pv1, ParticleVector* pv2, CellList* cl1, CellList* cl2, const float t, cudaStream_t stream)
+template<class InsideWallChecker>
+void MCMCSampler<InsideWallChecker>::_compute(
+		InteractionType type,
+		ParticleVector* pv1, ParticleVector* pv2,
+		CellList* cl1, CellList* cl2,
+		const float t, cudaStream_t stream)
 {
 	const int nthreads = 128;
 
@@ -208,7 +217,7 @@ void MCMCSampler::_compute(InteractionType type, ParticleVector* pv1, ParticleVe
 	int nLocal = pv->local()->size();
 	int nHalo  = pv->halo()->size();
 	combined->local()->resize(nLocal + nHalo, stream);
-	combined->local()->changedStamp++;
+	combined->haloValid = combined->redistValid = combined->celllistValid = false;
 
 	CUDA_Check( cudaMemcpyAsync(combined->local()->coosvels.devPtr(), pv->halo()->coosvels.devPtr(),
 			nHalo * sizeof(Particle), cudaMemcpyDeviceToDevice, stream) );
@@ -253,10 +262,10 @@ void MCMCSampler::_compute(InteractionType type, ParticleVector* pv1, ParticleVe
 						mcmcSample,
 						blocks3, threads3, 0, stream,
 						shift,
-						combinedCL->particles->devPtr(), nLocal+nHalo, combinedCL->cellInfo(),
+						PVview(combined, combined->local()), combinedCL->cellInfo(),
 						rc, rc2, power, kbT, drand48(),
-						wall->sdfInfo, minSdf, maxSdf,
-						proposalFactor, nAccepted.devPtr(), nRejected.devPtr(), potential );
+						minVal, maxVal,
+						proposalFactor, nAccepted.devPtr(), nRejected.devPtr(), potential, insideWallChecker );
 
 				cudaDeviceSynchronize();
 			}
@@ -298,6 +307,6 @@ void MCMCSampler::_compute(InteractionType type, ParticleVector* pv1, ParticleVe
 			combinedCL->particles->devPtr(), nLocal+nHalo, pv->local()->coosvels.devPtr(), nDst.devPtr() );
 
 	// Mark pv as changed and rebuild cell-lists as the particles may have moved significantly
-	pv->local()->changedStamp++;
+	pv->haloValid = pv->redistValid = pv->celllistValid = false;
 	cl1->build(stream);
 }

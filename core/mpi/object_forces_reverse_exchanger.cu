@@ -9,12 +9,14 @@
 #include <core/utils/cuda_common.h>
 
 
-__device__ __forceinline__ void atomicAdd(float4* dest, float3 v)
+__device__ __forceinline__ void atomicAddNonZero(float4* dest, float3 v)
 {
+	const float tol = 1e-7;
+
 	float* fdest = (float*)dest;
-	atomicAdd(fdest,     v.x);
-	atomicAdd(fdest + 1, v.y);
-	atomicAdd(fdest + 2, v.z);
+	if (fabs(v.x) > tol) atomicAdd(fdest,     v.x);
+	if (fabs(v.y) > tol) atomicAdd(fdest + 1, v.y);
+	if (fabs(v.z) > tol) atomicAdd(fdest + 2, v.z);
 }
 
 // TODO: change id scheme
@@ -26,7 +28,7 @@ __global__ void addHaloForces(const float4* recvForces, const int* origins, floa
 	const int dstId = origins[srcId];
 	Float3_int extraFrc( recvForces[srcId] );
 
-	atomicAdd(forces + dstId, extraFrc.v);
+	atomicAddNonZero(forces + dstId, extraFrc.v);
 }
 
 //===============================================================================================
