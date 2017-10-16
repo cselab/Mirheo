@@ -15,7 +15,7 @@
 		<generate_frozen name="frozen" path="restart" mass="1.0" density="8" a="2.6666667" kbt="0.05" rc="1.0" power="0.5" />
 		<apply_to pv="dpd" check="true" />
 	</wall> -->
-	<wall type="cylinder" name="wall" center="32 32" radius="10" axis="z">
+	<wall type="cylinder" name="wall" center="32 32" radius="5" axis="z">
 		<generate_frozen name="frozen" path="restart" mass="1.0" density="8" a="2.6666667" kbt="0.05" rc="1.0" power="0.5" />
 		<apply_to pv="dpd" check_every="10" />
 	</wall>

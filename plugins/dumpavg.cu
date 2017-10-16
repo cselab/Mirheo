@@ -63,8 +63,8 @@ void Avg3DPlugin::setup(Simulation* sim, const MPI_Comm& comm, const MPI_Comm& i
 	SimulationPlugin::setup(sim, comm, interComm);
 
 	// TODO: this should be reworked if the domains are allowed to have different size
-	resolution = make_int3( floorf(sim->localDomainSize / binSize) );
-	binSize = sim->localDomainSize / make_float3(resolution);
+	resolution = make_int3( floorf(sim->domain.localSize / binSize) );
+	binSize = sim->domain.localSize / make_float3(resolution);
 
 	const int total = resolution.x * resolution.y * resolution.z;
 	if (needDensity)  density .resize(total, 0);

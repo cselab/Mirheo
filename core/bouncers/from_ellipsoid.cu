@@ -14,7 +14,7 @@
 
 #include <core/rigid_kernels/bounce.h>
 
-void BounceFromRigidEllipsoid::exec(ObjectVector* ov, ParticleVector* pv, CellList* cl, float dt, cudaStream_t stream, bool local)
+void BounceFromRigidEllipsoid::exec(ParticleVector* pv, CellList* cl, float dt, cudaStream_t stream, bool local)
 {
 	auto reov = dynamic_cast<RigidEllipsoidObjectVector*>(ov);
 	if (reov == nullptr)

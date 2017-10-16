@@ -71,20 +71,20 @@ void freezeParticlesInWall(const InsideWallChecker& checker, ParticleVector* pv,
 void freezeParticlesWrapper(Wall* wall, ParticleVector* pv, ParticleVector* frozen, float minVal, float maxVal)
 {
 	{
-		SimpleStationaryWall<StationaryWall_Cylinder>* w;
-		if ( (w = dynamic_cast< SimpleStationaryWall<StationaryWall_Cylinder>* >(wall)) != nullptr)
+		auto w = dynamic_cast< SimpleStationaryWall<StationaryWall_Cylinder>* >(wall);
+		if (w != nullptr)
 			freezeParticlesInWall<StationaryWall_Cylinder> (w->getChecker(), pv, frozen, minVal, maxVal);
 	}
 
 	{
-		SimpleStationaryWall<StationaryWall_Sphere>* w;
-		if ( (w = dynamic_cast< SimpleStationaryWall<StationaryWall_Sphere>* >(wall)) != nullptr)
+		auto w = dynamic_cast< SimpleStationaryWall<StationaryWall_Sphere>* >(wall);
+		if (w != nullptr)
 			freezeParticlesInWall<StationaryWall_Sphere> (w->getChecker(), pv, frozen, minVal, maxVal);
 	}
 
 	{
-		SimpleStationaryWall<StationaryWall_SDF>* w;
-		if ( (w = dynamic_cast< SimpleStationaryWall<StationaryWall_SDF>* >(wall)) != nullptr)
+		auto w = dynamic_cast< SimpleStationaryWall<StationaryWall_SDF>* >(wall);
+		if (w != nullptr)
 			freezeParticlesInWall<StationaryWall_SDF> (w->getChecker(), pv, frozen, minVal, maxVal);
 	}
 }

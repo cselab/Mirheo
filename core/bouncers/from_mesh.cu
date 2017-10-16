@@ -16,7 +16,7 @@
  *
  * Lastly resolve the collisions, choosing the first one in time for the same Pid
  */
-void BounceFromMesh::exec(ObjectVector* ov, ParticleVector* pv, CellList* cl, float dt, cudaStream_t stream, bool local)
+void BounceFromMesh::exec(ParticleVector* pv, CellList* cl, float dt, cudaStream_t stream, bool local)
 {
 	debug("Bouncing %s particles from %s objects", pv->name.c_str(), ov->name.c_str());
 	auto activeOV = local ? ov->local() : ov->halo();

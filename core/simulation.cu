@@ -3,7 +3,7 @@
 #include <algorithm>
 
 Simulation::Simulation(int3 nranks3D, float3 globalDomainSize, const MPI_Comm& comm, const MPI_Comm& interComm) :
-nranks3D(nranks3D), globalDomainSize(globalDomainSize), interComm(interComm), currentTime(0), currentStep(0)
+nranks3D(nranks3D), interComm(interComm), currentTime(0), currentStep(0)
 {
 	int ranksArr[] = {nranks3D.x, nranks3D.y, nranks3D.z};
 	int periods[] = {1, 1, 1};
@@ -14,8 +14,9 @@ nranks3D(nranks3D), globalDomainSize(globalDomainSize), interComm(interComm), cu
 	MPI_Check( MPI_Cart_get(cartComm, 3, ranksArr, periods, coords) );
 	rank3D = {coords[0], coords[1], coords[2]};
 
-	localDomainSize = globalDomainSize / make_float3(nranks3D);
-	globalDomainStart = {localDomainSize.x * coords[0], localDomainSize.y * coords[1], localDomainSize.z * coords[2]};
+	domain.globalSize = globalDomainSize;
+	domain.localSize = domain.globalSize / make_float3(nranks3D);
+	domain.globalStart = {domain.localSize.x * coords[0], domain.localSize.y * coords[1], domain.localSize.z * coords[2]};
 
 //	restartFolder  = "./restart/";
 //	std::string command = "mkdir -p " + restartFolder;
@@ -29,8 +30,8 @@ nranks3D(nranks3D), globalDomainSize(globalDomainSize), interComm(interComm), cu
 //	}
 
 	info("Simulation initialized, subdomain size is [%f %f %f], subdomain starts at [%f %f %f]",
-			localDomainSize.x,  localDomainSize.y,  localDomainSize.z,
-			globalDomainStart.x, globalDomainStart.y, globalDomainStart.z);
+			domain.localSize.x,  domain.localSize.y,  domain.localSize.z,
+			domain.globalStart.x, domain.globalStart.y, domain.globalStart.z);
 }
 
 //================================================================================================
@@ -50,7 +51,7 @@ void Simulation::registerParticleVector(ParticleVector* pv, InitialConditions* i
 		die("More than one particle vector is called %s", name.c_str());
 
 	pvIdMap[name] = particleVectors.size() - 1;
-	ic->exec(cartComm, pv, globalDomainStart, localDomainSize, 0);
+	ic->exec(cartComm, pv, domain.globalStart, domain.localSize, 0);
 }
 
 void Simulation::registerWall(Wall* wall)
@@ -61,7 +62,7 @@ void Simulation::registerWall(Wall* wall)
 		die("More than one wall is called %s", name.c_str());
 
 	wallMap[name] = wall;
-	wall->setup(cartComm, globalDomainSize, globalDomainStart, localDomainSize);
+	wall->setup(cartComm, domain.globalSize, domain.globalStart, domain.localSize);
 }
 
 void Simulation::registerInteraction(Interaction* interaction)
@@ -153,7 +154,8 @@ void Simulation::setBouncer(std::string bouncerName, std::string objName, std::s
 		die("No such bouncer: %s", bouncerName.c_str());
 	auto bouncer = bouncerMap[bouncerName];
 
-	bouncerPrototypes.push_back(std::make_tuple(bouncer, ov, pv));
+	bouncer->setup(ov);
+	bouncerPrototypes.push_back(std::make_tuple(bouncer, pv));
 }
 
 void Simulation::setWallBounce(std::string wallName, std::string pvName, int check)
@@ -200,8 +202,8 @@ void Simulation::prepareCellLists()
 		for (auto rc : cutoffs.second)
 		{
 			cellListMap[cutoffs.first].push_back(primary ?
-					new PrimaryCellList(cutoffs.first, rc, localDomainSize) :
-					new CellList       (cutoffs.first, rc, localDomainSize));
+					new PrimaryCellList(cutoffs.first, rc, domain.localSize) :
+					new CellList       (cutoffs.first, rc, domain.localSize));
 			primary = false;
 		}
 	}
@@ -249,8 +251,7 @@ void Simulation::prepareBouncers()
 	for (auto prototype : bouncerPrototypes)
 	{
 		auto bouncer = std::get<0>(prototype);
-		auto ov = std::get<1>(prototype);
-		auto pv = std::get<2>(prototype);
+		auto pv = std::get<1>(prototype);
 
 		auto& clVec = cellListMap[pv];
 
@@ -258,12 +259,12 @@ void Simulation::prepareBouncers()
 
 		CellList *cl = clVec[0];
 
-		regularBouncers.push_back([bouncer, ov, pv, cl] (float dt, cudaStream_t stream) {
-			bouncer->bounceLocal(ov, pv, cl, dt, stream);
+		regularBouncers.push_back([bouncer, pv, cl] (float dt, cudaStream_t stream) {
+			bouncer->bounceLocal(pv, cl, dt, stream);
 		});
 
-		haloBouncers.   push_back([bouncer, ov, pv, cl] (float dt, cudaStream_t stream) {
-			bouncer->bounceHalo (ov, pv, cl, dt, stream);
+		haloBouncers.   push_back([bouncer, pv, cl] (float dt, cudaStream_t stream) {
+			bouncer->bounceHalo (pv, cl, dt, stream);
 		});
 	}
 }

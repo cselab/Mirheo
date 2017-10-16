@@ -17,6 +17,7 @@
 #include <core/mpi/api.h>
 #include <plugins/interface.h>
 
+#include "domain.h"
 
 #include <tuple>
 #include <vector>
@@ -27,7 +28,11 @@ class Simulation
 {
 public:
 	int3 nranks3D;
-	float3 globalDomainSize, globalDomainStart, localDomainSize;
+
+	MPI_Comm cartComm;
+	MPI_Comm interComm;
+
+	DomainInfo domain;
 
 	Simulation(int3 nranks3D, float3 globalDomainSize, const MPI_Comm& comm, const MPI_Comm& interComm);
 
@@ -68,8 +73,6 @@ private:
 	float dt;
 	int rank;
 	int3 rank3D;
-	MPI_Comm cartComm;
-	MPI_Comm interComm;
 
 	double currentTime;
 	int currentStep;
@@ -96,7 +99,7 @@ private:
 
 	std::vector<std::tuple<float, ParticleVector*, ParticleVector*, Interaction*>> interactionPrototypes;
 	std::vector<std::tuple<Wall*, ParticleVector*, int>> wallPrototypes;
-	std::vector<std::tuple<Bouncer*, ObjectVector*, ParticleVector*>> bouncerPrototypes;
+	std::vector<std::tuple<Bouncer*, ParticleVector*>> bouncerPrototypes;
 
 	std::vector<std::function<void(float, cudaStream_t)>> regularInteractions, haloInteractions;
 	std::vector<std::function<void(float, cudaStream_t)>> integratorsStage1, integratorsStage2;
