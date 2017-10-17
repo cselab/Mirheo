@@ -19,9 +19,8 @@ public:
 	void setup(MPI_Comm& comm, DomainInfo domain) override;
 
 	void removeInner(ParticleVector* pv) override;
-	void attach(ParticleVector* pv, CellList* cl, int check=0) override;
+	void attach(ParticleVector* pv, CellList* cl) override;
 	void bounce(float dt, cudaStream_t stream) override;
-
 	void check(cudaStream_t stream) override;
 
 	InsideWallChecker& getChecker() { return insideWallChecker; }
@@ -34,7 +33,7 @@ private:
 	std::vector<ParticleVector*> particleVectors;
 	std::vector<CellList*> cellLists;
 
-	std::vector<int> checkEvery, nBounceCalls;
+	std::vector<int> nBounceCalls;
 
 	std::vector<DeviceBuffer<int>*> boundaryCells;
 	PinnedBuffer<int> nInside{1};

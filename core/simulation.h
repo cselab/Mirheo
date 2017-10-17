@@ -12,6 +12,7 @@
 #include <core/integrators/interface.h>
 #include <core/interactions/interface.h>
 #include <core/walls/interface.h>
+#include <core/object_belonging/interface.h>
 
 #include <core/task_scheduler.h>
 #include <core/mpi/api.h>
@@ -36,24 +37,29 @@ public:
 
 	Simulation(int3 nranks3D, float3 globalDomainSize, const MPI_Comm& comm, const MPI_Comm& interComm);
 
-	void registerParticleVector(ParticleVector* pv, InitialConditions* ic);
-	void registerWall          (Wall* wall);
-	void registerInteraction   (Interaction* interaction);
-	void registerIntegrator    (Integrator*  integrator);
-	void registerBouncer       (Bouncer*     integrator);
+	void registerParticleVector         (ParticleVector* pv, InitialConditions* ic);
+	void registerWall                   (Wall* wall, int checkEvery=0);
+	void registerInteraction            (Interaction* interaction);
+	void registerIntegrator             (Integrator* integrator);
+	void registerBouncer                (Bouncer* bouncer);
+	void registerPlugin                 (SimulationPlugin* plugin);
+	void registerObjectBelongingChecker (ObjectBelongingChecker* checker);
 
-	void setIntegrator (std::string integratorName,  std::string pvName);
-	void setInteraction(std::string interactionName, std::string pv1Name, std::string pv2Name);
-	void setBouncer    (std::string bouncerName,     std::string objName, std::string pvName);
-	void setWallBounce (std::string wallName,        std::string pvName, int check);
 
-	void registerPlugin(SimulationPlugin* plugin);
+	void setIntegrator             (std::string integratorName,  std::string pvName);
+	void setInteraction            (std::string interactionName, std::string pv1Name, std::string pv2Name);
+	void setBouncer                (std::string bouncerName,     std::string objName, std::string pvName);
+	void setWallBounce             (std::string wallName,        std::string pvName);
+	void setObjectBelongingChecker (std::string checkerName,     std::string objName);
+
+
+	void applyObjectBelongingChecker(std::string checkerName,
+			std::string source, std::string inside, std::string outside, int checkEvery);
+
 
 	void init();
 	void run(int nsteps);
-	void createWalls();
 	void finalize();
-
 
 	const std::vector<ParticleVector*>& getParticleVectors() const { return particleVectors; }
 
@@ -61,6 +67,14 @@ public:
 	{
 		auto pvIt = pvIdMap.find(name);
 		return (pvIt != pvIdMap.end()) ? particleVectors[pvIt->second] : nullptr;
+	}
+
+	ParticleVector* getPVbyNameOrDie(std::string name) const
+	{
+		auto pv = getPVbyName(name);
+		if (pv == nullptr)
+			die("No such particle vector: %s", name.c_str());
+		return pv;
 	}
 
 	MPI_Comm getCartComm() const { return cartComm; }
@@ -90,16 +104,21 @@ private:
 	std::vector<ParticleVector*> particleVectors;
 	std::vector<ObjectVector*>   objectVectors;
 
-	std::map<std::string, Bouncer*>     bouncerMap;
-	std::map<std::string, Integrator*>  integratorMap;
-	std::map<std::string, Interaction*> interactionMap;
-	std::map<std::string, Wall*>        wallMap;
+	std::map<std::string, Bouncer*>                bouncerMap;
+	std::map<std::string, Integrator*>             integratorMap;
+	std::map<std::string, Interaction*>            interactionMap;
+	std::map<std::string, Wall*>                   wallMap;
+	std::map<std::string, ObjectBelongingChecker*> belongingCheckerMap;
 
 	std::map<ParticleVector*, std::vector<CellList*>> cellListMap;
 
 	std::vector<std::tuple<float, ParticleVector*, ParticleVector*, Interaction*>> interactionPrototypes;
-	std::vector<std::tuple<Wall*, ParticleVector*, int>> wallPrototypes;
+	std::vector<std::tuple<Wall*, ParticleVector*>> wallPrototypes;
+	std::vector<std::tuple<Wall*, int>> checkWallPrototypes;
 	std::vector<std::tuple<Bouncer*, ParticleVector*>> bouncerPrototypes;
+	std::vector<std::tuple<ObjectBelongingChecker*, ParticleVector*, int>> belongingCheckerPrototypes;
+	std::vector<std::tuple<ObjectBelongingChecker*, ParticleVector*, ParticleVector*, ParticleVector*>> splitterPrototypes;
+
 
 	std::vector<std::function<void(float, cudaStream_t)>> regularInteractions, haloInteractions;
 	std::vector<std::function<void(float, cudaStream_t)>> integratorsStage1, integratorsStage2;
@@ -111,6 +130,7 @@ private:
 	void prepareInteractions();
 	void prepareBouncers();
 	void prepareWalls();
+	void execSplitters();
 
 	void assemble();
 };

@@ -37,5 +37,5 @@ void IntegratorConstOmega::stage2(ParticleVector* pv, float t, cudaStream_t stre
 	// PV may have changed, invalidate all
 	pv->haloValid = false;
 	pv->redistValid = false;
-	pv->celllistValid = false;
+	pv->cellListStamp++;
 }

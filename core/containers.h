@@ -39,7 +39,7 @@ private:
 		T * dold = devptr;
 		int oldsize = _size;
 
-		assert(n >= 0);
+		if (n < 0) die("Requested negative size %d", n);
 		_size = n;
 		if (capacity >= n) return;
 
@@ -152,7 +152,7 @@ private:
 		T * dold = devptr;
 		int oldsize = _size;
 
-		assert(n >= 0);
+		if (n < 0) die("Requested negative size %d", n);
 		_size = n;
 		if (capacity >= n) return;
 
@@ -301,7 +301,7 @@ private:
 		T * hold = hostptr;
 		int oldsize = _size;
 
-		assert(n >= 0);
+		if (n < 0) die("Requested negative size %d", n);
 		_size = n;
 		if (capacity >= n) return;
 

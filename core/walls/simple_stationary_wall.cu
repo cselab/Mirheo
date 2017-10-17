@@ -232,7 +232,7 @@ void SimpleStationaryWall<InsideWallChecker>::setup(MPI_Comm& comm, DomainInfo d
 
 
 template<class InsideWallChecker>
-void SimpleStationaryWall<InsideWallChecker>::attach(ParticleVector* pv, CellList* cl, int check)
+void SimpleStationaryWall<InsideWallChecker>::attach(ParticleVector* pv, CellList* cl)
 {
 	if (dynamic_cast<PrimaryCellList*>(cl) == nullptr)
 		die("PVs should only be attached to walls with the primary cell-lists! "
@@ -241,7 +241,6 @@ void SimpleStationaryWall<InsideWallChecker>::attach(ParticleVector* pv, CellLis
 	CUDA_Check( cudaDeviceSynchronize() );
 	particleVectors.push_back(pv);
 	cellLists.push_back(cl);
-	checkEvery.push_back(check);
 	nBounceCalls.push_back(0);
 
 	PVview view(pv, pv->local());
@@ -321,7 +320,7 @@ void SimpleStationaryWall<InsideWallChecker>::removeInner(ParticleVector* pv)
 
 	pv->haloValid = false;
 	pv->redistValid = false;
-	pv->celllistValid = false;
+	pv->cellListStamp++;
 
 	info("Removed inner entities of %s, keeping %d out of %d particles",
 			pv->name.c_str(), pv->local()->size(), oldSize);
@@ -360,7 +359,6 @@ void SimpleStationaryWall<InsideWallChecker>::check(cudaStream_t stream)
 	for (int i=0; i<particleVectors.size(); i++)
 	{
 		auto pv = particleVectors[i];
-		if ( checkEvery[i] > 0 && (nBounceCalls[i] % checkEvery[i] == 0) )
 		{
 			nInside.clearDevice(stream);
 			PVview view(pv, pv->local());

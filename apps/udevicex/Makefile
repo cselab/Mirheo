@@ -6,7 +6,7 @@ binary = udevicex
 objects = main.o \
 	argument_parser.o pugixml.o stacktrace_explicit.o \
 	celllist.o parser.o postproc.o simulation.o task_scheduler.o udevicex.o \
-	from_mesh.o from_ellipsoid.o \
+	from_mesh.o from_ellipsoid.o belonging.o ellipsoid_belonging.o \
 	ellipsoid.o uniform.o \
 	const_omega.o rigid_vv.o vv.o \
 	pairwise.o \

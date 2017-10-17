@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
-<simulation name="poiseuille" logfile="log" mpi_ranks="1 1 1" debug_lvl="1">
+<simulation name="poiseuille" logfile="log" mpi_ranks="1 1 1" debug_lvl="0">
 
-	<domain size="32 32 32" />
+	<domain size="24 24 24" />
 	
 	<particle_vector type="regular" name="dpd" mass="1">
 		<generate type="uniform" density="10" />
@@ -11,16 +11,13 @@
 		<generate type="read_ellipsoids" ic_filename="ellipsoids.ic" xyz_filename="../../scripts/el_3_4_5_500.xyz" />
 	</particle_vector>
 	
-	<pv_splitter object_vector="rigid_ellipsoids" type="analytical">
-		<apply_to pv="dpd">
-			<inside  name="none" />
-			<outside name="dpd"  />
-		</apply_to> 
-	</pv_splitter>
+	<object_belonging_checker name="ell_checker" object_vector="ellipsoids" type="analytical_ellipsoid" >
+		<apply_to pv="dpd" inside="none" outside="dpd" check_every="10" />
+	</object_belonging_checker>
 	
-	<object_bouncer name="ell_bounce" object_vector="rigid_ellipsoid" type="analytical">
+	<!-- <object_bouncer name="ell_bounce" ov="rigid_ellipsoid" type="analytical">
 		<apply_to pv="dpd" check="true"/>
-	</object_bouncer>
+	</object_bouncer> -->
 
 	<!-- <particle_vector type="regular" name="frozen" mass="1">
 		<generate type="restart" path="restart/" />

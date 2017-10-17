@@ -217,7 +217,8 @@ void MCMCSampler<InsideWallChecker>::_compute(
 	int nLocal = pv->local()->size();
 	int nHalo  = pv->halo()->size();
 	combined->local()->resize(nLocal + nHalo, stream);
-	combined->haloValid = combined->redistValid = combined->celllistValid = false;
+	combined->haloValid = combined->redistValid = false;
+	combined->cellListStamp++;
 
 	CUDA_Check( cudaMemcpyAsync(combined->local()->coosvels.devPtr(), pv->halo()->coosvels.devPtr(),
 			nHalo * sizeof(Particle), cudaMemcpyDeviceToDevice, stream) );
@@ -307,6 +308,8 @@ void MCMCSampler<InsideWallChecker>::_compute(
 			combinedCL->particles->devPtr(), nLocal+nHalo, pv->local()->coosvels.devPtr(), nDst.devPtr() );
 
 	// Mark pv as changed and rebuild cell-lists as the particles may have moved significantly
-	pv->haloValid = pv->redistValid = pv->celllistValid = false;
+	pv->haloValid = pv->redistValid = false;
+	pv->cellListStamp++;
+
 	cl1->build(stream);
 }

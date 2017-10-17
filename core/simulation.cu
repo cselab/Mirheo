@@ -41,6 +41,10 @@ nranks3D(nranks3D), interComm(interComm), currentTime(0), currentStep(0)
 void Simulation::registerParticleVector(ParticleVector* pv, InitialConditions* ic)
 {
 	std::string name = pv->name;
+
+	if (name == "none" || name == "all" || name == "")
+		die("Invalid name for a particle vector (reserved or empty): '%s'", name.c_str());
+
 	particleVectors.push_back(pv);
 
 	auto ov = dynamic_cast<ObjectVector*>(pv);
@@ -51,10 +55,14 @@ void Simulation::registerParticleVector(ParticleVector* pv, InitialConditions* i
 		die("More than one particle vector is called %s", name.c_str());
 
 	pvIdMap[name] = particleVectors.size() - 1;
-	ic->exec(cartComm, pv, domain, 0);
+
+	if (ic != nullptr)
+		ic->exec(cartComm, pv, domain, 0);
+	else // TODO: get rid of this
+		pv->domain = domain;
 }
 
-void Simulation::registerWall(Wall* wall)
+void Simulation::registerWall(Wall* wall, int every)
 {
 	std::string name = wall->name;
 
@@ -62,6 +70,8 @@ void Simulation::registerWall(Wall* wall)
 		die("More than one wall is called %s", name.c_str());
 
 	wallMap[name] = wall;
+	checkWallPrototypes.push_back(std::make_tuple(wall, every));
+
 	wall->setup(cartComm, domain);
 }
 
@@ -92,6 +102,15 @@ void Simulation::registerBouncer(Bouncer* bouncer)
 	bouncerMap[name] = bouncer;
 }
 
+void Simulation::registerObjectBelongingChecker(ObjectBelongingChecker* checker)
+{
+	std::string name = checker->name;
+	if (belongingCheckerMap.find(name) != belongingCheckerMap.end())
+		die("More than one splitter is called %s", name.c_str());
+
+	belongingCheckerMap[name] = checker;
+}
+
 void Simulation::registerPlugin(SimulationPlugin* plugin)
 {
 	plugins.push_back(plugin);
@@ -105,12 +124,9 @@ void Simulation::setIntegrator(std::string integratorName, std::string pvName)
 {
 	if (integratorMap.find(integratorName) == integratorMap.end())
 		die("No such integrator: %s", integratorName.c_str());
-
-	auto pv = getPVbyName(pvName);
-	if (pv == nullptr)
-		die("No such particle vector: %s", pvName.c_str());
-
 	auto integrator = integratorMap[integratorName];
+
+	auto pv = getPVbyNameOrDie(pvName);
 
 	integratorsStage1.push_back([integrator, pv] (float t, cudaStream_t stream) {
 		integrator->stage1(pv, t, stream);
@@ -123,13 +139,8 @@ void Simulation::setIntegrator(std::string integratorName, std::string pvName)
 
 void Simulation::setInteraction(std::string interactionName, std::string pv1Name, std::string pv2Name)
 {
-	auto pv1 = getPVbyName(pv1Name);
-	if (pv1 == nullptr)
-		die("No such particle vector: %s", pv1Name.c_str());
-
-	auto pv2 = getPVbyName(pv2Name);
-	if (pv2 == nullptr)
-		die("No such particle vector: %s", pv2Name.c_str());
+	auto pv1 = getPVbyNameOrDie(pv1Name);
+	auto pv2 = getPVbyNameOrDie(pv2Name);
 
 	if (interactionMap.find(interactionName) == interactionMap.end())
 		die("No such integrator: %s", interactionName.c_str());
@@ -142,9 +153,7 @@ void Simulation::setInteraction(std::string interactionName, std::string pv1Name
 
 void Simulation::setBouncer(std::string bouncerName, std::string objName, std::string pvName)
 {
-	auto pv = getPVbyName(pvName);
-	if (pv == nullptr)
-		die("No such particle vector: %s", pvName.c_str());
+	auto pv = getPVbyNameOrDie(pvName);
 
 	auto ov = dynamic_cast<ObjectVector*> (getPVbyName(objName));
 	if (ov == nullptr)
@@ -158,17 +167,84 @@ void Simulation::setBouncer(std::string bouncerName, std::string objName, std::s
 	bouncerPrototypes.push_back(std::make_tuple(bouncer, pv));
 }
 
-void Simulation::setWallBounce(std::string wallName, std::string pvName, int check)
+void Simulation::setWallBounce(std::string wallName, std::string pvName)
 {
-	auto pv = getPVbyName(pvName);
-	if (pv == nullptr)
-		die("No such particle vector: %s", pvName.c_str());
+	auto pv = getPVbyNameOrDie(pvName);
 
 	if (wallMap.find(wallName) == wallMap.end())
 		die("No such wall: %s", wallName.c_str());
 	auto wall = wallMap[wallName];
 
-	wallPrototypes.push_back( std::make_tuple(wall, pv, check) );
+	wallPrototypes.push_back( std::make_tuple(wall, pv) );
+}
+
+void Simulation::setObjectBelongingChecker(std::string checkerName, std::string objName)
+{
+	auto ov = dynamic_cast<ObjectVector*>(getPVbyNameOrDie(objName));
+	if (ov == nullptr)
+		die("No such object vector %s", objName.c_str());
+
+	if (belongingCheckerMap.find(checkerName) == belongingCheckerMap.end())
+		die("No such belonging checker: %s", checkerName.c_str());
+	auto checker = belongingCheckerMap[checkerName];
+
+	// TODO: do this normal'no blyat!
+	checker->setup(ov);
+}
+
+//
+//
+//
+
+void Simulation::applyObjectBelongingChecker(std::string checkerName,
+			std::string source, std::string inside, std::string outside, int checkEvery)
+{
+	auto pvSource = getPVbyNameOrDie(source);
+
+	if (inside == outside)
+		die("Splitting into same pvs: %s into %s %s",
+				source.c_str(), inside.c_str(), outside.c_str());
+
+	if (source != inside && source != outside)
+		die("At least one of the split destinations should be the same as source: %s into %s %s",
+				source.c_str(), inside.c_str(), outside.c_str());
+
+	if (belongingCheckerMap.find(checkerName) == belongingCheckerMap.end())
+		die("No such belonging checker: %s", checkerName.c_str());
+
+	if (getPVbyName(inside) != nullptr && inside != source)
+		die("Cannot split into existing particle vector: %s into %s %s",
+				source.c_str(), inside.c_str(), outside.c_str());
+
+	if (getPVbyName(outside) != nullptr && outside != source)
+		die("Cannot split into existing particle vector: %s into %s %s",
+				source.c_str(), inside.c_str(), outside.c_str());
+
+
+	auto checker = belongingCheckerMap[checkerName];
+
+	ParticleVector *pvInside  = getPVbyName(inside);
+	ParticleVector *pvOutside = getPVbyName(outside);
+
+	if (inside != "none" && pvInside == nullptr)
+	{
+		auto pv = new ParticleVector(inside, pvSource->mass);
+		registerParticleVector(pv, nullptr);
+	}
+
+	if (outside != "none" && pvOutside == nullptr)
+	{
+		auto pv = new ParticleVector(outside, pvSource->mass);
+		registerParticleVector(pv, nullptr);
+	}
+
+	splitterPrototypes.push_back(std::make_tuple(checker, pvSource, pvInside, pvOutside));
+
+	if (pvInside != nullptr)
+		belongingCheckerPrototypes.push_back(std::make_tuple(checker, pvInside,  checkEvery));
+
+	if (pvOutside != nullptr)
+		belongingCheckerPrototypes.push_back(std::make_tuple(checker, pvOutside, checkEvery));
 }
 
 
@@ -277,7 +353,6 @@ void Simulation::prepareWalls()
 	{
 		auto wall  = std::get<0>(prototype);
 		auto pv    = std::get<1>(prototype);
-		auto check = std::get<2>(prototype);
 
 		auto& clVec = cellListMap[pv];
 
@@ -285,8 +360,23 @@ void Simulation::prepareWalls()
 
 		CellList *cl = clVec[0];
 
-		wall->attach(pv, cl, check);
+		wall->attach(pv, cl);
 		wall->removeInner(pv);
+	}
+}
+
+void Simulation::execSplitters()
+{
+	info("Splitting particle vectors with respect to object belonging");
+
+	for (auto prototype : splitterPrototypes)
+	{
+		auto checker = std::get<0>(prototype);
+		auto src     = std::get<1>(prototype);
+		auto inside  = std::get<2>(prototype);
+		auto outside = std::get<3>(prototype);
+
+		checker->splitByBelonging(src, inside, outside, 0);
 	}
 }
 
@@ -344,18 +434,18 @@ void Simulation::assemble()
 {
 	// XXX: different dt not implemented
 	dt = 1.0;
-	for (auto integr : integratorMap)
+	for (auto& integr : integratorMap)
 		dt = min(dt, integr.second->dt);
 
 
 	scheduler.addTask("Сell-lists", [&] (cudaStream_t stream) {
-		for (auto clVec : cellListMap)
+		for (auto& clVec : cellListMap)
 			for (auto cl : clVec.second)
 				cl->build(stream);
 	});
 
 	scheduler.addTask("Clear forces", [&] (cudaStream_t stream) {
-		for (auto clVec : cellListMap)
+		for (auto& clVec : cellListMap)
 			for (auto cl : clVec.second)
 				cl->forces->clear(stream);
 	});
@@ -392,7 +482,7 @@ void Simulation::assemble()
 	});
 
 	scheduler.addTask("Accumulate forces", [&] (cudaStream_t stream) {
-		for (auto clVec : cellListMap)
+		for (auto& clVec : cellListMap)
 			for (auto cl : clVec.second)
 				cl->addForces(stream);
 	});
@@ -411,6 +501,7 @@ void Simulation::assemble()
 	scheduler.addTask("Object halo init", [&] (cudaStream_t stream) {
 		objHalo->init(stream);
 	});
+
 	scheduler.addTask("Object halo finalize", [&] (cudaStream_t stream) {
 		objHalo->finalize(stream);
 	});
@@ -430,6 +521,23 @@ void Simulation::assemble()
 			bouncer(dt, stream);
 	});
 
+	for (auto& prototype : belongingCheckerPrototypes)
+	{
+		auto checker = std::get<0>(prototype);
+		auto pv      = std::get<1>(prototype);
+		auto every   = std::get<2>(prototype);
+
+		auto clVec = cellListMap[pv];
+		if (clVec.size() == 0)
+			die("Unable to check belonging of a PV without a valid cell-list");
+		auto cl = clVec[0];
+
+		if (every > 0)
+			scheduler.addTask("Bounce check",
+					[checker, pv, cl] (cudaStream_t stream) { checker->checkInner(pv, cl, stream); },
+					every);
+	}
+
 	scheduler.addTask("Obj forces exchange: init", [&] (cudaStream_t stream) {
 		objHaloForces->init(stream);
 	});
@@ -439,12 +547,18 @@ void Simulation::assemble()
 	});
 
 	scheduler.addTask("Wall bounce", [&] (cudaStream_t stream) {
-		for (auto wall : wallMap)
-		{
+		for (auto& wall : wallMap)
 			wall.second->bounce(dt, stream);
-			wall.second->check(stream);
-		}
 	});
+
+	for (auto& prototype : checkWallPrototypes)
+	{
+		auto wall  = std::get<0>(prototype);
+		auto every = std::get<1>(prototype);
+
+		if (every > 0)
+			scheduler.addTask("Wall check", [&, wall] (cudaStream_t stream) { wall->check(stream); }, every);
+	}
 
 	scheduler.addTask("Plugins: after integration", [&] (cudaStream_t stream) {
 		for (auto pl : plugins)
@@ -493,11 +607,13 @@ void Simulation::assemble()
 	scheduler.addDependency("Accumulate forces", {"Integration"}, {"Halo forces", "Internal forces"});
 	scheduler.addDependency("Plugins: before integration", {"Integration"}, {"Accumulate forces"});
 	scheduler.addDependency("Wall bounce", {}, {"Integration"});
+	scheduler.addDependency("Wall check", {}, {"Wall bounce"});
 
 	scheduler.addDependency("Object halo init", {}, {"Integration", "Object redistribute finalize"});
 	scheduler.addDependency("Object halo finalize", {}, {"Object halo init"});
 
 	scheduler.addDependency("Object bounce", {}, {"Object halo finalize", "Integration"});
+	scheduler.addDependency("Bounce check", {}, {"Object bounce"});
 
 	scheduler.addDependency("Plugins: after integration", {}, {"Integration", "Wall bounce", "Obj forces exchange: finalize"});
 
@@ -516,7 +632,6 @@ void Simulation::assemble()
 	scheduler.compile();
 }
 
-// TODO: wall has self-interactions
 void Simulation::run(int nsteps)
 {
 	int begin = currentStep, end = currentStep + nsteps;
@@ -526,6 +641,10 @@ void Simulation::run(int nsteps)
 	scheduler.forceExec("Object halo init");
 	scheduler.forceExec("Object halo finalize");
 	scheduler.forceExec("Clear obj halo forces");
+
+	// Halo extents
+	scheduler.forceExec("Object extents");
+	execSplitters();
 
 	info("Will run %d iterations now", nsteps);
 

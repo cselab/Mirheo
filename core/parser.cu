@@ -37,6 +37,7 @@
 
 #include <core/bouncers/from_mesh.h>
 #include <core/bouncers/from_ellipsoid.h>
+#include <core/object_belonging/ellipsoid_belonging.h>
 
 #include <plugins/dumpavg.h>
 #include <plugins/dumpxyz.h>
@@ -427,8 +428,43 @@ public:
 	}
 };
 
+class ObjectBelongingCheckerFactory
+{
+private:
+//	static ObjectBelongingChecker* createMeshBelongingChecker(pugi::xml_node node)
+//	{
+//		auto name = node.attribute("name").as_string("");
+//
+//		return (Bouncer*) new MeshBelongingChecker(name);
+//	}
+
+	static ObjectBelongingChecker* createEllipsoidBelongingChecker(pugi::xml_node node)
+	{
+		auto name = node.attribute("name").as_string("");
+
+		return (ObjectBelongingChecker*) new EllipsoidBelongingChecker(name);
+	}
+
+public:
+	static ObjectBelongingChecker* create(pugi::xml_node node)
+	{
+		std::string type = node.attribute("type").as_string();
+
+//		if (type == "mesh")
+//			return createMeshBelongingChecker(node);
+
+		if (type == "analytical_ellipsoid")
+			return createEllipsoidBelongingChecker(node);
+
+		die("Unable to parse input at %s, unknown 'type' %s", node.path().c_str(), type.c_str());
+
+		return nullptr;
+	}
+};
+
+
 //================================================================================================
-// Bouncers
+// Plugins
 //================================================================================================
 
 class PluginFactory
@@ -586,12 +622,10 @@ uDeviceX* Parser::setup_uDeviceX(Logger& logger)
 			{
 				auto wall = WallFactory::create(node);
 				auto name = wall->name;
-				udx->sim->registerWall(wall);
+				udx->sim->registerWall(wall, node.attribute("check_every").as_int(0));
 
 				for (auto apply_to : node.children("apply_to"))
-					udx->sim->setWallBounce(name,
-							apply_to.attribute("pv").as_string(),
-							apply_to.attribute("check_every").as_int(0));
+					udx->sim->setWallBounce(name, apply_to.attribute("pv").as_string());
 			}
 
 			if ( std::string(node.name()) == "bounce" )
@@ -600,10 +634,29 @@ uDeviceX* Parser::setup_uDeviceX(Logger& logger)
 				auto name = bouncer->name;
 				udx->sim->registerBouncer(bouncer);
 
+				// TODO do this normal'no epta
 				for (auto apply_to : node.children("apply_to"))
 					udx->sim->setBouncer(name,
-							apply_to.attribute("ov").as_string(),
+							node.attribute("ov").as_string(),
 							apply_to.attribute("pv").as_string());
+			}
+
+			if ( std::string(node.name()) == "object_belonging_checker" )
+			{
+				auto checker = ObjectBelongingCheckerFactory::create(node);
+				auto name = checker->name;
+				udx->sim->registerObjectBelongingChecker(checker);
+				udx->sim->setObjectBelongingChecker(name, node.attribute("object_vector").as_string());
+
+				for (auto apply_to : node.children("apply_to"))
+				{
+					std::string source  = apply_to.attribute("pv"). as_string();
+					std::string inside  = apply_to.attribute("inside"). as_string();
+					std::string outside = apply_to.attribute("outside").as_string();
+					auto checkEvery     = apply_to.attribute("check_every").as_int(0);
+
+					udx->sim->applyObjectBelongingChecker(name, source, inside, outside, checkEvery);
+				}
 			}
 		}
 	}

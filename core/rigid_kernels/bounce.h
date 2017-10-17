@@ -169,8 +169,12 @@ __global__ void bounceEllipsoid(REOVview ovView, PVview pvView,
 				 ellipsoidF(v110, ovView.invAxes) < threshold ||
 				 ellipsoidF(v111, ovView.invAxes) < threshold )
 			{
-				int id = atomicAggInc((int*)&nCells);
-				validCells[id] = cinfo.encode(cid3);
+				int cid = cinfo.encode(cid3);
+				if (cid < cinfo.totcells)
+				{
+					int id = atomicAggInc((int*)&nCells);
+					validCells[id] = cid;
+				}
 			}
 		}
 

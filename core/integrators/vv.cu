@@ -44,7 +44,7 @@ void IntegratorVV<ForcingTerm>::stage2(ParticleVector* pv, float t, cudaStream_t
 	// PV may have changed, invalidate all
 	pv->haloValid = false;
 	pv->redistValid = false;
-	pv->celllistValid = false;
+	pv->cellListStamp++;
 }
 
 template class IntegratorVV<Forcing_None>;

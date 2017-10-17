@@ -109,8 +109,9 @@ public:
 	// Local coordinate system; (0,0,0) is center of the local domain
 
 	bool haloValid = false;
-	bool celllistValid = false;
 	bool redistValid = false;
+
+	int cellListStamp{0};
 
 protected:
 	ParticleVector(	std::string name, float mass, LocalParticleVector *local, LocalParticleVector *halo ) :

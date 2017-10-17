@@ -13,12 +13,24 @@
 
 class TaskScheduler
 {
+public:
+	TaskScheduler();
+
+	void addTask(std::string label, std::function<void(cudaStream_t)> task, int execEvery = 1);
+	void addDependency(std::string label, std::vector<std::string> before, std::vector<std::string> after);
+	void setHighPriority(std::string label);
+
+	void compile();
+	void run();
+
+	void forceExec(std::string label);
+
 private:
 	struct Node;
 	struct Node
 	{
 		std::string label;
-		std::vector<std::function<void(cudaStream_t)>> funcs;
+		std::vector< std::pair<std::function<void(cudaStream_t)>, int> > funcs;
 
 		std::vector<std::string> before, after;
 		std::list<Node*> to, from, from_backup;
@@ -34,16 +46,8 @@ private:
 
 	int cudaPriorityLow, cudaPriorityHigh;
 
-public:
-	TaskScheduler();
+	int nExecutions{0};
 
-	void addTask(std::string label, std::function<void(cudaStream_t)> task);
-	void addTask(std::string label, std::vector<std::function<void(cudaStream_t)>> tasks);
-	void addDependency(std::string label, std::vector<std::string> before, std::vector<std::string> after);
-	void setHighPriority(std::string label);
-
-	void compile();
-	void run();
-
-	void forceExec(std::string label);
+	Node* findTask     (const std::string& label);
+	Node* findTaskOrDie(const std::string& label);
 };

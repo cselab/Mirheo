@@ -80,7 +80,7 @@ public:
 class CellList : public CellListInfo
 {
 protected:
-	int changedStamp = -1;
+	int changedStamp{-1};
 
 	DeviceBuffer<char> scanBuffer;
 	PinnedBuffer<Particle> particlesContainer = {};

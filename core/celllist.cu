@@ -150,12 +150,12 @@ void CellList::_build(cudaStream_t stream)
 			getNblocks(2*view.size, nthreads), nthreads, 0, stream,
 			view, cellInfo(), (float4*)particlesContainer.devPtr() );
 
-	pv->celllistValid = true;
+	changedStamp = pv->cellListStamp;
 }
 
 void CellList::build(cudaStream_t stream)
 {
-	if (pv->celllistValid)
+	if (changedStamp == pv->cellListStamp)
 	{
 		debug2("Cell-list for %s is already up-to-date, building skipped", pv->name.c_str());
 		return;
@@ -211,7 +211,7 @@ void PrimaryCellList::build(cudaStream_t stream)
 {
 	warn("Reordering extra data is not yet implemented in cell-lists");
 
-	if (pv->celllistValid)
+	if (changedStamp == pv->cellListStamp)
 	{
 		debug2("Cell-list for %s is already up-to-date, building skipped", pv->name.c_str());
 		return;

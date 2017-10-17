@@ -4,16 +4,36 @@
 #include <core/task_scheduler.h>
 #include <core/logger.h>
 
+
+TaskScheduler::Node* TaskScheduler::findTaskOrDie(const std::string& label)
+{
+	auto node = findTask(label);
+	if (node == nullptr)
+		die("Task group with label %s not found", label.c_str());
+
+	return node;
+}
+
+TaskScheduler::Node* TaskScheduler::findTask(const std::string& label)
+{
+	Node* node = nullptr;
+	for (auto n : nodes)
+		if (n->label == label) node = n;
+
+	return node;
+}
+
+
+
+
 TaskScheduler::TaskScheduler()
 {
 	CUDA_Check( cudaDeviceGetStreamPriorityRange(&cudaPriorityLow, &cudaPriorityHigh) );
 }
 
-void TaskScheduler::addTask(std::string label, std::function<void(cudaStream_t)> task)
+void TaskScheduler::addTask(std::string label, std::function<void(cudaStream_t)> task, int every)
 {
-	Node* node = nullptr;
-	for (auto n : nodes)
-		if (n->label == label) node = n;
+	Node* node = findTask(label);
 
 	if (node == nullptr)
 	{
@@ -23,23 +43,21 @@ void TaskScheduler::addTask(std::string label, std::function<void(cudaStream_t)>
 		nodes.push_back(node);
 	}
 
-	node->funcs.push_back(task);
+	if (every <= 0)
+		die("What the fuck is this value %d???", every);
+
+	node->funcs.push_back({task, every});
 }
 
-void TaskScheduler::addTask(std::string label, std::vector<std::function<void(cudaStream_t)>> tasks)
-{
-	for (auto& t : tasks)
-		addTask(label, t);
-}
 
 void TaskScheduler::addDependency(std::string label, std::vector<std::string> before, std::vector<std::string> after)
 {
-	Node* node = nullptr;
-	for (auto n : nodes)
-		if (n->label == label) node = n;
-
+	Node* node = findTask(label);
 	if (node == nullptr)
-		die("Task group with label %s not found", label.c_str());
+	{
+		warn("Skipping dependencies for non-existent task '%s'", label.c_str());
+		return;
+	}
 
 	node->before.insert(node->before.end(), before.begin(), before.end());
 	node->after .insert(node->after .end(), after .begin(), after .end());
@@ -47,29 +65,19 @@ void TaskScheduler::addDependency(std::string label, std::vector<std::string> be
 
 void TaskScheduler::setHighPriority(std::string label)
 {
-	Node* node = nullptr;
-	for (auto n : nodes)
-		if (n->label == label) node = n;
-
-	if (node == nullptr)
-		die("Task group with label %s not found", label.c_str());
+	Node* node = findTaskOrDie(label);
 
 	node->priority = cudaPriorityHigh;
 }
 
 void TaskScheduler::forceExec(std::string label)
 {
-	Node* node = nullptr;
-	for (auto n : nodes)
-		if (n->label == label) node = n;
-
-	if (node == nullptr)
-		die("Task group with label %s not found", label.c_str());
+	Node* node = findTaskOrDie(label);
 
 	info("Forced execution of group %s", node->label.c_str());
 
-	for (auto& func : node->funcs)
-		func(0);
+	for (auto& func_every : node->funcs)
+		func_every.first(0);
 }
 
 void TaskScheduler::compile()
@@ -203,10 +211,12 @@ void TaskScheduler::run()
 		info("Executing group %s on stream %lld with priority %d", node->label.c_str(), (int64_t)stream, node->priority);
 		workMap.push_back({stream, node});
 
-		for (auto& func : node->funcs)
-			func(stream);
+		for (auto& func_every : node->funcs)
+			if (nExecutions % func_every.second == 0)
+				func_every.first(stream);
 	}
 
+	nExecutions++;
 	CUDA_Check( cudaDeviceSynchronize() );
 }
 

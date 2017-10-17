@@ -11,13 +11,13 @@
 		<generate type="restart" path="restart/" />
 	</particle_vector>
 	
-	<!-- <wall type="sdf" name="wall" sdf_filename="../../walls/cylinder_r5_h32.sdf">
+	<!-- <wall type="sdf" name="wall" check_every="100" sdf_filename="../../walls/cylinder_r5_h32.sdf">
 		<generate_frozen name="frozen" path="restart" mass="1.0" density="8" a="2.6666667" kbt="0.05" rc="1.0" power="0.5" />
-		<apply_to pv="dpd" check="true" />
+		<apply_to pv="dpd" />
 	</wall> -->
-	<wall type="cylinder" name="wall" center="32 32" radius="5" axis="z">
+	<wall type="cylinder" name="wall" check_every="100" center="32 32" radius="5" axis="z"  >
 		<generate_frozen name="frozen" path="restart" mass="1.0" density="8" a="2.6666667" kbt="0.05" rc="1.0" power="0.5" />
-		<apply_to pv="dpd" check_every="10" />
+		<apply_to pv="dpd" />
 	</wall>
 	
 	<interaction type="dpd" name="dpd_int" a="2.6666667" gamma="8" kbt="0.0444302" dt="0.0005" rc="1.0" power="0.5">

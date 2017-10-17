@@ -57,6 +57,6 @@ void IntegratorVVRigid::stage2(ParticleVector* pv, float t, cudaStream_t stream)
 	// PV may have changed, invalidate all
 	pv->haloValid = false;
 	pv->redistValid = false;
-	pv->celllistValid = false;
+	pv->cellListStamp++;
 }
 

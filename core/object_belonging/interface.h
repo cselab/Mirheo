@@ -16,22 +16,23 @@ class CellList;
 class ObjectBelongingChecker
 {
 public:
+	std::string name;
+
 	ObjectBelongingChecker(std::string name) : name(name) { }
 
-	void checkInner(ParticleVector* pv, CellList* cl, cudaStream_t stream);
-
 	/**
-	 * Particle with tags == -1 will be copied to pvOut
-	 *                    >= 0  will be copied to pvIn
-	 * Other particles are DROPPED
+	 * Particle with tags == 0 will be copied to pvOut
+	 *                    >= 1 will be copied to pvIn
+	 * Other particles are DROPPED (boundary particles)
 	 */
 	void splitByBelonging(ParticleVector* src, ParticleVector* pvIn, ParticleVector* pvOut, cudaStream_t stream);
+	void checkInner(ParticleVector* pv, CellList* cl, cudaStream_t stream);
+
+	virtual void setup(ObjectVector* ov) { this->ov = ov; }
 
 	virtual ~ObjectBelongingChecker() = default;
 
 protected:
-	std::string name;
-
 	ObjectVector* ov;
 
 	PinnedBuffer<int> tags;
