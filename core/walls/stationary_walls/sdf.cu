@@ -190,7 +190,7 @@ void StationaryWall_SDF::prepareRelevantSdfPiece(int rank,
 			}
 }
 
-void StationaryWall_SDF::setup(MPI_Comm& comm, float3 globalDomainSize, float3 globalDomainStart, float3 localDomainSize)
+void StationaryWall_SDF::setup(MPI_Comm& comm, DomainInfo domain)
 {
 	info("Setting up sdf from %s", sdfFileName.c_str());
 
@@ -211,7 +211,7 @@ void StationaryWall_SDF::setup(MPI_Comm& comm, float3 globalDomainSize, float3 g
 
 	// Read header
 	readHeader(comm, initialSdfResolution, initialSdfExtent, fullSdfSize_byte, endHeader_byte, rank);
-	float3 initialSdfH = globalDomainSize / make_float3(initialSdfResolution-1);
+	float3 initialSdfH = domain.globalSize / make_float3(initialSdfResolution-1);
 
 	// Read heavy data
 	std::vector<float> fullSdfData;
@@ -219,12 +219,12 @@ void StationaryWall_SDF::setup(MPI_Comm& comm, float3 globalDomainSize, float3 g
 
 	// We'll make sdf a bit bigger, so that particles that flew away
 	// would also be correctly bounced back
-	extendedDomainSize = localDomainSize + 2.0f*margin3;
+	extendedDomainSize = domain.localSize + 2.0f*margin3;
 	resolution         = make_int3( ceilf(extendedDomainSize / h) );
 	h                  = extendedDomainSize / make_float3(resolution-1);
 	invh               = 1.0f / h;
 
-	const float3 scale3 = globalDomainSize / initialSdfExtent;
+	const float3 scale3 = domain.globalSize / initialSdfExtent;
 	if ( fabs(scale3.x - scale3.y) > 1e-5 || fabs(scale3.x - scale3.z) > 1e-5 )
 		die("Sdf size and domain size mismatch");
 	const float lenScalingFactor = (scale3.x + scale3.y + scale3.z) / 3;
@@ -232,7 +232,7 @@ void StationaryWall_SDF::setup(MPI_Comm& comm, float3 globalDomainSize, float3 g
 	int3 resolutionBeforeInterpolation;
 	float3 offset;
 	PinnedBuffer<float> localSdfData;
-	prepareRelevantSdfPiece(rank, fullSdfData.data(), globalDomainStart - margin3, initialSdfH, initialSdfResolution,
+	prepareRelevantSdfPiece(rank, fullSdfData.data(), domain.globalStart - margin3, initialSdfH, initialSdfResolution,
 			resolutionBeforeInterpolation, offset, localSdfData);
 
 	// Interpolate

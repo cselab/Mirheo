@@ -51,7 +51,7 @@ void Simulation::registerParticleVector(ParticleVector* pv, InitialConditions* i
 		die("More than one particle vector is called %s", name.c_str());
 
 	pvIdMap[name] = particleVectors.size() - 1;
-	ic->exec(cartComm, pv, domain.globalStart, domain.localSize, 0);
+	ic->exec(cartComm, pv, domain, 0);
 }
 
 void Simulation::registerWall(Wall* wall)
@@ -62,7 +62,7 @@ void Simulation::registerWall(Wall* wall)
 		die("More than one wall is called %s", name.c_str());
 
 	wallMap[name] = wall;
-	wall->setup(cartComm, domain.globalSize, domain.globalStart, domain.localSize);
+	wall->setup(cartComm, domain);
 }
 
 void Simulation::registerInteraction(Interaction* interaction)

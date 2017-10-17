@@ -33,7 +33,7 @@ __global__ void collectRemaining(PVview view, float4* remaining, int* nRemaining
 
 	Particle p(view.particles, pid);
 
-	const float val = checker(view, p.r);
+	const float val = checker(p.r);
 
 	if (val <= -tolerance)
 	{
@@ -58,7 +58,7 @@ __global__ void packRemainingObjects(OVviewWithExtraData view, char* output, int
 	for (int i=tid; i < view.objSize; i++)
 	{
 		Particle p(view.particles, objId * view.objSize + i);
-		if (checker(view, p.r) <= -tolerance)
+		if (checker(p.r) <= -tolerance)
 		{
 			isRemaining = false;
 			break;
@@ -112,7 +112,7 @@ __device__ __forceinline__ bool isCellOnBoundary(PVview view, float3 cornerCoo, 
 			{
 				// Value in the cell corner
 				const float3 shift = make_float3(i ? len.x : 0.0f, j ? len.y : 0.0f, k ? len.z : 0.0f);
-				const float s = checker(view, cornerCoo + shift);
+				const float s = checker(cornerCoo + shift);
 
 				if (s >  tol) pos++;
 				if (s < -tol) neg++;
@@ -157,32 +157,32 @@ __global__ void bounceKernel(PVview view, const int* wallCells, const int nWallC
 	for (int pid = pstart; pid < pend; pid++)
 	{
 		Particle p(cinfo.particles, pid);
-		if (checker(view, p.r) <= 0.0f) continue;
+		if (checker(p.r) <= 0.0f) continue;
 
 		float3 oldCoo = p.r - p.u*dt;
 
 		for (int i=0; i<maxIters; i++)
 		{
-			if (checker(view, oldCoo) < 0.0f) break;
+			if (checker(oldCoo) < 0.0f) break;
 			oldCoo -= p.u*corrStep;
 		}
 
 		const float alpha = solveLinSearch([=] (float lambda) {
-			return checker(view, oldCoo + (p.r-oldCoo)*lambda);
+			return checker(oldCoo + (p.r-oldCoo)*lambda);
 		});
 		float3 candidate = (alpha >= 0.0f) ? oldCoo + alpha * (p.r - oldCoo) : oldCoo;
 
-		if (checker(view, candidate) >= 0.0f)
+		if (checker(candidate) >= 0.0f)
 		for (int i=0; i<maxIters; i++)
 		{
-			if (checker(view, candidate) < 0.0f) break;
+			if (checker(candidate) < 0.0f) break;
 
 			float3 rndShift;
 				rndShift.x = Saru::mean0var1(p.r.x - floorf(p.r.x), p.i1+i, p.i1*p.i1);
 				rndShift.y = Saru::mean0var1(rndShift.x,            p.i1+i, p.i1*p.i1);
 				rndShift.z = Saru::mean0var1(rndShift.y,            p.i1+i, p.i1*p.i1);
 
-				if (checker(view, candidate + 5.0f*rndShift*dt) < 0.0f)
+				if (checker(candidate + 5.0f*rndShift*dt) < 0.0f)
 				{
 					candidate += 5.0f*rndShift*dt;
 					break;
@@ -208,7 +208,7 @@ __global__ void checkInside(PVview view, int* nInside, InsideWallChecker checker
 
 	Float3_int coo(view.particles[2*pid]);
 
-	float v = checker(view, coo.v);
+	float v = checker(coo.v);
 
 	if (v > 0) atomicAggInc(nInside);
 }
@@ -218,14 +218,14 @@ __global__ void checkInside(PVview view, int* nInside, InsideWallChecker checker
 //===============================================================================================
 
 template<class InsideWallChecker>
-void SimpleStationaryWall<InsideWallChecker>::setup(MPI_Comm& comm, float3 globalDomainSize, float3 globalDomainStart, float3 localDomainSize)
+void SimpleStationaryWall<InsideWallChecker>::setup(MPI_Comm& comm, DomainInfo domain)
 {
 	info("Setting up wall %s", name.c_str());
 
 	CUDA_Check( cudaDeviceSynchronize() );
 	MPI_Check( MPI_Comm_dup(comm, &wallComm) );
 
-	insideWallChecker.setup(wallComm, globalDomainSize, globalDomainStart, localDomainSize);
+	insideWallChecker.setup(wallComm, domain);
 
 	CUDA_Check( cudaDeviceSynchronize() );
 }

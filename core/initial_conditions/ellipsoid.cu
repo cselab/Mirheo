@@ -29,14 +29,13 @@ void EllipsoidIC::readXYZ(std::string fname, PinnedBuffer<float4>& positions, cu
 	positions.uploadToDevice(stream);
 }
 
-void EllipsoidIC::exec(const MPI_Comm& comm, ParticleVector* pv, float3 globalDomainStart, float3 localDomainSize, cudaStream_t stream)
+void EllipsoidIC::exec(const MPI_Comm& comm, ParticleVector* pv, DomainInfo domain, cudaStream_t stream)
 {
 	auto ov = dynamic_cast<RigidEllipsoidObjectVector*>(pv);
 	if (ov == nullptr)
 		die("Ellipsoids can only be generated out of rigid object vectors");
 
-	pv->globalDomainStart = globalDomainStart;
-	pv->localDomainSize = localDomainSize;
+	pv->domain = domain;
 
 	readXYZ(xyzfname, ov->initialPositions, stream);
 	if (ov->objSize != ov->initialPositions.size())
@@ -44,7 +43,6 @@ void EllipsoidIC::exec(const MPI_Comm& comm, ParticleVector* pv, float3 globalDo
 
 	std::ifstream fic(icfname);
 	int nObjs=0;
-	PVview pvView(ov, ov->local());
 
 	HostBuffer<LocalRigidObjectVector::RigidMotion> motions;
 
@@ -58,11 +56,11 @@ void EllipsoidIC::exec(const MPI_Comm& comm, ParticleVector* pv, float3 globalDo
 		if (!fic.good())
 			break;
 
-		if (ov->globalDomainStart.x <= motion.r.x && motion.r.x < ov->globalDomainStart.x + ov->localDomainSize.x &&
-		    ov->globalDomainStart.y <= motion.r.y && motion.r.y < ov->globalDomainStart.y + ov->localDomainSize.y &&
-		    ov->globalDomainStart.z <= motion.r.z && motion.r.z < ov->globalDomainStart.z + ov->localDomainSize.z)
+		if (ov->domain.globalStart.x <= motion.r.x && motion.r.x < ov->domain.globalStart.x + ov->domain.localSize.x &&
+		    ov->domain.globalStart.y <= motion.r.y && motion.r.y < ov->domain.globalStart.y + ov->domain.localSize.y &&
+		    ov->domain.globalStart.z <= motion.r.z && motion.r.z < ov->domain.globalStart.z + ov->domain.localSize.z)
 		{
-			motion.r = pvView.global2local(motion.r);
+			motion.r = ov->domain.global2local(motion.r);
 			motions.resize(nObjs + 1);
 			motions[nObjs] = motion;
 			nObjs++;

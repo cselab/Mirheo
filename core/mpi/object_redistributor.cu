@@ -8,7 +8,7 @@
 #include <core/utils/cuda_common.h>
 
 template<bool QUERY>
-__global__ void getExitingObjects(const OVviewWithExtraData ovView, const ROVview rovView, BufferOffsetsSizesWrap dataWrap)
+__global__ void getExitingObjects(const DomainInfo domain, const OVviewWithExtraData ovView, const ROVview rovView, BufferOffsetsSizesWrap dataWrap)
 {
 	const int objId = blockIdx.x;
 	const int tid = threadIdx.x;
@@ -20,13 +20,13 @@ __global__ void getExitingObjects(const OVviewWithExtraData ovView, const ROVvie
 	auto prop = ovView.comAndExtents[objId];
 	int cx = 1, cy = 1, cz = 1;
 
-	if (prop.com.x  < -0.5f*ovView.localDomainSize.x) cx = 0;
-	if (prop.com.y  < -0.5f*ovView.localDomainSize.y) cy = 0;
-	if (prop.com.z  < -0.5f*ovView.localDomainSize.z) cz = 0;
+	if (prop.com.x  < -0.5f*domain.localSize.x) cx = 0;
+	if (prop.com.y  < -0.5f*domain.localSize.y) cy = 0;
+	if (prop.com.z  < -0.5f*domain.localSize.z) cz = 0;
 
-	if (prop.com.x >=  0.5f*ovView.localDomainSize.x) cx = 2;
-	if (prop.com.y >=  0.5f*ovView.localDomainSize.y) cy = 2;
-	if (prop.com.z >=  0.5f*ovView.localDomainSize.z) cz = 2;
+	if (prop.com.x >=  0.5f*domain.localSize.x) cx = 2;
+	if (prop.com.y >=  0.5f*domain.localSize.y) cy = 2;
+	if (prop.com.z >=  0.5f*domain.localSize.z) cz = 2;
 
 //	if (tid == 0) printf("Obj %d : [%f %f %f] -- [%f %f %f]\n", ovView.ids[objId],
 //			prop.low.x, prop.low.y, prop.low.z, prop.high.x, prop.high.y, prop.high.z);
@@ -35,9 +35,9 @@ __global__ void getExitingObjects(const OVviewWithExtraData ovView, const ROVvie
 
 	__shared__ int shDstObjId;
 
-	const float3 shift{ ovView.localDomainSize.x*(cx-1),
-		                ovView.localDomainSize.y*(cy-1),
-		                ovView.localDomainSize.z*(cz-1) };
+	const float3 shift{ domain.localSize.x*(cx-1),
+		                domain.localSize.y*(cy-1),
+		                domain.localSize.z*(cz-1) };
 
 	__syncthreads();
 	if (tid == 0)
@@ -130,7 +130,7 @@ void ObjectRedistributor::prepareData(int id, cudaStream_t stream)
 		SAFE_KERNEL_LAUNCH(
 				getExitingObjects<true>,
 				ovView.nObjects, nthreads, 0, stream,
-				ovView, rovView, helper->wrapSendData() );
+				ov->domain, ovView, rovView, helper->wrapSendData() );
 
 		helper->makeSendOffsets_Dev2Dev(stream);
 		helper->resizeSendBuf();
@@ -139,7 +139,7 @@ void ObjectRedistributor::prepareData(int id, cudaStream_t stream)
 		SAFE_KERNEL_LAUNCH(
 				getExitingObjects<false>,
 				lov->nObjects, nthreads, 0, stream,
-				ovView, rovView, helper->wrapSendData() );
+				ov->domain, ovView, rovView, helper->wrapSendData() );
 	}
 
 	// Unpack the central buffer into the object vector itself

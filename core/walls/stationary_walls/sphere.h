@@ -1,5 +1,6 @@
 #pragma once
 
+#include <core/domain.h>
 #include <core/datatypes.h>
 #include <mpi.h>
 
@@ -12,13 +13,13 @@ public:
 		center(center), radius(radius), inside(inside)
 	{	}
 
-	void setup(MPI_Comm& comm, float3 globalDomainSize, float3 globalDomainStart, float3 localDomainSize) {}
+	void setup(MPI_Comm& comm, 	DomainInfo domain) { this->domain = domain; }
 
 	const StationaryWall_Sphere& handler() const { return *this; }
 
-	__device__ __forceinline__ float operator()(const PVview view, float3 coo) const
+	__device__ __forceinline__ float operator()(float3 coo) const
 	{
-		float3 gr = view.local2global(coo);
+		float3 gr = domain.local2global(coo);
 		float dist = sqrtf(dot(gr-center, gr-center));
 
 		return inside ? dist - radius : radius - dist;
@@ -29,4 +30,6 @@ private:
 	float radius;
 
 	bool inside;
+
+	DomainInfo domain;
 };

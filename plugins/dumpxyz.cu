@@ -38,9 +38,8 @@ void XYZPlugin::serializeAndSend(cudaStream_t stream)
 
 	debug2("Plugin %s is sending now data", name.c_str());
 
-	PVview pvView(pv, pv->local());
 	for (int i=0; i < pv->local()->size(); i++)
-		pv->local()->coosvels[i].r = pvView.local2global(pv->local()->coosvels[i].r);
+		pv->local()->coosvels[i].r = pv->domain.local2global(pv->local()->coosvels[i].r);
 
 	send(pv->local()->coosvels.hostPtr(), pv->local()->coosvels.size() * sizeof(Particle));
 }

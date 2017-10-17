@@ -187,15 +187,12 @@ private:
 
 		std::string dirStr = node.attribute("direction").as_string("x");
 
-		// TODO: make all see simulation instead
-		float3 domain = node.root().child("simulation").child("domain").attribute("size").as_float3();
-
 		Forcing_PeriodicPoiseuille::Direction dir;
 		if (dirStr == "x") dir = Forcing_PeriodicPoiseuille::Direction::x;
 		if (dirStr == "y") dir = Forcing_PeriodicPoiseuille::Direction::y;
 		if (dirStr == "z") dir = Forcing_PeriodicPoiseuille::Direction::z;
 
-		Forcing_PeriodicPoiseuille forcing(force, dir, domain);
+		Forcing_PeriodicPoiseuille forcing(force, dir);
 
 		return (Integrator*) new IntegratorVV<Forcing_PeriodicPoiseuille>(name, dt, forcing);
 	}

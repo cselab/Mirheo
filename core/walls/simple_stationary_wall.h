@@ -16,7 +16,7 @@ public:
 		Wall(name), insideWallChecker(std::move(insideWallChecker))
 	{	}
 
-	void setup(MPI_Comm& comm, float3 globalDomainSize, float3 globalDomainStart, float3 localDomainSize) override;
+	void setup(MPI_Comm& comm, DomainInfo domain) override;
 
 	void removeInner(ParticleVector* pv) override;
 	void attach(ParticleVector* pv, CellList* cl, int check=0) override;

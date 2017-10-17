@@ -1,5 +1,6 @@
 #pragma once
 
+#include <core/domain.h>
 #include <core/datatypes.h>
 #include <mpi.h>
 
@@ -21,13 +22,13 @@ public:
 		}
 	}
 
-	void setup(MPI_Comm& comm, float3 globalDomainSize, float3 globalDomainStart, float3 localDomainSize) {}
+	void setup(MPI_Comm& comm, DomainInfo domain) { this->domain = domain; }
 
 	const StationaryWall_Cylinder& handler() const { return *this; }
 
-	__device__ __forceinline__ float operator()(const PVview view, float3 coo) const
+	__device__ __forceinline__ float operator()(float3 coo) const
 	{
-		float3 gr = view.local2global(coo);
+		float3 gr = domain.local2global(coo);
 
 		float2 projR;
 		if (_dir == 0) projR = make_float2(gr.y, gr.z);
@@ -45,4 +46,6 @@ private:
 	int _dir;
 
 	bool inside;
+
+	DomainInfo domain;
 };

@@ -13,10 +13,9 @@ private:
 public:
 	RestartIC(std::string path) : path(path) {};
 
-	void exec(const MPI_Comm& comm, ParticleVector* pv, float3 globalDomainStart, float3 localDomainSize, cudaStream_t stream) override
+	void exec(const MPI_Comm& comm, ParticleVector* pv, DomainInfo domain, cudaStream_t stream) override
 	{
-		pv->globalDomainStart = globalDomainStart;
-		pv->localDomainSize = localDomainSize;
+		pv->domain = domain;
 		pv->restart(comm, path);
 	}
 

@@ -3,6 +3,7 @@
 #include <string>
 #include <core/datatypes.h>
 #include <core/containers.h>
+#include <core/domain.h>
 
 #include <map>
 
@@ -100,7 +101,7 @@ public:
 class ParticleVector
 {
 public:
-	float3 localDomainSize, globalDomainStart;
+	DomainInfo domain;
 	LocalParticleVector *_local, *_halo;
 
 	float mass;

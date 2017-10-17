@@ -10,7 +10,7 @@
  */
 void IntegratorConstOmega::stage2(ParticleVector* pv, float t, cudaStream_t stream)
 {
-	const float3 locX0 = center - pv->globalDomainStart;
+	const float3 locX0 = pv->domain.global2local(center);
 
 	const float IomegaI = sqrt(dot(omega, omega));
 	const float phi     = IomegaI * dt;

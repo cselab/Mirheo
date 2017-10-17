@@ -4,6 +4,8 @@
 #include <string>
 #include <vector>
 
+#include <core/domain.h>
+
 class ParticleVector;
 class CellList;
 
@@ -14,7 +16,7 @@ public:
 
 	Wall(std::string name) : name(name) {};
 
-	virtual void setup(MPI_Comm& comm, float3 globalDomainSize, float3 globalDomainStart, float3 localDomainSize) = 0;
+	virtual void setup(MPI_Comm& comm, DomainInfo domain) = 0;
 
 	virtual void removeInner(ParticleVector* pv) = 0;
 	virtual void attach(ParticleVector* pv, CellList* cl, int checkEvery) = 0;

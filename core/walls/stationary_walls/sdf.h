@@ -1,12 +1,13 @@
 #pragma once
 
+#include <core/domain.h>
 #include <core/containers.h>
 #include <core/pvs/particle_vector.h>
 
 class StationaryWall_SDF_Handler
 {
 public:
-	__device__ __forceinline__ float operator()(const PVview view, float3 x) const
+	__device__ __forceinline__ float operator()(float3 x) const
 	{
 		float3 texcoord = floorf((x + extendedDomainSize*0.5f) * invh);
 		float3 lambda = (x - (texcoord * h - extendedDomainSize*0.5f)) * invh;
@@ -44,7 +45,7 @@ protected:
 class StationaryWall_SDF : public StationaryWall_SDF_Handler
 {
 public:
-	void setup(MPI_Comm& comm, float3 globalDomainSize, float3 globalDomainStart, float3 localDomainSize);
+	void setup(MPI_Comm& comm, DomainInfo domain);
 	StationaryWall_SDF(std::string sdfFileName, float3 sdfH);
 
 

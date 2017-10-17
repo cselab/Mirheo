@@ -8,7 +8,7 @@
 #include <core/utils/cuda_common.h>
 
 template<bool QUERY=false>
-__global__ void getObjectHalos(const OVviewWithExtraData ovView, const ROVview rovView,
+__global__ void getObjectHalos(const DomainInfo domain, const OVviewWithExtraData ovView, const ROVview rovView,
 		const float rc, BufferOffsetsSizesWrap dataWrap, int* haloParticleIds = nullptr)
 {
 	const int objId = blockIdx.x;
@@ -24,13 +24,13 @@ __global__ void getObjectHalos(const OVviewWithExtraData ovView, const ROVview r
 		auto prop = ovView.comAndExtents[objId];
 		int cx = 1, cy = 1, cz = 1;
 
-		if (prop.low.x  < -0.5f*ovView.localDomainSize.x + rc) cx = 0;
-		if (prop.low.y  < -0.5f*ovView.localDomainSize.y + rc) cy = 0;
-		if (prop.low.z  < -0.5f*ovView.localDomainSize.z + rc) cz = 0;
+		if (prop.low.x  < -0.5f*domain.localSize.x + rc) cx = 0;
+		if (prop.low.y  < -0.5f*domain.localSize.y + rc) cy = 0;
+		if (prop.low.z  < -0.5f*domain.localSize.z + rc) cz = 0;
 
-		if (prop.high.x >  0.5f*ovView.localDomainSize.x - rc) cx = 2;
-		if (prop.high.y >  0.5f*ovView.localDomainSize.y - rc) cy = 2;
-		if (prop.high.z >  0.5f*ovView.localDomainSize.z - rc) cz = 2;
+		if (prop.high.x >  0.5f*domain.localSize.x - rc) cx = 2;
+		if (prop.high.y >  0.5f*domain.localSize.y - rc) cy = 2;
+		if (prop.high.z >  0.5f*domain.localSize.z - rc) cz = 2;
 
 //			if (tid == 0 && !QUERY) printf("Obj %d : [%f %f %f] -- [%f %f %f]\n", objId,
 //			prop.low.x, prop.low.y, prop.low.z, prop.high.x, prop.high.y, prop.high.z);
@@ -56,9 +56,9 @@ __global__ void getObjectHalos(const OVviewWithExtraData ovView, const ROVview r
 		const int ix = bufId % 3;
 		const int iy = (bufId / 3) % 3;
 		const int iz = bufId / 9;
-		const float3 shift{ ovView.localDomainSize.x*(ix-1),
-							ovView.localDomainSize.y*(iy-1),
-							ovView.localDomainSize.z*(iz-1) };
+		const float3 shift{ domain.localSize.x*(ix-1),
+							domain.localSize.y*(iy-1),
+							domain.localSize.z*(iz-1) };
 
 		__syncthreads();
 		if (tid == 0)
@@ -169,7 +169,7 @@ void ObjectHaloExchanger::prepareData(int id, cudaStream_t stream)
 		SAFE_KERNEL_LAUNCH(
 				getObjectHalos<true>,
 				ovView.nObjects, nthreads, 0, stream,
-				ovView, rovView, rc, helper->wrapSendData() );
+				ov->domain, ovView, rovView, rc, helper->wrapSendData() );
 
 		helper->makeSendOffsets_Dev2Dev(stream);
 		helper->resizeSendBuf();
@@ -181,7 +181,7 @@ void ObjectHaloExchanger::prepareData(int id, cudaStream_t stream)
 		SAFE_KERNEL_LAUNCH(
 				getObjectHalos<false>,
 				ovView.nObjects, nthreads, 0, stream,
-				ovView, rovView, rc, helper->wrapSendData(), origin->devPtr() );
+				ov->domain, ovView, rovView, rc, helper->wrapSendData(), origin->devPtr() );
 	}
 }
 

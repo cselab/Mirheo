@@ -5,10 +5,12 @@
 #include <core/pvs/particle_vector.h>
 #include <core/logger.h>
 
-void UniformIC::exec(const MPI_Comm& comm, ParticleVector* pv, float3 globalDomainStart, float3 localDomainSize, cudaStream_t stream)
+void UniformIC::exec(const MPI_Comm& comm, ParticleVector* pv, DomainInfo domain, cudaStream_t stream)
 {
-	int3 ncells = make_int3( ceilf(localDomainSize) );
-	float3 h = localDomainSize / make_float3(ncells);
+	pv->domain = domain;
+
+	int3 ncells = make_int3( ceilf(domain.localSize) );
+	float3 h = domain.localSize / make_float3(ncells);
 
 	float volume = h.x*h.y*h.z;
 	float avg = volume * density;
@@ -40,9 +42,9 @@ void UniformIC::exec(const MPI_Comm& comm, ParticleVector* pv, float3 globalDoma
 					pv->local()->resize(mycount+1,  stream);
 					auto cooPtr = pv->local()->coosvels.hostPtr();
 
-					cooPtr[mycount].r.x = i*h.x - 0.5*localDomainSize.x + udistr(gen);
-					cooPtr[mycount].r.y = j*h.y - 0.5*localDomainSize.y + udistr(gen);
-					cooPtr[mycount].r.z = k*h.z - 0.5*localDomainSize.z + udistr(gen);
+					cooPtr[mycount].r.x = i*h.x - 0.5*domain.localSize.x + udistr(gen);
+					cooPtr[mycount].r.y = j*h.y - 0.5*domain.localSize.y + udistr(gen);
+					cooPtr[mycount].r.z = k*h.z - 0.5*domain.localSize.z + udistr(gen);
 					cooPtr[mycount].i1 = mycount;
 
 					cooPtr[mycount].u.x = 0.1f * (udistr(gen) - 0.5);
@@ -69,9 +71,6 @@ void UniformIC::exec(const MPI_Comm& comm, ParticleVector* pv, float3 globalDoma
 		cooPtr[i].u.y -= avgMomentum.y;
 		cooPtr[i].u.z -= avgMomentum.z;
 	}
-
-	pv->globalDomainStart = globalDomainStart;
-	pv->localDomainSize = localDomainSize;
 
 	int totalCount=0; // TODO: int64!
 	MPI_Check( MPI_Exscan(&mycount, &totalCount, 1, MPI_INT, MPI_SUM, comm) );

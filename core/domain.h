@@ -1,5 +1,7 @@
 #pragma once
 
+#include <core/utils/cuda_common.h>
+
 struct DomainInfo
 {
 	float3 globalSize, globalStart, localSize;
