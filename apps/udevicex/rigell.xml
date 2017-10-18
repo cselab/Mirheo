@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
-<simulation name="poiseuille" logfile="log" mpi_ranks="1 1 1" debug_lvl="3">
+<simulation name="poiseuille" logfile="log" mpi_ranks="1 1 1" debug_lvl="10">
 
 	<domain size="24 24 24" />
 	
@@ -12,7 +12,7 @@
 	</particle_vector>
 	
 	<object_belonging_checker name="ell_checker" object_vector="ellipsoids" type="analytical_ellipsoid" >
-		<apply_to pv="dpd" inside="none" outside="dpd" check_every="1" />
+		<apply_to pv="dpd" inside="dpd2" outside="dpd" check_every="1" />
 	</object_belonging_checker>
 	
 	<!-- <object_bouncer name="ell_bounce" ov="rigid_ellipsoid" type="analytical">
@@ -31,14 +31,14 @@
 	<interaction type="dpd" name="dpd_int" a="2.6666667" gamma="8" kbt="0.0444302" dt="0.0005" rc="1.0" power="0.25">
 		<apply_to pv1="dpd" pv2="dpd"/>
 		<apply_to pv1="dpd" pv2="ellipsoids"/>
-<!-- 		<apply_to pv1="dpd" pv2="frozen"/> -->
+		<apply_to pv1="dpd" pv2="dpd2"/>
 	</interaction>
 	
-	<integrator type="vv_periodic_poiseuille" name="const_dp" direction="x" force="0.0" dt="0.0005">
+	<integrator type="vv_periodic_poiseuille" name="const_dp" direction="x" force="0.0" dt="0.0000">
 		<apply_to pv="dpd" />
 	</integrator>
 	
-	<integrator type="rigid_vv" name="rigid" dt="0.0005">
+	<integrator type="rigid_vv" name="rigid" dt="0.0000">
 		<apply_to pv="ellipsoids" />
 	</integrator>
 	
@@ -53,11 +53,15 @@
 		dump_every="100"
 		path="xyz/ellipsoids" />
 			
-<!-- 	<plugin type="dump_xyz" name="dpd"
+	<plugin type="dump_xyz" name="dpd"
 		pv_name="dpd"
 		dump_every="100"
-		path="xyz/dpd" /> -->
+		path="xyz/dpd_" />
 	
+	<plugin type="dump_xyz" name="dpd2"
+		pv_name="dpd2"
+		dump_every="100"
+		path="xyz/dpd2_" />
 	
 	<plugin type="stats" name="stats" every="100" />
 	

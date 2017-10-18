@@ -228,14 +228,14 @@ void Simulation::applyObjectBelongingChecker(std::string checkerName,
 
 	if (inside != "none" && pvInside == nullptr)
 	{
-		auto pv = new ParticleVector(inside, pvSource->mass);
-		registerParticleVector(pv, nullptr);
+		pvInside = new ParticleVector(inside, pvSource->mass);
+		registerParticleVector(pvInside, nullptr);
 	}
 
 	if (outside != "none" && pvOutside == nullptr)
 	{
-		auto pv = new ParticleVector(outside, pvSource->mass);
-		registerParticleVector(pv, nullptr);
+		pvOutside = new ParticleVector(outside, pvSource->mass);
+		registerParticleVector(pvOutside, nullptr);
 	}
 
 	splitterPrototypes.push_back(std::make_tuple(checker, pvSource, pvInside, pvOutside));

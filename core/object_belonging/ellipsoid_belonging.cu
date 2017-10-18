@@ -21,8 +21,8 @@ __global__ void insideEllipsoid(REOVview view, CellListInfo cinfo, int* tags)
 	const int tid = threadIdx.x;
 	if (objId >= view.nObjects) return;
 
-	const int3 cidLow  = cinfo.getCellIdAlongAxes(view.comAndExtents[objId].low  - 0.5f);
-	const int3 cidHigh = cinfo.getCellIdAlongAxes(view.comAndExtents[objId].high + 1.5f);
+	const int3 cidLow  = cinfo.getCellIdAlongAxes(view.comAndExtents[objId].low  - 1.5f);
+	const int3 cidHigh = cinfo.getCellIdAlongAxes(view.comAndExtents[objId].high + 2.5f);
 
 	const int3 span = cidHigh - cidLow + make_int3(1,1,1);
 	const int totCells = span.x * span.y * span.z;
