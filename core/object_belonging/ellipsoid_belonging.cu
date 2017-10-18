@@ -47,8 +47,6 @@ __global__ void insideEllipsoid(REOVview view, CellListInfo cinfo, int* tags)
 				tags[pid] = -84;
 			else if (v <= tolerance)  // inside
 				tags[pid] = 1;
-			else                      // outside
-				tags[pid] = 0;
 		}
 	}
 }
@@ -76,7 +74,6 @@ void EllipsoidBelongingChecker::tagInner(ParticleVector* pv, CellList* cl, cudaS
 			insideEllipsoid,
 			view.nObjects, nthreads, 0, stream,
 			view, cl->cellInfo(), tags.devPtr());
-
 }
 
 

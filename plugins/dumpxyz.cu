@@ -41,7 +41,7 @@ void XYZPlugin::serializeAndSend(cudaStream_t stream)
 	for (int i=0; i < pv->local()->size(); i++)
 		pv->local()->coosvels[i].r = pv->domain.local2global(pv->local()->coosvels[i].r);
 
-	send(pv->local()->coosvels.hostPtr(), pv->local()->coosvels.size() * sizeof(Particle));
+	send(pv->local()->coosvels.hostPtr(), pv->local()->size() * sizeof(Particle));
 }
 
 //=================================================================================
