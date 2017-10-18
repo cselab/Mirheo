@@ -291,7 +291,7 @@ void Simulation::prepareInteractions()
 
 	for (auto prototype : interactionPrototypes)
 	{
-		float rc = std::get<0>(prototype);
+		auto  rc = std::get<0>(prototype);
 		auto pv1 = std::get<1>(prototype);
 		auto pv2 = std::get<2>(prototype);
 
@@ -527,15 +527,17 @@ void Simulation::assemble()
 		auto pv      = std::get<1>(prototype);
 		auto every   = std::get<2>(prototype);
 
-		auto clVec = cellListMap[pv];
-		if (clVec.size() == 0)
-			die("Unable to check belonging of a PV without a valid cell-list");
-		auto cl = clVec[0];
-
 		if (every > 0)
+		{
+			auto clVec = cellListMap[pv];
+			if (clVec.size() == 0)
+				die("Unable to check belonging of a PV without a valid cell-list");
+			auto cl = clVec[0];
+
 			scheduler.addTask("Bounce check",
 					[checker, pv, cl] (cudaStream_t stream) { checker->checkInner(pv, cl, stream); },
 					every);
+		}
 	}
 
 	scheduler.addTask("Obj forces exchange: init", [&] (cudaStream_t stream) {
@@ -574,6 +576,13 @@ void Simulation::assemble()
 	});
 
 	scheduler.addTask("Object extents", [&] (cudaStream_t stream) {
+		for (auto& ov : objectVectors)
+			ov->findExtentAndCOM(stream);
+	});
+
+	// This one should be executed after halo and redist
+	// as bounces and other things rely on correct extent
+	scheduler.addTask("Object extents 2", [&] (cudaStream_t stream) {
 		for (auto& ov : objectVectors)
 			ov->findExtentAndCOM(stream);
 	});
@@ -620,7 +629,8 @@ void Simulation::assemble()
 	scheduler.addDependency("Redistribute init", {}, {"Integration", "Wall bounce", "Object bounce", "Plugins: after integration"});
 	scheduler.addDependency("Redistribute finalize", {}, {"Redistribute init"});
 
-	scheduler.addDependency("Object extents", {"Object redistribute init"}, {"Plugins: after integration"});
+	scheduler.addDependency("Object extents", {"Object redistribute init", "Object halo init"}, {"Plugins: after integration"});
+	scheduler.addDependency("Object extents 2", {}, {"Object redistribute finalize", "Object halo finalize"});
 	scheduler.addDependency("Object redistribute init", {}, {"Integration", "Wall bounce", "Obj forces exchange: finalize", "Plugins: after integration"});
 	scheduler.addDependency("Object redistribute finalize", {}, {"Object redistribute init"});
 	scheduler.addDependency("Clear obj local forces", {}, {"Object redistribute finalize"});

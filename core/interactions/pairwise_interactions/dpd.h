@@ -4,6 +4,8 @@
 #include <core/pvs/particle_vector.h>
 #include <core/utils/cuda_rng.h>
 
+#include <random>
+
 class ParticleVector;
 class CellList;
 
@@ -33,8 +35,12 @@ public:
 	void setup(ParticleVector* pv1, ParticleVector* pv2, CellList* cl1, CellList* cl2, float t)
 	{
 		//seed = t;
-		// better use random seed instead of time
-		seed = drand48();
+		// better use random seed (time-based!) instead of time
+		// t is float, use it's bit representation as int to seed RNG
+		int v = *((int*)&t);
+		std::mt19937 gen(v);
+		std::uniform_real_distribution<float> udistr(0.001, 1);
+		seed = udistr(gen);
 	}
 
 	__device__ __forceinline__ float3 operator()(const Particle dst, int dstId, const Particle src, int srcId) const

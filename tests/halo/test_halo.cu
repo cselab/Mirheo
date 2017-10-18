@@ -45,8 +45,10 @@ int main(int argc, char ** argv)
 	ParticleVector dpds("dpd", 1.0f);
 	PrimaryCellList cells(&dpds, rc, length);
 
+	DomainInfo domain{length, domainStart, length};
+
 	InitialConditions* ic = new UniformIC(8.0);
-	ic->exec(MPI_COMM_WORLD, &dpds, {0,0,0}, length, 0);
+	ic->exec(MPI_COMM_WORLD, &dpds, domain,  0);
 
 	cells.build(0);
 

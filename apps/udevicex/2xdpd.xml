@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
-<simulation name="2xdpd" logfile="log_2dpd" mpi_ranks="1 1 1" debug_lvl="2" noplugins="false">
+<simulation name="2xdpd" logfile="log_2dpd" mpi_ranks="1 1 1" debug_lvl="2">
 
 	<domain size="64 64 64" />
 	
@@ -11,7 +11,7 @@
 		<generate type="uniform" density="4" />
 	</particle_vector>
 	
-	<particle_vector type="regular" name="frozen" mass="1">
+	<!-- <particle_vector type="regular" name="frozen" mass="1">
 		<generate type="restart" path="restart/" />
 	</particle_vector>
 	
@@ -19,18 +19,18 @@
 		<generate_frozen name="frozen" path="restart" mass="1.0" density="8" a="2.6666667" kbt="0.05" rc="1.0" power="0.5" />
 		<apply_to pv="dpd" check="false" />
 		<apply_to pv="dpd2" check="false" />		
-	</wall>
+	</wall> -->
 	
 	<interaction type="dpd" name="dpd_int" a="2.6666667" gamma="8" kbt="0.0444302" dt="0.0005" rc="1.0" power="0.25">
 		<apply_to pv1="dpd" pv2="dpd"/>
-		<apply_to pv1="dpd" pv2="frozen"/>
+		<!-- <apply_to pv1="dpd" pv2="frozen"/> -->
 		
 		<apply_to pv1="dpd" pv2="dpd2"/>
 		<apply_to pv1="dpd2" pv2="dpd2"/>
-		<apply_to pv1="dpd2" pv2="frozen"/>
+<!-- 		<apply_to pv1="dpd2" pv2="frozen"/> -->
 	</interaction>
 	
-	<integrator type="vv_const_dp" name="const_dp" extra_force="0.033333333 0 0.0" dt="0.0005">
+	<integrator type="vv_const_dp" name="const_dp" extra_force="0.0 0 0.0" dt="0.0005">
 		<apply_to pv="dpd" />
 		<apply_to pv="dpd2" />
 	</integrator>

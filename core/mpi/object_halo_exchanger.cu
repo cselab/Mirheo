@@ -100,7 +100,7 @@ __global__ void getObjectHalos(const DomainInfo domain, const OVviewWithExtraDat
 		dstAddr += ovView.objSize*2;
 		ovView.packExtraData(objId, (char*)dstAddr);
 
-		if (rovView.objSize == ovView.objSize)
+		if (rovView.objSize == ovView.objSize && tid == 0)
 			rovView.applyShift2extraData((char*)dstAddr, shift);
 	}
 }

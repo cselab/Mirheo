@@ -63,6 +63,8 @@ void EllipsoidBelongingChecker::tagInner(ParticleVector* pv, CellList* cl, cudaS
 	tags.resize_anew(pv->local()->size());
 	tags.clearDevice(stream);
 
+	//ov->findExtentAndCOM(stream);
+
 	auto view = REOVview(reov, reov->local());
 	SAFE_KERNEL_LAUNCH(
 			insideEllipsoid,

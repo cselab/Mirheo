@@ -289,7 +289,7 @@ __global__ void computeExternalInteractions_27tpp(
 
 	int cellZ = cell0.z +  dircode / 9      - 1;
 	int cellY = cell0.y + (dircode / 3) % 3 - 1;
-	int cellX = cell0.y +  dircode % 3      - 1;
+	int cellX = cell0.x +  dircode % 3      - 1;
 
 	if ( !( cellX >= 0 && cellX < srcCinfo.ncells.x &&
 			cellY >= 0 && cellY < srcCinfo.ncells.y &&

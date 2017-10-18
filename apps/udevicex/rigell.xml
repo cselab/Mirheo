@@ -12,7 +12,7 @@
 	</particle_vector>
 	
 	<object_belonging_checker name="ell_checker" object_vector="ellipsoids" type="analytical_ellipsoid" >
-		<apply_to pv="dpd" inside="dpd2" outside="dpd" check_every="1" />
+		<apply_to pv="dpd" inside="dpd2" outside="dpd" check_every="0" />
 	</object_belonging_checker>
 	
 	<!-- <object_bouncer name="ell_bounce" ov="rigid_ellipsoid" type="analytical">
@@ -30,15 +30,18 @@
 	
 	<interaction type="dpd" name="dpd_int" a="2.6666667" gamma="8" kbt="0.0444302" dt="0.0005" rc="1.0" power="0.25">
 		<apply_to pv1="dpd" pv2="dpd"/>
-		<apply_to pv1="dpd" pv2="ellipsoids"/>
 		<apply_to pv1="dpd" pv2="dpd2"/>
+		<apply_to pv1="dpd2" pv2="dpd2"/>
+		<apply_to pv1="dpd" pv2="ellipsoids"/>
+		<apply_to pv1="dpd2" pv2="ellipsoids"/>
 	</interaction>
 	
-	<integrator type="vv_periodic_poiseuille" name="const_dp" direction="x" force="0.0" dt="0.0000">
+	<integrator type="vv_periodic_poiseuille" name="const_dp" direction="x" force="0.0" dt="0.0005">
 		<apply_to pv="dpd" />
+		<apply_to pv="dpd2" />
 	</integrator>
 	
-	<integrator type="rigid_vv" name="rigid" dt="0.0000">
+	<integrator type="rigid_vv" name="rigid" dt="0.0005">
 		<apply_to pv="ellipsoids" />
 	</integrator>
 	
@@ -58,10 +61,10 @@
 		dump_every="100"
 		path="xyz/dpd_" />
 	
-	<plugin type="dump_xyz" name="dpd2"
+<!-- 	<plugin type="dump_xyz" name="dpd2"
 		pv_name="dpd2"
 		dump_every="100"
-		path="xyz/dpd2_" />
+		path="xyz/dpd2_" /> -->
 	
 	<plugin type="stats" name="stats" every="100" />
 	
