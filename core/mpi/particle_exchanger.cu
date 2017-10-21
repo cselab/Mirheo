@@ -56,6 +56,10 @@ ParticleExchanger::ParticleExchanger(MPI_Comm& comm) :
 
 void ParticleExchanger::init(cudaStream_t stream)
 {
+	// Post irecv for sizes as early as possible
+	for (int i=0; i<helpers.size(); i++)
+		if (needExchange(i)) postRecvSize(helpers[i]);
+
 	// Derived class determines what to send
 	for (int i=0; i<helpers.size(); i++)
 		if (needExchange(i)) prepareData(i, stream);
@@ -84,12 +88,7 @@ int ParticleExchanger::tagByName(std::string name)
 	return (int)( nameHash(name) % (32767 / 27) );
 }
 
-
-/**
- * helper->recvBuf will contain all the data, ON DEVICE already
- * will set and sync recvSizes and recvOffsets as well
- */
-void ParticleExchanger::recv(ExchangeHelper* helper, cudaStream_t stream)
+void ParticleExchanger::postRecvSize(ExchangeHelper* helper)
 {
 	std::string pvName = helper->name;
 
@@ -105,14 +104,27 @@ void ParticleExchanger::recv(ExchangeHelper* helper, cudaStream_t stream)
 		if (i != 13 && dir2rank[i] >= 0)
 		{
 			MPI_Request req;
-			const int tag = 27 * tagByName(pvName) + dir2recvTag[i];
+			const int tag = nBuffers * tagByName(pvName) + dir2recvTag[i];
 
 			MPI_Check( MPI_Irecv(rSizes + i, 1, MPI_INT, dir2rank[i], tag, haloComm, &req) );
 			helper->requests.push_back(req);
 		}
+}
 
-	const int nMessages = helper->requests.size(); // 26 for now
-	MPI_Check( MPI_Waitall(nMessages, helper->requests.data(), MPI_STATUSES_IGNORE) );
+
+/**
+ * helper->recvBuf will contain all the data, ON DEVICE already
+ * will set and sync recvSizes and recvOffsets as well
+ */
+void ParticleExchanger::recv(ExchangeHelper* helper, cudaStream_t stream)
+{
+	std::string pvName = helper->name;
+
+	auto nBuffers = helper->nBuffers;
+	auto rSizes   = helper->recvSizes.  hostPtr();
+	auto rOffsets = helper->recvOffsets.hostPtr();
+
+	MPI_Check( MPI_Waitall(helper->requests.size(), helper->requests.data(), MPI_STATUSES_IGNORE) );
 
 	// Prepare offsets and resize
 	helper->makeRecvOffsets();
@@ -130,12 +142,15 @@ void ParticleExchanger::recv(ExchangeHelper* helper, cudaStream_t stream)
 			debug3("Receiving %s entities from rank %d, %d entities (buffer %d)",
 					pvName.c_str(), dir2rank[i], rSizes[i], i);
 
-			MPI_Check( MPI_Irecv(
-					helper->recvBuf.hostPtr() + rOffsets[i]*helper->datumSize,
-					rSizes[i]*helper->datumSize,
-					MPI_BYTE, dir2rank[i], tag, haloComm, &req) );
+			if (rSizes[i] > 0)
+			{
+				MPI_Check( MPI_Irecv(
+						helper->recvBuf.hostPtr() + rOffsets[i]*helper->datumSize,
+						rSizes[i]*helper->datumSize,
+						MPI_BYTE, dir2rank[i], tag, haloComm, &req) );
 
-			helper->requests.push_back(req);
+				helper->requests.push_back(req);
+			}
 		}
 
 	// Start uploading sizes and offsets
@@ -143,7 +158,7 @@ void ParticleExchanger::recv(ExchangeHelper* helper, cudaStream_t stream)
 	helper->recvOffsets.uploadToDevice(stream);
 
 	// Wait for completion
-	MPI_Check( MPI_Waitall(nMessages, helper->requests.data(), MPI_STATUSES_IGNORE) );
+	MPI_Check( MPI_Waitall(helper->requests.size(), helper->requests.data(), MPI_STATUSES_IGNORE) );
 
 	// And finally upload received
 	helper->recvBuf.uploadToDevice(stream);
@@ -180,11 +195,14 @@ void ParticleExchanger::send(ExchangeHelper* helper, cudaStream_t stream)
 			MPI_Check( MPI_Request_free(&req) );
 
 			// Send actual data
-			MPI_Check( MPI_Isend(
-					helper->sendBuf.hostPtr() + sOffsets[i]*helper->datumSize,
-					sSizes[i] * helper->datumSize,
-					MPI_BYTE, dir2rank[i], tag, haloComm, &req) );
-			MPI_Check( MPI_Request_free(&req) );
+			if (sSizes[i] > 0)
+			{
+				MPI_Check( MPI_Isend(
+						helper->sendBuf.hostPtr() + sOffsets[i]*helper->datumSize,
+						sSizes[i] * helper->datumSize,
+						MPI_BYTE, dir2rank[i], tag, haloComm, &req) );
+				MPI_Check( MPI_Request_free(&req) );
+			}
 
 			totSent += sSizes[i];
 		}

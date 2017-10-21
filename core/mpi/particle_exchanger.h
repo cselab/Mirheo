@@ -58,6 +58,13 @@ private:
 
 class ParticleExchanger
 {
+public:
+	ParticleExchanger(MPI_Comm& comm);
+	void init(cudaStream_t stream);
+	void finalize(cudaStream_t stream);
+
+	virtual ~ParticleExchanger() = default;
+
 protected:
 	int dir2rank[27], dir2sendTag[27], dir2recvTag[27];
 	int nActiveNeighbours;
@@ -69,18 +76,11 @@ protected:
 
 	int tagByName(std::string);
 
+	void postRecvSize(ExchangeHelper* helper);
 	void recv(ExchangeHelper* helper, cudaStream_t stream);
 	void send(ExchangeHelper* helper, cudaStream_t stream);
 
 	virtual void prepareData(int id, cudaStream_t stream) = 0;
 	virtual void combineAndUploadData(int id, cudaStream_t stream) = 0;
 	virtual bool needExchange(int id) = 0;
-
-public:
-
-	ParticleExchanger(MPI_Comm& comm);
-	void init(cudaStream_t stream);
-	void finalize(cudaStream_t stream);
-
-	virtual ~ParticleExchanger() = default;
 };
