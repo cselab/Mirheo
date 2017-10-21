@@ -13,6 +13,7 @@
 #include <core/pvs/rigid_ellipsoid_object_vector.h>
 
 #include <core/rigid_kernels/bounce.h>
+#include <core/rigid_kernels/integration.h>
 
 void BounceFromRigidEllipsoid::exec(ParticleVector* pv, CellList* cl, float dt, cudaStream_t stream, bool local)
 {
@@ -22,14 +23,26 @@ void BounceFromRigidEllipsoid::exec(ParticleVector* pv, CellList* cl, float dt, 
 
 	debug("Bouncing %s particles from %s object vector", pv->name.c_str(), reov->name.c_str());
 
-	REOVview ovView(reov, local ? reov->local() : reov->halo());
-	PVview pvView(pv, pv->local());
+	REOVview_withOldMotion ovView(reov, local ? reov->local() : reov->halo());
+	PVview_withOldParticles pvView(pv, pv->local());
 
-	int nthreads = 512;
+	int nthreads = 256;
 	SAFE_KERNEL_LAUNCH(
 			bounceEllipsoid,
 			ovView.nObjects, nthreads, 2*nthreads*sizeof(int), stream,
 			ovView, pvView, cl->cellInfo(), dt );
+
+	// transfer forces and torques to the particles
+	SAFE_KERNEL_LAUNCH(
+			rigidMotion2forces,
+			getNblocks(ovView.nObjects, 64), 64, 0, stream,
+			ovView );
+
+	// clear motion values
+	SAFE_KERNEL_LAUNCH(
+			clearRigidForces,
+			getNblocks(ovView.nObjects, 64), 64, 0, stream,
+			ovView );
 }
 
 

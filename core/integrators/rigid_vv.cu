@@ -27,10 +27,7 @@ void IntegratorVVRigid::stage2(ParticleVector* pv, float t, cudaStream_t stream)
 	debug("Integrating %d rigid objects %s (total %d particles), timestep is %f",
 			ov->local()->nObjects, ov->name.c_str(), ov->local()->size(), dt);
 
-	if (ov->local()->nObjects == 0)
-		return;
-
-	ROVview ovView(ov, ov->local());
+	ROVview_withOldMotion ovView(ov, ov->local());
 
 	warn("Only objects with diagonal inertia tensors are supported now for rigid integration");
 

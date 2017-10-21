@@ -1,6 +1,6 @@
 #include "dumpavg.h"
 #include "simple_serializer.h"
-#include "string2vector.h"
+#include "utils.h"
 
 #include <core/utils/kernel_launch.h>
 #include <core/simulation.h>
@@ -78,13 +78,7 @@ void Avg3DPlugin::setup(Simulation* sim, const MPI_Comm& comm, const MPI_Comm& i
 	force.clear(0);
 
 	for (auto& nm : splitPvNames)
-	{
-		auto pv = sim->getPVbyName(nm);
-		if (pv == nullptr)
-			die("No such particle vector registered: %s", nm.c_str());
-
-		particleVectors.push_back(pv);
-	}
+		particleVectors.push_back(sim->getPVbyNameOrDie(nm));
 
 	info("Plugin %s initialized for the following particle vectors: %s", name.c_str(), pvNames.c_str());
 }
@@ -157,7 +151,7 @@ void Avg3DPlugin::serializeAndSend(cudaStream_t stream)
 
 	debug2("Plugin %s is sending now data", name.c_str());
 	SimpleSerializer::serialize(sendBuffer, currentTime, density, momentum, force);
-	send(sendBuffer.data(), sendBuffer.size());
+	send(sendBuffer);
 
 	nSamples = 0;
 }

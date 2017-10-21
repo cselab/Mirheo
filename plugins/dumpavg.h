@@ -30,10 +30,10 @@ public:
 	Avg3DPlugin(std::string name, std::string pvNames, int sampleEvery, int dumpEvery, float3 binSize,
 			bool needMomentum, bool needForce);
 
-	void setup(Simulation* sim, const MPI_Comm& comm, const MPI_Comm& interComm);
-	void handshake();
-	void afterIntegration(cudaStream_t stream);
-	void serializeAndSend(cudaStream_t stream);
+	void setup(Simulation* sim, const MPI_Comm& comm, const MPI_Comm& interComm) override;
+	void handshake() override;
+	void afterIntegration(cudaStream_t stream) override;
+	void serializeAndSend(cudaStream_t stream) override;
 
 	~Avg3DPlugin() {};
 };
@@ -56,8 +56,8 @@ private:
 public:
 	Avg3DDumper(std::string name, std::string path);
 
-	void deserialize(MPI_Status& stat);
-	void handshake();
+	void deserialize(MPI_Status& stat) override;
+	void handshake() override;
 
 	~Avg3DDumper() {};
 };

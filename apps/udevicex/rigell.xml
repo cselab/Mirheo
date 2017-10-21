@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
-<simulation name="poiseuille" logfile="log" mpi_ranks="1 1 1" debug_lvl="10">
+<simulation name="poiseuille" logfile="log" mpi_ranks="2 1 1" debug_lvl="10">
 
 	<domain size="24 24 24" />
 	
@@ -12,12 +12,12 @@
 	</particle_vector>
 	
 	<object_belonging_checker name="ell_checker" object_vector="ellipsoids" type="analytical_ellipsoid" >
-		<apply_to pv="dpd" inside="dpd2" outside="dpd" check_every="0" />
+		<apply_to pv="dpd" inside="none" outside="dpd" check_every="50" />
 	</object_belonging_checker>
 	
-	<!-- <object_bouncer name="ell_bounce" ov="rigid_ellipsoid" type="analytical">
-		<apply_to pv="dpd" check="true"/>
-	</object_bouncer> -->
+	<object_bouncer name="ell_bounce" ov="ellipsoids" type="from_ellipsoids">
+		<apply_to pv="dpd" />
+	</object_bouncer>
 
 	<!-- <particle_vector type="regular" name="frozen" mass="1">
 		<generate type="restart" path="restart/" />
@@ -28,47 +28,56 @@
 		<apply_to pv="dpd" check="false" />
 	</wall> -->
 	
-	<interaction type="dpd" name="dpd_int" a="2.6666667" gamma="8" kbt="0.0444302" dt="0.0005" rc="1.0" power="0.25">
+	<interaction type="dpd" name="dpd_int" a="2.6666667" gamma="8" kbt="0.5444302" dt="0.001" rc="1.0" power="0.5">
 		<apply_to pv1="dpd" pv2="dpd"/>
-		<apply_to pv1="dpd" pv2="dpd2"/>
-		<apply_to pv1="dpd2" pv2="dpd2"/>
+		<!-- <apply_to pv1="dpd" pv2="dpd2"/>
+		<apply_to pv1="dpd2" pv2="dpd2"/> -->
+		<!-- <apply_to pv1="dpd" pv2="ellipsoids"/> -->
+<!-- 		<apply_to pv1="dpd2" pv2="ellipsoids"/>
+ -->	</interaction>
+ 
+	<interaction type="dpd" name="dpd_int2" a="0" gamma="0" kbt="0.0" dt="0.1" rc="1.0" power="1">
 		<apply_to pv1="dpd" pv2="ellipsoids"/>
-		<apply_to pv1="dpd2" pv2="ellipsoids"/>
 	</interaction>
 	
-	<integrator type="vv_periodic_poiseuille" name="const_dp" direction="x" force="0.0" dt="0.0005">
+	<integrator type="vv_periodic_poiseuille" name="vv" direction="x" force="0.1" dt="0.001">
 		<apply_to pv="dpd" />
-		<apply_to pv="dpd2" />
-	</integrator>
+<!-- 		<apply_to pv="dpd2" />
+ -->	</integrator>
 	
-	<integrator type="rigid_vv" name="rigid" dt="0.0005">
+	<integrator type="rigid_vv" name="rigid" dt="0.001">
 		<apply_to pv="ellipsoids" />
 	</integrator>
 	
  	<plugin type="dump_avg_flow" name="avg"
 		pv_names="dpd"
-		sample_every="10000" dump_every="10000"
+		sample_every="20" dump_every="1000"
 		bin_size="0.5 0.5 0.5"
 		path="xdmf/avg_rho_u" />
 	
 	<plugin type="dump_xyz" name="solid"
 		pv_name="ellipsoids"
 		dump_every="100"
-		path="xyz/ellipsoids" />
+		path="xyz/" />
+		
+	<plugin type="dump_obj_pos" name="lala"
+		ov_name="ellipsoids"
+		dump_every="100"
+		path="pos/" />
 			
-	<plugin type="dump_xyz" name="dpd"
+<!-- 	<plugin type="dump_xyz" name="dpd"
 		pv_name="dpd"
 		dump_every="100"
-		path="xyz/dpd_" />
+		path="xyz/" /> -->
 	
 <!-- 	<plugin type="dump_xyz" name="dpd2"
 		pv_name="dpd2"
 		dump_every="100"
-		path="xyz/dpd2_" /> -->
+		path="xyz/" /> -->
 	
 	<plugin type="stats" name="stats" every="100" />
 	
-	<run niters="1000" />
+	<run niters="30000" />
 
 </simulation>
 

@@ -16,8 +16,8 @@ private:
     std::vector<std::string> channelNames;
     int3 localResolution, globalResolution;
     float3 h;
-    bool deactivated;
-    int timeStamp;
+    bool activated{true};
+    int timeStamp{0};
 
     const int zeroPadding = 5;
 

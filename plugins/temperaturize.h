@@ -4,7 +4,7 @@
 #include <vector>
 #include <string>
 
-#include "string2vector.h"
+#include "utils.h"
 
 class ParticleVector;
 

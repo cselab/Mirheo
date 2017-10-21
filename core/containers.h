@@ -18,7 +18,9 @@ public:
 	virtual void* genericDevPtr() const = 0;
 
 	virtual void resize     (const int n, cudaStream_t stream) = 0;
-	virtual void resize_anew(const int n)                      = 0;
+	virtual void resize_anew(const int n) = 0;
+
+	virtual GPUcontainer* produce() const = 0;
 
 	virtual ~GPUcontainer() = default;
 };
@@ -99,13 +101,15 @@ public:
 	}
 
 	// Override section
-	inline int datatype_size() const override final { return sizeof(T); }
-	inline int size()          const override final { return _size; }
+	inline int datatype_size() const final { return sizeof(T); }
+	inline int size()          const final { return _size; }
 
-	inline void* genericDevPtr() const override final { return (void*) devPtr(); }
+	inline void* genericDevPtr() const final { return (void*) devPtr(); }
 
-	inline void resize     (const int n, cudaStream_t stream) override final { _resize(n, stream, true);  }
-	inline void resize_anew(const int n)                      override final { _resize(n, 0,      false); }
+	inline void resize     (const int n, cudaStream_t stream) final { _resize(n, stream, true);  }
+	inline void resize_anew(const int n)                      final { _resize(n, 0,      false); }
+
+	inline GPUcontainer* produce() const final { return new DeviceBuffer<T>(); }
 
 	// Other methods
 	inline T* devPtr() const { return devptr; }
@@ -220,14 +224,15 @@ public:
 	}
 
 	// Override section
-	inline int datatype_size() const override final { return sizeof(T); }
-	inline int size()          const override final { return _size; }
+	inline int datatype_size() const final { return sizeof(T); }
+	inline int size()          const final { return _size; }
 
-	inline void* genericDevPtr() const override final { return (void*) devPtr(); }
+	inline void* genericDevPtr() const final { return (void*) devPtr(); }
 
-	inline void resize     (const int n, cudaStream_t stream) override final { _resize(n, stream, true);  }
-	inline void resize_anew(const int n)                      override final { _resize(n, 0,      false); }
+	inline void resize     (const int n, cudaStream_t stream) final { _resize(n, stream, true);  }
+	inline void resize_anew(const int n)                      final { _resize(n, 0,      false); }
 
+	inline GPUcontainer* produce() const final { return new PinnedBuffer<T>(); }
 
 	// Other methods
 	inline T* devPtr()  const { return devptr; }

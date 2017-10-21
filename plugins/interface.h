@@ -28,6 +28,11 @@ protected:
 
 	int id;
 
+	void send(const std::vector<char>& data)
+	{
+		send(data.data(), data.size());
+	}
+
 	void send(const void* data, int sizeInBytes)
 	{
 		debug3("Plugin %s is sending now", name.c_str());
@@ -100,6 +105,8 @@ public:
 	{
 		data.resize(size);
 		MPI_Check( MPI_Recv(data.data(), size, MPI_BYTE, rank, id, interComm, MPI_STATUS_IGNORE) );
+
+		debug3("Plugin %s has received the data (%d bytes)", name.c_str(), size);
 	}
 
 	virtual void deserialize(MPI_Status& stat) {};

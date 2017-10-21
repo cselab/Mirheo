@@ -12,8 +12,6 @@ public:
 		float4 q;
 		float3 vel, omega;
 		float3 force, torque;
-
-		float4 prevQ;
 	};
 
 	LocalRigidObjectVector(const int objSize, const int nObjects = 0, cudaStream_t stream = 0) :

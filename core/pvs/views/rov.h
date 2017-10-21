@@ -10,19 +10,6 @@ struct ROVview : public OVview
 	float3 J   = {0,0,0};
 	float3 J_1 = {0,0,0};
 
-	/**
-	 * FIXME: this is a hack.
-	 */
-	int motionsOffset = 0;
-	__forceinline__ __device__ void applyShift2extraData(char* packedExtra, float3 shift) const
-	{
-		LocalRigidObjectVector::RigidMotion motion;
-
-		memcpy(&motion, packedExtra + motionsOffset, sizeof(motion));
-		motion.r -= shift;
-		memcpy(packedExtra + motionsOffset, &motion, sizeof(motion));
-	}
-
 	// TODO: implement this
 	//float inertia[9];
 
@@ -36,16 +23,20 @@ struct ROVview : public OVview
 		// More fields
 		J = rov->getInertiaTensor();
 		J_1 = 1.0 / J;
-
-		// Setup for the hack
-		motionsOffset = 0;
-
-		for (const auto& kv : lrov->getDataPerObjectMap())
-		{
-			if (kv.first == "motions") break;
-			motionsOffset += kv.second->datatype_size();
-		}
 	}
 };
 
+struct ROVview_withOldMotion : public ROVview
+{
+	LocalRigidObjectVector::RigidMotion *old_motions = nullptr;
+
+
+	ROVview_withOldMotion(RigidObjectVector* rov = nullptr, LocalRigidObjectVector* lrov = nullptr) :
+		ROVview(rov, lrov)
+	{
+		if (rov == nullptr || lrov == nullptr) return;
+
+		old_motions = lrov->getDataPerObject<LocalRigidObjectVector::RigidMotion>("old_motions")->devPtr();
+	}
+};
 

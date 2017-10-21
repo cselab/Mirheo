@@ -52,6 +52,7 @@ void EllipsoidIC::exec(const MPI_Comm& comm, ParticleVector* pv, DomainInfo doma
 
 		fic >> motion.r.x >> motion.r.y >> motion.r.z;
 		fic >> motion.q.x >> motion.q.y >> motion.q.z >> motion.q.w;
+		motion.q = normalize(motion.q);
 
 		if (!fic.good())
 			break;

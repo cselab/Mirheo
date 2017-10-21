@@ -3,31 +3,38 @@
 #include <core/containers.h>
 #include <core/datatypes.h>
 
-// Only POD types and vectors/HostBuffers/PinnedBuffers of POD are supported
+#include <string>
+
+// Only POD types and std::vectors/HostBuffers/PinnedBuffers of POD and std::strings are supported
 // Container size will be serialized too
 class SimpleSerializer
 {
 private:
 	template<typename T>
-	static int sizeOfOne(HostBuffer<T>& v)
+	static int sizeOfOne(const HostBuffer<T>& v)
 	{
 		return v.size() * sizeof(T) + sizeof(int);
 	}
 
 	template<typename T>
-	static int sizeOfOne(PinnedBuffer<T>& v)
+	static int sizeOfOne(const PinnedBuffer<T>& v)
 	{
 		return v.size() * sizeof(T) + sizeof(int);
 	}
 
 	template<typename T>
-	static int sizeOfOne(std::vector<T>& v)
+	static int sizeOfOne(const std::vector<T>& v)
 	{
 		return (int)v.size() * sizeof(T) + sizeof(int);
 	}
 
+	static int sizeOfOne(const std::string& s)
+	{
+		return (int)s.length() + sizeof(int);
+	}
+
 	template<typename Arg>
-	static int sizeOfOne(Arg& arg)
+	static int sizeOfOne(const Arg& arg)
 	{
 		return sizeof(Arg);
 	}
@@ -41,13 +48,13 @@ public:
 	}
 
 	template<typename Arg>
-	static int totSize(Arg& arg)
+	static int totSize(const Arg& arg)
 	{
 		return sizeOfOne(arg);
 	}
 
 	template<typename Arg, typename... OthArgs>
-	static int totSize(Arg& arg, OthArgs&... othArgs)
+	static int totSize(const Arg& arg, const OthArgs&... othArgs)
 	{
 		return sizeOfOne(arg) + totSize(othArgs...);
 	}
@@ -56,7 +63,7 @@ public:
 
 private:
 	template<typename T>
-	static void packOne(char* buf, HostBuffer<T>& v)
+	static void packOne(char* buf, const HostBuffer<T>& v)
 	{
 		*((int*)buf) = v.size();
 		buf += sizeof(int);
@@ -64,7 +71,7 @@ private:
 	}
 
 	template<typename T>
-	static void packOne(char* buf, PinnedBuffer<T>& v)
+	static void packOne(char* buf, const PinnedBuffer<T>& v)
 	{
 		*((int*)buf) = v.size();
 		buf += sizeof(int);
@@ -72,11 +79,18 @@ private:
 	}
 
 	template<typename T>
-	static void packOne(char* buf, std::vector<T>& v)
+	static void packOne(char* buf, const std::vector<T>& v)
 	{
 		*((int*)buf) = (int)v.size();
 		buf += sizeof(int);
 		memcpy(buf, v.data(), v.size()*sizeof(T));
+	}
+
+	static void packOne(char* buf, const std::string& s)
+	{
+		*((int*)buf) = (int)s.length();
+		buf += sizeof(int);
+		memcpy(buf, s.c_str(), s.length());
 	}
 
 	template<typename T>
@@ -88,13 +102,13 @@ private:
 	//============================================================================
 
 	template<typename Arg>
-	static void pack(char* buf, Arg& arg)
+	static void pack(char* buf, const Arg& arg)
 	{
 		packOne(buf, arg);
 	}
 
 	template<typename Arg, typename... OthArgs>
-	static void pack(char* buf, Arg& arg, OthArgs&... othArgs)
+	static void pack(char* buf, const Arg& arg, const OthArgs&... othArgs)
 	{
 		packOne(buf, arg);
 		buf += sizeOfOne(arg);
@@ -134,6 +148,15 @@ private:
 		buf += sizeof(int);
 
 		memcpy(v.data(), buf, v.size()*sizeof(T));
+	}
+
+	static void unpackOne(char* buf, std::string& s)
+	{
+		const int sz = *((int*)buf);
+		assert(sz >= 0);
+		buf += sizeof(int);
+
+		s.assign(buf, buf+sz);
 	}
 
 	template<typename T>

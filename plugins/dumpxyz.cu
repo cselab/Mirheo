@@ -1,6 +1,6 @@
 #include "dumpxyz.h"
 #include "simple_serializer.h"
-#include "string2vector.h"
+#include "utils.h"
 
 #include <core/simulation.h>
 #include <core/pvs/particle_vector.h>
@@ -18,9 +18,7 @@ void XYZPlugin::setup(Simulation* sim, const MPI_Comm& comm, const MPI_Comm& int
 {
 	SimulationPlugin::setup(sim, comm, interComm);
 
-	pv = sim->getPVbyName(pvName);
-	if (pv == nullptr)
-		die("No such particle vector registered: %s", pvName.c_str());
+	pv = sim->getPVbyNameOrDie(pvName);
 
 	info("Plugin %s initialized for the following particle vector: %s", name.c_str(), pvName.c_str());
 }
@@ -41,7 +39,8 @@ void XYZPlugin::serializeAndSend(cudaStream_t stream)
 	for (int i=0; i < pv->local()->size(); i++)
 		pv->local()->coosvels[i].r = pv->domain.local2global(pv->local()->coosvels[i].r);
 
-	send(pv->local()->coosvels.hostPtr(), pv->local()->size() * sizeof(Particle));
+	SimpleSerializer::serialize(data, pv->name, pv->local()->coosvels);
+	send(data);
 }
 
 //=================================================================================
@@ -99,36 +98,20 @@ XYZDumper::XYZDumper(std::string name, std::string path) :
 void XYZDumper::setup(const MPI_Comm& comm, const MPI_Comm& interComm)
 {
 	PostprocessPlugin::setup(comm, interComm);
-
-	int rank;
-	MPI_Check( MPI_Comm_rank(comm, &rank) );
-
-	std::regex re(R".(^(.*/)(.+)).");
-	std::smatch match;
-	if (std::regex_match(path, match, re))
-	{
-		std::string folders  = match[1].str();
-		std::string command = "mkdir -p " + folders;
-		if (rank == 0)
-		{
-			if ( system(command.c_str()) != 0 )
-			{
-				error("Could not create folders or files by given path, dumping will be disabled.");
-				activated = false;
-			}
-		}
-	}
+	activated = createFoldersCollective(comm, path);
 }
 
 void XYZDumper::deserialize(MPI_Status& stat)
 {
-	int np = size / sizeof(Particle);
+	std::string pvName;
+
+	SimpleSerializer::deserialize(data, pvName, ps);
 
 	std::string tstr = std::to_string(timeStamp++);
-	std::string currentFname = path + std::string(5 - tstr.length(), '0') + tstr + ".xyz";
+	std::string currentFname = path + "/" + pvName + "_" + std::string(5 - tstr.length(), '0') + tstr + ".xyz";
 
 	if (activated)
-		writeXYZ(comm, currentFname, (Particle*)data.data(), np);
+		writeXYZ(comm, currentFname, ps.data(), ps.size());
 }
 
 

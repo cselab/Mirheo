@@ -52,6 +52,15 @@ __device__ __forceinline__ float3 atomicAdd(float3* addr, float3 v)
 	return res;
 }
 
+__device__ __forceinline__ float3 atomicAdd(float4* addr, float3 v)
+{
+	float3 res;
+	res.x = atomicAdd((float*)addr,   v.x);
+	res.y = atomicAdd((float*)addr+1, v.y);
+	res.z = atomicAdd((float*)addr+2, v.z);
+	return res;
+}
+
 __device__ __forceinline__ float4 readNoCache(const float4* addr)
 {
 	float4 res;

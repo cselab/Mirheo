@@ -27,16 +27,16 @@ struct PVview
 };
 
 
-struct PVviewWithOldParticles : PVview
+struct PVview_withOldParticles : public PVview
 {
-	float4 *oldParticles = nullptr;
+	float4 *old_particles = nullptr;
 
-	PVviewWithOldParticles(ParticleVector* pv = nullptr, LocalParticleVector* lpv = nullptr) :
+	PVview_withOldParticles(ParticleVector* pv = nullptr, LocalParticleVector* lpv = nullptr) :
 		PVview(pv, lpv)
 	{
 		// Setup extra fields
 		if (lpv != nullptr)
-			oldParticles = lpv->getDataPerParticle<float4>("old_particles")->devPtr();
+			old_particles = reinterpret_cast<float4*>(lpv->getDataPerParticle<Particle>("old_particles")->devPtr());
 	}
 };
 

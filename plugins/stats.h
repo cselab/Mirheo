@@ -10,7 +10,7 @@
 class ParticleVector;
 class CellList;
 
-using ReductionType = float;
+using ReductionType = double;
 
 class SimulationStats : public SimulationPlugin
 {

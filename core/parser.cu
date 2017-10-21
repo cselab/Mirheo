@@ -43,6 +43,7 @@
 #include <plugins/dumpxyz.h>
 #include <plugins/stats.h>
 #include <plugins/temperaturize.h>
+#include <plugins/dump_obj_position.h>
 
 #include <core/xml/pugixml.hpp>
 
@@ -184,7 +185,7 @@ private:
 		auto name  = node.attribute("name").as_string();
 		auto dt    = node.attribute("dt").as_float(0.01);
 
-		auto force = node.attribute("force").as_float();
+		auto force = node.attribute("force").as_float(0);
 
 		std::string dirStr = node.attribute("direction").as_string("x");
 
@@ -514,12 +515,26 @@ private:
 	{
 		std::string name   = node.attribute("name").as_string();
 		std::string pvName = node.attribute("pv_name").as_string();
-		int dumpEvery      = node.attribute("dump_every").as_int(5000);
+		int dumpEvery      = node.attribute("dump_every").as_int(1000);
 
-		std::string path   = node.attribute("path").as_string( ("xyz/" + name).c_str() );
+		std::string path   = node.attribute("path").as_string("xyz/");
 
 		auto simPl  = computeTask ? new XYZPlugin(name, pvName, dumpEvery) : nullptr;
 		auto postPl = computeTask ? nullptr : new XYZDumper(name, path);
+
+		return { (SimulationPlugin*) simPl, (PostprocessPlugin*) postPl };
+	}
+
+	static std::pair<SimulationPlugin*, PostprocessPlugin*> createDumpObjPosition(pugi::xml_node node, bool computeTask)
+	{
+		std::string name   = node.attribute("name").as_string();
+		std::string ovName = node.attribute("ov_name").as_string();
+		int dumpEvery      = node.attribute("dump_every").as_int(1000);
+
+		std::string path   = node.attribute("path").as_string("pos/");
+
+		auto simPl  = computeTask ? new ObjPositionsPlugin(name, ovName, dumpEvery) : nullptr;
+		auto postPl = computeTask ? nullptr : new ObjPositionsDumper(name, path);
 
 		return { (SimulationPlugin*) simPl, (PostprocessPlugin*) postPl };
 	}
@@ -538,6 +553,8 @@ public:
 			return createDumpavgPlugin(node, computeTask);
 		if (type == "dump_xyz")
 			return createDumpXYZPlugin(node, computeTask);
+		if (type == "dump_obj_pos")
+			return createDumpObjPosition(node, computeTask);
 
 		die("Unable to parse input at %s, unknown 'type' %s", node.path().c_str(), type.c_str());
 
@@ -628,7 +645,7 @@ uDeviceX* Parser::setup_uDeviceX(Logger& logger)
 					udx->sim->setWallBounce(name, apply_to.attribute("pv").as_string());
 			}
 
-			if ( std::string(node.name()) == "bounce" )
+			if ( std::string(node.name()) == "object_bouncer" )
 			{
 				auto bouncer = BouncerFactory::create(node);
 				auto name = bouncer->name;

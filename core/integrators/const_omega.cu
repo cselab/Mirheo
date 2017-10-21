@@ -28,7 +28,10 @@ void IntegratorConstOmega::stage2(ParticleVector* pv, float t, cudaStream_t stre
 
 	int nthreads = 128;
 
-	PVview pvView(pv, pv->local());
+	// New particles now become old
+	std::swap(pv->local()->coosvels, *pv->local()->getDataPerParticle<Particle>("old_particles"));
+	PVview_withOldParticles pvView(pv, pv->local());
+
 	SAFE_KERNEL_LAUNCH(
 			integrationKernel,
 			getNblocks(2*pvView.size, nthreads), nthreads, 0, stream,

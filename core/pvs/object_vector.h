@@ -24,9 +24,10 @@ protected:
 public:
 	int nObjects = 0;
 
-	// Helper buffers, used when a view is created
+	// Helper buffers, used when a view with extra data is created
 	PinnedBuffer<int> extraDataSizes;
 	PinnedBuffer<char*> extraDataPtrs;
+	PinnedBuffer<int> shiftingDataOffsets;
 
 	struct __align__(16) COMandExtent
 	{
@@ -76,7 +77,10 @@ public:
 		{
 			warn("Requested extra data entry PER OBJECT '%s' was absent, creating now", name.c_str());
 
-			auto ptr = std::make_unique< PinnedBuffer<T> >(size());
+			if (sizeof(T) % 4 != 0)
+				die("Size of extra data per object must be a multiplier of 4 bytes");
+
+			auto ptr = std::make_unique< PinnedBuffer<T> >(nObjects);
 			contPtr = ptr.get();
 			dataPerObject[name] = std::move(ptr);
 		}
@@ -92,10 +96,21 @@ public:
 		return res;
 	}
 
+	bool checkDataPerObject(const std::string& name) const
+	{
+		return dataPerObject.find(name) != dataPerObject.end();
+	}
+
+	DataMap& getDataPerObjectMap()
+	{
+		return dataPerObject;
+	}
+
 	const DataMap& getDataPerObjectMap() const
 	{
 		return dataPerObject;
 	}
+
 
 
 	virtual ~LocalObjectVector() = default;
@@ -128,6 +143,7 @@ public:
 };
 
 #include "views/ov.h"
+
 
 
 

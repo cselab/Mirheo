@@ -8,7 +8,7 @@
 #include <core/utils/cuda_common.h>
 
 template<bool QUERY>
-__global__ void getExitingObjects(const DomainInfo domain, const OVviewWithExtraData ovView, const ROVview rovView, BufferOffsetsSizesWrap dataWrap)
+__global__ void getExitingObjects(const DomainInfo domain, const OVviewWithExtraData ovView, BufferOffsetsSizesWrap dataWrap)
 {
 	const int objId = blockIdx.x;
 	const int tid = threadIdx.x;
@@ -48,9 +48,9 @@ __global__ void getExitingObjects(const DomainInfo domain, const OVviewWithExtra
 
 	__syncthreads();
 
-//	if (tid == 0)
-//		printf("REDIST  obj  %d  to redist  %d  [%f %f %f] - [%f %f %f]  %d %d %d\n", ovView.ids[objId], bufId,
-//				prop.low.x, prop.low.y, prop.low.z, prop.high.x, prop.high.y, prop.high.z, cx, cy, cz);
+	if (tid == 0 && bufId != 13)
+		printf("REDIST  obj  %d  to redist  %d  [%f %f %f] - [%f %f %f]  %d %d %d\n", ovView.ids[objId], bufId,
+				prop.low.x, prop.low.y, prop.low.z, prop.high.x, prop.high.y, prop.high.z, cx, cy, cz);
 
 	float4* dstAddr = (float4*) ( dataWrap.buffer + ovView.packedObjSize_byte * (dataWrap.offsets[bufId] + shDstObjId) );
 
@@ -69,17 +69,16 @@ __global__ void getExitingObjects(const DomainInfo domain, const OVviewWithExtra
 	dstAddr += ovView.objSize*2;
 	ovView.packExtraData(objId, (char*)dstAddr);
 
-	if (rovView.objSize == ovView.objSize && tid == 0)
-		rovView.applyShift2extraData((char*)dstAddr, shift);
+	if (tid == 0) ovView.applyShift2extraData((char*)dstAddr, shift);
 }
 
-__global__ static void unpackObject(const float4* from, const int startDstObjId, OVviewWithExtraData ovView)
+__global__ static void unpackObject(const char* from, const int startDstObjId, OVviewWithExtraData ovView)
 {
 	const int objId = blockIdx.x;
 	const int tid = threadIdx.x;
 	const int sh  = tid % 2;
 
-	const float4* srcAddr = from + ovView.packedObjSize_byte/sizeof(float4) * objId;
+	const float4* srcAddr = (float4*) (from + ovView.packedObjSize_byte * objId);
 
 	for (int pid = tid/2; pid < ovView.objSize; pid += blockDim.x/2)
 	{
@@ -121,16 +120,10 @@ void ObjectRedistributor::prepareData(int id, cudaStream_t stream)
 	{
 		const int nthreads = 256;
 
-		// FIXME: this is a hack
-		ROVview rovView(nullptr, nullptr);
-		RigidObjectVector* rov;
-		if ( (rov = dynamic_cast<RigidObjectVector*>(ov)) != 0 )
-			rovView = ROVview(rov, rov->local());
-
 		SAFE_KERNEL_LAUNCH(
 				getExitingObjects<true>,
 				ovView.nObjects, nthreads, 0, stream,
-				ov->domain, ovView, rovView, helper->wrapSendData() );
+				ov->domain, ovView, helper->wrapSendData() );
 
 		helper->makeSendOffsets_Dev2Dev(stream);
 		helper->resizeSendBuf();
@@ -139,7 +132,7 @@ void ObjectRedistributor::prepareData(int id, cudaStream_t stream)
 		SAFE_KERNEL_LAUNCH(
 				getExitingObjects<false>,
 				lov->nObjects, nthreads, 0, stream,
-				ov->domain, ovView, rovView, helper->wrapSendData() );
+				ov->domain, ovView, helper->wrapSendData() );
 	}
 
 	// Unpack the central buffer into the object vector itself
@@ -151,7 +144,7 @@ void ObjectRedistributor::prepareData(int id, cudaStream_t stream)
 	SAFE_KERNEL_LAUNCH(
 			unpackObject,
 			nObjs, nthreads, 0, stream,
-			(float4*) (helper->sendBuf.devPtr() + helper->sendOffsets[13] * ovView.packedObjSize_byte), 0, ovView );
+			helper->sendBuf.devPtr() + helper->sendOffsets[13] * ovView.packedObjSize_byte, 0, ovView );
 
 	// Finally need to compact the buffers
 	// TODO: remove this, own buffer should be last
@@ -187,7 +180,7 @@ void ObjectRedistributor::combineAndUploadData(int id, cudaStream_t stream)
 	SAFE_KERNEL_LAUNCH(
 			unpackObject,
 			totalRecvd, nthreads, 0, stream,
-			(float4*)helper->recvBuf.devPtr(), oldNObjs, ovView );
+			helper->recvBuf.devPtr(), oldNObjs, ovView );
 
 	ov->redistValid = true;
 }

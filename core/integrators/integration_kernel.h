@@ -7,16 +7,18 @@
 /**
  * transform(Particle&p, const float3 f, const float invm, const float dt):
  *  performs integration
+ *
+ * Will read from .old_particles and write to .particles
  */
 template<typename Transform>
-__global__ void integrationKernel(PVview pvView, const float dt, Transform transform)
+__global__ void integrationKernel(PVview_withOldParticles pvView, const float dt, Transform transform)
 {
 	const int gid = blockIdx.x * blockDim.x + threadIdx.x;
 	const int pid = gid / 2;
 	const int sh  = gid % 2;  // sh = 0 loads coordinate, sh = 1 -- velocity
 	if (pid >= pvView.size) return;
 
-	float4 val = pvView.particles[gid]; //readNoCache(coosvels+gid);
+	float4 val = readNoCache(pvView.old_particles + gid);
 	Float3_int frc(pvView.forces[pid]);
 
 	// Send velocity to adjacent thread that has the coordinate
@@ -46,5 +48,5 @@ __global__ void integrationKernel(PVview pvView, const float dt, Transform trans
 		val = p.u2Float4();
 	}
 
-	pvView.particles[gid] = val; //writeNoCache(coosvels + gid, val);
+	writeNoCache(pvView.particles + gid, val);
 }

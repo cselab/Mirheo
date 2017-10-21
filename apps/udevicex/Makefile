@@ -13,6 +13,6 @@ objects = main.o \
 	particle_exchanger.o particle_halo_exchanger.o particle_redistributor.o object_halo_exchanger.o object_redistributor.o object_forces_reverse_exchanger.o \
 	particle_vector.o object_vector.o rigid_ellipsoid_object_vector.o \
 	simple_stationary_wall.o sdf.o \
-	write_xdmf.o dumpavg.o stats.o temperaturize.o dumpxyz.o
+	write_xdmf.o dumpavg.o stats.o temperaturize.o dumpxyz.o dump_obj_position.o
 	
 include ../../makefiles/Makefile.base

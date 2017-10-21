@@ -28,14 +28,18 @@ void IntegratorVV<ForcingTerm>::stage2(ParticleVector* pv, float t, cudaStream_t
 
 		float3 modF = _fterm(f, p);
 
-		p.u += f*invm*dt;
+		p.u += modF*invm*dt;
 		p.r += p.u*dt;
 	};
 
 	int nthreads = 128;
 	debug2("Integrating (stage 2) %d %s particles, timestep is %f", pv->local()->size(), pv->name.c_str(), dt);
 
-	PVview pvView(pv, pv->local());
+	// New particles now become old
+	std::swap(pv->local()->coosvels, *pv->local()->getDataPerParticle<Particle>("old_particles"));
+	PVview_withOldParticles pvView(pv, pv->local());
+
+	// Integrate from old to new
 	SAFE_KERNEL_LAUNCH(
 			integrationKernel,
 			getNblocks(2*pvView.size, nthreads), nthreads, 0, stream,

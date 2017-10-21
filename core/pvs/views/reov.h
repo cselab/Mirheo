@@ -19,3 +19,18 @@ struct REOVview : public ROVview
 	}
 };
 
+struct REOVview_withOldMotion : public ROVview_withOldMotion
+{
+	float3 axes    = {0,0,0};
+	float3 invAxes = {0,0,0};
+
+	REOVview_withOldMotion(RigidEllipsoidObjectVector* reov = nullptr, LocalRigidEllipsoidObjectVector* lreov = nullptr) :
+		ROVview_withOldMotion(reov, lreov)
+	{
+		if (reov == nullptr || lreov == nullptr) return;
+
+		// More fields
+		axes = reov->axes;
+		invAxes = 1.0 / axes;
+	}
+};

@@ -8,7 +8,6 @@
 #include <core/utils/kernel_launch.h>
 #include <core/utils/cuda_common.h>
 #include <core/pvs/particle_vector.h>
-#include <core/pvs/object_vector.h>
 
 //===============================================================================================
 // Interpolation kernels

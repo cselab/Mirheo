@@ -28,6 +28,11 @@ struct OVview : public PVview
 	}
 };
 
+
+
+// Names of data fields that have to be shifted when redistributed
+const static std::map<std::string, int> dataToShift{ {"motions", 0}, {"old_motions", 0} };
+
 struct OVviewWithExtraData : public OVview
 {
 	int extraDataNum = 0;
@@ -35,34 +40,41 @@ struct OVviewWithExtraData : public OVview
 	char** extraData = nullptr;          // extraDataNum arrays of extraDataSizes[i] bytes
 	int packedObjSize_byte = 0;          // total size of a packed object in bytes
 
+	int  nToShift = 0;
+	int* shiftOffsets = nullptr;
+
+	__forceinline__ __device__ void applyShift2extraData(char* packedExtra, float3 shift) const
+	{
+		for (int i=0; i<nToShift; i++)
+		{
+			*( (float*)(packedExtra + shiftOffsets[i]) + 0 ) -= shift.x;
+			*( (float*)(packedExtra + shiftOffsets[i]) + 1 ) -= shift.y;
+			*( (float*)(packedExtra + shiftOffsets[i]) + 2 ) -= shift.z;
+		}
+	}
 
 	// TODO: can be improved with binsearch of ptr per warp
-	__forceinline__ __device__ void packExtraData(int srcObjId, char* destanation) const
+	__forceinline__ __device__ void packExtraData(int srcObjId, char* destination) const
 	{
-		int baseId = 0;
-
 		for (int ptrId = 0; ptrId < extraDataNum; ptrId++)
 		{
 			const int size = extraDataSizes[ptrId];
-
 			for (int i = threadIdx.x; i < size; i += blockDim.x)
-				destanation[baseId+i] = extraData[ptrId][srcObjId*size + i];
+				destination[i] = extraData[ptrId][srcObjId*size + i];
 
-			baseId += extraDataSizes[ptrId];
+			destination += size;
 		}
 	}
 
 	__forceinline__ __device__ void unpackExtraData(int dstObjId, const char* source) const
 	{
-		int baseId = 0;
-
 		for (int ptrId = 0; ptrId < extraDataNum; ptrId++)
 		{
 			const int size = extraDataSizes[ptrId];
 			for (int i = threadIdx.x; i < size; i += blockDim.x)
-				extraData[ptrId][dstObjId*size + i] = source[baseId+i];
+				extraData[ptrId][dstObjId*size + i] = source[i];
 
-			baseId += extraDataSizes[ptrId];
+			source += size;
 		}
 	}
 
@@ -104,6 +116,30 @@ struct OVviewWithExtraData : public OVview
 
 		extraDataSizes = lov->extraDataSizes.devPtr();
 		extraData      = lov->extraDataPtrs. devPtr();
+
+		// Setup offsets for the data needing shifts
+		int offset = 0;
+		nToShift = 0;
+		upload = false;
+
+		for (auto& kv : lov->getDataPerObjectMap())
+		{
+			auto it = dataToShift.find(kv.first);
+			if (it != dataToShift.end())
+			{
+				lov->shiftingDataOffsets.resize_anew(nToShift + 1);
+				int curOffset = offset + it->second;
+				if (lov->shiftingDataOffsets[nToShift] != curOffset) upload = true;
+				lov->shiftingDataOffsets[nToShift] = curOffset;
+
+				nToShift++;
+			}
+
+			offset += kv.second->datatype_size();
+		}
+
+		if (upload) lov->shiftingDataOffsets.uploadToDevice(stream);
+		shiftOffsets = lov->shiftingDataOffsets.devPtr();
 	}
 };
 

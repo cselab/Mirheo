@@ -6,32 +6,29 @@
 
 #include <vector>
 
-class ParticleVector;
-class CellList;
+class ObjectVector;
 
-class XYZPlugin : public SimulationPlugin
+class ObjPositionsPlugin : public SimulationPlugin
 {
 private:
-	std::string pvName;
+	std::string ovName;
 	int dumpEvery;
 
-	std::vector<char> data;
-
-	ParticleVector* pv;
+	ObjectVector* ov;
 
 public:
-	XYZPlugin(std::string name, std::string pvNames, int dumpEvery);
+	ObjPositionsPlugin(std::string name, std::string ovName, int dumpEvery);
 
-	void setup(Simulation* sim, const MPI_Comm& comm, const MPI_Comm& interComm) override;
+	void setup(Simulation* sim, const MPI_Comm& comm, const MPI_Comm& interComm);
 
 	void beforeForces(cudaStream_t stream) override;
 	void serializeAndSend(cudaStream_t stream) override;
 
-	~XYZPlugin() {};
+	~ObjPositionsPlugin() {};
 };
 
 
-class XYZDumper : public PostprocessPlugin
+class ObjPositionsDumper : public PostprocessPlugin
 {
 private:
 	std::string path;
@@ -40,13 +37,11 @@ private:
 	bool activated = true;
 	int timeStamp = 0;
 
-	std::vector<Particle> ps;
-
 public:
-	XYZDumper(std::string name, std::string path);
+	ObjPositionsDumper(std::string name, std::string path);
 
 	void deserialize(MPI_Status& stat) override;
 	void setup(const MPI_Comm& comm, const MPI_Comm& interComm) override;
 
-	~XYZDumper() {};
+	~ObjPositionsDumper() {};
 };

@@ -444,10 +444,14 @@ void Simulation::assemble()
 				cl->build(stream);
 	});
 
+	// Only particle forces, not object ones here
 	scheduler.addTask("Clear forces", [&] (cudaStream_t stream) {
-		for (auto& clVec : cellListMap)
-			for (auto cl : clVec.second)
+		for (auto pv : particleVectors)
+		{
+			auto& clVec = cellListMap[pv];
+			for (auto cl : clVec)
 				cl->forces->clear(stream);
+		}
 	});
 
 	scheduler.addTask("Plugins: before forces", [&] (cudaStream_t stream) {
@@ -511,13 +515,24 @@ void Simulation::assemble()
 			ov->halo()->forces.clear(stream);
 	});
 
+	// As there are no primary cell-lists for objects
+	// we need to separately clear real obj forces and forces in the cell-lists
 	scheduler.addTask("Clear obj local forces", [&] (cudaStream_t stream) {
-		for (auto& ov : objectVectors)
+		for (auto ov : objectVectors)
+		{
 			ov->local()->forces.clear(stream);
+
+			auto& clVec = cellListMap[ov];
+			for (auto cl : clVec)
+				cl->forces->clear(stream);
+		}
 	});
 
 	scheduler.addTask("Object bounce", [&] (cudaStream_t stream) {
 		for (auto& bouncer : regularBouncers)
+			bouncer(dt, stream);
+
+		for (auto& bouncer : haloBouncers)
 			bouncer(dt, stream);
 	});
 
@@ -588,11 +603,11 @@ void Simulation::assemble()
 	});
 
 	scheduler.addTask("Object redistribute init", [&] (cudaStream_t stream) {
-		objRedistibutor->init(stream);
+		//objRedistibutor->init(stream);
 	});
 
 	scheduler.addTask("Object redistribute finalize", [&] (cudaStream_t stream) {
-		objRedistibutor->finalize(stream);
+		//objRedistibutor->finalize(stream);
 	});
 
 
@@ -621,19 +636,19 @@ void Simulation::assemble()
 	scheduler.addDependency("Object halo init", {}, {"Integration", "Object redistribute finalize"});
 	scheduler.addDependency("Object halo finalize", {}, {"Object halo init"});
 
-	scheduler.addDependency("Object bounce", {}, {"Object halo finalize", "Integration"});
-	scheduler.addDependency("Bounce check", {}, {"Object bounce"});
+	scheduler.addDependency("Object bounce", {}, {"Integration", "Object halo finalize", "Clear obj local forces"});
+	scheduler.addDependency("Bounce check", {"Redistribute init"}, {"Object bounce"});
 
-	scheduler.addDependency("Plugins: after integration", {}, {"Integration", "Wall bounce", "Obj forces exchange: finalize"});
+	scheduler.addDependency("Plugins: after integration", {"Object bounce"}, {"Integration", "Wall bounce"});
 
 	scheduler.addDependency("Redistribute init", {}, {"Integration", "Wall bounce", "Object bounce", "Plugins: after integration"});
 	scheduler.addDependency("Redistribute finalize", {}, {"Redistribute init"});
 
 	scheduler.addDependency("Object extents", {"Object redistribute init", "Object halo init"}, {"Plugins: after integration"});
-	scheduler.addDependency("Object extents 2", {}, {"Object redistribute finalize", "Object halo finalize"});
+	scheduler.addDependency("Object extents 2", {"Object bounce"}, {"Object redistribute finalize", "Object halo finalize"});
 	scheduler.addDependency("Object redistribute init", {}, {"Integration", "Wall bounce", "Obj forces exchange: finalize", "Plugins: after integration"});
 	scheduler.addDependency("Object redistribute finalize", {}, {"Object redistribute init"});
-	scheduler.addDependency("Clear obj local forces", {}, {"Object redistribute finalize"});
+	scheduler.addDependency("Clear obj local forces", {}, {"Integration"});
 
 	scheduler.setHighPriority("Obj forces exchange: init");
 	scheduler.setHighPriority("Halo init");

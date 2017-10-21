@@ -122,7 +122,7 @@ void XDMFDumper::writeHeavy(std::string currentFname, std::vector<const float*> 
 XDMFDumper::XDMFDumper(MPI_Comm comm, int3 nranks3D, std::string fileNamePrefix, int3 localResolution, float3 h,
 		std::vector<std::string> channelNames, std::vector<ChannelType> channelTypes) :
 		localResolution(localResolution), h(h),
-		channelNames(channelNames), channelTypes(channelTypes), deactivated(false), timeStamp(0)
+		channelNames(channelNames), channelTypes(channelTypes)
 {
 	int ranksArr[] = {nranks3D.x, nranks3D.y, nranks3D.z};
 	globalResolution.x = nranks3D.x * localResolution.x;
@@ -147,7 +147,7 @@ XDMFDumper::XDMFDumper(MPI_Comm comm, int3 nranks3D, std::string fileNamePrefix,
 			if ( system(command.c_str()) != 0 )
 			{
 				error("Could not create folders or files by given path, dumping will be disabled.");
-				deactivated = true;
+				activated = false;
 			}
 		}
 	}
@@ -160,7 +160,7 @@ XDMFDumper::XDMFDumper(MPI_Comm comm, int3 nranks3D, std::string fileNamePrefix,
 
 void XDMFDumper::dump(std::vector<const float*> channelData, const float t)
 {
-	if (deactivated) return;
+	if (!activated) return;
 
 	std::string tstr = std::to_string(timeStamp++);
 	std::string currentFname = fname + std::string(zeroPadding - tstr.length(), '0') + tstr;
