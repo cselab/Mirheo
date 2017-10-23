@@ -65,6 +65,20 @@ uDeviceX::uDeviceX(int3 nranks3D, float3 globalDomainSize,
 	}
 }
 
+void uDeviceX::registerPlugins(std::pair<SimulationPlugin*, PostprocessPlugin*> plugins)
+{
+	if (isComputeTask())
+	{
+		if ( plugins.first != nullptr && !(plugins.first->needPostproc() && noPostprocess) )
+			sim->registerPlugin(plugins.first);
+	}
+	else
+	{
+		if ( plugins.second != nullptr && !noPostprocess )
+			post->registerPlugin(plugins.second);
+	}
+}
+
 void uDeviceX::sayHello()
 {
 	printf("\n");
@@ -78,24 +92,6 @@ void uDeviceX::sayHello()
 bool uDeviceX::isComputeTask()
 {
 	return computeTask == 0;
-}
-
-void uDeviceX::registerJointPlugins(SimulationPlugin* simPl, PostprocessPlugin* postPl)
-{
-	if (noPostprocess) return;
-
-	const int id = pluginId++;
-
-	if (isComputeTask())
-	{
-		simPl->setId(id);
-		sim->registerPlugin(simPl);
-	}
-	else
-	{
-		postPl->setId(id);
-		post->registerPlugin(postPl);
-	}
 }
 
 void uDeviceX::run(int nsteps)

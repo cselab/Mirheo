@@ -10,21 +10,22 @@ class ParticleVector;
 
 class TemperaturizePlugin : public SimulationPlugin
 {
-private:
-	std::vector<std::string> pvNames;
-	std::vector<ParticleVector*> pvs;
-	float kbT;
-
 public:
-	TemperaturizePlugin(std::string name, std::string pvNames, float kbT) :
-		SimulationPlugin(name), kbT(kbT)
-	{
-		this->pvNames = splitByDelim(pvNames);
-	}
+	TemperaturizePlugin(std::string name, std::string pvName, float kbT, bool keepVelocity) :
+		SimulationPlugin(name), pvName(pvName), kbT(kbT), keepVelocity(keepVelocity)
+	{	}
 
-	void setup(Simulation* sim, const MPI_Comm& comm, const MPI_Comm& interComm);
-	void beforeForces(cudaStream_t stream);
+	void setup(Simulation* sim, const MPI_Comm& comm, const MPI_Comm& interComm) override;
+	void beforeForces(cudaStream_t stream) override;
+
+	bool needPostproc() override { return false; }
 
 	~TemperaturizePlugin() = default;
+
+private:
+	std::string pvName;
+	ParticleVector* pv;
+	float kbT;
+	bool keepVelocity;
 };
 

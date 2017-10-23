@@ -2,6 +2,7 @@
 
 #include <core/udevicex.h>
 #include <core/simulation.h>
+#include <core/postproc.h>
 
 #include <core/pvs/particle_vector.h>
 #include <core/pvs/object_vector.h>
@@ -34,6 +35,7 @@
 #include <core/walls/stationary_walls/sdf.h>
 #include <core/walls/stationary_walls/sphere.h>
 #include <core/walls/stationary_walls/cylinder.h>
+#include <core/walls/stationary_walls/plane.h>
 
 #include <core/bouncers/from_mesh.h>
 #include <core/bouncers/from_ellipsoid.h>
@@ -44,6 +46,7 @@
 #include <plugins/stats.h>
 #include <plugins/temperaturize.h>
 #include <plugins/dump_obj_position.h>
+#include <plugins/impose_velocity.h>
 
 #include <core/xml/pugixml.hpp>
 
@@ -58,29 +61,31 @@ class ParticleVectorFactory
 private:
 	static ParticleVector* createRegularPV(pugi::xml_node node)
 	{
-		std::string name = node.attribute("name").as_string();
-		float mass = node.attribute("mass").as_float(1);
+		auto name = node.attribute("name").as_string();
+		auto mass = node.attribute("mass").as_float(1);
 
 		return (ParticleVector*) new ParticleVector(name, mass);
 	}
 
 	static ParticleVector* createRigidEllipsoids(pugi::xml_node node)
 	{
-		std::string name = node.attribute("name").as_string("");
-		float mass  = node.attribute("mass").as_int(1);
-		int objSize = node.attribute("particles_per_obj").as_int(1);
-		float3 axes = node.attribute("axes").as_float3( make_float3(1) );
+		auto name    = node.attribute("name").as_string("");
+		auto mass    = node.attribute("mass").as_int(1);
+
+		auto objSize = node.attribute("particles_per_obj").as_int(1);
+		auto axes    = node.attribute("axes").as_float3( make_float3(1) );
 
 		return (ParticleVector*) new RigidEllipsoidObjectVector(name, mass, objSize, axes);
 	}
 
 	static ParticleVector* createRbcs(pugi::xml_node node)
 	{
-		std::string name = node.attribute("name").as_string("");
-		float mass  = node.attribute("mass").as_int(1);
-		int objSize = node.attribute("particles_per_obj").as_int(1);
+		auto name      = node.attribute("name").as_string("");
+		auto mass      = node.attribute("mass").as_int(1);
 
-		std::string meshFname = node.attribute("mesh_filename").as_string("rbcmesh.topo");
+		auto objSize   = node.attribute("particles_per_obj").as_int(1);
+
+		auto meshFname = node.attribute("mesh_filename").as_string("rbcmesh.topo");
 		ObjectMesh mesh;// = readMeshTopology(meshFname);
 
 		return (ParticleVector*) new RBCvector(name, mass, objSize);//, mesh);
@@ -112,21 +117,21 @@ class InitialConditionsFactory
 private:
 	static InitialConditions* createUniformIC(pugi::xml_node node)
 	{
-		float density = node.attribute("density").as_float(1.0);
+		auto density = node.attribute("density").as_float(1.0);
 		return (InitialConditions*) new UniformIC(density);
 	}
 
 	static InitialConditions* createEllipsoidIC(pugi::xml_node node)
 	{
-		std::string icfname  = node.attribute("ic_filename").as_string("ellipsoids.ic");
-		std::string xyzfname = node.attribute("xyz_filename").as_string("ellipsoid.xyz");
+		auto icfname  = node.attribute("ic_filename"). as_string("ellipsoids.ic");
+		auto xyzfname = node.attribute("xyz_filename").as_string("ellipsoid.xyz");
 
 		return (InitialConditions*) new EllipsoidIC(xyzfname, icfname);
 	}
 
 	static InitialConditions* createRestartIC(pugi::xml_node node)
 	{
-		std::string path = node.attribute("path").as_string("restart/");
+		auto path = node.attribute("path").as_string("restart/");
 
 		return (InitialConditions*) new RestartIC(path);
 	}
@@ -361,6 +366,18 @@ private:
 		return (Wall*) new SimpleStationaryWall<StationaryWall_Cylinder>(name, std::move(cylinder));
 	}
 
+	static Wall* createPlaneWall(pugi::xml_node node)
+	{
+		auto name   = node.attribute("name").as_string("");
+
+		auto normal = node.attribute("normal").as_float3( make_float3(1, 0, 0) );
+		auto point  = node.attribute("point_through").as_float3( );
+
+		StationaryWall_Plane plane(normalize(normal), point);
+
+		return (Wall*) new SimpleStationaryWall<StationaryWall_Plane>(name, std::move(plane));
+	}
+
 	static Wall* createSDFWall(pugi::xml_node node)
 	{
 		auto name    = node.attribute("name").as_string("");
@@ -382,6 +399,8 @@ public:
 			return createCylinderWall(node);
 		if (type == "sphere")
 			return createSphereWall(node);
+		if (type == "plane")
+			return createPlaneWall(node);
 		if (type == "sdf")
 			return createSDFWall(node);
 
@@ -471,23 +490,42 @@ public:
 class PluginFactory
 {
 private:
-	static std::pair<SimulationPlugin*, PostprocessPlugin*> createTemperaturizePlugin(pugi::xml_node node, bool computeTask)
+	static std::pair<SimulationPlugin*, PostprocessPlugin*> createImposeVelocityPlugin(pugi::xml_node node, bool computeTask)
 	{
-		std::string name    = node.attribute("name").as_string();
-		std::string pvNames = node.attribute("pv_names").as_string();
-		float kbT           = node.attribute("kbt").as_float();
+		auto name   = node.attribute("name").as_string();
+		auto pvName = node.attribute("pv_name").as_string();
 
-		auto simPl = computeTask ? new TemperaturizePlugin(name, pvNames, kbT) : nullptr;
+		auto every  = node.attribute("every").as_int(5);
+		auto low    = node.attribute("low").as_float3();
+		auto high   = node.attribute("high").as_float3();
+		auto target = node.attribute("target_velocity").as_float3();
+
+		auto simPl = computeTask ? new ImposeVelocityPlugin(name, pvName, low, high, target, every) : nullptr;
 
 		return { (SimulationPlugin*) simPl, nullptr };
 	}
 
+	static std::pair<SimulationPlugin*, PostprocessPlugin*> createTemperaturizePlugin(pugi::xml_node node, bool computeTask)
+	{
+		auto name    = node.attribute("name").as_string();
+
+		auto pvName  = node.attribute("pv_name").as_string();
+		auto kbT     = node.attribute("kbt").as_float();
+		auto keepVel = node.attribute("keep_velocity").as_bool(false);
+
+		auto simPl = computeTask ? new TemperaturizePlugin(name, pvName, kbT, keepVel) : nullptr;
+
+		return { (SimulationPlugin*) simPl, nullptr };
+	}
+
+
 	static std::pair<SimulationPlugin*, PostprocessPlugin*> createStatsPlugin(pugi::xml_node node, bool computeTask)
 	{
-		std::string name = node.attribute("name").as_string();
-		int fetchEvery   = node.attribute("every").as_int(1000);
+		auto name   = node.attribute("name").as_string();
 
-		auto simPl  = computeTask ? new SimulationStats(name, fetchEvery) : nullptr;
+		auto every  = node.attribute("every").as_int(1000);
+
+		auto simPl  = computeTask ? new SimulationStats(name, every) : nullptr;
 		auto postPl = computeTask ? nullptr :new PostprocessStats(name);
 
 		return { (SimulationPlugin*) simPl, (PostprocessPlugin*) postPl };
@@ -495,15 +533,16 @@ private:
 
 	static std::pair<SimulationPlugin*, PostprocessPlugin*> createDumpavgPlugin(pugi::xml_node node, bool computeTask)
 	{
-		std::string name    = node.attribute("name").as_string();
-		std::string pvNames = node.attribute("pv_names").as_string();
-		int sampleEvery     = node.attribute("sample_every").as_int(50);
-		int dumpEvery       = node.attribute("dump_every").as_int(5000);
-		float3 binSize      = node.attribute("bin_size").as_float3( {1, 1, 1} );
-		bool momentum       = node.attribute("need_momentum").as_bool(true);
-		bool force          = node.attribute("need_force").as_bool(false);
+		auto name        = node.attribute("name").as_string();
 
-		std::string path    = node.attribute("path").as_string("xdmf");
+		auto pvNames     = node.attribute("pv_names").as_string();
+		auto sampleEvery = node.attribute("sample_every").as_int(50);
+		auto dumpEvery   = node.attribute("dump_every").as_int(5000);
+		auto binSize     = node.attribute("bin_size").as_float3( {1, 1, 1} );
+		auto momentum    = node.attribute("need_momentum").as_bool(true);
+		auto force       = node.attribute("need_force").as_bool(false);
+
+		auto path        = node.attribute("path").as_string("xdmf");
 
 		auto simPl  = computeTask ? new Avg3DPlugin(name, pvNames, sampleEvery, dumpEvery, binSize, momentum, force) : nullptr;
 		auto postPl = computeTask ? nullptr : new Avg3DDumper(name, path);
@@ -513,11 +552,12 @@ private:
 
 	static std::pair<SimulationPlugin*, PostprocessPlugin*> createDumpXYZPlugin(pugi::xml_node node, bool computeTask)
 	{
-		std::string name   = node.attribute("name").as_string();
-		std::string pvName = node.attribute("pv_name").as_string();
-		int dumpEvery      = node.attribute("dump_every").as_int(1000);
+		auto name      = node.attribute("name").as_string();
 
-		std::string path   = node.attribute("path").as_string("xyz/");
+		auto pvName    = node.attribute("pv_name").as_string();
+		auto dumpEvery = node.attribute("dump_every").as_int(1000);
+
+		auto path      = node.attribute("path").as_string("xyz/");
 
 		auto simPl  = computeTask ? new XYZPlugin(name, pvName, dumpEvery) : nullptr;
 		auto postPl = computeTask ? nullptr : new XYZDumper(name, path);
@@ -527,11 +567,12 @@ private:
 
 	static std::pair<SimulationPlugin*, PostprocessPlugin*> createDumpObjPosition(pugi::xml_node node, bool computeTask)
 	{
-		std::string name   = node.attribute("name").as_string();
-		std::string ovName = node.attribute("ov_name").as_string();
-		int dumpEvery      = node.attribute("dump_every").as_int(1000);
+		auto name      = node.attribute("name").as_string();
 
-		std::string path   = node.attribute("path").as_string("pos/");
+		auto ovName    = node.attribute("ov_name").as_string();
+		auto dumpEvery = node.attribute("dump_every").as_int(1000);
+
+		auto path      = node.attribute("path").as_string("pos/");
 
 		auto simPl  = computeTask ? new ObjPositionsPlugin(name, ovName, dumpEvery) : nullptr;
 		auto postPl = computeTask ? nullptr : new ObjPositionsDumper(name, path);
@@ -555,6 +596,8 @@ public:
 			return createDumpXYZPlugin(node, computeTask);
 		if (type == "dump_obj_pos")
 			return createDumpObjPosition(node, computeTask);
+		if (type == "impose_velocity")
+			return createImposeVelocityPlugin(node, computeTask);
 
 		die("Unable to parse input at %s, unknown 'type' %s", node.path().c_str(), type.c_str());
 
@@ -680,24 +723,7 @@ uDeviceX* Parser::setup_uDeviceX(Logger& logger)
 
 	for (auto node : simNode.children())
 		if ( std::string(node.name()) == "plugin" )
-		{
-			auto simPl_postPl = PluginFactory::create(node, udx->isComputeTask());
-			auto simPl  = simPl_postPl.first;
-			auto postPl = simPl_postPl.second;
-
-			if (udx->isComputeTask())
-			{
-				if (simPl->requirePostproc)
-					udx->registerJointPlugins(simPl, postPl);
-				else
-					udx->sim->registerPlugin(simPl);
-			}
-			else
-			{
-				if (postPl != nullptr)
-					udx->registerJointPlugins(simPl, postPl);
-			}
-		}
+			udx->registerPlugins( PluginFactory::create(node, udx->isComputeTask()) );
 
 	return udx;
 }

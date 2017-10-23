@@ -16,25 +16,21 @@ class SimulationStats : public SimulationPlugin
 {
 private:
 	int fetchEvery;
-	bool needToDump;
+	bool needToDump{false};
 
 	int nparticles;
-	PinnedBuffer<ReductionType> momentum, energy;
+	PinnedBuffer<ReductionType> momentum{3}, energy{1};
 	std::vector<char> sendBuffer;
 
 	Timer<> timer;
 
 public:
-	SimulationStats(std::string name, int fetchEvery) :
-		SimulationPlugin(name, true), fetchEvery(fetchEvery), needToDump(false), momentum(3), energy(1)
-	{
-		timer.start();
-	}
+	SimulationStats(std::string name, int fetchEvery);
 
-	void afterIntegration(cudaStream_t stream);
-	void serializeAndSend(cudaStream_t stream);
+	void afterIntegration(cudaStream_t stream) override;
+	void serializeAndSend(cudaStream_t stream) override;
 
-	~SimulationStats() {};
+	bool needPostproc() override { return true; }
 };
 
 class PostprocessStats : public PostprocessPlugin
@@ -46,7 +42,5 @@ private:
 public:
 	PostprocessStats(std::string name);
 
-	void deserialize(MPI_Status& stat);
-
-	~PostprocessStats() {};
+	void deserialize(MPI_Status& stat) override;
 };

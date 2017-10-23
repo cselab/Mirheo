@@ -20,27 +20,17 @@ __global__ void sample(PVview pvView, CellListInfo cinfo, float* avgDensity, flo
 		atomicAdd(avgDensity+cid, pvView.mass);
 
 	if (avgMomentum != nullptr)
-	{
-		const float3 momentum = make_float3(pvView.particles[2*pid+1] * pvView.mass);
-		atomicAdd( (float*)(avgMomentum + cid)  , momentum.x);
-		atomicAdd( (float*)(avgMomentum + cid)+1, momentum.y);
-		atomicAdd( (float*)(avgMomentum + cid)+2, momentum.z);
-	}
+		atomicAdd( avgMomentum + cid, make_float3(pvView.particles[2*pid+1] * pvView.mass) );
 
 	if (avgForce != nullptr)
-	{
-		const float3 frc = make_float3(pvView.forces[pid]);
-		atomicAdd( (float*)(avgForce + cid)  , frc.x);
-		atomicAdd( (float*)(avgForce + cid)+1, frc.y);
-		atomicAdd( (float*)(avgForce + cid)+2, frc.z);
-	}
+		atomicAdd( avgForce + cid, make_float3(pvView.forces[pid]) );
 }
 
 __global__ void scaleVec(int n, float3* vectorField, const float* density)
 {
 	const int id = threadIdx.x + blockIdx.x*blockDim.x;
 	if (id < n)
-		vectorField[id] /= (density[id] + 1e-8f);
+		vectorField[id] /= (density[id] + 1e-6f);
 }
 
 __global__ void scaleDensity(int n, float* density, const float factor)
@@ -52,7 +42,7 @@ __global__ void scaleDensity(int n, float* density, const float factor)
 
 Avg3DPlugin::Avg3DPlugin(std::string name, std::string pvNames, int sampleEvery, int dumpEvery, float3 binSize,
 			bool needMomentum, bool needForce) :
-	SimulationPlugin(name, true), pvNames(pvNames),
+	SimulationPlugin(name), pvNames(pvNames),
 	sampleEvery(sampleEvery), dumpEvery(dumpEvery), binSize(binSize),
 	needDensity(true), needMomentum(needMomentum), needForce(needForce),
 	nSamples(0)
@@ -67,9 +57,9 @@ void Avg3DPlugin::setup(Simulation* sim, const MPI_Comm& comm, const MPI_Comm& i
 	binSize = sim->domain.localSize / make_float3(resolution);
 
 	const int total = resolution.x * resolution.y * resolution.z;
-	if (needDensity)  density .resize(total, 0);
-	if (needMomentum) momentum.resize(total, 0);
-	if (needForce)    force   .resize(total, 0);
+	if (needDensity)  density .resize_anew(total);
+	if (needMomentum) momentum.resize_anew(total);
+	if (needForce)    force   .resize_anew(total);
 
 	auto splitPvNames = splitByDelim(pvNames);
 
@@ -96,9 +86,10 @@ void Avg3DPlugin::afterIntegration(cudaStream_t stream)
 		CellListInfo cinfo(binSize, pv->domain.localSize);
 		PVview pvView(pv, pv->local());
 
+		const int nthreads = 128;
 		SAFE_KERNEL_LAUNCH(
 				sample,
-				(pvView.size+127) / 128, 128, 0, stream,
+				getNblocks(pvView.size, nthreads), nthreads, 0, stream,
 				pvView, cinfo,
 				needDensity  ? density .devPtr() : nullptr,
 				needMomentum ? momentum.devPtr() : nullptr,
@@ -112,13 +103,14 @@ void Avg3DPlugin::serializeAndSend(cudaStream_t stream)
 {
 	if (currentTimeStep % dumpEvery != 0 || currentTimeStep == 0) return;
 
+	const int nthreads = 128;
 	// Order is important here! First mom and frc, only then dens
 	if (needMomentum)
 	{
 		int sz = momentum.size();
 		SAFE_KERNEL_LAUNCH(
 				scaleVec,
-				(sz+127)/128, 128, 0, stream,
+				getNblocks(sz, nthreads), nthreads, 0, stream,
 				sz, momentum.devPtr(), density.devPtr() );
 
 		momentum.downloadFromDevice(stream);
@@ -130,7 +122,7 @@ void Avg3DPlugin::serializeAndSend(cudaStream_t stream)
 		int sz = force.size();
 		SAFE_KERNEL_LAUNCH(
 				scaleVec,
-				(sz+127)/128, 128, 0, stream,
+				getNblocks(sz, nthreads), nthreads, 0, stream,
 				sz, force.devPtr(), density.devPtr() );
 
 		force.downloadFromDevice(stream);
@@ -142,7 +134,7 @@ void Avg3DPlugin::serializeAndSend(cudaStream_t stream)
 		int sz = density.size();
 		SAFE_KERNEL_LAUNCH(
 				scaleDensity,
-				(sz+127)/128, 128, 0, stream,
+				getNblocks(sz, nthreads), nthreads, 0, stream,
 				sz, density.devPtr(), 1.0 / (nSamples * binSize.x*binSize.y*binSize.z) );
 
 		density.downloadFromDevice(stream);

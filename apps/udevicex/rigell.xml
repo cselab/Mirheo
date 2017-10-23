@@ -40,7 +40,7 @@
 		<apply_to pv1="dpd" pv2="ellipsoids"/>
 	</interaction>
 	
-	<integrator type="vv_periodic_poiseuille" name="vv" direction="x" force="0.1" dt="0.001">
+	<integrator type="vv_periodic_poiseuille" name="vv" direction="x" force="0.0" dt="0.001">
 		<apply_to pv="dpd" />
 <!-- 		<apply_to pv="dpd2" />
  -->	</integrator>
@@ -62,7 +62,7 @@
 		
 	<plugin type="dump_obj_pos" name="lala"
 		ov_name="ellipsoids"
-		dump_every="100"
+		dump_every="1"
 		path="pos/" />
 			
 <!-- 	<plugin type="dump_xyz" name="dpd"
@@ -75,9 +75,9 @@
 		dump_every="100"
 		path="xyz/" /> -->
 	
-	<plugin type="stats" name="stats" every="100" />
+	<plugin type="stats" name="stats" every="10" />
 	
-	<run niters="100" />
+	<run niters="22" />
 
 </simulation>
 

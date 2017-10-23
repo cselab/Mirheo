@@ -43,6 +43,17 @@ __device__ __forceinline__  float2 warpReduce(float2 val, Operation op)
 	return val;
 }
 
+template<typename Operation>
+__device__ __forceinline__  float warpReduce(float val, Operation op)
+{
+#pragma unroll
+	for (int offset = warpSize/2; offset > 0; offset /= 2)
+	{
+		val = op(val, __shfl_down(val, offset));
+	}
+	return val;
+}
+
 __device__ __forceinline__ float3 atomicAdd(float3* addr, float3 v)
 {
 	float3 res;

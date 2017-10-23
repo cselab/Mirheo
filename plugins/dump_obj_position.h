@@ -19,10 +19,12 @@ private:
 public:
 	ObjPositionsPlugin(std::string name, std::string ovName, int dumpEvery);
 
-	void setup(Simulation* sim, const MPI_Comm& comm, const MPI_Comm& interComm);
+	void setup(Simulation* sim, const MPI_Comm& comm, const MPI_Comm& interComm) override;
 
 	void beforeForces(cudaStream_t stream) override;
 	void serializeAndSend(cudaStream_t stream) override;
+
+	bool needPostproc() override { return true; }
 
 	~ObjPositionsPlugin() {};
 };

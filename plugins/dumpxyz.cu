@@ -10,7 +10,7 @@
 #include <regex>
 
 XYZPlugin::XYZPlugin(std::string name, std::string pvName, int dumpEvery) :
-	SimulationPlugin(name, true), pvName(pvName),
+	SimulationPlugin(name), pvName(pvName),
 	dumpEvery(dumpEvery)
 { }
 

@@ -11,7 +11,7 @@
 #include <regex>
 
 ObjPositionsPlugin::ObjPositionsPlugin(std::string name, std::string ovName, int dumpEvery) :
-	SimulationPlugin(name, true), ovName(ovName),
+	SimulationPlugin(name), ovName(ovName),
 	dumpEvery(dumpEvery)
 { }
 
@@ -47,6 +47,7 @@ void ObjPositionsPlugin::serializeAndSend(cudaStream_t stream)
 
 	std::vector<char> data;
 	SimpleSerializer::serialize(data,
+			currentTime,
 			ov->name,
 			*ov->local()->getDataPerObject<int>("ids"),
 			*ov->local()->getDataPerObject<LocalObjectVector::COMandExtent>("com_extents"),
@@ -58,7 +59,7 @@ void ObjPositionsPlugin::serializeAndSend(cudaStream_t stream)
 
 //=================================================================================
 
-void writePositions(MPI_Comm comm, std::string fname, std::vector<int>& ids,
+void writePositions(MPI_Comm comm, std::string fname, float curTime, std::vector<int>& ids,
 		std::vector<LocalObjectVector::COMandExtent> coms, std::vector<LocalRigidObjectVector::RigidMotion> motions)
 {
 	int rank;
@@ -89,7 +90,7 @@ void writePositions(MPI_Comm comm, std::string fname, std::vector<int>& ids,
 	{
 		auto& com = coms[i];
 
-		ss << ids[i] << " "
+		ss << ids[i] << " " << curTime << "   "
 				<< std::setw(10) << com.com.x << " "
 				<< std::setw(10) << com.com.y << " "
 				<< std::setw(10) << com.com.z;
@@ -101,7 +102,11 @@ void writePositions(MPI_Comm comm, std::string fname, std::vector<int>& ids,
 					<< std::setw(10) << motion.q.x << " "
 					<< std::setw(10) << motion.q.y << " "
 					<< std::setw(10) << motion.q.z << " "
-					<< std::setw(10) << motion.q.w << std::endl;
+					<< std::setw(10) << motion.q.w << "    "
+
+					<< std::setw(10) << motion.omega.x << " "
+					<< std::setw(10) << motion.omega.y << " "
+					<< std::setw(10) << motion.omega.z << std::endl;
 		}
 	}
 
@@ -139,18 +144,19 @@ void ObjPositionsDumper::setup(const MPI_Comm& comm, const MPI_Comm& interComm)
 
 void ObjPositionsDumper::deserialize(MPI_Status& stat)
 {
+	float curTime;
 	std::string ovName;
 	std::vector<int> ids;
 	std::vector<LocalObjectVector::COMandExtent> coms;
 	std::vector<LocalRigidObjectVector::RigidMotion> motions;
 
-	SimpleSerializer::deserialize(data, ovName, ids, coms, motions);
+	SimpleSerializer::deserialize(data, curTime, ovName, ids, coms, motions);
 
 	std::string tstr = std::to_string(timeStamp++);
 	std::string currentFname = path + "/" + ovName + "_" + std::string(5 - tstr.length(), '0') + tstr + ".txt";
 
 	if (activated)
-		writePositions(comm, currentFname, ids, coms, motions);
+		writePositions(comm, currentFname, curTime, ids, coms, motions);
 }
 
 

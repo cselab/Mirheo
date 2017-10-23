@@ -9,6 +9,7 @@
 
 #include <core/walls/stationary_walls/cylinder.h>
 #include <core/walls/stationary_walls/sphere.h>
+#include <core/walls/stationary_walls/plane.h>
 #include <core/walls/stationary_walls/sdf.h>
 
 
@@ -21,7 +22,7 @@ __global__ void collectFrozen(PVview view, float minVal, float maxVal, float4* f
 	Particle p(view.particles, pid);
 	p.u = make_float3(0);
 
-	const float val = checker(view, p.r);
+	const float val = checker(p.r);
 
 	if (val > minVal && val < maxVal)
 	{
@@ -53,8 +54,7 @@ void freezeParticlesInWall(const InsideWallChecker& checker, ParticleVector* pv,
 
 	frozen->local()->resize(nFrozen[0], 0);
 	frozen->mass = pv->mass;
-	frozen->globalDomainStart = pv->globalDomainStart;
-	frozen->localDomainSize = pv->localDomainSize;
+	frozen->domain = pv->domain;
 
 	debug("Freezing %d particles", nFrozen[0]);
 
@@ -86,6 +86,12 @@ void freezeParticlesWrapper(Wall* wall, ParticleVector* pv, ParticleVector* froz
 		auto w = dynamic_cast< SimpleStationaryWall<StationaryWall_SDF>* >(wall);
 		if (w != nullptr)
 			freezeParticlesInWall<StationaryWall_SDF> (w->getChecker(), pv, frozen, minVal, maxVal);
+	}
+
+	{
+		auto w = dynamic_cast< SimpleStationaryWall<StationaryWall_Plane>* >(wall);
+		if (w != nullptr)
+			freezeParticlesInWall<StationaryWall_Plane> (w->getChecker(), pv, frozen, minVal, maxVal);
 	}
 }
 

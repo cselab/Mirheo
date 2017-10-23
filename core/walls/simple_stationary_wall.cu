@@ -18,6 +18,7 @@
 #include "stationary_walls/cylinder.h"
 #include "stationary_walls/sdf.h"
 #include "stationary_walls/sphere.h"
+#include "stationary_walls/plane.h"
 
 //===============================================================================================
 // Removing kernels
@@ -143,10 +144,34 @@ __global__ void getBoundaryCells(PVview view, CellListInfo cinfo, int* nBoundary
 //===============================================================================================
 
 template<typename InsideWallChecker>
-__global__ void bounceKernel(PVview view, const int* wallCells, const int nWallCells, CellListInfo cinfo, const float dt, InsideWallChecker checker)
+__device__ __forceinline__ float3 rescue(float3 candidate, float dt, float tol, int id, const InsideWallChecker& checker)
 {
-	const int maxIters = 50;
-	const float corrStep = (1.0f / (float)maxIters) * dt;
+	const int maxIters = 20;
+	const float factor = 5.0f*dt;
+
+	for (int i=0; i<maxIters; i++)
+	{
+		float v = checker(candidate);
+		if (v < -tol) break;
+
+		float3 rndShift;
+		rndShift.x = Saru::mean0var1(candidate.x - floorf(candidate.x), id+i, id*id);
+		rndShift.y = Saru::mean0var1(rndShift.x,                        id+i, id*id);
+		rndShift.z = Saru::mean0var1(rndShift.y,                        id+i, id*id);
+
+		if (checker(candidate + factor*rndShift) < v)
+			candidate += factor*rndShift;
+	}
+
+	return candidate;
+}
+
+template<typename InsideWallChecker>
+__global__ void bounceKernel(
+		PVview_withOldParticles view, CellListInfo cinfo,
+		const int* wallCells, const int nWallCells, const float dt, const InsideWallChecker checker)
+{
+	const float tol = 2e-6f;
 
 	const int tid = blockIdx.x * blockDim.x + threadIdx.x;
 	if (tid >= nWallCells) return;
@@ -156,38 +181,17 @@ __global__ void bounceKernel(PVview view, const int* wallCells, const int nWallC
 
 	for (int pid = pstart; pid < pend; pid++)
 	{
-		Particle p(cinfo.particles, pid);
-		if (checker(p.r) <= 0.0f) continue;
+		Particle p(view.particles, pid);
+		if (checker(p.r) <= -tol) continue;
 
-		float3 oldCoo = p.r - p.u*dt;
-
-		for (int i=0; i<maxIters; i++)
-		{
-			if (checker(oldCoo) < 0.0f) break;
-			oldCoo -= p.u*corrStep;
-		}
+		Particle pOld(view.old_particles, pid);
+		float3 dr = p.r - pOld.r;
 
 		const float alpha = solveLinSearch([=] (float lambda) {
-			return checker(oldCoo + (p.r-oldCoo)*lambda);
+			return checker(pOld.r + dr*lambda) + tol;
 		});
-		float3 candidate = (alpha >= 0.0f) ? oldCoo + alpha * (p.r - oldCoo) : oldCoo;
-
-		if (checker(candidate) >= 0.0f)
-		for (int i=0; i<maxIters; i++)
-		{
-			if (checker(candidate) < 0.0f) break;
-
-			float3 rndShift;
-				rndShift.x = Saru::mean0var1(p.r.x - floorf(p.r.x), p.i1+i, p.i1*p.i1);
-				rndShift.y = Saru::mean0var1(rndShift.x,            p.i1+i, p.i1*p.i1);
-				rndShift.z = Saru::mean0var1(rndShift.y,            p.i1+i, p.i1*p.i1);
-
-				if (checker(candidate + 5.0f*rndShift*dt) < 0.0f)
-				{
-					candidate += 5.0f*rndShift*dt;
-					break;
-				}
-		}
+		float3 candidate = (alpha >= 0.0f) ? pOld.r + alpha * dr : pOld.r;
+		candidate = rescue(candidate, dt, tol, p.i1, checker);
 
 		p.r = candidate;
 		p.u = -p.u;
@@ -201,7 +205,7 @@ __global__ void bounceKernel(PVview view, const int* wallCells, const int nWallC
 //===============================================================================================
 
 template<typename InsideWallChecker>
-__global__ void checkInside(PVview view, int* nInside, InsideWallChecker checker)
+__global__ void checkInside(PVview view, int* nInside, const InsideWallChecker checker)
 {
 	const int pid = blockIdx.x * blockDim.x + threadIdx.x;
 	if (pid >= view.size) return;
@@ -336,7 +340,7 @@ void SimpleStationaryWall<InsideWallChecker>::bounce(float dt, cudaStream_t stre
 		auto pv = particleVectors[i];
 		auto cl = cellLists[i];
 		auto bc = boundaryCells[i];
-		PVview view(pv, pv->local());
+		PVview_withOldParticles view(pv, pv->local());
 
 		debug2("Bouncing %d %s particles, %d boundary cells",
 				pv->local()->size(), pv->name.c_str(), bc->size());
@@ -345,7 +349,7 @@ void SimpleStationaryWall<InsideWallChecker>::bounce(float dt, cudaStream_t stre
 		SAFE_KERNEL_LAUNCH(
 				bounceKernel,
 				getNblocks(bc->size(), nthreads), nthreads, 0, stream,
-				view, bc->devPtr(), bc->size(), cl->cellInfo(), dt, insideWallChecker.handler() );
+				view, cl->cellInfo(), bc->devPtr(), bc->size(), dt, insideWallChecker.handler() );
 
 		CUDA_Check( cudaPeekAtLastError() );
 		nBounceCalls[i]++;
@@ -377,6 +381,7 @@ void SimpleStationaryWall<InsideWallChecker>::check(cudaStream_t stream)
 template class SimpleStationaryWall<StationaryWall_Sphere>;
 template class SimpleStationaryWall<StationaryWall_Cylinder>;
 template class SimpleStationaryWall<StationaryWall_SDF>;
+template class SimpleStationaryWall<StationaryWall_Plane>;
 
 
 

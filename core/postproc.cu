@@ -23,8 +23,9 @@ void Postprocess::run()
 	}
 
 	// Stopping condition
+	const int tag = 424242;
+
 	int dummy = 0;
-	int tag = 424242;
 	int rank;
 
 	MPI_Check( MPI_Comm_rank(comm, &rank) );

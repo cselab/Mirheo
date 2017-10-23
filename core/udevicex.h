@@ -10,13 +10,6 @@ class PostprocessPlugin;
 
 class uDeviceX
 {
-private:
-	int pluginId = 0;
-	int computeTask;
-	bool noPostprocess;
-
-	void sayHello();
-
 public:
 	Simulation* sim;
 	Postprocess* post;
@@ -25,6 +18,12 @@ public:
 			Logger& logger, std::string logFileName, int verbosity=3);
 
 	bool isComputeTask();
-	void registerJointPlugins(SimulationPlugin* simPl, PostprocessPlugin* postPl);
 	void run(int niters);
+	void registerPlugins(std::pair<SimulationPlugin*, PostprocessPlugin*> plugins);
+
+private:
+	int computeTask;
+	bool noPostprocess;
+
+	void sayHello();
 };

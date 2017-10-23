@@ -23,17 +23,21 @@ __device__ __forceinline__ float2 normal_BoxMuller(float seed)
 	return res;
 }
 
-__global__ void applyTemperature(float4* coosvels, int np, float invm, float kbT, float seed1, float seed2)
+__global__ void applyTemperature(PVview view, float kbT, float seed1, float seed2, bool keepVelocity)
 {
 	int gid = blockIdx.x * blockDim.x + threadIdx.x;
-	if (gid >= np) return;
+	if (gid >= view.size) return;
 
 	float2 rand1 = normal_BoxMuller(seed1);
 	float2 rand2 = normal_BoxMuller(seed2);
 
-	float3 vel = sqrtf(kbT * invm) * make_float3(rand1.x, rand1.y, rand2.x);
+	float3 vel = sqrtf(kbT * view.invMass) * make_float3(rand1.x, rand1.y, rand2.x);
 
-	coosvels[2*gid+1] = make_float4(vel, 0.0f);
+	Float3_int u(view.particles[2*gid+1]);
+	if (keepVelocity) u.v += vel;
+	else              u.v  = vel;
+
+	view.particles[2*gid+1] = u.toFloat4();
 }
 
 
@@ -41,24 +45,17 @@ void TemperaturizePlugin::setup(Simulation* sim, const MPI_Comm& comm, const MPI
 {
 	SimulationPlugin::setup(sim, comm, interComm);
 
-	for (auto& name : pvNames)
-	{
-		auto pv = sim->getPVbyName(name);
-		if (pv == nullptr)
-			die("Cannot apply temperature to particle vector %s, not found", name.c_str());
-
-		pvs.push_back(pv);
-	}
+	pv =sim->getPVbyNameOrDie(pvName);
 }
 
 void TemperaturizePlugin::beforeForces(cudaStream_t stream)
 {
-	for (auto pv : pvs)
-	{
-		SAFE_KERNEL_LAUNCH(
-				applyTemperature,
-				getNblocks(pv->local()->size(), 128), 128, 0, stream,
-				(float4*)pv->local()->coosvels.devPtr(), pv->local()->size(), 1.0/pv->mass, kbT, drand48(), drand48() );
-	}
+	PVview view(pv, pv->local());
+	const int nthreads = 128;
+
+	SAFE_KERNEL_LAUNCH(
+			applyTemperature,
+			getNblocks(view.size, nthreads), nthreads, 0, stream,
+			view, kbT, drand48(), drand48(), keepVelocity );
 }
 

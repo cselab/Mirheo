@@ -47,9 +47,9 @@ void UniformIC::exec(const MPI_Comm& comm, ParticleVector* pv, DomainInfo domain
 					cooPtr[mycount].r.z = k*h.z - 0.5*domain.localSize.z + udistr(gen);
 					cooPtr[mycount].i1 = mycount;
 
-					cooPtr[mycount].u.x = 0.1f * (udistr(gen) - 0.5);
-					cooPtr[mycount].u.y = 0.1f * (udistr(gen) - 0.5);
-					cooPtr[mycount].u.z = 0.1f * (udistr(gen) - 0.5);
+					cooPtr[mycount].u.x = 0.0f * (udistr(gen) - 0.5);
+					cooPtr[mycount].u.y = 0.0f * (udistr(gen) - 0.5);
+					cooPtr[mycount].u.z = 0.0f * (udistr(gen) - 0.5);
 
 					avgMomentum.x += cooPtr[mycount].u.x;
 					avgMomentum.y += cooPtr[mycount].u.y;

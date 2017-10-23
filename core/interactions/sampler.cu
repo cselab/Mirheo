@@ -207,9 +207,8 @@ void MCMCSampler<InsideWallChecker>::_compute(
 	// Make combinedCL include halo as well
 	if (combinedCL == nullptr)
 	{
-		combined->localDomainSize = pv->localDomainSize;
-		combined->globalDomainStart = pv->globalDomainStart;
-		combinedCL = new PrimaryCellList(combined, rc, pv->localDomainSize + make_float3(2.0f));
+		combined->domain = pv->domain;
+		combinedCL = new PrimaryCellList(combined, rc, pv->domain.localSize + make_float3(2.0f));
 	}
 
 

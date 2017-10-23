@@ -6,27 +6,6 @@
 #include <core/utils/cuda_common.h>
 #include <core/utils/kernel_launch.h>
 
-__inline__ __device__ float warpReduceSum(float val)
-{
-#pragma unroll
-	for (int offset = warpSize/2; offset > 0; offset /= 2)
-	{
-		val += __shfl_down(val, offset);
-	}
-	return val;
-}
-
-__inline__ __device__ float3 warpReduceSum(float3 val)
-{
-#pragma unroll
-	for (int offset = warpSize/2; offset > 0; offset /= 2)
-	{
-		val.x += __shfl_down(val.x, offset);
-		val.y += __shfl_down(val.y, offset);
-		val.z += __shfl_down(val.z, offset);
-	}
-	return val;
-}
 
 __global__ void totalMomentumEnergy(PVview view, ReductionType* momentum, ReductionType* energy)
 {
@@ -39,8 +18,8 @@ __global__ void totalMomentumEnergy(PVview view, ReductionType* momentum, Reduct
 	float3 myMomentum = vel * view.mass;
 	float myEnergy = dot(vel, vel) * view.mass*0.5f;
 
-	myMomentum = warpReduceSum(myMomentum);
-	myEnergy   = warpReduceSum(myEnergy);
+	myMomentum = warpReduce(myMomentum, [](float a, float b) { return a+b; });
+	myEnergy   = warpReduce(myEnergy,   [](float a, float b) { return a+b; });
 
 	if (wid == 0)
 	{
@@ -49,6 +28,12 @@ __global__ void totalMomentumEnergy(PVview view, ReductionType* momentum, Reduct
 		atomicAdd(momentum+2, (ReductionType)myMomentum.z);
 		atomicAdd(energy,     (ReductionType)myEnergy);
 	}
+}
+
+SimulationStats::SimulationStats(std::string name, int fetchEvery) :
+		SimulationPlugin(name), fetchEvery(fetchEvery)
+{
+	timer.start();
 }
 
 void SimulationStats::afterIntegration(cudaStream_t stream)

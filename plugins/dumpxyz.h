@@ -27,6 +27,8 @@ public:
 	void beforeForces(cudaStream_t stream) override;
 	void serializeAndSend(cudaStream_t stream) override;
 
+	bool needPostproc() override { return true; }
+
 	~XYZPlugin() {};
 };
 

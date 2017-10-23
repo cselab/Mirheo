@@ -4,7 +4,6 @@
 #include <core/simulation.h>
 #include "freeze_particles.h"
 #include <core/interactions/sampler.h>
-#include <core/initial_conditions/dummy.h>
 #include <core/initial_conditions/uniform.h>
 
 #include <core/argument_parser.h>
@@ -14,6 +13,19 @@
 #include <core/walls/stationary_walls/cylinder.h>
 #include <core/walls/stationary_walls/sphere.h>
 #include <core/walls/stationary_walls/sdf.h>
+#include <core/walls/stationary_walls/plane.h>
+
+#include <core/pvs/particle_vector.h>
+
+#include <core/utils/kernel_launch.h>
+
+__global__ void zeroVels(PVview view)
+{
+	const int pid = threadIdx.x + blockDim.x * blockIdx.x;
+	if (pid >= view.size) return;
+
+	view.particles[2*pid+1] = make_float4(0);
+}
 
 // This should be taken from parser
 class WallFactory
@@ -52,6 +64,18 @@ private:
 		return (Wall*) new SimpleStationaryWall<StationaryWall_Cylinder>(name, std::move(cylinder));
 	}
 
+	static Wall* createPlaneWall(pugi::xml_node node)
+	{
+		auto name   = node.attribute("name").as_string("");
+
+		auto normal = node.attribute("normal").as_float3( make_float3(1, 0, 0) );
+		auto point  = node.attribute("point_through").as_float3( );
+
+		StationaryWall_Plane plane(normalize(normal), point);
+
+		return (Wall*) new SimpleStationaryWall<StationaryWall_Plane>(name, std::move(plane));
+	}
+
 	static Wall* createSDFWall(pugi::xml_node node)
 	{
 		auto name    = node.attribute("name").as_string("");
@@ -73,6 +97,8 @@ public:
 			return createCylinderWall(node);
 		if (type == "sphere")
 			return createSphereWall(node);
+		if (type == "plane")
+			return createPlaneWall(node);
 		if (type == "sdf")
 			return createSDFWall(node);
 
@@ -81,7 +107,6 @@ public:
 		return nullptr;
 	}
 };
-
 
 
 Logger logger;
@@ -115,12 +140,11 @@ void writeXYZ(MPI_Comm comm, std::string fname, ParticleVector* pv)
 		info("xyz dump of %s: total number of particles: %d", pv->name.c_str(), n);
 	}
 
-	PVview view(pv, pv->local());
 	pv->local()->coosvels.downloadFromDevice(0);
 	for(int i = 0; i < nlocal; ++i)
 	{
 		Particle p = pv->local()->coosvels[i];
-		p.r = view.local2global(p.r);
+		p.r = pv->domain.local2global(p.r);
 
 		ss << rank << " "
 				<< std::setw(10) << p.r.x << " "
@@ -184,71 +208,72 @@ int main(int argc, char** argv)
 
 	logger.init(MPI_COMM_WORLD, "genwall.log", 9);
 
-
 	pugi::xml_document config;
 	pugi::xml_parse_result result = config.load_file(xmlname.c_str());
 	if (!result)
 		die("Couldn't open script file, parser says: \"%s\"", result.description());
 
-	pugi::xml_node wallNode, wallGenNode;
-	for (auto node : config.child("simulation").children("wall"))
-	{
-		if ( std::string(node.attribute("name").as_string()) == wname )
-		{
-			wallNode = node;
-			wallGenNode = node.child("generate_frozen");
-		}
-	}
-
-	if (wallNode.type() == pugi::node_null)
-		die("Wall %s was not found in the script", wname.c_str());
-	if (wallGenNode.type() == pugi::node_null)
-		die("Wall %s has no generation instructions", wname.c_str());
-
-
 	float3 globalDomainSize = config.child("simulation").child("domain").attribute("size").as_float3({32, 32, 32});
 	int3 nranks3D = config.child("simulation").attribute("mpi_ranks").as_int3({1, 1, 1});
 
-	Simulation* sim = new Simulation(nranks3D, globalDomainSize, MPI_COMM_WORLD, MPI_COMM_NULL);
+	auto genOne = [=] (pugi::xml_node wallNode, pugi::xml_node wallGenNode) {
 
-	ParticleVector *startingPV = new ParticleVector("starting", 1.0);
-	ParticleVector *wallPV     = new ParticleVector("wall", 1.0);
-	ParticleVector *final      = new ParticleVector(wallGenNode.attribute("name").as_string("final"), 1.0);
-	InitialConditions* ic      = new UniformIC(wallGenNode.attribute("density").as_float(4));
-	InitialConditions* dummyIC = new DummyIC();
+		if (wallGenNode.type() == pugi::node_null)
+			die("Wall %s has no generation instructions", wallNode.attribute("name").as_string());
 
-	// Generate pv, but don't register it
-	ic->exec(sim->getCartComm(), startingPV, sim->globalDomainStart, sim->localDomainSize, 0);
+		info("Generating wall %s", wallNode.attribute("name").as_string());
 
-	// Create and setup wall
-	auto wall = WallFactory::create(wallNode);
-	sim->registerWall(wall);
 
-	// Produce new pv out of particles inside the wall
-	freezeParticlesWrapper(wall, startingPV, wallPV, -3, 4);
-	sim->registerParticleVector(wallPV, dummyIC);
+		auto sim = std::make_unique<Simulation>(nranks3D, globalDomainSize, MPI_COMM_WORLD, MPI_COMM_NULL);
 
-	sim->init();
-	sim->run(nepochs);
+		auto startingPV = std::make_unique<ParticleVector>("starting", 1.0);
+		auto wallPV     = std::make_unique<ParticleVector>("wall", 1.0);
+		auto final      = std::make_unique<ParticleVector>(wallGenNode.attribute("name").as_string("final"), 1.0);
+		auto ic         = std::make_unique<UniformIC>     (wallGenNode.attribute("density").as_float(4));
 
-	freezeParticlesWrapper(wall, wallPV, final, 0, 1.2);
+		// Generate pv, but don't register it
+		ic->exec(sim->getCartComm(), startingPV.get(), sim->domain, 0);
 
-	if (needXYZ)
+		// Create and setup wall
+		auto wall = std::unique_ptr<Wall>( WallFactory::create(wallNode) );
+		sim->registerWall(wall.get());
+
+		// Produce new pv out of particles inside the wall
+		freezeParticlesWrapper(wall.get(), startingPV.get(), wallPV.get(), -3, 4);
+		sim->registerParticleVector(wallPV.get(), nullptr);
+
+		sim->init();
+		sim->run(nepochs);
+
+		freezeParticlesWrapper(wall.get(), wallPV.get(), final.get(), 0, 1.2);
+
+		if (needXYZ)
+		{
+			writeXYZ(sim->getCartComm(), "wall.xyz", wallPV.get());
+			writeXYZ(sim->getCartComm(), final->name+".xyz", final.get());
+		}
+
+		std::string path = wallGenNode.attribute("path").as_string("./");
+		std::string command = "mkdir -p " + path;
+		if (rank == 0)
+		{
+			if ( system(command.c_str()) != 0 )
+				die("Could not create folders by given path %s", path.c_str());
+		}
+
+		PVview view(final.get(), final->local());
+		const int nthreads = 128;
+		SAFE_KERNEL_LAUNCH( zeroVels,
+				getNblocks(view.size, nthreads), nthreads, 0, 0,
+				view);
+
+		final->checkpoint(sim->getCartComm(), path);
+
+		sim->finalize();
+	};
+
+	for (auto node : config.child("simulation").children("wall"))
 	{
-		writeXYZ(sim->getCartComm(), "wall.xyz", wallPV);
-		writeXYZ(sim->getCartComm(), final->name+".xyz", final);
+		genOne(node, node.child("generate_frozen"));
 	}
-
-	std::string path = wallGenNode.attribute("path").as_string("./");
-	std::string command = "mkdir -p " + path;
-	if (rank == 0)
-	{
-		if ( system(command.c_str()) != 0 )
-			die("Could not create folders by given path %s", path.c_str());
-	}
-
-	final->checkpoint(sim->getCartComm(), path);
-
-
-	sim->finalize();
 }
