@@ -19,8 +19,8 @@ __device__ __forceinline__ void bounceCellArray(
 {
 	const float threshold = 1e-5f;
 
-	auto motion     = ovView.motions[objId];
-	auto old_motion = ovView.old_motions[objId];
+	auto motion     = toSingleMotion( ovView.motions[objId] );
+	auto old_motion = toSingleMotion( ovView.old_motions[objId] );
 
 	const float3 axes    = ovView.axes;
 	const float3 invAxes = ovView.invAxes;
@@ -76,8 +76,8 @@ __device__ __forceinline__ void bounceCellArray(
 		float3 newU = vEll - (p.u - vEll);
 
 		const float3 frc = -pvView.mass * (newU - p.u) / dt;
-		atomicAdd( &ovView.motions[objId].force,  frc);
-		atomicAdd( &ovView.motions[objId].torque, cross(newCoo - motion.r, frc) );
+		atomicAdd( &ovView.motions[objId].force,  make_rigidReal3(frc));
+		atomicAdd( &ovView.motions[objId].torque, make_rigidReal3(cross(newCoo - motion.r, frc)) );
 
 		p.r = newCoo;
 		p.u = newU;
@@ -85,7 +85,7 @@ __device__ __forceinline__ void bounceCellArray(
 	}
 }
 
-__device__ __forceinline__ bool isValidCell(int3 cid3, LocalRigidObjectVector::RigidMotion motion, CellListInfo cinfo, float3 invAxes)
+__device__ __forceinline__ bool isValidCell(int3 cid3, SingleRigidMotion motion, CellListInfo cinfo, float3 invAxes)
 {
 	const float threshold = 0.5f;
 
@@ -150,7 +150,7 @@ __global__ void bounceEllipsoid(REOVview_withOldMotion ovView, PVview_withOldPar
 
 		if ( i < totCells &&
 			 cid < cinfo.totcells &&
-			 isValidCell(cid3, ovView.motions[objId], cinfo, ovView.invAxes) )
+			 isValidCell(cid3, toSingleMotion(ovView.motions[objId]), cinfo, ovView.invAxes) )
 		{
 			int id = atomicAggInc((int*)&nCells);
 			validCells[id] = cid;

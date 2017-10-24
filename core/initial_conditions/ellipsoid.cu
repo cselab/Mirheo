@@ -7,6 +7,8 @@
 #include <core/pvs/rigid_ellipsoid_object_vector.h>
 #include <core/integrators/rigid_vv.h>
 
+#include <core/rigid_kernels/rigid_motion.h>
+
 void EllipsoidIC::readXYZ(std::string fname, PinnedBuffer<float4>& positions, cudaStream_t stream)
 {
 	int n;
@@ -44,11 +46,11 @@ void EllipsoidIC::exec(const MPI_Comm& comm, ParticleVector* pv, DomainInfo doma
 	std::ifstream fic(icfname);
 	int nObjs=0;
 
-	HostBuffer<LocalRigidObjectVector::RigidMotion> motions;
+	HostBuffer<RigidMotion> motions;
 
 	while (fic.good())
 	{
-		LocalRigidObjectVector::RigidMotion motion{};
+		RigidMotion motion{};
 
 		fic >> motion.r.x >> motion.r.y >> motion.r.z;
 		fic >> motion.q.x >> motion.q.y >> motion.q.z >> motion.q.w;
@@ -61,7 +63,7 @@ void EllipsoidIC::exec(const MPI_Comm& comm, ParticleVector* pv, DomainInfo doma
 		    ov->domain.globalStart.y <= motion.r.y && motion.r.y < ov->domain.globalStart.y + ov->domain.localSize.y &&
 		    ov->domain.globalStart.z <= motion.r.z && motion.r.z < ov->domain.globalStart.z + ov->domain.localSize.z)
 		{
-			motion.r = ov->domain.global2local(motion.r);
+			motion.r = make_rigidReal3( ov->domain.global2local(make_float3(motion.r)) );
 			motions.resize(nObjs + 1);
 			motions[nObjs] = motion;
 			nObjs++;
@@ -70,7 +72,7 @@ void EllipsoidIC::exec(const MPI_Comm& comm, ParticleVector* pv, DomainInfo doma
 
 	ov->local()->resize_anew(nObjs * ov->objSize);
 
-	auto ovMotions = ov->local()->getDataPerObject<LocalRigidObjectVector::RigidMotion>("motions");
+	auto ovMotions = ov->local()->getDataPerObject<RigidMotion>("motions");
 	ovMotions->copy(motions);
 	ovMotions->uploadToDevice(stream);
 

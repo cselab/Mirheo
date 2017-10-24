@@ -18,6 +18,10 @@ __host__ __device__ __forceinline__  T sqr(T val)
 	return val*val;
 }
 
+//=======================================================================================
+// Per-warp reduction operations
+//=======================================================================================
+
 template<typename Operation>
 __device__ __forceinline__  float3 warpReduce(float3 val, Operation op)
 {
@@ -54,6 +58,46 @@ __device__ __forceinline__  float warpReduce(float val, Operation op)
 	return val;
 }
 
+template<typename Operation>
+__device__ __forceinline__  double3 warpReduce(double3 val, Operation op)
+{
+#pragma unroll
+	for (int offset = warpSize/2; offset > 0; offset /= 2)
+	{
+		val.x = op(val.x, __shfl_down(val.x, offset));
+		val.y = op(val.y, __shfl_down(val.y, offset));
+		val.z = op(val.z, __shfl_down(val.z, offset));
+	}
+	return val;
+}
+
+template<typename Operation>
+__device__ __forceinline__  double2 warpReduce(double2 val, Operation op)
+{
+#pragma unroll
+	for (int offset = warpSize/2; offset > 0; offset /= 2)
+	{
+		val.x = op(val.x, __shfl_down(val.x, offset));
+		val.y = op(val.y, __shfl_down(val.y, offset));
+	}
+	return val;
+}
+
+template<typename Operation>
+__device__ __forceinline__  double warpReduce(double val, Operation op)
+{
+#pragma unroll
+	for (int offset = warpSize/2; offset > 0; offset /= 2)
+	{
+		val = op(val, __shfl_down(val, offset));
+	}
+	return val;
+}
+
+//=======================================================================================
+// Atomics for vector types
+//=======================================================================================
+
 __device__ __forceinline__ float3 atomicAdd(float3* addr, float3 v)
 {
 	float3 res;
@@ -72,6 +116,19 @@ __device__ __forceinline__ float3 atomicAdd(float4* addr, float3 v)
 	return res;
 }
 
+__device__ __forceinline__ double3 atomicAdd(double3* addr, double3 v)
+{
+	double3 res;
+	res.x = atomicAdd((double*)addr,   v.x);
+	res.y = atomicAdd((double*)addr+1, v.y);
+	res.z = atomicAdd((double*)addr+2, v.z);
+	return res;
+}
+
+//=======================================================================================
+// Read/write through cache
+//=======================================================================================
+
 __device__ __forceinline__ float4 readNoCache(const float4* addr)
 {
 	float4 res;
@@ -84,8 +141,11 @@ __device__ __forceinline__ void writeNoCache(float4* addr, const float4 val)
 	asm("st.global.wt.v4.f32 [%0], {%1, %2, %3, %4};" :: "l"(addr), "f"(val.x), "f"(val.y), "f"(val.z), "f"(val.w));
 }
 
-// warp-aggregated atomic increment
+//=======================================================================================
+// Warp-aggregated atomic increment
 // https://devblogs.nvidia.com/parallelforall/cuda-pro-tip-optimized-filtering-warp-aggregated-atomics/
+//=======================================================================================
+
 template<int DIMS>
 __device__ __forceinline__ uint getLaneId();
 

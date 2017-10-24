@@ -48,9 +48,9 @@ __global__ void getExitingObjects(const DomainInfo domain, const OVviewWithExtra
 
 	__syncthreads();
 
-	if (tid == 0 && bufId != 13)
-		printf("REDIST  obj  %d  to redist  %d  [%f %f %f] - [%f %f %f]  %d %d %d\n", ovView.ids[objId], bufId,
-				prop.low.x, prop.low.y, prop.low.z, prop.high.x, prop.high.y, prop.high.z, cx, cy, cz);
+//	if (tid == 0 && bufId != 13)
+//		printf("REDIST  obj  %d  to redist  %d  [%f %f %f] - [%f %f %f]  %d %d %d\n", ovView.ids[objId], bufId,
+//				prop.low.x, prop.low.y, prop.low.z, prop.high.x, prop.high.y, prop.high.z, cx, cy, cz);
 
 	float4* dstAddr = (float4*) ( dataWrap.buffer + ovView.packedObjSize_byte * (dataWrap.offsets[bufId] + shDstObjId) );
 
@@ -135,16 +135,20 @@ void ObjectRedistributor::prepareData(int id, cudaStream_t stream)
 				ov->domain, ovView, helper->wrapSendData() );
 	}
 
-	// Unpack the central buffer into the object vector itself
+	// Unpack the central buffer into the object vector itself if necessary
 	int nObjs = helper->sendSizes[13];
-	lov->resize_anew(nObjs*ov->objSize);
-	ovView = OVviewWithExtraData(ov, ov->local(), stream);
 
-	const int nthreads = 128;
-	SAFE_KERNEL_LAUNCH(
-			unpackObject,
-			nObjs, nthreads, 0, stream,
-			helper->sendBuf.devPtr() + helper->sendOffsets[13] * ovView.packedObjSize_byte, 0, ovView );
+	if (nObjs != lov->nObjects)
+	{
+		lov->resize_anew(nObjs*ov->objSize);
+		ovView = OVviewWithExtraData(ov, ov->local(), stream);
+
+		const int nthreads = 128;
+		SAFE_KERNEL_LAUNCH(
+				unpackObject,
+				nObjs, nthreads, 0, stream,
+				helper->sendBuf.devPtr() + helper->sendOffsets[13] * ovView.packedObjSize_byte, 0, ovView );
+	}
 
 	// Finally need to compact the buffers
 	// TODO: remove this, own buffer should be last

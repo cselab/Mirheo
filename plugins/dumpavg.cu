@@ -8,6 +8,7 @@
 #include <core/celllist.h>
 #include <core/utils/cuda_common.h>
 
+
 __global__ void sample(PVview pvView, CellListInfo cinfo, float* avgDensity, float3* avgMomentum, float3* avgForce)
 {
 	const int pid = threadIdx.x + blockIdx.x*blockDim.x;
@@ -17,10 +18,10 @@ __global__ void sample(PVview pvView, CellListInfo cinfo, float* avgDensity, flo
 	const int cid = cinfo.getCellId(coo);
 
 	if (avgDensity != nullptr)
-		atomicAdd(avgDensity+cid, pvView.mass);
+		atomicAdd(avgDensity + cid, pvView.mass);
 
 	if (avgMomentum != nullptr)
-		atomicAdd( avgMomentum + cid, make_float3(pvView.particles[2*pid+1] * pvView.mass) );
+		atomicAdd(avgMomentum + cid, make_float3(pvView.particles[2*pid+1] * pvView.mass));
 
 	if (avgForce != nullptr)
 		atomicAdd( avgForce + cid, make_float3(pvView.forces[pid]) );

@@ -45,13 +45,16 @@ __global__ void addRigidForces(
 
 	if (threadIdx.x < 2)
 	{
-		float4 v = recvForces[ objId*packedObjSize + view.objSize + threadIdx.x ];
+		const float4* addr = recvForces + objId*packedObjSize + view.objSize + threadIdx.x;
+		auto typedAddr = (const RigidReal4*) addr;
+
+		RigidReal4 v = typedAddr[threadIdx.x];
 
 		if (threadIdx.x == 0)
-			atomicAdd(&view.motions[dstObjId].force,  make_float3(v));
+			atomicAdd(&view.motions[dstObjId].force,  {v.x, v.y, v.z});
 
 		if (threadIdx.x == 1)
-			atomicAdd(&view.motions[dstObjId].torque, make_float3(v));
+			atomicAdd(&view.motions[dstObjId].torque, {v.x, v.y, v.z});
 	}
 }
 
@@ -62,11 +65,22 @@ __global__ void packRigidForces(ROVview view, float4* output, int packedObjSize)
 	for (int pid = threadIdx.x; pid < view.objSize; pid += blockDim.x)
 		output[objId*view.objSize + pid] = view.forces[objId*view.objSize + pid];
 
+	float4* addr = output + objId*packedObjSize + view.objSize;
+	auto typedAddr = (RigidReal4*) addr;
+
 	if (threadIdx.x == 0)
-		output[objId*packedObjSize + view.objSize + 0] = make_float4(view.motions[objId].force,  0);
+	{
+		auto f = view.motions[objId].force;
+
+		typedAddr[0] = {f.x, f.y, f.z, (RigidReal)0};
+	}
 
 	if (threadIdx.x == 1)
-		output[objId*packedObjSize + view.objSize + 1] = make_float4(view.motions[objId].torque, 0);
+	{
+		auto t = view.motions[objId].force;
+
+		typedAddr[1] = {t.x, t.y, t.z, (RigidReal)0};
+	}
 }
 
 
@@ -85,7 +99,7 @@ void ObjectForcesReverseExchanger::attach(ObjectVector* ov)
 
 	int psize = ov->objSize;
 	if (dynamic_cast<RigidObjectVector*>(ov) != 0)
-		psize += 2;
+		psize += 2 * sizeof(RigidReal) / sizeof(float);
 
 	ExchangeHelper* helper = new ExchangeHelper(ov->name, psize*sizeof(float4));
 	helpers.push_back(helper);
@@ -109,7 +123,7 @@ void ObjectForcesReverseExchanger::prepareData(int id, cudaStream_t stream)
 	auto rov = dynamic_cast<RigidObjectVector*>(ov);
 	if (rov != nullptr)
 	{
-		int psize = rov->objSize + 2;
+		int psize = rov->objSize + 2 * sizeof(RigidReal) / sizeof(float);
 		ROVview view(rov, rov->halo());
 
 		const int nthreads = 128;
@@ -141,7 +155,7 @@ void ObjectForcesReverseExchanger::combineAndUploadData(int id, cudaStream_t str
 
 	int psize = ov->objSize;
 	auto rov = dynamic_cast<RigidObjectVector*>(ov);
-	if (rov != nullptr) psize += 2;
+	if (rov != nullptr) psize += 2 * sizeof(RigidReal) / sizeof(float);
 
 	const int nthreads = 128;
 	SAFE_KERNEL_LAUNCH(

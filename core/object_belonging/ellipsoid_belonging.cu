@@ -6,6 +6,7 @@
 #include <core/celllist.h>
 
 #include <core/rigid_kernels/quaternion.h>
+#include <core/rigid_kernels/rigid_motion.h>
 
 
 __device__ inline float ellipsoidF(const float3 r, const float3 invAxes)
@@ -39,7 +40,9 @@ __global__ void insideEllipsoid(REOVview view, CellListInfo cinfo, int* tags)
 		for (int pid = pstart; pid < pend; pid++)
 		{
 			const Particle p(cinfo.particles, pid);
-			float3 coo = rotate(p.r - view.motions[objId].r, invQ(view.motions[objId].q));
+			auto motion = toSingleMotion(view.motions[objId]);
+
+			float3 coo = rotate(p.r - motion.r, invQ(motion.q));
 
 			float v = ellipsoidF(coo, view.invAxes);
 

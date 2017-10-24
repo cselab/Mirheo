@@ -1,5 +1,7 @@
 #pragma once
 
+#include <core/rigid_kernels/rigid_motion.h>
+
 /**
  * GPU-compatible struct of all the relevant data
  */
@@ -47,9 +49,12 @@ struct OVviewWithExtraData : public OVview
 	{
 		for (int i=0; i<nToShift; i++)
 		{
-			*( (float*)(packedExtra + shiftOffsets[i]) + 0 ) -= shift.x;
-			*( (float*)(packedExtra + shiftOffsets[i]) + 1 ) -= shift.y;
-			*( (float*)(packedExtra + shiftOffsets[i]) + 2 ) -= shift.z;
+			RigidReal3 v;
+			memcpy(&v, packedExtra + shiftOffsets[i], sizeof(RigidReal3));
+			v.x -= shift.x;
+			v.y -= shift.y;
+			v.z -= shift.z;
+			memcpy(packedExtra + shiftOffsets[i], &v, sizeof(RigidReal3));
 		}
 	}
 

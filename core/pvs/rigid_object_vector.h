@@ -2,17 +2,11 @@
 
 #include "object_vector.h"
 
+#include <core/rigid_kernels/rigid_motion.h>
+
 class LocalRigidObjectVector: public LocalObjectVector
 {
 public:
-
-	struct __align__(16) RigidMotion
-	{
-		float3 r;
-		float4 q;
-		float3 vel, omega;
-		float3 force, torque;
-	};
 
 	LocalRigidObjectVector(const int objSize, const int nObjects = 0, cudaStream_t stream = 0) :
 		LocalObjectVector(objSize, nObjects)

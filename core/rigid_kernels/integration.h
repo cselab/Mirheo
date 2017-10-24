@@ -14,9 +14,9 @@ static __global__ void collectRigidForces(ROVview ovView)
 	const int tid = threadIdx.x;
 	if (objId >= ovView.nObjects) return;
 
-	float3 force  = make_float3(0);
-	float3 torque = make_float3(0);
-	const float3 com = ovView.motions[objId].r;
+	RigidReal3 force {0,0,0};
+	RigidReal3 torque{0,0,0};
+	float3 com = make_float3( ovView.motions[objId].r );
 
 	// Find the total force and torque
 #pragma unroll 3
@@ -31,8 +31,8 @@ static __global__ void collectRigidForces(ROVview ovView)
 		torque += cross(r, frc);
 	}
 
-	force  = warpReduce( force,  [] (float a, float b) { return a+b; } );
-	torque = warpReduce( torque, [] (float a, float b) { return a+b; } );
+	force  = warpReduce( force,  [] (RigidReal a, RigidReal b) { return a+b; } );
+	torque = warpReduce( torque, [] (RigidReal a, RigidReal b) { return a+b; } );
 
 	if ( (tid % warpSize) == 0 )
 	{
@@ -56,20 +56,20 @@ static __global__ void integrateRigidMotion(ROVview_withOldMotion ovView, const 
 	//**********************************************************************************
 	// Rotation
 	//**********************************************************************************
-	float4 q     = motion.q;
-	float3 omega = motion.omega;
-	float3 tau   = motion.torque;
+	auto q     = motion.q;
+	auto omega = motion.omega;
+	auto tau   = motion.torque;
 
 	// TODO allow for non-diagonal inertia tensors
 
 	// tau = J dw/dt + w x Jw  =>  dw/dt = J'*tau - J'*(w x Jw)
-	float3 dw_dt = ovView.J_1 * tau - ovView.J_1 * cross(omega, ovView.J*omega);
+	auto dw_dt = ovView.J_1 * tau - ovView.J_1 * cross(omega, ovView.J*omega);
 	omega += dw_dt * dt;
 
 	// XXX: using OLD q and NEW w ?
 	// d^2q / dt^2 = 1/2 * (dw/dt*q + w*dq/dt)
-	float4 dq_dt = compute_dq_dt(q, omega);
-	float4 d2q_dt2 = 0.5f*(multiplyQ(f3toQ(dw_dt), q) + multiplyQ(f3toQ(omega), dq_dt));
+	auto dq_dt = compute_dq_dt(q, omega);
+	auto d2q_dt2 = 0.5f*(multiplyQ(f3toQ(dw_dt), q) + multiplyQ(f3toQ(omega), dq_dt));
 
 	dq_dt += d2q_dt2 * dt;
 	q     += dq_dt   * dt;
@@ -83,8 +83,8 @@ static __global__ void integrateRigidMotion(ROVview_withOldMotion ovView, const 
 	//**********************************************************************************
 	// Translation
 	//**********************************************************************************
-	float3 force = motion.force;
-	float3 vel   = motion.vel;
+	auto force = motion.force;
+	auto vel   = motion.vel;
 	vel += force*dt * ovView.invObjMass;
 
 	motion.r += vel*dt;
@@ -116,8 +116,9 @@ static __global__ void applyRigidMotion(ROVview ovView, const float4 * __restric
 
 	Particle p(ovView.particles, pid);
 
-	p.r = motion.r + rotate( f4tof3(initial[locId]), motion.q );
-	p.u = motion.vel + cross(motion.omega, p.r - motion.r);
+	// Some explicit conversions for double precision
+	p.r = make_float3(motion.r) + rotate( f4tof3(initial[locId]), motion.q );
+	p.u = make_float3(motion.vel) + cross(make_float3(motion.omega), p.r - make_float3(motion.r));
 
 	ovView.particles[2*pid]   = p.r2Float4();
 	ovView.particles[2*pid+1] = p.u2Float4();
@@ -128,8 +129,8 @@ static __global__ void clearRigidForces(ROVview ovView)
 	const int objId = threadIdx.x + blockDim.x * blockIdx.x;
 	if (objId >= ovView.nObjects) return;
 
-	ovView.motions[objId].force  = make_float3(0.0f);
-	ovView.motions[objId].torque = make_float3(0.0f);
+	ovView.motions[objId].force  = {0,0,0};
+	ovView.motions[objId].torque = {0,0,0};
 }
 
 

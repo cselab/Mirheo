@@ -5,7 +5,7 @@
  */
 struct ROVview : public OVview
 {
-	LocalRigidObjectVector::RigidMotion *motions = nullptr;
+	RigidMotion *motions = nullptr;
 
 	float3 J   = {0,0,0};
 	float3 J_1 = {0,0,0};
@@ -18,7 +18,7 @@ struct ROVview : public OVview
 	{
 		if (rov == nullptr || lrov == nullptr) return;
 
-		motions = lrov->getDataPerObject<LocalRigidObjectVector::RigidMotion>("motions")->devPtr();
+		motions = lrov->getDataPerObject<RigidMotion>("motions")->devPtr();
 
 		// More fields
 		J = rov->getInertiaTensor();
@@ -28,7 +28,7 @@ struct ROVview : public OVview
 
 struct ROVview_withOldMotion : public ROVview
 {
-	LocalRigidObjectVector::RigidMotion *old_motions = nullptr;
+	RigidMotion *old_motions = nullptr;
 
 
 	ROVview_withOldMotion(RigidObjectVector* rov = nullptr, LocalRigidObjectVector* lrov = nullptr) :
@@ -36,7 +36,7 @@ struct ROVview_withOldMotion : public ROVview
 	{
 		if (rov == nullptr || lrov == nullptr) return;
 
-		old_motions = lrov->getDataPerObject<LocalRigidObjectVector::RigidMotion>("old_motions")->devPtr();
+		old_motions = lrov->getDataPerObject<RigidMotion>("old_motions")->devPtr();
 	}
 };
 

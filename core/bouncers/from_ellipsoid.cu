@@ -13,7 +13,6 @@
 #include <core/pvs/rigid_ellipsoid_object_vector.h>
 
 #include <core/rigid_kernels/bounce.h>
-#include <core/rigid_kernels/integration.h>
 
 void BounceFromRigidEllipsoid::exec(ParticleVector* pv, CellList* cl, float dt, cudaStream_t stream, bool local)
 {

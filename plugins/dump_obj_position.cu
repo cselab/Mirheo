@@ -34,7 +34,7 @@ void ObjPositionsPlugin::beforeForces(cudaStream_t stream)
 	ov->local()->getDataPerObject<LocalObjectVector::COMandExtent> ("com_extents")->downloadFromDevice(stream);
 
 	if (ov->local()->checkDataPerObject("motions"))
-		ov->local()->getDataPerObject<LocalRigidObjectVector::RigidMotion> ("motions")->downloadFromDevice(stream);
+		ov->local()->getDataPerObject<RigidMotion> ("motions")->downloadFromDevice(stream);
 }
 
 void ObjPositionsPlugin::serializeAndSend(cudaStream_t stream)
@@ -43,24 +43,25 @@ void ObjPositionsPlugin::serializeAndSend(cudaStream_t stream)
 
 	debug2("Plugin %s is sending now data", name.c_str());
 
-	PinnedBuffer<LocalRigidObjectVector::RigidMotion> dummy(0);
+	PinnedBuffer<RigidMotion> dummy(0);
 
 	std::vector<char> data;
 	SimpleSerializer::serialize(data,
 			currentTime,
 			ov->name,
+			ov->domain,
 			*ov->local()->getDataPerObject<int>("ids"),
 			*ov->local()->getDataPerObject<LocalObjectVector::COMandExtent>("com_extents"),
 			ov->local()->checkDataPerObject("motions") ?
-					*ov->local()->getDataPerObject<LocalRigidObjectVector::RigidMotion>("motions") : dummy );
+					*ov->local()->getDataPerObject<RigidMotion>("motions") : dummy );
 
 	send(data);
 }
 
 //=================================================================================
 
-void writePositions(MPI_Comm comm, std::string fname, float curTime, std::vector<int>& ids,
-		std::vector<LocalObjectVector::COMandExtent> coms, std::vector<LocalRigidObjectVector::RigidMotion> motions)
+void writePositions(MPI_Comm comm, DomainInfo domain, std::string fname, float curTime, std::vector<int>& ids,
+		std::vector<LocalObjectVector::COMandExtent> coms, std::vector<RigidMotion> motions)
 {
 	int rank;
 	MPI_Check( MPI_Comm_rank(comm, &rank) );
@@ -88,7 +89,8 @@ void writePositions(MPI_Comm comm, std::string fname, float curTime, std::vector
 
 	for(int i = 0; i < np; ++i)
 	{
-		auto& com = coms[i];
+		auto com = coms[i];
+		com.com = domain.local2global(com.com);
 
 		ss << ids[i] << " " << curTime << "   "
 				<< std::setw(10) << com.com.x << " "
@@ -98,6 +100,7 @@ void writePositions(MPI_Comm comm, std::string fname, float curTime, std::vector
 		if (i < motions.size())
 		{
 			auto& motion = motions[i];
+
 			ss << "    "
 					<< std::setw(10) << motion.q.x << " "
 					<< std::setw(10) << motion.q.y << " "
@@ -158,17 +161,18 @@ void ObjPositionsDumper::deserialize(MPI_Status& stat)
 {
 	float curTime;
 	std::string ovName;
+	DomainInfo domain;
 	std::vector<int> ids;
 	std::vector<LocalObjectVector::COMandExtent> coms;
-	std::vector<LocalRigidObjectVector::RigidMotion> motions;
+	std::vector<RigidMotion> motions;
 
-	SimpleSerializer::deserialize(data, curTime, ovName, ids, coms, motions);
+	SimpleSerializer::deserialize(data, curTime, ovName, domain, ids, coms, motions);
 
 	std::string tstr = std::to_string(timeStamp++);
 	std::string currentFname = path + "/" + ovName + "_" + std::string(5 - tstr.length(), '0') + tstr + ".txt";
 
 	if (activated)
-		writePositions(comm, currentFname, curTime, ids, coms, motions);
+		writePositions(comm, domain, currentFname, curTime, ids, coms, motions);
 }
 
 
