@@ -104,9 +104,21 @@ void writePositions(MPI_Comm comm, std::string fname, float curTime, std::vector
 					<< std::setw(10) << motion.q.z << " "
 					<< std::setw(10) << motion.q.w << "    "
 
+					<< std::setw(10) << motion.vel.x << " "
+					<< std::setw(10) << motion.vel.y << " "
+					<< std::setw(10) << motion.vel.z << "    "
+
 					<< std::setw(10) << motion.omega.x << " "
 					<< std::setw(10) << motion.omega.y << " "
-					<< std::setw(10) << motion.omega.z << std::endl;
+					<< std::setw(10) << motion.omega.z << "    "
+
+					<< std::setw(10) << motion.force.x << " "
+					<< std::setw(10) << motion.force.y << " "
+					<< std::setw(10) << motion.force.z << "    "
+
+					<< std::setw(10) << motion.torque.x << " "
+					<< std::setw(10) << motion.torque.y << " "
+					<< std::setw(10) << motion.torque.z << std::endl;
 		}
 	}
 

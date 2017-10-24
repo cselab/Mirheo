@@ -603,11 +603,11 @@ void Simulation::assemble()
 	});
 
 	scheduler.addTask("Object redistribute init", [&] (cudaStream_t stream) {
-		//objRedistibutor->init(stream);
+		objRedistibutor->init(stream);
 	});
 
 	scheduler.addTask("Object redistribute finalize", [&] (cudaStream_t stream) {
-		//objRedistibutor->finalize(stream);
+		objRedistibutor->finalize(stream);
 	});
 
 

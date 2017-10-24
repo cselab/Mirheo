@@ -108,6 +108,6 @@ void ObjectBelongingChecker::checkInner(ParticleVector* pv, CellList* cl, cudaSt
 	nInside. downloadFromDevice(stream, false);
 	nOutside.downloadFromDevice(stream);
 
-	info("PV %s belonging check against OV %s: in/out/total  %d / %d / %d",
+	say("PV %s belonging check against OV %s: in/out/total  %d / %d / %d",
 			pv->name.c_str(), ov->name.c_str(), nInside[0], nOutside[0], pv->local()->size());
 }

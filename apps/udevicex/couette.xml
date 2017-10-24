@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
-<simulation name="couette" logfile="log" mpi_ranks="1 1 1" debug_lvl="4">
+<simulation name="couette" logfile="log" mpi_ranks="1 1 1" debug_lvl="0">
 
 	<domain size="32 32 32" />
 	
@@ -78,27 +78,27 @@
 	<!-- <plugin type="temperaturize" name="t_top" pv_name="top"  kbt="0.5" />
 	<plugin type="temperaturize" name="t_bot" pv_name="bot"  kbt="0.5" /> -->
 	
-	<plugin type="impose_velocity" name="top" pv_name="dpd"  every="10" low="0 0 2"  high="32 32 3"  target_velocity= "2 0 0" />
-	<plugin type="impose_velocity" name="bot" pv_name="dpd"  every="10" low="0 0 29" high="32 32 30" target_velocity="-2 0 0" />
-	
+	<plugin type="impose_velocity" name="top" pv_name="dpd"  every="100" low="0 0 2"  high="32 32 3"  target_velocity= "2 0 0" />
+	<plugin type="impose_velocity" name="bot" pv_name="dpd"  every="100" low="0 0 29" high="32 32 30" target_velocity="-2 0 0" />
+		
  	<plugin type="dump_avg_flow" name="avg"
 		pv_names="dpd"
-		sample_every="50" dump_every="2500"
+		sample_every="500" dump_every="25000"
 		bin_size="2 2 0.5"
 		path="xdmf/avg_rho_u" />
 		
 	<plugin type="dump_xyz" name="solid"
 		pv_name="ellipsoids"
-		dump_every="2500"
+		dump_every="25000"
 		path="xyz/" />
 		
 	<plugin type="dump_obj_pos" name="lala"
 		ov_name="ellipsoids"
-		dump_every="1000"
+		dump_every="10000"
 		path="pos/" />
 	
 	<plugin type="stats" name="stats" every="1000" />
 	
-	<run niters="500000" />
+	<run niters="5000" />
 </simulation>
 
