@@ -168,7 +168,7 @@ void ObjectHaloExchanger::prepareData(int id, cudaStream_t stream)
 		helper->resizeSendBuf();
 
 		// 1 int per particle: #objects x objSize x int
-		origin->resize_anew(helper->sendOffsets[helper->nBuffers] * ovView.objSize * sizeof(int));
+		origin->resize_anew(helper->sendOffsets[helper->nBuffers] * ovView.objSize);
 
 		helper->sendSizes.clearDevice(stream);
 		SAFE_KERNEL_LAUNCH(

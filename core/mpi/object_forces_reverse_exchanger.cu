@@ -36,26 +36,26 @@ __global__ void addHaloForces(
 }
 
 __global__ void addRigidForces(
-		const float4* recvForces, const int* origins,
+		const float4* recvForces, const int nrecvd, const int* origins,
 		ROVview view, int packedObjSize)
 {
-	const int objId = blockIdx.x;
+	const int gid = threadIdx.x + blockIdx.x*blockDim.x;
+	const int objId = gid / 2;
+	const int variant = gid % 2;
+	if (objId >= nrecvd) return;
 
 	const int dstObjId = origins[objId*view.objSize] / view.objSize;
 
-	if (threadIdx.x < 2)
-	{
-		const float4* addr = recvForces + objId*packedObjSize + view.objSize + threadIdx.x;
-		auto typedAddr = (const RigidReal4*) addr;
+	const float4* addr = recvForces + objId*packedObjSize + view.objSize;
+	auto typedAddr = (const RigidReal4*) addr;
 
-		RigidReal4 v = typedAddr[threadIdx.x];
+	RigidReal4 v = typedAddr[variant];
 
-		if (threadIdx.x == 0)
-			atomicAdd(&view.motions[dstObjId].force,  {v.x, v.y, v.z});
+	if (variant == 0)
+		atomicAdd(&view.motions[dstObjId].force,  {v.x, v.y, v.z});
 
-		if (threadIdx.x == 1)
-			atomicAdd(&view.motions[dstObjId].torque, {v.x, v.y, v.z});
-	}
+	if (variant == 1)
+		atomicAdd(&view.motions[dstObjId].torque, {v.x, v.y, v.z});
 }
 
 __global__ void packRigidForces(ROVview view, float4* output, int packedObjSize)
@@ -63,7 +63,7 @@ __global__ void packRigidForces(ROVview view, float4* output, int packedObjSize)
 	const int objId = blockIdx.x;
 
 	for (int pid = threadIdx.x; pid < view.objSize; pid += blockDim.x)
-		output[objId*view.objSize + pid] = view.forces[objId*view.objSize + pid];
+		output[objId*packedObjSize + pid] = view.forces[objId*view.objSize + pid];
 
 	float4* addr = output + objId*packedObjSize + view.objSize;
 	auto typedAddr = (RigidReal4*) addr;
@@ -77,7 +77,7 @@ __global__ void packRigidForces(ROVview view, float4* output, int packedObjSize)
 
 	if (threadIdx.x == 1)
 	{
-		auto t = view.motions[objId].force;
+		auto t = view.motions[objId].torque;
 
 		typedAddr[1] = {t.x, t.y, t.z, (RigidReal)0};
 	}
@@ -171,8 +171,9 @@ void ObjectForcesReverseExchanger::combineAndUploadData(int id, cudaStream_t str
 		ROVview view(rov, rov->local());
 		SAFE_KERNEL_LAUNCH(
 				addRigidForces,
-				totalRecvd, nthreads, 0, stream,
+				getNblocks(totalRecvd, nthreads), nthreads, 0, stream,
 				(const float4*)helper->recvBuf.devPtr(),     /* source */
+				totalRecvd,
 				(const int*)origins.devPtr(),                /* destination ids here */
 				view, psize );                               /* add to, packed size */
 	}

@@ -13,6 +13,8 @@
 #include <core/pvs/rigid_ellipsoid_object_vector.h>
 
 #include <core/rigid_kernels/bounce.h>
+#include <core/rigid_kernels/integration.h>
+
 
 void BounceFromRigidEllipsoid::exec(ParticleVector* pv, CellList* cl, float dt, cudaStream_t stream, bool local)
 {
@@ -26,6 +28,14 @@ void BounceFromRigidEllipsoid::exec(ParticleVector* pv, CellList* cl, float dt, 
 	PVview_withOldParticles pvView(pv, pv->local());
 
 	int nthreads = 256;
+	if (!local)
+	{
+		SAFE_KERNEL_LAUNCH(
+				clearRigidForces,
+				getNblocks(ovView.nObjects, 64), 64, 0, stream,
+				ovView );
+	}
+
 	SAFE_KERNEL_LAUNCH(
 			bounceEllipsoid,
 			ovView.nObjects, nthreads, 2*nthreads*sizeof(int), stream,
