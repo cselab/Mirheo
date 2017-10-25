@@ -61,6 +61,7 @@ static __global__ void integrateRigidMotion(ROVview_withOldMotion ovView, const 
 	auto tau   = motion.torque;
 
 	// TODO allow for non-diagonal inertia tensors
+	// FIXME need body frame to update omega
 
 	// tau = J dw/dt + w x Jw  =>  dw/dt = J'*tau - J'*(w x Jw)
 	auto dw_dt = ovView.J_1 * tau - ovView.J_1 * cross(omega, ovView.J*omega);
@@ -90,14 +91,14 @@ static __global__ void integrateRigidMotion(ROVview_withOldMotion ovView, const 
 	motion.r += vel*dt;
 	motion.vel = vel;
 //
-	printf("obj  %d  r [%f %f %f]   v [%f %f %f],  f [%f %f %f],  t [%f %f %f],   \n"
-			"    q [%f %f %f %f]   w [%f %f %f] \n", ovView.ids[objId],
-			motion.r.x,  motion.r.y,  motion.r.z,
-			motion.vel.x,  motion.vel.y,  motion.vel.z,
-			motion.force.x,  motion.force.y,  motion.force.z,
-			motion.torque.x, motion.torque.y, motion.torque.z ,
-			motion.q.x,  motion.q.y,  motion.q.z, motion.q.w,
-			motion.omega.x,  motion.omega.y,  motion.omega.z);
+//	printf("obj  %d  r [%f %f %f]   v [%f %f %f],  f [%f %f %f],  t [%f %f %f],   \n"
+//			"    q [%f %f %f %f]   w [%f %f %f] \n", ovView.ids[objId],
+//			motion.r.x,  motion.r.y,  motion.r.z,
+//			motion.vel.x,  motion.vel.y,  motion.vel.z,
+//			motion.force.x,  motion.force.y,  motion.force.z,
+//			motion.torque.x, motion.torque.y, motion.torque.z ,
+//			motion.q.x,  motion.q.y,  motion.q.z, motion.q.w,
+//			motion.omega.x,  motion.omega.y,  motion.omega.z);
 }
 
 

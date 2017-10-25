@@ -1,6 +1,6 @@
 #pragma once
 
-#if 0
+#if 1
 using RigidReal  = double;
 using RigidReal3 = double3;
 using RigidReal4 = double4;

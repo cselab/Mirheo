@@ -15,9 +15,9 @@
 		<apply_to pv="dpd" inside="none" outside="dpd" check_every="50" />
 	</object_belonging_checker>
 	
-<!-- 	<object_bouncer name="ell_bounce" ov="ellipsoids" type="from_ellipsoids">
+	<object_bouncer name="ell_bounce" ov="ellipsoids" type="from_ellipsoids">
 		<apply_to pv="dpd" />
-	</object_bouncer> -->
+	</object_bouncer>
 
 	<!-- <particle_vector type="regular" name="frozen" mass="1">
 		<generate type="restart" path="restart/" />
@@ -75,9 +75,9 @@
 		dump_every="100"
 		path="xyz/" /> -->
 	
-	<plugin type="stats" name="stats" every="10" />
+	<plugin type="stats" name="stats" every="50" />
 	
-	<run niters="22" />
+	<run niters="202" />
 
 </simulation>
 
