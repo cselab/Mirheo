@@ -90,14 +90,14 @@ static __global__ void integrateRigidMotion(ROVview_withOldMotion ovView, const 
 	motion.r += vel*dt;
 	motion.vel = vel;
 //
-//	printf("obj  %d  r [%f %f %f]   v [%f %f %f],  f [%f %f %f],  t [%f %f %f],   \n"
-//			"    q [%f %f %f %f]   w [%f %f %f] \n", ovView.ids[objId],
-//			motion.r.x,  motion.r.y,  motion.r.z,
-//			motion.vel.x,  motion.vel.y,  motion.vel.z,
-//			motion.force.x,  motion.force.y,  motion.force.z,
-//			motion.torque.x, motion.torque.y, motion.torque.z ,
-//			motion.q.x,  motion.q.y,  motion.q.z, motion.q.w,
-//			motion.omega.x,  motion.omega.y,  motion.omega.z);
+	printf("obj  %d  r [%f %f %f]   v [%f %f %f],  f [%f %f %f],  t [%f %f %f],   \n"
+			"    q [%f %f %f %f]   w [%f %f %f] \n", ovView.ids[objId],
+			motion.r.x,  motion.r.y,  motion.r.z,
+			motion.vel.x,  motion.vel.y,  motion.vel.z,
+			motion.force.x,  motion.force.y,  motion.force.z,
+			motion.torque.x, motion.torque.y, motion.torque.z ,
+			motion.q.x,  motion.q.y,  motion.q.z, motion.q.w,
+			motion.omega.x,  motion.omega.y,  motion.omega.z);
 }
 
 
@@ -112,13 +112,13 @@ static __global__ void applyRigidMotion(ROVview ovView, const float4 * __restric
 
 	if (pid >= ovView.nObjects*ovView.objSize) return;
 
-	const auto motion = ovView.motions[objId];
+	const auto motion = toSingleMotion(ovView.motions[objId]);
 
 	Particle p(ovView.particles, pid);
 
 	// Some explicit conversions for double precision
-	p.r = make_float3(motion.r) + rotate( f4tof3(initial[locId]), motion.q );
-	p.u = make_float3(motion.vel) + cross(make_float3(motion.omega), p.r - make_float3(motion.r));
+	p.r = motion.r + rotate( f4tof3(initial[locId]), motion.q );
+	p.u = motion.vel + cross(motion.omega, p.r - motion.r);
 
 	ovView.particles[2*pid]   = p.r2Float4();
 	ovView.particles[2*pid+1] = p.u2Float4();
