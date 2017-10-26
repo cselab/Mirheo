@@ -74,7 +74,7 @@ protected:
 
 		MPI_Check( MPI_Isend(&sizeInBytes, 1, MPI_INT, rank, tag(), interComm, &req) );
 		MPI_Check( MPI_Request_free(&req) );
-		MPI_Check( MPI_Isend(data, sizeInBytes, MPI_BYTE, rank, tag(), interComm, &req) );
+		MPI_Check( MPI_Issend(data, sizeInBytes, MPI_BYTE, rank, tag(), interComm, &req) );
 
 		debug3("Plugin %s has sent the data (%d bytes)", name.c_str(), sizeInBytes);
 	}
