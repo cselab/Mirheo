@@ -56,18 +56,23 @@ static __global__ void integrateRigidMotion(ROVview_withOldMotion ovView, const 
 	//**********************************************************************************
 	// Rotation
 	//**********************************************************************************
-	auto q     = motion.q;
-	auto omega = motion.omega;
-	auto tau   = motion.torque;
+	auto q = motion.q;
 
-	// TODO allow for non-diagonal inertia tensors
-	// FIXME need body frame to update omega
+	// Update angular velocity in the body frame
+	auto omega = rotate(motion.omega,  invQ(q));
+	auto tau   = rotate(motion.torque, invQ(q));
 
 	// tau = J dw/dt + w x Jw  =>  dw/dt = J'*tau - J'*(w x Jw)
-	auto dw_dt = ovView.J_1 * tau - ovView.J_1 * cross(omega, ovView.J*omega);
+	// J is the diagonal inertia tensor in the body frame
+	auto dw_dt = ovView.J_1 * (tau - cross(omega, ovView.J*omega));
 	omega += dw_dt * dt;
 
-	// XXX: using OLD q and NEW w ?
+	// Only for output purposes
+	auto L = rotate(omega*ovView.J, motion.q);
+
+	omega = rotate(omega, motion.q);
+
+	// using OLD q and NEW w ?
 	// d^2q / dt^2 = 1/2 * (dw/dt*q + w*dq/dt)
 	auto dq_dt = compute_dq_dt(q, omega);
 	auto d2q_dt2 = 0.5f*(multiplyQ(f3toQ(dw_dt), q) + multiplyQ(f3toQ(omega), dq_dt));
@@ -78,8 +83,8 @@ static __global__ void integrateRigidMotion(ROVview_withOldMotion ovView, const 
 	// Normalize q
 	q = normalize(q);
 
-	motion.q     = q;
 	motion.omega = omega;
+	motion.q     = q;
 
 	//**********************************************************************************
 	// Translation
@@ -88,17 +93,18 @@ static __global__ void integrateRigidMotion(ROVview_withOldMotion ovView, const 
 	auto vel   = motion.vel;
 	vel += force*dt * ovView.invObjMass;
 
-	motion.r += vel*dt;
 	motion.vel = vel;
+	motion.r += vel*dt;
 //
 //	printf("obj  %d  r [%f %f %f]   v [%f %f %f],  f [%f %f %f],  t [%f %f %f],   \n"
-//			"    q [%f %f %f %f]   w [%f %f %f] \n", ovView.ids[objId],
+//			"    q [%f %f %f %f]   w [%f %f %f]   L [%f %f %f] \n", ovView.ids[objId],
 //			motion.r.x,  motion.r.y,  motion.r.z,
 //			motion.vel.x,  motion.vel.y,  motion.vel.z,
 //			motion.force.x,  motion.force.y,  motion.force.z,
 //			motion.torque.x, motion.torque.y, motion.torque.z ,
 //			motion.q.x,  motion.q.y,  motion.q.z, motion.q.w,
-//			motion.omega.x,  motion.omega.y,  motion.omega.z);
+//			motion.omega.x,  motion.omega.y,  motion.omega.z,
+//			L.x, L.y, L.z);
 }
 
 

@@ -19,10 +19,15 @@ public:
 	float3 axes;
 
 	RigidEllipsoidObjectVector(std::string name, float mass, const int objSize, float3 axes, const int nObjects = 0) :
-		RigidObjectVector(name, mass, objSize, nObjects), axes(axes)
+		RigidObjectVector(
+				name, mass,
+				mass*objSize / 5.0f * make_float3(
+						sqr(axes.y) + sqr(axes.z),
+						sqr(axes.z) + sqr(axes.x),
+						sqr(axes.x) + sqr(axes.y) ),
+				objSize, nObjects),
+		axes(axes)
 	{}
-
-	float3 getInertiaTensor() override;
 
 	LocalRigidEllipsoidObjectVector* local() { return static_cast<LocalRigidEllipsoidObjectVector*>(_local); }
 	LocalRigidEllipsoidObjectVector* halo()  { return static_cast<LocalRigidEllipsoidObjectVector*>(_halo);  }

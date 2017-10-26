@@ -21,7 +21,7 @@ struct ROVview : public OVview
 		motions = lrov->getDataPerObject<RigidMotion>("motions")->devPtr();
 
 		// More fields
-		J = rov->getInertiaTensor();
+		J = rov->J;
 		J_1 = 1.0 / J;
 	}
 };

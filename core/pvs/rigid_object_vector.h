@@ -22,13 +22,16 @@ class RigidObjectVector : public ObjectVector
 public:
 	PinnedBuffer<float4> initialPositions;
 
-	RigidObjectVector(std::string name, float mass, const int objSize, const int nObjects = 0) :
-		ObjectVector( name, mass, objSize,
-					  new LocalRigidObjectVector(objSize, nObjects),
-					  new LocalRigidObjectVector(objSize, 0) )
-	{}
+	// Diagonal of the inertia tensor in the principal axes
+	// The axes should be aligned with ox, oy, oz when q = {1 0 0 0}
+	float3 J;
 
-	virtual float3 getInertiaTensor() { return make_float3(1); }
+	RigidObjectVector(std::string name, float partMass, float3 J, const int objSize, const int nObjects = 0) :
+		ObjectVector( name, partMass, objSize,
+					  new LocalRigidObjectVector(objSize, nObjects),
+					  new LocalRigidObjectVector(objSize, 0) ),
+		J(J)
+	{}
 
 	LocalRigidObjectVector* local() { return static_cast<LocalRigidObjectVector*>(_local); }
 	LocalRigidObjectVector* halo()  { return static_cast<LocalRigidObjectVector*>(_halo);  }

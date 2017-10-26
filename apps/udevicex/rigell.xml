@@ -32,8 +32,8 @@
 		<apply_to pv1="dpd" pv2="dpd"/>
 		<!-- <apply_to pv1="dpd" pv2="dpd2"/>
 		<apply_to pv1="dpd2" pv2="dpd2"/> -->
-<!-- 		<apply_to pv1="dpd" pv2="ellipsoids"/>
- --><!-- 		<apply_to pv1="dpd2" pv2="ellipsoids"/>
+		<apply_to pv1="dpd" pv2="ellipsoids"/>
+<!-- 		<apply_to pv1="dpd2" pv2="ellipsoids"/>
  -->	</interaction>
  
 	<interaction type="dpd" name="dpd_int2" a="2.7" gamma="0" kbt="0.0" dt="0.1" rc="1.0" power="1">
