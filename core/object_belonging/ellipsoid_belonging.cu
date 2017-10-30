@@ -66,15 +66,19 @@ void EllipsoidBelongingChecker::tagInner(ParticleVector* pv, CellList* cl, cudaS
 	tags.resize_anew(pv->local()->size());
 	tags.clearDevice(stream);
 
-	//ov->findExtentAndCOM(stream);
-
 	auto view = REOVview(reov, reov->local());
+	debug("Computing inside/outside tags for %d local ellipsoids '%s' and %d '%s' particles",
+			view.nObjects, ov->name.c_str(), pv->local()->size(), pv->name.c_str());
+
 	SAFE_KERNEL_LAUNCH(
 			insideEllipsoid,
 			view.nObjects, nthreads, 0, stream,
 			view, cl->cellInfo(), tags.devPtr());
 
 	view = REOVview(reov, reov->halo());
+	debug("Computing inside/outside tags for %d halo ellipsoids '%s' and %d '%s' particles",
+			view.nObjects, ov->name.c_str(), pv->local()->size(), pv->name.c_str());
+
 	SAFE_KERNEL_LAUNCH(
 			insideEllipsoid,
 			view.nObjects, nthreads, 0, stream,

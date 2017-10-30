@@ -20,13 +20,16 @@ public:
 class RBCvector : public ObjectVector
 {
 public:
-	RBCvector(std::string name, float mass, const int objSize, /*ObjectMesh mesh,*/ const int nObjects = 0) :
+	RBCvector(std::string name, float mass, const int objSize, Mesh mesh, const int nObjects = 0) :
 		ObjectVector( name, mass, objSize,
 					  new LocalRBCvector(objSize, nObjects),
 					  new LocalRBCvector(objSize, 0) )
 	{
-		// FIXME shit is everywhere
-		//this->mesh = mesh;
+		this->mesh = std::move(mesh);
+
+		if (objSize != mesh.nvertices)
+			die("RBC vector '%s': object size (%d) and number of vertices in mesh (%d) mismach",
+					name.c_str(), objSize, mesh.nvertices);
 	}
 
 	LocalRBCvector* local() { return static_cast<LocalRBCvector*>(_local); }

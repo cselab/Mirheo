@@ -7,6 +7,8 @@
 
 #include <core/rbc_kernels/interactions.h>
 
+#include <cmath>
+
 static GPU_RBCparameters setParams(RBCParameters p, const Mesh& m)
 {
 	GPU_RBCparameters devP;
@@ -23,8 +25,8 @@ static GPU_RBCparameters setParams(RBCParameters p, const Mesh& m)
 	devP.lmax = l0 / p.x0;
 	devP.kbToverp = p.kbT / p.p;
 
-	devP.cost0kb = cos(p.theta) * p.kb;
-	devP.sint0kb = sin(p.theta) * p.kb;
+	devP.cost0kb = cos(p.theta / 180.0 * M_PI) * p.kb;
+	devP.sint0kb = sin(p.theta / 180.0 * M_PI) * p.kb;
 
 	devP.ka0 = p.ka / p.totArea0;
 	devP.kv0 = p.kv / (6.0*p.totVolume0);
@@ -48,19 +50,20 @@ void InteractionRBCMembrane::_compute(InteractionType type, ParticleVector* pv1,
 		die("Object size of '%s' (%d) and number of vertices (%d) mismatch",
 				ov->name.c_str(), ov->objSize, ov->mesh.nvertices);
 
+	debug("Computing internal membrane forces for %d cells of '%s'",
+		ov->local()->nObjects, ov->name.c_str());
 
 	OVviewWithAreaVolume view(ov, ov->local());
 	MeshView mesh(ov->mesh, ov->local()->getMeshVertices(stream));
+	ov->local()->getDataPerObject<float2>("area_volumes")->clearDevice(stream);
 
-	dim3 avThreads(256, 1);
-	dim3 avBlocks(1, view.nObjects);
+	const int nthreads = 128;
 	SAFE_KERNEL_LAUNCH(
 			computeAreaAndVolume,
-			avBlocks, avThreads, 0, stream,
+			view.nObjects, nthreads, 0, stream,
 			view, mesh );
 
 
-	const int nthreads = 128;
 	const int blocks = getNblocks(view.size, nthreads);
 	SAFE_KERNEL_LAUNCH(
 			computeMembraneForces<Mesh::maxDegree>,

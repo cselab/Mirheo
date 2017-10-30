@@ -8,7 +8,8 @@
 #include <core/rigid_kernels/quaternion.h>
 #include <core/rigid_kernels/rigid_motion.h>
 
-const float tolerance = 5e-6f;
+const float tolerance = 1e-6f;
+const float tol2 = 1e-10f;
 
 __device__ __forceinline__ float tetrahedronVolume(float3 a, float3 b, float3 c, float3 d)
 {
@@ -21,33 +22,36 @@ __device__ __forceinline__ int particleInsideTetrahedron(float3 r, float3 v0, fl
 {
 	float V = tetrahedronVolume(v0, v1, v2, v3);
 
-	if (fabs(V) < tolerance) return 0;
-
 	float V0 = tetrahedronVolume(r,  v1, v2, v3);
 	float V1 = tetrahedronVolume(v0,  r, v2, v3);
 	float V2 = tetrahedronVolume(v0, v1,  r, v3);
 	float V3 = tetrahedronVolume(v0, v1, v2,  r);
 
-	if (V0 == 0.0f || V1 == 0.0f || V2 == 0.0f || V3 == 0.0f)
-		return 1;
+	if (fabs(V - (V0+V1+V2+V3)) > tolerance) return 0;
 
-	if (fabs(V - V0+V1+V2+V3) < tolerance) return 2;
+//	printf("%e  %e %e %e %e  %e\n", V, V0, V1, V2, V3, V0+V1+V2+V3);
 
-	return 0;
+	// Volumes sum up, but one of them is 0. Therefore particle is exactly on one side
+	// Another tetrahedron with the same side will also contribute 1
+	if (V0 == 0.0f || V1 == 0.0f || V2 == 0.0f || V3 == 0.0f) return 1;
+
+	return 2;
 }
 
 
 /**
  * One warp works on one particle
  */
-__device__ BelongingTags oneParticleInsideMesh(float3 r, int objId, const float3 com, const MeshView mesh)
+__device__ BelongingTags oneParticleInsideMesh(int pid, float3 r, int objId, const float3 com, const MeshView mesh)
 {
 	int counter = 0;
 
 	// Work in obj reference frame for simplicity
 	r = r - com;
 
-	for (int i = __laneid(); i < mesh.nvertices; i += warpSize)
+	float3 tot = make_float3(0);
+
+	for (int i = __laneid(); i < mesh.ntriangles; i += warpSize)
 	{
 		float3 v0 = make_float3(0);
 
@@ -59,13 +63,15 @@ __device__ BelongingTags oneParticleInsideMesh(float3 r, int objId, const float3
 
 		// If the particle is very close to the boundary
 		// return immediately
-		if ( dot(r-v1, cross(v2-v1, v3-v1)) < tolerance )
+		if ( fabs( dot(r-v1, cross(v2-v1, v3-v1)) ) < tol2 )
 			return BelongingTags::Boundary;
 
 		// += 2 if inside
 		// += 1 if exactly on a side
 		counter += particleInsideTetrahedron(r, v0, v1, v2, v3);
 	}
+
+	counter = warpReduce(counter, [] (int a, int b) { return a+b; });
 
 	// Incorrect result. Disregard the guy just in case
 	if (counter % 2 != 0) return BelongingTags::Boundary;
@@ -93,17 +99,17 @@ __global__ void insideMesh(const OVview view, const MeshView mesh, CellListInfo 
 	const int wid = gid / warpSize;
 	const int objId = wid / WARPS_PER_OBJ;
 
-	const int widInObj = wid % WARPS_PER_OBJ;
+	const int locWid = wid % WARPS_PER_OBJ;
 
 	if (objId >= view.nObjects) return;
 
-	const int3 cidLow  = cinfo.getCellIdAlongAxes(view.comAndExtents[objId].low  - 1.5f);
-	const int3 cidHigh = cinfo.getCellIdAlongAxes(view.comAndExtents[objId].high + 2.5f);
+	const int3 cidLow  = cinfo.getCellIdAlongAxes(view.comAndExtents[objId].low  - 0.5f);
+	const int3 cidHigh = cinfo.getCellIdAlongAxes(view.comAndExtents[objId].high + 0.5f);
 
 	const int3 span = cidHigh - cidLow + make_int3(1,1,1);
 	const int totCells = span.x * span.y * span.z;
 
-	for (int i=widInObj; i<totCells; i+=WARPS_PER_OBJ)
+	for (int i=locWid; i<totCells; i+=WARPS_PER_OBJ)
 	{
 		const int3 cid3 = make_int3( i % span.x, (i/span.x) % span.y, i / (span.x*span.y) ) + cidLow;
 		const int  cid = cinfo.encode(cid3);
@@ -116,7 +122,8 @@ __global__ void insideMesh(const OVview view, const MeshView mesh, CellListInfo 
 		{
 			const Particle p(cinfo.particles, pid);
 
-			tags[pid] = oneParticleInsideMesh(p.r, objId, view.comAndExtents[objId].com, mesh);
+			auto tag = oneParticleInsideMesh(pid, p.r, objId, view.comAndExtents[objId].com, mesh);
+			if (__laneid() == 0) tags[pid] = tag;
 		}
 	}
 }
@@ -137,9 +144,12 @@ void MeshBelongingChecker::tagInner(ParticleVector* pv, CellList* cl, cudaStream
 	auto vertices = lov->getMeshVertices(stream);
 	auto meshView = MeshView(ov->mesh, lov->getMeshVertices(stream));
 
+	debug("Computing inside/outside tags (against mesh) for %d local objects '%s' and %d '%s' particles",
+			view.nObjects, ov->name.c_str(), pv->local()->size(), pv->name.c_str());
+
 	SAFE_KERNEL_LAUNCH(
 			insideMesh<warpsPerObject>,
-			warpsPerObject*view.nObjects, nthreads, 0, stream,
+			getNblocks(warpsPerObject*32*view.nObjects, nthreads), nthreads, 0, stream,
 			view, meshView, cl->cellInfo(), tags.devPtr());
 
 	// Halo
@@ -148,9 +158,12 @@ void MeshBelongingChecker::tagInner(ParticleVector* pv, CellList* cl, cudaStream
 	vertices = lov->getMeshVertices(stream);
 	meshView = MeshView(ov->mesh, lov->getMeshVertices(stream));
 
+	debug("Computing inside/outside tags (against mesh) for %d halo objects '%s' and %d '%s' particles",
+			view.nObjects, ov->name.c_str(), pv->local()->size(), pv->name.c_str());
+
 	SAFE_KERNEL_LAUNCH(
 			insideMesh<warpsPerObject>,
-			warpsPerObject*view.nObjects, nthreads, 0, stream,
+			getNblocks(warpsPerObject*32*view.nObjects, nthreads), nthreads, 0, stream,
 			view, meshView, cl->cellInfo(), tags.devPtr());
 }
 

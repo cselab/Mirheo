@@ -27,6 +27,9 @@ __host__ __device__ __forceinline__  T sqr(T val)
 // Per-warp reduction operations
 //=======================================================================================
 
+//****************************************************************************
+// float
+//****************************************************************************
 template<typename Operation>
 __device__ __forceinline__  float3 warpReduce(float3 val, Operation op)
 {
@@ -63,6 +66,10 @@ __device__ __forceinline__  float warpReduce(float val, Operation op)
 	return val;
 }
 
+//****************************************************************************
+// double
+//****************************************************************************
+
 template<typename Operation>
 __device__ __forceinline__  double3 warpReduce(double3 val, Operation op)
 {
@@ -90,6 +97,46 @@ __device__ __forceinline__  double2 warpReduce(double2 val, Operation op)
 
 template<typename Operation>
 __device__ __forceinline__  double warpReduce(double val, Operation op)
+{
+#pragma unroll
+	for (int offset = warpSize/2; offset > 0; offset /= 2)
+	{
+		val = op(val, __shfl_down(val, offset));
+	}
+	return val;
+}
+
+//****************************************************************************
+// int
+//****************************************************************************
+
+template<typename Operation>
+__device__ __forceinline__  int3 warpReduce(int3 val, Operation op)
+{
+#pragma unroll
+	for (int offset = warpSize/2; offset > 0; offset /= 2)
+	{
+		val.x = op(val.x, __shfl_down(val.x, offset));
+		val.y = op(val.y, __shfl_down(val.y, offset));
+		val.z = op(val.z, __shfl_down(val.z, offset));
+	}
+	return val;
+}
+
+template<typename Operation>
+__device__ __forceinline__  int2 warpReduce(int2 val, Operation op)
+{
+#pragma unroll
+	for (int offset = warpSize/2; offset > 0; offset /= 2)
+	{
+		val.x = op(val.x, __shfl_down(val.x, offset));
+		val.y = op(val.y, __shfl_down(val.y, offset));
+	}
+	return val;
+}
+
+template<typename Operation>
+__device__ __forceinline__  int warpReduce(int val, Operation op)
 {
 #pragma unroll
 	for (int offset = warpSize/2; offset > 0; offset /= 2)

@@ -6,16 +6,20 @@
 class Mesh
 {
 public:
+	// max degree of a vertex in mesh
+	// only used in RBC forces
 	static const int maxDegree = 7;
+
 	int nvertices{0}, ntriangles{0};
 
 	PinnedBuffer<int3> triangles;
-	PinnedBuffer<int> adjacent, adjacent_second;
+	PinnedBuffer<int> adjacent, adjacent_second, degrees;
 
 	Mesh() {};
 	Mesh(std::string);
 
 	Mesh(Mesh&&) = default;
+	Mesh& operator=(Mesh&&) = default;
 
 private:
 	void findAdjacent();
@@ -26,7 +30,7 @@ struct MeshView
 	int nvertices, ntriangles, maxDegree;
 
 	int3* triangles;
-	int *adjacent, *adjacent_second;
+	int *adjacent, *adjacent_second, *degrees;
 
 	float4* vertices;
 
@@ -39,6 +43,7 @@ struct MeshView
 		triangles = m.triangles.devPtr();
 		adjacent = m.adjacent.devPtr();
 		adjacent_second = m.adjacent_second.devPtr();
+		degrees = m.degrees.devPtr();
 		vertices = reinterpret_cast<float4*>(vertexCoosVels->devPtr());
 	}
 };

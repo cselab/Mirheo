@@ -20,11 +20,14 @@ Mesh::Mesh(std::string fname)
 	if (!fin.good())
 		die("Mesh file '%s' not found", fname.c_str());
 
+	debug("Reading mesh from file '%s'", fname.c_str());
+
 	std::string line;
 	std::getline(fin, line); // OFF header
 
 	int nedges;
 	fin >> nvertices >> ntriangles >> nedges;
+	std::getline(fin, line); // Finish with this line
 
 	for (int i=0; i<nvertices; i++)
 		std::getline(fin, line);
@@ -36,12 +39,13 @@ Mesh::Mesh(std::string fname)
 		int number;
 		fin >> number;
 		if (number != 3)
-			die("Bad mesh file '%s' on line %d", fname.c_str(), 3 /* header */ + nvertices + i);
+			die("Bad mesh file '%s' on line %d, number of face vertices is %d instead of 3",
+					fname.c_str(), 3 /* header */ + nvertices + i, number);
 
 		fin >> triangles[i].x >> triangles[i].y >> triangles[i].z;
 
 		auto check = [&] (int tr) {
-			if (tr < 0 || tr >= nvertices);
+			if (tr < 0 || tr >= nvertices)
 				die("Bad triangle indices in mesh '%s' on line %d", fname.c_str(), 3 /* header */ + nvertices + i);
 		};
 
@@ -51,6 +55,11 @@ Mesh::Mesh(std::string fname)
 	}
 
 	findAdjacent();
+
+	triangles.uploadToDevice(0);
+	adjacent.uploadToDevice(0);
+	adjacent_second.uploadToDevice(0);
+	degrees.uploadToDevice(0);
 }
 
 
@@ -66,16 +75,17 @@ void Mesh::findAdjacent()
 			adjacentPairs[tri[d]][tri[(d + 1) % 3]] = tri[(d + 2) % 3];
 	}
 
-	std::vector<int> degrees;
+	degrees.resize_anew(nvertices);
 	for(int i = 0; i < nvertices; ++i)
-		degrees.push_back(adjacentPairs[i].size());
+		degrees[i] = adjacentPairs[i].size();
 
-	auto it = std::max_element(degrees.begin(), degrees.end());
-	const int degree = *it;
+	auto it = std::max_element(degrees.hostPtr(), degrees.hostPtr() + nvertices);
+	const int curMaxDegree = *it;
 
-	if (degree > maxDegree)
-		die("Degree of vertex %d is %d > %d (max degree supported)", (int)(it - degrees.begin()), degree, maxDegree);
+	if (curMaxDegree > maxDegree)
+		die("Degree of vertex %d is %d > %d (max degree supported)", (int)(it - degrees.hostPtr()), curMaxDegree, maxDegree);
 
+	debug("Max degree of mesh vertices is %d", curMaxDegree);
 
 	// Find first (nearest) neighbors of each vertex
 	adjacent.resize_anew(ntriangles * maxDegree);
@@ -145,8 +155,23 @@ void Mesh::findAdjacent()
 		}
 	}
 
-	adjacent.uploadToDevice(0);
-	adjacent_second.uploadToDevice(0);
+
+	for(int v = 0; v < nvertices; ++v)
+	{
+		for (int i=0; i<maxDegree; i++)
+			if (adjacent[v*maxDegree + i] == -1)
+			{
+				adjacent[v*maxDegree + i] = adjacent[v*maxDegree];
+				break;
+			}
+
+		for (int i=0; i<maxDegree; i++)
+			if (adjacent_second[v*maxDegree + i] == -1)
+			{
+				adjacent_second[v*maxDegree + i] = adjacent_second[v*maxDegree];
+				break;
+			}
+	}
 }
 
 

@@ -14,6 +14,7 @@
 
 #include <core/initial_conditions/uniform_ic.h>
 #include <core/initial_conditions/ellipsoid_ic.h>
+#include <core/initial_conditions/rbcs_ic.h>
 #include <core/initial_conditions/restart.h>
 
 #include <core/integrators/vv.h>
@@ -92,7 +93,7 @@ private:
 
 		Mesh mesh(meshFname);
 
-		return (ParticleVector*) new ObjectVector(name, mass, objSize);
+		return (ParticleVector*) new RBCvector(name, mass, objSize, std::move(mesh));
 	}
 
 public:
@@ -125,12 +126,20 @@ private:
 		return (InitialConditions*) new UniformIC(density);
 	}
 
-	static InitialConditions* createEllipsoidIC(pugi::xml_node node)
+	static InitialConditions* createEllipsoidsIC(pugi::xml_node node)
 	{
 		auto icfname  = node.attribute("ic_filename"). as_string("ellipsoids.ic");
 		auto xyzfname = node.attribute("xyz_filename").as_string("ellipsoid.xyz");
 
 		return (InitialConditions*) new EllipsoidIC(xyzfname, icfname);
+	}
+
+	static InitialConditions* createRBCsIC(pugi::xml_node node)
+	{
+		auto icfname  = node.attribute("ic_filename"). as_string("rbcs.ic");
+		auto offfname = node.attribute("mesh_filename").as_string("rbc_mesh.off");
+
+		return (InitialConditions*) new RBC_IC(offfname, icfname);
 	}
 
 	static InitialConditions* createRestartIC(pugi::xml_node node)
@@ -149,7 +158,9 @@ public:
 		if (type == "uniform")
 			return createUniformIC(node);
 		if (type == "read_ellipsoids")
-			return createEllipsoidIC(node);
+			return createEllipsoidsIC(node);
+		if (type == "read_rbcs")
+			return createRBCsIC(node);
 		if (type == "restart")
 			return createRestartIC(node);
 
@@ -303,25 +314,33 @@ private:
 		auto name = node.attribute("name").as_string("");
 
 		RBCParameters p;
-
-		p.x0         = node.attribute("x0").as_float();
-		p.p          = node.attribute("p").as_float();
-		p.ka         = node.attribute("ka").as_float();
-		p.kb         = node.attribute("kb").as_float();
-		p.kd         = node.attribute("kd").as_float();
-		p.kv         = node.attribute("kv").as_float();
-		p.gammaC     = node.attribute("gammaC").as_float();
-		p.gammaT     = node.attribute("gammaT").as_float();
-		p.kbT        = node.attribute("kbT").as_float();
-		p.mpow       = node.attribute("mpow").as_float();
-		p.theta      = node.attribute("theta").as_float();
-		p.totArea0   = node.attribute("area").as_float();
-		p.totVolume0 = node.attribute("volume").as_float();
-
 		std::string preset = node.attribute("preset").as_string();
+
+		auto setIfNotEmpty_float = [&node] (float& val, const char* name)
+		{
+			if (!node.attribute(name).empty())
+				val = node.attribute(name).as_float();
+		};
 
 		if (preset == "lina")
 			p = Lina_parameters;
+		else
+			error("Unknown predefined parameter set for '%s' interaction: '%s'",
+					name, preset.c_str());
+
+		setIfNotEmpty_float(p.x0,         "x0");
+		setIfNotEmpty_float(p.p,          "p");
+		setIfNotEmpty_float(p.ka,         "ka");
+		setIfNotEmpty_float(p.kb,         "kb");
+		setIfNotEmpty_float(p.kd,         "kd");
+		setIfNotEmpty_float(p.kv,         "kv");
+		setIfNotEmpty_float(p.gammaC,     "gammaC");
+		setIfNotEmpty_float(p.gammaT,     "gammaT");
+		setIfNotEmpty_float(p.kbT,        "kbT");
+		setIfNotEmpty_float(p.mpow,       "mpow");
+		setIfNotEmpty_float(p.theta,      "theta");
+		setIfNotEmpty_float(p.totArea0,   "area");
+		setIfNotEmpty_float(p.totVolume0, "volume");
 
 		return (Interaction*) new InteractionRBCMembrane(name, p);
 	}

@@ -9,12 +9,12 @@
 class RBC_IC : public InitialConditions
 {
 private:
-	std::string xyzfname, icfname;
+	std::string offfname, icfname;
 
 public:
-	RBC_IC(std::string xyzfname, std::string icfname) : icfname(icfname), xyzfname(xyzfname) {}
+	RBC_IC(std::string offfname, std::string icfname) : icfname(icfname), offfname(offfname) {}
 
-	void readVertices(std::string fname, PinnedBuffer<float4>& positions, cudaStream_t stream);
+	void readVertices(std::string fname, PinnedBuffer<float4>& positions);
 	void exec(const MPI_Comm& comm, ParticleVector* pv, DomainInfo domain, cudaStream_t stream) override;
 
 	~RBC_IC() = default;

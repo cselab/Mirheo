@@ -15,16 +15,16 @@ struct GPU_RBCparameters
 
 __global__ void computeAreaAndVolume(OVviewWithAreaVolume view, MeshView mesh)
 {
-	const int objId = blockIdx.y;
+	const int objId = blockIdx.x;
 	float2 a_v = make_float2(0.0f);
 
-	for(int i = blockIdx.x * blockDim.x + threadIdx.x; i < mesh.ntriangles; i += blockDim.x * gridDim.x)
+	for(int i = threadIdx.x; i < mesh.ntriangles; i += blockDim.x)
 	{
 		int3 ids = mesh.triangles[i];
 
-		float3 v0 = f4tof3( view.particles[ 2 * ids.x+objId*mesh.nvertices ] );
-		float3 v1 = f4tof3( view.particles[ 2 * ids.y+objId*mesh.nvertices ] );
-		float3 v2 = f4tof3( view.particles[ 2 * ids.z+objId*mesh.nvertices ] );
+		float3 v0 = f4tof3( view.particles[ 2 * (ids.x+objId*mesh.nvertices) ] );
+		float3 v1 = f4tof3( view.particles[ 2 * (ids.y+objId*mesh.nvertices) ] );
+		float3 v2 = f4tof3( view.particles[ 2 * (ids.z+objId*mesh.nvertices) ] );
 
 		a_v.x += 0.5f * length(cross(v1 - v0, v2 - v0));
 		a_v.y += 0.1666666667f * (- v0.z*v1.y*v2.x + v0.z*v1.x*v2.y + v0.y*v1.z*v2.x
@@ -64,9 +64,10 @@ __device__ __forceinline__ float3 _fangle(const float3 v1, const float3 v2, cons
 	const float area = 0.5f * length(normal);
 	const float area_1 = 1.0f / area;
 
+	// TODO: optimize computations here
 	const float coefArea = -0.25f * (
 			parameters.ka0 * (totArea - parameters.totArea0) * area_1
-			- parameters.kd0 * (area - parameters.area0) / (4.0f * area * parameters.area0) );
+			+ parameters.kd0 * (area - parameters.area0) / (area * parameters.area0) );
 
 	const float coeffVol = parameters.kv0 * (totVolume - parameters.totVolume0);
 	const float3 fArea = coefArea * cross(normal, x32);
@@ -83,10 +84,10 @@ __device__ __forceinline__ float3 _fangle(const float3 v1, const float3 v2, cons
 	return fArea + fVolume + (IbforceI_wcl + IbforceI_pow) * x21;
 }
 
-__device__ __forceinline__ float3 _fvisc(const float3 v1, const float3 v2, const float3 u1, const float3 u2, GPU_RBCparameters parameters)
+__device__ __forceinline__ float3 _fvisc(Particle p1, Particle p2, GPU_RBCparameters parameters)
 {
-	const float3 du = u2 - u1;
-	const float3 dr = v1 - v2;
+	const float3 du = p2.u - p1.u;
+	const float3 dr = p1.r - p2.r;
 
 	return du*parameters.gammaT + dr * parameters.gammaC*dot(du, dr) / dot(dr, dr);
 }
@@ -98,32 +99,28 @@ __device__ float3 bondTriangleForce(
 		MeshView mesh,
 		GPU_RBCparameters parameters)
 {
-	const float3 r0 = p.r;
-	const float3 u0 = p.u;
-
+	float3 f = make_float3(0.0f);
 	const int startId = maxDegree * locId;
+	const int degree = mesh.degrees[locId];
+
 	int idv1 = mesh.adjacent[startId];
 	Particle p1(view.particles, rbcId*mesh.nvertices + idv1);
-	float3 r1 = p1.r;
-	float3 u1 = p1.u;
-
-	float3 f = make_float3(0.0f);
 
 #pragma unroll 2
-	for (int i=1; i<=maxDegree; i++)
+	for (int i=1; i<=degree; i++)
 	{
-		int idv2 = mesh.adjacent[startId + (i % maxDegree)];
-		if (idv2 == -1) break;
+		int idv2 = mesh.adjacent[startId + (i % degree)];
 
 		Particle p2(view.particles, rbcId*mesh.nvertices + idv2);
-		float3 r2 = p1.r;
-		float3 u2 = p1.u;
 
-		f += _fangle(r0, r1, r2, view.area_volumes[rbcId].x, view.area_volumes[rbcId].y, parameters) +
-			 _fvisc (r0, r1, u0, u1, parameters);
+		f += _fangle(p.r, p1.r, p2.r, view.area_volumes[rbcId].x, view.area_volumes[rbcId].y, parameters) +
+			 _fvisc (p, p1, parameters);
 
-		r1 = r2;
-		u1 = u2;
+//		if (locId == 97)
+//			printf("ANG %d:  %d %d -> [%f %f %f]\n", locId, idv1, idv2, f.x, f.y, f.z);
+
+		idv1 = idv2;
+		p1 = p2;
 	}
 
 	return f;
@@ -144,12 +141,12 @@ __device__  __forceinline__  float3 _fdihedral(float3 v1, float3 v2, float3 v3, 
 	const float IsinThetaI2 = 1.0f - cosTheta*cosTheta;
 
 	const float rawST_1 = rsqrtf(max(IsinThetaI2, 1.0e-6f));
-	const float sinTheta_1 = copysignf( rawST_1, dot(ksi - dzeta, v4 - v1) );
+	const float sinTheta_1 = copysignf( rawST_1, dot(ksi - dzeta, v4 - v1) ); // because the normals look inside
 	const float beta = parameters.cost0kb - cosTheta * parameters.sint0kb * sinTheta_1;
 
-	float b11 = -beta * cosTheta * overIksiI*overIksiI;
-	float b12 =  beta *            overIksiI*overIdzetaI;
-	float b22 = -beta * cosTheta * overIdzetaI*overIdzetaI;
+	float b11 = -beta * cosTheta *  overIksiI   * overIksiI;
+	float b12 =  beta *             overIksiI   * overIdzetaI;
+	float b22 = -beta * cosTheta *  overIdzetaI * overIdzetaI;
 
 	if (update == 1)
 		return cross(ksi, v3 - v2)*b11 + cross(dzeta, v3 - v2)*b12;
@@ -157,7 +154,6 @@ __device__  __forceinline__  float3 _fdihedral(float3 v1, float3 v2, float3 v3, 
 		return cross(ksi, v1 - v3)*b11 + ( cross(ksi, v3 - v4) + cross(dzeta, v1 - v3) )*b12 + cross(dzeta, v3 - v4)*b22;
 	else return make_float3(0.0f);
 }
-
 
 template <int maxDegree>
 __device__ float3 dihedralForce(
@@ -170,6 +166,8 @@ __device__ float3 dihedralForce(
 	const float3 r0 = p.r;
 
 	const int startId = maxDegree * locId;
+	const int degree = mesh.degrees[locId];
+
 	int idv1 = mesh.adjacent[startId];
 	int idv2 = mesh.adjacent[startId+1];
 
@@ -187,25 +185,28 @@ __device__ float3 dihedralForce(
 
 	// dihedrals: 0124, 0123
 
-#pragma unroll 2
-	for (int i=1; i<=maxDegree; i++)
-	{
-		int idv3 = mesh.adjacent       [startId + ( (i+1) % maxDegree )];
-		int idv4 = mesh.adjacent_second[startId + (  i    % maxDegree )];
 
-		if (idv3 == -1 && idv4 == -1) break;
+#pragma unroll 2
+	for (int i=0; i<degree; i++)
+	{
+		int idv3 = mesh.adjacent       [startId + (i+2) % degree];
+		int idv4 = mesh.adjacent_second[startId + i];
 
 		float3 r3, r4;
-		if (idv3 != -1) r3 = Float3_int(view.particles[shift + 2*idv3]).v;
-		r4 =				 Float3_int(view.particles[shift + 2*idv4]).v;
+		r3 = Float3_int(view.particles[shift + 2*idv3]).v;
+		r4 = Float3_int(view.particles[shift + 2*idv4]).v;
 
+		f += _fdihedral<1>(r0, r2, r1, r4, parameters);
+		f += _fdihedral<2>(r1, r0, r2, r3, parameters);
 
-		f +=    _fdihedral<1>(r0, r2, r1, r4, parameters);
-		if (idv3 != -1)
-			f+= _fdihedral<2>(r1, r0, r2, r3, parameters);
+		//		if (locId == 97)
+		//			printf("DIH %d:  %d %d %d %d -> [%f %f %f]\n", locId, idv1, idv2, idv3, idv4, f.x, f.y, f.z);
 
 		r1 = r2;
 		r2 = r3;
+
+		idv1 = idv2;
+		idv2 = idv3;
 	}
 
 	return f;
@@ -218,15 +219,18 @@ __global__ void computeMembraneForces(
 		MeshView mesh,
 		GPU_RBCparameters parameters)
 {
-	const int pid = threadIdx.x + blockDim.x * blockIdx.x;
-	const int locId = pid % mesh.nvertices;
-	const int rbcId = pid / mesh.nvertices;
-
 	// RBC particles are at the same time mesh vertices
 	assert(view.objSize == mesh.nvertices);
 	assert(view.particles == mesh.vertices);
 
+	const int pid = threadIdx.x + blockDim.x * blockIdx.x;
+	const int locId = pid % mesh.nvertices;
+	const int rbcId = pid / mesh.nvertices;
+
 	if (pid >= view.nObjects * mesh.nvertices) return;
+
+//	if (locId == 0)
+//		printf("%d: area %f  volume %f\n", rbcId, view.area_volumes[rbcId].x, view.area_volumes[rbcId].y);
 
 	Particle p(view.particles, pid);
 

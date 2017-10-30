@@ -33,7 +33,7 @@ void RBC_IC::exec(const MPI_Comm& comm, ParticleVector* pv, DomainInfo domain, c
 	pv->domain = domain;
 
 	PinnedBuffer<float4> vertices;
-	readVertices(xyzfname, vertices);
+	readVertices(offfname, vertices);
 	if (ov->objSize != vertices.size())
 		die("Object size and number of vertices in mesh match for %s", ov->name.c_str());
 
@@ -47,6 +47,7 @@ void RBC_IC::exec(const MPI_Comm& comm, ParticleVector* pv, DomainInfo domain, c
 
 		fic >> com.x >> com.y >> com.z;
 		fic >> q.x >> q.y >> q.z >> q.w;
+
 		q = normalize(q);
 
 		if (!fic.good())
@@ -56,22 +57,25 @@ void RBC_IC::exec(const MPI_Comm& comm, ParticleVector* pv, DomainInfo domain, c
 		    ov->domain.globalStart.y <= com.y && com.y < ov->domain.globalStart.y + ov->domain.localSize.y &&
 		    ov->domain.globalStart.z <= com.z && com.z < ov->domain.globalStart.z + ov->domain.localSize.z)
 		{
+			com = domain.global2local(com);
 			int oldSize = ov->local()->size();
 			ov->local()->resize(oldSize + vertices.size(), stream);
 
 			for (int i=0; i<vertices.size(); i++)
 			{
 				float3 r = rotate(f4tof3(vertices[i]), q) + com;
-				Particle p{};
+				Particle p;
 				p.r = r;
+				p.u = make_float3(0);
 
-				ov->local()->coosvels[i] = p;
+				ov->local()->coosvels[oldSize + i] = p;
 			}
+
+			nObjs++;
 		}
 	}
 
 	// Set ids
-	int nObjs = ov->local()->nObjects;
 	int totalCount=0; // TODO: int64!
 	MPI_Check( MPI_Exscan(&nObjs, &totalCount, 1, MPI_INT, MPI_SUM, comm) );
 
@@ -80,11 +84,8 @@ void RBC_IC::exec(const MPI_Comm& comm, ParticleVector* pv, DomainInfo domain, c
 		(*ids)[i] = totalCount + i;
 
 	for (int i=0; i < ov->local()->size(); i++)
-	{
-		Particle p(make_float4(0), make_float4(0));
-		p.i1 = totalCount*ov->objSize + i;
-		ov->local()->coosvels[i] = p;
-	}
+		ov->local()->coosvels[i].i1 = totalCount*ov->objSize + i;
+
 
 	ids->uploadToDevice(stream);
 	ov->local()->coosvels.uploadToDevice(stream);
