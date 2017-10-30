@@ -8,7 +8,7 @@
 #include <core/containers.h>
 #include <core/interactions/pairwise.h>
 #include <core/interactions/pairwise_interactions/dpd.h>
-#include <core/initial_conditions/uniform.h>
+#include <core/initial_conditions/uniform_ic.h>
 
 #include <unistd.h>
 

@@ -3,7 +3,7 @@
 #include <core/utils/kernel_launch.h>
 #include <core/celllist.h>
 #include <core/pvs/particle_vector.h>
-#include <core/pvs/rigid_ellipsoid_object_vector.h>
+#include <core/pvs/object_vector.h>
 
 #include <core/rbc_kernels/bounce.h>
 #include <core/cub/device/device_radix_sort.cuh>
@@ -29,17 +29,18 @@ void BounceFromMesh::exec(ParticleVector* pv, CellList* cl, float dt, cudaStream
 
 	int nthreads = 128;
 
+	OVviewWithOldPartilces objView(ov, activeOV);
+	PVview_withOldParticles pvView(pv, pv->local());
+	MeshView mesh(ov->mesh, activeOV->getMeshVertices(stream));
+
 	// TODO: ovview with mesh
 	SAFE_KERNEL_LAUNCH(
 			findBouncesInMesh,
 			getNblocks(totalTriangles, nthreads), nthreads, 0, stream,
-			(const float4*)pv->local()->coosvels.devPtr(),
-			cl->cellInfo(), nCollisions.devPtr(), collisionTable.devPtr(),
-			activeOV->nObjects, ov->mesh.nvertices, ov->mesh.ntriangles, ov->mesh.triangles.devPtr(),
-			(const float4*)activeOV->coosvels.devPtr(), dt );
+			objView, pvView, mesh, cl->cellInfo(),
+			nCollisions.devPtr(), collisionTable.devPtr());
 
 	nCollisions.downloadFromDevice(stream);
-
 	debug("Found %d collisions", nCollisions[0]);
 
 	size_t bufSize;
@@ -57,9 +58,6 @@ void BounceFromMesh::exec(ParticleVector* pv, CellList* cl, float dt, cudaStream
 	SAFE_KERNEL_LAUNCH(
 			performBouncing,
 			getNblocks(nCollisions[0], nthreads), nthreads, 0, stream,
-			nCollisions[0], tmp_collisionTable.devPtr(),
-			(float4*)pv->local()->coosvels.devPtr(), pv->mass,
-			ov->mesh.nvertices, ov->mesh.ntriangles, ov->mesh.triangles.devPtr(),
-			(const float4*)activeOV->coosvels.devPtr(), (float*)activeOV->forces.devPtr(), ov->mass,
-			dt );
+			objView, pvView, mesh,
+			nCollisions[0], tmp_collisionTable.devPtr(), dt );
 }

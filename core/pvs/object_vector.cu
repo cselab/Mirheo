@@ -50,10 +50,3 @@ void ObjectVector::findExtentAndCOM(cudaStream_t stream)
 			(ovView.nObjects*32 + nthreads-1)/nthreads, nthreads, 0, stream,
 			ovView );
 }
-
-void ObjectVector::getMeshWithVertices(ObjectMesh* mesh, PinnedBuffer<Particle>* vertices, cudaStream_t stream)
-{
-	mesh = &this->mesh;
-	vertices = &local()->coosvels;
-}
-

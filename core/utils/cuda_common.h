@@ -2,6 +2,11 @@
 
 #include "helper_math.h"
 
+#ifdef __CDT_PARSER__
+using cudaStream_t = int;
+const int warpSize = 32;
+#endif
+
 inline int getNblocks(const int n, const int nthreads)
 {
 	return (n+nthreads-1) / nthreads;
@@ -98,6 +103,15 @@ __device__ __forceinline__  double warpReduce(double val, Operation op)
 // Atomics for vector types
 //=======================================================================================
 
+
+__device__ __forceinline__ float2 atomicAdd(float2* addr, float2 v)
+{
+	float2 res;
+	res.x = atomicAdd((float*)addr,   v.x);
+	res.y = atomicAdd((float*)addr+1, v.y);
+	return res;
+}
+
 __device__ __forceinline__ float3 atomicAdd(float3* addr, float3 v)
 {
 	float3 res;
@@ -139,6 +153,25 @@ __device__ __forceinline__ float4 readNoCache(const float4* addr)
 __device__ __forceinline__ void writeNoCache(float4* addr, const float4 val)
 {
 	asm("st.global.wt.v4.f32 [%0], {%1, %2, %3, %4};" :: "l"(addr), "f"(val.x), "f"(val.y), "f"(val.z), "f"(val.w));
+}
+
+//=======================================================================================
+// Lane and warp id
+// https://stackoverflow.com/questions/28881491/how-can-i-find-out-which-thread-is-getting-executed-on-which-core-of-the-gpu
+//=======================================================================================
+
+__device__ __forceinline__ uint32_t __warpid()
+{
+	uint32_t warpid;
+	asm volatile("mov.u32 %0, %%warpid;" : "=r"(warpid));
+	return warpid;
+}
+
+__device__ __forceinline__ uint32_t __laneid()
+{
+	uint32_t laneid;
+	asm volatile("mov.u32 %0, %%laneid;" : "=r"(laneid));
+	return laneid;
 }
 
 //=======================================================================================

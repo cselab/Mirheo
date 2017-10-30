@@ -14,7 +14,7 @@ __device__ inline float ellipsoidF(const float3 r, const float3 invAxes)
 	return sqr(r.x * invAxes.x) + sqr(r.y * invAxes.y) + sqr(r.z * invAxes.z) - 1.0f;
 }
 
-__global__ void insideEllipsoid(REOVview view, CellListInfo cinfo, int* tags)
+__global__ void insideEllipsoid(REOVview view, CellListInfo cinfo, BelongingTags* tags)
 {
 	const float tolerance = 5e-6f;
 
@@ -46,10 +46,10 @@ __global__ void insideEllipsoid(REOVview view, CellListInfo cinfo, int* tags)
 
 			float v = ellipsoidF(coo, view.invAxes);
 
-			if (fabs(v) <= tolerance) // boundary
-				tags[pid] = -84;
-			else if (v <= tolerance)  // inside
-				tags[pid] = 1;
+			if (fabs(v) <= tolerance)
+				tags[pid] = BelongingTags::Boundary;
+			else if (v <= tolerance)
+				tags[pid] = BelongingTags::Inside;
 		}
 	}
 }

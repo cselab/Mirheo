@@ -30,7 +30,31 @@ struct OVview : public PVview
 	}
 };
 
+struct OVviewWithAreaVolume : public OVview
+{
+	float2* area_volumes = nullptr;
 
+	OVviewWithAreaVolume(ObjectVector* ov = nullptr, LocalObjectVector* lov = nullptr) :
+		OVview(ov, lov)
+	{
+		if (ov == nullptr || lov == nullptr) return;
+
+		area_volumes = lov->getDataPerObject<float2>("area_volumes")->devPtr();
+	}
+};
+
+struct OVviewWithOldPartilces : public OVview
+{
+	float4* old_particles = nullptr;
+
+	OVviewWithOldPartilces(ObjectVector* ov = nullptr, LocalObjectVector* lov = nullptr) :
+		OVview(ov, lov)
+	{
+		if (ov == nullptr || lov == nullptr) return;
+
+		old_particles = reinterpret_cast<float4*>( lov->getDataPerParticle<Particle>("old_particles")->devPtr() );
+	}
+};
 
 // Names of data fields that have to be shifted when redistributed
 const static std::map<std::string, int> dataToShift{ {"motions", 0}, {"old_motions", 0} };

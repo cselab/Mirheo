@@ -1,16 +1,38 @@
 #include "rbc.h"
 
 #include <core/utils/cuda_common.h>
+#include <core/utils/kernel_launch.h>
 #include <core/celllist.h>
 #include <core/pvs/rbc_vector.h>
 
 #include <core/rbc_kernels/interactions.h>
 
-InteractionRBCMembrane::InteractionRBCMembrane(pugi::xml_node node)
+static GPU_RBCparameters setParams(RBCParameters p, const Mesh& m)
 {
-	name = node.attribute("name").as_string("");
+	GPU_RBCparameters devP;
 
-	// TODO: parameter setup
+	devP.gammaC = p.gammaC;
+	devP.gammaT = p.gammaT;
+
+	devP.area0 = p.totArea0 / m.ntriangles;
+	devP.totArea0 = p.totArea0;
+	devP.totVolume0 = p.totVolume0;
+
+	devP.mpow = p.mpow;
+	auto l0 = sqrt(devP.area0 * 4.0 / sqrt(3.0));
+	devP.lmax = l0 / p.x0;
+	devP.kbToverp = p.kbT / p.p;
+
+	devP.cost0kb = cos(p.theta) * p.kb;
+	devP.sint0kb = sin(p.theta) * p.kb;
+
+	devP.ka0 = p.ka / p.totArea0;
+	devP.kv0 = p.kv / (6.0*p.totVolume0);
+	devP.kd0 = p.kd;
+
+	devP.kp0 = ( p.kbT * p.x0 * (4*p.x0*p.x0 - 9*p.x0 + 6) * l0*l0) / (4*p.p * sqr(p.x0 - 1) );
+
+	return devP;
 }
 
 void InteractionRBCMembrane::_compute(InteractionType type, ParticleVector* pv1, ParticleVector* pv2, CellList* cl1, CellList* cl2, const float t, cudaStream_t stream)
@@ -18,31 +40,32 @@ void InteractionRBCMembrane::_compute(InteractionType type, ParticleVector* pv1,
 	if (pv1 != pv2)
 		die("Internal RBC forces can't be computed between two different particle vectors");
 
-	auto rbcv = dynamic_cast<RBCvector*>(pv1);
-	if (rbcv == nullptr)
-		die("Internal RBC forces can only be computed with RBC object vector");
+	auto ov = dynamic_cast<RBCvector*>(pv1);
+	if (ov == nullptr)
+		die("Internal RBC forces can only be computed with RBCs");
 
-	int nthreads = 128;
-	int nRbcs  = rbcv->local()->nObjects;
-	int nVerts = rbcv->mesh.nvertices;
+	if (ov->objSize != ov->mesh.nvertices)
+		die("Object size of '%s' (%d) and number of vertices (%d) mismatch",
+				ov->name.c_str(), ov->objSize, ov->mesh.nvertices);
 
+
+	OVviewWithAreaVolume view(ov, ov->local());
+	MeshView mesh(ov->mesh, ov->local()->getMeshVertices(stream));
 
 	dim3 avThreads(256, 1);
-	dim3 avBlocks( 1, nRbcs );
+	dim3 avBlocks(1, view.nObjects);
 	SAFE_KERNEL_LAUNCH(
 			computeAreaAndVolume,
 			avBlocks, avThreads, 0, stream,
-			(float4*)rbcv->local()->coosvels.devPtr(), rbcv->mesh, nRbcs,
-			rbcv->local()->areas.devPtr(), rbcv->local()->volumes.devPtr() );
+			view, mesh );
 
-	int blocks = getNblocks(nRbcs*nVerts*rbcv->mesh.maxDegree, nthreads);
 
+	const int nthreads = 128;
+	const int blocks = getNblocks(view.size, nthreads);
 	SAFE_KERNEL_LAUNCH(
-			computeMembraneForces,
+			computeMembraneForces<Mesh::maxDegree>,
 			blocks, nthreads, 0, stream,
-			(float4*)rbcv->local()->coosvels.devPtr(), rbcv->mesh, nRbcs,
-			rbcv->local()->areas.devPtr(), rbcv->local()->volumes.devPtr(),
-			(float4*)rbcv->local()->forces.devPtr() );
+			view, mesh, setParams(parameters, ov->mesh) );
 }
 
 

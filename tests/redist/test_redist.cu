@@ -9,7 +9,7 @@
 
 #include <core/containers.h>
 
-#include <core/initial_conditions/uniform.h>
+#include <core/initial_conditions/uniform_ic.h>
 
 Logger logger;
 

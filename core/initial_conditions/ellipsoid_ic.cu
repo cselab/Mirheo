@@ -1,4 +1,4 @@
-#include "ellipsoid.h"
+#include "ellipsoid_ic.h"
 
 #include <random>
 #include <fstream>

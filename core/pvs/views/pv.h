@@ -36,7 +36,7 @@ struct PVview_withOldParticles : public PVview
 	{
 		// Setup extra fields
 		if (lpv != nullptr)
-			old_particles = reinterpret_cast<float4*>(lpv->getDataPerParticle<Particle>("old_particles")->devPtr());
+			old_particles = reinterpret_cast<float4*>( lpv->getDataPerParticle<Particle>("old_particles")->devPtr() );
 	}
 };
 

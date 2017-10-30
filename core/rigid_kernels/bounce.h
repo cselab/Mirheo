@@ -115,6 +115,11 @@ __device__ __forceinline__ bool isValidCell(int3 cid3, SingleRigidMotion motion,
 __global__ void bounceEllipsoid(REOVview_withOldMotion ovView, PVview_withOldParticles pvView,
 		CellListInfo cinfo, const float dt)
 {
+	// About max travel distance per step + safety
+	// Safety comes from the fact that bounce works with the analytical shape,
+	//  and extent is computed w.r.t. particles
+	const int tol = 0.5f;
+
 	const int objId = blockIdx.x;
 	const int tid = threadIdx.x;
 	if (objId >= ovView.nObjects) return;
@@ -126,8 +131,8 @@ __global__ void bounceEllipsoid(REOVview_withOldMotion ovView, PVview_withOldPar
 	nCells = 0;
 	__syncthreads();
 
-	const int3 cidLow  = cinfo.getCellIdAlongAxes(ovView.comAndExtents[objId].low  - 1.5f);
-	const int3 cidHigh = cinfo.getCellIdAlongAxes(ovView.comAndExtents[objId].high + 2.5f);
+	const int3 cidLow  = cinfo.getCellIdAlongAxes(ovView.comAndExtents[objId].low  - tol);
+	const int3 cidHigh = cinfo.getCellIdAlongAxes(ovView.comAndExtents[objId].high + tol);
 
 	const int3 span = cidHigh - cidLow + make_int3(1,1,1);
 	const int totCells = span.x * span.y * span.z;

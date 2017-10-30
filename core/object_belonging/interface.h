@@ -8,11 +8,11 @@ class ParticleVector;
 class ObjectVector;
 class CellList;
 
-/**
- * TAG >= 0 means that particle is definitely inside an object with id TAG
- * TAG == -1 means that particle is definitely outside
- * TAG == -2 means that particle is on the boundary
- */
+enum class BelongingTags
+{
+	Outside = 0, Inside, Boundary
+};
+
 class ObjectBelongingChecker
 {
 public:
@@ -21,8 +21,8 @@ public:
 	ObjectBelongingChecker(std::string name) : name(name) { }
 
 	/**
-	 * Particle with tags == 0 will be copied to pvOut
-	 *                    >= 1 will be copied to pvIn
+	 * Particle with tags == BelongingTags::Outside  will be copied to pvOut
+	 *                    == BelongingTags::Inside   will be copied to pvIn
 	 * Other particles are DROPPED (boundary particles)
 	 */
 	void splitByBelonging(ParticleVector* src, ParticleVector* pvIn, ParticleVector* pvOut, cudaStream_t stream);
@@ -35,7 +35,7 @@ public:
 protected:
 	ObjectVector* ov;
 
-	PinnedBuffer<int> tags;
+	PinnedBuffer<BelongingTags> tags;
 	PinnedBuffer<int> nInside{1}, nOutside{1};
 
 	virtual void tagInner(ParticleVector* pv, CellList* cl, cudaStream_t stream) = 0;

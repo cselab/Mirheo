@@ -11,7 +11,7 @@ public:
 	LocalRBCvector(const int rbcSize, const int nRbcs = 0, cudaStream_t stream = 0) :
 		LocalObjectVector(rbcSize, nRbcs)
 	{
-		dataPerObject["areas_volumes"] = std::unique_ptr<GPUcontainer> (new PinnedBuffer<float2>(nObjects));
+		dataPerObject["area_volumes"] = std::unique_ptr<GPUcontainer> (new PinnedBuffer<float2>(nObjects));
 	}
 
 	virtual ~LocalRBCvector() = default;
@@ -20,14 +20,6 @@ public:
 class RBCvector : public ObjectVector
 {
 public:
-	struct Parameters
-	{
-		float kbT, p, lmax, q, Cq, totArea0, totVolume0, l0, ka, kv, gammaC, gammaT, kb;
-		float kbToverp, cost0kb, sint0kb;
-	};
-
-	Parameters parameters;
-
 	RBCvector(std::string name, float mass, const int objSize, /*ObjectMesh mesh,*/ const int nObjects = 0) :
 		ObjectVector( name, mass, objSize,
 					  new LocalRBCvector(objSize, nObjects),

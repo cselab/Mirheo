@@ -10,8 +10,10 @@
 #include <core/pvs/rigid_ellipsoid_object_vector.h>
 #include <core/pvs/rbc_vector.h>
 
-#include <core/initial_conditions/uniform.h>
-#include <core/initial_conditions/ellipsoid.h>
+#include <core/mesh.h>
+
+#include <core/initial_conditions/uniform_ic.h>
+#include <core/initial_conditions/ellipsoid_ic.h>
 #include <core/initial_conditions/restart.h>
 
 #include <core/integrators/vv.h>
@@ -40,6 +42,7 @@
 #include <core/bouncers/from_mesh.h>
 #include <core/bouncers/from_ellipsoid.h>
 #include <core/object_belonging/ellipsoid_belonging.h>
+#include <core/object_belonging/mesh_belonging.h>
 
 #include <plugins/dumpavg.h>
 #include <plugins/dumpxyz.h>
@@ -85,10 +88,11 @@ private:
 
 		auto objSize   = node.attribute("particles_per_obj").as_int(1);
 
-		auto meshFname = node.attribute("mesh_filename").as_string("rbcmesh.topo");
-		ObjectMesh mesh;// = readMeshTopology(meshFname);
+		auto meshFname = node.attribute("mesh_filename").as_string("rbcmesh.off");
 
-		return (ParticleVector*) new RBCvector(name, mass, objSize);//, mesh);
+		Mesh mesh(meshFname);
+
+		return (ParticleVector*) new ObjectVector(name, mass, objSize);
 	}
 
 public:
@@ -294,17 +298,33 @@ private:
 		return (Interaction*) new InteractionPair<Pairwise_LJObjectAware>(name, rc, ljo);
 	}
 
-//	static Interaction* createMCMCSampler(pugi::xml_node node)
-//	{
-//		auto name = node.attribute("name").as_string("");
-//		auto rc   = node.attribute("rc").as_float(1.0f);
-//
-//		auto a     = node.attribute("a")    .as_float(50);
-//		auto kbT   = node.attribute("kbt")  .as_float(1.0);
-//		auto power = node.attribute("power").as_float(1.0f);
-//
-//		return (Interaction*) new MCMCSampler(name, rc, a, kbT, power);
-//	}
+	static Interaction* createRBC(pugi::xml_node node)
+	{
+		auto name = node.attribute("name").as_string("");
+
+		RBCParameters p;
+
+		p.x0         = node.attribute("x0").as_float();
+		p.p          = node.attribute("p").as_float();
+		p.ka         = node.attribute("ka").as_float();
+		p.kb         = node.attribute("kb").as_float();
+		p.kd         = node.attribute("kd").as_float();
+		p.kv         = node.attribute("kv").as_float();
+		p.gammaC     = node.attribute("gammaC").as_float();
+		p.gammaT     = node.attribute("gammaT").as_float();
+		p.kbT        = node.attribute("kbT").as_float();
+		p.mpow       = node.attribute("mpow").as_float();
+		p.theta      = node.attribute("theta").as_float();
+		p.totArea0   = node.attribute("area").as_float();
+		p.totVolume0 = node.attribute("volume").as_float();
+
+		std::string preset = node.attribute("preset").as_string();
+
+		if (preset == "lina")
+			p = Lina_parameters;
+
+		return (Interaction*) new InteractionRBCMembrane(name, p);
+	}
 
 public:
 	static Interaction* create(pugi::xml_node node)
@@ -317,8 +337,8 @@ public:
 			return createLJ(node);
 		if (type == "lj_object")
 			return createLJ_objectAware(node);
-//		if (type == "sampler")
-//			return createMCMCSampler(node);
+		if (type == "rbc")
+			return createRBC(node);
 
 		die("Unable to parse input at %s, unknown 'type' %s", node.path().c_str(), type.c_str());
 
@@ -451,12 +471,12 @@ public:
 class ObjectBelongingCheckerFactory
 {
 private:
-//	static ObjectBelongingChecker* createMeshBelongingChecker(pugi::xml_node node)
-//	{
-//		auto name = node.attribute("name").as_string("");
-//
-//		return (Bouncer*) new MeshBelongingChecker(name);
-//	}
+	static ObjectBelongingChecker* createMeshBelongingChecker(pugi::xml_node node)
+	{
+		auto name = node.attribute("name").as_string("");
+
+		return (ObjectBelongingChecker*) new MeshBelongingChecker(name);
+	}
 
 	static ObjectBelongingChecker* createEllipsoidBelongingChecker(pugi::xml_node node)
 	{
@@ -470,8 +490,8 @@ public:
 	{
 		std::string type = node.attribute("type").as_string();
 
-//		if (type == "mesh")
-//			return createMeshBelongingChecker(node);
+		if (type == "mesh")
+			return createMeshBelongingChecker(node);
 
 		if (type == "analytical_ellipsoid")
 			return createEllipsoidBelongingChecker(node);

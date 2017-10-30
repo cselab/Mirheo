@@ -4,7 +4,7 @@
 #include <core/simulation.h>
 #include "freeze_particles.h"
 #include <core/interactions/sampler.h>
-#include <core/initial_conditions/uniform.h>
+#include <core/initial_conditions/uniform_ic.h>
 
 #include <core/argument_parser.h>
 

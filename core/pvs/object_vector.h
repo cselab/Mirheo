@@ -4,16 +4,7 @@
 
 #include <core/containers.h>
 #include <core/logger.h>
-
-struct ObjectMesh
-{
-	static const int maxDegree = 7;
-	int nvertices, ntriangles;
-
-	PinnedBuffer<int3> triangles;
-	PinnedBuffer<int> adjacent, adjacent_second;
-};
-
+#include <core/mesh.h>
 
 class LocalObjectVector: public LocalParticleVector
 {
@@ -44,7 +35,7 @@ public:
 	};
 
 
-	virtual void resize(const int np, cudaStream_t stream)
+	void resize(const int np, cudaStream_t stream) override
 	{
 		if (np % objSize != 0)
 			die("Incorrect number of particles in object");
@@ -56,7 +47,7 @@ public:
 			kv.second->resize(nObjects, stream);
 	}
 
-	virtual void resize_anew(const int np)
+	void resize_anew(const int np) override
 	{
 		if (np % objSize != 0)
 			die("Incorrect number of particles in object");
@@ -111,6 +102,10 @@ public:
 		return dataPerObject;
 	}
 
+	virtual PinnedBuffer<Particle>* getMeshVertices(cudaStream_t stream)
+	{
+		return &coosvels;
+	}
 
 
 	virtual ~LocalObjectVector() = default;
@@ -125,7 +120,7 @@ protected:
 
 public:
 	int objSize;
-	ObjectMesh mesh;
+	Mesh mesh;
 
 	ObjectVector(std::string name, float mass, const int objSize, const int nObjects = 0) :
 		ObjectVector( name, mass, objSize,
@@ -133,7 +128,6 @@ public:
 					  new LocalObjectVector(objSize, 0) )
 	{}
 
-	virtual void getMeshWithVertices(ObjectMesh* mesh, PinnedBuffer<Particle>* vertices, cudaStream_t stream);
 	virtual void findExtentAndCOM(cudaStream_t stream);
 
 	LocalObjectVector* local() { return static_cast<LocalObjectVector*>(_local); }

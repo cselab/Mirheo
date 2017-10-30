@@ -8,23 +8,23 @@
 
 __global__ void copyInOut(
 		PVview view,
-		const int* tags,
+		const BelongingTags* tags,
 		Particle* ins, Particle* outs,
 		int* nIn, int* nOut)
 {
 	const int gid = blockIdx.x * blockDim.x + threadIdx.x;
 	if (gid >= view.size) return;
 
-	const int tag = tags[gid];
+	auto tag = tags[gid];
 	const Particle p(view.particles, gid);
 
-	if (tag == 0)
+	if (tag == BelongingTags::Outside)
 	{
 		int dstId = atomicAggInc(nOut);
 		if (outs) outs[dstId] = p;
 	}
 
-	if (tag >= 1)
+	if (tag == BelongingTags::Inside)
 	{
 		int dstId = atomicAggInc(nIn);
 		if (ins)  ins [dstId] = p;
