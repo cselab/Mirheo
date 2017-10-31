@@ -29,6 +29,8 @@ void BounceFromMesh::exec(ParticleVector* pv, CellList* cl, float dt, cudaStream
 
 	int nthreads = 128;
 
+	//ov->findExtentAndCOM(stream);
+
 	OVviewWithOldPartilces objView(ov, activeOV);
 	PVview_withOldParticles pvView(pv, pv->local());
 	MeshView mesh(ov->mesh, activeOV->getMeshVertices(stream));

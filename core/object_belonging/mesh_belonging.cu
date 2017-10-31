@@ -9,7 +9,6 @@
 #include <core/rigid_kernels/rigid_motion.h>
 
 const float tolerance = 1e-6f;
-const float tol2 = 1e-10f;
 
 __device__ __forceinline__ float tetrahedronVolume(float3 a, float3 b, float3 c, float3 d)
 {
@@ -33,7 +32,7 @@ __device__ __forceinline__ int particleInsideTetrahedron(float3 r, float3 v0, fl
 
 	// Volumes sum up, but one of them is 0. Therefore particle is exactly on one side
 	// Another tetrahedron with the same side will also contribute 1
-	if (V0 == 0.0f || V1 == 0.0f || V2 == 0.0f || V3 == 0.0f) return 1;
+	if (V0 < tolerance || V1 < tolerance || V2 < tolerance || V3 < tolerance) return 1;
 
 	return 2;
 }
@@ -63,7 +62,7 @@ __device__ BelongingTags oneParticleInsideMesh(int pid, float3 r, int objId, con
 
 		// If the particle is very close to the boundary
 		// return immediately
-		if ( fabs( dot(r-v1, cross(v2-v1, v3-v1)) ) < tol2 )
+		if ( fabs( dot(r-v1, normalize(cross(v2-v1, v3-v1))) ) < tolerance )
 			return BelongingTags::Boundary;
 
 		// += 2 if inside
