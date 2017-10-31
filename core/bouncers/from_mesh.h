@@ -7,7 +7,7 @@
 class BounceFromMesh : public Bouncer
 {
 protected:
-	static const int bouncePerTri = 2;
+	static const int bouncePerTri = 1;
 
 	PinnedBuffer<int> nCollisions;
 	DeviceBuffer<int2> collisionTable, tmp_collisionTable;

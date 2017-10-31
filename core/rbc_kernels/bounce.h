@@ -97,6 +97,10 @@ __device__ __forceinline__ float4 intersectParticleTriangleBarycentric(
 	auto coo = p.r;
 	auto cooOld = pOld.r;
 
+	// Precompute scaling factor, in order not to normalize every iteration
+	auto n = cross(tr.v1-tr.v0, tr.v2-tr.v0);
+	float n_1 = rsqrtf(dot(n, n));
+
 	auto F = [=] (float lambda) {
 		float lOld = 1.0f - lambda;
 		float l    = lambda;
@@ -106,7 +110,7 @@ __device__ __forceinline__ float4 intersectParticleTriangleBarycentric(
 		float3 r2 = lOld*trOld.v2 + l*tr.v2;
 
 		float3 x = lOld*cooOld + l*coo;
-		return dot( normalize(cross(r1-r0, r2-r0)), x - r0 );
+		return dot( n_1 * cross(r1-r0, r2-r0), x - r0 );
 	};
 
 	float vold = F(0.0f);
@@ -141,7 +145,7 @@ __device__ __forceinline__ float4 intersectParticleTriangleBarycentric(
 }
 
 
-__device__ __forceinline__ void findBouncesInCell(
+__device__  void findBouncesInCell(
 		int pstart, int pend, int globTrid,
 		Triangle tr, Triangle trOld,
 		PVview_withOldParticles pvView, int* nCollisions, int2* collisionTable)
@@ -150,8 +154,9 @@ __device__ __forceinline__ void findBouncesInCell(
 
 	for (int pid=pstart; pid<pend; pid++)
 	{
-		Particle p(pvView.particles, pid);
-		Particle pOld(pvView.old_particles, pid);
+		Particle p, pOld;
+		p.   readCoordinate(pvView.particles, pid);
+		pOld.readCoordinate(pvView.old_particles, pid);
 
 		float oldSign;
 		float4 res = intersectParticleTriangleBarycentric(tr, trOld, p, pOld, oldSign);
@@ -165,28 +170,7 @@ __device__ __forceinline__ void findBouncesInCell(
 	}
 }
 
-
-__device__ inline bool isCellCrossingTriangle(float3 cornerCoo, float3 len, float3 n, float3 r0, float tol)
-{
-	int pos = 0, neg = 0;
-
-#pragma unroll
-	for (int i=0; i<2; i++)
-#pragma unroll
-		for (int j=0; j<2; j++)
-#pragma unroll
-			for (int k=0; k<2; k++)
-			{
-				// Value in the cell corner
-				const float3 shift = make_float3(i ? len.x : 0.0f, j ? len.y : 0.0f, k ? len.z : 0.0f);
-				const float s = dot(n, cornerCoo + shift - r0);
-				if (s >  tol) pos++;
-				if (s < -tol) neg++;
-			}
-
-	return (pos != 8 && neg != 8);
-}
-
+__launch_bounds__(128, 6)
 __global__ void findBouncesInMesh(
 		OVviewWithOldPartilces objView,
 		PVview_withOldParticles pvView,
@@ -214,30 +198,20 @@ __global__ void findBouncesInMesh(
 	const int3 cidLow  = cinfo.getCellIdAlongAxes(lo - tol);
 	const int3 cidHigh = cinfo.getCellIdAlongAxes(hi + tol);
 
-	float3 f0 = make_float3(0.0f);
-	float3 f1 = make_float3(0.0f);
-	float3 f2 = make_float3(0.0f);
-
 	int3 cid3;
-	for (cid3.x = cidLow.x; cid3.x <= cidHigh.x; cid3.x++)
+	for (cid3.z = cidLow.z; cid3.z <= cidHigh.z; cid3.z++)
 		for (cid3.y = cidLow.y; cid3.y <= cidHigh.y; cid3.y++)
-			for (cid3.z = cidLow.z; cid3.z <= cidHigh.z; cid3.z++)
 			{
-				const float3 v000 = make_float3(cid3) * cinfo.h - cinfo.localDomainSize*0.5f;
-				int cid = cinfo.encode(cid3);
-				if (cid < 0 || cid >= cinfo.totcells) continue;
+				cid3.x = cidLow.x;
+				int cidLo = max(cinfo.encode(cid3), 0);
 
-				const bool valid = isCellCrossingTriangle(
-						v000, cinfo.h, cross(trOld.v1-trOld.v0, trOld.v2-trOld.v0), trOld.v0, tol );
+				cid3.x = cidHigh.x;
+				int cidHi = min(cinfo.encode(cid3)+1, cinfo.totcells);
 
-				if (valid)
-				{
-					int pstart = cinfo.cellStarts[cid];
-					int pend = cinfo.cellStarts[cid+1];
+				int pstart = cinfo.cellStarts[cidLo];
+				int pend   = cinfo.cellStarts[cidHi];
 
-					findBouncesInCell(pstart, pend, gid, tr, trOld,
-							pvView, nCollisions, collisionTable);
-				}
+				findBouncesInCell(pstart, pend, gid, tr, trOld, pvView, nCollisions, collisionTable);
 			}
 }
 

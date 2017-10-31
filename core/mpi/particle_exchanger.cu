@@ -114,7 +114,6 @@ void ParticleExchanger::postRecvSize(ExchangeHelper* helper)
 
 /**
  * helper->recvBuf will contain all the data, ON DEVICE already
- * will set and sync recvSizes and recvOffsets as well
  */
 void ParticleExchanger::recv(ExchangeHelper* helper, cudaStream_t stream)
 {
@@ -154,8 +153,8 @@ void ParticleExchanger::recv(ExchangeHelper* helper, cudaStream_t stream)
 		}
 
 	// Start uploading sizes and offsets
-	helper->recvSizes.  uploadToDevice(stream);
-	helper->recvOffsets.uploadToDevice(stream);
+//	helper->recvSizes.  uploadToDevice(stream);
+//	helper->recvOffsets.uploadToDevice(stream);
 
 	// Wait for completion
 	MPI_Check( MPI_Waitall(helper->requests.size(), helper->requests.data(), MPI_STATUSES_IGNORE) );

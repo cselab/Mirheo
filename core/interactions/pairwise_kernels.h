@@ -12,13 +12,6 @@ __device__ __forceinline__ float distance2(const Ta a, const Tb b)
 	return sqr(a.x - b.x) + sqr(a.y - b.y) + sqr(a.z - b.z);
 }
 
-//__device__ __forceinline__ void atomicAdd(float4* dest, float3 v)
-//{
-//	float* fdest = (float*) dest;
-//	atomicAdd(fdest,     v.x);
-//	atomicAdd(fdest + 1, v.y);
-//	atomicAdd(fdest + 2, v.z);
-//}
 
 template<bool NeedDstAcc, bool NeedSrcAcc, bool Self, typename Interaction>
 __device__ __forceinline__ void computeCell(

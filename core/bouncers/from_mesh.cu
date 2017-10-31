@@ -8,6 +8,18 @@
 #include <core/rbc_kernels/bounce.h>
 #include <core/cub/device/device_radix_sort.cuh>
 
+//FIXME this is a hack
+__global__ void backtrack(PVview_withOldParticles view, float dt)
+{
+	int gid = threadIdx.x + blockIdx.x*blockDim.x;
+	if (gid >= view.size) return;
+
+	Particle p(view.particles, gid);
+	p.r -= dt*p.u;
+
+	p.write2Float4(view.old_particles, gid);
+}
+
 /**
  * Firstly find all the collisions and generate array of colliding pairs Pid <--> TRid
  * Work is per-triangle, so only particle cell-lists are needed
@@ -18,8 +30,12 @@
  */
 void BounceFromMesh::exec(ParticleVector* pv, CellList* cl, float dt, cudaStream_t stream, bool local)
 {
-	debug("Bouncing %s particles from %s objects", pv->name.c_str(), ov->name.c_str());
 	auto activeOV = local ? ov->local() : ov->halo();
+
+	debug("Bouncing %d '%s' particles from %d '%s' objects (%s)",
+			pv->local()->size(), pv->name.c_str(),
+			activeOV->nObjects,  ov->name.c_str(),
+			local ? "local" : "halo");
 
 	int totalTriangles = ov->mesh.ntriangles * activeOV->nObjects;
 
@@ -28,6 +44,14 @@ void BounceFromMesh::exec(ParticleVector* pv, CellList* cl, float dt, cudaStream
 	tmp_collisionTable.resize_anew(bouncePerTri*totalTriangles);
 
 	int nthreads = 128;
+
+	// FIXME do the hack
+	PVview_withOldParticles oldview(ov, activeOV);
+	SAFE_KERNEL_LAUNCH(
+			backtrack,
+			getNblocks(totalTriangles, nthreads), nthreads, 0, stream,
+			oldview, dt );
+
 
 	OVviewWithOldPartilces objView(ov, activeOV);
 	PVview_withOldParticles pvView(pv, pv->local());
@@ -38,7 +62,7 @@ void BounceFromMesh::exec(ParticleVector* pv, CellList* cl, float dt, cudaStream
 			findBouncesInMesh,
 			getNblocks(totalTriangles, nthreads), nthreads, 0, stream,
 			objView, pvView, mesh, cl->cellInfo(),
-			nCollisions.devPtr(), collisionTable.devPtr());
+			nCollisions.devPtr(), collisionTable.devPtr() );
 
 	nCollisions.downloadFromDevice(stream);
 	debug("Found %d collisions", nCollisions[0]);

@@ -32,7 +32,8 @@ __device__ __forceinline__ int particleInsideTetrahedron(float3 r, float3 v0, fl
 
 	// Volumes sum up, but one of them is 0. Therefore particle is exactly on one side
 	// Another tetrahedron with the same side will also contribute 1
-	if (V0 < tolerance || V1 < tolerance || V2 < tolerance || V3 < tolerance) return 1;
+	const float vtol = 0.1f*tolerance;
+	if (V0 < vtol || V1 < vtol || V2 < vtol || V3 < vtol) return 1;
 
 	return 2;
 }
@@ -102,8 +103,8 @@ __global__ void insideMesh(const OVview view, const MeshView mesh, CellListInfo 
 
 	if (objId >= view.nObjects) return;
 
-	const int3 cidLow  = cinfo.getCellIdAlongAxes(view.comAndExtents[objId].low  - 0.5f);
-	const int3 cidHigh = cinfo.getCellIdAlongAxes(view.comAndExtents[objId].high + 0.5f);
+	const int3 cidLow  = cinfo.getCellIdAlongAxes(view.comAndExtents[objId].low  - 0.8f);
+	const int3 cidHigh = cinfo.getCellIdAlongAxes(view.comAndExtents[objId].high + 1.0f);
 
 	const int3 span = cidHigh - cidLow + make_int3(1,1,1);
 	const int totCells = span.x * span.y * span.z;
@@ -112,7 +113,7 @@ __global__ void insideMesh(const OVview view, const MeshView mesh, CellListInfo 
 	{
 		const int3 cid3 = make_int3( i % span.x, (i/span.x) % span.y, i / (span.x*span.y) ) + cidLow;
 		const int  cid = cinfo.encode(cid3);
-		if (cid >= cinfo.totcells) continue;
+		if (cid < 0 || cid >= cinfo.totcells) continue;
 
 		int pstart = cinfo.cellStarts[cid];
 		int pend   = cinfo.cellStarts[cid+1];

@@ -210,7 +210,7 @@ PrimaryCellList::PrimaryCellList(ParticleVector* pv, int3 resolution, float3 loc
 
 void PrimaryCellList::build(cudaStream_t stream)
 {
-	warn("Reordering extra data is not yet implemented in cell-lists");
+	//warn("Reordering extra data is not yet implemented in cell-lists");
 
 	if (changedStamp == pv->cellListStamp)
 	{
