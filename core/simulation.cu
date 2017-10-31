@@ -621,7 +621,7 @@ void Simulation::assemble()
 
 	scheduler.addDependency("Clear obj halo forces", {"Object bounce"}, {"Object halo finalize"});
 
-	scheduler.addDependency("Obj forces exchange: init", {}, {"Halo forces", "Internal forces"});
+	scheduler.addDependency("Obj forces exchange: init", {}, {"Halo forces"});
 	scheduler.addDependency("Obj forces exchange: finalize", {"Accumulate forces"}, {"Obj forces exchange: init"});
 
 	scheduler.addDependency("Halo init", {}, {"Plugins: before forces"});

@@ -76,19 +76,17 @@ __global__ void getObjectHalos(const DomainInfo domain, const OVviewWithExtraDat
 		float4* dstAddr = (float4*) ( dataWrap.buffer + ovView.packedObjSize_byte * myOffset );
 		int* partIdsAddr = haloParticleIds + ovView.objSize * myOffset;
 
+		// Save particle origins
+		for (int pid = tid; pid < ovView.objSize; pid += blockDim.x)
+		{
+			const int srcId = objId * ovView.objSize + pid;
+			partIdsAddr[pid] = srcId;
+		}
+
 		for (int pid = tid/2; pid < ovView.objSize; pid += blockDim.x/2)
 		{
 			const int srcId = objId * ovView.objSize + pid;
 			Float3_int data(ovView.particles[2*srcId + sh]);
-
-			// Remember your origin, little particle!
-			if (sh == 1)
-			{
-				partIdsAddr[pid] = srcId;
-
-				data.s2 = objId;
-				data.s1 = pid;
-			}
 
 			if (sh == 0)
 				data.v -= shift;

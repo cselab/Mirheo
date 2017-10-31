@@ -113,19 +113,15 @@ __device__ __forceinline__ float4 intersectParticleTriangleBarycentric(
 	float vnew = F(1.0f);
 	oldSign = vold;
 
-//	int trid = (blockIdx.x * blockDim.x + threadIdx.x);
-//	if (p.i1 == 20886 && trid == 184)
-//		printf(" %d with tr %d: %f  ->  %f\n",
-//					p.i1, trid, vold, vnew);
-
 	// Particle is not crossing
 	// No need for barycentric coordinates, skip it
+	if ( vold*vnew > 0.0f ) return make_float4(-1000.0f, -1000.0f, -1000.0f, 1000.0f);
 
 	// Particle has crossed the triangle plane
 	float alpha = solveLinSearch(F);
 
-//	if (alpha < -0.1f)
-//		printf("Something awful happened with mesh bounce. F0 = %f,  F = %f\n", F(0.0f), F(1.0f));
+	if (alpha < -0.1f)
+		printf("Something awful happened with mesh bounce. F0 = %f,  F = %f\n", F(0.0f), F(1.0f));
 
 	// This is now the collision point with the MOVING triangle
 	float lOld = 1.0f - alpha;
@@ -138,16 +134,6 @@ __device__ __forceinline__ float4 intersectParticleTriangleBarycentric(
 	float3 r2 = lOld*trOld.v2 + l*tr.v2;
 
 	float3 barycentric = computeBarycentric(r0, r1, r2, projected);
-
-
-//	auto C = 0.33333333f*(r0+r1+r2);
-//	if (vold > 0.0f && barycentric.x >= 0.0f && barycentric.y >= 0.0f && barycentric.z >= 0.0f)
-//		printf(" %d with tr %d: %f  ->  %f, OldSign = %f, dist to center: %f. T = %f,  bar_coo = %f %f %f,  real coo: %f %f %f -> %f %f %f\n",
-//				p.i1, (blockIdx.x * blockDim.x + threadIdx.x),
-//				vold, vnew, oldSign, sqrtf(dot(p.r - C, p.r - C)), alpha, barycentric.x, barycentric.y, barycentric.z,
-//				pOld.r.x, pOld.r.y, pOld.r.z, p.r.x, p.r.y, p.r.z);
-
-	if ( vold*vnew > 0.0f ) return make_float4(-1000.0f, -1000.0f, -1000.0f, 1000.0f);
 
 	// Return the barycentric coordinates of the projected position
 	// on the corresponding moving triangle
@@ -217,7 +203,6 @@ __global__ void findBouncesInMesh(
 	const int trid  = gid % mesh.ntriangles;
 	if (objId >= objView.nObjects) return;
 
-
 	const int3 triangle = mesh.triangles[trid];
 	Triangle tr =    readTriangle(objView.particles +     2 * mesh.nvertices*objId, triangle);
 	Triangle trOld = readTriangle(objView.old_particles + 2 * mesh.nvertices*objId, triangle);
@@ -239,12 +224,14 @@ __global__ void findBouncesInMesh(
 			for (cid3.z = cidLow.z; cid3.z <= cidHigh.z; cid3.z++)
 			{
 				const float3 v000 = make_float3(cid3) * cinfo.h - cinfo.localDomainSize*0.5f;
+				int cid = cinfo.encode(cid3);
+				if (cid < 0 || cid >= cinfo.totcells) continue;
+
 				const bool valid = isCellCrossingTriangle(
 						v000, cinfo.h, cross(trOld.v1-trOld.v0, trOld.v2-trOld.v0), trOld.v0, tol );
 
 				if (valid)
 				{
-					int cid = cinfo.encode(cid3);
 					int pstart = cinfo.cellStarts[cid];
 					int pend = cinfo.cellStarts[cid+1];
 
@@ -252,7 +239,6 @@ __global__ void findBouncesInMesh(
 							pvView, nCollisions, collisionTable);
 				}
 			}
-
 }
 
 
@@ -277,8 +263,6 @@ __global__ void performBouncing(
 	const int2 pid_trid = collisionTable[gid];
 	const int2 pid_trid_prev = gid > 0 ? collisionTable[gid-1] : make_int2(-1);
 
-	//printf("GID  %d,  Collsion: p %d vs tr %d\n", gid, pid_trid.x, pid_trid.y);
-
 	if (pid_trid.x == pid_trid_prev.x) return;
 
 	Particle p   (pvView.particles,     pid_trid.x);
@@ -296,9 +280,6 @@ __global__ void performBouncing(
 	{
 		const int2 nextPid_trid = collisionTable[id];
 		if (nextPid_trid.x != pid_trid.x) break;
-
-//		if (id > gid) printf("Found double collision:  p %d tr %d  and  p %d tr %d\n",
-//				pid_trid.x, pid_trid.y, nextPid_trid.x, nextPid_trid.y);
 
 		const int trid  = nextPid_trid.y % mesh.ntriangles;
 		const int objId = nextPid_trid.y / mesh.ntriangles;
@@ -328,11 +309,6 @@ __global__ void performBouncing(
 
 			const float3 n = normalize(cross(tr.v1-tr.v0, tr.v2-tr.v0));
 			corrP.r = coo + eps * n * ((oldSign > 0) ? 5.0f : -5.0f);
-
-//			if (p.i1 == 59451)
-//				printf("%d - %d: new %f, real: %f %f %f\n", p.i1, trid,
-//						dot(corrP.r-tr.v0, normalize(cross(tr.v1-tr.v0, tr.v2-tr.v0))),
-//						corrP.r.x, corrP.r.y, corrP.r.z);
 
 			corrP.u = newV;
 		}

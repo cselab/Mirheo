@@ -152,19 +152,40 @@ void ObjectRedistributor::prepareData(int id, cudaStream_t stream)
 
 	// Finally need to compact the buffers
 	// TODO: remove this, own buffer should be last
-//	if (helper->sendSizes[13] > 0)
-//	{
-//		int oldOffset14 = helper->sendOffsets[14]; // 14 !!
-//		helper->sendSizes[13] = 0;
-//		helper->makeSendOffsets();
-//		CUDA_Check( cudaMemcpyAsync(
-//				helper->sendBuf.devPtr() + helper->sendOffsets[13],
-//				helper->sendBuf.devPtr() + oldOffset14,            /* 14 !! */
-//				(helper->sendOffsets[helper->nBuffers] - helper->sendOffsets[14]) * helper->datumSize,
-//				cudaMemcpyDeviceToDevice, stream));
-//
-//		helper->resizeSendBuf();
-//	}
+	if (helper->sendSizes[13] > 0)
+	{
+		int sizeAfter = helper->sendOffsets[helper->nBuffers] - helper->sendOffsets[14];
+
+		// memory may overlap (very rarely), take care of that
+		if (sizeAfter > helper->sendSizes[13])
+		{
+			DeviceBuffer<char> tmp(sizeAfter * helper->datumSize);
+
+			CUDA_Check( cudaMemcpyAsync(
+					tmp.devPtr(),
+					helper->sendBuf.devPtr() + helper->sendOffsets[14],
+					sizeAfter * helper->datumSize,
+					cudaMemcpyDeviceToDevice, stream));
+
+			CUDA_Check( cudaMemcpyAsync(
+					helper->sendBuf.devPtr() + helper->sendOffsets[13],
+					tmp.devPtr(),
+					sizeAfter * helper->datumSize,
+					cudaMemcpyDeviceToDevice, stream));
+		}
+		else // non-overlapping
+		{
+			CUDA_Check( cudaMemcpyAsync(
+					helper->sendBuf.devPtr() + helper->sendOffsets[13],
+					helper->sendBuf.devPtr() + helper->sendOffsets[14],  /* 14 !! */
+					sizeAfter * helper->datumSize,
+					cudaMemcpyDeviceToDevice, stream));
+		}
+
+		helper->sendSizes[13] = 0;
+		helper->makeSendOffsets();
+		helper->resizeSendBuf();   // resize_anew, but strictly smaller size => fine
+	}
 }
 
 void ObjectRedistributor::combineAndUploadData(int id, cudaStream_t stream)
