@@ -189,7 +189,11 @@ void TaskScheduler::run()
 				{
 					streamNode_it++;
 				}
-				else CUDA_Check( result );
+				else
+				{
+					error("Group '%s' raised an error",  streamNode_it->second->label.c_str());
+					CUDA_Check( result );
+				}
 			}
 		}
 

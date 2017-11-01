@@ -46,7 +46,7 @@ int main(int argc, char ** argv)
 
 	logger.init(MPI_COMM_WORLD, "dpd.log", 9);
 
-	float3 length{64, 64, 64};
+	float3 length{32, 32, 32};
 	float3 domainStart = -length / 2.0f;
 	const float rc = 1.0f;
 	ParticleVector dpds1("dpd1", 1.0f);
@@ -54,9 +54,12 @@ int main(int argc, char ** argv)
 	CellList* cells1 = new PrimaryCellList(&dpds1, rc, length);
 	CellList* cells2 = new PrimaryCellList(&dpds2, rc, length);
 
-	UniformIC ic(8.0);
-	ic.exec(MPI_COMM_WORLD, &dpds1, {0,0,0}, length, 0);
-	//ic.exec(MPI_COMM_WORLD, &dpds2, {0,0,0}, length, 0);
+	UniformIC ic1(8.0);
+	UniformIC ic2(1);
+	ic1.exec(MPI_COMM_WORLD, &dpds1, {length, {0,0,0}, length}, 0);
+	ic2.exec(MPI_COMM_WORLD, &dpds2, {length, {0,0,0}, length}, 0);
+
+	dpds2.local()->resize(dpds2.local()->size(), 0);
 
 	//dpds2.local()->resize(1000, 0);
 
@@ -91,13 +94,13 @@ int main(int argc, char ** argv)
 	Pairwise_DPD dpdInt(rc, adpd, gammadpd, kbT, dt, k);
 	Interaction *inter = new InteractionPair<Pairwise_DPD>("dpd", rc, dpdInt);
 
-	for (int i=0; i<200; i++)
+	for (int i=0; i<10; i++)
 	{
 		dpds1.local()->forces.clear(0);
 		dpds2.local()->forces.clear(0);
 		inter->regular(&dpds1, &dpds1, cells1, cells1, 0, 0);
-		inter->regular(&dpds2, &dpds2, cells2, cells2, 0, 0);
-		inter->regular(&dpds1, &dpds2, cells1, cells2, 0, 0);
+		//inter->regular(&dpds2, &dpds2, cells2, cells2, 0, 0);
+		inter->regular(&dpds2, &dpds1, cells2, cells1, 0, 0);
 
 		cudaDeviceSynchronize();
 	}
@@ -128,6 +131,7 @@ int main(int argc, char ** argv)
 	}
 	printf("Reduced acc: %e %e %e\n\n", a.x, a.y, a.z);
 
+	return 0;
 
 	printf("Checking (this is not necessarily a cubic domain)......\n");
 

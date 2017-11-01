@@ -30,10 +30,10 @@ public:
 
 	void regular(ParticleVector* pv1, ParticleVector* pv2, CellList* cl1, CellList* cl2, const float t, cudaStream_t stream)
 	{
-		if (pv1->local()->size() < pv2->local()->size())
+		//if (pv1->local()->size() < pv2->local()->size())
 			_compute(InteractionType::Regular, pv1, pv2, cl1, cl2, t, stream);
-		else
-			_compute(InteractionType::Regular, pv2, pv1, cl2, cl1, t, stream);
+		//else
+		//	_compute(InteractionType::Regular, pv2, pv1, cl2, cl1, t, stream);
 	}
 
 	void halo(ParticleVector* pv1, ParticleVector* pv2, CellList* cl1, CellList* cl2, const float t, cudaStream_t stream)

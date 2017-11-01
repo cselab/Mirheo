@@ -23,7 +23,7 @@ do{ debug2("Dispatched to "#TPP" thread(s) per particle variant");              
 #define CHOOSE_EXTERNAL(P1, P2, P3, INTERACTION_FUNCTION)                                              \
 do{  if (view.size < 1000  ) { DISPATCH_EXTERNAL(P1, P2, P3, 27, INTERACTION_FUNCTION); }              \
 else if (view.size < 10000 ) { DISPATCH_EXTERNAL(P1, P2, P3, 9,  INTERACTION_FUNCTION); }              \
-else if (view.size < 100000) { DISPATCH_EXTERNAL(P1, P2, P3, 3,  INTERACTION_FUNCTION); }              \
+else if (view.size < 1000000) { DISPATCH_EXTERNAL(P1, P2, P3, 3,  INTERACTION_FUNCTION); }              \
 else                         { DISPATCH_EXTERNAL(P1, P2, P3, 1,  INTERACTION_FUNCTION); } } while(0)
 
 

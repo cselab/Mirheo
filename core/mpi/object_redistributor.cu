@@ -105,6 +105,8 @@ void ObjectRedistributor::attach(ObjectVector* ov, float rc)
 	helpers.push_back(helper);
 }
 
+
+// TODO finally split all this shit
 void ObjectRedistributor::prepareData(int id, cudaStream_t stream)
 {
 	auto ov  = objects[id];
@@ -114,78 +116,87 @@ void ObjectRedistributor::prepareData(int id, cudaStream_t stream)
 	helper->setDatumSize(ovView.packedObjSize_byte);
 
 	debug2("Preparing %s halo on the device", ov->name.c_str());
+	const int nthreads = 256;
 
+	// Prepare sizes
 	helper->sendSizes.clear(stream);
 	if (ovView.nObjects > 0)
 	{
-		const int nthreads = 256;
-
 		SAFE_KERNEL_LAUNCH(
 				getExitingObjects<true>,
 				ovView.nObjects, nthreads, 0, stream,
 				ov->domain, ovView, helper->wrapSendData() );
 
 		helper->makeSendOffsets_Dev2Dev(stream);
-		helper->resizeSendBuf();
-
-		helper->sendSizes.clearDevice(stream);
-		SAFE_KERNEL_LAUNCH(
-				getExitingObjects<false>,
-				lov->nObjects, nthreads, 0, stream,
-				ov->domain, ovView, helper->wrapSendData() );
 	}
 
-	// Unpack the central buffer into the object vector itself if necessary
+
+	// Early termination - no redistribution
 	int nObjs = helper->sendSizes[13];
 
-	if (nObjs != lov->nObjects)
+	if (nObjs == ovView.nObjects)
 	{
-		lov->resize_anew(nObjs*ov->objSize);
-		ovView = OVviewWithExtraData(ov, ov->local(), stream);
-
-		const int nthreads = 128;
-		SAFE_KERNEL_LAUNCH(
-				unpackObject,
-				nObjs, nthreads, 0, stream,
-				helper->sendBuf.devPtr() + helper->sendOffsets[13] * ovView.packedObjSize_byte, 0, ovView );
+		helper->sendSizes[13] = 0;
+		helper->makeSendOffsets();
+		return;
 	}
+
+
+	// Gather data
+	helper->resizeSendBuf();
+	helper->sendSizes.clearDevice(stream);
+	SAFE_KERNEL_LAUNCH(
+			getExitingObjects<false>,
+			lov->nObjects, nthreads, 0, stream,
+			ov->domain, ovView, helper->wrapSendData() );
+
+
+	// Unpack the central buffer into the object vector itself
+	lov->resize_anew(nObjs*ov->objSize);
+	ovView = OVviewWithExtraData(ov, ov->local(), stream);
+
+	SAFE_KERNEL_LAUNCH(
+			unpackObject,
+			nObjs, nthreads, 0, stream,
+			helper->sendBuf.devPtr() + helper->sendOffsets[13] * ovView.packedObjSize_byte, 0, ovView );
+
 
 	// Finally need to compact the buffers
 	// TODO: remove this, own buffer should be last
-	if (helper->sendSizes[13] > 0)
-	{
-		int sizeAfter = helper->sendOffsets[helper->nBuffers] - helper->sendOffsets[14];
-
-		// memory may overlap (very rarely), take care of that
-		if (sizeAfter > helper->sendSizes[13])
-		{
-			DeviceBuffer<char> tmp(sizeAfter * helper->datumSize);
-
-			CUDA_Check( cudaMemcpyAsync(
-					tmp.devPtr(),
-					helper->sendBuf.devPtr() + helper->sendOffsets[14],
-					sizeAfter * helper->datumSize,
-					cudaMemcpyDeviceToDevice, stream));
-
-			CUDA_Check( cudaMemcpyAsync(
-					helper->sendBuf.devPtr() + helper->sendOffsets[13],
-					tmp.devPtr(),
-					sizeAfter * helper->datumSize,
-					cudaMemcpyDeviceToDevice, stream));
-		}
-		else // non-overlapping
-		{
-			CUDA_Check( cudaMemcpyAsync(
-					helper->sendBuf.devPtr() + helper->sendOffsets[13],
-					helper->sendBuf.devPtr() + helper->sendOffsets[14],  /* 14 !! */
-					sizeAfter * helper->datumSize,
-					cudaMemcpyDeviceToDevice, stream));
-		}
-
-		helper->sendSizes[13] = 0;
-		helper->makeSendOffsets();
-		helper->resizeSendBuf();   // resize_anew, but strictly smaller size => fine
-	}
+//	if (helper->sendSizes[13] > 0)
+//	{
+//		int sizeAfter = helper->sendOffsets[helper->nBuffers] - helper->sendOffsets[14];
+//
+//		// memory may overlap (very rarely), take care of that
+//		if (sizeAfter > helper->sendSizes[13])
+//		{
+//			DeviceBuffer<char> tmp(sizeAfter * helper->datumSize);
+//
+//			CUDA_Check( cudaMemcpyAsync(
+//					tmp.devPtr(),
+//					helper->sendBuf.devPtr() + helper->sendOffsets[14],
+//					sizeAfter * helper->datumSize,
+//					cudaMemcpyDeviceToDevice, stream));
+//
+//			CUDA_Check( cudaMemcpyAsync(
+//					helper->sendBuf.devPtr() + helper->sendOffsets[13],
+//					tmp.devPtr(),
+//					sizeAfter * helper->datumSize,
+//					cudaMemcpyDeviceToDevice, stream));
+//		}
+//		else // non-overlapping
+//		{
+//			CUDA_Check( cudaMemcpyAsync(
+//					helper->sendBuf.devPtr() + helper->sendOffsets[13],
+//					helper->sendBuf.devPtr() + helper->sendOffsets[14],  /* 14 !! */
+//					sizeAfter * helper->datumSize,
+//					cudaMemcpyDeviceToDevice, stream));
+//		}
+//
+//		helper->sendSizes[13] = 0;
+//		helper->makeSendOffsets();
+//		helper->resizeSendBuf();   // resize_anew, but strictly smaller size => fine
+//	}
 }
 
 void ObjectRedistributor::combineAndUploadData(int id, cudaStream_t stream)

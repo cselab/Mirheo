@@ -652,6 +652,8 @@ void Simulation::assemble()
 
 	scheduler.setHighPriority("Obj forces exchange: init");
 	scheduler.setHighPriority("Halo init");
+	//scheduler.setHighPriority("Halo finalize");
+	scheduler.setHighPriority("Halo forces");
 	scheduler.setHighPriority("Plugins: serialize and send");
 
 	scheduler.compile();
@@ -666,6 +668,7 @@ void Simulation::run(int nsteps)
 	scheduler.forceExec("Object halo init");
 	scheduler.forceExec("Object halo finalize");
 	scheduler.forceExec("Clear obj halo forces");
+	scheduler.forceExec("Clear obj local forces");
 
 	// Halo extents
 	scheduler.forceExec("Object extents");
