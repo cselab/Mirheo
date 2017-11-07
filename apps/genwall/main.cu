@@ -174,8 +174,40 @@ static Interaction* createMCMCSampler(pugi::xml_node node, const InsideWallCheck
 	auto kbT   = node.attribute("kbt")  .as_float(1.0);
 	auto power = node.attribute("power").as_float(1.0f);
 
+	float minVal = -3;
+	float maxVal = 4;
+
 	return (Interaction*) new MCMCSampler<InsideWallChecker>(
-			name, rc, a, kbT, power, insideWallChecker );
+			name, rc, a, kbT, power, minVal, maxVal, insideWallChecker );
+}
+
+static Interaction* createMCMCSamplerWrapper(pugi::xml_node node, Wall* wall)
+{
+	{
+		auto w = dynamic_cast< SimpleStationaryWall<StationaryWall_Cylinder>* >(wall);
+		if (w != nullptr)
+			return createMCMCSampler<StationaryWall_Cylinder> (node, w->getChecker());
+	}
+
+	{
+		auto w = dynamic_cast< SimpleStationaryWall<StationaryWall_Sphere>* >(wall);
+		if (w != nullptr)
+			return createMCMCSampler<StationaryWall_Sphere> (node, w->getChecker());
+	}
+
+	{
+		auto w = dynamic_cast< SimpleStationaryWall<StationaryWall_SDF>* >(wall);
+		if (w != nullptr)
+			return createMCMCSampler<StationaryWall_SDF> (node, w->getChecker());
+	}
+
+	{
+		auto w = dynamic_cast< SimpleStationaryWall<StationaryWall_Plane>* >(wall);
+		if (w != nullptr)
+			return createMCMCSampler<StationaryWall_Plane> (node, w->getChecker());
+	}
+
+	return nullptr;
 }
 
 
@@ -206,7 +238,7 @@ int main(int argc, char** argv)
 		parser.parse(argc, argv);
 	}
 
-	logger.init(MPI_COMM_WORLD, "genwall.log", 9);
+	logger.init(MPI_COMM_WORLD, "genwall.log", 6);
 
 	pugi::xml_document config;
 	pugi::xml_parse_result result = config.load_file(xmlname.c_str());
@@ -231,6 +263,7 @@ int main(int argc, char** argv)
 		auto final      = std::make_unique<ParticleVector>(wallGenNode.attribute("name").as_string("final"), 1.0);
 		auto ic         = std::make_unique<UniformIC>     (wallGenNode.attribute("density").as_float(4));
 
+
 		// Generate pv, but don't register it
 		ic->exec(sim->getCartComm(), startingPV.get(), sim->domain, 0);
 
@@ -241,6 +274,11 @@ int main(int argc, char** argv)
 		// Produce new pv out of particles inside the wall
 		freezeParticlesWrapper(wall.get(), startingPV.get(), wallPV.get(), -3, 4);
 		sim->registerParticleVector(wallPV.get(), nullptr);
+
+		// Sampler
+		auto sampler = std::unique_ptr<Interaction>( createMCMCSamplerWrapper(wallGenNode, wall.get()) );
+		sim->registerInteraction(sampler.get());
+		sim->setInteraction(sampler->name, "wall", "wall");
 
 		sim->init();
 		sim->run(nepochs);

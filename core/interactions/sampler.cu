@@ -5,6 +5,11 @@
 #include <core/celllist.h>
 #include <core/utils/cuda_rng.h>
 
+#include <core/walls/stationary_walls/cylinder.h>
+#include <core/walls/stationary_walls/sdf.h>
+#include <core/walls/stationary_walls/sphere.h>
+#include <core/walls/stationary_walls/plane.h>
+
 
 #include "pairwise_kernels.h"
 
@@ -91,14 +96,14 @@ __global__ void mcmcSample(int3 shift,
 	for (int i=0; i<pend-pstart; i++)
 	{
 		// Random particle, 3x random translations, acc probability = 5 rands
-		const float rnd0 = Saru::uniform01(seed, cid, pstart);
-		const float rnd1 = Saru::uniform01(rnd0, cid, pstart);
-		const float rnd2 = Saru::uniform01(rnd1, cid, pstart);
-		const float rnd3 = Saru::uniform01(rnd2, cid, pstart);
-		const float rnd4 = Saru::uniform01(rnd3, cid, pstart);
+		const float rnd0 = Saru::uniform01(seed, cid, i+1);
+		const float rnd1 = Saru::uniform01(rnd0, cid, i+1);
+		const float rnd2 = Saru::uniform01(rnd1, cid, i+1);
+		const float rnd3 = Saru::uniform01(rnd2, cid, i+1);
+		const float rnd4 = Saru::uniform01(rnd3, cid, i+1);
 
 		// Choose one random particle
-		int pid = pstart + floorf(rnd0 * pend-pstart);
+		int pid = pstart + floorf(rnd0 * (pend-pstart));
 		Particle p0(view.particles, pid);
 
 		// Just not the one initially in halo
@@ -110,11 +115,11 @@ __global__ void mcmcSample(int3 shift,
 		int3 cell_new = cinfo.getCellIdAlongAxes(pnew.r);
 
 		// Reject if the particle left sdf-bounded domain
-		const float val = checker(p0.r, view);
-		const float val_new = checker(pnew.r, view);
+		const float val = checker(p0.r);
+		const float val_new = checker(pnew.r);
 		if (val_new <= minVal || val_new >= maxVal)
 		{
-			atomicAggInc(nRejected);
+			atomicAggInc<3>(nRejected);
 			return;
 		}
 
@@ -265,15 +270,17 @@ void MCMCSampler<InsideWallChecker>::_compute(
 						PVview(combined, combined->local()), combinedCL->cellInfo(),
 						rc, rc2, power, kbT, drand48(),
 						minVal, maxVal,
-						proposalFactor, nAccepted.devPtr(), nRejected.devPtr(), potential, insideWallChecker );
-
-				cudaDeviceSynchronize();
+						proposalFactor, nAccepted.devPtr(), nRejected.devPtr(), potential, insideWallChecker.handler() );
 			}
+
+	CUDA_Check( cudaDeviceSynchronize() );
 
 	// Update the proposalFactor
 	nAccepted.downloadFromDevice(stream);
 	nRejected.downloadFromDevice(stream);
 	float prob = (float)nAccepted[0] / (nAccepted[0] + nRejected[0]);
+	proposalFactor *= prob < 0.5 ? 0.9 : 1.1;
+	proposalFactor = min(0.4, max(0.01, proposalFactor));
 
 	debug("MCMC yielded %f acceptance probability, proposal scaling factor changed to %f", prob, proposalFactor);
 
@@ -312,3 +319,10 @@ void MCMCSampler<InsideWallChecker>::_compute(
 
 	cl1->build(stream);
 }
+
+
+template class MCMCSampler<StationaryWall_Sphere>;
+template class MCMCSampler<StationaryWall_Cylinder>;
+template class MCMCSampler<StationaryWall_SDF>;
+template class MCMCSampler<StationaryWall_Plane>;
+

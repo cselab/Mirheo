@@ -147,6 +147,12 @@ namespace Logistic
 	// square root of 2
 	const static float sqrt2 = 1.41421356237309514547;
 
+	__inline__ __device__ float uniform01( float seed, int i, int j )
+	{
+		float val = mean0var1(seed, i, j) * (0.5f/sqrt2) + 0.5f;
+		return max(0.0f, min(1.0f, val));
+	}
+
 	__inline__ __device__ float mean0var1( float seed, int u, int v )
 	{
 		float p = rem( ( ( u & 0x3FF ) * gold ) + u * bronze + ( ( v & 0x3FF ) * silver ) + v * tin ); // safe for large u or v
