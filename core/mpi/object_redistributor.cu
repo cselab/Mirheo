@@ -219,6 +219,9 @@ void ObjectRedistributor::combineAndUploadData(int id, cudaStream_t stream)
 			helper->recvBuf.devPtr(), oldNObjs, ovView );
 
 	ov->redistValid = true;
+
+	// Particles may have migrated, rebuild cell-lists
+	if (totalRecvd > 0)	ov->cellListStamp++;
 }
 
 
