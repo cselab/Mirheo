@@ -33,12 +33,17 @@ fxdmf = open(fxdmfName, 'w')
 datastr = ''
 
 for a in avgSets:
-	datastr += '''			<Attribute Name="%s" AttributeType="Scalar" Center="Cell">
+
+	type="Scalar"
+	if len(a.shape) > 3 and a.shape[3] == 3:
+		type="Vector"
+
+	datastr += '''			<Attribute Name="%s" AttributeType="%s" Center="Cell">
 				<DataItem Dimensions="%d %d %d" NumberType="Float" Precision="4" Format="HDF">
 					%s:%s
 				</DataItem>
 			</Attribute>
-''' % (str(a.name)[1:], a.shape[0], a.shape[1], a.shape[2], foutShortName, str(a.name))
+''' % (str(a.name)[1:], type, a.shape[0], a.shape[1], a.shape[2], foutShortName, str(a.name))
 
 s = '''<?xml version="1.0" ?>
 <!DOCTYPE Xdmf SYSTEM "Xdmf.dtd" []>
