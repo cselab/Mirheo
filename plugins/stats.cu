@@ -7,7 +7,7 @@
 #include <core/utils/kernel_launch.h>
 
 
-__global__ void totalMomentumEnergy(PVview view, ReductionType* momentum, ReductionType* energy)
+__global__ void totalMomentumEnergy(PVview view, ReductionType* momentum, ReductionType* energy, float* maxvel)
 {
 	const int tid = blockIdx.x * blockDim.x + threadIdx.x;
 	const int wid = tid % warpSize;
@@ -21,12 +21,16 @@ __global__ void totalMomentumEnergy(PVview view, ReductionType* momentum, Reduct
 	myMomentum = warpReduce(myMomentum, [](float a, float b) { return a+b; });
 	myEnergy   = warpReduce(myEnergy,   [](float a, float b) { return a+b; });
 
+	float myMaxIvelI = warpReduce(length(vel), [](float a, float b) { return max(a, b); });
+
 	if (wid == 0)
 	{
 		atomicAdd(momentum+0, (ReductionType)myMomentum.x);
 		atomicAdd(momentum+1, (ReductionType)myMomentum.y);
 		atomicAdd(momentum+2, (ReductionType)myMomentum.z);
 		atomicAdd(energy,     (ReductionType)myEnergy);
+
+		atomicMax((int*)maxvel, __float_as_int(myMaxIvelI));
 	}
 }
 
@@ -44,6 +48,7 @@ void SimulationStats::afterIntegration(cudaStream_t stream)
 
 	momentum.clear(stream);
 	energy  .clear(stream);
+	maxvel  .clear(stream);
 
 	nparticles = 0;
 	for (auto& pv : pvs)
@@ -53,13 +58,14 @@ void SimulationStats::afterIntegration(cudaStream_t stream)
 		SAFE_KERNEL_LAUNCH(
 				totalMomentumEnergy,
 				getNblocks(view.size, 128), 128, 0, stream,
-				view, momentum.devPtr(), energy.devPtr() );
+				view, momentum.devPtr(), energy.devPtr(), maxvel.devPtr() );
 
 		nparticles += view.size;
 	}
 
 	momentum.downloadFromDevice(stream, false);
-	energy  .downloadFromDevice(stream);
+	energy  .downloadFromDevice(stream, false);
+	maxvel  .downloadFromDevice(stream);
 
 	needToDump = true;
 }
@@ -69,8 +75,8 @@ void SimulationStats::serializeAndSend(cudaStream_t stream)
 	if (needToDump)
 	{
 		float tm = timer.elapsedAndReset() / (currentTimeStep < fetchEvery ? 1.0f : fetchEvery);
-		SimpleSerializer::serialize(sendBuffer, tm, currentTime, currentTimeStep, nparticles, momentum, energy);
-		send(sendBuffer.data(), sendBuffer.size());
+		SimpleSerializer::serialize(sendBuffer, tm, currentTime, currentTimeStep, nparticles, momentum, energy, maxvel);
+		send(sendBuffer);
 		needToDump = false;
 	}
 }
@@ -91,12 +97,15 @@ void PostprocessStats::deserialize(MPI_Status& stat)
 	float currentTime, realTime;
 	int nparticles, currentTimeStep;
 	std::vector<ReductionType> momentum, energy;
+	std::vector<float> maxvel;
 
-	SimpleSerializer::deserialize(data, realTime, currentTime, currentTimeStep, nparticles, momentum, energy);
+	SimpleSerializer::deserialize(data, realTime, currentTime, currentTimeStep, nparticles, momentum, energy, maxvel);
 
     MPI_Check( MPI_Reduce(rank == 0 ? MPI_IN_PLACE : &nparticles,     &nparticles,     1, MPI_INT,          MPI_SUM, 0, comm) );
     MPI_Check( MPI_Reduce(rank == 0 ? MPI_IN_PLACE : energy.data(),   energy.data(),   1, mpiReductionType, MPI_SUM, 0, comm) );
     MPI_Check( MPI_Reduce(rank == 0 ? MPI_IN_PLACE : momentum.data(), momentum.data(), 3, mpiReductionType, MPI_SUM, 0, comm) );
+
+    MPI_Check( MPI_Reduce(rank == 0 ? MPI_IN_PLACE : maxvel.data(),   maxvel.data(),   1, MPI_FLOAT,        MPI_SUM, 0, comm) );
 
     MPI_Check( MPI_Reduce(rank == 0 ? MPI_IN_PLACE : &realTime,       &realTime,       1, MPI_FLOAT,        MPI_MAX, 0, comm) );
 
@@ -111,6 +120,7 @@ void PostprocessStats::deserialize(MPI_Status& stat)
     	printf("\tOne timespep takes %.2f ms", realTime);
     	printf("\tTotal number of particles: %d\n", nparticles);
     	printf("\tAverage momentum: [%e %e %e]\n", momentum[0], momentum[1], momentum[2]);
+    	printf("\tMax velocity magnitude: %f\n", maxvel[0]);
     	printf("\tTemperature: %.4f\n\n", temperature);
     }
 }
