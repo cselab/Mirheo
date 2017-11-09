@@ -11,6 +11,7 @@
 #include <core/walls/stationary_walls/sphere.h>
 #include <core/walls/stationary_walls/plane.h>
 #include <core/walls/stationary_walls/sdf.h>
+#include <core/walls/stationary_walls/box.h>
 
 
 template<bool QUERY, typename InsideWallChecker>
@@ -92,6 +93,12 @@ void freezeParticlesWrapper(Wall* wall, ParticleVector* pv, ParticleVector* froz
 		auto w = dynamic_cast< SimpleStationaryWall<StationaryWall_Plane>* >(wall);
 		if (w != nullptr)
 			freezeParticlesInWall<StationaryWall_Plane> (w->getChecker(), pv, frozen, minVal, maxVal);
+	}
+
+	{
+		auto w = dynamic_cast< SimpleStationaryWall<StationaryWall_Box>* >(wall);
+		if (w != nullptr)
+			freezeParticlesInWall<StationaryWall_Box> (w->getChecker(), pv, frozen, minVal, maxVal);
 	}
 }
 

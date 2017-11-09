@@ -22,7 +22,8 @@ LINK_DEBUG_FLAGS += $(LDFLAGS) -O0
 SRC_DIR = $(UDEVICEX_PATH)/core $(UDEVICEX_PATH)/core/bouncers $(UDEVICEX_PATH)/core/initial_conditions \
 	$(UDEVICEX_PATH)/core/integrators $(UDEVICEX_PATH)/core/interactions $(UDEVICEX_PATH)/core/mpi \
 	$(UDEVICEX_PATH)/core/pvs $(UDEVICEX_PATH)/core/walls $(UDEVICEX_PATH)/core/walls/stationary_walls \
-	$(UDEVICEX_PATH)/core/xml $(UDEVICEX_PATH)/core/object_belonging $(UDEVICEX_PATH)/plugins $(UDEVICEX_PATH)/core/utils ./
+	$(UDEVICEX_PATH)/core/xml $(UDEVICEX_PATH)/core/object_belonging $(UDEVICEX_PATH)/plugins $(UDEVICEX_PATH)/core/utils \
+	$(UDEVICEX_PATH)/core/parser ./
 
 BIN_DIR = bin
 DEBUG_DIR = debug

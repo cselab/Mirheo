@@ -19,6 +19,7 @@
 #include "stationary_walls/sdf.h"
 #include "stationary_walls/sphere.h"
 #include "stationary_walls/plane.h"
+#include "stationary_walls/box.h"
 
 //===============================================================================================
 // Removing kernels
@@ -382,6 +383,7 @@ template class SimpleStationaryWall<StationaryWall_Sphere>;
 template class SimpleStationaryWall<StationaryWall_Cylinder>;
 template class SimpleStationaryWall<StationaryWall_SDF>;
 template class SimpleStationaryWall<StationaryWall_Plane>;
+template class SimpleStationaryWall<StationaryWall_Box>;
 
 
 
