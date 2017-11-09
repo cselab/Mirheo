@@ -47,7 +47,7 @@ __device__ __forceinline__ void bounceCellArray(
 
 		// This is intersection point
 		float alpha = solveLinSearch( [=] (const float lambda) { return ellipsoidF(oldCoo + dr*lambda, invAxes);} );
-		float3 newCoo = oldCoo + dr*min(alpha, 0.0f);
+		float3 newCoo = oldCoo + dr*max(alpha, 0.0f);
 
 		// Push out a little bit
 		float3 normal = normalize(make_float3(
@@ -118,7 +118,7 @@ __global__ void bounceEllipsoid(REOVview_withOldMotion ovView, PVview_withOldPar
 	// About max travel distance per step + safety
 	// Safety comes from the fact that bounce works with the analytical shape,
 	//  and extent is computed w.r.t. particles
-	const int tol = 0.5f;
+	const int tol = 1.5f;
 
 	const int objId = blockIdx.x;
 	const int tid = threadIdx.x;
