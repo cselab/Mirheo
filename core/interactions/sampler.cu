@@ -9,6 +9,7 @@
 #include <core/walls/stationary_walls/sdf.h>
 #include <core/walls/stationary_walls/sphere.h>
 #include <core/walls/stationary_walls/plane.h>
+#include <core/walls/stationary_walls/box.h>
 
 
 #include "pairwise_kernels.h"
@@ -325,4 +326,5 @@ template class MCMCSampler<StationaryWall_Sphere>;
 template class MCMCSampler<StationaryWall_Cylinder>;
 template class MCMCSampler<StationaryWall_SDF>;
 template class MCMCSampler<StationaryWall_Plane>;
+template class MCMCSampler<StationaryWall_Box>;
 
