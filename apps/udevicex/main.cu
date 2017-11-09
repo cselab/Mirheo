@@ -1,7 +1,7 @@
 #include <core/argument_parser.h>
 
 #include <core/udevicex.h>
-#include <core/parser.h>
+#include <core/parser/parser.h>
 
 Logger logger;
 
