@@ -8,32 +8,28 @@
 #include <core/rigid_kernels/quaternion.h>
 #include <core/rigid_kernels/rigid_motion.h>
 
-const float tolerance = 1e-6f;
+const float tolerance = 1e-7f;
 
-__device__ __forceinline__ float tetrahedronVolume(float3 a, float3 b, float3 c, float3 d)
+__device__ __forceinline__ float whichTriangSide(float3 r, float3 a, float3 b, float3 c)
 {
-	// https://en.wikipedia.org/wiki/Tetrahedron#Volume
-	return fabs( (1.0f/6.0f) * dot(a-d, cross(b-d, c-d)) );
+	return dot(r-a, cross(b-a, c-a));
 }
 
-
+// Mesh normals look INSIDE
 __device__ __forceinline__ int particleInsideTetrahedron(float3 r, float3 v0, float3 v1, float3 v2, float3 v3)
 {
-	float V = tetrahedronVolume(v0, v1, v2, v3);
+	float s0 = whichTriangSide(r,  v2, v1, v3);
+	float s1 = whichTriangSide(r,  v0, v1, v2);
+	float s2 = whichTriangSide(r,  v0, v2, v3);
+	float s3 = whichTriangSide(r,  v0, v3, v1);
 
-	float V0 = tetrahedronVolume(r,  v1, v2, v3);
-	float V1 = tetrahedronVolume(v0,  r, v2, v3);
-	float V2 = tetrahedronVolume(v0, v1,  r, v3);
-	float V3 = tetrahedronVolume(v0, v1, v2,  r);
+	if (s0 < 0 || s1 < 0 || s2 < 0 || s3 < 0)
+		return 0;
 
-	if (fabs(V - (V0+V1+V2+V3)) > tolerance) return 0;
-
-//	printf("%e  %e %e %e %e  %e\n", V, V0, V1, V2, V3, V0+V1+V2+V3);
-
-	// Volumes sum up, but one of them is 0. Therefore particle is exactly on one side
-	// Another tetrahedron with the same side will also contribute 1
-	const float vtol = 0.1f*tolerance;
-	if (V0 < vtol || V1 < vtol || V2 < vtol || V3 < vtol) return 1;
+//	if (fabs(s0) < tolerance) return 1;
+//	if (fabs(s1) < tolerance) return 1;
+//	if (fabs(s2) < tolerance) return 1;
+//	if (fabs(s3) < tolerance) return 1;
 
 	return 2;
 }
@@ -53,7 +49,7 @@ __device__ BelongingTags oneParticleInsideMesh(int pid, float3 r, int objId, con
 
 	for (int i = __laneid(); i < mesh.ntriangles; i += warpSize)
 	{
-		float3 v0 = make_float3(0);
+		float3 v0 = make_float3(0.0f);
 
 		int3 trid = mesh.triangles[i];
 
@@ -63,7 +59,7 @@ __device__ BelongingTags oneParticleInsideMesh(int pid, float3 r, int objId, con
 
 		// If the particle is very close to the boundary
 		// return immediately
-		if ( fabs( dot(r-v1, normalize(cross(v2-v1, v3-v1))) ) < tolerance )
+		if ( fabs( dot(r-v1, normalize(cross(v2-v1, v3-v1))) ) < 50*tolerance )
 			return BelongingTags::Boundary;
 
 		// += 2 if inside
@@ -103,8 +99,8 @@ __global__ void insideMesh(const OVview view, const MeshView mesh, CellListInfo 
 
 	if (objId >= view.nObjects) return;
 
-	const int3 cidLow  = cinfo.getCellIdAlongAxes(view.comAndExtents[objId].low  - 0.8f);
-	const int3 cidHigh = cinfo.getCellIdAlongAxes(view.comAndExtents[objId].high + 1.0f);
+	const int3 cidLow  = cinfo.getCellIdAlongAxes(view.comAndExtents[objId].low  - 0.5f);
+	const int3 cidHigh = cinfo.getCellIdAlongAxes(view.comAndExtents[objId].high + 0.5f);
 
 	const int3 span = cidHigh - cidLow + make_int3(1,1,1);
 	const int totCells = span.x * span.y * span.z;
@@ -123,7 +119,10 @@ __global__ void insideMesh(const OVview view, const MeshView mesh, CellListInfo 
 			const Particle p(cinfo.particles, pid);
 
 			auto tag = oneParticleInsideMesh(pid, p.r, objId, view.comAndExtents[objId].com, mesh);
-			if (__laneid() == 0) tags[pid] = tag;
+
+			// Only tag particles inside, default is outside anyways
+			if (__laneid() == 0 && tag != BelongingTags::Outside)
+				tags[pid] = tag;
 		}
 	}
 }
