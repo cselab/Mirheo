@@ -34,11 +34,11 @@ private:
 	{
 		auto name   = node.attribute("name").as_string("");
 
-		auto high   = node.attribute("high").as_float3();
 		auto low    = node.attribute("low") .as_float3();
+		auto high   = node.attribute("high").as_float3();
 		auto inside = node.attribute("inside").as_bool(false);
 
-		StationaryWall_Box box(high, low, inside);
+		StationaryWall_Box box(low, high, inside);
 
 		return (Wall*) new SimpleStationaryWall<StationaryWall_Box>(name, std::move(box));
 	}
@@ -97,7 +97,7 @@ public:
 		if (type == "sphere")
 			return createSphereWall(node);
 		if (type == "box")
-			return createSphereWall(node);
+			return createBoxWall(node);
 		if (type == "plane")
 			return createPlaneWall(node);
 		if (type == "sdf")

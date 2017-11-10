@@ -9,8 +9,8 @@ class ParticleVector;
 class StationaryWall_Box
 {
 public:
-	StationaryWall_Box(float3 hi, float3 lo, bool inside) :
-		hi(hi), lo(lo), inside(inside)
+	StationaryWall_Box(float3 lo, float3 hi, bool inside) :
+		lo(lo), hi(hi), inside(inside)
 	{	}
 
 	void setup(MPI_Comm& comm, DomainInfo domain) { this->domain = domain; }
@@ -21,23 +21,18 @@ public:
 	{
 		float3 gr = domain.local2global(coo);
 
-		float3 dist3;
-		float3 d1 = gr - lo;
-		float3 d2 = hi - gr;
+		float3 dist3 = fminf(fabs(gr - lo), fabs(hi - gr));
+		float dist = min(dist3.x, min(dist3.y, dist3.z));
 
-		dist3.x = fabs(d1.x) < fabs(d2.x) ? d1.x : d2.x;
-		dist3.y = fabs(d1.y) < fabs(d2.y) ? d1.y : d2.y;
-		dist3.z = fabs(d1.z) < fabs(d2.z) ? d1.z : d2.z;
+		float sign = 1.0f;
+		if (lo.x < gr.x && gr.x < hi.x  &&  lo.y < gr.y && gr.y < hi.y  &&  lo.z < gr.z && gr.z < hi.z)
+			sign = -1.0f;
 
-		float dist = dist3.x;
-		if (fabs(dist) > fabs(dist3.y)) dist = dist3.y;
-		if (fabs(dist) > fabs(dist3.z)) dist = dist3.z;
-
-		return inside ? dist : -dist;
+		return inside ? sign*dist : -sign*dist;
 	}
 
 private:
-	float3 hi, lo;
+	float3 lo, hi;
 	bool inside;
 
 	DomainInfo domain;
