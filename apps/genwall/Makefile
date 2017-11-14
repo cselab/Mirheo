@@ -8,8 +8,8 @@ objects = main.o argument_parser.o celllist.o simulation.o task_scheduler.o pugi
 	sampler.o \
 	particle_exchanger.o particle_halo_exchanger.o particle_redistributor.o object_halo_exchanger.o object_redistributor.o object_forces_reverse_exchanger.o \
 	belonging.o \
-	particle_vector.o object_vector.o sdf.o \
-	simple_stationary_wall.o \
+	particle_vector.o object_vector.o \
+	simple_stationary_wall.o wall_with_velocity.o sdf.o \
 	freeze_particles.o
 		
 include ../../makefiles/Makefile.base

@@ -223,7 +223,7 @@ __global__ void checkInside(PVview view, int* nInside, const InsideWallChecker c
 //===============================================================================================
 
 template<class InsideWallChecker>
-void SimpleStationaryWall<InsideWallChecker>::setup(MPI_Comm& comm, DomainInfo domain)
+void SimpleStationaryWall<InsideWallChecker>::setup(MPI_Comm& comm, DomainInfo domain, ParticleVector* jointPV)
 {
 	info("Setting up wall %s", name.c_str());
 

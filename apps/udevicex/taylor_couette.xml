@@ -1,0 +1,71 @@
+<?xml version="1.0"?>
+<simulation name="couette" logfile="log" mpi_ranks="1 1 1" debug_lvl="6">
+
+	<domain size="64 64 16" />
+	
+	<particle_vector type="regular" name="dpd" mass="1">
+		<generate type="uniform" density="8" />
+	</particle_vector>
+	
+	<!--
+		Walls section
+	-->
+	
+	<particle_vector type="regular" name="inner" mass="1">
+		<generate type="restart" path="restart/" />
+	</particle_vector>
+	
+	<particle_vector type="regular" name="outer" mass="1">
+		<generate type="restart" path="restart/" />
+	</particle_vector>
+	
+	<wall type="cylinder" name="inner" check_every="100" axis="z" radius="10" inside="false" center="32 32" >
+		<generate_frozen path="restart" mass="1.0" density="8" a="25" kbt="0.5" rc="1.0" power="0.5" />
+		<apply_to pv="dpd" />
+	</wall>
+		
+	<wall type="rotating_cylinder" name="outer" check_every="100" axis="z" radius="30" inside="true" center="32 32" omega="0.05" >
+		<generate_frozen path="restart" mass="1.0" density="8" a="25" kbt="0.5" rc="1.0" power="0.5" />
+		<apply_to pv="dpd" />
+	</wall>
+	
+	<!--
+		Interactions section
+	-->
+	
+	<interaction type="dpd" name="dpd_int" a="25" gamma="20" kbt="0.4" dt="0.001" rc="1.0" power="0.5">
+		<apply_to pv1="dpd" pv2="dpd"/>
+		<apply_to pv1="inner" pv2="dpd"/>
+		<apply_to pv1="outer" pv2="dpd"/>
+	</interaction>
+	
+	<!--
+		Integrators section
+	-->
+
+	<integrator type="vv" name="integrate" dt="0.001">
+		<apply_to pv="dpd" />
+	</integrator>
+	
+	<!--
+		Plugins section
+	-->
+		
+ 	<plugin type="dump_avg_flow" name="avg"
+		pv_names="dpd"
+		sample_every="10" dump_every="1000"
+		bin_size="0.25 0.25 16"
+		path="xdmf/avg_rho_u" />
+		
+	<plugin type="dump_avg_flow" name="outer"
+		pv_names="outer"
+		sample_every="100" dump_every="1000"
+		bin_size="0.25 0.25 16"
+		path="xdmf/outer" />
+		
+	
+	<plugin type="stats" name="stats" every="1000" />
+	
+	<run niters="50000" />
+</simulation>
+

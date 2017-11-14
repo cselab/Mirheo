@@ -33,6 +33,8 @@ __device__ __forceinline__ void triangleForces(
 		float dt,
 		float3& f0, float3& f1, float3& f2)
 {
+	const float tol = 1e-3;
+
 	auto len2 = [] (float3 x) {
 		return dot(x, x);
 	};
@@ -54,6 +56,16 @@ __device__ __forceinline__ void triangleForces(
 	const float3 L = 2.0f*M * cross(C-O, U_par);
 
 	const float J = m * (len2(C-x0) + len2(C-x1) + len2(C-x2));
+	if (fabs(J) < tol)
+	{
+		float3 f = 2.0f * U * M/m / dt;
+		f0 = O_barycentric.x*f;
+		f1 = O_barycentric.y*f;
+		f2 = O_barycentric.z*f;
+
+		return;
+	}
+
 	const float w = -dot(L, n) / J;
 
 	const float3 orth_r0 = cross(C-x0, n);
@@ -148,7 +160,8 @@ __device__ __forceinline__ float4 intersectParticleTriangleBarycentric(
 __device__  void findBouncesInCell(
 		int pstart, int pend, int globTrid,
 		Triangle tr, Triangle trOld,
-		PVview_withOldParticles pvView, int* nCollisions, int2* collisionTable)
+		PVview_withOldParticles pvView,
+		int* nCollisions, int2* collisionTable, int maxCollisions)
 {
 	const float tol = 1e-6f;
 
@@ -165,7 +178,8 @@ __device__  void findBouncesInCell(
 		if (barycentricCoo.x > -tol && barycentricCoo.y > -tol && barycentricCoo.z > -tol)
 		{
 			int id = atomicAggInc(nCollisions);
-			collisionTable[id] = make_int2(pid, globTrid);
+			if (id < maxCollisions)
+				collisionTable[id] = make_int2(pid, globTrid);
 		}
 	}
 }
@@ -176,7 +190,7 @@ __global__ void findBouncesInMesh(
 		PVview_withOldParticles pvView,
 		MeshView mesh,
 		CellListInfo cinfo,
-		int* nCollisions, int2* collisionTable)
+		int* nCollisions, int2* collisionTable, int maxCollisions)
 {
 	// About maximum distance a particle can cover in one step
 	const float tol = 0.2f;
@@ -211,7 +225,7 @@ __global__ void findBouncesInMesh(
 				int pstart = cinfo.cellStarts[cidLo];
 				int pend   = cinfo.cellStarts[cidHi];
 
-				findBouncesInCell(pstart, pend, gid, tr, trOld, pvView, nCollisions, collisionTable);
+				findBouncesInCell(pstart, pend, gid, tr, trOld, pvView, nCollisions, collisionTable, maxCollisions);
 			}
 }
 
@@ -249,6 +263,7 @@ __global__ void performBouncing(
 
 	float alpha = 1000.0f;
 	int firstTriId;
+	float3 pf;
 
 	for (int id = gid; id<nCollisions; id++)
 	{
@@ -284,6 +299,8 @@ __global__ void performBouncing(
 			const float3 n = normalize(cross(tr.v1-tr.v0, tr.v2-tr.v0));
 			corrP.r = coo + eps * n * ((oldSign > 0) ? 5.0f : -5.0f);
 
+			pf = (newV - corrP.u) / dt;
+
 			corrP.u = newV;
 		}
 	}
@@ -297,7 +314,6 @@ __global__ void performBouncing(
 	atomicAdd(objView.forces + mesh.nvertices*objId + triangle.x, f0);
 	atomicAdd(objView.forces + mesh.nvertices*objId + triangle.y, f1);
 	atomicAdd(objView.forces + mesh.nvertices*objId + triangle.z, f2);
-
 }
 
 

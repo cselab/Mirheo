@@ -60,6 +60,8 @@ void Simulation::registerParticleVector(ParticleVector* pv, InitialConditions* i
 		ic->exec(cartComm, pv, domain, 0);
 	else // TODO: get rid of this
 		pv->domain = domain;
+
+	debug("Registered particle vector '%s', %d particles", pv->name.c_str(), pv->local()->size());
 }
 
 void Simulation::registerWall(Wall* wall, int every)
@@ -72,7 +74,10 @@ void Simulation::registerWall(Wall* wall, int every)
 	wallMap[name] = wall;
 	checkWallPrototypes.push_back(std::make_tuple(wall, every));
 
-	wall->setup(cartComm, domain);
+	// Let the wall know the particle vector associated with it
+	wall->setup(cartComm, domain, getPVbyName(wall->name));
+
+	debug("Registered wall '%s'", wall->name.c_str());
 }
 
 void Simulation::registerInteraction(Interaction* interaction)
@@ -88,7 +93,7 @@ void Simulation::registerIntegrator(Integrator* integrator)
 {
 	std::string name = integrator->name;
 	if (integratorMap.find(name) != integratorMap.end())
-		die("More than one interaction is called %s", name.c_str());
+		die("More than one integrator is called %s", name.c_str());
 
 	integratorMap[name] = integrator;
 }
@@ -497,8 +502,39 @@ void Simulation::assemble()
 	});
 
 	scheduler.addTask("Integration", [&] (cudaStream_t stream) {
+
+//		for (auto ov : objectVectors)
+//		{
+//			HostBuffer<Force> hfs;
+//			hfs.copy(ov->local()->forces, stream);
+//			ov->local()->coosvels.downloadFromDevice(stream);
+//
+//			for (int i=0; i < ov->local()->size(); i++)
+//			{
+//				Force f = hfs[i];
+//				Particle p = ov->local()->coosvels[i];
+//				printf("before %d:  %f %f %f,  %f %f %f\n", i,
+//						f.f.x, f.f.y, f.f.z, p.u.x, p.u.y, p.u.z);
+//			}
+//		}
+
 		for (auto& integrator : integratorsStage2)
 			integrator(currentTime, stream);
+
+//		for (auto ov : objectVectors)
+//		{
+//			HostBuffer<Force> hfs;
+//			hfs.copy(ov->local()->forces, stream);
+//			ov->local()->coosvels.downloadFromDevice(stream);
+//
+//			for (int i=0; i < ov->local()->size(); i++)
+//			{
+//				Force f = hfs[i];
+//				Particle p = ov->local()->coosvels[i];
+//				printf("after %d:  %f %f %f,  %f %f %f\n", i,
+//						f.f.x, f.f.y, f.f.z, p.u.x, p.u.y, p.u.z);
+//			}
+//		}
 	});
 
 

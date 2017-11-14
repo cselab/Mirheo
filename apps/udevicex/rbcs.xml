@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
-<simulation name="rbcs" logfile="log" mpi_ranks="1 1 1" debug_lvl="6">
+<simulation name="rbcs" logfile="log" mpi_ranks="1 1 1" debug_lvl="1">
 
-	<domain size="32 32 32" />
+	<domain size="64 64 64" />
 	
 	<particle_vector type="regular" name="dpd" mass="1">
 		<generate type="uniform" density="8" />
@@ -15,15 +15,15 @@
 		<generate type="read_rbcs" ic_filename="rbcs.ic" mesh_filename="../../data/rbc_mesh.off" />
 	</particle_vector>
 	
-<!-- 	<object_belonging_checker name="rbc_checker" type="mesh" object_vector="rbcs"  >
-		<apply_to pv="dpd" inside="ins" outside="dpd" check_every="2000" />
+	<object_belonging_checker name="rbc_checker" type="mesh" object_vector="rbcs"  >
+		<apply_to pv="dpd" inside="ins" outside="dpd" check_every="500" />
 	</object_belonging_checker>
 	
 	<object_bouncer name="membrane" ov="rbcs" type="from_mesh">
 		<apply_to pv="dpd" />
 		<apply_to pv="ins" />
 	</object_bouncer>
-	 -->
+	
 	<!--
 		Interactions section
 	-->
@@ -31,9 +31,10 @@
 	<interaction type="dpd" name="dpd_int" a="25" gamma="20" kbt="0.4" dt="0.001" rc="1.0" power="0.5">
 		<apply_to pv1="dpd" pv2="dpd"/>
 		<apply_to pv1="rbcs" pv2="dpd"/>
+		<apply_to pv1="ins" pv2="dpd"/>
 	</interaction>
 	
-	<interaction type="rbc" name="rbc_int" preset="lina" kb="20">
+	<interaction type="rbc" name="rbc_int" preset="lina" kb="10" gammaC="10">
 		<apply_to pv1="rbcs" pv2="rbcs"/>
 	</interaction>
 	
@@ -46,9 +47,10 @@
 		Integrators section
 	-->
 	
-	<integrator type="vv_const_dp" name="pois" extra_force="0 0 1.0" dt="0.001">
+	<integrator type="vv_const_dp" name="pois" extra_force="0 0 0.0" dt="0.001">
 		<apply_to pv="dpd" />
 		<apply_to pv="rbcs" />
+		<apply_to pv="ins" />
 	</integrator>
 
 	
@@ -70,7 +72,7 @@
 		
 	<plugin type="dump_xyz" name="rbcs"
 		pv_name="rbcs"
-		dump_every="100"
+		dump_every="200"
 		path="xyz/" />
 <!-- 				
 	<plugin type="dump_xyz" name="dpd"
@@ -80,7 +82,7 @@
 	
 <!-- 	<plugin type="dump_xyz" name="ins"
 		pv_name="ins"
-		dump_every="50"
+		dump_every="200"
 		path="xyz/" /> -->
 		
 	<plugin type="dump_obj_pos" name="lala"
@@ -90,6 +92,6 @@
 	
 	<plugin type="stats" name="stats" every="100" />
 	
-	<run niters="2000" />
+	<run niters="50" />
 </simulation>
 

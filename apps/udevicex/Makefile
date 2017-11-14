@@ -12,7 +12,7 @@ objects = main.o \
 	pairwise.o rbc.o \
 	particle_exchanger.o particle_halo_exchanger.o particle_redistributor.o object_halo_exchanger.o object_redistributor.o object_forces_reverse_exchanger.o \
 	particle_vector.o object_vector.o \
-	simple_stationary_wall.o sdf.o \
+	simple_stationary_wall.o wall_with_velocity.o sdf.o \
 	write_xdmf.o dumpavg.o stats.o temperaturize.o dumpxyz.o dump_obj_position.o impose_velocity.o
 	
 include ../../makefiles/Makefile.base

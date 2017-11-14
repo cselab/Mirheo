@@ -1,0 +1,65 @@
+<?xml version="1.0"?>
+<simulation name="sphere" logfile="log" mpi_ranks="1 1 1" debug_lvl="2">
+
+	<domain size="64 64 64" />
+	
+	<particle_vector type="regular" name="dpd" mass="1">
+		<generate type="uniform" density="8" />
+	</particle_vector>
+	
+	<!--
+		Walls section
+	-->
+	
+	<particle_vector type="regular" name="sphere" mass="1">
+		<generate type="restart" path="restart/" />
+	</particle_vector>
+	
+	<wall type="box" name="sph" check_every="100" low="16 16 16" high="48 48 48" inside="false" >
+		<generate_frozen name="sphere" path="restart" mass="1.0" density="8" a="25" kbt="0.5" rc="1.0" power="0.5" />
+		<apply_to pv="dpd" />
+	</wall>
+		
+	<!--
+		Interactions section
+	-->
+	
+	<interaction type="dpd" name="dpd_int" a="25" gamma="40" kbt="0.5" dt="0.001" rc="1.0" power="0.5">
+		<apply_to pv1="dpd" pv2="dpd"/>
+		<apply_to pv1="dpd" pv2="sphere"/>
+	</interaction>
+	
+	<!--
+		Integrators section
+	-->
+	
+	<integrator type="vv_const_dp" name="integrate" extra_force="0.01 0 0" dt="0.001">
+		<apply_to pv="dpd" />
+	</integrator>
+	
+	<!--
+		Plugins section
+	-->
+	
+	<!-- <plugin type="temperaturize" name="t_top" pv_name="top"  kbt="0.5" />
+	<plugin type="temperaturize" name="t_bot" pv_name="bot"  kbt="0.5" />
+	<plugin type="impose_velocity" name="all" pv_name="dpd"  every="10" low="0 0 0"  high="100 100 100"  target_velocity= "$v 0 0" />
+	-->
+	
+ 	<plugin type="dump_avg_flow" name="avg_sph"
+		pv_names="sphere" need_momentum="false" need_force="true"
+		sample_every="10" dump_every="50000"
+		bin_size="0.5 0.5 0.5"
+		path="xdmf/sphere" />
+
+ 	<plugin type="dump_avg_flow" name="avg"
+		pv_names="dpd"
+		sample_every="50" dump_every="50000"
+		bin_size="0.5 0.5 0.5"
+		path="xdmf/avg_rho_u" />
+		
+	<plugin type="stats" name="stats" every="1000" />
+	
+	<run niters="2000000" />
+</simulation>
+

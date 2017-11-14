@@ -176,7 +176,7 @@ int main(int argc, char** argv)
 
 		auto startingPV = std::make_unique<ParticleVector>("starting", 1.0);
 		auto wallPV     = std::make_unique<ParticleVector>("wall", 1.0);
-		auto final      = std::make_unique<ParticleVector>(wallGenNode.attribute("name").as_string("final"), 1.0);
+		auto final      = std::make_unique<ParticleVector>(wallNode.attribute("name").as_string("wall"), 1.0);
 		auto ic         = std::make_unique<UniformIC>     (wallGenNode.attribute("density").as_float(4));
 
 

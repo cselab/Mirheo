@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
-<simulation name="couette" logfile="log" mpi_ranks="1 1 1" debug_lvl="6">
+<simulation name="couette" logfile="log" mpi_ranks="1 1 1" debug_lvl="0">
 
 	<domain size="32 32 32" />
 	
@@ -19,12 +19,12 @@
 		<generate type="restart" path="restart/" />
 	</particle_vector>
 	
-	<wall type="moving_plane" name="bot" check_every="100" normal="0 0 -1" point_through="0 0 2" velocity="2 0 0" >
+	<wall type="plane" name="bot" check_every="100" normal="0 0 -1" point_through="0 0 2" >
 		<generate_frozen name="bot" path="restart" mass="1.0" density="8" a="25" kbt="0.5" rc="1.0" power="0.5" />
 		<apply_to pv="dpd" />
 	</wall>
 		
-	<wall type="moving_plane" name="top" check_every="100" normal="0 0 1" point_through="0 0 30" velocity="0 0 0" >
+	<wall type="plane" name="top" check_every="100" normal="0 0 1" point_through="0 0 30" >
 		<generate_frozen name="top" path="restart" mass="1.0" density="8" a="25" kbt="0.5" rc="1.0" power="0.5" />
 		<apply_to pv="dpd" />
 	</wall>
@@ -49,13 +49,15 @@
 		Interactions section
 	-->
 	
-	<interaction type="dpd" name="dpd_int" a="25" gamma="20" kbt="0.4" dt="0.001" rc="1.0" power="0.5">
+	<interaction type="dpd" name="dpd_int" a="25" gamma="40" kbt="0.5" dt="0.001" rc="1.0" power="0.5">
 		<apply_to pv1="dpd" pv2="dpd"/>
-		<apply_to pv1="ellipsoids" pv2="dpd"/>
-		<apply_to pv1="top" pv2="dpd"/>
-		<apply_to pv1="bot" pv2="dpd"/>
+		<apply_to pv1="dpd" pv2="ellipsoids"/>
 	</interaction>
 	
+	<interaction type="dpd" name="slip" a="25" gamma="0" kbt="0.0" dt="0.001" rc="1.0" power="1">
+		<apply_to pv1="dpd" pv2="top"/>
+		<apply_to pv1="dpd" pv2="bot"/>
+	</interaction>
 	
 	<!--
 		Integrators section
@@ -75,10 +77,13 @@
 	
 	<!-- <plugin type="temperaturize" name="t_top" pv_name="top"  kbt="0.5" />
 	<plugin type="temperaturize" name="t_bot" pv_name="bot"  kbt="0.5" /> -->
+	
+	<plugin type="impose_velocity" name="top" pv_name="dpd"  every="10" low="0 0 2"  high="32 32 3"  target_velocity= "2 0 0" />
+	<plugin type="impose_velocity" name="bot" pv_name="dpd"  every="10" low="0 0 29" high="32 32 30" target_velocity="-2 0 0" />
 		
  	<plugin type="dump_avg_flow" name="avg"
 		pv_names="dpd"
-		sample_every="10" dump_every="1000"
+		sample_every="100" dump_every="1000"
 		bin_size="1 1 1"
 		path="xdmf/avg_rho_u" />
 		
@@ -94,6 +99,6 @@
 	
 	<plugin type="stats" name="stats" every="1000" />
 	
-	<run niters="50000" />
+	<run niters="5000000" />
 </simulation>
 

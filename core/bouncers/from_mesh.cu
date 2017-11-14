@@ -46,11 +46,16 @@ void BounceFromMesh::exec(ParticleVector* pv, CellList* cl, float dt, cudaStream
 	int nthreads = 128;
 
 	// FIXME do the hack
-	PVview_withOldParticles oldview(ov, activeOV);
-	SAFE_KERNEL_LAUNCH(
-			backtrack,
-			getNblocks(totalTriangles, nthreads), nthreads, 0, stream,
-			oldview, dt );
+
+	if (!local)
+	{
+		return;
+		PVview_withOldParticles oldview(ov, activeOV);
+		SAFE_KERNEL_LAUNCH(
+				backtrack,
+				getNblocks(totalTriangles, nthreads), nthreads, 0, stream,
+				oldview, dt );
+	}
 
 
 	OVviewWithOldPartilces objView(ov, activeOV);
@@ -62,10 +67,13 @@ void BounceFromMesh::exec(ParticleVector* pv, CellList* cl, float dt, cudaStream
 			findBouncesInMesh,
 			getNblocks(totalTriangles, nthreads), nthreads, 0, stream,
 			objView, pvView, mesh, cl->cellInfo(),
-			nCollisions.devPtr(), collisionTable.devPtr() );
+			nCollisions.devPtr(), collisionTable.devPtr(), collisionTable.size() );
 
 	nCollisions.downloadFromDevice(stream);
 	debug("Found %d collisions", nCollisions[0]);
+
+	if (nCollisions[0] > collisionTable.size())
+		die("Found too many collisions, something is likely broken");
 
 	size_t bufSize;
 	// Query for buffer size

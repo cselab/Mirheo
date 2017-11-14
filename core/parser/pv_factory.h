@@ -20,7 +20,7 @@ private:
 	static ParticleVector* createRegularPV(pugi::xml_node node)
 	{
 		auto name = node.attribute("name").as_string();
-		auto mass = node.attribute("mass").as_float(1);
+		auto mass = node.attribute("mass").as_float(1.0);
 
 		return (ParticleVector*) new ParticleVector(name, mass);
 	}
@@ -28,7 +28,7 @@ private:
 	static ParticleVector* createRigidEllipsoids(pugi::xml_node node)
 	{
 		auto name    = node.attribute("name").as_string("");
-		auto mass    = node.attribute("mass").as_int(1);
+		auto mass    = node.attribute("mass").as_float(1);
 
 		auto objSize = node.attribute("particles_per_obj").as_int(1);
 		auto axes    = node.attribute("axes").as_float3( make_float3(1) );
@@ -39,7 +39,7 @@ private:
 	static ParticleVector* createRbcs(pugi::xml_node node)
 	{
 		auto name      = node.attribute("name").as_string("");
-		auto mass      = node.attribute("mass").as_int(1);
+		auto mass      = node.attribute("mass").as_float(1);
 
 		auto objSize   = node.attribute("particles_per_obj").as_int(1);
 

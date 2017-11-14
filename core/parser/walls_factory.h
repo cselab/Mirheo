@@ -7,12 +7,16 @@
 #include <core/xml/pugixml.hpp>
 
 #include <core/walls/simple_stationary_wall.h>
+#include <core/walls/wall_with_velocity.h>
 
 #include <core/walls/stationary_walls/sdf.h>
 #include <core/walls/stationary_walls/sphere.h>
 #include <core/walls/stationary_walls/cylinder.h>
 #include <core/walls/stationary_walls/plane.h>
 #include <core/walls/stationary_walls/box.h>
+
+#include <core/walls/velocity_field/rotate.h>
+#include <core/walls/velocity_field/translate.h>
 
 class WallFactory
 {
@@ -87,6 +91,64 @@ private:
 		return (Wall*) new SimpleStationaryWall<StationaryWall_SDF>(name, std::move(sdf));
 	}
 
+	// Moving walls
+
+	static Wall* createMovingCylinderWall(pugi::xml_node node)
+	{
+		auto name   = node.attribute("name").as_string("");
+
+		auto center = node.attribute("center").as_float2();
+		auto radius = node.attribute("radius").as_float(1);
+		auto inside = node.attribute("inside").as_bool(false);
+
+		std::string dirStr = node.attribute("axis").as_string("x");
+
+		StationaryWall_Cylinder::Direction dir;
+		if (dirStr == "x") dir = StationaryWall_Cylinder::Direction::x;
+		if (dirStr == "y") dir = StationaryWall_Cylinder::Direction::y;
+		if (dirStr == "z") dir = StationaryWall_Cylinder::Direction::z;
+
+		StationaryWall_Cylinder cylinder(center, radius, dir, inside);
+
+		auto omega = node.attribute("omega").as_float(0);
+		float3 center3, omega3;
+		switch (dir)
+		{
+			case StationaryWall_Cylinder::Direction::x :
+				center3 = {0.0f, center.x, center.y};
+				omega3  = {omega,    0.0f,     0.0f};
+				break;
+
+			case StationaryWall_Cylinder::Direction::y :
+				center3 = {center.x, 0.0f, center.y};
+				omega3  = {0.0f,    omega,     0.0f};
+				break;
+
+			case StationaryWall_Cylinder::Direction::z :
+				center3 = {center.x, center.y, 0.0f};
+				omega3  = {0.0f,    0.0f,     omega};
+				break;
+		}
+		VelocityField_Rotate rotate(omega3, center3);
+
+		return (Wall*) new WallWithVelocity<StationaryWall_Cylinder, VelocityField_Rotate> (name, std::move(cylinder), std::move(rotate));
+	}
+
+	static Wall* createMovingPlaneWall(pugi::xml_node node)
+	{
+		auto name   = node.attribute("name").as_string("");
+
+		auto normal = node.attribute("normal").as_float3( make_float3(1, 0, 0) );
+		auto point  = node.attribute("point_through").as_float3( );
+
+		StationaryWall_Plane plane(normalize(normal), point);
+
+		auto vel    = node.attribute("velocity").as_float3( );
+		VelocityField_Translate translate(vel);
+
+		return (Wall*) new WallWithVelocity<StationaryWall_Plane, VelocityField_Translate>(name, std::move(plane), std::move(translate));
+	}
+
 public:
 	static Wall* create(pugi::xml_node node)
 	{
@@ -102,6 +164,11 @@ public:
 			return createPlaneWall(node);
 		if (type == "sdf")
 			return createSDFWall(node);
+
+		if (type == "rotating_cylinder")
+			return createMovingCylinderWall(node);
+		if (type == "moving_plane")
+			return createMovingPlaneWall(node);
 
 		die("Unable to parse input at %s, unknown 'type' %s", node.path().c_str(), type.c_str());
 

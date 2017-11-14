@@ -16,7 +16,7 @@ public:
 
 	Wall(std::string name) : name(name) {};
 
-	virtual void setup(MPI_Comm& comm, DomainInfo domain) = 0;
+	virtual void setup(MPI_Comm& comm, DomainInfo domain, ParticleVector* jointPV) = 0;
 
 	virtual void removeInner(ParticleVector* pv) = 0;
 	virtual void attach(ParticleVector* pv, CellList* cl) = 0;
