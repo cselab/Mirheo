@@ -23,6 +23,7 @@
 
 #include "velocity_field/rotate.h"
 #include "velocity_field/translate.h"
+#include "velocity_field/oscillate.h"
 
 //===============================================================================================
 // SDF bouncing kernel
@@ -109,12 +110,12 @@ template<class InsideWallChecker, class VelocityField>
 void WallWithVelocity<InsideWallChecker, VelocityField>::setup(MPI_Comm& comm, DomainInfo domain, ParticleVector* jointPV)
 {
 	info("Setting up wall %s", this->name.c_str());
+	this->domain = domain;
 
 	CUDA_Check( cudaDeviceSynchronize() );
 	MPI_Check( MPI_Comm_dup(comm, &this->wallComm) );
 
 	this->insideWallChecker.setup(this->wallComm, domain);
-	velField.setup(this->wallComm, domain);
 
 	if (jointPV == nullptr)
 		error("Moving wall requires that corresponding frozen particles are named the same as the wall '%s' itself", this->name.c_str());
@@ -134,6 +135,8 @@ void WallWithVelocity<InsideWallChecker, VelocityField>::setup(MPI_Comm& comm, D
 template<class InsideWallChecker, class VelocityField>
 void WallWithVelocity<InsideWallChecker, VelocityField>::bounce(float dt, cudaStream_t stream)
 {
+	velField.setup(this->wallComm, domain);
+
 	for (int i=0; i < this->particleVectors.size(); i++)
 	{
 		auto pv = this->particleVectors[i];
@@ -141,7 +144,7 @@ void WallWithVelocity<InsideWallChecker, VelocityField>::bounce(float dt, cudaSt
 		auto bc = this->boundaryCells[i];
 		PVview_withOldParticles view(pv, pv->local());
 
-		debug2("Bouncing %d %s particles, %d boundary cells",
+		debug2("Bouncing %d %s particles with wall velocity, %d boundary cells",
 				pv->local()->size(), pv->name.c_str(), bc->size());
 
 		const int nthreads = 64;
@@ -161,6 +164,7 @@ void WallWithVelocity<InsideWallChecker, VelocityField>::bounce(float dt, cudaSt
 template class WallWithVelocity<StationaryWall_Sphere,   VelocityField_Rotate>;
 template class WallWithVelocity<StationaryWall_Cylinder, VelocityField_Rotate>;
 template class WallWithVelocity<StationaryWall_Plane,    VelocityField_Translate>;
+template class WallWithVelocity<StationaryWall_Plane,    VelocityField_Oscillate>;
 
 
 

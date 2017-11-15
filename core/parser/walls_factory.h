@@ -17,6 +17,7 @@
 
 #include <core/walls/velocity_field/rotate.h>
 #include <core/walls/velocity_field/translate.h>
+#include <core/walls/velocity_field/oscillate.h>
 
 class WallFactory
 {
@@ -149,6 +150,22 @@ private:
 		return (Wall*) new WallWithVelocity<StationaryWall_Plane, VelocityField_Translate>(name, std::move(plane), std::move(translate));
 	}
 
+	static Wall* createOscillatingPlaneWall(pugi::xml_node node)
+	{
+		auto name   = node.attribute("name").as_string("");
+
+		auto normal = node.attribute("normal").as_float3( make_float3(1, 0, 0) );
+		auto point  = node.attribute("point_through").as_float3( );
+
+		StationaryWall_Plane plane(normalize(normal), point);
+
+		auto vel    = node.attribute("velocity").as_float3( );
+		auto period = node.attribute("period").as_int();
+		VelocityField_Oscillate osc(vel, period);
+
+		return (Wall*) new WallWithVelocity<StationaryWall_Plane, VelocityField_Oscillate>(name, std::move(plane), std::move(osc));
+	}
+
 public:
 	static Wall* create(pugi::xml_node node)
 	{
@@ -169,6 +186,8 @@ public:
 			return createMovingCylinderWall(node);
 		if (type == "moving_plane")
 			return createMovingPlaneWall(node);
+		if (type == "oscillating_plane")
+			return createOscillatingPlaneWall(node);
 
 		die("Unable to parse input at %s, unknown 'type' %s", node.path().c_str(), type.c_str());
 

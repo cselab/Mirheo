@@ -8,6 +8,7 @@
 
 #include <core/integrators/vv.h>
 #include <core/integrators/const_omega.h>
+#include <core/integrators/oscillate.h>
 #include <core/integrators/rigid_vv.h>
 
 #include <core/integrators/forcing_terms/none.h>
@@ -69,6 +70,17 @@ private:
 		return (Integrator*) new IntegratorConstOmega(name, dt, center, omega);
 	}
 
+	static Integrator* createOscillating(pugi::xml_node node)
+	{
+		auto name    = node.attribute("name").as_string();
+		auto dt      = node.attribute("dt").as_float(0.01);
+
+		auto vel     = node.attribute("velocity").as_float3();
+		auto period  = node.attribute("period").as_int();
+
+		return (Integrator*) new IntegratorOscillate(name, dt, vel, period);
+	}
+
 	static Integrator* createRigidVV(pugi::xml_node node)
 	{
 		auto name = node.attribute("name").as_string();
@@ -90,6 +102,8 @@ public:
 			return createVV_PeriodicPoiseuille(node);
 		if (type == "const_omega")
 			return createConstOmega(node);
+		if (type == "oscillate")
+			return createOscillating(node);
 		if (type == "rigid_vv")
 			return createRigidVV(node);
 

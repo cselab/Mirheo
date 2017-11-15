@@ -23,6 +23,7 @@ public:
 
 	void bounce(float dt, cudaStream_t stream) override;
 
-private:
+protected:
 	VelocityField velField;
+	DomainInfo domain;
 };
