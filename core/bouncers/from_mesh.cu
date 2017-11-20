@@ -37,6 +37,8 @@ void BounceFromMesh::exec(ParticleVector* pv, CellList* cl, float dt, cudaStream
 			activeOV->nObjects,  ov->name.c_str(),
 			local ? "local" : "halo");
 
+	ov->findExtentAndCOM(stream, local);
+
 	int totalTriangles = ov->mesh.ntriangles * activeOV->nObjects;
 
 	nCollisions.clear(stream);
@@ -62,7 +64,6 @@ void BounceFromMesh::exec(ParticleVector* pv, CellList* cl, float dt, cudaStream
 	PVview_withOldParticles pvView(pv, pv->local());
 	MeshView mesh(ov->mesh, activeOV->getMeshVertices(stream));
 
-	// TODO: ovview with mesh
 	SAFE_KERNEL_LAUNCH(
 			findBouncesInMesh,
 			getNblocks(totalTriangles, nthreads), nthreads, 0, stream,

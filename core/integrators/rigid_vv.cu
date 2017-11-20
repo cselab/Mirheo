@@ -55,5 +55,8 @@ void IntegratorVVRigid::stage2(ParticleVector* pv, float t, cudaStream_t stream)
 	pv->haloValid = false;
 	pv->redistValid = false;
 	pv->cellListStamp++;
+
+	// Extents are changed too
+	ov->local()->comExtentValid = false;
 }
 

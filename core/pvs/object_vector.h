@@ -15,6 +15,8 @@ protected:
 public:
 	int nObjects = 0;
 
+	bool comExtentValid = false;
+
 	// Helper buffers, used when a view with extra data is created
 	PinnedBuffer<int> extraDataSizes;
 	PinnedBuffer<char*> extraDataPtrs;
@@ -128,7 +130,7 @@ public:
 					  new LocalObjectVector(objSize, 0) )
 	{}
 
-	virtual void findExtentAndCOM(cudaStream_t stream);
+	void findExtentAndCOM(cudaStream_t stream, bool isLocal);
 
 	LocalObjectVector* local() { return static_cast<LocalObjectVector*>(_local); }
 	LocalObjectVector* halo()  { return static_cast<LocalObjectVector*>(_halo);  }

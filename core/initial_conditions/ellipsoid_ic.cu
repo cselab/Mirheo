@@ -48,16 +48,16 @@ void EllipsoidIC::exec(const MPI_Comm& comm, ParticleVector* pv, DomainInfo doma
 
 	HostBuffer<RigidMotion> motions;
 
-	while (fic.good())
+	while (true)
 	{
 		RigidMotion motion{};
 
 		fic >> motion.r.x >> motion.r.y >> motion.r.z;
 		fic >> motion.q.x >> motion.q.y >> motion.q.z >> motion.q.w;
-		motion.q = normalize(motion.q);
 
-		if (!fic.good())
-			break;
+		if (fic.fail()) break;
+
+		motion.q = normalize(motion.q);
 
 		if (ov->domain.globalStart.x <= motion.r.x && motion.r.x < ov->domain.globalStart.x + ov->domain.localSize.x &&
 		    ov->domain.globalStart.y <= motion.r.y && motion.r.y < ov->domain.globalStart.y + ov->domain.localSize.y &&

@@ -71,37 +71,37 @@ def fit_velocity(profile, weights, gz, rho, h):
 def dump_plots(velocity, velFit, density, h):
 	ifig = 0
 	nrows = 1
-	ncols = 2
+	ncols = 1
 	fig, axes = plt.subplots(nrows=nrows, ncols=ncols, figsize=(4*ncols,4*nrows), facecolor='white')
 
 	x = np.linspace(h/2, velocity.size*h - h/2, velocity.size)
 
-	ifig = ifig+1
-	plt.subplot(nrows, ncols, ifig)
-	plt.plot(x, density)
-	plt.xlabel('x')
-	plt.ylabel('density')
-	ax=plt.gca()
-	ax.set_ylim([0, max(density)+2])
-	ax.set_xlim([0, max(x)])
-	plt.xticks(np.arange(0, max(x)+1, 5.0))
-	plt.grid()
+#	ifig = ifig+1
+#	plt.subplot(nrows, ncols, ifig)
+#	plt.plot(x, density)
+#	plt.xlabel('x')
+#	plt.ylabel('density')
+#	ax=plt.gca()
+#	ax.set_ylim([0, max(density)+2])
+#	ax.set_xlim([0, max(x)])
+#	plt.xticks(np.arange(0, max(x)+1, 5.0))
+#	plt.grid()
 
 	ifig = ifig+1
 	plt.subplot(nrows, ncols, ifig)
-	plt.plot(x, velocity, label="velocity")
-	plt.plot(x, velFit(x), label="fit")
+	plt.plot(x, velFit(x), label="Analytical", color="C0")
+	plt.plot(x[::3], velocity[::3], 'o', label="Simulation", color="C0", ms="5", mfc='none')
 	
-	plt.xlabel('x')
-	plt.ylabel('velocity')
+	plt.xlabel('r', fontsize=16)
+	plt.ylabel('velocity', fontsize=16)
 
-	ax=plt.gca()
-	ax.set_ylim([0, max(velocity)*1.2])
-	ax.ticklabel_format(axis='y', style='sci', scilimits=(0,0))
-	ax.yaxis.major.formatter._useMathText = True
-	ax.set_xlim([0, max(x)])
-	plt.xticks(np.arange(0, max(x)+1, 5.0))
-	plt.legend()
+	#ax=plt.gca()
+	#ax.set_ylim([0, max(velocity)*1.2])
+	#ax.ticklabel_format(axis='y', style='sci', scilimits=(0,0))
+	#ax.yaxis.major.formatter._useMathText = True
+	#ax.set_xlim([0, max(x)])
+	#plt.xticks(np.arange(0, max(x)+1, 5.0))
+	plt.legend(fontsize=14)
 	plt.grid()
 
 	plt.subplots_adjust(wspace=0.3)
@@ -115,9 +115,12 @@ def dump_plots(velocity, velFit, density, h):
 def main():
 	nbins = 100
 	r = 30.0
-	vel, dens, cnt = radial_profile(sys.argv[1], nbins, [0.125, 0.125], [32, 32], r)
 	
-	velFit, eta, err = fit_velocity(vel, cnt, float(sys.argv[2]), 8, r / nbins)
+	fname = "/home/alexeedm/udevicex/apps/udevicex/pois_xdmf/avg_rho_u00004.h5"
+	
+	vel, dens, cnt = radial_profile(fname, nbins, [0.125, 0.125], [32, 32], r)
+	
+	velFit, eta, err = fit_velocity(vel, cnt, 0.05, 8, r / nbins)
 	
 	print "Viscosity: ", eta
 	print "Fit err: ", err

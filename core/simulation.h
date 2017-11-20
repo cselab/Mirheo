@@ -77,6 +77,15 @@ public:
 		return pv;
 	}
 
+	ObjectVector* getOVbyNameOrDie(std::string name) const
+	{
+		auto pv = getPVbyName(name);
+		auto ov = dynamic_cast<ObjectVector*>(pv);
+		if (pv == nullptr)
+			die("No such particle vector: %s", name.c_str());
+		return ov;
+	}
+
 	MPI_Comm getCartComm() const { return cartComm; }
 
 private:

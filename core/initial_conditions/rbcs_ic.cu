@@ -40,7 +40,7 @@ void RBC_IC::exec(const MPI_Comm& comm, ParticleVector* pv, DomainInfo domain, c
 	std::ifstream fic(icfname);
 	int nObjs=0;
 
-	while (fic.good())
+	while (true)
 	{
 		float3 com;
 		float4 q;
@@ -48,10 +48,9 @@ void RBC_IC::exec(const MPI_Comm& comm, ParticleVector* pv, DomainInfo domain, c
 		fic >> com.x >> com.y >> com.z;
 		fic >> q.x >> q.y >> q.z >> q.w;
 
-		q = normalize(q);
+		if (fic.fail()) break;
 
-		if (!fic.good())
-			break;
+		q = normalize(q);
 
 		if (ov->domain.globalStart.x <= com.x && com.x < ov->domain.globalStart.x + ov->domain.localSize.x &&
 		    ov->domain.globalStart.y <= com.y && com.y < ov->domain.globalStart.y + ov->domain.localSize.y &&

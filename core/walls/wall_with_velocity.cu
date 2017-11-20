@@ -116,6 +116,7 @@ void WallWithVelocity<InsideWallChecker, VelocityField>::setup(MPI_Comm& comm, D
 	MPI_Check( MPI_Comm_dup(comm, &this->wallComm) );
 
 	this->insideWallChecker.setup(this->wallComm, domain);
+	velField.setup(this->wallComm, domain);
 
 	if (jointPV == nullptr)
 		error("Moving wall requires that corresponding frozen particles are named the same as the wall '%s' itself", this->name.c_str());

@@ -32,8 +32,8 @@ __global__ void getObjectHalos(const DomainInfo domain, const OVviewWithExtraDat
 		if (prop.high.y >  0.5f*domain.localSize.y - rc) cy = 2;
 		if (prop.high.z >  0.5f*domain.localSize.z - rc) cz = 2;
 
-//			if (tid == 0 && !QUERY) printf("Obj %d : [%f %f %f] -- [%f %f %f]\n", objId,
-//			prop.low.x, prop.low.y, prop.low.z, prop.high.x, prop.high.y, prop.high.z);
+//		if (tid == 0 && !QUERY) printf("Obj %d : [%f %f %f] -- [%f %f %f]\n", objId,
+//		prop.low.x, prop.low.y, prop.low.z, prop.high.x, prop.high.y, prop.high.z);
 
 		for (int ix = min(cx, 1); ix <= max(cx, 1); ix++)
 			for (int iy = min(cy, 1); iy <= max(cy, 1); iy++)
@@ -147,6 +147,8 @@ void ObjectHaloExchanger::prepareData(int id, cudaStream_t stream)
 	auto helper = helpers[id];
 	auto origin = origins[id];
 
+	ov->findExtentAndCOM(stream, true);
+
 	debug2("Preparing %s halo on the device", ov->name.c_str());
 
 	OVviewWithExtraData ovView(ov, ov->local(), stream);
@@ -202,6 +204,7 @@ void ObjectHaloExchanger::combineAndUploadData(int id, cudaStream_t stream)
 			helper->recvBuf.devPtr(), 0, ovView );
 
 	ov->haloValid = true;
+	ov->halo()->comExtentValid = false;
 }
 
 PinnedBuffer<int>& ObjectHaloExchanger::getRecvOffsets(int id)

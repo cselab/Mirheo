@@ -118,6 +118,9 @@ void Simulation::registerObjectBelongingChecker(ObjectBelongingChecker* checker)
 
 void Simulation::registerPlugin(SimulationPlugin* plugin)
 {
+//	if (plugins.find(name) != belongingCheckerMap.end())
+//		die("More than one pluging is called %s", name.c_str());
+//
 	plugins.push_back(plugin);
 }
 
@@ -502,39 +505,8 @@ void Simulation::assemble()
 	});
 
 	scheduler.addTask("Integration", [&] (cudaStream_t stream) {
-
-//		for (auto ov : objectVectors)
-//		{
-//			HostBuffer<Force> hfs;
-//			hfs.copy(ov->local()->forces, stream);
-//			ov->local()->coosvels.downloadFromDevice(stream);
-//
-//			for (int i=0; i < ov->local()->size(); i++)
-//			{
-//				Force f = hfs[i];
-//				Particle p = ov->local()->coosvels[i];
-//				printf("before %d:  %f %f %f,  %f %f %f\n", i,
-//						f.f.x, f.f.y, f.f.z, p.u.x, p.u.y, p.u.z);
-//			}
-//		}
-
 		for (auto& integrator : integratorsStage2)
 			integrator(currentTime, stream);
-
-//		for (auto ov : objectVectors)
-//		{
-//			HostBuffer<Force> hfs;
-//			hfs.copy(ov->local()->forces, stream);
-//			ov->local()->coosvels.downloadFromDevice(stream);
-//
-//			for (int i=0; i < ov->local()->size(); i++)
-//			{
-//				Force f = hfs[i];
-//				Particle p = ov->local()->coosvels[i];
-//				printf("after %d:  %f %f %f,  %f %f %f\n", i,
-//						f.f.x, f.f.y, f.f.z, p.u.x, p.u.y, p.u.z);
-//			}
-//		}
 	});
 
 
@@ -626,18 +598,6 @@ void Simulation::assemble()
 		redistributor->finalize(stream);
 	});
 
-	scheduler.addTask("Object extents", [&] (cudaStream_t stream) {
-		for (auto& ov : objectVectors)
-			ov->findExtentAndCOM(stream);
-	});
-
-	// This one should be executed after halo and redist
-	// as bounces and other things rely on correct extent
-	scheduler.addTask("Object extents 2", [&] (cudaStream_t stream) {
-		for (auto& ov : objectVectors)
-			ov->findExtentAndCOM(stream);
-	});
-
 	scheduler.addTask("Object redistribute init", [&] (cudaStream_t stream) {
 		objRedistibutor->init(stream);
 	});
@@ -680,8 +640,6 @@ void Simulation::assemble()
 	scheduler.addDependency("Redistribute init", {}, {"Integration", "Wall bounce", "Object bounce", "Plugins: after integration"});
 	scheduler.addDependency("Redistribute finalize", {}, {"Redistribute init"});
 
-	scheduler.addDependency("Object extents", {"Object redistribute init", "Object halo init"}, {"Plugins: after integration"});
-	scheduler.addDependency("Object extents 2", {"Object bounce"}, {"Object redistribute finalize", "Object halo finalize"});
 	scheduler.addDependency("Object redistribute init", {}, {"Integration", "Wall bounce", "Obj forces exchange: finalize", "Plugins: after integration"});
 	scheduler.addDependency("Object redistribute finalize", {}, {"Object redistribute init"});
 	scheduler.addDependency("Clear obj local forces", {}, {"Integration"});
@@ -700,14 +658,11 @@ void Simulation::run(int nsteps)
 	int begin = currentStep, end = currentStep + nsteps;
 
 	// Initial preparation
-	scheduler.forceExec("Object extents");
 	scheduler.forceExec("Object halo init");
 	scheduler.forceExec("Object halo finalize");
 	scheduler.forceExec("Clear obj halo forces");
 	scheduler.forceExec("Clear obj local forces");
 
-	// Halo extents
-	scheduler.forceExec("Object extents");
 	execSplitters();
 
 	info("Will run %d iterations now", nsteps);

@@ -1,13 +1,13 @@
 <?xml version="1.0"?>
 <simulation name="couette" logfile="log" mpi_ranks="1 1 1" debug_lvl="2">
 
-	<domain size="64 64 12" />
+	<domain size="64 64 16" />
 	
 	<particle_vector type="regular" name="dpd" mass="1">
 		<generate type="uniform" density="8" />
 	</particle_vector>
 	
-	<particle_vector type="rbcs" name="rbcs" mass="0.655" particles_per_obj="498" mesh_filename="../../data/rbc_mesh.off" >
+	<particle_vector type="rbcs" name="rbcs" mass="0.65" particles_per_obj="498" mesh_filename="../../data/rbc_mesh.off" >
 		<generate type="read_rbcs" ic_filename="rbcs.ic" mesh_filename="../../data/rbc_mesh.off" />
 	</particle_vector>
 	
@@ -28,7 +28,7 @@
 		<apply_to pv="dpd" />
 	</wall>
 		
-	<wall type="rotating_cylinder" name="outer" check_every="100" axis="z" radius="30" inside="true" center="32 32" omega="0.01" >
+	<wall type="rotating_cylinder" name="outer" check_every="100" axis="z" radius="30" inside="true" center="32 32" omega="0.1" >
 		<generate_frozen path="restart" mass="1.0" density="8" a="25" kbt="0.5" rc="1.0" power="0.5" />
 		<apply_to pv="dpd" />
 	</wall>
@@ -44,7 +44,7 @@
 		<apply_to pv1="rbcs" pv2="dpd"/>
 	</interaction>
 	
-	<interaction type="rbc" name="rbc_int" preset="lina" gammaC="60" >
+	<interaction type="rbc" name="rbc_int" preset="lina" >
 		<apply_to pv1="rbcs" pv2="rbcs"/>
 	</interaction>
 	
@@ -57,9 +57,9 @@
 		<apply_to pv="rbcs" />
 	</integrator>
 	
-	<integrator type="const_omega" name="rot" dt="0.001" omega="0 0 0.01" center="32 32 8">
+<!-- 	<integrator type="const_omega" name="rot" dt="0.001" omega="0 0 0.1" center="32 32 32">
 		<apply_to pv="outer" />
-	</integrator>
+	</integrator> -->
 	
 	
 	<!--
@@ -68,7 +68,7 @@
 		
  	<plugin type="dump_avg_flow" name="avg"
 		pv_names="dpd"
-		sample_every="50" dump_every="50000"
+		sample_every="50" dump_every="10000"
 		bin_size="0.5 0.5 1"
 		path="tc_xdmf/avg_rho_u" />
 		

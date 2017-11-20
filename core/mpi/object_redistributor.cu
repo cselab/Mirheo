@@ -112,6 +112,9 @@ void ObjectRedistributor::prepareData(int id, cudaStream_t stream)
 	auto ov  = objects[id];
 	auto lov = ov->local();
 	auto helper = helpers[id];
+
+	ov->findExtentAndCOM(stream, true);
+
 	OVviewWithExtraData ovView(ov, ov->local(), stream);
 	helper->setDatumSize(ovView.packedObjSize_byte);
 
@@ -221,7 +224,11 @@ void ObjectRedistributor::combineAndUploadData(int id, cudaStream_t stream)
 	ov->redistValid = true;
 
 	// Particles may have migrated, rebuild cell-lists
-	if (totalRecvd > 0)	ov->cellListStamp++;
+	if (totalRecvd > 0)
+	{
+		ov->cellListStamp++;
+		ov->local()->comExtentValid = false;
+	}
 }
 
 

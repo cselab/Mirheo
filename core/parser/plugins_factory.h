@@ -12,6 +12,7 @@
 #include <plugins/temperaturize.h>
 #include <plugins/dump_obj_position.h>
 #include <plugins/impose_velocity.h>
+#include <plugins/pin_object.h>
 
 class PluginFactory
 {
@@ -106,6 +107,24 @@ private:
 		return { (SimulationPlugin*) simPl, (PostprocessPlugin*) postPl };
 	}
 
+	static std::pair<SimulationPlugin*, PostprocessPlugin*> createPinObjPlugin(pugi::xml_node node, bool computeTask)
+	{
+		auto name      = node.attribute("name").as_string();
+
+		auto ovName    = node.attribute("ov_name").as_string();
+		auto dumpEvery = node.attribute("dump_every").as_int(1000);
+		auto translate = node.attribute("pin_translation").as_int3({0,0,0});
+		auto rotate    = node.attribute("pin_rotation").as_int3({0,0,0});
+
+		auto path      = node.attribute("path").as_string("pos/");
+
+
+
+		auto simPl  = computeTask ? new PinObjectPlugin(name, ovName, translate, rotate, dumpEvery) : nullptr;
+		auto postPl = computeTask ? nullptr : new ReportPinObjectPlugin(name, path);
+
+		return { (SimulationPlugin*) simPl, (PostprocessPlugin*) postPl };
+	}
 
 public:
 	static std::pair<SimulationPlugin*, PostprocessPlugin*> create(pugi::xml_node node, bool computeTask)
@@ -124,6 +143,8 @@ public:
 			return createDumpObjPosition(node, computeTask);
 		if (type == "impose_velocity")
 			return createImposeVelocityPlugin(node, computeTask);
+		if (type == "pin_object")
+			return createPinObjPlugin(node, computeTask);
 
 		die("Unable to parse input at %s, unknown 'type' %s", node.path().c_str(), type.c_str());
 

@@ -22,7 +22,12 @@ void BounceFromRigidEllipsoid::exec(ParticleVector* pv, CellList* cl, float dt, 
 	if (reov == nullptr)
 		die("Analytic ellispoid bounce only works with RigidObjectVector");
 
-	debug("Bouncing %s particles from %s object vector", pv->name.c_str(), reov->name.c_str());
+	debug("Bouncing %d %s particles from %d %s objects (%s)",
+			pv->local()->size(), pv->name.c_str(),
+			local ? reov->local()->size() : reov->halo()->size(), reov->name.c_str(),
+			local ? "local objs" : "halo objs");
+
+	ov->findExtentAndCOM(stream, local);
 
 	REOVview_withOldMotion ovView(reov, local ? reov->local() : reov->halo());
 	PVview_withOldParticles pvView(pv, pv->local());
@@ -32,7 +37,7 @@ void BounceFromRigidEllipsoid::exec(ParticleVector* pv, CellList* cl, float dt, 
 	{
 		SAFE_KERNEL_LAUNCH(
 				clearRigidForces,
-				getNblocks(ovView.nObjects, 64), 64, 0, stream,
+				getNblocks(ovView.nObjects, nthreads), nthreads, 0, stream,
 				ovView );
 	}
 

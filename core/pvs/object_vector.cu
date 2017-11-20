@@ -34,17 +34,21 @@ __global__ void min_max_com(OVview ovView)
 		ovView.comAndExtents[objId] = {mycom / ovView.objSize, mymin, mymax};
 }
 
-void ObjectVector::findExtentAndCOM(cudaStream_t stream)
+void ObjectVector::findExtentAndCOM(cudaStream_t stream, bool isLocal)
 {
+	auto lov = isLocal ? local() : halo();
+
+	if (lov->comExtentValid)
+	{
+		debug("COM and extent computation for %s OV '%s' skipped",
+				isLocal ? "local" : "halo", name.c_str());
+		return;
+	}
+
+	debug("Computing COM and extent OV '%s' (%s)", name.c_str(), isLocal ? "local" : "halo");
+
 	const int nthreads = 128;
-
-	OVview ovView(this, local());
-	SAFE_KERNEL_LAUNCH(
-			min_max_com,
-			(ovView.nObjects*32 + nthreads-1)/nthreads, nthreads, 0, stream,
-			ovView );
-
-	ovView = OVview(this, halo());
+	OVview ovView(this, lov);
 	SAFE_KERNEL_LAUNCH(
 			min_max_com,
 			(ovView.nObjects*32 + nthreads-1)/nthreads, nthreads, 0, stream,
