@@ -13,6 +13,7 @@
 #include <plugins/dump_obj_position.h>
 #include <plugins/impose_velocity.h>
 #include <plugins/pin_object.h>
+#include <plugins/add_force.h>
 
 class PluginFactory
 {
@@ -41,6 +42,18 @@ private:
 		auto keepVel = node.attribute("keep_velocity").as_bool(false);
 
 		auto simPl = computeTask ? new TemperaturizePlugin(name, pvName, kbT, keepVel) : nullptr;
+
+		return { (SimulationPlugin*) simPl, nullptr };
+	}
+
+	static std::pair<SimulationPlugin*, PostprocessPlugin*> createAddForcePlugin(pugi::xml_node node, bool computeTask)
+	{
+		auto name    = node.attribute("name").as_string();
+
+		auto pvName  = node.attribute("pv_name").as_string();
+		auto force   = node.attribute("force").as_float3();
+
+		auto simPl = computeTask ? new AddForcePlugin(name, pvName, force) : nullptr;
 
 		return { (SimulationPlugin*) simPl, nullptr };
 	}
@@ -133,6 +146,8 @@ public:
 
 		if (type == "temperaturize")
 			return createTemperaturizePlugin(node, computeTask);
+		if (type == "add_force")
+			return createAddForcePlugin(node, computeTask);
 		if (type == "stats")
 			return createStatsPlugin(node, computeTask);
 		if (type == "dump_avg_flow")

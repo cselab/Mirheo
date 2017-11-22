@@ -45,7 +45,7 @@ void TemperaturizePlugin::setup(Simulation* sim, const MPI_Comm& comm, const MPI
 {
 	SimulationPlugin::setup(sim, comm, interComm);
 
-	pv =sim->getPVbyNameOrDie(pvName);
+	pv = sim->getPVbyNameOrDie(pvName);
 }
 
 void TemperaturizePlugin::beforeForces(cudaStream_t stream)
