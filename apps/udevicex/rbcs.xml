@@ -1,47 +1,78 @@
 <?xml version="1.0"?>
-<simulation name="rbcs" logfile="log" mpi_ranks="1 1 1" debug_lvl="1">
+<simulation name="rbcs" logfile="log" mpi_ranks="1 1 1" debug_lvl="10" >
 
-	<domain size="64 64 64" />
+	<domain size="32 32 32" />
 	
 	<particle_vector type="regular" name="dpd" mass="1">
 		<generate type="uniform" density="8" />
 	</particle_vector>
 	
 	<!--
+		Walls section
+	-->
+	
+<!-- 	<particle_vector type="regular" name="bot" mass="1">
+		<generate type="restart" path="restart/" />
+	</particle_vector>
+	
+	<particle_vector type="regular" name="top" mass="1">
+		<generate type="restart" path="restart/" />
+	</particle_vector>
+	
+	<wall type="moving_plane" name="bot" check_every="100" normal="0 0 -1" point_through="0 0 2" velocity="100 0 0" >
+		<generate_frozen name="bot" path="restart" mass="1.0" density="8" a="25" kbt="0.5" rc="1.0" power="0.5" />
+		<apply_to pv="dpd" />
+	</wall>
+		
+	<wall type="moving_plane" name="top" check_every="100" normal="0 0 1" point_through="0 0 30" velocity="-100 0 0" >
+		<generate_frozen name="top" path="restart" mass="1.0" density="8" a="25" kbt="0.5" rc="1.0" power="0.5" />
+		<apply_to pv="dpd" />
+	</wall> -->
+	
+	<!--
 		Object section
 	-->
 	
-	<particle_vector type="rbcs" name="rbcs" mass="1" particles_per_obj="498" mesh_filename="../../data/rbc_mesh.off" >
-		<generate type="read_rbcs" ic_filename="rbcs.ic" mesh_filename="../../data/rbc_mesh.off" />
+	<particle_vector type="rbcs" name="rbcs" mass="0.7" particles_per_obj="498" mesh_filename="../../data/rbc_mesh.off" >
+		<generate type="read_rbcs" ic_filename="rbcs_big.ic" mesh_filename="../../data/rbc_mesh.off" />
 	</particle_vector>
 	
 	<object_belonging_checker name="rbc_checker" type="mesh" object_vector="rbcs"  >
-		<apply_to pv="dpd" inside="ins" outside="dpd" check_every="500" />
+		<apply_to pv="dpd" inside="none" outside="dpd" check_every="500" />
 	</object_belonging_checker>
 	
 	<object_bouncer name="membrane" ov="rbcs" type="from_mesh">
 		<apply_to pv="dpd" />
-		<apply_to pv="ins" />
+		<!-- <apply_to pv="ins" /> -->
 	</object_bouncer>
 	
 	<!--
 		Interactions section
 	-->
 	
-	<interaction type="dpd" name="dpd_int" a="25" gamma="20" kbt="0.4" dt="0.001" rc="1.0" power="0.5">
+	<interaction type="dpd" name="dpd_int" a="25" gamma="40" kbt="0.5" dt="0.001" rc="1.0" power="0.5">
 		<apply_to pv1="dpd" pv2="dpd"/>
-		<apply_to pv1="rbcs" pv2="dpd"/>
-		<apply_to pv1="ins" pv2="dpd"/>
+<!-- 				
+		<apply_to pv1="top" pv2="dpd"/>
+		<apply_to pv1="bot" pv2="dpd"/> -->
 	</interaction>
 	
-	<interaction type="rbc" name="rbc_int" preset="lina" kb="10" gammaC="10">
+	<!-- <interaction type="dpd" name="inner" a="25" gamma="40" kbt="0.5" dt="0.001" rc="1.0" power="0.5">
+		<apply_to pv1="ins" pv2="ins"/>
+	</interaction> -->
+	
+<!-- 	<interaction type="dpd" name="inter_int" a="25" gamma="0" kbt="0.0" dt="0.001" rc="1.0" power="0.5">
+		<apply_to pv1="ins" pv2="dpd"/>
+	</interaction> -->
+	
+	<interaction type="rbc" name="rbc_int" preset="lina" kb="30"  >
 		<apply_to pv1="rbcs" pv2="rbcs"/>
 	</interaction>
 	
-	<!-- <interaction type="dpd" name="slip" a="25" gamma="0" kbt="0.0" dt="0.001" rc="1.0" power="1">
-		<apply_to pv1="dpd" pv2="top"/>
-		<apply_to pv1="dpd" pv2="bot"/>
-	</interaction> -->
+	<interaction type="dpd" name="fsi" a="0" gamma="10" kbt="0.5" dt="0.001" rc="1.0" power="0.5">
+		<apply_to pv1="rbcs" pv2="dpd"/>
+		<!-- <apply_to pv1="rbcs" pv2="ins"/> -->
+	</interaction>
 	
 	<!--
 		Integrators section
@@ -50,7 +81,7 @@
 	<integrator type="vv_const_dp" name="pois" extra_force="0 0 0.0" dt="0.001">
 		<apply_to pv="dpd" />
 		<apply_to pv="rbcs" />
-		<apply_to pv="ins" />
+<!-- 		<apply_to pv="ins" /> -->
 	</integrator>
 
 	
@@ -66,8 +97,8 @@
 		
  	<plugin type="dump_avg_flow" name="avg"
 		pv_names="dpd"
-		sample_every="500" dump_every="5000"
-		bin_size="2 2 0.5"
+		sample_every="10" dump_every="1000"
+		bin_size="1 1 1"
 		path="xdmf/avg_rho_u" />
 		
 	<plugin type="dump_xyz" name="rbcs"
@@ -90,8 +121,8 @@
 		dump_every="1000"
 		path="pos/" />
 	
-	<plugin type="stats" name="stats" every="100" />
+	<plugin type="stats" name="stats" every="1000" />
 	
-	<run niters="50" />
+	<run niters="100000" />
 </simulation>
 

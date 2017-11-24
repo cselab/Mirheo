@@ -642,7 +642,7 @@ void Simulation::assemble()
 
 	scheduler.addDependency("Object redistribute init", {}, {"Integration", "Wall bounce", "Obj forces exchange: finalize", "Plugins: after integration"});
 	scheduler.addDependency("Object redistribute finalize", {}, {"Object redistribute init"});
-	scheduler.addDependency("Clear obj local forces", {}, {"Integration"});
+	scheduler.addDependency("Clear obj local forces", {"Object bounce"}, {"Integration", "Object redistribute finalize"});
 
 	scheduler.setHighPriority("Obj forces exchange: init");
 	scheduler.setHighPriority("Halo init");

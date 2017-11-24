@@ -92,5 +92,6 @@ void BounceFromMesh::exec(ParticleVector* pv, CellList* cl, float dt, cudaStream
 			performBouncing,
 			getNblocks(nCollisions[0], nthreads), nthreads, 0, stream,
 			objView, pvView, mesh,
-			nCollisions[0], tmp_collisionTable.devPtr(), dt );
+			nCollisions[0], tmp_collisionTable.devPtr(), dt,
+			kbT, drand48(), drand48() );
 }

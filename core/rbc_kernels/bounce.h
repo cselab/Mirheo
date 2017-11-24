@@ -5,6 +5,13 @@
 #include <core/celllist.h>
 #include <core/bounce_solver.h>
 
+#include <core/utils/cuda_rng.h>
+
+struct Triangle
+{
+	float3 v0, v1, v2;
+};
+
 // https://gamedev.stackexchange.com/questions/23743/whats-the-most-efficient-way-to-find-barycentric-coordinates
 __device__ __forceinline__ float3 computeBarycentric(float3 a, float3 b, float3 c, float3 p)
 {
@@ -24,41 +31,43 @@ __device__ __forceinline__ float3 computeBarycentric(float3 a, float3 b, float3 
 	return make_float3(l0, l1, l2);
 }
 
-// Particle with mass M and velocity U hits triangle (x0, x1, x2)
-// into point O. Vertex masses are m. Treated as rigid and stationary,
+// Particle with mass M and velocity U0 hits triangle tr (v0, v1, v2)
+// into point O. Its new velocity is Unew.
+// Vertex masses are m. Treated as rigid and stationary,
 // what are the vertex forces induced by the collision?
 __device__ __forceinline__ void triangleForces(
-		float3 x0, float3 x1, float3 x2, float m,
-		float3 O_barycentric, float3 U, float M,
+		Triangle tr, float m,
+		float3 O_barycentric, float3 U0, float3 Unew, float M,
 		float dt,
 		float3& f0, float3& f1, float3& f2)
 {
-	const float tol = 1e-3;
+	const float tol = 1e-5;
 
 	auto len2 = [] (float3 x) {
 		return dot(x, x);
 	};
 
-	const float3 n = normalize(cross(x1-x0, x2-x0));
+	const float3 n = normalize(cross(tr.v1-tr.v0, tr.v2-tr.v0));
 
-	const float IU_ortI = dot(U, n);
-	const float3 U_par = U - IU_ortI * n;
+	const float3 dU = U0 - Unew;
+	const float IU_ortI = dot(dU, n);
+	const float3 U_par = dU - IU_ortI * n;
 
-	const float a = 2.0f*M/m * IU_ortI;
+	const float a = M * IU_ortI;
 	const float v0_ort = O_barycentric.x * a;
 	const float v1_ort = O_barycentric.y * a;
 	const float v2_ort = O_barycentric.z * a;
 
-	const float3 C = 0.333333333f * (x0+x1+x2);
-	const float3 Vc = 0.666666666f * M/m * U_par;
+	const float3 C = 0.333333333f * (tr.v0+tr.v1+tr.v2);
+	const float3 Vc = 0.333333333f * M * U_par;
 
-	const float3 O = O_barycentric.x * x0 + O_barycentric.y * x1 + O_barycentric.z * x2;
-	const float3 L = 2.0f*M * cross(C-O, U_par);
+	const float3 O = O_barycentric.x * tr.v0 + O_barycentric.y * tr.v1 + O_barycentric.z * tr.v2;
+	const float3 L = M * cross(C-O, U_par);
 
-	const float J = m * (len2(C-x0) + len2(C-x1) + len2(C-x2));
+	const float J = len2(C-tr.v0) + len2(C-tr.v1) + len2(C-tr.v2);
 	if (fabs(J) < tol)
 	{
-		float3 f = 2.0f * U * M/m / dt;
+		float3 f = dU * M / dt;
 		f0 = O_barycentric.x*f;
 		f1 = O_barycentric.y*f;
 		f2 = O_barycentric.z*f;
@@ -68,9 +77,9 @@ __device__ __forceinline__ void triangleForces(
 
 	const float w = -dot(L, n) / J;
 
-	const float3 orth_r0 = cross(C-x0, n);
-	const float3 orth_r1 = cross(C-x1, n);
-	const float3 orth_r2 = cross(C-x2, n);
+	const float3 orth_r0 = cross(C-tr.v0, n);
+	const float3 orth_r1 = cross(C-tr.v1, n);
+	const float3 orth_r2 = cross(C-tr.v2, n);
 
 	const float3 u0 = w * orth_r0;
 	const float3 u1 = w * orth_r1;
@@ -81,15 +90,10 @@ __device__ __forceinline__ void triangleForces(
 	const float3 v2 = v2_ort*n + Vc + u2;
 
 	const float invdt = 1.0f / dt;
-	f0 = v0 * m * invdt;
-	f1 = v1 * m * invdt;
-	f2 = v2 * m * invdt;
+	f0 = v0 * invdt;
+	f1 = v1 * invdt;
+	f2 = v2 * invdt;
 }
-
-struct Triangle
-{
-	float3 v0, v1, v2;
-};
 
 __device__ __forceinline__ Triangle readTriangle(float4* particles, int3 trid)
 {
@@ -180,6 +184,10 @@ __device__  void findBouncesInCell(
 			int id = atomicAggInc(nCollisions);
 			if (id < maxCollisions)
 				collisionTable[id] = make_int2(pid, globTrid);
+
+//			if (id > 500)
+//				printf("%d with %d:  %f %f %f\n", p.i1, globTrid,
+//						barycentricCoo.x, barycentricCoo.y, barycentricCoo.z);
 		}
 	}
 }
@@ -230,12 +238,54 @@ __global__ void findBouncesInMesh(
 }
 
 
+
+__device__ __forceinline__ float2 normal_BoxMuller(float seed)
+{
+	float u1 = Saru::uniform01(seed, threadIdx.x, blockIdx.x);
+	float u2 = Saru::uniform01(u1,   blockIdx.x, threadIdx.x);
+
+	float r = sqrtf(-2.0f * logf(u1));
+	float theta = 2.0f * M_PI * u2;
+
+	float2 res;
+	sincosf(theta, &res.x, &res.y);
+	res *= r;
+
+	return res;
+}
+
+/**
+ * Reflect the velocity, in the triangle's referece frame
+ */
+__device__ __forceinline__ float3 reflectVelocity(float3 n, float kbT, float mass, float seed1, float seed2)
+{
+	// bounce-back reflection
+	// return -initialVelocity;
+
+	// reflection with random scattering
+	// according to Maxwell distr
+	float2 rand1 = normal_BoxMuller(seed1);
+	float2 rand2 = normal_BoxMuller(seed2);
+
+	float3 r = make_float3(rand1.x, rand1.y, rand2.x);
+	while (dot(r, n) < 0)
+	{
+		rand1 = normal_BoxMuller(rand2.x);
+		rand2 = normal_BoxMuller(rand1.y);
+		r = make_float3(rand1.x, rand1.y, rand2.x);
+	}
+	r = normalize(r) * sqrtf(kbT / mass);
+
+	return r;
+}
+
 __global__ void performBouncing(
 		OVviewWithOldPartilces objView,
 		PVview_withOldParticles pvView,
 		MeshView mesh,
 		int nCollisions, int2* collisionTable,
-		const float dt)
+		const float dt,
+		float kbT, float seed1, float seed2)
 {
 	const float eps = 2e-6f;
 
@@ -263,7 +313,6 @@ __global__ void performBouncing(
 
 	float alpha = 1000.0f;
 	int firstTriId;
-	float3 pf;
 
 	for (int id = gid; id<nCollisions; id++)
 	{
@@ -292,16 +341,15 @@ __global__ void performBouncing(
 			const float3 vtri = barycentricCoo.x*trVel.v0 + barycentricCoo.y*trVel.v1 + barycentricCoo.z*trVel.v2;
 			const float3 coo  = barycentricCoo.x*tr.v0    + barycentricCoo.y*tr.v1    + barycentricCoo.z*tr.v2;
 
-			triangleForces(tr.v0, tr.v1, tr.v2, objView.mass, barycentricCoo, p.u - vtri, pvView.mass, dt, f0, f1, f2);
-
-			float3 newV = 2.0f*vtri-p.u;
-
 			const float3 n = normalize(cross(tr.v1-tr.v0, tr.v2-tr.v0));
+
+			// new velocity relative to the triangle speed
+			float3 newV = reflectVelocity(n, kbT, pvView.mass, seed1, seed2);
+
+			triangleForces(tr, objView.mass, barycentricCoo, p.u - vtri, newV, pvView.mass, dt, f0, f1, f2);
+
 			corrP.r = coo + eps * n * ((oldSign > 0) ? 5.0f : -5.0f);
-
-			pf = (newV - corrP.u) / dt;
-
-			corrP.u = newV;
+			corrP.u = newV + vtri;
 		}
 	}
 
@@ -311,10 +359,31 @@ __global__ void performBouncing(
 	const int objId = firstTriId / mesh.ntriangles;
 	const int3 triangle = mesh.triangles[trid];
 
+	if (dot(p.u, p.u) > 20)
+	{
+		printf("Collision %d: particle %d [%f %f %f], [%f %f %f]  to [%f %f %f], [%f %f %f];\n",
+				gid, p.i1, p.r.x, p.r.y, p.r.z,  p.u.x, p.u.y, p.u.z,
+				corrP.r.x, corrP.r.y, corrP.r.z,  corrP.u.x, corrP.u.y, corrP.u.z);
+		printf("  %d  triangles  %d [%f %f %f] (%f %f %f),  %d [%f %f %f] (%f %f %f),  %d [%f %f %f] (%f %f %f)\n",
+				gid,
+				triangle.x, f0.x, f0.y, f0.z, objView.particles[2*triangle.x+1].x, objView.particles[2*triangle.x+1].y, objView.particles[2*triangle.x+1].z,
+				triangle.y, f1.x, f1.y, f1.z, objView.particles[2*triangle.y+1].x, objView.particles[2*triangle.y+1].y, objView.particles[2*triangle.y+1].z,
+				triangle.z, f2.x, f2.y, f2.z, objView.particles[2*triangle.z+1].x, objView.particles[2*triangle.z+1].y, objView.particles[2*triangle.z+1].z  );
+	}
+
+
+	if (length(f0) > 5000)
+		printf("%d force %f %f %f\n", mesh.nvertices*objId + triangle.x, f0.x, f0.y, f0.z);
+
+	if (length(f1) > 5000)
+		printf("%d force %f %f %f\n", mesh.nvertices*objId + triangle.y, f1.x, f1.y, f1.z);
+
+	if (length(f2) > 5000)
+		printf("%d force %f %f %f\n", mesh.nvertices*objId + triangle.z, f2.x, f2.y, f2.z);
+
 	atomicAdd(objView.forces + mesh.nvertices*objId + triangle.x, f0);
 	atomicAdd(objView.forces + mesh.nvertices*objId + triangle.y, f1);
 	atomicAdd(objView.forces + mesh.nvertices*objId + triangle.z, f2);
 }
-
 
 
