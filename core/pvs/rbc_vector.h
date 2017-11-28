@@ -11,7 +11,8 @@ public:
 	LocalRBCvector(const int rbcSize, const int nRbcs = 0, cudaStream_t stream = 0) :
 		LocalObjectVector(rbcSize, nRbcs)
 	{
-		dataPerObject["area_volumes"] = std::unique_ptr<GPUcontainer> (new PinnedBuffer<float2>(nObjects));
+		// area and volumes need not to be communicated
+		extraPerObject.createData<float2> ("area_volumes", nObjects);
 	}
 
 	virtual ~LocalRBCvector() = default;

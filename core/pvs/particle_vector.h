@@ -5,37 +5,27 @@
 #include <core/containers.h>
 #include <core/domain.h>
 
-#include <map>
+#include "extra_data/extra_data_manager.h"
 
-#if __cplusplus < 201400L
-namespace std
-{
-	template<typename T, typename... Args>
-	std::unique_ptr<T> make_unique(Args&&... args)
-	{
-		return std::unique_ptr<T>(new T(std::forward<Args>(args)...));
-	}
-}
-#endif
+#include <map>
 
 class LocalParticleVector
 {
 protected:
 	int np;
 
-	// Store any additional data
-	using DataMap = std::map<std::string, std::unique_ptr<GPUcontainer>>;
-	DataMap dataPerParticle;
-
 public:
+
 	PinnedBuffer<Particle> coosvels;
 	DeviceBuffer<Force> forces;
-
+	ExtraDataManager extraPerParticle;
 
 	// Local coordinate system; (0,0,0) is center of the local domain
 	LocalParticleVector(int n=0, cudaStream_t stream = 0)
 	{
 		resize(n, stream);
+		// usually old positions and velocities don't need to exchanged
+		extraPerParticle.createData<Particle> ("old_particles", n);
 	}
 
 	int size()
@@ -45,58 +35,29 @@ public:
 
 	virtual void resize(const int n, cudaStream_t stream)
 	{
-		assert(n>=0);
+		if (n < 0) die("Tried to resize PV to %d < 0 particles", n);
 
-		coosvels.resize(n, stream);
-		forces  .resize(n, stream);
-
-		for (auto& kv : dataPerParticle)
-			kv.second->resize(n, stream);
+		coosvels.        resize(n, stream);
+		forces.          resize(n, stream);
+		extraPerParticle.resize(n, stream);
 
 		np = n;
 	}
 
 	virtual void resize_anew(const int n)
 	{
-		assert(n>=0);
+		if (n < 0) die("Tried to resize PV to %d < 0 particles", n);
 
-		coosvels.resize_anew(n);
-		forces  .resize_anew(n);
-
-		for (auto& kv : dataPerParticle)
-			kv.second->resize_anew(n);
+		coosvels.        resize_anew(n);
+		forces.          resize_anew(n);
+		extraPerParticle.resize_anew(n);
 
 		np = n;
 	}
 
-	template<typename T>
-	PinnedBuffer<T>* getDataPerParticle(const std::string& name)
-	{
-		GPUcontainer *contPtr;
-		auto it = dataPerParticle.find(name);
-		if (it == dataPerParticle.end())
-		{
-			warn("Requested extra data entry PER PARTICLE '%s' was absent, creating now", name.c_str());
-
-			auto ptr = std::make_unique< PinnedBuffer<T> >(size());
-			contPtr = ptr.get();
-			dataPerParticle[name] = std::move(ptr);
-		}
-		else
-		{
-			contPtr = it->second.get();
-		}
-
-		return dynamic_cast< PinnedBuffer<T>* > (contPtr);
-	}
-
-	const DataMap& getDataPerParticleMap() const
-	{
-		return dataPerParticle;
-	}
-
 	virtual ~LocalParticleVector() = default;
 };
+
 
 class ParticleVector
 {

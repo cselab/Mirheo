@@ -12,7 +12,7 @@ __device__ inline float ellipsoidF(const float3 r, const float3 invAxes)
 }
 
 __device__ __forceinline__ void bounceCellArray(
-		REOVview_withOldMotion ovView, PVview_withOldParticles pvView,
+		REOVview_withOldMotion ovView, PVviewWithOldParticles pvView,
 		int objId,
 		int* validCells, int nCells,
 		CellListInfo cinfo, const float dt)
@@ -112,7 +112,7 @@ __device__ __forceinline__ bool isValidCell(int3 cid3, SingleRigidMotion motion,
 			 ellipsoidF(v111, invAxes) < threshold );
 }
 
-__global__ void bounceEllipsoid(REOVview_withOldMotion ovView, PVview_withOldParticles pvView,
+__global__ void bounceEllipsoid(REOVview_withOldMotion ovView, PVviewWithOldParticles pvView,
 		CellListInfo cinfo, const float dt)
 {
 	// About max travel distance per step + safety

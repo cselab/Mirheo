@@ -72,7 +72,7 @@ void EllipsoidIC::exec(const MPI_Comm& comm, ParticleVector* pv, DomainInfo doma
 
 	ov->local()->resize_anew(nObjs * ov->objSize);
 
-	auto ovMotions = ov->local()->getDataPerObject<RigidMotion>("motions");
+	auto ovMotions = ov->local()->extraPerObject.getData<RigidMotion>("motions");
 	ovMotions->copy(motions);
 	ovMotions->uploadToDevice(stream);
 
@@ -80,7 +80,7 @@ void EllipsoidIC::exec(const MPI_Comm& comm, ParticleVector* pv, DomainInfo doma
 	int totalCount=0; // TODO: int64!
 	MPI_Check( MPI_Exscan(&nObjs, &totalCount, 1, MPI_INT, MPI_SUM, comm) );
 
-	auto ids = ov->local()->getDataPerObject<int>("ids");
+	auto ids = ov->local()->extraPerObject.getData<int>("ids");
 	for (int i=0; i<nObjs; i++)
 		(*ids)[i] = totalCount + i;
 

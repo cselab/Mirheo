@@ -1,31 +1,31 @@
 <?xml version="1.0"?>
-<simulation name="poiseuille" logfile="log" mpi_ranks="1 1 1" debug_lvl="2">
+<simulation name="poiseuille" logfile="log" mpi_ranks="1 1 1" debug_lvl="1">
 
-	<domain size="32 32 32" />
+	<domain size="64 64 64" />
 	
 	<particle_vector type="regular" name="dpd" mass="1">
-		<generate type="uniform" density="4" />
+		<generate type="uniform" density="8" />
 	</particle_vector>
 	
-	<particle_vector type="regular" name="frozen" mass="1">
+	<!-- <particle_vector type="regular" name="wall" mass="1">
 		<generate type="restart" path="restart/" />
 	</particle_vector>
 	
-	<!--<wall type="sdf" name="wall" check_every="100" sdf_filename="../../walls/cylinder_r5_h32.sdf">
+	<wall type="sdf" name="wall" check_every="100" sdf_filename="../../walls/cylinder_r5_h32.sdf">
 		<generate_frozen name="frozen" path="restart" mass="1.0" density="8" a="2.6666667" kbt="0.05" rc="1.0" power="0.5" />
 		<apply_to pv="dpd" />
-	</wall>-->
+	</wall>
 
 	<wall type="sphere" name="wall" check_every="100" center="16 16 16" radius="6" inside="false"  >
-		<generate_frozen name="frozen" path="restart" mass="1.0" density="4" a="18.75" kbt="1.0" rc="1.0" power="0.25" />
+		<generate_frozen path="restart" mass="1.0" density="4" a="18.75" kbt="1.0" rc="1.0" power="0.25" />
 		<apply_to pv="dpd" />
-	</wall>
+	</wall> -->
 	
 	<interaction type="dpd" name="dpd_int" a="2.6666667" gamma="8" kbt="0.0444302" dt="0.001" rc="1.0" power="0.5">
 		<apply_to pv1="dpd" pv2="dpd"/>
 	</interaction>
 	
-	<integrator type="vv_periodic_poiseuille" name="pois" force="0.05" dt="0.001">
+	<integrator type="vv_periodic_poiseuille" name="pois" force="0.00" dt="0.001">
 		<apply_to pv="dpd" />
 	</integrator>
 	
@@ -35,8 +35,8 @@
 		bin_size="0.5 0.5 0.5"
 		path="xdmf/avg_rho_u" />
 	
-	<plugin type="stats" name="stats" every="100" />
+	<plugin type="stats" name="stats" every="1000" />
 	
-	<run niters="100000" />
+	<run niters="50" />
 
 </simulation>

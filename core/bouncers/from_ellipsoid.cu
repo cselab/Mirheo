@@ -30,7 +30,7 @@ void BounceFromRigidEllipsoid::exec(ParticleVector* pv, CellList* cl, float dt, 
 	ov->findExtentAndCOM(stream, local);
 
 	REOVview_withOldMotion ovView(reov, local ? reov->local() : reov->halo());
-	PVview_withOldParticles pvView(pv, pv->local());
+	PVviewWithOldParticles pvView(pv, pv->local());
 
 	int nthreads = 256;
 	if (!local)

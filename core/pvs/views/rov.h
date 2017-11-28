@@ -18,7 +18,7 @@ struct ROVview : public OVview
 	{
 		if (rov == nullptr || lrov == nullptr) return;
 
-		motions = lrov->getDataPerObject<RigidMotion>("motions")->devPtr();
+		motions = lrov->extraPerObject.getData<RigidMotion>("motions")->devPtr();
 
 		// More fields
 		J = rov->J;
@@ -36,7 +36,7 @@ struct ROVview_withOldMotion : public ROVview
 	{
 		if (rov == nullptr || lrov == nullptr) return;
 
-		old_motions = lrov->getDataPerObject<RigidMotion>("old_motions")->devPtr();
+		old_motions = lrov->extraPerObject.getData<RigidMotion>("old_motions")->devPtr();
 	}
 };
 

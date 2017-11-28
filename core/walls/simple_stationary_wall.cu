@@ -11,6 +11,7 @@
 #include <core/celllist.h>
 #include <core/pvs/particle_vector.h>
 #include <core/pvs/object_vector.h>
+#include <core/pvs/extra_data/packers.h>
 #include <core/bounce_solver.h>
 
 #include <core/utils/cuda_rng.h>
@@ -45,7 +46,7 @@ __global__ void collectRemaining(PVview view, float4* remaining, int* nRemaining
 }
 
 template<typename InsideWallChecker>
-__global__ void packRemainingObjects(OVviewWithExtraData view, char* output, int* nRemaining, InsideWallChecker checker)
+__global__ void packRemainingObjects(OVview view, ObjectPacker packer, char* output, int* nRemaining, InsideWallChecker checker)
 {
 	const float tolerance = 1e-6f;
 
@@ -74,28 +75,32 @@ __global__ void packRemainingObjects(OVviewWithExtraData view, char* output, int
 		dstObjId = atomicAggInc(nRemaining);
 	dstObjId = __shfl(dstObjId, 0);
 
+	char* dstAddr = output + dstObjId * packer.totalPackedSize_byte;
+	for (int pid = tid; pid < view.objSize; pid += warpSize)
+	{
+		const int srcPid = objId * view.objSize + pid;
+		packer.part.pack(srcPid, dstAddr + pid*packer.part.packedSize_byte);
+	}
 
-	Particle* dstAddr = (Particle*)(output + dstObjId * view.packedObjSize_byte);
-	for (int i=tid; i < view.objSize; i+=warpSize)
-		dstAddr[i] = Particle(view.particles, objId * view.objSize + i);
-
-	view.packExtraData(objId, (char*)(dstAddr+view.objSize));
+	dstAddr += view.objSize * packer.part.packedSize_byte;
+	if (tid == 0) packer.obj.pack(objId, dstAddr);
 }
 
-__global__ void unpackRemainingObjects(OVviewWithExtraData view, const char* input)
+__global__ static void unpackRemainingObjects(const char* from, OVview view, ObjectPacker packer)
 {
-	// One warp per object
-	const int gid = blockIdx.x * blockDim.x + threadIdx.x;
-	const int objId = gid / warpSize;
-	const int tid = gid % warpSize;
+	const int objId = blockIdx.x;
+	const int tid = threadIdx.x;
 
-	if (objId >= view.nObjects) return;
+	const char* srcAddr = from + packer.totalPackedSize_byte * objId;
 
-	Particle* srcAddr = (Particle*)(input + objId * view.packedObjSize_byte);
-	for (int i=tid; i < view.objSize; i+=warpSize)
-		((Particle*)view.particles)[objId * view.objSize + i] = srcAddr[i];
+	for (int pid = tid; pid < view.objSize; pid += blockDim.x)
+	{
+		const int dstId = objId*view.objSize + pid;
+		packer.part.unpack(srcAddr + pid*packer.part.packedSize_byte, dstId);
+	}
 
-	view.unpackExtraData(objId, (char*)(srcAddr+view.objSize));
+	srcAddr += view.objSize * packer.part.packedSize_byte;
+	if (tid == 0) packer.obj.unpack(srcAddr, objId);
 }
 //===============================================================================================
 // Boundary cells kernels
@@ -169,7 +174,7 @@ __device__ __forceinline__ float3 rescue(float3 candidate, float dt, float tol, 
 
 template<typename InsideWallChecker>
 __global__ void bounceKernel(
-		PVview_withOldParticles view, CellListInfo cinfo,
+		PVviewWithOldParticles view, CellListInfo cinfo,
 		const int* wallCells, const int nWallCells, const float dt, const InsideWallChecker checker)
 {
 	const float tol = 2e-6f;
@@ -305,22 +310,26 @@ void SimpleStationaryWall<InsideWallChecker>::removeInner(ParticleVector* pv)
 	else
 	{
 		// Prepare temp storage for extra object data
-		OVviewWithExtraData ovView(ov, ov->local(), 0);
-		DeviceBuffer<char> tmp(ovView.nObjects * ovView.packedObjSize_byte);
+		OVview ovView(ov, ov->local());
+		ObjectPacker packer(ov, ov->local());
+
+		DeviceBuffer<char> tmp(ovView.nObjects * packer.totalPackedSize_byte);
 
 		SAFE_KERNEL_LAUNCH(
 				packRemainingObjects,
 				getNblocks(ovView.nObjects*32, nthreads), nthreads, 0, 0,
-				ovView,	tmp.devPtr(), nRemaining.devPtr(), insideWallChecker.handler() );
+				ovView,	packer, tmp.devPtr(), nRemaining.devPtr(), insideWallChecker.handler() );
 
 		// Copy temporary buffers back
 		nRemaining.downloadFromDevice(0);
 		ov->local()->resize_anew(nRemaining[0]);
-		ovView = OVviewWithExtraData(ov, ov->local(), 0);
+		ovView = OVview(ov, ov->local());
+		packer = ObjectPacker(ov, ov->local());
+
 		SAFE_KERNEL_LAUNCH(
 				unpackRemainingObjects,
 				getNblocks(ovView.nObjects*32, nthreads), nthreads, 0, 0,
-				ovView, tmp.devPtr() );
+				tmp.devPtr(), ovView, packer  );
 	}
 
 	pv->haloValid = false;
@@ -341,7 +350,7 @@ void SimpleStationaryWall<InsideWallChecker>::bounce(float dt, cudaStream_t stre
 		auto pv = particleVectors[i];
 		auto cl = cellLists[i];
 		auto bc = boundaryCells[i];
-		PVview_withOldParticles view(pv, pv->local());
+		PVviewWithOldParticles view(pv, pv->local());
 
 		debug2("Bouncing %d %s particles, %d boundary cells",
 				pv->local()->size(), pv->name.c_str(), bc->size());

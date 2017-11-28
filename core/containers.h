@@ -8,7 +8,6 @@
 #include <algorithm>
 #include <typeinfo>
 
-
 class GPUcontainer
 {
 public:

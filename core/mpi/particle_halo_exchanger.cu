@@ -5,11 +5,12 @@
 #include <core/celllist.h>
 #include <core/logger.h>
 #include <core/utils/cuda_common.h>
+#include <core/pvs/extra_data/packers.h>
 
 #include "valid_cell.h"
 
 template<bool QUERY=false>
-__global__ void getHalos(const CellListInfo cinfo, BufferOffsetsSizesWrap dataWrap)
+__global__ void getHalos(const CellListInfo cinfo, const ParticlePacker packer, BufferOffsetsSizesWrap dataWrap)
 {
 	const int gid = blockIdx.x*blockDim.x + threadIdx.x;
 	const int tid = threadIdx.x;
@@ -74,13 +75,18 @@ __global__ void getHalos(const CellListInfo cinfo, BufferOffsetsSizesWrap dataWr
 			const int dstInd = myid   + i;
 			const int srcInd = pstart + i;
 
-			Particle p(cinfo.particles, srcInd);
-			p.r -= shift;
-
-			float4* addr = (float4*) ( (Particle*)dataWrap.buffer + dataWrap.offsets[bufId] );
-			p.write2Float4(addr, dstInd);
+			auto bufferAddr = dataWrap.buffer + dataWrap.offsets[bufId]*packer.packedSize_byte;
+			packer.packShift(srcInd, bufferAddr + dstInd*packer.packedSize_byte, -shift);
 		}
 	}
+}
+
+__global__ static void unpackParticles(ParticlePacker packer, int startDstId, char* buffer, int np)
+{
+	const int pid = blockIdx.x*blockDim.x + threadIdx.x;
+	if (pid >= np) return;
+
+	packer.unpack(buffer + pid*packer.packedSize_byte, pid+startDstId);
 }
 
 //===============================================================================================
@@ -118,10 +124,13 @@ void ParticleHaloExchanger::prepareData(int id, cudaStream_t stream)
 		const int nthreads = 64;
 		const dim3 nblocks = dim3(getNblocks(maxdim*maxdim, nthreads), 6, 1);
 
+		auto packer = ParticlePacker(pv, pv->local());
+		helper->setDatumSize(packer.packedSize_byte);
+
 		SAFE_KERNEL_LAUNCH(
 				getHalos<true>,
 				nblocks, nthreads, 0, stream,
-				cl->cellInfo(), helper->wrapSendData() );
+				cl->cellInfo(), packer, helper->wrapSendData() );
 
 		helper->makeSendOffsets_Dev2Dev(stream);
 		helper->resizeSendBuf();
@@ -130,7 +139,7 @@ void ParticleHaloExchanger::prepareData(int id, cudaStream_t stream)
 		SAFE_KERNEL_LAUNCH(
 				getHalos<false>,
 				nblocks, nthreads, 0, stream,
-				cl->cellInfo(), helper->wrapSendData() );
+				cl->cellInfo(), packer, helper->wrapSendData() );
 	}
 
 	debug2("%s halo prepared", pv->name.c_str());
@@ -141,15 +150,22 @@ void ParticleHaloExchanger::combineAndUploadData(int id, cudaStream_t stream)
 	auto pv = particles[id];
 	auto helper = helpers[id];
 
-	pv->halo()->resize_anew(helper->recvOffsets[helper->nBuffers]);
+	int totalRecvd = helper->recvOffsets[helper->nBuffers];
+	pv->halo()->resize_anew(totalRecvd);
 
 	// std::swap(pv->halo()->coosvels, helper->recvBuf);
 	// TODO: types are different, cannot swap. Make consume member
 
-	CUDA_Check( cudaMemcpyAsync(
-			pv->halo()->coosvels.devPtr(),
-			helper->recvBuf.devPtr(),
-			helper->recvBuf.size(), cudaMemcpyDeviceToDevice, stream) );
+//	CUDA_Check( cudaMemcpyAsync(
+//			pv->halo()->coosvels.devPtr(),
+//			helper->recvBuf.devPtr(),
+//			helper->recvBuf.size(), cudaMemcpyDeviceToDevice, stream) );
+
+	int nthreads = 128;
+	SAFE_KERNEL_LAUNCH(
+			unpackParticles,
+			getNblocks(totalRecvd, nthreads), nthreads, 0, stream,
+			ParticlePacker(pv, pv->halo()), 0, helper->recvBuf.devPtr(), totalRecvd );
 
 	pv->haloValid = true;
 }

@@ -30,11 +30,11 @@ void ObjPositionsPlugin::beforeForces(cudaStream_t stream)
 {
 	if (currentTimeStep % dumpEvery != 0 || currentTimeStep == 0) return;
 
-	ov->local()->getDataPerObject<int>("ids")->downloadFromDevice(stream);
-	ov->local()->getDataPerObject<LocalObjectVector::COMandExtent> ("com_extents")->downloadFromDevice(stream);
+	ov->local()->extraPerObject.getData<int>("ids")->downloadFromDevice(stream);
+	ov->local()->extraPerObject.getData<LocalObjectVector::COMandExtent> ("com_extents")->downloadFromDevice(stream);
 
-	if (ov->local()->checkDataPerObject("motions"))
-		ov->local()->getDataPerObject<RigidMotion> ("motions")->downloadFromDevice(stream);
+	if (ov->local()->extraPerObject.checkDataExists("motions"))
+		ov->local()->extraPerObject.getData<RigidMotion> ("motions")->downloadFromDevice(stream);
 }
 
 void ObjPositionsPlugin::serializeAndSend(cudaStream_t stream)
@@ -50,10 +50,10 @@ void ObjPositionsPlugin::serializeAndSend(cudaStream_t stream)
 			currentTime,
 			ov->name,
 			ov->domain,
-			*ov->local()->getDataPerObject<int>("ids"),
-			*ov->local()->getDataPerObject<LocalObjectVector::COMandExtent>("com_extents"),
-			ov->local()->checkDataPerObject("motions") ?
-					*ov->local()->getDataPerObject<RigidMotion>("motions") : dummy );
+			*ov->local()->extraPerObject.getData<int>("ids"),
+			*ov->local()->extraPerObject.getData<LocalObjectVector::COMandExtent>("com_extents"),
+			ov->local()->extraPerObject.checkDataExists("motions") ?
+					*ov->local()->extraPerObject.getData<RigidMotion>("motions") : dummy );
 
 	send(data);
 }

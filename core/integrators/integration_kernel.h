@@ -11,7 +11,7 @@
  * Will read from .old_particles and write to .particles
  */
 template<typename Transform>
-__global__ void integrationKernel(PVview_withOldParticles pvView, const float dt, Transform transform)
+__global__ void integrationKernel(PVviewWithOldParticles pvView, const float dt, Transform transform)
 {
 	const int gid = blockIdx.x * blockDim.x + threadIdx.x;
 	const int pid = gid / 2;

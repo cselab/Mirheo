@@ -3,25 +3,24 @@
 #include <core/utils/kernel_launch.h>
 #include <core/pvs/particle_vector.h>
 #include <core/pvs/object_vector.h>
-#include <core/pvs/rigid_object_vector.h>
+#include <core/pvs/extra_data/packers.h>
 #include <core/logger.h>
 #include <core/utils/cuda_common.h>
 
 template<bool QUERY=false>
-__global__ void getObjectHalos(const DomainInfo domain, const OVviewWithExtraData ovView,
+__global__ void getObjectHalos(const DomainInfo domain, const OVview view, const ObjectPacker packer,
 		const float rc, BufferOffsetsSizesWrap dataWrap, int* haloParticleIds = nullptr)
 {
 	const int objId = blockIdx.x;
 	const int tid = threadIdx.x;
-	const int sh  = tid % 2;
 
 	int nHalos = 0;
 	short validHalos[7];
 
-	if (objId < ovView.nObjects)
+	if (objId < view.nObjects)
 	{
 		// Find to which halos this object should go
-		auto prop = ovView.comAndExtents[objId];
+		auto prop = view.comAndExtents[objId];
 		int cx = 1, cy = 1, cz = 1;
 
 		if (prop.low.x  < -0.5f*domain.localSize.x + rc) cx = 0;
@@ -73,50 +72,42 @@ __global__ void getObjectHalos(const DomainInfo domain, const OVviewWithExtraDat
 //			printf("obj  %d  to halo  %d\n", objId, bufId);
 
 		int myOffset = dataWrap.offsets[bufId] + shDstObjId;
-		float4* dstAddr = (float4*) ( dataWrap.buffer + ovView.packedObjSize_byte * myOffset );
-		int* partIdsAddr = haloParticleIds + ovView.objSize * myOffset;
+		int* partIdsAddr = haloParticleIds + view.objSize * myOffset;
 
 		// Save particle origins
-		for (int pid = tid; pid < ovView.objSize; pid += blockDim.x)
+		for (int pid = tid; pid < view.objSize; pid += blockDim.x)
 		{
-			const int srcId = objId * ovView.objSize + pid;
+			const int srcId = objId * view.objSize + pid;
 			partIdsAddr[pid] = srcId;
 		}
 
-		for (int pid = tid/2; pid < ovView.objSize; pid += blockDim.x/2)
+		char* dstAddr = dataWrap.buffer + packer.totalPackedSize_byte * myOffset;
+		for (int pid = tid; pid < view.objSize; pid += blockDim.x)
 		{
-			const int srcId = objId * ovView.objSize + pid;
-			Float3_int data(ovView.particles[2*srcId + sh]);
-
-			if (sh == 0)
-				data.v -= shift;
-
-			dstAddr[2*pid + sh] = data.toFloat4();
+			const int srcPid = objId * view.objSize + pid;
+			packer.part.packShift(srcPid, dstAddr + pid*packer.part.packedSize_byte, -shift);
 		}
 
-		// Add extra data at the end of the object
-		dstAddr += ovView.objSize*2;
-		ovView.packExtraData(objId, (char*)dstAddr);
-
-		if (tid == 0) ovView.applyShift2extraData((char*)dstAddr, shift);
+		dstAddr += view.objSize * packer.part.packedSize_byte;
+		if (tid == 0) packer.obj.packShift(objId, dstAddr, -shift);
 	}
 }
 
-__global__ static void unpackObject(const char* from, const int startDstObjId, OVviewWithExtraData ovView)
+__global__ static void unpackObject(const char* from, const int startDstObjId, OVview view, ObjectPacker packer)
 {
 	const int objId = blockIdx.x;
 	const int tid = threadIdx.x;
-	const int sh  = tid % 2;
 
-	const float4* srcAddr = (float4*) (from + ovView.packedObjSize_byte * objId);
+	const char* srcAddr = from + packer.totalPackedSize_byte * objId;
 
-	for (int pid = tid/2; pid < ovView.objSize; pid += blockDim.x/2)
+	for (int pid = tid; pid < view.objSize; pid += blockDim.x)
 	{
-		const int dstId = (startDstObjId+objId)*ovView.objSize + pid;
-		ovView.particles[2*dstId + sh] = srcAddr[2*pid + sh];
+		const int dstId = (startDstObjId+objId)*view.objSize + pid;
+		packer.part.unpack(srcAddr + pid*packer.part.packedSize_byte, dstId);
 	}
 
-	ovView.unpackExtraData( startDstObjId+objId, (char*)(srcAddr + 2*ovView.objSize));
+	srcAddr += view.objSize * packer.part.packedSize_byte;
+	if (tid == 0) packer.obj.unpack(srcAddr, startDstObjId+objId);
 }
 
 //===============================================================================================
@@ -151,8 +142,9 @@ void ObjectHaloExchanger::prepareData(int id, cudaStream_t stream)
 
 	debug2("Preparing %s halo on the device", ov->name.c_str());
 
-	OVviewWithExtraData ovView(ov, ov->local(), stream);
-	helper->setDatumSize(ovView.packedObjSize_byte);
+	OVview ovView(ov, ov->local());
+	ObjectPacker packer(ov, ov->local());
+	helper->setDatumSize(packer.totalPackedSize_byte);
 
 	helper->sendSizes.clear(stream);
 	if (ovView.nObjects > 0)
@@ -162,7 +154,7 @@ void ObjectHaloExchanger::prepareData(int id, cudaStream_t stream)
 		SAFE_KERNEL_LAUNCH(
 				getObjectHalos<true>,
 				ovView.nObjects, nthreads, 0, stream,
-				ov->domain, ovView, rc, helper->wrapSendData() );
+				ov->domain, ovView, packer, rc, helper->wrapSendData() );
 
 		helper->makeSendOffsets_Dev2Dev(stream);
 		helper->resizeSendBuf();
@@ -174,7 +166,7 @@ void ObjectHaloExchanger::prepareData(int id, cudaStream_t stream)
 		SAFE_KERNEL_LAUNCH(
 				getObjectHalos<false>,
 				ovView.nObjects, nthreads, 0, stream,
-				ov->domain, ovView, rc, helper->wrapSendData(), origin->devPtr() );
+				ov->domain, ovView, packer, rc, helper->wrapSendData(), origin->devPtr() );
 	}
 }
 
@@ -186,22 +178,23 @@ void ObjectHaloExchanger::combineAndUploadData(int id, cudaStream_t stream)
 	int totalRecvd = helper->recvOffsets[helper->nBuffers];
 
 	// Make sure halo has ALL the extra data of local
-	auto& haloMap = ov->halo()->getDataPerObjectMap();
+	auto& haloMap = ov->halo()->extraPerObject.getDataMap();
 
-	for (auto& kv : ov->local()->getDataPerObjectMap())
+	for (auto& kv : ov->local()->extraPerObject.getDataMap())
 	{
 		if (haloMap.find(kv.first) == haloMap.end())
 			haloMap[kv.first] = std::unique_ptr<GPUcontainer>(kv.second->produce());
 	}
 
 	ov->halo()->resize_anew(totalRecvd * ov->objSize);
-	OVviewWithExtraData ovView(ov, ov->halo(), stream);
+	OVview ovView(ov, ov->halo());
+	ObjectPacker packer(ov, ov->halo());
 
 	const int nthreads = 128;
 	SAFE_KERNEL_LAUNCH(
 			unpackObject,
 			totalRecvd, nthreads, 0, stream,
-			helper->recvBuf.devPtr(), 0, ovView );
+			helper->recvBuf.devPtr(), 0, ovView, packer );
 
 	ov->haloValid = true;
 	ov->halo()->comExtentValid = false;

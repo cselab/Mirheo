@@ -54,7 +54,7 @@ __device__ __forceinline__ float3 rescue(float3 candidate, float dt, float tol, 
 
 template<typename InsideWallChecker, typename VelocityField>
 __global__ void bounceWithVelocity(
-		PVview_withOldParticles view, CellListInfo cinfo,
+		PVviewWithOldParticles view, CellListInfo cinfo,
 		const int* wallCells, const int nWallCells, const float dt,
 		const InsideWallChecker checker,
 		const VelocityField velField)
@@ -143,7 +143,7 @@ void WallWithVelocity<InsideWallChecker, VelocityField>::bounce(float dt, cudaSt
 		auto pv = this->particleVectors[i];
 		auto cl = this->cellLists[i];
 		auto bc = this->boundaryCells[i];
-		PVview_withOldParticles view(pv, pv->local());
+		PVviewWithOldParticles view(pv, pv->local());
 
 		debug2("Bouncing %d %s particles with wall velocity, %d boundary cells",
 				pv->local()->size(), pv->name.c_str(), bc->size());

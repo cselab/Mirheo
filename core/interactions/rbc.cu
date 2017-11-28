@@ -55,7 +55,7 @@ void InteractionRBCMembrane::_compute(InteractionType type, ParticleVector* pv1,
 
 	OVviewWithAreaVolume view(ov, ov->local());
 	MeshView mesh(ov->mesh, ov->local()->getMeshVertices(stream));
-	ov->local()->getDataPerObject<float2>("area_volumes")->clearDevice(stream);
+	ov->local()->extraPerObject.getData<float2>("area_volumes")->clearDevice(stream);
 
 	const int nthreads = 128;
 	SAFE_KERNEL_LAUNCH(

@@ -164,7 +164,7 @@ __device__ __forceinline__ float4 intersectParticleTriangleBarycentric(
 __device__  void findBouncesInCell(
 		int pstart, int pend, int globTrid,
 		Triangle tr, Triangle trOld,
-		PVview_withOldParticles pvView,
+		PVviewWithOldParticles pvView,
 		int* nCollisions, int2* collisionTable, int maxCollisions)
 {
 	const float tol = 1e-6f;
@@ -195,7 +195,7 @@ __device__  void findBouncesInCell(
 __launch_bounds__(128, 6)
 __global__ void findBouncesInMesh(
 		OVviewWithOldPartilces objView,
-		PVview_withOldParticles pvView,
+		PVviewWithOldParticles pvView,
 		MeshView mesh,
 		CellListInfo cinfo,
 		int* nCollisions, int2* collisionTable, int maxCollisions)
@@ -281,7 +281,7 @@ __device__ __forceinline__ float3 reflectVelocity(float3 n, float kbT, float mas
 
 __global__ void performBouncing(
 		OVviewWithOldPartilces objView,
-		PVview_withOldParticles pvView,
+		PVviewWithOldParticles pvView,
 		MeshView mesh,
 		int nCollisions, int2* collisionTable,
 		const float dt,

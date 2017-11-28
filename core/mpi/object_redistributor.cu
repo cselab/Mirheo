@@ -3,21 +3,20 @@
 #include <core/utils/kernel_launch.h>
 #include <core/pvs/particle_vector.h>
 #include <core/pvs/object_vector.h>
-#include <core/pvs/rigid_object_vector.h>
+#include <core/pvs/extra_data/packers.h>
 #include <core/logger.h>
 #include <core/utils/cuda_common.h>
 
 template<bool QUERY>
-__global__ void getExitingObjects(const DomainInfo domain, const OVviewWithExtraData ovView, BufferOffsetsSizesWrap dataWrap)
+__global__ void getExitingObjects(const DomainInfo domain, OVview view, const ObjectPacker packer, BufferOffsetsSizesWrap dataWrap)
 {
 	const int objId = blockIdx.x;
 	const int tid = threadIdx.x;
-	const int sh  = tid % 2;
 
-	if (objId >= ovView.nObjects) return;
+	if (objId >= view.nObjects) return;
 
 	// Find to which buffer this object should go
-	auto prop = ovView.comAndExtents[objId];
+	auto prop = view.comAndExtents[objId];
 	int cx = 1, cy = 1, cz = 1;
 
 	if (prop.com.x  < -0.5f*domain.localSize.x) cx = 0;
@@ -52,41 +51,33 @@ __global__ void getExitingObjects(const DomainInfo domain, const OVviewWithExtra
 //		printf("REDIST  obj  %d  to redist  %d  [%f %f %f] - [%f %f %f]  %d %d %d\n", ovView.ids[objId], bufId,
 //				prop.low.x, prop.low.y, prop.low.z, prop.high.x, prop.high.y, prop.high.z, cx, cy, cz);
 
-	float4* dstAddr = (float4*) ( dataWrap.buffer + ovView.packedObjSize_byte * (dataWrap.offsets[bufId] + shDstObjId) );
+	char* dstAddr = dataWrap.buffer + packer.totalPackedSize_byte * (dataWrap.offsets[bufId] + shDstObjId);
 
-	for (int pid = tid/2; pid < ovView.objSize; pid += blockDim.x/2)
+	for (int pid = tid; pid < view.objSize; pid += blockDim.x)
 	{
-		const int srcId = objId * ovView.objSize + pid;
-		Float3_int data(ovView.particles[2*srcId + sh]);
-
-		if (sh == 0)
-			data.v -= shift;
-
-		dstAddr[2*pid + sh] = data.toFloat4();
+		const int srcPid = objId * view.objSize + pid;
+		packer.part.packShift(srcPid, dstAddr + pid*packer.part.packedSize_byte, -shift);
 	}
 
-	// Add extra data at the end of the object
-	dstAddr += ovView.objSize*2;
-	ovView.packExtraData(objId, (char*)dstAddr);
-
-	if (tid == 0) ovView.applyShift2extraData((char*)dstAddr, shift);
+	dstAddr += view.objSize * packer.part.packedSize_byte;
+	if (tid == 0) packer.obj.packShift(objId, dstAddr, -shift);
 }
 
-__global__ static void unpackObject(const char* from, const int startDstObjId, OVviewWithExtraData ovView)
+__global__ static void unpackObject(const char* from, const int startDstObjId, OVview view, ObjectPacker packer)
 {
 	const int objId = blockIdx.x;
 	const int tid = threadIdx.x;
-	const int sh  = tid % 2;
 
-	const float4* srcAddr = (float4*) (from + ovView.packedObjSize_byte * objId);
+	const char* srcAddr = from + packer.totalPackedSize_byte * objId;
 
-	for (int pid = tid/2; pid < ovView.objSize; pid += blockDim.x/2)
+	for (int pid = tid; pid < view.objSize; pid += blockDim.x)
 	{
-		const int dstId = (startDstObjId+objId)*ovView.objSize + pid;
-		ovView.particles[2*dstId + sh] = srcAddr[2*pid + sh];
+		const int dstId = (startDstObjId+objId)*view.objSize + pid;
+		packer.part.unpack(srcAddr + pid*packer.part.packedSize_byte, dstId);
 	}
 
-	ovView.unpackExtraData( startDstObjId+objId, (char*)(srcAddr + 2*ovView.objSize));
+	srcAddr += view.objSize * packer.part.packedSize_byte;
+	if (tid == 0) packer.obj.unpack(srcAddr, startDstObjId+objId);
 }
 
 //===============================================================================================
@@ -115,8 +106,9 @@ void ObjectRedistributor::prepareData(int id, cudaStream_t stream)
 
 	ov->findExtentAndCOM(stream, true);
 
-	OVviewWithExtraData ovView(ov, ov->local(), stream);
-	helper->setDatumSize(ovView.packedObjSize_byte);
+	OVview ovView(ov, ov->local());
+	ObjectPacker packer(ov, ov->local());
+	helper->setDatumSize(packer.totalPackedSize_byte);
 
 	debug2("Preparing %s halo on the device", ov->name.c_str());
 	const int nthreads = 256;
@@ -128,7 +120,7 @@ void ObjectRedistributor::prepareData(int id, cudaStream_t stream)
 		SAFE_KERNEL_LAUNCH(
 				getExitingObjects<true>,
 				ovView.nObjects, nthreads, 0, stream,
-				ov->domain, ovView, helper->wrapSendData() );
+				ov->domain, ovView, packer, helper->wrapSendData() );
 
 		helper->makeSendOffsets_Dev2Dev(stream);
 	}
@@ -151,55 +143,23 @@ void ObjectRedistributor::prepareData(int id, cudaStream_t stream)
 	SAFE_KERNEL_LAUNCH(
 			getExitingObjects<false>,
 			lov->nObjects, nthreads, 0, stream,
-			ov->domain, ovView, helper->wrapSendData() );
+			ov->domain, ovView, packer, helper->wrapSendData() );
 
 
 	// Unpack the central buffer into the object vector itself
+	// Renew view and packer, as the ObjectVector may have resized
 	lov->resize_anew(nObjs*ov->objSize);
-	ovView = OVviewWithExtraData(ov, ov->local(), stream);
+	ovView = OVview(ov, ov->local());
+	packer = ObjectPacker(ov, ov->local());
 
 	SAFE_KERNEL_LAUNCH(
 			unpackObject,
 			nObjs, nthreads, 0, stream,
-			helper->sendBuf.devPtr() + helper->sendOffsets[13] * ovView.packedObjSize_byte, 0, ovView );
+			helper->sendBuf.devPtr() + helper->sendOffsets[13] * packer.totalPackedSize_byte, 0, ovView, packer );
 
 
 	// Finally need to compact the buffers
 	// TODO: remove this, own buffer should be last
-//	if (helper->sendSizes[13] > 0)
-//	{
-//		int sizeAfter = helper->sendOffsets[helper->nBuffers] - helper->sendOffsets[14];
-//
-//		// memory may overlap (very rarely), take care of that
-//		if (sizeAfter > helper->sendSizes[13])
-//		{
-//			DeviceBuffer<char> tmp(sizeAfter * helper->datumSize);
-//
-//			CUDA_Check( cudaMemcpyAsync(
-//					tmp.devPtr(),
-//					helper->sendBuf.devPtr() + helper->sendOffsets[14],
-//					sizeAfter * helper->datumSize,
-//					cudaMemcpyDeviceToDevice, stream));
-//
-//			CUDA_Check( cudaMemcpyAsync(
-//					helper->sendBuf.devPtr() + helper->sendOffsets[13],
-//					tmp.devPtr(),
-//					sizeAfter * helper->datumSize,
-//					cudaMemcpyDeviceToDevice, stream));
-//		}
-//		else // non-overlapping
-//		{
-//			CUDA_Check( cudaMemcpyAsync(
-//					helper->sendBuf.devPtr() + helper->sendOffsets[13],
-//					helper->sendBuf.devPtr() + helper->sendOffsets[14],  /* 14 !! */
-//					sizeAfter * helper->datumSize,
-//					cudaMemcpyDeviceToDevice, stream));
-//		}
-//
-//		helper->sendSizes[13] = 0;
-//		helper->makeSendOffsets();
-//		helper->resizeSendBuf();   // resize_anew, but strictly smaller size => fine
-//	}
 }
 
 void ObjectRedistributor::combineAndUploadData(int id, cudaStream_t stream)
@@ -213,13 +173,14 @@ void ObjectRedistributor::combineAndUploadData(int id, cudaStream_t stream)
 	int totalRecvd = helper->recvOffsets[helper->nBuffers];
 
 	ov->local()->resize(ov->local()->size() + totalRecvd * objSize, stream);
-	OVviewWithExtraData ovView(ov, ov->local(), stream);
+	OVview ovView(ov, ov->local());
+	ObjectPacker packer(ov, ov->local());
 
-	const int nthreads = 128;
+	const int nthreads = 64;
 	SAFE_KERNEL_LAUNCH(
 			unpackObject,
 			totalRecvd, nthreads, 0, stream,
-			helper->recvBuf.devPtr(), oldNObjs, ovView );
+			helper->recvBuf.devPtr(), oldNObjs, ovView, packer );
 
 	ov->redistValid = true;
 

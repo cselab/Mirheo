@@ -9,7 +9,7 @@
 #include <core/cub/device/device_radix_sort.cuh>
 
 //FIXME this is a hack
-__global__ void backtrack(PVview_withOldParticles view, float dt)
+__global__ void backtrack(PVviewWithOldParticles view, float dt)
 {
 	int gid = threadIdx.x + blockIdx.x*blockDim.x;
 	if (gid >= view.size) return;
@@ -52,7 +52,7 @@ void BounceFromMesh::exec(ParticleVector* pv, CellList* cl, float dt, cudaStream
 	if (!local)
 	{
 		return;
-		PVview_withOldParticles oldview(ov, activeOV);
+		PVviewWithOldParticles oldview(ov, activeOV);
 		SAFE_KERNEL_LAUNCH(
 				backtrack,
 				getNblocks(totalTriangles, nthreads), nthreads, 0, stream,
@@ -61,7 +61,7 @@ void BounceFromMesh::exec(ParticleVector* pv, CellList* cl, float dt, cudaStream
 
 
 	OVviewWithOldPartilces objView(ov, activeOV);
-	PVview_withOldParticles pvView(pv, pv->local());
+	PVviewWithOldParticles pvView(pv, pv->local());
 	MeshView mesh(ov->mesh, activeOV->getMeshVertices(stream));
 
 	SAFE_KERNEL_LAUNCH(
