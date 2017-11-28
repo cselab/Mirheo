@@ -8,10 +8,10 @@ struct REOVview : public ROVview
 	float3 axes    = {0,0,0};
 	float3 invAxes = {0,0,0};
 
-	REOVview(RigidEllipsoidObjectVector* reov = nullptr, LocalRigidEllipsoidObjectVector* lreov = nullptr) :
-		ROVview(reov, lreov)
+	REOVview(RigidEllipsoidObjectVector* reov = nullptr, LocalObjectVector* lov = nullptr) :
+		ROVview(reov, lov)
 	{
-		if (reov == nullptr || lreov == nullptr) return;
+		if (reov == nullptr || lov == nullptr) return;
 
 		// More fields
 		axes = reov->axes;
@@ -19,18 +19,15 @@ struct REOVview : public ROVview
 	}
 };
 
-struct REOVview_withOldMotion : public ROVview_withOldMotion
+struct REOVviewWithOldMotion : public REOVview
 {
-	float3 axes    = {0,0,0};
-	float3 invAxes = {0,0,0};
+	RigidMotion *old_motions = nullptr;
 
-	REOVview_withOldMotion(RigidEllipsoidObjectVector* reov = nullptr, LocalRigidEllipsoidObjectVector* lreov = nullptr) :
-		ROVview_withOldMotion(reov, lreov)
+	REOVviewWithOldMotion(RigidEllipsoidObjectVector* reov = nullptr, LocalObjectVector* lov = nullptr) :
+		REOVview(reov, lov)
 	{
-		if (reov == nullptr || lreov == nullptr) return;
+		if (reov == nullptr || lov == nullptr) return;
 
-		// More fields
-		axes = reov->axes;
-		invAxes = 1.0 / axes;
+		old_motions = lov->extraPerObject.getData<RigidMotion>("old_motions")->devPtr();
 	}
 };

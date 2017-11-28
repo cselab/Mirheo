@@ -13,7 +13,7 @@
 ObjPositionsPlugin::ObjPositionsPlugin(std::string name, std::string ovName, int dumpEvery) :
 	SimulationPlugin(name), ovName(ovName),
 	dumpEvery(dumpEvery)
-{ }
+{	}
 
 void ObjPositionsPlugin::setup(Simulation* sim, const MPI_Comm& comm, const MPI_Comm& interComm)
 {
@@ -33,7 +33,7 @@ void ObjPositionsPlugin::beforeForces(cudaStream_t stream)
 	ov->local()->extraPerObject.getData<int>("ids")->downloadFromDevice(stream);
 	ov->local()->extraPerObject.getData<LocalObjectVector::COMandExtent> ("com_extents")->downloadFromDevice(stream);
 
-	if (ov->local()->extraPerObject.checkDataExists("motions"))
+	if (ov->local()->extraPerObject.checkChannelExists("motions"))
 		ov->local()->extraPerObject.getData<RigidMotion> ("motions")->downloadFromDevice(stream);
 }
 
@@ -52,7 +52,7 @@ void ObjPositionsPlugin::serializeAndSend(cudaStream_t stream)
 			ov->domain,
 			*ov->local()->extraPerObject.getData<int>("ids"),
 			*ov->local()->extraPerObject.getData<LocalObjectVector::COMandExtent>("com_extents"),
-			ov->local()->extraPerObject.checkDataExists("motions") ?
+			ov->local()->extraPerObject.checkChannelExists("motions") ?
 					*ov->local()->extraPerObject.getData<RigidMotion>("motions") : dummy );
 
 	send(data);

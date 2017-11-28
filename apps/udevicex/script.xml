@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
-<simulation name="poiseuille" logfile="log" mpi_ranks="1 1 1" debug_lvl="1">
+<simulation name="poiseuille" logfile="log" mpi_ranks="1 1 1" debug_lvl="2">
 
 	<domain size="64 64 64" />
 	
@@ -35,8 +35,8 @@
 		bin_size="0.5 0.5 0.5"
 		path="xdmf/avg_rho_u" />
 	
-	<plugin type="stats" name="stats" every="1000" />
+	<plugin type="stats" name="stats" every="100" />
 	
-	<run niters="50" />
+	<run niters="5000" />
 
 </simulation>

@@ -4,6 +4,9 @@
 
 #include <core/containers.h>
 
+/**
+ * Implements bounce-back from mesh
+ */
 class BounceFromMesh : public Bouncer
 {
 public:
@@ -14,13 +17,12 @@ public:
 
 protected:
 	float kbT;
-	static const int bouncePerTri = 1;
+	static const int bouncesPerTri = 1;
 
 	PinnedBuffer<int> nCollisions;
 	DeviceBuffer<int2> collisionTable, tmp_collisionTable;
 	DeviceBuffer<char> sortBuffer;
 
-	void exec(ParticleVector* pv, CellList* cl, float dt, cudaStream_t stream, bool local) override;
-	void setup(ObjectVector* ov) override { this->ov = ov; }
-
+	void exec(ParticleVector* pv, CellList* cl, float dt, bool local, cudaStream_t stream) override;
+	void setup(ObjectVector* ov) override;
 };

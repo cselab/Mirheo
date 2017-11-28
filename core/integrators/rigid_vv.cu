@@ -8,26 +8,33 @@
 
 #include <core/rigid_kernels/integration.h>
 
+void IntegratorVVRigid::setPrerequisites(ParticleVector* pv)
+{
+	auto ov = dynamic_cast<RigidObjectVector*> (pv);
+	if (ov == nullptr)
+		die("Rigid integration only works with rigid objects, can't work with %s", pv->name.c_str());
+
+	ov->requireDataPerObject<RigidMotion>("old_motions", false);
+}
+
+
+// FIXME: split VV into two stages
+void IntegratorVVRigid::stage1(ParticleVector* pv, float t, cudaStream_t stream)
+{}
 
 /**
  * Assume that the forces are not yet distributed
  * Also integrate object's Q
  * VV integration now
  */
-// FIXME: split VV into two stages
-void IntegratorVVRigid::stage1(ParticleVector* pv, float t, cudaStream_t stream)
-{}
-
 void IntegratorVVRigid::stage2(ParticleVector* pv, float t, cudaStream_t stream)
 {
 	auto ov = dynamic_cast<RigidObjectVector*> (pv);
-	if (ov == nullptr)
-		die("Rigid integration only works with rigid objects, can't work with %s", pv->name.c_str());
 
 	debug("Integrating %d rigid objects %s (total %d particles), timestep is %f",
 			ov->local()->nObjects, ov->name.c_str(), ov->local()->size(), dt);
 
-	ROVview_withOldMotion ovView(ov, ov->local());
+	ROVviewWithOldMotion ovView(ov, ov->local());
 
 	warn("Only objects with diagonal inertia tensors are supported now for rigid integration");
 

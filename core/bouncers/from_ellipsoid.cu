@@ -15,8 +15,15 @@
 #include <core/rigid_kernels/bounce.h>
 #include <core/rigid_kernels/integration.h>
 
+void BounceFromRigidEllipsoid::setup(ObjectVector* ov)
+{
+	this->ov = ov;
 
-void BounceFromRigidEllipsoid::exec(ParticleVector* pv, CellList* cl, float dt, cudaStream_t stream, bool local)
+	ov->requireDataPerObject<RigidMotion> ("old_motions", true, sizeof(RigidReal));
+}
+
+
+void BounceFromRigidEllipsoid::exec(ParticleVector* pv, CellList* cl, float dt, bool local, cudaStream_t stream)
 {
 	auto reov = dynamic_cast<RigidEllipsoidObjectVector*>(ov);
 	if (reov == nullptr)
@@ -29,7 +36,7 @@ void BounceFromRigidEllipsoid::exec(ParticleVector* pv, CellList* cl, float dt, 
 
 	ov->findExtentAndCOM(stream, local);
 
-	REOVview_withOldMotion ovView(reov, local ? reov->local() : reov->halo());
+	REOVviewWithOldMotion ovView(reov, local ? reov->local() : reov->halo());
 	PVviewWithOldParticles pvView(pv, pv->local());
 
 	int nthreads = 256;

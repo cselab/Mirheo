@@ -177,15 +177,6 @@ void ObjectHaloExchanger::combineAndUploadData(int id, cudaStream_t stream)
 
 	int totalRecvd = helper->recvOffsets[helper->nBuffers];
 
-	// Make sure halo has ALL the extra data of local
-	auto& haloMap = ov->halo()->extraPerObject.getDataMap();
-
-	for (auto& kv : ov->local()->extraPerObject.getDataMap())
-	{
-		if (haloMap.find(kv.first) == haloMap.end())
-			haloMap[kv.first] = std::unique_ptr<GPUcontainer>(kv.second->produce());
-	}
-
 	ov->halo()->resize_anew(totalRecvd * ov->objSize);
 	OVview ovView(ov, ov->halo());
 	ObjectPacker packer(ov, ov->halo());

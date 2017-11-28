@@ -24,8 +24,6 @@ public:
 	LocalParticleVector(int n=0, cudaStream_t stream = 0)
 	{
 		resize(n, stream);
-		// usually old positions and velocities don't need to exchanged
-		extraPerParticle.createData<Particle> ("old_particles", n);
 	}
 
 	int size()
@@ -59,6 +57,7 @@ public:
 };
 
 
+// TODO: proxy extra data requirements from here, not from Local...
 class ParticleVector
 {
 public:
@@ -74,16 +73,14 @@ public:
 
 	int cellListStamp{0};
 
-protected:
-	ParticleVector(	std::string name, float mass, LocalParticleVector *local, LocalParticleVector *halo ) :
-		name(name), mass(mass), _local(local), _halo(halo) {}
-
-public:
 	ParticleVector(std::string name, float mass, int n=0) :
 		name(name), mass(mass),
 		_local( new LocalParticleVector(n) ),
 		_halo ( new LocalParticleVector(0) )
-	{}
+	{
+		// usually old positions and velocities don't need to exchanged
+		requireDataPerParticle<Particle> ("old_particles", false);
+	}
 
 	LocalParticleVector* local() { return _local; }
 	LocalParticleVector* halo()  { return _halo;  }
@@ -91,7 +88,34 @@ public:
 	virtual void checkpoint(MPI_Comm comm, std::string path);
 	virtual void restart(MPI_Comm comm, std::string path);
 
+	template<typename T>
+	void requireDataPerParticle(std::string name, bool needExchange)
+	{
+		requireDataPerParticle<T>(name, needExchange, 0);
+	}
+
+	template<typename T>
+	void requireDataPerParticle(std::string name, bool needExchange, int shiftDataType)
+	{
+		requireDataPerParticle<T>(local(), name, needExchange, shiftDataType);
+		requireDataPerParticle<T>(halo(),  name, needExchange, shiftDataType);
+	}
+
 	virtual ~ParticleVector() { delete _local; delete _halo; }
+
+protected:
+	ParticleVector(	std::string name, float mass, LocalParticleVector *local, LocalParticleVector *halo ) :
+		name(name), mass(mass), _local(local), _halo(halo) {}
+
+private:
+
+	template<typename T>
+	void requireDataPerParticle(LocalParticleVector* lpv, std::string name, bool needExchange, int shiftDataType)
+	{
+		lpv->extraPerParticle.createData<T> (name, lpv->size());
+		if (needExchange) lpv->extraPerParticle.requireExchange(name);
+		if (shiftDataType != 0) lpv->extraPerParticle.setShiftType(name, shiftDataType);
+	}
 };
 
 #include "views/pv.h"

@@ -45,7 +45,7 @@ static __global__ void collectRigidForces(ROVview ovView)
  * J is the diagonal moment of inertia tensor, J_1 is its inverse (simply 1/Jii)
  * Velocity-Verlet fused is used at the moment
  */
-static __global__ void integrateRigidMotion(ROVview_withOldMotion ovView, const float dt)
+static __global__ void integrateRigidMotion(ROVviewWithOldMotion ovView, const float dt)
 {
 	const int objId = threadIdx.x + blockDim.x * blockIdx.x;
 	if (objId >= ovView.nObjects) return;

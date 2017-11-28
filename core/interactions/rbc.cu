@@ -37,7 +37,7 @@ static GPU_RBCparameters setParams(RBCParameters p, const Mesh& m)
 	return devP;
 }
 
-void InteractionRBCMembrane::_compute(InteractionType type, ParticleVector* pv1, ParticleVector* pv2, CellList* cl1, CellList* cl2, const float t, cudaStream_t stream)
+void InteractionRBCMembrane::setPrerequisites(ParticleVector* pv1, ParticleVector* pv2)
 {
 	if (pv1 != pv2)
 		die("Internal RBC forces can't be computed between two different particle vectors");
@@ -45,6 +45,11 @@ void InteractionRBCMembrane::_compute(InteractionType type, ParticleVector* pv1,
 	auto ov = dynamic_cast<RBCvector*>(pv1);
 	if (ov == nullptr)
 		die("Internal RBC forces can only be computed with RBCs");
+}
+
+void InteractionRBCMembrane::_compute(InteractionType type, ParticleVector* pv1, ParticleVector* pv2, CellList* cl1, CellList* cl2, const float t, cudaStream_t stream)
+{
+	auto ov = dynamic_cast<RBCvector*>(pv1);
 
 	if (ov->objSize != ov->mesh.nvertices)
 		die("Object size of '%s' (%d) and number of vertices (%d) mismatch",

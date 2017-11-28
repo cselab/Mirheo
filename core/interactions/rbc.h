@@ -34,5 +34,7 @@ public:
 	InteractionRBCMembrane(std::string name, RBCParameters parameters) :
 		Interaction(name, 1.0f), parameters(parameters) {}
 
+	void setPrerequisites(ParticleVector* pv1, ParticleVector* pv2) override;
+
 	~InteractionRBCMembrane() = default;
 };

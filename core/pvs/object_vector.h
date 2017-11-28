@@ -28,16 +28,7 @@ public:
 		LocalParticleVector(objSize*nObjects), objSize(objSize), nObjects(nObjects)
 	{
 		resize(nObjects*objSize, stream);
-
-		// center of mass and extents are not to be sent around
-		// it's cheaper to compute them on site
-		extraPerObject.createData<COMandExtent> ("com_extents", nObjects);
-
-		// object ids must always follow objects
-		extraPerObject.createData<int> ("ids", nObjects);
-		extraPerObject.needExchange("ids");
 	};
-
 
 	void resize(const int np, cudaStream_t stream) override
 	{
@@ -47,7 +38,7 @@ public:
 		nObjects = np / objSize;
 		LocalParticleVector::resize(np, stream);
 
-		extraPerObject.resize(np, stream);
+		extraPerObject.resize(nObjects, stream);
 	}
 
 	void resize_anew(const int np) override
@@ -56,7 +47,7 @@ public:
 			die("Incorrect number of particles in object");
 
 		nObjects = np / objSize;
-		LocalParticleVector::resize_anew(np);
+		LocalParticleVector::resize_anew(nObjects);
 
 		extraPerObject.resize_anew(np);
 	}
@@ -85,14 +76,43 @@ public:
 		ObjectVector( name, mass, objSize,
 					  new LocalObjectVector(objSize, nObjects),
 					  new LocalObjectVector(objSize, 0) )
-	{}
+	{
+		// center of mass and extents are not to be sent around
+		// it's cheaper to compute them on site
+		requireDataPerObject<LocalObjectVector::COMandExtent>("com_extents", false);
+
+		// object ids must always follow objects
+		requireDataPerObject<int>("ids", true);
+	}
 
 	void findExtentAndCOM(cudaStream_t stream, bool isLocal);
 
 	LocalObjectVector* local() { return static_cast<LocalObjectVector*>(_local); }
 	LocalObjectVector* halo()  { return static_cast<LocalObjectVector*>(_halo);  }
 
+	template<typename T>
+	void requireDataPerObject(std::string name, bool needExchange)
+	{
+		requireDataPerObject<T>(name, needExchange, 0);
+	}
+
+	template<typename T>
+	void requireDataPerObject(std::string name, bool needExchange, int shiftDataType)
+	{
+		requireDataPerObject<T>(local(), name, needExchange, shiftDataType);
+		requireDataPerObject<T>(halo(),  name, needExchange, shiftDataType);
+	}
+
 	virtual ~ObjectVector() = default;
+
+private:
+	template<typename T>
+	void requireDataPerObject(LocalObjectVector* lov, std::string name, bool needExchange, int shiftDataType)
+	{
+		lov->extraPerObject.createData<T> (name, lov->nObjects);
+		if (needExchange) lov->extraPerObject.requireExchange(name);
+		if (shiftDataType != 0) lov->extraPerObject.setShiftType(name, shiftDataType);
+	}
 };
 
 #include "views/ov.h"

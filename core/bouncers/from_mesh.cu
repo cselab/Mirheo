@@ -8,27 +8,26 @@
 #include <core/rbc_kernels/bounce.h>
 #include <core/cub/device/device_radix_sort.cuh>
 
-//FIXME this is a hack
-__global__ void backtrack(PVviewWithOldParticles view, float dt)
+
+void BounceFromMesh::setup(ObjectVector* ov)
 {
-	int gid = threadIdx.x + blockIdx.x*blockDim.x;
-	if (gid >= view.size) return;
+	this->ov = ov;
 
-	Particle p(view.particles, gid);
-	p.r -= dt*p.u;
-
-	p.write2Float4(view.old_particles, gid);
+	// old positions HAVE to be known when the mesh travels to other ranks
+	ov->requireDataPerParticle<Particle> ("old_particles", true);
 }
 
 /**
- * Firstly find all the collisions and generate array of colliding pairs Pid <--> TRid
+ * \brief Bounce particles from objects with meshes
+ *
+ * \detailed Firstly find all the collisions and generate array of colliding pairs Pid <--> TRid
  * Work is per-triangle, so only particle cell-lists are needed
  *
  * Secondly sort the array with respect to Pid
  *
  * Lastly resolve the collisions, choosing the first one in time for the same Pid
  */
-void BounceFromMesh::exec(ParticleVector* pv, CellList* cl, float dt, cudaStream_t stream, bool local)
+void BounceFromMesh::exec(ParticleVector* pv, CellList* cl, float dt, bool local, cudaStream_t stream)
 {
 	auto activeOV = local ? ov->local() : ov->halo();
 
@@ -41,29 +40,20 @@ void BounceFromMesh::exec(ParticleVector* pv, CellList* cl, float dt, cudaStream
 
 	int totalTriangles = ov->mesh.ntriangles * activeOV->nObjects;
 
+	// Set maximum possible number of collisions to bouncesPerTri * # of triangles
+	// Generally, this is a vast overestimation of the actual number of collisions.
+	// So if we've found more collisions something is surely broken
 	nCollisions.clear(stream);
-	collisionTable.resize_anew(bouncePerTri*totalTriangles);
-	tmp_collisionTable.resize_anew(bouncePerTri*totalTriangles);
+	collisionTable.resize_anew(bouncesPerTri*totalTriangles);
+	tmp_collisionTable.resize_anew(bouncesPerTri*totalTriangles);
 
 	int nthreads = 128;
-
-	// FIXME do the hack
-
-	if (!local)
-	{
-		return;
-		PVviewWithOldParticles oldview(ov, activeOV);
-		SAFE_KERNEL_LAUNCH(
-				backtrack,
-				getNblocks(totalTriangles, nthreads), nthreads, 0, stream,
-				oldview, dt );
-	}
-
 
 	OVviewWithOldPartilces objView(ov, activeOV);
 	PVviewWithOldParticles pvView(pv, pv->local());
 	MeshView mesh(ov->mesh, activeOV->getMeshVertices(stream));
 
+	// Step 1, find all the collistions
 	SAFE_KERNEL_LAUNCH(
 			findBouncesInMesh,
 			getNblocks(totalTriangles, nthreads), nthreads, 0, stream,
@@ -76,6 +66,7 @@ void BounceFromMesh::exec(ParticleVector* pv, CellList* cl, float dt, cudaStream
 	if (nCollisions[0] > collisionTable.size())
 		die("Found too many collisions, something is likely broken");
 
+	// Step 2, sort the collision table
 	size_t bufSize;
 	// Query for buffer size
 	cub::DeviceRadixSort::SortKeys(nullptr, bufSize,
@@ -88,6 +79,7 @@ void BounceFromMesh::exec(ParticleVector* pv, CellList* cl, float dt, cudaStream
 			(int64_t*)collisionTable.devPtr(), (int64_t*)tmp_collisionTable.devPtr(), nCollisions[0],
 			0, 32, stream);
 
+	// Step 3, resolve the collisions
 	SAFE_KERNEL_LAUNCH(
 			performBouncing,
 			getNblocks(nCollisions[0], nthreads), nthreads, 0, stream,

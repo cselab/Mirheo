@@ -15,12 +15,6 @@ struct DevicePacker
 
 	int nChannels = 0;                    /// number of data channels to pack / unpack
 	int* channelSizes        = nullptr;   /// size if bytes of each channel entry, e.g. sizeof(Particle)
-	int* channelShiftOffsets = nullptr;   /** if offset is >= 0, then shift will be applied to the channel when packing
-	 *  3 real numbers will be changed (+=) by shift at the offset from the structure start
-	 *  E.g. struct Smth { float4 dummy; float3 needShift; }  =>  offset is sizeof(float4)
-	 *  Note that padding may be applied by the compiler
-	 */
-
 	int* channelShiftTypes   = nullptr;   /// if type is 4, then treat data to shift as float3, if it is 8 -- as double3
 	char** channelData       = nullptr;   /// device pointers of the packed data
 
@@ -87,7 +81,6 @@ private:
 			_copy<int> (to, from, size_bytes / 4);
 	}
 
-
 	/**
 	 * Packing implementation
 	 * Template parameter NEEDSHIFT governs shifting
@@ -97,30 +90,35 @@ private:
 	{
 		for (int i = 0; i < nChannels; i++)
 		{
-			copy(dstAddr, channelData[i] + channelSizes[i]*srcId, channelSizes[i]);
+			const int size = channelSizes[i];
+			int done = 0;
 
-//			if (NEEDSHIFT && channelShiftOffsets[i] >= 0)
-//			{
-//				char* shAddr = dstAddr + channelShiftOffsets[i];
-//
-//				if (channelShiftTypes[i] == 4)
-//				{
-//					float* fShAddr = (float*) shAddr;
-//					fShAddr[0] += shift.x;
-//					fShAddr[1] += shift.y;
-//					fShAddr[2] += shift.z;
-//				}
-//				else if (channelShiftTypes[i] == 8)
-//				{
-//					double* dShAddr = (double*) shAddr;
-//					dShAddr[0] += shift.x;
-//					dShAddr[1] += shift.y;
-//					dShAddr[2] += shift.z;
-//				}
-//				// else KILLALLHUMANSNOW!
-//			}
+			if (NEEDSHIFT)
+			{
+				if (channelShiftTypes[i] == 4)
+				{
+					float4 val = *((float4*) ( channelData[i] + size*srcId ));
+					val.x += shift.x;
+					val.y += shift.y;
+					val.z += shift.z;
+					*((float4*) dstAddr) = val;
 
-			dstAddr += channelSizes[i];
+					done = sizeof(float4);
+				}
+				else if (channelShiftTypes[i] == 8)
+				{
+					double4 val = *((double4*) ( channelData[i] + size*srcId ));
+					val.x += shift.x;
+					val.y += shift.y;
+					val.z += shift.z;
+					*((double4*) dstAddr) = val;
+
+					done = sizeof(double4);
+				}
+			}
+
+			copy(dstAddr + done, channelData[i] + size*srcId + done, size - done);
+			dstAddr += size;
 		}
 	}
 };
@@ -137,24 +135,19 @@ struct ParticlePacker : public DevicePacker
 
 		auto& manager = lpv->extraPerParticle;
 
-		// 1 channel for particles themselves + extra data per particle from manager
-		nChannels = manager.getDataMap().size() + 1;
-
-		manager.channelPtrs.        resize_anew(nChannels);
-		manager.channelSizes.       resize_anew(nChannels);
-		manager.channelShiftOffsets.resize_anew(nChannels);
-		manager.channelShiftTypes.  resize_anew(nChannels);
-
 		int n = 0;
 		bool upload = false;
 
-		auto registerChannel = [&] (int sz, char* ptr, int offset, int typesize) {
+		auto registerChannel = [&] (int sz, char* ptr, int typesize) {
+
+			manager.channelPtrs.        resize_anew(n+1);
+			manager.channelSizes.       resize_anew(n+1);
+			manager.channelShiftTypes.  resize_anew(n+1);
 
 			if (ptr != manager.channelPtrs[n]) upload = true;
 
 			manager.channelSizes[n] = sz;
 			manager.channelPtrs[n] = ptr;
-			manager.channelShiftOffsets[n] = offset;
 			manager.channelShiftTypes[n] = typesize;
 
 			packedSize_byte += sz;
@@ -164,39 +157,44 @@ struct ParticlePacker : public DevicePacker
 		registerChannel(
 				sizeof(Particle),
 				reinterpret_cast<char*>(lpv->coosvels.devPtr()),
-				0,
 				sizeof(float) );
 
 
 		for (const auto& kv : manager.getDataMap())
 		{
-			if (manager.needExchange(kv.first))
+			auto& desc = kv.second;
+
+			if (desc.needExchange)
 			{
-				int sz = kv.second->datatype_size();
+				int sz = desc.container->datatype_size();
 
 				if (sz % sizeof(int) != 0)
 					die("Size of extra data per particle should be divisible by 4 bytes (PV '%s', data entry '%s')",
 							pv->name.c_str(), kv.first.c_str());
 
+				if ( sz % sizeof(float4) && (desc.shiftTypeSize == 4 || desc.shiftTypeSize == 8) )
+					die("Size of extra data per particle should be divisible by 16 bytes"
+							"when shifting is required (PV '%s', data entry '%s')",
+							pv->name.c_str(), kv.first.c_str());
+
 				registerChannel(
 						sz,
-						reinterpret_cast<char*>(kv.second->genericDevPtr()),
-						manager.shiftOffsetType(kv.first).first,
-						manager.shiftOffsetType(kv.first).second  );
+						reinterpret_cast<char*>(desc.container->genericDevPtr()),
+						desc.shiftTypeSize);
 			}
 		}
+
+		nChannels = n;
 
 		if (upload)
 		{
 			manager.channelPtrs.        uploadToDevice(stream);
 			manager.channelSizes.       uploadToDevice(stream);
-			manager.channelShiftOffsets.uploadToDevice(stream);
 			manager.channelShiftTypes.  uploadToDevice(stream);
 		}
 
 		channelData         = manager.channelPtrs.        devPtr();
 		channelSizes        = manager.channelSizes.       devPtr();
-		channelShiftOffsets = manager.channelShiftOffsets.devPtr();
 		channelShiftTypes   = manager.channelShiftTypes.  devPtr();
 	}
 };
@@ -217,19 +215,17 @@ struct ObjectExtraPacker : public DevicePacker
 
 		manager.channelPtrs.        resize_anew(nChannels);
 		manager.channelSizes.       resize_anew(nChannels);
-		manager.channelShiftOffsets.resize_anew(nChannels);
 		manager.channelShiftTypes.  resize_anew(nChannels);
 
 		int n = 0;
 		bool upload = false;
 
-		auto registerChannel = [&] (int sz, char* ptr, int offset, int typesize) {
+		auto registerChannel = [&] (int sz, char* ptr, int typesize) {
 
 			if (ptr != manager.channelPtrs[n]) upload = true;
 
 			manager.channelSizes[n] = sz;
 			manager.channelPtrs[n] = ptr;
-			manager.channelShiftOffsets[n] = offset;
 			manager.channelShiftTypes[n] = typesize;
 
 			packedSize_byte += sz;
@@ -238,9 +234,11 @@ struct ObjectExtraPacker : public DevicePacker
 
 		for (const auto& kv : manager.getDataMap())
 		{
-			if (manager.needExchange(kv.first))
+			auto& desc = kv.second;
+
+			if (desc.needExchange)
 			{
-				int sz = kv.second->datatype_size();
+				int sz = desc.container->datatype_size();
 
 				if (sz % sizeof(int) != 0)
 					die("Size of extra data per particle should be divisible by 4 bytes (PV '%s', data entry '%s')",
@@ -248,9 +246,8 @@ struct ObjectExtraPacker : public DevicePacker
 
 				registerChannel(
 						sz,
-						reinterpret_cast<char*>(kv.second->genericDevPtr()),
-						manager.shiftOffsetType(kv.first).first,
-						manager.shiftOffsetType(kv.first).second  );
+						reinterpret_cast<char*>(desc.container->genericDevPtr()),
+						desc.shiftTypeSize);
 			}
 		}
 
@@ -258,13 +255,11 @@ struct ObjectExtraPacker : public DevicePacker
 		{
 			manager.channelPtrs.        uploadToDevice(stream);
 			manager.channelSizes.       uploadToDevice(stream);
-			manager.channelShiftOffsets.uploadToDevice(stream);
 			manager.channelShiftTypes.  uploadToDevice(stream);
 		}
 
 		channelData         = manager.channelPtrs.        devPtr();
 		channelSizes        = manager.channelSizes.       devPtr();
-		channelShiftOffsets = manager.channelShiftOffsets.devPtr();
 		channelShiftTypes   = manager.channelShiftTypes.  devPtr();
 	}
 };

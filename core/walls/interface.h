@@ -22,6 +22,13 @@ public:
 	virtual void attach(ParticleVector* pv, CellList* cl) = 0;
 	virtual void bounce(float dt, cudaStream_t stream) = 0;
 
+	/**
+	 * Ask ParticleVectors which the class will be working with to have specific properties
+	 * Default: ask nothing
+	 * Called from Simulation right after setup
+	 */
+	virtual void setPrerequisites(ParticleVector* pv) {}
+
 	virtual void check(cudaStream_t stream) = 0;
 
 	virtual ~Wall() = default;

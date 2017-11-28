@@ -23,6 +23,13 @@ public:
 	Interaction(std::string name, float rc) : name(name), rc(rc) {}
 
 	/**
+	 * Ask ParticleVectors which the class will be working with to have specific properties
+	 * Default: ask nothing
+	 * Called from Simulation right after setup
+	 */
+	virtual void setPrerequisites(ParticleVector* pv1, ParticleVector* pv2) {}
+
+	/**
 	 * This function is not supposed to be called directly.
 	 * Cannot make it private because of CUDA limitations
 	 */
@@ -43,7 +50,6 @@ public:
 
 		if (dynamic_cast<ObjectVector*>(pv2) == nullptr)
 			_compute(InteractionType::Halo, pv1, pv2, cl1, cl2, t, stream);
-
 
 		if(pv1 != pv2 && dynamic_cast<ObjectVector*>(pv1) == nullptr)
 			_compute(InteractionType::Halo, pv2, pv1, cl2, cl1, t, stream);

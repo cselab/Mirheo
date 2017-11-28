@@ -10,6 +10,7 @@
 #include "valid_cell.h"
 
 template<bool QUERY=false>
+//__launch_bounds__(128, 16)
 __global__ void getHalos(const CellListInfo cinfo, const ParticlePacker packer, BufferOffsetsSizesWrap dataWrap)
 {
 	const int gid = blockIdx.x*blockDim.x + threadIdx.x;
@@ -56,7 +57,7 @@ __global__ void getHalos(const CellListInfo cinfo, const ParticlePacker packer, 
 
 	__syncthreads();
 
-#pragma unroll 3
+#pragma unroll 2
 	for (int i=0; i<current; i++)
 	{
 		const int bufId = validHalos[i];
@@ -69,13 +70,18 @@ __global__ void getHalos(const CellListInfo cinfo, const ParticlePacker packer, 
 							cinfo.localDomainSize.y*(iy-1),
 							cinfo.localDomainSize.z*(iz-1) };
 
-#pragma unroll 2
+#pragma unroll 3
 		for (int i = 0; i < pend-pstart; i++)
 		{
 			const int dstInd = myid   + i;
 			const int srcInd = pstart + i;
 
 			auto bufferAddr = dataWrap.buffer + dataWrap.offsets[bufId]*packer.packedSize_byte;
+
+//			Particle p(cinfo.particles, srcInd);
+//			p.r -= shift;
+//			p.write2Float4((float4*)(bufferAddr), dstInd);
+
 			packer.packShift(srcInd, bufferAddr + dstInd*packer.packedSize_byte, -shift);
 		}
 	}

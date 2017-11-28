@@ -136,6 +136,8 @@ void Simulation::setIntegrator(std::string integratorName, std::string pvName)
 
 	auto pv = getPVbyNameOrDie(pvName);
 
+	integrator->setPrerequisites(pv);
+
 	integratorsStage1.push_back([integrator, pv] (float t, cudaStream_t stream) {
 		integrator->stage1(pv, t, stream);
 	});
@@ -154,6 +156,7 @@ void Simulation::setInteraction(std::string interactionName, std::string pv1Name
 		die("No such integrator: %s", interactionName.c_str());
 	auto interaction = interactionMap[interactionName];
 
+	interaction->setPrerequisites(pv1, pv2);
 
 	float rc = interaction->rc;
 	interactionPrototypes.push_back(std::make_tuple(rc, pv1, pv2, interaction));
@@ -172,6 +175,7 @@ void Simulation::setBouncer(std::string bouncerName, std::string objName, std::s
 	auto bouncer = bouncerMap[bouncerName];
 
 	bouncer->setup(ov);
+	bouncer->setPrerequisites(pv);
 	bouncerPrototypes.push_back(std::make_tuple(bouncer, pv));
 }
 
@@ -183,6 +187,7 @@ void Simulation::setWallBounce(std::string wallName, std::string pvName)
 		die("No such wall: %s", wallName.c_str());
 	auto wall = wallMap[wallName];
 
+	wall->setPrerequisites(pv);
 	wallPrototypes.push_back( std::make_tuple(wall, pv) );
 }
 
