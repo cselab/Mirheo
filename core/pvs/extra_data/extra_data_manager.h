@@ -62,7 +62,7 @@ public:
 			if (dynamic_cast< PinnedBuffer<T>* >(channelMap[name].container.get()) == nullptr)
 				die("Tried to create channel with existing name '%s' but different type", name.c_str());
 
-			debug("Channel '%s' has already been created");
+			debug("Channel '%s' has already been created", name.c_str());
 			return;
 		}
 
@@ -70,7 +70,7 @@ public:
 			die("Size of an element of the channel '%s' (%d) must be dibisible by 4",
 					name.c_str(), sizeof(T));
 
-		info("Creating new channel '%s'");
+		info("Creating new channel '%s'", name.c_str());
 
 		auto ptr = std::make_unique< PinnedBuffer<T> >(size);
 		channelMap[name].container = std::move(ptr);

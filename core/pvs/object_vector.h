@@ -47,9 +47,9 @@ public:
 			die("Incorrect number of particles in object");
 
 		nObjects = np / objSize;
-		LocalParticleVector::resize_anew(nObjects);
+		LocalParticleVector::resize_anew(np);
 
-		extraPerObject.resize_anew(np);
+		extraPerObject.resize_anew(nObjects);
 	}
 
 	virtual PinnedBuffer<Particle>* getMeshVertices(cudaStream_t stream)
@@ -66,7 +66,15 @@ class ObjectVector : public ParticleVector
 {
 protected:
 	ObjectVector( std::string name, float mass, int objSize, LocalObjectVector *local, LocalObjectVector *halo ) :
-		ParticleVector(name, mass, local, halo), objSize(objSize) {}
+		ParticleVector(name, mass, local, halo), objSize(objSize)
+	{
+		// center of mass and extents are not to be sent around
+		// it's cheaper to compute them on site
+		requireDataPerObject<LocalObjectVector::COMandExtent>("com_extents", false);
+
+		// object ids must always follow objects
+		requireDataPerObject<int>("ids", true);
+	}
 
 public:
 	int objSize;
@@ -76,14 +84,7 @@ public:
 		ObjectVector( name, mass, objSize,
 					  new LocalObjectVector(objSize, nObjects),
 					  new LocalObjectVector(objSize, 0) )
-	{
-		// center of mass and extents are not to be sent around
-		// it's cheaper to compute them on site
-		requireDataPerObject<LocalObjectVector::COMandExtent>("com_extents", false);
-
-		// object ids must always follow objects
-		requireDataPerObject<int>("ids", true);
-	}
+	{	}
 
 	void findExtentAndCOM(cudaStream_t stream, bool isLocal);
 

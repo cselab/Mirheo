@@ -14,7 +14,8 @@ void BounceFromMesh::setup(ObjectVector* ov)
 	this->ov = ov;
 
 	// old positions HAVE to be known when the mesh travels to other ranks
-	ov->requireDataPerParticle<Particle> ("old_particles", true);
+	// shift HAS be applied as well
+	ov->requireDataPerParticle<Particle> ("old_particles", true, sizeof(float));
 }
 
 /**

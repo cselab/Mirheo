@@ -8,7 +8,7 @@
 #include <core/rigid_kernels/quaternion.h>
 #include <core/rigid_kernels/rigid_motion.h>
 
-const float tolerance = 1e-7f;
+const float tolerance = 1e-6f;
 
 __device__ __forceinline__ float whichTriangSide(float3 r, float3 a, float3 b, float3 c)
 {
@@ -59,7 +59,7 @@ __device__ BelongingTags oneParticleInsideMesh(int pid, float3 r, int objId, con
 
 		// If the particle is very close to the boundary
 		// return immediately
-		if ( fabs( dot(r-v1, normalize(cross(v2-v1, v3-v1))) ) < 50*tolerance )
+		if ( fabs( dot(r-v1, normalize(cross(v2-v1, v3-v1))) ) < 10*tolerance )
 			return BelongingTags::Boundary;
 
 		// += 2 if inside

@@ -74,13 +74,11 @@ public:
 	int cellListStamp{0};
 
 	ParticleVector(std::string name, float mass, int n=0) :
-		name(name), mass(mass),
-		_local( new LocalParticleVector(n) ),
-		_halo ( new LocalParticleVector(0) )
-	{
-		// usually old positions and velocities don't need to exchanged
-		requireDataPerParticle<Particle> ("old_particles", false);
-	}
+		ParticleVector(
+				name, mass,
+				new LocalParticleVector(n),
+				new LocalParticleVector(0) )
+	{	}
 
 	LocalParticleVector* local() { return _local; }
 	LocalParticleVector* halo()  { return _halo;  }
@@ -105,7 +103,11 @@ public:
 
 protected:
 	ParticleVector(	std::string name, float mass, LocalParticleVector *local, LocalParticleVector *halo ) :
-		name(name), mass(mass), _local(local), _halo(halo) {}
+		name(name), mass(mass), _local(local), _halo(halo)
+	{
+		// usually old positions and velocities don't need to exchanged
+		requireDataPerParticle<Particle> ("old_particles", false);
+	}
 
 private:
 

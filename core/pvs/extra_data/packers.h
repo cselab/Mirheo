@@ -185,6 +185,7 @@ struct ParticlePacker : public DevicePacker
 		}
 
 		nChannels = n;
+		packedSize_byte = ( (packedSize_byte + sizeof(float4) - 1) / sizeof(float4) ) * sizeof(float4);
 
 		if (upload)
 		{
@@ -251,6 +252,9 @@ struct ObjectExtraPacker : public DevicePacker
 			}
 		}
 
+		nChannels = n;
+		packedSize_byte = ( (packedSize_byte + sizeof(float4) - 1) / sizeof(float4) ) * sizeof(float4);
+
 		if (upload)
 		{
 			manager.channelPtrs.        uploadToDevice(stream);
@@ -279,7 +283,7 @@ struct ObjectPacker
 		part(ov, lov, stream), obj(ov, lov, stream)
 	{
 		if (ov == nullptr || lov == nullptr) return;
-		totalPackedSize_byte = part.packedSize_byte * lov->nObjects + obj.packedSize_byte;
+		totalPackedSize_byte = part.packedSize_byte * ov->objSize + obj.packedSize_byte;
 	}
 };
 

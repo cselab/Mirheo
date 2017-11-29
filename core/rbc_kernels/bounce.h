@@ -22,7 +22,7 @@ __device__ __forceinline__ float3 computeBarycentric(float3 a, float3 b, float3 
 	float d11 = dot(v1, v1);
 	float d20 = dot(v2, v0);
 	float d21 = dot(v2, v1);
-	float invDenom = 1.0f / (d00 * d11 - d01 * d01);
+	double invDenom = 1.0 / (double)(d00 * d11 - d01 * d01);
 
 	float l1 = (d11 * d20 - d01 * d21) * invDenom;
 	float l2 = (d00 * d21 - d01 * d20) * invDenom;
@@ -167,7 +167,7 @@ __device__  void findBouncesInCell(
 		PVviewWithOldParticles pvView,
 		int* nCollisions, int2* collisionTable, int maxCollisions)
 {
-	const float tol = 1e-6f;
+	const float tol = 1e-7f;
 
 	for (int pid=pstart; pid<pend; pid++)
 	{
@@ -259,6 +259,7 @@ __device__ __forceinline__ float2 normal_BoxMuller(float seed)
  */
 __device__ __forceinline__ float3 reflectVelocity(float3 n, float kbT, float mass, float seed1, float seed2)
 {
+	const int maxTries = 50;
 	// bounce-back reflection
 	// return -initialVelocity;
 
@@ -268,9 +269,11 @@ __device__ __forceinline__ float3 reflectVelocity(float3 n, float kbT, float mas
 	float2 rand2 = normal_BoxMuller(seed2);
 
 	float3 r = make_float3(rand1.x, rand1.y, rand2.x);
-	while (dot(r, n) < 0)
+	for (int i=0; i<maxTries; i++)
 	{
-		rand1 = normal_BoxMuller(rand2.x);
+		if (dot(r, n) > 0) break;
+
+		rand1 = normal_BoxMuller(rand2.y);
 		rand2 = normal_BoxMuller(rand1.y);
 		r = make_float3(rand1.x, rand1.y, rand2.x);
 	}
@@ -287,7 +290,7 @@ __global__ void performBouncing(
 		const float dt,
 		float kbT, float seed1, float seed2)
 {
-	const float eps = 2e-6f;
+	const float eps = 2e-5f;
 
 	const int gid = blockIdx.x * blockDim.x + threadIdx.x;
 	if (gid >= nCollisions) return;
@@ -299,7 +302,7 @@ __global__ void performBouncing(
 	// If prev is different, but next is the same, process all the following with the same PID
 
 	const int2 pid_trid = collisionTable[gid];
-	const int2 pid_trid_prev = gid > 0 ? collisionTable[gid-1] : make_int2(-1);
+	const int2 pid_trid_prev = gid > 0 ? collisionTable[gid-1] : make_int2(-4242);
 
 	if (pid_trid.x == pid_trid_prev.x) return;
 
@@ -348,7 +351,7 @@ __global__ void performBouncing(
 
 			triangleForces(tr, objView.mass, barycentricCoo, p.u - vtri, newV, pvView.mass, dt, f0, f1, f2);
 
-			corrP.r = coo + eps * n * ((oldSign > 0) ? 5.0f : -5.0f);
+			corrP.r = coo + eps * ((oldSign > 0) ? n : -n);
 			corrP.u = newV + vtri;
 		}
 	}
@@ -359,27 +362,33 @@ __global__ void performBouncing(
 	const int objId = firstTriId / mesh.ntriangles;
 	const int3 triangle = mesh.triangles[trid];
 
-	if (dot(p.u, p.u) > 20)
-	{
-		printf("Collision %d: particle %d [%f %f %f], [%f %f %f]  to [%f %f %f], [%f %f %f];\n",
-				gid, p.i1, p.r.x, p.r.y, p.r.z,  p.u.x, p.u.y, p.u.z,
-				corrP.r.x, corrP.r.y, corrP.r.z,  corrP.u.x, corrP.u.y, corrP.u.z);
-		printf("  %d  triangles  %d [%f %f %f] (%f %f %f),  %d [%f %f %f] (%f %f %f),  %d [%f %f %f] (%f %f %f)\n",
-				gid,
-				triangle.x, f0.x, f0.y, f0.z, objView.particles[2*triangle.x+1].x, objView.particles[2*triangle.x+1].y, objView.particles[2*triangle.x+1].z,
-				triangle.y, f1.x, f1.y, f1.z, objView.particles[2*triangle.y+1].x, objView.particles[2*triangle.y+1].y, objView.particles[2*triangle.y+1].z,
-				triangle.z, f2.x, f2.y, f2.z, objView.particles[2*triangle.z+1].x, objView.particles[2*triangle.z+1].y, objView.particles[2*triangle.z+1].z  );
-	}
-
-
-	if (length(f0) > 5000)
-		printf("%d force %f %f %f\n", mesh.nvertices*objId + triangle.x, f0.x, f0.y, f0.z);
-
-	if (length(f1) > 5000)
-		printf("%d force %f %f %f\n", mesh.nvertices*objId + triangle.y, f1.x, f1.y, f1.z);
-
-	if (length(f2) > 5000)
-		printf("%d force %f %f %f\n", mesh.nvertices*objId + triangle.z, f2.x, f2.y, f2.z);
+//	//if (dot(p.u, p.u) > 20)
+//	{
+//		printf("Collision %d: particle %d [%f %f %f], [%f %f %f] (old [%f %f %f], [%f %f %f])  to [%f %f %f], [%f %f %f];\n",
+//				gid, p.i1, p.r.x, p.r.y, p.r.z,  p.u.x, p.u.y, p.u.z,
+//				pOld.r.x, pOld.r.y, pOld.r.z,  pOld.u.x, pOld.u.y, pOld.u.z,
+//				corrP.r.x, corrP.r.y, corrP.r.z,  corrP.u.x, corrP.u.y, corrP.u.z);
+//		printf("  %d  triangles  %d [%f %f %f] (%f %f %f),  %d [%f %f %f] (%f %f %f),  %d [%f %f %f] (%f %f %f)\n",
+//				gid,
+//				triangle.x, objView.particles[2*triangle.x].x, objView.particles[2*triangle.x].y, objView.particles[2*triangle.x].z,
+//				objView.old_particles[2*triangle.x].x, objView.old_particles[2*triangle.x].y, objView.old_particles[2*triangle.x].z,
+//
+//				triangle.y, objView.particles[2*triangle.y].x, objView.particles[2*triangle.y].y, objView.particles[2*triangle.y].z,
+//				objView.old_particles[2*triangle.y].x, objView.old_particles[2*triangle.y].y, objView.old_particles[2*triangle.y].z,
+//
+//				triangle.z, objView.particles[2*triangle.z].x, objView.particles[2*triangle.z].y, objView.particles[2*triangle.z].z,
+//				objView.old_particles[2*triangle.z].x, objView.old_particles[2*triangle.z].y, objView.old_particles[2*triangle.z].z );
+//	}
+//
+//
+//	//if (length(f0) > 5000)
+//		printf("%d force %f %f %f\n", mesh.nvertices*objId + triangle.x, f0.x, f0.y, f0.z);
+//
+//	//if (length(f1) > 5000)
+//		printf("%d force %f %f %f\n", mesh.nvertices*objId + triangle.y, f1.x, f1.y, f1.z);
+//
+//	//if (length(f2) > 5000)
+//		printf("%d force %f %f %f\n", mesh.nvertices*objId + triangle.z, f2.x, f2.y, f2.z);
 
 	atomicAdd(objView.forces + mesh.nvertices*objId + triangle.x, f0);
 	atomicAdd(objView.forces + mesh.nvertices*objId + triangle.y, f1);

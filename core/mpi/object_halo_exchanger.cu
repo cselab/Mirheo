@@ -186,9 +186,6 @@ void ObjectHaloExchanger::combineAndUploadData(int id, cudaStream_t stream)
 			unpackObject,
 			totalRecvd, nthreads, 0, stream,
 			helper->recvBuf.devPtr(), 0, ovView, packer );
-
-	ov->haloValid = true;
-	ov->halo()->comExtentValid = false;
 }
 
 PinnedBuffer<int>& ObjectHaloExchanger::getRecvOffsets(int id)

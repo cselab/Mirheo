@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
-<simulation name="rbcs" logfile="log" mpi_ranks="1 1 1" debug_lvl="10" >
+<simulation name="rbcs" logfile="log" mpi_ranks="2 1 1" debug_lvl="10" >
 
 	<domain size="32 32 32" />
 	
@@ -38,13 +38,13 @@
 	</particle_vector>
 	
 	<object_belonging_checker name="rbc_checker" type="mesh" object_vector="rbcs"  >
-		<apply_to pv="dpd" inside="none" outside="dpd" check_every="500" />
+		<apply_to pv="dpd" inside="dpd" outside="none" check_every="50" />
 	</object_belonging_checker>
 	
 	<object_bouncer name="membrane" ov="rbcs" type="from_mesh">
 		<apply_to pv="dpd" />
-		<!-- <apply_to pv="ins" /> -->
-	</object_bouncer>
+<!-- 		<apply_to pv="ins" />
+ -->	</object_bouncer>
 	
 	<!--
 		Interactions section
@@ -78,7 +78,7 @@
 		Integrators section
 	-->
 	
-	<integrator type="vv_const_dp" name="pois" extra_force="0 0 0.0" dt="0.001">
+	<integrator type="vv_periodic_poiseuille" name="pois" force="0.5" dir="x" dt="0.001">
 		<apply_to pv="dpd" />
 		<apply_to pv="rbcs" />
 <!-- 		<apply_to pv="ins" /> -->
@@ -105,11 +105,11 @@
 		pv_name="rbcs"
 		dump_every="200"
 		path="xyz/" />
-<!-- 				
+				
 	<plugin type="dump_xyz" name="dpd"
 		pv_name="dpd"
-		dump_every="10"
-		path="xyz/" /> -->
+		dump_every="50"
+		path="xyz/" />
 	
 <!-- 	<plugin type="dump_xyz" name="ins"
 		pv_name="ins"
@@ -121,7 +121,7 @@
 		dump_every="1000"
 		path="pos/" />
 	
-	<plugin type="stats" name="stats" every="1000" />
+	<plugin type="stats" name="stats" every="500" />
 	
 	<run niters="100000" />
 </simulation>
