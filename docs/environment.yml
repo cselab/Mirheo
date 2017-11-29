@@ -1,7 +1,0 @@
-name: udevicex
-
-channels:
-  - conda-forge
-
-dependencies:
-  - breathe
