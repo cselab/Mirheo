@@ -1,0 +1,90 @@
+<?xml version="1.0"?>
+<simulation name="focus" logfile="log" mpi_ranks="1 1 1" debug_lvl="1">
+
+	<domain size="96 32 32" />
+	
+	<particle_vector type="regular" name="dpd" mass="1">
+		<generate type="uniform" density="4" />
+	</particle_vector>
+	
+	<!--
+		Walls section
+	-->
+	
+	<particle_vector type="regular" name="wall" mass="1">
+		<generate type="restart" path="restart/" />
+	</particle_vector>
+		
+	<wall type="sdf" name="wall" check_every="100" sdf_filename="sdf.dat" >
+		<generate_frozen name="wall" path="restart" mass="1.0" density="4" a="18.75" kbt="1.0" rc="1.0" power="0.25" />
+		<apply_to pv="dpd" />
+	</wall>
+	
+	<!--
+		Object section
+	-->
+	
+	<particle_vector type="rigid_ellipsoids" name="sphere" mass="1" particles_per_obj="3619" axes="6 6 6" >
+		<generate type="read_ellipsoids" ic_filename="sphere.ic" xyz_filename="sphere6.xyz" />
+	</particle_vector>
+	
+	<object_belonging_checker name="checker" type="analytical_ellipsoid" object_vector="sphere"  >
+		<apply_to pv="dpd" inside="none" outside="dpd" check_every="100" />
+	</object_belonging_checker>
+	
+	<object_bouncer name="ell_bounce" ov="sphere" type="from_ellipsoids">
+		<apply_to pv="dpd" />
+	</object_bouncer>
+	
+	<!--
+		Interactions section
+	-->
+	
+	<interaction type="dpd" name="dpd_int" a="18.75" gamma="4.5" kbt="1.0" dt="0.0005" rc="1.0" power="0.25">
+		<apply_to pv1="dpd" pv2="dpd"/>
+		<apply_to pv1="dpd" pv2="sphere"/>
+		<apply_to pv1="dpd" pv2="wall"/>
+	</interaction>
+	
+	<!--
+		Integrators section
+	-->
+	
+	<integrator type="rigid_vv" name="rigid" dt="0.0005">
+		<apply_to pv="sphere" />
+	</integrator>
+	
+	<integrator type="vv" name="integrate" dt="0.0005">
+		<apply_to pv="dpd" />
+	</integrator>
+	
+	<!--
+		Plugins section
+	-->
+	
+	<!-- <plugin type="temperaturize" name="t_top" pv_name="top"  kbt="0.5" />
+	<plugin type="temperaturize" name="t_bot" pv_name="bot"  kbt="0.5" /> -->
+	
+	<plugin type="impose_velocity" name="push" pv_name="dpd" every="10" low="0 0 0"  high="100 100 100"  target_velocity= "0.23 0 0" />
+		
+ 	<plugin type="dump_avg_flow" name="avg"
+		pv_names="dpd"
+		sample_every="10" dump_every="5000"
+		bin_size="2 1 1"
+		path="xdmf/avg_rho_u" />
+		
+	<plugin type="dump_xyz" name="solid"
+		pv_name="sphere"
+		dump_every="5000"
+		path="xyz/" />
+		
+	<plugin type="dump_obj_pos" name="lala"
+		ov_name="sphere"
+		dump_every="1000"
+		path="pos/" />
+	
+	<plugin type="stats" name="stats" every="1000" />
+	
+	<run niters="50000000" />
+</simulation>
+

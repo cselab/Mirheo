@@ -1,0 +1,128 @@
+<?xml version="1.0"?>
+<simulation name="rbcs" logfile="log" mpi_ranks="2 1 1" debug_lvl="10" >
+
+	<domain size="32 32 32" />
+	
+	<particle_vector type="regular" name="dpd" mass="1">
+		<generate type="uniform" density="8" />
+	</particle_vector>
+	
+	<!--
+		Walls section
+	-->
+	
+<!-- 	<particle_vector type="regular" name="bot" mass="1">
+		<generate type="restart" path="restart/" />
+	</particle_vector>
+	
+	<particle_vector type="regular" name="top" mass="1">
+		<generate type="restart" path="restart/" />
+	</particle_vector>
+	
+	<wall type="moving_plane" name="bot" check_every="100" normal="0 0 -1" point_through="0 0 2" velocity="100 0 0" >
+		<generate_frozen name="bot" path="restart" mass="1.0" density="8" a="25" kbt="0.5" rc="1.0" power="0.5" />
+		<apply_to pv="dpd" />
+	</wall>
+		
+	<wall type="moving_plane" name="top" check_every="100" normal="0 0 1" point_through="0 0 30" velocity="-100 0 0" >
+		<generate_frozen name="top" path="restart" mass="1.0" density="8" a="25" kbt="0.5" rc="1.0" power="0.5" />
+		<apply_to pv="dpd" />
+	</wall> -->
+	
+	<!--
+		Object section
+	-->
+	
+	<particle_vector type="rbcs" name="rbcs" mass="0.7" particles_per_obj="498" mesh_filename="../../data/rbc_mesh.off" >
+		<generate type="read_rbcs" ic_filename="rbcs_big.ic" mesh_filename="../../data/rbc_mesh.off" />
+	</particle_vector>
+	
+	<object_belonging_checker name="rbc_checker" type="mesh" object_vector="rbcs"  >
+		<apply_to pv="dpd" inside="dpd" outside="none" check_every="50" />
+	</object_belonging_checker>
+	
+	<object_bouncer name="membrane" ov="rbcs" type="from_mesh">
+		<apply_to pv="dpd" />
+<!-- 		<apply_to pv="ins" />
+ -->	</object_bouncer>
+	
+	<!--
+		Interactions section
+	-->
+	
+	<interaction type="dpd" name="dpd_int" a="25" gamma="40" kbt="0.5" dt="0.001" rc="1.0" power="0.5">
+		<apply_to pv1="dpd" pv2="dpd"/>
+<!-- 				
+		<apply_to pv1="top" pv2="dpd"/>
+		<apply_to pv1="bot" pv2="dpd"/> -->
+	</interaction>
+	
+	<!-- <interaction type="dpd" name="inner" a="25" gamma="40" kbt="0.5" dt="0.001" rc="1.0" power="0.5">
+		<apply_to pv1="ins" pv2="ins"/>
+	</interaction> -->
+	
+<!-- 	<interaction type="dpd" name="inter_int" a="25" gamma="0" kbt="0.0" dt="0.001" rc="1.0" power="0.5">
+		<apply_to pv1="ins" pv2="dpd"/>
+	</interaction> -->
+	
+	<interaction type="rbc" name="rbc_int" preset="lina" kb="30"  >
+		<apply_to pv1="rbcs" pv2="rbcs"/>
+	</interaction>
+	
+	<interaction type="dpd" name="fsi" a="0" gamma="10" kbt="0.5" dt="0.001" rc="1.0" power="0.5">
+		<apply_to pv1="rbcs" pv2="dpd"/>
+		<!-- <apply_to pv1="rbcs" pv2="ins"/> -->
+	</interaction>
+	
+	<!--
+		Integrators section
+	-->
+	
+	<integrator type="vv_periodic_poiseuille" name="pois" force="0.5" dir="x" dt="0.001">
+		<apply_to pv="dpd" />
+		<apply_to pv="rbcs" />
+<!-- 		<apply_to pv="ins" /> -->
+	</integrator>
+
+	
+	<!--
+		Plugins section
+	-->
+	
+	<!-- <plugin type="temperaturize" name="t_top" pv_name="top"  kbt="0.5" />
+	<plugin type="temperaturize" name="t_bot" pv_name="bot"  kbt="0.5" /> -->
+	
+	<!-- <plugin type="impose_velocity" name="top" pv_name="dpd"  every="100" low="0 0 2"  high="32 32 3"  target_velocity= "2 0 0" />
+	<plugin type="impose_velocity" name="bot" pv_name="dpd"  every="100" low="0 0 29" high="32 32 30" target_velocity="-2 0 0" /> -->
+		
+ 	<plugin type="dump_avg_flow" name="avg"
+		pv_names="dpd"
+		sample_every="10" dump_every="1000"
+		bin_size="1 1 1"
+		path="xdmf/avg_rho_u" />
+		
+	<plugin type="dump_xyz" name="rbcs"
+		pv_name="rbcs"
+		dump_every="200"
+		path="xyz/" />
+				
+	<plugin type="dump_xyz" name="dpd"
+		pv_name="dpd"
+		dump_every="50"
+		path="xyz/" />
+	
+<!-- 	<plugin type="dump_xyz" name="ins"
+		pv_name="ins"
+		dump_every="200"
+		path="xyz/" /> -->
+		
+	<plugin type="dump_obj_pos" name="lala"
+		ov_name="rbcs"
+		dump_every="1000"
+		path="pos/" />
+	
+	<plugin type="stats" name="stats" every="500" />
+	
+	<run niters="100000" />
+</simulation>
+

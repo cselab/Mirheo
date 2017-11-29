@@ -1,0 +1,178 @@
+#pragma once
+
+#include <cuda.h>
+#include <cstdlib>
+#include <cstdint>
+#include <cassert>
+#include <type_traits>
+#include <utility>
+#include <stack>
+#include <algorithm>
+
+#include <core/logger.h>
+
+//==================================================================================================================
+// Basic types
+//==================================================================================================================
+
+struct __align__(16) Float3_int
+{
+	// Variables
+	float3 v;
+	union
+	{
+		int32_t i;
+		struct { int16_t s1, s2; };
+	};
+
+
+	// Default stuff
+	__host__ __device__ inline Float3_int(const Float3_int& x)
+	{
+		*((float4*)this) = *((float4*)&x);
+	}
+
+	__host__ __device__ inline Float3_int& operator=(Float3_int x)
+	{
+		*((float4*)this) = *((float4*)&x);
+		return *this;
+	}
+
+
+	// Constructors
+	__host__ __device__ inline Float3_int() {};
+	__host__ __device__ inline Float3_int(const float3 v, int i) : v(v), i(i) {};
+
+	__host__ __device__ inline Float3_int(const float4 f4)
+	{
+		*((float4*)this) = f4;
+	}
+
+
+	// Methods
+	__host__ __device__ inline float4 toFloat4() const
+	{
+		float4 f = *((float4*)this);
+		return f;
+	}
+};
+
+
+struct __align__(16) Particle
+{
+	// We're targeting little-endian systems here, note that!
+
+	// Free particles will have their id in i1 (or in s21*2^32 + i1)
+	// Object particles will have their id (in object) in s21 and object id in i1
+	// s22 is arbitrary
+
+	// Variables
+	float3 r;
+	union
+	{
+		int32_t i1;
+		struct { int16_t s11 /*least significant*/, s12; };
+	};
+
+	float3 u;
+	union
+	{
+		int32_t i2;
+		struct { int16_t s21 /*least significant*/, s22; };
+	};
+
+
+	// Default stuff
+	__host__ __device__ inline Particle(const Particle& x)
+	{
+		auto f4this = (float4*)this;
+		auto f4x    = (float4*)&x;
+
+		f4this[0] = f4x[0];
+		f4this[1] = f4x[1];
+	}
+
+	__host__ __device__ inline Particle& operator=(Particle x)
+	{
+		auto f4this = (float4*)this;
+		auto f4x    = (float4*)&x;
+
+		f4this[0] = f4x[0];
+		f4this[1] = f4x[1];
+
+		return *this;
+	}
+
+	// Constructors
+	__host__ __device__ inline Particle() {};
+	__host__ __device__ inline Particle(const float4 r4, const float4 u4)
+	{
+		Float3_int rtmp(r4), utmp(u4);
+		r  = rtmp.v;
+		i1 = rtmp.i;
+		u  = utmp.v;
+		i2 = utmp.i;
+	}
+	__host__ __device__ inline Particle(const float4* addr, int pid)
+	{
+		readCoordinate(addr, pid);
+		readVelocity  (addr, pid);
+	}
+
+
+	// Methods
+	__host__ __device__ inline void readCoordinate(const float4* addr, const int pid)
+	{
+		const Float3_int tmp = addr[2*pid];
+		r  = tmp.v;
+		i1 = tmp.i;
+	}
+
+	__host__ __device__ inline void readVelocity(const float4* addr, const int pid)
+	{
+		const Float3_int tmp = addr[2*pid+1];
+		u  = tmp.v;
+		i2 = tmp.i;
+	}
+
+	__host__ __device__ inline float4 r2Float4() const
+	{
+		return Float3_int{r, i1}.toFloat4();
+	}
+
+	__host__ __device__ inline float4 u2Float4() const
+	{
+		return Float3_int{u, i2}.toFloat4();
+	}
+
+	__host__ __device__ inline void write2Float4(float4* dst, int pid) const
+	{
+		dst[2*pid]   = r2Float4();
+		dst[2*pid+1] = u2Float4();
+	}
+};
+
+
+struct __align__(16) Force
+{
+	float3 f;
+	int32_t i;
+
+	__host__ __device__ inline Force() {};
+	__host__ __device__ inline Force(const float3 f, int i) : f(f), i(i) {};
+
+	__host__ __device__ inline Force(const float4 f4)
+	{
+		Float3_int tmp(f4);
+		f = tmp.v;
+		i = tmp.i;
+	}
+
+	__host__ __device__ inline float4 toFloat4()
+	{
+		return Float3_int{f, i}.toFloat4();
+	}
+};
+
+
+

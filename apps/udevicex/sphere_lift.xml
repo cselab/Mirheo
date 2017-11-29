@@ -1,0 +1,108 @@
+<?xml version="1.0"?>
+<simulation name="poiseuille" logfile="log" mpi_ranks="1 1 1" debug_lvl="3" noplugins="true">
+
+	<domain size="32 32 32" />
+	
+	<particle_vector type="regular" name="dpd" mass="1">
+		<generate type="uniform" density="8" />
+	</particle_vector>
+	
+	<!--
+		Walls section
+	-->
+	
+	<particle_vector type="regular" name="bot" mass="1">
+		<generate type="restart" path="restart/" />
+	</particle_vector>
+	
+	<particle_vector type="regular" name="top" mass="1">
+		<generate type="restart" path="restart/" />
+	</particle_vector>
+	
+	<wall type="moving_plane" name="bot" check_every="100" normal="0 0 -1" point_through="0 0 2" velocity="2 0 0" >
+		<generate_frozen name="bot" path="restart" mass="1.0" density="8" a="25" kbt="0.5" rc="1.0" power="0.5" />
+		<apply_to pv="dpd" />
+	</wall>
+		
+	<wall type="plane" name="top" check_every="100" normal="0 0 1" point_through="0 0 30" >
+		<generate_frozen name="top" path="restart" mass="1.0" density="8" a="25" kbt="0.5" rc="1.0" power="0.5" />
+		<apply_to pv="dpd" />
+	</wall>
+	
+	<!--
+		Object section
+	-->
+	
+	<particle_vector type="rigid_ellipsoids" name="sphere" mass="1.40437639696" particles_per_obj="2237" axes="5 5 5" >
+		<generate type="read_ellipsoids" ic_filename="sphere.ic" xyz_filename="sphere5.xyz" />
+	</particle_vector>
+	
+	<object_belonging_checker name="ell_checker" type="analytical_ellipsoid" object_vector="sphere"  >
+		<apply_to pv="dpd" inside="none" outside="dpd" check_every="50" />
+	</object_belonging_checker>
+	
+<!-- 	<object_bouncer name="ell_bounce" ov="sphere" type="from_ellipsoids">
+		<apply_to pv="dpd" />
+	</object_bouncer> -->
+	
+	<!--
+		Interactions section
+	-->
+	
+	<interaction type="dpd" name="dpd_int" a="25" gamma="40" kbt="0.5" dt="0.001" rc="1.0" power="0.5">
+		<apply_to pv1="dpd" pv2="dpd"/>
+		<apply_to pv1="sphere" pv2="dpd"/>
+		<apply_to pv1="top" pv2="dpd"/>
+		<apply_to pv1="bot" pv2="dpd"/>
+	</interaction>
+		
+	<!--
+		Integrators section
+	-->
+	
+	
+	<integrator type="rigid_vv" name="rigid" dt="0.001">
+		<apply_to pv="sphere" />
+	</integrator>
+	
+<!-- 	<integrator type="translate" name="trans" dt="0.001" velocity="2 0 0">
+		<apply_to pv="bot" />
+	</integrator> -->
+	
+	<integrator type="vv" name="integrate" dt="0.001">
+		<apply_to pv="dpd" />
+	</integrator>
+
+	<!--
+		Plugins section
+	-->
+	
+	<plugin type="pin_object" name="pin"
+		ov_name="sphere"
+		dump_every="10000"
+		path="pinning_force/"
+		pin_translation="0 0 1" />
+	
+ 	<plugin type="dump_avg_flow" name="avg"
+		pv_names="dpd"
+		sample_every="10" dump_every="10000"
+		bin_size="0.5 0.5 0.5"
+		path="xdmf/avg_rho_u" />
+	
+	 <plugin type="dump_xyz" name="xyz"
+		pv_name="sphere"
+		dump_every="1000"
+		path="xyz/" />
+		
+	<plugin type="dump_obj_pos" name="pos"
+		ov_name="sphere"
+		dump_every="1000"
+		path="pos/" />
+	
+	
+	<plugin type="stats" name="stats" every="1000" />
+	
+	<run niters="500000" />
+
+</simulation>
+

@@ -1,0 +1,106 @@
+<?xml version="1.0"?>
+<simulation name="wall" logfile="log" mpi_ranks="1 1 1" debug_lvl="10">
+
+	<domain size="64 32 32" />
+	
+	<particle_vector type="regular" name="dpd" mass="1">
+		<generate type="uniform" density="8" />
+	</particle_vector>
+	
+	<!--
+		Walls section
+	-->
+	
+	<particle_vector type="regular" name="wall" mass="1">
+		<generate type="restart" path="restart/" />
+	</particle_vector>
+	
+	<wall type="cylinder" name="cyl" check_every="100" radius="8" center="32 16" axis="z" >
+		<generate_frozen name="wall" path="restart" mass="1.0" density="8" a="25" kbt="0.5" rc="1.0" power="0.5" />
+		<apply_to pv="dpd" />
+	</wall>
+
+	<!--
+		 RBC
+	-->
+
+	<particle_vector type="rbcs" name="rbcs" mass="0.5" particles_per_obj="498" mesh_filename="../../data/rbc_mesh.off" >
+		<generate type="read_rbcs" ic_filename="rbcs.ic" mesh_filename="../../data/rbc_mesh.off" />
+	</particle_vector>
+	
+	<!--
+	<object_belonging_checker name="rbc_checker" type="mesh" object_vector="rbcs"  >
+		<apply_to pv="dpd" inside="ins" outside="dpd" check_every="500" />
+	</object_belonging_checker>
+	
+	<object_bouncer name="membrane" ov="rbcs" type="from_mesh">
+		<apply_to pv="dpd" />
+		<apply_to pv="ins" />
+	</object_bouncer>
+	-->
+	
+	<!--
+		Interactions section
+	-->
+	
+	<interaction type="dpd" name="dpd_int" a="25" gamma="40" kbt="0.5" dt="0.001" rc="1.0" power="0.5">
+		<apply_to pv1="dpd" pv2="dpd"/>
+		<apply_to pv1="wall" pv2="dpd"/>
+	</interaction>
+	
+<!-- 	<interaction type="dpd" name="dpd2_int" a="1" gamma="40" kbt="0.5" dt="0.001" rc="1.0" power="0.5">
+		<apply_to pv1="rbcs" pv2="dpd"/>
+	</interaction> --> 
+	
+	<!--
+		Integrators section
+	-->
+	
+	<integrator type="vv" name="integrate" dt="0.001">
+		<apply_to pv="rbcs" />
+	</integrator>
+	
+	<integrator type="vv_const_dp" name="push" extra_force="0 0 0" dt="0.001">
+		<apply_to pv="dpd" />
+	</integrator>
+	
+	<!--
+		Plugins section
+	-->
+	
+	<!-- <plugin type="temperaturize" name="t_top" pv_name="top"  kbt="0.5" />
+	<plugin type="temperaturize" name="t_bot" pv_name="bot"  kbt="0.5" />
+	<plugin type="impose_velocity" name="all" pv_name="dpd"  every="10" low="0 0 0"  high="100 100 100"  target_velocity= "$v 0 0" />
+	-->
+
+ 	<plugin type="dump_avg_flow" name="avg"
+		pv_names="dpd"
+		sample_every="50" dump_every="50000"
+		bin_size="0.5 0.5 0.5"
+		path="xdmf/avg_rho_u" />
+		
+	<plugin type="dump_xyz" name="rbcs"
+		pv_name="rbcs"
+		dump_every="1"
+		path="xyz/" />
+<!-- 				
+	<plugin type="dump_xyz" name="dpd"
+		pv_name="dpd"
+		dump_every="10"
+		path="xyz/" /> -->
+	
+<!-- 	<plugin type="dump_xyz" name="ins"
+		pv_name="ins"
+		dump_every="200"
+		path="xyz/" /> -->
+		
+	<plugin type="dump_obj_pos" name="lala"
+		ov_name="rbcs"
+		dump_every="1000"
+		path="pos/" />
+		
+	<plugin type="stats" name="stats" every="1000" />
+	
+	<run niters="10000" />
+</simulation>
+
