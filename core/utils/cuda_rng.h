@@ -69,12 +69,12 @@ namespace Logistic
 	 *****************************************************************/
 
 	// floating point version of LCG
-	__inline__ __device__ float rem( float r ) {
+	inline __device__ float rem( float r ) {
 		return r - floorf( r );
 	}
 
 	// FMA wrapper for the convenience of switching rouding modes
-	__inline__ __device__ float FMA( float x, float y, float z ) {
+	inline __device__ float FMA( float x, float y, float z ) {
 		return __fmaf_rz( x, y, z );
 	}
 
@@ -83,7 +83,7 @@ namespace Logistic
 	// <2> : 2 FMA + 1 MUL
 	// <1> : 1 FMA + 1 MUL
 #if 0
-	template<int N> __inline__ __device__ float __logistic_core( float x ) {
+	template<int N> inline __device__ float __logistic_core( float x ) {
 		float x2;
 		// saturated square
 		// clamp result to [0,1]
@@ -96,7 +96,7 @@ namespace Logistic
 		const static unsigned long long FLOPS = 9 + __logistic_core_flops_counter<N-3>::FLOPS;
 	};
 
-	template<> __inline__ __device__ float __logistic_core<2>( float x ) {
+	template<> inline __device__ float __logistic_core<2>( float x ) {
 		float x2 = x * x;
 		return FMA( FMA( 8.0, x2, -8.0 ), x2, 1.0 );
 	}
@@ -105,7 +105,7 @@ namespace Logistic
 	};
 
 #else
-	template<int N> __inline__ __device__ float __logistic_core( float x )
+	template<int N> inline __device__ float __logistic_core( float x )
 	{
 		float x2 = x * x;
 		float r = FMA( FMA( 8.0, x2, -8.0 ), x2, 1.0 );
@@ -116,14 +116,14 @@ namespace Logistic
 	};
 #endif
 
-	template<> __inline__ __device__ float __logistic_core<1>( float x ) {
+	template<> inline __device__ float __logistic_core<1>( float x ) {
 		return FMA( 2.0 * x, x, -1.0 );
 	}
 	template<> struct __logistic_core_flops_counter<1> {
 		const static unsigned long long FLOPS = 3;
 	};
 
-	template<> __inline__ __device__ float __logistic_core<0>( float x ) {
+	template<> inline __device__ float __logistic_core<0>( float x ) {
 		return x;
 	}
 	template<> struct __logistic_core_flops_counter<0> {
@@ -147,13 +147,13 @@ namespace Logistic
 	// square root of 2
 	const static float sqrt2 = 1.41421356237309514547;
 
-	__inline__ __device__ float uniform01( float seed, int i, int j )
+	inline __device__ float uniform01( float seed, int i, int j )
 	{
 		float val = mean0var1(seed, i, j) * (0.5f/sqrt2) + 0.5f;
 		return max(0.0f, min(1.0f, val));
 	}
 
-	__inline__ __device__ float mean0var1( float seed, int u, int v )
+	inline __device__ float mean0var1( float seed, int u, int v )
 	{
 		float p = rem( ( ( u & 0x3FF ) * gold ) + u * bronze + ( ( v & 0x3FF ) * silver ) + v * tin ); // safe for large u or v
 		float q = rem( seed );
@@ -161,7 +161,7 @@ namespace Logistic
 		return l * sqrt2;
 	}
 
-	__inline__ __device__ float mean0var1( float seed, uint u, uint v )
+	inline __device__ float mean0var1( float seed, uint u, uint v )
 	{
 		// 7 FLOPS
 		float p = rem( ( ( u & 0x3FFU ) * gold ) + u * bronze + ( ( v & 0x3FFU ) * silver ) + v * tin ); // safe for large u or v
@@ -176,7 +176,7 @@ namespace Logistic
 		const static unsigned long long FLOPS = 9ULL + __logistic_core_flops_counter<N>::FLOPS;
 	};
 
-	__inline__ __device__ float mean0var1( float seed, float u, float v )
+	inline __device__ float mean0var1( float seed, float u, float v )
 	{
 		float p = rem( sqrtf(u) * gold + sqrtf(v) * silver ); // Acknowledging Dmitry for the use of sqrtf
 		float q = rem( seed );
@@ -185,7 +185,7 @@ namespace Logistic
 		return l * sqrt2;
 	}
 
-	__inline__ __device__ float mean0var1_dual( float seed, float u, float v )
+	inline __device__ float mean0var1_dual( float seed, float u, float v )
 	{
 		float p = rem( sqrtf(u) * gold + sqrtf(v) * silver ); // Acknowledging Dmitry for the use of sqrtf
 		float q = rem( seed );
@@ -232,7 +232,7 @@ namespace Saru
 		return res;
 	}
 
-	__inline__ __device__ float uniform01( float seed, uint i, uint j )
+	inline __device__ float uniform01( float seed, uint i, uint j )
 	{
 		float t = seed;
 		unsigned int tag = *( int * )&t;
@@ -240,17 +240,17 @@ namespace Saru
 		return saru( tag, i, j );
 	}
 
-	__inline__ __device__ float mean0var1( float seed, uint i, uint j )
+	inline __device__ float mean0var1( float seed, uint i, uint j )
 	{
 		return uniform01(seed, i, j) * 3.464101615f - 1.732050807f;
 	}
 
-	__inline__ __device__ float mean0var1( float seed, int i, int j )
+	inline __device__ float mean0var1( float seed, int i, int j )
 	{
 		return mean0var1( seed, (uint) i, (uint) j );
 	}
 
-	__inline__ __device__ float mean0var1( float seed, float i, float j )
+	inline __device__ float mean0var1( float seed, float i, float j )
 	{
 		return mean0var1( seed, (uint) i, (uint) j );
 	}

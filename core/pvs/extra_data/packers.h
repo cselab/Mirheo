@@ -22,7 +22,7 @@ struct DevicePacker
 	 * Pack entity with id srcId into memory starting with dstAddr
 	 * Don't apply no shifts
 	 */
-	__forceinline__ __device__ void pack(int srcId, char* dstAddr) const
+	inline __device__ void pack(int srcId, char* dstAddr) const
 	{
 		_packShift<false> (srcId, dstAddr, make_float3(0));
 	}
@@ -31,7 +31,7 @@ struct DevicePacker
 	 * Pack entity with id srcId into memory starting with dstAddr
 	 * Apply shifts where needed
 	 */
-	__forceinline__ __device__ void packShift(int srcId, char* dstAddr, float3 shift) const
+	inline __device__ void packShift(int srcId, char* dstAddr, float3 shift) const
 	{
 		_packShift<true>  (srcId, dstAddr, shift);
 	}
@@ -39,7 +39,7 @@ struct DevicePacker
 	/**
 	 * Unpack entity from memory by srcAddr to the channels to id dstId
 	 */
-	__forceinline__ __device__ void unpack(const char* srcAddr, int dstId) const
+	inline __device__ void unpack(const char* srcAddr, int dstId) const
 	{
 		for (int i = 0; i < nChannels; i++)
 		{
@@ -54,7 +54,7 @@ private:
 	 * Copy nchunks*sizeof(T) bytes from from to to
 	 */
 	template<typename T>
-	__forceinline__ __device__ void _copy(char* to, const char* from, int nchunks) const
+	inline __device__ void _copy(char* to, const char* from, int nchunks) const
 	{
 		auto _to   = (T*)to;
 		auto _from = (const T*)from;
@@ -69,7 +69,7 @@ private:
 	 * Speed up copying by choosing the widest possible data type
 	 * and calling the appropriate _copy function
 	 */
-	__forceinline__ __device__ void copy(char* to, const char* from, int size_bytes) const
+	inline __device__ void copy(char* to, const char* from, int size_bytes) const
 	{
 		assert(size_bytes % 4 == 0);
 
@@ -86,7 +86,7 @@ private:
 	 * Template parameter NEEDSHIFT governs shifting
 	 */
 	template <bool NEEDSHIFT>
-	__forceinline__ __device__ void _packShift(int srcId, char* dstAddr, float3 shift) const
+	inline __device__ void _packShift(int srcId, char* dstAddr, float3 shift) const
 	{
 		for (int i = 0; i < nChannels; i++)
 		{

@@ -40,7 +40,7 @@ float ellipsoid(LocalRigidObjectVector::RigidMotion motion, float3 invAxes, floa
 	return sqr(vRot.x * invAxes.x) + sqr(vRot.y * invAxes.y) + sqr(vRot.z * invAxes.z) - 1.0f;
 }
 
-__inline__ __device__ float warpReduceSum(float val)
+inline __device__ float warpReduceSum(float val)
 {
 #pragma unroll
 	for (int offset = warpSize/2; offset > 0; offset /= 2)
@@ -50,7 +50,7 @@ __inline__ __device__ float warpReduceSum(float val)
 	return val;
 }
 
-__inline__ __device__ float3 warpReduceSum(float3 val)
+inline __device__ float3 warpReduceSum(float3 val)
 {
 #pragma unroll
 	for (int offset = warpSize/2; offset > 0; offset /= 2)

@@ -29,7 +29,7 @@ inline __device__ float fastPower(const float x, const float k)
     return powf(fabs(x), k);
 }
 
-__device__ __forceinline__ float E_DPD(
+__device__ inline float E_DPD(
 		Particle dst, Particle src,
 		const float adpd, const float rc, const float rc2, const float invrc, const float k)
 {
@@ -50,7 +50,7 @@ __device__ __forceinline__ float E_DPD(
 //=============================================================================================
 
 template<typename Potential>
-__device__ __forceinline__ float E_inCell(Particle p, int id, int3 cell,
+__device__ inline float E_inCell(Particle p, int id, int3 cell,
 		float4* particles, CellListInfo cinfo,
 		const float rc2, Potential potential)
 {

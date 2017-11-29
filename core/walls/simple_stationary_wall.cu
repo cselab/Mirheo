@@ -107,7 +107,7 @@ __global__ static void unpackRemainingObjects(const char* from, OVview view, Obj
 //===============================================================================================
 
 template<typename InsideWallChecker>
-__device__ __forceinline__ bool isCellOnBoundary(PVview view, float3 cornerCoo, float3 len, InsideWallChecker checker)
+__device__ inline bool isCellOnBoundary(PVview view, float3 cornerCoo, float3 len, InsideWallChecker checker)
 {
 	// About maximum distance a particle can cover in one step
 	const float tol = 0.25f;
@@ -150,7 +150,7 @@ __global__ void getBoundaryCells(PVview view, CellListInfo cinfo, int* nBoundary
 //===============================================================================================
 
 template<typename InsideWallChecker>
-__device__ __forceinline__ float3 rescue(float3 candidate, float dt, float tol, int id, const InsideWallChecker& checker)
+__device__ inline float3 rescue(float3 candidate, float dt, float tol, int id, const InsideWallChecker& checker)
 {
 	const int maxIters = 20;
 	const float factor = 5.0f*dt;

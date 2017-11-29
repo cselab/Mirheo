@@ -17,7 +17,7 @@ public:
 
 	const VelocityField_Rotate& handler() const { return *this; }
 
-	__device__ __forceinline__ float3 operator()(float3 coo) const
+	__device__ inline float3 operator()(float3 coo) const
 	{
 		float3 gr = domain.local2global(coo);
 

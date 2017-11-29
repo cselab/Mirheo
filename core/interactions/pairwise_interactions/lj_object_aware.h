@@ -28,7 +28,7 @@ public:
 					pv1->name.c_str(), pv2->name.c_str());
 	}
 
-	__device__ __forceinline__ float3 operator()(Particle dst, int dstId, Particle src, int srcId) const
+	__device__ inline float3 operator()(Particle dst, int dstId, Particle src, int srcId) const
 	{
 		//    _____             _____
 		//  /       \    dr   /       \

@@ -19,7 +19,7 @@ public:
 	void setup(ParticleVector* pv1, ParticleVector* pv2, CellList* cl1, CellList* cl2, float t)
 	{	}
 
-	__device__ __forceinline__ float3 operator()(Particle dst, int dstId, Particle src, int srcId) const
+	__device__ inline float3 operator()(Particle dst, int dstId, Particle src, int srcId) const
 	{
 		const float3 dr = dst.r - src.r;
 		const float rij2 = dot(dr, dr);

@@ -13,7 +13,7 @@ struct Triangle
 };
 
 // https://gamedev.stackexchange.com/questions/23743/whats-the-most-efficient-way-to-find-barycentric-coordinates
-__device__ __forceinline__ float3 computeBarycentric(float3 a, float3 b, float3 c, float3 p)
+__device__ inline float3 computeBarycentric(float3 a, float3 b, float3 c, float3 p)
 {
 	float3 v0 = b - a, v1 = c - a, v2 = p - a;
 
@@ -35,7 +35,7 @@ __device__ __forceinline__ float3 computeBarycentric(float3 a, float3 b, float3 
 // into point O. Its new velocity is Unew.
 // Vertex masses are m. Treated as rigid and stationary,
 // what are the vertex forces induced by the collision?
-__device__ __forceinline__ void triangleForces(
+__device__ inline void triangleForces(
 		Triangle tr, float m,
 		float3 O_barycentric, float3 U0, float3 Unew, float M,
 		float dt,
@@ -95,7 +95,7 @@ __device__ __forceinline__ void triangleForces(
 	f2 = v2 * invdt;
 }
 
-__device__ __forceinline__ Triangle readTriangle(float4* particles, int3 trid)
+__device__ inline Triangle readTriangle(float4* particles, int3 trid)
 {
 	return {
 		f4tof3( particles[2*trid.x] ),
@@ -105,7 +105,7 @@ __device__ __forceinline__ Triangle readTriangle(float4* particles, int3 trid)
 
 // find barycentric coordinates and time (0.0 to 1.0) of the collision
 // if at least one of the value returned negative there was no collision
-__device__ __forceinline__ float4 intersectParticleTriangleBarycentric(
+__device__ inline float4 intersectParticleTriangleBarycentric(
 		Triangle tr, Triangle trOld,
 		Particle p, Particle pOld,
 		float& oldSign)
@@ -239,7 +239,7 @@ __global__ void findBouncesInMesh(
 
 
 
-__device__ __forceinline__ float2 normal_BoxMuller(float seed)
+__device__ inline float2 normal_BoxMuller(float seed)
 {
 	float u1 = Saru::uniform01(seed, threadIdx.x, blockIdx.x);
 	float u2 = Saru::uniform01(u1,   blockIdx.x, threadIdx.x);
@@ -257,7 +257,7 @@ __device__ __forceinline__ float2 normal_BoxMuller(float seed)
 /**
  * Reflect the velocity, in the triangle's referece frame
  */
-__device__ __forceinline__ float3 reflectVelocity(float3 n, float kbT, float mass, float seed1, float seed2)
+__device__ inline float3 reflectVelocity(float3 n, float kbT, float mass, float seed1, float seed2)
 {
 	const int maxTries = 50;
 	// bounce-back reflection

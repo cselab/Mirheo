@@ -42,7 +42,7 @@ __global__ void computeAreaAndVolume(OVviewWithAreaVolume view, MeshView mesh)
 // **************************************************************************************************
 // **************************************************************************************************
 
-__device__ __forceinline__ float fastPower(const float x, const float k)
+__device__ inline float fastPower(const float x, const float k)
 {
 	if (fabsf(k - 2.0f) < 1e-6f) return x*x;
 	if (fabsf(k - 1.0f) < 1e-6f) return x;
@@ -52,7 +52,7 @@ __device__ __forceinline__ float fastPower(const float x, const float k)
 }
 
 
-__device__ __forceinline__ float3 _fangle(const float3 v1, const float3 v2, const float3 v3,
+__device__ inline float3 _fangle(const float3 v1, const float3 v2, const float3 v3,
 		const float totArea, const float totVolume, GPU_RBCparameters parameters)
 {
 	const float3 x21 = v2 - v1;
@@ -84,7 +84,7 @@ __device__ __forceinline__ float3 _fangle(const float3 v1, const float3 v2, cons
 	return fArea + fVolume + (IbforceI_wcl + IbforceI_pow) * x21;
 }
 
-__device__ __forceinline__ float3 _fvisc(Particle p1, Particle p2, GPU_RBCparameters parameters)
+__device__ inline float3 _fvisc(Particle p1, Particle p2, GPU_RBCparameters parameters)
 {
 	const float3 du = p2.u - p1.u;
 	const float3 dr = p1.r - p2.r;
@@ -129,7 +129,7 @@ __device__ float3 bondTriangleForce(
 // **************************************************************************************************
 
 template<int update>
-__device__  __forceinline__  float3 _fdihedral(float3 v1, float3 v2, float3 v3, float3 v4, GPU_RBCparameters parameters)
+__device__  inline  float3 _fdihedral(float3 v1, float3 v2, float3 v3, float3 v4, GPU_RBCparameters parameters)
 {
 	const float3 ksi   = cross(v1 - v2, v1 - v3);
 	const float3 dzeta = cross(v3 - v4, v2 - v4);

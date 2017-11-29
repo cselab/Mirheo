@@ -8,7 +8,7 @@
 #include <core/utils/cuda_rng.h>
 
 
-__device__ __forceinline__ float2 normal_BoxMuller(float seed)
+__device__ inline float2 normal_BoxMuller(float seed)
 {
 	float u1 = Saru::uniform01(seed, threadIdx.x, blockIdx.x);
 	float u2 = Saru::uniform01(u1,   blockIdx.x, threadIdx.x);

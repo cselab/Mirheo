@@ -10,13 +10,13 @@
 
 const float tolerance = 1e-6f;
 
-__device__ __forceinline__ float whichTriangSide(float3 r, float3 a, float3 b, float3 c)
+__device__ inline float whichTriangSide(float3 r, float3 a, float3 b, float3 c)
 {
 	return dot(r-a, cross(b-a, c-a));
 }
 
 // Mesh normals look INSIDE
-__device__ __forceinline__ int particleInsideTetrahedron(float3 r, float3 v0, float3 v1, float3 v2, float3 v3)
+__device__ inline int particleInsideTetrahedron(float3 r, float3 v0, float3 v1, float3 v2, float3 v3)
 {
 	float s0 = whichTriangSide(r,  v2, v1, v3);
 	float s1 = whichTriangSide(r,  v0, v1, v2);

@@ -7,7 +7,7 @@
 class StationaryWall_SDF_Handler
 {
 public:
-	__device__ __forceinline__ float operator()(float3 x) const
+	__device__ inline float operator()(float3 x) const
 	{
 		float3 texcoord = floorf((x + extendedDomainSize*0.5f) * invh);
 		float3 lambda = (x - (texcoord * h - extendedDomainSize*0.5f)) * invh;

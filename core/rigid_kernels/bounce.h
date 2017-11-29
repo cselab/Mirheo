@@ -11,7 +11,7 @@ __device__ inline float ellipsoidF(const float3 r, const float3 invAxes)
 	return sqr(r.x * invAxes.x) + sqr(r.y * invAxes.y) + sqr(r.z * invAxes.z) - 1.0f;
 }
 
-__device__ __forceinline__ void bounceCellArray(
+__device__ inline void bounceCellArray(
 		REOVviewWithOldMotion ovView, PVviewWithOldParticles pvView,
 		int objId,
 		int* validCells, int nCells,
@@ -85,7 +85,7 @@ __device__ __forceinline__ void bounceCellArray(
 	}
 }
 
-__device__ __forceinline__ bool isValidCell(int3 cid3, SingleRigidMotion motion, CellListInfo cinfo, float3 invAxes)
+__device__ inline bool isValidCell(int3 cid3, SingleRigidMotion motion, CellListInfo cinfo, float3 invAxes)
 {
 	const float threshold = 0.5f;
 

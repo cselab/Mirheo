@@ -13,7 +13,7 @@
 // Interpolation kernels
 //===============================================================================================
 
-__device__ __forceinline__ float cubicInterpolate1D(float y[4], float mu)
+__device__ inline float cubicInterpolate1D(float y[4], float mu)
 {
 	// mu == 0 at y[1], mu == 1 at y[2]
 	const float a0 = y[3] - y[2] - y[0] + y[1];

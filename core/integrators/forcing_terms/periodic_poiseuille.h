@@ -26,7 +26,7 @@ public:
 		domain = pv->domain;
 	}
 
-	__device__ __forceinline__ float3 operator()(float3 original, Particle p) const
+	__device__ inline float3 operator()(float3 original, Particle p) const
 	{
 		float3 gr = domain.local2global(p.r);
 		float3 ef{0.0f,0.0f,0.0f};

@@ -10,7 +10,7 @@ class ParticleVector;
 class CellList;
 
 
-__device__ __forceinline__ float fastPower(const float x, const float k)
+__device__ inline float fastPower(const float x, const float k)
 {
 	if (fabsf(k - 1.0f)   < 1e-6f) return x;
 	if (fabsf(k - 0.5f)   < 1e-6f) return sqrtf(fabsf(x));
@@ -43,7 +43,7 @@ public:
 		seed = udistr(gen);
 	}
 
-	__device__ __forceinline__ float3 operator()(const Particle dst, int dstId, const Particle src, int srcId) const
+	__device__ inline float3 operator()(const Particle dst, int dstId, const Particle src, int srcId) const
 	{
 		const float3 dr = dst.r - src.r;
 		const float rij2 = dot(dr, dr);

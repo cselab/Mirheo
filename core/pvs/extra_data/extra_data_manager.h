@@ -20,9 +20,11 @@ class ParticlePacker;
 class ObjectExtraPacker;
 
 /**
- * \brief Class that holds and manages PinnedBuffers (just buffers later, or channels) of arbitrary data
+ * \class ExtraDataManager
  *
- * \detailed Used by ParticleVector and ObjectVector to hold data per particle and per object correspondingly
+ * \brief Class that holds and manages \c PinnedBuffers (just buffers later, or channels) of arbitrary data
+ *
+ * Used by \c ParticleVector and \c ObjectVector to hold data per particle and per object correspondingly
  * Holds data itself, knows whether the data should migrate with the particles in MPI functions
  * and whether the data should be changed by coordinate shift when crossing to another MPI rank
  */
@@ -31,7 +33,7 @@ class ExtraDataManager
 public:
 
 	/**
-	 * Struct that contains of data itself (as a unique_ptr to GPUcontainer)
+	 * Struct that contains of data itself (as a unique_ptr to \c GPUcontainer)
 	 * and its properties: needExchange (for MPI) and shiftTypeSize (for shift)
 	 */
 	struct ChannelDescription
@@ -48,11 +50,11 @@ public:
 
 
 	/**
-	 * \brief Allocate a new PinnedBuffer of data
+	 * Allocate a new \c PinnedBuffer of data
 	 *
 	 * \param name buffer name
-	 * \param size resize buffer to size elements
-	 * \tparam T datatype of the buffer element. Sizeof(T) should be divisible by 4
+	 * \param size resize buffer to \c size elements
+	 * \tparam T datatype of the buffer element. \c sizeof(T) should be divisible by 4
 	 */
 	template<typename T>
 	void createData(const std::string& name, int size = 0)
@@ -88,19 +90,22 @@ public:
 	/**
 	 * \brief Make buffer elements be shifted when migrating to another MPI rank
 	 *
-	 * \detailed When elements of the corresponding buffer are migrated
+	 * \details When elements of the corresponding buffer are migrated
 	 * to another MPI subdomain, a coordinate shift will be applied
-	 * to the 'first' 3 floats (if datatypeSize == 4) or
-	 * to the 'first' 3 doubles (if datatypeSize == 8) of the element
+	 * to the 'first' 3 floats (if \c datatypeSize == 4) or
+	 * to the 'first' 3 doubles (if \c datatypeSize == 8) of the element
 	 * 'first' refers to the representation of the element as an array of floats or doubles
 	 *
 	 * Therefore supported structs should look like this:
+	 * \code{.cpp}
 	 * struct NeedShift { float3 / double3 cooToShift; int exampleOtherVar1; double2 exampleOtherVar2; ... };
+	 * \endcode
 	 *
-	 * Byte size of the element of the buffer should be at least float4 or double4
+	 * Byte size of the element of the buffer should be at least \c float4 or \c double4
 	 * (note that 4 is required because of optimal data alignment)
 	 *
-	 * \param datatypeSize treat coordinates as floats (== 4) or as doubles (== 8)
+	 * \param name channel name
+	 * \param datatypeSize treat coordinates as \c float (== 4) or as \c double (== 8)
 	 * Other values are not allowed
 	 */
 	void setShiftType(const std::string& name, int datatypeSize)
@@ -121,8 +126,8 @@ public:
 	 * Get buffer by name
 	 *
 	 * \param name buffer name
-	 * \tparam T type of the element of the PinnedBuffer
-	 * \return PinnedBuffer<T> corresponding to the given name
+	 * \tparam T type of the element of the \c PinnedBuffer
+	 * \return pointer to \c PinnedBuffer<T> corresponding to the given name
 	 */
 	template<typename T>
 	PinnedBuffer<T>* getData(const std::string& name)

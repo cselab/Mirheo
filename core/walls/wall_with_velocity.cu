@@ -30,7 +30,7 @@
 //===============================================================================================
 
 template<typename InsideWallChecker>
-__device__ __forceinline__ float3 rescue(float3 candidate, float dt, float tol, int id, const InsideWallChecker& checker)
+__device__ inline float3 rescue(float3 candidate, float dt, float tol, int id, const InsideWallChecker& checker)
 {
 	const int maxIters = 20;
 	const float factor = 5.0f*dt;

@@ -26,7 +26,7 @@ public:
 
 	const StationaryWall_Cylinder& handler() const { return *this; }
 
-	__device__ __forceinline__ float operator()(float3 coo) const
+	__device__ inline float operator()(float3 coo) const
 	{
 		float3 gr = domain.local2global(coo);
 

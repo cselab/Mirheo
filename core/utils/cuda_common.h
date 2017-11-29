@@ -12,13 +12,13 @@ inline int getNblocks(const int n, const int nthreads)
 	return (n+nthreads-1) / nthreads;
 }
 
-__host__ __device__ __forceinline__ float3 f4tof3(float4 x)
+__host__ __device__ inline float3 f4tof3(float4 x)
 {
 	return make_float3(x.x, x.y, x.z);
 }
 
 template<typename T>
-__host__ __device__ __forceinline__  T sqr(T val)
+__host__ __device__ inline  T sqr(T val)
 {
 	return val*val;
 }
@@ -31,7 +31,7 @@ __host__ __device__ __forceinline__  T sqr(T val)
 // float
 //****************************************************************************
 template<typename Operation>
-__device__ __forceinline__  float3 warpReduce(float3 val, Operation op)
+__device__ inline  float3 warpReduce(float3 val, Operation op)
 {
 #pragma unroll
 	for (int offset = warpSize/2; offset > 0; offset /= 2)
@@ -44,7 +44,7 @@ __device__ __forceinline__  float3 warpReduce(float3 val, Operation op)
 }
 
 template<typename Operation>
-__device__ __forceinline__  float2 warpReduce(float2 val, Operation op)
+__device__ inline  float2 warpReduce(float2 val, Operation op)
 {
 #pragma unroll
 	for (int offset = warpSize/2; offset > 0; offset /= 2)
@@ -56,7 +56,7 @@ __device__ __forceinline__  float2 warpReduce(float2 val, Operation op)
 }
 
 template<typename Operation>
-__device__ __forceinline__  float warpReduce(float val, Operation op)
+__device__ inline  float warpReduce(float val, Operation op)
 {
 #pragma unroll
 	for (int offset = warpSize/2; offset > 0; offset /= 2)
@@ -71,7 +71,7 @@ __device__ __forceinline__  float warpReduce(float val, Operation op)
 //****************************************************************************
 
 template<typename Operation>
-__device__ __forceinline__  double3 warpReduce(double3 val, Operation op)
+__device__ inline  double3 warpReduce(double3 val, Operation op)
 {
 #pragma unroll
 	for (int offset = warpSize/2; offset > 0; offset /= 2)
@@ -84,7 +84,7 @@ __device__ __forceinline__  double3 warpReduce(double3 val, Operation op)
 }
 
 template<typename Operation>
-__device__ __forceinline__  double2 warpReduce(double2 val, Operation op)
+__device__ inline  double2 warpReduce(double2 val, Operation op)
 {
 #pragma unroll
 	for (int offset = warpSize/2; offset > 0; offset /= 2)
@@ -96,7 +96,7 @@ __device__ __forceinline__  double2 warpReduce(double2 val, Operation op)
 }
 
 template<typename Operation>
-__device__ __forceinline__  double warpReduce(double val, Operation op)
+__device__ inline  double warpReduce(double val, Operation op)
 {
 #pragma unroll
 	for (int offset = warpSize/2; offset > 0; offset /= 2)
@@ -111,7 +111,7 @@ __device__ __forceinline__  double warpReduce(double val, Operation op)
 //****************************************************************************
 
 template<typename Operation>
-__device__ __forceinline__  int3 warpReduce(int3 val, Operation op)
+__device__ inline  int3 warpReduce(int3 val, Operation op)
 {
 #pragma unroll
 	for (int offset = warpSize/2; offset > 0; offset /= 2)
@@ -124,7 +124,7 @@ __device__ __forceinline__  int3 warpReduce(int3 val, Operation op)
 }
 
 template<typename Operation>
-__device__ __forceinline__  int2 warpReduce(int2 val, Operation op)
+__device__ inline  int2 warpReduce(int2 val, Operation op)
 {
 #pragma unroll
 	for (int offset = warpSize/2; offset > 0; offset /= 2)
@@ -136,7 +136,7 @@ __device__ __forceinline__  int2 warpReduce(int2 val, Operation op)
 }
 
 template<typename Operation>
-__device__ __forceinline__  int warpReduce(int val, Operation op)
+__device__ inline  int warpReduce(int val, Operation op)
 {
 #pragma unroll
 	for (int offset = warpSize/2; offset > 0; offset /= 2)
@@ -151,7 +151,7 @@ __device__ __forceinline__  int warpReduce(int val, Operation op)
 //=======================================================================================
 
 
-__device__ __forceinline__ float2 atomicAdd(float2* addr, float2 v)
+__device__ inline float2 atomicAdd(float2* addr, float2 v)
 {
 	float2 res;
 	res.x = atomicAdd((float*)addr,   v.x);
@@ -159,7 +159,7 @@ __device__ __forceinline__ float2 atomicAdd(float2* addr, float2 v)
 	return res;
 }
 
-__device__ __forceinline__ float3 atomicAdd(float3* addr, float3 v)
+__device__ inline float3 atomicAdd(float3* addr, float3 v)
 {
 	float3 res;
 	res.x = atomicAdd((float*)addr,   v.x);
@@ -168,7 +168,7 @@ __device__ __forceinline__ float3 atomicAdd(float3* addr, float3 v)
 	return res;
 }
 
-__device__ __forceinline__ float3 atomicAdd(float4* addr, float3 v)
+__device__ inline float3 atomicAdd(float4* addr, float3 v)
 {
 	float3 res;
 	res.x = atomicAdd((float*)addr,   v.x);
@@ -177,7 +177,7 @@ __device__ __forceinline__ float3 atomicAdd(float4* addr, float3 v)
 	return res;
 }
 
-__device__ __forceinline__ double3 atomicAdd(double3* addr, double3 v)
+__device__ inline double3 atomicAdd(double3* addr, double3 v)
 {
 	double3 res;
 	res.x = atomicAdd((double*)addr,   v.x);
@@ -190,14 +190,14 @@ __device__ __forceinline__ double3 atomicAdd(double3* addr, double3 v)
 // Read/write through cache
 //=======================================================================================
 
-__device__ __forceinline__ float4 readNoCache(const float4* addr)
+__device__ inline float4 readNoCache(const float4* addr)
 {
 	float4 res;
 	asm("ld.global.cv.v4.f32 {%0, %1, %2, %3}, [%4];" : "=f"(res.x), "=f"(res.y), "=f"(res.z), "=f"(res.w) : "l"(addr));
 	return res;
 }
 
-__device__ __forceinline__ void writeNoCache(float4* addr, const float4 val)
+__device__ inline void writeNoCache(float4* addr, const float4 val)
 {
 	asm("st.global.wt.v4.f32 [%0], {%1, %2, %3, %4};" :: "l"(addr), "f"(val.x), "f"(val.y), "f"(val.z), "f"(val.w));
 }
@@ -207,14 +207,14 @@ __device__ __forceinline__ void writeNoCache(float4* addr, const float4 val)
 // https://stackoverflow.com/questions/28881491/how-can-i-find-out-which-thread-is-getting-executed-on-which-core-of-the-gpu
 //=======================================================================================
 
-__device__ __forceinline__ uint32_t __warpid()
+__device__ inline uint32_t __warpid()
 {
 	uint32_t warpid;
 	asm volatile("mov.u32 %0, %%warpid;" : "=r"(warpid));
 	return warpid;
 }
 
-__device__ __forceinline__ uint32_t __laneid()
+__device__ inline uint32_t __laneid()
 {
 	uint32_t laneid;
 	asm volatile("mov.u32 %0, %%laneid;" : "=r"(laneid));
@@ -227,28 +227,28 @@ __device__ __forceinline__ uint32_t __laneid()
 //=======================================================================================
 
 template<int DIMS>
-__device__ __forceinline__ uint getLaneId();
+__device__ inline uint getLaneId();
 
 template<>
-__device__ __forceinline__ uint getLaneId<1>()
+__device__ inline uint getLaneId<1>()
 {
 	return threadIdx.x & 31;
 }
 
 template<>
-__device__ __forceinline__ uint getLaneId<2>()
+__device__ inline uint getLaneId<2>()
 {
 	return ((threadIdx.y * blockDim.x) + threadIdx.x) & 31;
 }
 
 template<>
-__device__ __forceinline__ uint getLaneId<3>()
+__device__ inline uint getLaneId<3>()
 {
 	return (threadIdx.z * (blockDim.x * blockDim.y) + (threadIdx.y * blockDim.x) + threadIdx.x) & 31;
 }
 
 template<int DIMS=1>
-__device__ __forceinline__ int atomicAggInc(int *ctr)
+__device__ inline int atomicAggInc(int *ctr)
 {
 	int lane_id = getLaneId<DIMS>();
 

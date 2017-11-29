@@ -17,7 +17,7 @@ public:
 
 	const VelocityField_Translate& handler() const { return *this; }
 
-	__device__ __forceinline__ float3 operator()(float3 coo) const
+	__device__ inline float3 operator()(float3 coo) const
 	{
 		return vel;
 	}

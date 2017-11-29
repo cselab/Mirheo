@@ -6,7 +6,7 @@
 
 
 template<typename Ta, typename Tb>
-__device__ __forceinline__ float distance2(const Ta a, const Tb b)
+__device__ inline float distance2(const Ta a, const Tb b)
 {
 	auto sqr = [] (float x) { return x*x; };
 	return sqr(a.x - b.x) + sqr(a.y - b.y) + sqr(a.z - b.z);
@@ -14,7 +14,7 @@ __device__ __forceinline__ float distance2(const Ta a, const Tb b)
 
 
 template<bool NeedDstAcc, bool NeedSrcAcc, bool Self, typename Interaction>
-__device__ __forceinline__ void computeCell(
+__device__ inline void computeCell(
 		int pstart, int pend,
 		Particle dstP, int dstId, float3& dstFrc,
 		CellListInfo cinfo,

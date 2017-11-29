@@ -27,24 +27,24 @@ public:
 // ==========================================================================================================================================
 // Common cell functions
 // ==========================================================================================================================================
-	__device__ __host__ __forceinline__ int encode(int ix, int iy, int iz) const
+	__device__ __host__ inline int encode(int ix, int iy, int iz) const
 	{
 		return (iz*ncells.y + iy)*ncells.x + ix;
 	}
 
-	__device__ __host__ __forceinline__ void decode(int cid, int& ix, int& iy, int& iz) const
+	__device__ __host__ inline void decode(int cid, int& ix, int& iy, int& iz) const
 	{
 		ix = cid % ncells.x;
 		iy = (cid / ncells.x) % ncells.y;
 		iz = cid / (ncells.x * ncells.y);
 	}
 
-	__device__ __host__ __forceinline__ int encode(int3 cid3) const
+	__device__ __host__ inline int encode(int3 cid3) const
 	{
 		return encode(cid3.x, cid3.y, cid3.z);
 	}
 
-	__device__ __host__ __forceinline__ int3 decode(int cid) const
+	__device__ __host__ inline int3 decode(int cid) const
 	{
 		int3 res;
 		decode(cid, res.x, res.y, res.z);
@@ -52,7 +52,7 @@ public:
 	}
 
 	template<bool Clamp = true>
-	__device__ __host__ __forceinline__ int3 getCellIdAlongAxes(const float3 x) const
+	__device__ __host__ inline int3 getCellIdAlongAxes(const float3 x) const
 	{
 		const int3 v = make_int3( floorf(invh * (x + 0.5f*localDomainSize)) );
 
@@ -63,7 +63,7 @@ public:
 	}
 
 	template<bool Clamp = true, typename T>
-	__device__ __host__ __forceinline__ int getCellId(const T coo) const
+	__device__ __host__ inline int getCellId(const T coo) const
 	{
 		const int3 id = getCellIdAlongAxes<Clamp>(make_float3(coo));
 
