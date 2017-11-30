@@ -116,7 +116,7 @@ private:
 	{
 		lpv->extraPerParticle.createData<T> (name, lpv->size());
 		if (needExchange) lpv->extraPerParticle.requireExchange(name);
-		if (shiftDataType != 0) lpv->extraPerParticle.setShiftType(name, shiftDataType);
+		if (shiftDataType != 0) lpv->extraPerParticle.requireShift(name, shiftDataType);
 	}
 };
 

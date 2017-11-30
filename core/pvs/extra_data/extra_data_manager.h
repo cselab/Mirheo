@@ -22,7 +22,7 @@ class ObjectExtraPacker;
 /**
  * \class ExtraDataManager
  *
- * \brief Class that holds and manages \c PinnedBuffers (just buffers later, or channels) of arbitrary data
+ * @brief Class that holds and manages \c PinnedBuffers (just buffers later, or channels) of arbitrary data
  *
  * Used by \c ParticleVector and \c ObjectVector to hold data per particle and per object correspondingly
  * Holds data itself, knows whether the data should migrate with the particles in MPI functions
@@ -43,17 +43,14 @@ public:
 		int shiftTypeSize = 0;
 	};
 
-	/**
-	 * Map of name --> data
-	 */
-	using ChannelMap = std::map< std::string, ChannelDescription >;
+	using NamedChannelDesc = std::pair< std::string, const ChannelDescription* >;
 
 
 	/**
 	 * Allocate a new \c PinnedBuffer of data
 	 *
-	 * \param name buffer name
-	 * \param size resize buffer to \c size elements
+	 * @param name buffer name
+	 * @param size resize buffer to \c size elements
 	 * \tparam T datatype of the buffer element. \c sizeof(T) should be divisible by 4
 	 */
 	template<typename T>
@@ -76,6 +73,11 @@ public:
 
 		auto ptr = std::make_unique< PinnedBuffer<T> >(size);
 		channelMap[name].container = std::move(ptr);
+
+		sortedChannels.push_back({name, &channelMap[name]});
+		std::sort(sortedChannels.begin(), sortedChannels.end(), [] (NamedChannelDesc ch1, NamedChannelDesc ch2) {
+			return ch1.second->container->datatype_size() > ch2.second->container->datatype_size();
+		});
 	}
 
 	/**
@@ -88,9 +90,9 @@ public:
 	}
 
 	/**
-	 * \brief Make buffer elements be shifted when migrating to another MPI rank
+	 * @brief Make buffer elements be shifted when migrating to another MPI rank
 	 *
-	 * \details When elements of the corresponding buffer are migrated
+	 * When elements of the corresponding buffer are migrated
 	 * to another MPI subdomain, a coordinate shift will be applied
 	 * to the 'first' 3 floats (if \c datatypeSize == 4) or
 	 * to the 'first' 3 doubles (if \c datatypeSize == 8) of the element
@@ -101,21 +103,28 @@ public:
 	 * struct NeedShift { float3 / double3 cooToShift; int exampleOtherVar1; double2 exampleOtherVar2; ... };
 	 * \endcode
 	 *
-	 * Byte size of the element of the buffer should be at least \c float4 or \c double4
-	 * (note that 4 is required because of optimal data alignment)
+	 * \rst
+	 * .. note::
+	 *    Elements of the buffer should be aligned to 16-byte boundary
+	 *    Use \c __align__(16) when defining your structure
+	 * \endrst
 	 *
-	 * \param name channel name
-	 * \param datatypeSize treat coordinates as \c float (== 4) or as \c double (== 8)
+	 * @param name channel name
+	 * @param datatypeSize treat coordinates as \c float (== 4) or as \c double (== 8)
 	 * Other values are not allowed
 	 */
-	void setShiftType(const std::string& name, int datatypeSize)
+	void requireShift(const std::string& name, int datatypeSize)
 	{
 		if (datatypeSize != 4 && datatypeSize != 8)
 			die("Can only shift float3 or double3 data for MPI communications");
 
 		auto& desc = getChannelDescOrDie(name);
 
-		if (desc.container->datatype_size() < 4*datatypeSize)
+		if ( (desc.container->datatype_size() % sizeof(float4)) != 0)
+			die("Incorrect alignment of channel '%s' elements. Size (now %d) should be divisible by 16",
+					name.c_str(), desc.container->datatype_size());
+
+		if (desc.container->datatype_size() < 3*datatypeSize)
 			die("Size of an element of the channel '%s' (%d) is too small to apply shift, need to be at least %d",
 					name.c_str(), desc.container->datatype_size(), 4*datatypeSize);
 
@@ -125,9 +134,9 @@ public:
 	/**
 	 * Get buffer by name
 	 *
-	 * \param name buffer name
+	 * @param name buffer name
 	 * \tparam T type of the element of the \c PinnedBuffer
-	 * \return pointer to \c PinnedBuffer<T> corresponding to the given name
+	 * @return pointer to \c PinnedBuffer<T> corresponding to the given name
 	 */
 	template<typename T>
 	PinnedBuffer<T>* getData(const std::string& name)
@@ -137,7 +146,7 @@ public:
 	}
 
 	/**
-	 * true if channel with given name exists, false otherwise
+	 * \c true if channel with given \c name exists, \c false otherwise
 	 */
 	bool checkChannelExists(const std::string& name) const
 	{
@@ -145,19 +154,11 @@ public:
 	}
 
 	/**
-	 * Returns constant reference to the channelMap
+	 * @return vector of channels sorted (descending) by size of their elements
 	 */
-	const ChannelMap& getDataMap() const
+	const std::vector<NamedChannelDesc>& getSortedChannels() const
 	{
-		return channelMap;
-	}
-
-	/**
-	 * Returns modifiable reference to the channelMap
-	 */
-	ChannelMap& getDataMap()
-	{
-		return channelMap;
+		return sortedChannels;
 	}
 
 	/**
@@ -179,12 +180,14 @@ public:
 	}
 
 
+	/// Resize all the channels, keep their data
 	void resize(int n, cudaStream_t stream)
 	{
 		for (auto& kv : channelMap)
 			kv.second.container->resize(n, stream);
 	}
 
+	/// Resize all the channels, don't care about existing data
 	void resize_anew(int n)
 	{
 		for (auto& kv : channelMap)
@@ -193,18 +196,29 @@ public:
 
 private:
 
+
+	/// Map of name --> data
+	using ChannelMap = std::map< std::string, ChannelDescription >;
+
+	/// Quick access to the channels by name
 	ChannelMap channelMap;
+
+	/**
+	 * Channels sorted by their element size (large to small)
+	 * Used by the packers so that larger elements are packed first
+	 */
+	std::vector<NamedChannelDesc> sortedChannels;
 
 	/// Helper buffers, used by a Packer
 	PinnedBuffer<int>   channelSizes, channelShiftTypes;
+
+	/// Helper buffer, used by a Packer
 	PinnedBuffer<char*> channelPtrs;
 
 	friend class ParticlePacker;
 	friend class ObjectExtraPacker;
 
-	/**
-	 * Get entry from channelMap or die if it is not found
-	 */
+	/// Get entry from channelMap or die if it is not found
 	ChannelDescription& getChannelDescOrDie(const std::string& name)
 	{
 		auto it = channelMap.find(name);
@@ -214,9 +228,7 @@ private:
 		return it->second;
 	}
 
-	/**
-	 * Get constant entry from channelMap or die if it is not found
-	 */
+	/// Get constant entry from channelMap or die if it is not found
 	const ChannelDescription& getChannelDescOrDie(const std::string& name) const
 	{
 		auto it = channelMap.find(name);

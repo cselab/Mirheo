@@ -5,6 +5,12 @@
 
 class ParticleVector;
 
+/**
+ * Interface for classes implementing initial conditions
+ *
+ * \c exec member is called by the \c Simulation right when the \c ParticleVector
+ * is registered
+ */
 class InitialConditions
 {
 public:

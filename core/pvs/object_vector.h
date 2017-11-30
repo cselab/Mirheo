@@ -112,7 +112,7 @@ private:
 	{
 		lov->extraPerObject.createData<T> (name, lov->nObjects);
 		if (needExchange) lov->extraPerObject.requireExchange(name);
-		if (shiftDataType != 0) lov->extraPerObject.setShiftType(name, shiftDataType);
+		if (shiftDataType != 0) lov->extraPerObject.requireShift(name, shiftDataType);
 	}
 };
 

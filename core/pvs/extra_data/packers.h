@@ -13,10 +13,10 @@ struct DevicePacker
 {
 	int packedSize_byte = 0;
 
-	int nChannels = 0;                    /// number of data channels to pack / unpack
-	int* channelSizes        = nullptr;   /// size if bytes of each channel entry, e.g. sizeof(Particle)
-	int* channelShiftTypes   = nullptr;   /// if type is 4, then treat data to shift as float3, if it is 8 -- as double3
-	char** channelData       = nullptr;   /// device pointers of the packed data
+	int nChannels = 0;                    ///< number of data channels to pack / unpack
+	int* channelSizes        = nullptr;   ///< size if bytes of each channel entry, e.g. sizeof(Particle)
+	int* channelShiftTypes   = nullptr;   ///< if type is 4, then treat data to shift as float3, if it is 8 -- as double3
+	char** channelData       = nullptr;   ///< device pointers of the packed data
 
 	/**
 	 * Pack entity with id srcId into memory starting with dstAddr
@@ -51,7 +51,7 @@ struct DevicePacker
 private:
 
 	/**
-	 * Copy nchunks*sizeof(T) bytes from from to to
+	 * Copy nchunks*sizeof(T) bytes \c from from to \c to
 	 */
 	template<typename T>
 	inline __device__ void _copy(char* to, const char* from, int nchunks) const
@@ -160,27 +160,27 @@ struct ParticlePacker : public DevicePacker
 				sizeof(float) );
 
 
-		for (const auto& kv : manager.getDataMap())
+		for (const auto& name_desc : manager.getSortedChannels())
 		{
-			auto& desc = kv.second;
+			auto desc = name_desc.second;
 
-			if (desc.needExchange)
+			if (desc->needExchange)
 			{
-				int sz = desc.container->datatype_size();
+				int sz = desc->container->datatype_size();
 
 				if (sz % sizeof(int) != 0)
 					die("Size of extra data per particle should be divisible by 4 bytes (PV '%s', data entry '%s')",
-							pv->name.c_str(), kv.first.c_str());
+							pv->name.c_str(), name_desc.first.c_str());
 
-				if ( sz % sizeof(float4) && (desc.shiftTypeSize == 4 || desc.shiftTypeSize == 8) )
+				if ( sz % sizeof(float4) && (desc->shiftTypeSize == 4 || desc->shiftTypeSize == 8) )
 					die("Size of extra data per particle should be divisible by 16 bytes"
 							"when shifting is required (PV '%s', data entry '%s')",
-							pv->name.c_str(), kv.first.c_str());
+							pv->name.c_str(), name_desc.first.c_str());
 
 				registerChannel(
 						sz,
-						reinterpret_cast<char*>(desc.container->genericDevPtr()),
-						desc.shiftTypeSize);
+						reinterpret_cast<char*>(desc->container->genericDevPtr()),
+						desc->shiftTypeSize);
 			}
 		}
 
@@ -212,8 +212,6 @@ struct ObjectExtraPacker : public DevicePacker
 
 		auto& manager = lov->extraPerObject;
 
-		nChannels = manager.getDataMap().size();
-
 		manager.channelPtrs.        resize_anew(nChannels);
 		manager.channelSizes.       resize_anew(nChannels);
 		manager.channelShiftTypes.  resize_anew(nChannels);
@@ -233,22 +231,27 @@ struct ObjectExtraPacker : public DevicePacker
 			n++;
 		};
 
-		for (const auto& kv : manager.getDataMap())
+		for (const auto& name_desc : manager.getSortedChannels())
 		{
-			auto& desc = kv.second;
+			auto desc = name_desc.second;
 
-			if (desc.needExchange)
+			if (desc->needExchange)
 			{
-				int sz = desc.container->datatype_size();
+				int sz = desc->container->datatype_size();
 
 				if (sz % sizeof(int) != 0)
 					die("Size of extra data per particle should be divisible by 4 bytes (PV '%s', data entry '%s')",
-							ov->name.c_str(), kv.first.c_str());
+							ov->name.c_str(), name_desc.first.c_str());
+
+				if ( sz % sizeof(float4) && (desc->shiftTypeSize == 4 || desc->shiftTypeSize == 8) )
+					die("Size of extra data per particle should be divisible by 16 bytes"
+							"when shifting is required (PV '%s', data entry '%s')",
+							ov->name.c_str(), name_desc.first.c_str());
 
 				registerChannel(
 						sz,
-						reinterpret_cast<char*>(desc.container->genericDevPtr()),
-						desc.shiftTypeSize);
+						reinterpret_cast<char*>(desc->container->genericDevPtr()),
+						desc->shiftTypeSize);
 			}
 		}
 

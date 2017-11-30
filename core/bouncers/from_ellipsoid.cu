@@ -15,6 +15,18 @@
 #include <core/rigid_kernels/bounce.h>
 #include <core/rigid_kernels/integration.h>
 
+
+/**
+ * Create the bouncer
+ * @param name unique bouncer name
+ */
+BounceFromRigidEllipsoid::BounceFromRigidEllipsoid(std::string name) : Bouncer(name)
+{	}
+
+/**
+ * @param ov will need an 'old_motions' channel with the rigid motion
+ * from the previous timestep, to be used in bounceEllipsoid()
+ */
 void BounceFromRigidEllipsoid::setup(ObjectVector* ov)
 {
 	this->ov = ov;
@@ -22,7 +34,10 @@ void BounceFromRigidEllipsoid::setup(ObjectVector* ov)
 	ov->requireDataPerObject<RigidMotion> ("old_motions", true, sizeof(RigidReal));
 }
 
-
+/**
+ * Calls ObjectVector::findExtentAndCOM and then calls
+ * bounceEllipsoid() function
+ */
 void BounceFromRigidEllipsoid::exec(ParticleVector* pv, CellList* cl, float dt, bool local, cudaStream_t stream)
 {
 	auto reov = dynamic_cast<RigidEllipsoidObjectVector*>(ov);

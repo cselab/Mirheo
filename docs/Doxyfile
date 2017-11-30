@@ -3,30 +3,33 @@ XML_OUTPUT        = xml
 
 INPUT             = ../core ../apps ../plugins
 
-EXCLUDE           = ../core/cub ../core/utils/stacktrace.h ../core/utils/helper_math.h
+EXCLUDE           = ../core/cub ../core/xml ../core/utils/stacktrace.h ../core/utils/helper_math.h
 
 ENABLE_PREPROCESSING   = YES
 MACRO_EXPANSION        = YES
 EXPAND_ONLY_PREDEF     = YES
 PREDEFINED             = __align__(x)=            \
                          __restrict__=            \
-                         __host__=                \
-                         __device__=              \
-                         __global__=              \
                          __launch_bounds__(x,y)=
 
-GENERATE_LATEX    = NO
-GENERATE_MAN      = NO
-GENERATE_RTF      = NO
-CASE_SENSE_NAMES  = NO
-GENERATE_HTML     = NO
-GENERATE_XML      = YES
-RECURSIVE         = YES
-QUIET             = YES
-JAVADOC_AUTOBRIEF = NO
-WARN_IF_UNDOCUMENTED = NO
+GENERATE_LATEX         = NO
+GENERATE_MAN           = NO
+GENERATE_RTF           = NO
+CASE_SENSE_NAMES       = NO
+GENERATE_HTML          = NO
+GENERATE_XML           = YES
+RECURSIVE              = YES
+QUIET                  = YES
+JAVADOC_AUTOBRIEF      = NO
+WARN_IF_UNDOCUMENTED   = NO
+
+
+ALIASES += "rst=\verbatim embed:rst:leading-asterisk"
+ALIASES += "endrst=\endverbatim"
 
 
 FILE_PATTERNS          = *.h \
                          *.cpp \
                          *.cu
+
+EXTENSION_MAPPING      = cu=C++

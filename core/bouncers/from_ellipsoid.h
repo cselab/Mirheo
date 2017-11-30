@@ -11,7 +11,8 @@ protected:
 	void exec(ParticleVector* pv, CellList* cl, float dt, bool local, cudaStream_t stream) override;
 
 public:
-	BounceFromRigidEllipsoid(std::string name) : Bouncer(name) {}
+
+	BounceFromRigidEllipsoid(std::string name);
 
 	void setup(ObjectVector* ov) override;
 

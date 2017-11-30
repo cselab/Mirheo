@@ -1,3 +1,5 @@
+/** @file */
+
 #include "particle_halo_exchanger.h"
 
 #include <core/utils/kernel_launch.h>
@@ -9,8 +11,13 @@
 
 #include "valid_cell.h"
 
+/**
+ * Get halos
+ * @param cinfo
+ * @param packer
+ * @param dataWrap
+ */
 template<bool QUERY=false>
-//__launch_bounds__(128, 16)
 __global__ void getHalos(const CellListInfo cinfo, const ParticlePacker packer, BufferOffsetsSizesWrap dataWrap)
 {
 	const int gid = blockIdx.x*blockDim.x + threadIdx.x;

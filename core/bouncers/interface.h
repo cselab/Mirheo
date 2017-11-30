@@ -15,15 +15,21 @@ protected:
 	ObjectVector* ov;  /// Particles will be bounced against that ObjectVector
 
 	/**
-	 * Should be defined to implement bounce
+	 * Should be defined to implement bounce.
+	 * Will be called from \c Simulation after the integration is done
+	 * and the objects are exchanged
 	 *
-	 * \param pv ptr to ParticleVector whose particles will be
+	 * @param pv ptr to \c ParticleVector whose particles will be
 	 * bounced from the objects associated with this bouncer
-	 * \param cl ptr to CellList that has to be built for pv
-	 * \param dt timestep used to integrate pv
-	 * \param local if true, will bounce from the local objects, if false -- from halo objects
-	 * Note that particles from pv (that actually will be bounced back) are always local
-	 * \param stream cuda stream on which to execute
+	 * @param cl ptr to \c CellList that has to be built for \c pv
+	 * @param dt timestep used to integrate \c pv
+	 * @param local if \c true, will bounce from the local objects, if \c false -- from halo objects.
+	 *
+	 * \rst
+	 * .. note::
+	 *    Particles from \c pv (that actually will be bounced back) are always local
+	 * \endrst
+	 * @param stream cuda stream on which to execute
 	 */
 	virtual void exec (ParticleVector* pv, CellList* cl, float dt, bool local, cudaStream_t stream) = 0;
 
@@ -33,15 +39,15 @@ public:
 	Bouncer(std::string name) : name(name) {};
 
 	/**
-	 * Second step of initialization, called from the Simulation
-	 * All the preparation for bouncing must be made here
+	 * Second step of initialization, called from the \c Simulation
+	 * All the preparation for bouncing must be done here
 	 */
 	virtual void setup(ObjectVector* ov) = 0;
 
 	/**
-	 * Ask ParticleVectors which the class will be working with to have specific properties
+	 * Ask \c ParticleVector which the class will be working with to have specific properties
 	 * Default: ask nothing
-	 * Called from Simulation right after setup
+	 * Called from \c Simulation right after setup
 	 */
 	virtual void setPrerequisites(ParticleVector* pv) {}
 

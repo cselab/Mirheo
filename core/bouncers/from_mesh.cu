@@ -8,7 +8,22 @@
 #include <core/rbc_kernels/bounce.h>
 #include <core/cub/device/device_radix_sort.cuh>
 
+/**
+ * Create the bouncer
+ * @param name unique bouncer name
+ * @param kbT temperature which will be used to create a particle
+ * velocity after the bounce, @see performBouncing()
+ */
+BounceFromMesh::BounceFromMesh(std::string name, float kbT) :
+	Bouncer(name), nCollisions(1), kbT(kbT)
+{	}
 
+
+/**
+ * @param ov will need an 'old_particles' per PARTICLE channel keeping positions
+ * from the previous timestep.
+ * This channel has to be communicated with the objects
+ */
 void BounceFromMesh::setup(ObjectVector* ov)
 {
 	this->ov = ov;
@@ -19,9 +34,9 @@ void BounceFromMesh::setup(ObjectVector* ov)
 }
 
 /**
- * \brief Bounce particles from objects with meshes
+ * @brief Bounce particles from objects with meshes
  *
- * \detailed Firstly find all the collisions and generate array of colliding pairs Pid <--> TRid
+ * Firstly find all the collisions and generate array of colliding pairs Pid <--> TRid
  * Work is per-triangle, so only particle cell-lists are needed
  *
  * Secondly sort the array with respect to Pid

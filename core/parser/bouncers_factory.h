@@ -15,8 +15,9 @@ private:
 	static Bouncer* createMeshBouncer(pugi::xml_node node)
 	{
 		auto name = node.attribute("name").as_string("");
+		auto kbT  = node.attribute("kbt").as_float(0.5f);
 
-		return (Bouncer*) new BounceFromMesh(name);
+		return (Bouncer*) new BounceFromMesh(name, kbT);
 	}
 
 	static Bouncer* createEllipsoidBouncer(pugi::xml_node node)
