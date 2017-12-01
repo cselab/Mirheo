@@ -8,18 +8,24 @@
 #include <algorithm>
 #include <typeinfo>
 
+
+/**
+ * Interface of containers of device (GPU) data
+ */
 class GPUcontainer
 {
 public:
-	virtual int size() const = 0;
-	virtual int datatype_size() const = 0;
+	virtual int size() const = 0;                                      ///< @return number of stored elements
+	virtual int datatype_size() const = 0;                             ///< @return sizeof( element )
 
-	virtual void* genericDevPtr() const = 0;
+	virtual void* genericDevPtr() const = 0;                           ///< @return device pointer to the data
 
-	virtual void resize     (const int n, cudaStream_t stream) = 0;
-	virtual void resize_anew(const int n) = 0;
+	virtual void resize_anew(const int n) = 0;                         ///< Resize container, don't care about the data. @param n new size, must be >= 0
+	virtual void resize     (const int n, cudaStream_t stream) = 0;    ///< Resize container, keep stored data
+	                                                                   ///< @param n new size, must be >= 0
+                                                                       ///< @param stream data will be copied on that CUDA stream
 
-	virtual GPUcontainer* produce() const = 0;
+	virtual GPUcontainer* produce() const = 0;                         ///< Create a new instance of the concrete container implementation
 
 	virtual ~GPUcontainer() = default;
 };
@@ -28,13 +34,30 @@ public:
 // Device Buffer
 //==================================================================================================================
 
+/**
+ * This container keeps data only on the device (GPU)
+ *
+ * Never releases any memory, keeps a buffer big enough to
+ * store maximum number of elements it ever held
+ */
 template<typename T>
 class DeviceBuffer : public GPUcontainer
 {
 private:
-	int capacity, _size;
-	T* devptr;
+	int capacity;  ///< Storage buffer size
+	int _size;     ///< Number of elements stored now
+	T* devptr;     ///< Device pointer to data
 
+	/**
+	 * Set #_size = \p n. If n > #capacity, allocate more memory
+	 * and copy the old data on CUDA stream \p stream (only if \c copy is true)
+	 *
+	 * If debug level is high enough, will report cases when the buffer had to grow
+	 *
+	 * @param n new size, must be >= 0
+	 * @param stream data will be copied on that CUDA stream
+	 * @param copy if we need to copy old data
+	 */
 	void _resize(const int n, cudaStream_t stream, bool copy)
 	{
 		T * dold = devptr;
@@ -68,12 +91,13 @@ public:
 		resize_anew(n);
 	}
 
-	// For std::swap
+	/// To enable \c std::swap()
 	DeviceBuffer (DeviceBuffer&& b)
 	{
 		*this = std::move(b);
 	}
 
+	/// To enable \c std::swap()
 	DeviceBuffer& operator=(DeviceBuffer&& b)
 	{
 		if (this!=&b)
@@ -90,6 +114,7 @@ public:
 		return *this;
 	}
 
+	/// Release resources and report if debug level is high enough
 	~DeviceBuffer()
 	{
 		if (devptr != nullptr)
@@ -99,7 +124,6 @@ public:
 		}
 	}
 
-	// Override section
 	inline int datatype_size() const final { return sizeof(T); }
 	inline int size()          const final { return _size; }
 
@@ -110,14 +134,19 @@ public:
 
 	inline GPUcontainer* produce() const final { return new DeviceBuffer<T>(); }
 
-	// Other methods
+	/// @return typed device pointer to data
 	inline T* devPtr() const { return devptr; }
 
+	/// Set all the bytes to 0
 	inline void clear(cudaStream_t stream)
 	{
 		if (_size > 0) CUDA_Check( cudaMemsetAsync(devptr, 0, sizeof(T) * _size, stream) );
 	}
 
+	/**
+	 * Copy data from another container of the same template type
+	 * Only can copy from another DeviceBuffer of HostBuffer, but not PinnedBuffer
+	 */
 	template<typename Cont>
 	auto copy(const Cont& cont, cudaStream_t stream) -> decltype((void)(cont.devPtr()), void())
 	{
@@ -142,13 +171,41 @@ public:
 // Pinned Buffer
 //==================================================================================================================
 
+
+/**
+ * This container keeps data on the device (GPU) and on the host (CPU)
+ *
+ * Allocates pinned memory on host, to speed up host-device data migration
+ *
+ * \rst
+ * .. note::
+ *    Host and device data are not automatically synchronized!
+ *    Use downloadFromDevice() and uploadToDevice() MANUALLY to sync
+ * \endrst
+ *
+ * Never releases any memory, keeps a buffer big enough to
+ * store maximum number of elements it ever held
+ */
 template<typename T>
 class PinnedBuffer : public GPUcontainer
 {
 private:
-	int capacity, _size;
-	T * hostptr, * devptr;
+	int capacity;   ///< Storage buffers size
+	int _size;      ///< Number of elements stored now
+	T * hostptr;    ///< Host pointer to data
+	T * devptr;     ///< Device pointer to data
 
+	/**
+	 * Set #_size = \p n. If n > #capacity, allocate more memory
+	 * and copy the old data on CUDA stream \p stream (only if \p copy is true)
+	 * Copy both host and device data if \p copy is true
+	 *
+	 * If debug level is high enough, will report cases when the buffer had to grow
+	 *
+	 * @param n new size, must be >= 0
+	 * @param stream data will be copied on that CUDA stream
+	 * @param copy if we need to copy old data
+	 */
 	void _resize(const int n, cudaStream_t stream, bool copy)
 	{
 		T * hold = hostptr;
@@ -188,12 +245,13 @@ public:
 		resize_anew(n);
 	}
 
-	// For std::swap
+	/// To enable \c std::swap()
 	PinnedBuffer (PinnedBuffer&& b)
 	{
 		*this = std::move(b);
 	}
 
+	/// To enable \c std::swap()
 	PinnedBuffer& operator=(PinnedBuffer&& b)
 	{
 		if (this!=&b)
@@ -212,6 +270,7 @@ public:
 		return *this;
 	}
 
+	/// Release resources and report if debug level is high enough
 	~PinnedBuffer()
 	{
 		if (devptr != nullptr)
@@ -222,7 +281,6 @@ public:
 		}
 	}
 
-	// Override section
 	inline int datatype_size() const final { return sizeof(T); }
 	inline int size()          const final { return _size; }
 
@@ -233,13 +291,19 @@ public:
 
 	inline GPUcontainer* produce() const final { return new PinnedBuffer<T>(); }
 
-	// Other methods
-	inline T* devPtr()  const { return devptr; }
-	inline T* hostPtr() const { return hostptr; }
+	inline T* hostPtr() const { return hostptr; }  ///< @return typed host pointer to data
+	inline T* devPtr()  const { return devptr; }   ///< @return typed device pointer to data
 
-	inline       T& operator[](int i)       { return hostptr[i]; }
+	inline       T& operator[](int i)       { return hostptr[i]; }  ///< allow array-like bracketed access to HOST data
 	inline const T& operator[](int i) const { return hostptr[i]; }
 
+
+	/**
+	 * Copy data from device to host
+	 *
+	 * @param synchronize if false, the call is fully asynchronous.
+	 * if true, host data will be readily available on the call return.
+	 */
 	inline void downloadFromDevice(cudaStream_t stream, bool synchronize = true)
 	{
 		// TODO: check if we really need to do that
@@ -248,27 +312,32 @@ public:
 		if (synchronize) CUDA_Check( cudaStreamSynchronize(stream) );
 	}
 
+	/// Copy data from host to device
 	inline void uploadToDevice(cudaStream_t stream)
 	{
 		if (_size > 0) CUDA_Check(cudaMemcpyAsync(devptr, hostptr, sizeof(T) * _size, cudaMemcpyHostToDevice, stream));
 	}
 
+	/// Set all the bytes to 0 on both host and device
 	inline void clear(cudaStream_t stream)
 	{
 		clearDevice(stream);
 		clearHost();
 	}
 
+	/// Set all the bytes to 0 on device only
 	inline void clearDevice(cudaStream_t stream)
 	{
 		if (_size > 0) CUDA_Check( cudaMemsetAsync(devptr, 0, sizeof(T) * _size, stream) );
 	}
 
+	/// Set all the bytes to 0 on host only
 	inline void clearHost()
 	{
 		if (_size > 0) memset(hostptr, 0, sizeof(T) * _size);
 	}
 
+	/// Copy data from a DeviceBuffer of the same template type
 	template<typename Cont>
 	auto copy(const Cont& cont, cudaStream_t stream) -> decltype((void)(cont.devPtr()), void())
 	{
@@ -278,6 +347,7 @@ public:
 		if (_size > 0) CUDA_Check( cudaMemcpyAsync(devptr, cont.devPtr(), sizeof(T) * _size, cudaMemcpyDeviceToDevice, stream) );
 	}
 
+	/// Copy data from a HostBuffer of the same template type
 	template<typename Cont>
 	auto copy(const Cont& cont) -> decltype((void)(cont.hostPtr()), void())
 	{
@@ -293,13 +363,31 @@ public:
 // Host Buffer
 //==================================================================================================================
 
+/**
+ * This container keeps data only on the host (CPU)
+ *
+ * Allocates pinned memory on host, to speed up host-device data migration
+ *
+ * Never releases any memory, keeps a buffer big enough to
+ * store maximum number of elements it ever held
+ */
 template<typename T>
 class HostBuffer
 {
 private:
-	int capacity, _size;
-	T * hostptr;
+	int capacity;   ///< Storage buffer size
+	int _size;      ///< Number of elements stored now
+	T * hostptr;    ///< Host pointer to data
 
+	/**
+	 * Set #_size = \e n. If \e n > #capacity, allocate more memory
+	 * and copy the old data (only if \e copy is true)
+	 *
+	 * If debug level is high enough, will report cases when the buffer had to grow
+	 *
+	 * @param n new size, must be >= 0
+	 * @param copy if we need to copy old data
+	 */
 	void _resize(const int n, bool copy)
 	{
 		T * hold = hostptr;
@@ -328,12 +416,13 @@ private:
 public:
 	HostBuffer(int n = 0): capacity(0), _size(0), hostptr(nullptr) { resize_anew(n); }
 
-	// For std::swap
+	/// To enable \c std::swap()
 	HostBuffer(HostBuffer&& b)
 	{
 		*this = std::move(b);
 	}
 
+	/// To enable \c std::swap()
 	HostBuffer& operator=(HostBuffer&& b)
 	{
 		if (this!=&b)
@@ -350,6 +439,7 @@ public:
 		return *this;
 	}
 
+	/// Release resources and report if debug level is high enough
 	~HostBuffer()
 	{
 		free(hostptr);
@@ -367,11 +457,13 @@ public:
 	inline void resize     (const int n) { _resize(n, true);  }
 	inline void resize_anew(const int n) { _resize(n, false); }
 
+	/// Set all the bytes to 0
 	void clear()
 	{
 		memset(hostptr, 0, sizeof(T) * _size);
 	}
 
+	/// Copy data from a HostBuffer of the same template type
 	template<typename Cont>
 	auto copy(const Cont& cont) -> decltype((void)(cont.hostPtr()), void())
 	{
@@ -381,6 +473,7 @@ public:
 		memcpy(hostptr, cont.hostPtr(), sizeof(T) * _size);
 	}
 
+	/// Copy data from a DeviceBuffer of the same template type
 	template<typename Cont>
 	auto copy(const Cont& cont, cudaStream_t stream) -> decltype((void)(cont.devPtr()), void())
 	{

@@ -1,5 +1,9 @@
-Basic structures and types
+Basic components
 ===================
 
-.. doxygenfile:: datatypes.h
-.. doxygenfile:: containers.h
+Basic datatypes, containers and logging utilities are described in this section
+
+.. toctree::
+   datatypes
+   containers
+   logger

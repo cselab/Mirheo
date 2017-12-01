@@ -22,10 +22,12 @@ RECURSIVE              = YES
 QUIET                  = YES
 JAVADOC_AUTOBRIEF      = NO
 WARN_IF_UNDOCUMENTED   = NO
+EXTRACT_PRIVATE        = YES
+EXTRACT_ALL            = YES
 
 
-ALIASES += "rst=\verbatim embed:rst:leading-asterisk"
-ALIASES += "endrst=\endverbatim"
+ALIASES += "rst=@verbatim embed:rst:leading-asterisk"
+ALIASES += "endrst=@endverbatim"
 
 
 FILE_PATTERNS          = *.h \

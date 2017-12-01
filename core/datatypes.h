@@ -15,18 +15,15 @@
 // Basic types
 //==================================================================================================================
 
+/**
+ * Helper class for packing/unpacking \e float3 + \e int into \e float4
+ */
 struct __align__(16) Float3_int
 {
-	// Variables
 	float3 v;
-	union
-	{
-		int32_t i;
-		struct { int16_t s1, s2; };
-	};
+	int32_t i;
 
 
-	// Default stuff
 	__host__ __device__ inline Float3_int(const Float3_int& x)
 	{
 		*((float4*)this) = *((float4*)&x);
@@ -38,8 +35,6 @@ struct __align__(16) Float3_int
 		return *this;
 	}
 
-
-	// Constructors
 	__host__ __device__ inline Float3_int() {};
 	__host__ __device__ inline Float3_int(const float3 v, int i) : v(v), i(i) {};
 
@@ -48,8 +43,6 @@ struct __align__(16) Float3_int
 		*((float4*)this) = f4;
 	}
 
-
-	// Methods
 	__host__ __device__ inline float4 toFloat4() const
 	{
 		float4 f = *((float4*)this);
@@ -57,32 +50,24 @@ struct __align__(16) Float3_int
 	}
 };
 
-
+/**
+ * Structure to hold coordinates and velocities of particles.
+ * Due to performance reasons it should be aligned to 16 bytes boundary,
+ * therefore 8 bytes = 2 integer numbers are extra.
+ * The integer fields are used for particle ids
+ *
+ * For performance reasons instead of an N-element array of Particle
+ * an array of 2*N \e float4 elements is used.
+ */
 struct __align__(16) Particle
 {
-	// We're targeting little-endian systems here, note that!
+	float3 r;    ///< coordinate
+	int32_t i1;  ///< lower part of particle id
 
-	// Free particles will have their id in i1 (or in s21*2^32 + i1)
-	// Object particles will have their id (in object) in s21 and object id in i1
-	// s22 is arbitrary
+	float3 u;    ///< velocity
+	int32_t i2;  ///< higher part of particle id
 
-	// Variables
-	float3 r;
-	union
-	{
-		int32_t i1;
-		struct { int16_t s11 /*least significant*/, s12; };
-	};
-
-	float3 u;
-	union
-	{
-		int32_t i2;
-		struct { int16_t s21 /*least significant*/, s22; };
-	};
-
-
-	// Default stuff
+	/// Copy constructor uses efficient 16-bytes wide copies
 	__host__ __device__ inline Particle(const Particle& x)
 	{
 		auto f4this = (float4*)this;
@@ -92,6 +77,7 @@ struct __align__(16) Particle
 		f4this[1] = f4x[1];
 	}
 
+	/// Assignment operator uses efficient 16-bytes wide copies
 	__host__ __device__ inline Particle& operator=(Particle x)
 	{
 		auto f4this = (float4*)this;
@@ -103,8 +89,22 @@ struct __align__(16) Particle
 		return *this;
 	}
 
-	// Constructors
+	/**
+	 * Default constructor
+	 *
+	 * @rst
+	 * .. attention::
+	 *    Default constructor DOES NOT set any members!
+	 * @endrst
+	 */
 	__host__ __device__ inline Particle() {};
+
+	/**
+	 * Construct a Particle from two float4 entries
+	 *
+	 * @param r4 first three floats will be coordinates (#r), last one, \e \.w - #i1
+	 * @param u4 first three floats will be velocities (#u), last one \e \.w - #i1
+	 */
 	__host__ __device__ inline Particle(const float4 r4, const float4 u4)
 	{
 		Float3_int rtmp(r4), utmp(u4);
@@ -113,6 +113,16 @@ struct __align__(16) Particle
 		u  = utmp.v;
 		i2 = utmp.i;
 	}
+
+	/**
+	 * Equivalent to the following constructor:
+	 * @code
+	 * Particle(addr[2*pid], addr[2*pid+1]);
+	 * @endcode
+	 *
+	 * @param addr must have at least \e 2*pid entries
+	 * @param pid  particle id
+	 */
 	__host__ __device__ inline Particle(const float4* addr, int pid)
 	{
 		readCoordinate(addr, pid);
@@ -120,7 +130,12 @@ struct __align__(16) Particle
 	}
 
 
-	// Methods
+	/**
+	 * Only read coordinates from the given \e addr
+	 *
+	 * @param addr must have at least \e 2*pid entries
+	 * @param pid  particle id
+	 */
 	__host__ __device__ inline void readCoordinate(const float4* addr, const int pid)
 	{
 		const Float3_int tmp = addr[2*pid];
@@ -128,6 +143,12 @@ struct __align__(16) Particle
 		i1 = tmp.i;
 	}
 
+	/**
+	 * Only read velocities from the given \e addr
+	 *
+	 * @param addr must have at least \e 2*pid entries
+	 * @param pid  particle id
+	 */
 	__host__ __device__ inline void readVelocity(const float4* addr, const int pid)
 	{
 		const Float3_int tmp = addr[2*pid+1];
@@ -135,16 +156,32 @@ struct __align__(16) Particle
 		i2 = tmp.i;
 	}
 
+	/**
+	 * Helps writing particles back to \e float4 array
+	 *
+	 * @return packed #r and #i1 as \e float4
+	 */
 	__host__ __device__ inline float4 r2Float4() const
 	{
 		return Float3_int{r, i1}.toFloat4();
 	}
 
+	/**
+	 * Helps writing particles back to \e float4 array
+	 *
+	 * @return packed #u and #i2 as \e float4
+	 */
 	__host__ __device__ inline float4 u2Float4() const
 	{
 		return Float3_int{u, i2}.toFloat4();
 	}
 
+	/**
+	 * Helps writing particles back to \e float4 array
+	 *
+	 * @param dst must have at least \e 2*pid entries
+	 * @param pid particle id
+	 */
 	__host__ __device__ inline void write2Float4(float4* dst, int pid) const
 	{
 		dst[2*pid]   = r2Float4();
@@ -152,7 +189,10 @@ struct __align__(16) Particle
 	}
 };
 
-
+/**
+ * Structure holding force
+ * Not much used as of now
+ */
 struct __align__(16) Force
 {
 	float3 f;

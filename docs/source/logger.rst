@@ -1,0 +1,4 @@
+Logger
+=======
+
+.. doxygenfile:: logger.h

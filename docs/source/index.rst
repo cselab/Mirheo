@@ -15,11 +15,12 @@ We use a shared copyright model that enables all contributors to maintain the
 copyright on their contributions.
 
 .. toctree::
-   :caption: DEVELOPER DOCS
+   :caption: Developer documentation
 
    overview
+   basic_types
    handlers
-..   basic_types
+   
 ..   coordinators
 ..   mpi
 ..   particle_vectors
