@@ -6,6 +6,9 @@
 #include <core/xml/pugixml.hpp>
 #include <core/containers.h>
 
+/**
+ * Initialize red blood cells.
+ */
 class RBC_IC : public InitialConditions
 {
 private:

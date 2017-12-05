@@ -23,11 +23,15 @@ QUIET                  = YES
 JAVADOC_AUTOBRIEF      = NO
 WARN_IF_UNDOCUMENTED   = NO
 EXTRACT_PRIVATE        = YES
+EXTRACT_STATIC         = YES
 EXTRACT_ALL            = YES
+SOURCE_BROWSER         = YES
+REFERENCES_LINK_SOURCE = YES
+VERBATIM_HEADERS       = YES
 
 
-ALIASES += "rst=@verbatim embed:rst:leading-asterisk"
-ALIASES += "endrst=@endverbatim"
+ALIASES += "rst=\verbatim embed:rst:leading-asterisk"
+ALIASES += "endrst=\endverbatim"
 
 
 FILE_PATTERNS          = *.h \

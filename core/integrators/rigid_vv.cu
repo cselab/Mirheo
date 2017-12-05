@@ -8,6 +8,11 @@
 
 #include <core/rigid_kernels/integration.h>
 
+
+/**
+ * Can only be applied to RigidObjectVector and requires it to have
+ * \c old_motions data channel per particle
+ */
 void IntegratorVVRigid::setPrerequisites(ParticleVector* pv)
 {
 	auto ov = dynamic_cast<RigidObjectVector*> (pv);
@@ -22,10 +27,18 @@ void IntegratorVVRigid::setPrerequisites(ParticleVector* pv)
 void IntegratorVVRigid::stage1(ParticleVector* pv, float t, cudaStream_t stream)
 {}
 
+
 /**
- * Assume that the forces are not yet distributed
- * Also integrate object's Q
- * VV integration now
+ * The function steps are as follows:
+ *
+ * - Collect the forces from the particles to get total force and torque per object
+ * - Integrate object's COM coordinate RigidMotion::r and quatertion orientation
+ *   RigidMotion::q. Velocity-Verlet is used for both.
+ * - Rotate and translate the objects. For higher precision we don't use incremental
+ *   updates, but rather take the initial particle coordinates
+ *   RigidObjectVector::initialPositions and perform the full transformation for each
+ *   object.
+ * - Clear RigidMotion::force and RigidMotion::torque for each object.
  */
 void IntegratorVVRigid::stage2(ParticleVector* pv, float t, cudaStream_t stream)
 {

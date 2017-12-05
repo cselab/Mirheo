@@ -2,6 +2,9 @@
 
 #include "interface.h"
 
+/**
+ * Initialize particles uniformly with the given density
+ */
 class UniformIC : public InitialConditions
 {
 private:

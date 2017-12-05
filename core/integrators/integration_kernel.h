@@ -5,10 +5,12 @@
 #include <core/pvs/particle_vector.h>
 
 /**
- * transform(Particle&p, const float3 f, const float invm, const float dt):
- *  performs integration
+ * \code transform(Particle& p, const float3 f, const float invm, const float dt) \endcode
+ *  is a callable that performs integration. It is called for
+ *  every particle and should change velocity and coordinate
+ *  of the Particle according to the chosen integration scheme.
  *
- * Will read from .old_particles and write to .particles
+ * Will read from \c old_particles channel and write to ParticleVector::coosvels
  */
 template<typename Transform>
 __global__ void integrationKernel(PVviewWithOldParticles pvView, const float dt, Transform transform)

@@ -4,11 +4,11 @@
 
 class ParticleVector;
 
+/**
+ * Applies constant force #extraForce to every particle
+ */
 class Forcing_ConstDP
 {
-private:
-	float3 extraForce;
-
 public:
 	Forcing_ConstDP(float3 extraForce) : extraForce(extraForce) {}
 	void setup(ParticleVector* pv, float t) {}
@@ -17,4 +17,7 @@ public:
 	{
 		return extraForce + original;
 	}
+
+private:
+	float3 extraForce;
 };

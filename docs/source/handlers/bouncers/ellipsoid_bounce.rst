@@ -1,5 +1,5 @@
-Ellipsoid bouncer
-===============
+Bouncer from Ellipsoids
+=========================
 
 
 .. doxygenfile:: from_ellipsoid.h  

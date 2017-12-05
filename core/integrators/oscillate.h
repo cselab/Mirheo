@@ -2,11 +2,20 @@
 
 #include "interface.h"
 
-struct IntegratorOscillate : Integrator
+/**
+ * Apply periodic sine wave to the particle velocities.
+ * Coordinate is computed by Velocity-Verlet scheme (same as
+ * Euler in this case)
+ *
+ * \rst
+ * .. attention::
+ *    In current implementation only works correctly is applied
+ *    to no more than one ParticleVector
+ * \endrst
+ */
+class IntegratorOscillate : Integrator
 {
-	float3 vel;
-	int count{0};
-	int period;
+public:
 
 	void stage1(ParticleVector* pv, float t, cudaStream_t stream) override {};
 	void stage2(ParticleVector* pv, float t, cudaStream_t stream) override;
@@ -14,4 +23,10 @@ struct IntegratorOscillate : Integrator
 	IntegratorOscillate(std::string name, float dt, float3 vel, int period);
 
 	~IntegratorOscillate() = default;
+
+private:
+
+	float3 vel;   ///< Velocity amplitude
+	int period;   ///< Sine wave period
+	int count{0}; ///< Internal counter
 };

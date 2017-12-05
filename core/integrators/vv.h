@@ -4,6 +4,9 @@
 
 class ParticleVector;
 
+/**
+ * Implementation of Velocity-Verlet integration in one step
+ */
 template<class ForcingTerm>
 struct IntegratorVV : Integrator
 {

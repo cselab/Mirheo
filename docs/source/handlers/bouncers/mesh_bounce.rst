@@ -1,5 +1,5 @@
-Mesh bouncer
-===============
+Bouncer from Mesh
+===================
 
 
 .. doxygenfile:: from_mesh.h  

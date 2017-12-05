@@ -5,6 +5,11 @@
 #include <string>
 #include <core/pvs/particle_vector.h>
 
+/**
+ * Initialize ParticleVector by reading the restart file.
+ * \sa ParticleVector::checkpoint
+ * \sa ParticleVector::restart
+ */
 class RestartIC : public InitialConditions
 {
 private:

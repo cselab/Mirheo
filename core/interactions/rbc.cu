@@ -55,6 +55,12 @@ void InteractionRBCMembrane::_compute(InteractionType type, ParticleVector* pv1,
 		die("Object size of '%s' (%d) and number of vertices (%d) mismatch",
 				ov->name.c_str(), ov->objSize, ov->mesh.nvertices);
 
+	if (type == InteractionType::Halo)
+	{
+		debug("Not computing internal RBC forces between local and halo RBCs of '%s'", pv1->name.c_str());
+		return;
+	}
+
 	debug("Computing internal membrane forces for %d cells of '%s'",
 		ov->local()->nObjects, ov->name.c_str());
 

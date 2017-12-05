@@ -5,16 +5,12 @@
 #include <core/logger.h>
 #include <core/pvs/particle_vector.h>
 
-/**
- * Rotate with constant angular velocity omega around x0, regardless force
- */
 void IntegratorConstOmega::stage2(ParticleVector* pv, float t, cudaStream_t stream)
 {
 	const auto domain = pv->domain;
 	const auto _center = center;
 	const auto _omega = omega;
 
-	// https://en.wikipedia.org/wiki/Rodrigues%27_rotation_formula
 	auto rotate = [domain, _center, _omega] __device__ (Particle& p, const float3 f, const float invm, const float dt) {
 		float3 gr = domain.local2global(p.r);
 		p.u = cross(_omega, gr - _center);

@@ -2,9 +2,15 @@
 
 #include "interface.h"
 
-struct IntegratorConstOmega : Integrator
+/**
+ * Rotate the particles around #center (defined in global coordinate system)
+ * with the angular velocity #omega. All the forces are disregarded.
+ *
+ * Useful for implementing Taylor-Couette flow (see examples)
+ */
+class IntegratorConstOmega : Integrator
 {
-	float3 center, omega;
+public:
 
 	void stage1(ParticleVector* pv, float t, cudaStream_t stream) override {};
 	void stage2(ParticleVector* pv, float t, cudaStream_t stream) override;
@@ -15,4 +21,8 @@ struct IntegratorConstOmega : Integrator
 	{}
 
 	~IntegratorConstOmega() = default;
+
+private:
+
+	float3 center, omega;
 };

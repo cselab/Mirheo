@@ -8,7 +8,7 @@ class ParticleVector;
 /**
  * Interface for classes implementing initial conditions
  *
- * \c exec member is called by the \c Simulation right when the \c ParticleVector
+ * exec() member is called by the Simulation right when the ParticleVector
  * is registered
  */
 class InitialConditions

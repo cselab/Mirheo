@@ -14,7 +14,7 @@ html_theme = "sphinx_rtd_theme"
 
 html_theme_path = [sphinx_rtd_theme.get_html_theme_path()]
 
-extensions = ['breathe', 'sphinx.ext.viewcode']
+extensions = ['breathe', 'sphinx.ext.linkcode', 'sphinx.ext.mathjax']
 breathe_projects = { 'udevicex': '../xml' }
 breathe_default_project = 'udevicex'
 breathe_domain_by_extension = { "h" : "cpp", "cu" : "cpp" }
@@ -26,8 +26,6 @@ project = 'udevicex'
 copyright = 'ETH Zurich'
 author = ''
 
-#html_logo = 'quantstack-white.svg'
-
 exclude_patterns = []
 highlight_language = 'cuda'
 cpp_id_attributes = ['__device__', '__global__', '__host__']
@@ -35,3 +33,9 @@ cpp_paren_attributes = ['__launch_bounds__', '__align__']
 pygments_style = 'sphinx'
 todo_include_todos = False
 htmlhelp_basename = 'uDeviceX'
+
+
+def linkcode_resolve(domain, info):
+	print info
+	#filename = info['module'].replace('.', '/')
+	return ''#"http://somesite/sourcerepo/%s.py" % filename

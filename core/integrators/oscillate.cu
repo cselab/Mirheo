@@ -6,6 +6,10 @@
 #include <core/pvs/particle_vector.h>
 
 
+/**
+ * @param vel Velocity magnitude
+ * @param period Sine wave period
+ */
 IntegratorOscillate::IntegratorOscillate(std::string name, float dt, float3 vel, int period) :
 	Integrator(name, dt),
 	vel(vel), period(period)

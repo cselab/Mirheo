@@ -148,7 +148,7 @@ public:
 			std::ostringstream tmout;
 			tmout << std::put_time(std::localtime(&now_c), "%T") << ':' << std::setfill('0') << std::setw(3) << ms.count();
 
-			const int cappedLvl = std::min((int)lvl2text.size() - 1, level);
+			const int cappedLvl = std::min((int)lvl2text.size() - 1, importance);
 			std::string intro = tmout.str() + "   " + std::string("Rank %04d %7s at ")
 				+ fname + ":" + std::to_string(lnum) + "  " +pattern + "\n";
 
@@ -215,8 +215,8 @@ public:
 	void setDebugLvl(int debugLvl)
 	{
 		runtimeDebugLvl = std::max(std::min(debugLvl, COMPILE_DEBUG_LVL), 0);
-		_say(__FILE__, __LINE__, "Compiled with maximum debug level %d", COMPILE_DEBUG_LVL);
-		_say(__FILE__, __LINE__, "Debug level requested %d, set to %d", debugLvl, runtimeDebugLvl);
+		log<-1>(__FILE__, __LINE__, "Compiled with maximum debug level %d", COMPILE_DEBUG_LVL);
+		log<-1>(__FILE__, __LINE__, "Debug level requested %d, set to %d", debugLvl, runtimeDebugLvl);
 	}
 
 

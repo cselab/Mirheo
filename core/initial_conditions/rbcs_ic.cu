@@ -7,6 +7,7 @@
 #include <core/pvs/rbc_vector.h>
 #include <core/rigid_kernels/integration.h>
 
+/// Helper function that parses an .off file and extracts initial vertex positions
 void RBC_IC::readVertices(std::string fname, PinnedBuffer<float4>& positions)
 {
 	std::ifstream fin(fname);
@@ -24,6 +25,26 @@ void RBC_IC::readVertices(std::string fname, PinnedBuffer<float4>& positions)
 		fin >> positions[i].x >> positions[i].y >> positions[i].z;
 }
 
+/**
+ * Read mesh topology and initial vertex (vertices are same as particles for RBCs)
+ * coordinates from the file #offfname.
+ * Then read the center of mass coordinates of the cells and their orientation
+ * quaternions from file #icfname.
+ *
+ * The format of the initial conditions file is such that each line defines
+ * one RBC with the following 7 numbers separated by spaces:
+ * <tt>COM.x COM.y COM.z  Q.x Q.y Q.z Q.w</tt>
+ * \sa quaternion.h
+ *
+ * To generate an RBC from the IC file, the initial coordinate pattern will be
+ * shifted to the COM and rotated according to Q.
+ *
+ * The RBCs with COM outside of an MPI process's domain will be discarded on
+ * that process.
+ *
+ * Set unique id to all the particles and also write unique cell ids into
+ * 'ids' per-object channel
+ */
 void RBC_IC::exec(const MPI_Comm& comm, ParticleVector* pv, DomainInfo domain, cudaStream_t stream)
 {
 	auto ov = dynamic_cast<RBCvector*>(pv);
