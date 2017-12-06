@@ -1,4 +1,4 @@
-Vector of Objects
+Vector of objects
 ==================
 
 .. doxygenfile:: object_vector.h

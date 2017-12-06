@@ -34,8 +34,9 @@ public:
 
 	void setup(ParticleVector* pv1, ParticleVector* pv2, CellList* cl1, CellList* cl2, float t)
 	{
-		//seed = t;
-		// better use random seed (time-based!) instead of time
+		// seed = t;
+		// better use random seed (time-based) instead of time
+		// time-based is IMPORTANT for momentum conservation!!
 		// t is float, use it's bit representation as int to seed RNG
 		int v = *((int*)&t);
 		std::mt19937 gen(v);

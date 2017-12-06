@@ -1,4 +1,4 @@
-Vector of Free Particles
+Vector of free particles
 ===========================
 
 .. doxygenfile:: particle_vector.h

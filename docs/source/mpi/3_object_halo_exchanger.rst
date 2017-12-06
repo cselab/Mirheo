@@ -1,4 +1,4 @@
-Object Halo Exchanger
+Object halo exchanger
 ======================
 
 .. doxygenfile:: object_halo_exchanger.h

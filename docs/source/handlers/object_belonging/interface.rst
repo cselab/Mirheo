@@ -1,4 +1,4 @@
-Object Belonging Checkers
+Object belonging checkers
 ===========================
 
 .. doxygenfile:: object_belonging/interface.h

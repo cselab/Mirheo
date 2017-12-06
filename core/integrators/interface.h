@@ -23,12 +23,19 @@ public:
 	float dt;
 
 	/**
-	 * First integration stage
+	 * First integration stage, to be called before the forces are computed
 	 *
 	 * @param pv ParticleVector to be integrated
 	 * @param t current simulation time
 	 */
 	virtual void stage1(ParticleVector* pv, float t, cudaStream_t stream) = 0;
+
+	/**
+	 * Second integration stage, to be called after the forces are computed
+	 *
+	 * @param pv ParticleVector to be integrated
+	 * @param t current simulation time
+	 */
 	virtual void stage2(ParticleVector* pv, float t, cudaStream_t stream) = 0;
 
 	/**

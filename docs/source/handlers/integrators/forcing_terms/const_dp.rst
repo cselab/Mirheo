@@ -1,4 +1,4 @@
-Constant Force
+Constant force
 ===============
 
 .. doxygenfile:: const_dp.h

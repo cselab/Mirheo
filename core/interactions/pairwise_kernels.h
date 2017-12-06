@@ -4,7 +4,8 @@
 #include <core/celllist.h>
 #include <core/utils/cuda_common.h>
 
-
+/// Squared distance between vectors with components
+/// (\p a.x, \p a.y, \p a.z) and (\p b.x, \p b.y, \p b.z)
 template<typename Ta, typename Tb>
 __device__ inline float distance2(const Ta a, const Tb b)
 {
@@ -13,6 +14,40 @@ __device__ inline float distance2(const Ta a, const Tb b)
 }
 
 
+/**
+ * Compute interactions between one destination particle and
+ * all source particles in a given cell, defined by range of ids:
+ *
+ * \code
+ * for (id = pstart; id < pend; id++)
+ * F += interaction(dstP, Particle(cinfo.particles, id));
+ * \endcode
+ *
+ * Also update forces for the source particles in process.
+ *
+ * Source particles may be from the same ParticleVector or from
+ * different ones.
+ *
+ * @param pstart lower bound of id range of the particles to be worked on
+ * @param pend  upper bound of id range
+ * @param dstP destination particle
+ * @param dstId destination particle local id, may be used to fetch extra
+ *        properties associated with the given particle
+ * @param dstFrc target force
+ * @param cinfo cell-list data for source particles
+ * @param rc2 squared interaction cut-off distance
+ * @param interaction interaction implementation, see computeSelfInteractions()
+ *
+ * @tparam NeedDstAcc whether to update \p dstFrc or not. One out of
+ * \p NeedDstAcc or \p NeedSrcAcc should be true.
+ * @tparam NeedSrcAcc whether to update forces for source particles.
+ * One out of \p NeedDstAcc or \p NeedSrcAcc should be true.
+ * @tparam Self true if we're computing self interactions, meaning
+ * that destination particle is one of the source particles.
+ * In that case only half of the interactions contribute to the
+ * forces, such that either p1 \<-\> p2 or p2 \<-\> p1 is ignored
+ * based on particle ids
+ */
 template<bool NeedDstAcc, bool NeedSrcAcc, bool Self, typename Interaction>
 __device__ inline void computeCell(
 		int pstart, int pend,
@@ -45,6 +80,23 @@ __device__ inline void computeCell(
 	}
 }
 
+/**
+ * Compute interactions within a single ParticleVector.
+ *
+ * Mapping is one thread per particle. The thread will traverse half
+ * of the neighbouring cells and compute all the interactions between
+ * original destination particle and all the particles in the cells.
+ *
+ * @param np number of particles
+ * @param cinfo cell-list data
+ * @param rc2 squared cut-off distance
+ * @param interaction is a \c \_\_device\_\_ callable that computes
+ *        the force between two particles. It has to have the following
+ *        signature:
+ *        \code float3 interaction(const Particle dst, int dstId, const Particle src, int srcId) \endcode
+ *        The return value is the force acting on the first particle.
+ *        The second one experiences the opposite force.
+ */
 template<typename Interaction>
 //__launch_bounds__(128, 16)
 __global__ void computeSelfInteractions(
@@ -84,8 +136,31 @@ __global__ void computeSelfInteractions(
 }
 
 /**
- * variant == true  better for dense shit,
- * variant == false better for halo and one-sided
+ * Compute interactions between particle of two different ParticleVector.
+ *
+ * Mapping is one thread per particle. The thread will traverse all
+ * of the neighbouring cells and compute all the interactions between
+ * original destination particle and all the particles of the second
+ * kind residing in the cells.
+ *
+ * @param dstView view of the destination particles. They are accessed
+ *        by the threads in a completely coalesced manner, no cell-list
+ *        is needed for them.
+ * @param srcCinfo cell-list data for the source particles
+ * @param rc2 squared cut-off distance
+ * @param interaction is a \c \_\_device\_\_ callable that computes
+ *        the force between two particles. It has to have the following
+ *        signature:
+ *        \code float3 interaction(const Particle dst, int dstId, const Particle src, int srcId) \endcode
+ *        The return value is the force acting on the first particle.
+ *        The second one experiences the opposite force.
+ *
+ * @tparam NeedDstAcc if true, compute forces for destination particles.
+ *         One out of \p NeedDstAcc or \p NeedSrcAcc should be true.
+ * @tparam NeedSrcAcc if true, compute forces for source particles.
+ *         One out of \p NeedDstAcc or \p NeedSrcAcc should be true.
+ * @tparam Variant performance related parameter. \e true is better for
+ * densely mixed stuff, \e false is better for halo
  */
 template<bool NeedDstAcc, bool NeedSrcAcc, bool Variant, typename Interaction>
 __launch_bounds__(128, 16)
@@ -140,8 +215,10 @@ __global__ void computeExternalInteractions_1tpp(
 }
 
 /**
- * variant == true  better for dense shit,
- * variant == false better for halo and one-sided
+ * Compute interactions between particle of two different ParticleVector.
+ *
+ * Mapping is three threads per particle. The rest is similar to
+ * computeExternalInteractions_1tpp()
  */
 template<bool NeedDstAcc, bool NeedSrcAcc, bool Variant, typename Interaction>
 __launch_bounds__(128, 16)
@@ -200,6 +277,12 @@ __global__ void computeExternalInteractions_3tpp(
 		atomicAdd(dstView.forces + dstId, dstFrc);
 }
 
+/**
+ * Compute interactions between particle of two different ParticleVector.
+ *
+ * Mapping is nine threads per particle. The rest is similar to
+ * computeExternalInteractions_1tpp()
+ */
 template<bool NeedDstAcc, bool NeedSrcAcc, bool Variant, typename Interaction>
 __launch_bounds__(128, 16)
 __global__ void computeExternalInteractions_9tpp(
@@ -257,6 +340,12 @@ __global__ void computeExternalInteractions_9tpp(
 		atomicAdd(dstView.forces + dstId, dstFrc);
 }
 
+/**
+ * Compute interactions between particle of two different ParticleVector.
+ *
+ * Mapping is 27 threads per particle. The rest is similar to
+ * computeExternalInteractions_1tpp()
+ */
 template<bool NeedDstAcc, bool NeedSrcAcc, bool Variant, typename Interaction>
 __launch_bounds__(128, 16)
 __global__ void computeExternalInteractions_27tpp(

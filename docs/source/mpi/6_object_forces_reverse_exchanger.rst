@@ -1,4 +1,4 @@
-Object Forces Exchanger
+Object forces exchanger
 ========================
 
 .. doxygenfile:: object_forces_reverse_exchanger.h

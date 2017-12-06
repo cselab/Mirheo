@@ -1,4 +1,4 @@
-Particle Redistributor
+Particle redistributor
 =======================
 
 .. doxygenfile:: particle_redistributor.h

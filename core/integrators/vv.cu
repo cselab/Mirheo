@@ -25,9 +25,9 @@ void IntegratorVV<ForcingTerm>::stage1(ParticleVector* pv, float t, cudaStream_t
  * \end{cases}
  * \f$
  *
- * \tparam ForcingTerm is a functor that can modify computed force
+ * @tparam ForcingTerm is a functor that can modify computed force
  * per particles (typically add some force field). It has to
- * prove two functions:
+ * provide two functions:
  * - This function will be called once before integration and
  *   allows the functor to obtain required variables or data
  *   channels from the ParticleVector:
@@ -36,7 +36,7 @@ void IntegratorVV<ForcingTerm>::stage1(ParticleVector* pv, float t, cudaStream_t
  * - This should be a \c \_\_device\_\_ operator that modifies
  *   the force. It will be called for each particle during the
  *   integration:
- *   \code operator(float3 f0, Particle p) \endcode
+ *   \code float3 operator()(float3 f0, Particle p) const \endcode
  *
  */
 template<class ForcingTerm>

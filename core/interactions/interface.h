@@ -106,7 +106,6 @@ public:
 		}
 
 		// Both are particle vectors. Compute one interaction if pv1 == pv2 and two otherwise
-
 		_compute(InteractionType::Halo, pv1, pv2, cl1, cl2, t, stream);
 		if(pv1 != pv2)
 			_compute(InteractionType::Halo, pv2, pv1, cl2, cl1, t, stream);

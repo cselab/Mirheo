@@ -1,4 +1,4 @@
-Bouncer from Ellipsoids
+Bouncer from ellipsoids
 =========================
 
 

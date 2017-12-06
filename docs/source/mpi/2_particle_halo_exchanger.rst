@@ -1,4 +1,4 @@
-Particle Halo Exchanger
+Particle halo exchanger
 ========================
 
 .. doxygenfile:: particle_halo_exchanger.h

@@ -2,6 +2,7 @@
 #include "interface.h"
 #include <core/xml/pugixml.hpp>
 
+/// Structure keeping all the parameters of the RBC model
 struct RBCParameters
 {
 	float x0, p, ka, kb, kd, kv, gammaC, gammaT, kbT, mpow, theta, totArea0, totVolume0;
@@ -24,10 +25,11 @@ static const RBCParameters Lina_parameters =
 		/* totVolume */ 26.6649
 };
 
+/**
+ * Implementation of RBC membrane forces
+ */
 class InteractionRBCMembrane : public Interaction
 {
-	RBCParameters parameters;
-
 public:
 	void _compute(InteractionType type, ParticleVector* pv1, ParticleVector* pv2, CellList* cl1, CellList* cl2, const float t, cudaStream_t stream) override;
 
@@ -37,4 +39,7 @@ public:
 	void setPrerequisites(ParticleVector* pv1, ParticleVector* pv2) override;
 
 	~InteractionRBCMembrane() = default;
+
+private:
+	RBCParameters parameters;
 };

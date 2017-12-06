@@ -1,4 +1,4 @@
-Object Redistributor
+Object redistributor
 =======================
 
 .. doxygenfile:: object_redistributor.h

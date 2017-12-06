@@ -1,4 +1,4 @@
-Vector of Rigid Objects
+Vector of rigid objects
 ========================
 
 .. doxygenfile:: rigid_object_vector.h

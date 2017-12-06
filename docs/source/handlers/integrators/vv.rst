@@ -1,4 +1,4 @@
-Velocity-Verlet Integrator
+Velocity-Verlet integrator
 ===========================
 
 .. doxygenfile:: vv.h

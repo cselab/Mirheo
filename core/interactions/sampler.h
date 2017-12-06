@@ -5,20 +5,13 @@
 
 class SDFWall;
 
+/**
+ * Monte Carlo sampling. Only used to create the frozen particles,
+ * so pretty much undocumented for now
+ */
 template<class InsideWallChecker>
 class MCMCSampler : public Interaction
 {
-protected:
-	ParticleVector* combined;
-	CellList* combinedCL;
-
-	PinnedBuffer<int> nAccepted, nRejected, nDst;
-	PinnedBuffer<double> totE;
-	float proposalFactor;
-
-	float minVal, maxVal;
-	const InsideWallChecker& insideWallChecker;
-
 public:
 	float a, kbT, power;
 
@@ -29,4 +22,15 @@ public:
 			float minVal, float maxVal, const InsideWallChecker& insideWallChecker);
 
 	~MCMCSampler() = default;
+
+private:
+	ParticleVector* combined;
+	CellList* combinedCL;
+
+	PinnedBuffer<int> nAccepted, nRejected, nDst;
+	PinnedBuffer<double> totE;
+	float proposalFactor;
+
+	float minVal, maxVal;
+	const InsideWallChecker& insideWallChecker;
 };

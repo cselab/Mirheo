@@ -1,4 +1,4 @@
-Generic Particle Exchanger
+Generic particle exchanger
 ===========================
 
 .. doxygenfile:: particle_exchanger.h

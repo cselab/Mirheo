@@ -9,6 +9,17 @@
 
 #include <cmath>
 
+/**
+ * Provide mapping from the model parameters to the parameters
+ * used on GPU to compute the forces.
+ *
+ * Scaling accorging to the Mesh properties is performed, and some
+ * thing are pre-computed.
+ *
+ * @param p model parameters
+ * @param m RBC membrane mesh
+ * @return parameters to be passed to GPU kernels
+ */
 static GPU_RBCparameters setParams(RBCParameters p, const Mesh& m)
 {
 	GPU_RBCparameters devP;
@@ -37,6 +48,10 @@ static GPU_RBCparameters setParams(RBCParameters p, const Mesh& m)
 	return devP;
 }
 
+/**
+ * Require that \p pv1 and \p pv2 are the same and are instances
+ * of RBCvector
+ */
 void InteractionRBCMembrane::setPrerequisites(ParticleVector* pv1, ParticleVector* pv2)
 {
 	if (pv1 != pv2)
@@ -47,6 +62,13 @@ void InteractionRBCMembrane::setPrerequisites(ParticleVector* pv1, ParticleVecto
 		die("Internal RBC forces can only be computed with RBCs");
 }
 
+/**
+ * Compute the membrane forces.
+ *
+ * First call the computeAreaAndVolume() kernel to compute area
+ * and volume of each cell, then use these data to calculate the
+ * forces themselves by calling computeMembraneForces() kernel
+ */
 void InteractionRBCMembrane::_compute(InteractionType type, ParticleVector* pv1, ParticleVector* pv2, CellList* cl1, CellList* cl2, const float t, cudaStream_t stream)
 {
 	auto ov = dynamic_cast<RBCvector*>(pv1);

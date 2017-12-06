@@ -12,7 +12,12 @@
 #include "pairwise_interactions/lj.h"
 #include "pairwise_interactions/lj_object_aware.h"
 
-// Convenience macro wrappers
+/**
+ * Convenience macro wrapper
+ *
+ * Select one of the available kernels for external interaction depending
+ * on the number of particles involved, report it and call
+ */
 #define DISPATCH_EXTERNAL(P1, P2, P3, TPP, INTERACTION_FUNCTION)                \
 do{ debug2("Dispatched to "#TPP" thread(s) per particle variant");              \
 	SAFE_KERNEL_LAUNCH(                                                         \
@@ -23,10 +28,31 @@ do{ debug2("Dispatched to "#TPP" thread(s) per particle variant");              
 #define CHOOSE_EXTERNAL(P1, P2, P3, INTERACTION_FUNCTION)                                              \
 do{  if (view.size < 1000  ) { DISPATCH_EXTERNAL(P1, P2, P3, 27, INTERACTION_FUNCTION); }              \
 else if (view.size < 10000 ) { DISPATCH_EXTERNAL(P1, P2, P3, 9,  INTERACTION_FUNCTION); }              \
-else if (view.size < 1000000) { DISPATCH_EXTERNAL(P1, P2, P3, 3,  INTERACTION_FUNCTION); }              \
+else if (view.size < 400000) { DISPATCH_EXTERNAL(P1, P2, P3, 3,  INTERACTION_FUNCTION); }              \
 else                         { DISPATCH_EXTERNAL(P1, P2, P3, 1,  INTERACTION_FUNCTION); } } while(0)
 
-
+/**
+ * Compute forces between all the pairs of particles that are closer
+ * than #rc to each other.
+ *
+ * Depending on \p type and whether \p pv1 == \p pv2 call
+ * computeSelfInteractions() or computeExternalInteractions_1tpp()
+ * (or other variants of external interaction kernels).
+ *
+ * @tparam PariwiseInteraction is a functor that computes the force
+ * given a pair of particles. It has to
+ * provide two functions:
+ * - This function will be called once before interactions computation
+ *   and allows the functor to obtain required variables or data
+ *   channels from the two ParticleVector and CellList:
+ *   \code setup(ParticleVector* pv1, ParticleVector* pv2, CellList* cl1, CellList* cl2, float t) \endcode
+ *
+ * - This should be a \c \_\_device\_\_ operator that computes
+ *   the force. It will be called for each close enough particle pair:
+ *   \code float3 operator()(const Particle dst, int dstId, const Particle src, int srcId) const \endcode
+ *   Return value of that call is force acting on the first particle,
+ *   force acting on the second one is just opposite.
+ */
 template<class PariwiseInteraction>
 void InteractionPair<PariwiseInteraction>::_compute(InteractionType type,
 		ParticleVector* pv1, ParticleVector* pv2, CellList* cl1, CellList* cl2, const float t, cudaStream_t stream)

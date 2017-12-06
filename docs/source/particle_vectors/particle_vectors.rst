@@ -1,4 +1,4 @@
-Particle Vectors
+Particle vectors
 ===============================
 
 .. toctree::
