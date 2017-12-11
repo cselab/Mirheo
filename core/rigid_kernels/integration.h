@@ -95,7 +95,7 @@ static __global__ void integrateRigidMotion(ROVviewWithOldMotion ovView, const f
 
 	motion.vel = vel;
 	motion.r += vel*dt;
-//
+
 //	printf("obj  %d  r [%f %f %f]   v [%f %f %f],  f [%f %f %f],  t [%f %f %f],   \n"
 //			"    q [%f %f %f %f]   w [%f %f %f]   L [%f %f %f] \n", ovView.ids[objId],
 //			motion.r.x,  motion.r.y,  motion.r.z,

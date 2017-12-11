@@ -98,15 +98,9 @@ void EllipsoidIC::exec(const MPI_Comm& comm, ParticleVector* pv, DomainInfo doma
 	info("Read %d %s objects", nObjs, ov->name.c_str());
 
 	// Do the initial rotation
+	ov->requireDataPerObject<RigidMotion>("old_motions", false);
 	ov->local()->forces.clear(stream);
 	IntegratorVVRigid integrator("dummy", 0.0f);
 	integrator.stage2(pv, 0, stream);
-
-//	//for (auto& ov: objectVectors)
-//	{
-//		ov->local()->coosvels.downloadFromDevice(stream);
-//		for (int i=0; i<5; i++)
-//			printf("%d  %f %f %f\n", i, ov->local()->coosvels[i].r.x, ov->local()->coosvels[i].r.y, ov->local()->coosvels[i].r.z);
-//	}
 }
 

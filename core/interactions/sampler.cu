@@ -194,20 +194,18 @@ MCMCSampler<InsideWallChecker>::MCMCSampler(std::string name,
 }
 
 template<class InsideWallChecker>
-void MCMCSampler<InsideWallChecker>::_compute(
-		InteractionType type,
-		ParticleVector* pv1, ParticleVector* pv2,
-		CellList* cl1, CellList* cl2,
-		const float t, cudaStream_t stream)
+void MCMCSampler<InsideWallChecker>::halo (ParticleVector* pv1, ParticleVector* pv2, CellList* cl1, CellList* cl2, const float t, cudaStream_t stream)
 {
 	const int nthreads = 128;
 
-	if (type != InteractionType::Halo || pv1 != pv2)
-		return;
+	if (pv1 != pv2) return;
 
 	auto pv = pv1;
 	if (pv->local()->size() == 0)
+	{
+		pv->haloValid = pv->redistValid = false;
 		return;
+	}
 
 	// Initialize combinedCL, if not yet
 	// Make combinedCL include halo as well

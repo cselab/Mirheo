@@ -32,6 +32,63 @@ else if (view.size < 400000) { DISPATCH_EXTERNAL(P1, P2, P3, 3,  INTERACTION_FUN
 else                         { DISPATCH_EXTERNAL(P1, P2, P3, 1,  INTERACTION_FUNCTION); } } while(0)
 
 /**
+ * Interface to _compute() with local interactions.
+ */
+template<class PariwiseInteraction>
+void InteractionPair<PariwiseInteraction>::regular(ParticleVector* pv1, ParticleVector* pv2, CellList* cl1, CellList* cl2, const float t, cudaStream_t stream)
+{
+	//if (pv1->local()->size() < pv2->local()->size())
+		_compute(InteractionType::Regular, pv1, pv2, cl1, cl2, t, stream);
+	//else
+	//	_compute(InteractionType::Regular, pv2, pv1, cl2, cl1, t, stream);
+}
+
+/**
+ * Interface to _compute() with halo interactions.
+ *
+ * The following cases exist:
+ * - If one of \p pv1 or \p pv2 is ObjectVector, then only call to the _compute()
+ *   needed: for halo ObjectVector another ParticleVector (or ObjectVector).
+ *   This is because ObjectVector will collect the forces from remote processors,
+ *   so we don't need to compute them twice.
+ *
+ * - Both are ParticleVector. Then if they are different, two _compute() calls
+ *   are made such that halo1 \<-\> local2 and halo2 \<-\> local1. If \p pv1 and
+ *   \p pv2 are the same, only one call is needed
+ */
+template<class PariwiseInteraction>
+void InteractionPair<PariwiseInteraction>::halo(ParticleVector* pv1, ParticleVector* pv2, CellList* cl1, CellList* cl2, const float t, cudaStream_t stream)
+{
+	auto isov1 = dynamic_cast<ObjectVector*>(pv1) != nullptr;
+	auto isov2 = dynamic_cast<ObjectVector*>(pv2) != nullptr;
+
+	// Two object vectors. Compute just one interaction, doesn't matter which
+	if (isov1 && isov2)
+	{
+		_compute(InteractionType::Halo, pv1, pv2, cl1, cl2, t, stream);
+		return;
+	}
+
+	// One object vector. Compute just one interaction, with OV as the first argument
+	if (isov1)
+	{
+		_compute(InteractionType::Halo, pv1, pv2, cl1, cl2, t, stream);
+		return;
+	}
+
+	if (isov2)
+	{
+		_compute(InteractionType::Halo, pv2, pv1, cl2, cl1, t, stream);
+		return;
+	}
+
+	// Both are particle vectors. Compute one interaction if pv1 == pv2 and two otherwise
+	_compute(InteractionType::Halo, pv1, pv2, cl1, cl2, t, stream);
+	if(pv1 != pv2)
+		_compute(InteractionType::Halo, pv2, pv1, cl2, cl1, t, stream);
+}
+
+/**
  * Compute forces between all the pairs of particles that are closer
  * than #rc to each other.
  *

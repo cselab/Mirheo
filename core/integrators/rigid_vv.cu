@@ -20,6 +20,7 @@ void IntegratorVVRigid::setPrerequisites(ParticleVector* pv)
 		die("Rigid integration only works with rigid objects, can't work with %s", pv->name.c_str());
 
 	ov->requireDataPerObject<RigidMotion>("old_motions", false);
+	warn("Only objects with diagonal inertia tensors are supported now for rigid integration");
 }
 
 
@@ -48,8 +49,6 @@ void IntegratorVVRigid::stage2(ParticleVector* pv, float t, cudaStream_t stream)
 			ov->local()->nObjects, ov->name.c_str(), ov->local()->size(), dt);
 
 	ROVviewWithOldMotion ovView(ov, ov->local());
-
-	warn("Only objects with diagonal inertia tensors are supported now for rigid integration");
 
 	SAFE_KERNEL_LAUNCH(
 			collectRigidForces,

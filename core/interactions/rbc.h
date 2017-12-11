@@ -31,12 +31,14 @@ static const RBCParameters Lina_parameters =
 class InteractionRBCMembrane : public Interaction
 {
 public:
-	void _compute(InteractionType type, ParticleVector* pv1, ParticleVector* pv2, CellList* cl1, CellList* cl2, const float t, cudaStream_t stream) override;
 
 	InteractionRBCMembrane(std::string name, RBCParameters parameters) :
 		Interaction(name, 1.0f), parameters(parameters) {}
 
 	void setPrerequisites(ParticleVector* pv1, ParticleVector* pv2) override;
+
+	void regular(ParticleVector* pv1, ParticleVector* pv2, CellList* cl1, CellList* cl2, const float t, cudaStream_t stream) override;
+	void halo   (ParticleVector* pv1, ParticleVector* pv2, CellList* cl1, CellList* cl2, const float t, cudaStream_t stream) override;
 
 	~InteractionRBCMembrane() = default;
 

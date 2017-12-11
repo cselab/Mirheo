@@ -27,7 +27,7 @@ __global__ void getExitingObjects(const DomainInfo domain, OVview view, const Ob
 	if (prop.com.y >=  0.5f*domain.localSize.y) cy = 2;
 	if (prop.com.z >=  0.5f*domain.localSize.z) cz = 2;
 
-//	if (tid == 0) printf("Obj %d : [%f %f %f] -- [%f %f %f]\n", ovView.ids[objId],
+//	if (tid == 0) printf("Obj %d : [%f %f %f] -- [%f %f %f]\n", view.ids[objId],
 //			prop.low.x, prop.low.y, prop.low.z, prop.high.x, prop.high.y, prop.high.z);
 
 	const int bufId = (cz*3 + cy)*3 + cx;
@@ -48,7 +48,7 @@ __global__ void getExitingObjects(const DomainInfo domain, OVview view, const Ob
 	__syncthreads();
 
 //	if (tid == 0 && bufId != 13)
-//		printf("REDIST  obj  %d  to redist  %d  [%f %f %f] - [%f %f %f]  %d %d %d\n", ovView.ids[objId], bufId,
+//		printf("REDIST  obj  %d  to redist  %d  [%f %f %f] - [%f %f %f]  %d %d %d\n", view.ids[objId], bufId,
 //				prop.low.x, prop.low.y, prop.low.z, prop.high.x, prop.high.y, prop.high.z, cx, cy, cz);
 
 	char* dstAddr = dataWrap.buffer + packer.totalPackedSize_byte * (dataWrap.offsets[bufId] + shDstObjId);

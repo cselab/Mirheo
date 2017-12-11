@@ -154,7 +154,7 @@ int main(int argc, char** argv)
 		parser.parse(argc, argv);
 	}
 
-	logger.init(MPI_COMM_WORLD, "genwall.log", 6);
+	logger.init(MPI_COMM_WORLD, "genwall.log", 10);
 
 	pugi::xml_document config;
 	pugi::xml_parse_result result = config.load_file(xmlname.c_str());

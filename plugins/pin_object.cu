@@ -96,7 +96,7 @@ void PinObjectPlugin::beforeIntegration(cudaStream_t stream)
 	OVview view(ov, ov->local());
 	const int nthreads = 128;
 
-	debug("Restricting motionof OV '%s' as per plugin '%s'", ovName.c_str(), name.c_str());
+	debug("Restricting motion of OV '%s' as per plugin '%s'", ovName.c_str(), name.c_str());
 
 	SAFE_KERNEL_LAUNCH(
 			restrictForces,

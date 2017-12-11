@@ -69,19 +69,13 @@ void InteractionRBCMembrane::setPrerequisites(ParticleVector* pv1, ParticleVecto
  * and volume of each cell, then use these data to calculate the
  * forces themselves by calling computeMembraneForces() kernel
  */
-void InteractionRBCMembrane::_compute(InteractionType type, ParticleVector* pv1, ParticleVector* pv2, CellList* cl1, CellList* cl2, const float t, cudaStream_t stream)
+void InteractionRBCMembrane::regular(ParticleVector* pv1, ParticleVector* pv2, CellList* cl1, CellList* cl2, const float t, cudaStream_t stream)
 {
 	auto ov = dynamic_cast<RBCvector*>(pv1);
 
 	if (ov->objSize != ov->mesh.nvertices)
 		die("Object size of '%s' (%d) and number of vertices (%d) mismatch",
 				ov->name.c_str(), ov->objSize, ov->mesh.nvertices);
-
-	if (type == InteractionType::Halo)
-	{
-		debug("Not computing internal RBC forces between local and halo RBCs of '%s'", pv1->name.c_str());
-		return;
-	}
 
 	debug("Computing internal membrane forces for %d cells of '%s'",
 		ov->local()->nObjects, ov->name.c_str());
@@ -102,6 +96,11 @@ void InteractionRBCMembrane::_compute(InteractionType type, ParticleVector* pv1,
 			computeMembraneForces<Mesh::maxDegree>,
 			blocks, nthreads, 0, stream,
 			view, mesh, setParams(parameters, ov->mesh) );
+}
+
+void InteractionRBCMembrane::halo   (ParticleVector* pv1, ParticleVector* pv2, CellList* cl1, CellList* cl2, const float t, cudaStream_t stream)
+{
+	debug("Not computing internal RBC forces between local and halo RBCs of '%s'", pv1->name.c_str());
 }
 
 

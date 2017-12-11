@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
-<simulation name="poiseuille" logfile="log" mpi_ranks="1 1 1" debug_lvl="3" noplugins="true">
+<simulation name="poiseuille" logfile="log" mpi_ranks="1 1 1" debug_lvl="1" noplugins="true">
 
-	<domain size="32 32 32" />
+	<domain size="64 32 32" />
 	
 	<particle_vector type="regular" name="dpd" mass="1">
 		<generate type="uniform" density="8" />
@@ -19,12 +19,12 @@
 		<generate type="restart" path="restart/" />
 	</particle_vector>
 	
-	<wall type="moving_plane" name="bot" check_every="100" normal="0 0 -1" point_through="0 0 2" velocity="2 0 0" >
+	<wall type="moving_plane" name="bot" check_every="100" normal="0 0 -1" point_through="0 0 2" velocity="0 0 0" >
 		<generate_frozen name="bot" path="restart" mass="1.0" density="8" a="25" kbt="0.5" rc="1.0" power="0.5" />
 		<apply_to pv="dpd" />
 	</wall>
 		
-	<wall type="plane" name="top" check_every="100" normal="0 0 1" point_through="0 0 30" >
+	<wall type="plane" name="top" check_every="100" normal="0 0 1" point_through="0 0 62" >
 		<generate_frozen name="top" path="restart" mass="1.0" density="8" a="25" kbt="0.5" rc="1.0" power="0.5" />
 		<apply_to pv="dpd" />
 	</wall>
@@ -41,15 +41,15 @@
 		<apply_to pv="dpd" inside="none" outside="dpd" check_every="50" />
 	</object_belonging_checker>
 	
-<!-- 	<object_bouncer name="ell_bounce" ov="sphere" type="from_ellipsoids">
+	<object_bouncer name="ell_bounce" ov="sphere" type="from_ellipsoids">
 		<apply_to pv="dpd" />
-	</object_bouncer> -->
+	</object_bouncer>
 	
 	<!--
 		Interactions section
 	-->
 	
-	<interaction type="dpd" name="dpd_int" a="25" gamma="40" kbt="0.5" dt="0.001" rc="1.0" power="0.5">
+	<interaction type="dpd" name="dpd_int" a="25" gamma="40" kbt="0.5" dt="0.002" rc="1.0" power="0.5">
 		<apply_to pv1="dpd" pv2="dpd"/>
 		<apply_to pv1="sphere" pv2="dpd"/>
 		<apply_to pv1="top" pv2="dpd"/>
@@ -61,7 +61,7 @@
 	-->
 	
 	
-	<integrator type="rigid_vv" name="rigid" dt="0.001">
+	<integrator type="rigid_vv" name="rigid" dt="0.002">
 		<apply_to pv="sphere" />
 	</integrator>
 	
@@ -69,7 +69,7 @@
 		<apply_to pv="bot" />
 	</integrator> -->
 	
-	<integrator type="vv" name="integrate" dt="0.001">
+	<integrator type="vv" name="integrate" dt="0.002">
 		<apply_to pv="dpd" />
 	</integrator>
 
@@ -77,9 +77,11 @@
 		Plugins section
 	-->
 	
+	<plugin type="add_force" name="frc"  pv_name="sphere" force="5 0 0" />
+	
 	<plugin type="pin_object" name="pin"
 		ov_name="sphere"
-		dump_every="10000"
+		dump_every="5000"
 		path="pinning_force/"
 		pin_translation="0 0 1" />
 	

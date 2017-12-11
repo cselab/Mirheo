@@ -144,7 +144,7 @@ protected:
 	 * to resize stuff, but bulk data are not; and it would be possible
 	 * to change the MPI backend to CUDA-aware calls.
 	 *
-	 * (DA tried CUDA-aware MPI once, didn't work too well, but still
+	 * (Tried CUDA-aware MPI once, didn't work too well, but still
 	 * need to test it more)
 	 *
 	 * @param id helper id that will be filled with data

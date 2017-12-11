@@ -15,11 +15,14 @@ class MCMCSampler : public Interaction
 public:
 	float a, kbT, power;
 
-	void _compute(InteractionType type, ParticleVector* pv1, ParticleVector* pv2, CellList* cl1, CellList* cl2, const float t, cudaStream_t stream) override;
-
 	MCMCSampler(std::string name,
 			float rc, float a, float kbT, float power,
 			float minVal, float maxVal, const InsideWallChecker& insideWallChecker);
+
+	void regular(ParticleVector* pv1, ParticleVector* pv2, CellList* cl1, CellList* cl2, const float t, cudaStream_t stream) override
+	{	}
+
+	void halo   (ParticleVector* pv1, ParticleVector* pv2, CellList* cl1, CellList* cl2, const float t, cudaStream_t stream) override;
 
 	~MCMCSampler() = default;
 

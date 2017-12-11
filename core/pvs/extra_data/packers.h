@@ -212,14 +212,14 @@ struct ObjectExtraPacker : public DevicePacker
 
 		auto& manager = lov->extraPerObject;
 
-		manager.channelPtrs.        resize_anew(nChannels);
-		manager.channelSizes.       resize_anew(nChannels);
-		manager.channelShiftTypes.  resize_anew(nChannels);
-
 		int n = 0;
 		bool upload = false;
 
 		auto registerChannel = [&] (int sz, char* ptr, int typesize) {
+
+			manager.channelPtrs.        resize_anew(n+1);
+			manager.channelSizes.       resize_anew(n+1);
+			manager.channelShiftTypes.  resize_anew(n+1);
 
 			if (ptr != manager.channelPtrs[n]) upload = true;
 
