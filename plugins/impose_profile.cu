@@ -84,6 +84,8 @@ void ImposeProfilePlugin::setup(Simulation* sim, const MPI_Comm& comm, const MPI
 	high = pv->domain.global2local(high);
 
 	const int nthreads = 128;
+
+	nRelevantCells.clearDevice(0);
 	SAFE_KERNEL_LAUNCH(
 			getRelevantCells<true>,
 			getNblocks(cl->totcells, nthreads), nthreads, 0, 0,
