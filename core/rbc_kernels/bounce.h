@@ -193,7 +193,7 @@ __device__  void findBouncesInCell(
 }
 
 __launch_bounds__(128, 6)
-__global__ void findBouncesInMesh(
+static __global__ void findBouncesInMesh(
 		OVviewWithOldPartilces objView,
 		PVviewWithOldParticles pvView,
 		MeshView mesh,
@@ -239,21 +239,6 @@ __global__ void findBouncesInMesh(
 
 
 
-__device__ inline float2 normal_BoxMuller(float seed)
-{
-	float u1 = Saru::uniform01(seed, threadIdx.x, blockIdx.x);
-	float u2 = Saru::uniform01(u1,   blockIdx.x, threadIdx.x);
-
-	float r = sqrtf(-2.0f * logf(u1));
-	float theta = 2.0f * M_PI * u2;
-
-	float2 res;
-	sincosf(theta, &res.x, &res.y);
-	res *= r;
-
-	return res;
-}
-
 /**
  * Reflect the velocity, in the triangle's referece frame
  */
@@ -265,16 +250,16 @@ __device__ inline float3 reflectVelocity(float3 n, float kbT, float mass, float 
 
 	// reflection with random scattering
 	// according to Maxwell distr
-	float2 rand1 = normal_BoxMuller(seed1);
-	float2 rand2 = normal_BoxMuller(seed2);
+	float2 rand1 = Saru::normal2(seed1, threadIdx.x, blockIdx.x);
+	float2 rand2 = Saru::normal2(seed2, threadIdx.x, blockIdx.x);
 
 	float3 r = make_float3(rand1.x, rand1.y, rand2.x);
 	for (int i=0; i<maxTries; i++)
 	{
 		if (dot(r, n) > 0) break;
 
-		rand1 = normal_BoxMuller(rand2.y);
-		rand2 = normal_BoxMuller(rand1.y);
+		float2 rand1 = Saru::normal2(rand2.y, threadIdx.x, blockIdx.x);
+		float2 rand2 = Saru::normal2(rand1.y, threadIdx.x, blockIdx.x);
 		r = make_float3(rand1.x, rand1.y, rand2.x);
 	}
 	r = normalize(r) * sqrtf(kbT / mass);
@@ -282,7 +267,7 @@ __device__ inline float3 reflectVelocity(float3 n, float kbT, float mass, float 
 	return r;
 }
 
-__global__ void performBouncing(
+static __global__ void performBouncing(
 		OVviewWithOldPartilces objView,
 		PVviewWithOldParticles pvView,
 		MeshView mesh,

@@ -86,6 +86,18 @@ public:
 		return ov;
 	}
 
+	CellList* gelCellList(ParticleVector* pv) const
+	{
+		auto clvecIt = cellListMap.find(pv);
+		if (clvecIt == cellListMap.end())
+			die("Particle Vector '%s' is not registered or broken", pv->name.c_str());
+
+		if (clvecIt->second.size() == 0)
+			return nullptr;
+		else
+			return clvecIt->second[0];
+	}
+
 	MPI_Comm getCartComm() const { return cartComm; }
 
 private:

@@ -8,28 +8,13 @@
 #include <core/utils/cuda_rng.h>
 
 
-__device__ inline float2 normal_BoxMuller(float seed)
-{
-	float u1 = Saru::uniform01(seed, threadIdx.x, blockIdx.x);
-	float u2 = Saru::uniform01(u1,   blockIdx.x, threadIdx.x);
-
-	float r = sqrtf(-2.0f * logf(u1));
-	float theta = 2.0f * M_PI * u2;
-
-	float2 res;
-	sincosf(theta, &res.x, &res.y);
-	res *= r;
-
-	return res;
-}
-
 __global__ void applyTemperature(PVview view, float kbT, float seed1, float seed2, bool keepVelocity)
 {
 	int gid = blockIdx.x * blockDim.x + threadIdx.x;
 	if (gid >= view.size) return;
 
-	float2 rand1 = normal_BoxMuller(seed1);
-	float2 rand2 = normal_BoxMuller(seed2);
+	float2 rand1 = Saru::normal2(seed1, threadIdx.x, blockIdx.x);
+	float2 rand2 = Saru::normal2(seed2, threadIdx.x, blockIdx.x);
 
 	float3 vel = sqrtf(kbT * view.invMass) * make_float3(rand1.x, rand1.y, rand2.x);
 

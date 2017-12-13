@@ -5,6 +5,8 @@
 #ifdef __CDT_PARSER__
 using cudaStream_t = int;
 const int warpSize = 32;
+
+int3 blockIdx, blockDim, threadIdx;
 #endif
 
 inline int getNblocks(const int n, const int nthreads)

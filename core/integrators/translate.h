@@ -3,23 +3,23 @@
 #include "interface.h"
 
 /**
- * Apply periodic sine wave to the particle velocities.
+ * Make constant particle velocities, regardless force
  * Coordinate is computed by Velocity-Verlet scheme (same as
  * Euler in this case)
+ *
  */
-class IntegratorOscillate : Integrator
+class IntegratorTranslate : Integrator
 {
 public:
 
 	void stage1(ParticleVector* pv, float t, cudaStream_t stream) override {};
 	void stage2(ParticleVector* pv, float t, cudaStream_t stream) override;
 
-	IntegratorOscillate(std::string name, float dt, float3 vel, float period);
+	IntegratorTranslate(std::string name, float dt, float3 vel);
 
-	~IntegratorOscillate() = default;
+	~IntegratorTranslate() = default;
 
 private:
 
-	float3 vel;    ///< Velocity amplitude
-	float period;  ///< Sine wave period
+	float3 vel;   ///< Velocity
 };

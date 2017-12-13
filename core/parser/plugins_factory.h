@@ -12,6 +12,7 @@
 #include <plugins/temperaturize.h>
 #include <plugins/dump_obj_position.h>
 #include <plugins/impose_velocity.h>
+#include <plugins/impose_profile.h>
 #include <plugins/pin_object.h>
 #include <plugins/add_force.h>
 
@@ -54,6 +55,21 @@ private:
 		auto force   = node.attribute("force").as_float3();
 
 		auto simPl = computeTask ? new AddForcePlugin(name, pvName, force) : nullptr;
+
+		return { (SimulationPlugin*) simPl, nullptr };
+	}
+
+	static std::pair<SimulationPlugin*, PostprocessPlugin*> createImposeProfilePlugin(pugi::xml_node node, bool computeTask)
+	{
+		auto name    = node.attribute("name").as_string();
+
+		auto pvName  = node.attribute("pv_name").as_string();
+		auto vel   = node.attribute("velocity").as_float3();
+		auto low   = node.attribute("low").as_float3();
+		auto high  = node.attribute("high").as_float3();
+		auto kbT   = node.attribute("kbt").as_float();
+
+		auto simPl = computeTask ? new ImposeProfilePlugin(name, pvName, low, high, vel, kbT) : nullptr;
 
 		return { (SimulationPlugin*) simPl, nullptr };
 	}
@@ -146,6 +162,8 @@ public:
 
 		if (type == "temperaturize")
 			return createTemperaturizePlugin(node, computeTask);
+		if (type == "impose_profile")
+			return createImposeProfilePlugin(node, computeTask);
 		if (type == "add_force")
 			return createAddForcePlugin(node, computeTask);
 		if (type == "stats")

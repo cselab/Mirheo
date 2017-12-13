@@ -201,6 +201,8 @@ namespace Saru
 	__device__ float mean0var1( float seed, uint i, uint j );
 	__device__ float mean0var1( float seed, int i, int j );
 	__device__ float mean0var1( float seed, float i, float j );
+	__device__ float uniform01( float seed, uint i, uint j );
+	__device__ float2 normal2( float seed, uint i, uint j );
 }
 
 namespace Saru
@@ -229,6 +231,21 @@ namespace Saru
 		unsigned int r = ( v ^ ( v >> 20 ) ) * 0x6957f5a7;
 
 		float res = r / ( 4294967295.0f );
+		return res;
+	}
+
+	inline __device__ float2 normal2( float seed, uint i, uint j )
+	{
+		float u1 = uniform01( seed, min(i, j),   max(i, j) );
+		float u2 = uniform01( u1,   max(i, j)+1, min(i, j) );
+
+		float r = sqrtf(-2.0f * logf(u1));
+		float theta = 2.0f * M_PI * u2;
+
+		float2 res;
+		sincosf(theta, &res.x, &res.y);
+		res *= r;
+
 		return res;
 	}
 
