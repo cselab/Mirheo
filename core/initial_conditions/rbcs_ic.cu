@@ -7,27 +7,9 @@
 #include <core/pvs/rbc_vector.h>
 #include <core/rigid_kernels/integration.h>
 
-/// Helper function that parses an .off file and extracts initial vertex positions
-void RBC_IC::readVertices(std::string fname, PinnedBuffer<float4>& positions)
-{
-	std::ifstream fin(fname);
-	if (!fin.good())
-		die("Mesh file '%s' not found", fname.c_str());
-
-	std::string line;
-	std::getline(fin, line); // OFF header
-
-	int nvertices, ntriangles, nedges;
-	fin >> nvertices >> ntriangles >> nedges;
-
-	positions.resize_anew(nvertices);
-	for (int i=0; i<nvertices; i++)
-		fin >> positions[i].x >> positions[i].y >> positions[i].z;
-}
-
 /**
- * Read mesh topology and initial vertex (vertices are same as particles for RBCs)
- * coordinates from the file #offfname.
+ * Read mesh topology and initial vertices (vertices are same as particles for RBCs)
+ *
  * Then read the center of mass coordinates of the cells and their orientation
  * quaternions from file #icfname.
  *
@@ -53,11 +35,6 @@ void RBC_IC::exec(const MPI_Comm& comm, ParticleVector* pv, DomainInfo domain, c
 
 	pv->domain = domain;
 
-	PinnedBuffer<float4> vertices;
-	readVertices(offfname, vertices);
-	if (ov->objSize != vertices.size())
-		die("Object size and number of vertices in mesh match for %s", ov->name.c_str());
-
 	std::ifstream fic(icfname);
 	int nObjs=0;
 
@@ -79,11 +56,11 @@ void RBC_IC::exec(const MPI_Comm& comm, ParticleVector* pv, DomainInfo domain, c
 		{
 			com = domain.global2local(com);
 			int oldSize = ov->local()->size();
-			ov->local()->resize(oldSize + vertices.size(), stream);
+			ov->local()->resize(oldSize + ov->mesh.nvertices, stream);
 
-			for (int i=0; i<vertices.size(); i++)
+			for (int i=0; i<ov->mesh.nvertices; i++)
 			{
-				float3 r = rotate(f4tof3(vertices[i]), q) + com;
+				float3 r = rotate(f4tof3(ov->mesh.vertexCoordinates[i]), q) + com;
 				Particle p;
 				p.r = r;
 				p.u = make_float3(0);

@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
-<simulation name="rbcs" logfile="log" mpi_ranks="2 1 1" debug_lvl="10" >
+<simulation name="rbcs" logfile="log" mpi_ranks="1 1 1" debug_lvl="10" >
 
-	<domain size="32 32 32" />
+	<domain size="32 32 64" />
 	
 	<particle_vector type="regular" name="dpd" mass="1">
 		<generate type="uniform" density="8" />
@@ -33,8 +33,8 @@
 		Object section
 	-->
 	
-	<particle_vector type="rbcs" name="rbcs" mass="0.7" particles_per_obj="498" mesh_filename="../../data/rbc_mesh.off" >
-		<generate type="read_rbcs" ic_filename="rbcs_big.ic" mesh_filename="../../data/rbc_mesh.off" />
+	<particle_vector type="rbcs" name="rbcs" mass="0.7" particles_per_obj="5016" mesh_filename="../../meshes/helix.off" >
+		<generate type="read_rbcs" ic_filename="rbcs.ic" />
 	</particle_vector>
 	
 	<object_belonging_checker name="rbc_checker" type="mesh" object_vector="rbcs"  >
@@ -65,9 +65,9 @@
 		<apply_to pv1="ins" pv2="dpd"/>
 	</interaction> -->
 	
-	<interaction type="rbc" name="rbc_int" preset="lina" kb="30"  >
+	<!-- <interaction type="rbc" name="rbc_int" preset="lina" kb="30"  >
 		<apply_to pv1="rbcs" pv2="rbcs"/>
-	</interaction>
+	</interaction> -->
 	
 	<interaction type="dpd" name="fsi" a="0" gamma="10" kbt="0.5" dt="0.001" rc="1.0" power="0.5">
 		<apply_to pv1="rbcs" pv2="dpd"/>
@@ -103,12 +103,12 @@
 		
 	<plugin type="dump_xyz" name="rbcs"
 		pv_name="rbcs"
-		dump_every="200"
+		dump_every="1"
 		path="xyz/" />
 				
 	<plugin type="dump_xyz" name="dpd"
 		pv_name="dpd"
-		dump_every="50"
+		dump_every="1"
 		path="xyz/" />
 	
 <!-- 	<plugin type="dump_xyz" name="ins"
@@ -123,6 +123,6 @@
 	
 	<plugin type="stats" name="stats" every="500" />
 	
-	<run niters="100000" />
+	<run niters="10" />
 </simulation>
 

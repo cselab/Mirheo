@@ -5,7 +5,7 @@
 #include <string>
 #include <core/containers.h>
 
-#include "utils.h"
+#include <core/utils/folders.h>
 
 class ObjectVector;
 class RigidObjectVector;
@@ -21,6 +21,7 @@ public:
 
 	void setup(Simulation* sim, const MPI_Comm& comm, const MPI_Comm& interComm) override;
 	void beforeIntegration(cudaStream_t stream) override;
+	void afterIntegration(cudaStream_t stream) override;
 	void serializeAndSend (cudaStream_t stream) override;
 
 	bool needPostproc() override { return true; }

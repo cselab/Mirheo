@@ -1,6 +1,6 @@
 #include "dumpavg.h"
 #include "simple_serializer.h"
-#include "utils.h"
+#include <core/utils/folders.h>
 
 #include <core/utils/kernel_launch.h>
 #include <core/simulation.h>

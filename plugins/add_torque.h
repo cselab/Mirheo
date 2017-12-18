@@ -6,13 +6,13 @@
 
 #include <core/utils/folders.h>
 
-class ParticleVector;
+class RigidObjectVector;
 
-class AddForcePlugin : public SimulationPlugin
+class AddTorquePlugin : public SimulationPlugin
 {
 public:
-	AddForcePlugin(std::string name, std::string pvName, float3 force) :
-		SimulationPlugin(name), pvName(pvName), force(force)
+	AddTorquePlugin(std::string name, std::string rovName, float3 torque) :
+		SimulationPlugin(name), rovName(rovName), torque(torque)
 	{	}
 
 	void setup(Simulation* sim, const MPI_Comm& comm, const MPI_Comm& interComm) override;
@@ -20,11 +20,11 @@ public:
 
 	bool needPostproc() override { return false; }
 
-	~AddForcePlugin() = default;
+	~AddTorquePlugin() = default;
 
 private:
-	std::string pvName;
-	ParticleVector* pv;
-	float3 force;
+	std::string rovName;
+	RigidObjectVector* rov;
+	float3 torque;
 };
 

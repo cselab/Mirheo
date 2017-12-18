@@ -50,7 +50,7 @@ static __global__ void integrateRigidMotion(ROVviewWithOldMotion ovView, const f
 	const int objId = threadIdx.x + blockDim.x * blockIdx.x;
 	if (objId >= ovView.nObjects) return;
 
-	auto& motion = ovView.motions[objId];
+	auto motion = ovView.motions[objId];
 	ovView.old_motions[objId] = motion;
 
 	//**********************************************************************************
@@ -96,8 +96,10 @@ static __global__ void integrateRigidMotion(ROVviewWithOldMotion ovView, const f
 	motion.vel = vel;
 	motion.r += vel*dt;
 
+	ovView.motions[objId] = motion;
+
 //	printf("obj  %d  r [%f %f %f]   v [%f %f %f],  f [%f %f %f],  t [%f %f %f],   \n"
-//			"    q [%f %f %f %f]   w [%f %f %f]   L [%f %f %f] \n", ovView.ids[objId],
+//			"    q [%f %f %f %f]   w [%f %f %f]   L [%f %f %f] \n\n", ovView.ids[objId],
 //			motion.r.x,  motion.r.y,  motion.r.z,
 //			motion.vel.x,  motion.vel.y,  motion.vel.z,
 //			motion.force.x,  motion.force.y,  motion.force.z,

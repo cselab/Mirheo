@@ -7,7 +7,7 @@
 #include <core/xml/pugixml.hpp>
 
 #include <core/initial_conditions/uniform_ic.h>
-#include <core/initial_conditions/ellipsoid_ic.h>
+#include <core/initial_conditions/rigid_ic.h>
 #include <core/initial_conditions/rbcs_ic.h>
 #include <core/initial_conditions/restart.h>
 
@@ -20,20 +20,19 @@ private:
 		return (InitialConditions*) new UniformIC(density);
 	}
 
-	static InitialConditions* createEllipsoidsIC(pugi::xml_node node)
+	static InitialConditions* createRigidIC(pugi::xml_node node)
 	{
-		auto icfname  = node.attribute("ic_filename"). as_string("ellipsoids.ic");
-		auto xyzfname = node.attribute("xyz_filename").as_string("ellipsoid.xyz");
+		auto icfname  = node.attribute("ic_filename"). as_string("objects.ic");
+		auto xyzfname = node.attribute("xyz_filename").as_string("object.xyz");
 
-		return (InitialConditions*) new EllipsoidIC(xyzfname, icfname);
+		return (InitialConditions*) new RigidIC(xyzfname, icfname);
 	}
 
 	static InitialConditions* createRBCsIC(pugi::xml_node node)
 	{
 		auto icfname  = node.attribute("ic_filename"). as_string("rbcs.ic");
-		auto offfname = node.attribute("mesh_filename").as_string("rbc_mesh.off");
 
-		return (InitialConditions*) new RBC_IC(offfname, icfname);
+		return (InitialConditions*) new RBC_IC(icfname);
 	}
 
 	static InitialConditions* createRestartIC(pugi::xml_node node)
@@ -51,8 +50,8 @@ public:
 
 		if (type == "uniform")
 			return createUniformIC(node);
-		if (type == "read_ellipsoids")
-			return createEllipsoidsIC(node);
+		if (type == "read_rigid")
+			return createRigidIC(node);
 		if (type == "read_rbcs")
 			return createRBCsIC(node);
 		if (type == "restart")

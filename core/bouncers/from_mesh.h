@@ -4,8 +4,11 @@
 
 #include <core/containers.h>
 
+class RigidObjectVector;
+
 /**
- * Implements bounce-back from mesh
+ * Implements bounce-back from deformable mesh.
+ * Mesh vertices must be the particles in the ParicleVector
  */
 class BounceFromMesh : public Bouncer
 {
@@ -31,6 +34,8 @@ protected:
 	 */
 	DeviceBuffer<int2> collisionTable, tmp_collisionTable;
 	DeviceBuffer<char> sortBuffer;
+
+	RigidObjectVector* rov;
 
 	void exec(ParticleVector* pv, CellList* cl, float dt, bool local, cudaStream_t stream) override;
 	void setup(ObjectVector* ov) override;

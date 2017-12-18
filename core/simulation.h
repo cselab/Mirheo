@@ -3,9 +3,6 @@
 #include <core/logger.h>
 #include <core/datatypes.h>
 #include <core/containers.h>
-#include <core/celllist.h>
-#include <core/pvs/particle_vector.h>
-#include <core/pvs/object_vector.h>
 
 #include <core/bouncers/interface.h>
 #include <core/initial_conditions/interface.h>
@@ -13,10 +10,10 @@
 #include <core/interactions/interface.h>
 #include <core/walls/interface.h>
 #include <core/object_belonging/interface.h>
+#include <plugins/interface.h>
 
 #include <core/task_scheduler.h>
 #include <core/mpi/api.h>
-#include <plugins/interface.h>
 
 #include "domain.h"
 
@@ -24,6 +21,11 @@
 #include <vector>
 #include <string>
 #include <map>
+
+// Some forward declarations
+class ParticleVector;
+class ObjectVector;
+class CellList;
 
 class Simulation
 {
@@ -37,7 +39,7 @@ public:
 
 	Simulation(int3 nranks3D, float3 globalDomainSize, const MPI_Comm& comm, const MPI_Comm& interComm);
 
-	void registerParticleVector         (ParticleVector* pv, InitialConditions* ic);
+	void registerParticleVector         (ParticleVector* pv, InitialConditions* ic, int checkpointEvery);
 	void registerWall                   (Wall* wall, int checkEvery=0);
 	void registerInteraction            (Interaction* interaction);
 	void registerIntegrator             (Integrator* integrator);

@@ -4,7 +4,7 @@
 	<domain size="64 64 64" />
 	
 	<particle_vector type="regular" name="dpd" mass="1">
-		<generate type="uniform" density="8" />
+		<generate type="uniform" density="12" />
 	</particle_vector>
 	
 	<!-- <particle_vector type="regular" name="wall" mass="1">

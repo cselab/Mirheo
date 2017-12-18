@@ -8,6 +8,8 @@
 #include <core/rbc_kernels/bounce.h>
 #include <core/cub/device/device_radix_sort.cuh>
 
+#include <core/rigid_kernels/integration.h>
+
 /**
  * Create the bouncer
  * @param name unique bouncer name
@@ -28,13 +30,24 @@ void BounceFromMesh::setup(ObjectVector* ov)
 {
 	this->ov = ov;
 
+	// If the object is rigid, we need to collect the forces into the RigidMotion
+	rov = dynamic_cast<RigidObjectVector*> (ov);
+
+	// for NON-rigid objects:
+	//
 	// old positions HAVE to be known when the mesh travels to other ranks
 	// shift HAS be applied as well
-	ov->requireDataPerParticle<Particle> ("old_particles", true, sizeof(float));
+	//
+	// for Rigid:
+	// old motions HAVE to be there and communicated and shifted
+	if (rov == nullptr)
+		ov->requireDataPerParticle<Particle> ("old_particles", true, sizeof(float));
+	else
+		ov->requireDataPerObject<RigidMotion> ("old_motions", true, sizeof(RigidReal));
 }
 
 /**
- * @brief Bounce particles from objects with meshes
+ * Bounce particles from objects with meshes
  *
  * Firstly find all the collisions and generate array of colliding pairs Pid <--> TRid
  * Work is per-triangle, so only particle cell-lists are needed
@@ -65,15 +78,24 @@ void BounceFromMesh::exec(ParticleVector* pv, CellList* cl, float dt, bool local
 
 	int nthreads = 128;
 
-	OVviewWithOldPartilces objView(ov, activeOV);
+	// FIXME this is a hack
+	if (rov)
+	{
+		if (local)
+			rov->local()->getMeshForces(stream)->clear(stream);
+		else
+			rov->halo()-> getMeshForces(stream)->clear(stream);
+	}
+
+
+	OVviewWithNewOldVertices vertexView(ov, activeOV, stream);
 	PVviewWithOldParticles pvView(pv, pv->local());
-	MeshView mesh(ov->mesh, activeOV->getMeshVertices(stream));
 
 	// Step 1, find all the collistions
 	SAFE_KERNEL_LAUNCH(
 			findBouncesInMesh,
 			getNblocks(totalTriangles, nthreads), nthreads, 0, stream,
-			objView, pvView, mesh, cl->cellInfo(),
+			vertexView, pvView, ov->mesh, cl->cellInfo(),
 			nCollisions.devPtr(), collisionTable.devPtr(), collisionTable.size() );
 
 	nCollisions.downloadFromDevice(stream);
@@ -99,7 +121,23 @@ void BounceFromMesh::exec(ParticleVector* pv, CellList* cl, float dt, bool local
 	SAFE_KERNEL_LAUNCH(
 			performBouncing,
 			getNblocks(nCollisions[0], nthreads), nthreads, 0, stream,
-			objView, pvView, mesh,
+			vertexView, pvView, ov->mesh,
 			nCollisions[0], tmp_collisionTable.devPtr(), dt,
 			kbT, drand48(), drand48() );
+
+
+	if (rov != nullptr)
+	{
+		// make a fake view with vertices instead of particles
+		ROVview view(rov, local ? rov->local() : rov->halo());
+		view.objSize = ov->mesh.nvertices;
+		view.size = view.nObjects * view.objSize;
+		view.particles = vertexView.vertices;
+		view.forces = vertexView.vertexForces;
+
+		SAFE_KERNEL_LAUNCH(
+				collectRigidForces,
+				getNblocks(view.size, 128), 128, 0, stream,
+				view );
+	}
 }

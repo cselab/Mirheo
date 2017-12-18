@@ -36,6 +36,20 @@ private:
 		return (ParticleVector*) new RigidEllipsoidObjectVector(name, mass, objSize, axes);
 	}
 
+	static ParticleVector* createRigidObjects(pugi::xml_node node)
+	{
+		auto name      = node.attribute("name").as_string("");
+		auto mass      = node.attribute("mass").as_float(1);
+
+		auto objSize   = node.attribute("particles_per_obj").as_int(1);
+		auto J         = node.attribute("moment_of_inertia").as_float3();
+		auto meshFname = node.attribute("mesh_filename").as_string("mesh.off");
+
+		Mesh mesh(meshFname);
+
+		return (ParticleVector*) new RigidObjectVector(name, mass, J, objSize, std::move(mesh));
+	}
+
 	static ParticleVector* createRbcs(pugi::xml_node node)
 	{
 		auto name      = node.attribute("name").as_string("");
@@ -59,6 +73,8 @@ public:
 			return createRegularPV(node);
 		if (type == "rigid_ellipsoids")
 			return createRigidEllipsoids(node);
+		if (type == "rigid_objects")
+			return createRigidObjects(node);
 		if (type == "rbcs")
 			return createRbcs(node);
 

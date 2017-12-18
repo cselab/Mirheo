@@ -81,7 +81,7 @@ void InteractionRBCMembrane::regular(ParticleVector* pv1, ParticleVector* pv2, C
 		ov->local()->nObjects, ov->name.c_str());
 
 	OVviewWithAreaVolume view(ov, ov->local());
-	MeshView mesh(ov->mesh, ov->local()->getMeshVertices(stream));
+	MeshView mesh(ov->mesh);
 	ov->local()->extraPerObject.getData<float2>("area_volumes")->clearDevice(stream);
 
 	const int nthreads = 128;

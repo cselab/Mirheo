@@ -116,11 +116,11 @@ def main():
 	nbins = 100
 	r = 30.0
 	
-	fname = "/home/alexeedm/udevicex/apps/udevicex/pois_xdmf/avg_rho_u00004.h5"
+	fname = "/home/alexeedm/extern/daint/scratch/poiseuille/run_10_4.5_1.0_0.5_8_0.1/xdmf/avg_rho_u00005.h5"
 	
 	vel, dens, cnt = radial_profile(fname, nbins, [0.125, 0.125], [32, 32], r)
 	
-	velFit, eta, err = fit_velocity(vel, cnt, 0.05, 8, r / nbins)
+	velFit, eta, err = fit_velocity(vel, cnt, 0.1, 8, r / nbins)
 	
 	print "Viscosity: ", eta
 	print "Fit err: ", err

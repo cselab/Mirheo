@@ -1,5 +1,10 @@
 #include "simulation.h"
 
+#include <core/celllist.h>
+#include <core/pvs/particle_vector.h>
+#include <core/pvs/object_vector.h>
+#include <core/utils/folders.h>
+
 #include <algorithm>
 
 Simulation::Simulation(int3 nranks3D, float3 globalDomainSize, const MPI_Comm& comm, const MPI_Comm& interComm) :
@@ -18,16 +23,8 @@ nranks3D(nranks3D), interComm(interComm), currentTime(0), currentStep(0)
 	domain.localSize = domain.globalSize / make_float3(nranks3D);
 	domain.globalStart = {domain.localSize.x * coords[0], domain.localSize.y * coords[1], domain.localSize.z * coords[2]};
 
-//	restartFolder  = "./restart/";
-//	std::string command = "mkdir -p " + restartFolder;
-//	if (rank == 0)
-//	{
-//		if ( system(command.c_str()) != 0 )
-//		{
-//			error("Could not create folder for restart files, will try to use ./");
-//			restartFolder = "./";
-//		}
-//	}
+	restartFolder  = "./restart/";
+	createFoldersCollective(cartComm, restartFolder);
 
 	info("Simulation initialized, subdomain size is [%f %f %f], subdomain starts at [%f %f %f]",
 			domain.localSize.x,  domain.localSize.y,  domain.localSize.z,
@@ -38,12 +35,12 @@ nranks3D(nranks3D), interComm(interComm), currentTime(0), currentStep(0)
 // Registration
 //================================================================================================
 
-void Simulation::registerParticleVector(ParticleVector* pv, InitialConditions* ic)
+void Simulation::registerParticleVector(ParticleVector* pv, InitialConditions* ic, int checkpointEvery)
 {
 	std::string name = pv->name;
 
 	if (name == "none" || name == "all" || name == "")
-		die("Invalid name for a particle vector (reserved or empty): '%s'", name.c_str());
+		die("Invalid name for a particle vector (reserved word or empty): '%s'", name.c_str());
 
 	particleVectors.push_back(pv);
 
@@ -60,6 +57,15 @@ void Simulation::registerParticleVector(ParticleVector* pv, InitialConditions* i
 		ic->exec(cartComm, pv, domain, 0);
 	else // TODO: get rid of this
 		pv->domain = domain;
+
+	if (checkpointEvery > 0)
+	{
+		debug("Will save checkpoint of particle vector '%s' every %d timesteps", name.c_str(), checkpointEvery);
+
+		scheduler.addTask( "Checkpoint", [pv, this] (cudaStream_t stream) {
+			pv->checkpoint(cartComm, restartFolder);
+		}, checkpointEvery );
+	}
 
 	debug("Registered particle vector '%s', %d particles", pv->name.c_str(), pv->local()->size());
 }
@@ -242,13 +248,13 @@ void Simulation::applyObjectBelongingChecker(std::string checkerName,
 	if (inside != "none" && pvInside == nullptr)
 	{
 		pvInside = new ParticleVector(inside, pvSource->mass);
-		registerParticleVector(pvInside, nullptr);
+		registerParticleVector(pvInside, nullptr, 0);
 	}
 
 	if (outside != "none" && pvOutside == nullptr)
 	{
 		pvOutside = new ParticleVector(outside, pvSource->mass);
-		registerParticleVector(pvOutside, nullptr);
+		registerParticleVector(pvOutside, nullptr, 0);
 	}
 
 	splitterPrototypes.push_back(std::make_tuple(checker, pvSource, pvInside, pvOutside));
@@ -612,6 +618,8 @@ void Simulation::assemble()
 	});
 
 
+
+	scheduler.addDependency("Checkpoint", {"Clear forces"}, {"Сell-lists"});
 
 	scheduler.addDependency("Сell-lists", {"Clear forces"}, {});
 

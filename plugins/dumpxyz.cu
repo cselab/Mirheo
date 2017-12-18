@@ -1,6 +1,6 @@
 #include "dumpxyz.h"
 #include "simple_serializer.h"
-#include "utils.h"
+#include <core/utils/folders.h>
 
 #include <core/simulation.h>
 #include <core/pvs/particle_vector.h>

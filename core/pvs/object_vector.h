@@ -24,11 +24,14 @@ public:
 	};
 
 
-	LocalObjectVector(const int objSize, const int nObjects = 0, cudaStream_t stream = 0) :
-		LocalParticleVector(objSize*nObjects), objSize(objSize), nObjects(nObjects)
+	LocalObjectVector(ParticleVector* pv, int objSize, int nObjects = 0) :
+		LocalParticleVector(pv, objSize*nObjects), objSize(objSize), nObjects(nObjects)
 	{
-		resize(nObjects*objSize, stream);
-	};
+		if (objSize <= 0)
+			die("Object vector should contain at least one particle per object instead of %d", objSize);
+
+		resize_anew(nObjects*objSize);
+	}
 
 	void resize(const int np, cudaStream_t stream) override
 	{
@@ -57,6 +60,16 @@ public:
 		return &coosvels;
 	}
 
+	virtual PinnedBuffer<Particle>* getOldMeshVertices(cudaStream_t stream)
+	{
+		return extraPerParticle.getData<Particle>("old_particles");
+	}
+
+	virtual DeviceBuffer<Force>* getMeshForces(cudaStream_t stream)
+	{
+		return &forces;
+	}
+
 
 	virtual ~LocalObjectVector() = default;
 };
@@ -82,8 +95,8 @@ public:
 
 	ObjectVector(std::string name, float mass, const int objSize, const int nObjects = 0) :
 		ObjectVector( name, mass, objSize,
-					  new LocalObjectVector(objSize, nObjects),
-					  new LocalObjectVector(objSize, 0) )
+					  new LocalObjectVector(this, objSize, nObjects),
+					  new LocalObjectVector(this, objSize, 0) )
 	{	}
 
 	void findExtentAndCOM(cudaStream_t stream, bool isLocal);

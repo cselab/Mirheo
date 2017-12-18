@@ -1,4 +1,4 @@
-#include "ellipsoid_ic.h"
+#include "rigid_ic.h"
 
 #include <random>
 #include <fstream>
@@ -9,7 +9,7 @@
 
 #include <core/rigid_kernels/rigid_motion.h>
 
-void EllipsoidIC::readXYZ(std::string fname, PinnedBuffer<float4>& positions, cudaStream_t stream)
+void RigidIC::readXYZ(std::string fname, PinnedBuffer<float4>& positions, cudaStream_t stream)
 {
 	int n;
 	float dummy;
@@ -31,11 +31,11 @@ void EllipsoidIC::readXYZ(std::string fname, PinnedBuffer<float4>& positions, cu
 	positions.uploadToDevice(stream);
 }
 
-void EllipsoidIC::exec(const MPI_Comm& comm, ParticleVector* pv, DomainInfo domain, cudaStream_t stream)
+void RigidIC::exec(const MPI_Comm& comm, ParticleVector* pv, DomainInfo domain, cudaStream_t stream)
 {
-	auto ov = dynamic_cast<RigidEllipsoidObjectVector*>(pv);
+	auto ov = dynamic_cast<RigidObjectVector*>(pv);
 	if (ov == nullptr)
-		die("Ellipsoids can only be generated out of rigid object vectors");
+		die("Can only generate rigid object vector");
 
 	pv->domain = domain;
 

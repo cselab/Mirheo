@@ -15,7 +15,7 @@ struct PVview
 
 	PVview(ParticleVector* pv = nullptr, LocalParticleVector* lpv = nullptr)
 	{
-		if (pv == nullptr || lpv == nullptr) return;
+		if (lpv == nullptr) return;
 
 		size = lpv->size();
 		particles = reinterpret_cast<float4*>(lpv->coosvels.devPtr());

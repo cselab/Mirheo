@@ -5,7 +5,6 @@
 #include <core/simulation.h>
 
 #include <core/utils/cuda_common.h>
-#include <core/utils/cuda_rng.h>
 
 __global__ void addForce(PVview view, float3 force)
 {

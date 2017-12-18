@@ -14,7 +14,9 @@ public:
 						sqr(axes.y) + sqr(axes.z),
 						sqr(axes.z) + sqr(axes.x),
 						sqr(axes.x) + sqr(axes.y) ),
-				objSize, nObjects),
+				objSize,
+				Mesh(),
+				nObjects),
 		axes(axes)
 	{	}
 

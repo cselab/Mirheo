@@ -13,7 +13,7 @@
 //	CUDA_Check( cudaMemcpy(triangles.devPtr(), m.triangles.devPtr(), ntriangles * triangles.datatype_size(), cudaMemcpyDeviceToDevice) );
 //}
 
-// Read off mesh
+/// Read off mesh
 Mesh::Mesh(std::string fname)
 {
 	std::ifstream fin(fname);
@@ -29,11 +29,13 @@ Mesh::Mesh(std::string fname)
 	fin >> nvertices >> ntriangles >> nedges;
 	std::getline(fin, line); // Finish with this line
 
+	// Read the vertex coordinates
+	vertexCoordinates.resize_anew(nvertices);
 	for (int i=0; i<nvertices; i++)
-		std::getline(fin, line);
+		fin >> vertexCoordinates[i].x >> vertexCoordinates[i].y >> vertexCoordinates[i].z;
 
+	// Read the connectivity data
 	triangles.resize_anew(ntriangles);
-
 	for (int i=0; i<ntriangles; i++)
 	{
 		int number;
@@ -54,12 +56,8 @@ Mesh::Mesh(std::string fname)
 		check(triangles[i].z);
 	}
 
-	findAdjacent();
-
 	triangles.uploadToDevice(0);
-	adjacent.uploadToDevice(0);
-	adjacent_second.uploadToDevice(0);
-	degrees.uploadToDevice(0);
+	vertexCoordinates.uploadToDevice(0);
 }
 
 
@@ -172,6 +170,10 @@ void Mesh::findAdjacent()
 				break;
 			}
 	}
+
+	adjacent.uploadToDevice(0);
+	adjacent_second.uploadToDevice(0);
+	degrees.uploadToDevice(0);
 }
 
 

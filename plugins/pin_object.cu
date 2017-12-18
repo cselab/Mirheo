@@ -32,30 +32,32 @@ __global__ void restrictForces(OVview view, int3 pinTranslation, float4* totForc
 		atomicAdd(totForces + view.ids[objId], myf);
 }
 
-__global__ void restrictRigidMotion(ROVview view, int3 pinTranslation, int3 pinRotation, float4* totForces, float4* totTorques)
+__global__ void revertRigidMotion(ROVviewWithOldMotion view, int3 pinTranslation, int3 pinRotation, float4* totForces, float4* totTorques)
 {
 	int objId = blockIdx.x * blockDim.x + threadIdx.x;
 	if (objId >= view.nObjects) return;
 
-	auto& motion = view.motions[objId];
+	auto motion     = view.motions    [objId];
+	auto old_motion = view.old_motions[objId];
 
 	int globObjId = view.ids[objId];
 
-	if (pinTranslation.x) { totForces[globObjId].x  += motion.force.x;   motion.force.x  = 0.0f; }
-	if (pinTranslation.y) { totForces[globObjId].y  += motion.force.y;   motion.force.y  = 0.0f; }
-	if (pinTranslation.z) { totForces[globObjId].z  += motion.force.z;   motion.force.z  = 0.0f; }
+	if (pinTranslation.x) { totForces[globObjId].x  += old_motion.force.x;   motion.r.x = old_motion.r.x; }
+	if (pinTranslation.y) { totForces[globObjId].y  += old_motion.force.y;   motion.r.y = old_motion.r.y; }
+	if (pinTranslation.z) { totForces[globObjId].z  += old_motion.force.z;   motion.r.z = old_motion.r.z; }
 
-	if (pinRotation.x)    { totTorques[globObjId].x += motion.torque.x;  motion.torque.x = 0.0f; }
-	if (pinRotation.y)    { totTorques[globObjId].y += motion.torque.y;  motion.torque.y = 0.0f; }
-	if (pinRotation.z)    { totTorques[globObjId].z += motion.torque.z;  motion.torque.z = 0.0f; }
+	// https://stackoverflow.com/a/22401169/3535276
+	// looks like q.x, 0, 0, q.w is responsible for the X axis rotation etc.
+	// so to restrict rotation along ie. X, we need to preserve q.x
+	// and normalize of course
+	if (pinRotation.x)    { totTorques[globObjId].x += old_motion.torque.x;  motion.q.y = old_motion.q.y; }
+	if (pinRotation.y)    { totTorques[globObjId].y += old_motion.torque.y;  motion.q.z = old_motion.q.z; }
+	if (pinRotation.z)    { totTorques[globObjId].z += old_motion.torque.z;  motion.q.w = old_motion.q.w; }
+
+	motion.q = normalize(motion.q);
+	view.motions[objId] = motion;
 }
 
-__global__ void scaleVec(int n, float4* vectorField, const float a)
-{
-	const int id = threadIdx.x + blockIdx.x*blockDim.x;
-	if (id < n)
-		vectorField[id] /= a;
-}
 
 
 void PinObjectPlugin::setup(Simulation* sim, const MPI_Comm& comm, const MPI_Comm& interComm)
@@ -93,26 +95,35 @@ void PinObjectPlugin::setup(Simulation* sim, const MPI_Comm& comm, const MPI_Com
 
 void PinObjectPlugin::beforeIntegration(cudaStream_t stream)
 {
-	OVview view(ov, ov->local());
-	const int nthreads = 128;
+	// If the object is not rigid, modify the forces
+	// We'll deal with the rigid objects after the integration
+	if (rov == nullptr)
+	{
+		debug("Restricting motion of OV '%s' as per plugin '%s'", ovName.c_str(), name.c_str());
 
-	debug("Restricting motion of OV '%s' as per plugin '%s'", ovName.c_str(), name.c_str());
+		const int nthreads = 128;
+		OVview view(ov, ov->local());
+		SAFE_KERNEL_LAUNCH(
+				restrictForces,
+				view.nObjects, nthreads, 0, stream,
+				view, pinTranslation, forces.devPtr() );
+	}
+}
 
-	SAFE_KERNEL_LAUNCH(
-			restrictForces,
-			view.nObjects, nthreads, 0, stream,
-			view, pinTranslation, forces.devPtr() );
-
+void PinObjectPlugin::afterIntegration(cudaStream_t stream)
+{
+	// If the object IS rigid, revert to old_motion
 	if (rov != nullptr)
 	{
-		const int nthreads = 32;
+		debug("Restricting rigid motion of OV '%s' as per plugin '%s'", ovName.c_str(), name.c_str());
 
-		ROVview rovView(rov, rov->local());
+		const int nthreads = 32;
+		ROVviewWithOldMotion view(rov, rov->local());
 		SAFE_KERNEL_LAUNCH(
-					restrictRigidMotion,
-					getNblocks(view.nObjects, nthreads), nthreads, 0, stream,
-					rovView, pinTranslation, pinRotation,
-					forces.devPtr(), torques.devPtr() );
+				revertRigidMotion,
+				getNblocks(view.nObjects, nthreads), nthreads, 0, stream,
+				view, pinTranslation, pinRotation,
+				forces.devPtr(), torques.devPtr() );
 	}
 }
 

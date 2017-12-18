@@ -9,21 +9,21 @@
 
 #include <map>
 
+class ParticleVector;
+
 class LocalParticleVector
 {
-protected:
-	int np;
-
 public:
+	ParticleVector* pv;
 
 	PinnedBuffer<Particle> coosvels;
 	DeviceBuffer<Force> forces;
 	ExtraDataManager extraPerParticle;
 
 	// Local coordinate system; (0,0,0) is center of the local domain
-	LocalParticleVector(int n=0, cudaStream_t stream = 0)
+	LocalParticleVector(ParticleVector* pv, int n=0) : pv(pv)
 	{
-		resize(n, stream);
+		resize_anew(n);
 	}
 
 	int size()
@@ -54,10 +54,12 @@ public:
 	}
 
 	virtual ~LocalParticleVector() = default;
+
+protected:
+	int np;
 };
 
 
-// TODO: proxy extra data requirements from here, not from Local...
 class ParticleVector
 {
 public:
@@ -76,8 +78,8 @@ public:
 	ParticleVector(std::string name, float mass, int n=0) :
 		ParticleVector(
 				name, mass,
-				new LocalParticleVector(n),
-				new LocalParticleVector(0) )
+				new LocalParticleVector(this, n),
+				new LocalParticleVector(this, 0) )
 	{	}
 
 	LocalParticleVector* local() { return _local; }
@@ -108,6 +110,8 @@ protected:
 		// usually old positions and velocities don't need to exchanged
 		requireDataPerParticle<Particle> ("old_particles", false);
 	}
+
+	int restartIdx = 0;
 
 private:
 

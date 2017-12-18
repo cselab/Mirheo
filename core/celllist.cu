@@ -234,8 +234,8 @@ void PrimaryCellList::build(cudaStream_t stream)
 	debug2("Reordering completed, new size of %s particle vector is %d", pv->name.c_str(), newSize);
 
 	particlesContainer.resize(newSize, stream);
-	pv->local()->resize_anew(newSize);
 	std::swap(pv->local()->coosvels, particlesContainer);
+	pv->local()->resize(newSize, stream);
 }
 
 

@@ -9,10 +9,11 @@ class RBCvector : public ObjectVector
 public:
 	RBCvector(std::string name, float mass, const int objSize, Mesh mesh, const int nObjects = 0) :
 		ObjectVector( name, mass, objSize,
-					  new LocalObjectVector(objSize, nObjects),
-					  new LocalObjectVector(objSize, 0) )
+					  new LocalObjectVector(this, objSize, nObjects),
+					  new LocalObjectVector(this, objSize, 0) )
 	{
 		this->mesh = std::move(mesh);
+		//this->mesh.findAdjacent();
 
 		if (objSize != mesh.nvertices)
 			die("RBC vector '%s': object size (%d) and number of vertices in mesh (%d) mismach",

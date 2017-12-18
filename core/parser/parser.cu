@@ -64,7 +64,8 @@ uDeviceX* Parser::setup_uDeviceX(Logger& logger)
 			{
 				auto pv = ParticleVectorFactory::create(node);
 				auto ic = InitialConditionsFactory::create(node.child("generate"));
-				udx->sim->registerParticleVector(pv, ic);
+				auto checkpointEvery = node.attribute("checkpoint_every").as_int(0);
+				udx->sim->registerParticleVector(pv, ic, checkpointEvery);
 			}
 
 			if ( std::string(node.name()) == "interaction" )

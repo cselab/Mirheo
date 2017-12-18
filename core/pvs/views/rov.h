@@ -13,12 +13,12 @@ struct ROVview : public OVview
 	// TODO: implement this
 	//float inertia[9];
 
-	ROVview(RigidObjectVector* rov = nullptr, LocalObjectVector* lov = nullptr) :
-		OVview(rov, lov)
+	ROVview(RigidObjectVector* rov = nullptr, LocalRigidObjectVector* lrov = nullptr) :
+		OVview(rov, lrov)
 	{
-		if (rov == nullptr || lov == nullptr) return;
+		if (rov == nullptr || lrov == nullptr) return;
 
-		motions = lov->extraPerObject.getData<RigidMotion>("motions")->devPtr();
+		motions = lrov->extraPerObject.getData<RigidMotion>("motions")->devPtr();
 
 		// More fields
 		J = rov->J;
@@ -30,12 +30,12 @@ struct ROVviewWithOldMotion : public ROVview
 {
 	RigidMotion *old_motions = nullptr;
 
-	ROVviewWithOldMotion(RigidObjectVector* rov = nullptr, LocalObjectVector* lov = nullptr) :
-		ROVview(rov, lov)
+	ROVviewWithOldMotion(RigidObjectVector* rov = nullptr, LocalRigidObjectVector* lrov = nullptr) :
+		ROVview(rov, lrov)
 	{
-		if (rov == nullptr || lov == nullptr) return;
+		if (rov == nullptr || lrov == nullptr) return;
 
-		old_motions = lov->extraPerObject.getData<RigidMotion>("old_motions")->devPtr();
+		old_motions = lrov->extraPerObject.getData<RigidMotion>("old_motions")->devPtr();
 	}
 };
 

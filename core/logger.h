@@ -255,7 +255,7 @@ private:
 
 #if COMPILE_DEBUG_LVL >= 0
 /// Report a fatal error and abort
-#define   die(...)  logger.log<0>    (__FILE__, __LINE__, ##__VA_ARGS__)
+#define   die(...)  logger._die      (__FILE__, __LINE__, ##__VA_ARGS__)
 #else
 #define   die(...)  do { } while(0)
 #endif

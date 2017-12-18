@@ -10,86 +10,95 @@
 
 const float tolerance = 1e-6f;
 
-__device__ inline float whichTriangSide(float3 r, float3 a, float3 b, float3 c)
+/// https://en.wikipedia.org/wiki/M%C3%B6ller%E2%80%93Trumbore_intersection_algorithm
+__device__ inline bool doesRayIntersectTriangle(
+		float3 rayOrigin,
+		float3 rayVector,
+		float3 v0, float3 v1, float3 v2)
 {
-	return dot(r-a, cross(b-a, c-a));
-}
+	float3 edge1, edge2, h, s, q;
+	float a,f,u,v;
 
-// Mesh normals look INSIDE
-__device__ inline int particleInsideTetrahedron(float3 r, float3 v0, float3 v1, float3 v2, float3 v3)
-{
-	float s0 = whichTriangSide(r,  v2, v1, v3);
-	float s1 = whichTriangSide(r,  v0, v1, v2);
-	float s2 = whichTriangSide(r,  v0, v2, v3);
-	float s3 = whichTriangSide(r,  v0, v3, v1);
+	edge1 = v1 - v0;
+	edge2 = v2 - v0;
+	h = cross(rayVector, edge2);
+	a = dot(edge1, h);
+	if (fabs(a) < tolerance)
+		return false;
 
-	if (s0 < 0 || s1 < 0 || s2 < 0 || s3 < 0)
-		return 0;
+	f = 1.0f / a;
+	s = rayOrigin - v0;
+	u = f * (dot(s, h));
+	if (u < 0.0f || u > 1.0f)
+		return false;
 
-//	if (fabs(s0) < tolerance) return 1;
-//	if (fabs(s1) < tolerance) return 1;
-//	if (fabs(s2) < tolerance) return 1;
-//	if (fabs(s3) < tolerance) return 1;
+	q = cross(s, edge1);
+	v = f * dot(rayVector, q);
+	if (v < 0.0f || u + v > 1.0f)
+		return false;
 
-	return 2;
+	// At this stage we can compute t to find out where the intersection point is on the line.
+	float t = f * dot(edge2, q);
+
+	if (t > tolerance) // ray intersection
+		return true;
+	else
+		return false; // This means that there is a line intersection but not a ray intersection.
 }
 
 
 /**
  * One warp works on one particle
  */
-__device__ BelongingTags oneParticleInsideMesh(int pid, float3 r, int objId, const float3 com, const MeshView mesh)
+__device__ BelongingTags oneParticleInsideMesh(int pid, float3 r, int objId, const float3 com, const MeshView mesh, const float4* vertices)
 {
-	int counter = 0;
-
 	// Work in obj reference frame for simplicity
 	r = r - com;
 
-	float3 tot = make_float3(0);
+	// shoot 3 rays in different directions, count intersections
+	const int nRays = 3;
+	float3 rays[nRays] = { {0,1,0}, {0,1,0}, {0,1,0} };
+	int counters[nRays] = {0, 0, 0};
 
 	for (int i = __laneid(); i < mesh.ntriangles; i += warpSize)
 	{
-		float3 v0 = make_float3(0.0f);
-
 		int3 trid = mesh.triangles[i];
 
-		float3 v1 = Particle(mesh.vertices, objId*mesh.nvertices + trid.x).r - com;
-		float3 v2 = Particle(mesh.vertices, objId*mesh.nvertices + trid.y).r - com;
-		float3 v3 = Particle(mesh.vertices, objId*mesh.nvertices + trid.z).r - com;
+		float3 v0 = Particle(vertices, objId*mesh.nvertices + trid.x).r - com;
+		float3 v1 = Particle(vertices, objId*mesh.nvertices + trid.y).r - com;
+		float3 v2 = Particle(vertices, objId*mesh.nvertices + trid.z).r - com;
 
-		// If the particle is very close to the boundary
-		// return immediately
-		if ( fabs( dot(r-v1, normalize(cross(v2-v1, v3-v1))) ) < 10*tolerance )
-			return BelongingTags::Boundary;
+//		if (threadIdx.x == 0 && blockIdx.x == 0)
+//			printf("%d  %f %f %f\n", trid, v0.x, v0.y, v0.z);
 
-		// += 2 if inside
-		// += 1 if exactly on a side
-		counter += particleInsideTetrahedron(r, v0, v1, v2, v3);
+		for (int c=0; c<nRays; c++)
+			if (doesRayIntersectTriangle(r, rays[c], v0, v1, v2)) counters[c]++;
 	}
 
-	counter = warpReduce(counter, [] (int a, int b) { return a+b; });
+	// counter is odd if the particle is inside
+	// however, floating-point precision sometimes yields in errors
+	// so we choose what the majority(!) of the rays say
+	int intersecting = 0;
+	for (int c=0; c<nRays; c++)
+	{
+		counters[c] = warpReduce(counters[c], [] (int a, int b) { return a+b; });
+		if ( (counters[c] % 2) != 0 )
+			intersecting++;
+	}
 
-	// Incorrect result. Disregard the guy just in case
-	if (counter % 2 != 0) return BelongingTags::Boundary;
-
-
-	// Inside even number of tetrahedra => outside of object
-	if ( (counter/2) % 2 == 0 ) return BelongingTags::Outside;
-
-	// Inside odd number of tetrahedra => inside object
-	if ( (counter/2) % 2 != 0 ) return BelongingTags::Inside;
-
-	// Shut up compiler warning
-	return BelongingTags::Boundary;
+	if (intersecting > (nRays/2))
+		return BelongingTags::Inside;
+	else
+		return BelongingTags::Outside;
 }
 
 /**
  * OVview view is only used to provide # of objects and extent information
- * Actual data is in mesh.vertices
- * cinfo is the cell-list sync'd with the target ParticleVector data
+ * Actual data is in \p vertices
+ * @param cinfo is the cell-list sync'd with the target ParticleVector data
  */
 template<int WARPS_PER_OBJ>
-__global__ void insideMesh(const OVview view, const MeshView mesh, CellListInfo cinfo, BelongingTags* tags)
+__global__ void insideMesh(const OVview view, const MeshView mesh, float4* vertices, CellListInfo cinfo, BelongingTags* tags)
 {
 	const int gid = blockIdx.x*blockDim.x + threadIdx.x;
 	const int wid = gid / warpSize;
@@ -114,11 +123,12 @@ __global__ void insideMesh(const OVview view, const MeshView mesh, CellListInfo 
 		int pstart = cinfo.cellStarts[cid];
 		int pend   = cinfo.cellStarts[cid+1];
 
+#pragma unroll 3
 		for (int pid = pstart; pid < pend; pid++)
 		{
 			const Particle p(cinfo.particles, pid);
 
-			auto tag = oneParticleInsideMesh(pid, p.r, objId, view.comAndExtents[objId].com, mesh);
+			auto tag = oneParticleInsideMesh(pid, p.r, objId, view.comAndExtents[objId].com, mesh, vertices);
 
 			// Only tag particles inside, default is outside anyways
 			if (__laneid() == 0 && tag != BelongingTags::Outside)
@@ -135,7 +145,7 @@ void MeshBelongingChecker::tagInner(ParticleVector* pv, CellList* cl, cudaStream
 	tags.resize_anew(pv->local()->size());
 	tags.clearDevice(stream);
 
-	const int warpsPerObject = 32;
+	const int warpsPerObject = 1024;
 
 	ov->findExtentAndCOM(stream, true);
 	ov->findExtentAndCOM(stream, false);
@@ -144,7 +154,7 @@ void MeshBelongingChecker::tagInner(ParticleVector* pv, CellList* cl, cudaStream
 	auto lov = ov->local();
 	auto view = OVview(ov, lov);
 	auto vertices = lov->getMeshVertices(stream);
-	auto meshView = MeshView(ov->mesh, lov->getMeshVertices(stream));
+	auto meshView = MeshView(ov->mesh);
 
 	debug("Computing inside/outside tags (against mesh) for %d local objects '%s' and %d '%s' particles",
 			view.nObjects, ov->name.c_str(), pv->local()->size(), pv->name.c_str());
@@ -152,13 +162,13 @@ void MeshBelongingChecker::tagInner(ParticleVector* pv, CellList* cl, cudaStream
 	SAFE_KERNEL_LAUNCH(
 			insideMesh<warpsPerObject>,
 			getNblocks(warpsPerObject*32*view.nObjects, nthreads), nthreads, 0, stream,
-			view, meshView, cl->cellInfo(), tags.devPtr());
+			view, meshView, (float4*)vertices->devPtr(), cl->cellInfo(), tags.devPtr());
 
 	// Halo
 	lov = ov->halo();       // Note ->halo() here
 	view = OVview(ov, lov);
 	vertices = lov->getMeshVertices(stream);
-	meshView = MeshView(ov->mesh, lov->getMeshVertices(stream));
+	meshView = MeshView(ov->mesh);
 
 	debug("Computing inside/outside tags (against mesh) for %d halo objects '%s' and %d '%s' particles",
 			view.nObjects, ov->name.c_str(), pv->local()->size(), pv->name.c_str());
@@ -166,7 +176,7 @@ void MeshBelongingChecker::tagInner(ParticleVector* pv, CellList* cl, cudaStream
 	SAFE_KERNEL_LAUNCH(
 			insideMesh<warpsPerObject>,
 			getNblocks(warpsPerObject*32*view.nObjects, nthreads), nthreads, 0, stream,
-			view, meshView, cl->cellInfo(), tags.devPtr());
+			view, meshView, (float4*)vertices->devPtr(), cl->cellInfo(), tags.devPtr());
 }
 
 

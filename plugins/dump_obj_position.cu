@@ -1,6 +1,6 @@
 #include "dump_obj_position.h"
 #include "simple_serializer.h"
-#include "utils.h"
+#include <core/utils/folders.h>
 
 #include <core/simulation.h>
 #include <core/pvs/object_vector.h>
@@ -33,8 +33,8 @@ void ObjPositionsPlugin::beforeForces(cudaStream_t stream)
 	ov->local()->extraPerObject.getData<int>("ids")->downloadFromDevice(stream);
 	ov->local()->extraPerObject.getData<LocalObjectVector::COMandExtent> ("com_extents")->downloadFromDevice(stream);
 
-	if (ov->local()->extraPerObject.checkChannelExists("motions"))
-		ov->local()->extraPerObject.getData<RigidMotion> ("motions")->downloadFromDevice(stream);
+	if (ov->local()->extraPerObject.checkChannelExists("old_motions"))
+		ov->local()->extraPerObject.getData<RigidMotion> ("old_motions")->downloadFromDevice(stream);
 }
 
 void ObjPositionsPlugin::serializeAndSend(cudaStream_t stream)
@@ -52,8 +52,8 @@ void ObjPositionsPlugin::serializeAndSend(cudaStream_t stream)
 			ov->domain,
 			*ov->local()->extraPerObject.getData<int>("ids"),
 			*ov->local()->extraPerObject.getData<LocalObjectVector::COMandExtent>("com_extents"),
-			ov->local()->extraPerObject.checkChannelExists("motions") ?
-					*ov->local()->extraPerObject.getData<RigidMotion>("motions") : dummy );
+			ov->local()->extraPerObject.checkChannelExists("old_motions") ?
+					*ov->local()->extraPerObject.getData<RigidMotion>("old_motions") : dummy );
 
 	send(data);
 }

@@ -6,12 +6,12 @@ void ParticleVector::checkpoint(MPI_Comm comm, std::string path)
 {
 	CUDA_Check( cudaDeviceSynchronize() );
 
-	std::string fname = path + "/" + name + ".chk";
-	info("Checkpoint for particle vector %s, writing file %s", name.c_str(), fname.c_str());
+	std::string fname = path + "/" + name + std::to_string(restartIdx) + ".chk";
+	info("Checkpoint for particle vector '%s', writing to file %s", name.c_str(), fname.c_str());
 
 	local()->coosvels.downloadFromDevice(0, true);
 
-	for (int i=0; i<local()->coosvels.size(); i++)
+	for (int i=0; i<local()->size(); i++)
 		local()->coosvels[i].r = domain.local2global(local()->coosvels[i].r);
 
 	int myrank, size;
@@ -22,13 +22,18 @@ void ParticleVector::checkpoint(MPI_Comm comm, std::string path)
 	MPI_Check( MPI_Type_contiguous(sizeof(Particle), MPI_CHAR, &ptype) );
 	MPI_Check( MPI_Type_commit(&ptype) );
 
-	int64_t mysize = local()->coosvels.size();
+	int64_t mysize = local()->size();
 	int64_t offset = 0;
 	MPI_Check( MPI_Exscan(&mysize, &offset, 1, MPI_LONG_LONG, MPI_SUM, comm) );
 
 	MPI_File f;
 	MPI_Status status;
 
+	// Remove previous file if it was there
+	MPI_Check( MPI_File_open(comm, fname.c_str(), MPI_MODE_CREATE|MPI_MODE_DELETE_ON_CLOSE|MPI_MODE_WRONLY, MPI_INFO_NULL, &f) );
+	MPI_Check( MPI_File_close(&f) );
+
+	// Open for real now
 	MPI_Check( MPI_File_open(comm, fname.c_str(), MPI_MODE_WRONLY | MPI_MODE_CREATE, MPI_INFO_NULL, &f) );
 	if (myrank == size-1)
 	{
@@ -41,6 +46,18 @@ void ParticleVector::checkpoint(MPI_Comm comm, std::string path)
 	MPI_Check( MPI_File_close(&f) );
 
 	MPI_Check( MPI_Type_free(&ptype) );
+
+	if (myrank == 0)
+	{
+		std::string lnname = path + "/" + name + ".chk";
+
+		std::string command = "ln -f " + fname + "  " + lnname;
+		if ( system(command.c_str()) != 0 )
+			error("Could not create link for checkpoint file of PV '%s'", name.c_str());
+	}
+
+	debug("Checkpoint for particle vector '%s' successfully written", name.c_str());
+	restartIdx = restartIdx xor 1;
 }
 
 void ParticleVector::restart(MPI_Comm comm, std::string path)

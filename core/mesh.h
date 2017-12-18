@@ -15,13 +15,14 @@ public:
 	PinnedBuffer<int3> triangles;
 	PinnedBuffer<int> adjacent, adjacent_second, degrees;
 
+	PinnedBuffer<float4> vertexCoordinates;
+
 	Mesh() {};
 	Mesh(std::string);
 
 	Mesh(Mesh&&) = default;
 	Mesh& operator=(Mesh&&) = default;
 
-private:
 	void findAdjacent();
 };
 
@@ -32,9 +33,8 @@ struct MeshView
 	int3* triangles;
 	int *adjacent, *adjacent_second, *degrees;
 
-	float4* vertices;
 
-	MeshView(const Mesh& m, PinnedBuffer<Particle>* vertexCoosVels)
+	MeshView(const Mesh& m)
 	{
 		nvertices = m.nvertices;
 		ntriangles = m.ntriangles;
@@ -44,6 +44,5 @@ struct MeshView
 		adjacent = m.adjacent.devPtr();
 		adjacent_second = m.adjacent_second.devPtr();
 		degrees = m.degrees.devPtr();
-		vertices = reinterpret_cast<float4*>(vertexCoosVels->devPtr());
 	}
 };

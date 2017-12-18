@@ -15,6 +15,7 @@
 #include <plugins/impose_profile.h>
 #include <plugins/pin_object.h>
 #include <plugins/add_force.h>
+#include <plugins/add_torque.h>
 
 class PluginFactory
 {
@@ -55,6 +56,18 @@ private:
 		auto force   = node.attribute("force").as_float3();
 
 		auto simPl = computeTask ? new AddForcePlugin(name, pvName, force) : nullptr;
+
+		return { (SimulationPlugin*) simPl, nullptr };
+	}
+
+	static std::pair<SimulationPlugin*, PostprocessPlugin*> createAddTorquePlugin(pugi::xml_node node, bool computeTask)
+	{
+		auto name    = node.attribute("name").as_string();
+
+		auto pvName  = node.attribute("pv_name").as_string();
+		auto torque  = node.attribute("torque").as_float3();
+
+		auto simPl = computeTask ? new AddTorquePlugin(name, pvName, torque) : nullptr;
 
 		return { (SimulationPlugin*) simPl, nullptr };
 	}
@@ -148,7 +161,6 @@ private:
 		auto path      = node.attribute("path").as_string("pos/");
 
 
-
 		auto simPl  = computeTask ? new PinObjectPlugin(name, ovName, translate, rotate, dumpEvery) : nullptr;
 		auto postPl = computeTask ? nullptr : new ReportPinObjectPlugin(name, path);
 
@@ -160,27 +172,25 @@ public:
 	{
 		std::string type = node.attribute("type").as_string();
 
-		if (type == "temperaturize")
-			return createTemperaturizePlugin(node, computeTask);
-		if (type == "impose_profile")
-			return createImposeProfilePlugin(node, computeTask);
-		if (type == "add_force")
-			return createAddForcePlugin(node, computeTask);
-		if (type == "stats")
-			return createStatsPlugin(node, computeTask);
-		if (type == "dump_avg_flow")
-			return createDumpavgPlugin(node, computeTask);
-		if (type == "dump_xyz")
-			return createDumpXYZPlugin(node, computeTask);
-		if (type == "dump_obj_pos")
-			return createDumpObjPosition(node, computeTask);
-		if (type == "impose_velocity")
-			return createImposeVelocityPlugin(node, computeTask);
-		if (type == "pin_object")
-			return createPinObjPlugin(node, computeTask);
+		std::map<std::string, std::function< std::pair<SimulationPlugin*, PostprocessPlugin*>(pugi::xml_node, bool) >> plugins = {
+				{"temperaturize",    createTemperaturizePlugin  },
+				{"impose_profile",   createImposeProfilePlugin  },
+				{"add_torque",       createAddTorquePlugin      },
+				{"add_force",        createAddForcePlugin       },
+				{"stats",            createStatsPlugin          },
+				{"dump_avg_flow",    createDumpavgPlugin        },
+				{"dump_xyz",         createDumpXYZPlugin        },
+				{"dump_obj_pos",     createDumpObjPosition      },
+				{"impose_velocity",  createImposeVelocityPlugin },
+				{"pin_object",       createPinObjPlugin         }
+		};
 
-		die("Unable to parse input at %s, unknown 'type' %s", node.path().c_str(), type.c_str());
+		if (plugins.find(type) != plugins.end())
+			return plugins[type](node, computeTask);
+		else
+			die("Unable to parse input at %s, unknown 'type' %s", node.path().c_str(), type.c_str());
 
+		// shut up warning
 		return {nullptr, nullptr};
 	}
 };

@@ -221,7 +221,6 @@ __global__ void computeMembraneForces(
 {
 	// RBC particles are at the same time mesh vertices
 	assert(view.objSize == mesh.nvertices);
-	assert(view.particles == mesh.vertices);
 
 	const int pid = threadIdx.x + blockDim.x * blockIdx.x;
 	const int locId = pid % mesh.nvertices;

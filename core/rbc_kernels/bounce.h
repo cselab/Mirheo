@@ -194,7 +194,7 @@ __device__  void findBouncesInCell(
 
 __launch_bounds__(128, 6)
 static __global__ void findBouncesInMesh(
-		OVviewWithOldPartilces objView,
+		OVviewWithNewOldVertices objView,
 		PVviewWithOldParticles pvView,
 		MeshView mesh,
 		CellListInfo cinfo,
@@ -210,8 +210,8 @@ static __global__ void findBouncesInMesh(
 	if (objId >= objView.nObjects) return;
 
 	const int3 triangle = mesh.triangles[trid];
-	Triangle tr =    readTriangle(objView.particles +     2 * mesh.nvertices*objId, triangle);
-	Triangle trOld = readTriangle(objView.old_particles + 2 * mesh.nvertices*objId, triangle);
+	Triangle tr =    readTriangle(objView.vertices     + 2 * mesh.nvertices*objId, triangle);
+	Triangle trOld = readTriangle(objView.old_vertices + 2 * mesh.nvertices*objId, triangle);
 
 	// Use old triangle because cell-list is not yet rebuilt now
 	const float3 lo = fminf(trOld.v0, fminf(trOld.v1, trOld.v2));
@@ -268,7 +268,7 @@ __device__ inline float3 reflectVelocity(float3 n, float kbT, float mass, float 
 }
 
 static __global__ void performBouncing(
-		OVviewWithOldPartilces objView,
+		OVviewWithNewOldVertices objView,
 		PVviewWithOldParticles pvView,
 		MeshView mesh,
 		int nCollisions, int2* collisionTable,
@@ -311,8 +311,8 @@ static __global__ void performBouncing(
 		const int objId = nextPid_trid.y / mesh.ntriangles;
 
 		const int3 triangle = mesh.triangles[trid];
-		Triangle tr =    readTriangle(objView.particles +     2 * mesh.nvertices*objId, triangle);
-		Triangle trOld = readTriangle(objView.old_particles + 2 * mesh.nvertices*objId, triangle);
+		Triangle tr =    readTriangle(objView.vertices     + 2 * mesh.nvertices*objId, triangle);
+		Triangle trOld = readTriangle(objView.old_vertices + 2 * mesh.nvertices*objId, triangle);
 
 		float oldSign;
 		float4 res = intersectParticleTriangleBarycentric(tr, trOld, p, pOld, oldSign);
@@ -375,9 +375,9 @@ static __global__ void performBouncing(
 //	//if (length(f2) > 5000)
 //		printf("%d force %f %f %f\n", mesh.nvertices*objId + triangle.z, f2.x, f2.y, f2.z);
 
-	atomicAdd(objView.forces + mesh.nvertices*objId + triangle.x, f0);
-	atomicAdd(objView.forces + mesh.nvertices*objId + triangle.y, f1);
-	atomicAdd(objView.forces + mesh.nvertices*objId + triangle.z, f2);
+	atomicAdd(objView.vertexForces + mesh.nvertices*objId + triangle.x, f0);
+	atomicAdd(objView.vertexForces + mesh.nvertices*objId + triangle.y, f1);
+	atomicAdd(objView.vertexForces + mesh.nvertices*objId + triangle.z, f2);
 }
 
 
