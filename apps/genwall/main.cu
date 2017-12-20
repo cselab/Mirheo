@@ -189,7 +189,7 @@ int main(int argc, char** argv)
 
 		// Produce new pv out of particles inside the wall
 		freezeParticlesWrapper(wall.get(), startingPV.get(), wallPV.get(), -3, 4);
-		sim->registerParticleVector(wallPV.get(), nullptr);
+		sim->registerParticleVector(wallPV.get(), nullptr, 0);
 
 		// Sampler
 		auto sampler = std::unique_ptr<Interaction>( createMCMCSamplerWrapper(wallGenNode, wall.get()) );

@@ -42,17 +42,17 @@ __global__ void revertRigidMotion(ROVviewWithOldMotion view, int3 pinTranslation
 
 	int globObjId = view.ids[objId];
 
-	if (pinTranslation.x) { totForces[globObjId].x  += old_motion.force.x;   motion.r.x = old_motion.r.x; }
-	if (pinTranslation.y) { totForces[globObjId].y  += old_motion.force.y;   motion.r.y = old_motion.r.y; }
-	if (pinTranslation.z) { totForces[globObjId].z  += old_motion.force.z;   motion.r.z = old_motion.r.z; }
+	if (pinTranslation.x) { totForces[globObjId].x  += old_motion.force.x;   motion.r.x = old_motion.r.x;  motion.vel.x = 0; }
+	if (pinTranslation.y) { totForces[globObjId].y  += old_motion.force.y;   motion.r.y = old_motion.r.y;  motion.vel.y = 0; }
+	if (pinTranslation.z) { totForces[globObjId].z  += old_motion.force.z;   motion.r.z = old_motion.r.z;  motion.vel.z = 0; }
 
 	// https://stackoverflow.com/a/22401169/3535276
 	// looks like q.x, 0, 0, q.w is responsible for the X axis rotation etc.
 	// so to restrict rotation along ie. X, we need to preserve q.x
 	// and normalize of course
-	if (pinRotation.x)    { totTorques[globObjId].x += old_motion.torque.x;  motion.q.y = old_motion.q.y; }
-	if (pinRotation.y)    { totTorques[globObjId].y += old_motion.torque.y;  motion.q.z = old_motion.q.z; }
-	if (pinRotation.z)    { totTorques[globObjId].z += old_motion.torque.z;  motion.q.w = old_motion.q.w; }
+	if (pinRotation.x)    { totTorques[globObjId].x += old_motion.torque.x;  motion.q.y = old_motion.q.y;  motion.omega.x = 0; }
+	if (pinRotation.y)    { totTorques[globObjId].y += old_motion.torque.y;  motion.q.z = old_motion.q.z;  motion.omega.y = 0; }
+	if (pinRotation.z)    { totTorques[globObjId].z += old_motion.torque.z;  motion.q.w = old_motion.q.w;  motion.omega.z = 0; }
 
 	motion.q = normalize(motion.q);
 	view.motions[objId] = motion;
