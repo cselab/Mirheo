@@ -118,7 +118,7 @@ public:
 	 * \rst
 	 * .. attention::
 	 *    When the debug level is higher or equal to the _flushThreshold_ member
-	 *    variable (currently 8), every message is flushed immediately. This may
+	 *    variable (default 8), every message is flushed to disk immediately. This may
 	 *    increase the runtime SIGNIFICANTLY and only recommended to debug crashes
 	 * \endrst
 	 *
@@ -131,32 +131,37 @@ public:
 	template<int importance, class ... Args>
 	inline void log(const char* fname, const int lnum, const char* pattern, Args... args) const
 	{
-		if (importance <= runtimeDebugLvl)
+		if (importance > runtimeDebugLvl) return;
+
+		if (fout == nullptr)
 		{
-			if (fout == nullptr)
-			{
-				fprintf(stderr, "Logger file is not set\n");
-				exit(1);
-			}
+			fprintf(stderr, "Logger file is not set\n");
+			exit(1);
+		}
 
-			using namespace std::chrono;
+		using namespace std::chrono;
 
-			auto now   = system_clock::now();
-			auto now_c = system_clock::to_time_t(now);
-			auto ms = duration_cast<milliseconds>(now.time_since_epoch()) % 1000;
+		auto now   = system_clock::now();
+		auto now_c = system_clock::to_time_t(now);
+		auto ms = duration_cast<milliseconds>(now.time_since_epoch()) % 1000;
 
-			std::ostringstream tmout;
-			tmout << std::put_time(std::localtime(&now_c), "%T") << ':' << std::setfill('0') << std::setw(3) << ms.count();
+		std::ostringstream tmout;
+		tmout << std::put_time(std::localtime(&now_c), "%T") << ':' << std::setfill('0') << std::setw(3) << ms.count();
 
-			const int cappedLvl = std::min((int)lvl2text.size() - 1, importance);
-			std::string intro = tmout.str() + "   " + std::string("Rank %04d %7s at ")
-				+ fname + ":" + std::to_string(lnum) + "  " +pattern + "\n";
+		const int cappedLvl = std::min((int)lvl2text.size() - 1, importance);
+		std::string intro = tmout.str() + "   " + std::string("Rank %04d %7s at ")
+			+ fname + ":" + std::to_string(lnum) + "  " +pattern + "\n";
 
-			FILE* ftmp = (fout != nullptr) ? fout : stdout;
-			fprintf(ftmp, intro.c_str(), rank, (cappedLvl >= 0 ? lvl2text[cappedLvl] : "").c_str(), args...);
+		FILE* ftmp = (fout != nullptr) ? fout : stdout;
+		fprintf(ftmp, intro.c_str(), rank, (cappedLvl >= 0 ? lvl2text[cappedLvl] : "").c_str(), args...);
 
-			if (runtimeDebugLvl >= flushThreshold && COMPILE_DEBUG_LVL >= flushThreshold)
-				fflush(fout);
+
+		bool needToFlush = runtimeDebugLvl >= flushThreshold && COMPILE_DEBUG_LVL >= flushThreshold;
+		needToFlush = needToFlush || (now - lastFlushed > flushPeriod);
+		if (needToFlush)
+		{
+			fflush(fout);
+			lastFlushed = now;
 		}
 	}
 
@@ -240,6 +245,9 @@ private:
 	int runtimeDebugLvl;           ///< debug level defined at runtime through setDebugLvl
 	const int flushThreshold = 8;  ///< value of debug level starting with which every message
 	                               ///< will be flushed to disk immediately
+
+	mutable std::chrono::system_clock::time_point lastFlushed;
+	const std::chrono::seconds flushPeriod{30};
 
 	FILE* fout = nullptr;
 	int rank;
