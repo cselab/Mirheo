@@ -10,9 +10,9 @@ from matplotlib.ticker import FormatStrFormatter
 from mpl_toolkits.axes_grid.inset_locator import inset_axes
 	
 def radial_profile(fname, nbins, h2, cen, radius):
-	vel  = np.zeros(nbins+1)
-	dens = np.zeros(nbins+1)
-	cnt  = np.zeros(nbins+1)
+	vel  = np.zeros(nbins)
+	dens = np.zeros(nbins)
+	cnt  = np.zeros(nbins)
 	
 	f = h5py.File(fname, 'r')
 	m = f["momentum"]
@@ -36,7 +36,7 @@ def radial_profile(fname, nbins, h2, cen, radius):
 				
 		ibin = int(r*nbins / radius)
 		
-		if ibin <= nbins:
+		if ibin < nbins:
 			mydens = d[it.multi_index[0], it.multi_index[1]]
 			vel[ibin]  += it[0]  # x component
 			dens[ibin] += mydens
@@ -61,7 +61,7 @@ def fit_velocity(profile, weights, gz, rho, h):
 	e_norm = math.sqrt(residuals)/max(profile)*100.0 # normalized error
 
 	r = profile.size*h
-	
+		
 	avgvel = np.sum(profile * weights) / np.sum(weights)
 
 	eta = rho * gz * r*r / (8.0 * avgvel)
@@ -71,21 +71,21 @@ def fit_velocity(profile, weights, gz, rho, h):
 def dump_plots(velocity, velFit, density, h):
 	ifig = 0
 	nrows = 1
-	ncols = 1
+	ncols = 2
 	fig, axes = plt.subplots(nrows=nrows, ncols=ncols, figsize=(4*ncols,4*nrows), facecolor='white')
 
 	x = np.linspace(h/2, velocity.size*h - h/2, velocity.size)
 
-#	ifig = ifig+1
-#	plt.subplot(nrows, ncols, ifig)
-#	plt.plot(x, density)
-#	plt.xlabel('x')
-#	plt.ylabel('density')
-#	ax=plt.gca()
-#	ax.set_ylim([0, max(density)+2])
-#	ax.set_xlim([0, max(x)])
-#	plt.xticks(np.arange(0, max(x)+1, 5.0))
-#	plt.grid()
+	ifig = ifig+1
+	plt.subplot(nrows, ncols, ifig)
+	plt.plot(x, density)
+	plt.xlabel('x')
+	plt.ylabel('density')
+	ax=plt.gca()
+	ax.set_ylim([0, max(density)+2])
+	ax.set_xlim([0, max(x)])
+	plt.xticks(np.arange(0, max(x)+1, 5.0))
+	plt.grid()
 
 	ifig = ifig+1
 	plt.subplot(nrows, ncols, ifig)
@@ -116,11 +116,11 @@ def main():
 	nbins = 100
 	r = 30.0
 	
-	fname = "/home/alexeedm/extern/daint/scratch/poiseuille/run_10_4.5_1.0_0.5_8_0.1/xdmf/avg_rho_u00005.h5"
+	fname = "/home/alexeedm/extern/daint/scratch/poiseuille/run_50_8_1.0_0.5_8_0.05/xdmf/avg_rho_u00012.h5"
 	
 	vel, dens, cnt = radial_profile(fname, nbins, [0.125, 0.125], [32, 32], r)
 	
-	velFit, eta, err = fit_velocity(vel, cnt, 0.1, 8, r / nbins)
+	velFit, eta, err = fit_velocity(vel, cnt, 0.05, 8, r / nbins)
 	
 	print "Viscosity: ", eta
 	print "Fit err: ", err

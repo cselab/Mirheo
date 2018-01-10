@@ -46,7 +46,7 @@ int main(int argc, char ** argv)
 
 	logger.init(MPI_COMM_WORLD, "dpd.log", 9);
 
-	float3 length{32, 32, 32};
+	float3 length{64, 64, 64};
 	float3 domainStart = -length / 2.0f;
 	const float rc = 1.0f;
 	ParticleVector dpds1("dpd1", 1.0f);
@@ -55,11 +55,11 @@ int main(int argc, char ** argv)
 	CellList* cells2 = new PrimaryCellList(&dpds2, rc, length);
 
 	UniformIC ic1(8.0);
-	UniformIC ic2(1);
+	UniformIC ic2(1.0);
 	ic1.exec(MPI_COMM_WORLD, &dpds1, {length, {0,0,0}, length}, 0);
 	ic2.exec(MPI_COMM_WORLD, &dpds2, {length, {0,0,0}, length}, 0);
 
-	dpds2.local()->resize(dpds2.local()->size(), 0);
+	//dpds2.local()->resize(dpds2.local()->size(), 0);
 
 	//dpds2.local()->resize(1000, 0);
 
@@ -75,6 +75,16 @@ int main(int argc, char ** argv)
 	dpds1.local()->coosvels.downloadFromDevice(0);
 	dpds2.local()->coosvels.downloadFromDevice(0);
 
+	for (int i=0; i<dpds1.local()->size(); i++)
+		dpds1.local()->coosvels[i].u = 2*make_float3(drand48() - 0.5, drand48() - 0.5, drand48() - 0.5);
+
+	for (int i=0; i<dpds2.local()->size(); i++)
+		dpds2.local()->coosvels[i].u = 2*make_float3(drand48() - 0.5, drand48() - 0.5, drand48() - 0.5);
+
+	dpds1.local()->coosvels.uploadToDevice(0);
+	dpds2.local()->coosvels.uploadToDevice(0);
+
+
 	std::vector<Particle> initial(np), rearranged(np);
 	for (int i=0; i<np; i++)
 	{
@@ -85,7 +95,7 @@ int main(int argc, char ** argv)
 
 	const float k = 1;
 	const float dt = 0.002;
-	const float kbT = 1.0f;
+	const float kbT = 0.0f;
 	const float gammadpd = 20;
 	const float sigmadpd = sqrt(2 * gammadpd * kbT);
 	const float sigma_dt = sigmadpd / sqrt(dt);
@@ -99,7 +109,7 @@ int main(int argc, char ** argv)
 		dpds1.local()->forces.clear(0);
 		dpds2.local()->forces.clear(0);
 		inter->regular(&dpds1, &dpds1, cells1, cells1, 0, 0);
-		//inter->regular(&dpds2, &dpds2, cells2, cells2, 0, 0);
+		inter->regular(&dpds2, &dpds2, cells2, cells2, 0, 0);
 		inter->regular(&dpds2, &dpds1, cells2, cells1, 0, 0);
 
 		cudaDeviceSynchronize();
@@ -131,7 +141,7 @@ int main(int argc, char ** argv)
 	}
 	printf("Reduced acc: %e %e %e\n\n", a.x, a.y, a.z);
 
-	return 0;
+	//return 0;
 
 	printf("Checking (this is not necessarily a cubic domain)......\n");
 

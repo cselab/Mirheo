@@ -120,7 +120,7 @@ public:
 		if (type == "rigid_vv")
 			return createRigidVV(node);
 
-		die("Unable to parse input at %s, unknown 'type' %s", node.path().c_str(), type.c_str());
+		die("Unable to parse input at %s, unknown 'type': '%s'", node.path().c_str(), type.c_str());
 
 		return nullptr;
 	}

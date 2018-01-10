@@ -189,7 +189,7 @@ public:
 		if (type == "oscillating_plane")
 			return createOscillatingPlaneWall(node);
 
-		die("Unable to parse input at %s, unknown 'type' %s", node.path().c_str(), type.c_str());
+		die("Unable to parse input at %s, unknown 'type': '%s'", node.path().c_str(), type.c_str());
 
 		return nullptr;
 	}

@@ -48,11 +48,11 @@ public:
 	{
 		const float3 dr = dst.r - src.r;
 		const float rij2 = dot(dr, dr);
-		if (rij2 > 1.0f) return make_float3(0.0f);
+		if (rij2 > rc2) return make_float3(0.0f);
 
 		const float invrij = rsqrtf(rij2);
 		const float rij = rij2 * invrij;
-		const float argwr = 1.0f - rij;
+		const float argwr = 1.0f - rij * invrc;
 		const float wr = fastPower(argwr, power);
 
 		const float3 dr_r = dr * invrij;
@@ -61,7 +61,7 @@ public:
 
 		const float myrandnr = Logistic::mean0var1(seed, min(src.i1, dst.i1), max(src.i1, dst.i1));
 
-		const float strength = a * argwr - (gamma * wr * rdotv + sigma* myrandnr) * wr;
+		const float strength = a * argwr - (gamma * wr * rdotv + sigma * myrandnr) * wr;
 
 		return dr_r * strength;
 	}
