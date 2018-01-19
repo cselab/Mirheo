@@ -16,7 +16,7 @@ def coefficient(frc, rho, u, r):
 	return frc / (0.5 * rho * u**2 * math.pi * r**2)
 
 def mean_err_cut(vals):
-	npvals = np.array(vals[20:]).astype(np.float)
+	npvals = np.array(vals[40:]).astype(np.float)
 	
 	m = np.mean(npvals)
 	v = np.var(npvals)
@@ -66,7 +66,7 @@ rho = 8.0
 r = 10.0
 
 #          folder                      velocity    viscosity
-cases = [("visc_69.6_case_20_0.2175",  0.2175,     69.6),
+cases = [("visc_143_case_20_0.4469",   0.4469,     148.8),
 		 ("visc_35.8_case_20_0.4475",  0.4475,     35.8),
 		 ("case_20_0.534375",          0.534375,   8.45),
 		 ("case_20_1.3359375",         1.3359375,  8.45),
@@ -111,6 +111,9 @@ for (folder, vel, visc) in cases:
 	err_Cds.append(coefficient(2.0*math.sqrt(vx), rho, vel, r))
 	err_Cls.append(coefficient(2.0*math.sqrt(vz), rho, vel, r))
 
+	
+print Cds
+print Cls
 #Res = [0.5, 2.0236686390532546, 10.118343195266274, 25.295857988165682, 50.591715976331365]
 #Cds = [75.613929460608148, 20.350170175353473, 5.1657902601960055, 2.6854762430789747, 1.7323429175589575]
 #err_Cds = [7.274614042556217, 3.455479948726347, 0.13351391903959192, 0.020534230923650566, 0.006940364244007037]

@@ -113,12 +113,14 @@ def dump_plots(velocity, velFit, density, h):
 #    plt.close(fig)
 
 def main():
-	nbins = 100
+	nbins = 50
 	r = 30.0
 	
-	fname = "/home/alexeedm/extern/daint/scratch/poiseuille/run_50_8_1.0_0.5_8_0.05/xdmf/avg_rho_u00012.h5"
+	fname = "/home/alexeedm/extern/daint/scratch/poiseuille/run_25_160_0.5_0.5_8_0.05/xdmf/avg_rho_u00011.h5"
+	#fname = "/home/alexeedm/extern/daint/scratch/focusing_lift/caseshort_5_4.7_0.5/xdmf/avg_rho_u00200.h5"
 	
 	vel, dens, cnt = radial_profile(fname, nbins, [0.125, 0.125], [32, 32], r)
+	
 	
 	velFit, eta, err = fit_velocity(vel, cnt, 0.05, 8, r / nbins)
 	

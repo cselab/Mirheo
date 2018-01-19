@@ -59,6 +59,11 @@ __global__ void revertRigidMotion(ROVviewWithOldMotion view, int3 pinTranslation
 }
 
 
+PinObjectPlugin::PinObjectPlugin(std::string name, std::string ovName, int3 pinTranslation, int3 pinRotation, int reportEvery) :
+	SimulationPlugin(name), ovName(ovName),
+	pinTranslation(pinTranslation), pinRotation(pinRotation),
+	reportEvery(reportEvery)
+{	}
 
 void PinObjectPlugin::setup(Simulation* sim, const MPI_Comm& comm, const MPI_Comm& interComm)
 {
@@ -91,6 +96,13 @@ void PinObjectPlugin::setup(Simulation* sim, const MPI_Comm& comm, const MPI_Com
 			(std::string(pinRotation.x ? "x" : "") +
 			 std::string(pinRotation.y ? "y" : "") +
 			 std::string(pinRotation.z ? "z" : "")).c_str()   );
+}
+
+
+void PinObjectPlugin::handshake()
+{
+	SimpleSerializer::serialize(sendBuffer, ovName);
+	send(sendBuffer);
 }
 
 void PinObjectPlugin::beforeIntegration(cudaStream_t stream)
@@ -136,7 +148,7 @@ void PinObjectPlugin::serializeAndSend(cudaStream_t stream)
 	if (rov != nullptr)
 		torques.downloadFromDevice(stream);
 
-	SimpleSerializer::serialize(sendBuffer, ovName, currentTime, reportEvery, forces, torques);\
+	SimpleSerializer::serialize(sendBuffer, currentTime, reportEvery, forces, torques);
 	send(sendBuffer);
 
 	forces.clearDevice(stream);
@@ -154,25 +166,31 @@ void ReportPinObjectPlugin::setup(const MPI_Comm& comm, const MPI_Comm& interCom
 	activated = createFoldersCollective(comm, path);
 }
 
+void ReportPinObjectPlugin::handshake()
+{
+	auto req = waitData();
+	MPI_Check( MPI_Wait(&req, MPI_STATUS_IGNORE) );
+	recv();
+
+	std::string ovName;
+	SimpleSerializer::deserialize(data, ovName);
+	if (activated && rank == 0)
+		fout = fopen( (path + "/" + ovName + ".txt").c_str(), "w" );
+}
+
 void ReportPinObjectPlugin::deserialize(MPI_Status& stat)
 {
 	std::vector<float4> forces, torques;
 	float currentTime;
 	int nsamples;
-	std::string ovName;
 
-	SimpleSerializer::deserialize(data, ovName, currentTime, nsamples, forces, torques);
+	SimpleSerializer::deserialize(data, currentTime, nsamples, forces, torques);
 
 	MPI_Check( MPI_Reduce( (rank == 0 ? MPI_IN_PLACE : forces.data()),  forces.data(),  forces.size()*4,  MPI_FLOAT, MPI_SUM, 0, comm) );
 	MPI_Check( MPI_Reduce( (rank == 0 ? MPI_IN_PLACE : torques.data()), torques.data(), torques.size()*4, MPI_FLOAT, MPI_SUM, 0, comm) );
 
-	std::string tstr = std::to_string(timeStamp++);
-	std::string currentFname = path + "/" + ovName + "_" + std::string(5 - tstr.length(), '0') + tstr + ".txt";
-
 	if (activated && rank == 0)
 	{
-		auto fout = fopen(currentFname.c_str(), "w");
-
 		for (int i=0; i < forces.size(); i++)
 		{
 			forces[i] /= nsamples;
@@ -187,7 +205,7 @@ void ReportPinObjectPlugin::deserialize(MPI_Status& stat)
 			fprintf(fout, "\n");
 		}
 
-		fclose(fout);
+		fflush(fout);
 	}
 }
 
