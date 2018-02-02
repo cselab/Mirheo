@@ -1,0 +1,86 @@
+<?xml version="1.0"?>
+<simulation name="test_mesh" logfile="log" mpi_ranks="1 1 1" debug_lvl="5" >
+
+	<domain size="20 20 20" />
+	
+	<particle_vector type="regular" name="dpd" mass="1"  >
+		<generate type="uniform" density="12" />
+	</particle_vector>
+	
+	<!--
+		Object section
+	-->
+	
+	<particle_vector type="rigid_objects" name="sphere" mass="4.0" particles_per_obj="2267" moment_of_inertia="60000 60000 60000" mesh_filename="sphere.off" >
+		<generate type="read_rigid" ic_filename="sphere.ic" xyz_filename="sphere5.xyz"/>
+	</particle_vector>
+	
+	<object_belonging_checker name="checker" type="mesh" object_vector="sphere"  >
+		<apply_to pv="dpd" inside="none" outside="dpd" check_every="1" />
+	</object_belonging_checker>
+	
+	<object_bouncer name="bounce" ov="sphere" type="from_mesh">
+		<apply_to pv="dpd" />
+	</object_bouncer>
+	
+	<!--
+		Interactions section
+	-->
+	
+	<interaction type="dpd" name="dpd_int" a="50" gamma="10" kbt="1.0" dt="0.02" rc="1.0" power="0.5">
+		<apply_to pv1="dpd"   pv2="dpd" />
+<!-- 		<apply_to pv1="sphere" pv2="dpd" /> -->
+	</interaction>
+	
+	<!--
+		Integrators section
+	-->
+	
+	<integrator type="vv" name="vvint" dt="0.02">
+		<apply_to pv="dpd" />
+	</integrator>
+	
+	<integrator type="rigid_vv" name="rigid" dt="0.02">
+		<apply_to pv="sphere" />
+	</integrator>
+
+	
+	<!--
+		Plugins section
+	-->
+	
+	<!-- <plugin type="impose_velocity" name="all" pv_name="dpd"  every="10" low="0 0 0"  high="100 100 100"  target_velocity= "0 0 0" /> -->
+	
+	<!-- <plugin type="add_force" name="frcall"  pv_name="dpd" force="0 0 -0.4373365759990149" />
+	<plugin type="add_force" name="frc"  pv_name="sphere" force="0 0 50" /> -->
+	
+	<!-- <plugin type="add_torque" name="trq"  pv_name="sphere" torque="0 0 20000" /> -->
+	
+<!-- 	<plugin type="pin_object" name="pin"
+		ov_name="sphere"
+		dump_every="1000"
+		path="pinning_force/"
+		pin_translation="1 1 0"
+		pin_rotation="1 1 0" /> -->
+		
+<!--  	<plugin type="dump_avg_flow" name="avg"
+		pv_names="dpd"
+		sample_every="10" dump_every="1000"
+		bin_size="1 1 1"
+		path="xdmf/avg_rho_u" /> -->
+		
+<!-- 	<plugin type="dump_xyz" name="sphere"
+		pv_name="sphere"
+		dump_every="200"
+		path="xyz/" /> -->
+
+	<plugin type="dump_obj_pos" name="lala"
+		ov_name="sphere"
+		dump_every="1"
+		path="pos/" />
+	
+	<plugin type="stats" name="stats" every="100" />
+	
+	<run niters="100" />
+</simulation>
+

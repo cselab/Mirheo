@@ -6,6 +6,7 @@
 
 class RigidObjectVector;
 
+
 /**
  * Implements bounce-back from deformable mesh.
  * Mesh vertices must be the particles in the ParicleVector
@@ -17,23 +18,26 @@ public:
 
 	~BounceFromMesh() = default;
 
-protected:
-	float kbT;
+private:
+	template<typename T>
+	struct CollisionTableWrapper
+	{
+		PinnedBuffer<int> nCollisions{1};
+		DeviceBuffer<T> collisionTable;
+	};
 
 	/**
 	 * Maximum supported number of collisions per step
 	 * will be #bouncesPerTri * total number of triangles in mesh
 	 */
-	static const int bouncesPerTri = 1;
+	const float collisionsPerTri  = 10.0f;
+	const float collisionsPerEdge = 0.1f;
 
-	PinnedBuffer<int> nCollisions;
+	CollisionTableWrapper<int2> triangleTable;
+	CollisionTableWrapper<int3> edgeTable;
+	DeviceBuffer<int> collisionTimes;
 
-	/**
-	 * Collision table and sorted collision table.
-	 * First integer is the colliding particle id, second is triangle id
-	 */
-	DeviceBuffer<int2> collisionTable, tmp_collisionTable;
-	DeviceBuffer<char> sortBuffer;
+	float kbT;
 
 	RigidObjectVector* rov;
 

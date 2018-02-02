@@ -13,6 +13,7 @@ public:
 	int nvertices{0}, ntriangles{0};
 
 	PinnedBuffer<int3> triangles;
+	PinnedBuffer<int> adjacentTriangles;
 	PinnedBuffer<int> adjacent, adjacent_second, degrees;
 
 	PinnedBuffer<float4> vertexCoordinates;
@@ -31,6 +32,7 @@ struct MeshView
 	int nvertices, ntriangles, maxDegree;
 
 	int3* triangles;
+	int* adjacentTriangles;
 	int *adjacent, *adjacent_second, *degrees;
 
 
@@ -40,6 +42,7 @@ struct MeshView
 		ntriangles = m.ntriangles;
 		maxDegree = m.maxDegree;
 
+		adjacentTriangles = m.adjacentTriangles.devPtr();
 		triangles = m.triangles.devPtr();
 		adjacent = m.adjacent.devPtr();
 		adjacent_second = m.adjacent_second.devPtr();

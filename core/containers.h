@@ -297,6 +297,9 @@ public:
 	inline       T& operator[](int i)       { return hostptr[i]; }  ///< allow array-like bracketed access to HOST data
 	inline const T& operator[](int i) const { return hostptr[i]; }
 
+	inline T* begin() { return hostptr; }          /// To support range-based loops
+	inline T* end()   { return hostptr + _size; }  /// To support range-based loops
+
 
 	/**
 	 * Copy data from device to host
@@ -456,6 +459,9 @@ public:
 
 	inline void resize     (const int n) { _resize(n, true);  }
 	inline void resize_anew(const int n) { _resize(n, false); }
+
+	inline T* begin() { return hostptr; }          /// To support range-based loops
+	inline T* end()   { return hostptr + _size; }  /// To support range-based loops
 
 	/// Set all the bytes to 0
 	void clear()

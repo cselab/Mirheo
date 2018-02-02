@@ -17,7 +17,7 @@
  * velocity after the bounce, @see performBouncing()
  */
 BounceFromMesh::BounceFromMesh(std::string name, float kbT) :
-	Bouncer(name), nCollisions(1), kbT(kbT)
+	Bouncer(name), kbT(kbT)
 {	}
 
 
@@ -40,6 +40,7 @@ void BounceFromMesh::setup(ObjectVector* ov)
 	//
 	// for Rigid:
 	// old motions HAVE to be there and communicated and shifted
+
 	if (rov == nullptr)
 		ov->requireDataPerParticle<Particle> ("old_particles", true, sizeof(float));
 	else
@@ -48,13 +49,6 @@ void BounceFromMesh::setup(ObjectVector* ov)
 
 /**
  * Bounce particles from objects with meshes
- *
- * Firstly find all the collisions and generate array of colliding pairs Pid <--> TRid
- * Work is per-triangle, so only particle cell-lists are needed
- *
- * Secondly sort the array with respect to Pid
- *
- * Lastly resolve the collisions, choosing the first one in time for the same Pid
  */
 void BounceFromMesh::exec(ParticleVector* pv, CellList* cl, float dt, bool local, cudaStream_t stream)
 {
@@ -68,13 +62,27 @@ void BounceFromMesh::exec(ParticleVector* pv, CellList* cl, float dt, bool local
 	ov->findExtentAndCOM(stream, local);
 
 	int totalTriangles = ov->mesh.ntriangles * activeOV->nObjects;
+	int totalEdges = totalTriangles * 3 / 2;
 
-	// Set maximum possible number of collisions to bouncesPerTri * # of triangles
+	// Set maximum possible number of collisions with triangles and edges
 	// Generally, this is a vast overestimation of the actual number of collisions.
 	// So if we've found more collisions something is surely broken
-	nCollisions.clear(stream);
-	collisionTable.resize_anew(bouncesPerTri*totalTriangles);
-	tmp_collisionTable.resize_anew(bouncesPerTri*totalTriangles);
+
+	int maxTriCollisions = collisionsPerTri * totalTriangles;
+	triangleTable.nCollisions.clear(stream);
+	triangleTable.collisionTable.resize_anew(maxTriCollisions);
+	TriangleTable devTriTable { maxTriCollisions, triangleTable.nCollisions.devPtr(), triangleTable.collisionTable.devPtr() };
+
+	int maxEdgeCollisions = collisionsPerEdge * totalEdges;
+	edgeTable.nCollisions.clear(stream);
+	edgeTable.collisionTable.resize_anew(maxEdgeCollisions);
+	EdgeTable devEdgeTable { maxEdgeCollisions, edgeTable.nCollisions.devPtr(), edgeTable.collisionTable.devPtr() };
+
+	// Setup collision times array. For speed and simplicity initial time will be 0,
+	// and after the collisions detected its i-th element will be t_i-1.0f, where 0 <= t_i <= 1
+	// is the collision time, or 0 if no collision with the particle found
+	collisionTimes.resize_anew(pv->local()->size());
+	collisionTimes.clear(stream);
 
 	int nthreads = 128;
 
@@ -96,34 +104,34 @@ void BounceFromMesh::exec(ParticleVector* pv, CellList* cl, float dt, bool local
 			findBouncesInMesh,
 			getNblocks(totalTriangles, nthreads), nthreads, 0, stream,
 			vertexView, pvView, ov->mesh, cl->cellInfo(),
-			nCollisions.devPtr(), collisionTable.devPtr(), collisionTable.size() );
+			devEdgeTable, devTriTable, collisionTimes.devPtr() );
 
-	nCollisions.downloadFromDevice(stream);
-	debug("Found %d collisions", nCollisions[0]);
+	triangleTable.nCollisions.downloadFromDevice(stream);
+	debug("Found %d triangle collisions", triangleTable.nCollisions[0]);
 
-	if (nCollisions[0] > collisionTable.size())
-		die("Found too many collisions, something is likely broken");
+	if (triangleTable.nCollisions[0] > devTriTable.maxSize)
+		die("Found too many triangle collisions, something is likely broken");
 
-	// Step 2, sort the collision table
-	size_t bufSize;
-	// Query for buffer size
-	cub::DeviceRadixSort::SortKeys(nullptr, bufSize,
-			(int64_t*)collisionTable.devPtr(), (int64_t*)tmp_collisionTable.devPtr(), nCollisions[0],
-			0, 32, stream);
-	// Allocate temporary storage
-	sortBuffer.resize_anew(bufSize);
-	// Run sorting operation
-	cub::DeviceRadixSort::SortKeys(sortBuffer.devPtr(), bufSize,
-			(int64_t*)collisionTable.devPtr(), (int64_t*)tmp_collisionTable.devPtr(), nCollisions[0],
-			0, 32, stream);
+	edgeTable.nCollisions.downloadFromDevice(stream);
+	debug("Found %d edge collisions", edgeTable.nCollisions[0]);
+
+	if (edgeTable.nCollisions[0] > devEdgeTable.maxSize)
+		die("Found too many edge collisions, something is likely broken");
 
 	// Step 3, resolve the collisions
 	SAFE_KERNEL_LAUNCH(
-			performBouncing,
-			getNblocks(nCollisions[0], nthreads), nthreads, 0, stream,
+			performBouncingTriangle,
+			getNblocks(triangleTable.nCollisions[0], nthreads), nthreads, 0, stream,
 			vertexView, pvView, ov->mesh,
-			nCollisions[0], tmp_collisionTable.devPtr(), dt,
-			kbT, drand48(), drand48() );
+			triangleTable.nCollisions[0], devTriTable.indices, collisionTimes.devPtr(),
+			dt, kbT, drand48(), drand48() );
+
+//	SAFE_KERNEL_LAUNCH(
+//			performBouncingEdge,
+//			getNblocks(triangleTable.nCollisions[0], nthreads), nthreads, 0, stream,
+//			vertexView, pvView, ov->mesh,
+//			edgeTable.nCollisions[0], devEdgeTable.indices, collisionTimes.devPtr(),
+//			dt, kbT, drand48(), drand48() );
 
 
 	if (rov != nullptr)
