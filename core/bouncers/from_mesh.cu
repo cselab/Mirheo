@@ -126,12 +126,12 @@ void BounceFromMesh::exec(ParticleVector* pv, CellList* cl, float dt, bool local
 			triangleTable.nCollisions[0], devTriTable.indices, collisionTimes.devPtr(),
 			dt, kbT, drand48(), drand48() );
 
-//	SAFE_KERNEL_LAUNCH(
-//			performBouncingEdge,
-//			getNblocks(triangleTable.nCollisions[0], nthreads), nthreads, 0, stream,
-//			vertexView, pvView, ov->mesh,
-//			edgeTable.nCollisions[0], devEdgeTable.indices, collisionTimes.devPtr(),
-//			dt, kbT, drand48(), drand48() );
+	SAFE_KERNEL_LAUNCH(
+			performBouncingEdge,
+			getNblocks(triangleTable.nCollisions[0], nthreads), nthreads, 0, stream,
+			vertexView, pvView, ov->mesh,
+			edgeTable.nCollisions[0], devEdgeTable.indices, collisionTimes.devPtr(),
+			dt, kbT, drand48(), drand48() );
 
 
 	if (rov != nullptr)

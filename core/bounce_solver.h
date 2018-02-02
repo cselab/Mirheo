@@ -52,11 +52,6 @@ __device__ inline Real _solveLinSearch_templ(Equation F, Real tolerance)
 			break;
 	}
 
-	// This shouldn't happen, but smth may go wrong
-	// then will return 0 as this corresponds to the initial (outer) position
-	if (fabs(vmid) > tolerance)
-		return (Real)0.0;
-
 	return mid;
 }
 

@@ -107,7 +107,7 @@ __device__ inline Intersection intersectSegmentWithTrianglePlane(
 	if ( vold*vnew > 0.0f ) return {make_float3(0), Triangle(), -1.0f};
 
 	// Particle has crossed the triangle plane
-	float alpha = solveLinSearch(F, 1e-7f);
+	float alpha = solveLinSearch(F);
 
 	if (alpha < -0.1f)
 		printf("Something awful happened with mesh bounce. F0 = %f,  F = %f\n", F(0.0f), F(1.0f));
@@ -281,7 +281,7 @@ __device__ inline void triangleForces(
 		float dt,
 		float3& f0, float3& f1, float3& f2)
 {
-	const float tol = 1e-5;
+	const float tol = 5e-5;
 
 	auto len2 = [] (float3 x) {
 		return dot(x, x);
@@ -344,7 +344,7 @@ static __global__ void performBouncingTriangle(
 		const float dt,
 		float kbT, float seed1, float seed2)
 {
-	const float eps = 2e-5f;
+	const float eps = 5e-5f;
 
 	const int gid = blockIdx.x * blockDim.x + threadIdx.x;
 	if (gid >= nCollisions) return;
@@ -370,6 +370,7 @@ static __global__ void performBouncingTriangle(
 	auto intersection = intersectSegmentWithTrianglePlane(tr, trOld, p, pOld);
 
 	int minTime = collisionTimes[pid];
+
 	if (1.0f - intersection.alpha != __int_as_float(minTime)) return;
 
 	float3 barycentricCoo = barycentric(intersection.tr, intersection.p);
@@ -391,9 +392,6 @@ static __global__ void performBouncingTriangle(
 
 	corrP.r = coo + eps * ((oldSign > 0) ? n : -n);
 	corrP.u = newV + vtri;
-
-//	printf("n: %f %f %f, v : %f %f %f, vtri: %f %f %f, cos: %f\n",
-//			n.x, n.y, n.z, newV.x, newV.y, newV.z, vtri.x, vtri.y, vtri.z, dot(n, newV));
 
 	corrP.write2Float4(pvView.particles, pid);
 
@@ -437,7 +435,7 @@ static __global__ void performBouncingEdge(
 	const int trid2 = pid_tr1_tr2.z;
 
 	Particle p   (pvView.particles,     pid);
-	p.r = 5.1f * normalize(p.r);
+	p.r = make_float3(9) + normalize(p.r);
 //	Particle pOld(pvView.old_particles, pid);
 //	Particle corrP = p;
 //
