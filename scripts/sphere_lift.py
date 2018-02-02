@@ -16,10 +16,10 @@ def coefficient(frc, rho, u, r):
 	return frc / (0.5 * rho * u**2 * math.pi * r**2)
 
 def mean_err_cut(vals):
-	npvals = np.array(vals[40:]).astype(np.float)
+	npvals = np.array(vals[20:]).astype(np.float)
 	
 	m = np.mean(npvals)
-	v = np.var(npvals)
+	v = np.var(npvals) / math.sqrt(npvals.size)
 	
 	return m,v
 
@@ -33,9 +33,9 @@ def dump_plots(Res, Cds, Cls, err_Cds, err_Cls,  ref_Cd, ref_Cl):
 	ax = plt.subplot(nrows, ncols, ifig)
 	ax.set_xscale("log")
 	ax.set_yscale("log")
-	plt.plot(ref_Cd[:,0], ref_Cd[:,1], "-o", ms="4")
-	plt.errorbar(Res, Cds, yerr=err_Cds, fmt='o', ms="5", elinewidth=2)
-
+	ax.plot(ref_Cd[:,0], ref_Cd[:,1], "--o", ms=5, label="Zeng, Balachandar, Fisher. JFM (2015)")
+	ax.errorbar(Res, Cds, yerr=err_Cds, fmt='-o', ms=7, elinewidth=2, label="DPD")
+	
 	plt.xlabel('Re', fontsize=16)
 	plt.ylabel('Cd', fontsize=16)
 	plt.grid()
@@ -44,8 +44,8 @@ def dump_plots(Res, Cds, Cls, err_Cds, err_Cls,  ref_Cd, ref_Cl):
 	ax = plt.subplot(nrows, ncols, ifig)
 	ax.set_xscale("log", nonposx='clip')
 	ax.set_yscale("log", nonposy='clip')
-	plt.plot(ref_Cl[:,0], ref_Cl[:,1], "-o", ms="4")
-	plt.errorbar(Res, Cls, yerr=err_Cls, fmt='o', ms="5", elinewidth=2)
+	ax.plot(ref_Cl[:,0], ref_Cl[:,1], "--o", ms=5, label="Zeng, Balachandar, Fisher. JFM (2015)")
+	ax.errorbar(Res, Cls, yerr=err_Cls, fmt='-o', ms=7, elinewidth=2, label="DPD")
 	
 	plt.xlabel('Re', fontsize=16)
 	plt.ylabel('Cl', fontsize=16)
@@ -53,12 +53,14 @@ def dump_plots(Res, Cds, Cls, err_Cds, err_Cls,  ref_Cd, ref_Cl):
 
 	plt.subplots_adjust(wspace=0.3)
 	plt.subplots_adjust(hspace=0.3)
-	plt.tight_layout()
+	
+	handles, labels = ax.get_legend_handles_labels()
+	fig.legend(handles, labels, loc = 'upper center')
 
+	fig.tight_layout(rect=(0,0,1,0.9))
 	plt.show()
-#    figpath = "%s/profiles.png" % (resdir)
-#    plt.savefig(figpath, bbox_inches='tight')
-#    plt.close(fig)
+	fig.savefig("/home/alexeedm/udevicex/media/sphere_wall.pdf", bbox_inches='tight')
+
 	
 
 prefix = "/home/alexeedm/extern/daint/scratch/sphere_lift_10/"
@@ -108,8 +110,8 @@ for (folder, vel, visc) in cases:
 	Cds.append(coefficient(mx, rho, vel, r))
 	Cls.append(coefficient(mz, rho, vel, r))
 	
-	err_Cds.append(coefficient(2.0*math.sqrt(vx), rho, vel, r))
-	err_Cls.append(coefficient(2.0*math.sqrt(vz), rho, vel, r))
+	err_Cds.append(coefficient(3.0*math.sqrt(vx), rho, vel, r))
+	err_Cls.append(coefficient(3.0*math.sqrt(vz), rho, vel, r))
 
 	
 print Cds
