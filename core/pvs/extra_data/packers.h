@@ -129,7 +129,7 @@ private:
  */
 struct ParticlePacker : public DevicePacker
 {
-	ParticlePacker(ParticleVector* pv = nullptr, LocalParticleVector* lpv = nullptr, cudaStream_t stream = 0)
+	ParticlePacker(ParticleVector* pv, LocalParticleVector* lpv, cudaStream_t stream)
 	{
 		if (pv == nullptr || lpv == nullptr) return;
 
@@ -140,9 +140,14 @@ struct ParticlePacker : public DevicePacker
 
 		auto registerChannel = [&] (int sz, char* ptr, int typesize) {
 
-			manager.channelPtrs.        resize_anew(n+1);
-			manager.channelSizes.       resize_anew(n+1);
-			manager.channelShiftTypes.  resize_anew(n+1);
+			if (manager.channelPtrs.size() <= n)
+			{
+				manager.channelPtrs.        resize(n+1, stream);
+				manager.channelSizes.       resize(n+1, stream);
+				manager.channelShiftTypes.  resize(n+1, stream);
+
+				upload = true;
+			}
 
 			if (ptr != manager.channelPtrs[n]) upload = true;
 
@@ -206,7 +211,7 @@ struct ParticlePacker : public DevicePacker
  */
 struct ObjectExtraPacker : public DevicePacker
 {
-	ObjectExtraPacker(ObjectVector* ov = nullptr, LocalObjectVector* lov = nullptr, cudaStream_t stream = 0)
+	ObjectExtraPacker(ObjectVector* ov, LocalObjectVector* lov, cudaStream_t stream)
 	{
 		if (ov == nullptr || lov == nullptr) return;
 
@@ -217,9 +222,14 @@ struct ObjectExtraPacker : public DevicePacker
 
 		auto registerChannel = [&] (int sz, char* ptr, int typesize) {
 
-			manager.channelPtrs.        resize_anew(n+1);
-			manager.channelSizes.       resize_anew(n+1);
-			manager.channelShiftTypes.  resize_anew(n+1);
+			if (manager.channelPtrs.size() <= n)
+			{
+				manager.channelPtrs.        resize(n+1, stream);
+				manager.channelSizes.       resize(n+1, stream);
+				manager.channelShiftTypes.  resize(n+1, stream);
+
+				upload = true;
+			}
 
 			if (ptr != manager.channelPtrs[n]) upload = true;
 

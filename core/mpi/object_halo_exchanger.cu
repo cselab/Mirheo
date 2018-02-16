@@ -143,7 +143,7 @@ void ObjectHaloExchanger::prepareData(int id, cudaStream_t stream)
 	debug2("Preparing %s halo on the device", ov->name.c_str());
 
 	OVview ovView(ov, ov->local());
-	ObjectPacker packer(ov, ov->local());
+	ObjectPacker packer(ov, ov->local(), stream);
 	helper->setDatumSize(packer.totalPackedSize_byte);
 
 	helper->sendSizes.clear(stream);
@@ -179,7 +179,7 @@ void ObjectHaloExchanger::combineAndUploadData(int id, cudaStream_t stream)
 
 	ov->halo()->resize_anew(totalRecvd * ov->objSize);
 	OVview ovView(ov, ov->halo());
-	ObjectPacker packer(ov, ov->halo());
+	ObjectPacker packer(ov, ov->halo(), stream);
 
 	const int nthreads = 128;
 	SAFE_KERNEL_LAUNCH(

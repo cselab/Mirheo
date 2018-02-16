@@ -114,7 +114,7 @@ void ParticleRedistributor::prepareData(int id, cudaStream_t stream)
 		const int nthreads = 64;
 		const dim3 nblocks = dim3(getNblocks(maxdim*maxdim, nthreads), 6, 1);
 
-		auto packer = ParticlePacker(pv, pv->local());
+		auto packer = ParticlePacker(pv, pv->local(), stream);
 		helper->setDatumSize(packer.packedSize_byte);
 
 		SAFE_KERNEL_LAUNCH(
@@ -149,7 +149,7 @@ void ParticleRedistributor::combineAndUploadData(int id, cudaStream_t stream)
 		SAFE_KERNEL_LAUNCH(
 				unpackParticles,
 				getNblocks(totalRecvd, nthreads), nthreads, 0, stream,
-				ParticlePacker(pv, pv->local()), oldsize, helper->recvBuf.devPtr(), totalRecvd );
+				ParticlePacker(pv, pv->local(), stream), oldsize, helper->recvBuf.devPtr(), totalRecvd );
 
 //		CUDA_Check( cudaMemcpyAsync(
 //				pv->local()->coosvels.devPtr() + oldsize,

@@ -9,6 +9,9 @@
 #include <core/utils/cuda_common.h>
 #include <core/pvs/extra_data/packers.h>
 
+#include <unistd.h>
+
+
 #include "valid_cell.h"
 
 /**
@@ -85,10 +88,6 @@ __global__ void getHalos(const CellListInfo cinfo, const ParticlePacker packer, 
 
 			auto bufferAddr = dataWrap.buffer + dataWrap.offsets[bufId]*packer.packedSize_byte;
 
-//			Particle p(cinfo.particles, srcInd);
-//			p.r -= shift;
-//			p.write2Float4((float4*)(bufferAddr), dstInd);
-
 			packer.packShift(srcInd, bufferAddr + dstInd*packer.packedSize_byte, -shift);
 		}
 	}
@@ -101,6 +100,7 @@ __global__ static void unpackParticles(ParticlePacker packer, int startDstId, ch
 
 	packer.unpack(buffer + pid*packer.packedSize_byte, pid+startDstId);
 }
+
 
 //===============================================================================================
 // Member functions
@@ -137,8 +137,10 @@ void ParticleHaloExchanger::prepareData(int id, cudaStream_t stream)
 		const int nthreads = 64;
 		const dim3 nblocks = dim3(getNblocks(maxdim*maxdim, nthreads), 6, 1);
 
-		auto packer = ParticlePacker(pv, pv->local());
+		auto packer = ParticlePacker(pv, pv->local(), stream);
 		helper->setDatumSize(packer.packedSize_byte);
+
+		cudaDeviceSynchronize();
 
 		SAFE_KERNEL_LAUNCH(
 				getHalos<true>,
@@ -166,6 +168,9 @@ void ParticleHaloExchanger::combineAndUploadData(int id, cudaStream_t stream)
 	int totalRecvd = helper->recvOffsets[helper->nBuffers];
 	pv->halo()->resize_anew(totalRecvd);
 
+//	helper->recvBuf.uploadToDevice(stream);
+//	cudaDeviceSynchronize();
+
 	// std::swap(pv->halo()->coosvels, helper->recvBuf);
 	// TODO: types are different, cannot swap. Make consume member
 
@@ -174,11 +179,12 @@ void ParticleHaloExchanger::combineAndUploadData(int id, cudaStream_t stream)
 //			helper->recvBuf.devPtr(),
 //			helper->recvBuf.size(), cudaMemcpyDeviceToDevice, stream) );
 
-	int nthreads = 128;
+	int nthreads = 1;
+
 	SAFE_KERNEL_LAUNCH(
 			unpackParticles,
 			getNblocks(totalRecvd, nthreads), nthreads, 0, stream,
-			ParticlePacker(pv, pv->halo()), 0, helper->recvBuf.devPtr(), totalRecvd );
+			ParticlePacker(pv, pv->halo(), stream), 0, helper->recvBuf.devPtr(), totalRecvd );
 
 	pv->haloValid = true;
 }

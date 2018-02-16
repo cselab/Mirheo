@@ -107,7 +107,7 @@ void ObjectRedistributor::prepareData(int id, cudaStream_t stream)
 	ov->findExtentAndCOM(stream, true);
 
 	OVview ovView(ov, ov->local());
-	ObjectPacker packer(ov, ov->local());
+	ObjectPacker packer(ov, ov->local(), stream);
 	helper->setDatumSize(packer.totalPackedSize_byte);
 
 	debug2("Preparing %s halo on the device", ov->name.c_str());
@@ -150,7 +150,7 @@ void ObjectRedistributor::prepareData(int id, cudaStream_t stream)
 	// Renew view and packer, as the ObjectVector may have resized
 	lov->resize_anew(nObjs*ov->objSize);
 	ovView = OVview(ov, ov->local());
-	packer = ObjectPacker(ov, ov->local());
+	packer = ObjectPacker(ov, ov->local(), stream);
 
 	SAFE_KERNEL_LAUNCH(
 			unpackObject,
@@ -174,7 +174,7 @@ void ObjectRedistributor::combineAndUploadData(int id, cudaStream_t stream)
 
 	ov->local()->resize(ov->local()->size() + totalRecvd * objSize, stream);
 	OVview ovView(ov, ov->local());
-	ObjectPacker packer(ov, ov->local());
+	ObjectPacker packer(ov, ov->local(), stream);
 
 	const int nthreads = 64;
 	SAFE_KERNEL_LAUNCH(
