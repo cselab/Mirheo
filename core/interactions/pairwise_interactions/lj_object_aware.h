@@ -11,21 +11,24 @@ public:
 		lj(rc, sigma, epsilon)
 	{	}
 
-	void setup(ParticleVector* pv1, ParticleVector* pv2, CellList* cl1, CellList* cl2, float t)
+	void setup(LocalParticleVector* lpv1, LocalParticleVector* lpv2, CellList* cl1, CellList* cl2, float t)
 	{
-		auto ov1 = dynamic_cast<ObjectVector*>(pv1);
-		auto ov2 = dynamic_cast<ObjectVector*>(pv2);
-		if (ov1 == nullptr && ov2 == nullptr)
+		auto lov1 = dynamic_cast<LocalObjectVector*>(lpv1);
+		auto lov2 = dynamic_cast<LocalObjectVector*>(lpv2);
+		if (lov1 == nullptr && lov2 == nullptr)
 			die("Object-aware LJ interaction can only be used with objects");
 
-		self = (pv1 == pv2);
+		self = (lpv1 == lpv2);
 
-		view1 = OVview(ov1, ov1 ? ov1->local() : nullptr);
-		view2 = OVview(ov2, ov2 ? ov2->local() : nullptr);
+		auto ov1 = (lov1 != nullptr) ? dynamic_cast<ObjectVector*>(lov1->pv) : nullptr;
+		auto ov2 = (lov2 != nullptr) ? dynamic_cast<ObjectVector*>(lov2->pv) : nullptr;
+
+		view1 = OVview(ov1, lov1);
+		view2 = OVview(ov1, lov2);
 
 		if (view1.comAndExtents == nullptr && view2.comAndExtents == nullptr)
 			warn("Neither of the pvs (%s or %s) has required property 'com_extents', trying to move on regardless",
-					pv1->name.c_str(), pv2->name.c_str());
+					ov1->name.c_str(), ov2->name.c_str());
 	}
 
 	__device__ inline float3 operator()(Particle dst, int dstId, Particle src, int srcId) const

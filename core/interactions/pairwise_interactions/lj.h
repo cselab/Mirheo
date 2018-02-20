@@ -16,7 +16,7 @@ public:
 		rc2 = rc*rc;
 	}
 
-	void setup(ParticleVector* pv1, ParticleVector* pv2, CellList* cl1, CellList* cl2, float t)
+	void setup(LocalParticleVector* pv1, LocalParticleVector* pv2, CellList* cl1, CellList* cl2, float t)
 	{	}
 
 	__device__ inline float3 operator()(Particle dst, int dstId, Particle src, int srcId) const

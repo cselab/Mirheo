@@ -146,6 +146,18 @@ public:
 	}
 
 	/**
+	 * Get device buffer pointer regardless type
+	 *
+	 * @param name buffer name
+	 * @return pointer to device data held by the corresponding \c PinnedBuffer
+	 */
+	void* getGenericPtr(const std::string& name)
+	{
+		auto& desc = getChannelDescOrDie(name);
+		return desc.container.get()->genericDevPtr();
+	}
+
+	/**
 	 * \c true if channel with given \c name exists, \c false otherwise
 	 */
 	bool checkChannelExists(const std::string& name) const

@@ -197,5 +197,19 @@ public:
 	{
 		unpack(buf.data(), args...);
 	}
+
+
+	// Unsafe variants
+	template<typename... Args>
+	static void serialize(char* to, Args&... args)
+	{
+		pack(to, args...);
+	}
+
+	template<typename... Args>
+	static void deserialize(char* from, Args&... args)
+	{
+		unpack(from, args...);
+	}
 };
 

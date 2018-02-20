@@ -72,8 +72,9 @@ public:
 	 * @param fname log files will be prefixed with \e fname: e.g. \e fname_<rank_with_leading_zeros>.log
 	 * @param debugLvl debug level
 	 */
-	void init(MPI_Comm&& comm, const std::string fname, int debugLvl = 3)
+	void init(MPI_Comm comm, const std::string fname, int debugLvl = 3)
 	{
+		this->comm = comm;
 		MPI_Comm_rank(comm, &rank);
 		std::string rankStr = std::string(5 - std::to_string(rank).length(), '0') + std::to_string(rank);
 
@@ -93,8 +94,9 @@ public:
 	 * @param fout file handler, must be opened, typically \e stdout or \e stderr
 	 * @param debugLvl debug level
 	 */
-	void init(MPI_Comm&& comm, FILE* fout, int debugLvl = 3)
+	void init(MPI_Comm comm, FILE* fout, int debugLvl = 3)
 	{
+		this->comm = comm;
 		MPI_Comm_rank(comm, &rank);
 		this->fout = fout;
 
@@ -188,7 +190,7 @@ public:
 		fclose(fout);
 		fout = nullptr;
 
-		MPI_Abort(MPI_COMM_WORLD, -1);
+		MPI_Abort(comm, -1);
 	}
 
 	/**
@@ -248,6 +250,8 @@ private:
 
 	mutable std::chrono::system_clock::time_point lastFlushed;
 	const std::chrono::seconds flushPeriod{30};
+
+	MPI_Comm comm;
 
 	FILE* fout = nullptr;
 	int rank;

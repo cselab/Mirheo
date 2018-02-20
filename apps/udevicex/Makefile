@@ -9,11 +9,11 @@ objects = main.o \
 	from_mesh.o from_ellipsoid.o belonging.o ellipsoid_belonging.o mesh_belonging.o \
 	rigid_ic.o uniform_ic.o rbcs_ic.o \
 	const_omega.o rigid_vv.o vv.o oscillate.o translate.o \
-	pairwise.o rbc.o \
+	pairwise.o pairwise_with_stress.o rbc.o \
 	particle_exchanger.o particle_halo_exchanger.o particle_redistributor.o object_halo_exchanger.o object_redistributor.o object_forces_reverse_exchanger.o \
 	particle_vector.o object_vector.o rigid_object_vector.o \
 	simple_stationary_wall.o wall_with_velocity.o sdf.o \
-	write_xdmf.o dumpavg.o stats.o temperaturize.o dumpxyz.o dump_obj_position.o \
+	write_xdmf.o average_flow.o channel_dumper.o stats.o temperaturize.o dumpxyz.o dump_obj_position.o \
 	impose_velocity.o pin_object.o add_force.o impose_profile.o add_torque.o
 	
 include ../../makefiles/Makefile.base

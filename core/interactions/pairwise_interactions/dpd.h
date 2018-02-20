@@ -32,7 +32,7 @@ public:
 		invrc = 1.0 / rc;
 	}
 
-	void setup(ParticleVector* pv1, ParticleVector* pv2, CellList* cl1, CellList* cl2, float t)
+	void setup(LocalParticleVector* lpv1, LocalParticleVector* lpv2, CellList* cl1, CellList* cl2, float t)
 	{
 		// seed = t;
 		// better use random seed (time-based) instead of time
@@ -66,7 +66,7 @@ public:
 		return dr_r * strength;
 	}
 
-private:
+protected:
 
 	float a, gamma, sigma, power, rc;
 	float invrc, rc2;

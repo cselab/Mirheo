@@ -98,7 +98,7 @@ static Interaction* createDPD(pugi::xml_node node)
 
 int main(int argc, char** argv)
 {
-	srand48(0);
+	srand48(4242);
 
 	int rank;
 	MPI_Init(&argc, &argv);
@@ -122,12 +122,16 @@ int main(int argc, char** argv)
 		parser.parse(argc, argv);
 	}
 
-	logger.init(MPI_COMM_WORLD, "genwall.log", 10);
-
 	pugi::xml_document config;
 	pugi::xml_parse_result result = config.load_file(xmlname.c_str());
 	if (!result)
-		die("Couldn't open script file, parser says: \"%s\"", result.description());
+	{
+		printf("Couldn't open script file, parser says: \"%s\"", result.description());
+		MPI_Check( MPI_Abort(MPI_COMM_WORLD, -1) );
+	}
+
+	logger.init(MPI_COMM_WORLD, "genwall.log", config.child("simulation").attribute("debug_lvl").as_int(5));
+
 
 	float3 globalDomainSize = config.child("simulation").child("domain").attribute("size").as_float3({32, 32, 32});
 	int3 nranks3D = config.child("simulation").attribute("mpi_ranks").as_int3({1, 1, 1});

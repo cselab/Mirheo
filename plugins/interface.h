@@ -42,6 +42,7 @@ public:
 		this->interComm = interComm;
 
 		MPI_Check( MPI_Comm_rank(this->comm, &rank) );
+		MPI_Check( MPI_Comm_size(this->comm, &nranks) );
 	}
 
 	virtual ~SimulationPlugin() = default;
@@ -50,7 +51,7 @@ protected:
 	Simulation* sim;
 	MPI_Comm comm;
 	MPI_Comm interComm;
-	int rank;
+	int rank, nranks;
 	MPI_Request req;
 
 	float currentTime;
@@ -111,6 +112,7 @@ public:
 		this->interComm = interComm;
 
 		MPI_Check( MPI_Comm_rank(this->comm, &rank) );
+		MPI_Check( MPI_Comm_size(this->comm, &nranks) );
 	}
 
 	virtual ~PostprocessPlugin() = default;
@@ -118,7 +120,7 @@ public:
 
 protected:
 	MPI_Comm comm, interComm;
-	int rank;
+	int rank, nranks;
 	std::vector<char> data;
 	int size;
 

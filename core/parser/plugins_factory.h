@@ -6,7 +6,8 @@
 
 #include <core/xml/pugixml.hpp>
 
-#include <plugins/dumpavg.h>
+#include <plugins/average_flow.h>
+#include <plugins/channel_dumper.h>
 #include <plugins/dumpxyz.h>
 #include <plugins/stats.h>
 #include <plugins/temperaturize.h>
@@ -100,21 +101,38 @@ private:
 		return { (SimulationPlugin*) simPl, (PostprocessPlugin*) postPl };
 	}
 
-	static std::pair<SimulationPlugin*, PostprocessPlugin*> createDumpavgPlugin(pugi::xml_node node, bool computeTask)
+	static std::pair<SimulationPlugin*, PostprocessPlugin*> createDumpAveragePlugin(pugi::xml_node node, bool computeTask)
 	{
 		auto name        = node.attribute("name").as_string();
 
-		auto pvNames     = node.attribute("pv_names").as_string();
+		auto pvName      = node.attribute("pv_name").as_string();
 		auto sampleEvery = node.attribute("sample_every").as_int(50);
 		auto dumpEvery   = node.attribute("dump_every").as_int(5000);
 		auto binSize     = node.attribute("bin_size").as_float3( {1, 1, 1} );
-		auto momentum    = node.attribute("need_momentum").as_bool(true);
-		auto force       = node.attribute("need_force").as_bool(false);
+		auto channels    = node.attribute("channels").as_string();
 
-		auto path        = node.attribute("path").as_string("xdmf");
+		std::vector<std::string> names;
+		std::vector<Average3D::ChannelType> types;
+		for (auto n : node.children("channel"))
+		{
+			names.push_back(n.attribute("name").as_string());
+			std::string typeStr = n.attribute("type").as_string();
 
-		auto simPl  = computeTask ? new Avg3DPlugin(name, pvNames, sampleEvery, dumpEvery, binSize, momentum, force) : nullptr;
-		auto postPl = computeTask ? nullptr : new Avg3DDumper(name, path);
+			if      (typeStr == "scalar")             types.push_back(Average3D::ChannelType::Scalar);
+			else if (typeStr == "vector")             types.push_back(Average3D::ChannelType::Vector_float3);
+			else if (typeStr == "vector_from_float4") types.push_back(Average3D::ChannelType::Vector_float4);
+			else if (typeStr == "vector_from_float8") types.push_back(Average3D::ChannelType::Vector_2xfloat4);
+			else if (typeStr == "tensor6")            types.push_back(Average3D::ChannelType::Tensor6);
+			else die("Unable to parse input at %s, unknown type: '%s'", n.path().c_str(), typeStr.c_str());
+		}
+
+		auto path = node.attribute("path").as_string("xdmf");
+
+		auto simPl  = computeTask ?
+				new Average3D(name, pvName, names, types, sampleEvery, dumpEvery, binSize) :
+				nullptr;
+
+		auto postPl = computeTask ? nullptr : new UniformCartesianDumper(name, path);
 
 		return { (SimulationPlugin*) simPl, (PostprocessPlugin*) postPl };
 	}
@@ -178,7 +196,7 @@ public:
 				{"add_torque",       createAddTorquePlugin      },
 				{"add_force",        createAddForcePlugin       },
 				{"stats",            createStatsPlugin          },
-				{"dump_avg_flow",    createDumpavgPlugin        },
+				{"dump_avg_flow",    createDumpAveragePlugin    },
 				{"dump_xyz",         createDumpXYZPlugin        },
 				{"dump_obj_pos",     createDumpObjPosition      },
 				{"impose_velocity",  createImposeVelocityPlugin },

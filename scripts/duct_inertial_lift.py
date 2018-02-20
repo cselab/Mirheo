@@ -8,6 +8,7 @@ Created on Wed Jan 17 11:39:29 2018
 import glob
 import itertools
 import numpy as np
+import matplotlib
 import matplotlib.pyplot as plt
 import math
 import h5py
@@ -41,7 +42,23 @@ def mean_err_cut(vals):
 
 def dump_plots(ry, rz, Fy, Fz):
 	
-	plt.quiver(ry, rz, Fy, Fz, minlength=0, scale=8000, width=0.01, alpha=0.9, color="C0")
+	Fy = np.array(Fy)
+	Fz = np.array(Fz)
+	
+	lengths = np.sqrt(Fy*Fy + Fz*Fz)
+	Fy = Fy / lengths
+	Fz = Fz / lengths
+	
+	norm = matplotlib.colors.LogNorm()
+	norm.autoscale(lengths)
+	cm = plt.cm.rainbow
+	
+	sm = matplotlib.cm.ScalarMappable(cmap=cm, norm=norm)
+	sm.set_array([])
+	
+	plt.quiver(ry, rz, Fy, Fz, alpha=0.9, color=cm(norm(lengths)))
+	plt.colorbar(sm)
+	#plt.quiver(ry, rz, Fy, Fz, minlength=0, scale=8000, width=0.01, alpha=0.9, color="C0")
 
 	plt.xlabel('y', fontsize=16)
 	plt.ylabel('z', fontsize=16)
@@ -49,7 +66,7 @@ def dump_plots(ry, rz, Fy, Fz):
 
 	plt.axes().set_xlim([0.0, 0.8])
 	plt.axes().set_ylim([0.0, 0.8])
-	plt.gca().invert_yaxis()
+	#plt.gca().invert_yaxis()
 
 	plt.axes().set_aspect('equal', 'box', anchor='SW')
 	plt.tight_layout()
@@ -111,7 +128,7 @@ for posy in positionsy:
 #		my = 0
 		
 		Fy.append(my)
-		Fz.append(-mz)
+		Fz.append(mz)
 		
 		ry.append(posy)
 		rz.append(posz)
@@ -128,6 +145,6 @@ dump_plots(ry, rz, Fy, Fz)
 #plottraj("case" + norot + "_10_0.05__80_40_1.5__3")
 
 plt.show()
-fig.savefig("/home/alexeedm/udevicex/media/square_duct_comparison.pdf", bbox_inches='tight', transparent=True)
+fig.savefig("/home/alexeedm/udevicex/media/square_duct_comparison_colored.pdf", bbox_inches='tight', transparent=True)
 
 

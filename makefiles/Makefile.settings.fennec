@@ -3,7 +3,7 @@ CXX = mpinvcc
 CUDA_ARCH = compute_61
 CUDA_CODE = sm_61
 
-CXXFLAGS += -arch=$(CUDA_ARCH) -code=$(CUDA_CODE) --expt-extended-lambda -lineinfo
+CXXFLAGS += -arch=$(CUDA_ARCH) -code=$(CUDA_CODE) --expt-extended-lambda -lineinfo --Wno-deprecated-declarations
 
 FMATH_FLAG = --use_fast_math
 

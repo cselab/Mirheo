@@ -45,8 +45,9 @@ void XDMFDumper::writeLight(std::string currentFname, float t)
 		int dims;
 		switch (channelTypes[ichannel])
 		{
-			case ChannelType::Scalar:  type = "Scalar"; dims = 1;  break;
-			case ChannelType::Vector:  type = "Vector"; dims = 3;  break;
+			case ChannelType::Scalar:  type = "Scalar";  dims = 1;  break;
+			case ChannelType::Vector:  type = "Vector";  dims = 3;  break;
+			case ChannelType::Tensor6: type = "Tensor6"; dims = 6;  break;
 		}
 
 		fprintf(xmf, "     <Attribute Name=\"%s\" AttributeType=\"%s\" Center=\"Cell\">\n", channelNames[ichannel].c_str(), type.c_str());
@@ -85,8 +86,9 @@ void XDMFDumper::writeHeavy(std::string currentFname, std::vector<const float*> 
 		hsize_t dims;
 		switch (channelTypes[ichannel])
 		{
-			case ChannelType::Scalar: dims = 1;  break;
-			case ChannelType::Vector: dims = 3;  break;
+			case ChannelType::Scalar:  dims = 1;  break;
+			case ChannelType::Vector:  dims = 3;  break;
+			case ChannelType::Tensor6: dims = 6;  break;
 		}
 
 		hsize_t globalsize[4] = { (hsize_t)globalResolution.z,

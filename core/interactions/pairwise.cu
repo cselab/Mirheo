@@ -8,6 +8,7 @@
 
 #include "pairwise_kernels.h"
 
+#include "pairwise_interactions/stress_wrapper.h"
 #include "pairwise_interactions/dpd.h"
 #include "pairwise_interactions/lj.h"
 #include "pairwise_interactions/lj_object_aware.h"
@@ -114,10 +115,10 @@ template<class PariwiseInteraction>
 void InteractionPair<PariwiseInteraction>::_compute(InteractionType type,
 		ParticleVector* pv1, ParticleVector* pv2, CellList* cl1, CellList* cl2, const float t, cudaStream_t stream)
 {
-	interaction.setup(pv1, pv2, cl1, cl2, t);
-
 	if (type == InteractionType::Regular)
 	{
+		interaction.setup(pv1->local(), pv2->local(), cl1, cl2, t);
+
 		/*  Self interaction */
 		if (pv1 == pv2)
 		{
@@ -148,6 +149,8 @@ void InteractionPair<PariwiseInteraction>::_compute(InteractionType type,
 	/*  Halo interaction */
 	if (type == InteractionType::Halo)
 	{
+		interaction.setup(pv1->halo(), pv2->local(), cl1, cl2, t);
+
 		const int np1 = pv1->halo()->size();  // note halo here
 		const int np2 = pv2->local()->size();
 		debug("Computing halo forces for %s(halo) - %s (%d - %d particles)", pv1->name.c_str(), pv2->name.c_str(), np1, np2);
@@ -165,5 +168,8 @@ void InteractionPair<PariwiseInteraction>::_compute(InteractionType type,
 template class InteractionPair<Pairwise_DPD>;
 template class InteractionPair<Pairwise_LJ>;
 template class InteractionPair<Pairwise_LJObjectAware>;
+
+template class InteractionPair<PairwiseStressWrapper<Pairwise_DPD>>;
+template class InteractionPair<PairwiseStressWrapper<Pairwise_LJ>>;
 
 

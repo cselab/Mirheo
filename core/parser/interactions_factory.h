@@ -7,6 +7,7 @@
 #include <core/xml/pugixml.hpp>
 
 #include <core/interactions/pairwise.h>
+#include <core/interactions/pairwise_with_stress.h>
 #include <core/interactions/sampler.h>
 #include <core/interactions/rbc.h>
 
@@ -19,8 +20,9 @@ class InteractionFactory
 private:
 	static Interaction* createDPD(pugi::xml_node node)
 	{
-		auto name = node.attribute("name").as_string("");
-		auto rc   = node.attribute("rc").as_float(1.0f);
+		auto name         = node.attribute("name").as_string("");
+		auto rc           = node.attribute("rc").as_float(1.0f);
+		auto stressPeriod = node.attribute("stress_period").as_float(-1.0f);
 
 		auto a     = node.attribute("a")    .as_float(50);
 		auto gamma = node.attribute("gamma").as_float(20);
@@ -30,7 +32,10 @@ private:
 
 		Pairwise_DPD dpd(rc, a, gamma, kbT, dt, power);
 
-		return (Interaction*) new InteractionPair<Pairwise_DPD>(name, rc, dpd);
+		if (stressPeriod > 0.0f)
+			return (Interaction*) new InteractionPair_withStress<Pairwise_DPD> (name, rc, stressPeriod, dpd);
+		else
+			return (Interaction*) new InteractionPair<Pairwise_DPD>            (name, rc, dpd);
 	}
 
 	static Interaction* createLJ(pugi::xml_node node)

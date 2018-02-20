@@ -159,7 +159,7 @@ void Simulation::setInteraction(std::string interactionName, std::string pv1Name
 	auto pv2 = getPVbyNameOrDie(pv2Name);
 
 	if (interactionMap.find(interactionName) == interactionMap.end())
-		die("No such integrator: %s", interactionName.c_str());
+		die("No such interaction: %s", interactionName.c_str());
 	auto interaction = interactionMap[interactionName];
 
 	interaction->setPrerequisites(pv1, pv2);

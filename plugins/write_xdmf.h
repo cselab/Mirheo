@@ -8,7 +8,7 @@
 class XDMFDumper
 {
 public:
-	enum ChannelType {Scalar, Vector};
+	enum class ChannelType : int {Scalar, Vector, Tensor6};
 
 private:
     MPI_Comm xdmfComm;
