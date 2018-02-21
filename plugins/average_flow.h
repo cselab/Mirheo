@@ -2,10 +2,8 @@
 
 #include <plugins/interface.h>
 #include <core/containers.h>
-#include <core/datatypes.h>
 
 #include <vector>
-#include <array>
 
 class ParticleVector;
 class CellList;
@@ -27,7 +25,21 @@ public:
 		std::vector<PinnedBuffer<float>> average;
 	};
 
-private:
+	Average3D(std::string name,
+			  std::string pvName,
+			  std::vector<std::string> channelNames, std::vector<Average3D::ChannelType> channelTypes,
+			  int sampleEvery, int dumpEvery, float3 binSize);
+
+	void setup(Simulation* sim, const MPI_Comm& comm, const MPI_Comm& interComm) override;
+	void handshake() override;
+	void afterIntegration(cudaStream_t stream) override;
+	void serializeAndSend(cudaStream_t stream) override;
+
+	bool needPostproc() override { return true; }
+
+	~Average3D() = default;
+
+protected:
 	std::string pvName;
 	int nSamples;
 	int sampleEvery, dumpEvery;
@@ -41,20 +53,6 @@ private:
 
 	HostChannelsInfo channelsInfo;
 
-public:
-
-	Average3D(std::string name,
-			  std::string pvName,
-			  std::vector<std::string> channelNames, std::vector<Average3D::ChannelType> channelTypes,
-			  int sampleEvery, int dumpEvery, float3 binSize);
-
-	void setup(Simulation* sim, const MPI_Comm& comm, const MPI_Comm& interComm) override;
-	void handshake() override;
-	void afterIntegration(cudaStream_t stream) override;
-	void serializeAndSend(cudaStream_t stream) override;
-
-	bool needPostproc() override { return true; }
-
-	~Average3D() {};
+	void scaleSampled(cudaStream_t stream);
 };
 

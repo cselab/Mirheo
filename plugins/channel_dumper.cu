@@ -17,7 +17,7 @@ void UniformCartesianDumper::handshake()
 	recv();
 
 	std::vector<int> sizes;
-	SimpleSerializer::deserialize(data, nranks3D, resolution, h, sizes);
+	SimpleSerializer::deserialize(data, nranks3D, rank3D, resolution, h, sizes);
 
 	for (auto s : sizes)
 	{
@@ -36,15 +36,19 @@ void UniformCartesianDumper::handshake()
 	channelNames.resize(sizes.size());
 
 	std::string allNames;
-	int shift = SimpleSerializer::totSize(nranks3D, resolution, h, sizes);
+	int shift = SimpleSerializer::totSize(nranks3D, rank3D, resolution, h, sizes);
 	for (auto& nm : channelNames)
 	{
 		SimpleSerializer::deserialize(data.data() + shift, nm);
 		shift += SimpleSerializer::totSize(nm);
 		allNames += nm + ", ";
 	}
-	allNames.pop_back();
-	allNames.pop_back();
+
+	if (allNames.length() >= 2)
+	{
+		allNames.pop_back();
+		allNames.pop_back();
+	}
 
 	debug2("Plugin %s was set up to dump channels %s, resolution is %dx%dx%d, path is %s", name.c_str(),
 			allNames.c_str(), resolution.x, resolution.y, resolution.z, path.c_str());

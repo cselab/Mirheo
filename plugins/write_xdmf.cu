@@ -75,7 +75,7 @@ void XDMFDumper::writeHeavy(std::string currentFname, std::vector<const float*> 
 	hid_t file_id = H5Fcreate( (currentFname+".h5").c_str(), H5F_ACC_TRUNC, H5P_DEFAULT, plist_id_access );
 	if (file_id < 0)
 	{
-		if (myrank == 0) error("HDF5 write failed: %s", (currentFname+".h5").c_str());
+		error("HDF5 write failed: %s", (currentFname+".h5").c_str());
 		return;
 	}
 

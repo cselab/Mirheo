@@ -7,56 +7,7 @@
 #include <core/utils/cuda_common.h>
 
 #include "simple_serializer.h"
-
-struct ChannelsInfo
-{
-	int n;
-	Average3D::ChannelType *types;
-	float **average, **data;
-
-	ChannelsInfo(Average3D::HostChannelsInfo& info, ParticleVector* pv, cudaStream_t stream)
-	{
-		for (int i=0; i<info.n; i++)
-		{
-			if (info.names[i] == "velocity") info.dataPtrs[i] = (float*) ((float4*)pv->local()->coosvels.devPtr() + 1);
-			else info.dataPtrs[i] = (float*)pv->local()->extraPerParticle.getGenericPtr(info.names[i]);
-		}
-
-		info.types.uploadToDevice(stream);
-		info.averagePtrs.uploadToDevice(stream);
-		info.dataPtrs.uploadToDevice(stream);
-
-		n = info.n;
-		types = info.types.devPtr();
-		average = info.averagePtrs.devPtr();
-		data = info.dataPtrs.devPtr();
-	}
-};
-
-
-__device__ inline void sampleChannels(int pid, int cid, ChannelsInfo channelsInfo)
-{
-	for (int i=0; i<channelsInfo.n; i++)
-	{
-		if (channelsInfo.types[i] == Average3D::ChannelType::Scalar)
-			atomicAdd(channelsInfo.average[i] + cid, channelsInfo.data[i][pid]);
-
-		if (channelsInfo.types[i] == Average3D::ChannelType::Vector_float3)
-			atomicAdd(((float3*)channelsInfo.average[i]) + cid, ((float3*)channelsInfo.data[i])[pid]);
-
-		if (channelsInfo.types[i] == Average3D::ChannelType::Vector_float4)
-			atomicAdd(((float3*)channelsInfo.average[i]) + cid, make_float3( ((float4*)channelsInfo.data[i])[pid] ));
-
-		if (channelsInfo.types[i] == Average3D::ChannelType::Vector_2xfloat4)
-			atomicAdd(((float3*)channelsInfo.average[i]) + cid, make_float3( ((float4*)channelsInfo.data[i])[2*pid] ));
-
-		if (channelsInfo.types[i] == Average3D::ChannelType::Tensor6)
-		{
-			atomicAdd(((float3*)channelsInfo.average[i]) + 2*cid + 0, ((float3*)channelsInfo.data[i])[2*pid + 0] );
-			atomicAdd(((float3*)channelsInfo.average[i]) + 2*cid + 1, ((float3*)channelsInfo.data[i])[2*pid + 1] );
-		}
-	}
-}
+#include "sampling_helpers.h"
 
 __global__ void sample(
 		PVview pvView, CellListInfo cinfo,
@@ -73,21 +24,6 @@ __global__ void sample(
 	atomicAdd(avgDensity + cid, 1);
 
 	sampleChannels(pid, cid, channelsInfo);
-}
-
-__global__ void scaleVec(int n, int fieldComponents, float* field, const float* density)
-{
-	const int id = threadIdx.x + blockIdx.x*blockDim.x;
-	if (id < n)
-		for (int c=0; c<fieldComponents; c++)
-			field[fieldComponents*id + c] /= (density[id] + 1e-6f);
-}
-
-__global__ void scaleDensity(int n, float* density, const float factor)
-{
-	const int id = threadIdx.x + blockIdx.x*blockDim.x;
-	if (id < n)
-		density[id] *= factor;
 }
 
 Average3D::Average3D(std::string name,
@@ -165,15 +101,10 @@ void Average3D::afterIntegration(cudaStream_t stream)
 	nSamples++;
 }
 
-void Average3D::serializeAndSend(cudaStream_t stream)
+void Average3D::scaleSampled(cudaStream_t stream)
 {
-	if (currentTimeStep % dumpEvery != 0 || currentTimeStep == 0) return;
-
 	const int nthreads = 128;
 	// Order is important here! First channels, only then dens
-
-	// Calculate total size for sending
-	int totalSize = 0;
 
 	for (int i=0; i<channelsInfo.n; i++)
 	{
@@ -190,8 +121,6 @@ void Average3D::serializeAndSend(cudaStream_t stream)
 
 		data.downloadFromDevice(stream, false);
 		data.clearDevice(stream);
-
-		totalSize += SimpleSerializer::totSize(data);
 	}
 
 	int sz = density.size();
@@ -203,7 +132,19 @@ void Average3D::serializeAndSend(cudaStream_t stream)
 	density.downloadFromDevice(stream, true);
 	density.clearDevice(stream);
 
-	totalSize += SimpleSerializer::totSize(currentTime, density);
+	nSamples = 0;
+}
+
+void Average3D::serializeAndSend(cudaStream_t stream)
+{
+	if (currentTimeStep % dumpEvery != 0 || currentTimeStep == 0) return;
+
+	scaleSampled(stream);
+
+	// Calculate total size for sending
+	int totalSize = SimpleSerializer::totSize(currentTime, density);
+	for (auto& ch : channelsInfo.average)
+		totalSize += SimpleSerializer::totSize(ch);
 
 	// Now allocate the sending buffer and pack everything into it
 	debug2("Plugin %s is packing now data", name.c_str());
@@ -218,8 +159,6 @@ void Average3D::serializeAndSend(cudaStream_t stream)
 	}
 
 	send(sendBuffer);
-
-	nSamples = 0;
 }
 
 void Average3D::handshake()
@@ -245,7 +184,7 @@ void Average3D::handshake()
 		}
 
 	std::string dens("density");
-	SimpleSerializer::serialize(data, sim->nranks3D, resolution, binSize, sizes, dens);
+	SimpleSerializer::serialize(data, sim->nranks3D, sim->rank3D, resolution, binSize, sizes, dens);
 
 	int namesSize = 0;
 	for (auto& s : channelsInfo.names)

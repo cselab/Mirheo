@@ -1,9 +1,8 @@
 #pragma once
 
 #include <core/containers.h>
-#include <core/datatypes.h>
-
 #include <string>
+#include <vector>
 
 // Only POD types and std::vectors/HostBuffers/PinnedBuffers of POD and std::strings are supported
 // Container size will be serialized too

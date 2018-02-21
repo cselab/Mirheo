@@ -3,7 +3,6 @@
 #include <mpi.h>
 #include <string>
 #include <core/logger.h>
-#include <core/datatypes.h>
 
 class Simulation;
 
