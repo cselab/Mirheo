@@ -31,6 +31,7 @@ class Simulation
 {
 public:
 	int3 nranks3D;
+	int3 rank3D;
 
 	MPI_Comm cartComm;
 	MPI_Comm interComm;
@@ -109,7 +110,6 @@ private:
 
 	float dt;
 	int rank;
-	int3 rank3D;
 
 	double currentTime;
 	int currentStep;
