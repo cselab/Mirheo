@@ -1,6 +1,7 @@
 #include "mesh.h"
 
 #include <fstream>
+#include <unordered_map>
 #include <map>
 
 //Mesh::Mesh(const Mesh& m)
@@ -13,19 +14,26 @@
 //	CUDA_Check( cudaMemcpy(triangles.devPtr(), m.triangles.devPtr(), ntriangles * triangles.datatype_size(), cudaMemcpyDeviceToDevice) );
 //}
 
-struct CmpInt2
+struct Int2Hasher
 {
-	bool operator() (int2 a, int2 b)
+	std::size_t operator() (const int2 a) const
 	{
-		if (a.x > b.x) return true;
-		if (a.x < b.x) return false;
-		return a.y > b.y;
+		int2 m = {min(a.x, a.y), max(a.x, a.y)};
+		return m.x * 100000 + m.y;
 	}
 };
 
+bool operator==(int2 a, int2 b)
+{
+	int2 ma = {min(a.x, a.y), max(a.x, a.y)};
+	int2 mb = {min(b.x, b.y), max(b.x, b.y)};
+
+	return ma.x == mb.x && ma.y == mb.y;
+}
+
 static void findAdjacentTriangles(PinnedBuffer<int3>& triangles, PinnedBuffer<int>& adjacentTriangles)
 {
-	std::map<int2, int2, CmpInt2> edge2triangles;
+	std::unordered_map<int2, int2, Int2Hasher> edge2triangles;
 
 	// Create a map of edge -> 2 triangles containing it
 	for (int trid = 0; trid < triangles.size(); trid++)

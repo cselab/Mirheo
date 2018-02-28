@@ -40,10 +40,10 @@ def mean_err_cut(vals):
 		
 	return m,v
 
-def dump_plots(ry, rz, Fy, Fz):
+def dump_plots(ry, rz, _Fy, _Fz):
 	
-	Fy = np.array(Fy)
-	Fz = np.array(Fz)
+	Fy = np.array(_Fy)
+	Fz = np.array(_Fz)
 	
 	lengths = np.sqrt(Fy*Fy + Fz*Fz)
 	Fy = Fy / lengths
@@ -56,9 +56,9 @@ def dump_plots(ry, rz, Fy, Fz):
 	sm = matplotlib.cm.ScalarMappable(cmap=cm, norm=norm)
 	sm.set_array([])
 	
-	plt.quiver(ry, rz, Fy, Fz, alpha=0.9, color=cm(norm(lengths)))
-	plt.colorbar(sm)
-	#plt.quiver(ry, rz, Fy, Fz, minlength=0, scale=8000, width=0.01, alpha=0.9, color="C0")
+#	plt.quiver(ry, rz, Fy, Fz, alpha=0.9, color=cm(norm(lengths)))
+#	plt.colorbar(sm)
+	plt.quiver(ry, rz, _Fy, _Fz, minlength=0, color="C0")
 
 	plt.xlabel('y', fontsize=16)
 	plt.ylabel('z', fontsize=16)
@@ -75,7 +75,8 @@ def dump_plots(ry, rz, Fy, Fz):
 	
 norot=""#_norot"
 prefix = "/home/alexeedm/extern/daint/scratch/focusing_square" + norot + "/"
-case = "case_5_0.1__80_20_1.5__"
+#case = "case_5_0.1__80_20_1.5__"
+case = "case_newcode_5_0.1__80_20_1.5__"
 
 rho = 8.0
 r = 5
@@ -89,6 +90,9 @@ positionsz = positionsy
 #
 #positionsy = np.linspace(0.0, 0.1, 9) + 0.44
 #positionsz = np.linspace(0.0, 0.1, 9) + 0.44
+
+positionsy = np.linspace(0.0, 0.6, 31) + 0.04
+positionsz = [0.04]
 
 Fy = []
 Fz = []
@@ -109,7 +113,7 @@ for posy in positionsy:
 		
 		files = sorted(glob.glob(full_folder + "/pinning_force/sphere*"))
 		lines = list(itertools.chain.from_iterable([open(f).readlines() for f in files]))
-					
+							
 		fy = [ x.split()[3] for x in lines ]
 		fz = [ x.split()[4] for x in lines ]
 		
@@ -145,6 +149,6 @@ dump_plots(ry, rz, Fy, Fz)
 #plottraj("case" + norot + "_10_0.05__80_40_1.5__3")
 
 plt.show()
-fig.savefig("/home/alexeedm/udevicex/media/square_duct_comparison_colored.pdf", bbox_inches='tight', transparent=True)
+#fig.savefig("/home/alexeedm/udevicex/media/square_duct_comparison_colored.pdf", bbox_inches='tight', transparent=True)
 
 

@@ -28,6 +28,8 @@ __global__ void copyInOut(
 	{
 		int dstId = atomicAggInc(nIn);
 		if (ins)  ins [dstId] = p;
+		if (!ins && p.i1 == 69211)
+			printf("%d: %f %f %f\n", p.i1, p.r.x, p.r.y, p.r.z);
 	}
 }
 

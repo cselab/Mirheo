@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
-<simulation name="test_mesh" logfile="log" mpi_ranks="1 1 1" debug_lvl="5" >
+<simulation name="test_mesh" logfile="log" mpi_ranks="1 1 1" debug_lvl="10" >
 
 	<domain size="20 20 20" />
 	
@@ -11,7 +11,7 @@
 		Object section
 	-->
 	
-	<particle_vector type="rigid_objects" name="sphere" mass="0.5" particles_per_obj="2267" moment_of_inertia="80000 80000 80000" mesh_filename="sphere.off" >
+	<particle_vector type="rigid_objects" name="sphere" mass="2" particles_per_obj="2267" moment_of_inertia="10000 10000 10000" mesh_filename="sphere.off" >
 		<generate type="read_rigid" ic_filename="sphere.ic" xyz_filename="sphere5.xyz"/>
 	</particle_vector>
 	
@@ -27,7 +27,7 @@
 		Interactions section
 	-->
 	
-	<interaction type="dpd" name="dpd_int" a="50" gamma="10" kbt="1.0" dt="0.005" rc="1.0" power="0.5">
+	<interaction type="dpd" name="dpd_int" a="50" gamma="10" kbt="1.0" dt="0.01" rc="1.0" power="0.5">
 		<apply_to pv1="dpd"   pv2="dpd" />
 <!-- 		<apply_to pv1="sphere" pv2="dpd" /> -->
 	</interaction>
@@ -36,11 +36,11 @@
 		Integrators section
 	-->
 	
-	<integrator type="vv_periodic_poiseuille" name="vvint" force="0.1" dt="0.005">
+	<integrator type="vv_periodic_poiseuille" name="vvint" force="0.1" dt="0.01">
 		<apply_to pv="dpd" />
 	</integrator>
 	
-	<integrator type="rigid_vv" name="rigid" dt="0.005">
+	<integrator type="rigid_vv" name="rigid" dt="0.01">
 		<apply_to pv="sphere" />
 	</integrator>
 
@@ -76,11 +76,11 @@
 
 	<plugin type="dump_obj_pos" name="lala"
 		ov_name="sphere"
-		dump_every="10"
+		dump_every="1"
 		path="pos/" />
 	
-	<plugin type="stats" name="stats" every="1000" />
+	<plugin type="stats" name="stats" every="1" />
 	
-	<run niters="100000" />
+	<run niters="20" />
 </simulation>
 

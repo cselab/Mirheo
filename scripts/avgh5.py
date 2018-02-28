@@ -38,6 +38,10 @@ for a in avgSets:
 	if len(a.shape) > 3 and a.shape[3] == 3:
 		type="Vector"
 
+	if len(a.shape) > 3 and a.shape[3] == 6:
+		type="Tensor6"
+
+
 	datastr += '''			<Attribute Name="%s" AttributeType="%s" Center="Cell">
 				<DataItem Dimensions="%d %d %d" NumberType="Float" Precision="4" Format="HDF">
 					%s:%s

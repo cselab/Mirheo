@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
-<simulation name="poiseuille" logfile="log" mpi_ranks="1 1 1" debug_lvl="6">
+<simulation name="poiseuille" logfile="log" mpi_ranks="1 1 1" debug_lvl="10">
 
 	<domain size="64 64 64" />
 	
@@ -21,7 +21,8 @@
 		<apply_to pv="dpd" />
 	</wall> -->
 	
-	<interaction type="dpd" name="dpd_int" a="2.6666667" gamma="8" kbt="0.0444302" dt="0.001" rc="1.0" power="0.5">
+	<interaction type="dpd" name="dpd_int" a="2.6666667" gamma="8" kbt="0.0444302" dt="0.001" rc="1.0" power="0.5"
+				 stress_period="0.02" >
 		<apply_to pv1="dpd" pv2="dpd"/>
 	</interaction>
 	
@@ -29,14 +30,14 @@
 		<apply_to pv="dpd" />
 	</integrator>
 	
- 	<plugin type="dump_avg_flow" name="avg"
-		pv_names="dpd"
-		sample_every="50" dump_every="10000"
-		bin_size="0.5 0.5 0.5"
-		path="xdmf/avg_rho_u" />
+ 	<plugin type="dump_avg_flow" name="avg" pv_name="dpd" path="xdmf/avg_rho_u" 
+			sample_every="20" dump_every="10000" bin_size="1 1 1" >
+		<channel name="velocity" type="vector_from_float8" />
+		<channel name="stress" type="tensor6" /> -->
+	</plugin>
 	
 	<plugin type="stats" name="stats" every="1000" />
 	
-	<run niters="5000" />
+	<run niters="100" />
 
 </simulation>

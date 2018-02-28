@@ -51,6 +51,7 @@ void AverageRelative3D::setup(Simulation* sim, const MPI_Comm& comm, const MPI_C
 	localChannels.resize(channelsInfo.n + 1);
 	localChannels[0].resize(density.size());
 	density.resize_anew(density.size() * nranks);
+	density.clear(0);
 
 	for (int i=0; i<channelsInfo.n; i++)
 	{
