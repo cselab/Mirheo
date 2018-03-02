@@ -140,8 +140,6 @@ void ParticleHaloExchanger::prepareData(int id, cudaStream_t stream)
 		auto packer = ParticlePacker(pv, pv->local(), stream);
 		helper->setDatumSize(packer.packedSize_byte);
 
-		cudaDeviceSynchronize();
-
 		SAFE_KERNEL_LAUNCH(
 				getHalos<true>,
 				nblocks, nthreads, 0, stream,
@@ -168,18 +166,7 @@ void ParticleHaloExchanger::combineAndUploadData(int id, cudaStream_t stream)
 	int totalRecvd = helper->recvOffsets[helper->nBuffers];
 	pv->halo()->resize_anew(totalRecvd);
 
-//	helper->recvBuf.uploadToDevice(stream);
-//	cudaDeviceSynchronize();
-
-	// std::swap(pv->halo()->coosvels, helper->recvBuf);
-	// TODO: types are different, cannot swap. Make consume member
-
-//	CUDA_Check( cudaMemcpyAsync(
-//			pv->halo()->coosvels.devPtr(),
-//			helper->recvBuf.devPtr(),
-//			helper->recvBuf.size(), cudaMemcpyDeviceToDevice, stream) );
-
-	int nthreads = 1;
+	int nthreads = 128;
 
 	SAFE_KERNEL_LAUNCH(
 			unpackParticles,

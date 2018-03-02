@@ -626,7 +626,7 @@ void Simulation::assemble()
 	scheduler.addDependency("Plugins: before forces", {"Internal forces", "Halo forces"}, {"Clear forces"});
 	scheduler.addDependency("Plugins: serialize and send", {"Redistribute init", "Object redistribute init"}, {"Plugins: before forces"});
 
-	scheduler.addDependency("Internal forces", {}, {"Clear forces"});
+	scheduler.addDependency("Internal forces", {}, {"Plugins: before forces"});
 
 	scheduler.addDependency("Clear obj halo forces", {"Object bounce"}, {"Object halo finalize"});
 
@@ -659,7 +659,7 @@ void Simulation::assemble()
 
 	scheduler.setHighPriority("Obj forces exchange: init");
 	scheduler.setHighPriority("Halo init");
-	//scheduler.setHighPriority("Halo finalize");
+	scheduler.setHighPriority("Halo finalize");
 	scheduler.setHighPriority("Halo forces");
 	scheduler.setHighPriority("Plugins: serialize and send");
 
