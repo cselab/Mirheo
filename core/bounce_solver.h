@@ -18,7 +18,7 @@ __device__ inline float2 solveLinSearch_verbose(Equation F, float a = 0.0f, floa
 	// coordinate is inside at the current time, or outside
 	// Sign mapping to inside/outside is irrelevant
 
-	const int maxNIters = 40;
+	const int maxNIters = 20;
 
 	float va = F(a);
 	float vb = F(b);
@@ -84,7 +84,7 @@ __device__ inline float2 solveQuadratic(float a, float b, float c)
 template<typename F, typename F_prime>
 __device__ inline float2 solveNewton(F f, F_prime f_prime, float x0, float tolerance = 1e-6f)
 {
-	const int maxNIters = 20;
+	const int maxNIters = 10;
 
 	float x = x0;
 	float val;

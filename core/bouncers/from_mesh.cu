@@ -64,19 +64,17 @@ void BounceFromMesh::exec(ParticleVector* pv, CellList* cl, float dt, bool local
 	int totalTriangles = ov->mesh.ntriangles * activeOV->nObjects;
 	int totalEdges = totalTriangles * 3 / 2;
 
-	// Set maximum possible number of collisions with triangles and edges
-	// Generally, this is a vast overestimation of the actual number of collisions.
-	// So if we've found more collisions something is surely broken
+	// Set maximum possible number of _coarse_ and _fine_ collisions with triangles
+	// In case of crash, the estimate should be increased
+	int maxCoarseCollisions = coarseCollisionsPerTri * totalTriangles;
+	coarseTable.nCollisions.clear(stream);
+	coarseTable.collisionTable.resize_anew(maxCoarseCollisions);
+	TriangleTable devCoarseTable { maxCoarseCollisions, coarseTable.nCollisions.devPtr(), coarseTable.collisionTable.devPtr() };
 
-	int maxTriCollisions = collisionsPerTri * totalTriangles;
-	triangleTable.nCollisions.clear(stream);
-	triangleTable.collisionTable.resize_anew(maxTriCollisions);
-	TriangleTable devTriTable { maxTriCollisions, triangleTable.nCollisions.devPtr(), triangleTable.collisionTable.devPtr() };
-
-	int maxEdgeCollisions = collisionsPerEdge * totalEdges;
-	edgeTable.nCollisions.clear(stream);
-	edgeTable.collisionTable.resize_anew(maxEdgeCollisions);
-	EdgeTable devEdgeTable { maxEdgeCollisions, edgeTable.nCollisions.devPtr(), edgeTable.collisionTable.devPtr() };
+	int maxFineCollisions = fineCollisionsPerTri * totalTriangles;
+	fineTable.nCollisions.clear(stream);
+	fineTable.collisionTable.resize_anew(maxFineCollisions);
+	TriangleTable devFineTable { maxFineCollisions, fineTable.nCollisions.devPtr(), fineTable.collisionTable.devPtr() };
 
 	// Setup collision times array. For speed and simplicity initial time will be 0,
 	// and after the collisions detected its i-th element will be t_i-1.0f, where 0 <= t_i <= 1
@@ -99,40 +97,40 @@ void BounceFromMesh::exec(ParticleVector* pv, CellList* cl, float dt, bool local
 	OVviewWithNewOldVertices vertexView(ov, activeOV, stream);
 	PVviewWithOldParticles pvView(pv, pv->local());
 
-	// Step 1, find all the collistions
+	// Step 1, find all the candidate collisions
 	SAFE_KERNEL_LAUNCH(
 			findBouncesInMesh,
 			getNblocks(totalTriangles, nthreads), nthreads, 0, stream,
-			vertexView, pvView, ov->mesh, cl->cellInfo(),
-			devEdgeTable, devTriTable, collisionTimes.devPtr() );
+			vertexView, pvView, ov->mesh, cl->cellInfo(), devCoarseTable );
 
-	triangleTable.nCollisions.downloadFromDevice(stream);
-	debug("Found %d triangle collisions", triangleTable.nCollisions[0]);
+	coarseTable.nCollisions.downloadFromDevice(stream);
+	debug("Found %d triangle collision candidates", coarseTable.nCollisions[0]);
 
-	if (triangleTable.nCollisions[0] > devTriTable.maxSize)
-		die("Found too many triangle collisions, something is likely broken");
+	if (coarseTable.nCollisions[0] > maxCoarseCollisions)
+		die("Found too many triangle collision candidates, something may be broken or you need to increase the estimate");
 
-	edgeTable.nCollisions.downloadFromDevice(stream);
-	debug("Found %d edge collisions", edgeTable.nCollisions[0]);
+	// Step 2, filter the candidates
+	SAFE_KERNEL_LAUNCH(
+			refineCollisions,
+			getNblocks(coarseTable.nCollisions[0], nthreads), nthreads, 0, stream,
+			vertexView, pvView, ov->mesh,
+			coarseTable.nCollisions[0], devCoarseTable.indices,
+			devFineTable, collisionTimes.devPtr() );
 
-	if (edgeTable.nCollisions[0] > devEdgeTable.maxSize)
-		die("Found too many edge collisions, something is likely broken");
+	fineTable.nCollisions.downloadFromDevice(stream);
+	debug("Found %d precise triangle collisions", fineTable.nCollisions[0]);
+
+	if (fineTable.nCollisions[0] > maxFineCollisions)
+		die("Found too many precise triangle collisions, something may be broken or you need to increase the estimate");
+
 
 	// Step 3, resolve the collisions
 	SAFE_KERNEL_LAUNCH(
 			performBouncingTriangle,
-			getNblocks(triangleTable.nCollisions[0], nthreads), nthreads, 0, stream,
+			getNblocks(fineTable.nCollisions[0], nthreads), nthreads, 0, stream,
 			vertexView, pvView, ov->mesh,
-			triangleTable.nCollisions[0], devTriTable.indices, collisionTimes.devPtr(),
+			fineTable.nCollisions[0], devFineTable.indices, collisionTimes.devPtr(),
 			dt, kbT, drand48(), drand48() );
-
-	SAFE_KERNEL_LAUNCH(
-			performBouncingEdge,
-			getNblocks(triangleTable.nCollisions[0], nthreads), nthreads, 0, stream,
-			vertexView, pvView, ov->mesh,
-			edgeTable.nCollisions[0], devEdgeTable.indices, collisionTimes.devPtr(),
-			dt, kbT, drand48(), drand48() );
-
 
 	if (rov != nullptr)
 	{

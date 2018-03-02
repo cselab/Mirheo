@@ -79,8 +79,8 @@
 		dump_every="1"
 		path="pos/" />
 	
-	<plugin type="stats" name="stats" every="1" />
+	<plugin type="stats" name="stats" every="10" />
 	
-	<run niters="20" />
+	<run niters="200" />
 </simulation>
 

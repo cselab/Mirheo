@@ -96,7 +96,7 @@
 	<plugin type="impose_velocity" name="bot" pv_name="dpd"  every="100" low="0 0 29" high="32 32 30" target_velocity="-2 0 0" /> -->
 		
  	<plugin type="dump_avg_flow" name="avg"
-		pv_names="dpd"
+		pv_name="dpd"
 		sample_every="10" dump_every="1000"
 		bin_size="1 1 1"
 		path="xdmf/avg_rho_u" />

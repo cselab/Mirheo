@@ -36,7 +36,11 @@
 <!-- 		<apply_to pv1="dpd2" pv2="ellipsoids"/>
  -->	</interaction>
  
+<<<<<<< Updated upstream
 	<interaction type="dpd" name="dpd_int2" a="2.7" gamma="0" kbt="0.0" dt="0.1" rc="1.0" power="1">
+=======
+	<interaction type="dpd" name="dpd_int2" a="10" gamma="0" kbt="0.0" dt="0.1" rc="1.0" power="1">
+>>>>>>> Stashed changes
 		<apply_to pv1="dpd" pv2="ellipsoids"/>
 	</interaction>
 	

@@ -30,11 +30,10 @@ private:
 	 * Maximum supported number of collisions per step
 	 * will be #bouncesPerTri * total number of triangles in mesh
 	 */
-	const float collisionsPerTri  = 1000.0f;
-	const float collisionsPerEdge = 10.1f;
+	const float coarseCollisionsPerTri = 64.0f;
+	const float fineCollisionsPerTri = 2.0f;
 
-	CollisionTableWrapper<int2> triangleTable;
-	CollisionTableWrapper<int3> edgeTable;
+	CollisionTableWrapper<int2> coarseTable, fineTable;
 	DeviceBuffer<int> collisionTimes;
 
 	float kbT;
