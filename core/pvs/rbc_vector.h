@@ -13,7 +13,7 @@ public:
 					  new LocalObjectVector(this, objSize, 0) )
 	{
 		this->mesh = std::move(mesh);
-		//this->mesh.findAdjacent();
+		this->mesh.findAdjacent();
 
 		if (objSize != mesh.nvertices)
 			die("RBC vector '%s': object size (%d) and number of vertices in mesh (%d) mismach",

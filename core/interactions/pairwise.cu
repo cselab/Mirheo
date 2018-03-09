@@ -140,6 +140,9 @@ void InteractionPair<PariwiseInteraction>::_compute(InteractionType type,
 			debug("Computing external forces for %s - %s (%d - %d particles)", pv1->name.c_str(), pv2->name.c_str(), np1, np2);
 
 			PVview view(pv1, pv1->local());
+			view.particles = (float4*)cl1->particles->devPtr();
+			view.forces    = (float4*)cl1->forces->devPtr();
+
 			const int nth = 128;
 			if (np1 > 0 && np2 > 0)
 				CHOOSE_EXTERNAL(true, true, true, interaction );

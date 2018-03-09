@@ -16,7 +16,7 @@
 	</particle_vector>
 	
 	<object_belonging_checker name="checker" type="mesh" object_vector="sphere"  >
-		<apply_to pv="dpd" inside="none" outside="dpd" check_every="1" />
+		<apply_to pv="dpd" inside="dpd" outside="none" check_every="1" />
 	</object_belonging_checker>
 	
 	<object_bouncer name="bounce" ov="sphere" type="from_mesh">

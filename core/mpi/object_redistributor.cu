@@ -159,7 +159,7 @@ void ObjectRedistributor::prepareData(int id, cudaStream_t stream)
 
 
 	// Finally need to compact the buffers
-	// TODO: remove this, own buffer should be last
+	// TODO: remove this, own buffer should be last (performance penalty only, correctness is there)
 }
 
 void ObjectRedistributor::combineAndUploadData(int id, cudaStream_t stream)

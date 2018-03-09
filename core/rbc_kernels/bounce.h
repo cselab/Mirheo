@@ -80,7 +80,7 @@ __device__ inline bool segmentTriangleQuickCheck(
 		return true;
 
 	// XXX: This is not always correct
-	if (F_prime(0.0f) * F_prime(1.0f) > 0.0f)
+	if (F_prime(0.0f) * F_prime(1.0f) >= 0.0f)
 		return false;
 
 	return true;
@@ -557,14 +557,13 @@ static __global__ void performBouncingTriangle(
 	const float3 coo  = barycentricCoo.x*tr.v0    + barycentricCoo.y*tr.v1    + barycentricCoo.z*tr.v2;
 
 	const float3 n = normalize(cross(tr.v1-tr.v0, tr.v2-tr.v0));
-	float oldSign = dot( pOld.r-trOld.v0, cross(trOld.v1-trOld.v0, trOld.v2-trOld.v0) );
 
 	// new velocity relative to the triangle speed
-	float3 newV = reflectVelocity( (intSign * oldSign > 0) ? n : -n, kbT, pvView.mass, seed1, seed2 );
+	float3 newV = reflectVelocity( (intSign > 0) ? n : -n, kbT, pvView.mass, seed1, seed2 );
 
 	triangleForces(tr, objView.mass, barycentricCoo, p.u - vtri, newV, pvView.mass, dt, f0, f1, f2);
 
-	corrP.r = coo + eps * ((intSign * oldSign > 0) ? n : -n);
+	corrP.r = coo + eps * ((intSign > 0) ? n : -n);
 	corrP.u = newV + vtri;
 
 	float sign = dot( corrP.r-tr.v0, cross(tr.v1-tr.v0, tr.v2-tr.v0) );
