@@ -1,0 +1,120 @@
+<?xml version="1.0"?>
+<simulation name="rbcs" logfile="log" mpi_ranks="1 1 1" debug_lvl="10" >
+
+	<domain size="32 32 32" />
+	
+	<particle_vector type="regular" name="dpd" mass="1">
+		<generate type="uniform" density="8" />
+	</particle_vector>
+	
+	<!--
+		Walls section
+	-->
+	
+	<particle_vector type="regular" name="bot" mass="1">
+		<generate type="restart" path="restart/" />
+	</particle_vector>
+	
+	<particle_vector type="regular" name="top" mass="1">
+		<generate type="restart" path="restart/" />
+	</particle_vector>
+	
+	<wall type="moving_plane" name="bot" check_every="100" normal="0 0 -1" point_through="0 0 2" velocity="10 0 0" >
+		<generate_frozen name="bot" path="restart" mass="1.0" density="8" a="25" kbt="0.5" rc="1.0" power="0.5" />
+		<apply_to pv="dpd" />
+	</wall>
+		
+	<wall type="moving_plane" name="top" check_every="100" normal="0 0 1" point_through="0 0 30" velocity="-10 0 0" >
+		<generate_frozen name="top" path="restart" mass="1.0" density="8" a="25" kbt="0.5" rc="1.0" power="0.5" />
+		<apply_to pv="dpd" />
+	</wall>
+	
+	<!--
+		Object section
+	-->
+	
+	<particle_vector type="membrane" name="capsule" mass="1.0" particles_per_obj="642" mesh_filename="../../meshes/icosphere5.off" >
+		<generate type="read_rbcs" ic_filename="sphere.ic" />
+	</particle_vector>
+	
+	<object_belonging_checker name="checker" type="mesh" object_vector="capsule"  >
+		<apply_to pv="dpd" inside="ins" outside="dpd" check_every="1000" />
+	</object_belonging_checker>
+	
+	<object_bouncer name="membounce" ov="capsule" type="from_mesh">
+		<apply_to pv="dpd" />
+		<apply_to pv="ins" />
+	</object_bouncer>
+	
+	<!--
+		Interactions section
+	-->
+	
+	<interaction type="dpd" name="dpd_int" a="25" gamma="40" kbt="0.5" dt="0.001" rc="1.0" power="0.5">
+		<apply_to pv1="dpd" pv2="dpd"/>
+	</interaction>
+	
+	<interaction type="dpd" name="inner" a="25" gamma="40" kbt="0.5" dt="0.001" rc="1.0" power="0.5">
+		<apply_to pv1="ins" pv2="ins"/>
+	</interaction>
+	
+	<interaction type="dpd" name="inter_int" a="25" gamma="0" kbt="0.0" dt="0.001" rc="1.0" power="0.5">
+		<apply_to pv1="ins" pv2="dpd"/>
+	</interaction>
+	
+	<interaction type="membrane" name="mem" preset="lina" kb="0" area="314.159265359" volume="523.598775598" >
+		<apply_to pv1="capsule" pv2="capsule"/>
+	</interaction>
+	
+	<interaction type="dpd" name="fsi" a="0" gamma="10" kbt="0.5" dt="0.001" rc="1.0" power="0.5">
+		<apply_to pv1="capsule" pv2="dpd"/>
+		<apply_to pv1="capsule" pv2="ins"/>
+	</interaction>
+	
+	<!--
+		Integrators section
+	-->
+	
+	<integrator type="vv" name="vv" dt="1e-3">
+		<apply_to pv="dpd" />
+		<apply_to pv="capsule" />
+		<apply_to pv="ins" />
+	</integrator>
+
+	
+	<!--
+		Plugins section
+	-->
+	
+ 	<plugin type="dump_avg_flow" name="avg" pv_name="dpd" path="xdmf/outer" 
+			sample_every="20" dump_every="10000" bin_size="0.5 0.5 0.5" >
+			
+		<channel name="velocity" type="vector_from_float8" />
+	</plugin>
+	
+	<plugin type="dump_avg_flow" name="avg_ins" pv_name="ins" path="xdmf/inner" 
+			sample_every="20" dump_every="10000" bin_size="0.5 0.5 0.5" >
+			
+		<channel name="velocity" type="vector_from_float8" />
+	</plugin>
+	
+		
+	<plugin type="dump_mesh" name="cap_ply"
+		ov_name="capsule"
+		dump_every="100"
+		path="ply/" />
+	
+	<plugin type="dump_xyz" name="cap_xyz"
+		pv_name="capsule"
+		dump_every="100"
+		path="xyz/" />
+				
+	<plugin type="dump_obj_pos" name="lala"
+		ov_name="capsule"
+		dump_every="1000"
+		path="pos/" />
+	
+	<plugin type="stats" name="stats" every="200" />
+	
+	<run niters="10005" />
+</simulation>

@@ -50,7 +50,7 @@ private:
 		return (ParticleVector*) new RigidObjectVector(name, mass, J, objSize, std::move(mesh));
 	}
 
-	static ParticleVector* createRbcs(pugi::xml_node node)
+	static ParticleVector* createMembranes(pugi::xml_node node)
 	{
 		auto name      = node.attribute("name").as_string("");
 		auto mass      = node.attribute("mass").as_float(1);
@@ -75,8 +75,8 @@ public:
 			return createRigidEllipsoids(node);
 		if (type == "rigid_objects")
 			return createRigidObjects(node);
-		if (type == "rbcs")
-			return createRbcs(node);
+		if (type == "membrane")
+			return createMembranes(node);
 
 		die("Unable to parse input at %s, unknown 'type': '%s'", node.path().c_str(), type.c_str());
 		return nullptr;

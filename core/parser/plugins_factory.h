@@ -10,6 +10,7 @@
 #include <plugins/average_relative_flow.h>
 #include <plugins/channel_dumper.h>
 #include <plugins/dumpxyz.h>
+#include <plugins/dump_mesh.h>
 #include <plugins/stats.h>
 #include <plugins/temperaturize.h>
 #include <plugins/dump_obj_position.h>
@@ -192,6 +193,21 @@ private:
 		return { (SimulationPlugin*) simPl, (PostprocessPlugin*) postPl };
 	}
 
+	static std::pair<SimulationPlugin*, PostprocessPlugin*> createDumpMeshPlugin(pugi::xml_node node, bool computeTask)
+	{
+		auto name      = node.attribute("name").as_string();
+
+		auto ovName    = node.attribute("ov_name").as_string();
+		auto dumpEvery = node.attribute("dump_every").as_int(1000);
+
+		auto path      = node.attribute("path").as_string("ply/");
+
+		auto simPl  = computeTask ? new MeshPlugin(name, ovName, dumpEvery) : nullptr;
+		auto postPl = computeTask ? nullptr : new MeshDumper(name, path);
+
+		return { (SimulationPlugin*) simPl, (PostprocessPlugin*) postPl };
+	}
+
 	static std::pair<SimulationPlugin*, PostprocessPlugin*> createDumpObjPosition(pugi::xml_node node, bool computeTask)
 	{
 		auto name      = node.attribute("name").as_string();
@@ -239,6 +255,7 @@ public:
 				{"dump_avg_flow",          createDumpAveragePlugin           },
 				{"dump_avg_relative_flow", createDumpAverageRelativePlugin   },
 				{"dump_xyz",               createDumpXYZPlugin               },
+				{"dump_mesh",              createDumpMeshPlugin              },
 				{"dump_obj_pos",           createDumpObjPosition             },
 				{"impose_velocity",        createImposeVelocityPlugin        },
 				{"pin_object",             createPinObjPlugin                }

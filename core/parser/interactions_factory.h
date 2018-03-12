@@ -64,7 +64,7 @@ private:
 		return (Interaction*) new InteractionPair<Pairwise_LJObjectAware>(name, rc, ljo);
 	}
 
-	static Interaction* createRBC(pugi::xml_node node)
+	static Interaction* createMembrane(pugi::xml_node node)
 	{
 		auto name = node.attribute("name").as_string("");
 
@@ -111,8 +111,8 @@ public:
 			return createLJ(node);
 		if (type == "lj_object")
 			return createLJ_objectAware(node);
-		if (type == "rbc")
-			return createRBC(node);
+		if (type == "membrane")
+			return createMembrane(node);
 
 		die("Unable to parse input at %s, unknown 'type': '%s'", node.path().c_str(), type.c_str());
 
