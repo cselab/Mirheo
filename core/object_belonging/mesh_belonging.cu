@@ -154,7 +154,7 @@ void MeshBelongingChecker::tagInner(ParticleVector* pv, CellList* cl, cudaStream
 	auto lov = ov->local();
 	auto view = OVview(ov, lov);
 	auto vertices = lov->getMeshVertices(stream);
-	auto meshView = MeshView(ov->mesh);
+	auto meshView = MeshView(ov->mesh.get());
 
 	debug("Computing inside/outside tags (against mesh) for %d local objects '%s' and %d '%s' particles",
 			view.nObjects, ov->name.c_str(), pv->local()->size(), pv->name.c_str());
@@ -168,7 +168,7 @@ void MeshBelongingChecker::tagInner(ParticleVector* pv, CellList* cl, cudaStream
 	lov = ov->halo();       // Note ->halo() here
 	view = OVview(ov, lov);
 	vertices = lov->getMeshVertices(stream);
-	meshView = MeshView(ov->mesh);
+	meshView = MeshView(ov->mesh.get());
 
 	debug("Computing inside/outside tags (against mesh) for %d halo objects '%s' and %d '%s' particles",
 			view.nObjects, ov->name.c_str(), pv->local()->size(), pv->name.c_str());

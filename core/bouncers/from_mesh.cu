@@ -5,7 +5,7 @@
 #include <core/pvs/particle_vector.h>
 #include <core/pvs/object_vector.h>
 
-#include <core/rbc_kernels/bounce.h>
+#include <core/membrane_kernels/bounce.h>
 #include <core/cub/device/device_radix_sort.cuh>
 
 #include <core/rigid_kernels/integration.h>
@@ -61,7 +61,7 @@ void BounceFromMesh::exec(ParticleVector* pv, CellList* cl, float dt, bool local
 
 	ov->findExtentAndCOM(stream, local);
 
-	int totalTriangles = ov->mesh.ntriangles * activeOV->nObjects;
+	int totalTriangles = ov->mesh->ntriangles * activeOV->nObjects;
 	int totalEdges = totalTriangles * 3 / 2;
 
 	// Set maximum possible number of _coarse_ and _fine_ collisions with triangles
@@ -101,7 +101,7 @@ void BounceFromMesh::exec(ParticleVector* pv, CellList* cl, float dt, bool local
 	SAFE_KERNEL_LAUNCH(
 			findBouncesInMesh,
 			getNblocks(totalTriangles, nthreads), nthreads, 0, stream,
-			vertexView, pvView, ov->mesh, cl->cellInfo(), devCoarseTable );
+			vertexView, pvView, ov->mesh.get(), cl->cellInfo(), devCoarseTable );
 
 	coarseTable.nCollisions.downloadFromDevice(stream);
 	debug("Found %d triangle collision candidates", coarseTable.nCollisions[0]);
@@ -113,7 +113,7 @@ void BounceFromMesh::exec(ParticleVector* pv, CellList* cl, float dt, bool local
 	SAFE_KERNEL_LAUNCH(
 			refineCollisions,
 			getNblocks(coarseTable.nCollisions[0], nthreads), nthreads, 0, stream,
-			vertexView, pvView, ov->mesh,
+			vertexView, pvView, ov->mesh.get(),
 			coarseTable.nCollisions[0], devCoarseTable.indices,
 			devFineTable, collisionTimes.devPtr() );
 
@@ -128,7 +128,7 @@ void BounceFromMesh::exec(ParticleVector* pv, CellList* cl, float dt, bool local
 	SAFE_KERNEL_LAUNCH(
 			performBouncingTriangle,
 			getNblocks(fineTable.nCollisions[0], nthreads), nthreads, 0, stream,
-			vertexView, pvView, ov->mesh,
+			vertexView, pvView, ov->mesh.get(),
 			fineTable.nCollisions[0], devFineTable.indices, collisionTimes.devPtr(),
 			dt, kbT, drand48(), drand48() );
 
@@ -136,7 +136,7 @@ void BounceFromMesh::exec(ParticleVector* pv, CellList* cl, float dt, bool local
 	{
 		// make a fake view with vertices instead of particles
 		ROVview view(rov, local ? rov->local() : rov->halo());
-		view.objSize = ov->mesh.nvertices;
+		view.objSize = ov->mesh->nvertices;
 		view.size = view.nObjects * view.objSize;
 		view.particles = vertexView.vertices;
 		view.forces = vertexView.vertexForces;

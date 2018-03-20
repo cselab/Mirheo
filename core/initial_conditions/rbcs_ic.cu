@@ -56,11 +56,11 @@ void RBC_IC::exec(const MPI_Comm& comm, ParticleVector* pv, DomainInfo domain, c
 		{
 			com = domain.global2local(com);
 			int oldSize = ov->local()->size();
-			ov->local()->resize(oldSize + ov->mesh.nvertices, stream);
+			ov->local()->resize(oldSize + ov->mesh->nvertices, stream);
 
-			for (int i=0; i<ov->mesh.nvertices; i++)
+			for (int i=0; i<ov->mesh->nvertices; i++)
 			{
-				float3 r = rotate(f4tof3(ov->mesh.vertexCoordinates[i]), q) + com;
+				float3 r = rotate(f4tof3(ov->mesh->vertexCoordinates[i]), q) + com;
 				Particle p;
 				p.r = r;
 				p.u = make_float3(0);
@@ -86,6 +86,8 @@ void RBC_IC::exec(const MPI_Comm& comm, ParticleVector* pv, DomainInfo domain, c
 
 	ids->uploadToDevice(stream);
 	ov->local()->coosvels.uploadToDevice(stream);
+	ov->local()->extraPerParticle.getData<Particle>("old_particles")->copy(ov->local()->coosvels, stream);
+
 
 	info("Read %d %s rbcs", nObjs, ov->name.c_str());
 }

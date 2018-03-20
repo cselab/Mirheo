@@ -30,7 +30,7 @@ public:
 	/// The axes should be aligned with ox, oy, oz when q = {1 0 0 0}
 	float3 J;
 
-	RigidObjectVector(std::string name, float partMass, float3 J, const int objSize, Mesh mesh, const int nObjects = 0) :
+	RigidObjectVector(std::string name, float partMass, float3 J, const int objSize, std::unique_ptr<Mesh> mesh, const int nObjects = 0) :
 		ObjectVector( name, partMass, objSize,
 					  new LocalRigidObjectVector(this, objSize, nObjects),
 					  new LocalRigidObjectVector(this, objSize, 0) ),

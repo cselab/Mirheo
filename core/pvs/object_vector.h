@@ -91,7 +91,7 @@ protected:
 
 public:
 	int objSize;
-	Mesh mesh;
+	std::unique_ptr<Mesh> mesh;
 
 	ObjectVector(std::string name, float mass, const int objSize, const int nObjects = 0) :
 		ObjectVector( name, mass, objSize,

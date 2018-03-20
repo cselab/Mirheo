@@ -45,7 +45,7 @@ private:
 		auto J         = node.attribute("moment_of_inertia").as_float3();
 		auto meshFname = node.attribute("mesh_filename").as_string("mesh.off");
 
-		Mesh mesh(meshFname);
+		auto mesh = std::make_unique<Mesh>(meshFname);
 
 		return (ParticleVector*) new RigidObjectVector(name, mass, J, objSize, std::move(mesh));
 	}
@@ -59,9 +59,9 @@ private:
 
 		auto meshFname = node.attribute("mesh_filename").as_string("rbcmesh.off");
 
-		Mesh mesh(meshFname);
+		auto mmesh = std::make_unique<MembraneMesh>(meshFname);
 
-		return (ParticleVector*) new RBCvector(name, mass, objSize, std::move(mesh));
+		return (ParticleVector*) new RBCvector(name, mass, objSize, std::move(mmesh));
 	}
 
 public:

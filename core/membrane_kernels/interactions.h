@@ -7,10 +7,10 @@
 struct GPU_RBCparameters
 {
 	float gammaC, gammaT;
-	float mpow, lmax, kbToverp;
+	float mpow, l0, lmax, lmax_1, kbT_over_p_lmax;
 	float area0, totArea0, totVolume0;
 	float cost0kb, sint0kb;
-	float ka0, kv0, kd0, kp0;
+	float ka0, kv0, kd0;
 };
 
 __global__ void computeAreaAndVolume(OVviewWithAreaVolume view, MeshView mesh)
@@ -44,6 +44,7 @@ __global__ void computeAreaAndVolume(OVviewWithAreaVolume view, MeshView mesh)
 
 __device__ inline float fastPower(const float x, const float k)
 {
+	if (fabsf(k - 3.0f) < 1e-6f) return x*x*x;
 	if (fabsf(k - 2.0f) < 1e-6f) return x*x;
 	if (fabsf(k - 1.0f) < 1e-6f) return x;
 	if (fabsf(k - 0.5f) < 1e-6f) return sqrtf(fabsf(x));
@@ -73,15 +74,24 @@ __device__ inline float3 _fangle(const float3 v1, const float3 v2, const float3 
 	const float3 fArea = coefArea * cross(normal, x32);
 	const float3 fVolume = coeffVol * cross(v3, v2);
 
-	float r = length(v2 - v1);
-	r = r < 0.0001f ? 0.0001f : r;
-	const float xx = r / parameters.lmax;
+	return fArea + fVolume;
+}
 
-	const float IbforceI_wcl = parameters.kbToverp * ( 0.25f / sqr(1.0f-xx) - 0.25f + xx ) / r;
+__device__ inline float3 _fbond(const float3 v1, const float3 v2, const float l0, GPU_RBCparameters parameters)
+{
+	float r = max(length(v2 - v1), 1e-5f);
 
-	const float IbforceI_pow = -parameters.kp0 / (fastPower(r, parameters.mpow) * r);
+	auto wlc = [parameters] (float x) {
+		return parameters.kbT_over_p_lmax * (4.0f*x*x - 9.0f*x + 6.0f) / ( 4.0f*sqr(1.0f - x) );
+	};
 
-	return fArea + fVolume + (IbforceI_wcl + IbforceI_pow) * x21;
+	const float IbforceI_wlc = wlc( r * parameters.lmax_1 );
+
+	const float kp = wlc( l0 * parameters.lmax_1 ) * fastPower(l0, parameters.mpow+1);
+
+	const float IbforceI_pow = -kp / (fastPower(r, parameters.mpow+1));
+
+	return (IbforceI_wlc + IbforceI_pow) * (v2 - v1);
 }
 
 __device__ inline float3 _fvisc(Particle p1, Particle p2, GPU_RBCparameters parameters)
@@ -95,9 +105,9 @@ __device__ inline float3 _fvisc(Particle p1, Particle p2, GPU_RBCparameters para
 template <int maxDegree>
 __device__ float3 bondTriangleForce(
 		Particle p, int locId, int rbcId,
-		OVviewWithAreaVolume view,
-		MeshView mesh,
-		GPU_RBCparameters parameters)
+		const OVviewWithAreaVolume& view,
+		const MembraneMeshView& mesh,
+		const GPU_RBCparameters& parameters)
 {
 	float3 f = make_float3(0.0f);
 	const int startId = maxDegree * locId;
@@ -114,10 +124,7 @@ __device__ float3 bondTriangleForce(
 		Particle p2(view.particles, rbcId*mesh.nvertices + idv2);
 
 		f += _fangle(p.r, p1.r, p2.r, view.area_volumes[rbcId].x, view.area_volumes[rbcId].y, parameters) +
-			 _fvisc (p, p1, parameters);
-
-//		if (locId == 97)
-//			printf("ANG %d:  %d %d -> [%f %f %f]\n", locId, idv1, idv2, f.x, f.y, f.z);
+			 _fbond(p.r, p1.r, mesh.initialLengths[startId + i-1], parameters) +  _fvisc (p, p1, parameters);
 
 		idv1 = idv2;
 		p1 = p2;
@@ -158,9 +165,9 @@ __device__  inline  float3 _fdihedral(float3 v1, float3 v2, float3 v3, float3 v4
 template <int maxDegree>
 __device__ float3 dihedralForce(
 		Particle p, int locId, int rbcId,
-		OVviewWithAreaVolume view,
-		MeshView mesh,
-		GPU_RBCparameters parameters)
+		const OVviewWithAreaVolume& view,
+		const MembraneMeshView& mesh,
+		const GPU_RBCparameters& parameters)
 {
 	const int shift = 2*rbcId*mesh.nvertices;
 	const float3 r0 = p.r;
@@ -199,9 +206,6 @@ __device__ float3 dihedralForce(
 		f += _fdihedral<1>(r0, r2, r1, r4, parameters);
 		f += _fdihedral<2>(r1, r0, r2, r3, parameters);
 
-		//		if (locId == 97)
-		//			printf("DIH %d:  %d %d %d %d -> [%f %f %f]\n", locId, idv1, idv2, idv3, idv4, f.x, f.y, f.z);
-
 		r1 = r2;
 		r2 = r3;
 
@@ -216,7 +220,7 @@ template <int maxDegree>
 //__launch_bounds__(128, 12)
 __global__ void computeMembraneForces(
 		OVviewWithAreaVolume view,
-		MeshView mesh,
+		MembraneMeshView mesh,
 		GPU_RBCparameters parameters)
 {
 	// RBC particles are at the same time mesh vertices

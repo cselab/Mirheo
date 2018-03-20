@@ -7,17 +7,16 @@
 class RBCvector : public ObjectVector
 {
 public:
-	RBCvector(std::string name, float mass, const int objSize, Mesh mesh, const int nObjects = 0) :
+	RBCvector(std::string name, float mass, const int objSize, std::unique_ptr<MembraneMesh> mptr, const int nObjects = 0) :
 		ObjectVector( name, mass, objSize,
 					  new LocalObjectVector(this, objSize, nObjects),
 					  new LocalObjectVector(this, objSize, 0) )
 	{
-		this->mesh = std::move(mesh);
-		this->mesh.findAdjacent();
+		mesh = std::move(mptr);
 
-		if (objSize != mesh.nvertices)
-			die("RBC vector '%s': object size (%d) and number of vertices in mesh (%d) mismach",
-					name.c_str(), objSize, mesh.nvertices);
+		if (objSize != mesh->nvertices)
+			die("RBC vector '%s': object size (%d) and number of vertices in mesh (%d) mismatch",
+					name.c_str(), objSize, mesh->nvertices);
 
 		requireDataPerObject<float2>("area_volumes", false);
 	}

@@ -69,7 +69,7 @@ struct OVviewWithNewOldVertices : public OVview
 	{
 		if (ov == nullptr || lov == nullptr) return;
 
-		nvertices    = ov->mesh.nvertices;
+		nvertices    = ov->mesh->nvertices;
 		vertices     = reinterpret_cast<float4*>( lov->getMeshVertices   (stream)->devPtr() );
 		old_vertices = reinterpret_cast<float4*>( lov->getOldMeshVertices(stream)->devPtr() );
 		vertexForces = reinterpret_cast<float4*>( lov->getMeshForces     (stream)->devPtr() );

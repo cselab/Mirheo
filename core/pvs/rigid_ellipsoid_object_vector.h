@@ -15,7 +15,7 @@ public:
 						sqr(axes.z) + sqr(axes.x),
 						sqr(axes.x) + sqr(axes.y) ),
 				objSize,
-				Mesh(),
+				std::make_unique<Mesh>(), // TODO: need to generate ellipsoid mesh
 				nObjects),
 		axes(axes)
 	{	}

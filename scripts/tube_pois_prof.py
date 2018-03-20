@@ -116,8 +116,8 @@ def main():
 	nbins = 50
 	r = 30.0
 	
-	#fname = "/home/alexeedm/extern/daint/project/alexeedm/poiseuille/run_25_40_0.5_0.5_8_0.1/xdmf/avg_rho_u00012.h5"
-	fname = "/home/alexeedm/extern/daint/scratch/poiseuille/case_10_120_0.5_0.5_0.001_8_0.05/xdmf/avg_rho_u00004.h5"
+	fname = "/home/alexeedm/extern/daint/project/alexeedm/poiseuille/run_25_40_0.5_0.5_8_0.1/xdmf/avg_rho_u00002.h5"
+	#fname = "/home/alexeedm/extern/daint/scratch/poiseuille/case_10_120_0.5_0.5_0.001_8_0.05/xdmf/avg_rho_u00004.h5"
 	#fname = "/home/alexeedm/extern/daint/scratch/poiseuille/case_10_200_0.5_0.5_0.001_8_0.01/xdmf/avg_rho_u00005.h5"
 	
 	vel, dens, cnt = radial_profile(fname, nbins, [0.25, 0.25], [32, 32], r)

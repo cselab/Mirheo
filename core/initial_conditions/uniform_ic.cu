@@ -99,6 +99,7 @@ void UniformIC::exec(const MPI_Comm& comm, ParticleVector* pv, DomainInfo domain
 		pv->local()->coosvels[i].i1 += totalCount;
 
 	pv->local()->coosvels.uploadToDevice(stream);
+	pv->local()->extraPerParticle.getData<Particle>("old_particles")->copy(pv->local()->coosvels, stream);
 
 	debug2("Generated %d %s particles", pv->local()->size(), pv->name.c_str());
 }
