@@ -1,10 +1,11 @@
 <?xml version="1.0"?>
-<simulation name="rbcs" logfile="log" mpi_ranks="1 1 1" debug_lvl="3" >
+<simulation name="rbcs" logfile="log" mpi_ranks="1 1 1" debug_lvl="2" >
 
 	<domain size="32 32 32" />
 	
 	<particle_vector type="regular" name="dpd" mass="1">
-		<generate type="uniform" density="8" />
+		<!-- <generate type="uniform" density="8" /> -->
+		<generate type="restart" path="restart/" />
 	</particle_vector>
 	
 	<!--
@@ -19,12 +20,12 @@
 		<generate type="restart" path="restart/" />
 	</particle_vector>
 	
-	<wall type="moving_plane" name="bot" check_every="1000" normal="0 0 -1" point_through="0 0 2" velocity="5 0 0" >
+	<wall type="moving_plane" name="bot" check_every="1000" normal="0 0 -1" point_through="0 0 2" velocity="0.5 0 0" >
 		<generate_frozen name="bot" path="restart" mass="1.0" density="8" a="25" kbt="0.5" rc="1.0" power="0.5" />
 		<apply_to pv="dpd" />
 	</wall>
 		
-	<wall type="moving_plane" name="top" check_every="1000" normal="0 0 1" point_through="0 0 30" velocity="-5 0 0" >
+	<wall type="moving_plane" name="top" check_every="1000" normal="0 0 1" point_through="0 0 30" velocity="-0.5 0 0" >
 		<generate_frozen name="top" path="restart" mass="1.0" density="8" a="25" kbt="0.5" rc="1.0" power="0.5" />
 		<apply_to pv="dpd" />
 	</wall>
@@ -50,31 +51,31 @@
 		Interactions section
 	-->
 	
-	<interaction type="dpd" name="dpd_int" a="25" gamma="40" kbt="0.5" dt="0.001" rc="1.0" power="0.5">
+	<interaction type="dpd" name="dpd_int" a="4" gamma="40" kbt="0.1" dt="0.002" rc="1.0" power="0.5">
 		<apply_to pv1="dpd" pv2="dpd"/>
 		<apply_to pv1="top" pv2="dpd"/>
 		<apply_to pv1="bot" pv2="dpd"/>
 	</interaction>
 	
-	<interaction type="dpd" name="inner" a="25" gamma="40" kbt="0.5" dt="0.001" rc="1.0" power="0.5">
+	<interaction type="dpd" name="inner" a="4" gamma="200" kbt="0.1" dt="0.002" rc="1.0" power="0.5">
 		<apply_to pv1="ins" pv2="ins"/>
 	</interaction>
 	
-	<interaction type="dpd" name="inter_int" a="25" gamma="0" kbt="0.0" dt="0.001" rc="1.0" power="0.5">
+	<interaction type="dpd" name="inter_int" a="4" gamma="0" kbt="0.0" dt="0.002" rc="1.0" power="0.5">
 		<apply_to pv1="ins" pv2="dpd"/>
 	</interaction>
 	
-	<interaction type="membrane" name="mem" preset="lina" p="0.1903871608e-2" kb="000" ka="000" kd="000"
+	<interaction type="membrane" name="mem" preset="lina" x0="0.2" p="0.5401898097e-2" kb="0" ka="000" kd="000"
 				 gammaC="0" area="314.159265359" volume="523.598775598" >
 				 
 		<apply_to pv1="capsule" pv2="capsule"/>
 	</interaction>
 	
-	<interaction type="dpd" name="fsi" a="0" gamma="30" kbt="0.5" dt="0.001" rc="1.0" power="0.5">
+	<interaction type="dpd" name="fsi" a="0" gamma="30" kbt="0.1" dt="0.002" rc="1.0" power="0.5">
 		<apply_to pv1="capsule" pv2="dpd"/>
 	</interaction>
 	
-	<interaction type="dpd" name="fsi_in" a="0" gamma="30" kbt="0.5" dt="0.001" rc="1.0" power="0.5">
+	<interaction type="dpd" name="fsi_in" a="0" gamma="150" kbt="0.1" dt="0.002" rc="1.0" power="0.5">
 		<apply_to pv1="capsule" pv2="ins"/>
 	</interaction>
 	
@@ -123,5 +124,5 @@
 	
 	<plugin type="stats" name="stats" every="500" />
 	
-	<run niters="200005" />
+	<run niters="500005" />
 </simulation>

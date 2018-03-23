@@ -85,13 +85,15 @@ __device__ inline float3 _fbond(const float3 v1, const float3 v2, const float l0
 		return parameters.kbT_over_p_lmax * (4.0f*x*x - 9.0f*x + 6.0f) / ( 4.0f*sqr(1.0f - x) );
 	};
 
-	const float IbforceI_wlc = wlc( r * parameters.lmax_1 );
+	const float IbforceI_wlc = wlc( min(parameters.lmax - 1e-6f, r) * parameters.lmax_1 );
 
 	const float kp = wlc( l0 * parameters.lmax_1 ) * fastPower(l0, parameters.mpow+1);
 
 	const float IbforceI_pow = -kp / (fastPower(r, parameters.mpow+1));
 
-	return (IbforceI_wlc + IbforceI_pow) * (v2 - v1);
+	const float IfI = min(200.0f, max(-200.0f, IbforceI_wlc + IbforceI_pow));
+
+	return IfI * (v2 - v1);
 }
 
 __device__ inline float3 _fvisc(Particle p1, Particle p2, GPU_RBCparameters parameters)
