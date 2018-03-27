@@ -4,6 +4,7 @@
 #include <string>
 #include <core/logger.h>
 #include <core/datatypes.h>
+#include <core/containers.h>
 
 #if __cplusplus < 201400L
 namespace std
@@ -66,7 +67,7 @@ public:
 		}
 
 		if (sizeof(T) % 4 != 0)
-			die("Size of an element of the channel '%s' (%d) must be dibisible by 4",
+			die("Size of an element of the channel '%s' (%d) must be divisible by 4",
 					name.c_str(), sizeof(T));
 
 		info("Creating new channel '%s'", name.c_str());
@@ -154,7 +155,7 @@ public:
 	void* getGenericPtr(const std::string& name)
 	{
 		auto& desc = getChannelDescOrDie(name);
-		return desc.container.get()->genericDevPtr();
+		return desc.container->genericDevPtr();
 	}
 
 	/**
