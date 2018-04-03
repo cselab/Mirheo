@@ -13,23 +13,37 @@ __global__ void restrictForces(OVview view, int3 pinTranslation, float4* totForc
 {
 	int objId = blockIdx.x;
 
+	__shared__ float3 objTotForce;
+	objTotForce = make_float3(0);
+	__syncthreads();
+
+	// Find total force acting on the object
+
 	float3 myf = make_float3(0);
-
 	for (int pid = threadIdx.x; pid < view.objSize; pid += blockDim.x)
-	{
-		float4 f = view.forces[pid + objId*view.objSize];
-
-		if (pinTranslation.x) { myf.x += f.x; f.x = 0.0f; }
-		if (pinTranslation.y) { myf.y += f.y; f.y = 0.0f; }
-		if (pinTranslation.z) { myf.z += f.z; f.z = 0.0f; }
-
-		view.forces[pid + objId*view.objSize] = f;
-	}
+		myf += Float3_int(view.forces[pid + objId*view.objSize]).v;
 
 	myf = warpReduce(myf, [] (float a, float b) { return a+b; });
 
 	if (__laneid() == 0)
-		atomicAdd(totForces + view.ids[objId], myf);
+		atomicAdd(&objTotForce, myf);
+
+	__syncthreads();
+
+	// Now only leave the components we need and save the force
+
+	if (!pinTranslation.x) { objTotForce.x = 0.0f; }
+	if (!pinTranslation.y) { objTotForce.y = 0.0f; }
+	if (!pinTranslation.z) { objTotForce.z = 0.0f; }
+
+	if (threadIdx.x == 0)
+		totForces[view.ids[objId]] = Float3_int(objTotForce, 0).toFloat4();
+
+	// Finally change the original forces
+	myf = objTotForce / view.objSize;
+
+	for (int pid = threadIdx.x; pid < view.objSize; pid += blockDim.x)
+		view.forces[pid + objId*view.objSize] -= Float3_int(myf, 0).toFloat4();
 }
 
 __global__ void revertRigidMotion(ROVviewWithOldMotion view, int3 pinTranslation, int3 pinRotation, float4* totForces, float4* totTorques)

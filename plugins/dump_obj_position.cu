@@ -112,8 +112,10 @@ void writePositions(MPI_Comm comm, DomainInfo domain, MPI_File& fout, float curT
 
 					<< std::setw(10) << motion.torque.x << " "
 					<< std::setw(10) << motion.torque.y << " "
-					<< std::setw(10) << motion.torque.z << std::endl;
+					<< std::setw(10) << motion.torque.z;
 		}
+
+		ss << std::endl;
 	}
 
 	std::string content = ss.str();
