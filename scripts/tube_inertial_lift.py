@@ -10,7 +10,6 @@ import itertools
 import numpy as np
 import matplotlib.pyplot as plt
 import math
-import h5py
 
 
 def coefficient(frc, rho, u, r, R):
@@ -24,11 +23,12 @@ def mean_err_cut(vals):
 	
 	return m,v
 
-def dump_plots(positions, Cls, err_Cls, Cls_norot, err_Cls_norot, ref):
+def dump_plots(positions, alldata, ref):
 	
 	plt.plot(ref[:,0], ref[:,1], "--o", ms=5, label="Liu, Chao, et al. Lab on a Chip (2015)")
-	plt.errorbar(positions, Cls, yerr=err_Cls, fmt='-o', ms=7, elinewidth=2, label="DPD")
-	plt.errorbar(positions, Cls_norot, yerr=err_Cls_norot, fmt='-D', ms=7, elinewidth=2, label="DPD, inhibited rotation")
+		
+	for data, err, label in alldata:
+		plt.errorbar(positions, data, yerr=err, fmt='-o', ms=7, elinewidth=2, label=label)
 
 	plt.xlabel('y/R', fontsize=16)
 	plt.ylabel('Cl', fontsize=16)
@@ -63,7 +63,7 @@ ref = np.array([0.0004303640088072491, 0.00040587219343701797,
 #				0.6999018227825918, -0.19292746113989645	]).reshape([8, 2])
 
 def get_forces(case):
-	prefix = "/home/alexeedm/extern/daint/scratch/focusing_liftparams/"	
+	prefix = ""	
 	rho = 8.0
 	r = 5
 	R = 30
@@ -88,7 +88,7 @@ def get_forces(case):
 	#	Um = np.amax( np.mean(mom, axis=0) )
 		Um = 2 * 4.550105428529214
 		
-		files = sorted(glob.glob(full_folder + "/pinning_force/sphere*"))
+		files = sorted(glob.glob(full_folder + "/pinning_force/*.txt"))
 		lines = list(itertools.chain.from_iterable([open(f).readlines() for f in files]))
 			
 		fy = [ x.split()[3] for x in lines ]
@@ -99,15 +99,21 @@ def get_forces(case):
 		
 	return Cls, err_Cls
 
+alldata = []
 
-Cls, err_Cls = get_forces("case_5_0.1__80_20_1.5__")
-Cls_norot, err_Cls_norot = get_forces("case_norot_5_0.1__80_20_1.5__")
-		
+alldata.append( get_forces("/home/alexeedm/extern/daint/project/alexeedm/focusing_liftparams/case_5_0.1__80_20_1.5__") + ("Rigid", ) )
+alldata.append( get_forces("/home/alexeedm/extern/daint/project/alexeedm/focusing_liftparams/case_norot_5_0.1__80_20_1.5__") + ("Rigid, no rotation", ) )
+alldata.append( get_forces("/home/alexeedm/extern/daint/scratch/focusing_soft/case_0.1_0.2__80__1.5__") + ("Lambda = 0.2", ) )
+alldata.append( get_forces("/home/alexeedm/extern/daint/scratch/focusing_soft/case_0.1_1.0__80__1.5__") + ("Lambda = 1.0", ) )
+alldata.append( get_forces("/home/alexeedm/extern/daint/scratch/focusing_soft/case_0.1_5.0__80__1.5__") + ("Lambda = 5.0", ) )
+
 #print Cls
 #print err_Cls
 
 fig = plt.figure()
-dump_plots(positions, Cls, err_Cls, Cls_norot, err_Cls_norot, ref)
+positions = np.linspace(0.0, 0.7, 8)
+
+dump_plots(positions, alldata, ref)
 fig.savefig("/home/alexeedm/udevicex/media/tube_lift_coefficients.pdf", bbox_inches='tight')
 
 

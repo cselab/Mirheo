@@ -6,71 +6,18 @@ Created on Thu Mar 15 09:44:20 2018
 @author: alexeedm
 """
 
-import re
 import numpy as np
 import glob
-import matplotlib.pyplot as plt
 import math
-
-
-def dump_plots(Dxy, theta, deltaT, G, ttf):
-	
-	ifig = 0
-	nrows = 1
-	ncols = 2
-	fig, axes = plt.subplots(nrows=nrows, ncols=ncols, figsize=(4*ncols,4*nrows), facecolor='white')
-
-	x = np.linspace(0, len(Dxy)*deltaT, len(Dxy))
-	
-	ifig = ifig+1
-	plt.subplot(nrows, ncols, ifig)
-	plt.plot(x, Dxy)
-	plt.xlabel('t', fontsize=14)
-	plt.ylabel('Dxy', fontsize=14)
-	plt.grid()
-
-	ifig = ifig+1
-	plt.subplot(nrows, ncols, ifig)
-	plt.plot(x, theta)
-	plt.xlabel('t', fontsize=14)
-	plt.ylabel('Theta', fontsize=14)
-	plt.ylim([0.0, 0.25])
-	plt.grid()
-	
-	plt.suptitle("G = " + ("%.2f" % G) + ", frequency = " + ("%.3f" % ttf), fontsize=16)
-	plt.legend(fontsize=14)
-
-	plt.subplots_adjust(wspace=0.3)
-	plt.subplots_adjust(hspace=0.3)
-	
-	return fig
 
 
 #%%
 
-folder = "/home/alexeedm/extern/daint/scratch/membrane_shear/case_0.5_5.0/"
-folder = "/home/alexeedm/extern/daint/scratch/focusing_soft/case_0.1_0.2__80__1.5__0.1"
-#folder = "/home/alexeedm/udevicex/apps/udevicex" 
-script = folder + "/script.xml"
-
-vels = []
-for line in open(script).readlines():
-	if 'moving_plane' in line:
-		m = re.search(r'velocity\s*=\s*"\s*(\S+)', line)
-		vels.append(float(m.group(1)))
-		
-vels = sorted(vels)
-
-L = 28.0
-mu = 38.0
-a = 5.0
-Y = 13.57142857
-k = (vels[1] - vels[0]) / L
+folder = "/home/alexeedm/extern/daint/scratch/focusing_soft/case_0.1_5.0__80__1.5__0.7"
 
 dt = 1e-3
 dump_freq = 2000
 
-G = a * k * mu / Y
 
 trajectories = None
 
@@ -151,24 +98,22 @@ for n in range(0, proj_long.shape[0]):
 #	plt.plot(raw - raw[0])
 	
 	omega.append( np.argmax(freq[0:len(freq)/2]) )
+	
+#%% final process
 
 omega = np.array(omega)
 omega_filt = omega[omega > np.max(omega) * 0.75]
 
-lowest_freq = 1.0 / (dt * dump_freq * len(signal))
-ttf = 4.0*math.pi / k * (np.average(omega_filt) * lowest_freq)
+lowest_freq = 2.0 * math.pi / (dt * dump_freq * len(signal))
+ttf = np.average(omega_filt) * lowest_freq
 
-print ttf 
+T = len(theta)
+avg_theta = np.average(theta[T/4:T])
+avg_Dxy   = np.average(Dxy  [T/4:T])
 
-#plt.plot(omega_filt)
-#plt.show()
-
-fig = dump_plots(Dxy, theta, dt*dump_freq * k, G, ttf)
-#fig.savefig("./image.png")
-
-plt.show()
-
-
+print avg_theta
+print avg_Dxy
+print ttf
 
 
 
