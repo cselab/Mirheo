@@ -37,7 +37,7 @@ __global__ void restrictForces(OVview view, int3 pinTranslation, float4* totForc
 	if (!pinTranslation.z) { objTotForce.z = 0.0f; }
 
 	if (threadIdx.x == 0)
-		totForces[view.ids[objId]] = Float3_int(objTotForce, 0).toFloat4();
+		totForces[view.ids[objId]] += Float3_int(objTotForce, 0).toFloat4();
 
 	// Finally change the original forces
 	myf = objTotForce / view.objSize;
