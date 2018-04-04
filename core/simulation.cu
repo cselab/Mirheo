@@ -380,7 +380,12 @@ void Simulation::prepareWalls()
 		CellList *cl = clVec[0];
 
 		wall->attach(pv, cl);
-		wall->removeInner(pv);
+
+		// All the particles should be removed from within the wall,
+		// even those that do not interact with it
+		for (auto anypv : particleVectors)
+			if (anypv->name != wall->name)
+				wall->removeInner(anypv);
 	}
 }
 

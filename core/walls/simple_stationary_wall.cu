@@ -58,21 +58,22 @@ __global__ void packRemainingObjects(OVview view, ObjectPacker packer, char* out
 	if (objId >= view.nObjects) return;
 
 	bool isRemaining = true;
-	for (int i=tid; i < view.objSize; i++)
+	for (int i=tid; i < view.objSize; i+=warpSize)
 	{
 		Particle p(view.particles, objId * view.objSize + i);
-		if (checker(p.r) <= -tolerance)
+		if (checker(p.r) > -tolerance)
 		{
 			isRemaining = false;
 			break;
 		}
 	}
 
+	isRemaining = __all(isRemaining);
 	if (!isRemaining) return;
 
 	int dstObjId;
 	if (tid == 0)
-		dstObjId = atomicAggInc(nRemaining);
+		dstObjId = atomicAdd(nRemaining, 1);
 	dstObjId = __shfl(dstObjId, 0);
 
 	char* dstAddr = output + dstObjId * packer.totalPackedSize_byte;
@@ -304,7 +305,6 @@ void SimpleStationaryWall<InsideWallChecker>::removeInner(ParticleVector* pv)
 
 		nRemaining.downloadFromDevice(0);
 		std::swap(pv->local()->coosvels, tmp);
-		int oldSize = pv->local()->size();
 		pv->local()->resize(nRemaining[0], 0);
 	}
 	else
@@ -322,13 +322,13 @@ void SimpleStationaryWall<InsideWallChecker>::removeInner(ParticleVector* pv)
 
 		// Copy temporary buffers back
 		nRemaining.downloadFromDevice(0);
-		ov->local()->resize_anew(nRemaining[0]);
+		ov->local()->resize_anew(nRemaining[0] * ov->objSize);
 		ovView = OVview(ov, ov->local());
 		packer = ObjectPacker(ov, ov->local(), 0);
 
 		SAFE_KERNEL_LAUNCH(
 				unpackRemainingObjects,
-				getNblocks(ovView.nObjects*32, nthreads), nthreads, 0, 0,
+				ovView.nObjects, nthreads, 0, 0,
 				tmp.devPtr(), ovView, packer  );
 	}
 

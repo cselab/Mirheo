@@ -62,7 +62,7 @@ void BounceFromMesh::exec(ParticleVector* pv, CellList* cl, float dt, bool local
 	ov->findExtentAndCOM(stream, local);
 
 	int totalTriangles = ov->mesh->ntriangles * activeOV->nObjects;
-	int totalEdges = totalTriangles * 3 / 2;
+	//int totalEdges = totalTriangles * 3 / 2;
 
 	// Set maximum possible number of _coarse_ and _fine_ collisions with triangles
 	// In case of crash, the estimate should be increased

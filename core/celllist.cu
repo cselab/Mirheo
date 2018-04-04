@@ -104,6 +104,10 @@ CellList::CellList(ParticleVector* pv, float rc, float3 localDomainSize) :
 	cellSizes. resize_anew(totcells + 1);
 	cellStarts.resize_anew(totcells + 1);
 
+	cellSizes. clear(0);
+	cellStarts.clear(0);
+	CUDA_Check( cudaStreamSynchronize(0) );
+
 	debug("Initialized %s cell-list with %dx%dx%d cells and cut-off %f", pv->name.c_str(), ncells.x, ncells.y, ncells.z, this->rc);
 }
 
@@ -114,6 +118,10 @@ CellList::CellList(ParticleVector* pv, int3 resolution, float3 localDomainSize) 
 {
 	cellSizes. resize_anew(totcells + 1);
 	cellStarts.resize_anew(totcells + 1);
+
+	cellSizes. clear(0);
+	cellStarts.clear(0);
+	CUDA_Check( cudaStreamSynchronize(0) );
 
 	debug("Initialized %s cell-list with %dx%dx%d cells and cut-off %f", pv->name.c_str(), ncells.x, ncells.y, ncells.z, this->rc);
 }
