@@ -27,7 +27,7 @@ public:
 		view2 = OVview(ov1, lov2);
 
 		if (view1.comAndExtents == nullptr && view2.comAndExtents == nullptr)
-			warn("Neither of the pvs (%s or %s) has required property 'com_extents', trying to move on regardless",
+			error("Neither of the pvs (%s or %s) has required property 'com_extents', trying to move on regardless",
 					ov1->name.c_str(), ov2->name.c_str());
 	}
 

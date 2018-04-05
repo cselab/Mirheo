@@ -31,7 +31,9 @@ public:
 		const float rs8 = rs4*rs4;
 		const float rs14 = rs8*rs4*rs2;
 
-		return dr * epsx24_sigma * (2*rs14 - rs8);
+		const float IfI = epsx24_sigma * (2*rs14 - rs8);
+
+		return dr * min(IfI, 1e3f);
 	}
 
 private:
