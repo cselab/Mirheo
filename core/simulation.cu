@@ -260,10 +260,7 @@ void Simulation::applyObjectBelongingChecker(std::string checkerName,
 	splitterPrototypes.push_back(std::make_tuple(checker, pvSource, pvInside, pvOutside));
 
 	if (pvInside != nullptr)
-		belongingCheckerPrototypes.push_back(std::make_tuple(checker, pvInside,  checkEvery));
-
-	if (pvOutside != nullptr)
-		belongingCheckerPrototypes.push_back(std::make_tuple(checker, pvOutside, checkEvery));
+		belongingCheckerPrototypes.push_back(std::make_tuple(checker, pvInside, pvOutside, checkEvery));
 }
 
 
@@ -563,19 +560,16 @@ void Simulation::assemble()
 	for (auto& prototype : belongingCheckerPrototypes)
 	{
 		auto checker = std::get<0>(prototype);
-		auto pv      = std::get<1>(prototype);
-		auto every   = std::get<2>(prototype);
+		auto pvIn    = std::get<1>(prototype);
+		auto pvOut   = std::get<2>(prototype);
+		auto every   = std::get<3>(prototype);
 
 		if (every > 0)
 		{
-			auto clVec = cellListMap[pv];
-			if (clVec.size() == 0)
-				die("Unable to check belonging of a PV without a valid cell-list");
-			auto cl = clVec[0];
-
-			scheduler.addTask("Bounce check",
-					[checker, pv, cl] (cudaStream_t stream) { checker->checkInner(pv, cl, stream); },
-					every);
+			scheduler.addTask("Bounce correction", [checker, pvIn, pvOut] (cudaStream_t stream) {
+				checker->splitByBelonging(pvIn,  pvIn, pvOut, stream);
+				checker->splitByBelonging(pvOut, pvIn, pvOut, stream);
+			}, every);
 		}
 	}
 

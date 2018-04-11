@@ -42,16 +42,6 @@ __global__ void computeAreaAndVolume(OVviewWithAreaVolume view, MeshView mesh)
 // **************************************************************************************************
 // **************************************************************************************************
 
-__device__ inline float fastPower(const float x, const float k)
-{
-	if (fabsf(k - 3.0f) < 1e-6f) return x*x*x;
-	if (fabsf(k - 2.0f) < 1e-6f) return x*x;
-	if (fabsf(k - 1.0f) < 1e-6f) return x;
-	if (fabsf(k - 0.5f) < 1e-6f) return sqrtf(fabsf(x));
-
-    return powf(fabsf(x), k);
-}
-
 
 __device__ inline float3 _fangle(const float3 v1, const float3 v2, const float3 v3,
 		const float totArea, const float totVolume, GPU_RBCparameters parameters)

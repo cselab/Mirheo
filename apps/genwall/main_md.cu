@@ -14,6 +14,9 @@
 #include <core/utils/kernel_launch.h>
 #include <core/parser/walls_factory.h>
 
+#include <core/utils/make_unique.h>
+
+
 __global__ void zeroVels(PVview view)
 {
 	const int pid = threadIdx.x + blockDim.x * blockIdx.x;

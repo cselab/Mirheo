@@ -12,7 +12,10 @@ end
 myaxes = [str2num(args{1}), str2num(args{2}), str2num(args{3})];
 smallax = myaxes - 1.5;
 
-n = str2num(args{4});
+ndens = str2num(args{4});
+
+n = ndens * 4.0 / 3.0 * pi * (myaxes(1)*myaxes(2)*myaxes(3) - smallax(1)*smallax(2)*smallax(3));
+n = round(n);
 
 printf("%d\n", n);
 printf("# Generated ellipsoid with axes %f %f %f\n", myaxes(1), myaxes(2), myaxes(3));

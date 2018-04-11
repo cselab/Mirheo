@@ -103,9 +103,9 @@ alldata = []
 
 alldata.append( get_forces("/home/alexeedm/extern/daint/project/alexeedm/focusing_liftparams/case_5_0.1__80_20_1.5__") + ("Rigid", ) )
 alldata.append( get_forces("/home/alexeedm/extern/daint/project/alexeedm/focusing_liftparams/case_norot_5_0.1__80_20_1.5__") + ("Rigid, no rotation", ) )
-alldata.append( get_forces("/home/alexeedm/extern/daint/scratch/focusing_soft/case_0.1_0.2__80__1.5__") + ("Lambda = 0.2", ) )
-alldata.append( get_forces("/home/alexeedm/extern/daint/scratch/focusing_soft/case_0.1_1.0__80__1.5__") + ("Lambda = 1.0", ) )
-alldata.append( get_forces("/home/alexeedm/extern/daint/scratch/focusing_soft/case_0.1_5.0__80__1.5__") + ("Lambda = 5.0", ) )
+alldata.append( get_forces("/home/alexeedm/extern/daint/scratch/focusing_soft/case_noforce_moreharder_0.1_1.0__80__1.5__") + ("Hard", ) )
+alldata.append( get_forces("/home/alexeedm/extern/daint/scratch/focusing_soft/case_noforce_0.1_1.0__80__1.5__") + ("Normal", ) )
+alldata.append( get_forces("/home/alexeedm/extern/daint/scratch/focusing_soft/case_noforce_softer_0.1_1.0__80__1.5__") + ("Soft", ) )
 
 #print Cls
 #print err_Cls

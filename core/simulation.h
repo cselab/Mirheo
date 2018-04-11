@@ -139,7 +139,7 @@ private:
 	std::vector<std::tuple<Wall*, ParticleVector*>> wallPrototypes;
 	std::vector<std::tuple<Wall*, int>> checkWallPrototypes;
 	std::vector<std::tuple<Bouncer*, ParticleVector*>> bouncerPrototypes;
-	std::vector<std::tuple<ObjectBelongingChecker*, ParticleVector*, int>> belongingCheckerPrototypes;
+	std::vector<std::tuple<ObjectBelongingChecker*, ParticleVector*, ParticleVector*, int>> belongingCheckerPrototypes;
 	std::vector<std::tuple<ObjectBelongingChecker*, ParticleVector*, ParticleVector*, ParticleVector*>> splitterPrototypes;
 
 

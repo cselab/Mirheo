@@ -28,8 +28,6 @@ __global__ void copyInOut(
 	{
 		int dstId = atomicAggInc(nIn);
 		if (ins)  ins [dstId] = p;
-		if (!ins && p.i1 == 69211)
-			printf("%d: %f %f %f\n", p.i1, p.r.x, p.r.y, p.r.z);
 	}
 }
 
@@ -76,16 +74,30 @@ void ObjectBelongingChecker::splitByBelonging(ParticleVector* src, ParticleVecto
 
 	if (pvIn  != nullptr)
 	{
-		std::swap(bufIn, pvIn->local()->coosvels);
-		pvIn->local()->resize(nInside[0], stream);
+		int oldSize = (src == pvIn) ? 0 : pvIn->local()->size();
+		pvIn->local()->resize(oldSize + nInside[0], stream);
+
+		if (nInside[0] > 0)
+			CUDA_Check( cudaMemcpyAsync(pvIn->local()->coosvels.devPtr() + oldSize,
+					bufIn.devPtr(),
+					nInside[0] * sizeof(Particle),
+					cudaMemcpyDeviceToDevice, stream) );
+
 
 		info("New size of inner PV %s is %d", pvIn->name.c_str(), pvIn->local()->size());
 	}
 
 	if (pvOut != nullptr)
 	{
-		std::swap(bufOut, pvOut->local()->coosvels);
-		pvOut->local()->resize(nOutside[0], stream);
+		int oldSize = (src == pvOut) ? 0 : pvOut->local()->size();
+		pvOut->local()->resize(oldSize + nOutside[0], stream);
+
+		if (nOutside[0] > 0)
+			CUDA_Check( cudaMemcpyAsync(pvOut->local()->coosvels.devPtr() + oldSize,
+					bufOut.devPtr(),
+					nOutside[0] * sizeof(Particle),
+					cudaMemcpyDeviceToDevice, stream) );
+
 
 		info("New size of outer PV %s is %d", pvOut->name.c_str(), pvOut->local()->size());
 	}

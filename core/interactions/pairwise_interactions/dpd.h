@@ -3,22 +3,12 @@
 #include <core/datatypes.h>
 #include <core/pvs/particle_vector.h>
 #include <core/utils/cuda_rng.h>
+#include <core/utils/cuda_common.h>
 
 #include <random>
 
 class ParticleVector;
 class CellList;
-
-
-__device__ inline float fastPower(const float x, const float k)
-{
-	if (fabsf(k - 1.0f)   < 1e-6f) return x;
-	if (fabsf(k - 0.5f)   < 1e-6f) return sqrtf(fabsf(x));
-	if (fabsf(k - 0.25f)  < 1e-6f) return sqrtf(sqrtf(fabsf(x)));
-	if (fabsf(k - 0.125f) < 1e-6f) return sqrtf(sqrtf(sqrtf(fabsf(x))));
-
-    return powf(fabsf(x), k);
-}
 
 
 class Pairwise_DPD

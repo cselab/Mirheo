@@ -5,6 +5,7 @@
 #include "freeze_particles.h"
 #include <core/interactions/sampler.h>
 #include <core/initial_conditions/uniform_ic.h>
+#include <core/utils/make_unique.h>
 
 #include <core/argument_parser.h>
 #include <core/pvs/particle_vector.h>

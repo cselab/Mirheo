@@ -57,8 +57,8 @@ void InteractionPair<PariwiseInteraction>::regular(ParticleVector* pv1, Particle
  *   are made such that halo1 \<-\> local2 and halo2 \<-\> local1. If \p pv1 and
  *   \p pv2 are the same, only one call is needed
  */
-template<class PariwiseInteraction>
-void InteractionPair<PariwiseInteraction>::halo(ParticleVector* pv1, ParticleVector* pv2, CellList* cl1, CellList* cl2, const float t, cudaStream_t stream)
+template<class PairwiseInteraction>
+void InteractionPair<PairwiseInteraction>::halo(ParticleVector* pv1, ParticleVector* pv2, CellList* cl1, CellList* cl2, const float t, cudaStream_t stream)
 {
 	auto isov1 = dynamic_cast<ObjectVector*>(pv1) != nullptr;
 	auto isov2 = dynamic_cast<ObjectVector*>(pv2) != nullptr;
@@ -111,10 +111,17 @@ void InteractionPair<PariwiseInteraction>::halo(ParticleVector* pv1, ParticleVec
  *   Return value of that call is force acting on the first particle,
  *   force acting on the second one is just opposite.
  */
-template<class PariwiseInteraction>
-void InteractionPair<PariwiseInteraction>::_compute(InteractionType type,
+template<class PairwiseInteraction>
+void InteractionPair<PairwiseInteraction>::_compute(InteractionType type,
 		ParticleVector* pv1, ParticleVector* pv2, CellList* cl1, CellList* cl2, const float t, cudaStream_t stream)
 {
+	auto it = intMap.find({pv1->name, pv2->name});
+	if (it == intMap.end())
+		die("I have no idea what PVs are passed to me");
+
+
+	auto& interaction = it->second;
+
 	if (type == InteractionType::Regular)
 	{
 		interaction.setup(pv1->local(), pv2->local(), cl1, cl2, t);
@@ -167,6 +174,14 @@ void InteractionPair<PariwiseInteraction>::_compute(InteractionType type,
 				CHOOSE_EXTERNAL(true,  true, false, interaction );
 	}
 }
+
+template<class PairwiseInteraction>
+void InteractionPair<PairwiseInteraction>::createPairwise(std::string pv1name, std::string pv2name, PairwiseInteraction interaction)
+{
+	intMap.insert({{pv1name, pv2name}, interaction});
+	intMap.insert({{pv2name, pv1name}, interaction});
+}
+
 
 template class InteractionPair<Pairwise_DPD>;
 template class InteractionPair<Pairwise_LJ>;

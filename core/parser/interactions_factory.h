@@ -18,11 +18,17 @@
 class InteractionFactory
 {
 private:
-	static Interaction* createDPD(pugi::xml_node node)
+
+	static void setIfNotEmpty_float(pugi::xml_node node, float& val, const char* name)
 	{
-		auto name         = node.attribute("name").as_string("");
-		auto rc           = node.attribute("rc").as_float(1.0f);
-		auto stressPeriod = node.attribute("stress_period").as_float(-1.0f);
+		if (!node.attribute(name).empty())
+			val = node.attribute(name).as_float();
+	};
+
+	template<typename T>
+	static Interaction* _parseDPDparameters(T* intPtr, pugi::xml_node node)
+	{
+		auto rc    = node.attribute("rc").as_float(1.0f);
 
 		auto a     = node.attribute("a")    .as_float(50);
 		auto gamma = node.attribute("gamma").as_float(20);
@@ -30,14 +36,43 @@ private:
 		auto dt    = node.attribute("dt")   .as_float(0.01);
 		auto power = node.attribute("power").as_float(1.0f);
 
-		Pairwise_DPD dpd(rc, a, gamma, kbT, dt, power);
+		// Override default parameters for some pairs
+		for (auto apply_to : node.children("apply_to"))
+		{
+			setIfNotEmpty_float(apply_to, a,     "a");
+			setIfNotEmpty_float(apply_to, gamma, "gamma" );
+			setIfNotEmpty_float(apply_to, kbT,   "kbT");
+			setIfNotEmpty_float(apply_to, dt,    "dt");
+			setIfNotEmpty_float(apply_to, power, "power");
 
-		if (stressPeriod > 0.0f)
-			return (Interaction*) new InteractionPair_withStress<Pairwise_DPD> (name, rc, stressPeriod, dpd);
-		else
-			return (Interaction*) new InteractionPair<Pairwise_DPD>            (name, rc, dpd);
+			Pairwise_DPD dpd(rc, a, gamma, kbT, dt, power);
+			intPtr->createPairwise(apply_to.attribute("pv1").as_string(),
+								   apply_to.attribute("pv2").as_string(), dpd);
+
+			info("The following interaction was set up: pairwise dpd between '%s' and '%s' with parameters "
+					"rc = %g, a = %g, gamma = %g, kbT = %g, dt = %g, power = %g",
+					apply_to.attribute("pv1").as_string(),
+					apply_to.attribute("pv2").as_string(),
+					rc, a, gamma, kbT, dt, power);
+		}
+
+		return (Interaction*) intPtr;
 	}
 
+	static Interaction* createDPD(pugi::xml_node node)
+	{
+		auto name  = node.attribute("name").as_string("");
+		auto rc    = node.attribute("rc").as_float(1.0f);
+		auto stressPeriod = node.attribute("stress_period").as_float(-1.0f);
+
+		if (stressPeriod > 0.0f)
+			return _parseDPDparameters(new InteractionPair_withStress<Pairwise_DPD> (name, rc, stressPeriod), node);
+		else
+			return _parseDPDparameters(new InteractionPair<Pairwise_DPD> (name, rc), node);
+	}
+
+
+	template<typename T>
 	static Interaction* createLJ(pugi::xml_node node)
 	{
 		auto name = node.attribute("name").as_string("");
@@ -46,22 +81,25 @@ private:
 		auto epsilon = node.attribute("epsilon").as_float(10.0f);
 		auto sigma   = node.attribute("sigma")  .as_float(0.5f);
 
-		Pairwise_LJ lj(rc, sigma, epsilon);
+		auto res = new InteractionPair<T>(name, rc);
 
-		return (Interaction*) new InteractionPair<Pairwise_LJ>(name, rc, lj);
-	}
+		for (auto apply_to : node.children("apply_to"))
+		{
+			setIfNotEmpty_float(apply_to, epsilon, "epsilon");
+			setIfNotEmpty_float(apply_to, sigma,   "sigma" );
 
-	static Interaction* createLJ_objectAware(pugi::xml_node node)
-	{
-		auto name = node.attribute("name").as_string("");
-		auto rc   = node.attribute("rc").as_float(1.0f);
+			T lj(rc, sigma, epsilon);
+			res->createPairwise(apply_to.attribute("pv1").as_string(),
+								apply_to.attribute("pv2").as_string(), lj);
 
-		auto epsilon = node.attribute("epsilon").as_float(10.0f);
-		auto sigma   = node.attribute("sigma")  .as_float(0.5f);
+			info("The following interaction set up: pairwise Lennard-Jones between '%s' and '%s' with parameters "
+					"epsilon = %g, sigma = %g",
+					apply_to.attribute("pv1").as_string(),
+					apply_to.attribute("pv2").as_string(),
+					epsilon, sigma);
+		}
 
-		Pairwise_LJObjectAware ljo(rc, sigma, epsilon);
-
-		return (Interaction*) new InteractionPair<Pairwise_LJObjectAware>(name, rc, ljo);
+		return (Interaction*) res;
 	}
 
 	static Interaction* createMembrane(pugi::xml_node node)
@@ -71,31 +109,25 @@ private:
 		RBCParameters p;
 		std::string preset = node.attribute("preset").as_string();
 
-		auto setIfNotEmpty_float = [&node] (float& val, const char* name)
-		{
-			if (!node.attribute(name).empty())
-				val = node.attribute(name).as_float();
-		};
-
 		if (preset == "lina")
 			p = Lina_parameters;
 		else
 			error("Unknown predefined parameter set for '%s' interaction: '%s'",
 					name, preset.c_str());
 
-		setIfNotEmpty_float(p.x0,         "x0");
-		setIfNotEmpty_float(p.p,          "p");
-		setIfNotEmpty_float(p.ka,         "ka");
-		setIfNotEmpty_float(p.kb,         "kb");
-		setIfNotEmpty_float(p.kd,         "kd");
-		setIfNotEmpty_float(p.kv,         "kv");
-		setIfNotEmpty_float(p.gammaC,     "gammaC");
-		setIfNotEmpty_float(p.gammaT,     "gammaT");
-		setIfNotEmpty_float(p.kbT,        "kbT");
-		setIfNotEmpty_float(p.mpow,       "mpow");
-		setIfNotEmpty_float(p.theta,      "theta");
-		setIfNotEmpty_float(p.totArea0,   "area");
-		setIfNotEmpty_float(p.totVolume0, "volume");
+		setIfNotEmpty_float(node, p.x0,         "x0");
+		setIfNotEmpty_float(node, p.p,          "p");
+		setIfNotEmpty_float(node, p.ka,         "ka");
+		setIfNotEmpty_float(node, p.kb,         "kb");
+		setIfNotEmpty_float(node, p.kd,         "kd");
+		setIfNotEmpty_float(node, p.kv,         "kv");
+		setIfNotEmpty_float(node, p.gammaC,     "gammaC");
+		setIfNotEmpty_float(node, p.gammaT,     "gammaT");
+		setIfNotEmpty_float(node, p.kbT,        "kbT");
+		setIfNotEmpty_float(node, p.mpow,       "mpow");
+		setIfNotEmpty_float(node, p.theta,      "theta");
+		setIfNotEmpty_float(node, p.totArea0,   "area");
+		setIfNotEmpty_float(node, p.totVolume0, "volume");
 
 		return (Interaction*) new InteractionRBCMembrane(name, p);
 	}
@@ -108,9 +140,9 @@ public:
 		if (type == "dpd")
 			return createDPD(node);
 		if (type == "lj")
-			return createLJ(node);
+			return createLJ<Pairwise_LJ>(node);
 		if (type == "lj_object")
-			return createLJ_objectAware(node);
+			return createLJ<Pairwise_LJObjectAware>(node);
 		if (type == "membrane")
 			return createMembrane(node);
 

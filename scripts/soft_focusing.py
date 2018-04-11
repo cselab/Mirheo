@@ -13,7 +13,7 @@ import math
 
 #%%
 
-folder = "/home/alexeedm/extern/daint/scratch/focusing_soft/case_0.1_5.0__80__1.5__0.7"
+folder = "/home/alexeedm/extern/daint/scratch/focusing_soft/case_noforce_0.1_5.0__80__1.5__0.7"
 
 dt = 1e-3
 dump_freq = 2000

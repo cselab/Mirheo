@@ -17,12 +17,14 @@ public:
 	void regular(ParticleVector* pv1, ParticleVector* pv2, CellList* cl1, CellList* cl2, const float t, cudaStream_t stream) override;
 	void halo   (ParticleVector* pv1, ParticleVector* pv2, CellList* cl1, CellList* cl2, const float t, cudaStream_t stream) override;
 
-	InteractionPair(std::string name, float rc, PairwiseInteraction interaction) :
-		Interaction(name, rc), interaction(interaction)
+	InteractionPair(std::string name, float rc) :
+		Interaction(name, rc)
 	{ }
+
+	void createPairwise(std::string pv1name, std::string pv2name, PairwiseInteraction interaction);
 
 	~InteractionPair() = default;
 
 private:
-	PairwiseInteraction interaction;
+	std::map< std::pair<std::string, std::string>, PairwiseInteraction > intMap;
 };
