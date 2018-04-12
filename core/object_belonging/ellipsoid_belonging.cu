@@ -46,9 +46,9 @@ __global__ void insideEllipsoid(REOVview view, CellListInfo cinfo, BelongingTags
 
 			float v = ellipsoidF(coo, view.invAxes);
 
-			if (fabs(v) <= tolerance)
-				tags[pid] = BelongingTags::Boundary;
-			else if (v <= tolerance)
+//			if (fabs(v) <= tolerance)
+//				tags[pid] = BelongingTags::Boundary;
+			if (v <= tolerance)
 				tags[pid] = BelongingTags::Inside;
 		}
 	}

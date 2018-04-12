@@ -5,7 +5,7 @@
 /**
  * Integrate motion of the rigid bodies.
  */
-class IntegratorVVRigid : Integrator
+class IntegratorVVRigid : public Integrator
 {
 public:
 	void stage1(ParticleVector* pv, float t, cudaStream_t stream) override;

@@ -3,26 +3,7 @@
 
 #include <core/task_scheduler.h>
 #include <core/logger.h>
-
-
-TaskScheduler::Node* TaskScheduler::findTaskOrDie(const std::string& label)
-{
-	auto node = findTask(label);
-	if (node == nullptr)
-		die("Task group with label %s not found", label.c_str());
-
-	return node;
-}
-
-TaskScheduler::Node* TaskScheduler::findTask(const std::string& label)
-{
-	Node* node = nullptr;
-	for (auto n : nodes)
-		if (n->label == label) node = n;
-
-	return node;
-}
-
+#include <core/utils/make_unique.h>
 
 
 
@@ -31,17 +12,67 @@ TaskScheduler::TaskScheduler()
 	CUDA_Check( cudaDeviceGetStreamPriorityRange(&cudaPriorityLow, &cudaPriorityHigh) );
 }
 
-void TaskScheduler::addTask(std::string label, std::function<void(cudaStream_t)> task, int every)
-{
-	Node* node = findTask(label);
 
+
+TaskScheduler::TaskID TaskScheduler::createTask(const std::string& label)
+{
+	auto id = getTaskId(label);
+	if (id != invalidTaskId)
+		die("Task '%s' already exists", label.c_str());
+
+	id = label2taskId[label] = freeTaskId++;
+
+	auto node = std::make_unique<Node>();
+	node->label = label;
+	node->priority = cudaPriorityLow;
+	taskId2node[id] = node.get();
+
+	nodes.push_back(std::move(node));
+
+	return id;
+}
+
+TaskScheduler::TaskID TaskScheduler::getTaskId(const std::string& label)
+{
+	if (label2taskId.find(label) != label2taskId.end())
+		return label2taskId[label];
+	else
+		return invalidTaskId;
+}
+
+TaskScheduler::TaskID TaskScheduler::getTaskIdOrDie(const std::string& label)
+{
+	auto id = getTaskId(label);
+	if (id == invalidTaskId)
+		die("No such task '%s'", label.c_str());
+
+	return id;
+}
+
+TaskScheduler::Node* TaskScheduler::getTask(TaskID id)
+{
+	auto it = taskId2node.find(id);
+	if (it != taskId2node.end())
+		return it->second;
+	else
+		return nullptr;
+}
+
+TaskScheduler::Node* TaskScheduler::getTaskOrDie(TaskID id)
+{
+	auto node = getTask(id);
 	if (node == nullptr)
-	{
-		node = new Node();
-		node->label = label;
-		node->priority = cudaPriorityLow;
-		nodes.push_back(node);
-	}
+		die("No such task with id %d", id);
+
+	return node;
+}
+
+
+
+
+void TaskScheduler::addTask(TaskID id, std::function<void(cudaStream_t)> task, int every)
+{
+	Node* node = getTaskOrDie(id);
 
 	if (every <= 0)
 		die("What the fuck is this value %d???", every);
@@ -50,12 +81,12 @@ void TaskScheduler::addTask(std::string label, std::function<void(cudaStream_t)>
 }
 
 
-void TaskScheduler::addDependency(std::string label, std::vector<std::string> before, std::vector<std::string> after)
+void TaskScheduler::addDependency(TaskID id, std::vector<TaskID> before, std::vector<TaskID> after)
 {
-	Node* node = findTask(label);
+	Node* node = getTask(id);
 	if (node == nullptr)
 	{
-		warn("Skipping dependencies for non-existent task '%s'", label.c_str());
+		warn("Skipping dependencies for non-existent task %d", id);
 		return;
 	}
 
@@ -63,18 +94,18 @@ void TaskScheduler::addDependency(std::string label, std::vector<std::string> be
 	node->after .insert(node->after .end(), after .begin(), after .end());
 }
 
-void TaskScheduler::setHighPriority(std::string label)
+void TaskScheduler::setHighPriority(TaskID id)
 {
-	Node* node = findTaskOrDie(label);
+	Node* node = getTaskOrDie(id);
 
 	node->priority = cudaPriorityHigh;
 }
 
-void TaskScheduler::forceExec(std::string label)
+void TaskScheduler::forceExec(TaskID id)
 {
-	Node* node = findTaskOrDie(label);
+	Node* node = getTask(id);
 
-	info("Forced execution of group %s", node->label.c_str());
+	debug("Forced execution of group %s", node->label.c_str());
 
 	for (auto& func_every : node->funcs)
 		func_every.first(0);
@@ -93,42 +124,58 @@ void TaskScheduler::compile()
 			n->streams = &streamsLo;
 
 		// Set dependencies
-		for (auto& dep : n->before)
+		for (auto dep : n->before)
 		{
-			Node* depPtr = nullptr;
-			for (auto ndep : nodes)
-				if (ndep->label == dep)
-				{
-					depPtr = ndep;
-					break;
-				}
+			Node* depPtr = getTask(dep);
 
 			if (depPtr == nullptr)
-				die("Could not resolve dependency %s  -->  %s", n->label.c_str(), dep.c_str());
+			{
+				warn("Could not resolve dependency %s  -->  id %d", n->label.c_str(), dep);
+				continue;
+			}
 
 			n->to.push_back(depPtr);
-			depPtr->from_backup.push_back(n);
+			depPtr->from_backup.push_back(n.get());
 		}
 
-		for (auto& dep : n->after)
+		for (auto dep : n->after)
 		{
-			Node* depPtr = nullptr;
-			for (auto ndep : nodes)
-				if (ndep->label == dep)
-				{
-					depPtr = ndep;
-					break;
-				}
+			Node* depPtr = getTask(dep);
 
 			if (depPtr == nullptr)
-				die("Could not resolve dependency %s  -->  %s", dep.c_str(),  n->label.c_str());
+			{
+				warn("Could not resolve dependency id %d  -->  %s", dep, n->label.c_str());
+				continue;
+			}
 
 			n->from_backup.push_back(depPtr);
-			depPtr->to.push_back(n);
+			depPtr->to.push_back(n.get());
 		}
 	}
 }
 
+
+//void TaskScheduler::fillNonEmptyNodes()
+//{
+//	for (auto it = nodes.begin(); it != nodes.end(); )
+//	{
+//		auto nPtr = it->get();
+//		auto id = label2taskId[nPtr->label];
+//
+//		if ( nPtr->funcs.size() == 0 )
+//		{
+//			warn("Task '%s' is empty and will be removed from execution");
+//			for (auto& n : nodes)
+//			{
+//				n->before.erase( std::remove(n->before.begin(), n->before.end(), id), n->before.end() );
+//				n->after .erase( std::remove(n->after .begin(), n->after .end(), id), n->after .end() );
+//
+//				n->before.insert( n->before.end(), nPtr->before.begin(), nPtr->before.end() );
+//				n->after .insert( n->after .end(), nPtr->after .begin(), nPtr->after .end() );
+//			}
+//		}
+//	}
+//}
 
 void TaskScheduler::run()
 {
@@ -142,12 +189,12 @@ void TaskScheduler::run()
 	std::priority_queue<Node*, std::vector<Node*>, decltype(compareNodes)> S(compareNodes);
 	std::vector<std::pair<cudaStream_t, Node*>> workMap;
 
-	for (auto n : nodes)
+	for (auto& n : nodes)
 	{
 		n->from = n->from_backup;
 
 		if (n->from.empty())
-			S.push(n);
+			S.push(n.get());
 	}
 
 	int completed = 0;
@@ -165,7 +212,7 @@ void TaskScheduler::run()
 				{
 					auto node = streamNode_it->second;
 
-					info("Completed group %s ", node->label.c_str());
+					debug("Completed group %s ", node->label.c_str());
 
 					// Return freed stream back to the corresponding queue
 					node->streams->push(streamNode_it->first);
@@ -212,7 +259,7 @@ void TaskScheduler::run()
 			node->streams->pop();
 		}
 
-		info("Executing group %s on stream %lld with priority %d", node->label.c_str(), (int64_t)stream, node->priority);
+		debug("Executing group %s on stream %lld with priority %d", node->label.c_str(), (int64_t)stream, node->priority);
 		workMap.push_back({stream, node});
 
 		for (auto& func_every : node->funcs)

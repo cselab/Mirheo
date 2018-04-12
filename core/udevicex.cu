@@ -65,17 +65,17 @@ uDeviceX::uDeviceX(int3 nranks3D, float3 globalDomainSize,
 	}
 }
 
-void uDeviceX::registerPlugins(std::pair<SimulationPlugin*, PostprocessPlugin*> plugins)
+void uDeviceX::registerPlugins( std::pair< std::unique_ptr<SimulationPlugin>, std::unique_ptr<PostprocessPlugin> > plugins )
 {
 	if (isComputeTask())
 	{
 		if ( plugins.first != nullptr && !(plugins.first->needPostproc() && noPostprocess) )
-			sim->registerPlugin(plugins.first);
+			sim->registerPlugin(std::move(plugins.first));
 	}
 	else
 	{
 		if ( plugins.second != nullptr && !noPostprocess )
-			post->registerPlugin(plugins.second);
+			post->registerPlugin(std::move(plugins.second));
 	}
 }
 

@@ -10,7 +10,7 @@ class CellList;
 
 enum class BelongingTags
 {
-	Outside = 0, Inside, Boundary
+	Outside = 0, Inside
 };
 
 class ObjectBelongingChecker

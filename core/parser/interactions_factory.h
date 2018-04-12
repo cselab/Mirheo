@@ -26,7 +26,7 @@ private:
 	};
 
 	template<typename T>
-	static Interaction* _parseDPDparameters(T* intPtr, pugi::xml_node node)
+	static std::unique_ptr<Interaction> _parseDPDparameters(std::unique_ptr<T> intPtr, pugi::xml_node node)
 	{
 		auto rc    = node.attribute("rc").as_float(1.0f);
 
@@ -56,24 +56,24 @@ private:
 					rc, a, gamma, kbT, dt, power);
 		}
 
-		return (Interaction*) intPtr;
+		return std::move(intPtr);
 	}
 
-	static Interaction* createDPD(pugi::xml_node node)
+	static std::unique_ptr<Interaction> createDPD(pugi::xml_node node)
 	{
 		auto name  = node.attribute("name").as_string("");
 		auto rc    = node.attribute("rc").as_float(1.0f);
 		auto stressPeriod = node.attribute("stress_period").as_float(-1.0f);
 
 		if (stressPeriod > 0.0f)
-			return _parseDPDparameters(new InteractionPair_withStress<Pairwise_DPD> (name, rc, stressPeriod), node);
+			return _parseDPDparameters(std::make_unique<InteractionPair_withStress<Pairwise_DPD>>(name, rc, stressPeriod), node);
 		else
-			return _parseDPDparameters(new InteractionPair<Pairwise_DPD> (name, rc), node);
+			return _parseDPDparameters(std::make_unique<InteractionPair<Pairwise_DPD>>(name, rc), node);
 	}
 
 
 	template<typename T>
-	static Interaction* createLJ(pugi::xml_node node)
+	static std::unique_ptr<Interaction> createLJ(pugi::xml_node node)
 	{
 		auto name = node.attribute("name").as_string("");
 		auto rc   = node.attribute("rc").as_float(1.0f);
@@ -81,7 +81,7 @@ private:
 		auto epsilon = node.attribute("epsilon").as_float(10.0f);
 		auto sigma   = node.attribute("sigma")  .as_float(0.5f);
 
-		auto res = new InteractionPair<T>(name, rc);
+		auto res = std::make_unique<InteractionPair<T>>(name, rc);
 
 		for (auto apply_to : node.children("apply_to"))
 		{
@@ -99,10 +99,10 @@ private:
 					epsilon, sigma);
 		}
 
-		return (Interaction*) res;
+		return std::move(res);
 	}
 
-	static Interaction* createMembrane(pugi::xml_node node)
+	static std::unique_ptr<Interaction> createMembrane(pugi::xml_node node)
 	{
 		auto name = node.attribute("name").as_string("");
 
@@ -129,11 +129,11 @@ private:
 		setIfNotEmpty_float(node, p.totArea0,   "area");
 		setIfNotEmpty_float(node, p.totVolume0, "volume");
 
-		return (Interaction*) new InteractionRBCMembrane(name, p);
+		return std::make_unique<InteractionRBCMembrane>(name, p);
 	}
 
 public:
-	static Interaction* create(pugi::xml_node node)
+	static std::unique_ptr<Interaction> create(pugi::xml_node node)
 	{
 		std::string type = node.attribute("type").as_string();
 

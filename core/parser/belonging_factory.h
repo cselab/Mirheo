@@ -12,22 +12,22 @@
 class ObjectBelongingCheckerFactory
 {
 private:
-	static ObjectBelongingChecker* createMeshBelongingChecker(pugi::xml_node node)
+	static std::unique_ptr<ObjectBelongingChecker> createMeshBelongingChecker(pugi::xml_node node)
 	{
 		auto name = node.attribute("name").as_string("");
 
-		return (ObjectBelongingChecker*) new MeshBelongingChecker(name);
+		return std::make_unique<MeshBelongingChecker>(name);
 	}
 
-	static ObjectBelongingChecker* createEllipsoidBelongingChecker(pugi::xml_node node)
+	static std::unique_ptr<ObjectBelongingChecker> createEllipsoidBelongingChecker(pugi::xml_node node)
 	{
 		auto name = node.attribute("name").as_string("");
 
-		return (ObjectBelongingChecker*) new EllipsoidBelongingChecker(name);
+		return std::make_unique<EllipsoidBelongingChecker>(name);
 	}
 
 public:
-	static ObjectBelongingChecker* create(pugi::xml_node node)
+	static std::unique_ptr<ObjectBelongingChecker> create(pugi::xml_node node)
 	{
 		std::string type = node.attribute("type").as_string();
 

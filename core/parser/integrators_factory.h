@@ -5,6 +5,7 @@
 #pragma once
 
 #include <core/xml/pugixml.hpp>
+#include <core/utils/make_unique.h>
 
 #include <core/integrators/vv.h>
 #include <core/integrators/const_omega.h>
@@ -19,17 +20,17 @@
 class IntegratorFactory
 {
 private:
-	static Integrator* createVV(pugi::xml_node node)
+	static std::unique_ptr<Integrator> createVV(pugi::xml_node node)
 	{
 		auto name = node.attribute("name").as_string();
 		auto dt   = node.attribute("dt").as_float(0.01);
 
 		Forcing_None forcing;
 
-		return (Integrator*) new IntegratorVV<Forcing_None>(name, dt, forcing);
+		return  std::make_unique<IntegratorVV<Forcing_None>>(name, dt, forcing);
 	}
 
-	static Integrator* createVV_constDP(pugi::xml_node node)
+	static std::unique_ptr<Integrator> createVV_constDP(pugi::xml_node node)
 	{
 		auto name       = node.attribute("name").as_string();
 		auto dt         = node.attribute("dt").as_float(0.01);
@@ -38,10 +39,10 @@ private:
 
 		Forcing_ConstDP forcing(extraForce);
 
-		return (Integrator*) new IntegratorVV<Forcing_ConstDP>(name, dt, forcing);
+		return  std::make_unique<IntegratorVV<Forcing_ConstDP>>(name, dt, forcing);
 	}
 
-	static Integrator* createVV_PeriodicPoiseuille(pugi::xml_node node)
+	static std::unique_ptr<Integrator> createVV_PeriodicPoiseuille(pugi::xml_node node)
 	{
 		auto name  = node.attribute("name").as_string();
 		auto dt    = node.attribute("dt").as_float(0.01);
@@ -57,10 +58,10 @@ private:
 
 		Forcing_PeriodicPoiseuille forcing(force, dir);
 
-		return (Integrator*) new IntegratorVV<Forcing_PeriodicPoiseuille>(name, dt, forcing);
+		return  std::make_unique<IntegratorVV<Forcing_PeriodicPoiseuille>>(name, dt, forcing);
 	}
 
-	static Integrator* createConstOmega(pugi::xml_node node)
+	static std::unique_ptr<Integrator> createConstOmega(pugi::xml_node node)
 	{
 		auto name   = node.attribute("name").as_string();
 		auto dt     = node.attribute("dt").as_float(0.01);
@@ -68,20 +69,20 @@ private:
 		auto center = node.attribute("center").as_float3();
 		auto omega  = node.attribute("omega") .as_float3();
 
-		return (Integrator*) new IntegratorConstOmega(name, dt, center, omega);
+		return  std::make_unique<IntegratorConstOmega>(name, dt, center, omega);
 	}
 
-	static Integrator* createTranslate(pugi::xml_node node)
+	static std::unique_ptr<Integrator> createTranslate(pugi::xml_node node)
 	{
 		auto name   = node.attribute("name").as_string();
 		auto dt     = node.attribute("dt").as_float(0.01);
 
 		auto vel   = node.attribute("velocity").as_float3();
 
-		return (Integrator*) new IntegratorTranslate(name, dt, vel);
+		return  std::make_unique<IntegratorTranslate>(name, dt, vel);
 	}
 
-	static Integrator* createOscillating(pugi::xml_node node)
+	static std::unique_ptr<Integrator> createOscillating(pugi::xml_node node)
 	{
 		auto name    = node.attribute("name").as_string();
 		auto dt      = node.attribute("dt").as_float(0.01);
@@ -89,19 +90,19 @@ private:
 		auto vel     = node.attribute("velocity").as_float3();
 		auto period  = node.attribute("period").as_float();
 
-		return (Integrator*) new IntegratorOscillate(name, dt, vel, period);
+		return  std::make_unique<IntegratorOscillate>(name, dt, vel, period);
 	}
 
-	static Integrator* createRigidVV(pugi::xml_node node)
+	static std::unique_ptr<Integrator> createRigidVV(pugi::xml_node node)
 	{
 		auto name = node.attribute("name").as_string();
 		auto dt   = node.attribute("dt").as_float(0.01);
 
-		return (Integrator*) new IntegratorVVRigid(name, dt);
+		return  std::make_unique<IntegratorVVRigid>(name, dt);
 	}
 
 public:
-	static Integrator* create(pugi::xml_node node)
+	static std::unique_ptr<Integrator> create(pugi::xml_node node)
 	{
 		std::string type = node.attribute("type").as_string();
 

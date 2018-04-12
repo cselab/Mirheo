@@ -12,7 +12,6 @@
 #include <core/object_belonging/interface.h>
 #include <plugins/interface.h>
 
-#include <core/task_scheduler.h>
 #include <core/mpi/api.h>
 
 #include "domain.h"
@@ -26,6 +25,7 @@
 class ParticleVector;
 class ObjectVector;
 class CellList;
+class TaskScheduler;
 
 class Simulation
 {
@@ -40,13 +40,13 @@ public:
 
 	Simulation(int3 nranks3D, float3 globalDomainSize, const MPI_Comm& comm, const MPI_Comm& interComm);
 
-	void registerParticleVector         (ParticleVector* pv, InitialConditions* ic, int checkpointEvery);
-	void registerWall                   (Wall* wall, int checkEvery=0);
-	void registerInteraction            (Interaction* interaction);
-	void registerIntegrator             (Integrator* integrator);
-	void registerBouncer                (Bouncer* bouncer);
-	void registerPlugin                 (SimulationPlugin* plugin);
-	void registerObjectBelongingChecker (ObjectBelongingChecker* checker);
+	void registerParticleVector         (std::unique_ptr<ParticleVector> pv, std::unique_ptr<InitialConditions> ic, int checkpointEvery);
+	void registerWall                   (std::unique_ptr<Wall> wall, int checkEvery=0);
+	void registerInteraction            (std::unique_ptr<Interaction> interaction);
+	void registerIntegrator             (std::unique_ptr<Integrator> integrator);
+	void registerBouncer                (std::unique_ptr<Bouncer> bouncer);
+	void registerPlugin                 (std::unique_ptr<SimulationPlugin> plugin);
+	void registerObjectBelongingChecker (std::unique_ptr<ObjectBelongingChecker> checker);
 
 
 	void setIntegrator             (std::string integratorName,  std::string pvName);
@@ -64,12 +64,19 @@ public:
 	void run(int nsteps);
 	void finalize();
 
-	const std::vector<ParticleVector*>& getParticleVectors() const { return particleVectors; }
+	std::vector<ParticleVector*> getParticleVectors() const
+	{
+		std::vector<ParticleVector*> res;
+		for (auto& pv : particleVectors)
+			res.push_back(pv.get());
+
+		return res;
+	}
 
 	ParticleVector* getPVbyName(std::string name) const
 	{
 		auto pvIt = pvIdMap.find(name);
-		return (pvIt != pvIdMap.end()) ? particleVectors[pvIt->second] : nullptr;
+		return (pvIt != pvIdMap.end()) ? particleVectors[pvIt->second].get() : nullptr;
 	}
 
 	ParticleVector* getPVbyNameOrDie(std::string name) const
@@ -98,7 +105,7 @@ public:
 		if (clvecIt->second.size() == 0)
 			return nullptr;
 		else
-			return clvecIt->second[0];
+			return clvecIt->second[0].get();
 	}
 
 	MPI_Comm getCartComm() const { return cartComm; }
@@ -114,32 +121,32 @@ private:
 	double currentTime;
 	int currentStep;
 
-	TaskScheduler scheduler;
+	std::unique_ptr<TaskScheduler> scheduler;
 
-	ParticleHaloExchanger* halo;
-	ParticleRedistributor* redistributor;
+	std::unique_ptr<ParticleHaloExchanger> halo;
+	std::unique_ptr<ParticleRedistributor> redistributor;
 
-	ObjectHaloExchanger* objHalo;
-	ObjectRedistributor* objRedistibutor;
-	ObjectForcesReverseExchanger* objHaloForces;
+	std::unique_ptr<ObjectHaloExchanger> objHalo;
+	std::unique_ptr<ObjectRedistributor> objRedistibutor;
+	std::unique_ptr<ObjectForcesReverseExchanger> objHaloForces;
 
 	std::map<std::string, int> pvIdMap;
-	std::vector<ParticleVector*> particleVectors;
-	std::vector<ObjectVector*>   objectVectors;
+	std::vector< std::unique_ptr<ParticleVector> > particleVectors;
+	std::vector< ObjectVector* >   objectVectors;
 
-	std::map<std::string, Bouncer*>                bouncerMap;
-	std::map<std::string, Integrator*>             integratorMap;
-	std::map<std::string, Interaction*>            interactionMap;
-	std::map<std::string, Wall*>                   wallMap;
-	std::map<std::string, ObjectBelongingChecker*> belongingCheckerMap;
+	std::map< std::string, std::unique_ptr<Bouncer> >                bouncerMap;
+	std::map< std::string, std::unique_ptr<Integrator> >             integratorMap;
+	std::map< std::string, std::unique_ptr<Interaction> >            interactionMap;
+	std::map< std::string, std::unique_ptr<Wall> >                   wallMap;
+	std::map< std::string, std::unique_ptr<ObjectBelongingChecker> > belongingCheckerMap;
 
-	std::map<ParticleVector*, std::vector<CellList*>> cellListMap;
+	std::map<ParticleVector*, std::vector< std::unique_ptr<CellList> >> cellListMap;
 
 	std::vector<std::tuple<float, ParticleVector*, ParticleVector*, Interaction*>> interactionPrototypes;
 	std::vector<std::tuple<Wall*, ParticleVector*>> wallPrototypes;
 	std::vector<std::tuple<Wall*, int>> checkWallPrototypes;
 	std::vector<std::tuple<Bouncer*, ParticleVector*>> bouncerPrototypes;
-	std::vector<std::tuple<ObjectBelongingChecker*, ParticleVector*, ParticleVector*, int>> belongingCheckerPrototypes;
+	std::vector<std::tuple<ObjectBelongingChecker*, ParticleVector*, ParticleVector*, int>> belongingCorrectionPrototypes;
 	std::vector<std::tuple<ObjectBelongingChecker*, ParticleVector*, ParticleVector*, ParticleVector*>> splitterPrototypes;
 
 
@@ -147,7 +154,7 @@ private:
 	std::vector<std::function<void(float, cudaStream_t)>> integratorsStage1, integratorsStage2;
 	std::vector<std::function<void(float, cudaStream_t)>> regularBouncers, haloBouncers;
 
-	std::vector<SimulationPlugin*> plugins;
+	std::vector< std::unique_ptr<SimulationPlugin> > plugins;
 
 	void prepareCellLists();
 	void prepareInteractions();

@@ -19,7 +19,7 @@ public:
 
 	bool isComputeTask();
 	void run(int niters);
-	void registerPlugins(std::pair<SimulationPlugin*, PostprocessPlugin*> plugins);
+	void registerPlugins( std::pair< std::unique_ptr<SimulationPlugin>, std::unique_ptr<PostprocessPlugin> > plugins );
 
 private:
 	int computeTask;

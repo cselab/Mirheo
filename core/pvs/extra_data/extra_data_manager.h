@@ -5,17 +5,7 @@
 #include <core/logger.h>
 #include <core/datatypes.h>
 #include <core/containers.h>
-
-#if __cplusplus < 201400L
-namespace std
-{
-	template<typename T, typename... Args>
-	std::unique_ptr<T> make_unique(Args&&... args)
-	{
-		return std::unique_ptr<T>(new T(std::forward<Args>(args)...));
-	}
-}
-#endif
+#include <core/utils/make_unique.h>
 
 class ParticlePacker;
 class ObjectExtraPacker;

@@ -8,7 +8,7 @@
  * Euler in this case)
  *
  */
-class IntegratorTranslate : Integrator
+class IntegratorTranslate : public Integrator
 {
 public:
 

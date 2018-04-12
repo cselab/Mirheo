@@ -5,6 +5,7 @@
 #pragma once
 
 #include <core/xml/pugixml.hpp>
+#include <core/utils/make_unique.h>
 
 #include <plugins/average_flow.h>
 #include <plugins/average_relative_flow.h>
@@ -23,7 +24,10 @@
 class PluginFactory
 {
 private:
-	static std::pair<SimulationPlugin*, PostprocessPlugin*> createImposeVelocityPlugin(pugi::xml_node node, bool computeTask)
+
+	using PluginRetType = std::pair< std::unique_ptr<SimulationPlugin>, std::unique_ptr<PostprocessPlugin> >;
+
+	static PluginRetType createImposeVelocityPlugin(pugi::xml_node node, bool computeTask)
 	{
 		auto name   = node.attribute("name").as_string();
 		auto pvName = node.attribute("pv_name").as_string();
@@ -33,12 +37,12 @@ private:
 		auto high   = node.attribute("high").as_float3();
 		auto target = node.attribute("target_velocity").as_float3();
 
-		auto simPl = computeTask ? new ImposeVelocityPlugin(name, pvName, low, high, target, every) : nullptr;
+		auto simPl = computeTask ? std::make_unique<ImposeVelocityPlugin>(name, pvName, low, high, target, every) : nullptr;
 
-		return { (SimulationPlugin*) simPl, nullptr };
+		return { std::move(simPl), nullptr };
 	}
 
-	static std::pair<SimulationPlugin*, PostprocessPlugin*> createTemperaturizePlugin(pugi::xml_node node, bool computeTask)
+	static PluginRetType createTemperaturizePlugin(pugi::xml_node node, bool computeTask)
 	{
 		auto name    = node.attribute("name").as_string();
 
@@ -46,36 +50,36 @@ private:
 		auto kbT     = node.attribute("kbt").as_float();
 		auto keepVel = node.attribute("keep_velocity").as_bool(false);
 
-		auto simPl = computeTask ? new TemperaturizePlugin(name, pvName, kbT, keepVel) : nullptr;
+		auto simPl = computeTask ? std::make_unique<TemperaturizePlugin>(name, pvName, kbT, keepVel) : nullptr;
 
-		return { (SimulationPlugin*) simPl, nullptr };
+		return { std::move(simPl), nullptr };
 	}
 
-	static std::pair<SimulationPlugin*, PostprocessPlugin*> createAddForcePlugin(pugi::xml_node node, bool computeTask)
+	static PluginRetType createAddForcePlugin(pugi::xml_node node, bool computeTask)
 	{
 		auto name    = node.attribute("name").as_string();
 
 		auto pvName  = node.attribute("pv_name").as_string();
 		auto force   = node.attribute("force").as_float3();
 
-		auto simPl = computeTask ? new AddForcePlugin(name, pvName, force) : nullptr;
+		auto simPl = computeTask ? std::make_unique<AddForcePlugin>(name, pvName, force) : nullptr;
 
-		return { (SimulationPlugin*) simPl, nullptr };
+		return { std::move(simPl), nullptr };
 	}
 
-	static std::pair<SimulationPlugin*, PostprocessPlugin*> createAddTorquePlugin(pugi::xml_node node, bool computeTask)
+	static PluginRetType createAddTorquePlugin(pugi::xml_node node, bool computeTask)
 	{
 		auto name    = node.attribute("name").as_string();
 
 		auto pvName  = node.attribute("pv_name").as_string();
 		auto torque  = node.attribute("torque").as_float3();
 
-		auto simPl = computeTask ? new AddTorquePlugin(name, pvName, torque) : nullptr;
+		auto simPl = computeTask ? std::make_unique<AddTorquePlugin>(name, pvName, torque) : nullptr;
 
-		return { (SimulationPlugin*) simPl, nullptr };
+		return { std::move(simPl), nullptr };
 	}
 
-	static std::pair<SimulationPlugin*, PostprocessPlugin*> createImposeProfilePlugin(pugi::xml_node node, bool computeTask)
+	static PluginRetType createImposeProfilePlugin(pugi::xml_node node, bool computeTask)
 	{
 		auto name    = node.attribute("name").as_string();
 
@@ -85,25 +89,25 @@ private:
 		auto high  = node.attribute("high").as_float3();
 		auto kbT   = node.attribute("kbt").as_float();
 
-		auto simPl = computeTask ? new ImposeProfilePlugin(name, pvName, low, high, vel, kbT) : nullptr;
+		auto simPl = computeTask ? std::make_unique<ImposeProfilePlugin>(name, pvName, low, high, vel, kbT) : nullptr;
 
-		return { (SimulationPlugin*) simPl, nullptr };
+		return { std::move(simPl), nullptr };
 	}
 
 
-	static std::pair<SimulationPlugin*, PostprocessPlugin*> createStatsPlugin(pugi::xml_node node, bool computeTask)
+	static PluginRetType createStatsPlugin(pugi::xml_node node, bool computeTask)
 	{
 		auto name   = node.attribute("name").as_string();
 
 		auto every  = node.attribute("every").as_int(1000);
 
-		auto simPl  = computeTask ? new SimulationStats(name, every) : nullptr;
-		auto postPl = computeTask ? nullptr :new PostprocessStats(name);
+		auto simPl  = computeTask ? std::make_unique<SimulationStats>(name, every) : nullptr;
+		auto postPl = computeTask ? nullptr :std::make_unique<PostprocessStats>(name);
 
-		return { (SimulationPlugin*) simPl, (PostprocessPlugin*) postPl };
+		return { std::move(simPl), std::move(postPl) };
 	}
 
-	static std::pair<SimulationPlugin*, PostprocessPlugin*> createDumpAveragePlugin(pugi::xml_node node, bool computeTask)
+	static PluginRetType createDumpAveragePlugin(pugi::xml_node node, bool computeTask)
 	{
 		auto name        = node.attribute("name").as_string();
 
@@ -131,15 +135,15 @@ private:
 		auto path = node.attribute("path").as_string("xdmf");
 
 		auto simPl  = computeTask ?
-				new Average3D(name, pvName, names, types, sampleEvery, dumpEvery, binSize) :
+				std::make_unique<Average3D>(name, pvName, names, types, sampleEvery, dumpEvery, binSize) :
 				nullptr;
 
-		auto postPl = computeTask ? nullptr : new UniformCartesianDumper(name, path);
+		auto postPl = computeTask ? nullptr : std::make_unique<UniformCartesianDumper>(name, path);
 
-		return { (SimulationPlugin*) simPl, (PostprocessPlugin*) postPl };
+		return { std::move(simPl), std::move(postPl) };
 	}
 
-	static std::pair<SimulationPlugin*, PostprocessPlugin*> createDumpAverageRelativePlugin(pugi::xml_node node, bool computeTask)
+	static PluginRetType createDumpAverageRelativePlugin(pugi::xml_node node, bool computeTask)
 	{
 		auto name        = node.attribute("name").as_string();
 
@@ -170,15 +174,15 @@ private:
 		auto id     = node.attribute("relative_to_id").as_int();
 
 		auto simPl  = computeTask ?
-				new AverageRelative3D(name, pvName, names, types, sampleEvery, dumpEvery, binSize, ovName, id) :
+				std::make_unique<AverageRelative3D>(name, pvName, names, types, sampleEvery, dumpEvery, binSize, ovName, id) :
 				nullptr;
 
-		auto postPl = computeTask ? nullptr : new UniformCartesianDumper(name, path);
+		auto postPl = computeTask ? nullptr : std::make_unique<UniformCartesianDumper>(name, path);
 
-		return { (SimulationPlugin*) simPl, (PostprocessPlugin*) postPl };
+		return { std::move(simPl), std::move(postPl) };
 	}
 
-	static std::pair<SimulationPlugin*, PostprocessPlugin*> createDumpXYZPlugin(pugi::xml_node node, bool computeTask)
+	static PluginRetType createDumpXYZPlugin(pugi::xml_node node, bool computeTask)
 	{
 		auto name      = node.attribute("name").as_string();
 
@@ -187,13 +191,13 @@ private:
 
 		auto path      = node.attribute("path").as_string("xyz/");
 
-		auto simPl  = computeTask ? new XYZPlugin(name, pvName, dumpEvery) : nullptr;
-		auto postPl = computeTask ? nullptr : new XYZDumper(name, path);
+		auto simPl  = computeTask ? std::make_unique<XYZPlugin>(name, pvName, dumpEvery) : nullptr;
+		auto postPl = computeTask ? nullptr : std::make_unique<XYZDumper>(name, path);
 
-		return { (SimulationPlugin*) simPl, (PostprocessPlugin*) postPl };
+		return { std::move(simPl), std::move(postPl) };
 	}
 
-	static std::pair<SimulationPlugin*, PostprocessPlugin*> createDumpMeshPlugin(pugi::xml_node node, bool computeTask)
+	static PluginRetType createDumpMeshPlugin(pugi::xml_node node, bool computeTask)
 	{
 		auto name      = node.attribute("name").as_string();
 
@@ -202,13 +206,13 @@ private:
 
 		auto path      = node.attribute("path").as_string("ply/");
 
-		auto simPl  = computeTask ? new MeshPlugin(name, ovName, dumpEvery) : nullptr;
-		auto postPl = computeTask ? nullptr : new MeshDumper(name, path);
+		auto simPl  = computeTask ? std::make_unique<MeshPlugin>(name, ovName, dumpEvery) : nullptr;
+		auto postPl = computeTask ? nullptr : std::make_unique<MeshDumper>(name, path);
 
-		return { (SimulationPlugin*) simPl, (PostprocessPlugin*) postPl };
+		return { std::move(simPl), std::move(postPl) };
 	}
 
-	static std::pair<SimulationPlugin*, PostprocessPlugin*> createDumpObjPosition(pugi::xml_node node, bool computeTask)
+	static PluginRetType createDumpObjPosition(pugi::xml_node node, bool computeTask)
 	{
 		auto name      = node.attribute("name").as_string();
 
@@ -217,13 +221,13 @@ private:
 
 		auto path      = node.attribute("path").as_string("pos/");
 
-		auto simPl  = computeTask ? new ObjPositionsPlugin(name, ovName, dumpEvery) : nullptr;
-		auto postPl = computeTask ? nullptr : new ObjPositionsDumper(name, path);
+		auto simPl  = computeTask ? std::make_unique<ObjPositionsPlugin>(name, ovName, dumpEvery) : nullptr;
+		auto postPl = computeTask ? nullptr : std::make_unique<ObjPositionsDumper>(name, path);
 
-		return { (SimulationPlugin*) simPl, (PostprocessPlugin*) postPl };
+		return { std::move(simPl), std::move(postPl) };
 	}
 
-	static std::pair<SimulationPlugin*, PostprocessPlugin*> createPinObjPlugin(pugi::xml_node node, bool computeTask)
+	static PluginRetType createPinObjPlugin(pugi::xml_node node, bool computeTask)
 	{
 		auto name      = node.attribute("name").as_string();
 
@@ -235,18 +239,18 @@ private:
 		auto path      = node.attribute("path").as_string("pos/");
 
 
-		auto simPl  = computeTask ? new PinObjectPlugin(name, ovName, translate, rotate, dumpEvery) : nullptr;
-		auto postPl = computeTask ? nullptr : new ReportPinObjectPlugin(name, path);
+		auto simPl  = computeTask ? std::make_unique<PinObjectPlugin>(name, ovName, translate, rotate, dumpEvery) : nullptr;
+		auto postPl = computeTask ? nullptr : std::make_unique<ReportPinObjectPlugin>(name, path);
 
-		return { (SimulationPlugin*) simPl, (PostprocessPlugin*) postPl };
+		return { std::move(simPl), std::move(postPl) };
 	}
 
 public:
-	static std::pair<SimulationPlugin*, PostprocessPlugin*> create(pugi::xml_node node, bool computeTask)
+	static PluginRetType create(pugi::xml_node node, bool computeTask)
 	{
 		std::string type = node.attribute("type").as_string();
 
-		std::map<std::string, std::function< std::pair<SimulationPlugin*, PostprocessPlugin*>(pugi::xml_node, bool) >> plugins = {
+		std::map<std::string, std::function< PluginRetType(pugi::xml_node, bool) >> plugins = {
 				{"temperaturize",          createTemperaturizePlugin         },
 				{"impose_profile",         createImposeProfilePlugin         },
 				{"add_torque",             createAddTorquePlugin             },

@@ -12,23 +12,23 @@
 class BouncerFactory
 {
 private:
-	static Bouncer* createMeshBouncer(pugi::xml_node node)
+	static std::unique_ptr<Bouncer> createMeshBouncer(pugi::xml_node node)
 	{
 		auto name = node.attribute("name").as_string("");
 		auto kbT  = node.attribute("kbt").as_float(0.5f);
 
-		return (Bouncer*) new BounceFromMesh(name, kbT);
+		return std::make_unique<BounceFromMesh>(name, kbT);
 	}
 
-	static Bouncer* createEllipsoidBouncer(pugi::xml_node node)
+	static std::unique_ptr<Bouncer> createEllipsoidBouncer(pugi::xml_node node)
 	{
 		auto name = node.attribute("name").as_string("");
 
-		return (Bouncer*) new BounceFromRigidEllipsoid(name);
+		return std::make_unique<BounceFromRigidEllipsoid>(name);
 	}
 
 public:
-	static Bouncer* create(pugi::xml_node node)
+	static std::unique_ptr<Bouncer> create(pugi::xml_node node)
 	{
 		std::string type = node.attribute("type").as_string();
 

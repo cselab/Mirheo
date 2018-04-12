@@ -14,37 +14,37 @@
 class InitialConditionsFactory
 {
 private:
-	static InitialConditions* createUniformIC(pugi::xml_node node)
+	static std::unique_ptr<InitialConditions> createUniformIC(pugi::xml_node node)
 	{
 		auto density = node.attribute("density").as_float(1.0);
-		return (InitialConditions*) new UniformIC(density);
+		return std::make_unique<UniformIC>(density);
 	}
 
-	static InitialConditions* createRigidIC(pugi::xml_node node)
+	static std::unique_ptr<InitialConditions> createRigidIC(pugi::xml_node node)
 	{
 		auto icfname  = node.attribute("ic_filename"). as_string("objects.ic");
 		auto xyzfname = node.attribute("xyz_filename").as_string("object.xyz");
 
-		return (InitialConditions*) new RigidIC(xyzfname, icfname);
+		return std::make_unique<RigidIC>(xyzfname, icfname);
 	}
 
-	static InitialConditions* createRBCsIC(pugi::xml_node node)
+	static std::unique_ptr<InitialConditions> createRBCsIC(pugi::xml_node node)
 	{
 		auto icfname  = node.attribute("ic_filename"). as_string("rbcs.ic");
 
-		return (InitialConditions*) new RBC_IC(icfname);
+		return std::make_unique<RBC_IC>(icfname);
 	}
 
-	static InitialConditions* createRestartIC(pugi::xml_node node)
+	static std::unique_ptr<InitialConditions> createRestartIC(pugi::xml_node node)
 	{
 		auto path = node.attribute("path").as_string("restart/");
 
-		return (InitialConditions*) new RestartIC(path);
+		return std::make_unique<RestartIC>(path);
 	}
 
 
 public:
-	static InitialConditions* create(pugi::xml_node node)
+	static std::unique_ptr<InitialConditions> create(pugi::xml_node node)
 	{
 		std::string type = node.attribute("type").as_string();
 

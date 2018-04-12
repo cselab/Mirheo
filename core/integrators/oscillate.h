@@ -7,7 +7,7 @@
  * Coordinate is computed by Velocity-Verlet scheme (same as
  * Euler in this case)
  */
-class IntegratorOscillate : Integrator
+class IntegratorOscillate : public Integrator
 {
 public:
 

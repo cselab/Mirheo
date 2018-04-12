@@ -8,7 +8,7 @@
  *
  * Useful for implementing Taylor-Couette flow (see examples)
  */
-class IntegratorConstOmega : Integrator
+class IntegratorConstOmega : public Integrator
 {
 public:
 

@@ -65,14 +65,14 @@ uDeviceX* Parser::setup_uDeviceX(Logger& logger)
 				auto pv = ParticleVectorFactory::create(node);
 				auto ic = InitialConditionsFactory::create(node.child("generate"));
 				auto checkpointEvery = node.attribute("checkpoint_every").as_int(0);
-				udx->sim->registerParticleVector(pv, ic, checkpointEvery);
+				udx->sim->registerParticleVector(std::move(pv), std::move(ic), checkpointEvery);
 			}
 
 			if ( std::string(node.name()) == "interaction" )
 			{
 				auto inter = InteractionFactory::create(node);
 				auto name = inter->name;
-				udx->sim->registerInteraction(inter);
+				udx->sim->registerInteraction(std::move(inter));
 
 				for (auto apply_to : node.children("apply_to"))
 					udx->sim->setInteraction(name,
@@ -84,7 +84,7 @@ uDeviceX* Parser::setup_uDeviceX(Logger& logger)
 			{
 				auto integrator = IntegratorFactory::create(node);
 				auto name = integrator->name;
-				udx->sim->registerIntegrator(integrator);
+				udx->sim->registerIntegrator(std::move(integrator));
 
 				for (auto apply_to : node.children("apply_to"))
 					udx->sim->setIntegrator(name, apply_to.attribute("pv").as_string());
@@ -94,7 +94,7 @@ uDeviceX* Parser::setup_uDeviceX(Logger& logger)
 			{
 				auto wall = WallFactory::create(node);
 				auto name = wall->name;
-				udx->sim->registerWall(wall, node.attribute("check_every").as_int(0));
+				udx->sim->registerWall(std::move(wall), node.attribute("check_every").as_int(0));
 
 				for (auto apply_to : node.children("apply_to"))
 					udx->sim->setWallBounce(name, apply_to.attribute("pv").as_string());
@@ -104,7 +104,7 @@ uDeviceX* Parser::setup_uDeviceX(Logger& logger)
 			{
 				auto bouncer = BouncerFactory::create(node);
 				auto name = bouncer->name;
-				udx->sim->registerBouncer(bouncer);
+				udx->sim->registerBouncer(std::move(bouncer));
 
 				// TODO do this normal'no epta
 				for (auto apply_to : node.children("apply_to"))
@@ -117,7 +117,7 @@ uDeviceX* Parser::setup_uDeviceX(Logger& logger)
 			{
 				auto checker = ObjectBelongingCheckerFactory::create(node);
 				auto name = checker->name;
-				udx->sim->registerObjectBelongingChecker(checker);
+				udx->sim->registerObjectBelongingChecker(std::move(checker));
 				udx->sim->setObjectBelongingChecker(name, node.attribute("object_vector").as_string());
 
 				for (auto apply_to : node.children("apply_to"))
@@ -135,7 +135,7 @@ uDeviceX* Parser::setup_uDeviceX(Logger& logger)
 
 	for (auto node : simNode.children())
 		if ( std::string(node.name()) == "plugin" )
-			udx->registerPlugins( PluginFactory::create(node, udx->isComputeTask()) );
+			udx->registerPlugins( std::move(PluginFactory::create(node, udx->isComputeTask())) );
 
 	return udx;
 }

@@ -5,6 +5,7 @@
 #pragma once
 
 #include <core/xml/pugixml.hpp>
+#include <core/utils/make_unique.h>
 
 #include <core/walls/simple_stationary_wall.h>
 #include <core/walls/wall_with_velocity.h>
@@ -22,7 +23,7 @@
 class WallFactory
 {
 private:
-	static Wall* createSphereWall(pugi::xml_node node)
+	static std::unique_ptr<Wall> createSphereWall(pugi::xml_node node)
 	{
 		auto name   = node.attribute("name").as_string("");
 
@@ -32,10 +33,10 @@ private:
 
 		StationaryWall_Sphere sphere(center, radius, inside);
 
-		return (Wall*) new SimpleStationaryWall<StationaryWall_Sphere>(name, std::move(sphere));
+		return std::make_unique< SimpleStationaryWall<StationaryWall_Sphere> >(name, std::move(sphere));
 	}
 
-	static Wall* createBoxWall(pugi::xml_node node)
+	static std::unique_ptr<Wall> createBoxWall(pugi::xml_node node)
 	{
 		auto name   = node.attribute("name").as_string("");
 
@@ -45,10 +46,10 @@ private:
 
 		StationaryWall_Box box(low, high, inside);
 
-		return (Wall*) new SimpleStationaryWall<StationaryWall_Box>(name, std::move(box));
+		return std::make_unique< SimpleStationaryWall<StationaryWall_Box> >(name, std::move(box));
 	}
 
-	static Wall* createCylinderWall(pugi::xml_node node)
+	static std::unique_ptr<Wall> createCylinderWall(pugi::xml_node node)
 	{
 		auto name   = node.attribute("name").as_string("");
 
@@ -65,10 +66,10 @@ private:
 
 		StationaryWall_Cylinder cylinder(center, radius, dir, inside);
 
-		return (Wall*) new SimpleStationaryWall<StationaryWall_Cylinder>(name, std::move(cylinder));
+		return std::make_unique< SimpleStationaryWall<StationaryWall_Cylinder> >(name, std::move(cylinder));
 	}
 
-	static Wall* createPlaneWall(pugi::xml_node node)
+	static std::unique_ptr<Wall> createPlaneWall(pugi::xml_node node)
 	{
 		auto name   = node.attribute("name").as_string("");
 
@@ -77,10 +78,10 @@ private:
 
 		StationaryWall_Plane plane(normalize(normal), point);
 
-		return (Wall*) new SimpleStationaryWall<StationaryWall_Plane>(name, std::move(plane));
+		return std::make_unique< SimpleStationaryWall<StationaryWall_Plane> >(name, std::move(plane));
 	}
 
-	static Wall* createSDFWall(pugi::xml_node node)
+	static std::unique_ptr<Wall> createSDFWall(pugi::xml_node node)
 	{
 		auto name    = node.attribute("name").as_string("");
 
@@ -89,12 +90,12 @@ private:
 
 		StationaryWall_SDF sdf(sdfFile, sdfH);
 
-		return (Wall*) new SimpleStationaryWall<StationaryWall_SDF>(name, std::move(sdf));
+		return std::make_unique< SimpleStationaryWall<StationaryWall_SDF> >(name, std::move(sdf));
 	}
 
 	// Moving walls
 
-	static Wall* createMovingCylinderWall(pugi::xml_node node)
+	static std::unique_ptr<Wall> createMovingCylinderWall(pugi::xml_node node)
 	{
 		auto name   = node.attribute("name").as_string("");
 
@@ -132,10 +133,10 @@ private:
 		}
 		VelocityField_Rotate rotate(omega3, center3);
 
-		return (Wall*) new WallWithVelocity<StationaryWall_Cylinder, VelocityField_Rotate> (name, std::move(cylinder), std::move(rotate));
+		return std::make_unique< WallWithVelocity<StationaryWall_Cylinder, VelocityField_Rotate> >(name, std::move(cylinder), std::move(rotate));
 	}
 
-	static Wall* createMovingPlaneWall(pugi::xml_node node)
+	static std::unique_ptr<Wall> createMovingPlaneWall(pugi::xml_node node)
 	{
 		auto name   = node.attribute("name").as_string("");
 
@@ -147,10 +148,10 @@ private:
 		auto vel    = node.attribute("velocity").as_float3( );
 		VelocityField_Translate translate(vel);
 
-		return (Wall*) new WallWithVelocity<StationaryWall_Plane, VelocityField_Translate>(name, std::move(plane), std::move(translate));
+		return std::make_unique< WallWithVelocity<StationaryWall_Plane, VelocityField_Translate> >(name, std::move(plane), std::move(translate));
 	}
 
-	static Wall* createOscillatingPlaneWall(pugi::xml_node node)
+	static std::unique_ptr<Wall> createOscillatingPlaneWall(pugi::xml_node node)
 	{
 		auto name   = node.attribute("name").as_string("");
 
@@ -163,11 +164,11 @@ private:
 		auto period = node.attribute("period").as_int();
 		VelocityField_Oscillate osc(vel, period);
 
-		return (Wall*) new WallWithVelocity<StationaryWall_Plane, VelocityField_Oscillate>(name, std::move(plane), std::move(osc));
+		return std::make_unique< WallWithVelocity<StationaryWall_Plane, VelocityField_Oscillate> >(name, std::move(plane), std::move(osc));
 	}
 
 public:
-	static Wall* create(pugi::xml_node node)
+	static std::unique_ptr<Wall> create(pugi::xml_node node)
 	{
 		std::string type = node.attribute("type").as_string();
 
