@@ -8,6 +8,8 @@
 
 #include <core/task_scheduler.h>
 
+#include <core/mpi/api.h>
+
 #include <algorithm>
 
 Simulation::Simulation(int3 nranks3D, float3 globalDomainSize, const MPI_Comm& comm, const MPI_Comm& interComm) :
@@ -69,9 +71,12 @@ void Simulation::registerParticleVector(std::unique_ptr<ParticleVector> pv, std:
 
 	auto ov = dynamic_cast<ObjectVector*>(pv.get());
 	if(ov != nullptr)
+	{
+		info("Registered object vector '%s', %d objects, %d particles", name.c_str(), ov->local()->nObjects, ov->local()->size());
 		objectVectors.push_back(ov);
-
-	debug("Registered particle vector '%s', %d particles", name.c_str(), pv->local()->size());
+	}
+	else
+		info("Registered particle vector '%s', %d particles", name.c_str(), pv->local()->size());
 
 	particleVectors.push_back(std::move(pv));
 	pvIdMap[name] = particleVectors.size() - 1;
@@ -89,7 +94,7 @@ void Simulation::registerWall(std::unique_ptr<Wall> wall, int every)
 	// Let the wall know the particle vector associated with it
 	wall->setup(cartComm, domain, getPVbyName(wall->name));
 
-	debug("Registered wall '%s'", name.c_str());
+	info("Registered wall '%s'", name.c_str());
 
 	wallMap[name] = std::move(wall);
 }
@@ -520,32 +525,52 @@ void Simulation::assemble()
 	for (auto& pl : plugins)
 	{
 		auto plPtr = pl.get();
+
 		scheduler->addTask(task_pluginsBeforeForces, [plPtr, this] (cudaStream_t stream) {
 			plPtr->setTime(currentTime, currentStep);
 			plPtr->beforeForces(stream);
 		});
+
+		scheduler->addTask(task_pluginsSerializeSend, [plPtr] (cudaStream_t stream) {
+			plPtr->serializeAndSend(stream);
+		});
+
+		scheduler->addTask(task_pluginsBeforeIntegration, [plPtr] (cudaStream_t stream) {
+			plPtr->beforeIntegration(stream);
+		});
+
+		scheduler->addTask(task_pluginsAfterIntegration, [plPtr] (cudaStream_t stream) {
+			plPtr->afterIntegration(stream);
+		});
 	}
 
-	scheduler->addTask(task_haloInit, [this] (cudaStream_t stream) {
-		halo->init(stream);
-	});
+
+	// If we have any non-object vectors
+	if (particleVectors.size() != objectVectors.size())
+	{
+		scheduler->addTask(task_haloInit, [this] (cudaStream_t stream) {
+			halo->init(stream);
+		});
+
+		scheduler->addTask(task_haloFinalize, [this] (cudaStream_t stream) {
+			halo->finalize(stream);
+		});
+
+		scheduler->addTask(task_redistributeInit, [this] (cudaStream_t stream) {
+			redistributor->init(stream);
+		});
+
+		scheduler->addTask(task_redistributeFinalize, [this] (cudaStream_t stream) {
+			redistributor->finalize(stream);
+		});
+	}
+
 
 	for (auto& inter : regularInteractions)
 		scheduler->addTask(task_internalForces, [inter, this] (cudaStream_t stream) {
 			inter(currentTime, stream);
 		});
 
-	for (auto& pl : plugins)
-	{
-		auto plPtr = pl.get();
-		scheduler->addTask(task_pluginsSerializeSend, [plPtr] (cudaStream_t stream) {
-			plPtr->serializeAndSend(stream);
-		});
-	}
-
-	scheduler->addTask(task_haloFinalize, [this] (cudaStream_t stream) {
-		halo->finalize(stream);
-	});
 
 	for (auto& inter : haloInteractions)
 		scheduler->addTask(task_haloForces, [inter, this] (cudaStream_t stream) {
@@ -561,27 +586,11 @@ void Simulation::assemble()
 			});
 		}
 
-	for (auto& pl : plugins)
-	{
-		auto plPtr = pl.get();
-		scheduler->addTask(task_pluginsBeforeIntegration, [plPtr] (cudaStream_t stream) {
-			plPtr->beforeIntegration(stream);
-		});
-	}
 
 	for (auto& integrator : integratorsStage2)
 		scheduler->addTask(task_integration, [integrator, this] (cudaStream_t stream) {
 			integrator(currentTime, stream);
 		});
-
-
-	scheduler->addTask(task_objHaloInit, [this] (cudaStream_t stream) {
-		objHalo->init(stream);
-	});
-
-	scheduler->addTask(task_objHaloFinalize, [this] (cudaStream_t stream) {
-		objHalo->finalize(stream);
-	});
 
 
 	for (auto ov : objectVectors)
@@ -633,13 +642,32 @@ void Simulation::assemble()
 		}
 	}
 
-	scheduler->addTask(task_objForcesInit, [this] (cudaStream_t stream) {
-		objHaloForces->init(stream);
-	});
+	if (objectVectors.size() > 0)
+	{
+		scheduler->addTask(task_objHaloInit, [this] (cudaStream_t stream) {
+			objHalo->init(stream);
+		});
 
-	scheduler->addTask(task_objForcesFinalize, [this] (cudaStream_t stream) {
-		objHaloForces->finalize(stream);
-	});
+		scheduler->addTask(task_objHaloFinalize, [this] (cudaStream_t stream) {
+			objHalo->finalize(stream);
+		});
+
+		scheduler->addTask(task_objForcesInit, [this] (cudaStream_t stream) {
+			objHaloForces->init(stream);
+		});
+
+		scheduler->addTask(task_objForcesFinalize, [this] (cudaStream_t stream) {
+			objHaloForces->finalize(stream);
+		});
+
+		scheduler->addTask(task_objRedistInit, [this] (cudaStream_t stream) {
+			objRedistibutor->init(stream);
+		});
+
+		scheduler->addTask(task_objRedistFinalize, [this] (cudaStream_t stream) {
+			objRedistibutor->finalize(stream);
+		});
+	}
 
 	for (auto& wall : wallMap)
 	{
@@ -657,30 +685,6 @@ void Simulation::assemble()
 		if (every > 0)
 			scheduler->addTask(task_wallCheck, [this, wall] (cudaStream_t stream) { wall->check(stream); }, every);
 	}
-
-	for (auto& pl : plugins)
-	{
-		auto plPtr = pl.get();
-		scheduler->addTask(task_pluginsAfterIntegration, [plPtr] (cudaStream_t stream) {
-			plPtr->afterIntegration(stream);
-		});
-	}
-
-	scheduler->addTask(task_redistributeInit, [this] (cudaStream_t stream) {
-		redistributor->init(stream);
-	});
-
-	scheduler->addTask(task_redistributeFinalize, [this] (cudaStream_t stream) {
-		redistributor->finalize(stream);
-	});
-
-	scheduler->addTask(task_objRedistInit, [this] (cudaStream_t stream) {
-		objRedistibutor->init(stream);
-	});
-
-	scheduler->addTask(task_objRedistFinalize, [this] (cudaStream_t stream) {
-		objRedistibutor->finalize(stream);
-	});
 
 
 	scheduler->addDependency(scheduler->getTaskId("Checkpoint"), { task_clearForces }, { task_cellLists });
@@ -736,10 +740,10 @@ void Simulation::run(int nsteps)
 	int begin = currentStep, end = currentStep + nsteps;
 
 	// Initial preparation
-	scheduler->forceExec( scheduler->getTaskId("Object halo init") );
-	scheduler->forceExec( scheduler->getTaskId("Object halo finalize") );
-	scheduler->forceExec( scheduler->getTaskId("Clear object halo forces") );
-	scheduler->forceExec( scheduler->getTaskId("Clear object local forces") );
+	scheduler->forceExec( scheduler->getTaskId("Object halo init"), 0 );
+	scheduler->forceExec( scheduler->getTaskId("Object halo finalize"), 0 );
+	scheduler->forceExec( scheduler->getTaskId("Clear object halo forces"), 0 );
+	scheduler->forceExec( scheduler->getTaskId("Clear object local forces"), 0 );
 
 	execSplitters();
 
@@ -757,7 +761,7 @@ void Simulation::run(int nsteps)
 	}
 
 	// Finish the redistribution by rebuilding the cell-lists
-	scheduler->forceExec( scheduler->getTaskId("Build cell-lists") );
+	scheduler->forceExec( scheduler->getTaskId("Build cell-lists"), 0 );
 
 	info("Finished with %d iterations", nsteps);
 }

@@ -33,22 +33,32 @@ public:
 	void compile();
 	void run();
 
-	void forceExec(TaskID id);
+	void forceExec(TaskID id, cudaStream_t stream);
 
 private:
+
+	struct Task
+	{
+		std::string label;
+		TaskID id;
+		int priority;
+
+		std::vector< std::pair<std::function<void(cudaStream_t)>, int> > funcs;
+		std::vector<TaskID> before, after;
+	};
+
 	struct Node;
 	struct Node
 	{
-		std::string label;
-		std::vector< std::pair<std::function<void(cudaStream_t)>, int> > funcs;
+		TaskID id;
 
-		std::vector<TaskID> before, after;
 		std::list<Node*> to, from, from_backup;
 
 		int priority;
 		std::queue<cudaStream_t>* streams;
 	};
 
+	std::vector<Task> tasks;
 	std::vector< std::unique_ptr<Node> > nodes;
 
 	// Ordered sets of parallel work
@@ -58,12 +68,13 @@ private:
 
 	int nExecutions{0};
 
-	TaskID freeTaskId{0};
-	std::unordered_map<TaskID, Node*> taskId2node;
 	std::unordered_map<std::string, TaskID> label2taskId;
 
-	Node* getTask     (TaskID id);
-	Node* getTaskOrDie(TaskID id);
+	Node* getNode     (TaskID id);
+	Node* getNodeOrDie(TaskID id);
 
+	void createNodes();
 	void removeEmptyNodes();
+	void logDepsGraph();
+
 };

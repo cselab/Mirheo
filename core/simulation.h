@@ -12,8 +12,6 @@
 #include <core/object_belonging/interface.h>
 #include <plugins/interface.h>
 
-#include <core/mpi/api.h>
-
 #include "domain.h"
 
 #include <tuple>
@@ -26,6 +24,15 @@ class ParticleVector;
 class ObjectVector;
 class CellList;
 class TaskScheduler;
+
+
+class ParticleHaloExchanger;
+class ParticleRedistributor;
+
+class ObjectHaloExchanger;
+class ObjectRedistributor;
+class ObjectForcesReverseExchanger;
+
 
 class Simulation
 {
