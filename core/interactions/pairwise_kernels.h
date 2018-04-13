@@ -99,44 +99,6 @@ __device__ inline void computeCell(
  */
 template<typename Interaction>
 //__launch_bounds__(128, 16)
-__global__ void _computeSelfInteractions(
-		const int np, CellListInfo cinfo,
-		const float rc2, Interaction interaction)
-{
-	const int dstId = blockIdx.x*blockDim.x + threadIdx.x;
-	if (dstId >= np) return;
-
-	const Particle dstP(cinfo.particles, dstId);
-	float3 dstFrc = make_float3(0.0f);
-
-	const int3 cell0 = cinfo.getCellIdAlongAxes(dstP.r);
-
-	for (int cellZ = cell0.z-1; cellZ <= cell0.z+1; cellZ++)
-		for (int cellY = cell0.y-1; cellY <= cell0.y; cellY++)
-			{
-				if ( !(cellY >= 0 && cellY < cinfo.ncells.y && cellZ >= 0 && cellZ < cinfo.ncells.z) ) continue;
-				if (cellY == cell0.y && cellZ > cell0.z) continue;
-
-				const int midCellId = cinfo.encode(cell0.x, cellY, cellZ);
-				int rowStart  = max(midCellId-1, 0);
-				int rowEnd    = min(midCellId+2, cinfo.totcells);
-
-				if ( cellY == cell0.y && cellZ == cell0.z ) rowEnd = midCellId + 1; // this row is already partly covered
-
-				const int pstart = cinfo.cellStarts[rowStart];
-				const int pend   = cinfo.cellStarts[rowEnd];
-
-				if (cellY == cell0.y && cellZ == cell0.z)
-					computeCell<true, true, true>  (pstart, pend, dstP, dstId, dstFrc, cinfo, rc2, interaction);
-				else
-					computeCell<true, true, false> (pstart, pend, dstP, dstId, dstFrc, cinfo, rc2, interaction);
-			}
-
-	atomicAdd(cinfo.forces + dstId, dstFrc);
-}
-
-template<typename Interaction>
-//__launch_bounds__(128, 16)
 __global__ void computeSelfInteractions(
 		const int np, CellListInfo cinfo,
 		const float rc2, Interaction interaction)

@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
-<simulation name="poiseuille" logfile="log" mpi_ranks="1 1 1" debug_lvl="20">
+<simulation name="poiseuille" logfile="log" mpi_ranks="1 1 1" debug_lvl="2">
 
 	<domain size="64 64 64" />
 	
@@ -23,6 +23,6 @@
 	
 	<plugin type="stats" name="stats" every="100" />
 	
-	<run niters="1" />
+	<run niters="2500" />
 
 </simulation>
