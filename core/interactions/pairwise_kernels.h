@@ -98,7 +98,7 @@ __device__ inline void computeCell(
  *        The second one experiences the opposite force.
  */
 template<typename Interaction>
-//__launch_bounds__(128, 16)
+__launch_bounds__(128, 16)
 __global__ void computeSelfInteractions(
 		const int np, CellListInfo cinfo,
 		const float rc2, Interaction interaction)
