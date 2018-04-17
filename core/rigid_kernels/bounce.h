@@ -17,7 +17,7 @@ __device__ inline void bounceCellArray(
 		int* validCells, int nCells,
 		CellListInfo cinfo, const float dt)
 {
-	const float threshold = 1e-5f;
+	const float threshold = 2e-5f;
 
 	auto motion     = toSingleMotion( ovView.motions[objId] );
 	auto old_motion = toSingleMotion( ovView.old_motions[objId] );
@@ -60,10 +60,10 @@ __device__ inline void bounceCellArray(
 		// If smth went notoriously bad
 		if (ellipsoidF(newCoo, invAxes) < 0.0f)
 		{
-			printf("Bounce-back failed on particle %d (%f %f %f)  %f -> %f to %f, alpha %f. Recovering to old position\n",
-					p.i1, p.r.x, p.r.y, p.r.z,
-					ellipsoidF(oldCoo, invAxes), ellipsoidF(coo, invAxes),
-					ellipsoidF(newCoo, invAxes), alpha);
+//			printf("Bounce-back failed on particle %d (%f %f %f)  %f -> %f to %f, alpha %f. Recovering to old position\n",
+//					p.i1, p.r.x, p.r.y, p.r.z,
+//					ellipsoidF(oldCoo, invAxes), ellipsoidF(coo, invAxes),
+//					ellipsoidF(newCoo, invAxes), alpha);
 
 			newCoo = oldCoo;
 		}
@@ -87,7 +87,7 @@ __device__ inline void bounceCellArray(
 
 __device__ inline bool isValidCell(int3 cid3, SingleRigidMotion motion, CellListInfo cinfo, float3 invAxes)
 {
-	const float threshold = 0.5f;
+	const float threshold = 0.6f;
 
 	float3 v000 = make_float3(cid3) * cinfo.h - cinfo.localDomainSize*0.5f - motion.r;
 	const float4 invq = invQ(motion.q);

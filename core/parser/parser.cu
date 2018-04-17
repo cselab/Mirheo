@@ -31,6 +31,11 @@ Parser::Parser(std::string xmlname)
 	}
 }
 
+Parser::Parser(const pugi::xml_document& config)
+{
+	this->config.reset(config);
+}
+
 int Parser::getNIterations()
 {
 	auto simNode = config.child("simulation");

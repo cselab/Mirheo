@@ -13,6 +13,7 @@ class Parser
 
 public:
 	Parser(std::string xmlname);
+	Parser(const pugi::xml_document& config);
 
 	uDeviceX* setup_uDeviceX(Logger& logger);
 	int getNIterations();

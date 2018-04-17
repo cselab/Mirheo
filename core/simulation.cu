@@ -394,12 +394,18 @@ void Simulation::prepareWalls()
 		CellList *cl = clVec[0].get();
 
 		wall->attach(pv, cl);
+	}
+
+	for (auto& wall : wallMap)
+	{
+		auto wallPtr = wall.second.get();
 
 		// All the particles should be removed from within the wall,
 		// even those that do not interact with it
+		// Only intrinsic wall particles need to remain
 		for (auto& anypv : particleVectors)
-			if (anypv->name != wall->name)
-				wall->removeInner(anypv.get());
+			if (anypv->name != wallPtr->name)
+				wallPtr->removeInner(anypv.get());
 	}
 }
 
@@ -636,8 +642,8 @@ void Simulation::assemble()
 		if (every > 0)
 		{
 			scheduler->addTask(task_correctObjBelonging, [checker, pvIn, pvOut] (cudaStream_t stream) {
-				checker->splitByBelonging(pvIn,  pvIn, pvOut, stream);
-				checker->splitByBelonging(pvOut, pvIn, pvOut, stream);
+				if (pvIn  != nullptr) checker->splitByBelonging(pvIn,  pvIn, pvOut, stream);
+				if (pvOut != nullptr) checker->splitByBelonging(pvOut, pvIn, pvOut, stream);
 			}, every);
 		}
 	}

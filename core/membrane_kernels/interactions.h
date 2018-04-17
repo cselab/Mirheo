@@ -94,7 +94,7 @@ __device__ inline float3 _fvisc(Particle p1, Particle p2, GPU_RBCparameters para
 	return du*parameters.gammaT + dr * parameters.gammaC*dot(du, dr) / dot(dr, dr);
 }
 
-template <int maxDegree>
+template <int maxDegree, bool stressFree>
 __device__ float3 bondTriangleForce(
 		Particle p, int locId, int rbcId,
 		const OVviewWithAreaVolume& view,
@@ -115,8 +115,10 @@ __device__ float3 bondTriangleForce(
 
 		Particle p2(view.particles, rbcId*mesh.nvertices + idv2);
 
+		const float l0 = stressFree ? mesh.initialLengths[startId + i-1] : parameters.l0;
+
 		f += _fangle(p.r, p1.r, p2.r, view.area_volumes[rbcId].x, view.area_volumes[rbcId].y, parameters) +
-			 _fbond(p.r, p1.r, mesh.initialLengths[startId + i-1], parameters) +  _fvisc (p, p1, parameters);
+			 _fbond(p.r, p1.r, l0, parameters) +  _fvisc (p, p1, parameters);
 
 		idv1 = idv2;
 		p1 = p2;
@@ -208,7 +210,7 @@ __device__ float3 dihedralForce(
 	return f;
 }
 
-template <int maxDegree>
+template <int maxDegree, bool stressFree>
 //__launch_bounds__(128, 12)
 __global__ void computeMembraneForces(
 		OVviewWithAreaVolume view,
@@ -229,8 +231,8 @@ __global__ void computeMembraneForces(
 
 	Particle p(view.particles, pid);
 
-	float3 f = bondTriangleForce<maxDegree>(p, locId, rbcId, view, mesh, parameters)
-			 + dihedralForce    <maxDegree>(p, locId, rbcId, view, mesh, parameters);
+	float3 f = bondTriangleForce<maxDegree, stressFree>(p, locId, rbcId, view, mesh, parameters)
+			 + dihedralForce    <maxDegree>            (p, locId, rbcId, view, mesh, parameters);
 
 	atomicAdd(view.forces + pid, f);
 }

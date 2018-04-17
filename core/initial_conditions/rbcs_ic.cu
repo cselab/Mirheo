@@ -60,7 +60,7 @@ void RBC_IC::exec(const MPI_Comm& comm, ParticleVector* pv, DomainInfo domain, c
 
 			for (int i=0; i<ov->mesh->nvertices; i++)
 			{
-				float3 r = rotate(f4tof3(ov->mesh->vertexCoordinates[i]), q) + com;
+				float3 r = rotate(f4tof3( ov->mesh->vertexCoordinates[i] * globalScale ), q) + com;
 				Particle p;
 				p.r = r;
 				p.u = make_float3(0);

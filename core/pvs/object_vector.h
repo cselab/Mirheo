@@ -104,6 +104,9 @@ public:
 	LocalObjectVector* local() { return static_cast<LocalObjectVector*>(_local); }
 	LocalObjectVector* halo()  { return static_cast<LocalObjectVector*>(_halo);  }
 
+	//virtual void checkpoint(MPI_Comm comm, std::string path);
+	void restart(MPI_Comm comm, std::string path) override;
+
 	template<typename T>
 	void requireDataPerObject(std::string name, bool needExchange)
 	{

@@ -30,9 +30,10 @@ private:
 
 	static std::unique_ptr<InitialConditions> createRBCsIC(pugi::xml_node node)
 	{
-		auto icfname  = node.attribute("ic_filename"). as_string("rbcs.ic");
+		auto icfname    = node.attribute("ic_filename"). as_string("rbcs.ic");
+		auto globScale  = node.attribute("global_scale").as_float(1.0f);
 
-		return std::make_unique<RBC_IC>(icfname);
+		return std::make_unique<RBC_IC>(icfname, globScale);
 	}
 
 	static std::unique_ptr<InitialConditions> createRestartIC(pugi::xml_node node)

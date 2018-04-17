@@ -1,4 +1,4 @@
-#include "rbc.h"
+#include "membrane.h"
 
 #include <core/utils/cuda_common.h>
 #include <core/utils/kernel_launch.h>
@@ -20,7 +20,7 @@
  * @param m RBC membrane mesh
  * @return parameters to be passed to GPU kernels
  */
-static GPU_RBCparameters setParams(RBCParameters p, Mesh* m)
+static GPU_RBCparameters setParams(MembraneParameters p, Mesh* m)
 {
 	GPU_RBCparameters devP;
 
@@ -51,7 +51,7 @@ static GPU_RBCparameters setParams(RBCParameters p, Mesh* m)
  * Require that \p pv1 and \p pv2 are the same and are instances
  * of RBCvector
  */
-void InteractionRBCMembrane::setPrerequisites(ParticleVector* pv1, ParticleVector* pv2)
+void InteractionMembrane::setPrerequisites(ParticleVector* pv1, ParticleVector* pv2)
 {
 	if (pv1 != pv2)
 		die("Internal RBC forces can't be computed between two different particle vectors");
@@ -68,7 +68,7 @@ void InteractionRBCMembrane::setPrerequisites(ParticleVector* pv1, ParticleVecto
  * and volume of each cell, then use these data to calculate the
  * forces themselves by calling computeMembraneForces() kernel
  */
-void InteractionRBCMembrane::regular(ParticleVector* pv1, ParticleVector* pv2, CellList* cl1, CellList* cl2, const float t, cudaStream_t stream)
+void InteractionMembrane::regular(ParticleVector* pv1, ParticleVector* pv2, CellList* cl1, CellList* cl2, const float t, cudaStream_t stream)
 {
 	auto ov = dynamic_cast<RBCvector*>(pv1);
 
@@ -78,6 +78,17 @@ void InteractionRBCMembrane::regular(ParticleVector* pv1, ParticleVector* pv2, C
 
 	debug("Computing internal membrane forces for %d cells of '%s'",
 		ov->local()->nObjects, ov->name.c_str());
+
+	auto currentParams = parameters;
+	float scale = scaleFromTime(t);
+	currentParams.totArea0   *= scale*scale;
+	currentParams.totVolume0 *= scale*scale*scale;
+	currentParams.kbT *= scale*scale;
+	currentParams.kb  *= scale*scale;
+	currentParams.p   *= scale;
+
+	currentParams.gammaC *= scale;
+	currentParams.gammaT *= scale;
 
 	OVviewWithAreaVolume view(ov, ov->local());
 	MembraneMeshView mesh(static_cast<MembraneMesh*>(ov->mesh.get()));
@@ -91,13 +102,20 @@ void InteractionRBCMembrane::regular(ParticleVector* pv1, ParticleVector* pv2, C
 
 
 	const int blocks = getNblocks(view.size, nthreads);
-	SAFE_KERNEL_LAUNCH(
-			computeMembraneForces<MembraneMesh::maxDegree>,
-			blocks, nthreads, 0, stream,
-			view, mesh, setParams(parameters, ov->mesh.get()) );
+
+	if (stressFree)
+		SAFE_KERNEL_LAUNCH(
+				computeMembraneForces<MembraneMesh::maxDegree COMMA true>,
+				blocks, nthreads, 0, stream,
+				view, mesh, setParams(currentParams, ov->mesh.get()) );
+	else
+		SAFE_KERNEL_LAUNCH(
+				computeMembraneForces<MembraneMesh::maxDegree COMMA false>,
+				blocks, nthreads, 0, stream,
+				view, mesh, setParams(currentParams, ov->mesh.get()) );
 }
 
-void InteractionRBCMembrane::halo   (ParticleVector* pv1, ParticleVector* pv2, CellList* cl1, CellList* cl2, const float t, cudaStream_t stream)
+void InteractionMembrane::halo   (ParticleVector* pv1, ParticleVector* pv2, CellList* cl1, CellList* cl2, const float t, cudaStream_t stream)
 {
 	debug("Not computing internal RBC forces between local and halo RBCs of '%s'", pv1->name.c_str());
 }

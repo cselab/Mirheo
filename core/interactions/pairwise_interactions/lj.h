@@ -33,7 +33,7 @@ public:
 
 		const float IfI = epsx24_sigma * (2*rs14 - rs8);
 
-		return dr * min(IfI, 1e3f);
+		return dr * min(max(IfI, 0.0f), 1e3f);
 	}
 
 private:

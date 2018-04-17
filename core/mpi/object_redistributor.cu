@@ -131,8 +131,12 @@ void ObjectRedistributor::prepareData(int id, cudaStream_t stream)
 
 	if (nObjs == ovView.nObjects)
 	{
+		debug2("No objects '%s' leaving, no need to rebuild the object vector", ov->name.c_str());
+
 		helper->sendSizes[13] = 0;
 		helper->makeSendOffsets();
+		helper->resizeSendBuf();
+
 		return;
 	}
 
@@ -160,6 +164,19 @@ void ObjectRedistributor::prepareData(int id, cudaStream_t stream)
 
 	// Finally need to compact the buffers
 	// TODO: remove this, own buffer should be last (performance penalty only, correctness is there)
+
+	// simple workaround when # of remaining >= # of leaving
+//	if (helper->sendSizes[13] >= helper->sendOffsets[27]-helper->sendOffsets[14])
+//	{
+//		CUDA_Check( cudaMemcpyAsync( helper->sendBuf.hostPtr() + helper->sendOffsets[13]*helper->datumSize,
+//									 helper->sendBuf.hostPtr() + helper->sendOffsets[14]*helper->datumSize,
+//									 (helper->sendOffsets[27]-helper->sendOffsets[14]) * helper->datumSize,
+//									 cudaMemcpyDeviceToDevice, stream ) );
+//
+//		helper->sendSizes[13] = 0;
+//		helper->makeSendOffsets();
+//		helper->resizeSendBuf();
+//	}
 }
 
 void ObjectRedistributor::combineAndUploadData(int id, cudaStream_t stream)

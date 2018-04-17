@@ -12,7 +12,7 @@
 class RBC_IC : public InitialConditions
 {
 public:
-	RBC_IC(std::string icfname) : icfname(icfname)
+	RBC_IC(std::string icfname, float globalScale = 1.0f) : icfname(icfname), globalScale(globalScale)
 	{	}
 
 	void readVertices(std::string fname, PinnedBuffer<float4>& positions);
@@ -21,5 +21,6 @@ public:
 	~RBC_IC() = default;
 
 private:
+	float globalScale;
 	std::string icfname;
 };

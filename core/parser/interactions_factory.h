@@ -9,7 +9,7 @@
 #include <core/interactions/pairwise.h>
 #include <core/interactions/pairwise_with_stress.h>
 #include <core/interactions/sampler.h>
-#include <core/interactions/rbc.h>
+#include <core/interactions/membrane.h>
 
 #include <core/interactions/pairwise_interactions/dpd.h>
 #include <core/interactions/pairwise_interactions/lj.h>
@@ -106,8 +106,10 @@ private:
 	{
 		auto name = node.attribute("name").as_string("");
 
-		RBCParameters p;
+		MembraneParameters p;
 		std::string preset = node.attribute("preset").as_string();
+		float growUntil = node.attribute("grow_until").as_float(-1.0f);
+		bool stressFree = node.attribute("stress_free").as_bool(false);
 
 		if (preset == "lina")
 			p = Lina_parameters;
@@ -129,7 +131,10 @@ private:
 		setIfNotEmpty_float(node, p.totArea0,   "area");
 		setIfNotEmpty_float(node, p.totVolume0, "volume");
 
-		return std::make_unique<InteractionRBCMembrane>(name, p);
+		if (growUntil > 0.0f)
+			return std::make_unique<InteractionMembrane>( name, p, stressFree, [growUntil] (float t) { return min(1.0f, 0.5f + 0.5f * (t / growUntil)); } );
+		else
+			return std::make_unique<InteractionMembrane>( name, p, stressFree );
 	}
 
 public:
