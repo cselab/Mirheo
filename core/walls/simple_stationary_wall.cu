@@ -225,6 +225,39 @@ __global__ void checkInside(PVview view, int* nInside, const InsideWallChecker c
 }
 
 //===============================================================================================
+// Kernels computing sdf and sdf gradient per particle
+//===============================================================================================
+
+template<typename InsideWallChecker>
+__global__ void computeSdfPerParticle(PVview view, float* sdfs, float3* gradients, InsideWallChecker checker)
+{
+	const float h = 0.25f;
+
+	const int pid = blockIdx.x * blockDim.x + threadIdx.x;
+	if (pid >= view.size) return;
+
+	Particle p;
+	p.readCoordinate(view.particles, pid);
+
+	float sdf = checker(p.r);
+	sdfs[pid] = sdf;
+
+	if (gradients != nullptr)
+	{
+		float sdf_mx = checker(p.r + make_float3(-h,  0,  0));
+		float sdf_px = checker(p.r + make_float3( h,  0,  0));
+		float sdf_my = checker(p.r + make_float3( 0, -h,  0));
+		float sdf_py = checker(p.r + make_float3( 0,  h,  0));
+		float sdf_mz = checker(p.r + make_float3( 0,  0, -h));
+		float sdf_pz = checker(p.r + make_float3( 0,  0,  h));
+
+		float3 grad = make_float3( sdf_px - sdf_mx, sdf_py - sdf_my, sdf_pz - sdf_mz ) * (1.0f / (2.0f*h));
+
+		gradients[pid] = normalize(grad);
+	}
+}
+
+//===============================================================================================
 // Member functions
 //===============================================================================================
 
@@ -387,6 +420,26 @@ void SimpleStationaryWall<InsideWallChecker>::check(cudaStream_t stream)
 		}
 	}
 }
+
+template<class InsideWallChecker>
+void SimpleStationaryWall<InsideWallChecker>::sdfPerParticle(ParticleVector* pv, GPUcontainer* sdfs, GPUcontainer* gradients, cudaStream_t stream)
+{
+	const int nthreads = 128;
+
+	if (sdfs->size() * sdfs->datatype_size() < sizeof(float) * pv->local()->size())
+		die("Provided too small container for SDF values of PV '%s'", pv->name.c_str());
+
+	if (gradients->size() * gradients->datatype_size() < sizeof(float3) * pv->local()->size())
+		die("Provided too small container for SDF gradients of PV '%s'", pv->name.c_str());
+
+	PVview view(pv, pv->local());
+	SAFE_KERNEL_LAUNCH(
+			computeSdfPerParticle,
+			getNblocks(view.size, nthreads), nthreads, 0, stream,
+			view, (float*)sdfs->genericDevPtr(), (float3*)gradients->genericDevPtr(), insideWallChecker.handler() );
+}
+
+
 
 template class SimpleStationaryWall<StationaryWall_Sphere>;
 template class SimpleStationaryWall<StationaryWall_Cylinder>;

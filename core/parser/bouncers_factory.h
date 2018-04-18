@@ -9,6 +9,8 @@
 #include <core/bouncers/from_mesh.h>
 #include <core/bouncers/from_ellipsoid.h>
 
+#include <core/utils/make_unique.h>
+
 class BouncerFactory
 {
 private:

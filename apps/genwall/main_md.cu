@@ -80,7 +80,7 @@ void writeXYZ(MPI_Comm comm, std::string fname, ParticleVector* pv)
 }
 
 
-static Interaction* createDPD(pugi::xml_node node)
+static std::unique_ptr<Interaction> createDPD(pugi::xml_node node)
 {
 	auto name = node.attribute("name").as_string("int");
 	auto rc   = node.attribute("rc").as_float(1.0f);
@@ -94,7 +94,12 @@ static Interaction* createDPD(pugi::xml_node node)
 
 	Pairwise_DPD dpd(rc, a, gamma, kbT, dt, power);
 
-	return (Interaction*) new InteractionPair<Pairwise_DPD>(name, rc, dpd);
+	
+	auto res = std::make_unique<InteractionPair<Pairwise_DPD>>(name, rc);
+	
+	res->createPairwise("starting", "starting", dpd);
+
+	return std::move(res);
 }
 
 
@@ -153,28 +158,32 @@ int main(int argc, char** argv)
 		auto final      = std::make_unique<ParticleVector>(wallNode.attribute("name").as_string("wall"), 1.0);
 		auto ic         = std::make_unique<UniformIC>     (wallGenNode.attribute("density").as_float(4));
 
+		auto startingPtr = startingPV.get();
+		auto finalPtr    = final.get();
 
 		// Create and setup wall
-		auto wall = std::unique_ptr<Wall>( WallFactory::create(wallNode) );
-		sim->registerWall(wall.get());
+		auto wall = WallFactory::create(wallNode);
+		auto wallPtr = wall.get();
+		sim->registerWall(std::move(wall));
 
 		// Make a new particle vector uniformly everywhere
-		sim->registerParticleVector(startingPV.get(), ic.get(), 0);
+		sim->registerParticleVector(std::move(startingPV), std::move(ic), 0);
 
 		// Interaction
-		auto dpd = std::unique_ptr<Interaction>( createDPD(wallGenNode) );
-		sim->registerInteraction(dpd.get());
-		sim->setInteraction(dpd->name, "starting", "starting");
+		auto dpd = createDPD(wallGenNode);
+		auto dpdPtr = dpd.get();
+		sim->registerInteraction(std::move(dpd));
+		sim->setInteraction(dpdPtr->name, "starting", "starting");
 
 		sim->init();
 		sim->run(nsteps);
 
-		freezeParticlesWrapper(wall.get(), startingPV.get(), final.get(), 0, 1.2);
+		freezeParticlesWrapper(wallPtr, startingPtr, finalPtr, 0, 1.2);
 
 		if (needXYZ)
 		{
-			writeXYZ(sim->getCartComm(), "wall.xyz", startingPV.get());
-			writeXYZ(sim->getCartComm(), final->name+".xyz", final.get());
+			writeXYZ(sim->getCartComm(), "wall.xyz", startingPtr);
+			writeXYZ(sim->getCartComm(), finalPtr->name+".xyz", finalPtr);
 		}
 
 		std::string path = wallGenNode.attribute("path").as_string("./");
@@ -185,7 +194,7 @@ int main(int argc, char** argv)
 				die("Could not create folders by given path %s", path.c_str());
 		}
 
-		PVview view(final.get(), final->local());
+		PVview view(finalPtr, finalPtr->local());
 		const int nthreads = 128;
 		SAFE_KERNEL_LAUNCH( zeroVels,
 				getNblocks(view.size, nthreads), nthreads, 0, 0,

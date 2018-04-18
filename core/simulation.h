@@ -4,14 +4,6 @@
 #include <core/datatypes.h>
 #include <core/containers.h>
 
-#include <core/bouncers/interface.h>
-#include <core/initial_conditions/interface.h>
-#include <core/integrators/interface.h>
-#include <core/interactions/interface.h>
-#include <core/walls/interface.h>
-#include <core/object_belonging/interface.h>
-#include <plugins/interface.h>
-
 #include "domain.h"
 
 #include <tuple>
@@ -33,6 +25,14 @@ class ObjectHaloExchanger;
 class ObjectRedistributor;
 class ObjectForcesReverseExchanger;
 
+class Wall;
+class Interaction;
+class Integrator;
+class InitialConditions;
+class Bouncer;
+class ObjectBelongingChecker;
+class SimulationPlugin;
+
 
 class Simulation
 {
@@ -46,6 +46,7 @@ public:
 	DomainInfo domain;
 
 	Simulation(int3 nranks3D, float3 globalDomainSize, const MPI_Comm& comm, const MPI_Comm& interComm);
+	~Simulation();
 
 	void registerParticleVector         (std::unique_ptr<ParticleVector> pv, std::unique_ptr<InitialConditions> ic, int checkpointEvery);
 	void registerWall                   (std::unique_ptr<Wall> wall, int checkEvery=0);
@@ -71,51 +72,19 @@ public:
 	void run(int nsteps);
 	void finalize();
 
-	std::vector<ParticleVector*> getParticleVectors() const
-	{
-		std::vector<ParticleVector*> res;
-		for (auto& pv : particleVectors)
-			res.push_back(pv.get());
 
-		return res;
-	}
+	std::vector<ParticleVector*> getParticleVectors() const;
 
-	ParticleVector* getPVbyName(std::string name) const
-	{
-		auto pvIt = pvIdMap.find(name);
-		return (pvIt != pvIdMap.end()) ? particleVectors[pvIt->second].get() : nullptr;
-	}
+	ParticleVector* getPVbyName     (std::string name) const;
+	ParticleVector* getPVbyNameOrDie(std::string name) const;
+	ObjectVector*   getOVbyNameOrDie(std::string name) const;
 
-	ParticleVector* getPVbyNameOrDie(std::string name) const
-	{
-		auto pv = getPVbyName(name);
-		if (pv == nullptr)
-			die("No such particle vector: %s", name.c_str());
-		return pv;
-	}
+	Wall* getWallByNameOrDie(std::string name) const;
 
-	ObjectVector* getOVbyNameOrDie(std::string name) const
-	{
-		auto pv = getPVbyName(name);
-		auto ov = dynamic_cast<ObjectVector*>(pv);
-		if (pv == nullptr)
-			die("No such particle vector: %s", name.c_str());
-		return ov;
-	}
+	CellList* gelCellList(ParticleVector* pv) const;
 
-	CellList* gelCellList(ParticleVector* pv) const
-	{
-		auto clvecIt = cellListMap.find(pv);
-		if (clvecIt == cellListMap.end())
-			die("Particle Vector '%s' is not registered or broken", pv->name.c_str());
+	MPI_Comm getCartComm() const;
 
-		if (clvecIt->second.size() == 0)
-			return nullptr;
-		else
-			return clvecIt->second[0].get();
-	}
-
-	MPI_Comm getCartComm() const { return cartComm; }
 
 private:
 	const float rcTolerance = 1e-5;

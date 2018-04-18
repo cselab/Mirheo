@@ -9,6 +9,8 @@
 #include <core/object_belonging/ellipsoid_belonging.h>
 #include <core/object_belonging/mesh_belonging.h>
 
+#include <core/utils/make_unique.h>
+
 class ObjectBelongingCheckerFactory
 {
 private:

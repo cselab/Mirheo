@@ -20,6 +20,7 @@
 #include <plugins/pin_object.h>
 #include <plugins/add_force.h>
 #include <plugins/add_torque.h>
+#include <plugins/wall_repulsion.h>
 
 class PluginFactory
 {
@@ -93,6 +94,22 @@ private:
 
 		return { std::move(simPl), nullptr };
 	}
+
+	static PluginRetType createWallRepulsionPlugin(pugi::xml_node node, bool computeTask)
+	{
+		auto name    = node.attribute("name").as_string();
+
+		auto pvName   = node.attribute("pv_name").as_string();
+		auto wallName = node.attribute("wall_name").as_string();
+		auto C         = node.attribute("C").as_float();
+		auto h         = node.attribute("h").as_float(0.2f);
+		auto maxForce  = node.attribute("maxForce").as_float(1e3f);
+
+		auto simPl = computeTask ? std::make_unique<WallRepulsionPlugin>(name, pvName, wallName, C, h, maxForce) : nullptr;
+
+		return { std::move(simPl), nullptr };
+	}
+
 
 
 	static PluginRetType createStatsPlugin(pugi::xml_node node, bool computeTask)
@@ -255,6 +272,7 @@ public:
 				{"impose_profile",         createImposeProfilePlugin         },
 				{"add_torque",             createAddTorquePlugin             },
 				{"add_force",              createAddForcePlugin              },
+				{"wall_repulsion",         createWallRepulsionPlugin         },
 				{"stats",                  createStatsPlugin                 },
 				{"dump_avg_flow",          createDumpAveragePlugin           },
 				{"dump_avg_relative_flow", createDumpAverageRelativePlugin   },

@@ -4,6 +4,7 @@
 
 #include <core/simulation.h>
 #include <core/pvs/particle_vector.h>
+#include <core/pvs/object_vector.h>
 #include <core/celllist.h>
 #include <core/utils/cuda_common.h>
 

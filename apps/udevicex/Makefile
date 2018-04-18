@@ -15,6 +15,7 @@ objects = main.o \
 	simple_stationary_wall.o wall_with_velocity.o sdf.o \
 	write_xdmf.o average_flow.o average_relative_flow.o channel_dumper.o \
 	stats.o temperaturize.o dumpxyz.o dump_obj_position.o dump_mesh.o \
-	impose_velocity.o pin_object.o add_force.o impose_profile.o add_torque.o
+	impose_velocity.o pin_object.o add_force.o impose_profile.o add_torque.o \
+	wall_repulsion.o
 	
 include ../../makefiles/Makefile.base

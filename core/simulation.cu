@@ -3,12 +3,20 @@
 #include <core/celllist.h>
 #include <core/pvs/particle_vector.h>
 #include <core/pvs/object_vector.h>
-#include <core/utils/folders.h>
-#include <core/utils/make_unique.h>
+
+#include <core/bouncers/interface.h>
+#include <core/initial_conditions/interface.h>
+#include <core/integrators/interface.h>
+#include <core/interactions/interface.h>
+#include <core/walls/interface.h>
+#include <core/object_belonging/interface.h>
+#include <plugins/interface.h>
 
 #include <core/task_scheduler.h>
-
 #include <core/mpi/api.h>
+
+#include <core/utils/folders.h>
+#include <core/utils/make_unique.h>
 
 #include <algorithm>
 
@@ -38,6 +46,73 @@ nranks3D(nranks3D), interComm(interComm), currentTime(0), currentStep(0)
 	scheduler = std::make_unique<TaskScheduler>();
 	scheduler->createTask("Checkpoint");
 }
+
+Simulation::~Simulation() = default;
+
+
+//================================================================================================
+// Access for plugins
+//================================================================================================
+
+
+std::vector<ParticleVector*> Simulation::getParticleVectors() const
+{
+	std::vector<ParticleVector*> res;
+	for (auto& pv : particleVectors)
+		res.push_back(pv.get());
+
+	return res;
+}
+
+ParticleVector* Simulation::getPVbyName(std::string name) const
+{
+	auto pvIt = pvIdMap.find(name);
+	return (pvIt != pvIdMap.end()) ? particleVectors[pvIt->second].get() : nullptr;
+}
+
+ParticleVector* Simulation::getPVbyNameOrDie(std::string name) const
+{
+	auto pv = getPVbyName(name);
+	if (pv == nullptr)
+		die("No such particle vector: %s", name.c_str());
+	return pv;
+}
+
+ObjectVector* Simulation::getOVbyNameOrDie(std::string name) const
+{
+	auto pv = getPVbyName(name);
+	auto ov = dynamic_cast<ObjectVector*>(pv);
+	if (pv == nullptr)
+		die("No such particle vector: %s", name.c_str());
+	return ov;
+}
+
+Wall* Simulation::getWallByNameOrDie(std::string name) const
+{
+	if (wallMap.find(name) == wallMap.end())
+		die("No such wall: %s", name.c_str());
+
+	auto it = wallMap.find(name);
+	return it->second.get();
+}
+
+CellList* Simulation::gelCellList(ParticleVector* pv) const
+{
+	auto clvecIt = cellListMap.find(pv);
+	if (clvecIt == cellListMap.end())
+		die("Particle Vector '%s' is not registered or broken", pv->name.c_str());
+
+	if (clvecIt->second.size() == 0)
+		return nullptr;
+	else
+		return clvecIt->second[0].get();
+}
+
+MPI_Comm Simulation::getCartComm() const
+{
+	return cartComm;
+}
+
 
 //================================================================================================
 // Registration
