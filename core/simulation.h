@@ -9,6 +9,7 @@
 #include <tuple>
 #include <vector>
 #include <string>
+#include <functional>
 #include <map>
 
 // Some forward declarations

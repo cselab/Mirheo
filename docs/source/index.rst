@@ -1,35 +1,42 @@
 uDeviceX
-=========
+########
 
 Mesoscale flow solver for biological and medical applications
 
 Introduction
-------------
+************
 
 **uDeviceX** is a CUDA code
 
-Licensing
----------
-
-We use a shared copyright model that enables all contributors to maintain the
-copyright on their contributions.
+..  Licensing
+..  ---------
 
 .. toctree::
    :maxdepth: 1
    :caption: User guide
+   
+   user/overview
+   user/particle_vectors
+   user/initial_conditions
+   user/interactions
+   user/integrators
+   user/walls
+   user/bouncers
+   user/object_belongings
+   user/plugins
 
    
 .. toctree::
    :maxdepth: 1
    :caption: Developer documentation
 
-   overview
-   basic_types
-   coordinators/coordinators
-   particle_vectors/particle_vectors
-   mpi/mpi
-   handlers/handlers
-   plugins/plugins
+   developer/overview
+   developer/basic_types
+   developer/coordinators/coordinators
+   developer/particle_vectors/particle_vectors
+   developer/mpi/mpi
+   developer/handlers/handlers
+   developer/plugins/plugins
    
 ..   views
 ..   parser

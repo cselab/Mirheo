@@ -178,7 +178,11 @@ int main(int argc, char** argv)
 		sim->init();
 		sim->run(nsteps);
 
-		freezeParticlesWrapper(wallPtr, startingPtr, finalPtr, 0, 1.2);
+		auto sdfWall = dynamic_cast<SDF_basedWall*>(wallPtr);
+		if (sdfWall == nullptr)
+			die("Only sdf-based walls are supported for now");
+
+		freezeParticlesInWall(sdfWall, startingPtr, finalPtr, 0, 1.2);
 
 		if (needXYZ)
 		{

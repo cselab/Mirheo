@@ -7,7 +7,7 @@ objects = main.o \
 	argument_parser.o pugixml.o stacktrace_explicit.o \
 	celllist.o mesh.o parser.o postproc.o simulation.o task_scheduler.o udevicex.o \
 	from_mesh.o from_ellipsoid.o belonging.o ellipsoid_belonging.o mesh_belonging.o \
-	rigid_ic.o uniform_ic.o rbcs_ic.o \
+	rigid_ic.o uniform_ic.o membrane_ic.o \
 	const_omega.o rigid_vv.o vv.o oscillate.o translate.o \
 	pairwise.o pairwise_with_stress.o membrane.o \
 	particle_exchanger.o particle_halo_exchanger.o particle_redistributor.o object_halo_exchanger.o object_redistributor.o object_forces_reverse_exchanger.o \

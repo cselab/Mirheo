@@ -54,6 +54,7 @@ clean:
 html:
 	doxygen
 	$(SPHINXBUILD) -b html $(ALLSPHINXOPTS) $(BUILDDIR)/html
+	sed -i 's/\.wy-table-responsive table td,\.wy-table-responsive table th{white-space:nowrap}/.wy-table-responsive table td,.wy-table-responsive table th{white-space:normal}/' $(BUILDDIR)/html/_static/css/theme.css 
 	@echo
 	@echo "Build finished. The HTML pages are in $(BUILDDIR)/html."
 

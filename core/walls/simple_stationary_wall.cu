@@ -429,14 +429,16 @@ void SimpleStationaryWall<InsideWallChecker>::sdfPerParticle(ParticleVector* pv,
 	if (sdfs->size() * sdfs->datatype_size() < sizeof(float) * pv->local()->size())
 		die("Provided too small container for SDF values of PV '%s'", pv->name.c_str());
 
-	if (gradients->size() * gradients->datatype_size() < sizeof(float3) * pv->local()->size())
-		die("Provided too small container for SDF gradients of PV '%s'", pv->name.c_str());
+	if (gradients != nullptr)
+		if (gradients->size() * gradients->datatype_size() < sizeof(float3) * pv->local()->size())
+			die("Provided too small container for SDF gradients of PV '%s'", pv->name.c_str());
 
 	PVview view(pv, pv->local());
 	SAFE_KERNEL_LAUNCH(
 			computeSdfPerParticle,
 			getNblocks(view.size, nthreads), nthreads, 0, stream,
-			view, (float*)sdfs->genericDevPtr(), (float3*)gradients->genericDevPtr(), insideWallChecker.handler() );
+			view, (float*)sdfs->genericDevPtr(),
+			(gradients != nullptr) ? (float3*)gradients->genericDevPtr() : nullptr, insideWallChecker.handler() );
 }
 
 

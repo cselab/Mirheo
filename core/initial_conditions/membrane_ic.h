@@ -9,16 +9,16 @@
 /**
  * Initialize red blood cells.
  */
-class RBC_IC : public InitialConditions
+class Membrane_IC : public InitialConditions
 {
 public:
-	RBC_IC(std::string icfname, float globalScale = 1.0f) : icfname(icfname), globalScale(globalScale)
+	Membrane_IC(std::string icfname, float globalScale = 1.0f) : icfname(icfname), globalScale(globalScale)
 	{	}
 
 	void readVertices(std::string fname, PinnedBuffer<float4>& positions);
 	void exec(const MPI_Comm& comm, ParticleVector* pv, DomainInfo domain, cudaStream_t stream) override;
 
-	~RBC_IC() = default;
+	~Membrane_IC() = default;
 
 private:
 	float globalScale;

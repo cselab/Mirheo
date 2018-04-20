@@ -8,7 +8,7 @@
 
 #include <core/initial_conditions/uniform_ic.h>
 #include <core/initial_conditions/rigid_ic.h>
-#include <core/initial_conditions/rbcs_ic.h>
+#include <core/initial_conditions/membrane_ic.h>
 #include <core/initial_conditions/restart.h>
 
 class InitialConditionsFactory
@@ -28,12 +28,12 @@ private:
 		return std::make_unique<RigidIC>(xyzfname, icfname);
 	}
 
-	static std::unique_ptr<InitialConditions> createRBCsIC(pugi::xml_node node)
+	static std::unique_ptr<InitialConditions> createMembraneIC(pugi::xml_node node)
 	{
-		auto icfname    = node.attribute("ic_filename"). as_string("rbcs.ic");
+		auto icfname    = node.attribute("ic_filename"). as_string("membranes.ic");
 		auto globScale  = node.attribute("global_scale").as_float(1.0f);
 
-		return std::make_unique<RBC_IC>(icfname, globScale);
+		return std::make_unique<Membrane_IC>(icfname, globScale);
 	}
 
 	static std::unique_ptr<InitialConditions> createRestartIC(pugi::xml_node node)
@@ -53,8 +53,8 @@ public:
 			return createUniformIC(node);
 		if (type == "read_rigid")
 			return createRigidIC(node);
-		if (type == "read_rbcs")
-			return createRBCsIC(node);
+		if (type == "read_membranes")
+			return createMembraneIC(node);
 		if (type == "restart")
 			return createRestartIC(node);
 

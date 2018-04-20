@@ -1,4 +1,4 @@
-#include "rbcs_ic.h"
+#include "membrane_ic.h"
 
 #include <random>
 #include <fstream>
@@ -27,7 +27,7 @@
  * Set unique id to all the particles and also write unique cell ids into
  * 'ids' per-object channel
  */
-void RBC_IC::exec(const MPI_Comm& comm, ParticleVector* pv, DomainInfo domain, cudaStream_t stream)
+void Membrane_IC::exec(const MPI_Comm& comm, ParticleVector* pv, DomainInfo domain, cudaStream_t stream)
 {
 	auto ov = dynamic_cast<RBCvector*>(pv);
 	if (ov == nullptr)

@@ -43,7 +43,7 @@ private:
 		auto mass      = node.attribute("mass").as_float(1);
 
 		auto objSize   = node.attribute("particles_per_obj").as_int(1);
-		auto J         = node.attribute("moment_of_inertia").as_float3();
+		auto J         = node.attribute("moment_of_inertia").as_float3( make_float3(1) );
 		auto meshFname = node.attribute("mesh_filename").as_string("mesh.off");
 
 		auto mesh = std::make_unique<Mesh>(meshFname);
@@ -58,7 +58,7 @@ private:
 
 		auto objSize   = node.attribute("particles_per_obj").as_int(1);
 
-		auto meshFname = node.attribute("mesh_filename").as_string("rbcmesh.off");
+		auto meshFname = node.attribute("mesh_filename").as_string("mesh.off");
 
 		auto mmesh = std::make_unique<MembraneMesh>(meshFname);
 
