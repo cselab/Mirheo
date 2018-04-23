@@ -31,6 +31,8 @@ Common attributes
 | type      | string | ""      | Type of the interaction, see below for the |
 |           |        |         | list of available types                    |
 +-----------+--------+---------+--------------------------------------------+
+| name      | string | ""      | Name of the created interaction            |
++-----------+--------+---------+--------------------------------------------+
 | rc        | float  | 1.0     | Cut-off radius of the pairwise interaction |
 +-----------+--------+---------+--------------------------------------------+
 
@@ -45,10 +47,37 @@ Available Particle Vectors
    
    .. math::
    
-      \mathbb{F}_{ij} &= \mathbb{F}^C(\mathbb{r}_{ij}) + \mathbb{F}^D(\mathbb{r}_{ij}, \mathbb{u}_{ij}) + \mathbb{F^R(\mathbb{r}_{ij}) \\
-      \mathbb{F}^C(r) &= \begin{cases} a(1-\frac{r}{r_c}) \mathbb{r}, & r < r_c; \\ 0, & r \geqslant r_c \end{cases} \\
-      \mathbb{F}^D(r, u) &= \gamma w^2(\frac{r}{r_c}) (\mathbb{r} \dot \mathbb{u}) \mathbb{r} \\
-      \mathbb{F}^D(r, u) &= \gamma w^2(\frac{r}{r_c}) (\mathbb{r} \dot \mathbb{u}) \mathbb{r}
+      \mathbf{F}_{ij} &= \mathbf{F}^C(\mathbf{r}_{ij}) + \mathbf{F}^D(\mathbf{r}_{ij}, \mathbf{u}_{ij}) + \mathbf{F}^R(\mathbf{r}_{ij}) \\
+      \mathbf{F}^C(\mathbf{r}) &= \begin{cases} a(1-\frac{r}{r_c}) \mathbf{\hat r}, & r < r_c \\ 0, & r \geqslant r_c \end{cases} \\
+      \mathbf{F}^D(\mathbf{r}, \mathbf{u}) &= \gamma w^2(\frac{r}{r_c}) (\mathbf{r} \cdot \mathbf{u}) \mathbf{\hat r} \\
+      \mathbf{F}^R(\mathbf{r}) &= \sigma w(\frac{r}{r_c}) \, \theta \sqrt{\Delta t} \, \mathbf{\hat r}
+   
+   where bold symbol means a vector, its regular counterpart means vector length: 
+   :math:`x = \left\lVert \mathbf{x} \right\rVert`, hat-ed symbol is the normalized vector:
+   :math:`\mathbf{\hat x} = \mathbf{x} / \left\lVert \mathbf{x} \right\rVert`. Moreover, :math:`\theta` is the random variable with zero mean
+   and unit variance, that is distributed independently of the interacting pair *i*-*j*, dissipation and random forces 
+   are related by the fluctuation-dissipation theorem: :math:`\sigma^2 = 2 \gamma k_B T`; and :math:`w(r)` is the weight function
+   that we define as follows:
+   
+   .. math:
+      
+      w(r) = \begin{cases} (1-r)^{p}, & r < 1 \\ 0, & r \geqslant 1 \end{cases}
+      
+   Additional attributes:
+   
+   +-----------+-------+---------+------------------------+
+   | Attribute | Type  | Default | Remarks                |
+   +===========+=======+=========+========================+
+   | a         | float | 50.0    |                        |
+   +-----------+-------+---------+------------------------+
+   | gamma     | float | 20.0    |                        |
+   +-----------+-------+---------+------------------------+
+   | kbT       | float | 1.0     |                        |
+   +-----------+-------+---------+------------------------+
+   | dt        | float | 0.01    |                        |
+   +-----------+-------+---------+------------------------+
+   | power     | float | 1.0     | *p* in weight function |
+   +-----------+-------+---------+------------------------+
 
 
    **Example**
@@ -59,6 +88,39 @@ Available Particle Vectors
       <particle_vector type="regular" name="dpd" mass="1"  >
          <generate type="uniform" density="8" />
       </particle_vector>
+
+* **Pairwise Lennard-Jones interaction**
+
+   Type: *lj*
+   
+   Pairwise interaction according to the classical Lennard-Jones potential `http://rspa.royalsocietypublishing.org/content/106/738/463`
+   The force however is truncated such that it is *always repulsive*.
+   
+   
+   .. math::
+   
+      \mathbf{F}_{ij} &= \max \left[ 0.0, 24 \epsilon \left( 2\left( \frac{\sigma}{r_{ij}} \right)^{14} - \left( \frac{\sigma}{r_{ij}} \right)^{8} \right) \right]
+      
+   Additional attributes:
+   
+   +-----------+-------+---------+---------+
+   | Attribute | Type  | Default | Remarks |
+   +===========+=======+=========+=========+
+   | sigma     | float | 0.5     |         |
+   +-----------+-------+---------+---------+
+   | epsilon   | float | 10.0    |         |
+   +-----------+-------+---------+---------+
+
+
+   **Example**
+   
+   
+   .. code-block:: xml
+   
+      <particle_vector type="regular" name="dpd" mass="1"  >
+         <generate type="uniform" density="8" />
+      </particle_vector>
+
 
 * **Membrane**
 
