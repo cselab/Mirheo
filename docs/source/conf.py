@@ -3,10 +3,10 @@
 import os
 import subprocess
 
+html_static_path = ['_static/']
+
 def setup(app):
     app.add_stylesheet('css/custom.css')
-
-html_static_path = []
 
 on_rtd = os.environ.get('READTHEDOCS', None) == 'True'
 
