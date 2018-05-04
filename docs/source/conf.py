@@ -3,14 +3,10 @@
 import os
 import subprocess
 
-html_static_path = []
-#html_static_path = ['_static']
+def setup(app):
+    app.add_stylesheet('css/custom.css')
 
-html_context = {
-    'css_files': [
-        '_static/css/custom.css',  # override wide tables in RTD theme
-        ],
-     }
+html_static_path = []
 
 on_rtd = os.environ.get('READTHEDOCS', None) == 'True'
 
@@ -18,9 +14,7 @@ if on_rtd:
     subprocess.call('cd ..; doxygen', shell=True)
 
 import sphinx_rtd_theme
-
 html_theme = "sphinx_rtd_theme"
-
 html_theme_path = [sphinx_rtd_theme.get_html_theme_path()]
 
 extensions = ['breathe', 'sphinx.ext.mathjax']
