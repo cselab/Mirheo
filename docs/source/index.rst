@@ -15,6 +15,7 @@ Introduction
    :maxdepth: 1
    :caption: User guide
    
+   user/installation
    user/overview
    user/particle_vectors
    user/initial_conditions

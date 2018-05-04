@@ -814,6 +814,9 @@ void Simulation::assemble()
 	scheduler->setHighPriority(task_pluginsSerializeSend);
 
 	scheduler->compile();
+
+//	if (rank == 0)
+//		scheduler->saveDependencyGraph_GEFX("simulation.gexf");
 }
 
 void Simulation::run(int nsteps)

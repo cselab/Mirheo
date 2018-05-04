@@ -13,7 +13,6 @@
 #include <unordered_map>
 #include <memory>
 
-// TODO: remove empty tasks
 class TaskScheduler
 {
 public:
@@ -32,6 +31,7 @@ public:
 
 	void compile();
 	void run();
+	void saveDependencyGraph_GEFX(std::string fname);
 
 	void forceExec(TaskID id, cudaStream_t stream);
 

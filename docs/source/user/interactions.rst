@@ -43,7 +43,7 @@ Available Particle Vectors
 
    Type: *dpd*
    
-   Pairwise interaction with conservative part and dissipative + random part acting a thermostat, see `https://aip.scitation.org/doi/abs/10.1063/1.474784`
+   Pairwise interaction with conservative part and dissipative + random part acting a thermostat, see `https://aip.scitation.org/doi/abs/10.1063/1.474784`_
    
    .. math::
    
@@ -56,10 +56,10 @@ Available Particle Vectors
    :math:`x = \left\lVert \mathbf{x} \right\rVert`, hat-ed symbol is the normalized vector:
    :math:`\mathbf{\hat x} = \mathbf{x} / \left\lVert \mathbf{x} \right\rVert`. Moreover, :math:`\theta` is the random variable with zero mean
    and unit variance, that is distributed independently of the interacting pair *i*-*j*, dissipation and random forces 
-   are related by the fluctuation-dissipation theorem: :math:`\sigma^2 = 2 \gamma k_B T`; and :math:`w(r)` is the weight function
+   are related by the fluctuation-dissipation theorem: :math:`\sigma^2 = 2 \gamma \, k_B T`; and :math:`w(r)` is the weight function
    that we define as follows:
    
-   .. math:
+   .. math::
       
       w(r) = \begin{cases} (1-r)^{p}, & r < 1 \\ 0, & r \geqslant 1 \end{cases}
       
@@ -85,9 +85,10 @@ Available Particle Vectors
    
    .. code-block:: xml
    
-      <particle_vector type="regular" name="dpd" mass="1"  >
-         <generate type="uniform" density="8" />
-      </particle_vector>
+      <interaction type="dpd" name="dpd_int" a="25" gamma="40" kbt="0.5" dt="0.001" rc="1.0" power="0.5">
+         <apply_to pv1="dpd"  pv2="dpd" />
+         <apply_to pv1="wall" pv2="dpd" gamma="120" power="1.0" />    
+      </interaction>
 
 * **Pairwise Lennard-Jones interaction**
 
@@ -99,8 +100,8 @@ Available Particle Vectors
    
    .. math::
    
-      \mathbf{F}_{ij} &= \max \left[ 0.0, 24 \epsilon \left( 2\left( \frac{\sigma}{r_{ij}} \right)^{14} - \left( \frac{\sigma}{r_{ij}} \right)^{8} \right) \right]
-      
+      \mathbf{F}_{ij} = \max \left[ 0.0, 24 \epsilon \left( 2\left( \frac{\sigma}{r_{ij}} \right)^{14} - \left( \frac{\sigma}{r_{ij}} \right)^{8} \right) \right]
+   
    Additional attributes:
    
    +-----------+-------+---------+---------+
@@ -117,29 +118,68 @@ Available Particle Vectors
    
    .. code-block:: xml
    
-      <particle_vector type="regular" name="dpd" mass="1"  >
-         <generate type="uniform" density="8" />
-      </particle_vector>
+      <interaction type="lj" name="lj_int" epsilon="0.1" sigma="0.5" rc="1.0" >
+         <apply_to pv1="object" pv2="wall" />
+      </interaction>
+      
+      
+      
+* **Pairwise Lennard-Jones interaction object-aware**
+
+   Type: *lj_object*
+   
+   Same as regular LJ interaction, but the particles belonging to the same object in an object vector do not interact with each other.
+   That restriction only applies if both Particle Vectors in the interactions are the same and is actually an Object Vector. 
+
+   **Example**
+   
+   .. code-block:: xml
+   
+      <interaction type="lj_object" name="lj_obj_int" epsilon="0.1" sigma="0.5" rc="1.0" >
+         <apply_to pv1="membrane" pv2="membrane" />
+      </interaction>
 
 
 * **Membrane**
 
    Type: *membrane*
    
-   Membrane is an Object Vector representing cell membranes.
-   It must have a triangular mesh associated with it such that each particle is mapped directly onto single mesh vertex.
+   Mesh-based forces acting on a membrane according to the model in LINK
    
    Additional attributes:
    
-   +-------------------+---------+----------+----------------------------------------------+
-   | Attribute         | Type    | Default  | Remarks                                      |
-   +===================+=========+==========+==============================================+
-   | particles_per_obj | integer | 1        | Number of the particles making up one cell   |
-   +-------------------+---------+----------+----------------------------------------------+
-   | mesh_filename     | string  |          | Path to the .OFF mesh file, see `OFF mesh`.  |
-   |                   |         | mesh.off | The number of vertices of the mesh should be |
-   |                   |         |          | equal to :xml:`particles_per_obj`.           |
-   +-------------------+---------+----------+----------------------------------------------+
++-----------+--------+---------+----------------------------------------------------+
+| Attribute | Type   | Default | Remarks                                            |
++===========+========+=========+====================================================+
+| preset    | string | ""      | Set the parameters to predifined. Accepted values: |
+|           |        |         | * "lina":                                          |
++-----------+--------+---------+----------------------------------------------------+
+| x0        | float  | 0.0     |                                                    |
++-----------+--------+---------+----------------------------------------------------+
+| p         | float  | 0.0     |                                                    |
++-----------+--------+---------+----------------------------------------------------+
+| ka        | float  | 0.0     |                                                    |
++-----------+--------+---------+----------------------------------------------------+
+| kb        | float  | 0.0     |                                                    |
++-----------+--------+---------+----------------------------------------------------+
+| kd        | float  | 0.0     |                                                    |
++-----------+--------+---------+----------------------------------------------------+
+| kv        | float  | 0.0     |                                                    |
++-----------+--------+---------+----------------------------------------------------+
+| gammaC    | float  | 0.0     |                                                    |
++-----------+--------+---------+----------------------------------------------------+
+| gammaT    | float  | 0.0     |                                                    |
++-----------+--------+---------+----------------------------------------------------+
+| kbT       | float  | 0.0     |                                                    |
++-----------+--------+---------+----------------------------------------------------+
+| mpow      | float  | 0.0     |                                                    |
++-----------+--------+---------+----------------------------------------------------+
+| theta     | float  | 0.0     |                                                    |
++-----------+--------+---------+----------------------------------------------------+
+| area      | float  | 0.0     |                                                    |
++-----------+--------+---------+----------------------------------------------------+
+| volume    | float  | 0.0     |                                                    |
++-----------+--------+---------+----------------------------------------------------+
                                   
     **Example**                   
                                   
@@ -147,62 +187,6 @@ Available Particle Vectors
                                   
       <particle_vector type="membrane" name="rbcs" mass="1.0" particles_per_obj="498" mesh_filename="rbc_mesh.off"  >
          <generate type="restart" path="restart/" />
-      </particle_vector>
-      
-* **Rigid object**
-
-   Type: *rigid_objects*
-   
-   Rigid Object is an Object Vector representing objects that move as rigid bodies, with no relative displacement against each other in an object.
-   It must have a triangular mesh associated with it that defines the shape of the object.
-   
-   Additional attributes:
-   
-   +-------------------+---------+-----------+----------------------------------------------------------------------------------------------+
-   | Attribute         | Type    | Default   | Remarks                                                                                      |
-   +===================+=========+===========+==============================================================================================+
-   | particles_per_obj | integer | 1         | Number of the particles making up one cell                                                   |
-   +-------------------+---------+-----------+----------------------------------------------------------------------------------------------+
-   | mesh_filename     | string  |           | Path to the .OFF mesh file, see `OFF mesh`.                                                  |
-   |                   |         | mesh.off  | The number of vertices of the mesh should be                                                 |
-   |                   |         |           | equal to :xml:`particles_per_obj`.                                                           |
-   +-------------------+---------+-----------+----------------------------------------------------------------------------------------------+
-   | moment_of_inertia | float3  | (1, 1, 1) | Moment of inertia of the body in its principal axes                                          |
-   |                   |         |           | The principal axes of the mesh are assumed to be aligned with the default global *OXYZ* axes |
-   +-------------------+---------+-----------+----------------------------------------------------------------------------------------------+
-   
-   **Example**
-   
-   .. code-block:: xml
-   
-      <particle_vector type="rigid_objects" name="blob" mass="1.0" particles_per_obj="4242" moment_of_inertia="67300 45610 34300" mesh_filename="blob.off" >
-          <generate type="read_rigid" ic_filename="blob.ic" xyz_filename="blob.xyz"/>
-      </particle_vector>
-
-   
-* **Rigid ellipsoid**
-
-   Type: *rigid_ellipsoids*
-   
-   Rigid Ellipsoid is the same as the Rigid Object except that it can only represent ellipsoidal shapes.
-   The advantage is that it doesn't need mesh and moment of inertia define, as those can be computed analytically.
-   
-   Additional attributes:
-   
-   +-------------------+---------+-----------+--------------------------------------------+
-   | Attribute         | Type    | Default   | Remarks                                    |
-   +===================+=========+===========+============================================+
-   | particles_per_obj | integer | 1         | Number of the particles making up one cell |
-   +-------------------+---------+-----------+--------------------------------------------+
-   | axes              | float3  | (1, 1, 1) | Ellipsoid principal semi-axes              |
-   +-------------------+---------+-----------+--------------------------------------------+
-   
-   **Example**                   
-   
-   .. code-block:: xml
-   
-      <particle_vector type="rigid_ellipsoids" name="sphere" mass="1.847724" particles_per_obj="2267" axes="5 5 5" >
-           <generate type="read_rigid" ic_filename="sphere.ic" xyz_filename="sphere.xyz" />
       </particle_vector>
       
 

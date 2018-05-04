@@ -3,6 +3,14 @@
 import os
 import subprocess
 
+html_static_path = ['_static']
+
+html_context = {
+    'css_files': [
+        '_static/css/custom.css',  # override wide tables in RTD theme
+        ],
+     }
+
 on_rtd = os.environ.get('READTHEDOCS', None) == 'True'
 
 if on_rtd:

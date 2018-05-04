@@ -106,7 +106,7 @@ private:
 	{
 		auto name = node.attribute("name").as_string("");
 
-		MembraneParameters p;
+		MembraneParameters p{};
 		std::string preset = node.attribute("preset").as_string();
 		float growUntil = node.attribute("grow_until").as_float(-1.0f);
 		bool stressFree = node.attribute("stress_free").as_bool(false);
