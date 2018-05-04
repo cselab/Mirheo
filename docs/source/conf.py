@@ -3,7 +3,8 @@
 import os
 import subprocess
 
-html_static_path = ['_static']
+html_static_path = []
+#html_static_path = ['_static']
 
 html_context = {
     'css_files': [
