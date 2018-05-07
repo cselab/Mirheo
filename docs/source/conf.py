@@ -56,8 +56,10 @@ cpp_paren_attributes = ['__launch_bounds__', '__align__']
 
 
 
-#def setup(app):
-#    app.add_stylesheet('css/custom.css')
+def setup(app):
+    app.add_stylesheet('css/theme.css')
+    app.add_stylesheet('css/custom.css')
+    
 
 on_rtd = os.environ.get('READTHEDOCS', None) == 'True'
 
