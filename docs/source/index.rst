@@ -23,7 +23,7 @@ Introduction
    user/integrators
    user/walls
    user/bouncers
-   user/object_belongings
+   user/object_belonging
    user/plugins
 
    

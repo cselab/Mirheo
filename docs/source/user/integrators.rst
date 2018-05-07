@@ -17,7 +17,7 @@ Syntax
 .. code-block:: xml
 
    <integrator attributes="..." >
-      <apply_to pv="name1" />
+      <apply_to pv="name" />
    </integrator >
 
 The integrator defined by the :xml:`integrator` node will be applied to all the Particle Vectors that are listed in :xml:`apply_to` children of that node.
@@ -88,10 +88,7 @@ Available Integrators
 
    **Example**
    
-   .. highlight:: xml
-   
-   
-   ::
+   .. code-block:: xml
    
       <integrator type="vv_const_dp" name="push" extra_force="0.1 0 0" dt="0.005">
          <apply_to pv="liquid" />
