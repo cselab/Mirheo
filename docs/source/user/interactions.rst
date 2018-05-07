@@ -43,7 +43,7 @@ Available Particle Vectors
 
    Type: *dpd*
    
-   Pairwise interaction with conservative part and dissipative + random part acting a thermostat, see `https://aip.scitation.org/doi/abs/10.1063/1.474784`_
+   Pairwise interaction with conservative part and dissipative + random part acting a thermostat, see https://aip.scitation.org/doi/abs/10.1063/1.474784
    
    .. math::
    
