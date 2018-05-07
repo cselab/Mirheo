@@ -33,7 +33,7 @@ exclude_patterns = []
 highlight_language = 'cuda'
 cpp_id_attributes = ['__device__', '__global__', '__host__']
 cpp_paren_attributes = ['__launch_bounds__', '__align__']
-pygments_style = 'sphinx'
+#pygments_style = 'sphinx'
 todo_include_todos = False
 htmlhelp_basename = 'uDeviceX'
 
