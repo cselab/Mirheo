@@ -88,8 +88,10 @@ Available Integrators
 
    **Example**
    
-   
    .. highlight:: xml
+   
+   
+   ::
    
       <integrator type="vv_const_dp" name="push" extra_force="0.1 0 0" dt="0.005">
          <apply_to pv="liquid" />
