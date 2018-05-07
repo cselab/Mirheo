@@ -54,3 +54,12 @@ breathe_domain_by_extension = { "h" : "cpp", "cu" : "cpp" }
 cpp_id_attributes = ['__device__', '__global__', '__host__']
 cpp_paren_attributes = ['__launch_bounds__', '__align__']
 
+
+
+#def setup(app):
+#    app.add_stylesheet('css/custom.css')
+
+on_rtd = os.environ.get('READTHEDOCS', None) == 'True'
+
+if on_rtd:
+    subprocess.call('cd ..; doxygen', shell=True)
