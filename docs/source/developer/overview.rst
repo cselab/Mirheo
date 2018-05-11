@@ -1,4 +1,6 @@
-Code overview
-==============
+.. _dev-overview
 
-Diagram for class hierarchy
+Code overview
+#############
+
+.. image:: /images/deps.png

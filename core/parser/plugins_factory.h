@@ -132,7 +132,6 @@ private:
 		auto sampleEvery = node.attribute("sample_every").as_int(50);
 		auto dumpEvery   = node.attribute("dump_every").as_int(5000);
 		auto binSize     = node.attribute("bin_size").as_float3( {1, 1, 1} );
-		auto channels    = node.attribute("channels").as_string();
 
 		std::vector<std::string> names;
 		std::vector<Average3D::ChannelType> types;
@@ -168,7 +167,6 @@ private:
 		auto sampleEvery = node.attribute("sample_every").as_int(50);
 		auto dumpEvery   = node.attribute("dump_every").as_int(5000);
 		auto binSize     = node.attribute("bin_size").as_float3( {1, 1, 1} );
-		auto channels    = node.attribute("channels").as_string();
 
 		std::vector<std::string> names;
 		std::vector<Average3D::ChannelType> types;

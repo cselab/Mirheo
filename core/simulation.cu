@@ -816,7 +816,7 @@ void Simulation::assemble()
 	scheduler->compile();
 
 //	if (rank == 0)
-//		scheduler->saveDependencyGraph_GEFX("simulation.gexf");
+//		scheduler->saveDependencyGraph_GraphML("simulation.gml");
 }
 
 void Simulation::run(int nsteps)

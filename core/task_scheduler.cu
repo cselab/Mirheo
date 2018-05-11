@@ -345,38 +345,43 @@ void TaskScheduler::run()
 	CUDA_Check( cudaDeviceSynchronize() );
 }
 
-void TaskScheduler::saveDependencyGraph_GEFX(std::string fname)
+void TaskScheduler::saveDependencyGraph_GraphML(std::string fname)
 {
 	std::ofstream fout(fname);
 
 	// Header
 	fout << R"(<?xml version="1.0" encoding="UTF-8"?>
-<gexf xmlns="http://www.gexf.net/1.2draft" version="1.2">
-    <graph mode="static" defaultedgetype="directed">)" << "\n";
+<graphml xmlns="http://graphml.graphdrawing.org/xmlns"  
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://graphml.graphdrawing.org/xmlns 
+	 http://graphml.graphdrawing.org/xmlns/1.0/graphml.xsd">)" << "\n" << "\n";
+
+	fout << R"(    <key id="label" for="node" attr.name="label" attr.type="string"/>)" << "\n" << "\n";
+
+	fout << R"(    <graph id="Task graph" edgedefault="directed">)" << "\n";
 
 	// Nodes
-	fout << "        <nodes>\n";
 	for (auto& t : tasks)
-		fout << "            <node id=\"" << t.id << "\" label=\"" << t.label << "\" />\n";
-	fout << "        </nodes>\n";
+	{
+		fout << "        <node id=\"" << t.id << "\" >\n";
+		fout << "            <data key=\"label\"> " << t.label << "</data>\n";
+		fout << "        </node>\n";
+	}
 
 	// Edges
-	int ecount = 0;
-	fout << "        <edges>\n";
 	for (auto& n : nodes)
 	{
 
 		for (auto dep : n->to)
-			fout << "            <edge id=\"" << ecount++ << "\" source=\"" << n->id << "\" target=\"" << dep->id << "\" />\n";
+			fout << "        <edge source=\"" << n->id << "\" target=\"" << dep->id << "\" />\n";
 
 		for (auto dep : n->from_backup)
-			fout << "            <edge id=\"" << ecount++ << "\" source=\"" << dep->id << "\" target=\"" << n->id << "\" />\n";
+			fout << "        <edge source=\"" << dep->id << "\" target=\"" << n->id << "\" />\n";
 	}
-	fout << "        </edges>\n";
 
 	// Footer
 	fout << R"(    </graph>
-</gexf>)" << "\n";
+</graphml>)" << "\n";
 }
 
 

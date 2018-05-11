@@ -31,7 +31,7 @@ public:
 
 	void compile();
 	void run();
-	void saveDependencyGraph_GEFX(std::string fname);
+	void saveDependencyGraph_GraphML(std::string fname);
 
 	void forceExec(TaskID id, cudaStream_t stream);
 

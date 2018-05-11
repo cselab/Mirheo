@@ -57,7 +57,7 @@ uDeviceX* Parser::setup_uDeviceX(Logger& logger)
 	float3 globalDomainSize = simNode.child("domain").attribute("size").as_float3({32, 32, 32});
 
 	int3 nranks3D = simNode.attribute("mpi_ranks").as_int3({1, 1, 1});
-	int debugLvl  = simNode.attribute("debug_lvl").as_int(5);
+	int debugLvl  = simNode.attribute("debug_lvl").as_int(2);
 
 	uDeviceX* udx = new uDeviceX(nranks3D, globalDomainSize, logger, logname, debugLvl);
 
