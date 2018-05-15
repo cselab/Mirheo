@@ -1,6 +1,6 @@
 .. _user-overview:
 
-Overwiew
+Overview
 ########
 
 The uDeviceX code is designed as a classical molecular dynamics code adapted for inclusion rigid bodies and cells.
@@ -19,7 +19,7 @@ XML scripts
 The code uses XML files for the simulation setup.
 That file defines simulation domain, number of MPI ranks to run; data, namely :ref:`user-pv` and data handlers: 
 :ref:`user-ic`, :ref:`user-integrators`, :ref:`user-interactions`, :ref:`user-walls`, :ref:`user-bouncers`, :ref:`user-belongers` and :ref:`user-plugins`.
-A typical file looks this way:
+A simple file looks this way:
 
 .. role:: xml(code)
    :language: xml
@@ -59,10 +59,27 @@ A typical file looks this way:
    </simulation>
 
 
-MPI ranks and logging
-=====================
+Most parameters of the simulation are defined in the XML attributes.
+Parameter may be one the following types:
 
-The :xml:`simulation` has to be in the beginning of every script. The attributes of that node are:
++----------+----------------------------------------------------------+-----------------------------------------------------+
+| Type     | Explanation                                              | Example                                             |
++==========+==========================================================+=====================================================+
+| string   | Any combination of symbols                               | :xml:`<node attribute="some 42 words" />`           |
++----------+----------------------------------------------------------+-----------------------------------------------------+
+| integer  | Integer number                                           | :xml:`<node attribute="123" />`                     |
++----------+----------------------------------------------------------+-----------------------------------------------------+
+| float    | Floating point number, exponential notation is supported | :xml:`<node attribute="-12.345e6" />`               |
++----------+----------------------------------------------------------+-----------------------------------------------------+
+| integer3 | Three integer numbers separated by a space               | :xml:`<node attribute="5 8 13" />`                  |
++----------+----------------------------------------------------------+-----------------------------------------------------+
+| float3   | Three floating point numbers separated by a space        | :xml:`<node attribute="3.14159 2.71828 1.41421" />` |
++----------+----------------------------------------------------------+-----------------------------------------------------+
+
+General setup
+=============
+
+The :xml:`<simulation>` node has to be in the beginning of every script. The attributes of that node are:
 
 +-----------+----------+---------+-----------------------------------------------------------+
 | Attribute | Type     | Default | Remarks                                                   |
@@ -110,7 +127,7 @@ Running the simulation
 The executable :bash:`udevicex` takes only one parameter passed by :bash:`-i` or :bash:`--input` key, which is the path to the script.
 The typical execution command with the script listed above looks as follows:
 
-.. code-block: bash
+.. code-block:: bash
 
    mpirun -np 12 ./udevicex -i script.xml
 

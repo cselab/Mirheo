@@ -122,7 +122,7 @@ int main(int argc, char** argv)
 		std::vector<OptionStruct> opts
 		({
 			{'i', "input",  STRING, "Input script",                &xmlname,   std::string("script.xml")},
-			{'n', "nsteps", INT,    "Number of timesteps",         &nsteps,    2500},
+			{'n', "nsteps", INT,    "Number of timesteps",         &nsteps,    5000},
 			{'x', "xyz",    BOOL,   "Also dump .xyz files",        &needXYZ,   false}
 		});
 
@@ -157,6 +157,7 @@ int main(int argc, char** argv)
 		auto startingPV = std::make_unique<ParticleVector>("starting", 1.0);
 		auto final      = std::make_unique<ParticleVector>(wallNode.attribute("name").as_string("wall"), 1.0);
 		auto ic         = std::make_unique<UniformIC>     (wallGenNode.attribute("density").as_float(4));
+		auto vv         = std::make_unique<IntegratorVV>  ("vv", node.attribute("dt").as_float(0.001));
 
 		auto startingPtr = startingPV.get();
 		auto finalPtr    = final.get();
@@ -174,6 +175,8 @@ int main(int argc, char** argv)
 		auto dpdPtr = dpd.get();
 		sim->registerInteraction(std::move(dpd));
 		sim->setInteraction(dpdPtr->name, "starting", "starting");
+		sim->registerIntegrator(std::move(vv));
+		sim->setIntegrator("vv", "starting");
 
 		sim->init();
 		sim->run(nsteps);

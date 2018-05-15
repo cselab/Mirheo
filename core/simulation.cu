@@ -475,6 +475,8 @@ void Simulation::prepareWalls()
 	{
 		auto wallPtr = wall.second.get();
 
+		// TODO: add a property to the PVs so that they are not considered by the wall removal
+
 		// All the particles should be removed from within the wall,
 		// even those that do not interact with it
 		// Only intrinsic wall particles need to remain

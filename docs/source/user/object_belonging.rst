@@ -21,7 +21,7 @@ Syntax
       <apply_to pv="name" attributes="..." />
    </object_belonging_checker>
 
-The bouncer defined by the :xml:`object_belonging_checker` node will be applied to all the Particle Vectors that are listed in :xml:`apply_to` children of that node.
+The bouncer defined by the :xml:`<object_belonging_checker>` node will be applied to all the Particle Vectors that are listed in :xml:`<apply_to>` children of that node.
 
 Common attributes
 *****************
