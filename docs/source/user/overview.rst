@@ -67,13 +67,19 @@ Parameter may be one the following types:
 +==========+==========================================================+=====================================================+
 | string   | Any combination of symbols                               | :xml:`<node attribute="some 42 words" />`           |
 +----------+----------------------------------------------------------+-----------------------------------------------------+
+| boolean  | "true" or "false"                                        | :xml:`<node attribute="true" />`                    |
++----------+----------------------------------------------------------+-----------------------------------------------------+
 | integer  | Integer number                                           | :xml:`<node attribute="123" />`                     |
 +----------+----------------------------------------------------------+-----------------------------------------------------+
 | float    | Floating point number, exponential notation is supported | :xml:`<node attribute="-12.345e6" />`               |
 +----------+----------------------------------------------------------+-----------------------------------------------------+
-| integer3 | Three integer numbers separated by a space               | :xml:`<node attribute="5 8 13" />`                  |
+| integer2 | Two integer numbers separated by a space                 | :xml:`<node attribute="42 -84" />`                  |
 +----------+----------------------------------------------------------+-----------------------------------------------------+
-| float3   | Three floating point numbers separated by a space        | :xml:`<node attribute="3.14159 2.71828 1.41421" />` |
+| float2   | Two floating point numbers separated by a space          | :xml:`<node attribute="9.81" />`                    |
++----------+----------------------------------------------------------+-----------------------------------------------------+
+| integer3 | Three integer numbers separated by spaces                | :xml:`<node attribute="5 8 13" />`                  |
++----------+----------------------------------------------------------+-----------------------------------------------------+
+| float3   | Three floating point numbers separated by spaces         | :xml:`<node attribute="3.14159 2.71828 1.41421" />` |
 +----------+----------------------------------------------------------+-----------------------------------------------------+
 
 General setup

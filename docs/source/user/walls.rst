@@ -49,41 +49,231 @@ It should be called with the same input script, and for every wall it will do th
 #. define a DPD interaction between the particles of the PV according to the parameters of the :xml:`<generate_frozen>` node
 #. define a Velocity-Verlet integrator (see :ref:`user-integrators`) for the PV with time-step defined in the parameters of the node
 #. run 5000 time-steps with periodic boundrary conditions (no simulation modifications like plugins, etc. take effect here)
-#. 
+#. delete all the particles except those, which form the first layer inside the wall and write those particles to disk
+   (to path determined by :xml:`path` attribute of the node :xml:`<generate_frozen>`)
 
+The saved particles can later be used with the restart :ref:`user-ic`.
 
-Common attributes
-*****************
+Therefore, the typical wall definition in the script looks like this:
 
-+-----------+--------+---------+---------------------------------------+
-| Attribute | Type   | Default | Remarks                               |
-+===========+========+=========+=======================================+
-| type      | string | ""      | Type of the plugin, see below for the |
-|           |        |         | list of available types               |
-+-----------+--------+---------+---------------------------------------+
-| name      | string | ""      | Name of the created plugin            |
-+-----------+--------+---------+---------------------------------------+
+.. code-block:: xml
 
-Available Plugins
-*****************
+   <particle_vector type="regular" name="wall" mass="1" >
+      <generate type="restart" path="restart/" />
+   </particle_vector>
+   
+   <wall type="some_wall_type" name="wall"  >
+      <generate_frozen path="restart" mass="1.0" density="8" a="10" gamma="10" kbt="1.0" rc="1.0" power="1.0" />
+      <apply_to pv="liquid" />
+   </wall>
 
-* **Add force**
-   This plugin will add constant force :math:`\mathbf{F}_{extra}` to each particle of a specific PV every time-step.
-   Is is advised to only use it with rigid objects, since Velocity-Verlet integrator with constant pressure can do the same without any performance penalty.
+Then running :bash:`genwall` with the given script will be enough to obtain a correct wall description including the frozen particles in the simulation afterwards.
+
+Common wall attributes
+**********************
+
++-------------+--------+---------+-------------------------------------------------------------------------------+
+| Attribute   | Type   | Default | Remarks                                                                       |
++=============+========+=========+===============================================================================+
+| type        | string | ""      | Type of the wall, see below for the                                           |
+|             |        |         | list of available types                                                       |
++-------------+--------+---------+-------------------------------------------------------------------------------+
+| name        | string | ""      | Name of the created wall                                                      |
++-------------+--------+---------+-------------------------------------------------------------------------------+
+| check_every | int    | 0       | If greater than zero, every that many timesteps print the number of particles |
+|             |        |         | from the attached PVs that are inside the wall                                |
++-------------+--------+---------+-------------------------------------------------------------------------------+
+
+Available Walls
+***************
+
+* **Plane**
+
+   Type: *plane*
+   
+   Planar infinitely stretching wall. Inside is determined by the normal direction (normal points *inside* the wall).
    
    Additional attributes:
    
-+-----------+--------+-----------+----------------------------+
-| Attribute | Type   | Default   | Remarks                    |
-+===========+========+===========+============================+
-| pv_name   | string | ""        | Name of the PV             |
-+-----------+--------+-----------+----------------------------+
-| force     | float3 | (0, 0, 0) | :math:`\mathbf{F}_{extra}` |
-+-----------+--------+-----------+----------------------------+
++---------------+--------+-----------+---------------------------------+
+| Attribute     | Type   | Default   | Remarks                         |
++===============+========+===========+=================================+
+| normal        | float3 | (0, 0, 0) | Plane normal                    |
++---------------+--------+-----------+---------------------------------+
+| point_through | float3 | (0, 0, 0) | Point that belongs to the plane |
++---------------+--------+-----------+---------------------------------+
 
    **Example**
    
    .. code-block:: xml
    
-      <plugin type="add_force" name="frc"  pv_name="sphere" force="0.1 0 0" />
+      <wall type="plane" name="top" check_every="10000" normal="0 0 1" point_through="0 0 100" >
+         <apply_to pv="dpd" />
+      </wall>
+
+
+* **Cylinder**
+
+   Type: *cylinder*
+   
+   Cylindrical infinitely stretching wall, the main axis is aligned along OX or OY or OZ
+   
+   Additional attributes:
+   
++-----------+---------+---------+-------------------------------------------------------------------+
+| Attribute | Type    | Default | Remarks                                                           |
++===========+=========+=========+===================================================================+
+| center    | float2  | (0, 0)  | Point that belongs to the cylinder axis projected along that axis |
++-----------+---------+---------+-------------------------------------------------------------------+
+| radius    | float   | 1       | Cylinder radius                                                   |
++-----------+---------+---------+-------------------------------------------------------------------+
+| axis      | string  | "x"     | Direction of cylinder axis, valid values are "x", "y" or "z"      |
++-----------+---------+---------+-------------------------------------------------------------------+
+| inside    | boolean | false   | If true, domain will be *inside* the cylinder (pipe)              |
++-----------+---------+---------+-------------------------------------------------------------------+
+
+   **Example**
+   
+   .. code-block:: xml
+   
+      <wall type="cylinder" name="cyl" check_every="10000" radius="8" center="32 16" axis="z" >
+         <apply_to pv="liquid" />
+      </wall>
+
+
+* **Sphere**
+
+   Type: *sphere*
+
+   Spherical wall.
+   
+   Additional attributes:
+   
++-----------+---------+-----------+---------------------------------------------+
+| Attribute | Type    | Default   | Remarks                                     |
++===========+=========+===========+=============================================+
+| center    | float3  | (0, 0, 0) | Sphere center                               |
++-----------+---------+-----------+---------------------------------------------+
+| radius    | float   | 1         | Sphere radius                               |
++-----------+---------+-----------+---------------------------------------------+
+| inside    | boolean | false     | If true, domain will be *inside* the sphere |
++-----------+---------+-----------+---------------------------------------------+
+
+   **Example**
+   
+   .. code-block:: xml
+   
+      <wall type="sphere" name="sph" check_every="5000" radius="10" center="32 16" axis="z" >
+         <apply_to pv="liquid" />
+      </wall>
+
+
+* **Box**
+
+   Type: *box*
+
+   Rectangular cuboid wall.
+   
+   Additional attributes:
+   
++-----------+---------+-----------+---------------------------------------------+
+| Attribute | Type    | Default   | Remarks                                     |
++===========+=========+===========+=============================================+
+| low       | float3  | (0, 0, 0) | Lower corner of the cuboid                  |
++-----------+---------+-----------+---------------------------------------------+
+| high      | float3  | (0, 0, 0) | Higher corner of the cuboid                 |
++-----------+---------+-----------+---------------------------------------------+
+| inside    | boolean | false     | If true, domain will be *inside* the cuboid |
++-----------+---------+-----------+---------------------------------------------+
+
+   **Example**
+   
+   .. code-block:: xml
+   
+      <wall type="box" name="box" check_every="1000" low="16 16 16" high="48 48 48" inside="false" >
+         <apply_to pv="particles" />
+      </wall>
+
+
+* **SDF-based wall**
+   
+   Type: *sdf*
+   
+   This wall is based on an arbitrary Signed Distance Function defined in the simulation domain on a regular cartesian grid.
+   The wall reads the SDF data from a .sdf file, that has a special structure.
+   
+   First two lines define the header: three real number separated by spaces govern the size of the domain where the SDF is defined, 
+   and next three integer numbers (:math:`Nx\,\,Ny\,\,Nz`) define the resolution.
+   Next the :math:`Nx \times Ny \times Nz` single precision floating point values are written (in binary representation).
+   
+   Negative SDF values correspond to the domain, and positive -- to the inside of the wall.
+   Threfore the boundary is defined by the zero-level isosurface.
+   
+   Additional attributes:
+   
++--------------+--------+--------------------+--------------------------------------------------------------------+
+| Attribute    | Type   | Default            | Remarks                                                            |
++==============+========+====================+====================================================================+
+| sdf_filename | string | "wall.sdf"         | File containing the SDF data (see the format above)                |
++--------------+--------+--------------------+--------------------------------------------------------------------+
+| sdf_h        | float3 | (0.25, 0.25. 0.25) | Resolution of the resampled SDF                                    |
+|              |        |                    | In order to have a more accurate SDF representation, the initial   |
+|              |        |                    | function is resampled on a finer grid.                             |
+|              |        |                    | The lower this value is, the better the wall will be, however, the |
+|              |        |                    | more memory it will consume and the slower the execution will be   |
++--------------+--------+--------------------+--------------------------------------------------------------------+
+
+
+   **Example**
+   
+   .. code-block:: xml
+   
+      <wall type="sdf" name="wall" sdf_filename="./weird_shape.sdf">
+         <apply_to pv="liquid1" />
+         <apply_to pv="liquid2" />      
+      </wall>
+
+
+* **Moving plane**
+
+   Type: *moving_wall*
+   
+   Planar wall that is moving along itself with constant velocity.
+   Can be used to produce Couette velocity profile in combination with 
+   The boundary conditions on such wall are no-through and constant velocity (specified).
+   
+   Additional attributes:
+   
++---------------+--------+-----------+-----------------------------------------------+
+| Attribute     | Type   | Default   | Remarks                                       |
++===============+========+===========+===============================================+
+| normal        | float3 | (0, 0, 0) | Plane normal                                  |
++---------------+--------+-----------+-----------------------------------------------+
+| point_through | float3 | (0, 0, 0) | Point that belongs to the plane               |
++---------------+--------+-----------+-----------------------------------------------+
+| velocity      | float3 | (0, 0, 0) | Wall velocity. Should be parallel to the wall |
++---------------+--------+-----------+-----------------------------------------------+
+
+   **Example**
+   
+   .. code-block:: xml
       
+      <wall type="moving_plane" name="floor" normal="0 0 -1" point_through="0 0 2" velocity="1.23456 0 0" >
+         <apply_to pv="dpd" />
+      </wall>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   

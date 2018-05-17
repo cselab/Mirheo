@@ -83,7 +83,7 @@ Available Belonging Checkers
    .. code-block:: xml
    
       <!-- At the beginning of the simulation "dpd" PV (usually created randomly with uniform density)
-           will be stripped off all the particles inside the membranes definde by OV "rbcs".
+           will be stripped off of all the particles inside the membranes definde by OV "rbcs".
            Those inner particles will form a new PV "inner" -->
             
       <object_belonging_checker name="membrane_checker" type="mesh" object_vector="rbcs"  >
