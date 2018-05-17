@@ -4,6 +4,7 @@
 
 #include <core/containers.h>
 
+class LocalParticleVector;
 class ParticleVector;
 class CellList;
 
@@ -12,7 +13,7 @@ class SDF_basedWall : public Wall
 public:
 	using Wall::Wall;
 
-	virtual void sdfPerParticle(ParticleVector* pv, GPUcontainer* sdfs, GPUcontainer* gradients, cudaStream_t stream) = 0;
+	virtual void sdfPerParticle(LocalParticleVector* pv, GPUcontainer* sdfs, GPUcontainer* gradients, cudaStream_t stream) = 0;
 
 	~SDF_basedWall() = default;
 };
@@ -33,7 +34,7 @@ public:
 	void bounce(float dt, cudaStream_t stream) override;
 	void check(cudaStream_t stream) override;
 
-	void sdfPerParticle(ParticleVector* pv, GPUcontainer* sdfs, GPUcontainer* gradients, cudaStream_t stream) override;
+	void sdfPerParticle(LocalParticleVector* pv, GPUcontainer* sdfs, GPUcontainer* gradients, cudaStream_t stream) override;
 
 	InsideWallChecker& getChecker() { return insideWallChecker; }
 

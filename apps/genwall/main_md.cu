@@ -9,6 +9,9 @@
 
 #include <core/initial_conditions/uniform_ic.h>
 
+#include <core/integrators/forcing_terms/none.h>
+#include <core/integrators/vv.h>
+
 #include <core/argument_parser.h>
 #include <core/pvs/particle_vector.h>
 #include <core/utils/kernel_launch.h>
@@ -154,10 +157,10 @@ int main(int argc, char** argv)
 
 		auto sim = std::make_unique<Simulation>(nranks3D, globalDomainSize, MPI_COMM_WORLD, MPI_COMM_NULL);
 
-		auto startingPV = std::make_unique<ParticleVector>("starting", 1.0);
-		auto final      = std::make_unique<ParticleVector>(wallNode.attribute("name").as_string("wall"), 1.0);
-		auto ic         = std::make_unique<UniformIC>     (wallGenNode.attribute("density").as_float(4));
-		auto vv         = std::make_unique<IntegratorVV>  ("vv", node.attribute("dt").as_float(0.001));
+		auto startingPV = std::make_unique<ParticleVector>             ("starting", 1.0);
+		auto final      = std::make_unique<ParticleVector>             (wallNode.attribute("name").as_string("wall"), 1.0);
+		auto ic         = std::make_unique<UniformIC>                  (wallGenNode.attribute("density").as_float(4));
+		auto vv         = std::make_unique<IntegratorVV<Forcing_None>> ("vv", wallGenNode.attribute("dt").as_float(0.001), Forcing_None());
 
 		auto startingPtr = startingPV.get();
 		auto finalPtr    = final.get();

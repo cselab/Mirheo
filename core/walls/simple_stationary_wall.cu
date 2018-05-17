@@ -422,18 +422,19 @@ void SimpleStationaryWall<InsideWallChecker>::check(cudaStream_t stream)
 }
 
 template<class InsideWallChecker>
-void SimpleStationaryWall<InsideWallChecker>::sdfPerParticle(ParticleVector* pv, GPUcontainer* sdfs, GPUcontainer* gradients, cudaStream_t stream)
+void SimpleStationaryWall<InsideWallChecker>::sdfPerParticle(LocalParticleVector* lpv, GPUcontainer* sdfs, GPUcontainer* gradients, cudaStream_t stream)
 {
 	const int nthreads = 128;
 
-	if (sdfs->size() * sdfs->datatype_size() < sizeof(float) * pv->local()->size())
+	auto pv = lpv->pv;
+	if (sdfs->size() * sdfs->datatype_size() < sizeof(float) * lpv->size())
 		die("Provided too small container for SDF values of PV '%s'", pv->name.c_str());
 
 	if (gradients != nullptr)
-		if (gradients->size() * gradients->datatype_size() < sizeof(float3) * pv->local()->size())
+		if (gradients->size() * gradients->datatype_size() < sizeof(float3) * lpv->size())
 			die("Provided too small container for SDF gradients of PV '%s'", pv->name.c_str());
 
-	PVview view(pv, pv->local());
+	PVview view(pv, lpv);
 	SAFE_KERNEL_LAUNCH(
 			computeSdfPerParticle,
 			getNblocks(view.size, nthreads), nthreads, 0, stream,

@@ -14,7 +14,7 @@
 #include <core/walls/stationary_walls/box.h>
 
 
-template<bool QUERY, typename InsideWallChecker>
+template<bool QUERY>
 __global__ void collectFrozen(PVview view, float* sdfs, float minVal, float maxVal, float4* frozen, int* nFrozen)
 {
 	const int pid = blockIdx.x * blockDim.x + threadIdx.x;
@@ -38,9 +38,9 @@ void freezeParticlesInWall(SDF_basedWall* wall, ParticleVector* pv, ParticleVect
 {
 	CUDA_Check( cudaDeviceSynchronize() );
 
-	DeviceBuffer<float> sdfs;
+	DeviceBuffer<float> sdfs(pv->local()->size());
 
-	wall->sdfPerParticle(pv, &sdfs, nullptr, 0);
+	wall->sdfPerParticle(pv->local(), &sdfs, nullptr, 0);
 
 	PinnedBuffer<int> nFrozen(1);
 
@@ -65,8 +65,8 @@ void freezeParticlesInWall(SDF_basedWall* wall, ParticleVector* pv, ParticleVect
 	nFrozen.clear(0);
 	SAFE_KERNEL_LAUNCH(collectFrozen<false>,
 			nblocks, nthreads, 0, 0,
-			view, minVal, maxVal,
-			(float4*)frozen->local()->coosvels.devPtr(), nFrozen.devPtr(), checker.handler());
+			view, sdfs.devPtr(), minVal, maxVal,
+			(float4*)frozen->local()->coosvels.devPtr(), nFrozen.devPtr());
 	nFrozen.downloadFromDevice(0);
 
 	CUDA_Check( cudaDeviceSynchronize() );
