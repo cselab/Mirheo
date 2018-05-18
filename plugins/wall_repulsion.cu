@@ -42,7 +42,7 @@ void WallRepulsionPlugin::beforeIntegration(cudaStream_t stream)
 
 	sdfs.resize_anew(view.size);
 	gradients.resize_anew(view.size);
-	wall->sdfPerParticle(pv, &sdfs, &gradients, stream);
+	wall->sdfPerParticle(pv->local(), &sdfs, &gradients, stream);
 
 	const int nthreads = 128;
 	SAFE_KERNEL_LAUNCH(

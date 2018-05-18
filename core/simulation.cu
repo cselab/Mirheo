@@ -408,13 +408,22 @@ void Simulation::prepareInteractions()
 
 		CellList *cl1, *cl2;
 
+		// Choose a CL with smallest but bigger than rc cell
+		float mindiff = 10;
 		for (auto& cl : clVec1)
-			if (fabs(cl->rc - rc) <= rcTolerance)
+			if (cl->rc - rc > -rcTolerance && cl->rc - rc < mindiff)
+			{
 				cl1 = cl.get();
+				mindiff = cl->rc - rc;
+			}
 
+		mindiff = 10;
 		for (auto& cl : clVec2)
-			if (fabs(cl->rc - rc) <= rcTolerance)
+			if (cl->rc - rc > -rcTolerance && cl->rc - rc < mindiff)
+			{
 				cl2 = cl.get();
+				mindiff = cl->rc - rc;
+			}
 
 		auto inter = std::get<3>(prototype);
 
