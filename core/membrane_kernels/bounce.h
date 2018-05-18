@@ -93,6 +93,8 @@ __device__ inline void findBouncesInCell(
 		MeshView mesh,
 		TriangleTable triangleTable)
 {
+
+#pragma unroll 2
 	for (int pid=pstart; pid<pend; pid++)
 	{
 		Particle p, pOld;
@@ -166,6 +168,7 @@ static __global__ void findBouncesInMesh(
 	const int3 cidHigh = cinfo.getCellIdAlongAxes(hi + tol);
 
 	int3 cid3;
+#pragma unroll 2
 	for (cid3.z = cidLow.z; cid3.z <= cidHigh.z; cid3.z++)
 		for (cid3.y = cidLow.y; cid3.y <= cidHigh.y; cid3.y++)
 			{
