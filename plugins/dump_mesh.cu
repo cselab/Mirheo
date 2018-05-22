@@ -102,10 +102,10 @@ void writePLY(
 
 		ss <<  "ply\n";
 		ss <<  "format binary_little_endian 1.0\n";
-		ss <<  "element vertex " << nvertices << "\n";
+		ss <<  "element vertex " << totalVerts << "\n";
 		ss <<  "property float x\nproperty float y\nproperty float z\n";
 		//ss <<  "property float xnormal\nproperty float ynormal\nproperty float znormal\n";
-		ss <<  "element face " << ntriangles << "\n";
+		ss <<  "element face " << totalTriangles << "\n";
 		ss <<  "property list int int vertex_index\n";
 		ss <<  "end_header\n";
 
@@ -120,14 +120,14 @@ void writePLY(
 
 	writeToMPI(vertices, f, comm);
 
-	int triangleOffset = 0;
-	MPI_Check( MPI_Exscan(&ntriangles, &triangleOffset, 1, MPI_INTEGER, MPI_SUM, comm));
+	int verticesOffset = 0;
+	MPI_Check( MPI_Exscan(&nvertices, &verticesOffset, 1, MPI_INT, MPI_SUM, comm));
 
 	std::vector<int4> connectivity;
 	for(int j = 0; j < nObjects; ++j)
 		for(int i = 0; i < ntrianglesPerObject; ++i)
 		{
-			int3 vertIds = mesh[i] + nverticesPerObject * j + triangleOffset;
+			int3 vertIds = mesh[i] + nverticesPerObject * j + verticesOffset;
 			connectivity.push_back({3, vertIds.x, vertIds.y, vertIds.z});
 		}
 

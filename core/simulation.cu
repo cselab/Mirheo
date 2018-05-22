@@ -27,9 +27,9 @@ nranks3D(nranks3D), interComm(interComm), currentTime(0), currentStep(0)
 	int periods[] = {1, 1, 1};
 	int coords[3];
 
-	MPI_Check( MPI_Comm_rank(comm, &rank) );
-	MPI_Check( MPI_Cart_create(comm, 3, ranksArr, periods, 0, &cartComm) );
+	MPI_Check( MPI_Cart_create(comm, 3, ranksArr, periods, 1, &cartComm) );
 	MPI_Check( MPI_Cart_get(cartComm, 3, ranksArr, periods, coords) );
+	MPI_Check( MPI_Comm_rank(comm, &rank) );
 	rank3D = {coords[0], coords[1], coords[2]};
 
 	domain.globalSize = globalDomainSize;
