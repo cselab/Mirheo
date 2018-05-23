@@ -23,12 +23,16 @@ int main(int argc, char** argv)
 	ArgumentParser::Parser parser(opts, rank == 0);
 	parser.parse(argc, argv);
 
-	// Parse the script
-	Parser udxParser(xmlname);
-	auto udevicex = std::move( udxParser.setup_uDeviceX(logger, gpuAwareMPI) );
+	{
+		// Parse the script
+		Parser udxParser(xmlname);
+		auto udevicex = std::move( udxParser.setup_uDeviceX(logger, gpuAwareMPI) );
 
-	// Shoot
-	udevicex->run(udxParser.getNIterations());
+		// Shoot
+		udevicex->run(udxParser.getNIterations());
+	}
+
+	MPI_Finalize();
 
 	return 0;
 }

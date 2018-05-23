@@ -35,8 +35,22 @@ class ObjectBelongingChecker;
 class SimulationPlugin;
 
 
+class CUDA_Cleanup
+{
+public:
+	~CUDA_Cleanup()
+	{
+		CUDA_Check( cudaDeviceReset() );
+	}
+};
+
 class Simulation
 {
+private:
+	/// This member HAS to be THE FIRST defined in the Simulation,
+	/// so that it's destroyed the last
+	CUDA_Cleanup cleanup;
+
 public:
 	int3 nranks3D;
 	int3 rank3D;

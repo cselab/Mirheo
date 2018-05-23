@@ -70,7 +70,6 @@ uDeviceX::uDeviceX(int3 nranks3D, float3 globalDomainSize,
 uDeviceX::~uDeviceX() = default;
 
 
-
 void uDeviceX::registerPlugins( std::pair< std::unique_ptr<SimulationPlugin>, std::unique_ptr<PostprocessPlugin> > plugins )
 {
 	if (isComputeTask())
@@ -107,12 +106,8 @@ void uDeviceX::run(int nsteps)
 		sim->init();
 		sim->run(nsteps);
 		sim->finalize();
-
-		CUDA_Check( cudaDeviceSynchronize() );
 	}
 	else
 		post->run();
-
-	MPI_Finalize();
 }
 
