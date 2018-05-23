@@ -99,13 +99,13 @@ void ParticleRedistributor::attach(ParticleVector* pv, CellList* cl)
 	info("Particle redistributor takes pv %s, base tag %d", pv->name.c_str(), tagByName(pv->name));
 }
 
-void ParticleRedistributor::prepareData(int id, cudaStream_t stream)
+void ParticleRedistributor::prepareSizes(int id, cudaStream_t stream)
 {
 	auto pv = particles[id];
 	auto cl = cellLists[id];
 	auto helper = helpers[id];
 
-	debug2("Preparing %s leaving particles on the device", pv->name.c_str());
+	debug2("Counting leaving particles of '%s'", pv->name.c_str());
 
 	helper->sendSizes.clear(stream);
 	if (pv->local()->size() > 0)
@@ -123,8 +123,26 @@ void ParticleRedistributor::prepareData(int id, cudaStream_t stream)
 				cl->cellInfo(), packer, helper->wrapSendData() );
 
 		helper->makeSendOffsets_Dev2Dev(stream);
-		helper->resizeSendBuf();
+	}
+}
 
+void ParticleRedistributor::prepareData(int id, cudaStream_t stream)
+{
+	auto pv = particles[id];
+	auto cl = cellLists[id];
+	auto helper = helpers[id];
+
+	debug2("Downloading %d leaving particles of '%s'", helper->sendOffsets[27], pv->name.c_str());
+
+	if (pv->local()->size() > 0)
+	{
+		const int maxdim = std::max({cl->ncells.x, cl->ncells.y, cl->ncells.z});
+		const int nthreads = 64;
+		const dim3 nblocks = dim3(getNblocks(maxdim*maxdim, nthreads), 6, 1);
+
+		auto packer = ParticlePacker(pv, pv->local(), stream);
+
+		helper->resizeSendBuf();
 		// Sizes will still remain on host, no need to download again
 		helper->sendSizes.clearDevice(stream);
 		SAFE_KERNEL_LAUNCH(

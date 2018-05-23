@@ -97,8 +97,7 @@ void ObjectRedistributor::attach(ObjectVector* ov, float rc)
 }
 
 
-// TODO finally split all this shit
-void ObjectRedistributor::prepareData(int id, cudaStream_t stream)
+void ObjectRedistributor::prepareSizes(int id, cudaStream_t stream)
 {
 	auto ov  = objects[id];
 	auto lov = ov->local();
@@ -110,7 +109,7 @@ void ObjectRedistributor::prepareData(int id, cudaStream_t stream)
 	ObjectPacker packer(ov, ov->local(), stream);
 	helper->setDatumSize(packer.totalPackedSize_byte);
 
-	debug2("Preparing %s halo on the device", ov->name.c_str());
+	debug2("Counting exiting objects of '%s'", ov->name.c_str());
 	const int nthreads = 256;
 
 	// Prepare sizes
@@ -125,21 +124,39 @@ void ObjectRedistributor::prepareData(int id, cudaStream_t stream)
 		helper->makeSendOffsets_Dev2Dev(stream);
 	}
 
-
-	// Early termination - no redistribution
 	int nObjs = helper->sendSizes[13];
+	debug2("%d objects of '%s' will leave", ovView.nObjects - nObjs, ov->name.c_str());
 
+	// Early termination support
 	if (nObjs == ovView.nObjects)
 	{
-		debug2("No objects '%s' leaving, no need to rebuild the object vector", ov->name.c_str());
-
 		helper->sendSizes[13] = 0;
 		helper->makeSendOffsets();
 		helper->resizeSendBuf();
+	}
+}
 
+void ObjectRedistributor::prepareData(int id, cudaStream_t stream)
+{
+	auto ov  = objects[id];
+	auto lov = ov->local();
+	auto helper = helpers[id];
+
+	OVview ovView(ov, ov->local());
+	ObjectPacker packer(ov, ov->local(), stream);
+	helper->setDatumSize(packer.totalPackedSize_byte);
+
+	const int nthreads = 256;
+	int nObjs = helper->sendSizes[13];
+
+	// Early termination - no redistribution
+	if (helper->sendOffsets[27] == 0)
+	{
+		debug2("No objects of '%s' leaving, no need to rebuild the object vector", ov->name.c_str());
 		return;
 	}
 
+	debug2("Downloading %d leaving objects of '%s'", ovView.nObjects - nObjs, ov->name.c_str());
 
 	// Gather data
 	helper->resizeSendBuf();

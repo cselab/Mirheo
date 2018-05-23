@@ -23,6 +23,6 @@
 	
 	<plugin type="stats" name="stats" every="100" />
 	
-	<run niters="10" />
+	<run niters="1010" />
 
 </simulation>

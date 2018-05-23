@@ -46,7 +46,7 @@ public:
 
 	DomainInfo domain;
 
-	Simulation(int3 nranks3D, float3 globalDomainSize, const MPI_Comm& comm, const MPI_Comm& interComm);
+	Simulation(int3 nranks3D, float3 globalDomainSize, const MPI_Comm& comm, const MPI_Comm& interComm, bool gpuAwareMPI);
 	~Simulation();
 
 	void registerParticleVector         (std::unique_ptr<ParticleVector> pv, std::unique_ptr<InitialConditions> ic, int checkpointEvery);
@@ -100,6 +100,7 @@ private:
 
 	std::unique_ptr<TaskScheduler> scheduler;
 
+	bool gpuAwareMPI;
 	std::unique_ptr<ParticleHaloExchanger> halo;
 	std::unique_ptr<ParticleRedistributor> redistributor;
 

@@ -11,15 +11,16 @@ class PostprocessPlugin;
 class uDeviceX
 {
 public:
-	Simulation* sim;
-	Postprocess* post;
+	std::unique_ptr<Simulation> sim;
+	std::unique_ptr<Postprocess> post;
 
 	uDeviceX(int3 nranks3D, float3 globalDomainSize,
-			Logger& logger, std::string logFileName, int verbosity=3);
+			Logger& logger, std::string logFileName, int verbosity, bool gpuAwareMPI);
 
 	bool isComputeTask();
 	void run(int niters);
 	void registerPlugins( std::pair< std::unique_ptr<SimulationPlugin>, std::unique_ptr<PostprocessPlugin> > plugins );
+	~uDeviceX();
 
 private:
 	int computeTask;

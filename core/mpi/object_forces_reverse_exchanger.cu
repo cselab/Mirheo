@@ -106,16 +106,21 @@ void ObjectForcesReverseExchanger::attach(ObjectVector* ov)
 }
 
 
+void ObjectForcesReverseExchanger::prepareSizes(int id, cudaStream_t stream)
+{
+	auto helper = helpers[id];
+	auto& offsets = entangledHaloExchanger->getRecvOffsets(id);
+
+	for (int i=0; i < helper->nBuffers; i++)
+		helper->sendSizes[i] = offsets[i+1] - offsets[i];
+}
+
 void ObjectForcesReverseExchanger::prepareData(int id, cudaStream_t stream)
 {
 	auto ov = objects[id];
 	auto helper = helpers[id];
-	auto& offsets = entangledHaloExchanger->getRecvOffsets(id);
 
-	debug2("Preparing %s forces to sending back", ov->name.c_str());
-
-	for (int i=0; i < helper->nBuffers; i++)
-		helper->sendSizes[i] = offsets[i+1] - offsets[i];
+	debug2("Preparing '%s' forces to sending back", ov->name.c_str());
 
 	helper->makeSendOffsets();
 	helper->resizeSendBuf();
@@ -140,7 +145,7 @@ void ObjectForcesReverseExchanger::prepareData(int id, cudaStream_t stream)
 									 helper->sendBuf.size(), cudaMemcpyDeviceToDevice, stream ) );
 	}
 
-	debug2("Will send back forces for %d objects", offsets[helper->nBuffers]);
+	debug2("Will send back forces for %d objects", helper->sendOffsets[helper->nBuffers]);
 }
 
 void ObjectForcesReverseExchanger::combineAndUploadData(int id, cudaStream_t stream)

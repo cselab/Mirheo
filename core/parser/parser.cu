@@ -16,6 +16,8 @@
 #include "pv_factory.h"
 #include "walls_factory.h"
 
+#include <core/utils/make_unique.h>
+
 //================================================================================================
 // Main parser
 //================================================================================================
@@ -45,7 +47,7 @@ int Parser::getNIterations()
 	return simNode.child("run").attribute("niters").as_int(1);
 }
 
-uDeviceX* Parser::setup_uDeviceX(Logger& logger)
+std::unique_ptr<uDeviceX> Parser::setup_uDeviceX(Logger& logger, bool useGpuAwareMPI)
 {
 	auto simNode = config.child("simulation");
 	if (simNode.type() == pugi::node_null)
@@ -59,7 +61,7 @@ uDeviceX* Parser::setup_uDeviceX(Logger& logger)
 	int3 nranks3D = simNode.attribute("mpi_ranks").as_int3({1, 1, 1});
 	int debugLvl  = simNode.attribute("debug_lvl").as_int(2);
 
-	uDeviceX* udx = new uDeviceX(nranks3D, globalDomainSize, logger, logname, debugLvl);
+	auto udx = std::make_unique<uDeviceX> (nranks3D, globalDomainSize, logger, logname, debugLvl, useGpuAwareMPI);
 
 	if (udx->isComputeTask())
 	{

@@ -6,8 +6,10 @@
 #include <core/postproc.h>
 #include <plugins/interface.h>
 
+#include <core/utils/make_unique.h>
+
 uDeviceX::uDeviceX(int3 nranks3D, float3 globalDomainSize,
-		Logger& logger, std::string logFileName, int verbosity)
+		Logger& logger, std::string logFileName, int verbosity, bool gpuAwareMPI)
 {
 	int nranks, rank;
 
@@ -35,7 +37,7 @@ uDeviceX::uDeviceX(int3 nranks3D, float3 globalDomainSize,
 	{
 		warn("No postprocess will be started now, use this mode for debugging. All the joint plugins will be turned off too.");
 
-		sim = new Simulation(nranks3D, globalDomainSize, MPI_COMM_WORLD, MPI_COMM_NULL);
+		sim = std::make_unique<Simulation> (nranks3D, globalDomainSize, MPI_COMM_WORLD, MPI_COMM_NULL, gpuAwareMPI);
 		computeTask = 0;
 		return;
 	}
@@ -52,7 +54,7 @@ uDeviceX::uDeviceX(int3 nranks3D, float3 globalDomainSize,
 
 		MPI_Check( MPI_Comm_rank(compComm, &rank) );
 
-		sim = new Simulation(nranks3D, globalDomainSize, compComm, interComm);
+		sim = std::make_unique<Simulation> (nranks3D, globalDomainSize, compComm, interComm, gpuAwareMPI);
 	}
 	else
 	{
@@ -61,9 +63,13 @@ uDeviceX::uDeviceX(int3 nranks3D, float3 globalDomainSize,
 
 		MPI_Check( MPI_Comm_rank(ioComm, &rank) );
 
-		post = new Postprocess(ioComm, interComm);
+		post = std::make_unique<Postprocess> (ioComm, interComm);
 	}
 }
+
+uDeviceX::~uDeviceX() = default;
+
+
 
 void uDeviceX::registerPlugins( std::pair< std::unique_ptr<SimulationPlugin>, std::unique_ptr<PostprocessPlugin> > plugins )
 {

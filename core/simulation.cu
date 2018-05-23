@@ -20,8 +20,8 @@
 
 #include <algorithm>
 
-Simulation::Simulation(int3 nranks3D, float3 globalDomainSize, const MPI_Comm& comm, const MPI_Comm& interComm) :
-nranks3D(nranks3D), interComm(interComm), currentTime(0), currentStep(0)
+Simulation::Simulation(int3 nranks3D, float3 globalDomainSize, const MPI_Comm& comm, const MPI_Comm& interComm, bool gpuAwareMPI) :
+nranks3D(nranks3D), interComm(interComm), currentTime(0), currentStep(0), gpuAwareMPI(gpuAwareMPI)
 {
 	int ranksArr[] = {nranks3D.x, nranks3D.y, nranks3D.z};
 	int periods[] = {1, 1, 1};
@@ -530,12 +530,12 @@ void Simulation::init()
 		pl->handshake();
 	}
 
-	halo = std::make_unique <ParticleHaloExchanger> (cartComm);
-	redistributor = std::make_unique <ParticleRedistributor> (cartComm);
+	halo = std::make_unique <ParticleHaloExchanger> (cartComm, gpuAwareMPI);
+	redistributor = std::make_unique <ParticleRedistributor> (cartComm, gpuAwareMPI);
 
-	objHalo = std::make_unique <ObjectHaloExchanger> (cartComm);
-	objRedistibutor = std::make_unique <ObjectRedistributor> (cartComm);
-	objHaloForces = std::make_unique <ObjectForcesReverseExchanger> (cartComm, objHalo.get());
+	objHalo = std::make_unique <ObjectHaloExchanger> (cartComm, gpuAwareMPI);
+	objRedistibutor = std::make_unique <ObjectRedistributor> (cartComm, gpuAwareMPI);
+	objHaloForces = std::make_unique <ObjectForcesReverseExchanger> (cartComm, objHalo.get(), gpuAwareMPI);
 
 	debug("Attaching particle vectors to halo exchanger and redistributor");
 	for (auto& pv : particleVectors)

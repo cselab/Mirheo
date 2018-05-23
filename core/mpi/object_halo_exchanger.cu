@@ -131,7 +131,7 @@ void ObjectHaloExchanger::attach(ObjectVector* ov, float rc)
 	info("Object vector %s (rc %f) was attached to halo exchanger", ov->name.c_str(), rc);
 }
 
-void ObjectHaloExchanger::prepareData(int id, cudaStream_t stream)
+void ObjectHaloExchanger::prepareSizes(int id, cudaStream_t stream)
 {
 	auto ov  = objects[id];
 	auto rc  = rcs[id];
@@ -140,7 +140,7 @@ void ObjectHaloExchanger::prepareData(int id, cudaStream_t stream)
 
 	ov->findExtentAndCOM(stream, true);
 
-	debug2("Preparing %s halo on the device", ov->name.c_str());
+	debug2("Counting halo objects of '%s'", ov->name.c_str());
 
 	OVview ovView(ov, ov->local());
 	ObjectPacker packer(ov, ov->local(), stream);
@@ -157,11 +157,30 @@ void ObjectHaloExchanger::prepareData(int id, cudaStream_t stream)
 				ov->domain, ovView, packer, rc, helper->wrapSendData() );
 
 		helper->makeSendOffsets_Dev2Dev(stream);
-		helper->resizeSendBuf();
+	}
+}
 
+void ObjectHaloExchanger::prepareData(int id, cudaStream_t stream)
+{
+	auto ov  = objects[id];
+	auto rc  = rcs[id];
+	auto helper = helpers[id];
+	auto origin = origins[id];
+
+	debug2("Downloading %d halo objects of '%s'", helper->sendOffsets[27], ov->name.c_str());
+
+	OVview ovView(ov, ov->local());
+	ObjectPacker packer(ov, ov->local(), stream);
+	helper->setDatumSize(packer.totalPackedSize_byte);
+
+	if (ovView.nObjects > 0)
+	{
 		// 1 int per particle: #objects x objSize x int
 		origin->resize_anew(helper->sendOffsets[helper->nBuffers] * ovView.objSize);
 
+		const int nthreads = 256;
+
+		helper->resizeSendBuf();
 		helper->sendSizes.clearDevice(stream);
 		SAFE_KERNEL_LAUNCH(
 				getObjectHalos<false>,

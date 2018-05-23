@@ -56,24 +56,36 @@ ParticleExchanger::ParticleExchanger(MPI_Comm& comm, bool gpuAwareMPI) :
 
 void ParticleExchanger::init(cudaStream_t stream)
 {
-	// Post irecv for sizes as early as possible
+	// Post irecv for sizes
 	for (int i=0; i<helpers.size(); i++)
 		if (needExchange(i)) postRecvSize(helpers[i]);
 
 	// Derived class determines what to send
 	for (int i=0; i<helpers.size(); i++)
+		if (needExchange(i)) prepareSizes(i, stream);
+
+	// Send sizes
+	for (int i=0; i<helpers.size(); i++)
+		if (needExchange(i)) sendSizes(helpers[i]);
+
+	// Derived class determines what to send
+	for (int i=0; i<helpers.size(); i++)
 		if (needExchange(i)) prepareData(i, stream);
+
+	// Post big data irecv (after prepereData cause it waits for the sizes)
+	for (int i=0; i<helpers.size(); i++)
+		if (needExchange(i)) postRecv(helpers[i]);
+
+	// Send
+	for (int i=0; i<helpers.size(); i++)
+		if (needExchange(i)) send(helpers[i], stream);
 }
 
 void ParticleExchanger::finalize(cudaStream_t stream)
 {
-	// Internal functions to exchange data
+	// Wait for the irecvs to finish
 	for (int i=0; i<helpers.size(); i++)
-		if (needExchange(i)) send(helpers[i], stream);
-
-	for (int i=0; i<helpers.size(); i++)
-		if (needExchange(i)) recv(helpers[i], stream);
-
+		if (needExchange(i)) wait(helpers[i], stream);
 
 	// Derived class unpack implementation
 	for (int i=0; i<helpers.size(); i++)
@@ -87,6 +99,7 @@ int ParticleExchanger::tagByName(std::string name)
 	static std::hash<std::string> nameHash;
 	return (int)( nameHash(name) % (32767 / 27) );
 }
+
 
 void ParticleExchanger::postRecvSize(ExchangeHelper* helper)
 {
@@ -111,11 +124,26 @@ void ParticleExchanger::postRecvSize(ExchangeHelper* helper)
 		}
 }
 
-
 /**
- * helper->recvBuf will contain all the data, ON DEVICE already
+ * Expects helper->sendSizes and helper->sendOffsets to be ON HOST
  */
-void ParticleExchanger::recv(ExchangeHelper* helper, cudaStream_t stream)
+void ParticleExchanger::sendSizes(ExchangeHelper* helper)
+{
+	std::string pvName = helper->name;
+
+	auto nBuffers = helper->nBuffers;
+	auto sSizes   = helper->sendSizes.hostPtr();
+
+	// Do blocking send in hope that it will be immediate due to small size
+	for (int i=0; i < nBuffers; i++)
+		if (i != 13 && dir2rank[i] >= 0)
+		{
+			const int tag = nBuffers * tagByName(pvName) + dir2sendTag[i];
+			MPI_Check( MPI_Send(sSizes+i, 1, MPI_INT, dir2rank[i], tag, haloComm) );
+		}
+}
+
+void ParticleExchanger::postRecv(ExchangeHelper* helper)
 {
 	std::string pvName = helper->name;
 
@@ -154,17 +182,22 @@ void ParticleExchanger::recv(ExchangeHelper* helper, cudaStream_t stream)
 			}
 		}
 
-	// Start uploading sizes and offsets
-//	helper->recvSizes.  uploadToDevice(stream);
-//	helper->recvOffsets.uploadToDevice(stream);
+	debug("Posted receive for %d %s entities", totalRecvd, pvName.c_str());
+}
 
-	// Wait for completion
+/**
+ * helper->recvBuf will contain all the data, ON DEVICE already
+ */
+void ParticleExchanger::wait(ExchangeHelper* helper, cudaStream_t stream)
+{
+	// First wait
 	MPI_Check( MPI_Waitall(helper->requests.size(), helper->requests.data(), MPI_STATUSES_IGNORE) );
 
 	// And finally upload received if needed
 	if (!gpuAwareMPI) helper->recvBuf.uploadToDevice(stream);
 
-	debug("Received total %d %s entities", totalRecvd, pvName.c_str());
+	// And report!
+	debug("Completed receive for %s", helper->name.c_str());
 }
 
 /**
@@ -191,10 +224,6 @@ void ParticleExchanger::send(ExchangeHelper* helper, cudaStream_t stream)
 
 			const int tag = nBuffers * tagByName(pvName) + dir2sendTag[i];
 
-			// Send sizes
-			MPI_Check( MPI_Isend(sSizes+i, 1, MPI_INT, dir2rank[i], tag, haloComm, &req) );
-			MPI_Check( MPI_Request_free(&req) );
-
 			// Send actual data
 			if (sSizes[i] > 0)
 			{
@@ -209,6 +238,7 @@ void ParticleExchanger::send(ExchangeHelper* helper, cudaStream_t stream)
 
 			totSent += sSizes[i];
 		}
+
 	debug("Sent total %d %s entities", totSent, pvName.c_str());
 }
 

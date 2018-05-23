@@ -13,9 +13,11 @@ int main(int argc, char** argv)
 
 	// Get the script filename
 	std::string xmlname;
+	bool gpuAwareMPI;
 	std::vector<ArgumentParser::OptionStruct> opts
 	({
-		{'i', "input",  ArgumentParser::STRING, "Input script", &xmlname, std::string("script.xml")},
+		{'i', "input",          ArgumentParser::STRING, "Input script",                            &xmlname,     std::string("script.xml")},
+		{'g', "gpu-aware-mpi",  ArgumentParser::BOOL,   "Use GPU/CUDA aware MPI (e.g. GPUDirect)", &gpuAwareMPI, false},
 	});
 
 	ArgumentParser::Parser parser(opts, rank == 0);
@@ -23,7 +25,7 @@ int main(int argc, char** argv)
 
 	// Parse the script
 	Parser udxParser(xmlname);
-	uDeviceX* udevicex = udxParser.setup_uDeviceX(logger);
+	auto udevicex = std::move( udxParser.setup_uDeviceX(logger, gpuAwareMPI) );
 
 	// Shoot
 	udevicex->run(udxParser.getNIterations());

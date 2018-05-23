@@ -122,13 +122,13 @@ void ParticleHaloExchanger::attach(ParticleVector* pv, CellList* cl)
 	info("Particle halo exchanger takes pv %s, base tag %d", pv->name.c_str(), tagByName(pv->name));
 }
 
-void ParticleHaloExchanger::prepareData(int id, cudaStream_t stream)
+void ParticleHaloExchanger::prepareSizes(int id, cudaStream_t stream)
 {
 	auto pv = particles[id];
 	auto cl = cellLists[id];
 	auto helper = helpers[id];
 
-	debug2("Preparing %s halo on the device", pv->name.c_str());
+	debug2("Counting halo particles of '%s'", pv->name.c_str());
 
 	helper->sendSizes.clear(stream);
 	if (pv->local()->size() > 0)
@@ -146,16 +146,32 @@ void ParticleHaloExchanger::prepareData(int id, cudaStream_t stream)
 				cl->cellInfo(), packer, helper->wrapSendData() );
 
 		helper->makeSendOffsets_Dev2Dev(stream);
-		helper->resizeSendBuf();
+	}
+}
 
+void ParticleHaloExchanger::prepareData(int id, cudaStream_t stream)
+{
+	auto pv = particles[id];
+	auto cl = cellLists[id];
+	auto helper = helpers[id];
+
+	debug2("Downloading %d halo particles of '%s'", helper->sendOffsets[27], pv->name.c_str());
+
+	if (pv->local()->size() > 0)
+	{
+		const int maxdim = std::max({cl->ncells.x, cl->ncells.y, cl->ncells.z});
+		const int nthreads = 64;
+		const dim3 nblocks = dim3(getNblocks(maxdim*maxdim, nthreads), 6, 1);
+
+		auto packer = ParticlePacker(pv, pv->local(), stream);
+
+		helper->resizeSendBuf();
 		helper->sendSizes.clearDevice(stream);
 		SAFE_KERNEL_LAUNCH(
 				getHalos<false>,
 				nblocks, nthreads, 0, stream,
 				cl->cellInfo(), packer, helper->wrapSendData() );
 	}
-
-	debug2("%s halo prepared", pv->name.c_str());
 }
 
 void ParticleHaloExchanger::combineAndUploadData(int id, cudaStream_t stream)

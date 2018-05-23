@@ -13,12 +13,13 @@ private:
 	std::vector<CellList*> cellLists;
 	std::vector<ParticleVector*> particles;
 
-	void prepareData(int id, cudaStream_t stream);
-	void combineAndUploadData(int id, cudaStream_t stream);
+	void prepareSizes(int id, cudaStream_t stream) override;
+	void prepareData (int id, cudaStream_t stream) override;
+	void combineAndUploadData(int id, cudaStream_t stream) override;
 	bool needExchange(int id) override;
 
 public:
-	ParticleHaloExchanger(MPI_Comm& comm) : ParticleExchanger(comm) {};
+	ParticleHaloExchanger(MPI_Comm& comm, bool gpuAwareMPI) : ParticleExchanger(comm, gpuAwareMPI) {};
 
 	void attach(ParticleVector* pv, CellList* cl);
 

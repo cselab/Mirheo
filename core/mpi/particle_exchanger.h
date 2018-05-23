@@ -114,7 +114,7 @@ private:
 class ParticleExchanger
 {
 public:
-	ParticleExchanger(MPI_Comm& comm, bool gpuAwareMPI=false);
+	ParticleExchanger(MPI_Comm& comm, bool gpuAwareMPI);
 	void init(cudaStream_t stream);
 	void finalize(cudaStream_t stream);
 
@@ -133,7 +133,9 @@ protected:
 	int tagByName(std::string);
 
 	void postRecvSize(ExchangeHelper* helper);
-	void recv(ExchangeHelper* helper, cudaStream_t stream);
+	void sendSizes(ExchangeHelper* helper);
+	void postRecv(ExchangeHelper* helper);
+	void wait(ExchangeHelper* helper, cudaStream_t stream);
 	void send(ExchangeHelper* helper, cudaStream_t stream);
 
 	/**
@@ -145,12 +147,10 @@ protected:
 	 * to resize stuff, but bulk data are not; and it would be possible
 	 * to change the MPI backend to CUDA-aware calls.
 	 *
-	 * (Tried CUDA-aware MPI once, didn't work too well, but still
-	 * need to test it more)
-	 *
 	 * @param id helper id that will be filled with data
 	 */
-	virtual void prepareData(int id, cudaStream_t stream) = 0;
+	virtual void prepareSizes(int id, cudaStream_t stream) = 0;
+	virtual void prepareData (int id, cudaStream_t stream) = 0;
 
 	/**
 	 * This function has to unpack the received data. Similarly to
