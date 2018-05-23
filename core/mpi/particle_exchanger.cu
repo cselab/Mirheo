@@ -26,8 +26,8 @@ void ExchangeHelper::makeOffsets(const PinnedBuffer<int>& sz, PinnedBuffer<int>&
 		of[i+1] = of[i] + sz[i];
 }
 
-ParticleExchanger::ParticleExchanger(MPI_Comm& comm) :
-		nActiveNeighbours(26)
+ParticleExchanger::ParticleExchanger(MPI_Comm& comm, bool gpuAwareMPI) :
+		nActiveNeighbours(26), gpuAwareMPI(gpuAwareMPI)
 {
 	MPI_Check( MPI_Comm_dup(comm, &haloComm) );
 
@@ -143,8 +143,10 @@ void ParticleExchanger::recv(ExchangeHelper* helper, cudaStream_t stream)
 
 			if (rSizes[i] > 0)
 			{
+				auto ptr = gpuAwareMPI ? helper->recvBuf.devPtr() : helper->recvBuf.hostPtr();
+
 				MPI_Check( MPI_Irecv(
-						helper->recvBuf.hostPtr() + rOffsets[i]*helper->datumSize,
+						ptr + rOffsets[i]*helper->datumSize,
 						rSizes[i]*helper->datumSize,
 						MPI_BYTE, dir2rank[i], tag, haloComm, &req) );
 
@@ -159,8 +161,8 @@ void ParticleExchanger::recv(ExchangeHelper* helper, cudaStream_t stream)
 	// Wait for completion
 	MPI_Check( MPI_Waitall(helper->requests.size(), helper->requests.data(), MPI_STATUSES_IGNORE) );
 
-	// And finally upload received
-	helper->recvBuf.uploadToDevice(stream);
+	// And finally upload received if needed
+	if (!gpuAwareMPI) helper->recvBuf.uploadToDevice(stream);
 
 	debug("Received total %d %s entities", totalRecvd, pvName.c_str());
 }
@@ -177,7 +179,7 @@ void ParticleExchanger::send(ExchangeHelper* helper, cudaStream_t stream)
 	auto sSizes   = helper->sendSizes.  hostPtr();
 	auto sOffsets = helper->sendOffsets.hostPtr();
 
-	helper->sendBuf.downloadFromDevice(stream);
+	if (!gpuAwareMPI) helper->sendBuf.downloadFromDevice(stream);
 
 	MPI_Request req;
 	int totSent = 0;
@@ -196,8 +198,10 @@ void ParticleExchanger::send(ExchangeHelper* helper, cudaStream_t stream)
 			// Send actual data
 			if (sSizes[i] > 0)
 			{
+				auto ptr = gpuAwareMPI ? helper->sendBuf.devPtr() : helper->sendBuf.hostPtr();
+
 				MPI_Check( MPI_Isend(
-						helper->sendBuf.hostPtr() + sOffsets[i]*helper->datumSize,
+						ptr + sOffsets[i]*helper->datumSize,
 						sSizes[i] * helper->datumSize,
 						MPI_BYTE, dir2rank[i], tag, haloComm, &req) );
 				MPI_Check( MPI_Request_free(&req) );

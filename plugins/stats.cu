@@ -117,7 +117,7 @@ void PostprocessStats::deserialize(MPI_Status& stat)
     	const ReductionType temperature = energy[0] / ( (3/2.0)*nparticles );
 
     	printf("Stats at timestep %d (simulation time %f):\n", currentTimeStep, currentTime);
-    	printf("\tOne timespep takes %.2f ms", realTime);
+    	printf("\tOne timestep takes %.2f ms", realTime);
     	printf("\tTotal number of particles: %d\n", nparticles);
     	printf("\tAverage momentum: [%e %e %e]\n", momentum[0], momentum[1], momentum[2]);
     	printf("\tMax velocity magnitude: %f\n", maxvel[0]);
