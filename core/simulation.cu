@@ -575,7 +575,7 @@ void Simulation::assemble()
 	auto task_clearForces               = scheduler->createTask("Clear forces");
 	auto task_pluginsBeforeForces       = scheduler->createTask("Plugins: before forces");
 	auto task_haloInit                  = scheduler->createTask("Halo init");
-	auto task_internalForces            = scheduler->createTask("Internal forces");
+	auto task_localForces            = scheduler->createTask("Local forces");
 	auto task_pluginsSerializeSend      = scheduler->createTask("Plugins: serialize and send");
 	auto task_haloFinalize              = scheduler->createTask("Halo finalize");
 	auto task_haloForces                = scheduler->createTask("Halo forces");
@@ -585,7 +585,8 @@ void Simulation::assemble()
 	auto task_objHaloFinalize           = scheduler->createTask("Object halo finalize");
 	auto task_clearObjHaloForces        = scheduler->createTask("Clear object halo forces");
 	auto task_clearObjLocalForces       = scheduler->createTask("Clear object local forces");
-	auto task_objBounce                 = scheduler->createTask("Object bounce");
+	auto task_objLocalBounce            = scheduler->createTask("Local object bounce");
+	auto task_objHaloBounce             = scheduler->createTask("Halo object bounce");
 	auto task_correctObjBelonging       = scheduler->createTask("Correct object belonging");
 	auto task_objForcesInit             = scheduler->createTask("Object forces exchange: init");
 	auto task_objForcesFinalize         = scheduler->createTask("Object forces exchange: finalize");
@@ -659,7 +660,7 @@ void Simulation::assemble()
 
 
 	for (auto& inter : regularInteractions)
-		scheduler->addTask(task_internalForces, [inter, this] (cudaStream_t stream) {
+		scheduler->addTask(task_localForces, [inter, this] (cudaStream_t stream) {
 			inter(currentTime, stream);
 		});
 
@@ -709,12 +710,12 @@ void Simulation::assemble()
 	}
 
 	for (auto& bouncer : regularBouncers)
-		scheduler->addTask(task_objBounce, [bouncer, this] (cudaStream_t stream) {
+		scheduler->addTask(task_objLocalBounce, [bouncer, this] (cudaStream_t stream) {
 			bouncer(dt, stream);
 	});
 
 	for (auto& bouncer : haloBouncers)
-		scheduler->addTask(task_objBounce, [bouncer, this] (cudaStream_t stream) {
+		scheduler->addTask(task_objHaloBounce, [bouncer, this] (cudaStream_t stream) {
 			bouncer(dt, stream);
 	});
 
@@ -785,12 +786,12 @@ void Simulation::assemble()
 
 	scheduler->addDependency(task_cellLists, {task_clearForces}, {});
 
-	scheduler->addDependency(task_pluginsBeforeForces, {task_internalForces, task_haloForces}, {task_clearForces});
+	scheduler->addDependency(task_pluginsBeforeForces, {task_localForces, task_haloForces}, {task_clearForces});
 	scheduler->addDependency(task_pluginsSerializeSend, {task_redistributeInit, task_objRedistInit}, {task_pluginsBeforeForces});
 
-	scheduler->addDependency(task_internalForces, {}, {task_pluginsBeforeForces});
+	scheduler->addDependency(task_localForces, {}, {task_pluginsBeforeForces});
 
-	scheduler->addDependency(task_clearObjHaloForces, {task_objBounce}, {task_objHaloFinalize});
+	scheduler->addDependency(task_clearObjHaloForces, {task_objHaloBounce}, {task_objHaloFinalize});
 
 	scheduler->addDependency(task_objForcesInit, {}, {task_haloForces});
 	scheduler->addDependency(task_objForcesFinalize, {task_accumulateForces}, {task_objForcesInit});
@@ -799,7 +800,7 @@ void Simulation::assemble()
 	scheduler->addDependency(task_haloFinalize, {}, {task_haloInit});
 	scheduler->addDependency(task_haloForces, {}, {task_haloFinalize});
 
-	scheduler->addDependency(task_accumulateForces, {task_integration}, {task_haloForces, task_internalForces});
+	scheduler->addDependency(task_accumulateForces, {task_integration}, {task_haloForces, task_localForces});
 	scheduler->addDependency(task_pluginsBeforeIntegration, {task_integration}, {task_accumulateForces});
 	scheduler->addDependency(task_wallBounce, {}, {task_integration});
 	scheduler->addDependency(task_wallCheck, {}, {task_wallBounce});
@@ -807,16 +808,17 @@ void Simulation::assemble()
 	scheduler->addDependency(task_objHaloInit, {}, {task_integration, task_objRedistFinalize});
 	scheduler->addDependency(task_objHaloFinalize, {}, {task_objHaloInit});
 
-	scheduler->addDependency(task_objBounce, {}, {task_integration, task_objHaloFinalize, task_clearObjLocalForces});
+	scheduler->addDependency(task_objLocalBounce, {}, {task_integration, task_clearObjLocalForces});
+	scheduler->addDependency(task_objHaloBounce, {}, {task_integration, task_objHaloFinalize, task_clearObjHaloForces});
 
-	scheduler->addDependency(task_pluginsAfterIntegration, {task_objBounce}, {task_integration, task_wallBounce});
+	scheduler->addDependency(task_pluginsAfterIntegration, {task_objLocalBounce, task_objHaloBounce}, {task_integration, task_wallBounce});
 
-	scheduler->addDependency(task_redistributeInit, {}, {task_integration, task_wallBounce, task_objBounce, task_pluginsAfterIntegration});
+	scheduler->addDependency(task_redistributeInit, {}, {task_integration, task_wallBounce, task_objLocalBounce, task_objHaloBounce, task_pluginsAfterIntegration});
 	scheduler->addDependency(task_redistributeFinalize, {}, {task_redistributeInit});
 
 	scheduler->addDependency(task_objRedistInit, {}, {task_integration, task_wallBounce, task_objForcesFinalize, task_pluginsAfterIntegration});
 	scheduler->addDependency(task_objRedistFinalize, {}, {task_objRedistInit});
-	scheduler->addDependency(task_clearObjLocalForces, {task_objBounce}, {task_integration, task_objRedistFinalize});
+	scheduler->addDependency(task_clearObjLocalForces, {task_objLocalBounce}, {task_integration, task_objRedistFinalize});
 
 	scheduler->setHighPriority(task_objForcesInit);
 	scheduler->setHighPriority(task_haloInit);

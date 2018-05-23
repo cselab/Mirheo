@@ -114,7 +114,7 @@ private:
 class ParticleExchanger
 {
 public:
-	ParticleExchanger(MPI_Comm& comm);
+	ParticleExchanger(MPI_Comm& comm, bool gpuAwareMPI=false);
 	void init(cudaStream_t stream);
 	void finalize(cudaStream_t stream);
 
@@ -126,6 +126,7 @@ protected:
 
 	int myrank;
 	MPI_Comm haloComm;
+	bool gpuAwareMPI;
 
 	std::vector<ExchangeHelper*> helpers;
 
