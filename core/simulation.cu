@@ -808,7 +808,7 @@ void Simulation::assemble()
 	scheduler->addDependency(task_objHaloInit, {}, {task_integration, task_objRedistFinalize});
 	scheduler->addDependency(task_objHaloFinalize, {}, {task_objHaloInit});
 
-	scheduler->addDependency(task_objLocalBounce, {}, {task_integration, task_clearObjLocalForces});
+	scheduler->addDependency(task_objLocalBounce, {task_objHaloFinalize}, {task_integration, task_clearObjLocalForces});
 	scheduler->addDependency(task_objHaloBounce, {}, {task_integration, task_objHaloFinalize, task_clearObjHaloForces});
 
 	scheduler->addDependency(task_pluginsAfterIntegration, {task_objLocalBounce, task_objHaloBounce}, {task_integration, task_wallBounce});
@@ -853,6 +853,8 @@ void Simulation::run(int nsteps)
 				"Timestep: %d, simulation time: %f", currentStep, currentTime);
 
 		scheduler->run();
+		
+		MPI_Check( MPI_Barrier(cartComm) );
 
 		currentTime += dt;
 	}
