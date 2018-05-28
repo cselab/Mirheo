@@ -849,7 +849,7 @@ void Simulation::run(int nsteps)
 
 	for (currentStep = begin; currentStep < end; currentStep++)
 	{
-		info("===============================================================================\n"
+		debug("===============================================================================\n"
 				"Timestep: %d, simulation time: %f", currentStep, currentTime);
 
 		scheduler->run();

@@ -150,7 +150,7 @@ void ObjectVector::restart(MPI_Comm comm, std::string path)
 		Particle* addr = local()->coosvels.hostPtr() + curSize;
 		curSize += msize;
 
-		debug3("Receiving %d particles from ???", msize);
+		debug3("Receiving %d particles from %d", msize, status.MPI_SOURCE);
 		MPI_Check( MPI_Recv(addr, msize, ptype, status.MPI_SOURCE, 0, comm, MPI_STATUS_IGNORE) );
 	}
 
@@ -163,5 +163,6 @@ void ObjectVector::restart(MPI_Comm comm, std::string path)
 
 	info("Successfully grabbed %d particles out of total %lld", local()->coosvels.size(), total);
 
+	MPI_Check( MPI_Waitall(commSize, reqs.data(), MPI_STATUSES_IGNORE) );
 	MPI_Check( MPI_Type_free(&ptype) );
 }
