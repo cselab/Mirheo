@@ -27,7 +27,7 @@ void ExchangeHelper::makeOffsets(const PinnedBuffer<int>& sz, PinnedBuffer<int>&
 }
 
 ParticleExchanger::ParticleExchanger(MPI_Comm& comm, bool gpuAwareMPI) :
-		nActiveNeighbours(26), gpuAwareMPI(gpuAwareMPI)
+		nActiveNeighbours(26), gpuAwareMPI(gpuAwareMPI), singleCopyThreshold(1<<18)
 {
 	MPI_Check( MPI_Comm_dup(comm, &haloComm) );
 
@@ -160,6 +160,7 @@ void ParticleExchanger::postRecv(ExchangeHelper* helper)
 
 	// Now do the actual data recv
 	helper->requests.clear();
+	helper->reqIndex.clear();
 	for (int i=0; i < nBuffers; i++)
 		if (i != 13 && dir2rank[i] >= 0)
 		{
@@ -172,13 +173,14 @@ void ParticleExchanger::postRecv(ExchangeHelper* helper)
 			if (rSizes[i] > 0)
 			{
 				auto ptr = gpuAwareMPI ? helper->recvBuf.devPtr() : helper->recvBuf.hostPtr();
-
+				
 				MPI_Check( MPI_Irecv(
 						ptr + rOffsets[i]*helper->datumSize,
 						rSizes[i]*helper->datumSize,
 						MPI_BYTE, dir2rank[i], tag, haloComm, &req) );
 
 				helper->requests.push_back(req);
+				helper->reqIndex.push_back(i);
 			}
 		}
 
@@ -190,11 +192,33 @@ void ParticleExchanger::postRecv(ExchangeHelper* helper)
  */
 void ParticleExchanger::wait(ExchangeHelper* helper, cudaStream_t stream)
 {
-	// First wait
-	MPI_Check( MPI_Waitall(helper->requests.size(), helper->requests.data(), MPI_STATUSES_IGNORE) );
+	auto rSizes   = helper->recvSizes.  hostPtr();
+	auto rOffsets = helper->recvOffsets.hostPtr();
+	bool singleCopy = helper->sendBuf.size() < singleCopyThreshold;
+	
+	// Wait for all if we want to copy all at once
+	if (singleCopy || gpuAwareMPI)
+	{
+		MPI_Check( MPI_Waitall(helper->requests.size(), helper->requests.data(), MPI_STATUSES_IGNORE) );
+		if (!gpuAwareMPI)
+			helper->recvBuf.uploadToDevice(stream);
+	}
+	else
+	{
+		// Wait and upload one by one
+		for (int i=0; i<helper->requests.size(); i++)	
+		{
+			int idx;
+			MPI_Check( MPI_Waitany(helper->requests.size(), helper->requests.data(), &idx, MPI_STATUS_IGNORE) );
+			int from = helper->reqIndex[idx];
 
-	// And finally upload received if needed
-	if (!gpuAwareMPI) helper->recvBuf.uploadToDevice(stream);
+			CUDA_Check( cudaMemcpyAsync(
+							helper->recvBuf.devPtr()  + rOffsets[from]*helper->datumSize,
+							helper->recvBuf.hostPtr() + rOffsets[from]*helper->datumSize,
+							rSizes[from] * helper->datumSize,
+							cudaMemcpyHostToDevice, stream) );
+		}
+	}
 
 	// And report!
 	debug("Completed receive for %s", helper->name.c_str());
@@ -211,8 +235,10 @@ void ParticleExchanger::send(ExchangeHelper* helper, cudaStream_t stream)
 	auto nBuffers = helper->nBuffers;
 	auto sSizes   = helper->sendSizes.  hostPtr();
 	auto sOffsets = helper->sendOffsets.hostPtr();
+	bool singleCopy = helper->sendBuf.size() < singleCopyThreshold;
 
-	if (!gpuAwareMPI) helper->sendBuf.downloadFromDevice(stream);
+	if (!gpuAwareMPI && singleCopy)
+		helper->sendBuf.downloadFromDevice(stream);
 
 	MPI_Request req;
 	int totSent = 0;
@@ -228,6 +254,16 @@ void ParticleExchanger::send(ExchangeHelper* helper, cudaStream_t stream)
 			if (sSizes[i] > 0)
 			{
 				auto ptr = gpuAwareMPI ? helper->sendBuf.devPtr() : helper->sendBuf.hostPtr();
+				
+				if (!singleCopy && (!gpuAwareMPI))
+				{
+					CUDA_Check( cudaMemcpyAsync(
+									helper->sendBuf.hostPtr() + sOffsets[i]*helper->datumSize,
+									helper->sendBuf.devPtr()  + sOffsets[i]*helper->datumSize,
+									sSizes[i] * helper->datumSize,
+									cudaMemcpyDeviceToHost, stream) );
+					CUDA_Check( cudaStreamSynchronize(stream) );
+				}
 
 				MPI_Check( MPI_Isend(
 						ptr + sOffsets[i]*helper->datumSize,
