@@ -83,7 +83,7 @@ void writeXYZ(MPI_Comm comm, std::string fname, ParticleVector* pv)
 }
 
 
-static std::unique_ptr<Interaction> createDPD(pugi::xml_node node)
+static std::unique_ptr<Interaction> createDPD(pugi::xml_node node, std::string pvname)
 {
 	auto name = node.attribute("name").as_string("int");
 	auto rc   = node.attribute("rc").as_float(1.0f);
@@ -97,10 +97,9 @@ static std::unique_ptr<Interaction> createDPD(pugi::xml_node node)
 
 	Pairwise_DPD dpd(rc, a, gamma, kbT, dt, power);
 
-	
 	auto res = std::make_unique<InteractionPair<Pairwise_DPD>>(name, rc);
 	
-	res->createPairwise("starting", "starting", dpd);
+	res->createPairwise(pvname, pvname, dpd);
 
 	return std::move(res);
 }
@@ -143,7 +142,6 @@ int main(int argc, char** argv)
 
 	logger.init(MPI_COMM_WORLD, "genwall.log", config.child("simulation").attribute("debug_lvl").as_int(5));
 
-
 	float3 globalDomainSize = config.child("simulation").child("domain").attribute("size").as_float3({32, 32, 32});
 	int3 nranks3D = config.child("simulation").attribute("mpi_ranks").as_int3({1, 1, 1});
 
@@ -155,10 +153,12 @@ int main(int argc, char** argv)
 		info("Generating wall %s", wallNode.attribute("name").as_string());
 
 
-		auto sim = std::make_unique<Simulation>(nranks3D, globalDomainSize, MPI_COMM_WORLD, MPI_COMM_NULL);
+		auto sim = std::make_unique<Simulation>(nranks3D, globalDomainSize, MPI_COMM_WORLD, MPI_COMM_NULL, false);
 
-		auto startingPV = std::make_unique<ParticleVector>             ("starting", 1.0);
-		auto final      = std::make_unique<ParticleVector>             (wallNode.attribute("name").as_string("wall"), 1.0);
+		std::string wname = wallNode.attribute("name").as_string("");
+
+		auto startingPV = std::make_unique<ParticleVector>             (wname, 1.0);
+		auto final      = std::make_unique<ParticleVector>             (wname, 1.0);
 		auto ic         = std::make_unique<UniformIC>                  (wallGenNode.attribute("density").as_float(4));
 		auto vv         = std::make_unique<IntegratorVV<Forcing_None>> ("vv", wallGenNode.attribute("dt").as_float(0.001), Forcing_None());
 
@@ -174,12 +174,13 @@ int main(int argc, char** argv)
 		sim->registerParticleVector(std::move(startingPV), std::move(ic), 0);
 
 		// Interaction
-		auto dpd = createDPD(wallGenNode);
+		auto dpd = createDPD(wallGenNode, wname);
 		auto dpdPtr = dpd.get();
+
 		sim->registerInteraction(std::move(dpd));
-		sim->setInteraction(dpdPtr->name, "starting", "starting");
+		sim->setInteraction(dpdPtr->name, wname, wname);
 		sim->registerIntegrator(std::move(vv));
-		sim->setIntegrator("vv", "starting");
+		sim->setIntegrator("vv", wname);
 
 		sim->init();
 		sim->run(nsteps);
@@ -192,7 +193,7 @@ int main(int argc, char** argv)
 
 		if (needXYZ)
 		{
-			writeXYZ(sim->getCartComm(), "wall.xyz", startingPtr);
+			writeXYZ(sim->getCartComm(), wname+"_unfiltered.xyz", startingPtr);
 			writeXYZ(sim->getCartComm(), finalPtr->name+".xyz", finalPtr);
 		}
 
