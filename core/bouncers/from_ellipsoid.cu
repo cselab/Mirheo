@@ -42,11 +42,11 @@ void BounceFromRigidEllipsoid::exec(ParticleVector* pv, CellList* cl, float dt, 
 {
 	auto reov = dynamic_cast<RigidEllipsoidObjectVector*>(ov);
 	if (reov == nullptr)
-		die("Analytic ellispoid bounce only works with RigidObjectVector");
+		die("Analytic ellispoid bounce only works with Rigid Ellipsoids");
 
-	debug("Bouncing %d %s particles from %d %s objects (%s)",
+	debug("Bouncing %d '%s' particles from %d '%s': objects (%s)",
 			pv->local()->size(), pv->name.c_str(),
-			local ? reov->local()->size() : reov->halo()->size(), reov->name.c_str(),
+			local ? reov->local()->nObjects : reov->halo()->nObjects, reov->name.c_str(),
 			local ? "local objs" : "halo objs");
 
 	ov->findExtentAndCOM(stream, local);
