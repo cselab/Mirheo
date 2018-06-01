@@ -16,7 +16,7 @@ def radial_profile(fname, nbins, h2, cen, radius):
 	
 	f = h5py.File(fname, 'r')
 	
-	m = f["momentum"]
+	m = f["velocity"]
 	d = f["density"]
 		
 	m = np.squeeze(np.mean(m, axis=2))
@@ -118,10 +118,10 @@ def main():
 	r = 30.0
 	
 	fname = "/home/alexeedm/extern/daint/project/alexeedm/poiseuille/run_80_40_1.5_0.5_8_0.05/xdmf/avg_rho_u00012.h5"
-	#fname = "/home/alexeedm/extern/daint/scratch/poiseuille/case_80_6_1.5_0.5_0.005_8_0.05/xdmf/avg_rho_u00005.h5"
+	fname = "/home/alexeedm/extern/daint/scratch/poiseuille/case_80_30_1.5_0.5_0.001_8_0.05/xdmf/avg_rho_u00010.h5"
 	#fname = "/home/alexeedm/extern/daint/scratch/poiseuille/case_10_200_0.5_0.5_0.001_8_0.01/xdmf/avg_rho_u00005.h5"
 	
-	vel, dens, cnt = radial_profile(fname, nbins, [0.125, 0.125], [32, 32], r)
+	vel, dens, cnt = radial_profile(fname, nbins, [0.25, 0.25], [32, 32], r)
 	
 	
 	velFit, eta, err = fit_velocity(vel, cnt, 0.05, 8, r / nbins)

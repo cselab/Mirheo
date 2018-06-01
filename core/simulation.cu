@@ -854,7 +854,7 @@ void Simulation::run(int nsteps)
 
 		scheduler->run();
 		
-		MPI_Check( MPI_Barrier(cartComm) );
+//		MPI_Check( MPI_Barrier(cartComm) );
 
 		currentTime += dt;
 	}

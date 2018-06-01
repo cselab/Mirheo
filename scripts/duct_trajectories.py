@@ -23,14 +23,17 @@ def trajectories(case, ceny, cenz, size):
 	return y, z
 
 def plottraj(case):
-	z, y = trajectories(case, 33.25, 33.25, 31.25 )
-	#p = plt.plot(y, z, lw=0.5)
+	z, y = trajectories(case, 62, 62, 60.0 )
+	p = plt.plot(y, z, lw=0.5)
 	#plt.plot(y[0], z[0], "x", ms=3, color=p[-1].get_color())
 	plt.plot(y[-1], z[-1], "o", ms=5)#, color=p[-1].get_color())
 
 	
 folder = "/home/alexeedm/extern/daint/scratch/focusing_square_free/"
-name = "case_5_0.155__80_40_1.5__"
+name = "case_8_0.04__80_40_1.5__"
+
+folder = "/home/alexeedm/extern/daint/scratch/focusing_free/"
+name = "case_5_0.05__80_40_1.5__"
 
 variants = sorted(glob.glob(folder + name + "*/"))
 

@@ -13,10 +13,11 @@ import math
 
 
 def coefficient(frc, rho, u, r, R):
+	#return 0.25 * frc / (rho * u**2 * r**4 / R**2)
 	return frc / ( rho * u**2 * (2*r)**2 )
 
 def mean_err_cut(vals):
-	npvals = np.array(vals[20:]).astype(np.float)
+	npvals = np.array(vals[10:]).astype(np.float)
 	
 	m = np.mean(npvals)
 	v = np.var(npvals) / npvals.size
@@ -25,18 +26,16 @@ def mean_err_cut(vals):
 
 def dump_plots(positions, alldata, r1, r2):
 	
-	plt.plot(r1[:,0], r1[:,1], ":D", ms=4, linewidth=1.5, label="Nakagawa et al. J. Fluid Mech (2015)")
-	plt.plot(r2[:,0], r2[:,1], ":x", ms=4, linewidth=1.5, label="Di Carlo 2009")
+	plt.plot(r1[:,0], r1[:,1], "D", ms=6, linewidth=1.5, label="Nakagawa et al. J. Fluid Mech (2015)")
+	plt.plot(r2[:,0], r2[:,1], "s", ms=6, linewidth=1.5, label="Di Carlo 2009")
 		
 	for data, err, label, fmt in alldata:
-		print np.array(data).shape
-		print np.array(err).shape
-		plt.errorbar(positions, data, yerr=err, fmt=fmt, ms=7, linewidth=1.5, label=label)
+		plt.errorbar(positions, data, yerr=err, fmt=fmt, ms=6, linewidth=1.5, label=label)
 
 	plt.xlabel('y/R', fontsize=16)
 	plt.ylabel('Cl', fontsize=16)
 	plt.grid()
-	plt.legend(fontsize=11.5)
+	plt.legend(fontsize=14)
 
 
 	plt.tight_layout()
@@ -105,8 +104,8 @@ dicarlo[:,1] = dicarlo[:,1] * 2.096**2 * 0.22**2
 def get_forces(case):
 	prefix = ""	
 	rho = 8.0
-	r = 5
-	R = 23
+	r = 5.0
+	R = 23.0
 	
 	positions = np.linspace(0.0, 0.72, 19)
 	
@@ -130,9 +129,9 @@ def get_forces(case):
 #			
 #		U = np.mean( np.where( mx > 1e-5) )
 		
-		U = 2.175
+		U = 2.16
 #		U = U / (2.096 / 2.0)
-		U = U * 2414006.0 / (2414006.0 - 249146.0)
+		#U = U * 2414006.0 / (2414006.0 - 249146.0)
 				
 		files = sorted(glob.glob(full_folder + "/pinning_force/*.txt"))
 		lines = list(itertools.chain.from_iterable([open(f).readlines() for f in files]))
@@ -140,14 +139,17 @@ def get_forces(case):
 		fy = [ x.split()[3] for x in lines ]
 		
 		(my, vy) = mean_err_cut(fy)
+		
+		my *= np.sqrt(2)
+		
 		Cls.append(coefficient(my, rho, U, r, R))
-		err_Cls.append(coefficient(4.0*math.sqrt(vy), rho, U, r, R))
+		err_Cls.append(coefficient(3.0*math.sqrt(vy), rho, U, r, R))
 		
 	return Cls, err_Cls
 
 alldata = []
-alldata.append( get_forces("/home/alexeedm/extern/daint/scratch/focusing_square/case_5_0.08__80_20_1.5__") + ("Present", "-.o") )
-#alldata.append( get_forces("/home/alexeedm/extern/daint/scratch/focusing_square/case_5_0.08__160_20_3.0__") + ("Present", "-.o") )
+#alldata.append( get_forces("/home/alexeedm/extern/daint/scratch/focusing_square/case_5_0.08__80_20_1.5__") + ("Present", "o") )
+alldata.append( get_forces("/home/alexeedm/extern/daint/scratch/focusing_square/case_5_0.075__80_20_1.5__") + ("Present", "o") )
 
 print alldata
 #print Cls
