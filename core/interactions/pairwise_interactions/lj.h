@@ -9,8 +9,8 @@ class CellList;
 class Pairwise_LJ
 {
 public:
-	Pairwise_LJ(float rc, float sigma, float epsilon) :
-		rc(rc), sigma(sigma), epsilon(epsilon)
+	Pairwise_LJ(float rc, float sigma, float epsilon, float maxForce) :
+		rc(rc), sigma(sigma), epsilon(epsilon), maxForce(maxForce)
 	{
 		epsx24_sigma = 24.0*epsilon/sigma;
 		rc2 = rc*rc;
@@ -33,11 +33,12 @@ public:
 
 		const float IfI = epsx24_sigma * (2*rs14 - rs8);
 
-		return dr * min(max(IfI, 0.0f), 1e3f);
+		return dr * min(max(IfI, 0.0f), maxForce);
 	}
 
 private:
 
+	float maxForce;
 	float sigma, epsilon, rc;
 	float epsx24_sigma, rc2;
 };

@@ -6,6 +6,7 @@
 
 #include <vector>
 #include <string>
+#include <map>
 
 
 /// Structure with information about exchange buffers,
@@ -40,6 +41,7 @@ public:
 	PinnedBuffer<char> sendBuf;      ///< Buffer keeping all the data needs to be sent
 
 	std::vector<MPI_Request> requests;
+	std::vector<int> reqIndex;
 
 	ExchangeHelper(std::string name, const int datumSize = 0);
 
@@ -127,6 +129,7 @@ protected:
 	int myrank;
 	MPI_Comm haloComm;
 	bool gpuAwareMPI;
+	int singleCopyThreshold = (1<<20);
 
 	std::vector<ExchangeHelper*> helpers;
 

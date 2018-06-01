@@ -35,19 +35,22 @@ datastr = ''
 for a in avgSets:
 
 	type="Scalar"
+	lastdim=1
 	if len(a.shape) > 3 and a.shape[3] == 3:
 		type="Vector"
+		lastdim=3
 
 	if len(a.shape) > 3 and a.shape[3] == 6:
 		type="Tensor6"
+		lastdim=6
 
 
 	datastr += '''			<Attribute Name="%s" AttributeType="%s" Center="Cell">
-				<DataItem Dimensions="%d %d %d" NumberType="Float" Precision="4" Format="HDF">
+				<DataItem Dimensions="%d %d %d %d" NumberType="Float" Precision="4" Format="HDF">
 					%s:%s
 				</DataItem>
 			</Attribute>
-''' % (str(a.name)[1:], type, a.shape[0], a.shape[1], a.shape[2], foutShortName, str(a.name))
+''' % (str(a.name)[1:], type, a.shape[0], a.shape[1], a.shape[2], lastdim, foutShortName, str(a.name))
 
 s = '''<?xml version="1.0" ?>
 <!DOCTYPE Xdmf SYSTEM "Xdmf.dtd" []>

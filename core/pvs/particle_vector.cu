@@ -146,6 +146,7 @@ void ParticleVector::restart(MPI_Comm comm, std::string path)
 
 	info("Successfully grabbed %d particles out of total %lld", local()->coosvels.size(), total);
 
+	MPI_Check( MPI_Waitall(commSize, reqs.data(), MPI_STATUSES_IGNORE) );
 	MPI_Check( MPI_Type_free(&ptype) );
 }
 

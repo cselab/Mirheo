@@ -78,8 +78,9 @@ private:
 		auto name = node.attribute("name").as_string("");
 		auto rc   = node.attribute("rc").as_float(1.0f);
 
-		auto epsilon = node.attribute("epsilon").as_float(10.0f);
-		auto sigma   = node.attribute("sigma")  .as_float(0.5f);
+		auto epsilon  = node.attribute("epsilon")  .as_float(10.0f);
+		auto sigma    = node.attribute("sigma")    .as_float(0.5f);
+		auto maxForce = node.attribute("max_force").as_float(1e3f);
 
 		auto res = std::make_unique<InteractionPair<T>>(name, rc);
 
@@ -88,7 +89,7 @@ private:
 			setIfNotEmpty_float(apply_to, epsilon, "epsilon");
 			setIfNotEmpty_float(apply_to, sigma,   "sigma" );
 
-			T lj(rc, sigma, epsilon);
+			T lj(rc, sigma, epsilon, maxForce);
 			res->createPairwise(apply_to.attribute("pv1").as_string(),
 								apply_to.attribute("pv2").as_string(), lj);
 

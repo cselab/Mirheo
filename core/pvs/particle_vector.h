@@ -35,6 +35,10 @@ public:
 	{
 		if (n < 0) die("Tried to resize PV to %d < 0 particles", n);
 
+		//debug4("Resizing PV '%s' (%s) from %d particles to %d particles",
+		//		pv->name.c_str(), this == pv->local() ? "local" : "halo",
+		//		np, n);
+
 		coosvels.        resize(n, stream);
 		forces.          resize(n, stream);
 		extraPerParticle.resize(n, stream);
