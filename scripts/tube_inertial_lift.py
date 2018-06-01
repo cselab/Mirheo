@@ -25,15 +25,15 @@ def mean_err_cut(vals):
 
 def dump_plots(positions, alldata, ref):
 	
-	plt.plot(ref[:,0], ref[:,1], "--o", ms=5, label="Liu, Chao, et al. Lab on a Chip (2015)")
+	plt.plot(ref[:,0], ref[:,1], ":D", ms=8, linewidth=5, label="Chao Liu et al. Lab on a Chip (2015)")
 		
-	for data, err, label in alldata:
-		plt.errorbar(positions, data, yerr=err, fmt='-o', ms=7, elinewidth=2, label=label)
+	for data, err, label, fmt in alldata:
+		plt.errorbar(positions, data, yerr=err, fmt=fmt, ms=7, linewidth=1.5, label=label)
 
 	plt.xlabel('y/R', fontsize=16)
 	plt.ylabel('Cl', fontsize=16)
 	plt.grid()
-	plt.legend(fontsize=14)
+	plt.legend(fontsize=11.5)
 
 
 	plt.tight_layout()
@@ -101,15 +101,15 @@ def get_forces(case):
 
 alldata = []
 
-alldata.append( get_forces("/home/alexeedm/extern/daint/project/alexeedm/focusing_liftparams/case_5_0.1__80_20_1.5__") + ("Rigid", ) )
-alldata.append( get_forces("/home/alexeedm/extern/daint/project/alexeedm/focusing_liftparams/case_norot_5_0.1__80_20_1.5__") + ("Rigid, no rotation", ) )
-alldata.append( get_forces("/home/alexeedm/extern/daint/scratch/focusing_soft/case_noforce_0.1_0.2__80__1.5__") + ("0.2", ) )
-alldata.append( get_forces("/home/alexeedm/extern/daint/scratch/focusing_soft/case_noforce_0.1_1.0__80__1.5__") + ("1", ) )
-alldata.append( get_forces("/home/alexeedm/extern/daint/scratch/focusing_soft/case_noforce_0.1_5.0__80__1.5__") + ("5", ) )
-alldata.append( get_forces("/home/alexeedm/extern/daint/scratch/focusing_soft/case_noforce_0.1_10.0__80__1.5__") + ("10", ) )
-alldata.append( get_forces("/home/alexeedm/extern/daint/scratch/focusing_soft/case_noforce_0.1_20.0__80__1.5__") + ("20", ) )
-alldata.append( get_forces("/home/alexeedm/extern/daint/scratch/focusing_soft/case_noforce_0.1_40.0__80__1.5__") + ("40", ) )
+alldata.append( get_forces("/home/alexeedm/extern/daint/project/alexeedm/focusing_liftparams/case_5_0.1__80_20_1.5__") + ("Rigid", "-.o") )
+alldata.append( get_forces("/home/alexeedm/extern/daint/project/alexeedm/focusing_liftparams/case_norot_5_0.1__80_20_1.5__") + ("Rigid, no rotation", "-.o") )
+alldata.append( get_forces("/home/alexeedm/extern/daint/scratch/focusing_soft/case_noforce_0.1_0.2__80_20_1.5__") + (r'$\lambda = 0.2$', "-o") )
+alldata.append( get_forces("/home/alexeedm/extern/daint/scratch/focusing_soft/case_noforce_0.1_1.0__80_20_1.5__") + (r'$\lambda = 1.0$', "-o") )
+alldata.append( get_forces("/home/alexeedm/extern/daint/scratch/focusing_soft/case_noforce_0.1_5.0__80_20_1.5__") + (r'$\lambda = 5.0$', "-o") )
+alldata.append( get_forces("/home/alexeedm/extern/daint/scratch/focusing_soft/case_noforce_0.1_20.0__80_20_1.5__") + (r'$\lambda = 20.0$', "-o") )
+alldata.append( get_forces("/home/alexeedm/extern/daint/scratch/focusing_soft/case_noforce_0.1_40.0__80_20_1.5__") + (r'$\lambda = 40.0$', "-o") )
 
+print alldata
 #print Cls
 #print err_Cls
 
