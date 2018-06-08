@@ -115,9 +115,7 @@ def dump_plots(velocity, velFit, density, h):
 nbins = 40
 r = 20.0
 
-folder = "/home/alexeedm/extern/daint/scratch/poiseuille/"
-case = "case_80_6_1.5_0.5_0.001_8.0_0.1"
-xdmfs = sorted(glob.glob(folder + case + "/xdmf/*.h5"))
+xdmfs = sorted(glob.glob("./xdmf/*.h5"))
 
 mus = []
 errs = []
@@ -125,27 +123,27 @@ finalVel = np.array([])
 finalFit = np.array([])
 
 for fname in xdmfs:
-	print fname
+#	print fname
 	vel, dens, cnt = radial_profile(fname, nbins, [0.25, 0.25], [22, 22], r)
 	velFit, mu, err = fit_velocity(vel, cnt, 0.1, 8, r / nbins)	
 	
 	finalVel = vel
 	finalFit = velFit
 	
-	print mu, err
-	print ""
+#	print mu, err
+#	print ""
 	
 	mus.append(mu)
 	errs.append(err)
 
 #%%
 
-func = lambda t, a,b,t0 : a / (1 - np.exp( np.minimum(-b*(t+0.1*t0), 5)  ))
+func = lambda t, a,b,t0 : a / (1 - np.exp(-b*(t+0.1*t0)))
 efunc = lambda t, a,b : a/(t**b)
 
 x = np.linspace(0, 1, len(mus)+1)[1:]
 
-skip = 1
+skip = 3
 x_ = x[skip:]
 mus_ = np.array(mus)[skip:]
 errs_ = np.array(errs)[skip:]
@@ -154,13 +152,13 @@ errs_ = np.array(errs)[skip:]
 params,  cov = sp.optimize.curve_fit( func, x_, mus_ )
 eparams, cov = sp.optimize.curve_fit( efunc, x_, errs_)
 
-ax = plt.subplot()
-#ax.set_yscale("log")
-plt.errorbar(x_, mus_, yerr=0.01*errs_, fmt="o")
-plt.plot(x_, errs_, "x", ms=5)
-plt.plot(x_, func(x_, params[0], params[1], params[2]))
-plt.plot(x_, efunc(x_, eparams[0], eparams[1]))
-plt.show()
+#ax = plt.subplot()
+##ax.set_yscale("log")
+#plt.errorbar(x_, mus_, yerr=0.01*errs_, fmt="o")
+#plt.plot(x_, errs_, "x", ms=5)
+#plt.plot(x_, func(x_, params[0], params[1], params[2]))
+#plt.plot(x_, efunc(x_, eparams[0], eparams[1]))
+#plt.show()
 
 print params[0], eparams[0]
 

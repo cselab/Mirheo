@@ -16,7 +16,7 @@ def coefficient(frc, rho, u, r, R):
 	return frc / (rho * u**2 * (2*r)**4 / (2*R)**2)
 
 def mean_err_cut(vals):
-	npvals = np.array(vals[30:]).astype(np.float)
+	npvals = np.array(vals[20:]).astype(np.float)
 	
 	m = np.mean(npvals)
 	v = np.var(npvals) / npvals.size
@@ -25,10 +25,10 @@ def mean_err_cut(vals):
 
 def dump_plots(positions, alldata, ref):
 	
-	plt.plot(ref[:,0], ref[:,1], ":D", ms=8, linewidth=5, label="Chao Liu et al. Lab on a Chip (2015)")
+	plt.plot(ref[:,0], ref[:,1], ":D", ms=8, linewidth=5, label="Chao Liu et al. Lab on a Chip (2015)", zorder=2)
 		
 	for data, err, label, fmt in alldata:
-		plt.errorbar(positions, data, yerr=err, fmt=fmt, ms=7, linewidth=1.5, label=label)
+		plt.errorbar(positions, data, yerr=err, fmt=fmt, ms=7, linewidth=1.5, label=label, zorder=3)
 
 	plt.xlabel('y/R', fontsize=16)
 	plt.ylabel('Cl', fontsize=16)
@@ -64,11 +64,11 @@ ref = np.array([
 #				0.6001194010231242, 0.011675302245250485,
 #				0.6999018227825918, -0.19292746113989645	]).reshape([8, 2])
 
-def get_forces(case):
+def get_forces(case, Um):
 	prefix = ""	
 	rho = 8.0
 	r = 5
-	R = 33
+	R = 33.333
 	
 	positions = np.linspace(0.0, 0.7, 8)
 	
@@ -82,13 +82,6 @@ def get_forces(case):
 		
 		strpos = "%.1f" % pos
 		full_folder = prefix + case + strpos
-		
-	#	h5fname = full_folder + "/xdmf/avg_rho_u00200.h5"
-	#	f = h5py.File(h5fname, 'r')
-	#	mom = f["momentum"]
-	#		
-	#	Um = np.amax( np.mean(mom, axis=0) )
-		Um = 2 * 1.885
 		
 		files = sorted(glob.glob(full_folder + "/pinning_force/*.txt"))
 		lines = list(itertools.chain.from_iterable([open(f).readlines() for f in files]))
@@ -106,7 +99,10 @@ alldata = []
 #alldata.append( get_forces("/home/alexeedm/extern/daint/project/alexeedm/focusing_liftparams/case_5_0.1__80_20_1.5__") + ("Rigid", "-.o") )
 #alldata.append( get_forces("/home/alexeedm/extern/daint/project/alexeedm/focusing_liftparams/case_norot_5_0.1__80_20_1.5__") + ("Rigid, no rotation", "-.o") )
 
-alldata.append( get_forces("/home/alexeedm/extern/daint/scratch/focusing_liftparams/case_newcode_ratio_5_0.0345__80_20_1.5__") + (r'$\lambda = 0.2$', "-o") )
+#alldata.append( get_forces("/home/alexeedm/extern/daint/scratch/focusing_liftparams/case_newcode_ratio_5_0.0502__80_25_1.5__", 4.57) + (r'$\lambda = 0.2$', "-o") )
+alldata.append( get_forces("/home/alexeedm/extern/daint/scratch/focusing_liftparams/case_newcode_ratio_5_0.05177__110_25_2.0__", 4.644375) + (r'$\lambda = 0.2$', "-o") )
+#alldata.append( get_forces("/home/alexeedm/extern/daint/scratch/focusing_liftparams/case_newcode_ratio_5_0.0345__80_20_1.5__", 3.73) + (r'$\lambda = 0.2$', "-o") )
+#alldata.append( get_forces("/home/alexeedm/extern/daint/scratch/focusing_liftparams/case_newcode_ratio_8_0.0311__80_40_1.5__", 4.611298828) + (r'$\lambda = 0.2$', "-o") )
 
 
 #alldata.append( get_forces("/home/alexeedm/extern/daint/scratch/focusing_soft/case_noforce_0.1_0.2__80_20_1.5__") + (r'$\lambda = 0.2$', "-o") )

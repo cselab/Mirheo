@@ -17,7 +17,7 @@ def coefficient(frc, rho, u, r, R):
 	return frc / ( rho * u**2 * (2*r)**2 )
 
 def mean_err_cut(vals):
-	npvals = np.array(vals[10:]).astype(np.float)
+	npvals = np.array(vals[20:]).astype(np.float)
 	
 	m = np.mean(npvals)
 	v = np.var(npvals) / npvals.size
@@ -101,7 +101,7 @@ dicarlo[:,1] = dicarlo[:,1] * 2.096**2 * 0.22**2
 #				0.6001194010231242, 0.011675302245250485,
 #				0.6999018227825918, -0.19292746113989645	]).reshape([8, 2])
 
-def get_forces(case):
+def get_forces(case, U):
 	prefix = ""	
 	rho = 8.0
 	r = 5.0
@@ -122,16 +122,6 @@ def get_forces(case):
 		
 		print full_folder
 		
-#		h5fname = full_folder + "/xdmf/avg_rho_u00200.h5"
-#		h5f = h5py.File(h5fname, 'r')
-#		mom = h5f["momentum"]
-#		mx = mom[:,:,:, 0]
-#			
-#		U = np.mean( np.where( mx > 1e-5) )
-		
-		U = 2.16
-#		U = U / (2.096 / 2.0)
-		#U = U * 2414006.0 / (2414006.0 - 249146.0)
 				
 		files = sorted(glob.glob(full_folder + "/pinning_force/*.txt"))
 		lines = list(itertools.chain.from_iterable([open(f).readlines() for f in files]))
@@ -149,7 +139,9 @@ def get_forces(case):
 
 alldata = []
 #alldata.append( get_forces("/home/alexeedm/extern/daint/scratch/focusing_square/case_5_0.08__80_20_1.5__") + ("Present", "o") )
-alldata.append( get_forces("/home/alexeedm/extern/daint/scratch/focusing_square/case_5_0.075__80_20_1.5__") + ("Present", "o") )
+alldata.append( get_forces("/home/alexeedm/extern/daint/scratch/focusing_square/case_5_0.0788__160_20_3.0__", 2.3) + ("Present", "o") ) # 2244!
+#alldata.append( get_forces("/home/alexeedm/extern/daint/scratch/focusing_square/case_5_0.075__80_20_1.5__", 2.221) + ("Present", "o") )
+#alldata.append( get_forces("/home/alexeedm/extern/daint/scratch/focusing_square/case_5_0.02144__80_10_1.5__", 1.1704) + ("Present", "o") )
 
 print alldata
 #print Cls
