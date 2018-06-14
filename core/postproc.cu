@@ -2,6 +2,9 @@
 
 #include <core/logger.h>
 
+#include <vector>
+#include <mpi.h>
+
 Postprocess::Postprocess(MPI_Comm& comm, MPI_Comm& interComm) : comm(comm), interComm(interComm)
 {
 	info("Postprocessing initialized");
