@@ -18,7 +18,7 @@ def coefficient(frc, rho, u, r, R):
 	return frc / (rho * u**2 * (2*r)**4 / (2*R)**2)
 
 def mean_err_cut(vals):
-	npvals = np.array(vals[20:]).astype(np.float)
+	npvals = np.array(vals[50:]).astype(np.float)
 	
 	m = np.mean(npvals)
 	v = np.var(npvals) / npvals.size
@@ -38,7 +38,7 @@ def dump_plots(alldata, Re, kappa):
 	plt.xlabel('y/R', fontsize=16)
 	plt.ylabel('Cl', fontsize=16)
 	plt.grid()
-	plt.legend(fontsize=10, ncol=4)
+	plt.legend(fontsize=10, ncol=3)
 
 	plt.tight_layout()
 	plt.show()
@@ -65,7 +65,7 @@ def get_forces(case, kappa, f, mu):
 		
 		strpos = "%.1f" % pos
 		full_folder = prefix + case + strpos
-		
+				
 		files = sorted(glob.glob(full_folder + "/pinning_force/*.txt"))
 		lines = list(itertools.chain.from_iterable([open(f).readlines() for f in files]))
 			
@@ -91,30 +91,34 @@ def get_data(folder, Re, kappa, S):
 		
 	cases = [ re.match(r'(.*)0.1/', c01).group(1) for c01 in cases01 ]	
 	
-	fs = get_forces("/home/alexeedm/extern/daint/scratch/focusing_liftparams/case_newcode_ratio_5_0.05177__110_25_2.0__", kappa, 0.05177, 24.77)
-	alldata = [ fs + (r'$\hat Y = -\infty$, $\lambda = \infty$', '-D')]
+#	fs = get_forces("/home/alexeedm/extern/daint/scratch/focusing_liftparams/case_newcode_ratio_5_0.05177__110_25_2.0__", kappa, 0.05177, 24.77)
+#	alldata = [ fs + (r'$\hat Y = -\infty$, $\lambda = \infty$', '-D') ]
+	alldata = [ ]
 	
 	for c in cases:
 		print c
 		
-		m = re.search(r'case_(.*?)_(.*?)_(.*?)_.*?__.*?_(.*?)_.*?__', c.split('/')[-1])
+		m = re.search(r'case_(.*?)_(.*?)_(.*?)_.*?__(.*?)_(.*?)_.*?__', c.split('/')[-1])
 		
-		f, lbd, Y, gamma = [ float(v) for v in m.groups() ]
-		mu = S(gamma)
+		f, lbd, Y, a, gamma = [ float(v) for v in m.groups() ]
+		s = pickle.load( open('../data/visc_' + str(a) + '_0.5_backup.pckl', 'rb') )
+		mu = s(gamma)
 		
-		alldata.append( get_forces(c, kappa, f, mu) + (r'$\hat Y =' + str(Y) + '$, $\lambda = ' + str(lbd) + r'$', '--o') )
+		try:
+			alldata.append( get_forces(c, kappa, f, mu) + (r'$\hat Y =' + str(Y) + '$, $\lambda = ' + str(lbd) + r'$', '--o') )
+		except:
+			print "Big erra! Badaboom!"
+			continue
 
 	return alldata
-
-s = pickle.load( open('../data/visc_80.0_0.5_backup.pckl', 'rb') )
 
 
 
 folder = "/home/alexeedm/extern/daint/scratch/focusing_soft/"
-Re = 50
+Re = 200
 kappa = 0.15
 
-data = get_data(folder + 'case_' + str(Re) + '_' + str(kappa) + '/', Re, kappa, s)
+data = get_data(folder + 'case160_' + str(Re) + '_' + str(kappa) + '/', Re, kappa, s)
 #%%
 dump_plots(data, Re, kappa)
 

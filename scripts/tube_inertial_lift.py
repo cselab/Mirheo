@@ -10,13 +10,15 @@ import itertools
 import numpy as np
 import matplotlib.pyplot as plt
 import math
+import re
+import pickle
 
 
 def coefficient(frc, rho, u, r, R):
 	return frc / (rho * u**2 * (2*r)**4 / (2*R)**2)
 
 def mean_err_cut(vals):
-	npvals = np.array(vals[20:]).astype(np.float)
+	npvals = np.array(vals[40:]).astype(np.float)
 	
 	m = np.mean(npvals)
 	v = np.var(npvals) / npvals.size
@@ -64,17 +66,24 @@ ref = np.array([
 #				0.6001194010231242, 0.011675302245250485,
 #				0.6999018227825918, -0.19292746113989645	]).reshape([8, 2])
 
-def get_forces(case, Um):
+def get_forces(case):
 	prefix = ""	
 	rho = 8.0
 	r = 5
 	R = 33.333
 	
+	f, a, gamma = [ float(v) for v in re.split(r'_+', case.split('/')[-1] )[-5:-2] ]
+	
+	s = pickle.load( open('../data/visc_' + str(a) + '_0.5_backup.pckl', 'rb') )
+	mu = s(gamma)
+	
+	Um = 2.0 * R**2 * rho*f / (8*mu)
+	print Um
+	
 	positions = np.linspace(0.0, 0.7, 8)
 	
 	Cls = [0]
 	err_Cls = [0]
-	
 	
 	for pos in positions:
 		if pos < 0.0001:
@@ -100,10 +109,13 @@ alldata = []
 #alldata.append( get_forces("/home/alexeedm/extern/daint/project/alexeedm/focusing_liftparams/case_norot_5_0.1__80_20_1.5__") + ("Rigid, no rotation", "-.o") )
 
 #alldata.append( get_forces("/home/alexeedm/extern/daint/scratch/focusing_liftparams/case_newcode_ratio_5_0.0502__80_25_1.5__", 4.57) + (r'$\lambda = 0.2$', "-o") )
-alldata.append( get_forces("/home/alexeedm/extern/daint/scratch/focusing_liftparams/case_newcode_ratio_5_0.05177__110_25_2.0__", 4.644375) + (r'$\lambda = 0.2$', "-o") )
-#alldata.append( get_forces("/home/alexeedm/extern/daint/scratch/focusing_liftparams/case_newcode_ratio_5_0.0345__80_20_1.5__", 3.73) + (r'$\lambda = 0.2$', "-o") )
-#alldata.append( get_forces("/home/alexeedm/extern/daint/scratch/focusing_liftparams/case_newcode_ratio_8_0.0311__80_40_1.5__", 4.611298828) + (r'$\lambda = 0.2$', "-o") )
+folder = "/home/alexeedm/extern/daint/scratch/focusing_liftparams/"
 
+alldata.append( get_forces(folder + "case_newcode_ratio_5_0.05177__110_25_2.0__") + (r'Present', "-o") )
+#alldata.append( get_forces(folder + "case_newcode_ratio_5_0.14516__160_43.0935_3.0__") + (r'$\gamma = 43$', "-o") )
+#alldata.append( get_forces(folder + "case_newcode_ratio_5_0.16335__160_45.7969_3.0__") + (r'$\gamma = 45$', "-o") )
+#alldata.append( get_forces(folder + "case_newcode_ratio_5_0.22234__160_53.6651_3.0_") + (r'$\gamma = 54$', "-o") )
+#alldata.append( get_forces(folder + "case_newcode_ratio_5_0.29040__160_61.4946_3.0__") + (r'$\gamma = 61$', "-o") )
 
 #alldata.append( get_forces("/home/alexeedm/extern/daint/scratch/focusing_soft/case_noforce_0.1_0.2__80_20_1.5__") + (r'$\lambda = 0.2$', "-o") )
 #alldata.append( get_forces("/home/alexeedm/extern/daint/scratch/focusing_soft/case_noforce_0.1_1.0__80_20_1.5__") + (r'$\lambda = 1.0$', "-o") )

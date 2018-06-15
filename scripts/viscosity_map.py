@@ -26,6 +26,8 @@ for case in cases:
 	
 	if os.path.isfile(fname):
 		line = open(fname).readline()
+		if len(line.split()) < 1:
+			continue
 		visc = float(line.split()[0])
 		err  = float(line.split()[1])
 		
@@ -54,6 +56,7 @@ for tag in vm.keys():
 	
 	lst = vm[tag]
 	lst = sorted(lst)
+
 	gammas = np.array( [e[0] for e in lst] )
 	viscs  = np.array( [e[1] for e in lst] )	
 	errs   = np.array( [e[2] for e in lst] )
@@ -66,9 +69,15 @@ for tag in vm.keys():
 	
 	plt.errorbar(gammas, viscs, yerr=errs, fmt="d", ms=3, label=tag, zorder=10)
 	
-	g_fine = np.arange(1, 700, 0.5)
+	print tag
+#	if tag == '80.0_0.5':
+#		g_fine = np.arange(1, 4000, 0.5)
+#	else:
+	g_fine = np.arange(1, 1000, 0.5)
 	plt.plot( g_fine, s(g_fine), zorder=5 )
 	
+plt.axes().set_xlim([-10, 1010])
+plt.axes().set_ylim([-10, 2010])
 plt.legend()
 plt.show()
 
