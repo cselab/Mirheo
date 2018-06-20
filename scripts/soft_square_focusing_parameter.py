@@ -7,19 +7,19 @@ def params(Re, kappa, s):
 	
 	rho = 8.0
 	r = 5.0
-	R = r / kappa
+	H = 2*r / kappa
 	
-	c = np.sqrt(0.1 * 80 * 8)
-	M = 0.206
-	uavg = c*M/(2*kappa)
+#	c = np.sqrt(0.1 * 80 * 8)
+#	M = 0.206
+#	uavg = c*M/(2*kappa)
 	
-	uavg = 3.9
+	uavg = 3.5
 	
-	mu = 2*R*uavg*rho / Re
+	mu = H*uavg*rho / Re
 	#print mu
 	
 	gamma = fsolve(lambda g : s(g)-mu, mu)[0]	
-	f = 8.0*uavg*mu / (rho * R**2)
+	f = 28.45415377*Re * mu**2 / (rho**2 * H**3)
 	
 	return gamma, f
 
@@ -27,7 +27,17 @@ def params(Re, kappa, s):
 s = pickle.load(open('../data/visc_160.0_0.5_backup.pckl', 'rb'))
 
 
-for kappa in [0.15, 0.22, 0.3]:
-	for Re in [50.0, 100.0, 200.0]:
+for kappa in [0.22]:
+	for Re in [50.0, 200.0]:
 		gamma, f = params(Re, kappa, s)
-		print '"160 %7.4f 3.0  %.5f"' % (gamma, f)
+		
+		if gamma > 35:
+			dt = 0.0001
+		elif gamma > 25:
+			dt = 0.00025
+		elif gamma > 15:
+			dt = 0.0005
+		else:
+			dt = 0.001
+			
+		print '"160 %7.4f 3.0  %8.5f  %.5f"' % (gamma, dt, f)

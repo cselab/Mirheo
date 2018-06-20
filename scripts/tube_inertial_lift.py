@@ -27,16 +27,18 @@ def mean_err_cut(vals):
 
 def dump_plots(positions, alldata, ref):
 	
-	plt.plot(ref[:,0], ref[:,1], ":D", ms=8, linewidth=5, label="Chao Liu et al. Lab on a Chip (2015)", zorder=2)
+	plt.plot(ref[:,0], ref[:,1], "o", color="C0", ms=6, markeredgewidth=1.5, markeredgecolor='black', label="C. Liu et al., Lab on a Chip (2015)", zorder=2)
 		
-	for data, err, label, fmt in alldata:
-		plt.errorbar(positions, data, yerr=err, fmt=fmt, ms=7, linewidth=1.5, label=label, zorder=3)
+	for data, err, label, fmt, color in alldata:
+		plt.errorbar(positions, data, yerr=err, fmt=fmt, color=color, ms=6, label=label, zorder=3, markeredgewidth=1.5, markeredgecolor='black')
 
-	plt.xlabel('y/R', fontsize=16)
-	plt.ylabel('Cl', fontsize=16)
+	plt.xlabel(r'$\dfrac{y}{R}$', fontsize=16)
+	plt.ylabel(r'$C_{lift}$', fontsize=16)
 	plt.grid()
-	plt.legend(fontsize=11.5)
-
+	plt.legend(fontsize=14)
+	
+	plt.rc('xtick', labelsize=14)
+	plt.rc('ytick', labelsize=14)
 
 	plt.tight_layout()
 	plt.show()
@@ -111,7 +113,7 @@ alldata = []
 #alldata.append( get_forces("/home/alexeedm/extern/daint/scratch/focusing_liftparams/case_newcode_ratio_5_0.0502__80_25_1.5__", 4.57) + (r'$\lambda = 0.2$', "-o") )
 folder = "/home/alexeedm/extern/daint/scratch/focusing_liftparams/"
 
-alldata.append( get_forces(folder + "case_newcode_ratio_5_0.05177__110_25_2.0__") + (r'Present', "-o") )
+alldata.append( get_forces(folder + "case_newcode_ratio_5_0.05177__110_25_2.0__") + (r'Present', "D", 'C2') )
 #alldata.append( get_forces(folder + "case_newcode_ratio_5_0.14516__160_43.0935_3.0__") + (r'$\gamma = 43$', "-o") )
 #alldata.append( get_forces(folder + "case_newcode_ratio_5_0.16335__160_45.7969_3.0__") + (r'$\gamma = 45$', "-o") )
 #alldata.append( get_forces(folder + "case_newcode_ratio_5_0.22234__160_53.6651_3.0_") + (r'$\gamma = 54$', "-o") )

@@ -26,27 +26,27 @@ def gen_circle(R, center, r):
 	fig, ax = plt.subplots()
 	ax.add_artist(plt.Circle([center, center], R-r, ec='C1', fc='none'))
 	plt.scatter(pts[:,0], pts[:,1])
-	plt.show
+	plt.show()
 
 	return pts
 
 
-def gen_square(left, right, bot, top, r):
+def gen_square(xl, yl, xsize, ysize, r):
 	seq = ghalton.Halton(2)
 	uniform = np.array(seq.get(100))
 
-	lo = np.array([left, bot]) + (r+2)
-	hi = np.array([right, top]) - (r+2)
+	lo = np.array([xl, yl]) + (r+2.0)
+	hi = np.array([xl, yl]) + np.array([xsize/2.0, ysize/2.0])
 
 	pts = lo + uniform * (hi-lo)
 	
-	plt.scatter(pts[:,0], pts[:,1])
-	plt.show
+	plt.scatter(pts[:50,0], pts[:50,1])
+	plt.show()
 
 	return pts
 
 
-pts = gen_square(2, 96.59/2, 2, 96.59/2, 5)
+pts = gen_square(2, 2, 92.59, 92.59, 5)
 
 
 for p in pts:

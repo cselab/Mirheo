@@ -84,16 +84,16 @@ def is_number(s):
     except ValueError:
         return False
 	
-def get_data(folder, Re, kappa, S):
+def get_data(folder, Re, kappa):
 	cases01 = sorted(  glob.glob(folder + "*_0.1/"), key = lambda v : map(float, filter(lambda x : is_number(x), v.split('_'))) )
 	
 	#print cases01
 		
 	cases = [ re.match(r'(.*)0.1/', c01).group(1) for c01 in cases01 ]	
 	
-#	fs = get_forces("/home/alexeedm/extern/daint/scratch/focusing_liftparams/case_newcode_ratio_5_0.05177__110_25_2.0__", kappa, 0.05177, 24.77)
-#	alldata = [ fs + (r'$\hat Y = -\infty$, $\lambda = \infty$', '-D') ]
-	alldata = [ ]
+	fs = get_forces("/home/alexeedm/extern/daint/scratch/focusing_liftparams/case_newcode_ratio_5_0.05177__110_25_2.0__", kappa, 0.05177, 24.77)
+	alldata = [ fs + (r'$\hat Y = -\infty$, $\lambda = \infty$', '-D') ]
+#	alldata = [ ]
 	
 	for c in cases:
 		print c
@@ -115,10 +115,10 @@ def get_data(folder, Re, kappa, S):
 
 
 folder = "/home/alexeedm/extern/daint/scratch/focusing_soft/"
-Re = 200
+Re = 50
 kappa = 0.15
 
-data = get_data(folder + 'case160_' + str(Re) + '_' + str(kappa) + '/', Re, kappa, s)
+data = get_data(folder + 'newcase_' + str(Re) + '_' + str(kappa) + '/', Re, kappa)
 #%%
 dump_plots(data, Re, kappa)
 

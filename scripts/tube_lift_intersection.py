@@ -22,7 +22,9 @@ def coefficient(frc, rho, u, r, R):
 	return frc / (rho * u**2 * (2*r)**4 / (2*R)**2)
 
 def mean_err_cut(vals):
-	npvals = np.array(vals[2:]).astype(np.float)
+	npvals = np.array(vals[20:]).astype(np.float)
+	
+	npvals = npvals[ np.where(npvals < 10000) ]
 	
 	m = np.mean(npvals)
 	v = np.var(npvals) / npvals.size
@@ -85,18 +87,16 @@ def get_data(folder, Re, kappa, S):
 	for c in cases[0:]:
 		print c
 		
-		m = re.search(r'case_(.*?)_(.*?)_(.*?)_.*?__.*?_(.*?)_.*?__', c.split('/')[-1])
+		m = re.search(r'case_(.*?)_(.*?)_(.*?)_.*?__(.*?)_(.*?)_.*?__', c.split('/')[-1])
+		f, lbd, Y, a, gamma = [ float(v) for v in m.groups() ]
 		
-		f, lbd, Y, gamma = [ float(v) for v in m.groups() ]
-		mu = S(gamma)
-		
+		s = pickle.load( open('../data/visc_' + str(a) + '_0.5_backup.pckl', 'rb') )
+		mu = s(gamma)
+				
 		x, f, err = get_forces(c, kappa, f, mu)
 		alldata.append( (x, f, err, Y, lbd) )
 
 	return alldata
-
-s = pickle.load( open('../data/visc_80.0_0.5_backup.pckl', 'rb') )
-
 
 def process_data(data):
 
@@ -131,16 +131,18 @@ def intersection(gp):
 	return x0[0], x0[0]-xlo[0], xhi[0]-x0[0]
 
 def dump_plots(alldata, Re, kappa):
-	fig = plt.figure(figsize=(12, 9))
-	plt.title(r'$Re = ' + str(Re) + r'$, $\kappa = ' + str(kappa) + r'$')
+	fig, axes = plt.subplots(nrows=3, ncols=4, sharex=True, sharey=True, figsize=(15, 10))
+	#plt.suptitle(r'$Re = ' + str(Re) + r'$, $\kappa = ' + str(kappa) + r'$')
 	
-	i=1
-	for x, data, err, gp, Y, lbd in alldata:
-		plt.subplot(3, 4, i)
-		label = r'$\hat Y =' + str(Y) + '$, $\lambda = ' + str(lbd) + r'$'
+	axes = axes.flatten()
+	
+	i=0
+	for x, data, err, gp, Y, lbd in alldata:			
+		label = r'$Ca =' + str(Y) + '$, $\lambda = ' + str(lbd) + r'$'
 		
 		gpx = np.linspace(0.0, np.max(x), 100)
-		plt.errorbar(x, data, yerr=3.0*err, fmt='o', ms=7, linewidth=1.5, label=label, zorder=3)
+		axes[i].errorbar(x, data, yerr=3.0*err, fmt='D', color="C2",
+		  markeredgewidth=1.5, markeredgecolor='black',  ms=6, label=label, zorder=3)
 		
 #		print x
 #		print data
@@ -148,23 +150,33 @@ def dump_plots(alldata, Re, kappa):
 #		print ""
 		
 		y_fit, sigma = gp.predict(np.atleast_2d(gpx).T, return_std=True)
-		plt.plot(gpx, y_fit)
-		plt.fill_between(gpx, y_fit - sigma, y_fit + sigma, color='darkred', alpha=0.2, linewidth=0)
+		axes[i].plot(gpx, y_fit)
+		axes[i].fill_between(gpx, y_fit - sigma, y_fit + sigma, color='red', alpha=0.5, linewidth=0)
+		
+		axes[i].grid()
+		axes[i].legend(fontsize=14, loc=3)
+		
+		if i % 4 == 0:
+			axes[i].set_ylabel(r'$C_{lift}$', fontsize=16)
+			
+		if i >= 8:
+			axes[i].set_xlabel(r'$\dfrac{y}{R}$', fontsize=16)
 		
 		i=i+1
-
-		plt.grid()
-		plt.legend(fontsize=10, ncol=3)
 		
 	
 #	plt.xlabel('y/R', fontsize=16)
 #	plt.ylabel('Cl', fontsize=16)
 
+
 	plt.tight_layout()
+	plt.subplots_adjust(hspace=0.1, wspace=0.1)
+
 	#plt.show()
 	fig.savefig("/home/alexeedm/udevicex/media/tube_lift_soft__Re_" + str(Re) + "_kappa_" + str(kappa) + ".pdf", bbox_inches='tight')
+	plt.close(fig)
 
-
+#%%
 
 folder = "/home/alexeedm/extern/daint/scratch/focusing_soft/"
 Re = 200
@@ -173,9 +185,14 @@ kappa = 0.15
 plt.ioff()
 
 for Re in [50, 100, 200]:
-	for kappa in [0.22, 0.3]:
+	for kappa in [0.15, 0.22, 0.3]:
+		
+		print Re, kappa
+		print ""
+		print ""
+		
 		np.set_printoptions(linewidth = 200)
-		data = get_data(folder + 'case_' + str(Re) + '_' + str(kappa) + '/', Re, kappa, s)
+		data = get_data(folder + 'newcase_' + str(Re) + '_' + str(kappa) + '/', Re, kappa, s)
 		
 		#%%
 		def gaussian_fit(x, y, err):
@@ -183,13 +200,16 @@ for Re in [50, 100, 200]:
 			err[np.isnan(err)] = 0.0
 			noise = np.mean(err)
 			
-			kernel = kr.RBF(length_scale=0.2)
-			kernel = kr.Matern(length_scale=0.2, nu=1.5)
+			#kernel = kr.RBF(length_scale=0.2)
+			kernel = kr.Matern(length_scale=0.2, nu=2.0)
 			
-			gp = GaussianProcessRegressor(kernel=kernel, alpha = err**2.0, n_restarts_optimizer=1)
+			gp = GaussianProcessRegressor(kernel=kernel, alpha = err**2.0, n_restarts_optimizer=5)
 			
-			print y
-			gp.fit(x, y)
+			#print y
+			try:
+				gp.fit(x, y)
+			except:
+				print y			
 			
 			return gp
 		
@@ -201,19 +221,26 @@ for Re in [50, 100, 200]:
 		plt.title(r'$Re = ' + str(Re) + r'$, $\kappa = ' + str(kappa) + r'$')
 		
 		intersections = np.empty((0, 4))
-		for x, data, err, gp, Y, lbd in processed:
+		for x, d, err, gp, Y, lbd in processed:
 			x0, elo, ehi = intersection(gp)
 			
 			intersections = np.vstack( (intersections, np.array([x0, 0.5*(elo+ehi), Y, lbd])) )	
 		
-		
+		#%%
 		for lbd in [1.0, 5.0, 25.0]:
 			idxs = np.where(intersections[:,3] == lbd)
-			plt.errorbar(intersections[idxs, 2], intersections[idxs, 0], yerr=intersections[idxs, 1], label=r'$\lambda=' + str(lbd) + r'$', fmt='--o', ms=7, linewidth=1.5, )
+			plt.errorbar(intersections[idxs, 2], intersections[idxs, 0], yerr=intersections[idxs, 1], label=r'$\lambda=' + str(lbd) + r'$',
+			  fmt='--D', ms=6, linewidth=1.5, markeredgewidth=1.5, markeredgecolor='black')
 		
-		plt.legend()
+		plt.legend(fontsize=14)
+		
+		plt.xscale('log')
+		plt.xlabel(r'$Ca$', fontsize=16)
+		plt.ylabel(r'$\dfrac{C_0}{y}$', fontsize=16)
+		
 		plt.grid()
 		#plt.show()
+		plt.tight_layout()
 		fig.savefig("/home/alexeedm/udevicex/media/tube_lift_soft__intersection_" + str(Re) + "_kappa_" + str(kappa) + ".pdf", bbox_inches='tight')
-
+		plt.close(fig)
 

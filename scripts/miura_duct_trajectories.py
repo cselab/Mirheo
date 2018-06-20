@@ -1,6 +1,14 @@
 #!/usr/bin/env python2
 # -*- coding: utf-8 -*-
 """
+Created on Mon Jun  4 19:58:21 2018
+
+@author: alexeedm
+"""
+
+#!/usr/bin/env python2
+# -*- coding: utf-8 -*-
+"""
 Created on Wed Jan 17 11:39:29 2018
 
 @author: alexeedm
@@ -38,20 +46,22 @@ def plottraj(traj, signs, alpha):
 	
 		plt.plot(y, z, lw=0.1, zorder=1, color="C0", alpha=alpha)
 		plt.plot(y[0], z[0],   "x", ms=2, color="C0", zorder=1, alpha=alpha)
-		plt.plot(y[-1], z[-1], "o", ms=4, color="lime", markeredgewidth=0.5, markeredgecolor='black', zorder=10, alpha=alpha)
+		plt.plot(y[-1], z[-1], "o", ms=4, color="C2", markeredgewidth=0.5, markeredgecolor='black', zorder=10, alpha=alpha)
 
 
 # Duct
 folder = "/home/alexeedm/extern/daint/scratch/focusing_square_free/"
-name = "case_8_0.04__80_40_1.5__"
-reference = mpimg.imread("/home/alexeedm/Pictures/choi_fig2f.png")
+#name = "case_8_0.00769__80_20_1.5__"
+name = "scattered_5_0.0315__80_20_1.5__"
+#name = "case_5_0.03149__80_20_1.5__"
+reference = mpimg.imread("/home/alexeedm/Pictures/miura_fig5a.png")
 
 variants = sorted(glob.glob(folder + name + "*/"))
 
 traj = []
 for case in variants:
 	print case
-	traj.append(trajectories(case, 52, 52, 50.0))
+	traj.append(trajectories(case, 48.295,48.295, 46.295))
 
 
 #%%
@@ -62,6 +72,7 @@ plt.imshow(reference, extent=(-1,1, -1,1), zorder=0)
 plt.axes().set_xlim([-1.1, 1.1])
 plt.axes().set_ylim([-1.1, 1.1])
 
+
 # Mirror
 #for t in traj:
 #	t = (-t[0], t[1])
@@ -71,7 +82,8 @@ plottraj(traj, (1, -1),  0.25)
 plottraj(traj, (-1, -1), 0.25)
 plottraj(traj, (1, 1), 1.0)
 
+
 plt.show()
-fig.savefig("/home/alexeedm/udevicex/media/square_duct_trajectories.pdf", bbox_inches='tight', transparent=True)
+fig.savefig("/home/alexeedm/udevicex/media/square_duct_trajectories_144.pdf", bbox_inches='tight', transparent=True)
 
 

@@ -26,17 +26,19 @@ def mean_err_cut(vals):
 
 def dump_plots(positions, alldata, r1, r2):
 	
-	plt.plot(r1[:,0], r1[:,1], "D", ms=6, linewidth=1.5, label="Nakagawa et al. J. Fluid Mech (2015)")
-	plt.plot(r2[:,0], r2[:,1], "s", ms=6, linewidth=1.5, label="Di Carlo 2009")
+	plt.plot(r1[:,0], r1[:,1], "o", ms=6, markeredgewidth=1.5, markeredgecolor='black', label="Nakagawa et al., J. Fluid Mech (2015)")
+	plt.plot(r2[:,0], r2[:,1], "s", ms=6, markeredgewidth=1.5, markeredgecolor='black', label="Di Carlo et al., Phys Rev Lett (2009)")
 		
 	for data, err, label, fmt in alldata:
-		plt.errorbar(positions, data, yerr=err, fmt=fmt, ms=6, linewidth=1.5, label=label)
+		plt.errorbar(positions, data, yerr=err, color='C2', markeredgewidth=1.5, markeredgecolor='black', fmt=fmt, ms=6, linewidth=2, label=label)
 
 	plt.xlabel('y/R', fontsize=16)
 	plt.ylabel('Cl', fontsize=16)
 	plt.grid()
 	plt.legend(fontsize=14)
 
+	plt.rc('xtick', labelsize=14)
+	plt.rc('ytick', labelsize=14)
 
 	plt.tight_layout()
 	plt.show()
@@ -139,7 +141,7 @@ def get_forces(case, U):
 
 alldata = []
 #alldata.append( get_forces("/home/alexeedm/extern/daint/scratch/focusing_square/case_5_0.08__80_20_1.5__") + ("Present", "o") )
-alldata.append( get_forces("/home/alexeedm/extern/daint/scratch/focusing_square/case_5_0.0788__160_20_3.0__", 2.3) + ("Present", "o") ) # 2244!
+alldata.append( get_forces("/home/alexeedm/extern/daint/scratch/focusing_square/case_5_0.0788__160_20_3.0__", 2.3) + ("Present", "D") ) # 2244!
 #alldata.append( get_forces("/home/alexeedm/extern/daint/scratch/focusing_square/case_5_0.075__80_20_1.5__", 2.221) + ("Present", "o") )
 #alldata.append( get_forces("/home/alexeedm/extern/daint/scratch/focusing_square/case_5_0.02144__80_10_1.5__", 1.1704) + ("Present", "o") )
 
