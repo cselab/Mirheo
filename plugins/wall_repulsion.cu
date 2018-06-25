@@ -36,6 +36,9 @@ void WallRepulsionPlugin::setup(Simulation* sim, const MPI_Comm& comm, const MPI
 				name.c_str(), wallName.c_str());
 }
 
+
+// TODO: make that force be computed on halo also
+// to get rid of the SDF wall margin
 void WallRepulsionPlugin::beforeIntegration(cudaStream_t stream)
 {
 	PVview view(pv, pv->local());
