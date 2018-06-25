@@ -2,6 +2,7 @@
 
 #include <map>
 #include <string>
+#include <vector>
 #include <core/logger.h>
 #include <core/datatypes.h>
 #include <core/containers.h>

@@ -575,7 +575,7 @@ void Simulation::assemble()
 	auto task_clearForces               = scheduler->createTask("Clear forces");
 	auto task_pluginsBeforeForces       = scheduler->createTask("Plugins: before forces");
 	auto task_haloInit                  = scheduler->createTask("Halo init");
-	auto task_localForces            = scheduler->createTask("Local forces");
+	auto task_localForces               = scheduler->createTask("Local forces");
 	auto task_pluginsSerializeSend      = scheduler->createTask("Plugins: serialize and send");
 	auto task_haloFinalize              = scheduler->createTask("Halo finalize");
 	auto task_haloForces                = scheduler->createTask("Halo forces");
@@ -844,7 +844,7 @@ void Simulation::run(int nsteps)
 
 	execSplitters();
 
-	info("Will run %d iterations now", nsteps);
+	debug("Will run %d iterations now", nsteps);
 
 
 	for (currentStep = begin; currentStep < end; currentStep++)
@@ -854,7 +854,7 @@ void Simulation::run(int nsteps)
 
 		scheduler->run();
 		
-		MPI_Check( MPI_Barrier(cartComm) );
+//		MPI_Check( MPI_Barrier(cartComm) );
 
 		currentTime += dt;
 	}
@@ -869,15 +869,18 @@ void Simulation::finalize()
 {
 	MPI_Check( MPI_Barrier(cartComm) );
 
-	debug("Finished, exiting now");
+	info("Finished, exiting now");
+
+	for (auto& pl : plugins)
+		pl->finalize();
 
 	if (interComm != MPI_COMM_NULL)
 	{
 		int dummy = -1;
 		int tag = 424242;
 
-		MPI_Request req;
-		MPI_Check( MPI_Isend(&dummy, 1, MPI_INT, rank, tag, interComm, &req) );
+		MPI_Check( MPI_Send(&dummy, 1, MPI_INT, rank, tag, interComm) );
+		debug("Sending stopping message to the postprocess");
 	}
 }
 

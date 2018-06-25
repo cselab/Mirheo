@@ -3,6 +3,7 @@
 #include <fstream>
 #include <unordered_map>
 #include <map>
+#include <vector>
 
 #include <core/utils/cuda_common.h>
 

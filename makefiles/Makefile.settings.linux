@@ -1,0 +1,33 @@
+# Choose the NVCC compiler
+CXX = nvcc
+
+
+# Change the following two lines according to your GPU compute capability
+# https://developer.nvidia.com/cuda-gpus
+CUDA_ARCH = compute_60
+CUDA_CODE = sm_60
+
+
+# Next two lines are most like should not be changed
+CXXFLAGS += -arch=$(CUDA_ARCH) -code=$(CUDA_CODE) --expt-extended-lambda -lineinfo
+FMATH_FLAG = --use_fast_math
+
+
+# Choose the linker and its flags. gcc or nvcc are reasonable choices
+LD = gcc
+LDFLAGS += -rdynamic -flto
+# LD = mpinvcc
+# LDFLAGS += -arch=$(CUDA_ARCH) -code=$(CUDA_CODE) -Xcompiler -rdynamic -Xcompiler -flto
+
+
+# Specify paths to the hdf5 library
+HDF5_INC = -I/usr/include/hdf5/mpich/
+HDF5_LIB = -L/usr/lib/x86_64-linux-gnu/
+
+
+# Add extra includes if needed (e.g MPI headers)
+INCLUDES += 
+
+
+# Provide the libraries: mpi, hdf5, bfd
+LIBS += -lhdf5_mpich -lmpi -lbfd

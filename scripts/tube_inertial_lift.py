@@ -10,13 +10,15 @@ import itertools
 import numpy as np
 import matplotlib.pyplot as plt
 import math
+import re
+import pickle
 
 
 def coefficient(frc, rho, u, r, R):
-	return 0.5 * frc / (rho * u**2 * r**4 / R**2)
+	return frc / (rho * u**2 * (2*r)**4 / (2*R)**2)
 
 def mean_err_cut(vals):
-	npvals = np.array(vals[20:]).astype(np.float)
+	npvals = np.array(vals[40:]).astype(np.float)
 	
 	m = np.mean(npvals)
 	v = np.var(npvals) / npvals.size
@@ -25,16 +27,18 @@ def mean_err_cut(vals):
 
 def dump_plots(positions, alldata, ref):
 	
-	plt.plot(ref[:,0], ref[:,1], "--o", ms=5, label="Liu, Chao, et al. Lab on a Chip (2015)")
+	plt.plot(ref[:,0], ref[:,1], "o", color="C0", ms=6, markeredgewidth=1.5, markeredgecolor='black', label="C. Liu et al., Lab on a Chip (2015)", zorder=2)
 		
-	for data, err, label in alldata:
-		plt.errorbar(positions, data, yerr=err, fmt='-o', ms=7, elinewidth=2, label=label)
+	for data, err, label, fmt, color in alldata:
+		plt.errorbar(positions, data, yerr=err, fmt=fmt, color=color, ms=6, label=label, zorder=3, markeredgewidth=1.5, markeredgecolor='black')
 
-	plt.xlabel('y/R', fontsize=16)
-	plt.ylabel('Cl', fontsize=16)
+	plt.xlabel(r'$\dfrac{y}{R}$', fontsize=16)
+	plt.ylabel(r'$C_{lift}$', fontsize=16)
 	plt.grid()
 	plt.legend(fontsize=14)
-
+	
+	plt.rc('xtick', labelsize=14)
+	plt.rc('ytick', labelsize=14)
 
 	plt.tight_layout()
 	plt.show()
@@ -43,14 +47,16 @@ def dump_plots(positions, alldata, ref):
 #    plt.close(fig)
 
 ## ratio = 0.166
-ref = np.array([0.0004303640088072491, 0.00040587219343701797,
-				0.10036285861385286, 0.07027633851468046,
-				0.20029987183559916, 0.14841105354058753,
-				0.300526213453976, 0.17570811744386902,
-				0.40010310661744597, 0.17520725388601077,
-				0.5002819342965751, 0.11560449050086374,
-				0.6001194010231242, 0.011675302245250485,
-				0.6999018227825918, -0.19292746113989645]).reshape([8, 2])
+ref = np.array([
+0, 0.0001526135062951961,
+0.1, 0.06814193056085455,
+0.2, 0.14208317436093088,
+0.3, 0.16955360549408616,
+0.4, 0.15742083174360924,
+0.5, 0.10339565051507052,
+0.6, 0.026020602823349753,
+0.7, -0.18733307897748996
+]).reshape([-1, 2])
 
 ## ratio = 0.15
 #ref = np.array([0.0004303640088072491, 0.00040587219343701797,
@@ -66,13 +72,20 @@ def get_forces(case):
 	prefix = ""	
 	rho = 8.0
 	r = 5
-	R = 30
+	R = 33.333
+	
+	f, a, gamma = [ float(v) for v in re.split(r'_+', case.split('/')[-1] )[-5:-2] ]
+	
+	s = pickle.load( open('../data/visc_' + str(a) + '_0.5_backup.pckl', 'rb') )
+	mu = s(gamma)
+	
+	Um = 2.0 * R**2 * rho*f / (8*mu)
+	print Um
 	
 	positions = np.linspace(0.0, 0.7, 8)
 	
 	Cls = [0]
 	err_Cls = [0]
-	
 	
 	for pos in positions:
 		if pos < 0.0001:
@@ -81,13 +94,6 @@ def get_forces(case):
 		strpos = "%.1f" % pos
 		full_folder = prefix + case + strpos
 		
-	#	h5fname = full_folder + "/xdmf/avg_rho_u00200.h5"
-	#	f = h5py.File(h5fname, 'r')
-	#	mom = f["momentum"]
-	#		
-	#	Um = np.amax( np.mean(mom, axis=0) )
-		Um = 2 * 4.550105428529214
-		
 		files = sorted(glob.glob(full_folder + "/pinning_force/*.txt"))
 		lines = list(itertools.chain.from_iterable([open(f).readlines() for f in files]))
 			
@@ -95,21 +101,31 @@ def get_forces(case):
 		
 		(my, vy) = mean_err_cut(fy)
 		Cls.append(coefficient(my, rho, Um, r, R))
-		err_Cls.append(coefficient(4.0*math.sqrt(vy), rho, Um, r, R))
+		err_Cls.append(coefficient(3.0*math.sqrt(vy), rho, Um, r, R))
 		
 	return Cls, err_Cls
 
 alldata = []
 
-alldata.append( get_forces("/home/alexeedm/extern/daint/project/alexeedm/focusing_liftparams/case_5_0.1__80_20_1.5__") + ("Rigid", ) )
-alldata.append( get_forces("/home/alexeedm/extern/daint/project/alexeedm/focusing_liftparams/case_norot_5_0.1__80_20_1.5__") + ("Rigid, no rotation", ) )
-alldata.append( get_forces("/home/alexeedm/extern/daint/scratch/focusing_soft/case_noforce_0.1_0.2__80__1.5__") + ("0.2", ) )
-alldata.append( get_forces("/home/alexeedm/extern/daint/scratch/focusing_soft/case_noforce_0.1_1.0__80__1.5__") + ("1", ) )
-alldata.append( get_forces("/home/alexeedm/extern/daint/scratch/focusing_soft/case_noforce_0.1_5.0__80__1.5__") + ("5", ) )
-alldata.append( get_forces("/home/alexeedm/extern/daint/scratch/focusing_soft/case_noforce_0.1_10.0__80__1.5__") + ("10", ) )
-alldata.append( get_forces("/home/alexeedm/extern/daint/scratch/focusing_soft/case_noforce_0.1_20.0__80__1.5__") + ("20", ) )
-alldata.append( get_forces("/home/alexeedm/extern/daint/scratch/focusing_soft/case_noforce_0.1_40.0__80__1.5__") + ("40", ) )
+#alldata.append( get_forces("/home/alexeedm/extern/daint/project/alexeedm/focusing_liftparams/case_5_0.1__80_20_1.5__") + ("Rigid", "-.o") )
+#alldata.append( get_forces("/home/alexeedm/extern/daint/project/alexeedm/focusing_liftparams/case_norot_5_0.1__80_20_1.5__") + ("Rigid, no rotation", "-.o") )
 
+#alldata.append( get_forces("/home/alexeedm/extern/daint/scratch/focusing_liftparams/case_newcode_ratio_5_0.0502__80_25_1.5__", 4.57) + (r'$\lambda = 0.2$', "-o") )
+folder = "/home/alexeedm/extern/daint/scratch/focusing_liftparams/"
+
+alldata.append( get_forces(folder + "case_newcode_ratio_5_0.05177__110_25_2.0__") + (r'Present', "D", 'C2') )
+#alldata.append( get_forces(folder + "case_newcode_ratio_5_0.14516__160_43.0935_3.0__") + (r'$\gamma = 43$', "-o") )
+#alldata.append( get_forces(folder + "case_newcode_ratio_5_0.16335__160_45.7969_3.0__") + (r'$\gamma = 45$', "-o") )
+#alldata.append( get_forces(folder + "case_newcode_ratio_5_0.22234__160_53.6651_3.0_") + (r'$\gamma = 54$', "-o") )
+#alldata.append( get_forces(folder + "case_newcode_ratio_5_0.29040__160_61.4946_3.0__") + (r'$\gamma = 61$', "-o") )
+
+#alldata.append( get_forces("/home/alexeedm/extern/daint/scratch/focusing_soft/case_noforce_0.1_0.2__80_20_1.5__") + (r'$\lambda = 0.2$', "-o") )
+#alldata.append( get_forces("/home/alexeedm/extern/daint/scratch/focusing_soft/case_noforce_0.1_1.0__80_20_1.5__") + (r'$\lambda = 1.0$', "-o") )
+#alldata.append( get_forces("/home/alexeedm/extern/daint/scratch/focusing_soft/case_noforce_0.1_5.0__80_20_1.5__") + (r'$\lambda = 5.0$', "-o") )
+#alldata.append( get_forces("/home/alexeedm/extern/daint/scratch/focusing_soft/case_noforce_0.1_20.0__80_20_1.5__") + (r'$\lambda = 20.0$', "-o") )
+#alldata.append( get_forces("/home/alexeedm/extern/daint/scratch/focusing_soft/case_noforce_0.1_40.0__80_20_1.5__") + (r'$\lambda = 40.0$', "-o") )
+
+print alldata
 #print Cls
 #print err_Cls
 
