@@ -26,7 +26,7 @@ private:
 	};
 
 	template<typename T>
-	static std::unique_ptr<Interaction> _parseDPDparameters(std::unique_ptr<T> intPtr, pugi::xml_node node)
+	static std::unique_ptr<Interaction> _overrideDPDPairs(std::unique_ptr<T> intPtr, pugi::xml_node node)
 	{
 		auto rc    = node.attribute("rc").as_float(1.0f);
 
@@ -46,10 +46,10 @@ private:
 			setIfNotEmpty_float(apply_to, power, "power");
 
 			Pairwise_DPD dpd(rc, a, gamma, kbT, dt, power);
-			intPtr->createPairwise(apply_to.attribute("pv1").as_string(),
-								   apply_to.attribute("pv2").as_string(), dpd);
+			intPtr->setSpecificPair(apply_to.attribute("pv1").as_string(),
+								    apply_to.attribute("pv2").as_string(), dpd);
 
-			info("The following interaction was set up: pairwise dpd between '%s' and '%s' with parameters "
+			info("The following pair is set up: pairwise dpd between '%s' and '%s' with parameters "
 					"rc = %g, a = %g, gamma = %g, kbT = %g, dt = %g, power = %g",
 					apply_to.attribute("pv1").as_string(),
 					apply_to.attribute("pv2").as_string(),
@@ -65,10 +65,22 @@ private:
 		auto rc    = node.attribute("rc").as_float(1.0f);
 		auto stressPeriod = node.attribute("stress_period").as_float(-1.0f);
 
+		auto a     = node.attribute("a")    .as_float(50);
+		auto gamma = node.attribute("gamma").as_float(20);
+		auto kbT   = node.attribute("kbt")  .as_float(1.0);
+		auto dt    = node.attribute("dt")   .as_float(0.01);
+		auto power = node.attribute("power").as_float(1.0f);
+
+		Pairwise_DPD dpd(rc, a, gamma, kbT, dt, power);
+
+		info("The following interaction is set up: pairwise dpd between with parameters "
+				"rc = %g, a = %g, gamma = %g, kbT = %g, dt = %g, power = %g",
+				rc, a, gamma, kbT, dt, power);
+
 		if (stressPeriod > 0.0f)
-			return _parseDPDparameters(std::make_unique<InteractionPair_withStress<Pairwise_DPD>>(name, rc, stressPeriod), node);
+			return _overrideDPDPairs(std::make_unique<InteractionPair_withStress<Pairwise_DPD>>(name, rc, stressPeriod, dpd), node);
 		else
-			return _parseDPDparameters(std::make_unique<InteractionPair<Pairwise_DPD>>(name, rc), node);
+			return _overrideDPDPairs(std::make_unique<InteractionPair<Pairwise_DPD>>(name, rc, dpd), node);
 	}
 
 
@@ -82,7 +94,11 @@ private:
 		auto sigma    = node.attribute("sigma")    .as_float(0.5f);
 		auto maxForce = node.attribute("max_force").as_float(1e3f);
 
-		auto res = std::make_unique<InteractionPair<T>>(name, rc);
+		T lj(rc, sigma, epsilon, maxForce);
+		auto res = std::make_unique<InteractionPair<T>>(name, rc, lj);
+
+		info("The following interaction is set up: pairwise Lennard-Jones between with parameters "
+				"epsilon = %g, sigma = %g", epsilon, sigma);
 
 		for (auto apply_to : node.children("apply_to"))
 		{
@@ -90,10 +106,10 @@ private:
 			setIfNotEmpty_float(apply_to, sigma,   "sigma" );
 
 			T lj(rc, sigma, epsilon, maxForce);
-			res->createPairwise(apply_to.attribute("pv1").as_string(),
-								apply_to.attribute("pv2").as_string(), lj);
+			res->setSpecificPair(apply_to.attribute("pv1").as_string(),
+							 	 apply_to.attribute("pv2").as_string(), lj);
 
-			info("The following interaction set up: pairwise Lennard-Jones between '%s' and '%s' with parameters "
+			info("The following pair is set up: pairwise Lennard-Jones between '%s' and '%s' with parameters "
 					"epsilon = %g, sigma = %g",
 					apply_to.attribute("pv1").as_string(),
 					apply_to.attribute("pv2").as_string(),

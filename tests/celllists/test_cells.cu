@@ -44,12 +44,15 @@ int main(int argc, char **argv)
 
 	float3 length{64,64,64};
 	float3 domainStart = -length / 2.0f;
+	DomainInfo domain{length, {0,0,0}, length};
+
+
 	const float rc = 1.2f;
 	ParticleVector dpds("dpd", 1.0f);
 	CellList *cells = new PrimaryCellList(&dpds, rc, length);
 
-	UniformIC ic(8);
-	ic.exec(MPI_COMM_WORLD, &dpds, {0,0,0}, length, 0);
+	UniformIC ic(7.5);
+	ic.exec(MPI_COMM_WORLD, &dpds, domain, 0);
 
 	const int np = dpds.local()->size();
 	HostBuffer<Particle> initial(np);
@@ -60,7 +63,7 @@ int main(int argc, char **argv)
 	for (int i=0; i<50; i++)
 	{
 		cells->build(0);
-		dpds.local()->changedStamp++;
+		dpds.cellListStamp++;
 	}
 
 	dpds.local()->coosvels.downloadFromDevice(0, true);

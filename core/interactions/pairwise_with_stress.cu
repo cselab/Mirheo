@@ -8,7 +8,10 @@
  */
 
 template<class PairwiseInteraction>
-void InteractionPair_withStress<PairwiseInteraction>::regular(ParticleVector* pv1, ParticleVector* pv2, CellList* cl1, CellList* cl2, const float t, cudaStream_t stream)
+void InteractionPair_withStress<PairwiseInteraction>::regular(
+		ParticleVector* pv1, ParticleVector* pv2,
+		CellList* cl1, CellList* cl2,
+		const float t, cudaStream_t stream)
 {
 	if (lastStressTime+stressPeriod <= t || lastStressTime == t)
 	{
@@ -26,15 +29,18 @@ void InteractionPair_withStress<PairwiseInteraction>::regular(ParticleVector* pv
 			pv2lastStressTime[pv2] = t;
 		}
 
-		pairWithStress.regular(pv1, pv2, cl1, cl2, t, stream);
+		interactionWithStress.regular(pv1, pv2, cl1, cl2, t, stream);
 		lastStressTime = t;
 	}
 	else
-		pair.regular(pv1, pv2, cl1, cl2, t, stream);
+		interaction.regular(pv1, pv2, cl1, cl2, t, stream);
 }
 
 template<class PairwiseInteraction>
-void InteractionPair_withStress<PairwiseInteraction>::halo   (ParticleVector* pv1, ParticleVector* pv2, CellList* cl1, CellList* cl2, const float t, cudaStream_t stream)
+void InteractionPair_withStress<PairwiseInteraction>::halo   (
+		ParticleVector* pv1, ParticleVector* pv2,
+		CellList* cl1, CellList* cl2,
+		const float t, cudaStream_t stream)
 {
 	if (lastStressTime+stressPeriod <= t || lastStressTime == t)
 	{
@@ -52,11 +58,11 @@ void InteractionPair_withStress<PairwiseInteraction>::halo   (ParticleVector* pv
 			pv2lastStressTime[pv2] = t;
 		}
 
-		pairWithStress.halo(pv1, pv2, cl1, cl2, t, stream);
+		interactionWithStress.halo(pv1, pv2, cl1, cl2, t, stream);
 		lastStressTime = t;
 	}
 	else
-		pair.halo(pv1, pv2, cl1, cl2, t, stream);
+		interaction.halo(pv1, pv2, cl1, cl2, t, stream);
 }
 
 template<class PairwiseInteraction>
@@ -73,19 +79,21 @@ void InteractionPair_withStress<PairwiseInteraction>::setPrerequisites(ParticleV
 }
 
 template<class PairwiseInteraction>
-InteractionPair_withStress<PairwiseInteraction>::InteractionPair_withStress(std::string name, float rc, float stressPeriod) :
+InteractionPair_withStress<PairwiseInteraction>::InteractionPair_withStress(
+		std::string name, float rc, float stressPeriod, PairwiseInteraction pair) :
 
 	Interaction(name, rc),
 	stressPeriod(stressPeriod),
-	pair(name, rc),
-	pairWithStress(name, rc)
+	interaction(name, rc, pair),
+	interactionWithStress(name, rc, pair)
 { }
 
 template<class PairwiseInteraction>
-void InteractionPair_withStress<PairwiseInteraction>::createPairwise(std::string pv1name, std::string pv2name, PairwiseInteraction interaction)
+void InteractionPair_withStress<PairwiseInteraction>::setSpecificPair(
+		std::string pv1name, std::string pv2name, PairwiseInteraction pair)
 {
-	pair.          createPairwise(pv1name, pv2name, interaction);
-	pairWithStress.createPairwise(pv1name, pv2name, PairwiseStressWrapper<PairwiseInteraction>(interaction));
+	interaction.          setSpecificPair(pv1name, pv2name, pair);
+	interactionWithStress.setSpecificPair(pv1name, pv2name, PairwiseStressWrapper<PairwiseInteraction>(pair));
 }
 
 

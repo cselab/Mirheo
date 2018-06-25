@@ -7,7 +7,7 @@
 #include <core/logger.h>
 #include <core/containers.h>
 #include <core/interactions/pairwise.h>
-#include <core/interactions/pairwise_interactions/dpd.h>
+#include <core/interactions/pairwise_interactions/norandom_dpd.h>
 #include <core/initial_conditions/uniform_ic.h>
 
 #include <unistd.h>
@@ -41,54 +41,32 @@ void makeCells(const Particle* __restrict__ input, Particle* __restrict__ output
 }
 
 
-__global__ void test(const float4* particles, int np, float4* forces, Pairwise_DPD interaction, int* counter)
-{
-	const int gid = atomicAdd(counter, 1);
-	if (gid >= np) return;
-
-//	__shared__ float4 cache[1023];
-//
-	float3 res = make_float3(0);
-
-	Particle p(particles, gid);
-//
-//	p.write2Float4(cache, tid);
-//
-//	__syncthreads();
-
-	for (int i=0; i<1; i++)
-		res += interaction(p, gid, p, gid);
-
-	forces[gid] = Float3_int(res, 0).toFloat4();
-}
-
 int main(int argc, char ** argv)
 {
 	MPI_Init(&argc, &argv);
 
 	logger.init(MPI_COMM_WORLD, "dpd.log", 9);
 
-	float3 length{64, 64, 64};
-	float3 domainStart = -length / 2.0f;
+	float3 length{80, 64, 29};
+	DomainInfo domain{length, {0,0,0}, length};
+
 	const float rc = 1.0f;
 	ParticleVector dpds1("dpd1", 1.0f);
 	ParticleVector dpds2("dpd2", 1.0f);
-	CellList* cells1 = new PrimaryCellList(&dpds1, rc, length);
-	CellList* cells2 = new PrimaryCellList(&dpds2, rc, length);
 
-	UniformIC ic1(8.0);
-	UniformIC ic2(8.0);
-	ic1.exec(MPI_COMM_WORLD, &dpds1, {length, {0,0,0}, length}, 0);
-	ic2.exec(MPI_COMM_WORLD, &dpds2, {length, {0,0,0}, length}, 0);
+	UniformIC ic1(4.5);
+	UniformIC ic2(3.5);
+	ic1.exec(MPI_COMM_WORLD, &dpds1, domain, 0);
+	ic2.exec(MPI_COMM_WORLD, &dpds2, domain, 0);
 
-	//dpds2.local()->resize(dpds2.local()->size(), 0);
-
-	//dpds2.local()->resize(1000, 0);
+	cudaDeviceSynchronize();
 
 	const int np = dpds1.local()->size() + dpds2.local()->size();
 
 	printf(" First part %d, second %d, total %d\n", dpds1.local()->size(), dpds2.local()->size(), np);
 
+	CellList* cells1 = new PrimaryCellList(&dpds1, rc, length);
+	CellList* cells2 = new PrimaryCellList(&dpds2, rc, length);
 	cells1->build(0);
 	cells2->build(0);
 
@@ -97,15 +75,17 @@ int main(int argc, char ** argv)
 	dpds1.local()->coosvels.downloadFromDevice(0);
 	dpds2.local()->coosvels.downloadFromDevice(0);
 
-//
-//	for (int i=0; i<dpds1.local()->size(); i++)
-//		dpds1.local()->coosvels[i].u = length*make_float3(drand48() - 0.5, drand48() - 0.5, drand48() - 0.5);
-//
-//	for (int i=0; i<dpds2.local()->size(); i++)
-//		dpds2.local()->coosvels[i].u = length*make_float3(drand48() - 0.5, drand48() - 0.5, drand48() - 0.5);
-//
-//	dpds1.local()->coosvels.uploadToDevice(0);
-//	dpds2.local()->coosvels.uploadToDevice(0);
+
+	// Set non-zero velocities
+	for (int i=0; i<dpds1.local()->size(); i++)
+		dpds1.local()->coosvels[i].u = length*make_float3(drand48() - 0.5, drand48() - 0.5, drand48() - 0.5);
+
+	for (int i=0; i<dpds2.local()->size(); i++)
+		dpds2.local()->coosvels[i].u = length*make_float3(drand48() - 0.5, drand48() - 0.5, drand48() - 0.5);
+
+
+	dpds1.local()->coosvels.uploadToDevice(0);
+	dpds2.local()->coosvels.uploadToDevice(0);
 
 
 	std::vector<Particle> initial(np), rearranged(np);
@@ -118,35 +98,25 @@ int main(int argc, char ** argv)
 
 	const float k = 1;
 	const float dt = 0.002;
-	const float kbT = 0.0f;
+	const float kbT = 1.0f;
 	const float gammadpd = 20;
 	const float sigmadpd = sqrt(2 * gammadpd * kbT);
 	const float sigma_dt = sigmadpd / sqrt(dt);
 	const float adpd = 50;
 
-	Pairwise_DPD dpdInt(rc, adpd, gammadpd, kbT, dt, k);
-	Interaction *inter = new InteractionPair<Pairwise_DPD>("dpd", rc, dpdInt);
+	Pairwise_Norandom_DPD dpdInt(rc, adpd, gammadpd, kbT, dt, k);
+	Interaction *inter = new InteractionPair<Pairwise_Norandom_DPD>("dpd", rc, dpdInt);
 
 	PinnedBuffer<int> counter(1);
 
-	for (int i=0; i<10; i++)
+	for (int i=0; i<1; i++)
 	{
 		dpds1.local()->forces.clear(0);
 		dpds2.local()->forces.clear(0);
 
-
-//		counter.clear(0);
-//
-//		const int nthreads = 128;
-//		const int nblocks = getNblocks(dpds1.local()->size(), nthreads);
-//		test<<< nblocks, nthreads >>> ( (float4*)dpds1.local()->coosvels.devPtr(), dpds1.local()->size(), (float4*)dpds1.local()->forces.devPtr(), dpdInt, counter.devPtr() );
-//
-//		counter.downloadFromDevice(0);
-//		printf("total %d, done with %d\n", dpds1.local()->size(), counter[0]);
-
 		inter->regular(&dpds1, &dpds1, cells1, cells1, 0, 0);
-//		inter->regular(&dpds2, &dpds2, cells2, cells2, 0, 0);
-//		inter->regular(&dpds2, &dpds1, cells2, cells1, 0, 0);
+		inter->regular(&dpds2, &dpds2, cells2, cells2, 0, 0);
+		inter->regular(&dpds2, &dpds1, cells2, cells1, 0, 0);
 
 		cudaDeviceSynchronize();
 	}
@@ -154,6 +124,8 @@ int main(int argc, char ** argv)
 	HostBuffer<Force> frcs1, frcs2;
 	frcs1.copy(dpds1.local()->forces, 0);
 	frcs2.copy(dpds2.local()->forces, 0);
+
+	cudaDeviceSynchronize();
 
 	std::vector<Force> hacc(np);
 	for (int i=0; i<np; i++)
@@ -176,8 +148,6 @@ int main(int argc, char ** argv)
 		a.z += hacc[i].f.z;
 	}
 	printf("Reduced acc: %e %e %e\n\n", a.x, a.y, a.z);
-
-	return 0;
 
 	printf("Checking (this is not necessarily a cubic domain)......\n");
 
@@ -210,7 +180,9 @@ int main(int argc, char ** argv)
 				yr * (rearranged[dstId].u.y - rearranged[srcId].u.y) +
 				zr * (rearranged[dstId].u.z - rearranged[srcId].u.z);
 
-		const float myrandnr = 0;//Logistic::mean0var1(1, min(srcId, dstId), max(srcId, dstId));
+		int sid = rearranged[srcId].i1;
+		int did = rearranged[dstId].i1;
+		const float myrandnr = ((min(sid, did) ^ max(sid, did)) % 13) - 6;
 
 		const float strength = adpd * argwr - (gammadpd * wr * rdotv + sigma_dt * myrandnr) * wr;
 

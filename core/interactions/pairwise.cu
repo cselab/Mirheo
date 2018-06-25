@@ -13,6 +13,9 @@
 #include "pairwise_interactions/lj.h"
 #include "pairwise_interactions/lj_object_aware.h"
 
+#include "pairwise_interactions/norandom_dpd.h"
+
+
 /**
  * Convenience macro wrapper
  *
@@ -116,15 +119,17 @@ void InteractionPair<PairwiseInteraction>::_compute(InteractionType type,
 		ParticleVector* pv1, ParticleVector* pv2, CellList* cl1, CellList* cl2, const float t, cudaStream_t stream)
 {
 	auto it = intMap.find({pv1->name, pv2->name});
-	if (it == intMap.end())
-		die("I have no idea what PVs are passed to me");
+	if (it != intMap.end())
+		debug("Using SPECIFIC parameters for PV pair '%s' -- '%s'", pv1->name.c_str(), pv2->name.c_str());
+	else
+		debug("Using default parameters for PV pair '%s' -- '%s'", pv1->name.c_str(), pv2->name.c_str());
 
 
-	auto& interaction = it->second;
+	auto& pair = (it == intMap.end()) ? defaultPair : it->second;
 
 	if (type == InteractionType::Regular)
 	{
-		interaction.setup(pv1->local(), pv2->local(), cl1, cl2, t);
+		pair.setup(pv1->local(), pv2->local(), cl1, cl2, t);
 
 		/*  Self interaction */
 		if (pv1 == pv2)
@@ -138,7 +143,7 @@ void InteractionPair<PairwiseInteraction>::_compute(InteractionType type,
 			SAFE_KERNEL_LAUNCH(
 					computeSelfInteractions,
 					getNblocks(np, nth), nth, 0, stream,
-					np, cinfo, rc*rc, interaction );
+					np, cinfo, rc*rc, pair);
 		}
 		else /*  External interaction */
 		{
@@ -152,14 +157,14 @@ void InteractionPair<PairwiseInteraction>::_compute(InteractionType type,
 
 			const int nth = 128;
 			if (np1 > 0 && np2 > 0)
-				CHOOSE_EXTERNAL(true, true, true, interaction );
+				CHOOSE_EXTERNAL(true, true, true, pair);
 		}
 	}
 
 	/*  Halo interaction */
 	if (type == InteractionType::Halo)
 	{
-		interaction.setup(pv1->halo(), pv2->local(), cl1, cl2, t);
+		pair.setup(pv1->halo(), pv2->local(), cl1, cl2, t);
 
 		const int np1 = pv1->halo()->size();  // note halo here
 		const int np2 = pv2->local()->size();
@@ -169,19 +174,21 @@ void InteractionPair<PairwiseInteraction>::_compute(InteractionType type,
 		const int nth = 128;
 		if (np1 > 0 && np2 > 0)
 			if (dynamic_cast<ObjectVector*>(pv1) == nullptr) // don't need forces for pure particle halo
-				CHOOSE_EXTERNAL(false, true, false, interaction );
+				CHOOSE_EXTERNAL(false, true, false, pair );
 			else
-				CHOOSE_EXTERNAL(true,  true, false, interaction );
+				CHOOSE_EXTERNAL(true,  true, false, pair );
 	}
 }
 
 template<class PairwiseInteraction>
-void InteractionPair<PairwiseInteraction>::createPairwise(std::string pv1name, std::string pv2name, PairwiseInteraction interaction)
+void InteractionPair<PairwiseInteraction>::setSpecificPair(std::string pv1name, std::string pv2name, PairwiseInteraction pair)
 {
-	intMap.insert({{pv1name, pv2name}, interaction});
-	intMap.insert({{pv2name, pv1name}, interaction});
+	intMap.insert({{pv1name, pv2name}, pair});
+	intMap.insert({{pv2name, pv1name}, pair});
 }
 
+// for testing purpose
+template class InteractionPair<Pairwise_Norandom_DPD>;
 
 template class InteractionPair<Pairwise_DPD>;
 template class InteractionPair<Pairwise_LJ>;
