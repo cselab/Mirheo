@@ -1,5 +1,7 @@
 #include <string>
 #include <utility>
+#include <regex>
+#include <fstream>
 
 #include <core/simulation.h>
 #include "freeze_particles.h"
@@ -82,6 +84,28 @@ void writeXYZ(MPI_Comm comm, std::string fname, ParticleVector* pv)
 	MPI_Check( MPI_File_close(&f));
 }
 
+std::string subsVariables(const std::string& variables, const std::string& content)
+{
+	std::regex pattern(R"(([^\s,]+)\s*=\s*([^\s,]+))");
+	std::smatch match;
+	std::string result = content;
+
+	auto searchStart = variables.cbegin();
+
+	while ( std::regex_search( searchStart, variables.cend(), match, pattern ) )
+	{
+		auto varname = match[1].str();
+		auto value   = match[2].str();
+
+		searchStart += match.position() + match.length();
+
+		// \$name\b|\$\{$name\}
+		std::regex subs(R"(\$)" + varname + R"(\b|\$\{)" + varname + R"(\})");
+		result = std::regex_replace(result, subs, value);
+	}
+
+	return result;
+}
 
 static std::unique_ptr<Interaction> createDPD(pugi::xml_node node, std::string pvname)
 {
@@ -105,7 +129,6 @@ static std::unique_ptr<Interaction> createDPD(pugi::xml_node node, std::string p
 }
 
 
-
 int main(int argc, char** argv)
 {
 	srand48(4242);
@@ -114,33 +137,66 @@ int main(int argc, char** argv)
 	MPI_Init(&argc, &argv);
 	MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
-	std::string xmlname, wname;
+	std::string xmlname;
 	int nsteps;
 	bool needXYZ;
+	std::string variables;
+	int forceDebugLvl;
 
 	{
 		using namespace ArgumentParser;
 
 		std::vector<OptionStruct> opts
 		({
-			{'i', "input",  STRING, "Input script",                &xmlname,   std::string("script.xml")},
-			{'n', "nsteps", INT,    "Number of timesteps",         &nsteps,    5000},
-			{'x', "xyz",    BOOL,   "Also dump .xyz files",        &needXYZ,   false}
+			{'i', "input",     STRING, "Input script",                            &xmlname,   std::string("script.xml")},
+			{'e', "epochs",    INT,    "Number of timesteps",                     &nsteps,   50},
+			{'x', "xyz",       BOOL,   "Also dump .xyz files",                    &needXYZ,   false},
+			{'d', "debug",     INT,    "Override debug level, "
+									   "from 1 (lowest) to 9 (highest)",          &forceDebugLvl, -1},
+
+			{'v', "variables", STRING, "Comma-separated list of variables and "
+								       "their values that will be substituted "
+								       "into the input script with format: "
+								       "'var1=value1,var2=value2, var3=value3'",  &variables,     std::string("")},
 		});
 
 		ArgumentParser::Parser parser(opts, rank == 0);
 		parser.parse(argc, argv);
 	}
 
-	pugi::xml_document config;
-	pugi::xml_parse_result result = config.load_file(xmlname.c_str());
-	if (!result)
+
+	// Read the file into memory
+	std::ifstream f(xmlname);
+	if (!f.good()) // Can't die here, logger is not yet setup
 	{
-		printf("Couldn't open script file, parser says: \"%s\"", result.description());
-		MPI_Check( MPI_Abort(MPI_COMM_WORLD, -1) );
+		fprintf(stderr, "Couldn't open script file (not found or not accessible)\n");
+		exit(1);
 	}
 
-	logger.init(MPI_COMM_WORLD, "genwall.log", config.child("simulation").attribute("debug_lvl").as_int(5));
+	std::stringstream buffer;
+	buffer << f.rdbuf();
+
+	// And substitute the variables
+	pugi::xml_document config;
+	auto result = config.load( subsVariables(variables, buffer.str()).c_str() );
+	if (!result)
+	{
+		fprintf(stderr, "Couldn't open script file, xml parser says: \"%s\"\n", result.description());
+		exit(1);
+	}
+
+	if (forceDebugLvl >= 0)
+		logger.init(MPI_COMM_WORLD, "genwall.log", forceDebugLvl);
+	else
+		logger.init(MPI_COMM_WORLD, "genwall.log", config.child("simulation").attribute("debug_lvl").as_int(3));
+
+
+	// Write the script that we actually execute (with substitutions)
+	if (rank == 0)
+	{
+		config.save_file("uDeviceX_genwall_script.xml");
+	}
+
 
 	float3 globalDomainSize = config.child("simulation").child("domain").attribute("size").as_float3({32, 32, 32});
 	int3 nranks3D = config.child("simulation").attribute("mpi_ranks").as_int3({1, 1, 1});
