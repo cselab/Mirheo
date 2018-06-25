@@ -58,7 +58,7 @@ private:
 	DeviceBuffer<float> sdfRawData; // TODO: this can be free'd after creation
 
 	float3 sdfH;
-	const float3 margin3{1, 1, 1};
+	const float3 margin3{5, 5, 5};
 
 	std::string sdfFileName;
 
