@@ -36,7 +36,9 @@ std::string subsVariables(const std::string& variables, const std::string& conte
 
 		searchStart += match.position() + match.length();
 
-		std::regex subs(R"(\$)" + varname);
+		printf("regex : '%s'\n", (R"(\$)" + varname + R"(\b|\$\{)" + varname + R"(\})").c_str());
+		// \$name\b|\$\{$name\}
+		std::regex subs(R"(\$)" + varname + R"(\b|\$\{)" + varname + R"(\})");
 		result = std::regex_replace(result, subs, value);
 	}
 
