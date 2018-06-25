@@ -6,6 +6,9 @@
 
 #include <core/xml/pugixml.hpp>
 #include <utility>
+#include <fstream>
+#include <sstream>
+#include <regex>
 
 #include "belonging_factory.h"
 #include "bouncers_factory.h"
@@ -18,24 +21,52 @@
 
 #include <core/utils/make_unique.h>
 
+std::string subsVariables(const std::string& variables, const std::string& content)
+{
+	std::regex pattern(R"(([^\s,]+)\s*=\s*([^\s,]+))");
+	std::smatch match;
+	std::string result = content;
+
+	auto searchStart = variables.cbegin();
+
+	while ( std::regex_search( searchStart, variables.cend(), match, pattern ) )
+	{
+		auto varname = match[1].str();
+		auto value   = match[2].str();
+
+		searchStart += match.position() + match.length();
+
+		std::regex subs(R"(\$)" + varname);
+		result = std::regex_replace(result, subs, value);
+	}
+
+	return result;
+}
+
 //================================================================================================
 // Main parser
 //================================================================================================
 
-Parser::Parser(std::string xmlname)
+Parser::Parser(std::string xmlname, int forceDebugLvl, std::string variables) :
+		forceDebugLvl(forceDebugLvl)
 {
-	pugi::xml_parse_result result = config.load_file(xmlname.c_str());
+	// Read the file into memory
+	std::ifstream f(xmlname);
+	if (!f.good()) // Can't die here, logger is not yet setup
+	{
+		fprintf(stderr, "Couldn't open script file (not found or not accessible)\n");
+		exit(1);
+	}
 
-	if (!result) // Can't die here, logger is not yet setup
+	std::stringstream buffer;
+	buffer << f.rdbuf();
+
+	auto result = config.load( subsVariables(variables, buffer.str()).c_str() );
+	if (!result)
 	{
 		fprintf(stderr, "Couldn't open script file, xml parser says: \"%s\"\n", result.description());
 		exit(1);
 	}
-}
-
-Parser::Parser(const pugi::xml_document& config)
-{
-	this->config.reset(config);
 }
 
 int Parser::getNIterations()
@@ -60,6 +91,7 @@ std::unique_ptr<uDeviceX> Parser::setup_uDeviceX(Logger& logger, bool useGpuAwar
 
 	int3 nranks3D = simNode.attribute("mpi_ranks").as_int3({1, 1, 1});
 	int debugLvl  = simNode.attribute("debug_lvl").as_int(2);
+	if (forceDebugLvl >= 0) debugLvl = forceDebugLvl;
 
 	auto udx = std::make_unique<uDeviceX> (nranks3D, globalDomainSize, logger, logname, debugLvl, useGpuAwareMPI);
 
@@ -143,6 +175,14 @@ std::unique_ptr<uDeviceX> Parser::setup_uDeviceX(Logger& logger, bool useGpuAwar
 	for (auto node : simNode.children())
 		if ( std::string(node.name()) == "plugin" )
 			udx->registerPlugins( std::move(PluginFactory::create(node, udx->isComputeTask())) );
+
+	// Write the script that we actually execute (with substitutions)
+	int rank;
+	MPI_Check( MPI_Comm_rank(MPI_COMM_WORLD, &rank) );
+	if (rank == 0)
+	{
+		config.save_file("uDeviceX_input_script.xml");
+	}
 
 	return udx;
 }
