@@ -21,7 +21,7 @@ cases = sorted(glob.glob(folder + "case_*0.1/"))
 visc_map = {}
 
 for case in cases:
-	print case
+	print(case)
 	fname = case + "viscosity.txt"
 	
 	if os.path.isfile(fname):
@@ -69,15 +69,13 @@ for tag in vm.keys():
 	
 	plt.errorbar(gammas, viscs, yerr=errs, fmt="d", ms=3, label=tag, zorder=10)
 	
-	print tag
-#	if tag == '80.0_0.5':
-#		g_fine = np.arange(1, 4000, 0.5)
-#	else:
-	g_fine = np.arange(1, 1000, 0.5)
-	plt.plot( g_fine, s(g_fine), zorder=5 )
+	print(tag)
+	if tag == '160.0_0.5' or tag == '160.0_1.0':
+		g_fine = np.arange(0.0, 10, 0.5)
+		plt.plot( g_fine, s(g_fine), zorder=5 )
 	
-plt.axes().set_xlim([-10, 1010])
-plt.axes().set_ylim([-10, 2010])
+plt.axes().set_xlim([-1, 15])
+plt.axes().set_ylim([-1, 15])
 plt.legend()
 plt.show()
 

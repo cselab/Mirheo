@@ -48,8 +48,8 @@ def dump_plots(Dxy, theta, deltaT, G, ttf):
 
 #%%
 
-folder = "/home/alexeedm/extern/daint/scratch/membrane_shear/case_0.5_5.0/"
-folder = "/home/alexeedm/extern/daint/scratch/focusing_soft/case_0.1_0.2__80__1.5__0.1"
+folder = "/home/alexeedm/extern/daint/project/alexeedm/membrane_shear/case_0.5_1.0/"
+#folder = "/home/alexeedm/extern/daint/scratch/focusing_soft/case_0.1_0.2__80__1.5__0.1"
 #folder = "/home/alexeedm/udevicex/apps/udevicex" 
 script = folder + "/script.xml"
 
