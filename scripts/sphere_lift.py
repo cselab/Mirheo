@@ -11,12 +11,14 @@ import itertools
 import numpy as np
 import matplotlib.pyplot as plt
 import math
+import re
+import pickle
 
 def coefficient(frc, rho, u, r):
 	return frc / (0.5 * rho * u**2 * math.pi * r**2)
 
 def mean_err_cut(vals):
-	npvals = np.array(vals[20:]).astype(np.float)
+	npvals = np.array(vals[50:]).astype(np.float)
 	
 	m = np.mean(npvals)
 	v = np.var(npvals) / math.sqrt(npvals.size)
@@ -59,20 +61,19 @@ def dump_plots(Res, Cds, Cls, err_Cds, err_Cls,  ref_Cd, ref_Cl):
 
 	fig.tight_layout(rect=(0,0,1,0.9))
 	plt.show()
-	fig.savefig("/home/alexeedm/udevicex/media/sphere_wall.pdf", bbox_inches='tight')
+	#fig.savefig("/home/alexeedm/udevicex/media/sphere_wall.pdf", bbox_inches='tight')
 
 	
 
-prefix = "/home/alexeedm/extern/daint/scratch/sphere_lift_10/"
-rho = 8.0
-r = 10.0
+prefix = "/home/alexeedm/extern/daint/scratch/sphere_lift/"
 
-#          folder                      velocity    viscosity
-cases = [("visc_143_case_20_0.4469",   0.4469,     148.8),
-		 ("visc_35.8_case_20_0.4475",  0.4475,     35.8),
-		 ("case_20_0.534375",          0.534375,   8.45),
-		 ("case_20_1.3359375",         1.3359375,  8.45),
-		 ("case_20_2.671875",          2.671875,   8.45)]
+cases = [  "case_160_308.6053_3.0_1.0_8__5_10_0.50",
+		    "case_160_71.9017_3.0_1.0_8__5_10_0.50",
+			"case_160_22.1100_3.0_1.0_8__10_20_0.50",
+		    "case_160_3.0186_3.0_1.0_8__12_24_0.50",
+			"case_160_3.0186_3.0_1.0_8__24_48_0.50",
+			"case_160_15.1207_3.0_1.0_8__10_20_1.00"
+		 ]
 
 ref_Cd = np.array([0.5007949732809864, 67.64969589692508,
 				   1.9982776154233817, 18.03153585707591,
@@ -94,10 +95,9 @@ Cls = []
 err_Cds = []
 err_Cls = []
 
-for (folder, vel, visc) in cases:
+for folder in cases:
 	full_folder = prefix + folder
 	files = sorted(glob.glob(full_folder + "/pinning_force/sphere*"))
-	
 	lines = list(itertools.chain.from_iterable([open(f).readlines() for f in files]))
 	
 	fx = [ x.split()[2] for x in lines ]
@@ -105,13 +105,20 @@ for (folder, vel, visc) in cases:
 	
 	(mx, vx) = mean_err_cut(fx)
 	(mz, vz) = mean_err_cut(fz)
+	
+	m = re.search(r'case_(.*?)_(.*?)_(.*?)_(.*?)_(.*?)__(.*?)_.*?_(.*)', folder.split('/')[-1])
+	print m.groups()
+	a, gamma, kbt, power, rho,  r, vel = [ float(v) for v in m.groups() ]
+	
+	s = pickle.load( open('../data/visc_' + str(a) + '_' + str(power) + '_backup.pckl', 'rb') )
+	visc = s(gamma)
 
 	Res.append(2*r*rho*vel/visc)
 	Cds.append(coefficient(mx, rho, vel, r))
 	Cls.append(coefficient(mz, rho, vel, r))
 	
-	err_Cds.append(coefficient(3.0*math.sqrt(vx), rho, vel, r))
-	err_Cls.append(coefficient(3.0*math.sqrt(vz), rho, vel, r))
+	err_Cds.append(coefficient(2.0*math.sqrt(vx), rho, vel, r))
+	err_Cls.append(coefficient(2.0*math.sqrt(vz), rho, vel, r))
 
 	
 print Cds

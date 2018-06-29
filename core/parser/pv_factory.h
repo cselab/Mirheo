@@ -32,7 +32,7 @@ private:
 		auto mass    = node.attribute("mass").as_float(1);
 
 		auto objSize = node.attribute("particles_per_obj").as_int(1);
-		auto axes    = node.attribute("axes").as_float3( make_float3(1) );
+		auto axes    = node.attribute("semi_axes").as_float3( make_float3(1) );
 
 		return std::make_unique<RigidEllipsoidObjectVector>(name, mass, objSize, axes);
 	}

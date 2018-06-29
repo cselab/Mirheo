@@ -74,7 +74,9 @@ def get_forces(case):
 	r = 5
 	R = 33.333
 	
-	f, a, gamma = [ float(v) for v in re.split(r'_+', case.split('/')[-1] )[-5:-2] ]
+	words = re.split(r'_+', case.split('/')[-1])
+	f, a, gamma = [ float(v) for v in np.array(words)[[1, 4, 5]] ]
+	print f, a, gamma
 	
 	s = pickle.load( open('../data/visc_' + str(a) + '_0.5_backup.pckl', 'rb') )
 	mu = s(gamma)
@@ -94,6 +96,8 @@ def get_forces(case):
 		strpos = "%.1f" % pos
 		full_folder = prefix + case + strpos
 		
+		print full_folder
+		
 		files = sorted(glob.glob(full_folder + "/pinning_force/*.txt"))
 		lines = list(itertools.chain.from_iterable([open(f).readlines() for f in files]))
 			
@@ -111,9 +115,14 @@ alldata = []
 #alldata.append( get_forces("/home/alexeedm/extern/daint/project/alexeedm/focusing_liftparams/case_norot_5_0.1__80_20_1.5__") + ("Rigid, no rotation", "-.o") )
 
 #alldata.append( get_forces("/home/alexeedm/extern/daint/scratch/focusing_liftparams/case_newcode_ratio_5_0.0502__80_25_1.5__", 4.57) + (r'$\lambda = 0.2$', "-o") )
-folder = "/home/alexeedm/extern/daint/scratch/focusing_liftparams/"
+folder = "/home/alexeedm/extern/daint/scratch/focusing_rigid/case_50_0.15/"
 
-alldata.append( get_forces(folder + "case_newcode_ratio_5_0.05177__110_25_2.0__") + (r'Present', "D", 'C2') )
+#alldata.append( get_forces(folder + "case_newcode_ratio_5_0.05177__110_25_2.0__") + (r'Present', "D", 'C2') )
+
+alldata.append( get_forces(folder + "case_0.14602_0_0.15__160_43.2253_3.0__") + (r'Present', "D", 'C2') )
+alldata.append( get_forces(folder + "case_0.14602_1_0.15__160_43.2253_3.0__") + (r'No rotation', "D", 'C3') )
+
+
 #alldata.append( get_forces(folder + "case_newcode_ratio_5_0.14516__160_43.0935_3.0__") + (r'$\gamma = 43$', "-o") )
 #alldata.append( get_forces(folder + "case_newcode_ratio_5_0.16335__160_45.7969_3.0__") + (r'$\gamma = 45$', "-o") )
 #alldata.append( get_forces(folder + "case_newcode_ratio_5_0.22234__160_53.6651_3.0_") + (r'$\gamma = 54$', "-o") )

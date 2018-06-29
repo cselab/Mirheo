@@ -64,7 +64,7 @@ def fit_velocity(profile, weights, gz, rho, h):
 		
 	avgvel = np.sum(profile * weights) / np.sum(weights)
 
-	eta = rho * gz * r*r / (8.0 * avgvel)
+	eta = rho * gz * r*r / (4.0 * avgvel)
 
 	return p, eta, e_norm
 
@@ -116,7 +116,7 @@ nbins = 40
 r = 20.0
 
 folder = "/home/alexeedm/extern/daint/scratch/poiseuille/"
-case = "case_80_6_1.5_0.5_0.001_8.0_0.1"
+case = "case_160_0.9*"
 xdmfs = sorted(glob.glob(folder + case + "/xdmf/*.h5"))
 
 mus = []
