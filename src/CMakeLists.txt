@@ -11,7 +11,18 @@ find_package(CUDA REQUIRED)
 
 # MPI
 find_package(MPI  REQUIRED)
-include_directories(${MPI_CXX_INCLUDE_PATH})
+
+# On CRAY systems things are complicated
+# This workaround should work to supply
+# nvcc with correct mpi paths
+# Libraries should not be needed here as
+# we link with MPI wrapper anyways
+if (DEFINED ENV{CRAY_MPICH_DIR})
+	set(MPI_C_INCLUDE_DIRS   "$ENV{CRAY_MPICH_DIR}/include")
+	set(MPI_CXX_INCLUDE_DIRS "$ENV{CRAY_MPICH_DIR}/include")
+endif()
+
+include_directories(${MPI_CXX_INCLUDE_DIRS})
 set(CMAKE_C_COMPILER   ${MPI_C_COMPILER})
 set(CMAKE_CXX_COMPILER ${MPI_CXX_COMPILER})
 set(CMAKE_CUDA_HOST_LINK_LAUNCHER ${MPI_CXX_COMPILER})
@@ -38,23 +49,34 @@ set(CUDA_SOURCES ${CUDA_SOURCES_CORE} ${CUDA_SOURCES_PLUGINS})
 
 # Define the main executable
 add_executable(udevicex ../apps/udevicex/main.cu ${CXX_SOURCES} ${CUDA_SOURCES})
+target_link_libraries(udevicex ${CUDA_LIBRARIES})
 
 #######################################################
 # Optional packages
 # For field dumps
 set(HDF5_PREFER_PARALLEL ON)
 find_package(HDF5 REQUIRED)
+
+# On CRAY systems things are complicated
+# This workaround should work to supply
+# nvcc with correct hdf paths
+if (DEFINED ENV{CRAY_HDF5_DIR})
+	set(HDF5_INCLUDE_DIRS "$ENV{HDF5_DIR}/include")
+	set(HDF5_LIBRARIES    "$ENV{HDF5_DIR}/lib/libhdf5.so")
+endif()
+
 if (${HDF5_FOUND})
     include_directories(${HDF5_INCLUDE_DIRS})
     target_link_libraries(udevicex ${HDF5_LIBRARIES})
-endif(${HDF5_FOUND})
+endif()
+
 
 # For pretty stacktrace in case of a crash
 find_package(LIBBFD REQUIRED)
 if (${LIBBFD_FOUND})
     include_directories(${LIBBFD_INCLUDE_DIRS})
     target_link_libraries(udevicex ${LIBBFD_BFD_LIBRARY})
-endif(${LIBBFD_FOUND})
+endif()
 ########################################################
 
 # Setup nvcc flags
@@ -62,19 +84,22 @@ set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} --expt-extended-lambda")
 set(CMAKE_CUDA_FLAGS_RELEASE "-O3 -DNDEBUG --use_fast_math -lineinfo -g")
 set(CMAKE_CUDA_FLAGS_DEBUG "-O0 -G -g")
 
+# Silence deprecation warnings for CUDA >= 9
+if (CUDA_VERSION_MAJOR GREATER_EQUAL 9)
+	set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} --Wno-deprecated-declarations")
+endif()
+
 # Auto-detect compute capability if not provided
 if (NOT DEFINED CUDA_ARCH_NAME)
 	set(CUDA_ARCH_NAME Auto)
-endif(NOT DEFINED CUDA_ARCH_NAME)
+endif()
 
 # The options come out crooked, fix'em
 cuda_select_nvcc_arch_flags(BUGGED_ARCH_FLAGS ${CUDA_ARCH_NAME})
 unset(CUDA_ARCH_NAME CACHE)
 
-message(${BUGGED_ARCH_FLAGS})
 string(REPLACE "gencode;" "gencode=" ARCH_FLAGS_LIST "${BUGGED_ARCH_FLAGS}")
 string(REPLACE ";" " " CUDA_ARCH_FLAGS "${ARCH_FLAGS_LIST}")
-message(${CUDA_ARCH_FLAGS})
 set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} ${CUDA_ARCH_FLAGS}")
 
 # Linker flags
@@ -84,7 +109,7 @@ set(CMAKE_LINK_FLAGS "${CMAKE_LINK_FLAGS} -rdynamic -flto -g")
 if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE "Release" CACHE STRING
         "Choose the type of build, options are: Debug Release RelWithDebInfo MinSizeRel." FORCE)
-endif(NOT CMAKE_BUILD_TYPE)
+endif()
 
 #cuda_compile(CUDA_COMPILED_FILES ${CUDA_SOURCES})# SHARED)
 #pybind11_add_module(test1 main.cpp ${cuda_files} )
