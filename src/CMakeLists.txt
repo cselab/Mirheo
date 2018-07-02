@@ -63,10 +63,18 @@ set(CMAKE_CUDA_FLAGS_RELEASE "-O3 -DNDEBUG --use_fast_math -lineinfo -g")
 set(CMAKE_CUDA_FLAGS_DEBUG "-O0 -G -g")
 
 # Auto-detect compute capability if not provided
-if (NOT DEFINED CUDA_ARCH_FLAGS)
-    cuda_select_nvcc_arch_flags(BUGGED_ARCH_FLAGS Auto)
-    string(REPLACE ";" "=" CUDA_ARCH_FLAGS "${BUGGED_ARCH_FLAGS}")
-endif(NOT DEFINED CUDA_ARCH_FLAGS)
+if (NOT DEFINED CUDA_ARCH_NAME)
+	set(CUDA_ARCH_NAME Auto)
+endif(NOT DEFINED CUDA_ARCH_NAME)
+
+# The options come out crooked, fix'em
+cuda_select_nvcc_arch_flags(BUGGED_ARCH_FLAGS ${CUDA_ARCH_NAME})
+unset(CUDA_ARCH_NAME CACHE)
+
+message(${BUGGED_ARCH_FLAGS})
+string(REPLACE "gencode;" "gencode=" ARCH_FLAGS_LIST "${BUGGED_ARCH_FLAGS}")
+string(REPLACE ";" " " CUDA_ARCH_FLAGS "${ARCH_FLAGS_LIST}")
+message(${CUDA_ARCH_FLAGS})
 set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} ${CUDA_ARCH_FLAGS}")
 
 # Linker flags
