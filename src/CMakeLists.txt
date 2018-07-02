@@ -58,27 +58,25 @@ endif(${LIBBFD_FOUND})
 ########################################################
 
 # Setup nvcc flags
-set(CMAKE_CUDA_FLAGS "--expt-extended-lambda")
+set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} --expt-extended-lambda")
 set(CMAKE_CUDA_FLAGS_RELEASE "-O3 -DNDEBUG --use_fast_math -lineinfo -g")
 set(CMAKE_CUDA_FLAGS_DEBUG "-O0 -G -g")
 
-set(CMAKE_CUDA_FLAGS "--expt-extended-lambda")
-set(CMAKE_CUDA_FLAGS_RELEASE "-O3 -DNDEBUG --use_fast_math -lineinfo -g")
-set(CMAKE_CUDA_FLAGS_DEBUG "-O0 -G -g")
+# Auto-detect compute capability if not provided
+if (NOT DEFINED CUDA_ARCH_FLAGS)
+    cuda_select_nvcc_arch_flags(BUGGED_ARCH_FLAGS Auto)
+    string(REPLACE ";" "=" CUDA_ARCH_FLAGS "${BUGGED_ARCH_FLAGS}")
+endif(NOT DEFINED CUDA_ARCH_FLAGS)
+set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} ${CUDA_ARCH_FLAGS}")
 
-set(CMAKE_LINK_FLAGS "-rdynamic -flto -g")
+# Linker flags
+set(CMAKE_LINK_FLAGS "${CMAKE_LINK_FLAGS} -rdynamic -flto -g")
 
 # Choose Release mode as default.
 if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE "Release" CACHE STRING
         "Choose the type of build, options are: Debug Release RelWithDebInfo MinSizeRel." FORCE)
 endif(NOT CMAKE_BUILD_TYPE)
-
-# get_cmake_property(_variableNames VARIABLES)
-# list (SORT _variableNames)
-# foreach (_variableName ${_variableNames})
-#     message(STATUS "${_variableName}=${${_variableName}}")
-# endforeach()
 
 #cuda_compile(CUDA_COMPILED_FILES ${CUDA_SOURCES})# SHARED)
 #pybind11_add_module(test1 main.cpp ${cuda_files} )
