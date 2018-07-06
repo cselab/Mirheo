@@ -1,11 +1,11 @@
 #pragma once
 
-#include "interface.h"
+#include "object_belonging.h"
 
-class EllipsoidBelongingChecker : public ObjectBelongingChecker
+class EllipsoidBelongingChecker : public ObjectBelongingChecker_Common
 {
 public:
-	using ObjectBelongingChecker::ObjectBelongingChecker;
+	using ObjectBelongingChecker_Common::ObjectBelongingChecker_Common;
 
 	void tagInner(ParticleVector* pv, CellList* cl, cudaStream_t stream) override;
 

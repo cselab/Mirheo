@@ -15,6 +15,7 @@
 #include <core/utils/stacktrace_explicit.h>
 
 #include <mpi.h>
+#include <cuda_runtime.h>
 
 #ifndef COMPILE_DEBUG_LVL
 /**

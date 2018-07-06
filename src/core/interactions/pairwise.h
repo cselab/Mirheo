@@ -1,7 +1,7 @@
 #pragma once
 #include "interface.h"
 
-#include <core/datatypes.h>
+#include <map>
 
 /**
  * Implementation of short-range symmetric pairwise interactions

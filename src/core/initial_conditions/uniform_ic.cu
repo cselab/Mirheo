@@ -6,6 +6,12 @@
 #include <core/logger.h>
 
 
+UniformIC::UniformIC(float density) : density(density)
+{   }
+
+UniformIC::~UniformIC() = default;
+
+
 /**
  * Particles will be initialized such that the number of particles \f$ n_p \f$ in
  * each unit cell of the domain follows:

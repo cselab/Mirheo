@@ -8,6 +8,7 @@ add_subdirectory(extern/pybind11)
 
 # CUDA
 find_package(CUDA REQUIRED)
+include_directories(${CUDA_INCLUDE_DIRS})
 
 # MPI
 find_package(MPI  REQUIRED)
@@ -36,20 +37,26 @@ set(CMAKE_CUDA_STANDARD 11)
 include_directories( ./ )
 set(CORE_DIR "${CMAKE_SOURCE_DIR}/core/")
 set(PLUGINS_DIR "${CMAKE_SOURCE_DIR}/plugins/")
+set(BINDINGS_DIR "${CMAKE_SOURCE_DIR}/bindings/")
 
 # Find sources
-file(GLOB_RECURSE CXX_SOURCES_CORE     RELATIVE ${CMAKE_SOURCE_DIR} "${CORE_DIR}/*.cpp")
-file(GLOB_RECURSE CXX_SOURCES_PLUGINS  RELATIVE ${CMAKE_SOURCE_DIR} "${PLUGINS_DIR}/*.cpp")
+file(GLOB_RECURSE CXX_SOURCES_CORE      RELATIVE ${CMAKE_SOURCE_DIR} "${CORE_DIR}/*.cpp")
+file(GLOB_RECURSE CXX_SOURCES_PLUGINS   RELATIVE ${CMAKE_SOURCE_DIR} "${PLUGINS_DIR}/*.cpp")
+file(GLOB_RECURSE CXX_SOURCES_BINDINGS  RELATIVE ${CMAKE_SOURCE_DIR} "${BINDINGS_DIR}/*.cpp")
 
-file(GLOB_RECURSE CUDA_SOURCES_CORE    RELATIVE ${CMAKE_SOURCE_DIR} "${CORE_DIR}/*.cu")
-file(GLOB_RECURSE CUDA_SOURCES_PLUGINS RELATIVE ${CMAKE_SOURCE_DIR} "${PLUGINS_DIR}/*.cu")
+file(GLOB_RECURSE CUDA_SOURCES_CORE     RELATIVE ${CMAKE_SOURCE_DIR} "${CORE_DIR}/*.cu")
+file(GLOB_RECURSE CUDA_SOURCES_PLUGINS  RELATIVE ${CMAKE_SOURCE_DIR} "${PLUGINS_DIR}/*.cu")
+file(GLOB_RECURSE CUDA_SOURCES_BINDINGS RELATIVE ${CMAKE_SOURCE_DIR} "${BINDINGS_DIR}/*.cu")
 
-set( CXX_SOURCES  ${CXX_SOURCES_CORE}  ${CXX_SOURCES_PLUGINS})
-set(CUDA_SOURCES ${CUDA_SOURCES_CORE} ${CUDA_SOURCES_PLUGINS})
+set( CXX_SOURCES  ${CXX_SOURCES_CORE}  ${CXX_SOURCES_PLUGINS}  ${CXX_SOURCES_BINDINGS})
+set(CUDA_SOURCES ${CUDA_SOURCES_CORE} ${CUDA_SOURCES_PLUGINS} ${CUDA_SOURCES_BINDINGS})
 
 # Define the main executable
-add_executable(udevicex ../apps/udevicex/main.cu ${CXX_SOURCES} ${CUDA_SOURCES})
-target_link_libraries(udevicex ${CUDA_LIBRARIES})
+#add_executable(udevicex ../apps/udevicex/main.cu ${CXX_SOURCES} ${CUDA_SOURCES})
+add_library(cuda_compiled OBJECT ${CUDA_SOURCES})
+set_property(TARGET cuda_compiled PROPERTY POSITION_INDEPENDENT_CODE 1)
+pybind11_add_module(_udevicex ${CXX_SOURCES} $<TARGET_OBJECTS:cuda_compiled> )
+target_link_libraries(_udevicex PRIVATE ${CUDA_LIBRARIES})
 
 #######################################################
 # Optional packages
@@ -67,7 +74,7 @@ endif()
 
 if (${HDF5_FOUND})
     include_directories(${HDF5_INCLUDE_DIRS})
-    target_link_libraries(udevicex ${HDF5_LIBRARIES})
+    target_link_libraries(_udevicex PRIVATE ${HDF5_LIBRARIES})
 endif()
 
 
@@ -75,7 +82,7 @@ endif()
 find_package(LIBBFD REQUIRED)
 if (${LIBBFD_FOUND})
     include_directories(${LIBBFD_INCLUDE_DIRS})
-    target_link_libraries(udevicex ${LIBBFD_BFD_LIBRARY})
+    target_link_libraries(_udevicex PRIVATE ${LIBBFD_BFD_LIBRARY})
 endif()
 ########################################################
 
@@ -111,5 +118,3 @@ if(NOT CMAKE_BUILD_TYPE)
         "Choose the type of build, options are: Debug Release RelWithDebInfo MinSizeRel." FORCE)
 endif()
 
-#cuda_compile(CUDA_COMPILED_FILES ${CUDA_SOURCES})# SHARED)
-#pybind11_add_module(test1 main.cpp ${cuda_files} )

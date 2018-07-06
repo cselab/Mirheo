@@ -7,6 +7,12 @@
 #include <core/pvs/rbc_vector.h>
 #include <core/rigid_kernels/integration.h>
 
+Membrane_IC::Membrane_IC(std::string icfname, float globalScale) :
+    icfname(icfname), globalScale(globalScale)
+{	}
+
+Membrane_IC::~Membrane_IC() = default;
+
 /**
  * Read mesh topology and initial vertices (vertices are same as particles for RBCs)
  *

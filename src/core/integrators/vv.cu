@@ -76,6 +76,9 @@ void IntegratorVV<ForcingTerm>::stage2(ParticleVector* pv, float t, cudaStream_t
 	pv->cellListStamp++;
 }
 
+template<class ForcingTerm>
+IntegratorVV<ForcingTerm>::~IntegratorVV() = default;
+
 template class IntegratorVV<Forcing_None>;
 template class IntegratorVV<Forcing_ConstDP>;
 template class IntegratorVV<Forcing_PeriodicPoiseuille>;

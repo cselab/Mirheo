@@ -7,10 +7,22 @@
 #include <plugins/interface.h>
 
 #include <core/utils/make_unique.h>
+#include <core/utils/cuda_common.h>
+#include <cuda_runtime.h>
 
-uDeviceX::uDeviceX(int3 nranks3D, float3 globalDomainSize,
-		Logger& logger, std::string logFileName, int verbosity, bool gpuAwareMPI)
+#include <core/integrators/interface.h>
+#include <core/initial_conditions/interface.h>
+#include <core/pvs/particle_vector.h>
+
+
+uDeviceX::uDeviceX(std::tuple<int, int, int> nranks3D, std::tuple<float, float, float> globalDomainSize,
+		std::string logFileName, int verbosity, bool gpuAwareMPI)
 {
+    int3 _nranks3D = make_int3(nranks3D);
+    float3 _globalDomainSize = make_float3(globalDomainSize);
+    
+    MPI_Init(nullptr, nullptr);
+    
 	int nranks, rank;
 
 	if (logFileName == "stdout")
@@ -25,9 +37,9 @@ uDeviceX::uDeviceX(int3 nranks3D, float3 globalDomainSize,
 	MPI_Check( MPI_Comm_size(MPI_COMM_WORLD, &nranks) );
 	MPI_Check( MPI_Comm_rank(MPI_COMM_WORLD, &rank) );
 
-	if      (nranks3D.x * nranks3D.y * nranks3D.z     == nranks) noPostprocess = true;
-	else if (nranks3D.x * nranks3D.y * nranks3D.z * 2 == nranks) noPostprocess = false;
-	else die("Asked for %d x %d x %d processes, but provided %d", nranks3D.x, nranks3D.y, nranks3D.z, nranks);
+	if      (_nranks3D.x * _nranks3D.y * _nranks3D.z     == nranks) noPostprocess = true;
+	else if (_nranks3D.x * _nranks3D.y * _nranks3D.z * 2 == nranks) noPostprocess = false;
+	else die("Asked for %d x %d x %d processes, but provided %d", _nranks3D.x, _nranks3D.y, _nranks3D.z, nranks);
 
 	if (rank == 0) sayHello();
 
@@ -37,7 +49,7 @@ uDeviceX::uDeviceX(int3 nranks3D, float3 globalDomainSize,
 	{
 		warn("No postprocess will be started now, use this mode for debugging. All the joint plugins will be turned off too.");
 
-		sim = std::make_unique<Simulation> (nranks3D, globalDomainSize, MPI_COMM_WORLD, MPI_COMM_NULL, gpuAwareMPI);
+		sim = std::make_unique<Simulation> (_nranks3D, _globalDomainSize, MPI_COMM_WORLD, MPI_COMM_NULL, gpuAwareMPI);
 		computeTask = 0;
 		return;
 	}
@@ -54,7 +66,7 @@ uDeviceX::uDeviceX(int3 nranks3D, float3 globalDomainSize,
 
 		MPI_Check( MPI_Comm_rank(compComm, &rank) );
 
-		sim = std::make_unique<Simulation> (nranks3D, globalDomainSize, compComm, interComm, gpuAwareMPI);
+		sim = std::make_unique<Simulation> (_nranks3D, _globalDomainSize, compComm, interComm, gpuAwareMPI);
 	}
 	else
 	{
@@ -68,6 +80,30 @@ uDeviceX::uDeviceX(int3 nranks3D, float3 globalDomainSize,
 }
 
 uDeviceX::~uDeviceX() = default;
+
+void uDeviceX::registerParticleVector(PyParticleVector* pv, PyInitialConditions* ic, int checkpointEvery)
+{
+    sim->registerParticleVector(std::unique_ptr<ParticleVector>   (pv->getImpl()),
+                                std::unique_ptr<InitialConditions>(ic->getImpl()),
+                                checkpointEvery);
+}
+// 	void registerWall                   (PyWall wall, int checkEvery);
+// 	void registerInteraction            (PyInteraction interaction);
+
+void uDeviceX::registerIntegrator(PyIntegrator* integrator)
+{
+    sim->registerIntegrator(std::unique_ptr<Integrator>(integrator->getImpl()));
+}
+
+// 	void uDeviceX::registerBouncer                (PyBouncer bouncer);
+// 	void uDeviceX::registerPlugin                 (PyPlugin plugin);
+// 	void uDeviceX::registerObjectBelongingChecker (PyObjectBelongingChecker checker);
+// 
+// 	void uDeviceX::setIntegrator             (std::string integratorName,  std::string pvName);
+// 	void uDeviceX::setInteraction            (std::string interactionName, std::string pv1Name, std::string pv2Name);
+// 	void uDeviceX::setBouncer                (std::string bouncerName,     std::string objName, std::string pvName);
+// 	void uDeviceX::setWallBounce             (std::string wallName,        std::string pvName);
+// 	void uDeviceX::setObjectBelongingChecker (std::string checkerName,     std::string objName);
 
 
 void uDeviceX::registerPlugins( std::pair< std::unique_ptr<SimulationPlugin>, std::unique_ptr<PostprocessPlugin> > plugins )

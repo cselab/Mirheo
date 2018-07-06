@@ -8,6 +8,8 @@
 #include <algorithm>
 #include <typeinfo>
 
+#include <cuda_runtime.h>
+
 
 /**
  * Interface of containers of device (GPU) data

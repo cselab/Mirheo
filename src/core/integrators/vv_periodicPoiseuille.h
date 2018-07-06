@@ -1,21 +1,20 @@
 #pragma once
 
 #include "interface.h"
+#include <memory>
 
 /**
  * Implementation of Velocity-Verlet integration in one step
  */
-template<class ForcingTerm>
-struct IntegratorVV : Integrator
+struct IntegratorVV_periodicPoiseuille : Integrator
 {
-	ForcingTerm forcingTerm;
+	std::unique_ptr<Integrator> impl;
 
 	void stage1(ParticleVector* pv, float t, cudaStream_t stream) override;
 	void stage2(ParticleVector* pv, float t, cudaStream_t stream) override;
 
-	IntegratorVV(std::string name, float dt, ForcingTerm forcingTerm) :
-		Integrator(name, dt), forcingTerm(forcingTerm)
-	{}
+	IntegratorVV_periodicPoiseuille(std::string name, float dt, float force, std::string direction);
 
-	~IntegratorVV();
+	~IntegratorVV_periodicPoiseuille();
 };
+

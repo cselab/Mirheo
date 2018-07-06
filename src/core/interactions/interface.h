@@ -2,10 +2,9 @@
 
 #include <functional>
 #include <string>
-#include <core/pvs/particle_vector.h>
-#include <core/pvs/object_vector.h>
 
 class CellList;
+class ParticleVector;
 
 /**
  * Interface for classes computing particle interactions.

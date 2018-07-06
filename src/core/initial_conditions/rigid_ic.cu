@@ -9,7 +9,14 @@
 
 #include <core/rigid_kernels/rigid_motion.h>
 
-void RigidIC::readXYZ(std::string fname, PinnedBuffer<float4>& positions, cudaStream_t stream)
+RigidIC::RigidIC(std::string xyzfname, std::string icfname) :
+    icfname(icfname), xyzfname(xyzfname)
+{   }
+
+RigidIC::~RigidIC() = default;
+
+
+void static readXYZ(std::string fname, PinnedBuffer<float4>& positions, cudaStream_t stream)
 {
 	int n;
 	float dummy;

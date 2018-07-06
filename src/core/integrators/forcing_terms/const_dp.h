@@ -1,6 +1,7 @@
 #pragma once
 
 #include <core/datatypes.h>
+#include <core/utils/cuda_common.h>
 
 class ParticleVector;
 
