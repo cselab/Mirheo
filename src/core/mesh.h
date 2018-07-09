@@ -6,70 +6,70 @@
 class Mesh
 {
 public:
-	int nvertices{0}, ntriangles{0};
+    int nvertices{0}, ntriangles{0};
 
-	PinnedBuffer<int3> triangles;
-	//PinnedBuffer<int> adjacentTriangles;
+    PinnedBuffer<int3> triangles;
+    //PinnedBuffer<int> adjacentTriangles;
 
-	PinnedBuffer<float4> vertexCoordinates;
+    PinnedBuffer<float4> vertexCoordinates;
 
-	Mesh() {};
-	Mesh(std::string);
+    Mesh() {};
+    Mesh(std::string);
 
-	Mesh(Mesh&&) = default;
-	Mesh& operator=(Mesh&&) = default;
+    Mesh(Mesh&&) = default;
+    Mesh& operator=(Mesh&&) = default;
 };
 
 class MembraneMesh : public Mesh
 {
 public:
-	// max degree of a vertex in mesh
-	static const int maxDegree = 7;
+    // max degree of a vertex in mesh
+    static const int maxDegree = 7;
 
-	PinnedBuffer<int> adjacent, adjacent_second, degrees;
-	PinnedBuffer<float> initialLengths;
+    PinnedBuffer<int> adjacent, adjacent_second, degrees;
+    PinnedBuffer<float> initialLengths;
 
-	MembraneMesh() {};
-	MembraneMesh(std::string);
+    MembraneMesh() {};
+    MembraneMesh(std::string);
 
-	MembraneMesh(MembraneMesh&&) = default;
-	MembraneMesh& operator=(MembraneMesh&&) = default;
+    MembraneMesh(MembraneMesh&&) = default;
+    MembraneMesh& operator=(MembraneMesh&&) = default;
 
-	void findAdjacent();
+    void findAdjacent();
 };
 
 
 
 struct MeshView
 {
-	int nvertices, ntriangles;
-	int3* triangles;
+    int nvertices, ntriangles;
+    int3* triangles;
 
-	MeshView(const Mesh* m)
-	{
-		nvertices = m->nvertices;
-		ntriangles = m->ntriangles;
+    MeshView(const Mesh* m)
+    {
+        nvertices = m->nvertices;
+        ntriangles = m->ntriangles;
 
-		triangles = m->triangles.devPtr();
-	}
+        triangles = m->triangles.devPtr();
+    }
 };
 
 struct MembraneMeshView : public MeshView
 {
-	int maxDegree;
+    int maxDegree;
 
-	int *adjacent, *adjacent_second, *degrees;
-	float* initialLengths;
+    int *adjacent, *adjacent_second, *degrees;
+    float* initialLengths;
 
-	MembraneMeshView(const MembraneMesh* m) : MeshView(m)
-	{
-		maxDegree = m->maxDegree;
+    MembraneMeshView(const MembraneMesh* m) : MeshView(m)
+    {
+        maxDegree = m->maxDegree;
 
-		adjacent = m->adjacent.devPtr();
-		adjacent_second = m->adjacent_second.devPtr();
-		degrees = m->degrees.devPtr();
-		initialLengths = m->initialLengths.devPtr();
-	}
+        adjacent = m->adjacent.devPtr();
+        adjacent_second = m->adjacent_second.devPtr();
+        degrees = m->degrees.devPtr();
+        initialLengths = m->initialLengths.devPtr();
+    }
 };
 
 

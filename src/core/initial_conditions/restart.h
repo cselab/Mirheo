@@ -12,12 +12,12 @@
 class RestartIC : public InitialConditions
 {
 public:
-	RestartIC(std::string path);
+    RestartIC(std::string path);
 
-	void exec(const MPI_Comm& comm, ParticleVector* pv, DomainInfo domain, cudaStream_t stream) override
+    void exec(const MPI_Comm& comm, ParticleVector* pv, DomainInfo domain, cudaStream_t stream) override;
 
-	~RestartIC();
+    ~RestartIC();
     
 private:
-	std::string path;
+    std::string path;
 };

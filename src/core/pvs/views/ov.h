@@ -1,78 +1,80 @@
 #pragma once
 
 #include <core/rigid_kernels/rigid_motion.h>
+#include "../object_vector.h"
+#include "pv.h"
 
 /**
  * GPU-compatible struct of all the relevant data
  */
 struct OVview : public PVview
 {
-	int nObjects = 0, objSize = 0;
-	float objMass = 0, invObjMass = 0;
+    int nObjects = 0, objSize = 0;
+    float objMass = 0, invObjMass = 0;
 
-	LocalObjectVector::COMandExtent *comAndExtents = nullptr;
-	int* ids = nullptr;
+    LocalObjectVector::COMandExtent *comAndExtents = nullptr;
+    int* ids = nullptr;
 
-	OVview(ObjectVector* ov = nullptr, LocalObjectVector* lov = nullptr) :
-		PVview(ov, lov)
-	{
-		if (ov == nullptr || lov == nullptr) return;
+    OVview(ObjectVector* ov = nullptr, LocalObjectVector* lov = nullptr) :
+        PVview(ov, lov)
+    {
+        if (ov == nullptr || lov == nullptr) return;
 
-		// More fields
-		nObjects = lov->nObjects;
-		objSize = ov->objSize;
-		objMass = objSize * mass;
-		invObjMass = 1.0 / objMass;
+        // More fields
+        nObjects = lov->nObjects;
+        objSize = ov->objSize;
+        objMass = objSize * mass;
+        invObjMass = 1.0 / objMass;
 
-		// Required data per object
-		comAndExtents = lov->extraPerObject.getData<LocalObjectVector::COMandExtent>("com_extents")->devPtr();
-		ids           = lov->extraPerObject.getData<int>("ids")->devPtr();
-	}
+        // Required data per object
+        comAndExtents = lov->extraPerObject.getData<LocalObjectVector::COMandExtent>("com_extents")->devPtr();
+        ids           = lov->extraPerObject.getData<int>("ids")->devPtr();
+    }
 };
 
 struct OVviewWithAreaVolume : public OVview
 {
-	float2* area_volumes = nullptr;
+    float2* area_volumes = nullptr;
 
-	OVviewWithAreaVolume(ObjectVector* ov = nullptr, LocalObjectVector* lov = nullptr) :
-		OVview(ov, lov)
-	{
-		if (ov == nullptr || lov == nullptr) return;
+    OVviewWithAreaVolume(ObjectVector* ov = nullptr, LocalObjectVector* lov = nullptr) :
+        OVview(ov, lov)
+    {
+        if (ov == nullptr || lov == nullptr) return;
 
-		area_volumes = lov->extraPerObject.getData<float2>("area_volumes")->devPtr();
-	}
+        area_volumes = lov->extraPerObject.getData<float2>("area_volumes")->devPtr();
+    }
 };
 
 struct OVviewWithOldPartilces : public OVview
 {
-	float4* old_particles = nullptr;
+    float4* old_particles = nullptr;
 
-	OVviewWithOldPartilces(ObjectVector* ov = nullptr, LocalObjectVector* lov = nullptr) :
-		OVview(ov, lov)
-	{
-		if (ov == nullptr || lov == nullptr) return;
+    OVviewWithOldPartilces(ObjectVector* ov = nullptr, LocalObjectVector* lov = nullptr) :
+        OVview(ov, lov)
+    {
+        if (ov == nullptr || lov == nullptr) return;
 
-		old_particles = reinterpret_cast<float4*>( lov->extraPerParticle.getData<Particle>("old_particles")->devPtr() );
-	}
+        old_particles = reinterpret_cast<float4*>( lov->extraPerParticle.getData<Particle>("old_particles")->devPtr() );
+    }
 };
 
 struct OVviewWithNewOldVertices : public OVview
 {
-	float4* vertices     = nullptr;
-	float4* old_vertices = nullptr;
-	float4* vertexForces = nullptr;
+    float4* vertices     = nullptr;
+    float4* old_vertices = nullptr;
+    float4* vertexForces = nullptr;
 
-	int nvertices = 0;
+    int nvertices = 0;
 
-	OVviewWithNewOldVertices(ObjectVector* ov = nullptr, LocalObjectVector* lov = nullptr, cudaStream_t stream = 0) :
-		OVview(ov, lov)
-	{
-		if (ov == nullptr || lov == nullptr) return;
+    OVviewWithNewOldVertices(ObjectVector* ov = nullptr, LocalObjectVector* lov = nullptr, cudaStream_t stream = 0) :
+        OVview(ov, lov)
+    {
+        if (ov == nullptr || lov == nullptr) return;
 
-		nvertices    = ov->mesh->nvertices;
-		vertices     = reinterpret_cast<float4*>( lov->getMeshVertices   (stream)->devPtr() );
-		old_vertices = reinterpret_cast<float4*>( lov->getOldMeshVertices(stream)->devPtr() );
-		vertexForces = reinterpret_cast<float4*>( lov->getMeshForces     (stream)->devPtr() );
-	}
+        nvertices    = ov->mesh->nvertices;
+        vertices     = reinterpret_cast<float4*>( lov->getMeshVertices   (stream)->devPtr() );
+        old_vertices = reinterpret_cast<float4*>( lov->getOldMeshVertices(stream)->devPtr() );
+        vertexForces = reinterpret_cast<float4*>( lov->getMeshForces     (stream)->devPtr() );
+    }
 };
 

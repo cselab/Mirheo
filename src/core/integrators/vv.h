@@ -8,14 +8,14 @@
 template<class ForcingTerm>
 struct IntegratorVV : Integrator
 {
-	ForcingTerm forcingTerm;
+    ForcingTerm forcingTerm;
 
-	void stage1(ParticleVector* pv, float t, cudaStream_t stream) override;
-	void stage2(ParticleVector* pv, float t, cudaStream_t stream) override;
+    void stage1(ParticleVector* pv, float t, cudaStream_t stream) override;
+    void stage2(ParticleVector* pv, float t, cudaStream_t stream) override;
 
-	IntegratorVV(std::string name, float dt, ForcingTerm forcingTerm) :
-		Integrator(name, dt), forcingTerm(forcingTerm)
-	{}
+    IntegratorVV(std::string name, float dt, ForcingTerm forcingTerm) :
+        Integrator(name, dt), forcingTerm(forcingTerm)
+    {}
 
-	~IntegratorVV();
+    ~IntegratorVV();
 };

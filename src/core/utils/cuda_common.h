@@ -12,18 +12,18 @@ int3 blockIdx, blockDim, threadIdx;
 
 inline int getNblocks(const int n, const int nthreads)
 {
-	return (n+nthreads-1) / nthreads;
+    return (n+nthreads-1) / nthreads;
 }
 
 __host__ __device__ inline float3 f4tof3(float4 x)
 {
-	return make_float3(x.x, x.y, x.z);
+    return make_float3(x.x, x.y, x.z);
 }
 
 template<typename T>
 __host__ __device__ inline  T sqr(T val)
 {
-	return val*val;
+    return val*val;
 }
 
 //=======================================================================================
@@ -37,36 +37,36 @@ template<typename Operation>
 __device__ inline  float3 warpReduce(float3 val, Operation op)
 {
 #pragma unroll
-	for (int offset = warpSize/2; offset > 0; offset /= 2)
-	{
-		val.x = op(val.x, __shfl_down(val.x, offset));
-		val.y = op(val.y, __shfl_down(val.y, offset));
-		val.z = op(val.z, __shfl_down(val.z, offset));
-	}
-	return val;
+    for (int offset = warpSize/2; offset > 0; offset /= 2)
+    {
+        val.x = op(val.x, __shfl_down(val.x, offset));
+        val.y = op(val.y, __shfl_down(val.y, offset));
+        val.z = op(val.z, __shfl_down(val.z, offset));
+    }
+    return val;
 }
 
 template<typename Operation>
 __device__ inline  float2 warpReduce(float2 val, Operation op)
 {
 #pragma unroll
-	for (int offset = warpSize/2; offset > 0; offset /= 2)
-	{
-		val.x = op(val.x, __shfl_down(val.x, offset));
-		val.y = op(val.y, __shfl_down(val.y, offset));
-	}
-	return val;
+    for (int offset = warpSize/2; offset > 0; offset /= 2)
+    {
+        val.x = op(val.x, __shfl_down(val.x, offset));
+        val.y = op(val.y, __shfl_down(val.y, offset));
+    }
+    return val;
 }
 
 template<typename Operation>
 __device__ inline  float warpReduce(float val, Operation op)
 {
 #pragma unroll
-	for (int offset = warpSize/2; offset > 0; offset /= 2)
-	{
-		val = op(val, __shfl_down(val, offset));
-	}
-	return val;
+    for (int offset = warpSize/2; offset > 0; offset /= 2)
+    {
+        val = op(val, __shfl_down(val, offset));
+    }
+    return val;
 }
 
 //****************************************************************************
@@ -77,36 +77,36 @@ template<typename Operation>
 __device__ inline  double3 warpReduce(double3 val, Operation op)
 {
 #pragma unroll
-	for (int offset = warpSize/2; offset > 0; offset /= 2)
-	{
-		val.x = op(val.x, __shfl_down(val.x, offset));
-		val.y = op(val.y, __shfl_down(val.y, offset));
-		val.z = op(val.z, __shfl_down(val.z, offset));
-	}
-	return val;
+    for (int offset = warpSize/2; offset > 0; offset /= 2)
+    {
+        val.x = op(val.x, __shfl_down(val.x, offset));
+        val.y = op(val.y, __shfl_down(val.y, offset));
+        val.z = op(val.z, __shfl_down(val.z, offset));
+    }
+    return val;
 }
 
 template<typename Operation>
 __device__ inline  double2 warpReduce(double2 val, Operation op)
 {
 #pragma unroll
-	for (int offset = warpSize/2; offset > 0; offset /= 2)
-	{
-		val.x = op(val.x, __shfl_down(val.x, offset));
-		val.y = op(val.y, __shfl_down(val.y, offset));
-	}
-	return val;
+    for (int offset = warpSize/2; offset > 0; offset /= 2)
+    {
+        val.x = op(val.x, __shfl_down(val.x, offset));
+        val.y = op(val.y, __shfl_down(val.y, offset));
+    }
+    return val;
 }
 
 template<typename Operation>
 __device__ inline  double warpReduce(double val, Operation op)
 {
 #pragma unroll
-	for (int offset = warpSize/2; offset > 0; offset /= 2)
-	{
-		val = op(val, __shfl_down(val, offset));
-	}
-	return val;
+    for (int offset = warpSize/2; offset > 0; offset /= 2)
+    {
+        val = op(val, __shfl_down(val, offset));
+    }
+    return val;
 }
 
 //****************************************************************************
@@ -117,36 +117,36 @@ template<typename Operation>
 __device__ inline  int3 warpReduce(int3 val, Operation op)
 {
 #pragma unroll
-	for (int offset = warpSize/2; offset > 0; offset /= 2)
-	{
-		val.x = op(val.x, __shfl_down(val.x, offset));
-		val.y = op(val.y, __shfl_down(val.y, offset));
-		val.z = op(val.z, __shfl_down(val.z, offset));
-	}
-	return val;
+    for (int offset = warpSize/2; offset > 0; offset /= 2)
+    {
+        val.x = op(val.x, __shfl_down(val.x, offset));
+        val.y = op(val.y, __shfl_down(val.y, offset));
+        val.z = op(val.z, __shfl_down(val.z, offset));
+    }
+    return val;
 }
 
 template<typename Operation>
 __device__ inline  int2 warpReduce(int2 val, Operation op)
 {
 #pragma unroll
-	for (int offset = warpSize/2; offset > 0; offset /= 2)
-	{
-		val.x = op(val.x, __shfl_down(val.x, offset));
-		val.y = op(val.y, __shfl_down(val.y, offset));
-	}
-	return val;
+    for (int offset = warpSize/2; offset > 0; offset /= 2)
+    {
+        val.x = op(val.x, __shfl_down(val.x, offset));
+        val.y = op(val.y, __shfl_down(val.y, offset));
+    }
+    return val;
 }
 
 template<typename Operation>
 __device__ inline  int warpReduce(int val, Operation op)
 {
 #pragma unroll
-	for (int offset = warpSize/2; offset > 0; offset /= 2)
-	{
-		val = op(val, __shfl_down(val, offset));
-	}
-	return val;
+    for (int offset = warpSize/2; offset > 0; offset /= 2)
+    {
+        val = op(val, __shfl_down(val, offset));
+    }
+    return val;
 }
 
 //=======================================================================================
@@ -170,37 +170,37 @@ __device__ inline double atomicAdd(double* address, double val)
 
 __device__ inline float2 atomicAdd(float2* addr, float2 v)
 {
-	float2 res;
-	res.x = atomicAdd((float*)addr,   v.x);
-	res.y = atomicAdd((float*)addr+1, v.y);
-	return res;
+    float2 res;
+    res.x = atomicAdd((float*)addr,   v.x);
+    res.y = atomicAdd((float*)addr+1, v.y);
+    return res;
 }
 
 __device__ inline float3 atomicAdd(float3* addr, float3 v)
 {
-	float3 res;
-	res.x = atomicAdd((float*)addr,   v.x);
-	res.y = atomicAdd((float*)addr+1, v.y);
-	res.z = atomicAdd((float*)addr+2, v.z);
-	return res;
+    float3 res;
+    res.x = atomicAdd((float*)addr,   v.x);
+    res.y = atomicAdd((float*)addr+1, v.y);
+    res.z = atomicAdd((float*)addr+2, v.z);
+    return res;
 }
 
 __device__ inline float3 atomicAdd(float4* addr, float3 v)
 {
-	float3 res;
-	res.x = atomicAdd((float*)addr,   v.x);
-	res.y = atomicAdd((float*)addr+1, v.y);
-	res.z = atomicAdd((float*)addr+2, v.z);
-	return res;
+    float3 res;
+    res.x = atomicAdd((float*)addr,   v.x);
+    res.y = atomicAdd((float*)addr+1, v.y);
+    res.z = atomicAdd((float*)addr+2, v.z);
+    return res;
 }
 
 __device__ inline double3 atomicAdd(double3* addr, double3 v)
 {
-	double3 res;
-	res.x = atomicAdd((double*)addr,   v.x);
-	res.y = atomicAdd((double*)addr+1, v.y);
-	res.z = atomicAdd((double*)addr+2, v.z);
-	return res;
+    double3 res;
+    res.x = atomicAdd((double*)addr,   v.x);
+    res.y = atomicAdd((double*)addr+1, v.y);
+    res.z = atomicAdd((double*)addr+2, v.z);
+    return res;
 }
 
 //=======================================================================================
@@ -209,14 +209,14 @@ __device__ inline double3 atomicAdd(double3* addr, double3 v)
 
 __device__ inline float4 readNoCache(const float4* addr)
 {
-	float4 res;
-	asm("ld.global.cv.v4.f32 {%0, %1, %2, %3}, [%4];" : "=f"(res.x), "=f"(res.y), "=f"(res.z), "=f"(res.w) : "l"(addr));
-	return res;
+    float4 res;
+    asm("ld.global.cv.v4.f32 {%0, %1, %2, %3}, [%4];" : "=f"(res.x), "=f"(res.y), "=f"(res.z), "=f"(res.w) : "l"(addr));
+    return res;
 }
 
 __device__ inline void writeNoCache(float4* addr, const float4 val)
 {
-	asm("st.global.wt.v4.f32 [%0], {%1, %2, %3, %4};" :: "l"(addr), "f"(val.x), "f"(val.y), "f"(val.z), "f"(val.w));
+    asm("st.global.wt.v4.f32 [%0], {%1, %2, %3, %4};" :: "l"(addr), "f"(val.x), "f"(val.y), "f"(val.z), "f"(val.w));
 }
 
 //=======================================================================================
@@ -226,16 +226,16 @@ __device__ inline void writeNoCache(float4* addr, const float4 val)
 
 __device__ inline uint32_t __warpid()
 {
-	uint32_t warpid;
-	asm volatile("mov.u32 %0, %%warpid;" : "=r"(warpid));
-	return warpid;
+    uint32_t warpid;
+    asm volatile("mov.u32 %0, %%warpid;" : "=r"(warpid));
+    return warpid;
 }
 
 __device__ inline uint32_t __laneid()
 {
-	uint32_t laneid;
-	asm volatile("mov.u32 %0, %%laneid;" : "=r"(laneid));
-	return laneid;
+    uint32_t laneid;
+    asm volatile("mov.u32 %0, %%laneid;" : "=r"(laneid));
+    return laneid;
 }
 
 //=======================================================================================
@@ -249,47 +249,47 @@ __device__ inline uint getLaneId();
 template<>
 __device__ inline uint getLaneId<1>()
 {
-	return threadIdx.x & 31;
+    return threadIdx.x & 31;
 }
 
 template<>
 __device__ inline uint getLaneId<2>()
 {
-	return ((threadIdx.y * blockDim.x) + threadIdx.x) & 31;
+    return ((threadIdx.y * blockDim.x) + threadIdx.x) & 31;
 }
 
 template<>
 __device__ inline uint getLaneId<3>()
 {
-	return (threadIdx.z * (blockDim.x * blockDim.y) + (threadIdx.y * blockDim.x) + threadIdx.x) & 31;
+    return (threadIdx.z * (blockDim.x * blockDim.y) + (threadIdx.y * blockDim.x) + threadIdx.x) & 31;
 }
 
 template<int DIMS=1>
 __device__ inline int atomicAggInc(int *ctr)
 {
-	int lane_id = getLaneId<DIMS>();
+    int lane_id = getLaneId<DIMS>();
 
-	int mask = __ballot(1);
-	// select the leader
-	int leader = __ffs(mask) - 1;
-	// leader does the update
-	int res;
-	if(lane_id == leader)
-	res = atomicAdd(ctr, __popc(mask));
-	// broadcast result
-	res = __shfl(res, leader);
-	// each thread computes its own value
-	return res + __popc(mask & ((1 << lane_id) - 1));
+    int mask = __ballot(1);
+    // select the leader
+    int leader = __ffs(mask) - 1;
+    // leader does the update
+    int res;
+    if(lane_id == leader)
+    res = atomicAdd(ctr, __popc(mask));
+    // broadcast result
+    res = __shfl(res, leader);
+    // each thread computes its own value
+    return res + __popc(mask & ((1 << lane_id) - 1));
 }
 
 
 
 __device__ inline float fastPower(const float x, const float k)
 {
-	if (fabsf(k - 1.0f)   < 1e-6f) return x;
-	if (fabsf(k - 0.5f)   < 1e-6f) return sqrtf(fabsf(x));
-	if (fabsf(k - 0.25f)  < 1e-6f) return sqrtf(sqrtf(fabsf(x)));
-	//if (fabsf(k - 0.125f) < 1e-6f) return sqrtf(sqrtf(sqrtf(fabsf(x))));
+    if (fabsf(k - 1.0f)   < 1e-6f) return x;
+    if (fabsf(k - 0.5f)   < 1e-6f) return sqrtf(fabsf(x));
+    if (fabsf(k - 0.25f)  < 1e-6f) return sqrtf(sqrtf(fabsf(x)));
+    //if (fabsf(k - 0.125f) < 1e-6f) return sqrtf(sqrtf(sqrtf(fabsf(x))));
 
     return powf(fabsf(x), k);
 }

@@ -12,25 +12,25 @@ class SDF_basedWall;
 class WallRepulsionPlugin : public SimulationPlugin
 {
 public:
-	WallRepulsionPlugin(std::string name, std::string pvName, std::string wallName, float C, float h, float maxForce = 1e3f) :
-		SimulationPlugin(name), pvName(pvName), wallName(wallName), C(C), h(h), maxForce(maxForce)
-	{	}
+    WallRepulsionPlugin(std::string name, std::string pvName, std::string wallName, float C, float h, float maxForce = 1e3f) :
+        SimulationPlugin(name), pvName(pvName), wallName(wallName), C(C), h(h), maxForce(maxForce)
+    {    }
 
-	void setup(Simulation* sim, const MPI_Comm& comm, const MPI_Comm& interComm) override;
-	void beforeIntegration(cudaStream_t stream) override;
+    void setup(Simulation* sim, const MPI_Comm& comm, const MPI_Comm& interComm) override;
+    void beforeIntegration(cudaStream_t stream) override;
 
-	bool needPostproc() override { return false; }
+    bool needPostproc() override { return false; }
 
-	~WallRepulsionPlugin() = default;
+    ~WallRepulsionPlugin() = default;
 
 private:
-	std::string pvName, wallName;
-	ParticleVector* pv;
-	SDF_basedWall *wall;
+    std::string pvName, wallName;
+    ParticleVector* pv;
+    SDF_basedWall *wall;
 
-	DeviceBuffer<float>  sdfs;
-	DeviceBuffer<float3> gradients;
+    DeviceBuffer<float>  sdfs;
+    DeviceBuffer<float3> gradients;
 
-	float C, h, maxForce;
+    float C, h, maxForce;
 };
 

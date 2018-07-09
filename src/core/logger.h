@@ -52,215 +52,209 @@ class Logger
 {
 public:
 
-	/// Constructor doesn't do nothing
-	Logger() {}
+    /// Constructor doesn't do nothing
+    Logger() {}
 
-	/// Flush and close file
-	~Logger()
-	{
-		if (fout != nullptr)
-		{
-			fflush(fout);
-			fclose(fout);
-		}
-	}
-
-
-	/**
-	 * Set logger to write to files
-	 *
-	 * @param comm  relevant MPI communicator, typically \e MPI_COMM_WORLD
-	 * @param fname log files will be prefixed with \e fname: e.g. \e fname_<rank_with_leading_zeros>.log
-	 * @param debugLvl debug level
-	 */
-	void init(MPI_Comm comm, const std::string fname, int debugLvl = 3)
-	{
-		this->comm = comm;
-		MPI_Comm_rank(comm, &rank);
-		std::string rankStr = std::string(5 - std::to_string(rank).length(), '0') + std::to_string(rank);
-
-		auto pos = fname.find_last_of('.');
-		auto start = fname.substr(0, pos);
-		auto end = fname.substr(pos);
-
-		fout = fopen( (start+"_"+rankStr+end).c_str(), "w");
-
-		setDebugLvl(debugLvl);
-	}
-
-	/**
-	 * Set logger to write to a certain, already opened file.
-	 *
-	 * @param comm relevant MPI communicator, typically \e MPI_COMM_WORLD
-	 * @param fout file handler, must be opened, typically \e stdout or \e stderr
-	 * @param debugLvl debug level
-	 */
-	void init(MPI_Comm comm, FILE* fout, int debugLvl = 3)
-	{
-		this->comm = comm;
-		MPI_Comm_rank(comm, &rank);
-		this->fout = fout;
-
-		setDebugLvl(debugLvl);
-	}
+    /// Flush and close file
+    ~Logger()
+    {
+        if (fout != nullptr)
+        {
+            fflush(fout);
+            fclose(fout);
+        }
+    }
 
 
-	/**
-	 * Main logging function.
-	 * First, check message importance against debug level and return
-	 * if importance is too low (bigger number means lower importance)
-	 *
-	 * Then, construct a logger entry with time prefix, importance string,
-	 * filename and line number, and finally the message itself.
-	 *
-	 * And finally print output it to the file.
-	 *
-	 * This function is not supposed to be called directly, use appropriate
-	 * macros instead, e.g. #say(), #error(), #debug(), etc.
-	 *
-	 * \rst
-	 * .. attention::
-	 *    When the debug level is higher or equal to the _flushThreshold_ member
-	 *    variable (default 8), every message is flushed to disk immediately. This may
-	 *    increase the runtime SIGNIFICANTLY and only recommended to debug crashes
-	 * \endrst
-	 *
-	 * @tparam importance message importance
-	 * @param fname name of the current source file
-	 * @param lnum  line number of the source file
-	 * @param pattern message pattern to be passed to \e printf
-	 * @param args other relevant arguments to \e printf
-	 */
-	template<int importance, class ... Args>
-	inline void log(const char* fname, const int lnum, const char* pattern, Args... args) const
-	{
-		if (importance > runtimeDebugLvl) return;
+    /**
+     * Set logger to write to files
+     *
+     * @param comm  relevant MPI communicator, typically \e MPI_COMM_WORLD
+     * @param fname log files will be prefixed with \e fname: e.g. \e fname_<rank_with_leading_zeros>.log
+     * @param debugLvl debug level
+     */
+    void init(MPI_Comm comm, const std::string fname, int debugLvl = 3)
+    {
+        this->comm = comm;
+        MPI_Comm_rank(comm, &rank);
+        std::string rankStr = std::string(5 - std::to_string(rank).length(), '0') + std::to_string(rank);
 
-		if (fout == nullptr)
-		{
-			fprintf(stderr, "Logger file is not set\n");
-			exit(1);
-		}
+        auto pos = fname.find_last_of('.');
+        auto start = fname.substr(0, pos);
+        auto end = fname.substr(pos);
 
-		using namespace std::chrono;
+        fout = fopen( (start+"_"+rankStr+end).c_str(), "w");
 
-		auto now   = system_clock::now();
-		auto now_c = system_clock::to_time_t(now);
-		auto ms = duration_cast<milliseconds>(now.time_since_epoch()) % 1000;
+        setDebugLvl(debugLvl);
+    }
 
-		std::ostringstream tmout;
-		tmout << std::put_time(std::localtime(&now_c), "%T") << ':' << std::setfill('0') << std::setw(3) << ms.count();
+    /**
+     * Set logger to write to a certain, already opened file.
+     *
+     * @param comm relevant MPI communicator, typically \e MPI_COMM_WORLD
+     * @param fout file handler, must be opened, typically \e stdout or \e stderr
+     * @param debugLvl debug level
+     */
+    void init(MPI_Comm comm, FILE* fout, int debugLvl = 3)
+    {
+        this->comm = comm;
+        MPI_Comm_rank(comm, &rank);
+        this->fout = fout;
 
-		const int cappedLvl = std::min((int)lvl2text.size() - 1, importance);
-		std::string intro = tmout.str() + "   " + std::string("Rank %04d %7s at ")
-			+ fname + ":" + std::to_string(lnum) + "  " +pattern + "\n";
-
-		FILE* ftmp = (fout != nullptr) ? fout : stdout;
-		fprintf(ftmp, intro.c_str(), rank, (cappedLvl >= 0 ? lvl2text[cappedLvl] : "").c_str(), args...);
+        setDebugLvl(debugLvl);
+    }
 
 
-		bool needToFlush = runtimeDebugLvl >= flushThreshold && COMPILE_DEBUG_LVL >= flushThreshold;
-		needToFlush = needToFlush || (now - lastFlushed > flushPeriod);
-		if (needToFlush)
-		{
-			fflush(fout);
-			lastFlushed = now;
-		}
-	}
+    /**
+     * Main logging function.
+     * First, check message importance against debug level and return
+     * if importance is too low (bigger number means lower importance)
+     *
+     * Then, construct a logger entry with time prefix, importance string,
+     * filename and line number, and finally the message itself.
+     *
+     * And finally print output it to the file.
+     *
+     * This function is not supposed to be called directly, use appropriate
+     * macros instead, e.g. #say(), #error(), #debug(), etc.
+     *
+     * \rst
+     * .. attention::
+     *    When the debug level is higher or equal to the _flushThreshold_ member
+     *    variable (default 8), every message is flushed to disk immediately. This may
+     *    increase the runtime SIGNIFICANTLY and only recommended to debug crashes
+     * \endrst
+     *
+     * @tparam importance message importance
+     * @param fname name of the current source file
+     * @param lnum  line number of the source file
+     * @param pattern message pattern to be passed to \e printf
+     * @param args other relevant arguments to \e printf
+     */
+    template<int importance, class ... Args>
+    inline void log(const char* fname, const int lnum, const char* pattern, Args... args) const
+    {
+        if (importance > runtimeDebugLvl) return;
+
+        if (fout == nullptr)
+        {
+            fprintf(stderr, "Logger file is not set\n");
+            exit(1);
+        }
+
+        using namespace std::chrono;
+
+        auto now   = system_clock::now();
+        auto now_c = system_clock::to_time_t(now);
+        auto ms = duration_cast<milliseconds>(now.time_since_epoch()) % 1000;
+
+        std::ostringstream tmout;
+        tmout << std::put_time(std::localtime(&now_c), "%T") << ':' << std::setfill('0') << std::setw(3) << ms.count();
+
+        const int cappedLvl = std::min((int)lvl2text.size() - 1, importance);
+        std::string intro = tmout.str() + "   " + std::string("Rank %04d %7s at ")
+            + fname + ":" + std::to_string(lnum) + "  " +pattern + "\n";
+
+        FILE* ftmp = (fout != nullptr) ? fout : stdout;
+        fprintf(ftmp, intro.c_str(), rank, (cappedLvl >= 0 ? lvl2text[cappedLvl] : "").c_str(), args...);
+
+
+        bool needToFlush = runtimeDebugLvl >= flushThreshold && COMPILE_DEBUG_LVL >= flushThreshold;
+        needToFlush = needToFlush || (now - lastFlushed > flushPeriod);
+        if (needToFlush)
+        {
+            fflush(fout);
+            lastFlushed = now;
+        }
+    }
 
 
 
-	/**
-	 * Special wrapper around log() that kills the application on
-	 * a fatal error
-	 * Print stack trace, error message, close the file and abort
-	 *
-	 * @param args forwarded to log()
-	 */
-	template<class ... Args>
-	inline void _die(Args ... args)
-	{
-		log<0>(args...);
-		
-		// print stacktrace
-		std::ostringstream strace;
-		pretty_stacktrace(strace);
-		fwrite(strace.str().c_str(), sizeof(char), strace.str().size(), fout);
+    /**
+     * Special wrapper around log() that kills the application on
+     * a fatal error
+     * Print stack trace, error message, close the file and abort
+     *
+     * @param args forwarded to log()
+     */
+    template<class ... Args>
+    inline void _die(Args ... args)
+    {
+        log<0>(args...);
+        
+        // print stacktrace
+        std::ostringstream strace;
+        pretty_stacktrace(strace);
+        fwrite(strace.str().c_str(), sizeof(char), strace.str().size(), fout);
 
-		fflush(fout);
-		fclose(fout);
-		fout = nullptr;
+        fflush(fout);
+        fclose(fout);
+        fout = nullptr;
 
-		MPI_Abort(comm, -1);
-	}
+        MPI_Abort(comm, -1);
+    }
 
-	/**
-	 * Check the return code of an MPI function. Default error checking of MPI
-	 * should be turned off
-	 *
-	 * @param fname name of the current source file
-	 * @param lnum  line number of the source file
-	 * @param code  error code (returned by MPI call)
-	 */
-	inline void _MPI_Check(const char* fname, const int lnum, const int code)
-	{
-		if (code != MPI_SUCCESS)
-		{
-			char buf[2000];
-			int nchar;
-			MPI_Error_string(code, buf, &nchar);
+    /**
+     * Check the return code of an MPI function. Default error checking of MPI
+     * should be turned off
+     *
+     * @param fname name of the current source file
+     * @param lnum  line number of the source file
+     * @param code  error code (returned by MPI call)
+     */
+    inline void _MPI_Check(const char* fname, const int lnum, const int code)
+    {
+        if (code != MPI_SUCCESS)
+        {
+            char buf[2000];
+            int nchar;
+            MPI_Error_string(code, buf, &nchar);
 
-			_die(fname, lnum, buf);
-		}
-	}
+            _die(fname, lnum, buf);
+        }
+    }
 
-	int getDebugLvl()
-	{
-		return runtimeDebugLvl;
-	}
+    int getDebugLvl()
+    {
+        return runtimeDebugLvl;
+    }
 
-	/// set debug level between 0 and #COMPILE_DEBUG_LVL
-	void setDebugLvl(int debugLvl)
-	{
-		runtimeDebugLvl = std::max(std::min(debugLvl, COMPILE_DEBUG_LVL), 0);
-		log<-1>(__FILE__, __LINE__, "Compiled with maximum debug level %d", COMPILE_DEBUG_LVL);
-		log<-1>(__FILE__, __LINE__, "Debug level requested %d, set to %d", debugLvl, runtimeDebugLvl);
-	}
+    /// set debug level between 0 and #COMPILE_DEBUG_LVL
+    void setDebugLvl(int debugLvl)
+    {
+        runtimeDebugLvl = std::max(std::min(debugLvl, COMPILE_DEBUG_LVL), 0);
+        log<-1>(__FILE__, __LINE__, "Compiled with maximum debug level %d", COMPILE_DEBUG_LVL);
+        log<-1>(__FILE__, __LINE__, "Debug level requested %d, set to %d", debugLvl, runtimeDebugLvl);
+    }
 
-
-#ifdef __CUDACC__
-	/**
-	 * If compiled by \c nvcc provide CUDA error checking.
-	 *
-	 * @param fname name of the current source file
-	 * @param lnum  line number of the source file
-	 * @param code  error code (returned by CUDA call)
-	 */
-	inline void _CUDA_Check(const char* fname, const int lnum, cudaError_t code)
-	{
-		if (code != cudaSuccess)
-			_die(fname, lnum, cudaGetErrorString(code));
-	}
-#endif
-
+    /**
+     * @param fname name of the current source file
+     * @param lnum  line number of the source file
+     * @param code  error code (returned by CUDA call)
+     */
+    inline void _CUDA_Check(const char* fname, const int lnum, cudaError_t code)
+    {
+        if (code != cudaSuccess)
+            _die(fname, lnum, cudaGetErrorString(code));
+    }
 
 private:
-	int runtimeDebugLvl;           ///< debug level defined at runtime through setDebugLvl
-	const int flushThreshold = 8;  ///< value of debug level starting with which every message
-	                               ///< will be flushed to disk immediately
+    int runtimeDebugLvl;           ///< debug level defined at runtime through setDebugLvl
+    const int flushThreshold = 8;  ///< value of debug level starting with which every message
+                                   ///< will be flushed to disk immediately
 
-	mutable std::chrono::system_clock::time_point lastFlushed;
-	const std::chrono::seconds flushPeriod{30};
+    mutable std::chrono::system_clock::time_point lastFlushed;
+    const std::chrono::seconds flushPeriod{30};
 
-	MPI_Comm comm;
+    MPI_Comm comm;
 
-	FILE* fout = nullptr;
-	int rank;
+    FILE* fout = nullptr;
+    int rank;
 
-	/**
-	 * Messages will be prefixed with the line from this array depending on their importance level
-	 */
-	const std::array<std::string, 5> lvl2text{ {"FATAL", "ERROR", "WARNING", "INFO", "DEBUG"} };
+    /**
+     * Messages will be prefixed with the line from this array depending on their importance level
+     */
+    const std::array<std::string, 5> lvl2text{ {"FATAL", "ERROR", "WARNING", "INFO", "DEBUG"} };
 };
 
 /// Unconditionally print to log, debug level is not checked here
@@ -325,10 +319,8 @@ private:
 /// Check an MPI call, call #die() if it fails
 #define  MPI_Check(command) logger._MPI_Check (__FILE__, __LINE__, command)
 
-#ifdef __CUDACC__
 /// Check a CUDA call, call #die() if it fails
 #define CUDA_Check(command) logger._CUDA_Check(__FILE__, __LINE__, command)
-#endif
 
 /**
  * Inform all the object files that there is one Logger defined somewhere,

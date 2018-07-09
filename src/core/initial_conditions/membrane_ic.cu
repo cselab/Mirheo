@@ -4,14 +4,14 @@
 #include <fstream>
 
 #include <core/pvs/particle_vector.h>
-#include <core/pvs/rbc_vector.h>
+#include <core/pvs/membrane_vector.h>
 #include <core/rigid_kernels/integration.h>
 
-Membrane_IC::Membrane_IC(std::string icfname, float globalScale) :
+MembraneIC::MembraneIC(std::string icfname, float globalScale) :
     icfname(icfname), globalScale(globalScale)
-{	}
+{    }
 
-Membrane_IC::~Membrane_IC() = default;
+MembraneIC::~MembraneIC() = default;
 
 /**
  * Read mesh topology and initial vertices (vertices are same as particles for RBCs)
@@ -33,68 +33,68 @@ Membrane_IC::~Membrane_IC() = default;
  * Set unique id to all the particles and also write unique cell ids into
  * 'ids' per-object channel
  */
-void Membrane_IC::exec(const MPI_Comm& comm, ParticleVector* pv, DomainInfo domain, cudaStream_t stream)
+void MembraneIC::exec(const MPI_Comm& comm, ParticleVector* pv, DomainInfo domain, cudaStream_t stream)
 {
-	auto ov = dynamic_cast<RBCvector*>(pv);
-	if (ov == nullptr)
-		die("RBCs can only be generated out of rbc object vectors");
+    auto ov = dynamic_cast<MembraneVector*>(pv);
+    if (ov == nullptr)
+        die("RBCs can only be generated out of rbc object vectors");
 
-	pv->domain = domain;
+    pv->domain = domain;
 
-	std::ifstream fic(icfname);
-	int nObjs=0;
+    std::ifstream fic(icfname);
+    int nObjs=0;
 
-	while (true)
-	{
-		float3 com;
-		float4 q;
+    while (true)
+    {
+        float3 com;
+        float4 q;
 
-		fic >> com.x >> com.y >> com.z;
-		fic >> q.x >> q.y >> q.z >> q.w;
+        fic >> com.x >> com.y >> com.z;
+        fic >> q.x >> q.y >> q.z >> q.w;
 
-		if (fic.fail()) break;
+        if (fic.fail()) break;
 
-		q = normalize(q);
+        q = normalize(q);
 
-		if (ov->domain.globalStart.x <= com.x && com.x < ov->domain.globalStart.x + ov->domain.localSize.x &&
-		    ov->domain.globalStart.y <= com.y && com.y < ov->domain.globalStart.y + ov->domain.localSize.y &&
-		    ov->domain.globalStart.z <= com.z && com.z < ov->domain.globalStart.z + ov->domain.localSize.z)
-		{
-			com = domain.global2local(com);
-			int oldSize = ov->local()->size();
-			ov->local()->resize(oldSize + ov->mesh->nvertices, stream);
+        if (ov->domain.globalStart.x <= com.x && com.x < ov->domain.globalStart.x + ov->domain.localSize.x &&
+            ov->domain.globalStart.y <= com.y && com.y < ov->domain.globalStart.y + ov->domain.localSize.y &&
+            ov->domain.globalStart.z <= com.z && com.z < ov->domain.globalStart.z + ov->domain.localSize.z)
+        {
+            com = domain.global2local(com);
+            int oldSize = ov->local()->size();
+            ov->local()->resize(oldSize + ov->mesh->nvertices, stream);
 
-			for (int i=0; i<ov->mesh->nvertices; i++)
-			{
-				float3 r = rotate(f4tof3( ov->mesh->vertexCoordinates[i] * globalScale ), q) + com;
-				Particle p;
-				p.r = r;
-				p.u = make_float3(0);
+            for (int i=0; i<ov->mesh->nvertices; i++)
+            {
+                float3 r = rotate(f4tof3( ov->mesh->vertexCoordinates[i] * globalScale ), q) + com;
+                Particle p;
+                p.r = r;
+                p.u = make_float3(0);
 
-				ov->local()->coosvels[oldSize + i] = p;
-			}
+                ov->local()->coosvels[oldSize + i] = p;
+            }
 
-			nObjs++;
-		}
-	}
+            nObjs++;
+        }
+    }
 
-	// Set ids
-	int totalCount=0; // TODO: int64!
-	MPI_Check( MPI_Exscan(&nObjs, &totalCount, 1, MPI_INT, MPI_SUM, comm) );
+    // Set ids
+    int totalCount=0; // TODO: int64!
+    MPI_Check( MPI_Exscan(&nObjs, &totalCount, 1, MPI_INT, MPI_SUM, comm) );
 
-	auto ids = ov->local()->extraPerObject.getData<int>("ids");
-	for (int i=0; i<nObjs; i++)
-		(*ids)[i] = totalCount + i;
+    auto ids = ov->local()->extraPerObject.getData<int>("ids");
+    for (int i=0; i<nObjs; i++)
+        (*ids)[i] = totalCount + i;
 
-	for (int i=0; i < ov->local()->size(); i++)
-		ov->local()->coosvels[i].i1 = totalCount*ov->objSize + i;
-
-
-	ids->uploadToDevice(stream);
-	ov->local()->coosvels.uploadToDevice(stream);
-	ov->local()->extraPerParticle.getData<Particle>("old_particles")->copy(ov->local()->coosvels, stream);
+    for (int i=0; i < ov->local()->size(); i++)
+        ov->local()->coosvels[i].i1 = totalCount*ov->objSize + i;
 
 
-	info("Read %d %s rbcs", nObjs, ov->name.c_str());
+    ids->uploadToDevice(stream);
+    ov->local()->coosvels.uploadToDevice(stream);
+    ov->local()->extraPerParticle.getData<Particle>("old_particles")->copy(ov->local()->coosvels, stream);
+
+
+    info("Read %d %s rbcs", nObjs, ov->name.c_str());
 }
 

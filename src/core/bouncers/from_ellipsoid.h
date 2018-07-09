@@ -8,13 +8,13 @@
 class BounceFromRigidEllipsoid : public Bouncer
 {
 protected:
-	void exec(ParticleVector* pv, CellList* cl, float dt, bool local, cudaStream_t stream) override;
+    void exec(ParticleVector* pv, CellList* cl, float dt, bool local, cudaStream_t stream) override;
 
 public:
 
-	BounceFromRigidEllipsoid(std::string name);
+    BounceFromRigidEllipsoid(std::string name);
 
-	void setup(ObjectVector* ov) override;
+    void setup(ObjectVector* ov) override;
 
-	~BounceFromRigidEllipsoid() = default;
+    ~BounceFromRigidEllipsoid() = default;
 };

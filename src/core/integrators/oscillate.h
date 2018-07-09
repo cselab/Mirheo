@@ -11,15 +11,15 @@ class IntegratorOscillate : public Integrator
 {
 public:
 
-	void stage1(ParticleVector* pv, float t, cudaStream_t stream) override {};
-	void stage2(ParticleVector* pv, float t, cudaStream_t stream) override;
+    void stage1(ParticleVector* pv, float t, cudaStream_t stream) override {};
+    void stage2(ParticleVector* pv, float t, cudaStream_t stream) override;
 
-	IntegratorOscillate(std::string name, float dt, float3 vel, float period);
+    IntegratorOscillate(std::string name, float dt, float3 vel, float period);
 
-	~IntegratorOscillate() = default;
+    ~IntegratorOscillate() = default;
 
 private:
 
-	float3 vel;    ///< Velocity amplitude
-	float period;  ///< Sine wave period
+    float3 vel;    ///< Velocity amplitude
+    float period;  ///< Sine wave period
 };

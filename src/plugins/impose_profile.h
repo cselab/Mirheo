@@ -13,27 +13,27 @@ class CellList;
 class ImposeProfilePlugin : public SimulationPlugin
 {
 public:
-	ImposeProfilePlugin(std::string name, std::string pvName, float3 low, float3 high, float3 targetVel, float kbT) :
-		SimulationPlugin(name), pvName(pvName), low(low), high(high), targetVel(targetVel), kbT(kbT)
-	{	}
+    ImposeProfilePlugin(std::string name, std::string pvName, float3 low, float3 high, float3 targetVel, float kbT) :
+        SimulationPlugin(name), pvName(pvName), low(low), high(high), targetVel(targetVel), kbT(kbT)
+    {    }
 
-	void setup(Simulation* sim, const MPI_Comm& comm, const MPI_Comm& interComm) override;
-	void afterIntegration(cudaStream_t stream) override;
+    void setup(Simulation* sim, const MPI_Comm& comm, const MPI_Comm& interComm) override;
+    void afterIntegration(cudaStream_t stream) override;
 
-	bool needPostproc() override { return false; }
+    bool needPostproc() override { return false; }
 
-	~ImposeProfilePlugin() = default;
+    ~ImposeProfilePlugin() = default;
 
 private:
-	std::string pvName;
-	ParticleVector* pv;
-	CellList* cl;
+    std::string pvName;
+    ParticleVector* pv;
+    CellList* cl;
 
-	float3 high, low;
-	float3 targetVel;
-	float kbT;
+    float3 high, low;
+    float3 targetVel;
+    float kbT;
 
-	PinnedBuffer<int> nRelevantCells{1};
-	DeviceBuffer<int> relevantCells;
+    PinnedBuffer<int> nRelevantCells{1};
+    DeviceBuffer<int> relevantCells;
 };
 

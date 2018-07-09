@@ -2,14 +2,14 @@
 
 #include <core/logger.h>
 
-#include "integrators.h"
-#include "particle_vectors.h"
-#include "initial_conditions.h"
-
 class Simulation;
 class Postprocess;
 class SimulationPlugin;
 class PostprocessPlugin;
+
+class ParticleVector;
+class InitialConditions;
+class Integrator;
 
 class uDeviceX
 {
@@ -20,10 +20,10 @@ public:
 	bool isComputeTask();
 	void run(int niters);
     
-    void registerParticleVector         (PyParticleVector* pv, PyInitialConditions* ic, int checkpointEvery);
+    void registerParticleVector         (ParticleVector* pv, InitialConditions* ic, int checkpointEvery);
 // 	void registerWall                   (PyWall wall, int checkEvery);
 // 	void registerInteraction            (PyInteraction interaction);
- 	void registerIntegrator             (PyIntegrator* integrator);
+ 	void registerIntegrator             (Integrator* integrator);
 // 	void registerBouncer                (PyBouncer bouncer);
 // 	void registerPlugin                 (PyPlugin plugin);
 // 	void registerObjectBelongingChecker (PyObjectBelongingChecker checker);

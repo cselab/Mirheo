@@ -9,26 +9,26 @@ class ParticleVector;
 class StationaryWall_Plane
 {
 public:
-	StationaryWall_Plane(float3 normal, float3 pointThrough) :
-		normal(normal), pointThrough(pointThrough)
-	{
-		normal = normalize(normal);
-	}
+    StationaryWall_Plane(float3 normal, float3 pointThrough) :
+        normal(normal), pointThrough(pointThrough)
+    {
+        normal = normalize(normal);
+    }
 
-	void setup(MPI_Comm& comm, DomainInfo domain) { this->domain = domain; }
+    void setup(MPI_Comm& comm, DomainInfo domain) { this->domain = domain; }
 
-	const StationaryWall_Plane& handler() const { return *this; }
+    const StationaryWall_Plane& handler() const { return *this; }
 
-	__device__ inline float operator()(float3 coo) const
-	{
-		float3 gr = domain.local2global(coo);
-		float dist = dot(normal, gr - pointThrough);
+    __device__ inline float operator()(float3 coo) const
+    {
+        float3 gr = domain.local2global(coo);
+        float dist = dot(normal, gr - pointThrough);
 
-		return dist;
-	}
+        return dist;
+    }
 
 private:
-	float3 normal, pointThrough;
+    float3 normal, pointThrough;
 
-	DomainInfo domain;
+    DomainInfo domain;
 };

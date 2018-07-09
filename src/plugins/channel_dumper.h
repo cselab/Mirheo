@@ -9,22 +9,22 @@
 class UniformCartesianDumper : public PostprocessPlugin
 {
 public:
-	UniformCartesianDumper(std::string name, std::string path);
+    UniformCartesianDumper(std::string name, std::string path);
 
-	void deserialize(MPI_Status& stat) override;
-	void handshake() override;
+    void deserialize(MPI_Status& stat) override;
+    void handshake() override;
 
-	~UniformCartesianDumper() = default;
+    ~UniformCartesianDumper() = default;
 
 protected:
-	XDMFDumper* dumper;
-	std::string path;
+    XDMFDumper* dumper;
+    std::string path;
 
-	int3 nranks3D, rank3D;
-	int3 resolution;
-	float3 h;
+    int3 nranks3D, rank3D;
+    int3 resolution;
+    float3 h;
 
-	std::vector<XDMFDumper::ChannelType> channelTypes;
-	std::vector<std::string> channelNames;
-	std::vector<std::vector<float>> channels;
+    std::vector<XDMFDumper::ChannelType> channelTypes;
+    std::vector<std::string> channelNames;
+    std::vector<std::vector<float>> channels;
 };

@@ -1,7 +1,6 @@
 #pragma once
 #include "interface.h"
 #include <core/containers.h>
-#include <core/xml/pugixml.hpp>
 
 class SDFWall;
 

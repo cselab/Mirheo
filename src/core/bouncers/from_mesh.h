@@ -14,32 +14,32 @@ class RigidObjectVector;
 class BounceFromMesh : public Bouncer
 {
 public:
-	BounceFromMesh(std::string name, float kbT);
+    BounceFromMesh(std::string name, float kbT);
 
-	~BounceFromMesh() = default;
+    ~BounceFromMesh() = default;
 
 private:
-	template<typename T>
-	struct CollisionTableWrapper
-	{
-		PinnedBuffer<int> nCollisions{1};
-		DeviceBuffer<T> collisionTable;
-	};
+    template<typename T>
+    struct CollisionTableWrapper
+    {
+        PinnedBuffer<int> nCollisions{1};
+        DeviceBuffer<T> collisionTable;
+    };
 
-	/**
-	 * Maximum supported number of collisions per step
-	 * will be #bouncesPerTri * total number of triangles in mesh
-	 */
-	const float coarseCollisionsPerTri = 5.0f;
-	const float fineCollisionsPerTri = 1.0f;
+    /**
+     * Maximum supported number of collisions per step
+     * will be #bouncesPerTri * total number of triangles in mesh
+     */
+    const float coarseCollisionsPerTri = 5.0f;
+    const float fineCollisionsPerTri = 1.0f;
 
-	CollisionTableWrapper<int2> coarseTable, fineTable;
-	DeviceBuffer<int> collisionTimes;
+    CollisionTableWrapper<int2> coarseTable, fineTable;
+    DeviceBuffer<int> collisionTimes;
 
-	float kbT;
+    float kbT;
 
-	RigidObjectVector* rov;
+    RigidObjectVector* rov;
 
-	void exec(ParticleVector* pv, CellList* cl, float dt, bool local, cudaStream_t stream) override;
-	void setup(ObjectVector* ov) override;
+    void exec(ParticleVector* pv, CellList* cl, float dt, bool local, cudaStream_t stream) override;
+    void setup(ObjectVector* ov) override;
 };

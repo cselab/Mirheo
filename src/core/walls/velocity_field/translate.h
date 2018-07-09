@@ -9,21 +9,21 @@ class ParticleVector;
 class VelocityField_Translate
 {
 public:
-	VelocityField_Translate(float3 vel) :
-		vel(vel)
-	{	}
+    VelocityField_Translate(float3 vel) :
+        vel(vel)
+    {    }
 
-	void setup(MPI_Comm& comm, DomainInfo domain) { }
+    void setup(MPI_Comm& comm, DomainInfo domain) { }
 
-	const VelocityField_Translate& handler() const { return *this; }
+    const VelocityField_Translate& handler() const { return *this; }
 
-	__device__ inline float3 operator()(float3 coo) const
-	{
-		return vel;
-	}
+    __device__ inline float3 operator()(float3 coo) const
+    {
+        return vel;
+    }
 
 private:
-	float3 vel;
+    float3 vel;
 
-	DomainInfo domain;
+    DomainInfo domain;
 };

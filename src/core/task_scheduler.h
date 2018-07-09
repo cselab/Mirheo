@@ -16,65 +16,65 @@
 class TaskScheduler
 {
 public:
-	using TaskID = int;
-	static const TaskID invalidTaskId = (TaskID) -1;
+    using TaskID = int;
+    static const TaskID invalidTaskId = (TaskID) -1;
 
-	TaskScheduler();
+    TaskScheduler();
 
-	TaskID createTask     (const std::string& label);
-	TaskID getTaskId      (const std::string& label);
-	TaskID getTaskIdOrDie (const std::string& label);
+    TaskID createTask     (const std::string& label);
+    TaskID getTaskId      (const std::string& label);
+    TaskID getTaskIdOrDie (const std::string& label);
 
-	void addTask(TaskID id, std::function<void(cudaStream_t)> task, int execEvery = 1);
-	void addDependency(TaskID id, std::vector<TaskID> before, std::vector<TaskID> after);
-	void setHighPriority(TaskID id);
+    void addTask(TaskID id, std::function<void(cudaStream_t)> task, int execEvery = 1);
+    void addDependency(TaskID id, std::vector<TaskID> before, std::vector<TaskID> after);
+    void setHighPriority(TaskID id);
 
-	void compile();
-	void run();
-	void saveDependencyGraph_GraphML(std::string fname);
+    void compile();
+    void run();
+    void saveDependencyGraph_GraphML(std::string fname);
 
-	void forceExec(TaskID id, cudaStream_t stream);
+    void forceExec(TaskID id, cudaStream_t stream);
 
 private:
 
-	struct Task
-	{
-		std::string label;
-		TaskID id;
-		int priority;
+    struct Task
+    {
+        std::string label;
+        TaskID id;
+        int priority;
 
-		std::vector< std::pair<std::function<void(cudaStream_t)>, int> > funcs;
-		std::vector<TaskID> before, after;
-	};
+        std::vector< std::pair<std::function<void(cudaStream_t)>, int> > funcs;
+        std::vector<TaskID> before, after;
+    };
 
-	struct Node;
-	struct Node
-	{
-		TaskID id;
+    struct Node;
+    struct Node
+    {
+        TaskID id;
 
-		std::list<Node*> to, from, from_backup;
+        std::list<Node*> to, from, from_backup;
 
-		int priority;
-		std::queue<cudaStream_t>* streams;
-	};
+        int priority;
+        std::queue<cudaStream_t>* streams;
+    };
 
-	std::vector<Task> tasks;
-	std::vector< std::unique_ptr<Node> > nodes;
+    std::vector<Task> tasks;
+    std::vector< std::unique_ptr<Node> > nodes;
 
-	// Ordered sets of parallel work
-	std::queue<cudaStream_t> streamsLo, streamsHi;
+    // Ordered sets of parallel work
+    std::queue<cudaStream_t> streamsLo, streamsHi;
 
-	int cudaPriorityLow, cudaPriorityHigh;
+    int cudaPriorityLow, cudaPriorityHigh;
 
-	int nExecutions{0};
+    int nExecutions{0};
 
-	std::unordered_map<std::string, TaskID> label2taskId;
+    std::unordered_map<std::string, TaskID> label2taskId;
 
-	Node* getNode     (TaskID id);
-	Node* getNodeOrDie(TaskID id);
+    Node* getNode     (TaskID id);
+    Node* getNodeOrDie(TaskID id);
 
-	void createNodes();
-	void removeEmptyNodes();
-	void logDepsGraph();
+    void createNodes();
+    void removeEmptyNodes();
+    void logDepsGraph();
 
 };

@@ -11,6 +11,7 @@
 #include <core/celllist.h>
 #include <core/pvs/particle_vector.h>
 #include <core/pvs/rigid_ellipsoid_object_vector.h>
+#include <core/pvs/views/reov.h>
 
 #include <core/rigid_kernels/bounce.h>
 #include <core/rigid_kernels/integration.h>
@@ -21,7 +22,7 @@
  * @param name unique bouncer name
  */
 BounceFromRigidEllipsoid::BounceFromRigidEllipsoid(std::string name) : Bouncer(name)
-{	}
+{    }
 
 /**
  * @param ov will need an 'old_motions' channel with the rigid motion
@@ -29,9 +30,9 @@ BounceFromRigidEllipsoid::BounceFromRigidEllipsoid(std::string name) : Bouncer(n
  */
 void BounceFromRigidEllipsoid::setup(ObjectVector* ov)
 {
-	this->ov = ov;
+    this->ov = ov;
 
-	ov->requireDataPerObject<RigidMotion> ("old_motions", true, sizeof(RigidReal));
+    ov->requireDataPerObject<RigidMotion> ("old_motions", true, sizeof(RigidReal));
 }
 
 /**
@@ -40,33 +41,33 @@ void BounceFromRigidEllipsoid::setup(ObjectVector* ov)
  */
 void BounceFromRigidEllipsoid::exec(ParticleVector* pv, CellList* cl, float dt, bool local, cudaStream_t stream)
 {
-	auto reov = dynamic_cast<RigidEllipsoidObjectVector*>(ov);
-	if (reov == nullptr)
-		die("Analytic ellispoid bounce only works with Rigid Ellipsoids");
+    auto reov = dynamic_cast<RigidEllipsoidObjectVector*>(ov);
+    if (reov == nullptr)
+        die("Analytic ellispoid bounce only works with Rigid Ellipsoids");
 
-	debug("Bouncing %d '%s' particles from %d '%s': objects (%s)",
-			pv->local()->size(), pv->name.c_str(),
-			local ? reov->local()->nObjects : reov->halo()->nObjects, reov->name.c_str(),
-			local ? "local objs" : "halo objs");
+    debug("Bouncing %d '%s' particles from %d '%s': objects (%s)",
+            pv->local()->size(), pv->name.c_str(),
+            local ? reov->local()->nObjects : reov->halo()->nObjects, reov->name.c_str(),
+            local ? "local objs" : "halo objs");
 
-	ov->findExtentAndCOM(stream, local);
+    ov->findExtentAndCOM(stream, local);
 
-	REOVviewWithOldMotion ovView(reov, local ? reov->local() : reov->halo());
-	PVviewWithOldParticles pvView(pv, pv->local());
+    REOVviewWithOldMotion ovView(reov, local ? reov->local() : reov->halo());
+    PVviewWithOldParticles pvView(pv, pv->local());
 
-	int nthreads = 256;
-	if (!local)
-	{
-		SAFE_KERNEL_LAUNCH(
-				clearRigidForces,
-				getNblocks(ovView.nObjects, nthreads), nthreads, 0, stream,
-				ovView );
-	}
+    int nthreads = 256;
+    if (!local)
+    {
+        SAFE_KERNEL_LAUNCH(
+                clearRigidForces,
+                getNblocks(ovView.nObjects, nthreads), nthreads, 0, stream,
+                ovView );
+    }
 
-	SAFE_KERNEL_LAUNCH(
-			bounceEllipsoid,
-			ovView.nObjects, nthreads, 2*nthreads*sizeof(int), stream,
-			ovView, pvView, cl->cellInfo(), dt );
+    SAFE_KERNEL_LAUNCH(
+            bounceEllipsoid,
+            ovView.nObjects, nthreads, 2*nthreads*sizeof(int), stream,
+            ovView, pvView, cl->cellInfo(), dt );
 }
 
 

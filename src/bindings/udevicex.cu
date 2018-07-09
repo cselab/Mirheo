@@ -14,6 +14,8 @@
 #include <core/initial_conditions/interface.h>
 #include <core/pvs/particle_vector.h>
 
+#include <core/integrators/interface.h>
+
 
 uDeviceX::uDeviceX(std::tuple<int, int, int> nranks3D, std::tuple<float, float, float> globalDomainSize,
 		std::string logFileName, int verbosity, bool gpuAwareMPI)
@@ -81,18 +83,18 @@ uDeviceX::uDeviceX(std::tuple<int, int, int> nranks3D, std::tuple<float, float, 
 
 uDeviceX::~uDeviceX() = default;
 
-void uDeviceX::registerParticleVector(PyParticleVector* pv, PyInitialConditions* ic, int checkpointEvery)
+void uDeviceX::registerParticleVector(ParticleVector* pv, InitialConditions* ic, int checkpointEvery)
 {
-    sim->registerParticleVector(std::unique_ptr<ParticleVector>   (pv->getImpl()),
-                                std::unique_ptr<InitialConditions>(ic->getImpl()),
+    sim->registerParticleVector(std::unique_ptr<ParticleVector>   (pv),
+                                std::unique_ptr<InitialConditions>(ic),
                                 checkpointEvery);
 }
 // 	void registerWall                   (PyWall wall, int checkEvery);
 // 	void registerInteraction            (PyInteraction interaction);
 
-void uDeviceX::registerIntegrator(PyIntegrator* integrator)
+void uDeviceX::registerIntegrator(Integrator* integrator)
 {
-    sim->registerIntegrator(std::unique_ptr<Integrator>(integrator->getImpl()));
+    sim->registerIntegrator(std::unique_ptr<Integrator>(integrator));
 }
 
 // 	void uDeviceX::registerBouncer                (PyBouncer bouncer);

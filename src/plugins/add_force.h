@@ -11,20 +11,20 @@ class ParticleVector;
 class AddForcePlugin : public SimulationPlugin
 {
 public:
-	AddForcePlugin(std::string name, std::string pvName, float3 force) :
-		SimulationPlugin(name), pvName(pvName), force(force)
-	{	}
+    AddForcePlugin(std::string name, std::string pvName, float3 force) :
+        SimulationPlugin(name), pvName(pvName), force(force)
+    {    }
 
-	void setup(Simulation* sim, const MPI_Comm& comm, const MPI_Comm& interComm) override;
-	void beforeForces(cudaStream_t stream) override;
+    void setup(Simulation* sim, const MPI_Comm& comm, const MPI_Comm& interComm) override;
+    void beforeForces(cudaStream_t stream) override;
 
-	bool needPostproc() override { return false; }
+    bool needPostproc() override { return false; }
 
-	~AddForcePlugin() = default;
+    ~AddForcePlugin() = default;
 
 private:
-	std::string pvName;
-	ParticleVector* pv;
-	float3 force;
+    std::string pvName;
+    ParticleVector* pv;
+    float3 force;
 };
 

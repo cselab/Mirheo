@@ -17,45 +17,45 @@ class ParticleVector;
 class Interaction
 {
 public:
-	/// Cut-off raduis
-	float rc;
-	std::string name;
+    /// Cut-off raduis
+    float rc;
+    std::string name;
 
-	Interaction(std::string name, float rc) : name(name), rc(rc) {}
+    Interaction(std::string name, float rc) : name(name), rc(rc) {}
 
-	/**
-	 * Ask ParticleVectors which the class will be working with to have specific properties
-	 * Default: ask nothing
-	 * Called from Simulation right after setup
-	 */
-	virtual void setPrerequisites(ParticleVector* pv1, ParticleVector* pv2) {}
+    /**
+     * Ask ParticleVectors which the class will be working with to have specific properties
+     * Default: ask nothing
+     * Called from Simulation right after setup
+     */
+    virtual void setPrerequisites(ParticleVector* pv1, ParticleVector* pv2) {}
 
-	/**
-	 * Interface to compute local interactions.
-	 * For now order of \e pv1 and \e pv2 is important for computational reasons,
-	 * this may be changed later on so that the best order is chosen automatically.
-	 *
-	 * @param pv1 first interacting ParticleVector
-	 * @param pv2 second interacting ParticleVector. If it is the same as
-	 *            the \p pv1, self interactions will be computed
-	 * @param cl1 cell-list built for the appropriate cut-off raduis #rc for \p pv1
-	 * @param cl2 cell-list built for the appropriate cut-off raduis #rc for \p pv2
-	 * @param t current simulation time
-	 */
-	virtual void regular(ParticleVector* pv1, ParticleVector* pv2, CellList* cl1, CellList* cl2, const float t, cudaStream_t stream) = 0;
+    /**
+     * Interface to compute local interactions.
+     * For now order of \e pv1 and \e pv2 is important for computational reasons,
+     * this may be changed later on so that the best order is chosen automatically.
+     *
+     * @param pv1 first interacting ParticleVector
+     * @param pv2 second interacting ParticleVector. If it is the same as
+     *            the \p pv1, self interactions will be computed
+     * @param cl1 cell-list built for the appropriate cut-off raduis #rc for \p pv1
+     * @param cl2 cell-list built for the appropriate cut-off raduis #rc for \p pv2
+     * @param t current simulation time
+     */
+    virtual void regular(ParticleVector* pv1, ParticleVector* pv2, CellList* cl1, CellList* cl2, const float t, cudaStream_t stream) = 0;
 
-	/**
-	 * Interface to compute halo interactions. It principle it has to compute
-	 * pv1->halo() \<--\> pv2->local() and pv2->halo() \<--\> pv1->local().
-	 * See InteractionPair for more details
-	 *
-	 * @param pv1 first interacting ParticleVector
-	 * @param pv2 second interacting ParticleVector
-	 * @param cl1 cell-list built for the appropriate cut-off raduis #rc for \p pv1
-	 * @param cl2 cell-list built for the appropriate cut-off raduis #rc for \p pv2
-	 * @param t current simulation time
-	 */
-	virtual void halo   (ParticleVector* pv1, ParticleVector* pv2, CellList* cl1, CellList* cl2, const float t, cudaStream_t stream) = 0;
+    /**
+     * Interface to compute halo interactions. It principle it has to compute
+     * pv1->halo() \<--\> pv2->local() and pv2->halo() \<--\> pv1->local().
+     * See InteractionPair for more details
+     *
+     * @param pv1 first interacting ParticleVector
+     * @param pv2 second interacting ParticleVector
+     * @param cl1 cell-list built for the appropriate cut-off raduis #rc for \p pv1
+     * @param cl2 cell-list built for the appropriate cut-off raduis #rc for \p pv2
+     * @param t current simulation time
+     */
+    virtual void halo   (ParticleVector* pv1, ParticleVector* pv2, CellList* cl1, CellList* cl2, const float t, cudaStream_t stream) = 0;
     
-	virtual ~Interaction() = default;
+    virtual ~Interaction() = default;
 };
