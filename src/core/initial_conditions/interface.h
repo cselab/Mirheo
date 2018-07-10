@@ -2,6 +2,7 @@
 
 #include <mpi.h>
 #include <core/domain.h>
+#include <cuda_runtime.h>
 
 class ParticleVector;
 

@@ -1,10 +1,6 @@
 #include <extern/pybind11/include/pybind11/pybind11.h>
-#include <extern/pybind11/include/pybind11/stl.h>
-
-#include <core/logger.h>
 
 #include "udevicex.h"
-
 #include <core/pvs/particle_vector.h>
 #include <core/initial_conditions/interface.h>
 #include <core/integrators/interface.h>
@@ -12,9 +8,7 @@
 namespace py = pybind11;
 using namespace pybind11::literals;
 
-Logger logger;
-
-PYBIND11_MODULE(_udevicex, m)
+void exportUdevicex(py::module& m)
 {
     // uDeviceX driver
     py::class_<uDeviceX>(m, "udevicex")

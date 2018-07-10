@@ -20,6 +20,8 @@ struct DomainInfo
 
 #else
 
+#include <cuda_runtime.h>
+
 struct DomainInfo
 {
     float3 globalSize, globalStart, localSize;
