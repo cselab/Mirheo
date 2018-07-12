@@ -11,4 +11,6 @@ PYBIND11_MODULE(_udevicex, m)
     exportUdevicex(m);
     exportInitialConditions(m);
     exportParticleVectors(m);
+    exportIntegrators(m);
+    exportInteractions(m);
 }

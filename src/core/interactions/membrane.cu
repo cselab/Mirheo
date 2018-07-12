@@ -48,6 +48,14 @@ static GPU_RBCparameters setParams(MembraneParameters p, Mesh* m)
     return devP;
 }
 
+InteractionMembrane::InteractionMembrane(
+        std::string name, MembraneParameters parameters, bool stressFree, float growUntil ) :
+    Interaction(name, 1.0f), parameters(parameters), stressFree(stressFree),
+    scaleFromTime( [growUntil] (float t) { return min(1.0f, 0.5f + 0.5f * (t / growUntil)); } )
+{    }
+
+InteractionMembrane::~InteractionMembrane() = default;
+
 /**
  * Require that \p pv1 and \p pv2 are the same and are instances
  * of MembraneVector

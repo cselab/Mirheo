@@ -32,8 +32,9 @@ void exportParticleVectors(py::module& m)
         .def(py::init<std::string>(), "off_filename"_a);
         
     py::class_<ObjectVector> (m, "ObjectVector", pypv)
-        .def(py::init<std::string, float, int>(), "name"_a, "mass"_a, "n_objects"_a=0);  
+        .def(py::init<std::string, float, int>(), "name"_a, "mass"_a, "object_size"_a);  
         
     py::class_<RigidObjectVector> (m, "RigidObjectVector", pypv)
-        .def(py::init<std::string, float, int>(), "name"_a, "mass"_a, "n_objects"_a=0);
+        .def(py::init<std::string, float, pyfloat3, int, std::unique_ptr<Mesh>>(),
+             "name"_a, "mass"_a, "inertia"_a, "object_size"_a, "mesh"_a);
 }

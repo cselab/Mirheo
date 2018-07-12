@@ -7,14 +7,13 @@
 #include <core/pvs/views/pv.h>
 
 
-
 /**
  * @param vel Velocity magnitude
  * @param period Sine wave period
  */
-IntegratorOscillate::IntegratorOscillate(std::string name, float dt, float3 vel, float period) :
+IntegratorOscillate::IntegratorOscillate(std::string name, float dt, pyfloat3 vel, float period) :
     Integrator(name, dt),
-    vel(vel), period(period)
+    vel(make_float3(vel)), period(period)
 {
     if (period <= 0)
         die("Oscillating period should be strictly positive");

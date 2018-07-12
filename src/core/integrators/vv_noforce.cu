@@ -13,7 +13,7 @@ void IntegratorVV_noforce::stage2(ParticleVector* pv, float t, cudaStream_t stre
     impl-> stage2(pv, t, stream);
 }
 
-IntegratorVV_noforce::IntegratorVV_noforce(std::string name, float dt, std::tuple<float, float, float> extra_force) :
+IntegratorVV_noforce::IntegratorVV_noforce(std::string name, float dt) :
     Integrator(name, dt)
 {
     Forcing_None term;

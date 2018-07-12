@@ -32,19 +32,14 @@ class InteractionMembrane : public Interaction
 {
 public:
 
-    InteractionMembrane(
-            std::string name, MembraneParameters parameters, bool stressFree,
-            std::function< float(float) > scaleFromTime = [] (float t) { return 1.0f;} ) :
-        Interaction(name, 1.0f), parameters(parameters), stressFree(stressFree),
-        scaleFromTime(scaleFromTime)
-    {    }
+    InteractionMembrane(std::string name, MembraneParameters parameters, bool stressFree, float growUntil);
 
     void setPrerequisites(ParticleVector* pv1, ParticleVector* pv2) override;
 
     void regular(ParticleVector* pv1, ParticleVector* pv2, CellList* cl1, CellList* cl2, const float t, cudaStream_t stream) override;
     void halo   (ParticleVector* pv1, ParticleVector* pv2, CellList* cl1, CellList* cl2, const float t, cudaStream_t stream) override;
 
-    ~InteractionMembrane() = default;
+    ~InteractionMembrane();
 
 private:
 

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "object_vector.h"
+#include <core/utils/pytypes.h>
 
 
 class LocalRigidObjectVector : public LocalObjectVector
@@ -29,13 +30,17 @@ public:
     /// The axes should be aligned with ox, oy, oz when q = {1 0 0 0}
     float3 J;
 
-    RigidObjectVector(std::string name, float partMass, float3 J, const int objSize,
+    RigidObjectVector(std::string name, float partMass, pyfloat3 J, const int objSize,
                       std::unique_ptr<Mesh> mesh, const int nObjects = 0);
 
     LocalRigidObjectVector* local() { return static_cast<LocalRigidObjectVector*>(_local); }
     LocalRigidObjectVector* halo()  { return static_cast<LocalRigidObjectVector*>(_halo);  }
 
     virtual ~RigidObjectVector() = default;
+    
+protected:
+    RigidObjectVector(std::string name, float partMass, float3 J, const int objSize,
+                      std::unique_ptr<Mesh> mesh, const int nObjects = 0);
 };
 
 

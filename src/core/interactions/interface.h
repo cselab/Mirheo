@@ -1,7 +1,7 @@
 #pragma once
 
-#include <functional>
 #include <string>
+#include <cuda_runtime.h>
 
 class CellList;
 class ParticleVector;

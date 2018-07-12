@@ -9,17 +9,34 @@ Created on Fri Jul  6 12:35:18 2018
 import sys
 sys.path.append('/home/alexeedm/udevicex/build')
 import _udevicex as udx
+import numpy as np
 
-vv = udx.VelocityVerlet('haha', 2.0, (1.0, 2.0, 3))
-pv = udx.SimpleParticleVector('pv', 1)
-ic = udx.UniformIC(8)
+dt = 0.001
 
+u = udx.udevicex((1,1,1), (2, 2, 2), debug_level=10, log_filename='stdout')
 
-u = udx.uDeviceX((1, 1, 1), (2, 2, 2), 'stdout', 10, False)
+pv = udx.ParticleVector('pv', 1)
+ic = udx.UniformIC(density=2)
+u.registerParticleVector(pv=pv, ic=ic)
 
+dpd = udx.DPD('dpd', 1.0, a=10.0, gamma=10.0, kbt=1.0, dt=dt, power=0.5)
+u.registerInteraction(dpd)
+u.setInteraction(dpd, pv, pv)
+
+vv = udx.VelocityVerlet('vv', dt=dt)
 u.registerIntegrator(vv)
-u.registerParticleVector(pv, ic, 0)
+u.setIntegrator(vv, pv)
 
-u.run(10)
+print(u)
 
-print(vv)   
+u.run(5)
+
+print(pv)
+
+u.run(5)
+
+coo = pv.getVelocities()
+
+print(coo)
+
+#print(vv)   

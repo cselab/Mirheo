@@ -21,6 +21,12 @@ RigidObjectVector::RigidObjectVector(std::string name, float partMass,
     requireDataPerObject<RigidMotion>("motions", true, sizeof(RigidReal));
 }
 
+RigidObjectVector::RigidObjectVector(std::string name, float partMass,
+                                     pyfloat3 J, const int objSize,
+                                     std::unique_ptr<Mesh> mesh, const int nObjects) :
+        RigidObjectVector( name, partMass, make_float3(J), objSize, std::move(mesh), nObjects )
+{   }
+
 PinnedBuffer<Particle>* LocalRigidObjectVector::getMeshVertices(cudaStream_t stream)
 {
     auto ov = dynamic_cast<RigidObjectVector*>(pv);

@@ -7,6 +7,16 @@
 #include <core/pvs/views/pv.h>
 
 
+IntegratorConstOmega::IntegratorConstOmega(std::string name, float dt, pyfloat3 center, pyfloat3 omega) :
+    Integrator(name, dt),
+    center(make_float3(center)), omega(make_float3(omega))
+{   }
+
+IntegratorConstOmega::~IntegratorConstOmega() = default;
+
+void IntegratorConstOmega::stage1(ParticleVector* pv, float t, cudaStream_t stream)
+{   }
+
 void IntegratorConstOmega::stage2(ParticleVector* pv, float t, cudaStream_t stream)
 {
     const auto domain = pv->domain;

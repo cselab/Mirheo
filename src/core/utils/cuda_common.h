@@ -294,18 +294,6 @@ __device__ inline float fastPower(const float x, const float k)
     return powf(fabsf(x), k);
 }
 
-// Tuple initializations
-
-inline float3 make_float3(std::tuple<float, float, float> t3)
-{
-    return make_float3(std::get<0>(t3), std::get<1>(t3), std::get<2>(t3));
-}
-
-
-inline int3 make_int3(std::tuple<int, int, int> t3)
-{
-    return make_int3(std::get<0>(t3), std::get<1>(t3), std::get<2>(t3));
-}
 
 
 

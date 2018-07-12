@@ -1,6 +1,7 @@
 #pragma once
 
 #include "interface.h"
+#include <core/utils/pytypes.h>
 
 /**
  * Rotate the particles around #center (defined in global coordinate system)
@@ -12,15 +13,12 @@ class IntegratorConstOmega : public Integrator
 {
 public:
 
-    void stage1(ParticleVector* pv, float t, cudaStream_t stream) override {};
+    void stage1(ParticleVector* pv, float t, cudaStream_t stream) override;
     void stage2(ParticleVector* pv, float t, cudaStream_t stream) override;
 
-    IntegratorConstOmega(std::string name, float dt, float3 center, float3 omega) :
-        Integrator(name, dt),
-        center(center),    omega(omega)
-    {}
+    IntegratorConstOmega(std::string name, float dt, pyfloat3 center, pyfloat3 omega);
 
-    ~IntegratorConstOmega() = default;
+    ~IntegratorConstOmega();
 
 private:
 

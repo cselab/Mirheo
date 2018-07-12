@@ -10,8 +10,8 @@
 /**
  * @param vel Move with this velocity
  */
-IntegratorTranslate::IntegratorTranslate(std::string name, float dt, float3 vel) :
-    Integrator(name, dt), vel(vel)
+IntegratorTranslate::IntegratorTranslate(std::string name, float dt, pyfloat3 vel) :
+    Integrator(name, dt), vel(make_float3(vel))
 {    }
 
 void IntegratorTranslate::stage2(ParticleVector* pv, float t, cudaStream_t stream)

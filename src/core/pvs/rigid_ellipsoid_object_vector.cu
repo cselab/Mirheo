@@ -2,17 +2,17 @@
 
 RigidEllipsoidObjectVector::RigidEllipsoidObjectVector(
     std::string name, float mass,
-    const int objSize, float3 axes, const int nObjects) :
+    const int objSize, pyfloat3 axes, const int nObjects) :
         RigidObjectVector(
                 name, mass,
                 mass*objSize / 5.0f * make_float3(
-                        axes.y*axes.y + axes.z*axes.z,
-                        axes.z*axes.z + axes.x*axes.x,
-                        axes.x*axes.x + axes.y*axes.y ),
+                        sqr(std::get<1>(axes)) + sqr(std::get<2>(axes)),
+                        sqr(std::get<2>(axes)) + sqr(std::get<0>(axes)),
+                        sqr(std::get<0>(axes)) + sqr(std::get<1>(axes)) ),
                 objSize,
                 std::make_unique<Mesh>(), // TODO: need to generate ellipsoid mesh
                 nObjects),
-        axes(axes)
+        axes(make_float3(axes))
 {    }
 
 

@@ -11,6 +11,7 @@
 #include <cuda_runtime.h>
 
 #include <core/integrators/interface.h>
+#include <core/interactions/interface.h>
 #include <core/initial_conditions/interface.h>
 #include <core/pvs/particle_vector.h>
 
@@ -83,44 +84,46 @@ uDeviceX::uDeviceX(std::tuple<int, int, int> nranks3D, std::tuple<float, float, 
 
 uDeviceX::~uDeviceX() = default;
 
+
+
 void uDeviceX::registerParticleVector(ParticleVector* pv, InitialConditions* ic, int checkpointEvery)
 {
     sim->registerParticleVector(std::unique_ptr<ParticleVector>   (pv),
                                 std::unique_ptr<InitialConditions>(ic),
                                 checkpointEvery);
 }
-// 	void registerWall                   (PyWall wall, int checkEvery);
-// 	void registerInteraction            (PyInteraction interaction);
-
 void uDeviceX::registerIntegrator(Integrator* integrator)
 {
     sim->registerIntegrator(std::unique_ptr<Integrator>(integrator));
 }
-
-// 	void uDeviceX::registerBouncer                (PyBouncer bouncer);
-// 	void uDeviceX::registerPlugin                 (PyPlugin plugin);
-// 	void uDeviceX::registerObjectBelongingChecker (PyObjectBelongingChecker checker);
-// 
-// 	void uDeviceX::setIntegrator             (std::string integratorName,  std::string pvName);
-// 	void uDeviceX::setInteraction            (std::string interactionName, std::string pv1Name, std::string pv2Name);
-// 	void uDeviceX::setBouncer                (std::string bouncerName,     std::string objName, std::string pvName);
-// 	void uDeviceX::setWallBounce             (std::string wallName,        std::string pvName);
-// 	void uDeviceX::setObjectBelongingChecker (std::string checkerName,     std::string objName);
-
-
-void uDeviceX::registerPlugins( std::pair< std::unique_ptr<SimulationPlugin>, std::unique_ptr<PostprocessPlugin> > plugins )
+void uDeviceX::registerInteraction(Interaction* interaction)
 {
-	if (isComputeTask())
-	{
-		if ( plugins.first != nullptr && !(plugins.first->needPostproc() && noPostprocess) )
-			sim->registerPlugin(std::move(plugins.first));
-	}
-	else
-	{
-		if ( plugins.second != nullptr && !noPostprocess )
-			post->registerPlugin(std::move(plugins.second));
-	}
+    sim->registerInteraction(std::unique_ptr<Interaction>(interaction));
 }
+
+void uDeviceX::setIntegrator(Integrator* integrator, ParticleVector* pv)
+{
+    sim->setIntegrator(integrator->name, pv->name);
+}
+void uDeviceX::setInteraction(Interaction* interaction, ParticleVector* pv1, ParticleVector* pv2)
+{
+    sim->setInteraction(interaction->name, pv1->name, pv2->name);
+}
+
+
+// void uDeviceX::registerPlugins( std::pair< std::unique_ptr<SimulationPlugin>, std::unique_ptr<PostprocessPlugin> > plugins )
+// {
+// 	if (isComputeTask())
+// 	{
+// 		if ( plugins.first != nullptr && !(plugins.first->needPostproc() && noPostprocess) )
+// 			sim->registerPlugin(std::move(plugins.first));
+// 	}
+// 	else
+// 	{
+// 		if ( plugins.second != nullptr && !noPostprocess )
+// 			post->registerPlugin(std::move(plugins.second));
+// 	}
+// }
 
 void uDeviceX::sayHello()
 {
@@ -141,7 +144,7 @@ void uDeviceX::run(int nsteps)
 {
 	if (isComputeTask())
 	{
-		sim->init();
+		sim->init();  // TODO reentrant!!
 		sim->run(nsteps);
 		sim->finalize();
 	}

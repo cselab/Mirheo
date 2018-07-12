@@ -13,7 +13,7 @@ void IntegratorVV_constDP::stage2(ParticleVector* pv, float t, cudaStream_t stre
     impl-> stage2(pv, t, stream);
 }
 
-IntegratorVV_constDP::IntegratorVV_constDP(std::string name, float dt, std::tuple<float, float, float> extra_force) :
+IntegratorVV_constDP::IntegratorVV_constDP(std::string name, float dt, pyfloat3 extra_force) :
     Integrator(name, dt)
 {
     Forcing_ConstDP term(make_float3(extra_force));
