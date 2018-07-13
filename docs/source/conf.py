@@ -1,6 +1,11 @@
 import sys, os, subprocess
 
-extensions = ['breathe', 'sphinx.ext.mathjax']
+import sys
+sys.path.append('/home/alexeedm/udevicex/build')
+
+extensions = ['breathe', 'sphinx.ext.mathjax', 'sphinx.ext.autodoc', 'sphinx.ext.napoleon']
+
+#autosummary_generate = True
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']

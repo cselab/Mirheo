@@ -19,67 +19,67 @@
 
 
 uDeviceX::uDeviceX(std::tuple<int, int, int> nranks3D, std::tuple<float, float, float> globalDomainSize,
-		std::string logFileName, int verbosity, bool gpuAwareMPI)
+        std::string logFileName, int verbosity, bool gpuAwareMPI)
 {
     int3 _nranks3D = make_int3(nranks3D);
     float3 _globalDomainSize = make_float3(globalDomainSize);
     
     MPI_Init(nullptr, nullptr);
     
-	int nranks, rank;
+    int nranks, rank;
 
-	if (logFileName == "stdout")
-		logger.init(MPI_COMM_WORLD, stdout, verbosity);
-	else if (logFileName == "stderr")
-		logger.init(MPI_COMM_WORLD, stderr, verbosity);
-	else
-		logger.init(MPI_COMM_WORLD, logFileName+".log", verbosity);
+    if (logFileName == "stdout")
+        logger.init(MPI_COMM_WORLD, stdout, verbosity);
+    else if (logFileName == "stderr")
+        logger.init(MPI_COMM_WORLD, stderr, verbosity);
+    else
+        logger.init(MPI_COMM_WORLD, logFileName+".log", verbosity);
 
-	MPI_Errhandler_set(MPI_COMM_WORLD, MPI_ERRORS_RETURN);
+    MPI_Errhandler_set(MPI_COMM_WORLD, MPI_ERRORS_RETURN);
 
-	MPI_Check( MPI_Comm_size(MPI_COMM_WORLD, &nranks) );
-	MPI_Check( MPI_Comm_rank(MPI_COMM_WORLD, &rank) );
+    MPI_Check( MPI_Comm_size(MPI_COMM_WORLD, &nranks) );
+    MPI_Check( MPI_Comm_rank(MPI_COMM_WORLD, &rank) );
 
-	if      (_nranks3D.x * _nranks3D.y * _nranks3D.z     == nranks) noPostprocess = true;
-	else if (_nranks3D.x * _nranks3D.y * _nranks3D.z * 2 == nranks) noPostprocess = false;
-	else die("Asked for %d x %d x %d processes, but provided %d", _nranks3D.x, _nranks3D.y, _nranks3D.z, nranks);
+    if      (_nranks3D.x * _nranks3D.y * _nranks3D.z     == nranks) noPostprocess = true;
+    else if (_nranks3D.x * _nranks3D.y * _nranks3D.z * 2 == nranks) noPostprocess = false;
+    else die("Asked for %d x %d x %d processes, but provided %d", _nranks3D.x, _nranks3D.y, _nranks3D.z, nranks);
 
-	if (rank == 0) sayHello();
+    if (rank == 0) sayHello();
 
-	MPI_Comm ioComm, compComm, interComm, splitComm;
+    MPI_Comm ioComm, compComm, interComm, splitComm;
 
-	if (noPostprocess)
-	{
-		warn("No postprocess will be started now, use this mode for debugging. All the joint plugins will be turned off too.");
+    if (noPostprocess)
+    {
+        warn("No postprocess will be started now, use this mode for debugging. All the joint plugins will be turned off too.");
 
-		sim = std::make_unique<Simulation> (_nranks3D, _globalDomainSize, MPI_COMM_WORLD, MPI_COMM_NULL, gpuAwareMPI);
-		computeTask = 0;
-		return;
-	}
+        sim = std::make_unique<Simulation> (_nranks3D, _globalDomainSize, MPI_COMM_WORLD, MPI_COMM_NULL, gpuAwareMPI);
+        computeTask = 0;
+        return;
+    }
 
-	info("Program started, splitting communicator");
+    info("Program started, splitting communicator");
 
-	computeTask = (rank) % 2;
-	MPI_Check( MPI_Comm_split(MPI_COMM_WORLD, computeTask, rank, &splitComm) );
+    computeTask = (rank) % 2;
+    MPI_Check( MPI_Comm_split(MPI_COMM_WORLD, computeTask, rank, &splitComm) );
 
-	if (isComputeTask())
-	{
-		MPI_Check( MPI_Comm_dup(splitComm, &compComm) );
-		MPI_Check( MPI_Intercomm_create(compComm, 0, MPI_COMM_WORLD, 1, 0, &interComm) );
+    if (isComputeTask())
+    {
+        MPI_Check( MPI_Comm_dup(splitComm, &compComm) );
+        MPI_Check( MPI_Intercomm_create(compComm, 0, MPI_COMM_WORLD, 1, 0, &interComm) );
 
-		MPI_Check( MPI_Comm_rank(compComm, &rank) );
+        MPI_Check( MPI_Comm_rank(compComm, &rank) );
 
-		sim = std::make_unique<Simulation> (_nranks3D, _globalDomainSize, compComm, interComm, gpuAwareMPI);
-	}
-	else
-	{
-		MPI_Check( MPI_Comm_dup(splitComm, &ioComm) );
-		MPI_Check( MPI_Intercomm_create(ioComm,   0, MPI_COMM_WORLD, 0, 0, &interComm) );
+        sim = std::make_unique<Simulation> (_nranks3D, _globalDomainSize, compComm, interComm, gpuAwareMPI);
+    }
+    else
+    {
+        MPI_Check( MPI_Comm_dup(splitComm, &ioComm) );
+        MPI_Check( MPI_Intercomm_create(ioComm,   0, MPI_COMM_WORLD, 0, 0, &interComm) );
 
-		MPI_Check( MPI_Comm_rank(ioComm, &rank) );
+        MPI_Check( MPI_Comm_rank(ioComm, &rank) );
 
-		post = std::make_unique<Postprocess> (ioComm, interComm);
-	}
+        post = std::make_unique<Postprocess> (ioComm, interComm);
+    }
 }
 
 uDeviceX::~uDeviceX() = default;
@@ -113,42 +113,42 @@ void uDeviceX::setInteraction(Interaction* interaction, ParticleVector* pv1, Par
 
 // void uDeviceX::registerPlugins( std::pair< std::unique_ptr<SimulationPlugin>, std::unique_ptr<PostprocessPlugin> > plugins )
 // {
-// 	if (isComputeTask())
-// 	{
-// 		if ( plugins.first != nullptr && !(plugins.first->needPostproc() && noPostprocess) )
-// 			sim->registerPlugin(std::move(plugins.first));
-// 	}
-// 	else
-// 	{
-// 		if ( plugins.second != nullptr && !noPostprocess )
-// 			post->registerPlugin(std::move(plugins.second));
-// 	}
+//     if (isComputeTask())
+//     {
+//         if ( plugins.first != nullptr && !(plugins.first->needPostproc() && noPostprocess) )
+//             sim->registerPlugin(std::move(plugins.first));
+//     }
+//     else
+//     {
+//         if ( plugins.second != nullptr && !noPostprocess )
+//             post->registerPlugin(std::move(plugins.second));
+//     }
 // }
 
 void uDeviceX::sayHello()
 {
-	printf("\n");
-	printf("************************************************\n");
-	printf("*                   uDeviceX                   *\n");
-	printf("*     compiled: on %s at %s     *\n", __DATE__, __TIME__);
-	printf("************************************************\n");
-	printf("\n");
+    printf("\n");
+    printf("************************************************\n");
+    printf("*                   uDeviceX                   *\n");
+    printf("*     compiled: on %s at %s     *\n", __DATE__, __TIME__);
+    printf("************************************************\n");
+    printf("\n");
 }
 
 bool uDeviceX::isComputeTask()
 {
-	return computeTask == 0;
+    return computeTask == 0;
 }
 
 void uDeviceX::run(int nsteps)
 {
-	if (isComputeTask())
-	{
-		sim->init();  // TODO reentrant!!
-		sim->run(nsteps);
-		sim->finalize();
-	}
-	else
-		post->run();
+    if (isComputeTask())
+    {
+        sim->init();  // TODO reentrant!!
+        sim->run(nsteps);
+        sim->finalize();
+    }
+    else
+        post->run();
 }
 

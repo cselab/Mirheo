@@ -12,7 +12,7 @@ using namespace pybind11::literals;
 void exportInitialConditions(py::module& m)
 {
     // Initial Conditions
-    py::class_<InitialConditions> pyic(m, "InitialConditions");
+    py::class_<InitialConditions> pyic(m, "InitialConditions", "hello");
 
     py::class_<UniformIC>(m, "UniformIC", pyic)
         .def(py::init<float>(), "density"_a);

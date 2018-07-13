@@ -1,7 +1,25 @@
-.. _user-overview:
+.. _user-all:
 
-Overview
-########
+User guide
+##########
+
+This section describes the uDeviceX interface and introduces the reader to installing and running the code.
+   
+.. toctree::
+   :maxdepth: 1
+   :caption: Python API
+   
+   ./installation
+   ./benchmarks
+   ./udevicex
+   ./particle_vectors
+   ./initial_conditions
+   ./interactions
+   ./integrators
+   ./walls
+   ./bouncers
+   ./object_belonging
+   ./plugins
 
 The uDeviceX code is designed as a classical molecular dynamics code adapted for inclusion rigid bodies and cells.
 The simulation consists of multiple time-steps during which the particles and bodies will be displaces following laws of mechanics and hydrodynamics.
@@ -13,79 +31,24 @@ One time-step roughly consists of the following steps:
 * bounce particles off the bodies (i.e. rigid bodies and elastic membranes),
 * perform additional operations dictated by plug-ins (modifications, statistics, data dumps, etc.).
 
-XML scripts
-***********
+Python scripts
+***************
 
-The code uses XML files for the simulation setup.
-That file defines simulation domain, number of MPI ranks to run; data, namely :ref:`user-pv` and data handlers: 
+The code uses Python scripting language for the simulation setup.
+The script defines simulation domain, number of MPI ranks to run; data containers, namely :ref:`user-pv` and data handlers: 
 :ref:`user-ic`, :ref:`user-integrators`, :ref:`user-interactions`, :ref:`user-walls`, :ref:`user-bouncers`, :ref:`user-belongers` and :ref:`user-plugins`.
-A simple file looks this way:
-
-.. role:: xml(code)
-   :language: xml
+A simple script looks this way:
    
 .. role:: bash(code)
    :language: bash
 
-.. code-block:: xml
+.. code-block:: python
 
-   <?xml version="1.0"?>
-   <simulation name="poiseuille" logfile="log" mpi_ranks="2 1 3" debug_lvl="2">
-   
-      <domain size="128 64 196" />
-      
-      <particle_vector type="regular" name="dpd" mass="1">
-         <generate type="uniform" density="8" />
-      </particle_vector>
-      
-      <interaction type="dpd" name="dpd_int" a="40" gamma="20" kbt="1.0" dt="0.001" rc="1.0" power="0.5" >
-         <apply_to pv1="dpd" pv2="dpd"/>
-      </interaction>
-      
-      <integrator type="vv_periodic_poiseuille" name="pois" force="0.01" dt="0.001">
-         <apply_to pv="dpd" />
-      </integrator>
-      
-      <plugin type="dump_avg_flow" name="avg" pv_name="dpd" path="xdmf/avg_rho_u" 
-            sample_every="20" dump_every="1000" bin_size="1 1 1" >
-         
-         <channel name="velocity" type="vector_from_float8" />
-         <channel name="stress" type="tensor6" />
-      </plugin>
-      
-      <plugin type="stats" name="stats" every="100" />
-      
-      <run niters="10000" />
-   </simulation>
-
-
-Most parameters of the simulation are defined in the XML attributes.
-Parameter may be one the following types:
-
-+----------+----------------------------------------------------------+-----------------------------------------------------+
-| Type     | Explanation                                              | Example                                             |
-+==========+==========================================================+=====================================================+
-| string   | Any combination of symbols                               | :xml:`<node attribute="some 42 words" />`           |
-+----------+----------------------------------------------------------+-----------------------------------------------------+
-| boolean  | "true" or "false"                                        | :xml:`<node attribute="true" />`                    |
-+----------+----------------------------------------------------------+-----------------------------------------------------+
-| integer  | Integer number                                           | :xml:`<node attribute="123" />`                     |
-+----------+----------------------------------------------------------+-----------------------------------------------------+
-| float    | Floating point number, exponential notation is supported | :xml:`<node attribute="-12.345e6" />`               |
-+----------+----------------------------------------------------------+-----------------------------------------------------+
-| integer2 | Two integer numbers separated by a space                 | :xml:`<node attribute="42 -84" />`                  |
-+----------+----------------------------------------------------------+-----------------------------------------------------+
-| float2   | Two floating point numbers separated by a space          | :xml:`<node attribute="9.81" />`                    |
-+----------+----------------------------------------------------------+-----------------------------------------------------+
-| integer3 | Three integer numbers separated by spaces                | :xml:`<node attribute="5 8 13" />`                  |
-+----------+----------------------------------------------------------+-----------------------------------------------------+
-| float3   | Three floating point numbers separated by spaces         | :xml:`<node attribute="3.14159 2.71828 1.41421" />` |
-+----------+----------------------------------------------------------+-----------------------------------------------------+
+   #TODO add example
 
 General setup
 =============
 
-The :xml:`<simulation>` node has to be in the beginning of every script. The attributes of that node are:
 
 +-----------+----------+---------+-----------------------------------------------------------+
 | Attribute | Type     | Default | Remarks                                                   |
@@ -121,7 +84,7 @@ Flushing increases the runtime yet more, but it is required in order not to lose
 Domain
 ======
 
-The domain is defined by the :xml:`domain` node with one attribute :xml:`size` taking 3 numbers as domain sizes along the three axes.
+The domain is defined by the domain node with one attribute size taking 3 numbers as domain sizes along the three axes.
 The domain will be split in equal chunks between the MPI ranks.
 The largest chunk size that a single MPI rank can have depends on the total number of particles,
 handlers and hardware, and is typically about :math:`120^3 - 200^3`.
@@ -144,7 +107,4 @@ The postprocessing tasks will not use any GPU calls, so you may not need multipr
 If the code is started with number of tasks exactly equal to the number specified in the script, the postprocessing will be disabled.
 All the plugins that use the postprocessing will not work.
 This execution mode is mainly aimed at debugging.
-
-
-
 

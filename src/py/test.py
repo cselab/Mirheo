@@ -13,17 +13,17 @@ import numpy as np
 
 dt = 0.001
 
-u = udx.udevicex((1,1,1), (2, 2, 2), debug_level=10, log_filename='stdout')
+u = udx.udevicex((1,1,1), (2, 2, 2), debug_level=3, log_filename='stdout')
 
-pv = udx.ParticleVector('pv', 1)
-ic = udx.UniformIC(density=2)
+pv = udx.ParticleVectors.ParticleVector('pv', 1)
+ic = udx.InitialConditions.UniformIC(density=2)
 u.registerParticleVector(pv=pv, ic=ic)
 
-dpd = udx.DPD('dpd', 1.0, a=10.0, gamma=10.0, kbt=1.0, dt=dt, power=0.5)
+dpd = udx.Interactions.DPD('dpd', 1.0, a=10.0, gamma=10.0, kbt=1.0, dt=dt, power=0.5)
 u.registerInteraction(dpd)
 u.setInteraction(dpd, pv, pv)
 
-vv = udx.VelocityVerlet('vv', dt=dt)
+vv = udx.Integrators.VelocityVerlet('vv', dt=dt)
 u.registerIntegrator(vv)
 u.setIntegrator(vv, pv)
 
@@ -31,11 +31,13 @@ print(u)
 
 u.run(5)
 
-print(pv)
+#print(pv)
 
-u.run(5)
+#u.run(5)
 
 coo = pv.getVelocities()
+
+help(pv.getVelocities)
 
 print(coo)
 

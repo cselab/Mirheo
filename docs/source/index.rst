@@ -14,7 +14,8 @@ Main features of the code include:
 * rigid bodies with arbitrary shapes and sizes,
 * viscoelastic cell membranes, that can separate inner from outer fluids
 
-The multi-process GPU implementation enables very fast time-to-solution without compromising physical complexity.
+The multi-process GPU implementation enables very fast time-to-solution without compromising physical complexity
+and Python front-end ensures fast and easy simulation setup.
 Some benchmarks are listed in :ref:`user-bench`.
 
 The following documentation is aimed at providing users a comprehensive simulation guide
@@ -27,30 +28,21 @@ as well as exposing code internals for the developers wishing to contribute to t
    :maxdepth: 1
    :caption: User guide
    
-   user/installation
-   user/overview
-   user/particle_vectors
-   user/initial_conditions
-   user/interactions
-   user/integrators
-   user/walls
-   user/bouncers
-   user/object_belonging
-   user/plugins
+   user/user
 
    
-.. toctree::
-   :maxdepth: 1
-   :caption: Developer documentation
-
-   developer/overview
-   developer/basic_types
-   developer/coordinators/coordinators
-   developer/particle_vectors/particle_vectors
-   developer/mpi/mpi
-   developer/handlers/handlers
-   developer/plugins/plugins
-   
-..   views
-..   parser
-..   misc
+// .. toctree::
+//    :maxdepth: 1
+//    :caption: Developer documentation
+// 
+//    developer/overview
+//    developer/basic_types
+//    developer/coordinators/coordinators
+//    developer/particle_vectors/particle_vectors
+//    developer/mpi/mpi
+//    developer/handlers/handlers
+//    developer/plugins/plugins
+//    
+// ..   views
+// ..   parser
+// ..   misc

@@ -9,8 +9,16 @@ Logger logger;
 PYBIND11_MODULE(_udevicex, m)
 {
     exportUdevicex(m);
-    exportInitialConditions(m);
-    exportParticleVectors(m);
-    exportIntegrators(m);
-    exportInteractions(m);
+    
+    auto ic = m.def_submodule("InitialConditions");
+    exportInitialConditions(ic);
+
+    auto pv = m.def_submodule("ParticleVectors");
+    exportParticleVectors(pv);
+
+    auto interactions = m.def_submodule("Interactions");
+    exportInteractions(interactions);
+    
+    auto integrators = m.def_submodule("Integrators");
+    exportIntegrators(integrators);
 }

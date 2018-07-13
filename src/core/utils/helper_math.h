@@ -68,25 +68,6 @@ inline float rsqrtf(float x)
 }
 #endif
 
-#ifdef __CDT_PARSER__
-struct float2 { float x, y; };
-struct float3 { float x, y, z; };
-struct float4 { float x, y, z, w; };
-
-struct int2 { int x, y; };
-struct int3 { int x, y, z; };
-struct int4 { int x, y, z, w; };
-
-struct uint2 { uint x, y; };
-struct uint3 { uint x, y, z; };
-struct uint4 { uint x, y, z, w; };
-
-struct double2 { double x, y; };
-struct double3 { double x, y, z; };
-struct double4 { double x, y, z, w; };
-#endif
-
-
 ////////////////////////////////////////////////////////////////////////////////
 // constructors
 ////////////////////////////////////////////////////////////////////////////////

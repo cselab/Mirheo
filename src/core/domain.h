@@ -1,43 +1,25 @@
 #pragma once
 
 #ifdef __NVCC__
+#define __HD__ __host__ __device__
+#else
+#define __HD__ 
+#endif
 
-#include <core/utils/cuda_common.h>
+#include <cuda_runtime.h>
+#include <vector_types.h>
+#include <core/utils/helper_math.h>
 
 struct DomainInfo
 {
     float3 globalSize, globalStart, localSize;
 
-    inline __host__ __device__ float3 local2global(float3 x) const
+    inline __HD__ float3 local2global(float3 x) const
     {
         return x + globalStart + 0.5f * localSize;
     }
-    inline __host__ __device__ float3 global2local(float3 x) const
+    inline __HD__ float3 global2local(float3 x) const
     {
         return x - globalStart - 0.5f * localSize;
     }
 };
-
-#else
-
-#include <cuda_runtime.h>
-
-struct DomainInfo
-{
-    float3 globalSize, globalStart, localSize;
-
-    inline float3 local2global(float3 x) const
-    {
-        return { x.x + globalStart.x + 0.5f * localSize.x,
-                 x.y + globalStart.y + 0.5f * localSize.y,
-                 x.z + globalStart.z + 0.5f * localSize.z  };
-    }
-    inline float3 global2local(float3 x) const
-    {
-        return { x.x - globalStart.x - 0.5f * localSize.x,
-                 x.y - globalStart.y - 0.5f * localSize.y,
-                 x.z - globalStart.z - 0.5f * localSize.z  };
-    }
-};
-
-#endif

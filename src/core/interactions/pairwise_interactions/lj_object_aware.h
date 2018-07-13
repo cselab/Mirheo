@@ -3,6 +3,7 @@
 #include <core/datatypes.h>
 #include <core/pvs/particle_vector.h>
 #include <core/pvs/object_vector.h>
+#include <core/utils/cuda_common.h>
 
 class Pairwise_LJObjectAware
 {

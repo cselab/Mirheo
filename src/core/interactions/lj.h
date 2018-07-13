@@ -2,12 +2,11 @@
 
 #include "interface.h"
 #include <memory>
-#include <core/utils/pytypes.h>
 
 /**
  * Implementation of Velocity-Verlet integration in one step
  */
-struct InteractionDPD : Interaction
+struct InteractionLJ : Interaction
 {
     std::unique_ptr<Interaction> impl;
 
@@ -16,10 +15,13 @@ struct InteractionDPD : Interaction
     void halo   (ParticleVector* pv1, ParticleVector* pv2, CellList* cl1, CellList* cl2, const float t, cudaStream_t stream) override;
     
     void setSpecificPair(ParticleVector* pv1, ParticleVector* pv2, 
-        float a, float gamma, float kbt, float dt, float power);
+        float epsilon, float sigma, float maxForce);
     
-    InteractionDPD(std::string name, float rc, float a, float gamma, float kbt, float dt, float power);
+    InteractionLJ(std::string name, float rc, float epsilon, float sigma, float maxForce, bool objectAware);
 
-    ~InteractionDPD();
+    ~InteractionLJ();
+    
+private:
+    bool objectAware;
 };
 

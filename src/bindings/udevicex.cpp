@@ -13,10 +13,7 @@ void exportUdevicex(py::module& m)
 {
     // uDeviceX driver
     py::class_<uDeviceX>(m, "udevicex")
-        .def(py::init<
-                std::tuple<int, int, int>,
-                std::tuple<float, float, float>,
-                std::string, int, bool >(),
+        .def(py::init< pyint3, pyfloat3, std::string, int, bool >(),
              "nranks"_a, "domain"_a, "log_filename"_a="log", "debug_level"_a=3, "cuda_aware_mpi"_a=false)
         
         .def("registerParticleVector", &uDeviceX::registerParticleVector, "Register Particle Vector",
