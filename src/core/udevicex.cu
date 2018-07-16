@@ -12,8 +12,13 @@
 
 #include <core/integrators/interface.h>
 #include <core/interactions/interface.h>
+#include <core/walls/interface.h>
+#include <core/bouncers/interface.h>
+#include <core/object_belonging/interface.h>
+#include <plugins/interface.h>
 #include <core/initial_conditions/interface.h>
 #include <core/pvs/particle_vector.h>
+#include <core/pvs/object_vector.h>
 
 #include <core/integrators/interface.h>
 
@@ -100,6 +105,12 @@ void uDeviceX::registerInteraction(Interaction* interaction)
 {
     sim->registerInteraction(std::unique_ptr<Interaction>(interaction));
 }
+void uDeviceX::registerObjectBelongingChecker (ObjectBelongingChecker* checker, ObjectVector* ov)
+{
+    sim->registerObjectBelongingChecker(std::unique_ptr<ObjectBelongingChecker>(checker));
+    sim->setObjectBelongingChecker(checker->name, ov->name);
+}
+
 
 void uDeviceX::setIntegrator(Integrator* integrator, ParticleVector* pv)
 {
@@ -109,7 +120,32 @@ void uDeviceX::setInteraction(Interaction* interaction, ParticleVector* pv1, Par
 {
     sim->setInteraction(interaction->name, pv1->name, pv2->name);
 }
-
+ParticleVector* uDeviceX::applyObjectBelongingChecker(ObjectBelongingChecker* checker,
+                                                ParticleVector* pv,
+                                                int checkEvery,
+                                                std::string inside,
+                                                std::string outside)
+{
+    if ( (inside != "" && outside != "") || (inside == "" && outside == "") )
+        die("One and only one option can be specified for belonging checker '%s': inside or outside",
+            checker->name.c_str());
+    
+    std::string newPVname;
+    
+    if (inside == "")
+    {
+        inside = pv->name;
+        newPVname = outside;
+    }
+    if (outside == "")
+    {
+        outside = pv->name;
+        newPVname = inside;
+    }
+        
+    sim->applyObjectBelongingChecker(checker->name, pv->name, inside, outside, checkEvery);
+    return sim->getPVbyName(newPVname);
+}
 
 // void uDeviceX::registerPlugins( std::pair< std::unique_ptr<SimulationPlugin>, std::unique_ptr<PostprocessPlugin> > plugins )
 // {

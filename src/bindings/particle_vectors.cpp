@@ -8,6 +8,8 @@
 #include <core/pvs/rigid_ellipsoid_object_vector.h>
 #include <core/pvs/membrane_vector.h>
 
+#include <core/utils/pytypes.h>
+
 namespace py = pybind11;
 using namespace pybind11::literals;
 
@@ -37,4 +39,8 @@ void exportParticleVectors(py::module& m)
     py::class_<RigidObjectVector> (m, "RigidObjectVector", pypv)
         .def(py::init<std::string, float, pyfloat3, int, std::unique_ptr<Mesh>>(),
              "name"_a, "mass"_a, "inertia"_a, "object_size"_a, "mesh"_a);
+        
+    py::class_<RigidEllipsoidObjectVector> (m, "RigidEllipsoidObjectVector", pypv)
+        .def(py::init<std::string, float, int, pyfloat3>(),
+             "name"_a, "mass"_a, "object_size"_a, "axes"_a);
 }

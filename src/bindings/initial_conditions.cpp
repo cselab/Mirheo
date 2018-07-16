@@ -14,15 +14,15 @@ void exportInitialConditions(py::module& m)
     // Initial Conditions
     py::class_<InitialConditions> pyic(m, "InitialConditions", "hello");
 
-    py::class_<UniformIC>(m, "UniformIC", pyic)
+    py::class_<UniformIC>(m, "Uniform", pyic)
         .def(py::init<float>(), "density"_a);
         
-    py::class_<RestartIC>(m, "RestartIC", pyic)
+    py::class_<RestartIC>(m, "Restart", pyic)
         .def(py::init<std::string>(),"path"_a = "restart/");
         
-    py::class_<RigidIC>(m, "RigidIC", pyic)
+    py::class_<RigidIC>(m, "Rigid", pyic)
         .def(py::init<std::string, std::string>(), "ic_filename"_a, "xyz_filename"_a);
         
-    py::class_<MembraneIC>(m, "MembraneIC", pyic)
+    py::class_<MembraneIC>(m, "Membrane", pyic)
         .def(py::init<std::string, float>(), "ic_filename"_a, "global_scale"_a=1.0);
 }

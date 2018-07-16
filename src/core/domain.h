@@ -1,14 +1,9 @@
 #pragma once
 
-#ifdef __NVCC__
-#define __HD__ __host__ __device__
-#else
-#define __HD__ 
-#endif
-
 #include <cuda_runtime.h>
 #include <vector_types.h>
 #include <core/utils/helper_math.h>
+#include <core/utils/cpu_gpu_defines.h>
 
 struct DomainInfo
 {

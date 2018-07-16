@@ -2,7 +2,9 @@
 
 #include <core/domain.h>
 #include <core/datatypes.h>
-#include <mpi.h>
+
+#include <core/utils/cpu_gpu_defines.h>
+#include <core/utils/helper_math.h>
 
 class ParticleVector;
 
@@ -24,7 +26,7 @@ public:
 
     const VelocityField_Oscillate& handler() const { return *this; }
 
-    __device__ inline float3 operator()(float3 coo) const
+    __D__ inline float3 operator()(float3 coo) const
     {
         return vel * cosOmega;
     }

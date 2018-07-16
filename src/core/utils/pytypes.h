@@ -5,6 +5,21 @@
 
 // Tuple initializations
 
+using pyfloat2 = std::tuple<float, float>;
+using pyint2 = std::tuple<int, int>;
+
+inline float2 make_float2(pyfloat2 t2)
+{
+    return make_float2(std::get<0>(t2), std::get<1>(t2));
+}
+
+inline int2 make_int2(pyint2 t2)
+{
+    return make_int2(std::get<0>(t2), std::get<1>(t2));
+}
+
+
+
 using pyfloat3 = std::tuple<float, float, float>;
 using pyint3 = std::tuple<int, int, int>;
 

@@ -10,20 +10,30 @@
  *  to employ the present software for their own publications
  *  before getting a written permission from the author of this file.
  */
-
 #pragma once
-
-namespace Logistic
-{
-    __device__ float mean0var1( float seed, uint i, uint j );
-    __device__ float mean0var1( float seed, int i, int j );
-    __device__ float mean0var1( float seed, float i, float j );
-}
 
 #include <cstdlib>
 #include <limits>
 #include <stdint.h>
 #include <cmath>
+
+#include <core/utils/cpu_gpu_defines.h>
+#include <core/utils/helper_math.h>
+
+#ifndef __NVCC__
+float __fmaf_rz(float x, float y, float z)
+{
+    return x*y + z;
+}
+#endif
+
+
+namespace Logistic
+{
+    __D__ float mean0var1( float seed, uint i, uint j );
+    __D__ float mean0var1( float seed, int i, int j );
+    __D__ float mean0var1( float seed, float i, float j );
+}
 
 namespace Logistic
 {
@@ -69,12 +79,12 @@ namespace Logistic
      *****************************************************************/
 
     // floating point version of LCG
-    inline __device__ float rem( float r ) {
+    inline __D__ float rem( float r ) {
         return r - floorf( r );
     }
 
     // FMA wrapper for the convenience of switching rouding modes
-    inline __device__ float FMA( float x, float y, float z ) {
+    inline __D__ float FMA( float x, float y, float z ) {
         return __fmaf_rz( x, y, z );
     }
 
@@ -83,7 +93,7 @@ namespace Logistic
     // <2> : 2 FMA + 1 MUL
     // <1> : 1 FMA + 1 MUL
 #if 0
-    template<int N> inline __device__ float __logistic_core( float x ) {
+    template<int N> inline __D__ float __logistic_core( float x ) {
         float x2;
         // saturated square
         // clamp result to [0,1]
@@ -96,7 +106,7 @@ namespace Logistic
         const static unsigned long long FLOPS = 9 + __logistic_core_flops_counter<N-3>::FLOPS;
     };
 
-    template<> inline __device__ float __logistic_core<2>( float x ) {
+    template<> inline __D__ float __logistic_core<2>( float x ) {
         float x2 = x * x;
         return FMA( FMA( 8.0, x2, -8.0 ), x2, 1.0 );
     }
@@ -105,7 +115,7 @@ namespace Logistic
     };
 
 #else
-    template<int N> inline __device__ float __logistic_core( float x )
+    template<int N> inline __D__ float __logistic_core( float x )
     {
         float x2 = x * x;
         float r = FMA( FMA( 8.0, x2, -8.0 ), x2, 1.0 );
@@ -116,14 +126,14 @@ namespace Logistic
     };
 #endif
 
-    template<> inline __device__ float __logistic_core<1>( float x ) {
+    template<> inline __D__ float __logistic_core<1>( float x ) {
         return FMA( 2.0 * x, x, -1.0 );
     }
     template<> struct __logistic_core_flops_counter<1> {
         const static unsigned long long FLOPS = 3;
     };
 
-    template<> inline __device__ float __logistic_core<0>( float x ) {
+    template<> inline __D__ float __logistic_core<0>( float x ) {
         return x;
     }
     template<> struct __logistic_core_flops_counter<0> {
@@ -147,13 +157,13 @@ namespace Logistic
     // square root of 2
     const static float sqrt2 = 1.41421356237309514547;
 
-    inline __device__ float uniform01( float seed, int i, int j )
+    inline __D__ float uniform01( float seed, int i, int j )
     {
         float val = mean0var1(seed, i, j) * (0.5f/sqrt2) + 0.5f;
         return max(0.0f, min(1.0f, val));
     }
 
-    inline __device__ float mean0var1( float seed, int u, int v )
+    inline __D__ float mean0var1( float seed, int u, int v )
     {
         float p = rem( ( ( u & 0x3FF ) * gold ) + u * bronze + ( ( v & 0x3FF ) * silver ) + v * tin ); // safe for large u or v
         float q = rem( seed );
@@ -161,7 +171,7 @@ namespace Logistic
         return l * sqrt2;
     }
 
-    inline __device__ float mean0var1( float seed, uint u, uint v )
+    inline __D__ float mean0var1( float seed, uint u, uint v )
     {
         // 7 FLOPS
         float p = rem( ( ( u & 0x3FFU ) * gold ) + u * bronze + ( ( v & 0x3FFU ) * silver ) + v * tin ); // safe for large u or v
@@ -176,7 +186,7 @@ namespace Logistic
         const static unsigned long long FLOPS = 9ULL + __logistic_core_flops_counter<N>::FLOPS;
     };
 
-    inline __device__ float mean0var1( float seed, float u, float v )
+    inline __D__ float mean0var1( float seed, float u, float v )
     {
         float p = rem( sqrtf(u) * gold + sqrtf(v) * silver ); // Acknowledging Dmitry for the use of sqrtf
         float q = rem( seed );
@@ -185,7 +195,7 @@ namespace Logistic
         return l * sqrt2;
     }
 
-    inline __device__ float mean0var1_dual( float seed, float u, float v )
+    inline __D__ float mean0var1_dual( float seed, float u, float v )
     {
         float p = rem( sqrtf(u) * gold + sqrtf(v) * silver ); // Acknowledging Dmitry for the use of sqrtf
         float q = rem( seed );
@@ -198,16 +208,16 @@ namespace Logistic
 
 namespace Saru
 {
-    __device__ float mean0var1( float seed, uint i, uint j );
-    __device__ float mean0var1( float seed, int i, int j );
-    __device__ float mean0var1( float seed, float i, float j );
-    __device__ float uniform01( float seed, uint i, uint j );
-    __device__ float2 normal2( float seed, uint i, uint j );
+    __D__ float mean0var1( float seed, uint i, uint j );
+    __D__ float mean0var1( float seed, int i, int j );
+    __D__ float mean0var1( float seed, float i, float j );
+    __D__ float uniform01( float seed, uint i, uint j );
+    __D__ float2 normal2( float seed, uint i, uint j );
 }
 
 namespace Saru
 {
-    __device__ inline float saru( unsigned int seed1, unsigned int seed2, unsigned int seed3 )
+    __D__ inline float saru( unsigned int seed1, unsigned int seed2, unsigned int seed3 )
     {
         seed3 ^= ( seed1 << 7 ) ^ ( seed2 >> 6 );
         seed2 += ( seed1 >> 4 ) ^ ( seed3 >> 15 );
@@ -234,7 +244,7 @@ namespace Saru
         return res;
     }
 
-    inline __device__ float2 normal2( float seed, uint i, uint j )
+    inline __D__ float2 normal2( float seed, uint i, uint j )
     {
         float u1 = uniform01( seed, min(i, j),   max(i, j) );
         float u2 = uniform01( u1,   max(i, j)+1, min(i, j) );
@@ -249,7 +259,7 @@ namespace Saru
         return res;
     }
 
-    inline __device__ float uniform01( float seed, uint i, uint j )
+    inline __D__ float uniform01( float seed, uint i, uint j )
     {
         float t = seed;
         unsigned int tag = *( int * )&t;
@@ -257,17 +267,17 @@ namespace Saru
         return saru( tag, i, j );
     }
 
-    inline __device__ float mean0var1( float seed, uint i, uint j )
+    inline __D__ float mean0var1( float seed, uint i, uint j )
     {
         return uniform01(seed, i, j) * 3.464101615f - 1.732050807f;
     }
 
-    inline __device__ float mean0var1( float seed, int i, int j )
+    inline __D__ float mean0var1( float seed, int i, int j )
     {
         return mean0var1( seed, (uint) i, (uint) j );
     }
 
-    inline __device__ float mean0var1( float seed, float i, float j )
+    inline __D__ float mean0var1( float seed, float i, float j )
     {
         return mean0var1( seed, (uint) i, (uint) j );
     }

@@ -3,6 +3,9 @@
 #include "pairwise.h"
 #include "pairwise_interactions/dpd.h"
 
+#include <core/utils/make_unique.h>
+#include <core/pvs/particle_vector.h>
+
 
 InteractionDPD::InteractionDPD(std::string name, float rc, float a, float gamma, float kbt, float dt, float power) :
     Interaction(name, rc)

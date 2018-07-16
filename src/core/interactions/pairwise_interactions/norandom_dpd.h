@@ -1,13 +1,14 @@
 #pragma once
 
 #include <core/datatypes.h>
-#include <core/pvs/particle_vector.h>
 #include <core/utils/cuda_rng.h>
-#include <core/utils/cuda_common.h>
+
+#include <core/utils/cpu_gpu_defines.h>
+#include <core/utils/helper_math.h>
 
 #include <random>
 
-class ParticleVector;
+class LocalParticleVector;
 class CellList;
 
 
@@ -23,10 +24,9 @@ public:
     }
 
     void setup(LocalParticleVector* lpv1, LocalParticleVector* lpv2, CellList* cl1, CellList* cl2, float t)
-    {
-    }
+    {    }
 
-    __device__ inline float3 operator()(const Particle dst, int dstId, const Particle src, int srcId) const
+    __D__ inline float3 operator()(const Particle dst, int dstId, const Particle src, int srcId) const
     {
         const float3 dr = dst.r - src.r;
         const float rij2 = dot(dr, dr);

@@ -3,7 +3,10 @@
 #include <core/datatypes.h>
 #include <core/pvs/particle_vector.h>
 #include <core/pvs/object_vector.h>
-#include <core/utils/cuda_common.h>
+
+#include <core/utils/cpu_gpu_defines.h>
+#include <core/utils/helper_math.h>
+
 
 class Pairwise_LJObjectAware
 {
@@ -25,7 +28,7 @@ public:
         }
     }
 
-    __device__ inline float3 operator()(Particle dst, int dstId, Particle src, int srcId) const
+    __D__ inline float3 operator()(Particle dst, int dstId, Particle src, int srcId) const
     {
         if (self)
         {

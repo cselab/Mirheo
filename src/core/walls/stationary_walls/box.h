@@ -2,7 +2,9 @@
 
 #include <core/domain.h>
 #include <core/datatypes.h>
-#include <mpi.h>
+
+#include <core/utils/cpu_gpu_defines.h>
+#include <core/utils/helper_math.h>
 
 class ParticleVector;
 
@@ -17,7 +19,7 @@ public:
 
     const StationaryWall_Box& handler() const { return *this; }
 
-    __device__ inline float operator()(float3 coo) const
+    __D__ inline float operator()(float3 coo) const
     {
         float3 gr = domain.local2global(coo);
 

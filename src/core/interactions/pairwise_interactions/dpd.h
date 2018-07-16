@@ -1,14 +1,24 @@
 #pragma once
 
 #include <core/datatypes.h>
-#include <core/pvs/particle_vector.h>
 #include <core/utils/cuda_rng.h>
-#include <core/utils/cuda_common.h>
+
+#include <core/utils/cpu_gpu_defines.h>
+#include <core/utils/helper_math.h>
 
 #include <random>
 
-class ParticleVector;
 class CellList;
+class LocalParticleVector;
+
+#ifndef __NVCC__
+float fastPower(float x, float a)
+{
+    return pow(x, a);
+}
+#else
+#include <core/utils/cuda_common.h>
+#endif
 
 
 class Pairwise_DPD
@@ -34,7 +44,7 @@ public:
         seed = udistr(gen);
     }
 
-    __device__ inline float3 operator()(const Particle dst, int dstId, const Particle src, int srcId) const
+    __D__ inline float3 operator()(const Particle dst, int dstId, const Particle src, int srcId) const
     {
         const float3 dr = dst.r - src.r;
         const float rij2 = dot(dr, dr);

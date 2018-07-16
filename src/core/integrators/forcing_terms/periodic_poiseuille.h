@@ -3,6 +3,9 @@
 #include <core/datatypes.h>
 #include <core/pvs/particle_vector.h>
 
+#include <core/utils/cpu_gpu_defines.h>
+#include <core/utils/helper_math.h>
+
 class ParticleVector;
 
 /**
@@ -49,7 +52,7 @@ public:
      * Similarly, if the force is parallel to \e y axis, its sign will
      * depend on \e z, parallel to \e z -- will depend on \e x
      */
-    __device__ inline float3 operator()(float3 original, Particle p) const
+    __D__ inline float3 operator()(float3 original, Particle p) const
     {
         float3 gr = domain.local2global(p.r);
         float3 ef{0.0f,0.0f,0.0f};

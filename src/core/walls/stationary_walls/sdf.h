@@ -4,10 +4,21 @@
 #include <core/containers.h>
 #include <core/pvs/particle_vector.h>
 
+#include <core/utils/cpu_gpu_defines.h>
+#include <core/utils/helper_math.h>
+
+#ifndef __NVCC__
+template<typename T>
+T tex3D(cudaTextureObject_t t, float x, float y, float z)
+{
+    return 0.0f;
+}
+#endif
+
 class StationaryWall_SDF_Handler
 {
 public:
-    __device__ inline float operator()(float3 x) const
+    __D__ inline float operator()(float3 x) const
     {
         float3 texcoord = floorf((x + extendedDomainSize*0.5f) * invh);
         float3 lambda = (x - (texcoord * h - extendedDomainSize*0.5f)) * invh;

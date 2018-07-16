@@ -5,13 +5,18 @@
 
 class Simulation;
 class Postprocess;
-class SimulationPlugin;
-class PostprocessPlugin;
+
 
 class ParticleVector;
+class ObjectVector;
 class InitialConditions;
 class Integrator;
 class Interaction;
+class ObjectBelongingChecker;
+class Bouncer;
+class Wall;
+class SimulationPlugin;
+class PostprocessPlugin;
 
 class uDeviceX
 {
@@ -25,16 +30,21 @@ public:
     void registerParticleVector         (ParticleVector* pv, InitialConditions* ic, int checkpointEvery);
     void registerInteraction            (Interaction* interaction);
     void registerIntegrator             (Integrator* integrator);
-//     void registerWall                   (PyWall wall, int checkEvery);
-//     void registerBouncer                (PyBouncer bouncer);
-//     void registerPlugin                 (PyPlugin plugin);
-//     void registerObjectBelongingChecker (PyObjectBelongingChecker checker);
-// 
-    void setIntegrator             (Integrator* integrator,  ParticleVector* pv);
-    void setInteraction            (Interaction* interaction, ParticleVector* pv1, ParticleVector* pv2);
-//     void setBouncer                (std::string bouncerName,     std::string objName, std::string pvName);
-//     void setWallBounce             (std::string wallName,        std::string pvName);
-//     void setObjectBelongingChecker (std::string checkerName,     std::string objName);
+    void registerWall                   (Wall* wall, int checkEvery=0);
+    void registerBouncer                (Bouncer* bouncer);
+    void registerPlugin                 (std::pair<SimulationPlugin*, PostprocessPlugin*> plugin);
+    void registerObjectBelongingChecker (ObjectBelongingChecker* checker, ObjectVector* ov);
+ 
+    void setIntegrator  (Integrator* integrator,  ParticleVector* pv);
+    void setInteraction (Interaction* interaction, ParticleVector* pv1, ParticleVector* pv2);
+    void setBouncer     (Bouncer* bouncer, ObjectVector* ov, ParticleVector* pv);
+    void setWallBounce  (Wall* wall, ParticleVector* pv);
+    
+    ParticleVector* applyObjectBelongingChecker(ObjectBelongingChecker* checker,
+                                                ParticleVector* pv,
+                                                int checkEvery,
+                                                std::string inside = "",
+                                                std::string outside = "");
         
     ~uDeviceX();
 
