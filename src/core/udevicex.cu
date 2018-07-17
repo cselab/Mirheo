@@ -20,8 +20,6 @@
 #include <core/pvs/particle_vector.h>
 #include <core/pvs/object_vector.h>
 
-#include <core/integrators/interface.h>
-
 
 uDeviceX::uDeviceX(std::tuple<int, int, int> nranks3D, std::tuple<float, float, float> globalDomainSize,
         std::string logFileName, int verbosity, bool gpuAwareMPI)
@@ -105,12 +103,32 @@ void uDeviceX::registerInteraction(Interaction* interaction)
 {
     sim->registerInteraction(std::unique_ptr<Interaction>(interaction));
 }
+void uDeviceX::registerWall(Wall* wall, int checkEvery)
+{
+    sim->registerWall(std::unique_ptr<Wall>(wall), checkEvery);
+}
+void uDeviceX::registerBouncer(Bouncer* bouncer)
+{
+    sim->registerBouncer(std::unique_ptr<Bouncer>(bouncer));
+}
 void uDeviceX::registerObjectBelongingChecker (ObjectBelongingChecker* checker, ObjectVector* ov)
 {
     sim->registerObjectBelongingChecker(std::unique_ptr<ObjectBelongingChecker>(checker));
     sim->setObjectBelongingChecker(checker->name, ov->name);
 }
-
+void uDeviceX::registerPlugins(SimulationPlugin* simPlugin, PostprocessPlugin* postPlugin)
+{
+    if (isComputeTask())
+    {
+        if ( simPlugin != nullptr && !(simPlugin->needPostproc() && noPostprocess) )
+            sim->registerPlugin(std::unique_ptr<SimulationPlugin>(simPlugin));
+    }
+    else
+    {
+        if ( postPlugin != nullptr && !noPostprocess )
+            post->registerPlugin(std::unique_ptr<PostprocessPlugin>(postPlugin));
+    }
+}
 
 void uDeviceX::setIntegrator(Integrator* integrator, ParticleVector* pv)
 {
@@ -120,6 +138,15 @@ void uDeviceX::setInteraction(Interaction* interaction, ParticleVector* pv1, Par
 {
     sim->setInteraction(interaction->name, pv1->name, pv2->name);
 }
+void uDeviceX::setBouncer(Bouncer* bouncer, ObjectVector* ov, ParticleVector* pv)
+{
+    sim->setBouncer(bouncer->name, ov->name, pv->name);
+}
+void uDeviceX::setWallBounce(Wall* wall, ParticleVector* pv)
+{
+    sim->setWallBounce(wall->name, pv->name);
+}
+
 ParticleVector* uDeviceX::applyObjectBelongingChecker(ObjectBelongingChecker* checker,
                                                 ParticleVector* pv,
                                                 int checkEvery,
@@ -147,19 +174,6 @@ ParticleVector* uDeviceX::applyObjectBelongingChecker(ObjectBelongingChecker* ch
     return sim->getPVbyName(newPVname);
 }
 
-// void uDeviceX::registerPlugins( std::pair< std::unique_ptr<SimulationPlugin>, std::unique_ptr<PostprocessPlugin> > plugins )
-// {
-//     if (isComputeTask())
-//     {
-//         if ( plugins.first != nullptr && !(plugins.first->needPostproc() && noPostprocess) )
-//             sim->registerPlugin(std::move(plugins.first));
-//     }
-//     else
-//     {
-//         if ( plugins.second != nullptr && !noPostprocess )
-//             post->registerPlugin(std::move(plugins.second));
-//     }
-// }
 
 void uDeviceX::sayHello()
 {

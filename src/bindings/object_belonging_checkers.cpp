@@ -4,6 +4,8 @@
 #include <core/object_belonging/ellipsoid_belonging.h>
 #include <core/object_belonging/mesh_belonging.h>
 
+#include "nodelete.h"
+
 
 namespace py = pybind11;
 using namespace pybind11::literals;
@@ -11,7 +13,7 @@ using namespace pybind11::literals;
 void exportObjectBelongingCheckers(py::module& m)
 {
     // Initial Conditions
-    py::class_<ObjectBelongingChecker> pycheck(m, "BelongingChecker", R"(
+    py::nodelete_class<ObjectBelongingChecker> pycheck(m, "BelongingChecker", R"(
         Base class for checking if particles belong to objects
         
         Object belonging checkers serve two purpooses.
@@ -20,7 +22,7 @@ void exportObjectBelongingCheckers(py::module& m)
         Secondly, they are used to maintain the mentioned *inside*-*outside* property of the particles in the resulting Particle Vectors.
     )");
 
-    py::class_<MeshBelongingChecker>(m, "Mesh", pycheck)
+    py::nodelete_class<MeshBelongingChecker>(m, "Mesh", pycheck)
         .def(py::init<std::string>(),
              "name"_a, R"(
             This checker will use the triangular mesh associated with objects to detect *inside*-*outside* status.
@@ -33,7 +35,7 @@ void exportObjectBelongingCheckers(py::module& m)
                 name: name of the checker
         )");
         
-    py::class_<EllipsoidBelongingChecker>(m, "Ellipsoid", pycheck)
+    py::nodelete_class<EllipsoidBelongingChecker>(m, "Ellipsoid", pycheck)
         .def(py::init<std::string>(),
              "name"_a, R"(
             This checker will use the analytical representation of the ellipsoid to detect *inside*-*outside* status.

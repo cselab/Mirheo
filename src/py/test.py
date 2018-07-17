@@ -13,32 +13,23 @@ import numpy as np
 
 dt = 0.001
 
-u = udx.udevicex((1,1,1), (2, 2, 2), debug_level=3, log_filename='stdout')
+u = udx.udevicex((1,1,1), (2, 2, 2), debug_level=50, log_filename='log')
 
-pv = udx.ParticleVectors.ParticleVector('pv', 1)
-ic = udx.InitialConditions.UniformIC(density=2)
-u.registerParticleVector(pv=pv, ic=ic)
+if u.isComputeTask():
+    pv = udx.ParticleVectors.ParticleVector('pv', 1)
+    ic = udx.InitialConditions.Uniform(density=2)
+    u.registerParticleVector(pv=pv, ic=ic)
+    
+    dpd = udx.Interactions.DPD('dpd', 1.0, a=10.0, gamma=10.0, kbt=1.0, dt=dt, power=0.5)
+    u.registerInteraction(dpd)
+    u.setInteraction(dpd, pv, pv)
+    
+    vv = udx.Integrators.VelocityVerlet('vv', dt=dt)
+    u.registerIntegrator(vv)
+    u.setIntegrator(vv, pv)
 
-dpd = udx.Interactions.DPD('dpd', 1.0, a=10.0, gamma=10.0, kbt=1.0, dt=dt, power=0.5)
-u.registerInteraction(dpd)
-u.setInteraction(dpd, pv, pv)
+flag = u.isComputeTask()
+stats = udx.Plugins.createStats('smth', 10, flag)
+u.registerPlugins(stats[0], stats[1])
 
-vv = udx.Integrators.VelocityVerlet('vv', dt=dt)
-u.registerIntegrator(vv)
-u.setIntegrator(vv, pv)
-
-print(u)
-
-u.run(5)
-
-#print(pv)
-
-#u.run(5)
-
-coo = pv.getVelocities()
-
-help(pv.getVelocities)
-
-print(coo)
-
-#print(vv)   
+u.run(32)

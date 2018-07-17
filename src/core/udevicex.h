@@ -32,7 +32,7 @@ public:
     void registerIntegrator             (Integrator* integrator);
     void registerWall                   (Wall* wall, int checkEvery=0);
     void registerBouncer                (Bouncer* bouncer);
-    void registerPlugin                 (std::pair<SimulationPlugin*, PostprocessPlugin*> plugin);
+    void registerPlugins                (SimulationPlugin* simPlugin, PostprocessPlugin* postPlugin);
     void registerObjectBelongingChecker (ObjectBelongingChecker* checker, ObjectVector* ov);
  
     void setIntegrator  (Integrator* integrator,  ParticleVector* pv);

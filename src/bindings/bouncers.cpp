@@ -4,6 +4,8 @@
 #include <core/bouncers/from_ellipsoid.h>
 #include <core/bouncers/from_mesh.h>
 
+#include "nodelete.h"
+
 
 namespace py = pybind11;
 using namespace pybind11::literals;
@@ -11,7 +13,7 @@ using namespace pybind11::literals;
 void exportBouncers(py::module& m)
 {
     // Initial Conditions
-    py::class_<Bouncer> pybounce(m, "Bouncer", R"(
+    py::nodelete_class<Bouncer> pybounce(m, "Bouncer", R"(
         Base class for bouncing particles off the objects
         
         Bouncers prevent liquid particles crossing boundaries of objects (maintaining no-through boundary conditions).
@@ -24,7 +26,7 @@ void exportBouncers(py::module& m)
         The force from a collision is applied at the beginning of the following time-step.
     )");
 
-    py::class_<BounceFromMesh>(m, "Mesh", pybounce)
+    py::nodelete_class<BounceFromMesh>(m, "Mesh", pybounce)
         .def(py::init<std::string, float>(),
              "name"_a, "kbt"_a=0.5, R"(
             This bouncer will use the triangular mesh associated with objects to detect boundary crossings.
@@ -42,7 +44,7 @@ void exportBouncers(py::module& m)
                 kbt:  Maxwell distribution temperature defining post-collision velocity
         )");
         
-    py::class_<BounceFromRigidEllipsoid>(m, "Ellipsoid", pybounce)
+    py::nodelete_class<BounceFromRigidEllipsoid>(m, "Ellipsoid", pybounce)
         .def(py::init<std::string>(),
              "name"_a, R"(
             This bouncer will use the analytical ellipsoid representation to perform the bounce.

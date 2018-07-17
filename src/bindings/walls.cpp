@@ -4,14 +4,14 @@
 
 #include <core/utils/pytypes.h>
 
+#include "nodelete.h"
+
 namespace py = pybind11;
 using namespace pybind11::literals;
 
-
 void exportWalls(py::module& m)
 {
-    // Initial Conditions
-    py::class_<Wall> pywall(m, "Wall", R"(
+    py::nodelete_class<Wall> pywall(m, "Wall", R"(
         Base wall class.
         
         Walls are used to represent time-independent stationary boundary conditions for the flows. 
@@ -28,7 +28,7 @@ void exportWalls(py::module& m)
         The only exception is the PVs that are named exactly as the wall, these PVs will be unaffected by their "parent" wall.
     )");
 
-    py::class_< SimpleStationaryWall<StationaryWall_Box> >(m, "Box", pywall)
+    py::nodelete_class< SimpleStationaryWall<StationaryWall_Box> >(m, "Box", pywall)
         .def(py::init(&WallFactory::createBoxWall),
             "name"_a, "low"_a, "high"_a, "inside"_a = false, R"(
             Rectangular cuboid wall with edges aligned with the coordinate axes.
@@ -40,7 +40,7 @@ void exportWalls(py::module& m)
                 inside: whether the domain is inside the box or outside of it
         )");
         
-    py::class_< SimpleStationaryWall<StationaryWall_Sphere> >(m, "Sphere", pywall)
+    py::nodelete_class< SimpleStationaryWall<StationaryWall_Sphere> >(m, "Sphere", pywall)
         .def(py::init(&WallFactory::createSphereWall),
             "name"_a, "center"_a, "raduis"_a, "inside"_a = false, R"(
             Spherical wall.
@@ -52,7 +52,7 @@ void exportWalls(py::module& m)
                 inside: whether the domain is inside the sphere or outside of it
         )");
         
-    py::class_< SimpleStationaryWall<StationaryWall_Plane> >(m, "Plane", pywall)
+    py::nodelete_class< SimpleStationaryWall<StationaryWall_Plane> >(m, "Plane", pywall)
         .def(py::init(&WallFactory::createPlaneWall),
             "name"_a, "normal"_a, "pointThrough"_a, R"(
             Planar infinitely stretching wall. Inside is determined by the normal direction .
@@ -63,7 +63,7 @@ void exportWalls(py::module& m)
                 pointThrough: point that belongs to the plane
         )");
         
-    py::class_< SimpleStationaryWall<StationaryWall_Cylinder> >(m, "Cylinder", pywall)
+    py::nodelete_class< SimpleStationaryWall<StationaryWall_Cylinder> >(m, "Cylinder", pywall)
         .def(py::init(&WallFactory::createCylinderWall),
             "name"_a, "center"_a, "radius"_a, "axis"_a, "inside"_a = false, R"(
             Cylindrical infinitely stretching wall, the main axis is aligned along OX or OY or OZ
@@ -76,7 +76,7 @@ void exportWalls(py::module& m)
                 inside: whether the domain is inside the cylinder or outside of it
         )");
         
-    py::class_< SimpleStationaryWall<StationaryWall_SDF> >(m, "SDF", pywall)
+    py::nodelete_class< SimpleStationaryWall<StationaryWall_SDF> >(m, "SDF", pywall)
         .def(py::init(&WallFactory::createSDFWall),
             "name"_a, "sdfFilename"_a, "h"_a = pyfloat3{0.25, 0.25, 0.25}, R"(
             This wall is based on an arbitrary Signed Distance Function defined in the simulation domain on a regular cartesian grid.
@@ -95,7 +95,7 @@ void exportWalls(py::module& m)
                 h: resolution of the resampled SDF. In order to have a more accurate SDF representation, the initial function is resampled on a finer grid. The lower this value is, the better the wall will be, however, the  more memory it will consume and the slower the execution will be
         )");
         
-    py::class_< WallWithVelocity<StationaryWall_Cylinder, VelocityField_Rotate> >(m, "RotatingCylinder", pywall)
+    py::nodelete_class< WallWithVelocity<StationaryWall_Cylinder, VelocityField_Rotate> >(m, "RotatingCylinder", pywall)
         .def(py::init(&WallFactory::createMovingCylinderWall),
             "name"_a, "center"_a, "radius"_a, "axis"_a, "omega"_a, "inside"_a = false, R"(
             Cylindrical wall rotating with constant angular velocity along its axis.
@@ -109,7 +109,7 @@ void exportWalls(py::module& m)
                 inside: whether the domain is inside the cylinder or outside of it
         )");
         
-    py::class_< WallWithVelocity<StationaryWall_Plane, VelocityField_Translate> >(m, "MovingPlane", pywall)
+    py::nodelete_class< WallWithVelocity<StationaryWall_Plane, VelocityField_Translate> >(m, "MovingPlane", pywall)
         .def(py::init(&WallFactory::createMovingPlaneWall),
             "name"_a, "normal"_a, "pointThrough"_a, "velocity"_a, R"(
             Planar wall that is moving along itself with constant velocity.
@@ -123,7 +123,7 @@ void exportWalls(py::module& m)
                 velocity: wall velocity, should be orthogonal to the normal
         )");
         
-    py::class_< WallWithVelocity<StationaryWall_Plane, VelocityField_Oscillate> >(m, "OscillatingPlane", pywall)
+    py::nodelete_class< WallWithVelocity<StationaryWall_Plane, VelocityField_Oscillate> >(m, "OscillatingPlane", pywall)
         .def(py::init(&WallFactory::createOscillatingPlaneWall),
             "name"_a, "normal"_a, "pointThrough"_a, "velocity"_a, "period"_a,  R"(
             Planar wall that is moving along itself with periodically changing velocity:

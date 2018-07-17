@@ -31,5 +31,5 @@ public:
 
     virtual void check(cudaStream_t stream) = 0;
 
-    virtual ~Wall();
+    virtual ~Wall() = default;
 };

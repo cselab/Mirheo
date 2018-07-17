@@ -11,9 +11,9 @@
  * @param vel Velocity magnitude
  * @param period Sine wave period
  */
-IntegratorOscillate::IntegratorOscillate(std::string name, float dt, pyfloat3 vel, float period) :
+IntegratorOscillate::IntegratorOscillate(std::string name, float dt, float3 vel, float period) :
     Integrator(name, dt),
-    vel(make_float3(vel)), period(period)
+    vel(vel), period(period)
 {
     if (period <= 0)
         die("Oscillating period should be strictly positive");

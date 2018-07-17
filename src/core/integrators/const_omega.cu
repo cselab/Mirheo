@@ -7,9 +7,9 @@
 #include <core/pvs/views/pv.h>
 
 
-IntegratorConstOmega::IntegratorConstOmega(std::string name, float dt, pyfloat3 center, pyfloat3 omega) :
+IntegratorConstOmega::IntegratorConstOmega(std::string name, float dt, float3 center, float3 omega) :
     Integrator(name, dt),
-    center(make_float3(center)), omega(make_float3(omega))
+    center(center), omega(omega)
 {   }
 
 IntegratorConstOmega::~IntegratorConstOmega() = default;

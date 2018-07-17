@@ -25,12 +25,12 @@ PYBIND11_MODULE(_udevicex, m)
     auto checkers = m.def_submodule("BelongingCheckers");
     exportObjectBelongingCheckers(checkers);
     
-//     auto bouncers = m.def_submodule("Bouncers");
-//     exportObjectBelongingCheckers(bouncers);
+    auto bouncers = m.def_submodule("Bouncers");
+    exportBouncers(bouncers);
     
     auto walls = m.def_submodule("Walls");
-    exportObjectBelongingCheckers(walls);
+    exportWalls(walls);
     
-//     auto plugins = m.def_submodule("Plugins");
-//     exportObjectBelongingCheckers(plugins);
+    auto plugins = m.def_submodule("Plugins");
+    exportPlugins(plugins);
 }

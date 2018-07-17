@@ -1,13 +1,8 @@
 #include <extern/pybind11/include/pybind11/pybind11.h>
 
-#include <core/integrators/interface.h>
-#include <core/integrators/const_omega.h>
-#include <core/integrators/oscillate.h>
-#include <core/integrators/rigid_vv.h>
-#include <core/integrators/translate.h>
-#include <core/integrators/vv_noforce.h>
-#include <core/integrators/vv_constDP.h>
-#include <core/integrators/vv_periodicPoiseuille.h>
+#include <core/integrators/factory.h>
+
+#include "nodelete.h"
 
 namespace py = pybind11;
 using namespace pybind11::literals;
@@ -15,12 +10,12 @@ using namespace pybind11::literals;
 void exportIntegrators(py::module& m)
 {
     // Initial Conditions
-    py::class_<Integrator> pyint(m, "Integrator", R"(
+    py::nodelete_class<Integrator> pyint(m, "Integrator", R"(
         Base integration class
     )");
 
-    py::class_<IntegratorConstOmega>(m, "Rotate", pyint)
-        .def(py::init<std::string, float, pyfloat3, pyfloat3>(),
+    py::nodelete_class<IntegratorConstOmega>(m, "Rotate", pyint)
+        .def(py::init(&IntegratorFactory::createConstOmega),
              "name"_a, "dt"_a, "center"_a, "omega"_a, R"(
                 Rotate particles around the specified point in space with a constant angular velocity :math:`\mathbf{\Omega}`
                 
@@ -31,8 +26,8 @@ void exportIntegrators(py::module& m)
                     omega: angular velocity :math:`\mathbf{\Omega}`
             )");
         
-    py::class_<IntegratorOscillate>(m, "Oscillate", pyint)
-        .def(py::init<std::string, float, pyfloat3, float>(),
+    py::nodelete_class<IntegratorOscillate>(m, "Oscillate", pyint)
+        .def(py::init(&IntegratorFactory::createOscillating),
              "name"_a, "dt"_a, "velocity"_a, "period"_a, R"(
                 Move particles with the periodically changing velocity
                 :math:`\mathbf{u}(t) = \cos(2 \pi \, t / T) \mathbf{u}_0`
@@ -44,8 +39,8 @@ void exportIntegrators(py::module& m)
                     period: oscillation period :math:`T`
             )");
         
-    py::class_<IntegratorVVRigid>(m, "RigidVelocityVerlet", pyint)
-        .def(py::init<std::string, float>(),
+    py::nodelete_class<IntegratorVVRigid>(m, "RigidVelocityVerlet", pyint)
+        .def(py::init(&IntegratorFactory::createRigidVV),
              "name"_a, "dt"_a, R"(
                 Integrate the position and rotation (in terms of quaternions) of the rigid bodies as per Velocity-Verlet scheme.
                 Can only applied to :class:`RigidObjectVector` or :class:`RigidEllipsoidObjectVector`.
@@ -55,8 +50,8 @@ void exportIntegrators(py::module& m)
                     dt:   integration time-step
             )");
         
-    py::class_<IntegratorTranslate>(m, "Translate", pyint)
-        .def(py::init<std::string, float, pyfloat3>(),
+    py::nodelete_class<IntegratorTranslate>(m, "Translate", pyint)
+        .def(py::init(&IntegratorFactory::createTranslate),
              "name"_a, "dt"_a, "velocity"_a, R"(
                 Translate particles with a constant velocity :math:`\mathbf{u}` regardless forces acting on them.
                 
@@ -66,8 +61,9 @@ void exportIntegrators(py::module& m)
                     velocity: translational velocity :math:`\mathbf{\Omega}`
             )");
         
-    py::class_<IntegratorVV_noforce>(m, "VelocityVerlet", pyint)
-        .def(py::init<std::string, float>(),
+    py::nodelete_class<IntegratorVV<Forcing_None>>
+        (m, "VelocityVerlet", pyint)
+        .def(py::init(&IntegratorFactory::createVV),
              "name"_a, "dt"_a, R"(
                 Classical Velocity-Verlet integrator with fused steps for coordinates and velocities.
                 The velocities are shifted with respect to the coordinates by one half of the time-step
@@ -85,8 +81,9 @@ void exportIntegrators(py::module& m)
                     dt:   integration time-step
             )");
         
-    py::class_<IntegratorVV_constDP>(m, "VelocityVerlet_withConstForce", pyint)
-        .def(py::init<std::string, float, pyfloat3>(),
+    py::nodelete_class<IntegratorVV<Forcing_ConstDP>>
+        (m, "VelocityVerlet_withConstForce", pyint)
+        .def(py::init(&IntegratorFactory::createVV_constDP),
              "name"_a, "dt"_a, "force"_a, R"(
                 Same as regular :class:`VelocityVerlet`, but the forces on all the particles are modified with the constant pressure term:
    
@@ -101,8 +98,9 @@ void exportIntegrators(py::module& m)
                     force: :math:`\mathbf{F}_{extra}`
             )");
         
-    py::class_<IntegratorVV_periodicPoiseuille>(m, "VelocityVerlet_withPeriodicForce", pyint)
-        .def(py::init<std::string, float, float, std::string>(),
+    py::nodelete_class<IntegratorVV<Forcing_PeriodicPoiseuille>>
+        (m, "VelocityVerlet_withPeriodicForce", pyint)
+        .def(py::init(&IntegratorFactory::createVV_PeriodicPoiseuille),
              "name"_a, "dt"_a, "force"_a, "direction"_a, R"(
                 Same as regular Velocity-Verlet, but the forces on all the particles are modified with periodic Poiseuille term.
                 This means that all the particles in half domain along certain axis (Ox, Oy or Oz) are pushed with force

@@ -1,7 +1,6 @@
 #pragma once
 
 #include "interface.h"
-#include <core/utils/pytypes.h>
 
 /**
  * Apply periodic sine wave to the particle velocities.
@@ -15,7 +14,7 @@ public:
     void stage1(ParticleVector* pv, float t, cudaStream_t stream) override {};
     void stage2(ParticleVector* pv, float t, cudaStream_t stream) override;
 
-    IntegratorOscillate(std::string name, float dt, pyfloat3 vel, float period);
+    IntegratorOscillate(std::string name, float dt, float3 vel, float period);
 
     ~IntegratorOscillate() = default;
 

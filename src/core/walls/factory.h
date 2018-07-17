@@ -5,9 +5,6 @@
 #include "simple_stationary_wall.h"
 #include "wall_with_velocity.h"
 
-#include "simple_stationary_wall.h"
-#include "wall_with_velocity.h"
-
 #include "stationary_walls/sdf.h"
 #include "stationary_walls/sphere.h"
 #include "stationary_walls/cylinder.h"
@@ -25,9 +22,8 @@ class ParticleVector;
 class CellList;
 
 
-class WallFactory
+namespace WallFactory
 {
-public:
     static SimpleStationaryWall<StationaryWall_Sphere>*
         createSphereWall(std::string name, pyfloat3 center, float radius, bool inside)
     {
@@ -82,23 +78,23 @@ public:
 
         StationaryWall_Cylinder cylinder(center, radius, dir, inside);
         float3 omega3, center3;
-		switch (dir)
-		{
-			case StationaryWall_Cylinder::Direction::x :
-				center3 = {0.0f, center.x, center.y};
-				omega3  = {omega,    0.0f,     0.0f};
-				break;
+        switch (dir)
+        {
+            case StationaryWall_Cylinder::Direction::x :
+                center3 = {0.0f, center.x, center.y};
+                omega3  = {omega,    0.0f,     0.0f};
+                break;
 
-			case StationaryWall_Cylinder::Direction::y :
-				center3 = {center.x, 0.0f, center.y};
-				omega3  = {0.0f,    omega,     0.0f};
-				break;
+            case StationaryWall_Cylinder::Direction::y :
+                center3 = {center.x, 0.0f, center.y};
+                omega3  = {0.0f,    omega,     0.0f};
+                break;
 
-			case StationaryWall_Cylinder::Direction::z :
-				center3 = {center.x, center.y, 0.0f};
-				omega3  = {0.0f,    0.0f,     omega};
-				break;
-		}
+            case StationaryWall_Cylinder::Direction::z :
+                center3 = {center.x, center.y, 0.0f};
+                omega3  = {0.0f,    0.0f,     omega};
+                break;
+        }
         VelocityField_Rotate rotate(omega3, center3);
 
         return new WallWithVelocity<StationaryWall_Cylinder, VelocityField_Rotate> (name, std::move(cylinder), std::move(rotate));
@@ -119,6 +115,5 @@ public:
         VelocityField_Oscillate osc(make_float3(velocity), period);
         return new WallWithVelocity<StationaryWall_Plane, VelocityField_Oscillate> (name, std::move(plane), std::move(osc));
     }
-
 };
 
