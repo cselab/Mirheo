@@ -1,5 +1,9 @@
 cmake_minimum_required(VERSION 3.8)
 
+if(POLICY CMP0060)
+    cmake_policy(SET CMP0060 NEW)
+endif()
+
 project(uDeviceX LANGUAGES C CXX CUDA)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/../cmake")
 
@@ -55,7 +59,12 @@ set(CUDA_SOURCES ${CUDA_SOURCES_CORE} ${CUDA_SOURCES_PLUGINS} ${CUDA_SOURCES_BIN
 #add_executable(udevicex ../apps/udevicex/main.cu ${CXX_SOURCES} ${CUDA_SOURCES})
 add_library(cuda_compiled OBJECT ${CUDA_SOURCES})
 set_property(TARGET cuda_compiled PROPERTY POSITION_INDEPENDENT_CODE 1)
-pybind11_add_module(_udevicex ${CXX_SOURCES} $<TARGET_OBJECTS:cuda_compiled> )
+
+add_library(_udevicex MODULE ${CXX_SOURCES} $<TARGET_OBJECTS:cuda_compiled>)
+target_link_libraries(_udevicex PRIVATE pybind11::module)
+set_target_properties(_udevicex PROPERTIES PREFIX "${PYTHON_MODULE_PREFIX}"
+                                           SUFFIX "${PYTHON_MODULE_EXTENSION}")
+
 target_link_libraries(_udevicex PRIVATE ${CUDA_LIBRARIES})
 
 #######################################################
