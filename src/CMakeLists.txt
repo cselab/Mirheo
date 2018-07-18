@@ -19,8 +19,8 @@ find_package(MPI  REQUIRED)
 # Libraries should not be needed here as
 # we link with MPI wrapper anyways
 if (DEFINED ENV{CRAY_MPICH_DIR})
-	set(MPI_C_INCLUDE_DIRS   "$ENV{CRAY_MPICH_DIR}/include")
-	set(MPI_CXX_INCLUDE_DIRS "$ENV{CRAY_MPICH_DIR}/include")
+  set(MPI_C_INCLUDE_DIRS   "$ENV{CRAY_MPICH_DIR}/include")
+  set(MPI_CXX_INCLUDE_DIRS "$ENV{CRAY_MPICH_DIR}/include")
 endif()
 
 include_directories(${MPI_CXX_INCLUDE_DIRS})
@@ -68,21 +68,21 @@ find_package(HDF5 REQUIRED)
 # This workaround should work to supply
 # nvcc with correct hdf paths
 if (DEFINED ENV{CRAY_HDF5_DIR})
-	set(HDF5_INCLUDE_DIRS "$ENV{HDF5_DIR}/include")
-	set(HDF5_LIBRARIES    "$ENV{HDF5_DIR}/lib/libhdf5.so")
+  set(HDF5_INCLUDE_DIRS "$ENV{HDF5_DIR}/include")
+  set(HDF5_LIBRARIES    "$ENV{HDF5_DIR}/lib/libhdf5.so")
 endif()
 
 if (${HDF5_FOUND})
-    include_directories(${HDF5_INCLUDE_DIRS})
-    target_link_libraries(_udevicex PRIVATE ${HDF5_LIBRARIES})
+  include_directories(${HDF5_INCLUDE_DIRS})
+  target_link_libraries(_udevicex PRIVATE ${HDF5_LIBRARIES})
 endif()
 
 
 # For pretty stacktrace in case of a crash
 find_package(LIBBFD REQUIRED)
 if (${LIBBFD_FOUND})
-    include_directories(${LIBBFD_INCLUDE_DIRS})
-    target_link_libraries(_udevicex PRIVATE ${LIBBFD_BFD_LIBRARY})
+  include_directories(${LIBBFD_INCLUDE_DIRS})
+  target_link_libraries(_udevicex PRIVATE ${LIBBFD_BFD_LIBRARY})
 endif()
 ########################################################
 
@@ -93,12 +93,12 @@ set(CMAKE_CUDA_FLAGS_DEBUG "-O0 -G -g")
 
 # Silence deprecation warnings for CUDA >= 9
 if (CUDA_VERSION_MAJOR GREATER_EQUAL 9)
-	set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} --Wno-deprecated-declarations")
+  set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} --Wno-deprecated-declarations")
 endif()
 
 # Auto-detect compute capability if not provided
 if (NOT DEFINED CUDA_ARCH_NAME)
-	set(CUDA_ARCH_NAME Auto)
+  set(CUDA_ARCH_NAME Auto)
 endif()
 
 # The options come out crooked, fix'em
@@ -114,7 +114,7 @@ set(CMAKE_LINK_FLAGS "${CMAKE_LINK_FLAGS} -rdynamic -flto -g")
 
 # Choose Release mode as default.
 if(NOT CMAKE_BUILD_TYPE)
-    set(CMAKE_BUILD_TYPE "Release" CACHE STRING
-        "Choose the type of build, options are: Debug Release RelWithDebInfo MinSizeRel." FORCE)
+  set(CMAKE_BUILD_TYPE "Release" CACHE STRING
+    "Choose the type of build, options are: Debug Release RelWithDebInfo MinSizeRel." FORCE)
 endif()
 
