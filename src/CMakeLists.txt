@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.8)
 
 project(uDeviceX LANGUAGES C CXX CUDA)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/../cmake")
+set(UDX "_udevicex")
 
 # Add the pybind11
 add_subdirectory(extern/pybind11)
@@ -55,8 +56,8 @@ set(CUDA_SOURCES ${CUDA_SOURCES_CORE} ${CUDA_SOURCES_PLUGINS} ${CUDA_SOURCES_BIN
 #add_executable(udevicex ../apps/udevicex/main.cu ${CXX_SOURCES} ${CUDA_SOURCES})
 add_library(cuda_compiled OBJECT ${CUDA_SOURCES})
 set_property(TARGET cuda_compiled PROPERTY POSITION_INDEPENDENT_CODE 1)
-pybind11_add_module(_udevicex ${CXX_SOURCES} $<TARGET_OBJECTS:cuda_compiled> )
-target_link_libraries(_udevicex PRIVATE ${CUDA_LIBRARIES})
+pybind11_add_module(${UDX} ${CXX_SOURCES} $<TARGET_OBJECTS:cuda_compiled> )
+target_link_libraries(${UDX} PRIVATE ${CUDA_LIBRARIES})
 
 #######################################################
 # Optional packages
@@ -74,7 +75,7 @@ endif()
 
 if (${HDF5_FOUND})
   include_directories(${HDF5_INCLUDE_DIRS})
-  target_link_libraries(_udevicex PRIVATE ${HDF5_LIBRARIES})
+  target_link_libraries(${UDX} PRIVATE ${HDF5_LIBRARIES})
 endif()
 
 
@@ -82,7 +83,7 @@ endif()
 find_package(LIBBFD REQUIRED)
 if (${LIBBFD_FOUND})
   include_directories(${LIBBFD_INCLUDE_DIRS})
-  target_link_libraries(_udevicex PRIVATE ${LIBBFD_BFD_LIBRARY})
+  target_link_libraries(${UDX} PRIVATE ${LIBBFD_BFD_LIBRARY})
 endif()
 ########################################################
 
