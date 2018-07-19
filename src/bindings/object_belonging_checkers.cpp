@@ -15,11 +15,6 @@ void exportObjectBelongingCheckers(py::module& m)
     // Initial Conditions
     py::nodelete_class<ObjectBelongingChecker> pycheck(m, "BelongingChecker", R"(
         Base class for checking if particles belong to objects
-        
-        Object belonging checkers serve two purpooses.
-        Firstly, they are used to split a particle vector into two disjointed parts (probably forming a new Particle Vector):
-        the particles that are *inside* any object of the given Object Vector and the particles that are *outside*.
-        Secondly, they are used to maintain the mentioned *inside*-*outside* property of the particles in the resulting Particle Vectors.
     )");
 
     py::nodelete_class<MeshBelongingChecker>(m, "Mesh", pycheck)
