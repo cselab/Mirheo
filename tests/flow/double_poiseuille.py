@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 import sys
-import _udevicex as udx
+import udevicex as udx
 import numpy as np
 
 dt = 0.001

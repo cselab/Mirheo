@@ -51,6 +51,8 @@ setup(
     author_email='dimaleks@ethz.ch',
     description='The in-silico lab-on-a-chip',
     long_description='',
+    packages = ['udevicex'],
+    package_dir = {'udevicex' : 'src/py'},
     ext_modules=[CMakeExtension('udx', sourcedir='src')],
     cmdclass=dict(build_ext=CMakeBuild),
     zip_safe=False,
