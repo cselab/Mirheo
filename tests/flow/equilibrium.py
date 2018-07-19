@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 
 import sys
-sys.path.append('/home/amlucas/dimudx/build')
 import _udevicex as udx
 import numpy as np
 
