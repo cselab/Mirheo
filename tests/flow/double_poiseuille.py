@@ -34,8 +34,9 @@ field = udx.Plugins.createDumpAverage('field', pv, sampleEvery, dumpEvery, binSi
 u.registerPlugins(stats[0], stats[1])
 u.registerPlugins(field[0], field[1])
 
-u.run(2000)
+u.run(2002)
 
 # sTEST: double_poiseuille
+# mkdir -p h5
 # mpirun -n 2 ./double_poiseuille.py
-# TODO
+# u.avgh5 0 vx 1 h5/00001.h5 > profile.out.txt
