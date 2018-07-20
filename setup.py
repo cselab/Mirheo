@@ -45,12 +45,14 @@ class CMakeBuild(build_ext):
         subprocess.check_call(['cmake', '--build', '.'] + build_args, cwd=self.build_temp)
 
 setup(
-    name='udevicex',
+    name='uDeviceX',
     version='1.0',
     author='Dmitry Alexeev',
     author_email='alexeedm@ethz.ch',
     description='The in-silico lab-on-a-chip',
     long_description='',
+    packages = ['udevicex'],
+    package_dir = {'udevicex' : 'src/py'},
     ext_modules=[CMakeExtension('udx', sourcedir='./')],
     cmdclass=dict(build_ext=CMakeBuild),
     zip_safe=False,

@@ -31,7 +31,7 @@ public:
     float3 J;
 
     RigidObjectVector(std::string name, float partMass, pyfloat3 J, const int objSize,
-                      std::unique_ptr<Mesh> mesh, const int nObjects = 0);
+                      Mesh *mesh, const int nObjects = 0);
 
     LocalRigidObjectVector* local() { return static_cast<LocalRigidObjectVector*>(_local); }
     LocalRigidObjectVector* halo()  { return static_cast<LocalRigidObjectVector*>(_halo);  }
@@ -40,7 +40,7 @@ public:
     
 protected:
     RigidObjectVector(std::string name, float partMass, float3 J, const int objSize,
-                      std::unique_ptr<Mesh> mesh, const int nObjects = 0);
+                      Mesh *mesh, const int nObjects = 0);
 };
 
 

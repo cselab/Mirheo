@@ -1,7 +1,6 @@
 [submodule "src/extern/pybind11"]
 	path = src/extern/pybind11
 	url = git@github.com:dimaleks/pybind11.git
-	branch = feature/merge_upstream_pr_1373_1367
 [submodule "src/extern/cub"]
 	path = src/extern/cub
 	url = git@github.com:NVlabs/cub.git

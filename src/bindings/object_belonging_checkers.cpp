@@ -1,4 +1,4 @@
-#include <extern/pybind11/include/pybind11/pybind11.h>
+#include <pybind11/pybind11.h>
 
 #include <core/object_belonging/interface.h>
 #include <core/object_belonging/ellipsoid_belonging.h>

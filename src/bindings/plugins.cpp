@@ -43,15 +43,15 @@ void exportPlugins(py::module& m)
     m.def("__createImposeVelocity", &PluginFactory::createImposeVelocityPlugin);
     m.def("__createTemperaturize", &PluginFactory::createTemperaturizePlugin);
     m.def("__createAddForce", &PluginFactory::createAddForcePlugin);
-    m.def("__createAddTorquePlugin", &PluginFactory::createAddTorquePlugin);
-    m.def("__createImposeProfilePlugin", &PluginFactory::createImposeProfilePlugin);
-    m.def("__createWallRepulsionPlugin", &PluginFactory::createWallRepulsionPlugin);
+    m.def("__createAddTorque", &PluginFactory::createAddTorquePlugin);
+    m.def("__createImposeProfile", &PluginFactory::createImposeProfilePlugin);
+    m.def("__createWallRepulsion", &PluginFactory::createWallRepulsionPlugin);
     m.def("__createStats", &PluginFactory::createStatsPlugin);
-    m.def("__createDumpAveragePlugin", &PluginFactory::createDumpAveragePlugin);
-    m.def("__createDumpAverageRelativePlugin", &PluginFactory::createDumpAverageRelativePlugin);
-    m.def("__createDumpXYZPlugin", &PluginFactory::createDumpXYZPlugin);
-    m.def("__createDumpMeshPlugin", &PluginFactory::createDumpMeshPlugin);
-    m.def("__createDumpObjPosition", &PluginFactory::createDumpObjPosition);
-    m.def("__createPinObjPlugin", &PluginFactory::createPinObjPlugin);
+    m.def("__createDumpAverage", &PluginFactory::createDumpAveragePlugin);
+    m.def("__createDumpAverageRelative", &PluginFactory::createDumpAverageRelativePlugin);
+    m.def("__createDumpXYZ", &PluginFactory::createDumpXYZPlugin);
+    m.def("__createDumpMesh", &PluginFactory::createDumpMeshPlugin);
+    m.def("__createDumpObjectStats", &PluginFactory::createDumpObjPosition);
+    m.def("__createPinObject", &PluginFactory::createPinObjPlugin);
 }
 

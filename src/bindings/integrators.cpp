@@ -1,4 +1,4 @@
-#include <extern/pybind11/include/pybind11/pybind11.h>
+#include <pybind11/pybind11.h>
 
 #include <core/integrators/factory.h>
 
@@ -111,8 +111,8 @@ void exportIntegrators(py::module& m)
                 Args:
                     name: name of the integrator
                     dt:   integration time-step
-                    force: orce magnitude, :math:`F_{Poiseuille}`
-                    direction: Valid values: "x", "y", "z". Defines the direction of the pushing force
+                    force: force magnitude, :math:`F_{Poiseuille}`
+                    direction: Valid values: \"x\", \"y\", \"z\". Defines the direction of the pushing force
             )");
 }
 

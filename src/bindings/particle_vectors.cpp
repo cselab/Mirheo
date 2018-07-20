@@ -1,5 +1,5 @@
-#include <extern/pybind11/include/pybind11/pybind11.h>
-#include <extern/pybind11/include/pybind11/stl.h>
+#include <pybind11/pybind11.h>
+#include <pybind11/stl.h>
 
 #include <core/pvs/particle_vector.h>
 #include <core/pvs/object_vector.h>
@@ -39,7 +39,7 @@ void exportParticleVectors(py::module& m)
         .def(py::init<std::string, float, int>(), "name"_a, "mass"_a, "object_size"_a);  
         
     py::nodelete_class<RigidObjectVector> (m, "RigidObjectVector", pypv)
-        .def(py::init<std::string, float, pyfloat3, int, std::unique_ptr<Mesh>>(),
+        .def(py::init<std::string, float, pyfloat3, int, Mesh*>(),
              "name"_a, "mass"_a, "inertia"_a, "object_size"_a, "mesh"_a);
         
     py::nodelete_class<RigidEllipsoidObjectVector> (m, "RigidEllipsoidObjectVector", pypv)
