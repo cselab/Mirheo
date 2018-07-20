@@ -1,4 +1,4 @@
-#include <extern/pybind11/include/pybind11/pybind11.h>
+#include <pybind11/pybind11.h>
 
 #include <core/pvs/particle_vector.h>
 

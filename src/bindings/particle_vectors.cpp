@@ -1,5 +1,5 @@
-#include <extern/pybind11/include/pybind11/pybind11.h>
-#include <extern/pybind11/include/pybind11/stl.h>
+#include <pybind11/pybind11.h>
+#include <pybind11/stl.h>
 
 #include <core/pvs/particle_vector.h>
 #include <core/pvs/object_vector.h>
