@@ -1,5 +1,4 @@
-#include <pybind11/pybind11.h>
-#include <pybind11/stl.h>
+#include <extern/pybind11/include/pybind11/pybind11.h>
 
 #include <plugins/factory.h>
 
@@ -41,18 +40,18 @@ void exportPlugins(py::module& m)
     py::nodelete_class<ReportPinObjectPlugin>(m, "ReportPinObject", pypost);
     
     
-    m.def("createImposeVelocity", &PluginFactory::createImposeVelocityPlugin);
-    m.def("createTemperaturize", &PluginFactory::createTemperaturizePlugin);
-    m.def("createAddForce", &PluginFactory::createAddForcePlugin);
-    m.def("createAddTorque", &PluginFactory::createAddTorquePlugin);
-    m.def("createImposeProfile", &PluginFactory::createImposeProfilePlugin);
-    m.def("createWallRepulsion", &PluginFactory::createWallRepulsionPlugin);
-    m.def("createStats", &PluginFactory::createStatsPlugin);
-    m.def("createDumpAverage", &PluginFactory::createDumpAveragePlugin);
-    m.def("createDumpAverageRelative", &PluginFactory::createDumpAverageRelativePlugin);
-    m.def("createDumpXYZ", &PluginFactory::createDumpXYZPlugin);
-    m.def("createDumpMesh", &PluginFactory::createDumpMeshPlugin);
-    m.def("createDumpObjPosition", &PluginFactory::createDumpObjPosition);
-    m.def("createPinObj", &PluginFactory::createPinObjPlugin);
+    m.def("__createImposeVelocity", &PluginFactory::createImposeVelocityPlugin);
+    m.def("__createTemperaturize", &PluginFactory::createTemperaturizePlugin);
+    m.def("__createAddForce", &PluginFactory::createAddForcePlugin);
+    m.def("__createAddTorque", &PluginFactory::createAddTorquePlugin);
+    m.def("__createImposeProfile", &PluginFactory::createImposeProfilePlugin);
+    m.def("__createWallRepulsion", &PluginFactory::createWallRepulsionPlugin);
+    m.def("__createStats", &PluginFactory::createStatsPlugin);
+    m.def("__createDumpAverage", &PluginFactory::createDumpAveragePlugin);
+    m.def("__createDumpAverageRelative", &PluginFactory::createDumpAverageRelativePlugin);
+    m.def("__createDumpXYZ", &PluginFactory::createDumpXYZPlugin);
+    m.def("__createDumpMesh", &PluginFactory::createDumpMeshPlugin);
+    m.def("__createDumpObjectStats", &PluginFactory::createDumpObjPosition);
+    m.def("__createPinObject", &PluginFactory::createPinObjPlugin);
 }
 

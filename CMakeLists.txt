@@ -5,11 +5,11 @@ if(POLICY CMP0060)
 endif()
 
 project(uDeviceX LANGUAGES C CXX CUDA)
-set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/../cmake")
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake")
 set(UDX "_udevicex")
 
 # Add the pybind11
-add_subdirectory(extern/pybind11)
+add_subdirectory(src/extern/pybind11)
 
 # CUDA
 find_package(CUDA REQUIRED)
@@ -39,10 +39,10 @@ set(CMAKE_CXX_STANDARD  11)
 set(CMAKE_CUDA_STANDARD 11)
 
 # Alias some dirs
-include_directories( ./ )
-set(CORE_DIR "${CMAKE_SOURCE_DIR}/core/")
-set(PLUGINS_DIR "${CMAKE_SOURCE_DIR}/plugins/")
-set(BINDINGS_DIR "${CMAKE_SOURCE_DIR}/bindings/")
+include_directories( ${CMAKE_SOURCE_DIR}/src/ )
+set(CORE_DIR "${CMAKE_SOURCE_DIR}/src/core/")
+set(PLUGINS_DIR "${CMAKE_SOURCE_DIR}/src/plugins/")
+set(BINDINGS_DIR "${CMAKE_SOURCE_DIR}/src/bindings/")
 
 # Find sources
 file(GLOB_RECURSE CXX_SOURCES_CORE      RELATIVE ${CMAKE_SOURCE_DIR} "${CORE_DIR}/*.cpp")
