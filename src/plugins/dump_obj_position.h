@@ -21,8 +21,6 @@ public:
 
     bool needPostproc() override { return true; }
 
-    ~ObjPositionsPlugin() {};
-
 private:
     std::string ovName;
     int dumpEvery;

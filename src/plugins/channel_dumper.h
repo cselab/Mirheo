@@ -14,8 +14,6 @@ public:
     void deserialize(MPI_Status& stat) override;
     void handshake() override;
 
-    ~UniformCartesianDumper() = default;
-
 protected:
     XDMFDumper* dumper;
     std::string path;

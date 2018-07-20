@@ -21,8 +21,6 @@ public:
 
     bool needPostproc() override { return false; }
 
-    ~WallRepulsionPlugin() = default;
-
 private:
     std::string pvName, wallName;
     ParticleVector* pv;

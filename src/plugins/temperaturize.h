@@ -20,8 +20,6 @@ public:
 
     bool needPostproc() override { return false; }
 
-    ~TemperaturizePlugin() = default;
-
 private:
     std::string pvName;
     ParticleVector* pv;

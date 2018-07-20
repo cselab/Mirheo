@@ -33,6 +33,7 @@ namespace PluginFactory
         auto simPl = computeTask ? new ImposeVelocityPlugin(
                                         name, pv->name, make_float3(low), make_float3(high), make_float3(velocity), every) :
                                     nullptr;
+                                    
         return { simPl, nullptr };
     }
 

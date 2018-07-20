@@ -20,8 +20,6 @@ public:
 
     bool needPostproc() override { return false; }
 
-    ~AddTorquePlugin() = default;
-
 private:
     std::string rovName;
     RigidObjectVector* rov;

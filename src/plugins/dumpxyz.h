@@ -28,8 +28,6 @@ public:
     void serializeAndSend(cudaStream_t stream) override;
 
     bool needPostproc() override { return true; }
-
-    ~XYZPlugin() {};
 };
 
 

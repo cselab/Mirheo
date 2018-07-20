@@ -23,8 +23,6 @@ public:
 
     bool needPostproc() override { return true; }
 
-    ~PinObjectPlugin() = default;
-
 private:
     std::string ovName;
     ObjectVector* ov;

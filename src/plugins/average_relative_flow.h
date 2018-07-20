@@ -28,8 +28,6 @@ public:
 
     bool needPostproc() override { return true; }
 
-    ~AverageRelative3D() = default;
-
 private:
     ObjectVector* relativeOV{nullptr};
     std::string relativeOVname;

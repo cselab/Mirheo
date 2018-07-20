@@ -22,8 +22,6 @@ public:
 
     bool needPostproc() override { return false; }
 
-    ~ImposeProfilePlugin() = default;
-
 private:
     std::string pvName;
     ParticleVector* pv;

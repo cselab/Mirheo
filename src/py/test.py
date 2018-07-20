@@ -7,7 +7,7 @@ Created on Fri Jul  6 12:35:18 2018
 """
 
 import sys
-#sys.path.append('/home/amlucas/dimudx/build')
+sys.path.append('/home/alexeedm/udevicex/build')
 import udevicex as udx
 import numpy as np
 
@@ -22,7 +22,7 @@ dpd = udx.Interactions.DPD('dpd', a=10, gamma=10, dt=dt, kbt=1.0, rc=1, power=0.
 stats = udx.Plugins.createStats('st', 2)
 v = udx.Plugins.createAddForce('f', r, (0,0,1))
 
-#im = udx.Plugins.createImposeVelocity('nnn', r, 100, (0,0,0), (10,10,10), (1,1,1))
+im = udx.Plugins.createImposeVelocity('nnn', r, 100, (0,0,0), (10,10,10), (1,1,1))
 
 u.registerParticleVector(r, ic)
 u.registerPlugins(stats[0], stats[1])

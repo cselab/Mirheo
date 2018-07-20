@@ -20,9 +20,7 @@ public:
     void afterIntegration(cudaStream_t stream) override;
 
     bool needPostproc() override { return false; }
-
-    ~ImposeVelocityPlugin() = default;
-
+    
 private:
     std::string pvName;
     ParticleVector* pv;

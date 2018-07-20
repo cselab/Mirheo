@@ -37,8 +37,6 @@ public:
 
     bool needPostproc() override { return true; }
 
-    ~Average3D() = default;
-
 protected:
     std::string pvName;
     int nSamples;
