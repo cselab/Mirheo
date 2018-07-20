@@ -376,6 +376,12 @@ public:
         resize_anew(n);
     }
 
+    PinnedBuffer (const PinnedBuffer& b) :
+        capacity(0), _size(0), hostptr(nullptr), devptr(nullptr)
+    {
+        this->copy(b);
+    }
+
     /// To enable \c std::swap()
     PinnedBuffer (PinnedBuffer&& b)
     {
@@ -493,6 +499,18 @@ public:
         if (_size > 0)
         {
             CUDA_Check( cudaMemcpyAsync(devptr, cont.devPtr(), sizeof(T) * _size, cudaMemcpyDeviceToDevice, stream) );
+            memcpy(hostptr, cont.hostPtr(), sizeof(T) * _size);
+        }
+    }
+
+    /// synchronous copy
+    void copy(const PinnedBuffer<T>& cont)
+    {
+        resize_anew(cont.size());
+
+        if (_size > 0)
+        {
+            CUDA_Check( cudaMemcpy(devptr, cont.devPtr(), sizeof(T) * _size, cudaMemcpyDeviceToDevice) );
             memcpy(hostptr, cont.hostPtr(), sizeof(T) * _size);
         }
     }
