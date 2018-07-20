@@ -40,18 +40,18 @@ void exportPlugins(py::module& m)
     py::nodelete_class<ReportPinObjectPlugin>(m, "ReportPinObject", pypost);
     
     
-    m.def("createImposeVelocity", &PluginFactory::createImposeVelocityPlugin);
-    m.def("createTemperaturize", &PluginFactory::createTemperaturizePlugin);
-    m.def("createAddForce", &PluginFactory::createAddForcePlugin);
-    m.def("createAddTorquePlugin", &PluginFactory::createAddTorquePlugin);
-    m.def("createImposeProfilePlugin", &PluginFactory::createImposeProfilePlugin);
-    m.def("createWallRepulsionPlugin", &PluginFactory::createWallRepulsionPlugin);
-    m.def("createStats", &PluginFactory::createStatsPlugin);
-    m.def("createDumpAveragePlugin", &PluginFactory::createDumpAveragePlugin);
-    m.def("createDumpAverageRelativePlugin", &PluginFactory::createDumpAverageRelativePlugin);
-    m.def("createDumpXYZPlugin", &PluginFactory::createDumpXYZPlugin);
-    m.def("createDumpMeshPlugin", &PluginFactory::createDumpMeshPlugin);
-    m.def("createDumpObjPosition", &PluginFactory::createDumpObjPosition);
-    m.def("createPinObjPlugin", &PluginFactory::createPinObjPlugin);
+    m.def("__createImposeVelocity", &PluginFactory::createImposeVelocityPlugin);
+    m.def("__createTemperaturize", &PluginFactory::createTemperaturizePlugin);
+    m.def("__createAddForce", &PluginFactory::createAddForcePlugin);
+    m.def("__createAddTorquePlugin", &PluginFactory::createAddTorquePlugin);
+    m.def("__createImposeProfilePlugin", &PluginFactory::createImposeProfilePlugin);
+    m.def("__createWallRepulsionPlugin", &PluginFactory::createWallRepulsionPlugin);
+    m.def("__createStats", &PluginFactory::createStatsPlugin);
+    m.def("__createDumpAveragePlugin", &PluginFactory::createDumpAveragePlugin);
+    m.def("__createDumpAverageRelativePlugin", &PluginFactory::createDumpAverageRelativePlugin);
+    m.def("__createDumpXYZPlugin", &PluginFactory::createDumpXYZPlugin);
+    m.def("__createDumpMeshPlugin", &PluginFactory::createDumpMeshPlugin);
+    m.def("__createDumpObjPosition", &PluginFactory::createDumpObjPosition);
+    m.def("__createPinObjPlugin", &PluginFactory::createPinObjPlugin);
 }
 

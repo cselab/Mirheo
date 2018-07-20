@@ -91,30 +91,38 @@ uDeviceX::~uDeviceX() = default;
 
 void uDeviceX::registerParticleVector(ParticleVector* pv, InitialConditions* ic, int checkpointEvery)
 {
-    sim->registerParticleVector(std::unique_ptr<ParticleVector>   (pv),
-                                std::unique_ptr<InitialConditions>(ic),
-                                checkpointEvery);
+    if (isComputeTask())
+        sim->registerParticleVector(std::unique_ptr<ParticleVector>   (pv),
+                                    std::unique_ptr<InitialConditions>(ic),
+                                    checkpointEvery);
 }
 void uDeviceX::registerIntegrator(Integrator* integrator)
 {
-    sim->registerIntegrator(std::unique_ptr<Integrator>(integrator));
+    if (isComputeTask())
+        sim->registerIntegrator(std::unique_ptr<Integrator>(integrator));
 }
 void uDeviceX::registerInteraction(Interaction* interaction)
 {
-    sim->registerInteraction(std::unique_ptr<Interaction>(interaction));
+    if (isComputeTask())
+        sim->registerInteraction(std::unique_ptr<Interaction>(interaction));
 }
 void uDeviceX::registerWall(Wall* wall, int checkEvery)
 {
-    sim->registerWall(std::unique_ptr<Wall>(wall), checkEvery);
+    if (isComputeTask())
+        sim->registerWall(std::unique_ptr<Wall>(wall), checkEvery);
 }
 void uDeviceX::registerBouncer(Bouncer* bouncer)
 {
-    sim->registerBouncer(std::unique_ptr<Bouncer>(bouncer));
+    if (isComputeTask())
+        sim->registerBouncer(std::unique_ptr<Bouncer>(bouncer));
 }
 void uDeviceX::registerObjectBelongingChecker (ObjectBelongingChecker* checker, ObjectVector* ov)
 {
-    sim->registerObjectBelongingChecker(std::unique_ptr<ObjectBelongingChecker>(checker));
-    sim->setObjectBelongingChecker(checker->name, ov->name);
+    if (isComputeTask())
+    {
+        sim->registerObjectBelongingChecker(std::unique_ptr<ObjectBelongingChecker>(checker));
+        sim->setObjectBelongingChecker(checker->name, ov->name);
+    }
 }
 void uDeviceX::registerPlugins(SimulationPlugin* simPlugin, PostprocessPlugin* postPlugin)
 {
@@ -132,19 +140,23 @@ void uDeviceX::registerPlugins(SimulationPlugin* simPlugin, PostprocessPlugin* p
 
 void uDeviceX::setIntegrator(Integrator* integrator, ParticleVector* pv)
 {
-    sim->setIntegrator(integrator->name, pv->name);
+    if (isComputeTask())
+        sim->setIntegrator(integrator->name, pv->name);
 }
 void uDeviceX::setInteraction(Interaction* interaction, ParticleVector* pv1, ParticleVector* pv2)
 {
-    sim->setInteraction(interaction->name, pv1->name, pv2->name);
+    if (isComputeTask())
+        sim->setInteraction(interaction->name, pv1->name, pv2->name);
 }
 void uDeviceX::setBouncer(Bouncer* bouncer, ObjectVector* ov, ParticleVector* pv)
 {
-    sim->setBouncer(bouncer->name, ov->name, pv->name);
+    if (isComputeTask())
+        sim->setBouncer(bouncer->name, ov->name, pv->name);
 }
 void uDeviceX::setWallBounce(Wall* wall, ParticleVector* pv)
 {
-    sim->setWallBounce(wall->name, pv->name);
+    if (isComputeTask())
+        sim->setWallBounce(wall->name, pv->name);
 }
 
 ParticleVector* uDeviceX::applyObjectBelongingChecker(ObjectBelongingChecker* checker,
@@ -153,6 +165,8 @@ ParticleVector* uDeviceX::applyObjectBelongingChecker(ObjectBelongingChecker* ch
                                                 std::string inside,
                                                 std::string outside)
 {
+    if (!isComputeTask()) return nullptr;
+    
     if ( (inside != "" && outside != "") || (inside == "" && outside == "") )
         die("One and only one option can be specified for belonging checker '%s': inside or outside",
             checker->name.c_str());
