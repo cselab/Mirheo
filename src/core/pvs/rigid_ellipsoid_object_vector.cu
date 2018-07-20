@@ -11,7 +11,7 @@ RigidEllipsoidObjectVector::RigidEllipsoidObjectVector(
                         sqr(std::get<2>(axes)) + sqr(std::get<0>(axes)),
                         sqr(std::get<0>(axes)) + sqr(std::get<1>(axes)) ),
                 objSize,
-                std::make_unique<Mesh>(), // TODO: need to generate ellipsoid mesh
+                new Mesh(), // TODO: need to generate ellipsoid mesh
                 nObjects),
         axes(make_float3(axes))
 {    }
