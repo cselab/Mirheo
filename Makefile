@@ -1,17 +1,18 @@
 cmakecache=build/CMakeCache.txt
 
 build: $(cmakecache)
-	(cd build; make -j)
+	(cd build; udx.make -j)
 
 $(cmakecache):
 	mkdir -p build
-	(cd build; cmake ../)
+	(cd build; . udx.load; cmake ../)
 
 install:
-	pip3 install . --user --upgrade
+	(. udx.load; \
+	 pip3 install . --user --upgrade)
 
 test:
-	(cd tests; make test)
+	(cd tests; udx.make test)
 
 clean:; rm -rf build
 
