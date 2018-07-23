@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 
-from context import udevicex as udx
+import sys
+sys.path.insert(0, "..")
+from common.context import udevicex as udx
 
 dt = 0.001
 
@@ -27,6 +29,7 @@ u.registerPlugins(stats[0], stats[1])
 u.run(2000)
 
 # nTEST: dump.stats
-# udx.run -n 2 ./dump.stats.py > /dev/null
+# cd dump
+# udx.run -n 2 ./stats.py > /dev/null
 # cat stats.txt | awk '{print $1, $2, $3, $4, $5}' | uscale 10 > stats.out.txt
 

@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 
 import sys
-from context import udevicex as udx
+sys.path.insert(0, "..")
+from common.context import udevicex as udx
 import numpy as np
 
 dt = 0.001
@@ -33,5 +34,6 @@ u.registerPlugins(field[0], field[1])
 u.run(3)
 
 # nTEST: dump.h5
-# udx.run -n 2 ./dump.h5.py > /dev/null
+# cd dump
+# udx.run -n 2 ./h5.py > /dev/null
 # udx.avgh5 xz density h5/solvent-00000.h5 > profile.out.txt

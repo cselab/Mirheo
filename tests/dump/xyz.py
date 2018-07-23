@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 
-from context import udevicex as udx
+import sys
+sys.path.insert(0, "..")
+from common.context import udevicex as udx
 
 dt = 0.001
 
@@ -27,6 +29,7 @@ u.registerPlugins(xyz[0], xyz[1])
 u.run(2)
 
 # TEST: dump.xyz
-# udx.run -n 2 ./dump.xyz.py > /dev/null
+# cd dump
+# udx.run -n 2 ./xyz.py > /dev/null
 # cat xyz/pv_00000.xyz | sort > xyz.out.txt
 
