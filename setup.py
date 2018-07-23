@@ -52,7 +52,7 @@ setup(
     description='The in-silico lab-on-a-chip',
     long_description='',
     packages = ['udevicex'],
-    package_dir = {'udevicex' : 'src/py'},
+    package_dir = {'udevicex' : 'src/udevicex'},
     ext_modules=[CMakeExtension('udx', sourcedir='./')],
     cmdclass=dict(build_ext=CMakeBuild),
     zip_safe=False,

@@ -8,8 +8,11 @@ $(cmakecache):
 	(cd build; . udx.load; cmake ../)
 
 install:
-	(. udx.load; \
+	@(. udx.load; \
 	 pip3 install . --user --upgrade)
+
+uninstall:
+	pip3 uninstall udevicex
 
 test:
 	(cd tests; udx.make test)
