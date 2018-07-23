@@ -1,14 +1,8 @@
+INST_TARGETS = load load.falcon \
+               load.post load.post.falcon
+
 include ../config
-
-src = load load.falcon \
-      load.post load.post.falcon
-
-install: $(src)
-	@echo install $^ in $(BIN_PREFIX)
-	@mkdir -p $(BIN_PREFIX)
-	@for f in $(src); do                          \
-           cp "$$f" "$(BIN_PREFIX)/$(EXE_PREFIX).$$f"; \
-	done
+include ../make/common.mk
 
 %: %.in
 	sed "s/@EXE_PREFIX@/$(EXE_PREFIX)/" $< > $@

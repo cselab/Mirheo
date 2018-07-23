@@ -1,13 +1,7 @@
+INST_TARGETS = run
+
 include ../config
-
-src = run
-
-install: $(src)
-	@echo install $^ in $(BIN_PREFIX)
-	@mkdir -p $(BIN_PREFIX)
-	@for f in $(src); do                          \
-           cp "$$f" "$(BIN_PREFIX)/$(EXE_PREFIX).$$f"; \
-	done
+include ../make/common.mk
 
 %: %.in
 	sed "s/@EXE_PREFIX@/$(EXE_PREFIX)/" $< | \
