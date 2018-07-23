@@ -1,6 +1,7 @@
 include ../config
 
-src = load load.falcon
+src = load load.falcon \
+      load.post load.post.falcon
 
 install: $(src)
 	@echo install $^ in $(BIN_PREFIX)
@@ -9,5 +10,5 @@ install: $(src)
            cp "$$f" "$(BIN_PREFIX)/$(EXE_PREFIX).$$f"; \
 	done
 
-load: load.in
+%: %.in
 	sed "s/@EXE_PREFIX@/$(EXE_PREFIX)/" $< > $@
