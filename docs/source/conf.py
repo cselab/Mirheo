@@ -68,8 +68,8 @@ on_rtd = os.environ.get('READTHEDOCS', None) == 'True'
 if on_rtd:
     subprocess.call('cd ..; doxygen', shell=True)
     
-    src = glob.glob('source/user/*.rst')
-    gen = glob.glob('source/user/*.rst.gen')
+    src = glob.glob('user/*.rst')
+    gen = glob.glob('user/*.rst.gen')
 
     for s in src:
         os.rename(s, s+'.bak')
