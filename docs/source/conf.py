@@ -1,4 +1,4 @@
-import sys, os, subprocess
+import sys, os, subprocess, glob
 
 extensions = ['breathe', 'sphinx.ext.mathjax', 'sphinx.ext.autodoc', 'sphinx.ext.napoleon']
 
@@ -67,3 +67,13 @@ on_rtd = os.environ.get('READTHEDOCS', None) == 'True'
 
 if on_rtd:
     subprocess.call('cd ..; doxygen', shell=True)
+    
+    src = glob.glob('source/user/*.rst')
+    gen = glob.glob('source/user/*.rst.gen')
+
+    for s in src:
+        os.rename(s, s+'.bak')
+        
+    for g in gen:
+        os.rename(g, g[:-4])
+
