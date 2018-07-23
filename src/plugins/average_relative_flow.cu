@@ -85,6 +85,11 @@ void AverageRelative3D::setup(Simulation* sim, const MPI_Comm& comm, const MPI_C
 
 void AverageRelative3D::afterIntegration(cudaStream_t stream)
 {
+    enum {
+        TAG = 22,
+        NCOMPONENTS = 2 * sizeof(float3) / sizeof(float)
+    };
+    
     if (currentTimeStep % sampleEvery != 0 || currentTimeStep == 0) return;
 
     debug2("Plugin %s is sampling now", name.c_str());
@@ -93,7 +98,7 @@ void AverageRelative3D::afterIntegration(cudaStream_t stream)
 
     // Find and broadcast the position and velocity of the relative object
     MPI_Request req;
-    MPI_Check( MPI_Irecv(relativeParams, 6, MPI_FLOAT, MPI_ANY_SOURCE, 22, comm, &req) );
+    MPI_Check( MPI_Irecv(relativeParams, NCOMPONENTS, MPI_FLOAT, MPI_ANY_SOURCE, TAG, comm, &req) );
 
     auto ids     = relativeOV->local()->extraPerObject.getData<int>("ids");
     auto motions = relativeOV->local()->extraPerObject.getData<RigidMotion>("motions");
@@ -111,7 +116,7 @@ void AverageRelative3D::afterIntegration(cudaStream_t stream)
             params[0] = sim->domain.local2global(params[0]);
 
             for (int r = 0; r < nranks; r++)
-                MPI_Send(&params, 6, MPI_FLOAT, r, 22, comm);
+                MPI_Send(&params, NCOMPONENTS, MPI_FLOAT, r, TAG, comm);
 
             break;
         }
