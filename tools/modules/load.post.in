@@ -1,0 +1,14 @@
+#! /bin/sh
+
+EXE_PREFIX=@EXE_PREFIX@
+
+case `hostname` in
+    falcon*|panda*)
+        . $EXE_PREFIX.load.post.falcon
+	;;
+    daint*)
+	. $EXE_PREFIX.load.post.daint
+	;;
+    *)
+	
+esac

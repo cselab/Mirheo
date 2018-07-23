@@ -1,7 +1,6 @@
 include ../config
 
-src = load load.falcon \
-      load.post load.post.falcon
+src = avgh5 avgh5.py
 
 install: $(src)
 	@echo install $^ in $(BIN_PREFIX)
@@ -10,5 +9,11 @@ install: $(src)
            cp "$$f" "$(BIN_PREFIX)/$(EXE_PREFIX).$$f"; \
 	done
 
-%: %.in
+avgh5: avgh5.in
 	sed "s/@EXE_PREFIX@/$(EXE_PREFIX)/" $< > $@
+	chmod +x $@
+
+test:
+	@atest `find test -type f`
+
+.PHONY: install test
