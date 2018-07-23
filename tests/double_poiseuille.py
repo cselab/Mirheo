@@ -24,14 +24,11 @@ vv = udx.Integrators.VelocityVerlet_withPeriodicForce('vv', dt=dt, force=a, dire
 u.registerIntegrator(vv)
 u.setIntegrator(vv, pv)
 
-stats = udx.Plugins.createStats('diagnostics', 1000)
-
 sampleEvery = 2
 dumpEvery   = 1000
 binSize     = (1., 1., 1.)
 
 field = udx.Plugins.createDumpAverage('field', pv, sampleEvery, dumpEvery, binSize, [("velocity", "vector_from_float8")], 'h5/solvent-')
-u.registerPlugins(stats[0], stats[1])
 u.registerPlugins(field[0], field[1])
 
 u.run(3002)

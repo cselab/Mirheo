@@ -1,2 +1,2 @@
 test:
-	atest `find . -name *.py`
+	atest `find . -name "*.py"`
