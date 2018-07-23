@@ -1,0 +1,7 @@
+#! /bin/sh
+
+EXE_PREFIX=@EXE_PREFIX@
+
+. $EXE_PREFIX.load
+
+exec make "$@"
