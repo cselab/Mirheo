@@ -1,5 +1,9 @@
 #!/bin/sh
 
+P=udx
+prefix=${HOME}/bin
+runcmd=mpiexec
+
 usg() {
     cat <<EOF
 usage: configure [OPTION]
@@ -7,7 +11,9 @@ usage: configure [OPTION]
 Options:
 
   --bin-prefix <prefix>      set tools installation prefix;
-  	   		     default: ${HOME}/bin
+  	   		     default: ${prefix}
+  --exec-cmd   <cmd>         set run command for udevicex;
+  	   		     default: ${runcmd}
   --help                     print help message
 
 EOF
@@ -22,15 +28,16 @@ RUN_CMD=$runcmd
 EOF
 }
 
-P=udx
-prefix=${HOME}/bin
-runcmd=mpiexec
 
 while test $# -gt 0; do
     case "$1" in
 	--bin-prefix)
 	    shift
 	    prefix="$1"
+	    ;;
+	--exec-cmd)
+	    shift
+	    runcmd="$1"
 	    ;;
 	--help)
 	    usg
