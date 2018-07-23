@@ -11,7 +11,7 @@ def fopen(fname):
     try:
         f = h5.File(fname, "r")
     except IOError:
-        err("u.avgh5: fails to open <%s>\n" % n)
+        err("u.avgh5: fails to open <%s>\n" % fname)
         sys.exit(2)
     return f
 
