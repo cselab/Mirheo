@@ -79,10 +79,10 @@ namespace PluginFactory
 
 
     static std::pair< SimulationStats*, PostprocessStats* >
-        createStatsPlugin(bool computeTask, std::string name, int every)
+        createStatsPlugin(bool computeTask, std::string name, std::string filename, int every)
     {
         auto simPl  = computeTask ? new SimulationStats(name, every) : nullptr;
-        auto postPl = computeTask ? nullptr :new PostprocessStats(name);
+        auto postPl = computeTask ? nullptr :new PostprocessStats(name, filename);
 
         return { simPl, postPl };
     }

@@ -82,7 +82,7 @@ void SimulationStats::serializeAndSend(cudaStream_t stream)
     }
 }
 
-PostprocessStats::PostprocessStats(std::string name) :
+PostprocessStats::PostprocessStats(std::string name, std::string filename) :
         PostprocessPlugin(name)
 {
     if (std::is_same<ReductionType, float>::value)
@@ -91,6 +91,14 @@ PostprocessStats::PostprocessStats(std::string name) :
         mpiReductionType = MPI_DOUBLE;
     else
         die("Incompatible type");
+
+    fdump = fopen(filename.c_str(), "w");
+    if (!fdump) die("could not open '%s'", filename.c_str());
+    fprintf(fdump, "# t kBT vx vy vz max(v)\n");
+}
+
+PostprocessStats::~PostprocessStats() {
+    fclose(fdump);
 }
 
 void PostprocessStats::deserialize(MPI_Status& stat)
@@ -123,6 +131,9 @@ void PostprocessStats::deserialize(MPI_Status& stat)
         printf("\tAverage momentum: [%e %e %e]\n", momentum[0], momentum[1], momentum[2]);
         printf("\tMax velocity magnitude: %f\n", maxvel[0]);
         printf("\tTemperature: %.4f\n\n", temperature);
+
+        fprintf(fdump, "%g %g %g %g %g %g\n", currentTime,
+                temperature, momentum[0], momentum[1], momentum[2], maxvel[0]);
     }
 }
 

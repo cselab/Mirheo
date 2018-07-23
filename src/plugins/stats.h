@@ -39,9 +39,11 @@ class PostprocessStats : public PostprocessPlugin
 private:
     std::vector<Particle> coosvels;
     MPI_Datatype mpiReductionType;
+    FILE *fdump;
 
 public:
-    PostprocessStats(std::string name);
+    PostprocessStats(std::string name, std::string filename);
+    ~PostprocessStats();
 
     void deserialize(MPI_Status& stat) override;
 };
