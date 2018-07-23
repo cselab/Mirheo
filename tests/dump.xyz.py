@@ -27,6 +27,6 @@ u.registerPlugins(xyz[0], xyz[1])
 u.run(2)
 
 # TEST: dump.xyz
-# udx.run -n 2 ./dump.xyz.py
+# udx.run -n 2 ./dump.xyz.py > /dev/null
 # cat xyz/pv_00000.xyz | sort > xyz.out.txt
 

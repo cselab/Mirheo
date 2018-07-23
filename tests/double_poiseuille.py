@@ -34,5 +34,5 @@ u.registerPlugins(field[0], field[1])
 u.run(3002)
 
 # nTEST: double_poiseuille
-# udx.run -n 2 ./double_poiseuille.py
+# udx.run -n 2 ./double_poiseuille.py > /dev/null
 # udx.avgh5 xz velocity h5/solvent-00002.h5 | awk '{print $1}' > profile.out.txt

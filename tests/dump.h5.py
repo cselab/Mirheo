@@ -33,5 +33,5 @@ u.registerPlugins(field[0], field[1])
 u.run(3)
 
 # nTEST: dump.h5
-# udx.run -n 2 ./dump.h5.py
+# udx.run -n 2 ./dump.h5.py > /dev/null
 # udx.avgh5 xz density h5/solvent-00000.h5 > profile.out.txt
