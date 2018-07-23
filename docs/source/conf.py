@@ -1,8 +1,5 @@
 import sys, os, subprocess
 
-import sys
-sys.path.append('/home/alexeedm/udevicex/build')
-
 extensions = ['breathe', 'sphinx.ext.mathjax', 'sphinx.ext.autodoc', 'sphinx.ext.napoleon']
 
 #autosummary_generate = True
@@ -31,7 +28,7 @@ html_theme = 'sphinx_rtd_theme'
 html_theme_path = ["_themes",]
 import sphinx_rtd_theme
 html_theme_path = [sphinx_rtd_theme.get_html_theme_path()]
-html_title = "uDevicex"
+html_title = "uDeviceX"
 
 
 # If false, no module index is generated.

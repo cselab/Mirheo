@@ -9,4 +9,4 @@ Initial conditions (IC) have to be defined for every Particle Vector
    :members:
    :show-inheritance:
    :undoc-members:
-   :special-members: __init__
+   :special-members: __init__ 
