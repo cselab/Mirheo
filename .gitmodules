@@ -1,6 +1,6 @@
 [submodule "src/extern/pybind11"]
 	path = src/extern/pybind11
-	url = git@github.com:dimaleks/pybind11.git
+	url = https://github.com/dimaleks/pybind11.git
 [submodule "src/extern/cub"]
 	path = src/extern/cub
-	url = git@github.com:NVlabs/cub.git
+	url = https://github.com/NVlabs/cub.git

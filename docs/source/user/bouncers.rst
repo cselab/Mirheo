@@ -18,12 +18,3 @@ This force is saved for the next timestep.
    :undoc-members:
    :special-members: __init__
    
-   
-   
-   
-   
-   
-   
-   
-   
-   

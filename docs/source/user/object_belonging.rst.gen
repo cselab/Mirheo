@@ -1,0 +1,68 @@
+.. _user-belongers:
+
+Object belonging checkers
+#########################
+
+
+Object belonging checkers serve two purpooses.
+Firstly, they are used to split a particle vector into two disjointed parts (probably forming a new Particle Vector):
+the particles that are *inside* any object of the given Object Vector and the particles that are *outside*.
+Secondly, they are used to maintain the mentioned *inside*-*outside* property of the particles in the resulting Particle Vectors.
+
+.. comment _udevicex.BelongingCheckers
+   :members:
+   :show-inheritance:
+   :undoc-members:
+   :special-members: __init__
+
+
+
+ 
+
+.. py:module:: _udevicex.BelongingCheckers
+
+
+.. py:class:: BelongingChecker
+   :module: _udevicex.BelongingCheckers
+
+   Bases: :class:`pybind11_builtins.pybind11_object`
+
+Base class for checking if particles belong to objects
+
+
+.. py:attribute:: BelongingChecker.__init__
+   :module: _udevicex.BelongingCheckers
+
+Initialize self.  See help(type(self)) for accurate signature.
+
+.. py:class:: Ellipsoid
+   :module: _udevicex.BelongingCheckers
+
+   Bases: :class:`_udevicex.BelongingCheckers.BelongingChecker`
+
+
+.. py:method:: Ellipsoid.__init__(self: _udevicex.BelongingCheckers.Ellipsoid, name: str) -> None
+   :module: _udevicex.BelongingCheckers
+
+This checker will use the analytical representation of the ellipsoid to detect *inside*-*outside* status.
+
+:param name: name of the checker
+
+
+.. py:class:: Mesh
+   :module: _udevicex.BelongingCheckers
+
+   Bases: :class:`_udevicex.BelongingCheckers.BelongingChecker`
+
+
+.. py:method:: Mesh.__init__(self: _udevicex.BelongingCheckers.Mesh, name: str) -> None
+   :module: _udevicex.BelongingCheckers
+
+This checker will use the triangular mesh associated with objects to detect *inside*-*outside* status.
+
+.. note:
+    Checking if particles are inside or outside the mesh is a computationally expensive task,
+    so it's best to perform checks at most every 1'000 - 10'000 time-steps.
+
+:param name: name of the checker
+

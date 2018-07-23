@@ -1,7 +1,4 @@
-import sys, os, subprocess
-
-import sys
-sys.path.append('/home/alexeedm/udevicex/build')
+import sys, os, subprocess, glob
 
 extensions = ['breathe', 'sphinx.ext.mathjax', 'sphinx.ext.autodoc', 'sphinx.ext.napoleon']
 
@@ -31,7 +28,7 @@ html_theme = 'sphinx_rtd_theme'
 html_theme_path = ["_themes",]
 import sphinx_rtd_theme
 html_theme_path = [sphinx_rtd_theme.get_html_theme_path()]
-html_title = "uDevicex"
+html_title = "uDeviceX"
 
 
 # If false, no module index is generated.
@@ -70,3 +67,13 @@ on_rtd = os.environ.get('READTHEDOCS', None) == 'True'
 
 if on_rtd:
     subprocess.call('cd ..; doxygen', shell=True)
+    
+    src = glob.glob('user/*.rst')
+    gen = glob.glob('user/*.rst.gen')
+
+    for s in src:
+        os.rename(s, s+'.bak')
+        
+    for g in gen:
+        os.rename(g, g[:-4])
+
