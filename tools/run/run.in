@@ -1,0 +1,8 @@
+#! /bin/sh
+
+EXE_PREFIX=@EXE_PREFIX@
+RUN_CMD=@RUN_CMD@
+
+. $EXE_PREFIX.load
+
+exec $RUN_CMD "$@"
