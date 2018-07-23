@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
 
 import sys
-import udevicex as udx
+from context import udevicex as udx
 import numpy as np
 
 dt = 0.001
 
 ranks  = (1, 1, 1)
 domain = (8, 16, 8)
-a = 0.1
+a = 1
 
 u = udx.initialize(ranks, domain, debug_level=2, log_filename='log')
 
@@ -30,13 +30,12 @@ sampleEvery = 2
 dumpEvery   = 1000
 binSize     = (1., 1., 1.)
 
-field = udx.Plugins.createDumpAverage('field', pv, sampleEvery, dumpEvery, binSize, [("velocity", "vector_from_float8")], './h5/')
+field = udx.Plugins.createDumpAverage('field', pv, sampleEvery, dumpEvery, binSize, [("velocity", "vector_from_float8")], 'h5/solvent-')
 u.registerPlugins(stats[0], stats[1])
 u.registerPlugins(field[0], field[1])
 
-u.run(2002)
+u.run(3002)
 
-# sTEST: double_poiseuille
-# mkdir -p h5
+# nTEST: double_poiseuille
 # mpirun -n 2 ./double_poiseuille.py
-# u.avgh5 0 vx 1 h5/00001.h5 > profile.out.txt
+# udx.avgh5 xz velocity h5/solvent-00002.h5 | awk '{print $1}' > profile.out.txt
