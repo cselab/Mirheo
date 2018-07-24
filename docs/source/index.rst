@@ -29,20 +29,31 @@ as well as exposing code internals for the developers wishing to contribute to t
    :caption: User guide
    
    user/user
+   user/installation
+   user/benchmarks
+   user/particle_vectors
+   user/bouncers
+   user/coordinator
+   user/initial_conditions
+   user/integrators
+   user/interactions
+   user/object_belonging
+   user/plugins
+   user/walls
 
    
-// .. toctree::
-//    :maxdepth: 1
-//    :caption: Developer documentation
-// 
-//    developer/overview
-//    developer/basic_types
-//    developer/coordinators/coordinators
-//    developer/particle_vectors/particle_vectors
-//    developer/mpi/mpi
-//    developer/handlers/handlers
-//    developer/plugins/plugins
-//    
-// ..   views
-// ..   parser
-// ..   misc
+.. ..toctree::
+..    :maxdepth: 1
+..    :caption: Developer documentation
+.. 
+..    developer/overview
+..    developer/basic_types
+..    developer/coordinators/coordinators
+..    developer/particle_vectors/particle_vectors
+..    developer/mpi/mpi
+..    developer/handlers/handlers
+..    developer/plugins/plugins
+
+
+
+

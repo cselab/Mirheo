@@ -6,7 +6,7 @@ endif()
 
 project(uDeviceX LANGUAGES C CXX CUDA)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake")
-set(UDX "_udevicex")
+set(UDX "libudevicex")
 
 # Add the pybind11
 add_subdirectory(src/extern/pybind11)

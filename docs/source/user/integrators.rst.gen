@@ -8,7 +8,7 @@ Integrators are used to advance particle coordinates and velocities in time acco
 .. note:
    For now all the integrators in the simulation must use the same timestep
 
-.. comment _udevicex.Integrators
+.. comment libudevicex.Integrators
    :members:
    :show-inheritance:
    :undoc-members:
@@ -16,33 +16,34 @@ Integrators are used to advance particle coordinates and velocities in time acco
       
  
 
-.. py:module:: _udevicex.Integrators
+.. py:module:: libudevicex.Integrators
 
 
-.. py:class:: Integrator
-   :module: _udevicex.Integrators
+.. py:class:: Integrator(*args, **kwargs)
+   :module: libudevicex.Integrators
 
    Bases: :class:`pybind11_builtins.pybind11_object`
 
 Base integration class
 
 
-.. py:attribute:: Integrator.__init__
-   :module: _udevicex.Integrators
+.. py:method:: Integrator.__init__(*args, **kwargs)
+   :module: libudevicex.Integrators
 
 Initialize self.  See help(type(self)) for accurate signature.
 
+
 .. py:class:: Oscillate
-   :module: _udevicex.Integrators
+   :module: libudevicex.Integrators
 
-   Bases: :class:`_udevicex.Integrators.Integrator`
-
-
-.. py:method:: Oscillate.__init__(self: _udevicex.Integrators.Oscillate, name: str, dt: float, velocity: Tuple[float, float, float], period: float) -> None
-   :module: _udevicex.Integrators
+   Bases: :class:`libudevicex.Integrators.Integrator`
 
 Move particles with the periodically changing velocity
 :math:`\mathbf{u}(t) = \cos(2 \pi \, t / T) \mathbf{u}_0`
+
+
+.. py:method:: Oscillate.__init__(self: libudevicex.Integrators.Oscillate, name: str, dt: float, velocity: Tuple[float, float, float], period: float) -> None
+   :module: libudevicex.Integrators
 
 :param name: name of the integrator
 :param dt: integration time-step
@@ -51,31 +52,31 @@ Move particles with the periodically changing velocity
 
 
 .. py:class:: RigidVelocityVerlet
-   :module: _udevicex.Integrators
+   :module: libudevicex.Integrators
 
-   Bases: :class:`_udevicex.Integrators.Integrator`
-
-
-.. py:method:: RigidVelocityVerlet.__init__(self: _udevicex.Integrators.RigidVelocityVerlet, name: str, dt: float) -> None
-   :module: _udevicex.Integrators
+   Bases: :class:`libudevicex.Integrators.Integrator`
 
 Integrate the position and rotation (in terms of quaternions) of the rigid bodies as per Velocity-Verlet scheme.
 Can only applied to :class:`RigidObjectVector` or :class:`RigidEllipsoidObjectVector`.
+
+
+.. py:method:: RigidVelocityVerlet.__init__(self: libudevicex.Integrators.RigidVelocityVerlet, name: str, dt: float) -> None
+   :module: libudevicex.Integrators
 
 :param name: name of the integrator
 :param dt: integration time-step
 
 
 .. py:class:: Rotate
-   :module: _udevicex.Integrators
+   :module: libudevicex.Integrators
 
-   Bases: :class:`_udevicex.Integrators.Integrator`
-
-
-.. py:method:: Rotate.__init__(self: _udevicex.Integrators.Rotate, name: str, dt: float, center: Tuple[float, float, float], omega: Tuple[float, float, float]) -> None
-   :module: _udevicex.Integrators
+   Bases: :class:`libudevicex.Integrators.Integrator`
 
 Rotate particles around the specified point in space with a constant angular velocity :math:`\mathbf{\Omega}`
+
+
+.. py:method:: Rotate.__init__(self: libudevicex.Integrators.Rotate, name: str, dt: float, center: Tuple[float, float, float], omega: Tuple[float, float, float]) -> None
+   :module: libudevicex.Integrators
 
 :param name: name of the integrator
 :param dt: integration time-step
@@ -84,15 +85,15 @@ Rotate particles around the specified point in space with a constant angular vel
 
 
 .. py:class:: Translate
-   :module: _udevicex.Integrators
+   :module: libudevicex.Integrators
 
-   Bases: :class:`_udevicex.Integrators.Integrator`
-
-
-.. py:method:: Translate.__init__(self: _udevicex.Integrators.Translate, name: str, dt: float, velocity: Tuple[float, float, float]) -> None
-   :module: _udevicex.Integrators
+   Bases: :class:`libudevicex.Integrators.Integrator`
 
 Translate particles with a constant velocity :math:`\mathbf{u}` regardless forces acting on them.
+
+
+.. py:method:: Translate.__init__(self: libudevicex.Integrators.Translate, name: str, dt: float, velocity: Tuple[float, float, float]) -> None
+   :module: libudevicex.Integrators
 
 :param name: name of the integrator
 :param dt: integration time-step
@@ -100,13 +101,9 @@ Translate particles with a constant velocity :math:`\mathbf{u}` regardless force
 
 
 .. py:class:: VelocityVerlet
-   :module: _udevicex.Integrators
+   :module: libudevicex.Integrators
 
-   Bases: :class:`_udevicex.Integrators.Integrator`
-
-
-.. py:method:: VelocityVerlet.__init__(self: _udevicex.Integrators.VelocityVerlet, name: str, dt: float) -> None
-   :module: _udevicex.Integrators
+   Bases: :class:`libudevicex.Integrators.Integrator`
 
 Classical Velocity-Verlet integrator with fused steps for coordinates and velocities.
 The velocities are shifted with respect to the coordinates by one half of the time-step
@@ -119,18 +116,18 @@ The velocities are shifted with respect to the coordinates by one half of the ti
 
 where bold symbol means a vector, :math:`m` is a particle mass, and superscripts denote the time: :math:`\mathbf{x}^{k} = \mathbf{x}(k \, \Delta t)`
 
+
+.. py:method:: VelocityVerlet.__init__(self: libudevicex.Integrators.VelocityVerlet, name: str, dt: float) -> None
+   :module: libudevicex.Integrators
+
 :param name: name of the integrator
 :param dt: integration time-step
 
 
 .. py:class:: VelocityVerlet_withConstForce
-   :module: _udevicex.Integrators
+   :module: libudevicex.Integrators
 
-   Bases: :class:`_udevicex.Integrators.Integrator`
-
-
-.. py:method:: VelocityVerlet_withConstForce.__init__(self: _udevicex.Integrators.VelocityVerlet_withConstForce, name: str, dt: float, force: Tuple[float, float, float]) -> None
-   :module: _udevicex.Integrators
+   Bases: :class:`libudevicex.Integrators.Integrator`
 
 Same as regular :class:`VelocityVerlet`, but the forces on all the particles are modified with the constant pressure term:
 
@@ -139,25 +136,27 @@ Same as regular :class:`VelocityVerlet`, but the forces on all the particles are
     \mathbf{a}^{n} &= \frac{1}{m} \left( \mathbf{F}(\mathbf{x}^{n}, \mathbf{v}^{n-1/2}) + \mathbf{F}_{extra} \right) \\
 
 
+.. py:method:: VelocityVerlet_withConstForce.__init__(self: libudevicex.Integrators.VelocityVerlet_withConstForce, name: str, dt: float, force: Tuple[float, float, float]) -> None
+   :module: libudevicex.Integrators
+
 :param name: name of the integrator
 :param dt: integration time-step
 :param force: :math:`\mathbf{F}_{extra}`
 
 
 .. py:class:: VelocityVerlet_withPeriodicForce
-   :module: _udevicex.Integrators
+   :module: libudevicex.Integrators
 
-   Bases: :class:`_udevicex.Integrators.Integrator`
-
-
-.. py:method:: VelocityVerlet_withPeriodicForce.__init__(self: _udevicex.Integrators.VelocityVerlet_withPeriodicForce, name: str, dt: float, force: float, direction: str) -> None
-   :module: _udevicex.Integrators
+   Bases: :class:`libudevicex.Integrators.Integrator`
 
 Same as regular Velocity-Verlet, but the forces on all the particles are modified with periodic Poiseuille term.
 This means that all the particles in half domain along certain axis (Ox, Oy or Oz) are pushed with force
 :math:`F_{Poiseuille}` parallel to Oy, Oz or Ox correspondingly, and the particles in another half of the domain are pushed in the same direction
 with force :math:`-F_{Poiseuille}`
 
+
+.. py:method:: VelocityVerlet_withPeriodicForce.__init__(self: libudevicex.Integrators.VelocityVerlet_withPeriodicForce, name: str, dt: float, force: float, direction: str) -> None
+   :module: libudevicex.Integrators
 
 :param name: name of the integrator
 :param dt: integration time-step

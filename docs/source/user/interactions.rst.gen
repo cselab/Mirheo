@@ -6,7 +6,7 @@ Interactions
 Interactions are used to calculate forces on individual particles due to their neighbours.
 Pairwise short-range interactions are currently supported, and membrane forces
 
-.. comment _udevicex.Interactions
+.. comment libudevicex.Interactions
    :members:
    :show-inheritance:
    :undoc-members:
@@ -14,17 +14,13 @@ Pairwise short-range interactions are currently supported, and membrane forces
       
  
 
-.. py:module:: _udevicex.Interactions
+.. py:module:: libudevicex.Interactions
 
 
 .. py:class:: DPD
-   :module: _udevicex.Interactions
+   :module: libudevicex.Interactions
 
-   Bases: :class:`_udevicex.Interactions.Interaction`
-
-
-.. py:method:: DPD.__init__(self: _udevicex.Interactions.DPD, name: str, rc: float, a: float, gamma: float, kbt: float, dt: float, power: float) -> None
-   :module: _udevicex.Interactions
+   Bases: :class:`libudevicex.Interactions.Interaction`
 
 Pairwise interaction with conservative part and dissipative + random part acting as a thermostat, see https://aip.scitation.org/doi/abs/10.1063/1.474784
 
@@ -46,6 +42,10 @@ that we define as follows:
 
     w(r) = \begin{cases} (1-r)^{p}, & r < 1 \\ 0, & r \geqslant 1 \end{cases}
 
+
+.. py:method:: DPD.__init__(self: libudevicex.Interactions.DPD, name: str, rc: float, a: float, gamma: float, kbt: float, dt: float, power: float) -> None
+   :module: libudevicex.Interactions
+
 :param name: name of the interaction
 :param rc: interaction cut-off (no forces between particles further than **rc** apart)
 :param a: :math:`a`
@@ -55,33 +55,30 @@ that we define as follows:
 :param power: :math:`p` in the weight function
 
 
-.. py:method:: DPD.setSpecificPair(self: _udevicex.Interactions.DPD, pv1: _udevicex.ParticleVectors.ParticleVector, pv2: _udevicex.ParticleVectors.ParticleVector, a: float, gamma: float, kbt: float, dt: float, power: float) -> None
-   :module: _udevicex.Interactions
+.. py:method:: DPD.setSpecificPair(self: libudevicex.Interactions.DPD, pv1: libudevicex.ParticleVectors.ParticleVector, pv2: libudevicex.ParticleVectors.ParticleVector, a: float, gamma: float, kbt: float, dt: float, power: float) -> None
+   :module: libudevicex.Interactions
 
 Override some of the interaction parameters for a specific pair of Particle Vectors
 
 
-.. py:class:: Interaction
-   :module: _udevicex.Interactions
+.. py:class:: Interaction(*args, **kwargs)
+   :module: libudevicex.Interactions
 
    Bases: :class:`pybind11_builtins.pybind11_object`
 
-hello
+Base interaction class
 
 
-.. py:attribute:: Interaction.__init__
-   :module: _udevicex.Interactions
+.. py:method:: Interaction.__init__(*args, **kwargs)
+   :module: libudevicex.Interactions
 
 Initialize self.  See help(type(self)) for accurate signature.
 
+
 .. py:class:: LJ
-   :module: _udevicex.Interactions
+   :module: libudevicex.Interactions
 
-   Bases: :class:`_udevicex.Interactions.Interaction`
-
-
-.. py:method:: LJ.__init__(self: _udevicex.Interactions.LJ, name: str, rc: float, epsilon: float, sigma: float, max_force: float, object_aware: bool) -> None
-   :module: _udevicex.Interactions
+   Bases: :class:`libudevicex.Interactions.Interaction`
 
 Pairwise interaction according to the classical Lennard-Jones potential `http://rspa.royalsocietypublishing.org/content/106/738/463`
 The force however is truncated such that it is *always repulsive*.
@@ -89,6 +86,11 @@ The force however is truncated such that it is *always repulsive*.
 .. math::
 
     \mathbf{F}_{ij} = \max \left[ 0.0, 24 \epsilon \left( 2\left( \frac{\sigma}{r_{ij}} \right)^{14} - \left( \frac{\sigma}{r_{ij}} \right)^{8} \right) \right]
+
+
+
+.. py:method:: LJ.__init__(self: libudevicex.Interactions.LJ, name: str, rc: float, epsilon: float, sigma: float, max_force: float, object_aware: bool) -> None
+   :module: libudevicex.Interactions
 
 :param name: name of the interaction
 :param rc: interaction cut-off (no forces between particles further than **rc** apart)
@@ -99,84 +101,87 @@ The force however is truncated such that it is *always repulsive*.
                      That restriction only applies if both Particle Vectors in the interactions are the same and is actually an Object Vector.
 
 
-.. py:method:: LJ.setSpecificPair(self: _udevicex.Interactions.LJ, pv1: _udevicex.ParticleVectors.ParticleVector, pv2: _udevicex.ParticleVectors.ParticleVector, epsilon: float, sigma: float, maxForce: float) -> None
-   :module: _udevicex.Interactions
+.. py:method:: LJ.setSpecificPair(self: libudevicex.Interactions.LJ, pv1: libudevicex.ParticleVectors.ParticleVector, pv2: libudevicex.ParticleVectors.ParticleVector, epsilon: float, sigma: float, maxForce: float) -> None
+   :module: libudevicex.Interactions
 
 Override some of the interaction parameters for a specific pair of Particle Vectors
 
 
 .. py:class:: MembraneForces
-   :module: _udevicex.Interactions
+   :module: libudevicex.Interactions
 
-   Bases: :class:`_udevicex.Interactions.Interaction`
+   Bases: :class:`libudevicex.Interactions.Interaction`
+
+Mesh-based forces acting on a membrane according to the model in PUT LINK
 
 
-.. py:method:: MembraneForces.__init__(self: _udevicex.Interactions.MembraneForces, name: str, params: _udevicex.Interactions.MembraneParameters, stressFree: bool, growUntilTime: float = 0) -> None
-   :module: _udevicex.Interactions
+.. py:method:: MembraneForces.__init__(self: libudevicex.Interactions.MembraneForces, name: str, params: libudevicex.Interactions.MembraneParameters, stressFree: bool, growUntilTime: float = 0) -> None
+   :module: libudevicex.Interactions
 
-Mesh-based forces acting on a membrane according to the model in LINK
+TODO
+
 
 
 .. py:class:: MembraneParameters
-   :module: _udevicex.Interactions
+   :module: libudevicex.Interactions
 
    Bases: :class:`pybind11_builtins.pybind11_object`
 
 
-.. py:method:: MembraneParameters.__init__(self: _udevicex.Interactions.MembraneParameters) -> None
-   :module: _udevicex.Interactions
+.. py:method:: MembraneParameters.__init__(self: libudevicex.Interactions.MembraneParameters) -> None
+   :module: libudevicex.Interactions
 
 Structure keeping parameters of the membrane interaction
 
 
 .. py:attribute:: MembraneParameters.gammaC
-   :module: _udevicex.Interactions
+   :module: libudevicex.Interactions
 
 
 .. py:attribute:: MembraneParameters.gammaT
-   :module: _udevicex.Interactions
+   :module: libudevicex.Interactions
 
 
 .. py:attribute:: MembraneParameters.ka
-   :module: _udevicex.Interactions
+   :module: libudevicex.Interactions
 
 
 .. py:attribute:: MembraneParameters.kb
-   :module: _udevicex.Interactions
+   :module: libudevicex.Interactions
 
 
 .. py:attribute:: MembraneParameters.kbT
-   :module: _udevicex.Interactions
+   :module: libudevicex.Interactions
 
 
 .. py:attribute:: MembraneParameters.kd
-   :module: _udevicex.Interactions
+   :module: libudevicex.Interactions
 
 
 .. py:attribute:: MembraneParameters.kv
-   :module: _udevicex.Interactions
+   :module: libudevicex.Interactions
 
 
 .. py:attribute:: MembraneParameters.mpow
-   :module: _udevicex.Interactions
+   :module: libudevicex.Interactions
 
 
 .. py:attribute:: MembraneParameters.p
-   :module: _udevicex.Interactions
+   :module: libudevicex.Interactions
 
 
 .. py:attribute:: MembraneParameters.theta
-   :module: _udevicex.Interactions
+   :module: libudevicex.Interactions
 
 
 .. py:attribute:: MembraneParameters.totArea
-   :module: _udevicex.Interactions
+   :module: libudevicex.Interactions
 
 
 .. py:attribute:: MembraneParameters.totVolume
-   :module: _udevicex.Interactions
+   :module: libudevicex.Interactions
 
 
 .. py:attribute:: MembraneParameters.x0
-   :module: _udevicex.Interactions
+   :module: libudevicex.Interactions
 

@@ -1,8 +1,9 @@
 import sys, os, subprocess, glob
+import sphinx.ext.autodoc
 
 extensions = ['breathe', 'sphinx.ext.mathjax', 'sphinx.ext.autodoc', 'sphinx.ext.napoleon']
 
-#autosummary_generate = True
+add_module_names = False
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
@@ -57,13 +58,46 @@ breathe_domain_by_extension = { "h" : "cpp", "cu" : "cpp" }
 cpp_id_attributes = ['__device__', '__global__', '__host__']
 cpp_paren_attributes = ['__launch_bounds__', '__align__']
 
+suppress_warnings = ['']
 
+on_rtd = os.environ.get('READTHEDOCS', None) == 'True'
+
+# Override some fuck
+def format_signature(self):
+    if self.args is not None:
+        # signature given explicitly
+        args = "(%s)" % self.args  # type: unicode
+    else:
+        # try to introspect the signature
+        try:
+            args = self.format_args()
+        except Exception as err:
+            #logger.warning(__('error while formatting arguments for %s: %s') %
+            #                (self.fullname, err))
+            args = None
+
+    retann = self.retann
+
+    result = self.env.app.emit_firstresult(
+        'autodoc-process-signature', self.objtype, self.fullname,
+        self.object, self.options, args, retann)
+    if result:
+        args, retann = result
+
+    if args is not None:
+        return args + (retann and (' -> %s' % retann) or '')
+    else:
+        return ''
 
 def setup(app):
     app.add_stylesheet('css/theme.css')
     
-
-on_rtd = os.environ.get('READTHEDOCS', None) == 'True'
+    if not on_rtd:
+        sys.path.append('../src')
+        sys.path.append('../build')
+        import udevicex
+        
+        sphinx.ext.autodoc.Documenter.format_signature = format_signature
 
 if on_rtd:
     subprocess.call('cd ..; doxygen', shell=True)

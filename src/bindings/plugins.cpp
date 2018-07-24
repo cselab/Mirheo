@@ -18,20 +18,105 @@ void exportPlugins(py::module& m)
         Base postprocess plugin class
     )");
     
-    py::nodelete_class<ImposeVelocityPlugin>(m, "ImposeVelocity", pysim);
-    py::nodelete_class<TemperaturizePlugin>(m, "Temperaturize", pysim);
-    py::nodelete_class<AddForcePlugin>(m, "AddForce", pysim);
-    py::nodelete_class<AddTorquePlugin>(m, "AddTorque", pysim);
-    py::nodelete_class<ImposeProfilePlugin>(m, "ImposeProfile", pysim);
-    py::nodelete_class<WallRepulsionPlugin>(m, "WallRepulsion", pysim);
+    py::nodelete_class<ImposeVelocityPlugin>(m, "ImposeVelocity", pysim, R"(
+        This plugin will add velocity to all the particles of the target PV in the specified area (rectangle) such that the average velocity equals to desired.
+    )");
+    py::nodelete_class<TemperaturizePlugin>(m, "Temperaturize", pysim, R"(
+        TODO
+    )");
+    py::nodelete_class<AddForcePlugin>(m, "AddForce", pysim, R"(
+        This plugin will add constant force :math:`\mathbf{F}_{extra}` to each particle of a specific PV every time-step.
+        Is is advised to only use it with rigid objects, since Velocity-Verlet integrator with constant pressure can do the same without any performance penalty.
+    )");
+    py::nodelete_class<AddTorquePlugin>(m, "AddTorque", pysim, R"(
+        This plugin will add constant torque :math:`\mathbf{T}_{extra}` to each *object* of a specific OV every time-step.
+    )");
+    py::nodelete_class<ImposeProfilePlugin>(m, "ImposeProfile", pysim, R"(
+        TODO
+    )");
+    py::nodelete_class<WallRepulsionPlugin>(m, "WallRepulsion", pysim, R"(
+        This plugin will add force on all the particles that are nearby a specified wall. The motivation of this plugin is as follows.
+        The particles of regular PVs are prevented from penetrating into the walls by Wall Bouncers.
+        However, using Wall Bouncers with Object Vectors may be undesirable (e.g. in case of a very viscous membrane) or impossible (in case of rigid objects).
+        In these cases one can use either strong repulsive potential between the object and the wall particle or alternatively this plugin.
+        The advantage of the SDF-based repulsion is that small penetrations won't break the simulation.
+        
+        The force expression looks as follows:
+        
+        .. math::
+        
+            \mathbf{F} = \mathbf{\nabla}_{sdf} \cdot \begin{cases}
+                0, & sdf < -h\\
+                \min(F_{max}, C (sdf + h)), & sdf \geqslant -h\\
+            \end{cases}
+    )");
     
-    py::nodelete_class<SimulationStats>(m, "SimulationStats", pysim);
-    py::nodelete_class<Average3D>(m, "Average3D", pysim);
-    py::nodelete_class<AverageRelative3D>(m, "AverageRelative3D", pysim);
-    py::nodelete_class<XYZPlugin>(m, "XYZPlugin", pysim);
-    py::nodelete_class<MeshPlugin>(m, "MeshPlugin", pysim);
-    py::nodelete_class<ObjPositionsPlugin>(m, "ObjPositions", pysim);
-    py::nodelete_class<PinObjectPlugin>(m, "PinObject", pysim);
+    py::nodelete_class<SimulationStats>(m, "SimulationStats", pysim, R"(
+        This plugin will report aggregate quantities of all the particles in the simulation:
+        total number of particles in the simulation, average temperature and momentum, maximum velocity magnutide of a particle
+        and also the mean real time per step in milliseconds.
+        
+        .. note::
+            This plugin is inactive if postprocess is disabled
+    )");
+    py::nodelete_class<Average3D>(m, "Average3D", pysim, R"(
+        This plugin will project certain quantities of the particles on the grid (by simple binning),
+        perform time-averaging of the grid and dump it in XDMF (LINK) format with HDF5 (LINK) backend.
+        The quantities of interest are represented as *channels* associated with particles vectors.
+        Some interactions, integrators, etc. and more notable plug-ins can add to the Particle Vectors per-particles arrays to hold different values.
+        These arrays are called *channels*.
+        Any such channel may be used in this plug-in, however, user must explicitely specify the type of values that the channel holds.
+        Particle number density is used to correctly average the values, so it will be sampled and written in any case.
+        
+        .. note::
+            This plugin is inactive if postprocess is disabled
+    )");
+    py::nodelete_class<AverageRelative3D>(m, "AverageRelative3D", pysim, R"(
+        This plugin acts just like the regular flow dumper, with one difference.
+        It will assume a coordinate system attached to the center of mass of a specific object.
+        In other words, velocities and coordinates sampled correspond to the object reference frame.
+        
+        .. note::
+            Note that this plugin needs to allocate memory for the grid in the full domain, not only in the corresponding MPI subdomain.
+            Therefore large domains will lead to running out of memory
+            
+        .. note::
+            This plugin is inactive if postprocess is disabled
+    )");
+    py::nodelete_class<XYZPlugin>(m, "XYZPlugin", pysim, R"(
+        This plugin will dump positions of all the particles of the specified Particle Vector in the XYZ format.
+   
+        .. note::
+            This plugin is inactive if postprocess is disabled
+    )");
+    py::nodelete_class<MeshPlugin>(m, "MeshPlugin", pysim, R"(
+        This plugin will write the meshes of all the object of the specified Object Vector in a PLY format (LINK).
+   
+        .. note::
+            This plugin is inactive if postprocess is disabled
+    )");
+    py::nodelete_class<ObjPositionsPlugin>(m, "ObjPositions", pysim, R"(
+        This plugin will write the coordinates of the centers of mass of the objects of the specified Object Vector.
+        If the objects are rigid bodies, also will be written: COM velocity, rotation, angular velocity, force, torque.
+        
+        The file format is the following:
+        
+        <object id> <simulation time> <COM>x3 [<quaternion>x4 <velocity>x3 <angular velocity>x3 <force>x3 <torque>x3]
+        
+        .. note::
+            Note that all the written values are *instantaneous*
+            
+        .. note::
+            This plugin is inactive if postprocess is disabled
+    )");
+    py::nodelete_class<PinObjectPlugin>(m, "PinObject", pysim, R"(
+        This plugin will fix center of mass positions (by axis) of all the objects of the specified Object Vector.
+        If the objects are rigid bodies, rotatation may be restricted with this plugin as well.
+        The *average* force or torque required to fix the positions or rotation are reported.
+            
+        .. note::
+            This plugin is inactive if postprocess is disabled
+    )");
     
     py::nodelete_class<PostprocessStats>(m, "PostprocessStats", pypost);
     py::nodelete_class<UniformCartesianDumper>(m, "UniformCartesianDumper", pypost);
@@ -41,18 +126,138 @@ void exportPlugins(py::module& m)
     py::nodelete_class<ReportPinObjectPlugin>(m, "ReportPinObject", pypost);
     
     
-    m.def("__createImposeVelocity", &PluginFactory::createImposeVelocityPlugin);
-    m.def("__createTemperaturize", &PluginFactory::createTemperaturizePlugin);
-    m.def("__createAddForce", &PluginFactory::createAddForcePlugin);
-    m.def("__createAddTorque", &PluginFactory::createAddTorquePlugin);
-    m.def("__createImposeProfile", &PluginFactory::createImposeProfilePlugin);
-    m.def("__createWallRepulsion", &PluginFactory::createWallRepulsionPlugin);
-    m.def("__createStats", &PluginFactory::createStatsPlugin);
-    m.def("__createDumpAverage", &PluginFactory::createDumpAveragePlugin);
-    m.def("__createDumpAverageRelative", &PluginFactory::createDumpAverageRelativePlugin);
-    m.def("__createDumpXYZ", &PluginFactory::createDumpXYZPlugin);
-    m.def("__createDumpMesh", &PluginFactory::createDumpMeshPlugin);
-    m.def("__createDumpObjectStats", &PluginFactory::createDumpObjPosition);
-    m.def("__createPinObject", &PluginFactory::createPinObjPlugin);
+    m.def("__createImposeVelocity", &PluginFactory::createImposeVelocityPlugin,
+        "compute_task"_a, "name"_a, "pv"_a, "every"_a, "low"_a, "high"_a, "velocity"_a, R"(
+        Args:
+            name: name of the plugin
+            pv: :class:`ParticleVector` that we'll work with
+            every: change the velocities once in **every** timestep
+            low: the lower corner of the domain
+            high: the higher corner of the domain
+            velocity: target velocity
+    )");
+    m.def("__createTemperaturize", &PluginFactory::createTemperaturizePlugin, R"(
+        TODO
+    )");
+    m.def("__createAddForce", &PluginFactory::createAddForcePlugin,
+         "compute_task"_a, "name"_a, "pv"_a, "force"_a, R"(
+        Args:
+            name: name of the plugin
+            pv: :class:`ParticleVector` that we'll work with
+            force: extra force
+    )");
+    m.def("__createAddTorque", &PluginFactory::createAddTorquePlugin, 
+          "compute_task"_a, "name"_a, "ov"_a, "torque"_a, R"(
+        Args:
+            name: name of the plugin
+            ov: :class:`ObjectVector` that we'll work with
+            torque: extra torque (per object)
+    )");
+    m.def("__createImposeProfile", &PluginFactory::createImposeProfilePlugin, 
+          "compute_task"_a, "name"_a, "pv"_a, "low"_a, "high"_a, "velocity"_a, "kbt"_a, R"(
+        Args:
+            name: name of the plugin
+            pv: :class:`ParticleVector` that we'll work with
+            low: the lower corner of the domain
+            high: the higher corner of the domain
+            velocity: target velocity
+            kbt: temperature in the domain (appropriate Maxwell distribution will be used)
+    )");
+    m.def("__createWallRepulsion", &PluginFactory::createWallRepulsionPlugin, 
+          "compute_task"_a, "name"_a, "pv"_a, "wall"_a, "C"_a, "h"_a, "max_force"_a, R"(
+        Args:
+            name: name of the plugin
+            pv: :class:`ParticleVector` that we'll work with
+            wall: :class:`Wall` that defines the repulsion
+            C: :math:`C`  
+            h: :math:`h`  
+            max_force: :math:`F_{max}`  
+    )");
+    m.def("__createStats", &PluginFactory::createStatsPlugin,
+          "compute_task"_a, "name"_a, "filename"_a, "every"_a, R"(
+        Args:
+            name: name of the plugin
+            filename: the stats will also be recorded to that file in a computer-friendly way
+            every: report to standard output every that many time-steps
+    )");
+    m.def("__createDumpAverage", &PluginFactory::createDumpAveragePlugin, 
+          "compute_task"_a, "name"_a, "pv"_a, "sample_every"_a, "dump_every"_a,
+          "bin_size"_a = pyfloat3{1.0, 1.0, 1.0}, "channels"_a, "path"_a = "xdmf/", R"(
+              
+        Args:
+            name: name of the plugin
+            pv: :class:`ParticleVector` that we'll work with
+            sample_every: sample quantities every this many time-steps
+            dump_every: write files every this many time-steps 
+            bin_size: bin size for sampling. The resulting quantities will be *cell-centered*
+            path: Path and filename prefix for the dumps. For every dump two files will be created: <path>_NNNNN.xmf and <path>_NNNNN.h5
+            channels: 
+                list of pairs name - type.
+                Name is the channel (per particle) name. Always available channels are:
+                    
+                * 'velocity' with type "float8"             
+                * 'force' with type "float4"
+                
+                Type is to provide the type of quantity to extract from the channel.                                            
+                Type can also define a simple transformation from the channel internal structure                 
+                to the datatype supported in HDF5 (i.e. scalar, vector, tensor)                                  
+                Available types are:                                                                             
+                                                                                                                
+                * 'scalar': 1 float per particle                                                                   
+                * 'vector': 3 floats per particle                                                                  
+                * 'vector_from_float4': 4 floats per particle. 3 first floats will form the resulting vector       
+                * 'vector_from_float8' 8 floats per particle. 5th, 6th, 7th floats will form the resulting vector. 
+                    This type is primarity made to be used with velocity since it is stored together with          
+                    the coordinates as 8 consecutive float numbers: (x,y,z) coordinate, followed by 1 padding value
+                    and then (x,y,z) velocity, followed by 1 more padding value                                    
+                * 'tensor6': 6 floats per particle, symmetric tensor in order xx, xy, xz, yy, yz, zz
+                
+    )");
+    m.def("__createDumpAverageRelative", &PluginFactory::createDumpAverageRelativePlugin, 
+          "compute_task"_a, "name"_a, "pv"_a,
+          "relative_to_ov"_a, "relative_to_id"_a,
+          "sample_every"_a, "dump_every"_a,
+          "bin_size"_a = pyfloat3{1.0, 1.0, 1.0}, "channels"_a, "path"_a = "xdmf/",
+          R"(
+        The arguments are the same as for createDumpAverage() with a few additions
+        
+        Args:
+            relative_to_ov: take an object governing the frame of reference from this :any:`ObjectVector`
+            relative_to_id: take an object governing the frame of reference with the specific ID
+    )");
+    m.def("__createDumpXYZ", &PluginFactory::createDumpXYZPlugin, 
+          "compute_task"_a, "name"_a, "pv"_a, "dump_every"_a, "path"_a, R"(
+        Args:
+            name: name of the plugin
+            pv: :any:`ParticleVector` that we'll work with
+            dump_every: write files every this many time-steps
+            path: the files will look like this: <path>/<pv_name>_NNNNN.xyz
+    )");
+    m.def("__createDumpMesh", &PluginFactory::createDumpMeshPlugin, 
+          "compute_task"_a, "name"_a, "ov"_a, "dump_every"_a, "path"_a, R"(
+        Args:
+            name: name of the plugin
+            ov: :class:`ObjectVector` that we'll work with
+            dump_every: write files every this many time-steps
+            path: the files will look like this: <path>/<ov_name>_NNNNN.ply
+    )");
+    m.def("__createDumpObjectStats", &PluginFactory::createDumpObjPosition, 
+          "compute_task"_a, "name"_a, "ov"_a, "dump_every"_a, "path"_a, R"(
+        Args:
+            name: name of the plugin
+            ov: :class:`ObjectVector` that we'll work with
+            dump_every: write files every this many time-steps
+            path: the files will look like this: <path>/<ov_name>_NNNNN.txt
+    )");
+    m.def("__createPinObject", &PluginFactory::createPinObjPlugin, 
+          "compute_task"_a, "name"_a, "ov"_a, "dump_every"_a, "path"_a, "pin_translation"_a, "pin_rotation"_a, R"(
+        Args:
+            name: name of the plugin
+            pv: :class:`ObjectVector` that we'll work with
+            dump_every: write files every this many time-steps
+            path: the files will look like this: <path>/<ov_name>_NNNNN.txt
+            pin_translation: 3 integers; 0 means that motion along the corresponding axis is unrestricted, 1 means fixed position wrt to the axis
+            pin_rotation: 3 integers; 0 means that rotation along the corresponding axis is unrestricted, 1 means fixed rotation wrt to the axis
+    )");
 }
 
