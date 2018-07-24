@@ -1,1 +1,10 @@
-# TODO
+: ${MODULE_CUDATOOLKIT=cudatoolkit}
+: ${MODULE_CRAY=0}
+
+if test "$MODULE_CRAY" = 0
+then module swap PrgEnv-cray PrgEnv-gnu
+fi
+
+module load $MODULE_CUDATOOLKIT
+module load daint-gpu
+module load cray-hdf5-parallel

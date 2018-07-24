@@ -1,5 +1,6 @@
-INST_TARGETS = load load.falcon \
-               load.post load.post.falcon
+INST_TARGETS = load load.post \
+	       load.falcon load.post.falcon \
+	       load.daint load.post.daint
 
 include ../config
 include ../make/common.mk
