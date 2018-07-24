@@ -139,7 +139,8 @@ void Average3D::scaleSampled(cudaStream_t stream)
 void Average3D::serializeAndSend(cudaStream_t stream)
 {
     if (currentTimeStep % dumpEvery != 0 || currentTimeStep == 0) return;
-
+    if (nSamples == 0) return;
+    
     scaleSampled(stream);
 
     // Calculate total size for sending

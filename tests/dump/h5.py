@@ -25,7 +25,7 @@ u.registerIntegrator(vv)
 u.setIntegrator(vv, pv)
 
 sampleEvery = 1
-dumpEvery   = 2
+dumpEvery   = 1
 binSize     = (1., 1., 1.)
 
 field = udx.Plugins.createDumpAverage('field', pv, sampleEvery, dumpEvery, binSize, [("velocity", "vector_from_float8")], 'h5/solvent-')
