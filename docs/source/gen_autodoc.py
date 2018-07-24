@@ -9,7 +9,11 @@ def add_line(self, line, source, *lineno):
     self.directive.result.append(self.indent + line, source, *lineno)
 sphinx.ext.autodoc.Documenter.add_line = add_line
 
+sys.path.append('../../src')
+sys.path.append('../../build')
+
 sphinx.main(['sphinx-build'])
+
 
 try:
     fname = sys.argv[3]

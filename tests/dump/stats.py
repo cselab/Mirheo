@@ -9,7 +9,7 @@ dt = 0.001
 ranks  = (1, 1, 1)
 domain = (8, 8, 8)
 
-u = udx.initialize(ranks, domain, debug_level=2, log_filename='log')
+u = udx.udevicex(ranks, domain, debug_level=2, log_filename='log')
 
 pv = udx.ParticleVectors.ParticleVector('pv', mass = 1)
 ic = udx.InitialConditions.Uniform(density=2)
@@ -24,7 +24,7 @@ u.registerIntegrator(vv)
 u.setIntegrator(vv, pv)
 
 stats = udx.Plugins.createStats('stats', "stats.txt", 200)
-u.registerPlugins(stats[0], stats[1])
+u.registerPlugins(stats)
 
 u.run(2000)
 

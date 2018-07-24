@@ -18,28 +18,31 @@ void exportInitialConditions(py::module& m)
             Base class for initial conditions
         )");
 
-    py::nodelete_class<UniformIC>(m, "Uniform", pyic)
-        .def(py::init<float>(), "density"_a, R"(
-            The particles will be generated with the desired number density uniformly at random in all the domain.
-            These IC may be used with any Particle Vector, but only make sense for regular PV.
+    py::nodelete_class<UniformIC>(m, "Uniform", pyic, R"(
+        The particles will be generated with the desired number density uniformly at random in all the domain.
+        These IC may be used with any Particle Vector, but only make sense for regular PV.
             
+    )")
+        .def(py::init<float>(), "density"_a, R"(
             Args:
                 density: target density
         )");
         
-    py::nodelete_class<RestartIC>(m, "Restart", pyic)
+    py::nodelete_class<RestartIC>(m, "Restart", pyic, R"(
+        Read the state (particle coordinates and velocities, other relevant data for objects is **not implemented yet**)
+    )")
         .def(py::init<std::string>(),"path"_a = "restart/", R"(
-            Read the state (particle coordinates and velocities, other relevant data for objects **not implemented yet**)
-        
+
             Args:
                 path: folder where the restart files reside. The exact filename will be like this: <path>/<PV name>.chk
         )");
         
-    py::nodelete_class<RigidIC>(m, "Rigid", pyic)
-        .def(py::init<std::string, std::string>(), "ic_filename"_a, "xyz_filename"_a, R"(
-            Can only be used with Rigid Object Vector or Rigid Ellipsoid, see :ref:`user-ic`. These IC will initialize the particles of each object
-            according to the template .xyz file and then the objects will be translated/rotated according to the file initial conditions file.
+    py::nodelete_class<RigidIC>(m, "Rigid", pyic, R"(
+        Can only be used with Rigid Object Vector or Rigid Ellipsoid, see :ref:`user-ic`. These IC will initialize the particles of each object
+        according to the template .xyz file and then the objects will be translated/rotated according to the file initial conditions file.
             
+    )")
+        .def(py::init<std::string, std::string>(), "ic_filename"_a, "xyz_filename"_a, R"(
             Args:
                 ic_filename:
                     Text file describing location and rotation of the created objects.               
@@ -55,11 +58,11 @@ void exportInitialConditions(py::module& m)
                     in the corresponding PV                                                        
         )");
         
-    py::nodelete_class<MembraneIC>(m, "Membrane", pyic)
+    py::nodelete_class<MembraneIC>(m, "Membrane", pyic, R"(
+        Can only be used with Membrane Object Vector, see :ref:`user-ic`. These IC will initialize the particles of each object
+        according to the mesh associated with Membrane, and then the objects will be translated/rotated according to the file initial conditions file.
+    )")
         .def(py::init<std::string, float>(), "ic_filename"_a, "global_scale"_a=1.0, R"(
-            Can only be used with Membrane Object Vector, see :ref:`user-ic`. These IC will initialize the particles of each object
-            according to the mesh associated with Membrane, and then the objects will be translated/rotated according to the file initial conditions file.
-            
             Args:
                 ic_filename:
                     Text file describing location and rotation of the created objects.               

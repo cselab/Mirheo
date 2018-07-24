@@ -6,7 +6,7 @@ namespace py = pybind11;
 
 Logger logger;
 
-PYBIND11_MODULE(_udevicex, m)
+PYBIND11_MODULE(libudevicex, m)
 {
     exportUdevicex(m);
     

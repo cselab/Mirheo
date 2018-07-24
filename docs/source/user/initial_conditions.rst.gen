@@ -5,39 +5,40 @@ Initial conditions
 
 Initial conditions (IC) have to be defined for every Particle Vector
 
-.. comment _udevicex.InitialConditions
+.. comment libudevicex.InitialConditions
    :members:
    :show-inheritance:
    :undoc-members:
    :special-members: __init__ 
 
-.. py:module:: _udevicex.InitialConditions
+.. py:module:: libudevicex.InitialConditions
 
 
-.. py:class:: InitialConditions
-   :module: _udevicex.InitialConditions
+.. py:class:: InitialConditions(*args, **kwargs)
+   :module: libudevicex.InitialConditions
 
    Bases: :class:`pybind11_builtins.pybind11_object`
 
 Base class for initial conditions
 
 
-.. py:attribute:: InitialConditions.__init__
-   :module: _udevicex.InitialConditions
+.. py:method:: InitialConditions.__init__(*args, **kwargs)
+   :module: libudevicex.InitialConditions
 
 Initialize self.  See help(type(self)) for accurate signature.
 
+
 .. py:class:: Membrane
-   :module: _udevicex.InitialConditions
+   :module: libudevicex.InitialConditions
 
-   Bases: :class:`_udevicex.InitialConditions.InitialConditions`
-
-
-.. py:method:: Membrane.__init__(self: _udevicex.InitialConditions.Membrane, ic_filename: str, global_scale: float = 1.0) -> None
-   :module: _udevicex.InitialConditions
+   Bases: :class:`libudevicex.InitialConditions.InitialConditions`
 
 Can only be used with Membrane Object Vector, see :ref:`user-ic`. These IC will initialize the particles of each object
 according to the mesh associated with Membrane, and then the objects will be translated/rotated according to the file initial conditions file.
+
+
+.. py:method:: Membrane.__init__(self: libudevicex.InitialConditions.Membrane, ic_filename: str, global_scale: float = 1.0) -> None
+   :module: libudevicex.InitialConditions
 
 :param ic_filename: Text file describing location and rotation of the created objects.
                     One line in the file corresponds to one object created.
@@ -49,30 +50,31 @@ according to the mesh associated with Membrane, and then the objects will be tra
 
 
 .. py:class:: Restart
-   :module: _udevicex.InitialConditions
+   :module: libudevicex.InitialConditions
 
-   Bases: :class:`_udevicex.InitialConditions.InitialConditions`
+   Bases: :class:`libudevicex.InitialConditions.InitialConditions`
+
+Read the state (particle coordinates and velocities, other relevant data for objects is **not implemented yet**)
 
 
-.. py:method:: Restart.__init__(self: _udevicex.InitialConditions.Restart, path: str = 'restart/') -> None
-   :module: _udevicex.InitialConditions
-
-Read the state (particle coordinates and velocities, other relevant data for objects **not implemented yet**)
+.. py:method:: Restart.__init__(self: libudevicex.InitialConditions.Restart, path: str = 'restart/') -> None
+   :module: libudevicex.InitialConditions
 
 :param path: folder where the restart files reside. The exact filename will be like this: <path>/<PV name>.chk
 
 
 .. py:class:: Rigid
-   :module: _udevicex.InitialConditions
+   :module: libudevicex.InitialConditions
 
-   Bases: :class:`_udevicex.InitialConditions.InitialConditions`
-
-
-.. py:method:: Rigid.__init__(self: _udevicex.InitialConditions.Rigid, ic_filename: str, xyz_filename: str) -> None
-   :module: _udevicex.InitialConditions
+   Bases: :class:`libudevicex.InitialConditions.InitialConditions`
 
 Can only be used with Rigid Object Vector or Rigid Ellipsoid, see :ref:`user-ic`. These IC will initialize the particles of each object
 according to the template .xyz file and then the objects will be translated/rotated according to the file initial conditions file.
+
+
+
+.. py:method:: Rigid.__init__(self: libudevicex.InitialConditions.Rigid, ic_filename: str, xyz_filename: str) -> None
+   :module: libudevicex.InitialConditions
 
 :param ic_filename: Text file describing location and rotation of the created objects.
                     One line in the file corresponds to one object created.
@@ -87,16 +89,17 @@ according to the template .xyz file and then the objects will be translated/rota
 
 
 .. py:class:: Uniform
-   :module: _udevicex.InitialConditions
+   :module: libudevicex.InitialConditions
 
-   Bases: :class:`_udevicex.InitialConditions.InitialConditions`
-
-
-.. py:method:: Uniform.__init__(self: _udevicex.InitialConditions.Uniform, density: float) -> None
-   :module: _udevicex.InitialConditions
+   Bases: :class:`libudevicex.InitialConditions.InitialConditions`
 
 The particles will be generated with the desired number density uniformly at random in all the domain.
 These IC may be used with any Particle Vector, but only make sense for regular PV.
+
+
+
+.. py:method:: Uniform.__init__(self: libudevicex.InitialConditions.Uniform, density: float) -> None
+   :module: libudevicex.InitialConditions
 
 :param density: target density
 

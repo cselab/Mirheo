@@ -16,6 +16,10 @@
 *.ptx
 *.log*
 bin/
+data/
 .settings
 .cproject
 .project
+__pycache__/
+*.kdev4
+build/

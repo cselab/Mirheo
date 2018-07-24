@@ -9,7 +9,7 @@ Firstly, they are used to split a particle vector into two disjointed parts (pro
 the particles that are *inside* any object of the given Object Vector and the particles that are *outside*.
 Secondly, they are used to maintain the mentioned *inside*-*outside* property of the particles in the resulting Particle Vectors.
 
-.. automodule:: _udevicex.BelongingCheckers
+.. automodule:: libudevicex.BelongingCheckers
    :members:
    :show-inheritance:
    :undoc-members:

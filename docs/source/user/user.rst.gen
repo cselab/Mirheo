@@ -1,25 +1,9 @@
 .. _user-all:
 
-User guide
+Overview
 ##########
 
 This section describes the uDeviceX interface and introduces the reader to installing and running the code.
-   
-.. toctree::
-   :maxdepth: 1
-   :caption: Python API
-   
-   ./installation
-   ./benchmarks
-   ./udevicex
-   ./particle_vectors
-   ./initial_conditions
-   ./interactions
-   ./integrators
-   ./walls
-   ./bouncers
-   ./object_belonging
-   ./plugins
 
 The uDeviceX code is designed as a classical molecular dynamics code adapted for inclusion rigid bodies and cells.
 The simulation consists of multiple time-steps during which the particles and bodies will be displaces following laws of mechanics and hydrodynamics.
@@ -44,68 +28,67 @@ A simple script looks this way:
 
 .. code-block:: python
 
-   #TODO add example
+    #!/usr/bin/env python
 
-General setup
-=============
+    import udevicex as udx
+    import numpy as np
 
+    # Simulation time-step
+    dt = 0.001
 
-+-----------+----------+---------+-----------------------------------------------------------+
-| Attribute | Type     | Default | Remarks                                                   |
-+===========+==========+=========+===========================================================+
-| name      | string   | ""      | Simulation name, doesn't influence anything at the moment |
-+-----------+----------+---------+-----------------------------------------------------------+
-| logfile   | string   | "log"   | Prefix of the log files to be created.                    |
-+-----------+----------+---------+-----------------------------------------------------------+
-| mpi_ranks | integer3 | (1,1,1) | Number of MPI ranks along each dimension.                 |
-+-----------+----------+---------+-----------------------------------------------------------+
-| debug_lvl | integer  | 2       | Level of logging verbosity                                |
-+-----------+----------+---------+-----------------------------------------------------------+
+    # 1 simulation task
+    ranks  = (1, 1, 1)
 
-Logging is implemented in the form of one file per MPI rank,
-so in the simulation folder NP files with names log_00000.log, log_00001.log, ... will be created, where NP is the total number of MPI ranks.
-Each process writes messages about himself into his own log file,
-and the combined log may be created by merging all the individual ones and sorting with respect to time.
+    # Domain setup
+    domain = (8, 16, 16)
 
-Debug level varies from 1 to 8:
+    # Applied extra force for periodic poiseuille flow
+    f = 1
 
-#. only report fatal errors
-#. report serious errors
-#. report warnings (this is the default level)
-#. report not critical information
-#. report some debug information
-#. report more debug
-#. report all the debug
-#. force flushing to the file after each message
+    # Create the coordinator, this should precede any other setup from udevicex package
+    u = udx.udevicex(ranks, domain, debug_level=2, log_filename='log')
 
-Debug levels above 4 or 5 may significanlty increase the runtime, they are only recommended to debug errors.
-Flushing increases the runtime yet more, but it is required in order not to lose any messages in case of abnormal program abort.
+    pv = udx.ParticleVectors.ParticleVector('pv', mass = 1)   # Create a simple particle vector
+    ic = udx.InitialConditions.Uniform(density=4)             # Specify uniform random initial conditions
+    u.registerParticleVector(pv=pv, ic=ic)                    # Register the PV and initialize its particles
 
-Domain
-======
+    # Create and register DPD interaction with specific parameters
+    dpd = udx.Interactions.DPD('dpd', 1.0, a=10.0, gamma=10.0, kbt=1.0, dt=dt, power=0.5)
+    u.registerInteraction(dpd)
 
-The domain is defined by the domain node with one attribute size taking 3 numbers as domain sizes along the three axes.
-The domain will be split in equal chunks between the MPI ranks.
-The largest chunk size that a single MPI rank can have depends on the total number of particles,
-handlers and hardware, and is typically about :math:`120^3 - 200^3`.
+    # Tell the simulation that the particles of pv interact with dpd interaction
+    u.setInteraction(dpd, pv, pv)
 
+    # Create and register Velocity-Verlet integrator with extra force
+    vv = udx.Integrators.VelocityVerlet_withPeriodicForce('vv', dt=dt, force=f, direction='x')
+    u.registerIntegrator(vv)
+
+    # This integrator will be used to advance pv particles
+    u.setIntegrator(vv, pv)
+
+    # Set the dumping parameters
+    sampleEvery = 2
+    dumpEvery   = 1000
+    binSize     = (1., 1., 1.)
+
+    # Create and register XDMF plugin
+    field = udx.Plugins.createDumpAverage('field', pv, sampleEvery, dumpEvery, binSize, [("velocity", "vector_from_float8")], 'h5/solvent-')
+    u.registerPlugins(field)
+
+    # Run 5002 time-steps
+    u.run(5002)
 
 Running the simulation
 **********************
 
-The executable :bash:`udevicex` takes only one parameter passed by :bash:`-i` or :bash:`--input` key, which is the path to the script.
-The typical execution command with the script listed above looks as follows:
+uDeviceX is intended to be executed within MPI environments, e.g.:
 
 .. code-block:: bash
 
-   mpirun -np 12 ./udevicex -i script.xml
+    mpirun -np 12 python3 script.py
+    
+You have to submit twice as more MPI tasks as specified in the script (by the nranks parameter of the coordinator udevicex), because every second rank is only responsible for running some plugins and dumping data. Those MPI task are referred to as postprocessing tasks. Recommended strategy is to place two tasks per single compute node with one GPU or 2 tasks pers one GPU in multi-GPU configuration. The postprocessing tasks will not use any GPU calls, so you may not need multiprocess GPU mode or MPS.
 
-You have to submit twice as more MPI tasks as specified in the script, because every second rank is only responsible for running some plugins and dumping data.
-Recommended strategy is to place two tasks per single compute node with one GPU or 2 tasks pers one GPU in multi-GPU configuration.
-The postprocessing tasks will not use any GPU calls, so you may not need multiprocess GPU mode or MPS.
-
-If the code is started with number of tasks exactly equal to the number specified in the script, the postprocessing will be disabled.
-All the plugins that use the postprocessing will not work.
-This execution mode is mainly aimed at debugging.
+If the code is started with number of tasks exactly equal to the number specified in the script, the postprocessing will be disabled. All the plugins that use the postprocessing will not work. This execution mode is mainly aimed at debugging.
 
  

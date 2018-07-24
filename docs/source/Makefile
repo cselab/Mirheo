@@ -4,6 +4,7 @@ files := $(addsuffix .gen,$(wildcard user/*.rst))
 
 prepare:
 	rm -rf ./temp
+	rm user/*.rst.gen
 	python gen_autodoc.py ./ ./temp
 
 user/%.rst.gen: user/%.rst prepare

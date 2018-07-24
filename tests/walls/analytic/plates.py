@@ -10,7 +10,7 @@ ranks  = (1, 1, 1)
 domain = (8, 16, 8)
 force = (1.0, 0, 0)
 
-u = udx.initialize(ranks, domain, debug_level=2, log_filename='log')
+u = udx.udevicex(ranks, domain, debug_level=2, log_filename='log')
 
 pv = udx.ParticleVectors.ParticleVector('pv', mass = 1)
 ic = udx.InitialConditions.Uniform(density=4)
@@ -38,7 +38,7 @@ dumpEvery   = 1000
 binSize     = (1., 1., 0.5)
 
 field = udx.Plugins.createDumpAverage('field', pv, sampleEvery, dumpEvery, binSize, [("velocity", "vector_from_float8")], 'h5/solvent-')
-u.registerPlugins(field[0], field[1])
+u.registerPlugins(field)
 
 u.run(7002)
 

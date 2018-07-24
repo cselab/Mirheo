@@ -12,53 +12,50 @@ In practice maintaining separation of at least :math:`10^{-3}` units between wal
 Note that particle velocities are also altered, which means that objects experience extra force from the collisions.
 This force is saved for the next timestep.
 
-.. comment _udevicex.Bouncers
+.. comment libudevicex.Bouncers
    :members:
    :show-inheritance:
    :undoc-members:
    :special-members: __init__
    
 
-.. py:module:: _udevicex.Bouncers
+.. py:module:: libudevicex.Bouncers
 
 
-.. py:class:: Bouncer
-   :module: _udevicex.Bouncers
+.. py:class:: Bouncer(*args, **kwargs)
+   :module: libudevicex.Bouncers
 
    Bases: :class:`pybind11_builtins.pybind11_object`
 
 Base class for bouncing particles off the objects
 
 
-.. py:attribute:: Bouncer.__init__
-   :module: _udevicex.Bouncers
+.. py:method:: Bouncer.__init__(*args, **kwargs)
+   :module: libudevicex.Bouncers
 
 Initialize self.  See help(type(self)) for accurate signature.
 
+
 .. py:class:: Ellipsoid
-   :module: _udevicex.Bouncers
+   :module: libudevicex.Bouncers
 
-   Bases: :class:`_udevicex.Bouncers.Bouncer`
-
-
-.. py:method:: Ellipsoid.__init__(self: _udevicex.Bouncers.Ellipsoid, name: str) -> None
-   :module: _udevicex.Bouncers
+   Bases: :class:`libudevicex.Bouncers.Bouncer`
 
 This bouncer will use the analytical ellipsoid representation to perform the bounce.
 No additional correction from the Object Belonging Checker is usually required.
 The velocity of the particles bounced from the ellipsoid is reversed with respect to the boundary velocity at the contact point.
 
+
+.. py:method:: Ellipsoid.__init__(self: libudevicex.Bouncers.Ellipsoid, name: str) -> None
+   :module: libudevicex.Bouncers
+
 :param name: name of the checker
 
 
 .. py:class:: Mesh
-   :module: _udevicex.Bouncers
+   :module: libudevicex.Bouncers
 
-   Bases: :class:`_udevicex.Bouncers.Bouncer`
-
-
-.. py:method:: Mesh.__init__(self: _udevicex.Bouncers.Mesh, name: str, kbt: float = 0.5) -> None
-   :module: _udevicex.Bouncers
+   Bases: :class:`libudevicex.Bouncers.Bouncer`
 
 This bouncer will use the triangular mesh associated with objects to detect boundary crossings.
 Therefore it can only be created for Membrane and Rigid Object types of object vectors.
@@ -69,6 +66,10 @@ conjunction with correction option provided by the Object Belonging Checker, see
     In order to prevent numerical instabilities in case of light membrane particles,
     the new velocity of the bounced particles will be a random vector drawn from the Maxwell distibution of given temperature
     and added to the velocity of the mesh triangle at the collision point.
+
+
+.. py:method:: Mesh.__init__(self: libudevicex.Bouncers.Mesh, name: str, kbt: float = 0.5) -> None
+   :module: libudevicex.Bouncers
 
 :param name: name of the bouncer
 :param kbt: Maxwell distribution temperature defining post-collision velocity
