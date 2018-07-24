@@ -8,7 +8,7 @@ import numpy as np
 dt = 0.001
 
 ranks  = (1, 1, 1)
-domain = (8, 16, 8)
+domain = (8, 16, 16)
 a = 1
 
 u = udx.initialize(ranks, domain, debug_level=2, log_filename='log')
@@ -32,9 +32,9 @@ binSize     = (1., 1., 1.)
 field = udx.Plugins.createDumpAverage('field', pv, sampleEvery, dumpEvery, binSize, [("velocity", "vector_from_float8")], 'h5/solvent-')
 u.registerPlugins(field[0], field[1])
 
-u.run(3002)
+u.run(5002)
 
 # nTEST: double_poiseuille
 # cd flow
 # udx.run -n 2 ./double_poiseuille.py > /dev/null
-# udx.avgh5 xz velocity h5/solvent-00002.h5 | awk '{print $1}' > profile.out.txt
+# udx.avgh5 xz velocity h5/solvent-0000[2-5].h5 | awk '{print $1}' > profile.out.txt
