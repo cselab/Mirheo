@@ -1,3 +1,6 @@
+#! /usr/bin/env python3
+
+import sphinx.cmd.build
 import sphinx.ext.autodoc
 import glob
 import sys
@@ -12,7 +15,7 @@ sphinx.ext.autodoc.Documenter.add_line = add_line
 sys.path.append('../../src')
 sys.path.append('../../build')
 
-sphinx.main(['sphinx-build'])
+sphinx.cmd.build.main(sys.argv[1:])
 
 
 try:
