@@ -8,6 +8,8 @@ Created on Fri Jul  6 14:10:53 2018
 import inspect
 import functools
 import sys
+import weakref
+
 
 from libudevicex import *
 
@@ -23,7 +25,10 @@ def decorate_none_if_postprocess(f):
     @functools.wraps(f)
     def wrapper(*args, **kwargs):
         global __coordinator
-        if __coordinator.isComputeTask():
+        if __coordinator is None:
+            raise Exception('No coordinator created yet!')
+        
+        if __coordinator().isComputeTask():
             return f(*args, **kwargs)
         else:
             return None
@@ -39,7 +44,7 @@ def decorate_coordinator(f):
 
         if __coordinator is not None:
             raise Exception('There can only be one coordinator at a time!')
-        __coordinator = self
+        __coordinator = weakref.ref(self)
 
     return wrapper
 
@@ -57,7 +62,10 @@ def decorate_plugins(f):
     @functools.wraps(f)
     def wrapper(*args, **kwargs):
         global __coordinator
-        return f(__coordinator.isComputeTask(), *args, **kwargs)
+        if __coordinator is None:
+            raise Exception('No coordinator created yet!')
+        
+        return f(__coordinator().isComputeTask(), *args, **kwargs)
 
     return wrapper
 

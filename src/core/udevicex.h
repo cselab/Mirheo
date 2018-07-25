@@ -29,13 +29,17 @@ public:
     bool isComputeTask();
     void run(int niters);
     
-    void registerParticleVector         (std::shared_ptr<ParticleVector> pv, std::shared_ptr<InitialConditions> ic, int checkpointEvery);
-    void registerInteraction            (std::shared_ptr<Interaction> interaction);
-    void registerIntegrator             (std::shared_ptr<Integrator> integrator);
-    void registerWall                   (std::shared_ptr<Wall> wall, int checkEvery=0);
-    void registerBouncer                (std::shared_ptr<Bouncer> bouncer);
-    void registerPlugins                (std::shared_ptr<SimulationPlugin> simPlugin, std::shared_ptr<PostprocessPlugin> postPlugin);
-    void registerObjectBelongingChecker (std::shared_ptr<ObjectBelongingChecker> checker, ObjectVector* ov);
+    void registerParticleVector         (const std::shared_ptr<ParticleVector>& pv,
+                                         const std::shared_ptr<InitialConditions>& ic, int checkpointEvery);
+    
+    void registerInteraction            (const std::shared_ptr<Interaction>& interaction);
+    void registerIntegrator             (const std::shared_ptr<Integrator>& integrator);
+    void registerWall                   (const std::shared_ptr<Wall>& wall, int checkEvery=0);
+    void registerBouncer                (const std::shared_ptr<Bouncer>& bouncer);
+    void registerPlugins                (const std::shared_ptr<SimulationPlugin>& simPlugin,
+                                         const std::shared_ptr<PostprocessPlugin>& postPlugin);
+    
+    void registerObjectBelongingChecker (const std::shared_ptr<ObjectBelongingChecker>& checker, ObjectVector* ov);
  
     void setIntegrator  (Integrator* integrator,  ParticleVector* pv);
     void setInteraction (Interaction* interaction, ParticleVector* pv1, ParticleVector* pv2);

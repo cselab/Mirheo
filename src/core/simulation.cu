@@ -20,9 +20,8 @@
 
 #include <algorithm>
 
-Simulation::Simulation(int3 nranks3D, float3 globalDomainSize, const MPI_Comm& comm, const MPI_Comm& interComm,
-                       bool gpuAwareMPI, bool performCleanup) :
-nranks3D(nranks3D), interComm(interComm), currentTime(0), currentStep(0), gpuAwareMPI(gpuAwareMPI), cleanup(performCleanup)
+Simulation::Simulation(int3 nranks3D, float3 globalDomainSize, const MPI_Comm& comm, const MPI_Comm& interComm, bool gpuAwareMPI) :
+nranks3D(nranks3D), interComm(interComm), currentTime(0), currentStep(0), gpuAwareMPI(gpuAwareMPI)
 {
     int ranksArr[] = {nranks3D.x, nranks3D.y, nranks3D.z};
     int periods[] = {1, 1, 1};
@@ -161,6 +160,7 @@ void Simulation::registerParticleVector(std::shared_ptr<ParticleVector> pv, std:
         info("Registered particle vector '%s', %d particles", name.c_str(), pv->local()->size());
 
     particleVectors.push_back(std::move(pv));
+    printf("refs: %d\n", (int)particleVectors.back().use_count());
     pvIdMap[name] = particleVectors.size() - 1;
 }
 

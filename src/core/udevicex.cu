@@ -89,32 +89,33 @@ uDeviceX::~uDeviceX() = default;
 
 
 
-void uDeviceX::registerParticleVector(std::shared_ptr<ParticleVector> pv, std::shared_ptr<InitialConditions> ic, int checkpointEvery)
+void uDeviceX::registerParticleVector(const std::shared_ptr<ParticleVector>& pv, const std::shared_ptr<InitialConditions>& ic, int checkpointEvery)
 {
+    printf("hohoho %d\n", (int)pv.use_count());
     if (isComputeTask())
         sim->registerParticleVector(pv, ic, checkpointEvery);
 }
-void uDeviceX::registerIntegrator(std::shared_ptr<Integrator> integrator)
+void uDeviceX::registerIntegrator(const std::shared_ptr<Integrator>& integrator)
 {
     if (isComputeTask())
         sim->registerIntegrator(integrator);
 }
-void uDeviceX::registerInteraction(std::shared_ptr<Interaction> interaction)
+void uDeviceX::registerInteraction(const std::shared_ptr<Interaction>& interaction)
 {
     if (isComputeTask())
         sim->registerInteraction(interaction);
 }
-void uDeviceX::registerWall(std::shared_ptr<Wall> wall, int checkEvery)
+void uDeviceX::registerWall(const std::shared_ptr<Wall>& wall, int checkEvery)
 {
     if (isComputeTask())
         sim->registerWall(wall, checkEvery);
 }
-void uDeviceX::registerBouncer(std::shared_ptr<Bouncer> bouncer)
+void uDeviceX::registerBouncer(const std::shared_ptr<Bouncer>& bouncer)
 {
     if (isComputeTask())
         sim->registerBouncer(bouncer);
 }
-void uDeviceX::registerObjectBelongingChecker (std::shared_ptr<ObjectBelongingChecker> checker, ObjectVector* ov)
+void uDeviceX::registerObjectBelongingChecker (const std::shared_ptr<ObjectBelongingChecker>& checker, ObjectVector* ov)
 {
     if (isComputeTask())
     {
@@ -122,7 +123,7 @@ void uDeviceX::registerObjectBelongingChecker (std::shared_ptr<ObjectBelongingCh
         sim->setObjectBelongingChecker(checker->name, ov->name);
     }
 }
-void uDeviceX::registerPlugins(std::shared_ptr<SimulationPlugin> simPlugin, std::shared_ptr<PostprocessPlugin> postPlugin)
+void uDeviceX::registerPlugins(const std::shared_ptr<SimulationPlugin>& simPlugin, const std::shared_ptr<PostprocessPlugin>& postPlugin)
 {
     if (isComputeTask())
     {

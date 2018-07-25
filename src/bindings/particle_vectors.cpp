@@ -17,12 +17,11 @@ using namespace pybind11::literals;
 
 void exportParticleVectors(py::module& m)
 {
-    // Particle Vectors
     py::handlers_class<ParticleVector> pypv(m, "ParticleVector", R"(
         Basic particle vector, consists of identical disconnected particles.
     )");
     
-    pypv.def(py::init<std::string, float>(), "name"_a, "mass"_a, R"(
+    pypv.def(py::init<std::string, float>(), py::return_value_policy::move,"name"_a, "mass"_a, R"(
             Args:
                 name: name of the created PV 
                 mass: mass of a single particle

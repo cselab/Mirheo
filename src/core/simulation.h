@@ -36,27 +36,8 @@ class ObjectBelongingChecker;
 class SimulationPlugin;
 
 
-class CUDA_Cleanup
-{
-public:
-    CUDA_Cleanup(bool clean=true) : clean(clean) {}
-    
-    ~CUDA_Cleanup()
-    {
-        if (clean)
-            CUDA_Check( cudaDeviceReset() );
-    }
-private:
-    bool clean;
-};
-
 class Simulation
 {
-private:
-    /// This member HAS to be THE FIRST defined in the Simulation,
-    /// so that it's destroyed the last
-    CUDA_Cleanup cleanup;
-
 public:
     int3 nranks3D;
     int3 rank3D;
@@ -66,8 +47,7 @@ public:
 
     DomainInfo domain;
 
-    Simulation(int3 nranks3D, float3 globalDomainSize, const MPI_Comm& comm, const MPI_Comm& interComm,
-               bool gpuAwareMPI, bool performCleanup = true);
+    Simulation(int3 nranks3D, float3 globalDomainSize, const MPI_Comm& comm, const MPI_Comm& interComm, bool gpuAwareMPI);
     ~Simulation();
 
     void registerParticleVector         (std::shared_ptr<ParticleVector> pv, std::shared_ptr<InitialConditions> ic, int checkpointEvery);
