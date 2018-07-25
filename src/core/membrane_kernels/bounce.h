@@ -195,7 +195,6 @@ static __global__ void findBouncesInMesh(
 __device__ inline bool isInside(Triangle tr, float3 p)
 {
     const float edgeTolerance = 1e-18f;
-    const float vertTolerance = 1e-18f;
 
     auto length2 = [] (float3 x) {
         return dot(x, x);
@@ -222,8 +221,6 @@ __device__ inline bool isInside(Triangle tr, float3 p)
 
 __device__ inline void sort3(float2* v)
 {
-    const float tol = 1e-4f;
-
     auto swap = [] (float2& a, float2& b) {
         float2 tmp = a;
         a = b;
