@@ -20,8 +20,10 @@ ic_rbc   = udx.InitialConditions.Membrane("rbcs-ic.txt")
 u.registerParticleVector(pv_rbc, ic_rbc)
 
 prm_rbc = udx.Interactions.MembraneParameters()
-set_lina(prm_rbc)
-prm_rbc.kbT = 0 # remove stochastic forces for testing
+
+if prm_rbc:
+    set_lina(1.0, prm_rbc)
+    prm_rbc.kbT = 0 # remove stochastic forces for testing
 
 int_rbc = udx.Interactions.MembraneForces("int_rbc", prm_rbc, stressFree=False)
 vv = udx.Integrators.VelocityVerlet('vv', dt)
@@ -30,10 +32,14 @@ u.setIntegrator(vv, pv_rbc)
 u.registerInteraction(int_rbc)
 u.setInteraction(int_rbc, pv_rbc, pv_rbc)
 
+# dump_mesh = udx.Plugins.createDumpMesh("mesh_dump", pv_rbc, 100, "ply/")
+# u.registerPlugins(dump_mesh)
+
 u.run(5000)
 
-rbc_pos = pv_rbc.getCoordinates()
-np.savetxt("pos.rbc.txt", rbc_pos)
+if pv_rbc:
+    rbc_pos = pv_rbc.getCoordinates()
+    np.savetxt("pos.rbc.txt", rbc_pos)
 
 # nTEST: membrane.rest
 # cd membrane

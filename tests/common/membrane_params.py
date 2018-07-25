@@ -1,6 +1,5 @@
 
-def set_lina(p):
-    lscale      = 1.5
+def set_lina(lscale, p):
     p.x0        = 0.457
     p.p         = 0.000906667 * lscale
     p.ka        = 4900.0
