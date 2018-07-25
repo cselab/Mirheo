@@ -20,27 +20,35 @@ class StationaryWall_SDF_Handler
 public:
     __D__ inline float operator()(float3 x) const
     {
+        float s000, s001, s010, s011, s100, s101, s110, s111;
+        float s00x, s01x, s10x, s11x, s0yx, s1yx, szyx;
+
         float3 texcoord = floorf((x + extendedDomainSize*0.5f) * invh);
         float3 lambda = (x - (texcoord * h - extendedDomainSize*0.5f)) * invh;
 
-        const float s000 = tex3D<float>(sdfTex, texcoord.x + 0, texcoord.y + 0, texcoord.z + 0);
-        const float s001 = tex3D<float>(sdfTex, texcoord.x + 1, texcoord.y + 0, texcoord.z + 0);
-        const float s010 = tex3D<float>(sdfTex, texcoord.x + 0, texcoord.y + 1, texcoord.z + 0);
-        const float s011 = tex3D<float>(sdfTex, texcoord.x + 1, texcoord.y + 1, texcoord.z + 0);
-        const float s100 = tex3D<float>(sdfTex, texcoord.x + 0, texcoord.y + 0, texcoord.z + 1);
-        const float s101 = tex3D<float>(sdfTex, texcoord.x + 1, texcoord.y + 0, texcoord.z + 1);
-        const float s110 = tex3D<float>(sdfTex, texcoord.x + 0, texcoord.y + 1, texcoord.z + 1);
-        const float s111 = tex3D<float>(sdfTex, texcoord.x + 1, texcoord.y + 1, texcoord.z + 1);
+        #define access(dx, dy, dz) tex3D<float>(sdfTex, texcoord.x + dx, texcoord.y + dy, texcoord.z + dz)
+        
+        s000 = access(0, 0, 0);
+        s001 = access(0, 0, 1);
+        s010 = access(0, 1, 0);
+        s011 = access(0, 1, 1);
+        
+        s100 = access(1, 0, 0);
+        s101 = access(1, 0, 1);
+        s110 = access(1, 1, 0);
+        s111 = access(1, 1, 1);
 
-        const float s00x = s000 * (1 - lambda.x) + lambda.x * s001;
-        const float s01x = s010 * (1 - lambda.x) + lambda.x * s011;
-        const float s10x = s100 * (1 - lambda.x) + lambda.x * s101;
-        const float s11x = s110 * (1 - lambda.x) + lambda.x * s111;
+        #undef access
+        
+        s00x = s000 * (1 - lambda.x) + lambda.x * s001;
+        s01x = s010 * (1 - lambda.x) + lambda.x * s011;
+        s10x = s100 * (1 - lambda.x) + lambda.x * s101;
+        s11x = s110 * (1 - lambda.x) + lambda.x * s111;
 
-        const float s0yx = s00x * (1 - lambda.y) + lambda.y * s01x;
-        const float s1yx = s10x * (1 - lambda.y) + lambda.y * s11x;
+        s0yx = s00x * (1 - lambda.y) + lambda.y * s01x;
+        s1yx = s10x * (1 - lambda.y) + lambda.y * s11x;
 
-        const float szyx = s0yx * (1 - lambda.z) + lambda.z * s1yx;
+        szyx = s0yx * (1 - lambda.z) + lambda.z * s1yx;
 
         return szyx;
     }
