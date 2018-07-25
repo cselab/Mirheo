@@ -44,5 +44,5 @@ u.run(7002)
 
 # nTEST: analytic.plates
 # cd walls/analytic
-# udx.run -n 2 ./plates.py > /dev/null
+# udx.run --runargs "-n 2" ./plates.py > /dev/null
 # udx.avgh5 xy velocity h5/solvent-0000[4-7].h5 | awk '{print $1}' > profile.out.txt
