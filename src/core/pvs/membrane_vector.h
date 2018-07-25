@@ -7,12 +7,12 @@
 class MembraneVector: public ObjectVector
 {
 public:
-    MembraneVector(std::string name, float mass, const int objSize, MembraneMesh* mptr, const int nObjects = 0) :
+    MembraneVector(std::string name, float mass, const int objSize, std::shared_ptr<MembraneMesh> mptr, const int nObjects = 0) :
         ObjectVector( name, mass, objSize,
                       new LocalObjectVector(this, objSize, nObjects),
                       new LocalObjectVector(this, objSize, 0) )
     {
-        mesh = std::unique_ptr< std::remove_pointer<decltype(mptr)>::type >(mptr);
+        mesh = std::move(mptr);
 
         if (objSize != mesh->nvertices)
             die("RBC vector '%s': object size (%d) and number of vertices in mesh (%d) mismatch",

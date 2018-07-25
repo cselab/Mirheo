@@ -14,11 +14,11 @@ using namespace pybind11::literals;
 void exportInitialConditions(py::module& m)
 {
     // Initial Conditions
-    py::nodelete_class<InitialConditions> pyic(m, "InitialConditions", R"(
+    py::handlers_class<InitialConditions> pyic(m, "InitialConditions", R"(
             Base class for initial conditions
         )");
 
-    py::nodelete_class<UniformIC>(m, "Uniform", pyic, R"(
+    py::handlers_class<UniformIC>(m, "Uniform", pyic, R"(
         The particles will be generated with the desired number density uniformly at random in all the domain.
         These IC may be used with any Particle Vector, but only make sense for regular PV.
             
@@ -28,7 +28,7 @@ void exportInitialConditions(py::module& m)
                 density: target density
         )");
         
-    py::nodelete_class<RestartIC>(m, "Restart", pyic, R"(
+    py::handlers_class<RestartIC>(m, "Restart", pyic, R"(
         Read the state (particle coordinates and velocities, other relevant data for objects is **not implemented yet**)
     )")
         .def(py::init<std::string>(),"path"_a = "restart/", R"(
@@ -37,7 +37,7 @@ void exportInitialConditions(py::module& m)
                 path: folder where the restart files reside. The exact filename will be like this: <path>/<PV name>.chk
         )");
         
-    py::nodelete_class<RigidIC>(m, "Rigid", pyic, R"(
+    py::handlers_class<RigidIC>(m, "Rigid", pyic, R"(
         Can only be used with Rigid Object Vector or Rigid Ellipsoid, see :ref:`user-ic`. These IC will initialize the particles of each object
         according to the template .xyz file and then the objects will be translated/rotated according to the file initial conditions file.
             
@@ -58,7 +58,7 @@ void exportInitialConditions(py::module& m)
                     in the corresponding PV                                                        
         )");
         
-    py::nodelete_class<MembraneIC>(m, "Membrane", pyic, R"(
+    py::handlers_class<MembraneIC>(m, "Membrane", pyic, R"(
         Can only be used with Membrane Object Vector, see :ref:`user-ic`. These IC will initialize the particles of each object
         according to the mesh associated with Membrane, and then the objects will be translated/rotated according to the file initial conditions file.
     )")

@@ -15,9 +15,9 @@ using namespace pybind11::literals;
 void exportInteractions(py::module& m)
 {
     // Initial Conditions
-    py::nodelete_class<Interaction> pyint(m, "Interaction", "Base interaction class");
+    py::handlers_class<Interaction> pyint(m, "Interaction", "Base interaction class");
 
-    py::nodelete_class<InteractionDPD>(m, "DPD", pyint, R"(
+    py::handlers_class<InteractionDPD>(m, "DPD", pyint, R"(
         Pairwise interaction with conservative part and dissipative + random part acting as a thermostat, see https://aip.scitation.org/doi/abs/10.1063/1.474784
     
         .. math::
@@ -54,7 +54,7 @@ void exportInteractions(py::module& m)
                 Override some of the interaction parameters for a specific pair of Particle Vectors
             )");
         
-    py::nodelete_class<InteractionLJ>(m, "LJ", pyint, R"(
+    py::handlers_class<InteractionLJ>(m, "LJ", pyint, R"(
         Pairwise interaction according to the classical Lennard-Jones potential `http://rspa.royalsocietypublishing.org/content/106/738/463`
         The force however is truncated such that it is *always repulsive*.
         
@@ -82,7 +82,7 @@ void exportInteractions(py::module& m)
         
     
     //   x0, p, ka, kb, kd, kv, gammaC, gammaT, kbT, mpow, theta, totArea0, totVolume0;
-    py::nodelete_class<MembraneParameters>(m, "MembraneParameters")
+    py::handlers_class<MembraneParameters>(m, "MembraneParameters")
         .def(py::init<>(), R"(
             Structure keeping parameters of the membrane interaction
         )")
@@ -100,7 +100,7 @@ void exportInteractions(py::module& m)
         .def_readwrite("totArea",   &MembraneParameters::totArea0)
         .def_readwrite("totVolume", &MembraneParameters::totVolume0);
         
-    py::nodelete_class<InteractionMembrane>(m, "MembraneForces", pyint, R"(
+    py::handlers_class<InteractionMembrane>(m, "MembraneForces", pyint, R"(
         Mesh-based forces acting on a membrane according to the model in PUT LINK
     )")
         .def(py::init<std::string, MembraneParameters, bool, float>(),

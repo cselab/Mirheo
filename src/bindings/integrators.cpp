@@ -10,11 +10,11 @@ using namespace pybind11::literals;
 void exportIntegrators(py::module& m)
 {
     // Initial Conditions
-    py::nodelete_class<Integrator> pyint(m, "Integrator", R"(
+    py::handlers_class<Integrator> pyint(m, "Integrator", R"(
         Base integration class
     )");
 
-    py::nodelete_class<IntegratorConstOmega>(m, "Rotate", pyint, R"(
+    py::handlers_class<IntegratorConstOmega>(m, "Rotate", pyint, R"(
         Rotate particles around the specified point in space with a constant angular velocity :math:`\mathbf{\Omega}`
     )")
         .def(py::init(&IntegratorFactory::createConstOmega),
@@ -26,7 +26,7 @@ void exportIntegrators(py::module& m)
                     omega: angular velocity :math:`\mathbf{\Omega}`
             )");
         
-    py::nodelete_class<IntegratorOscillate>(m, "Oscillate", pyint, R"(
+    py::handlers_class<IntegratorOscillate>(m, "Oscillate", pyint, R"(
         Move particles with the periodically changing velocity
         :math:`\mathbf{u}(t) = \cos(2 \pi \, t / T) \mathbf{u}_0`
     )")
@@ -39,7 +39,7 @@ void exportIntegrators(py::module& m)
                     period: oscillation period :math:`T`
             )");
         
-    py::nodelete_class<IntegratorVVRigid>(m, "RigidVelocityVerlet", pyint, R"(
+    py::handlers_class<IntegratorVVRigid>(m, "RigidVelocityVerlet", pyint, R"(
         Integrate the position and rotation (in terms of quaternions) of the rigid bodies as per Velocity-Verlet scheme.
         Can only applied to :class:`RigidObjectVector` or :class:`RigidEllipsoidObjectVector`.
     )")
@@ -50,7 +50,7 @@ void exportIntegrators(py::module& m)
                     dt:   integration time-step
             )");
         
-    py::nodelete_class<IntegratorTranslate>(m, "Translate", pyint, R"(
+    py::handlers_class<IntegratorTranslate>(m, "Translate", pyint, R"(
         Translate particles with a constant velocity :math:`\mathbf{u}` regardless forces acting on them.
     )")
         .def(py::init(&IntegratorFactory::createTranslate),
@@ -61,7 +61,7 @@ void exportIntegrators(py::module& m)
                     velocity: translational velocity :math:`\mathbf{\Omega}`
             )");
         
-    py::nodelete_class<IntegratorVV<Forcing_None>>
+    py::handlers_class<IntegratorVV<Forcing_None>>
         (m, "VelocityVerlet", pyint, R"(
             Classical Velocity-Verlet integrator with fused steps for coordinates and velocities.
             The velocities are shifted with respect to the coordinates by one half of the time-step
@@ -81,7 +81,7 @@ void exportIntegrators(py::module& m)
                     dt:   integration time-step
             )");
         
-    py::nodelete_class<IntegratorVV<Forcing_ConstDP>>
+    py::handlers_class<IntegratorVV<Forcing_ConstDP>>
         (m, "VelocityVerlet_withConstForce", pyint, R"(
             Same as regular :class:`VelocityVerlet`, but the forces on all the particles are modified with the constant pressure term:
    
@@ -98,7 +98,7 @@ void exportIntegrators(py::module& m)
                     force: :math:`\mathbf{F}_{extra}`
             )");
         
-    py::nodelete_class<IntegratorVV<Forcing_PeriodicPoiseuille>>
+    py::handlers_class<IntegratorVV<Forcing_PeriodicPoiseuille>>
         (m, "VelocityVerlet_withPeriodicForce", pyint, R"(
             Same as regular Velocity-Verlet, but the forces on all the particles are modified with periodic Poiseuille term.
             This means that all the particles in half domain along certain axis (Ox, Oy or Oz) are pushed with force

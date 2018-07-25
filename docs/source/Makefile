@@ -4,14 +4,14 @@ files := $(addsuffix .gen,$(wildcard user/*.rst))
 
 prepare:
 	rm -rf ./temp
-	rm user/*.rst.gen
+	rm -f user/*.rst.gen
 	python gen_autodoc.py ./ ./temp
 
 user/%.rst.gen: user/%.rst prepare
 	touch $<
 	python gen_autodoc.py ./ ./temp $<
 	cat $< $<.tmp | perl -p -e 's/automodule::/comment/g' > $@
-	rm $<.tmp
+	rm -f $<.tmp
 
 all : $(files)
 	echo Done!

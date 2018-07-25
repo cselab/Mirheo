@@ -77,7 +77,7 @@ def __init__():
     for module in classes.keys():
         if module != 'Plugins':
             for cls in classes[module]:
-                setattr(cls[1], '__init__', decorate_none_if_postprocess(cls[1].__init__))
+                setattr(cls[1], '__new__', decorate_none_if_postprocess(cls[1].__new__))
 
     # Now wrap plugins creation
     # Also change the names of the function

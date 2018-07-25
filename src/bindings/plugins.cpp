@@ -10,31 +10,31 @@ using namespace pybind11::literals;
 
 void exportPlugins(py::module& m)
 {
-    py::class_<SimulationPlugin>  pysim(m, "SimulationPlugin", R"(
+    py::handlers_class<SimulationPlugin>  pysim(m, "SimulationPlugin", R"(
         Base simulation plugin class
     )");
     
-    py::class_<PostprocessPlugin> pypost(m, "PostprocessPlugin", R"(
+    py::handlers_class<PostprocessPlugin> pypost(m, "PostprocessPlugin", R"(
         Base postprocess plugin class
     )");
     
-    py::nodelete_class<ImposeVelocityPlugin>(m, "ImposeVelocity", pysim, R"(
+    py::handlers_class<ImposeVelocityPlugin>(m, "ImposeVelocity", pysim, R"(
         This plugin will add velocity to all the particles of the target PV in the specified area (rectangle) such that the average velocity equals to desired.
     )");
-    py::nodelete_class<TemperaturizePlugin>(m, "Temperaturize", pysim, R"(
+    py::handlers_class<TemperaturizePlugin>(m, "Temperaturize", pysim, R"(
         TODO
     )");
-    py::nodelete_class<AddForcePlugin>(m, "AddForce", pysim, R"(
+    py::handlers_class<AddForcePlugin>(m, "AddForce", pysim, R"(
         This plugin will add constant force :math:`\mathbf{F}_{extra}` to each particle of a specific PV every time-step.
         Is is advised to only use it with rigid objects, since Velocity-Verlet integrator with constant pressure can do the same without any performance penalty.
     )");
-    py::nodelete_class<AddTorquePlugin>(m, "AddTorque", pysim, R"(
+    py::handlers_class<AddTorquePlugin>(m, "AddTorque", pysim, R"(
         This plugin will add constant torque :math:`\mathbf{T}_{extra}` to each *object* of a specific OV every time-step.
     )");
-    py::nodelete_class<ImposeProfilePlugin>(m, "ImposeProfile", pysim, R"(
+    py::handlers_class<ImposeProfilePlugin>(m, "ImposeProfile", pysim, R"(
         TODO
     )");
-    py::nodelete_class<WallRepulsionPlugin>(m, "WallRepulsion", pysim, R"(
+    py::handlers_class<WallRepulsionPlugin>(m, "WallRepulsion", pysim, R"(
         This plugin will add force on all the particles that are nearby a specified wall. The motivation of this plugin is as follows.
         The particles of regular PVs are prevented from penetrating into the walls by Wall Bouncers.
         However, using Wall Bouncers with Object Vectors may be undesirable (e.g. in case of a very viscous membrane) or impossible (in case of rigid objects).
@@ -51,7 +51,7 @@ void exportPlugins(py::module& m)
             \end{cases}
     )");
     
-    py::nodelete_class<SimulationStats>(m, "SimulationStats", pysim, R"(
+    py::handlers_class<SimulationStats>(m, "SimulationStats", pysim, R"(
         This plugin will report aggregate quantities of all the particles in the simulation:
         total number of particles in the simulation, average temperature and momentum, maximum velocity magnutide of a particle
         and also the mean real time per step in milliseconds.
@@ -59,7 +59,7 @@ void exportPlugins(py::module& m)
         .. note::
             This plugin is inactive if postprocess is disabled
     )");
-    py::nodelete_class<Average3D>(m, "Average3D", pysim, R"(
+    py::handlers_class<Average3D>(m, "Average3D", pysim, R"(
         This plugin will project certain quantities of the particles on the grid (by simple binning),
         perform time-averaging of the grid and dump it in XDMF (LINK) format with HDF5 (LINK) backend.
         The quantities of interest are represented as *channels* associated with particles vectors.
@@ -71,7 +71,7 @@ void exportPlugins(py::module& m)
         .. note::
             This plugin is inactive if postprocess is disabled
     )");
-    py::nodelete_class<AverageRelative3D>(m, "AverageRelative3D", pysim, R"(
+    py::handlers_class<AverageRelative3D>(m, "AverageRelative3D", pysim, R"(
         This plugin acts just like the regular flow dumper, with one difference.
         It will assume a coordinate system attached to the center of mass of a specific object.
         In other words, velocities and coordinates sampled correspond to the object reference frame.
@@ -83,19 +83,19 @@ void exportPlugins(py::module& m)
         .. note::
             This plugin is inactive if postprocess is disabled
     )");
-    py::nodelete_class<XYZPlugin>(m, "XYZPlugin", pysim, R"(
+    py::handlers_class<XYZPlugin>(m, "XYZPlugin", pysim, R"(
         This plugin will dump positions of all the particles of the specified Particle Vector in the XYZ format.
    
         .. note::
             This plugin is inactive if postprocess is disabled
     )");
-    py::nodelete_class<MeshPlugin>(m, "MeshPlugin", pysim, R"(
+    py::handlers_class<MeshPlugin>(m, "MeshPlugin", pysim, R"(
         This plugin will write the meshes of all the object of the specified Object Vector in a PLY format (LINK).
    
         .. note::
             This plugin is inactive if postprocess is disabled
     )");
-    py::nodelete_class<ObjPositionsPlugin>(m, "ObjPositions", pysim, R"(
+    py::handlers_class<ObjPositionsPlugin>(m, "ObjPositions", pysim, R"(
         This plugin will write the coordinates of the centers of mass of the objects of the specified Object Vector.
         If the objects are rigid bodies, also will be written: COM velocity, rotation, angular velocity, force, torque.
         
@@ -109,7 +109,7 @@ void exportPlugins(py::module& m)
         .. note::
             This plugin is inactive if postprocess is disabled
     )");
-    py::nodelete_class<PinObjectPlugin>(m, "PinObject", pysim, R"(
+    py::handlers_class<PinObjectPlugin>(m, "PinObject", pysim, R"(
         This plugin will fix center of mass positions (by axis) of all the objects of the specified Object Vector.
         If the objects are rigid bodies, rotatation may be restricted with this plugin as well.
         The *average* force or torque required to fix the positions or rotation are reported.
@@ -118,12 +118,12 @@ void exportPlugins(py::module& m)
             This plugin is inactive if postprocess is disabled
     )");
     
-    py::nodelete_class<PostprocessStats>(m, "PostprocessStats", pypost);
-    py::nodelete_class<UniformCartesianDumper>(m, "UniformCartesianDumper", pypost);
-    py::nodelete_class<XYZDumper>(m, "XYZDumper", pypost);
-    py::nodelete_class<MeshDumper>(m, "MeshDumper", pypost);
-    py::nodelete_class<ObjPositionsDumper>(m, "ObjPositionsDumper", pypost);
-    py::nodelete_class<ReportPinObjectPlugin>(m, "ReportPinObject", pypost);
+    py::handlers_class<PostprocessStats>(m, "PostprocessStats", pypost);
+    py::handlers_class<UniformCartesianDumper>(m, "UniformCartesianDumper", pypost);
+    py::handlers_class<XYZDumper>(m, "XYZDumper", pypost);
+    py::handlers_class<MeshDumper>(m, "MeshDumper", pypost);
+    py::handlers_class<ObjPositionsDumper>(m, "ObjPositionsDumper", pypost);
+    py::handlers_class<ReportPinObjectPlugin>(m, "ReportPinObject", pypost);
     
     
     m.def("__createImposeVelocity", &PluginFactory::createImposeVelocityPlugin,

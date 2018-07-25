@@ -12,11 +12,11 @@ using namespace pybind11::literals;
 void exportObjectBelongingCheckers(py::module& m)
 {
     // Initial Conditions
-    py::nodelete_class<ObjectBelongingChecker> pycheck(m, "BelongingChecker", R"(
+    py::handlers_class<ObjectBelongingChecker> pycheck(m, "BelongingChecker", R"(
         Base class for checking if particles belong to objects
     )");
 
-    py::nodelete_class<MeshBelongingChecker>(m, "Mesh", pycheck, R"(
+    py::handlers_class<MeshBelongingChecker>(m, "Mesh", pycheck, R"(
         This checker will use the triangular mesh associated with objects to detect *inside*-*outside* status.
    
         .. note:
@@ -29,7 +29,7 @@ void exportObjectBelongingCheckers(py::module& m)
                 name: name of the checker
         )");
         
-    py::nodelete_class<EllipsoidBelongingChecker>(m, "Ellipsoid", pycheck, R"(
+    py::handlers_class<EllipsoidBelongingChecker>(m, "Ellipsoid", pycheck, R"(
         This checker will use the analytical representation of the ellipsoid to detect *inside*-*outside* status.
     )")
         .def(py::init<std::string>(),

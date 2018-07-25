@@ -18,7 +18,7 @@ using namespace pybind11::literals;
 void exportParticleVectors(py::module& m)
 {
     // Particle Vectors
-    py::nodelete_class<ParticleVector> pypv(m, "ParticleVector", R"(
+    py::handlers_class<ParticleVector> pypv(m, "ParticleVector", R"(
         Basic particle vector, consists of identical disconnected particles.
     )");
     
@@ -54,7 +54,7 @@ void exportParticleVectors(py::module& m)
                 forces: A list of :math:`N \times 3` floats: 3 components of force for every of the N particles
         )");
 
-    py::nodelete_class<Mesh> pymesh(m, "Mesh", R"(
+    py::handlers_class<Mesh> pymesh(m, "Mesh", R"(
         Internally used class for desctibing a simple triangular mesh
     )");
     pymesh.def(py::init<std::string>(), "off_filename"_a, R"(
@@ -63,7 +63,7 @@ void exportParticleVectors(py::module& m)
             off_filename: path of the OFF file
     )");
 
-    py::nodelete_class<MembraneMesh>(m, "MembraneMesh", pymesh, R"(
+    py::handlers_class<MembraneMesh>(m, "MembraneMesh", pymesh, R"(
         Internally used class for desctibing a triangular mesh that can be used with the Membrane Interactions.
         In contrast with the simple :class:`Mesh`, this class precomputes some required quantities on the mesh
     )")
@@ -73,15 +73,15 @@ void exportParticleVectors(py::module& m)
                 off_filename: path of the OFF file
         )");
         
-    py::nodelete_class<ObjectVector> pyov(m, "ObjectVector", pypv, R"(
+    py::handlers_class<ObjectVector> pyov(m, "ObjectVector", pypv, R"(
         Basic Object Vector
     )"); 
         
-    py::nodelete_class<MembraneVector> (m, "MembraneVector", pyov, R"(
+    py::handlers_class<MembraneVector> (m, "MembraneVector", pyov, R"(
         Membrane is an Object Vector representing cell membranes.
         It must have a triangular mesh associated with it such that each particle is mapped directly onto single mesh vertex.
     )")
-        .def(py::init<std::string, float, int, MembraneMesh*>(),
+        .def(py::init<std::string, float, int, std::shared_ptr<MembraneMesh>>(),
              "name"_a, "mass"_a, "object_size"_a, "mesh"_a, R"(
             Args:
                 name: name of the created PV 
@@ -90,11 +90,11 @@ void exportParticleVectors(py::module& m)
                 mesh: :class:`MembraneMesh` object                
         )");
         
-    py::nodelete_class<RigidObjectVector> (m, "RigidObjectVector", pyov, R"(
+    py::handlers_class<RigidObjectVector> (m, "RigidObjectVector", pyov, R"(
         Rigid Object is an Object Vector representing objects that move as rigid bodies, with no relative displacement against each other in an object.
         It must have a triangular mesh associated with it that defines the shape of the object.
     )")
-        .def(py::init<std::string, float, pyfloat3, int, Mesh*>(),
+        .def(py::init<std::string, float, pyfloat3, int, std::shared_ptr<Mesh>>(),
              "name"_a, "mass"_a, "inertia"_a, "object_size"_a, "mesh"_a, R"( 
                 Args:
                     name: name of the created PV 
@@ -104,7 +104,7 @@ void exportParticleVectors(py::module& m)
                     mesh: :class:`MembraneMesh` object         
         )");
         
-    py::nodelete_class<RigidEllipsoidObjectVector> (m, "RigidEllipsoidVector", pyov, R"(
+    py::handlers_class<RigidEllipsoidObjectVector> (m, "RigidEllipsoidVector", pyov, R"(
         Rigid Ellipsoid is the same as the Rigid Object except that it can only represent ellipsoidal shapes.
         The advantage is that it doesn't need mesh and moment of inertia define, as those can be computed analytically.
     )")
