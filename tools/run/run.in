@@ -3,6 +3,88 @@
 EXE_PREFIX=@EXE_PREFIX@
 RUN_CMD=@RUN_CMD@
 
+# defaults additional executables
+: ${EXE_CUDA_MEMCHECK=cuda-memcheck}
+: ${EXE_VALGRIND=valgrind}
+: ${EXE_NVPROF=nvprof}
+: ${EXE_CUDA_GDB=cuda-gdb}
+
+
+usage() {
+    cat <<EOF
+wrapper for udevicex executable.
+automatically loads the required modules.
+
+usage: $EXE_PREFIX.run [--runargs RUNARGS] <executable> [ARGS]
+
+additional executables are used if one of the following
+environment variable is set (its value must contain the 
+options to the concerned program):
+
+    MEM            $EXE_CUDA_MEMCHECK
+    VAL            $EXE_VALGRIND
+    PROF           $EXE_NVPROF
+    GDB		   $EXE_CUDA_GDB
+
+the command executed can be printed by setting DRYRUN 
+env variable
+
+example:
+
+    DRYRUN= MEM=  $EXE_PREFIX.run --runargs "-n 2" ./udevicex
+
+will print
+   
+   $RUN_CMD -n 2 $EXE_CUDA_MEMCHECK ./udevicex
+
+EOF
+    exit 1
+}
+
+if test $# -ne 0 && test "$1" = -h; then usage; fi
+
+if test $# -ne 0 && test "$1" = --runargs
+then
+    shift
+    if test $# -ne 0
+    then RUNARGS=$1; shift
+    else
+	usage
+    fi
+fi
+
+exe_cmn () { echo $RUN_CMD $RUNARGS "$@"; }
+
+exe_cuda_memcheck () { exe_cmn "${EXE_CUDA_MEMCHECK}" "${MEM}"        "$@"; }
+exe_valgrind      () { exe_cmn "${EXE_VALGRIND}"      "${VAL}"        "$@"; }
+exe_nvprof        () { exe_cmn "${EXE_NVPROF}"        "${PROF}"       "$@"; }
+exe_cuda_gdb      () { exe_cmn "${EXE_CUDA_GDB}"      "${GDB}" --args "$@"; }
+exe_direct        () { exe_cmn                                        "$@"; }
+
 . $EXE_PREFIX.load
 
-exec $RUN_CMD "$@"
+
+execcmd () {
+    if   test ! -z "${DRYRUN+x}"
+    then	
+	echo "$@"
+    else
+	exec "$@"
+    fi
+}
+
+if   test ! -z "${MEM+x}"
+then
+    execcmd `exe_cuda_memcheck "$@"`
+elif test ! -z "${VAL+x}"
+then
+    execcmd `exe_valgrind      "$@"`
+elif test ! -z "${PROF+x}"
+then
+    execcmd `exe_nvprof        "$@"`
+elif test ! -z "${GDB+x}"
+then
+    execcmd `exe_cuda_gdb      "$@"`
+else
+    execcmd  `exe_direct       "$@"`
+fi
