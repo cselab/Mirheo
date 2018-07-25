@@ -182,7 +182,7 @@ Spherical wall.
 :param inside: whether the domain is inside the sphere or outside of it
 
 
-.. py:class:: Wall(*args, **kwargs)
+.. py:class:: Wall
    :module: libudevicex.Walls
 
    Bases: :class:`pybind11_builtins.pybind11_object`
@@ -190,8 +190,7 @@ Spherical wall.
 Base wall class.
 
 
-.. py:method:: Wall.__init__(*args, **kwargs)
+.. py:attribute:: Wall.__init__
    :module: libudevicex.Walls
 
 Initialize self.  See help(type(self)) for accurate signature.
-

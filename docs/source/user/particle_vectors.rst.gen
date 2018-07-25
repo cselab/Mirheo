@@ -69,7 +69,7 @@ Create a mesh by reading the OFF file
 :param off_filename: path of the OFF file
 
 
-.. py:class:: ObjectVector(*args, **kwargs)
+.. py:class:: ObjectVector
    :module: libudevicex.ParticleVectors
 
    Bases: :class:`libudevicex.ParticleVectors.ParticleVector`
@@ -77,11 +77,10 @@ Create a mesh by reading the OFF file
 Basic Object Vector
 
 
-.. py:method:: ObjectVector.__init__(*args, **kwargs)
+.. py:attribute:: ObjectVector.__init__
    :module: libudevicex.ParticleVectors
 
 Initialize self.  See help(type(self)) for accurate signature.
-
 
 .. py:class:: ParticleVector
    :module: libudevicex.ParticleVectors

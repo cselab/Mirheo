@@ -14,7 +14,7 @@ Initial conditions (IC) have to be defined for every Particle Vector
 .. py:module:: libudevicex.InitialConditions
 
 
-.. py:class:: InitialConditions(*args, **kwargs)
+.. py:class:: InitialConditions
    :module: libudevicex.InitialConditions
 
    Bases: :class:`pybind11_builtins.pybind11_object`
@@ -22,11 +22,10 @@ Initial conditions (IC) have to be defined for every Particle Vector
 Base class for initial conditions
 
 
-.. py:method:: InitialConditions.__init__(*args, **kwargs)
+.. py:attribute:: InitialConditions.__init__
    :module: libudevicex.InitialConditions
 
 Initialize self.  See help(type(self)) for accurate signature.
-
 
 .. py:class:: Membrane
    :module: libudevicex.InitialConditions

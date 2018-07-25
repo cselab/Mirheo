@@ -19,7 +19,7 @@ Integrators are used to advance particle coordinates and velocities in time acco
 .. py:module:: libudevicex.Integrators
 
 
-.. py:class:: Integrator(*args, **kwargs)
+.. py:class:: Integrator
    :module: libudevicex.Integrators
 
    Bases: :class:`pybind11_builtins.pybind11_object`
@@ -27,11 +27,10 @@ Integrators are used to advance particle coordinates and velocities in time acco
 Base integration class
 
 
-.. py:method:: Integrator.__init__(*args, **kwargs)
+.. py:attribute:: Integrator.__init__
    :module: libudevicex.Integrators
 
 Initialize self.  See help(type(self)) for accurate signature.
-
 
 .. py:class:: Oscillate
    :module: libudevicex.Integrators

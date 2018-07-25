@@ -160,7 +160,6 @@ void Simulation::registerParticleVector(std::shared_ptr<ParticleVector> pv, std:
         info("Registered particle vector '%s', %d particles", name.c_str(), pv->local()->size());
 
     particleVectors.push_back(std::move(pv));
-    printf("refs: %d\n", (int)particleVectors.back().use_count());
     pvIdMap[name] = particleVectors.size() - 1;
 }
 

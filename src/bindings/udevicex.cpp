@@ -104,6 +104,26 @@ void exportUdevicex(py::module& m)
                     
         )")
         
+        .def("makeFrozenWallParticles", &uDeviceX::makeFrozenWallParticles,
+            "wall"_a, "interaction"_a, "integrator"_a, "density"_a, "nsteps"_a=1000, R"(
+                Create particles frozen inside the wall.
+                
+                .. note::
+                    A separate simulation will be run for every call to this function, which may take certain amount of time.
+                    If you want to save time, consider using restarting mechanism instead
+                
+                Args:
+                    wall: instance of :any:`Wall` for which the frozen particles will be generated
+                    interaction: this :any:`Interaction` will be used to construct the equilibrium particles distribution
+                    integrator: this :any:`Integrator` will be used to construct the equilibrium particles distribution
+                    density: target particle density
+                    nsteps: run this many steps to achieve equilibrium
+                            
+                Returns:
+                    New :any:`ParticleVector` that will contain particles that are close to the wall boundary, but still inside the wall.
+                    
+        )")
+        
         .def("isComputeTask", &uDeviceX::isComputeTask, "Returns whether current rank will do compute or postrprocess")
         .def("run", &uDeviceX::run, "Run the simulation");
 }

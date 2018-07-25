@@ -20,6 +20,10 @@
 #include <core/pvs/particle_vector.h>
 #include <core/pvs/object_vector.h>
 
+#include <core/walls/simple_stationary_wall.h>
+#include <core/walls/freeze_particles.h>
+#include <core/initial_conditions/uniform_ic.h>
+
 
 uDeviceX::uDeviceX(std::tuple<int, int, int> nranks3D, std::tuple<float, float, float> globalDomainSize,
         std::string logFileName, int verbosity, bool gpuAwareMPI)
@@ -91,7 +95,6 @@ uDeviceX::~uDeviceX() = default;
 
 void uDeviceX::registerParticleVector(const std::shared_ptr<ParticleVector>& pv, const std::shared_ptr<InitialConditions>& ic, int checkpointEvery)
 {
-    printf("hohoho %d\n", (int)pv.use_count());
     if (isComputeTask())
         sim->registerParticleVector(pv, ic, checkpointEvery);
 }
@@ -157,6 +160,50 @@ void uDeviceX::setWallBounce(Wall* wall, ParticleVector* pv)
     if (isComputeTask())
         sim->setWallBounce(wall->name, pv->name);
 }
+
+std::shared_ptr<ParticleVector> uDeviceX::makeFrozenWallParticles(std::shared_ptr<Wall> wall,
+                                                                  std::shared_ptr<Interaction> interaction,
+                                                                  std::shared_ptr<Integrator>   integrator,
+                                                                  float density, int nsteps)
+{
+    if (!isComputeTask()) return nullptr;
+
+    // Walls are not directly reusable in other simulations,
+    // because they store some information like cell-lists
+    //
+    // But here we don't pass the wall into the other simulation,
+    // we just use it to filter particles, which is totally fine
+    
+    info("Generating frozen particles for wall '%s'...\n\n", wall->name.c_str());
+    
+    auto sdfWall = dynamic_cast<SDF_basedWall*>(wall.get());
+    if (sdfWall == nullptr)
+        die("Only sdf-based walls are supported now!");
+    
+    // Check if the wall is set up
+    sim->getWallByNameOrDie(wall->name);
+    
+    Simulation wallsim(sim->nranks3D, sim->domain.globalSize, sim->cartComm, MPI_COMM_NULL, false);
+    
+    auto pv=std::make_shared<ParticleVector>(wall->name, 1.0);
+    auto ic=std::make_shared<UniformIC>(density);
+    
+    wallsim.registerParticleVector(pv, ic, 0);
+    wallsim.registerInteraction(interaction);
+
+    wallsim.registerIntegrator(integrator);
+    
+    wallsim.setInteraction(interaction->name, pv->name, pv->name);
+    wallsim.setIntegrator (integrator->name,  pv->name);
+    
+    wallsim.init();
+    wallsim.run(nsteps);
+    
+    freezeParticlesInWall(sdfWall, pv.get(), 0.0f, interaction->rc + 0.2f);
+    
+    return pv;
+}
+
 
 std::shared_ptr<ParticleVector> uDeviceX::applyObjectBelongingChecker(ObjectBelongingChecker* checker,
                                                                       ParticleVector* pv,

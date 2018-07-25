@@ -22,7 +22,7 @@ This force is saved for the next timestep.
 .. py:module:: libudevicex.Bouncers
 
 
-.. py:class:: Bouncer(*args, **kwargs)
+.. py:class:: Bouncer
    :module: libudevicex.Bouncers
 
    Bases: :class:`pybind11_builtins.pybind11_object`
@@ -30,11 +30,10 @@ This force is saved for the next timestep.
 Base class for bouncing particles off the objects
 
 
-.. py:method:: Bouncer.__init__(*args, **kwargs)
+.. py:attribute:: Bouncer.__init__
    :module: libudevicex.Bouncers
 
 Initialize self.  See help(type(self)) for accurate signature.
-
 
 .. py:class:: Ellipsoid
    :module: libudevicex.Bouncers

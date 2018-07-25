@@ -61,7 +61,7 @@ that we define as follows:
 Override some of the interaction parameters for a specific pair of Particle Vectors
 
 
-.. py:class:: Interaction(*args, **kwargs)
+.. py:class:: Interaction
    :module: libudevicex.Interactions
 
    Bases: :class:`pybind11_builtins.pybind11_object`
@@ -69,11 +69,10 @@ Override some of the interaction parameters for a specific pair of Particle Vect
 Base interaction class
 
 
-.. py:method:: Interaction.__init__(*args, **kwargs)
+.. py:attribute:: Interaction.__init__
    :module: libudevicex.Interactions
 
 Initialize self.  See help(type(self)) for accurate signature.
-
 
 .. py:class:: LJ
    :module: libudevicex.Interactions

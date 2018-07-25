@@ -22,7 +22,7 @@ Secondly, they are used to maintain the mentioned *inside*-*outside* property of
 .. py:module:: libudevicex.BelongingCheckers
 
 
-.. py:class:: BelongingChecker(*args, **kwargs)
+.. py:class:: BelongingChecker
    :module: libudevicex.BelongingCheckers
 
    Bases: :class:`pybind11_builtins.pybind11_object`
@@ -30,11 +30,10 @@ Secondly, they are used to maintain the mentioned *inside*-*outside* property of
 Base class for checking if particles belong to objects
 
 
-.. py:method:: BelongingChecker.__init__(*args, **kwargs)
+.. py:attribute:: BelongingChecker.__init__
    :module: libudevicex.BelongingCheckers
 
 Initialize self.  See help(type(self)) for accurate signature.
-
 
 .. py:class:: Ellipsoid
    :module: libudevicex.BelongingCheckers

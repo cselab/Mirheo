@@ -73,6 +73,24 @@ One and only one of the options **inside** or **outside** has to be specified.
 Returns whether current rank will do compute or postrprocess
 
 
+.. py:method:: udevicex.makeFrozenWallParticles(self: libudevicex.udevicex, wall: Wall, interaction: Interaction, integrator: Integrator, density: float, nsteps: int = 1000) -> ParticleVector
+   :module: udevicex
+
+Create particles frozen inside the wall.
+
+.. note::
+    A separate simulation will be run for every call to this function, which may take certain amount of time.
+    If you want to save time, consider using restarting mechanism instead
+
+:param wall: instance of :any:`Wall` for which the frozen particles will be generated
+:param interaction: this :any:`Interaction` will be used to construct the equilibrium particles distribution
+:param integrator: this :any:`Integrator` will be used to construct the equilibrium particles distribution
+:param density: target particle density
+:param nsteps: run this many steps to achieve equilibrium
+
+:returns: New :any:`ParticleVector` that will contain particles that are close to the wall boundary, but still inside the wall.
+
+
 .. py:method:: udevicex.registerBouncer(self: libudevicex.udevicex, arg0: Bouncer) -> None
    :module: udevicex
 

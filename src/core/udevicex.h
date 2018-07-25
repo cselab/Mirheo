@@ -47,7 +47,10 @@ public:
     void setWallBounce  (Wall* wall, ParticleVector* pv);
     
     
-    std::shared_ptr<ParticleVector> makeFrozenWallParticles(Wall* wall, Interaction* interaction);
+    std::shared_ptr<ParticleVector> makeFrozenWallParticles(std::shared_ptr<Wall> wall,
+                                                            std::shared_ptr<Interaction> interaction,
+                                                            std::shared_ptr<Integrator>   integrator,
+                                                            float density, int nsteps);
     
     std::shared_ptr<ParticleVector> applyObjectBelongingChecker(ObjectBelongingChecker* checker,
                                                                 ParticleVector* pv,
