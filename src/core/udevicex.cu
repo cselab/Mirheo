@@ -89,52 +89,50 @@ uDeviceX::~uDeviceX() = default;
 
 
 
-void uDeviceX::registerParticleVector(ParticleVector* pv, InitialConditions* ic, int checkpointEvery)
+void uDeviceX::registerParticleVector(std::shared_ptr<ParticleVector> pv, std::shared_ptr<InitialConditions> ic, int checkpointEvery)
 {
     if (isComputeTask())
-        sim->registerParticleVector(std::unique_ptr<ParticleVector>   (pv),
-                                    std::unique_ptr<InitialConditions>(ic),
-                                    checkpointEvery);
+        sim->registerParticleVector(pv, ic, checkpointEvery);
 }
-void uDeviceX::registerIntegrator(Integrator* integrator)
+void uDeviceX::registerIntegrator(std::shared_ptr<Integrator> integrator)
 {
     if (isComputeTask())
-        sim->registerIntegrator(std::unique_ptr<Integrator>(integrator));
+        sim->registerIntegrator(integrator);
 }
-void uDeviceX::registerInteraction(Interaction* interaction)
+void uDeviceX::registerInteraction(std::shared_ptr<Interaction> interaction)
 {
     if (isComputeTask())
-        sim->registerInteraction(std::unique_ptr<Interaction>(interaction));
+        sim->registerInteraction(interaction);
 }
-void uDeviceX::registerWall(Wall* wall, int checkEvery)
+void uDeviceX::registerWall(std::shared_ptr<Wall> wall, int checkEvery)
 {
     if (isComputeTask())
-        sim->registerWall(std::unique_ptr<Wall>(wall), checkEvery);
+        sim->registerWall(wall, checkEvery);
 }
-void uDeviceX::registerBouncer(Bouncer* bouncer)
+void uDeviceX::registerBouncer(std::shared_ptr<Bouncer> bouncer)
 {
     if (isComputeTask())
-        sim->registerBouncer(std::unique_ptr<Bouncer>(bouncer));
+        sim->registerBouncer(bouncer);
 }
-void uDeviceX::registerObjectBelongingChecker (ObjectBelongingChecker* checker, ObjectVector* ov)
+void uDeviceX::registerObjectBelongingChecker (std::shared_ptr<ObjectBelongingChecker> checker, ObjectVector* ov)
 {
     if (isComputeTask())
     {
-        sim->registerObjectBelongingChecker(std::unique_ptr<ObjectBelongingChecker>(checker));
+        sim->registerObjectBelongingChecker(checker);
         sim->setObjectBelongingChecker(checker->name, ov->name);
     }
 }
-void uDeviceX::registerPlugins(SimulationPlugin* simPlugin, PostprocessPlugin* postPlugin)
+void uDeviceX::registerPlugins(std::shared_ptr<SimulationPlugin> simPlugin, std::shared_ptr<PostprocessPlugin> postPlugin)
 {
     if (isComputeTask())
     {
         if ( simPlugin != nullptr && !(simPlugin->needPostproc() && noPostprocess) )
-            sim->registerPlugin(std::unique_ptr<SimulationPlugin>(simPlugin));
+            sim->registerPlugin(simPlugin);
     }
     else
     {
         if ( postPlugin != nullptr && !noPostprocess )
-            post->registerPlugin(std::unique_ptr<PostprocessPlugin>(postPlugin));
+            post->registerPlugin(postPlugin);
     }
 }
 
@@ -159,11 +157,11 @@ void uDeviceX::setWallBounce(Wall* wall, ParticleVector* pv)
         sim->setWallBounce(wall->name, pv->name);
 }
 
-ParticleVector* uDeviceX::applyObjectBelongingChecker(ObjectBelongingChecker* checker,
-                                                ParticleVector* pv,
-                                                int checkEvery,
-                                                std::string inside,
-                                                std::string outside)
+std::shared_ptr<ParticleVector> uDeviceX::applyObjectBelongingChecker(ObjectBelongingChecker* checker,
+                                                                      ParticleVector* pv,
+                                                                      int checkEvery,
+                                                                      std::string inside,
+                                                                      std::string outside)
 {
     if (!isComputeTask()) return nullptr;
     
@@ -185,7 +183,7 @@ ParticleVector* uDeviceX::applyObjectBelongingChecker(ObjectBelongingChecker* ch
     }
         
     sim->applyObjectBelongingChecker(checker->name, pv->name, inside, outside, checkEvery);
-    return sim->getPVbyName(newPVname);
+    return sim->getSharedPVbyName(newPVname);
 }
 
 

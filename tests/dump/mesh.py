@@ -3,7 +3,7 @@
 import sys
 sys.path.insert(0, "..")
 from common.context import udevicex as udx
-from common.membrane_params import lina as params_lina
+#from common.membrane_params import lina as params_lina
 
 dt = 0.001
 

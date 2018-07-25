@@ -25,8 +25,10 @@ public:
 
         float3 texcoord = floorf((x + extendedDomainSize*0.5f) * invh);
         float3 lambda = (x - (texcoord * h - extendedDomainSize*0.5f)) * invh;
-
-        #define access(dx, dy, dz) tex3D<float>(sdfTex, texcoord.x + dx, texcoord.y + dy, texcoord.z + dz)
+        
+        auto access = [this, &texcoord] (int dx, int dy, int dz) {
+            return tex3D<float>(sdfTex, texcoord.x + dx, texcoord.y + dy, texcoord.z + dz);
+        };
         
         s000 = access(0, 0, 0);
         s001 = access(0, 0, 1);
@@ -37,8 +39,6 @@ public:
         s101 = access(1, 0, 1);
         s110 = access(1, 1, 0);
         s111 = access(1, 1, 1);
-
-        #undef access
         
         s00x = s000 * (1 - lambda.x) + lambda.x * s001;
         s01x = s010 * (1 - lambda.x) + lambda.x * s011;

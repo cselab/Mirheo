@@ -13,11 +13,11 @@ using namespace pybind11::literals;
 void exportBouncers(py::module& m)
 {
     // Initial Conditions
-    py::nodelete_class<Bouncer> pybounce(m, "Bouncer", R"(
+    py::handlers_class<Bouncer> pybounce(m, "Bouncer", R"(
         Base class for bouncing particles off the objects
     )");
 
-    py::nodelete_class<BounceFromMesh>(m, "Mesh", pybounce, R"(
+    py::handlers_class<BounceFromMesh>(m, "Mesh", pybounce, R"(
         This bouncer will use the triangular mesh associated with objects to detect boundary crossings.
         Therefore it can only be created for Membrane and Rigid Object types of object vectors.
         Due to numerical precision, about :math:`1` of :math:`10^5 - 10^6` mesh crossings will not be detected, therefore it is advised to use that bouncer in
@@ -34,7 +34,7 @@ void exportBouncers(py::module& m)
                 kbt:  Maxwell distribution temperature defining post-collision velocity
         )");
         
-    py::nodelete_class<BounceFromRigidEllipsoid>(m, "Ellipsoid", pybounce, R"(
+    py::handlers_class<BounceFromRigidEllipsoid>(m, "Ellipsoid", pybounce, R"(
         This bouncer will use the analytical ellipsoid representation to perform the bounce.
         No additional correction from the Object Belonging Checker is usually required.
         The velocity of the particles bounced from the ellipsoid is reversed with respect to the boundary velocity at the contact point.

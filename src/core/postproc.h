@@ -9,11 +9,11 @@ class Postprocess
 private:
     MPI_Comm comm;
     MPI_Comm interComm;
-    std::vector< std::unique_ptr<PostprocessPlugin> > plugins;
+    std::vector< std::shared_ptr<PostprocessPlugin> > plugins;
     std::vector<MPI_Request> requests;
 
 public:
     Postprocess(MPI_Comm& comm, MPI_Comm& interComm);
-    void registerPlugin( std::unique_ptr<PostprocessPlugin> plugin );
+    void registerPlugin( std::shared_ptr<PostprocessPlugin> plugin );
     void run();
 };

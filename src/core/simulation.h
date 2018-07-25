@@ -11,6 +11,7 @@
 #include <string>
 #include <functional>
 #include <map>
+#include <memory>
 
 // Some forward declarations
 class ParticleVector;
@@ -38,10 +39,15 @@ class SimulationPlugin;
 class CUDA_Cleanup
 {
 public:
+    CUDA_Cleanup(bool clean=true) : clean(clean) {}
+    
     ~CUDA_Cleanup()
     {
-        CUDA_Check( cudaDeviceReset() );
+        if (clean)
+            CUDA_Check( cudaDeviceReset() );
     }
+private:
+    bool clean;
 };
 
 class Simulation
@@ -60,16 +66,17 @@ public:
 
     DomainInfo domain;
 
-    Simulation(int3 nranks3D, float3 globalDomainSize, const MPI_Comm& comm, const MPI_Comm& interComm, bool gpuAwareMPI);
+    Simulation(int3 nranks3D, float3 globalDomainSize, const MPI_Comm& comm, const MPI_Comm& interComm,
+               bool gpuAwareMPI, bool performCleanup = true);
     ~Simulation();
 
-    void registerParticleVector         (std::unique_ptr<ParticleVector> pv, std::unique_ptr<InitialConditions> ic, int checkpointEvery);
-    void registerWall                   (std::unique_ptr<Wall> wall, int checkEvery=0);
-    void registerInteraction            (std::unique_ptr<Interaction> interaction);
-    void registerIntegrator             (std::unique_ptr<Integrator> integrator);
-    void registerBouncer                (std::unique_ptr<Bouncer> bouncer);
-    void registerPlugin                 (std::unique_ptr<SimulationPlugin> plugin);
-    void registerObjectBelongingChecker (std::unique_ptr<ObjectBelongingChecker> checker);
+    void registerParticleVector         (std::shared_ptr<ParticleVector> pv, std::shared_ptr<InitialConditions> ic, int checkpointEvery);
+    void registerWall                   (std::shared_ptr<Wall> wall, int checkEvery=0);
+    void registerInteraction            (std::shared_ptr<Interaction> interaction);
+    void registerIntegrator             (std::shared_ptr<Integrator> integrator);
+    void registerBouncer                (std::shared_ptr<Bouncer> bouncer);
+    void registerPlugin                 (std::shared_ptr<SimulationPlugin> plugin);
+    void registerObjectBelongingChecker (std::shared_ptr<ObjectBelongingChecker> checker);
 
 
     void setIntegrator             (std::string integratorName,  std::string pvName);
@@ -93,6 +100,9 @@ public:
     ParticleVector* getPVbyName     (std::string name) const;
     ParticleVector* getPVbyNameOrDie(std::string name) const;
     ObjectVector*   getOVbyNameOrDie(std::string name) const;
+    
+    /// Assume co-ownership
+    std::shared_ptr<ParticleVector> getSharedPVbyName(std::string name) const;
 
     Wall* getWallByNameOrDie(std::string name) const;
 
@@ -101,7 +111,7 @@ public:
     MPI_Comm getCartComm() const;
 
 
-private:
+private:    
     const float rcTolerance = 1e-5;
 
     std::string restartFolder;
@@ -123,14 +133,14 @@ private:
     std::unique_ptr<ObjectForcesReverseExchanger> objHaloForces;
 
     std::map<std::string, int> pvIdMap;
-    std::vector< std::unique_ptr<ParticleVector> > particleVectors;
+    std::vector< std::shared_ptr<ParticleVector> > particleVectors;
     std::vector< ObjectVector* >   objectVectors;
 
-    std::map< std::string, std::unique_ptr<Bouncer> >                bouncerMap;
-    std::map< std::string, std::unique_ptr<Integrator> >             integratorMap;
-    std::map< std::string, std::unique_ptr<Interaction> >            interactionMap;
-    std::map< std::string, std::unique_ptr<Wall> >                   wallMap;
-    std::map< std::string, std::unique_ptr<ObjectBelongingChecker> > belongingCheckerMap;
+    std::map< std::string, std::shared_ptr<Bouncer> >                bouncerMap;
+    std::map< std::string, std::shared_ptr<Integrator> >             integratorMap;
+    std::map< std::string, std::shared_ptr<Interaction> >            interactionMap;
+    std::map< std::string, std::shared_ptr<Wall> >                   wallMap;
+    std::map< std::string, std::shared_ptr<ObjectBelongingChecker> > belongingCheckerMap;
 
     std::map<ParticleVector*, std::vector< std::unique_ptr<CellList> >> cellListMap;
 
@@ -146,7 +156,7 @@ private:
     std::vector<std::function<void(float, cudaStream_t)>> integratorsStage1, integratorsStage2;
     std::vector<std::function<void(float, cudaStream_t)>> regularBouncers, haloBouncers;
 
-    std::vector< std::unique_ptr<SimulationPlugin> > plugins;
+    std::vector< std::shared_ptr<SimulationPlugin> > plugins;
 
     void prepareCellLists();
     void prepareInteractions();

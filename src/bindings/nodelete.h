@@ -1,9 +1,10 @@
 #pragma once
 
 #include <pybind11/pybind11.h>
+#include <memory>
 
 namespace pybind11
 {
     template <typename type_, typename... options>
-    using nodelete_class = class_< type_, std::unique_ptr<type_, nodelete>, options... >;
+    using handlers_class = class_< type_, std::shared_ptr<type_>, options... >;
 }

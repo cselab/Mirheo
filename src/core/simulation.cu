@@ -20,8 +20,9 @@
 
 #include <algorithm>
 
-Simulation::Simulation(int3 nranks3D, float3 globalDomainSize, const MPI_Comm& comm, const MPI_Comm& interComm, bool gpuAwareMPI) :
-nranks3D(nranks3D), interComm(interComm), currentTime(0), currentStep(0), gpuAwareMPI(gpuAwareMPI)
+Simulation::Simulation(int3 nranks3D, float3 globalDomainSize, const MPI_Comm& comm, const MPI_Comm& interComm,
+                       bool gpuAwareMPI, bool performCleanup) :
+nranks3D(nranks3D), interComm(interComm), currentTime(0), currentStep(0), gpuAwareMPI(gpuAwareMPI), cleanup(performCleanup)
 {
     int ranksArr[] = {nranks3D.x, nranks3D.y, nranks3D.z};
     int periods[] = {1, 1, 1};
@@ -68,6 +69,12 @@ ParticleVector* Simulation::getPVbyName(std::string name) const
 {
     auto pvIt = pvIdMap.find(name);
     return (pvIt != pvIdMap.end()) ? particleVectors[pvIt->second].get() : nullptr;
+}
+
+std::shared_ptr<ParticleVector> Simulation::getSharedPVbyName(std::string name) const
+{
+    auto pvIt = pvIdMap.find(name);
+    return (pvIt != pvIdMap.end()) ? particleVectors[pvIt->second] : std::shared_ptr<ParticleVector>(nullptr);
 }
 
 ParticleVector* Simulation::getPVbyNameOrDie(std::string name) const
@@ -118,7 +125,7 @@ MPI_Comm Simulation::getCartComm() const
 // Registration
 //================================================================================================
 
-void Simulation::registerParticleVector(std::unique_ptr<ParticleVector> pv, std::unique_ptr<InitialConditions> ic, int checkpointEvery)
+void Simulation::registerParticleVector(std::shared_ptr<ParticleVector> pv, std::shared_ptr<InitialConditions> ic, int checkpointEvery)
 {
     std::string name = pv->name;
 
@@ -157,7 +164,7 @@ void Simulation::registerParticleVector(std::unique_ptr<ParticleVector> pv, std:
     pvIdMap[name] = particleVectors.size() - 1;
 }
 
-void Simulation::registerWall(std::unique_ptr<Wall> wall, int every)
+void Simulation::registerWall(std::shared_ptr<Wall> wall, int every)
 {
     std::string name = wall->name;
 
@@ -174,7 +181,7 @@ void Simulation::registerWall(std::unique_ptr<Wall> wall, int every)
     wallMap[name] = std::move(wall);
 }
 
-void Simulation::registerInteraction(std::unique_ptr<Interaction> interaction)
+void Simulation::registerInteraction(std::shared_ptr<Interaction> interaction)
 {
     std::string name = interaction->name;
     if (interactionMap.find(name) != interactionMap.end())
@@ -183,7 +190,7 @@ void Simulation::registerInteraction(std::unique_ptr<Interaction> interaction)
     interactionMap[name] = std::move(interaction);
 }
 
-void Simulation::registerIntegrator(std::unique_ptr<Integrator> integrator)
+void Simulation::registerIntegrator(std::shared_ptr<Integrator> integrator)
 {
     std::string name = integrator->name;
     if (integratorMap.find(name) != integratorMap.end())
@@ -192,7 +199,7 @@ void Simulation::registerIntegrator(std::unique_ptr<Integrator> integrator)
     integratorMap[name] = std::move(integrator);
 }
 
-void Simulation::registerBouncer(std::unique_ptr<Bouncer> bouncer)
+void Simulation::registerBouncer(std::shared_ptr<Bouncer> bouncer)
 {
     std::string name = bouncer->name;
     if (bouncerMap.find(name) != bouncerMap.end())
@@ -201,7 +208,7 @@ void Simulation::registerBouncer(std::unique_ptr<Bouncer> bouncer)
     bouncerMap[name] = std::move(bouncer);
 }
 
-void Simulation::registerObjectBelongingChecker(std::unique_ptr<ObjectBelongingChecker> checker)
+void Simulation::registerObjectBelongingChecker(std::shared_ptr<ObjectBelongingChecker> checker)
 {
     std::string name = checker->name;
     if (belongingCheckerMap.find(name) != belongingCheckerMap.end())
@@ -210,7 +217,7 @@ void Simulation::registerObjectBelongingChecker(std::unique_ptr<ObjectBelongingC
     belongingCheckerMap[name] = std::move(checker);
 }
 
-void Simulation::registerPlugin(std::unique_ptr<SimulationPlugin> plugin)
+void Simulation::registerPlugin(std::shared_ptr<SimulationPlugin> plugin)
 {
     std::string name = plugin->name;
 
@@ -336,18 +343,18 @@ void Simulation::applyObjectBelongingChecker(std::string checkerName,
 
     auto checker = belongingCheckerMap[checkerName].get();
 
-    std::unique_ptr<ParticleVector> pvInside, pvOutside;
+    std::shared_ptr<ParticleVector> pvInside, pvOutside;
 
     if (inside != "none" && getPVbyName(inside) == nullptr)
     {
-        pvInside = std::make_unique<ParticleVector>(inside, pvSource->mass);
-        registerParticleVector(std::move(pvInside), nullptr, 0);
+        pvInside = std::make_shared<ParticleVector>(inside, pvSource->mass);
+        registerParticleVector(pvInside, nullptr, 0);
     }
 
     if (outside != "none" && getPVbyName(outside) == nullptr)
     {
-        pvOutside = std::make_unique<ParticleVector>(outside, pvSource->mass);
-        registerParticleVector(std::move(pvOutside), nullptr, 0);
+        pvOutside = std::make_shared<ParticleVector>(outside, pvSource->mass);
+        registerParticleVector(pvOutside, nullptr, 0);
     }
 
     splitterPrototypes.push_back(std::make_tuple(checker, pvSource, getPVbyName(inside), getPVbyName(outside)));

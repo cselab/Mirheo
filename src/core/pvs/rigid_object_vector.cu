@@ -6,13 +6,13 @@
 
 RigidObjectVector::RigidObjectVector(std::string name, float partMass,
                                      float3 J, const int objSize,
-                                     Mesh *mesh, const int nObjects) :
+                                     std::shared_ptr<Mesh> mesh, const int nObjects) :
         ObjectVector( name, partMass, objSize,
                       new LocalRigidObjectVector(this, objSize, nObjects),
                       new LocalRigidObjectVector(this, objSize, 0) ),
         J(J)
 {
-    this->mesh = std::unique_ptr<Mesh>(mesh);
+    this->mesh = std::move(mesh);
 
     if (length(J) < 1e-5)
         die("Wrong momentum of inertia: [%f %f %f]", J.x, J.y, J.z);
@@ -23,7 +23,7 @@ RigidObjectVector::RigidObjectVector(std::string name, float partMass,
 
 RigidObjectVector::RigidObjectVector(std::string name, float partMass,
                                      pyfloat3 J, const int objSize,
-                                     Mesh *mesh, const int nObjects) :
+                                     std::shared_ptr<Mesh> mesh, const int nObjects) :
         RigidObjectVector( name, partMass, make_float3(J), objSize, mesh, nObjects )
 {   }
 

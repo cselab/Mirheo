@@ -10,7 +10,7 @@ Postprocess::Postprocess(MPI_Comm& comm, MPI_Comm& interComm) : comm(comm), inte
     info("Postprocessing initialized");
 }
 
-void Postprocess::registerPlugin(std::unique_ptr<PostprocessPlugin> plugin)
+void Postprocess::registerPlugin(std::shared_ptr<PostprocessPlugin> plugin)
 {
     info("New plugin registered: %s", plugin->name.c_str());
     plugins.push_back( std::move(plugin) );
