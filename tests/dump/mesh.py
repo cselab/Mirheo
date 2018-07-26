@@ -9,7 +9,7 @@ dt = 0.001
 ranks  = (1, 1, 1)
 domain = (12, 8, 10)
 
-u = udx.udevicex(ranks, domain, debug_level=8, log_filename='log')
+u = udx.udevicex(ranks, domain, debug_level=2, log_filename='log')
 
 mesh = udx.ParticleVectors.MembraneMesh("rbc_mesh.off")
 rbc  = udx.ParticleVectors.MembraneVector("rbc", mass=1.0, object_size=498, mesh=mesh)
