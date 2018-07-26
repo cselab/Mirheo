@@ -4,7 +4,10 @@
 *** TODO pass spring constant ks
 *** TODO fluctuations
 *** TODO dissipation forces must be central
+** TODO adaptive time stepping
+** TODO separation of membrane time steps
+** TODO more bending models for membranes
 * Configuration
 ** TODO mesh can be read from ply as well
 ** TODO do not need to pass number of vertices for object vectors
-
+** TODO choose what forces are computed for membranes
