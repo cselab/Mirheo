@@ -12,7 +12,7 @@ dt = 0.001
 ranks  = (1, 1, 1)
 domain = (12, 8, 10)
 
-u = udx.udevicex(ranks, domain, debug_level=2, log_filename='log')
+u = udx.udevicex(ranks, domain, debug_level=8, log_filename='log')
 
 mesh_rbc = udx.ParticleVectors.MembraneMesh("rbc_mesh.off")
 pv_rbc   = udx.ParticleVectors.MembraneVector("rbc", mass=1.0, object_size=498, mesh=mesh_rbc)
@@ -31,19 +31,16 @@ u.setIntegrator(vv, pv_rbc)
 u.registerInteraction(int_rbc)
 u.setInteraction(int_rbc, pv_rbc, pv_rbc)
 
-# dump_mesh = udx.Plugins.createDumpMesh("mesh_dump", pv_rbc, 500, "ply/")
-# u.registerPlugins(dump_mesh)
-
-u.run(5000)
+u.run(2)
 
 if pv_rbc:
-    rbc_pos = pv_rbc.getCoordinates()
-    np.savetxt("pos.rbc.txt", rbc_pos)
+    rbc_forces = pv_rbc.getForces()
+    np.savetxt("forces.rbc.txt", rbc_forces)
 
-# nTEST: membrane.rest
+# sTEST: membrane.force
 # cd membrane
 # cp ../../data/rbc_mesh.off .
 # echo "6.0 4.0 5.0 1.0 0.0 0.0 0.0" > rbcs-ic.txt
 # cp ../../data/rbc_mesh.off .
-# udx.run --runargs "-n 2" ./rest.py > /dev/null
-# mv pos.rbc.txt pos.rbc.out.txt 
+# udx.run --runargs "-n 1" ./force.py > /dev/null
+# mv forces.rbc.txt forces.rbc.out.txt 

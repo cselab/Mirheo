@@ -9,6 +9,11 @@ class Simulation;
 
 // TODO: variable size messages
 
+enum {
+    PLUGINS_INTERCOMM_TAG_DATA,
+    PLUGINS_INTERCOMM_TAG_SIZE,
+};
+
 class SimulationPlugin
 {
 public:
@@ -43,8 +48,8 @@ public:
     {
         this->sim = sim;
 
-        MPI_Check( MPI_Comm_dup(comm, &this->comm) );
-        this->interComm = interComm;
+        MPI_Check( MPI_Comm_dup(comm,      &this->comm     ) );
+        MPI_Check( MPI_Comm_dup(interComm, &this->interComm) );
 
         MPI_Check( MPI_Comm_rank(this->comm, &rank) );
         MPI_Check( MPI_Comm_size(this->comm, &nranks) );
@@ -56,23 +61,19 @@ public:
         MPI_Check( MPI_Wait(&req, MPI_STATUS_IGNORE) );
     }
 
-    virtual ~SimulationPlugin() = default;
+    virtual ~SimulationPlugin() {
+        MPI_Check( MPI_Comm_free(&comm     ) );
+        MPI_Check( MPI_Comm_free(&interComm) );
+    }
 
 protected:
     Simulation* sim;
-    MPI_Comm comm;
-    MPI_Comm interComm;
+    MPI_Comm comm{MPI_COMM_NULL}, interComm{MPI_COMM_NULL};
     int rank, nranks;
     MPI_Request req;
 
     float currentTime;
     int currentTimeStep;
-
-    std::hash<std::string> nameHash;
-    int tag()
-    {
-        return (int)( nameHash(name) % 16767 );
-    }
 
     void send(const std::vector<char>& data)
     {
@@ -84,8 +85,8 @@ protected:
         debug3("Plugin %s is sending now", name.c_str());
         MPI_Check( MPI_Wait(&req, MPI_STATUS_IGNORE) );
 
-        MPI_Check( MPI_Ssend(&sizeInBytes, 1, MPI_INT, rank, 2*tag(), interComm) );
-        MPI_Check( MPI_Issend(data, sizeInBytes, MPI_BYTE, rank, 2*tag()+1, interComm, &req) );
+        MPI_Check( MPI_Ssend(&sizeInBytes, 1,    MPI_INT,  rank, PLUGINS_INTERCOMM_TAG_SIZE, interComm) );
+        MPI_Check( MPI_Issend(data, sizeInBytes, MPI_BYTE, rank, PLUGINS_INTERCOMM_TAG_DATA, interComm, &req) );
 
         debug3("Plugin %s has sent the data (%d bytes)", name.c_str(), sizeInBytes);
     }
@@ -101,7 +102,7 @@ public:
     MPI_Request waitData()
     {
         MPI_Request req;
-        MPI_Check( MPI_Irecv(&size, 1, MPI_INT, rank, 2*tag(), interComm, &req) );
+        MPI_Check( MPI_Irecv(&size, 1, MPI_INT, rank, PLUGINS_INTERCOMM_TAG_SIZE, interComm, &req) );
         return req;
     }
 
@@ -110,7 +111,7 @@ public:
         data.resize(size);
         MPI_Status status;
         int count;
-        MPI_Check( MPI_Recv(data.data(), size, MPI_BYTE, rank, 2*tag()+1, interComm, &status) );
+        MPI_Check( MPI_Recv(data.data(), size, MPI_BYTE, rank, PLUGINS_INTERCOMM_TAG_DATA, interComm, &status) );
         MPI_Check( MPI_Get_count(&status, MPI_BYTE, &count) );
 
         if (count != size)
@@ -126,27 +127,23 @@ public:
 
     virtual void setup(const MPI_Comm& comm, const MPI_Comm& interComm)
     {
-        MPI_Check( MPI_Comm_dup(comm, &this->comm) );
-        this->interComm = interComm;
+        MPI_Check( MPI_Comm_dup(comm,      &this->comm     ) );
+        MPI_Check( MPI_Comm_dup(interComm, &this->interComm) );
 
         MPI_Check( MPI_Comm_rank(this->comm, &rank) );
         MPI_Check( MPI_Comm_size(this->comm, &nranks) );
     }
 
-    virtual ~PostprocessPlugin() = default;
-
+    virtual ~PostprocessPlugin() {
+        MPI_Check( MPI_Comm_free(&comm     ) );
+        MPI_Check( MPI_Comm_free(&interComm) );
+    }
 
 protected:
-    MPI_Comm comm, interComm;
+    MPI_Comm comm{MPI_COMM_NULL}, interComm{MPI_COMM_NULL};
     int rank, nranks;
     std::vector<char> data;
     int size;
-
-    std::hash<std::string> nameHash;
-    int tag()
-    {
-        return (int)( nameHash(name) % 16767 );
-    }
 };
 
 

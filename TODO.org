@@ -1,0 +1,17 @@
+* [0/4] Features
+** TODO velocity controller
+** TODO [0/4] membrane
+*** TODO pass spring constant ks
+*** TODO fluctuation forces
+*** TODO dissipation forces must be central
+*** TODO more bending models for membranes
+** TODO adaptive time stepping
+** TODO separation of membrane time steps
+* [0/3] Configuration
+** TODO mesh can be read from ply as well
+** TODO do not need to pass number of vertices for object vectors
+** TODO choose what forces are computed for membranes
+* [0/1] Others
+** TODO daint: proper cmake for libbfd
+* [0/1] Code
+** TODO remove magic numbers
