@@ -16,6 +16,8 @@ from libudevicex import *
 
 # Global variable for the udevicex coordination class
 # Used in decorators to access compute task status
+# This variable made a weak reference to not prevent
+# cleanup of the simulation
 __coordinator = None
 
 # Wrap the creation of all the simulation handlers

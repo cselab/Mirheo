@@ -24,7 +24,8 @@ class uDeviceX
 {
 public:
     uDeviceX(pyint3 nranks3D, pyfloat3 globalDomainSize,
-             std::string logFileName, int verbosity, bool gpuAwareMPI);
+             std::string logFileName, int verbosity,
+             int checkpointEvery=0, std::string restartFolder="restart/", bool gpuAwareMPI=false);
 
     bool isComputeTask();
     void run(int niters);

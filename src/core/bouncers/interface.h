@@ -2,10 +2,12 @@
 
 #include <string>
 #include <cuda_runtime.h>
+#include <mpi.h>
 
 class CellList;
 class ParticleVector;
 class ObjectVector;
+
 
 /**
  * Interface for a class implementing bouncing from objects
@@ -57,6 +59,11 @@ public:
 
     /// Interface to the private exec function for halo objects
     void bounceHalo (ParticleVector* pv, CellList* cl, float dt, cudaStream_t stream) { exec (pv, cl, dt, false, stream); }
+    
+    /// Save handler state
+    virtual void checkpoint(MPI_Comm& comm, std::string path) {}
+    /// Restore handler state
+    virtual void restart(MPI_Comm& comm, std::string path) {}
 
     virtual ~Bouncer() = default;
 };

@@ -14,9 +14,13 @@ install:
 uninstall:
 	pip3 uninstall udevicex
 
+docs:
+	make -C docs/
+	make -C docs/source/
+
 test:
 	(cd tests; udx.make test)
 
 clean:; rm -rf build
 
-.PHONY: install build test clean
+.PHONY: install build test clean docs

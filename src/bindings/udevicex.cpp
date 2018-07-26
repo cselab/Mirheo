@@ -19,9 +19,10 @@ void exportUdevicex(py::module& m)
     py::class_<uDeviceX>(m, "udevicex", R"(
         Main coordination class, should only be one instance at a time
     )")
-        .def(py::init< pyint3, pyfloat3, std::string, int, bool >(),
+        .def(py::init< pyint3, pyfloat3, std::string, int, int, std::string, bool >(),
              py::return_value_policy::take_ownership,
-             "nranks"_a, "domain"_a, "log_filename"_a="log", "debug_level"_a=3, "cuda_aware_mpi"_a=false, R"(
+             "nranks"_a, "domain"_a, "log_filename"_a="log", "debug_level"_a=3, 
+             "checkpoint_every"_a=0, "restart_folder"_a="restart/", "cuda_aware_mpi"_a=false, R"(
             Args:
                 nranks:
                     number of MPI simulation tasks per axis: x,y,z. If postprocess is enabled, the same number of the postprocess tasks will be running
@@ -47,11 +48,15 @@ void exportUdevicex(py::module& m)
                     | 
                     | Debug levels above 4 or 5 may significanlty increase the runtime, they are only recommended to debug errors.
                     | Flushing increases the runtime yet more, but it is required in order not to lose any messages in case of abnormal program abort.
+                checkpoint_every:
+                    save state of the simulation components (particle vectors and handlers like integrators, plugins, etc.)
+                restart_folder:
+                    folder where the checkpoint files will reside
                 cuda_aware_mpi: enable CUDA Aware MPI (GPU RDMA). As of now it may crash, or may yield slower execution.
         )")
         
         .def("registerParticleVector", &uDeviceX::registerParticleVector,
-            "pv"_a, "ic"_a, "checkpoint_every"_a=0, R"(
+            "pv"_a, "ic"_a=nullptr, "checkpoint_every"_a=0, R"(
             Register particle vector
             
             Args:

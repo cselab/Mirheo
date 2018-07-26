@@ -26,7 +26,8 @@
 
 
 uDeviceX::uDeviceX(std::tuple<int, int, int> nranks3D, std::tuple<float, float, float> globalDomainSize,
-        std::string logFileName, int verbosity, bool gpuAwareMPI)
+        std::string logFileName, int verbosity,
+        int checkpointEvery, std::string restartFolder, bool gpuAwareMPI)
 {
     int3 _nranks3D = make_int3(nranks3D);
     float3 _globalDomainSize = make_float3(globalDomainSize);
@@ -59,7 +60,9 @@ uDeviceX::uDeviceX(std::tuple<int, int, int> nranks3D, std::tuple<float, float, 
     {
         warn("No postprocess will be started now, use this mode for debugging. All the joint plugins will be turned off too.");
 
-        sim = std::make_unique<Simulation> (_nranks3D, _globalDomainSize, MPI_COMM_WORLD, MPI_COMM_NULL, gpuAwareMPI);
+        sim = std::make_unique<Simulation> (_nranks3D, _globalDomainSize,
+                                            MPI_COMM_WORLD, MPI_COMM_NULL,
+                                            checkpointEvery, restartFolder, gpuAwareMPI);
         computeTask = 0;
         return;
     }
@@ -76,7 +79,9 @@ uDeviceX::uDeviceX(std::tuple<int, int, int> nranks3D, std::tuple<float, float, 
 
         MPI_Check( MPI_Comm_rank(compComm, &rank) );
 
-        sim = std::make_unique<Simulation> (_nranks3D, _globalDomainSize, compComm, interComm, gpuAwareMPI);
+        sim = std::make_unique<Simulation> (_nranks3D, _globalDomainSize,
+                                            compComm, interComm,
+                                            checkpointEvery, restartFolder, gpuAwareMPI);
     }
     else
     {

@@ -20,8 +20,11 @@
 
 #include <algorithm>
 
-Simulation::Simulation(int3 nranks3D, float3 globalDomainSize, const MPI_Comm& comm, const MPI_Comm& interComm, bool gpuAwareMPI) :
-nranks3D(nranks3D), interComm(interComm), currentTime(0), currentStep(0), gpuAwareMPI(gpuAwareMPI)
+Simulation::Simulation(int3 nranks3D, float3 globalDomainSize,
+                       const MPI_Comm& comm, const MPI_Comm& interComm,
+                       int globalCheckpointEvery, std::string restartFolder, bool gpuAwareMPI) :
+nranks3D(nranks3D), interComm(interComm), currentTime(0), currentStep(0),
+globalCheckpointEvery(globalCheckpointEvery), restartFolder(restartFolder), gpuAwareMPI(gpuAwareMPI)
 {
     int ranksArr[] = {nranks3D.x, nranks3D.y, nranks3D.z};
     int periods[] = {1, 1, 1};
@@ -36,7 +39,6 @@ nranks3D(nranks3D), interComm(interComm), currentTime(0), currentStep(0), gpuAwa
     domain.localSize = domain.globalSize / make_float3(nranks3D);
     domain.globalStart = {domain.localSize.x * coords[0], domain.localSize.y * coords[1], domain.localSize.z * coords[2]};
 
-    restartFolder  = "./restart/";
     createFoldersCollective(cartComm, restartFolder);
 
     info("Simulation initialized, subdomain size is [%f %f %f], subdomain starts at [%f %f %f]",
@@ -44,7 +46,12 @@ nranks3D(nranks3D), interComm(interComm), currentTime(0), currentStep(0), gpuAwa
             domain.globalStart.x, domain.globalStart.y, domain.globalStart.z);
 
     scheduler = std::make_unique<TaskScheduler>();
-    scheduler->createTask("Checkpoint");
+    auto task_checkpoint = scheduler->createTask("Checkpoint");
+    
+    if (globalCheckpointEvery > 0)
+        scheduler->addTask( task_checkpoint, [this] (cudaStream_t stream) {
+            this->checkpoint();
+        }, globalCheckpointEvery );
 }
 
 Simulation::~Simulation() = default;
@@ -140,7 +147,7 @@ void Simulation::registerParticleVector(std::shared_ptr<ParticleVector> pv, std:
         pv->domain = domain;
 
     auto task_checkpoint = scheduler->getTaskId("Checkpoint");
-    if (checkpointEvery > 0)
+    if (checkpointEvery > 0 && globalCheckpointEvery == 0)
     {
         info("Will save checkpoint of particle vector '%s' every %d timesteps", name.c_str(), checkpointEvery);
 
@@ -889,6 +896,38 @@ void Simulation::finalize()
         debug("Sending stopping message to the postprocess");
     }
 }
+
+void Simulation::checkpoint()
+{
+    CUDA_Check( cudaDeviceSynchronize() );
+    
+    info("Writing simulation state, into folder %s", restartFolder.c_str());
+    
+    for (auto& pv : particleVectors)
+        pv->checkpoint(cartComm, restartFolder);
+    
+    for (auto& handler : bouncerMap)
+        handler.second->checkpoint(cartComm, restartFolder);
+    
+    for (auto& handler : integratorMap)
+        handler.second->checkpoint(cartComm, restartFolder);
+    
+    for (auto& handler : interactionMap)
+        handler.second->checkpoint(cartComm, restartFolder);
+    
+    for (auto& handler : wallMap)
+        handler.second->checkpoint(cartComm, restartFolder);
+    
+    for (auto& handler : belongingCheckerMap)
+        handler.second->checkpoint(cartComm, restartFolder);
+    
+    for (auto& handler : plugins)
+        handler->checkpoint(cartComm, restartFolder);
+    
+    CUDA_Check( cudaDeviceSynchronize() );
+}
+
+
 
 
 

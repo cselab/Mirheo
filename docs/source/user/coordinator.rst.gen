@@ -24,7 +24,7 @@ One and only one instance of this class should be created in the beginning of an
 Main coordination class, should only be one instance at a time
 
 
-.. py:method:: udevicex.__init__(self: libudevicex.udevicex, nranks: Tuple[int, int, int], domain: Tuple[float, float, float], log_filename: str = 'log', debug_level: int = 3, cuda_aware_mpi: bool = False) -> None
+.. py:method:: udevicex.__init__(self: libudevicex.udevicex, nranks: Tuple[int, int, int], domain: Tuple[float, float, float], log_filename: str = 'log', debug_level: int = 3, checkpoint_every: int = 0, restart_folder: str = 'restart/', cuda_aware_mpi: bool = False) -> None
    :module: udevicex
 
 :param nranks: number of MPI simulation tasks per axis: x,y,z. If postprocess is enabled, the same number of the postprocess tasks will be running
@@ -47,6 +47,8 @@ Main coordination class, should only be one instance at a time
                     |
                     | Debug levels above 4 or 5 may significanlty increase the runtime, they are only recommended to debug errors.
                     | Flushing increases the runtime yet more, but it is required in order not to lose any messages in case of abnormal program abort.
+:param checkpoint_every: save state of the simulation components (particle vectors and handlers like integrators, plugins, etc.)
+:param restart_folder: folder where the checkpoint files will reside
 :param cuda_aware_mpi: enable CUDA Aware MPI (GPU RDMA). As of now it may crash, or may yield slower execution.
 
 
@@ -118,7 +120,7 @@ Register Object Belonging Checker
 :param ov: :any:`ObjectVector` belonging to which the **checker** will check
 
 
-.. py:method:: udevicex.registerParticleVector(self: libudevicex.udevicex, pv: ParticleVector, ic: InitialConditions, checkpoint_every: int = 0) -> None
+.. py:method:: udevicex.registerParticleVector(self: libudevicex.udevicex, pv: ParticleVector, ic: InitialConditions = None, checkpoint_every: int = 0) -> None
    :module: udevicex
 
 Register particle vector

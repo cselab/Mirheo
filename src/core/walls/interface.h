@@ -30,6 +30,11 @@ public:
     virtual void setPrerequisites(ParticleVector* pv) {}
 
     virtual void check(cudaStream_t stream) = 0;
+    
+    /// Save handler state
+    virtual void checkpoint(MPI_Comm& comm, std::string path) {}
+    /// Restore handler state
+    virtual void restart(MPI_Comm& comm, std::string path) {}
 
     virtual ~Wall() = default;
 };

@@ -2,6 +2,7 @@
 
 #include <string>
 #include <cuda_runtime.h>
+#include <mpi.h>
 
 class ParticleVector;
 
@@ -48,6 +49,11 @@ public:
 
     /// Set the name of the integrator and its time-step
     Integrator(std::string name, float dt) : dt(dt), name(name) {}
+    
+    /// Save handler state
+    virtual void checkpoint(MPI_Comm& comm, std::string path) {}
+    /// Restore handler state
+    virtual void restart(MPI_Comm& comm, std::string path) {}
 
     virtual ~Integrator() = default;
 };

@@ -47,10 +47,15 @@ public:
 
     DomainInfo domain;
 
-    Simulation(int3 nranks3D, float3 globalDomainSize, const MPI_Comm& comm, const MPI_Comm& interComm, bool gpuAwareMPI);
+    Simulation(int3 nranks3D, float3 globalDomainSize,
+               const MPI_Comm& comm, const MPI_Comm& interComm,
+               int globalCheckpointEvery = 0,
+               std::string restartFolder = "restart/", bool gpuAwareMPI = false);
     ~Simulation();
+    
+    void restart();
 
-    void registerParticleVector         (std::shared_ptr<ParticleVector> pv, std::shared_ptr<InitialConditions> ic, int checkpointEvery);
+    void registerParticleVector         (std::shared_ptr<ParticleVector> pv, std::shared_ptr<InitialConditions> ic, int checkpointEvery=0);
     void registerWall                   (std::shared_ptr<Wall> wall, int checkEvery=0);
     void registerInteraction            (std::shared_ptr<Interaction> interaction);
     void registerIntegrator             (std::shared_ptr<Integrator> integrator);
@@ -95,6 +100,7 @@ private:
     const float rcTolerance = 1e-5;
 
     std::string restartFolder;
+    int globalCheckpointEvery;
 
     float dt;
     int rank;
@@ -121,6 +127,9 @@ private:
     std::map< std::string, std::shared_ptr<Interaction> >            interactionMap;
     std::map< std::string, std::shared_ptr<Wall> >                   wallMap;
     std::map< std::string, std::shared_ptr<ObjectBelongingChecker> > belongingCheckerMap;
+    
+    std::vector< std::shared_ptr<SimulationPlugin> > plugins;
+
 
     std::map<ParticleVector*, std::vector< std::unique_ptr<CellList> >> cellListMap;
 
@@ -136,13 +145,14 @@ private:
     std::vector<std::function<void(float, cudaStream_t)>> integratorsStage1, integratorsStage2;
     std::vector<std::function<void(float, cudaStream_t)>> regularBouncers, haloBouncers;
 
-    std::vector< std::shared_ptr<SimulationPlugin> > plugins;
-
+    
     void prepareCellLists();
     void prepareInteractions();
     void prepareBouncers();
     void prepareWalls();
     void execSplitters();
+    
+    void checkpoint();
 
     void assemble();
 };
