@@ -1,0 +1,10 @@
+* Features
+** TODO velocity controller
+** TODO [0/3] membrane
+*** TODO pass spring constant ks
+*** TODO fluctuations
+*** TODO dissipation forces must be central
+* Configuration
+** TODO mesh can be read from ply as well
+** TODO do not need to pass number of vertices for object vectors
+
