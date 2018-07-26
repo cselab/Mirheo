@@ -54,15 +54,17 @@ public:
     {
         debug3("Plugin %s is finishing all the communications", name.c_str());
         MPI_Check( MPI_Wait(&req, MPI_STATUS_IGNORE) );
+    }
+
+    virtual ~SimulationPlugin() {
+        bool 
         MPI_Check( MPI_Comm_free(&comm     ) );
         MPI_Check( MPI_Comm_free(&interComm) );
     }
 
-    virtual ~SimulationPlugin() = default;
-
 protected:
     Simulation* sim;
-    MPI_Comm comm, interComm;
+    MPI_Comm comm{MPI_COMM_NULL}, interComm{MPI_COMM_NULL};
     int rank, nranks;
     MPI_Request req;
 
@@ -128,11 +130,13 @@ public:
         MPI_Check( MPI_Comm_size(this->comm, &nranks) );
     }
 
-    virtual ~PostprocessPlugin() = default;
-
+    virtual ~PostprocessPlugin() {
+        MPI_Check( MPI_Comm_free(&comm     ) );
+        MPI_Check( MPI_Comm_free(&interComm) );
+    }
 
 protected:
-    MPI_Comm comm, interComm;
+    MPI_Comm comm{MPI_COMM_NULL}, interComm{MPI_COMM_NULL};
     int rank, nranks;
     std::vector<char> data;
     int size;
