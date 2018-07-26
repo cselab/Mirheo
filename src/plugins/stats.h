@@ -5,8 +5,6 @@
 #include <core/datatypes.h>
 #include <plugins/timer.h>
 
-#include <vector>
-
 class ParticleVector;
 class CellList;
 
@@ -37,7 +35,6 @@ public:
 class PostprocessStats : public PostprocessPlugin
 {
 private:
-    std::vector<Particle> coosvels;
     MPI_Datatype mpiReductionType;
     FILE *fdump;
 

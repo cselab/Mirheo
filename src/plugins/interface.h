@@ -57,7 +57,6 @@ public:
     }
 
     virtual ~SimulationPlugin() {
-        bool 
         MPI_Check( MPI_Comm_free(&comm     ) );
         MPI_Check( MPI_Comm_free(&interComm) );
     }
