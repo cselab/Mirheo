@@ -92,7 +92,7 @@ void SimulationVelocityControl::afterIntegration(cudaStream_t stream)
 
     nSamples_loc = nSamples[0];
     totVel_loc   = make_double3( totVel[0] );
-
+    
     MPI_Check( MPI_Allreduce(&nSamples_loc, &nSamples_tot, 1, MPI_LONG,   MPI_SUM, comm) );
     MPI_Check( MPI_Allreduce(&totVel_loc,   &totVel_tot,   3, MPI_DOUBLE, MPI_SUM, comm) );
 

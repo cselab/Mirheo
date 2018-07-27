@@ -22,6 +22,7 @@
 #include <plugins/add_force.h>
 #include <plugins/add_torque.h>
 #include <plugins/wall_repulsion.h>
+#include <plugins/velocity_control.h>
 
 namespace PluginFactory
 {
@@ -67,6 +68,19 @@ namespace PluginFactory
             
         return { simPl, nullptr };
     }
+
+static std::pair< SimulationVelocityControl*, PostprocessPlugin* >
+createSimulationVelocityControlPlugin(bool computeTask, std::string name, ParticleVector *pv,
+                                      pyfloat3 low, pyfloat3 high, int every,
+                                      pyfloat3 targetVel, float Kp, float Ki, float Kd)
+{
+    auto simPl = computeTask ?
+        new SimulationVelocityControl(name, pv->name, make_float3(low), make_float3(high), every,
+                                      make_float3(targetVel), Kp, Ki, Kd) :
+        nullptr;
+
+    return { simPl, nullptr };
+}
 
     static std::pair< WallRepulsionPlugin*, PostprocessPlugin* >
         createWallRepulsionPlugin(bool computeTask, std::string name, ParticleVector* pv, Wall* wall,
