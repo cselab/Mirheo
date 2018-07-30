@@ -39,6 +39,6 @@ u.run(5001)
 
 # sTEST: flow.uniform_vel
 # cd flow
-# udx.run --runargs "-n 2" ./uniform_vel.py
+# udx.run -n 2 ./uniform_vel.py
 # cat stats.txt | awk '{print $1, $2, $3, $4, $5}' > stats.out.txt
 

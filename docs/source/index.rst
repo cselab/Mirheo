@@ -31,9 +31,9 @@ as well as exposing code internals for the developers wishing to contribute to t
    user/user
    user/installation
    user/benchmarks
+   user/coordinator
    user/particle_vectors
    user/bouncers
-   user/coordinator
    user/initial_conditions
    user/integrators
    user/interactions

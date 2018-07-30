@@ -11,5 +11,4 @@ If the simulation is started without postprocess part (see :ref:`user-all`), mos
    :members:
    :show-inheritance:
    :undoc-members:
-   :special-members: __init__
           

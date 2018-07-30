@@ -45,5 +45,5 @@ if pv_rbc:
 # cp ../../data/rbc_mesh.off .
 # echo "6.0 4.0 5.0 1.0 0.0 0.0 0.0" > rbcs-ic.txt
 # cp ../../data/rbc_mesh.off .
-# udx.run --runargs "-n 2" ./rest.py > /dev/null
+# udx.run -n 2 ./rest.py > /dev/null
 # mv pos.rbc.txt pos.rbc.out.txt 

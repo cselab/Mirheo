@@ -9,6 +9,7 @@ import inspect
 import functools
 import sys
 import weakref
+import re
 
 
 from libudevicex import *
@@ -101,7 +102,9 @@ def __init__():
             
             for f in funcs:
                 if '__create' in f[0]:
-                    setattr(m[1], f[0][2:], decorate_plugins(f[1]))
+                    newname = f[0][2:]
+                    setattr(m[1], newname, decorate_plugins(f[1]))
+                    getattr(m[1], newname).__doc__ = re.sub('__' + newname, newname, getattr(m[1], newname).__doc__)
 
     # Wrap initialization of the udevicex coordinator
     udevicex.__init__ = decorate_coordinator(udevicex.__init__)

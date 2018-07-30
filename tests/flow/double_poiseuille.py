@@ -8,7 +8,7 @@ import numpy as np
 dt = 0.001
 
 ranks  = (1, 1, 1)
-domain = (8, 16, 16)
+domain = (16, 16, 16)
 a = 1
 
 u = udx.udevicex(ranks, domain, debug_level=2, log_filename='log')
@@ -36,5 +36,5 @@ u.run(5002)
 
 # nTEST: double_poiseuille
 # cd flow
-# udx.run --runargs "-n 2" ./double_poiseuille.py > /dev/null
+# udx.run -n 2 ./double_poiseuille.py > /dev/null
 # udx.avgh5 xz velocity h5/solvent-0000[2-5].h5 | awk '{print $1}' > profile.out.txt

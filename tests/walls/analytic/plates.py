@@ -30,8 +30,6 @@ u.registerWall(plate_hi, 0)
 vv = udx.Integrators.VelocityVerlet("vv", dt)
 frozen_lo = u.makeFrozenWallParticles(wall=plate_lo, interaction=dpd, integrator=vv, density=density)
 frozen_hi = u.makeFrozenWallParticles(wall=plate_hi, interaction=dpd, integrator=vv, density=density)
-u.registerParticleVector(frozen_lo, None)
-u.registerParticleVector(frozen_hi, None)
 
 
 u.setWall(plate_lo, pv)
@@ -59,5 +57,5 @@ u.run(7002)
 
 # nTEST: analytic.plates
 # cd walls/analytic
-# udx.run --runargs "-n 2" ./plates.py > /dev/null
+# udx.run -n 2 ./plates.py > /dev/null
 # udx.avgh5 xy velocity h5/solvent-0000[4-7].h5 | awk '{print $1}' > profile.out.txt

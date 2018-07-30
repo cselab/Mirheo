@@ -35,5 +35,5 @@ u.run(3)
 
 # nTEST: dump.h5
 # cd dump
-# udx.run --runargs "-n 2" ./h5.py > /dev/null
+# udx.run -n 2 ./h5.py > /dev/null
 # udx.avgh5 xz density h5/solvent-00000.h5 > profile.out.txt

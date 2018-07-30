@@ -206,6 +206,8 @@ std::shared_ptr<ParticleVector> uDeviceX::makeFrozenWallParticles(std::shared_pt
     
     freezeParticlesInWall(sdfWall, pv.get(), 0.0f, interaction->rc + 0.2f);
     
+    sim->registerParticleVector(pv, nullptr);
+    
     return pv;
 }
 
