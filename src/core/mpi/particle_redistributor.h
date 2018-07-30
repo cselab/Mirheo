@@ -21,7 +21,7 @@ private:
 public:
     void _prepareData(int id);
 
-    ParticleRedistributor(MPI_Comm& comm, bool gpuAwareMPI) : ParticleExchanger(comm, gpuAwareMPI) {};
+    ParticleRedistributor(MPI_Comm& comm, bool gpuAwareMPI=false) : ParticleExchanger(comm, gpuAwareMPI) {};
     void attach(ParticleVector* pv, CellList* cl);
 
     ~ParticleRedistributor() = default;

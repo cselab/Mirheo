@@ -130,7 +130,7 @@ void exportPlugins(py::module& m)
         "compute_task"_a, "name"_a, "pv"_a, "every"_a, "low"_a, "high"_a, "velocity"_a, R"(
         Args:
             name: name of the plugin
-            pv: :class:`ParticleVector` that we'll work with
+            pv: :any:`ParticleVector` that we'll work with
             every: change the velocities once in **every** timestep
             low: the lower corner of the domain
             high: the higher corner of the domain
@@ -143,21 +143,21 @@ void exportPlugins(py::module& m)
          "compute_task"_a, "name"_a, "pv"_a, "force"_a, R"(
         Args:
             name: name of the plugin
-            pv: :class:`ParticleVector` that we'll work with
+            pv: :any:`ParticleVector` that we'll work with
             force: extra force
     )");
     m.def("__createAddTorque", &PluginFactory::createAddTorquePlugin, 
           "compute_task"_a, "name"_a, "ov"_a, "torque"_a, R"(
         Args:
             name: name of the plugin
-            ov: :class:`ObjectVector` that we'll work with
+            ov: :any:`ObjectVector` that we'll work with
             torque: extra torque (per object)
     )");
     m.def("__createImposeProfile", &PluginFactory::createImposeProfilePlugin, 
           "compute_task"_a, "name"_a, "pv"_a, "low"_a, "high"_a, "velocity"_a, "kbt"_a, R"(
         Args:
             name: name of the plugin
-            pv: :class:`ParticleVector` that we'll work with
+            pv: :any:`ParticleVector` that we'll work with
             low: the lower corner of the domain
             high: the higher corner of the domain
             velocity: target velocity
@@ -167,8 +167,8 @@ void exportPlugins(py::module& m)
           "compute_task"_a, "name"_a, "pv"_a, "wall"_a, "C"_a, "h"_a, "max_force"_a, R"(
         Args:
             name: name of the plugin
-            pv: :class:`ParticleVector` that we'll work with
-            wall: :class:`Wall` that defines the repulsion
+            pv: :any:`ParticleVector` that we'll work with
+            wall: :any:`Wall` that defines the repulsion
             C: :math:`C`  
             h: :math:`h`  
             max_force: :math:`F_{max}`  
@@ -186,7 +186,7 @@ void exportPlugins(py::module& m)
               
         Args:
             name: name of the plugin
-            pv: :class:`ParticleVector` that we'll work with
+            pv: :any:`ParticleVector` that we'll work with
             sample_every: sample quantities every this many time-steps
             dump_every: write files every this many time-steps 
             bin_size: bin size for sampling. The resulting quantities will be *cell-centered*
@@ -237,7 +237,7 @@ void exportPlugins(py::module& m)
           "compute_task"_a, "name"_a, "ov"_a, "dump_every"_a, "path"_a, R"(
         Args:
             name: name of the plugin
-            ov: :class:`ObjectVector` that we'll work with
+            ov: :any:`ObjectVector` that we'll work with
             dump_every: write files every this many time-steps
             path: the files will look like this: <path>/<ov_name>_NNNNN.ply
     )");
@@ -245,7 +245,7 @@ void exportPlugins(py::module& m)
           "compute_task"_a, "name"_a, "ov"_a, "dump_every"_a, "path"_a, R"(
         Args:
             name: name of the plugin
-            ov: :class:`ObjectVector` that we'll work with
+            ov: :any:`ObjectVector` that we'll work with
             dump_every: write files every this many time-steps
             path: the files will look like this: <path>/<ov_name>_NNNNN.txt
     )");
@@ -253,7 +253,7 @@ void exportPlugins(py::module& m)
           "compute_task"_a, "name"_a, "ov"_a, "dump_every"_a, "path"_a, "pin_translation"_a, "pin_rotation"_a, R"(
         Args:
             name: name of the plugin
-            pv: :class:`ObjectVector` that we'll work with
+            pv: :any:`ObjectVector` that we'll work with
             dump_every: write files every this many time-steps
             path: the files will look like this: <path>/<ov_name>_NNNNN.txt
             pin_translation: 3 integers; 0 means that motion along the corresponding axis is unrestricted, 1 means fixed position wrt to the axis

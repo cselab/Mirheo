@@ -19,7 +19,7 @@ private:
     bool needExchange(int id) override;
 
 public:
-    ParticleHaloExchanger(MPI_Comm& comm, bool gpuAwareMPI) : ParticleExchanger(comm, gpuAwareMPI) {};
+    ParticleHaloExchanger(MPI_Comm& comm, bool gpuAwareMPI=false) : ParticleExchanger(comm, gpuAwareMPI) {};
 
     void attach(ParticleVector* pv, CellList* cl);
 

@@ -20,7 +20,7 @@ protected:
     bool needExchange(int id) override;
 
 public:
-    ObjectHaloExchanger(MPI_Comm& comm, bool gpuAwareMPI) : ParticleExchanger(comm, gpuAwareMPI) {};
+    ObjectHaloExchanger(MPI_Comm& comm, bool gpuAwareMPI=false) : ParticleExchanger(comm, gpuAwareMPI) {};
 
     void attach(ObjectVector* ov, float rc);
 

@@ -41,7 +41,7 @@ void exportIntegrators(py::module& m)
         
     py::handlers_class<IntegratorVVRigid>(m, "RigidVelocityVerlet", pyint, R"(
         Integrate the position and rotation (in terms of quaternions) of the rigid bodies as per Velocity-Verlet scheme.
-        Can only applied to :class:`RigidObjectVector` or :class:`RigidEllipsoidObjectVector`.
+        Can only applied to :any:`RigidObjectVector` or :any:`RigidEllipsoidObjectVector`.
     )")
         .def(py::init(&IntegratorFactory::createRigidVV),
              "name"_a, "dt"_a, R"(
@@ -83,7 +83,7 @@ void exportIntegrators(py::module& m)
         
     py::handlers_class<IntegratorVV<Forcing_ConstDP>>
         (m, "VelocityVerlet_withConstForce", pyint, R"(
-            Same as regular :class:`VelocityVerlet`, but the forces on all the particles are modified with the constant pressure term:
+            Same as regular :any:`VelocityVerlet`, but the forces on all the particles are modified with the constant pressure term:
    
             .. math::
 

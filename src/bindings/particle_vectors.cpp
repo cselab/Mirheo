@@ -64,7 +64,7 @@ void exportParticleVectors(py::module& m)
 
     py::handlers_class<MembraneMesh>(m, "MembraneMesh", pymesh, R"(
         Internally used class for desctibing a triangular mesh that can be used with the Membrane Interactions.
-        In contrast with the simple :class:`Mesh`, this class precomputes some required quantities on the mesh
+        In contrast with the simple :any:`Mesh`, this class precomputes some required quantities on the mesh
     )")
         .def(py::init<std::string>(), "off_filename"_a, R"(
             Create a mesh by reading the OFF file
@@ -86,7 +86,7 @@ void exportParticleVectors(py::module& m)
                 name: name of the created PV 
                 mass: mass of a single particle
                 object_size: number of particles per membrane, must be the same as the number of vertices of the mesh
-                mesh: :class:`MembraneMesh` object                
+                mesh: :any:`MembraneMesh` object                
         )");
         
     py::handlers_class<RigidObjectVector> (m, "RigidObjectVector", pyov, R"(
@@ -100,7 +100,7 @@ void exportParticleVectors(py::module& m)
                     mass: mass of a single particle
                     inertia: moment of inertia of the body in its principal axes. The principal axes of the mesh are assumed to be aligned with the default global *OXYZ* axes
                     object_size: number of particles per membrane, must be the same as the number of vertices of the mesh
-                    mesh: :class:`MembraneMesh` object         
+                    mesh: :any:`MembraneMesh` object         
         )");
         
     py::handlers_class<RigidEllipsoidObjectVector> (m, "RigidEllipsoidVector", pyov, R"(

@@ -17,7 +17,7 @@ private:
     bool needExchange(int id) override;
 
 public:
-    ObjectRedistributor(MPI_Comm& comm, bool gpuAwareMPI) : ParticleExchanger(comm, gpuAwareMPI) {};
+    ObjectRedistributor(MPI_Comm& comm, bool gpuAwareMPI=false) : ParticleExchanger(comm, gpuAwareMPI) {};
 
     void attach(ObjectVector* ov, float rc);
     void redistribute();

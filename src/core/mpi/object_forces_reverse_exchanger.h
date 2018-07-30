@@ -23,7 +23,7 @@ protected:
     bool needExchange(int id) override;
 
 public:
-    ObjectForcesReverseExchanger(MPI_Comm& comm, ObjectHaloExchanger* entangledHaloExchanger, bool gpuAwareMPI) :
+    ObjectForcesReverseExchanger(MPI_Comm& comm, ObjectHaloExchanger* entangledHaloExchanger, bool gpuAwareMPI=false) :
         ParticleExchanger(comm, gpuAwareMPI), entangledHaloExchanger(entangledHaloExchanger)
     { }
 
