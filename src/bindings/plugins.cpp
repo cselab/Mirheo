@@ -117,6 +117,11 @@ void exportPlugins(py::module& m)
         .. note::
             This plugin is inactive if postprocess is disabled
     )");
+    py::handlers_class<SimulationVelocityControl>(m, "VelocityControl", pysim, R"(
+        This plugin applies a uniform force to all the particles of the target PV in the specified area (rectangle).
+        The force is apdated by a PID controller such that the velocity average of the particles matches a target average velocity.
+    )");
+
     
     py::handlers_class<PostprocessStats>(m, "PostprocessStats", pypost);
     py::handlers_class<UniformCartesianDumper>(m, "UniformCartesianDumper", pypost);
@@ -258,6 +263,16 @@ void exportPlugins(py::module& m)
             path: the files will look like this: <path>/<ov_name>_NNNNN.txt
             pin_translation: 3 integers; 0 means that motion along the corresponding axis is unrestricted, 1 means fixed position wrt to the axis
             pin_rotation: 3 integers; 0 means that rotation along the corresponding axis is unrestricted, 1 means fixed rotation wrt to the axis
+    )");
+    m.def("__createVelocityControl", &PluginFactory::createSimulationVelocityControlPlugin,
+          "compute_task"_a, "name"_a, "pv"_a, "low"_a, "high"_a, "every"_a, "targetVel"_a, "Kp"_a, "Ki"_a, "Kd"_a, R"(
+        Args:
+            name: name of the plugin
+            pv: :class:`ParticleVector` that we'll work with
+            low, high: boundaries of the domain of interest
+            every: write files every this many time-steps
+            targetVel: the target mean velocity of the particles in the domain of interest
+            Kp, Ki, Kd: PID controller coefficients
     )");
 }
 

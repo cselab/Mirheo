@@ -12,7 +12,7 @@ __global__ void addForce(PVview view, float3 force)
     int gid = blockIdx.x * blockDim.x + threadIdx.x;
     if (gid >= view.size) return;
 
-    view.forces[gid] = make_float4(force, 0.0f);
+    view.forces[gid] += make_float4(force, 0.0f);
 }
 
 void AddForcePlugin::setup(Simulation* sim, const MPI_Comm& comm, const MPI_Comm& interComm)

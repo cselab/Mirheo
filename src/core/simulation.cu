@@ -542,6 +542,7 @@ void Simulation::init()
         pl->setup(this, cartComm, interComm);
         pl->handshake();
     }
+    info("done Preparing plugins");
 
     halo = std::make_unique <ParticleHaloExchanger> (cartComm, gpuAwareMPI);
     redistributor = std::make_unique <ParticleRedistributor> (cartComm, gpuAwareMPI);

@@ -49,7 +49,8 @@ public:
         this->sim = sim;
 
         MPI_Check( MPI_Comm_dup(comm,      &this->comm     ) );
-        MPI_Check( MPI_Comm_dup(interComm, &this->interComm) );
+        if (interComm != MPI_COMM_NULL)
+            MPI_Check( MPI_Comm_dup(interComm, &this->interComm) );
 
         MPI_Check( MPI_Comm_rank(this->comm, &rank) );
         MPI_Check( MPI_Comm_size(this->comm, &nranks) );
@@ -62,8 +63,10 @@ public:
     }
 
     virtual ~SimulationPlugin() {
-        MPI_Check( MPI_Comm_free(&comm     ) );
-        MPI_Check( MPI_Comm_free(&interComm) );
+        if (comm != MPI_COMM_NULL)
+            MPI_Check( MPI_Comm_free(&comm     ) );
+        if (interComm != MPI_COMM_NULL)
+            MPI_Check( MPI_Comm_free(&interComm) );
     }
 
 protected:
@@ -128,14 +131,17 @@ public:
     virtual void setup(const MPI_Comm& comm, const MPI_Comm& interComm)
     {
         MPI_Check( MPI_Comm_dup(comm,      &this->comm     ) );
-        MPI_Check( MPI_Comm_dup(interComm, &this->interComm) );
+        if (interComm != MPI_COMM_NULL)
+            MPI_Check( MPI_Comm_dup(interComm, &this->interComm) );
 
         MPI_Check( MPI_Comm_rank(this->comm, &rank) );
         MPI_Check( MPI_Comm_size(this->comm, &nranks) );
     }
 
     virtual ~PostprocessPlugin() {
-        MPI_Check( MPI_Comm_free(&comm     ) );
+        if (comm != MPI_COMM_NULL)
+            MPI_Check( MPI_Comm_free(&comm     ) );
+        if (interComm != MPI_COMM_NULL)
         MPI_Check( MPI_Comm_free(&interComm) );
     }
 
