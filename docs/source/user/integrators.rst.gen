@@ -56,7 +56,7 @@ Move particles with the periodically changing velocity
    Bases: :class:`libudevicex.Integrators.Integrator`
 
 Integrate the position and rotation (in terms of quaternions) of the rigid bodies as per Velocity-Verlet scheme.
-Can only applied to :class:`RigidObjectVector` or :class:`RigidEllipsoidObjectVector`.
+Can only applied to :any:`RigidObjectVector` or :any:`RigidEllipsoidVector`.
 
 
 .. py:method:: RigidVelocityVerlet.__init__(self: libudevicex.Integrators.RigidVelocityVerlet, name: str, dt: float) -> None
@@ -128,7 +128,7 @@ where bold symbol means a vector, :math:`m` is a particle mass, and superscripts
 
    Bases: :class:`libudevicex.Integrators.Integrator`
 
-Same as regular :class:`VelocityVerlet`, but the forces on all the particles are modified with the constant pressure term:
+Same as regular :any:`VelocityVerlet`, but the forces on all the particles are modified with the constant pressure term:
 
 .. math::
 

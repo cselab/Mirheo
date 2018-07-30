@@ -11,7 +11,6 @@ If the simulation is started without postprocess part (see :ref:`user-all`), mos
    :members:
    :show-inheritance:
    :undoc-members:
-   :special-members: __init__
           
 
 .. py:module:: libudevicex.Plugins
@@ -26,11 +25,6 @@ This plugin will add constant force :math:`\mathbf{F}_{extra}` to each particle 
 Is is advised to only use it with rigid objects, since Velocity-Verlet integrator with constant pressure can do the same without any performance penalty.
 
 
-.. py:attribute:: AddForce.__init__
-   :module: libudevicex.Plugins
-
-Initialize self.  See help(type(self)) for accurate signature.
-
 .. py:class:: AddTorque
    :module: libudevicex.Plugins
 
@@ -38,11 +32,6 @@ Initialize self.  See help(type(self)) for accurate signature.
 
 This plugin will add constant torque :math:`\mathbf{T}_{extra}` to each *object* of a specific OV every time-step.
 
-
-.. py:attribute:: AddTorque.__init__
-   :module: libudevicex.Plugins
-
-Initialize self.  See help(type(self)) for accurate signature.
 
 .. py:class:: Average3D
    :module: libudevicex.Plugins
@@ -61,11 +50,6 @@ Particle number density is used to correctly average the values, so it will be s
     This plugin is inactive if postprocess is disabled
 
 
-.. py:attribute:: Average3D.__init__
-   :module: libudevicex.Plugins
-
-Initialize self.  See help(type(self)) for accurate signature.
-
 .. py:class:: AverageRelative3D
    :module: libudevicex.Plugins
 
@@ -83,11 +67,6 @@ In other words, velocities and coordinates sampled correspond to the object refe
     This plugin is inactive if postprocess is disabled
 
 
-.. py:attribute:: AverageRelative3D.__init__
-   :module: libudevicex.Plugins
-
-Initialize self.  See help(type(self)) for accurate signature.
-
 .. py:class:: ImposeProfile
    :module: libudevicex.Plugins
 
@@ -95,11 +74,6 @@ Initialize self.  See help(type(self)) for accurate signature.
 
 TODO
 
-
-.. py:attribute:: ImposeProfile.__init__
-   :module: libudevicex.Plugins
-
-Initialize self.  See help(type(self)) for accurate signature.
 
 .. py:class:: ImposeVelocity
    :module: libudevicex.Plugins
@@ -109,21 +83,11 @@ Initialize self.  See help(type(self)) for accurate signature.
 This plugin will add velocity to all the particles of the target PV in the specified area (rectangle) such that the average velocity equals to desired.
 
 
-.. py:attribute:: ImposeVelocity.__init__
-   :module: libudevicex.Plugins
-
-Initialize self.  See help(type(self)) for accurate signature.
-
 .. py:class:: MeshDumper
    :module: libudevicex.Plugins
 
    Bases: :class:`libudevicex.Plugins.PostprocessPlugin`
 
-
-.. py:attribute:: MeshDumper.__init__
-   :module: libudevicex.Plugins
-
-Initialize self.  See help(type(self)) for accurate signature.
 
 .. py:class:: MeshPlugin
    :module: libudevicex.Plugins
@@ -135,11 +99,6 @@ This plugin will write the meshes of all the object of the specified Object Vect
 .. note::
     This plugin is inactive if postprocess is disabled
 
-
-.. py:attribute:: MeshPlugin.__init__
-   :module: libudevicex.Plugins
-
-Initialize self.  See help(type(self)) for accurate signature.
 
 .. py:class:: ObjPositions
    :module: libudevicex.Plugins
@@ -160,21 +119,11 @@ The file format is the following:
     This plugin is inactive if postprocess is disabled
 
 
-.. py:attribute:: ObjPositions.__init__
-   :module: libudevicex.Plugins
-
-Initialize self.  See help(type(self)) for accurate signature.
-
 .. py:class:: ObjPositionsDumper
    :module: libudevicex.Plugins
 
    Bases: :class:`libudevicex.Plugins.PostprocessPlugin`
 
-
-.. py:attribute:: ObjPositionsDumper.__init__
-   :module: libudevicex.Plugins
-
-Initialize self.  See help(type(self)) for accurate signature.
 
 .. py:class:: PinObject
    :module: libudevicex.Plugins
@@ -189,11 +138,6 @@ The *average* force or torque required to fix the positions or rotation are repo
     This plugin is inactive if postprocess is disabled
 
 
-.. py:attribute:: PinObject.__init__
-   :module: libudevicex.Plugins
-
-Initialize self.  See help(type(self)) for accurate signature.
-
 .. py:class:: PostprocessPlugin
    :module: libudevicex.Plugins
 
@@ -202,32 +146,17 @@ Initialize self.  See help(type(self)) for accurate signature.
 Base postprocess plugin class
 
 
-.. py:attribute:: PostprocessPlugin.__init__
-   :module: libudevicex.Plugins
-
-Initialize self.  See help(type(self)) for accurate signature.
-
 .. py:class:: PostprocessStats
    :module: libudevicex.Plugins
 
    Bases: :class:`libudevicex.Plugins.PostprocessPlugin`
 
 
-.. py:attribute:: PostprocessStats.__init__
-   :module: libudevicex.Plugins
-
-Initialize self.  See help(type(self)) for accurate signature.
-
 .. py:class:: ReportPinObject
    :module: libudevicex.Plugins
 
    Bases: :class:`libudevicex.Plugins.PostprocessPlugin`
 
-
-.. py:attribute:: ReportPinObject.__init__
-   :module: libudevicex.Plugins
-
-Initialize self.  See help(type(self)) for accurate signature.
 
 .. py:class:: SimulationPlugin
    :module: libudevicex.Plugins
@@ -236,11 +165,6 @@ Initialize self.  See help(type(self)) for accurate signature.
 
 Base simulation plugin class
 
-
-.. py:attribute:: SimulationPlugin.__init__
-   :module: libudevicex.Plugins
-
-Initialize self.  See help(type(self)) for accurate signature.
 
 .. py:class:: SimulationStats
    :module: libudevicex.Plugins
@@ -255,11 +179,6 @@ and also the mean real time per step in milliseconds.
     This plugin is inactive if postprocess is disabled
 
 
-.. py:attribute:: SimulationStats.__init__
-   :module: libudevicex.Plugins
-
-Initialize self.  See help(type(self)) for accurate signature.
-
 .. py:class:: Temperaturize
    :module: libudevicex.Plugins
 
@@ -268,21 +187,20 @@ Initialize self.  See help(type(self)) for accurate signature.
 TODO
 
 
-.. py:attribute:: Temperaturize.__init__
-   :module: libudevicex.Plugins
-
-Initialize self.  See help(type(self)) for accurate signature.
-
 .. py:class:: UniformCartesianDumper
    :module: libudevicex.Plugins
 
    Bases: :class:`libudevicex.Plugins.PostprocessPlugin`
 
 
-.. py:attribute:: UniformCartesianDumper.__init__
+.. py:class:: VelocityControl
    :module: libudevicex.Plugins
 
-Initialize self.  See help(type(self)) for accurate signature.
+   Bases: :class:`libudevicex.Plugins.SimulationPlugin`
+
+This plugin applies a uniform force to all the particles of the target PV in the specified area (rectangle).
+The force is apdated by a PID controller such that the velocity average of the particles matches a target average velocity.
+
 
 .. py:class:: WallRepulsion
    :module: libudevicex.Plugins
@@ -305,21 +223,11 @@ The force expression looks as follows:
     \end{cases}
 
 
-.. py:attribute:: WallRepulsion.__init__
-   :module: libudevicex.Plugins
-
-Initialize self.  See help(type(self)) for accurate signature.
-
 .. py:class:: XYZDumper
    :module: libudevicex.Plugins
 
    Bases: :class:`libudevicex.Plugins.PostprocessPlugin`
 
-
-.. py:attribute:: XYZDumper.__init__
-   :module: libudevicex.Plugins
-
-Initialize self.  See help(type(self)) for accurate signature.
 
 .. py:class:: XYZPlugin
    :module: libudevicex.Plugins
@@ -332,42 +240,28 @@ This plugin will dump positions of all the particles of the specified Particle V
     This plugin is inactive if postprocess is disabled
 
 
-.. py:attribute:: XYZPlugin.__init__
+.. py:function:: createAddForce(compute_task: bool, name: str, pv: libudevicex.ParticleVectors.ParticleVector, force: Tuple[float, float, float]) -> Tuple[libudevicex.Plugins.AddForce, libudevicex.Plugins.PostprocessPlugin]
    :module: libudevicex.Plugins
-
-Initialize self.  See help(type(self)) for accurate signature.
-
-.. py:function:: createAddForce
-   :module: libudevicex.Plugins
-
-__createAddForce(compute_task: bool, name: str, pv: libudevicex.ParticleVectors.ParticleVector, force: Tuple[float, float, float]) -> Tuple[libudevicex.Plugins.AddForce, libudevicex.Plugins.PostprocessPlugin]
-
 
 :param name: name of the plugin
-:param pv: :class:`ParticleVector` that we'll work with
+:param pv: :any:`ParticleVector` that we'll work with
 :param force: extra force
 
 
-.. py:function:: createAddTorque
+.. py:function:: createAddTorque(compute_task: bool, name: str, ov: libudevicex.ParticleVectors.ParticleVector, torque: Tuple[float, float, float]) -> Tuple[libudevicex.Plugins.AddTorque, libudevicex.Plugins.PostprocessPlugin]
    :module: libudevicex.Plugins
 
-__createAddTorque(compute_task: bool, name: str, ov: libudevicex.ParticleVectors.ParticleVector, torque: Tuple[float, float, float]) -> Tuple[libudevicex.Plugins.AddTorque, libudevicex.Plugins.PostprocessPlugin]
-
-
 :param name: name of the plugin
-:param ov: :class:`ObjectVector` that we'll work with
+:param ov: :any:`ObjectVector` that we'll work with
 :param torque: extra torque (per object)
 
 
-.. py:function:: createDumpAverage
+.. py:function:: createDumpAverage(compute_task: bool, name: str, pv: libudevicex.ParticleVectors.ParticleVector, sample_every: int, dump_every: int, bin_size: Tuple[float, float, float] = (1.0, 1.0, 1.0), channels: List[Tuple[str, str]], path: str = 'xdmf/') -> Tuple[libudevicex.Plugins.Average3D, libudevicex.Plugins.UniformCartesianDumper]
    :module: libudevicex.Plugins
-
-__createDumpAverage(compute_task: bool, name: str, pv: libudevicex.ParticleVectors.ParticleVector, sample_every: int, dump_every: int, bin_size: Tuple[float, float, float] = (1.0, 1.0, 1.0), channels: List[Tuple[str, str]], path: str = 'xdmf/') -> Tuple[libudevicex.Plugins.Average3D, libudevicex.Plugins.UniformCartesianDumper]
-
 
 
 :param name: name of the plugin
-:param pv: :class:`ParticleVector` that we'll work with
+:param pv: :any:`ParticleVector` that we'll work with
 :param sample_every: sample quantities every this many time-steps
 :param dump_every: write files every this many time-steps
 :param bin_size: bin size for sampling. The resulting quantities will be *cell-centered*
@@ -393,11 +287,8 @@ __createDumpAverage(compute_task: bool, name: str, pv: libudevicex.ParticleVecto
                  * 'tensor6': 6 floats per particle, symmetric tensor in order xx, xy, xz, yy, yz, zz
 
 
-.. py:function:: createDumpAverageRelative
+.. py:function:: createDumpAverageRelative(compute_task: bool, name: str, pv: libudevicex.ParticleVectors.ParticleVector, relative_to_ov: libudevicex.ParticleVectors.ObjectVector, relative_to_id: int, sample_every: int, dump_every: int, bin_size: Tuple[float, float, float] = (1.0, 1.0, 1.0), channels: List[Tuple[str, str]], path: str = 'xdmf/') -> Tuple[libudevicex.Plugins.AverageRelative3D, libudevicex.Plugins.UniformCartesianDumper]
    :module: libudevicex.Plugins
-
-__createDumpAverageRelative(compute_task: bool, name: str, pv: libudevicex.ParticleVectors.ParticleVector, relative_to_ov: libudevicex.ParticleVectors.ObjectVector, relative_to_id: int, sample_every: int, dump_every: int, bin_size: Tuple[float, float, float] = (1.0, 1.0, 1.0), channels: List[Tuple[str, str]], path: str = 'xdmf/') -> Tuple[libudevicex.Plugins.AverageRelative3D, libudevicex.Plugins.UniformCartesianDumper]
-
 
 The arguments are the same as for createDumpAverage() with a few additions
 
@@ -405,35 +296,26 @@ The arguments are the same as for createDumpAverage() with a few additions
 :param relative_to_id: take an object governing the frame of reference with the specific ID
 
 
-.. py:function:: createDumpMesh
+.. py:function:: createDumpMesh(compute_task: bool, name: str, ov: libudevicex.ParticleVectors.ObjectVector, dump_every: int, path: str) -> Tuple[libudevicex.Plugins.MeshPlugin, libudevicex.Plugins.MeshDumper]
    :module: libudevicex.Plugins
 
-__createDumpMesh(compute_task: bool, name: str, ov: libudevicex.ParticleVectors.ObjectVector, dump_every: int, path: str) -> Tuple[libudevicex.Plugins.MeshPlugin, libudevicex.Plugins.MeshDumper]
-
-
 :param name: name of the plugin
-:param ov: :class:`ObjectVector` that we'll work with
+:param ov: :any:`ObjectVector` that we'll work with
 :param dump_every: write files every this many time-steps
 :param path: the files will look like this: <path>/<ov_name>_NNNNN.ply
 
 
-.. py:function:: createDumpObjectStats
+.. py:function:: createDumpObjectStats(compute_task: bool, name: str, ov: libudevicex.ParticleVectors.ObjectVector, dump_every: int, path: str) -> Tuple[libudevicex.Plugins.ObjPositions, libudevicex.Plugins.ObjPositionsDumper]
    :module: libudevicex.Plugins
 
-__createDumpObjectStats(compute_task: bool, name: str, ov: libudevicex.ParticleVectors.ObjectVector, dump_every: int, path: str) -> Tuple[libudevicex.Plugins.ObjPositions, libudevicex.Plugins.ObjPositionsDumper]
-
-
 :param name: name of the plugin
-:param ov: :class:`ObjectVector` that we'll work with
+:param ov: :any:`ObjectVector` that we'll work with
 :param dump_every: write files every this many time-steps
 :param path: the files will look like this: <path>/<ov_name>_NNNNN.txt
 
 
-.. py:function:: createDumpXYZ
+.. py:function:: createDumpXYZ(compute_task: bool, name: str, pv: libudevicex.ParticleVectors.ParticleVector, dump_every: int, path: str) -> Tuple[libudevicex.Plugins.XYZPlugin, libudevicex.Plugins.XYZDumper]
    :module: libudevicex.Plugins
-
-__createDumpXYZ(compute_task: bool, name: str, pv: libudevicex.ParticleVectors.ParticleVector, dump_every: int, path: str) -> Tuple[libudevicex.Plugins.XYZPlugin, libudevicex.Plugins.XYZDumper]
-
 
 :param name: name of the plugin
 :param pv: :any:`ParticleVector` that we'll work with
@@ -441,77 +323,70 @@ __createDumpXYZ(compute_task: bool, name: str, pv: libudevicex.ParticleVectors.P
 :param path: the files will look like this: <path>/<pv_name>_NNNNN.xyz
 
 
-.. py:function:: createImposeProfile
+.. py:function:: createImposeProfile(compute_task: bool, name: str, pv: libudevicex.ParticleVectors.ParticleVector, low: Tuple[float, float, float], high: Tuple[float, float, float], velocity: Tuple[float, float, float], kbt: float) -> Tuple[libudevicex.Plugins.ImposeProfile, libudevicex.Plugins.PostprocessPlugin]
    :module: libudevicex.Plugins
 
-__createImposeProfile(compute_task: bool, name: str, pv: libudevicex.ParticleVectors.ParticleVector, low: Tuple[float, float, float], high: Tuple[float, float, float], velocity: Tuple[float, float, float], kbt: float) -> Tuple[libudevicex.Plugins.ImposeProfile, libudevicex.Plugins.PostprocessPlugin]
-
-
 :param name: name of the plugin
-:param pv: :class:`ParticleVector` that we'll work with
+:param pv: :any:`ParticleVector` that we'll work with
 :param low: the lower corner of the domain
 :param high: the higher corner of the domain
 :param velocity: target velocity
 :param kbt: temperature in the domain (appropriate Maxwell distribution will be used)
 
 
-.. py:function:: createImposeVelocity
+.. py:function:: createImposeVelocity(compute_task: bool, name: str, pv: libudevicex.ParticleVectors.ParticleVector, every: int, low: Tuple[float, float, float], high: Tuple[float, float, float], velocity: Tuple[float, float, float]) -> Tuple[libudevicex.Plugins.ImposeVelocity, libudevicex.Plugins.PostprocessPlugin]
    :module: libudevicex.Plugins
 
-__createImposeVelocity(compute_task: bool, name: str, pv: libudevicex.ParticleVectors.ParticleVector, every: int, low: Tuple[float, float, float], high: Tuple[float, float, float], velocity: Tuple[float, float, float]) -> Tuple[libudevicex.Plugins.ImposeVelocity, libudevicex.Plugins.PostprocessPlugin]
-
-
 :param name: name of the plugin
-:param pv: :class:`ParticleVector` that we'll work with
+:param pv: :any:`ParticleVector` that we'll work with
 :param every: change the velocities once in **every** timestep
 :param low: the lower corner of the domain
 :param high: the higher corner of the domain
 :param velocity: target velocity
 
 
-.. py:function:: createPinObject
+.. py:function:: createPinObject(compute_task: bool, name: str, ov: libudevicex.ParticleVectors.ObjectVector, dump_every: int, path: str, pin_translation: Tuple[int, int, int], pin_rotation: Tuple[int, int, int]) -> Tuple[libudevicex.Plugins.PinObject, libudevicex.Plugins.ReportPinObject]
    :module: libudevicex.Plugins
 
-__createPinObject(compute_task: bool, name: str, ov: libudevicex.ParticleVectors.ObjectVector, dump_every: int, path: str, pin_translation: Tuple[int, int, int], pin_rotation: Tuple[int, int, int]) -> Tuple[libudevicex.Plugins.PinObject, libudevicex.Plugins.ReportPinObject]
-
-
 :param name: name of the plugin
-:param pv: :class:`ObjectVector` that we'll work with
+:param pv: :any:`ObjectVector` that we'll work with
 :param dump_every: write files every this many time-steps
 :param path: the files will look like this: <path>/<ov_name>_NNNNN.txt
 :param pin_translation: 3 integers; 0 means that motion along the corresponding axis is unrestricted, 1 means fixed position wrt to the axis
 :param pin_rotation: 3 integers; 0 means that rotation along the corresponding axis is unrestricted, 1 means fixed rotation wrt to the axis
 
 
-.. py:function:: createStats
+.. py:function:: createStats(compute_task: bool, name: str, filename: str, every: int) -> Tuple[libudevicex.Plugins.SimulationStats, libudevicex.Plugins.PostprocessStats]
    :module: libudevicex.Plugins
-
-__createStats(compute_task: bool, name: str, filename: str, every: int) -> Tuple[libudevicex.Plugins.SimulationStats, libudevicex.Plugins.PostprocessStats]
-
 
 :param name: name of the plugin
 :param filename: the stats will also be recorded to that file in a computer-friendly way
 :param every: report to standard output every that many time-steps
 
 
-.. py:function:: createTemperaturize
+.. py:function:: createTemperaturize(arg0: bool, arg1: str, arg2: libudevicex.ParticleVectors.ParticleVector, arg3: float, arg4: bool) -> Tuple[libudevicex.Plugins.Temperaturize, libudevicex.Plugins.PostprocessPlugin]
    :module: libudevicex.Plugins
-
-__createTemperaturize(arg0: bool, arg1: str, arg2: libudevicex.ParticleVectors.ParticleVector, arg3: float, arg4: bool) -> Tuple[libudevicex.Plugins.Temperaturize, libudevicex.Plugins.PostprocessPlugin]
-
 
 TODO
 
 
-.. py:function:: createWallRepulsion
+.. py:function:: createVelocityControl(compute_task: bool, name: str, pv: libudevicex.ParticleVectors.ParticleVector, low: Tuple[float, float, float], high: Tuple[float, float, float], every: int, targetVel: Tuple[float, float, float], Kp: float, Ki: float, Kd: float) -> Tuple[libudevicex.Plugins.VelocityControl, libudevicex.Plugins.PostprocessPlugin]
    :module: libudevicex.Plugins
-
-__createWallRepulsion(compute_task: bool, name: str, pv: libudevicex.ParticleVectors.ParticleVector, wall: libudevicex.Walls.Wall, C: float, h: float, max_force: float) -> Tuple[libudevicex.Plugins.WallRepulsion, libudevicex.Plugins.PostprocessPlugin]
-
 
 :param name: name of the plugin
 :param pv: :class:`ParticleVector` that we'll work with
-:param wall: :class:`Wall` that defines the repulsion
+:param low, high: boundaries of the domain of interest
+:param every: write files every this many time-steps
+:param targetVel: the target mean velocity of the particles in the domain of interest
+:param Kp, Ki, Kd: PID controller coefficients
+
+
+.. py:function:: createWallRepulsion(compute_task: bool, name: str, pv: libudevicex.ParticleVectors.ParticleVector, wall: libudevicex.Walls.Wall, C: float, h: float, max_force: float) -> Tuple[libudevicex.Plugins.WallRepulsion, libudevicex.Plugins.PostprocessPlugin]
+   :module: libudevicex.Plugins
+
+:param name: name of the plugin
+:param pv: :any:`ParticleVector` that we'll work with
+:param wall: :any:`Wall` that defines the repulsion
 :param C: :math:`C`
 :param h: :math:`h`
 :param max_force: :math:`F_{max}`

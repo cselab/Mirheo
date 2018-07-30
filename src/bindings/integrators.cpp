@@ -41,7 +41,7 @@ void exportIntegrators(py::module& m)
         
     py::handlers_class<IntegratorVVRigid>(m, "RigidVelocityVerlet", pyint, R"(
         Integrate the position and rotation (in terms of quaternions) of the rigid bodies as per Velocity-Verlet scheme.
-        Can only applied to :any:`RigidObjectVector` or :any:`RigidEllipsoidObjectVector`.
+        Can only applied to :any:`RigidObjectVector` or :any:`RigidEllipsoidVector`.
     )")
         .def(py::init(&IntegratorFactory::createRigidVV),
              "name"_a, "dt"_a, R"(

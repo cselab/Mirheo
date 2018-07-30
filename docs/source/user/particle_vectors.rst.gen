@@ -26,7 +26,7 @@ A common special case of the ParticleVector is an :any:`ObjectVector` (or OV), w
    Bases: :class:`libudevicex.ParticleVectors.Mesh`
 
 Internally used class for desctibing a triangular mesh that can be used with the Membrane Interactions.
-In contrast with the simple :class:`Mesh`, this class precomputes some required quantities on the mesh
+In contrast with the simple :any:`Mesh`, this class precomputes some required quantities on the mesh
 
 
 .. py:method:: MembraneMesh.__init__(self: libudevicex.ParticleVectors.MembraneMesh, off_filename: str) -> None
@@ -51,7 +51,7 @@ It must have a triangular mesh associated with it such that each particle is map
 :param name: name of the created PV
 :param mass: mass of a single particle
 :param object_size: number of particles per membrane, must be the same as the number of vertices of the mesh
-:param mesh: :class:`MembraneMesh` object
+:param mesh: :any:`MembraneMesh` object
 
 
 .. py:class:: Mesh
@@ -170,5 +170,5 @@ It must have a triangular mesh associated with it that defines the shape of the 
 :param mass: mass of a single particle
 :param inertia: moment of inertia of the body in its principal axes. The principal axes of the mesh are assumed to be aligned with the default global *OXYZ* axes
 :param object_size: number of particles per membrane, must be the same as the number of vertices of the mesh
-:param mesh: :class:`MembraneMesh` object
+:param mesh: :any:`MembraneMesh` object
 
