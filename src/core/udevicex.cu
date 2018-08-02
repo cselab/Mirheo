@@ -34,7 +34,7 @@ uDeviceX::uDeviceX(std::tuple<int, int, int> nranks3D, std::tuple<float, float, 
     
     MPI_Init(nullptr, nullptr);
     
-    int nranks, rank;
+    int nranks;
 
     if (logFileName == "stdout")
         logger.init(MPI_COMM_WORLD, stdout, verbosity);
@@ -259,8 +259,14 @@ void uDeviceX::sayHello()
 
 bool uDeviceX::isComputeTask()
 {
-    return computeTask == 0;
+    return (computeTask == 0);
 }
+
+bool uDeviceX::isMasterTask()
+{
+    return (rank == 0 && isComputeTask());
+}
+
 
 void uDeviceX::run(int nsteps)
 {

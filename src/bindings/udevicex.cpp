@@ -130,5 +130,6 @@ void exportUdevicex(py::module& m)
         )")
         
         .def("isComputeTask", &uDeviceX::isComputeTask, "Returns whether current rank will do compute or postrprocess")
+        .def("isMasterTask",  &uDeviceX::isMasterTask,  "Returns whether current task is the very first one")
         .def("run", &uDeviceX::run, "Run the simulation");
 }

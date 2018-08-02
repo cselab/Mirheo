@@ -1,6 +1,8 @@
+CMAKE_FLAGS ?= ""
+
 build:
 	mkdir -p build/
-	(cd build/;	cmake ../)
+	(cd build/;	cmake ${CMAKE_FLAGS} ../)
 	make -C build/ -j
 	cd ..
 

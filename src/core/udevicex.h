@@ -28,6 +28,7 @@ public:
              int checkpointEvery=0, std::string restartFolder="restart/", bool gpuAwareMPI=false);
 
     bool isComputeTask();
+    bool isMasterTask();
     void run(int niters);
     
     void registerParticleVector         (const std::shared_ptr<ParticleVector>& pv,
@@ -65,6 +66,7 @@ private:
     std::unique_ptr<Simulation> sim;
     std::unique_ptr<Postprocess> post;
     
+    int rank;
     int computeTask;
     bool noPostprocess;
     
