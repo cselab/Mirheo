@@ -42,7 +42,7 @@ void exportInitialConditions(py::module& m)
         according to the template .xyz file and then the objects will be translated/rotated according to the file initial conditions file.
             
     )")
-        .def(py::init<std::string, std::string>(), "ic_filename"_a, "xyz_filename"_a, R"(
+        .def(py::init<std::string, std::string>(), "xyz_filename"_a, "ic_filename"_a, R"(
             Args:
                 ic_filename:
                     Text file describing location and rotation of the created objects.               

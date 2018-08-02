@@ -48,7 +48,8 @@ void RigidIC::exec(const MPI_Comm& comm, ParticleVector* pv, DomainInfo domain, 
 
     readXYZ(xyzfname, ov->initialPositions, stream);
     if (ov->objSize != ov->initialPositions.size())
-        die("Object size and XYZ initial conditions don't match in size for %s", ov->name.c_str());
+        die("Object size and XYZ initial conditions don't match in size for '%s': %d vs %d",
+                ov->name.c_str(), ov->objSize, ov->initialPositions.size());
 
     std::ifstream fic(icfname);
     int nObjs=0;

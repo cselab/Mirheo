@@ -28,6 +28,12 @@ public:
 
     virtual bool needPostproc() = 0;
 
+    /// Save handler state
+    virtual void checkpoint(MPI_Comm& comm, std::string path) {}
+    /// Restore handler state
+    virtual void restart(MPI_Comm& comm, std::string path) {}
+
+
     void setTime(float t, int tstep)
     {
         currentTime = t;
