@@ -1,10 +1,13 @@
 #include <pybind11/pybind11.h>
+#include <pybind11/stl.h>
 
 #include <core/initial_conditions/interface.h>
 #include <core/initial_conditions/uniform_ic.h>
 #include <core/initial_conditions/rigid_ic.h>
 #include <core/initial_conditions/restart.h>
 #include <core/initial_conditions/membrane_ic.h>
+
+#include <core/utils/pytypes.h>
 
 #include "nodelete.h"
 
@@ -39,15 +42,15 @@ void exportInitialConditions(py::module& m)
         
     py::handlers_class<RigidIC>(m, "Rigid", pyic, R"(
         Can only be used with Rigid Object Vector or Rigid Ellipsoid, see :ref:`user-ic`. These IC will initialize the particles of each object
-        according to the template .xyz file and then the objects will be translated/rotated according to the file initial conditions file.
+        according to the template .xyz file and then the objects will be translated/rotated according to the provided initial conditions.
             
     )")
-        .def(py::init<std::string, std::string>(), "xyz_filename"_a, "ic_filename"_a, R"(
+        .def(py::init<ICvector, std::string>(), "com_q"_a, "xyz_filename"_a, R"(
             Args:
-                ic_filename:
-                    Text file describing location and rotation of the created objects.               
-                    One line in the file corresponds to one object created.                          
-                    Format of the line: *<com_x> <com_y> <com_z>  <q_x> <q_y> <q_z> <q_w>*, where    
+                com_q:
+                    List describing location and rotation of the created objects.               
+                    One entry in the list corresponds to one object created.                          
+                    Each entry consist of 7 floats: *<com_x> <com_y> <com_z>  <q_x> <q_y> <q_z> <q_w>*, where    
                     *com* is the center of mass of the object, *q* is the quaternion of its rotation,
                     not necessarily normalized 
                 xyz_filename:
@@ -60,16 +63,16 @@ void exportInitialConditions(py::module& m)
         
     py::handlers_class<MembraneIC>(m, "Membrane", pyic, R"(
         Can only be used with Membrane Object Vector, see :ref:`user-ic`. These IC will initialize the particles of each object
-        according to the mesh associated with Membrane, and then the objects will be translated/rotated according to the file initial conditions file.
+        according to the mesh associated with Membrane, and then the objects will be translated/rotated according to the provided initial conditions.
     )")
-        .def(py::init<std::string, float>(), "ic_filename"_a, "global_scale"_a=1.0, R"(
+        .def(py::init<ICvector, float>(), "com_q"_a, "global_scale"_a=1.0, R"(
             Args:
-                ic_filename:
-                    Text file describing location and rotation of the created objects.               
-                    One line in the file corresponds to one object created.                          
-                    Format of the line: *<com_x> <com_y> <com_z>  <q_x> <q_y> <q_z> <q_w>*, where    
+                com_q:
+                    List describing location and rotation of the created objects.               
+                    One entry in the list corresponds to one object created.                          
+                    Each entry consist of 7 floats: *<com_x> <com_y> <com_z>  <q_x> <q_y> <q_z> <q_w>*, where    
                     *com* is the center of mass of the object, *q* is the quaternion of its rotation,
-                    not necessarily normalized
+                    not necessarily normalized 
                 global_scale:
                     All the membranes will be scaled by that value. Useful to implement membranes growth so that they
                     can fill the space with high volume fraction                                        

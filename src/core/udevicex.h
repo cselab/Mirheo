@@ -68,5 +68,7 @@ private:
     int computeTask;
     bool noPostprocess;
     
+    bool initialized = false;
+    
     void sayHello();
 };

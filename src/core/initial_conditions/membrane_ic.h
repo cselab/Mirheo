@@ -2,6 +2,8 @@
 
 #include "interface.h"
 
+#include <core/utils/pytypes.h>
+
 #include <string>
 
 /**
@@ -10,7 +12,7 @@
 class MembraneIC : public InitialConditions
 {
 public:
-    MembraneIC(std::string icfname, float globalScale = 1.0f);
+    MembraneIC(ICvector com_q, float globalScale = 1.0f);
 
     void exec(const MPI_Comm& comm, ParticleVector* pv, DomainInfo domain, cudaStream_t stream) override;
 
@@ -18,5 +20,5 @@ public:
 
 private:
     float globalScale;
-    std::string icfname;
+    ICvector com_q;
 };

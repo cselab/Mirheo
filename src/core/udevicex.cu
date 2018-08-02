@@ -94,7 +94,12 @@ uDeviceX::uDeviceX(std::tuple<int, int, int> nranks3D, std::tuple<float, float, 
     }
 }
 
-uDeviceX::~uDeviceX() = default;
+uDeviceX::~uDeviceX()
+{
+    debug("uDeviceX coordinator is destroyed");
+    
+    MPI_Finalize();
+}
 
 
 
@@ -261,11 +266,21 @@ void uDeviceX::run(int nsteps)
 {
     if (isComputeTask())
     {
-        sim->init();  // TODO reentrant!!
+        if (!initialized)
+        {
+            sim->init();
+            initialized = true;
+        }
         sim->run(nsteps);
-        sim->finalize();
     }
     else
+    {
+        if (!initialized)
+        {
+            post->init();
+            initialized = true;
+        }
         post->run();
+    }
 }
 

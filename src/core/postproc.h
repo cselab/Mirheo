@@ -16,4 +16,5 @@ public:
     Postprocess(MPI_Comm& comm, MPI_Comm& interComm);
     void registerPlugin( std::shared_ptr<PostprocessPlugin> plugin );
     void run();
+    void init();
 };

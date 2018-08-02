@@ -16,7 +16,7 @@ void Postprocess::registerPlugin(std::shared_ptr<PostprocessPlugin> plugin)
     plugins.push_back( std::move(plugin) );
 }
 
-void Postprocess::run()
+void Postprocess::init()
 {
     for (auto& pl : plugins)
     {
@@ -24,7 +24,10 @@ void Postprocess::run()
         pl->setup(comm, interComm);
         pl->handshake();
     }
+}
 
+void Postprocess::run()
+{
     // Stopping condition
     const int tag = 424242;
 
@@ -41,6 +44,7 @@ void Postprocess::run()
         requests.push_back(pl->waitData());
     requests.push_back(endReq);
 
+    info("Postprocess is listening to messages now");
     while (true)
     {
         int index;
@@ -52,7 +56,7 @@ void Postprocess::run()
             if (dummy != -1)
                 die("Something went terribly wrong");
 
-            info("Postprocess got a stopping message and will exit now");
+            info("Postprocess got a stopping message and will stop now");
             break;
         }
 

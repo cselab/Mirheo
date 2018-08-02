@@ -576,6 +576,14 @@ void Simulation::init()
     }
 
     assemble();
+    
+    // Initial preparation
+    scheduler->forceExec( scheduler->getTaskId("Object halo init"), 0 );
+    scheduler->forceExec( scheduler->getTaskId("Object halo finalize"), 0 );
+    scheduler->forceExec( scheduler->getTaskId("Clear object halo forces"), 0 );
+    scheduler->forceExec( scheduler->getTaskId("Clear object local forces"), 0 );
+
+    execSplitters();
 }
 
 void Simulation::assemble()
@@ -850,15 +858,7 @@ void Simulation::run(int nsteps)
 {
     int begin = currentStep, end = currentStep + nsteps;
 
-    // Initial preparation
-    scheduler->forceExec( scheduler->getTaskId("Object halo init"), 0 );
-    scheduler->forceExec( scheduler->getTaskId("Object halo finalize"), 0 );
-    scheduler->forceExec( scheduler->getTaskId("Clear object halo forces"), 0 );
-    scheduler->forceExec( scheduler->getTaskId("Clear object local forces"), 0 );
-
-    execSplitters();
-
-    debug("Will run %d iterations now", nsteps);
+    info("Will run %d iterations now", nsteps);
 
 
     for (currentStep = begin; currentStep < end; currentStep++)
@@ -877,13 +877,7 @@ void Simulation::run(int nsteps)
     scheduler->forceExec( scheduler->getTaskId("Build cell-lists"), 0 );
 
     info("Finished with %d iterations", nsteps);
-}
-
-void Simulation::finalize()
-{
     MPI_Check( MPI_Barrier(cartComm) );
-
-    info("Finished, exiting now");
 
     for (auto& pl : plugins)
         pl->finalize();

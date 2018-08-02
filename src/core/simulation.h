@@ -77,8 +77,6 @@ public:
 
     void init();
     void run(int nsteps);
-    void finalize();
-
 
     std::vector<ParticleVector*> getParticleVectors() const;
 

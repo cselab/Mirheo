@@ -9,8 +9,8 @@
 
 #include <core/rigid_kernels/rigid_motion.h>
 
-RigidIC::RigidIC(std::string xyzfname, std::string icfname) :
-    icfname(icfname), xyzfname(xyzfname)
+RigidIC::RigidIC(ICvector com_q, std::string xyzfname) :
+    com_q(com_q), xyzfname(xyzfname)
 {   }
 
 RigidIC::~RigidIC() = default;
@@ -51,20 +51,15 @@ void RigidIC::exec(const MPI_Comm& comm, ParticleVector* pv, DomainInfo domain, 
         die("Object size and XYZ initial conditions don't match in size for '%s': %d vs %d",
                 ov->name.c_str(), ov->objSize, ov->initialPositions.size());
 
-    std::ifstream fic(icfname);
     int nObjs=0;
-
     HostBuffer<RigidMotion> motions;
 
-    while (true)
+    for (auto& entry : com_q)
     {
         RigidMotion motion{};
-
-        fic >> motion.r.x >> motion.r.y >> motion.r.z;
-        fic >> motion.q.x >> motion.q.y >> motion.q.z >> motion.q.w;
-
-        if (fic.fail()) break;
-
+        
+        motion.r = {entry[0], entry[1], entry[2]};
+        motion.q = make_rigidReal4( make_float4(entry[3], entry[4], entry[5], entry[6]) );
         motion.q = normalize(motion.q);
 
         if (ov->domain.globalStart.x <= motion.r.x && motion.r.x < ov->domain.globalStart.x + ov->domain.localSize.x &&
@@ -85,6 +80,7 @@ void RigidIC::exec(const MPI_Comm& comm, ParticleVector* pv, DomainInfo domain, 
     ovMotions->uploadToDevice(stream);
 
     // Set ids
+    // Need to do that, as not all the objects in com_q may be valid
     int totalCount=0; // TODO: int64!
     MPI_Check( MPI_Exscan(&nObjs, &totalCount, 1, MPI_INT, MPI_SUM, comm) );
 

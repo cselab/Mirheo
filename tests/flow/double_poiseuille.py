@@ -1,9 +1,6 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 
-import sys
-sys.path.insert(0, "..")
-from common.context import udevicex as udx
-import numpy as np
+import udevicex as udx
 
 dt = 0.001
 

@@ -7,8 +7,8 @@
 #include <core/pvs/membrane_vector.h>
 #include <core/rigid_kernels/integration.h>
 
-MembraneIC::MembraneIC(std::string icfname, float globalScale) :
-    icfname(icfname), globalScale(globalScale)
+MembraneIC::MembraneIC(ICvector com_q, float globalScale) :
+    com_q(com_q), globalScale(globalScale)
 {    }
 
 MembraneIC::~MembraneIC() = default;
@@ -41,18 +41,13 @@ void MembraneIC::exec(const MPI_Comm& comm, ParticleVector* pv, DomainInfo domai
 
     pv->domain = domain;
 
-    std::ifstream fic(icfname);
+    // Local number of objects
     int nObjs=0;
 
-    while (true)
+    for (auto& entry : com_q)
     {
-        float3 com;
-        float4 q;
-
-        fic >> com.x >> com.y >> com.z;
-        fic >> q.x >> q.y >> q.z >> q.w;
-
-        if (fic.fail()) break;
+        float3 com = {entry[0], entry[1], entry[2]};
+        float4 q   = {entry[3], entry[4], entry[5], entry[6]};
 
         q = normalize(q);
 
@@ -79,6 +74,7 @@ void MembraneIC::exec(const MPI_Comm& comm, ParticleVector* pv, DomainInfo domai
     }
 
     // Set ids
+    // Need to do that, as not all the objects in com_q may be valid
     int totalCount=0; // TODO: int64!
     MPI_Check( MPI_Exscan(&nObjs, &totalCount, 1, MPI_INT, MPI_SUM, comm) );
 
@@ -94,7 +90,6 @@ void MembraneIC::exec(const MPI_Comm& comm, ParticleVector* pv, DomainInfo domai
     ov->local()->coosvels.uploadToDevice(stream);
     ov->local()->extraPerParticle.getData<Particle>("old_particles")->copy(ov->local()->coosvels, stream);
 
-
-    info("Read %d %s rbcs", nObjs, ov->name.c_str());
+    info("Initialized %d '%s' membranes", nObjs, ov->name.c_str());
 }
 

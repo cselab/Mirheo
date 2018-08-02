@@ -196,8 +196,7 @@ void exportPlugins(py::module& m)
             dump_every: write files every this many time-steps 
             bin_size: bin size for sampling. The resulting quantities will be *cell-centered*
             path: Path and filename prefix for the dumps. For every dump two files will be created: <path>_NNNNN.xmf and <path>_NNNNN.h5
-            channels: 
-                list of pairs name - type.
+            channels: list of pairs name - type.
                 Name is the channel (per particle) name. Always available channels are:
                     
                 * 'velocity' with type "float8"             
@@ -258,11 +257,13 @@ void exportPlugins(py::module& m)
           "compute_task"_a, "name"_a, "ov"_a, "dump_every"_a, "path"_a, "pin_translation"_a, "pin_rotation"_a, R"(
         Args:
             name: name of the plugin
-            pv: :any:`ObjectVector` that we'll work with
+            ov: :any:`ObjectVector` that we'll work with
             dump_every: write files every this many time-steps
             path: the files will look like this: <path>/<ov_name>_NNNNN.txt
-            pin_translation: 3 integers; 0 means that motion along the corresponding axis is unrestricted, 1 means fixed position wrt to the axis
-            pin_rotation: 3 integers; 0 means that rotation along the corresponding axis is unrestricted, 1 means fixed rotation wrt to the axis
+            pin_translation: 3 integers; 0 means that motion along the corresponding axis is unrestricted,
+                1 means fixed position wrt to the axis
+            pin_rotation: 3 integers; 0 means that rotation along the corresponding axis is unrestricted,
+                1 means fixed rotation wrt to the axis
     )");
     m.def("__createVelocityControl", &PluginFactory::createSimulationVelocityControlPlugin,
           "compute_task"_a, "name"_a, "pv"_a, "low"_a, "high"_a, "every"_a, "targetVel"_a, "Kp"_a, "Ki"_a, "Kd"_a, R"(

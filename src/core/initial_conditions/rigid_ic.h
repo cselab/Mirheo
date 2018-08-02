@@ -2,13 +2,16 @@
 
 #include "interface.h"
 
+#include <core/utils/pytypes.h>
+
 class RigidIC : public InitialConditions
 {
 private:
-    std::string xyzfname, icfname;
+    std::string xyzfname;
+    ICvector com_q;
 
 public:
-    RigidIC(std::string xyzfname, std::string icfname);
+    RigidIC(ICvector com_q, std::string xyzfname);
 
     void exec(const MPI_Comm& comm, ParticleVector* pv, DomainInfo domain, cudaStream_t stream) override;
 

@@ -1,6 +1,7 @@
 #pragma once 
 
 #include <tuple>
+#include <vector>
 #include <cuda_runtime.h>
 
 // Tuple initializations
@@ -33,3 +34,5 @@ inline int3 make_int3(pyint3 t3)
     return make_int3(std::get<0>(t3), std::get<1>(t3), std::get<2>(t3));
 }
 
+
+using ICvector = std::vector<std::array<float, 7>>;

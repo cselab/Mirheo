@@ -1,24 +1,20 @@
-cmakecache=build/CMakeCache.txt
+build:
+	mkdir -p build/
+	(cd build/;	cmake ../)
+	make -C build/ -j
+	cd ..
 
-build: $(cmakecache)
-	(cd build; udx.make -j)
-
-$(cmakecache):
-	mkdir -p build
-	(cd build; . udx.load; cmake ../)
-
-install:
-	@(. udx.load; \
-	 pip3 install . --user --upgrade)
+install: build
+	pip install . --user --upgrade
 
 uninstall:
-	pip3 uninstall udevicex
+	pip uninstall udevicex
 
 docs:
 	make -C docs/
 	make -C docs/source/
 
-test:
+test: install
 	(cd tests; udx.make test)
 
 clean:; rm -rf build
