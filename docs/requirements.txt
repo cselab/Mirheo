@@ -2,3 +2,4 @@ sphinx==1.6.7
 breathe
 sphinx_rtd_theme
 pygments
+sphinx_automodapi
