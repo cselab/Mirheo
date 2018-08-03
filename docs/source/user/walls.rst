@@ -9,6 +9,12 @@ In order to prevent undesired density oscillations near the walls, so called fro
 
 In the beginning of the simulation all the particles define in the simulation (even not attached to the wall by class::udevicex) will be checked against all the walls. Those inside the wall as well as objects partly inside the wall will be deleted. The only exception is the PVs that are named exactly as the wall, these PVs will be unaffected by their “parent” wall.
 
+Summary
+========
+.. automodsumm:: libudevicex.Walls
+
+Details
+========
 .. automodule:: libudevicex.Walls
    :members:
    :show-inheritance:

@@ -8,6 +8,12 @@ Integrators are used to advance particle coordinates and velocities in time acco
 .. note:
    For now all the integrators in the simulation must use the same timestep
 
+Summary
+========
+.. automodsumm:: libudevicex.Integrators
+
+Details
+========
 .. automodule:: libudevicex.Integrators
    :members:
    :show-inheritance:

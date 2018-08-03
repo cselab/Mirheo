@@ -12,6 +12,12 @@ In practice maintaining separation of at least :math:`10^{-3}` units between wal
 Note that particle velocities are also altered, which means that objects experience extra force from the collisions.
 This force is saved for the next timestep.
 
+Summary
+========
+.. automodsumm:: libudevicex.Bouncers
+
+Details
+========
 .. automodule:: libudevicex.Bouncers
    :members:
    :show-inheritance:

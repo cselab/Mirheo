@@ -75,6 +75,12 @@ One and only one of the options **inside** or **outside** has to be specified.
 Returns whether current rank will do compute or postrprocess
 
 
+.. py:method:: udevicex.isMasterTask(self: libudevicex.udevicex) -> bool
+   :module: udevicex
+
+Returns whether current task is the very first one
+
+
 .. py:method:: udevicex.makeFrozenWallParticles(self: libudevicex.udevicex, wall: Wall, interaction: Interaction, integrator: Integrator, density: float, nsteps: int = 1000) -> ParticleVector
    :module: udevicex
 

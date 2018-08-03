@@ -6,6 +6,12 @@ Interactions
 Interactions are used to calculate forces on individual particles due to their neighbours.
 Pairwise short-range interactions are currently supported, and membrane forces
 
+Summary
+========
+.. automodsumm:: libudevicex.Interactions
+
+Details
+========
 .. automodule:: libudevicex.Interactions
    :members:
    :show-inheritance:

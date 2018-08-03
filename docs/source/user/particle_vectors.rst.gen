@@ -9,6 +9,15 @@ Each particle in the PV keeps its coordinate, velocity and force. Additional qua
 
 A common special case of the ParticleVector is an :any:`ObjectVector` (or OV), which is a Particle Vector with the particles separated into groups (objects) of the same size. Objects are assumed to be spatially localized, so they always fully reside of a single MPI process. OV can be used in most of the places where a regular PV is used, and more
 
+
+Summary
+========
+.. automodsumm:: libudevicex.ParticleVectors
+
+.. automod-diagram:: libudevicex.ParticleVectors
+
+Details
+========
 .. comment libudevicex.ParticleVectors
    :members:
    :show-inheritance:
@@ -16,6 +25,24 @@ A common special case of the ParticleVector is an :any:`ObjectVector` (or OV), w
    :special-members: __init__
       
  
+Internally used class for desctibing a triangular mesh that can be used with the Membrane Interactions.
+In contrast with the simple :any:`Mesh`, this class precomputes some required quantities on the mesh
+
+Membrane is an Object Vector representing cell membranes.
+It must have a triangular mesh associated with it such that each particle is mapped directly onto single mesh vertex.
+
+Internally used class for desctibing a simple triangular mesh
+
+Basic Object Vector
+
+Basic particle vector, consists of identical disconnected particles.
+
+Rigid Ellipsoid is the same as the Rigid Object except that it can only represent ellipsoidal shapes.
+The advantage is that it doesn't need mesh and moment of inertia define, as those can be computed analytically.
+
+Rigid Object is an Object Vector representing objects that move as rigid bodies, with no relative displacement against each other in an object.
+It must have a triangular mesh associated with it that defines the shape of the object.
+
 
 .. py:module:: libudevicex.ParticleVectors
 

@@ -1,7 +1,7 @@
 import sys, os, subprocess, glob
 import sphinx.ext.autodoc
 
-extensions = ['breathe', 'sphinx.ext.mathjax', 'sphinx.ext.autodoc', 'sphinx.ext.napoleon']
+extensions = ['breathe', 'sphinx.ext.mathjax', 'sphinx.ext.autodoc', 'sphinx_automodapi.automodapi', 'sphinx.ext.napoleon']
 
 add_module_names = False
 

@@ -133,6 +133,8 @@ void exportPlugins(py::module& m)
     
     m.def("__createImposeVelocity", &PluginFactory::createImposeVelocityPlugin,
         "compute_task"_a, "name"_a, "pv"_a, "every"_a, "low"_a, "high"_a, "velocity"_a, R"(
+        Create :any:`ImposeVelocity` plugin
+        
         Args:
             name: name of the plugin
             pv: :any:`ParticleVector` that we'll work with
@@ -146,6 +148,8 @@ void exportPlugins(py::module& m)
     )");
     m.def("__createAddForce", &PluginFactory::createAddForcePlugin,
          "compute_task"_a, "name"_a, "pv"_a, "force"_a, R"(
+        Create :any:`AddForce` plugin
+        
         Args:
             name: name of the plugin
             pv: :any:`ParticleVector` that we'll work with
@@ -153,6 +157,8 @@ void exportPlugins(py::module& m)
     )");
     m.def("__createAddTorque", &PluginFactory::createAddTorquePlugin, 
           "compute_task"_a, "name"_a, "ov"_a, "torque"_a, R"(
+        Create :any:`AddTorque` plugin
+        
         Args:
             name: name of the plugin
             ov: :any:`ObjectVector` that we'll work with
@@ -160,6 +166,8 @@ void exportPlugins(py::module& m)
     )");
     m.def("__createImposeProfile", &PluginFactory::createImposeProfilePlugin, 
           "compute_task"_a, "name"_a, "pv"_a, "low"_a, "high"_a, "velocity"_a, "kbt"_a, R"(
+        Create :any:`ImposeProfile` plugin
+        
         Args:
             name: name of the plugin
             pv: :any:`ParticleVector` that we'll work with
@@ -170,6 +178,8 @@ void exportPlugins(py::module& m)
     )");
     m.def("__createWallRepulsion", &PluginFactory::createWallRepulsionPlugin, 
           "compute_task"_a, "name"_a, "pv"_a, "wall"_a, "C"_a, "h"_a, "max_force"_a, R"(
+        Create :any:`WallRepulsion` plugin
+        
         Args:
             name: name of the plugin
             pv: :any:`ParticleVector` that we'll work with
@@ -180,6 +190,8 @@ void exportPlugins(py::module& m)
     )");
     m.def("__createStats", &PluginFactory::createStatsPlugin,
           "compute_task"_a, "name"_a, "filename"_a, "every"_a, R"(
+        Create :any:`SimulationStats` plugin
+        
         Args:
             name: name of the plugin
             filename: the stats will also be recorded to that file in a computer-friendly way
@@ -188,7 +200,8 @@ void exportPlugins(py::module& m)
     m.def("__createDumpAverage", &PluginFactory::createDumpAveragePlugin, 
           "compute_task"_a, "name"_a, "pv"_a, "sample_every"_a, "dump_every"_a,
           "bin_size"_a = pyfloat3{1.0, 1.0, 1.0}, "channels"_a, "path"_a = "xdmf/", R"(
-              
+        Create :any:`Average3D` plugin
+        
         Args:
             name: name of the plugin
             pv: :any:`ParticleVector` that we'll work with
@@ -223,6 +236,9 @@ void exportPlugins(py::module& m)
           "sample_every"_a, "dump_every"_a,
           "bin_size"_a = pyfloat3{1.0, 1.0, 1.0}, "channels"_a, "path"_a = "xdmf/",
           R"(
+              
+        Create :any:`AverageRelative3D` plugin
+                
         The arguments are the same as for createDumpAverage() with a few additions
         
         Args:
@@ -231,6 +247,8 @@ void exportPlugins(py::module& m)
     )");
     m.def("__createDumpXYZ", &PluginFactory::createDumpXYZPlugin, 
           "compute_task"_a, "name"_a, "pv"_a, "dump_every"_a, "path"_a, R"(
+        Create :any:`XYZPlugin` plugin
+        
         Args:
             name: name of the plugin
             pv: :any:`ParticleVector` that we'll work with
@@ -239,6 +257,8 @@ void exportPlugins(py::module& m)
     )");
     m.def("__createDumpMesh", &PluginFactory::createDumpMeshPlugin, 
           "compute_task"_a, "name"_a, "ov"_a, "dump_every"_a, "path"_a, R"(
+        Create :any:`MeshPlugin` plugin
+        
         Args:
             name: name of the plugin
             ov: :any:`ObjectVector` that we'll work with
@@ -247,6 +267,8 @@ void exportPlugins(py::module& m)
     )");
     m.def("__createDumpObjectStats", &PluginFactory::createDumpObjPosition, 
           "compute_task"_a, "name"_a, "ov"_a, "dump_every"_a, "path"_a, R"(
+        Create :any:`ObjPositions` plugin
+        
         Args:
             name: name of the plugin
             ov: :any:`ObjectVector` that we'll work with
@@ -255,6 +277,8 @@ void exportPlugins(py::module& m)
     )");
     m.def("__createPinObject", &PluginFactory::createPinObjPlugin, 
           "compute_task"_a, "name"_a, "ov"_a, "dump_every"_a, "path"_a, "pin_translation"_a, "pin_rotation"_a, R"(
+        Create :any:`PinObject` plugin
+        
         Args:
             name: name of the plugin
             ov: :any:`ObjectVector` that we'll work with
@@ -267,6 +291,8 @@ void exportPlugins(py::module& m)
     )");
     m.def("__createVelocityControl", &PluginFactory::createSimulationVelocityControlPlugin,
           "compute_task"_a, "name"_a, "pv"_a, "low"_a, "high"_a, "every"_a, "targetVel"_a, "Kp"_a, "Ki"_a, "Kd"_a, R"(
+        Create :any:`VelocityControl` plugin
+        
         Args:
             name: name of the plugin
             pv: :class:`ParticleVector` that we'll work with

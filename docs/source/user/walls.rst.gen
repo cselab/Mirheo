@@ -9,6 +9,12 @@ In order to prevent undesired density oscillations near the walls, so called fro
 
 In the beginning of the simulation all the particles define in the simulation (even not attached to the wall by class::udevicex) will be checked against all the walls. Those inside the wall as well as objects partly inside the wall will be deleted. The only exception is the PVs that are named exactly as the wall, these PVs will be unaffected by their “parent” wall.
 
+Summary
+========
+.. automodsumm:: libudevicex.Walls
+
+Details
+========
 .. comment libudevicex.Walls
    :members:
    :show-inheritance:
@@ -24,6 +30,40 @@ In the beginning of the simulation all the particles define in the simulation (e
 
 
     
+Rectangular cuboid wall with edges aligned with the coordinate axes.
+
+
+Cylindrical infinitely stretching wall, the main axis is aligned along OX or OY or OZ
+
+Planar wall that is moving along itself with constant velocity.
+Can be used to produce Couette velocity profile in combination with
+The boundary conditions on such wall are no-through and constant velocity (specified).
+
+Planar wall that is moving along itself with periodically changing velocity:
+
+.. math::
+    \mathbf{u}(t) = cos(2*\pi * t / T);
+
+Planar infinitely stretching wall. Inside is determined by the normal direction .
+
+
+Cylindrical wall rotating with constant angular velocity along its axis.
+
+This wall is based on an arbitrary Signed Distance Function defined in the simulation domain on a regular cartesian grid.
+The wall reads the SDF data from a .sdf file, that has a special structure.
+
+First two lines define the header: three real number separated by spaces govern the size of the domain where the SDF is defined,
+and next three integer numbers (:math:`Nx\,\,Ny\,\,Nz`) define the resolution.
+Next the :math:`Nx \times Ny \times Nz` single precision floating point values are written (in binary representation).
+
+Negative SDF values correspond to the domain, and positive -- to the inside of the wall.
+Therefore the boundary is defined by the zero-level isosurface.
+
+Spherical wall.
+
+
+Base wall class.
+
 
 .. py:module:: libudevicex.Walls
 

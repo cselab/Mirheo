@@ -9,6 +9,15 @@ Each particle in the PV keeps its coordinate, velocity and force. Additional qua
 
 A common special case of the ParticleVector is an :any:`ObjectVector` (or OV), which is a Particle Vector with the particles separated into groups (objects) of the same size. Objects are assumed to be spatially localized, so they always fully reside of a single MPI process. OV can be used in most of the places where a regular PV is used, and more
 
+
+Summary
+========
+.. automodsumm:: libudevicex.ParticleVectors
+
+.. automod-diagram:: libudevicex.ParticleVectors
+
+Details
+========
 .. automodule:: libudevicex.ParticleVectors
    :members:
    :show-inheritance:
