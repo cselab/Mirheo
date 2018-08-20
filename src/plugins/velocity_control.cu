@@ -70,7 +70,7 @@ void SimulationVelocityControl::beforeForces(cudaStream_t stream)
 
 void SimulationVelocityControl::afterIntegration(cudaStream_t stream)
 {
-    if (currentTimeStep % every != 0 || currentTimeStep == 0) return;
+    if (currentTimeStep % sampleEvery != 0 || currentTimeStep == 0) return;
 
     debug2("Velocity control %s is sampling now", name.c_str());
 
@@ -98,4 +98,51 @@ void SimulationVelocityControl::afterIntegration(cudaStream_t stream)
 
     currentVel = make_float3(totVel_tot / nSamples_tot);
     force = pid.update(targetVel - currentVel);
+}
+
+void SimulationVelocityControl::serializeAndSend(cudaStream_t stream)
+{
+    if (currentTimeStep % dumpEvery != 0 || currentTimeStep == 0) return;
+
+    SimpleSerializer::serialize(sendBuffer, currentTime, currentTimeStep, currentVel, force);
+    send(sendBuffer);
+    info("haha");
+}
+
+
+
+
+PostprocessVelocityControl::PostprocessVelocityControl(std::string name, std::string filename) :
+    PostprocessPlugin(name)
+{
+    fdump = fopen(filename.c_str(), "w");
+    if (!fdump) die("Could not open file '%s'", filename.c_str());
+    fprintf(fdump, "# time time_step velocity force\n");
+}
+
+PostprocessVelocityControl::~PostprocessVelocityControl()
+{
+    fclose(fdump);
+}
+
+void PostprocessVelocityControl::deserialize(MPI_Status& stat)
+{
+    int currentTimeStep;
+    float currentTime;
+    float3 vel, force;
+
+    info("hoho");
+    
+    SimpleSerializer::deserialize(data, currentTime, currentTimeStep, vel, force);
+
+    // if (rank == 0) {
+        fprintf(fdump,
+                "%g %d "
+                "%g %g %g "
+                "%g %g %g\n",
+                currentTime, currentTimeStep,
+                vel.x, vel.y, vel.z,
+                force.x, force.y, force.z
+                );
+    // }
 }

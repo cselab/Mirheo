@@ -69,17 +69,21 @@ namespace PluginFactory
         return { simPl, nullptr };
     }
 
-static std::pair< SimulationVelocityControl*, PostprocessPlugin* >
-createSimulationVelocityControlPlugin(bool computeTask, std::string name, ParticleVector *pv,
-                                      pyfloat3 low, pyfloat3 high, int every,
+static std::pair< SimulationVelocityControl*, PostprocessVelocityControl* >
+createSimulationVelocityControlPlugin(bool computeTask, std::string name, std::string filename, ParticleVector *pv,
+                                      pyfloat3 low, pyfloat3 high, int sampleEvery, int dumpEvery,
                                       pyfloat3 targetVel, float Kp, float Ki, float Kd)
 {
     auto simPl = computeTask ?
-        new SimulationVelocityControl(name, pv->name, make_float3(low), make_float3(high), every,
+        new SimulationVelocityControl(name, pv->name, make_float3(low), make_float3(high), sampleEvery, dumpEvery,
                                       make_float3(targetVel), Kp, Ki, Kd) :
         nullptr;
 
-    return { simPl, nullptr };
+    auto postPl = computeTask ?
+        nullptr :
+        new PostprocessVelocityControl(name, filename);
+
+    return { simPl, postPl };
 }
 
     static std::pair< WallRepulsionPlugin*, PostprocessPlugin* >

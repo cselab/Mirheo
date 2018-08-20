@@ -12,10 +12,12 @@ class SimulationVelocityControl : public SimulationPlugin
 {
 public:
     SimulationVelocityControl(std::string name, std::string pvName,
-                              float3 low, float3 high, int every,
+                              float3 low, float3 high, int sampleEvery, int dumpEvery, 
                               float3 targetVel, float Kp, float Ki, float Kd) :
         SimulationPlugin(name), pvName(pvName), low(low), high(high),
-        currentVel(make_float3(0,0,0)), targetVel(targetVel), every(every), force(make_float3(0, 0, 0)),
+        currentVel(make_float3(0,0,0)), targetVel(targetVel),
+        dumpEvery(dumpEvery), sampleEvery(sampleEvery),
+        force(make_float3(0, 0, 0)),
         pid(make_float3(0, 0, 0), Kp, Ki, Kd)
     {}
 
@@ -23,12 +25,12 @@ public:
 
     void beforeForces(cudaStream_t stream) override;
     void afterIntegration(cudaStream_t stream) override;
-    // void serializeAndSend(cudaStream_t stream) override;
+    void serializeAndSend(cudaStream_t stream) override;
 
-    bool needPostproc() override { return false; } // TODO
+    bool needPostproc() override { return true; }
 
 private:
-    int every;
+    int sampleEvery, dumpEvery;
     std::string pvName;
     ParticleVector* pv;
 
@@ -39,9 +41,9 @@ private:
     PinnedBuffer<float3> totVel{1};
 
     PidControl<float3> pid;
+    std::vector<char> sendBuffer;
 };
 
-// TODO
 class PostprocessVelocityControl : public PostprocessPlugin
 {
 private:

@@ -129,7 +129,7 @@ void exportPlugins(py::module& m)
     py::handlers_class<MeshDumper>(m, "MeshDumper", pypost);
     py::handlers_class<ObjPositionsDumper>(m, "ObjPositionsDumper", pypost);
     py::handlers_class<ReportPinObjectPlugin>(m, "ReportPinObject", pypost);
-    
+    py::handlers_class<PostprocessVelocityControl>(m, "PostprocessVelocityControl", pypost);
     
     m.def("__createImposeVelocity", &PluginFactory::createImposeVelocityPlugin,
         "compute_task"_a, "name"_a, "pv"_a, "every"_a, "low"_a, "high"_a, "velocity"_a, R"(
@@ -290,14 +290,16 @@ void exportPlugins(py::module& m)
                 1 means fixed rotation wrt to the axis
     )");
     m.def("__createVelocityControl", &PluginFactory::createSimulationVelocityControlPlugin,
-          "compute_task"_a, "name"_a, "pv"_a, "low"_a, "high"_a, "every"_a, "targetVel"_a, "Kp"_a, "Ki"_a, "Kd"_a, R"(
+          "compute_task"_a, "name"_a, "filename"_a, "pv"_a, "low"_a, "high"_a, "sampleEvery"_a, "dumpEvery"_a, "targetVel"_a, "Kp"_a, "Ki"_a, "Kd"_a, R"(
         Create :any:`VelocityControl` plugin
         
         Args:
             name: name of the plugin
+            filename: dump file name 
             pv: :class:`ParticleVector` that we'll work with
             low, high: boundaries of the domain of interest
-            every: write files every this many time-steps
+            sampleEvery: sample and adapt force every this many time-steps
+            dumpEvery: write files every this many time-steps
             targetVel: the target mean velocity of the particles in the domain of interest
             Kp, Ki, Kd: PID controller coefficients
     )");
