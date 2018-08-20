@@ -1,5 +1,6 @@
-* [0/4] Features
-** TODO velocity controller
+* [1/4] Features
+** DONE velocity controller
+   CLOSED: [2018-08-20 Mon 18:18]
 ** TODO [0/4] membrane
 *** TODO pass spring constant ks
 *** TODO fluctuation forces
