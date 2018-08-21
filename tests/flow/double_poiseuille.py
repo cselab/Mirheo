@@ -33,5 +33,6 @@ u.run(5002)
 
 # nTEST: double_poiseuille
 # cd flow
+# rm -rf h5
 # udx.run -n 2 ./double_poiseuille.py > /dev/null
-# udx.avgh5 xz velocity h5/solvent-0000[2-5].h5 | awk '{print $1}' > profile.out.txt
+# udx.avgh5 xz velocity h5/solvent-0000[2-4].h5 | awk '{print $1}' > profile.out.txt

@@ -65,5 +65,6 @@ u.run(20002)
 
 # nTEST: poiseuille
 # cd flow
+# rm -rf h5
 # udx.run -n 2 ./poiseuille.py > /dev/null
 # udx.avgh5 xy velocity h5/solvent-0001[5-9].h5 | awk '{print $1}' > profile.out.txt
