@@ -1,4 +1,4 @@
-* [1/4] Features
+* [1/5] Features
 ** DONE velocity controller
    CLOSED: [2018-08-20 Mon 18:18]
 ** TODO [0/4] membrane
@@ -8,6 +8,7 @@
 *** TODO more bending models for membranes
 ** TODO adaptive time stepping
 ** TODO separation of membrane time steps
+** TODO plugin for recoloring particles: Hele shaw cell...
 * [0/3] Configuration
 ** TODO mesh can be read from ply as well
 ** TODO do not need to pass number of vertices for object vectors
