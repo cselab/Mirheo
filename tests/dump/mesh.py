@@ -21,6 +21,7 @@ u.run(3)
 
 # nTEST: dump.mesh
 # cd dump
+# rm -rf ply
 # cp ../../data/rbc_mesh.off .
 # udx.run -n 2 ./mesh.py > /dev/null
 # ply2punto ply/rbc_00000.ply > ply.out.txt

@@ -8,7 +8,7 @@ ranks  = (1, 1, 1)
 domain = (12, 8, 10)
 vtarget = (1.0, 0, 0)
 
-u = udx.udevicex(ranks, domain, debug_level=10, log_filename='log')
+u = udx.udevicex(ranks, domain, debug_level=3, log_filename='log')
 
 pv = udx.ParticleVectors.ParticleVector('pv', mass = 1)
 ic = udx.InitialConditions.Uniform(density=2)
@@ -27,7 +27,7 @@ Kp = 2.0 * factor
 Ki = 1.0 * factor
 Kd = 8.0 * factor
 
-vc = udx.Plugins.createVelocityControl("vc", pv, (0, 0, 0), domain, 5, vtarget, Kp, Ki, Kd)
+vc = udx.Plugins.createVelocityControl("vc", "vcont.txt", pv, (0, 0, 0), domain, 5, 50, vtarget, Kp, Ki, Kd)
 u.registerPlugins(vc)
 
 stats = udx.Plugins.createStats('stats', "stats.txt", 1000)
@@ -35,8 +35,8 @@ u.registerPlugins(stats)
 
 u.run(5001)
 
-# sTEST: flow.uniform_vel
+# nTEST: flow.uniform_vel
 # cd flow
-# udx.run -n 2 ./uniform_vel.py
-# cat stats.txt | awk '{print $1, $2, $3, $4, $5}' > stats.out.txt
+# udx.run -n 2 ./uniform_vel.py > /dev/null
+# cat vcont.txt | awk '{print $1, $3}' > vcont.out.txt
 

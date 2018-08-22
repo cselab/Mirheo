@@ -1,3 +1,4 @@
+PIP ?= pip
 CMAKE_FLAGS ?= ""
 
 build:
@@ -7,10 +8,10 @@ build:
 	cd ..
 
 install: build
-	pip install . --user --upgrade
+	$(PIP) install . --user --upgrade
 
 uninstall:
-	pip uninstall udevicex
+	$(PIP) uninstall udevicex
 
 docs:
 	make -C docs/

@@ -1,5 +1,6 @@
-* [0/4] Features
-** TODO velocity controller
+* [1/5] Features
+** DONE velocity controller
+   CLOSED: [2018-08-20 Mon 18:18]
 ** TODO [0/4] membrane
 *** TODO pass spring constant ks
 *** TODO fluctuation forces
@@ -7,11 +8,14 @@
 *** TODO more bending models for membranes
 ** TODO adaptive time stepping
 ** TODO separation of membrane time steps
+** TODO plugin for recoloring particles: Hele shaw cell...
 * [0/3] Configuration
 ** TODO mesh can be read from ply as well
 ** TODO do not need to pass number of vertices for object vectors
 ** TODO choose what forces are computed for membranes
 * [0/1] Others
 ** TODO daint: proper cmake for libbfd
-* [0/1] Code
+* [0/3] Code
 ** TODO remove magic numbers
+** TODO common api for "fragments" manipulation
+** TODO common api for "killing" particles before redistribution or cell lists
