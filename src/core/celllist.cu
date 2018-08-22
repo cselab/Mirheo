@@ -18,7 +18,7 @@ __global__ void computeCellSizes(PVview view, CellListInfo cinfo)
     const int pid = blockIdx.x * blockDim.x + threadIdx.x;
     if (pid >= view.size) return;
 
-    float4 coo = readNoCache(view.particles + pid*2);//coosvels[gid*2];
+    float4 coo = readNoCache(view.particles + pid*2);
     int cid = cinfo.getCellId(coo);
 
     // XXX: relying here only on redistribution
@@ -36,9 +36,6 @@ __global__ void reorderParticles(PVview view, CellListInfo cinfo, float4* outPar
 
     int dstId;
 
-    // instead of:
-    // const float4 val = in_coosvels[gid];
-    //
     // this is to allow more cache for atomics
     // loads / stores here need no cache
     float4 val = readNoCache(view.particles+gid);
