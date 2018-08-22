@@ -27,6 +27,7 @@ struct __align__(16) Float3_int
     float3 v;
     int32_t i;
 
+    static constexpr float mark_val = -900.f;
 
     __HD__ inline Float3_int(const Float3_int& x)
     {
@@ -51,6 +52,16 @@ struct __align__(16) Float3_int
     {
         float4 f = *((float4*)this);
         return f;
+    }
+
+    __HD__ inline void mark()
+    {
+        v.x = v.y = v.z = mark_val;
+    }
+
+    __HD__ inline bool isMarked() const
+    {
+        return v.x == mark_val && v.y == mark_val && v.z == mark_val;
     }
 };
 
@@ -160,6 +171,11 @@ struct __align__(16) Particle
         i2 = tmp.i;
     }
 
+    __HD__ inline Float3_int r2Float3_int() const
+    {
+        return Float3_int{r, i1};
+    }
+    
     /**
      * Helps writing particles back to \e float4 array
      *
@@ -167,7 +183,12 @@ struct __align__(16) Particle
      */
     __HD__ inline float4 r2Float4() const
     {
-        return Float3_int{r, i1}.toFloat4();
+        return r2Float3_int().toFloat4();
+    }
+
+    __HD__ inline Float3_int u2Float3_int() const
+    {
+        return Float3_int{u, i2};
     }
 
     /**
@@ -177,7 +198,7 @@ struct __align__(16) Particle
      */
     __HD__ inline float4 u2Float4() const
     {
-        return Float3_int{u, i2}.toFloat4();
+        return u2Float3_int().toFloat4();
     }
 
     /**
@@ -190,6 +211,18 @@ struct __align__(16) Particle
     {
         dst[2*pid]   = r2Float4();
         dst[2*pid+1] = u2Float4();
+    }
+
+    __HD__ inline void mark()
+    {
+        Float3_int f3i = r2Float3_int();
+        f3i.mark();
+        r = f3i.v;
+    }
+
+    __HD__ inline bool isMarked() const
+    {
+        return r2Float3_int().isMarked();
     }
 };
 
