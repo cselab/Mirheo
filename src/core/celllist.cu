@@ -8,6 +8,10 @@
 
 #include <extern/cub/cub/device/device_scan.cuh>
 
+static __device__ bool outgoingParticle(float4 pos)
+{
+    return pos.x <= -900.0f;
+}
 
 __global__ void computeCellSizes(PVview view, CellListInfo cinfo)
 {
@@ -18,7 +22,7 @@ __global__ void computeCellSizes(PVview view, CellListInfo cinfo)
     int cid = cinfo.getCellId(coo);
 
     // XXX: relying here only on redistribution
-    if (coo.x > -900.0f)
+    if ( !outgoingParticle(coo) )
         atomicAdd(cinfo.cellSizes + cid, 1);
 }
 
@@ -45,7 +49,7 @@ __global__ void reorderParticles(PVview view, CellListInfo cinfo, float4* outPar
         cid = cinfo.getCellId(val);
 
         //  XXX: relying here only on redistribution
-        if (val.x > -900.0f)
+        if ( !outgoingParticle(val) )
             dstId = cinfo.cellStarts[cid] + atomicAdd(cinfo.cellSizes + cid, 1);
         else
             dstId = -1;
