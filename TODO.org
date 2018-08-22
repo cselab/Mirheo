@@ -15,5 +15,7 @@
 ** TODO choose what forces are computed for membranes
 * [0/1] Others
 ** TODO daint: proper cmake for libbfd
-* [0/1] Code
+* [0/3] Code
 ** TODO remove magic numbers
+** TODO common api for "fragments" manipulation
+** TODO common api for "killing" particles before redistribution or cell lists
