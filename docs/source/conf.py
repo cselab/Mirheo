@@ -92,6 +92,6 @@ def format_signature(self):
 def setup(app):
     app.add_stylesheet('css/theme.css')
     
-    sys.path.append('./source')
+    sys.path.insert(0, os.path.abspath('./'))
     sphinx.ext.autodoc.Documenter.format_signature = format_signature
 
