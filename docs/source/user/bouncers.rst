@@ -14,11 +14,11 @@ This force is saved for the next timestep.
 
 Summary
 ========
-.. automodsumm:: libudevicex.Bouncers
+.. automodsumm:: _udevicex.Bouncers
 
 Details
 ========
-.. automodule:: libudevicex.Bouncers
+.. automodule:: _udevicex.Bouncers
    :members:
    :show-inheritance:
    :undoc-members:

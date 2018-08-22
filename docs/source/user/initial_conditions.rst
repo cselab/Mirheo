@@ -7,11 +7,11 @@ Initial conditions (IC) have to be defined for every Particle Vector
 
 Summary
 ========
-.. automodsumm:: libudevicex.InitialConditions
+.. automodsumm:: _udevicex.InitialConditions
 
 Details
 ========
-.. automodule:: libudevicex.InitialConditions
+.. automodule:: _udevicex.InitialConditions
    :members:
    :show-inheritance:
    :undoc-members:

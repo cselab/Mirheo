@@ -11,11 +11,11 @@ In the beginning of the simulation all the particles define in the simulation (e
 
 Summary
 ========
-.. automodsumm:: libudevicex.Walls
+.. automodsumm:: _udevicex.Walls
 
 Details
 ========
-.. automodule:: libudevicex.Walls
+.. automodule:: _udevicex.Walls
    :members:
    :show-inheritance:
    :undoc-members:

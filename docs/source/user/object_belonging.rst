@@ -12,11 +12,11 @@ Secondly, they are used to maintain the mentioned *inside*-*outside* property of
 
 Summary
 ========
-.. automodsumm:: libudevicex.BelongingCheckers
+.. automodsumm:: _udevicex.BelongingCheckers
 
 Details
 ========
-.. automodule:: libudevicex.BelongingCheckers
+.. automodule:: _udevicex.BelongingCheckers
    :members:
    :show-inheritance:
    :undoc-members:

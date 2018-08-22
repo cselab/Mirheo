@@ -37,8 +37,8 @@ def decorate_none_if_postprocess(f):
             return None
     return wrapper
 
-# Wrap the creation of plugins
-# Pass the compute task status into the creation function
+
+# Wrap the creation of the coordinator
 def decorate_coordinator(f):
     @functools.wraps(f)
     def wrapper(self, *args, **kwargs):
@@ -51,6 +51,7 @@ def decorate_coordinator(f):
 
     return wrapper
 
+
 # Wrap the registration of the plugins
 def decorate_register_plugins(f):
     @functools.wraps(f)
@@ -60,7 +61,8 @@ def decorate_register_plugins(f):
     return wrapper
 
 
-# Wrap the creation of the coordinator
+# Wrap the creation of plugins
+# Pass the compute task status into the creation function
 def decorate_plugins(f):
     @functools.wraps(f)
     def wrapper(*args, **kwargs):

@@ -10,11 +10,11 @@ Integrators are used to advance particle coordinates and velocities in time acco
 
 Summary
 ========
-.. automodsumm:: libudevicex.Integrators
+.. automodsumm:: _udevicex.Integrators
 
 Details
 ========
-.. automodule:: libudevicex.Integrators
+.. automodule:: _udevicex.Integrators
    :members:
    :show-inheritance:
    :undoc-members:

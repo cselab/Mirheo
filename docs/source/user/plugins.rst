@@ -12,18 +12,18 @@ Summary
 
 Classes
 -------
-.. automodsumm:: libudevicex.Plugins
+.. automodsumm:: _udevicex.Plugins
    :classes-only:
    :skip: PostprocessStats, UniformCartesianDumper, XYZDumper, MeshDumper, ObjPositionsDumper, ReportPinObject
 
 Creation functions
 ------------------
-.. automodsumm:: libudevicex.Plugins
+.. automodsumm:: _udevicex.Plugins
    :functions-only:
 
 Details
 ========
-.. automodule:: libudevicex.Plugins
+.. automodule:: _udevicex.Plugins
    :members:
    :show-inheritance:
    :undoc-members:

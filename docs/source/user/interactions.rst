@@ -8,11 +8,11 @@ Pairwise short-range interactions are currently supported, and membrane forces
 
 Summary
 ========
-.. automodsumm:: libudevicex.Interactions
+.. automodsumm:: _udevicex.Interactions
 
 Details
 ========
-.. automodule:: libudevicex.Interactions
+.. automodule:: _udevicex.Interactions
    :members:
    :show-inheritance:
    :undoc-members:

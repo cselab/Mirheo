@@ -62,7 +62,7 @@ suppress_warnings = ['']
 
 on_rtd = os.environ.get('READTHEDOCS', None) == 'True'
 
-# Override some fuck
+# Override some shit
 def format_signature(self):
     if self.args is not None:
         # signature given explicitly
@@ -92,22 +92,6 @@ def format_signature(self):
 def setup(app):
     app.add_stylesheet('css/theme.css')
     
-    if not on_rtd:
-        sys.path.append('../src')
-        sys.path.append('../build')
-        import udevicex
-        
-        sphinx.ext.autodoc.Documenter.format_signature = format_signature
-
-if on_rtd:
-    subprocess.call('cd ..; doxygen', shell=True)
-    
-    src = glob.glob('user/*.rst')
-    gen = glob.glob('user/*.rst.gen')
-
-    for s in src:
-        os.rename(s, s+'.bak')
-        
-    for g in gen:
-        os.rename(g, g[:-4])
+    sys.path.append('./source')
+    sphinx.ext.autodoc.Documenter.format_signature = format_signature
 

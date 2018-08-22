@@ -12,13 +12,14 @@ A common special case of the ParticleVector is an :any:`ObjectVector` (or OV), w
 
 Summary
 ========
-.. automodsumm:: libudevicex.ParticleVectors
+.. automodsumm:: _udevicex.ParticleVectors
 
-.. automod-diagram:: libudevicex.ParticleVectors
+.. automod-diagram:: _udevicex.ParticleVectors
+    :skip: Mesh, MembraneMesh
 
 Details
 ========
-.. automodule:: libudevicex.ParticleVectors
+.. automodule:: _udevicex.ParticleVectors
    :members:
    :show-inheritance:
    :undoc-members:
