@@ -70,7 +70,9 @@ __global__ void getExitingParticles(const CellListInfo cinfo, ParticlePacker pac
             packer.packShift(srcId, bufferAddr + myid*packer.packedSize_byte, -shift);
 
             // mark the particle as exited to assist cell-list building
-            cinfo.particles[2*srcId] = Float3_int(make_float3(-1e5), p.i1).toFloat4();
+            Float3_int pos = p.r2Float3_int();
+            pos.mark();
+            cinfo.particles[2*srcId] = pos.toFloat4();
         }
     }
 }

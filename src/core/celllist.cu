@@ -10,7 +10,7 @@
 
 static __device__ bool outgoingParticle(float4 pos)
 {
-    return pos.x <= -900.0f;
+    return Float3_int(pos).isMarked();
 }
 
 __global__ void computeCellSizes(PVview view, CellListInfo cinfo)
