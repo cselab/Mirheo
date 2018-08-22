@@ -9,6 +9,23 @@
 
 #include <core/mpi/valid_cell.h>
 
+static __device__ int encodeCellId1d(int cid, int ncells) {
+    if (cid < 0)            return 0;
+    else if (cid >= ncells) return 2;
+    else                    return 1;
+}
+
+static __device__ int3 encodeCellId(int3 cid, int3 ncells) {
+    cid.x = encodeCellId1d(cid.x, ncells.x);
+    cid.y = encodeCellId1d(cid.y, ncells.y);
+    cid.z = encodeCellId1d(cid.z, ncells.z);
+    return cid;
+}
+
+static __device__ bool hasToLeave(int3 code) {
+    return code.x*code.y*code.z != 1;
+}
+
 template<bool QUERY=false>
 __global__ void getExitingParticles(const CellListInfo cinfo, ParticlePacker packer, BufferOffsetsSizesWrap dataWrap)
 {
@@ -36,19 +53,9 @@ __global__ void getExitingParticles(const CellListInfo cinfo, ParticlePacker pac
 
         int3 code = cinfo.getCellIdAlongAxes<false>(make_float3(p.r));
 
-        if (code.x < 0) code.x = 0;
-        else if (code.x >= ncells.x) code.x = 2;
-        else code.x = 1;
+        code = encodeCellId(code, ncells);
 
-        if (code.y < 0) code.y = 0;
-        else if (code.y >= ncells.y) code.y = 2;
-        else code.y = 1;
-
-        if (code.z < 0) code.z = 0;
-        else if (code.z >= ncells.z) code.z = 2;
-        else code.z = 1;
-
-        if (code.x*code.y*code.z != 1) // this means that the particle has to leave
+        if (hasToLeave(code))
         {
             const int bufId = (code.z*3 + code.y)*3 + code.x;
             const float3 shift{ cinfo.localDomainSize.x*(code.x-1),
