@@ -593,33 +593,35 @@ void Simulation::assemble()
     for (auto& integr : integratorMap)
         dt = min(dt, integr.second->dt);
 
-    auto task_cellLists                 = scheduler->createTask("Build cell-lists");
-    auto task_clearForces               = scheduler->createTask("Clear forces");
-    auto task_pluginsBeforeForces       = scheduler->createTask("Plugins: before forces");
-    auto task_haloInit                  = scheduler->createTask("Halo init");
-    auto task_localForces               = scheduler->createTask("Local forces");
-    auto task_pluginsSerializeSend      = scheduler->createTask("Plugins: serialize and send");
-    auto task_haloFinalize              = scheduler->createTask("Halo finalize");
-    auto task_haloForces                = scheduler->createTask("Halo forces");
-    auto task_accumulateForces          = scheduler->createTask("Accumulate forces");
-    auto task_pluginsBeforeIntegration  = scheduler->createTask("Plugins: before integration");
-    auto task_objHaloInit               = scheduler->createTask("Object halo init");
-    auto task_objHaloFinalize           = scheduler->createTask("Object halo finalize");
-    auto task_clearObjHaloForces        = scheduler->createTask("Clear object halo forces");
-    auto task_clearObjLocalForces       = scheduler->createTask("Clear object local forces");
-    auto task_objLocalBounce            = scheduler->createTask("Local object bounce");
-    auto task_objHaloBounce             = scheduler->createTask("Halo object bounce");
-    auto task_correctObjBelonging       = scheduler->createTask("Correct object belonging");
-    auto task_objForcesInit             = scheduler->createTask("Object forces exchange: init");
-    auto task_objForcesFinalize         = scheduler->createTask("Object forces exchange: finalize");
-    auto task_wallBounce                = scheduler->createTask("Wall bounce");
-    auto task_wallCheck                 = scheduler->createTask("Wall check");
-    auto task_pluginsAfterIntegration   = scheduler->createTask("Plugins: after integration");
-    auto task_integration               = scheduler->createTask("Integration");
-    auto task_redistributeInit          = scheduler->createTask("Redistribute init");
-    auto task_redistributeFinalize      = scheduler->createTask("Redistribute finalize");
-    auto task_objRedistInit             = scheduler->createTask("Object redistribute init");
-    auto task_objRedistFinalize         = scheduler->createTask("Object redistribute finalize");
+    auto task_cellLists                           = scheduler->createTask("Build cell-lists");
+    auto task_clearForces                         = scheduler->createTask("Clear forces");
+    auto task_pluginsBeforeForces                 = scheduler->createTask("Plugins: before forces");
+    auto task_haloInit                            = scheduler->createTask("Halo init");
+    auto task_localForces                         = scheduler->createTask("Local forces");
+    auto task_pluginsSerializeSend                = scheduler->createTask("Plugins: serialize and send");
+    auto task_haloFinalize                        = scheduler->createTask("Halo finalize");
+    auto task_haloForces                          = scheduler->createTask("Halo forces");
+    auto task_accumulateForces                    = scheduler->createTask("Accumulate forces");
+    auto task_pluginsBeforeIntegration            = scheduler->createTask("Plugins: before integration");
+    auto task_objHaloInit                         = scheduler->createTask("Object halo init");
+    auto task_objHaloFinalize                     = scheduler->createTask("Object halo finalize");
+    auto task_clearObjHaloForces                  = scheduler->createTask("Clear object halo forces");
+    auto task_clearObjLocalForces                 = scheduler->createTask("Clear object local forces");
+    auto task_objLocalBounce                      = scheduler->createTask("Local object bounce");
+    auto task_objHaloBounce                       = scheduler->createTask("Halo object bounce");
+    auto task_correctObjBelonging                 = scheduler->createTask("Correct object belonging");
+    auto task_objForcesInit                       = scheduler->createTask("Object forces exchange: init");
+    auto task_objForcesFinalize                   = scheduler->createTask("Object forces exchange: finalize");
+    auto task_wallBounce                          = scheduler->createTask("Wall bounce");
+    auto task_wallCheck                           = scheduler->createTask("Wall check");
+    auto task_pluginsAfterIntegration             = scheduler->createTask("Plugins: after integration");
+    auto task_pluginsBeforeParticlesDistribution  = scheduler->createTask("Plugins: before particles distribution");
+    auto task_integration                         = scheduler->createTask("Integration");
+    auto task_redistributeInit                    = scheduler->createTask("Redistribute init");
+    auto task_redistributeFinalize                = scheduler->createTask("Redistribute finalize");
+    auto task_objRedistInit                       = scheduler->createTask("Object redistribute init");
+    auto task_objRedistFinalize                   = scheduler->createTask("Object redistribute finalize");
+    
 
 
     for (auto& clVec : cellListMap)
@@ -656,6 +658,10 @@ void Simulation::assemble()
 
         scheduler->addTask(task_pluginsAfterIntegration, [plPtr] (cudaStream_t stream) {
             plPtr->afterIntegration(stream);
+        });
+
+        scheduler->addTask(task_pluginsBeforeParticlesDistribution, [plPtr] (cudaStream_t stream) {
+            plPtr->beforeParticleDistribution(stream);
         });
     }
 
@@ -835,7 +841,9 @@ void Simulation::assemble()
 
     scheduler->addDependency(task_pluginsAfterIntegration, {task_objLocalBounce, task_objHaloBounce}, {task_integration, task_wallBounce});
 
-    scheduler->addDependency(task_redistributeInit, {}, {task_integration, task_wallBounce, task_objLocalBounce, task_objHaloBounce, task_pluginsAfterIntegration});
+    scheduler->addDependency(task_pluginsBeforeParticlesDistribution, {},
+                             {task_integration, task_wallBounce, task_objLocalBounce, task_objHaloBounce, task_pluginsAfterIntegration});
+    scheduler->addDependency(task_redistributeInit, {}, {task_pluginsBeforeParticlesDistribution});
     scheduler->addDependency(task_redistributeFinalize, {}, {task_redistributeInit});
 
     scheduler->addDependency(task_objRedistInit, {}, {task_integration, task_wallBounce, task_objForcesFinalize, task_pluginsAfterIntegration});
