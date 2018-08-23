@@ -34,12 +34,15 @@ protected:
 
 class ParticleVector
 {
+protected:
+
+    LocalParticleVector *_local, *_halo;
+    
 public:
     
     using PyContainer = std::vector<std::array<float, 3>>;
     
-    DomainInfo domain;
-    LocalParticleVector *_local, *_halo;
+    DomainInfo domain;    
 
     float mass;
     std::string name;
