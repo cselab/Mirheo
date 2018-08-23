@@ -25,13 +25,15 @@ __global__ void integrationKernel(PVviewWithOldParticles pvView, const float dt,
     float4 val = readNoCache(pvView.old_particles + gid);
     Float3_int frc(pvView.forces[pid]);
 
-    // Send velocity to adjacent thread that has the coordinate
+    // Exchange coordinate and velocity with adjacent thread
     Particle p;
     float4 othval;
-    othval.x = __shfl_down(val.x, 1);
-    othval.y = __shfl_down(val.y, 1);
-    othval.z = __shfl_down(val.z, 1);
-    othval.w = __shfl_down(val.w, 1);
+    int neighId = (sh == 0) ? threadIdx.x + 1 : threadIdx.x - 1;
+    
+    othval.x = __shfl(val.x, neighId);
+    othval.y = __shfl(val.y, neighId);
+    othval.z = __shfl(val.z, neighId);
+    othval.w = __shfl(val.w, neighId);
 
     // val is coordinate, othval is corresponding velocity
     if (sh == 0)
@@ -41,12 +43,9 @@ __global__ void integrationKernel(PVviewWithOldParticles pvView, const float dt,
         val = p.r2Float4();
     }
 
-    // val is velocity, othval is rubbish
+    // val is velocity, othval is coordinate
     if (sh == 1)
     {
-        // to distinguish this case
-        othval.w = __int_as_float(-1);
-
         p = Particle(othval, val);
         transform(p, frc.v, pvView.invMass, dt);
         val = p.u2Float4();
