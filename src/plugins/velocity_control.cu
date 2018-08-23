@@ -87,7 +87,7 @@ void SimulationVelocityControl::afterIntegration(cudaStream_t stream)
             getNblocks(pvView.size, nthreads), nthreads, 0, stream,
             pvView, pv->domain, low, high, totVel.devPtr(), nSamples.devPtr());
 
-    totVel.downloadFromDevice(stream, false);
+    totVel.downloadFromDevice(stream, ContainersSynch::Asynch);
     nSamples.downloadFromDevice(stream);
 
     nSamples_loc = nSamples[0];

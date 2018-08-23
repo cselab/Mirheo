@@ -120,7 +120,7 @@ void Average3D::scaleSampled(cudaStream_t stream)
                 getNblocks(sz, nthreads), nthreads, 0, stream,
                 sz, components, data.devPtr(), density.devPtr() );
 
-        data.downloadFromDevice(stream, false);
+        data.downloadFromDevice(stream, ContainersSynch::Asynch);
         data.clearDevice(stream);
     }
 
@@ -130,7 +130,7 @@ void Average3D::scaleSampled(cudaStream_t stream)
             getNblocks(sz, nthreads), nthreads, 0, stream,
             sz, density.devPtr(), pv->mass / (nSamples * binSize.x*binSize.y*binSize.z) );
 
-    density.downloadFromDevice(stream, true);
+    density.downloadFromDevice(stream, ContainersSynch::Synch);
     density.clearDevice(stream);
 
     nSamples = 0;

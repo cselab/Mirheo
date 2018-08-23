@@ -10,6 +10,11 @@
 
 #include <cuda_runtime.h>
 
+enum class ContainersSynch
+{
+    Synch,
+    Asynch
+};
 
 /**
  * Interface of containers of device (GPU) data
@@ -444,12 +449,12 @@ public:
      * @param synchronize if false, the call is fully asynchronous.
      * if true, host data will be readily available on the call return.
      */
-    inline void downloadFromDevice(cudaStream_t stream, bool synchronize = true)
+    inline void downloadFromDevice(cudaStream_t stream, ContainersSynch synch = ContainersSynch::Synch)
     {
         // TODO: check if we really need to do that
         // maybe everything is already downloaded
         if (_size > 0) CUDA_Check( cudaMemcpyAsync(hostptr, devptr, sizeof(T) * _size, cudaMemcpyDeviceToHost, stream) );
-        if (synchronize) CUDA_Check( cudaStreamSynchronize(stream) );
+        if (synch == ContainersSynch::Synch) CUDA_Check( cudaStreamSynchronize(stream) );
     }
 
     /// Copy data from host to device

@@ -103,8 +103,8 @@ void AverageRelative3D::afterIntegration(cudaStream_t stream)
     auto ids     = relativeOV->local()->extraPerObject.getData<int>("ids");
     auto motions = relativeOV->local()->extraPerObject.getData<RigidMotion>("motions");
 
-    ids    ->downloadFromDevice(stream, false);
-    motions->downloadFromDevice(stream, true);
+    ids    ->downloadFromDevice(stream, ContainersSynch::Asynch);
+    motions->downloadFromDevice(stream, ContainersSynch::Synch);
 
     for (int i=0; i < ids->size(); i++)
     {
@@ -207,12 +207,12 @@ void AverageRelative3D::serializeAndSend(cudaStream_t stream)
         }
     }
 
-    density.downloadFromDevice(stream, true);
+    density.downloadFromDevice(stream, ContainersSynch::Synch);
     density.clearDevice(stream);
 
     for (auto& data : channelsInfo.average)
     {
-        data.downloadFromDevice(stream, false);
+        data.downloadFromDevice(stream, ContainersSynch::Asynch);
         data.clearDevice(stream);
     }
 

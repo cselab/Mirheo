@@ -120,7 +120,7 @@ void ObjectBelongingChecker_Common::checkInner(ParticleVector* pv, CellList* cl,
                 view, tags.devPtr(), nullptr, nullptr,
                 nInside.devPtr(), nOutside.devPtr() );
 
-    nInside. downloadFromDevice(stream, false);
+    nInside. downloadFromDevice(stream, ContainersSynch::Asynch);
     nOutside.downloadFromDevice(stream);
 
     say("PV %s belonging check against OV %s: in/out/total  %d / %d / %d",
