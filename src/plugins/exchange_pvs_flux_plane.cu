@@ -83,6 +83,8 @@ void ExchangePVSFluxPlanePlugin::beforeParticleDistribution(cudaStream_t stream)
     pv2->local()->resize(new_size2, stream);
     numberCrossedParticles.clear(stream);
 
+    view2 = PVview(pv2, pv2->local());
+
     SAFE_KERNEL_LAUNCH(
                        exchange_pvs_flux_plane_kernels::moveParticles,
                        getNblocks(view1.size, nthreads), nthreads, 0, stream,
