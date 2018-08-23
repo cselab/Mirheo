@@ -28,12 +28,11 @@ __global__ void integrationKernel(PVviewWithOldParticles pvView, const float dt,
     // Exchange coordinate and velocity with adjacent thread
     Particle p;
     float4 othval;
-    int neighId = (sh == 0) ? threadIdx.x + 1 : threadIdx.x - 1;
     
-    othval.x = __shfl(val.x, neighId);
-    othval.y = __shfl(val.y, neighId);
-    othval.z = __shfl(val.z, neighId);
-    othval.w = __shfl(val.w, neighId);
+    othval.x = __shfl_xor(val.x, 1);
+    othval.y = __shfl_xor(val.y, 1);
+    othval.z = __shfl_xor(val.z, 1);
+    othval.w = __shfl_xor(val.w, 1);
 
     // val is coordinate, othval is corresponding velocity
     if (sh == 0)
