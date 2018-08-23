@@ -135,7 +135,7 @@ void PostprocessVelocityControl::deserialize(MPI_Status& stat)
     
     SimpleSerializer::deserialize(data, currentTime, currentTimeStep, vel, force);
 
-    // if (rank == 0) {
+    if (rank == 0) {
         fprintf(fdump,
                 "%g %d "
                 "%g %g %g "
@@ -144,5 +144,5 @@ void PostprocessVelocityControl::deserialize(MPI_Status& stat)
                 vel.x, vel.y, vel.z,
                 force.x, force.y, force.z
                 );
-    // }
+    }
 }
