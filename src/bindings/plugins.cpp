@@ -121,7 +121,12 @@ void exportPlugins(py::module& m)
         This plugin applies a uniform force to all the particles of the target PV in the specified area (rectangle).
         The force is apdated by a PID controller such that the velocity average of the particles matches a target average velocity.
     )");
-
+    py::handlers_class<ExchangePVSFluxPlanePlugin>(m, "ExchangePVSFluxPlane", pysim, R"(
+        This plugin exchanges particles from a particle vector crossing a given plane to another particle vector.
+        A particle with position x, y, z has crossed the plane if ax + by + cz + d >= 0, where a, b, c and d are the coefficient 
+        stored in the 'plane' variable
+    )");
+    
     
     py::handlers_class<PostprocessStats>(m, "PostprocessStats", pypost);
     py::handlers_class<UniformCartesianDumper>(m, "UniformCartesianDumper", pypost);
@@ -302,6 +307,16 @@ void exportPlugins(py::module& m)
             dumpEvery: write files every this many time-steps
             targetVel: the target mean velocity of the particles in the domain of interest
             Kp, Ki, Kd: PID controller coefficients
+    )");
+    m.def("__createExchangePVSFluxPlane", &PluginFactory::createExchangePVSFluxPlanePlugin,
+          "compute_task"_a, "name"_a, "pv1"_a, "pv2"_a, "plane"_a, R"(
+        Create :any:`ExchangePVSFluxPlane` plugin
+        
+        Args:
+            name: name of the plugin
+            pv1: :class:`ParticleVector` source
+            pv2: :class:`ParticleVector` destination
+            plane: 4 coefficients for the plane equation ax + by + cz + d >= 0
     )");
 }
 

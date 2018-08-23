@@ -87,7 +87,7 @@ void SimulationVelocityControl::afterIntegration(cudaStream_t stream)
             getNblocks(pvView.size, nthreads), nthreads, 0, stream,
             pvView, pv->domain, low, high, totVel.devPtr(), nSamples.devPtr());
 
-    totVel.downloadFromDevice(stream, false);
+    totVel.downloadFromDevice(stream, ContainersSynch::Asynch);
     nSamples.downloadFromDevice(stream);
 
     nSamples_loc = nSamples[0];
@@ -96,7 +96,7 @@ void SimulationVelocityControl::afterIntegration(cudaStream_t stream)
     MPI_Check( MPI_Allreduce(&nSamples_loc, &nSamples_tot, 1, MPI_LONG,   MPI_SUM, comm) );
     MPI_Check( MPI_Allreduce(&totVel_loc,   &totVel_tot,   3, MPI_DOUBLE, MPI_SUM, comm) );
 
-    currentVel = make_float3(totVel_tot / nSamples_tot);
+    currentVel = nSamples_tot ? make_float3(totVel_tot / nSamples_tot) : make_float3(0.f, 0.f, 0.f);
     force = pid.update(targetVel - currentVel);
 }
 
@@ -135,7 +135,7 @@ void PostprocessVelocityControl::deserialize(MPI_Status& stat)
     
     SimpleSerializer::deserialize(data, currentTime, currentTimeStep, vel, force);
 
-    // if (rank == 0) {
+    if (rank == 0) {
         fprintf(fdump,
                 "%g %d "
                 "%g %g %g "
@@ -144,5 +144,5 @@ void PostprocessVelocityControl::deserialize(MPI_Status& stat)
                 vel.x, vel.y, vel.z,
                 force.x, force.y, force.z
                 );
-    // }
+    }
 }

@@ -55,6 +55,8 @@ __global__ void getExitingParticles(const CellListInfo cinfo, ParticlePacker pac
 
         code = encodeCellId(code, ncells);
 
+        if (p.isMarked()) continue;
+        
         if (hasToLeave(code))
         {
             const int bufId = (code.z*3 + code.y)*3 + code.x;

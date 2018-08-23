@@ -184,7 +184,7 @@ void ParticleVector::checkpoint(MPI_Comm comm, std::string path)
     std::string fname = path + "/" + name + std::to_string(restartIdx) + ".chk";
     info("Checkpoint for particle vector '%s', writing to file %s", name.c_str(), fname.c_str());
 
-    local()->coosvels.downloadFromDevice(0, true);
+    local()->coosvels.downloadFromDevice(0, ContainersSynch::Synch);
 
     for (int i=0; i<local()->size(); i++)
         local()->coosvels[i].r = domain.local2global(local()->coosvels[i].r);

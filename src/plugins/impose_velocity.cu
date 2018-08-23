@@ -73,7 +73,7 @@ void ImposeVelocityPlugin::afterIntegration(cudaStream_t stream)
                 getNblocks(view.size, nthreads), nthreads, 0, stream,
                 view, pv->domain, low, high, totVel.devPtr(), nSamples.devPtr() );
 
-        totVel.downloadFromDevice(stream, false);
+        totVel.downloadFromDevice(stream, ContainersSynch::Asynch);
         nSamples.downloadFromDevice(stream);
 
         float3 avgVel = totVel[0] / nSamples[0];

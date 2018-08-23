@@ -18,9 +18,10 @@ public:
         name(name), req(MPI_REQUEST_NULL)
     {}
 
-    virtual void beforeForces     (cudaStream_t stream) {};
-    virtual void beforeIntegration(cudaStream_t stream) {};
-    virtual void afterIntegration (cudaStream_t stream) {};
+    virtual void beforeForces               (cudaStream_t stream) {};
+    virtual void beforeIntegration          (cudaStream_t stream) {};
+    virtual void afterIntegration           (cudaStream_t stream) {};
+    virtual void beforeParticleDistribution (cudaStream_t stream) {};
 
     virtual void serializeAndSend (cudaStream_t stream) {};
     virtual void handshake() {};

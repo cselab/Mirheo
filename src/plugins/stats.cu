@@ -64,8 +64,8 @@ void SimulationStats::afterIntegration(cudaStream_t stream)
         nparticles += view.size;
     }
 
-    momentum.downloadFromDevice(stream, false);
-    energy  .downloadFromDevice(stream, false);
+    momentum.downloadFromDevice(stream, ContainersSynch::Asynch);
+    energy  .downloadFromDevice(stream, ContainersSynch::Asynch);
     maxvel  .downloadFromDevice(stream);
 
     needToDump = true;

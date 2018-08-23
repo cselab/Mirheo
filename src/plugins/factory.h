@@ -16,6 +16,7 @@
 #include <plugins/stats.h>
 #include <plugins/temperaturize.h>
 #include <plugins/dump_obj_position.h>
+#include <plugins/exchange_pvs_flux_plane.h>
 #include <plugins/impose_velocity.h>
 #include <plugins/impose_profile.h>
 #include <plugins/pin_object.h>
@@ -69,22 +70,31 @@ namespace PluginFactory
         return { simPl, nullptr };
     }
 
-static std::pair< SimulationVelocityControl*, PostprocessVelocityControl* >
-createSimulationVelocityControlPlugin(bool computeTask, std::string name, std::string filename, ParticleVector *pv,
-                                      pyfloat3 low, pyfloat3 high, int sampleEvery, int dumpEvery,
-                                      pyfloat3 targetVel, float Kp, float Ki, float Kd)
-{
-    auto simPl = computeTask ?
-        new SimulationVelocityControl(name, pv->name, make_float3(low), make_float3(high), sampleEvery, dumpEvery,
-                                      make_float3(targetVel), Kp, Ki, Kd) :
-        nullptr;
+    static std::pair< SimulationVelocityControl*, PostprocessVelocityControl* >
+    createSimulationVelocityControlPlugin(bool computeTask, std::string name, std::string filename, ParticleVector *pv,
+                                          pyfloat3 low, pyfloat3 high, int sampleEvery, int dumpEvery,
+                                          pyfloat3 targetVel, float Kp, float Ki, float Kd)
+    {
+        auto simPl = computeTask ?
+            new SimulationVelocityControl(name, pv->name, make_float3(low), make_float3(high), sampleEvery, dumpEvery,
+                                          make_float3(targetVel), Kp, Ki, Kd) :
+            nullptr;
 
-    auto postPl = computeTask ?
-        nullptr :
-        new PostprocessVelocityControl(name, filename);
+        auto postPl = computeTask ?
+            nullptr :
+            new PostprocessVelocityControl(name, filename);
 
-    return { simPl, postPl };
-}
+        return { simPl, postPl };
+    }
+
+    static std::pair< ExchangePVSFluxPlanePlugin*, PostprocessPlugin* >
+    createExchangePVSFluxPlanePlugin(bool computeTask, std::string name, ParticleVector *pv1, ParticleVector *pv2, pyfloat4 plane)
+    {
+        auto simPl = computeTask ?
+            new ExchangePVSFluxPlanePlugin(name, pv1->name, pv2->name, make_float4(plane)) : nullptr;
+        
+        return { simPl, nullptr };    
+    }
 
     static std::pair< WallRepulsionPlugin*, PostprocessPlugin* >
         createWallRepulsionPlugin(bool computeTask, std::string name, ParticleVector* pv, Wall* wall,
