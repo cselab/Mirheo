@@ -30,7 +30,7 @@ __global__ void countParticles(DomainInfo domain, PVview view1, float4 plane, in
 __global__ void moveParticles(DomainInfo domain, PVview view1, PVview view2, float4 plane, int oldsize2, int *numberCrossed)
 {
     int pid = blockIdx.x * blockDim.x + threadIdx.x;
-    if (pid >= view1.size) return; 
+    if (pid >= view1.size) return;
 
     Particle p;
     p.readCoordinate(view1.particles, pid);

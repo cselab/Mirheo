@@ -21,7 +21,7 @@ class AddTorque(SimulationPlugin):
     """
 class Average3D(SimulationPlugin):
     r"""
-        This plugin will project certain quantities of the particles on the grid (by simple binning),
+        This plugin will project certain quantities of the particle vectors on the grid (by simple binning),
         perform time-averaging of the grid and dump it in XDMF (LINK) format with HDF5 (LINK) backend.
         The quantities of interest are represented as *channels* associated with particles vectors.
         Some interactions, integrators, etc. and more notable plug-ins can add to the Particle Vectors per-particles arrays to hold different values.
@@ -133,8 +133,8 @@ class UniformCartesianDumper(PostprocessPlugin):
     """
 class VelocityControl(SimulationPlugin):
     r"""
-        This plugin applies a uniform force to all the particles of the target PV in the specified area (rectangle).
-        The force is apdated by a PID controller such that the velocity average of the particles matches a target average velocity.
+        This plugin applies a uniform force to all the particles of the target PVS in the specified area (rectangle).
+        The force is adapted bvia a PID controller such that the velocity average of the particles matches the target average velocity.
     
     """
 class WallRepulsion(SimulationPlugin):
@@ -200,14 +200,14 @@ def createAddTorque():
     pass
 
 def createDumpAverage():
-    r"""createDumpAverage(compute_task: bool, name: str, pv: ParticleVectors.ParticleVector, sample_every: int, dump_every: int, bin_size: Tuple[float, float, float] = (1.0, 1.0, 1.0), channels: List[Tuple[str, str]], path: str = 'xdmf/') -> Tuple[Plugins.Average3D, Plugins.UniformCartesianDumper]
+    r"""createDumpAverage(compute_task: bool, name: str, pvs: List[ParticleVectors.ParticleVector], sample_every: int, dump_every: int, bin_size: Tuple[float, float, float] = (1.0, 1.0, 1.0), channels: List[Tuple[str, str]], path: str = 'xdmf/') -> Tuple[Plugins.Average3D, Plugins.UniformCartesianDumper]
 
 
         Create :any:`Average3D` plugin
         
         Args:
             name: name of the plugin
-            pv: :any:`ParticleVector` that we'll work with
+            pvs: list of :any:`ParticleVector` that we'll work with
             sample_every: sample quantities every this many time-steps
             dump_every: write files every this many time-steps 
             bin_size: bin size for sampling. The resulting quantities will be *cell-centered*
@@ -238,7 +238,7 @@ def createDumpAverage():
     pass
 
 def createDumpAverageRelative():
-    r"""createDumpAverageRelative(compute_task: bool, name: str, pv: ParticleVectors.ParticleVector, relative_to_ov: ParticleVectors.ObjectVector, relative_to_id: int, sample_every: int, dump_every: int, bin_size: Tuple[float, float, float] = (1.0, 1.0, 1.0), channels: List[Tuple[str, str]], path: str = 'xdmf/') -> Tuple[Plugins.AverageRelative3D, Plugins.UniformCartesianDumper]
+    r"""createDumpAverageRelative(compute_task: bool, name: str, pvs: List[ParticleVectors.ParticleVector], relative_to_ov: ParticleVectors.ObjectVector, relative_to_id: int, sample_every: int, dump_every: int, bin_size: Tuple[float, float, float] = (1.0, 1.0, 1.0), channels: List[Tuple[str, str]], path: str = 'xdmf/') -> Tuple[Plugins.AverageRelative3D, Plugins.UniformCartesianDumper]
 
 
               
@@ -294,7 +294,7 @@ def createDumpXYZ():
         
         Args:
             name: name of the plugin
-            pv: :any:`ParticleVector` that we'll work with
+            pvs: list of :any:`ParticleVector` that we'll work with
             dump_every: write files every this many time-steps
             path: the files will look like this: <path>/<pv_name>_NNNNN.xyz
     
@@ -400,7 +400,7 @@ def createTemperaturize():
     pass
 
 def createVelocityControl():
-    r"""createVelocityControl(compute_task: bool, name: str, filename: str, pv: ParticleVectors.ParticleVector, low: Tuple[float, float, float], high: Tuple[float, float, float], sampleEvery: int, dumpEvery: int, targetVel: Tuple[float, float, float], Kp: float, Ki: float, Kd: float) -> Tuple[Plugins.VelocityControl, Plugins.PostprocessVelocityControl]
+    r"""createVelocityControl(compute_task: bool, name: str, filename: str, pvs: List[ParticleVectors.ParticleVector], low: Tuple[float, float, float], high: Tuple[float, float, float], sampleEvery: int, dumpEvery: int, targetVel: Tuple[float, float, float], Kp: float, Ki: float, Kd: float) -> Tuple[Plugins.VelocityControl, Plugins.PostprocessVelocityControl]
 
 
         Create :any:`VelocityControl` plugin
@@ -408,7 +408,7 @@ def createVelocityControl():
         Args:
             name: name of the plugin
             filename: dump file name 
-            pv: :class:`ParticleVector` that we'll work with
+            pvs: list of concerned :class:`ParticleVector`
             low, high: boundaries of the domain of interest
             sampleEvery: sample and adapt force every this many time-steps
             dumpEvery: write files every this many time-steps
