@@ -53,8 +53,23 @@ Mesh::Mesh(std::string fname)
 
     vertexCoordinates.uploadToDevice(0);
     triangles.uploadToDevice(0);
+
+    _computeMaxDegree();
 }
 
+void Mesh::_computeMaxDegree()
+{
+    std::vector<int> degrees(nvertices);
+
+    for (auto t : triangles) {
+        degrees[t.x] ++;
+        degrees[t.y] ++;
+        degrees[t.z] ++;
+    }
+
+    maxDegree = *std::max_element(degrees.begin(), degrees.end());
+    fprintf(stderr, "max degree is %d\n", maxDegree);
+}
 
 MembraneMesh::MembraneMesh(std::string fname) : Mesh(fname)
 {

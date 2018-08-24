@@ -9,7 +9,6 @@ public:
     int nvertices{0}, ntriangles{0};
 
     PinnedBuffer<int3> triangles;
-    //PinnedBuffer<int> adjacentTriangles;
 
     PinnedBuffer<float4> vertexCoordinates;
 
@@ -18,6 +17,10 @@ public:
 
     Mesh(Mesh&&) = default;
     Mesh& operator=(Mesh&&) = default;
+
+protected:
+    int maxDegree {-1};
+    void _computeMaxDegree();
 };
 
 class MembraneMesh : public Mesh
