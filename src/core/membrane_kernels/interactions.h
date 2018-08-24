@@ -8,7 +8,7 @@
 struct GPU_RBCparameters
 {
     float gammaC, gammaT;
-    float mpow, l0, lmax, lmax_1, kbT_over_p_lmax;
+    float mpow, l0, lmax, lmax_1, ks_over_lmax;
     float area0, totArea0, totVolume0;
     float cost0kb, sint0kb;
     float ka0, kv0, kd0;
@@ -73,7 +73,7 @@ __device__ inline float3 _fbond(const float3 v1, const float3 v2, const float l0
     float r = max(length(v2 - v1), 1e-5f);
 
     auto wlc = [parameters] (float x) {
-        return parameters.kbT_over_p_lmax * (4.0f*x*x - 9.0f*x + 6.0f) / ( 4.0f*sqr(1.0f - x) );
+        return parameters.ks_over_lmax * (4.0f*x*x - 9.0f*x + 6.0f) / ( 4.0f*sqr(1.0f - x) );
     };
 
     const float IbforceI_wlc = wlc( min(parameters.lmax - 1e-6f, r) * parameters.lmax_1 );

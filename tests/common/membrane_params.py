@@ -13,3 +13,4 @@ def set_lina(lscale, p):
     p.theta     = 6.97
     p.totArea   = 62.2242 * lscale**2
     p.totVolume = 26.6649 * lscale**3
+    p.ks        = p.kbT / p.p
