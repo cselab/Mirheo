@@ -18,7 +18,10 @@ public:
     Mesh(Mesh&&) = default;
     Mesh& operator=(Mesh&&) = default;
 
+    int getMaxDegree() const;
+
 protected:
+    // max degree of a vertex in mesh
     int maxDegree {-1};
     void _computeMaxDegree();
 };
@@ -26,7 +29,6 @@ protected:
 class MembraneMesh : public Mesh
 {
 public:
-    // max degree of a vertex in mesh
     static const int maxDegree = 7;
 
     PinnedBuffer<int> adjacent, adjacent_second, degrees;

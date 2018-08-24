@@ -57,6 +57,11 @@ Mesh::Mesh(std::string fname)
     _computeMaxDegree();
 }
 
+int Mesh::getMaxDegree() const {
+    if (maxDegree < 0) die("maxDegree was not computed");
+    return maxDegree;
+}
+
 void Mesh::_computeMaxDegree()
 {
     std::vector<int> degrees(nvertices);
@@ -68,7 +73,7 @@ void Mesh::_computeMaxDegree()
     }
 
     maxDegree = *std::max_element(degrees.begin(), degrees.end());
-    fprintf(stderr, "max degree is %d\n", maxDegree);
+    debug("max degree is %d", maxDegree);
 }
 
 MembraneMesh::MembraneMesh(std::string fname) : Mesh(fname)
