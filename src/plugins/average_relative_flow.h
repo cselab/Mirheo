@@ -17,7 +17,7 @@ class AverageRelative3D : public Average3D
 public:
     AverageRelative3D(
             std::string name,
-            std::string pvName,
+            std::vector<std::string> pvNames,
             std::vector<std::string> channelNames, std::vector<Average3D::ChannelType> channelTypes,
             int sampleEvery, int dumpEvery, float3 binSize,
             std::string relativeOVname, int relativeID);
@@ -40,6 +40,8 @@ private:
     std::vector<std::vector<float>> localChannels;
 
     void extractLocalBlock();
+
+    void sampleOnePv(float3 relativeParam, ParticleVector *pv, cudaStream_t stream);
 };
 
 

@@ -10,6 +10,8 @@
 #include "simple_serializer.h"
 #include "sampling_helpers.h"
 
+namespace average_flow_kernels {
+
 __global__ void sample(
         PVview pvView, CellListInfo cinfo,
         float* avgDensity,
@@ -24,14 +26,16 @@ __global__ void sample(
 
     atomicAdd(avgDensity + cid, 1);
 
-    sampleChannels(pid, cid, channelsInfo);
+    sampling_helpers_kernels::sampleChannels(pid, cid, channelsInfo);
+}
+
 }
 
 Average3D::Average3D(std::string name,
-        std::string pvName,
+        std::vector<std::string> pvNames,
         std::vector<std::string> channelNames, std::vector<Average3D::ChannelType> channelTypes,
         int sampleEvery, int dumpEvery, float3 binSize) :
-    SimulationPlugin(name), pvName(pvName),
+    SimulationPlugin(name), pvNames(pvNames),
     sampleEvery(sampleEvery), dumpEvery(dumpEvery), binSize(binSize),
     nSamples(0)
 {
@@ -51,9 +55,10 @@ void Average3D::setup(Simulation* sim, const MPI_Comm& comm, const MPI_Comm& int
 {
     SimulationPlugin::setup(sim, comm, interComm);
 
+    domain = sim->domain;
     // TODO: this should be reworked if the domains are allowed to have different size
-    resolution = make_int3( floorf(sim->domain.localSize / binSize) );
-    binSize = sim->domain.localSize / make_float3(resolution);
+    resolution = make_int3( floorf(domain.localSize / binSize) );
+    binSize = domain.localSize / make_float3(resolution);
 
     const int total = resolution.x * resolution.y * resolution.z;
 
@@ -74,14 +79,26 @@ void Average3D::setup(Simulation* sim, const MPI_Comm& comm, const MPI_Comm& int
 
     channelsInfo.averagePtrs.uploadToDevice(0);
 
-    pv = sim->getPVbyNameOrDie(pvName);
+    for (const auto& pvName : pvNames)
+        pvs.push_back(sim->getPVbyNameOrDie(pvName));
 
-    info("Plugin %s initialized for the PV '%s' and channels %s, resolution %dx%dx%d",
-            name.c_str(), pv->name.c_str(), allChannels.c_str(),
-            resolution.x, resolution.y, resolution.z);
+    info("Plugin %s initialized for the %d PV and channels %s, resolution %dx%dx%d",
+         name.c_str(), pvs.size(), allChannels.c_str(),
+         resolution.x, resolution.y, resolution.z);
 }
 
+void Average3D::sampleOnePv(ParticleVector *pv, cudaStream_t stream)
+{
+    CellListInfo cinfo(binSize, pv->domain.localSize);
+    PVview pvView(pv, pv->local());
+    ChannelsInfo gpuInfo(channelsInfo, pv, stream);
 
+    const int nthreads = 128;
+    SAFE_KERNEL_LAUNCH(
+            average_flow_kernels::sample,
+            getNblocks(pvView.size, nthreads), nthreads, 0, stream,
+            pvView, cinfo, density.devPtr(), gpuInfo);
+}
 
 void Average3D::afterIntegration(cudaStream_t stream)
 {
@@ -89,15 +106,7 @@ void Average3D::afterIntegration(cudaStream_t stream)
 
     debug2("Plugin %s is sampling now", name.c_str());
 
-    CellListInfo cinfo(binSize, pv->domain.localSize);
-    PVview pvView(pv, pv->local());
-    ChannelsInfo gpuInfo(channelsInfo, pv, stream);
-
-    const int nthreads = 128;
-    SAFE_KERNEL_LAUNCH(
-            sample,
-            getNblocks(pvView.size, nthreads), nthreads, 0, stream,
-            pvView, cinfo, density.devPtr(), gpuInfo);
+    for (auto& pv : pvs) sampleOnePv(pv, stream);    
 
     nSamples++;
 }
@@ -116,7 +125,7 @@ void Average3D::scaleSampled(cudaStream_t stream)
         if (channelsInfo.types[i] == ChannelType::Tensor6) components = 6;
 
         SAFE_KERNEL_LAUNCH(
-                scaleVec,
+                sampling_helpers_kernels::scaleVec,
                 getNblocks(sz, nthreads), nthreads, 0, stream,
                 sz, components, data.devPtr(), density.devPtr() );
 
@@ -126,9 +135,9 @@ void Average3D::scaleSampled(cudaStream_t stream)
 
     int sz = density.size();
     SAFE_KERNEL_LAUNCH(
-            scaleDensity,
+            sampling_helpers_kernels::scaleDensity,
             getNblocks(sz, nthreads), nthreads, 0, stream,
-            sz, density.devPtr(), pv->mass / (nSamples * binSize.x*binSize.y*binSize.z) );
+            sz, density.devPtr(), /* pv->mass */ 1.0 / (nSamples * binSize.x*binSize.y*binSize.z) );
 
     density.downloadFromDevice(stream, ContainersSynch::Synch);
     density.clearDevice(stream);

@@ -26,6 +26,8 @@ struct ChannelsInfo
 };
 
 
+namespace sampling_helpers_kernels {
+
 __device__ inline void sampleChannels(int pid, int cid, ChannelsInfo channelsInfo)
 {
     for (int i=0; i<channelsInfo.n; i++)
@@ -74,4 +76,6 @@ __global__ static void scaleDensity(int n, float* density, const float factor)
     const int id = threadIdx.x + blockIdx.x*blockDim.x;
     if (id < n)
         density[id] *= factor;
+}
+
 }
