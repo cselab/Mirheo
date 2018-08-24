@@ -194,13 +194,12 @@ class MembraneVector(ObjectVector):
     
     """
     def __init__():
-        r"""__init__(name: str, mass: float, object_size: int, mesh: ParticleVectors.MembraneMesh) -> None
+        r"""__init__(name: str, mass: float, mesh: ParticleVectors.MembraneMesh) -> None
 
 
             Args:
                 name: name of the created PV 
                 mass: mass of a single particle
-                object_size: number of particles per membrane, must be the same as the number of vertices of the mesh
                 mesh: :any:`MembraneMesh` object                
         
 
