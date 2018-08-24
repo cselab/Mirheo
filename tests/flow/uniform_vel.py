@@ -27,7 +27,7 @@ Kp = 2.0 * factor
 Ki = 1.0 * factor
 Kd = 8.0 * factor
 
-vc = udx.Plugins.createVelocityControl("vc", "vcont.txt", pv, (0, 0, 0), domain, 5, 50, vtarget, Kp, Ki, Kd)
+vc = udx.Plugins.createVelocityControl("vc", "vcont.txt", [pv], (0, 0, 0), domain, 5, 50, vtarget, Kp, Ki, Kd)
 u.registerPlugins(vc)
 
 stats = udx.Plugins.createStats('stats', "stats.txt", 1000)
@@ -37,6 +37,7 @@ u.run(5001)
 
 # nTEST: flow.uniform_vel
 # cd flow
+# rm -rf vcont.txt
 # udx.run -n 2 ./uniform_vel.py > /dev/null
 # cat vcont.txt | awk '{print $1, $3}' > vcont.out.txt
 

@@ -28,6 +28,7 @@ u.run(5001)
 
 # nTEST: flow.rest
 # cd flow
+# rm -rf stats.txt
 # udx.run -n 2 ./rest.py > /dev/null
 # cat stats.txt | awk '{print $1, $2, $3, $4, $5}' > stats.out.txt
 

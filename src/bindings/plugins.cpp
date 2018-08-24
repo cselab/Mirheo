@@ -118,8 +118,8 @@ void exportPlugins(py::module& m)
             This plugin is inactive if postprocess is disabled
     )");
     py::handlers_class<SimulationVelocityControl>(m, "VelocityControl", pysim, R"(
-        This plugin applies a uniform force to all the particles of the target PV in the specified area (rectangle).
-        The force is apdated by a PID controller such that the velocity average of the particles matches a target average velocity.
+        This plugin applies a uniform force to all the particles of the target PVS in the specified area (rectangle).
+        The force is adapted bvia a PID controller such that the velocity average of the particles matches the target average velocity.
     )");
     py::handlers_class<ExchangePVSFluxPlanePlugin>(m, "ExchangePVSFluxPlane", pysim, R"(
         This plugin exchanges particles from a particle vector crossing a given plane to another particle vector.
@@ -295,13 +295,13 @@ void exportPlugins(py::module& m)
                 1 means fixed rotation wrt to the axis
     )");
     m.def("__createVelocityControl", &PluginFactory::createSimulationVelocityControlPlugin,
-          "compute_task"_a, "name"_a, "filename"_a, "pv"_a, "low"_a, "high"_a, "sampleEvery"_a, "dumpEvery"_a, "targetVel"_a, "Kp"_a, "Ki"_a, "Kd"_a, R"(
+          "compute_task"_a, "name"_a, "filename"_a, "pvs"_a, "low"_a, "high"_a, "sampleEvery"_a, "dumpEvery"_a, "targetVel"_a, "Kp"_a, "Ki"_a, "Kd"_a, R"(
         Create :any:`VelocityControl` plugin
         
         Args:
             name: name of the plugin
             filename: dump file name 
-            pv: :class:`ParticleVector` that we'll work with
+            pvs: list of concerned :class:`ParticleVector`
             low, high: boundaries of the domain of interest
             sampleEvery: sample and adapt force every this many time-steps
             dumpEvery: write files every this many time-steps

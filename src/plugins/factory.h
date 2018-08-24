@@ -71,12 +71,18 @@ namespace PluginFactory
     }
 
     static std::pair< SimulationVelocityControl*, PostprocessVelocityControl* >
-    createSimulationVelocityControlPlugin(bool computeTask, std::string name, std::string filename, ParticleVector *pv,
+    createSimulationVelocityControlPlugin(bool computeTask, std::string name, std::string filename, std::vector<ParticleVector*> pvs,
                                           pyfloat3 low, pyfloat3 high, int sampleEvery, int dumpEvery,
                                           pyfloat3 targetVel, float Kp, float Ki, float Kd)
     {
+        std::vector<std::string> pvNames;
+
+        if (computeTask)
+            for (auto &pv : pvs)
+                pvNames.push_back(pv->name);
+        
         auto simPl = computeTask ?
-            new SimulationVelocityControl(name, pv->name, make_float3(low), make_float3(high), sampleEvery, dumpEvery,
+            new SimulationVelocityControl(name, pvNames, make_float3(low), make_float3(high), sampleEvery, dumpEvery,
                                           make_float3(targetVel), Kp, Ki, Kd) :
             nullptr;
 

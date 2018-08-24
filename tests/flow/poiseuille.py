@@ -58,7 +58,7 @@ Kd = 8.0 * factor
 vcSampleEvery = 5
 vcDumpEvery = 500
 
-vc = udx.Plugins.createVelocityControl("vc", "vcont.txt", pv, (0, 0, 0), domain, vcSampleEvery, vcDumpEvery, vtarget, Kp, Ki, Kd)
+vc = udx.Plugins.createVelocityControl("vc", "vcont.txt", [pv], (0, 0, 0), domain, vcSampleEvery, vcDumpEvery, vtarget, Kp, Ki, Kd)
 u.registerPlugins(vc)
 
 u.run(20002)
