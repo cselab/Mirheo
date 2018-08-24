@@ -47,6 +47,13 @@ class AverageRelative3D(SimulationPlugin):
             This plugin is inactive if postprocess is disabled
     
     """
+class ExchangePVSFluxPlane(SimulationPlugin):
+    r"""
+        This plugin exchanges particles from a particle vector crossing a given plane to another particle vector.
+        A particle with position x, y, z has crossed the plane if ax + by + cz + d >= 0, where a, b, c and d are the coefficient 
+        stored in the 'plane' variable
+    
+    """
 class ImposeProfile(SimulationPlugin):
     r"""
         TODO
@@ -98,6 +105,9 @@ class PinObject(SimulationPlugin):
     
     """
 class PostprocessStats(PostprocessPlugin):
+    r"""None
+    """
+class PostprocessVelocityControl(PostprocessPlugin):
     r"""None
     """
 class ReportPinObject(PostprocessPlugin):
@@ -292,6 +302,22 @@ def createDumpXYZ():
     """
     pass
 
+def createExchangePVSFluxPlane():
+    r"""createExchangePVSFluxPlane(compute_task: bool, name: str, pv1: ParticleVectors.ParticleVector, pv2: ParticleVectors.ParticleVector, plane: Tuple[float, float, float, float]) -> Tuple[Plugins.ExchangePVSFluxPlane, Plugins.PostprocessPlugin]
+
+
+        Create :any:`ExchangePVSFluxPlane` plugin
+        
+        Args:
+            name: name of the plugin
+            pv1: :class:`ParticleVector` source
+            pv2: :class:`ParticleVector` destination
+            plane: 4 coefficients for the plane equation ax + by + cz + d >= 0
+    
+
+    """
+    pass
+
 def createImposeProfile():
     r"""createImposeProfile(compute_task: bool, name: str, pv: ParticleVectors.ParticleVector, low: Tuple[float, float, float], high: Tuple[float, float, float], velocity: Tuple[float, float, float], kbt: float) -> Tuple[Plugins.ImposeProfile, Plugins.PostprocessPlugin]
 
@@ -374,16 +400,18 @@ def createTemperaturize():
     pass
 
 def createVelocityControl():
-    r"""createVelocityControl(compute_task: bool, name: str, pv: ParticleVectors.ParticleVector, low: Tuple[float, float, float], high: Tuple[float, float, float], every: int, targetVel: Tuple[float, float, float], Kp: float, Ki: float, Kd: float) -> Tuple[Plugins.VelocityControl, Plugins.PostprocessPlugin]
+    r"""createVelocityControl(compute_task: bool, name: str, filename: str, pv: ParticleVectors.ParticleVector, low: Tuple[float, float, float], high: Tuple[float, float, float], sampleEvery: int, dumpEvery: int, targetVel: Tuple[float, float, float], Kp: float, Ki: float, Kd: float) -> Tuple[Plugins.VelocityControl, Plugins.PostprocessVelocityControl]
 
 
         Create :any:`VelocityControl` plugin
         
         Args:
             name: name of the plugin
+            filename: dump file name 
             pv: :class:`ParticleVector` that we'll work with
             low, high: boundaries of the domain of interest
-            every: write files every this many time-steps
+            sampleEvery: sample and adapt force every this many time-steps
+            dumpEvery: write files every this many time-steps
             targetVel: the target mean velocity of the particles in the domain of interest
             Kp, Ki, Kd: PID controller coefficients
     
