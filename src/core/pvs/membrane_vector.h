@@ -14,9 +14,9 @@ public:
     {
         mesh = std::move(mptr);
 
-        if (objSize != mesh->nvertices)
+        if (objSize != mesh->getNvertices())
             die("RBC vector '%s': object size (%d) and number of vertices in mesh (%d) mismatch",
-                    name.c_str(), objSize, mesh->nvertices);
+                name.c_str(), objSize, mesh->getNvertices());
 
         requireDataPerObject<float2>("area_volumes", false);
     }

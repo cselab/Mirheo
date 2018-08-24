@@ -57,9 +57,9 @@ void MembraneIC::exec(const MPI_Comm& comm, ParticleVector* pv, DomainInfo domai
         {
             com = domain.global2local(com);
             int oldSize = ov->local()->size();
-            ov->local()->resize(oldSize + ov->mesh->nvertices, stream);
+            ov->local()->resize(oldSize + ov->mesh->getNvertices(), stream);
 
-            for (int i=0; i<ov->mesh->nvertices; i++)
+            for (int i=0; i<ov->mesh->getNvertices(); i++)
             {
                 float3 r = rotate(f4tof3( ov->mesh->vertexCoordinates[i] * globalScale ), q) + com;
                 Particle p;

@@ -57,7 +57,10 @@ Mesh::Mesh(std::string fname)
     _computeMaxDegree();
 }
 
-int Mesh::getMaxDegree() const {
+const int& Mesh::getNtriangles() const {return ntriangles;}
+const int& Mesh::getNvertices()  const {return nvertices;}
+
+const int& Mesh::getMaxDegree() const {
     if (maxDegree < 0) die("maxDegree was not computed");
     return maxDegree;
 }

@@ -28,7 +28,7 @@ static GPU_RBCparameters setParams(MembraneParameters p, Mesh* m)
     devP.gammaC = p.gammaC;
     devP.gammaT = p.gammaT;
 
-    devP.area0 = p.totArea0 / m->ntriangles;
+    devP.area0 = p.totArea0 / m->getNtriangles();
     devP.totArea0 = p.totArea0;
     devP.totVolume0 = p.totVolume0;
 
@@ -81,9 +81,9 @@ void InteractionMembrane::regular(ParticleVector* pv1, ParticleVector* pv2, Cell
 {
     auto ov = dynamic_cast<MembraneVector*>(pv1);
 
-    if (ov->objSize != ov->mesh->nvertices)
+    if (ov->objSize != ov->mesh->getNvertices())
         die("Object size of '%s' (%d) and number of vertices (%d) mismatch",
-                ov->name.c_str(), ov->objSize, ov->mesh->nvertices);
+            ov->name.c_str(), ov->objSize, ov->mesh->getNvertices());
 
     debug("Computing internal membrane forces for %d cells of '%s'",
         ov->local()->nObjects, ov->name.c_str());

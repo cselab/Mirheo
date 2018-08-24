@@ -5,9 +5,10 @@
 
 class Mesh
 {
-public:
+protected:
     int nvertices{0}, ntriangles{0};
 
+public:
     PinnedBuffer<int3> triangles;
 
     PinnedBuffer<float4> vertexCoordinates;
@@ -18,7 +19,9 @@ public:
     Mesh(Mesh&&) = default;
     Mesh& operator=(Mesh&&) = default;
 
-    int getMaxDegree() const;
+    const int& getNtriangles() const;
+    const int& getNvertices() const;
+    const int& getMaxDegree() const;
 
 protected:
     // max degree of a vertex in mesh
@@ -52,8 +55,8 @@ struct MeshView
 
     MeshView(const Mesh* m)
     {
-        nvertices = m->nvertices;
-        ntriangles = m->ntriangles;
+        nvertices = m->getNvertices();
+        ntriangles = m->getNtriangles();
 
         triangles = m->triangles.devPtr();
     }
