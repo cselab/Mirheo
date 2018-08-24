@@ -114,12 +114,12 @@ void InteractionMembrane::regular(ParticleVector* pv1, ParticleVector* pv2, Cell
 
     if (stressFree)
         SAFE_KERNEL_LAUNCH(
-                computeMembraneForces<MembraneMesh::maxDegree COMMA true>,
+                computeMembraneForces<true>,
                 blocks, nthreads, 0, stream,
                 view, mesh, setParams(currentParams, ov->mesh.get()) );
     else
         SAFE_KERNEL_LAUNCH(
-                computeMembraneForces<MembraneMesh::maxDegree COMMA false>,
+                computeMembraneForces<false>,
                 blocks, nthreads, 0, stream,
                 view, mesh, setParams(currentParams, ov->mesh.get()) );
 }

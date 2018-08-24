@@ -95,7 +95,7 @@ __device__ inline float3 _fvisc(Particle p1, Particle p2, GPU_RBCparameters para
     return du*parameters.gammaT + dr * parameters.gammaC*dot(du, dr) / dot(dr, dr);
 }
 
-template <int maxDegree, bool stressFree>
+template <bool stressFree>
 __device__ float3 bondTriangleForce(
         Particle p, int locId, int rbcId,
         const OVviewWithAreaVolume& view,
@@ -103,7 +103,7 @@ __device__ float3 bondTriangleForce(
         const GPU_RBCparameters& parameters)
 {
     float3 f = make_float3(0.0f);
-    const int startId = maxDegree * locId;
+    const int startId = mesh.maxdegree * locId;
     const int degree = mesh.degrees[locId];
 
     int idv1 = mesh.adjacent[startId];
@@ -157,7 +157,6 @@ __device__  inline  float3 _fdihedral(float3 v1, float3 v2, float3 v3, float3 v4
     else return make_float3(0.0f);
 }
 
-template <int maxDegree>
 __device__ float3 dihedralForce(
         Particle p, int locId, int rbcId,
         const OVviewWithAreaVolume& view,
@@ -167,7 +166,7 @@ __device__ float3 dihedralForce(
     const int shift = 2*rbcId*mesh.nvertices;
     const float3 r0 = p.r;
 
-    const int startId = maxDegree * locId;
+    const int startId = mesh.maxdegree * locId;
     const int degree = mesh.degrees[locId];
 
     int idv1 = mesh.adjacent[startId];
@@ -211,7 +210,7 @@ __device__ float3 dihedralForce(
     return f;
 }
 
-template <int maxDegree, bool stressFree>
+template <bool stressFree>
 //__launch_bounds__(128, 12)
 __global__ void computeMembraneForces(
         OVviewWithAreaVolume view,
@@ -232,8 +231,8 @@ __global__ void computeMembraneForces(
 
     Particle p(view.particles, pid);
 
-    float3 f = bondTriangleForce<maxDegree, stressFree>(p, locId, rbcId, view, mesh, parameters)
-             + dihedralForce    <maxDegree>            (p, locId, rbcId, view, mesh, parameters);
+    float3 f = bondTriangleForce<stressFree>(p, locId, rbcId, view, mesh, parameters)
+             + dihedralForce                (p, locId, rbcId, view, mesh, parameters);
 
     atomicAdd(view.forces + pid, f);
 }

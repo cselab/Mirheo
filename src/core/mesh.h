@@ -32,8 +32,6 @@ protected:
 class MembraneMesh : public Mesh
 {
 public:
-    static const int maxDegree = 7;
-
     PinnedBuffer<int> adjacent, adjacent_second, degrees;
     PinnedBuffer<float> initialLengths;
 
@@ -50,13 +48,14 @@ public:
 
 struct MeshView
 {
-    int nvertices, ntriangles;
+    int nvertices, ntriangles, maxdegree;
     int3* triangles;
 
     MeshView(const Mesh* m)
     {
         nvertices = m->getNvertices();
         ntriangles = m->getNtriangles();
+        maxdegree = m->getMaxDegree();
 
         triangles = m->triangles.devPtr();
     }
@@ -71,7 +70,7 @@ struct MembraneMeshView : public MeshView
 
     MembraneMeshView(const MembraneMesh* m) : MeshView(m)
     {
-        maxDegree = m->maxDegree;
+        maxDegree = m->getMaxDegree();
 
         adjacent = m->adjacent.devPtr();
         adjacent_second = m->adjacent_second.devPtr();
