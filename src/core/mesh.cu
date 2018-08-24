@@ -114,8 +114,8 @@ void MembraneMesh::findAdjacent()
     auto it = std::max_element(degrees.hostPtr(), degrees.hostPtr() + nvertices);
     const int curMaxDegree = *it;
 
-    if (curMaxDegree > maxDegree)
-        die("Degree of vertex %d is %d > %d (max degree supported)", (int)(it - degrees.hostPtr()), curMaxDegree, maxDegree);
+    if (curMaxDegree != maxDegree)
+        die("Degree of vertex %d is %d != %d (did you change the mesh??)", (int)(it - degrees.hostPtr()), curMaxDegree, maxDegree);
 
     debug("Max degree of mesh vertices is %d", curMaxDegree);
 
