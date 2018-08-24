@@ -87,7 +87,6 @@ void exportInteractions(py::module& m)
             Structure keeping parameters of the membrane interaction
         )")
         .def_readwrite("x0",        &MembraneParameters::x0)
-        .def_readwrite("p",         &MembraneParameters::p)
         .def_readwrite("ks",        &MembraneParameters::ks)
         .def_readwrite("ka",        &MembraneParameters::ka)
         .def_readwrite("kb",        &MembraneParameters::kb)

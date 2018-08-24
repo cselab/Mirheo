@@ -94,7 +94,7 @@ void InteractionMembrane::regular(ParticleVector* pv1, ParticleVector* pv2, Cell
     currentParams.totVolume0 *= scale*scale*scale;
     currentParams.kbT *= scale*scale;
     currentParams.kb  *= scale*scale;
-    currentParams.p   *= scale;
+    currentParams.ks  *= scale*scale;
 
     currentParams.gammaC *= scale;
     currentParams.gammaT *= scale;
