@@ -17,7 +17,7 @@ domain = (12, 8, 10)
 u = udx.udevicex(ranks, domain, debug_level=3, log_filename='log')
 
 mesh_rbc = udx.ParticleVectors.MembraneMesh("rbc_mesh.off")
-pv_rbc   = udx.ParticleVectors.MembraneVector("rbc", mass=1.0, object_size=498, mesh=mesh_rbc)
+pv_rbc   = udx.ParticleVectors.MembraneVector("rbc", mass=1.0, mesh=mesh_rbc)
 ic_rbc   = udx.InitialConditions.Membrane([[8.0, 4.0, 5.0,   1.0, 0.0, 0.0, 0.0]])
 u.registerParticleVector(pv_rbc, ic_rbc)
 
