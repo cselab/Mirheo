@@ -103,7 +103,7 @@ __device__ float3 bondTriangleForce(
         const GPU_RBCparameters& parameters)
 {
     float3 f = make_float3(0.0f);
-    const int startId = mesh.maxdegree * locId;
+    const int startId = mesh.maxDegree * locId;
     const int degree = mesh.degrees[locId];
 
     int idv1 = mesh.adjacent[startId];
@@ -166,7 +166,7 @@ __device__ float3 dihedralForce(
     const int shift = 2*rbcId*mesh.nvertices;
     const float3 r0 = p.r;
 
-    const int startId = mesh.maxdegree * locId;
+    const int startId = mesh.maxDegree * locId;
     const int degree = mesh.degrees[locId];
 
     int idv1 = mesh.adjacent[startId];

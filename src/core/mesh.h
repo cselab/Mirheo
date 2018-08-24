@@ -48,14 +48,13 @@ public:
 
 struct MeshView
 {
-    int nvertices, ntriangles, maxdegree;
+    int nvertices, ntriangles;
     int3* triangles;
 
     MeshView(const Mesh* m)
     {
         nvertices = m->getNvertices();
         ntriangles = m->getNtriangles();
-        maxdegree = m->getMaxDegree();
 
         triangles = m->triangles.devPtr();
     }
