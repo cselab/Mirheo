@@ -5,21 +5,17 @@
 #include <core/containers.h>
 #include <core/datatypes.h>
 
+#include <vector>
+
 class ParticleVector;
 class CellList;
 
 class SimulationVelocityControl : public SimulationPlugin
 {
 public:
-    SimulationVelocityControl(std::string name, std::string pvName,
+    SimulationVelocityControl(std::string name, std::vector<std::string> pvNames,
                               float3 low, float3 high, int sampleEvery, int dumpEvery, 
-                              float3 targetVel, float Kp, float Ki, float Kd) :
-        SimulationPlugin(name), pvName(pvName), low(low), high(high),
-        currentVel(make_float3(0,0,0)), targetVel(targetVel),
-        dumpEvery(dumpEvery), sampleEvery(sampleEvery),
-        force(make_float3(0, 0, 0)),
-        pid(make_float3(0, 0, 0), Kp, Ki, Kd)
-    {}
+                              float3 targetVel, float Kp, float Ki, float Kd);
 
     void setup(Simulation* sim, const MPI_Comm& comm, const MPI_Comm& interComm) override;
 
@@ -31,8 +27,8 @@ public:
 
 private:
     int sampleEvery, dumpEvery;
-    std::string pvName;
-    ParticleVector* pv;
+    std::vector<std::string> pvNames;
+    std::vector<ParticleVector*> pvs;
 
     float3 high, low;
     float3 currentVel, targetVel, force;
@@ -42,6 +38,9 @@ private:
 
     PidControl<float3> pid;
     std::vector<char> sendBuffer;
+
+private:
+    void sampleOnePv(ParticleVector *pv, cudaStream_t stream);
 };
 
 class PostprocessVelocityControl : public PostprocessPlugin

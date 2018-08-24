@@ -62,7 +62,7 @@ void BounceFromMesh::exec(ParticleVector* pv, CellList* cl, float dt, bool local
 
     ov->findExtentAndCOM(stream, local);
 
-    int totalTriangles = ov->mesh->ntriangles * activeOV->nObjects;
+    int totalTriangles = ov->mesh->getNtriangles() * activeOV->nObjects;
     //int totalEdges = totalTriangles * 3 / 2;
 
     // Set maximum possible number of _coarse_ and _fine_ collisions with triangles
@@ -139,7 +139,7 @@ void BounceFromMesh::exec(ParticleVector* pv, CellList* cl, float dt, bool local
     {
         // make a fake view with vertices instead of particles
         ROVview view(rov, local ? rov->local() : rov->halo());
-        view.objSize = ov->mesh->nvertices;
+        view.objSize = ov->mesh->getNvertices();
         view.size = view.nObjects * view.objSize;
         view.particles = vertexView.vertices;
         view.forces = vertexView.vertexForces;

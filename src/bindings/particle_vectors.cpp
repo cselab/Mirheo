@@ -80,12 +80,11 @@ void exportParticleVectors(py::module& m)
         Membrane is an Object Vector representing cell membranes.
         It must have a triangular mesh associated with it such that each particle is mapped directly onto single mesh vertex.
     )")
-        .def(py::init<std::string, float, int, std::shared_ptr<MembraneMesh>>(),
-             "name"_a, "mass"_a, "object_size"_a, "mesh"_a, R"(
+        .def(py::init<std::string, float, std::shared_ptr<MembraneMesh>>(),
+             "name"_a, "mass"_a, "mesh"_a, R"(
             Args:
                 name: name of the created PV 
                 mass: mass of a single particle
-                object_size: number of particles per membrane, must be the same as the number of vertices of the mesh
                 mesh: :any:`MembraneMesh` object                
         )");
         

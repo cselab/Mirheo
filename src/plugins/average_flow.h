@@ -2,6 +2,7 @@
 
 #include <plugins/interface.h>
 #include <core/containers.h>
+#include <core/domain.h>
 
 #include <vector>
 
@@ -26,7 +27,7 @@ public:
     };
 
     Average3D(std::string name,
-              std::string pvName,
+              std::vector<std::string> pvNames,
               std::vector<std::string> channelNames, std::vector<Average3D::ChannelType> channelTypes,
               int sampleEvery, int dumpEvery, float3 binSize);
 
@@ -38,7 +39,7 @@ public:
     bool needPostproc() override { return true; }
 
 protected:
-    std::string pvName;
+    std::vector<std::string> pvNames;
     int nSamples;
     int sampleEvery, dumpEvery;
     int3 resolution;
@@ -47,10 +48,13 @@ protected:
     PinnedBuffer<float>  density;
     std::vector<char> sendBuffer;
 
-    ParticleVector* pv;
+    std::vector<ParticleVector*> pvs;
 
     HostChannelsInfo channelsInfo;
+    DomainInfo domain;
 
     void scaleSampled(cudaStream_t stream);
+
+    void sampleOnePv(ParticleVector *pv, cudaStream_t stream);
 };
 

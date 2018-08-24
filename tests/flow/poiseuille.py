@@ -46,7 +46,7 @@ gridSampleEvery = 2
 gridDumpEvery   = 1000
 gridBinSize     = (1., 1., 0.5)
 
-field = udx.Plugins.createDumpAverage('field', pv, gridSampleEvery, gridDumpEvery, gridBinSize, [("velocity", "vector_from_float8")], 'h5/solvent-')
+field = udx.Plugins.createDumpAverage('field', [pv], gridSampleEvery, gridDumpEvery, gridBinSize, [("velocity", "vector_from_float8")], 'h5/solvent-')
 u.registerPlugins(field)
 
 
@@ -58,7 +58,7 @@ Kd = 8.0 * factor
 vcSampleEvery = 5
 vcDumpEvery = 500
 
-vc = udx.Plugins.createVelocityControl("vc", "vcont.txt", pv, (0, 0, 0), domain, vcSampleEvery, vcDumpEvery, vtarget, Kp, Ki, Kd)
+vc = udx.Plugins.createVelocityControl("vc", "vcont.txt", [pv], (0, 0, 0), domain, vcSampleEvery, vcDumpEvery, vtarget, Kp, Ki, Kd)
 u.registerPlugins(vc)
 
 u.run(20002)

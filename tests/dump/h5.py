@@ -26,7 +26,7 @@ sampleEvery = 1
 dumpEvery   = 1
 binSize     = (1., 1., 1.)
 
-field = udx.Plugins.createDumpAverage('field', pv, sampleEvery, dumpEvery, binSize, [("velocity", "vector_from_float8")], 'h5/solvent-')
+field = udx.Plugins.createDumpAverage('field', [pv], sampleEvery, dumpEvery, binSize, [("velocity", "vector_from_float8")], 'h5/solvent-')
 u.registerPlugins(field)
 
 u.run(3)

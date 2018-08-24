@@ -71,12 +71,18 @@ namespace PluginFactory
     }
 
     static std::pair< SimulationVelocityControl*, PostprocessVelocityControl* >
-    createSimulationVelocityControlPlugin(bool computeTask, std::string name, std::string filename, ParticleVector *pv,
+    createSimulationVelocityControlPlugin(bool computeTask, std::string name, std::string filename, std::vector<ParticleVector*> pvs,
                                           pyfloat3 low, pyfloat3 high, int sampleEvery, int dumpEvery,
                                           pyfloat3 targetVel, float Kp, float Ki, float Kd)
     {
+        std::vector<std::string> pvNames;
+
+        if (computeTask)
+            for (auto &pv : pvs)
+                pvNames.push_back(pv->name);
+        
         auto simPl = computeTask ?
-            new SimulationVelocityControl(name, pv->name, make_float3(low), make_float3(high), sampleEvery, dumpEvery,
+            new SimulationVelocityControl(name, pvNames, make_float3(low), make_float3(high), sampleEvery, dumpEvery,
                                           make_float3(targetVel), Kp, Ki, Kd) :
             nullptr;
 
@@ -116,12 +122,12 @@ namespace PluginFactory
     }
 
     static std::pair< Average3D*, UniformCartesianDumper* >
-        createDumpAveragePlugin(bool computeTask, std::string name, ParticleVector* pv,
+    createDumpAveragePlugin(bool computeTask, std::string name, std::vector<ParticleVector*> pvs,
                                 int sampleEvery, int dumpEvery, pyfloat3 binSize,
                                 std::vector< std::pair<std::string, std::string> > channels,
                                 std::string path)
     {
-        std::vector<std::string> names;
+        std::vector<std::string> names, pvNames;
         std::vector<Average3D::ChannelType> types;
         for (auto& p : channels)
         {
@@ -136,8 +142,13 @@ namespace PluginFactory
             else die("Unable to get parse channel type '%s'", typeStr.c_str());
         }
 
+        if (computeTask) {
+            for (auto &pv : pvs)
+                pvNames.push_back(pv->name);
+        }
+        
         auto simPl  = computeTask ?
-                new Average3D(name, pv->name, names, types, sampleEvery, dumpEvery, make_float3(binSize)) :
+                new Average3D(name, pvNames, names, types, sampleEvery, dumpEvery, make_float3(binSize)) :
                 nullptr;
 
         auto postPl = computeTask ? nullptr : new UniformCartesianDumper(name, path);
@@ -146,13 +157,13 @@ namespace PluginFactory
     }
 
     static std::pair< AverageRelative3D*, UniformCartesianDumper* >
-        createDumpAverageRelativePlugin(bool computeTask, std::string name, ParticleVector* pv,
+    createDumpAverageRelativePlugin(bool computeTask, std::string name, std::vector<ParticleVector*> pvs,
                                         ObjectVector* relativeToOV, int relativeToId,
                                         int sampleEvery, int dumpEvery, pyfloat3 binSize,
                                         std::vector< std::pair<std::string, std::string> > channels,
                                         std::string path)
     {
-        std::vector<std::string> names;
+        std::vector<std::string> names, pvNames;
         std::vector<Average3D::ChannelType> types;
         for (auto& p : channels)
         {
@@ -167,8 +178,13 @@ namespace PluginFactory
             else die("Unable to get parse channel type '%s'", typeStr.c_str());
         }
 
+        if (computeTask) {
+            for (auto &pv : pvs)
+                pvNames.push_back(pv->name);
+        }
+    
         auto simPl  = computeTask ?
-                new AverageRelative3D(name, pv->name,
+                new AverageRelative3D(name, pvNames,
                                       names, types, sampleEvery, dumpEvery,
                                       make_float3(binSize), relativeToOV->name, relativeToId) :
                 nullptr;

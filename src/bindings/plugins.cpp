@@ -60,7 +60,7 @@ void exportPlugins(py::module& m)
             This plugin is inactive if postprocess is disabled
     )");
     py::handlers_class<Average3D>(m, "Average3D", pysim, R"(
-        This plugin will project certain quantities of the particles on the grid (by simple binning),
+        This plugin will project certain quantities of the particle vectors on the grid (by simple binning),
         perform time-averaging of the grid and dump it in XDMF (LINK) format with HDF5 (LINK) backend.
         The quantities of interest are represented as *channels* associated with particles vectors.
         Some interactions, integrators, etc. and more notable plug-ins can add to the Particle Vectors per-particles arrays to hold different values.
@@ -118,8 +118,8 @@ void exportPlugins(py::module& m)
             This plugin is inactive if postprocess is disabled
     )");
     py::handlers_class<SimulationVelocityControl>(m, "VelocityControl", pysim, R"(
-        This plugin applies a uniform force to all the particles of the target PV in the specified area (rectangle).
-        The force is apdated by a PID controller such that the velocity average of the particles matches a target average velocity.
+        This plugin applies a uniform force to all the particles of the target PVS in the specified area (rectangle).
+        The force is adapted bvia a PID controller such that the velocity average of the particles matches the target average velocity.
     )");
     py::handlers_class<ExchangePVSFluxPlanePlugin>(m, "ExchangePVSFluxPlane", pysim, R"(
         This plugin exchanges particles from a particle vector crossing a given plane to another particle vector.
@@ -203,13 +203,13 @@ void exportPlugins(py::module& m)
             every: report to standard output every that many time-steps
     )");
     m.def("__createDumpAverage", &PluginFactory::createDumpAveragePlugin, 
-          "compute_task"_a, "name"_a, "pv"_a, "sample_every"_a, "dump_every"_a,
+          "compute_task"_a, "name"_a, "pvs"_a, "sample_every"_a, "dump_every"_a,
           "bin_size"_a = pyfloat3{1.0, 1.0, 1.0}, "channels"_a, "path"_a = "xdmf/", R"(
         Create :any:`Average3D` plugin
         
         Args:
             name: name of the plugin
-            pv: :any:`ParticleVector` that we'll work with
+            pvs: list of :any:`ParticleVector` that we'll work with
             sample_every: sample quantities every this many time-steps
             dump_every: write files every this many time-steps 
             bin_size: bin size for sampling. The resulting quantities will be *cell-centered*
@@ -236,7 +236,7 @@ void exportPlugins(py::module& m)
                 
     )");
     m.def("__createDumpAverageRelative", &PluginFactory::createDumpAverageRelativePlugin, 
-          "compute_task"_a, "name"_a, "pv"_a,
+          "compute_task"_a, "name"_a, "pvs"_a,
           "relative_to_ov"_a, "relative_to_id"_a,
           "sample_every"_a, "dump_every"_a,
           "bin_size"_a = pyfloat3{1.0, 1.0, 1.0}, "channels"_a, "path"_a = "xdmf/",
@@ -256,7 +256,7 @@ void exportPlugins(py::module& m)
         
         Args:
             name: name of the plugin
-            pv: :any:`ParticleVector` that we'll work with
+            pvs: list of :any:`ParticleVector` that we'll work with
             dump_every: write files every this many time-steps
             path: the files will look like this: <path>/<pv_name>_NNNNN.xyz
     )");
@@ -295,13 +295,13 @@ void exportPlugins(py::module& m)
                 1 means fixed rotation wrt to the axis
     )");
     m.def("__createVelocityControl", &PluginFactory::createSimulationVelocityControlPlugin,
-          "compute_task"_a, "name"_a, "filename"_a, "pv"_a, "low"_a, "high"_a, "sampleEvery"_a, "dumpEvery"_a, "targetVel"_a, "Kp"_a, "Ki"_a, "Kd"_a, R"(
+          "compute_task"_a, "name"_a, "filename"_a, "pvs"_a, "low"_a, "high"_a, "sampleEvery"_a, "dumpEvery"_a, "targetVel"_a, "Kp"_a, "Ki"_a, "Kd"_a, R"(
         Create :any:`VelocityControl` plugin
         
         Args:
             name: name of the plugin
             filename: dump file name 
-            pv: :class:`ParticleVector` that we'll work with
+            pvs: list of concerned :class:`ParticleVector`
             low, high: boundaries of the domain of interest
             sampleEvery: sample and adapt force every this many time-steps
             dumpEvery: write files every this many time-steps

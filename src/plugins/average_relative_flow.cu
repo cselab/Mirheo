@@ -12,6 +12,7 @@
 #include "simple_serializer.h"
 #include "sampling_helpers.h"
 
+namespace average_relative_flow_kernels {
 
 __global__ void sampleRelative(
         PVview pvView, CellListInfo cinfo,
@@ -31,18 +32,19 @@ __global__ void sampleRelative(
 
     atomicAdd(avgDensity + cid, 1);
 
-    sampleChannels(pid, cid, channelsInfo);
+    sampling_helpers_kernels::sampleChannels(pid, cid, channelsInfo);
 }
 
+}
 
 AverageRelative3D::AverageRelative3D(
         std::string name,
-        std::string pvName,
+        std::vector<std::string> pvNames,
         std::vector<std::string> channelNames, std::vector<Average3D::ChannelType> channelTypes,
         int sampleEvery, int dumpEvery, float3 binSize,
         std::string relativeOVname, int relativeID) :
 
-        Average3D(name, pvName, channelNames, channelTypes, sampleEvery, dumpEvery, binSize),
+        Average3D(name, pvNames, channelNames, channelTypes, sampleEvery, dumpEvery, binSize),
         relativeOVname(relativeOVname), relativeID(relativeID)
 
 {    }
@@ -55,6 +57,8 @@ void AverageRelative3D::setup(Simulation* sim, const MPI_Comm& comm, const MPI_C
     localChannels[0].resize(density.size());
     density.resize_anew(density.size() * nranks);
     density.clear(0);
+
+    domain = sim->domain;
 
     for (int i=0; i<channelsInfo.n; i++)
     {
@@ -82,6 +86,18 @@ void AverageRelative3D::setup(Simulation* sim, const MPI_Comm& comm, const MPI_C
                 relativeOV->name.c_str(), totsize, relativeID);
 }
 
+void AverageRelative3D::sampleOnePv(float3 relativeParam, ParticleVector *pv, cudaStream_t stream)
+{
+    CellListInfo cinfo(binSize, domain.globalSize);
+    PVview pvView(pv, pv->local());
+    ChannelsInfo gpuInfo(channelsInfo, pv, stream);
+
+    const int nthreads = 128;
+    SAFE_KERNEL_LAUNCH(
+            average_relative_flow_kernels::sampleRelative,
+            getNblocks(pvView.size, nthreads), nthreads, 0, stream,
+            pvView, cinfo, density.devPtr(), gpuInfo, relativeParam);
+}
 
 void AverageRelative3D::afterIntegration(cudaStream_t stream)
 {
@@ -113,7 +129,7 @@ void AverageRelative3D::afterIntegration(cudaStream_t stream)
             float3 params[2] = { make_float3( (*motions)[i].r ),
                     make_float3( (*motions)[i].vel ) };
 
-            params[0] = sim->domain.local2global(params[0]);
+            params[0] = domain.local2global(params[0]);
 
             for (int r = 0; r < nranks; r++)
                 MPI_Send(&params, NCOMPONENTS, MPI_FLOAT, r, TAG, comm);
@@ -124,18 +140,10 @@ void AverageRelative3D::afterIntegration(cudaStream_t stream)
 
     MPI_Check( MPI_Wait(&req, MPI_STATUS_IGNORE) );
 
-    relativeParams[0] = sim->domain.global2local(relativeParams[0]);
+    relativeParams[0] = domain.global2local(relativeParams[0]);
 
-    CellListInfo cinfo(binSize, pv->domain.globalSize);
-    PVview pvView(pv, pv->local());
-    ChannelsInfo gpuInfo(channelsInfo, pv, stream);
-
-    const int nthreads = 128;
-    SAFE_KERNEL_LAUNCH(
-            sampleRelative,
-            getNblocks(pvView.size, nthreads), nthreads, 0, stream,
-            pvView, cinfo, density.devPtr(), gpuInfo, relativeParams[0]);
-
+    for (auto& pv : pvs) sampleOnePv(relativeParams[0], pv, stream);
+    
     averageRelativeVelocity += relativeParams[1];
 
     nSamples++;
@@ -180,7 +188,7 @@ void AverageRelative3D::extractLocalBlock()
     };
 
     // Order is important! Density comes first
-    oneChannel(density, Average3D::ChannelType::Scalar, pv->mass / (nSamples * binSize.x*binSize.y*binSize.z));
+    oneChannel(density, Average3D::ChannelType::Scalar, /* pv->mass */ 1.0 / (nSamples * binSize.x*binSize.y*binSize.z));
 
     for (int i=0; i<channelsInfo.n; i++)
         oneChannel(channelsInfo.average[i], channelsInfo.types[i], -1);
@@ -199,7 +207,7 @@ void AverageRelative3D::serializeAndSend(cudaStream_t stream)
             const int nthreads = 128;
 
             SAFE_KERNEL_LAUNCH(
-                    correctVelocity,
+                    sampling_helpers_kernels::correctVelocity,
                     getNblocks(data.size() / 3, nthreads), nthreads, 0, stream,
                     data.size() / 3, (float3*)data.devPtr(), density.devPtr(), averageRelativeVelocity / (float) nSamples);
 

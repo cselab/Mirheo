@@ -50,22 +50,46 @@ __global__ void sumVelocity(PVview view, DomainInfo domain, float3 low, float3 h
 
 }
 
+SimulationVelocityControl::SimulationVelocityControl(std::string name, std::vector<std::string> pvNames,
+                                                     float3 low, float3 high, int sampleEvery, int dumpEvery, 
+                                                     float3 targetVel, float Kp, float Ki, float Kd) :
+    SimulationPlugin(name), pvNames(pvNames), low(low), high(high),
+    currentVel(make_float3(0,0,0)), targetVel(targetVel),
+    dumpEvery(dumpEvery), sampleEvery(sampleEvery),
+    force(make_float3(0, 0, 0)),
+    pid(make_float3(0, 0, 0), Kp, Ki, Kd)
+{}
+
+
 void SimulationVelocityControl::setup(Simulation* sim, const MPI_Comm& comm, const MPI_Comm& interComm)
 {
     SimulationPlugin::setup(sim, comm, interComm);
 
-    pv = sim->getPVbyNameOrDie(pvName);
+    for (auto &pvName : pvNames)
+        pvs.push_back(sim->getPVbyNameOrDie(pvName));
 }
 
 void SimulationVelocityControl::beforeForces(cudaStream_t stream)
 {
-    PVview view(pv, pv->local());
-    const int nthreads = 128;
+    for (auto &pv : pvs) {
+        PVview view(pv, pv->local());
+        const int nthreads = 128;
 
-    SAFE_KERNEL_LAUNCH(
-            velocity_control_kernels::addForce,
-            getNblocks(view.size, nthreads), nthreads, 0, stream,
-            view, pv->domain, low, high, force );
+        SAFE_KERNEL_LAUNCH
+            (velocity_control_kernels::addForce,
+             getNblocks(view.size, nthreads), nthreads, 0, stream,
+             view, pv->domain, low, high, force );
+    }
+}
+
+void SimulationVelocityControl::sampleOnePv(ParticleVector *pv, cudaStream_t stream) {
+    PVview pvView(pv, pv->local());
+    const int nthreads = 128;
+ 
+    SAFE_KERNEL_LAUNCH
+        (velocity_control_kernels::sumVelocity,
+         getNblocks(pvView.size, nthreads), nthreads, 0, stream,
+         pvView, pv->domain, low, high, totVel.devPtr(), nSamples.devPtr());
 }
 
 void SimulationVelocityControl::afterIntegration(cudaStream_t stream)
@@ -74,18 +98,13 @@ void SimulationVelocityControl::afterIntegration(cudaStream_t stream)
 
     debug2("Velocity control %s is sampling now", name.c_str());
 
-    PVview pvView(pv, pv->local());
-    const int nthreads = 128;
     long nSamples_loc, nSamples_tot = 0;
     double3 totVel_loc, totVel_tot = make_double3(0,0,0);  
     
     totVel.clearDevice(stream);
     nSamples.clearDevice(stream);
 
-    SAFE_KERNEL_LAUNCH(
-            velocity_control_kernels::sumVelocity,
-            getNblocks(pvView.size, nthreads), nthreads, 0, stream,
-            pvView, pv->domain, low, high, totVel.devPtr(), nSamples.devPtr());
+    for (auto &pv : pvs) sampleOnePv(pv, stream);
 
     totVel.downloadFromDevice(stream, ContainersSynch::Asynch);
     nSamples.downloadFromDevice(stream);

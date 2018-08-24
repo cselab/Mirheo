@@ -5,11 +5,11 @@
 
 class Mesh
 {
-public:
+protected:
     int nvertices{0}, ntriangles{0};
 
+public:
     PinnedBuffer<int3> triangles;
-    //PinnedBuffer<int> adjacentTriangles;
 
     PinnedBuffer<float4> vertexCoordinates;
 
@@ -18,14 +18,20 @@ public:
 
     Mesh(Mesh&&) = default;
     Mesh& operator=(Mesh&&) = default;
+
+    const int& getNtriangles() const;
+    const int& getNvertices() const;
+    const int& getMaxDegree() const;
+
+protected:
+    // max degree of a vertex in mesh
+    int maxDegree {-1};
+    void _computeMaxDegree();
 };
 
 class MembraneMesh : public Mesh
 {
 public:
-    // max degree of a vertex in mesh
-    static const int maxDegree = 7;
-
     PinnedBuffer<int> adjacent, adjacent_second, degrees;
     PinnedBuffer<float> initialLengths;
 
@@ -47,8 +53,8 @@ struct MeshView
 
     MeshView(const Mesh* m)
     {
-        nvertices = m->nvertices;
-        ntriangles = m->ntriangles;
+        nvertices = m->getNvertices();
+        ntriangles = m->getNtriangles();
 
         triangles = m->triangles.devPtr();
     }
@@ -63,7 +69,7 @@ struct MembraneMeshView : public MeshView
 
     MembraneMeshView(const MembraneMesh* m) : MeshView(m)
     {
-        maxDegree = m->maxDegree;
+        maxDegree = m->getMaxDegree();
 
         adjacent = m->adjacent.devPtr();
         adjacent_second = m->adjacent_second.devPtr();
