@@ -7,23 +7,6 @@
 
 #include <core/utils/cuda_common.h>
 
-struct Int2Hasher
-{
-    std::size_t operator() (const int2 a) const
-    {
-        int2 m = {min(a.x, a.y), max(a.x, a.y)};
-        return m.x * 100000 + m.y;
-    }
-};
-
-bool operator==(int2 a, int2 b)
-{
-    int2 ma = {min(a.x, a.y), max(a.x, a.y)};
-    int2 mb = {min(b.x, b.y), max(b.x, b.y)};
-
-    return ma.x == mb.x && ma.y == mb.y;
-}
-
 /// Read off mesh
 Mesh::Mesh(std::string fname)
 {
