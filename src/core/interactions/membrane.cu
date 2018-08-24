@@ -32,11 +32,10 @@ static GPU_RBCparameters setParams(MembraneParameters p, Mesh* m)
     devP.totArea0 = p.totArea0;
     devP.totVolume0 = p.totVolume0;
 
+    devP.x0   = p.x0;
+    devP.ks   = p.ks;
     devP.mpow = p.mpow;
-    devP.l0 = sqrt(devP.area0 * 4.0 / sqrt(3.0));
-    devP.lmax = devP.l0 / p.x0;
-    devP.lmax_1 = 1.0 / devP.lmax;
-    devP.ks_over_lmax = p.ks / devP.lmax;
+    devP.l0 = sqrt(devP.area0 * 4.0 / sqrt(3.0));    
 
     devP.cost0kb = cos(p.theta / 180.0 * M_PI) * p.kb;
     devP.sint0kb = sin(p.theta / 180.0 * M_PI) * p.kb;

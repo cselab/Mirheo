@@ -8,7 +8,7 @@
 struct GPU_RBCparameters
 {
     float gammaC, gammaT;
-    float mpow, l0, lmax, lmax_1, ks_over_lmax;
+    float mpow, l0, x0, ks;
     float area0, totArea0, totVolume0;
     float cost0kb, sint0kb;
     float ka0, kv0, kd0;
@@ -71,14 +71,16 @@ __device__ inline float3 _fangle(const float3 v1, const float3 v2, const float3 
 __device__ inline float3 _fbond(const float3 v1, const float3 v2, const float l0, GPU_RBCparameters parameters)
 {
     float r = max(length(v2 - v1), 1e-5f);
+    float lmax     = l0 / parameters.x0;
+    float inv_lmax = parameters.x0 / l0;
 
-    auto wlc = [parameters] (float x) {
-        return parameters.ks_over_lmax * (4.0f*x*x - 9.0f*x + 6.0f) / ( 4.0f*sqr(1.0f - x) );
+    auto wlc = [parameters, inv_lmax] (float x) {
+        return parameters.ks * inv_lmax * (4.0f*x*x - 9.0f*x + 6.0f) / ( 4.0f*sqr(1.0f - x) );
     };
 
-    const float IbforceI_wlc = wlc( min(parameters.lmax - 1e-6f, r) * parameters.lmax_1 );
+    const float IbforceI_wlc = wlc( min(lmax - 1e-6f, r) * inv_lmax );
 
-    const float kp = wlc( l0 * parameters.lmax_1 ) * fastPower(l0, parameters.mpow+1);
+    const float kp = wlc( l0 * inv_lmax ) * fastPower(l0, parameters.mpow+1);
 
     const float IbforceI_pow = -kp / (fastPower(r, parameters.mpow+1));
 
