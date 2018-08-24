@@ -7,16 +7,6 @@
 
 #include <core/utils/cuda_common.h>
 
-//Mesh::Mesh(const Mesh& m)
-//{
-//    nvertices = m.nvertices;
-//    ntriangles = m.ntriangles;
-//
-//    triangles.resize_anew(ntriangles);
-//    memcpy(triangles.hostPtr(), m.triangles.hostPtr(), ntriangles * triangles.datatype_size());
-//    CUDA_Check( cudaMemcpy(triangles.devPtr(), m.triangles.devPtr(), ntriangles * triangles.datatype_size(), cudaMemcpyDeviceToDevice) );
-//}
-
 struct Int2Hasher
 {
     std::size_t operator() (const int2 a) const
@@ -33,44 +23,6 @@ bool operator==(int2 a, int2 b)
 
     return ma.x == mb.x && ma.y == mb.y;
 }
-
-//static void findAdjacentTriangles(PinnedBuffer<int3>& triangles, PinnedBuffer<int>& adjacentTriangles)
-//{
-//    std::unordered_map<int2, int2, Int2Hasher> edge2triangles;
-//
-//    // Create a map of edge -> 2 triangles containing it
-//    for (int trid = 0; trid < triangles.size(); trid++)
-//    {
-//        auto addEdge = [&edge2triangles, trid] (int2 e) {
-//            if (edge2triangles.find(e) == edge2triangles.end())
-//                edge2triangles[e].x = trid;
-//            else
-//                edge2triangles[e].y = trid;
-//        };
-//
-//        auto tr = triangles[trid];
-//        addEdge({tr.x, tr.y});
-//        addEdge({tr.y, tr.z});
-//        addEdge({tr.z, tr.x});
-//    }
-//
-//    adjacentTriangles.resize_anew(3*triangles.size());
-//
-//    // Now for each edge find a non-self triangle containing it (therefore neighbor)
-//    for (int trid = 0; trid < triangles.size(); trid++)
-//    {
-//        auto anotherTriangle = [&edge2triangles] (int2 e, int trid) {
-//            int2 containing = edge2triangles[e];
-//            return (trid != containing.x) ? containing.x : containing.y;
-//        };
-//
-//        auto tr = triangles[trid];
-//        adjacentTriangles[3*trid+0] = anotherTriangle({tr.y, tr.z}, trid);
-//        adjacentTriangles[3*trid+1] = anotherTriangle({tr.z, tr.x}, trid);
-//        adjacentTriangles[3*trid+2] = anotherTriangle({tr.x, tr.y}, trid);
-//    }
-//}
-
 
 /// Read off mesh
 Mesh::Mesh(std::string fname)
