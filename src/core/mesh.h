@@ -33,7 +33,7 @@ class MembraneMesh : public Mesh
 {
 public:
     PinnedBuffer<int> adjacent, adjacent_second, degrees;
-    PinnedBuffer<float> initialLengths;
+    PinnedBuffer<float> initialLengths, initialAreas;
 
     MembraneMesh() {};
     MembraneMesh(std::string);
@@ -42,6 +42,10 @@ public:
     MembraneMesh& operator=(MembraneMesh&&) = default;
 
     void findAdjacent();
+
+protected:
+    void computeInitialLengths();
+    void computeInitialAreas();
 };
 
 

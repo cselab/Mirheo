@@ -82,18 +82,9 @@ void Mesh::_computeMaxDegree()
 MembraneMesh::MembraneMesh(std::string fname) : Mesh(fname)
 {
     findAdjacent();
-
-    initialLengths.resize_anew(nvertices * maxDegree);
-
-    for (int i=0; i<nvertices*maxDegree; i++)
-    {
-        if (adjacent[i] >= 0)
-            initialLengths[i] = length(vertexCoordinates[i / maxDegree] - vertexCoordinates[adjacent[i]]);
-    }
-
-    initialLengths.uploadToDevice(0);
+    computeInitialLengths();
+    computeInitialAreas();
 }
-
 
 void MembraneMesh::findAdjacent()
 {
@@ -210,5 +201,44 @@ void MembraneMesh::findAdjacent()
     degrees.uploadToDevice(0);
 }
 
+void MembraneMesh::computeInitialLengths()
+{
+    initialLengths.resize_anew(nvertices * maxDegree);
 
+    for (int i=0; i<nvertices*maxDegree; i++) {
+        if (adjacent[i] >= 0)
+            initialLengths[i] = length(vertexCoordinates[i / maxDegree] - vertexCoordinates[adjacent[i]]);
+    }
 
+    initialLengths.uploadToDevice(0);
+}
+
+float computeArea(float3 v0, float3 v1, float3 v2) {
+    return 0.5f * length(cross(v1 - v0, v2 - v0));
+}
+
+void MembraneMesh::computeInitialAreas()
+{
+    initialAreas.resize_anew(nvertices * maxDegree);
+
+    float3 v0, v1, v2;
+
+    for (int id0 = 0; id0 < nvertices; ++id0) {
+        int startId = id0 * maxDegree;
+        v0 = f4tof3(vertexCoordinates[id0]);
+
+        for (int j = 0; j < maxDegree; ++j) {
+            int id1 = adjacent[startId + j];
+            int id2 = adjacent[startId + (j + 1) % maxDegree];
+
+            if (id2 < 0) break;
+
+            v1 = f4tof3(vertexCoordinates[id1]);
+            v2 = f4tof3(vertexCoordinates[id2]);
+
+            initialAreas[startId +j] = computeArea(v0, v1, v2);
+        }
+    }
+
+    initialAreas.uploadToDevice(0);
+}
