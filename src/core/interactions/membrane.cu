@@ -44,6 +44,11 @@ static GPU_RBCparameters setParams(MembraneParameters p, Mesh* m)
     devP.kv0 = p.kv / (6.0*p.totVolume0);
     devP.kd0 = p.kd;
 
+    // TODO
+    devP.fluctuation_forces = false;
+    devP.seed = 0.f;
+    devP.sigma_rnd = 0.f;
+
     return devP;
 }
 

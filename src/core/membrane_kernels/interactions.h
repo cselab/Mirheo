@@ -1,6 +1,7 @@
 #pragma once
 
 #include <core/utils/cuda_common.h>
+#include <core/utils/cuda_rng.h>
 #include <core/pvs/object_vector.h>
 #include <core/pvs/views/ov.h>
 #include <core/mesh.h>
@@ -12,6 +13,9 @@ struct GPU_RBCparameters
     float area0, totArea0, totVolume0;
     float cost0kb, sint0kb;
     float ka0, kv0, kd0;
+
+    bool fluctuation_forces;
+    float seed, sigma_rnd;
 };
 
 __global__ void computeAreaAndVolume(OVviewWithAreaVolume view, MeshView mesh)
@@ -98,6 +102,16 @@ __device__ inline float3 _fvisc(Particle p1, Particle p2, GPU_RBCparameters para
     return du*parameters.gammaT + dr * parameters.gammaC*dot(du, dr) / dot(dr, dr);
 }
 
+__device__ inline float3 _ffluct(float3 v1, float3 v2, int i1, int i2, GPU_RBCparameters parameters)
+{
+    if (!parameters.fluctuation_forces)
+        return make_float3(0.0f);
+
+    float2 rnd = Saru::normal2(parameters.seed, min(i1, i2), max(i1, i2));
+    float3 x21 = v2 - v1;
+    return (rnd.x * parameters.sigma_rnd / length(x21)) * x21;
+}
+
 template <bool stressFree>
 __device__ float3 bondTriangleForce(
         Particle p, int locId, int rbcId,
@@ -109,22 +123,25 @@ __device__ float3 bondTriangleForce(
     const int startId = mesh.maxDegree * locId;
     const int degree = mesh.degrees[locId];
 
-    int idv1 = mesh.adjacent[startId];
-    Particle p1(view.particles, rbcId*mesh.nvertices + idv1);
+    int idv0 = rbcId * mesh.nvertices + locId;
+    int idv1 = rbcId * mesh.nvertices + mesh.adjacent[startId];
+    Particle p1(view.particles, idv1);
 
 #pragma unroll 2
     for (int i=1; i<=degree; i++)
     {
-        int idv2 = mesh.adjacent[startId + (i % degree)];
+        int idv2 = rbcId * mesh.nvertices + mesh.adjacent[startId + (i % degree)];
 
-        Particle p2(view.particles, rbcId*mesh.nvertices + idv2);
+        Particle p2(view.particles, idv2);
 
         const float l0 = stressFree ? mesh.initialLengths[startId + i-1] : parameters.l0;
         const float a0 = stressFree ? mesh.initialAreas  [startId + i-1] : parameters.area0;
         
 
-        f += _fangle(p.r, p1.r, p2.r, a0, view.area_volumes[rbcId].x, view.area_volumes[rbcId].y, parameters) +
-             _fbond(p.r, p1.r, l0, parameters) +  _fvisc (p, p1, parameters);
+        f +=  _fangle(p.r, p1.r, p2.r, a0, view.area_volumes[rbcId].x, view.area_volumes[rbcId].y, parameters)
+            + _fbond (p.r, p1.r, l0, parameters)
+            + _fvisc (p,   p1,       parameters)
+            + _ffluct(p.r, p1.r, idv0, idv1, parameters);
 
         idv1 = idv2;
         p1 = p2;
@@ -241,8 +258,4 @@ __global__ void computeMembraneForces(
 
     atomicAdd(view.forces + pid, f);
 }
-
-
-
-
 
