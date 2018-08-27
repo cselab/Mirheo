@@ -1,9 +1,11 @@
 * [2/6] Features
-** TODO [1/5] membrane
+** TODO [2/5] membrane
 *** DONE pass spring constant ks
     CLOSED: [2018-08-24 Fri 15:30]
-*** TODO [1/2] stress free
-**** TODO include areas
+*** DONE [2/2] stress free
+    CLOSED: [2018-08-27 Mon 09:41]
+**** DONE include areas
+     CLOSED: [2018-08-27 Mon 09:41]
 **** DONE fix lmax
      CLOSED: [2018-08-24 Fri 15:47]
 *** TODO fluctuation forces
