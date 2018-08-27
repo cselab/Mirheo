@@ -52,7 +52,7 @@ u.registerPlugins(field)
 
 u.run(7002)
 
-# nTEST: analytic.plates
+# nTEST: walls.analytic.plates
 # cd walls/analytic
 # rm -rf h5
 # udx.run --runargs "-n 2" ./plates.py > /dev/null

@@ -37,7 +37,7 @@ u.registerPlugins(field)
 
 u.run(5002)
 
-# nTEST: double_poiseuille.2pvs
+# nTEST: flow.double_poiseuille.2pvs
 # cd flow
 # rm -rf h5
 # udx.run --runargs "-n 2" ./double_poiseuille.2pvs.py > /dev/null

@@ -63,7 +63,7 @@ u.registerPlugins(vc)
 
 u.run(20002)
 
-# nTEST: poiseuille
+# nTEST: flow.poiseuille
 # cd flow
 # rm -rf h5
 # udx.run --runargs "-n 2" ./poiseuille.py > /dev/null
