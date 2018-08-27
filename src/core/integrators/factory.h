@@ -7,6 +7,7 @@
 #include <core/integrators/oscillate.h>
 #include <core/integrators/translate.h>
 #include <core/integrators/rigid_vv.h>
+#include <core/integrators/subStepMembrane.h>
 
 #include <core/integrators/forcing_terms/none.h>
 #include <core/integrators/forcing_terms/const_dp.h>
@@ -60,4 +61,9 @@ namespace IntegratorFactory
     {
         return  new IntegratorVVRigid(name, dt);
     }
+
+    static IntegratorSubStepMembrane* createSubStepMembrane(std::string name, float dt, int substeps, Interaction *fastForces)
+    {
+        return new IntegratorSubStepMembrane(name, dt, substeps, fastForces);
+    }    
 };

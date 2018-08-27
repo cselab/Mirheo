@@ -19,8 +19,6 @@ public:
 
     IntegratorSubStepMembrane(std::string name, float dt, int substeps, Interaction *fastForces);
 
-    ~IntegratorSubStepMembrane();
-
 private:
 
     InteractionMembrane *fastForces; /* interactions (self) called `substeps` times per time step */
