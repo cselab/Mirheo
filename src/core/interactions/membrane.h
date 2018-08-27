@@ -6,6 +6,9 @@
 struct MembraneParameters
 {
     float x0, ks, ka, kb, kd, kv, gammaC, gammaT, kbT, mpow, theta, totArea0, totVolume0;
+
+    bool fluctuationForces;
+    float dt;
 };
 
 /**

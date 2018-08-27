@@ -98,7 +98,9 @@ void exportInteractions(py::module& m)
         .def_readwrite("mpow",      &MembraneParameters::mpow)
         .def_readwrite("theta",     &MembraneParameters::theta)
         .def_readwrite("totArea",   &MembraneParameters::totArea0)
-        .def_readwrite("totVolume", &MembraneParameters::totVolume0);
+        .def_readwrite("totVolume", &MembraneParameters::totVolume0)
+        .def_readwrite("rnd",       &MembraneParameters::fluctuationForces)
+        .def_readwrite("dt",        &MembraneParameters::dt);
         
     py::handlers_class<InteractionMembrane>(m, "MembraneForces", pyint, R"(
         Mesh-based forces acting on a membrane according to the model in PUT LINK

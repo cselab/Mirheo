@@ -14,7 +14,7 @@ struct GPU_RBCparameters
     float cost0kb, sint0kb;
     float ka0, kv0, kd0;
 
-    bool fluctuation_forces;
+    bool fluctuationForces;
     float seed, sigma_rnd;
 };
 
@@ -104,7 +104,7 @@ __device__ inline float3 _fvisc(Particle p1, Particle p2, GPU_RBCparameters para
 
 __device__ inline float3 _ffluct(float3 v1, float3 v2, int i1, int i2, GPU_RBCparameters parameters)
 {
-    if (!parameters.fluctuation_forces)
+    if (!parameters.fluctuationForces)
         return make_float3(0.0f);
 
     float2 rnd = Saru::normal2(parameters.seed, min(i1, i2), max(i1, i2));

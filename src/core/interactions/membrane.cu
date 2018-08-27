@@ -9,6 +9,7 @@
 #include <core/membrane_kernels/interactions.h>
 
 #include <cmath>
+#include <random>
 
 /**
  * Provide mapping from the model parameters to the parameters
@@ -21,7 +22,7 @@
  * @param m RBC membrane mesh
  * @return parameters to be passed to GPU kernels
  */
-static GPU_RBCparameters setParams(MembraneParameters p, Mesh* m)
+static GPU_RBCparameters setParams(MembraneParameters& p, Mesh *m, float t)
 {
     GPU_RBCparameters devP;
 
@@ -44,11 +45,16 @@ static GPU_RBCparameters setParams(MembraneParameters p, Mesh* m)
     devP.kv0 = p.kv / (6.0*p.totVolume0);
     devP.kd0 = p.kd;
 
-    // TODO
-    devP.fluctuation_forces = false;
-    devP.seed = 0.f;
-    devP.sigma_rnd = 0.f;
+    devP.fluctuationForces = p.fluctuationForces;
 
+    if (devP.fluctuationForces) {
+        int v = *((int*)&t);
+        std::mt19937 gen(v);
+        std::uniform_real_distribution<float> udistr(0.001, 1);
+        devP.seed = udistr(gen);
+        devP.sigma_rnd = sqrt(2 * p.kbT * p.gammaC / p.dt);
+    }
+    
     return devP;
 }
 
@@ -116,16 +122,18 @@ void InteractionMembrane::regular(ParticleVector* pv1, ParticleVector* pv2, Cell
 
     const int blocks = getNblocks(view.size, nthreads);
 
+    auto devParams = setParams(currentParams, ov->mesh.get(), t);
+    
     if (stressFree)
         SAFE_KERNEL_LAUNCH(
                 computeMembraneForces<true>,
                 blocks, nthreads, 0, stream,
-                view, mesh, setParams(currentParams, ov->mesh.get()) );
+                view, mesh, devParams );
     else
         SAFE_KERNEL_LAUNCH(
                 computeMembraneForces<false>,
                 blocks, nthreads, 0, stream,
-                view, mesh, setParams(currentParams, ov->mesh.get()) );
+                view, mesh, devParams );
 }
 
 void InteractionMembrane::halo   (ParticleVector* pv1, ParticleVector* pv2, CellList* cl1, CellList* cl2, const float t, cudaStream_t stream)
