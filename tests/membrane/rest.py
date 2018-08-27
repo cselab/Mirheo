@@ -51,11 +51,11 @@ if pv_rbc is not None:
 # nTEST: membrane.rest
 # cd membrane
 # cp ../../data/rbc_mesh.off .
-# udx.run -n 2 ./rest.py > /dev/null
+# udx.run --runargs "-n 2" ./rest.py > /dev/null
 # mv pos.rbc.txt pos.rbc.out.txt 
 
 # nTEST: membrane.rest.stressFree
 # cd membrane
 # cp ../../data/rbc_mesh.off .
-# udx.run -n 2 ./rest.py --stressFree > /dev/null
+# udx.run --runargs "-n 2" ./rest.py --stressFree > /dev/null
 # mv pos.rbc.txt pos.rbc.out.txt 
