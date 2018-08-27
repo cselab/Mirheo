@@ -69,3 +69,9 @@ if pv_rbc is not None:
 # cp ../../data/rbc_mesh.off .
 # udx.run --runargs "-n 2" ./rest.py --fluctuations > /dev/null
 # mv pos.rbc.txt pos.rbc.out.txt 
+
+# nTEST: membrane.rest.stressfree.fluctuations
+# cd membrane
+# cp ../../data/rbc_mesh.off .
+# udx.run --runargs "-n 2" ./rest.py --stressFree --fluctuations > /dev/null
+# mv pos.rbc.txt pos.rbc.out.txt 
