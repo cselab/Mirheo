@@ -45,7 +45,8 @@ __global__ void computeAreaAndVolume(OVviewWithAreaVolume view, MeshView mesh)
 
 
 __device__ inline float3 _fangle(const float3 v1, const float3 v2, const float3 v3,
-        const float totArea, const float totVolume, GPU_RBCparameters parameters)
+                                 const float area0, const float totArea, const float totVolume,
+                                 GPU_RBCparameters parameters)
 {
     const float3 x21 = v2 - v1;
     const float3 x32 = v3 - v2;
@@ -59,7 +60,7 @@ __device__ inline float3 _fangle(const float3 v1, const float3 v2, const float3 
     // TODO: optimize computations here
     const float coefArea = -0.25f * (
             parameters.ka0 * (totArea - parameters.totArea0) * area_1
-            + parameters.kd0 * (area - parameters.area0) / (area * parameters.area0) );
+            + parameters.kd0 * (area - area0) / (area * area0) );
 
     const float coeffVol = parameters.kv0 * (totVolume - parameters.totVolume0);
     const float3 fArea = coefArea * cross(normal, x32);
@@ -119,8 +120,10 @@ __device__ float3 bondTriangleForce(
         Particle p2(view.particles, rbcId*mesh.nvertices + idv2);
 
         const float l0 = stressFree ? mesh.initialLengths[startId + i-1] : parameters.l0;
+        const float a0 = stressFree ? mesh.initialAreas  [startId + i-1] : parameters.area0;
+        
 
-        f += _fangle(p.r, p1.r, p2.r, view.area_volumes[rbcId].x, view.area_volumes[rbcId].y, parameters) +
+        f += _fangle(p.r, p1.r, p2.r, a0, view.area_volumes[rbcId].x, view.area_volumes[rbcId].y, parameters) +
              _fbond(p.r, p1.r, l0, parameters) +  _fvisc (p, p1, parameters);
 
         idv1 = idv2;
