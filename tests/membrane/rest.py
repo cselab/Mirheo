@@ -5,9 +5,14 @@ import numpy as np
 
 import udevicex as udx
 
-import sys
+import sys, argparse
 sys.path.append("..")
 from common.membrane_params import set_lina
+
+parser = argparse.ArgumentParser()
+parser.add_argument('--stressFree', dest='stressFree', action='store_true')
+parser.set_defaults(stressFree=False)
+args = parser.parse_args()
 
 dt = 0.001
 
@@ -26,7 +31,7 @@ prm_rbc = udx.Interactions.MembraneParameters()
 if prm_rbc:
     set_lina(1.0, prm_rbc)
 
-int_rbc = udx.Interactions.MembraneForces("int_rbc", prm_rbc, stressFree=False)
+int_rbc = udx.Interactions.MembraneForces("int_rbc", prm_rbc, stressFree=args.stressFree)
 vv = udx.Integrators.VelocityVerlet('vv', dt)
 u.registerIntegrator(vv)
 u.setIntegrator(vv, pv_rbc)
@@ -36,8 +41,7 @@ u.setInteraction(int_rbc, pv_rbc, pv_rbc)
 # dump_mesh = udx.Plugins.createDumpMesh("mesh_dump", pv_rbc, 500, "ply/")
 # u.registerPlugins(dump_mesh)
 
-u.run(2500)
-u.run(2500)
+u.run(5000)
 
 if pv_rbc is not None:
     rbc_pos = pv_rbc.getCoordinates()
@@ -48,4 +52,10 @@ if pv_rbc is not None:
 # cd membrane
 # cp ../../data/rbc_mesh.off .
 # udx.run -n 2 ./rest.py > /dev/null
+# mv pos.rbc.txt pos.rbc.out.txt 
+
+# nTEST: membrane.rest.stressFree
+# cd membrane
+# cp ../../data/rbc_mesh.off .
+# udx.run -n 2 ./rest.py --stressFree > /dev/null
 # mv pos.rbc.txt pos.rbc.out.txt 
