@@ -42,8 +42,8 @@ u.setIntegrator(vv, pv_rbc)
 u.registerInteraction(int_rbc)
 u.setInteraction(int_rbc, pv_rbc, pv_rbc)
 
-dump_mesh = udx.Plugins.createDumpMesh("mesh_dump", pv_rbc, 150, "ply/")
-u.registerPlugins(dump_mesh)
+# dump_mesh = udx.Plugins.createDumpMesh("mesh_dump", pv_rbc, 150, "ply/")
+# u.registerPlugins(dump_mesh)
 
 u.run(5000)
 

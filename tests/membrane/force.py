@@ -37,5 +37,5 @@ if pv_rbc:
 # sTEST: membrane.force
 # cd membrane
 # cp ../../data/rbc_mesh.off .
-# udx.run -n 1 ./force.py > /dev/null
+# udx.run --runargs "-n 1" ./force.py > /dev/null
 # mv forces.rbc.txt forces.rbc.out.txt 

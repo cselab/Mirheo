@@ -28,6 +28,6 @@ u.run(2000)
 
 # nTEST: dump.stats
 # cd dump
-# udx.run -n 2 ./stats.py > /dev/null
+# udx.run --runargs "-n 2" ./stats.py > /dev/null
 # cat stats.txt | awk '{print $1, $2, $3, $4, $5}' | uscale 10 > stats.out.txt
 

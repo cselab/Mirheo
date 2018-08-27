@@ -29,6 +29,6 @@ u.run(2)
 # TEST: dump.xyz
 # cd dump
 # rm -rf xyz
-# udx.run -n 2 ./xyz.py > /dev/null
+# udx.run --runargs "-n 2" ./xyz.py > /dev/null
 # cat xyz/pv_00000.xyz | sort > xyz.out.txt
 

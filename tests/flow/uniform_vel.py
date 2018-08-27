@@ -38,6 +38,6 @@ u.run(5001)
 # nTEST: flow.uniform_vel
 # cd flow
 # rm -rf vcont.txt
-# udx.run -n 2 ./uniform_vel.py > /dev/null
+# udx.run --runargs "-n 2" ./uniform_vel.py > /dev/null
 # cat vcont.txt | awk '{print $1, $3}' > vcont.out.txt
 
