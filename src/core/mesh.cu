@@ -213,7 +213,7 @@ void MembraneMesh::computeInitialLengths()
     initialLengths.uploadToDevice(0);
 }
 
-float computeArea(float3 v0, float3 v1, float3 v2) {
+static float computeArea(float3 v0, float3 v1, float3 v2) {
     return 0.5f * length(cross(v1 - v0, v2 - v0));
 }
 

@@ -41,9 +41,8 @@ public:
     MembraneMesh(MembraneMesh&&) = default;
     MembraneMesh& operator=(MembraneMesh&&) = default;
 
-    void findAdjacent();
-
 protected:
+    void findAdjacent();
     void computeInitialLengths();
     void computeInitialAreas();
 };
@@ -69,16 +68,17 @@ struct MembraneMeshView : public MeshView
     int maxDegree;
 
     int *adjacent, *adjacent_second, *degrees;
-    float* initialLengths;
+    float *initialLengths, *initialAreas;
 
     MembraneMeshView(const MembraneMesh* m) : MeshView(m)
     {
         maxDegree = m->getMaxDegree();
 
-        adjacent = m->adjacent.devPtr();
+        adjacent        = m->adjacent.devPtr();
         adjacent_second = m->adjacent_second.devPtr();
-        degrees = m->degrees.devPtr();
-        initialLengths = m->initialLengths.devPtr();
+        degrees         = m->degrees.devPtr();
+        initialLengths  = m->initialLengths.devPtr();
+        initialAreas    = m->initialAreas.devPtr();
     }
 };
 
