@@ -11,7 +11,9 @@ from common.membrane_params import set_lina
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--stressFree', dest='stressFree', action='store_true')
+parser.add_argument('--fluctuations', dest='rnd', action='store_true')
 parser.set_defaults(stressFree=False)
+parser.set_defaults(rnd=False)
 args = parser.parse_args()
 
 dt = 0.001
@@ -30,7 +32,9 @@ prm_rbc = udx.Interactions.MembraneParameters()
 
 if prm_rbc:
     set_lina(1.0, prm_rbc)
-
+    prm_rbc.rnd = args.rnd
+    prm_rbc.dt = dt
+    
 int_rbc = udx.Interactions.MembraneForces("int_rbc", prm_rbc, stressFree=args.stressFree)
 vv = udx.Integrators.VelocityVerlet('vv', dt)
 u.registerIntegrator(vv)
@@ -38,8 +42,8 @@ u.setIntegrator(vv, pv_rbc)
 u.registerInteraction(int_rbc)
 u.setInteraction(int_rbc, pv_rbc, pv_rbc)
 
-# dump_mesh = udx.Plugins.createDumpMesh("mesh_dump", pv_rbc, 500, "ply/")
-# u.registerPlugins(dump_mesh)
+dump_mesh = udx.Plugins.createDumpMesh("mesh_dump", pv_rbc, 150, "ply/")
+u.registerPlugins(dump_mesh)
 
 u.run(5000)
 
@@ -58,4 +62,10 @@ if pv_rbc is not None:
 # cd membrane
 # cp ../../data/rbc_mesh.off .
 # udx.run --runargs "-n 2" ./rest.py --stressFree > /dev/null
+# mv pos.rbc.txt pos.rbc.out.txt 
+
+# nTEST: membrane.rest.fluctuations
+# cd membrane
+# cp ../../data/rbc_mesh.off .
+# udx.run --runargs "-n 2" ./rest.py --fluctuations > /dev/null
 # mv pos.rbc.txt pos.rbc.out.txt 
