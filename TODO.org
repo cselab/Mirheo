@@ -41,3 +41,18 @@
    CLOSED: [2018-08-24 Fri 12:30]
 ** DONE average can take multiple pvs
    CLOSED: [2018-08-24 Fri 11:43]
+* [0/5] tests
+** TODO contact: membranes, rigids, mixed
+** TODO fsi: membranes, rigids, mixed
+** TODO rigids
+** TODO bonce back: rigids, memebranes
+* [1/8] walls tests
+** TODO cylinder
+** TODO moving cylinder
+** TODO sphere
+** TODO box
+** TODO sdf
+** TODO couette
+** TODO oscilatory couette
+** DONE plane
+   CLOSED: [2018-08-28 Tue 10:00]
