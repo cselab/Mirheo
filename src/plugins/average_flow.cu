@@ -78,6 +78,8 @@ void Average3D::setup(Simulation* sim, const MPI_Comm& comm, const MPI_Comm& int
     }
 
     channelsInfo.averagePtrs.uploadToDevice(0);
+    channelsInfo.types.uploadToDevice(0);
+
 
     for (const auto& pvName : pvNames)
         pvs.push_back(sim->getPVbyNameOrDie(pvName));

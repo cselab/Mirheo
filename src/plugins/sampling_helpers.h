@@ -14,9 +14,8 @@ struct ChannelsInfo
             else info.dataPtrs[i] = (float*)pv->local()->extraPerParticle.getGenericPtr(info.names[i]);
         }
 
-        info.types.uploadToDevice(stream);
-        info.averagePtrs.uploadToDevice(stream);
         info.dataPtrs.uploadToDevice(stream);
+        CUDA_Check( cudaStreamSynchronize(stream) );
 
         n = info.n;
         types = info.types.devPtr();
