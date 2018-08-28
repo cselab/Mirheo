@@ -263,7 +263,7 @@ __global__ void computeSdfPerParticle(PVview view, float* sdfs, float3* gradient
 //===============================================================================================
 
 template<class InsideWallChecker>
-void SimpleStationaryWall<InsideWallChecker>::setup(MPI_Comm& comm, DomainInfo domain, ParticleVector* jointPV)
+void SimpleStationaryWall<InsideWallChecker>::setup(MPI_Comm& comm, DomainInfo domain)
 {
     info("Setting up wall %s", name.c_str());
 
@@ -275,10 +275,23 @@ void SimpleStationaryWall<InsideWallChecker>::setup(MPI_Comm& comm, DomainInfo d
     CUDA_Check( cudaDeviceSynchronize() );
 }
 
+template<class InsideWallChecker>
+void SimpleStationaryWall<InsideWallChecker>::attachFrozen(ParticleVector* pv)
+{
+    frozen = pv;
+    info("Wall '%s' will treat particle vector '%s' as frozen", name.c_str(), pv->name.c_str());
+}
 
 template<class InsideWallChecker>
 void SimpleStationaryWall<InsideWallChecker>::attach(ParticleVector* pv, CellList* cl)
 {
+    if (pv == frozen)
+    {
+        warn("Particle Vector '%s' declared as frozen for the wall '%s'. Bounce-back won't work",
+            pv->name.c_str(), name.c_str());
+        return;
+    }
+    
     if (dynamic_cast<PrimaryCellList*>(cl) == nullptr)
         die("PVs should only be attached to walls with the primary cell-lists! "
                 "Invalid combination: wall %s, pv %s", name.c_str(), pv->name.c_str());
@@ -316,6 +329,13 @@ void SimpleStationaryWall<InsideWallChecker>::attach(ParticleVector* pv, CellLis
 template<class InsideWallChecker>
 void SimpleStationaryWall<InsideWallChecker>::removeInner(ParticleVector* pv)
 {
+    if (pv == frozen)
+    {
+        warn("Particle Vector '%s' declared as frozen for the wall '%s'. Will not remove any particles from there",
+            pv->name.c_str(), name.c_str());
+        return;
+    }
+    
     CUDA_Check( cudaDeviceSynchronize() );
 
     PinnedBuffer<int> nRemaining(1);

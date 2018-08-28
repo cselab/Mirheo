@@ -27,7 +27,8 @@ public:
         SDF_basedWall(name), insideWallChecker(std::move(insideWallChecker))
     {    }
 
-    void setup(MPI_Comm& comm, DomainInfo domain, ParticleVector* jointPV) override;
+    void setup(MPI_Comm& comm, DomainInfo domain) override;
+    void attachFrozen(ParticleVector* pv) override;
 
     void removeInner(ParticleVector* pv) override;
     void attach(ParticleVector* pv, CellList* cl) override;
@@ -45,6 +46,7 @@ protected:
 
     InsideWallChecker insideWallChecker;
 
+    ParticleVector* frozen;
     std::vector<ParticleVector*> particleVectors;
     std::vector<CellList*> cellLists;
 

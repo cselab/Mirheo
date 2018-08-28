@@ -14,6 +14,11 @@ void exportWalls(py::module& m)
     py::handlers_class<Wall> pywall(m, "Wall", R"(
         Base wall class.
     )");
+        
+    pywall.def("attachFrozenParticles", &Wall::attachFrozen, R"(
+        Let the wall know that the following :any:`ParticleVector` should be treated as frozen.
+        As a result, its particles will not be removed from the inside of the wall.
+    )");
 
     py::handlers_class< SimpleStationaryWall<StationaryWall_Box> >(m, "Box", pywall, R"(
         Rectangular cuboid wall with edges aligned with the coordinate axes.

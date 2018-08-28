@@ -108,7 +108,7 @@ __global__ void imposeVelField(PVview view, const VelocityField velField)
 //===============================================================================================
 
 template<class InsideWallChecker, class VelocityField>
-void WallWithVelocity<InsideWallChecker, VelocityField>::setup(MPI_Comm& comm, DomainInfo domain, ParticleVector* jointPV)
+void WallWithVelocity<InsideWallChecker, VelocityField>::setup(MPI_Comm& comm, DomainInfo domain)
 {
     info("Setting up wall %s", this->name.c_str());
     this->domain = domain;
@@ -119,12 +119,17 @@ void WallWithVelocity<InsideWallChecker, VelocityField>::setup(MPI_Comm& comm, D
     this->insideWallChecker.setup(this->wallComm, domain);
     velField.setup(this->wallComm, domain);
 
-    if (jointPV == nullptr)
-        error("Moving wall requires that corresponding frozen particles are named the same as the wall '%s' itself", this->name.c_str());
-    else
+    CUDA_Check( cudaDeviceSynchronize() );
+}
+
+template<class InsideWallChecker, class VelocityField>
+void WallWithVelocity<InsideWallChecker, VelocityField>::attachFrozen(ParticleVector* pv)
+{
+    if (pv != nullptr)
     {
+        info("Wall '%s' will treat particle vector '%s' as frozen", this->name.c_str(), pv->name.c_str());
         const int nthreads = 128;
-        PVview view(jointPV, jointPV->local());
+        PVview view(pv, pv->local());
         SAFE_KERNEL_LAUNCH(
                 imposeVelField,
                 getNblocks(view.size, nthreads), nthreads, 0, 0,

@@ -19,7 +19,8 @@ public:
         velField(std::move(velField))
     {    }
 
-    void setup(MPI_Comm& comm, DomainInfo domain, ParticleVector* jointPV) override;
+    void setup(MPI_Comm& comm, DomainInfo domain) override;
+    void attachFrozen(ParticleVector* pv) override;
 
     void bounce(float dt, cudaStream_t stream) override;
 

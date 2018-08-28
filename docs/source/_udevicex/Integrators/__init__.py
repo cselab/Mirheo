@@ -60,6 +60,28 @@ class Rotate(Integrator):
         """
         pass
 
+class SubStepMembrane(Integrator):
+    r"""
+            Takes advantage of separation of time scales between membrane forces (fast forces) and other forces acting on the membrane (slow forces).
+            This integrator advances the membrane with constant slow forces for 'substeps' sub time steps.
+            The fast forces are updated after each sub step.
+            Positions and velocity are updated using an internal velocity verlet integrator.
+        
+    """
+    def __init__():
+        r"""__init__(name: str, dt: float, substeps: int, fastForces: Interactions.Interaction) -> None
+
+
+                Args:
+                    name: name of the integrator
+                    dt:   integration time-step
+                    substeps: number of sub steps
+                    fastForces: the fast interaction module. Only accepts `InteractionMembrane`!
+            
+
+        """
+        pass
+
 class Translate(Integrator):
     r"""
         Translate particles with a constant velocity :math:`\mathbf{u}` regardless forces acting on them.
