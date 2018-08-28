@@ -245,7 +245,7 @@ struct __align__(16) Force
         i = tmp.i;
     }
 
-    __HD__ inline float4 toFloat4()
+    __HD__ inline float4 toFloat4() const
     {
         return Float3_int{f, i}.toFloat4();
     }

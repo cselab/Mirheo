@@ -1,5 +1,9 @@
-* [3/5] Features
-** TODO [4/5] membrane
+* [4/7] Features
+** TODO more bending models for membranes
+** TODO adaptive time stepping
+** TODO membrane stretching force
+** DONE [4/4] membrane
+   CLOSED: [2018-08-28 Tue 15:22]
 *** DONE pass spring constant ks
     CLOSED: [2018-08-24 Fri 15:30]
 *** DONE [2/2] stress free
@@ -12,10 +16,8 @@
     CLOSED: [2018-08-27 Mon 15:54]
 *** DONE dissipation forces must be central
     CLOSED: [2018-08-27 Mon 15:54]
-*** TODO more bending models for membranes
 ** DONE separation of membrane time steps
    CLOSED: [2018-08-28 Tue 09:15]
-** TODO adaptive time stepping
 ** DONE velocity controller
    CLOSED: [2018-08-20 Mon 18:18]
 ** DONE plugin for recoloring particles: e.g. Hele shaw cell
