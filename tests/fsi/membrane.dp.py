@@ -71,8 +71,8 @@ u.registerIntegrator(vv_dp)
 u.setIntegrator(vv_dp, pv_flu)
 
 
-dump_mesh = udx.Plugins.createDumpMesh("mesh_dump", pv_rbc, (int)(0.15/dt), "ply/")
-u.registerPlugins(dump_mesh)
+# dump_mesh = udx.Plugins.createDumpMesh("mesh_dump", pv_rbc, (int)(0.15/dt), "ply/")
+# u.registerPlugins(dump_mesh)
 
 
 nsteps = (int) (tend/dt)
