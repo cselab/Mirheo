@@ -33,7 +33,7 @@ void exportWalls(py::module& m)
 
     )")
         .def(py::init(&WallFactory::createSphereWall),
-            "name"_a, "center"_a, "raduis"_a, "inside"_a = false, R"(
+            "name"_a, "center"_a, "radius"_a, "inside"_a = false, R"(
             Args:
                 name: name of the wall
                 center: sphere center
