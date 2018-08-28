@@ -60,5 +60,14 @@ for sample in all_fname:
     f.close()
 
 val_avg = val_avg / len(all_fname)
+
+D = val_avg.shape
+
+if len(D) >= 3:
+    newD = [D[0], D[1]]
+    for i in range(2,len(D)):
+        newD[1] = newD[1] * D[i]
+
+    val_avg=val_avg.reshape(newD)
     
 np.savetxt(sys.stdout, val_avg, "%g")
