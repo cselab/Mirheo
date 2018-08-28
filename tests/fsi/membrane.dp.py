@@ -5,12 +5,22 @@ import numpy as np
 
 import udevicex as udx
 
-import sys
+import sys, argparse
 sys.path.append("..")
 from common.membrane_params import set_lina
 
+parser = argparse.ArgumentParser()
+parser.add_argument('--substep', dest='substep', action='store_true')
+parser.set_defaults(substep=False)
+args = parser.parse_args()
+
+tend = 3.0
 dt = 0.001
 a = 1.0
+
+if args.substep:
+    substeps = 10
+    dt = dt * substeps
 
 ranks  = (1, 1, 1)
 domain = (12, 8, 10)
@@ -39,26 +49,34 @@ if prm_rbc:
 int_rbc = udx.Interactions.MembraneForces("int_rbc", prm_rbc, stressFree=True)
 
 u.registerInteraction(dpd)
-u.registerInteraction(int_rbc)
 
-u.setInteraction(int_rbc, pv_rbc, pv_rbc)
+if args.substep:
+    integrator = udx.Integrators.SubStepMembrane('substep_membrane', dt, substeps, int_rbc)
+    u.registerIntegrator(integrator)
+    u.setIntegrator(integrator, pv_rbc)
+else:
+    vv = udx.Integrators.VelocityVerlet('vv', dt)
+    u.registerInteraction(int_rbc)
+    u.setInteraction(int_rbc, pv_rbc, pv_rbc)
+    u.registerIntegrator(vv)
+    u.setIntegrator(vv, pv_rbc)
+
 u.setInteraction(dpd, pv_flu, pv_flu)
 u.setInteraction(dpd, pv_flu, pv_rbc)
 
 
-vv    = udx.Integrators.VelocityVerlet('vv', dt)
-vv_dp = udx.Integrators.VelocityVerlet_withPeriodicForce('vv_dp', dt=dt, force=a, direction='x')
-u.registerIntegrator(vv)
-u.registerIntegrator(vv_dp)
 
-u.setIntegrator(vv,    pv_rbc)
+vv_dp = udx.Integrators.VelocityVerlet_withPeriodicForce('vv_dp', dt=dt, force=a, direction='x')
+u.registerIntegrator(vv_dp)
 u.setIntegrator(vv_dp, pv_flu)
 
 
-# dump_mesh = udx.Plugins.createDumpMesh("mesh_dump", pv_rbc, 150, "ply/")
-# u.registerPlugins(dump_mesh)
+dump_mesh = udx.Plugins.createDumpMesh("mesh_dump", pv_rbc, (int)(0.15/dt), "ply/")
+u.registerPlugins(dump_mesh)
 
-u.run(3000)
+
+nsteps = (int) (tend/dt)
+u.run(nsteps)
 
 if pv_rbc is not None:
     rbc_pos = pv_rbc.getCoordinates()
@@ -70,4 +88,11 @@ if pv_rbc is not None:
 # rm -rf pos.rbc.out.txt pos.rbc.txt
 # cp ../../data/rbc_mesh.off .
 # udx.run --runargs "-n 2" ./membrane.dp.py > /dev/null
+# mv pos.rbc.txt pos.rbc.out.txt 
+
+# nTEST: fsi.membrane.dp.substep
+# cd fsi
+# rm -rf pos.rbc.out.txt pos.rbc.txt
+# cp ../../data/rbc_mesh.off .
+# udx.run --runargs "-n 2" ./membrane.dp.py --substep > /dev/null
 # mv pos.rbc.txt pos.rbc.out.txt 
