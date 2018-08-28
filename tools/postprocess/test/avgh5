@@ -1,13 +1,13 @@
 # TEST: avgh5.den.alldir
 udx.avgh5 xyz density data/h5/*.h5 > avg.out.txt
 
-# TEST: avgh5.den.xdir
+# TEST: avgh5.den.yzdir
 udx.avgh5 yz density data/h5/*.h5 > avg.out.txt
 
 # TEST: avgh5.vel.alldir
 udx.avgh5 xyz velocity data/h5/*.h5 > avg.out.txt
 
-# TEST: avgh5.vel.ydir
+# TEST: avgh5.vel.xzdir
 udx.avgh5 xz velocity data/h5/*.h5 > avg.out.txt
 
 # TEST: avgh5.vel.alldir.1step
