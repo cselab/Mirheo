@@ -46,15 +46,16 @@
 ** TODO fsi: membranes, rigids, mixed
 ** TODO rigids
 ** TODO bonce back: rigids, memebranes
-* [3/8] walls tests
-** DONE cylinder
-   CLOSED: [2018-08-28 Tue 14:07]
+* [4/8] walls tests
 ** TODO moving cylinder
-** DONE sphere
-   CLOSED: [2018-08-28 Tue 14:23]
-** TODO box
 ** TODO sdf
 ** TODO couette
 ** TODO oscilatory couette
+** DONE box
+   CLOSED: [2018-08-28 Tue 14:40]
+** DONE sphere
+   CLOSED: [2018-08-28 Tue 14:23]
+** DONE cylinder
+   CLOSED: [2018-08-28 Tue 14:07]
 ** DONE plane
    CLOSED: [2018-08-28 Tue 10:00]
