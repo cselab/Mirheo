@@ -11,7 +11,6 @@ using namespace pybind11::literals;
 
 void exportObjectBelongingCheckers(py::module& m)
 {
-    // Initial Conditions
     py::handlers_class<ObjectBelongingChecker> pycheck(m, "BelongingChecker", R"(
         Base class for checking if particles belong to objects
     )");
