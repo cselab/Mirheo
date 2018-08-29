@@ -19,14 +19,23 @@ void FromArrayIC::exec(const MPI_Comm& comm, ParticleVector *pv, DomainInfo doma
     
     auto coovelPtr = pv->local()->coosvels.hostPtr();
 
+    int count = 0;
     for (int i = 0; i < pos.size(); ++i) {
-        auto r = pos[i];
-        auto u = vel[i];
+        auto r_ = pos[i];
+        auto u_ = vel[i];
 
-        Particle p(make_float4(r[0], r[1], r[2], 0.f),
-                   make_float4(u[0], u[1], u[2], 0.f));
+        auto r = make_float3(r_[0], r_[1], r_[2]);
+        auto u = make_float3(u_[0], u_[1], u_[2]);
 
-        coovelPtr[i] = p;
+        if (domain.inSubDomain(r)) {
+            
+            Particle p(Float3_int(r, 0).toFloat4(),
+                       Float3_int(u, 0).toFloat4());
+
+            coovelPtr[count++] = p;
+        }
     }
+
+    pv->local()->resize(count, stream);
 }
 

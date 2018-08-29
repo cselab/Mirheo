@@ -31,8 +31,9 @@ u.setIntegrator(vv, pv)
 
 fakeOV = udx.ParticleVectors.RigidEllipsoidVector('OV', mass=1, object_size=2, semi_axes=axes)
 
-pos_lo = [-axes[0], -axes[1], -axes[2]]
-pos_hi = [ axes[0],  axes[1],  axes[2]]
+c = [0.5 * domain[0], 0.5 * domain[1], 0.5 * domain[2]]
+pos_lo = [c[0] - axes[0], c[1] - axes[1], c[2] - axes[2]]
+pos_hi = [c[0] + axes[0], c[1] + axes[1], c[2] + axes[2]]
 vel = [0, 0, 0]
 
 fakeIc = udx.InitialConditions.FromArray(pos=[pos_lo, pos_hi], vel=[vel, vel])
@@ -49,7 +50,7 @@ u.registerPlugins(xyz)
 
 u.run(5000)
 
-# sTEST: rigids.createEllipsoid
+# cTEST: rigids.createEllipsoid
 # cd rigids
 # rm -rf xyz
 # udx.run --runargs "-n 2" ./createEllipsoid.py --axes 2.0 2.0 2.0 --numdensity 8
