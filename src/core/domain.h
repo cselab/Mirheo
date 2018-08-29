@@ -17,4 +17,12 @@ struct DomainInfo
     {
         return x - globalStart - 0.5f * localSize;
     }
+
+    template <typename real3>
+    inline __HD__ bool inSubDomain(real3 xg) const
+    {
+        return (globalStart.x <= xg.x) && (xg.x < (globalStart.x + localSize.x))
+            && (globalStart.y <= xg.y) && (xg.y < (globalStart.y + localSize.y))
+            && (globalStart.z <= xg.z) && (xg.z < (globalStart.z + localSize.z));
+    }    
 };

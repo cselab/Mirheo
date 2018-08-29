@@ -62,9 +62,7 @@ void RigidIC::exec(const MPI_Comm& comm, ParticleVector* pv, DomainInfo domain, 
         motion.q = make_rigidReal4( make_float4(entry[3], entry[4], entry[5], entry[6]) );
         motion.q = normalize(motion.q);
 
-        if (ov->domain.globalStart.x <= motion.r.x && motion.r.x < ov->domain.globalStart.x + ov->domain.localSize.x &&
-            ov->domain.globalStart.y <= motion.r.y && motion.r.y < ov->domain.globalStart.y + ov->domain.localSize.y &&
-            ov->domain.globalStart.z <= motion.r.z && motion.r.z < ov->domain.globalStart.z + ov->domain.localSize.z)
+        if (ov->domain.inSubDomain(motion.r))
         {
             motion.r = make_rigidReal3( ov->domain.global2local(make_float3(motion.r)) );
             motions.resize(nObjs + 1);
