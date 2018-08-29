@@ -61,11 +61,13 @@
 *** TODO rigids
 *** TODO membranes
 *** TODO mixed
-* [4/8] walls tests
+* [6/8] walls tests
 ** TODO moving cylinder
 ** TODO sdf
-** TODO couette
-** TODO oscilatory couette
+** DONE couette
+   CLOSED: [2018-08-29 Wed 10:15]
+** DONE oscilatory couette
+   CLOSED: [2018-08-29 Wed 10:16]
 ** DONE box
    CLOSED: [2018-08-28 Tue 14:40]
 ** DONE sphere

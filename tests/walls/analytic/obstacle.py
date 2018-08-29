@@ -1,8 +1,7 @@
 #!/usr/bin/env python
 
-import udevicex as udx
-
 import argparse
+import udevicex as udx
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--type", choices=["cylinder", 'sphere'])

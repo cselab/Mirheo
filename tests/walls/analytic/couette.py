@@ -1,6 +1,11 @@
 #!/usr/bin/env python
 
+import argparse
 import udevicex as udx
+
+parser = argparse.ArgumentParser()
+parser.add_argument("--type", choices=["stationary", 'oscillating'])
+args = parser.parse_args()
 
 dt = 0.001
 
@@ -10,7 +15,8 @@ force = (1.0, 0, 0)
 
 density = 8
 rc      = 1.0
-gdot    = 0.5
+gdot    = 0.5 # shear rate
+T       = 2.0 # period for oscillating plate case
 tend    = 10.1
 
 u = udx.udevicex(ranks, domain, debug_level=3, log_filename='log')
@@ -24,7 +30,13 @@ u.registerInteraction(dpd)
 
 vx = gdot*(domain[2] - 2*rc)
 plate_lo = udx.Walls.Plane      ("plate_lo", normal=(0, 0, -1), pointThrough=(0, 0,              rc))
-plate_hi = udx.Walls.MovingPlane("plate_hi", normal=(0, 0,  1), pointThrough=(0, 0,  domain[2] - rc), velocity=(vx, 0, 0))
+
+if args.type == "oscillating":
+    period = (int)(T/dt)
+    plate_hi = udx.Walls.OscillatingPlane("plate_hi", normal=(0, 0,  1), pointThrough=(0, 0,  domain[2] - rc), velocity=(vx, 0, 0), period=period)
+else:
+    plate_hi = udx.Walls.MovingPlane("plate_hi", normal=(0, 0,  1), pointThrough=(0, 0,  domain[2] - rc), velocity=(vx, 0, 0))
+
 u.registerWall(plate_lo, 1000)
 u.registerWall(plate_hi, 1000)
 
@@ -57,5 +69,11 @@ u.run((int)(tend/dt))
 # nTEST: walls.analytic.couette
 # cd walls/analytic
 # rm -rf h5
-# udx.run --runargs "-n 2" ./couette.py > /dev/null
+# udx.run --runargs "-n 2" ./couette.py --type stationary > /dev/null
 # udx.avgh5 xy velocity h5/solvent-0000[7-9].h5 | awk '{print $1}' > profile.out.txt
+
+# nTEST: walls.analytic.couette.oscillating
+# cd walls/analytic
+# rm -rf h5
+# udx.run --runargs "-n 2" ./couette.py --type oscillating > /dev/null
+# udx.avgh5 xy velocity h5/solvent-00009.h5 | awk '{print $1}' > profile.out.txt
