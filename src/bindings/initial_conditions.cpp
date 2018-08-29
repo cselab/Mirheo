@@ -6,6 +6,7 @@
 #include <core/initial_conditions/rigid_ic.h>
 #include <core/initial_conditions/restart.h>
 #include <core/initial_conditions/membrane_ic.h>
+#include <core/initial_conditions/from_array.h>
 
 #include <core/utils/pytypes.h>
 
@@ -77,4 +78,15 @@ void exportInitialConditions(py::module& m)
                     All the membranes will be scaled by that value. Useful to implement membranes growth so that they
                     can fill the space with high volume fraction                                        
         )");
+
+    py::handlers_class<FromArrayIC>(m, "FromArray", pyic, R"(
+        Set particles according to given position and velocity arrays.            
+    )")
+        .def(py::init<const PyContainer&, const PyContainer&>(), "pos"_a, "vel"_a, R"(
+            Args:
+                pos: array of positions
+                vel: array of velocities
+        )");
+        
+
 }
