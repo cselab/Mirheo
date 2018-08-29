@@ -68,10 +68,10 @@ u.run(7002)
 # cd walls/analytic
 # rm -rf h5
 # udx.run --runargs "-n 2" ./obstacle.py --type cylinder > /dev/null
-# udx.avgh5 z velocity h5/solvent-0000[4-7].h5 | awk '{print $1}' > profile.out.txt
+# udx.avgh5 z velocity h5/solvent-0000[4-7].h5 > profile.out.txt
 
 # nTEST: walls.analytic.obstacle.sphere
 # cd walls/analytic
 # rm -rf h5
 # udx.run --runargs "-n 2" ./obstacle.py --type sphere > /dev/null
-# udx.avgh5 z velocity h5/solvent-0000[4-7].h5 | awk '{print $1}' > profile.out.txt
+# udx.avgh5 z velocity h5/solvent-0000[4-7].h5 > profile.out.txt
