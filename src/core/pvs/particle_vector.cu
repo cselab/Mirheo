@@ -61,12 +61,12 @@ std::vector<int> ParticleVector::getIndices_vector()
     return res;
 }
 
-ParticleVector::PyContainer ParticleVector::getCoordinates_vector()
+PyContainer ParticleVector::getCoordinates_vector()
 {
     auto& coosvels = local()->coosvels;
     coosvels.downloadFromDevice(0);
     
-    ParticleVector::PyContainer res(coosvels.size());
+    PyContainer res(coosvels.size());
     for (int i = 0; i < coosvels.size(); i++)
     {
         float3 r = domain.local2global(coosvels[i].r);
@@ -76,12 +76,12 @@ ParticleVector::PyContainer ParticleVector::getCoordinates_vector()
     return res;
 }
 
-ParticleVector::PyContainer ParticleVector::getVelocities_vector()
+PyContainer ParticleVector::getVelocities_vector()
 {
     auto& coosvels = local()->coosvels;
     coosvels.downloadFromDevice(0);
     
-    ParticleVector::PyContainer res(coosvels.size());
+    PyContainer res(coosvels.size());
     for (int i = 0; i < coosvels.size(); i++)
     {
         float3 u = coosvels[i].u;
@@ -91,12 +91,12 @@ ParticleVector::PyContainer ParticleVector::getVelocities_vector()
     return res;
 }
 
-ParticleVector::PyContainer ParticleVector::getForces_vector()
+PyContainer ParticleVector::getForces_vector()
 {
     HostBuffer<Force> forces;
     forces.copy(local()->forces, 0);
     
-    ParticleVector::PyContainer res(forces.size());
+    PyContainer res(forces.size());
     for (int i = 0; i < forces.size(); i++)
     {
         float3 f = forces[i].f;

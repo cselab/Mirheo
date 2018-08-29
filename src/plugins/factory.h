@@ -104,7 +104,7 @@ namespace PluginFactory
     }
 
     static std::pair< MembraneExtraForcePlugin*, PostprocessPlugin* >
-    createMembraneExtraForcePlugin(bool computeTask, std::string name, ParticleVector *pv, MembraneExtraForcePlugin::PyContainer forces)
+    createMembraneExtraForcePlugin(bool computeTask, std::string name, ParticleVector *pv, PyContainer forces)
     {
         auto simPl = computeTask ?
             new MembraneExtraForcePlugin(name, pv->name, forces) : nullptr;

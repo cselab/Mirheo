@@ -1,6 +1,7 @@
 #pragma once 
 
 #include <tuple>
+#include <array>
 #include <vector>
 #include <cuda_runtime.h>
 
@@ -42,3 +43,4 @@ inline int3 make_int3(pyint3 t3)
 
 
 using ICvector = std::vector<std::array<float, 7>>;
+using PyContainer = std::vector<std::array<float, 3>>;

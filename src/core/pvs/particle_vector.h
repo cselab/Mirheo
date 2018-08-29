@@ -4,6 +4,7 @@
 #include <core/datatypes.h>
 #include <core/containers.h>
 #include <core/domain.h>
+#include <core/utils/pytypes.h>
 
 #include "extra_data/extra_data_manager.h"
 
@@ -39,8 +40,6 @@ protected:
     LocalParticleVector *_local, *_halo;
     
 public:
-    
-    using PyContainer = std::vector<std::array<float, 3>>;
     
     DomainInfo domain;    
 
