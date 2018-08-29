@@ -36,7 +36,7 @@ public:
     void resize(const int np, cudaStream_t stream) override
     {
         if (np % objSize != 0)
-            die("Incorrect number of particles in object");
+            die("Incorrect number of particles in object: given %d, must be a multiple of %d", np, objSize);
 
         nObjects = np / objSize;
         LocalParticleVector::resize(np, stream);
