@@ -23,7 +23,7 @@ __global__ void addForce(OVview view, const Force *forces)
 }
 
 MembraneExtraForcePlugin::MembraneExtraForcePlugin(std::string name, std::string pvName,
-                                                   MembraneExtraForcePlugin::PyContainer forces) :
+                                                   const MembraneExtraForcePlugin::PyContainer &forces) :
     SimulationPlugin(name), pvName(pvName), forces(forces.size())
 {
     HostBuffer<Force> hostForces(forces.size());

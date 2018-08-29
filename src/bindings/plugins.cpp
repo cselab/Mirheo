@@ -126,6 +126,11 @@ void exportPlugins(py::module& m)
         A particle with position x, y, z has crossed the plane if ax + by + cz + d >= 0, where a, b, c and d are the coefficient 
         stored in the 'plane' variable
     )");
+    py::handlers_class<MembraneExtraForcePlugin>(m, "MembraneExtraForce", pysim, R"(
+        This plugin adds a given external force to a given membrane. 
+        The force is defined vertex wise and does not depend on position.
+        It is the same for all membranes belonging to the same particle vector.
+    )");
     
     
     py::handlers_class<PostprocessStats>(m, "PostprocessStats", pypost);
@@ -317,6 +322,15 @@ void exportPlugins(py::module& m)
             pv1: :class:`ParticleVector` source
             pv2: :class:`ParticleVector` destination
             plane: 4 coefficients for the plane equation ax + by + cz + d >= 0
+    )");
+    m.def("__createMembraneExtraForce", &PluginFactory::createMembraneExtraForcePlugin,
+          "compute_task"_a, "name"_a, "pv"_a, "forces"_a, R"(
+        Create :any:`MembraneExtraForce` plugin
+        
+        Args:
+            name: name of the plugin
+            pv: :class:`ParticleVector` to which the force should be added
+            forces: array of forces, one force (3 floats) per vertex in a single mesh
     )");
 }
 

@@ -19,6 +19,7 @@
 #include <plugins/exchange_pvs_flux_plane.h>
 #include <plugins/impose_velocity.h>
 #include <plugins/impose_profile.h>
+#include <plugins/membrane_extra_force.h>
 #include <plugins/pin_object.h>
 #include <plugins/add_force.h>
 #include <plugins/add_torque.h>
@@ -100,6 +101,15 @@ namespace PluginFactory
             new ExchangePVSFluxPlanePlugin(name, pv1->name, pv2->name, make_float4(plane)) : nullptr;
         
         return { simPl, nullptr };    
+    }
+
+    static std::pair< MembraneExtraForcePlugin*, PostprocessPlugin* >
+    createMembraneExtraForcePlugin(bool computeTask, std::string name, ParticleVector *pv, MembraneExtraForcePlugin::PyContainer forces)
+    {
+        auto simPl = computeTask ?
+            new MembraneExtraForcePlugin(name, pv->name, forces) : nullptr;
+
+        return { simPl, nullptr };
     }
 
     static std::pair< WallRepulsionPlugin*, PostprocessPlugin* >
