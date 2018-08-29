@@ -74,15 +74,17 @@ void Average3D::setup(Simulation* sim, const MPI_Comm& comm, const MPI_Comm& int
         channelsInfo.average[i].clear(0);
         channelsInfo.averagePtrs[i] = channelsInfo.average[i].devPtr();
 
-        allChannels += " ," + channelsInfo.names[i];
+        allChannels += ", " + channelsInfo.names[i];
     }
 
     channelsInfo.averagePtrs.uploadToDevice(0);
+    channelsInfo.types.uploadToDevice(0);
+
 
     for (const auto& pvName : pvNames)
         pvs.push_back(sim->getPVbyNameOrDie(pvName));
 
-    info("Plugin %s initialized for the %d PV and channels %s, resolution %dx%dx%d",
+    info("Plugin '%s' initialized for the %d PVs and channels %s, resolution %dx%dx%d",
          name.c_str(), pvs.size(), allChannels.c_str(),
          resolution.x, resolution.y, resolution.z);
 }

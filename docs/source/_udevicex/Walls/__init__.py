@@ -3,6 +3,17 @@ class Wall:
         Base wall class.
     
     """
+    def attachFrozenParticles():
+        r"""attachFrozenParticles(arg0: ParticleVectors.ParticleVector) -> None
+
+
+        Let the wall know that the following :any:`ParticleVector` should be treated as frozen.
+        As a result, its particles will not be removed from the inside of the wall.
+    
+
+        """
+        pass
+
 class Box(Wall):
     r"""
         Rectangular cuboid wall with edges aligned with the coordinate axes.
@@ -19,6 +30,17 @@ class Box(Wall):
                 high: higher corner of the box
                 inside: whether the domain is inside the box or outside of it
         
+
+        """
+        pass
+
+    def attachFrozenParticles():
+        r"""attachFrozenParticles(arg0: ParticleVectors.ParticleVector) -> None
+
+
+        Let the wall know that the following :any:`ParticleVector` should be treated as frozen.
+        As a result, its particles will not be removed from the inside of the wall.
+    
 
         """
         pass
@@ -43,6 +65,17 @@ class Cylinder(Wall):
         """
         pass
 
+    def attachFrozenParticles():
+        r"""attachFrozenParticles(arg0: ParticleVectors.ParticleVector) -> None
+
+
+        Let the wall know that the following :any:`ParticleVector` should be treated as frozen.
+        As a result, its particles will not be removed from the inside of the wall.
+    
+
+        """
+        pass
+
 class MovingPlane(Wall):
     r"""
         Planar wall that is moving along itself with constant velocity.
@@ -60,6 +93,17 @@ class MovingPlane(Wall):
                 pointThrough: point that belongs to the plane
                 velocity: wall velocity, should be orthogonal to the normal
         
+
+        """
+        pass
+
+    def attachFrozenParticles():
+        r"""attachFrozenParticles(arg0: ParticleVectors.ParticleVector) -> None
+
+
+        Let the wall know that the following :any:`ParticleVector` should be treated as frozen.
+        As a result, its particles will not be removed from the inside of the wall.
+    
 
         """
         pass
@@ -87,6 +131,17 @@ class OscillatingPlane(Wall):
         """
         pass
 
+    def attachFrozenParticles():
+        r"""attachFrozenParticles(arg0: ParticleVectors.ParticleVector) -> None
+
+
+        Let the wall know that the following :any:`ParticleVector` should be treated as frozen.
+        As a result, its particles will not be removed from the inside of the wall.
+    
+
+        """
+        pass
+
 class Plane(Wall):
     r"""
         Planar infinitely stretching wall. Inside is determined by the normal direction .
@@ -102,6 +157,17 @@ class Plane(Wall):
                 normal: wall normal, pointing *inside* the wall
                 pointThrough: point that belongs to the plane
         
+
+        """
+        pass
+
+    def attachFrozenParticles():
+        r"""attachFrozenParticles(arg0: ParticleVectors.ParticleVector) -> None
+
+
+        Let the wall know that the following :any:`ParticleVector` should be treated as frozen.
+        As a result, its particles will not be removed from the inside of the wall.
+    
 
         """
         pass
@@ -123,6 +189,17 @@ class RotatingCylinder(Wall):
                 omega: angular velocity of rotation along the cylinder axis
                 inside: whether the domain is inside the cylinder or outside of it
         
+
+        """
+        pass
+
+    def attachFrozenParticles():
+        r"""attachFrozenParticles(arg0: ParticleVectors.ParticleVector) -> None
+
+
+        Let the wall know that the following :any:`ParticleVector` should be treated as frozen.
+        As a result, its particles will not be removed from the inside of the wall.
+    
 
         """
         pass
@@ -153,6 +230,17 @@ class SDF(Wall):
         """
         pass
 
+    def attachFrozenParticles():
+        r"""attachFrozenParticles(arg0: ParticleVectors.ParticleVector) -> None
+
+
+        Let the wall know that the following :any:`ParticleVector` should be treated as frozen.
+        As a result, its particles will not be removed from the inside of the wall.
+    
+
+        """
+        pass
+
 class Sphere(Wall):
     r"""
         Spherical wall.
@@ -160,7 +248,7 @@ class Sphere(Wall):
     
     """
     def __init__():
-        r"""__init__(name: str, center: Tuple[float, float, float], raduis: float, inside: bool = False) -> None
+        r"""__init__(name: str, center: Tuple[float, float, float], radius: float, inside: bool = False) -> None
 
 
             Args:
@@ -169,6 +257,17 @@ class Sphere(Wall):
                 radius: sphere radius
                 inside: whether the domain is inside the sphere or outside of it
         
+
+        """
+        pass
+
+    def attachFrozenParticles():
+        r"""attachFrozenParticles(arg0: ParticleVectors.ParticleVector) -> None
+
+
+        Let the wall know that the following :any:`ParticleVector` should be treated as frozen.
+        As a result, its particles will not be removed from the inside of the wall.
+    
 
         """
         pass

@@ -129,7 +129,7 @@ protected:
     int myrank;
     MPI_Comm haloComm;
     bool gpuAwareMPI;
-    int singleCopyThreshold = (1<<20);
+    int singleCopyThreshold = 4000000;
 
     std::vector<ExchangeHelper*> helpers;
 

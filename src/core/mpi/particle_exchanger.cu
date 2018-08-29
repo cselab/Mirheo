@@ -27,7 +27,7 @@ void ExchangeHelper::makeOffsets(const PinnedBuffer<int>& sz, PinnedBuffer<int>&
 }
 
 ParticleExchanger::ParticleExchanger(MPI_Comm& comm, bool gpuAwareMPI) :
-        nActiveNeighbours(26), gpuAwareMPI(gpuAwareMPI), singleCopyThreshold(1<<18)
+        nActiveNeighbours(26), gpuAwareMPI(gpuAwareMPI)
 {
     MPI_Check( MPI_Comm_dup(comm, &haloComm) );
 
@@ -192,9 +192,14 @@ void ParticleExchanger::postRecv(ExchangeHelper* helper)
  */
 void ParticleExchanger::wait(ExchangeHelper* helper, cudaStream_t stream)
 {
+    std::string pvName = helper->name;
+
     auto rSizes   = helper->recvSizes.  hostPtr();
     auto rOffsets = helper->recvOffsets.hostPtr();
-    bool singleCopy = helper->sendBuf.size() < singleCopyThreshold;
+    bool singleCopy = helper->recvOffsets[27]*helper->datumSize < singleCopyThreshold;
+    
+    debug("Waiting to receive '%s' entities, single copy is %s, GPU aware MPI is %s",
+        pvName.c_str(), singleCopy ? "on" : "off", gpuAwareMPI ? "on" : "off");
     
     // Wait for all if we want to copy all at once
     if (singleCopy || gpuAwareMPI)
@@ -236,6 +241,9 @@ void ParticleExchanger::send(ExchangeHelper* helper, cudaStream_t stream)
     auto sSizes   = helper->sendSizes.  hostPtr();
     auto sOffsets = helper->sendOffsets.hostPtr();
     bool singleCopy = helper->sendBuf.size() < singleCopyThreshold;
+    
+    debug("Sending '%s' entities, single copy is %s, GPU aware MPI is %s",
+        pvName.c_str(), singleCopy ? "on" : "off", gpuAwareMPI ? "on" : "off");
 
     if (!gpuAwareMPI && singleCopy)
         helper->sendBuf.downloadFromDevice(stream);
@@ -275,7 +283,7 @@ void ParticleExchanger::send(ExchangeHelper* helper, cudaStream_t stream)
             totSent += sSizes[i];
         }
 
-    debug("Sent total %d %s entities", totSent, pvName.c_str());
+    debug("Sent total %d '%s' entities", totSent, pvName.c_str());
 }
 
 

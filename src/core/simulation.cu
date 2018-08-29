@@ -180,7 +180,7 @@ void Simulation::registerWall(std::shared_ptr<Wall> wall, int every)
     checkWallPrototypes.push_back(std::make_tuple(wall.get(), every));
 
     // Let the wall know the particle vector associated with it
-    wall->setup(cartComm, domain, getPVbyName(wall->name));
+    wall->setup(cartComm, domain);
 
     info("Registered wall '%s'", name.c_str());
 
@@ -497,14 +497,11 @@ void Simulation::prepareWalls()
     {
         auto wallPtr = wall.second.get();
 
-        // TODO: add a property to the PVs so that they are not considered by the wall removal
-
         // All the particles should be removed from within the wall,
         // even those that do not interact with it
-        // Only intrinsic wall particles need to remain
+        // Only frozen wall particles need to remain
         for (auto& anypv : particleVectors)
-            if (anypv->name != wallPtr->name)
-                wallPtr->removeInner(anypv.get());
+            wallPtr->removeInner(anypv.get());
     }
 }
 
