@@ -12,9 +12,10 @@ dt = 0.001
 axes = tuple(args.axes)
 
 ranks  = (1, 1, 1)
-domain = (3*axes[0], 3*axes[1], 3*axes[2])
+fact = 5
+domain = (fact*axes[0], fact*axes[1], fact*axes[2])
 
-u = udx.udevicex(ranks, domain, debug_level=8, log_filename='log')
+u = udx.udevicex(ranks, domain, debug_level=3, log_filename='log')
 
 pv = udx.ParticleVectors.ParticleVector('pv', mass = 1)
 ic = udx.InitialConditions.Uniform(density=args.numdensity)
@@ -28,24 +29,29 @@ vv = udx.Integrators.VelocityVerlet('vv', dt=dt)
 u.registerIntegrator(vv)
 u.setIntegrator(vv, pv)
 
-fakeObjectSize=2
-fakeOV = udx.ParticleVectors.RigidEllipsoidVector('OV', mass=1, object_size=fakeObjectSize, semi_axes=axes)
-fakeDensity = fakeObjectSize / (domain[0] * domain[1] * domain[2])
-fakeIc = udx.InitialConditions.Uniform(density=fakeDensity)
+fakeOV = udx.ParticleVectors.RigidEllipsoidVector('OV', mass=1, object_size=2, semi_axes=axes)
+
+pos_lo = [-axes[0], -axes[1], -axes[2]]
+pos_hi = [ axes[0],  axes[1],  axes[2]]
+vel = [0, 0, 0]
+
+fakeIc = udx.InitialConditions.FromArray(pos=[pos_lo, pos_hi], vel=[vel, vel])
 u.registerParticleVector(pv=fakeOV, ic=fakeIc)
 
-belongingChecker = udx.BelongingCheckers.Ellipsoid("ellipsoid checker")
+belongingChecker = udx.BelongingCheckers.Ellipsoid("ellipsoidChecker")
 
-pvEllipsoid = u.applyObjectBelongingChecker(belongingChecker, fakeOV, correct_every=10, inside="frozenEllipsoid")
+u.registerObjectBelongingChecker(belongingChecker, fakeOV)
 
-xyz = udx.Plugins.createDumpXYZ('xyz', pvEllipsoid, 1, "xyz/")
+pvEllipsoid = u.applyObjectBelongingChecker(belongingChecker, pv, correct_every=500, inside="frozenEllipsoid")
+
+xyz = udx.Plugins.createDumpXYZ('xyz', pvEllipsoid, 500, "xyz/")
 u.registerPlugins(xyz)
 
-u.run(5)
+u.run(5000)
 
 # sTEST: rigids.createEllipsoid
 # cd rigids
 # rm -rf xyz
-# udx.run --runargs "-n 2" ./createEllipsoid.py --axes 1.0 1.0 1.0 --numdensity 8
+# udx.run --runargs "-n 2" ./createEllipsoid.py --axes 2.0 2.0 2.0 --numdensity 8
 # echo TODO > xyz.out.txt
 
