@@ -1,7 +1,9 @@
-* [4/7] Features
+* [5/7] Features
 ** TODO more bending models for membranes
 ** TODO adaptive time stepping
-** TODO membrane stretching force
+** DONE membrane stretching force
+   CLOSED: [2018-08-29 Wed 09:19]
+   See membrane_extra_force.h in plugins
 ** DONE [4/4] membrane
    CLOSED: [2018-08-28 Tue 15:22]
 *** DONE pass spring constant ks
@@ -22,8 +24,8 @@
    CLOSED: [2018-08-20 Mon 18:18]
 ** DONE plugin for recoloring particles: e.g. Hele shaw cell
    CLOSED: [2018-08-23 Thu 17:46]
-* [1/3] Configuration
-** TODO mesh can be read from ply as well
+* [1/4] Configuration
+** TODO mesh can be input from python
 ** TODO choose what forces are computed for membranes
 ** DONE do not need to pass number of vertices for object vectors
    CLOSED: [2018-08-24 Fri 10:31]
