@@ -19,7 +19,7 @@ void exportUdevicex(py::module& m)
     py::class_<uDeviceX>(m, "udevicex", R"(
         Main coordination class, should only be one instance at a time
     )")
-        .def(py::init< pyint3, pyfloat3, std::string, int, int, std::string, bool >(),
+        .def(py::init< PyTypes::int3, PyTypes::float3, std::string, int, int, std::string, bool >(),
              py::return_value_policy::take_ownership,
              "nranks"_a, "domain"_a, "log_filename"_a="log", "debug_level"_a=3, 
              "checkpoint_every"_a=0, "restart_folder"_a="restart/", "cuda_aware_mpi"_a=false, R"(

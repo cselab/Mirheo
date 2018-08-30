@@ -9,7 +9,7 @@
 
 #include <core/rigid_kernels/rigid_motion.h>
 
-RigidIC::RigidIC(ICvector com_q, std::string xyzfname) :
+RigidIC::RigidIC(PyTypes::VectorOfFloat7 com_q, std::string xyzfname) :
     com_q(com_q), xyzfname(xyzfname)
 {   }
 

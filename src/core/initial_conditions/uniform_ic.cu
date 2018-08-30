@@ -103,6 +103,8 @@ void UniformIC::exec(const MPI_Comm& comm, ParticleVector* pv, DomainInfo domain
     MPI_Check( MPI_Exscan(&mycount, &totalCount, 1, MPI_INT, MPI_SUM, comm) );
     for (int i=0; i < pv->local()->size(); i++)
         pv->local()->coosvels[i].i1 += totalCount;
+    
+    //pv->createIndicesHost();
 
     pv->local()->coosvels.uploadToDevice(stream);
     pv->local()->extraPerParticle.getData<Particle>("old_particles")->copy(pv->local()->coosvels, stream);

@@ -4,7 +4,7 @@
 
 #include "from_array.h"
 
-FromArrayIC::FromArrayIC(const PyContainer &pos, const PyContainer &vel) :
+FromArrayIC::FromArrayIC(const PyTypes::VectorOfFloat3 &pos, const PyTypes::VectorOfFloat3 &vel) :
     pos(pos), vel(vel)
 {
     if (pos.size() != vel.size())

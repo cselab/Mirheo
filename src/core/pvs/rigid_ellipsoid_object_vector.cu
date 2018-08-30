@@ -3,7 +3,7 @@
 
 RigidEllipsoidObjectVector::RigidEllipsoidObjectVector(
     std::string name, float mass,
-    const int objSize, pyfloat3 axes, const int nObjects) :
+    const int objSize, PyTypes::float3 axes, const int nObjects) :
         RigidObjectVector(
                 name, mass,
                 mass*objSize / 5.0f * make_float3(

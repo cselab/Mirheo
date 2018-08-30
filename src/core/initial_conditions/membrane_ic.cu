@@ -7,7 +7,7 @@
 #include <core/pvs/membrane_vector.h>
 #include <core/rigid_kernels/integration.h>
 
-MembraneIC::MembraneIC(ICvector com_q, float globalScale) :
+MembraneIC::MembraneIC(PyTypes::VectorOfFloat7 com_q, float globalScale) :
     com_q(com_q), globalScale(globalScale)
 {    }
 

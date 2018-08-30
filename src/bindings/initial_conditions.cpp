@@ -46,7 +46,7 @@ void exportInitialConditions(py::module& m)
         according to the template .xyz file and then the objects will be translated/rotated according to the provided initial conditions.
             
     )")
-        .def(py::init<ICvector, std::string>(), "com_q"_a, "xyz_filename"_a, R"(
+        .def(py::init<PyTypes::VectorOfFloat7, std::string>(), "com_q"_a, "xyz_filename"_a, R"(
             Args:
                 com_q:
                     List describing location and rotation of the created objects.               
@@ -66,7 +66,7 @@ void exportInitialConditions(py::module& m)
         Can only be used with Membrane Object Vector, see :ref:`user-ic`. These IC will initialize the particles of each object
         according to the mesh associated with Membrane, and then the objects will be translated/rotated according to the provided initial conditions.
     )")
-        .def(py::init<ICvector, float>(), "com_q"_a, "global_scale"_a=1.0, R"(
+        .def(py::init<PyTypes::VectorOfFloat7, float>(), "com_q"_a, "global_scale"_a=1.0, R"(
             Args:
                 com_q:
                     List describing location and rotation of the created objects.               
@@ -82,7 +82,7 @@ void exportInitialConditions(py::module& m)
     py::handlers_class<FromArrayIC>(m, "FromArray", pyic, R"(
         Set particles according to given position and velocity arrays.            
     )")
-        .def(py::init<const PyContainer&, const PyContainer&>(), "pos"_a, "vel"_a, R"(
+        .def(py::init<const PyTypes::VectorOfFloat3&, const PyTypes::VectorOfFloat3&>(), "pos"_a, "vel"_a, R"(
             Args:
                 pos: array of positions
                 vel: array of velocities

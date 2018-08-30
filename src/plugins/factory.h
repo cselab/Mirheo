@@ -31,7 +31,7 @@ namespace PluginFactory
     static std::pair< ImposeVelocityPlugin*, PostprocessPlugin* >
         createImposeVelocityPlugin(bool computeTask, 
             std::string name, ParticleVector* pv, int every,
-            pyfloat3 low, pyfloat3 high, pyfloat3 velocity)
+            PyTypes::float3 low, PyTypes::float3 high, PyTypes::float3 velocity)
     {
         auto simPl = computeTask ? new ImposeVelocityPlugin(
                                         name, pv->name, make_float3(low), make_float3(high), make_float3(velocity), every) :
@@ -48,14 +48,14 @@ namespace PluginFactory
     }
 
     static std::pair< AddForcePlugin*, PostprocessPlugin* >
-        createAddForcePlugin(bool computeTask, std::string name, ParticleVector* pv, pyfloat3 force)
+        createAddForcePlugin(bool computeTask, std::string name, ParticleVector* pv, PyTypes::float3 force)
     {
         auto simPl = computeTask ? new AddForcePlugin(name, pv->name, make_float3(force)) : nullptr;
         return { simPl, nullptr };
     }
 
     static std::pair< AddTorquePlugin*, PostprocessPlugin* >
-        createAddTorquePlugin(bool computeTask, std::string name, ParticleVector* pv, pyfloat3 torque)
+        createAddTorquePlugin(bool computeTask, std::string name, ParticleVector* pv, PyTypes::float3 torque)
     {
         auto simPl = computeTask ? new AddTorquePlugin(name, pv->name, make_float3(torque)) : nullptr;
         return { simPl, nullptr };
@@ -63,7 +63,7 @@ namespace PluginFactory
 
     static std::pair< ImposeProfilePlugin*, PostprocessPlugin* >
         createImposeProfilePlugin(bool computeTask,  std::string name, ParticleVector* pv, 
-                                   pyfloat3 low, pyfloat3 high, pyfloat3 velocity, float kbt)
+                                   PyTypes::float3 low, PyTypes::float3 high, PyTypes::float3 velocity, float kbt)
     {
         auto simPl = computeTask ? new ImposeProfilePlugin(
             name, pv->name, make_float3(low), make_float3(high), make_float3(velocity), kbt) : nullptr;
@@ -73,8 +73,8 @@ namespace PluginFactory
 
     static std::pair< SimulationVelocityControl*, PostprocessVelocityControl* >
     createSimulationVelocityControlPlugin(bool computeTask, std::string name, std::string filename, std::vector<ParticleVector*> pvs,
-                                          pyfloat3 low, pyfloat3 high, int sampleEvery, int dumpEvery,
-                                          pyfloat3 targetVel, float Kp, float Ki, float Kd)
+                                          PyTypes::float3 low, PyTypes::float3 high, int sampleEvery, int dumpEvery,
+                                          PyTypes::float3 targetVel, float Kp, float Ki, float Kd)
     {
         std::vector<std::string> pvNames;
 
@@ -95,7 +95,7 @@ namespace PluginFactory
     }
 
     static std::pair< ExchangePVSFluxPlanePlugin*, PostprocessPlugin* >
-    createExchangePVSFluxPlanePlugin(bool computeTask, std::string name, ParticleVector *pv1, ParticleVector *pv2, pyfloat4 plane)
+    createExchangePVSFluxPlanePlugin(bool computeTask, std::string name, ParticleVector *pv1, ParticleVector *pv2, PyTypes::float4 plane)
     {
         auto simPl = computeTask ?
             new ExchangePVSFluxPlanePlugin(name, pv1->name, pv2->name, make_float4(plane)) : nullptr;
@@ -104,7 +104,7 @@ namespace PluginFactory
     }
 
     static std::pair< MembraneExtraForcePlugin*, PostprocessPlugin* >
-    createMembraneExtraForcePlugin(bool computeTask, std::string name, ParticleVector *pv, PyContainer forces)
+    createMembraneExtraForcePlugin(bool computeTask, std::string name, ParticleVector *pv, PyTypes::VectorOfFloat3 forces)
     {
         auto simPl = computeTask ?
             new MembraneExtraForcePlugin(name, pv->name, forces) : nullptr;
@@ -133,7 +133,7 @@ namespace PluginFactory
 
     static std::pair< Average3D*, UniformCartesianDumper* >
     createDumpAveragePlugin(bool computeTask, std::string name, std::vector<ParticleVector*> pvs,
-                                int sampleEvery, int dumpEvery, pyfloat3 binSize,
+                                int sampleEvery, int dumpEvery, PyTypes::float3 binSize,
                                 std::vector< std::pair<std::string, std::string> > channels,
                                 std::string path)
     {
@@ -169,7 +169,7 @@ namespace PluginFactory
     static std::pair< AverageRelative3D*, UniformCartesianDumper* >
     createDumpAverageRelativePlugin(bool computeTask, std::string name, std::vector<ParticleVector*> pvs,
                                         ObjectVector* relativeToOV, int relativeToId,
-                                        int sampleEvery, int dumpEvery, pyfloat3 binSize,
+                                        int sampleEvery, int dumpEvery, PyTypes::float3 binSize,
                                         std::vector< std::pair<std::string, std::string> > channels,
                                         std::string path)
     {
@@ -234,7 +234,7 @@ namespace PluginFactory
     static std::pair< PinObjectPlugin*, ReportPinObjectPlugin* >
         createPinObjPlugin(bool computeTask, std::string name, ObjectVector* ov,
                            int dumpEvery, std::string path,
-                           pyint3 pinTranslation, pyint3 pinRotation)
+                           PyTypes::int3 pinTranslation, PyTypes::int3 pinRotation)
     {
         auto simPl  = computeTask ? new PinObjectPlugin(name, ov->name,
                                                         make_int3(pinTranslation), make_int3(pinRotation),

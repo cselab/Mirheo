@@ -92,7 +92,7 @@ void exportParticleVectors(py::module& m)
         Rigid Object is an Object Vector representing objects that move as rigid bodies, with no relative displacement against each other in an object.
         It must have a triangular mesh associated with it that defines the shape of the object.
     )")
-        .def(py::init<std::string, float, pyfloat3, int, std::shared_ptr<Mesh>>(),
+        .def(py::init<std::string, float, PyTypes::float3, int, std::shared_ptr<Mesh>>(),
              "name"_a, "mass"_a, "inertia"_a, "object_size"_a, "mesh"_a, R"( 
                 Args:
                     name: name of the created PV 
@@ -106,7 +106,7 @@ void exportParticleVectors(py::module& m)
         Rigid Ellipsoid is the same as the Rigid Object except that it can only represent ellipsoidal shapes.
         The advantage is that it doesn't need mesh and moment of inertia define, as those can be computed analytically.
     )")
-        .def(py::init<std::string, float, int, pyfloat3>(),
+        .def(py::init<std::string, float, int, PyTypes::float3>(),
              "name"_a, "mass"_a, "object_size"_a, "semi_axes"_a, R"(
                 Args:
                     name: name of the created PV 
