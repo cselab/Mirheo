@@ -23,7 +23,7 @@ namespace IntegratorFactory
         return  new IntegratorVV<Forcing_None> (name, dt, forcing);
     }
 
-    static IntegratorVV<Forcing_ConstDP>* createVV_constDP(std::string name, float dt, pyfloat3 extraForce)
+    static IntegratorVV<Forcing_ConstDP>* createVV_constDP(std::string name, float dt, PyTypes::float3 extraForce)
     {
         Forcing_ConstDP forcing(make_float3(extraForce));
         return  new IntegratorVV<Forcing_ConstDP>(name, dt, forcing);
@@ -42,17 +42,17 @@ namespace IntegratorFactory
         return  new IntegratorVV<Forcing_PeriodicPoiseuille>(name, dt, forcing);
     }
 
-    static IntegratorConstOmega* createConstOmega(std::string name, float dt, pyfloat3 center, pyfloat3 omega)
+    static IntegratorConstOmega* createConstOmega(std::string name, float dt, PyTypes::float3 center, PyTypes::float3 omega)
     {
         return  new IntegratorConstOmega(name, dt, make_float3(center), make_float3(omega));
     }
 
-    static IntegratorTranslate* createTranslate(std::string name, float dt, pyfloat3 velocity)
+    static IntegratorTranslate* createTranslate(std::string name, float dt, PyTypes::float3 velocity)
     {
         return  new IntegratorTranslate(name, dt, make_float3(velocity));
     }
 
-    static IntegratorOscillate* createOscillating(std::string name, float dt, pyfloat3 velocity, float period)
+    static IntegratorOscillate* createOscillating(std::string name, float dt, PyTypes::float3 velocity, float period)
     {
         return  new IntegratorOscillate(name, dt, make_float3(velocity), period);
     }

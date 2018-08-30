@@ -22,7 +22,7 @@ RigidObjectVector::RigidObjectVector(std::string name, float partMass,
 }
 
 RigidObjectVector::RigidObjectVector(std::string name, float partMass,
-                                     pyfloat3 J, const int objSize,
+                                     PyTypes::float3 J, const int objSize,
                                      std::shared_ptr<Mesh> mesh, const int nObjects) :
         RigidObjectVector( name, partMass, make_float3(J), objSize, mesh, nObjects )
 {   }

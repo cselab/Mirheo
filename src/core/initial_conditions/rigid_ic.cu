@@ -9,7 +9,7 @@
 
 #include <core/rigid_kernels/rigid_motion.h>
 
-void static readXYZ(std::string fname, PyContainer& positions)
+void static readXYZ(std::string fname, PyTypes::VectorOfFloat3& positions)
 {
     enum {X=0, Y=1, Z=2};
     int n;
@@ -30,20 +30,20 @@ void static readXYZ(std::string fname, PyContainer& positions)
         fin >> dummy >> positions[i][X] >> positions[i][Y] >> positions[i][Z];
 }
 
-RigidIC::RigidIC(ICvector com_q, std::string xyzfname) :
+RigidIC::RigidIC(PyTypes::VectorOfFloat7 com_q, std::string xyzfname) :
     com_q(com_q)
 {
     readXYZ(xyzfname, coords);
 }
 
-RigidIC::RigidIC(ICvector com_q, const PyContainer& coords) :
+RigidIC::RigidIC(PyTypes::VectorOfFloat7 com_q, const PyTypes::VectorOfFloat3& coords) :
     com_q(com_q), coords(coords)
 {}
 
 RigidIC::~RigidIC() = default;
 
 
-static void copyToPinnedBuffer(const PyContainer& in, PinnedBuffer<float4>& out, cudaStream_t stream)
+static void copyToPinnedBuffer(const PyTypes::VectorOfFloat3& in, PinnedBuffer<float4>& out, cudaStream_t stream)
 {
     enum {X=0, Y=1, Z=2};
     out.resize_anew(in.size());
@@ -63,7 +63,6 @@ void RigidIC::exec(const MPI_Comm& comm, ParticleVector* pv, DomainInfo domain, 
     pv->domain = domain;
 
     copyToPinnedBuffer(coords, ov->initialPositions, stream);
-
     if (ov->objSize != ov->initialPositions.size())
         die("Object size and XYZ initial conditions don't match in size for '%s': %d vs %d",
                 ov->name.c_str(), ov->objSize, ov->initialPositions.size());

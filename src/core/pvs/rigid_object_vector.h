@@ -30,7 +30,7 @@ public:
     /// The axes should be aligned with ox, oy, oz when q = {1 0 0 0}
     float3 J;
 
-    RigidObjectVector(std::string name, float partMass, pyfloat3 J, const int objSize,
+    RigidObjectVector(std::string name, float partMass, PyTypes::float3 J, const int objSize,
                       std::shared_ptr<Mesh> mesh, const int nObjects = 0);
 
     LocalRigidObjectVector* local() { return static_cast<LocalRigidObjectVector*>(_local); }

@@ -83,7 +83,7 @@ void exportWalls(py::module& m)
         Therefore the boundary is defined by the zero-level isosurface.
     )")
         .def(py::init(&WallFactory::createSDFWall),
-            "name"_a, "sdfFilename"_a, "h"_a = pyfloat3{0.25, 0.25, 0.25}, R"(
+            "name"_a, "sdfFilename"_a, "h"_a = PyTypes::float3{0.25, 0.25, 0.25}, R"(
             Args:
                 name: name of the wall
                 sdfFilename: lower corner of the box

@@ -23,7 +23,7 @@ class PostprocessPlugin;
 class uDeviceX
 {
 public:
-    uDeviceX(pyint3 nranks3D, pyfloat3 globalDomainSize,
+    uDeviceX(PyTypes::int3 nranks3D, PyTypes::float3 globalDomainSize,
              std::string logFileName, int verbosity,
              int checkpointEvery=0, std::string restartFolder="restart/", bool gpuAwareMPI=false);
 

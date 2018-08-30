@@ -12,7 +12,7 @@
 class MembraneIC : public InitialConditions
 {
 public:
-    MembraneIC(ICvector com_q, float globalScale = 1.0f);
+    MembraneIC(PyTypes::VectorOfFloat7 com_q, float globalScale = 1.0f);
 
     void exec(const MPI_Comm& comm, ParticleVector* pv, DomainInfo domain, cudaStream_t stream) override;
 
@@ -20,5 +20,5 @@ public:
 
 private:
     float globalScale;
-    ICvector com_q;
+    PyTypes::VectorOfFloat7 com_q;
 };

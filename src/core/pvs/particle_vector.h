@@ -69,13 +69,16 @@ public:
     // Python getters / setters
     // Use default blocking stream
     std::vector<int> getIndices_vector();
-    PyContainer getCoordinates_vector();
-    PyContainer getVelocities_vector();
-    PyContainer getForces_vector();
+    PyTypes::VectorOfFloat3 getCoordinates_vector();
+    PyTypes::VectorOfFloat3 getVelocities_vector();
+    PyTypes::VectorOfFloat3 getForces_vector();
     
-    void setCoordinates_vector(PyContainer& coordinates);
-    void setVelocities_vector(PyContainer& velocities);
-    void setForces_vector(PyContainer& forces);
+    void setCoosVels_globally(PyTypes::VectorOfFloat6& coosvels, cudaStream_t stream=0);
+    void createIndicesHost();
+
+    void setCoordinates_vector(PyTypes::VectorOfFloat3& coordinates);
+    void setVelocities_vector(PyTypes::VectorOfFloat3& velocities);
+    void setForces_vector(PyTypes::VectorOfFloat3& forces);
     
     
     virtual ~ParticleVector();

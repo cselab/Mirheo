@@ -25,21 +25,21 @@ class CellList;
 namespace WallFactory
 {
     static SimpleStationaryWall<StationaryWall_Sphere>*
-        createSphereWall(std::string name, pyfloat3 center, float radius, bool inside)
+        createSphereWall(std::string name, PyTypes::float3 center, float radius, bool inside)
     {
         StationaryWall_Sphere sphere(make_float3(center), radius, inside);
         return new SimpleStationaryWall<StationaryWall_Sphere> (name, std::move(sphere));
     }
 
     static SimpleStationaryWall<StationaryWall_Box>*
-        createBoxWall(std::string name, pyfloat3 low, pyfloat3 high, bool inside)
+        createBoxWall(std::string name, PyTypes::float3 low, PyTypes::float3 high, bool inside)
     {
         StationaryWall_Box box(make_float3(low), make_float3(high), inside);
         return new SimpleStationaryWall<StationaryWall_Box> (name, std::move(box));
     }
 
     static SimpleStationaryWall<StationaryWall_Cylinder>*
-        createCylinderWall(std::string name, pyfloat2 center, float radius, std::string axis, bool inside)
+        createCylinderWall(std::string name, PyTypes::float2 center, float radius, std::string axis, bool inside)
     {
         StationaryWall_Cylinder::Direction dir;
         if (axis == "x") dir = StationaryWall_Cylinder::Direction::x;
@@ -51,14 +51,14 @@ namespace WallFactory
     }
 
     static SimpleStationaryWall<StationaryWall_Plane>* 
-        createPlaneWall(std::string name, pyfloat3 normal, pyfloat3 pointThrough)
+        createPlaneWall(std::string name, PyTypes::float3 normal, PyTypes::float3 pointThrough)
     {
         StationaryWall_Plane plane(normalize(make_float3(normal)), make_float3(pointThrough));
         return new SimpleStationaryWall<StationaryWall_Plane> (name, std::move(plane));
     }
 
     static SimpleStationaryWall<StationaryWall_SDF>*
-        createSDFWall(std::string name, std::string sdfFilename, pyfloat3 h)
+        createSDFWall(std::string name, std::string sdfFilename, PyTypes::float3 h)
     {
         StationaryWall_SDF sdf(sdfFilename, make_float3(h));
         return new SimpleStationaryWall<StationaryWall_SDF> (name, std::move(sdf));
@@ -67,7 +67,7 @@ namespace WallFactory
     // Moving walls
 
     static WallWithVelocity<StationaryWall_Cylinder, VelocityField_Rotate>*
-        createMovingCylinderWall(std::string name, pyfloat2 _center, float radius, std::string axis, float omega, bool inside)
+        createMovingCylinderWall(std::string name, PyTypes::float2 _center, float radius, std::string axis, float omega, bool inside)
     {
         float2 center = make_float2(_center);
         
@@ -101,7 +101,7 @@ namespace WallFactory
     }
 
     static WallWithVelocity<StationaryWall_Plane, VelocityField_Translate>*
-        createMovingPlaneWall(std::string name, pyfloat3 normal, pyfloat3 pointThrough, pyfloat3 velocity)
+        createMovingPlaneWall(std::string name, PyTypes::float3 normal, PyTypes::float3 pointThrough, PyTypes::float3 velocity)
     {
         StationaryWall_Plane plane(normalize(make_float3(normal)), make_float3(pointThrough));
         VelocityField_Translate translate(make_float3(velocity));
@@ -109,7 +109,7 @@ namespace WallFactory
     }
 
     static WallWithVelocity<StationaryWall_Plane, VelocityField_Oscillate>*
-        createOscillatingPlaneWall(std::string name, pyfloat3 normal, pyfloat3 pointThrough, pyfloat3 velocity, float period)
+        createOscillatingPlaneWall(std::string name, PyTypes::float3 normal, PyTypes::float3 pointThrough, PyTypes::float3 velocity, float period)
     {
         StationaryWall_Plane plane(normalize(make_float3(normal)), make_float3(pointThrough));
         VelocityField_Oscillate osc(make_float3(velocity), period);

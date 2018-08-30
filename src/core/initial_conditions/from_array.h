@@ -6,10 +6,10 @@
 class FromArrayIC : public InitialConditions
 {
 private:
-    PyContainer pos, vel;
+    PyTypes::VectorOfFloat3 pos, vel;
 
 public:
-    FromArrayIC(const PyContainer &pos, const PyContainer &vel);
+    FromArrayIC(const PyTypes::VectorOfFloat3 &pos, const PyTypes::VectorOfFloat3 &vel);
 
     void exec(const MPI_Comm& comm, ParticleVector *pv, DomainInfo domain, cudaStream_t stream) override;
 };
