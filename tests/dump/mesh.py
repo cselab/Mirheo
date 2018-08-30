@@ -2,8 +2,6 @@
 
 import udevicex as udx
 
-dt = 0.001
-
 ranks  = (1, 1, 1)
 domain = (12, 8, 10)
 
