@@ -23,8 +23,15 @@ u.registerPlugins(xyz)
 
 u.run(2)
 
-# nTEST: ic.fromArray
+if pv:
+    icpos = pv.getCoordinates()
+    icvel = pv.getVelocities()
+    np.savetxt("pos.ic.txt", icpos)
+    np.savetxt("vel.ic.txt", icvel)
+    
+
+# TEST: ic.fromArray
 # cd ic
-# rm -rf xyz/ xyz.out.txt
+# rm -rf pos*.txt vel*.txt
 # udx.run --runargs "-n 2" ./fromArray.py > /dev/null
-# tail -n +3 xyz/pv_00000.xyz | sort > xyz.out.txt
+# paste pos.ic.txt vel.ic.txt | sort > ic.out.txt
