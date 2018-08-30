@@ -18,7 +18,7 @@ ic = udx.InitialConditions.Rigid(com_q=com_q, coords=coords)
 u.registerParticleVector(pv=OV, ic=ic)
 
 
-ovStats = udx.Plugins. createDumpObjectStats("objStats", ov=OV, dump_every=1, path="stats")
+ovStats = udx.Plugins.createDumpObjectStats("objStats", ov=OV, dump_every=1, path="stats")
 u.registerPlugins(ovStats)
 
 u.run(2)
