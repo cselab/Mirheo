@@ -11,7 +11,7 @@
 
 void static readXYZ(std::string fname, PyContainer& positions)
 {
-    enum {X, Y, Z};
+    enum {X=0, Y=1, Z=2};
     int n;
     float dummy;
     std::string line;
@@ -30,31 +30,29 @@ void static readXYZ(std::string fname, PyContainer& positions)
         fin >> dummy >> positions[i][X] >> positions[i][Y] >> positions[i][Z];
 }
 
-static void copyToPinnedBuffer(const PyContainer& in, PinnedBuffer<float4>& out, cudaStream_t stream)
-{
-    enum {X, Y, Z};
-    out.resize_anew(in.size());
-
-    for (int i = 0; i < in.size(); ++i) {
-        out[i].x = in[i][X];
-        out[i].y = in[i][Y];
-        out[i].z = in[i][Z];
-    }
-        
-    out.uploadToDevice(stream);    
-}
-
 RigidIC::RigidIC(ICvector com_q, std::string xyzfname) :
     com_q(com_q)
 {
     readXYZ(xyzfname, coords);
 }
 
-RigidIC::RigidIC(ICvector com_q, PyContainer coords) :
+RigidIC::RigidIC(ICvector com_q, const PyContainer& coords) :
     com_q(com_q), coords(coords)
 {}
 
 RigidIC::~RigidIC() = default;
+
+
+static void copyToPinnedBuffer(const PyContainer& in, PinnedBuffer<float4>& out, cudaStream_t stream)
+{
+    enum {X=0, Y=1, Z=2};
+    out.resize_anew(in.size());
+
+    for (int i = 0; i < in.size(); ++i)
+        out[i] = make_float4(in[i][X], in[i][Y], in[i][Z], 0);
+        
+    out.uploadToDevice(stream);    
+}
 
 void RigidIC::exec(const MPI_Comm& comm, ParticleVector* pv, DomainInfo domain, cudaStream_t stream)
 {

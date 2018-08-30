@@ -58,9 +58,24 @@ void exportInitialConditions(py::module& m)
                     Template that describes the positions of the body particles before translation or        
                     rotation is applied. Standard .xyz file format is used with first line being             
                     the number of particles, second comment, third and onwards - particle coordinates.       
-                    The number of particles in the file should be the same as in number of particles per object
-                    in the corresponding PV                                                        
+                    The number of particles in the file must be the same as in number of particles per object
+                    in the corresponding PV
+        )")
+        .def(py::init<ICvector, const PyContainer&>(), "com_q"_a, "coords"_a, R"(
+            Args:
+                com_q:
+                    List describing location and rotation of the created objects.               
+                    One entry in the list corresponds to one object created.                          
+                    Each entry consist of 7 floats: *<com_x> <com_y> <com_z>  <q_x> <q_y> <q_z> <q_w>*, where    
+                    *com* is the center of mass of the object, *q* is the quaternion of its rotation,
+                    not necessarily normalized 
+                coords:
+                    Template that describes the positions of the body particles before translation or        
+                    rotation is applied.       
+                    The number of coordinates must be the same as in number of particles per object
+                    in the corresponding PV
         )");
+    
         
     py::handlers_class<MembraneIC>(m, "Membrane", pyic, R"(
         Can only be used with Membrane Object Vector, see :ref:`user-ic`. These IC will initialize the particles of each object

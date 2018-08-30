@@ -12,7 +12,7 @@ private:
 
 public:
     RigidIC(ICvector com_q, std::string xyzfname);
-    RigidIC(ICvector com_q, PyContainer coords);
+    RigidIC(ICvector com_q, const PyContainer& coords);
 
     void exec(const MPI_Comm& comm, ParticleVector* pv, DomainInfo domain, cudaStream_t stream) override;
 
