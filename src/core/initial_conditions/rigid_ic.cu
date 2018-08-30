@@ -9,15 +9,9 @@
 
 #include <core/rigid_kernels/rigid_motion.h>
 
-RigidIC::RigidIC(ICvector com_q, std::string xyzfname) :
-    com_q(com_q), xyzfname(xyzfname)
-{   }
-
-RigidIC::~RigidIC() = default;
-
-
-void static readXYZ(std::string fname, PinnedBuffer<float4>& positions, cudaStream_t stream)
+void static readXYZ(std::string fname, PyContainer& positions)
 {
+    enum {X, Y, Z};
     int n;
     float dummy;
     std::string line;
@@ -31,12 +25,36 @@ void static readXYZ(std::string fname, PinnedBuffer<float4>& positions, cudaStre
     std::getline(fin, line);
     std::getline(fin, line);
 
-    positions.resize_anew(n);
+    positions.resize(n);
     for (int i=0; i<n; i++)
-        fin >> dummy >> positions[i].x >>positions[i].y >>positions[i].z;
-
-    positions.uploadToDevice(stream);
+        fin >> dummy >> positions[i][X] >> positions[i][Y] >> positions[i][Z];
 }
+
+static void copyToPinnedBuffer(const PyContainer& in, PinnedBuffer<float4>& out, cudaStream_t stream)
+{
+    enum {X, Y, Z};
+    out.resize_anew(in.size());
+
+    for (int i = 0; i < in.size(); ++i) {
+        out[i].x = in[i][X];
+        out[i].y = in[i][Y];
+        out[i].z = in[i][Z];
+    }
+        
+    out.uploadToDevice(stream);    
+}
+
+RigidIC::RigidIC(ICvector com_q, std::string xyzfname) :
+    com_q(com_q)
+{
+    readXYZ(xyzfname, coords);
+}
+
+RigidIC::RigidIC(ICvector com_q, PyContainer coords) :
+    com_q(com_q), coords(coords)
+{}
+
+RigidIC::~RigidIC() = default;
 
 void RigidIC::exec(const MPI_Comm& comm, ParticleVector* pv, DomainInfo domain, cudaStream_t stream)
 {
@@ -46,7 +64,8 @@ void RigidIC::exec(const MPI_Comm& comm, ParticleVector* pv, DomainInfo domain, 
 
     pv->domain = domain;
 
-    readXYZ(xyzfname, ov->initialPositions, stream);
+    copyToPinnedBuffer(coords, ov->initialPositions, stream);
+
     if (ov->objSize != ov->initialPositions.size())
         die("Object size and XYZ initial conditions don't match in size for '%s': %d vs %d",
                 ov->name.c_str(), ov->objSize, ov->initialPositions.size());

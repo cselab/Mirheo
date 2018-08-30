@@ -7,11 +7,12 @@
 class RigidIC : public InitialConditions
 {
 private:
-    std::string xyzfname;
+    PyContainer coords;
     ICvector com_q;
 
 public:
     RigidIC(ICvector com_q, std::string xyzfname);
+    RigidIC(ICvector com_q, PyContainer coords);
 
     void exec(const MPI_Comm& comm, ParticleVector* pv, DomainInfo domain, cudaStream_t stream) override;
 
