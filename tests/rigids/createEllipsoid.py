@@ -50,7 +50,7 @@ u.registerPlugins(xyz)
 
 u.run(5000)
 
-# cTEST: rigids.createEllipsoid
+# sTEST: rigids.createEllipsoid
 # cd rigids
 # rm -rf xyz
 # udx.run --runargs "-n 2" ./createEllipsoid.py --axes 2.0 2.0 2.0 --numdensity 8

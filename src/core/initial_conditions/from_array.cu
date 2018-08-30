@@ -15,11 +15,8 @@ void FromArrayIC::exec(const MPI_Comm& comm, ParticleVector *pv, DomainInfo doma
 {
     pv->domain = domain;
 
-    pv->local()->resize_anew(pos.size());
-    
-    auto coovelPtr = pv->local()->coosvels.hostPtr();
+    std::vector<Particle> localParticles;
 
-    int count = 0;
     for (int i = 0; i < pos.size(); ++i) {
         auto r_ = pos[i];
         auto u_ = vel[i];
@@ -28,14 +25,22 @@ void FromArrayIC::exec(const MPI_Comm& comm, ParticleVector *pv, DomainInfo doma
         auto u = make_float3(u_[0], u_[1], u_[2]);
 
         if (domain.inSubDomain(r)) {
+
+            r = domain.global2local(r);
             
             Particle p(Float3_int(r, 0).toFloat4(),
                        Float3_int(u, 0).toFloat4());
 
-            coovelPtr[count++] = p;
+            localParticles.push_back(p);
         }
     }
 
-    pv->local()->resize(count, stream);
+    pv->local()->resize_anew(localParticles.size());
+    auto coovelPtr = pv->local()->coosvels.hostPtr();
+    
+    for (int i = 0; i < localParticles.size(); ++i)
+        coovelPtr[i] = localParticles[i];
+
+    pv->local()->coosvels.uploadToDevice(stream);
 }
 
