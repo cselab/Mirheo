@@ -3,6 +3,23 @@ class InitialConditions:
             Base class for initial conditions
         
     """
+class FromArray(InitialConditions):
+    r"""
+        Set particles according to given position and velocity arrays.            
+    
+    """
+    def __init__():
+        r"""__init__(pos: List[List[float[3]]], vel: List[List[float[3]]]) -> None
+
+
+            Args:
+                pos: array of positions
+                vel: array of velocities
+        
+
+        """
+        pass
+
 class Membrane(InitialConditions):
     r"""
         Can only be used with Membrane Object Vector, see :ref:`user-ic`. These IC will initialize the particles of each object
@@ -53,7 +70,10 @@ class Rigid(InitialConditions):
     
     """
     def __init__():
-        r"""__init__(com_q: List[List[float[7]]], xyz_filename: str) -> None
+        r"""__init__(*args, **kwargs)
+Overloaded function.
+
+1. __init__(com_q: List[List[float[7]]], xyz_filename: str) -> None
 
 
             Args:
@@ -67,8 +87,25 @@ class Rigid(InitialConditions):
                     Template that describes the positions of the body particles before translation or        
                     rotation is applied. Standard .xyz file format is used with first line being             
                     the number of particles, second comment, third and onwards - particle coordinates.       
-                    The number of particles in the file should be the same as in number of particles per object
-                    in the corresponding PV                                                        
+                    The number of particles in the file must be the same as in number of particles per object
+                    in the corresponding PV
+        
+
+2. __init__(com_q: List[List[float[7]]], coords: List[List[float[3]]]) -> None
+
+
+            Args:
+                com_q:
+                    List describing location and rotation of the created objects.               
+                    One entry in the list corresponds to one object created.                          
+                    Each entry consist of 7 floats: *<com_x> <com_y> <com_z>  <q_x> <q_y> <q_z> <q_w>*, where    
+                    *com* is the center of mass of the object, *q* is the quaternion of its rotation,
+                    not necessarily normalized 
+                coords:
+                    Template that describes the positions of the body particles before translation or        
+                    rotation is applied.       
+                    The number of coordinates must be the same as in number of particles per object
+                    in the corresponding PV
         
 
         """

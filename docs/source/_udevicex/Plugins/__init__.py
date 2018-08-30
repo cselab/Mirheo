@@ -64,6 +64,13 @@ class ImposeVelocity(SimulationPlugin):
         This plugin will add velocity to all the particles of the target PV in the specified area (rectangle) such that the average velocity equals to desired.
     
     """
+class MembraneExtraForce(SimulationPlugin):
+    r"""
+        This plugin adds a given external force to a given membrane. 
+        The force is defined vertex wise and does not depend on position.
+        It is the same for all membranes belonging to the same particle vector.
+    
+    """
 class MeshDumper(PostprocessPlugin):
     r"""None
     """
@@ -349,6 +356,21 @@ def createImposeVelocity():
             low: the lower corner of the domain
             high: the higher corner of the domain
             velocity: target velocity
+    
+
+    """
+    pass
+
+def createMembraneExtraForce():
+    r"""createMembraneExtraForce(compute_task: bool, name: str, pv: ParticleVectors.ParticleVector, forces: List[List[float[3]]]) -> Tuple[Plugins.MembraneExtraForce, Plugins.PostprocessPlugin]
+
+
+        Create :any:`MembraneExtraForce` plugin
+        
+        Args:
+            name: name of the plugin
+            pv: :class:`ParticleVector` to which the force should be added
+            forces: array of forces, one force (3 floats) per vertex in a single mesh
     
 
     """

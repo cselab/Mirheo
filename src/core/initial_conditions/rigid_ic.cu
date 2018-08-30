@@ -9,15 +9,9 @@
 
 #include <core/rigid_kernels/rigid_motion.h>
 
-RigidIC::RigidIC(PyTypes::VectorOfFloat7 com_q, std::string xyzfname) :
-    com_q(com_q), xyzfname(xyzfname)
-{   }
-
-RigidIC::~RigidIC() = default;
-
-
-void static readXYZ(std::string fname, PinnedBuffer<float4>& positions, cudaStream_t stream)
+void static readXYZ(std::string fname, PyTypes::VectorOfFloat3& positions)
 {
+    enum {X=0, Y=1, Z=2};
     int n;
     float dummy;
     std::string line;
@@ -31,11 +25,33 @@ void static readXYZ(std::string fname, PinnedBuffer<float4>& positions, cudaStre
     std::getline(fin, line);
     std::getline(fin, line);
 
-    positions.resize_anew(n);
+    positions.resize(n);
     for (int i=0; i<n; i++)
-        fin >> dummy >> positions[i].x >>positions[i].y >>positions[i].z;
+        fin >> dummy >> positions[i][X] >> positions[i][Y] >> positions[i][Z];
+}
 
-    positions.uploadToDevice(stream);
+RigidIC::RigidIC(PyTypes::VectorOfFloat7 com_q, std::string xyzfname) :
+    com_q(com_q)
+{
+    readXYZ(xyzfname, coords);
+}
+
+RigidIC::RigidIC(PyTypes::VectorOfFloat7 com_q, const PyTypes::VectorOfFloat3& coords) :
+    com_q(com_q), coords(coords)
+{}
+
+RigidIC::~RigidIC() = default;
+
+
+static void copyToPinnedBuffer(const PyTypes::VectorOfFloat3& in, PinnedBuffer<float4>& out, cudaStream_t stream)
+{
+    enum {X=0, Y=1, Z=2};
+    out.resize_anew(in.size());
+
+    for (int i = 0; i < in.size(); ++i)
+        out[i] = make_float4(in[i][X], in[i][Y], in[i][Z], 0);
+        
+    out.uploadToDevice(stream);    
 }
 
 void RigidIC::exec(const MPI_Comm& comm, ParticleVector* pv, DomainInfo domain, cudaStream_t stream)
@@ -46,7 +62,7 @@ void RigidIC::exec(const MPI_Comm& comm, ParticleVector* pv, DomainInfo domain, 
 
     pv->domain = domain;
 
-    readXYZ(xyzfname, ov->initialPositions, stream);
+    copyToPinnedBuffer(coords, ov->initialPositions, stream);
     if (ov->objSize != ov->initialPositions.size())
         die("Object size and XYZ initial conditions don't match in size for '%s': %d vs %d",
                 ov->name.c_str(), ov->objSize, ov->initialPositions.size());
