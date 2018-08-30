@@ -16,7 +16,7 @@ u.registerPlugins(xyz)
 
 u.run(2)
 
-# nTEST: dump.xyz
+# TEST: dump.xyz
 # cd dump
 # rm -rf xyz
 # udx.run --runargs "-n 2" ./xyz.py > /dev/null

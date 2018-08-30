@@ -21,7 +21,7 @@ u.registerPlugins(field)
 
 u.run(3)
 
-# nTEST: dump.h5
+# TEST: dump.h5
 # cd dump
 # rm -rf h5
 # udx.run --runargs "-n 2" ./h5.py > /dev/null
