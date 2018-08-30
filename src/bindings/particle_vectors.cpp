@@ -67,6 +67,12 @@ void exportParticleVectors(py::module& m)
         Args:
             vertices: vertex coordinates
             faces:    connectivity: one triangle per entry, each integer corresponding to the vertex indices
+    )")
+        .def("getVertices", &Mesh::getVertices, R"(
+        returns the vertex coordinates of the mesh.
+    )")
+        .def("getTriangles", &Mesh::getTriangles, R"(
+        returns the vertex indices for each triangle of the mesh.
     )");
 
     py::handlers_class<MembraneMesh>(m, "MembraneMesh", pymesh, R"(

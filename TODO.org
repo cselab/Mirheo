@@ -24,9 +24,10 @@
    CLOSED: [2018-08-20 Mon 18:18]
 ** DONE plugin for recoloring particles: e.g. Hele shaw cell
    CLOSED: [2018-08-23 Thu 17:46]
-* [3/5] Interface
-** TODO get properties from mesh in python
+* [4/5] Interface
 ** TODO choose what forces are computed for membranes
+** DONE get properties from mesh in python
+   CLOSED: [2018-08-30 Thu 15:45]
 ** DONE mesh can be input from python
    CLOSED: [2018-08-30 Thu 15:24]
 ** DONE ParticleVector IC from python

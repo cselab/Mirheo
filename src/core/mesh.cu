@@ -96,6 +96,35 @@ const int& Mesh::getMaxDegree() const {
     return maxDegree;
 }
 
+PyTypes::VectorOfFloat3 Mesh::getVertices()
+{
+    vertexCoordinates.downloadFromDevice(0, ContainersSynch::Synch);
+    PyTypes::VectorOfFloat3 ret(getNvertices());
+
+    for (int i = 0; i < getNvertices(); ++i) {
+        auto r = vertexCoordinates[i];
+        ret[i][0] = r.x;
+        ret[i][1] = r.y;
+        ret[i][2] = r.z;
+    }
+    return ret;
+}
+
+PyTypes::VectorOfInt3 Mesh::getTriangles()
+{
+    triangles.downloadFromDevice(0, ContainersSynch::Synch);
+    PyTypes::VectorOfInt3 ret(getNtriangles());
+
+    for (int i = 0; i < getNtriangles(); ++i) {
+        auto t = triangles[i];
+        ret[i][0] = t.x;
+        ret[i][1] = t.y;
+        ret[i][2] = t.z;
+    }
+    return ret;
+}
+
+
 void Mesh::_computeMaxDegree()
 {
     std::vector<int> degrees(nvertices);

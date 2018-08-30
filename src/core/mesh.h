@@ -25,6 +25,9 @@ public:
     const int& getNvertices() const;
     const int& getMaxDegree() const;
 
+    PyTypes::VectorOfFloat3 getVertices();
+    PyTypes::VectorOfInt3  getTriangles();
+
 protected:
     // max degree of a vertex in mesh
     int maxDegree {-1};
