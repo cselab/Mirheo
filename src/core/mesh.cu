@@ -52,22 +52,36 @@ void Mesh::_readOff(std::string fname)
                     fname.c_str(), 3 /* header */ + nvertices + i, number);
 
         fin >> triangles[i].x >> triangles[i].y >> triangles[i].z;
-
-        auto check = [&] (int tr) {
-            if (tr < 0 || tr >= nvertices)
-                die("Bad triangle indices in mesh '%s' on line %d", fname.c_str(), 3 /* header */ + nvertices + i);
-        };
-
-        check(triangles[i].x);
-        check(triangles[i].y);
-        check(triangles[i].z);
     }
 }
 
 Mesh::Mesh(std::string fname)
 {
     _readOff(fname);
+    _check();
 
+    vertexCoordinates.uploadToDevice(0);
+    triangles.uploadToDevice(0);
+
+    _computeMaxDegree();
+}
+
+Mesh::Mesh(const PyTypes::VectorOfFloat3& vertices, const PyTypes::VectorOfInt3& faces)
+{
+    nvertices  = vertices.size();
+    ntriangles = faces.size();
+
+    vertexCoordinates.resize_anew(nvertices);
+    triangles.resize_anew(ntriangles);
+
+    for (int i = 0; i < ntriangles; ++i)
+        triangles[i] = make_int3(faces[i][0], faces[i][1], faces[i][2]);
+
+    for (int i = 0; i < nvertices; ++i)
+        vertexCoordinates[i] = make_float4(vertices[i][0], vertices[i][1], vertices[i][2], 0.f);
+
+    _check();
+    
     vertexCoordinates.uploadToDevice(0);
     triangles.uploadToDevice(0);
 
@@ -97,6 +111,13 @@ void Mesh::_computeMaxDegree()
 }
 
 MembraneMesh::MembraneMesh(std::string fname) : Mesh(fname)
+{
+    findAdjacent();
+    computeInitialLengths();
+    computeInitialAreas();
+}
+
+MembraneMesh::MembraneMesh(const PyTypes::VectorOfFloat3& vertices, const PyTypes::VectorOfInt3& faces) : Mesh(vertices, faces)
 {
     findAdjacent();
     computeInitialLengths();

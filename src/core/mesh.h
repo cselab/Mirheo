@@ -2,6 +2,7 @@
 
 #include <core/containers.h>
 #include <core/datatypes.h>
+#include <core/utils/pytypes.h>
 
 class Mesh
 {
@@ -15,6 +16,7 @@ public:
 
     Mesh() {};
     Mesh(std::string);
+    Mesh(const PyTypes::VectorOfFloat3& vertices, const PyTypes::VectorOfInt3& faces);
 
     Mesh(Mesh&&) = default;
     Mesh& operator=(Mesh&&) = default;
@@ -39,6 +41,7 @@ public:
 
     MembraneMesh() {};
     MembraneMesh(std::string);
+    MembraneMesh(const PyTypes::VectorOfFloat3& vertices, const PyTypes::VectorOfInt3& faces);
 
     MembraneMesh(MembraneMesh&&) = default;
     MembraneMesh& operator=(MembraneMesh&&) = default;

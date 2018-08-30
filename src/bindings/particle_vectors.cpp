@@ -56,10 +56,17 @@ void exportParticleVectors(py::module& m)
     py::handlers_class<Mesh> pymesh(m, "Mesh", R"(
         Internally used class for desctibing a simple triangular mesh
     )");
+
     pymesh.def(py::init<std::string>(), "off_filename"_a, R"(
         Create a mesh by reading the OFF file
         Args:
             off_filename: path of the OFF file
+    )")
+        .def(py::init<const PyTypes::VectorOfFloat3&, const PyTypes::VectorOfInt3&>(), "vertices"_a, "faces"_a, R"(
+        Create a mesh by giving coordinates and connectivity
+        Args:
+            vertices: vertex coordinates
+            faces:    connectivity: one triangle per entry, each integer corresponding to the vertex indices
     )");
 
     py::handlers_class<MembraneMesh>(m, "MembraneMesh", pymesh, R"(
@@ -70,7 +77,13 @@ void exportParticleVectors(py::module& m)
             Create a mesh by reading the OFF file
             Args:
                 off_filename: path of the OFF file
-        )");
+        )")
+        .def(py::init<const PyTypes::VectorOfFloat3&, const PyTypes::VectorOfInt3&>(), "vertices"_a, "faces"_a, R"(
+        Create a mesh by giving coordinates and connectivity
+        Args:
+            vertices: vertex coordinates
+            faces:    connectivity: one triangle per entry, each integer corresponding to the vertex indices
+    )");
         
     py::handlers_class<ObjectVector> pyov(m, "ObjectVector", pypv, R"(
         Basic Object Vector
