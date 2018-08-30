@@ -35,8 +35,9 @@ __global__ void min_max_com(OVview ovView)
         ovView.comAndExtents[objId] = {mycom / ovView.objSize, mymin, mymax};
 }
 
-void ObjectVector::findExtentAndCOM(cudaStream_t stream, bool isLocal)
+void ObjectVector::findExtentAndCOM(cudaStream_t stream, ParticleVectorType type)
 {
+    bool isLocal = (type == ParticleVectorType::Local);
     auto lov = isLocal ? local() : halo();
 
     if (lov->comExtentValid)

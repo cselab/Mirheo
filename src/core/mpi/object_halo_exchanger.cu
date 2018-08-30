@@ -139,7 +139,7 @@ void ObjectHaloExchanger::prepareSizes(int id, cudaStream_t stream)
     auto helper = helpers[id];
     auto origin = origins[id];
 
-    ov->findExtentAndCOM(stream, true);
+    ov->findExtentAndCOM(stream, ParticleVectorType::Local);
 
     debug2("Counting halo objects of '%s'", ov->name.c_str());
 

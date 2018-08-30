@@ -60,7 +60,7 @@ void BounceFromMesh::exec(ParticleVector* pv, CellList* cl, float dt, bool local
             activeOV->nObjects,  ov->name.c_str(),
             local ? "local" : "halo");
 
-    ov->findExtentAndCOM(stream, local);
+    ov->findExtentAndCOM(stream, local ? ParticleVectorType::Local : ParticleVectorType::Halo);
 
     int totalTriangles = ov->mesh->getNtriangles() * activeOV->nObjects;
     //int totalEdges = totalTriangles * 3 / 2;

@@ -50,7 +50,7 @@ void BounceFromRigidEllipsoid::exec(ParticleVector* pv, CellList* cl, float dt, 
             local ? reov->local()->nObjects : reov->halo()->nObjects, reov->name.c_str(),
             local ? "local objs" : "halo objs");
 
-    ov->findExtentAndCOM(stream, local);
+    ov->findExtentAndCOM(stream, local ? ParticleVectorType::Local : ParticleVectorType::Halo);
 
     REOVviewWithOldMotion ovView(reov, local ? reov->local() : reov->halo());
     PVviewWithOldParticles pvView(pv, pv->local());

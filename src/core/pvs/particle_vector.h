@@ -10,6 +10,11 @@
 
 class ParticleVector;
 
+enum class ParticleVectorType {
+    Local,
+    Halo
+};
+
 class LocalParticleVector
 {
 public:

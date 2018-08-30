@@ -99,7 +99,7 @@ public:
                       new LocalObjectVector(this, objSize, 0) )
     {    }
 
-    void findExtentAndCOM(cudaStream_t stream, bool isLocal);
+    void findExtentAndCOM(cudaStream_t stream, ParticleVectorType type);
 
     LocalObjectVector* local() { return static_cast<LocalObjectVector*>(_local); }
     LocalObjectVector* halo()  { return static_cast<LocalObjectVector*>(_halo);  }
