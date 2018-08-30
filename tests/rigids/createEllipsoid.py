@@ -12,10 +12,10 @@ dt = 0.001
 axes = tuple(args.axes)
 
 ranks  = (1, 1, 1)
-fact = 5
+fact = 3
 domain = (fact*axes[0], fact*axes[1], fact*axes[2])
 
-u = udx.udevicex(ranks, domain, debug_level=3, log_filename='log')
+u = udx.udevicex(ranks, domain, debug_level=8, log_filename='log')
 
 pv = udx.ParticleVectors.ParticleVector('pv', mass = 1)
 ic = udx.InitialConditions.Uniform(density=args.numdensity)
@@ -29,14 +29,13 @@ vv = udx.Integrators.VelocityVerlet('vv', dt=dt)
 u.registerIntegrator(vv)
 u.setIntegrator(vv, pv)
 
-fakeOV = udx.ParticleVectors.RigidEllipsoidVector('OV', mass=1, object_size=2, semi_axes=axes)
 
-c = [0.5 * domain[0], 0.5 * domain[1], 0.5 * domain[2]]
-pos_lo = [c[0] - axes[0], c[1] - axes[1], c[2] - axes[2]]
-pos_hi = [c[0] + axes[0], c[1] + axes[1], c[2] + axes[2]]
-vel = [0, 0, 0]
+coords = [[-axes[0], -axes[1], -axes[2]],
+          [ axes[0],  axes[1],  axes[2]]]
+com_q = [[0.5 * domain[0], 0.5 * domain[1], 0.5 * domain[2],   1., 0, 0, 0]]
 
-fakeIc = udx.InitialConditions.FromArray(pos=[pos_lo, pos_hi], vel=[vel, vel])
+fakeOV = udx.ParticleVectors.RigidEllipsoidVector('OV', mass=1, object_size=len(coords), semi_axes=axes)
+fakeIc = udx.InitialConditions.Rigid(com_q=com_q, coords=coords)
 u.registerParticleVector(pv=fakeOV, ic=fakeIc)
 
 belongingChecker = udx.BelongingCheckers.Ellipsoid("ellipsoidChecker")
@@ -44,15 +43,16 @@ belongingChecker = udx.BelongingCheckers.Ellipsoid("ellipsoidChecker")
 u.registerObjectBelongingChecker(belongingChecker, fakeOV)
 
 pvEllipsoid = u.applyObjectBelongingChecker(belongingChecker, pv, correct_every=500, inside="frozenEllipsoid")
+u.setIntegrator(vv, pvEllipsoid)
 
-xyz = udx.Plugins.createDumpXYZ('xyz', pvEllipsoid, 500, "xyz/")
+xyz = udx.Plugins.createDumpXYZ('xyz', pvEllipsoid, 2, "xyz/")
 u.registerPlugins(xyz)
 
-u.run(5000)
+u.run(5)
 
 # sTEST: rigids.createEllipsoid
 # cd rigids
 # rm -rf xyz
-# udx.run --runargs "-n 2" ./createEllipsoid.py --axes 2.0 2.0 2.0 --numdensity 8
+# udx.run --runargs "-n 2" ./createEllipsoid.py --axes 3.0 3.0 3.0 --numdensity 8
 # echo TODO > xyz.out.txt
 
