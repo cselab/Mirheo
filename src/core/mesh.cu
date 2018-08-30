@@ -7,10 +7,23 @@
 
 #include <core/utils/cuda_common.h>
 
-/// Read off mesh
-Mesh::Mesh(std::string fname)
+void Mesh::_check() const
 {
-    std::ifstream fin(fname);
+    auto check = [this] (int tr) {
+        if (tr < 0 || tr >= nvertices)
+            die("Bad triangle indices");
+    };
+
+    for (int i = 0; i < getNtriangles(); ++i) {
+        check(triangles[i].x);
+        check(triangles[i].y);
+        check(triangles[i].z);
+    }
+}
+
+void Mesh::_readOff(std::string fname)
+{
+   std::ifstream fin(fname);
     if (!fin.good())
         die("Mesh file '%s' not found", fname.c_str());
 
@@ -49,7 +62,11 @@ Mesh::Mesh(std::string fname)
         check(triangles[i].y);
         check(triangles[i].z);
     }
+}
 
+Mesh::Mesh(std::string fname)
+{
+    _readOff(fname);
 
     vertexCoordinates.uploadToDevice(0);
     triangles.uploadToDevice(0);

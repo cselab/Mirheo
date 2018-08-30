@@ -27,6 +27,8 @@ protected:
     // max degree of a vertex in mesh
     int maxDegree {-1};
     void _computeMaxDegree();
+    void _check() const;
+    void _readOff(std::string fname);
 };
 
 class MembraneMesh : public Mesh
