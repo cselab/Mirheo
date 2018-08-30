@@ -16,8 +16,11 @@ namespace PyTypes
     using int2 = std::tuple<int, int>;
     using int3 = std::tuple<int, int, int>;
 
+    template <class T, int Dimensions>
+    using VectorOfTypeN = std::vector<std::array<T, Dimensions>>;
+
     template <int Dimensions>
-    using VectorOfFloatN = std::vector<std::array<float, Dimensions>>;
+    using VectorOfFloatN = VectorOfTypeN<float, Dimensions>;
     
     using VectorOfFloat  = VectorOfFloatN<1>;
     using VectorOfFloat2 = VectorOfFloatN<2>;
@@ -27,6 +30,14 @@ namespace PyTypes
     using VectorOfFloat6 = VectorOfFloatN<6>;
     using VectorOfFloat7 = VectorOfFloatN<7>;
     using VectorOfFloat8 = VectorOfFloatN<8>;
+
+    template <int Dimensions>
+    using VectorOfIntN = VectorOfTypeN<int, Dimensions>;
+
+    using VectorOfInt  = VectorOfIntN<1>;
+    using VectorOfInt2 = VectorOfIntN<2>;
+    using VectorOfInt3 = VectorOfIntN<3>;
+    using VectorOfInt4 = VectorOfIntN<4>;
 }
 
 inline float2 make_float2(PyTypes::float2 t2)
