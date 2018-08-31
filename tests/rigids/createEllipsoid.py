@@ -16,7 +16,7 @@ def createEllipsoid(density, axes, niter):
     fact = 3
     domain = (fact*axes[0], fact*axes[1], fact*axes[2])
     
-    u = udx.udevicex(ranks, domain, debug_level=8, log_filename='log')
+    u = udx.udevicex(ranks, domain, debug_level=3, log_filename='log')
     
     dpd = udx.Interactions.DPD('dpd', 1.0, a=10.0, gamma=10.0, kbt=0.5, dt=dt, power=0.5)
     vv = udx.Integrators.VelocityVerlet('vv', dt=dt)
@@ -44,18 +44,19 @@ if __name__ == '__main__':
     import argparse
     
     parser = argparse.ArgumentParser()
-    parser.add_argument('--numdensity', dest='numdensity', type=float)
+    parser.add_argument('--density', dest='density', type=float)
     parser.add_argument('--axes', dest='axes', type=float, nargs=3)
     parser.add_argument('--niter', dest='niter', type=int)
+    parser.add_argument('--out', dest='out', type=str)
     args = parser.parse_args()
 
-    coords = createEllipsoid(args.numdensity, args.axes, args.niter)
+    coords = createEllipsoid(args.density, args.axes, args.niter)
     
-    np.savetxt("pos.txt", coords)
+    np.savetxt(args.out, coords)
     
 # nTEST: rigids.createEllipsoid
 # cd rigids
 # rm -rf pos.txt pos.out.txt
-# udx.run --runargs "-n 2" ./createEllipsoid.py --axes 2.0 3.0 4.0 --numdensity 8 --niter 1 > /dev/null
+# udx.run --runargs "-n 2" ./createEllipsoid.py --axes 2.0 3.0 4.0 --density 8 --niter 1 --out pos.txt > /dev/null
 # cat pos.txt | sort > pos.out.txt
 
