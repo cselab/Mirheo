@@ -53,6 +53,13 @@ public:
                                                             std::shared_ptr<Interaction> interaction,
                                                             std::shared_ptr<Integrator>   integrator,
                                                             float density, int nsteps);
+
+    std::shared_ptr<ParticleVector> makeFrozenRigidParticles(std::shared_ptr<ObjectBelongingChecker> checker,
+                                                             std::shared_ptr<ObjectVector> shape,
+                                                             std::shared_ptr<InitialConditions> icShape,
+                                                             std::shared_ptr<Interaction> interaction,
+                                                             std::shared_ptr<Integrator>   integrator,
+                                                             float density, int nsteps);
     
     std::shared_ptr<ParticleVector> applyObjectBelongingChecker(ObjectBelongingChecker* checker,
                                                                 ParticleVector* pv,

@@ -217,6 +217,54 @@ std::shared_ptr<ParticleVector> uDeviceX::makeFrozenWallParticles(std::shared_pt
     return pv;
 }
 
+std::shared_ptr<ParticleVector> uDeviceX::makeFrozenRigidParticles(std::shared_ptr<ObjectBelongingChecker> checker,
+                                                                   std::shared_ptr<ObjectVector> shape,
+                                                                   std::shared_ptr<InitialConditions> icShape,
+                                                                   std::shared_ptr<Interaction> interaction,
+                                                                   std::shared_ptr<Integrator>   integrator,
+                                                                   float density, int nsteps)
+{
+    if (!isComputeTask()) return nullptr;
+
+    auto insideName = "inside_" + shape->name;
+    
+    info("Generating frozen particles for rigid object '%s'...\n\n", shape->name.c_str());
+
+    if (shape->local()->nObjects > 1)
+        die("expected no more than one object vector; given %d", shape->local()->nObjects);
+    
+    
+    auto pv = std::make_shared<ParticleVector>("outside__" + shape->name, 1.0);
+    auto ic = std::make_shared<UniformIC>(density);
+
+    {
+        Simulation eqsim(sim->nranks3D, sim->domain.globalSize, sim->cartComm, MPI_COMM_NULL, false);
+    
+        eqsim.registerParticleVector(pv, ic, 0);
+        eqsim.registerInteraction(interaction);
+        eqsim.registerIntegrator(integrator);
+    
+        eqsim.setInteraction(interaction->name, pv->name, pv->name);
+        eqsim.setIntegrator (integrator->name,  pv->name);
+    
+        eqsim.init();
+        eqsim.run(nsteps);
+    }
+    
+    Simulation freezesim(sim->nranks3D, sim->domain.globalSize, sim->cartComm, MPI_COMM_NULL, false);
+
+    freezesim.registerParticleVector(pv, nullptr, 0);
+    freezesim.registerParticleVector(shape, icShape, 0);
+    freezesim.registerObjectBelongingChecker (checker);
+    freezesim.setObjectBelongingChecker(checker->name, shape->name);
+    freezesim.applyObjectBelongingChecker(checker->name, pv->name, insideName, pv->name, 0);
+
+    freezesim.init();
+    freezesim.run(2);
+
+    return freezesim.getSharedPVbyName(insideName);
+}
+
 
 std::shared_ptr<ParticleVector> uDeviceX::applyObjectBelongingChecker(ObjectBelongingChecker* checker,
                                                                       ParticleVector* pv,
