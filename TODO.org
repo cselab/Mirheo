@@ -42,7 +42,7 @@
 ** TODO bounce against rigid ellipsoid
 ** TODO bounce against rigid mesh
 ** TODO bounce against membrane
-* [0/4] objects tests
+* [0/3] objects tests
 ** TODO rigids
 ** TODO [1/3] contact
 *** DONE membranes
@@ -53,10 +53,6 @@
 *** DONE membranes
     CLOSED: [2018-08-28 Tue 15:19]
 *** TODO rigids
-*** TODO mixed
-** TODO [0/3] bounce back
-*** TODO rigids
-*** TODO membranes
 *** TODO mixed
 * [7/8] walls tests
 ** TODO sdf

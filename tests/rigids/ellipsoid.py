@@ -8,6 +8,8 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--density', dest='density', type=float)
 parser.add_argument('--axes', dest='axes', type=float, nargs=3)
 parser.add_argument('--coords', dest='coords', type=str)
+parser.add_argument('--bounceBack', dest='bounceBack', action='store_true')
+parser.set_defaults(bounceBack=False)
 args = parser.parse_args()
 
 dt   = 0.001
@@ -50,6 +52,11 @@ belongingChecker = udx.BelongingCheckers.Ellipsoid("ellipsoidChecker")
 u.registerObjectBelongingChecker(belongingChecker, pvEllipsoid)
 u.applyObjectBelongingChecker(belongingChecker, pv=pvSolvent, correct_every=0, inside="none", outside="")
 
+if args.bounceBack:
+    bb = udx.Bouncers.Ellipsoid("bounceEllipsoid")
+    u.registerBouncer(bb)
+    u.setBouncer(bb, pvEllipsoid, pvSolvent)
+
 # xyz = udx.Plugins.createDumpXYZ('xyz', pvEllipsoid, 500, "xyz/")
 # u.registerPlugins(xyz)
 
@@ -62,9 +69,20 @@ u.run(10000)
 # nTEST: rigids.ellipsoid
 # set -eu
 # cd rigids
+# rm -rf stats rigid.out.txt
 # f="pos.txt"
 # common_args="--density 8 --axes 2.0 1.0 1.0"
 # udx.run ./createEllipsoid.py $common_args --out $f --niter 1000  > /dev/null
 # udx.run --runargs "-n 2" ./ellipsoid.py $common_args --coords $f > /dev/null
+# cat stats/ellipsoid.txt | awk '{print $2, $6, $7, $8, $9}' > rigid.out.txt
+
+# nTEST: rigids.ellipsoid.bounce
+# set -eu
+# cd rigids
+# rm -rf stats rigid.out.txt
+# f="pos.txt"
+# common_args="--density 8 --axes 2.0 1.0 1.0"
+# udx.run ./createEllipsoid.py $common_args --out $f --niter 1000  > /dev/null
+# udx.run --runargs "-n 2" ./ellipsoid.py $common_args --coords $f --bounceBack > /dev/null
 # cat stats/ellipsoid.txt | awk '{print $2, $6, $7, $8, $9}' > rigid.out.txt
 
