@@ -16,7 +16,9 @@ class udevicex:
                     The largest chunk size that a single MPI rank can have depends on the total number of particles,
                     handlers and hardware, and is typically about :math:`120^3 - 200^3`.
                 log_filename:
-                    prefix of the log files that will be created. Logging is implemented in the form of one file per MPI rank, so in the simulation folder NP files with names log_00000.log, log_00001.log, ... will be created, where NP is the total number of MPI ranks. Each MPI task (including postprocess) writes messages about itself into his own log file, and the combined log may be created by merging all the individual ones and sorting with respect to time.
+                    prefix of the log files that will be created. 
+                    Logging is implemented in the form of one file per MPI rank, so in the simulation folder NP files with names log_00000.log, log_00001.log, ... will be created, where NP is the total number of MPI ranks. 
+                    Each MPI task (including postprocess) writes messages about itself into his own log file, and the combined log may be created by merging all the individual ones and sorting with respect to time.
                     If this parameter is set to 'stdout' or 'stderr' standard output or standard error streams will be used instead of the file, however, there is no guarantee that messages from different ranks are synchronized
                 debug_level:
                     | Debug level varies from 1 to 8:
@@ -81,6 +83,33 @@ Returns whether current rank will do compute or postrprocess
         r"""isMasterTask(self: udevicex) -> bool
 
 Returns whether current task is the very first one
+
+        """
+        pass
+
+    def makeFrozenRigidParticles():
+        r"""makeFrozenRigidParticles(checker: ObjectBelongingChecker, shape: ObjectVector, icShape: InitialConditions, interaction: Interaction, integrator: Integrator, density: float, nsteps: int = 1000) -> ParticleVector
+
+
+                Create particles frozen inside object.
+                
+                .. note::
+                    A separate simulation will be run for every call to this function, which may take certain amount of time.
+                    If you want to save time, consider using restarting mechanism instead
+                
+                Args:
+                    checker: object belonging checker
+                    shape: object vector describing the shape of the rigid object
+                    icShape: initial conditions for shape
+                    interaction: this :any:`Interaction` will be used to construct the equilibrium particles distribution
+                    integrator: this :any:`Integrator` will be used to construct the equilibrium particles distribution
+                    density: target particle density
+                    nsteps: run this many steps to achieve equilibrium
+                            
+                Returns:
+                    New :any:`ParticleVector` that will contain particles that are close to the wall boundary, but still inside the wall.
+                    
+        
 
         """
         pass

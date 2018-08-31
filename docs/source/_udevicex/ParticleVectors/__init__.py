@@ -4,12 +4,44 @@ class Mesh:
     
     """
     def __init__():
-        r"""__init__(off_filename: str) -> None
+        r"""__init__(*args, **kwargs)
+Overloaded function.
+
+1. __init__(off_filename: str) -> None
 
 
         Create a mesh by reading the OFF file
         Args:
             off_filename: path of the OFF file
+    
+
+2. __init__(vertices: List[List[float[3]]], faces: List[List[int[3]]]) -> None
+
+
+        Create a mesh by giving coordinates and connectivity
+        Args:
+            vertices: vertex coordinates
+            faces:    connectivity: one triangle per entry, each integer corresponding to the vertex indices
+    
+
+        """
+        pass
+
+    def getTriangles():
+        r"""getTriangles(self: ParticleVectors.Mesh) -> List[List[int[3]]]
+
+
+        returns the vertex indices for each triangle of the mesh.
+    
+
+        """
+        pass
+
+    def getVertices():
+        r"""getVertices(self: ParticleVectors.Mesh) -> List[List[float[3]]]
+
+
+        returns the vertex coordinates of the mesh.
     
 
         """
@@ -105,13 +137,45 @@ class MembraneMesh(Mesh):
     
     """
     def __init__():
-        r"""__init__(off_filename: str) -> None
+        r"""__init__(*args, **kwargs)
+Overloaded function.
+
+1. __init__(off_filename: str) -> None
 
 
             Create a mesh by reading the OFF file
             Args:
                 off_filename: path of the OFF file
         
+
+2. __init__(vertices: List[List[float[3]]], faces: List[List[int[3]]]) -> None
+
+
+        Create a mesh by giving coordinates and connectivity
+        Args:
+            vertices: vertex coordinates
+            faces:    connectivity: one triangle per entry, each integer corresponding to the vertex indices
+    
+
+        """
+        pass
+
+    def getTriangles():
+        r"""getTriangles(self: ParticleVectors.Mesh) -> List[List[int[3]]]
+
+
+        returns the vertex indices for each triangle of the mesh.
+    
+
+        """
+        pass
+
+    def getVertices():
+        r"""getVertices(self: ParticleVectors.Mesh) -> List[List[float[3]]]
+
+
+        returns the vertex coordinates of the mesh.
+    
 
         """
         pass
