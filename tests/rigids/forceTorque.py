@@ -34,11 +34,15 @@ u.registerIntegrator(vvEllipsoid)
 u.setIntegrator(vvEllipsoid, pvEllipsoid)
 
 
-# xyz = udx.Plugins.createDumpXYZ('xyz', pvEllipsoid, 500, "xyz/")
-# u.registerPlugins(xyz)
+xyz = udx.Plugins.createDumpXYZ('xyz', pvEllipsoid, 500, "xyz/")
+u.registerPlugins(xyz)
 
 ovStats = udx.Plugins.createDumpObjectStats("objStats", ov=pvEllipsoid, dump_every=500, path="stats")
 u.registerPlugins(ovStats)
+
+if args.constForce:
+    addForce = udx.Plugins.createAddForce("addForce", pvEllipsoid, force=(1., 0., 0.))
+    u.registerPlugins(addForce)
 
 if args.constTorque:
     addTorque = udx.Plugins.createAddTorque("addTorque", pvEllipsoid, torque=(0., 0., 1.0))
@@ -46,6 +50,16 @@ if args.constTorque:
 
 u.run(10000)
 
+
+# nTEST: rigids.constForce
+# set -eu
+# cd rigids
+# rm -rf stats rigid.out.txt
+# f="pos.txt"
+# common_args="--axes 2.0 1.0 1.0"
+# udx.run ./createEllipsoid.py $common_args --density 8 --out $f --niter 1000  > /dev/null
+# udx.run --runargs "-n 2" ./forceTorque.py $common_args --coords $f --constForce > /dev/null
+# cat stats/ellipsoid.txt | awk '{print $2, $10, $3}' > rigid.out.txt
 
 # nTEST: rigids.torque
 # set -eu
