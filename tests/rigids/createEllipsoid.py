@@ -1,10 +1,8 @@
 #!/usr/bin/env python
 
-
-import udevicex as udx
-import numpy as np
-
 def createEllipsoid(density, axes, niter):
+    import udevicex as udx
+    
     def recenter(coords, com):
         coords = [[r[0]-com[0], r[1]-com[1], r[2]-com[2]] for r in coords]
         return coords
@@ -42,6 +40,7 @@ def createEllipsoid(density, axes, niter):
 if __name__ == '__main__':
 
     import argparse
+    import numpy as np
     
     parser = argparse.ArgumentParser()
     parser.add_argument('--density', dest='density', type=float)
@@ -55,8 +54,10 @@ if __name__ == '__main__':
     np.savetxt(args.out, coords)
     
 # nTEST: rigids.createEllipsoid
+# set -eu
 # cd rigids
 # rm -rf pos.txt pos.out.txt
-# udx.run --runargs "-n 2" ./createEllipsoid.py --axes 2.0 3.0 4.0 --density 8 --niter 1 --out pos.txt > /dev/null
-# cat pos.txt | sort > pos.out.txt
+# pfile=pos.txt
+# udx.run --runargs "-n 2" ./createEllipsoid.py --axes 2.0 3.0 4.0 --density 8 --niter 1 --out $pfile > /dev/null
+# cat $pfile | sort > pos.out.txt
 
