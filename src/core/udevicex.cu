@@ -260,7 +260,7 @@ std::shared_ptr<ParticleVector> uDeviceX::makeFrozenRigidParticles(std::shared_p
     freezesim.applyObjectBelongingChecker(checker->name, pv->name, insideName, pv->name, 0);
 
     freezesim.init();
-    freezesim.run(2);
+    freezesim.run(1);
 
     return freezesim.getSharedPVbyName(insideName);
 }
