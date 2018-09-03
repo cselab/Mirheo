@@ -66,23 +66,23 @@ u.registerPlugins(ovStats)
 u.run(10000)
 
 
-# nTEST: rigids.ellipsoid
+# nTEST: fsi.rigid.ellipsoid
 # set -eu
-# cd rigids
+# cd fsi
 # rm -rf stats rigid.out.txt
 # f="pos.txt"
 # common_args="--density 8 --axes 2.0 1.0 1.0"
-# udx.run ./createEllipsoid.py $common_args --out $f --niter 1000  > /dev/null
-# udx.run --runargs "-n 2" ./ellipsoid.py $common_args --coords $f > /dev/null
+# udx.run ../rigids/createEllipsoid.py $common_args --out $f --niter 1000  > /dev/null
+# udx.run --runargs "-n 2" ./ellipsoid.dp.py $common_args --coords $f > /dev/null
 # cat stats/ellipsoid.txt | awk '{print $2, $6, $7, $8, $9}' > rigid.out.txt
 
-# nTEST: rigids.ellipsoid.bounce
+# nTEST: fsi.rigid.ellipsoid.bounce
 # set -eu
-# cd rigids
+# cd fsi
 # rm -rf stats rigid.out.txt
 # f="pos.txt"
 # common_args="--density 8 --axes 2.0 1.0 1.0"
-# udx.run ./createEllipsoid.py $common_args --out $f --niter 1000  > /dev/null
-# udx.run --runargs "-n 2" ./ellipsoid.py $common_args --coords $f --bounceBack > /dev/null
+# udx.run ../rigids/createEllipsoid.py $common_args --out $f --niter 1000  > /dev/null
+# udx.run --runargs "-n 2" ./ellipsoid.dp.py $common_args --coords $f --bounceBack > /dev/null
 # cat stats/ellipsoid.txt | awk '{print $2, $6, $7, $8, $9}' > rigid.out.txt
 
