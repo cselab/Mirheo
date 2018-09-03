@@ -42,21 +42,6 @@
 ** TODO bounce against rigid ellipsoid
 ** TODO bounce against rigid mesh
 ** TODO bounce against membrane
-* [2/3] objects tests
-** TODO [2/3] contact
-*** DONE membranes
-    CLOSED: [2018-08-28 Tue 15:19]
-*** DONE rigids
-    CLOSED: [2018-09-03 Mon 12:30]
-*** TODO mixed
-** DONE rigids
-   CLOSED: [2018-09-03 Mon 12:02]
-** DONE [2/2] fsi
-   CLOSED: [2018-09-03 Mon 12:14]
-*** DONE membranes
-    CLOSED: [2018-08-28 Tue 15:19]
-*** DONE rigids
-    CLOSED: [2018-09-03 Mon 12:14]
 * [7/8] walls tests
 ** TODO sdf
 ** DONE rotating cylinder
@@ -73,6 +58,23 @@
    CLOSED: [2018-08-28 Tue 14:07]
 ** DONE plane
    CLOSED: [2018-08-28 Tue 10:00]
+* [3/3] objects tests
+** DONE [3/3] contact
+   CLOSED: [2018-09-03 Mon 15:19]
+*** DONE membranes
+    CLOSED: [2018-08-28 Tue 15:19]
+*** DONE rigids
+    CLOSED: [2018-09-03 Mon 12:30]
+*** DONE mixed
+    CLOSED: [2018-09-03 Mon 15:19]
+** DONE rigids
+   CLOSED: [2018-09-03 Mon 12:02]
+** DONE [2/2] fsi
+   CLOSED: [2018-09-03 Mon 12:14]
+*** DONE membranes
+    CLOSED: [2018-08-28 Tue 15:19]
+*** DONE rigids
+    CLOSED: [2018-09-03 Mon 12:14]
 * [4/4] Interface
 ** DONE get properties from mesh in python
    CLOSED: [2018-08-30 Thu 15:45]
