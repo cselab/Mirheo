@@ -7,6 +7,12 @@ import argparse
 parser = argparse.ArgumentParser()
 parser.add_argument('--axes', dest='axes', type=float, nargs=3)
 parser.add_argument('--coords', dest='coords', type=str)
+
+parser.add_argument('--constForce', action='store_true')
+parser.add_argument('--constTorque', action='store_true')
+parser.set_defaults(constForce=False)
+parser.set_defaults(constTorque=False)
+
 args = parser.parse_args()
 
 dt   = 0.001
@@ -28,14 +34,15 @@ u.registerIntegrator(vvEllipsoid)
 u.setIntegrator(vvEllipsoid, pvEllipsoid)
 
 
-xyz = udx.Plugins.createDumpXYZ('xyz', pvEllipsoid, 500, "xyz/")
-u.registerPlugins(xyz)
+# xyz = udx.Plugins.createDumpXYZ('xyz', pvEllipsoid, 500, "xyz/")
+# u.registerPlugins(xyz)
 
 ovStats = udx.Plugins.createDumpObjectStats("objStats", ov=pvEllipsoid, dump_every=500, path="stats")
 u.registerPlugins(ovStats)
 
-addTorque = udx.Plugins.createAddTorque("addTorque", pvEllipsoid, torque=(0., 0., 1.0))
-u.registerPlugins(addTorque)
+if args.constTorque:
+    addTorque = udx.Plugins.createAddTorque("addTorque", pvEllipsoid, torque=(0., 0., 1.0))
+    u.registerPlugins(addTorque)
 
 u.run(10000)
 
@@ -47,5 +54,5 @@ u.run(10000)
 # f="pos.txt"
 # common_args="--axes 2.0 1.0 1.0"
 # udx.run ./createEllipsoid.py $common_args --density 8 --out $f --niter 1000  > /dev/null
-# udx.run --runargs "-n 2" ./torque.py $common_args --coords $f > /dev/null
+# udx.run --runargs "-n 2" ./forceTorque.py $common_args --coords $f --constTorque > /dev/null
 # cat stats/ellipsoid.txt | awk '{print $2, $15, $9}' > rigid.out.txt
