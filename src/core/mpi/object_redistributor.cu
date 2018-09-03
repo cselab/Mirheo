@@ -95,6 +95,7 @@ void ObjectRedistributor::attach(ObjectVector* ov, float rc)
     objects.push_back(ov);
     ExchangeHelper* helper = new ExchangeHelper(ov->name);
     helpers.push_back(helper);
+    info("The Object vector '%s' was attached", ov->name.c_str());
 }
 
 

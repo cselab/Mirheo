@@ -404,6 +404,26 @@ void Simulation::prepareCellLists()
             primary = false;
         }
     }
+
+    for (auto& pv : particleVectors)
+    {
+        auto pvptr = pv.get();
+        if (cellListMap[pvptr].empty())
+        {
+            const float defaultRc = 1.f;
+            bool primary = true;
+
+            // Don't use primary cell-lists with ObjectVectors
+            if (dynamic_cast<ObjectVector*>(pvptr) != nullptr)
+                primary = false;
+
+            cellListMap[pvptr].push_back
+                (primary ?
+                 std::make_unique<PrimaryCellList>(pvptr, defaultRc, domain.localSize) :
+                 std::make_unique<CellList>       (pvptr, defaultRc, domain.localSize));
+            
+        }
+    }
 }
 
 void Simulation::prepareInteractions()

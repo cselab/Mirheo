@@ -56,6 +56,9 @@ ParticleExchanger::ParticleExchanger(MPI_Comm& comm, bool gpuAwareMPI) :
 
 void ParticleExchanger::init(cudaStream_t stream)
 {
+    for (int i=0; i<helpers.size(); i++)
+        if (!needExchange(i)) debug("Exchange of PV '%s' is skipped", helpers[i]->name.c_str());
+    
     // Post irecv for sizes
     for (int i=0; i<helpers.size(); i++)
         if (needExchange(i)) postRecvSize(helpers[i]);
