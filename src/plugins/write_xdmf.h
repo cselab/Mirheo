@@ -4,7 +4,7 @@
 #include <string>
 #include <vector>
 
-class XDMFDumper
+class XDMFGridDumper
 {
 public:
     enum class ChannelType : int {Scalar, Vector, Tensor6};
@@ -29,10 +29,10 @@ private:
     void writeHeavy(std::string fname, std::vector<const float*> channelData);
 
 public:
-    XDMFDumper(MPI_Comm comm, int3 nranks3D, std::string fileNamePrefix, int3 localResolution, float3 h,
-            std::vector<std::string> channelNames, std::vector<ChannelType> channelTypes);
+    XDMFGridDumper(MPI_Comm comm, int3 nranks3D, std::string fileNamePrefix, int3 localResolution, float3 h,
+                   std::vector<std::string> channelNames, std::vector<ChannelType> channelTypes);
 
     void dump(std::vector<const float*> channelData, const float t);
 
-    ~XDMFDumper();
+    ~XDMFGridDumper();
 };

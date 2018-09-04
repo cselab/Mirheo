@@ -8,7 +8,7 @@
 #include "write_xdmf.h"
 
 
-void XDMFDumper::writeLight(std::string currentFname, float t)
+void XDMFGridDumper::writeLight(std::string currentFname, float t)
 {
     FILE* xmf;
     xmf = fopen( (path+currentFname+".xmf").c_str(), "w" );
@@ -67,7 +67,7 @@ void XDMFDumper::writeLight(std::string currentFname, float t)
     fclose(xmf);
 }
 
-void XDMFDumper::writeHeavy(std::string currentFname, std::vector<const float*> channelData)
+void XDMFGridDumper::writeHeavy(std::string currentFname, std::vector<const float*> channelData)
 {
     hid_t plist_id_access = H5Pcreate(H5P_FILE_ACCESS);
     H5Pset_fapl_mpio(plist_id_access, xdmfComm, MPI_INFO_NULL);  // TODO: add smth here to speed shit up
@@ -121,10 +121,10 @@ void XDMFDumper::writeHeavy(std::string currentFname, std::vector<const float*> 
     H5Fclose(file_id);
 }
 
-XDMFDumper::XDMFDumper(MPI_Comm comm, int3 nranks3D, std::string fileNamePrefix, int3 localResolution, float3 h,
-        std::vector<std::string> channelNames, std::vector<ChannelType> channelTypes) :
-        localResolution(localResolution), h(h),
-        channelNames(channelNames), channelTypes(channelTypes)
+XDMFGridDumper::XDMFGridDumper(MPI_Comm comm, int3 nranks3D, std::string fileNamePrefix, int3 localResolution, float3 h,
+                               std::vector<std::string> channelNames, std::vector<ChannelType> channelTypes) :
+    localResolution(localResolution), h(h),
+    channelNames(channelNames), channelTypes(channelTypes)
 {
     int ranksArr[] = {nranks3D.x, nranks3D.y, nranks3D.z};
     globalResolution.x = nranks3D.x * localResolution.x;
@@ -160,7 +160,7 @@ XDMFDumper::XDMFDumper(MPI_Comm comm, int3 nranks3D, std::string fileNamePrefix,
     }
 }
 
-void XDMFDumper::dump(std::vector<const float*> channelData, const float t)
+void XDMFGridDumper::dump(std::vector<const float*> channelData, const float t)
 {
     if (!activated) return;
 

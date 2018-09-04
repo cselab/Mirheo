@@ -23,9 +23,9 @@ void UniformCartesianDumper::handshake()
     {
         switch (s)
         {
-            case 1: channelTypes.push_back(XDMFDumper::ChannelType::Scalar);  break;
-            case 3: channelTypes.push_back(XDMFDumper::ChannelType::Vector);  break;
-            case 6: channelTypes.push_back(XDMFDumper::ChannelType::Tensor6); break;
+            case 1: channelTypes.push_back(XDMFGridDumper::ChannelType::Scalar);  break;
+            case 3: channelTypes.push_back(XDMFGridDumper::ChannelType::Vector);  break;
+            case 6: channelTypes.push_back(XDMFGridDumper::ChannelType::Tensor6); break;
 
             default:
                 die("Plugin '%s' got %d as a channel size, expected 1, 3 or 6", name.c_str(), s);
@@ -53,7 +53,7 @@ void UniformCartesianDumper::handshake()
     debug2("Plugin %s was set up to dump channels %s, resolution is %dx%dx%d, path is %s", name.c_str(),
             allNames.c_str(), resolution.x, resolution.y, resolution.z, path.c_str());
 
-    dumper = new XDMFDumper(comm, nranks3D, path, resolution, h, channelNames, channelTypes);
+    dumper = new XDMFGridDumper(comm, nranks3D, path, resolution, h, channelNames, channelTypes);
 }
 
 void UniformCartesianDumper::deserialize(MPI_Status& stat)

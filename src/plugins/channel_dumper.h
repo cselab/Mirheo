@@ -15,14 +15,14 @@ public:
     void handshake() override;
 
 protected:
-    XDMFDumper* dumper;
+    XDMFGridDumper* dumper;
     std::string path;
 
     int3 nranks3D, rank3D;
     int3 resolution;
     float3 h;
 
-    std::vector<XDMFDumper::ChannelType> channelTypes;
+    std::vector<XDMFGridDumper::ChannelType> channelTypes;
     std::vector<std::string> channelNames;
     std::vector<std::vector<float>> channels;
 };
