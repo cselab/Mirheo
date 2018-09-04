@@ -216,12 +216,12 @@ private:
         const int conservative_estimate = (int)ceil(1.1 * n + 10);
         capacity = 128 * ((conservative_estimate + 127) / 128);
 
-        hostptr = (T*) malloc(sizeof(T) * capacity);
+        CUDA_Check(cudaHostAlloc(&hostptr, sizeof(T) * capacity, 0));
 
         if (copy && hold != nullptr)
             if (oldsize > 0) memcpy(hostptr, hold, sizeof(T) * oldsize);
 
-        free(hold);
+        CUDA_Check(cudaFreeHost(hold));
 
         debug4("Allocating HostBuffer<%s> from %d x %d  to %d x %d",
                 typeid(T).name(),
@@ -258,7 +258,7 @@ public:
     /// Release resources and report if debug level is high enough
     ~HostBuffer()
     {
-        free(hostptr);
+        CUDA_Check(cudaFreeHost(hostptr));
         debug4("Destroying HostBuffer<%s>", typeid(T).name());
     }
 
