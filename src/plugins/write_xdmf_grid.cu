@@ -18,9 +18,8 @@ void XDMFGridDumper::writeXMFFooter(FILE *xmf)
     fprintf(xmf, "   </Grid>\n");
 }
 
-void XDMFGridDumper::writeXMFGeometry(FILE *xmf)
+void XDMFGridDumper::writeXMFGeometry(FILE *xmf, std::string currentFname)
 {
-    // WTF resolution should go in Z-Y-X order! Achtung aliens attack!!
     fprintf(xmf, "     <Topology TopologyType=\"3DCORECTMesh\" Dimensions=\"%d %d %d\"/>\n",
             globalResolution.z+1, globalResolution.y+1, globalResolution.x+1);
 
@@ -123,4 +122,18 @@ XDMFGridDumper::XDMFGridDumper(MPI_Comm comm, int3 nranks3D, std::string fileNam
     globalResolution.x = nranks3D.x * localResolution.x;
     globalResolution.y = nranks3D.y * localResolution.y;
     globalResolution.z = nranks3D.z * localResolution.z;
+}
+
+void XDMFGridDumper::dump(std::vector<const float*> channelData, const float t)
+{
+    if (!activated) return;
+
+    std::string currentFname = getFilename();
+    
+    Timer<> timer;
+    timer.start();
+    if (myrank == 0) this->writeLight(currentFname, t);
+    this->writeHeavy(path + currentFname, channelData);
+
+    info("XDMF: grid written to: %s in %f ms", (path + currentFname+"[.h5 .xmf]").c_str(), timer.elapsed());
 }

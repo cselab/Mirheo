@@ -34,7 +34,7 @@ void XDMFDumper::writeLight(std::string currentFname, float t)
     write_xdmf_header(xmf);
 
     this->writeXMFHeader    (xmf, t);
-    this->writeXMFGeometry  (xmf);
+    this->writeXMFGeometry  (xmf, currentFname);
     this->writeXMFData      (xmf, currentFname);
     this->writeXMFFooter    (xmf);
 
@@ -43,6 +43,11 @@ void XDMFDumper::writeLight(std::string currentFname, float t)
     fclose(xmf);
 }
 
+std::string XDMFDumper::getFilename()
+{
+    std::string tstr = std::to_string(timeStamp++);
+    return fname + std::string(zeroPadding - tstr.length(), '0') + tstr;
+}
 
 XDMFDumper::XDMFDumper(MPI_Comm comm, int3 nranks3D, std::string fileNamePrefix,
                        std::vector<std::string> channelNames, std::vector<ChannelType> channelTypes) :
@@ -77,19 +82,4 @@ XDMFDumper::XDMFDumper(MPI_Comm comm, int3 nranks3D, std::string fileNamePrefix,
         path = "";
         fname = fileNamePrefix;
     }
-}
-
-void XDMFDumper::dump(std::vector<const float*> channelData, const float t)
-{
-    if (!activated) return;
-
-    std::string tstr = std::to_string(timeStamp++);
-    std::string currentFname = fname + std::string(zeroPadding - tstr.length(), '0') + tstr;
-
-    Timer<> timer;
-    timer.start();
-    if (myrank == 0) this->writeLight(currentFname, t);
-    this->writeHeavy(path + currentFname, channelData);
-
-    info("XDMF written to: %s in %f ms", (path + currentFname+"[.h5 .xmf]").c_str(), timer.elapsed());
 }

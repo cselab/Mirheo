@@ -24,19 +24,19 @@ protected:
 
     std::vector<ChannelType> channelTypes;
 
-    virtual void writeXMFHeader(FILE *xmf, float t) = 0;
-    virtual void writeXMFFooter(FILE *xmf) = 0;
-    virtual void writeXMFGeometry(FILE *xmf) = 0;
-    virtual void writeXMFData(FILE *xmf, std::string currentFname) = 0;
+    virtual void writeXMFHeader   (FILE *xmf, float t) = 0;
+    virtual void writeXMFFooter   (FILE *xmf) = 0;
+    virtual void writeXMFGeometry (FILE *xmf, std::string currentFname) = 0;
+    virtual void writeXMFData     (FILE *xmf, std::string currentFname) = 0;
     
     void writeLight(std::string fname, float t);
     virtual void writeHeavy(std::string fname, std::vector<const float*> channelData) = 0;
 
+    std::string getFilename();
+    
 public:
     XDMFDumper(MPI_Comm comm, int3 nranks3D, std::string fileNamePrefix,
                std::vector<std::string> channelNames, std::vector<ChannelType> channelTypes);
-
-    void dump(std::vector<const float*> channelData, const float t);
 
     ~XDMFDumper();
 };
