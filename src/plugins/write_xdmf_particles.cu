@@ -33,19 +33,12 @@ void XDMFParticlesDumper::writeXMFGeometry(FILE *xmf, std::string currentFname)
 
 void XDMFParticlesDumper::writeXMFData(FILE *xmf, std::string currentFname)
 {
-    for(int ichannel = 0; ichannel < channelNames.size(); ichannel++)
-    {
-        std::string type;
-        int dims;
-        switch (channelTypes[ichannel])
-        {
-            case ChannelType::Scalar:  type = "Scalar";  dims = 1;  break;
-            case ChannelType::Vector:  type = "Vector";  dims = 3;  break;
-            case ChannelType::Tensor6: type = "Tensor6"; dims = 6;  break;
-        }
+    for(int ichannel = 0; ichannel < channelNames.size(); ichannel++) {
 
-        fprintf(xmf, "     <Attribute Name=\"%s\" AttributeType=\"%s\" Center=\"Node\">\n", channelNames[ichannel].c_str(), type.c_str());
-        fprintf(xmf, "       <DataItem Dimensions=\"%d %d\" DataType=\"Float\" Format=\"HDF\">\n", num_particles_tot, dims);
+        auto info = getInfoFromType(channelTypes[ichannel]);
+
+        fprintf(xmf, "     <Attribute Name=\"%s\" AttributeType=\"%s\" Center=\"Node\">\n", channelNames[ichannel].c_str(), info.type.c_str());
+        fprintf(xmf, "       <DataItem Dimensions=\"%d %d\" DataType=\"Float\" Format=\"HDF\">\n", num_particles_tot, info.dims);
 
         fprintf(xmf, "        %s:/%s\n", (currentFname+".h5").c_str(), channelNames[ichannel].c_str());
 

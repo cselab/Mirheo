@@ -10,6 +10,13 @@ public:
     enum class ChannelType : int {Scalar, Vector, Tensor6};
 
 protected:
+
+    struct ChannelInfo
+    {
+        std::string type;
+        int dims;
+    };
+    
     MPI_Comm xdmfComm;
     std::string path, fname;
     std::vector<std::string> channelNames;
@@ -33,6 +40,8 @@ protected:
     virtual void writeHeavy(std::string fname, std::vector<const float*> channelData) = 0;
 
     std::string getFilename();
+
+    ChannelInfo getInfoFromType(ChannelType type) const;
     
 public:
     XDMFDumper(MPI_Comm comm, int3 nranks3D, std::string fileNamePrefix,

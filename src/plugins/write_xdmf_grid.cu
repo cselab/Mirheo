@@ -36,20 +36,13 @@ void XDMFGridDumper::writeXMFGeometry(FILE *xmf, std::string currentFname)
 
 void XDMFGridDumper::writeXMFData(FILE *xmf, std::string currentFname)
 {
-    for(int ichannel = 0; ichannel < channelNames.size(); ichannel++)
-    {
-        std::string type;
-        int dims;
-        switch (channelTypes[ichannel])
-        {
-            case ChannelType::Scalar:  type = "Scalar";  dims = 1;  break;
-            case ChannelType::Vector:  type = "Vector";  dims = 3;  break;
-            case ChannelType::Tensor6: type = "Tensor6"; dims = 6;  break;
-        }
+    for (int ichannel = 0; ichannel < channelNames.size(); ichannel++) {
 
-        fprintf(xmf, "     <Attribute Name=\"%s\" AttributeType=\"%s\" Center=\"Cell\">\n", channelNames[ichannel].c_str(), type.c_str());
+        auto info = getInfoFromType(channelTypes[ichannel]);
+
+        fprintf(xmf, "     <Attribute Name=\"%s\" AttributeType=\"%s\" Center=\"Cell\">\n", channelNames[ichannel].c_str(), info.type.c_str());
         fprintf(xmf, "       <DataItem Dimensions=\"%d %d %d %d\" NumberType=\"Float\" Precision=\"4\" Format=\"HDF\">\n",
-                globalResolution.x, globalResolution.y, globalResolution.z, dims);
+                globalResolution.x, globalResolution.y, globalResolution.z, info.dims);
 
         fprintf(xmf, "        %s:/%s\n", (currentFname+".h5").c_str(), channelNames[ichannel].c_str());
 
@@ -75,17 +68,12 @@ void XDMFGridDumper::writeHeavy(std::string currentFname, std::vector<const floa
 
     for(int ichannel = 0; ichannel < channelNames.size(); ++ichannel)
     {
-        hsize_t dims;
-        switch (channelTypes[ichannel])
-        {
-            case ChannelType::Scalar:  dims = 1;  break;
-            case ChannelType::Vector:  dims = 3;  break;
-            case ChannelType::Tensor6: dims = 6;  break;
-        }
-
+        auto info = getInfoFromType(channelTypes[ichannel]);
+        
         hsize_t globalsize[4] = { (hsize_t)globalResolution.z,
                                   (hsize_t)globalResolution.y,
-                                  (hsize_t)globalResolution.x,  dims};
+                                  (hsize_t)globalResolution.x,
+                                  (hsize_t)info.dims};
         hid_t filespace_simple = H5Screate_simple(4, globalsize, nullptr);
 
         hid_t dset_id = H5Dcreate(file_id, channelNames[ichannel].c_str(), H5T_NATIVE_FLOAT, filespace_simple, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
@@ -97,7 +85,7 @@ void XDMFGridDumper::writeHeavy(std::string currentFname, std::vector<const floa
                              (hsize_t)my3Drank[1] * localResolution.y,
                              (hsize_t)my3Drank[0] * localResolution.x, (hsize_t)0 };
 
-        hsize_t extent[4] = { (hsize_t)localResolution.z, (hsize_t)localResolution.y, (hsize_t)localResolution.x, dims };
+        hsize_t extent[4] = { (hsize_t)localResolution.z, (hsize_t)localResolution.y, (hsize_t)localResolution.x, (hsize_t)info.dims };
         hid_t filespace = H5Dget_space(dset_id);
         H5Sselect_hyperslab(filespace, H5S_SELECT_SET, start, NULL, extent, NULL);
 

@@ -49,6 +49,17 @@ std::string XDMFDumper::getFilename()
     return fname + std::string(zeroPadding - tstr.length(), '0') + tstr;
 }
 
+XDMFDumper::ChannelInfo XDMFDumper::getInfoFromType(XDMFDumper::ChannelType type) const
+{
+    ChannelInfo info;
+    switch (type) {
+    case ChannelType::Scalar:  info.type = "Scalar";  info.dims = 1;  break;
+    case ChannelType::Vector:  info.type = "Vector";  info.dims = 3;  break;
+    case ChannelType::Tensor6: info.type = "Tensor6"; info.dims = 6;  break;
+    }
+    return info;
+}
+
 XDMFDumper::XDMFDumper(MPI_Comm comm, int3 nranks3D, std::string fileNamePrefix,
                        std::vector<std::string> channelNames, std::vector<ChannelType> channelTypes) :
     channelNames(channelNames), channelTypes(channelTypes)
