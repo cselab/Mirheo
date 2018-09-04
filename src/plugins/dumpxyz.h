@@ -18,6 +18,8 @@ private:
     std::vector<char> data;
 
     ParticleVector* pv;
+    
+    HostBuffer<Particle> downloaded;
 
 public:
     XYZPlugin(std::string name, std::string pvNames, int dumpEvery);

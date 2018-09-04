@@ -27,7 +27,7 @@ void XYZPlugin::beforeForces(cudaStream_t stream)
 {
     if (currentTimeStep % dumpEvery != 0 || currentTimeStep == 0) return;
 
-    pv->local()->coosvels.downloadFromDevice(stream);
+    downloaded.copy(pv->local()->coosvels, stream);
 }
 
 void XYZPlugin::serializeAndSend(cudaStream_t stream)
@@ -36,10 +36,10 @@ void XYZPlugin::serializeAndSend(cudaStream_t stream)
 
     debug2("Plugin %s is sending now data", name.c_str());
 
-    for (int i=0; i < pv->local()->size(); i++)
-        pv->local()->coosvels[i].r = pv->domain.local2global(pv->local()->coosvels[i].r);
+    for (auto& p : downloaded)
+        p.r = sim->domain.local2global(p.r);
 
-    SimpleSerializer::serialize(data, pv->name, pv->local()->coosvels);
+    SimpleSerializer::serialize(data, pv->name, downloaded);
     send(data);
 }
 
