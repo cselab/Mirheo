@@ -1,8 +1,5 @@
 #include <core/logger.h>
 
-#include <hdf5.h>
-#include <string>
-
 #include "timer.h"
 #include "write_xdmf_particles.h"
 
@@ -50,7 +47,29 @@ void XDMFParticlesDumper::writeXMFData(FILE *xmf, std::string currentFname)
 
 void XDMFParticlesDumper::writeHeavy(std::string currentFname, int nparticles, const float *positions, std::vector<const float*> channelData)
 {
-    // TODO
+    auto file_id = createIOFile(currentFname + ".h5");
+
+    if (file_id < 0) return;
+    
+    int my_offset = 0;
+
+    MPI_Check( MPI_Exscan( &nparticles, &my_offset, 1, MPI_INT, MPI_SUM, xdmfComm) );
+
+    hsize_t globalSize[2] = { (hsize_t) num_particles_tot, (hsize_t) 3 };
+    hsize_t  localSize[2] = { (hsize_t)        nparticles, (hsize_t) 3 };
+    hsize_t     offset[2] = { (hsize_t)         my_offset, (hsize_t) 0 };
+
+    writeDataSet(file_id, 2, globalSize, localSize, offset, positionChanelName, positions);
+    
+    for (int ichannel = 0; ichannel < channelNames.size(); ++ichannel) {
+        auto info = getInfoFromType(channelTypes[ichannel]);
+
+        globalSize[1] = localSize[1] = info.dims;
+
+        writeDataSet(file_id, 2, globalSize, localSize, offset, channelNames[ichannel], channelData[ichannel]);
+    }
+
+    closeIOFile(file_id);
 }
 
 
