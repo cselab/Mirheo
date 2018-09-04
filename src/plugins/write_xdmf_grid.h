@@ -13,7 +13,7 @@ protected:
     void writeXMFGeometry (FILE *xmf, std::string currentFname) override;
     void writeXMFData     (FILE *xmf, std::string currentFname) override;
 
-    void writeHeavy(std::string currentFname, std::vector<const float*> channelData) override;
+    void writeHeavy(std::string currentFname, std::vector<const float*> channelData);
     
 public:
     XDMFGridDumper(MPI_Comm comm, int3 nranks3D, std::string fileNamePrefix, int3 localResolution, float3 h,

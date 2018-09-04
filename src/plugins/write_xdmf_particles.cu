@@ -48,7 +48,7 @@ void XDMFParticlesDumper::writeXMFData(FILE *xmf, std::string currentFname)
 }
 
 
-void XDMFParticlesDumper::writeHeavy(std::string currentFname, std::vector<const float*> channelData)
+void XDMFParticlesDumper::writeHeavy(std::string currentFname, int nparticles, const float *positions, std::vector<const float*> channelData)
 {
     // TODO
 }
@@ -59,7 +59,21 @@ XDMFParticlesDumper::XDMFParticlesDumper(MPI_Comm comm, int3 nranks3D, std::stri
     XDMFDumper(comm, nranks3D, fileNamePrefix, channelNames, channelTypes)
 {}
 
-void XDMFParticlesDumper::dump(const float *positions, std::vector<const float*> channelData, const float t)
+void XDMFParticlesDumper::dump(int nparticles, const float *positions, std::vector<const float*> channelData, const float t)
 {
-    // TODO
+    if (!activated) return;
+
+    int num_particles_loc = nparticles;
+
+    MPI_Check( MPI_Allreduce(&num_particles_loc, &num_particles_tot, 1, MPI_INT, MPI_SUM, xdmfComm) );
+
+    std::string currentFname = getFilename();
+    
+    Timer<> timer;
+    timer.start();
+    if (myrank == 0) this->writeLight(currentFname, t);
+    this->writeHeavy(path + currentFname, nparticles, positions, channelData);
+
+    info("XDMF: particles written to: %s in %f ms", (path + currentFname+"[.h5 .xmf]").c_str(), timer.elapsed());
+    
 }

@@ -10,7 +10,7 @@ protected:
     void writeXMFGeometry (FILE *xmf, std::string currentFname) override;
     void writeXMFData     (FILE *xmf, std::string currentFname) override;
 
-    void writeHeavy(std::string currentFname, std::vector<const float*> channelData) override;
+    void writeHeavy(std::string currentFname, int nparticles, const float *positions, std::vector<const float*> channelData);
 
     long num_particles_tot {0};
     
@@ -20,5 +20,5 @@ public:
 
     ~XDMFParticlesDumper();
 
-    void dump(const float *positions, std::vector<const float*> channelData, const float t);
+    void dump(int nparticles, const float *positions, std::vector<const float*> channelData, const float t);
 };
