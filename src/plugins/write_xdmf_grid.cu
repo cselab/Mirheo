@@ -1,9 +1,6 @@
-#include <core/logger.h>
-
-#include <hdf5.h>
 #include <regex>
-#include <string>
 
+#include <core/logger.h>
 #include "timer.h"
 #include "write_xdmf_grid.h"
 
@@ -54,51 +51,25 @@ void XDMFGridDumper::writeXMFData(FILE *xmf, std::string currentFname)
 
 void XDMFGridDumper::writeHeavy(std::string currentFname, std::vector<const float*> channelData)
 {
-    hid_t plist_id_access = H5Pcreate(H5P_FILE_ACCESS);
-    H5Pset_fapl_mpio(plist_id_access, xdmfComm, MPI_INFO_NULL);  // TODO: add smth here to speed shit up
+    auto file_id = createIOFile(currentFname + ".h5");
 
-    hid_t file_id = H5Fcreate( (currentFname+".h5").c_str(), H5F_ACC_TRUNC, H5P_DEFAULT, plist_id_access );
-    if (file_id < 0)
-    {
-        error("HDF5 write failed: %s", (currentFname+".h5").c_str());
-        return;
-    }
+    if (file_id < 0) return;
 
-    H5Pclose(plist_id_access);
-
-    for(int ichannel = 0; ichannel < channelNames.size(); ++ichannel)
-    {
+    for (int ichannel = 0; ichannel < channelNames.size(); ++ichannel) {
         auto info = getInfoFromType(channelTypes[ichannel]);
         
-        hsize_t globalsize[4] = { (hsize_t)globalResolution.z,
-                                  (hsize_t)globalResolution.y,
-                                  (hsize_t)globalResolution.x,
-                                  (hsize_t)info.dims};
-        hid_t filespace_simple = H5Screate_simple(4, globalsize, nullptr);
+        hsize_t globalSize[4] = { (hsize_t) globalResolution.z, (hsize_t) globalResolution.y, (hsize_t) globalResolution.x, (hsize_t) info.dims};
+        hsize_t localSize [4] = { (hsize_t)  localResolution.z, (hsize_t)  localResolution.y, (hsize_t)  localResolution.x, (hsize_t) info.dims};
+        
+        hsize_t offset[4] = { (hsize_t) my3Drank[2] * localResolution.z,
+                              (hsize_t) my3Drank[1] * localResolution.y,
+                              (hsize_t) my3Drank[0] * localResolution.x,
+                              (hsize_t) 0 };
 
-        hid_t dset_id = H5Dcreate(file_id, channelNames[ichannel].c_str(), H5T_NATIVE_FLOAT, filespace_simple, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-        hid_t plist_id = H5Pcreate(H5P_DATASET_XFER);
-
-        H5Pset_dxpl_mpio(plist_id, H5FD_MPIO_COLLECTIVE);
-
-        hsize_t start[4] = { (hsize_t)my3Drank[2] * localResolution.z,
-                             (hsize_t)my3Drank[1] * localResolution.y,
-                             (hsize_t)my3Drank[0] * localResolution.x, (hsize_t)0 };
-
-        hsize_t extent[4] = { (hsize_t)localResolution.z, (hsize_t)localResolution.y, (hsize_t)localResolution.x, (hsize_t)info.dims };
-        hid_t filespace = H5Dget_space(dset_id);
-        H5Sselect_hyperslab(filespace, H5S_SELECT_SET, start, NULL, extent, NULL);
-
-        hid_t memspace = H5Screate_simple(4, extent, NULL);
-        herr_t status = H5Dwrite(dset_id, H5T_NATIVE_FLOAT, memspace, filespace, plist_id, channelData[ichannel]);
-
-        H5Sclose(memspace);
-        H5Sclose(filespace);
-        H5Pclose(plist_id);
-        H5Dclose(dset_id);
+        writeDataSet(file_id, 4, globalSize, localSize, offset, channelNames[ichannel], channelData[ichannel]);
     }
 
-    H5Fclose(file_id);
+    closeIOFile(file_id);
 }
 
 

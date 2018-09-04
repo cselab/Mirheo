@@ -1,8 +1,6 @@
-#include <core/logger.h>
-
-#include <hdf5.h>
 #include <regex>
-#include <string>
+
+#include <core/logger.h>
 
 #include "timer.h"
 #include "write_xdmf.h"
@@ -42,6 +40,51 @@ void XDMFDumper::writeLight(std::string currentFname, float t)
 
     fclose(xmf);
 }
+
+hid_t XDMFDumper::createIOFile(std::string filename) const
+{
+    hid_t plist_id_access = H5Pcreate(H5P_FILE_ACCESS);
+    H5Pset_fapl_mpio(plist_id_access, xdmfComm, MPI_INFO_NULL);  // TODO: add smth here to speed shit up
+
+    hid_t file_id = H5Fcreate( filename.c_str(), H5F_ACC_TRUNC, H5P_DEFAULT, plist_id_access );
+
+    if (file_id < 0) {
+        error("HDF5 write failed: %s", filename.c_str());
+        return -1;
+    }
+
+    H5Pclose(plist_id_access);
+
+    return file_id;
+}
+
+void XDMFDumper::closeIOFile(hid_t file_id) const
+{
+    H5Fclose(file_id);
+}
+
+void XDMFDumper::writeDataSet(hid_t file_id, int rank, hsize_t globalSize[], hsize_t localSize[], hsize_t offset[],
+                              std::string channelName, const float *channelData) const
+{
+    hid_t filespace_simple = H5Screate_simple(rank, globalSize, nullptr);
+
+    hid_t dset_id = H5Dcreate(file_id, channelName.c_str(), H5T_NATIVE_FLOAT, filespace_simple, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+    hid_t xfer_plist_id = H5Pcreate(H5P_DATASET_XFER);
+
+    H5Pset_dxpl_mpio(xfer_plist_id, H5FD_MPIO_COLLECTIVE);
+
+    hid_t filespace = H5Dget_space(dset_id);
+    H5Sselect_hyperslab(filespace, H5S_SELECT_SET, offset, NULL, localSize, NULL);
+
+    hid_t memspace = H5Screate_simple(rank, localSize, NULL);
+    herr_t status = H5Dwrite(dset_id, H5T_NATIVE_FLOAT, memspace, filespace, xfer_plist_id, channelData);
+
+    H5Sclose(memspace);
+    H5Sclose(filespace);
+    H5Pclose(xfer_plist_id);
+    H5Dclose(dset_id);
+}
+
 
 std::string XDMFDumper::getFilename()
 {

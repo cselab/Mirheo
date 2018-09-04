@@ -3,6 +3,7 @@
 #include <mpi.h>
 #include <string>
 #include <vector>
+#include <hdf5.h>
 
 class XDMFDumper 
 {
@@ -31,6 +32,8 @@ protected:
 
     std::vector<ChannelType> channelTypes;
 
+protected:
+    
     virtual void writeXMFHeader   (FILE *xmf, float t) = 0;
     virtual void writeXMFFooter   (FILE *xmf) = 0;
     virtual void writeXMFGeometry (FILE *xmf, std::string currentFname) = 0;
@@ -38,6 +41,12 @@ protected:
     
     void writeLight(std::string fname, float t);
 
+    hid_t createIOFile(std::string filename) const;
+    void closeIOFile(hid_t file_id) const;
+
+    void writeDataSet(hid_t file_id, int rank, hsize_t globalSize[], hsize_t localSize[], hsize_t offset[],
+                      std::string channelName, const float *channelData) const;
+    
     std::string getFilename();
 
     ChannelInfo getInfoFromType(ChannelType type) const;
