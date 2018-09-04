@@ -7,24 +7,19 @@
 #include "timer.h"
 #include "write_xdmf_grid.h"
 
-
-void XDMFGridDumper::writeLight(std::string currentFname, float t)
+void XDMFGridDumper::writeXMFHeader(FILE *xmf, float t)
 {
-    FILE* xmf;
-    xmf = fopen( (path+currentFname+".xmf").c_str(), "w" );
-    if (xmf == nullptr)
-    {
-        if (myrank == 0) error("XMF write failed: %s", (fname+".xmf").c_str());
-        return;
-    }
-
-    fprintf(xmf, "<?xml version=\"1.0\" ?>\n");
-    fprintf(xmf, "<!DOCTYPE Xdmf SYSTEM \"Xdmf.dtd\" []>\n");
-    fprintf(xmf, "<Xdmf Version=\"2.0\">\n");
-    fprintf(xmf, " <Domain>\n");
     fprintf(xmf, "   <Grid Name=\"mesh\" GridType=\"Uniform\">\n");
     fprintf(xmf, "     <Time Value=\"%.f\"/>\n", t);
+}
 
+void XDMFGridDumper::writeXMFFooter(FILE *xmf)
+{
+    fprintf(xmf, "   </Grid>\n");
+}
+
+void XDMFGridDumper::writeXMFGeometry(FILE *xmf)
+{
     // WTF resolution should go in Z-Y-X order! Achtung aliens attack!!
     fprintf(xmf, "     <Topology TopologyType=\"3DCORECTMesh\" Dimensions=\"%d %d %d\"/>\n",
             globalResolution.z+1, globalResolution.y+1, globalResolution.x+1);
@@ -38,7 +33,10 @@ void XDMFGridDumper::writeLight(std::string currentFname, float t)
     fprintf(xmf, "        %e %e %e\n", h.x, h.y, h.z);
     fprintf(xmf, "       </DataItem>\n");
     fprintf(xmf, "     </Geometry>\n");
+}
 
+void XDMFGridDumper::writeXMFData(FILE *xmf, std::string currentFname)
+{
     for(int ichannel = 0; ichannel < channelNames.size(); ichannel++)
     {
         std::string type;
@@ -59,13 +57,8 @@ void XDMFGridDumper::writeLight(std::string currentFname, float t)
         fprintf(xmf, "       </DataItem>\n");
         fprintf(xmf, "     </Attribute>\n");
     }
-
-    fprintf(xmf, "   </Grid>\n");
-    fprintf(xmf, " </Domain>\n");
-    fprintf(xmf, "</Xdmf>\n");
-
-    fclose(xmf);
 }
+
 
 void XDMFGridDumper::writeHeavy(std::string currentFname, std::vector<const float*> channelData)
 {
@@ -121,56 +114,13 @@ void XDMFGridDumper::writeHeavy(std::string currentFname, std::vector<const floa
     H5Fclose(file_id);
 }
 
+
 XDMFGridDumper::XDMFGridDumper(MPI_Comm comm, int3 nranks3D, std::string fileNamePrefix, int3 localResolution, float3 h,
                                std::vector<std::string> channelNames, std::vector<ChannelType> channelTypes) :
-    localResolution(localResolution), h(h),
-    channelNames(channelNames), channelTypes(channelTypes)
+    XDMFDumper(comm, nranks3D, fileNamePrefix, channelNames, channelTypes),
+    localResolution(localResolution), h(h)
 {
-    int ranksArr[] = {nranks3D.x, nranks3D.y, nranks3D.z};
     globalResolution.x = nranks3D.x * localResolution.x;
     globalResolution.y = nranks3D.y * localResolution.y;
     globalResolution.z = nranks3D.z * localResolution.z;
-
-    MPI_Check( MPI_Cart_create(comm, 3, ranksArr, periods, 0, &xdmfComm) );
-    MPI_Check( MPI_Cart_get(xdmfComm, 3, nranks, periods, my3Drank) );
-    MPI_Check( MPI_Comm_rank(xdmfComm, &myrank));
-
-    // Create and setup folders
-
-    std::regex re(R".(^(.*/)(.+)).");
-    std::smatch match;
-    if (std::regex_match(fileNamePrefix, match, re))
-    {
-        path  = match[1].str();
-        fname = match[2].str();
-        std::string command = "mkdir -p " + path;
-        if (myrank == 0)
-        {
-            if ( system(command.c_str()) != 0 )
-            {
-                error("Could not create folders or files by given path, dumping will be disabled.");
-                activated = false;
-            }
-        }
-    }
-    else
-    {
-        path = "";
-        fname = fileNamePrefix;
-    }
-}
-
-void XDMFGridDumper::dump(std::vector<const float*> channelData, const float t)
-{
-    if (!activated) return;
-
-    std::string tstr = std::to_string(timeStamp++);
-    std::string currentFname = fname + std::string(zeroPadding - tstr.length(), '0') + tstr;
-
-    Timer<> timer;
-    timer.start();
-    if (myrank == 0) writeLight(currentFname, t);
-    writeHeavy(path + currentFname, channelData);
-
-    info("XDMF written to: %s in %f ms", (path + currentFname+"[.h5 .xmf]").c_str(), timer.elapsed());
 }

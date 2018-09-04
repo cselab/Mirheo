@@ -23,9 +23,9 @@ void UniformCartesianDumper::handshake()
     {
         switch (s)
         {
-            case 1: channelTypes.push_back(XDMFGridDumper::ChannelType::Scalar);  break;
-            case 3: channelTypes.push_back(XDMFGridDumper::ChannelType::Vector);  break;
-            case 6: channelTypes.push_back(XDMFGridDumper::ChannelType::Tensor6); break;
+            case 1: channelTypes.push_back(XDMFDumper::ChannelType::Scalar);  break;
+            case 3: channelTypes.push_back(XDMFDumper::ChannelType::Vector);  break;
+            case 6: channelTypes.push_back(XDMFDumper::ChannelType::Tensor6); break;
 
             default:
                 die("Plugin '%s' got %d as a channel size, expected 1, 3 or 6", name.c_str(), s);

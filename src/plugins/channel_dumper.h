@@ -22,7 +22,7 @@ protected:
     int3 resolution;
     float3 h;
 
-    std::vector<XDMFGridDumper::ChannelType> channelTypes;
+    std::vector<XDMFDumper::ChannelType> channelTypes;
     std::vector<std::string> channelNames;
     std::vector<std::vector<float>> channels;
 };
