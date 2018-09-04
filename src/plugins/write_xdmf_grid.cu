@@ -5,7 +5,7 @@
 #include <string>
 
 #include "timer.h"
-#include "write_xdmf.h"
+#include "write_xdmf_grid.h"
 
 
 void XDMFGridDumper::writeLight(std::string currentFname, float t)

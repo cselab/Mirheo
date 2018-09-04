@@ -1,7 +1,7 @@
 #pragma once
 
 #include <plugins/interface.h>
-#include <plugins/write_xdmf.h>
+#include <plugins/write_xdmf_grid.h>
 
 #include <vector>
 #include <mpi.h>
