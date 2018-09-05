@@ -67,14 +67,14 @@ u.registerPlugins(field)
 
 u.run(7002)
 
-# nTEST: walls.analytic.chanel.cylinder
+# nTEST: walls.analytic.channel.cylinder
 # cd walls/analytic
 # rm -rf h5
-# udx.run --runargs "-n 2" ./chanel.py --type cylinderPipe > /dev/null
+# udx.run --runargs "-n 2" ./channel.py --type cylinderPipe > /dev/null
 # udx.avgh5 xy velocity h5/solvent-0000[4-7].h5 | awk '{print $1}' > profile.out.txt
 
-# nTEST: walls.analytic.chanel.square
+# nTEST: walls.analytic.channel.square
 # cd walls/analytic
 # rm -rf h5
-# udx.run --runargs "-n 2" ./chanel.py --type squarePipe > /dev/null
+# udx.run --runargs "-n 2" ./channel.py --type squarePipe > /dev/null
 # udx.avgh5 xy velocity h5/solvent-0000[4-7].h5 | awk '{print $1}' > profile.out.txt
