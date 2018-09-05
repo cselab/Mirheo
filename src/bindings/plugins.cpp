@@ -17,48 +17,20 @@ void exportPlugins(py::module& m)
     py::handlers_class<PostprocessPlugin> pypost(m, "PostprocessPlugin", R"(
         Base postprocess plugin class
     )");
+
+
+
     
-    py::handlers_class<ImposeVelocityPlugin>(m, "ImposeVelocity", pysim, R"(
-        This plugin will add velocity to all the particles of the target PV in the specified area (rectangle) such that the average velocity equals to desired.
-    )");
-    py::handlers_class<TemperaturizePlugin>(m, "Temperaturize", pysim, R"(
-        TODO
-    )");
+    
     py::handlers_class<AddForcePlugin>(m, "AddForce", pysim, R"(
         This plugin will add constant force :math:`\mathbf{F}_{extra}` to each particle of a specific PV every time-step.
         Is is advised to only use it with rigid objects, since Velocity-Verlet integrator with constant pressure can do the same without any performance penalty.
     )");
+
     py::handlers_class<AddTorquePlugin>(m, "AddTorque", pysim, R"(
         This plugin will add constant torque :math:`\mathbf{T}_{extra}` to each *object* of a specific OV every time-step.
     )");
-    py::handlers_class<ImposeProfilePlugin>(m, "ImposeProfile", pysim, R"(
-        TODO
-    )");
-    py::handlers_class<WallRepulsionPlugin>(m, "WallRepulsion", pysim, R"(
-        This plugin will add force on all the particles that are nearby a specified wall. The motivation of this plugin is as follows.
-        The particles of regular PVs are prevented from penetrating into the walls by Wall Bouncers.
-        However, using Wall Bouncers with Object Vectors may be undesirable (e.g. in case of a very viscous membrane) or impossible (in case of rigid objects).
-        In these cases one can use either strong repulsive potential between the object and the wall particle or alternatively this plugin.
-        The advantage of the SDF-based repulsion is that small penetrations won't break the simulation.
-        
-        The force expression looks as follows:
-        
-        .. math::
-        
-            \mathbf{F} = \mathbf{\nabla}_{sdf} \cdot \begin{cases}
-                0, & sdf < -h\\
-                \min(F_{max}, C (sdf + h)), & sdf \geqslant -h\\
-            \end{cases}
-    )");
-    
-    py::handlers_class<SimulationStats>(m, "SimulationStats", pysim, R"(
-        This plugin will report aggregate quantities of all the particles in the simulation:
-        total number of particles in the simulation, average temperature and momentum, maximum velocity magnutide of a particle
-        and also the mean real time per step in milliseconds.
-        
-        .. note::
-            This plugin is inactive if postprocess is disabled
-    )");
+
     py::handlers_class<Average3D>(m, "Average3D", pysim, R"(
         This plugin will project certain quantities of the particle vectors on the grid (by simple binning),
         perform time-averaging of the grid and dump it in XDMF (LINK) format with HDF5 (LINK) backend.
@@ -84,23 +56,33 @@ void exportPlugins(py::module& m)
             This plugin is inactive if postprocess is disabled
     )");
 
-    py::handlers_class<ParticleSenderPlugin>(m, "ParticleSenderPlugin", pysim, R"(
-        This plugin will dump positions, velocities and optional attached data of all the particles of the specified Particle Vector.
-        The data is dumped into hdf5 format. An additional xdfm file is dumped to describe the data and make it readable by visualization tools. 
+    py::handlers_class<ExchangePVSFluxPlanePlugin>(m, "ExchangePVSFluxPlane", pysim, R"(
+        This plugin exchanges particles from a particle vector crossing a given plane to another particle vector.
+        A particle with position x, y, z has crossed the plane if ax + by + cz + d >= 0, where a, b, c and d are the coefficient 
+        stored in the 'plane' variable
+    )");
+
+    py::handlers_class<ImposeProfilePlugin>(m, "ImposeProfile", pysim, R"(
+        TODO
     )");
     
-    py::handlers_class<XYZPlugin>(m, "XYZPlugin", pysim, R"(
-        This plugin will dump positions of all the particles of the specified Particle Vector in the XYZ format.
-   
-        .. note::
-            This plugin is inactive if postprocess is disabled
+    py::handlers_class<ImposeVelocityPlugin>(m, "ImposeVelocity", pysim, R"(
+        This plugin will add velocity to all the particles of the target PV in the specified area (rectangle) such that the average velocity equals to desired.
     )");
+
+    py::handlers_class<MembraneExtraForcePlugin>(m, "MembraneExtraForce", pysim, R"(
+        This plugin adds a given external force to a given membrane. 
+        The force is defined vertex wise and does not depend on position.
+        It is the same for all membranes belonging to the same particle vector.
+    )");
+
     py::handlers_class<MeshPlugin>(m, "MeshPlugin", pysim, R"(
         This plugin will write the meshes of all the object of the specified Object Vector in a PLY format (LINK).
    
         .. note::
             This plugin is inactive if postprocess is disabled
     )");
+
     py::handlers_class<ObjPositionsPlugin>(m, "ObjPositions", pysim, R"(
         This plugin will write the coordinates of the centers of mass of the objects of the specified Object Vector.
         If the objects are rigid bodies, also will be written: COM velocity, rotation, angular velocity, force, torque.
@@ -115,6 +97,12 @@ void exportPlugins(py::module& m)
         .. note::
             This plugin is inactive if postprocess is disabled
     )");
+
+    py::handlers_class<ParticleSenderPlugin>(m, "ParticleSenderPlugin", pysim, R"(
+        This plugin will dump positions, velocities and optional attached data of all the particles of the specified Particle Vector.
+        The data is dumped into hdf5 format. An additional xdfm file is dumped to describe the data and make it readable by visualization tools. 
+    )");
+
     py::handlers_class<PinObjectPlugin>(m, "PinObject", pysim, R"(
         This plugin will fix center of mass positions (by axis) of all the objects of the specified Object Vector.
         If the objects are rigid bodies, rotatation may be restricted with this plugin as well.
@@ -123,19 +111,47 @@ void exportPlugins(py::module& m)
         .. note::
             This plugin is inactive if postprocess is disabled
     )");
+
+    py::handlers_class<SimulationStats>(m, "SimulationStats", pysim, R"(
+        This plugin will report aggregate quantities of all the particles in the simulation:
+        total number of particles in the simulation, average temperature and momentum, maximum velocity magnutide of a particle
+        and also the mean real time per step in milliseconds.
+        
+        .. note::
+            This plugin is inactive if postprocess is disabled
+    )");
+
     py::handlers_class<SimulationVelocityControl>(m, "VelocityControl", pysim, R"(
         This plugin applies a uniform force to all the particles of the target PVS in the specified area (rectangle).
         The force is adapted bvia a PID controller such that the velocity average of the particles matches the target average velocity.
     )");
-    py::handlers_class<ExchangePVSFluxPlanePlugin>(m, "ExchangePVSFluxPlane", pysim, R"(
-        This plugin exchanges particles from a particle vector crossing a given plane to another particle vector.
-        A particle with position x, y, z has crossed the plane if ax + by + cz + d >= 0, where a, b, c and d are the coefficient 
-        stored in the 'plane' variable
+
+    py::handlers_class<TemperaturizePlugin>(m, "Temperaturize", pysim, R"(
+        TODO
     )");
-    py::handlers_class<MembraneExtraForcePlugin>(m, "MembraneExtraForce", pysim, R"(
-        This plugin adds a given external force to a given membrane. 
-        The force is defined vertex wise and does not depend on position.
-        It is the same for all membranes belonging to the same particle vector.
+    
+    py::handlers_class<WallRepulsionPlugin>(m, "WallRepulsion", pysim, R"(
+        This plugin will add force on all the particles that are nearby a specified wall. The motivation of this plugin is as follows.
+        The particles of regular PVs are prevented from penetrating into the walls by Wall Bouncers.
+        However, using Wall Bouncers with Object Vectors may be undesirable (e.g. in case of a very viscous membrane) or impossible (in case of rigid objects).
+        In these cases one can use either strong repulsive potential between the object and the wall particle or alternatively this plugin.
+        The advantage of the SDF-based repulsion is that small penetrations won't break the simulation.
+        
+        The force expression looks as follows:
+        
+        .. math::
+        
+            \mathbf{F} = \mathbf{\nabla}_{sdf} \cdot \begin{cases}
+                0, & sdf < -h\\
+                \min(F_{max}, C (sdf + h)), & sdf \geqslant -h\\
+            \end{cases}
+    )");
+    
+    py::handlers_class<XYZPlugin>(m, "XYZPlugin", pysim, R"(
+        This plugin will dump positions of all the particles of the specified Particle Vector in the XYZ format.
+   
+        .. note::
+            This plugin is inactive if postprocess is disabled
     )");
     
     
