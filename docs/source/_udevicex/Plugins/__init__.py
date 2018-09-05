@@ -101,6 +101,15 @@ class ObjPositions(SimulationPlugin):
 class ObjPositionsDumper(PostprocessPlugin):
     r"""None
     """
+class ParticleDumperPlugin(PostprocessPlugin):
+    r"""None
+    """
+class ParticleSenderPlugin(SimulationPlugin):
+    r"""
+        This plugin will dump positions, velocities and optional attached data of all the particles of the specified Particle Vector.
+        The data is dumped into hdf5 format. An additional xdfm file is dumped to describe the data and make it readable by visualization tools. 
+    
+    """
 class PinObject(SimulationPlugin):
     r"""
         This plugin will fix center of mass positions (by axis) of all the objects of the specified Object Vector.
@@ -288,6 +297,32 @@ def createDumpObjectStats():
             ov: :any:`ObjectVector` that we'll work with
             dump_every: write files every this many time-steps
             path: the files will look like this: <path>/<ov_name>_NNNNN.txt
+    
+
+    """
+    pass
+
+def createDumpParticles():
+    r"""createDumpParticles(compute_task: bool, name: str, pv: ParticleVectors.ParticleVector, dump_every: int, channels: List[Tuple[str, str]], path: str) -> Tuple[Plugins.ParticleSenderPlugin, Plugins.ParticleDumperPlugin]
+
+
+        Create :any:`ParticleSenderPlugin` plugin
+        
+        Args:
+            name: name of the plugin
+            pv: :any:`ParticleVector` that we'll work with
+            dump_every: write files every this many time-steps 
+            path: Path and filename prefix for the dumps. For every dump two files will be created: <path>_NNNNN.xmf and <path>_NNNNN.h5
+            channels: list of pairs name - type.
+                Name is the channel (per particle) name.
+                The "velocity" channel is always activated by default.
+                Type is to provide the type of quantity to extract from the channel.                                            
+                Available types are:                                                                             
+                                                                                                                
+                * 'scalar': 1 float per particle
+                * 'vector': 3 floats per particle
+                * 'tensor6': 6 floats per particle, symmetric tensor in order xx, xy, xz, yy, yz, zz
+                
     
 
     """
