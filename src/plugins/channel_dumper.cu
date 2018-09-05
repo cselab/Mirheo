@@ -1,9 +1,10 @@
+#include <string>
+
 #include "channel_dumper.h"
 #include "simple_serializer.h"
 #include <core/utils/folders.h>
-
+#include <core/utils/make_unique.h>
 #include <core/simulation.h>
-#include <string>
 
 
 UniformCartesianDumper::UniformCartesianDumper(std::string name, std::string path) :
@@ -19,6 +20,8 @@ void UniformCartesianDumper::handshake()
     std::vector<int> sizes;
     SimpleSerializer::deserialize(data, nranks3D, rank3D, resolution, h, sizes);
 
+    std::vector<XDMFDumper::ChannelType> channelTypes;
+    
     for (auto s : sizes)
     {
         switch (s)
@@ -53,7 +56,7 @@ void UniformCartesianDumper::handshake()
     debug2("Plugin %s was set up to dump channels %s, resolution is %dx%dx%d, path is %s", name.c_str(),
             allNames.c_str(), resolution.x, resolution.y, resolution.z, path.c_str());
 
-    dumper = new XDMFGridDumper(comm, nranks3D, path, resolution, h, channelNames, channelTypes);
+    dumper = std::make_unique<XDMFGridDumper>(comm, nranks3D, path, resolution, h, channelNames, channelTypes);
 }
 
 void UniformCartesianDumper::deserialize(MPI_Status& stat)

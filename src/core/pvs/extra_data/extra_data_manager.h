@@ -125,6 +125,19 @@ public:
     }
 
     /**
+     * Get gpu buffer by name
+     *
+     * @param name buffer name
+     * @return pointer to \c GPUcontainer corresponding to the given name
+     */
+    GPUcontainer* getGenericData(const std::string& name)
+    {
+        auto& desc = getChannelDescOrDie(name);
+        return desc.container.get();
+    }
+    
+    
+    /**
      * Get buffer by name
      *
      * @param name buffer name
@@ -134,8 +147,7 @@ public:
     template<typename T>
     PinnedBuffer<T>* getData(const std::string& name)
     {
-        auto& desc = getChannelDescOrDie(name);
-        return dynamic_cast< PinnedBuffer<T>* > ( desc.container.get() );
+        return dynamic_cast< PinnedBuffer<T>* > ( getGenericData(name) );
     }
 
     /**

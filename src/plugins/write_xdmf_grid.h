@@ -19,7 +19,5 @@ public:
     XDMFGridDumper(MPI_Comm comm, int3 nranks3D, std::string fileNamePrefix, int3 localResolution, float3 h,
                    std::vector<std::string> channelNames, std::vector<ChannelType> channelTypes);
 
-    ~XDMFGridDumper();
-
     void dump(std::vector<const float*> channelData, const float t);
 };

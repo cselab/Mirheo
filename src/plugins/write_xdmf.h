@@ -54,6 +54,4 @@ protected:
 public:
     XDMFDumper(MPI_Comm comm, int3 nranks3D, std::string fileNamePrefix,
                std::vector<std::string> channelNames, std::vector<ChannelType> channelTypes);
-
-    ~XDMFDumper();
 };
