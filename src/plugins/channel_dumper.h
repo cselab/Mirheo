@@ -1,10 +1,11 @@
 #pragma once
 
+#include <vector>
+#include <memory>
+#include <mpi.h>
+
 #include <plugins/interface.h>
 #include <plugins/write_xdmf_grid.h>
-
-#include <vector>
-#include <mpi.h>
 
 class UniformCartesianDumper : public PostprocessPlugin
 {
@@ -15,14 +16,13 @@ public:
     void handshake() override;
 
 protected:
-    XDMFGridDumper* dumper;
+    std::unique_ptr<XDMFGridDumper> dumper;
     std::string path;
 
     int3 nranks3D, rank3D;
     int3 resolution;
     float3 h;
 
-    std::vector<XDMFDumper::ChannelType> channelTypes;
     std::vector<std::string> channelNames;
     std::vector<std::vector<float>> channels;
 };
