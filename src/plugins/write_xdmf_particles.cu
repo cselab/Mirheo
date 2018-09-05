@@ -3,7 +3,7 @@
 #include "timer.h"
 #include "write_xdmf_particles.h"
 
-static const char positionChanelName[] = "positions";
+static const char positionChanelName[] = "position";
 
 void XDMFParticlesDumper::writeXMFHeader(FILE *xmf, float t)
 {

@@ -18,10 +18,10 @@ binSize     = (1., 1., 1.)
 pvDump = udx.Plugins.createDumpParticles('partDump', pv, dumpEvery, [], 'h5/solvent_particles-')
 u.registerPlugins(pvDump)
 
-u.run(5)
+u.run(2)
 
-# sTEST: dump.h5.parts
+# TEST: dump.h5.parts
 # cd dump
 # rm -rf h5
 # udx.run --runargs "-n 2" ./h5.parts.py > /dev/null
-# echo 1 > h5.parts.out.txt
+# h5dump h5/solvent_particles-00000.h5 > h5.parts.out.txt
