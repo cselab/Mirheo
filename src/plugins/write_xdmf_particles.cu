@@ -18,11 +18,11 @@ void XDMFParticlesDumper::writeXMFFooter(FILE *xmf)
 
 void XDMFParticlesDumper::writeXMFGeometry(FILE *xmf, std::string currentFname)
 {
-    fprintf(xmf, "     <Topology TopologyType=\"Polyvertex\" NumberOfElements=\"%d\"/>\n",
+    fprintf(xmf, "     <Topology TopologyType=\"Polyvertex\" NumberOfElements=\"%ld\"/>\n",
             num_particles_tot);
 
     fprintf(xmf, "     <Geometry GeometryType=\"XYZ\">\n");
-    fprintf(xmf, "       <DataItem NumberType=\"Float\" Precision=\"4\" Dimensions=\"%d 3\" Format=\"HDF\">\n", num_particles_tot);
+    fprintf(xmf, "       <DataItem NumberType=\"Float\" Precision=\"4\" Dimensions=\"%ld 3\" Format=\"HDF\">\n", num_particles_tot);
     fprintf(xmf, "        %s:/%s\n", (currentFname+".h5").c_str(), positionChanelName);
     fprintf(xmf, "       </DataItem>\n");
     fprintf(xmf, "     </Geometry>\n");
@@ -35,7 +35,7 @@ void XDMFParticlesDumper::writeXMFData(FILE *xmf, std::string currentFname)
         auto info = getInfoFromType(channelTypes[ichannel]);
 
         fprintf(xmf, "     <Attribute Name=\"%s\" AttributeType=\"%s\" Center=\"Node\">\n", channelNames[ichannel].c_str(), info.type.c_str());
-        fprintf(xmf, "       <DataItem Dimensions=\"%d %d\" NumberType=\"Float\" Precision=\"4\" Format=\"HDF\">\n", num_particles_tot, info.dims);
+        fprintf(xmf, "       <DataItem Dimensions=\"%ld %d\" NumberType=\"Float\" Precision=\"4\" Format=\"HDF\">\n", num_particles_tot, info.dims);
 
         fprintf(xmf, "        %s:/%s\n", (currentFname+".h5").c_str(), channelNames[ichannel].c_str());
 

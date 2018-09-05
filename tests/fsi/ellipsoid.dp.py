@@ -57,8 +57,8 @@ if args.bounceBack:
     u.registerBouncer(bb)
     u.setBouncer(bb, pvEllipsoid, pvSolvent)
 
-# xyz = udx.Plugins.createDumpXYZ('xyz', pvEllipsoid, 500, "xyz/")
-# u.registerPlugins(xyz)
+# pvDump = udx.Plugins.createDumpParticles('partDump', pvEllipsoid, 500, [], 'h5/ell_particles-')
+# u.registerPlugins(pvDump)
 
 ovStats = udx.Plugins.createDumpObjectStats("objStats", ov=pvEllipsoid, dump_every=500, path="stats")
 u.registerPlugins(ovStats)
