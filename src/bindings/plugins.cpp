@@ -83,6 +83,12 @@ void exportPlugins(py::module& m)
         .. note::
             This plugin is inactive if postprocess is disabled
     )");
+
+    py::handlers_class<ParticleSenderPlugin>(m, "ParticleSenderPlugin", pysim, R"(
+        This plugin will dump positions, velocities and optional attached data of all the particles of the specified Particle Vector.
+        The data is dumped into hdf5 format. An additional xdfm file is dumped to describe the data and make it readable by visualization tools. 
+    )");
+    
     py::handlers_class<XYZPlugin>(m, "XYZPlugin", pysim, R"(
         This plugin will dump positions of all the particles of the specified Particle Vector in the XYZ format.
    
@@ -136,6 +142,7 @@ void exportPlugins(py::module& m)
     py::handlers_class<PostprocessStats>(m, "PostprocessStats", pypost);
     py::handlers_class<UniformCartesianDumper>(m, "UniformCartesianDumper", pypost);
     py::handlers_class<XYZDumper>(m, "XYZDumper", pypost);
+    py::handlers_class<ParticleDumperPlugin>(m, "ParticleDumperPlugin", pypost);
     py::handlers_class<MeshDumper>(m, "MeshDumper", pypost);
     py::handlers_class<ObjPositionsDumper>(m, "ObjPositionsDumper", pypost);
     py::handlers_class<ReportPinObjectPlugin>(m, "ReportPinObject", pypost);
@@ -255,6 +262,29 @@ void exportPlugins(py::module& m)
             relative_to_ov: take an object governing the frame of reference from this :any:`ObjectVector`
             relative_to_id: take an object governing the frame of reference with the specific ID
     )");
+
+    m.def("__createDumpParticles", &PluginFactory::createDumpParticlesPlugin, 
+          "compute_task"_a, "name"_a, "pv"_a, "dump_every"_a,
+          "channels"_a, "path"_a, R"(
+        Create :any:`ParticleSenderPlugin` plugin
+        
+        Args:
+            name: name of the plugin
+            pv: :any:`ParticleVector` that we'll work with
+            dump_every: write files every this many time-steps 
+            path: Path and filename prefix for the dumps. For every dump two files will be created: <path>_NNNNN.xmf and <path>_NNNNN.h5
+            channels: list of pairs name - type.
+                Name is the channel (per particle) name.
+                The "velocity" channel is always activated by default.
+                Type is to provide the type of quantity to extract from the channel.                                            
+                Available types are:                                                                             
+                                                                                                                
+                * 'scalar': 1 float per particle
+                * 'vector': 3 floats per particle
+                * 'tensor6': 6 floats per particle, symmetric tensor in order xx, xy, xz, yy, yz, zz
+                
+    )");
+    
     m.def("__createDumpXYZ", &PluginFactory::createDumpXYZPlugin, 
           "compute_task"_a, "name"_a, "pv"_a, "dump_every"_a, "path"_a, R"(
         Create :any:`XYZPlugin` plugin

@@ -13,11 +13,12 @@ class CellList;
 
 class ParticleSenderPlugin : public SimulationPlugin
 {
+public:
+
     enum class ChannelType {
         Scalar, Vector, Tensor6
     };
     
-public:
     ParticleSenderPlugin(std::string name, std::string pvName, int dumpEvery,
                          std::vector<std::string> channelNames,
                          std::vector<ChannelType> channelTypes);
