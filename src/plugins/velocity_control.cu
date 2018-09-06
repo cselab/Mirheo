@@ -125,7 +125,6 @@ void SimulationVelocityControl::serializeAndSend(cudaStream_t stream)
 
     SimpleSerializer::serialize(sendBuffer, currentTime, currentTimeStep, currentVel, force);
     send(sendBuffer);
-    info("haha");
 }
 
 
