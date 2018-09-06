@@ -135,7 +135,8 @@ void ParticleDumperPlugin::handshake()
         }
     }
 
-    channelData.resize(channelTypes.size());
+    // -1 because velocity will be a separate vector
+    channelData.resize(channelTypes.size()-1);
 
     std::string allNames;
     int shift = SimpleSerializer::totSize(nranks3D, sizes);
@@ -194,7 +195,8 @@ void ParticleDumperPlugin::deserialize(MPI_Status& stat)
     
     std::vector<const float*> chPtrs;
     chPtrs.push_back((const float*) velocities.data());
-    for (auto& ch : channelData) chPtrs.push_back((const float*)ch.data());
+    for (auto& ch : channelData)
+        chPtrs.push_back((const float*)ch.data());
 
     dumper->dump(particles.size(), positions.data(), chPtrs, t);
 }
