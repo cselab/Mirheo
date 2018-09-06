@@ -13,7 +13,6 @@ ic = udx.InitialConditions.Uniform(density=3)
 u.registerParticleVector(pv=pv, ic=ic)
 
 dumpEvery   = 1
-binSize     = (1., 1., 1.)
 
 pvDump = udx.Plugins.createDumpParticles('partDump', pv, dumpEvery, [], 'h5/solvent_particles-')
 u.registerPlugins(pvDump)
