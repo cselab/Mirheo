@@ -1,0 +1,22 @@
+HDF5 "h5/solvent_particles-00000.h5" {
+GROUP "/" {
+   DATASET "position" {
+      DATATYPE  H5T_IEEE_F32LE
+      DATASPACE  SIMPLE { ( 3, 3 ) / ( 3, 3 ) }
+      DATA {
+      (0,0): 1, 0.25, 0.5,
+      (1,0): 1, 0.5, 0.5,
+      (2,0): 1, 0.75, 0.5
+      }
+   }
+   DATASET "velocity" {
+      DATATYPE  H5T_IEEE_F32LE
+      DATASPACE  SIMPLE { ( 3, 3 ) / ( 3, 3 ) }
+      DATA {
+      (0,0): 0.3, 0.2, 0.1,
+      (1,0): 0.3, 0.2, 0.1,
+      (2,0): 0.3, 0.2, 0.1
+      }
+   }
+}
+}

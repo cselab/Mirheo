@@ -66,6 +66,12 @@ void XDMFDumper::closeIOFile(hid_t file_id) const
 void XDMFDumper::writeDataSet(hid_t file_id, int rank, hsize_t globalSize[], hsize_t localSize[], hsize_t offset[],
                               std::string channelName, const float *channelData) const
 {
+    int nLocData = 1, nTotData = 1;
+    for (int i = 0; i < rank; ++i) {
+        nLocData *= localSize[i];
+        nTotData *= globalSize[i];
+    }
+    
     hid_t filespace_simple = H5Screate_simple(rank, globalSize, nullptr);
 
     hid_t dset_id = H5Dcreate(file_id, channelName.c_str(), H5T_NATIVE_FLOAT, filespace_simple, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
@@ -73,14 +79,20 @@ void XDMFDumper::writeDataSet(hid_t file_id, int rank, hsize_t globalSize[], hsi
 
     H5Pset_dxpl_mpio(xfer_plist_id, H5FD_MPIO_COLLECTIVE);
 
-    hid_t filespace = H5Dget_space(dset_id);
-    H5Sselect_hyperslab(filespace, H5S_SELECT_SET, offset, NULL, localSize, NULL);
+    hid_t dspace_id = H5Dget_space(dset_id);
 
-    hid_t memspace = H5Screate_simple(rank, localSize, NULL);
-    herr_t status = H5Dwrite(dset_id, H5T_NATIVE_FLOAT, memspace, filespace, xfer_plist_id, channelData);
+    if (nLocData)
+        H5Sselect_hyperslab(dspace_id, H5S_SELECT_SET, offset, nullptr, localSize, nullptr);
+    else
+        H5Sselect_none(dspace_id);
 
-    H5Sclose(memspace);
-    H5Sclose(filespace);
+    hid_t mspace_id = H5Screate_simple(rank, localSize, nullptr);
+
+    if (nTotData)
+        H5Dwrite(dset_id, H5T_NATIVE_FLOAT, mspace_id, dspace_id, xfer_plist_id, channelData);
+
+    H5Sclose(mspace_id);
+    H5Sclose(dspace_id);
     H5Pclose(xfer_plist_id);
     H5Dclose(dset_id);
 }
