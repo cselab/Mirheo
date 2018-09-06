@@ -150,8 +150,6 @@ void PostprocessVelocityControl::deserialize(MPI_Status& stat)
     float currentTime;
     float3 vel, force;
 
-    info("hoho");
-    
     SimpleSerializer::deserialize(data, currentTime, currentTimeStep, vel, force);
 
     if (rank == 0) {
