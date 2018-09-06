@@ -47,8 +47,9 @@
 ** TODO pvs
 ** TODO other?
 ** TODO move to h5 format
-* [7/8] walls tests
-** TODO sdf
+* [8/8] walls tests
+** DONE sdf
+   CLOSED: [2018-09-06 Thu 16:53]
 ** DONE rotating cylinder
    CLOSED: [2018-08-29 Wed 10:35]
 ** DONE couette
