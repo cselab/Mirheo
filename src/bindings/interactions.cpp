@@ -14,7 +14,6 @@ using namespace pybind11::literals;
 
 void exportInteractions(py::module& m)
 {
-    // Initial Conditions
     py::handlers_class<Interaction> pyint(m, "Interaction", "Base interaction class");
 
     py::handlers_class<InteractionDPD>(m, "DPD", pyint, R"(
