@@ -70,7 +70,8 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     coords = createFromMeshFile(args.density, args.fname, args.niter)
-    
+
+    # assume only one rank is working
     np.savetxt(args.out, coords)
     
 

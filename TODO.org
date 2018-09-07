@@ -26,7 +26,8 @@
    CLOSED: [2018-08-20 Mon 18:18]
 ** DONE plugin for recoloring particles: e.g. Hele shaw cell
    CLOSED: [2018-08-23 Thu 17:46]
-* [1/2] IO
+* [1/3] IO
+** TODO hdf5 format for restart
 ** TODO dump mesh for ellipsoid rigid objects
 ** DONE dump particles in binary format: h5 + xdmf
    CLOSED: [2018-09-05 Wed 13:36]
@@ -45,10 +46,9 @@
 ** TODO bounce against rigid ellipsoid
 ** TODO bounce against rigid mesh
 ** TODO bounce against membrane
-* [0/3] Restart tests
+* [0/2] Restart tests
 ** TODO pvs
-** TODO other?
-** TODO move to h5 format
+** TODO objects
 * [8/8] walls tests
 ** DONE sdf
    CLOSED: [2018-09-06 Thu 16:53]
