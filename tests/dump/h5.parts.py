@@ -28,10 +28,10 @@ u.run(2)
 # cd dump
 # rm -rf h5
 # udx.run --runargs "-n 2" ./h5.parts.py --density 3 > /dev/null
-# udx.run h5dump h5/solvent_particles-00000.h5 > h5.parts.out.txt
+# h5dump h5/solvent_particles-00000.h5 > h5.parts.out.txt
 
 # TEST: dump.h5.parts.noparts
 # cd dump
 # rm -rf h5
 # udx.run --runargs "-n 2" ./h5.parts.py --density 0 > /dev/null
-# udx.run h5dump h5/solvent_particles-00000.h5 > h5.parts.out.txt
+# h5dump h5/solvent_particles-00000.h5 > h5.parts.out.txt

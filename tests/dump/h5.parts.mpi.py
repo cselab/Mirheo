@@ -3,11 +3,6 @@
 import udevicex as udx
 import argparse
 
-parser = argparse.ArgumentParser()
-parser.add_argument("--density", type=int)
-args = parser.parse_args()
-
-
 ranks  = (2, 1, 1)
 domain = (4, 2, 2)
 
@@ -35,4 +30,4 @@ u.run(2)
 # cd dump
 # rm -rf h5
 # udx.run --runargs "-n 4" ./h5.parts.mpi.py > /dev/null
-# udx.run h5dump h5/solvent_particles-00000.h5 > h5.parts.out.txt
+# h5dump h5/solvent_particles-00000.h5 > h5.parts.out.txt
