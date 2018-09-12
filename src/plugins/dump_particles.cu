@@ -135,7 +135,8 @@ void ParticleDumperPlugin::handshake()
         }
     }
 
-    channelData.resize(channelTypes.size());
+    // -1 because velocity will be a separate vector
+    channelData.resize(channelTypes.size()-1);
 
     std::string allNames;
     int shift = SimpleSerializer::totSize(nranks3D, sizes);
@@ -158,6 +159,24 @@ void ParticleDumperPlugin::handshake()
     dumper = std::make_unique<XDMFParticlesDumper>(comm, nranks3D, path, channelNames, channelTypes);    
 }
 
+static void unpack_particles(const std::vector<Particle> &particles, std::vector<float> &pos, std::vector<float> &vel)
+{
+    int n = particles.size();
+    pos.resize(3 * n);
+    vel.resize(3 * n);
+
+    for (int i = 0; i < n; ++i) {
+        auto p = particles[i];
+        pos[3*i + 0] = p.r.x;
+        pos[3*i + 1] = p.r.y;
+        pos[3*i + 2] = p.r.z;
+
+        vel[3*i + 0] = p.u.x;
+        vel[3*i + 1] = p.u.y;
+        vel[3*i + 2] = p.u.z;
+    }
+}
+
 void ParticleDumperPlugin::deserialize(MPI_Status& stat)
 {
     float t;
@@ -178,23 +197,12 @@ void ParticleDumperPlugin::deserialize(MPI_Status& stat)
         c++;
     }
 
-    positions .resize(3 * particles.size());
-    velocities.resize(3 * particles.size());
-
-    for (int i = 0; i < particles.size(); ++i) {
-        auto p = particles[i];
-        positions[3*i + 0] = p.r.x;
-        positions[3*i + 1] = p.r.y;
-        positions[3*i + 2] = p.r.z;
-
-        velocities[3*i + 0] = p.u.x;
-        velocities[3*i + 1] = p.u.y;
-        velocities[3*i + 2] = p.u.z;
-    }
+    unpack_particles(particles, positions, velocities);
     
     std::vector<const float*> chPtrs;
     chPtrs.push_back((const float*) velocities.data());
-    for (auto& ch : channelData) chPtrs.push_back((const float*)ch.data());
+    for (auto& ch : channelData)
+        chPtrs.push_back((const float*)ch.data());
 
     dumper->dump(particles.size(), positions.data(), chPtrs, t);
 }

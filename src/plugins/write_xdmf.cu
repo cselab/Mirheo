@@ -71,6 +71,8 @@ void XDMFDumper::writeDataSet(hid_t file_id, int rank, hsize_t globalSize[], hsi
         nLocData *= localSize[i];
         nTotData *= globalSize[i];
     }
+
+    debug3("Writing channel %s: have %d / %d elements", channelName.c_str(), nLocData, nTotData);
     
     hid_t filespace_simple = H5Screate_simple(rank, globalSize, nullptr);
 

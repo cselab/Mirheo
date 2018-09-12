@@ -17,21 +17,38 @@ using namespace pybind11::literals;
 
 void exportInitialConditions(py::module& m)
 {
-    // Initial Conditions
     py::handlers_class<InitialConditions> pyic(m, "InitialConditions", R"(
             Base class for initial conditions
         )");
 
-    py::handlers_class<UniformIC>(m, "Uniform", pyic, R"(
-        The particles will be generated with the desired number density uniformly at random in all the domain.
-        These IC may be used with any Particle Vector, but only make sense for regular PV.
-            
+    
+
+    py::handlers_class<FromArrayIC>(m, "FromArray", pyic, R"(
+        Set particles according to given position and velocity arrays.
     )")
-        .def(py::init<float>(), "density"_a, R"(
+        .def(py::init<const PyTypes::VectorOfFloat3&, const PyTypes::VectorOfFloat3&>(), "pos"_a, "vel"_a, R"(
             Args:
-                density: target density
+                pos: array of positions
+                vel: array of velocities
         )");
         
+    py::handlers_class<MembraneIC>(m, "Membrane", pyic, R"(
+        Can only be used with Membrane Object Vector, see :ref:`user-ic`. These IC will initialize the particles of each object
+        according to the mesh associated with Membrane, and then the objects will be translated/rotated according to the provided initial conditions.
+    )")
+        .def(py::init<PyTypes::VectorOfFloat7, float>(), "com_q"_a, "global_scale"_a=1.0, R"(
+            Args:
+                com_q:
+                    List describing location and rotation of the created objects.               
+                    One entry in the list corresponds to one object created.                          
+                    Each entry consist of 7 floats: *<com_x> <com_y> <com_z>  <q_x> <q_y> <q_z> <q_w>*, where    
+                    *com* is the center of mass of the object, *q* is the quaternion of its rotation,
+                    not necessarily normalized 
+                global_scale:
+                    All the membranes will be scaled by that value. Useful to implement membranes growth so that they
+                    can fill the space with high volume fraction                                        
+        )");
+
     py::handlers_class<RestartIC>(m, "Restart", pyic, R"(
         Read the state (particle coordinates and velocities, other relevant data for objects is **not implemented yet**)
     )")
@@ -76,32 +93,14 @@ void exportInitialConditions(py::module& m)
                     in the corresponding PV
         )");
     
-        
-    py::handlers_class<MembraneIC>(m, "Membrane", pyic, R"(
-        Can only be used with Membrane Object Vector, see :ref:`user-ic`. These IC will initialize the particles of each object
-        according to the mesh associated with Membrane, and then the objects will be translated/rotated according to the provided initial conditions.
-    )")
-        .def(py::init<PyTypes::VectorOfFloat7, float>(), "com_q"_a, "global_scale"_a=1.0, R"(
-            Args:
-                com_q:
-                    List describing location and rotation of the created objects.               
-                    One entry in the list corresponds to one object created.                          
-                    Each entry consist of 7 floats: *<com_x> <com_y> <com_z>  <q_x> <q_y> <q_z> <q_w>*, where    
-                    *com* is the center of mass of the object, *q* is the quaternion of its rotation,
-                    not necessarily normalized 
-                global_scale:
-                    All the membranes will be scaled by that value. Useful to implement membranes growth so that they
-                    can fill the space with high volume fraction                                        
-        )");
 
-    py::handlers_class<FromArrayIC>(m, "FromArray", pyic, R"(
-        Set particles according to given position and velocity arrays.            
+    py::handlers_class<UniformIC>(m, "Uniform", pyic, R"(
+        The particles will be generated with the desired number density uniformly at random in all the domain.
+        These IC may be used with any Particle Vector, but only make sense for regular PV.
+            
     )")
-        .def(py::init<const PyTypes::VectorOfFloat3&, const PyTypes::VectorOfFloat3&>(), "pos"_a, "vel"_a, R"(
+        .def(py::init<float>(), "density"_a, R"(
             Args:
-                pos: array of positions
-                vel: array of velocities
+                density: target density
         )");
-        
-
 }

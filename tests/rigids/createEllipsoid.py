@@ -50,7 +50,8 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     coords = createEllipsoid(args.density, args.axes, args.niter)
-    
+
+    # assume only one rank is working
     np.savetxt(args.out, coords)
     
 # nTEST: rigids.createEllipsoid
@@ -58,6 +59,6 @@ if __name__ == '__main__':
 # cd rigids
 # rm -rf pos.txt pos.out.txt
 # pfile=pos.txt
-# udx.run --runargs "-n 2" ./createEllipsoid.py --axes 2.0 3.0 4.0 --density 8 --niter 1 --out $pfile > /dev/null
+# udx.run ./createEllipsoid.py --axes 2.0 3.0 4.0 --density 8 --niter 1 --out $pfile > /dev/null
 # cat $pfile | sort > pos.out.txt
 

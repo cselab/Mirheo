@@ -12,11 +12,11 @@ using namespace pybind11::literals;
 
 void exportBouncers(py::module& m)
 {
-    // Initial Conditions
     py::handlers_class<Bouncer> pybounce(m, "Bouncer", R"(
         Base class for bouncing particles off the objects
     )");
 
+    
     py::handlers_class<BounceFromMesh>(m, "Mesh", pybounce, R"(
         This bouncer will use the triangular mesh associated with objects to detect boundary crossings.
         Therefore it can only be created for Membrane and Rigid Object types of object vectors.

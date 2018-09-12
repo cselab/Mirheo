@@ -1,7 +1,8 @@
-* [5/8] Features
+* [6/8] Features
 ** TODO more bending models for membranes
 ** TODO adaptive time stepping
-** TODO freeze rigid object particles
+** DONE freeze rigid object particles
+   CLOSED: [2018-09-06 Thu 16:54]
 ** DONE membrane stretching force
    CLOSED: [2018-08-29 Wed 09:19]
    See membrane_extra_force.h in plugins
@@ -25,16 +26,18 @@
    CLOSED: [2018-08-20 Mon 18:18]
 ** DONE plugin for recoloring particles: e.g. Hele shaw cell
    CLOSED: [2018-08-23 Thu 17:46]
-* [1/2] IO
+* [1/3] IO
+** TODO hdf5 format for restart
 ** TODO dump mesh for ellipsoid rigid objects
 ** DONE dump particles in binary format: h5 + xdmf
    CLOSED: [2018-09-05 Wed 13:36]
 * [0/1] Others
 ** TODO daint: proper cmake for libbfd
    For now: udx.make CMAKE_FLAGS="-DLIBBFD_BFD_LIBRARY=/usr/lib64/libbfd-2.26.1.so -DCUDA_ARCH_NAME=6.0" install
-* [2/4] Code
+* [2/5] Code
 ** TODO remove magic numbers
 ** TODO common api for "fragments" manipulation
+** TODO Separate "shape" from object vectors
 ** DONE maxDegree runtime
    CLOSED: [2018-08-24 Fri 10:12]
 ** DONE common api for "killing" particles before redistribution or cell lists
@@ -43,8 +46,12 @@
 ** TODO bounce against rigid ellipsoid
 ** TODO bounce against rigid mesh
 ** TODO bounce against membrane
-* [7/8] walls tests
-** TODO sdf
+* [0/2] Restart tests
+** TODO pvs
+** TODO objects
+* [8/8] walls tests
+** DONE sdf
+   CLOSED: [2018-09-06 Thu 16:53]
 ** DONE rotating cylinder
    CLOSED: [2018-08-29 Wed 10:35]
 ** DONE couette
