@@ -4,7 +4,7 @@
 #include <core/object_belonging/ellipsoid_belonging.h>
 #include <core/object_belonging/mesh_belonging.h>
 
-#include "nodelete.h"
+#include "class_wrapper.h"
 
 namespace py = pybind11;
 using namespace pybind11::literals;

@@ -7,7 +7,7 @@
 #include <core/interactions/lj.h>
 #include <core/interactions/membrane.h>
 
-#include "nodelete.h"
+#include "class_wrapper.h"
 
 namespace py = pybind11;
 using namespace pybind11::literals;

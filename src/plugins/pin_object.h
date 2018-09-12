@@ -7,17 +7,22 @@
 
 #include <core/utils/folders.h>
 
+#include <limits>
+#include <cmath>
+
 class ObjectVector;
 class RigidObjectVector;
 
 class PinObjectPlugin : public SimulationPlugin
 {
 public:
-    PinObjectPlugin(std::string name, std::string ovName, int3 pinTranslation, int3 pinRotation, int reportEvery);
+    constexpr static float Unrestricted = std::numeric_limits<float>::infinity();
+    
+    PinObjectPlugin(std::string name, std::string ovName, float3 translation, float3 rotation, int reportEvery);
 
     void setup(Simulation* sim, const MPI_Comm& comm, const MPI_Comm& interComm) override;
     void beforeIntegration(cudaStream_t stream) override;
-    void afterIntegration(cudaStream_t stream) override;
+    void afterIntegration (cudaStream_t stream) override;
     void serializeAndSend (cudaStream_t stream) override;
     void handshake() override;
 
@@ -28,7 +33,7 @@ private:
     ObjectVector* ov;
     RigidObjectVector* rov{nullptr};
 
-    int3 pinTranslation, pinRotation;
+    float3 translation, rotation;
 
     int reportEvery;
     int count{0};

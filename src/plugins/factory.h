@@ -258,10 +258,10 @@ namespace PluginFactory
     static std::pair< PinObjectPlugin*, ReportPinObjectPlugin* >
         createPinObjPlugin(bool computeTask, std::string name, ObjectVector* ov,
                            int dumpEvery, std::string path,
-                           PyTypes::int3 pinTranslation, PyTypes::int3 pinRotation)
+                           PyTypes::float3 velocity, PyTypes::float3 omega)
     {
         auto simPl  = computeTask ? new PinObjectPlugin(name, ov->name,
-                                                        make_int3(pinTranslation), make_int3(pinRotation),
+                                                        make_float3(velocity), make_float3(omega),
                                                         dumpEvery) : 
                                     nullptr;
         auto postPl = computeTask ? nullptr : new ReportPinObjectPlugin(name, path);

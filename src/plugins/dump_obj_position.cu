@@ -90,7 +90,7 @@ void writePositions(MPI_Comm comm, DomainInfo domain, MPI_File& fout, float curT
                 << std::setw(10) << com.com.y << " "
                 << std::setw(10) << com.com.z;
 
-        if (i < motions.size())
+        if (!motions.empty())
         {
             auto& motion = motions[i];
 
@@ -124,12 +124,14 @@ void writePositions(MPI_Comm comm, DomainInfo domain, MPI_File& fout, float curT
 
     MPI_Offset offset = 0, size;
     MPI_Check( MPI_File_get_size(fout, &size) );
+    MPI_Check( MPI_Barrier(comm) );
 
     MPI_Offset len = content.size();
     MPI_Check( MPI_Exscan(&len, &offset, 1, MPI_OFFSET, MPI_SUM, comm) );
 
     MPI_Status status;
     MPI_Check( MPI_File_write_at_all(fout, offset + size, content.c_str(), len, MPI_CHAR, &status) );
+    MPI_Check( MPI_Barrier(comm) );
 }
 
 //=================================================================================

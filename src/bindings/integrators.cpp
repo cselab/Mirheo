@@ -3,7 +3,7 @@
 #include <core/integrators/factory.h>
 #include <core/interactions/interface.h>
 
-#include "nodelete.h"
+#include "class_wrapper.h"
 
 namespace py = pybind11;
 using namespace pybind11::literals;

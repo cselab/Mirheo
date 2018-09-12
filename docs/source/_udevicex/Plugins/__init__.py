@@ -112,9 +112,9 @@ class ParticleSenderPlugin(SimulationPlugin):
     """
 class PinObject(SimulationPlugin):
     r"""
-        This plugin will fix center of mass positions (by axis) of all the objects of the specified Object Vector.
+        This plugin will impose given velocity as the center of mass velocity (by axis) of all the objects of the specified Object Vector.
         If the objects are rigid bodies, rotatation may be restricted with this plugin as well.
-        The *average* force or torque required to fix the positions or rotation are reported.
+        The *time-averaged* force and/or torque required to impose the velocities and rotations are reported.
             
         .. note::
             This plugin is inactive if postprocess is disabled
@@ -412,7 +412,7 @@ def createMembraneExtraForce():
     pass
 
 def createPinObject():
-    r"""createPinObject(compute_task: bool, name: str, ov: ParticleVectors.ObjectVector, dump_every: int, path: str, pin_translation: Tuple[int, int, int], pin_rotation: Tuple[int, int, int]) -> Tuple[Plugins.PinObject, Plugins.ReportPinObject]
+    r"""createPinObject(compute_task: bool, name: str, ov: ParticleVectors.ObjectVector, dump_every: int, path: str, velocity: Tuple[float, float, float], angular_velocity: Tuple[float, float, float]) -> Tuple[Plugins.PinObject, Plugins.ReportPinObject]
 
 
         Create :any:`PinObject` plugin
@@ -422,10 +422,10 @@ def createPinObject():
             ov: :any:`ObjectVector` that we'll work with
             dump_every: write files every this many time-steps
             path: the files will look like this: <path>/<ov_name>_NNNNN.txt
-            pin_translation: 3 integers; 0 means that motion along the corresponding axis is unrestricted,
-                1 means fixed position wrt to the axis
-            pin_rotation: 3 integers; 0 means that rotation along the corresponding axis is unrestricted,
-                1 means fixed rotation wrt to the axis
+            velocity: 3 floats, each component is the desired object velocity.
+                If the corresponding component should not be restricted, set this value to :and:`PinObjectPlugin::Unrestricted`
+            angular_velocity: 3 floats, each component is the desired object angular velocity.
+                If the corresponding component should not be restricted, set this value to :and:`PinObjectPlugin::Unrestricted`
     
 
     """

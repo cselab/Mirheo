@@ -10,7 +10,7 @@
 
 #include <core/utils/pytypes.h>
 
-#include "nodelete.h"
+#include "class_wrapper.h"
 
 namespace py = pybind11;
 using namespace pybind11::literals;

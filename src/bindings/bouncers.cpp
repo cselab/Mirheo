@@ -4,7 +4,7 @@
 #include <core/bouncers/from_ellipsoid.h>
 #include <core/bouncers/from_mesh.h>
 
-#include "nodelete.h"
+#include "class_wrapper.h"
 
 
 namespace py = pybind11;

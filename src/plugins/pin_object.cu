@@ -8,46 +8,60 @@
 
 #include <core/utils/cuda_common.h>
 #include <core/utils/cuda_rng.h>
-#include "simple_serializer.h"
+#include <core/rigid_kernels/quaternion.h>
 
-__global__ void restrictForces(OVview view, int3 pinTranslation, float4* totForces)
+#include "simple_serializer.h"
+#include "pin_object.h"
+
+__global__ void restrictVelocities(OVview view, float3 targetVelocity, float4* totForces)
 {
     int objId = blockIdx.x;
-
-    __shared__ float3 objTotForce;
+    
+    __shared__ float3 objTotForce, objVelocity;
     objTotForce = make_float3(0);
+    objVelocity = make_float3(0);
     __syncthreads();
 
-    // Find total force acting on the object
+    // Find total force acting on the object and its velocity
 
-    float3 myf = make_float3(0);
+    float3 myf = make_float3(0), myv = make_float3(0);
     for (int pid = threadIdx.x; pid < view.objSize; pid += blockDim.x)
+    {
         myf += Float3_int(view.forces[pid + objId*view.objSize]).v;
+        myv += Float3_int(view.particles[2*(pid + objId*view.objSize) + 1]).v;
+    }
 
     myf = warpReduce(myf, [] (float a, float b) { return a+b; });
+    myv = warpReduce(myv, [] (float a, float b) { return a+b; });
 
     if (__laneid() == 0)
+    {
         atomicAdd(&objTotForce, myf);
+        atomicAdd(&objVelocity, myv / view.objSize);  // Average, not simply sum
+    }
 
     __syncthreads();
 
     // Now only leave the components we need and save the force
 
-    if (!pinTranslation.x) { objTotForce.x = 0.0f; }
-    if (!pinTranslation.y) { objTotForce.y = 0.0f; }
-    if (!pinTranslation.z) { objTotForce.z = 0.0f; }
+    float3 extraForce = make_float3(0);
+    if (targetVelocity.x == PinObjectPlugin::Unrestricted) { objTotForce.x = 0; objVelocity.x = 0; }
+    if (targetVelocity.y == PinObjectPlugin::Unrestricted) { objTotForce.y = 0; objVelocity.y = 0; }
+    if (targetVelocity.z == PinObjectPlugin::Unrestricted) { objTotForce.z = 0; objVelocity.z = 0; }
 
     if (threadIdx.x == 0)
         totForces[view.ids[objId]] += Float3_int(objTotForce, 0).toFloat4();
 
-    // Finally change the original forces
-    myf = objTotForce / view.objSize;
+    // Finally change the original forces and velocities
+    // Velocities should be preserved anyways, only changed in the very
+    // beginning of the simulation
+    objTotForce /= view.objSize;
 
     for (int pid = threadIdx.x; pid < view.objSize; pid += blockDim.x)
-        view.forces[pid + objId*view.objSize] -= Float3_int(myf, 0).toFloat4();
+        view.forces[pid + objId*view.objSize] -= Float3_int(objTotForce, 0).toFloat4();
 }
 
-__global__ void revertRigidMotion(ROVviewWithOldMotion view, int3 pinTranslation, int3 pinRotation, float4* totForces, float4* totTorques)
+__global__ void restrictRigidMotion(ROVviewWithOldMotion view, float3 targetVelocity, float3 targetOmega, float dt, float4* totForces, float4* totTorques)
 {
     int objId = blockIdx.x * blockDim.x + threadIdx.x;
     if (objId >= view.nObjects) return;
@@ -57,26 +71,56 @@ __global__ void revertRigidMotion(ROVviewWithOldMotion view, int3 pinTranslation
 
     int globObjId = view.ids[objId];
 
-    if (pinTranslation.x) { totForces[globObjId].x  += old_motion.force.x;   motion.r.x = old_motion.r.x;  motion.vel.x = 0; }
-    if (pinTranslation.y) { totForces[globObjId].y  += old_motion.force.y;   motion.r.y = old_motion.r.y;  motion.vel.y = 0; }
-    if (pinTranslation.z) { totForces[globObjId].z  += old_motion.force.z;   motion.r.z = old_motion.r.z;  motion.vel.z = 0; }
-
+#define VELOCITY_PER_DIM(dim)                                    \
+    if (targetVelocity.dim != PinObjectPlugin::Unrestricted)     \
+    {                                                            \
+        totForces[globObjId].dim += old_motion.force.dim;        \
+        motion.r.dim = old_motion.r.dim + targetVelocity.dim*dt; \
+        motion.vel.dim = targetVelocity.dim;                     \
+    }
+    
+    VELOCITY_PER_DIM(x);
+    VELOCITY_PER_DIM(y);
+    VELOCITY_PER_DIM(z);
+    
+#undef VELOCITY_PER_DIM
+    
+    
     // https://stackoverflow.com/a/22401169/3535276
     // looks like q.x, 0, 0, q.w is responsible for the X axis rotation etc.
     // so to restrict rotation along ie. X, we need to preserve q.x
     // and normalize of course
-    if (pinRotation.x)    { totTorques[globObjId].x += old_motion.torque.x;  motion.q.y = old_motion.q.y;  motion.omega.x = 0; }
-    if (pinRotation.y)    { totTorques[globObjId].y += old_motion.torque.y;  motion.q.z = old_motion.q.z;  motion.omega.y = 0; }
-    if (pinRotation.z)    { totTorques[globObjId].z += old_motion.torque.z;  motion.q.w = old_motion.q.w;  motion.omega.z = 0; }
-
+    
+    // First filter out the invalid values
+    auto adjustedTargetOmega = old_motion.omega;
+    if (targetOmega.x != PinObjectPlugin::Unrestricted) adjustedTargetOmega.x = targetOmega.x;
+    if (targetOmega.y != PinObjectPlugin::Unrestricted) adjustedTargetOmega.y = targetOmega.y;
+    if (targetOmega.z != PinObjectPlugin::Unrestricted) adjustedTargetOmega.z = targetOmega.z;
+    
+    // Next compute the corrected dq_dt and revert if necessary
+    auto dq_dt = compute_dq_dt(old_motion.q, adjustedTargetOmega);
+#define OMEGA_PER_DIM(dim)                                   \
+    if (targetOmega.dim != PinObjectPlugin::Unrestricted)    \
+    {                                                        \
+        totTorques[globObjId].dim += old_motion.torque.dim;  \
+        motion.q.dim = old_motion.q.dim + dq_dt.dim*dt;      \
+        motion.omega.dim = targetOmega.dim;                  \
+    }
+    
+    OMEGA_PER_DIM(x);
+    OMEGA_PER_DIM(y);
+    OMEGA_PER_DIM(z);
+    
+#undef OMEGA_PER_DIM
+    
     motion.q = normalize(motion.q);
     view.motions[objId] = motion;
 }
 
 
-PinObjectPlugin::PinObjectPlugin(std::string name, std::string ovName, int3 pinTranslation, int3 pinRotation, int reportEvery) :
+PinObjectPlugin::PinObjectPlugin(std::string name, std::string ovName, float3 translation, float3 rotation, int reportEvery) :
     SimulationPlugin(name), ovName(ovName),
-    pinTranslation(pinTranslation), pinRotation(pinRotation),
+    translation(translation), rotation(rotation),
     reportEvery(reportEvery)
 {    }
 
@@ -95,22 +139,22 @@ void PinObjectPlugin::setup(Simulation* sim, const MPI_Comm& comm, const MPI_Com
 
     // Also check torques if object is rigid and if we need to restrict rotation
     rov = dynamic_cast<RigidObjectVector*>(ov);
-    if (rov != nullptr && (pinRotation.x + pinRotation.y + pinRotation.z) > 0)
+    if (rov != nullptr && (rotation.x != Unrestricted || rotation.y != Unrestricted || rotation.z != Unrestricted))
     {
         torques.resize_anew(totObjs);
         torques.clear(0);
     }
 
-    debug("Plugin PinObject is setup for OV '%s' and will restrict %s of translational degrees of freedom and %s of rotational",
-            ovName.c_str(),
+    debug("Plugin PinObject is setup for OV '%s' and will impose the following velocity: [%s %s %s]; and following rotation: [%s %s %s]",
+          ovName.c_str(),
 
-            (std::string(pinTranslation.x ? "x" : "") +
-             std::string(pinTranslation.y ? "y" : "") +
-             std::string(pinTranslation.z ? "z" : "")).c_str(),
+          translation.x == Unrestricted ? "?" : std::to_string(translation.x).c_str(),
+          translation.y == Unrestricted ? "?" : std::to_string(translation.y).c_str(),
+          translation.z == Unrestricted ? "?" : std::to_string(translation.z).c_str(),
 
-            (std::string(pinRotation.x ? "x" : "") +
-             std::string(pinRotation.y ? "y" : "") +
-             std::string(pinRotation.z ? "z" : "")).c_str()   );
+          rotation.x == Unrestricted ? "?" : std::to_string(rotation.x).c_str(),
+          rotation.y == Unrestricted ? "?" : std::to_string(rotation.y).c_str(),
+          rotation.z == Unrestricted ? "?" : std::to_string(rotation.z).c_str() );
 }
 
 
@@ -123,7 +167,6 @@ void PinObjectPlugin::handshake()
 void PinObjectPlugin::beforeIntegration(cudaStream_t stream)
 {
     // If the object is not rigid, modify the forces
-    // We'll deal with the rigid objects after the integration
     if (rov == nullptr)
     {
         debug("Restricting motion of OV '%s' as per plugin '%s'", ovName.c_str(), name.c_str());
@@ -131,15 +174,15 @@ void PinObjectPlugin::beforeIntegration(cudaStream_t stream)
         const int nthreads = 128;
         OVview view(ov, ov->local());
         SAFE_KERNEL_LAUNCH(
-                restrictForces,
+                restrictVelocities,
                 view.nObjects, nthreads, 0, stream,
-                view, pinTranslation, forces.devPtr() );
+                view, translation, forces.devPtr() );
     }
 }
-
+   
 void PinObjectPlugin::afterIntegration(cudaStream_t stream)
 {
-    // If the object IS rigid, revert to old_motion
+    // If the object IS rigid, modify forces and torques
     if (rov != nullptr)
     {
         debug("Restricting rigid motion of OV '%s' as per plugin '%s'", ovName.c_str(), name.c_str());
@@ -147,9 +190,9 @@ void PinObjectPlugin::afterIntegration(cudaStream_t stream)
         const int nthreads = 32;
         ROVviewWithOldMotion view(rov, rov->local());
         SAFE_KERNEL_LAUNCH(
-                revertRigidMotion,
+                restrictRigidMotion,
                 getNblocks(view.nObjects, nthreads), nthreads, 0, stream,
-                view, pinTranslation, pinRotation,
+                view, translation, rotation, sim->getCurrentDt(),
                 forces.devPtr(), torques.devPtr() );
     }
 }

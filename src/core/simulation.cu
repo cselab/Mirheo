@@ -126,6 +126,11 @@ MPI_Comm Simulation::getCartComm() const
     return cartComm;
 }
 
+float Simulation::getCurrentDt() const
+{
+    return dt;
+}
+
 
 //================================================================================================
 // Registration

@@ -3,7 +3,7 @@
 
 #include <plugins/factory.h>
 
-#include "nodelete.h"
+#include "class_wrapper.h"
 
 namespace py = pybind11;
 using namespace pybind11::literals;
@@ -104,13 +104,13 @@ void exportPlugins(py::module& m)
     )");
 
     py::handlers_class<PinObjectPlugin>(m, "PinObject", pysim, R"(
-        This plugin will fix center of mass positions (by axis) of all the objects of the specified Object Vector.
+        This plugin will impose given velocity as the center of mass velocity (by axis) of all the objects of the specified Object Vector.
         If the objects are rigid bodies, rotatation may be restricted with this plugin as well.
-        The *average* force or torque required to fix the positions or rotation are reported.
+        The *time-averaged* force and/or torque required to impose the velocities and rotations are reported.
             
         .. note::
             This plugin is inactive if postprocess is disabled
-    )");
+    )").def_property_readonly_static("Unrestricted", [](py::object) { return PinObjectPlugin::Unrestricted; });
 
     py::handlers_class<SimulationStats>(m, "SimulationStats", pysim, R"(
         This plugin will report aggregate quantities of all the particles in the simulation:
@@ -332,7 +332,7 @@ void exportPlugins(py::module& m)
             path: the files will look like this: <path>/<ov_name>_NNNNN.txt
     )");
     m.def("__createPinObject", &PluginFactory::createPinObjPlugin, 
-          "compute_task"_a, "name"_a, "ov"_a, "dump_every"_a, "path"_a, "pin_translation"_a, "pin_rotation"_a, R"(
+          "compute_task"_a, "name"_a, "ov"_a, "dump_every"_a, "path"_a, "velocity"_a, "angular_velocity"_a, R"(
         Create :any:`PinObject` plugin
         
         Args:
@@ -340,10 +340,10 @@ void exportPlugins(py::module& m)
             ov: :any:`ObjectVector` that we'll work with
             dump_every: write files every this many time-steps
             path: the files will look like this: <path>/<ov_name>_NNNNN.txt
-            pin_translation: 3 integers; 0 means that motion along the corresponding axis is unrestricted,
-                1 means fixed position wrt to the axis
-            pin_rotation: 3 integers; 0 means that rotation along the corresponding axis is unrestricted,
-                1 means fixed rotation wrt to the axis
+            velocity: 3 floats, each component is the desired object velocity.
+                If the corresponding component should not be restricted, set this value to :and:`PinObjectPlugin::Unrestricted`
+            angular_velocity: 3 floats, each component is the desired object angular velocity.
+                If the corresponding component should not be restricted, set this value to :and:`PinObjectPlugin::Unrestricted`
     )");
     m.def("__createVelocityControl", &PluginFactory::createSimulationVelocityControlPlugin,
           "compute_task"_a, "name"_a, "filename"_a, "pvs"_a, "low"_a, "high"_a, "sampleEvery"_a, "dumpEvery"_a, "targetVel"_a, "Kp"_a, "Ki"_a, "Kd"_a, R"(
