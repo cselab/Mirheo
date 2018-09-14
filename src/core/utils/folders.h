@@ -21,6 +21,11 @@ static std::vector<std::string> splitByDelim(std::string str, char delim = ',')
     return splitted;
 }
 
+static std::string parentPath(std::string path)
+{
+    return path.substr(0, path.find_last_of("/"));
+}
+
 static bool createFolders(std::string path)
 {
     std::string command = "mkdir -p " + path;

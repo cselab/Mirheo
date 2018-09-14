@@ -5,7 +5,7 @@
 #include <mpi.h>
 
 #include <plugins/interface.h>
-#include <plugins/write_xdmf_grid.h>
+#include <core/xdmf/xdmf.h>
 
 class UniformCartesianDumper : public PostprocessPlugin
 {
@@ -16,13 +16,13 @@ public:
     void handshake() override;
 
 protected:
-    std::unique_ptr<XDMFGridDumper> dumper;
+    std::vector<XDMF::Channel> channels;
+    std::unique_ptr<XDMF::UniformGrid> grid;
+    std::vector<std::vector<float>> containers;
+    
     std::string path;
+    int timeStamp = 0;
+    const int zeroPadding = 5;
 
-    int3 nranks3D, rank3D;
-    int3 resolution;
-    float3 h;
-
-    std::vector<std::string> channelNames;
-    std::vector<std::vector<float>> channels;
+    MPI_Comm cartComm;
 };

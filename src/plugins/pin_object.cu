@@ -145,8 +145,8 @@ void PinObjectPlugin::setup(Simulation* sim, const MPI_Comm& comm, const MPI_Com
         torques.clear(0);
     }
 
-    debug("Plugin PinObject is setup for OV '%s' and will impose the following velocity: [%s %s %s]; and following rotation: [%s %s %s]",
-          ovName.c_str(),
+    info("Plugin '%s' is setup for OV '%s' and will impose the following velocity: [%s %s %s]; and following rotation: [%s %s %s]",
+          name.c_str(), ovName.c_str(),
 
           translation.x == Unrestricted ? "?" : std::to_string(translation.x).c_str(),
           translation.y == Unrestricted ? "?" : std::to_string(translation.y).c_str(),

@@ -5,7 +5,7 @@ class InitialConditions:
     """
 class FromArray(InitialConditions):
     r"""
-        Set particles according to given position and velocity arrays.            
+        Set particles according to given position and velocity arrays.
     
     """
     def __init__():

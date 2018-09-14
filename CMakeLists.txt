@@ -7,7 +7,7 @@ endif()
 project(uDeviceX LANGUAGES C CXX CUDA)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 set(UDX "libudevicex")
-set(UDX_CUDA "udevicex_cuda")
+set(UDX_MAIN "udevicex_main")
 
 # Add the pybind11
 add_subdirectory(src/extern/pybind11)
@@ -46,30 +46,23 @@ set(PLUGINS_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src/plugins/")
 set(BINDINGS_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src/bindings/")
 
 # Find sources
-file(GLOB_RECURSE CXX_SOURCES_CORE      RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} "${CORE_DIR}/*.cpp")
-file(GLOB_RECURSE CXX_SOURCES_PLUGINS   RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} "${PLUGINS_DIR}/*.cpp")
-file(GLOB_RECURSE CXX_SOURCES_BINDINGS  RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} "${BINDINGS_DIR}/*.cpp")
-
-file(GLOB_RECURSE CUDA_SOURCES_CORE     RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} "${CORE_DIR}/*.cu")
-file(GLOB_RECURSE CUDA_SOURCES_PLUGINS  RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} "${PLUGINS_DIR}/*.cu")
-file(GLOB_RECURSE CUDA_SOURCES_BINDINGS RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} "${BINDINGS_DIR}/*.cu")
-
-set( CXX_SOURCES  ${CXX_SOURCES_CORE}  ${CXX_SOURCES_PLUGINS}  ${CXX_SOURCES_BINDINGS})
-set(CUDA_SOURCES ${CUDA_SOURCES_CORE} ${CUDA_SOURCES_PLUGINS} ${CUDA_SOURCES_BINDINGS})
+file(GLOB_RECURSE SOURCES_BINDINGS  RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} "${BINDINGS_DIR}/*.cpp")
+file(GLOB_RECURSE SOURCES_MAIN      RELATIVE ${CMAKE_CURRENT_SOURCE_DIR}
+     "${CORE_DIR}/*.cu" "${PLUGINS_DIR}/*.cu" "${CORE_DIR}/*.cpp" "${PLUGINS_DIR}/*.cpp" "${CMAKE_CURRENT_SOURCE_DIR}/src/extern/pugixml/src/*.cpp")
 
 # Define the main executable
 #add_executable(udevicex ../apps/udevicex/main.cu ${CXX_SOURCES} ${CUDA_SOURCES})
-add_library(cuda_compiled OBJECT ${CUDA_SOURCES})
-set_property(TARGET cuda_compiled PROPERTY POSITION_INDEPENDENT_CODE 1)
+add_library(main_compiled OBJECT ${SOURCES_MAIN})
+set_property(TARGET main_compiled PROPERTY POSITION_INDEPENDENT_CODE 1)
 
-add_library(${UDX_CUDA} SHARED $<TARGET_OBJECTS:cuda_compiled>)
-add_library(${UDX} MODULE ${CXX_SOURCES} $<TARGET_OBJECTS:cuda_compiled>)
+add_library(${UDX_MAIN} SHARED $<TARGET_OBJECTS:main_compiled>)
+add_library(${UDX} MODULE ${SOURCES_BINDINGS} $<TARGET_OBJECTS:main_compiled>)
 target_link_libraries(${UDX} PRIVATE pybind11::module)
 set_target_properties(${UDX} PROPERTIES PREFIX "${PYTHON_MODULE_PREFIX}"
                                         SUFFIX "${PYTHON_MODULE_EXTENSION}")
 
 target_link_libraries(${UDX} PRIVATE ${CUDA_LIBRARIES})
-target_link_libraries(${UDX_CUDA} PRIVATE ${CUDA_LIBRARIES})
+target_link_libraries(${UDX_MAIN} PRIVATE ${CUDA_LIBRARIES})
 
 
 #######################################################
@@ -89,7 +82,7 @@ endif()
 if (${HDF5_FOUND})
   include_directories(${HDF5_INCLUDE_DIRS})
   target_link_libraries(${UDX} PRIVATE ${HDF5_LIBRARIES})
-  target_link_libraries(${UDX_CUDA} PRIVATE ${HDF5_LIBRARIES})
+  target_link_libraries(${UDX_MAIN} PRIVATE ${HDF5_LIBRARIES})
 endif()
 
 
@@ -98,7 +91,7 @@ find_package(LIBBFD REQUIRED)
 if (${LIBBFD_FOUND})
   include_directories(${LIBBFD_INCLUDE_DIRS})
   target_link_libraries(${UDX} PRIVATE ${LIBBFD_BFD_LIBRARY})
-  target_link_libraries(${UDX_CUDA} PRIVATE ${LIBBFD_BFD_LIBRARY})
+  target_link_libraries(${UDX_MAIN} PRIVATE ${LIBBFD_BFD_LIBRARY})
 endif()
 ########################################################
 
