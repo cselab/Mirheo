@@ -28,11 +28,11 @@ u.run(2)
 # cd dump
 # rm -rf h5 h5.parts.out.txt
 # udx.run --runargs "-n 2" ./h5.parts.py --density 3 > /dev/null
-# h5dump -d position h5/solvent_particles-00000.h5 | awk '{print $2, $3, $4}' | sort > h5.parts.out.txt
+# udx.post h5dump -d position h5/solvent_particles-00000.h5 | awk '{print $2, $3, $4}' | sort > h5.parts.out.txt
 
 # TEST: dump.h5.parts.noparts
 # set -eu
 # cd dump
 # rm -rf h5 h5.parts.out.txt
 # udx.run --runargs "-n 2" ./h5.parts.py --density 0 > /dev/null
-# h5dump -d position h5/solvent_particles-00000.h5 | awk '{print $2, $3, $4}' | sort > h5.parts.out.txt
+# udx.post h5dump -d position h5/solvent_particles-00000.h5 | awk '{print $2, $3, $4}' | sort > h5.parts.out.txt
