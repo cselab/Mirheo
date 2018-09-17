@@ -97,3 +97,10 @@
    CLOSED: [2018-08-24 Fri 12:30]
 ** DONE average can take multiple pvs
    CLOSED: [2018-08-24 Fri 11:43]
+* Useful commands
+** Daint
+   Compile:
+   udx.make CMAKE_FLAGS="-DLIBBFD_BFD_LIBRARY=/usr/lib64/libbfd-2.26.1.so -DCUDA_ARCH_NAME=6.0" install
+
+   interactive session:
+   salloc --constraint=gpu -p debug --time=00:30:00 -N 1

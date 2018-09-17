@@ -21,7 +21,7 @@ axes = tuple(args.axes)
 ranks  = (1, 1, 1)
 domain = (16, 8, 8)
 
-u = udx.udevicex(ranks, domain, debug_level=3, log_filename='log')
+u = udx.udevicex(ranks, domain, debug_level=8, log_filename='log')
 
 com_q = [[0.5 * domain[0], 0.5 * domain[1], 0.5 * domain[2],   1., 0, 0, 0]]
 coords = np.loadtxt(args.coords).tolist()
@@ -32,10 +32,6 @@ vvEllipsoid = udx.Integrators.RigidVelocityVerlet("ellvv", dt)
 u.registerParticleVector(pv=pvEllipsoid, ic=icEllipsoid)
 u.registerIntegrator(vvEllipsoid)
 u.setIntegrator(vvEllipsoid, pvEllipsoid)
-
-
-xyz = udx.Plugins.createDumpXYZ('xyz', pvEllipsoid, 500, "xyz/")
-u.registerPlugins(xyz)
 
 ovStats = udx.Plugins.createDumpObjectStats("objStats", ov=pvEllipsoid, dump_every=500, path="stats")
 u.registerPlugins(ovStats)
@@ -61,7 +57,7 @@ u.run(10000)
 # udx.run --runargs "-n 2" ./forceTorque.py $common_args --coords $f --constForce > /dev/null
 # cat stats/ellipsoid.txt | awk '{print $2, $10, $3}' > rigid.out.txt
 
-# nTEST: rigids.constTorque
+# snTEST: rigids.constTorque
 # set -eu
 # cd rigids
 # rm -rf stats rigid.out.txt
