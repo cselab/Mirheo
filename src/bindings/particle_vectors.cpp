@@ -132,5 +132,14 @@ void exportParticleVectors(py::module& m)
                     mass: mass of a single particle
                     object_size: number of particles per membrane, must be the same as the number of vertices of the mesh
                     semi_axes: ellipsoid principal semi-axes
+        )")
+        .def(py::init<std::string, float, int, PyTypes::float3, std::shared_ptr<Mesh>>(),
+             "name"_a, "mass"_a, "object_size"_a, "semi_axes"_a, "mesh"_a, R"(
+                Args:
+                    name: name of the created PV 
+                    mass: mass of a single particle
+                    object_size: number of particles per membrane, must be the same as the number of vertices of the mesh
+                    semi_axes: ellipsoid principal semi-axes
+                    mesh: mesh representing the shape of the ellipsoid. This is used for dump only.
         )");
 }
