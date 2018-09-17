@@ -1,7 +1,9 @@
 #! /bin/sh
 
 EXE_PREFIX=@EXE_PREFIX@
+host=`$EXE_PREFIX.host`
 
 . $EXE_PREFIX.load
+. $EXE_PREFIX.make.flags.$host
 
-exec make "$@"
+exec make CMAKE_FLAGS="$CMAKE_FLAGS $HOST_CMAKE_FLAGS" "$@"

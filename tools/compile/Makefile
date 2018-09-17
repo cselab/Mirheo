@@ -1,4 +1,4 @@
-INST_TARGETS = make
+INST_TARGETS = make make.flags.falcon make.flags.daint
 
 include ../config
 include ../make/common.mk
