@@ -10,8 +10,10 @@ parser.add_argument('--coords', dest='coords', type=str)
 
 parser.add_argument('--constForce', action='store_true')
 parser.add_argument('--constTorque', action='store_true')
+parser.add_argument('--withMesh', action='store_true')
 parser.set_defaults(constForce=False)
 parser.set_defaults(constTorque=False)
+parser.set_defaults(withMesh=False)
 
 args = parser.parse_args()
 
@@ -25,7 +27,17 @@ u = udx.udevicex(ranks, domain, debug_level=8, log_filename='log')
 
 com_q = [[0.5 * domain[0], 0.5 * domain[1], 0.5 * domain[2],   1., 0, 0, 0]]
 coords = np.loadtxt(args.coords).tolist()
-pvEllipsoid = udx.ParticleVectors.RigidEllipsoidVector('ellipsoid', mass=1, object_size=len(coords), semi_axes=axes)
+
+if args.withMesh:
+    import trimesh
+    ell = trimesh.creation.icosphere(subdivisions=2, radius = 1.0)
+    for i in range(3):
+        ell.vertices[:,i] *= axes[i]
+    mesh = udx.ParticleVectors.Mesh(ell.vertices.tolist(), ell.faces.tolist())
+    pvEllipsoid = udx.ParticleVectors.RigidEllipsoidVector('ellipsoid', mass=1, object_size=len(coords), semi_axes=axes, mesh=mesh)
+else:
+    pvEllipsoid = udx.ParticleVectors.RigidEllipsoidVector('ellipsoid', mass=1, object_size=len(coords), semi_axes=axes)
+
 icEllipsoid = udx.InitialConditions.Rigid(com_q=com_q, coords=coords)
 vvEllipsoid = udx.Integrators.RigidVelocityVerlet("ellvv", dt)
 
@@ -43,6 +55,10 @@ if args.constForce:
 if args.constTorque:
     addTorque = udx.Plugins.createAddTorque("addTorque", pvEllipsoid, torque=(0., 0., 1.0))
     u.registerPlugins(addTorque)
+
+if args.withMesh:
+    mdump = udx.Plugins.createDumpMesh("mesh_dump", pvEllipsoid, 1000, path="ply/")
+    u.registerPlugins(mdump)
 
 u.run(10000)
 
@@ -65,4 +81,14 @@ u.run(10000)
 # common_args="--axes 2.0 1.0 1.0"
 # udx.run ./createEllipsoid.py $common_args --density 8 --out $f --niter 1000  > /dev/null
 # udx.run --runargs "-n 2" ./forceTorque.py $common_args --coords $f --constTorque > /dev/null
+# cat stats/ellipsoid.txt | awk '{print $2, $15, $9}' > rigid.out.txt
+
+# sTEST: rigids.constTorque.withMesh
+# set -eu
+# cd rigids
+# rm -rf stats rigid.out.txt
+# f="pos.txt"
+# common_args="--axes 2.0 1.0 1.0"
+# udx.run ./createEllipsoid.py $common_args --density 8 --out $f --niter 1000  > /dev/null
+# udx.run --runargs "-n 2" ./forceTorque.py $common_args --coords $f --constTorque --withMesh > /dev/null
 # cat stats/ellipsoid.txt | awk '{print $2, $15, $9}' > rigid.out.txt
