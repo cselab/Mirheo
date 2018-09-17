@@ -30,4 +30,4 @@ u.run(2)
 # cd dump
 # rm -rf h5
 # udx.run --runargs "-n 4" ./h5.parts.mpi.py > /dev/null
-# udx.post h5dump h5/solvent_particles-00000.h5 > h5.parts.out.txt
+# udx.post h5dump -d position h5/solvent_particles-00000.h5 | awk '{print $2, $3, $4}' | sort > h5.parts.out.txt
