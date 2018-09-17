@@ -1,9 +1,9 @@
-INST_TARGETS = avgh5 avgh5.py
+INST_TARGETS = avgh5 avgh5.py post
 
 include ../config
 include ../make/common.mk
 
-avgh5: avgh5.in
+%: %.in
 	sed "s/@EXE_PREFIX@/$(EXE_PREFIX)/" $< > $@
 	chmod +x $@
 
