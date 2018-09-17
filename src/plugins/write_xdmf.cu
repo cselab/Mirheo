@@ -83,14 +83,14 @@ void XDMFDumper::writeDataSet(hid_t file_id, int rank, hsize_t globalSize[], hsi
 
     hid_t dspace_id = H5Dget_space(dset_id);
 
-    //if (nLocData)
+    if (nLocData)
         H5Sselect_hyperslab(dspace_id, H5S_SELECT_SET, offset, nullptr, localSize, nullptr);
-    //else
-        //H5Sselect_none(dspace_id);
+    else
+        H5Sselect_none(dspace_id);
 
     hid_t mspace_id = H5Screate_simple(rank, localSize, nullptr);
 
-    //if (nTotData)
+    if (nTotData)
         H5Dwrite(dset_id, H5T_NATIVE_FLOAT, mspace_id, dspace_id, xfer_plist_id, channelData);
 
     H5Sclose(mspace_id);
