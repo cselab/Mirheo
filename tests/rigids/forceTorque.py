@@ -57,7 +57,7 @@ u.run(10000)
 # udx.run --runargs "-n 2" ./forceTorque.py $common_args --coords $f --constForce > /dev/null
 # cat stats/ellipsoid.txt | awk '{print $2, $10, $3}' > rigid.out.txt
 
-# snTEST: rigids.constTorque
+# nTEST: rigids.constTorque
 # set -eu
 # cd rigids
 # rm -rf stats rigid.out.txt
