@@ -28,6 +28,6 @@ u.run(2)
 
 # TEST: dump.h5.parts.mpi.2nodes
 # cd dump
-# rm -rf h5
+# rm -rf h5 h5.parts.out.txt
 # udx.run --runargs "-n 4" ./h5.parts.mpi.py > /dev/null
 # udx.post h5dump -d position h5/solvent_particles-00000.h5 | awk '{print $2, $3, $4}' | sort > h5.parts.out.txt

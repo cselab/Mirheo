@@ -1,0 +1,29 @@
+#! /bin/sh
+
+EXE_PREFIX=@EXE_PREFIX@
+
+usage() {
+    cat <<EOF
+wrapper for hostname shell command
+this is used to choose configuration in other 
+tools such as $EXE_PREFIX.load 
+
+usage:
+$EXE_PREFIX.host
+EOF
+    exit 1
+}
+
+if test $# -ne 0; then usage; fi
+
+case `hostname` in
+    falcon*|panda*)
+        echo falcon
+	;;
+    daint*)
+	echo daint
+	;;
+    *)
+	echo falcon
+	;;	
+esac

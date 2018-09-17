@@ -31,9 +31,10 @@
 ** TODO dump mesh for ellipsoid rigid objects
 ** DONE dump particles in binary format: h5 + xdmf
    CLOSED: [2018-09-05 Wed 13:36]
-* [0/1] Others
-** TODO daint: proper cmake for libbfd
+* [0/2] Tools
+** TODO daint: proper cmake for libbfd (hacked inside udx.make)
    For now: udx.make CMAKE_FLAGS="-DLIBBFD_BFD_LIBRARY=/usr/lib64/libbfd-2.26.1.so -DCUDA_ARCH_NAME=6.0" install
+** TODO dispatch utility for host specific stuff
 * [2/5] Code
 ** TODO remove magic numbers
 ** TODO common api for "fragments" manipulation
