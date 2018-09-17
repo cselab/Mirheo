@@ -7,6 +7,7 @@
 #include <utility>
 #include <algorithm>
 #include <typeinfo>
+#include <cmath>
 
 #include <cuda_runtime.h>
 
