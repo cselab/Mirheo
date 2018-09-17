@@ -1,0 +1,42 @@
+#! /bin/sh
+
+EXE_PREFIX=@EXE_PREFIX@
+
+usage() {
+    cat <<EOF
+wrapper for udevicex postprocessing.
+automatically loads the required modules.
+Note: this is meant for one node only tools!
+use ${EXE_PREFIX}.run for multy node instead.
+
+usage: $EXE_PREFIX.post <executable> [ARGS]
+
+the command executed can be printed by setting DRYRUN 
+env variable
+
+example:
+
+    DRYRUN= $EXE_PREFIX.post h5dump file.h5
+
+will print
+   
+   h5dump file.h5
+
+EOF
+    exit 1
+}
+
+if test $# -ne 0 && test "$1" = -h; then usage; fi
+
+. $EXE_PREFIX.load.post
+
+execcmd () {
+    if   test ! -z "${DRYRUN+x}"
+    then	
+	echo "$@"
+    else
+	exec "$@"
+    fi
+}
+
+execcmd $@
