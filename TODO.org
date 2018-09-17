@@ -31,10 +31,6 @@
 ** TODO dump mesh for ellipsoid rigid objects
 ** DONE dump particles in binary format: h5 + xdmf
    CLOSED: [2018-09-05 Wed 13:36]
-* [0/2] Tools
-** TODO daint: proper cmake for libbfd (hacked inside udx.make)
-   For now: udx.make CMAKE_FLAGS="-DLIBBFD_BFD_LIBRARY=/usr/lib64/libbfd-2.26.1.so -DCUDA_ARCH_NAME=6.0" install
-** TODO dispatch utility for host specific stuff
 * [2/5] Code
 ** TODO remove magic numbers
 ** TODO common api for "fragments" manipulation
@@ -50,6 +46,12 @@
 * [0/2] Restart tests
 ** TODO pvs
 ** TODO objects
+* [2/2] Tools
+** DONE daint: proper cmake for libbfd (hacked inside udx.make)
+   CLOSED: [2018-09-17 Mon 16:25]
+   For now: udx.make CMAKE_FLAGS="-DLIBBFD_BFD_LIBRARY=/usr/lib64/libbfd-2.26.1.so -DCUDA_ARCH_NAME=6.0" install
+** DONE dispatch utility for host specific stuff
+   CLOSED: [2018-09-17 Mon 16:25]
 * [8/8] walls tests
 ** DONE sdf
    CLOSED: [2018-09-06 Thu 16:53]
@@ -100,8 +102,5 @@
    CLOSED: [2018-08-24 Fri 11:43]
 * Useful commands
 ** Daint
-   Compile:
-   udx.make CMAKE_FLAGS="-DLIBBFD_BFD_LIBRARY=/usr/lib64/libbfd-2.26.1.so -DCUDA_ARCH_NAME=6.0" install
-
    interactive session:
    salloc --constraint=gpu -p debug --time=00:30:00 -N 1
