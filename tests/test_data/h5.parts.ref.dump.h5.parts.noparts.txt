@@ -1,16 +1,8 @@
-HDF5 "h5/solvent_particles-00000.h5" {
-GROUP "/" {
-   DATASET "position" {
-      DATATYPE  H5T_IEEE_F32LE
-      DATASPACE  SIMPLE { ( 0, 3 ) / ( 0, 3 ) }
-      DATA {
-      }
-   }
-   DATASET "velocity" {
-      DATATYPE  H5T_IEEE_F32LE
-      DATASPACE  SIMPLE { ( 0, 3 ) / ( 0, 3 ) }
-      DATA {
-      }
-   }
-}
-}
+  
+  
+  
+{  
+"h5/solvent_particles-00000.h5" { 
+H5T_IEEE_F32LE  
+"position" { 
+SIMPLE { (
