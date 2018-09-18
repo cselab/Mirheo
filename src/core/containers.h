@@ -2,6 +2,7 @@
 
 #include <core/logger.h>
 
+#include <cstring>
 #include <cassert>
 #include <type_traits>
 #include <utility>
@@ -267,6 +268,7 @@ public:
     inline int size()          const { return _size; }
 
     inline T* hostPtr() const { return hostptr; }
+    inline T* data()    const { return hostptr; } /// For uniformity with std::vector
 
     inline       T& operator[](int i)       { return hostptr[i]; }
     inline const T& operator[](int i) const { return hostptr[i]; }
@@ -274,8 +276,11 @@ public:
     inline void resize     (const int n) { _resize(n, true);  }
     inline void resize_anew(const int n) { _resize(n, false); }
 
-    inline T* begin() { return hostptr; }          /// To support range-based loops
-    inline T* end()   { return hostptr + _size; }  /// To support range-based loops
+    inline       T* begin()       { return hostptr; }          /// To support range-based loops
+    inline       T* end()         { return hostptr + _size; }  /// To support range-based loops
+    
+    inline const T* begin() const { return hostptr; }          /// To support range-based loops
+    inline const T* end()   const { return hostptr + _size; }  /// To support range-based loops
 
     /// Set all the bytes to 0
     void clear()
@@ -450,15 +455,18 @@ public:
     inline GPUcontainer* produce() const final { return new PinnedBuffer<T>(); }
 
     inline T* hostPtr() const { return hostptr; }  ///< @return typed host pointer to data
+    inline T* data()    const { return hostptr; }  /// For uniformity with std::vector
     inline T* devPtr()  const { return devptr; }   ///< @return typed device pointer to data
 
     inline       T& operator[](int i)       { return hostptr[i]; }  ///< allow array-like bracketed access to HOST data
     inline const T& operator[](int i) const { return hostptr[i]; }
 
-    inline T* begin() { return hostptr; }          /// To support range-based loops
-    inline T* end()   { return hostptr + _size; }  /// To support range-based loops
-
-
+    
+    inline       T* begin()       { return hostptr; }          /// To support range-based loops
+    inline       T* end()         { return hostptr + _size; }  /// To support range-based loops
+    
+    inline const T* begin() const { return hostptr; }          /// To support range-based loops
+    inline const T* end()   const { return hostptr + _size; }  /// To support range-based loops
     /**
      * Copy data from device to host
      *

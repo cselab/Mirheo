@@ -10,7 +10,7 @@ force = (1.0, 0, 0)
 
 density = 4
 
-u = udx.udevicex(ranks, domain, debug_level=2, log_filename='stdout')
+u = udx.udevicex(ranks, domain, debug_level=3, log_filename='stdout')
 
 pv = udx.ParticleVectors.ParticleVector('pv', mass = 1)
 ic = udx.InitialConditions.Uniform(density=density)

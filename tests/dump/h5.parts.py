@@ -11,7 +11,7 @@ args = parser.parse_args()
 ranks  = (1, 1, 1)
 domain = (2, 2, 4)
 
-u = udx.udevicex(ranks, domain, debug_level=2, log_filename='log')
+u = udx.udevicex(ranks, domain, debug_level=3, log_filename='log')
 
 pv = udx.ParticleVectors.ParticleVector('pv', mass = 1)
 ic = udx.InitialConditions.Uniform(args.density)

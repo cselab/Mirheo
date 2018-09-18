@@ -23,7 +23,7 @@ axes = tuple(args.axes)
 ranks  = (1, 1, 1)
 domain = (16, 8, 8)
 
-u = udx.udevicex(ranks, domain, debug_level=8, log_filename='log')
+u = udx.udevicex(ranks, domain, debug_level=3, log_filename='log')
 
 com_q = [[0.5 * domain[0], 0.5 * domain[1], 0.5 * domain[2],   1., 0, 0, 0]]
 coords = np.loadtxt(args.coords).tolist()

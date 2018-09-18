@@ -6,7 +6,8 @@
 #include <plugins/interface.h>
 #include <core/containers.h>
 #include <core/datatypes.h>
-#include <plugins/write_xdmf_particles.h>
+
+#include <core/xdmf/xdmf.h>
 
 class ParticleVector;
 class CellList;
@@ -55,13 +56,13 @@ public:
     void handshake() override;
 
 private:
-    std::unique_ptr<XDMFParticlesDumper> dumper;
+    int timeStamp = 0;
+    const int zeroPadding = 5;
     std::string path;
 
     std::vector<Particle> particles;
     std::vector<float> positions, velocities;
 
-    std::vector<std::string> channelNames;
+    std::vector<XDMF::Channel> channels;
     std::vector<std::vector<float>> channelData;
-
 };

@@ -31,6 +31,14 @@ namespace XDMF
         
         return (prod == 0);
     }
+        
+    bool UniformGrid::globalEmpty() const
+    {
+        int prod = 1;
+        for (auto d : globalSize) prod *= d;
+        
+        return (prod == 0);
+    }
     
     int UniformGrid::getDims() const
     {
@@ -117,6 +125,11 @@ namespace XDMF
     {
         return (nlocal == 0);
     }
+        
+    bool VertexGrid::globalEmpty() const
+    {
+        return (nglobal == 0);
+    }
     
     int VertexGrid::getDims() const
     {
@@ -145,7 +158,7 @@ namespace XDMF
         geomNode.append_attribute("GeometryType") = "XYZ";
         
         auto partNode = geomNode.append_child("DataItem");
-        partNode.append_attribute("Dimensions") = (std::to_string(nglobal) + "3").c_str();
+        partNode.append_attribute("Dimensions") = (std::to_string(nglobal) + " 3").c_str();
         partNode.append_attribute("NumberType") = "float";
         partNode.append_attribute("Precision") = "4";
         partNode.append_attribute("Format") = "HDF";
@@ -155,8 +168,8 @@ namespace XDMF
     VertexGrid::VertexGrid(int nvertices, const float *positions, MPI_Comm comm) :
         nlocal(nvertices), positions(positions)
     {
+        offset = 0;
         MPI_Check( MPI_Exscan   (&nlocal, &offset,  1, MPI_LONG_LONG_INT, MPI_SUM, comm) );
         MPI_Check( MPI_Allreduce(&nlocal, &nglobal, 1, MPI_LONG_LONG_INT, MPI_SUM, comm) );
-
     }
 }

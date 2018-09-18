@@ -2,29 +2,59 @@
 
 #include <core/containers.h>
 #include <string>
+#include <cstring>
 #include <vector>
+#include <type_traits>
 
 // Only POD types and std::vectors/HostBuffers/PinnedBuffers of POD and std::strings are supported
 // Container size will be serialized too
 class SimpleSerializer
 {
 private:
-    template<typename T>
-    static int sizeOfOne(const HostBuffer<T>& v)
+    
+    // Some template shorthand definitions    
+    template<typename Vec>
+    using ValType = typename std::remove_reference< decltype(std::declval<Vec>().operator[](0)) >::type;
+    
+    template <typename T>
+    using EnableIfPod    = typename std::enable_if<  std::is_pod<T>::value >::type*;
+    
+    template <typename T>
+    using EnableIfNonPod = typename std::enable_if< !std::is_pod<T>::value >::type*;
+    
+    
+    
+    /// Overload for the vectors of NON POD : other vectors or strings
+    template<typename Vec, EnableIfNonPod<ValType<Vec>> = nullptr>
+    static int sizeOfVec(const Vec& v)
     {
-        return v.size() * sizeof(T) + sizeof(int);
+        int tot = sizeof(int);
+        for (auto& element : v)
+            tot += sizeOfOne(element);
+        
+        return tot;
     }
-
-    template<typename T>
-    static int sizeOfOne(const PinnedBuffer<T>& v)
-    {
-        return v.size() * sizeof(T) + sizeof(int);
+    
+    /// Overload for the vectors of plain old data
+    template<typename Vec, EnableIfPod<ValType<Vec>> = nullptr>
+    static int sizeOfVec(const Vec& v)
+    {        
+        return v.size() * sizeof(ValType<Vec>) + sizeof(int);
     }
-
-    template<typename T>
-    static int sizeOfOne(const std::vector<T>& v)
+    
+    template<typename T> static int sizeOfOne(const std::vector <T>& v) { return sizeOfVec(v); }
+    template<typename T> static int sizeOfOne(const HostBuffer  <T>& v) { return sizeOfVec(v); }
+    template<typename T> static int sizeOfOne(const PinnedBuffer<T>& v) { return sizeOfVec(v); }
+    
+    /// Overload for the vectors of NON POD : other vectors or strings
+    template<typename Vec, EnableIfNonPod<ValType<Vec>> = nullptr>
+    static int sizeOfOne(const Vec& v)
     {
-        return (int)v.size() * sizeof(T) + sizeof(int);
+        int tot = v.size();
+        for (auto& element : v)
+            tot += sizeOfOne(element);
+        
+        return tot;
     }
 
     static int sizeOfOne(const std::string& s)
@@ -61,29 +91,33 @@ public:
     //============================================================================
 
 private:
-    template<typename T>
-    static void packOne(char* buf, const HostBuffer<T>& v)
+    /// Overload for the vectors of plain old data
+    template<typename Vec, EnableIfPod<ValType<Vec>> = nullptr>
+    static void packVec(char* buf, const Vec& v)
+    {        
+        *((int*)buf) = v.size();
+        buf += sizeof(int);
+        
+        memcpy(buf, v.data(), v.size()*sizeof(ValType<Vec>));
+    }
+    
+    /// Overload for the vectors of NON POD : other vectors or strings
+    template<typename Vec, EnableIfNonPod<ValType<Vec>> = nullptr>
+    static void packVec(char* buf, const Vec& v)
     {
         *((int*)buf) = v.size();
         buf += sizeof(int);
-        memcpy(buf, v.hostPtr(), v.size()*sizeof(T));
+        
+        for (auto& element : v)
+        {
+            packOne(buf, element);
+            buf += totSize(element);
+        }
     }
-
-    template<typename T>
-    static void packOne(char* buf, const PinnedBuffer<T>& v)
-    {
-        *((int*)buf) = v.size();
-        buf += sizeof(int);
-        memcpy(buf, v.hostPtr(), v.size()*sizeof(T));
-    }
-
-    template<typename T>
-    static void packOne(char* buf, const std::vector<T>& v)
-    {
-        *((int*)buf) = (int)v.size();
-        buf += sizeof(int);
-        memcpy(buf, v.data(), v.size()*sizeof(T));
-    }
+    
+    template<typename T> static void packOne(char* buf, const std::vector <T>& v) { packVec(buf, v); }
+    template<typename T> static void packOne(char* buf, const HostBuffer  <T>& v) { packVec(buf, v); }
+    template<typename T> static void packOne(char* buf, const PinnedBuffer<T>& v) { packVec(buf, v); }
 
     static void packOne(char* buf, const std::string& s)
     {
@@ -93,7 +127,7 @@ private:
     }
 
     template<typename T>
-    static void packOne(char* buf, T& v)
+    static void packOne(char* buf, const T& v)
     {
         memcpy(buf, &v, sizeOfOne(v));
     }
@@ -115,41 +149,40 @@ private:
     }
 
     //============================================================================
+    
+     /// Overload for the vectors of plain old data
+    template<typename Vec, typename Resize, EnableIfPod<ValType<Vec>> = nullptr>
+    static void unpackVec(const char* buf, Vec& v, Resize resize)
+    {        
+        const int sz = *((int*)buf);
+        assert(sz >= 0);
+        (v.*resize)(sz);
+        buf += sizeof(int);
 
-    template<typename T>
-    static void unpackOne(char* buf, HostBuffer<T>& v)
+        memcpy(v.data(), buf, v.size()*sizeof(ValType<Vec>));
+    }
+    
+    /// Overload for the vectors of NON POD : other vectors or strings
+    template<typename Vec, typename Resize, EnableIfNonPod<ValType<Vec>> = nullptr>
+    static void unpackVec(const char* buf, Vec& v, Resize resize)
     {
         const int sz = *((int*)buf);
         assert(sz >= 0);
-        v.resize(sz);
+        (v.*resize)(sz);
         buf += sizeof(int);
-
-        memcpy(v.hostPtr(), buf, v.size()*sizeof(T));
+        
+        for (auto& element : v)
+        {
+            unpackOne(buf, element);
+            buf += totSize(element);
+        }
     }
 
-    template<typename T>
-    static void unpackOne(char* buf, PinnedBuffer<T>& v)
-    {
-        const int sz = *((int*)buf);
-        assert(sz >= 0);
-        v.resize(sz);
-        buf += sizeof(int);
-
-        memcpy(v.hostPtr(), buf, v.size()*sizeof(T));
-    }
-
-    template<typename T>
-    static void unpackOne(char* buf, std::vector<T>& v)
-    {
-        const int sz = *((int*)buf);
-        assert(sz >= 0);
-        v.resize(sz);
-        buf += sizeof(int);
-
-        memcpy(v.data(), buf, v.size()*sizeof(T));
-    }
-
-    static void unpackOne(char* buf, std::string& s)
+    template<typename T> static void unpackOne(const char* buf, std::vector <T>& v) { unpackVec(buf, v, static_cast<void (std::vector<T>::*)(size_t)>(&std::vector<T>::resize) ); }
+    template<typename T> static void unpackOne(const char* buf, HostBuffer  <T>& v) { unpackVec(buf, v, &HostBuffer  <T>::resize); }
+    template<typename T> static void unpackOne(const char* buf, PinnedBuffer<T>& v) { unpackVec(buf, v, &PinnedBuffer<T>::resize_anew); }
+    
+    static void unpackOne(const char* buf, std::string& s)
     {
         const int sz = *((int*)buf);
         assert(sz >= 0);
@@ -159,7 +192,7 @@ private:
     }
 
     template<typename T>
-    static void unpackOne(char* buf, T& v)
+    static void unpackOne(const char* buf, T& v)
     {
         memcpy(&v, buf, sizeOfOne(v));
     }
@@ -167,13 +200,13 @@ private:
     //============================================================================
 
     template<typename Arg>
-    static void unpack(char* buf, Arg& arg)
+    static void unpack(const char* buf, Arg& arg)
     {
         unpackOne(buf, arg);
     }
 
     template<typename Arg, typename... OthArgs>
-    static void unpack(char* buf, Arg& arg, OthArgs&... othArgs)
+    static void unpack(const char* buf, Arg& arg, OthArgs&... othArgs)
     {
         unpackOne(buf, arg);
         buf += sizeOfOne(arg);
@@ -184,7 +217,7 @@ private:
 
 public:
     template<typename... Args>
-    static void serialize(std::vector<char>& buf, Args&... args)
+    static void serialize(std::vector<char>& buf, const Args&... args)
     {
         const int szInBytes = totSize(args...);
         buf.resize(szInBytes);
@@ -192,7 +225,7 @@ public:
     }
 
     template<typename... Args>
-    static void deserialize(std::vector<char>& buf, Args&... args)
+    static void deserialize(const std::vector<char>& buf, Args&... args)
     {
         unpack(buf.data(), args...);
     }
@@ -200,13 +233,13 @@ public:
 
     // Unsafe variants
     template<typename... Args>
-    static void serialize(char* to, Args&... args)
+    static void serialize(char* to, const Args&... args)
     {
         pack(to, args...);
     }
 
     template<typename... Args>
-    static void deserialize(char* from, Args&... args)
+    static void deserialize(const char* from, Args&... args)
     {
         unpack(from, args...);
     }

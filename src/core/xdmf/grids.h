@@ -16,16 +16,19 @@ namespace XDMF
     class Grid
     {
     public:
-        virtual std::vector<hsize_t> getLocalSize()                const = 0;
-        virtual std::vector<hsize_t> getGlobalSize()               const = 0;
-        virtual std::vector<hsize_t> getOffsets()                  const = 0;
-        virtual bool localEmpty()                              const = 0;
-        virtual int getDims()                                  const = 0;
-                                                               
-        virtual std::string getCentering()                     const = 0;
-
-        virtual void write2HDF5(hid_t file_id, MPI_Comm comm)  const = 0;
-        virtual void write2XMF(pugi::xml_node node, std::string h5filename)            const = 0;
+        virtual std::vector<hsize_t> getLocalSize()                          const = 0;
+        virtual std::vector<hsize_t> getGlobalSize()                         const = 0;
+        virtual std::vector<hsize_t> getOffsets()                            const = 0;
+        virtual bool localEmpty()                                            const = 0;
+        virtual bool globalEmpty()                                           const = 0;
+        virtual int getDims()                                                const = 0;
+                                                                             
+        virtual std::string getCentering()                                   const = 0;
+                                                                             
+        virtual void write2HDF5(hid_t file_id, MPI_Comm comm)                const = 0;
+        virtual void write2XMF(pugi::xml_node node, std::string h5filename)  const = 0;
+        
+        virtual ~Grid() = default;
     };
     
     class UniformGrid : public Grid
@@ -35,6 +38,7 @@ namespace XDMF
         std::vector<hsize_t> getGlobalSize()                         const override;
         std::vector<hsize_t> getOffsets()                            const override;
         bool localEmpty()                                            const override;
+        bool globalEmpty()                                           const override;
         int getDims()                                                const override;
 
         std::string getCentering()                                   const override;
@@ -57,6 +61,7 @@ namespace XDMF
         std::vector<hsize_t> getGlobalSize()                         const override;
         std::vector<hsize_t> getOffsets()                            const override;
         bool localEmpty()                                            const override;
+        bool globalEmpty()                                           const override;
         int getDims()                                                const override;
                                                                      
         std::string getCentering()                                   const override;

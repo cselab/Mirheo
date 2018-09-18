@@ -154,23 +154,8 @@ void Average3D::serializeAndSend(cudaStream_t stream)
     
     scaleSampled(stream);
 
-    // Calculate total size for sending
-    int totalSize = SimpleSerializer::totSize(currentTime, density);
-    for (auto& ch : channelsInfo.average)
-        totalSize += SimpleSerializer::totSize(ch);
-
-    // Now allocate the sending buffer and pack everything into it
-    debug2("Plugin %s is packing now data", name.c_str());
-    sendBuffer.resize(totalSize);
-    SimpleSerializer::serialize(sendBuffer.data(), currentTime, density);
-    int currentSize = SimpleSerializer::totSize(currentTime, density);
-
-    for (int i=0; i<channelsInfo.n; i++)
-    {
-        SimpleSerializer::serialize(sendBuffer.data() + currentSize, channelsInfo.average[i]);
-        currentSize += SimpleSerializer::totSize(channelsInfo.average[i]);
-    }
-
+    debug2("Plugin '%s' is now packing the data", name.c_str());
+    SimpleSerializer::serialize(sendBuffer, currentTime, density, channelsInfo.average);
     send(sendBuffer);
 }
 
@@ -178,9 +163,6 @@ void Average3D::handshake()
 {
     std::vector<char> data;
     std::vector<int> sizes;
-
-    // for density
-    sizes.push_back(1);
 
     for (auto t : channelsInfo.types)
         switch (t)
@@ -195,23 +177,8 @@ void Average3D::handshake()
                 sizes.push_back(3);
                 break;
         }
-
-    std::string dens("density");
-    SimpleSerializer::serialize(data, sim->nranks3D, sim->rank3D, resolution, binSize, sizes, dens);
-
-    int namesSize = 0;
-    for (auto& s : channelsInfo.names)
-        namesSize += SimpleSerializer::totSize(s);
-
-    int shift = data.size();
-    data.resize(data.size() + namesSize);
-
-    for (auto& s : channelsInfo.names)
-    {
-        SimpleSerializer::serialize(data.data() + shift, s);
-        shift += SimpleSerializer::totSize(s);
-    }
-
-    send(data.data(), data.size());
+    
+    SimpleSerializer::serialize(data, sim->nranks3D, sim->rank3D, resolution, binSize, sizes, channelsInfo.names);
+    send(data);
 }
 

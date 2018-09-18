@@ -3,7 +3,7 @@
 #include <plugins/interface.h>
 #include <core/containers.h>
 #include <core/datatypes.h>
-#include <plugins/timer.h>
+#include <core/utils/timer.h>
 
 class ParticleVector;
 class CellList;
@@ -21,7 +21,7 @@ private:
     PinnedBuffer<float> maxvel{1};
     std::vector<char> sendBuffer;
 
-    Timer<> timer;
+    mTimer timer;
 
 public:
     SimulationStats(std::string name, int fetchEvery);

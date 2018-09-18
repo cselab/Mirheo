@@ -7,7 +7,7 @@ dt = 0.001
 ranks  = (1, 1, 1)
 domain = (8, 8, 8)
 
-u = udx.udevicex(ranks, domain, debug_level=2, log_filename='log')
+u = udx.udevicex(ranks, domain, debug_level=3, log_filename='log')
 
 pv = udx.ParticleVectors.ParticleVector('pv', mass = 1)
 ic = udx.InitialConditions.Uniform(density=2)

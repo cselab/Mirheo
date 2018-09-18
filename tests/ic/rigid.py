@@ -6,7 +6,7 @@ import udevicex as udx
 ranks  = (1, 1, 1)
 domain = [4., 6., 8.]
 
-u = udx.udevicex(ranks, tuple(domain), debug_level=2, log_filename='log')
+u = udx.udevicex(ranks, tuple(domain), debug_level=3, log_filename='log')
 
 a=(0.1, 0.2, 0.3)
 

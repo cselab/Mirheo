@@ -53,16 +53,16 @@ void AverageRelative3D::setup(Simulation* sim, const MPI_Comm& comm, const MPI_C
 {
     Average3D::setup(sim, comm, interComm);
 
-    localChannels.resize(channelsInfo.n + 1);
-    localChannels[0].resize(density.size());
+    localDensity.resize(density.size());
     density.resize_anew(density.size() * nranks);
     density.clear(0);
 
     domain = sim->domain;
 
+    localChannels.resize(channelsInfo.n);
     for (int i=0; i<channelsInfo.n; i++)
     {
-        localChannels[i + 1].resize(channelsInfo.average[i].size());
+        localChannels[i].resize(channelsInfo.average[i].size());
         channelsInfo.average[i].resize_anew(channelsInfo.average[i].size() * nranks);
         channelsInfo.average[i].clear(0);
         channelsInfo.averagePtrs[i] = channelsInfo.average[i].devPtr();
@@ -75,7 +75,7 @@ void AverageRelative3D::setup(Simulation* sim, const MPI_Comm& comm, const MPI_C
     relativeOV = sim->getOVbyNameOrDie(relativeOVname);
 
     if ( !relativeOV->local()->extraPerObject.checkChannelExists("motions") )
-        die("Only rigid objects are support for relative flow, but got OV '%s'", relativeOV->name.c_str());
+        die("Only rigid objects are supported for relative flow, but got OV '%s'", relativeOV->name.c_str());
 
     int locsize = relativeOV->local()->nObjects;
     int totsize;
@@ -83,7 +83,7 @@ void AverageRelative3D::setup(Simulation* sim, const MPI_Comm& comm, const MPI_C
     MPI_Check( MPI_Reduce(&locsize, &totsize, 1, MPI_INT, MPI_SUM, 0, comm) );
 
     if (rank == 0 && relativeID >= totsize)
-        die("To few objects in OV '%s' (only %d); but requested id %d",
+        die("Too few objects in OV '%s' (only %d); but requested id %d",
                 relativeOV->name.c_str(), totsize, relativeID);
 }
 
@@ -153,9 +153,7 @@ void AverageRelative3D::afterIntegration(cudaStream_t stream)
 
 void AverageRelative3D::extractLocalBlock()
 {
-    int locId = 0;
-
-    auto oneChannel = [&locId, this] (PinnedBuffer<float>& channel, Average3D::ChannelType type, float scale) {
+    auto oneChannel = [this] (PinnedBuffer<float>& channel, Average3D::ChannelType type, float scale, std::vector<float>& dest) {
 
         MPI_Check( MPI_Allreduce(MPI_IN_PLACE, channel.hostPtr(), channel.size(), MPI_FLOAT, MPI_SUM, comm) );
         //MPI_Check( MPI_Bcast(channel.hostPtr(), channel.size(), MPI_FLOAT, 0, comm) );
@@ -180,19 +178,17 @@ void AverageRelative3D::extractLocalBlock()
                         if (scale < 0.0f) factor = 1.0f / density[scalId];
                         else factor = scale;
 
-                        localChannels[locId][dstId++] = channel[srcId] * factor;
+                        dest[dstId++] = channel[srcId] * factor;
                         srcId++;
                     }
                 }
-
-        locId++;
     };
 
     // Order is important! Density comes first
-    oneChannel(density, Average3D::ChannelType::Scalar, /* pv->mass */ 1.0 / (nSamples * binSize.x*binSize.y*binSize.z));
+    oneChannel(density, Average3D::ChannelType::Scalar, 1.0 / (nSamples * binSize.x*binSize.y*binSize.z), localDensity);
 
     for (int i=0; i<channelsInfo.n; i++)
-        oneChannel(channelsInfo.average[i], channelsInfo.types[i], -1);
+        oneChannel(channelsInfo.average[i], channelsInfo.types[i], -1, localChannels[i]);
 }
 
 void AverageRelative3D::serializeAndSend(cudaStream_t stream)
@@ -216,38 +212,24 @@ void AverageRelative3D::serializeAndSend(cudaStream_t stream)
         }
     }
 
-    density.downloadFromDevice(stream, ContainersSynch::Synch);
+        
+    density.downloadFromDevice(stream, ContainersSynch::Asynch);
     density.clearDevice(stream);
-
+    
     for (auto& data : channelsInfo.average)
     {
         data.downloadFromDevice(stream, ContainersSynch::Asynch);
         data.clearDevice(stream);
     }
 
+    CUDA_Check( cudaStreamSynchronize(stream) );
 
     extractLocalBlock();
     nSamples = 0;
 
 
-    // Calculate total size for sending
-    int totalSize = SimpleSerializer::totSize(currentTime);
-    for (auto& ch : localChannels)
-        totalSize += SimpleSerializer::totSize(ch);
-
-    // Now allocate the sending buffer and pack everything into it
-    debug2("Plugin %s is packing now data", name.c_str());
-    sendBuffer.resize(totalSize);
-
-    SimpleSerializer::serialize(sendBuffer.data(), currentTime);
-    int currentSize = SimpleSerializer::totSize(currentTime);
-
-    for (auto& ch : localChannels)
-    {
-        SimpleSerializer::serialize(sendBuffer.data() + currentSize, ch);
-        currentSize += SimpleSerializer::totSize(ch);
-    }
-
+    debug2("Plugin '%s' is now packing the data", name.c_str());
+    SimpleSerializer::serialize(sendBuffer, currentTime, localDensity, localChannels);
     send(sendBuffer);
 }
 

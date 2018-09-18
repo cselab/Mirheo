@@ -16,7 +16,7 @@ off    = "rbc_mesh.off"
 ranks  = (1, 1, 1)
 domain = (12, 8, 10)
 
-u = udx.udevicex(ranks, domain, debug_level=2, log_filename='log')
+u = udx.udevicex(ranks, domain, debug_level=3, log_filename='log')
 
 if args.readFrom == "off":
     mesh = udx.ParticleVectors.MembraneMesh(off)

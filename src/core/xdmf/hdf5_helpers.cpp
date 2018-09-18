@@ -20,8 +20,7 @@ namespace XDMF
         
         void writeDataSet(hid_t file_id, const Grid* grid, const Channel& channel)
         {
-            debug2("Writing channel '%s' with %d / %d elements of %d floats each",
-                   channel.name.c_str(), grid->getLocalSize(), grid->getGlobalSize(), channel.entrySize_floats);
+            debug2("Writing channel '%s'", channel.name.c_str());
             
             // Add one more dimension: number of floats per data item
             int ndims = grid->getDims() + 1;
@@ -52,7 +51,8 @@ namespace XDMF
 
             hid_t mspace_id = H5Screate_simple(ndims, localSize.data(), nullptr);
 
-            H5Dwrite(dset_id, H5T_NATIVE_FLOAT, mspace_id, dspace_id, xfer_plist_id, channel.data);
+            if (!grid->globalEmpty())
+                H5Dwrite(dset_id, H5T_NATIVE_FLOAT, mspace_id, dspace_id, xfer_plist_id, channel.data);
 
             H5Sclose(mspace_id);
             H5Sclose(dspace_id);

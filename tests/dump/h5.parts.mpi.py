@@ -6,7 +6,7 @@ import argparse
 ranks  = (2, 1, 1)
 domain = (4, 2, 2)
 
-u = udx.udevicex(ranks, domain, debug_level=8, log_filename='log')
+u = udx.udevicex(ranks, domain, debug_level=3, log_filename='log')
 
 pos = [[1., 0.25, 0.5],
        [1., 0.50, 0.5],
