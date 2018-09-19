@@ -58,17 +58,28 @@ void UniformCartesianDumper::handshake()
             allNames.c_str(), resolution.x, resolution.y, resolution.z, path.c_str());
 }
 
+static void convert(const std::vector<double> &src, std::vector<float> &dst)
+{
+    dst.resize(src.size());
+    for (int i = 0; i < src.size(); ++i)
+        dst[i] = src[i];
+}
+
 void UniformCartesianDumper::deserialize(MPI_Status& stat)
 {
     float t;
-    SimpleSerializer::deserialize(data, t, density, containers);
+    SimpleSerializer::deserialize(data, t, recv_density, recv_containers);
     
     debug2("Plugin '%s' will dump right now: simulation time %f, time stamp %d",
            name.c_str(), t, timeStamp);
 
+    convert(recv_density, density);    
     channels[0].data = density.data();
-    for (int i=0; i < containers.size(); i++)
+    
+    for (int i = 0; i < containers.size(); i++) {
+        convert(recv_containers[i], containers[i]);
         channels[i+1].data = containers[i].data();
+    }
 
     std::string tstr = std::to_string(timeStamp++);
     std::string fname = path + std::string(zeroPadding - tstr.length(), '0') + tstr;

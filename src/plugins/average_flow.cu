@@ -31,7 +31,7 @@ __global__ void sample(
 
 }
 
-static int getNcomponents(Average3D::ChannelType type)
+int Average3D::getNcomponents(Average3D::ChannelType type) const
 {
     int components = 3;
     if (type == Average3D::ChannelType::Scalar)  components = 1;

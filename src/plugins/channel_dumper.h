@@ -19,6 +19,9 @@ public:
 protected:
     std::vector<XDMF::Channel> channels;
     std::unique_ptr<XDMF::UniformGrid> grid;
+
+    std::vector<double> recv_density;
+    std::vector<std::vector<double>> recv_containers;
     
     std::vector<float> density;
     std::vector<std::vector<float>> containers;
