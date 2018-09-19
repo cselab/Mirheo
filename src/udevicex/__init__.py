@@ -106,7 +106,9 @@ def __init__():
                 if '__create' in f[0]:
                     newname = f[0][2:]
                     setattr(m[1], newname, decorate_plugins(f[1]))
-                    getattr(m[1], newname).__doc__ = re.sub('__' + newname, newname, getattr(m[1], newname).__doc__)
+                    getattr(m[1], newname).__doc__ = re.sub('__' + newname, newname,    getattr(m[1], newname).__doc__)
+                    getattr(m[1], newname).__doc__ = re.sub('compute_task: bool, ', '', getattr(m[1], newname).__doc__)
+                    
 
     # Wrap initialization of the udevicex coordinator
     udevicex.__init__ = decorate_coordinator(udevicex.__init__)
