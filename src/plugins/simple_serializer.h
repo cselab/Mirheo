@@ -13,7 +13,9 @@ class SimpleSerializer
 private:
     
     // Some template shorthand definitions    
-    template<typename Vec>
+    
+#if __CUDACC_VER_MAJOR__ >= 9
+	template<typename Vec>
     using ValType = typename std::remove_reference< decltype(std::declval<Vec>().operator[](0)) >::type;
     
     template <typename T>
@@ -21,8 +23,19 @@ private:
     
     template <typename T>
     using EnableIfNonPod = typename std::enable_if< !std::is_pod<T>::value >::type*;
-    
-    
+#else
+	// Patch for the CUDA 8 compiler bug
+	// https://devtalk.nvidia.com/default/topic/1018200/nvcc-bug-when-trying-simple-template-metaprogramming/
+	template<typename Vec>
+    using ValType = Vec;
+	
+	template <typename T>
+    using EnableIfPod    = typename std::enable_if< std::is_pod<T>::error >::type*;
+
+	template <typename T>
+    using EnableIfNonPod = typename std::enable_if< true >::type*;
+#endif
+
     
     /// Overload for the vectors of NON POD : other vectors or strings
     template<typename Vec, EnableIfNonPod<ValType<Vec>> = nullptr>
