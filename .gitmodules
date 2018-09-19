@@ -6,4 +6,4 @@
 	url = https://github.com/NVlabs/cub.git
 [submodule "src/extern/pugixml"]
 	path = src/extern/pugixml
-	url = git@github.com:zeux/pugixml.git
+	url = https://github.com/zeux/pugixml.git
