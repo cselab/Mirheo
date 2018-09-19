@@ -31,6 +31,14 @@ __global__ void sample(
 
 }
 
+static int getNcomponents(Average3D::ChannelType type)
+{
+    int components = 3;
+    if (type == Average3D::ChannelType::Scalar)  components = 1;
+    if (type == Average3D::ChannelType::Tensor6) components = 6;
+    return components;
+}
+
 Average3D::Average3D(std::string name,
         std::vector<std::string> pvNames,
         std::vector<std::string> channelNames, std::vector<Average3D::ChannelType> channelTypes,
@@ -65,12 +73,11 @@ void Average3D::setup(Simulation* sim, const MPI_Comm& comm, const MPI_Comm& int
     density.resize_anew(total);
     density.clear(0);
     std::string allChannels("density");
-    for (int i=0; i<channelsInfo.n; i++)
-    {
-        if      (channelsInfo.types[i] == Average3D::ChannelType::Scalar)  channelsInfo.average[i].resize_anew(1*total);
-        else if (channelsInfo.types[i] == Average3D::ChannelType::Tensor6) channelsInfo.average[i].resize_anew(6*total);
-        else                                                               channelsInfo.average[i].resize_anew(3*total);
 
+    for (int i = 0; i < channelsInfo.n; i++) {
+        int components = getNcomponents(channelsInfo.types[i]);
+        
+        channelsInfo.average[i].resize_anew(components * total);
         channelsInfo.average[i].clear(0);
         channelsInfo.averagePtrs[i] = channelsInfo.average[i].devPtr();
 
@@ -79,7 +86,6 @@ void Average3D::setup(Simulation* sim, const MPI_Comm& comm, const MPI_Comm& int
 
     channelsInfo.averagePtrs.uploadToDevice(0);
     channelsInfo.types.uploadToDevice(0);
-
 
     for (const auto& pvName : pvNames)
         pvs.push_back(sim->getPVbyNameOrDie(pvName));
@@ -116,30 +122,27 @@ void Average3D::afterIntegration(cudaStream_t stream)
 void Average3D::scaleSampled(cudaStream_t stream)
 {
     const int nthreads = 128;
+    const int ncells = density.size();
     // Order is important here! First channels, only then dens
 
-    for (int i=0; i<channelsInfo.n; i++)
-    {
+    for (int i = 0; i < channelsInfo.n; i++) {
         auto& data = channelsInfo.average[i];
-        int sz = density.size();
-        int components = 3;
-        if (channelsInfo.types[i] == ChannelType::Scalar)  components = 1;
-        if (channelsInfo.types[i] == ChannelType::Tensor6) components = 6;
+
+        int components = getNcomponents(channelsInfo.types[i]);
 
         SAFE_KERNEL_LAUNCH(
                 sampling_helpers_kernels::scaleVec,
-                getNblocks(sz, nthreads), nthreads, 0, stream,
-                sz, components, data.devPtr(), density.devPtr() );
+                getNblocks(ncells, nthreads), nthreads, 0, stream,
+                ncells, components, data.devPtr(), density.devPtr() );
 
         data.downloadFromDevice(stream, ContainersSynch::Asynch);
         data.clearDevice(stream);
     }
 
-    int sz = density.size();
     SAFE_KERNEL_LAUNCH(
             sampling_helpers_kernels::scaleDensity,
-            getNblocks(sz, nthreads), nthreads, 0, stream,
-            sz, density.devPtr(), /* pv->mass */ 1.0 / (nSamples * binSize.x*binSize.y*binSize.z) );
+            getNblocks(ncells, nthreads), nthreads, 0, stream,
+            ncells, density.devPtr(), 1.0 / (nSamples * binSize.x*binSize.y*binSize.z) );
 
     density.downloadFromDevice(stream, ContainersSynch::Synch);
     density.clearDevice(stream);
@@ -165,18 +168,7 @@ void Average3D::handshake()
     std::vector<int> sizes;
 
     for (auto t : channelsInfo.types)
-        switch (t)
-        {
-            case ChannelType::Scalar:
-                sizes.push_back(1);
-                break;
-            case ChannelType::Tensor6:
-                sizes.push_back(6);
-                break;
-            default:
-                sizes.push_back(3);
-                break;
-        }
+        sizes.push_back(getNcomponents(t));
     
     SimpleSerializer::serialize(data, sim->nranks3D, sim->rank3D, resolution, binSize, sizes, channelsInfo.names);
     send(data);
