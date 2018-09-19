@@ -75,8 +75,10 @@ void UniformCartesianDumper::deserialize(MPI_Status& stat)
 
     convert(recv_density, density);    
     channels[0].data = density.data();
+
+    containers.resize(recv_containers.size());
     
-    for (int i = 0; i < containers.size(); i++) {
+    for (int i = 0; i < recv_containers.size(); i++) {
         convert(recv_containers[i], containers[i]);
         channels[i+1].data = containers[i].data();
     }

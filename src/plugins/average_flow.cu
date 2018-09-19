@@ -118,13 +118,13 @@ void Average3D::sampleOnePv(ParticleVector *pv, cudaStream_t stream)
          pvView, cinfo, density.devPtr(), gpuInfo);
 }
 
-static void accumulateOneArray(int n, int fieldComponents, const float *src, double *dst, cudaStream_t stream)
+static void accumulateOneArray(int n, int components, const float *src, double *dst, cudaStream_t stream)
 {
     const int nthreads = 128;
     SAFE_KERNEL_LAUNCH
         (sampling_helpers_kernels::accumulate,
-         getNblocks(n, nthreads), nthreads, 0, stream,
-         n, fieldComponents, src, dst);
+         getNblocks(n * components, nthreads), nthreads, 0, stream,
+         n, components, src, dst);
 }
 
 void Average3D::accumulateSampledAndClear(cudaStream_t stream)
@@ -172,10 +172,10 @@ void Average3D::scaleSampled(cudaStream_t stream)
 
         int components = getNcomponents(channelsInfo.types[i]);
 
-        SAFE_KERNEL_LAUNCH(
-                sampling_helpers_kernels::scaleVec,
-                getNblocks(ncells, nthreads), nthreads, 0, stream,
-                ncells, components, data.devPtr(), accumulated_density.devPtr() );
+        SAFE_KERNEL_LAUNCH
+            (sampling_helpers_kernels::scaleVec,
+             getNblocks(ncells, nthreads), nthreads, 0, stream,
+             ncells, components, data.devPtr(), accumulated_density.devPtr() );
 
         data.downloadFromDevice(stream, ContainersSynch::Asynch);
         data.clearDevice(stream);
