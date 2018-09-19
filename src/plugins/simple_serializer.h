@@ -15,7 +15,7 @@ private:
     // Some template shorthand definitions    
     
 #if __CUDACC_VER_MAJOR__ >= 9
-	template<typename Vec>
+    template<typename Vec>
     using ValType = typename std::remove_reference< decltype(std::declval<Vec>().operator[](0)) >::type;
     
     template <typename T>
