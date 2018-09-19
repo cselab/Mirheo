@@ -46,17 +46,6 @@ private:
     template<typename T> static int sizeOfOne(const HostBuffer  <T>& v) { return sizeOfVec(v); }
     template<typename T> static int sizeOfOne(const PinnedBuffer<T>& v) { return sizeOfVec(v); }
     
-    /// Overload for the vectors of NON POD : other vectors or strings
-    template<typename Vec, EnableIfNonPod<ValType<Vec>> = nullptr>
-    static int sizeOfOne(const Vec& v)
-    {
-        int tot = v.size();
-        for (auto& element : v)
-            tot += sizeOfOne(element);
-        
-        return tot;
-    }
-
     static int sizeOfOne(const std::string& s)
     {
         return (int)s.length() + sizeof(int);
