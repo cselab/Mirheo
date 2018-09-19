@@ -45,14 +45,19 @@ protected:
     int3 resolution;
     float3 binSize;
 
-    PinnedBuffer<float>  density;
+    PinnedBuffer<float>   density;
+    PinnedBuffer<double>  accumulated_density;
     std::vector<char> sendBuffer;
 
     std::vector<ParticleVector*> pvs;
 
     HostChannelsInfo channelsInfo;
+    std::vector<PinnedBuffer<double>> accumulated_average;
+    
     DomainInfo domain;
 
+    
+    void accumulateSampledAndClear(cudaStream_t stream);
     void scaleSampled(cudaStream_t stream);
 
     void sampleOnePv(ParticleVector *pv, cudaStream_t stream);
