@@ -195,9 +195,10 @@ std::shared_ptr<ParticleVector> uDeviceX::makeFrozenWallParticles(std::shared_pt
     sim->getWallByNameOrDie(wall->name);
     
     Simulation wallsim(sim->nranks3D, sim->domain.globalSize, sim->cartComm, MPI_COMM_NULL, false);
-    
-    auto pv=std::make_shared<ParticleVector>(wall->name, 1.0);
-    auto ic=std::make_shared<UniformIC>(density);
+
+    float mass = 1.0;
+    auto pv = std::make_shared<ParticleVector>(wall->name, mass);
+    auto ic = std::make_shared<UniformIC>(density);
     
     wallsim.registerParticleVector(pv, ic, 0);
     wallsim.registerInteraction(interaction);
