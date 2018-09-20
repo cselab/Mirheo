@@ -24,6 +24,7 @@
 #include <core/walls/freeze_particles.h>
 #include <core/initial_conditions/uniform_ic.h>
 
+#include "version.h"
 
 uDeviceX::uDeviceX(std::tuple<int, int, int> nranks3D, std::tuple<float, float, float> globalDomainSize,
         std::string logFileName, int verbosity,
@@ -298,11 +299,22 @@ std::shared_ptr<ParticleVector> uDeviceX::applyObjectBelongingChecker(ObjectBelo
 
 void uDeviceX::sayHello()
 {
+    static const int max_length_version =  9;
+    static const int max_length_sha1    = 46;
+    std::string version = Version::udx_version;
+    std::string sha1    = Version::git_SHA1;
+
+    int missing_spaces = max(0, max_length_version - (int) version.size());
+    version.append(missing_spaces, ' ');
+
+    missing_spaces = max(0, max_length_sha1 - (int) sha1.size());
+    sha1.append(missing_spaces, ' ');
+    
     printf("\n");
-    printf("************************************************\n");
-    printf("*                   uDeviceX                   *\n");
-    printf("*     compiled: on %s at %s     *\n", __DATE__, __TIME__);
-    printf("************************************************\n");
+    printf("**************************************************\n");
+    printf("*              uDeviceX %s                *\n", version.c_str());
+    printf("* %s *\n", sha1.c_str());
+    printf("**************************************************\n");
     printf("\n");
 }
 

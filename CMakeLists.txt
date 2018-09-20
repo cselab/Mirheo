@@ -11,7 +11,7 @@ set(UDX_MAIN "udevicex_main")
 
 # version
 execute_process(COMMAND
-  git describe
+  git describe --abbrev=0
   WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
   OUTPUT_VARIABLE UDX_VERSION
   ERROR_QUIET OUTPUT_STRIP_TRAILING_WHITESPACE)
