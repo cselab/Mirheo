@@ -26,6 +26,15 @@ static std::string parentPath(std::string path)
     return path.substr(0, path.find_last_of("/"));
 }
 
+static std::string relativePath(std::string path)
+{
+    auto pos = path.find_last_of("/");
+    if (pos == std::string::npos)
+        return path;
+    else
+        return path.substr(pos + 1);
+}
+
 static bool createFolders(std::string path)
 {
     std::string command = "mkdir -p " + path;
