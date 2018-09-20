@@ -23,7 +23,7 @@ public:
         std::vector<std::string> names;
         PinnedBuffer<ChannelType> types;
         PinnedBuffer<float*> averagePtrs, dataPtrs;
-        std::vector<PinnedBuffer<float>> average;
+        std::vector<DeviceBuffer<float>> average;
     };
 
     Average3D(std::string name,
@@ -45,7 +45,7 @@ protected:
     int3 resolution;
     float3 binSize;
 
-    PinnedBuffer<float>   density;
+    DeviceBuffer<float>   density;
     PinnedBuffer<double>  accumulated_density;
     std::vector<char> sendBuffer;
 
