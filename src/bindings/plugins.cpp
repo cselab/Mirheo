@@ -222,7 +222,7 @@ void exportPlugins(py::module& m)
             max_force: :math:`F_{max}`  
     )");
     m.def("__createStats", &PluginFactory::createStatsPlugin,
-          "compute_task"_a, "name"_a, "filename"_a, "every"_a, R"(
+          "compute_task"_a, "name"_a, "filename"_a="", "every"_a, R"(
         Create :any:`SimulationStats` plugin
         
         Args:

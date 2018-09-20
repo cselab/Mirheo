@@ -36,10 +36,10 @@ class PostprocessStats : public PostprocessPlugin
 {
 private:
     MPI_Datatype mpiReductionType;
-    FILE *fdump;
+    FILE *fdump = nullptr;
 
 public:
-    PostprocessStats(std::string name, std::string filename);
+    PostprocessStats(std::string name, std::string filename = "");
     ~PostprocessStats();
 
     void deserialize(MPI_Status& stat) override;

@@ -49,9 +49,12 @@ void exportInteractions(py::module& m)
                     power: :math:`p` in the weight function
         )")
         .def("setSpecificPair", &InteractionDPD::setSpecificPair, 
-            "pv1"_a, "pv2"_a, "a"_a, "gamma"_a, "kbt"_a, "dt"_a, "power"_a, R"(
+             "pv1"_a, "pv2"_a,
+             "a"_a=InteractionDPD::Default, "gamma"_a=InteractionDPD::Default,
+             "kbt"_a=InteractionDPD::Default, "dt"_a=InteractionDPD::Default, "power"_a=InteractionDPD::Default,
+             R"(
                 Override some of the interaction parameters for a specific pair of Particle Vectors
-            )");
+             )");
         
     py::handlers_class<InteractionLJ>(m, "LJ", pyint, R"(
         Pairwise interaction according to the classical Lennard-Jones potential `http://rspa.royalsocietypublishing.org/content/106/738/463`
@@ -63,7 +66,7 @@ void exportInteractions(py::module& m)
    
     )")
         .def(py::init<std::string, float, float, float, float, bool>(),
-             "name"_a, "rc"_a, "epsilon"_a, "sigma"_a, "max_force"_a, "object_aware"_a, R"(
+             "name"_a, "rc"_a, "epsilon"_a, "sigma"_a, "max_force"_a=1000.0, "object_aware"_a, R"(
                 Args:
                     name: name of the interaction
                     rc: interaction cut-off (no forces between particles further than **rc** apart)
@@ -75,7 +78,7 @@ void exportInteractions(py::module& m)
                         That restriction only applies if both Particle Vectors in the interactions are the same and is actually an Object Vector. 
         )")
         .def("setSpecificPair", &InteractionLJ::setSpecificPair, 
-            "pv1"_a, "pv2"_a, "epsilon"_a, "sigma"_a, "maxForce"_a, R"(
+            "pv1"_a, "pv2"_a, "epsilon"_a, "sigma"_a, "max_force"_a, R"(
                 Override some of the interaction parameters for a specific pair of Particle Vectors
             )");
         
@@ -105,7 +108,7 @@ void exportInteractions(py::module& m)
         Mesh-based forces acting on a membrane according to the model in PUT LINK
     )")
         .def(py::init<std::string, MembraneParameters, bool, float>(),
-             "name"_a, "params"_a, "stressFree"_a, "growUntilTime"_a=0, R"( TODO
+             "name"_a, "params"_a, "stressFree"_a, "grow_until"_a=0, R"( TODO
         )");
 }
 

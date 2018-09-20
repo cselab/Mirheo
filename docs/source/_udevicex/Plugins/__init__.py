@@ -432,7 +432,7 @@ def createPinObject():
     pass
 
 def createStats():
-    r"""createStats(name: str, filename: str, every: int) -> Tuple[Plugins.SimulationStats, Plugins.PostprocessStats]
+    r"""createStats(name: str, filename: str = '', every: int) -> Tuple[Plugins.SimulationStats, Plugins.PostprocessStats]
 
 
         Create :any:`SimulationStats` plugin

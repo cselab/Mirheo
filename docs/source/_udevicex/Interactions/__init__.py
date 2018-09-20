@@ -55,11 +55,11 @@ class DPD(Interaction):
         pass
 
     def setSpecificPair():
-        r"""setSpecificPair(pv1: ParticleVectors.ParticleVector, pv2: ParticleVectors.ParticleVector, a: float, gamma: float, kbt: float, dt: float, power: float) -> None
+        r"""setSpecificPair(pv1: ParticleVectors.ParticleVector, pv2: ParticleVectors.ParticleVector, a: float = inf, gamma: float = inf, kbt: float = inf, dt: float = inf, power: float = inf) -> None
 
 
                 Override some of the interaction parameters for a specific pair of Particle Vectors
-            
+             
 
         """
         pass
@@ -76,7 +76,7 @@ class LJ(Interaction):
     
     """
     def __init__():
-        r"""__init__(name: str, rc: float, epsilon: float, sigma: float, max_force: float, object_aware: bool) -> None
+        r"""__init__(name: str, rc: float, epsilon: float, sigma: float, max_force: float = 1000.0, object_aware: bool) -> None
 
 
                 Args:
@@ -94,7 +94,7 @@ class LJ(Interaction):
         pass
 
     def setSpecificPair():
-        r"""setSpecificPair(pv1: ParticleVectors.ParticleVector, pv2: ParticleVectors.ParticleVector, epsilon: float, sigma: float, maxForce: float) -> None
+        r"""setSpecificPair(pv1: ParticleVectors.ParticleVector, pv2: ParticleVectors.ParticleVector, epsilon: float, sigma: float, max_force: float) -> None
 
 
                 Override some of the interaction parameters for a specific pair of Particle Vectors
@@ -109,7 +109,7 @@ class MembraneForces(Interaction):
     
     """
     def __init__():
-        r"""__init__(name: str, params: Interactions.MembraneParameters, stressFree: bool, growUntilTime: float = 0) -> None
+        r"""__init__(name: str, params: Interactions.MembraneParameters, stressFree: bool, grow_until: float = 0) -> None
 
  TODO
         

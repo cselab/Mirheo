@@ -76,8 +76,10 @@ def decorate_plugins(f):
 
 
 def __init__():
-    # Wrap everything except for plugins
+    # Wrap everything except for plugins and non-GPU stuff
     # Make the __init__ functions return None if we are not a compute task
+    nonGPU_names = ['Mesh', 'MembraneMesh', 'MembraneParameters']
+    
     classes = {}
     submodules =  inspect.getmembers(sys.modules[__name__],
                                     lambda member: inspect.ismodule(member)
@@ -90,7 +92,8 @@ def __init__():
     for module in classes.keys():
         if module != 'Plugins':
             for cls in classes[module]:
-                setattr(cls[1], '__new__', decorate_none_if_postprocess(cls[1].__new__))
+                if cls[0] not in nonGPU_names:
+                    setattr(cls[1], '__new__', decorate_none_if_postprocess(cls[1].__new__))
 
     # Now wrap plugins creation
     # Also change the names of the function

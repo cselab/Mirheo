@@ -8,7 +8,8 @@
 
 
 InteractionDPD::InteractionDPD(std::string name, float rc, float a, float gamma, float kbt, float dt, float power) :
-    Interaction(name, rc)
+    Interaction(name, rc),
+    a(a), gamma(gamma), kbt(kbt), dt(dt), power(power)
 {
     Pairwise_DPD dpd(rc, a, gamma, kbt, dt, power);
     impl = std::make_unique<InteractionPair<Pairwise_DPD>> (name, rc, dpd);
@@ -36,6 +37,12 @@ void InteractionDPD::halo   (ParticleVector* pv1, ParticleVector* pv2,
 void InteractionDPD::setSpecificPair(ParticleVector* pv1, ParticleVector* pv2, 
         float a, float gamma, float kbt, float dt, float power)
 {
+    if (a     == Default) a     = this->a;
+    if (gamma == Default) gamma = this->gamma;
+    if (kbt   == Default) kbt   = this->kbt;
+    if (dt    == Default) dt    = this->dt;
+    if (power == Default) power = this->power;
+
     Pairwise_DPD dpd(this->rc, a, gamma, kbt, dt, power);
     auto ptr = static_cast< InteractionPair<Pairwise_DPD>* >(impl.get());
     

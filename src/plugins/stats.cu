@@ -92,13 +92,17 @@ PostprocessStats::PostprocessStats(std::string name, std::string filename) :
     else
         die("Incompatible type");
 
-    fdump = fopen(filename.c_str(), "w");
-    if (!fdump) die("Could not open file '%s'", filename.c_str());
-    fprintf(fdump, "# time  kBT  vx vy vz  max(abs(v))\n");
+    if (filename != "")
+    {
+        fdump = fopen(filename.c_str(), "w");
+        if (!fdump) die("Could not open file '%s'", filename.c_str());
+        fprintf(fdump, "# time  kBT  vx vy vz  max(abs(v))\n");
+    }
 }
 
-PostprocessStats::~PostprocessStats() {
-    fclose(fdump);
+PostprocessStats::~PostprocessStats()
+{
+    if (fdump != nullptr) fclose(fdump);
 }
 
 void PostprocessStats::deserialize(MPI_Status& stat)
@@ -132,9 +136,12 @@ void PostprocessStats::deserialize(MPI_Status& stat)
         printf("\tMax velocity magnitude: %f\n", maxvel[0]);
         printf("\tTemperature: %.4f\n\n", temperature);
 
-        fprintf(fdump, "%g %g %g %g %g %g\n", currentTime,
-                temperature, momentum[0], momentum[1], momentum[2], maxvel[0]);
-        fflush(fdump);
+        if (fdump != nullptr)
+        {
+            fprintf(fdump, "%g %g %g %g %g %g\n", currentTime,
+                    temperature, momentum[0], momentum[1], momentum[2], maxvel[0]);
+            fflush(fdump);
+        }
     }
 }
 

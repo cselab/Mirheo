@@ -202,7 +202,7 @@ Register Plugins
         pass
 
     def registerWall():
-        r"""registerWall(arg0: Wall, arg1: int) -> None
+        r"""registerWall(wall: Wall, check_every: int = 0) -> None
 
 Register Wall
 

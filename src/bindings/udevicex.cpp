@@ -78,9 +78,9 @@ void exportUdevicex(py::module& m)
                     ov: :any:`ObjectVector` belonging to which the **checker** will check
         )")
         
-        .def("registerBouncer",                &uDeviceX::registerBouncer,                "Register Object Bouncer")
-        .def("registerWall",                   &uDeviceX::registerWall,                   "Register Wall")
-        .def("registerPlugins",                &uDeviceX::registerPlugins,                "Register Plugins")
+        .def("registerBouncer",  &uDeviceX::registerBouncer, "Register Object Bouncer")
+        .def("registerWall",     &uDeviceX::registerWall, "wall"_a, "check_every"_a=0, "Register Wall")
+        .def("registerPlugins",  &uDeviceX::registerPlugins, "Register Plugins")
 
         .def("setIntegrator",  &uDeviceX::setIntegrator,  "Set Integrator")
         .def("setInteraction", &uDeviceX::setInteraction,

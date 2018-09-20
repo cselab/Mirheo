@@ -43,7 +43,7 @@ uDeviceX::uDeviceX(std::tuple<int, int, int> nranks3D, std::tuple<float, float, 
     else
         logger.init(MPI_COMM_WORLD, logFileName+".log", verbosity);
 
-    MPI_Errhandler_set(MPI_COMM_WORLD, MPI_ERRORS_RETURN);
+    MPI_Comm_set_errhandler(MPI_COMM_WORLD, MPI_ERRORS_RETURN);
 
     MPI_Check( MPI_Comm_size(MPI_COMM_WORLD, &nranks) );
     MPI_Check( MPI_Comm_rank(MPI_COMM_WORLD, &rank) );
