@@ -7,6 +7,8 @@ from setuptools import setup, Extension
 from setuptools.command.build_ext import build_ext
 from distutils.version import LooseVersion
 
+from src.udevicex import version
+
 
 class BinaryExtension(Extension):
     def __init__(self, name, sourcedir=''):
@@ -32,7 +34,7 @@ class CopyLibrary(build_ext):
 
 setup(
     name='uDeviceX',
-    version='1.0',
+    version=version.Version.udx_version,
     author='Dmitry Alexeev',
     author_email='alexeedm@ethz.ch',
     description='The in-silico lab-on-a-chip',

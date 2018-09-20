@@ -58,11 +58,18 @@ include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/src/ )
 set(CORE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src/core/")
 set(PLUGINS_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src/plugins/")
 set(BINDINGS_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src/bindings/")
+set(PYTHON_LIB_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src/udevicex")
 
 # generate version.cpp
 configure_file(
   "${CORE_DIR}/version.cpp.in"
   "${CORE_DIR}/version.cpp"
+  )
+
+#generate version.py
+configure_file(
+  "${PYTHON_LIB_DIR}/version.py.in"
+  "${PYTHON_LIB_DIR}/version.py"
   )
 
 # Find sources
