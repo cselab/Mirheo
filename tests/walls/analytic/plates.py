@@ -25,22 +25,18 @@ u.registerWall(plate_lo, 0)
 u.registerWall(plate_hi, 0)
 
 vv = udx.Integrators.VelocityVerlet("vv", dt)
-frozen_lo = u.makeFrozenWallParticles(wall=plate_lo, interaction=dpd, integrator=vv, density=density)
-frozen_hi = u.makeFrozenWallParticles(wall=plate_hi, interaction=dpd, integrator=vv, density=density)
-
+frozen = u.makeFrozenWallParticles(pvName="plates", walls=[plate_lo, plate_hi], interaction=dpd, integrator=vv, density=density)
 
 u.setWall(plate_lo, pv)
 u.setWall(plate_hi, pv)
 
 
-for p in (pv, frozen_lo, frozen_hi):
+for p in (pv, frozen):
     u.setInteraction(dpd, p, pv)
-
 
 vv_dp = udx.Integrators.VelocityVerlet_withConstForce("vv_dp", dt, force)
 u.registerIntegrator(vv_dp)
 u.setIntegrator(vv_dp, pv)
-
 
 
 sampleEvery = 2

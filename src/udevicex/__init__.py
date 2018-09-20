@@ -14,6 +14,8 @@ import re
 
 from libudevicex import *
 
+__all__ = ["version"]
+
 
 # Global variable for the udevicex coordination class
 # Used in decorators to access compute task status

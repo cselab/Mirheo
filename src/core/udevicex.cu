@@ -24,6 +24,7 @@
 #include <core/walls/freeze_particles.h>
 #include <core/initial_conditions/uniform_ic.h>
 
+#include "version.h"
 
 uDeviceX::uDeviceX(std::tuple<int, int, int> nranks3D, std::tuple<float, float, float> globalDomainSize,
         std::string logFileName, int verbosity,
@@ -171,7 +172,8 @@ void uDeviceX::setWallBounce(Wall* wall, ParticleVector* pv)
         sim->setWallBounce(wall->name, pv->name);
 }
 
-std::shared_ptr<ParticleVector> uDeviceX::makeFrozenWallParticles(std::shared_ptr<Wall> wall,
+std::shared_ptr<ParticleVector> uDeviceX::makeFrozenWallParticles(std::string pvName,
+                                                                  std::vector<std::shared_ptr<Wall>> walls,
                                                                   std::shared_ptr<Interaction> interaction,
                                                                   std::shared_ptr<Integrator>   integrator,
                                                                   float density, int nsteps)
@@ -184,19 +186,29 @@ std::shared_ptr<ParticleVector> uDeviceX::makeFrozenWallParticles(std::shared_pt
     // But here we don't pass the wall into the other simulation,
     // we just use it to filter particles, which is totally fine
     
-    info("Generating frozen particles for wall '%s'...\n\n", wall->name.c_str());
-    
-    auto sdfWall = dynamic_cast<SDF_basedWall*>(wall.get());
-    if (sdfWall == nullptr)
-        die("Only sdf-based walls are supported now!");
-    
-    // Check if the wall is set up
-    sim->getWallByNameOrDie(wall->name);
+    info("Generating frozen particles for walls:\n");
+
+    std::vector<SDF_basedWall*> sdfWalls;
+
+    for (auto &wall : walls) {
+        auto sdfWall = dynamic_cast<SDF_basedWall*>(wall.get());
+        if (sdfWall == nullptr)
+            die("Only sdf-based walls are supported now!");        
+        else
+            sdfWalls.push_back(sdfWall);
+
+        // Check if the wall is set up
+        sim->getWallByNameOrDie(wall->name);
+
+        info("\t%s", wall->name.c_str());
+    }
+    info("\n\n");
     
     Simulation wallsim(sim->nranks3D, sim->domain.globalSize, sim->cartComm, MPI_COMM_NULL, false);
-    
-    auto pv=std::make_shared<ParticleVector>(wall->name, 1.0);
-    auto ic=std::make_shared<UniformIC>(density);
+
+    float mass = 1.0;
+    auto pv = std::make_shared<ParticleVector>(pvName, mass);
+    auto ic = std::make_shared<UniformIC>(density);
     
     wallsim.registerParticleVector(pv, ic, 0);
     wallsim.registerInteraction(interaction);
@@ -209,10 +221,12 @@ std::shared_ptr<ParticleVector> uDeviceX::makeFrozenWallParticles(std::shared_pt
     wallsim.init();
     wallsim.run(nsteps);
     
-    freezeParticlesInWall(sdfWall, pv.get(), 0.0f, interaction->rc + 0.2f);
+    freezeParticlesInWalls(sdfWalls, pv.get(), 0.0f, interaction->rc + 0.2f);
     
     sim->registerParticleVector(pv, nullptr);
-    wall->attachFrozen(pv.get());
+
+    for (auto &wall : walls)
+        wall->attachFrozen(pv.get());
     
     return pv;
 }
@@ -298,11 +312,22 @@ std::shared_ptr<ParticleVector> uDeviceX::applyObjectBelongingChecker(ObjectBelo
 
 void uDeviceX::sayHello()
 {
+    static const int max_length_version =  9;
+    static const int max_length_sha1    = 46;
+    std::string version = Version::udx_version;
+    std::string sha1    = Version::git_SHA1;
+
+    int missing_spaces = max(0, max_length_version - (int) version.size());
+    version.append(missing_spaces, ' ');
+
+    missing_spaces = max(0, max_length_sha1 - (int) sha1.size());
+    sha1.append(missing_spaces, ' ');
+    
     printf("\n");
-    printf("************************************************\n");
-    printf("*                   uDeviceX                   *\n");
-    printf("*     compiled: on %s at %s     *\n", __DATE__, __TIME__);
-    printf("************************************************\n");
+    printf("**************************************************\n");
+    printf("*              uDeviceX %s                *\n", version.c_str());
+    printf("* %s *\n", sha1.c_str());
+    printf("**************************************************\n");
     printf("\n");
 }
 

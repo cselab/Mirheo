@@ -48,8 +48,9 @@ public:
     void setBouncer     (Bouncer* bouncer, ObjectVector* ov, ParticleVector* pv);
     void setWallBounce  (Wall* wall, ParticleVector* pv);
     
-    
-    std::shared_ptr<ParticleVector> makeFrozenWallParticles(std::shared_ptr<Wall> wall,
+
+    std::shared_ptr<ParticleVector> makeFrozenWallParticles(std::string pvName,
+                                                            std::vector<std::shared_ptr<Wall>> walls,
                                                             std::shared_ptr<Interaction> interaction,
                                                             std::shared_ptr<Integrator>   integrator,
                                                             float density, int nsteps);

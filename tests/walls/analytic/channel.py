@@ -39,7 +39,7 @@ elif args.type == "squarePipe":
 u.registerWall(wall, 0)
 
 vv = udx.Integrators.VelocityVerlet("vv", dt)
-frozen_wall = u.makeFrozenWallParticles(wall=wall, interaction=dpd, integrator=vv, density=density)
+frozen_wall = u.makeFrozenWallParticles(pvName="wall", walls=[wall], interaction=dpd, integrator=vv, density=density)
 
 u.setWall(wall, pv)
 
