@@ -1,4 +1,5 @@
 #include <pybind11/pybind11.h>
+#include <pybind11/stl.h>
 
 #include <core/udevicex.h>
 #include <core/integrators/interface.h>
@@ -112,15 +113,16 @@ void exportUdevicex(py::module& m)
         )")
         
         .def("makeFrozenWallParticles", &uDeviceX::makeFrozenWallParticles,
-            "wall"_a, "interaction"_a, "integrator"_a, "density"_a, "nsteps"_a=1000, R"(
-                Create particles frozen inside the wall.
+             "pvName"_a, "walls"_a, "interaction"_a, "integrator"_a, "density"_a, "nsteps"_a=1000, R"(
+                Create particles frozen inside the walls.
                 
                 .. note::
                     A separate simulation will be run for every call to this function, which may take certain amount of time.
                     If you want to save time, consider using restarting mechanism instead
                 
                 Args:
-                    wall: instance of :any:`Wall` for which the frozen particles will be generated
+                    pvName: name of the created particle vector
+                    walls: array of instances of :any:`Wall` for which the frozen particles will be generated
                     interaction: this :any:`Interaction` will be used to construct the equilibrium particles distribution
                     integrator: this :any:`Integrator` will be used to construct the equilibrium particles distribution
                     density: target particle density
