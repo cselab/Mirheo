@@ -62,12 +62,14 @@ __global__ static void scaleVec(int n, int fieldComponents, double *field, const
                 field[fieldComponents*id + c] = 0.0f;
 }
 
-__global__ static void correctVelocity(int n, float3 *velocity, const float *density, const float3 correction)
+__global__ static void correctVelocity(int n, double3 *velocity, const double *density, const float3 correction)
 {
     const int id = threadIdx.x + blockIdx.x*blockDim.x;
     if (id >= n) return;
 
-    velocity[id] -= density[id]*correction;
+    velocity[id].x -= density[id] * correction.x;
+    velocity[id].y -= density[id] * correction.y;
+    velocity[id].z -= density[id] * correction.z;
 }
 
 __global__ static void scaleDensity(int n, double *density, const float factor)

@@ -53,17 +53,24 @@ void AverageRelative3D::setup(Simulation* sim, const MPI_Comm& comm, const MPI_C
 {
     Average3D::setup(sim, comm, interComm);
 
-    localDensity.resize(density.size());
-    density.resize_anew(density.size() * nranks);
+    int local_size = density.size();
+    int global_size = local_size * nranks;
+    
+    localDensity.resize(local_size);
+    density.resize_anew(global_size);
+    accumulated_density.resize_anew(global_size);
     density.clear(0);
 
     domain = sim->domain;
 
     localChannels.resize(channelsInfo.n);
-    for (int i = 0; i < channelsInfo.n; i++)
-    {
-        localChannels[i].resize(channelsInfo.average[i].size());
-        channelsInfo.average[i].resize_anew(channelsInfo.average[i].size() * nranks);
+
+    for (int i = 0; i < channelsInfo.n; i++) {
+        local_size = channelsInfo.average[i].size();
+        global_size = local_size * nranks;
+        localChannels[i].resize(local_size);
+        channelsInfo.average[i].resize_anew(global_size);
+        accumulated_average [i].resize_anew(global_size);
         channelsInfo.average[i].clear(0);
         channelsInfo.averagePtrs[i] = channelsInfo.average[i].devPtr();
     }
@@ -144,6 +151,8 @@ void AverageRelative3D::afterIntegration(cudaStream_t stream)
     relativeParams[0] = domain.global2local(relativeParams[0]);
 
     for (auto& pv : pvs) sampleOnePv(relativeParams[0], pv, stream);
+
+    accumulateSampledAndClear(stream);
     
     averageRelativeVelocity += relativeParams[1];
 
@@ -153,19 +162,16 @@ void AverageRelative3D::afterIntegration(cudaStream_t stream)
 
 void AverageRelative3D::extractLocalBlock()
 {
-    auto oneChannel = [this] (PinnedBuffer<float>& channel, Average3D::ChannelType type, float scale, std::vector<float>& dest) {
+    auto oneChannel = [this] (const PinnedBuffer<double>& channel, Average3D::ChannelType type, double scale, std::vector<double>& dest) {
 
-        MPI_Check( MPI_Allreduce(MPI_IN_PLACE, channel.hostPtr(), channel.size(), MPI_FLOAT, MPI_SUM, comm) );
-        //MPI_Check( MPI_Bcast(channel.hostPtr(), channel.size(), MPI_FLOAT, 0, comm) );
+        MPI_Check( MPI_Allreduce(MPI_IN_PLACE, channel.hostPtr(), channel.size(), MPI_DOUBLE, MPI_SUM, comm) );
 
-        int ncomponents = 3;
-        if (type == Average3D::ChannelType::Scalar)  ncomponents = 1;
-        if (type == Average3D::ChannelType::Tensor6) ncomponents = 6;
+        int ncomponents = this->getNcomponents(type);
 
         int3 globalResolution = resolution * sim->nranks3D;
         int3 rank3D = sim->rank3D;
 
-        float factor;
+        double factor;
         int dstId = 0;
         for (int k = rank3D.z*resolution.z; k < (rank3D.z+1)*resolution.z; k++) {
             for (int j = rank3D.y*resolution.y; j < (rank3D.y+1)*resolution.y; j++) {
@@ -173,7 +179,7 @@ void AverageRelative3D::extractLocalBlock()
                     int scalId = (k*globalResolution.y*globalResolution.x + j*globalResolution.x + i);
                     int srcId = ncomponents * scalId;
                     for (int c = 0; c < ncomponents; c++) {
-                        if (scale < 0.0f) factor = 1.0f / density[scalId];
+                        if (scale < 0.0f) factor = 1.0f / accumulated_density[scalId];
                         else              factor = scale;
 
                         dest[dstId++] = channel[srcId] * factor;
@@ -185,38 +191,36 @@ void AverageRelative3D::extractLocalBlock()
     };
 
     // Order is important! Density comes first
-    oneChannel(density, Average3D::ChannelType::Scalar, 1.0 / (nSamples * binSize.x*binSize.y*binSize.z), localDensity);
+    oneChannel(accumulated_density, Average3D::ChannelType::Scalar, 1.0 / (nSamples * binSize.x*binSize.y*binSize.z), localDensity);
 
-    for (int i=0; i<channelsInfo.n; i++)
-        oneChannel(channelsInfo.average[i], channelsInfo.types[i], -1, localChannels[i]);
+    for (int i = 0; i < channelsInfo.n; i++)
+        oneChannel(accumulated_average[i], channelsInfo.types[i], -1, localChannels[i]);
 }
 
 void AverageRelative3D::serializeAndSend(cudaStream_t stream)
 {
     if (currentTimeStep % dumpEvery != 0 || currentTimeStep == 0) return;
 
-    for (int i = 0; i < channelsInfo.n; i++)
-    {
-        auto& data = channelsInfo.average[i];
+    for (int i = 0; i < channelsInfo.n; i++) {
+        auto& data = accumulated_average[i];
 
-        if (channelsInfo.names[i] == "velocity")
-        {
+        if (channelsInfo.names[i] == "velocity") {
             const int nthreads = 128;
 
             SAFE_KERNEL_LAUNCH
                 (sampling_helpers_kernels::correctVelocity,
                  getNblocks(data.size() / 3, nthreads), nthreads, 0, stream,
-                 data.size() / 3, (float3*)data.devPtr(), density.devPtr(), averageRelativeVelocity / (float) nSamples);
+                 data.size() / 3, (double3*)data.devPtr(), accumulated_density.devPtr(), averageRelativeVelocity / (float) nSamples);
 
             averageRelativeVelocity = make_float3(0);
         }
     }
 
         
-    density.downloadFromDevice(stream, ContainersSynch::Asynch);
-    density.clearDevice(stream);
+    accumulated_density.downloadFromDevice(stream, ContainersSynch::Asynch);
+    accumulated_density.clearDevice(stream);
     
-    for (auto& data : channelsInfo.average)
+    for (auto& data : accumulated_average)
     {
         data.downloadFromDevice(stream, ContainersSynch::Asynch);
         data.clearDevice(stream);
