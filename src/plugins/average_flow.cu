@@ -31,6 +31,14 @@ __global__ void sample(
 
 }
 
+int Average3D::getNcomponents(Average3D::ChannelType type) const
+{
+    int components = 3;
+    if (type == Average3D::ChannelType::Scalar)  components = 1;
+    if (type == Average3D::ChannelType::Tensor6) components = 6;
+    return components;
+}
+
 Average3D::Average3D(std::string name,
         std::vector<std::string> pvNames,
         std::vector<std::string> channelNames, std::vector<Average3D::ChannelType> channelTypes,
@@ -44,6 +52,8 @@ Average3D::Average3D(std::string name,
     channelsInfo.average.resize(channelsInfo.n);
     channelsInfo.averagePtrs.resize_anew(channelsInfo.n);
     channelsInfo.dataPtrs.resize_anew(channelsInfo.n);
+
+    accumulated_average.resize(channelsInfo.n);
 
     for (int i=0; i<channelsInfo.n; i++)
         channelsInfo.types[i] = channelTypes[i];
@@ -64,14 +74,21 @@ void Average3D::setup(Simulation* sim, const MPI_Comm& comm, const MPI_Comm& int
 
     density.resize_anew(total);
     density.clear(0);
-    std::string allChannels("density");
-    for (int i=0; i<channelsInfo.n; i++)
-    {
-        if      (channelsInfo.types[i] == Average3D::ChannelType::Scalar)  channelsInfo.average[i].resize_anew(1*total);
-        else if (channelsInfo.types[i] == Average3D::ChannelType::Tensor6) channelsInfo.average[i].resize_anew(6*total);
-        else                                                               channelsInfo.average[i].resize_anew(3*total);
 
+    accumulated_density.resize_anew(total);
+    accumulated_density.clear(0);
+    
+    std::string allChannels("density");
+
+    for (int i = 0; i < channelsInfo.n; i++) {
+        int components = getNcomponents(channelsInfo.types[i]);
+        
+        channelsInfo.average[i].resize_anew(components * total);
+        accumulated_average [i].resize_anew(components * total);
+        
         channelsInfo.average[i].clear(0);
+        accumulated_average [i].clear(0);
+        
         channelsInfo.averagePtrs[i] = channelsInfo.average[i].devPtr();
 
         allChannels += ", " + channelsInfo.names[i];
@@ -79,7 +96,6 @@ void Average3D::setup(Simulation* sim, const MPI_Comm& comm, const MPI_Comm& int
 
     channelsInfo.averagePtrs.uploadToDevice(0);
     channelsInfo.types.uploadToDevice(0);
-
 
     for (const auto& pvName : pvNames)
         pvs.push_back(sim->getPVbyNameOrDie(pvName));
@@ -96,10 +112,40 @@ void Average3D::sampleOnePv(ParticleVector *pv, cudaStream_t stream)
     ChannelsInfo gpuInfo(channelsInfo, pv, stream);
 
     const int nthreads = 128;
-    SAFE_KERNEL_LAUNCH(
-            average_flow_kernels::sample,
-            getNblocks(pvView.size, nthreads), nthreads, 0, stream,
-            pvView, cinfo, density.devPtr(), gpuInfo);
+    SAFE_KERNEL_LAUNCH
+        (average_flow_kernels::sample,
+         getNblocks(pvView.size, nthreads), nthreads, 0, stream,
+         pvView, cinfo, density.devPtr(), gpuInfo);
+}
+
+static void accumulateOneArray(int n, int components, const float *src, double *dst, cudaStream_t stream)
+{
+    const int nthreads = 128;
+    SAFE_KERNEL_LAUNCH
+        (sampling_helpers_kernels::accumulate,
+         getNblocks(n * components, nthreads), nthreads, 0, stream,
+         n, components, src, dst);
+}
+
+void Average3D::accumulateSampledAndClear(cudaStream_t stream)
+{
+    const int ncells = density.size();
+
+    accumulateOneArray(ncells, 1, density.devPtr(), accumulated_density.devPtr(), stream);
+    density.clear(stream);    
+
+    for (int i = 0; i < channelsInfo.n; i++) {
+
+        int components = getNcomponents(channelsInfo.types[i]);
+
+        accumulateOneArray
+            (ncells, components,
+             channelsInfo.average[i].devPtr(),
+             accumulated_average [i].devPtr(),
+             stream);
+
+        channelsInfo.average[i].clear(stream);
+    }
 }
 
 void Average3D::afterIntegration(cudaStream_t stream)
@@ -108,41 +154,40 @@ void Average3D::afterIntegration(cudaStream_t stream)
 
     debug2("Plugin %s is sampling now", name.c_str());
 
-    for (auto& pv : pvs) sampleOnePv(pv, stream);    
+    for (auto& pv : pvs) sampleOnePv(pv, stream);
 
+    accumulateSampledAndClear(stream);
+    
     nSamples++;
 }
 
 void Average3D::scaleSampled(cudaStream_t stream)
 {
     const int nthreads = 128;
+    const int ncells = accumulated_density.size();
     // Order is important here! First channels, only then dens
 
-    for (int i=0; i<channelsInfo.n; i++)
-    {
-        auto& data = channelsInfo.average[i];
-        int sz = density.size();
-        int components = 3;
-        if (channelsInfo.types[i] == ChannelType::Scalar)  components = 1;
-        if (channelsInfo.types[i] == ChannelType::Tensor6) components = 6;
+    for (int i = 0; i < channelsInfo.n; i++) {
+        auto& data = accumulated_average[i];
 
-        SAFE_KERNEL_LAUNCH(
-                sampling_helpers_kernels::scaleVec,
-                getNblocks(sz, nthreads), nthreads, 0, stream,
-                sz, components, data.devPtr(), density.devPtr() );
+        int components = getNcomponents(channelsInfo.types[i]);
+
+        SAFE_KERNEL_LAUNCH
+            (sampling_helpers_kernels::scaleVec,
+             getNblocks(ncells, nthreads), nthreads, 0, stream,
+             ncells, components, data.devPtr(), accumulated_density.devPtr() );
 
         data.downloadFromDevice(stream, ContainersSynch::Asynch);
         data.clearDevice(stream);
     }
 
-    int sz = density.size();
     SAFE_KERNEL_LAUNCH(
             sampling_helpers_kernels::scaleDensity,
-            getNblocks(sz, nthreads), nthreads, 0, stream,
-            sz, density.devPtr(), /* pv->mass */ 1.0 / (nSamples * binSize.x*binSize.y*binSize.z) );
+            getNblocks(ncells, nthreads), nthreads, 0, stream,
+            ncells, accumulated_density.devPtr(), 1.0 / (nSamples * binSize.x*binSize.y*binSize.z) );
 
-    density.downloadFromDevice(stream, ContainersSynch::Synch);
-    density.clearDevice(stream);
+    accumulated_density.downloadFromDevice(stream, ContainersSynch::Synch);
+    accumulated_density.clearDevice(stream);
 
     nSamples = 0;
 }
@@ -155,7 +200,7 @@ void Average3D::serializeAndSend(cudaStream_t stream)
     scaleSampled(stream);
 
     debug2("Plugin '%s' is now packing the data", name.c_str());
-    SimpleSerializer::serialize(sendBuffer, currentTime, density, channelsInfo.average);
+    SimpleSerializer::serialize(sendBuffer, currentTime, accumulated_density, accumulated_average);
     send(sendBuffer);
 }
 
@@ -165,18 +210,7 @@ void Average3D::handshake()
     std::vector<int> sizes;
 
     for (auto t : channelsInfo.types)
-        switch (t)
-        {
-            case ChannelType::Scalar:
-                sizes.push_back(1);
-                break;
-            case ChannelType::Tensor6:
-                sizes.push_back(6);
-                break;
-            default:
-                sizes.push_back(3);
-                break;
-        }
+        sizes.push_back(getNcomponents(t));
     
     SimpleSerializer::serialize(data, sim->nranks3D, sim->rank3D, resolution, binSize, sizes, channelsInfo.names);
     send(data);

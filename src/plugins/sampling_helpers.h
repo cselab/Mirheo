@@ -51,7 +51,7 @@ __device__ inline void sampleChannels(int pid, int cid, ChannelsInfo channelsInf
     }
 }
 
-__global__ static void scaleVec(int n, int fieldComponents, float* field, const float* density)
+__global__ static void scaleVec(int n, int fieldComponents, double *field, const double *density)
 {
     const int id = threadIdx.x + blockIdx.x*blockDim.x;
     if (id < n)
@@ -62,19 +62,28 @@ __global__ static void scaleVec(int n, int fieldComponents, float* field, const 
                 field[fieldComponents*id + c] = 0.0f;
 }
 
-__global__ static void correctVelocity(int n, float3* velocity, float* density, const float3 correction)
+__global__ static void correctVelocity(int n, double3 *velocity, const double *density, const float3 correction)
 {
     const int id = threadIdx.x + blockIdx.x*blockDim.x;
     if (id >= n) return;
 
-    velocity[id] -= density[id]*correction;
+    velocity[id].x -= density[id] * correction.x;
+    velocity[id].y -= density[id] * correction.y;
+    velocity[id].z -= density[id] * correction.z;
 }
 
-__global__ static void scaleDensity(int n, float* density, const float factor)
+__global__ static void scaleDensity(int n, double *density, const float factor)
 {
     const int id = threadIdx.x + blockIdx.x*blockDim.x;
     if (id < n)
         density[id] *= factor;
+}
+
+__global__ static void accumulate(int n, int fieldComponents, const float *src, double *dst)
+{
+    const int id = threadIdx.x + blockIdx.x*blockDim.x;
+    if (id < n * fieldComponents)
+        dst[id] += src[id];
 }
 
 }

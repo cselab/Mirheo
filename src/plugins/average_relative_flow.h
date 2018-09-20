@@ -37,8 +37,8 @@ private:
 
     int3 localResolution;
 
-    std::vector<std::vector<float>> localChannels;
-    std::vector<float> localDensity;
+    std::vector<std::vector<double>> localChannels;
+    std::vector<double> localDensity;
 
     void extractLocalBlock();
 
