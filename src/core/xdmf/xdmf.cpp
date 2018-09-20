@@ -8,6 +8,7 @@
 
 #include <core/logger.h>
 #include <core/utils/timer.h>
+#include <core/utils/folders.h>
 
 namespace XDMF
 {
@@ -20,7 +21,7 @@ namespace XDMF
 
         mTimer timer;
         timer.start();
-        XMF::write(xmfFilename, h5Filename, comm, grid, channels, time);
+        XMF::write(xmfFilename, relativePath(h5Filename), comm, grid, channels, time);
         HDF5::write(h5Filename, comm, grid, channels);
         info("Writing took %f ms", timer.elapsed());
         

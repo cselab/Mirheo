@@ -56,13 +56,14 @@ namespace XDMF
             if (rank == 0)
             {
                 pugi::xml_document doc;
-                auto root = doc.append_child("xdmf");
+                auto root = doc.append_child("Xdmf");
                 root.append_attribute("Version") = "3.0";
                 auto domain = root.append_child("Domain");
-                domain.append_child("Time").append_attribute("Value") = std::to_string(time).c_str();
 
-                grid->write2XMF(domain, h5filename);
-                writeData(domain, h5filename, grid, channels);
+                auto gridNode = grid->write2XMF(domain, h5filename);
+                
+                gridNode.append_child("Time").append_attribute("Value") = std::to_string(time).c_str();
+                writeData(gridNode, h5filename, grid, channels);
                 
                 doc.save_file(filename.c_str());
             }
