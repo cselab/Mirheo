@@ -10,6 +10,21 @@
 
 static const cudaStream_t default_stream = 0;
 
+namespace freeze_particles_kernels
+{
+
+__global__ void init_sdf(int n, float *sdfs, float val)
+{
+    int i = blockIdx.x * blockDim.x + threadIdx.x;
+    if (i < n) sdfs[i] = val;
+}
+
+__global__ void merge_sdfs(int n, const float *sdfs, float *sdfs_merged)
+{
+    int i = blockIdx.x * blockDim.x + threadIdx.x;
+    if (i < n) sdfs_merged[i] = max(sdfs[i], sdfs_merged[i]);
+}
+
 template<bool QUERY>
 __global__ void collectFrozen(PVview view, const float *sdfs, float minVal, float maxVal, float4* frozen, int* nFrozen)
 {
@@ -30,6 +45,8 @@ __global__ void collectFrozen(PVview view, const float *sdfs, float minVal, floa
     }
 }
 
+}
+
 static void extract_particles(ParticleVector *pv, const float *sdfs, float minVal, float maxVal)
 {
     PinnedBuffer<int> nFrozen(1);
@@ -41,7 +58,7 @@ static void extract_particles(ParticleVector *pv, const float *sdfs, float minVa
     nFrozen.clear(default_stream);
 
     SAFE_KERNEL_LAUNCH
-        (collectFrozen<true>,
+        (freeze_particles_kernels::collectFrozen<true>,
          nblocks, nthreads, 0, default_stream,
          view, sdfs, minVal, maxVal, nullptr, nFrozen.devPtr());
 
@@ -55,7 +72,7 @@ static void extract_particles(ParticleVector *pv, const float *sdfs, float minVa
     nFrozen.clear(default_stream);
     
     SAFE_KERNEL_LAUNCH
-        (collectFrozen<false>,
+        (freeze_particles_kernels::collectFrozen<false>,
          nblocks, nthreads, 0, default_stream,
          view, sdfs, minVal, maxVal, (float4*)frozen.devPtr(), nFrozen.devPtr());
 
@@ -63,15 +80,45 @@ static void extract_particles(ParticleVector *pv, const float *sdfs, float minVa
     std::swap(frozen, pv->local()->coosvels);
 }
 
-void freezeParticlesInWall(SDF_basedWall* wall, ParticleVector *pv, float minVal, float maxVal)
+void freezeParticlesInWall(SDF_basedWall *wall, ParticleVector *pv, float minVal, float maxVal)
 {
     CUDA_Check( cudaDeviceSynchronize() );
 
     DeviceBuffer<float> sdfs(pv->local()->size());
-
+    
     wall->sdfPerParticle(pv->local(), &sdfs, nullptr, default_stream);
 
     extract_particles(pv, sdfs.devPtr(), minVal, maxVal);
 }
 
+
+void freezeParticlesInWalls(std::vector<SDF_basedWall*> walls, ParticleVector *pv, float minVal, float maxVal)
+{
+    CUDA_Check( cudaDeviceSynchronize() );
+
+    int n = pv->local()->size();
+    
+    DeviceBuffer<float> sdfs(n), sdfs_merged(n);
+
+    const int nthreads = 128;
+    const int nblocks = getNblocks(n, nthreads);
+    const float safety = 1.f;
+
+    SAFE_KERNEL_LAUNCH
+        (freeze_particles_kernels::init_sdf,
+         nblocks, nthreads, 0, default_stream,
+         n, sdfs_merged.devPtr(), minVal - safety);
+    
+    
+    for (auto& wall : walls) {
+        wall->sdfPerParticle(pv->local(), &sdfs, nullptr, default_stream);
+
+        SAFE_KERNEL_LAUNCH
+            (freeze_particles_kernels::merge_sdfs,
+             nblocks, nthreads, 0, default_stream,
+             n, sdfs.devPtr(), sdfs_merged.devPtr());
+    }
+
+    extract_particles(pv, sdfs_merged.devPtr(), minVal, maxVal);
+}
 
