@@ -162,6 +162,8 @@ void AverageRelative3D::afterIntegration(cudaStream_t stream)
 
 void AverageRelative3D::extractLocalBlock()
 {
+    static const double scale_by_density = -1.0;
+    
     auto oneChannel = [this] (const PinnedBuffer<double>& channel, Average3D::ChannelType type, double scale, std::vector<double>& dest) {
 
         MPI_Check( MPI_Allreduce(MPI_IN_PLACE, channel.hostPtr(), channel.size(), MPI_DOUBLE, MPI_SUM, comm) );
@@ -179,8 +181,8 @@ void AverageRelative3D::extractLocalBlock()
                     int scalId = (k*globalResolution.y*globalResolution.x + j*globalResolution.x + i);
                     int srcId = ncomponents * scalId;
                     for (int c = 0; c < ncomponents; c++) {
-                        if (scale < 0.0f) factor = 1.0f / accumulated_density[scalId];
-                        else              factor = scale;
+                        if (scale == scale_by_density) factor = 1.0f / accumulated_density[scalId];
+                        else                           factor = scale;
 
                         dest[dstId++] = channel[srcId] * factor;
                         srcId++;
@@ -194,7 +196,7 @@ void AverageRelative3D::extractLocalBlock()
     oneChannel(accumulated_density, Average3D::ChannelType::Scalar, 1.0 / (nSamples * binSize.x*binSize.y*binSize.z), localDensity);
 
     for (int i = 0; i < channelsInfo.n; i++)
-        oneChannel(accumulated_average[i], channelsInfo.types[i], -1, localChannels[i]);
+        oneChannel(accumulated_average[i], channelsInfo.types[i], scale_by_density, localChannels[i]);
 }
 
 void AverageRelative3D::serializeAndSend(cudaStream_t stream)
