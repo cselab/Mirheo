@@ -109,10 +109,8 @@ void AverageRelative3D::sampleOnePv(float3 relativeParam, ParticleVector *pv, cu
 
 void AverageRelative3D::afterIntegration(cudaStream_t stream)
 {
-    enum {
-        TAG = 22,
-        NCOMPONENTS = 2 * sizeof(float3) / sizeof(float)
-    };
+    const int TAG = 22;
+    const int NCOMPONENTS = 2 * sizeof(float3) / sizeof(float);
     
     if (currentTimeStep % sampleEvery != 0 || currentTimeStep == 0) return;
 

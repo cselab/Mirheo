@@ -53,28 +53,32 @@ namespace XDMF
     void UniformGrid::write2HDF5(hid_t file_id, MPI_Comm comm) const
     {   }
     
-    void UniformGrid::write2XMF(pugi::xml_node node, std::string h5filename) const
+    pugi::xml_node UniformGrid::write2XMF(pugi::xml_node node, std::string h5filename) const
     {
+        auto gridNode = node.append_child("Grid");
+        gridNode.append_attribute("Name") = "mesh";
+        gridNode.append_attribute("GridType") = "Uniform";
+        
         // Topology size is in vertices, so it's +1 wrt to the number of cells
         auto nodeResolution = globalSize;
         for (auto& r : nodeResolution) r += 1;
         
-        auto topoNode = node.append_child("Topology");
+        auto topoNode = gridNode.append_child("Topology");
         topoNode.append_attribute("TopologyType") = "3DCORECTMesh";
         topoNode.append_attribute("Dimensions") = to_string(nodeResolution).c_str();
         
-        auto geomNode = node.append_child("Geometry");
+        auto geomNode = gridNode.append_child("Geometry");
         geomNode.append_attribute("GeometryType") = "ORIGIN_DXDYDZ";
         
         
-        auto setup3Fnode = [] (pugi::xml_node& node, const std::string& name)
+        auto setup3Fnode = [] (pugi::xml_node& n, std::string nodeName)
         {
-            const static std::vector< std::pair<std::string, std::string> > name_vals = {
-                { "Name", name }, { "Dimensions", "3" }, { "NumberType", "float" }, { "Precision", "4" }, { "Format", "XML" }
-            };
+            const std::array< std::pair<std::string, std::string>, 5 > name_vals = {{
+                { "Name", nodeName }, { "Dimensions", "3" }, { "NumberType", "float" }, { "Precision", "4" }, { "Format", "XML" }
+            }};
            
             for (auto& name_val : name_vals)
-                node.append_attribute(name_val.first.c_str()) = name_val.second.c_str();
+                n.append_attribute(name_val.first.c_str()) = name_val.second.c_str();
         };
         
         auto origNode = geomNode.append_child("DataItem");
@@ -84,6 +88,8 @@ namespace XDMF
         auto spaceNode = geomNode.append_child("DataItem");
         setup3Fnode(spaceNode, "Spacing");
         spaceNode.text() = to_string(spacing).c_str();
+        
+        return gridNode;
     }
     
     UniformGrid::UniformGrid(int3 localSize, int3 globalSize, float3 h, MPI_Comm cartComm)
@@ -148,13 +154,17 @@ namespace XDMF
         HDF5::writeDataSet(file_id, this, posCh);
     }
     
-    void VertexGrid::write2XMF(pugi::xml_node node, std::string h5filename) const
-    {        
-        auto topoNode = node.append_child("Topology");
+    pugi::xml_node VertexGrid::write2XMF(pugi::xml_node node, std::string h5filename) const
+    {
+        auto gridNode = node.append_child("Grid");
+        gridNode.append_attribute("Name") = "mesh";
+        gridNode.append_attribute("GridType") = "Uniform";
+        
+        auto topoNode = gridNode.append_child("Topology");
         topoNode.append_attribute("TopologyType") = "Polyvertex";
         topoNode.append_attribute("NumberOfElements") = std::to_string(nglobal).c_str();
         
-        auto geomNode = node.append_child("Geometry");
+        auto geomNode = gridNode.append_child("Geometry");
         geomNode.append_attribute("GeometryType") = "XYZ";
         
         auto partNode = geomNode.append_child("DataItem");
@@ -163,6 +173,8 @@ namespace XDMF
         partNode.append_attribute("Precision") = "4";
         partNode.append_attribute("Format") = "HDF";
         partNode.text() = (h5filename + ":/" + positionChannelName).c_str();
+        
+        return gridNode;
     }
     
     VertexGrid::VertexGrid(int nvertices, const float *positions, MPI_Comm comm) :
