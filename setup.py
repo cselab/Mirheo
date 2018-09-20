@@ -7,7 +7,9 @@ from setuptools import setup, Extension
 from setuptools.command.build_ext import build_ext
 from distutils.version import LooseVersion
 
-from src.udevicex import version
+import sys
+sys.path.insert(0, 'src/udevicex')
+import version
 
 
 class BinaryExtension(Extension):
