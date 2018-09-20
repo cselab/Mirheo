@@ -8,6 +8,7 @@
 
 #include <core/walls/simple_stationary_wall.h>
 
+static const cudaStream_t default_stream = 0;
 
 template<bool QUERY>
 __global__ void collectFrozen(PVview view, const float *sdfs, float minVal, float maxVal, float4* frozen, int* nFrozen)
@@ -37,26 +38,29 @@ static void extract_particles(ParticleVector *pv, const float *sdfs, float minVa
     const int nthreads = 128;
     const int nblocks = getNblocks(view.size, nthreads);
 
-    nFrozen.clear(0);
+    nFrozen.clear(default_stream);
+
     SAFE_KERNEL_LAUNCH
         (collectFrozen<true>,
-         nblocks, nthreads, 0, 0,
+         nblocks, nthreads, 0, default_stream,
          view, sdfs, minVal, maxVal, nullptr, nFrozen.devPtr());
 
-    nFrozen.downloadFromDevice(0);
+    nFrozen.downloadFromDevice(default_stream);
 
     PinnedBuffer<Particle> frozen(nFrozen[0]);
     info("Freezing %d particles", nFrozen[0]);
-    pv->local()->resize(nFrozen[0], 0);
 
-    nFrozen.clear(0);
+    pv->local()->resize(nFrozen[0], default_stream);
+
+    nFrozen.clear(default_stream);
+    
     SAFE_KERNEL_LAUNCH
         (collectFrozen<false>,
-         nblocks, nthreads, 0, 0,
+         nblocks, nthreads, 0, default_stream,
          view, sdfs, minVal, maxVal, (float4*)frozen.devPtr(), nFrozen.devPtr());
 
-    CUDA_Check( cudaDeviceSynchronize() );    
-    std::swap(frozen, pv->local()->coosvels);    
+    CUDA_Check( cudaDeviceSynchronize() );
+    std::swap(frozen, pv->local()->coosvels);
 }
 
 void freezeParticlesInWall(SDF_basedWall* wall, ParticleVector *pv, float minVal, float maxVal)
@@ -65,7 +69,7 @@ void freezeParticlesInWall(SDF_basedWall* wall, ParticleVector *pv, float minVal
 
     DeviceBuffer<float> sdfs(pv->local()->size());
 
-    wall->sdfPerParticle(pv->local(), &sdfs, nullptr, 0);
+    wall->sdfPerParticle(pv->local(), &sdfs, nullptr, default_stream);
 
     extract_particles(pv, sdfs.devPtr(), minVal, maxVal);
 }
