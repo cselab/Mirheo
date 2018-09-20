@@ -28,7 +28,7 @@ wall = udx.Walls.SDF("sdf", args.sdf_file)
 u.registerWall(wall, 0)
 
 vv = udx.Integrators.VelocityVerlet("vv", dt)
-frozen_wall = u.makeFrozenWallParticles(wall=wall, interaction=dpd, integrator=vv, density=density)
+frozen_wall = u.makeFrozenWallParticles(pvName="sdf", walls=[wall], interaction=dpd, integrator=vv, density=density)
 
 u.setWall(wall, pv)
 
