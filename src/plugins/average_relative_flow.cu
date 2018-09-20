@@ -60,7 +60,7 @@ void AverageRelative3D::setup(Simulation* sim, const MPI_Comm& comm, const MPI_C
     domain = sim->domain;
 
     localChannels.resize(channelsInfo.n);
-    for (int i=0; i<channelsInfo.n; i++)
+    for (int i = 0; i < channelsInfo.n; i++)
     {
         localChannels[i].resize(channelsInfo.average[i].size());
         channelsInfo.average[i].resize_anew(channelsInfo.average[i].size() * nranks);
@@ -94,10 +94,10 @@ void AverageRelative3D::sampleOnePv(float3 relativeParam, ParticleVector *pv, cu
     ChannelsInfo gpuInfo(channelsInfo, pv, stream);
 
     const int nthreads = 128;
-    SAFE_KERNEL_LAUNCH(
-            average_relative_flow_kernels::sampleRelative,
-            getNblocks(pvView.size, nthreads), nthreads, 0, stream,
-            pvView, cinfo, density.devPtr(), gpuInfo, relativeParam);
+    SAFE_KERNEL_LAUNCH
+        (average_relative_flow_kernels::sampleRelative,
+         getNblocks(pvView.size, nthreads), nthreads, 0, stream,
+         pvView, cinfo, density.devPtr(), gpuInfo, relativeParam);
 }
 
 void AverageRelative3D::afterIntegration(cudaStream_t stream)
@@ -123,12 +123,12 @@ void AverageRelative3D::afterIntegration(cudaStream_t stream)
     ids    ->downloadFromDevice(stream, ContainersSynch::Asynch);
     motions->downloadFromDevice(stream, ContainersSynch::Synch);
 
-    for (int i=0; i < ids->size(); i++)
+    for (int i = 0; i < ids->size(); i++)
     {
         if ((*ids)[i] == relativeID)
         {
-            float3 params[2] = { make_float3( (*motions)[i].r ),
-                    make_float3( (*motions)[i].vel ) };
+            float3 params[2] = { make_float3( (*motions)[i].r   ),
+                                 make_float3( (*motions)[i].vel ) };
 
             params[0] = domain.local2global(params[0]);
 
@@ -166,22 +166,22 @@ void AverageRelative3D::extractLocalBlock()
         int3 rank3D = sim->rank3D;
 
         float factor;
-        int dstId=0;
-        for (int k = rank3D.z*resolution.z; k < (rank3D.z+1)*resolution.z; k++)
-            for (int j = rank3D.y*resolution.y; j < (rank3D.y+1)*resolution.y; j++)
-                for (int i = rank3D.x*resolution.x; i < (rank3D.x+1)*resolution.x; i++)
-                {
+        int dstId = 0;
+        for (int k = rank3D.z*resolution.z; k < (rank3D.z+1)*resolution.z; k++) {
+            for (int j = rank3D.y*resolution.y; j < (rank3D.y+1)*resolution.y; j++) {
+                for (int i = rank3D.x*resolution.x; i < (rank3D.x+1)*resolution.x; i++) {                    
                     int scalId = (k*globalResolution.y*globalResolution.x + j*globalResolution.x + i);
                     int srcId = ncomponents * scalId;
-                    for (int c=0; c<ncomponents; c++)
-                    {
+                    for (int c = 0; c < ncomponents; c++) {
                         if (scale < 0.0f) factor = 1.0f / density[scalId];
-                        else factor = scale;
+                        else              factor = scale;
 
                         dest[dstId++] = channel[srcId] * factor;
                         srcId++;
                     }
                 }
+            }
+        }
     };
 
     // Order is important! Density comes first
@@ -195,7 +195,7 @@ void AverageRelative3D::serializeAndSend(cudaStream_t stream)
 {
     if (currentTimeStep % dumpEvery != 0 || currentTimeStep == 0) return;
 
-    for (int i=0; i<channelsInfo.n; i++)
+    for (int i = 0; i < channelsInfo.n; i++)
     {
         auto& data = channelsInfo.average[i];
 
@@ -203,10 +203,10 @@ void AverageRelative3D::serializeAndSend(cudaStream_t stream)
         {
             const int nthreads = 128;
 
-            SAFE_KERNEL_LAUNCH(
-                    sampling_helpers_kernels::correctVelocity,
-                    getNblocks(data.size() / 3, nthreads), nthreads, 0, stream,
-                    data.size() / 3, (float3*)data.devPtr(), density.devPtr(), averageRelativeVelocity / (float) nSamples);
+            SAFE_KERNEL_LAUNCH
+                (sampling_helpers_kernels::correctVelocity,
+                 getNblocks(data.size() / 3, nthreads), nthreads, 0, stream,
+                 data.size() / 3, (float3*)data.devPtr(), density.devPtr(), averageRelativeVelocity / (float) nSamples);
 
             averageRelativeVelocity = make_float3(0);
         }
