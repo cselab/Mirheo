@@ -1,4 +1,4 @@
-#include "freeze_particles.h"
+#include "wall_helpers.h"
 
 #include <core/logger.h>
 #include <core/pvs/particle_vector.h>
@@ -12,7 +12,7 @@
 
 static const cudaStream_t default_stream = 0;
 
-namespace freeze_particles_kernels
+namespace wall_helpers_kernels
 {
     __global__ void init_sdf(int n, float *sdfs, float val)
     {
@@ -58,7 +58,7 @@ static void extract_particles(ParticleVector *pv, const float *sdfs, float minVa
     nFrozen.clear(default_stream);
 
     SAFE_KERNEL_LAUNCH
-        (freeze_particles_kernels::collectFrozen<true>,
+        (wall_helpers_kernels::collectFrozen<true>,
          nblocks, nthreads, 0, default_stream,
          view, sdfs, minVal, maxVal, nullptr, nFrozen.devPtr());
 
@@ -72,7 +72,7 @@ static void extract_particles(ParticleVector *pv, const float *sdfs, float minVa
     nFrozen.clear(default_stream);
     
     SAFE_KERNEL_LAUNCH
-        (freeze_particles_kernels::collectFrozen<false>,
+        (wall_helpers_kernels::collectFrozen<false>,
          nblocks, nthreads, 0, default_stream,
          view, sdfs, minVal, maxVal, (float4*)frozen.devPtr(), nFrozen.devPtr());
 
@@ -104,7 +104,7 @@ void freezeParticlesInWalls(std::vector<SDF_basedWall*> walls, ParticleVector *p
     const float safety = 1.f;
 
     SAFE_KERNEL_LAUNCH
-        (freeze_particles_kernels::init_sdf,
+        (wall_helpers_kernels::init_sdf,
          nblocks, nthreads, 0, default_stream,
          n, sdfs_merged.devPtr(), minVal - safety);
     
@@ -113,7 +113,7 @@ void freezeParticlesInWalls(std::vector<SDF_basedWall*> walls, ParticleVector *p
         wall->sdfPerParticle(pv->local(), &sdfs, nullptr, default_stream);
 
         SAFE_KERNEL_LAUNCH
-            (freeze_particles_kernels::merge_sdfs,
+            (wall_helpers_kernels::merge_sdfs,
              nblocks, nthreads, 0, default_stream,
              n, sdfs.devPtr(), sdfs_merged.devPtr());
     }
@@ -136,7 +136,7 @@ void dumpWalls2XDMF(std::vector<SDF_basedWall*> walls, float3 gridH, DomainInfo 
     const float initial = -1e5;
 
     SAFE_KERNEL_LAUNCH
-        (freeze_particles_kernels::init_sdf,
+        (wall_helpers_kernels::init_sdf,
          nblocks, nthreads, 0, default_stream,
          n, sdfs_merged.devPtr(), initial);
     
@@ -145,7 +145,7 @@ void dumpWalls2XDMF(std::vector<SDF_basedWall*> walls, float3 gridH, DomainInfo 
         wall->sdfOnGrid(gridH, &sdfs, 0);
 
         SAFE_KERNEL_LAUNCH
-            (freeze_particles_kernels::merge_sdfs,
+            (wall_helpers_kernels::merge_sdfs,
              nblocks, nthreads, 0, default_stream,
              n, sdfs.devPtr(), sdfs_merged.devPtr());
     }

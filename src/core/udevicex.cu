@@ -22,7 +22,7 @@
 #include <core/pvs/object_vector.h>
 
 #include <core/walls/simple_stationary_wall.h>
-#include <core/walls/freeze_particles.h>
+#include <core/walls/wall_helpers.h>
 #include <core/initial_conditions/uniform_ic.h>
 
 #include "version.h"
