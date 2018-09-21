@@ -343,10 +343,7 @@ class RigidEllipsoidVector(ObjectVector):
     
     """
     def __init__():
-        r"""__init__(*args, **kwargs)
-Overloaded function.
-
-1. __init__(name: str, mass: float, object_size: int, semi_axes: Tuple[float, float, float]) -> None
+        r"""__init__(name: str, mass: float, object_size: int, semi_axes: Tuple[float, float, float]) -> None
 
 
                 Args:
@@ -354,17 +351,6 @@ Overloaded function.
                     mass: mass of a single particle
                     object_size: number of particles per membrane, must be the same as the number of vertices of the mesh
                     semi_axes: ellipsoid principal semi-axes
-        
-
-2. __init__(name: str, mass: float, object_size: int, semi_axes: Tuple[float, float, float], mesh: ParticleVectors.Mesh) -> None
-
-
-                Args:
-                    name: name of the created PV 
-                    mass: mass of a single particle
-                    object_size: number of particles per membrane, must be the same as the number of vertices of the mesh
-                    semi_axes: ellipsoid principal semi-axes
-                    mesh: mesh representing the shape of the ellipsoid. This is used for dump only.
         
 
         """

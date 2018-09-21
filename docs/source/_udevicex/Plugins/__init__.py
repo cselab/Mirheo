@@ -112,9 +112,9 @@ class ParticleSenderPlugin(SimulationPlugin):
     """
 class PinObject(SimulationPlugin):
     r"""
-        This plugin will impose given velocity as the center of mass velocity (by axis) of all the objects of the specified Object Vector.
+        This plugin will fix center of mass positions (by axis) of all the objects of the specified Object Vector.
         If the objects are rigid bodies, rotatation may be restricted with this plugin as well.
-        The *time-averaged* force and/or torque required to impose the velocities and rotations are reported.
+        The *average* force or torque required to fix the positions or rotation are reported.
             
         .. note::
             This plugin is inactive if postprocess is disabled
@@ -186,7 +186,7 @@ class XYZPlugin(SimulationPlugin):
 # Functions
 
 def createAddForce():
-    r"""createAddForce(name: str, pv: ParticleVectors.ParticleVector, force: Tuple[float, float, float]) -> Tuple[Plugins.AddForce, Plugins.PostprocessPlugin]
+    r"""createAddForce(compute_task: bool, name: str, pv: ParticleVectors.ParticleVector, force: Tuple[float, float, float]) -> Tuple[Plugins.AddForce, Plugins.PostprocessPlugin]
 
 
         Create :any:`AddForce` plugin
@@ -201,7 +201,7 @@ def createAddForce():
     pass
 
 def createAddTorque():
-    r"""createAddTorque(name: str, ov: ParticleVectors.ParticleVector, torque: Tuple[float, float, float]) -> Tuple[Plugins.AddTorque, Plugins.PostprocessPlugin]
+    r"""createAddTorque(compute_task: bool, name: str, ov: ParticleVectors.ParticleVector, torque: Tuple[float, float, float]) -> Tuple[Plugins.AddTorque, Plugins.PostprocessPlugin]
 
 
         Create :any:`AddTorque` plugin
@@ -216,7 +216,7 @@ def createAddTorque():
     pass
 
 def createDumpAverage():
-    r"""createDumpAverage(name: str, pvs: List[ParticleVectors.ParticleVector], sample_every: int, dump_every: int, bin_size: Tuple[float, float, float] = (1.0, 1.0, 1.0), channels: List[Tuple[str, str]], path: str = 'xdmf/') -> Tuple[Plugins.Average3D, Plugins.UniformCartesianDumper]
+    r"""createDumpAverage(compute_task: bool, name: str, pvs: List[ParticleVectors.ParticleVector], sample_every: int, dump_every: int, bin_size: Tuple[float, float, float] = (1.0, 1.0, 1.0), channels: List[Tuple[str, str]], path: str = 'xdmf/') -> Tuple[Plugins.Average3D, Plugins.UniformCartesianDumper]
 
 
         Create :any:`Average3D` plugin
@@ -254,7 +254,7 @@ def createDumpAverage():
     pass
 
 def createDumpAverageRelative():
-    r"""createDumpAverageRelative(name: str, pvs: List[ParticleVectors.ParticleVector], relative_to_ov: ParticleVectors.ObjectVector, relative_to_id: int, sample_every: int, dump_every: int, bin_size: Tuple[float, float, float] = (1.0, 1.0, 1.0), channels: List[Tuple[str, str]], path: str = 'xdmf/') -> Tuple[Plugins.AverageRelative3D, Plugins.UniformCartesianDumper]
+    r"""createDumpAverageRelative(compute_task: bool, name: str, pvs: List[ParticleVectors.ParticleVector], relative_to_ov: ParticleVectors.ObjectVector, relative_to_id: int, sample_every: int, dump_every: int, bin_size: Tuple[float, float, float] = (1.0, 1.0, 1.0), channels: List[Tuple[str, str]], path: str = 'xdmf/') -> Tuple[Plugins.AverageRelative3D, Plugins.UniformCartesianDumper]
 
 
               
@@ -271,7 +271,7 @@ def createDumpAverageRelative():
     pass
 
 def createDumpMesh():
-    r"""createDumpMesh(name: str, ov: ParticleVectors.ObjectVector, dump_every: int, path: str) -> Tuple[Plugins.MeshPlugin, Plugins.MeshDumper]
+    r"""createDumpMesh(compute_task: bool, name: str, ov: ParticleVectors.ObjectVector, dump_every: int, path: str) -> Tuple[Plugins.MeshPlugin, Plugins.MeshDumper]
 
 
         Create :any:`MeshPlugin` plugin
@@ -287,7 +287,7 @@ def createDumpMesh():
     pass
 
 def createDumpObjectStats():
-    r"""createDumpObjectStats(name: str, ov: ParticleVectors.ObjectVector, dump_every: int, path: str) -> Tuple[Plugins.ObjPositions, Plugins.ObjPositionsDumper]
+    r"""createDumpObjectStats(compute_task: bool, name: str, ov: ParticleVectors.ObjectVector, dump_every: int, path: str) -> Tuple[Plugins.ObjPositions, Plugins.ObjPositionsDumper]
 
 
         Create :any:`ObjPositions` plugin
@@ -303,7 +303,7 @@ def createDumpObjectStats():
     pass
 
 def createDumpParticles():
-    r"""createDumpParticles(name: str, pv: ParticleVectors.ParticleVector, dump_every: int, channels: List[Tuple[str, str]], path: str) -> Tuple[Plugins.ParticleSenderPlugin, Plugins.ParticleDumperPlugin]
+    r"""createDumpParticles(compute_task: bool, name: str, pv: ParticleVectors.ParticleVector, dump_every: int, channels: List[Tuple[str, str]], path: str) -> Tuple[Plugins.ParticleSenderPlugin, Plugins.ParticleDumperPlugin]
 
 
         Create :any:`ParticleSenderPlugin` plugin
@@ -329,7 +329,7 @@ def createDumpParticles():
     pass
 
 def createDumpXYZ():
-    r"""createDumpXYZ(name: str, pv: ParticleVectors.ParticleVector, dump_every: int, path: str) -> Tuple[Plugins.XYZPlugin, Plugins.XYZDumper]
+    r"""createDumpXYZ(compute_task: bool, name: str, pv: ParticleVectors.ParticleVector, dump_every: int, path: str) -> Tuple[Plugins.XYZPlugin, Plugins.XYZDumper]
 
 
         Create :any:`XYZPlugin` plugin
@@ -345,7 +345,7 @@ def createDumpXYZ():
     pass
 
 def createExchangePVSFluxPlane():
-    r"""createExchangePVSFluxPlane(name: str, pv1: ParticleVectors.ParticleVector, pv2: ParticleVectors.ParticleVector, plane: Tuple[float, float, float, float]) -> Tuple[Plugins.ExchangePVSFluxPlane, Plugins.PostprocessPlugin]
+    r"""createExchangePVSFluxPlane(compute_task: bool, name: str, pv1: ParticleVectors.ParticleVector, pv2: ParticleVectors.ParticleVector, plane: Tuple[float, float, float, float]) -> Tuple[Plugins.ExchangePVSFluxPlane, Plugins.PostprocessPlugin]
 
 
         Create :any:`ExchangePVSFluxPlane` plugin
@@ -361,7 +361,7 @@ def createExchangePVSFluxPlane():
     pass
 
 def createImposeProfile():
-    r"""createImposeProfile(name: str, pv: ParticleVectors.ParticleVector, low: Tuple[float, float, float], high: Tuple[float, float, float], velocity: Tuple[float, float, float], kbt: float) -> Tuple[Plugins.ImposeProfile, Plugins.PostprocessPlugin]
+    r"""createImposeProfile(compute_task: bool, name: str, pv: ParticleVectors.ParticleVector, low: Tuple[float, float, float], high: Tuple[float, float, float], velocity: Tuple[float, float, float], kbt: float) -> Tuple[Plugins.ImposeProfile, Plugins.PostprocessPlugin]
 
 
         Create :any:`ImposeProfile` plugin
@@ -379,7 +379,7 @@ def createImposeProfile():
     pass
 
 def createImposeVelocity():
-    r"""createImposeVelocity(name: str, pv: ParticleVectors.ParticleVector, every: int, low: Tuple[float, float, float], high: Tuple[float, float, float], velocity: Tuple[float, float, float]) -> Tuple[Plugins.ImposeVelocity, Plugins.PostprocessPlugin]
+    r"""createImposeVelocity(compute_task: bool, name: str, pv: ParticleVectors.ParticleVector, every: int, low: Tuple[float, float, float], high: Tuple[float, float, float], velocity: Tuple[float, float, float]) -> Tuple[Plugins.ImposeVelocity, Plugins.PostprocessPlugin]
 
 
         Create :any:`ImposeVelocity` plugin
@@ -397,7 +397,7 @@ def createImposeVelocity():
     pass
 
 def createMembraneExtraForce():
-    r"""createMembraneExtraForce(name: str, pv: ParticleVectors.ParticleVector, forces: List[List[float[3]]]) -> Tuple[Plugins.MembraneExtraForce, Plugins.PostprocessPlugin]
+    r"""createMembraneExtraForce(compute_task: bool, name: str, pv: ParticleVectors.ParticleVector, forces: List[List[float[3]]]) -> Tuple[Plugins.MembraneExtraForce, Plugins.PostprocessPlugin]
 
 
         Create :any:`MembraneExtraForce` plugin
@@ -412,7 +412,7 @@ def createMembraneExtraForce():
     pass
 
 def createPinObject():
-    r"""createPinObject(name: str, ov: ParticleVectors.ObjectVector, dump_every: int, path: str, velocity: Tuple[float, float, float], angular_velocity: Tuple[float, float, float]) -> Tuple[Plugins.PinObject, Plugins.ReportPinObject]
+    r"""createPinObject(compute_task: bool, name: str, ov: ParticleVectors.ObjectVector, dump_every: int, path: str, pin_translation: Tuple[int, int, int], pin_rotation: Tuple[int, int, int]) -> Tuple[Plugins.PinObject, Plugins.ReportPinObject]
 
 
         Create :any:`PinObject` plugin
@@ -422,17 +422,17 @@ def createPinObject():
             ov: :any:`ObjectVector` that we'll work with
             dump_every: write files every this many time-steps
             path: the files will look like this: <path>/<ov_name>_NNNNN.txt
-            velocity: 3 floats, each component is the desired object velocity.
-                If the corresponding component should not be restricted, set this value to :and:`PinObjectPlugin::Unrestricted`
-            angular_velocity: 3 floats, each component is the desired object angular velocity.
-                If the corresponding component should not be restricted, set this value to :and:`PinObjectPlugin::Unrestricted`
+            pin_translation: 3 integers; 0 means that motion along the corresponding axis is unrestricted,
+                1 means fixed position wrt to the axis
+            pin_rotation: 3 integers; 0 means that rotation along the corresponding axis is unrestricted,
+                1 means fixed rotation wrt to the axis
     
 
     """
     pass
 
 def createStats():
-    r"""createStats(name: str, filename: str = '', every: int) -> Tuple[Plugins.SimulationStats, Plugins.PostprocessStats]
+    r"""createStats(compute_task: bool, name: str, filename: str, every: int) -> Tuple[Plugins.SimulationStats, Plugins.PostprocessStats]
 
 
         Create :any:`SimulationStats` plugin
@@ -457,7 +457,7 @@ def createTemperaturize():
     pass
 
 def createVelocityControl():
-    r"""createVelocityControl(name: str, filename: str, pvs: List[ParticleVectors.ParticleVector], low: Tuple[float, float, float], high: Tuple[float, float, float], sampleEvery: int, dumpEvery: int, targetVel: Tuple[float, float, float], Kp: float, Ki: float, Kd: float) -> Tuple[Plugins.VelocityControl, Plugins.PostprocessVelocityControl]
+    r"""createVelocityControl(compute_task: bool, name: str, filename: str, pvs: List[ParticleVectors.ParticleVector], low: Tuple[float, float, float], high: Tuple[float, float, float], sampleEvery: int, dumpEvery: int, targetVel: Tuple[float, float, float], Kp: float, Ki: float, Kd: float) -> Tuple[Plugins.VelocityControl, Plugins.PostprocessVelocityControl]
 
 
         Create :any:`VelocityControl` plugin
@@ -477,7 +477,7 @@ def createVelocityControl():
     pass
 
 def createWallRepulsion():
-    r"""createWallRepulsion(name: str, pv: ParticleVectors.ParticleVector, wall: Walls.Wall, C: float, h: float, max_force: float) -> Tuple[Plugins.WallRepulsion, Plugins.PostprocessPlugin]
+    r"""createWallRepulsion(compute_task: bool, name: str, pv: ParticleVectors.ParticleVector, wall: Walls.Wall, C: float, h: float, max_force: float) -> Tuple[Plugins.WallRepulsion, Plugins.PostprocessPlugin]
 
 
         Create :any:`WallRepulsion` plugin

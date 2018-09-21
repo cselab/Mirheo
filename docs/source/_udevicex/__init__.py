@@ -21,19 +21,19 @@ class udevicex:
                     Each MPI task (including postprocess) writes messages about itself into his own log file, and the combined log may be created by merging all the individual ones and sorting with respect to time.
                     If this parameter is set to 'stdout' or 'stderr' standard output or standard error streams will be used instead of the file, however, there is no guarantee that messages from different ranks are synchronized
                 debug_level:
-                    Debug level varies from 1 to 8:
-                    
-                       #. only report fatal errors
-                       #. report serious errors
-                       #. report warnings (this is the default level)
-                       #. report not critical information
-                       #. report some debug information
-                       #. report more debug
-                       #. report all the debug
-                       #. force flushing to the file after each message
-                    
-                    Debug levels above 4 or 5 may significanlty increase the runtime, they are only recommended to debug errors.
-                    Flushing increases the runtime yet more, but it is required in order not to lose any messages in case of abnormal program abort.
+                    | Debug level varies from 1 to 8:
+                    | 
+                    | #. only report fatal errors
+                    | #. report serious errors
+                    | #. report warnings (this is the default level)
+                    | #. report not critical information
+                    | #. report some debug information
+                    | #. report more debug
+                    | #. report all the debug
+                    | #. force flushing to the file after each message
+                    | 
+                    | Debug levels above 4 or 5 may significanlty increase the runtime, they are only recommended to debug errors.
+                    | Flushing increases the runtime yet more, but it is required in order not to lose any messages in case of abnormal program abort.
                 checkpoint_every:
                     save state of the simulation components (particle vectors and handlers like integrators, plugins, etc.)
                 restart_folder:
@@ -202,7 +202,7 @@ Register Plugins
         pass
 
     def registerWall():
-        r"""registerWall(wall: Wall, check_every: int = 0) -> None
+        r"""registerWall(arg0: Wall, arg1: int) -> None
 
 Register Wall
 
