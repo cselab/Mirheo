@@ -106,6 +106,29 @@ void exportInteractions(py::module& m)
         
     py::handlers_class<InteractionMembrane>(m, "MembraneForces", pyint, R"(
         Mesh-based forces acting on a membrane according to the model in PUT LINK
+
+        The membrane interactions are composed of forces comming from:
+            - bending of the membrane, potential :math:`U_b`
+            - shear elasticity of the membrane, potential :math:`U_s`
+            - constrain: area conservation of the membrane (local and global), potential :math:`U_A`
+            - constrain: volume of the cell (assuming incompressible fluid), potential :math:`U_V`
+            - membrane viscosity, pairwise force :math:`\mathbf{F}^v`
+            - membrane fluctuations, pairwise force :math:`\mathbf{F}^R`
+
+            The form of these potentials is given by:
+
+            .. math::
+
+                U_b = \sum_{j \in {1 ... N_s}} k_b \left[  1-\cos(\theta_j - \theta_0) \right], \\
+                U_s = \sum_{j \in {1 ... N_s}} \left[ \frac {k_s l_m \left( 3x_j^2 - 2x_j^3 \right)}{4(1-x_j)} + \frac{k_p}{l_0} \right], \\
+                U_A = \frac{k_a (A_{tot} - A^0_{tot})^2}{2 A^0_{tot}} + \sum_{j \in {1 ... N_t}} \frac{k_d (A_j-A_0)^2}{2A_0}, \\
+                U_V = \frac{k_v (V-V^0_{tot})^2}{2 V^0_{tot}}.
+
+            (See reference for more explanations).
+
+            The viscous and dissipation forces are central forces and are the same as DPD interactions with :math:`w(r) = 1` 
+            (no cutoff radius, applied to each bond).
+
     )")
         .def(py::init<std::string, MembraneParameters, bool, float>(),
              "name"_a, "params"_a, "stressFree"_a, "grow_until"_a=0, R"( 
@@ -116,14 +139,6 @@ void exportInteractions(py::module& m)
                      grow_until: time to grow the cell at initialization stage; 
                                  the size increases linearly in time from half of the provided mesh to its full size after that time
                                  the parameters are scaled accordingly with time
-
-                 The membrane interactions are composed of forces comming from:
-                 - bending of the membrane
-                 - shear elasticity of the membrane
-                 - constrain: area conservation of the membrane (local and global)
-                 - constrain: volume of the cell (assuming incompressible fluid)
-                 - membrane viscosity
-                 - membrane fluctuations
         )");
 }
 
