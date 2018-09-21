@@ -105,7 +105,11 @@ void exportInteractions(py::module& m)
         .def_readwrite("dt",        &MembraneParameters::dt);
         
     py::handlers_class<InteractionMembrane>(m, "MembraneForces", pyint, R"(
-        Mesh-based forces acting on a membrane according to the model in PUT LINK
+        Mesh-based forces acting on a membrane according to the model in [CIT_Fedosov2010]
+
+        .. [CIT_Fedosov2010] Fedosov, D. A.; Caswell, B. & Karniadakis, G. E. 
+                             A multiscale red blood cell model with accurate mechanics, rheology, and dynamics 
+                             Biophysical journal, Elsevier, 2010, 98, 2215-2225
 
         The membrane interactions are composed of forces comming from:
             - bending of the membrane, potential :math:`U_b`
