@@ -20,6 +20,7 @@ class StationaryWall_SDF_Handler
 public:
     __D__ inline float operator()(float3 x) const
     {
+        //https://en.wikipedia.org/wiki/Trilinear_interpolation
         float s000, s001, s010, s011, s100, s101, s110, s111;
         float s00x, s01x, s10x, s11x, s0yx, s1yx, szyx;
 
@@ -40,13 +41,13 @@ public:
         s110 = access(1, 1, 0);
         s111 = access(1, 1, 1);
         
-        s00x = s000 * (1 - lambda.x) + lambda.x * s001;
-        s01x = s010 * (1 - lambda.x) + lambda.x * s011;
-        s10x = s100 * (1 - lambda.x) + lambda.x * s101;
-        s11x = s110 * (1 - lambda.x) + lambda.x * s111;
+        s00x = s000 * (1 - lambda.x) + lambda.x * s100;
+        s01x = s001 * (1 - lambda.x) + lambda.x * s101;
+        s10x = s010 * (1 - lambda.x) + lambda.x * s110;
+        s11x = s011 * (1 - lambda.x) + lambda.x * s111;
 
-        s0yx = s00x * (1 - lambda.y) + lambda.y * s01x;
-        s1yx = s10x * (1 - lambda.y) + lambda.y * s11x;
+        s0yx = s00x * (1 - lambda.y) + lambda.y * s10x;
+        s1yx = s01x * (1 - lambda.y) + lambda.y * s11x;
 
         szyx = s0yx * (1 - lambda.z) + lambda.z * s1yx;
 

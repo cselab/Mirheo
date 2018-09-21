@@ -71,6 +71,19 @@ class udevicex:
         """
         pass
 
+    def dumpWalls2XDMF():
+        r"""dumpWalls2XDMF(walls: List[Wall], h: Tuple[float, float, float], filename: str = 'xdmf/wall') -> None
+
+
+                Write Signed Distance Function for the intersection of the provided walls (negative values are the 'inside' of the simulation)
+                
+                Args:
+                    h: cell-size of the resulting grid                    
+        
+
+        """
+        pass
+
     def isComputeTask():
         r"""isComputeTask(self: udevicex) -> bool
 
@@ -115,17 +128,18 @@ Returns whether current task is the very first one
         pass
 
     def makeFrozenWallParticles():
-        r"""makeFrozenWallParticles(wall: Wall, interaction: Interaction, integrator: Integrator, density: float, nsteps: int = 1000) -> ParticleVector
+        r"""makeFrozenWallParticles(pvName: str, walls: List[Wall], interaction: Interaction, integrator: Integrator, density: float, nsteps: int = 1000) -> ParticleVector
 
 
-                Create particles frozen inside the wall.
+                Create particles frozen inside the walls.
                 
                 .. note::
                     A separate simulation will be run for every call to this function, which may take certain amount of time.
                     If you want to save time, consider using restarting mechanism instead
                 
                 Args:
-                    wall: instance of :any:`Wall` for which the frozen particles will be generated
+                    pvName: name of the created particle vector
+                    walls: array of instances of :any:`Wall` for which the frozen particles will be generated
                     interaction: this :any:`Interaction` will be used to construct the equilibrium particles distribution
                     integrator: this :any:`Integrator` will be used to construct the equilibrium particles distribution
                     density: target particle density
