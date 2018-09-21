@@ -11,7 +11,7 @@
  * Find alpha such that F( alpha ) = 0, 0 <= alpha <= 1
  */
 template <typename Equation>
-__device__ inline float2 solveLinSearch_verbose(Equation F, float a = 0.0f, float b = 1.0f, float tolerance = 1e-6)
+__device__ inline float2 solveLinSearch_verbose(Equation F, float a = 0.0f, float b = 1.0f, float tolerance = 1e-6f)
 {
     // F is one dimensional equation
     // It returns value signed + or - depending on whether
@@ -57,7 +57,7 @@ __device__ inline float2 solveLinSearch_verbose(Equation F, float a = 0.0f, floa
 }
 
 template <typename Equation>
-__device__ inline float solveLinSearch(Equation F, float a = 0.0f, float b = 1.0f, float tolerance = 1e-6)
+__device__ inline float solveLinSearch(Equation F, float a = 0.0f, float b = 1.0f, float tolerance = 1e-6f)
 {
     float2 res = solveLinSearch_verbose(F, a, b, tolerance);
     return res.x;
