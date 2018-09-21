@@ -16,9 +16,9 @@
 __device__ inline float cubicInterpolate1D(float y[4], float mu)
 {
     // mu == 0 at y[1], mu == 1 at y[2]
-    const float a0 = y[3] - y[2] - y[0] + y[1];
-    const float a1 = y[0] - y[1] - a0;
-    const float a2 = y[2] - y[0];
+    const float a0 = -0.5f*y[0] + 1.5f*y[1] - 1.5f*y[2] + 0.5f*y[3];
+    const float a1 = y[0] - 2.5f*y[1] + 2.0f*y[2] - 0.5f*y[3];
+    const float a2 = -0.5f*y[0] + 0.5f*y[2];
     const float a3 = y[1];
 
     return ((a0*mu + a1)*mu + a2)*mu + a3;
@@ -27,8 +27,8 @@ __device__ inline float cubicInterpolate1D(float y[4], float mu)
 __global__ void cubicInterpolate3D(const float* in, int3 inDims, float3 inH, float* out, int3 outDims, float3 outH, float3 offset, float scalingFactor)
 {
     // Inspired by http://paulbourke.net/miscellaneous/interpolation/
-    // Center of the output domain is in offset
-    // Center of the input domain is in (0,0,0)
+    // Origin of the output domain is in offset
+    // Origin of the input domain is in (0,0,0)
 
     const int ix = blockIdx.x * blockDim.x + threadIdx.x;
     const int iy = blockIdx.y * blockDim.y + threadIdx.y;
@@ -45,7 +45,7 @@ __global__ void cubicInterpolate3D(const float* in, int3 inDims, float3 inH, flo
 
     float3 inputCoo  = outputCoo + offset;
 
-    // Make sure we're within the region where the the input data is defined
+    // Make sure we're within the region where the input data is defined
     assert( 0.0f <= inputCoo.x && inputCoo.x <= inDims.x*inH.x &&
             0.0f <= inputCoo.y && inputCoo.y <= inDims.y*inH.y &&
             0.0f <= inputCoo.z && inputCoo.z <= inDims.z*inH.z    );
@@ -76,8 +76,66 @@ __global__ void cubicInterpolate3D(const float* in, int3 inDims, float3 inH, flo
         interp1D[dz] = cubicInterpolate1D(interp2D[dz], mu.y);
 
     // Interpolate along z
-    out[ (iz*outDims.y + iy) * outDims.x + ix ] = cubicInterpolate1D(interp1D, mu.z);
+    out[ (iz*outDims.y + iy) * outDims.x + ix ] = cubicInterpolate1D(interp1D, mu.z);    
 }
+
+
+
+__device__ inline float interpolationKernel(float3 x, float3 x0)
+{
+    //const int p = 8;
+    const float3 r = x-x0;
+    const float l2 = dot(r, r);
+    const float l4 = l2*l2;
+    
+    return l4*l4;
+}
+
+__global__ void inverseDistanceWeightedInterpolation(const float* in, int3 inDims, float3 inH, float* out, int3 outDims, float3 outH, float3 offset, float scalingFactor)
+{
+    // Inspired by http://paulbourke.net/miscellaneous/interpolation/
+    // Origin of the output domain is in offset
+    // Origin of the input domain is in (0,0,0)
+
+    const int ix = blockIdx.x * blockDim.x + threadIdx.x;
+    const int iy = blockIdx.y * blockDim.y + threadIdx.y;
+    const int iz = blockIdx.z * blockDim.z + threadIdx.z;
+
+    if (ix >= outDims.x || iy >= outDims.y || iz >= outDims.z) return;
+
+    // Coordinates where to interpolate
+    float3 outputId  = make_float3(ix, iy, iz);
+    float3 outputCoo = outputId*outH;
+
+    float3 inputCoo  = outputCoo + offset;
+
+    // Make sure we're within the region where the input data is defined
+    assert( 0.0f <= inputCoo.x && inputCoo.x <= inDims.x*inH.x &&
+            0.0f <= inputCoo.y && inputCoo.y <= inDims.y*inH.y &&
+            0.0f <= inputCoo.z && inputCoo.z <= inDims.z*inH.z    );
+
+    // Reference point of the original grid, rounded down
+    int3 inputId_down = make_int3( floorf(inputCoo / inH) );
+    
+    float nominator = 0, denominator = 0;
+
+    // Interpolate along x
+    for (int dz = -1; dz <= 2; dz++)
+        for (int dy = -1; dy <= 2; dy++)
+            for (int dx = -1; dx <= 2; dx++)
+            {
+                int3 delta{dx, dy, dz};
+                const int3 curInputId = (inputId_down+delta + inDims) % inDims;
+                const float3 curInputCoo = make_float3(curInputId)*inH;
+                
+                const float k = interpolationKernel(inputCoo, curInputCoo);
+                nominator += in[ (curInputId.z*inDims.y + curInputId.y) * inDims.x + curInputId.x ] * k;
+                denominator += k;
+            }
+
+    out[ (iz*outDims.y + iy) * outDims.x + ix ] = scalingFactor * nominator / denominator;
+}
+
 
 
 /*
