@@ -219,9 +219,6 @@ __global__ void bounceKernel(
                 candidate = pOld.r;
         }
 
-        if (checker(candidate) > 0.0f && oldVal < 0.0f) printf("WOBWOBWOB\n");
-        if (checker(candidate) > 0.0f) printf("hoho\n");
-
         p.r = candidate;
         p.u = -p.u;
 
