@@ -62,7 +62,7 @@ namespace XDMF
 
                 auto gridNode = grid->write2XMF(domain, h5filename);
                 
-                gridNode.append_child("Time").append_attribute("Value") = std::to_string(time).c_str();
+                if (time > -1e-6) gridNode.append_child("Time").append_attribute("Value") = std::to_string(time).c_str();
                 writeData(gridNode, h5filename, grid, channels);
                 
                 doc.save_file(filename.c_str());

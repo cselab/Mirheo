@@ -27,7 +27,7 @@ void UniformCartesianDumper::handshake()
     int ranksArr[] = {nranks3D.x, nranks3D.y, nranks3D.z};
     int periods[] = {0, 0, 0};
     MPI_Check( MPI_Cart_create(comm, 3, ranksArr, periods, 0, &cartComm) );
-    grid = std::make_unique<XDMF::UniformGrid>(resolution, nranks3D*resolution, h, cartComm);
+    grid = std::make_unique<XDMF::UniformGrid>(resolution, h, cartComm);
         
     auto init_channel = [] (XDMF::Channel::Type type, int sz, const std::string& str) {
         return XDMF::Channel(str, nullptr, type, sz*sizeof(float), "float" + std::to_string(sz));

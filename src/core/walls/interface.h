@@ -3,11 +3,14 @@
 #include <mpi.h>
 #include <string>
 #include <vector>
+#include <cuda_runtime.h>
 
 #include <core/domain.h>
 
+class LocalParticleVector;
 class ParticleVector;
 class CellList;
+class GPUcontainer;
 
 class Wall
 {
@@ -38,4 +41,17 @@ public:
     virtual void restart(MPI_Comm& comm, std::string path) {}
 
     virtual ~Wall() = default;
+};
+
+
+class SDF_basedWall : public Wall
+{
+public:
+    using Wall::Wall;
+
+    virtual void sdfPerParticle(LocalParticleVector* lpv, GPUcontainer* sdfs, GPUcontainer* gradients, cudaStream_t stream) = 0;
+    virtual void sdfOnGrid(float3 gridH, GPUcontainer* sdfs, cudaStream_t stream) = 0;
+
+
+    ~SDF_basedWall() = default;
 };

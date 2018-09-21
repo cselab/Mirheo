@@ -49,6 +49,8 @@ public:
     void setWallBounce  (Wall* wall, ParticleVector* pv);
     
 
+    void dumpWalls2XDMF(std::vector<std::shared_ptr<Wall>> walls, PyTypes::float3 h, std::string filename);
+
     std::shared_ptr<ParticleVector> makeFrozenWallParticles(std::string pvName,
                                                             std::vector<std::shared_ptr<Wall>> walls,
                                                             std::shared_ptr<Interaction> interaction,

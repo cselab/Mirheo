@@ -24,6 +24,10 @@ namespace XDMF
         XMF::write(xmfFilename, relativePath(h5Filename), comm, grid, channels, time);
         HDF5::write(h5Filename, comm, grid, channels);
         info("Writing took %f ms", timer.elapsed());
-        
+    }
+    
+    void write(std::string filename, const Grid* grid, const std::vector<Channel>& channels, MPI_Comm comm)
+    {        
+        write(filename, grid, channels, -1, comm);
     }
 }

@@ -1,3 +1,5 @@
+#include <string>
+
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 
@@ -90,6 +92,15 @@ void exportUdevicex(py::module& m)
         )")
         .def("setBouncer",     &uDeviceX::setBouncer,     "Set Bouncer")
         .def("setWall",        &uDeviceX::setWallBounce,  "Set Wall")
+        
+        .def("dumpWalls2XDMF",    &uDeviceX::dumpWalls2XDMF,
+            "walls"_a, "h"_a, "filename"_a="xdmf/wall", R"(
+                Write Signed Distance Function for the intersection of the provided walls (negative values are the 'inside' of the simulation)
+                
+                Args:
+                    h: cell-size of the resulting grid                    
+        )")        
+        
         .def("applyObjectBelongingChecker",    &uDeviceX::applyObjectBelongingChecker,
             "checker"_a, "pv"_a, "correct_every"_a=0, "inside"_a="", "outside"_a="", R"(
                 Apply the **checker** to the given particle vector.

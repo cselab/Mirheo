@@ -154,14 +154,14 @@ __global__ void getBoundaryCells(PVview view, CellListInfo cinfo, int* nBoundary
 template<typename InsideWallChecker>
 __device__ inline float3 rescue(float3 candidate, float dt, float tol, int id, const InsideWallChecker& checker)
 {
-    const int maxIters = 20;
+    const int maxIters = 100;
     const float factor = 5.0f*dt;
-
+    
     for (int i=0; i<maxIters; i++)
     {
         float v = checker(candidate);
         if (v < -tol) break;
-
+        
         float3 rndShift;
         rndShift.x = Saru::mean0var1(candidate.x - floorf(candidate.x), id+i, id*id);
         rndShift.y = Saru::mean0var1(rndShift.x,                        id+i, id*id);
@@ -179,7 +179,7 @@ __global__ void bounceKernel(
         PVviewWithOldParticles view, CellListInfo cinfo,
         const int* wallCells, const int nWallCells, const float dt, const InsideWallChecker checker)
 {
-    const float tol = 2e-6f;
+    const float insideTolerance = 2e-6f;
 
     const int tid = blockIdx.x * blockDim.x + threadIdx.x;
     if (tid >= nWallCells) return;
@@ -190,16 +190,37 @@ __global__ void bounceKernel(
     for (int pid = pstart; pid < pend; pid++)
     {
         Particle p(view.particles, pid);
-        if (checker(p.r) <= -tol) continue;
+        
+        const float val = checker(p.r);        
+        if (val <= 0.0f) continue;
 
+        float3 candidate;
         Particle pOld(view.old_particles, pid);
-        float3 dr = p.r - pOld.r;
+        const float oldVal = checker(pOld.r);
+        
+        // If for whatever reason the previous position was bad, try to rescue
+        if (oldVal > 0.0f) candidate = rescue(pOld.r, dt, insideTolerance, p.i1, checker);
+        
+        // If the previous position was very close to the surface,
+        // remain there and simply reverse the velocity
+        else if (oldVal > -insideTolerance) candidate = pOld.r;
+        else
+        {
+            // Otherwise go to the point where sdf = 2*insideTolerance
+            float3 dr = p.r - pOld.r;
 
-        const float alpha = solveLinSearch([=] (float lambda) {
-            return checker(pOld.r + dr*lambda) + tol;
-        });
-        float3 candidate = (alpha >= 0.0f) ? pOld.r + alpha * dr : pOld.r;
-        candidate = rescue(candidate, dt, tol, p.i1, checker);
+            const float2 alpha_val = solveLinSearch_verbose([=] (float lambda) {
+                return checker(pOld.r + dr*lambda) + 2.0f*insideTolerance;
+            });
+            
+            if (alpha_val.x >= 0.0f && alpha_val.y < 0.0f)
+                candidate = pOld.r + dr*alpha_val.x;
+            else
+                candidate = pOld.r;
+        }
+
+        if (checker(candidate) > 0.0f && oldVal < 0.0f) printf("WOBWOBWOB\n");
+        if (checker(candidate) > 0.0f) printf("hoho\n");
 
         p.r = candidate;
         p.u = -p.u;
@@ -258,6 +279,20 @@ __global__ void computeSdfPerParticle(PVview view, float* sdfs, float3* gradient
     }
 }
 
+
+template<typename InsideWallChecker>
+__global__ void computeSdfOnGrid(CellListInfo gridInfo, float* sdfs, InsideWallChecker checker)
+{
+    const int nid = blockIdx.x * blockDim.x + threadIdx.x;
+    
+    if (nid >= gridInfo.totcells) return;
+    
+    const int3 cid3 = gridInfo.decode(nid);
+    const float3 r = gridInfo.h * make_float3(cid3) + 0.5f*gridInfo.h - 0.5*gridInfo.localDomainSize;
+    
+    sdfs[nid] = checker(r);
+}
+
 //===============================================================================================
 // Member functions
 //===============================================================================================
@@ -271,6 +306,7 @@ void SimpleStationaryWall<InsideWallChecker>::setup(MPI_Comm& comm, DomainInfo d
     MPI_Check( MPI_Comm_dup(comm, &wallComm) );
 
     insideWallChecker.setup(wallComm, domain);
+    this->domain = domain;
 
     CUDA_Check( cudaDeviceSynchronize() );
 }
@@ -446,14 +482,22 @@ template<class InsideWallChecker>
 void SimpleStationaryWall<InsideWallChecker>::sdfPerParticle(LocalParticleVector* lpv, GPUcontainer* sdfs, GPUcontainer* gradients, cudaStream_t stream)
 {
     const int nthreads = 128;
-
+    const int np = lpv->size();
     auto pv = lpv->pv;
-    if (sdfs->size() * sdfs->datatype_size() < sizeof(float) * lpv->size())
-        die("Provided too small container for SDF values of PV '%s'", pv->name.c_str());
 
+    if (sizeof(float) % sdfs->datatype_size() != 0)
+        die("Incompatible datatype size of container for SDF values: %d (working with PV '%s')",
+            sdfs->datatype_size(), pv->name.c_str());
+    sdfs->resize_anew( np*sizeof(float) / sdfs->datatype_size());
+
+    
     if (gradients != nullptr)
-        if (gradients->size() * gradients->datatype_size() < sizeof(float3) * lpv->size())
-            die("Provided too small container for SDF gradients of PV '%s'", pv->name.c_str());
+    {
+        if (sizeof(float3) % gradients->datatype_size() != 0)
+            die("Incompatible datatype size of container for SDF gradients: %d (working with PV '%s')",
+                gradients->datatype_size(), pv->name.c_str());
+        gradients->resize_anew( np*sizeof(float3) / gradients->datatype_size());
+    }
 
     PVview view(pv, lpv);
     SAFE_KERNEL_LAUNCH(
@@ -464,6 +508,22 @@ void SimpleStationaryWall<InsideWallChecker>::sdfPerParticle(LocalParticleVector
 }
 
 
+template<class InsideWallChecker>
+void SimpleStationaryWall<InsideWallChecker>::sdfOnGrid(float3 h, GPUcontainer* sdfs, cudaStream_t stream)
+{
+    if (sizeof(float) % sdfs->datatype_size() != 0)
+        die("Incompatible datatype size of container for SDF values: %d (sampling sdf on a grid)",
+            sdfs->datatype_size());
+        
+    CellListInfo gridInfo(h, domain.localSize);
+    sdfs->resize_anew(gridInfo.totcells);
+
+    const int nthreads = 128;
+    SAFE_KERNEL_LAUNCH(
+            computeSdfOnGrid,
+            getNblocks(gridInfo.totcells, nthreads), nthreads, 0, stream,
+            gridInfo, (float*)sdfs->genericDevPtr(), insideWallChecker.handler() );
+}
 
 template class SimpleStationaryWall<StationaryWall_Sphere>;
 template class SimpleStationaryWall<StationaryWall_Cylinder>;

@@ -7,6 +7,7 @@
 #include <plugins/interface.h>
 
 #include <core/utils/make_unique.h>
+#include <core/utils/folders.h>
 #include <core/utils/cuda_common.h>
 #include <cuda_runtime.h>
 
@@ -170,6 +171,31 @@ void uDeviceX::setWallBounce(Wall* wall, ParticleVector* pv)
 {
     if (isComputeTask())
         sim->setWallBounce(wall->name, pv->name);
+}
+
+void uDeviceX::dumpWalls2XDMF(std::vector<std::shared_ptr<Wall>> walls, PyTypes::float3 h, std::string filename)
+{
+    if (!isComputeTask()) return;
+
+    info("Dumping SDF into XDMF:\n");
+
+    std::vector<SDF_basedWall*> sdfWalls;
+    for (auto &wall : walls)
+    {
+        auto sdfWall = dynamic_cast<SDF_basedWall*>(wall.get());
+        if (sdfWall == nullptr)
+            die("Only sdf-based walls are supported!");        
+        else
+            sdfWalls.push_back(sdfWall);
+
+        // Check if the wall is set up
+        sim->getWallByNameOrDie(wall->name);
+    }
+    
+    auto path = parentPath(filename);
+    if (path != filename)
+        createFoldersCollective(sim->cartComm, path);
+    ::dumpWalls2XDMF(sdfWalls, make_float3(h), sim->domain, filename, sim->cartComm);
 }
 
 std::shared_ptr<ParticleVector> uDeviceX::makeFrozenWallParticles(std::string pvName,

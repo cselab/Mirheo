@@ -63,6 +63,9 @@ namespace XDMF
         auto nodeResolution = globalSize;
         for (auto& r : nodeResolution) r += 1;
         
+        // One more What. The. F
+        std::reverse(nodeResolution.begin(), nodeResolution.end());
+
         auto topoNode = gridNode.append_child("Topology");
         topoNode.append_attribute("TopologyType") = "3DCORECTMesh";
         topoNode.append_attribute("Dimensions") = to_string(nodeResolution).c_str();
@@ -92,16 +95,17 @@ namespace XDMF
         return gridNode;
     }
     
-    UniformGrid::UniformGrid(int3 localSize, int3 globalSize, float3 h, MPI_Comm cartComm)
+    UniformGrid::UniformGrid(int3 localSize, float3 h, MPI_Comm cartComm)
     {
-        this->localSize  = std::vector<hsize_t>{ (hsize_t)localSize.x,  (hsize_t)localSize.y,  (hsize_t)localSize.z};
-        this->globalSize = std::vector<hsize_t>{ (hsize_t)globalSize.x, (hsize_t)globalSize.y, (hsize_t)globalSize.z};
-        
-        this->spacing = std::vector<float>{h.x, h.y, h.z};
-        
         int nranks[3], periods[3], my3Drank[3];
         MPI_Check( MPI_Cart_get(cartComm, 3, nranks, periods, my3Drank) );
         
+        this->spacing    = std::vector<float>{h.x, h.y, h.z};
+        this->localSize  = std::vector<hsize_t>{ (hsize_t)localSize.x,  (hsize_t)localSize.y,  (hsize_t)localSize.z};
+        
+        globalSize.resize(3, 0);
+        MPI_Check( MPI_Allreduce(this->localSize.data(), this->globalSize.data(), 3, MPI_LONG_LONG_INT, MPI_SUM, cartComm) );
+
         offsets = std::vector<hsize_t>{ (hsize_t) my3Drank[2] * localSize.z,
                                         (hsize_t) my3Drank[1] * localSize.y,
                                         (hsize_t) my3Drank[0] * localSize.x,

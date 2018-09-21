@@ -8,17 +8,6 @@ class LocalParticleVector;
 class ParticleVector;
 class CellList;
 
-class SDF_basedWall : public Wall
-{
-public:
-    using Wall::Wall;
-
-    virtual void sdfPerParticle(LocalParticleVector* pv, GPUcontainer* sdfs, GPUcontainer* gradients, cudaStream_t stream) = 0;
-
-    ~SDF_basedWall() = default;
-};
-
-
 template<class InsideWallChecker>
 class SimpleStationaryWall : public SDF_basedWall
 {
@@ -36,6 +25,8 @@ public:
     void check(cudaStream_t stream) override;
 
     void sdfPerParticle(LocalParticleVector* pv, GPUcontainer* sdfs, GPUcontainer* gradients, cudaStream_t stream) override;
+    void sdfOnGrid(float3 gridH, GPUcontainer* sdfs, cudaStream_t stream) override;
+
 
     InsideWallChecker& getChecker() { return insideWallChecker; }
 
@@ -43,6 +34,7 @@ public:
 
 protected:
     MPI_Comm wallComm;
+    DomainInfo domain;
 
     InsideWallChecker insideWallChecker;
 

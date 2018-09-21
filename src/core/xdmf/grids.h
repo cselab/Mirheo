@@ -46,7 +46,7 @@ namespace XDMF
         void write2HDF5(hid_t file_id, MPI_Comm comm)                          const override;
         pugi::xml_node write2XMF(pugi::xml_node node, std::string h5filename)  const override;
         
-        UniformGrid(int3 localSize, int3 globalSize, float3 h, MPI_Comm cartComm);
+        UniformGrid(int3 localSize, float3 h, MPI_Comm cartComm);
         
     private:
         std::vector<hsize_t> localSize, globalSize, offsets;
