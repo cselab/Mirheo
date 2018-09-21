@@ -108,7 +108,22 @@ void exportInteractions(py::module& m)
         Mesh-based forces acting on a membrane according to the model in PUT LINK
     )")
         .def(py::init<std::string, MembraneParameters, bool, float>(),
-             "name"_a, "params"_a, "stressFree"_a, "grow_until"_a=0, R"( TODO
+             "name"_a, "params"_a, "stressFree"_a, "grow_until"_a=0, R"( 
+                 Args:
+                     name: name of the interaction
+                     params: instance of :any: `MembraneParameters`
+                     stressFree: equilibrium bond length and areas are taken from the initial mesh
+                     grow_until: time to grow the cell at initialization stage; 
+                                 the size increases linearly in time from half of the provided mesh to its full size after that time
+                                 the parameters are scaled accordingly with time
+
+                 The membrane interactions are composed of forces comming from:
+                 - bending of the membrane
+                 - shear elasticity of the membrane
+                 - constrain: area conservation of the membrane (local and global)
+                 - constrain: volume of the cell (assuming incompressible fluid)
+                 - membrane viscosity
+                 - membrane fluctuations
         )");
 }
 
