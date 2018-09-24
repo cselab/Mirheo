@@ -158,7 +158,7 @@ namespace XDMF
 
     void VertexGrid::write2HDF5(hid_t file_id, MPI_Comm comm) const
     {
-        Channel posCh(positionChannelName, (void*)positions->data(), Channel::Type::Vector, 3*sizeof(float), "float3");
+        Channel posCh(positionChannelName, (void*) positions->data(), Channel::Type::Vector, 3*sizeof(float), "float3");
         
         HDF5::writeDataSet(file_id, this, posCh);
     }

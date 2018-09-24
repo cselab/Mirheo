@@ -6,14 +6,28 @@ namespace XDMF
 {
     namespace HDF5
     {
-        hid_t create(std::string filename, MPI_Comm comm)
+
+        static hid_t createFileAccess(MPI_Comm comm)
         {
             hid_t plist_id_access = H5Pcreate(H5P_FILE_ACCESS);
             H5Pset_fapl_mpio(plist_id_access, comm, MPI_INFO_NULL);  // TODO: add smth here to speed shit up
+            return plist_id_access;
+        }
+        
+        hid_t create(std::string filename, MPI_Comm comm)
+        {
+            hid_t access_id = createFileAccess(comm);
+            hid_t file_id   = H5Fcreate( filename.c_str(), H5F_ACC_TRUNC, H5P_DEFAULT, access_id );
+            H5Pclose(access_id);
+            
+            return file_id;
+        }
 
-            hid_t file_id = H5Fcreate( filename.c_str(), H5F_ACC_TRUNC, H5P_DEFAULT, plist_id_access );
-
-            H5Pclose(plist_id_access);
+        hid_t openReadOnly(std::string filename, MPI_Comm comm)
+        {
+            hid_t access_id = createFileAccess(comm);
+            hid_t file_id   = H5Fopen( filename.c_str(), H5F_ACC_RDONLY, access_id );
+            H5Pclose(access_id);
             
             return file_id;
         }
@@ -65,7 +79,52 @@ namespace XDMF
             for (auto& channel : channels) 
                 writeDataSet(file_id, grid, channel);
         }
+
+        void readDataSet(hid_t file_id, const Grid* grid, Channel& channel)
+        {
+            debug2("Reading channel '%s'", channel.name.c_str());
             
+            // Add one more dimension: number of floats per data item
+            int ndims = grid->getDims() + 1;
+            auto localSize = grid->getLocalSize();
+            auto globalSize = grid->getGlobalSize();
+            
+            // What. The. F.
+            std::reverse(localSize .begin(), localSize .end());
+            
+            localSize.push_back(channel.entrySize_floats);
+            
+            hid_t dset_id = H5Dopen(file_id, channel.name.c_str(), H5P_DEFAULT);
+            hid_t xfer_plist_id = H5Pcreate(H5P_DATASET_XFER);
+
+            H5Pset_dxpl_mpio(xfer_plist_id, H5FD_MPIO_COLLECTIVE);
+
+            hid_t dspace_id = H5Dget_space(dset_id);
+
+            // TODO check if this is needed
+            if (!grid->localEmpty())
+                H5Sselect_hyperslab(dspace_id, H5S_SELECT_SET, grid->getOffsets().data(), nullptr, localSize.data(), nullptr);
+            else
+                H5Sselect_none(dspace_id);
+
+            hid_t mspace_id = H5Screate_simple(ndims, localSize.data(), nullptr);
+
+            if (!grid->globalEmpty())
+                H5Dread(dset_id, H5T_NATIVE_FLOAT, mspace_id, dspace_id, xfer_plist_id, channel.data);
+
+            H5Sclose(mspace_id);
+            H5Sclose(dspace_id);
+            H5Pclose(xfer_plist_id);
+            H5Dclose(dset_id);
+
+        }
+
+        void readData(hid_t file_id, const Grid* grid, std::vector<Channel>& channels)
+        {
+            for (auto& channel : channels) 
+                readDataSet(file_id, grid, channel);
+        }        
+        
         void close(hid_t file_id)
         {
             H5Fclose(file_id);
