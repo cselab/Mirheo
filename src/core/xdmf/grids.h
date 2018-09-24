@@ -69,11 +69,12 @@ namespace XDMF
         void write2HDF5(hid_t file_id, MPI_Comm comm)                          const override;
         pugi::xml_node write2XMF(pugi::xml_node node, std::string h5filename)  const override;   
         
-        VertexGrid(int nvertices, const float *positions, MPI_Comm comm);
+        VertexGrid(std::shared_ptr<std::vector<float>> positions, MPI_Comm comm);
         
     private:
         const std::string positionChannelName = "position";
         hsize_t nlocal, nglobal, offset;
-        const float *positions;
+
+        std::shared_ptr<std::vector<float>> positions;
     };
 }

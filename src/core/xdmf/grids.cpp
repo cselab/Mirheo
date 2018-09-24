@@ -153,7 +153,7 @@ namespace XDMF
     
     void VertexGrid::write2HDF5(hid_t file_id, MPI_Comm comm) const
     {
-        Channel posCh(positionChannelName, (void*)positions, Channel::Type::Vector, 3*sizeof(float), "float3");
+        Channel posCh(positionChannelName, (void*)positions->data(), Channel::Type::Vector, 3*sizeof(float), "float3");
         
         HDF5::writeDataSet(file_id, this, posCh);
     }
@@ -181,9 +181,12 @@ namespace XDMF
         return gridNode;
     }
     
-    VertexGrid::VertexGrid(int nvertices, const float *positions, MPI_Comm comm) :
-        nlocal(nvertices), positions(positions)
+    VertexGrid::VertexGrid(std::shared_ptr<std::vector<float>> positions, MPI_Comm comm) :
+        nlocal(positions->size() / 3), positions(positions)
     {
+        if (positions->size() != nlocal * 3)
+            die("expected size is multiple of 3; given %d\n", positions->size());
+        
         offset = 0;
         MPI_Check( MPI_Exscan   (&nlocal, &offset,  1, MPI_LONG_LONG_INT, MPI_SUM, comm) );
         MPI_Check( MPI_Allreduce(&nlocal, &nglobal, 1, MPI_LONG_LONG_INT, MPI_SUM, comm) );
