@@ -49,7 +49,7 @@ namespace XDMF
     {
         return "Cell";
     }
-    
+
     void UniformGrid::write2HDF5(hid_t file_id, MPI_Comm comm) const
     {   }
     
@@ -151,6 +151,11 @@ namespace XDMF
         return "Node";
     }
     
+    std::shared_ptr<std::vector<float>> VertexGrid::getPositions() const
+    {
+        return positions;
+    }
+
     void VertexGrid::write2HDF5(hid_t file_id, MPI_Comm comm) const
     {
         Channel posCh(positionChannelName, (void*)positions->data(), Channel::Type::Vector, 3*sizeof(float), "float3");

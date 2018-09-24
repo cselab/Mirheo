@@ -65,6 +65,7 @@ namespace XDMF
         int getDims()                                                          const override;
                                                                                
         std::string getCentering()                                             const override;
+        std::shared_ptr<std::vector<float>> getPositions()                     const;
                                                                                
         void write2HDF5(hid_t file_id, MPI_Comm comm)                          const override;
         pugi::xml_node write2XMF(pugi::xml_node node, std::string h5filename)  const override;   
