@@ -22,7 +22,7 @@ public:
     {
         //https://en.wikipedia.org/wiki/Trilinear_interpolation
         float s000, s001, s010, s011, s100, s101, s110, s111;
-        float s00x, s01x, s10x, s11x, s0yx, s1yx, szyx;
+        float sx00, sx01, sx10, sx11, sxy0, sxy1, sxyz;
 
         float3 texcoord = floorf((x + extendedDomainSize*0.5f) * invh);
         float3 lambda = (x - (texcoord * h - extendedDomainSize*0.5f)) * invh;
@@ -41,17 +41,17 @@ public:
         s110 = access(1, 1, 0);
         s111 = access(1, 1, 1);
         
-        s00x = s000 * (1 - lambda.x) + lambda.x * s100;
-        s01x = s001 * (1 - lambda.x) + lambda.x * s101;
-        s10x = s010 * (1 - lambda.x) + lambda.x * s110;
-        s11x = s011 * (1 - lambda.x) + lambda.x * s111;
+        sx00 = s000 * (1 - lambda.x) + lambda.x * s100;
+        sx01 = s001 * (1 - lambda.x) + lambda.x * s101;
+        sx10 = s010 * (1 - lambda.x) + lambda.x * s110;
+        sx11 = s011 * (1 - lambda.x) + lambda.x * s111;
 
-        s0yx = s00x * (1 - lambda.y) + lambda.y * s10x;
-        s1yx = s01x * (1 - lambda.y) + lambda.y * s11x;
+        sxy0 = sx00 * (1 - lambda.y) + lambda.y * sx10;
+        sxy1 = sx01 * (1 - lambda.y) + lambda.y * sx11;
 
-        szyx = s0yx * (1 - lambda.z) + lambda.z * s1yx;
+        sxyz = sxy0 * (1 - lambda.z) + lambda.z * sxy1;
 
-        return szyx;
+        return sxyz;
     }
 
 protected:

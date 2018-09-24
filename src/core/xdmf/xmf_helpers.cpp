@@ -7,7 +7,7 @@ namespace XDMF
 {
     namespace XMF
     {
-        std::string to_string(Channel::Type type)
+        std::string type_to_string(Channel::Type type)
         {
             switch (type)
             {
@@ -23,7 +23,7 @@ namespace XDMF
         {            
             auto attrNode = node.append_child("Attribute");
             attrNode.append_attribute("Name") = channel.name.c_str();
-            attrNode.append_attribute("AttributeType") = to_string(channel.type).c_str();
+            attrNode.append_attribute("AttributeType") = type_to_string(channel.type).c_str();
             attrNode.append_attribute("Center") = grid->getCentering().c_str();
             
             // Write type information
