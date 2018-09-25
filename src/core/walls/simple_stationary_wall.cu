@@ -152,7 +152,7 @@ __global__ void getBoundaryCells(PVview view, CellListInfo cinfo, int* nBoundary
 //===============================================================================================
 
 template<typename InsideWallChecker>
-__device__ inline float3 rescue(float3 candidate, float dt, float tol, int id, const InsideWallChecker& checker)
+__device__ float3 rescue(float3 candidate, float dt, float tol, int id, const InsideWallChecker& checker)
 {
     const int maxIters = 100;
     const float factor = 5.0f*dt;
@@ -192,14 +192,14 @@ __global__ void bounceKernel(
         Particle p(view.particles, pid);
         
         const float val = checker(p.r);        
-        if (val <= 0.0f) continue;
+        if (val < 0.0f) continue;
 
         float3 candidate;
         Particle pOld(view.old_particles, pid);
         const float oldVal = checker(pOld.r);
         
         // If for whatever reason the previous position was bad, try to rescue
-        if (oldVal > 0.0f) candidate = rescue(pOld.r, dt, insideTolerance, p.i1, checker);
+        if (oldVal >= 0.0f) candidate = rescue(pOld.r, dt, insideTolerance, p.i1, checker);
         
         // If the previous position was very close to the surface,
         // remain there and simply reverse the velocity
@@ -210,7 +210,7 @@ __global__ void bounceKernel(
             float3 dr = p.r - pOld.r;
 
             const float2 alpha_val = solveLinSearch_verbose([=] (float lambda) {
-                return checker(pOld.r + dr*lambda) + 2.0f*insideTolerance;
+                return checker(pOld.r + dr*lambda) + insideTolerance;
             });
             
             if (alpha_val.x >= 0.0f && alpha_val.y < 0.0f)
@@ -233,6 +233,8 @@ __global__ void bounceKernel(
 template<typename InsideWallChecker>
 __global__ void checkInside(PVview view, int* nInside, const InsideWallChecker checker)
 {
+	const float checkTolerance = 1e-4f;
+
     const int pid = blockIdx.x * blockDim.x + threadIdx.x;
     if (pid >= view.size) return;
 
@@ -240,7 +242,7 @@ __global__ void checkInside(PVview view, int* nInside, const InsideWallChecker c
 
     float v = checker(coo.v);
 
-    if (v > 0) atomicAggInc(nInside);
+    if (v > checkTolerance) atomicAggInc(nInside);
 }
 
 //===============================================================================================

@@ -853,7 +853,7 @@ void Simulation::assemble()
     scheduler->addDependency(task_accumulateForces, {task_integration}, {task_haloForces, task_localForces});
     scheduler->addDependency(task_pluginsBeforeIntegration, {task_integration}, {task_accumulateForces});
     scheduler->addDependency(task_wallBounce, {}, {task_integration});
-    scheduler->addDependency(task_wallCheck, {}, {task_wallBounce});
+    scheduler->addDependency(task_wallCheck, {task_redistributeInit}, {task_wallBounce});
 
     scheduler->addDependency(task_objHaloInit, {}, {task_integration, task_objRedistFinalize});
     scheduler->addDependency(task_objHaloFinalize, {}, {task_objHaloInit});
