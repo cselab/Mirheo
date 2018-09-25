@@ -213,7 +213,20 @@ name(name), mass(mass), _local(local), _halo(halo)
     // usually old positions and velocities don't need to exchanged
     requireDataPerParticle<Particle> ("old_particles", false);
 }
-    
+
+static void make_symlink(MPI_Comm comm, std::string path, std::string name, std::string fname)
+{
+    int rank;
+    MPI_Check( MPI_Comm_rank(comm, &rank) );
+
+    if (rank == 0) {
+        std::string lnname = path + "/" + name + ".chk";
+        
+        std::string command = "ln -f " + fname + " " + lnname;
+        if ( system(command.c_str()) != 0 )
+            error("Could not create link for checkpoint file of PV '%s'", name.c_str());
+    }    
+}
 
 void ParticleVector::checkpoint(MPI_Comm comm, std::string path)
 {
@@ -224,7 +237,7 @@ void ParticleVector::checkpoint(MPI_Comm comm, std::string path)
 
     local()->coosvels.downloadFromDevice(0, ContainersSynch::Synch);
 
-    for (int i=0; i<local()->size(); i++)
+    for (int i = 0; i < local()->size(); i++)
         local()->coosvels[i].r = domain.local2global(local()->coosvels[i].r);
 
     int myrank, size;
@@ -260,14 +273,7 @@ void ParticleVector::checkpoint(MPI_Comm comm, std::string path)
 
     MPI_Check( MPI_Type_free(&ptype) );
 
-    if (myrank == 0)
-    {
-        std::string lnname = path + "/" + name + ".chk";
-
-        std::string command = "ln -f " + fname + "  " + lnname;
-        if ( system(command.c_str()) != 0 )
-            error("Could not create link for checkpoint file of PV '%s'", name.c_str());
-    }
+    make_symlink(comm, path, name, fname);
 
     debug("Checkpoint for particle vector '%s' successfully written", name.c_str());
     restartIdx = restartIdx xor 1;
