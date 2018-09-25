@@ -1,10 +1,13 @@
-#pragma once
-
 #include <sstream>
 
 #include "folders.h"
 #include <core/logger.h>
 
+std::string getStrZeroPadded(int i, int zeroPadding)
+{
+    auto s = std::to_string(i);
+    return std::string(zeroPadding - s.length(), '0') + s;
+}
 
 std::vector<std::string> splitByDelim(std::string str, char delim)
 {

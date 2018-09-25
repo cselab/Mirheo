@@ -6,6 +6,7 @@
 #include <core/pvs/particle_vector.h>
 #include <core/celllist.h>
 #include <core/utils/cuda_common.h>
+#include <core/utils/folders.h>
 
 
 ParticleSenderPlugin::ParticleSenderPlugin(std::string name, std::string pvName, int dumpEvery,
@@ -150,8 +151,7 @@ void ParticleDumperPlugin::deserialize(MPI_Status& stat)
     for (int i = 0; i < channelData.size(); i++)
         channels[i+1].data = channelData[i].data();
 
-    std::string tstr = std::to_string(timeStamp++);
-    std::string fname = path + std::string(zeroPadding - tstr.length(), '0') + tstr;
+    std::string fname = path + getStrZeroPadded(timeStamp++, zeroPadding);
     
     XDMF::VertexGrid grid(positions, comm);
     XDMF::write(fname, &grid, channels, t, comm);
