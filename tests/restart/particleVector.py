@@ -35,7 +35,7 @@ if args.restart and pv:
 
 # TEST: restart.particleVector
 # cd restart
-# rm -rf restart
+# rm -rf restart parts.out.txt parts.txt
 # udx.run --runargs "-n 1" ./particleVector.py           > /dev/null
 # udx.run --runargs "-n 1" ./particleVector.py --restart > /dev/null
 # cat parts.txt | sort > parts.out.txt
