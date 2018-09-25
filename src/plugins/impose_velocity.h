@@ -6,6 +6,7 @@
 #include <string>
 
 #include <core/utils/folders.h>
+#include <core/utils/pytypes.h>
 
 class ParticleVector;
 
@@ -20,6 +21,8 @@ public:
     void afterIntegration(cudaStream_t stream) override;
 
     bool needPostproc() override { return false; }
+    
+    void setTargetVelocity(PyTypes::float3 v);
     
 private:
     std::string pvName;

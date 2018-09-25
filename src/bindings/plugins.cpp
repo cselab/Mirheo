@@ -1,7 +1,9 @@
 #include <extern/pybind11/include/pybind11/pybind11.h>
 #include <extern/pybind11/include/pybind11/stl.h>
+#include <extern/pybind11/include/pybind11/numpy.h>
 
 #include <plugins/factory.h>
+#include <core/xdmf/channel.h>
 
 #include "class_wrapper.h"
 
@@ -68,7 +70,8 @@ void exportPlugins(py::module& m)
     
     py::handlers_class<ImposeVelocityPlugin>(m, "ImposeVelocity", pysim, R"(
         This plugin will add velocity to all the particles of the target PV in the specified area (rectangle) such that the average velocity equals to desired.
-    )");
+        )")
+        .def("set_target_velocity", &ImposeVelocityPlugin::setTargetVelocity);
 
     py::handlers_class<MembraneExtraForcePlugin>(m, "MembraneExtraForce", pysim, R"(
         This plugin adds a given external force to a given membrane. 
@@ -156,13 +159,22 @@ void exportPlugins(py::module& m)
     
     
     py::handlers_class<PostprocessStats>(m, "PostprocessStats", pypost);
-    py::handlers_class<UniformCartesianDumper>(m, "UniformCartesianDumper", pypost);
     py::handlers_class<XYZDumper>(m, "XYZDumper", pypost);
     py::handlers_class<ParticleDumperPlugin>(m, "ParticleDumperPlugin", pypost);
     py::handlers_class<MeshDumper>(m, "MeshDumper", pypost);
     py::handlers_class<ObjPositionsDumper>(m, "ObjPositionsDumper", pypost);
     py::handlers_class<ReportPinObjectPlugin>(m, "ReportPinObject", pypost);
     py::handlers_class<PostprocessVelocityControl>(m, "PostprocessVelocityControl", pypost);
+    
+    py::handlers_class<UniformCartesianDumper>(m, "UniformCartesianDumper", pypost)
+        .def("get_channel_view", [] (const UniformCartesianDumper &dumper, std::string chname) {
+            auto ch = dumper.getChannelOrDie(chname);
+            auto resolution = dumper.getLocalResolution();
+            resolution.push_back(ch.entrySize_floats);
+            
+            return py::array_t<float>(resolution, ch.data, py::cast(dumper));
+        });
+
     
     m.def("__createImposeVelocity", &PluginFactory::createImposeVelocityPlugin,
         "compute_task"_a, "name"_a, "pv"_a, "every"_a, "low"_a, "high"_a, "velocity"_a, R"(
