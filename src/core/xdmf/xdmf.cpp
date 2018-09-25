@@ -63,6 +63,8 @@ namespace XDMF
         }
 
         coosvels.uploadToDevice(0);
+
+        // TODO extra data
     }
     
     void read(std::string filename, MPI_Comm comm, ParticleVector *pv)
