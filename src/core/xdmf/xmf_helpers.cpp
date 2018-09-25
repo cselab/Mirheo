@@ -48,19 +48,23 @@ namespace XDMF
             for (auto& channel : channels) 
                 writeDataSet(node, h5filename, grid, channel);
         }
-        
-        void write(std::string filename, std::string h5filename, MPI_Comm comm, const Grid* grid, const std::vector<Channel>& channels, float time)
+
+        static bool is_master_rank(MPI_Comm comm)
         {
             int rank;
             MPI_Check( MPI_Comm_rank(comm, &rank) );
-            if (rank == 0)
-            {
+            return (rank == 0);
+        }
+        
+        void write(std::string filename, std::string h5filename, MPI_Comm comm, const Grid *grid, const std::vector<Channel>& channels, float time)
+        {
+            if (is_master_rank(comm)) {
                 pugi::xml_document doc;
                 auto root = doc.append_child("Xdmf");
                 root.append_attribute("Version") = "3.0";
                 auto domain = root.append_child("Domain");
 
-                auto gridNode = grid->write2XMF(domain, h5filename);
+                auto gridNode = grid->write_to_XMF(domain, h5filename);
                 
                 if (time > -1e-6) gridNode.append_child("Time").append_attribute("Value") = std::to_string(time).c_str();
                 writeData(gridNode, h5filename, grid, channels);
@@ -71,5 +75,24 @@ namespace XDMF
             MPI_Check( MPI_Barrier(comm) );
         }
 
+        void read(std::string filename, MPI_Comm comm, std::string &h5filename, Grid *grid, std::vector<Channel> &channels)
+        {
+            if (is_master_rank(comm)) {
+                pugi::xml_document doc;
+                auto parseResult = doc.load_file(filename.c_str());
+
+                if (!parseResult)
+                    die("parsing error while reading '%s'.\n"
+                        "\tError description: %s", filename.c_str(), parseResult.description());
+
+                auto rootNode   = doc.child("Xdmf");
+                auto domainNode = rootNode.child("Domain");
+                auto gridNode   = domainNode.child("Grid");
+
+                grid->read_from_XMF(gridNode, h5filename);
+            }
+            
+            MPI_Check( MPI_Barrier(comm) );
+        }
     }
 }

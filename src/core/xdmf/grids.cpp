@@ -50,10 +50,10 @@ namespace XDMF
         return "Cell";
     }
 
-    void UniformGrid::write2HDF5(hid_t file_id, MPI_Comm comm) const
+    void UniformGrid::write_to_HDF5(hid_t file_id, MPI_Comm comm) const
     {   }
     
-    pugi::xml_node UniformGrid::write2XMF(pugi::xml_node node, std::string h5filename) const
+    pugi::xml_node UniformGrid::write_to_XMF(pugi::xml_node node, std::string h5filename) const
     {
         auto gridNode = node.append_child("Grid");
         gridNode.append_attribute("Name") = "mesh";
@@ -94,7 +94,25 @@ namespace XDMF
         
         return gridNode;
     }
-    
+
+    void UniformGrid::read_from_XMF(const pugi::xml_node &node, std::string &h5filename)
+    {
+        // TODO
+        die("not implemented");
+    }
+
+    void UniformGrid::split_read_access(MPI_Comm comm)
+    {
+        // TODO
+        die("not implemented");
+    }
+
+    void UniformGrid::read_from_HDF5(hid_t file_id, MPI_Comm comm)
+    {
+        // TODO
+        die("not implemented");
+    }
+
     UniformGrid::UniformGrid(int3 localSize, float3 h, MPI_Comm cartComm)
     {
         int nranks[3], periods[3], my3Drank[3];
@@ -156,14 +174,14 @@ namespace XDMF
         return positions;
     }
 
-    void VertexGrid::write2HDF5(hid_t file_id, MPI_Comm comm) const
+    void VertexGrid::write_to_HDF5(hid_t file_id, MPI_Comm comm) const
     {
         Channel posCh(positionChannelName, (void*) positions->data(), Channel::Type::Vector, 3*sizeof(float), "float3");
         
         HDF5::writeDataSet(file_id, this, posCh);
     }
     
-    pugi::xml_node VertexGrid::write2XMF(pugi::xml_node node, std::string h5filename) const
+    pugi::xml_node VertexGrid::write_to_XMF(pugi::xml_node node, std::string h5filename) const
     {
         auto gridNode = node.append_child("Grid");
         gridNode.append_attribute("Name") = "mesh";
@@ -185,7 +203,53 @@ namespace XDMF
         
         return gridNode;
     }
+
+    void VertexGrid::read_from_XMF(const pugi::xml_node &node, std::string &h5filename)
+    {
+        int d = 0;
+        
+        auto topoNode = node.child("Topology");
+        auto geomNode = topoNode.child("Geometry");
+        auto partNode = geomNode.child("DataItem");
+        
+        std::istringstream dimensions( partNode.attribute("Dimensions").value() );
+
+        dimensions >> nglobal;
+        dimensions >> d;
+
+        if (d != 3)
+            die("expected 3 dimesnional positions, got %d.", d);
+        
+        std::string positionDataSet(partNode.text().as_string());
+        auto endH5 = positionDataSet.find(":");
+
+        if (endH5 == std::string::npos)
+            die("expected dataset name from h5 file: got %s", positionDataSet.c_str());
+
+        h5filename = positionDataSet.substr(0, endH5);
+    }
+
+    void VertexGrid::split_read_access(MPI_Comm comm)
+    {
+        int size, rank;
+        MPI_Check( MPI_Comm_rank(comm, &rank) );
+        MPI_Check( MPI_Comm_size(comm, &size) );
+
+        nlocal = (nglobal + size - 1) / size;
+        offset = nlocal * rank;
+
+        if (offset + nlocal > nglobal)
+            nlocal = nglobal - offset;
+    }
     
+    void VertexGrid::read_from_HDF5(hid_t file_id, MPI_Comm comm)
+    {
+        positions->resize(nlocal);
+        Channel posCh(positionChannelName, (void*) positions->data(), Channel::Type::Vector, 3*sizeof(float), "float3");
+        
+        HDF5::readDataSet(file_id, this, posCh);
+    }
+        
     VertexGrid::VertexGrid(std::shared_ptr<std::vector<float>> positions, MPI_Comm comm) :
         nlocal(positions->size() / 3), positions(positions)
     {

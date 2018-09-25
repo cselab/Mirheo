@@ -139,7 +139,7 @@ namespace XDMF
                 return;
             }
             
-            grid->write2HDF5(file_id, comm);
+            grid->write_to_HDF5(file_id, comm);
             writeData(file_id, grid, channels);
             
             close(file_id);
