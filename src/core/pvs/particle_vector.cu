@@ -279,6 +279,71 @@ void ParticleVector::checkpoint(MPI_Comm comm, std::string path)
     restartIdx = restartIdx xor 1;
 }
 
+static void exchange_particles(const DomainInfo &domain, MPI_Comm comm, std::vector<Particle> &parts)
+{
+    int size;
+    int dims[3], periods[3], coords[3];
+    MPI_Check( MPI_Comm_size(comm, &size) );
+    MPI_Check( MPI_Cart_get(comm, 3, dims, periods, coords) );
+
+    MPI_Datatype ptype;
+    MPI_Check( MPI_Type_contiguous(sizeof(Particle), MPI_CHAR, &ptype) );
+    MPI_Check( MPI_Type_commit(&ptype) );
+
+    // Find where to send the read particles
+    std::vector<std::vector<Particle>> sendBufs(size);
+
+    for (auto& p : parts) {
+        int3 procId3 = make_int3(floorf(p.r / domain.localSize));
+
+        if (procId3.x >= dims[0] || procId3.y >= dims[1] || procId3.z >= dims[2])
+            continue;
+
+        int procId;
+        MPI_Check( MPI_Cart_rank(comm, (int*)&procId3, &procId) );
+        sendBufs[procId].push_back(p);
+    }
+
+    // Do the send
+    std::vector<MPI_Request> reqs(size);
+    for (int i = 0; i < size; i++) {
+        debug3("Sending %d paricles to rank %d", sendBufs[i].size(), i);
+        MPI_Check( MPI_Isend(sendBufs[i].data(), sendBufs[i].size(), ptype, i, 0, comm, reqs.data()+i) );
+    }
+
+    // recv data
+    parts.resize(0);
+    for (int i = 0; i < size; i++) {
+        MPI_Status status;
+        int msize;
+        std::vector<Particle> recvBuf;
+        
+        MPI_Check( MPI_Probe(MPI_ANY_SOURCE, 0, comm, &status) );
+        MPI_Check( MPI_Get_count(&status, ptype, &msize) );
+
+        recvBuf.resize(msize);
+
+        debug3("Receiving %d particles from ???", msize);
+        MPI_Check( MPI_Recv(recvBuf.data(), msize, ptype, status.MPI_SOURCE, 0, comm, MPI_STATUS_IGNORE) );
+
+        parts.insert(parts.end(), recvBuf.begin(), recvBuf.end());
+    }
+
+    MPI_Check( MPI_Waitall(reqs.size(), reqs.data(), MPI_STATUSES_IGNORE) );
+    MPI_Check( MPI_Type_free(&ptype) );
+}
+
+static void copyShiftCoordinates(const DomainInfo &domain, const std::vector<Particle> &parts, LocalParticleVector *local)
+{
+    local->resize(parts.size(), 0);
+
+    for (int i = 0; i < parts.size(); i++) {
+        auto p = parts[i];
+        p.r = domain.global2local(p.r);
+        local->coosvels[i] = p;
+    }
+}
+
 void ParticleVector::restart(MPI_Comm comm, std::string path)
 {
     CUDA_Check( cudaDeviceSynchronize() );
@@ -317,55 +382,16 @@ void ParticleVector::restart(MPI_Comm comm, std::string path)
     MPI_Check( MPI_File_read_at_all(f, (offset + header)*sizeof(Particle), readBuf.data(), mysize, ptype, &status) );
     MPI_Check( MPI_File_close(&f) );
 
-    // Find where to send the read particles
-    std::vector<std::vector<Particle>> sendBufs(commSize);
-    for (auto& p : readBuf)
-    {
-        int3 procId3 = make_int3(floorf(p.r / domain.localSize));
+    exchange_particles(domain, comm, readBuf);
 
-        if (procId3.x >= dims[0] || procId3.y >= dims[1] || procId3.z >= dims[2])
-            continue;
-
-        int procId;
-        MPI_Check( MPI_Cart_rank(comm, (int*)&procId3, &procId) );
-        sendBufs[procId].push_back(p);
-    }
-
-    // Do the send
-    std::vector<MPI_Request> reqs(commSize);
-    for (int i=0; i<commSize; i++)
-    {
-        debug3("Sending %d paricles to rank %d", sendBufs[i].size(), i);
-        MPI_Check( MPI_Isend(sendBufs[i].data(), sendBufs[i].size(), ptype, i, 0, comm, reqs.data()+i) );
-    }
-
-    int curSize = 0;
-    local()->resize(curSize, 0);
-    for (int i=0; i<commSize; i++)
-    {
-        MPI_Status status;
-        int msize;
-        MPI_Check( MPI_Probe(MPI_ANY_SOURCE, 0, comm, &status) );
-        MPI_Check( MPI_Get_count(&status, ptype, &msize) );
-
-        local()->resize(curSize + msize, 0);
-        Particle* addr = local()->coosvels.hostPtr() + curSize;
-        curSize += msize;
-
-        debug3("Receiving %d particles from ???", msize);
-        MPI_Check( MPI_Recv(addr, msize, ptype, status.MPI_SOURCE, 0, comm, MPI_STATUS_IGNORE) );
-    }
-
-    for (int i=0; i<local()->coosvels.size(); i++)
-        local()->coosvels[i].r = domain.global2local(local()->coosvels[i].r);
+    copyShiftCoordinates(domain, readBuf, local());
 
     local()->coosvels.uploadToDevice(0);
 
     CUDA_Check( cudaDeviceSynchronize() );
 
     info("Successfully grabbed %d particles out of total %lld", local()->coosvels.size(), total);
-
-    MPI_Check( MPI_Waitall(commSize, reqs.data(), MPI_STATUSES_IGNORE) );
+    
     MPI_Check( MPI_Type_free(&ptype) );
 }
 
