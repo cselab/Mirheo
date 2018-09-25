@@ -24,6 +24,7 @@ namespace XDMF
         void close       (hid_t file_id);
     
 
-        void write(std::string filename, MPI_Comm comm, const Grid* grid, const std::vector<Channel>& channels);
+        void write(std::string filename, MPI_Comm comm, const Grid *grid, const std::vector<Channel>& channels);
+        void read(std::string filename, MPI_Comm comm, Grid *grid, std::vector<Channel>& channels);
     }
 }

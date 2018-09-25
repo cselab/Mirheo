@@ -130,7 +130,7 @@ namespace XDMF
             H5Fclose(file_id);
         }
         
-        void write(std::string filename, MPI_Comm comm, const Grid* grid, const std::vector<Channel>& channels)
+        void write(std::string filename, MPI_Comm comm, const Grid *grid, const std::vector<Channel>& channels)
         {
             auto file_id = create(filename, comm);
             if (file_id < 0)
@@ -141,6 +141,21 @@ namespace XDMF
             
             grid->write_to_HDF5(file_id, comm);
             writeData(file_id, grid, channels);
+            
+            close(file_id);
+        }
+
+        void read(std::string filename, MPI_Comm comm, Grid *grid, std::vector<Channel>& channels)
+        {
+            auto file_id = openReadOnly(filename, comm);
+            if (file_id < 0)
+            {
+                if (file_id < 0) error("HDF5 failed to read from file '%s'", filename.c_str());
+                return;
+            }
+            
+            grid->read_from_HDF5(file_id, comm);
+            readData(file_id, grid, channels);
             
             close(file_id);
         }
