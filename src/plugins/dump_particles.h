@@ -61,7 +61,8 @@ private:
     std::string path;
 
     std::vector<Particle> particles;
-    std::vector<float> positions, velocities;
+    std::vector<float> velocities;
+    std::shared_ptr<std::vector<float>> positions;
 
     std::vector<XDMF::Channel> channels;
     std::vector<std::vector<float>> channelData;

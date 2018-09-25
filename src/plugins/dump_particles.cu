@@ -6,6 +6,7 @@
 #include <core/pvs/particle_vector.h>
 #include <core/celllist.h>
 #include <core/utils/cuda_common.h>
+#include <core/utils/folders.h>
 
 
 ParticleSenderPlugin::ParticleSenderPlugin(std::string name, std::string pvName, int dumpEvery,
@@ -78,7 +79,7 @@ void ParticleSenderPlugin::serializeAndSend(cudaStream_t stream)
 
 
 ParticleDumperPlugin::ParticleDumperPlugin(std::string name, std::string path) :
-    PostprocessPlugin(name), path(path)
+    PostprocessPlugin(name), path(path), positions(new std::vector<float>())
 {}
 
 void ParticleDumperPlugin::handshake()
@@ -144,16 +145,15 @@ void ParticleDumperPlugin::deserialize(MPI_Status& stat)
     float t;
     SimpleSerializer::deserialize(data, t, particles, channelData);
         
-    unpack_particles(particles, positions, velocities);
+    unpack_particles(particles, *positions, velocities);
     
     channels[0].data = velocities.data();
-    for (int i=0; i<channelData.size(); i++)
+    for (int i = 0; i < channelData.size(); i++)
         channels[i+1].data = channelData[i].data();
 
-    std::string tstr = std::to_string(timeStamp++);
-    std::string fname = path + std::string(zeroPadding - tstr.length(), '0') + tstr;
+    std::string fname = path + getStrZeroPadded(timeStamp++, zeroPadding);
     
-    XDMF::VertexGrid grid(particles.size(), positions.data(), comm);
+    XDMF::VertexGrid grid(positions, comm);
     XDMF::write(fname, &grid, channels, t, comm);
 }
 
