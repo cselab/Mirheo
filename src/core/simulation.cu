@@ -878,10 +878,13 @@ void Simulation::assemble()
     scheduler->setHighPriority(task_haloForces);
     scheduler->setHighPriority(task_pluginsSerializeSend);
 
+    scheduler->setHighPriority(task_clearObjLocalForces);
+    scheduler->setHighPriority(task_objLocalBounce);
+    
     scheduler->compile();
 
-//    if (rank == 0)
-//        scheduler->saveDependencyGraph_GraphML("simulation.gml");
+//     if (rank == 0)
+//         scheduler->saveDependencyGraph_GraphML("simulation.graphml");
 }
 
 void Simulation::run(int nsteps)
