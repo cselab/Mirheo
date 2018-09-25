@@ -12,6 +12,9 @@
 
 #include <cuda_runtime.h>
 
+// Some forward declarations
+template<typename T> class PinnedBuffer;
+
 enum class ContainersSynch
 {
     Synch,
@@ -170,6 +173,21 @@ public:
     {
         static_assert(std::is_same<decltype(devptr), decltype(cont.hostPtr())>::value, "can't copy buffers of different types");
 
+        resize_anew(cont.size());
+        if (_size > 0) CUDA_Check( cudaMemcpyAsync(devptr, cont.hostPtr(), sizeof(T) * _size, cudaMemcpyHostToDevice, stream) );
+    }
+    
+    /**
+     * Copy data from PinnedBuffer of the same template type
+     * Need to specify if we copy from host or device side
+     */
+    void copyFromDevice(const PinnedBuffer<T>& cont, cudaStream_t stream)
+    {
+        resize_anew(cont.size());
+        if (_size > 0) CUDA_Check( cudaMemcpyAsync(devptr, cont.devPtr(), sizeof(T) * _size, cudaMemcpyDeviceToDevice, stream) );
+    }
+    void copyFromHost(const PinnedBuffer<T>& cont, cudaStream_t stream)
+    {
         resize_anew(cont.size());
         if (_size > 0) CUDA_Check( cudaMemcpyAsync(devptr, cont.hostPtr(), sizeof(T) * _size, cudaMemcpyHostToDevice, stream) );
     }

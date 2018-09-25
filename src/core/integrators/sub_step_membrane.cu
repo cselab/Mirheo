@@ -1,4 +1,4 @@
-#include "subStepMembrane.h"
+#include "sub_step_membrane.h"
 
 #include <core/utils/kernel_launch.h>
 #include <core/logger.h>
@@ -22,6 +22,9 @@ void IntegratorSubStepMembrane::stage2(ParticleVector *pv, float t, cudaStream_t
 {
     // save "slow forces"
     slowForces.copy(pv->local()->forces, stream);
+    
+    // save previous positions
+    previousPositions.copyFromDevice(pv->local()->coosvels, stream);
 
     // advance with internal vv integrator
     for (int substep = 0; substep < substeps; ++ substep) {
@@ -34,6 +37,9 @@ void IntegratorSubStepMembrane::stage2(ParticleVector *pv, float t, cudaStream_t
         subIntegrator->stage2(pv, t, stream);
     }
     
+    // restore previous positions into old_particles channel
+    pv->local()->extraPerParticle.getData<Particle>("old_particles")->copy(previousPositions, stream);
+
     // PV may have changed, invalidate all
     pv->haloValid = false;
     pv->redistValid = false;
