@@ -62,8 +62,14 @@ class ImposeProfile(SimulationPlugin):
 class ImposeVelocity(SimulationPlugin):
     r"""
         This plugin will add velocity to all the particles of the target PV in the specified area (rectangle) such that the average velocity equals to desired.
-    
+        
     """
+    def set_target_velocity():
+        r"""set_target_velocity(arg0: Tuple[float, float, float]) -> None
+
+        """
+        pass
+
 class MembraneExtraForce(SimulationPlugin):
     r"""
         This plugin adds a given external force to a given membrane. 
@@ -147,6 +153,12 @@ class Temperaturize(SimulationPlugin):
 class UniformCartesianDumper(PostprocessPlugin):
     r"""None
     """
+    def get_channel_view():
+        r"""get_channel_view(arg0: str) -> numpy.ndarray[float32]
+
+        """
+        pass
+
 class VelocityControl(SimulationPlugin):
     r"""
         This plugin applies a uniform force to all the particles of the target PVS in the specified area (rectangle).

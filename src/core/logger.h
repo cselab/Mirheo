@@ -244,7 +244,7 @@ private:
                                    ///< will be flushed to disk immediately
 
     mutable std::chrono::system_clock::time_point lastFlushed;
-    const std::chrono::seconds flushPeriod{30};
+    const std::chrono::seconds flushPeriod{2};
 
     MPI_Comm comm;
 
