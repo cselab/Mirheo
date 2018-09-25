@@ -1,6 +1,7 @@
 #include <mpi.h>
 
 #include "particle_vector.h"
+#include "core/utils/folders.h"
 
 // Local coordinate system; (0,0,0) is center of the local domain
 LocalParticleVector::LocalParticleVector(ParticleVector* pv, int n) : pv(pv)
@@ -218,7 +219,7 @@ void ParticleVector::checkpoint(MPI_Comm comm, std::string path)
 {
     CUDA_Check( cudaDeviceSynchronize() );
 
-    std::string fname = path + "/" + name + std::to_string(restartIdx) + ".chk";
+    std::string fname = path + "/" + name + "-" + getStrZeroPadded(restartIdx) + ".chk";
     info("Checkpoint for particle vector '%s', writing to file %s", name.c_str(), fname.c_str());
 
     local()->coosvels.downloadFromDevice(0, ContainersSynch::Synch);
@@ -361,17 +362,5 @@ void ParticleVector::restart(MPI_Comm comm, std::string path)
     MPI_Check( MPI_Waitall(commSize, reqs.data(), MPI_STATUSES_IGNORE) );
     MPI_Check( MPI_Type_free(&ptype) );
 }
-
-
-
-
-
-
-
-
-
-
-
-
 
 
