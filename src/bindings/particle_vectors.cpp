@@ -27,6 +27,10 @@ void exportParticleVectors(py::module& m)
                 mass: mass of a single particle
         )")
         //
+        .def("get_indices", &ParticleVector::getIndices_vector, R"(
+            Returns:
+                A list of unique integer particle identifiers
+        )")
         .def("getCoordinates", &ParticleVector::getCoordinates_vector, R"(
             Returns: 
                 A list of :math:`N \times 3` floats: 3 components of coordinate for every of the N particles

@@ -196,7 +196,7 @@ namespace XDMF
         
         auto partNode = geomNode.append_child("DataItem");
         partNode.append_attribute("Dimensions") = (std::to_string(nglobal) + " 3").c_str();
-        partNode.append_attribute("NumberType") = "float";
+        partNode.append_attribute("NumberType") = "Float";
         partNode.append_attribute("Precision") = "4";
         partNode.append_attribute("Format") = "HDF";
         partNode.text() = (h5filename + ":/" + positionChannelName).c_str();

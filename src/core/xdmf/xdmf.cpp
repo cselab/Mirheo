@@ -38,28 +38,39 @@ namespace XDMF
         return n;
     }
 
-    static void gather_channels(std::vector<Channel> &channels, std::vector<float> &positions, ParticleVector *pv)
+    static void gatherChannels(std::vector<Channel> &channels, std::vector<float> &positions, ParticleVector *pv)
     {
         int n = positions.size() / 3;
         const float3 *pos, *vel = nullptr;
+        const int *ids = nullptr;
 
         pv->local()->resize_anew(n);
         auto& coosvels = pv->local()->coosvels;
 
         for (auto& ch : channels)
+        {
             if (ch.name == "velocity")
                 vel = (const float3*) ch.data;
+            
+            if (ch.name == "ids")
+                ids = (const int*) ch.data;
+        }
 
-        if (n && !vel)
-            die("Need velocities");
+        if (n > 0 && vel == nullptr)
+            die("Channel 'velocities' is required to read XDMF into a particle vector");
+        if (n > 0 && ids == nullptr)
+            die("Channel 'ids' is required to read XDMF into a particle vector");
 
         pos = (const float3*) positions.data();
         
-        for (int i = 0; i < n; ++i) {
-            Float3_int r(pos[i], 0);
-            Float3_int v(vel[i], 0);
+        for (int i = 0; i < n; ++i)
+        {
+            Particle p;
+            p.r = pos[i];
+            p.u = vel[i];
+            p.i1 = ids[i];
             
-            coosvels.hostPtr()[i] = Particle(r.toFloat4(), v.toFloat4());
+            coosvels.hostPtr()[i] = p;
         }
 
         coosvels.uploadToDevice(0);
@@ -97,7 +108,7 @@ namespace XDMF
         HDF5::read(h5filename, comm, &grid, channels);
         info("Reading took %f ms", timer.elapsed());
 
-        gather_channels(channels, *positions, pv);
+        gatherChannels(channels, *positions, pv);
     }
 
 }

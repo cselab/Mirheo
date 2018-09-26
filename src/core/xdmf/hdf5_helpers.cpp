@@ -48,9 +48,12 @@ namespace XDMF
             localSize.push_back(channel.entrySize_floats);
             globalSize.push_back(channel.entrySize_floats);
             
+            // Float or Int
+            auto datatype = datatypeToHDF5type(channel.datatype);
+            
             hid_t filespace_simple = H5Screate_simple(ndims, globalSize.data(), nullptr);
 
-            hid_t dset_id = H5Dcreate(file_id, channel.name.c_str(), H5T_NATIVE_FLOAT, filespace_simple, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+            hid_t dset_id = H5Dcreate(file_id, channel.name.c_str(), datatype, filespace_simple, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
             hid_t xfer_plist_id = H5Pcreate(H5P_DATASET_XFER);
 
             H5Pset_dxpl_mpio(xfer_plist_id, H5FD_MPIO_COLLECTIVE);
@@ -66,7 +69,7 @@ namespace XDMF
             hid_t mspace_id = H5Screate_simple(ndims, localSize.data(), nullptr);
 
             if (!grid->globalEmpty())
-                H5Dwrite(dset_id, H5T_NATIVE_FLOAT, mspace_id, dspace_id, xfer_plist_id, channel.data);
+                H5Dwrite(dset_id, datatype, mspace_id, dspace_id, xfer_plist_id, channel.data);
 
             H5Sclose(mspace_id);
             H5Sclose(dspace_id);
@@ -109,7 +112,7 @@ namespace XDMF
             hid_t mspace_id = H5Screate_simple(ndims, localSize.data(), nullptr);
 
             if (!grid->globalEmpty())
-                H5Dread(dset_id, H5T_NATIVE_FLOAT, mspace_id, dspace_id, xfer_plist_id, channel.data);
+                H5Dread(dset_id, datatypeToHDF5type(channel.datatype), mspace_id, dspace_id, xfer_plist_id, channel.data);
 
             H5Sclose(mspace_id);
             H5Sclose(dspace_id);

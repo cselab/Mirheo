@@ -172,7 +172,11 @@ void exportPlugins(py::module& m)
             auto resolution = dumper.getLocalResolution();
             resolution.push_back(ch.entrySize_floats);
             
-            return py::array_t<float>(resolution, ch.data, py::cast(dumper));
+            pybind11::dtype dt;
+            if (ch.datatype == XDMF::Channel::Datatype::Float) dt = pybind11::dtype::of<float>();
+            if (ch.datatype == XDMF::Channel::Datatype::Int)   dt = pybind11::dtype::of<int>();
+            
+            return py::array(dt, resolution, (float*)ch.data, py::cast(dumper));
         });
 
     

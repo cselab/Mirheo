@@ -14,7 +14,7 @@ domain = (4, 6, 8)
 if args.restart:
     u = udx.udevicex(ranks, domain, debug_level=3, log_filename='log', checkpoint_every=0)
 else:
-    u = udx.udevicex(ranks, domain, debug_level=8, log_filename='log', checkpoint_every=5)
+    u = udx.udevicex(ranks, domain, debug_level=3, log_filename='log', checkpoint_every=5)
 
 pv = udx.ParticleVectors.ParticleVector('pv', mass = 1)
 
@@ -27,10 +27,12 @@ u.registerParticleVector(pv=pv, ic=ic)
 
 u.run(7)
 
-if args.restart and pv:    
-    Pos = pv.getCoordinates()
-    Vel = pv.getVelocities()
-    np.savetxt("parts.txt", np.concatenate((Pos, Vel), axis=1))
+if args.restart and pv:
+    ids = pv.get_indices()   
+    pos = pv.getCoordinates()
+    vel = pv.getVelocities() 
+    
+    np.savetxt("parts.txt", np.hstack((np.atleast_2d(ids).T, pos, vel)))
     
 
 # TEST: restart.particleVector

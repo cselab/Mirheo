@@ -3,7 +3,8 @@
 
 #include <core/utils/kernel_launch.h>
 #include <core/utils/cuda_common.h>
-#include "core/xdmf/xdmf.h"
+#include <core/xdmf/xdmf.h>
+
 #include "restart_helpers.h"
 
 __global__ void min_max_com(OVview ovView)
@@ -76,6 +77,13 @@ void ObjectVector::restart(MPI_Comm comm, std::string path)
     restart_helpers::copyShiftCoordinates(domain, parts, local());
 
     local()->coosvels.uploadToDevice(0);
+
+	// Do the ids
+    // That's a kinda hack, will be properly fixed in the hdf5 per object restarts
+    auto ids = local()->extraPerObject.getData<int>("ids");
+    for (int i=0; i<local()->nObjects; i++)
+        (*ids)[i] = local()->coosvels[i*objSize].i1 / objSize;
+    ids->uploadToDevice(0);
 
     CUDA_Check( cudaDeviceSynchronize() );
 

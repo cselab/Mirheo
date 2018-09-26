@@ -231,18 +231,21 @@ static void make_symlink(MPI_Comm comm, std::string path, std::string name, std:
 }
 
 static void splitPV(DomainInfo domain, LocalParticleVector *local,
-                    std::vector<float> &positions, std::vector<float> &velocities)
+                    std::vector<float> &positions, std::vector<float> &velocities, std::vector<int> &ids)
 {
     int n = local->size();
     positions.resize(3 * n);
     velocities.resize(3 * n);
+    ids.resize(n);
 
     float3 *pos = (float3*) positions.data(), *vel = (float3*) velocities.data();
     
-    for (int i = 0; i < n; i++) {
+    for (int i = 0; i < n; i++)
+    {
         auto p = local->coosvels[i];
         pos[i] = domain.local2global(p.r);
         vel[i] = p.u;
+        ids[i] = p.i1;
     }
 }
 
@@ -257,14 +260,14 @@ void ParticleVector::checkpoint(MPI_Comm comm, std::string path)
 
     auto positions = std::make_shared<std::vector<float>>();
     std::vector<float> velocities;
-    
-    splitPV(domain, local(), *positions, velocities);
+    std::vector<int> ids;
+    splitPV(domain, local(), *positions, velocities, ids);
 
     XDMF::VertexGrid grid(positions, comm);
 
     std::vector<XDMF::Channel> channels;
-
     channels.push_back(XDMF::Channel("velocity", velocities.data(), XDMF::Channel::Type::Vector, 3*sizeof(float)));
+    channels.push_back(XDMF::Channel( "ids", ids.data(), XDMF::Channel::Type::Scalar, sizeof(float), "int", XDMF::Channel::Datatype::Int ));
     
     XDMF::write(filename, &grid, channels, comm);
 
@@ -284,13 +287,10 @@ void ParticleVector::restart(MPI_Comm comm, std::string path)
     XDMF::read(filename, comm, this);
 
     std::vector<Particle> parts(local()->coosvels.begin(), local()->coosvels.end());
-
     restart_helpers::exchangeParticles(domain, comm, parts);
-
     restart_helpers::copyShiftCoordinates(domain, parts, local());
 
     local()->coosvels.uploadToDevice(0);
-
     CUDA_Check( cudaDeviceSynchronize() );
 
     info("Successfully read %d particles", local()->coosvels.size());

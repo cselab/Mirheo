@@ -25,7 +25,7 @@ namespace XDMF
             
             auto dataNode = attrNode.append_child("DataItem");
             dataNode.append_attribute("Dimensions") = ::to_string(globalSize).c_str();
-            dataNode.append_attribute("NumberType") = "Float";
+            dataNode.append_attribute("NumberType") = datatypeToString(channel.datatype).c_str();
             dataNode.append_attribute("Precision") = "4";
             dataNode.append_attribute("Format") = "HDF";
             dataNode.text() = (h5filename + ":/" + channel.name).c_str();
@@ -72,14 +72,17 @@ namespace XDMF
             std::string typeStr = infoNode.attribute("Value").value();
 
             std::string channelType = node.attribute("AttributeType").value();
-            Channel::Type type = string_to_type(channelType);
+            auto type = string_to_type (channelType);
+
+            std::string channelDatatype = dataNode.attribute("NumberType").value();
+            auto datatype = stringToDatatype(channelDatatype);
 
             if (type == Channel::Type::Other)
                 die("Unrecognised type %s", channelType.c_str());
             
             int entrySize_bytes = get_ncomponents(type) * sizeof(float);
 
-            return Channel(name, nullptr, type, entrySize_bytes, typeStr);
+            return Channel(name, nullptr, type, entrySize_bytes, typeStr, datatype);
         }
         
         static void readData(pugi::xml_node node, std::vector<Channel>& channels)

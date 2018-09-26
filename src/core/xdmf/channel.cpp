@@ -4,9 +4,10 @@
 
 namespace XDMF
 {
-    Channel::Channel(std::string name, void* data, Type type, int entrySize_bytes, std::string typeStr) :
+    Channel::Channel(std::string name, void* data, Type type, int entrySize_bytes, std::string typeStr, Datatype datatype) :
         name(name), data((float*)data), type(type),
-        entrySize_floats(entrySize_bytes / sizeof(float)), typeStr(typeStr)
+        entrySize_floats(entrySize_bytes / sizeof(float)),
+        typeStr(typeStr), datatype(datatype)
     {
         if (entrySize_floats*sizeof(float) != entrySize_bytes)
             die("Channel('%s') should have a chunk size in bytes divisible by %d (got %d)",
@@ -15,12 +16,13 @@ namespace XDMF
 
     std::string type_to_string(Channel::Type type)
     {
-        switch (type) {
-        case Channel::Type::Scalar:  return "Scalar";
-        case Channel::Type::Vector:  return "Vector";
-        case Channel::Type::Tensor6: return "Tensor6";
-        case Channel::Type::Tensor9: return "Tensor9";
-        case Channel::Type::Other:   return "Scalar";
+        switch (type)
+        {
+            case Channel::Type::Scalar:  return "Scalar";
+            case Channel::Type::Vector:  return "Vector";
+            case Channel::Type::Tensor6: return "Tensor6";
+            case Channel::Type::Tensor9: return "Tensor9";
+            case Channel::Type::Other:   return "Scalar";
         }
     }
 
@@ -29,18 +31,44 @@ namespace XDMF
         if (str == "Scalar")  return Channel::Type::Scalar;
         if (str == "Vector")  return Channel::Type::Vector;
         if (str == "Tensor6") return Channel::Type::Tensor6;
-        if (str == "Tensor6") return Channel::Type::Tensor9;            
+        if (str == "Tensor9") return Channel::Type::Tensor9;            
         return Channel::Type::Other;
     }
 
     int get_ncomponents(Channel::Type type)
     {
-        switch (type) {
-        case Channel::Type::Scalar:  return 1;
-        case Channel::Type::Vector:  return 3;
-        case Channel::Type::Tensor6: return 6;
-        case Channel::Type::Tensor9: return 9;
-        case Channel::Type::Other:   return 1;
+        switch (type)
+        {
+            case Channel::Type::Scalar:  return 1;
+            case Channel::Type::Vector:  return 3;
+            case Channel::Type::Tensor6: return 6;
+            case Channel::Type::Tensor9: return 9;
+            case Channel::Type::Other:   return 1;
         }
+    }
+    
+    decltype (H5T_NATIVE_FLOAT) datatypeToHDF5type(Channel::Datatype dt)
+    {
+        switch (dt)
+        {
+            case Channel::Datatype::Float: return H5T_NATIVE_FLOAT;
+            case Channel::Datatype::Int  : return H5T_NATIVE_INT;
+        }
+    }
+    
+    std::string datatypeToString(Channel::Datatype dt)
+    {
+        switch (dt)
+        {
+            case Channel::Datatype::Float: return "Float";
+            case Channel::Datatype::Int  : return "Int";
+        }
+    }
+    
+    Channel::Datatype stringToDatatype(std::string str)
+    {
+        if (str == "Float") return Channel::Datatype::Float;
+        if (str == "Int")   return Channel::Datatype::Int;           
+        die("Datatype '%s' is not supported for reading", str.c_str());
     }
 }
