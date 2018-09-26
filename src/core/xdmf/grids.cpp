@@ -207,10 +207,11 @@ namespace XDMF
     void VertexGrid::read_from_XMF(const pugi::xml_node &node, std::string &h5filename)
     {
         int d = 0;
-        
-        auto topoNode = node.child("Topology");
-        auto geomNode = topoNode.child("Geometry");
-        auto partNode = geomNode.child("DataItem");
+
+        auto partNode = node.child("Geometry").child("DataItem");
+
+        if (!partNode)
+            die("Wrong format");
         
         std::istringstream dimensions( partNode.attribute("Dimensions").value() );
 
@@ -244,7 +245,7 @@ namespace XDMF
     
     void VertexGrid::read_from_HDF5(hid_t file_id, MPI_Comm comm)
     {
-        positions->resize(nlocal);
+        positions->resize(nlocal * 3);
         Channel posCh(positionChannelName, (void*) positions->data(), Channel::Type::Vector, 3*sizeof(float), "float3");
         
         HDF5::readDataSet(file_id, this, posCh);

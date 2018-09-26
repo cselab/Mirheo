@@ -79,22 +79,21 @@ namespace XDMF
             for (auto& channel : channels) 
                 writeDataSet(file_id, grid, channel);
         }
-
+        
         void readDataSet(hid_t file_id, const Grid* grid, Channel& channel)
         {
             debug2("Reading channel '%s'", channel.name.c_str());
-            
+
             // Add one more dimension: number of floats per data item
             int ndims = grid->getDims() + 1;
-            auto localSize = grid->getLocalSize();
-            auto globalSize = grid->getGlobalSize();
+            auto localSize  = grid->getLocalSize();
             
             // What. The. F.
             std::reverse(localSize .begin(), localSize .end());
             
             localSize.push_back(channel.entrySize_floats);
             
-            hid_t dset_id = H5Dopen(file_id, channel.name.c_str(), H5P_DEFAULT);
+            hid_t dset_id       = H5Dopen(file_id, channel.name.c_str(), H5P_DEFAULT);            
             hid_t xfer_plist_id = H5Pcreate(H5P_DATASET_XFER);
 
             H5Pset_dxpl_mpio(xfer_plist_id, H5FD_MPIO_COLLECTIVE);
@@ -116,7 +115,6 @@ namespace XDMF
             H5Sclose(dspace_id);
             H5Pclose(xfer_plist_id);
             H5Dclose(dset_id);
-
         }
 
         void readData(hid_t file_id, const Grid* grid, std::vector<Channel>& channels)
@@ -153,8 +151,11 @@ namespace XDMF
                 if (file_id < 0) error("HDF5 failed to read from file '%s'", filename.c_str());
                 return;
             }
+
+            setbuf(stdout, NULL);
             
             grid->read_from_HDF5(file_id, comm);
+
             readData(file_id, grid, channels);
             
             close(file_id);

@@ -78,15 +78,15 @@ namespace XDMF
                 die("Unrecognised type %s", channelType.c_str());
             
             int entrySize_bytes = get_ncomponents(type) * sizeof(float);
-            
+
             return Channel(name, nullptr, type, entrySize_bytes, typeStr);
         }
         
         static void readData(pugi::xml_node node, std::vector<Channel>& channels)
         {
             for (auto attr : node.children("Attribute"))
-                if (attr.name() == "Attribute")
-                    channels.push_back(readDataSet(attr));                
+                if (std::string(attr.name()) == "Attribute")
+                    channels.push_back(readDataSet(attr));
         }
         
         void read(std::string filename, MPI_Comm comm, std::string &h5filename, Grid *grid, std::vector<Channel> &channels)
@@ -98,9 +98,7 @@ namespace XDMF
                 die("parsing error while reading '%s'.\n"
                     "\tError description: %s", filename.c_str(), parseResult.description());
 
-            auto rootNode   = doc.child("Xdmf");
-            auto domainNode = rootNode.child("Domain");
-            auto gridNode   = domainNode.child("Grid");
+            auto gridNode = doc.child("Xdmf").child("Domain").child("Grid");
 
             grid->read_from_XMF(gridNode, h5filename);
 

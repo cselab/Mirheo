@@ -343,51 +343,22 @@ void ParticleVector::restart(MPI_Comm comm, std::string path)
 {
     CUDA_Check( cudaDeviceSynchronize() );
 
-    std::string fname = path + "/" + name + ".chk";
-    info("Restarting particle vector %s from file %s", name.c_str(), fname.c_str());
+    std::string filename = path + "/" + name + ".xmf";
+    info("Restarting particle vector %s from file %s", name.c_str(), filename.c_str());
 
-    int myrank, commSize;
-    int dims[3], periods[3], coords[3];
-    MPI_Check( MPI_Comm_rank(comm, &myrank) );
-    MPI_Check( MPI_Comm_size(comm, &commSize) );
-    MPI_Check( MPI_Cart_get(comm, 3, dims, periods, coords) );
+    XDMF::read(filename, comm, this);
 
-    MPI_Datatype ptype;
-    MPI_Check( MPI_Type_contiguous(sizeof(Particle), MPI_CHAR, &ptype) );
-    MPI_Check( MPI_Type_commit(&ptype) );
+    std::vector<Particle> parts(local()->coosvels.begin(), local()->coosvels.end());
 
-    // Find size of data chunk to read
-    MPI_File f;
-    MPI_Status status;
-    int64_t total;
-    MPI_Check( MPI_File_open(comm, fname.c_str(), MPI_MODE_RDONLY, MPI_INFO_NULL, &f) );
-    if (myrank == 0)
-        MPI_Check( MPI_File_read_at(f, 0, &total, 1, MPI_LONG_LONG, &status) );
-    MPI_Check( MPI_Bcast(&total, 1, MPI_LONG_LONG, 0, comm) );
+    exchange_particles(domain, comm, parts);
 
-    int64_t sizePerProc = (total+commSize-1) / commSize;
-    int64_t offset = sizePerProc * myrank;
-    int64_t mysize = std::min(offset+sizePerProc, total) - offset;
-
-    debug2("Will read %lld particles from the file", mysize);
-
-    // Read your chunk
-    std::vector<Particle> readBuf(mysize);
-    const int64_t header = (sizeof(int64_t) + sizeof(Particle) - 1) / sizeof(Particle);
-    MPI_Check( MPI_File_read_at_all(f, (offset + header)*sizeof(Particle), readBuf.data(), mysize, ptype, &status) );
-    MPI_Check( MPI_File_close(&f) );
-
-    exchange_particles(domain, comm, readBuf);
-
-    copyShiftCoordinates(domain, readBuf, local());
+    copyShiftCoordinates(domain, parts, local());
 
     local()->coosvels.uploadToDevice(0);
 
     CUDA_Check( cudaDeviceSynchronize() );
 
-    info("Successfully grabbed %d particles out of total %lld", local()->coosvels.size(), total);
-    
-    MPI_Check( MPI_Type_free(&ptype) );
+    info("Successfully read %d particles", local()->coosvels.size());
 }
 
 
