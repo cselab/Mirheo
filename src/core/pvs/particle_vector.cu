@@ -2,6 +2,7 @@
 
 #include "particle_vector.h"
 #include "core/utils/folders.h"
+#include "core/xdmf/xdmf.h"
 
 // Local coordinate system; (0,0,0) is center of the local domain
 LocalParticleVector::LocalParticleVector(ParticleVector* pv, int n) : pv(pv)
@@ -220,7 +221,7 @@ static void make_symlink(MPI_Comm comm, std::string path, std::string name, std:
     MPI_Check( MPI_Comm_rank(comm, &rank) );
 
     if (rank == 0) {
-        std::string lnname = path + "/" + name + ".chk";
+        std::string lnname = path + "/" + name + ".xdf";
         
         std::string command = "ln -f " + fname + " " + lnname;
         if ( system(command.c_str()) != 0 )
@@ -228,7 +229,7 @@ static void make_symlink(MPI_Comm comm, std::string path, std::string name, std:
     }    
 }
 
-void ParticleVector::checkpoint(MPI_Comm comm, std::string path)
+void ParticleVector::_checkpoint(MPI_Comm comm, std::string path)
 {
     CUDA_Check( cudaDeviceSynchronize() );
 
@@ -278,6 +279,51 @@ void ParticleVector::checkpoint(MPI_Comm comm, std::string path)
     debug("Checkpoint for particle vector '%s' successfully written", name.c_str());
     restartIdx = restartIdx xor 1;
 }
+
+static void splitPV(DomainInfo domain, LocalParticleVector *local,
+                    std::vector<float> &positions, std::vector<float> &velocities)
+{
+    int n = local->size();
+    positions.resize(3 * n);
+    velocities.resize(3 * n);
+
+    float3 *pos = (float3*) positions.data(), *vel = (float3*) velocities.data();
+    
+    for (int i = 0; i < n; i++) {
+        auto p = local->coosvels[i];
+        pos[i] = domain.local2global(p.r);
+        vel[i] = p.u;
+    }
+}
+
+void ParticleVector::checkpoint(MPI_Comm comm, std::string path)
+{
+    CUDA_Check( cudaDeviceSynchronize() );
+
+    std::string filename = path + "/" + name + "-" + getStrZeroPadded(restartIdx);
+    info("Checkpoint for particle vector '%s', writing to file %s", name.c_str(), filename.c_str());
+
+    local()->coosvels.downloadFromDevice(0, ContainersSynch::Synch);
+
+    auto positions = std::make_shared<std::vector<float>>();
+    std::vector<float> velocities;
+    
+    splitPV(domain, local(), *positions, velocities);
+
+    XDMF::VertexGrid grid(positions, comm);
+
+    std::vector<XDMF::Channel> channels;
+
+    channels.push_back(XDMF::Channel("velocity", velocities.data(), XDMF::Channel::Type::Vector, 3*sizeof(float)));
+    
+    XDMF::write(filename, &grid, channels, comm);
+
+    make_symlink(comm, path, name, filename);
+
+    debug("Checkpoint for particle vector '%s' successfully written", name.c_str());
+    restartIdx = restartIdx xor 1;
+}
+
 
 static void exchange_particles(const DomainInfo &domain, MPI_Comm comm, std::vector<Particle> &parts)
 {

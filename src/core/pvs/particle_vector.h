@@ -62,6 +62,7 @@ public:
     LocalParticleVector* local() { return _local; }
     LocalParticleVector* halo()  { return _halo;  }
 
+    virtual void _checkpoint(MPI_Comm comm, std::string path);
     virtual void checkpoint(MPI_Comm comm, std::string path);
     virtual void restart(MPI_Comm comm, std::string path);
 
