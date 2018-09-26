@@ -30,8 +30,9 @@ namespace restart_helpers
             all.insert(all.end(), recvBuf.begin(), recvBuf.end());
         }
     }
-    
-    void exchangeParticles(const DomainInfo &domain, MPI_Comm comm, std::vector<Particle> &parts)
+
+    template <typename Splitter>
+    static void exchangeParticles(const DomainInfo &domain, MPI_Comm comm, std::vector<Particle> &parts, Splitter splitter)
     {
         int size;
         int dims[3], periods[3], coords[3];
@@ -45,16 +46,7 @@ namespace restart_helpers
         // Find where to send the read particles
         std::vector<std::vector<Particle>> sendBufs(size);
 
-        for (auto& p : parts) {
-            int3 procId3 = make_int3(floorf(p.r / domain.localSize));
-
-            if (procId3.x >= dims[0] || procId3.y >= dims[1] || procId3.z >= dims[2])
-                continue;
-
-            int procId;
-            MPI_Check( MPI_Cart_rank(comm, (int*)&procId3, &procId) );
-            sendBufs[procId].push_back(p);
-        }
+        splitter(dims, parts, sendBufs);
 
         std::vector<MPI_Request> reqs(size);
         
@@ -63,6 +55,52 @@ namespace restart_helpers
 
         MPI_Check( MPI_Waitall(reqs.size(), reqs.data(), MPI_STATUSES_IGNORE) );
         MPI_Check( MPI_Type_free(&ptype) );
+    }
+
+    void exchangeParticles(const DomainInfo &domain, MPI_Comm comm, std::vector<Particle> &parts)
+    {
+        auto splitter = [domain, comm](const int dims[3], const std::vector<Particle> &parts,
+                                       std::vector<std::vector<Particle>> &sendBufs) {
+            for (auto& p : parts) {
+                int3 procId3 = make_int3(floorf(p.r / domain.localSize));
+
+                if (procId3.x >= dims[0] || procId3.y >= dims[1] || procId3.z >= dims[2])
+                    continue;
+
+                int procId;
+                MPI_Check( MPI_Cart_rank(comm, (int*)&procId3, &procId) );
+                sendBufs[procId].push_back(p);
+            }
+        };
+        
+        exchangeParticles(domain, comm, parts, splitter);
+    }
+    
+    void exchangeParticlesChunks(const DomainInfo &domain, MPI_Comm comm, std::vector<Particle> &parts, int chunk_size)
+    {
+        auto splitter = [domain, comm, chunk_size](const int dims[3], const std::vector<Particle> &parts,
+                                                   std::vector<std::vector<Particle>> &sendBufs) {
+            for (int i = 0, k = 0; i < parts.size() / chunk_size; ++i) {
+                auto com = make_float3(0);
+                for (int j = 0; j < chunk_size; ++j, ++k)
+                    com += parts[k].r;
+
+                com = com / chunk_size;
+
+                int3 procId3 = make_int3(floorf(com / domain.localSize));
+
+                if (procId3.x >= dims[0] || procId3.y >= dims[1] || procId3.z >= dims[2])
+                    continue;
+
+                int procId;
+                MPI_Check( MPI_Cart_rank(comm, (int*)&procId3, &procId) );
+                sendBufs[procId].insert(sendBufs[procId].end(),
+                                        parts.begin() + chunk_size * i,
+                                        parts.begin() + chunk_size * (i + 1));
+            }
+        };
+        
+        exchangeParticles(domain, comm, parts, splitter);
     }
     
     void copyShiftCoordinates(const DomainInfo &domain, const std::vector<Particle> &parts, LocalParticleVector *local)
