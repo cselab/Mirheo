@@ -29,7 +29,7 @@ namespace XDMF
         virtual pugi::xml_node write_to_XMF(pugi::xml_node node, std::string h5filename)  const = 0;
 
         virtual void read_from_XMF(const pugi::xml_node &node, std::string &h5filename)         = 0;
-        virtual void split_read_access(MPI_Comm comm)                                           = 0;
+        virtual void split_read_access(MPI_Comm comm, int chunk_size=1)                         = 0;
         virtual void read_from_HDF5(hid_t file_id, MPI_Comm comm)                               = 0;        
         
         virtual ~Grid() = default;
@@ -51,7 +51,7 @@ namespace XDMF
         pugi::xml_node write_to_XMF(pugi::xml_node node, std::string h5filename)  const override;
         
         void read_from_XMF(const pugi::xml_node &node, std::string &h5filename)         override;
-        void split_read_access(MPI_Comm comm)                                           override;        
+        void split_read_access(MPI_Comm comm, int chunk_size = 1)                       override;        
         void read_from_HDF5(hid_t file_id, MPI_Comm comm)                               override;
         
         UniformGrid(int3 localSize, float3 h, MPI_Comm cartComm);
@@ -79,7 +79,7 @@ namespace XDMF
         pugi::xml_node write_to_XMF(pugi::xml_node node, std::string h5filename)  const override;   
         
         void read_from_XMF(const pugi::xml_node &node, std::string &h5filename)         override;
-        void split_read_access(MPI_Comm comm)                                           override;
+        void split_read_access(MPI_Comm comm, int chunk_size = 1)                       override;
         void read_from_HDF5(hid_t file_id, MPI_Comm comm)                               override;
         
         VertexGrid(std::shared_ptr<std::vector<float>> positions, MPI_Comm comm);

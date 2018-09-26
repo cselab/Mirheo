@@ -67,7 +67,7 @@ namespace XDMF
         // TODO extra data
     }
     
-    void read(std::string filename, MPI_Comm comm, ParticleVector *pv)
+    void read(std::string filename, MPI_Comm comm, ParticleVector *pv, int chunk_size)
     {
         info("Reading XDMF data from %s", filename.c_str());
 
@@ -82,7 +82,7 @@ namespace XDMF
         mTimer timer;
         timer.start();
         XMF::read(filename, comm, h5filename, &grid, channels);
-        grid.split_read_access(comm);
+        grid.split_read_access(comm, chunk_size);
 
         h5filename = parentPath(filename) + h5filename;
 

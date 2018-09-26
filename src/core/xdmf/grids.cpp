@@ -101,7 +101,7 @@ namespace XDMF
         die("not implemented");
     }
 
-    void UniformGrid::split_read_access(MPI_Comm comm)
+    void UniformGrid::split_read_access(MPI_Comm comm, int chunk_size)
     {
         // TODO
         die("not implemented");
@@ -230,17 +230,25 @@ namespace XDMF
         h5filename = positionDataSet.substr(0, endH5);
     }
 
-    void VertexGrid::split_read_access(MPI_Comm comm)
+    void VertexGrid::split_read_access(MPI_Comm comm, int chunk_size)
     {
         int size, rank;
+        int chunk_global, chunk_local, chunk_offset;
         MPI_Check( MPI_Comm_rank(comm, &rank) );
         MPI_Check( MPI_Comm_size(comm, &size) );
 
-        nlocal = (nglobal + size - 1) / size;
-        offset = nlocal * rank;
+        chunk_global = nglobal / chunk_size;
+        if (chunk_global * chunk_size != nglobal)
+            die("incompatible chunk size");
 
-        if (offset + nlocal > nglobal)
-            nlocal = nglobal - offset;
+        chunk_local  = (chunk_global + size - 1) / size;
+        chunk_offset = chunk_local * rank;
+
+        if (chunk_offset + chunk_local > chunk_global)
+            chunk_local = chunk_global - chunk_offset;
+
+        nlocal = chunk_local  * chunk_size;
+        offset = chunk_offset * chunk_size;
     }
     
     void VertexGrid::read_from_HDF5(hid_t file_id, MPI_Comm comm)
