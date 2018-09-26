@@ -122,7 +122,8 @@ if (${LIBBFD_FOUND})
 endif()
 ########################################################
 
-# Setup nvcc flags
+# Setup compiler flags
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g")
 set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} --expt-extended-lambda")
 set(CMAKE_CUDA_FLAGS_RELEASE "-O3 -DNDEBUG --use_fast_math -lineinfo -g")
 set(CMAKE_CUDA_FLAGS_DEBUG "-O0 -G -g")

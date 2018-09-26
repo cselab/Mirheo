@@ -7,7 +7,7 @@
 #include <core/integrators/oscillate.h>
 #include <core/integrators/translate.h>
 #include <core/integrators/rigid_vv.h>
-#include <core/integrators/subStepMembrane.h>
+#include <core/integrators/sub_step_membrane.h>
 
 #include <core/integrators/forcing_terms/none.h>
 #include <core/integrators/forcing_terms/const_dp.h>

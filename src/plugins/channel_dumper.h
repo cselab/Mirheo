@@ -14,6 +14,9 @@ public:
 
     void deserialize(MPI_Status& stat) override;
     void handshake() override;
+    
+    XDMF::Channel getChannelOrDie(std::string chname) const;
+    std::vector<int> getLocalResolution() const;
         
 
 protected:

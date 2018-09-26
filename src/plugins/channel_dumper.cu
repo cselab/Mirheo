@@ -89,3 +89,24 @@ void UniformCartesianDumper::deserialize(MPI_Status& stat)
     XDMF::write(fname, grid.get(), channels, t, cartComm);
 }
 
+XDMF::Channel UniformCartesianDumper::getChannelOrDie(std::string chname) const
+{
+    for (const auto& ch : channels)
+        if (ch.name == chname)
+            return ch;
+        
+   die("No such channel in plugin '%s' : '%s'", name.c_str(), chname.c_str());
+   
+   // Silence the noreturn warning
+   return channels[0];
+}
+
+std::vector<int> UniformCartesianDumper::getLocalResolution() const
+{
+    std::vector<int> res;
+    for (auto v : grid->getLocalSize())
+        res.push_back(v);
+    
+    return res;
+}
+

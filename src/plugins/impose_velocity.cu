@@ -88,3 +88,12 @@ void ImposeVelocityPlugin::afterIntegration(cudaStream_t stream)
     }
 }
 
+void ImposeVelocityPlugin::setTargetVelocity(PyTypes::float3 v)
+{
+    info("Changing target velocity from [%f %f %f] to [%f %f %f]",
+         targetVel.x, targetVel.y, targetVel.z,
+         std::get<0>(v), std::get<1>(v), std::get<2>(v));
+    
+    targetVel = make_float3(v);
+}
+

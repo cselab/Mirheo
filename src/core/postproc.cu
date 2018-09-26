@@ -57,6 +57,12 @@ void Postprocess::run()
                 die("Something went terribly wrong");
 
             info("Postprocess got a stopping message and will stop now");
+            
+            debug("Cancelling all the requests from postproc plugins");
+            
+            for (int i=0; i<plugins.size(); i++)
+                MPI_Check( MPI_Cancel(requests.data() + i) );
+            
             break;
         }
 

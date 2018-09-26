@@ -24,5 +24,6 @@ private:
     InteractionMembrane *fastForces; /* interactions (self) called `substeps` times per time step */
     int substeps; /* number of substeps */
     DeviceBuffer<Force> slowForces;
+    DeviceBuffer<Particle> previousPositions;
     std::unique_ptr<IntegratorVV<Forcing_None>> subIntegrator;
 };
