@@ -38,7 +38,7 @@ namespace XDMF
         return n;
     }
 
-    static void gather_channels(std::vector<Channel> channels, std::vector<float> &positions, ParticleVector *pv)
+    static void gather_channels(std::vector<Channel> &channels, std::vector<float> &positions, ParticleVector *pv)
     {
         int n = positions.size() / 3;
         const float3 *pos, *vel = nullptr;
@@ -46,11 +46,11 @@ namespace XDMF
         pv->local()->resize_anew(n);
         auto& coosvels = pv->local()->coosvels;
 
-        for (auto ch : channels)
+        for (auto& ch : channels)
             if (ch.name == "velocity")
                 vel = (const float3*) ch.data;
 
-        if (!vel)
+        if (n && !vel)
             die("Need velocities");
 
         pos = (const float3*) positions.data();
@@ -67,7 +67,7 @@ namespace XDMF
         // TODO extra data
     }
     
-    void read(std::string filename, MPI_Comm comm, ParticleVector *pv)
+    void read(std::string filename, MPI_Comm comm, ParticleVector *pv, int chunk_size)
     {
         info("Reading XDMF data from %s", filename.c_str());
 
@@ -82,6 +82,9 @@ namespace XDMF
         mTimer timer;
         timer.start();
         XMF::read(filename, comm, h5filename, &grid, channels);
+        grid.split_read_access(comm, chunk_size);
+
+        h5filename = parentPath(filename) + h5filename;
 
         long nElements = getLocalNumElements(&grid);
         channelData.resize(channels.size());        
@@ -90,11 +93,11 @@ namespace XDMF
             channelData[i].resize(nElements * channels[i].entrySize_floats);
             channels[i].data = channelData[i].data();
         }
-                
+        
         HDF5::read(h5filename, comm, &grid, channels);
         info("Reading took %f ms", timer.elapsed());
 
-        gather_channels(channels, *positions.get(), pv);
+        gather_channels(channels, *positions, pv);
     }
 
 }

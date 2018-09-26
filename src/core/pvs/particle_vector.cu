@@ -1,7 +1,9 @@
 #include <mpi.h>
 
-#include "particle_vector.h"
 #include "core/utils/folders.h"
+#include "core/xdmf/xdmf.h"
+#include "particle_vector.h"
+#include "restart_helpers.h"
 
 // Local coordinate system; (0,0,0) is center of the local domain
 LocalParticleVector::LocalParticleVector(ParticleVector* pv, int n) : pv(pv)
@@ -207,8 +209,8 @@ ParticleVector::~ParticleVector()
     
 }
 
-ParticleVector::ParticleVector(    std::string name, float mass, LocalParticleVector *local, LocalParticleVector *halo ) :
-name(name), mass(mass), _local(local), _halo(halo)
+ParticleVector::ParticleVector( std::string name, float mass, LocalParticleVector *local, LocalParticleVector *halo ) :
+    name(name), mass(mass), _local(local), _halo(halo)
 {
     // usually old positions and velocities don't need to exchanged
     requireDataPerParticle<Particle> ("old_particles", false);
@@ -220,179 +222,78 @@ static void make_symlink(MPI_Comm comm, std::string path, std::string name, std:
     MPI_Check( MPI_Comm_rank(comm, &rank) );
 
     if (rank == 0) {
-        std::string lnname = path + "/" + name + ".chk";
+        std::string lnname = path + "/" + name + ".xmf";
         
-        std::string command = "ln -f " + fname + " " + lnname;
+        std::string command = "ln -f " + fname + ".xmf " + lnname;
         if ( system(command.c_str()) != 0 )
             error("Could not create link for checkpoint file of PV '%s'", name.c_str());
     }    
+}
+
+static void splitPV(DomainInfo domain, LocalParticleVector *local,
+                    std::vector<float> &positions, std::vector<float> &velocities)
+{
+    int n = local->size();
+    positions.resize(3 * n);
+    velocities.resize(3 * n);
+
+    float3 *pos = (float3*) positions.data(), *vel = (float3*) velocities.data();
+    
+    for (int i = 0; i < n; i++) {
+        auto p = local->coosvels[i];
+        pos[i] = domain.local2global(p.r);
+        vel[i] = p.u;
+    }
 }
 
 void ParticleVector::checkpoint(MPI_Comm comm, std::string path)
 {
     CUDA_Check( cudaDeviceSynchronize() );
 
-    std::string fname = path + "/" + name + "-" + getStrZeroPadded(restartIdx) + ".chk";
-    info("Checkpoint for particle vector '%s', writing to file %s", name.c_str(), fname.c_str());
+    std::string filename = path + "/" + name + "-" + getStrZeroPadded(restartIdx);
+    info("Checkpoint for particle vector '%s', writing to file %s", name.c_str(), filename.c_str());
 
     local()->coosvels.downloadFromDevice(0, ContainersSynch::Synch);
 
-    for (int i = 0; i < local()->size(); i++)
-        local()->coosvels[i].r = domain.local2global(local()->coosvels[i].r);
+    auto positions = std::make_shared<std::vector<float>>();
+    std::vector<float> velocities;
+    
+    splitPV(domain, local(), *positions, velocities);
 
-    int myrank, size;
-    MPI_Check( MPI_Comm_rank(comm, &myrank) );
-    MPI_Check( MPI_Comm_size(comm, &size) );
+    XDMF::VertexGrid grid(positions, comm);
 
-    MPI_Datatype ptype;
-    MPI_Check( MPI_Type_contiguous(sizeof(Particle), MPI_CHAR, &ptype) );
-    MPI_Check( MPI_Type_commit(&ptype) );
+    std::vector<XDMF::Channel> channels;
 
-    int64_t mysize = local()->size();
-    int64_t offset = 0;
-    MPI_Check( MPI_Exscan(&mysize, &offset, 1, MPI_LONG_LONG, MPI_SUM, comm) );
+    channels.push_back(XDMF::Channel("velocity", velocities.data(), XDMF::Channel::Type::Vector, 3*sizeof(float)));
+    
+    XDMF::write(filename, &grid, channels, comm);
 
-    MPI_File f;
-    MPI_Status status;
-
-    // Remove previous file if it was there
-    MPI_Check( MPI_File_open(comm, fname.c_str(), MPI_MODE_CREATE|MPI_MODE_DELETE_ON_CLOSE|MPI_MODE_WRONLY, MPI_INFO_NULL, &f) );
-    MPI_Check( MPI_File_close(&f) );
-
-    // Open for real now
-    MPI_Check( MPI_File_open(comm, fname.c_str(), MPI_MODE_WRONLY | MPI_MODE_CREATE, MPI_INFO_NULL, &f) );
-    if (myrank == size-1)
-    {
-        const int64_t total = offset + mysize;
-        MPI_Check( MPI_File_write_at(f, 0, &total, 1, MPI_LONG_LONG, &status) );
-    }
-
-    const int64_t header = (sizeof(int64_t) + sizeof(Particle) - 1) / sizeof(Particle);
-    MPI_Check( MPI_File_write_at_all(f, (offset + header)*sizeof(Particle), local()->coosvels.hostPtr(), (int)mysize, ptype, &status) );
-    MPI_Check( MPI_File_close(&f) );
-
-    MPI_Check( MPI_Type_free(&ptype) );
-
-    make_symlink(comm, path, name, fname);
+    make_symlink(comm, path, name, filename);
 
     debug("Checkpoint for particle vector '%s' successfully written", name.c_str());
     restartIdx = restartIdx xor 1;
-}
-
-static void exchange_particles(const DomainInfo &domain, MPI_Comm comm, std::vector<Particle> &parts)
-{
-    int size;
-    int dims[3], periods[3], coords[3];
-    MPI_Check( MPI_Comm_size(comm, &size) );
-    MPI_Check( MPI_Cart_get(comm, 3, dims, periods, coords) );
-
-    MPI_Datatype ptype;
-    MPI_Check( MPI_Type_contiguous(sizeof(Particle), MPI_CHAR, &ptype) );
-    MPI_Check( MPI_Type_commit(&ptype) );
-
-    // Find where to send the read particles
-    std::vector<std::vector<Particle>> sendBufs(size);
-
-    for (auto& p : parts) {
-        int3 procId3 = make_int3(floorf(p.r / domain.localSize));
-
-        if (procId3.x >= dims[0] || procId3.y >= dims[1] || procId3.z >= dims[2])
-            continue;
-
-        int procId;
-        MPI_Check( MPI_Cart_rank(comm, (int*)&procId3, &procId) );
-        sendBufs[procId].push_back(p);
-    }
-
-    // Do the send
-    std::vector<MPI_Request> reqs(size);
-    for (int i = 0; i < size; i++) {
-        debug3("Sending %d paricles to rank %d", sendBufs[i].size(), i);
-        MPI_Check( MPI_Isend(sendBufs[i].data(), sendBufs[i].size(), ptype, i, 0, comm, reqs.data()+i) );
-    }
-
-    // recv data
-    parts.resize(0);
-    for (int i = 0; i < size; i++) {
-        MPI_Status status;
-        int msize;
-        std::vector<Particle> recvBuf;
-        
-        MPI_Check( MPI_Probe(MPI_ANY_SOURCE, 0, comm, &status) );
-        MPI_Check( MPI_Get_count(&status, ptype, &msize) );
-
-        recvBuf.resize(msize);
-
-        debug3("Receiving %d particles from ???", msize);
-        MPI_Check( MPI_Recv(recvBuf.data(), msize, ptype, status.MPI_SOURCE, 0, comm, MPI_STATUS_IGNORE) );
-
-        parts.insert(parts.end(), recvBuf.begin(), recvBuf.end());
-    }
-
-    MPI_Check( MPI_Waitall(reqs.size(), reqs.data(), MPI_STATUSES_IGNORE) );
-    MPI_Check( MPI_Type_free(&ptype) );
-}
-
-static void copyShiftCoordinates(const DomainInfo &domain, const std::vector<Particle> &parts, LocalParticleVector *local)
-{
-    local->resize(parts.size(), 0);
-
-    for (int i = 0; i < parts.size(); i++) {
-        auto p = parts[i];
-        p.r = domain.global2local(p.r);
-        local->coosvels[i] = p;
-    }
 }
 
 void ParticleVector::restart(MPI_Comm comm, std::string path)
 {
     CUDA_Check( cudaDeviceSynchronize() );
 
-    std::string fname = path + "/" + name + ".chk";
-    info("Restarting particle vector %s from file %s", name.c_str(), fname.c_str());
+    std::string filename = path + "/" + name + ".xmf";
+    info("Restarting particle vector %s from file %s", name.c_str(), filename.c_str());
 
-    int myrank, commSize;
-    int dims[3], periods[3], coords[3];
-    MPI_Check( MPI_Comm_rank(comm, &myrank) );
-    MPI_Check( MPI_Comm_size(comm, &commSize) );
-    MPI_Check( MPI_Cart_get(comm, 3, dims, periods, coords) );
+    XDMF::read(filename, comm, this);
 
-    MPI_Datatype ptype;
-    MPI_Check( MPI_Type_contiguous(sizeof(Particle), MPI_CHAR, &ptype) );
-    MPI_Check( MPI_Type_commit(&ptype) );
+    std::vector<Particle> parts(local()->coosvels.begin(), local()->coosvels.end());
 
-    // Find size of data chunk to read
-    MPI_File f;
-    MPI_Status status;
-    int64_t total;
-    MPI_Check( MPI_File_open(comm, fname.c_str(), MPI_MODE_RDONLY, MPI_INFO_NULL, &f) );
-    if (myrank == 0)
-        MPI_Check( MPI_File_read_at(f, 0, &total, 1, MPI_LONG_LONG, &status) );
-    MPI_Check( MPI_Bcast(&total, 1, MPI_LONG_LONG, 0, comm) );
+    restart_helpers::exchangeParticles(domain, comm, parts);
 
-    int64_t sizePerProc = (total+commSize-1) / commSize;
-    int64_t offset = sizePerProc * myrank;
-    int64_t mysize = std::min(offset+sizePerProc, total) - offset;
-
-    debug2("Will read %lld particles from the file", mysize);
-
-    // Read your chunk
-    std::vector<Particle> readBuf(mysize);
-    const int64_t header = (sizeof(int64_t) + sizeof(Particle) - 1) / sizeof(Particle);
-    MPI_Check( MPI_File_read_at_all(f, (offset + header)*sizeof(Particle), readBuf.data(), mysize, ptype, &status) );
-    MPI_Check( MPI_File_close(&f) );
-
-    exchange_particles(domain, comm, readBuf);
-
-    copyShiftCoordinates(domain, readBuf, local());
+    restart_helpers::copyShiftCoordinates(domain, parts, local());
 
     local()->coosvels.uploadToDevice(0);
 
     CUDA_Check( cudaDeviceSynchronize() );
 
-    info("Successfully grabbed %d particles out of total %lld", local()->coosvels.size(), total);
-    
-    MPI_Check( MPI_Type_free(&ptype) );
+    info("Successfully read %d particles", local()->coosvels.size());
 }
 
 

@@ -10,10 +10,15 @@ sys.path.append("../..")
 from common.membrane_params import set_lina
 
 parser = argparse.ArgumentParser()
+parser.add_argument('--subStep', action='store_true', default=False)
 parser.add_argument('--vis', action='store_true', default=False)
 args = parser.parse_args()
 
 dt = 0.001
+
+substeps = 10
+if args.subStep:
+    dt = dt * substeps
 
 ranks  = (1, 1, 1)
 domain = (8, 8, 8)
@@ -38,7 +43,6 @@ u.registerIntegrator(vv)
 u.setIntegrator(vv, pvSolvent)
 
 
-
 meshRbc = udx.ParticleVectors.MembraneMesh("rbc_mesh.off")
 pvRbc   = udx.ParticleVectors.MembraneVector("rbc", mass=1.0, mesh=meshRbc)
 icRbc   = udx.InitialConditions.Membrane(
@@ -54,9 +58,15 @@ if prmRbc:
     prmRbc.dt = dt
     
 intRbc = udx.Interactions.MembraneForces("int_rbc", prmRbc, stressFree=True)
-u.setIntegrator(vv, pvRbc)
-u.registerInteraction(intRbc)
-u.setInteraction(intRbc, pvRbc, pvRbc)
+
+if args.subStep:
+    integrator = udx.Integrators.SubStepMembrane('substep_membrane', dt, substeps, intRbc)
+    u.registerIntegrator(integrator)
+    u.setIntegrator(integrator, pvRbc)
+else:
+    u.setIntegrator(vv, pvRbc)
+    u.registerInteraction(intRbc)
+    u.setInteraction(intRbc, pvRbc, pvRbc)
 
 
 bb = udx.Bouncers.Mesh("bounceRbc", kbt=0.0)
@@ -65,7 +75,7 @@ u.setBouncer(bb, pvRbc, pvSolvent)
 
 
 if args.vis:
-    dumpEvery=100
+    dumpEvery = int(0.1 / dt)
     
     solventDump = udx.Plugins.createDumpParticles('partDump', pvSolvent, dumpEvery, [], 'h5/solvent-')
     u.registerPlugins(solventDump)
@@ -74,7 +84,9 @@ if args.vis:
     u.registerPlugins(mdump)
 
 
-u.run(5000)
+tend = int(5.0 / dt)
+    
+u.run(tend)
 
 if pvRbc is not None:
     rbc_pos = pvRbc.getCoordinates()
@@ -87,4 +99,12 @@ if pvRbc is not None:
 # rm -rf pos.rbc.txt pos.rbc.out.txt 
 # cp ../../../data/rbc_mesh.off .
 # udx.run --runargs "-n 2" ./mesh.py > /dev/null
+# mv pos.rbc.txt pos.rbc.out.txt 
+
+# nTEST: bounce.membrane.mesh.substep
+# set -eu
+# cd bounce/membrane
+# rm -rf pos.rbc.txt pos.rbc.out.txt 
+# cp ../../../data/rbc_mesh.off .
+# udx.run --runargs "-n 2" ./mesh.py --subStep > /dev/null
 # mv pos.rbc.txt pos.rbc.out.txt 
