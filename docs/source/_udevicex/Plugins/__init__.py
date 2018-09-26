@@ -154,7 +154,7 @@ class UniformCartesianDumper(PostprocessPlugin):
     r"""None
     """
     def get_channel_view():
-        r"""get_channel_view(arg0: str) -> numpy.ndarray[float32]
+        r"""get_channel_view(arg0: str) -> array
 
         """
         pass

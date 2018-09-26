@@ -33,7 +33,8 @@ typedef unsigned short ushort;
 #endif
 
 #if !defined(__CUDACC__) || defined(__clang__)
-#include <math.h>
+#include <cmath>
+#include <cstdlib>
 
 ////////////////////////////////////////////////////////////////////////////////
 // host implementations of CUDA functions

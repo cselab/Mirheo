@@ -7,8 +7,6 @@
 #include <core/logger.h>
 #include <core/utils/make_unique.h>
 
-
-
 TaskScheduler::TaskScheduler()
 {
     CUDA_Check( cudaDeviceGetStreamPriorityRange(&cudaPriorityLow, &cudaPriorityHigh) );
@@ -345,6 +343,7 @@ void TaskScheduler::run()
     CUDA_Check( cudaDeviceSynchronize() );
 }
 
+// TODO: use pugixml
 void TaskScheduler::saveDependencyGraph_GraphML(std::string fname)
 {
     std::ofstream fout(fname);

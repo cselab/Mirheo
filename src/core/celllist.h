@@ -24,6 +24,7 @@ public:
     CellListInfo(float3 h, float3 localDomainSize);
     CellListInfo(float rc, float3 localDomainSize);
 
+#ifdef __CUDACC__
 // ==========================================================================================================================================
 // Common cell functions
 // ==========================================================================================================================================
@@ -75,6 +76,7 @@ public:
 
         return encode(id.x, id.y, id.z);
     }
+#endif
 };
 
 class CellList : public CellListInfo

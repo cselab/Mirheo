@@ -13,6 +13,8 @@
 #include <unordered_map>
 #include <memory>
 
+#include <cuda_runtime.h>
+
 class TaskScheduler
 {
 public:

@@ -97,6 +97,17 @@ class ParticleVector:
         """
         pass
 
+    def get_indices():
+        r"""get_indices(self: ParticleVectors.ParticleVector) -> List[int]
+
+
+            Returns:
+                A list of unique integer particle identifiers
+        
+
+        """
+        pass
+
     def setCoordinates():
         r"""setCoordinates(coordinates: List[List[float[3]]]) -> None
 
@@ -218,6 +229,17 @@ class ObjectVector(ParticleVector):
         """
         pass
 
+    def get_indices():
+        r"""get_indices(self: ParticleVectors.ParticleVector) -> List[int]
+
+
+            Returns:
+                A list of unique integer particle identifiers
+        
+
+        """
+        pass
+
     def setCoordinates():
         r"""setCoordinates(coordinates: List[List[float[3]]]) -> None
 
@@ -298,6 +320,17 @@ class MembraneVector(ObjectVector):
 
             Returns: 
                 A list of :math:`N \times 3` floats: 3 components of velocity for every of the N particles
+        
+
+        """
+        pass
+
+    def get_indices():
+        r"""get_indices(self: ParticleVectors.ParticleVector) -> List[int]
+
+
+            Returns:
+                A list of unique integer particle identifiers
         
 
         """
@@ -403,6 +436,17 @@ Overloaded function.
         """
         pass
 
+    def get_indices():
+        r"""get_indices(self: ParticleVectors.ParticleVector) -> List[int]
+
+
+            Returns:
+                A list of unique integer particle identifiers
+        
+
+        """
+        pass
+
     def setCoordinates():
         r"""setCoordinates(coordinates: List[List[float[3]]]) -> None
 
@@ -485,6 +529,17 @@ class RigidObjectVector(ObjectVector):
 
             Returns: 
                 A list of :math:`N \times 3` floats: 3 components of velocity for every of the N particles
+        
+
+        """
+        pass
+
+    def get_indices():
+        r"""get_indices(self: ParticleVectors.ParticleVector) -> List[int]
+
+
+            Returns:
+                A list of unique integer particle identifiers
         
 
         """

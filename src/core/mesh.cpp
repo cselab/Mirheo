@@ -173,7 +173,7 @@ void MembraneMesh::findAdjacent()
     const int curMaxDegree = *it;
 
     if (curMaxDegree != maxDegree)
-        die("Degree of vertex %d is %d != %d (did you change the mesh??)", (int)(it - degrees.hostPtr()), curMaxDegree, maxDegree);
+        die("Degree of vertex %d is %d != %d (did you change the mesh?)", (int)(it - degrees.hostPtr()), curMaxDegree, maxDegree);
 
     debug("Max degree of mesh vertices is %d", curMaxDegree);
 

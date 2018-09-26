@@ -613,7 +613,9 @@ void Simulation::assemble()
     // XXX: different dt not implemented
     dt = 1.0;
     for (auto& integr : integratorMap)
-        dt = min(dt, integr.second->dt);
+        dt = std::min(dt, integr.second->dt);
+    
+    info("Time-step is set to %f", dt);
 
     auto task_cellLists                           = scheduler->createTask("Build cell-lists");
     auto task_clearForces                         = scheduler->createTask("Clear forces");

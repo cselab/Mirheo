@@ -3,13 +3,6 @@
 #include <tuple>
 #include "helper_math.h"
 
-#ifdef __CDT_PARSER__
-using cudaStream_t = int;
-const int warpSize = 32;
-
-int3 blockIdx, blockDim, threadIdx;
-#endif
-
 inline int getNblocks(const int n, const int nthreads)
 {
     return (n+nthreads-1) / nthreads;
@@ -25,6 +18,8 @@ __host__ __device__ inline  T sqr(T val)
 {
     return val*val;
 }
+
+#ifdef __CUDACC__
 
 //=======================================================================================
 // Per-warp reduction operations
@@ -294,6 +289,7 @@ __device__ inline float fastPower(const float x, const float k)
     return powf(fabsf(x), k);
 }
 
+#endif
 
 
 

@@ -1,6 +1,8 @@
 #include "udevicex.h"
 
 #include <mpi.h>
+#include <cuda_runtime.h>
+
 #include <core/logger.h>
 #include <core/simulation.h>
 #include <core/postproc.h>
