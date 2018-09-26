@@ -469,7 +469,7 @@ def createTemperaturize():
     pass
 
 def createVelocityControl():
-    r"""createVelocityControl(name: str, filename: str, pvs: List[ParticleVectors.ParticleVector], low: Tuple[float, float, float], high: Tuple[float, float, float], sampleEvery: int, dumpEvery: int, targetVel: Tuple[float, float, float], Kp: float, Ki: float, Kd: float) -> Tuple[Plugins.VelocityControl, Plugins.PostprocessVelocityControl]
+    r"""createVelocityControl(name: str, filename: str, pvs: List[ParticleVectors.ParticleVector], low: Tuple[float, float, float], high: Tuple[float, float, float], sample_every: int, tune_every: int, dump_every: int, target_vel: Tuple[float, float, float], Kp: float, Ki: float, Kd: float) -> Tuple[Plugins.VelocityControl, Plugins.PostprocessVelocityControl]
 
 
         Create :any:`VelocityControl` plugin
@@ -479,9 +479,10 @@ def createVelocityControl():
             filename: dump file name 
             pvs: list of concerned :class:`ParticleVector`
             low, high: boundaries of the domain of interest
-            sampleEvery: sample and adapt force every this many time-steps
-            dumpEvery: write files every this many time-steps
-            targetVel: the target mean velocity of the particles in the domain of interest
+            sample_every: sample velocity every this many time-steps
+            tune_every: adapt the force every this many time-steps
+            dump_every: write files every this many time-steps
+            target_vel: the target mean velocity of the particles in the domain of interest
             Kp, Ki, Kd: PID controller coefficients
     
 

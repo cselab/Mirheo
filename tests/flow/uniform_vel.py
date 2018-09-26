@@ -27,7 +27,7 @@ Kp = 2.0 * factor
 Ki = 1.0 * factor
 Kd = 8.0 * factor
 
-vc = udx.Plugins.createVelocityControl("vc", "vcont.txt", [pv], (0, 0, 0), domain, 5, 50, vtarget, Kp, Ki, Kd)
+vc = udx.Plugins.createVelocityControl("vc", "vcont.txt", [pv], (0, 0, 0), domain, 5, 5, 50, vtarget, Kp, Ki, Kd)
 u.registerPlugins(vc)
 
 stats = udx.Plugins.createStats('stats', "stats.txt", 1000)

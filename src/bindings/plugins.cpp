@@ -358,7 +358,8 @@ void exportPlugins(py::module& m)
                 If the corresponding component should not be restricted, set this value to :and:`PinObjectPlugin::Unrestricted`
     )");
     m.def("__createVelocityControl", &PluginFactory::createSimulationVelocityControlPlugin,
-          "compute_task"_a, "name"_a, "filename"_a, "pvs"_a, "low"_a, "high"_a, "sampleEvery"_a, "dumpEvery"_a, "targetVel"_a, "Kp"_a, "Ki"_a, "Kd"_a, R"(
+          "compute_task"_a, "name"_a, "filename"_a, "pvs"_a, "low"_a, "high"_a,
+          "sample_every"_a, "tune_every"_a, "dump_every"_a, "target_vel"_a, "Kp"_a, "Ki"_a, "Kd"_a, R"(
         Create :any:`VelocityControl` plugin
         
         Args:
@@ -366,9 +367,10 @@ void exportPlugins(py::module& m)
             filename: dump file name 
             pvs: list of concerned :class:`ParticleVector`
             low, high: boundaries of the domain of interest
-            sampleEvery: sample and adapt force every this many time-steps
-            dumpEvery: write files every this many time-steps
-            targetVel: the target mean velocity of the particles in the domain of interest
+            sample_every: sample velocity every this many time-steps
+            tune_every: adapt the force every this many time-steps
+            dump_every: write files every this many time-steps
+            target_vel: the target mean velocity of the particles in the domain of interest
             Kp, Ki, Kd: PID controller coefficients
     )");
     m.def("__createExchangePVSFluxPlane", &PluginFactory::createExchangePVSFluxPlanePlugin,

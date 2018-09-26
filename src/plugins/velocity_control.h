@@ -14,7 +14,8 @@ class SimulationVelocityControl : public SimulationPlugin
 {
 public:
     SimulationVelocityControl(std::string name, std::vector<std::string> pvNames,
-                              float3 low, float3 high, int sampleEvery, int dumpEvery, 
+                              float3 low, float3 high,
+                              int sampleEvery, int tuneEvery, int dumpEvery,
                               float3 targetVel, float Kp, float Ki, float Kd);
 
     void setup(Simulation* sim, const MPI_Comm& comm, const MPI_Comm& interComm) override;
@@ -26,7 +27,7 @@ public:
     bool needPostproc() override { return true; }
 
 private:
-    int sampleEvery, dumpEvery;
+    int sampleEvery, dumpEvery, tuneEvery;
     std::vector<std::string> pvNames;
     std::vector<ParticleVector*> pvs;
 
@@ -35,6 +36,8 @@ private:
 
     PinnedBuffer<int> nSamples{1};
     PinnedBuffer<float3> totVel{1};
+    double3 accumulatedTotVel;
+    
 
     PidControl<float3> pid;
     std::vector<char> sendBuffer;

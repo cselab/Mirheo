@@ -51,13 +51,15 @@ __global__ void sumVelocity(PVview view, DomainInfo domain, float3 low, float3 h
 }
 
 SimulationVelocityControl::SimulationVelocityControl(std::string name, std::vector<std::string> pvNames,
-                                                     float3 low, float3 high, int sampleEvery, int dumpEvery, 
+                                                     float3 low, float3 high,
+                                                     int sampleEvery, int tuneEvery, int dumpEvery,
                                                      float3 targetVel, float Kp, float Ki, float Kd) :
     SimulationPlugin(name), pvNames(pvNames), low(low), high(high),
     currentVel(make_float3(0,0,0)), targetVel(targetVel),
-    dumpEvery(dumpEvery), sampleEvery(sampleEvery),
+    sampleEvery(sampleEvery), tuneEvery(tuneEvery), dumpEvery(dumpEvery), 
     force(make_float3(0, 0, 0)),
-    pid(make_float3(0, 0, 0), Kp, Ki, Kd)
+    pid(make_float3(0, 0, 0), Kp, Ki, Kd),
+    accumulatedTotVel({0,0,0})
 {}
 
 
@@ -71,7 +73,8 @@ void SimulationVelocityControl::setup(Simulation* sim, const MPI_Comm& comm, con
 
 void SimulationVelocityControl::beforeForces(cudaStream_t stream)
 {
-    for (auto &pv : pvs) {
+    for (auto &pv : pvs)
+    {
         PVview view(pv, pv->local());
         const int nthreads = 128;
 
@@ -94,29 +97,34 @@ void SimulationVelocityControl::sampleOnePv(ParticleVector *pv, cudaStream_t str
 
 void SimulationVelocityControl::afterIntegration(cudaStream_t stream)
 {
-    if (currentTimeStep % sampleEvery != 0 || currentTimeStep == 0) return;
+    if (currentTimeStep % sampleEvery == 0 && currentTimeStep != 0)
+    {
+        debug2("Velocity control %s is sampling now", name.c_str());
 
-    debug2("Velocity control %s is sampling now", name.c_str());
-
-    long nSamples_loc, nSamples_tot = 0;
-    double3 totVel_loc, totVel_tot = make_double3(0,0,0);  
+        totVel.clearDevice(stream);
+        for (auto &pv : pvs) sampleOnePv(pv, stream);
+        totVel.downloadFromDevice(stream);
+        accumulatedTotVel.x += totVel[0].x;
+        accumulatedTotVel.y += totVel[0].y;
+        accumulatedTotVel.z += totVel[0].z;
+    }
     
-    totVel.clearDevice(stream);
-    nSamples.clearDevice(stream);
-
-    for (auto &pv : pvs) sampleOnePv(pv, stream);
-
-    totVel.downloadFromDevice(stream, ContainersSynch::Asynch);
+    if (currentTimeStep % tuneEvery != 0 || currentTimeStep == 0) return;
+    
     nSamples.downloadFromDevice(stream);
+    nSamples.clearDevice(stream);
+    
+    long nSamples_loc, nSamples_tot = 0;
+    double3 totVel_tot = make_double3(0,0,0);  
 
     nSamples_loc = nSamples[0];
-    totVel_loc   = make_double3( totVel[0] );
     
-    MPI_Check( MPI_Allreduce(&nSamples_loc, &nSamples_tot, 1, MPI_LONG,   MPI_SUM, comm) );
-    MPI_Check( MPI_Allreduce(&totVel_loc,   &totVel_tot,   3, MPI_DOUBLE, MPI_SUM, comm) );
+    MPI_Check( MPI_Allreduce(&nSamples_loc,        &nSamples_tot, 1, MPI_LONG,   MPI_SUM, comm) );
+    MPI_Check( MPI_Allreduce(&accumulatedTotVel,   &totVel_tot,   3, MPI_DOUBLE, MPI_SUM, comm) );
 
     currentVel = nSamples_tot ? make_float3(totVel_tot / nSamples_tot) : make_float3(0.f, 0.f, 0.f);
     force = pid.update(targetVel - currentVel);
+    accumulatedTotVel = {0,0,0};
 }
 
 void SimulationVelocityControl::serializeAndSend(cudaStream_t stream)
@@ -160,5 +168,7 @@ void PostprocessVelocityControl::deserialize(MPI_Status& stat)
                 vel.x, vel.y, vel.z,
                 force.x, force.y, force.z
                 );
+        
+        fflush(fdump);
     }
 }

@@ -52,7 +52,7 @@ Ki = 1.0 * factor
 Kd = 8.0 * factor
 vtarget = (0.1, 0, 0)
 
-vc = udx.Plugins.createVelocityControl("vc", "vcont.txt", [pv], (0, 0, 0), domain, 5, 50, vtarget, Kp, Ki, Kd)
+vc = udx.Plugins.createVelocityControl("vc", "vcont.txt", [pv], (0, 0, 0), domain, 5, 5, 50, vtarget, Kp, Ki, Kd)
 u.registerPlugins(vc)
 
 sampleEvery = 2
