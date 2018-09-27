@@ -26,7 +26,7 @@ namespace XDMF
             auto dataNode = attrNode.append_child("DataItem");
             dataNode.append_attribute("Dimensions") = ::to_string(globalSize).c_str();
             dataNode.append_attribute("NumberType") = datatypeToString(channel.datatype).c_str();
-            dataNode.append_attribute("Precision") = "4";
+            dataNode.append_attribute("Precision") = std::to_string(datatypeToPrecision(channel.datatype)).c_str();
             dataNode.append_attribute("Format") = "HDF";
             dataNode.text() = (h5filename + ":/" + channel.name).c_str();
         }

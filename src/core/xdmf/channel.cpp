@@ -64,6 +64,15 @@ namespace XDMF
             case Channel::Datatype::Int  : return "Int";
         }
     }
+
+    int datatypeToPrecision(Channel::Datatype dt)
+    {
+        switch (dt)
+        {
+            case Channel::Datatype::Float: return sizeof(float);
+            case Channel::Datatype::Int  : return sizeof(int);
+        }
+    }
     
     Channel::Datatype stringToDatatype(std::string str)
     {
