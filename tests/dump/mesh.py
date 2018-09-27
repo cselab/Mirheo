@@ -33,10 +33,10 @@ u.registerPlugins(mdump)
 
 u.run(3)
 
-mesh = trimesh.load(path + pvname + "_00000.ply")
-
-np.savetxt("vertices.txt", mesh.vertices, fmt="%g")
-np.savetxt("faces.txt",    mesh.faces,    fmt="%d")
+if u.isMasterTask():
+    mesh = trimesh.load(path + pvname + "_00000.ply")
+    np.savetxt("vertices.txt", mesh.vertices, fmt="%g")
+    np.savetxt("faces.txt",    mesh.faces,    fmt="%d")
 
 # TEST: dump.mesh
 # cd dump

@@ -393,5 +393,7 @@ void uDeviceX::run(int nsteps)
         }
         post->run();
     }
+    
+    MPI_Check( MPI_Barrier(MPI_COMM_WORLD) );
 }
 

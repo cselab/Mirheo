@@ -37,6 +37,7 @@ void ObjPositionsPlugin::afterIntegration(cudaStream_t stream)
     if (ov->local()->extraPerObject.checkChannelExists("old_motions"))
         motions.copy( *ov->local()->extraPerObject.getData<RigidMotion> ("old_motions"), stream);
     
+    savedTime = currentTime;
     needToSend=true;
 }
 
@@ -47,7 +48,7 @@ void ObjPositionsPlugin::serializeAndSend(cudaStream_t stream)
     debug2("Plugin %s is sending now data", name.c_str());
 
     waitPrevSend();
-    SimpleSerializer::serialize(sendBuffer, currentTime, ov->domain, ids, coms, motions);
+    SimpleSerializer::serialize(sendBuffer, savedTime, ov->domain, ids, coms, motions);
     send(sendBuffer);
     
     needToSend=false;

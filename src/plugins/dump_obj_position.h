@@ -31,6 +31,7 @@ private:
     HostBuffer<int> ids;
     HostBuffer<LocalObjectVector::COMandExtent> coms;
     HostBuffer<RigidMotion> motions;
+    float savedTime = 0;
 
     std::vector<char> sendBuffer;
 

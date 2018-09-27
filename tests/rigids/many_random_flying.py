@@ -39,7 +39,7 @@ u.registerPlugins( udx.Plugins.createDumpObjectStats("objStats", ov=pvEllipsoid,
 u.run(1000)
 
 
-# cTEST: freefly.onerank
+# nTEST: freefly.onerank
 # set -eu
 # cd rigids
 # f="pos.txt"
@@ -48,7 +48,7 @@ u.run(1000)
 # udx.run --runargs "-n 2" ./many_random_flying.py --nranks 1 1 1 --nobjects 55  $f > /dev/null
 # sort -g -k1 -k2 stats/ellipsoid.txt > freefly.out.txt
 
-# cTEST: freefly.manyranks
+# nTEST: freefly.manyranks
 # set -eu
 # cd rigids
 # f="pos.txt"

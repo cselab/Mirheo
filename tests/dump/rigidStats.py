@@ -21,7 +21,7 @@ u.registerParticleVector(pv=OV, ic=ic)
 ovStats = udx.Plugins.createDumpObjectStats("objStats", ov=OV, dump_every=1, path="stats")
 u.registerPlugins(ovStats)
 
-u.run(2)
+u.run(3)
 
 # TEST: dump.rigidStats
 # cd dump
