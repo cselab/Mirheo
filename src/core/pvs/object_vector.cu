@@ -98,7 +98,7 @@ std::vector<int> ObjectVector::_restartParticleData(MPI_Comm comm, std::string p
     std::string filename = path + "/" + name + ".xmf";
     info("Restarting object vector %s from file %s", name.c_str(), filename.c_str());
 
-    XDMF::read(filename, comm, this, objSize);
+    XDMF::readParticleData(filename, comm, this, objSize);
 
     std::vector<Particle> parts(local()->coosvels.begin(), local()->coosvels.end());
     std::vector<int> map;
@@ -168,7 +168,26 @@ void ObjectVector::_checkpointObjectData(MPI_Comm comm, std::string path)
 
 void ObjectVector::_restartObjectData(MPI_Comm comm, std::string path, const std::vector<int>& map)
 {
-    // TODO
+    CUDA_Check( cudaDeviceSynchronize() );
+
+    std::string filename = path + "/" + name + ".obj.xmf";
+    info("Restarting object vector %s from file %s", name.c_str(), filename.c_str());
+
+    XDMF::readObjectData(filename, comm, this);
+
+    auto loc_ids = local()->extraPerObject.getData<int>("ids");
+    
+    std::vector<int> ids(loc_ids->begin(), loc_ids->end());
+    
+    restart_helpers::exchangeData(comm, map, ids, 1);
+
+    loc_ids->resize_anew(ids.size());
+    std::copy(ids.begin(), ids.end(), loc_ids->begin());
+
+    loc_ids->uploadToDevice(0);
+    CUDA_Check( cudaDeviceSynchronize() );
+
+    info("Successfully read %d particles", local()->coosvels.size());
 }
 
 void ObjectVector::checkpoint(MPI_Comm comm, std::string path)

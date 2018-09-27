@@ -12,6 +12,11 @@ namespace XDMF
     {
         return typeToNcomponents(type);
     }
+
+    int Channel::precision() const
+    {
+        return datatypeToPrecision(datatype);
+    }
     
     std::string typeToXDMFAttribute(Channel::Type type)
     {

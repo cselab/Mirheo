@@ -78,14 +78,14 @@ namespace XDMF
         // TODO extra data
     }
     
-    void read(std::string filename, MPI_Comm comm, ParticleVector *pv, int chunk_size)
+    void readParticleData(std::string filename, MPI_Comm comm, ParticleVector *pv, int chunk_size)
     {
         info("Reading XDMF data from %s", filename.c_str());
 
         std::string h5filename;
         
         auto positions = std::make_shared<std::vector<float>>();
-        std::vector<std::vector<float>> channelData;
+        std::vector<std::vector<char>> channelData;
         std::vector<Channel> channels;
         
         VertexGrid grid(positions, comm);
@@ -101,7 +101,7 @@ namespace XDMF
         channelData.resize(channels.size());        
 
         for (int i = 0; i < channels.size(); ++i) {
-            channelData[i].resize(nElements * channels[i].nComponents());
+            channelData[i].resize(nElements * channels[i].nComponents() * channels[i].precision());
             channels[i].data = channelData[i].data();
         }
         
@@ -109,6 +109,67 @@ namespace XDMF
         info("Reading took %f ms", timer.elapsed());
 
         gatherChannels(channels, *positions, pv);
+    }
+
+    static void gatherChannels(std::vector<Channel> &channels, std::vector<float> &positions, ObjectVector *ov)
+    {
+        int n = positions.size() / 3;
+        const int *ids_data = nullptr;
+
+        auto ids = ov->local()->extraPerObject.getData<int>("ids");
+
+        ids->resize_anew(n);
+
+        for (auto& ch : channels)
+        {
+            if (ch.name == "ids")
+                ids_data = (const int*) ch.data;
+        }
+
+        if (n > 0 && ids_data == nullptr)
+            die("Channel 'ids' is required to read XDMF into an object vector");
+
+        for (int i = 0; i < n; ++i)
+        {
+            (*ids)[i] = ids_data[i];
+        }
+
+        ids->uploadToDevice(0);
+
+        // TODO extra data
+    }
+
+    void readObjectData(std::string filename, MPI_Comm comm, ObjectVector *ov)
+    {
+        info("Reading XDMF data from %s", filename.c_str());
+
+        std::string h5filename;
+        
+        auto positions = std::make_shared<std::vector<float>>();
+        std::vector<std::vector<char>> channelData;
+        std::vector<Channel> channels;
+        
+        VertexGrid grid(positions, comm);
+
+        mTimer timer;
+        timer.start();
+        XMF::read(filename, comm, h5filename, &grid, channels);
+        grid.split_read_access(comm, 1);
+
+        h5filename = parentPath(filename) + h5filename;
+
+        long nElements = getLocalNumElements(&grid);
+        channelData.resize(channels.size());        
+
+        for (int i = 0; i < channels.size(); ++i) {
+            channelData[i].resize(nElements * channels[i].nComponents() * channels[i].precision());
+            channels[i].data = channelData[i].data();
+        }
+        
+        HDF5::read(h5filename, comm, &grid, channels);
+        info("Reading took %f ms", timer.elapsed());
+
+        gatherChannels(channels, *positions, ov);
     }
 
 }

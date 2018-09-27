@@ -22,6 +22,7 @@ namespace XDMF
         
         Channel(std::string name, void *data, Type type, Datatype datatype = Datatype::Float);
         int nComponents() const;
+        int precision() const;
     };
     
     std::string typeToXDMFAttribute (Channel::Type type);

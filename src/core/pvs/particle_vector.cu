@@ -291,7 +291,7 @@ std::vector<int> ParticleVector::_restartParticleData(MPI_Comm comm, std::string
     std::string filename = path + "/" + name + ".xmf";
     info("Restarting particle vector %s from file %s", name.c_str(), filename.c_str());
 
-    XDMF::read(filename, comm, this);
+    XDMF::readParticleData(filename, comm, this);
 
     std::vector<Particle> parts(local()->coosvels.begin(), local()->coosvels.end());
     std::vector<int> map;
