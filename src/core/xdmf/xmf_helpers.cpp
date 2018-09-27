@@ -11,7 +11,7 @@ namespace XDMF
         {            
             auto attrNode = node.append_child("Attribute");
             attrNode.append_attribute("Name") = channel.name.c_str();
-            attrNode.append_attribute("AttributeType") = typeToString(channel.type).c_str();
+            attrNode.append_attribute("AttributeType") = typeToXDMFAttribute(channel.type).c_str();
             attrNode.append_attribute("Center") = grid->getCentering().c_str();
             
             // Write type information

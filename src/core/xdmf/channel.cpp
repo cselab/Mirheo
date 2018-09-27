@@ -14,7 +14,7 @@ namespace XDMF
                 name.c_str(), sizeof(float), entrySize_bytes);
     }
 
-    std::string typeToString(Channel::Type type)
+    std::string typeToXDMFAttribute(Channel::Type type)
     {
         switch (type)
         {

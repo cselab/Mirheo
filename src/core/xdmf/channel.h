@@ -26,9 +26,9 @@ namespace XDMF
                 std::string typeStr = "float", Datatype datatype = Datatype::Float);
     };
     
-    std::string typeToString(Channel::Type type);
+    std::string typeToXDMFAttribute(Channel::Type type);
     int typeToNcomponents(Channel::Type type);
-    Channel::Type stringToType(std::string str);    
+    Channel::Type stringToType(std::string str);
     
     decltype (H5T_NATIVE_FLOAT) datatypeToHDF5type(Channel::Datatype dt);
     std::string datatypeToString(Channel::Datatype dt);
