@@ -33,5 +33,5 @@ namespace XDMF
     decltype (H5T_NATIVE_FLOAT) datatypeToHDF5type(Channel::Datatype dt);
     std::string datatypeToString(Channel::Datatype dt);
     int datatypeToPrecision(Channel::Datatype dt);
-    Channel::Datatype stringToDatatype(std::string str);
+    Channel::Datatype infoToDatatype(std::string str, int precision);
 }

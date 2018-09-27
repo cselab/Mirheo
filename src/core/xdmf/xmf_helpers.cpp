@@ -75,7 +75,8 @@ namespace XDMF
             auto type = string_to_type (channelType);
 
             std::string channelDatatype = dataNode.attribute("NumberType").value();
-            auto datatype = stringToDatatype(channelDatatype);
+            int precision = dataNode.attribute("Precision").as_int();
+            auto datatype = infoToDatatype(channelDatatype, precision);
 
             if (type == Channel::Type::Other)
                 die("Unrecognised type %s", channelType.c_str());

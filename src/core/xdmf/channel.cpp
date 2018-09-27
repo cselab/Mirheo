@@ -74,10 +74,10 @@ namespace XDMF
         }
     }
     
-    Channel::Datatype stringToDatatype(std::string str)
+    Channel::Datatype infoToDatatype(std::string str, int precision)
     {
-        if (str == "Float") return Channel::Datatype::Float;
-        if (str == "Int")   return Channel::Datatype::Int;           
-        die("Datatype '%s' is not supported for reading", str.c_str());
+        if (precision == sizeof(float) && str == "Float") return Channel::Datatype::Float;
+        if (precision == sizeof(int)   && str == "Int")   return Channel::Datatype::Int;
+        die("Datatype '%s' with precision %d is not supported for reading", str.c_str(), precision);
     }
 }
