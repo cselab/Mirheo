@@ -5,10 +5,6 @@ import numpy as np
 import argparse
 import trimesh
 
-import  mpi4py
-mpi4py.rc(initialize=False, finalize=False)
-from mpi4py import MPI
-
 parser = argparse.ArgumentParser()
 parser.add_argument("--restart", action='store_true', default=False)
 parser.add_argument("--ranks", type=int, nargs=3)
@@ -47,34 +43,24 @@ else:
 
 u.registerParticleVector(pv, ic)
 
+if args.restart:
+    stats = udx.Plugins.createDumpObjectStats("objStats", ov=pv, dump_every=5, path="stats")
+    u.registerPlugins(stats)
+
 u.run(7)
-
-comm = MPI.COMM_WORLD
-rank = comm.Get_rank()
-
-if args.restart and pv:
-    color = 1
-else:
-    color = 0
-comm = comm.Split(color, rank)
-
-if args.restart and pv:    
-    Pos = pv.getCoordinates()
-    Vel = pv.getVelocities()
-
-    data = np.concatenate((Pos, Vel), axis=1)
-    data = comm.gather(data, root=0)
-
-    if comm.Get_rank() == 0:
-        data = np.concatenate(data)
-        np.savetxt("parts.txt", data)
     
 
-# sTEST: restart.rigidVector
+# TEST: restart.rigidVector
 # cd restart
-# rm -rf restart parts.out.txt parts.txt
+# rm -rf restart stats stats.rigid*txt
 # udx.run --runargs "-n 1" ./rigidVector.py --ranks 1 1 1           > /dev/null
-# : udx.run --runargs "-n 1" ./rigidVector.py --ranks 1 1 1 --restart > /dev/null
-# cat parts.txt | sort > parts.out.txt
+# udx.run --runargs "-n 2" ./rigidVector.py --ranks 1 1 1 --restart > /dev/null
+# cat stats/pv.txt | sort > stats.rigid.out.txt
 
+# TEST: restart.rigidVector.mpi
+# cd restart
+# rm -rf restart stats stats.rigid*txt
+# udx.run --runargs "-n 2" ./rigidVector.py --ranks 1 1 2           > /dev/null
+# udx.run --runargs "-n 4" ./rigidVector.py --ranks 1 1 2 --restart > /dev/null
+# cat stats/pv.txt | sort > stats.rigid.out.txt
 
