@@ -45,8 +45,8 @@ namespace XDMF
             std::reverse(localSize .begin(), localSize .end());
             std::reverse(globalSize.begin(), globalSize.end());
             
-            localSize.push_back(channel.entrySize_floats);
-            globalSize.push_back(channel.entrySize_floats);
+            localSize .push_back(channel.nComponents());
+            globalSize.push_back(channel.nComponents());
             
             // Float or Int
             auto datatype = datatypeToHDF5type(channel.datatype);
@@ -94,7 +94,7 @@ namespace XDMF
             // What. The. F.
             std::reverse(localSize .begin(), localSize .end());
             
-            localSize.push_back(channel.entrySize_floats);
+            localSize.push_back(channel.nComponents());
             
             hid_t dset_id       = H5Dopen(file_id, channel.name.c_str(), H5P_DEFAULT);            
             hid_t xfer_plist_id = H5Pcreate(H5P_DATASET_XFER);

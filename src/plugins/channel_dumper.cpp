@@ -29,22 +29,22 @@ void UniformCartesianDumper::handshake()
     MPI_Check( MPI_Cart_create(comm, 3, ranksArr, periods, 0, &cartComm) );
     grid = std::make_unique<XDMF::UniformGrid>(resolution, h, cartComm);
         
-    auto init_channel = [] (XDMF::Channel::Type type, int sz, const std::string& str) {
-        return XDMF::Channel(str, nullptr, type, sz*sizeof(float), "float" + std::to_string(sz));
+    auto init_channel = [] (XDMF::Channel::Type type, const std::string& str) {
+        return XDMF::Channel(str, nullptr, type);
     };
     
     // Density is a special channel which is always present
     std::string allNames = "density";
-    channels.push_back(init_channel(XDMF::Channel::Type::Scalar, 1, "density"));
+    channels.push_back(init_channel(XDMF::Channel::Type::Scalar, "density"));
     
-    for (int i=0; i<sizes.size(); i++)
+    for (int i = 0; i < sizes.size(); i++)
     {
         allNames += ", " + names[i];
         switch (sizes[i])
         {
-            case 1: channels.push_back(init_channel(XDMF::Channel::Type::Scalar,  sizes[i], names[i])); break;
-            case 3: channels.push_back(init_channel(XDMF::Channel::Type::Vector,  sizes[i], names[i])); break;
-            case 6: channels.push_back(init_channel(XDMF::Channel::Type::Tensor6, sizes[i], names[i])); break;
+            case 1: channels.push_back(init_channel(XDMF::Channel::Type::Scalar,  names[i])); break;
+            case 3: channels.push_back(init_channel(XDMF::Channel::Type::Vector,  names[i])); break;
+            case 6: channels.push_back(init_channel(XDMF::Channel::Type::Tensor6, names[i])); break;
 
             default:
                 die("Plugin '%s' got %d as a channel '%s' size, expected 1, 3 or 6", name.c_str(), sizes[i], names[i].c_str());

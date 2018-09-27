@@ -77,7 +77,11 @@ namespace XDMF
         auto setup3Fnode = [] (pugi::xml_node& n, std::string nodeName)
         {
             const std::array< std::pair<std::string, std::string>, 5 > name_vals = {{
-                { "Name", nodeName }, { "Dimensions", "3" }, { "NumberType", "float" }, { "Precision", "4" }, { "Format", "XML" }
+                { "Name", nodeName },
+                { "Dimensions", "3" },
+                { "NumberType", datatypeToString(Channel::Datatype::Float) },
+                { "Precision", std::to_string(datatypeToPrecision(Channel::Datatype::Float)) },
+                { "Format", "XML" }
             }};
            
             for (auto& name_val : name_vals)
@@ -176,7 +180,7 @@ namespace XDMF
 
     void VertexGrid::write_to_HDF5(hid_t file_id, MPI_Comm comm) const
     {
-        Channel posCh(positionChannelName, (void*) positions->data(), Channel::Type::Vector, 3*sizeof(float), "float3");
+        Channel posCh(positionChannelName, (void*) positions->data(), Channel::Type::Vector);
         
         HDF5::writeDataSet(file_id, this, posCh);
     }
@@ -196,8 +200,8 @@ namespace XDMF
         
         auto partNode = geomNode.append_child("DataItem");
         partNode.append_attribute("Dimensions") = (std::to_string(nglobal) + " 3").c_str();
-        partNode.append_attribute("NumberType") = "Float";
-        partNode.append_attribute("Precision") = "4";
+        partNode.append_attribute("NumberType") = datatypeToString(Channel::Datatype::Float).c_str();
+        partNode.append_attribute("Precision") = std::to_string(datatypeToPrecision(Channel::Datatype::Float)).c_str();
         partNode.append_attribute("Format") = "HDF";
         partNode.text() = (h5filename + ":/" + positionChannelName).c_str();
         
@@ -254,7 +258,7 @@ namespace XDMF
     void VertexGrid::read_from_HDF5(hid_t file_id, MPI_Comm comm)
     {
         positions->resize(nlocal * 3);
-        Channel posCh(positionChannelName, (void*) positions->data(), Channel::Type::Vector, 3*sizeof(float), "float3");
+        Channel posCh(positionChannelName, (void*) positions->data(), Channel::Type::Vector);
         
         HDF5::readDataSet(file_id, this, posCh);
     }

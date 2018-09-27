@@ -2,7 +2,10 @@
 #include "views/rov.h"
 
 #include <core/utils/kernel_launch.h>
+#include <core/utils/folders.h>
 #include <core/rigid_kernels/integration.h>
+#include <core/xdmf/xdmf.h>
+#include "restart_helpers.h"
 
 RigidObjectVector::RigidObjectVector(std::string name, float partMass,
                                      float3 J, const int objSize,
@@ -74,4 +77,103 @@ DeviceBuffer<Force>* LocalRigidObjectVector::getMeshForces(cudaStream_t stream)
     meshForces.resize_anew(nObjects * ov->mesh->getNvertices());
 
     return &meshForces;
+}
+
+// TODO refactor this
+
+static void splitMotions(DomainInfo domain, const PinnedBuffer<RigidMotion>& motions,
+                         std::vector<float> &pos, std::vector<RigidReal4> &quaternion,
+                         std::vector<RigidReal3> &vel, std::vector<RigidReal3> &omega,
+                         std::vector<RigidReal3> &force, std::vector<RigidReal3> &torque)
+{
+    int n = motions.size();
+    pos  .resize(3*n); quaternion.resize(n);
+    vel  .resize(n);        omega.resize(n);
+    force.resize(n);       torque.resize(n);
+
+    float3 *pos3 = (float3*) pos.data();
+    
+    for (int i = 0; i < n; ++i) {
+        auto m = motions[i];
+        pos3[i] = domain.local2global(make_float3(m.r));
+        quaternion[i] = m.q;
+        vel[i] = m.vel;
+        omega[i] = m.omega;
+        force[i] = m.force;
+        torque[i] = m.torque;
+    }
+}
+
+void RigidObjectVector::_checkpointObjectData(MPI_Comm comm, std::string path)
+{
+    CUDA_Check( cudaDeviceSynchronize() );
+
+    std::string filename = path + "/" + name + ".obj-" + getStrZeroPadded(restartIdx);
+    info("Checkpoint for rigid object vector '%s', writing to file %s", name.c_str(), filename.c_str());
+
+    auto ids          = local()->extraPerObject.getData<int>("ids");
+    auto motions      = local()->extraPerObject.getData<RigidMotion>("motions");
+
+    ids         ->downloadFromDevice(0, ContainersSynch::Asynch);
+    motions     ->downloadFromDevice(0, ContainersSynch::Synch);
+    
+    auto positions = std::make_shared<std::vector<float>>();
+    std::vector<RigidReal4> quaternion;
+    std::vector<RigidReal3> vel, omega, force, torque;
+    
+    splitMotions(domain, *motions, *positions, quaternion, vel, omega, force, torque);
+
+    XDMF::VertexGrid grid(positions, comm);    
+
+#ifdef RIGID_MOTIONS_DOUBLE
+    auto rigidType = XDMF::Channel::Datatype::Double;
+#else
+    auto rigidType = XDMF::Channel::Datatype::Float;
+#endif
+
+    std::vector<XDMF::Channel> channels = {
+        XDMF::Channel( "ids",        ids       ->data(), XDMF::Channel::Type::Scalar,     XDMF::Channel::Datatype::Int ),
+        XDMF::Channel( "quaternion", quaternion .data(), XDMF::Channel::Type::Quaternion, rigidType ),
+        XDMF::Channel( "velocity",   vel        .data(), XDMF::Channel::Type::Vector,     rigidType ),
+        XDMF::Channel( "omega",      omega      .data(), XDMF::Channel::Type::Vector,     rigidType ),
+        XDMF::Channel( "force",      force      .data(), XDMF::Channel::Type::Vector,     rigidType ),
+        XDMF::Channel( "torque",     torque     .data(), XDMF::Channel::Type::Vector,     rigidType )
+    };         
+    
+    XDMF::write(filename, &grid, channels, comm);
+
+    restart_helpers::make_symlink(comm, path, name + ".obj", filename);
+
+    debug("Checkpoint for object vector '%s' successfully written", name.c_str());
+}
+
+void RigidObjectVector::_restartObjectData(MPI_Comm comm, std::string path, const std::vector<int>& map)
+{
+    CUDA_Check( cudaDeviceSynchronize() );
+
+    std::string filename = path + "/" + name + ".obj.xmf";
+    info("Restarting object vector %s from file %s", name.c_str(), filename.c_str());
+
+    XDMF::readRigidObjectData(filename, comm, this);
+
+    auto loc_ids     = local()->extraPerObject.getData<int>("ids");
+    auto loc_motions = local()->extraPerObject.getData<RigidMotion>("motions");
+    
+    std::vector<int>             ids(loc_ids    ->begin(), loc_ids    ->end());
+    std::vector<RigidMotion> motions(loc_motions->begin(), loc_motions->end());
+    
+    restart_helpers::exchangeData(comm, map, ids, 1);
+    restart_helpers::exchangeData(comm, map, motions, 1);
+
+    loc_ids->resize_anew(ids.size());
+    loc_motions->resize_anew(motions.size());
+
+    std::copy(ids.begin(), ids.end(), loc_ids->begin());
+    std::copy(motions.begin(), motions.end(), loc_motions->begin());
+
+    loc_ids->uploadToDevice(0);
+    loc_motions->uploadToDevice(0);
+    CUDA_Check( cudaDeviceSynchronize() );
+
+    info("Successfully read %d object infos", loc_motions->size());
 }

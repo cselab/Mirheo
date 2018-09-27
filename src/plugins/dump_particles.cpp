@@ -92,7 +92,7 @@ void ParticleDumperPlugin::handshake()
     SimpleSerializer::deserialize(data, sizes, names);
     
     auto init_channel = [] (XDMF::Channel::Type type, int sz, const std::string& str) {
-        return XDMF::Channel(str, nullptr, type, sz*sizeof(float), "float" + std::to_string(sz));
+        return XDMF::Channel(str, nullptr, type);
     };
 
     // Velocity is a special channel which is always present

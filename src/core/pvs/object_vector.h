@@ -104,8 +104,8 @@ public:
     LocalObjectVector* local() { return static_cast<LocalObjectVector*>(_local); }
     LocalObjectVector* halo()  { return static_cast<LocalObjectVector*>(_halo);  }
 
-    //virtual void checkpoint(MPI_Comm comm, std::string path);
-    void restart(MPI_Comm comm, std::string path) override;
+    void checkpoint (MPI_Comm comm, std::string path) override;
+    void restart    (MPI_Comm comm, std::string path) override;
 
     template<typename T>
     void requireDataPerObject(std::string name, bool needExchange)
@@ -122,6 +122,14 @@ public:
 
     virtual ~ObjectVector() = default;
 
+protected:
+
+    void _getRestartExchangeMap(MPI_Comm comm, const std::vector<Particle> &parts, std::vector<int>& map) override;
+    std::vector<int> _restartParticleData(MPI_Comm comm, std::string path) override;
+
+    virtual void _checkpointObjectData(MPI_Comm comm, std::string path);
+    virtual void _restartObjectData(MPI_Comm comm, std::string path, const std::vector<int>& map);
+    
 private:
     template<typename T>
     void requireDataPerObject(LocalObjectVector* lov, std::string name, bool needExchange, int shiftDataType)

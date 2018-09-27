@@ -8,29 +8,33 @@ namespace XDMF
     struct Channel
     {
         std::string name;
-        std::string typeStr;
-        void* data;
-        int entrySize_floats;
+        void *data;
         
         enum class Type
         {
-            Scalar, Vector, Tensor6, Tensor9, Other
+            Scalar, Vector, Tensor6, Tensor9, Quaternion, Other
         } type;
         
         enum class Datatype
         {
-            Float, Int
+            Float, Int, Double
         } datatype;
         
-        Channel(std::string name, void* data, Type type, int entrySize_bytes,
-                std::string typeStr = "float", Datatype datatype = Datatype::Float);
+        Channel(std::string name, void *data, Type type, Datatype datatype = Datatype::Float);
+        int nComponents() const;
+        int precision() const;
     };
-
-    Channel::Type string_to_type(std::string str);
-    std::string type_to_string(Channel::Type type);
-    int get_ncomponents(Channel::Type type);
     
-    decltype (H5T_NATIVE_FLOAT) datatypeToHDF5type(Channel::Datatype dt);
-    std::string datatypeToString(Channel::Datatype dt);
-    Channel::Datatype stringToDatatype(std::string str);
+    std::string typeToXDMFAttribute (Channel::Type type);
+    int         typeToNcomponents   (Channel::Type type);
+    std::string typeToDescription   (Channel::Type type);
+
+    Channel::Type descriptionToType(std::string str);
+    
+
+    decltype (H5T_NATIVE_FLOAT) datatypeToHDF5type  (Channel::Datatype dt);
+    std::string                 datatypeToString    (Channel::Datatype dt);
+    int                         datatypeToPrecision (Channel::Datatype dt);
+
+    Channel::Datatype infoToDatatype(std::string str, int precision);
 }

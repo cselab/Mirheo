@@ -11,22 +11,22 @@ namespace XDMF
         {            
             auto attrNode = node.append_child("Attribute");
             attrNode.append_attribute("Name") = channel.name.c_str();
-            attrNode.append_attribute("AttributeType") = type_to_string(channel.type).c_str();
+            attrNode.append_attribute("AttributeType") = typeToXDMFAttribute(channel.type).c_str();
             attrNode.append_attribute("Center") = grid->getCentering().c_str();
             
             // Write type information
             auto infoNode = attrNode.append_child("Information");
             infoNode.append_attribute("Name") = "Typeinfo";
-            infoNode.append_attribute("Value") = channel.typeStr.c_str();
+            infoNode.append_attribute("Value") = typeToDescription(channel.type).c_str();
             
             // Add one more dimension: number of floats per data item
             auto globalSize = grid->getGlobalSize();
-            globalSize.push_back(channel.entrySize_floats);
+            globalSize.push_back(channel.nComponents());
             
             auto dataNode = attrNode.append_child("DataItem");
             dataNode.append_attribute("Dimensions") = ::to_string(globalSize).c_str();
             dataNode.append_attribute("NumberType") = datatypeToString(channel.datatype).c_str();
-            dataNode.append_attribute("Precision") = "4";
+            dataNode.append_attribute("Precision") = std::to_string(datatypeToPrecision(channel.datatype)).c_str();
             dataNode.append_attribute("Format") = "HDF";
             dataNode.text() = (h5filename + ":/" + channel.name).c_str();
         }
@@ -37,7 +37,7 @@ namespace XDMF
                 writeDataSet(node, h5filename, grid, channel);
         }
 
-        static bool is_master_rank(MPI_Comm comm)
+        static bool isMasterRank(MPI_Comm comm)
         {
             int rank;
             MPI_Check( MPI_Comm_rank(comm, &rank) );
@@ -46,7 +46,7 @@ namespace XDMF
         
         void write(std::string filename, std::string h5filename, MPI_Comm comm, const Grid *grid, const std::vector<Channel>& channels, float time)
         {
-            if (is_master_rank(comm)) {
+            if (isMasterRank(comm)) {
                 pugi::xml_document doc;
                 auto root = doc.append_child("Xdmf");
                 root.append_attribute("Version") = "3.0";
@@ -68,21 +68,19 @@ namespace XDMF
             auto infoNode = node.child("Information");
             auto dataNode = node.child("DataItem");
 
-            std::string name    = node.attribute("Name").value();
-            std::string typeStr = infoNode.attribute("Value").value();
+            std::string name            = node.attribute("Name").value();
+            std::string typeDescription = infoNode.attribute("Value").value();
 
-            std::string channelType = node.attribute("AttributeType").value();
-            auto type = string_to_type (channelType);
+            auto type = descriptionToType(typeDescription);
 
             std::string channelDatatype = dataNode.attribute("NumberType").value();
-            auto datatype = stringToDatatype(channelDatatype);
+            int precision = dataNode.attribute("Precision").as_int();
+            auto datatype = infoToDatatype(channelDatatype, precision);
 
             if (type == Channel::Type::Other)
-                die("Unrecognised type %s", channelType.c_str());
+                die("Unrecognised type %s", typeDescription.c_str());
             
-            int entrySize_bytes = get_ncomponents(type) * sizeof(float);
-
-            return Channel(name, nullptr, type, entrySize_bytes, typeStr, datatype);
+            return Channel(name, nullptr, type, datatype);
         }
         
         static void readData(pugi::xml_node node, std::vector<Channel>& channels)

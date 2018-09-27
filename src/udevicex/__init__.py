@@ -14,7 +14,7 @@ import re
 
 from libudevicex import *
 
-__all__ = ["version"]
+__all__ = ["version", "tools"]
 
 
 # Global variable for the udevicex coordination class
