@@ -266,8 +266,8 @@ void ParticleVector::checkpoint(MPI_Comm comm, std::string path)
     XDMF::VertexGrid grid(positions, comm);
 
     std::vector<XDMF::Channel> channels;
-    channels.push_back(XDMF::Channel("velocity", velocities.data(), XDMF::Channel::Type::Vector, 3*sizeof(float)));
-    channels.push_back(XDMF::Channel( "ids", ids.data(), XDMF::Channel::Type::Scalar, sizeof(float), XDMF::Channel::Datatype::Int ));
+    channels.push_back(XDMF::Channel("velocity", velocities.data(), XDMF::Channel::Type::Vector));
+    channels.push_back(XDMF::Channel( "ids", ids.data(), XDMF::Channel::Type::Scalar, XDMF::Channel::Datatype::Int ));
     
     XDMF::write(filename, &grid, channels, comm);
 

@@ -4,16 +4,15 @@
 
 namespace XDMF
 {
-    Channel::Channel(std::string name, void* data, Type type, int entrySize_bytes, Datatype datatype) :
-        name(name), data((float*)data), type(type),
-        entrySize_floats(entrySize_bytes / sizeof(float)),
-        datatype(datatype)
-    {
-        if (entrySize_floats*sizeof(float) != entrySize_bytes)
-            die("Channel('%s') should have a chunk size in bytes divisible by %d (got %d)",
-                name.c_str(), sizeof(float), entrySize_bytes);
-    }
+    Channel::Channel(std::string name, void* data, Type type, Datatype datatype) :
+        name(name), data(data), type(type), datatype(datatype)
+    {}
 
+    int Channel::nComponents() const
+    {
+        return typeToNcomponents(type);
+    }
+    
     std::string typeToXDMFAttribute(Channel::Type type)
     {
         switch (type)

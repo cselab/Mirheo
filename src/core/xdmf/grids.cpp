@@ -180,7 +180,7 @@ namespace XDMF
 
     void VertexGrid::write_to_HDF5(hid_t file_id, MPI_Comm comm) const
     {
-        Channel posCh(positionChannelName, (void*) positions->data(), Channel::Type::Vector, 3*sizeof(float));
+        Channel posCh(positionChannelName, (void*) positions->data(), Channel::Type::Vector);
         
         HDF5::writeDataSet(file_id, this, posCh);
     }
@@ -258,7 +258,7 @@ namespace XDMF
     void VertexGrid::read_from_HDF5(hid_t file_id, MPI_Comm comm)
     {
         positions->resize(nlocal * 3);
-        Channel posCh(positionChannelName, (void*) positions->data(), Channel::Type::Vector, 3*sizeof(float));
+        Channel posCh(positionChannelName, (void*) positions->data(), Channel::Type::Vector);
         
         HDF5::readDataSet(file_id, this, posCh);
     }

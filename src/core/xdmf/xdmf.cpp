@@ -101,7 +101,7 @@ namespace XDMF
         channelData.resize(channels.size());        
 
         for (int i = 0; i < channels.size(); ++i) {
-            channelData[i].resize(nElements * channels[i].entrySize_floats);
+            channelData[i].resize(nElements * channels[i].nComponents());
             channels[i].data = channelData[i].data();
         }
         

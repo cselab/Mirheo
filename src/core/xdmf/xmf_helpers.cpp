@@ -21,7 +21,7 @@ namespace XDMF
             
             // Add one more dimension: number of floats per data item
             auto globalSize = grid->getGlobalSize();
-            globalSize.push_back(channel.entrySize_floats);
+            globalSize.push_back(channel.nComponents());
             
             auto dataNode = attrNode.append_child("DataItem");
             dataNode.append_attribute("Dimensions") = ::to_string(globalSize).c_str();
@@ -37,7 +37,7 @@ namespace XDMF
                 writeDataSet(node, h5filename, grid, channel);
         }
 
-        static bool is_master_rank(MPI_Comm comm)
+        static bool isMasterRank(MPI_Comm comm)
         {
             int rank;
             MPI_Check( MPI_Comm_rank(comm, &rank) );
@@ -46,7 +46,7 @@ namespace XDMF
         
         void write(std::string filename, std::string h5filename, MPI_Comm comm, const Grid *grid, const std::vector<Channel>& channels, float time)
         {
-            if (is_master_rank(comm)) {
+            if (isMasterRank(comm)) {
                 pugi::xml_document doc;
                 auto root = doc.append_child("Xdmf");
                 root.append_attribute("Version") = "3.0";
@@ -80,9 +80,7 @@ namespace XDMF
             if (type == Channel::Type::Other)
                 die("Unrecognised type %s", typeDescription.c_str());
             
-            int entrySize_bytes = typeToNcomponents(type) * precision;
-
-            return Channel(name, nullptr, type, entrySize_bytes, datatype);
+            return Channel(name, nullptr, type, datatype);
         }
         
         static void readData(pugi::xml_node node, std::vector<Channel>& channels)

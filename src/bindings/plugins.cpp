@@ -170,7 +170,7 @@ void exportPlugins(py::module& m)
         .def("get_channel_view", [] (const UniformCartesianDumper &dumper, std::string chname) {
             auto ch = dumper.getChannelOrDie(chname);
             auto resolution = dumper.getLocalResolution();
-            resolution.push_back(ch.entrySize_floats);
+            resolution.push_back(ch.nComponents());
             
             pybind11::dtype dt;
             if (ch.datatype == XDMF::Channel::Datatype::Float) dt = pybind11::dtype::of<float>();

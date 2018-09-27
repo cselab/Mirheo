@@ -8,8 +8,7 @@ namespace XDMF
     struct Channel
     {
         std::string name;
-        void* data;
-        int entrySize_floats;
+        void *data;
         
         enum class Type
         {
@@ -21,8 +20,8 @@ namespace XDMF
             Float, Int, Double
         } datatype;
         
-        Channel(std::string name, void* data, Type type, int entrySize_bytes,
-                Datatype datatype = Datatype::Float);
+        Channel(std::string name, void *data, Type type, Datatype datatype = Datatype::Float);
+        int nComponents() const;
     };
     
     std::string typeToXDMFAttribute (Channel::Type type);
