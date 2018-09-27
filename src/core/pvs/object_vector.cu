@@ -3,6 +3,7 @@
 
 #include <core/utils/kernel_launch.h>
 #include <core/utils/cuda_common.h>
+#include <core/utils/folders.h>
 #include <core/xdmf/xdmf.h>
 
 #include "restart_helpers.h"
@@ -90,7 +91,7 @@ void ObjectVector::_getRestartExchangeMap(MPI_Comm comm, const std::vector<Parti
 }
 
 
-void ObjectVector::_restartParticleData(MPI_Comm comm, std::string path)
+std::vector<int> ObjectVector::_restartParticleData(MPI_Comm comm, std::string path)
 {
     CUDA_Check( cudaDeviceSynchronize() );
 
@@ -118,14 +119,54 @@ void ObjectVector::_restartParticleData(MPI_Comm comm, std::string path)
     CUDA_Check( cudaDeviceSynchronize() );
 
     info("Successfully read %d particles", local()->coosvels.size());
+
+    return map;
+}
+
+static void splitCom(DomainInfo domain, const PinnedBuffer<LocalObjectVector::COMandExtent>& com_extents, std::vector<float> &positions)
+{
+    int n = com_extents.size();
+    positions.resize(3 * n);
+
+    float3 *pos = (float3*) positions.data();
+    
+    for (int i = 0; i < n; ++i) {
+        auto r = com_extents[i].com;
+        pos[i] = domain.local2global(r);
+    }
 }
 
 void ObjectVector::_checkpointObjectData(MPI_Comm comm, std::string path)
 {
-    // TODO
+    CUDA_Check( cudaDeviceSynchronize() );
+
+    std::string filename = path + "/" + name + ".obj-" + getStrZeroPadded(restartIdx);
+    info("Checkpoint for object vector '%s', writing to file %s", name.c_str(), filename.c_str());
+
+    auto coms_extents = local()->extraPerObject.getData<LocalObjectVector::COMandExtent>("com_extents");
+    auto ids          = local()->extraPerObject.getData<int>("ids");
+
+    coms_extents->downloadFromDevice(0, ContainersSynch::Synch);
+    ids         ->downloadFromDevice(0, ContainersSynch::Synch);
+
+    
+    auto positions = std::make_shared<std::vector<float>>();
+
+    splitCom(domain, *coms_extents, *positions);
+
+    XDMF::VertexGrid grid(positions, comm);
+
+    std::vector<XDMF::Channel> channels;
+    channels.push_back(XDMF::Channel( "ids", ids->data(), XDMF::Channel::Type::Scalar, XDMF::Channel::Datatype::Int ));
+    
+    XDMF::write(filename, &grid, channels, comm);
+
+    restart_helpers::make_symlink(comm, path, name + ".obj", filename);
+
+    debug("Checkpoint for object vector '%s' successfully written", name.c_str());
 }
 
-void ObjectVector::_restartObjectData(MPI_Comm comm, std::string path)
+void ObjectVector::_restartObjectData(MPI_Comm comm, std::string path, const std::vector<int>& map)
 {
     // TODO
 }
@@ -139,6 +180,6 @@ void ObjectVector::checkpoint(MPI_Comm comm, std::string path)
 
 void ObjectVector::restart(MPI_Comm comm, std::string path)
 {
-    _restartParticleData(comm, path);
-    _restartObjectData(comm, path);
+    auto map = _restartParticleData(comm, path);
+    _restartObjectData(comm, path, map);
 }

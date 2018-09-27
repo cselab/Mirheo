@@ -284,7 +284,7 @@ void ParticleVector::_getRestartExchangeMap(MPI_Comm comm, const std::vector<Par
     }
 }
 
-void ParticleVector::_restartParticleData(MPI_Comm comm, std::string path)
+std::vector<int> ParticleVector::_restartParticleData(MPI_Comm comm, std::string path)
 {
     CUDA_Check( cudaDeviceSynchronize() );
 
@@ -304,6 +304,8 @@ void ParticleVector::_restartParticleData(MPI_Comm comm, std::string path)
     CUDA_Check( cudaDeviceSynchronize() );
 
     info("Successfully read %d particles", local()->coosvels.size());
+
+    return map;
 }
 
 void ParticleVector::advanceRestartIdx()
