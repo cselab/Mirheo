@@ -216,20 +216,6 @@ ParticleVector::ParticleVector( std::string name, float mass, LocalParticleVecto
     requireDataPerParticle<Particle> ("old_particles", false);
 }
 
-static void make_symlink(MPI_Comm comm, std::string path, std::string name, std::string fname)
-{
-    int rank;
-    MPI_Check( MPI_Comm_rank(comm, &rank) );
-
-    if (rank == 0) {
-        std::string lnname = path + "/" + name + ".xmf";
-        
-        std::string command = "ln -f " + fname + ".xmf " + lnname;
-        if ( system(command.c_str()) != 0 )
-            error("Could not create link for checkpoint file of PV '%s'", name.c_str());
-    }    
-}
-
 static void splitPV(DomainInfo domain, LocalParticleVector *local,
                     std::vector<float> &positions, std::vector<float> &velocities, std::vector<int> &ids)
 {
@@ -249,7 +235,7 @@ static void splitPV(DomainInfo domain, LocalParticleVector *local,
     }
 }
 
-void ParticleVector::checkpoint(MPI_Comm comm, std::string path)
+void ParticleVector::_checkpointParticleData(MPI_Comm comm, std::string path)
 {
     CUDA_Check( cudaDeviceSynchronize() );
 
@@ -271,13 +257,12 @@ void ParticleVector::checkpoint(MPI_Comm comm, std::string path)
     
     XDMF::write(filename, &grid, channels, comm);
 
-    make_symlink(comm, path, name, filename);
+    restart_helpers::make_symlink(comm, path, name, filename);
 
     debug("Checkpoint for particle vector '%s' successfully written", name.c_str());
-    restartIdx = restartIdx xor 1;
 }
 
-void ParticleVector::restart(MPI_Comm comm, std::string path)
+void ParticleVector::_restartParticleData(MPI_Comm comm, std::string path)
 {
     CUDA_Check( cudaDeviceSynchronize() );
 
@@ -294,6 +279,22 @@ void ParticleVector::restart(MPI_Comm comm, std::string path)
     CUDA_Check( cudaDeviceSynchronize() );
 
     info("Successfully read %d particles", local()->coosvels.size());
+}
+
+void ParticleVector::advanceRestartIdx()
+{
+    restartIdx = restartIdx xor 1;
+}
+
+void ParticleVector::checkpoint(MPI_Comm comm, std::string path)
+{
+    _checkpointParticleData(comm, path);
+    advanceRestartIdx();
+}
+
+void ParticleVector::restart(MPI_Comm comm, std::string path)
+{
+    _restartParticleData(comm, path);
 }
 
 

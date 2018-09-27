@@ -60,8 +60,7 @@ void ObjectVector::findExtentAndCOM(cudaStream_t stream, ParticleVectorType type
             ovView );
 }
 
-
-void ObjectVector::restart(MPI_Comm comm, std::string path)
+void ObjectVector::_restartParticleData(MPI_Comm comm, std::string path)
 {
     CUDA_Check( cudaDeviceSynchronize() );
 
@@ -77,15 +76,27 @@ void ObjectVector::restart(MPI_Comm comm, std::string path)
     restart_helpers::copyShiftCoordinates(domain, parts, local());
 
     local()->coosvels.uploadToDevice(0);
-
-	// Do the ids
+    
+    // Do the ids
     // That's a kinda hack, will be properly fixed in the hdf5 per object restarts
     auto ids = local()->extraPerObject.getData<int>("ids");
-    for (int i=0; i<local()->nObjects; i++)
+    for (int i = 0; i < local()->nObjects; i++)
         (*ids)[i] = local()->coosvels[i*objSize].i1 / objSize;
     ids->uploadToDevice(0);
 
     CUDA_Check( cudaDeviceSynchronize() );
 
     info("Successfully read %d particles", local()->coosvels.size());
+}
+
+
+void ObjectVector::checkpoint(MPI_Comm comm, std::string path)
+{
+    _checkpointParticleData(comm, path);
+    advanceRestartIdx();
+}
+
+void ObjectVector::restart(MPI_Comm comm, std::string path)
+{
+    _restartParticleData(comm, path);
 }

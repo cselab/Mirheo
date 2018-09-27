@@ -12,4 +12,6 @@ namespace restart_helpers
     void exchangeParticlesChunks(const DomainInfo &domain, MPI_Comm comm, std::vector<Particle> &parts, int chunk_size);
     
     void copyShiftCoordinates(const DomainInfo &domain, const std::vector<Particle> &parts, LocalParticleVector *local);
+
+    void make_symlink(MPI_Comm comm, std::string path, std::string name, std::string fname);
 }

@@ -100,6 +100,10 @@ protected:
     ParticleVector(std::string name, float mass,
                    LocalParticleVector *local, LocalParticleVector *halo );
 
+    virtual void _checkpointParticleData(MPI_Comm comm, std::string path);
+    virtual void _restartParticleData(MPI_Comm comm, std::string path);
+
+    void advanceRestartIdx();
     int restartIdx = 0;
 
 private:
