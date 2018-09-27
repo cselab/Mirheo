@@ -35,7 +35,10 @@ def createEllipsoid(density, axes, niter):
     else:
         frozenCoords = [[]]
 
-    return frozenCoords
+    if u.isMasterTask():
+        return frozenCoords
+    else:
+        return None
 
 if __name__ == '__main__':
 
@@ -51,14 +54,14 @@ if __name__ == '__main__':
 
     coords = createEllipsoid(args.density, args.axes, args.niter)
 
-    # assume only one rank is working
-    np.savetxt(args.out, coords)
+    if coords is not None:
+        np.savetxt(args.out, coords)
     
 # nTEST: rigids.createEllipsoid
 # set -eu
 # cd rigids
 # rm -rf pos.txt pos.out.txt
 # pfile=pos.txt
-# udx.run ./createEllipsoid.py --axes 2.0 3.0 4.0 --density 8 --niter 1 --out $pfile > /dev/null
+# udx.run --runargs "-n 2"  ./createEllipsoid.py --axes 2.0 3.0 4.0 --density 8 --niter 1 --out $pfile > /dev/null
 # cat $pfile | sort > pos.out.txt
 

@@ -80,7 +80,7 @@ def decorate_plugins(f):
 def __init__():
     # Wrap everything except for plugins and non-GPU stuff
     # Make the __init__ functions return None if we are not a compute task
-    nonGPU_names = ['Mesh', 'MembraneMesh', 'MembraneParameters']
+    nonGPU_names = ['MembraneParameters']
     
     classes = {}
     submodules =  inspect.getmembers(sys.modules[__name__],

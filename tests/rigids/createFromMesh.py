@@ -81,5 +81,5 @@ if __name__ == '__main__':
 # cd rigids
 # cp ../../data/rbc_mesh.off .
 # pfile="pos.txt"
-# udx.run ./createFromMesh.py --density 8 --fname rbc_mesh.off --niter 1 --out $pfile > /dev/null
+# udx.run --runargs "-n 2" ./createFromMesh.py --density 8 --fname rbc_mesh.off --niter 1 --out $pfile > /dev/null
 # cat $pfile | sort > pos.out.txt 

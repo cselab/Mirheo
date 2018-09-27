@@ -1,6 +1,5 @@
 module load daint-gpu
-module load cray-python
+module load cray-python/3.6.1.1
 
 module unload cray-hdf5-parallel
-module load h5py/2.7.0-CrayGNU-17.08-python2-serial
-
+module load h5py/2.7.1-CrayGNU-17.08-python3-serial

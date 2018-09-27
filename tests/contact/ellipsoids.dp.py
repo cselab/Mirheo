@@ -77,7 +77,7 @@ u.run(10000)
 # rm -rf stats rigid.out.txt
 # f="pos.txt"
 # common_args="--density 8 --axes 2.0 1.0 1.0"
-# udx.run ../rigids/createEllipsoid.py $common_args --out $f --niter 1000  > /dev/null
+# udx.run --runargs "-n 2" ../rigids/createEllipsoid.py $common_args --out $f --niter 1000  > /dev/null
 # udx.run --runargs "-n 2" ./ellipsoids.dp.py $common_args --coords $f > /dev/null
 # cat stats/ellipsoid.txt | awk '{print $2, $6, $7, $8, $9}' > rigid.out.txt
 
@@ -87,6 +87,6 @@ u.run(10000)
 # rm -rf stats rigid.out.txt
 # f="pos.txt"
 # common_args="--density 8 --axes 2.0 1.0 1.0"
-# udx.run ../rigids/createEllipsoid.py $common_args --out $f --niter 1000  > /dev/null
+# udx.run --runargs "-n 2" ../rigids/createEllipsoid.py $common_args --out $f --niter 1000  > /dev/null
 # udx.run --runargs "-n 2" ./ellipsoids.dp.py $common_args --coords $f --bounceBack > /dev/null
 # cat stats/ellipsoid.txt | awk '{print $2, $6, $7, $8, $9}' > rigid.out.txt
