@@ -77,7 +77,11 @@ namespace XDMF
         auto setup3Fnode = [] (pugi::xml_node& n, std::string nodeName)
         {
             const std::array< std::pair<std::string, std::string>, 5 > name_vals = {{
-                { "Name", nodeName }, { "Dimensions", "3" }, { "NumberType", "float" }, { "Precision", "4" }, { "Format", "XML" }
+                { "Name", nodeName },
+                { "Dimensions", "3" },
+                { "NumberType", datatypeToString(Channel::Datatype::Float).c_str() },
+                { "Precision", "4" },
+                { "Format", "XML" }
             }};
            
             for (auto& name_val : name_vals)
@@ -196,7 +200,7 @@ namespace XDMF
         
         auto partNode = geomNode.append_child("DataItem");
         partNode.append_attribute("Dimensions") = (std::to_string(nglobal) + " 3").c_str();
-        partNode.append_attribute("NumberType") = "Float";
+        partNode.append_attribute("NumberType") = datatypeToString(Channel::Datatype::Float).c_str();
         partNode.append_attribute("Precision") = "4";
         partNode.append_attribute("Format") = "HDF";
         partNode.text() = (h5filename + ":/" + positionChannelName).c_str();

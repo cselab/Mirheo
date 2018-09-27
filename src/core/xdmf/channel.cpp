@@ -21,7 +21,7 @@ namespace XDMF
             case Channel::Type::Scalar:  return "Scalar";
             case Channel::Type::Vector:  return "Vector";
             case Channel::Type::Tensor6: return "Tensor6";
-            case Channel::Type::Tensor9: return "Tensor9";
+            case Channel::Type::Tensor9: return "Tensor";
             case Channel::Type::Other:   return "Scalar";
         }
     }
@@ -31,7 +31,7 @@ namespace XDMF
         if (str == "Scalar")  return Channel::Type::Scalar;
         if (str == "Vector")  return Channel::Type::Vector;
         if (str == "Tensor6") return Channel::Type::Tensor6;
-        if (str == "Tensor9") return Channel::Type::Tensor9;            
+        if (str == "Tensor")  return Channel::Type::Tensor9;
         return Channel::Type::Other;
     }
 
