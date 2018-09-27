@@ -18,11 +18,12 @@ namespace XDMF
     {
         switch (type)
         {
-            case Channel::Type::Scalar:  return "Scalar";
-            case Channel::Type::Vector:  return "Vector";
-            case Channel::Type::Tensor6: return "Tensor6";
-            case Channel::Type::Tensor9: return "Tensor";
-            case Channel::Type::Other:   return "Scalar";
+            case Channel::Type::Scalar:     return "Scalar";
+            case Channel::Type::Vector:     return "Vector";
+            case Channel::Type::Tensor6:    return "Tensor6";
+            case Channel::Type::Tensor9:    return "Tensor";
+            case Channel::Type::Quaternion: return "Matrix";
+            case Channel::Type::Other:      return "Scalar";
         }
     }
 
@@ -30,20 +31,35 @@ namespace XDMF
     {
         switch (type)
         {
-            case Channel::Type::Scalar:  return 1;
-            case Channel::Type::Vector:  return 3;
-            case Channel::Type::Tensor6: return 6;
-            case Channel::Type::Tensor9: return 9;
-            case Channel::Type::Other:   return 1;
+            case Channel::Type::Scalar:     return 1;
+            case Channel::Type::Vector:     return 3;
+            case Channel::Type::Tensor6:    return 6;
+            case Channel::Type::Tensor9:    return 9;
+            case Channel::Type::Quaternion: return 4;
+            case Channel::Type::Other:      return 1;
         }
     }
 
-    Channel::Type stringToType(std::string str)
+    std::string typeToDescription(Channel::Type type)
     {
-        if (str == "Scalar")  return Channel::Type::Scalar;
-        if (str == "Vector")  return Channel::Type::Vector;
-        if (str == "Tensor6") return Channel::Type::Tensor6;
-        if (str == "Tensor")  return Channel::Type::Tensor9;
+        switch (type)
+        {
+            case Channel::Type::Scalar:     return "Scalar";
+            case Channel::Type::Vector:     return "Vector";
+            case Channel::Type::Tensor6:    return "Tensor6";
+            case Channel::Type::Tensor9:    return "Tensor";
+            case Channel::Type::Quaternion: return "Quaternion";
+            case Channel::Type::Other:      return "Other";
+        }
+    }
+        
+    Channel::Type dscriptionToType(std::string str)
+    {
+        if (str == "Scalar")      return Channel::Type::Scalar;
+        if (str == "Vector")      return Channel::Type::Vector;
+        if (str == "Tensor6")     return Channel::Type::Tensor6;
+        if (str == "Tensor")      return Channel::Type::Tensor9;
+        if (str == "Quaternion")  return Channel::Type::Quaternion;
         return Channel::Type::Other;
     }
         

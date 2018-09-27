@@ -14,7 +14,7 @@ namespace XDMF
         
         enum class Type
         {
-            Scalar, Vector, Tensor6, Tensor9, Other
+            Scalar, Vector, Tensor6, Tensor9, Quaternion, Other
         } type;
         
         enum class Datatype
@@ -26,9 +26,11 @@ namespace XDMF
                 std::string typeStr = "float", Datatype datatype = Datatype::Float);
     };
     
-    std::string typeToXDMFAttribute(Channel::Type type);
-    int typeToNcomponents(Channel::Type type);
-    Channel::Type stringToType(std::string str);
+    std::string typeToXDMFAttribute (Channel::Type type);
+    int         typeToNcomponents   (Channel::Type type);
+    std::string typeToDescription   (Channel::Type type);
+
+    Channel::Type dscriptionToType(std::string str);
     
     decltype (H5T_NATIVE_FLOAT) datatypeToHDF5type(Channel::Datatype dt);
     std::string datatypeToString(Channel::Datatype dt);
