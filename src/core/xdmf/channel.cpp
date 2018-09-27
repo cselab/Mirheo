@@ -14,7 +14,7 @@ namespace XDMF
                 name.c_str(), sizeof(float), entrySize_bytes);
     }
 
-    std::string type_to_string(Channel::Type type)
+    std::string typeToString(Channel::Type type)
     {
         switch (type)
         {
@@ -26,7 +26,7 @@ namespace XDMF
         }
     }
 
-    Channel::Type string_to_type(std::string str)
+    Channel::Type stringToType(std::string str)
     {
         if (str == "Scalar")  return Channel::Type::Scalar;
         if (str == "Vector")  return Channel::Type::Vector;
@@ -35,7 +35,7 @@ namespace XDMF
         return Channel::Type::Other;
     }
 
-    int get_ncomponents(Channel::Type type)
+    int getNcomponents(Channel::Type type)
     {
         switch (type)
         {

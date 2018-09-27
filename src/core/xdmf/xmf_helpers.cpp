@@ -11,7 +11,7 @@ namespace XDMF
         {            
             auto attrNode = node.append_child("Attribute");
             attrNode.append_attribute("Name") = channel.name.c_str();
-            attrNode.append_attribute("AttributeType") = type_to_string(channel.type).c_str();
+            attrNode.append_attribute("AttributeType") = typeToString(channel.type).c_str();
             attrNode.append_attribute("Center") = grid->getCentering().c_str();
             
             // Write type information
@@ -72,7 +72,7 @@ namespace XDMF
             std::string typeStr = infoNode.attribute("Value").value();
 
             std::string channelType = node.attribute("AttributeType").value();
-            auto type = string_to_type (channelType);
+            auto type = stringToType(channelType);
 
             std::string channelDatatype = dataNode.attribute("NumberType").value();
             int precision = dataNode.attribute("Precision").as_int();
@@ -81,7 +81,7 @@ namespace XDMF
             if (type == Channel::Type::Other)
                 die("Unrecognised type %s", channelType.c_str());
             
-            int entrySize_bytes = get_ncomponents(type) * sizeof(float);
+            int entrySize_bytes = getNcomponents(type) * precision;
 
             return Channel(name, nullptr, type, entrySize_bytes, typeStr, datatype);
         }
