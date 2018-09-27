@@ -4,10 +4,7 @@
 
 #include <core/simulation.h>
 #include <core/pvs/particle_vector.h>
-#include <core/celllist.h>
-#include <core/utils/cuda_common.h>
 
-#include <regex>
 
 XYZPlugin::XYZPlugin(std::string name, std::string pvName, int dumpEvery) :
     SimulationPlugin(name), pvName(pvName),
@@ -39,6 +36,7 @@ void XYZPlugin::serializeAndSend(cudaStream_t stream)
     for (auto& p : downloaded)
         p.r = sim->domain.local2global(p.r);
 
+    waitPrevSend();
     SimpleSerializer::serialize(data, pv->name, downloaded);
     send(data);
 }

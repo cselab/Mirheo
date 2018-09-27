@@ -76,6 +76,7 @@ void SimulationStats::serializeAndSend(cudaStream_t stream)
     if (needToDump)
     {
         float tm = timer.elapsedAndReset() / (currentTimeStep < fetchEvery ? 1.0f : fetchEvery);
+        waitPrevSend();
         SimpleSerializer::serialize(sendBuffer, tm, currentTime, currentTimeStep, nparticles, momentum, energy, maxvel);
         send(sendBuffer);
         needToDump = false;

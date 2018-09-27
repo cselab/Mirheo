@@ -200,6 +200,7 @@ void Average3D::serializeAndSend(cudaStream_t stream)
     scaleSampled(stream);
 
     debug2("Plugin '%s' is now packing the data", name.c_str());
+    waitPrevSend();
     SimpleSerializer::serialize(sendBuffer, currentTime, accumulated_density, accumulated_average);
     send(sendBuffer);
 }

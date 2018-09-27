@@ -3,14 +3,7 @@
 #include <core/utils/folders.h>
 
 #include <core/simulation.h>
-#include <core/pvs/object_vector.h>
 #include <core/pvs/rigid_object_vector.h>
-#include <core/celllist.h>
-#include <core/utils/cuda_common.h>
-#include <core/rigid_kernels/rigid_motion.h>
-
-
-#include <regex>
 
 ObjPositionsPlugin::ObjPositionsPlugin(std::string name, std::string ovName, int dumpEvery) :
     SimulationPlugin(name), ovName(ovName),
@@ -34,34 +27,30 @@ void ObjPositionsPlugin::handshake()
     send(sendBuffer);
 }
 
-void ObjPositionsPlugin::beforeForces(cudaStream_t stream)
+void ObjPositionsPlugin::afterIntegration(cudaStream_t stream)
 {
     if (currentTimeStep % dumpEvery != 0 || currentTimeStep == 0) return;
 
-    ov->local()->extraPerObject.getData<int>("ids")->downloadFromDevice(stream);
-    ov->local()->extraPerObject.getData<LocalObjectVector::COMandExtent> ("com_extents")->downloadFromDevice(stream);
+    ids.copy(  *ov->local()->extraPerObject.getData<int>("ids"), stream);
+    coms.copy( *ov->local()->extraPerObject.getData<LocalObjectVector::COMandExtent>("com_extents"), stream);
 
     if (ov->local()->extraPerObject.checkChannelExists("old_motions"))
-        ov->local()->extraPerObject.getData<RigidMotion> ("old_motions")->downloadFromDevice(stream);
+        motions.copy( *ov->local()->extraPerObject.getData<RigidMotion> ("old_motions"), stream);
+    
+    needToSend=true;
 }
 
 void ObjPositionsPlugin::serializeAndSend(cudaStream_t stream)
 {
-    if (currentTimeStep % dumpEvery != 0 || currentTimeStep == 0) return;
+    if (!needToSend) return;
 
     debug2("Plugin %s is sending now data", name.c_str());
 
-    PinnedBuffer<RigidMotion> dummy(0);
-
-    SimpleSerializer::serialize(sendBuffer,
-            currentTime,
-            ov->domain,
-            *ov->local()->extraPerObject.getData<int>("ids"),
-            *ov->local()->extraPerObject.getData<LocalObjectVector::COMandExtent>("com_extents"),
-            ov->local()->extraPerObject.checkChannelExists("old_motions") ?
-                    *ov->local()->extraPerObject.getData<RigidMotion>("old_motions") : dummy );
-
+    waitPrevSend();
+    SimpleSerializer::serialize(sendBuffer, currentTime, ov->domain, ids, coms, motions);
     send(sendBuffer);
+    
+    needToSend=false;
 }
 
 //=================================================================================

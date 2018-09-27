@@ -206,6 +206,7 @@ void PinObjectPlugin::serializeAndSend(cudaStream_t stream)
     if (rov != nullptr)
         torques.downloadFromDevice(stream);
 
+    waitPrevSend();
     SimpleSerializer::serialize(sendBuffer, currentTime, reportEvery, forces, torques);
     send(sendBuffer);
 

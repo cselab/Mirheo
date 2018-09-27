@@ -108,6 +108,26 @@ Overloaded function.
                     in the corresponding PV
         
 
+3. __init__(com_q: List[List[float[7]]], coords: List[List[float[3]]], init_vels: List[List[float[3]]]) -> None
+
+
+            Args:
+                com_q:
+                    List describing location and rotation of the created objects.               
+                    One entry in the list corresponds to one object created.                          
+                    Each entry consist of 7 floats: *<com_x> <com_y> <com_z>  <q_x> <q_y> <q_z> <q_w>*, where    
+                    *com* is the center of mass of the object, *q* is the quaternion of its rotation,
+                    not necessarily normalized 
+                coords:
+                    Template that describes the positions of the body particles before translation or        
+                    rotation is applied.       
+                    The number of coordinates must be the same as in number of particles per object
+                    in the corresponding PV
+                com_q:
+                    List specifying initial Center-Of-Mass velocities of the bodies.               
+                    One entry (list of 3 floats) in the list corresponds to one object 
+        
+
         """
         pass
 

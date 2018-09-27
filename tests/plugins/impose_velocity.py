@@ -47,8 +47,7 @@ velocity = tuple( [x if np.abs(x) < 1e3 else udx.Plugins.PinObject.Unrestricted 
 omega    = tuple( [x if np.abs(x) < 1e3 else udx.Plugins.PinObject.Unrestricted for x in args.omega] )
 
 u.registerPlugins( udx.Plugins.createPinObject('pin', ov=pvEllipsoid, dump_every=500, path='force/', velocity=velocity, angular_velocity=omega) )
-u.registerPlugins( udx.Plugins.createDumpObjectStats("objStats", ov=pvEllipsoid, dump_every=50, path="stats/")
- )
+u.registerPlugins( udx.Plugins.createDumpObjectStats("objStats", ov=pvEllipsoid, dump_every=50, path="stats/") )
 
 u.run(2010)
 

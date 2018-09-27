@@ -6,7 +6,9 @@
 
 #include <vector>
 
-class ObjectVector;
+#include <core/pvs/object_vector.h>
+#include <core/rigid_kernels/rigid_motion.h>
+
 
 class ObjPositionsPlugin : public SimulationPlugin
 {
@@ -15,7 +17,7 @@ public:
 
     void setup(Simulation* sim, const MPI_Comm& comm, const MPI_Comm& interComm) override;
 
-    void beforeForces(cudaStream_t stream) override;
+    void afterIntegration(cudaStream_t stream) override;
     void serializeAndSend(cudaStream_t stream) override;
     void handshake() override;
 
@@ -24,6 +26,11 @@ public:
 private:
     std::string ovName;
     int dumpEvery;
+    bool needToSend = false;
+    
+    HostBuffer<int> ids;
+    HostBuffer<LocalObjectVector::COMandExtent> coms;
+    HostBuffer<RigidMotion> motions;
 
     std::vector<char> sendBuffer;
 

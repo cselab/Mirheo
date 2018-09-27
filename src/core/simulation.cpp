@@ -33,6 +33,7 @@ globalCheckpointEvery(globalCheckpointEvery), restartFolder(restartFolder), gpuA
     MPI_Check( MPI_Cart_create(comm, 3, ranksArr, periods, 1, &cartComm) );
     MPI_Check( MPI_Cart_get(cartComm, 3, ranksArr, periods, coords) );
     MPI_Check( MPI_Comm_rank(comm, &rank) );
+    
     rank3D = {coords[0], coords[1], coords[2]};
 
     domain.globalSize = globalDomainSize;
@@ -597,15 +598,24 @@ void Simulation::init()
             }
     }
     
-    auto makeEngine = [this] (std::unique_ptr<ParticleExchanger> exch) {
-        return std::make_unique<MPIExchangeEngine> (std::move(exch), cartComm, gpuAwareMPI);
-    };
+    std::function< std::unique_ptr<ExchangeEngine>(std::unique_ptr<ParticleExchanger>) > makeEngine;
     
-    redistributor   = std::move( makeEngine(std::move(redistImp)) );
-    halo            = std::move( makeEngine(std::move(haloImp)) );
-    objRedistibutor = std::move( makeEngine(std::move(objRedistImp)) );
-    objHalo         = std::move( makeEngine(std::move(objHaloImp)) );
-    objHaloForces   = std::move( makeEngine(std::move(objForcesImp)) );
+    // If we're on one node, use a singleNode engine
+    // otherwise use MPI
+    if (nranks3D.x * nranks3D.y * nranks3D.z == 1)
+        makeEngine = [this] (std::unique_ptr<ParticleExchanger> exch) {
+            return std::make_unique<SingleNodeEngine> (std::move(exch));
+        };
+    else
+        makeEngine = [this] (std::unique_ptr<ParticleExchanger> exch) {
+            return std::make_unique<MPIExchangeEngine> (std::move(exch), cartComm, gpuAwareMPI);
+        };
+    
+    redistributor   = makeEngine(std::move(redistImp));
+    halo            = makeEngine(std::move(haloImp));
+    objRedistibutor = makeEngine(std::move(objRedistImp));
+    objHalo         = makeEngine(std::move(objHaloImp));
+    objHaloForces   = makeEngine(std::move(objForcesImp));
 
 
     assemble();
@@ -850,7 +860,7 @@ void Simulation::assemble()
     scheduler->addDependency(task_cellLists, {task_clearForces}, {});
 
     scheduler->addDependency(task_pluginsBeforeForces, {task_localForces, task_haloForces}, {task_clearForces});
-    scheduler->addDependency(task_pluginsSerializeSend, {task_redistributeInit, task_objRedistInit}, {task_pluginsBeforeForces});
+    scheduler->addDependency(task_pluginsSerializeSend, {task_pluginsBeforeIntegration, task_pluginsAfterIntegration}, {task_pluginsBeforeForces});
 
     scheduler->addDependency(task_localForces, {}, {task_pluginsBeforeForces});
 

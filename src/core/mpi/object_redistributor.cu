@@ -183,13 +183,29 @@ void ObjectRedistributor::prepareData(int id, cudaStream_t stream)
 
 
     // Finally need to compact the buffers
+    // to get rid of the "self" part
     // TODO: remove this, own buffer should be last (performance penalty only, correctness is there)
+    
+    int copySize = (helper->sendOffsets[27]-helper->sendOffsets[14]) * helper->datumSize;
+    temp.resize_anew(copySize);
+    
+    CUDA_Check( cudaMemcpyAsync( temp.devPtr(),
+                                 helper->sendBuf.devPtr() + helper->sendOffsets[14]*helper->datumSize,
+                                 copySize, cudaMemcpyDeviceToDevice, stream ) );
+    
+    CUDA_Check( cudaMemcpyAsync( helper->sendBuf.devPtr() + helper->sendOffsets[13]*helper->datumSize,
+                                 temp.devPtr(),
+                                 copySize, cudaMemcpyDeviceToDevice, stream ) );
+                                 
+    helper->sendSizes[13] = 0;
+    helper->makeSendOffsets();
+    helper->resizeSendBuf();
 
     // simple workaround when # of remaining >= # of leaving
 //    if (helper->sendSizes[13] >= helper->sendOffsets[27]-helper->sendOffsets[14])
 //    {
-//        CUDA_Check( cudaMemcpyAsync( helper->sendBuf.hostPtr() + helper->sendOffsets[13]*helper->datumSize,
-//                                     helper->sendBuf.hostPtr() + helper->sendOffsets[14]*helper->datumSize,
+//        CUDA_Check( cudaMemcpyAsync( helper->sendBuf.devPtr() + helper->sendOffsets[13]*helper->datumSize,
+//                                     helper->sendBuf.devPtr() + helper->sendOffsets[14]*helper->datumSize,
 //                                     (helper->sendOffsets[27]-helper->sendOffsets[14]) * helper->datumSize,
 //                                     cudaMemcpyDeviceToDevice, stream ) );
 //

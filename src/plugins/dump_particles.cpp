@@ -4,8 +4,6 @@
 
 #include <core/simulation.h>
 #include <core/pvs/particle_vector.h>
-#include <core/celllist.h>
-#include <core/utils/cuda_common.h>
 #include <core/utils/folders.h>
 
 
@@ -44,6 +42,7 @@ void ParticleSenderPlugin::handshake()
             break;
         }
 
+    waitPrevSend();
     SimpleSerializer::serialize(sendBuffer, sizes, channelNames);
     send(sendBuffer);
 }

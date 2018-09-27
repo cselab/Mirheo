@@ -75,6 +75,12 @@ protected:
     {
         return (int)( nameHash(name) % 16767 );
     }
+    
+    void waitPrevSend()
+    {
+        MPI_Check( MPI_Wait(&req, MPI_STATUS_IGNORE) );
+        req = MPI_REQUEST_NULL;
+    }
 
     void send(const std::vector<char>& data)
     {
@@ -83,13 +89,11 @@ protected:
 
     void send(const void* data, int sizeInBytes)
     {
-        debug3("Plugin %s is sending now", name.c_str());
-        MPI_Check( MPI_Wait(&req, MPI_STATUS_IGNORE) );
-
-        MPI_Check( MPI_Ssend(&sizeInBytes, 1, MPI_INT, rank, 2*tag(), interComm) );
-        MPI_Check( MPI_Issend(data, sizeInBytes, MPI_BYTE, rank, 2*tag()+1, interComm, &req) );
-
-        debug3("Plugin %s has sent the data (%d bytes)", name.c_str(), sizeInBytes);
+        waitPrevSend();
+        
+        debug2("Plugin '%s' has is sending the data (%d bytes)", name.c_str(), sizeInBytes);
+        MPI_Check( MPI_Send(&sizeInBytes, 1, MPI_INT, rank, 2*tag(), interComm) );
+        MPI_Check( MPI_Isend(data, sizeInBytes, MPI_BYTE, rank, 2*tag()+1, interComm, &req) );
     }
 };
 

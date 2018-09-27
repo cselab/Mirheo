@@ -131,6 +131,7 @@ void SimulationVelocityControl::serializeAndSend(cudaStream_t stream)
 {
     if (currentTimeStep % dumpEvery != 0 || currentTimeStep == 0) return;
 
+    waitPrevSend();
     SimpleSerializer::serialize(sendBuffer, currentTime, currentTimeStep, currentVel, force);
     send(sendBuffer);
 }

@@ -40,6 +40,13 @@ RigidIC::RigidIC(PyTypes::VectorOfFloat7 com_q, const PyTypes::VectorOfFloat3& c
     com_q(com_q), coords(coords)
 {}
 
+RigidIC::RigidIC(PyTypes::VectorOfFloat7 com_q, const PyTypes::VectorOfFloat3& coords, const PyTypes::VectorOfFloat3& comVelocities) :
+    com_q(com_q), coords(coords), comVelocities(comVelocities)
+{
+    if (com_q.size() != comVelocities.size())
+        die("Incompatible sizes of initial positions and rotations");
+}
+
 RigidIC::~RigidIC() = default;
 
 
@@ -70,13 +77,18 @@ void RigidIC::exec(const MPI_Comm& comm, ParticleVector* pv, DomainInfo domain, 
     int nObjs=0;
     HostBuffer<RigidMotion> motions;
 
-    for (auto& entry : com_q)
+    for (int i=0; i<com_q.size(); i++)
     {
+        auto& entry = com_q[i];
+        
+        // Zero everything at first
         RigidMotion motion{};
         
         motion.r = {entry[0], entry[1], entry[2]};
         motion.q = make_rigidReal4( make_float4(entry[3], entry[4], entry[5], entry[6]) );
         motion.q = normalize(motion.q);
+        
+        if (i < comVelocities.size()) motion.vel = {comVelocities[i][0], comVelocities[i][1], comVelocities[i][2]};
 
         if (ov->domain.inSubDomain(motion.r))
         {
