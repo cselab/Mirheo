@@ -172,4 +172,37 @@ namespace XDMF
         gatherChannels(channels, *positions, ov);
     }
 
+    void readRigidObjectData(std::string filename, MPI_Comm comm, ObjectVector *ov)
+    {
+        info("Reading XDMF data from %s", filename.c_str());
+
+        std::string h5filename;
+        
+        auto positions = std::make_shared<std::vector<float>>();
+        std::vector<std::vector<char>> channelData;
+        std::vector<Channel> channels;
+        
+        VertexGrid grid(positions, comm);
+
+        mTimer timer;
+        timer.start();
+        XMF::read(filename, comm, h5filename, &grid, channels);
+        grid.split_read_access(comm, 1);
+
+        h5filename = parentPath(filename) + h5filename;
+
+        long nElements = getLocalNumElements(&grid);
+        channelData.resize(channels.size());        
+
+        for (int i = 0; i < channels.size(); ++i) {
+            channelData[i].resize(nElements * channels[i].nComponents() * channels[i].precision());
+            channels[i].data = channelData[i].data();
+        }
+        
+        HDF5::read(h5filename, comm, &grid, channels);
+        info("Reading took %f ms", timer.elapsed());
+
+        gatherChannels(channels, *positions, ov);
+    }
+
 }

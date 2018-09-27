@@ -1,6 +1,8 @@
 #pragma once
 
-#if 1
+#define RIGID_MOTIONS_DOUBLE
+
+#ifdef RIGID_MOTIONS_DOUBLE
 using RigidReal  = double;
 using RigidReal3 = double3;
 using RigidReal4 = double4;
