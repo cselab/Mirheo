@@ -26,16 +26,7 @@ namespace XDMF
         }
     }
 
-    Channel::Type stringToType(std::string str)
-    {
-        if (str == "Scalar")  return Channel::Type::Scalar;
-        if (str == "Vector")  return Channel::Type::Vector;
-        if (str == "Tensor6") return Channel::Type::Tensor6;
-        if (str == "Tensor")  return Channel::Type::Tensor9;
-        return Channel::Type::Other;
-    }
-
-    int getNcomponents(Channel::Type type)
+    int typeToNcomponents(Channel::Type type)
     {
         switch (type)
         {
@@ -46,7 +37,16 @@ namespace XDMF
             case Channel::Type::Other:   return 1;
         }
     }
-    
+
+    Channel::Type stringToType(std::string str)
+    {
+        if (str == "Scalar")  return Channel::Type::Scalar;
+        if (str == "Vector")  return Channel::Type::Vector;
+        if (str == "Tensor6") return Channel::Type::Tensor6;
+        if (str == "Tensor")  return Channel::Type::Tensor9;
+        return Channel::Type::Other;
+    }
+        
     decltype (H5T_NATIVE_FLOAT) datatypeToHDF5type(Channel::Datatype dt)
     {
         switch (dt)

@@ -81,7 +81,7 @@ namespace XDMF
             if (type == Channel::Type::Other)
                 die("Unrecognised type %s", channelType.c_str());
             
-            int entrySize_bytes = getNcomponents(type) * precision;
+            int entrySize_bytes = typeToNcomponents(type) * precision;
 
             return Channel(name, nullptr, type, entrySize_bytes, typeStr, datatype);
         }

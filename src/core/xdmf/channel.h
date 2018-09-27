@@ -25,10 +25,10 @@ namespace XDMF
         Channel(std::string name, void* data, Type type, int entrySize_bytes,
                 std::string typeStr = "float", Datatype datatype = Datatype::Float);
     };
-
-    Channel::Type stringToType(std::string str);
+    
     std::string typeToString(Channel::Type type);
-    int getNcomponents(Channel::Type type);
+    int typeToNcomponents(Channel::Type type);
+    Channel::Type stringToType(std::string str);    
     
     decltype (H5T_NATIVE_FLOAT) datatypeToHDF5type(Channel::Datatype dt);
     std::string datatypeToString(Channel::Datatype dt);
