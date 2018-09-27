@@ -17,7 +17,7 @@ namespace XDMF
             // Write type information
             auto infoNode = attrNode.append_child("Information");
             infoNode.append_attribute("Name") = "Typeinfo";
-            infoNode.append_attribute("Value") = channel.typeStr.c_str();
+            infoNode.append_attribute("Value") = typeToDescription(channel.type).c_str();
             
             // Add one more dimension: number of floats per data item
             auto globalSize = grid->getGlobalSize();
@@ -68,22 +68,21 @@ namespace XDMF
             auto infoNode = node.child("Information");
             auto dataNode = node.child("DataItem");
 
-            std::string name    = node.attribute("Name").value();
-            std::string typeStr = infoNode.attribute("Value").value();
+            std::string name            = node.attribute("Name").value();
+            std::string typeDescription = infoNode.attribute("Value").value();
 
-            std::string channelType = node.attribute("AttributeType").value();
-            auto type = stringToType(channelType);
+            auto type = descriptionToType(typeDescription);
 
             std::string channelDatatype = dataNode.attribute("NumberType").value();
             int precision = dataNode.attribute("Precision").as_int();
             auto datatype = infoToDatatype(channelDatatype, precision);
 
             if (type == Channel::Type::Other)
-                die("Unrecognised type %s", channelType.c_str());
+                die("Unrecognised type %s", typeDescription.c_str());
             
             int entrySize_bytes = typeToNcomponents(type) * precision;
 
-            return Channel(name, nullptr, type, entrySize_bytes, typeStr, datatype);
+            return Channel(name, nullptr, type, entrySize_bytes, datatype);
         }
         
         static void readData(pugi::xml_node node, std::vector<Channel>& channels)

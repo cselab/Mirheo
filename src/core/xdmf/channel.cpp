@@ -4,10 +4,10 @@
 
 namespace XDMF
 {
-    Channel::Channel(std::string name, void* data, Type type, int entrySize_bytes, std::string typeStr, Datatype datatype) :
+    Channel::Channel(std::string name, void* data, Type type, int entrySize_bytes, Datatype datatype) :
         name(name), data((float*)data), type(type),
         entrySize_floats(entrySize_bytes / sizeof(float)),
-        typeStr(typeStr), datatype(datatype)
+        datatype(datatype)
     {
         if (entrySize_floats*sizeof(float) != entrySize_bytes)
             die("Channel('%s') should have a chunk size in bytes divisible by %d (got %d)",
@@ -53,7 +53,7 @@ namespace XDMF
         }
     }
         
-    Channel::Type dscriptionToType(std::string str)
+    Channel::Type descriptionToType(std::string str)
     {
         if (str == "Scalar")      return Channel::Type::Scalar;
         if (str == "Vector")      return Channel::Type::Vector;

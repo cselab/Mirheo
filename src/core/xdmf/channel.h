@@ -8,7 +8,6 @@ namespace XDMF
     struct Channel
     {
         std::string name;
-        std::string typeStr;
         void* data;
         int entrySize_floats;
         
@@ -23,14 +22,14 @@ namespace XDMF
         } datatype;
         
         Channel(std::string name, void* data, Type type, int entrySize_bytes,
-                std::string typeStr = "float", Datatype datatype = Datatype::Float);
+                Datatype datatype = Datatype::Float);
     };
     
     std::string typeToXDMFAttribute (Channel::Type type);
     int         typeToNcomponents   (Channel::Type type);
     std::string typeToDescription   (Channel::Type type);
 
-    Channel::Type dscriptionToType(std::string str);
+    Channel::Type descriptionToType(std::string str);
     
     decltype (H5T_NATIVE_FLOAT) datatypeToHDF5type(Channel::Datatype dt);
     std::string datatypeToString(Channel::Datatype dt);
