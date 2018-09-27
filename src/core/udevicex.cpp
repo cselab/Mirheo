@@ -102,6 +102,9 @@ uDeviceX::~uDeviceX()
 {
     debug("uDeviceX coordinator is destroyed");
     
+    sim.release();
+    post.release();
+    
     MPI_Finalize();
 }
 

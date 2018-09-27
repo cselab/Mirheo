@@ -1,8 +1,8 @@
 #pragma once
 
-#include "particle_exchanger.h"
+#include "exchanger_interfaces.h"
 
-#include <vector>
+#include <core/containers.h>
 
 class ObjectVector;
 
@@ -20,8 +20,6 @@ protected:
     bool needExchange(int id) override;
 
 public:
-    ObjectHaloExchanger(MPI_Comm& comm, bool gpuAwareMPI=false) : ParticleExchanger(comm, gpuAwareMPI) {};
-
     void attach(ObjectVector* ov, float rc);
 
     PinnedBuffer<int>& getRecvOffsets(int id);

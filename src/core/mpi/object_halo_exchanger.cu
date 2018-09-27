@@ -1,4 +1,5 @@
 #include "object_halo_exchanger.h"
+#include "exchange_helpers.h"
 
 #include <core/utils/kernel_launch.h>
 #include <core/pvs/particle_vector.h>

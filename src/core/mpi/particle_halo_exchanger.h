@@ -1,8 +1,6 @@
 #pragma once
 
-#include "particle_exchanger.h"
-
-#include <vector>
+#include "exchanger_interfaces.h"
 
 class ParticleVector;
 class CellList;
@@ -19,8 +17,6 @@ private:
     bool needExchange(int id) override;
 
 public:
-    ParticleHaloExchanger(MPI_Comm& comm, bool gpuAwareMPI=false) : ParticleExchanger(comm, gpuAwareMPI) {};
-
     void attach(ParticleVector* pv, CellList* cl);
 
     ~ParticleHaloExchanger() = default;

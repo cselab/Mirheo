@@ -3,6 +3,7 @@
 #include <core/logger.h>
 #include <core/datatypes.h>
 #include <core/containers.h>
+#include <core/mpi/exchanger_interfaces.h>
 
 #include "domain.h"
 
@@ -18,14 +19,6 @@ class ParticleVector;
 class ObjectVector;
 class CellList;
 class TaskScheduler;
-
-
-class ParticleHaloExchanger;
-class ParticleRedistributor;
-
-class ObjectHaloExchanger;
-class ObjectRedistributor;
-class ObjectForcesReverseExchanger;
 
 class Wall;
 class Interaction;
@@ -111,12 +104,12 @@ private:
     std::unique_ptr<TaskScheduler> scheduler;
 
     bool gpuAwareMPI;
-    std::unique_ptr<ParticleHaloExchanger> halo;
-    std::unique_ptr<ParticleRedistributor> redistributor;
+    std::unique_ptr<ExchangeEngine> halo;
+    std::unique_ptr<ExchangeEngine> redistributor;
 
-    std::unique_ptr<ObjectHaloExchanger> objHalo;
-    std::unique_ptr<ObjectRedistributor> objRedistibutor;
-    std::unique_ptr<ObjectForcesReverseExchanger> objHaloForces;
+    std::unique_ptr<ExchangeEngine> objHalo;
+    std::unique_ptr<ExchangeEngine> objRedistibutor;
+    std::unique_ptr<ExchangeEngine> objHaloForces;
 
     std::map<std::string, int> pvIdMap;
     std::vector< std::shared_ptr<ParticleVector> > particleVectors;

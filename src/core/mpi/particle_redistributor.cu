@@ -1,4 +1,5 @@
 #include "particle_redistributor.h"
+#include "exchange_helpers.h"
 
 #include <core/utils/kernel_launch.h>
 #include <core/celllist.h>
@@ -107,7 +108,7 @@ void ParticleRedistributor::attach(ParticleVector* pv, CellList* cl)
     auto helper = new ExchangeHelper(pv->name, sizeof(Particle));
     helpers.push_back(helper);
 
-    info("Particle redistributor takes pv %s, base tag %d", pv->name.c_str(), tagByName(pv->name));
+    info("Particle redistributor takes pv '%s'", pv->name.c_str());
 }
 
 void ParticleRedistributor::prepareSizes(int id, cudaStream_t stream)

@@ -1,5 +1,5 @@
 #include "object_forces_reverse_exchanger.h"
-
+#include "exchange_helpers.h"
 #include "object_halo_exchanger.h"
 
 #include <core/utils/kernel_launch.h>

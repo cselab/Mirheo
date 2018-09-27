@@ -565,13 +565,13 @@ void Simulation::init()
         pl->handshake();
     }
     info("done Preparing plugins");
+    
 
-    halo = std::make_unique <ParticleHaloExchanger> (cartComm, gpuAwareMPI);
-    redistributor = std::make_unique <ParticleRedistributor> (cartComm, gpuAwareMPI);
-
-    objHalo = std::make_unique <ObjectHaloExchanger> (cartComm, gpuAwareMPI);
-    objRedistibutor = std::make_unique <ObjectRedistributor> (cartComm, gpuAwareMPI);
-    objHaloForces = std::make_unique <ObjectForcesReverseExchanger> (cartComm, objHalo.get(), gpuAwareMPI);
+    auto redistImp    = std::make_unique<ParticleRedistributor>();
+    auto haloImp      = std::make_unique<ParticleHaloExchanger>();
+    auto objRedistImp = std::make_unique<ObjectRedistributor>();
+    auto objHaloImp   = std::make_unique<ObjectHaloExchanger>();
+    auto objForcesImp = std::make_unique<ObjectForcesReverseExchanger>(objHaloImp.get());
 
     debug("Attaching particle vectors to halo exchanger and redistributor");
     for (auto& pv : particleVectors)
@@ -583,19 +583,30 @@ void Simulation::init()
             {
                 auto cl = cellListMap[pvPtr][0].get();
 
-                halo->attach         (pvPtr, cl);
-                redistributor->attach(pvPtr, cl);
+                haloImp  ->attach(pvPtr, cl);
+                redistImp->attach(pvPtr, cl);
             }
             else
             {
                 auto cl = cellListMap[pvPtr][0].get();
                 auto ov = dynamic_cast<ObjectVector*>(pvPtr);
 
-                objHalo->        attach(ov, cl->rc);
-                objHaloForces->  attach(ov);
-                objRedistibutor->attach(ov, cl->rc);
+                objRedistImp->attach(ov, cl->rc);
+                objHaloImp  ->attach(ov, cl->rc);
+                objForcesImp->attach(ov);
             }
     }
+    
+    auto makeEngine = [this] (std::unique_ptr<ParticleExchanger> exch) {
+        return std::make_unique<MPIExchangeEngine> (std::move(exch), cartComm, gpuAwareMPI);
+    };
+    
+    redistributor   = std::move( makeEngine(std::move(redistImp)) );
+    halo            = std::move( makeEngine(std::move(haloImp)) );
+    objRedistibutor = std::move( makeEngine(std::move(objRedistImp)) );
+    objHalo         = std::move( makeEngine(std::move(objHaloImp)) );
+    objHaloForces   = std::move( makeEngine(std::move(objForcesImp)) );
+
 
     assemble();
     

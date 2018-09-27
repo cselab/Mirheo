@@ -1,33 +1,12 @@
-#include "particle_exchanger.h"
+#include "mpi_engine.h"
 
-#include <core/utils/kernel_launch.h>
 #include <core/logger.h>
-#include <core/utils/cuda_common.h>
-
 #include <algorithm>
 
-ExchangeHelper::ExchangeHelper(std::string name, const int datumSize) :
-    name(name), datumSize(datumSize)
-{
-    recvSizes.  resize_anew(nBuffers);
-    recvOffsets.resize_anew(nBuffers+1);
-
-    sendSizes.  resize_anew(nBuffers);
-    sendOffsets.resize_anew(nBuffers+1);
-}
-
-void ExchangeHelper::makeOffsets(const PinnedBuffer<int>& sz, PinnedBuffer<int>& of)
-{
-    int n = sz.size();
-    if (n == 0) return;
-
-    of[0] = 0;
-    for (int i=0; i < n; i++)
-        of[i+1] = of[i] + sz[i];
-}
-
-ParticleExchanger::ParticleExchanger(MPI_Comm& comm, bool gpuAwareMPI) :
-        nActiveNeighbours(26), gpuAwareMPI(gpuAwareMPI)
+MPIExchangeEngine::MPIExchangeEngine(std::unique_ptr<ParticleExchanger> exchanger,
+                                     MPI_Comm comm, bool gpuAwareMPI) :
+        nActiveNeighbours(26), gpuAwareMPI(gpuAwareMPI),
+        exchanger(std::move(exchanger))
 {
     MPI_Check( MPI_Comm_dup(comm, &haloComm) );
 
@@ -54,49 +33,53 @@ ParticleExchanger::ParticleExchanger(MPI_Comm& comm, bool gpuAwareMPI) :
     }
 }
 
-void ParticleExchanger::init(cudaStream_t stream)
+void MPIExchangeEngine::init(cudaStream_t stream)
 {
+    auto& helpers = exchanger->helpers;
+    
     for (int i=0; i<helpers.size(); i++)
-        if (!needExchange(i)) debug("Exchange of PV '%s' is skipped", helpers[i]->name.c_str());
+        if (!exchanger->needExchange(i)) debug("Exchange of PV '%s' is skipped", helpers[i]->name.c_str());
     
     // Post irecv for sizes
     for (int i=0; i<helpers.size(); i++)
-        if (needExchange(i)) postRecvSize(helpers[i]);
+        if (exchanger->needExchange(i)) postRecvSize(helpers[i]);
 
     // Derived class determines what to send
     for (int i=0; i<helpers.size(); i++)
-        if (needExchange(i)) prepareSizes(i, stream);
+        if (exchanger->needExchange(i)) exchanger->prepareSizes(i, stream);
 
     // Send sizes
     for (int i=0; i<helpers.size(); i++)
-        if (needExchange(i)) sendSizes(helpers[i]);
+        if (exchanger->needExchange(i)) sendSizes(helpers[i]);
 
     // Derived class determines what to send
     for (int i=0; i<helpers.size(); i++)
-        if (needExchange(i)) prepareData(i, stream);
+        if (exchanger->needExchange(i)) exchanger->prepareData(i, stream);
 
     // Post big data irecv (after prepereData cause it waits for the sizes)
     for (int i=0; i<helpers.size(); i++)
-        if (needExchange(i)) postRecv(helpers[i]);
+        if (exchanger->needExchange(i)) postRecv(helpers[i]);
 
     // Send
     for (int i=0; i<helpers.size(); i++)
-        if (needExchange(i)) send(helpers[i], stream);
+        if (exchanger->needExchange(i)) send(helpers[i], stream);
 }
 
-void ParticleExchanger::finalize(cudaStream_t stream)
+void MPIExchangeEngine::finalize(cudaStream_t stream)
 {
+    auto& helpers = exchanger->helpers;
+
     // Wait for the irecvs to finish
     for (int i=0; i<helpers.size(); i++)
-        if (needExchange(i)) wait(helpers[i], stream);
+        if (exchanger->needExchange(i)) wait(helpers[i], stream);
 
     // Derived class unpack implementation
     for (int i=0; i<helpers.size(); i++)
-        if (needExchange(i)) combineAndUploadData(i, stream);
+        if (exchanger->needExchange(i)) exchanger->combineAndUploadData(i, stream);
 }
 
 
-int ParticleExchanger::tagByName(std::string name)
+int MPIExchangeEngine::tagByName(std::string name)
 {
     // TODO: better tagging policy (unique id?)
     static std::hash<std::string> nameHash;
@@ -104,7 +87,7 @@ int ParticleExchanger::tagByName(std::string name)
 }
 
 
-void ParticleExchanger::postRecvSize(ExchangeHelper* helper)
+void MPIExchangeEngine::postRecvSize(ExchangeHelper* helper)
 {
     std::string pvName = helper->name;
 
@@ -130,7 +113,7 @@ void ParticleExchanger::postRecvSize(ExchangeHelper* helper)
 /**
  * Expects helper->sendSizes and helper->sendOffsets to be ON HOST
  */
-void ParticleExchanger::sendSizes(ExchangeHelper* helper)
+void MPIExchangeEngine::sendSizes(ExchangeHelper* helper)
 {
     std::string pvName = helper->name;
 
@@ -146,7 +129,7 @@ void ParticleExchanger::sendSizes(ExchangeHelper* helper)
         }
 }
 
-void ParticleExchanger::postRecv(ExchangeHelper* helper)
+void MPIExchangeEngine::postRecv(ExchangeHelper* helper)
 {
     std::string pvName = helper->name;
 
@@ -193,7 +176,7 @@ void ParticleExchanger::postRecv(ExchangeHelper* helper)
 /**
  * helper->recvBuf will contain all the data, ON DEVICE already
  */
-void ParticleExchanger::wait(ExchangeHelper* helper, cudaStream_t stream)
+void MPIExchangeEngine::wait(ExchangeHelper* helper, cudaStream_t stream)
 {
     std::string pvName = helper->name;
 
@@ -236,7 +219,7 @@ void ParticleExchanger::wait(ExchangeHelper* helper, cudaStream_t stream)
  * Expects helper->sendSizes and helper->sendOffsets to be ON HOST
  * helper->sendBuf data is ON DEVICE
  */
-void ParticleExchanger::send(ExchangeHelper* helper, cudaStream_t stream)
+void MPIExchangeEngine::send(ExchangeHelper* helper, cudaStream_t stream)
 {
     std::string pvName = helper->name;
 

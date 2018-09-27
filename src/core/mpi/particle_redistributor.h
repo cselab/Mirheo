@@ -1,8 +1,6 @@
 #pragma once
 
-#include "particle_exchanger.h"
-
-#include <vector>
+#include "exchanger_interfaces.h"
 
 class ParticleVector;
 class CellList;
@@ -20,8 +18,6 @@ private:
 
 public:
     void _prepareData(int id);
-
-    ParticleRedistributor(MPI_Comm& comm, bool gpuAwareMPI=false) : ParticleExchanger(comm, gpuAwareMPI) {};
     void attach(ParticleVector* pv, CellList* cl);
 
     ~ParticleRedistributor() = default;

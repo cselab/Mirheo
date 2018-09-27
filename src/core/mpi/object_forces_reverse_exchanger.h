@@ -1,8 +1,8 @@
 #pragma once
 
-#include "particle_exchanger.h"
+#include "exchanger_interfaces.h"
 
-#include <vector>
+#include <core/containers.h>
 
 class ObjectVector;
 class ObjectHaloExchanger;
@@ -23,8 +23,8 @@ protected:
     bool needExchange(int id) override;
 
 public:
-    ObjectForcesReverseExchanger(MPI_Comm& comm, ObjectHaloExchanger* entangledHaloExchanger, bool gpuAwareMPI=false) :
-        ParticleExchanger(comm, gpuAwareMPI), entangledHaloExchanger(entangledHaloExchanger)
+    ObjectForcesReverseExchanger(ObjectHaloExchanger* entangledHaloExchanger) :
+        entangledHaloExchanger(entangledHaloExchanger)
     { }
 
     void attach(ObjectVector* ov);

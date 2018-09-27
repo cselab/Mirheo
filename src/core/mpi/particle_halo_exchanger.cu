@@ -1,6 +1,5 @@
-/** @file */
-
 #include "particle_halo_exchanger.h"
+#include "exchange_helpers.h"
 
 #include <core/utils/kernel_launch.h>
 #include <core/pvs/particle_vector.h>
@@ -119,7 +118,7 @@ void ParticleHaloExchanger::attach(ParticleVector* pv, CellList* cl)
     auto helper = new ExchangeHelper(pv->name, sizeof(Particle));
     helpers.push_back(helper);
 
-    info("Particle halo exchanger takes pv %s, base tag %d", pv->name.c_str(), tagByName(pv->name));
+    info("Particle halo exchanger takes pv '%s'", pv->name.c_str());
 }
 
 void ParticleHaloExchanger::prepareSizes(int id, cudaStream_t stream)

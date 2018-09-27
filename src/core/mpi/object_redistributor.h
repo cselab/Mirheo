@@ -1,8 +1,6 @@
 #pragma once
 
-#include "particle_exchanger.h"
-
-#include <vector>
+#include "exchanger_interfaces.h"
 
 class ObjectVector;
 
@@ -17,8 +15,6 @@ private:
     bool needExchange(int id) override;
 
 public:
-    ObjectRedistributor(MPI_Comm& comm, bool gpuAwareMPI=false) : ParticleExchanger(comm, gpuAwareMPI) {};
-
     void attach(ObjectVector* ov, float rc);
     void redistribute();
 
