@@ -149,5 +149,31 @@ void RigidObjectVector::_checkpointObjectData(MPI_Comm comm, std::string path)
 
 void RigidObjectVector::_restartObjectData(MPI_Comm comm, std::string path, const std::vector<int>& map)
 {
-    // TODO
+    CUDA_Check( cudaDeviceSynchronize() );
+
+    std::string filename = path + "/" + name + ".obj.xmf";
+    info("Restarting object vector %s from file %s", name.c_str(), filename.c_str());
+
+    XDMF::readRigidObjectData(filename, comm, this);
+
+    auto loc_ids     = local()->extraPerObject.getData<int>("ids");
+    auto loc_motions = local()->extraPerObject.getData<RigidMotion>("motions");
+    
+    std::vector<int>             ids(loc_ids    ->begin(), loc_ids    ->end());
+    std::vector<RigidMotion> motions(loc_motions->begin(), loc_motions->end());
+    
+    restart_helpers::exchangeData(comm, map, ids, 1);
+    restart_helpers::exchangeData(comm, map, motions, 1);
+
+    loc_ids->resize_anew(ids.size());
+    loc_motions->resize_anew(motions.size());
+
+    std::copy(ids.begin(), ids.end(), loc_ids->begin());
+    std::copy(motions.begin(), motions.end(), loc_motions->begin());
+
+    loc_ids->uploadToDevice(0);
+    loc_motions->uploadToDevice(0);
+    CUDA_Check( cudaDeviceSynchronize() );
+
+    info("Successfully read %d object infos", loc_motions->size());
 }

@@ -187,7 +187,7 @@ void ObjectVector::_restartObjectData(MPI_Comm comm, std::string path, const std
     loc_ids->uploadToDevice(0);
     CUDA_Check( cudaDeviceSynchronize() );
 
-    info("Successfully read %d particles", local()->coosvels.size());
+    info("Successfully read %d object infos", loc_ids->size());
 }
 
 void ObjectVector::checkpoint(MPI_Comm comm, std::string path)
