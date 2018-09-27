@@ -51,8 +51,9 @@ namespace XDMF
     {
         switch (dt)
         {
-            case Channel::Datatype::Float: return H5T_NATIVE_FLOAT;
-            case Channel::Datatype::Int  : return H5T_NATIVE_INT;
+            case Channel::Datatype::Float  : return H5T_NATIVE_FLOAT;
+            case Channel::Datatype::Double : return H5T_NATIVE_DOUBLE;
+            case Channel::Datatype::Int    : return H5T_NATIVE_INT;
         }
     }
     
@@ -60,8 +61,9 @@ namespace XDMF
     {
         switch (dt)
         {
-            case Channel::Datatype::Float: return "Float";
-            case Channel::Datatype::Int  : return "Int";
+            case Channel::Datatype::Float  : return "Float";
+            case Channel::Datatype::Double : return "Float";
+            case Channel::Datatype::Int    : return "Int";
         }
     }
 
@@ -69,15 +71,17 @@ namespace XDMF
     {
         switch (dt)
         {
-            case Channel::Datatype::Float: return sizeof(float);
-            case Channel::Datatype::Int  : return sizeof(int);
+            case Channel::Datatype::Float  : return sizeof(float);
+            case Channel::Datatype::Double : return sizeof(double);
+            case Channel::Datatype::Int    : return sizeof(int);
         }
     }
     
     Channel::Datatype infoToDatatype(std::string str, int precision)
     {
-        if (precision == sizeof(float) && str == "Float") return Channel::Datatype::Float;
-        if (precision == sizeof(int)   && str == "Int")   return Channel::Datatype::Int;
+        if (precision == sizeof(float)  && str == "Float") return Channel::Datatype::Float;
+        if (precision == sizeof(double) && str == "Float") return Channel::Datatype::Double;
+        if (precision == sizeof(int)    && str == "Int")   return Channel::Datatype::Int;
         die("Datatype '%s' with precision %d is not supported for reading", str.c_str(), precision);
     }
 }

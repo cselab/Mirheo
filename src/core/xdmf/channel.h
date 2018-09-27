@@ -19,7 +19,7 @@ namespace XDMF
         
         enum class Datatype
         {
-            Float, Int
+            Float, Int, Double
         } datatype;
         
         Channel(std::string name, void* data, Type type, int entrySize_bytes,
