@@ -60,6 +60,36 @@ void ObjectVector::findExtentAndCOM(cudaStream_t stream, ParticleVectorType type
             ovView );
 }
 
+void ObjectVector::_getRestartExchangeMap(MPI_Comm comm, const std::vector<Particle> &parts, std::vector<int>& map)
+{
+    int dims[3], periods[3], coords[3];
+    MPI_Check( MPI_Cart_get(comm, 3, dims, periods, coords) );
+
+    int nObjs = parts.size() / objSize;
+    map.resize(nObjs);
+    
+    for (int i = 0, k = 0; i < nObjs; ++i) {
+        auto com = make_float3(0);
+
+        for (int j = 0; j < objSize; ++j, ++k)
+            com += parts[k].r;
+
+        com /= objSize;
+
+        int3 procId3 = make_int3(floorf(com / domain.localSize));
+
+        if (procId3.x >= dims[0] || procId3.y >= dims[1] || procId3.z >= dims[2]) {
+            map[i] = -1;
+            continue;
+        }
+        
+        int procId;
+        MPI_Check( MPI_Cart_rank(comm, (int*)&procId3, &procId) );
+        map[i] = procId;
+    }
+}
+
+
 void ObjectVector::_restartParticleData(MPI_Comm comm, std::string path)
 {
     CUDA_Check( cudaDeviceSynchronize() );
@@ -70,9 +100,10 @@ void ObjectVector::_restartParticleData(MPI_Comm comm, std::string path)
     XDMF::read(filename, comm, this, objSize);
 
     std::vector<Particle> parts(local()->coosvels.begin(), local()->coosvels.end());
-
-    restart_helpers::exchangeParticlesChunks(domain, comm, parts, objSize);
-
+    std::vector<int> map;
+    
+    _getRestartExchangeMap(comm, parts, map);
+    restart_helpers::exchangeData(comm, map, parts, objSize);    
     restart_helpers::copyShiftCoordinates(domain, parts, local());
 
     local()->coosvels.uploadToDevice(0);
@@ -89,14 +120,25 @@ void ObjectVector::_restartParticleData(MPI_Comm comm, std::string path)
     info("Successfully read %d particles", local()->coosvels.size());
 }
 
+void ObjectVector::_checkpointObjectData(MPI_Comm comm, std::string path)
+{
+    // TODO
+}
+
+void ObjectVector::_restartObjectData(MPI_Comm comm, std::string path)
+{
+    // TODO
+}
 
 void ObjectVector::checkpoint(MPI_Comm comm, std::string path)
 {
     _checkpointParticleData(comm, path);
+    _checkpointObjectData(comm, path);
     advanceRestartIdx();
 }
 
 void ObjectVector::restart(MPI_Comm comm, std::string path)
 {
     _restartParticleData(comm, path);
+    _restartObjectData(comm, path);
 }

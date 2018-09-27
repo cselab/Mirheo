@@ -262,6 +262,28 @@ void ParticleVector::_checkpointParticleData(MPI_Comm comm, std::string path)
     debug("Checkpoint for particle vector '%s' successfully written", name.c_str());
 }
 
+void ParticleVector::_getRestartExchangeMap(MPI_Comm comm, const std::vector<Particle> &parts, std::vector<int>& map)
+{
+    int dims[3], periods[3], coords[3];
+    MPI_Check( MPI_Cart_get(comm, 3, dims, periods, coords) );
+
+    map.resize(parts.size());
+    
+    for (int i = 0; i < parts.size(); ++i) {
+        const auto& p = parts[i];
+        int3 procId3 = make_int3(floorf(p.r / domain.localSize));
+
+        if (procId3.x >= dims[0] || procId3.y >= dims[1] || procId3.z >= dims[2]) {
+            map[i] = -1;
+            continue;
+        }
+        
+        int procId;
+        MPI_Check( MPI_Cart_rank(comm, (int*)&procId3, &procId) );
+        map[i] = procId;
+    }
+}
+
 void ParticleVector::_restartParticleData(MPI_Comm comm, std::string path)
 {
     CUDA_Check( cudaDeviceSynchronize() );
@@ -272,7 +294,10 @@ void ParticleVector::_restartParticleData(MPI_Comm comm, std::string path)
     XDMF::read(filename, comm, this);
 
     std::vector<Particle> parts(local()->coosvels.begin(), local()->coosvels.end());
-    restart_helpers::exchangeParticles(domain, comm, parts);
+    std::vector<int> map;
+    
+    _getRestartExchangeMap(comm, parts, map);
+    restart_helpers::exchangeData(comm, map, parts, 1);    
     restart_helpers::copyShiftCoordinates(domain, parts, local());
 
     local()->coosvels.uploadToDevice(0);

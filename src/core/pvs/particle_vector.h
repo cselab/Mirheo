@@ -101,7 +101,9 @@ protected:
                    LocalParticleVector *local, LocalParticleVector *halo );
 
     virtual void _checkpointParticleData(MPI_Comm comm, std::string path);
+    virtual void _getRestartExchangeMap(MPI_Comm comm, const std::vector<Particle> &parts, std::vector<int>& map);
     virtual void _restartParticleData(MPI_Comm comm, std::string path);
+    
 
     void advanceRestartIdx();
     int restartIdx = 0;
