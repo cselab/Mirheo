@@ -26,57 +26,7 @@ A simple script looks this way:
 .. role:: bash(code)
    :language: bash
 
-.. code-block:: python
-
-    #!/usr/bin/env python
-
-    import udevicex as udx
-    import numpy as np
-
-    # Simulation time-step
-    dt = 0.001
-
-    # 1 simulation task
-    ranks  = (1, 1, 1)
-
-    # Domain setup
-    domain = (8, 16, 16)
-
-    # Applied extra force for periodic poiseuille flow
-    f = 1
-
-    # Create the coordinator, this should precede any other setup from udevicex package
-    u = udx.udevicex(ranks, domain, debug_level=2, log_filename='log')
-
-    pv = udx.ParticleVectors.ParticleVector('pv', mass = 1)   # Create a simple particle vector
-    ic = udx.InitialConditions.Uniform(density=4)             # Specify uniform random initial conditions
-    u.registerParticleVector(pv=pv, ic=ic)                    # Register the PV and initialize its particles
-
-    # Create and register DPD interaction with specific parameters
-    dpd = udx.Interactions.DPD('dpd', 1.0, a=10.0, gamma=10.0, kbt=1.0, dt=dt, power=0.5)
-    u.registerInteraction(dpd)
-
-    # Tell the simulation that the particles of pv interact with dpd interaction
-    u.setInteraction(dpd, pv, pv)
-
-    # Create and register Velocity-Verlet integrator with extra force
-    vv = udx.Integrators.VelocityVerlet_withPeriodicForce('vv', dt=dt, force=f, direction='x')
-    u.registerIntegrator(vv)
-
-    # This integrator will be used to advance pv particles
-    u.setIntegrator(vv, pv)
-
-    # Set the dumping parameters
-    sampleEvery = 2
-    dumpEvery   = 1000
-    binSize     = (1., 1., 1.)
-
-    # Create and register XDMF plugin
-    field = udx.Plugins.createDumpAverage('field', pv, sampleEvery, dumpEvery, binSize, [("velocity", "vector_from_float8")], 'h5/solvent-')
-    u.registerPlugins(field)
-
-    # Run 5002 time-steps
-    u.run(5002)
+.. literalinclude:: ../../../tests/doc_scripts/basic.py
 
 Running the simulation
 **********************
