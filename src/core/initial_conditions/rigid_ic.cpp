@@ -128,8 +128,7 @@ void RigidIC::exec(const MPI_Comm& comm, ParticleVector* pv, DomainInfo domain, 
 
     info("Read %d %s objects", nObjs, ov->name.c_str());
 
-    // Do the initial rotation
-    ov->requireDataPerObject<RigidMotion>("old_motions", false);
+    // Do the initial rotation    
     ov->local()->forces.clear(stream);
     IntegratorVVRigid integrator("dummy", 0.0f);
     integrator.stage2(pv, 0, stream);
