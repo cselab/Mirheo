@@ -61,13 +61,9 @@ for sample in all_fname:
 
 val_avg = val_avg / len(all_fname)
 
-D = val_avg.shape
+val_avg.reshape(val_avg.shape[0], -1)
 
-if len(D) >= 3:
-    newD = [D[0], D[1]]
-    for i in range(2,len(D)):
-        newD[1] = newD[1] * D[i]
-
-    val_avg=val_avg.reshape(newD)
-    
-np.savetxt(sys.stdout, val_avg, "%g")
+if (sys.version_info > (3, 0)):
+    np.savetxt(sys.stdout.buffer, val_avg, "%g")
+else:
+    np.savetxt(sys.stdout, val_avg, "%g")

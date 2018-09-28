@@ -47,8 +47,10 @@ def createFromMesh(density, vertices, triangles, inertia, niter):
     else:
         frozenCoords = [[]]
 
-    return frozenCoords
-
+    if u.isMasterTask():
+        return frozenCoords
+    else:
+        return None
 
 
 def createFromMeshFile(density, fname, niter):
@@ -72,7 +74,8 @@ if __name__ == '__main__':
     coords = createFromMeshFile(args.density, args.fname, args.niter)
 
     # assume only one rank is working
-    np.savetxt(args.out, coords)
+    if coords is not None:
+        np.savetxt(args.out, coords)
     
 
 

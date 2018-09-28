@@ -78,4 +78,4 @@ u.run(5000)
 # f="../../../data/rbc_mesh.off"
 # rm -rf pos*.txt vel*.txt
 # udx.run --runargs "-n 2" ./mesh.py --file $f > /dev/null
-# cat stats/ellipsoid.txt | awk '{print $2, $15, $9}' > rigid.out.txt
+# cat stats/rigid.txt | awk '{print $2, $15, $9}' > rigid.out.txt

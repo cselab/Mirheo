@@ -22,13 +22,14 @@ RigidObjectVector::RigidObjectVector(std::string name, float partMass,
 
     // rigid motion must be exchanged and shifted
     requireDataPerObject<RigidMotion>("motions", true, sizeof(RigidReal));
+    requireDataPerObject<RigidMotion>("old_motions", false);
 }
 
 RigidObjectVector::RigidObjectVector(std::string name, float partMass,
                                      PyTypes::float3 J, const int objSize,
                                      std::shared_ptr<Mesh> mesh, const int nObjects) :
         RigidObjectVector( name, partMass, make_float3(J), objSize, mesh, nObjects )
-{   }
+{}
 
 PinnedBuffer<Particle>* LocalRigidObjectVector::getMeshVertices(cudaStream_t stream)
 {
@@ -147,12 +148,18 @@ void RigidObjectVector::_checkpointObjectData(MPI_Comm comm, std::string path)
     debug("Checkpoint for object vector '%s' successfully written", name.c_str());
 }
 
+static void shiftCoordinates(const DomainInfo& domain, std::vector<RigidMotion>& motions)
+{
+    for (auto& m : motions)
+        m.r = make_rigidReal3( domain.global2local(make_float3(m.r)) );
+}
+
 void RigidObjectVector::_restartObjectData(MPI_Comm comm, std::string path, const std::vector<int>& map)
 {
     CUDA_Check( cudaDeviceSynchronize() );
 
     std::string filename = path + "/" + name + ".obj.xmf";
-    info("Restarting object vector %s from file %s", name.c_str(), filename.c_str());
+    info("Restarting rigid object vector %s from file %s", name.c_str(), filename.c_str());
 
     XDMF::readRigidObjectData(filename, comm, this);
 
@@ -165,6 +172,8 @@ void RigidObjectVector::_restartObjectData(MPI_Comm comm, std::string path, cons
     restart_helpers::exchangeData(comm, map, ids, 1);
     restart_helpers::exchangeData(comm, map, motions, 1);
 
+    shiftCoordinates(domain, motions);
+    
     loc_ids->resize_anew(ids.size());
     loc_motions->resize_anew(motions.size());
 
