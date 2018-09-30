@@ -4,7 +4,7 @@ Walls
 #####
 
 Walls are used to represent time-independent stationary boundary conditions for the flows.
-They are described in the form of a `signed distance function <https://en.wikipedia.org/wiki/Signed_distance_function>`, 
+They are described in the form of a `signed distance function <https://en.wikipedia.org/wiki/Signed_distance_function>`_, 
 such that a zero-level isosurface defines the wall surface.
 No slip and no through boundary conditions are enforced on that surface by bouncing the particles off the wall surface.
 
