@@ -89,5 +89,5 @@ With all the prerequisites installed, you can take the following steps to run uD
         
       import udevicex
    
-   In order to test your installation, you need to intall an **atest** script SHOW LINK.
-   Then run :console:`make test` from the root folder of uDeviceX
+   In order to test your installation, you need to intall an `atest <https://gitlab.ethz.ch/mavt-cse/atest.git>`
+   script. Then run :console:`make test` from the root folder of uDeviceX

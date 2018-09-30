@@ -3,7 +3,8 @@
 Plugins
 #######
 
-Plugins are used to add specific data processing or to modify the regular pipeline in certain way. However, the functionality they provide is not considered essential.
+Plugins are used to add specific data processing or to modify the regular pipeline in certain way.
+However, the functionality they provide is not considered essential.
 
 If the simulation is started without postprocess part (see :ref:`user-all`), most of the plugins are disabled.
 
@@ -14,7 +15,7 @@ Classes
 -------
 .. automodsumm:: _udevicex.Plugins
    :classes-only:
-   :skip: PostprocessStats, UniformCartesianDumper, XYZDumper, MeshDumper, ObjPositionsDumper, ReportPinObject
+   :skip: PostprocessStats, UniformCartesianDumper, XYZDumper, MeshDumper, ObjPositionsDumper, ReportPinObject, ParticleDumperPlugin, PostprocessVelocityControl
 
 Creation functions
 ------------------

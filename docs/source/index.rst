@@ -33,13 +33,13 @@ as well as exposing code internals for the developers wishing to contribute to t
    user/benchmarks
    user/coordinator
    user/particle_vectors
-   user/bouncers
    user/initial_conditions
+   user/object_belonging
    user/integrators
    user/interactions
-   user/object_belonging
-   user/plugins
+   user/bouncers
    user/walls
+   user/plugins
 
    
 .. ..toctree::

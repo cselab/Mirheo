@@ -3,7 +3,9 @@
 Initial conditions
 ##################
 
-Initial conditions (IC) have to be defined for every Particle Vector
+Initial conditions create the distribution of the particles or objects at the beginning of
+any simulation. Several variants include random placement, reading ICs from Python or restarting
+from the previous state
 
 Summary
 ========
