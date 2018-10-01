@@ -18,7 +18,7 @@ class MembraneParameters:
 
 class DPD(Interaction):
     r"""
-        Pairwise interaction with conservative part and dissipative + random part acting as a thermostat, see https://aip.scitation.org/doi/abs/10.1063/1.474784
+        Pairwise interaction with conservative part and dissipative + random part acting as a thermostat, see [Groot1997]_
     
         .. math::
         
@@ -37,6 +37,10 @@ class DPD(Interaction):
         .. math::
             
             w(r) = \begin{cases} (1-r)^{p}, & r < 1 \\ 0, & r \geqslant 1 \end{cases}
+            
+        .. [Groot1997] Groot, R. D., & Warren, P. B. (1997).
+            Dissipative particle dynamics: Bridging the gap between atomistic and mesoscopic simulations.
+            J. Chem. Phys., 107(11), 4423–4435. `doi <https://doi.org/10.1063/1.474784>`_
     
     """
     def __init__():
@@ -68,7 +72,7 @@ class DPD(Interaction):
 
 class LJ(Interaction):
     r"""
-        Pairwise interaction according to the classical Lennard-Jones potential `http://rspa.royalsocietypublishing.org/content/106/738/463`
+        Pairwise interaction according to the classical `Lennard-Jones potential <https://en.wikipedia.org/wiki/Lennard-Jones_potential>`_
         The force however is truncated such that it is *always repulsive*.
         
         .. math::
@@ -107,7 +111,7 @@ class LJ(Interaction):
 
 class MembraneForces(Interaction):
     r"""
-        Mesh-based forces acting on a membrane according to the model in [CIT_Fedosov2010]
+        Mesh-based forces acting on a membrane according to the model in [Fedosov2010]_
 
         The membrane interactions are composed of forces comming from:
             - bending of the membrane, potential :math:`U_b`
@@ -126,11 +130,11 @@ class MembraneForces(Interaction):
             U_A = \frac{k_a (A_{tot} - A^0_{tot})^2}{2 A^0_{tot}} + \sum_{j \in {1 ... N_t}} \frac{k_d (A_j-A_0)^2}{2A_0}, \\
             U_V = \frac{k_v (V-V^0_{tot})^2}{2 V^0_{tot}}.
 
-        See [CIT_Fedosov2010] for more explanations.
+        See [Fedosov2010]_ for more explanations.
         The viscous and dissipation forces are central forces and are the same as DPD interactions with :math:`w(r) = 1` 
         (no cutoff radius, applied to each bond).
 
-        .. [CIT_Fedosov2010] Fedosov, D. A.; Caswell, B. & Karniadakis, G. E. 
+        .. [Fedosov2010] Fedosov, D. A.; Caswell, B. & Karniadakis, G. E. 
                              A multiscale red blood cell model with accurate mechanics, rheology, and dynamics 
                              Biophysical journal, Elsevier, 2010, 98, 2215-2225
 
