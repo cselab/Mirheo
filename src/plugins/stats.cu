@@ -97,7 +97,7 @@ PostprocessStats::PostprocessStats(std::string name, std::string filename) :
     {
         fdump = fopen(filename.c_str(), "w");
         if (!fdump) die("Could not open file '%s'", filename.c_str());
-        fprintf(fdump, "# time  kBT  vx vy vz  max(abs(v))\n");
+        fprintf(fdump, "# time  kBT  vx vy vz  max(abs(v))  simulation_time_per_step(ms)\n");
     }
 }
 
@@ -139,8 +139,8 @@ void PostprocessStats::deserialize(MPI_Status& stat)
 
         if (fdump != nullptr)
         {
-            fprintf(fdump, "%g %g %g %g %g %g\n", currentTime,
-                    temperature, momentum[0], momentum[1], momentum[2], maxvel[0]);
+            fprintf(fdump, "%g %g %g %g %g %g %g\n", currentTime,
+                    temperature, momentum[0], momentum[1], momentum[2], maxvel[0], realTime);
             fflush(fdump);
         }
     }
