@@ -103,6 +103,16 @@ uDeviceX::uDeviceX(std::tuple<int, int, int> nranks3D, std::tuple<float, float, 
     init( make_int3(nranks3D), make_float3(globalDomainSize), logFileName, verbosity, checkpointEvery, restartFolder, gpuAwareMPI);
 }
 
+uDeviceX::uDeviceX(long commAdress, PyTypes::int3 nranks3D, PyTypes::float3 globalDomainSize,
+                   std::string logFileName, int verbosity,
+                   int checkpointEvery, std::string restartFolder, bool gpuAwareMPI)
+{
+    // see https://stackoverflow.com/questions/49259704/pybind11-possible-to-use-mpi4py
+    MPI_Comm comm = *((MPI_Comm*) commAdress);
+    MPI_Comm_dup(comm, &this->comm);
+    init( make_int3(nranks3D), make_float3(globalDomainSize), logFileName, verbosity, checkpointEvery, restartFolder, gpuAwareMPI);    
+}
+
 uDeviceX::uDeviceX(MPI_Comm comm, std::tuple<int, int, int> nranks3D, std::tuple<float, float, float> globalDomainSize,
                    std::string logFileName, int verbosity, int checkpointEvery, std::string restartFolder, bool gpuAwareMPI)
 {

@@ -59,6 +59,14 @@ void exportUdevicex(py::module& m)
                     folder where the checkpoint files will reside
                 cuda_aware_mpi: enable CUDA Aware MPI (GPU RDMA). As of now it may crash, or may yield slower execution.
         )")
+
+        .def(py::init< long, PyTypes::int3, PyTypes::float3, std::string, int, int, std::string, bool >(),
+             py::return_value_policy::take_ownership,
+             "commPtr"_a, "nranks"_a, "domain"_a, "log_filename"_a="log", "debug_level"_a=3, 
+             "checkpoint_every"_a=0, "restart_folder"_a="restart/", "cuda_aware_mpi"_a=false, R"(
+            Args:
+                commPtr: pointer to communicator
+        )")
         
         .def("registerParticleVector", &uDeviceX::registerParticleVector,
             "pv"_a, "ic"_a=nullptr, "checkpoint_every"_a=0, R"(
