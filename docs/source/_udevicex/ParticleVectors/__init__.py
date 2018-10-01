@@ -1,6 +1,6 @@
 class Mesh:
     r"""
-        Internally used class for desctibing a simple triangular mesh
+        Internally used class for describing a simple triangular mesh
     
     """
     def __init__():
@@ -11,6 +11,7 @@ Overloaded function.
 
 
         Create a mesh by reading the OFF file
+        
         Args:
             off_filename: path of the OFF file
     
@@ -19,9 +20,11 @@ Overloaded function.
 
 
         Create a mesh by giving coordinates and connectivity
+        
         Args:
             vertices: vertex coordinates
             faces:    connectivity: one triangle per entry, each integer corresponding to the vertex indices
+        
     
 
         """
@@ -155,6 +158,7 @@ Overloaded function.
 
 
             Create a mesh by reading the OFF file
+            
             Args:
                 off_filename: path of the OFF file
         
@@ -163,6 +167,7 @@ Overloaded function.
 
 
         Create a mesh by giving coordinates and connectivity
+        
         Args:
             vertices: vertex coordinates
             faces:    connectivity: one triangle per entry, each integer corresponding to the vertex indices

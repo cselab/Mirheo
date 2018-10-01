@@ -11,6 +11,9 @@ If the simulation is started without postprocess part (see :ref:`user-all`), mos
 Summary
 ========
 
+.. role:: python(code)
+   :language: python
+
 Classes
 -------
 .. automodsumm:: _udevicex.Plugins

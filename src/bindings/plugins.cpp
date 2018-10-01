@@ -113,7 +113,9 @@ void exportPlugins(py::module& m)
             
         .. note::
             This plugin is inactive if postprocess is disabled
-    )").def_property_readonly_static("Unrestricted", [](py::object) { return PinObjectPlugin::Unrestricted; });
+    )").def_property_readonly_static("Unrestricted", [](py::object) { return PinObjectPlugin::Unrestricted; }, R"(
+        Unrestricted
+    )");
 
     py::handlers_class<SimulationStats>(m, "SimulationStats", pysim, R"(
         This plugin will report aggregate quantities of all the particles in the simulation:
@@ -357,9 +359,9 @@ void exportPlugins(py::module& m)
             dump_every: write files every this many time-steps
             path: the files will look like this: <path>/<ov_name>_NNNNN.txt
             velocity: 3 floats, each component is the desired object velocity.
-                If the corresponding component should not be restricted, set this value to :and:`PinObjectPlugin::Unrestricted`
+                If the corresponding component should not be restricted, set this value to :python:`PinObject::Unrestricted`
             angular_velocity: 3 floats, each component is the desired object angular velocity.
-                If the corresponding component should not be restricted, set this value to :and:`PinObjectPlugin::Unrestricted`
+                If the corresponding component should not be restricted, set this value to :python:`PinObject::Unrestricted`
     )");
     m.def("__createVelocityControl", &PluginFactory::createSimulationVelocityControlPlugin,
           "compute_task"_a, "name"_a, "filename"_a, "pvs"_a, "low"_a, "high"_a,
