@@ -60,8 +60,7 @@ for sample in all_fname:
     f.close()
 
 val_avg = val_avg / len(all_fname)
-
-val_avg.reshape(val_avg.shape[0], -1)
+val_avg = val_avg.reshape(val_avg.shape[0], -1)
 
 if (sys.version_info > (3, 0)):
     np.savetxt(sys.stdout.buffer, val_avg, "%g")
