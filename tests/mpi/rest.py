@@ -33,10 +33,10 @@ run(2002, "stats1.txt", MPI._addressof(comm))
 run(2002, "stats2.txt", MPI._addressof(comm))
 
 
-# cTEST: mpi.rest.consecutive
+# nTEST: mpi.rest.consecutive
 # cd mpi
 # rm -rf stats*.txt
-# udx.run --runargs "-n 4" ./rest.py
+# udx.run --runargs "-n 4" ./rest.py > /dev/null
 # cat stats1.txt | awk '{print $1, $2, $3, $4, $5}' >  stats.out.txt
 # cat stats2.txt | awk '{print $1, $2, $3, $4, $5}' >> stats.out.txt
 
