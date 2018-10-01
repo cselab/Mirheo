@@ -29,43 +29,31 @@
 
 #include "version.h"
 
-uDeviceX::uDeviceX(std::tuple<int, int, int> nranks3D, std::tuple<float, float, float> globalDomainSize,
-        std::string logFileName, int verbosity,
-        int checkpointEvery, std::string restartFolder, bool gpuAwareMPI)
+void uDeviceX::init(int3 nranks3D, float3 globalDomainSize, std::string logFileName, int verbosity,
+                    int checkpointEvery, std::string restartFolder, bool gpuAwareMPI)
 {
-    int3 _nranks3D = make_int3(nranks3D);
-    float3 _globalDomainSize = make_float3(globalDomainSize);
-    
-    MPI_Init(nullptr, nullptr);
-    
     int nranks;
+    
+    initLogger(comm, logFileName, verbosity);   
 
-    if (logFileName == "stdout")
-        logger.init(MPI_COMM_WORLD, stdout, verbosity);
-    else if (logFileName == "stderr")
-        logger.init(MPI_COMM_WORLD, stderr, verbosity);
-    else
-        logger.init(MPI_COMM_WORLD, logFileName+".log", verbosity);
+    MPI_Comm_set_errhandler(comm, MPI_ERRORS_RETURN);
 
-    MPI_Comm_set_errhandler(MPI_COMM_WORLD, MPI_ERRORS_RETURN);
+    MPI_Check( MPI_Comm_size(comm, &nranks) );
+    MPI_Check( MPI_Comm_rank(comm, &rank) );
 
-    MPI_Check( MPI_Comm_size(MPI_COMM_WORLD, &nranks) );
-    MPI_Check( MPI_Comm_rank(MPI_COMM_WORLD, &rank) );
-
-    if      (_nranks3D.x * _nranks3D.y * _nranks3D.z     == nranks) noPostprocess = true;
-    else if (_nranks3D.x * _nranks3D.y * _nranks3D.z * 2 == nranks) noPostprocess = false;
-    else die("Asked for %d x %d x %d processes, but provided %d", _nranks3D.x, _nranks3D.y, _nranks3D.z, nranks);
+    if      (nranks3D.x * nranks3D.y * nranks3D.z     == nranks) noPostprocess = true;
+    else if (nranks3D.x * nranks3D.y * nranks3D.z * 2 == nranks) noPostprocess = false;
+    else die("Asked for %d x %d x %d processes, but provided %d", nranks3D.x, nranks3D.y, nranks3D.z, nranks);
 
     if (rank == 0) sayHello();
 
     MPI_Comm ioComm, compComm, interComm, splitComm;
 
-    if (noPostprocess)
-    {
+    if (noPostprocess) {
         warn("No postprocess will be started now, use this mode for debugging. All the joint plugins will be turned off too.");
 
-        sim = std::make_unique<Simulation> (_nranks3D, _globalDomainSize,
-                                            MPI_COMM_WORLD, MPI_COMM_NULL,
+        sim = std::make_unique<Simulation> (nranks3D, globalDomainSize,
+                                            comm, MPI_COMM_NULL,
                                             checkpointEvery, restartFolder, gpuAwareMPI);
         computeTask = 0;
         return;
@@ -73,29 +61,53 @@ uDeviceX::uDeviceX(std::tuple<int, int, int> nranks3D, std::tuple<float, float, 
 
     info("Program started, splitting communicator");
 
-    computeTask = (rank) % 2;
-    MPI_Check( MPI_Comm_split(MPI_COMM_WORLD, computeTask, rank, &splitComm) );
+    computeTask = rank % 2;
+    MPI_Check( MPI_Comm_split(comm, computeTask, rank, &splitComm) );
 
     if (isComputeTask())
     {
         MPI_Check( MPI_Comm_dup(splitComm, &compComm) );
-        MPI_Check( MPI_Intercomm_create(compComm, 0, MPI_COMM_WORLD, 1, 0, &interComm) );
+        MPI_Check( MPI_Intercomm_create(compComm, 0, comm, 1, 0, &interComm) );
 
         MPI_Check( MPI_Comm_rank(compComm, &rank) );
 
-        sim = std::make_unique<Simulation> (_nranks3D, _globalDomainSize,
+        sim = std::make_unique<Simulation> (nranks3D, globalDomainSize,
                                             compComm, interComm,
                                             checkpointEvery, restartFolder, gpuAwareMPI);
     }
     else
     {
         MPI_Check( MPI_Comm_dup(splitComm, &ioComm) );
-        MPI_Check( MPI_Intercomm_create(ioComm,   0, MPI_COMM_WORLD, 0, 0, &interComm) );
+        MPI_Check( MPI_Intercomm_create(ioComm,   0, comm, 0, 0, &interComm) );
 
         MPI_Check( MPI_Comm_rank(ioComm, &rank) );
 
         post = std::make_unique<Postprocess> (ioComm, interComm);
     }
+}
+
+void uDeviceX::initLogger(MPI_Comm comm, std::string logFileName, int verbosity)
+{
+    if      (logFileName == "stdout")  logger.init(comm, stdout,             verbosity);
+    else if (logFileName == "stderr")  logger.init(comm, stderr,             verbosity);
+    else                               logger.init(comm, logFileName+".log", verbosity);
+}
+
+uDeviceX::uDeviceX(std::tuple<int, int, int> nranks3D, std::tuple<float, float, float> globalDomainSize,
+                   std::string logFileName, int verbosity, int checkpointEvery, std::string restartFolder, bool gpuAwareMPI)
+{
+    MPI_Init(nullptr, nullptr);
+    MPI_Comm_dup(MPI_COMM_WORLD, &comm);
+    initializedMpi = true;
+
+    init( make_int3(nranks3D), make_float3(globalDomainSize), logFileName, verbosity, checkpointEvery, restartFolder, gpuAwareMPI);
+}
+
+uDeviceX::uDeviceX(MPI_Comm comm, std::tuple<int, int, int> nranks3D, std::tuple<float, float, float> globalDomainSize,
+                   std::string logFileName, int verbosity, int checkpointEvery, std::string restartFolder, bool gpuAwareMPI)
+{
+    MPI_Comm_dup(comm, &this->comm);
+    init( make_int3(nranks3D), make_float3(globalDomainSize), logFileName, verbosity, checkpointEvery, restartFolder, gpuAwareMPI);
 }
 
 uDeviceX::~uDeviceX()
@@ -104,8 +116,9 @@ uDeviceX::~uDeviceX()
     
     sim.release();
     post.release();
-    
-    MPI_Finalize();
+
+    if (initializedMpi)
+        MPI_Finalize();
 }
 
 
@@ -340,7 +353,6 @@ std::shared_ptr<ParticleVector> uDeviceX::applyObjectBelongingChecker(ObjectBelo
     return sim->getSharedPVbyName(newPVname);
 }
 
-
 void uDeviceX::sayHello()
 {
     static const int max_length_version =  9;
@@ -394,6 +406,6 @@ void uDeviceX::run(int nsteps)
         post->run();
     }
     
-    MPI_Check( MPI_Barrier(MPI_COMM_WORLD) );
+    MPI_Check( MPI_Barrier(comm) );
 }
 

@@ -4,6 +4,7 @@
 #include <core/utils/pytypes.h>
 
 #include <memory>
+#include <mpi.h>
 
 class Simulation;
 class Postprocess;
@@ -24,6 +25,10 @@ class uDeviceX
 {
 public:
     uDeviceX(PyTypes::int3 nranks3D, PyTypes::float3 globalDomainSize,
+             std::string logFileName, int verbosity,
+             int checkpointEvery=0, std::string restartFolder="restart/", bool gpuAwareMPI=false);
+
+    uDeviceX(MPI_Comm comm, PyTypes::int3 nranks3D, PyTypes::float3 globalDomainSize,
              std::string logFileName, int verbosity,
              int checkpointEvery=0, std::string restartFolder="restart/", bool gpuAwareMPI=false);
 
@@ -81,6 +86,12 @@ private:
     bool noPostprocess;
     
     bool initialized = false;
-    
+    bool initializedMpi = false;
+
+    MPI_Comm comm;
+
+    void init(int3 nranks3D, float3 globalDomainSize, std::string logFileName, int verbosity,
+              int checkpointEvery, std::string restartFolder, bool gpuAwareMPI);
+    void initLogger(MPI_Comm comm, std::string logFileName, int verbosity);
     void sayHello();
 };
