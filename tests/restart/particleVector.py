@@ -4,8 +4,6 @@ import udevicex as udx
 import numpy as np
 import argparse
 
-import  mpi4py
-mpi4py.rc(initialize=False, finalize=False)
 from mpi4py import MPI
 
 parser = argparse.ArgumentParser()
@@ -16,10 +14,12 @@ args = parser.parse_args()
 ranks  = args.ranks
 domain = (4, 6, 8)
 
+comm = MPI.COMM_WORLD
+
 if args.restart:
-    u = udx.udevicex(ranks, domain, debug_level=3, log_filename='log', checkpoint_every=0)
+    u = udx.udevicex(MPI._addressof(comm), ranks, domain, debug_level=3, log_filename='log', checkpoint_every=0)
 else:
-    u = udx.udevicex(ranks, domain, debug_level=3, log_filename='log', checkpoint_every=5)
+    u = udx.udevicex(MPI._addressof(comm), ranks, domain, debug_level=3, log_filename='log', checkpoint_every=5)
 
 pv = udx.ParticleVectors.ParticleVector('pv', mass = 1)
 
@@ -32,7 +32,6 @@ u.registerParticleVector(pv=pv, ic=ic)
 
 u.run(7)
 
-comm = MPI.COMM_WORLD
 rank = comm.Get_rank()
 
 if args.restart and pv:

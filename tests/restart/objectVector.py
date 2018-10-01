@@ -5,8 +5,6 @@ import numpy as np
 import argparse
 import trimesh
 
-import  mpi4py
-mpi4py.rc(initialize=False, finalize=False)
 from mpi4py import MPI
 
 parser = argparse.ArgumentParser()
@@ -14,13 +12,14 @@ parser.add_argument("--restart", action='store_true', default=False)
 parser.add_argument("--ranks", type=int, nargs=3)
 args = parser.parse_args()
 
+comm   = MPI.COMM_WORLD
 ranks  = args.ranks
 domain = (16, 16, 16)
 
 if args.restart:
-    u = udx.udevicex(ranks, domain, debug_level=8, log_filename='log', checkpoint_every=0)
+    u = udx.udevicex(MPI._addressof(comm), ranks, domain, debug_level=8, log_filename='log', checkpoint_every=0)
 else:
-    u = udx.udevicex(ranks, domain, debug_level=8, log_filename='log', checkpoint_every=5)
+    u = udx.udevicex(MPI._addressof(comm), ranks, domain, debug_level=8, log_filename='log', checkpoint_every=5)
 
     
 mesh = trimesh.creation.icosphere(subdivisions=1, radius = 0.1)
@@ -42,7 +41,6 @@ u.registerParticleVector(pv, ic)
 
 u.run(7)
 
-comm = MPI.COMM_WORLD
 rank = comm.Get_rank()
 
 if args.restart and pv:
