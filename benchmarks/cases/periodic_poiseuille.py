@@ -62,7 +62,7 @@ vv = udx.Integrators.VelocityVerlet_withPeriodicForce('vv', dt=args.dt, force=ar
 u.registerIntegrator(vv)
 u.setIntegrator(vv, pv)
 
-u.registerPlugins(udx.Plugins.createStats('stats', every=1000))
+u.registerPlugins(udx.Plugins.createStats('stats', "stats.txt", every=1000))
 
 if args.with_dumps:
     sampleEvery = 5

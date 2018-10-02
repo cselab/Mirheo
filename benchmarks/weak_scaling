@@ -1,0 +1,9 @@
+#! /bin/sh
+
+L=64
+script="cases/periodic_poiseuille.py"
+#script="cases/periodic_blood.py"
+
+for i in `seq 10`; do
+    ./launch_daint $i $i $i  $L $L $L  $script
+done
