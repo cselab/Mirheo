@@ -1,0 +1,61 @@
+#! /bin/sh
+
+# awk expression, int
+aei () { awk 'BEGIN {printf "%d", '"$@"'}'; }
+
+launch() (
+    NX=$1;      shift
+    NY=$1;      shift
+    NZ=$1;      shift
+    LX=$1;      shift
+    LY=$1;      shift
+    LZ=$1;      shift
+    scaling=$1;   shift
+    subdomain=$1; shift
+    
+    script=`pwd`/cases/periodic_poiseuille.py
+
+    tot=`aei "$NX * $NY * $NZ"`
+
+    name=${tot}
+    
+    baseDir=$SCRATCH/benchmarks/$scaling/periodic_poiseuille/$subdomain/
+    runDir=$baseDir/$name
+    
+    mkdir -p $runDir
+    cd $runDir
+    
+    . udx.load
+
+    grid_order -R -g $NX,$NY,$NZ -H | perl -p -e 's/(\d+)/(2*$1).",".(2*$1+1)/eg unless (/\#/);' > MPICH_RANK_ORDER 
+    
+    sbatch <<!!!
+#!/bin/bash -l
+#
+#SBATCH --job-name="${scaling}_pp_${name}"
+#SBATCH --time=00:20:00
+#SBATCH --nodes=$tot
+#SBATCH --constraint=gpu
+#SBATCH --account=ch7
+#SBATCH --core-spec=4
+#SBATCH --contiguous
+#SBATCH --output=out.txt
+#SBATCH --error=err.txt
+    
+export MPICH_MAX_THREAD_SAFETY=multiple
+export MPICH_NEMESIS_ASYNC_PROGRESS=1
+
+if [ $tot -gt 1 ]; then
+    export MPICH_RANK_REORDER_DISPLAY=1
+    export MPICH_RANK_REORDER_METHOD=3
+fi
+
+srun -u --ntasks-per-node 2 $script \
+     --domain $LX $LY $LZ \
+     --nranks $NX $NY $NZ \
+     $@
+!!!
+)
+
+
+launch $@

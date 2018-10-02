@@ -40,7 +40,7 @@ parser.add_argument('--rho', help='Particle density', type=float, default=8)
 parser.add_argument('--a', help='a', default=80, type=float)
 parser.add_argument('--gamma', help='gamma', default=20, type=float)
 parser.add_argument('--kbt', help='kbt', default=0.5, type=float)
-parser.add_argument('--dt', help='Time step', default=0.001, type=float)
+parser.add_argument('--dt', help='Time step', default=0.0005, type=float)
 parser.add_argument('--power', help='Kernel exponent', default=0.5, type=float)
 
 parser.add_argument('--lbd', help='RBC to plasma viscosity ratio', default=5.0, type=float)

@@ -58,15 +58,15 @@ parser.add_argument('--rho', help='Particle density', type=float, default=8)
 parser.add_argument('--a', help='a', default=80, type=float)
 parser.add_argument('--gamma', help='gamma', default=20, type=float)
 parser.add_argument('--kbt', help='kbt', default=1.5, type=float)
-parser.add_argument('--dt', help='Time step', default=0.001, type=float)
+parser.add_argument('--dt', help='Time step', default=0.0005, type=float)
 parser.add_argument('--power', help='Kernel exponent', default=0.5, type=float)
 
 parser.add_argument('--lbd', help='RBC to plasma viscosity ratio', default=5.0, type=float)
 
 parser.add_argument('--final-time', help='Final time', type=float, default=20.0)
 
-parser.add_argument('ht',  help='Hematocrit level', type=float)
-parser.add_argument('vol', help='Volume of a single cell', type=float)
+parser.add_argument('--ht',  help='Hematocrit level', default=0.4, type=float)
+parser.add_argument('--vol', help='Volume of a single cell', default=94.0, type=float)
 
 parser.add_argument('--dry-run', help="Don't run the simulation, just report the parameters", action='store_true')
 
@@ -103,7 +103,7 @@ if args.dry_run:
     report()
     quit()
 
-u = udx.udevicex(args.nranks, args.domain, debug_level=args.debug_lvl, log_filename='generate')
+u = udx.udevicex(args.nranks, args.domain, debug_level=args.debug_lvl, log_filename='generate', restart_folder="generated/")
 
 if u.isMasterTask():
     report()

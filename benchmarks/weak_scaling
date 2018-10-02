@@ -3,19 +3,12 @@
 # awk expression, int
 aei () { awk 'BEGIN {printf "%d", '"$@"'}'; }
 
-resources=`pwd`/cases/resources/
-
 L=64
 
-name=periodic_poiseuille
-extraArgs=""
-
-#name=periodic_blood
-#extraArgs="--resource-folder $resources"
-
-script="cases/${name}.py"
+#launch="launch_solvent"
+launch="launch_cells"
 
 for i in `seq 10`; do
     LX=`aei "$L * $i"`
-    ./launch_daint $i $i $i  $LX $LX $LX  $script $name "weak" $extraArgs
+    ./$launch $i $i $i  $LX $LX $LX "weak" $L
 done
