@@ -53,7 +53,8 @@ fi
 
 srun -u --ntasks-per-node 2 $script \
      --domain $LX $LY $LZ \
-     --nranks $NX $NY $NZ     
+     --nranks $NX $NY $NZ \
+     $@
 !!!
 )
 

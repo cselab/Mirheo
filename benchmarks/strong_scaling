@@ -3,12 +3,18 @@
 # awk expression, int
 aei () { awk 'BEGIN {printf "%d", '"$@"'}'; }
 
+resources=`pwd`/cases/resources/
+
 L=288
-#name=periodic_poiseuille
-name=periodic_blood
+
+name=periodic_poiseuille
+extraArgs=""
+
+#name=periodic_blood
+#extraArgs="--resource-folder $resources"
 
 script="cases/${name}.py"
 
 for i in `seq 6`; do
-    ./launch_daint $i $i $i  $L $L $L  $script $name "strong"
+    ./launch_daint $i $i $i  $L $L $L  $script $name "strong" $extraArgs
 done
