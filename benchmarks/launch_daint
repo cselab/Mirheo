@@ -4,24 +4,23 @@
 aei () { awk 'BEGIN {printf "%d", '"$@"'}'; }
 
 launch() (
-    NX=$1;     shift
-    NY=$1;     shift
-    NZ=$1;     shift
-    LX=$1;     shift
-    LY=$1;     shift
-    LZ=$1;     shift
-    script=$1; shift
-
+    NX=$1;      shift
+    NY=$1;      shift
+    NZ=$1;      shift
+    LX=$1;      shift
+    LY=$1;      shift
+    LZ=$1;      shift
+    script=$1;  shift
+    dirName=$1; shift
+    scaling=$1; shift
+    
     script=`pwd`/$script
 
     tot=`aei "$NX * $NY * $NZ"`
-    X=`aei "$NX * $LX"`
-    Y=`aei "$NY * $LY"`
-    Z=`aei "$NZ * $LZ"`
 
     name=${tot}_${LX}
     
-    baseDir=$SCRATCH/benchmarks/weak/periodic_poiseuille
+    baseDir=$SCRATCH/benchmarks/$scaling/$dirName
     runDir=$baseDir/$name
     
     mkdir -p $runDir
@@ -34,7 +33,7 @@ launch() (
     sbatch <<!!!
 #!/bin/bash -l
 #
-#SBATCH --job-name="weak_$name"
+#SBATCH --job-name="${scaling}_${name}"
 #SBATCH --time=00:20:00
 #SBATCH --nodes=$tot
 #SBATCH --constraint=gpu
@@ -53,7 +52,7 @@ if [ $tot -gt 1 ]; then
 fi
 
 srun -u --ntasks-per-node 2 $script \
-     --domain $X $Y $Z \
+     --domain $LX $LY $LZ \
      --nranks $NX $NY $NZ     
 !!!
 )

@@ -3,13 +3,12 @@
 # awk expression, int
 aei () { awk 'BEGIN {printf "%d", '"$@"'}'; }
 
-L=64
+L=288
 #name=periodic_poiseuille
 name=periodic_blood
 
 script="cases/${name}.py"
 
-for i in `seq 10`; do
-    LX=`aei "$L * $i"`
-    ./launch_daint $i $i $i  $LX $LX $LX  $script $name "weak"
+for i in `seq 6`; do
+    ./launch_daint $i $i $i  $L $L $L  $script $name "strong"
 done
