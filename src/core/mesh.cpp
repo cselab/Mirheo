@@ -155,6 +155,8 @@ MembraneMesh::MembraneMesh(const PyTypes::VectorOfFloat3& vertices, const PyType
 
 void MembraneMesh::findAdjacent()
 {
+    enum {NOT_SET = -1};
+    
     std::vector< std::map<int, int> > adjacentPairs(nvertices);
 
     for(int i = 0; i < triangles.size(); ++i)
@@ -179,8 +181,7 @@ void MembraneMesh::findAdjacent()
 
     // Find first (nearest) neighbors of each vertex
     adjacent.resize_anew(ntriangles * maxDegree);
-    for (int i=0; i<adjacent.size(); i++)
-        adjacent[i] = -1;
+    std::fill(adjacent.begin(), adjacent.end(), NOT_SET);
 
     for(int v = 0; v < nvertices; ++v)
     {
@@ -201,9 +202,8 @@ void MembraneMesh::findAdjacent()
 
     // Find distance 2 neighbors of each vertex
     adjacent_second.resize_anew(ntriangles * maxDegree);
-    for (int i=0; i<adjacent_second.size(); i++)
-        adjacent_second[i] = -1;
-
+    std::fill(adjacent_second.begin(), adjacent_second.end(), NOT_SET);
+    
     // Get all the vertex neighbors from already compiled adjacent array
     auto extract_neighbors = [&] (const int v) {
 
@@ -211,7 +211,7 @@ void MembraneMesh::findAdjacent()
         for(int c = 0; c < maxDegree; ++c)
         {
             const int val = adjacent[c + maxDegree * v];
-            if (val == -1)
+            if (val == NOT_SET)
                 break;
 
             myneighbors.push_back(val);
@@ -249,14 +249,14 @@ void MembraneMesh::findAdjacent()
     for(int v = 0; v < nvertices; ++v)
     {
         for (int i=0; i<maxDegree; i++)
-            if (adjacent[v*maxDegree + i] == -1)
+            if (adjacent[v*maxDegree + i] == NOT_SET)
             {
                 adjacent[v*maxDegree + i] = adjacent[v*maxDegree];
                 break;
             }
 
         for (int i=0; i<maxDegree; i++)
-            if (adjacent_second[v*maxDegree + i] == -1)
+            if (adjacent_second[v*maxDegree + i] == NOT_SET)
             {
                 adjacent_second[v*maxDegree + i] = adjacent_second[v*maxDegree];
                 break;
