@@ -1,4 +1,0 @@
-uDeviceX
-==========
-
-.. doxygenfile:: udevicex.h  

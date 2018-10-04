@@ -153,11 +153,110 @@ MembraneMesh::MembraneMesh(const PyTypes::VectorOfFloat3& vertices, const PyType
     computeInitialAreas();
 }
 
+using EdgeMapPerVertex = std::vector< std::map<int, int> >;
+static const int NOT_SET = -1;
+
+void findDegrees(const EdgeMapPerVertex& adjacentPairs, PinnedBuffer<int>& degrees)
+{
+    int nvertices = adjacentPairs.size();
+    degrees.resize_anew(nvertices);
+    
+    for (int i = 0; i < nvertices; ++i)
+        degrees[i] = adjacentPairs[i].size();
+}
+
+void findNearestNeighbours(const EdgeMapPerVertex& adjacentPairs, int maxDegree, PinnedBuffer<int>& adjacent)
+{
+    int nvertices = adjacentPairs.size();
+
+    adjacent.resize_anew(nvertices * maxDegree);
+    std::fill(adjacent.begin(), adjacent.end(), NOT_SET);
+
+    for(int v = 0; v < nvertices; ++v)
+    {
+        auto& l = adjacentPairs[v];
+        auto myadjacent = &adjacent[maxDegree*v];
+        
+        // Add all the vertices on the adjacent edges one by one.
+        myadjacent[0] = l.begin()->first;
+        for(int i = 1; i < l.size(); ++i)
+        {
+            int current = myadjacent[i-1];
+            
+            assert(l.find(current) != l.end());
+            myadjacent[i] =  l.find(current)->second;
+        }
+    }
+}
+
+void findSecondNeighbours(const PinnedBuffer<int3>& triangles, const PinnedBuffer<int>& adjacent, const PinnedBuffer<int>& degrees,
+                          int maxDegree, PinnedBuffer<int>& adjacent_second)
+{
+    int nvertices = degrees.size();
+    
+    adjacent_second.resize_anew(nvertices * maxDegree);
+    std::fill(adjacent_second.begin(), adjacent_second.end(), NOT_SET);
+
+    // So that gcc doesn't confuse initializer list with constructor
+    using _2int = std::tuple<int, int>;
+    std::map< _2int, int > edge2oppositeVertex;
+    for (const auto& t : triangles) {
+        edge2oppositeVertex [_2int{t.x, t.y}] = t.z;
+        edge2oppositeVertex [_2int{t.y, t.z}] = t.x;
+        edge2oppositeVertex [_2int{t.z, t.x}] = t.y;
+    }
+    
+    // Return a vertex, adjacent to edge v1-v2, but not vorig
+    auto fetchNotMe = [&edge2oppositeVertex] (int vorig, int v1, int v2) -> int {
+        
+        auto ptr1 = edge2oppositeVertex.find(_2int{v1, v2});
+        auto ptr2 = edge2oppositeVertex.find(_2int{v2, v1}); // Mind the gap and note the difference
+        assert(ptr1 != edge2oppositeVertex.end());
+        assert(ptr2 != edge2oppositeVertex.end());
+        
+        return (ptr1->second == vorig) ? ptr2->second : ptr1->second;
+    };
+
+    for(int v = 0; v < nvertices; ++v)
+    {
+        auto myadjacent = &adjacent[maxDegree*v];
+        for (int nid = 0; nid < degrees[v]; ++nid)
+        {
+            int cur  = myadjacent[nid];
+            int next = myadjacent[ (nid+1) % degrees[v] ];
+            
+            adjacent_second[nid] = fetchNotMe(v, cur, next);
+        }
+    }
+}
+
+
+void closeLoops(PinnedBuffer<int>& adj, int maxDegree)
+{
+    int nvertices = adj.size() / maxDegree;
+    for(int v = 0; v < nvertices; ++v)
+    {
+        for (int i=0; i<maxDegree; i++)
+            if (adj[v*maxDegree + i] == NOT_SET)
+            {
+                adj[v*maxDegree + i] = adj[v*maxDegree];
+                break;
+            }
+    }
+}
+
 void MembraneMesh::findAdjacent()
 {
-    enum {NOT_SET = -1};
-    
-    std::vector< std::map<int, int> > adjacentPairs(nvertices);
+    // For every vertex: map from neigbouring vertex to a neigbour of both of vertices
+    //
+    //  all of such edges:
+    //     V
+    //
+    //  <=====> 
+    //   \   /
+    //    \ /
+    //     *
+    EdgeMapPerVertex adjacentPairs(nvertices);
 
     for (const auto& t : triangles) {
         adjacentPairs [t.x][t.y] = t.z;
@@ -165,102 +264,13 @@ void MembraneMesh::findAdjacent()
         adjacentPairs [t.z][t.x] = t.y;
     }
 
-    degrees.resize_anew(nvertices);
-    for (int i = 0; i < nvertices; ++i)
-        degrees[i] = adjacentPairs[i].size();
-
-    auto it = std::max_element(degrees.hostPtr(), degrees.hostPtr() + nvertices);
-    const int curMaxDegree = *it;
-
-    if (curMaxDegree != maxDegree)
-        die("Degree of vertex %d is %d != %d (did you change the mesh?)", (int)(it - degrees.hostPtr()), curMaxDegree, maxDegree);
-
-    debug("Max degree of mesh vertices is %d", curMaxDegree);
-
-    // Find first (nearest) neighbors of each vertex
-    adjacent.resize_anew(ntriangles * maxDegree);
-    std::fill(adjacent.begin(), adjacent.end(), NOT_SET);
-
-    for(int v = 0; v < nvertices; ++v)
-    {
-        auto& l = adjacentPairs[v];
-
-        adjacent[0 + maxDegree * v] = l.begin()->first;
-        int last = adjacent[1 + maxDegree * v] = l.begin()->second;
-
-        for(int i = 2; i < l.size(); ++i)
-        {
-            assert(l.find(last) != l.end());
-
-            int tmp = adjacent[i + maxDegree * v] = l.find(last)->second;
-            last = tmp;
-        }
-    }
-
-
-    // Find distance 2 neighbors of each vertex
-    adjacent_second.resize_anew(ntriangles * maxDegree);
-    std::fill(adjacent_second.begin(), adjacent_second.end(), NOT_SET);
+    findDegrees(adjacentPairs, degrees);
+    findNearestNeighbours(adjacentPairs, maxDegree, adjacent);
+    findSecondNeighbours(triangles, adjacent, degrees, maxDegree, adjacent_second);
     
-    // Get all the vertex neighbors from already compiled adjacent array
-    auto extract_neighbors = [&] (const int v) {
-
-        std::vector<int> myneighbors;
-        for(int c = 0; c < maxDegree; ++c)
-        {
-            const int val = adjacent[c + maxDegree * v];
-            if (val == NOT_SET)
-                break;
-
-            myneighbors.push_back(val);
-        }
-
-        return myneighbors;
-    };
-
-    for(int v = 0; v < nvertices; ++v)
-    {
-        auto myneighbors = extract_neighbors(v);
-
-        for(int i = 0; i < myneighbors.size(); ++i)
-        {
-            auto s1 = extract_neighbors(myneighbors[i]);
-            std::sort(s1.begin(), s1.end());
-
-            auto s2 = extract_neighbors(myneighbors[(i + 1) % myneighbors.size()]);
-            std::sort(s2.begin(), s2.end());
-
-            std::vector<int> result(s1.size() + s2.size());
-
-            const int nterms = std::set_intersection(s1.begin(), s1.end(), s2.begin(), s2.end(),
-                    result.begin()) - result.begin();
-
-            assert(nterms == 2);
-
-            const int myguy = result[0] == v;
-
-            adjacent_second[i + maxDegree * v] = result[myguy];
-        }
-    }
-
-
-    for(int v = 0; v < nvertices; ++v)
-    {
-        for (int i=0; i<maxDegree; i++)
-            if (adjacent[v*maxDegree + i] == NOT_SET)
-            {
-                adjacent[v*maxDegree + i] = adjacent[v*maxDegree];
-                break;
-            }
-
-        for (int i=0; i<maxDegree; i++)
-            if (adjacent_second[v*maxDegree + i] == NOT_SET)
-            {
-                adjacent_second[v*maxDegree + i] = adjacent_second[v*maxDegree];
-                break;
-            }
-    }
-
+//     closeLoops(adjacent, maxDegree);
+//     closeLoops(adjacent_second, maxDegree);
+    
     adjacent.uploadToDevice(0);
     adjacent_second.uploadToDevice(0);
     degrees.uploadToDevice(0);
