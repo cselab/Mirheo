@@ -159,16 +159,14 @@ void MembraneMesh::findAdjacent()
     
     std::vector< std::map<int, int> > adjacentPairs(nvertices);
 
-    for(int i = 0; i < triangles.size(); ++i)
-    {
-        const int tri[3] = {triangles[i].x, triangles[i].y, triangles[i].z};
-
-        for(int d = 0; d < 3; ++d)
-            adjacentPairs[tri[d]][tri[(d + 1) % 3]] = tri[(d + 2) % 3];
+    for (const auto& t : triangles) {
+        adjacentPairs [t.x][t.y] = t.z;
+        adjacentPairs [t.y][t.z] = t.x;
+        adjacentPairs [t.z][t.x] = t.y;
     }
 
     degrees.resize_anew(nvertices);
-    for(int i = 0; i < nvertices; ++i)
+    for (int i = 0; i < nvertices; ++i)
         degrees[i] = adjacentPairs[i].size();
 
     auto it = std::max_element(degrees.hostPtr(), degrees.hostPtr() + nvertices);
