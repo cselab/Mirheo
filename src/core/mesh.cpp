@@ -172,14 +172,14 @@ void findNearestNeighbours(const EdgeMapPerVertex& adjacentPairs, int maxDegree,
     adjacent.resize_anew(nvertices * maxDegree);
     std::fill(adjacent.begin(), adjacent.end(), NOT_SET);
 
-    for(int v = 0; v < nvertices; ++v)
+    for (int v = 0; v < nvertices; ++v)
     {
         auto& l = adjacentPairs[v];
         auto myadjacent = &adjacent[maxDegree*v];
         
         // Add all the vertices on the adjacent edges one by one.
         myadjacent[0] = l.begin()->first;
-        for(int i = 1; i < l.size(); ++i)
+        for (int i = 1; i < l.size(); ++i)
         {
             int current = myadjacent[i-1];
             
@@ -217,15 +217,15 @@ void findSecondNeighbours(const PinnedBuffer<int3>& triangles, const PinnedBuffe
         return (ptr1->second == vorig) ? ptr2->second : ptr1->second;
     };
 
-    for(int v = 0; v < nvertices; ++v)
-    {
-        auto myadjacent = &adjacent[maxDegree*v];
-        for (int nid = 0; nid < degrees[v]; ++nid)
-        {
+    for (int v = 0; v < nvertices; ++v) {
+        auto myadjacent        = &adjacent        [maxDegree*v];
+        auto myadjacent_second = &adjacent_second [maxDegree*v];
+
+        for (int nid = 0; nid < degrees[v]; ++nid) {
             int cur  = myadjacent[nid];
             int next = myadjacent[ (nid+1) % degrees[v] ];
             
-            adjacent_second[nid] = fetchNotMe(v, cur, next);
+            myadjacent_second[nid] = fetchNotMe(v, cur, next);
         }
     }
 }
@@ -234,7 +234,7 @@ void findSecondNeighbours(const PinnedBuffer<int3>& triangles, const PinnedBuffe
 void closeLoops(PinnedBuffer<int>& adj, int maxDegree)
 {
     int nvertices = adj.size() / maxDegree;
-    for(int v = 0; v < nvertices; ++v)
+    for (int v = 0; v < nvertices; ++v)
     {
         for (int i=0; i<maxDegree; i++)
             if (adj[v*maxDegree + i] == NOT_SET)
