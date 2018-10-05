@@ -156,7 +156,7 @@ MembraneMesh::MembraneMesh(const PyTypes::VectorOfFloat3& vertices, const PyType
 using EdgeMapPerVertex = std::vector< std::map<int, int> >;
 static const int NOT_SET = -1;
 
-void findDegrees(const EdgeMapPerVertex& adjacentPairs, PinnedBuffer<int>& degrees)
+static void findDegrees(const EdgeMapPerVertex& adjacentPairs, PinnedBuffer<int>& degrees)
 {
     int nvertices = adjacentPairs.size();
     degrees.resize_anew(nvertices);
@@ -165,7 +165,7 @@ void findDegrees(const EdgeMapPerVertex& adjacentPairs, PinnedBuffer<int>& degre
         degrees[i] = adjacentPairs[i].size();
 }
 
-void findNearestNeighbours(const EdgeMapPerVertex& adjacentPairs, int maxDegree, PinnedBuffer<int>& adjacent)
+static void findNearestNeighbours(const EdgeMapPerVertex& adjacentPairs, int maxDegree, PinnedBuffer<int>& adjacent)
 {
     int nvertices = adjacentPairs.size();
 
@@ -189,7 +189,7 @@ void findNearestNeighbours(const EdgeMapPerVertex& adjacentPairs, int maxDegree,
     }
 }
 
-void findSecondNeighbours(const PinnedBuffer<int3>& triangles, const PinnedBuffer<int>& adjacent, const PinnedBuffer<int>& degrees,
+static void findSecondNeighbours(const PinnedBuffer<int3>& triangles, const PinnedBuffer<int>& adjacent, const PinnedBuffer<int>& degrees,
                           int maxDegree, PinnedBuffer<int>& adjacent_second)
 {
     int nvertices = degrees.size();
@@ -231,7 +231,7 @@ void findSecondNeighbours(const PinnedBuffer<int3>& triangles, const PinnedBuffe
 }
 
 
-void closeLoops(PinnedBuffer<int>& adj, int maxDegree)
+static void closeLoops(PinnedBuffer<int>& adj, int maxDegree)
 {
     int nvertices = adj.size() / maxDegree;
     for (int v = 0; v < nvertices; ++v)
