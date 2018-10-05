@@ -268,8 +268,8 @@ void MembraneMesh::findAdjacent()
     findNearestNeighbours(adjacentPairs, maxDegree, adjacent);
     findSecondNeighbours(triangles, adjacent, degrees, maxDegree, adjacent_second);
     
-//     closeLoops(adjacent, maxDegree);
-//     closeLoops(adjacent_second, maxDegree);
+    closeLoops(adjacent, maxDegree);
+    closeLoops(adjacent_second, maxDegree);
     
     adjacent.uploadToDevice(0);
     adjacent_second.uploadToDevice(0);
