@@ -124,8 +124,8 @@ uDeviceX::~uDeviceX()
 {
     debug("uDeviceX coordinator is destroyed");
     
-    sim.release();
-    post.release();
+    sim.reset();
+    post.reset();
 
     if (initializedMpi)
         MPI_Finalize();
@@ -418,4 +418,5 @@ void uDeviceX::run(int nsteps)
     
     MPI_Check( MPI_Barrier(comm) );
 }
+
 

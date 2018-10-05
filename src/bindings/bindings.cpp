@@ -33,4 +33,6 @@ PYBIND11_MODULE(libudevicex, m)
     
     auto plugins = m.def_submodule("Plugins");
     exportPlugins(plugins);
+    
+    m.def("destroyCudaContext", [] () { cudaDeviceReset(); });
 }

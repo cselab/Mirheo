@@ -42,6 +42,7 @@ Overloaded function.
                 restart_folder:
                     folder where the checkpoint files will reside
                 cuda_aware_mpi: enable CUDA Aware MPI (GPU RDMA). As of now it may crash, or may yield slower execution.
+                
         
 
 2. __init__(commPtr: int, nranks: Tuple[int, int, int], domain: Tuple[float, float, float], log_filename: str = 'log', debug_level: int = 3, checkpoint_every: int = 0, restart_folder: str = 'restart/', cuda_aware_mpi: bool = False) -> None

@@ -46,9 +46,10 @@ def decorate_coordinator(f):
     def wrapper(self, *args, **kwargs):
         global __coordinator
         f(self, *args, **kwargs)
-
-        #if __coordinator is not None:
-        #    raise Exception('There can only be one coordinator at a time!')
+        
+        if __coordinator is not None and  __coordinator() is not None:
+           raise Exception('There can only be one coordinator at a time!')
+       
         __coordinator = weakref.ref(self)
 
     return wrapper
