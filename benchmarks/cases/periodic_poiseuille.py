@@ -73,3 +73,19 @@ if args.with_dumps:
     u.registerPlugins(field)
 
 u.run(args.niters)
+
+
+# hack: cleanup device because of profiling tools
+
+if u.isComputeTask():
+
+    del u
+    del pv
+    del ic
+    del dpd
+    del vv
+
+    if args.with_dumps:
+        del field
+    
+    udx.destroyCudaContext()
