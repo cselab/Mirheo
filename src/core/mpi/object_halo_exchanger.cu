@@ -33,9 +33,6 @@ __global__ void getObjectHalos(const DomainInfo domain, const OVview view, const
         if (prop.high.y >  0.5f*domain.localSize.y - rc) cy = 2;
         if (prop.high.z >  0.5f*domain.localSize.z - rc) cz = 2;
 
-//        if (tid == 0 && !QUERY) printf("Obj %d : [%f %f %f] -- [%f %f %f]\n", objId,
-//        prop.low.x, prop.low.y, prop.low.z, prop.high.x, prop.high.y, prop.high.z);
-
         for (int ix = min(cx, 1); ix <= max(cx, 1); ix++)
             for (int iy = min(cy, 1); iy <= max(cy, 1); iy++)
                 for (int iz = min(cz, 1); iz <= max(cz, 1); iz++)
@@ -65,33 +62,32 @@ __global__ void getObjectHalos(const DomainInfo domain, const OVview view, const
         if (tid == 0)
             shDstObjId = atomicAdd(dataWrap.sizes + bufId, 1);
 
-        if (QUERY)
+        if (QUERY) {
             continue;
-
-        __syncthreads();
-
-//        if (tid == 0)
-//            printf("obj  %d  to halo  %d\n", objId, bufId);
-
-        int myOffset = dataWrap.offsets[bufId] + shDstObjId;
-        int* partIdsAddr = haloParticleIds + view.objSize * myOffset;
-
-        // Save particle origins
-        for (int pid = tid; pid < view.objSize; pid += blockDim.x)
-        {
-            const int srcId = objId * view.objSize + pid;
-            partIdsAddr[pid] = srcId;
         }
+        else {
+            __syncthreads();
 
-        char* dstAddr = dataWrap.buffer + packer.totalPackedSize_byte * myOffset;
-        for (int pid = tid; pid < view.objSize; pid += blockDim.x)
-        {
-            const int srcPid = objId * view.objSize + pid;
-            packer.part.packShift(srcPid, dstAddr + pid*packer.part.packedSize_byte, -shift);
+            int myOffset = dataWrap.offsets[bufId] + shDstObjId;
+            int* partIdsAddr = haloParticleIds + view.objSize * myOffset;
+
+            // Save particle origins
+            for (int pid = tid; pid < view.objSize; pid += blockDim.x)
+            {
+                const int srcId = objId * view.objSize + pid;
+                partIdsAddr[pid] = srcId;
+            }
+
+            char* dstAddr = dataWrap.buffer + packer.totalPackedSize_byte * myOffset;
+            for (int pid = tid; pid < view.objSize; pid += blockDim.x)
+            {
+                const int srcPid = objId * view.objSize + pid;
+                packer.part.packShift(srcPid, dstAddr + pid*packer.part.packedSize_byte, -shift);
+            }
+
+            dstAddr += view.objSize * packer.part.packedSize_byte;
+            if (tid == 0) packer.obj.packShift(objId, dstAddr, -shift);
         }
-
-        dstAddr += view.objSize * packer.part.packedSize_byte;
-        if (tid == 0) packer.obj.packShift(objId, dstAddr, -shift);
     }
 }
 

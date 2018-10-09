@@ -29,9 +29,6 @@ __global__ void getExitingObjects(const DomainInfo domain, OVview view, const Ob
     if (prop.com.y >=  0.5f*domain.localSize.y) cy = 2;
     if (prop.com.z >=  0.5f*domain.localSize.z) cz = 2;
 
-//    if (tid == 0) printf("Obj %d : [%f %f %f] -- [%f %f %f]\n", view.ids[objId],
-//            prop.low.x, prop.low.y, prop.low.z, prop.high.x, prop.high.y, prop.high.z);
-
     const int bufId = (cz*3 + cy)*3 + cx;
 
     __shared__ int shDstObjId;
@@ -44,25 +41,23 @@ __global__ void getExitingObjects(const DomainInfo domain, OVview view, const Ob
     if (tid == 0)
         shDstObjId = atomicAdd(dataWrap.sizes + bufId, 1);
 
-    if (QUERY)
+    if (QUERY) {
         return;
-
-    __syncthreads();
-
-//    if (tid == 0 && bufId != 13)
-//        printf("REDIST  obj  %d  to redist  %d  [%f %f %f] - [%f %f %f]  %d %d %d\n", view.ids[objId], bufId,
-//                prop.low.x, prop.low.y, prop.low.z, prop.high.x, prop.high.y, prop.high.z, cx, cy, cz);
-
-    char* dstAddr = dataWrap.buffer + packer.totalPackedSize_byte * (dataWrap.offsets[bufId] + shDstObjId);
-
-    for (int pid = tid; pid < view.objSize; pid += blockDim.x)
-    {
-        const int srcPid = objId * view.objSize + pid;
-        packer.part.packShift(srcPid, dstAddr + pid*packer.part.packedSize_byte, -shift);
     }
+    else {
+        __syncthreads();
 
-    dstAddr += view.objSize * packer.part.packedSize_byte;
-    if (tid == 0) packer.obj.packShift(objId, dstAddr, -shift);
+        char* dstAddr = dataWrap.buffer + packer.totalPackedSize_byte * (dataWrap.offsets[bufId] + shDstObjId);
+
+        for (int pid = tid; pid < view.objSize; pid += blockDim.x)
+        {
+            const int srcPid = objId * view.objSize + pid;
+            packer.part.packShift(srcPid, dstAddr + pid*packer.part.packedSize_byte, -shift);
+        }
+
+        dstAddr += view.objSize * packer.part.packedSize_byte;
+        if (tid == 0) packer.obj.packShift(objId, dstAddr, -shift);
+    }
 }
 
 __global__ static void unpackObject(const char* from, const int startDstObjId, OVview view, ObjectPacker packer)

@@ -62,32 +62,35 @@ __global__ void getHalos(const CellListInfo cinfo, const ParticlePacker packer, 
     if (tid < 27 && blockSum[tid] > 0)
         blockSum[tid] = atomicAdd(dataWrap.sizes + tid, blockSum[tid]);
 
-    if (QUERY) return;
-
-    __syncthreads();
+    if (QUERY) {
+        return;
+    }
+    else {
+        __syncthreads();
 
 #pragma unroll 2
-    for (int i=0; i<current; i++)
-    {
-        const int bufId = validHalos[i];
-        const int myid  = blockSum[bufId] + haloOffset[i];
+        for (int i=0; i<current; i++)
+        {
+            const int bufId = validHalos[i];
+            const int myid  = blockSum[bufId] + haloOffset[i];
 
-        const int ix = bufId % 3;
-        const int iy = (bufId / 3) % 3;
-        const int iz = bufId / 9;
-        const float3 shift{ cinfo.localDomainSize.x*(ix-1),
-                            cinfo.localDomainSize.y*(iy-1),
-                            cinfo.localDomainSize.z*(iz-1) };
+            const int ix = bufId % 3;
+            const int iy = (bufId / 3) % 3;
+            const int iz = bufId / 9;
+            const float3 shift{ cinfo.localDomainSize.x*(ix-1),
+                                cinfo.localDomainSize.y*(iy-1),
+                                cinfo.localDomainSize.z*(iz-1) };
 
 #pragma unroll 3
-        for (int i = 0; i < pend-pstart; i++)
-        {
-            const int dstInd = myid   + i;
-            const int srcInd = pstart + i;
+            for (int i = 0; i < pend-pstart; i++)
+            {
+                const int dstInd = myid   + i;
+                const int srcInd = pstart + i;
 
-            auto bufferAddr = dataWrap.buffer + dataWrap.offsets[bufId]*packer.packedSize_byte;
+                auto bufferAddr = dataWrap.buffer + dataWrap.offsets[bufId]*packer.packedSize_byte;
 
-            packer.packShift(srcInd, bufferAddr + dstInd*packer.packedSize_byte, -shift);
+                packer.packShift(srcInd, bufferAddr + dstInd*packer.packedSize_byte, -shift);
+            }
         }
     }
 }

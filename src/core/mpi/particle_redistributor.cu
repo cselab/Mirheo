@@ -58,8 +58,7 @@ __global__ void getExitingParticles(const CellListInfo cinfo, ParticlePacker pac
 
         if (p.isMarked()) continue;
         
-        if (hasToLeave(code))
-        {
+        if (hasToLeave(code)) {
             const int bufId = (code.z*3 + code.y)*3 + code.x;
             const float3 shift{ cinfo.localDomainSize.x*(code.x-1),
                                 cinfo.localDomainSize.y*(code.y-1),
@@ -67,15 +66,18 @@ __global__ void getExitingParticles(const CellListInfo cinfo, ParticlePacker pac
 
             int myid = atomicAdd(dataWrap.sizes + bufId, 1);
 
-            if (QUERY) continue;
+            if (QUERY) {
+                continue;
+            }
+            else {
+                auto bufferAddr = dataWrap.buffer + dataWrap.offsets[bufId]*packer.packedSize_byte;
+                packer.packShift(srcId, bufferAddr + myid*packer.packedSize_byte, -shift);
 
-            auto bufferAddr = dataWrap.buffer + dataWrap.offsets[bufId]*packer.packedSize_byte;
-            packer.packShift(srcId, bufferAddr + myid*packer.packedSize_byte, -shift);
-
-            // mark the particle as exited to assist cell-list building
-            Float3_int pos = p.r2Float3_int();
-            pos.mark();
-            cinfo.particles[2*srcId] = pos.toFloat4();
+                // mark the particle as exited to assist cell-list building
+                Float3_int pos = p.r2Float3_int();
+                pos.mark();
+                cinfo.particles[2*srcId] = pos.toFloat4();
+            }
         }
     }
 }
