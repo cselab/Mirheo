@@ -1,7 +1,12 @@
 import sys, os, subprocess, glob
 import sphinx.ext.autodoc
 
+on_rtd = os.environ.get('READTHEDOCS', None) == 'True'
+
 extensions = ['breathe', 'sphinx.ext.mathjax', 'sphinx.ext.autodoc', 'sphinx_automodapi.automodapi', 'sphinx.ext.napoleon']
+if on_rtd:
+    #extensions += ['exhale']
+    pass
 
 add_module_names = False
 
@@ -51,16 +56,70 @@ html_show_sphinx = False
 html_show_copyright = True
 
 
-breathe_projects = { 'uDeviceX': '../xml' }
-breathe_default_project = 'uDeviceX'
+# Setup breathe and exhale
+breathe_projects = { 'udevicex': '../xml' }
+breathe_default_project = 'udevicex'
 breathe_domain_by_extension = { "h" : "cpp", "cu" : "cpp" }
 
 cpp_id_attributes = ['__device__', '__global__', '__host__']
 cpp_paren_attributes = ['__launch_bounds__', '__align__']
 
-suppress_warnings = ['']
+primary_domain = 'py'
 
-on_rtd = os.environ.get('READTHEDOCS', None) == 'True'
+
+exhale_args = {
+    # These arguments are required
+    "containmentFolder":     "./api",
+    "rootFileName":          "library_root.rst",
+    "rootFileTitle":         "Library API",
+    "doxygenStripFromPath":  "..",
+    # Suggested optional arguments
+    "createTreeView":        True,
+    # TIP: if using the sphinx-bootstrap-theme, you need
+    # "treeViewIsBootstrap": True,
+    "exhaleExecutesDoxygen": True,
+    "exhaleDoxygenStdin":    r'''   PROJECT_NAME      = "udevicex"
+                                    XML_OUTPUT        = xml
+
+                                    INPUT             = ../../src/core ../../src/plugins
+
+                                    EXCLUDE           = 
+
+                                    ENABLE_PREPROCESSING   = YES
+                                    MACRO_EXPANSION        = YES
+                                    EXPAND_ONLY_PREDEF     = NO
+                                    SKIP_FUNCTION_MACROS   = NO
+                                    PREDEFINED             += __align__(x)=            \
+                                                            __restrict__=            \
+                                                            __launch_bounds__(x,y)=  \
+                                                            __H__                    \
+                                                            __HD__                   \
+                                                            __D__
+                                                        
+                                    XML_PROGRAMLISTING     = YES
+                                    GENERATE_LATEX         = NO
+                                    GENERATE_MAN           = NO
+                                    GENERATE_RTF           = NO
+                                    GENERATE_HTML          = NO
+                                    GENERATE_XML           = YES
+                                    RECURSIVE              = YES
+                                    QUIET                  = YES
+                                    WARN_IF_UNDOCUMENTED   = NO
+                                    EXTRACT_PRIVATE        = YES
+                                    EXTRACT_STATIC         = YES
+                                    EXTRACT_ALL            = YES
+
+                                    ALIASES += "rst=\verbatim embed:rst:leading-asterisk"
+                                    ALIASES += "endrst=\endverbatim"
+
+
+                                    FILE_PATTERNS          = *.h \
+                                                            *.cpp \
+                                                            *.cu
+
+                                    EXTENSION_MAPPING      = cu=C++'''
+}
+
 
 # Override some shit
 def format_signature(self):

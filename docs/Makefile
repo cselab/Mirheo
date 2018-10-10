@@ -52,7 +52,7 @@ clean:
 	rm -rf $(BUILDDIR)/*
 
 html:
-	doxygen
+	#doxygen
 	$(SPHINXBUILD) -b html $(ALLSPHINXOPTS) $(BUILDDIR)/html
 	@echo
 	@echo "Build finished. The HTML pages are in $(BUILDDIR)/html."
@@ -95,7 +95,7 @@ epub:
 	@echo "Build finished. The epub file is in $(BUILDDIR)/epub."
 
 latex:
-	doxygen
+	#doxygen
 	$(SPHINXBUILD) -b latex $(ALLSPHINXOPTS) $(BUILDDIR)/latex
 	@echo
 	@echo "Build finished; the LaTeX files are in $(BUILDDIR)/latex."

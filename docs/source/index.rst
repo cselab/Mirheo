@@ -41,19 +41,9 @@ as well as exposing code internals for the developers wishing to contribute to t
    user/walls
    user/plugins
 
-   
-.. ..toctree::
-..    :maxdepth: 1
-..    :caption: Developer documentation
-.. 
-..    developer/overview
-..    developer/basic_types
-..    developer/coordinators/coordinators
-..    developer/particle_vectors/particle_vectors
-..    developer/mpi/mpi
-..    developer/handlers/handlers
-..    developer/plugins/plugins
 
-
-
-
+.. .. toctree::
+..    :maxdepth: 2
+..    :caption: Developers guide
+..    
+..    api/library_root
