@@ -73,6 +73,8 @@ __device__ inline float3 _fangle(const float3 v1, const float3 v2, const float3 
     return fArea + fVolume;
 }
 
+static const float forceCap = 1500.f;
+
 __device__ inline float3 _fbond(const float3 v1, const float3 v2, const float l0, GPU_RBCparameters parameters)
 {
     float r = max(length(v2 - v1), 1e-5f);
@@ -89,7 +91,7 @@ __device__ inline float3 _fbond(const float3 v1, const float3 v2, const float l0
 
     const float IbforceI_pow = -kp / (fastPower(r, parameters.mpow+1));
 
-    const float IfI = min(200.0f, max(-200.0f, IbforceI_wlc + IbforceI_pow));
+    const float IfI = min(forceCap, max(-forceCap, IbforceI_wlc + IbforceI_pow));
 
     return IfI * (v2 - v1);
 }
