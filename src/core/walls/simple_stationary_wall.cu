@@ -69,13 +69,13 @@ __global__ void packRemainingObjects(OVview view, ObjectPacker packer, char* out
         }
     }
 
-    isRemaining = __all(isRemaining);
+    isRemaining = warpAll(isRemaining);
     if (!isRemaining) return;
 
     int dstObjId;
     if (tid == 0)
         dstObjId = atomicAdd(nRemaining, 1);
-    dstObjId = shfl(dstObjId, 0);
+    dstObjId = warpShfl(dstObjId, 0);
 
     char* dstAddr = output + dstObjId * packer.totalPackedSize_byte;
     for (int pid = tid; pid < view.objSize; pid += warpSize)

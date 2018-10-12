@@ -52,7 +52,7 @@ __global__ void reorderParticles(PVview view, CellListInfo cinfo, float4* outPar
             dstId = -1;
     }
 
-    int otherDst = shfl_up(dstId, 1);
+    int otherDst = warpShflUp(dstId, 1);
     if (sh == 1)
         dstId = otherDst;
 
