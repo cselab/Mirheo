@@ -21,7 +21,7 @@
 #define warpShflDown(var, delta)   __shfl_down (var, delta)
 #define warpShflUp(var, delta)     __shfl_up   (var, delta)
 #define warpShflXor(var, laneMask) __shfl_xor  (var, laneMask)
-#define warpShflAll(predicate)     __all       (predicate)
+#define warpAll(predicate)     __all       (predicate)
 #define warpBallot(predicate)      __ballot    (predicate)
 
 #endif
