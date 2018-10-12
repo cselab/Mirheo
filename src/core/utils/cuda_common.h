@@ -3,6 +3,29 @@
 #include <tuple>
 #include "helper_math.h"
 
+// shuffle instructions wrappers
+#if __CUDACC_VER_MAJOR__ >= 9
+
+#define MASK_ALL_WARP 0xFFFFFFFF
+
+#define warpShfl(var, srcLane)     __shfl_sync      (MASK_ALL_WARP, var, srcLane)
+#define warpShflDown(var, delta)   __shfl_down_sync (MASK_ALL_WARP, var, delta)
+#define warpShflUp(var, delta)     __shfl_up_sync   (MASK_ALL_WARP, var, delta)
+#define warpShflXor(var, laneMask) __shfl_xor_sync  (MASK_ALL_WARP, var, laneMask)
+#define warpAll(predicate)         __all_sync       (MASK_ALL_WARP, predicate)
+#define warpBallot(predicate)      __ballot_sync    (MASK_ALL_WARP, predicate)
+
+#else
+
+#define warpShfl(var, srcLane)     __shfl      (var, srcLane)
+#define warpShflDown(var, delta)   __shfl_down (var, delta)
+#define warpShflUp(var, delta)     __shfl_up   (var, delta)
+#define warpShflXor(var, laneMask) __shfl_xor  (var, laneMask)
+#define warpAll(predicate)     __all       (predicate)
+#define warpBallot(predicate)      __ballot    (predicate)
+
+#endif
+
 inline int getNblocks(const int n, const int nthreads)
 {
     return (n+nthreads-1) / nthreads;
@@ -34,9 +57,9 @@ __device__ inline  float3 warpReduce(float3 val, Operation op)
 #pragma unroll
     for (int offset = warpSize/2; offset > 0; offset /= 2)
     {
-        val.x = op(val.x, __shfl_down(val.x, offset));
-        val.y = op(val.y, __shfl_down(val.y, offset));
-        val.z = op(val.z, __shfl_down(val.z, offset));
+        val.x = op(val.x, warpShflDown(val.x, offset));
+        val.y = op(val.y, warpShflDown(val.y, offset));
+        val.z = op(val.z, warpShflDown(val.z, offset));
     }
     return val;
 }
@@ -47,8 +70,8 @@ __device__ inline  float2 warpReduce(float2 val, Operation op)
 #pragma unroll
     for (int offset = warpSize/2; offset > 0; offset /= 2)
     {
-        val.x = op(val.x, __shfl_down(val.x, offset));
-        val.y = op(val.y, __shfl_down(val.y, offset));
+        val.x = op(val.x, warpShflDown(val.x, offset));
+        val.y = op(val.y, warpShflDown(val.y, offset));
     }
     return val;
 }
@@ -59,7 +82,7 @@ __device__ inline  float warpReduce(float val, Operation op)
 #pragma unroll
     for (int offset = warpSize/2; offset > 0; offset /= 2)
     {
-        val = op(val, __shfl_down(val, offset));
+        val = op(val, warpShflDown(val, offset));
     }
     return val;
 }
@@ -74,9 +97,9 @@ __device__ inline  double3 warpReduce(double3 val, Operation op)
 #pragma unroll
     for (int offset = warpSize/2; offset > 0; offset /= 2)
     {
-        val.x = op(val.x, __shfl_down(val.x, offset));
-        val.y = op(val.y, __shfl_down(val.y, offset));
-        val.z = op(val.z, __shfl_down(val.z, offset));
+        val.x = op(val.x, warpShflDown(val.x, offset));
+        val.y = op(val.y, warpShflDown(val.y, offset));
+        val.z = op(val.z, warpShflDown(val.z, offset));
     }
     return val;
 }
@@ -87,8 +110,8 @@ __device__ inline  double2 warpReduce(double2 val, Operation op)
 #pragma unroll
     for (int offset = warpSize/2; offset > 0; offset /= 2)
     {
-        val.x = op(val.x, __shfl_down(val.x, offset));
-        val.y = op(val.y, __shfl_down(val.y, offset));
+        val.x = op(val.x, warpShflDown(val.x, offset));
+        val.y = op(val.y, warpShflDown(val.y, offset));
     }
     return val;
 }
@@ -99,7 +122,7 @@ __device__ inline  double warpReduce(double val, Operation op)
 #pragma unroll
     for (int offset = warpSize/2; offset > 0; offset /= 2)
     {
-        val = op(val, __shfl_down(val, offset));
+        val = op(val, warpShflDown(val, offset));
     }
     return val;
 }
@@ -114,9 +137,9 @@ __device__ inline  int3 warpReduce(int3 val, Operation op)
 #pragma unroll
     for (int offset = warpSize/2; offset > 0; offset /= 2)
     {
-        val.x = op(val.x, __shfl_down(val.x, offset));
-        val.y = op(val.y, __shfl_down(val.y, offset));
-        val.z = op(val.z, __shfl_down(val.z, offset));
+        val.x = op(val.x, warpShflDown(val.x, offset));
+        val.y = op(val.y, warpShflDown(val.y, offset));
+        val.z = op(val.z, warpShflDown(val.z, offset));
     }
     return val;
 }
@@ -127,8 +150,8 @@ __device__ inline  int2 warpReduce(int2 val, Operation op)
 #pragma unroll
     for (int offset = warpSize/2; offset > 0; offset /= 2)
     {
-        val.x = op(val.x, __shfl_down(val.x, offset));
-        val.y = op(val.y, __shfl_down(val.y, offset));
+        val.x = op(val.x, warpShflDown(val.x, offset));
+        val.y = op(val.y, warpShflDown(val.y, offset));
     }
     return val;
 }
@@ -139,7 +162,7 @@ __device__ inline  int warpReduce(int val, Operation op)
 #pragma unroll
     for (int offset = warpSize/2; offset > 0; offset /= 2)
     {
-        val = op(val, __shfl_down(val, offset));
+        val = op(val, warpShflDown(val, offset));
     }
     return val;
 }
@@ -264,7 +287,7 @@ __device__ inline int atomicAggInc(int *ctr)
 {
     int lane_id = getLaneId<DIMS>();
 
-    int mask = __ballot(1);
+    int mask = warpBallot(1);
     // select the leader
     int leader = __ffs(mask) - 1;
     // leader does the update
@@ -272,7 +295,7 @@ __device__ inline int atomicAggInc(int *ctr)
     if(lane_id == leader)
     res = atomicAdd(ctr, __popc(mask));
     // broadcast result
-    res = __shfl(res, leader);
+    res = warpShfl(res, leader);
     // each thread computes its own value
     return res + __popc(mask & ((1 << lane_id) - 1));
 }

@@ -29,10 +29,10 @@ __global__ void integrationKernel(PVviewWithOldParticles pvView, const float dt,
     Particle p;
     float4 othval;
     
-    othval.x = __shfl_xor(val.x, 1);
-    othval.y = __shfl_xor(val.y, 1);
-    othval.z = __shfl_xor(val.z, 1);
-    othval.w = __shfl_xor(val.w, 1);
+    othval.x = warpShflXor(val.x, 1);
+    othval.y = warpShflXor(val.y, 1);
+    othval.z = warpShflXor(val.z, 1);
+    othval.w = warpShflXor(val.w, 1);
 
     // val is coordinate, othval is corresponding velocity
     if (sh == 0)
