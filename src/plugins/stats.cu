@@ -110,11 +110,16 @@ void PostprocessStats::deserialize(MPI_Status& stat)
 {
     float currentTime, realTime;
     int nparticles, currentTimeStep;
+    int maxNparticles, minNparticles;
+
     std::vector<ReductionType> momentum, energy;
     std::vector<float> maxvel;
 
     SimpleSerializer::deserialize(data, realTime, currentTime, currentTimeStep, nparticles, momentum, energy, maxvel);
 
+    MPI_Check( MPI_Reduce(&nparticles, &minNparticles, 1, MPI_INT, MPI_MIN, 0, comm) );
+    MPI_Check( MPI_Reduce(&nparticles, &maxNparticles, 1, MPI_INT, MPI_MAX, 0, comm) );
+    
     MPI_Check( MPI_Reduce(rank == 0 ? MPI_IN_PLACE : &nparticles,     &nparticles,     1, MPI_INT,          MPI_SUM, 0, comm) );
     MPI_Check( MPI_Reduce(rank == 0 ? MPI_IN_PLACE : energy.data(),   energy.data(),   1, mpiReductionType, MPI_SUM, 0, comm) );
     MPI_Check( MPI_Reduce(rank == 0 ? MPI_IN_PLACE : momentum.data(), momentum.data(), 3, mpiReductionType, MPI_SUM, 0, comm) );
@@ -132,7 +137,7 @@ void PostprocessStats::deserialize(MPI_Status& stat)
 
         printf("Stats at timestep %d (simulation time %f):\n", currentTimeStep, currentTime);
         printf("\tOne timestep takes %.2f ms", realTime);
-        printf("\tTotal number of particles: %d\n", nparticles);
+        printf("\tNumber of particles (total, min/proc, max/proc): %d,  %d,  %d\n", nparticles, minNparticles, maxNparticles);
         printf("\tAverage momentum: [%e %e %e]\n", momentum[0], momentum[1], momentum[2]);
         printf("\tMax velocity magnitude: %f\n", maxvel[0]);
         printf("\tTemperature: %.4f\n\n", temperature);
