@@ -3,7 +3,7 @@
 import numpy as np
 import argparse
 
-parser = argparse.ArgumentParser(description='Generate cells with given hematocrit')
+parser = argparse.ArgumentParser()
 parser.add_argument('--file', help='stats file', type=str)
 args = parser.parse_args()
 

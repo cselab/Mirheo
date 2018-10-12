@@ -1,14 +1,11 @@
-: ${MODULE_CUDATOOLKIT=cudatoolkit/9.0.103_3.7-6.0.4.1_2.1__g72b395b}
-: ${MODULE_CRAY=0}
-
 module swap -s PrgEnv-cray PrgEnv-gnu 2> /dev/null
 
 module load daint-gpu
 module rm cudatoolkit cray-mpich cray-hdf5-* CMake
 
 module load cray-python/3.6.1.1
-module load $MODULE_CUDATOOLKIT
+module load cudatoolkit/9.2.148_3.19-6.0.7.1_2.1__g3d9acc8
 module load cray-mpich
 module load cray-hdf5-parallel
-module load CMake/3.10.1
+module load CMake/3.8.1
 

@@ -1,13 +1,14 @@
 #!/usr/bin/env python
 
-import sys
+import sys, trimesh, argparse
 import numpy as np
-
 import udevicex as udx
-
-import sys, argparse
 sys.path.append("..")
 from common.membrane_params import set_lina
+
+parser = argparse.ArgumentParser()
+parser.add_argument('--mesh', type=str)
+args = parser.parse_args()
 
 dt = 0.001
 
@@ -16,7 +17,9 @@ domain = (12, 8, 10)
 
 u = udx.udevicex(ranks, domain, debug_level=3, log_filename='log')
 
-mesh_rbc = udx.ParticleVectors.MembraneMesh("rbc_mesh.off")
+mesh = trimesh.load_mesh(args.mesh)
+
+mesh_rbc = udx.ParticleVectors.MembraneMesh(mesh.vertices.tolist(), mesh.faces.tolist())
 pv_rbc   = udx.ParticleVectors.MembraneVector("rbc", mass=1.0, mesh=mesh_rbc)
 ic_rbc   = udx.InitialConditions.Membrane([[8.0, 4.0, 5.0,   1.0, 0.0, 0.0, 0.0]])
 u.registerParticleVector(pv_rbc, ic_rbc)
@@ -35,12 +38,14 @@ u.setIntegrator(vv, pv_rbc)
 u.registerInteraction(int_rbc)
 u.setInteraction(int_rbc, pv_rbc, pv_rbc)
 
-# TODO use nvertices from mesh
-forces = [[0.0, 0.0, 0.0] for i in range(498)]
-forces[0] = [0., 1000.0, 0.]
-forces[200] = [0., -1000.0, 0.]
+forces = np.zeros((len(mesh.vertices), 3))
+id_min = np.argmin(mesh.vertices[:,0])
+id_max = np.argmax(mesh.vertices[:,0])
+force_magn = 500.0
+forces[id_min][0] = - force_magn
+forces[id_max][0] = + force_magn
 
-extraForces = udx.Plugins.createMembraneExtraForce("extraRbcForce", pv_rbc, forces)
+extraForces = udx.Plugins.createMembraneExtraForce("extraRbcForce", pv_rbc, forces.tolist())
 u.registerPlugins(extraForces)
 
 dump_mesh = udx.Plugins.createDumpMesh("mesh_dump", pv_rbc, 500, "ply/")
@@ -55,6 +60,6 @@ if pv_rbc is not None:
 
 # nTEST: membrane.extraForce
 # cd membrane
-# cp ../../data/rbc_mesh.off .
-# udx.run --runargs "-n 2" ./extraForce.py > /dev/null
+# mesh="../../data/rbc_mesh.off"
+# udx.run --runargs "-n 2" ./extraForce.py --mesh $mesh > /dev/null
 # mv pos.rbc.txt pos.rbc.out.txt 
