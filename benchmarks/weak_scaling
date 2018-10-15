@@ -3,12 +3,12 @@
 # awk expression, int
 aei () { awk 'BEGIN {printf "%d", '"$@"'}'; }
 
-L=64
+L=96
 
 #launch="launch_solvent"
 launch="launch_cells"
 
 for i in `seq 10`; do
     LX=`aei "$L * $i"`
-    ./$launch $i $i $i  $LX $LX $LX "weak" $L
+    ./$launch $i $i $i  $LX $LX $LX "weak_finer" $L
 done

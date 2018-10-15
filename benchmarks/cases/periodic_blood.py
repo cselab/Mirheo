@@ -176,7 +176,8 @@ u.setBouncer(bouncer, rbcs, outer)
 #====================================================================================
 #====================================================================================
 
-u.registerPlugins(udx.Plugins.createStats('stats', "stats.txt", every=100))
+statsEvery=20
+u.registerPlugins(udx.Plugins.createStats('stats', "stats.txt", statsEvery))
 
 if args.with_dumps:
     sample_every = 5
