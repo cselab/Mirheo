@@ -26,9 +26,6 @@ private:
     ParticleVector* pv;
     SDF_basedWall *wall;
 
-    DeviceBuffer<float>  sdfs;
-    DeviceBuffer<float3> gradients;
-
     float C, h, maxForce;
 };
 
