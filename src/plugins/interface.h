@@ -15,7 +15,7 @@ public:
     std::string name;
 
     SimulationPlugin(std::string name) :
-        name(name), req(MPI_REQUEST_NULL)
+        name(name), sizeReq(MPI_REQUEST_NULL), dataReq(MPI_REQUEST_NULL)
     {}
 
     virtual void beforeForces               (cudaStream_t stream) {};
@@ -43,6 +43,7 @@ public:
 
     virtual void setup(Simulation* sim, const MPI_Comm& comm, const MPI_Comm& interComm)
     {
+	debug("Setting up simulation plugin '%s', MPI tag is %d", name.c_str(), tag());
         this->sim = sim;
 
         MPI_Check( MPI_Comm_dup(comm, &this->comm) );
@@ -55,7 +56,8 @@ public:
     virtual void finalize()
     {
         debug3("Plugin %s is finishing all the communications", name.c_str());
-        MPI_Check( MPI_Wait(&req, MPI_STATUS_IGNORE) );
+        MPI_Check( MPI_Wait(&sizeReq, MPI_STATUS_IGNORE) );
+        MPI_Check( MPI_Wait(&dataReq, MPI_STATUS_IGNORE) );
     }
 
     virtual ~SimulationPlugin() = default;
@@ -65,7 +67,8 @@ protected:
     MPI_Comm comm;
     MPI_Comm interComm;
     int rank, nranks;
-    MPI_Request req;
+    int localSendSize;
+    MPI_Request sizeReq, dataReq;
 
     float currentTime;
     int currentTimeStep;
@@ -78,8 +81,10 @@ protected:
     
     void waitPrevSend()
     {
-        MPI_Check( MPI_Wait(&req, MPI_STATUS_IGNORE) );
-        req = MPI_REQUEST_NULL;
+        MPI_Check( MPI_Wait(&sizeReq, MPI_STATUS_IGNORE) );
+        MPI_Check( MPI_Wait(&dataReq, MPI_STATUS_IGNORE) );
+        sizeReq = MPI_REQUEST_NULL;
+        dataReq = MPI_REQUEST_NULL;
     }
 
     void send(const std::vector<char>& data)
@@ -89,11 +94,15 @@ protected:
 
     void send(const void* data, int sizeInBytes)
     {
+        // So that async Isend of the size works on
+        // valid address
+        localSendSize = sizeInBytes;
+
         waitPrevSend();
         
         debug2("Plugin '%s' has is sending the data (%d bytes)", name.c_str(), sizeInBytes);
-        MPI_Check( MPI_Send(&sizeInBytes, 1, MPI_INT, rank, 2*tag(), interComm) );
-        MPI_Check( MPI_Isend(data, sizeInBytes, MPI_BYTE, rank, 2*tag()+1, interComm, &req) );
+        MPI_Check( MPI_Issend(&localSendSize, 1, MPI_INT, rank, 2*tag(), interComm, &sizeReq) );
+        MPI_Check( MPI_Issend(data, sizeInBytes, MPI_BYTE, rank, 2*tag()+1, interComm, &dataReq) );
     }
 };
 
@@ -123,7 +132,7 @@ public:
             error("Plugin '%s' was going to receive %d bytes, but actually got %d. That may be fatal",
                     name.c_str(), size, count);
 
-        debug3("Plugin %s has received the data (%d bytes)", name.c_str(), count);
+        debug3("Plugin '%s' has received the data (%d bytes)", name.c_str(), count);
     }
 
     virtual void deserialize(MPI_Status& stat) {};
@@ -132,6 +141,8 @@ public:
 
     virtual void setup(const MPI_Comm& comm, const MPI_Comm& interComm)
     {
+	debug("Setting up postproc plugin '%s', MPI tag is %d", name.c_str(), tag());
+
         MPI_Check( MPI_Comm_dup(comm, &this->comm) );
         this->interComm = interComm;
 
