@@ -21,7 +21,7 @@ __global__ void forceFromSDF(PVview view, float* sdfs, float3* gradients, float 
     float sdf = sdfs[pid];
     float3 f = -gradients[pid] * min( maxForce, C * max(sdf + h, 0.0f) );
 
-    view.forces[pid] += Float3_int(f, 0).toFloat4();
+    atomicAdd(view.forces + pid, f);
 }
 
 
@@ -31,6 +31,9 @@ void WallRepulsionPlugin::setup(Simulation* sim, const MPI_Comm& comm, const MPI
 
     pv = sim->getPVbyNameOrDie(pvName);
     wall = dynamic_cast<SDF_basedWall*>(sim->getWallByNameOrDie(wallName));
+    
+    pv->requireDataPerParticle<float>("sdf", false);
+    pv->requireDataPerParticle<float3>("grad_sdf", false);
 
     if (wall == nullptr)
         die("Wall repulsion plugin '%s' can only work with SDF-based walls, but got wall '%s'",
@@ -43,13 +46,16 @@ void WallRepulsionPlugin::setup(Simulation* sim, const MPI_Comm& comm, const MPI
 void WallRepulsionPlugin::beforeIntegration(cudaStream_t stream)
 {
     PVview view(pv, pv->local());
+    
+    auto sdfs      = pv->local()->extraPerParticle.getData<float>("sdf");
+    auto gradients = pv->local()->extraPerParticle.getData<float3>("grad_sdf");
 
-    wall->sdfPerParticle(pv->local(), &sdfs, &gradients, stream);
+    wall->sdfPerParticle(pv->local(), sdfs, gradients, stream);
 
     const int nthreads = 128;
     SAFE_KERNEL_LAUNCH(
             forceFromSDF,
             getNblocks(view.size, nthreads), nthreads, 0, stream,
-            view, sdfs.devPtr(), gradients.devPtr(), C, h, maxForce );
+            view, sdfs->devPtr(), gradients->devPtr(), C, h, maxForce );
 }
 
