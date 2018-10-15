@@ -10,7 +10,7 @@ args = parser.parse_args()
 
 domain = (8, 16, 4)
 
-u = udx.udevicex(args.ranks, domain, debug_level=3, log_filename='log')
+u = udx.udevicex(args.ranks, domain, debug_level=8, log_filename='log')
 
 pv = udx.ParticleVectors.ParticleVector('pv', mass = 1)
 ic = udx.InitialConditions.Uniform(density=3)
@@ -29,4 +29,10 @@ u.run(3)
 # cd dump
 # rm -rf h5
 # udx.run --runargs "-n 2" ./h5.py --ranks 1 1 1 > /dev/null
+# udx.avgh5 xz density h5/solvent-00000.h5 > profile.out.txt
+
+# TEST: dump.h5.mpi
+# cd dump
+# rm -rf h5
+# udx.run --runargs "-n 4" ./h5.py --ranks 1 2 1 > /dev/null
 # udx.avgh5 xz density h5/solvent-00000.h5 > profile.out.txt
