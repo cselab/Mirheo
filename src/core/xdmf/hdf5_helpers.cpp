@@ -9,8 +9,26 @@ namespace XDMF
 
         static hid_t createFileAccess(MPI_Comm comm)
         {
+            int size;
+            MPI_Check( MPI_Comm_size(comm, &size) );
+            
+            // Collective buffers for mpi i/o
+            int cb = 1;
+            while (cb*2 <= size) cb *= 2;
+
+            cb = std::min(cb, 128);
+            char cbstr[100];
+            sprintf(cbstr, "%d", cb);
+
+            MPI_Info info;
+            MPI_Info_create(&info);
+            MPI_Info_set(info, "cb_nodes", cbstr);
+            MPI_Info_set(info, "romio_cb_write", "enable");
+            MPI_Info_set(info, "romio_ds_write", "disable");
+            MPI_Info_set(info, "striping_factor", cbstr);
+
             hid_t plist_id_access = H5Pcreate(H5P_FILE_ACCESS);
-            H5Pset_fapl_mpio(plist_id_access, comm, MPI_INFO_NULL);  // TODO: add smth here to speed shit up
+            H5Pset_fapl_mpio(plist_id_access, comm, info);
             return plist_id_access;
         }
         
