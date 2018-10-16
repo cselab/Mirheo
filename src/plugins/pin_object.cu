@@ -44,21 +44,31 @@ __global__ void restrictVelocities(OVview view, float3 targetVelocity, float4* t
 
     // Now only leave the components we need and save the force
 
-    float3 extraForce = make_float3(0);
-    if (targetVelocity.x == PinObjectPlugin::Unrestricted) { objTotForce.x = 0; objVelocity.x = 0; }
-    if (targetVelocity.y == PinObjectPlugin::Unrestricted) { objTotForce.y = 0; objVelocity.y = 0; }
-    if (targetVelocity.z == PinObjectPlugin::Unrestricted) { objTotForce.z = 0; objVelocity.z = 0; }
-
     if (threadIdx.x == 0)
+    {
+        // This is the velocity correction
+        objVelocity = targetVelocity - objVelocity;
+        
+        if (targetVelocity.x == PinObjectPlugin::Unrestricted) { objTotForce.x = 0; objVelocity.x = 0; }
+        if (targetVelocity.y == PinObjectPlugin::Unrestricted) { objTotForce.y = 0; objVelocity.y = 0; }
+        if (targetVelocity.z == PinObjectPlugin::Unrestricted) { objTotForce.z = 0; objVelocity.z = 0; }
+        
         totForces[view.ids[objId]] += Float3_int(objTotForce, 0).toFloat4();
+        objTotForce /= view.objSize;
+    }
+
+    __syncthreads();
+
 
     // Finally change the original forces and velocities
     // Velocities should be preserved anyways, only changed in the very
     // beginning of the simulation
-    objTotForce /= view.objSize;
-
+    
     for (int pid = threadIdx.x; pid < view.objSize; pid += blockDim.x)
+    {
         view.forces[pid + objId*view.objSize] -= Float3_int(objTotForce, 0).toFloat4();
+        view.particles[2*(pid + objId*view.objSize) + 1] += Float3_int(objVelocity, 0).toFloat4();
+    }
 }
 
 __global__ void restrictRigidMotion(ROVviewWithOldMotion view, float3 targetVelocity, float3 targetOmega, float dt, float4* totForces, float4* totTorques)
