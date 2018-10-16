@@ -23,7 +23,7 @@ With all the prerequisites installed, you can take the following steps to run uD
 
    .. code-block:: console
       
-      $ git clone --recursive https://github.com/dimaleks/uDeviceX.git udevicex
+      $ git clone --recursive https://github.com/cselab/uDeviceX.git udevicex
       
 #. In most cases automatic installation will work correctly, you should try it in the first place.
    Navigate to the folder with the code and run the installation command:
