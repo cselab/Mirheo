@@ -125,8 +125,9 @@ namespace XDMF
         this->spacing    = std::vector<float>{h.x, h.y, h.z};
         this->localSize  = std::vector<hsize_t>{ (hsize_t)localSize.x,  (hsize_t)localSize.y,  (hsize_t)localSize.z};
         
-        globalSize.resize(3, 0);
-        MPI_Check( MPI_Allreduce(this->localSize.data(), this->globalSize.data(), 3, MPI_LONG_LONG_INT, MPI_SUM, cartComm) );
+        globalSize = std::vector<hsize_t>{ (hsize_t) nranks[0] * localSize.x,
+                                           (hsize_t) nranks[1] * localSize.y,
+                                           (hsize_t) nranks[2] * localSize.z};
 
         offsets = std::vector<hsize_t>{ (hsize_t) my3Drank[2] * localSize.z,
                                         (hsize_t) my3Drank[1] * localSize.y,
