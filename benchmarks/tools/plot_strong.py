@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 parser = argparse.ArgumentParser()
 parser.add_argument('--files', type=str, nargs = "+")
 parser.add_argument('--ref', type=int, default=0)
+parser.add_argument('--out', type=str, default="gui")
 args = parser.parse_args()
 
 
@@ -55,4 +56,7 @@ plt.legend()
 
 #print(nodes, efficiency)
 
-plt.show()
+if args.out == "gui":
+    plt.show()
+else:
+    plt.savefig(args.out)

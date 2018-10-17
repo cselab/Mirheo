@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 parser = argparse.ArgumentParser()
 parser.add_argument('--files', type=str, nargs="+")
 parser.add_argument('--ref', type=int, default=0)
+parser.add_argument('--out', type=str, default="gui")
 args = parser.parse_args()
 
 fig = plt.figure(0)
@@ -43,4 +44,7 @@ ax.set_ylabel("weak scaling efficiency")
 
 plt.legend()
 
-plt.show()
+if args.out == "gui":
+    plt.show()
+else:
+    plt.savefig(args.out)
