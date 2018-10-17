@@ -240,7 +240,7 @@ std::shared_ptr<ParticleVector> uDeviceX::makeFrozenWallParticles(std::string pv
     // But here we don't pass the wall into the other simulation,
     // we just use it to filter particles, which is totally fine
     
-    info("Generating frozen particles for walls:\n");
+    info("Generating frozen particles for walls");
 
     std::vector<SDF_basedWall*> sdfWalls;
 
@@ -254,9 +254,8 @@ std::shared_ptr<ParticleVector> uDeviceX::makeFrozenWallParticles(std::string pv
         // Check if the wall is set up
         sim->getWallByNameOrDie(wall->name);
 
-        info("\t%s", wall->name.c_str());
+        info("Working with wall '%s'", wall->name.c_str());   
     }
-    info("\n\n");
     
     Simulation wallsim(sim->nranks3D, sim->domain.globalSize, sim->cartComm, MPI_COMM_NULL, false);
 
@@ -276,7 +275,8 @@ std::shared_ptr<ParticleVector> uDeviceX::makeFrozenWallParticles(std::string pv
     wallsim.run(nsteps);
     
     freezeParticlesInWalls(sdfWalls, pv.get(), 0.0f, interaction->rc + 0.2f);
-    
+    info("\n");
+
     sim->registerParticleVector(pv, nullptr);
 
     for (auto &wall : walls)

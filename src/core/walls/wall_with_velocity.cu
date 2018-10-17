@@ -125,16 +125,14 @@ void WallWithVelocity<InsideWallChecker, VelocityField>::setup(MPI_Comm& comm, D
 template<class InsideWallChecker, class VelocityField>
 void WallWithVelocity<InsideWallChecker, VelocityField>::attachFrozen(ParticleVector* pv)
 {
-    if (pv != nullptr)
-    {
-        info("Wall '%s' will treat particle vector '%s' as frozen", this->name.c_str(), pv->name.c_str());
-        const int nthreads = 128;
-        PVview view(pv, pv->local());
-        SAFE_KERNEL_LAUNCH(
-                imposeVelField,
-                getNblocks(view.size, nthreads), nthreads, 0, 0,
-                view, velField.handler() );
-    }
+    SimpleStationaryWall<InsideWallChecker>::attachFrozen(pv);
+
+    const int nthreads = 128;
+    PVview view(pv, pv->local());
+    SAFE_KERNEL_LAUNCH(
+            imposeVelField,
+            getNblocks(view.size, nthreads), nthreads, 0, 0,
+            view, velField.handler() );
 
     CUDA_Check( cudaDeviceSynchronize() );
 }

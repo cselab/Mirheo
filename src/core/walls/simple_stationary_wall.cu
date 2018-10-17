@@ -425,8 +425,8 @@ void SimpleStationaryWall<InsideWallChecker>::removeInner(ParticleVector* pv)
     pv->redistValid = false;
     pv->cellListStamp++;
 
-    info("Removed inner entities of %s, keeping %d out of %d particles",
-            pv->name.c_str(), pv->local()->size(), oldSize);
+    info("Wall '%s' has removed inner entities of pv '%s', keeping %d out of %d particles",
+            name.c_str(), pv->name.c_str(), pv->local()->size(), oldSize);
 
     CUDA_Check( cudaDeviceSynchronize() );
 }

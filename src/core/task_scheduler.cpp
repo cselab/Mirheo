@@ -168,7 +168,7 @@ void TaskScheduler::removeEmptyNodes()
 
         if ( tasks[checkedNode->id].funcs.size() == 0 )
         {
-            warn("Task '%s' is empty and will be removed from execution", tasks[checkedNode->id].label.c_str());
+            debug("Task '%s' is empty and will be removed from execution", tasks[checkedNode->id].label.c_str());
             for (auto& n : nodes)
             {
                 int toSize = n->to.size();
@@ -212,7 +212,7 @@ void TaskScheduler::removeEmptyNodes()
 
 void TaskScheduler::logDepsGraph()
 {
-    info("Task graph consists of total %d tasks:", nodes.size());
+    debug("Task graph consists of total %d tasks:", nodes.size());
 
     for (auto& n : nodes)
     {
@@ -235,7 +235,7 @@ void TaskScheduler::logDepsGraph()
                 str << "     * " << tasks[dep->id].label << std::endl;
         }
 
-        info("%s", str.str().c_str());
+        debug("%s", str.str().c_str());
     }
 }
 
