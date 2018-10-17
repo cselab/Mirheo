@@ -16,7 +16,7 @@ force = (1.0, 0, 0)
 density = 8
 rc      = 1.0
 gdot    = 0.5 # shear rate
-T       = 2.0 # period for oscillating plate case
+T       = 3.0 # period for oscillating plate case
 tend    = 10.1
 
 u = udx.udevicex(ranks, domain, debug_level=3, log_filename='log')
@@ -25,7 +25,7 @@ pv = udx.ParticleVectors.ParticleVector('pv', mass = 1)
 ic = udx.InitialConditions.Uniform(density=density)
 u.registerParticleVector(pv=pv, ic=ic)
     
-dpd = udx.Interactions.DPD('dpd', rc=rc, a=10.0, gamma=20.0, kbt=0.5, dt=dt, power=0.5)
+dpd = udx.Interactions.DPD('dpd', rc=rc, a=10.0, gamma=20.0, kbt=1.0, dt=dt, power=0.125)
 u.registerInteraction(dpd)
 
 vx = gdot*(domain[2] - 2*rc)
@@ -53,7 +53,10 @@ for p in [pv, frozen_lo, frozen_hi]:
 u.registerIntegrator(vv)
 u.setIntegrator(vv, pv)
 
-move = udx.Integrators.Translate('move', dt=dt, velocity=(vx, 0, 0))
+if args.type == 'oscillating':
+    move = udx.Integrators.Oscillate('osc', dt, velocity=(vx, 0, 0), period=T)
+else:
+    move = udx.Integrators.Translate('move', dt=dt, velocity=(vx, 0, 0))
 u.registerIntegrator(move)
 u.setIntegrator(move, frozen_hi)
 
