@@ -5,32 +5,46 @@ import argparse
 import matplotlib.pyplot as plt
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--file', type=str)
+parser.add_argument('--files', type=str, nargs="+")
 parser.add_argument('--ref', type=int, default=0)
+parser.add_argument('--out', type=str, default="gui")
 args = parser.parse_args()
-
-
-data = np.loadtxt(args.file)
-
-nodes = data[:,0]
-times = data[:,1]
-
-tref = times[args.ref]
-
-efficiency = tref / times
 
 fig = plt.figure(0)
 ax = fig.add_subplot(1, 1, 1)
 
-ax.plot(nodes, efficiency, "k-+")
-ax.plot(nodes, np.ones(len(nodes)), "k--")
-#ax.set_xscale('log')
-#ax.set_yscale('log')
 
-ax.set_xticks(nodes)
-ax.set_xticklabels(np.array(nodes, dtype=int))
+def getDomain(fname):
+    tmp = fname.split("_")[-1]
+    return tmp.split(".")[0]
+
+nodes=[]
+
+for file in args.files:
+
+    print(file)
+    data = np.loadtxt(file)
+
+    nodes = data[args.ref:,0]
+    times = data[args.ref:,1]
+
+    tref = times[0]
+    
+    efficiency = tref / times
+
+    ax.plot(nodes, efficiency, "-D", label=getDomain(file))
+
+    ax.set_xticks(nodes)
+    ax.set_xticklabels(np.array(nodes, dtype=int))
+
+ax.plot(nodes, np.ones(len(nodes)), "k--", label="ideal")
 
 ax.set_xlabel("nodes")
 ax.set_ylabel("weak scaling efficiency")
 
-plt.show()
+plt.legend()
+
+if args.out == "gui":
+    plt.show()
+else:
+    plt.savefig(args.out)

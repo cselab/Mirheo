@@ -23,6 +23,9 @@ void AddTorquePlugin::setup(Simulation* sim, const MPI_Comm& comm, const MPI_Com
     if (rov == nullptr)
         die("Need rigid object vector to add torque, plugin '%s', OV name '%s'",
                 name.c_str(), rovName.c_str());
+
+    info("Objects '%s' will experience external torque [%f %f %f]", 
+            rovName.c_str(), torque.x, torque.y, torque.z);
 }
 
 void AddTorquePlugin::beforeForces(cudaStream_t stream)

@@ -1,6 +1,8 @@
 #include "hdf5_helpers.h"
 
 #include <core/logger.h>
+#include <cstdlib>
+#include <cstring>
 
 namespace XDMF
 {
@@ -12,20 +14,31 @@ namespace XDMF
             int size;
             MPI_Check( MPI_Comm_size(comm, &size) );
             
-            // Collective buffers for mpi i/o
-            int cb = 1;
-            while (cb*2 <= size) cb *= 2;
-
-            cb = std::min(cb, 128);
-            char cbstr[100];
-            sprintf(cbstr, "%d", cb);
-
+            // Don't set the hints if they are already provided by the env variable
+            const char* hints = getenv("MPICH_MPIIO_HINTS");
+            
             MPI_Info info;
-            MPI_Info_create(&info);
-            MPI_Info_set(info, "cb_nodes", cbstr);
-            MPI_Info_set(info, "romio_cb_write", "enable");
-            MPI_Info_set(info, "romio_ds_write", "disable");
-            MPI_Info_set(info, "striping_factor", cbstr);
+            if (hints == nullptr || strlen(hints) < 1)
+            {
+                // Collective buffers for mpi i/o
+                int cb = 1;
+                while (cb*2 <= size) cb *= 2;
+
+                cb = std::min(cb, 128);
+                char cbstr[100];
+                sprintf(cbstr, "%d", cb);
+
+                MPI_Info_create(&info);
+                MPI_Info_set(info, "cb_nodes", cbstr);
+                MPI_Info_set(info, "romio_cb_write", "enable");
+                MPI_Info_set(info, "romio_cb_read",  "enable");
+                //MPI_Info_set(info, "romio_ds_write", "automatic");
+                //MPI_Info_set(info, "romio_ds_read",  "automatic");
+                MPI_Info_set(info, "striping_factor", cbstr);
+                MPI_Info_set(info, "striping_unit", "4194304");
+            }
+            else
+                info = MPI_INFO_NULL;
 
             hid_t plist_id_access = H5Pcreate(H5P_FILE_ACCESS);
             H5Pset_fapl_mpio(plist_id_access, comm, info);
@@ -118,6 +131,7 @@ namespace XDMF
             hid_t xfer_plist_id = H5Pcreate(H5P_DATASET_XFER);
 
             H5Pset_dxpl_mpio(xfer_plist_id, H5FD_MPIO_COLLECTIVE);
+            H5Pset_all_coll_metadata_ops(xfer_plist_id, true);
 
             hid_t dspace_id = H5Dget_space(dset_id);
 

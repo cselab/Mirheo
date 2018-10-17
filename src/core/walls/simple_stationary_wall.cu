@@ -253,6 +253,7 @@ template<typename InsideWallChecker>
 __global__ void computeSdfPerParticle(PVview view, float* sdfs, float3* gradients, InsideWallChecker checker)
 {
     const float h = 0.25f;
+    const float zeroTolerance = 1e-10f;
 
     const int pid = blockIdx.x * blockDim.x + threadIdx.x;
     if (pid >= view.size) return;
@@ -274,7 +275,10 @@ __global__ void computeSdfPerParticle(PVview view, float* sdfs, float3* gradient
 
         float3 grad = make_float3( sdf_px - sdf_mx, sdf_py - sdf_my, sdf_pz - sdf_mz ) * (1.0f / (2.0f*h));
 
-        gradients[pid] = normalize(grad);
+        if (dot(grad, grad) < zeroTolerance)
+            gradients[pid] = make_float3(0, 0, 0);
+        else
+            gradients[pid] = normalize(grad);
     }
 }
 
