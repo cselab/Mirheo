@@ -49,6 +49,6 @@ while test $# -gt 0; do
     shift
 done
 
-dump > config
+dump > config/install
 
 exit 0

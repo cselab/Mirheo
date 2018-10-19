@@ -1,11 +1,15 @@
-INST_TARGETS = load load.post \
-	       load.falcon load.post.falcon \
-	       load.panda  load.post.panda  \
-	       load.daint  load.post.daint  \
-		   load.__default load.post.__default
+INST_TARGETS = load load.post
 
-include ../config
+include ../config/install
 include ../make/common.mk
 
+CONFIG = ../config
+UTILS  = ../utils
+HOST   = `$(UTILS)/host`
+
 %: %.in
-	sed "s/@EXE_PREFIX@/$(EXE_PREFIX)/" $< > $@
+	$(UTILS)/insertFile $< "@MODULES@" $(CONFIG)/$@.$(HOST) > $@
+
+clean:; rm -rf $(INST_TARGETS)
+
+.PHONY: clean

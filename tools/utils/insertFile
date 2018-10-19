@@ -1,0 +1,27 @@
+#! /bin/sh
+
+usage() {
+    cat <<EOF
+replace a given line 'linestr'  of a file 'file1' by the content of a file 'file2'
+
+usage:
+insertFile file1 linestr file2 > out
+EOF
+    exit 1
+}
+
+if test $# -ne 0 && test "$1" = -h; then usage; fi
+if test $# -ne 3; then usage; fi
+
+file1=$1; shift
+linestr=$1; shift
+file2=$1; shift
+
+while read line; do    
+    if test "$line" = "$linestr"; then
+        cat $file2
+	echo
+    else
+	echo $line
+    fi
+done < $file1

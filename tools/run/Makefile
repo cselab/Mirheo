@@ -1,6 +1,6 @@
 INST_TARGETS = run
 
-include ../config
+include ../config/install
 include ../make/common.mk
 
 %: %.in

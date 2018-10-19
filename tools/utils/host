@@ -1,15 +1,13 @@
 #! /bin/sh
 
-EXE_PREFIX=@EXE_PREFIX@
-
 usage() {
     cat <<EOF
 wrapper for hostname shell command
 this is used to choose configuration in other 
-tools such as $EXE_PREFIX.load 
+tools such as the `load` tool 
 
 usage:
-$EXE_PREFIX.host
+host
 EOF
     exit 1
 }
@@ -24,6 +22,6 @@ case `hostname` in
 	echo daint
 	;;
     *)
-	echo falcon
+	echo __default
 	;;	
 esac

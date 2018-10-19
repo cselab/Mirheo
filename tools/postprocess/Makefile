@@ -1,6 +1,6 @@
 INST_TARGETS = avgh5 avgh5.py post
 
-include ../config
+include ../config/install
 include ../make/common.mk
 
 %: %.in
