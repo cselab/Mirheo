@@ -1,5 +1,8 @@
 #include "interface.h"
 
+// limitation by MPI
+static const int MaxTag = 16767;
+
 SimulationPlugin::SimulationPlugin(std::string name) :
     name(name), sizeReq(MPI_REQUEST_NULL), dataReq(MPI_REQUEST_NULL)
 {}
@@ -44,7 +47,7 @@ void SimulationPlugin::finalize()
 
 int SimulationPlugin::tag()
 {
-    return (int)( nameHash(name) % 16767 );
+    return (int)( nameHash(name) % MaxTag );
 }
     
 void SimulationPlugin::waitPrevSend()
@@ -120,7 +123,7 @@ void PostprocessPlugin::setup(const MPI_Comm& comm, const MPI_Comm& interComm)
 
 int PostprocessPlugin::tag()
 {
-    return (int)( nameHash(name) % 16767 );
+    return (int)( nameHash(name) % MaxTag );
 }
 
 
