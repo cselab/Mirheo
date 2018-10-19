@@ -131,7 +131,6 @@ namespace XDMF
             hid_t xfer_plist_id = H5Pcreate(H5P_DATASET_XFER);
 
             H5Pset_dxpl_mpio(xfer_plist_id, H5FD_MPIO_COLLECTIVE);
-            H5Pset_all_coll_metadata_ops(xfer_plist_id, true);
 
             hid_t dspace_id = H5Dget_space(dset_id);
 
