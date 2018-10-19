@@ -1,7 +1,6 @@
 #! /bin/sh
 
 EXE_PREFIX=@EXE_PREFIX@
-host=`$EXE_PREFIX.host`
 
 . $EXE_PREFIX.load
 
