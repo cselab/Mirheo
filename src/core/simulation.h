@@ -84,6 +84,9 @@ public:
 
     CellList* gelCellList(ParticleVector* pv) const;
 
+    void startProfiler() const;
+    void stopProfiler() const;
+
     MPI_Comm getCartComm() const;
     
     float getCurrentDt() const;

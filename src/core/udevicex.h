@@ -38,6 +38,9 @@ public:
 
     bool isComputeTask();
     bool isMasterTask();
+    void startProfiler();
+    void stopProfiler();
+
     void run(int niters);
     
     void registerParticleVector         (const std::shared_ptr<ParticleVector>& pv,

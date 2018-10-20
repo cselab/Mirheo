@@ -175,7 +175,9 @@ void exportUdevicex(py::module& m)
                     
         )")
         
-        .def("isComputeTask", &uDeviceX::isComputeTask, "Returns whether current rank will do compute or postrprocess")
-        .def("isMasterTask",  &uDeviceX::isMasterTask,  "Returns whether current task is the very first one")
+        .def("isComputeTask",  &uDeviceX::isComputeTask, "Returns whether current rank will do compute or postrprocess")
+        .def("isMasterTask",   &uDeviceX::isMasterTask,  "Returns whether current task is the very first one")
+        .def("start_profiler", &uDeviceX::startProfiler, "Tells nvprof to start recording timeline")
+        .def("stop_profiler",  &uDeviceX::stopProfiler,  "Tells nvprof to stop recording timeline")
         .def("run", &uDeviceX::run, "Run the simulation");
 }

@@ -27,6 +27,9 @@
 #include <core/walls/wall_helpers.h>
 #include <core/initial_conditions/uniform_ic.h>
 
+#include <cudaProfiler.h>
+#include <cuda_runtime_api.h>
+
 #include "version.h"
 
 void uDeviceX::init(int3 nranks3D, float3 globalDomainSize, std::string logFileName, int verbosity,
@@ -392,6 +395,18 @@ bool uDeviceX::isComputeTask()
 bool uDeviceX::isMasterTask()
 {
     return (rank == 0 && isComputeTask());
+}
+
+void uDeviceX::startProfiler()
+{
+    if (isComputeTask())
+        sim->startProfiler();
+}
+
+void uDeviceX::stopProfiler()
+{
+    if (isComputeTask())
+        sim->stopProfiler();
 }
 
 

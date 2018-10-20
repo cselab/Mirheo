@@ -20,6 +20,8 @@
 
 #include <algorithm>
 
+#include <cuda_profiler_api.h>
+
 Simulation::Simulation(int3 nranks3D, float3 globalDomainSize,
                        const MPI_Comm& comm, const MPI_Comm& interComm,
                        int globalCheckpointEvery, std::string restartFolder, bool gpuAwareMPI) :
@@ -132,6 +134,15 @@ float Simulation::getCurrentDt() const
     return dt;
 }
 
+void Simulation::startProfiler() const
+{
+    CUDA_Check( cudaProfilerStart() );
+}
+
+void Simulation::stopProfiler() const
+{
+    CUDA_Check( cudaProfilerStop() );
+}
 
 //================================================================================================
 // Registration
