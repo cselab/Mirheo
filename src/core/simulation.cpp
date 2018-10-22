@@ -20,6 +20,7 @@
 
 #include <algorithm>
 
+#include <cuda_profiler_api.h>
 Simulation::Simulation(int3 nranks3D, float3 globalDomainSize,
                        const MPI_Comm& comm, const MPI_Comm& interComm,
                        int globalCheckpointEvery, std::string restartFolder, bool gpuAwareMPI) :
@@ -136,6 +137,16 @@ void Simulation::saveDependencyGraph_GraphML(std::string fname) const
 {
     if (rank == 0)
         scheduler->saveDependencyGraph_GraphML(fname);
+}
+
+void Simulation::startProfiler() const
+{
+    CUDA_Check( cudaProfilerStart() );
+}
+
+void Simulation::stopProfiler() const
+{
+    CUDA_Check( cudaProfilerStop() );
 }
 
 //================================================================================================
@@ -910,6 +921,9 @@ void Simulation::assemble()
     scheduler->setHighPriority(task_objLocalBounce);
     
     scheduler->compile();
+
+//     if (rank == 0)
+//         scheduler->saveDependencyGraph_GraphML("simulation.graphml");
 }
 
 void Simulation::run(int nsteps)

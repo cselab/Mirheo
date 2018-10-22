@@ -38,6 +38,8 @@ public:
 
     bool isComputeTask() const;
     bool isMasterTask() const;
+    void startProfiler();
+    void stopProfiler();
     void saveDependencyGraph_GraphML(std::string fname) const;
     void run(int niters);
     

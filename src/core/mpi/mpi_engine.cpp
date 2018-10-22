@@ -1,5 +1,6 @@
 #include "mpi_engine.h"
 
+#include <core/utils/timer.h>
 #include <core/logger.h>
 #include <algorithm>
 
@@ -137,7 +138,10 @@ void MPIExchangeEngine::postRecv(ExchangeHelper* helper)
     auto rSizes   = helper->recvSizes.  hostPtr();
     auto rOffsets = helper->recvOffsets.hostPtr();
 
+    mTimer tm;
+    tm.start();
     MPI_Check( MPI_Waitall(helper->requests.size(), helper->requests.data(), MPI_STATUSES_IGNORE) );
+    debug("Waiting for sizes of '%s' took %f ms", pvName.c_str(), tm.elapsed());
 
     // Prepare offsets and resize
     helper->makeRecvOffsets();
@@ -187,20 +191,28 @@ void MPIExchangeEngine::wait(ExchangeHelper* helper, cudaStream_t stream)
     debug("Waiting to receive '%s' entities, single copy is %s, GPU aware MPI is %s",
         pvName.c_str(), singleCopy ? "on" : "off", gpuAwareMPI ? "on" : "off");
     
+    double waitTime = 0;
     // Wait for all if we want to copy all at once
     if (singleCopy || gpuAwareMPI)
     {
+        mTimer tm;
+        tm.start();
         MPI_Check( MPI_Waitall(helper->requests.size(), helper->requests.data(), MPI_STATUSES_IGNORE) );
+        waitTime = tm.elapsed();
         if (!gpuAwareMPI)
             helper->recvBuf.uploadToDevice(stream);
     }
     else
     {
+        mTimer tm;
         // Wait and upload one by one
         for (int i=0; i<helper->requests.size(); i++)    
         {
             int idx;
+            tm.start();
             MPI_Check( MPI_Waitany(helper->requests.size(), helper->requests.data(), &idx, MPI_STATUS_IGNORE) );
+            waitTime += tm.elapsedAndReset();
+
             int from = helper->reqIndex[idx];
 
             CUDA_Check( cudaMemcpyAsync(
@@ -212,7 +224,7 @@ void MPIExchangeEngine::wait(ExchangeHelper* helper, cudaStream_t stream)
     }
 
     // And report!
-    debug("Completed receive for %s", helper->name.c_str());
+    debug("Completed receive for '%s', waiting took %f ms", helper->name.c_str(), waitTime);
 }
 
 /**

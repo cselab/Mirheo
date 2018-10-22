@@ -400,7 +400,17 @@ void uDeviceX::saveDependencyGraph_GraphML(std::string fname) const
         sim->saveDependencyGraph_GraphML(fname);
 }
 
+void uDeviceX::startProfiler()
+{
+    if (isComputeTask())
+        sim->startProfiler();
+}
 
+void uDeviceX::stopProfiler()
+{
+    if (isComputeTask())
+        sim->stopProfiler();
+}
 
 void uDeviceX::run(int nsteps)
 {
