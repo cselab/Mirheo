@@ -7,7 +7,7 @@ class udevicex:
         r"""__init__(*args, **kwargs)
 Overloaded function.
 
-1. __init__(nranks: Tuple[int, int, int], domain: Tuple[float, float, float], log_filename: str = 'log', debug_level: int = 3, checkpoint_every: int = 0, restart_folder: str = 'restart/', cuda_aware_mpi: bool = False) -> None
+1. __init__(nranks: Tuple[int, int, int], domain: Tuple[float, float, float], log_filename: str = 'log', debug_level: int = 3, checkpoint_every: int = 0, restart_folder: str = 'restart/', cuda_aware_mpi: bool = False, no_splash: bool = False) -> None
 
 
             Args:
@@ -42,6 +42,7 @@ Overloaded function.
                 restart_folder:
                     folder where the checkpoint files will reside
                 cuda_aware_mpi: enable CUDA Aware MPI (GPU RDMA). As of now it may crash, or may yield slower execution.
+                no_splash: Don't display the splash screen when at the start-up.
                 
         
 
@@ -281,6 +282,22 @@ Set Integrator
         r"""setWall(arg0: Wall, arg1: ParticleVector) -> None
 
 Set Wall
+
+        """
+        pass
+
+    def start_profiler():
+        r"""start_profiler(self: udevicex) -> None
+
+Tells nvprof to start recording timeline
+
+        """
+        pass
+
+    def stop_profiler():
+        r"""stop_profiler(self: udevicex) -> None
+
+Tells nvprof to stop recording timeline
 
         """
         pass

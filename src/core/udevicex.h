@@ -25,16 +25,16 @@ class uDeviceX
 {
 public:
     uDeviceX(PyTypes::int3 nranks3D, PyTypes::float3 globalDomainSize,
-             std::string logFileName, int verbosity,
-             int checkpointEvery=0, std::string restartFolder="restart/", bool gpuAwareMPI=false);
+             std::string logFileName, int verbosity, int checkpointEvery=0,
+             std::string restartFolder="restart/", bool gpuAwareMPI=false, bool noSplash=false);
 
     uDeviceX(long commAddress, PyTypes::int3 nranks3D, PyTypes::float3 globalDomainSize,
-             std::string logFileName, int verbosity,
-             int checkpointEvery=0, std::string restartFolder="restart/", bool gpuAwareMPI=false);
+             std::string logFileName, int verbosity, int checkpointEvery=0,
+             std::string restartFolder="restart/", bool gpuAwareMPI=false, bool noSplash=false);
 
     uDeviceX(MPI_Comm comm, PyTypes::int3 nranks3D, PyTypes::float3 globalDomainSize,
-             std::string logFileName, int verbosity,
-             int checkpointEvery=0, std::string restartFolder="restart/", bool gpuAwareMPI=false);
+             std::string logFileName, int verbosity, int checkpointEvery=0,
+             std::string restartFolder="restart/", bool gpuAwareMPI=false, bool noSplash=false);
 
     bool isComputeTask() const;
     bool isMasterTask() const;
@@ -91,6 +91,7 @@ private:
     int rank;
     int computeTask;
     bool noPostprocess;
+    bool noSplash;
     
     bool initialized = false;
     bool initializedMpi = false;

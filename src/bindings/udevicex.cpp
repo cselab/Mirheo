@@ -22,10 +22,10 @@ void exportUdevicex(py::module& m)
     py::class_<uDeviceX>(m, "udevicex", R"(
         Main coordination class, should only be one instance at a time
     )")
-        .def(py::init< PyTypes::int3, PyTypes::float3, std::string, int, int, std::string, bool >(),
+        .def(py::init< PyTypes::int3, PyTypes::float3, std::string, int, int, std::string, bool, bool >(),
              py::return_value_policy::take_ownership,
-             "nranks"_a, "domain"_a, "log_filename"_a="log", "debug_level"_a=3, 
-             "checkpoint_every"_a=0, "restart_folder"_a="restart/", "cuda_aware_mpi"_a=false, R"(
+             "nranks"_a, "domain"_a, "log_filename"_a="log", "debug_level"_a=3, "checkpoint_every"_a=0, 
+             "restart_folder"_a="restart/", "cuda_aware_mpi"_a=false, "no_splash"_a=false, R"(
             Args:
                 nranks:
                     number of MPI simulation tasks per axis: x,y,z. If postprocess is enabled, the same number of the postprocess tasks will be running
@@ -58,6 +58,7 @@ void exportUdevicex(py::module& m)
                 restart_folder:
                     folder where the checkpoint files will reside
                 cuda_aware_mpi: enable CUDA Aware MPI (GPU RDMA). As of now it may crash, or may yield slower execution.
+                no_splash: Don't display the splash screen when at the start-up.
                 
         )")
 
