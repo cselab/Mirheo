@@ -22,4 +22,4 @@ test: install
 
 clean:; rm -rf build
 
-.PHONY: install build test clean docs
+.PHONY: install uninstall build test clean docs
