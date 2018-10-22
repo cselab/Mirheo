@@ -36,8 +36,9 @@ public:
              std::string logFileName, int verbosity,
              int checkpointEvery=0, std::string restartFolder="restart/", bool gpuAwareMPI=false);
 
-    bool isComputeTask();
-    bool isMasterTask();
+    bool isComputeTask() const;
+    bool isMasterTask() const;
+    void saveDependencyGraph_GraphML(std::string fname) const;
     void run(int niters);
     
     void registerParticleVector         (const std::shared_ptr<ParticleVector>& pv,

@@ -33,7 +33,7 @@ public:
 
     void compile();
     void run();
-    void saveDependencyGraph_GraphML(std::string fname);
+    void saveDependencyGraph_GraphML(std::string fname) const;
 
     void forceExec(TaskID id, cudaStream_t stream);
 

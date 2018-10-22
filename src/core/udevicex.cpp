@@ -384,15 +384,22 @@ void uDeviceX::sayHello()
     printf("\n");
 }
 
-bool uDeviceX::isComputeTask()
+bool uDeviceX::isComputeTask() const
 {
     return (computeTask == 0);
 }
 
-bool uDeviceX::isMasterTask()
+bool uDeviceX::isMasterTask() const
 {
     return (rank == 0 && isComputeTask());
 }
+
+void uDeviceX::saveDependencyGraph_GraphML(std::string fname) const
+{
+    if (isComputeTask())
+        sim->saveDependencyGraph_GraphML(fname);
+}
+
 
 
 void uDeviceX::run(int nsteps)

@@ -344,9 +344,9 @@ void TaskScheduler::run()
 }
 
 // TODO: use pugixml
-void TaskScheduler::saveDependencyGraph_GraphML(std::string fname)
+void TaskScheduler::saveDependencyGraph_GraphML(std::string fname) const
 {
-    std::ofstream fout(fname);
+    std::ofstream fout(fname + ".graphml");
 
     // Header
     fout << R"(<?xml version="1.0" encoding="UTF-8"?>
@@ -360,7 +360,7 @@ void TaskScheduler::saveDependencyGraph_GraphML(std::string fname)
     fout << R"(    <graph id="Task graph" edgedefault="directed">)" << "\n";
 
     // Nodes
-    for (auto& t : tasks)
+    for (const auto& t : tasks)
     {
         fout << "        <node id=\"" << t.id << "\" >\n";
         fout << "            <data key=\"label\"> " << t.label << "</data>\n";
@@ -368,7 +368,7 @@ void TaskScheduler::saveDependencyGraph_GraphML(std::string fname)
     }
 
     // Edges
-    for (auto& n : nodes)
+    for (const auto& n : nodes)
     {
 
         for (auto dep : n->to)

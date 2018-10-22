@@ -242,6 +242,15 @@ Run the simulation
         """
         pass
 
+    def save_dependency_graph_graphml():
+        r"""save_dependency_graph_graphml(arg0: str) -> None
+
+
+            Exports `GraphML <http://graphml.graphdrawing.org/>`_ file with task graph for the current simulation time-step
+
+        """
+        pass
+
     def setBouncer():
         r"""setBouncer(arg0: Bouncer, arg1: ObjectVector, arg2: ParticleVector) -> None
 

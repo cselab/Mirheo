@@ -177,5 +177,7 @@ void exportUdevicex(py::module& m)
         
         .def("isComputeTask", &uDeviceX::isComputeTask, "Returns whether current rank will do compute or postrprocess")
         .def("isMasterTask",  &uDeviceX::isMasterTask,  "Returns whether current task is the very first one")
+        .def("save_dependency_graph_graphml",  &uDeviceX::saveDependencyGraph_GraphML,  R"(
+            Exports `GraphML <http://graphml.graphdrawing.org/>`_ file with task graph for the current simulation time-step)")
         .def("run", &uDeviceX::run, "Run the simulation");
 }

@@ -132,6 +132,11 @@ float Simulation::getCurrentDt() const
     return dt;
 }
 
+void Simulation::saveDependencyGraph_GraphML(std::string fname) const
+{
+    if (rank == 0)
+        scheduler->saveDependencyGraph_GraphML(fname);
+}
 
 //================================================================================================
 // Registration
@@ -905,9 +910,6 @@ void Simulation::assemble()
     scheduler->setHighPriority(task_objLocalBounce);
     
     scheduler->compile();
-
-//     if (rank == 0)
-//         scheduler->saveDependencyGraph_GraphML("simulation.graphml");
 }
 
 void Simulation::run(int nsteps)
