@@ -2,6 +2,7 @@
 
 # awk expression, int
 aei () { awk 'BEGIN {printf "%d", '"$@"'}'; }
+ae  () { awk 'BEGIN {printf "%g", '"$@"'}'; }
 
 launch() (
     NX=$1;      shift
@@ -18,6 +19,10 @@ launch() (
     script=`pwd`/cases/periodic_blood.py
 
     tot=`aei "$NX * $NY * $NZ"`
+
+    # scale force accordingly to the domain size
+    DPforce_ref=`ae "0.01 * $subdomain"`
+    DPforce=`ae "$DPforce_ref / $LX"`    
 
     name=${tot}
     
@@ -62,6 +67,7 @@ srun -u --ntasks-per-node 2 $script \
      --domain $LX $LY $LZ \
      --nranks $NX $NY $NZ \
      --resource-folder $resources \
+     --f $DPforce \
      $@
 !!!
 )
