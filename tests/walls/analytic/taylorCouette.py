@@ -43,9 +43,9 @@ for p in [pv, frozen_in, frozen_out]:
 u.registerIntegrator(vv)
 u.setIntegrator(vv, pv)
 
-#move = udx.Integrators.Translate('move', dt=dt, velocity=(vx, 0, 0))
-#u.registerIntegrator(move)
-#u.setIntegrator(move, frozen_hi)
+rotate = udx.Integrators.Rotate('rotate', dt, (center[0], center[1], 0.), omega=(0, 0, omega))
+u.registerIntegrator(rotate)
+u.setIntegrator(rotate, frozen_out)
 
 sampleEvery = 2
 dumpEvery   = 1000
