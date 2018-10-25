@@ -89,6 +89,8 @@ namespace XDMF
         hsize_t nlocal, nglobal, offset;
 
         std::shared_ptr<std::vector<float>> positions;
+
+        virtual void _writeTopology(pugi::xml_node& topoNode, std::string h5filename) const;
     };
 
     class TriangleMeshGrid : public VertexGrid
@@ -97,12 +99,13 @@ namespace XDMF
         std::shared_ptr<std::vector<int>> getTriangles() const;
         
         void write_to_HDF5(hid_t file_id, MPI_Comm comm)                          const override;
-        pugi::xml_node write_to_XMF(pugi::xml_node node, std::string h5filename)  const override;   
                 
         TriangleMeshGrid(std::shared_ptr<std::vector<float>> positions, std::shared_ptr<std::vector<int>> triangles, MPI_Comm comm);
         
     protected:
         const std::string triangleChannelName = "triangle";
         std::shared_ptr<std::vector<int>> triangles;
+
+        void _writeTopology(pugi::xml_node& topoNode, std::string h5filename) const override;
     };
 }

@@ -193,9 +193,8 @@ namespace XDMF
         gridNode.append_attribute("GridType") = "Uniform";
         
         auto topoNode = gridNode.append_child("Topology");
-        topoNode.append_attribute("TopologyType") = "Polyvertex";
-        topoNode.append_attribute("NumberOfElements") = std::to_string(nglobal).c_str();
-        
+        _writeTopology(topoNode, h5filename);
+            
         auto geomNode = gridNode.append_child("Geometry");
         geomNode.append_attribute("GeometryType") = "XYZ";
         
@@ -275,6 +274,12 @@ namespace XDMF
         MPI_Check( MPI_Allreduce(&nlocal, &nglobal, 1, MPI_LONG_LONG_INT, MPI_SUM, comm) );
     }
 
+    void VertexGrid::_writeTopology(pugi::xml_node& topoNode, std::string h5filename) const
+    {
+        topoNode.append_attribute("TopologyType") = "Polyvertex";
+        topoNode.append_attribute("NumberOfElements") = std::to_string(nglobal).c_str();    
+    }
+
     //
     // Triangle Mesh Grid
     //
@@ -300,4 +305,21 @@ namespace XDMF
         if (triangles->size() % 3 != 0)
             die("connectivity: expected size is multiple of 3; given %d\n", triangles->size());
     }
+
+    void TriangleMeshGrid::_writeTopology(pugi::xml_node& topoNode, std::string h5filename) const
+    {
+        topoNode.append_attribute("TopologyType") = "Triangle";
+        // TODO use nelements form triangles
+        //topoNode.append_attribute("NumberOfElements") = std::to_string(nglobal).c_str();
+
+        auto triangleNode = topoNode.append_child("DataItem");
+        // TODO
+        //triangleNode.append_attribute("Dimensions") = (std::to_string(nglobal) + " 3").c_str();
+        triangleNode.append_attribute("NumberType") = datatypeToString(Channel::Datatype::Int).c_str();
+        triangleNode.append_attribute("Precision") = std::to_string(datatypeToPrecision(Channel::Datatype::Int)).c_str();
+        triangleNode.append_attribute("Format") = "HDF";
+        triangleNode.text() = (h5filename + ":/" + triangleChannelName).c_str();
+
+    }
+
 }
