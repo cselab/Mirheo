@@ -60,4 +60,4 @@ u.run((int)(tend/dt))
 # cd walls/analytic
 # rm -rf h5
 # udx.run --runargs "-n 2" ./taylorCouette.py > /dev/null
-# udx.avgh5 z velocity h5/solvent-0000[7-9].h5 > profile.out.txt
+# udx.avgh5 zy velocity h5/solvent-0000[7-9].h5 > profile.out.txt
