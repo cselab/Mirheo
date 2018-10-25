@@ -27,6 +27,7 @@ namespace XDMF
             case Channel::Type::Tensor6:    return "Tensor6";
             case Channel::Type::Tensor9:    return "Tensor";
             case Channel::Type::Quaternion: return "Matrix";
+            case Channel::Type::Triangle:   return "Matrix";
             case Channel::Type::Other:      return "Scalar";
         }
     }
@@ -40,6 +41,7 @@ namespace XDMF
             case Channel::Type::Tensor6:    return 6;
             case Channel::Type::Tensor9:    return 9;
             case Channel::Type::Quaternion: return 4;
+            case Channel::Type::Triangle:   return 3;
             case Channel::Type::Other:      return 1;
         }
     }
@@ -53,6 +55,7 @@ namespace XDMF
             case Channel::Type::Tensor6:    return "Tensor6";
             case Channel::Type::Tensor9:    return "Tensor";
             case Channel::Type::Quaternion: return "Quaternion";
+            case Channel::Type::Triangle:   return "Triangle";
             case Channel::Type::Other:      return "Other";
         }
     }
@@ -64,9 +67,10 @@ namespace XDMF
         if (str == "Tensor6")     return Channel::Type::Tensor6;
         if (str == "Tensor")      return Channel::Type::Tensor9;
         if (str == "Quaternion")  return Channel::Type::Quaternion;
+        if (str == "Trianle")     return Channel::Type::Triangle;
         return Channel::Type::Other;
     }
-        
+    
     decltype (H5T_NATIVE_FLOAT) datatypeToHDF5type(Channel::Datatype dt)
     {
         switch (dt)

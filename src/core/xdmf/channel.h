@@ -12,7 +12,7 @@ namespace XDMF
         
         enum class Type
         {
-            Scalar, Vector, Tensor6, Tensor9, Quaternion, Other
+            Scalar, Vector, Tensor6, Tensor9, Quaternion, Triangle, Other
         } type;
         
         enum class Datatype
