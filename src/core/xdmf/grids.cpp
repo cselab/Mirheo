@@ -274,4 +274,30 @@ namespace XDMF
         MPI_Check( MPI_Exscan   (&nlocal, &offset,  1, MPI_LONG_LONG_INT, MPI_SUM, comm) );
         MPI_Check( MPI_Allreduce(&nlocal, &nglobal, 1, MPI_LONG_LONG_INT, MPI_SUM, comm) );
     }
+
+    //
+    // Triangle Mesh Grid
+    //
+    
+    std::shared_ptr<std::vector<int>> TriangleMeshGrid::getTriangles() const
+    {
+        return triangles;
+    }
+
+    void TriangleMeshGrid::write_to_HDF5(hid_t file_id, MPI_Comm comm) const
+    {
+        VertexGrid::write_to_HDF5(file_id, comm);
+
+        // TODO write triangles; need other sizes
+        // Channel triCh(triangleChannelName, (void*) triangle->data(), Channel::Type::Trianle, Channel::Datatype::Int);
+        
+        // HDF5::writeDataSet(file_id, this, triCh);
+    }
+                
+    TriangleMeshGrid::TriangleMeshGrid(std::shared_ptr<std::vector<float>> positions, std::shared_ptr<std::vector<int>> triangles, MPI_Comm comm) :
+        VertexGrid(positions, comm), triangles(triangles)
+    {
+        if (triangles->size() % 3 != 0)
+            die("connectivity: expected size is multiple of 3; given %d\n", triangles->size());
+    }
 }

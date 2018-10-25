@@ -69,7 +69,7 @@ namespace XDMF
             
             // Add one more dimension: number of floats per data item
             int ndims = grid->getDims() + 1;
-            auto localSize = grid->getLocalSize();
+            auto localSize  = grid->getLocalSize();
             auto globalSize = grid->getGlobalSize();
             
             // What. The. F.

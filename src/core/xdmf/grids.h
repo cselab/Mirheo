@@ -56,7 +56,7 @@ namespace XDMF
         
         UniformGrid(int3 localSize, float3 h, MPI_Comm cartComm);
         
-    private:
+    protected:
         std::vector<hsize_t> localSize, globalSize, offsets;
         std::vector<float> spacing;
     };
@@ -84,10 +84,25 @@ namespace XDMF
         
         VertexGrid(std::shared_ptr<std::vector<float>> positions, MPI_Comm comm);
         
-    private:
+    protected:
         const std::string positionChannelName = "position";
         hsize_t nlocal, nglobal, offset;
 
         std::shared_ptr<std::vector<float>> positions;
+    };
+
+    class TriangleMeshGrid : public VertexGrid
+    {
+    public:
+        std::shared_ptr<std::vector<int>> getTriangles() const;
+        
+        void write_to_HDF5(hid_t file_id, MPI_Comm comm)                          const override;
+        pugi::xml_node write_to_XMF(pugi::xml_node node, std::string h5filename)  const override;   
+                
+        TriangleMeshGrid(std::shared_ptr<std::vector<float>> positions, std::shared_ptr<std::vector<int>> triangles, MPI_Comm comm);
+        
+    protected:
+        const std::string triangleChannelName = "triangle";
+        std::shared_ptr<std::vector<int>> triangles;
     };
 }
