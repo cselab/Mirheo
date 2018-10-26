@@ -106,6 +106,11 @@ void exportPlugins(py::module& m)
         The data is dumped into hdf5 format. An additional xdfm file is dumped to describe the data and make it readable by visualization tools. 
     )");
 
+    py::handlers_class<ParticleWithMeshSenderPlugin>(m, "ParticleWithMeshSenderPlugin", pysim, R"(
+        This plugin will dump positions, velocities and optional attached data of all the particles of the specified Object Vector, as well as connectivity information.
+        The data is dumped into hdf5 format. An additional xdfm file is dumped to describe the data and make it readable by visualization tools. 
+    )");
+
     py::handlers_class<PinObjectPlugin>(m, "PinObject", pysim, R"(
         This plugin will impose given velocity as the center of mass velocity (by axis) of all the objects of the specified Object Vector.
         If the objects are rigid bodies, rotatation may be restricted with this plugin as well.
@@ -163,6 +168,7 @@ void exportPlugins(py::module& m)
     py::handlers_class<PostprocessStats>(m, "PostprocessStats", pypost);
     py::handlers_class<XYZDumper>(m, "XYZDumper", pypost);
     py::handlers_class<ParticleDumperPlugin>(m, "ParticleDumperPlugin", pypost);
+    py::handlers_class<ParticleWithMeshDumperPlugin>(m, "ParticleWithMeshDumperPlugin", pypost);
     py::handlers_class<MeshDumper>(m, "MeshDumper", pypost);
     py::handlers_class<ObjPositionsDumper>(m, "ObjPositionsDumper", pypost);
     py::handlers_class<ReportPinObjectPlugin>(m, "ReportPinObject", pypost);
