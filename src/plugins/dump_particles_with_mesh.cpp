@@ -35,7 +35,7 @@ void ParticleWithMeshSenderPlugin::handshake()
 
 
 ParticleWithMeshDumperPlugin::ParticleWithMeshDumperPlugin(std::string name, std::string path) :
-    ParticleDumperPlugin(name, path)
+    ParticleDumperPlugin(name, path), allTriangles(new std::vector<int>())
 {}
 
 void ParticleWithMeshDumperPlugin::handshake()
@@ -57,16 +57,18 @@ void ParticleWithMeshDumperPlugin::_prepareConnectivity(int totNVertices)
     long nobjects = totNVertices / nvertices;
     long offset   = 0;
 
+    int ntriangles = triangles.size();
+    
     MPI_Check( MPI_Exscan(&nobjects, &offset, 1, MPI_LONG, MPI_SUM, comm) );
 
-    allTriangles->resize(nobjects * triangles.size());
+    allTriangles->resize(nobjects * 3 * ntriangles);
 
     auto *connectivity = allTriangles->data();
     
     for (int i = 0; i < nobjects; ++i) {
         int start = nvertices * (offset + i);        
-        for (int j = 0; j < triangles.size(); ++j) {
-            int id = i * triangles.size() + j;
+        for (int j = 0; j < ntriangles; ++j) {
+            int id = i * ntriangles + j;
             int3 t = triangles[j];
             
             connectivity[3 * id + 0] = start + t.x;
