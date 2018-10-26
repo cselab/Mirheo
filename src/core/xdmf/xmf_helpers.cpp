@@ -20,7 +20,7 @@ namespace XDMF
             infoNode.append_attribute("Value") = typeToDescription(channel.type).c_str();
             
             // Add one more dimension: number of floats per data item
-            auto globalSize = grid->getGlobalSize();
+            auto globalSize = grid->getGridDims()->getGlobalSize();
             globalSize.push_back(channel.nComponents());
             
             auto dataNode = attrNode.append_child("DataItem");

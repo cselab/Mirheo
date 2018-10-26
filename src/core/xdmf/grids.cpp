@@ -34,42 +34,6 @@ namespace XDMF
     std::vector<hsize_t> UniformGrid::UniformGridDims::getLocalSize()  const {return localSize;}
     std::vector<hsize_t> UniformGrid::UniformGridDims::getGlobalSize() const {return globalSize;}
     std::vector<hsize_t> UniformGrid::UniformGridDims::getOffsets()    const {return offsets;}
-
-    std::vector<hsize_t> UniformGrid::getLocalSize() const
-    {
-        return localSize;
-    }
-    
-    std::vector<hsize_t> UniformGrid::getGlobalSize() const
-    {
-        return globalSize;
-    }
-    
-    std::vector<hsize_t> UniformGrid::getOffsets() const
-    {
-        return offsets;
-    }
-    
-    bool UniformGrid::localEmpty() const
-    {
-        int prod = 1;
-        for (auto d : localSize) prod *= d;
-        
-        return (prod == 0);
-    }
-        
-    bool UniformGrid::globalEmpty() const
-    {
-        int prod = 1;
-        for (auto d : globalSize) prod *= d;
-        
-        return (prod == 0);
-    }
-    
-    int UniformGrid::getDims() const
-    {
-        return 3;
-    }
     
     std::string UniformGrid::getCentering() const
     {
@@ -91,7 +55,7 @@ namespace XDMF
         gridNode.append_attribute("GridType") = "Uniform";
         
         // Topology size is in vertices, so it's +1 wrt to the number of cells
-        auto nodeResolution = globalSize;
+        auto nodeResolution = dims.globalSize;
         for (auto& r : nodeResolution) r += 1;
         
         // One more What. The. F
@@ -153,17 +117,17 @@ namespace XDMF
         int nranks[3], periods[3], my3Drank[3];
         MPI_Check( MPI_Cart_get(cartComm, 3, nranks, periods, my3Drank) );
         
-        this->spacing    = std::vector<float>{h.x, h.y, h.z};
-        this->localSize  = std::vector<hsize_t>{ (hsize_t)localSize.x,  (hsize_t)localSize.y,  (hsize_t)localSize.z};
+        this->spacing   = std::vector<float>{h.x, h.y, h.z};
+        dims.localSize  = std::vector<hsize_t>{ (hsize_t)localSize.x,  (hsize_t)localSize.y,  (hsize_t)localSize.z};
         
-        globalSize = std::vector<hsize_t>{ (hsize_t) nranks[0] * localSize.x,
-                                           (hsize_t) nranks[1] * localSize.y,
-                                           (hsize_t) nranks[2] * localSize.z};
+        dims.globalSize = std::vector<hsize_t>{ (hsize_t) nranks[0] * localSize.x,
+                                                (hsize_t) nranks[1] * localSize.y,
+                                                (hsize_t) nranks[2] * localSize.z};
 
-        offsets = std::vector<hsize_t>{ (hsize_t) my3Drank[2] * localSize.z,
-                                        (hsize_t) my3Drank[1] * localSize.y,
-                                        (hsize_t) my3Drank[0] * localSize.x,
-                                        (hsize_t) 0 };
+        dims.offsets   = std::vector<hsize_t>{ (hsize_t) my3Drank[2] * localSize.z,
+                                               (hsize_t) my3Drank[1] * localSize.y,
+                                               (hsize_t) my3Drank[0] * localSize.x,
+                                               (hsize_t) 0 };
     }
     
     //
@@ -173,37 +137,6 @@ namespace XDMF
     std::vector<hsize_t> VertexGrid::VertexGridDims::getLocalSize()  const {return {nlocal};}
     std::vector<hsize_t> VertexGrid::VertexGridDims::getGlobalSize() const {return {nglobal};}
     std::vector<hsize_t> VertexGrid::VertexGridDims::getOffsets()    const {return {offset, 0};}
-
-    
-    std::vector<hsize_t> VertexGrid::getLocalSize() const
-    {
-        return { nlocal };
-    }
-    
-    std::vector<hsize_t> VertexGrid::getGlobalSize() const
-    {
-        return { nglobal };
-    }
-    
-    std::vector<hsize_t> VertexGrid::getOffsets() const
-    {
-        return { offset, 0 };
-    }
-    
-    bool VertexGrid::localEmpty() const
-    {
-        return (nlocal == 0);
-    }
-        
-    bool VertexGrid::globalEmpty() const
-    {
-        return (nglobal == 0);
-    }
-    
-    int VertexGrid::getDims() const
-    {
-        return 1;
-    }
 
     const VertexGrid::VertexGridDims* VertexGrid::getGridDims() const
     {
@@ -224,7 +157,7 @@ namespace XDMF
     {
         Channel posCh(positionChannelName, (void*) positions->data(), Channel::Type::Vector);
         
-        HDF5::writeDataSet(file_id, this, posCh);
+        HDF5::writeDataSet(file_id, getGridDims(), posCh);
     }
     
     pugi::xml_node VertexGrid::write_to_XMF(pugi::xml_node node, std::string h5filename) const
@@ -240,7 +173,7 @@ namespace XDMF
         geomNode.append_attribute("GeometryType") = "XYZ";
         
         auto partNode = geomNode.append_child("DataItem");
-        partNode.append_attribute("Dimensions") = (std::to_string(nglobal) + " 3").c_str();
+        partNode.append_attribute("Dimensions") = (std::to_string(dims.nglobal) + " 3").c_str();
         partNode.append_attribute("NumberType") = datatypeToString(Channel::Datatype::Float).c_str();
         partNode.append_attribute("Precision") = std::to_string(datatypeToPrecision(Channel::Datatype::Float)).c_str();
         partNode.append_attribute("Format") = "HDF";
@@ -260,7 +193,7 @@ namespace XDMF
         
         std::istringstream dimensions( partNode.attribute("Dimensions").value() );
 
-        dimensions >> nglobal;
+        dimensions >> dims.nglobal;
         dimensions >> d;
 
         if (d != 3)
@@ -282,8 +215,8 @@ namespace XDMF
         MPI_Check( MPI_Comm_rank(comm, &rank) );
         MPI_Check( MPI_Comm_size(comm, &size) );
 
-        chunk_global = nglobal / chunk_size;
-        if (chunk_global * chunk_size != nglobal)
+        chunk_global = dims.nglobal / chunk_size;
+        if (chunk_global * chunk_size != dims.nglobal)
             die("incompatible chunk size");
 
         chunk_local  = (chunk_global + size - 1) / size;
@@ -292,33 +225,34 @@ namespace XDMF
         if (chunk_offset + chunk_local > chunk_global)
             chunk_local = chunk_global - chunk_offset;
 
-        nlocal = chunk_local  * chunk_size;
-        offset = chunk_offset * chunk_size;
+        dims.nlocal = chunk_local  * chunk_size;
+        dims.offset = chunk_offset * chunk_size;
     }
     
     void VertexGrid::read_from_HDF5(hid_t file_id, MPI_Comm comm)
     {
-        positions->resize(nlocal * 3);
+        positions->resize(dims.nlocal * 3);
         Channel posCh(positionChannelName, (void*) positions->data(), Channel::Type::Vector);
         
-        HDF5::readDataSet(file_id, this, posCh);
+        HDF5::readDataSet(file_id, getGridDims(), posCh);
     }
         
     VertexGrid::VertexGrid(std::shared_ptr<std::vector<float>> positions, MPI_Comm comm) :
-        nlocal(positions->size() / 3), positions(positions)
+        positions(positions)
     {
-        if (positions->size() != nlocal * 3)
+        dims.nlocal = positions->size() / 3;
+        if (positions->size() % 3 != 0)
             die("expected size is multiple of 3; given %d\n", positions->size());
         
-        offset = 0;
-        MPI_Check( MPI_Exscan   (&nlocal, &offset,  1, MPI_LONG_LONG_INT, MPI_SUM, comm) );
-        MPI_Check( MPI_Allreduce(&nlocal, &nglobal, 1, MPI_LONG_LONG_INT, MPI_SUM, comm) );
+        dims.offset = 0;
+        MPI_Check( MPI_Exscan   (&dims.nlocal, &dims.offset,  1, MPI_LONG_LONG_INT, MPI_SUM, comm) );
+        MPI_Check( MPI_Allreduce(&dims.nlocal, &dims.nglobal, 1, MPI_LONG_LONG_INT, MPI_SUM, comm) );
     }
 
     void VertexGrid::_writeTopology(pugi::xml_node& topoNode, std::string h5filename) const
     {
         topoNode.append_attribute("TopologyType") = "Polyvertex";
-        topoNode.append_attribute("NumberOfElements") = std::to_string(nglobal).c_str();    
+        topoNode.append_attribute("NumberOfElements") = std::to_string(dims.nglobal).c_str();    
     }
 
     //

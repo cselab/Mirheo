@@ -104,7 +104,7 @@ XDMF::Channel UniformCartesianDumper::getChannelOrDie(std::string chname) const
 std::vector<int> UniformCartesianDumper::getLocalResolution() const
 {
     std::vector<int> res;
-    for (auto v : grid->getLocalSize())
+    for (auto v : grid->getGridDims()->getLocalSize())
         res.push_back(v);
     
     return res;

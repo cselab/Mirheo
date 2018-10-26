@@ -30,14 +30,7 @@ namespace XDMF
     class Grid
     {
     public:
-        virtual std::vector<hsize_t> getLocalSize()                                       const = 0;
-        virtual std::vector<hsize_t> getGlobalSize()                                      const = 0;
-        virtual std::vector<hsize_t> getOffsets()                                         const = 0;
-        virtual bool localEmpty()                                                         const = 0;
-        virtual bool globalEmpty()                                                        const = 0;
-        virtual int getDims()                                                             const = 0;
         virtual const GridDims* getGridDims()                                             const = 0; 
-
         virtual std::string getCentering()                                                const = 0;
                                                                                        
         virtual void write_to_HDF5(hid_t file_id, MPI_Comm comm)                          const = 0;
@@ -63,14 +56,7 @@ namespace XDMF
         };
             
     public:
-        std::vector<hsize_t> getLocalSize()                                       const override;
-        std::vector<hsize_t> getGlobalSize()                                      const override;
-        std::vector<hsize_t> getOffsets()                                         const override;
-        bool localEmpty()                                                         const override;
-        bool globalEmpty()                                                        const override;
-        int getDims()                                                             const override;
-        const UniformGridDims* getGridDims()                                      const override;
-        
+        const UniformGridDims* getGridDims()                                      const override;        
         std::string getCentering()                                                const override;
                                                                                
         void write_to_HDF5(hid_t file_id, MPI_Comm comm)                          const override;
@@ -83,7 +69,6 @@ namespace XDMF
         UniformGrid(int3 localSize, float3 h, MPI_Comm cartComm);
         
     protected:
-        std::vector<hsize_t> localSize, globalSize, offsets;
         UniformGridDims dims;
         std::vector<float> spacing;
     };
@@ -102,14 +87,7 @@ namespace XDMF
         };
 
     public:
-        std::vector<hsize_t> getLocalSize()                                       const override;
-        std::vector<hsize_t> getGlobalSize()                                      const override;
-        std::vector<hsize_t> getOffsets()                                         const override;
-        bool localEmpty()                                                         const override;
-        bool globalEmpty()                                                        const override;
-        int getDims()                                                             const override;
-        const VertexGridDims* getGridDims()                                       const override;
-        
+        const VertexGridDims* getGridDims()                                       const override;        
         std::string getCentering()                                                const override;
         std::shared_ptr<std::vector<float>> getPositions()                        const;
                                                                                
@@ -124,7 +102,6 @@ namespace XDMF
         
     protected:
         const std::string positionChannelName = "position";
-        hsize_t nlocal, nglobal, offset;
         VertexGridDims dims;
 
         std::shared_ptr<std::vector<float>> positions;
