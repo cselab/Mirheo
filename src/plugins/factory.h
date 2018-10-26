@@ -135,16 +135,10 @@ namespace PluginFactory
         return { simPl, postPl };
     }
 
-    static std::pair< Average3D*, UniformCartesianDumper* >
-    createDumpAveragePlugin(bool computeTask, std::string name, std::vector<ParticleVector*> pvs,
-                                int sampleEvery, int dumpEvery, PyTypes::float3 binSize,
-                                std::vector< std::pair<std::string, std::string> > channels,
-                                std::string path)
+    static void extractChannelsInfos(const std::vector< std::pair<std::string, std::string> >& channels,
+                                     std::vector<std::string>& names, std::vector<Average3D::ChannelType>& types)
     {
-        std::vector<std::string> names, pvNames;
-        std::vector<Average3D::ChannelType> types;
-        for (auto& p : channels)
-        {
+        for (auto& p : channels) {
             names.push_back(p.first);
             std::string typeStr = p.second;
 
@@ -155,11 +149,26 @@ namespace PluginFactory
             else if (typeStr == "tensor6")            types.push_back(Average3D::ChannelType::Tensor6);
             else die("Unable to get parse channel type '%s'", typeStr.c_str());
         }
+    }
 
-        if (computeTask) {
-            for (auto &pv : pvs)
-                pvNames.push_back(pv->name);
-        }
+    static void extractPVsNames(const std::vector<ParticleVector*>& pvs, std::vector<std::string>& pvNames)
+    {
+        for (auto &pv : pvs)
+            pvNames.push_back(pv->name);
+    }
+    
+    static std::pair< Average3D*, UniformCartesianDumper* >
+    createDumpAveragePlugin(bool computeTask, std::string name, std::vector<ParticleVector*> pvs,
+                            int sampleEvery, int dumpEvery, PyTypes::float3 binSize,
+                            std::vector< std::pair<std::string, std::string> > channels,
+                            std::string path)
+    {
+        std::vector<std::string> names, pvNames;
+        std::vector<Average3D::ChannelType> types;
+
+        extractChannelsInfos(channels, names, types);
+        
+        if (computeTask) extractPVsNames(pvs, pvNames);
         
         auto simPl  = computeTask ?
                 new Average3D(name, pvNames, names, types, sampleEvery, dumpEvery, make_float3(binSize)) :
@@ -172,30 +181,17 @@ namespace PluginFactory
 
     static std::pair< AverageRelative3D*, UniformCartesianDumper* >
     createDumpAverageRelativePlugin(bool computeTask, std::string name, std::vector<ParticleVector*> pvs,
-                                        ObjectVector* relativeToOV, int relativeToId,
-                                        int sampleEvery, int dumpEvery, PyTypes::float3 binSize,
-                                        std::vector< std::pair<std::string, std::string> > channels,
-                                        std::string path)
+                                    ObjectVector* relativeToOV, int relativeToId,
+                                    int sampleEvery, int dumpEvery, PyTypes::float3 binSize,
+                                    std::vector< std::pair<std::string, std::string> > channels,
+                                    std::string path)
     {
         std::vector<std::string> names, pvNames;
         std::vector<Average3D::ChannelType> types;
-        for (auto& p : channels)
-        {
-            names.push_back(p.first);
-            std::string typeStr = p.second;
 
-            if      (typeStr == "scalar")             types.push_back(Average3D::ChannelType::Scalar);
-            else if (typeStr == "vector")             types.push_back(Average3D::ChannelType::Vector_float3);
-            else if (typeStr == "vector_from_float4") types.push_back(Average3D::ChannelType::Vector_float4);
-            else if (typeStr == "vector_from_float8") types.push_back(Average3D::ChannelType::Vector_2xfloat4);
-            else if (typeStr == "tensor6")            types.push_back(Average3D::ChannelType::Tensor6);
-            else die("Unable to get parse channel type '%s'", typeStr.c_str());
-        }
+        extractChannelsInfos(channels, names, types);
 
-        if (computeTask) {
-            for (auto &pv : pvs)
-                pvNames.push_back(pv->name);
-        }
+        if (computeTask) extractPVsNames(pvs, pvNames);
     
         auto simPl  = computeTask ?
                 new AverageRelative3D(name, pvNames,
