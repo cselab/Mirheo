@@ -25,11 +25,16 @@ namespace XDMF
     int GridDims::getDims() const
     {
         return getLocalSize().size();
-    }
+    }    
     
     //
     // Uniform Grid
     //
+
+    std::vector<hsize_t> UniformGrid::UniformGridDims::getLocalSize()  const {return localSize;}
+    std::vector<hsize_t> UniformGrid::UniformGridDims::getGlobalSize() const {return globalSize;}
+    std::vector<hsize_t> UniformGrid::UniformGridDims::getOffsets()    const {return offsets;}
+
     std::vector<hsize_t> UniformGrid::getLocalSize() const
     {
         return localSize;
@@ -71,6 +76,11 @@ namespace XDMF
         return "Cell";
     }
 
+    const UniformGrid::UniformGridDims* UniformGrid::getGridDims() const
+    {
+        return &dims;
+    }
+    
     void UniformGrid::write_to_HDF5(hid_t file_id, MPI_Comm comm) const
     {   }
     
@@ -159,6 +169,11 @@ namespace XDMF
     //
     // Vertex Grid
     //
+
+    std::vector<hsize_t> VertexGrid::VertexGridDims::getLocalSize()  const {return {nlocal};}
+    std::vector<hsize_t> VertexGrid::VertexGridDims::getGlobalSize() const {return {nglobal};}
+    std::vector<hsize_t> VertexGrid::VertexGridDims::getOffsets()    const {return {offset, 0};}
+
     
     std::vector<hsize_t> VertexGrid::getLocalSize() const
     {
@@ -188,6 +203,11 @@ namespace XDMF
     int VertexGrid::getDims() const
     {
         return 1;
+    }
+
+    const VertexGrid::VertexGridDims* VertexGrid::getGridDims() const
+    {
+        return &dims;
     }
     
     std::string VertexGrid::getCentering() const

@@ -15,6 +15,7 @@ namespace XDMF
 {
     class GridDims
     {
+    public:
         virtual ~GridDims() = default;
         
         virtual std::vector<hsize_t> getLocalSize()  const = 0;
@@ -35,6 +36,7 @@ namespace XDMF
         virtual bool localEmpty()                                                         const = 0;
         virtual bool globalEmpty()                                                        const = 0;
         virtual int getDims()                                                             const = 0;
+        virtual const GridDims* getGridDims()                                             const = 0; 
 
         virtual std::string getCentering()                                                const = 0;
                                                                                        
@@ -50,6 +52,16 @@ namespace XDMF
     
     class UniformGrid : public Grid
     {
+        class UniformGridDims : public GridDims
+        {
+        public:
+            std::vector<hsize_t> getLocalSize()  const override;
+            std::vector<hsize_t> getGlobalSize() const override;
+            std::vector<hsize_t> getOffsets()    const override;
+
+            std::vector<hsize_t> localSize, globalSize, offsets;
+        };
+            
     public:
         std::vector<hsize_t> getLocalSize()                                       const override;
         std::vector<hsize_t> getGlobalSize()                                      const override;
@@ -57,7 +69,8 @@ namespace XDMF
         bool localEmpty()                                                         const override;
         bool globalEmpty()                                                        const override;
         int getDims()                                                             const override;
-                                                                               
+        const UniformGridDims* getGridDims()                                      const override;
+        
         std::string getCentering()                                                const override;
                                                                                
         void write_to_HDF5(hid_t file_id, MPI_Comm comm)                          const override;
@@ -71,12 +84,23 @@ namespace XDMF
         
     protected:
         std::vector<hsize_t> localSize, globalSize, offsets;
+        UniformGridDims dims;
         std::vector<float> spacing;
     };
     
         
     class VertexGrid : public Grid
     {
+        class VertexGridDims : public GridDims
+        {
+        public:
+            std::vector<hsize_t> getLocalSize()  const override;
+            std::vector<hsize_t> getGlobalSize() const override;
+            std::vector<hsize_t> getOffsets()    const override;
+
+            hsize_t nlocal, nglobal, offset;
+        };
+
     public:
         std::vector<hsize_t> getLocalSize()                                       const override;
         std::vector<hsize_t> getGlobalSize()                                      const override;
@@ -84,7 +108,8 @@ namespace XDMF
         bool localEmpty()                                                         const override;
         bool globalEmpty()                                                        const override;
         int getDims()                                                             const override;
-                                                                               
+        const VertexGridDims* getGridDims()                                       const override;
+        
         std::string getCentering()                                                const override;
         std::shared_ptr<std::vector<float>> getPositions()                        const;
                                                                                
@@ -100,6 +125,7 @@ namespace XDMF
     protected:
         const std::string positionChannelName = "position";
         hsize_t nlocal, nglobal, offset;
+        VertexGridDims dims;
 
         std::shared_ptr<std::vector<float>> positions;
 
