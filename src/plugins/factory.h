@@ -238,7 +238,7 @@ namespace PluginFactory
     }
 
     static std::pair< ParticleWithMeshSenderPlugin*, ParticleWithMeshDumperPlugin* >
-    createDumpParticlesWithMeshPlugin(bool computeTask, std::string name, ParticleVector *pv, int dumpEvery,
+    createDumpParticlesWithMeshPlugin(bool computeTask, std::string name, ObjectVector *ov, int dumpEvery,
                                       std::vector< std::pair<std::string, std::string> > channels, std::string path)
     {
         std::vector<std::string> names;
@@ -246,7 +246,7 @@ namespace PluginFactory
 
         extractChannelInfos(channels, names, types);
         
-        auto simPl  = computeTask ? new ParticleWithMeshSenderPlugin(name, pv->name, dumpEvery, names, types) : nullptr;
+        auto simPl  = computeTask ? new ParticleWithMeshSenderPlugin(name, ov->name, dumpEvery, names, types) : nullptr;
         auto postPl = computeTask ? nullptr : new ParticleWithMeshDumperPlugin(name, path);
 
         return { simPl, postPl };
