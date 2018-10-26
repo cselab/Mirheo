@@ -6,6 +6,27 @@
 
 namespace XDMF
 {
+    bool GridDims::localEmpty() const
+    {
+        int prod = 1;
+        for (auto d : getLocalSize())
+            prod *= d;        
+        return (prod == 0);
+    }
+    
+    bool GridDims::globalEmpty() const
+    {
+        int prod = 1;
+        for (auto d : getGlobalSize())
+            prod *= d;        
+        return (prod == 0);
+    }
+    
+    int GridDims::getDims() const
+    {
+        return getLocalSize().size();
+    }
+    
     //
     // Uniform Grid
     //

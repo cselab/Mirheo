@@ -12,7 +12,20 @@
 #include "channel.h"
 
 namespace XDMF
-{    
+{
+    class GridDims
+    {
+        virtual ~GridDims() = default;
+        
+        virtual std::vector<hsize_t> getLocalSize()  const = 0;
+        virtual std::vector<hsize_t> getGlobalSize() const = 0;
+        virtual std::vector<hsize_t> getOffsets()    const = 0;
+
+        bool localEmpty()   const;
+        bool globalEmpty()  const;
+        int getDims()       const;
+    };
+    
     class Grid
     {
     public:
@@ -22,7 +35,7 @@ namespace XDMF
         virtual bool localEmpty()                                                         const = 0;
         virtual bool globalEmpty()                                                        const = 0;
         virtual int getDims()                                                             const = 0;
-                                                                                       
+
         virtual std::string getCentering()                                                const = 0;
                                                                                        
         virtual void write_to_HDF5(hid_t file_id, MPI_Comm comm)                          const = 0;
