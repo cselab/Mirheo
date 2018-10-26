@@ -32,7 +32,7 @@ public:
 
     bool needPostproc() override { return true; }
     
-private:
+protected:
     std::string pvName;
     ParticleVector *pv;
     
@@ -55,7 +55,10 @@ public:
     void deserialize(MPI_Status& stat) override;
     void handshake() override;
 
-private:
+protected:
+
+    float _recvAndUnpack();
+    
     int timeStamp = 0;
     const int zeroPadding = 5;
     std::string path;

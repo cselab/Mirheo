@@ -1,10 +1,9 @@
-#include "dump_particles.h"
-#include "simple_serializer.h"
-#include <core/utils/folders.h>
-
 #include <core/simulation.h>
 #include <core/pvs/particle_vector.h>
 #include <core/utils/folders.h>
+
+#include "dump_particles.h"
+#include "simple_serializer.h"
 
 
 ParticleSenderPlugin::ParticleSenderPlugin(std::string name, std::string pvName, int dumpEvery,
@@ -137,10 +136,8 @@ static void unpack_particles(const std::vector<Particle> &particles, std::vector
     }
 }
 
-void ParticleDumperPlugin::deserialize(MPI_Status& stat)
+float ParticleDumperPlugin::_recvAndUnpack()
 {
-    debug2("Plugin '%s' will dump right now", name.c_str());
-
     float t;
     SimpleSerializer::deserialize(data, t, particles, channelData);
         
@@ -148,8 +145,15 @@ void ParticleDumperPlugin::deserialize(MPI_Status& stat)
     
     channels[0].data = velocities.data();
     for (int i = 0; i < channelData.size(); i++)
-        channels[i+1].data = channelData[i].data();
+        channels[i+1].data = channelData[i].data();    
+}
 
+void ParticleDumperPlugin::deserialize(MPI_Status& stat)
+{
+    debug2("Plugin '%s' will dump right now", name.c_str());
+
+    float t = _recvAndUnpack();
+    
     std::string fname = path + getStrZeroPadded(timeStamp++, zeroPadding);
     
     XDMF::VertexGrid grid(positions, comm);
