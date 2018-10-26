@@ -45,6 +45,8 @@ namespace XDMF
     
     class UniformGrid : public Grid
     {
+    protected:
+        
         class UniformGridDims : public GridDims
         {
         public:
@@ -76,9 +78,14 @@ namespace XDMF
         
     class VertexGrid : public Grid
     {
+    protected:
+        
         class VertexGridDims : public GridDims
         {
         public:
+
+            VertexGridDims(long nlocal, MPI_Comm comm);
+            
             std::vector<hsize_t> getLocalSize()  const override;
             std::vector<hsize_t> getGlobalSize() const override;
             std::vector<hsize_t> getOffsets()    const override;
@@ -114,12 +121,13 @@ namespace XDMF
     public:
         std::shared_ptr<std::vector<int>> getTriangles() const;
         
-        void write_to_HDF5(hid_t file_id, MPI_Comm comm)                          const override;
+        void write_to_HDF5(hid_t file_id, MPI_Comm comm) const override;
                 
         TriangleMeshGrid(std::shared_ptr<std::vector<float>> positions, std::shared_ptr<std::vector<int>> triangles, MPI_Comm comm);
         
     protected:
         const std::string triangleChannelName = "triangle";
+        VertexGridDims dimsTriangles;
         std::shared_ptr<std::vector<int>> triangles;
 
         void _writeTopology(pugi::xml_node& topoNode, std::string h5filename) const override;

@@ -134,6 +134,13 @@ namespace XDMF
     // Vertex Grid
     //
 
+    VertexGrid::VertexGridDims::VertexGridDims(long nlocal, MPI_Comm comm) :
+        nlocal(nlocal), nglobal(0), offset(0)
+    {
+        MPI_Check( MPI_Exscan   (&nlocal, &offset,  1, MPI_LONG_LONG_INT, MPI_SUM, comm) );
+        MPI_Check( MPI_Allreduce(&nlocal, &nglobal, 1, MPI_LONG_LONG_INT, MPI_SUM, comm) );    
+    }
+    
     std::vector<hsize_t> VertexGrid::VertexGridDims::getLocalSize()  const {return {nlocal};}
     std::vector<hsize_t> VertexGrid::VertexGridDims::getGlobalSize() const {return {nglobal};}
     std::vector<hsize_t> VertexGrid::VertexGridDims::getOffsets()    const {return {offset, 0};}
@@ -238,15 +245,10 @@ namespace XDMF
     }
         
     VertexGrid::VertexGrid(std::shared_ptr<std::vector<float>> positions, MPI_Comm comm) :
-        positions(positions)
+        positions(positions), dims(positions->size() / 3, comm)
     {
-        dims.nlocal = positions->size() / 3;
         if (positions->size() % 3 != 0)
             die("expected size is multiple of 3; given %d\n", positions->size());
-        
-        dims.offset = 0;
-        MPI_Check( MPI_Exscan   (&dims.nlocal, &dims.offset,  1, MPI_LONG_LONG_INT, MPI_SUM, comm) );
-        MPI_Check( MPI_Allreduce(&dims.nlocal, &dims.nglobal, 1, MPI_LONG_LONG_INT, MPI_SUM, comm) );
     }
 
     void VertexGrid::_writeTopology(pugi::xml_node& topoNode, std::string h5filename) const
@@ -268,14 +270,13 @@ namespace XDMF
     {
         VertexGrid::write_to_HDF5(file_id, comm);
 
-        // TODO write triangles; need other sizes
-        // Channel triCh(triangleChannelName, (void*) triangle->data(), Channel::Type::Trianle, Channel::Datatype::Int);
-        
-        // HDF5::writeDataSet(file_id, this, triCh);
+        Channel triCh(triangleChannelName, (void*) triangles->data(), Channel::Type::Triangle, Channel::Datatype::Int);        
+
+        HDF5::writeDataSet(file_id, &dimsTriangles, triCh);
     }
                 
     TriangleMeshGrid::TriangleMeshGrid(std::shared_ptr<std::vector<float>> positions, std::shared_ptr<std::vector<int>> triangles, MPI_Comm comm) :
-        VertexGrid(positions, comm), triangles(triangles)
+        VertexGrid(positions, comm), triangles(triangles), dimsTriangles(triangles->size() / 3, comm)
     {
         if (triangles->size() % 3 != 0)
             die("connectivity: expected size is multiple of 3; given %d\n", triangles->size());
@@ -284,12 +285,12 @@ namespace XDMF
     void TriangleMeshGrid::_writeTopology(pugi::xml_node& topoNode, std::string h5filename) const
     {
         topoNode.append_attribute("TopologyType") = "Triangle";
-        // TODO use nelements form triangles
-        //topoNode.append_attribute("NumberOfElements") = std::to_string(nglobal).c_str();
+
+        topoNode.append_attribute("NumberOfElements") = std::to_string(dimsTriangles.nglobal).c_str();
 
         auto triangleNode = topoNode.append_child("DataItem");
-        // TODO
-        //triangleNode.append_attribute("Dimensions") = (std::to_string(nglobal) + " 3").c_str();
+
+        triangleNode.append_attribute("Dimensions") = (std::to_string(dimsTriangles.nglobal) + " 3").c_str();
         triangleNode.append_attribute("NumberType") = datatypeToString(Channel::Datatype::Int).c_str();
         triangleNode.append_attribute("Precision") = std::to_string(datatypeToPrecision(Channel::Datatype::Int)).c_str();
         triangleNode.append_attribute("Format") = "HDF";
