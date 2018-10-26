@@ -6,26 +6,17 @@
 
 namespace XDMF
 {
-    bool GridDims::localEmpty() const
+    static hsize_t product(const std::vector<hsize_t>& v)
     {
-        int prod = 1;
-        for (auto d : getLocalSize())
+        hsize_t prod = 1;
+        for (auto d : v)
             prod *= d;        
-        return (prod == 0);
+        return prod;
     }
     
-    bool GridDims::globalEmpty() const
-    {
-        int prod = 1;
-        for (auto d : getGlobalSize())
-            prod *= d;        
-        return (prod == 0);
-    }
-    
-    int GridDims::getDims() const
-    {
-        return getLocalSize().size();
-    }    
+    bool GridDims::localEmpty()  const { return product(getLocalSize ()) == 0; }
+    bool GridDims::globalEmpty() const { return product(getGlobalSize()) == 0; }
+    int  GridDims::getDims()     const { return getLocalSize().size();         }
     
     //
     // Uniform Grid
@@ -35,18 +26,11 @@ namespace XDMF
     std::vector<hsize_t> UniformGrid::UniformGridDims::getGlobalSize() const {return globalSize;}
     std::vector<hsize_t> UniformGrid::UniformGridDims::getOffsets()    const {return offsets;}
     
-    std::string UniformGrid::getCentering() const
-    {
-        return "Cell";
-    }
-
-    const UniformGrid::UniformGridDims* UniformGrid::getGridDims() const
-    {
-        return &dims;
-    }
+    std::string UniformGrid::getCentering() const                        { return "Cell"; }
+    const UniformGrid::UniformGridDims* UniformGrid::getGridDims() const { return &dims; }
     
     void UniformGrid::write_to_HDF5(hid_t file_id, MPI_Comm comm) const
-    {   }
+    {}
     
     pugi::xml_node UniformGrid::write_to_XMF(pugi::xml_node node, std::string h5filename) const
     {
@@ -145,20 +129,9 @@ namespace XDMF
     std::vector<hsize_t> VertexGrid::VertexGridDims::getGlobalSize() const {return {nglobal};}
     std::vector<hsize_t> VertexGrid::VertexGridDims::getOffsets()    const {return {offset, 0};}
 
-    const VertexGrid::VertexGridDims* VertexGrid::getGridDims() const
-    {
-        return &dims;
-    }
-    
-    std::string VertexGrid::getCentering() const
-    {
-        return "Node";
-    }
-    
-    std::shared_ptr<std::vector<float>> VertexGrid::getPositions() const
-    {
-        return positions;
-    }
+    const VertexGrid::VertexGridDims* VertexGrid::getGridDims() const    { return &dims; }    
+    std::string VertexGrid::getCentering() const                         { return "Node"; }    
+    std::shared_ptr<std::vector<float>> VertexGrid::getPositions() const { return positions; }
 
     void VertexGrid::write_to_HDF5(hid_t file_id, MPI_Comm comm) const
     {
@@ -261,10 +234,7 @@ namespace XDMF
     // Triangle Mesh Grid
     //
     
-    std::shared_ptr<std::vector<int>> TriangleMeshGrid::getTriangles() const
-    {
-        return triangles;
-    }
+    std::shared_ptr<std::vector<int>> TriangleMeshGrid::getTriangles() const { return triangles; }
 
     void TriangleMeshGrid::write_to_HDF5(hid_t file_id, MPI_Comm comm) const
     {
