@@ -22,6 +22,23 @@ namespace XDMF
     // Uniform Grid
     //
 
+    UniformGrid::UniformGridDims::UniformGridDims(int3 localSize, MPI_Comm cartComm)
+    {
+        int nranks[3], periods[3], my3Drank[3];
+        MPI_Check( MPI_Cart_get(cartComm, 3, nranks, periods, my3Drank) );
+
+        this->localSize  = std::vector<hsize_t>{ (hsize_t)localSize.x,  (hsize_t)localSize.y,  (hsize_t)localSize.z};
+        
+        this->globalSize = std::vector<hsize_t>{ (hsize_t) nranks[0] * localSize.x,
+                                                 (hsize_t) nranks[1] * localSize.y,
+                                                 (hsize_t) nranks[2] * localSize.z};
+
+        this->offsets   = std::vector<hsize_t>{ (hsize_t) my3Drank[2] * localSize.z,
+                                                (hsize_t) my3Drank[1] * localSize.y,
+                                                (hsize_t) my3Drank[0] * localSize.x,
+                                                (hsize_t) 0 };
+    }
+
     std::vector<hsize_t> UniformGrid::UniformGridDims::getLocalSize()  const {return localSize;}
     std::vector<hsize_t> UniformGrid::UniformGridDims::getGlobalSize() const {return globalSize;}
     std::vector<hsize_t> UniformGrid::UniformGridDims::getOffsets()    const {return offsets;}
@@ -95,24 +112,10 @@ namespace XDMF
         // TODO
         die("not implemented");
     }
-
-    UniformGrid::UniformGrid(int3 localSize, float3 h, MPI_Comm cartComm)
-    {
-        int nranks[3], periods[3], my3Drank[3];
-        MPI_Check( MPI_Cart_get(cartComm, 3, nranks, periods, my3Drank) );
         
-        this->spacing   = std::vector<float>{h.x, h.y, h.z};
-        dims.localSize  = std::vector<hsize_t>{ (hsize_t)localSize.x,  (hsize_t)localSize.y,  (hsize_t)localSize.z};
-        
-        dims.globalSize = std::vector<hsize_t>{ (hsize_t) nranks[0] * localSize.x,
-                                                (hsize_t) nranks[1] * localSize.y,
-                                                (hsize_t) nranks[2] * localSize.z};
-
-        dims.offsets   = std::vector<hsize_t>{ (hsize_t) my3Drank[2] * localSize.z,
-                                               (hsize_t) my3Drank[1] * localSize.y,
-                                               (hsize_t) my3Drank[0] * localSize.x,
-                                               (hsize_t) 0 };
-    }
+    UniformGrid::UniformGrid(int3 localSize, float3 h, MPI_Comm cartComm) :
+        dims(localSize, cartComm), spacing{h.x, h.y, h.z}
+    {}
     
     //
     // Vertex Grid

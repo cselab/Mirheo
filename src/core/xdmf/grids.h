@@ -50,6 +50,8 @@ namespace XDMF
         class UniformGridDims : public GridDims
         {
         public:
+            UniformGridDims(int3 localSize, MPI_Comm cartComm);
+            
             std::vector<hsize_t> getLocalSize()  const override;
             std::vector<hsize_t> getGlobalSize() const override;
             std::vector<hsize_t> getOffsets()    const override;
