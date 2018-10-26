@@ -17,6 +17,7 @@
 #include <plugins/temperaturize.h>
 #include <plugins/dump_obj_position.h>
 #include <plugins/dump_particles.h>
+#include <plugins/dump_particles_with_mesh.h>
 #include <plugins/exchange_pvs_flux_plane.h>
 #include <plugins/impose_velocity.h>
 #include <plugins/impose_profile.h>
@@ -207,13 +208,9 @@ namespace PluginFactory
         return { simPl, postPl };
     }
 
-    static std::pair< ParticleSenderPlugin*, ParticleDumperPlugin* >
-    createDumpParticlesPlugin(bool computeTask, std::string name, ParticleVector *pv, int dumpEvery,
-                              std::vector< std::pair<std::string, std::string> > channels, std::string path)
+    static void extractChannelInfos(const std::vector< std::pair<std::string, std::string> >& channels,
+                                    std::vector<std::string>& names, std::vector<ParticleSenderPlugin::ChannelType>& types)
     {
-        std::vector<std::string> names;
-        std::vector<ParticleSenderPlugin::ChannelType> types;
-
         for (auto& p : channels) {
             names.push_back(p.first);
             std::string typeStr = p.second;
@@ -223,9 +220,34 @@ namespace PluginFactory
             else if (typeStr == "tensor6")   types.push_back(ParticleSenderPlugin::ChannelType::Tensor6);
             else die("Unable to get parse channel type '%s'", typeStr.c_str());
         }
+    }
+    
+    static std::pair< ParticleSenderPlugin*, ParticleDumperPlugin* >
+    createDumpParticlesPlugin(bool computeTask, std::string name, ParticleVector *pv, int dumpEvery,
+                              std::vector< std::pair<std::string, std::string> > channels, std::string path)
+    {
+        std::vector<std::string> names;
+        std::vector<ParticleSenderPlugin::ChannelType> types;
+
+        extractChannelInfos(channels, names, types);
         
         auto simPl  = computeTask ? new ParticleSenderPlugin(name, pv->name, dumpEvery, names, types) : nullptr;
         auto postPl = computeTask ? nullptr : new ParticleDumperPlugin(name, path);
+
+        return { simPl, postPl };
+    }
+
+    static std::pair< ParticleWithMeshSenderPlugin*, ParticleWithMeshDumperPlugin* >
+    createDumpParticlesWithMeshPlugin(bool computeTask, std::string name, ParticleVector *pv, int dumpEvery,
+                                      std::vector< std::pair<std::string, std::string> > channels, std::string path)
+    {
+        std::vector<std::string> names;
+        std::vector<ParticleSenderPlugin::ChannelType> types;
+
+        extractChannelInfos(channels, names, types);
+        
+        auto simPl  = computeTask ? new ParticleWithMeshSenderPlugin(name, pv->name, dumpEvery, names, types) : nullptr;
+        auto postPl = computeTask ? nullptr : new ParticleWithMeshDumperPlugin(name, path);
 
         return { simPl, postPl };
     }
