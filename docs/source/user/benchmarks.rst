@@ -13,12 +13,12 @@ Bulk Solvent
 
 Periodic Poiseuille flow in a periodic domain in every direction, with solvent only.
 
-.. figure:: ../images/strongPeriodicPoiseuille.png
+.. figure:: ../images/strong_solvent.png
 	   
 	   strong scaling for multiple domain sizes
 
 
-.. figure:: ../images/weakPeriodicPoiseuille.png
+.. figure:: ../images/weak_solvent.png
 	   
 	   weak scaling efficiency for multiple subdomain sizes
 
@@ -28,12 +28,12 @@ Bulk Blood
 
 Periodic Poiseuille flow in a periodic domain in every direction with 45% Hematocrite.
 
-.. figure:: ../images/strongPeriodicBlood.png
+.. figure:: ../images/strong_blood.png
 	   
 	   strong scaling for multiple domain sizes
 
 
-.. figure:: ../images/weakPeriodicBlood.png
+.. figure:: ../images/weak_blood.png
 	   
 	   weak scaling efficiency for multiple subdomain sizes
 
