@@ -12,6 +12,7 @@ Bulk Solvent
 ============
 
 Periodic Poiseuille flow in a periodic domain in every direction, with solvent only.
+Timings are based on the average time-step wall time, measured from the :any:`SimulationStats` plugin.
 
 .. figure:: ../images/strong_solvent.png
     :figclass: align-center
@@ -31,7 +32,8 @@ The weak scaling efficiency is very close to 1 thanks to the almost perfect over
 Bulk Blood
 ==========
 
-Periodic Poiseuille flow in a periodic domain in every direction with 45% Hematocrite.
+Periodic Poiseuille flow for blood with 45% Hematocrite in a periodic domain in every direction.
+Timings are based on the average time-step wall time, measured from the :any:`SimulationStats` plugin.
 
 .. figure:: ../images/strong_blood.png
     :figclass: align-center
@@ -48,10 +50,11 @@ The weak scaling efficiency is lower than in the solvent only case because of th
 
 * Multiple solvents
 * FSI interactions
+* contact interactions
 * Many objects
-* Bounce back
+* Bounce back on membranes
 
-The above induces a lot more communication.
+The above induces a lot more communication than the simple solvent only case.
 
 Poiseuille Flow
 ===============
