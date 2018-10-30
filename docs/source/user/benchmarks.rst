@@ -25,6 +25,9 @@ Periodic Poiseuille flow in a periodic domain in every direction, with solvent o
     weak scaling efficiency for multiple subdomain sizes
 
 
+The weak scaling efficiency is very close to 1 thanks to the almost perfect overlapping of communication and computation.
+
+
 Bulk Blood
 ==========
 
@@ -42,6 +45,7 @@ Periodic Poiseuille flow in a periodic domain in every direction with 45% Hemato
     weak scaling efficiency for multiple subdomain sizes
 
 The weak scaling efficiency is lower than in the solvent only case because of the complexity of the problem:
+
 * Multiple solvents
 * FSI interactions
 * Many objects
