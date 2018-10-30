@@ -6,9 +6,10 @@ aei () { awk 'BEGIN {printf "%d", '"$@"'}'; }
 L=64
 
 #launch="launch_solvent"
-launch="launch_cells"
+#launch="launch_cells"
+launch="launch_walls"
 
-for i in `seq 9`; do
+for i in `seq 8`; do
     LX=`aei "$L * $i"`
-    ./$launch $i $i $i  $LX $LX $LX "wForceSc" $L
+    ./$launch $i $i $i  $LX $LX $LX "weak" $L
 done

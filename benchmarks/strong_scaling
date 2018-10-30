@@ -3,7 +3,8 @@
 L=288
 
 #launch="launch_solvent"
-launch="launch_cells"
+#launch="launch_cells"
+launch="launch_walls"
 
 for i in `seq 6`; do
     ./$launch $i $i $i  $L $L $L "strong" $L
