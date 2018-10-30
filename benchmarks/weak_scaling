@@ -3,7 +3,7 @@
 # awk expression, int
 aei () { awk 'BEGIN {printf "%d", '"$@"'}'; }
 
-L=64
+L=96
 
 #launch="launch_solvent"
 #launch="launch_cells"
