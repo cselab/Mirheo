@@ -65,4 +65,4 @@ plt.tight_layout()
 if args.out == "gui":
     plt.show()
 else:
-    plt.savefig(args.out)
+    plt.savefig(args.out, transparent=True)
