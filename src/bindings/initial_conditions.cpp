@@ -1,4 +1,3 @@
-#include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 
 #include <core/initial_conditions/interface.h>
@@ -10,9 +9,9 @@
 
 #include <core/utils/pytypes.h>
 
+#include "bindings.h"
 #include "class_wrapper.h"
 
-namespace py = pybind11;
 using namespace pybind11::literals;
 
 void exportInitialConditions(py::module& m)

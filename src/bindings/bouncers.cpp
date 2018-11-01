@@ -1,13 +1,10 @@
-#include <pybind11/pybind11.h>
-
 #include <core/bouncers/interface.h>
 #include <core/bouncers/from_ellipsoid.h>
 #include <core/bouncers/from_mesh.h>
 
+#include "bindings.h"
 #include "class_wrapper.h"
 
-
-namespace py = pybind11;
 using namespace pybind11::literals;
 
 void exportBouncers(py::module& m)

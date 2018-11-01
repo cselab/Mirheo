@@ -1,6 +1,5 @@
 #include <string>
 
-#include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 
 #include <core/udevicex.h>
@@ -14,7 +13,7 @@
 #include <core/pvs/particle_vector.h>
 #include <core/pvs/object_vector.h>
 
-namespace py = pybind11;
+#include "bindings.h"
 using namespace pybind11::literals;
 
 void exportUdevicex(py::module& m)

@@ -1,13 +1,12 @@
-#include <extern/pybind11/include/pybind11/pybind11.h>
 #include <extern/pybind11/include/pybind11/stl.h>
 #include <extern/pybind11/include/pybind11/numpy.h>
 
 #include <plugins/factory.h>
 #include <core/xdmf/channel.h>
 
+#include "bindings.h"
 #include "class_wrapper.h"
 
-namespace py = pybind11;
 using namespace pybind11::literals;
 
 void exportPlugins(py::module& m)

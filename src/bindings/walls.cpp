@@ -1,12 +1,10 @@
-#include <pybind11/pybind11.h>
-
 #include <core/walls/factory.h>
 
 #include <core/utils/pytypes.h>
 
+#include "bindings.h"
 #include "class_wrapper.h"
 
-namespace py = pybind11;
 using namespace pybind11::literals;
 
 void exportWalls(py::module& m)

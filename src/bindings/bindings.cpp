@@ -1,8 +1,5 @@
-#include <pybind11/pybind11.h>
 #include <core/logger.h>
 #include "bindings.h"
-
-namespace py = pybind11;
 
 Logger logger;
 
