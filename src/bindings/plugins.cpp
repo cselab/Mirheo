@@ -83,7 +83,8 @@ void exportPlugins(py::module& m)
 
     
     py::handlers_class<ImposeProfilePlugin>(m, "ImposeProfile", pysim, R"(
-        TODO
+        This plugin will set the velocity of each particle inside a given domain to a target velocity with an additive term 
+        drawn from Maxwell distribution of the given temperature. 
     )");
 
     
@@ -199,7 +200,9 @@ void exportPlugins(py::module& m)
 
     
     py::handlers_class<TemperaturizePlugin>(m, "Temperaturize", pysim, R"(
-        TODO
+        This plugin changes the velocity of each particles from a given :any:`ParticleVector`.
+        It can operate under two modes: `keepVelocity = True`, in which case it adds a term drawn from a Maxwell distribution to the current velocity;
+        `keepVelocity = False`, in which case it sets the velocity to a term drawn from a Maxwell distribution.
     )");
 
     
@@ -456,8 +459,15 @@ void exportPlugins(py::module& m)
             every: report to standard output every that many time-steps
     )");
 
-    m.def("__createTemperaturize", &PluginFactory::createTemperaturizePlugin, R"(
-        TODO
+    m.def("__createTemperaturize", &PluginFactory::createTemperaturizePlugin,
+          "compute_task"_a, "name"_a, "pv"_a, "kbt"_a, "keepVelocity"_a, R"(
+        Create :any:`Temperaturize` plugin
+
+        Args:
+            name: name of the plugin
+            pv: the concerned :any:`ParticleVector`
+            kbt: the target temperature
+            keepVelocity: True for adding Maxwell distribution to the previous velocity; False to set the velocity to a Maxwell distribution.
     )");
 
     m.def("__createVelocityControl", &PluginFactory::createSimulationVelocityControlPlugin,
