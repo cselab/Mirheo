@@ -20,18 +20,18 @@ void exportPlugins(py::module& m)
     )");
 
 
-
-    
     
     py::handlers_class<AddForcePlugin>(m, "AddForce", pysim, R"(
         This plugin will add constant force :math:`\mathbf{F}_{extra}` to each particle of a specific PV every time-step.
         Is is advised to only use it with rigid objects, since Velocity-Verlet integrator with constant pressure can do the same without any performance penalty.
     )");
 
+    
     py::handlers_class<AddTorquePlugin>(m, "AddTorque", pysim, R"(
         This plugin will add constant torque :math:`\mathbf{T}_{extra}` to each *object* of a specific OV every time-step.
     )");
 
+    
     py::handlers_class<Average3D>(m, "Average3D", pysim, R"(
         This plugin will project certain quantities of the particle vectors on the grid (by simple binning),
         perform time-averaging of the grid and dump it in XDMF (LINK) format with HDF5 (LINK) backend.
@@ -44,6 +44,7 @@ void exportPlugins(py::module& m)
         .. note::
             This plugin is inactive if postprocess is disabled
     )");
+
     py::handlers_class<AverageRelative3D>(m, "AverageRelative3D", pysim, R"(
         This plugin acts just like the regular flow dumper, with one difference.
         It will assume a coordinate system attached to the center of mass of a specific object.
@@ -57,27 +58,48 @@ void exportPlugins(py::module& m)
             This plugin is inactive if postprocess is disabled
     )");
 
+    py::handlers_class<UniformCartesianDumper>(m, "UniformCartesianDumper", pypost, R"(
+        Postprocess side plugin of :any:`Average3D` or :any:`AverageRelative3D`.
+        Responsible for performing the I/O.
+    )")
+        .def("get_channel_view", [] (const UniformCartesianDumper &dumper, std::string chname) {
+                auto ch = dumper.getChannelOrDie(chname);
+                auto resolution = dumper.getLocalResolution();
+                resolution.push_back(ch.nComponents());
+            
+                pybind11::dtype dt;
+                if (ch.datatype == XDMF::Channel::Datatype::Float) dt = pybind11::dtype::of<float>();
+                if (ch.datatype == XDMF::Channel::Datatype::Int)   dt = pybind11::dtype::of<int>();
+            
+                return py::array(dt, resolution, (float*)ch.data, py::cast(dumper));
+            });
+
+    
     py::handlers_class<ExchangePVSFluxPlanePlugin>(m, "ExchangePVSFluxPlane", pysim, R"(
         This plugin exchanges particles from a particle vector crossing a given plane to another particle vector.
         A particle with position x, y, z has crossed the plane if ax + by + cz + d >= 0, where a, b, c and d are the coefficient 
         stored in the 'plane' variable
     )");
 
+    
     py::handlers_class<ImposeProfilePlugin>(m, "ImposeProfile", pysim, R"(
         TODO
     )");
+
     
     py::handlers_class<ImposeVelocityPlugin>(m, "ImposeVelocity", pysim, R"(
         This plugin will add velocity to all the particles of the target PV in the specified area (rectangle) such that the average velocity equals to desired.
         )")
         .def("set_target_velocity", &ImposeVelocityPlugin::setTargetVelocity);
 
+    
     py::handlers_class<MembraneExtraForcePlugin>(m, "MembraneExtraForce", pysim, R"(
         This plugin adds a given external force to a given membrane. 
         The force is defined vertex wise and does not depend on position.
         It is the same for all membranes belonging to the same particle vector.
     )");
 
+    
     py::handlers_class<MeshPlugin>(m, "MeshPlugin", pysim, R"(
         This plugin will write the meshes of all the object of the specified Object Vector in a PLY format (LINK).
    
@@ -85,6 +107,12 @@ void exportPlugins(py::module& m)
             This plugin is inactive if postprocess is disabled
     )");
 
+    py::handlers_class<MeshDumper>(m, "MeshDumper", pypost, R"(
+        Postprocess side plugin of :any:`MeshPlugin`.
+        Responsible for performing the data reductions and I/O.
+    )");
+
+    
     py::handlers_class<ObjPositionsPlugin>(m, "ObjPositions", pysim, R"(
         This plugin will write the coordinates of the centers of mass of the objects of the specified Object Vector.
         If the objects are rigid bodies, also will be written: COM velocity, rotation, angular velocity, force, torque.
@@ -100,16 +128,34 @@ void exportPlugins(py::module& m)
             This plugin is inactive if postprocess is disabled
     )");
 
+    py::handlers_class<ObjPositionsDumper>(m, "ObjPositionsDumper", pypost, R"(
+        Postprocess side plugin of :any:`ObjPositions`.
+        Responsible for performing the I/O.
+    )");
+
+    
     py::handlers_class<ParticleSenderPlugin>(m, "ParticleSenderPlugin", pysim, R"(
         This plugin will dump positions, velocities and optional attached data of all the particles of the specified Particle Vector.
         The data is dumped into hdf5 format. An additional xdfm file is dumped to describe the data and make it readable by visualization tools. 
     )");
 
+    py::handlers_class<ParticleDumperPlugin>(m, "ParticleDumperPlugin", pypost, R"(
+        Postprocess side plugin of :any:`ParticleSenderPlugin`.
+        Responsible for performing the I/O.
+    )");
+
+    
     py::handlers_class<ParticleWithMeshSenderPlugin>(m, "ParticleWithMeshSenderPlugin", pysim, R"(
         This plugin will dump positions, velocities and optional attached data of all the particles of the specified Object Vector, as well as connectivity information.
         The data is dumped into hdf5 format. An additional xdfm file is dumped to describe the data and make it readable by visualization tools. 
     )");
 
+    py::handlers_class<ParticleWithMeshDumperPlugin>(m, "ParticleWithMeshDumperPlugin", pypost, R"(
+        Postprocess side plugin of :any:`ParticleWithMeshSenderPlugin`.
+        Responsible for performing the I/O.
+    )");
+
+    
     py::handlers_class<PinObjectPlugin>(m, "PinObject", pysim, R"(
         This plugin will impose given velocity as the center of mass velocity (by axis) of all the objects of the specified Object Vector.
         If the objects are rigid bodies, rotatation may be restricted with this plugin as well.
@@ -121,6 +167,11 @@ void exportPlugins(py::module& m)
         Unrestricted
     )");
 
+    py::handlers_class<ReportPinObjectPlugin>(m, "ReportPinObject", pypost, R"(
+        Postprocess side plugin of :any:`PinObject`.
+        Responsible for performing the I/O.
+    )");
+    
     py::handlers_class<SimulationStats>(m, "SimulationStats", pysim, R"(
         This plugin will report aggregate quantities of all the particles in the simulation:
         total number of particles in the simulation, average temperature and momentum, maximum velocity magnutide of a particle
@@ -130,14 +181,27 @@ void exportPlugins(py::module& m)
             This plugin is inactive if postprocess is disabled
     )");
 
+    py::handlers_class<PostprocessStats>(m, "PostprocessStats", pypost, R"(
+        Postprocess side plugin of :any:`SimulationStats`.
+        Responsible for performing the data reductions and I/O.
+    )");
+
+    
     py::handlers_class<SimulationVelocityControl>(m, "VelocityControl", pysim, R"(
         This plugin applies a uniform force to all the particles of the target PVS in the specified area (rectangle).
         The force is adapted bvia a PID controller such that the velocity average of the particles matches the target average velocity.
     )");
 
+    py::handlers_class<PostprocessVelocityControl>(m, "PostprocessVelocityControl", pypost, R"(
+        Postprocess side plugin of :any:`VelocityControl`.
+        Responsible for performing the I/O.
+    )");
+
+    
     py::handlers_class<TemperaturizePlugin>(m, "Temperaturize", pysim, R"(
         TODO
     )");
+
     
     py::handlers_class<WallRepulsionPlugin>(m, "WallRepulsion", pysim, R"(
         This plugin will add force on all the particles that are nearby a specified wall. The motivation of this plugin is as follows.
@@ -155,6 +219,7 @@ void exportPlugins(py::module& m)
                 \min(F_{max}, C (sdf + h)), & sdf \geqslant -h\\
             \end{cases}
     )");
+
     
     py::handlers_class<XYZPlugin>(m, "XYZPlugin", pysim, R"(
         This plugin will dump positions of all the particles of the specified Particle Vector in the XYZ format.
@@ -163,29 +228,14 @@ void exportPlugins(py::module& m)
             This plugin is inactive if postprocess is disabled
     )");
     
-    
-    py::handlers_class<PostprocessStats>(m, "PostprocessStats", pypost);
-    py::handlers_class<XYZDumper>(m, "XYZDumper", pypost);
-    py::handlers_class<ParticleDumperPlugin>(m, "ParticleDumperPlugin", pypost);
-    py::handlers_class<ParticleWithMeshDumperPlugin>(m, "ParticleWithMeshDumperPlugin", pypost);
-    py::handlers_class<MeshDumper>(m, "MeshDumper", pypost);
-    py::handlers_class<ObjPositionsDumper>(m, "ObjPositionsDumper", pypost);
-    py::handlers_class<ReportPinObjectPlugin>(m, "ReportPinObject", pypost);
-    py::handlers_class<PostprocessVelocityControl>(m, "PostprocessVelocityControl", pypost);
-    
-    py::handlers_class<UniformCartesianDumper>(m, "UniformCartesianDumper", pypost)
-        .def("get_channel_view", [] (const UniformCartesianDumper &dumper, std::string chname) {
-            auto ch = dumper.getChannelOrDie(chname);
-            auto resolution = dumper.getLocalResolution();
-            resolution.push_back(ch.nComponents());
-            
-            pybind11::dtype dt;
-            if (ch.datatype == XDMF::Channel::Datatype::Float) dt = pybind11::dtype::of<float>();
-            if (ch.datatype == XDMF::Channel::Datatype::Int)   dt = pybind11::dtype::of<int>();
-            
-            return py::array(dt, resolution, (float*)ch.data, py::cast(dumper));
-        });
+    py::handlers_class<XYZDumper>(m, "XYZDumper", pypost, R"(
+        Postprocess side plugin of :any:`XYZPlugin`.
+        Responsible for the I/O part.
+    )");
 
+        
+    
+    
     
     m.def("__createImposeVelocity", &PluginFactory::createImposeVelocityPlugin,
         "compute_task"_a, "name"_a, "pv"_a, "every"_a, "low"_a, "high"_a, "velocity"_a, R"(
