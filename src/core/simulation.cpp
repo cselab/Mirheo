@@ -202,7 +202,8 @@ void Simulation::registerWall(std::shared_ptr<Wall> wall, int every)
     checkWallPrototypes.push_back(std::make_tuple(wall.get(), every));
 
     // Let the wall know the particle vector associated with it
-    wall->setup(cartComm, domain);
+    float t = 0;
+    wall->setup(cartComm, t, domain);
 
     info("Registered wall '%s'", name.c_str());
 
@@ -854,8 +855,8 @@ void Simulation::assemble()
     for (auto& wall : wallMap)
     {
         auto wallPtr = wall.second.get();
-        scheduler->addTask(task_wallBounce, [wallPtr, this] (cudaStream_t stream) {
-            wallPtr->bounce(dt, stream);
+        scheduler->addTask(task_wallBounce, [wallPtr, this] (cudaStream_t stream) {    
+            wallPtr->bounce(currentTime, dt, stream);
         });
     }
 

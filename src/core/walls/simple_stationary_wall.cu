@@ -301,7 +301,7 @@ __global__ void computeSdfOnGrid(CellListInfo gridInfo, float* sdfs, InsideWallC
 //===============================================================================================
 
 template<class InsideWallChecker>
-void SimpleStationaryWall<InsideWallChecker>::setup(MPI_Comm& comm, DomainInfo domain)
+void SimpleStationaryWall<InsideWallChecker>::setup(MPI_Comm& comm, float t, DomainInfo domain)
 {
     info("Setting up wall %s", name.c_str());
 
@@ -436,7 +436,7 @@ void SimpleStationaryWall<InsideWallChecker>::removeInner(ParticleVector* pv)
 }
 
 template<class InsideWallChecker>
-void SimpleStationaryWall<InsideWallChecker>::bounce(float dt, cudaStream_t stream)
+void SimpleStationaryWall<InsideWallChecker>::bounce(float t, float dt, cudaStream_t stream)
 {
     for (int i=0; i<particleVectors.size(); i++)
     {

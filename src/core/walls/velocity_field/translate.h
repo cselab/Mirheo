@@ -15,7 +15,7 @@ public:
         vel(vel)
     {    }
 
-    void setup(MPI_Comm& comm, DomainInfo domain) { }
+    void setup(MPI_Comm& comm, float t, DomainInfo domain) { }
 
     const VelocityField_Translate& handler() const { return *this; }
 

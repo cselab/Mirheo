@@ -19,12 +19,12 @@ public:
 
     Wall(std::string name) : name(name) {};
 
-    virtual void setup(MPI_Comm& comm, DomainInfo domain) = 0;
+    virtual void setup(MPI_Comm& comm, float t, DomainInfo domain) = 0;
     virtual void attachFrozen(ParticleVector* pv) = 0;
 
     virtual void removeInner(ParticleVector* pv) = 0;
     virtual void attach(ParticleVector* pv, CellList* cl) = 0;
-    virtual void bounce(float dt, cudaStream_t stream) = 0;
+    virtual void bounce(float t, float dt, cudaStream_t stream) = 0;
 
     /**
      * Ask ParticleVectors which the class will be working with to have specific properties

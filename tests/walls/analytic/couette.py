@@ -19,7 +19,7 @@ gdot    = 0.5 # shear rate
 T       = 3.0 # period for oscillating plate case
 tend    = 10.1
 
-u = udx.udevicex(ranks, domain, debug_level=3, log_filename='log')
+u = udx.udevicex(ranks, domain, debug_level=8, log_filename='log')
 
 pv = udx.ParticleVectors.ParticleVector('pv', mass = 1)
 ic = udx.InitialConditions.Uniform(density=density)
@@ -32,8 +32,7 @@ vx = gdot*(domain[2] - 2*rc)
 plate_lo = udx.Walls.Plane      ("plate_lo", normal=(0, 0, -1), pointThrough=(0, 0,              rc))
 
 if args.type == "oscillating":
-    period = (int)(T/dt)
-    plate_hi = udx.Walls.OscillatingPlane("plate_hi", normal=(0, 0,  1), pointThrough=(0, 0,  domain[2] - rc), velocity=(vx, 0, 0), period=period)
+    plate_hi = udx.Walls.OscillatingPlane("plate_hi", normal=(0, 0,  1), pointThrough=(0, 0,  domain[2] - rc), velocity=(vx, 0, 0), period=T)
 else:
     plate_hi = udx.Walls.MovingPlane("plate_hi", normal=(0, 0,  1), pointThrough=(0, 0,  domain[2] - rc), velocity=(vx, 0, 0))
 

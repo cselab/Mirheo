@@ -15,7 +15,7 @@ public:
         omega(omega), center(center)
     {    }
 
-    void setup(MPI_Comm& comm, DomainInfo domain) { this->domain = domain; }
+    void setup(MPI_Comm& comm, float t, DomainInfo domain) { this->domain = domain; }
 
     const VelocityField_Rotate& handler() const { return *this; }
 

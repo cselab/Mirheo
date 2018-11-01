@@ -11,17 +11,16 @@ class ParticleVector;
 class VelocityField_Oscillate
 {
 public:
-    VelocityField_Oscillate(float3 vel, int period) :
+    VelocityField_Oscillate(float3 vel, float period) :
         vel(vel), period(period)
     {
         if (period <= 0)
             die("Oscillating period should be strictly positive");
     }
 
-    void setup(MPI_Comm& comm, DomainInfo domain)
+    void setup(MPI_Comm& comm, float t, DomainInfo domain)
     {
-        cosOmega = cos(2*M_PI * (float)count / period);
-        count++;
+        cosOmega = cos(2*M_PI * t / period);
     }
 
     const VelocityField_Oscillate& handler() const { return *this; }
@@ -33,8 +32,7 @@ public:
 
 private:
     float3 vel;
-    int period;
-    int count{0};
+    float period;
 
     float cosOmega;
 

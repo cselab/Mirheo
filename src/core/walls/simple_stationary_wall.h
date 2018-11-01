@@ -16,12 +16,12 @@ public:
         SDF_basedWall(name), insideWallChecker(std::move(insideWallChecker))
     {    }
 
-    void setup(MPI_Comm& comm, DomainInfo domain) override;
+    void setup(MPI_Comm& comm, float t, DomainInfo domain) override;
     void attachFrozen(ParticleVector* pv) override;
 
     void removeInner(ParticleVector* pv) override;
     void attach(ParticleVector* pv, CellList* cl) override;
-    void bounce(float dt, cudaStream_t stream) override;
+    void bounce(float t, float dt, cudaStream_t stream) override;
     void check(cudaStream_t stream) override;
 
     void sdfPerParticle(LocalParticleVector* pv, GPUcontainer* sdfs, GPUcontainer* gradients, cudaStream_t stream) override;
