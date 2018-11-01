@@ -237,21 +237,6 @@ void exportPlugins(py::module& m)
     
     
     
-    m.def("__createImposeVelocity", &PluginFactory::createImposeVelocityPlugin,
-        "compute_task"_a, "name"_a, "pv"_a, "every"_a, "low"_a, "high"_a, "velocity"_a, R"(
-        Create :any:`ImposeVelocity` plugin
-        
-        Args:
-            name: name of the plugin
-            pv: :any:`ParticleVector` that we'll work with
-            every: change the velocities once in **every** timestep
-            low: the lower corner of the domain
-            high: the higher corner of the domain
-            velocity: target velocity
-    )");
-    m.def("__createTemperaturize", &PluginFactory::createTemperaturizePlugin, R"(
-        TODO
-    )");
     m.def("__createAddForce", &PluginFactory::createAddForcePlugin,
          "compute_task"_a, "name"_a, "pv"_a, "force"_a, R"(
         Create :any:`AddForce` plugin
@@ -261,6 +246,7 @@ void exportPlugins(py::module& m)
             pv: :any:`ParticleVector` that we'll work with
             force: extra force
     )");
+
     m.def("__createAddTorque", &PluginFactory::createAddTorquePlugin, 
           "compute_task"_a, "name"_a, "ov"_a, "torque"_a, R"(
         Create :any:`AddTorque` plugin
@@ -270,39 +256,7 @@ void exportPlugins(py::module& m)
             ov: :any:`ObjectVector` that we'll work with
             torque: extra torque (per object)
     )");
-    m.def("__createImposeProfile", &PluginFactory::createImposeProfilePlugin, 
-          "compute_task"_a, "name"_a, "pv"_a, "low"_a, "high"_a, "velocity"_a, "kbt"_a, R"(
-        Create :any:`ImposeProfile` plugin
-        
-        Args:
-            name: name of the plugin
-            pv: :any:`ParticleVector` that we'll work with
-            low: the lower corner of the domain
-            high: the higher corner of the domain
-            velocity: target velocity
-            kbt: temperature in the domain (appropriate Maxwell distribution will be used)
-    )");
-    m.def("__createWallRepulsion", &PluginFactory::createWallRepulsionPlugin, 
-          "compute_task"_a, "name"_a, "pv"_a, "wall"_a, "C"_a, "h"_a, "max_force"_a, R"(
-        Create :any:`WallRepulsion` plugin
-        
-        Args:
-            name: name of the plugin
-            pv: :any:`ParticleVector` that we'll work with
-            wall: :any:`Wall` that defines the repulsion
-            C: :math:`C`  
-            h: :math:`h`  
-            max_force: :math:`F_{max}`  
-    )");
-    m.def("__createStats", &PluginFactory::createStatsPlugin,
-          "compute_task"_a, "name"_a, "filename"_a="", "every"_a, R"(
-        Create :any:`SimulationStats` plugin
-        
-        Args:
-            name: name of the plugin
-            filename: the stats will also be recorded to that file in a computer-friendly way
-            every: report to standard output every that many time-steps
-    )");
+
     m.def("__createDumpAverage", &PluginFactory::createDumpAveragePlugin, 
           "compute_task"_a, "name"_a, "pvs"_a, "sample_every"_a, "dump_every"_a,
           "bin_size"_a = PyTypes::float3{1.0, 1.0, 1.0}, "channels"_a, "path"_a = "xdmf/", R"(
@@ -336,6 +290,7 @@ void exportPlugins(py::module& m)
                 * 'tensor6': 6 floats per particle, symmetric tensor in order xx, xy, xz, yy, yz, zz
                 
     )");
+
     m.def("__createDumpAverageRelative", &PluginFactory::createDumpAverageRelativePlugin, 
           "compute_task"_a, "name"_a, "pvs"_a,
           "relative_to_ov"_a, "relative_to_id"_a,
@@ -350,6 +305,28 @@ void exportPlugins(py::module& m)
         Args:
             relative_to_ov: take an object governing the frame of reference from this :any:`ObjectVector`
             relative_to_id: take an object governing the frame of reference with the specific ID
+    )");
+
+    m.def("__createDumpMesh", &PluginFactory::createDumpMeshPlugin, 
+          "compute_task"_a, "name"_a, "ov"_a, "dump_every"_a, "path"_a, R"(
+        Create :any:`MeshPlugin` plugin
+        
+        Args:
+            name: name of the plugin
+            ov: :any:`ObjectVector` that we'll work with
+            dump_every: write files every this many time-steps
+            path: the files will look like this: <path>/<ov_name>_NNNNN.ply
+    )");
+
+    m.def("__createDumpObjectStats", &PluginFactory::createDumpObjPosition, 
+          "compute_task"_a, "name"_a, "ov"_a, "dump_every"_a, "path"_a, R"(
+        Create :any:`ObjPositions` plugin
+        
+        Args:
+            name: name of the plugin
+            ov: :any:`ObjectVector` that we'll work with
+            dump_every: write files every this many time-steps
+            path: the files will look like this: <path>/<ov_name>_NNNNN.txt
     )");
 
     m.def("__createDumpParticles", &PluginFactory::createDumpParticlesPlugin, 
@@ -406,26 +383,54 @@ void exportPlugins(py::module& m)
             dump_every: write files every this many time-steps
             path: the files will look like this: <path>/<pv_name>_NNNNN.xyz
     )");
-    m.def("__createDumpMesh", &PluginFactory::createDumpMeshPlugin, 
-          "compute_task"_a, "name"_a, "ov"_a, "dump_every"_a, "path"_a, R"(
-        Create :any:`MeshPlugin` plugin
+
+    m.def("__createExchangePVSFluxPlane", &PluginFactory::createExchangePVSFluxPlanePlugin,
+          "compute_task"_a, "name"_a, "pv1"_a, "pv2"_a, "plane"_a, R"(
+        Create :any:`ExchangePVSFluxPlane` plugin
         
         Args:
             name: name of the plugin
-            ov: :any:`ObjectVector` that we'll work with
-            dump_every: write files every this many time-steps
-            path: the files will look like this: <path>/<ov_name>_NNNNN.ply
+            pv1: :class:`ParticleVector` source
+            pv2: :class:`ParticleVector` destination
+            plane: 4 coefficients for the plane equation ax + by + cz + d >= 0
     )");
-    m.def("__createDumpObjectStats", &PluginFactory::createDumpObjPosition, 
-          "compute_task"_a, "name"_a, "ov"_a, "dump_every"_a, "path"_a, R"(
-        Create :any:`ObjPositions` plugin
+
+    m.def("__createImposeProfile", &PluginFactory::createImposeProfilePlugin, 
+          "compute_task"_a, "name"_a, "pv"_a, "low"_a, "high"_a, "velocity"_a, "kbt"_a, R"(
+        Create :any:`ImposeProfile` plugin
         
         Args:
             name: name of the plugin
-            ov: :any:`ObjectVector` that we'll work with
-            dump_every: write files every this many time-steps
-            path: the files will look like this: <path>/<ov_name>_NNNNN.txt
+            pv: :any:`ParticleVector` that we'll work with
+            low: the lower corner of the domain
+            high: the higher corner of the domain
+            velocity: target velocity
+            kbt: temperature in the domain (appropriate Maxwell distribution will be used)
     )");
+
+    m.def("__createImposeVelocity", &PluginFactory::createImposeVelocityPlugin,
+        "compute_task"_a, "name"_a, "pv"_a, "every"_a, "low"_a, "high"_a, "velocity"_a, R"(
+        Create :any:`ImposeVelocity` plugin
+        
+        Args:
+            name: name of the plugin
+            pv: :any:`ParticleVector` that we'll work with
+            every: change the velocities once in **every** timestep
+            low: the lower corner of the domain
+            high: the higher corner of the domain
+            velocity: target velocity
+    )");
+
+    m.def("__createMembraneExtraForce", &PluginFactory::createMembraneExtraForcePlugin,
+          "compute_task"_a, "name"_a, "pv"_a, "forces"_a, R"(
+        Create :any:`MembraneExtraForce` plugin
+        
+        Args:
+            name: name of the plugin
+            pv: :class:`ParticleVector` to which the force should be added
+            forces: array of forces, one force (3 floats) per vertex in a single mesh
+    )");
+
     m.def("__createPinObject", &PluginFactory::createPinObjPlugin, 
           "compute_task"_a, "name"_a, "ov"_a, "dump_every"_a, "path"_a, "velocity"_a, "angular_velocity"_a, R"(
         Create :any:`PinObject` plugin
@@ -440,6 +445,21 @@ void exportPlugins(py::module& m)
             angular_velocity: 3 floats, each component is the desired object angular velocity.
                 If the corresponding component should not be restricted, set this value to :python:`PinObject::Unrestricted`
     )");
+
+    m.def("__createStats", &PluginFactory::createStatsPlugin,
+          "compute_task"_a, "name"_a, "filename"_a="", "every"_a, R"(
+        Create :any:`SimulationStats` plugin
+        
+        Args:
+            name: name of the plugin
+            filename: the stats will also be recorded to that file in a computer-friendly way
+            every: report to standard output every that many time-steps
+    )");
+
+    m.def("__createTemperaturize", &PluginFactory::createTemperaturizePlugin, R"(
+        TODO
+    )");
+
     m.def("__createVelocityControl", &PluginFactory::createSimulationVelocityControlPlugin,
           "compute_task"_a, "name"_a, "filename"_a, "pvs"_a, "low"_a, "high"_a,
           "sample_every"_a, "tune_every"_a, "dump_every"_a, "target_vel"_a, "Kp"_a, "Ki"_a, "Kd"_a, R"(
@@ -456,24 +476,18 @@ void exportPlugins(py::module& m)
             target_vel: the target mean velocity of the particles in the domain of interest
             Kp, Ki, Kd: PID controller coefficients
     )");
-    m.def("__createExchangePVSFluxPlane", &PluginFactory::createExchangePVSFluxPlanePlugin,
-          "compute_task"_a, "name"_a, "pv1"_a, "pv2"_a, "plane"_a, R"(
-        Create :any:`ExchangePVSFluxPlane` plugin
+
+    m.def("__createWallRepulsion", &PluginFactory::createWallRepulsionPlugin, 
+          "compute_task"_a, "name"_a, "pv"_a, "wall"_a, "C"_a, "h"_a, "max_force"_a, R"(
+        Create :any:`WallRepulsion` plugin
         
         Args:
             name: name of the plugin
-            pv1: :class:`ParticleVector` source
-            pv2: :class:`ParticleVector` destination
-            plane: 4 coefficients for the plane equation ax + by + cz + d >= 0
-    )");
-    m.def("__createMembraneExtraForce", &PluginFactory::createMembraneExtraForcePlugin,
-          "compute_task"_a, "name"_a, "pv"_a, "forces"_a, R"(
-        Create :any:`MembraneExtraForce` plugin
-        
-        Args:
-            name: name of the plugin
-            pv: :class:`ParticleVector` to which the force should be added
-            forces: array of forces, one force (3 floats) per vertex in a single mesh
+            pv: :any:`ParticleVector` that we'll work with
+            wall: :any:`Wall` that defines the repulsion
+            C: :math:`C`  
+            h: :math:`h`  
+            max_force: :math:`F_{max}`  
     )");
 }
 
