@@ -1,12 +1,14 @@
+#pragma once
+
 #include <string>
 
-class UDXObject
+class UdxObject
 {
 public:
 
-    UDXObject(std::string name);
+    UdxObject(std::string name);
 
-    virtual ~UDXObject() = default;
+    virtual ~UdxObject() = default;
     
     std::string name() const;
     

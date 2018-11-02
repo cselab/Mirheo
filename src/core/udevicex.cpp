@@ -188,7 +188,7 @@ void uDeviceX::registerPlugins(const std::shared_ptr<SimulationPlugin>& simPlugi
 void uDeviceX::setIntegrator(Integrator* integrator, ParticleVector* pv)
 {
     if (isComputeTask())
-        sim->setIntegrator(integrator->name, pv->name);
+        sim->setIntegrator(integrator->name(), pv->name);
 }
 void uDeviceX::setInteraction(Interaction* interaction, ParticleVector* pv1, ParticleVector* pv2)
 {
@@ -274,7 +274,7 @@ std::shared_ptr<ParticleVector> uDeviceX::makeFrozenWallParticles(std::string pv
     wallsim.registerIntegrator(integrator);
     
     wallsim.setInteraction(interaction->name, pv->name, pv->name);
-    wallsim.setIntegrator (integrator->name,  pv->name);
+    wallsim.setIntegrator (integrator->name(),  pv->name);
     
     wallsim.init();
     wallsim.run(nsteps);
@@ -318,7 +318,7 @@ std::shared_ptr<ParticleVector> uDeviceX::makeFrozenRigidParticles(std::shared_p
         eqsim.registerIntegrator(integrator);
     
         eqsim.setInteraction(interaction->name, pv->name, pv->name);
-        eqsim.setIntegrator (integrator->name,  pv->name);
+        eqsim.setIntegrator (integrator->name(),  pv->name);
     
         eqsim.init();
         eqsim.run(nsteps);
