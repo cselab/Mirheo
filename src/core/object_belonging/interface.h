@@ -1,19 +1,18 @@
 #pragma once
 
-#include <string>
 #include <cuda_runtime.h>
 #include <mpi.h>
+
+#include "core/udevicex_object.h"
 
 class ParticleVector;
 class ObjectVector;
 class CellList;
 
-class ObjectBelongingChecker
+class ObjectBelongingChecker : public UdxObject
 {
 public:
-    std::string name;
-
-    ObjectBelongingChecker(std::string name) : name(name) { }
+    ObjectBelongingChecker(std::string name) : UdxObject(name) { }
 
     virtual void splitByBelonging(ParticleVector* src, ParticleVector* pvIn, ParticleVector* pvOut, cudaStream_t stream) = 0;
     virtual void checkInner(ParticleVector* pv, CellList* cl, cudaStream_t stream) = 0;

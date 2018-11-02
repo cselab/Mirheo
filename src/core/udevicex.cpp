@@ -168,7 +168,7 @@ void uDeviceX::registerObjectBelongingChecker (const std::shared_ptr<ObjectBelon
     if (isComputeTask())
     {
         sim->registerObjectBelongingChecker(checker);
-        sim->setObjectBelongingChecker(checker->name, ov->name);
+        sim->setObjectBelongingChecker(checker->name(), ov->name);
     }
 }
 void uDeviceX::registerPlugins(const std::shared_ptr<SimulationPlugin>& simPlugin, const std::shared_ptr<PostprocessPlugin>& postPlugin)
@@ -329,8 +329,8 @@ std::shared_ptr<ParticleVector> uDeviceX::makeFrozenRigidParticles(std::shared_p
     freezesim.registerParticleVector(pv, nullptr, 0);
     freezesim.registerParticleVector(shape, icShape, 0);
     freezesim.registerObjectBelongingChecker (checker);
-    freezesim.setObjectBelongingChecker(checker->name, shape->name);
-    freezesim.applyObjectBelongingChecker(checker->name, pv->name, insideName, pv->name, 0);
+    freezesim.setObjectBelongingChecker(checker->name(), shape->name);
+    freezesim.applyObjectBelongingChecker(checker->name(), pv->name, insideName, pv->name, 0);
 
     freezesim.init();
     freezesim.run(1);
@@ -349,7 +349,7 @@ std::shared_ptr<ParticleVector> uDeviceX::applyObjectBelongingChecker(ObjectBelo
     
     if ( (inside != "" && outside != "") || (inside == "" && outside == "") )
         die("One and only one option can be specified for belonging checker '%s': inside or outside",
-            checker->name.c_str());
+            checker->name().c_str());
     
     std::string newPVname;
     
@@ -364,7 +364,7 @@ std::shared_ptr<ParticleVector> uDeviceX::applyObjectBelongingChecker(ObjectBelo
         newPVname = inside;
     }
         
-    sim->applyObjectBelongingChecker(checker->name, pv->name, inside, outside, checkEvery);
+    sim->applyObjectBelongingChecker(checker->name(), pv->name, inside, outside, checkEvery);
     return sim->getSharedPVbyName(newPVname);
 }
 
