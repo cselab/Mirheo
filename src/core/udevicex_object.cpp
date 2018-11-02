@@ -4,7 +4,7 @@ UdxObject::UdxObject(std::string name) :
     _name(name)
 {}
     
-std::string UdxObject::name() const
+const std::string& UdxObject::name() const
 {
     return _name;
 }

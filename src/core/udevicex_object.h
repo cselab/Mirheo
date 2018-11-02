@@ -10,7 +10,7 @@ public:
 
     virtual ~UdxObject() = default;
     
-    std::string name() const;
+    const std::string& name() const;
     
 private:
     std::string _name;
