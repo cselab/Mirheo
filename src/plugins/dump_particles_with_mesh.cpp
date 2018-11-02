@@ -17,7 +17,7 @@ void ParticleWithMeshSenderPlugin::setup(Simulation *sim, const MPI_Comm& comm, 
 
     pv = sim->getOVbyNameOrDie(pvName);
 
-    info("Plugin %s initialized for the following object vector: %s", name.c_str(), pvName.c_str());
+    info("Plugin %s initialized for the following object vector: %s", name().c_str(), pvName.c_str());
 }
 
 void ParticleWithMeshSenderPlugin::handshake()
@@ -52,7 +52,7 @@ void ParticleWithMeshDumperPlugin::handshake()
 void ParticleWithMeshDumperPlugin::_prepareConnectivity(int totNVertices)
 {
     if (totNVertices % nvertices != 0)
-        die("plugin '%s' expecting a multiple of %d vertices, got %d", name.c_str(), nvertices, totNVertices);
+        die("plugin '%s' expecting a multiple of %d vertices, got %d", name().c_str(), nvertices, totNVertices);
 
     long nobjects = totNVertices / nvertices;
     long offset   = 0;
@@ -80,7 +80,7 @@ void ParticleWithMeshDumperPlugin::_prepareConnectivity(int totNVertices)
 
 void ParticleWithMeshDumperPlugin::deserialize(MPI_Status& stat)
 {
-    debug2("Plugin '%s' will dump right now", name.c_str());
+    debug2("Plugin '%s' will dump right now", name().c_str());
 
     float t = _recvAndUnpack();
 

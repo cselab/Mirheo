@@ -21,7 +21,7 @@ void ParticleSenderPlugin::setup(Simulation* sim, const MPI_Comm& comm, const MP
 
     pv = sim->getPVbyNameOrDie(pvName);
 
-    info("Plugin %s initialized for the following particle vector: %s", name.c_str(), pvName.c_str());
+    info("Plugin %s initialized for the following particle vector: %s", name().c_str(), pvName.c_str());
 }
 
 void ParticleSenderPlugin::handshake()
@@ -63,12 +63,12 @@ void ParticleSenderPlugin::serializeAndSend(cudaStream_t stream)
 {
     if (currentTimeStep % dumpEvery != 0 || currentTimeStep == 0) return;
 
-    debug2("Plugin %s is sending now data", name.c_str());
+    debug2("Plugin %s is sending now data", name().c_str());
     
     for (auto& p : particles)
         p.r = sim->domain.local2global(p.r);
 
-    debug2("Plugin %s is packing now data", name.c_str());
+    debug2("Plugin %s is packing now data", name().c_str());
     SimpleSerializer::serialize(sendBuffer, currentTime, particles, channelData);
     send(sendBuffer);
 }
@@ -108,14 +108,14 @@ void ParticleDumperPlugin::handshake()
             case 6: channels.push_back(init_channel(XDMF::Channel::Type::Tensor6, sizes[i], names[i])); break;
 
             default:
-                die("Plugin '%s' got %d as a channel '%s' size, expected 1, 3 or 6", name.c_str(), sizes[i], names[i].c_str());
+                die("Plugin '%s' got %d as a channel '%s' size, expected 1, 3 or 6", name().c_str(), sizes[i], names[i].c_str());
         }
     }
     
     // Create the required folder
     createFoldersCollective(comm, parentPath(path));
 
-    debug2("Plugin '%s' was set up to dump channels %s. Path is %s", name.c_str(), allNames.c_str(), path.c_str());
+    debug2("Plugin '%s' was set up to dump channels %s. Path is %s", name().c_str(), allNames.c_str(), path.c_str());
 }
 
 static void unpack_particles(const std::vector<Particle> &particles, std::vector<float> &pos, std::vector<float> &vel)
@@ -150,7 +150,7 @@ float ParticleDumperPlugin::_recvAndUnpack()
 
 void ParticleDumperPlugin::deserialize(MPI_Status& stat)
 {
-    debug2("Plugin '%s' will dump right now", name.c_str());
+    debug2("Plugin '%s' will dump right now", name().c_str());
 
     float t = _recvAndUnpack();
     

@@ -17,7 +17,7 @@ void XYZPlugin::setup(Simulation* sim, const MPI_Comm& comm, const MPI_Comm& int
 
     pv = sim->getPVbyNameOrDie(pvName);
 
-    info("Plugin %s initialized for the following particle vector: %s", name.c_str(), pvName.c_str());
+    info("Plugin %s initialized for the following particle vector: %s", name().c_str(), pvName.c_str());
 }
 
 void XYZPlugin::beforeForces(cudaStream_t stream)
@@ -31,7 +31,7 @@ void XYZPlugin::serializeAndSend(cudaStream_t stream)
 {
     if (currentTimeStep % dumpEvery != 0 || currentTimeStep == 0) return;
 
-    debug2("Plugin %s is sending now data", name.c_str());
+    debug2("Plugin %s is sending now data", name().c_str());
 
     for (auto& p : downloaded)
         p.r = sim->domain.local2global(p.r);

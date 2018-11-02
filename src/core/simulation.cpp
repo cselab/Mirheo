@@ -248,11 +248,11 @@ void Simulation::registerObjectBelongingChecker(std::shared_ptr<ObjectBelongingC
 
 void Simulation::registerPlugin(std::shared_ptr<SimulationPlugin> plugin)
 {
-    std::string name = plugin->name;
+    std::string name = plugin->name();
 
     bool found = false;
     for (auto& pl : plugins)
-        if (pl->name == name) found = true;
+        if (pl->name() == name) found = true;
 
     if (found)
         die("More than one plugin is called %s", name.c_str());
@@ -578,7 +578,7 @@ void Simulation::init()
     info("Preparing plugins");
     for (auto& pl : plugins)
     {
-        debug("Setup and handshake of plugin %s", pl->name.c_str());
+        debug("Setup and handshake of plugin %s", pl->name().c_str());
         pl->setup(this, cartComm, interComm);
         pl->handshake();
     }

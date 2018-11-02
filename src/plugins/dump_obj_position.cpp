@@ -18,7 +18,7 @@ void ObjPositionsPlugin::setup(Simulation* sim, const MPI_Comm& comm, const MPI_
     if (ov == nullptr)
         die("No such object vector registered: %s", ovName.c_str());
 
-    info("Plugin %s initialized for the following object vectors: %s", name.c_str(), ovName.c_str());
+    info("Plugin %s initialized for the following object vectors: %s", name().c_str(), ovName.c_str());
 }
 
 void ObjPositionsPlugin::handshake()
@@ -45,7 +45,7 @@ void ObjPositionsPlugin::serializeAndSend(cudaStream_t stream)
 {
     if (!needToSend) return;
 
-    debug2("Plugin %s is sending now data", name.c_str());
+    debug2("Plugin %s is sending now data", name().c_str());
 
     waitPrevSend();
     SimpleSerializer::serialize(sendBuffer, savedTime, ov->domain, ids, coms, motions);

@@ -4,7 +4,7 @@
 static const int MaxTag = 16767;
 
 Plugin::Plugin(std::string name) :
-    name(name)
+    UdxObject(name)
 {}
 
 void Plugin::_setup(const MPI_Comm& comm, const MPI_Comm& interComm)
@@ -21,7 +21,7 @@ void Plugin::talk() {};
 
 int Plugin::_tag()
 {
-    return (int)( nameHash(name) % MaxTag );
+    return (int)( nameHash(name()) % MaxTag );
 }
 
 
@@ -48,14 +48,14 @@ void SimulationPlugin::setTime(float t, int tstep)
 
 void SimulationPlugin::setup(Simulation* sim, const MPI_Comm& comm, const MPI_Comm& interComm)
 {
-    debug("Setting up simulation plugin '%s', MPI tag is %d", name.c_str(), _tag());
+    debug("Setting up simulation plugin '%s', MPI tag is %d", name().c_str(), _tag());
     this->sim = sim;
     _setup(comm, interComm);
 }
 
 void SimulationPlugin::finalize()
 {
-    debug3("Plugin %s is finishing all the communications", name.c_str());
+    debug3("Plugin %s is finishing all the communications", name().c_str());
     MPI_Check( MPI_Wait(&sizeReq, MPI_STATUS_IGNORE) );
     MPI_Check( MPI_Wait(&dataReq, MPI_STATUS_IGNORE) );
 }
@@ -81,7 +81,7 @@ void SimulationPlugin::send(const void* data, int sizeInBytes)
 
     waitPrevSend();
         
-    debug2("Plugin '%s' has is sending the data (%d bytes)", name.c_str(), sizeInBytes);
+    debug2("Plugin '%s' has is sending the data (%d bytes)", name().c_str(), sizeInBytes);
     MPI_Check( MPI_Issend(&localSendSize, 1, MPI_INT, rank, 2*_tag(), interComm, &sizeReq) );
     MPI_Check( MPI_Issend(data, sizeInBytes, MPI_BYTE, rank, 2*_tag()+1, interComm, &dataReq) );
 }
@@ -111,16 +111,16 @@ void PostprocessPlugin::recv()
 
     if (count != size)
         error("Plugin '%s' was going to receive %d bytes, but actually got %d. That may be fatal",
-              name.c_str(), size, count);
+              name().c_str(), size, count);
 
-    debug3("Plugin '%s' has received the data (%d bytes)", name.c_str(), count);
+    debug3("Plugin '%s' has received the data (%d bytes)", name().c_str(), count);
 }
 
 void PostprocessPlugin::deserialize(MPI_Status& stat) {};
 
 void PostprocessPlugin::setup(const MPI_Comm& comm, const MPI_Comm& interComm)
 {
-    debug("Setting up postproc plugin '%s', MPI tag is %d", name.c_str(), _tag());
+    debug("Setting up postproc plugin '%s', MPI tag is %d", name().c_str(), _tag());
     _setup(comm, interComm);
 }
 
