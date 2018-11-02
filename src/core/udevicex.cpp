@@ -193,7 +193,7 @@ void uDeviceX::setIntegrator(Integrator* integrator, ParticleVector* pv)
 void uDeviceX::setInteraction(Interaction* interaction, ParticleVector* pv1, ParticleVector* pv2)
 {
     if (isComputeTask())
-        sim->setInteraction(interaction->name, pv1->name, pv2->name);
+        sim->setInteraction(interaction->name(), pv1->name, pv2->name);
 }
 void uDeviceX::setBouncer(Bouncer* bouncer, ObjectVector* ov, ParticleVector* pv)
 {
@@ -273,7 +273,7 @@ std::shared_ptr<ParticleVector> uDeviceX::makeFrozenWallParticles(std::string pv
 
     wallsim.registerIntegrator(integrator);
     
-    wallsim.setInteraction(interaction->name, pv->name, pv->name);
+    wallsim.setInteraction(interaction->name(), pv->name, pv->name);
     wallsim.setIntegrator (integrator->name(),  pv->name);
     
     wallsim.init();
@@ -317,7 +317,7 @@ std::shared_ptr<ParticleVector> uDeviceX::makeFrozenRigidParticles(std::shared_p
         eqsim.registerInteraction(interaction);
         eqsim.registerIntegrator(integrator);
     
-        eqsim.setInteraction(interaction->name, pv->name, pv->name);
+        eqsim.setInteraction(interaction->name(), pv->name, pv->name);
         eqsim.setIntegrator (integrator->name(),  pv->name);
     
         eqsim.init();

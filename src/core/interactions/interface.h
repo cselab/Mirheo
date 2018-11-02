@@ -1,8 +1,9 @@
 #pragma once
 
-#include <string>
 #include <cuda_runtime.h>
 #include <mpi.h>
+
+#include "core/udevicex_object.h"
 
 class CellList;
 class ParticleVector;
@@ -15,14 +16,13 @@ class ParticleVector;
  * The cut-off raduis has to be removed later from the interface,
  * such that only certain interactions require cell-lists.
  */
-class Interaction
+class Interaction : public UdxObject
 {
 public:
     /// Cut-off raduis
     float rc;
-    std::string name;
 
-    Interaction(std::string name, float rc) : name(name), rc(rc) {}
+    Interaction(std::string name, float rc) : UdxObject(name), rc(rc) {}
 
     /**
      * Ask ParticleVectors which the class will be working with to have specific properties

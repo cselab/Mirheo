@@ -212,7 +212,7 @@ void Simulation::registerWall(std::shared_ptr<Wall> wall, int every)
 
 void Simulation::registerInteraction(std::shared_ptr<Interaction> interaction)
 {
-    std::string name = interaction->name;
+    std::string name = interaction->name();
     if (interactionMap.find(name) != interactionMap.end())
         die("More than one interaction is called %s", name.c_str());
 
