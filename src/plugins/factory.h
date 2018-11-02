@@ -120,7 +120,7 @@ namespace PluginFactory
         createWallRepulsionPlugin(bool computeTask, std::string name, ParticleVector* pv, Wall* wall,
                                   float C, float h, float maxForce)
     {
-        auto simPl = computeTask ? new WallRepulsionPlugin(name, pv->name(), wall->name, C, h, maxForce) : nullptr;
+        auto simPl = computeTask ? new WallRepulsionPlugin(name, pv->name(), wall->name(), C, h, maxForce) : nullptr;
         return { simPl, nullptr };
     }
 

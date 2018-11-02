@@ -1,23 +1,21 @@
 #pragma once
 
 #include <mpi.h>
-#include <string>
 #include <vector>
 #include <cuda_runtime.h>
-
 #include <core/domain.h>
+
+#include "core/udevicex_object.h"
 
 class LocalParticleVector;
 class ParticleVector;
 class CellList;
 class GPUcontainer;
 
-class Wall
+class Wall : public UdxObject
 {
 public:
-    std::string name;
-
-    Wall(std::string name) : name(name) {};
+    Wall(std::string name) : UdxObject(name) {};
 
     virtual void setup(MPI_Comm& comm, float t, DomainInfo domain) = 0;
     virtual void attachFrozen(ParticleVector* pv) = 0;

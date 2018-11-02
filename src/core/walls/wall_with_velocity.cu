@@ -110,7 +110,7 @@ __global__ void imposeVelField(PVview view, const VelocityField velField)
 template<class InsideWallChecker, class VelocityField>
 void WallWithVelocity<InsideWallChecker, VelocityField>::setup(MPI_Comm& comm, float t, DomainInfo domain)
 {
-    info("Setting up wall %s", this->name.c_str());
+    info("Setting up wall %s", this->name().c_str());
     this->domain = domain;
 
     CUDA_Check( cudaDeviceSynchronize() );

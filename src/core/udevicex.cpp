@@ -203,7 +203,7 @@ void uDeviceX::setBouncer(Bouncer* bouncer, ObjectVector* ov, ParticleVector* pv
 void uDeviceX::setWallBounce(Wall* wall, ParticleVector* pv)
 {
     if (isComputeTask())
-        sim->setWallBounce(wall->name, pv->name());
+        sim->setWallBounce(wall->name(), pv->name());
 }
 
 void uDeviceX::dumpWalls2XDMF(std::vector<std::shared_ptr<Wall>> walls, PyTypes::float3 h, std::string filename)
@@ -222,7 +222,7 @@ void uDeviceX::dumpWalls2XDMF(std::vector<std::shared_ptr<Wall>> walls, PyTypes:
             sdfWalls.push_back(sdfWall);
 
         // Check if the wall is set up
-        sim->getWallByNameOrDie(wall->name);
+        sim->getWallByNameOrDie(wall->name());
     }
     
     auto path = parentPath(filename);
@@ -257,9 +257,9 @@ std::shared_ptr<ParticleVector> uDeviceX::makeFrozenWallParticles(std::string pv
             sdfWalls.push_back(sdfWall);
 
         // Check if the wall is set up
-        sim->getWallByNameOrDie(wall->name);
+        sim->getWallByNameOrDie(wall->name());
 
-        info("Working with wall '%s'", wall->name.c_str());   
+        info("Working with wall '%s'", wall->name().c_str());   
     }
     
     Simulation wallsim(sim->nranks3D, sim->domain.globalSize, sim->cartComm, MPI_COMM_NULL, false);

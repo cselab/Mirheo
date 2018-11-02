@@ -194,7 +194,7 @@ void Simulation::registerParticleVector(std::shared_ptr<ParticleVector> pv, std:
 
 void Simulation::registerWall(std::shared_ptr<Wall> wall, int every)
 {
-    std::string name = wall->name;
+    std::string name = wall->name();
 
     if (wallMap.find(name) != wallMap.end())
         die("More than one wall is called %s", name.c_str());
