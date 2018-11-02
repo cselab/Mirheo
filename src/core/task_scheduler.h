@@ -19,6 +19,8 @@ class TaskScheduler
 {
 public:
     using TaskID = int;
+    using Function = std::function<void(cudaStream_t)>;
+    
     static const TaskID invalidTaskId = (TaskID) -1;
 
     TaskScheduler();
@@ -27,7 +29,7 @@ public:
     TaskID getTaskId      (const std::string& label);
     TaskID getTaskIdOrDie (const std::string& label);
 
-    void addTask(TaskID id, std::function<void(cudaStream_t)> task, int execEvery = 1);
+    void addTask(TaskID id, Function task, int execEvery = 1);
     void addDependency(TaskID id, std::vector<TaskID> before, std::vector<TaskID> after);
     void setHighPriority(TaskID id);
 
@@ -45,7 +47,7 @@ private:
         TaskID id;
         int priority;
 
-        std::vector< std::pair<std::function<void(cudaStream_t)>, int> > funcs;
+        std::vector< std::pair<Function, int> > funcs;
         std::vector<TaskID> before, after;
     };
 
