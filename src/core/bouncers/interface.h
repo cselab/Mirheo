@@ -1,8 +1,9 @@
 #pragma once
 
-#include <string>
 #include <cuda_runtime.h>
 #include <mpi.h>
+
+#include "core/udevicex_object.h"
 
 class CellList;
 class ParticleVector;
@@ -12,7 +13,7 @@ class ObjectVector;
 /**
  * Interface for a class implementing bouncing from objects
  */
-class Bouncer
+class Bouncer : public UDXObject
 {
 protected:
     ObjectVector* ov;  /// Particles will be bounced against that ObjectVector
@@ -37,9 +38,7 @@ protected:
     virtual void exec (ParticleVector* pv, CellList* cl, float dt, bool local, cudaStream_t stream) = 0;
 
 public:
-    std::string name;
-
-    Bouncer(std::string name) : name(name) {};
+    Bouncer(std::string name) : UDXObject(name) {};
 
     /**
      * Second step of initialization, called from the \c Simulation

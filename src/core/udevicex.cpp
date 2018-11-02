@@ -198,7 +198,7 @@ void uDeviceX::setInteraction(Interaction* interaction, ParticleVector* pv1, Par
 void uDeviceX::setBouncer(Bouncer* bouncer, ObjectVector* ov, ParticleVector* pv)
 {
     if (isComputeTask())
-        sim->setBouncer(bouncer->name, ov->name, pv->name);
+        sim->setBouncer(bouncer->name(), ov->name, pv->name);
 }
 void uDeviceX::setWallBounce(Wall* wall, ParticleVector* pv)
 {

@@ -230,7 +230,7 @@ void Simulation::registerIntegrator(std::shared_ptr<Integrator> integrator)
 
 void Simulation::registerBouncer(std::shared_ptr<Bouncer> bouncer)
 {
-    std::string name = bouncer->name;
+    std::string name = bouncer->name();
     if (bouncerMap.find(name) != bouncerMap.end())
         die("More than one bouncer is called %s", name.c_str());
 
