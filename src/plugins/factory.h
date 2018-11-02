@@ -36,7 +36,7 @@ namespace PluginFactory
             PyTypes::float3 low, PyTypes::float3 high, PyTypes::float3 velocity)
     {
         auto simPl = computeTask ? new ImposeVelocityPlugin(
-                                        name, pv->name, make_float3(low), make_float3(high), make_float3(velocity), every) :
+                                    name, pv->name(), make_float3(low), make_float3(high), make_float3(velocity), every) :
                                     nullptr;
                                     
         return { simPl, nullptr };
@@ -45,21 +45,21 @@ namespace PluginFactory
     static std::pair< TemperaturizePlugin*, PostprocessPlugin* >
         createTemperaturizePlugin(bool computeTask, std::string name, ParticleVector* pv, float kbt, bool keepVelocity)
     {
-        auto simPl = computeTask ? new TemperaturizePlugin(name, pv->name, kbt, keepVelocity) : nullptr;
+        auto simPl = computeTask ? new TemperaturizePlugin(name, pv->name(), kbt, keepVelocity) : nullptr;
         return { simPl, nullptr };
     }
 
     static std::pair< AddForcePlugin*, PostprocessPlugin* >
         createAddForcePlugin(bool computeTask, std::string name, ParticleVector* pv, PyTypes::float3 force)
     {
-        auto simPl = computeTask ? new AddForcePlugin(name, pv->name, make_float3(force)) : nullptr;
+        auto simPl = computeTask ? new AddForcePlugin(name, pv->name(), make_float3(force)) : nullptr;
         return { simPl, nullptr };
     }
 
     static std::pair< AddTorquePlugin*, PostprocessPlugin* >
         createAddTorquePlugin(bool computeTask, std::string name, ParticleVector* pv, PyTypes::float3 torque)
     {
-        auto simPl = computeTask ? new AddTorquePlugin(name, pv->name, make_float3(torque)) : nullptr;
+        auto simPl = computeTask ? new AddTorquePlugin(name, pv->name(), make_float3(torque)) : nullptr;
         return { simPl, nullptr };
     }
 
@@ -68,7 +68,7 @@ namespace PluginFactory
                                    PyTypes::float3 low, PyTypes::float3 high, PyTypes::float3 velocity, float kbt)
     {
         auto simPl = computeTask ? new ImposeProfilePlugin(
-            name, pv->name, make_float3(low), make_float3(high), make_float3(velocity), kbt) : nullptr;
+                                    name, pv->name(), make_float3(low), make_float3(high), make_float3(velocity), kbt) : nullptr;
             
         return { simPl, nullptr };
     }
@@ -83,7 +83,7 @@ namespace PluginFactory
 
         if (computeTask)
             for (auto &pv : pvs)
-                pvNames.push_back(pv->name);
+                pvNames.push_back(pv->name());
         
         auto simPl = computeTask ?
             new SimulationVelocityControl(name, pvNames, make_float3(low), make_float3(high),
@@ -102,7 +102,7 @@ namespace PluginFactory
     createExchangePVSFluxPlanePlugin(bool computeTask, std::string name, ParticleVector *pv1, ParticleVector *pv2, PyTypes::float4 plane)
     {
         auto simPl = computeTask ?
-            new ExchangePVSFluxPlanePlugin(name, pv1->name, pv2->name, make_float4(plane)) : nullptr;
+            new ExchangePVSFluxPlanePlugin(name, pv1->name(), pv2->name(), make_float4(plane)) : nullptr;
         
         return { simPl, nullptr };    
     }
@@ -111,7 +111,7 @@ namespace PluginFactory
     createMembraneExtraForcePlugin(bool computeTask, std::string name, ParticleVector *pv, PyTypes::VectorOfFloat3 forces)
     {
         auto simPl = computeTask ?
-            new MembraneExtraForcePlugin(name, pv->name, forces) : nullptr;
+            new MembraneExtraForcePlugin(name, pv->name(), forces) : nullptr;
 
         return { simPl, nullptr };
     }
@@ -120,7 +120,7 @@ namespace PluginFactory
         createWallRepulsionPlugin(bool computeTask, std::string name, ParticleVector* pv, Wall* wall,
                                   float C, float h, float maxForce)
     {
-        auto simPl = computeTask ? new WallRepulsionPlugin(name, pv->name, wall->name, C, h, maxForce) : nullptr;
+        auto simPl = computeTask ? new WallRepulsionPlugin(name, pv->name(), wall->name, C, h, maxForce) : nullptr;
         return { simPl, nullptr };
     }
 
@@ -154,7 +154,7 @@ namespace PluginFactory
     static void extractPVsNames(const std::vector<ParticleVector*>& pvs, std::vector<std::string>& pvNames)
     {
         for (auto &pv : pvs)
-            pvNames.push_back(pv->name);
+            pvNames.push_back(pv->name());
     }
     
     static std::pair< Average3D*, UniformCartesianDumper* >
@@ -196,7 +196,7 @@ namespace PluginFactory
         auto simPl  = computeTask ?
                 new AverageRelative3D(name, pvNames,
                                       names, types, sampleEvery, dumpEvery,
-                                      make_float3(binSize), relativeToOV->name, relativeToId) :
+                                      make_float3(binSize), relativeToOV->name(), relativeToId) :
                 nullptr;
 
         auto postPl = computeTask ? nullptr : new UniformCartesianDumper(name, path);
@@ -227,7 +227,7 @@ namespace PluginFactory
 
         extractChannelInfos(channels, names, types);
         
-        auto simPl  = computeTask ? new ParticleSenderPlugin(name, pv->name, dumpEvery, names, types) : nullptr;
+        auto simPl  = computeTask ? new ParticleSenderPlugin(name, pv->name(), dumpEvery, names, types) : nullptr;
         auto postPl = computeTask ? nullptr : new ParticleDumperPlugin(name, path);
 
         return { simPl, postPl };
@@ -242,7 +242,7 @@ namespace PluginFactory
 
         extractChannelInfos(channels, names, types);
         
-        auto simPl  = computeTask ? new ParticleWithMeshSenderPlugin(name, ov->name, dumpEvery, names, types) : nullptr;
+        auto simPl  = computeTask ? new ParticleWithMeshSenderPlugin(name, ov->name(), dumpEvery, names, types) : nullptr;
         auto postPl = computeTask ? nullptr : new ParticleWithMeshDumperPlugin(name, path);
 
         return { simPl, postPl };
@@ -251,7 +251,7 @@ namespace PluginFactory
     static std::pair< XYZPlugin*, XYZDumper* >
         createDumpXYZPlugin(bool computeTask, std::string name, ParticleVector* pv, int dumpEvery, std::string path)
     {
-        auto simPl  = computeTask ? new XYZPlugin(name, pv->name, dumpEvery) : nullptr;
+        auto simPl  = computeTask ? new XYZPlugin(name, pv->name(), dumpEvery) : nullptr;
         auto postPl = computeTask ? nullptr : new XYZDumper(name, path);
 
         return { simPl, postPl };
@@ -260,7 +260,7 @@ namespace PluginFactory
     static std::pair< MeshPlugin*, MeshDumper* >
         createDumpMeshPlugin(bool computeTask, std::string name, ObjectVector* ov, int dumpEvery, std::string path)
     {
-        auto simPl  = computeTask ? new MeshPlugin(name, ov->name, dumpEvery) : nullptr;
+        auto simPl  = computeTask ? new MeshPlugin(name, ov->name(), dumpEvery) : nullptr;
         auto postPl = computeTask ? nullptr : new MeshDumper(name, path);
 
         return { simPl, postPl };
@@ -269,7 +269,7 @@ namespace PluginFactory
     static std::pair< ObjPositionsPlugin*, ObjPositionsDumper* >
         createDumpObjPosition(bool computeTask, std::string name, ObjectVector* ov, int dumpEvery, std::string path)
     {
-        auto simPl  = computeTask ? new ObjPositionsPlugin(name, ov->name, dumpEvery) : nullptr;
+        auto simPl  = computeTask ? new ObjPositionsPlugin(name, ov->name(), dumpEvery) : nullptr;
         auto postPl = computeTask ? nullptr : new ObjPositionsDumper(name, path);
 
         return { simPl, postPl };
@@ -280,7 +280,7 @@ namespace PluginFactory
                            int dumpEvery, std::string path,
                            PyTypes::float3 velocity, PyTypes::float3 omega)
     {
-        auto simPl  = computeTask ? new PinObjectPlugin(name, ov->name,
+        auto simPl  = computeTask ? new PinObjectPlugin(name, ov->name(),
                                                         make_float3(velocity), make_float3(omega),
                                                         dumpEvery) : 
                                     nullptr;

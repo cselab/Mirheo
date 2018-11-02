@@ -77,9 +77,9 @@ void ImposeProfilePlugin::setup(Simulation* sim, const MPI_Comm& comm, const MPI
         die("Cell-list is required for PV '%s' by plugin '%s'", pvName.c_str(), name.c_str());
 
     debug("Setting up pluging '%s' to impose uniform profile with velocity [%f %f %f]"
-            " and temperature %f in a box [%.2f %.2f %.2f] - [%.2f %.2f %.2f] for PV '%s'",
-            name.c_str(), targetVel.x, targetVel.y, targetVel.z, kbT,
-            low.x, low.y, low.z, high.x, high.y, high.z, pv->name.c_str());
+          " and temperature %f in a box [%.2f %.2f %.2f] - [%.2f %.2f %.2f] for PV '%s'",
+          name.c_str(), targetVel.x, targetVel.y, targetVel.z, kbT,
+          low.x, low.y, low.z, high.x, high.y, high.z, pv->name().c_str());
 
     low  = pv->domain.global2local(low);
     high = pv->domain.global2local(high);
@@ -107,7 +107,7 @@ void ImposeProfilePlugin::afterIntegration(cudaStream_t stream)
     const int nthreads = 128;
 
     debug2("Imposing uniform profile for PV '%s' as per plugin '%s'",
-            pv->name.c_str(), name.c_str());
+           pv->name().c_str(), name.c_str());
 
     SAFE_KERNEL_LAUNCH(
             applyProfile,

@@ -69,7 +69,7 @@ template<class PairwiseInteraction>
 void InteractionPair_withStress<PairwiseInteraction>::setPrerequisites(ParticleVector* pv1, ParticleVector* pv2)
 {
     info("Interaction '%s' requires channel 'stress' from PVs '%s' and '%s'",
-         name().c_str(), pv1->name.c_str(), pv2->name.c_str());
+         name().c_str(), pv1->name().c_str(), pv2->name().c_str());
 
     pv1->requireDataPerParticle<Stress>("stress", false);
     pv2->requireDataPerParticle<Stress>("stress", false);

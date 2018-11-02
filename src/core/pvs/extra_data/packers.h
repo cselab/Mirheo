@@ -175,12 +175,12 @@ struct ParticlePacker : public DevicePacker
 
                 if (sz % sizeof(int) != 0)
                     die("Size of extra data per particle should be divisible by 4 bytes (PV '%s', data entry '%s')",
-                            pv->name.c_str(), name_desc.first.c_str());
+                        pv->name().c_str(), name_desc.first.c_str());
 
                 if ( sz % sizeof(float4) && (desc->shiftTypeSize == 4 || desc->shiftTypeSize == 8) )
                     die("Size of extra data per particle should be divisible by 16 bytes"
-                            "when shifting is required (PV '%s', data entry '%s')",
-                            pv->name.c_str(), name_desc.first.c_str());
+                        "when shifting is required (PV '%s', data entry '%s')",
+                        pv->name().c_str(), name_desc.first.c_str());
 
                 registerChannel(
                         sz,
@@ -251,12 +251,12 @@ struct ObjectExtraPacker : public DevicePacker
 
                 if (sz % sizeof(int) != 0)
                     die("Size of extra data per particle should be divisible by 4 bytes (PV '%s', data entry '%s')",
-                            ov->name.c_str(), name_desc.first.c_str());
+                        ov->name().c_str(), name_desc.first.c_str());
 
                 if ( sz % sizeof(float4) && (desc->shiftTypeSize == 4 || desc->shiftTypeSize == 8) )
                     die("Size of extra data per particle should be divisible by 16 bytes"
-                            "when shifting is required (PV '%s', data entry '%s')",
-                            ov->name.c_str(), name_desc.first.c_str());
+                        "when shifting is required (PV '%s', data entry '%s')",
+                        ov->name().c_str(), name_desc.first.c_str());
 
                 registerChannel(
                         sz,

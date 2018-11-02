@@ -82,7 +82,7 @@ void AverageRelative3D::setup(Simulation* sim, const MPI_Comm& comm, const MPI_C
     relativeOV = sim->getOVbyNameOrDie(relativeOVname);
 
     if ( !relativeOV->local()->extraPerObject.checkChannelExists("motions") )
-        die("Only rigid objects are supported for relative flow, but got OV '%s'", relativeOV->name.c_str());
+        die("Only rigid objects are supported for relative flow, but got OV '%s'", relativeOV->name().c_str());
 
     int locsize = relativeOV->local()->nObjects;
     int totsize;
@@ -91,7 +91,7 @@ void AverageRelative3D::setup(Simulation* sim, const MPI_Comm& comm, const MPI_C
 
     if (rank == 0 && relativeID >= totsize)
         die("Too few objects in OV '%s' (only %d); but requested id %d",
-                relativeOV->name.c_str(), totsize, relativeID);
+            relativeOV->name().c_str(), totsize, relativeID);
 }
 
 void AverageRelative3D::sampleOnePv(float3 relativeParam, ParticleVector *pv, cudaStream_t stream)

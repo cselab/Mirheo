@@ -47,9 +47,9 @@ void MeshPlugin::serializeAndSend(cudaStream_t stream)
     auto& mesh = ov->mesh;
 
     waitPrevSend();
-    SimpleSerializer::serialize(data, ov->name,
-            mesh->getNvertices(), mesh->getNtriangles(), mesh->triangles,
-            vertices);
+    SimpleSerializer::serialize(data, ov->name(),
+                                mesh->getNvertices(), mesh->getNtriangles(), mesh->triangles,
+                                vertices);
 
     send(data);
 }

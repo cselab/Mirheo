@@ -115,7 +115,7 @@ CellList* Simulation::gelCellList(ParticleVector* pv) const
 {
     auto clvecIt = cellListMap.find(pv);
     if (clvecIt == cellListMap.end())
-        die("Particle Vector '%s' is not registered or broken", pv->name.c_str());
+        die("Particle Vector '%s' is not registered or broken", pv->name().c_str());
 
     if (clvecIt->second.size() == 0)
         return nullptr;
@@ -155,7 +155,7 @@ void Simulation::stopProfiler() const
 
 void Simulation::registerParticleVector(std::shared_ptr<ParticleVector> pv, std::shared_ptr<InitialConditions> ic, int checkpointEvery)
 {
-    std::string name = pv->name;
+    std::string name = pv->name();
 
     if (name == "none" || name == "all" || name == "")
         die("Invalid name for a particle vector (reserved word or empty): '%s'", name.c_str());

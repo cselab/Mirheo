@@ -318,7 +318,7 @@ template<class InsideWallChecker>
 void SimpleStationaryWall<InsideWallChecker>::attachFrozen(ParticleVector* pv)
 {
     frozen = pv;
-    info("Wall '%s' will treat particle vector '%s' as frozen", name.c_str(), pv->name.c_str());
+    info("Wall '%s' will treat particle vector '%s' as frozen", name.c_str(), pv->name().c_str());
 }
 
 template<class InsideWallChecker>
@@ -327,13 +327,13 @@ void SimpleStationaryWall<InsideWallChecker>::attach(ParticleVector* pv, CellLis
     if (pv == frozen)
     {
         warn("Particle Vector '%s' declared as frozen for the wall '%s'. Bounce-back won't work",
-            pv->name.c_str(), name.c_str());
+             pv->name().c_str(), name.c_str());
         return;
     }
     
     if (dynamic_cast<PrimaryCellList*>(cl) == nullptr)
         die("PVs should only be attached to walls with the primary cell-lists! "
-                "Invalid combination: wall %s, pv %s", name.c_str(), pv->name.c_str());
+            "Invalid combination: wall %s, pv %s", name.c_str(), pv->name().c_str());
 
     CUDA_Check( cudaDeviceSynchronize() );
     particleVectors.push_back(pv);
@@ -371,7 +371,7 @@ void SimpleStationaryWall<InsideWallChecker>::removeInner(ParticleVector* pv)
     if (pv == frozen)
     {
         warn("Particle Vector '%s' declared as frozen for the wall '%s'. Will not remove any particles from there",
-            pv->name.c_str(), name.c_str());
+             pv->name().c_str(), name.c_str());
         return;
     }
     
@@ -430,7 +430,7 @@ void SimpleStationaryWall<InsideWallChecker>::removeInner(ParticleVector* pv)
     pv->cellListStamp++;
 
     info("Wall '%s' has removed inner entities of pv '%s', keeping %d out of %d particles",
-            name.c_str(), pv->name.c_str(), pv->local()->size(), oldSize);
+         name.c_str(), pv->name().c_str(), pv->local()->size(), oldSize);
 
     CUDA_Check( cudaDeviceSynchronize() );
 }
@@ -446,7 +446,7 @@ void SimpleStationaryWall<InsideWallChecker>::bounce(float t, float dt, cudaStre
         PVviewWithOldParticles view(pv, pv->local());
 
         debug2("Bouncing %d %s particles, %d boundary cells",
-                pv->local()->size(), pv->name.c_str(), bc->size());
+               pv->local()->size(), pv->name().c_str(), bc->size());
 
         const int nthreads = 64;
         SAFE_KERNEL_LAUNCH(
@@ -476,7 +476,7 @@ void SimpleStationaryWall<InsideWallChecker>::check(cudaStream_t stream)
 
             nInside.downloadFromDevice(stream);
 
-            say("%d particles of %s are inside the wall %s", nInside[0], pv->name.c_str(), name.c_str());
+            say("%d particles of %s are inside the wall %s", nInside[0], pv->name().c_str(), name.c_str());
         }
     }
 }
@@ -490,7 +490,7 @@ void SimpleStationaryWall<InsideWallChecker>::sdfPerParticle(LocalParticleVector
 
     if (sizeof(float) % sdfs->datatype_size() != 0)
         die("Incompatible datatype size of container for SDF values: %d (working with PV '%s')",
-            sdfs->datatype_size(), pv->name.c_str());
+            sdfs->datatype_size(), pv->name().c_str());
     sdfs->resize_anew( np*sizeof(float) / sdfs->datatype_size());
 
     
@@ -498,7 +498,7 @@ void SimpleStationaryWall<InsideWallChecker>::sdfPerParticle(LocalParticleVector
     {
         if (sizeof(float3) % gradients->datatype_size() != 0)
             die("Incompatible datatype size of container for SDF gradients: %d (working with PV '%s')",
-                gradients->datatype_size(), pv->name.c_str());
+                gradients->datatype_size(), pv->name().c_str());
         gradients->resize_anew( np*sizeof(float3) / gradients->datatype_size());
     }
 

@@ -150,7 +150,7 @@ void WallWithVelocity<InsideWallChecker, VelocityField>::bounce(float t, float d
         PVviewWithOldParticles view(pv, pv->local());
 
         debug2("Bouncing %d %s particles with wall velocity, %d boundary cells",
-                pv->local()->size(), pv->name.c_str(), bc->size());
+               pv->local()->size(), pv->name().c_str(), bc->size());
 
         const int nthreads = 64;
         SAFE_KERNEL_LAUNCH(

@@ -102,7 +102,7 @@ void ObjectForcesReverseExchanger::attach(ObjectVector* ov)
     if (dynamic_cast<RigidObjectVector*>(ov) != 0)
         psize += 2 * sizeof(RigidReal) / sizeof(float);
 
-    ExchangeHelper* helper = new ExchangeHelper(ov->name, psize*sizeof(float4));
+    ExchangeHelper* helper = new ExchangeHelper(ov->name(), psize*sizeof(float4));
     helpers.push_back(helper);
 }
 
@@ -121,7 +121,7 @@ void ObjectForcesReverseExchanger::prepareData(int id, cudaStream_t stream)
     auto ov = objects[id];
     auto helper = helpers[id];
 
-    debug2("Preparing '%s' forces to sending back", ov->name.c_str());
+    debug2("Preparing '%s' forces to sending back", ov->name().c_str());
 
     helper->makeSendOffsets();
     helper->resizeSendBuf();
@@ -157,7 +157,7 @@ void ObjectForcesReverseExchanger::combineAndUploadData(int id, cudaStream_t str
     int totalRecvd = helper->recvOffsets[helper->nBuffers];
     auto& origins = entangledHaloExchanger->getOrigins(id);
 
-    debug("Updating forces for %d %s objects", totalRecvd, ov->name.c_str());
+    debug("Updating forces for %d %s objects", totalRecvd, ov->name().c_str());
 
     int psize = ov->objSize;
     auto rov = dynamic_cast<RigidObjectVector*>(ov);
