@@ -59,7 +59,21 @@ The above induces a lot more communication than the simple solvent only case.
 Poiseuille Flow
 ===============
 
-TODO
+Poiseuille flow between two plates (walls), with solvent only.
+Timings are based on the average time-step wall time, measured from the :any:`SimulationStats` plugin.
+
+.. figure:: ../images/strong_walls.png
+    :figclass: align-center
+
+    strong scaling for multiple domain sizes
+
+
+.. figure:: ../images/weak_walls.png
+    :figclass: align-center
+
+    weak scaling efficiency for multiple subdomain sizes
+
+
 
 Rigid Objects suspension
 ========================
