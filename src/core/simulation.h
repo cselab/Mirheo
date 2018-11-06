@@ -134,12 +134,50 @@ private:
 
     std::map<ParticleVector*, std::vector< std::unique_ptr<CellList> >> cellListMap;
 
-    std::vector<std::tuple<float, ParticleVector*, ParticleVector*, Interaction*>> interactionPrototypes;
-    std::vector<std::tuple<Wall*, ParticleVector*>> wallPrototypes;
-    std::vector<std::tuple<Wall*, int>> checkWallPrototypes;
-    std::vector<std::tuple<Bouncer*, ParticleVector*>> bouncerPrototypes;
-    std::vector<std::tuple<ObjectBelongingChecker*, ParticleVector*, ParticleVector*, int>> belongingCorrectionPrototypes;
-    std::vector<std::tuple<ObjectBelongingChecker*, ParticleVector*, ParticleVector*, ParticleVector*>> splitterPrototypes;
+    struct InteractionPrototype
+    {
+        float rc;
+        ParticleVector *pv1, *pv2;
+        Interaction *interaction;
+    };
+
+    struct WallPrototype
+    {
+        Wall *wall;
+        ParticleVector *pv;
+    };
+
+    struct CheckWallPrototype
+    {
+        Wall *wall;
+        int every;
+    };
+
+    struct BouncerPrototype
+    {
+        Bouncer *bouncer;
+        ParticleVector *pv;
+    };
+
+    struct BelongingCorrectionPrototype
+    {
+        ObjectBelongingChecker *checker;
+        ParticleVector *pvIn, *pvOut;
+        int every;
+    };
+
+    struct SplitterPrototype
+    {
+        ObjectBelongingChecker *checker;
+        ParticleVector *pvSrc, *pvIn, *pvOut;
+    };
+    
+    std::vector<InteractionPrototype>         interactionPrototypes;
+    std::vector<WallPrototype>                wallPrototypes;
+    std::vector<CheckWallPrototype>           checkWallPrototypes;
+    std::vector<BouncerPrototype>             bouncerPrototypes;
+    std::vector<BelongingCorrectionPrototype> belongingCorrectionPrototypes;
+    std::vector<SplitterPrototype>            splitterPrototypes;
 
 
     std::vector<std::function<void(float, cudaStream_t)>> regularInteractions, haloInteractions;
