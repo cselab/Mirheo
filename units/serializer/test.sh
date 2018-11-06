@@ -1,5 +1,5 @@
 #! /bin/sh
 
-# cTEST: serializer
+# TEST: serializer
 set -eu
-udx.run ./serializer/build/serializer > status.out.txt
+udx.run ./serializer/build/serializer > status.out.txt 2>/dev/null
