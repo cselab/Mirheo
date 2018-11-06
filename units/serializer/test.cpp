@@ -47,7 +47,7 @@ void test(Vec vals, Cmp cmp)
 int main()
 {
     MPI_Init(nullptr, nullptr);
-    logger.init(MPI_COMM_WORLD, stdout);
+    logger.init(MPI_COMM_WORLD, "serializer.log", 9);
     
     test< std::vector<std::string> >( std::vector<std::string>{"density", "velocity"},
                                    [] (std::string a, std::string b) { return a == b; } );
