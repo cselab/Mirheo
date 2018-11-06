@@ -1,5 +1,5 @@
 NOT_COMPILING = bounce halo manyranks wall
-TARGETS = celllists interaction pid 
+TARGETS = celllists interaction pid scheduler serializer
 all: $(TARGETS)
 
 COMPILE=@(cd $@; mkdir -p build; cd build; cmake ..; make -j)

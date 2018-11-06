@@ -1,7 +1,7 @@
 #include <core/logger.h>
 #include <core/task_scheduler.h>
 
-#include "timer.h"
+#include "../timer.h"
 
 #define private public
 
@@ -30,21 +30,31 @@ int main(int argc, char ** argv)
 	{
 		TaskScheduler scheduler;
 
-		scheduler.addTask("C", [](cudaStream_t s){ printf("c\n"); });
-		scheduler.addTask("G", [](cudaStream_t s){ printf("g\n"); });
-		scheduler.addTask("D", [](cudaStream_t s){ printf("d2\n"); });
-		scheduler.addTask("A", [](cudaStream_t s){ printf("a1\n"); });
-		scheduler.addTask("E", [](cudaStream_t s){ printf("e\n"); });
-		scheduler.addTask("A", [](cudaStream_t s){ printf("a2\n"); });
-		scheduler.addTask("B", [](cudaStream_t s){ printf("b\n"); });
-		scheduler.addTask("D", [](cudaStream_t s){ printf("d1\n"); });
-		scheduler.addTask("F", [](cudaStream_t s){ printf("f\n"); });
+                auto A1 = scheduler.createTask("A1");
+                auto A2 = scheduler.createTask("A2");
+                auto B  = scheduler.createTask("B");
+                auto C  = scheduler.createTask("C");
+                auto D1 = scheduler.createTask("D1");
+                auto D2 = scheduler.createTask("D2");
+                auto E  = scheduler.createTask("E");
+                auto F  = scheduler.createTask("F");
+                auto G  = scheduler.createTask("G");
 
-		scheduler.addDependency("B", {}, {"A"});
-		scheduler.addDependency("D", {}, {"B", "C"});
-		scheduler.addDependency("F", {}, {"C"});
-		scheduler.addDependency("E", {}, {"D"});
-		scheduler.addDependency("E", {}, {"B"});
+                scheduler.addTask(A1, [](cudaStream_t s){ printf("a1\n"); });
+                scheduler.addTask(A2, [](cudaStream_t s){ printf("a2\n"); });
+                scheduler.addTask(B , [](cudaStream_t s){ printf("b \n"); });
+                scheduler.addTask(C , [](cudaStream_t s){ printf("c \n"); });
+                scheduler.addTask(D1, [](cudaStream_t s){ printf("d1\n"); });
+                scheduler.addTask(D2, [](cudaStream_t s){ printf("d2\n"); });
+                scheduler.addTask(E , [](cudaStream_t s){ printf("e \n"); });
+                scheduler.addTask(F , [](cudaStream_t s){ printf("f \n"); });
+                scheduler.addTask(G , [](cudaStream_t s){ printf("g \n"); });
+                
+		scheduler.addDependency(B, {}, {A1, A2});
+		scheduler.addDependency(D1, {}, {B, C});
+                scheduler.addDependency(D2, {}, {B, C});
+		scheduler.addDependency(F, {}, {C});
+		scheduler.addDependency(E, {}, {D1, D2, B});
 
 		scheduler.compile();
 		scheduler.run();
@@ -56,21 +66,32 @@ int main(int argc, char ** argv)
 
 	float a, b, c, d, e, f, g;
 	a=b=c=d=e=f=g = 0;
-	scheduler.addTask("C", [&](cudaStream_t s){ c++; });
-	scheduler.addTask("G", [&](cudaStream_t s){ g--; });
-	scheduler.addTask("D", [&](cudaStream_t s){ d+=2; });
-	scheduler.addTask("A", [&](cudaStream_t s){ a-=3; });
-	scheduler.addTask("E", [&](cudaStream_t s){ e*=1.001; });
-	scheduler.addTask("A", [&](cudaStream_t s){ a*=0.9999; });
-	scheduler.addTask("B", [&](cudaStream_t s){ b+=5; });
-	scheduler.addTask("D", [&](cudaStream_t s){ d-=42; });
-	scheduler.addTask("F", [&](cudaStream_t s){ f*=2; });
+        
+        auto A1 = scheduler.createTask("A1");
+        auto A2 = scheduler.createTask("A2");
+        auto B  = scheduler.createTask("B");
+        auto C  = scheduler.createTask("C");
+        auto D1 = scheduler.createTask("D1");
+        auto D2 = scheduler.createTask("D2");
+        auto E  = scheduler.createTask("E");
+        auto F  = scheduler.createTask("F");
+        auto G  = scheduler.createTask("G");
+        
+	scheduler.addTask(C,  [&](cudaStream_t s){ c++; });
+	scheduler.addTask(G,  [&](cudaStream_t s){ g--; });
+	scheduler.addTask(D1, [&](cudaStream_t s){ d+=2; });
+	scheduler.addTask(A1, [&](cudaStream_t s){ a-=3; });
+	scheduler.addTask(E,  [&](cudaStream_t s){ e*=1.001; });
+	scheduler.addTask(A2, [&](cudaStream_t s){ a*=0.9999; });
+	scheduler.addTask(B,  [&](cudaStream_t s){ b+=5; });
+	scheduler.addTask(D2, [&](cudaStream_t s){ d-=42; });
+	scheduler.addTask(F,  [&](cudaStream_t s){ f*=2; });
 
-	scheduler.addDependency("B", {}, {"A"});
-	scheduler.addDependency("D", {}, {"B", "C"});
-	scheduler.addDependency("F", {}, {"C"});
-	scheduler.addDependency("E", {}, {"D"});
-	scheduler.addDependency("E", {}, {"B"});
+        scheduler.addDependency(B, {}, {A1, A2});
+        scheduler.addDependency(D1, {}, {B, C});
+        scheduler.addDependency(D2, {}, {B, C});
+        scheduler.addDependency(F, {}, {C});
+        scheduler.addDependency(E, {}, {D1, D2, B});
 
 	scheduler.compile();
 
