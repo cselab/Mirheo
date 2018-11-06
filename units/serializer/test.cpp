@@ -14,7 +14,7 @@ void myassert(bool condition, const std::string& message)
 {
     if (!condition)
     {
-        printf("%s\n", message.c_str());
+        fprintf(stderr, "%s\n", message.c_str());
         fflush(stdout);
     }
         
@@ -41,7 +41,7 @@ void test(Vec vals, Cmp cmp)
     for (int i=0; i<vals.size(); i++)
         myassert(cmp(dst[i], vals[i]), "mismatch on " + std::to_string(i));
     
-    printf("passed: container %s\n", typeid(dst).name());
+    fprintf(stderr, "passed: container %s\n", typeid(dst).name());
 }
 
 int main()
@@ -80,7 +80,7 @@ int main()
     for (int i=0; i<s5.size(); i++)
         myassert(s5[i]==d5[i], "mismatch on 5[" + std::to_string(i) + "]");
     
-    printf("Combined passed\n");
+    printf("Success!\n");
     
     MPI_Finalize();
     

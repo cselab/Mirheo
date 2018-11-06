@@ -62,7 +62,7 @@ int main(int argc, char ** argv)
 
     const int np = dpds1.local()->size() + dpds2.local()->size();
 
-    printf(" First part %d, second %d, total %d\n", dpds1.local()->size(), dpds2.local()->size(), np);
+    fprintf(stderr, " First part %d, second %d, total %d\n", dpds1.local()->size(), dpds2.local()->size(), np);
 
     CellList* cells1 = new PrimaryCellList(&dpds1, rc, length);
     CellList* cells2 = new PrimaryCellList(&dpds2, rc, length);
@@ -138,7 +138,7 @@ int main(int argc, char ** argv)
 
     cudaDeviceSynchronize();
 
-    printf("finished, reducing acc\n");
+    fprintf(stderr, "finished, reducing acc\n");
     double3 a = {};
     for (int i=0; i<np; i++)
     {
@@ -146,9 +146,9 @@ int main(int argc, char ** argv)
         a.y += hacc[i].f.y;
         a.z += hacc[i].f.z;
     }
-    printf("Reduced acc: %e %e %e\n\n", a.x, a.y, a.z);
+    fprintf(stderr, "Reduced acc: %e %e %e\n\n", a.x, a.y, a.z);
 
-    printf("Checking (this is not necessarily a cubic domain)......\n");
+    fprintf(stderr, "Checking (this is not necessarily a cubic domain)......\n");
 
     makeCells(initial.data(), rearranged.data(), hcellsstart.data(), hcellssize.data(), order.data(), np, cells1->cellInfo());
 
@@ -253,17 +253,22 @@ int main(int argc, char ** argv)
 
         if (argc > 1 && (perr > 0.1 || std::isnan(toterr)))
         {
-            printf("id %d (%d),  %12f %12f %12f     ref %12f %12f %12f    diff   %12f %12f %12f\n", i, (initial[i].i1),
-                   hacc[i].f.x, hacc[i].f.y, hacc[i].f.z,
-                   finalFrcs[i].f.x, finalFrcs[i].f.y, finalFrcs[i].f.z,
-                   hacc[i].f.x-finalFrcs[i].f.x, hacc[i].f.y-finalFrcs[i].f.y, hacc[i].f.z-finalFrcs[i].f.z);
+            fprintf(stderr, "id %d (%d),  %12f %12f %12f     ref %12f %12f %12f    diff   %12f %12f %12f\n", i, (initial[i].i1),
+                    hacc[i].f.x, hacc[i].f.y, hacc[i].f.z,
+                    finalFrcs[i].f.x, finalFrcs[i].f.y, finalFrcs[i].f.z,
+                    hacc[i].f.x-finalFrcs[i].f.x, hacc[i].f.y-finalFrcs[i].f.y, hacc[i].f.z-finalFrcs[i].f.z);
         }
     }
 
 
     l2 = sqrt(l2 / np);
-    printf("L2   norm: %f\n", l2);
-    printf("Linf norm: %f\n", linf);
+    fprintf(stderr, "L2   norm: %f\n", l2);
+    fprintf(stderr, "Linf norm: %f\n", linf);
+
+    if (linf < 0.02)
+        printf("Success!\n");
+    else
+        printf("Failed\n");
 
     CUDA_Check( cudaPeekAtLastError() );
     return 0;

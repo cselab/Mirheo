@@ -33,9 +33,9 @@ int main() {
     }
 
     if (fabs(state - target_end) < tolerance)
-        printf("success!\n");
+        printf("Success!\n");
     else
-        printf("failed");
+        printf("Failed");
     
     return 0;
 }
