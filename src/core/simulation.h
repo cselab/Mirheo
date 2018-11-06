@@ -120,11 +120,14 @@ private:
     std::vector< std::shared_ptr<ParticleVector> > particleVectors;
     std::vector< ObjectVector* >   objectVectors;
 
-    std::map< std::string, std::shared_ptr<Bouncer> >                bouncerMap;
-    std::map< std::string, std::shared_ptr<Integrator> >             integratorMap;
-    std::map< std::string, std::shared_ptr<Interaction> >            interactionMap;
-    std::map< std::string, std::shared_ptr<Wall> >                   wallMap;
-    std::map< std::string, std::shared_ptr<ObjectBelongingChecker> > belongingCheckerMap;
+    template <class T>
+    using MapShared = std::map< std::string, std::shared_ptr<T> >;
+
+    MapShared <Bouncer>                bouncerMap;
+    MapShared <Integrator>             integratorMap;
+    MapShared <Interaction>            interactionMap;
+    MapShared <Wall>                   wallMap;
+    MapShared <ObjectBelongingChecker> belongingCheckerMap;
     
     std::vector< std::shared_ptr<SimulationPlugin> > plugins;
 
