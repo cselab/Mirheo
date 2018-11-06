@@ -20,6 +20,9 @@ scheduler:         ; $(COMPILE)
 serializer:        ; $(COMPILE)
 wall:              ; $(COMPILE)
 
+test:
+	atest `find . -name test.sh`
+
 clean:
 	@for t in $(TARGETS); do     \
 	    rm -rf $$t/build;        \
