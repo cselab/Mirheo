@@ -3,13 +3,14 @@
 # awk expression, int
 aei () { awk 'BEGIN {printf "%d", '"$@"'}'; }
 
-L=96
+L=64
 
 #launch="launch_solvent"
 #launch="launch_cells"
-launch="launch_walls"
+#launch="launch_walls"
+launch="launch_rigids"
 
-for i in `seq 8`; do
+for i in `seq 7`; do
     LX=`aei "$L * $i"`
     ./$launch $i $i $i  $LX $LX $LX "weak" $L
 done
