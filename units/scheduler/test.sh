@@ -1,5 +1,7 @@
 #! /bin/sh
 
+#TODO: stronger test
+
 # TEST: scheduler
 set -eu
-udx.run ./scheduler/build/test_scheduler > status.out.txt 2>/dev/null
+udx.run ./scheduler/build/test_scheduler 2>/dev/null | sort > status.out.txt
