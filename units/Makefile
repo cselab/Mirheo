@@ -1,4 +1,4 @@
-NOT_COMPILING = bounce halo manyranks wall
+NOT_COMPILING = bounce halo manyranks mesh_bounce mesh_leak obj_halo onerank redist rigid wall
 TARGETS = celllists interaction pid scheduler serializer
 all: $(TARGETS)
 
@@ -10,10 +10,9 @@ halo:              ; $(COMPILE)
 interaction:       ; $(COMPILE)
 manyranks:         ; $(COMPILE)
 mesh_bounce:       ; $(COMPILE)
-mesh_bounce_full:  ; $(COMPILE)
 mesh_leak:         ; $(COMPILE)
 obj_halo:          ; $(COMPILE)
-one_rank:          ; $(COMPILE)
+onerank:           ; $(COMPILE)
 pid:               ; $(COMPILE)
 redist:            ; $(COMPILE)
 rigid:             ; $(COMPILE)
