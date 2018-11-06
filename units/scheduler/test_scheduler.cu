@@ -13,7 +13,7 @@ int main(int argc, char ** argv)
 	MPI_Init_thread(&argc, &argv, MPI_THREAD_MULTIPLE, &provided);
 	if (provided < MPI_THREAD_MULTIPLE)
 	{
-		printf("ERROR: The MPI library does not have full thread support\n");
+            fprintf(stderr, "ERROR: The MPI library does not have full thread support\n");
 		MPI_Abort(MPI_COMM_WORLD, 1);
 	}
 	MPI_Errhandler_set(MPI_COMM_WORLD, MPI_ERRORS_RETURN);
@@ -60,7 +60,7 @@ int main(int argc, char ** argv)
 		scheduler.run();
 	}
 
-	printf("Benchmarking\n");
+	fprintf(stderr, "Benchmarking\n");
 
 	TaskScheduler scheduler;
 
@@ -104,7 +104,7 @@ int main(int argc, char ** argv)
 
 	int64_t tm = timer.elapsed();
 
-	printf("Per run: %f us\n", (double)tm / (1000.0*n));
+	fprintf(stderr, "Per run: %f us\n", (double)tm / (1000.0*n));
 
 	return 0;
 }
