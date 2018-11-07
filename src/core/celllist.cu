@@ -110,7 +110,7 @@ CellList::CellList(ParticleVector* pv, float rc, float3 localDomainSize) :
     cellStarts.clear(0);
     CUDA_Check( cudaStreamSynchronize(0) );
 
-    debug("Initialized %s cell-list with %dx%dx%d cells and cut-off %f", pv->name().c_str(), ncells.x, ncells.y, ncells.z, this->rc);
+    debug("Initialized %s cell-list with %dx%dx%d cells and cut-off %f", pv->name.c_str(), ncells.x, ncells.y, ncells.z, this->rc);
 }
 
 CellList::CellList(ParticleVector* pv, int3 resolution, float3 localDomainSize) :
@@ -125,13 +125,13 @@ CellList::CellList(ParticleVector* pv, int3 resolution, float3 localDomainSize) 
     cellStarts.clear(0);
     CUDA_Check( cudaStreamSynchronize(0) );
 
-    debug("Initialized %s cell-list with %dx%dx%d cells and cut-off %f", pv->name().c_str(), ncells.x, ncells.y, ncells.z, this->rc);
+    debug("Initialized %s cell-list with %dx%dx%d cells and cut-off %f", pv->name.c_str(), ncells.x, ncells.y, ncells.z, this->rc);
 }
 
 void CellList::_build(cudaStream_t stream)
 {
     // Compute cell sizes
-    debug2("Computing cell sizes for %d %s particles", pv->local()->size(), pv->name().c_str());
+    debug2("Computing cell sizes for %d %s particles", pv->local()->size(), pv->name.c_str());
     cellSizes.clear(stream);
 
     PVview view(pv, pv->local());
@@ -151,7 +151,7 @@ void CellList::_build(cudaStream_t stream)
     cub::DeviceScan::ExclusiveSum(scanBuffer.devPtr(), bufSize, cellSizes.devPtr(), cellStarts.devPtr(), totcells+1, stream);
 
     // Reorder the data
-    debug2("Reordering %d %s particles", pv->local()->size(), pv->name().c_str());
+    debug2("Reordering %d %s particles", pv->local()->size(), pv->name.c_str());
     order.resize_anew(view.size);
     particlesContainer.resize_anew(view.size);
     cellSizes.clear(stream);
@@ -168,13 +168,13 @@ void CellList::build(cudaStream_t stream)
 {
     if (changedStamp == pv->cellListStamp)
     {
-        debug2("Cell-list for %s is already up-to-date, building skipped", pv->name().c_str());
+        debug2("Cell-list for %s is already up-to-date, building skipped", pv->name.c_str());
         return;
     }
 
     if (pv->local()->size() == 0)
     {
-        debug2("%s consists of no particles, cell-list building skipped", pv->name().c_str());
+        debug2("%s consists of no particles, cell-list building skipped", pv->name.c_str());
         return;
     }
 
@@ -224,13 +224,13 @@ void PrimaryCellList::build(cudaStream_t stream)
 
     if (changedStamp == pv->cellListStamp)
     {
-        debug2("Cell-list for %s is already up-to-date, building skipped", pv->name().c_str());
+        debug2("Cell-list for %s is already up-to-date, building skipped", pv->name.c_str());
         return;
     }
 
     if (pv->local()->size() == 0)
     {
-        debug2("%s consists of no particles, cell-list building skipped", pv->name().c_str());
+        debug2("%s consists of no particles, cell-list building skipped", pv->name.c_str());
         return;
     }
 
@@ -241,7 +241,7 @@ void PrimaryCellList::build(cudaStream_t stream)
     CUDA_Check( cudaMemcpyAsync(&newSize, cellStarts.devPtr() + totcells, sizeof(int), cudaMemcpyDeviceToHost, stream) );
     CUDA_Check( cudaStreamSynchronize(stream) );
 
-    debug2("Reordering completed, new size of %s particle vector is %d", pv->name().c_str(), newSize);
+    debug2("Reordering completed, new size of %s particle vector is %d", pv->name.c_str(), newSize);
 
     particlesContainer.resize(newSize, stream);
     std::swap(pv->local()->coosvels, particlesContainer);

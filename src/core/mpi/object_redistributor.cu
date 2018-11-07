@@ -89,9 +89,9 @@ bool ObjectRedistributor::needExchange(int id)
 void ObjectRedistributor::attach(ObjectVector* ov, float rc)
 {
     objects.push_back(ov);
-    ExchangeHelper* helper = new ExchangeHelper(ov->name());
+    ExchangeHelper* helper = new ExchangeHelper(ov->name);
     helpers.push_back(helper);
-    info("The Object vector '%s' was attached", ov->name().c_str());
+    info("The Object vector '%s' was attached", ov->name.c_str());
 }
 
 
@@ -107,7 +107,7 @@ void ObjectRedistributor::prepareSizes(int id, cudaStream_t stream)
     ObjectPacker packer(ov, ov->local(), stream);
     helper->setDatumSize(packer.totalPackedSize_byte);
 
-    debug2("Counting exiting objects of '%s'", ov->name().c_str());
+    debug2("Counting exiting objects of '%s'", ov->name.c_str());
     const int nthreads = 256;
 
     // Prepare sizes
@@ -123,7 +123,7 @@ void ObjectRedistributor::prepareSizes(int id, cudaStream_t stream)
     }
 
     int nObjs = helper->sendSizes[13];
-    debug2("%d objects of '%s' will leave", ovView.nObjects - nObjs, ov->name().c_str());
+    debug2("%d objects of '%s' will leave", ovView.nObjects - nObjs, ov->name.c_str());
 
     // Early termination support
     if (nObjs == ovView.nObjects)
@@ -150,11 +150,11 @@ void ObjectRedistributor::prepareData(int id, cudaStream_t stream)
     // Early termination - no redistribution
     if (helper->sendOffsets[27] == 0)
     {
-        debug2("No objects of '%s' leaving, no need to rebuild the object vector", ov->name().c_str());
+        debug2("No objects of '%s' leaving, no need to rebuild the object vector", ov->name.c_str());
         return;
     }
 
-    debug2("Downloading %d leaving objects of '%s'", ovView.nObjects - nObjs, ov->name().c_str());
+    debug2("Downloading %d leaving objects of '%s'", ovView.nObjects - nObjs, ov->name.c_str());
 
     // Gather data
     helper->resizeSendBuf();

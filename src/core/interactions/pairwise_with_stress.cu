@@ -15,7 +15,7 @@ void InteractionPair_withStress<PairwiseInteraction>::regular(
 {
     if (lastStressTime+stressPeriod <= t || lastStressTime == t)
     {
-        debug("Executing interaction '%s' with stress", name().c_str());
+        debug("Executing interaction '%s' with stress", name.c_str());
 
         if (pv2lastStressTime[pv1] != t)
         {
@@ -44,7 +44,7 @@ void InteractionPair_withStress<PairwiseInteraction>::halo   (
 {
     if (lastStressTime+stressPeriod <= t || lastStressTime == t)
     {
-        debug("Executing interaction '%s' with stress", name().c_str());
+        debug("Executing interaction '%s' with stress", name.c_str());
 
         if (pv2lastStressTime[pv1] != t)
         {
@@ -69,7 +69,7 @@ template<class PairwiseInteraction>
 void InteractionPair_withStress<PairwiseInteraction>::setPrerequisites(ParticleVector* pv1, ParticleVector* pv2)
 {
     info("Interaction '%s' requires channel 'stress' from PVs '%s' and '%s'",
-         name().c_str(), pv1->name().c_str(), pv2->name().c_str());
+         name.c_str(), pv1->name.c_str(), pv2->name.c_str());
 
     pv1->requireDataPerParticle<Stress>("stress", false);
     pv2->requireDataPerParticle<Stress>("stress", false);

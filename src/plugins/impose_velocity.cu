@@ -85,7 +85,7 @@ void ImposeVelocityPlugin::afterIntegration(cudaStream_t stream)
         float3 avgVel = make_float3(totVel[0].x / nSamples[0], totVel[0].y / nSamples[0], totVel[0].z / nSamples[0]);
 
         debug("Current mean velocity measured by plugin '%s' is [%f %f %f]; as of %d particles",
-              name().c_str(), avgVel.x, avgVel.y, avgVel.z, nSamples[0]);
+              name.c_str(), avgVel.x, avgVel.y, avgVel.z, nSamples[0]);
 
         for (auto& pv : pvs)
             SAFE_KERNEL_LAUNCH(

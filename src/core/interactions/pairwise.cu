@@ -119,11 +119,11 @@ template<class PairwiseInteraction>
 void InteractionPair<PairwiseInteraction>::_compute(InteractionType type,
         ParticleVector* pv1, ParticleVector* pv2, CellList* cl1, CellList* cl2, const float t, cudaStream_t stream)
 {
-    auto it = intMap.find({pv1->name(), pv2->name()});
+    auto it = intMap.find({pv1->name, pv2->name});
     if (it != intMap.end())
-        debug("Using SPECIFIC parameters for PV pair '%s' -- '%s'", pv1->name().c_str(), pv2->name().c_str());
+        debug("Using SPECIFIC parameters for PV pair '%s' -- '%s'", pv1->name.c_str(), pv2->name.c_str());
     else
-        debug("Using default parameters for PV pair '%s' -- '%s'", pv1->name().c_str(), pv2->name().c_str());
+        debug("Using default parameters for PV pair '%s' -- '%s'", pv1->name.c_str(), pv2->name.c_str());
 
 
     auto& pair = (it == intMap.end()) ? defaultPair : it->second;
@@ -136,7 +136,7 @@ void InteractionPair<PairwiseInteraction>::_compute(InteractionType type,
         if (pv1 == pv2)
         {
             const int np = pv1->local()->size();
-            debug("Computing internal forces for %s (%d particles)", pv1->name().c_str(), np);
+            debug("Computing internal forces for %s (%d particles)", pv1->name.c_str(), np);
 
             const int nth = 128;
 
@@ -150,7 +150,7 @@ void InteractionPair<PairwiseInteraction>::_compute(InteractionType type,
         {
             const int np1 = pv1->local()->size();
             const int np2 = pv2->local()->size();
-            debug("Computing external forces for %s - %s (%d - %d particles)", pv1->name().c_str(), pv2->name().c_str(), np1, np2);
+            debug("Computing external forces for %s - %s (%d - %d particles)", pv1->name.c_str(), pv2->name.c_str(), np1, np2);
 
             PVview view(pv1, pv1->local());
             view.particles = (float4*)cl1->particles->devPtr();
@@ -169,7 +169,7 @@ void InteractionPair<PairwiseInteraction>::_compute(InteractionType type,
 
         const int np1 = pv1->halo()->size();  // note halo here
         const int np2 = pv2->local()->size();
-        debug("Computing halo forces for %s(halo) - %s (%d - %d particles)", pv1->name().c_str(), pv2->name().c_str(), np1, np2);
+        debug("Computing halo forces for %s(halo) - %s (%d - %d particles)", pv1->name.c_str(), pv2->name.c_str(), np1, np2);
 
         PVview view(pv1, pv1->halo());
         const int nth = 128;

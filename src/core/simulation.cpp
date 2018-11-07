@@ -115,7 +115,7 @@ CellList* Simulation::gelCellList(ParticleVector* pv) const
 {
     auto clvecIt = cellListMap.find(pv);
     if (clvecIt == cellListMap.end())
-        die("Particle Vector '%s' is not registered or broken", pv->name().c_str());
+        die("Particle Vector '%s' is not registered or broken", pv->name.c_str());
 
     if (clvecIt->second.size() == 0)
         return nullptr;
@@ -155,7 +155,7 @@ void Simulation::stopProfiler() const
 
 void Simulation::registerParticleVector(std::shared_ptr<ParticleVector> pv, std::shared_ptr<InitialConditions> ic, int checkpointEvery)
 {
-    std::string name = pv->name();
+    std::string name = pv->name;
 
     if (name == "none" || name == "all" || name == "")
         die("Invalid name for a particle vector (reserved word or empty): '%s'", name.c_str());
@@ -194,7 +194,7 @@ void Simulation::registerParticleVector(std::shared_ptr<ParticleVector> pv, std:
 
 void Simulation::registerWall(std::shared_ptr<Wall> wall, int every)
 {
-    std::string name = wall->name();
+    std::string name = wall->name;
 
     if (wallMap.find(name) != wallMap.end())
         die("More than one wall is called %s", name.c_str());
@@ -212,7 +212,7 @@ void Simulation::registerWall(std::shared_ptr<Wall> wall, int every)
 
 void Simulation::registerInteraction(std::shared_ptr<Interaction> interaction)
 {
-    std::string name = interaction->name();
+    std::string name = interaction->name;
     if (interactionMap.find(name) != interactionMap.end())
         die("More than one interaction is called %s", name.c_str());
 
@@ -221,7 +221,7 @@ void Simulation::registerInteraction(std::shared_ptr<Interaction> interaction)
 
 void Simulation::registerIntegrator(std::shared_ptr<Integrator> integrator)
 {
-    std::string name = integrator->name();
+    std::string name = integrator->name;
     if (integratorMap.find(name) != integratorMap.end())
         die("More than one integrator is called %s", name.c_str());
 
@@ -230,7 +230,7 @@ void Simulation::registerIntegrator(std::shared_ptr<Integrator> integrator)
 
 void Simulation::registerBouncer(std::shared_ptr<Bouncer> bouncer)
 {
-    std::string name = bouncer->name();
+    std::string name = bouncer->name;
     if (bouncerMap.find(name) != bouncerMap.end())
         die("More than one bouncer is called %s", name.c_str());
 
@@ -239,7 +239,7 @@ void Simulation::registerBouncer(std::shared_ptr<Bouncer> bouncer)
 
 void Simulation::registerObjectBelongingChecker(std::shared_ptr<ObjectBelongingChecker> checker)
 {
-    std::string name = checker->name();
+    std::string name = checker->name;
     if (belongingCheckerMap.find(name) != belongingCheckerMap.end())
         die("More than one splitter is called %s", name.c_str());
 
@@ -248,11 +248,11 @@ void Simulation::registerObjectBelongingChecker(std::shared_ptr<ObjectBelongingC
 
 void Simulation::registerPlugin(std::shared_ptr<SimulationPlugin> plugin)
 {
-    std::string name = plugin->name();
+    std::string name = plugin->name;
 
     bool found = false;
     for (auto& pl : plugins)
-        if (pl->name() == name) found = true;
+        if (pl->name == name) found = true;
 
     if (found)
         die("More than one plugin is called %s", name.c_str());
@@ -578,7 +578,7 @@ void Simulation::init()
     info("Preparing plugins");
     for (auto& pl : plugins)
     {
-        debug("Setup and handshake of plugin %s", pl->name().c_str());
+        debug("Setup and handshake of plugin %s", pl->name.c_str());
         pl->setup(this, cartComm, interComm);
         pl->handshake();
     }

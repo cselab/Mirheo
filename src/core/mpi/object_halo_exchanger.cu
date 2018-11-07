@@ -121,12 +121,12 @@ void ObjectHaloExchanger::attach(ObjectVector* ov, float rc)
 {
     objects.push_back(ov);
     rcs.push_back(rc);
-    ExchangeHelper* helper = new ExchangeHelper(ov->name());
+    ExchangeHelper* helper = new ExchangeHelper(ov->name);
     helpers.push_back(helper);
 
     origins.push_back(new PinnedBuffer<int>(ov->local()->size()));
 
-    info("Object vector %s (rc %f) was attached to halo exchanger", ov->name().c_str(), rc);
+    info("Object vector %s (rc %f) was attached to halo exchanger", ov->name.c_str(), rc);
 }
 
 void ObjectHaloExchanger::prepareSizes(int id, cudaStream_t stream)
@@ -138,7 +138,7 @@ void ObjectHaloExchanger::prepareSizes(int id, cudaStream_t stream)
 
     ov->findExtentAndCOM(stream, ParticleVectorType::Local);
 
-    debug2("Counting halo objects of '%s'", ov->name().c_str());
+    debug2("Counting halo objects of '%s'", ov->name.c_str());
 
     OVview ovView(ov, ov->local());
     ObjectPacker packer(ov, ov->local(), stream);
@@ -165,7 +165,7 @@ void ObjectHaloExchanger::prepareData(int id, cudaStream_t stream)
     auto helper = helpers[id];
     auto origin = origins[id];
 
-    debug2("Downloading %d halo objects of '%s'", helper->sendOffsets[27], ov->name().c_str());
+    debug2("Downloading %d halo objects of '%s'", helper->sendOffsets[27], ov->name.c_str());
 
     OVview ovView(ov, ov->local());
     ObjectPacker packer(ov, ov->local(), stream);

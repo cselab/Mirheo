@@ -10,8 +10,5 @@ public:
 
     virtual ~UdxObject() = default;
     
-    const std::string& name() const;
-    
-private:
-    std::string _name;
+    const std::string name;
 };

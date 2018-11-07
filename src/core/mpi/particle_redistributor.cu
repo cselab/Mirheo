@@ -105,12 +105,12 @@ void ParticleRedistributor::attach(ParticleVector* pv, CellList* cl)
     cellLists.push_back(cl);
 
     if (dynamic_cast<PrimaryCellList*>(cl) == nullptr)
-        die("Redistributor (for %s) should be used with the primary cell-lists only!", pv->name().c_str());
+        die("Redistributor (for %s) should be used with the primary cell-lists only!", pv->name.c_str());
 
-    auto helper = new ExchangeHelper(pv->name(), sizeof(Particle));
+    auto helper = new ExchangeHelper(pv->name, sizeof(Particle));
     helpers.push_back(helper);
 
-    info("Particle redistributor takes pv '%s'", pv->name().c_str());
+    info("Particle redistributor takes pv '%s'", pv->name.c_str());
 }
 
 void ParticleRedistributor::prepareSizes(int id, cudaStream_t stream)
@@ -119,7 +119,7 @@ void ParticleRedistributor::prepareSizes(int id, cudaStream_t stream)
     auto cl = cellLists[id];
     auto helper = helpers[id];
 
-    debug2("Counting leaving particles of '%s'", pv->name().c_str());
+    debug2("Counting leaving particles of '%s'", pv->name.c_str());
 
     helper->sendSizes.clear(stream);
     if (pv->local()->size() > 0)
@@ -146,7 +146,7 @@ void ParticleRedistributor::prepareData(int id, cudaStream_t stream)
     auto cl = cellLists[id];
     auto helper = helpers[id];
 
-    debug2("Downloading %d leaving particles of '%s'", helper->sendOffsets[27], pv->name().c_str());
+    debug2("Downloading %d leaving particles of '%s'", helper->sendOffsets[27], pv->name.c_str());
 
     if (pv->local()->size() > 0)
     {

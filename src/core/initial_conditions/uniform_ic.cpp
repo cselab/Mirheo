@@ -48,7 +48,7 @@ void UniformIC::exec(const MPI_Comm& comm, ParticleVector* pv, DomainInfo domain
     MPI_Check( MPI_Comm_rank(comm, &rank) );
 
     std::hash<std::string> nameHash;
-    const int seed = rank + nameHash(pv->name());
+    const int seed = rank + nameHash(pv->name);
     std::mt19937 gen(seed);
     std::uniform_real_distribution<float> udistr(0, 1);
 
@@ -109,5 +109,5 @@ void UniformIC::exec(const MPI_Comm& comm, ParticleVector* pv, DomainInfo domain
     pv->local()->coosvels.uploadToDevice(stream);
     pv->local()->extraPerParticle.getData<Particle>("old_particles")->copy(pv->local()->coosvels, stream);
 
-    debug2("Generated %d %s particles", pv->local()->size(), pv->name().c_str());
+    debug2("Generated %d %s particles", pv->local()->size(), pv->name.c_str());
 }

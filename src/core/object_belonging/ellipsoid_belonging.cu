@@ -62,7 +62,7 @@ void EllipsoidBelongingChecker::tagInner(ParticleVector* pv, CellList* cl, cudaS
 
     auto reov = dynamic_cast<RigidEllipsoidObjectVector*> (ov);
     if (reov == nullptr)
-        die("Ellipsoid belonging can only be used with ellipsoid objects (%s is not)", ov->name().c_str());
+        die("Ellipsoid belonging can only be used with ellipsoid objects (%s is not)", ov->name.c_str());
 
     tags.resize_anew(pv->local()->size());
     tags.clearDevice(stream);
@@ -72,7 +72,7 @@ void EllipsoidBelongingChecker::tagInner(ParticleVector* pv, CellList* cl, cudaS
 
     auto view = REOVview(reov, reov->local());
     debug("Computing inside/outside tags for %d local ellipsoids '%s' and %d '%s' particles",
-          view.nObjects, ov->name().c_str(), pv->local()->size(), pv->name().c_str());
+          view.nObjects, ov->name.c_str(), pv->local()->size(), pv->name.c_str());
 
     SAFE_KERNEL_LAUNCH(
             insideEllipsoid,
@@ -81,7 +81,7 @@ void EllipsoidBelongingChecker::tagInner(ParticleVector* pv, CellList* cl, cudaS
 
     view = REOVview(reov, reov->halo());
     debug("Computing inside/outside tags for %d halo ellipsoids '%s' and %d '%s' particles",
-          view.nObjects, ov->name().c_str(), pv->local()->size(), pv->name().c_str());
+          view.nObjects, ov->name.c_str(), pv->local()->size(), pv->name.c_str());
 
     SAFE_KERNEL_LAUNCH(
             insideEllipsoid,

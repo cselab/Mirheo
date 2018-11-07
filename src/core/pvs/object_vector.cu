@@ -47,11 +47,11 @@ void ObjectVector::findExtentAndCOM(cudaStream_t stream, ParticleVectorType type
     if (lov->comExtentValid)
     {
         debug("COM and extent computation for %s OV '%s' skipped",
-              isLocal ? "local" : "halo", name().c_str());
+              isLocal ? "local" : "halo", name.c_str());
         return;
     }
 
-    debug("Computing COM and extent OV '%s' (%s)", name().c_str(), isLocal ? "local" : "halo");
+    debug("Computing COM and extent OV '%s' (%s)", name.c_str(), isLocal ? "local" : "halo");
 
     const int nthreads = 128;
     OVview ovView(this, lov);
@@ -95,8 +95,8 @@ std::vector<int> ObjectVector::_restartParticleData(MPI_Comm comm, std::string p
 {
     CUDA_Check( cudaDeviceSynchronize() );
 
-    std::string filename = path + "/" + name() + ".xmf";
-    info("Restarting object vector %s from file %s", name().c_str(), filename.c_str());
+    std::string filename = path + "/" + name + ".xmf";
+    info("Restarting object vector %s from file %s", name.c_str(), filename.c_str());
 
     XDMF::readParticleData(filename, comm, this, objSize);
 
@@ -140,8 +140,8 @@ void ObjectVector::_checkpointObjectData(MPI_Comm comm, std::string path)
 {
     CUDA_Check( cudaDeviceSynchronize() );
 
-    std::string filename = path + "/" + name() + ".obj-" + getStrZeroPadded(restartIdx);
-    info("Checkpoint for object vector '%s', writing to file %s", name().c_str(), filename.c_str());
+    std::string filename = path + "/" + name + ".obj-" + getStrZeroPadded(restartIdx);
+    info("Checkpoint for object vector '%s', writing to file %s", name.c_str(), filename.c_str());
 
     auto coms_extents = local()->extraPerObject.getData<LocalObjectVector::COMandExtent>("com_extents");
     auto ids          = local()->extraPerObject.getData<int>("ids");
@@ -161,17 +161,17 @@ void ObjectVector::_checkpointObjectData(MPI_Comm comm, std::string path)
     
     XDMF::write(filename, &grid, channels, comm);
 
-    restart_helpers::make_symlink(comm, path, name() + ".obj", filename);
+    restart_helpers::make_symlink(comm, path, name + ".obj", filename);
 
-    debug("Checkpoint for object vector '%s' successfully written", name().c_str());
+    debug("Checkpoint for object vector '%s' successfully written", name.c_str());
 }
 
 void ObjectVector::_restartObjectData(MPI_Comm comm, std::string path, const std::vector<int>& map)
 {
     CUDA_Check( cudaDeviceSynchronize() );
 
-    std::string filename = path + "/" + name() + ".obj.xmf";
-    info("Restarting object vector %s from file %s", name().c_str(), filename.c_str());
+    std::string filename = path + "/" + name + ".obj.xmf";
+    info("Restarting object vector %s from file %s", name.c_str(), filename.c_str());
 
     XDMF::readObjectData(filename, comm, this);
 

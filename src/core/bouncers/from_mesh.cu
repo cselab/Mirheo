@@ -56,8 +56,8 @@ void BounceFromMesh::exec(ParticleVector* pv, CellList* cl, float dt, bool local
     auto activeOV = local ? ov->local() : ov->halo();
 
     debug("Bouncing %d '%s' particles from %d '%s' objects (%s)",
-          pv->local()->size(), pv->name().c_str(),
-          activeOV->nObjects,  ov->name().c_str(),
+          pv->local()->size(), pv->name.c_str(),
+          activeOV->nObjects,  ov->name.c_str(),
           local ? "local" : "halo");
 
     ov->findExtentAndCOM(stream, local ? ParticleVectorType::Local : ParticleVectorType::Halo);

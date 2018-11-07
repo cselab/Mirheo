@@ -99,7 +99,7 @@ void SimulationVelocityControl::afterIntegration(cudaStream_t stream)
 {
     if (currentTimeStep % sampleEvery == 0 && currentTimeStep != 0)
     {
-        debug2("Velocity control %s is sampling now", name().c_str());
+        debug2("Velocity control %s is sampling now", name.c_str());
 
         totVel.clearDevice(stream);
         for (auto &pv : pvs) sampleOnePv(pv, stream);

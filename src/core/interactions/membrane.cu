@@ -93,10 +93,10 @@ void InteractionMembrane::regular(ParticleVector* pv1, ParticleVector* pv2, Cell
 
     if (ov->objSize != ov->mesh->getNvertices())
         die("Object size of '%s' (%d) and number of vertices (%d) mismatch",
-            ov->name().c_str(), ov->objSize, ov->mesh->getNvertices());
+            ov->name.c_str(), ov->objSize, ov->mesh->getNvertices());
 
     debug("Computing internal membrane forces for %d cells of '%s'",
-          ov->local()->nObjects, ov->name().c_str());
+          ov->local()->nObjects, ov->name.c_str());
 
     auto currentParams = parameters;
     float scale = scaleFromTime(t);
@@ -138,7 +138,7 @@ void InteractionMembrane::regular(ParticleVector* pv1, ParticleVector* pv2, Cell
 
 void InteractionMembrane::halo   (ParticleVector* pv1, ParticleVector* pv2, CellList* cl1, CellList* cl2, const float t, cudaStream_t stream)
 {
-    debug("Not computing internal RBC forces between local and halo RBCs of '%s'", pv1->name().c_str());
+    debug("Not computing internal RBC forces between local and halo RBCs of '%s'", pv1->name.c_str());
 }
 
 

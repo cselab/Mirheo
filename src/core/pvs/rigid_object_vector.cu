@@ -109,8 +109,8 @@ void RigidObjectVector::_checkpointObjectData(MPI_Comm comm, std::string path)
 {
     CUDA_Check( cudaDeviceSynchronize() );
 
-    std::string filename = path + "/" + name() + ".obj-" + getStrZeroPadded(restartIdx);
-    info("Checkpoint for rigid object vector '%s', writing to file %s", name().c_str(), filename.c_str());
+    std::string filename = path + "/" + name + ".obj-" + getStrZeroPadded(restartIdx);
+    info("Checkpoint for rigid object vector '%s', writing to file %s", name.c_str(), filename.c_str());
 
     auto ids          = local()->extraPerObject.getData<int>("ids");
     auto motions      = local()->extraPerObject.getData<RigidMotion>("motions");
@@ -143,9 +143,9 @@ void RigidObjectVector::_checkpointObjectData(MPI_Comm comm, std::string path)
     
     XDMF::write(filename, &grid, channels, comm);
 
-    restart_helpers::make_symlink(comm, path, name() + ".obj", filename);
+    restart_helpers::make_symlink(comm, path, name + ".obj", filename);
 
-    debug("Checkpoint for object vector '%s' successfully written", name().c_str());
+    debug("Checkpoint for object vector '%s' successfully written", name.c_str());
 }
 
 static void shiftCoordinates(const DomainInfo& domain, std::vector<RigidMotion>& motions)
@@ -158,8 +158,8 @@ void RigidObjectVector::_restartObjectData(MPI_Comm comm, std::string path, cons
 {
     CUDA_Check( cudaDeviceSynchronize() );
 
-    std::string filename = path + "/" + name() + ".obj.xmf";
-    info("Restarting rigid object vector %s from file %s", name().c_str(), filename.c_str());
+    std::string filename = path + "/" + name + ".obj.xmf";
+    info("Restarting rigid object vector %s from file %s", name.c_str(), filename.c_str());
 
     XDMF::readRigidObjectData(filename, comm, this);
 

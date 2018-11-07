@@ -90,6 +90,6 @@ void MembraneIC::exec(const MPI_Comm& comm, ParticleVector* pv, DomainInfo domai
     ov->local()->coosvels.uploadToDevice(stream);
     ov->local()->extraPerParticle.getData<Particle>("old_particles")->copy(ov->local()->coosvels, stream);
 
-    info("Initialized %d '%s' membranes", nObjs, ov->name().c_str());
+    info("Initialized %d '%s' membranes", nObjs, ov->name.c_str());
 }
 

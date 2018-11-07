@@ -72,7 +72,7 @@ void RigidIC::exec(const MPI_Comm& comm, ParticleVector* pv, DomainInfo domain, 
     copyToPinnedBuffer(coords, ov->initialPositions, stream);
     if (ov->objSize != ov->initialPositions.size())
         die("Object size and XYZ initial conditions don't match in size for '%s': %d vs %d",
-            ov->name().c_str(), ov->objSize, ov->initialPositions.size());
+            ov->name.c_str(), ov->objSize, ov->initialPositions.size());
 
     int nObjs=0;
     HostBuffer<RigidMotion> motions;
@@ -126,7 +126,7 @@ void RigidIC::exec(const MPI_Comm& comm, ParticleVector* pv, DomainInfo domain, 
     ov->local()->coosvels.uploadToDevice(stream);
     ov->local()->extraPerParticle.getData<Particle>("old_particles")->copy(ov->local()->coosvels, stream);
 
-    info("Read %d %s objects", nObjs, ov->name().c_str());
+    info("Read %d %s objects", nObjs, ov->name.c_str());
 
     // Do the initial rotation    
     ov->local()->forces.clear(stream);

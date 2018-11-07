@@ -47,13 +47,13 @@ void InteractionLJ::setSpecificPair(ParticleVector* pv1, ParticleVector* pv2,
     {
         Pairwise_LJObjectAware lj(rc, epsilon, sigma, maxForce);
         auto ptr = static_cast< InteractionPair<Pairwise_LJObjectAware>* >(impl.get());
-        ptr->setSpecificPair(pv1->name(), pv2->name(), lj);
+        ptr->setSpecificPair(pv1->name, pv2->name, lj);
     }
     else
     {
         Pairwise_LJ lj(rc, epsilon, sigma, maxForce);
         auto ptr = static_cast< InteractionPair<Pairwise_LJ>* >(impl.get());
-        ptr->setSpecificPair(pv1->name(), pv2->name(), lj);
+        ptr->setSpecificPair(pv1->name, pv2->name, lj);
     }
 }
 

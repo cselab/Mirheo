@@ -239,8 +239,8 @@ void ParticleVector::_checkpointParticleData(MPI_Comm comm, std::string path)
 {
     CUDA_Check( cudaDeviceSynchronize() );
 
-    std::string filename = path + "/" + name() + "-" + getStrZeroPadded(restartIdx);
-    info("Checkpoint for particle vector '%s', writing to file %s", name().c_str(), filename.c_str());
+    std::string filename = path + "/" + name + "-" + getStrZeroPadded(restartIdx);
+    info("Checkpoint for particle vector '%s', writing to file %s", name.c_str(), filename.c_str());
 
     local()->coosvels.downloadFromDevice(0, ContainersSynch::Synch);
 
@@ -257,9 +257,9 @@ void ParticleVector::_checkpointParticleData(MPI_Comm comm, std::string path)
     
     XDMF::write(filename, &grid, channels, comm);
 
-    restart_helpers::make_symlink(comm, path, name(), filename);
+    restart_helpers::make_symlink(comm, path, name, filename);
 
-    debug("Checkpoint for particle vector '%s' successfully written", name().c_str());
+    debug("Checkpoint for particle vector '%s' successfully written", name.c_str());
 }
 
 void ParticleVector::_getRestartExchangeMap(MPI_Comm comm, const std::vector<Particle> &parts, std::vector<int>& map)
@@ -288,8 +288,8 @@ std::vector<int> ParticleVector::_restartParticleData(MPI_Comm comm, std::string
 {
     CUDA_Check( cudaDeviceSynchronize() );
 
-    std::string filename = path + "/" + name() + ".xmf";
-    info("Restarting particle vector %s from file %s", name().c_str(), filename.c_str());
+    std::string filename = path + "/" + name + ".xmf";
+    info("Restarting particle vector %s from file %s", name.c_str(), filename.c_str());
 
     XDMF::readParticleData(filename, comm, this);
 
