@@ -289,9 +289,6 @@ __global__ void computeExternalInteractions_3tpp(
                 const int pstart = srcCinfo.cellStarts[cid];
                 const int pend   = srcCinfo.cellStarts[cid+1];
 
-                if ((long long int) pend - (long long int) pstart  > 200)
-                    printf("hohohoh %d %d \t \t %d\n", pstart, pend, pend - pstart);
-
                 computeCell<NeedDstAcc, NeedSrcAcc, InteractionWith::Other> (pstart, pend, dstP, dstId, dstFrc, srcCinfo, rc2, interaction);
             }
         }
