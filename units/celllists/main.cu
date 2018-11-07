@@ -1,14 +1,3 @@
-
-/**
-* Copyright 1993-2012 NVIDIA Corporation.  All rights reserved.
-*
-* Please refer to the NVIDIA end user license agreement (EULA) associated
-* with this source code for terms and conditions that govern your use of
-* this software. Any use, reproduction, disclosure, or distribution of
-* this software and related documentation outside the terms of the EULA
-* is strictly prohibited.
-*/
-
 // Yo ho ho ho
 #define private   public
 #define protected public
@@ -24,38 +13,21 @@
 #include <core/logger.h>
 #include <core/initial_conditions/uniform_ic.h>
 
-Logger logger;
+#include <gtest/gtest.h>
 
-int main(int argc, char **argv)
+Logger logger;
+bool verbose = false;
+
+void test_domain(float3 length, float rc, float density)
 {
     bool success = true;
-    bool verbose = argc > 1;
-    
-    
-    int nranks, rank;
-    int ranks[] = {1, 1, 1};
-    int periods[] = {1, 1, 1};
-    MPI_Comm cartComm;
-
-    MPI_Init(&argc, &argv);
-
-    logger.init(MPI_COMM_WORLD, "cells.log", 9);
-
-    MPI_Check( MPI_Comm_size(MPI_COMM_WORLD, &nranks) );
-    MPI_Check( MPI_Comm_rank(MPI_COMM_WORLD, &rank) );
-    MPI_Check( MPI_Cart_create(MPI_COMM_WORLD, 3, ranks, periods, 0, &cartComm) );
-
-
-    float3 length{64,64,64};
     float3 domainStart = -length / 2.0f;
     DomainInfo domain{length, {0,0,0}, length};
 
-
-    const float rc = 1.2f;
     ParticleVector dpds("dpd", 1.0f);
     CellList *cells = new PrimaryCellList(&dpds, rc, length);
 
-    UniformIC ic(7.5);
+    UniformIC ic(density);
     ic.exec(MPI_COMM_WORLD, &dpds, domain, 0);
 
     const int np = dpds.local()->size();
@@ -140,14 +112,42 @@ int main(int argc, char **argv)
         }
     }
     
-        
-    if (success)
-        printf("Success!\n");
-    else
-    {
-        printf("Failed!\n");
-        exit(1);
-    }
+    ASSERT_TRUE(success);
+}
 
-    return 0;
+
+TEST (CELLLISTS, DomainVaries)
+{
+    float rc = 1.0, density = 7.5;
+    
+    test_domain(make_float3(64, 64, 64), rc, density);
+    test_domain(make_float3(64, 32, 16), rc, density);
+}
+
+TEST (CELLLISTS, rcVaries)
+{
+    float3 domain = make_float3(32, 32, 32);
+    float density = 7.5;
+    
+    test_domain(domain, 0.5, density);
+    test_domain(domain, 1.2, density);
+}
+
+TEST (CELLLISTS, DensityVaries)
+{
+    float3 domain = make_float3(32, 32, 32);
+    float rc = 1.0;
+    
+    test_domain(domain, rc, 2.0);
+    test_domain(domain, rc, 8.0);
+}
+
+int main(int argc, char **argv)
+{
+    MPI_Init(&argc, &argv);
+
+    logger.init(MPI_COMM_WORLD, "cells.log", 9);
+    
+    testing::InitGoogleTest(&argc, argv);
+    return RUN_ALL_TESTS();
 }
