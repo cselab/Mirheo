@@ -4,7 +4,8 @@ if(POLICY CMP0060)
     cmake_policy(SET CMP0060 NEW)
 endif()
 
-project(${TEST} LANGUAGES C CXX CUDA)
+project(UDX_UnitTests LANGUAGES C CXX CUDA)
+enable_testing()
 
 # CUDA
 find_package(CUDA REQUIRED)
@@ -23,6 +24,10 @@ if (DEFINED ENV{CRAY_MPICH_DIR})
   set(MPI_CXX_INCLUDE_DIRS "$ENV{CRAY_MPICH_DIR}/include")
 endif()
 
+
+# googletest
+add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/extern/googletest")
+
 include_directories(${MPI_CXX_INCLUDE_DIRS})
 set(CMAKE_C_COMPILER   ${MPI_C_COMPILER})
 set(CMAKE_CXX_COMPILER ${MPI_CXX_COMPILER})
@@ -32,14 +37,28 @@ set(CMAKE_CUDA_HOST_LINK_LAUNCHER ${MPI_CXX_COMPILER})
 set(CMAKE_CXX_STANDARD  11)
 set(CMAKE_CUDA_STANDARD 11)
 
-include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/../../src/ )
+include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/../src/ )
 
-# Find sources
-file(GLOB SOURCES  RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} "${CMAKE_CURRENT_SOURCE_DIR}/*.cu" "${CMAKE_CURRENT_SOURCE_DIR}/*.cpp")
+function (add_test_executable dirName)
+  # Find sources
+  file(GLOB SOURCES RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}"
+    "${CMAKE_CURRENT_SOURCE_DIR}/${dirName}/*.cu"
+    "${CMAKE_CURRENT_SOURCE_DIR}/${dirName}/*.cpp")
 
-add_executable(${TEST} ${SOURCES})
-target_link_libraries(${TEST} PRIVATE ${CUDA_LIBRARIES})
-target_link_libraries(${TEST} PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/../../build/libudevicex_main.so")
+  set(EXEC_NAME "test_${dirName}")
+  
+  add_executable(${EXEC_NAME} ${SOURCES})
+  target_link_libraries(${EXEC_NAME} PRIVATE ${CUDA_LIBRARIES})
+  target_link_libraries(${EXEC_NAME} PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/../build/libudevicex_main.so")
+  target_link_libraries(${EXEC_NAME} PRIVATE gtest gmock gtest_main)
+  add_test(${EXEC_NAME} ${EXEC_NAME})
+endfunction()
+
+add_test_executable(celllists)
+add_test_executable(interaction)
+add_test_executable(pid)
+add_test_executable(scheduler)
+add_test_executable(serializer)
 
 
 # Setup nvcc flags

@@ -1,12 +1,14 @@
 #include <cstdio>
 #include <cmath>
+#include <gtest/gtest.h>
 
 #include "plugins/pid.h"
 #include "core/logger.h"
 
 Logger logger;
 
-int main() {
+TEST (PID, PidEquilibrates)
+{
     float target, Kp, Ki, Kd;
     float state, dt;
     int step_time, nsteps;
@@ -32,10 +34,11 @@ int main() {
         // printf("%g\n", state);
     }
 
-    if (fabs(state - target_end) < tolerance)
-        printf("Success!\n");
-    else
-        printf("Failed");
-    
-    return 0;
+    ASSERT_LE(fabs(state - target_end), tolerance);
+}
+
+int main(int argc, char **argv)
+{
+    testing::InitGoogleTest(&argc, argv);
+    return RUN_ALL_TESTS();
 }
