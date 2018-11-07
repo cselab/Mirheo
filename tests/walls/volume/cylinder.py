@@ -4,10 +4,6 @@ import argparse
 import numpy as np
 import udevicex as udx
 
-parser = argparse.ArgumentParser()
-parser.add_argument("--D", type = float, required = True)
-args = parser.parse_args()
-
 ranks  = (1, 1, 1)
 domain = (16, 16, 8)
 
@@ -25,5 +21,5 @@ np.savetxt("volume.txt", [volume]);
 # nTEST: walls.volume.cylinder
 # cd walls/volume
 # rm -rf volume*txt
-# udx.run --runargs "-n 1" ./cylinder.py --D 1.0 > /dev/null
+# udx.run --runargs "-n 1" ./cylinder.py > /dev/null
 # cp volume.txt volume.out.txt
