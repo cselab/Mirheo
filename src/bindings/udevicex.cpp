@@ -109,6 +109,16 @@ void exportUdevicex(py::module& m)
                 Args:
                     h: cell-size of the resulting grid                    
         )")        
+
+        .def("computeVolumeInsideWalls", &uDeviceX::computeVolumeInsideWalls,
+            "walls"_a, "nSamplesPerRank"_a=100000, R"(
+                Compute the volume inside the given walls in the whole domain (negative values are the 'inside' of the simulation).
+                The computation is made via simple Monte-Carlo.
+                
+                Args:
+                    walls: sdf based walls
+                    nSamplesPerRank: number of Monte-Carlo samples used per rank
+        )")        
         
         .def("applyObjectBelongingChecker",    &uDeviceX::applyObjectBelongingChecker,
             "checker"_a, "pv"_a, "correct_every"_a=0, "inside"_a="", "outside"_a="", R"(
