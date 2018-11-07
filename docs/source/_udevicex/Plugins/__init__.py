@@ -391,14 +391,14 @@ def createImposeProfile():
     pass
 
 def createImposeVelocity():
-    r"""createImposeVelocity(name: str, pv: ParticleVectors.ParticleVector, every: int, low: Tuple[float, float, float], high: Tuple[float, float, float], velocity: Tuple[float, float, float]) -> Tuple[Plugins.ImposeVelocity, Plugins.PostprocessPlugin]
+    r"""createImposeVelocity(name: str, pvs: List[ParticleVectors.ParticleVector], every: int, low: Tuple[float, float, float], high: Tuple[float, float, float], velocity: Tuple[float, float, float]) -> Tuple[Plugins.ImposeVelocity, Plugins.PostprocessPlugin]
 
 
         Create :any:`ImposeVelocity` plugin
         
         Args:
             name: name of the plugin
-            pv: :any:`ParticleVector` that we'll work with
+            pvs: list of :any:`ParticleVector` that we'll work with
             every: change the velocities once in **every** timestep
             low: the lower corner of the domain
             high: the higher corner of the domain

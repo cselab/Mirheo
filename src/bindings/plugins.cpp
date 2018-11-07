@@ -183,12 +183,12 @@ void exportPlugins(py::module& m)
 
     
     m.def("__createImposeVelocity", &PluginFactory::createImposeVelocityPlugin,
-        "compute_task"_a, "name"_a, "pv"_a, "every"_a, "low"_a, "high"_a, "velocity"_a, R"(
+        "compute_task"_a, "name"_a, "pvs"_a, "every"_a, "low"_a, "high"_a, "velocity"_a, R"(
         Create :any:`ImposeVelocity` plugin
         
         Args:
             name: name of the plugin
-            pv: :any:`ParticleVector` that we'll work with
+            pvs: list of :any:`ParticleVector` that we'll work with
             every: change the velocities once in **every** timestep
             low: the lower corner of the domain
             high: the higher corner of the domain

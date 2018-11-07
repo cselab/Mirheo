@@ -31,11 +31,13 @@ namespace PluginFactory
 {
     static std::pair< ImposeVelocityPlugin*, PostprocessPlugin* >
         createImposeVelocityPlugin(bool computeTask, 
-            std::string name, ParticleVector* pv, int every,
+            std::string name, std::vector<ParticleVector*> pvs, int every,
             PyTypes::float3 low, PyTypes::float3 high, PyTypes::float3 velocity)
     {
+        std::vector<std::string> pvNames;
+        for (auto& pv : pvs) pvNames.push_back(pv->name);
         auto simPl = computeTask ? new ImposeVelocityPlugin(
-                                        name, pv->name, make_float3(low), make_float3(high), make_float3(velocity), every) :
+                                        name, pvNames, make_float3(low), make_float3(high), make_float3(velocity), every) :
                                     nullptr;
                                     
         return { simPl, nullptr };

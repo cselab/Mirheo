@@ -13,8 +13,8 @@ class ParticleVector;
 class ImposeVelocityPlugin : public SimulationPlugin
 {
 public:
-    ImposeVelocityPlugin(std::string name, std::string pvName, float3 low, float3 high, float3 targetVel, int every) :
-        SimulationPlugin(name), pvName(pvName), low(low), high(high), targetVel(targetVel), every(every)
+    ImposeVelocityPlugin(std::string name, std::vector<std::string> pvNames, float3 low, float3 high, float3 targetVel, int every) :
+        SimulationPlugin(name), pvNames(pvNames), low(low), high(high), targetVel(targetVel), every(every)
     {    }
 
     void setup(Simulation* sim, const MPI_Comm& comm, const MPI_Comm& interComm) override;
@@ -25,8 +25,8 @@ public:
     void setTargetVelocity(PyTypes::float3 v);
     
 private:
-    std::string pvName;
-    ParticleVector* pv;
+    std::vector<std::string> pvNames;
+    std::vector<ParticleVector*> pvs;
 
     float3 high, low;
     float3 targetVel;
@@ -34,6 +34,6 @@ private:
     int every;
 
     PinnedBuffer<int> nSamples{1};
-    PinnedBuffer<float3> totVel{1};
+    PinnedBuffer<double3> totVel{1};
 };
 
