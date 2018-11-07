@@ -1,3 +1,5 @@
+#include <curand_kernel.h>
+
 #include "wall_helpers.h"
 
 #include <core/logger.h>
@@ -44,6 +46,24 @@ namespace wall_helpers_kernels
             if (!QUERY)
                 p.write2Float4(frozen, ind);
         }
+    }
+
+    __global__ void initRandomPositions(int n, float3 *positions, long seed, float3 localSize)
+    {
+        const int i = blockIdx.x * blockDim.x + threadIdx.x;
+
+        if (i >= n) return;
+        
+        curandState_t state;
+        float3 r;
+        
+        curand_init(seed, i, 0, &state);
+        
+        r.x = localSize.x * (curand_uniform(&state) - 0.5f);
+        r.y = localSize.y * (curand_uniform(&state) - 0.5f);
+        r.z = localSize.z * (curand_uniform(&state) - 0.5f);
+
+        positions[i] = r;
     }
 
     __global__ void countInside(int n, const float *sdf, int *nInside, float threshold = 0.f)
@@ -172,16 +192,21 @@ void dumpWalls2XDMF(std::vector<SDF_basedWall*> walls, float3 gridH, DomainInfo 
 }
 
 
-double volumeInsideWalls(std::vector<SDF_basedWall*> walls, DomainInfo domain, MPI_Comm comm, long nsamplesPerRank)
+double volumeInsideWalls(std::vector<SDF_basedWall*> walls, DomainInfo domain, MPI_Comm comm, long nSamplesPerRank)
 {
-    long n = nsamplesPerRank;
-    DeviceBuffer<float3> positions(nsamplesPerRank);
-    DeviceBuffer<float> sdfs(nsamplesPerRank), sdfs_merged(nsamplesPerRank);
+    long n = nSamplesPerRank;
+    DeviceBuffer<float3> positions(n);
+    DeviceBuffer<float> sdfs(n), sdfs_merged(n);
     PinnedBuffer<int> nInside(0);
 
     const int nthreads = 128;
     const int nblocks = getNblocks(n, nthreads);
     const float initial = -1e5;
+
+    SAFE_KERNEL_LAUNCH
+        (wall_helpers_kernels::initRandomPositions,
+         nblocks, nthreads, 0, default_stream,
+         n, positions.devPtr(), 424242, domain.localSize);
 
     SAFE_KERNEL_LAUNCH
         (wall_helpers_kernels::init_sdf,
