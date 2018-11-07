@@ -6,6 +6,17 @@
 
 #include <core/pvs/views/pv.h>
 
+enum class InteractionWith
+{
+    Self, Other
+};
+
+enum class InteractionOut
+{
+    NeedAcc, NoAcc
+};
+
+
 /// Squared distance between vectors with components
 /// (\p a.x, \p a.y, \p a.z) and (\p b.x, \p b.y, \p b.z)
 template<typename Ta, typename Tb>
@@ -50,7 +61,7 @@ __device__ inline float distance2(const Ta a, const Tb b)
  * forces, such that either p1 \<-\> p2 or p2 \<-\> p1 is ignored
  * based on particle ids
  */
-template<bool NeedDstAcc, bool NeedSrcAcc, bool Self, typename Interaction>
+template<InteractionOut NeedDstAcc, InteractionOut NeedSrcAcc, InteractionWith InteractWith, typename Interaction>
 __device__ inline void computeCell(
         int pstart, int pend,
         Particle dstP, int dstId, float3& dstFrc,
@@ -64,7 +75,7 @@ __device__ inline void computeCell(
 
         bool interacting = distance2(srcP.r, dstP.r) < rc2;
 
-        if (Self)
+        if (InteractWith == InteractionWith::Self)
             if (dstId <= srcId) interacting = false;
 
         if (interacting)
@@ -73,10 +84,10 @@ __device__ inline void computeCell(
 
             float3 frc = interaction(dstP, dstId, srcP, srcId);
 
-            if (NeedDstAcc)
+            if (NeedDstAcc == InteractionOut::NeedAcc)
                 dstFrc += frc;
 
-            if (NeedSrcAcc)
+            if (NeedSrcAcc == InteractionOut::NeedAcc)
                 atomicAdd(cinfo.forces + srcId, -frc);
         }
     }
@@ -129,9 +140,9 @@ __global__ void computeSelfInteractions(
                 const int pend   = cinfo.cellStarts[rowEnd];
 
                 if (cellY == cell0.y && cellZ == cell0.z)
-                    computeCell<true, true, true>  (pstart, pend, dstP, dstId, dstFrc, cinfo, rc2, interaction);
+                    computeCell<InteractionOut::NeedAcc, InteractionOut::NeedAcc, InteractionWith::Self>  (pstart, pend, dstP, dstId, dstFrc, cinfo, rc2, interaction);
                 else
-                    computeCell<true, true, false> (pstart, pend, dstP, dstId, dstFrc, cinfo, rc2, interaction);
+                    computeCell<InteractionOut::NeedAcc, InteractionOut::NeedAcc, InteractionWith::Other> (pstart, pend, dstP, dstId, dstFrc, cinfo, rc2, interaction);
             }
 
     atomicAdd(cinfo.forces + dstId, dstFrc);
@@ -165,13 +176,14 @@ __global__ void computeSelfInteractions(
  * @tparam Variant performance related parameter. \e true is better for
  * densely mixed stuff, \e false is better for halo
  */
-template<bool NeedDstAcc, bool NeedSrcAcc, bool Variant, typename Interaction>
+template<InteractionOut NeedDstAcc, InteractionOut NeedSrcAcc, bool Variant, typename Interaction>
 __launch_bounds__(128, 16)
 __global__ void computeExternalInteractions_1tpp(
         PVview dstView, CellListInfo srcCinfo,
         const float rc2, Interaction interaction)
 {
-    static_assert(NeedDstAcc || NeedSrcAcc, "External interactions should return at least some accelerations");
+    static_assert(NeedDstAcc == InteractionOut::NeedAcc || NeedSrcAcc == InteractionOut::NeedAcc,
+                  "External interactions should return at least some accelerations");
 
     const int dstId = blockIdx.x*blockDim.x + threadIdx.x;
     if (dstId >= dstView.size) return;
@@ -197,7 +209,7 @@ __global__ void computeExternalInteractions_1tpp(
                 const int pstart = srcCinfo.cellStarts[rowStart];
                 const int pend   = srcCinfo.cellStarts[rowEnd];
 
-                computeCell<NeedDstAcc, NeedSrcAcc, false> (pstart, pend, dstP, dstId, dstFrc, srcCinfo, rc2, interaction);
+                computeCell<NeedDstAcc, NeedSrcAcc, InteractionWith::Other> (pstart, pend, dstP, dstId, dstFrc, srcCinfo, rc2, interaction);
             }
             else
             {
@@ -209,11 +221,11 @@ __global__ void computeExternalInteractions_1tpp(
                     const int pstart = srcCinfo.cellStarts[cid];
                     const int pend   = srcCinfo.cellStarts[cid+1];
 
-                    computeCell<NeedDstAcc, NeedSrcAcc, false> (pstart, pend, dstP, dstId, dstFrc, srcCinfo, rc2, interaction);
+                    computeCell<NeedDstAcc, NeedSrcAcc, InteractionWith::Other> (pstart, pend, dstP, dstId, dstFrc, srcCinfo, rc2, interaction);
                 }
             }
 
-    if (NeedDstAcc)
+    if (NeedDstAcc == InteractionOut::NeedAcc)
         atomicAdd(dstView.forces + dstId, dstFrc);
 }
 
@@ -223,13 +235,14 @@ __global__ void computeExternalInteractions_1tpp(
  * Mapping is three threads per particle. The rest is similar to
  * computeExternalInteractions_1tpp()
  */
-template<bool NeedDstAcc, bool NeedSrcAcc, bool Variant, typename Interaction>
+template<InteractionOut NeedDstAcc, InteractionOut NeedSrcAcc, bool Variant, typename Interaction>
 __launch_bounds__(128, 16)
 __global__ void computeExternalInteractions_3tpp(
         PVview dstView, CellListInfo srcCinfo,
         const float rc2, Interaction interaction)
 {
-    static_assert(NeedDstAcc || NeedSrcAcc, "External interactions should return at least some accelerations");
+    static_assert(NeedDstAcc == InteractionOut::NeedAcc || NeedSrcAcc == InteractionOut::NeedAcc,
+                  "External interactions should return at least some accelerations");
 
     const int gid = blockIdx.x*blockDim.x + threadIdx.x;
 
@@ -260,7 +273,7 @@ __global__ void computeExternalInteractions_3tpp(
             const int pstart = srcCinfo.cellStarts[rowStart];
             const int pend   = srcCinfo.cellStarts[rowEnd];
 
-            computeCell<NeedDstAcc, NeedSrcAcc, false> (pstart, pend, dstP, dstId, dstFrc, srcCinfo, rc2, interaction);
+            computeCell<NeedDstAcc, NeedSrcAcc, InteractionWith::Other> (pstart, pend, dstP, dstId, dstFrc, srcCinfo, rc2, interaction);
         }
         else
         {
@@ -272,11 +285,11 @@ __global__ void computeExternalInteractions_3tpp(
                 const int pstart = srcCinfo.cellStarts[cid];
                 const int pend   = srcCinfo.cellStarts[cid+1];
 
-                computeCell<NeedDstAcc, NeedSrcAcc, false> (pstart, pend, dstP, dstId, dstFrc, srcCinfo, rc2, interaction);
+                computeCell<NeedDstAcc, NeedSrcAcc, InteractionWith::Other> (pstart, pend, dstP, dstId, dstFrc, srcCinfo, rc2, interaction);
             }
         }
 
-    if (NeedDstAcc)
+    if (NeedDstAcc == InteractionOut::NeedAcc)
         atomicAdd(dstView.forces + dstId, dstFrc);
 }
 
@@ -286,13 +299,14 @@ __global__ void computeExternalInteractions_3tpp(
  * Mapping is nine threads per particle. The rest is similar to
  * computeExternalInteractions_1tpp()
  */
-template<bool NeedDstAcc, bool NeedSrcAcc, bool Variant, typename Interaction>
+template<InteractionOut NeedDstAcc, InteractionOut NeedSrcAcc, bool Variant, typename Interaction>
 __launch_bounds__(128, 16)
 __global__ void computeExternalInteractions_9tpp(
         PVview dstView, CellListInfo srcCinfo,
         const float rc2, Interaction interaction)
 {
-    static_assert(NeedDstAcc || NeedSrcAcc, "External interactions should return at least some accelerations");
+    static_assert(NeedDstAcc == InteractionOut::NeedAcc || NeedSrcAcc == InteractionOut::NeedAcc,
+                  "External interactions should return at least some accelerations");
 
     const int gid = blockIdx.x*blockDim.x + threadIdx.x;
 
@@ -323,7 +337,7 @@ __global__ void computeExternalInteractions_9tpp(
         const int pstart = srcCinfo.cellStarts[rowStart];
         const int pend   = srcCinfo.cellStarts[rowEnd];
 
-        computeCell<NeedDstAcc, NeedSrcAcc, false> (pstart, pend, dstP, dstId, dstFrc, srcCinfo, rc2, interaction);
+        computeCell<NeedDstAcc, NeedSrcAcc, InteractionWith::Other> (pstart, pend, dstP, dstId, dstFrc, srcCinfo, rc2, interaction);
     }
     else
     {
@@ -335,11 +349,11 @@ __global__ void computeExternalInteractions_9tpp(
             const int pstart = srcCinfo.cellStarts[cid];
             const int pend   = srcCinfo.cellStarts[cid+1];
 
-            computeCell<NeedDstAcc, NeedSrcAcc, false> (pstart, pend, dstP, dstId, dstFrc, srcCinfo, rc2, interaction);
+            computeCell<NeedDstAcc, NeedSrcAcc, InteractionWith::Other> (pstart, pend, dstP, dstId, dstFrc, srcCinfo, rc2, interaction);
         }
     }
 
-    if (NeedDstAcc)
+    if (NeedDstAcc == InteractionOut::NeedAcc)
         atomicAdd(dstView.forces + dstId, dstFrc);
 }
 
@@ -349,13 +363,14 @@ __global__ void computeExternalInteractions_9tpp(
  * Mapping is 27 threads per particle. The rest is similar to
  * computeExternalInteractions_1tpp()
  */
-template<bool NeedDstAcc, bool NeedSrcAcc, bool Variant, typename Interaction>
+template<InteractionOut NeedDstAcc, InteractionOut NeedSrcAcc, bool Variant, typename Interaction>
 __launch_bounds__(128, 16)
 __global__ void computeExternalInteractions_27tpp(
         PVview dstView, CellListInfo srcCinfo,
         const float rc2, Interaction interaction)
 {
-    static_assert(NeedDstAcc || NeedSrcAcc, "External interactions should return at least some accelerations");
+    static_assert(NeedDstAcc == InteractionOut::NeedAcc || NeedSrcAcc == InteractionOut::NeedAcc,
+                  "External interactions should return at least some accelerations");
 
     const int gid = blockIdx.x*blockDim.x + threadIdx.x;
 
@@ -384,8 +399,8 @@ __global__ void computeExternalInteractions_27tpp(
     const int pstart = srcCinfo.cellStarts[cid];
     const int pend   = srcCinfo.cellStarts[cid+1];
 
-    computeCell<NeedDstAcc, NeedSrcAcc, false> (pstart, pend, dstP, dstId, dstFrc, srcCinfo, rc2, interaction);
+    computeCell<NeedDstAcc, NeedSrcAcc, InteractionWith::Other> (pstart, pend, dstP, dstId, dstFrc, srcCinfo, rc2, interaction);
 
-    if (NeedDstAcc)
+    if (NeedDstAcc == InteractionOut::NeedAcc)
         atomicAdd(dstView.forces + dstId, dstFrc);
 }
