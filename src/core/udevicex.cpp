@@ -233,7 +233,7 @@ void uDeviceX::dumpWalls2XDMF(std::vector<std::shared_ptr<Wall>> walls, PyTypes:
 
 double uDeviceX::computeVolumeInsideWalls(std::vector<std::shared_ptr<Wall>> walls, long nSamplesPerRank)
 {
-    if (isComputeTask()) return 0;
+    if (!isComputeTask()) return 0;
 
     info("Computing volume inside walls\n");
     

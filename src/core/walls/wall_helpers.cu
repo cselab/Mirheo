@@ -197,7 +197,7 @@ double volumeInsideWalls(std::vector<SDF_basedWall*> walls, DomainInfo domain, M
     long n = nSamplesPerRank;
     DeviceBuffer<float3> positions(n);
     DeviceBuffer<float> sdfs(n), sdfs_merged(n);
-    PinnedBuffer<int> nInside(0);
+    PinnedBuffer<int> nInside(1);
 
     const int nthreads = 128;
     const int nblocks = getNblocks(n, nthreads);
@@ -227,7 +227,7 @@ double volumeInsideWalls(std::vector<SDF_basedWall*> walls, DomainInfo domain, M
     SAFE_KERNEL_LAUNCH
         (wall_helpers_kernels::countInside,
          nblocks, nthreads, 0, default_stream,
-         n, sdfs.devPtr(), nInside.devPtr());
+         n, sdfs_merged.devPtr(), nInside.devPtr());
 
     nInside.downloadFromDevice(default_stream, ContainersSynch::Synch);
 
