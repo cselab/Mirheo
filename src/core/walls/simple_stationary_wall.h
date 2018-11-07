@@ -25,6 +25,7 @@ public:
     void check(cudaStream_t stream) override;
 
     void sdfPerParticle(LocalParticleVector* pv, GPUcontainer* sdfs, GPUcontainer* gradients, cudaStream_t stream) override;
+    void sdfPerPosition(GPUcontainer *positions, GPUcontainer* sdfs, cudaStream_t stream) override;
     void sdfOnGrid(float3 gridH, GPUcontainer* sdfs, cudaStream_t stream) override;
 
 

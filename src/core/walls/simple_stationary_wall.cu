@@ -284,6 +284,17 @@ __global__ void computeSdfPerParticle(PVview view, float* sdfs, float3* gradient
 
 
 template<typename InsideWallChecker>
+__global__ void computeSdfPerPosition(int n, const float3 *positions, float* sdfs, InsideWallChecker checker)
+{
+    int pid = blockIdx.x * blockDim.x + threadIdx.x;
+    if (pid >= n) return;
+    
+    auto r = positions[pid];    
+
+    sdfs[pid] = checker(r);
+}
+
+template<typename InsideWallChecker>
 __global__ void computeSdfOnGrid(CellListInfo gridInfo, float* sdfs, InsideWallChecker checker)
 {
     const int nid = blockIdx.x * blockDim.x + threadIdx.x;
@@ -508,6 +519,27 @@ void SimpleStationaryWall<InsideWallChecker>::sdfPerParticle(LocalParticleVector
             getNblocks(view.size, nthreads), nthreads, 0, stream,
             view, (float*)sdfs->genericDevPtr(),
             (gradients != nullptr) ? (float3*)gradients->genericDevPtr() : nullptr, insideWallChecker.handler() );
+}
+
+
+template<class InsideWallChecker>
+void SimpleStationaryWall<InsideWallChecker>::sdfPerPosition(GPUcontainer *positions, GPUcontainer* sdfs, cudaStream_t stream)
+{
+    int n = positions->size();
+    
+    if (sizeof(float) % sdfs->datatype_size() != 0)
+        die("Incompatible datatype size of container for SDF values: %d (sampling sdf on positions)",
+            sdfs->datatype_size());
+
+    if (sizeof(float3) % sdfs->datatype_size() != 0)
+        die("Incompatible datatype size of container for Psitions values: %d (sampling sdf on positions)",
+            positions->datatype_size());
+    
+    const int nthreads = 128;
+    SAFE_KERNEL_LAUNCH(
+            computeSdfPerPosition,
+            getNblocks(n, nthreads), nthreads, 0, stream,
+            n, (float3*)positions->genericDevPtr(), (float*)sdfs->genericDevPtr(), insideWallChecker.handler() );
 }
 
 
