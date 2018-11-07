@@ -231,6 +231,28 @@ void uDeviceX::dumpWalls2XDMF(std::vector<std::shared_ptr<Wall>> walls, PyTypes:
     ::dumpWalls2XDMF(sdfWalls, make_float3(h), sim->domain, filename, sim->cartComm);
 }
 
+double uDeviceX::computeVolumeInsideWalls(std::vector<std::shared_ptr<Wall>> walls, long nSamplesPerRank)
+{
+    if (isComputeTask()) return 0;
+
+    info("Computing volume inside walls\n");
+    
+    std::vector<SDF_basedWall*> sdfWalls;
+    for (auto &wall : walls)
+    {
+        auto sdfWall = dynamic_cast<SDF_basedWall*>(wall.get());
+        if (sdfWall == nullptr)
+            die("Only sdf-based walls are supported!");        
+        else
+            sdfWalls.push_back(sdfWall);
+
+        // Check if the wall is set up
+        sim->getWallByNameOrDie(wall->name());
+    }
+
+    return volumeInsideWalls(sdfWalls, sim->domain, sim->cartComm, nSamplesPerRank);
+}
+
 std::shared_ptr<ParticleVector> uDeviceX::makeFrozenWallParticles(std::string pvName,
                                                                   std::vector<std::shared_ptr<Wall>> walls,
                                                                   std::shared_ptr<Interaction> interaction,
