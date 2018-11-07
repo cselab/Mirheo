@@ -56,7 +56,8 @@ class ExchangePVSFluxPlane(SimulationPlugin):
     """
 class ImposeProfile(SimulationPlugin):
     r"""
-        TODO
+        This plugin will set the velocity of each particle inside a given domain to a target velocity with an additive term 
+        drawn from Maxwell distribution of the given temperature. 
     
     """
 class ImposeVelocity(SimulationPlugin):
@@ -78,7 +79,10 @@ class MembraneExtraForce(SimulationPlugin):
     
     """
 class MeshDumper(PostprocessPlugin):
-    r"""None
+    r"""
+        Postprocess side plugin of :any:`MeshPlugin`.
+        Responsible for performing the data reductions and I/O.
+    
     """
 class MeshPlugin(SimulationPlugin):
     r"""
@@ -105,14 +109,32 @@ class ObjPositions(SimulationPlugin):
     
     """
 class ObjPositionsDumper(PostprocessPlugin):
-    r"""None
+    r"""
+        Postprocess side plugin of :any:`ObjPositions`.
+        Responsible for performing the I/O.
+    
     """
 class ParticleDumperPlugin(PostprocessPlugin):
-    r"""None
+    r"""
+        Postprocess side plugin of :any:`ParticleSenderPlugin`.
+        Responsible for performing the I/O.
+    
     """
 class ParticleSenderPlugin(SimulationPlugin):
     r"""
         This plugin will dump positions, velocities and optional attached data of all the particles of the specified Particle Vector.
+        The data is dumped into hdf5 format. An additional xdfm file is dumped to describe the data and make it readable by visualization tools. 
+    
+    """
+class ParticleWithMeshDumperPlugin(PostprocessPlugin):
+    r"""
+        Postprocess side plugin of :any:`ParticleWithMeshSenderPlugin`.
+        Responsible for performing the I/O.
+    
+    """
+class ParticleWithMeshSenderPlugin(SimulationPlugin):
+    r"""
+        This plugin will dump positions, velocities and optional attached data of all the particles of the specified Object Vector, as well as connectivity information.
         The data is dumped into hdf5 format. An additional xdfm file is dumped to describe the data and make it readable by visualization tools. 
     
     """
@@ -127,13 +149,22 @@ class PinObject(SimulationPlugin):
     
     """
 class PostprocessStats(PostprocessPlugin):
-    r"""None
+    r"""
+        Postprocess side plugin of :any:`SimulationStats`.
+        Responsible for performing the data reductions and I/O.
+    
     """
 class PostprocessVelocityControl(PostprocessPlugin):
-    r"""None
+    r"""
+        Postprocess side plugin of :any:`VelocityControl`.
+        Responsible for performing the I/O.
+    
     """
 class ReportPinObject(PostprocessPlugin):
-    r"""None
+    r"""
+        Postprocess side plugin of :any:`PinObject`.
+        Responsible for performing the I/O.
+    
     """
 class SimulationStats(SimulationPlugin):
     r"""
@@ -147,11 +178,16 @@ class SimulationStats(SimulationPlugin):
     """
 class Temperaturize(SimulationPlugin):
     r"""
-        TODO
+        This plugin changes the velocity of each particles from a given :any:`ParticleVector`.
+        It can operate under two modes: `keepVelocity = True`, in which case it adds a term drawn from a Maxwell distribution to the current velocity;
+        `keepVelocity = False`, in which case it sets the velocity to a term drawn from a Maxwell distribution.
     
     """
 class UniformCartesianDumper(PostprocessPlugin):
-    r"""None
+    r"""
+        Postprocess side plugin of :any:`Average3D` or :any:`AverageRelative3D`.
+        Responsible for performing the I/O.
+    
     """
     def get_channel_view():
         r"""get_channel_view(arg0: str) -> array
@@ -184,7 +220,10 @@ class WallRepulsion(SimulationPlugin):
     
     """
 class XYZDumper(PostprocessPlugin):
-    r"""None
+    r"""
+        Postprocess side plugin of :any:`XYZPlugin`.
+        Responsible for the I/O part.
+    
     """
 class XYZPlugin(SimulationPlugin):
     r"""
@@ -340,6 +379,32 @@ def createDumpParticles():
     """
     pass
 
+def createDumpParticlesWithMesh():
+    r"""createDumpParticlesWithMesh(name: str, ov: ParticleVectors.ObjectVector, dump_every: int, channels: List[Tuple[str, str]], path: str) -> Tuple[Plugins.ParticleWithMeshSenderPlugin, Plugins.ParticleWithMeshDumperPlugin]
+
+
+        Create :any:`ParticleWithMeshSenderPlugin` plugin
+        
+        Args:
+            name: name of the plugin
+            ov: :any:`ObjectVector` that we'll work with
+            dump_every: write files every this many time-steps 
+            path: Path and filename prefix for the dumps. For every dump two files will be created: <path>_NNNNN.xmf and <path>_NNNNN.h5
+            channels: list of pairs name - type.
+                Name is the channel (per particle) name.
+                The "velocity" channel is always activated by default.
+                Type is to provide the type of quantity to extract from the channel.                                            
+                Available types are:                                                                             
+                                                                                                                
+                * 'scalar': 1 float per particle
+                * 'vector': 3 floats per particle
+                * 'tensor6': 6 floats per particle, symmetric tensor in order xx, xy, xz, yy, yz, zz
+                
+    
+
+    """
+    pass
+
 def createDumpXYZ():
     r"""createDumpXYZ(name: str, pv: ParticleVectors.ParticleVector, dump_every: int, path: str) -> Tuple[Plugins.XYZPlugin, Plugins.XYZDumper]
 
@@ -459,10 +524,16 @@ def createStats():
     pass
 
 def createTemperaturize():
-    r"""createTemperaturize(arg0: bool, arg1: str, arg2: ParticleVectors.ParticleVector, arg3: float, arg4: bool) -> Tuple[Plugins.Temperaturize, Plugins.PostprocessPlugin]
+    r"""createTemperaturize(name: str, pv: ParticleVectors.ParticleVector, kbt: float, keepVelocity: bool) -> Tuple[Plugins.Temperaturize, Plugins.PostprocessPlugin]
 
 
-        TODO
+        Create :any:`Temperaturize` plugin
+
+        Args:
+            name: name of the plugin
+            pv: the concerned :any:`ParticleVector`
+            kbt: the target temperature
+            keepVelocity: True for adding Maxwell distribution to the previous velocity; False to set the velocity to a Maxwell distribution.
     
 
     """

@@ -15,11 +15,11 @@ __global__ void addForce(PVview view, float3 force)
     view.forces[gid] += make_float4(force, 0.0f);
 }
 
-void AddForcePlugin::setup(Simulation* sim, const MPI_Comm& comm, const MPI_Comm& interComm)
+void AddForcePlugin::setup(Simulation* simulation, const MPI_Comm& comm, const MPI_Comm& interComm)
 {
-    SimulationPlugin::setup(sim, comm, interComm);
+    SimulationPlugin::setup(simulation, comm, interComm);
 
-    pv = sim->getPVbyNameOrDie(pvName);
+    pv = simulation->getPVbyNameOrDie(pvName);
 }
 
 void AddForcePlugin::beforeForces(cudaStream_t stream)

@@ -12,7 +12,7 @@ class ExchangePVSFluxPlanePlugin : public SimulationPlugin
 public:
     ExchangePVSFluxPlanePlugin(std::string name, std::string pv1Name, std::string pv2Name, float4 plane);
 
-    void setup(Simulation* sim, const MPI_Comm& comm, const MPI_Comm& interComm) override;
+    void setup(Simulation* simulation, const MPI_Comm& comm, const MPI_Comm& interComm) override;
     void beforeParticleDistribution(cudaStream_t stream) override;
 
     bool needPostproc() override { return false; }

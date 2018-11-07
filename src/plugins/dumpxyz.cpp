@@ -11,11 +11,11 @@ XYZPlugin::XYZPlugin(std::string name, std::string pvName, int dumpEvery) :
     dumpEvery(dumpEvery)
 { }
 
-void XYZPlugin::setup(Simulation* sim, const MPI_Comm& comm, const MPI_Comm& interComm)
+void XYZPlugin::setup(Simulation* simulation, const MPI_Comm& comm, const MPI_Comm& interComm)
 {
-    SimulationPlugin::setup(sim, comm, interComm);
+    SimulationPlugin::setup(simulation, comm, interComm);
 
-    pv = sim->getPVbyNameOrDie(pvName);
+    pv = simulation->getPVbyNameOrDie(pvName);
 
     info("Plugin %s initialized for the following particle vector: %s", name.c_str(), pvName.c_str());
 }
@@ -34,7 +34,7 @@ void XYZPlugin::serializeAndSend(cudaStream_t stream)
     debug2("Plugin %s is sending now data", name.c_str());
 
     for (auto& p : downloaded)
-        p.r = sim->domain.local2global(p.r);
+        p.r = simulation->domain.local2global(p.r);
 
     waitPrevSend();
     SimpleSerializer::serialize(data, pv->name, downloaded);

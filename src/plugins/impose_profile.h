@@ -17,7 +17,7 @@ public:
         SimulationPlugin(name), pvName(pvName), low(low), high(high), targetVel(targetVel), kbT(kbT)
     {    }
 
-    void setup(Simulation* sim, const MPI_Comm& comm, const MPI_Comm& interComm) override;
+    void setup(Simulation* simulation, const MPI_Comm& comm, const MPI_Comm& interComm) override;
     void afterIntegration(cudaStream_t stream) override;
 
     bool needPostproc() override { return false; }

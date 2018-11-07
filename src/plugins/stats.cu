@@ -45,7 +45,7 @@ void SimulationStats::afterIntegration(cudaStream_t stream)
 {
     if (currentTimeStep % fetchEvery != 0) return;
 
-    auto pvs = sim->getParticleVectors();
+    auto pvs = simulation->getParticleVectors();
 
     momentum.clear(stream);
     energy  .clear(stream);

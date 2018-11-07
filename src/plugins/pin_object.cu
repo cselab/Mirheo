@@ -134,11 +134,11 @@ PinObjectPlugin::PinObjectPlugin(std::string name, std::string ovName, float3 tr
     reportEvery(reportEvery)
 {    }
 
-void PinObjectPlugin::setup(Simulation* sim, const MPI_Comm& comm, const MPI_Comm& interComm)
+void PinObjectPlugin::setup(Simulation* simulation, const MPI_Comm& comm, const MPI_Comm& interComm)
 {
-    SimulationPlugin::setup(sim, comm, interComm);
+    SimulationPlugin::setup(simulation, comm, interComm);
 
-    ov = sim->getOVbyNameOrDie(ovName);
+    ov = simulation->getOVbyNameOrDie(ovName);
 
     int myNObj = ov->local()->nObjects;
     int totObjs;
@@ -202,7 +202,7 @@ void PinObjectPlugin::afterIntegration(cudaStream_t stream)
         SAFE_KERNEL_LAUNCH(
                 restrictRigidMotion,
                 getNblocks(view.nObjects, nthreads), nthreads, 0, stream,
-                view, translation, rotation, sim->getCurrentDt(),
+                view, translation, rotation, simulation->getCurrentDt(),
                 forces.devPtr(), torques.devPtr() );
     }
 }

@@ -35,11 +35,11 @@ MembraneExtraForcePlugin::MembraneExtraForcePlugin(std::string name, std::string
     this->forces.copy(hostForces, 0);
 }
 
-void MembraneExtraForcePlugin::setup(Simulation *sim, const MPI_Comm& comm, const MPI_Comm& interComm)
+void MembraneExtraForcePlugin::setup(Simulation *simulation, const MPI_Comm& comm, const MPI_Comm& interComm)
 {
-    SimulationPlugin::setup(sim, comm, interComm);
+    SimulationPlugin::setup(simulation, comm, interComm);
 
-    auto pv_ptr = sim->getPVbyNameOrDie(pvName);
+    auto pv_ptr = simulation->getPVbyNameOrDie(pvName);
     if ( !(pv = dynamic_cast<MembraneVector*>(pv_ptr)) )
         die("MembraneExtraForcePlugin '%s' expects a MembraneVector (given '%s')", name.c_str(), pvName.c_str());
 }

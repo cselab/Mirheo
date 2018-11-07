@@ -210,7 +210,7 @@ ParticleVector::~ParticleVector()
 }
 
 ParticleVector::ParticleVector( std::string name, float mass, LocalParticleVector *local, LocalParticleVector *halo ) :
-    UdxObject(name), mass(mass), _local(local), _halo(halo)
+    UdxSimulationObject(name), mass(mass), _local(local), _halo(halo)
 {
     // usually old positions and velocities don't need to exchanged
     requireDataPerParticle<Particle> ("old_particles", false);

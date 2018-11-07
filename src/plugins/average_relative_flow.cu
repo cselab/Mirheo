@@ -49,9 +49,9 @@ AverageRelative3D::AverageRelative3D(
 
 {    }
 
-void AverageRelative3D::setup(Simulation* sim, const MPI_Comm& comm, const MPI_Comm& interComm)
+void AverageRelative3D::setup(Simulation* simulation, const MPI_Comm& comm, const MPI_Comm& interComm)
 {
-    Average3D::setup(sim, comm, interComm);
+    Average3D::setup(simulation, comm, interComm);
 
     int local_size = density.size();
     int global_size = local_size * nranks;
@@ -61,7 +61,7 @@ void AverageRelative3D::setup(Simulation* sim, const MPI_Comm& comm, const MPI_C
     accumulated_density.resize_anew(global_size);
     density.clear(0);
 
-    domain = sim->domain;
+    domain = simulation->domain;
 
     localChannels.resize(channelsInfo.n);
 
@@ -79,7 +79,7 @@ void AverageRelative3D::setup(Simulation* sim, const MPI_Comm& comm, const MPI_C
     channelsInfo.types.uploadToDevice(0);
 
     // Relative stuff
-    relativeOV = sim->getOVbyNameOrDie(relativeOVname);
+    relativeOV = simulation->getOVbyNameOrDie(relativeOVname);
 
     if ( !relativeOV->local()->extraPerObject.checkChannelExists("motions") )
         die("Only rigid objects are supported for relative flow, but got OV '%s'", relativeOV->name.c_str());
@@ -168,8 +168,8 @@ void AverageRelative3D::extractLocalBlock()
 
         int ncomponents = this->getNcomponents(type);
 
-        int3 globalResolution = resolution * sim->nranks3D;
-        int3 rank3D = sim->rank3D;
+        int3 globalResolution = resolution * simulation->nranks3D;
+        int3 rank3D = simulation->rank3D;
 
         double factor;
         int dstId = 0;

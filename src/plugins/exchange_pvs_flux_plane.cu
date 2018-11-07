@@ -55,12 +55,12 @@ ExchangePVSFluxPlanePlugin::ExchangePVSFluxPlanePlugin(std::string name, std::st
 { }
 
 
-void ExchangePVSFluxPlanePlugin::setup(Simulation* sim, const MPI_Comm& comm, const MPI_Comm& interComm)
+void ExchangePVSFluxPlanePlugin::setup(Simulation* simulation, const MPI_Comm& comm, const MPI_Comm& interComm)
 {
-    SimulationPlugin::setup(sim, comm, interComm);
+    SimulationPlugin::setup(simulation, comm, interComm);
 
-    pv1 = sim->getPVbyNameOrDie(pv1Name);
-    pv2 = sim->getPVbyNameOrDie(pv2Name);
+    pv1 = simulation->getPVbyNameOrDie(pv1Name);
+    pv2 = simulation->getPVbyNameOrDie(pv2Name);
 }
 
 void ExchangePVSFluxPlanePlugin::beforeParticleDistribution(cudaStream_t stream)

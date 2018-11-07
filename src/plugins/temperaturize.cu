@@ -27,11 +27,11 @@ __global__ void applyTemperature(PVview view, float kbT, float seed1, float seed
 }
 
 
-void TemperaturizePlugin::setup(Simulation* sim, const MPI_Comm& comm, const MPI_Comm& interComm)
+void TemperaturizePlugin::setup(Simulation* simulation, const MPI_Comm& comm, const MPI_Comm& interComm)
 {
-    SimulationPlugin::setup(sim, comm, interComm);
+    SimulationPlugin::setup(simulation, comm, interComm);
 
-    pv = sim->getPVbyNameOrDie(pvName);
+    pv = simulation->getPVbyNameOrDie(pvName);
 }
 
 void TemperaturizePlugin::beforeForces(cudaStream_t stream)

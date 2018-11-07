@@ -63,12 +63,12 @@ SimulationVelocityControl::SimulationVelocityControl(std::string name, std::vect
 {}
 
 
-void SimulationVelocityControl::setup(Simulation* sim, const MPI_Comm& comm, const MPI_Comm& interComm)
+void SimulationVelocityControl::setup(Simulation* simulation, const MPI_Comm& comm, const MPI_Comm& interComm)
 {
-    SimulationPlugin::setup(sim, comm, interComm);
+    SimulationPlugin::setup(simulation, comm, interComm);
 
     for (auto &pvName : pvNames)
-        pvs.push_back(sim->getPVbyNameOrDie(pvName));
+        pvs.push_back(simulation->getPVbyNameOrDie(pvName));
 }
 
 void SimulationVelocityControl::beforeForces(cudaStream_t stream)

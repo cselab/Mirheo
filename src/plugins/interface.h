@@ -8,13 +8,16 @@
 
 class Simulation;
 
-class Plugin : public UdxObject
-{
+template<class Base>
+class Plugin : public Base
+{    
 public:
-    Plugin(std::string name);
+    Plugin(std::string name) : Base(name) {};
     
-    virtual void handshake();
-    virtual void talk();
+    using Base::name;
+    
+    virtual void handshake() {};
+    virtual void talk() {};
 
     virtual ~Plugin() = default;
 
@@ -23,14 +26,22 @@ protected:
     int rank, nranks;
 
     std::hash<std::string> nameHash;
+    
+    // limitation by CrayMPI (wtf Cray???)
+    static const int MaxTag = 16767;
 
-    int  _tag();
-    void _setup(const MPI_Comm& comm, const MPI_Comm& interComm);
+    int  _tag() { return (int)( nameHash(name) % MaxTag ); }
+    void _setup(const MPI_Comm& comm, const MPI_Comm& interComm)
+    {
+        MPI_Check( MPI_Comm_dup(comm, &this->comm) );
+        this->interComm = interComm;
+        
+        MPI_Check( MPI_Comm_rank(this->comm, &rank) );
+        MPI_Check( MPI_Comm_size(this->comm, &nranks) );
+    }
 };
 
-
-
-class SimulationPlugin : public Plugin
+class SimulationPlugin : public Plugin<UdxSimulationObject>
 {
 public:
     SimulationPlugin(std::string name);
@@ -44,20 +55,13 @@ public:
 
     virtual bool needPostproc() = 0;
 
-    /// Save handler state
-    virtual void checkpoint(MPI_Comm& comm, std::string path);
-    /// Restore handler state
-    virtual void restart(MPI_Comm& comm, std::string path);
-
-
     void setTime(float t, int tstep);
-    virtual void setup(Simulation* sim, const MPI_Comm& comm, const MPI_Comm& interComm);
+    virtual void setup(Simulation* simulation, const MPI_Comm& comm, const MPI_Comm& interComm);
     virtual void finalize();
 
     virtual ~SimulationPlugin() = default;
 
 protected:
-    Simulation* sim;
     int localSendSize;
     MPI_Request sizeReq, dataReq;
 
@@ -72,7 +76,7 @@ protected:
 
 
 
-class PostprocessPlugin : public Plugin
+class PostprocessPlugin : public Plugin<UdxObject>
 {
 public:
     PostprocessPlugin(std::string name);

@@ -12,10 +12,10 @@ class ParticleVector;
 class CellList;
 class GPUcontainer;
 
-class Wall : public UdxObject
+class Wall : public UdxSimulationObject
 {
 public:
-    Wall(std::string name) : UdxObject(name) {};
+    Wall(std::string name) : UdxSimulationObject(name) {};
 
     virtual void setup(MPI_Comm& comm, float t, DomainInfo domain) = 0;
     virtual void attachFrozen(ParticleVector* pv) = 0;
@@ -32,13 +32,6 @@ public:
     virtual void setPrerequisites(ParticleVector* pv) {}
 
     virtual void check(cudaStream_t stream) = 0;
-    
-    /// Save handler state
-    virtual void checkpoint(MPI_Comm& comm, std::string path) {}
-    /// Restore handler state
-    virtual void restart(MPI_Comm& comm, std::string path) {}
-
-    virtual ~Wall() = default;
 };
 
 

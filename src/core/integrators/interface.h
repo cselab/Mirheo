@@ -19,7 +19,7 @@ class ParticleVector;
  *    So all the integration for now is done in stage2()
  * \endrst
  */
-class Integrator : public UdxObject
+class Integrator : public UdxSimulationObject
 {
 public:
     float dt;
@@ -48,12 +48,5 @@ public:
     virtual void setPrerequisites(ParticleVector* pv) {}
 
     /// Set the name of the integrator and its time-step
-    Integrator(std::string name, float dt) : UdxObject(name), dt(dt) {}
-    
-    /// Save handler state
-    virtual void checkpoint(MPI_Comm& comm, std::string path) {}
-    /// Restore handler state
-    virtual void restart(MPI_Comm& comm, std::string path) {}
-
-    virtual ~Integrator() = default;
+    Integrator(std::string name, float dt) : UdxSimulationObject(name), dt(dt) {}
 };

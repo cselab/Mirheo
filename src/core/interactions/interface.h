@@ -16,13 +16,13 @@ class ParticleVector;
  * The cut-off raduis has to be removed later from the interface,
  * such that only certain interactions require cell-lists.
  */
-class Interaction : public UdxObject
+class Interaction : public UdxSimulationObject
 {
 public:
     /// Cut-off raduis
     float rc;
 
-    Interaction(std::string name, float rc) : UdxObject(name), rc(rc) {}
+    Interaction(std::string name, float rc) : UdxSimulationObject(name), rc(rc) {}
 
     /**
      * Ask ParticleVectors which the class will be working with to have specific properties
@@ -57,11 +57,4 @@ public:
      * @param t current simulation time
      */
     virtual void halo   (ParticleVector* pv1, ParticleVector* pv2, CellList* cl1, CellList* cl2, const float t, cudaStream_t stream) = 0;
-        
-    /// Save handler state
-    virtual void checkpoint(MPI_Comm& comm, std::string path) {}
-    /// Restore handler state
-    virtual void restart(MPI_Comm& comm, std::string path) {}
-    
-    virtual ~Interaction() = default;
 };

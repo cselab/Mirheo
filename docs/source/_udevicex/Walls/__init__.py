@@ -125,7 +125,7 @@ class OscillatingPlane(Wall):
                 normal: wall normal, pointing *inside* the wall
                 pointThrough: point that belongs to the plane
                 velocity: velocity amplitude, should be orthogonal to the normal
-                period: oscillation period in number of timesteps
+                period: oscillation period dpd time units
         
 
         """

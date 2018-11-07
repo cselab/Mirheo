@@ -38,7 +38,7 @@ protected:
 };
 
 
-class ParticleVector : public UdxObject
+class ParticleVector : public UdxSimulationObject
 {
 protected:
 
@@ -61,8 +61,8 @@ public:
     LocalParticleVector* local() { return _local; }
     LocalParticleVector* halo()  { return _halo;  }
 
-    virtual void checkpoint(MPI_Comm comm, std::string path);
-    virtual void restart(MPI_Comm comm, std::string path);
+    void checkpoint(MPI_Comm comm, std::string path) override;
+    void restart(MPI_Comm comm, std::string path) override;
 
     
     // Python getters / setters
@@ -80,7 +80,7 @@ public:
     void setForces_vector(PyTypes::VectorOfFloat3& forces);
     
     
-    virtual ~ParticleVector();
+    ~ParticleVector() override;
     
     template<typename T>
     void requireDataPerParticle(std::string name, bool needExchange)

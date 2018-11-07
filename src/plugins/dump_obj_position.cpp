@@ -10,11 +10,11 @@ ObjPositionsPlugin::ObjPositionsPlugin(std::string name, std::string ovName, int
     dumpEvery(dumpEvery)
 {    }
 
-void ObjPositionsPlugin::setup(Simulation* sim, const MPI_Comm& comm, const MPI_Comm& interComm)
+void ObjPositionsPlugin::setup(Simulation* simulation, const MPI_Comm& comm, const MPI_Comm& interComm)
 {
-    SimulationPlugin::setup(sim, comm, interComm);
+    SimulationPlugin::setup(simulation, comm, interComm);
 
-    ov = dynamic_cast<ObjectVector*>(sim->getPVbyName(ovName));
+    ov = dynamic_cast<ObjectVector*>(simulation->getPVbyName(ovName));
     if (ov == nullptr)
         die("No such object vector registered: %s", ovName.c_str());
 

@@ -15,11 +15,11 @@ SimulationPlugin(name), ovName(ovName),
 dumpEvery(dumpEvery)
 { }
 
-void MeshPlugin::setup(Simulation* sim, const MPI_Comm& comm, const MPI_Comm& interComm)
+void MeshPlugin::setup(Simulation* simulation, const MPI_Comm& comm, const MPI_Comm& interComm)
 {
-    SimulationPlugin::setup(sim, comm, interComm);
+    SimulationPlugin::setup(simulation, comm, interComm);
 
-    ov = sim->getOVbyNameOrDie(ovName);
+    ov = simulation->getOVbyNameOrDie(ovName);
 
     info("Plugin %s initialized for the following object vector: %s", name.c_str(), ovName.c_str());
 }

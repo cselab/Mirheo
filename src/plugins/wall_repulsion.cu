@@ -25,12 +25,12 @@ __global__ void forceFromSDF(PVview view, float* sdfs, float3* gradients, float 
 }
 
 
-void WallRepulsionPlugin::setup(Simulation* sim, const MPI_Comm& comm, const MPI_Comm& interComm)
+void WallRepulsionPlugin::setup(Simulation* simulation, const MPI_Comm& comm, const MPI_Comm& interComm)
 {
-    SimulationPlugin::setup(sim, comm, interComm);
+    SimulationPlugin::setup(simulation, comm, interComm);
 
-    pv = sim->getPVbyNameOrDie(pvName);
-    wall = dynamic_cast<SDF_basedWall*>(sim->getWallByNameOrDie(wallName));
+    pv = simulation->getPVbyNameOrDie(pvName);
+    wall = dynamic_cast<SDF_basedWall*>(simulation->getWallByNameOrDie(wallName));
     
     pv->requireDataPerParticle<float>("sdf", false);
     pv->requireDataPerParticle<float3>("grad_sdf", false);

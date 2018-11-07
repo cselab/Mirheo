@@ -15,11 +15,11 @@ __global__ void addTorque(ROVview view, float3 torque)
     view.motions[gid].torque += torque;
 }
 
-void AddTorquePlugin::setup(Simulation* sim, const MPI_Comm& comm, const MPI_Comm& interComm)
+void AddTorquePlugin::setup(Simulation* simulation, const MPI_Comm& comm, const MPI_Comm& interComm)
 {
-    SimulationPlugin::setup(sim, comm, interComm);
+    SimulationPlugin::setup(simulation, comm, interComm);
 
-    rov = dynamic_cast<RigidObjectVector*>( sim->getOVbyNameOrDie(rovName) );
+    rov = dynamic_cast<RigidObjectVector*>( simulation->getOVbyNameOrDie(rovName) );
     if (rov == nullptr)
         die("Need rigid object vector to add torque, plugin '%s', OV name '%s'",
             name.c_str(), rovName.c_str());

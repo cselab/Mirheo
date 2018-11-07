@@ -22,7 +22,7 @@ public:
             int sampleEvery, int dumpEvery, float3 binSize,
             std::string relativeOVname, int relativeID);
 
-    void setup(Simulation* sim, const MPI_Comm& comm, const MPI_Comm& interComm) override;
+    void setup(Simulation* simulation, const MPI_Comm& comm, const MPI_Comm& interComm) override;
     void afterIntegration(cudaStream_t stream) override;
     void serializeAndSend(cudaStream_t stream) override;
 

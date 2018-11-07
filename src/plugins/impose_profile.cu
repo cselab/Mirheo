@@ -66,12 +66,12 @@ __global__ void getRelevantCells(
 }
 
 
-void ImposeProfilePlugin::setup(Simulation* sim, const MPI_Comm& comm, const MPI_Comm& interComm)
+void ImposeProfilePlugin::setup(Simulation* simulation, const MPI_Comm& comm, const MPI_Comm& interComm)
 {
-    SimulationPlugin::setup(sim, comm, interComm);
+    SimulationPlugin::setup(simulation, comm, interComm);
 
-    pv = sim->getPVbyNameOrDie(pvName);
-    cl = sim->gelCellList(pv);
+    pv = simulation->getPVbyNameOrDie(pvName);
+    cl = simulation->gelCellList(pv);
 
     if (cl == nullptr)
         die("Cell-list is required for PV '%s' by plugin '%s'", pvName.c_str(), name.c_str());

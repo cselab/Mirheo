@@ -83,6 +83,21 @@ Overloaded function.
         """
         pass
 
+    def computeVolumeInsideWalls():
+        r"""computeVolumeInsideWalls(walls: List[Wall], nSamplesPerRank: int = 100000) -> float
+
+
+                Compute the volume inside the given walls in the whole domain (negative values are the 'inside' of the simulation).
+                The computation is made via simple Monte-Carlo.
+                
+                Args:
+                    walls: sdf based walls
+                    nSamplesPerRank: number of Monte-Carlo samples used per rank
+        
+
+        """
+        pass
+
     def dumpWalls2XDMF():
         r"""dumpWalls2XDMF(walls: List[Wall], h: Tuple[float, float, float], filename: str = 'xdmf/wall') -> None
 

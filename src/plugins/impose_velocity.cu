@@ -56,12 +56,12 @@ __global__ void averageVelocity(PVview view, DomainInfo domain, float3 low, floa
 }
 
 
-void ImposeVelocityPlugin::setup(Simulation* sim, const MPI_Comm& comm, const MPI_Comm& interComm)
+void ImposeVelocityPlugin::setup(Simulation* simulation, const MPI_Comm& comm, const MPI_Comm& interComm)
 {
-    SimulationPlugin::setup(sim, comm, interComm);
+    SimulationPlugin::setup(simulation, comm, interComm);
 
     for (auto& nm : pvNames)
-        pvs.push_back(sim->getPVbyNameOrDie(nm));
+        pvs.push_back(simulation->getPVbyNameOrDie(nm));
 }
 
 void ImposeVelocityPlugin::afterIntegration(cudaStream_t stream)

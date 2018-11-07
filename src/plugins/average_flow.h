@@ -31,7 +31,7 @@ public:
               std::vector<std::string> channelNames, std::vector<Average3D::ChannelType> channelTypes,
               int sampleEvery, int dumpEvery, float3 binSize);
 
-    void setup(Simulation* sim, const MPI_Comm& comm, const MPI_Comm& interComm) override;
+    void setup(Simulation* simulation, const MPI_Comm& comm, const MPI_Comm& interComm) override;
     void handshake() override;
     void afterIntegration(cudaStream_t stream) override;
     void serializeAndSend(cudaStream_t stream) override;

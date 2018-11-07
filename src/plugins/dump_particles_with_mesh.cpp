@@ -11,11 +11,11 @@ ParticleWithMeshSenderPlugin::ParticleWithMeshSenderPlugin(std::string name, std
     ParticleSenderPlugin(name, pvName, dumpEvery, channelNames, channelTypes)
 {}
 
-void ParticleWithMeshSenderPlugin::setup(Simulation *sim, const MPI_Comm& comm, const MPI_Comm& interComm)
+void ParticleWithMeshSenderPlugin::setup(Simulation *simulation, const MPI_Comm& comm, const MPI_Comm& interComm)
 {
-    SimulationPlugin::setup(sim, comm, interComm);
+    SimulationPlugin::setup(simulation, comm, interComm);
 
-    pv = sim->getOVbyNameOrDie(pvName);
+    pv = simulation->getOVbyNameOrDie(pvName);
 
     info("Plugin %s initialized for the following object vector: %s", name.c_str(), pvName.c_str());
 }

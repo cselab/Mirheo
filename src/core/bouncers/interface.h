@@ -13,7 +13,7 @@ class ObjectVector;
 /**
  * Interface for a class implementing bouncing from objects
  */
-class Bouncer : public UdxObject
+class Bouncer : public UdxSimulationObject
 {
 protected:
     ObjectVector* ov;  /// Particles will be bounced against that ObjectVector
@@ -38,7 +38,7 @@ protected:
     virtual void exec (ParticleVector* pv, CellList* cl, float dt, bool local, cudaStream_t stream) = 0;
 
 public:
-    Bouncer(std::string name) : UdxObject(name) {};
+    Bouncer(std::string name) : UdxSimulationObject(name) {};
 
     /**
      * Second step of initialization, called from the \c Simulation
@@ -58,11 +58,4 @@ public:
 
     /// Interface to the private exec function for halo objects
     void bounceHalo (ParticleVector* pv, CellList* cl, float dt, cudaStream_t stream) { exec (pv, cl, dt, false, stream); }
-    
-    /// Save handler state
-    virtual void checkpoint(MPI_Comm& comm, std::string path) {}
-    /// Restore handler state
-    virtual void restart(MPI_Comm& comm, std::string path) {}
-
-    virtual ~Bouncer() = default;
 };

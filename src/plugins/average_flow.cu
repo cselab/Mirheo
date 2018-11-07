@@ -61,11 +61,11 @@ Average3D::Average3D(std::string name,
     channelsInfo.names = channelNames;
 }
 
-void Average3D::setup(Simulation* sim, const MPI_Comm& comm, const MPI_Comm& interComm)
+void Average3D::setup(Simulation* simulation, const MPI_Comm& comm, const MPI_Comm& interComm)
 {
-    SimulationPlugin::setup(sim, comm, interComm);
+    SimulationPlugin::setup(simulation, comm, interComm);
 
-    domain = sim->domain;
+    domain = simulation->domain;
     // TODO: this should be reworked if the domains are allowed to have different size
     resolution = make_int3( floorf(domain.localSize / binSize) );
     binSize = domain.localSize / make_float3(resolution);
@@ -98,7 +98,7 @@ void Average3D::setup(Simulation* sim, const MPI_Comm& comm, const MPI_Comm& int
     channelsInfo.types.uploadToDevice(0);
 
     for (const auto& pvName : pvNames)
-        pvs.push_back(sim->getPVbyNameOrDie(pvName));
+        pvs.push_back(simulation->getPVbyNameOrDie(pvName));
 
     info("Plugin '%s' initialized for the %d PVs and channels %s, resolution %dx%dx%d",
          name.c_str(), pvs.size(), allChannels.c_str(),
@@ -213,7 +213,7 @@ void Average3D::handshake()
     for (auto t : channelsInfo.types)
         sizes.push_back(getNcomponents(t));
     
-    SimpleSerializer::serialize(data, sim->nranks3D, sim->rank3D, resolution, binSize, sizes, channelsInfo.names);
+    SimpleSerializer::serialize(data, simulation->nranks3D, simulation->rank3D, resolution, binSize, sizes, channelsInfo.names);
     send(data);
 }
 
