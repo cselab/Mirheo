@@ -3,7 +3,7 @@
 uDeviceX coordinator
 ######################
 
-The coordinator class stiches together data containers, :ref:`user-pv`, and all the handlers,
+The coordinator class stitches together data containers, :ref:`user-pv`, and all the handlers,
 and provides functions to manipulate the system components.
 
 One and only one instance of this class should be created in the beginning of any simulation setup.
@@ -19,11 +19,15 @@ One and only one instance of this class should be created in the beginning of an
         mpi4py.rc(initialize=False, finalize=False)
         from mpi4py import MPI
 
-    
+        
 .. autoclass:: _udevicex.udevicex
    :members:
-   :show-inheritance:
    :undoc-members:
    :special-members: __init__
-      
+
+    .. rubric:: Methods
+
+    .. autoautosummary:: _udevicex.udevicex
+        :methods:
+
  

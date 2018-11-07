@@ -1,5 +1,11 @@
 .. _user-all:
 
+.. role:: python(code)
+   :language: python
+
+.. role:: cpp(code)
+   :language: cpp
+   
 Overview
 ##########
 
@@ -28,6 +34,11 @@ The setup script usually starts with importing the module, e.g.:
 
     import udevicex as udx
 
+.. warning:: 
+    Loading the module will set the :python:`sys.exepthook` to invoke :cpp:`MPI_Abort`.
+    Otherwise single failed MPI process will not trigger shutdown, and a deadlock will happen.
+
+    
 The coordinator class, :any:`udevicex`, and several submodules will be available after that:
 
 * :ref:`ParticleVectors <user-pv>`.

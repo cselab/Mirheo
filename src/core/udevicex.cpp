@@ -413,6 +413,11 @@ void uDeviceX::sayHello()
     printf("\n");
 }
 
+void uDeviceX::abort() const
+{
+    MPI_Abort(MPI_COMM_WORLD, -1);
+}
+
 bool uDeviceX::isComputeTask() const
 {
     return (computeTask == 0);

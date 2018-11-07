@@ -191,5 +191,8 @@ void exportUdevicex(py::module& m)
         .def("stop_profiler",  &uDeviceX::stopProfiler,  "Tells nvprof to stop recording timeline")
         .def("save_dependency_graph_graphml",  &uDeviceX::saveDependencyGraph_GraphML,  R"(
             Exports `GraphML <http://graphml.graphdrawing.org/>`_ file with task graph for the current simulation time-step)")
-        .def("run", &uDeviceX::run, "Run the simulation");
+        .def("run", &uDeviceX::run, "Run the simulation")
+        
+        // Private stuff
+        .def("__abort", &uDeviceX::abort, "Abort program");
 }

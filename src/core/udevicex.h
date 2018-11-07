@@ -41,6 +41,8 @@ public:
     void startProfiler();
     void stopProfiler();
     void saveDependencyGraph_GraphML(std::string fname) const;
+    void abort() const;
+    
     void run(int niters);
     
     void registerParticleVector         (const std::shared_ptr<ParticleVector>& pv,

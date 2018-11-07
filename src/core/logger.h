@@ -104,7 +104,7 @@ public:
         setDebugLvl(debugLvl);
     }
 
-
+  
     /**
      * Main logging function.
      * First, check message importance against debug level and return
@@ -168,7 +168,21 @@ public:
         }
     }
 
-
+    /**
+     * Create a short error message for throwing an exception
+     *
+     */
+    template<class ... Args>
+    std::string makeSimpleErrString(const char* fname, const int lnum, const char* pattern, Args... args) const
+    {
+        int size = 10000;
+        char buffer[size];
+        
+        std::string intro = "%s" + std::string(pattern); // shut up compiler warning
+        snprintf(buffer, size, intro.c_str(), "", args...);
+        
+        return std::string(buffer);
+    }
 
     /**
      * Special wrapper around log() that kills the application on
@@ -191,7 +205,12 @@ public:
         fclose(fout);
         fout = nullptr;
 
-        MPI_Abort(comm, -1);
+        throw std::runtime_error("uDeviceX has encountered a fatal error and will quit now.\n"
+                                 "The error message follows, and more details can be found in the log\n"
+                                 "***************************************"
+                                 "\t" + makeSimpleErrString(args...) + "\n"
+                                 "***************************************");
+
     }
 
     /**

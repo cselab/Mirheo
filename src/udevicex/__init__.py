@@ -77,8 +77,19 @@ def decorate_plugins(f):
 
     return wrapper
 
+# Make MPI abort the program if an exception occurs
+# https://groups.google.com/forum/#!topic/mpi4py/RovYzJ8qkbc
+def handle_exception(exc_type, exc_value, exc_traceback):
+    sys.__excepthook__(exc_type, exc_value, exc_traceback)
+    sys.stdout.flush()
+    sys.stderr.flush()
+    if __coordinator is not None and  __coordinator() is not None:
+        __coordinator().__abort()
 
 def __init__():
+    # Setup exception handling
+    sys.excepthook = handle_exception
+    
     # Wrap everything except for plugins and non-GPU stuff
     # Make the __init__ functions return None if we are not a compute task
     nonGPU_names = ['MembraneParameters']
