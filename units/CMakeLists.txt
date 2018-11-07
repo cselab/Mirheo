@@ -24,6 +24,10 @@ if (DEFINED ENV{CRAY_MPICH_DIR})
   set(MPI_CXX_INCLUDE_DIRS "$ENV{CRAY_MPICH_DIR}/include")
 endif()
 
+
+# googletest
+add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/extern/googletest")
+
 include_directories(${MPI_CXX_INCLUDE_DIRS})
 set(CMAKE_C_COMPILER   ${MPI_C_COMPILER})
 set(CMAKE_CXX_COMPILER ${MPI_CXX_COMPILER})
@@ -46,6 +50,7 @@ function (add_test_executable dirName)
   add_executable(${EXEC_NAME} ${SOURCES})
   target_link_libraries(${EXEC_NAME} PRIVATE ${CUDA_LIBRARIES})
   target_link_libraries(${EXEC_NAME} PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/../build/libudevicex_main.so")
+  target_link_libraries(${EXEC_NAME} PRIVATE gtest gmock gtest_main)
   add_test(${EXEC_NAME} ${EXEC_NAME})
 endfunction()
 
