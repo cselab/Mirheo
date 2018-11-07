@@ -26,7 +26,7 @@ __global__ void sampleRelative(
     Particle p(pvView.particles, pid);
     p.r -= relativePoint;
 
-    int3 cid3 = cinfo.getCellIdAlongAxes<false>(p.r);
+    int3 cid3 = cinfo.getCellIdAlongAxes<CellListsProjection::NoClamp>(p.r);
     cid3 = (cid3 + cinfo.ncells) % cinfo.ncells;
     const int cid = cinfo.encode(cid3);
 

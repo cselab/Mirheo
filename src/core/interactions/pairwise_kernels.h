@@ -194,7 +194,7 @@ __global__ void computeExternalInteractions_1tpp(
 
     float3 dstFrc = make_float3(0.0f);
 
-    const int3 cell0 = srcCinfo.getCellIdAlongAxes<false>(dstP.r);
+    const int3 cell0 = srcCinfo.getCellIdAlongAxes<CellListsProjection::NoClamp>(dstP.r);
 
     for (int cellZ = cell0.z-1; cellZ <= cell0.z+1; cellZ++)
         for (int cellY = cell0.y-1; cellY <= cell0.y+1; cellY++)
@@ -257,7 +257,7 @@ __global__ void computeExternalInteractions_3tpp(
 
     float3 dstFrc = make_float3(0.0f);
 
-    const int3 cell0 = srcCinfo.getCellIdAlongAxes<false>(dstP.r);
+    const int3 cell0 = srcCinfo.getCellIdAlongAxes<CellListsProjection::NoClamp>(dstP.r);
 
     int cellZ = cell0.z + dircode;
 
@@ -321,7 +321,7 @@ __global__ void computeExternalInteractions_9tpp(
 
     float3 dstFrc = make_float3(0.0f);
 
-    const int3 cell0 = srcCinfo.getCellIdAlongAxes<false>(dstP.r);
+    const int3 cell0 = srcCinfo.getCellIdAlongAxes<CellListsProjection::NoClamp>(dstP.r);
 
     int cellZ = cell0.z + dircode / 3 - 1;
     int cellY = cell0.y + dircode % 3 - 1;
@@ -385,7 +385,7 @@ __global__ void computeExternalInteractions_27tpp(
 
     float3 dstFrc = make_float3(0.0f);
 
-    const int3 cell0 = srcCinfo.getCellIdAlongAxes<false>(dstP.r);
+    const int3 cell0 = srcCinfo.getCellIdAlongAxes<CellListsProjection::NoClamp>(dstP.r);
 
     int cellZ = cell0.z +  dircode / 9      - 1;
     int cellY = cell0.y + (dircode / 3) % 3 - 1;

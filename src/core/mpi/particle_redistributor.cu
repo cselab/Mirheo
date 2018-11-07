@@ -52,7 +52,7 @@ __global__ void getExitingParticles(const CellListInfo cinfo, ParticlePacker pac
         const int srcId = pstart + i;
         Particle p(cinfo.particles, srcId);
 
-        int3 code = cinfo.getCellIdAlongAxes<false>(make_float3(p.r));
+        int3 code = cinfo.getCellIdAlongAxes<CellListsProjection::NoClamp>(make_float3(p.r));
 
         code = encodeCellId(code, ncells);
 
