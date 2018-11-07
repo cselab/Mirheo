@@ -4,7 +4,8 @@ if(POLICY CMP0060)
     cmake_policy(SET CMP0060 NEW)
 endif()
 
-project(${TEST} LANGUAGES C CXX CUDA)
+project(UDX_UnitTests LANGUAGES C CXX CUDA)
+enable_testing()
 
 # CUDA
 find_package(CUDA REQUIRED)
@@ -45,6 +46,7 @@ function (add_test_executable dirName)
   add_executable(${EXEC_NAME} ${SOURCES})
   target_link_libraries(${EXEC_NAME} PRIVATE ${CUDA_LIBRARIES})
   target_link_libraries(${EXEC_NAME} PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/../build/libudevicex_main.so")
+  add_test(${EXEC_NAME} ${EXEC_NAME})
 endfunction()
 
 add_test_executable(celllists)
