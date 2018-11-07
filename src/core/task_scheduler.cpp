@@ -63,7 +63,7 @@ TaskScheduler::Node* TaskScheduler::getNodeOrDie(TaskID id)
 }
 
 
-void TaskScheduler::addTask(TaskID id, std::function<void(cudaStream_t)> task, int every)
+void TaskScheduler::addTask(TaskID id, TaskScheduler::Function task, int every)
 {
     if (id >= tasks.size() || id < 0)
         die("No such task with id %d", id);

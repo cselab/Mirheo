@@ -1,11 +1,20 @@
 #include <cstdio>
-#include "pid.h"
+#include <cmath>
+
+#include "plugins/pid.h"
+#include "core/logger.h"
+
+Logger logger;
 
 int main() {
     float target, Kp, Ki, Kd;
     float state, dt;
     int step_time, nsteps;
 
+    const float target_start = 0.f;
+    const float target_end   = 1.f;
+    const float tolerance = 1e-5;
+    
     state = target = 0.f;
     step_time = 20;
     nsteps = 200;
@@ -18,10 +27,15 @@ int main() {
     PidControl<float> pid(target-state, Kp, Ki, Kd);
 
     for (int i = 0; i < nsteps; ++i) {
-        target = i < step_time ? 0.f : 1.f;
+        target = i < step_time ? target_start : target_end;
         state += dt * pid.update(target-state);
-        printf("%g\n", state);
+        // printf("%g\n", state);
     }
+
+    if (fabs(state - target_end) < tolerance)
+        printf("Success!\n");
+    else
+        printf("Failed");
     
     return 0;
 }

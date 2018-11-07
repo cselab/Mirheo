@@ -15,11 +15,11 @@ namespace XDMF
         hid_t create(std::string filename, MPI_Comm comm);
         hid_t openReadOnly(std::string filename, MPI_Comm comm);
 
-        void writeDataSet(hid_t file_id, const Grid* grid, const Channel& channel);
-        void writeData   (hid_t file_id, const Grid* grid, const std::vector<Channel>& channels);
+        void writeDataSet(hid_t file_id, const GridDims* gridDims, const Channel& channel);
+        void writeData   (hid_t file_id, const GridDims* gridDims, const std::vector<Channel>& channels);
 
-        void readDataSet (hid_t file_id, const Grid* grid, Channel& channel);
-        void readData    (hid_t file_id, const Grid* grid, std::vector<Channel>& channels);
+        void readDataSet (hid_t file_id, const GridDims* gridDims, Channel& channel);
+        void readData    (hid_t file_id, const GridDims* gridDims, std::vector<Channel>& channels);
 
         void close       (hid_t file_id);
     

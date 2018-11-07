@@ -284,6 +284,17 @@ __global__ void computeSdfPerParticle(PVview view, float* sdfs, float3* gradient
 
 
 template<typename InsideWallChecker>
+__global__ void computeSdfPerPosition(int n, const float3 *positions, float* sdfs, InsideWallChecker checker)
+{
+    int pid = blockIdx.x * blockDim.x + threadIdx.x;
+    if (pid >= n) return;
+    
+    auto r = positions[pid];    
+
+    sdfs[pid] = checker(r);
+}
+
+template<typename InsideWallChecker>
 __global__ void computeSdfOnGrid(CellListInfo gridInfo, float* sdfs, InsideWallChecker checker)
 {
     const int nid = blockIdx.x * blockDim.x + threadIdx.x;
@@ -301,9 +312,9 @@ __global__ void computeSdfOnGrid(CellListInfo gridInfo, float* sdfs, InsideWallC
 //===============================================================================================
 
 template<class InsideWallChecker>
-void SimpleStationaryWall<InsideWallChecker>::setup(MPI_Comm& comm, DomainInfo domain)
+void SimpleStationaryWall<InsideWallChecker>::setup(MPI_Comm& comm, float t, DomainInfo domain)
 {
-    info("Setting up wall %s", name.c_str());
+    info("Setting up wall %s", name().c_str());
 
     CUDA_Check( cudaDeviceSynchronize() );
     MPI_Check( MPI_Comm_dup(comm, &wallComm) );
@@ -318,7 +329,7 @@ template<class InsideWallChecker>
 void SimpleStationaryWall<InsideWallChecker>::attachFrozen(ParticleVector* pv)
 {
     frozen = pv;
-    info("Wall '%s' will treat particle vector '%s' as frozen", name.c_str(), pv->name.c_str());
+    info("Wall '%s' will treat particle vector '%s' as frozen", name().c_str(), pv->name().c_str());
 }
 
 template<class InsideWallChecker>
@@ -327,13 +338,13 @@ void SimpleStationaryWall<InsideWallChecker>::attach(ParticleVector* pv, CellLis
     if (pv == frozen)
     {
         warn("Particle Vector '%s' declared as frozen for the wall '%s'. Bounce-back won't work",
-            pv->name.c_str(), name.c_str());
+             pv->name().c_str(), name().c_str());
         return;
     }
     
     if (dynamic_cast<PrimaryCellList*>(cl) == nullptr)
         die("PVs should only be attached to walls with the primary cell-lists! "
-                "Invalid combination: wall %s, pv %s", name.c_str(), pv->name.c_str());
+            "Invalid combination: wall %s, pv %s", name().c_str(), pv->name().c_str());
 
     CUDA_Check( cudaDeviceSynchronize() );
     particleVectors.push_back(pv);
@@ -371,7 +382,7 @@ void SimpleStationaryWall<InsideWallChecker>::removeInner(ParticleVector* pv)
     if (pv == frozen)
     {
         warn("Particle Vector '%s' declared as frozen for the wall '%s'. Will not remove any particles from there",
-            pv->name.c_str(), name.c_str());
+             pv->name().c_str(), name().c_str());
         return;
     }
     
@@ -430,13 +441,13 @@ void SimpleStationaryWall<InsideWallChecker>::removeInner(ParticleVector* pv)
     pv->cellListStamp++;
 
     info("Wall '%s' has removed inner entities of pv '%s', keeping %d out of %d particles",
-            name.c_str(), pv->name.c_str(), pv->local()->size(), oldSize);
+         name().c_str(), pv->name().c_str(), pv->local()->size(), oldSize);
 
     CUDA_Check( cudaDeviceSynchronize() );
 }
 
 template<class InsideWallChecker>
-void SimpleStationaryWall<InsideWallChecker>::bounce(float dt, cudaStream_t stream)
+void SimpleStationaryWall<InsideWallChecker>::bounce(float t, float dt, cudaStream_t stream)
 {
     for (int i=0; i<particleVectors.size(); i++)
     {
@@ -446,7 +457,7 @@ void SimpleStationaryWall<InsideWallChecker>::bounce(float dt, cudaStream_t stre
         PVviewWithOldParticles view(pv, pv->local());
 
         debug2("Bouncing %d %s particles, %d boundary cells",
-                pv->local()->size(), pv->name.c_str(), bc->size());
+               pv->local()->size(), pv->name().c_str(), bc->size());
 
         const int nthreads = 64;
         SAFE_KERNEL_LAUNCH(
@@ -476,7 +487,7 @@ void SimpleStationaryWall<InsideWallChecker>::check(cudaStream_t stream)
 
             nInside.downloadFromDevice(stream);
 
-            say("%d particles of %s are inside the wall %s", nInside[0], pv->name.c_str(), name.c_str());
+            say("%d particles of %s are inside the wall %s", nInside[0], pv->name().c_str(), name().c_str());
         }
     }
 }
@@ -490,7 +501,7 @@ void SimpleStationaryWall<InsideWallChecker>::sdfPerParticle(LocalParticleVector
 
     if (sizeof(float) % sdfs->datatype_size() != 0)
         die("Incompatible datatype size of container for SDF values: %d (working with PV '%s')",
-            sdfs->datatype_size(), pv->name.c_str());
+            sdfs->datatype_size(), pv->name().c_str());
     sdfs->resize_anew( np*sizeof(float) / sdfs->datatype_size());
 
     
@@ -498,7 +509,7 @@ void SimpleStationaryWall<InsideWallChecker>::sdfPerParticle(LocalParticleVector
     {
         if (sizeof(float3) % gradients->datatype_size() != 0)
             die("Incompatible datatype size of container for SDF gradients: %d (working with PV '%s')",
-                gradients->datatype_size(), pv->name.c_str());
+                gradients->datatype_size(), pv->name().c_str());
         gradients->resize_anew( np*sizeof(float3) / gradients->datatype_size());
     }
 
@@ -508,6 +519,27 @@ void SimpleStationaryWall<InsideWallChecker>::sdfPerParticle(LocalParticleVector
             getNblocks(view.size, nthreads), nthreads, 0, stream,
             view, (float*)sdfs->genericDevPtr(),
             (gradients != nullptr) ? (float3*)gradients->genericDevPtr() : nullptr, insideWallChecker.handler() );
+}
+
+
+template<class InsideWallChecker>
+void SimpleStationaryWall<InsideWallChecker>::sdfPerPosition(GPUcontainer *positions, GPUcontainer* sdfs, cudaStream_t stream)
+{
+    int n = positions->size();
+    
+    if (sizeof(float) % sdfs->datatype_size() != 0)
+        die("Incompatible datatype size of container for SDF values: %d (sampling sdf on positions)",
+            sdfs->datatype_size());
+
+    if (sizeof(float3) % sdfs->datatype_size() != 0)
+        die("Incompatible datatype size of container for Psitions values: %d (sampling sdf on positions)",
+            positions->datatype_size());
+    
+    const int nthreads = 128;
+    SAFE_KERNEL_LAUNCH(
+            computeSdfPerPosition,
+            getNblocks(n, nthreads), nthreads, 0, stream,
+            n, (float3*)positions->genericDevPtr(), (float*)sdfs->genericDevPtr(), insideWallChecker.handler() );
 }
 
 

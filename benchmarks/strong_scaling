@@ -1,10 +1,12 @@
 #! /bin/sh
 
-L=288
-
 #launch="launch_solvent"
-launch="launch_cells"
+#launch="launch_cells"
+#launch="launch_walls"
+launch="launch_rigids"
 
-for i in `seq 6`; do
-    ./$launch $i $i $i  $L $L $L "strong" $L
+for L in 128 192 256 288; do
+    for i in `seq 6`; do
+	./$launch $i $i $i  $L $L $L "strong" $L
+    done
 done

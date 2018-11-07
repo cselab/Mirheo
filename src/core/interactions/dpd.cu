@@ -46,7 +46,7 @@ void InteractionDPD::setSpecificPair(ParticleVector* pv1, ParticleVector* pv2,
     Pairwise_DPD dpd(this->rc, a, gamma, kbt, dt, power);
     auto ptr = static_cast< InteractionPair<Pairwise_DPD>* >(impl.get());
     
-    ptr->setSpecificPair(pv1->name, pv2->name, dpd);
+    ptr->setSpecificPair(pv1->name(), pv2->name(), dpd);
 }
 
 InteractionDPD::~InteractionDPD() = default;

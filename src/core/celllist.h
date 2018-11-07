@@ -9,6 +9,12 @@
 
 class ParticleVector;
 
+enum class CellListsProjection
+{
+    Clamp, NoClamp
+};
+
+
 class CellListInfo
 {
 public:
@@ -52,23 +58,23 @@ public:
         return res;
     }
 
-    template<bool Clamp = true>
+    template<CellListsProjection Projection = CellListsProjection::Clamp>
     __device__ __host__ inline int3 getCellIdAlongAxes(const float3 x) const
     {
         const int3 v = make_int3( floorf(invh * (x + 0.5f*localDomainSize)) );
 
-        if (Clamp)
+        if (Projection == CellListsProjection::Clamp)
             return min( ncells - 1, max(make_int3(0), v) );
         else
             return v;
     }
 
-    template<bool Clamp = true, typename T>
+    template<CellListsProjection Projection = CellListsProjection::Clamp, typename T>
     __device__ __host__ inline int getCellId(const T coo) const
     {
-        const int3 id = getCellIdAlongAxes<Clamp>(make_float3(coo));
+        const int3 id = getCellIdAlongAxes<CellListsProjection::Clamp>(make_float3(coo));
 
-        if (!Clamp)
+        if (Projection == CellListsProjection::NoClamp)
         {
             if (id.x < 0 || id.x >= ncells.x  ||  id.y < 0 || id.y >= ncells.y  ||  id.z < 0 || id.z >= ncells.z)
                 return -1;

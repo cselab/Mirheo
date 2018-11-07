@@ -1,17 +1,16 @@
 #pragma once
 
 #include <mpi.h>
-#include <string>
 #include <core/logger.h>
 #include <vector>
 
+#include "core/udevicex_object.h"
+
 class Simulation;
 
-class Plugin
+class Plugin : public UdxObject
 {
 public:
-    std::string name;
-
     Plugin(std::string name);
     
     virtual void handshake();

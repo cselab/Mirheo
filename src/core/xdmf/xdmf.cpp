@@ -32,10 +32,10 @@ namespace XDMF
         write(filename, grid, channels, -1, comm);
     }
 
-    static long getLocalNumElements(const Grid *grid)
+    static long getLocalNumElements(const GridDims *gridDims)
     {
         long n = 1;
-        for (auto i : grid->getLocalSize())  n *= i;
+        for (auto i : gridDims->getLocalSize())  n *= i;
         return n;
     }
 
@@ -183,7 +183,7 @@ namespace XDMF
 
         h5filename = parentPath(filename) + h5filename;
 
-        long nElements = getLocalNumElements(&grid);
+        long nElements = getLocalNumElements(grid.getGridDims());
         channelData.resize(channels.size());        
 
         for (int i = 0; i < channels.size(); ++i) {

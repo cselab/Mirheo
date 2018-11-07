@@ -36,15 +36,15 @@ void ObjectBelongingChecker_Common::splitByBelonging(ParticleVector* src, Partic
 {
     if (dynamic_cast<ObjectVector*>(src) != nullptr)
         error("Trying to split object vector %s into two per-particle, probably that's not what you wanted",
-                src->name.c_str());
+              src->name().c_str());
 
     if (pvIn != nullptr && typeid(*src) != typeid(*pvIn))
         error("PV type of inner result of split (%s) is different from source (%s)",
-                pvIn->name.c_str(), src->name.c_str());
+              pvIn->name().c_str(), src->name().c_str());
 
     if (pvOut != nullptr && typeid(*src) != typeid(*pvOut))
         error("PV type of outer result of split (%s) is different from source (%s)",
-                pvOut->name.c_str(), src->name.c_str());
+              pvOut->name().c_str(), src->name().c_str());
 
     {
         PrimaryCellList cl(src, 1.0f, src->domain.localSize);
@@ -53,7 +53,7 @@ void ObjectBelongingChecker_Common::splitByBelonging(ParticleVector* src, Partic
     }
 
     info("Splitting PV %s with respect to OV %s. Number of particles: in/out/total %d / %d / %d",
-                src->name.c_str(), ov->name.c_str(), nInside[0], nOutside[0], src->local()->size());
+         src->name().c_str(), ov->name().c_str(), nInside[0], nOutside[0], src->local()->size());
 
     // Need buffers because the source is the same as inside or outside
     PinnedBuffer<Particle> bufIn(nInside[0]), bufOut(nOutside[0]);
@@ -85,7 +85,7 @@ void ObjectBelongingChecker_Common::splitByBelonging(ParticleVector* src, Partic
                     cudaMemcpyDeviceToDevice, stream) );
 
 
-        info("New size of inner PV %s is %d", pvIn->name.c_str(), pvIn->local()->size());
+        info("New size of inner PV %s is %d", pvIn->name().c_str(), pvIn->local()->size());
     }
 
     if (pvOut != nullptr)
@@ -100,7 +100,7 @@ void ObjectBelongingChecker_Common::splitByBelonging(ParticleVector* src, Partic
                     cudaMemcpyDeviceToDevice, stream) );
 
 
-        info("New size of outer PV %s is %d", pvOut->name.c_str(), pvOut->local()->size());
+        info("New size of outer PV %s is %d", pvOut->name().c_str(), pvOut->local()->size());
     }
 }
 
@@ -124,5 +124,5 @@ void ObjectBelongingChecker_Common::checkInner(ParticleVector* pv, CellList* cl,
     nOutside.downloadFromDevice(stream, ContainersSynch::Synch);
 
     say("PV %s belonging check against OV %s: in/out/total  %d / %d / %d",
-            pv->name.c_str(), ov->name.c_str(), nInside[0], nOutside[0], pv->local()->size());
+        pv->name().c_str(), ov->name().c_str(), nInside[0], nOutside[0], pv->local()->size());
 }

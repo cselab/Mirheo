@@ -1,5 +1,3 @@
-#include <pybind11/pybind11.h>
-
 #include <core/pvs/particle_vector.h>
 
 #include <core/interactions/interface.h>
@@ -7,9 +5,9 @@
 #include <core/interactions/lj.h>
 #include <core/interactions/membrane.h>
 
+#include "bindings.h"
 #include "class_wrapper.h"
 
-namespace py = pybind11;
 using namespace pybind11::literals;
 
 void exportInteractions(py::module& m)

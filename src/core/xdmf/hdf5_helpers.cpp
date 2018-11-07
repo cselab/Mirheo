@@ -63,14 +63,14 @@ namespace XDMF
             return file_id;
         }
         
-        void writeDataSet(hid_t file_id, const Grid* grid, const Channel& channel)
+        void writeDataSet(hid_t file_id, const GridDims* gridDims, const Channel& channel)
         {
             debug2("Writing channel '%s'", channel.name.c_str());
             
             // Add one more dimension: number of floats per data item
-            int ndims = grid->getDims() + 1;
-            auto localSize = grid->getLocalSize();
-            auto globalSize = grid->getGlobalSize();
+            int ndims       = gridDims->getDims() + 1;
+            auto localSize  = gridDims->getLocalSize();
+            auto globalSize = gridDims->getGlobalSize();
             
             // What. The. F.
             std::reverse(localSize .begin(), localSize .end());
@@ -92,14 +92,14 @@ namespace XDMF
             hid_t dspace_id = H5Dget_space(dset_id);
 
             // TODO check if this is needed
-            if (!grid->localEmpty())
-                H5Sselect_hyperslab(dspace_id, H5S_SELECT_SET, grid->getOffsets().data(), nullptr, localSize.data(), nullptr);
+            if (!gridDims->localEmpty())
+                H5Sselect_hyperslab(dspace_id, H5S_SELECT_SET, gridDims->getOffsets().data(), nullptr, localSize.data(), nullptr);
             else
                 H5Sselect_none(dspace_id);
 
             hid_t mspace_id = H5Screate_simple(ndims, localSize.data(), nullptr);
 
-            if (!grid->globalEmpty())
+            if (!gridDims->globalEmpty())
                 H5Dwrite(dset_id, datatype, mspace_id, dspace_id, xfer_plist_id, channel.data);
 
             H5Sclose(mspace_id);
@@ -108,19 +108,19 @@ namespace XDMF
             H5Dclose(dset_id);
         }
         
-        void writeData(hid_t file_id, const Grid* grid, const std::vector<Channel>& channels)
+        void writeData(hid_t file_id, const GridDims* gridDims, const std::vector<Channel>& channels)
         {
             for (auto& channel : channels) 
-                writeDataSet(file_id, grid, channel);
+                writeDataSet(file_id, gridDims, channel);
         }
         
-        void readDataSet(hid_t file_id, const Grid* grid, Channel& channel)
+        void readDataSet(hid_t file_id, const GridDims* gridDims, Channel& channel)
         {
             debug2("Reading channel '%s'", channel.name.c_str());
 
             // Add one more dimension: number of floats per data item
-            int ndims = grid->getDims() + 1;
-            auto localSize  = grid->getLocalSize();
+            int ndims = gridDims->getDims() + 1;
+            auto localSize  = gridDims->getLocalSize();
             
             // What. The. F.
             std::reverse(localSize .begin(), localSize .end());
@@ -135,14 +135,14 @@ namespace XDMF
             hid_t dspace_id = H5Dget_space(dset_id);
 
             // TODO check if this is needed
-            if (!grid->localEmpty())
-                H5Sselect_hyperslab(dspace_id, H5S_SELECT_SET, grid->getOffsets().data(), nullptr, localSize.data(), nullptr);
+            if (!gridDims->localEmpty())
+                H5Sselect_hyperslab(dspace_id, H5S_SELECT_SET, gridDims->getOffsets().data(), nullptr, localSize.data(), nullptr);
             else
                 H5Sselect_none(dspace_id);
 
             hid_t mspace_id = H5Screate_simple(ndims, localSize.data(), nullptr);
 
-            if (!grid->globalEmpty())
+            if (!gridDims->globalEmpty())
                 H5Dread(dset_id, datatypeToHDF5type(channel.datatype), mspace_id, dspace_id, xfer_plist_id, channel.data);
 
             H5Sclose(mspace_id);
@@ -151,10 +151,10 @@ namespace XDMF
             H5Dclose(dset_id);
         }
 
-        void readData(hid_t file_id, const Grid* grid, std::vector<Channel>& channels)
+        void readData(hid_t file_id, const GridDims* gridDims, std::vector<Channel>& channels)
         {
             for (auto& channel : channels) 
-                readDataSet(file_id, grid, channel);
+                readDataSet(file_id, gridDims, channel);
         }        
         
         void close(hid_t file_id)
@@ -172,7 +172,7 @@ namespace XDMF
             }
             
             grid->write_to_HDF5(file_id, comm);
-            writeData(file_id, grid, channels);
+            writeData(file_id, grid->getGridDims(), channels);
             
             close(file_id);
         }
@@ -190,7 +190,7 @@ namespace XDMF
             
             grid->read_from_HDF5(file_id, comm);
 
-            readData(file_id, grid, channels);
+            readData(file_id, grid->getGridDims(), channels);
             
             close(file_id);
         }

@@ -115,7 +115,7 @@ CellList* Simulation::gelCellList(ParticleVector* pv) const
 {
     auto clvecIt = cellListMap.find(pv);
     if (clvecIt == cellListMap.end())
-        die("Particle Vector '%s' is not registered or broken", pv->name.c_str());
+        die("Particle Vector '%s' is not registered or broken", pv->name().c_str());
 
     if (clvecIt->second.size() == 0)
         return nullptr;
@@ -155,7 +155,7 @@ void Simulation::stopProfiler() const
 
 void Simulation::registerParticleVector(std::shared_ptr<ParticleVector> pv, std::shared_ptr<InitialConditions> ic, int checkpointEvery)
 {
-    std::string name = pv->name;
+    std::string name = pv->name();
 
     if (name == "none" || name == "all" || name == "")
         die("Invalid name for a particle vector (reserved word or empty): '%s'", name.c_str());
@@ -194,15 +194,16 @@ void Simulation::registerParticleVector(std::shared_ptr<ParticleVector> pv, std:
 
 void Simulation::registerWall(std::shared_ptr<Wall> wall, int every)
 {
-    std::string name = wall->name;
+    std::string name = wall->name();
 
     if (wallMap.find(name) != wallMap.end())
         die("More than one wall is called %s", name.c_str());
 
-    checkWallPrototypes.push_back(std::make_tuple(wall.get(), every));
+    checkWallPrototypes.push_back({wall.get(), every});
 
     // Let the wall know the particle vector associated with it
-    wall->setup(cartComm, domain);
+    float t = 0;
+    wall->setup(cartComm, t, domain);
 
     info("Registered wall '%s'", name.c_str());
 
@@ -211,7 +212,7 @@ void Simulation::registerWall(std::shared_ptr<Wall> wall, int every)
 
 void Simulation::registerInteraction(std::shared_ptr<Interaction> interaction)
 {
-    std::string name = interaction->name;
+    std::string name = interaction->name();
     if (interactionMap.find(name) != interactionMap.end())
         die("More than one interaction is called %s", name.c_str());
 
@@ -220,7 +221,7 @@ void Simulation::registerInteraction(std::shared_ptr<Interaction> interaction)
 
 void Simulation::registerIntegrator(std::shared_ptr<Integrator> integrator)
 {
-    std::string name = integrator->name;
+    std::string name = integrator->name();
     if (integratorMap.find(name) != integratorMap.end())
         die("More than one integrator is called %s", name.c_str());
 
@@ -229,7 +230,7 @@ void Simulation::registerIntegrator(std::shared_ptr<Integrator> integrator)
 
 void Simulation::registerBouncer(std::shared_ptr<Bouncer> bouncer)
 {
-    std::string name = bouncer->name;
+    std::string name = bouncer->name();
     if (bouncerMap.find(name) != bouncerMap.end())
         die("More than one bouncer is called %s", name.c_str());
 
@@ -238,7 +239,7 @@ void Simulation::registerBouncer(std::shared_ptr<Bouncer> bouncer)
 
 void Simulation::registerObjectBelongingChecker(std::shared_ptr<ObjectBelongingChecker> checker)
 {
-    std::string name = checker->name;
+    std::string name = checker->name();
     if (belongingCheckerMap.find(name) != belongingCheckerMap.end())
         die("More than one splitter is called %s", name.c_str());
 
@@ -247,11 +248,11 @@ void Simulation::registerObjectBelongingChecker(std::shared_ptr<ObjectBelongingC
 
 void Simulation::registerPlugin(std::shared_ptr<SimulationPlugin> plugin)
 {
-    std::string name = plugin->name;
+    std::string name = plugin->name();
 
     bool found = false;
     for (auto& pl : plugins)
-        if (pl->name == name) found = true;
+        if (pl->name() == name) found = true;
 
     if (found)
         die("More than one plugin is called %s", name.c_str());
@@ -294,7 +295,7 @@ void Simulation::setInteraction(std::string interactionName, std::string pv1Name
     interaction->setPrerequisites(pv1, pv2);
 
     float rc = interaction->rc;
-    interactionPrototypes.push_back(std::make_tuple(rc, pv1, pv2, interaction));
+    interactionPrototypes.push_back({rc, pv1, pv2, interaction});
 }
 
 void Simulation::setBouncer(std::string bouncerName, std::string objName, std::string pvName)
@@ -311,7 +312,7 @@ void Simulation::setBouncer(std::string bouncerName, std::string objName, std::s
 
     bouncer->setup(ov);
     bouncer->setPrerequisites(pv);
-    bouncerPrototypes.push_back(std::make_tuple(bouncer, pv));
+    bouncerPrototypes.push_back({bouncer, pv});
 }
 
 void Simulation::setWallBounce(std::string wallName, std::string pvName)
@@ -323,7 +324,7 @@ void Simulation::setWallBounce(std::string wallName, std::string pvName)
     auto wall = wallMap[wallName].get();
 
     wall->setPrerequisites(pv);
-    wallPrototypes.push_back( std::make_tuple(wall, pv) );
+    wallPrototypes.push_back( {wall, pv} );
 }
 
 void Simulation::setObjectBelongingChecker(std::string checkerName, std::string objName)
@@ -385,9 +386,9 @@ void Simulation::applyObjectBelongingChecker(std::string checkerName,
         registerParticleVector(pvOutside, nullptr, 0);
     }
 
-    splitterPrototypes.push_back(std::make_tuple(checker, pvSource, getPVbyName(inside), getPVbyName(outside)));
+    splitterPrototypes.push_back({checker, pvSource, getPVbyName(inside), getPVbyName(outside)});
 
-    belongingCorrectionPrototypes.push_back(std::make_tuple(checker, getPVbyName(inside), getPVbyName(outside), checkEvery));
+    belongingCorrectionPrototypes.push_back({checker, getPVbyName(inside), getPVbyName(outside), checkEvery});
 }
 
 
@@ -400,9 +401,9 @@ void Simulation::prepareCellLists()
     // Deal with the cell-lists and interactions
     for (auto prototype : interactionPrototypes)
     {
-        float rc = std::get<0>(prototype);
-        cutOffMap[std::get<1>(prototype)].push_back(rc);
-        cutOffMap[std::get<2>(prototype)].push_back(rc);
+        float rc = prototype.rc;
+        cutOffMap[prototype.pv1].push_back(rc);
+        cutOffMap[prototype.pv2].push_back(rc);
     }
 
     for (auto& cutoffs : cutOffMap)
@@ -452,11 +453,11 @@ void Simulation::prepareInteractions()
 {
     info("Preparing interactions");
 
-    for (auto prototype : interactionPrototypes)
+    for (auto& prototype : interactionPrototypes)
     {
-        auto  rc = std::get<0>(prototype);
-        auto pv1 = std::get<1>(prototype);
-        auto pv2 = std::get<2>(prototype);
+        auto  rc = prototype.rc;
+        auto pv1 = prototype.pv1;
+        auto pv2 = prototype.pv2;
 
         auto& clVec1 = cellListMap[pv1];
         auto& clVec2 = cellListMap[pv2];
@@ -480,7 +481,7 @@ void Simulation::prepareInteractions()
                 mindiff = cl->rc - rc;
             }
 
-        auto inter = std::get<3>(prototype);
+        auto inter = prototype.interaction;
 
         regularInteractions.push_back([inter, pv1, pv2, cl1, cl2] (float t, cudaStream_t stream) {
             inter->regular(pv1, pv2, cl1, cl2, t, stream);
@@ -496,10 +497,10 @@ void Simulation::prepareBouncers()
 {
     info("Preparing object bouncers");
 
-    for (auto prototype : bouncerPrototypes)
+    for (auto& prototype : bouncerPrototypes)
     {
-        auto bouncer = std::get<0>(prototype);
-        auto pv = std::get<1>(prototype);
+        auto bouncer = prototype.bouncer;
+        auto pv      = prototype.pv;
 
         auto& clVec = cellListMap[pv];
 
@@ -521,10 +522,10 @@ void Simulation::prepareWalls()
 {
     info("Preparing walls");
 
-    for (auto prototype : wallPrototypes)
+    for (auto& prototype : wallPrototypes)
     {
-        auto wall  = std::get<0>(prototype);
-        auto pv    = std::get<1>(prototype);
+        auto wall = prototype.wall;
+        auto pv   = prototype.pv;
 
         auto& clVec = cellListMap[pv];
 
@@ -551,12 +552,12 @@ void Simulation::execSplitters()
 {
     info("Splitting particle vectors with respect to object belonging");
 
-    for (auto prototype : splitterPrototypes)
+    for (auto& prototype : splitterPrototypes)
     {
-        auto checker = std::get<0>(prototype);
-        auto src     = std::get<1>(prototype);
-        auto inside  = std::get<2>(prototype);
-        auto outside = std::get<3>(prototype);
+        auto checker = prototype.checker;
+        auto src     = prototype.pvSrc;
+        auto inside  = prototype.pvIn;
+        auto outside = prototype.pvOut;
 
         checker->splitByBelonging(src, inside, outside, 0);
     }
@@ -577,7 +578,7 @@ void Simulation::init()
     info("Preparing plugins");
     for (auto& pl : plugins)
     {
-        debug("Setup and handshake of plugin %s", pl->name.c_str());
+        debug("Setup and handshake of plugin %s", pl->name().c_str());
         pl->setup(this, cartComm, interComm);
         pl->handshake();
     }
@@ -810,10 +811,10 @@ void Simulation::assemble()
 
     for (auto& prototype : belongingCorrectionPrototypes)
     {
-        auto checker = std::get<0>(prototype);
-        auto pvIn    = std::get<1>(prototype);
-        auto pvOut   = std::get<2>(prototype);
-        auto every   = std::get<3>(prototype);
+        auto checker = prototype.checker;
+        auto pvIn    = prototype.pvIn;
+        auto pvOut   = prototype.pvOut;
+        auto every   = prototype.every;
 
         if (every > 0)
         {
@@ -854,15 +855,15 @@ void Simulation::assemble()
     for (auto& wall : wallMap)
     {
         auto wallPtr = wall.second.get();
-        scheduler->addTask(task_wallBounce, [wallPtr, this] (cudaStream_t stream) {
-            wallPtr->bounce(dt, stream);
+        scheduler->addTask(task_wallBounce, [wallPtr, this] (cudaStream_t stream) {    
+            wallPtr->bounce(currentTime, dt, stream);
         });
     }
 
     for (auto& prototype : checkWallPrototypes)
     {
-        auto wall  = std::get<0>(prototype);
-        auto every = std::get<1>(prototype);
+        auto wall  = prototype.wall;
+        auto every = prototype.every;
 
         if (every > 0)
             scheduler->addTask(task_wallCheck, [this, wall] (cudaStream_t stream) { wall->check(stream); }, every);

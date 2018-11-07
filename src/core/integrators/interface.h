@@ -1,8 +1,9 @@
 #pragma once
 
-#include <string>
 #include <cuda_runtime.h>
 #include <mpi.h>
+
+#include "core/udevicex_object.h"
 
 class ParticleVector;
 
@@ -18,10 +19,9 @@ class ParticleVector;
  *    So all the integration for now is done in stage2()
  * \endrst
  */
-class Integrator
+class Integrator : public UdxObject
 {
 public:
-    std::string name;
     float dt;
 
     /**
@@ -48,7 +48,7 @@ public:
     virtual void setPrerequisites(ParticleVector* pv) {}
 
     /// Set the name of the integrator and its time-step
-    Integrator(std::string name, float dt) : dt(dt), name(name) {}
+    Integrator(std::string name, float dt) : UdxObject(name), dt(dt) {}
     
     /// Save handler state
     virtual void checkpoint(MPI_Comm& comm, std::string path) {}

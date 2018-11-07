@@ -1,12 +1,10 @@
-#include <pybind11/pybind11.h>
-
 #include <core/object_belonging/interface.h>
 #include <core/object_belonging/ellipsoid_belonging.h>
 #include <core/object_belonging/mesh_belonging.h>
 
+#include "bindings.h"
 #include "class_wrapper.h"
 
-namespace py = pybind11;
 using namespace pybind11::literals;
 
 void exportObjectBelongingCheckers(py::module& m)

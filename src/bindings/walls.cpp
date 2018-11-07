@@ -1,12 +1,10 @@
-#include <pybind11/pybind11.h>
-
 #include <core/walls/factory.h>
 
 #include <core/utils/pytypes.h>
 
+#include "bindings.h"
 #include "class_wrapper.h"
 
-namespace py = pybind11;
 using namespace pybind11::literals;
 
 void exportWalls(py::module& m)
@@ -131,7 +129,7 @@ void exportWalls(py::module& m)
                 normal: wall normal, pointing *inside* the wall
                 pointThrough: point that belongs to the plane
                 velocity: velocity amplitude, should be orthogonal to the normal
-                period: oscillation period in number of timesteps
+                period: oscillation period dpd time units
         )");
 }
 

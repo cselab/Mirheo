@@ -1,10 +1,10 @@
 #pragma once
 
-#include <string>
-#include <core/datatypes.h>
-#include <core/containers.h>
-#include <core/domain.h>
-#include <core/utils/pytypes.h>
+#include "core/udevicex_object.h"
+#include "core/datatypes.h"
+#include "core/containers.h"
+#include "core/domain.h"
+#include "core/utils/pytypes.h"
 
 #include "extra_data/extra_data_manager.h"
 
@@ -38,7 +38,7 @@ protected:
 };
 
 
-class ParticleVector
+class ParticleVector : public UdxObject
 {
 protected:
 
@@ -49,7 +49,6 @@ public:
     DomainInfo domain;    
 
     float mass;
-    std::string name;
     // Local coordinate system; (0,0,0) is center of the local domain
 
     bool haloValid = false;

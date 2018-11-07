@@ -108,16 +108,16 @@ __global__ void imposeVelField(PVview view, const VelocityField velField)
 //===============================================================================================
 
 template<class InsideWallChecker, class VelocityField>
-void WallWithVelocity<InsideWallChecker, VelocityField>::setup(MPI_Comm& comm, DomainInfo domain)
+void WallWithVelocity<InsideWallChecker, VelocityField>::setup(MPI_Comm& comm, float t, DomainInfo domain)
 {
-    info("Setting up wall %s", this->name.c_str());
+    info("Setting up wall %s", this->name().c_str());
     this->domain = domain;
 
     CUDA_Check( cudaDeviceSynchronize() );
     MPI_Check( MPI_Comm_dup(comm, &this->wallComm) );
 
     this->insideWallChecker.setup(this->wallComm, domain);
-    velField.setup(this->wallComm, domain);
+    velField.setup(this->wallComm, t, domain);
 
     CUDA_Check( cudaDeviceSynchronize() );
 }
@@ -138,9 +138,9 @@ void WallWithVelocity<InsideWallChecker, VelocityField>::attachFrozen(ParticleVe
 }
 
 template<class InsideWallChecker, class VelocityField>
-void WallWithVelocity<InsideWallChecker, VelocityField>::bounce(float dt, cudaStream_t stream)
+void WallWithVelocity<InsideWallChecker, VelocityField>::bounce(float t, float dt, cudaStream_t stream)
 {
-    velField.setup(this->wallComm, domain);
+    velField.setup(this->wallComm, t, domain);
 
     for (int i=0; i < this->particleVectors.size(); i++)
     {
@@ -150,7 +150,7 @@ void WallWithVelocity<InsideWallChecker, VelocityField>::bounce(float dt, cudaSt
         PVviewWithOldParticles view(pv, pv->local());
 
         debug2("Bouncing %d %s particles with wall velocity, %d boundary cells",
-                pv->local()->size(), pv->name.c_str(), bc->size());
+               pv->local()->size(), pv->name().c_str(), bc->size());
 
         const int nthreads = 64;
         SAFE_KERNEL_LAUNCH(

@@ -12,7 +12,7 @@ Postprocess::Postprocess(MPI_Comm& comm, MPI_Comm& interComm) : comm(comm), inte
 
 void Postprocess::registerPlugin(std::shared_ptr<PostprocessPlugin> plugin)
 {
-    info("New plugin registered: %s", plugin->name.c_str());
+    info("New plugin registered: %s", plugin->name().c_str());
     plugins.push_back( std::move(plugin) );
 }
 
@@ -20,7 +20,7 @@ void Postprocess::init()
 {
     for (auto& pl : plugins)
     {
-        debug("Setup and handshake of %s", pl->name.c_str());
+        debug("Setup and handshake of %s", pl->name().c_str());
         pl->setup(comm, interComm);
         pl->handshake();
     }
@@ -88,7 +88,7 @@ void Postprocess::run()
                 return;
             }
         
-            debug2("Postprocess got a request from plugin '%s', executing now", plugins[index]->name.c_str());
+            debug2("Postprocess got a request from plugin '%s', executing now", plugins[index]->name().c_str());
             plugins[index]->recv();
             plugins[index]->deserialize(statuses[index]);
             requests[index] = plugins[index]->waitData();

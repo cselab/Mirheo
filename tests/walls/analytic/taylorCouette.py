@@ -43,9 +43,9 @@ for p in [pv, frozen_in, frozen_out]:
 u.registerIntegrator(vv)
 u.setIntegrator(vv, pv)
 
-#move = udx.Integrators.Translate('move', dt=dt, velocity=(vx, 0, 0))
-#u.registerIntegrator(move)
-#u.setIntegrator(move, frozen_hi)
+rotate = udx.Integrators.Rotate('rotate', dt, (center[0], center[1], 0.), omega=(0, 0, omega))
+u.registerIntegrator(rotate)
+u.setIntegrator(rotate, frozen_out)
 
 sampleEvery = 2
 dumpEvery   = 1000
@@ -60,4 +60,4 @@ u.run((int)(tend/dt))
 # cd walls/analytic
 # rm -rf h5
 # udx.run --runargs "-n 2" ./taylorCouette.py > /dev/null
-# udx.avgh5 z velocity h5/solvent-0000[7-9].h5 > profile.out.txt
+# udx.avgh5 zy velocity h5/solvent-0000[7-9].h5 > profile.out.txt

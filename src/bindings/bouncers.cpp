@@ -1,13 +1,10 @@
-#include <pybind11/pybind11.h>
-
 #include <core/bouncers/interface.h>
 #include <core/bouncers/from_ellipsoid.h>
 #include <core/bouncers/from_mesh.h>
 
+#include "bindings.h"
 #include "class_wrapper.h"
 
-
-namespace py = pybind11;
 using namespace pybind11::literals;
 
 void exportBouncers(py::module& m)
@@ -23,7 +20,7 @@ void exportBouncers(py::module& m)
         Due to numerical precision, about :math:`1` of :math:`10^5 - 10^6` mesh crossings will not be detected, therefore it is advised to use that bouncer in
         conjunction with correction option provided by the Object Belonging Checker, see :ref:`user-belongers`.
         
-        .. note:
+        .. note::
             In order to prevent numerical instabilities in case of light membrane particles,
             the new velocity of the bounced particles will be a random vector drawn from the Maxwell distibution of given temperature
             and added to the velocity of the mesh triangle at the collision point.

@@ -15,7 +15,6 @@ uninstall:
 
 docs:
 	make -C docs/
-	make -C docs/source/
 
 test: install
 	(cd tests; udx.make test)

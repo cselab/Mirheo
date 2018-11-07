@@ -1,30 +1,28 @@
 #pragma once
 
 #include <mpi.h>
-#include <string>
 #include <vector>
 #include <cuda_runtime.h>
-
 #include <core/domain.h>
+
+#include "core/udevicex_object.h"
 
 class LocalParticleVector;
 class ParticleVector;
 class CellList;
 class GPUcontainer;
 
-class Wall
+class Wall : public UdxObject
 {
 public:
-    std::string name;
+    Wall(std::string name) : UdxObject(name) {};
 
-    Wall(std::string name) : name(name) {};
-
-    virtual void setup(MPI_Comm& comm, DomainInfo domain) = 0;
+    virtual void setup(MPI_Comm& comm, float t, DomainInfo domain) = 0;
     virtual void attachFrozen(ParticleVector* pv) = 0;
 
     virtual void removeInner(ParticleVector* pv) = 0;
     virtual void attach(ParticleVector* pv, CellList* cl) = 0;
-    virtual void bounce(float dt, cudaStream_t stream) = 0;
+    virtual void bounce(float t, float dt, cudaStream_t stream) = 0;
 
     /**
      * Ask ParticleVectors which the class will be working with to have specific properties
@@ -50,6 +48,7 @@ public:
     using Wall::Wall;
 
     virtual void sdfPerParticle(LocalParticleVector* lpv, GPUcontainer* sdfs, GPUcontainer* gradients, cudaStream_t stream) = 0;
+    virtual void sdfPerPosition(GPUcontainer *positions, GPUcontainer* sdfs, cudaStream_t stream) = 0;
     virtual void sdfOnGrid(float3 gridH, GPUcontainer* sdfs, cudaStream_t stream) = 0;
 
 

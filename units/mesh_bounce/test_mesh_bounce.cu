@@ -5,7 +5,7 @@
 #define __device__
 #define __BOUNCE_TEST__
 
-#include <core/rbc_kernels/bounce.h>
+#include <core/membrane_kernels/bounce.h>
 
 
 int main()

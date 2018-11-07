@@ -21,7 +21,7 @@ void MeshPlugin::setup(Simulation* sim, const MPI_Comm& comm, const MPI_Comm& in
 
     ov = sim->getOVbyNameOrDie(ovName);
 
-    info("Plugin %s initialized for the following object vector: %s", name.c_str(), ovName.c_str());
+    info("Plugin %s initialized for the following object vector: %s", name().c_str(), ovName.c_str());
 }
 
 void MeshPlugin::beforeForces(cudaStream_t stream)
@@ -36,7 +36,7 @@ void MeshPlugin::serializeAndSend(cudaStream_t stream)
 {
     if (currentTimeStep % dumpEvery != 0 || currentTimeStep == 0) return;
 
-    debug2("Plugin %s is sending now data", name.c_str());
+    debug2("Plugin %s is sending now data", name().c_str());
 
     vertices.clear();
     vertices.reserve(srcVerts->size());
@@ -47,9 +47,9 @@ void MeshPlugin::serializeAndSend(cudaStream_t stream)
     auto& mesh = ov->mesh;
 
     waitPrevSend();
-    SimpleSerializer::serialize(data, ov->name,
-            mesh->getNvertices(), mesh->getNtriangles(), mesh->triangles,
-            vertices);
+    SimpleSerializer::serialize(data, ov->name(),
+                                mesh->getNvertices(), mesh->getNtriangles(), mesh->triangles,
+                                vertices);
 
     send(data);
 }

@@ -62,7 +62,8 @@ public:
     
 
     void dumpWalls2XDMF(std::vector<std::shared_ptr<Wall>> walls, PyTypes::float3 h, std::string filename);
-
+    double computeVolumeInsideWalls(std::vector<std::shared_ptr<Wall>> walls, long nSamplesPerRank = 100000);
+    
     std::shared_ptr<ParticleVector> makeFrozenWallParticles(std::string pvName,
                                                             std::vector<std::shared_ptr<Wall>> walls,
                                                             std::shared_ptr<Interaction> interaction,
@@ -80,8 +81,8 @@ public:
                                                                 ParticleVector* pv,
                                                                 int checkEvery,
                                                                 std::string inside = "",
-                                                                std::string outside = "");
-        
+                                                                std::string outside = "");    
+    
     ~uDeviceX();
 
 private:

@@ -168,7 +168,7 @@ void uDeviceX::registerObjectBelongingChecker (const std::shared_ptr<ObjectBelon
     if (isComputeTask())
     {
         sim->registerObjectBelongingChecker(checker);
-        sim->setObjectBelongingChecker(checker->name, ov->name);
+        sim->setObjectBelongingChecker(checker->name(), ov->name());
     }
 }
 void uDeviceX::registerPlugins(const std::shared_ptr<SimulationPlugin>& simPlugin, const std::shared_ptr<PostprocessPlugin>& postPlugin)
@@ -188,22 +188,22 @@ void uDeviceX::registerPlugins(const std::shared_ptr<SimulationPlugin>& simPlugi
 void uDeviceX::setIntegrator(Integrator* integrator, ParticleVector* pv)
 {
     if (isComputeTask())
-        sim->setIntegrator(integrator->name, pv->name);
+        sim->setIntegrator(integrator->name(), pv->name());
 }
 void uDeviceX::setInteraction(Interaction* interaction, ParticleVector* pv1, ParticleVector* pv2)
 {
     if (isComputeTask())
-        sim->setInteraction(interaction->name, pv1->name, pv2->name);
+        sim->setInteraction(interaction->name(), pv1->name(), pv2->name());
 }
 void uDeviceX::setBouncer(Bouncer* bouncer, ObjectVector* ov, ParticleVector* pv)
 {
     if (isComputeTask())
-        sim->setBouncer(bouncer->name, ov->name, pv->name);
+        sim->setBouncer(bouncer->name(), ov->name(), pv->name());
 }
 void uDeviceX::setWallBounce(Wall* wall, ParticleVector* pv)
 {
     if (isComputeTask())
-        sim->setWallBounce(wall->name, pv->name);
+        sim->setWallBounce(wall->name(), pv->name());
 }
 
 void uDeviceX::dumpWalls2XDMF(std::vector<std::shared_ptr<Wall>> walls, PyTypes::float3 h, std::string filename)
@@ -222,13 +222,35 @@ void uDeviceX::dumpWalls2XDMF(std::vector<std::shared_ptr<Wall>> walls, PyTypes:
             sdfWalls.push_back(sdfWall);
 
         // Check if the wall is set up
-        sim->getWallByNameOrDie(wall->name);
+        sim->getWallByNameOrDie(wall->name());
     }
     
     auto path = parentPath(filename);
     if (path != filename)
         createFoldersCollective(sim->cartComm, path);
     ::dumpWalls2XDMF(sdfWalls, make_float3(h), sim->domain, filename, sim->cartComm);
+}
+
+double uDeviceX::computeVolumeInsideWalls(std::vector<std::shared_ptr<Wall>> walls, long nSamplesPerRank)
+{
+    if (!isComputeTask()) return 0;
+
+    info("Computing volume inside walls\n");
+    
+    std::vector<SDF_basedWall*> sdfWalls;
+    for (auto &wall : walls)
+    {
+        auto sdfWall = dynamic_cast<SDF_basedWall*>(wall.get());
+        if (sdfWall == nullptr)
+            die("Only sdf-based walls are supported!");        
+        else
+            sdfWalls.push_back(sdfWall);
+
+        // Check if the wall is set up
+        sim->getWallByNameOrDie(wall->name());
+    }
+
+    return volumeInsideWalls(sdfWalls, sim->domain, sim->cartComm, nSamplesPerRank);
 }
 
 std::shared_ptr<ParticleVector> uDeviceX::makeFrozenWallParticles(std::string pvName,
@@ -257,9 +279,9 @@ std::shared_ptr<ParticleVector> uDeviceX::makeFrozenWallParticles(std::string pv
             sdfWalls.push_back(sdfWall);
 
         // Check if the wall is set up
-        sim->getWallByNameOrDie(wall->name);
+        sim->getWallByNameOrDie(wall->name());
 
-        info("Working with wall '%s'", wall->name.c_str());   
+        info("Working with wall '%s'", wall->name().c_str());   
     }
     
     Simulation wallsim(sim->nranks3D, sim->domain.globalSize, sim->cartComm, MPI_COMM_NULL, false);
@@ -273,8 +295,8 @@ std::shared_ptr<ParticleVector> uDeviceX::makeFrozenWallParticles(std::string pv
 
     wallsim.registerIntegrator(integrator);
     
-    wallsim.setInteraction(interaction->name, pv->name, pv->name);
-    wallsim.setIntegrator (integrator->name,  pv->name);
+    wallsim.setInteraction(interaction->name(), pv->name(), pv->name());
+    wallsim.setIntegrator (integrator->name(),  pv->name());
     
     wallsim.init();
     wallsim.run(nsteps);
@@ -299,15 +321,15 @@ std::shared_ptr<ParticleVector> uDeviceX::makeFrozenRigidParticles(std::shared_p
 {
     if (!isComputeTask()) return nullptr;
 
-    auto insideName = "inside_" + shape->name;
+    auto insideName = "inside_" + shape->name();
     
-    info("Generating frozen particles for rigid object '%s'...\n\n", shape->name.c_str());
+    info("Generating frozen particles for rigid object '%s'...\n\n", shape->name().c_str());
 
     if (shape->local()->nObjects > 1)
         die("expected no more than one object vector; given %d", shape->local()->nObjects);
     
     
-    auto pv = std::make_shared<ParticleVector>("outside__" + shape->name, 1.0);
+    auto pv = std::make_shared<ParticleVector>("outside__" + shape->name(), 1.0);
     auto ic = std::make_shared<UniformIC>(density);
 
     {
@@ -317,8 +339,8 @@ std::shared_ptr<ParticleVector> uDeviceX::makeFrozenRigidParticles(std::shared_p
         eqsim.registerInteraction(interaction);
         eqsim.registerIntegrator(integrator);
     
-        eqsim.setInteraction(interaction->name, pv->name, pv->name);
-        eqsim.setIntegrator (integrator->name,  pv->name);
+        eqsim.setInteraction(interaction->name(), pv->name(), pv->name());
+        eqsim.setIntegrator (integrator->name(),  pv->name());
     
         eqsim.init();
         eqsim.run(nsteps);
@@ -329,8 +351,8 @@ std::shared_ptr<ParticleVector> uDeviceX::makeFrozenRigidParticles(std::shared_p
     freezesim.registerParticleVector(pv, nullptr, 0);
     freezesim.registerParticleVector(shape, icShape, 0);
     freezesim.registerObjectBelongingChecker (checker);
-    freezesim.setObjectBelongingChecker(checker->name, shape->name);
-    freezesim.applyObjectBelongingChecker(checker->name, pv->name, insideName, pv->name, 0);
+    freezesim.setObjectBelongingChecker(checker->name(), shape->name());
+    freezesim.applyObjectBelongingChecker(checker->name(), pv->name(), insideName, pv->name(), 0);
 
     freezesim.init();
     freezesim.run(1);
@@ -349,22 +371,22 @@ std::shared_ptr<ParticleVector> uDeviceX::applyObjectBelongingChecker(ObjectBelo
     
     if ( (inside != "" && outside != "") || (inside == "" && outside == "") )
         die("One and only one option can be specified for belonging checker '%s': inside or outside",
-            checker->name.c_str());
+            checker->name().c_str());
     
     std::string newPVname;
     
     if (inside == "")
     {
-        inside = pv->name;
+        inside = pv->name();
         newPVname = outside;
     }
     if (outside == "")
     {
-        outside = pv->name;
+        outside = pv->name();
         newPVname = inside;
     }
         
-    sim->applyObjectBelongingChecker(checker->name, pv->name, inside, outside, checkEvery);
+    sim->applyObjectBelongingChecker(checker->name(), pv->name(), inside, outside, checkEvery);
     return sim->getSharedPVbyName(newPVname);
 }
 

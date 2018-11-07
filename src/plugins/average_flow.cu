@@ -101,7 +101,7 @@ void Average3D::setup(Simulation* sim, const MPI_Comm& comm, const MPI_Comm& int
         pvs.push_back(sim->getPVbyNameOrDie(pvName));
 
     info("Plugin '%s' initialized for the %d PVs and channels %s, resolution %dx%dx%d",
-         name.c_str(), pvs.size(), allChannels.c_str(),
+         name().c_str(), pvs.size(), allChannels.c_str(),
          resolution.x, resolution.y, resolution.z);
 }
 
@@ -152,7 +152,7 @@ void Average3D::afterIntegration(cudaStream_t stream)
 {
     if (currentTimeStep % sampleEvery != 0 || currentTimeStep == 0) return;
 
-    debug2("Plugin %s is sampling now", name.c_str());
+    debug2("Plugin %s is sampling now", name().c_str());
 
     for (auto& pv : pvs) sampleOnePv(pv, stream);
 
@@ -199,7 +199,7 @@ void Average3D::serializeAndSend(cudaStream_t stream)
     
     scaleSampled(stream);
 
-    debug2("Plugin '%s' is now packing the data", name.c_str());
+    debug2("Plugin '%s' is now packing the data", name().c_str());
     waitPrevSend();
     SimpleSerializer::serialize(sendBuffer, currentTime, accumulated_density, accumulated_average);
     send(sendBuffer);

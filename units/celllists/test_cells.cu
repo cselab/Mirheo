@@ -70,7 +70,7 @@ int main(int argc, char **argv)
         dpds.cellListStamp++;
     }
 
-    dpds.local()->coosvels.downloadFromDevice(0, true);
+    dpds.local()->coosvels.downloadFromDevice(0, ContainersSynch::Synch);
 
     HostBuffer<int> hcellsStart(cells->totcells+1);
     HostBuffer<int> hcellsSize(cells->totcells+1);
