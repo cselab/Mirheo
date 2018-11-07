@@ -47,7 +47,7 @@ function (add_test_executable dirName)
   target_link_libraries(${EXEC_NAME} PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/../build/libudevicex_main.so")
 endfunction()
 
-#add_test_executable(celllists)
+add_test_executable(celllists)
 add_test_executable(interaction)
 add_test_executable(pid)
 add_test_executable(scheduler)

@@ -126,7 +126,7 @@ int main(int argc, char **argv)
                 fabs(coo.x - cooDev.x), fabs(coo.y - cooDev.y), fabs(coo.z - cooDev.z),
                 fabs(vel.x - velDev.x), fabs(vel.y - velDev.y), fabs(vel.z - velDev.z) });
 
-            int actCid = cells->getCellId<false>(cooDev);
+            int actCid = cells->getCellId<CellListsProjection::NoClamp>(cooDev);
 
             if (cid != actCid || diff > 1e-5)
             {
