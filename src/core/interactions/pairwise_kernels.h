@@ -206,6 +206,8 @@ __global__ void computeExternalInteractions_1tpp(
                 int rowStart  = max(midCellId-1, 0);
                 int rowEnd    = min(midCellId+2, srcCinfo.totcells);
 
+                if (rowStart >= rowEnd) continue;
+                
                 const int pstart = srcCinfo.cellStarts[rowStart];
                 const int pend   = srcCinfo.cellStarts[rowEnd];
 
@@ -270,6 +272,8 @@ __global__ void computeExternalInteractions_3tpp(
             int rowStart  = max(midCellId-1, 0);
             int rowEnd    = min(midCellId+2, srcCinfo.totcells);
 
+            if (rowStart >= rowEnd) continue;
+            
             const int pstart = srcCinfo.cellStarts[rowStart];
             const int pend   = srcCinfo.cellStarts[rowEnd];
 
@@ -284,6 +288,9 @@ __global__ void computeExternalInteractions_3tpp(
                 const int cid = srcCinfo.encode(cellX, cellY, cellZ);
                 const int pstart = srcCinfo.cellStarts[cid];
                 const int pend   = srcCinfo.cellStarts[cid+1];
+
+                if ((long long int) pend - (long long int) pstart  > 200)
+                    printf("hohohoh %d %d \t \t %d\n", pstart, pend, pend - pstart);
 
                 computeCell<NeedDstAcc, NeedSrcAcc, InteractionWith::Other> (pstart, pend, dstP, dstId, dstFrc, srcCinfo, rc2, interaction);
             }
@@ -334,6 +341,8 @@ __global__ void computeExternalInteractions_9tpp(
         int rowStart  = max(midCellId-1, 0);
         int rowEnd    = min(midCellId+2, srcCinfo.totcells);
 
+        if (rowStart >= rowEnd) return;
+        
         const int pstart = srcCinfo.cellStarts[rowStart];
         const int pend   = srcCinfo.cellStarts[rowEnd];
 
