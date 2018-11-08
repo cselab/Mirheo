@@ -7,6 +7,12 @@ endif()
 project(UDX_UnitTests LANGUAGES C CXX CUDA)
 enable_testing()
 
+set(BUILD_GMOCK OFF)
+set(INSTALL_GTEST OFF)
+
+# googletest
+add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/extern/googletest")
+
 # CUDA
 find_package(CUDA REQUIRED)
 include_directories(${CUDA_INCLUDE_DIRS})
@@ -23,10 +29,6 @@ if (DEFINED ENV{CRAY_MPICH_DIR})
   set(MPI_C_INCLUDE_DIRS   "$ENV{CRAY_MPICH_DIR}/include")
   set(MPI_CXX_INCLUDE_DIRS "$ENV{CRAY_MPICH_DIR}/include")
 endif()
-
-
-# googletest
-add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/extern/googletest")
 
 include_directories(${MPI_CXX_INCLUDE_DIRS})
 set(CMAKE_C_COMPILER   ${MPI_C_COMPILER})
@@ -50,7 +52,7 @@ function (add_test_executable dirName)
   add_executable(${EXEC_NAME} ${SOURCES})
   target_link_libraries(${EXEC_NAME} PRIVATE ${CUDA_LIBRARIES})
   target_link_libraries(${EXEC_NAME} PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/../build/libudevicex_main.so")
-  target_link_libraries(${EXEC_NAME} PRIVATE gtest gmock gtest_main)
+  target_link_libraries(${EXEC_NAME} PRIVATE gtest)
   add_test(${EXEC_NAME} ${EXEC_NAME})
 endfunction()
 

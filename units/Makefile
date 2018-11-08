@@ -2,9 +2,13 @@ all: build
 
 BUILD=build
 
+LOCAL_CMAKE_FLAGS = "-Dgtest_disable_pthreads=ON"
+LOCAL_CMAKE_FLAGS += "-DBUILD_GMOCK=OFF"
+LOCAL_CMAKE_FLAGS += "-DINSTALL_GTEST=OFF"
+
 build:
 	(mkdir -p $(BUILD) && \
-	 cd $(BUILD) && cmake .. -DGTEST_HAS_PTHREAD=0 && \
+	 cd $(BUILD) && cmake $(LOCAL_CMAKE_FLAGS) .. && \
 	 make -j)
 
 test:
