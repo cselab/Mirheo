@@ -3,10 +3,13 @@
 #define protected public
 
 #include <core/pvs/particle_vector.h>
+#include <core/initial_conditions/uniform_ic.h>
+#include <core/rigid_kernels/rigid_motion.h>
 #include <core/celllist.h>
 #include <core/mpi/api.h>
 #include <core/logger.h>
 #include <core/containers.h>
+#include <core/utils/kernel_launch.h>
 
 #include <core/pvs/rigid_object_vector.h>
 #include <core/rigid_kernels/bounce.h>
@@ -44,16 +47,12 @@ float ellipsoid(RigidMotion motion, float3 invAxes, Particle p)
     const float3 v = p.r - toSingleMotion(motion).r;
     const float3 vRot = rot(v, inv_q(toSingleMotion(motion).q));
 
-//	if (p.i1 == 352474)
-//		printf(";lasjjjjj     [%f %f %f] --> [%f %f %f] -rot-> [%f %f %f]          %f\n",
-//				p.r.x, p.r.y, p.r.z, v.x, v.y, v.z, vRot.x, vRot.y, vRot.z, dot(motion.q, motion.q));
-
     return sqr(vRot.x * invAxes.x) + sqr(vRot.y * invAxes.y) + sqr(vRot.z * invAxes.z) - 1.0f;
 }
 
 bool overlap(float3 r, RigidMotion* motions, int n, float dist2)
 {
-    for (int i=0; i<n; i++)
+    for (int i = 0; i < n; i++)
         if (dot(r-toSingleMotion(motions[i]).r, r-toSingleMotion(motions[i]).r) < dist2)
             return true;
 
@@ -65,7 +64,7 @@ int main(int argc, char ** argv)
     // Init
 
     int nranks, rank;
-    int ranks[] = {1, 1, 1};
+    int ranks[] = {1, 1, 1}, rank3[3] = {0};
     int periods[] = {1, 1, 1};
     MPI_Comm cartComm;
 
@@ -75,33 +74,36 @@ int main(int argc, char ** argv)
     MPI_Check( MPI_Comm_size(MPI_COMM_WORLD, &nranks) );
     MPI_Check( MPI_Comm_rank(MPI_COMM_WORLD, &rank) );
     MPI_Check( MPI_Cart_create(MPI_COMM_WORLD, 3, ranks, periods, 0, &cartComm) );
+    MPI_Check( MPI_Cart_coords(cartComm, rank, 3, rank3) );
 
+
+    DomainInfo domain;
     float3 length{40,40,40};
     float3 domainStart = -length / 2.0f;
+    domain.localSize = length;
+
+    domain.globalSize = make_float3(length.x * ranks[0], length.y * ranks[1], length.z * ranks[2]);
+    domain.localSize  = make_float3(length.x * rank3[0], length.y * rank3[1], length.z * rank3[2]);
+    
     const float rc = 1.0f;
     ParticleVector dpds("dpd", 1.0);
-    CellList cells(&dpds, rc, length);
-    cells.setStream(0);
-    cells.makePrimary();
+    PrimaryCellList cells(&dpds, rc, length);
 
     UniformIC ic(10.0);
-    ic.exec(MPI_COMM_WORLD, &dpds, {0,0,0}, length);
+    ic.exec(MPI_COMM_WORLD, &dpds, domain, 0);
 
     const int initialNP = dpds.local()->size();
     HostBuffer<Particle> initial(dpds.local()->size()), final(dpds.local()->size());
     const float dt = 0.1;
-    for (int i=0; i<dpds.local()->size(); i++)
-    {
+    for (int i = 0; i < dpds.local()->size(); i++) {
         dpds.local()->coosvels[i].u.x = 2*(drand48() - 0.5);
         dpds.local()->coosvels[i].u.y = 2*(drand48() - 0.5);
         dpds.local()->coosvels[i].u.z = 2*(drand48() - 0.5);
-
-        //dpds.local()->coosvels[i].r += dt * dpds.local()->coosvels[i].u;
     }
 
-    dpds.local()->coosvels.uploadToDevice();
-    cells.build();
-    dpds.local()->coosvels.downloadFromDevice();
+    dpds.local()->coosvels.uploadToDevice(0);
+    cells.build(0);
+    dpds.local()->coosvels.downloadFromDevice(0);
     initial.copy(dpds.local()->coosvels);
 
 
@@ -111,7 +113,7 @@ int main(int argc, char ** argv)
 
     const float maxAxis = std::max({axes.x, axes.y, axes.z});
 
-    PinnedBuffer<LocalRigidObjectVector::RigidMotion> motions(nobj);
+    PinnedBuffer<RigidMotion> motions(nobj);
     PinnedBuffer<LocalRigidObjectVector::COMandExtent> com_ext(nobj);
 
     for (int i=0; i<nobj; i++)
@@ -120,7 +122,7 @@ int main(int argc, char ** argv)
             motions[i].r.x = length.x*(drand48() - 0.5);
             motions[i].r.y = length.y*(drand48() - 0.5);
             motions[i].r.z = length.z*(drand48() - 0.5);
-        } while (overlap(motions[i].r, motions.hostPtr(), i, (2*maxAxis+0.2)*(2*maxAxis+0.2)));
+        } while (overlap(make_float3(motions[i].r), motions.hostPtr(), i, (2*maxAxis+0.2)*(2*maxAxis+0.2)));
 
 
         motions[i].omega.x = 2*(drand48() - 0.5);
@@ -131,8 +133,8 @@ int main(int argc, char ** argv)
         motions[i].vel.y = 2*(drand48() - 0.5);
         motions[i].vel.z = 2*(drand48() - 0.5);
 
-        motions[i].force  = make_float3(0);
-        motions[i].torque = make_float3(0);
+        motions[i].force  = make_rigidReal3(make_float3(0));
+        motions[i].torque = make_rigidReal3(make_float3(0));
 
         const float phi = 0.4*M_PI*drand48()+0.1;
         const float sphi = sin(0.5f*phi);
@@ -142,41 +144,28 @@ int main(int argc, char ** argv)
         //float3 v = make_float3(1, 0, 0);
         v = normalize(v);
 
-        motions[i].q = make_float4(cphi, sphi*v.x, sphi*v.y, sphi*v.z);
+        motions[i].q = make_rigidReal4(make_float4(cphi, sphi*v.x, sphi*v.y, sphi*v.z));
 
-        com_ext[i].com  = motions[i].r;
+        com_ext[i].com  = make_float3(motions[i].r);
         com_ext[i].high = com_ext[i].com + make_float3(maxAxis);
         com_ext[i].low  = com_ext[i].com - make_float3(maxAxis);
 
-//		printf("Obj %d:\n"
-//				"   r [%f %f %f]\n"
-//				"   phi %f, v [%f %f %f]\n"
-//				"   ext : [%f %f %f] -- [%f %f %f]\n\n",
-//				i, motions[i].r.x, motions[i].r.y, motions[i].r.z,
-//				phi, v.x, v.y, v.z,
-//				com_ext[i].low.x,  com_ext[i].low.y,  com_ext[i].low.z,
-//				com_ext[i].high.x, com_ext[i].high.y, com_ext[i].high.z);
-    }
-
     printf(" =================================================\n\n");
 
-    motions.uploadToDevice();
-    com_ext.uploadToDevice();
+    motions.uploadToDevice(0);
+    com_ext.uploadToDevice(0);
 
 
-    OVView ovview()
+    OVview ovview();
+    PVview pvview();
 
-    for (int iter=0; iter<100; iter++)
+    for (int iter = 0; iter < 100; iter++)
     {
         SAFE_KERNEL_LAUNCH(
-                bounceEllipsoid, ovview, pvview, cells.cellInfo(), dt );
+                           bounceEllipsoid, ovview, pvview, cells.cellInfo(), dt );
     }
 
     return 0;
-
-//			(float4* coosvels, float mass, const LocalObjectVector::COMandExtent* props, LocalRigidObjectVector::RigidMotion* motions,
-//			const int nObj, const float3 invAxes,
-//			const uint* __restrict__ cellsStartSize, CellListInfo cinfo, const float dt)
 
     dpds.local()->coosvels.downloadFromDevice(true);
 
@@ -190,9 +179,6 @@ int main(int argc, char ** argv)
         oldMot.q = motion.q - dq_dt * dt;
         oldMot.r = motion.r - motion.vel * dt;
         oldMot.q = normalize(oldMot.q);
-
-//		printf("Obj %d: old  q [%f %f %f %f],  r [%f %f %f]\n",
-//				objId, oldMot.q.x, oldMot.q.y, oldMot.q.z, oldMot.q.w,  oldMot.r.x, oldMot.r.y, oldMot.r.z);
 
 #pragma omp parallel for
         for (int pid = 0; pid < final.size(); pid++)
@@ -241,8 +227,6 @@ int main(int argc, char ** argv)
                             pInit.r.x,  pInit.r.y,  pInit.r.z,  vinit,
                             pFinal.r.x, pFinal.r.y, pFinal.r.z, vfin,
                             pInit.u.x,  pInit.u.y,  pInit.u.z, pFinal.u.x,  pFinal.u.y,  pFinal.u.z,  v.x, v.y, v.z);
-
-                    //return 0;
                 }
             }
         }
