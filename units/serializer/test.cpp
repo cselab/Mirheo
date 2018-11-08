@@ -8,17 +8,18 @@
 #include <cstdio>
 #include <typeinfo>
 
+#include <gtest/gtest.h>
+
 Logger logger;
 
 void myassert(bool condition, const std::string& message)
 {
-    if (!condition)
-    {
+    if (!condition) {
         fprintf(stderr, "%s\n", message.c_str());
         fflush(stdout);
     }
         
-    assert(condition);
+    ASSERT_TRUE(condition);
 }
 
 
@@ -40,27 +41,34 @@ void test(Vec vals, Cmp cmp)
     
     for (int i=0; i<vals.size(); i++)
         myassert(cmp(dst[i], vals[i]), "mismatch on " + std::to_string(i));
-    
-    fprintf(stderr, "passed: container %s\n", typeid(dst).name());
 }
 
-int main()
+TEST(Serializer, VectorOfString)
 {
-    MPI_Init(nullptr, nullptr);
-    logger.init(MPI_COMM_WORLD, "serializer.log", 9);
-    
     test< std::vector<std::string> >( std::vector<std::string>{"density", "velocity"},
                                    [] (std::string a, std::string b) { return a == b; } );
-    
+}
+
+TEST(Serializer, VectorOfParticle)
+{
     test< std::vector<Particle> >( std::vector<Particle>{ Particle({0,0,0,0}, {1,1,1,1}), Particle({3,3,3,3}, {5,5,5,5}) },
                                    [] (Particle& a, Particle& b) { return a.r.x == b.r.x; } );
-    
+}
+
+TEST(Serializer, HostBufferOfParticle)
+{
     test< HostBuffer<Particle> >( std::vector<Particle>{ Particle({0,0,0,0}, {1,1,1,1}), Particle({3,3,3,3}, {5,5,5,5}) },
                                   [] (Particle& a, Particle& b) { return a.r.x == b.r.x; } );
-    
+}
+
+TEST(Serializer, PinnedBufferOfDouble)
+{
     test< PinnedBuffer<double> >( std::vector<double>{1,2,3,3.14,-2.7128, 1e42},
-                                   [] (double& a, double& b) { return a == b; } );
-    
+                                  [] (double& a, double& b) { return a == b; } );
+}
+
+TEST(Serializer, Mixed)
+{
     float s1 = 1, s2 = 2, d1, d2;
     double s3 = 42.0, d3;
     std::vector<int> s4{2,3,4,5}, d4;
@@ -73,16 +81,23 @@ int main()
     myassert(s1==d1, "mismatch on 1");
     myassert(s2==d2, "mismatch on 2");
     myassert(s3==d3, "mismatch on 3");
+
+    for (int i = 0; i < s4.size(); i++)
+        myassert(s4[i] == d4[i], "mismatch on 4[" + std::to_string(i) + "]"); 
     
-    for (int i=0; i<s4.size(); i++)
-        myassert(s4[i]==d4[i], "mismatch on 4[" + std::to_string(i) + "]"); 
-    
-    for (int i=0; i<s5.size(); i++)
-        myassert(s5[i]==d5[i], "mismatch on 5[" + std::to_string(i) + "]");
-    
-    printf("Success!\n");
+    for (int i = 0; i < s5.size(); i++)
+        myassert(s5[i] == d5[i], "mismatch on 5[" + std::to_string(i) + "]");
+
+}
+
+int main(int argc, char **argv)
+{
+    MPI_Init(&argc, &argv);
+    logger.init(MPI_COMM_WORLD, "serializer.log", 9);
+
+    testing::InitGoogleTest(&argc, argv);
+    auto ret = RUN_ALL_TESTS();    
     
     MPI_Finalize();
-    
-    return 0;
+    return ret;
 }
