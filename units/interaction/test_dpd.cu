@@ -9,9 +9,13 @@
 #include <core/interactions/pairwise_interactions/norandom_dpd.h>
 #include <core/initial_conditions/uniform_ic.h>
 
+#include <gtest/gtest.h>
+
 #include <unistd.h>
 
 Logger logger;
+
+bool verbose = false;
 
 void makeCells(const Particle* __restrict__ input, Particle* __restrict__ output, int* __restrict__ cellsStartSize, int* __restrict__ cellsSize,
                int* __restrict__ order, int np, CellListInfo cinfo)
@@ -39,14 +43,8 @@ void makeCells(const Particle* __restrict__ input, Particle* __restrict__ output
         cellsStartSize[i] -= cellsSize[i];
 }
 
-
-int main(int argc, char ** argv)
+void execute(MPI_Comm comm, float3 length)
 {
-    MPI_Init(&argc, &argv);
-
-    logger.init(MPI_COMM_WORLD, "dpd.log", 9);
-
-    float3 length{80, 64, 29};
     DomainInfo domain{length, {0,0,0}, length};
 
     const float rc = 1.0f;
@@ -55,8 +53,8 @@ int main(int argc, char ** argv)
 
     UniformIC ic1(4.5);
     UniformIC ic2(3.5);
-    ic1.exec(MPI_COMM_WORLD, &dpds1, domain, 0);
-    ic2.exec(MPI_COMM_WORLD, &dpds2, domain, 0);
+    ic1.exec(comm, &dpds1, domain, 0);
+    ic2.exec(comm, &dpds2, domain, 0);
 
     cudaDeviceSynchronize();
 
@@ -251,7 +249,7 @@ int main(int argc, char ** argv)
             l2 += err * err;
         }
 
-        if (argc > 1 && (perr > 0.1 || std::isnan(toterr)))
+        if (verbose && (perr > 0.1 || std::isnan(toterr)))
         {
             fprintf(stderr, "id %d (%d),  %12f %12f %12f     ref %12f %12f %12f    diff   %12f %12f %12f\n", i, (initial[i].i1),
                     hacc[i].f.x, hacc[i].f.y, hacc[i].f.z,
@@ -265,11 +263,30 @@ int main(int argc, char ** argv)
     fprintf(stderr, "L2   norm: %f\n", l2);
     fprintf(stderr, "Linf norm: %f\n", linf);
 
-    if (linf < 0.02)
-        printf("Success!\n");
-    else
-        printf("Failed\n");
-
     CUDA_Check( cudaPeekAtLastError() );
-    return 0;
+
+    ASSERT_LE(linf, 0.002);
+    ASSERT_LE(l2,   0.002);
+
+}
+
+TEST(Interactions, smallDomain)
+{
+    float3 length{3, 4, 5};
+    execute(MPI_COMM_WORLD, length);
+}
+
+TEST(Interactions, largerDomain)
+{
+    float3 length{80, 64, 29};
+    execute(MPI_COMM_WORLD, length);
+}
+
+int main(int argc, char ** argv)
+{
+    MPI_Init(&argc, &argv);
+    logger.init(MPI_COMM_WORLD, "dpd.log", 9);
+
+    testing::InitGoogleTest(&argc, argv);
+    return RUN_ALL_TESTS();
 }
