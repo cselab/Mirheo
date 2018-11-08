@@ -158,7 +158,7 @@ void InteractionPair<PairwiseInteraction>::_compute(InteractionType type,
 
             const int nth = 128;
             if (np1 > 0 && np2 > 0)
-                CHOOSE_EXTERNAL(InteractionOut::NeedAcc, InteractionOut::NeedAcc, true, pair);
+                CHOOSE_EXTERNAL(InteractionOut::NeedAcc, InteractionOut::NeedAcc, InteractionMode::RowWise, pair);
         }
     }
 
@@ -175,9 +175,9 @@ void InteractionPair<PairwiseInteraction>::_compute(InteractionType type,
         const int nth = 128;
         if (np1 > 0 && np2 > 0)
             if (dynamic_cast<ObjectVector*>(pv1) == nullptr) // don't need forces for pure particle halo
-                CHOOSE_EXTERNAL(InteractionOut::NoAcc,   InteractionOut::NeedAcc, false, pair );
+                CHOOSE_EXTERNAL(InteractionOut::NoAcc,   InteractionOut::NeedAcc, InteractionMode::Dilute, pair );
             else
-                CHOOSE_EXTERNAL(InteractionOut::NeedAcc, InteractionOut::NeedAcc, false, pair );
+                CHOOSE_EXTERNAL(InteractionOut::NeedAcc, InteractionOut::NeedAcc, InteractionMode::Dilute, pair );
     }
 }
 

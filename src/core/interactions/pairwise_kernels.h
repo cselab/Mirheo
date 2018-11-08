@@ -16,6 +16,10 @@ enum class InteractionOut
     NeedAcc, NoAcc
 };
 
+enum class InteractionMode
+{
+    RowWise, Dilute
+};
 
 /// Squared distance between vectors with components
 /// (\p a.x, \p a.y, \p a.z) and (\p b.x, \p b.y, \p b.z)
@@ -176,7 +180,7 @@ __global__ void computeSelfInteractions(
  * @tparam Variant performance related parameter. \e true is better for
  * densely mixed stuff, \e false is better for halo
  */
-template<InteractionOut NeedDstAcc, InteractionOut NeedSrcAcc, bool Variant, typename Interaction>
+template<InteractionOut NeedDstAcc, InteractionOut NeedSrcAcc, InteractionMode Variant, typename Interaction>
 __launch_bounds__(128, 16)
 __global__ void computeExternalInteractions_1tpp(
         PVview dstView, CellListInfo srcCinfo,
@@ -198,7 +202,7 @@ __global__ void computeExternalInteractions_1tpp(
 
     for (int cellZ = cell0.z-1; cellZ <= cell0.z+1; cellZ++)
         for (int cellY = cell0.y-1; cellY <= cell0.y+1; cellY++)
-            if (Variant)
+            if (Variant == InteractionMode::RowWise)
             {
                 if ( !(cellY >= 0 && cellY < srcCinfo.ncells.y && cellZ >= 0 && cellZ < srcCinfo.ncells.z) ) continue;
 
@@ -237,7 +241,7 @@ __global__ void computeExternalInteractions_1tpp(
  * Mapping is three threads per particle. The rest is similar to
  * computeExternalInteractions_1tpp()
  */
-template<InteractionOut NeedDstAcc, InteractionOut NeedSrcAcc, bool Variant, typename Interaction>
+template<InteractionOut NeedDstAcc, InteractionOut NeedSrcAcc, InteractionMode Variant, typename Interaction>
 __launch_bounds__(128, 16)
 __global__ void computeExternalInteractions_3tpp(
         PVview dstView, CellListInfo srcCinfo,
@@ -264,7 +268,7 @@ __global__ void computeExternalInteractions_3tpp(
     int cellZ = cell0.z + dircode;
 
     for (int cellY = cell0.y-1; cellY <= cell0.y+1; cellY++)
-        if (Variant)
+        if (Variant == InteractionMode::RowWise)
         {
             if ( !(cellY >= 0 && cellY < srcCinfo.ncells.y && cellZ >= 0 && cellZ < srcCinfo.ncells.z) ) continue;
 
@@ -303,7 +307,7 @@ __global__ void computeExternalInteractions_3tpp(
  * Mapping is nine threads per particle. The rest is similar to
  * computeExternalInteractions_1tpp()
  */
-template<InteractionOut NeedDstAcc, InteractionOut NeedSrcAcc, bool Variant, typename Interaction>
+template<InteractionOut NeedDstAcc, InteractionOut NeedSrcAcc, InteractionMode Variant, typename Interaction>
 __launch_bounds__(128, 16)
 __global__ void computeExternalInteractions_9tpp(
         PVview dstView, CellListInfo srcCinfo,
@@ -330,7 +334,7 @@ __global__ void computeExternalInteractions_9tpp(
     int cellZ = cell0.z + dircode / 3 - 1;
     int cellY = cell0.y + dircode % 3 - 1;
 
-    if (Variant)
+    if (Variant == InteractionMode::RowWise)
     {
         if ( !(cellY >= 0 && cellY < srcCinfo.ncells.y && cellZ >= 0 && cellZ < srcCinfo.ncells.z) ) return;
 
@@ -369,7 +373,7 @@ __global__ void computeExternalInteractions_9tpp(
  * Mapping is 27 threads per particle. The rest is similar to
  * computeExternalInteractions_1tpp()
  */
-template<InteractionOut NeedDstAcc, InteractionOut NeedSrcAcc, bool Variant, typename Interaction>
+template<InteractionOut NeedDstAcc, InteractionOut NeedSrcAcc, InteractionMode Variant, typename Interaction>
 __launch_bounds__(128, 16)
 __global__ void computeExternalInteractions_27tpp(
         PVview dstView, CellListInfo srcCinfo,
