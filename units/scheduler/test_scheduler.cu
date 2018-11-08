@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 #include <string>
 #include <vector>
+#include <algorithm>
 
 #include <core/logger.h>
 #include <core/task_scheduler.h>
@@ -10,6 +11,17 @@
 #define private public
 
 Logger logger;
+
+void verifyDep(const std::string& before, const std::string& after,
+               const std::vector<std::string>& messages)
+{
+    auto itb = std::find(messages.begin(), messages.end(), before);
+    auto ita = std::find(messages.begin(), messages.end(), after);
+
+    ASSERT_NE(itb, messages.end());
+    ASSERT_NE(ita, messages.end());
+    ASSERT_LT(itb, ita);
+}
 
 TEST(Scheduler, Order)
 {
@@ -54,7 +66,20 @@ TEST(Scheduler, Order)
 
     ASSERT_EQ(messages.size(), 9);
 
-    // TODO
+    verifyDep("a1", "b", messages);
+    verifyDep("a2", "b", messages);
+
+    verifyDep("b", "d1", messages);
+    verifyDep("c", "d1", messages);
+
+    verifyDep("b", "d2", messages);
+    verifyDep("c", "d2", messages);
+
+    verifyDep("c", "f", messages);
+
+    verifyDep("d1", "e", messages);
+    verifyDep("d2", "e", messages);
+    verifyDep("b" , "e", messages);
 }
 
 TEST(Scheduler, Benchmark)
