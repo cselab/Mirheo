@@ -70,9 +70,51 @@ static void addBondForces(float a, float K, int n, const float3 *positions, floa
         bond(offset, 3, 4, ledge);
 
         bond(offset, 0, 5, ldiag);
-        bond(offset, 0, 2, ldiag);
         bond(offset, 1, 3, ldiag);
+        bond(offset, 2, 4, ldiag);
     }
+}
+
+inline float3 visc(float g, float3 r1, float3 r2, float3 v1, float3 v2)
+{
+    float3 dr = r2 - r1;
+    float3 dv = v2 - v1;
+    float l = length(dr);    
+    return dr * (g * dot(dv, dr) / dot(dr, dr));
+}
+
+static void addBondDissipativeForce(float gamma, int n, const float3 *positions, const float3 *velocities, float3 *forces)
+{
+    auto bond = [&](int offset, int i, int j) {
+        i += offset;
+        j += offset;
+        auto f = visc(gamma, positions[i], positions[j], velocities[i], velocities[j]);
+        forces[i] += f;
+        forces[j] -= f;
+    };
+    
+    for (int i = 0; i < n; ++i) {
+        int offset = 5 * i;
+
+        bond(offset, 0, 1);
+        bond(offset, 0, 2);
+        bond(offset, 0, 3);
+        bond(offset, 0, 4);
+
+        bond(offset, 5, 1);
+        bond(offset, 5, 2);
+        bond(offset, 5, 3);
+        bond(offset, 5, 4);
+
+        bond(offset, 0, 1);
+        bond(offset, 1, 2);
+        bond(offset, 2, 3);
+        bond(offset, 3, 4);
+
+        bond(offset, 0, 5);
+        bond(offset, 1, 3);
+        bond(offset, 2, 4);
+    }    
 }
 
 static void addTorsionForces(float a, float K, int n, const float3 *positions, float3 *forces)
@@ -80,10 +122,11 @@ static void addTorsionForces(float a, float K, int n, const float3 *positions, f
     
 }
 
-static void forcesFlagellum(float a, float K, int n, const float3 *positions, float3 *forces)
+static void forcesFlagellum(float a, float K, float gamma, int n, const float3 *positions, const float3 *velocities, float3 *forces)
 {
     addBondForces(a, K, n, positions, forces);
     addTorsionForces(a, K, n, positions, forces);
+    addBondDissipativeForce(gamma, n, positions, velocities, forces);
 }
 
 static void advanceFlagellum(float dt, int n, const float3 *forces, float3 *positions, float3 *velocities)
@@ -117,10 +160,11 @@ static void run(MPI_Comm comm)
 {
     int n = 30;
     float a = 0.1;
-    float K = 1.0;
+    float gamma = 10;
+    float K = 60.0;
     float dt = 0.01;
-    int nsteps = 20;
-    int dumpEvery = 1;
+    int nsteps = 20000;
+    int dumpEvery = 100;
 
     std::vector<float3> positions, velocities, forces;
     
@@ -128,10 +172,16 @@ static void run(MPI_Comm comm)
     velocities.resize(positions.size());
     forces    .resize(positions.size());
     clear(velocities);
+
+    for (auto& v : velocities) {
+        v = 0.1 * make_float3(drand48() - 0.5f,
+                              drand48() - 0.5f,
+                              drand48() - 0.5f);
+    }
     
     for (int i = 0; i < nsteps; ++i) {
         clear(forces);
-        forcesFlagellum(a, K, n, positions.data(), forces.data());
+        forcesFlagellum(a, K, gamma, n, positions.data(), velocities.data(), forces.data());
         advanceFlagellum(dt, n, forces.data(), positions.data(), velocities.data());
 
         if (i % dumpEvery == 0) {
