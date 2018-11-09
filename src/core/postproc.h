@@ -17,4 +17,8 @@ public:
     void registerPlugin( std::shared_ptr<PostprocessPlugin> plugin );
     void run();
     void init();
+    
+    // TODO complete this
+//     void restart   (std::string folder);
+//     void checkpoint(std::string folder);
 };

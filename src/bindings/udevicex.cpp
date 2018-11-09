@@ -121,7 +121,7 @@ void exportUdevicex(py::module& m)
         )")        
         
         .def("applyObjectBelongingChecker",    &uDeviceX::applyObjectBelongingChecker,
-            "checker"_a, "pv"_a, "correct_every"_a=0, "inside"_a="", "outside"_a="", R"(
+            "checker"_a, "pv"_a, "correct_every"_a=0, "inside"_a="", "outside"_a="", "checkpoint_every"_a=0, R"(
                 Apply the **checker** to the given particle vector.
                 One and only one of the options **inside** or **outside** has to be specified.
                 
@@ -136,6 +136,8 @@ void exportUdevicex(py::module& m)
                         If greater than zero, perform correction every this many time-steps.                        
                         Correction will move e.g. *inner* particles of outer PV to the :inner PV
                         and viceversa. If one of the PVs was defined as "none", the 'wrong' particles will be just removed.
+                    checkpoint_every:
+                        every that many timesteps the state of the newly created :any:`ParticleVector` (if any) will be saved to disk into the ./restart/ folder. Default value of 0 means no checkpoint.
                             
                 Returns:
                     New :any:`ParticleVector` or None depending on **inside** and **outside** options
@@ -185,6 +187,7 @@ void exportUdevicex(py::module& m)
                     
         )")
         
+        .def("restart", &uDeviceX::restart, "Restart the simulation")
         .def("isComputeTask", &uDeviceX::isComputeTask, "Returns whether current rank will do compute or postrprocess")
         .def("isMasterTask",  &uDeviceX::isMasterTask,  "Returns whether current task is the very first one")
         .def("start_profiler", &uDeviceX::startProfiler, "Tells nvprof to start recording timeline")

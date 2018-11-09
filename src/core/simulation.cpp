@@ -17,15 +17,18 @@
 
 #include <core/utils/folders.h>
 #include <core/utils/make_unique.h>
+#include <core/utils/restart_helpers.h>
 
 #include <algorithm>
 
 #include <cuda_profiler_api.h>
+
+
 Simulation::Simulation(int3 nranks3D, float3 globalDomainSize,
                        const MPI_Comm& comm, const MPI_Comm& interComm,
-                       int globalCheckpointEvery, std::string restartFolder, bool gpuAwareMPI) :
-nranks3D(nranks3D), interComm(interComm), currentTime(0), currentStep(0),
-globalCheckpointEvery(globalCheckpointEvery), restartFolder(restartFolder), gpuAwareMPI(gpuAwareMPI)
+                       int globalCheckpointEvery, std::string checkpointFolder, bool gpuAwareMPI) :
+nranks3D(nranks3D), interComm(interComm),
+globalCheckpointEvery(globalCheckpointEvery), checkpointFolder(checkpointFolder), gpuAwareMPI(gpuAwareMPI)
 {
     int ranksArr[] = {nranks3D.x, nranks3D.y, nranks3D.z};
     int periods[] = {1, 1, 1};
@@ -41,7 +44,7 @@ globalCheckpointEvery(globalCheckpointEvery), restartFolder(restartFolder), gpuA
     domain.localSize = domain.globalSize / make_float3(nranks3D);
     domain.globalStart = {domain.localSize.x * coords[0], domain.localSize.y * coords[1], domain.localSize.z * coords[2]};
 
-    createFoldersCollective(cartComm, restartFolder);
+    createFoldersCollective(cartComm, checkpointFolder);
 
     info("Simulation initialized, subdomain size is [%f %f %f], subdomain starts at [%f %f %f]",
             domain.localSize.x,  domain.localSize.y,  domain.localSize.z,
@@ -159,14 +162,23 @@ void Simulation::registerParticleVector(std::shared_ptr<ParticleVector> pv, std:
 
     if (name == "none" || name == "all" || name == "")
         die("Invalid name for a particle vector (reserved word or empty): '%s'", name.c_str());
+    
+    if (pv->name.rfind("_", 0) == 0)
+        die("Identifier of Particle Vectors cannot start with _");
 
     if (pvIdMap.find(name) != pvIdMap.end())
         die("More than one particle vector is called %s", name.c_str());
 
-    if (ic != nullptr)
-        ic->exec(cartComm, pv.get(), domain, 0);
-    else // TODO: get rid of this
-        pv->domain = domain;
+    pv->setSimulation(this);
+    pv->domain = domain;
+
+    if (restartStatus != RestartStatus::Anew)
+        pv->restart(cartComm, restartFolder);
+    else
+    {
+        if (ic != nullptr)
+            ic->exec(cartComm, pv.get(), domain, 0);
+    }
 
     auto task_checkpoint = scheduler->getTaskId("Checkpoint");
     if (checkpointEvery > 0 && globalCheckpointEvery == 0)
@@ -175,7 +187,7 @@ void Simulation::registerParticleVector(std::shared_ptr<ParticleVector> pv, std:
 
         auto pvPtr = pv.get();
         scheduler->addTask( task_checkpoint, [pvPtr, this] (cudaStream_t stream) {
-            pvPtr->checkpoint(cartComm, restartFolder);
+            pvPtr->checkpoint(cartComm, checkpointFolder);
         }, checkpointEvery );
     }
 
@@ -203,7 +215,10 @@ void Simulation::registerWall(std::shared_ptr<Wall> wall, int every)
 
     // Let the wall know the particle vector associated with it
     float t = 0;
+    wall->setSimulation(this);
     wall->setup(cartComm, t, domain);
+    if (restartStatus != RestartStatus::Anew)
+        wall->restart(cartComm, restartFolder);
 
     info("Registered wall '%s'", name.c_str());
 
@@ -216,6 +231,10 @@ void Simulation::registerInteraction(std::shared_ptr<Interaction> interaction)
     if (interactionMap.find(name) != interactionMap.end())
         die("More than one interaction is called %s", name.c_str());
 
+    interaction->setSimulation(this);
+    if (restartStatus != RestartStatus::Anew)
+        interaction->restart(cartComm, restartFolder);
+
     interactionMap[name] = std::move(interaction);
 }
 
@@ -225,6 +244,10 @@ void Simulation::registerIntegrator(std::shared_ptr<Integrator> integrator)
     if (integratorMap.find(name) != integratorMap.end())
         die("More than one integrator is called %s", name.c_str());
 
+    integrator->setSimulation(this);
+    if (restartStatus != RestartStatus::Anew)
+        integrator->restart(cartComm, restartFolder);
+    
     integratorMap[name] = std::move(integrator);
 }
 
@@ -234,6 +257,10 @@ void Simulation::registerBouncer(std::shared_ptr<Bouncer> bouncer)
     if (bouncerMap.find(name) != bouncerMap.end())
         die("More than one bouncer is called %s", name.c_str());
 
+    bouncer->setSimulation(this);
+    if (restartStatus != RestartStatus::Anew)
+        bouncer->restart(cartComm, restartFolder);
+    
     bouncerMap[name] = std::move(bouncer);
 }
 
@@ -243,6 +270,10 @@ void Simulation::registerObjectBelongingChecker(std::shared_ptr<ObjectBelongingC
     if (belongingCheckerMap.find(name) != belongingCheckerMap.end())
         die("More than one splitter is called %s", name.c_str());
 
+    checker->setSimulation(this);
+    if (restartStatus != RestartStatus::Anew)
+        checker->restart(cartComm, restartFolder);
+    
     belongingCheckerMap[name] = std::move(checker);
 }
 
@@ -257,6 +288,10 @@ void Simulation::registerPlugin(std::shared_ptr<SimulationPlugin> plugin)
     if (found)
         die("More than one plugin is called %s", name.c_str());
 
+    plugin->setSimulation(this);
+    if (restartStatus != RestartStatus::Anew)
+        plugin->restart(cartComm, restartFolder);
+    
     plugins.push_back(std::move(plugin));
 }
 
@@ -346,7 +381,8 @@ void Simulation::setObjectBelongingChecker(std::string checkerName, std::string 
 //
 
 void Simulation::applyObjectBelongingChecker(std::string checkerName,
-            std::string source, std::string inside, std::string outside, int checkEvery)
+            std::string source, std::string inside, std::string outside,
+            int checkEvery, int checkpointEvery)
 {
     auto pvSource = getPVbyNameOrDie(source);
 
@@ -377,13 +413,13 @@ void Simulation::applyObjectBelongingChecker(std::string checkerName,
     if (inside != "none" && getPVbyName(inside) == nullptr)
     {
         pvInside = std::make_shared<ParticleVector>(inside, pvSource->mass);
-        registerParticleVector(pvInside, nullptr, 0);
+        registerParticleVector(pvInside, nullptr, checkpointEvery);
     }
 
     if (outside != "none" && getPVbyName(outside) == nullptr)
     {
         pvOutside = std::make_shared<ParticleVector>(outside, pvSource->mass);
-        registerParticleVector(pvOutside, nullptr, 0);
+        registerParticleVector(pvOutside, nullptr, checkpointEvery);
     }
 
     splitterPrototypes.push_back({checker, pvSource, getPVbyName(inside), getPVbyName(outside)});
@@ -542,7 +578,7 @@ void Simulation::prepareWalls()
 
         // All the particles should be removed from within the wall,
         // even those that do not interact with it
-        // Only frozen wall particles need to remain
+        // Only frozen wall particles will remain
         for (auto& anypv : particleVectors)
             wallPtr->removeInner(anypv.get());
     }
@@ -965,32 +1001,55 @@ void Simulation::run(int nsteps)
     }
 }
 
+
+void Simulation::restart(std::string folder)
+{
+    bool beginning =  particleVectors    .empty() &&
+                      wallMap            .empty() &&
+                      interactionMap     .empty() &&
+                      integratorMap      .empty() &&
+                      bouncerMap         .empty() &&
+                      belongingCheckerMap.empty() &&
+                      plugins            .empty();
+    
+    if (!beginning)
+        die("Tried to restart partially initialized simulation! Please only call restart() before registering anything");
+                      
+    restartStatus = RestartStatus::RestartStrict;
+    restartFolder = folder;
+    
+    TextIO::read(folder + "_simulation.state", currentTime, currentStep);
+}
+
 void Simulation::checkpoint()
 {
+    if (rank == 0)
+        TextIO::write(checkpointFolder + "_simulation.state", currentTime, currentStep);
+
     CUDA_Check( cudaDeviceSynchronize() );
     
-    info("Writing simulation state, into folder %s", restartFolder.c_str());
-    
+    info("Writing simulation state, into folder %s", checkpointFolder.c_str());
+        
     for (auto& pv : particleVectors)
-        pv->checkpoint(cartComm, restartFolder);
+        pv->checkpoint(cartComm, checkpointFolder);
     
     for (auto& handler : bouncerMap)
-        handler.second->checkpoint(cartComm, restartFolder);
+        handler.second->checkpoint(cartComm, checkpointFolder);
     
     for (auto& handler : integratorMap)
-        handler.second->checkpoint(cartComm, restartFolder);
+        handler.second->checkpoint(cartComm, checkpointFolder);
     
     for (auto& handler : interactionMap)
-        handler.second->checkpoint(cartComm, restartFolder);
+        handler.second->checkpoint(cartComm, checkpointFolder);
     
     for (auto& handler : wallMap)
-        handler.second->checkpoint(cartComm, restartFolder);
+        handler.second->checkpoint(cartComm, checkpointFolder);
     
     for (auto& handler : belongingCheckerMap)
-        handler.second->checkpoint(cartComm, restartFolder);
+        handler.second->checkpoint(cartComm, checkpointFolder);
     
     for (auto& handler : plugins)
-        handler->checkpoint(cartComm, restartFolder);
+        handler->checkpoint(cartComm, checkpointFolder);
     
     CUDA_Check( cudaDeviceSynchronize() );
 }

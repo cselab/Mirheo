@@ -46,7 +46,8 @@ public:
                std::string restartFolder = "restart/", bool gpuAwareMPI = false);
     ~Simulation();
     
-    void restart();
+    void restart(std::string folder);
+    void checkpoint();
 
     void registerParticleVector         (std::shared_ptr<ParticleVector> pv, std::shared_ptr<InitialConditions> ic, int checkpointEvery=0);
     void registerWall                   (std::shared_ptr<Wall> wall, int checkEvery=0);
@@ -65,7 +66,8 @@ public:
 
 
     void applyObjectBelongingChecker(std::string checkerName,
-            std::string source, std::string inside, std::string outside, int checkEvery);
+            std::string source, std::string inside, std::string outside,
+            int checkEvery, int checkpointEvery=0);
 
 
     void init();
@@ -97,14 +99,19 @@ public:
 private:    
     const float rcTolerance = 1e-5;
 
-    std::string restartFolder;
+    enum class RestartStatus
+    {
+        Anew, RestartTolerant, RestartStrict
+    };
+    RestartStatus restartStatus{RestartStatus::Anew};
+    std::string restartFolder, checkpointFolder;
     int globalCheckpointEvery;
 
     float dt;
     int rank;
 
-    double currentTime;
-    int currentStep;
+    double currentTime{0};
+    int currentStep{0};
 
     std::unique_ptr<TaskScheduler> scheduler;
 
@@ -191,8 +198,6 @@ private:
     void prepareWalls();
     void execSplitters();
     
-    void checkpoint();
-
     void assemble();
 };
 

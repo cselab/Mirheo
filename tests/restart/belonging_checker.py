@@ -1,0 +1,53 @@
+#!/usr/bin/env python
+
+import udevicex as udx
+import numpy as np
+import argparse
+
+parser = argparse.ArgumentParser()
+parser.add_argument("--restart", action='store_true', default=False)
+args = parser.parse_args()
+
+ranks  = (1, 1, 1)
+domain = (4, 6, 8)
+
+u = udx.udevicex(ranks, domain, debug_level=3, log_filename='log', checkpoint_every = (5 if not args.restart else 0))
+if args.restart:
+    u.restart("restart/")
+    
+pv = udx.ParticleVectors.ParticleVector('pv', mass = 1)
+u.registerParticleVector(pv=pv, ic=udx.InitialConditions.Uniform(density=8))
+
+coords = [[-1, -1, -1], [1, 1, 1]]
+com_q = [[0.5 * domain[0], 0.5 * domain[1], 0.5 * domain[2],   1., 0, 0, 0]]
+ov = udx.ParticleVectors.RigidEllipsoidVector('ov', mass=1, object_size=len(coords), semi_axes=(1,1,1))
+u.registerParticleVector(pv=ov, ic=udx.InitialConditions.Rigid(com_q=com_q, coords=coords))
+
+checker = udx.BelongingCheckers.Ellipsoid('checker')
+u.registerObjectBelongingChecker(checker, ov)
+inner = u.applyObjectBelongingChecker(checker, pv, inside='inner')
+
+u.run(7)
+
+if u.isComputeTask():
+    ids = inner.get_indices()
+    pos = inner.getCoordinates()
+    vel = inner.getVelocities() 
+
+    data = np.hstack((np.atleast_2d(ids).T, pos, vel))
+    data = data[data[:,0].argsort()]
+        
+    if args.restart:
+        initials = np.loadtxt("initial.txt")
+        np.savetxt("difference.out.txt", data - initials)
+    else:
+        np.savetxt("initial.txt", data)
+
+
+    
+
+# TEST: restart.object_belonging
+# cd restart
+# rm -rf restart parts.out.txt initial.txt difference.txt
+# udx.run --runargs "-n 2" ./belonging_checker.py           > /dev/null
+# udx.run --runargs "-n 2" ./belonging_checker.py --restart > /dev/null

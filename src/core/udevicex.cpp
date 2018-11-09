@@ -30,7 +30,7 @@
 #include "version.h"
 
 void uDeviceX::init(int3 nranks3D, float3 globalDomainSize, std::string logFileName, int verbosity,
-                    int checkpointEvery, std::string restartFolder, bool gpuAwareMPI)
+                    int checkpointEvery, std::string checkpointFolder, bool gpuAwareMPI)
 {
     int nranks;
     
@@ -54,7 +54,7 @@ void uDeviceX::init(int3 nranks3D, float3 globalDomainSize, std::string logFileN
 
         sim = std::make_unique<Simulation> (nranks3D, globalDomainSize,
                                             comm, MPI_COMM_NULL,
-                                            checkpointEvery, restartFolder, gpuAwareMPI);
+                                            checkpointEvery, checkpointFolder, gpuAwareMPI);
         computeTask = 0;
         return;
     }
@@ -73,7 +73,7 @@ void uDeviceX::init(int3 nranks3D, float3 globalDomainSize, std::string logFileN
 
         sim = std::make_unique<Simulation> (nranks3D, globalDomainSize,
                                             compComm, interComm,
-                                            checkpointEvery, restartFolder, gpuAwareMPI);
+                                            checkpointEvery, checkpointFolder, gpuAwareMPI);
     }
     else
     {
@@ -95,34 +95,34 @@ void uDeviceX::initLogger(MPI_Comm comm, std::string logFileName, int verbosity)
 
 uDeviceX::uDeviceX(PyTypes::int3 nranks3D, PyTypes::float3 globalDomainSize,
                    std::string logFileName, int verbosity, int checkpointEvery,
-                   std::string restartFolder, bool gpuAwareMPI, bool noSplash) :
+                   std::string checkpointFolder, bool gpuAwareMPI, bool noSplash) :
                    noSplash(noSplash)
 {
     MPI_Init(nullptr, nullptr);
     MPI_Comm_dup(MPI_COMM_WORLD, &comm);
     initializedMpi = true;
 
-    init( make_int3(nranks3D), make_float3(globalDomainSize), logFileName, verbosity, checkpointEvery, restartFolder, gpuAwareMPI);
+    init( make_int3(nranks3D), make_float3(globalDomainSize), logFileName, verbosity, checkpointEvery, checkpointFolder, gpuAwareMPI);
 }
 
 uDeviceX::uDeviceX(long commAdress, PyTypes::int3 nranks3D, PyTypes::float3 globalDomainSize,
                    std::string logFileName, int verbosity, int checkpointEvery, 
-                   std::string restartFolder, bool gpuAwareMPI, bool noSplash) :
+                   std::string checkpointFolder, bool gpuAwareMPI, bool noSplash) :
                    noSplash(noSplash)
 {
     // see https://stackoverflow.com/questions/49259704/pybind11-possible-to-use-mpi4py
     MPI_Comm comm = *((MPI_Comm*) commAdress);
     MPI_Comm_dup(comm, &this->comm);
-    init( make_int3(nranks3D), make_float3(globalDomainSize), logFileName, verbosity, checkpointEvery, restartFolder, gpuAwareMPI);    
+    init( make_int3(nranks3D), make_float3(globalDomainSize), logFileName, verbosity, checkpointEvery, checkpointFolder, gpuAwareMPI);    
 }
 
 uDeviceX::uDeviceX(MPI_Comm comm, PyTypes::int3 nranks3D, PyTypes::float3 globalDomainSize,
                    std::string logFileName, int verbosity, int checkpointEvery,
-                   std::string restartFolder, bool gpuAwareMPI, bool noSplash) :
+                   std::string checkpointFolder, bool gpuAwareMPI, bool noSplash) :
                    noSplash(noSplash)
 {
     MPI_Comm_dup(comm, &this->comm);
-    init( make_int3(nranks3D), make_float3(globalDomainSize), logFileName, verbosity, checkpointEvery, restartFolder, gpuAwareMPI);
+    init( make_int3(nranks3D), make_float3(globalDomainSize), logFileName, verbosity, checkpointEvery, checkpointFolder, gpuAwareMPI);
 }
 
 uDeviceX::~uDeviceX()
@@ -365,7 +365,8 @@ std::shared_ptr<ParticleVector> uDeviceX::applyObjectBelongingChecker(ObjectBelo
                                                                       ParticleVector* pv,
                                                                       int checkEvery,
                                                                       std::string inside,
-                                                                      std::string outside)
+                                                                      std::string outside,
+                                                                      int checkpointEvery)
 {
     if (!isComputeTask()) return nullptr;
     
@@ -386,7 +387,7 @@ std::shared_ptr<ParticleVector> uDeviceX::applyObjectBelongingChecker(ObjectBelo
         newPVname = inside;
     }
         
-    sim->applyObjectBelongingChecker(checker->name, pv->name, inside, outside, checkEvery);
+    sim->applyObjectBelongingChecker(checker->name, pv->name, inside, outside, checkEvery, checkpointEvery);
     return sim->getSharedPVbyName(newPVname);
 }
 
@@ -417,6 +418,13 @@ void uDeviceX::abort() const
 {
     MPI_Abort(MPI_COMM_WORLD, -1);
 }
+
+void uDeviceX::restart(std::string folder)
+{
+    if (isComputeTask())
+        sim->restart(folder);
+}
+
 
 bool uDeviceX::isComputeTask() const
 {

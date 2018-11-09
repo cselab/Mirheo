@@ -26,16 +26,17 @@ class uDeviceX
 public:
     uDeviceX(PyTypes::int3 nranks3D, PyTypes::float3 globalDomainSize,
              std::string logFileName, int verbosity, int checkpointEvery=0,
-             std::string restartFolder="restart/", bool gpuAwareMPI=false, bool noSplash=false);
+             std::string checkpointFolder="restart/", bool gpuAwareMPI=false, bool noSplash=false);
 
     uDeviceX(long commAddress, PyTypes::int3 nranks3D, PyTypes::float3 globalDomainSize,
              std::string logFileName, int verbosity, int checkpointEvery=0,
-             std::string restartFolder="restart/", bool gpuAwareMPI=false, bool noSplash=false);
+             std::string checkpointFolder="restart/", bool gpuAwareMPI=false, bool noSplash=false);
 
     uDeviceX(MPI_Comm comm, PyTypes::int3 nranks3D, PyTypes::float3 globalDomainSize,
              std::string logFileName, int verbosity, int checkpointEvery=0,
-             std::string restartFolder="restart/", bool gpuAwareMPI=false, bool noSplash=false);
+             std::string checkpointFolder="restart/", bool gpuAwareMPI=false, bool noSplash=false);
 
+    void restart(std::string folder="restart/");
     bool isComputeTask() const;
     bool isMasterTask() const;
     void startProfiler();
@@ -83,7 +84,8 @@ public:
                                                                 ParticleVector* pv,
                                                                 int checkEvery,
                                                                 std::string inside = "",
-                                                                std::string outside = "");    
+                                                                std::string outside = "",
+                                                                int checkpointEvery=0);    
     
     ~uDeviceX();
 

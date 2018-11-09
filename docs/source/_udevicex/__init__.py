@@ -57,7 +57,7 @@ Overloaded function.
         pass
 
     def applyObjectBelongingChecker():
-        r"""applyObjectBelongingChecker(checker: ObjectBelongingChecker, pv: ParticleVector, correct_every: int = 0, inside: str = '', outside: str = '') -> ParticleVector
+        r"""applyObjectBelongingChecker(checker: ObjectBelongingChecker, pv: ParticleVector, correct_every: int = 0, inside: str = '', outside: str = '', checkpoint_every: int = 0) -> ParticleVector
 
 
                 Apply the **checker** to the given particle vector.
@@ -74,6 +74,8 @@ Overloaded function.
                         If greater than zero, perform correction every this many time-steps.                        
                         Correction will move e.g. *inner* particles of outer PV to the :inner PV
                         and viceversa. If one of the PVs was defined as "none", the 'wrong' particles will be just removed.
+                    checkpoint_every:
+                        every that many timesteps the state of the newly created :any:`ParticleVector` (if any) will be saved to disk into the ./restart/ folder. Default value of 0 means no checkpoint.
                             
                 Returns:
                     New :any:`ParticleVector` or None depending on **inside** and **outside** options
@@ -246,6 +248,14 @@ Register Plugins
         r"""registerWall(wall: Wall, check_every: int = 0) -> None
 
 Register Wall
+
+        """
+        pass
+
+    def restart():
+        r"""restart(arg0: str) -> None
+
+Restart the simulation
 
         """
         pass
