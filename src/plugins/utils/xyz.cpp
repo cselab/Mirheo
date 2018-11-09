@@ -1,6 +1,6 @@
 #include "xyz.h"
 
-void writeXYZ(MPI_Comm comm, std::string fname, Particle* particles, int np)
+void writeXYZ(MPI_Comm comm, std::string fname, const Particle *particles, int np)
 {
     int rank;
     MPI_Check( MPI_Comm_rank(comm, &rank) );
@@ -17,22 +17,20 @@ void writeXYZ(MPI_Comm comm, std::string fname, Particle* particles, int np)
     ss.setf(std::ios::fixed, std::ios::floatfield);
     ss.precision(5);
 
-    if (rank == 0)
-    {
+    if (rank == 0) {
         ss <<  n << "\n";
         ss << "# created by uDeviceX" << "\n";
 
         info("xyz dump to %s: total number of particles: %d", fname.c_str(), n);
     }
 
-    for(int i = 0; i < np; ++i)
-    {
-        Particle& p = particles[i];
+    for(int i = 0; i < np; ++i) {
+        const Particle& p = particles[i];
 
         ss << rank << " "
-                << std::setw(10) << p.r.x << " "
-                << std::setw(10) << p.r.y << " "
-                << std::setw(10) << p.r.z << "\n";
+           << std::setw(10) << p.r.x << " "
+           << std::setw(10) << p.r.y << " "
+           << std::setw(10) << p.r.z << "\n";
     }
 
     std::string content = ss.str();
