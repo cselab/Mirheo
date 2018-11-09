@@ -58,6 +58,7 @@ endfunction()
 
 #add_test_executable(bounce)
 add_test_executable(celllists)
+add_test_executable(flagella)
 add_test_executable(interaction)
 add_test_executable(pid)
 add_test_executable(scheduler)
