@@ -58,7 +58,7 @@ namespace PluginFactory
             PyTypes::float3 low, PyTypes::float3 high, PyTypes::float3 velocity)
     {
         std::vector<std::string> pvNames;
-        if (computeTask) extractPVsNames(pvs, pvNames)
+        if (computeTask) extractPVsNames(pvs, pvNames);
             
         auto simPl = computeTask ? new ImposeVelocityPlugin(
                                         name, pvNames, make_float3(low), make_float3(high), make_float3(velocity), every) :
