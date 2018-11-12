@@ -171,13 +171,19 @@ static void forcesFlagellum(const Params& p, int n, const float3 *positions, con
     addBondForces(p, n, positions, forces);
     addBendingForces(p, n, positions, forces);
     addTorsionForces(p, n, positions, forces);
-    addBondDissipativeForce(p, n, positions, velocities, forces);
+    // addBondDissipativeForce(p, n, positions, velocities, forces);
 }
 
-static void advanceFlagellum(float dt, int n, const float3 *forces, float3 *positions, float3 *velocities)
+// a wrong viscosity just to see equilibrium shape
+static void artificialViscosity(float damping, int np, const float3 *velocities, float3 *forces)
+{
+    for (int i = 0; i < np; ++i)
+        forces[i] -= damping * velocities[i];
+}
+
+static void advanceFlagellum(float dt, int np, const float3 *forces, float3 *positions, float3 *velocities)
 {
     // assume m = 1
-    int np = 5 * n + 1;
     for (int i = 0; i < np; ++i) {
         velocities[i] += dt * forces[i];
         positions[i] += dt * velocities[i];
@@ -210,7 +216,7 @@ static void run(MPI_Comm comm)
     p.gamma = 10;
     p.Ke = 60;
     p.Kb = 1.0;
-    p.theta0 = 0;
+    p.theta0 = 0.05;
 
     float dt = 0.01;
     int nsteps = 20000;
@@ -232,7 +238,8 @@ static void run(MPI_Comm comm)
     for (int i = 0; i < nsteps; ++i) {
         clear(forces);
         forcesFlagellum(p, n, positions.data(), velocities.data(), forces.data());
-        advanceFlagellum(dt, n, forces.data(), positions.data(), velocities.data());
+        artificialViscosity(0.1, positions.size(), velocities.data(), forces.data());
+        advanceFlagellum(dt, positions.size(), forces.data(), positions.data(), velocities.data());
 
         if (i % dumpEvery == 0) {
             int id = i / dumpEvery;
