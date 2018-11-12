@@ -30,14 +30,35 @@
 
 namespace PluginFactory
 {
+    static void extractChannelsInfos(const std::vector< std::pair<std::string, std::string> >& channels,
+                                     std::vector<std::string>& names, std::vector<Average3D::ChannelType>& types)
+    {
+        for (auto& p : channels) {
+            names.push_back(p.first);
+            std::string typeStr = p.second;
+
+            if      (typeStr == "scalar")             types.push_back(Average3D::ChannelType::Scalar);
+            else if (typeStr == "vector")             types.push_back(Average3D::ChannelType::Vector_float3);
+            else if (typeStr == "vector_from_float4") types.push_back(Average3D::ChannelType::Vector_float4);
+            else if (typeStr == "vector_from_float8") types.push_back(Average3D::ChannelType::Vector_2xfloat4);
+            else if (typeStr == "tensor6")            types.push_back(Average3D::ChannelType::Tensor6);
+            else die("Unable to get parse channel type '%s'", typeStr.c_str());
+        }
+    }
+
+    static void extractPVsNames(const std::vector<ParticleVector*>& pvs, std::vector<std::string>& pvNames)
+    {
+        for (auto &pv : pvs)
+            pvNames.push_back(pv->name);
+    }
+
     static std::pair< ImposeVelocityPlugin*, PostprocessPlugin* >
         createImposeVelocityPlugin(bool computeTask, 
             std::string name, std::vector<ParticleVector*> pvs, int every,
             PyTypes::float3 low, PyTypes::float3 high, PyTypes::float3 velocity)
     {
         std::vector<std::string> pvNames;
-        if (computeTask)
-            for (auto& pv : pvs) pvNames.push_back(pv->name);
+        if (computeTask) extractPVsNames(pvs, pvNames)
             
         auto simPl = computeTask ? new ImposeVelocityPlugin(
                                         name, pvNames, make_float3(low), make_float3(high), make_float3(velocity), every) :
@@ -84,10 +105,7 @@ namespace PluginFactory
                                           PyTypes::float3 targetVel, float Kp, float Ki, float Kd)
     {
         std::vector<std::string> pvNames;
-
-        if (computeTask)
-            for (auto &pv : pvs)
-                pvNames.push_back(pv->name);
+        if (computeTask) extractPVsNames(pvs, pvNames);
         
         auto simPl = computeTask ?
             new SimulationVelocityControl(name, pvNames, make_float3(low), make_float3(high),
@@ -137,28 +155,6 @@ namespace PluginFactory
         auto postPl = computeTask ? nullptr :new PostprocessStats(name, filename);
 
         return { simPl, postPl };
-    }
-
-    static void extractChannelsInfos(const std::vector< std::pair<std::string, std::string> >& channels,
-                                     std::vector<std::string>& names, std::vector<Average3D::ChannelType>& types)
-    {
-        for (auto& p : channels) {
-            names.push_back(p.first);
-            std::string typeStr = p.second;
-
-            if      (typeStr == "scalar")             types.push_back(Average3D::ChannelType::Scalar);
-            else if (typeStr == "vector")             types.push_back(Average3D::ChannelType::Vector_float3);
-            else if (typeStr == "vector_from_float4") types.push_back(Average3D::ChannelType::Vector_float4);
-            else if (typeStr == "vector_from_float8") types.push_back(Average3D::ChannelType::Vector_2xfloat4);
-            else if (typeStr == "tensor6")            types.push_back(Average3D::ChannelType::Tensor6);
-            else die("Unable to get parse channel type '%s'", typeStr.c_str());
-        }
-    }
-
-    static void extractPVsNames(const std::vector<ParticleVector*>& pvs, std::vector<std::string>& pvNames)
-    {
-        for (auto &pv : pvs)
-            pvNames.push_back(pv->name);
     }
     
     static std::pair< Average3D*, UniformCartesianDumper* >
