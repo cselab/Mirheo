@@ -39,14 +39,14 @@ if u.isComputeTask():
         
     if args.restart:
         initials = np.loadtxt("initial.txt")
-        np.savetxt("difference.out.txt", data - initials)
+        np.savetxt("parts.out.txt", data - initials)
     else:
         np.savetxt("initial.txt", data)
 
 
     
 
-# TEST: restart.object_belonging
+# nTEST: restart.object_belonging
 # cd restart
 # rm -rf restart parts.out.txt initial.txt difference.txt
 # udx.run --runargs "-n 2" ./belonging_checker.py           > /dev/null
