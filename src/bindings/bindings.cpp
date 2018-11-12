@@ -1,5 +1,6 @@
 #include <core/logger.h>
 #include "bindings.h"
+#include <mpi.h>
 
 Logger logger;
 
@@ -32,4 +33,5 @@ PYBIND11_MODULE(libudevicex, m)
     exportPlugins(plugins);
     
     m.def("destroyCudaContext", [] () { cudaDeviceReset(); });
+    m.def("abort", [] () { MPI_Abort(MPI_COMM_WORLD, -1); }, "Abort the program and quit all the MPI processes");
 }

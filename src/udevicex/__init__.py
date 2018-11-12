@@ -84,7 +84,7 @@ def handle_exception(exc_type, exc_value, exc_traceback):
     sys.stdout.flush()
     sys.stderr.flush()
     if __coordinator is not None and  __coordinator() is not None:
-        __coordinator().__abort()
+        abort()
 
 def __init__():
     # Setup exception handling

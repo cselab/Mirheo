@@ -414,11 +414,6 @@ void uDeviceX::sayHello()
     printf("\n");
 }
 
-void uDeviceX::abort() const
-{
-    MPI_Abort(MPI_COMM_WORLD, -1);
-}
-
 void uDeviceX::restart(std::string folder)
 {
     if (isComputeTask())
