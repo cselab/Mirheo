@@ -65,7 +65,7 @@ __device__ inline float distance2(const Ta a, const Tb b)
  * forces, such that either p1 \<-\> p2 or p2 \<-\> p1 is ignored
  * based on particle ids
  */
-template<InteractionOut NeedDstAcc, InteractionOut NeedSrcAcc, InteractionWith InteractWith, typename Interaction>
+template<InteractionOut NeedDstAcc, InteractionOut NeedSrcAcc, typename Interaction>
 __device__ inline void computeCell(
         int pstart, int pend,
         Particle dstP, int dstId, float3& dstFrc,
@@ -78,10 +78,6 @@ __device__ inline void computeCell(
         srcP.readCoordinate(cinfo.particles, srcId);
 
         bool interacting = distance2(srcP.r, dstP.r) < rc2;
-
-        if (InteractWith == InteractionWith::Self)
-            if (dstId <= srcId) interacting = false;
-
         if (interacting)
         {
             srcP.readVelocity(cinfo.particles, srcId);
@@ -128,25 +124,35 @@ __global__ void computeSelfInteractions(
 
     const int3 cell0 = cinfo.getCellIdAlongAxes(dstP.r);
 
-    for (int cellZ = cell0.z-1; cellZ <= cell0.z+1; cellZ++)
-        for (int cellY = cell0.y-1; cellY <= cell0.y; cellY++)
+    for (int cellZ = max(cell0.z-1, 0); cellZ <= cell0.z+1; cellZ++)
+        for (int cellY = max(cell0.y-1, 0); cellY <= cell0.y; cellY++)
             {
-                if ( !(cellY >= 0 && cellY < cinfo.ncells.y && cellZ >= 0 && cellZ < cinfo.ncells.z) ) continue;
+                if (cellZ >= cinfo.ncells.z) continue;
                 if (cellY == cell0.y && cellZ > cell0.z) continue;
 
                 const int midCellId = cinfo.encode(cell0.x, cellY, cellZ);
-                int rowStart  = max(midCellId-1, 0);
-                int rowEnd    = min(midCellId+2, cinfo.totcells);
-
-                if ( cellY == cell0.y && cellZ == cell0.z ) rowEnd = midCellId + 1; // this row is already partly covered
+                const int rowStart  = max(midCellId-1, 0);
+                const int rowEnd  = min(midCellId+2, cinfo.totcells);
 
                 const int pstart = cinfo.cellStarts[rowStart];
-                const int pend   = cinfo.cellStarts[rowEnd];
-
+                int pend = cinfo.cellStarts[rowEnd];
                 if (cellY == cell0.y && cellZ == cell0.z)
-                    computeCell<InteractionOut::NeedAcc, InteractionOut::NeedAcc, InteractionWith::Self>  (pstart, pend, dstP, dstId, dstFrc, cinfo, rc2, interaction);
-                else
-                    computeCell<InteractionOut::NeedAcc, InteractionOut::NeedAcc, InteractionWith::Other> (pstart, pend, dstP, dstId, dstFrc, cinfo, rc2, interaction);
+                    pend = dstId;
+
+#pragma unroll 2
+                for (int srcId = pstart; srcId < pend; srcId++)
+                {
+                    Particle srcP(cinfo.particles, srcId);
+            
+                    bool interacting = distance2(srcP.r, dstP.r) < rc2;
+                    if (interacting)
+                    {
+                        float3 frc = interaction(dstP, dstId, srcP, srcId);
+            
+                        dstFrc += frc;
+                        atomicAdd(cinfo.forces + srcId, -frc);
+                    }
+                }
             }
 
     atomicAdd(cinfo.forces + dstId, dstFrc);
@@ -215,7 +221,7 @@ __global__ void computeExternalInteractions_1tpp(
                 const int pstart = srcCinfo.cellStarts[rowStart];
                 const int pend   = srcCinfo.cellStarts[rowEnd];
 
-                computeCell<NeedDstAcc, NeedSrcAcc, InteractionWith::Other> (pstart, pend, dstP, dstId, dstFrc, srcCinfo, rc2, interaction);
+                computeCell<NeedDstAcc, NeedSrcAcc> (pstart, pend, dstP, dstId, dstFrc, srcCinfo, rc2, interaction);
             }
             else
             {
@@ -227,7 +233,7 @@ __global__ void computeExternalInteractions_1tpp(
                     const int pstart = srcCinfo.cellStarts[cid];
                     const int pend   = srcCinfo.cellStarts[cid+1];
 
-                    computeCell<NeedDstAcc, NeedSrcAcc, InteractionWith::Other> (pstart, pend, dstP, dstId, dstFrc, srcCinfo, rc2, interaction);
+                    computeCell<NeedDstAcc, NeedSrcAcc> (pstart, pend, dstP, dstId, dstFrc, srcCinfo, rc2, interaction);
                 }
             }
 
@@ -281,7 +287,7 @@ __global__ void computeExternalInteractions_3tpp(
             const int pstart = srcCinfo.cellStarts[rowStart];
             const int pend   = srcCinfo.cellStarts[rowEnd];
 
-            computeCell<NeedDstAcc, NeedSrcAcc, InteractionWith::Other> (pstart, pend, dstP, dstId, dstFrc, srcCinfo, rc2, interaction);
+            computeCell<NeedDstAcc, NeedSrcAcc> (pstart, pend, dstP, dstId, dstFrc, srcCinfo, rc2, interaction);
         }
         else
         {
@@ -293,7 +299,7 @@ __global__ void computeExternalInteractions_3tpp(
                 const int pstart = srcCinfo.cellStarts[cid];
                 const int pend   = srcCinfo.cellStarts[cid+1];
 
-                computeCell<NeedDstAcc, NeedSrcAcc, InteractionWith::Other> (pstart, pend, dstP, dstId, dstFrc, srcCinfo, rc2, interaction);
+                computeCell<NeedDstAcc, NeedSrcAcc> (pstart, pend, dstP, dstId, dstFrc, srcCinfo, rc2, interaction);
             }
         }
 
@@ -347,7 +353,7 @@ __global__ void computeExternalInteractions_9tpp(
         const int pstart = srcCinfo.cellStarts[rowStart];
         const int pend   = srcCinfo.cellStarts[rowEnd];
 
-        computeCell<NeedDstAcc, NeedSrcAcc, InteractionWith::Other> (pstart, pend, dstP, dstId, dstFrc, srcCinfo, rc2, interaction);
+        computeCell<NeedDstAcc, NeedSrcAcc> (pstart, pend, dstP, dstId, dstFrc, srcCinfo, rc2, interaction);
     }
     else
     {
@@ -359,7 +365,7 @@ __global__ void computeExternalInteractions_9tpp(
             const int pstart = srcCinfo.cellStarts[cid];
             const int pend   = srcCinfo.cellStarts[cid+1];
 
-            computeCell<NeedDstAcc, NeedSrcAcc, InteractionWith::Other> (pstart, pend, dstP, dstId, dstFrc, srcCinfo, rc2, interaction);
+            computeCell<NeedDstAcc, NeedSrcAcc> (pstart, pend, dstP, dstId, dstFrc, srcCinfo, rc2, interaction);
         }
     }
 
@@ -409,7 +415,7 @@ __global__ void computeExternalInteractions_27tpp(
     const int pstart = srcCinfo.cellStarts[cid];
     const int pend   = srcCinfo.cellStarts[cid+1];
 
-    computeCell<NeedDstAcc, NeedSrcAcc, InteractionWith::Other> (pstart, pend, dstP, dstId, dstFrc, srcCinfo, rc2, interaction);
+    computeCell<NeedDstAcc, NeedSrcAcc> (pstart, pend, dstP, dstId, dstFrc, srcCinfo, rc2, interaction);
 
     if (NeedDstAcc == InteractionOut::NeedAcc)
         atomicAdd(dstView.forces + dstId, dstFrc);
