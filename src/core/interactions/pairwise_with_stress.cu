@@ -2,6 +2,7 @@
 
 #include "pairwise_interactions/dpd.h"
 #include "pairwise_interactions/lj.h"
+#include "pairwise_interactions/lj_object_aware.h"
 
 /**
  * Implementation of short-range symmetric pairwise interactions
@@ -99,3 +100,4 @@ void InteractionPair_withStress<PairwiseInteraction>::setSpecificPair(
 
 template class InteractionPair_withStress<Pairwise_DPD>;
 template class InteractionPair_withStress<Pairwise_LJ>;
+template class InteractionPair_withStress<Pairwise_LJObjectAware>;
