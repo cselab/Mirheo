@@ -3,9 +3,6 @@
 #include "interface.h"
 #include <memory>
 
-/**
- * Implementation of Velocity-Verlet integration in one step
- */
 struct InteractionLJ : Interaction
 {
     std::unique_ptr<Interaction> impl;

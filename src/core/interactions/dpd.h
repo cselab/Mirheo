@@ -5,9 +5,6 @@
 #include <limits>
 #include <core/utils/pytypes.h>
 
-/**
- * Implementation of Velocity-Verlet integration in one step
- */
 class InteractionDPD : Interaction
 {
 public:
