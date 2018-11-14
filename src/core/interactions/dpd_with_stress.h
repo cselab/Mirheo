@@ -14,8 +14,6 @@ public:
                          float dt=Default, float power=Default) override;
 
 protected:
-
-    // default parameter
     float stressPeriod;
 };
 
