@@ -4,6 +4,7 @@
 #include <core/interactions/dpd.h>
 #include <core/interactions/dpd_with_stress.h>
 #include <core/interactions/lj.h>
+#include <core/interactions/lj_with_stress.h>
 #include <core/interactions/membrane.h>
 
 #include "bindings.h"
@@ -106,6 +107,24 @@ void exportInteractions(py::module& m)
             Override some of the interaction parameters for a specific pair of Particle Vectors
         )");
         
+    py::handlers_class<InteractionLJWithStress> pyIntLJWithStress (m, "LJWithStress", pyIntLJ, R"(
+        wrapper of :any:`LJ` with, in addition, stress computation
+    )");
+
+    pyIntLJWithStress.def(py::init<std::string, float, float, float, float, bool, float>(),
+                          "name"_a, "rc"_a, "epsilon"_a, "sigma"_a, "max_force"_a=1000.0,
+                          "object_aware"_a, "stressPeriod"_a, R"(
+            Args:
+                name: name of the interaction
+                rc: interaction cut-off (no forces between particles further than **rc** apart)
+                epsilon: :math:`\varepsilon`
+                sigma: :math:`\sigma`
+                max_force: force magnitude will be capped not exceed **max_force**
+                object_aware:
+                    if True, the particles belonging to the same object in an object vector do not interact with each other.
+                    That restriction only applies if both Particle Vectors in the interactions are the same and is actually an Object Vector. 
+                stressPeriod: compute the stresses every this period (in simulation time units)
+    )");
     
     //   x0, p, ka, kb, kd, kv, gammaC, gammaT, kbT, mpow, theta, totArea0, totVolume0;
     py::handlers_class<MembraneParameters>(m, "MembraneParameters", R"(
