@@ -250,7 +250,7 @@ __global__ void checkInside(PVview view, int* nInside, const InsideWallChecker c
 //===============================================================================================
 
 template<typename InsideWallChecker>
-__global__ void computeSdfPerParticle(PVview view, float* sdfs, float3* gradients, InsideWallChecker checker)
+__global__ void computeSdfPerParticle(PVview view, float gradientThreshold, float* sdfs, float3* gradients, InsideWallChecker checker)
 {
     const float h = 0.25f;
     const float zeroTolerance = 1e-10f;
@@ -264,7 +264,7 @@ __global__ void computeSdfPerParticle(PVview view, float* sdfs, float3* gradient
     float sdf = checker(p.r);
     sdfs[pid] = sdf;
 
-    if (gradients != nullptr)
+    if (gradients != nullptr && sdf > -gradientThreshold)
     {
         float sdf_mx = checker(p.r + make_float3(-h,  0,  0));
         float sdf_px = checker(p.r + make_float3( h,  0,  0));
@@ -493,7 +493,8 @@ void SimpleStationaryWall<InsideWallChecker>::check(cudaStream_t stream)
 }
 
 template<class InsideWallChecker>
-void SimpleStationaryWall<InsideWallChecker>::sdfPerParticle(LocalParticleVector* lpv, GPUcontainer* sdfs, GPUcontainer* gradients, cudaStream_t stream)
+void SimpleStationaryWall<InsideWallChecker>::sdfPerParticle(LocalParticleVector* lpv,
+        GPUcontainer* sdfs, GPUcontainer* gradients, float gradientThreshold, cudaStream_t stream)
 {
     const int nthreads = 128;
     const int np = lpv->size();
@@ -517,7 +518,7 @@ void SimpleStationaryWall<InsideWallChecker>::sdfPerParticle(LocalParticleVector
     SAFE_KERNEL_LAUNCH(
             computeSdfPerParticle,
             getNblocks(view.size, nthreads), nthreads, 0, stream,
-            view, (float*)sdfs->genericDevPtr(),
+            view, gradientThreshold, (float*)sdfs->genericDevPtr(),
             (gradients != nullptr) ? (float3*)gradients->genericDevPtr() : nullptr, insideWallChecker.handler() );
 }
 

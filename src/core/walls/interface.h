@@ -40,7 +40,9 @@ class SDF_basedWall : public Wall
 public:
     using Wall::Wall;
 
-    virtual void sdfPerParticle(LocalParticleVector* lpv, GPUcontainer* sdfs, GPUcontainer* gradients, cudaStream_t stream) = 0;
+    virtual void sdfPerParticle(LocalParticleVector* lpv,
+            GPUcontainer* sdfs, GPUcontainer* gradients,
+            float gradientThreshold, cudaStream_t stream) = 0;
     virtual void sdfPerPosition(GPUcontainer *positions, GPUcontainer* sdfs, cudaStream_t stream) = 0;
     virtual void sdfOnGrid(float3 gridH, GPUcontainer* sdfs, cudaStream_t stream) = 0;
 

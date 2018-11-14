@@ -120,7 +120,7 @@ void freezeParticlesInWall(SDF_basedWall *wall, ParticleVector *pv, float minVal
 
     DeviceBuffer<float> sdfs(pv->local()->size());
     
-    wall->sdfPerParticle(pv->local(), &sdfs, nullptr, default_stream);
+    wall->sdfPerParticle(pv->local(), &sdfs, nullptr, 0, default_stream);
 
     extract_particles(pv, sdfs.devPtr(), minVal, maxVal);
 }
@@ -144,7 +144,7 @@ void freezeParticlesInWalls(std::vector<SDF_basedWall*> walls, ParticleVector *p
     
     
     for (auto& wall : walls) {
-        wall->sdfPerParticle(pv->local(), &sdfs, nullptr, default_stream);
+        wall->sdfPerParticle(pv->local(), &sdfs, nullptr, 0, default_stream);
 
         SAFE_KERNEL_LAUNCH
             (wall_helpers_kernels::merge_sdfs,

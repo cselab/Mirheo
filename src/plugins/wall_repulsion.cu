@@ -19,9 +19,12 @@ __global__ void forceFromSDF(PVview view, float* sdfs, float3* gradients, float 
     p.readCoordinate(view.particles, pid);
 
     float sdf = sdfs[pid];
-    float3 f = -gradients[pid] * min( maxForce, C * max(sdf + h, 0.0f) );
 
-    atomicAdd(view.forces + pid, f);
+    if (sdf + h >= 0.0f)
+    {
+        float3 f = -gradients[pid] * min( maxForce, C * max(sdf + h, 0.0f) );
+        atomicAdd(view.forces + pid, f);
+    }
 }
 
 
@@ -50,7 +53,7 @@ void WallRepulsionPlugin::beforeIntegration(cudaStream_t stream)
     auto sdfs      = pv->local()->extraPerParticle.getData<float>("sdf");
     auto gradients = pv->local()->extraPerParticle.getData<float3>("grad_sdf");
 
-    wall->sdfPerParticle(pv->local(), sdfs, gradients, stream);
+    wall->sdfPerParticle(pv->local(), sdfs, gradients, h+0.1f, stream);
 
     const int nthreads = 128;
     SAFE_KERNEL_LAUNCH(
