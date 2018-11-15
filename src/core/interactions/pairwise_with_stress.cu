@@ -20,13 +20,13 @@ void InteractionPair_withStress<PairwiseInteraction>::regular(
 
         if (pv2lastStressTime[pv1] != t)
         {
-            pv1->local()->extraPerParticle.getData<Stress>("stress")->clear(0);
+            pv1->local()->extraPerParticle.getData<Stress>(stressName)->clear(0);
             pv2lastStressTime[pv1] = t;
         }
 
         if (pv2lastStressTime[pv2] != t)
         {
-            pv2->local()->extraPerParticle.getData<Stress>("stress")->clear(0);
+            pv2->local()->extraPerParticle.getData<Stress>(stressName)->clear(0);
             pv2lastStressTime[pv2] = t;
         }
 
@@ -49,13 +49,13 @@ void InteractionPair_withStress<PairwiseInteraction>::halo   (
 
         if (pv2lastStressTime[pv1] != t)
         {
-            pv1->local()->extraPerParticle.getData<Stress>("stress")->clear(0);
+            pv1->local()->extraPerParticle.getData<Stress>(stressName)->clear(0);
             pv2lastStressTime[pv1] = t;
         }
 
         if (pv2lastStressTime[pv2] != t)
         {
-            pv2->local()->extraPerParticle.getData<Stress>("stress")->clear(0);
+            pv2->local()->extraPerParticle.getData<Stress>(stressName)->clear(0);
             pv2lastStressTime[pv2] = t;
         }
 
@@ -72,8 +72,8 @@ void InteractionPair_withStress<PairwiseInteraction>::setPrerequisites(ParticleV
     info("Interaction '%s' requires channel 'stress' from PVs '%s' and '%s'",
          name.c_str(), pv1->name.c_str(), pv2->name.c_str());
 
-    pv1->requireDataPerParticle<Stress>("stress", false);
-    pv2->requireDataPerParticle<Stress>("stress", false);
+    pv1->requireDataPerParticle<Stress>(stressName, false);
+    pv2->requireDataPerParticle<Stress>(stressName, false);
 
     pv2lastStressTime[pv1] = -1;
     pv2lastStressTime[pv2] = -1;

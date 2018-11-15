@@ -30,6 +30,7 @@ private:
     float lastStressTime{-1e6};
 
     std::map<ParticleVector*, float> pv2lastStressTime;
+    std::string stressName{"stress"}; 
 
     InteractionPair<PairwiseInteraction> interaction;
     InteractionPair<PairwiseStressWrapper<PairwiseInteraction>> interactionWithStress;
