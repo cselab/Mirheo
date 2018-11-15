@@ -17,8 +17,9 @@ u = udx.udevicex(ranks, domain, debug_level=3, log_filename='log')
 pv = udx.ParticleVectors.ParticleVector('pv', mass = 1)
 ic = udx.InitialConditions.Uniform(density=4)
 u.registerParticleVector(pv=pv, ic=ic)
-    
-dpd = udx.Interactions.DPDWithStress('dpd', 1.0, a=10.0, gamma=10.0, kbt=1.0, dt=dt, power=0.5, stressPeriod=sampleEvery*dt)
+
+stressName = "stressDPD"
+dpd = udx.Interactions.DPDWithStress('dpd', stressName, 1.0, a=10.0, gamma=10.0, kbt=1.0, dt=dt, power=0.5, stressPeriod=sampleEvery*dt)
 u.registerInteraction(dpd)
 u.setInteraction(dpd, pv, pv)
 
@@ -27,7 +28,7 @@ u.registerIntegrator(vv)
 u.setIntegrator(vv, pv)
 
 field = udx.Plugins.createDumpAverage('field', [pv], sampleEvery, dumpEvery, binSize,
-                                      [("velocity", "vector_from_float8"), ("stress", "tensor6")], 'h5/solvent-')
+                                      [("velocity", "vector_from_float8"), (stressName, "tensor6")], 'h5/solvent-')
 u.registerPlugins(field)
 
 u.run(5002)
@@ -36,4 +37,4 @@ u.run(5002)
 # cd stress
 # rm -rf h5
 # udx.run --runargs "-n 2" ./double_poiseuille.py > /dev/null
-# udx.avgh5 xz stress h5/solvent-0000[2-4].h5 | awk '{print $2}' > stress.out.txt
+# udx.avgh5 xz stressDPD h5/solvent-0000[2-4].h5 | awk '{print $2}' > stress.out.txt
