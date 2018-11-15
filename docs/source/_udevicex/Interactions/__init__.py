@@ -162,11 +162,12 @@ class DPDWithStress(DPD):
     
     """
     def __init__():
-        r"""__init__(name: str, rc: float, a: float, gamma: float, kbt: float, dt: float, power: float, stressPeriod: float) -> None
+        r"""__init__(name: str, stressName: str, rc: float, a: float, gamma: float, kbt: float, dt: float, power: float, stressPeriod: float) -> None
 
   
             Args:
-            name: name of the interaction
+                name: name of the interaction
+                stressName: name of the stress entry
                 rc: interaction cut-off (no forces between particles further than **rc** apart)
                 a: :math:`a`
                 gamma: :math:`\gamma`
@@ -195,11 +196,12 @@ class LJWithStress(LJ):
     
     """
     def __init__():
-        r"""__init__(name: str, rc: float, epsilon: float, sigma: float, max_force: float = 1000.0, object_aware: bool, stressPeriod: float) -> None
+        r"""__init__(name: str, stressName: str, rc: float, epsilon: float, sigma: float, max_force: float = 1000.0, object_aware: bool, stressPeriod: float) -> None
 
 
             Args:
                 name: name of the interaction
+                stressName: name of the stress entry
                 rc: interaction cut-off (no forces between particles further than **rc** apart)
                 epsilon: :math:`\varepsilon`
                 sigma: :math:`\sigma`
