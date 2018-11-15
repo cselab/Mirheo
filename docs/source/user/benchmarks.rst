@@ -78,4 +78,10 @@ Timings are based on the average time-step wall time, measured from the :any:`Si
 Rigid Objects suspension
 ========================
 
-TODO
+Periodic Poiseuille flow for rigid suspensions in a periodic domain.
+Timings are based on the average time-step wall time, measured from the :any:`SimulationStats` plugin.
+
+.. figure:: ../images/weak_rigids.png
+    :figclass: align-center
+
+    weak scaling efficiency for multiple subdomain sizes
