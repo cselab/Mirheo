@@ -15,15 +15,17 @@ template<typename BasicPairwiseForce>
 class PairwiseStressWrapper
 {
 public:
-    PairwiseStressWrapper(BasicPairwiseForce basicForce) : basicForce(basicForce)
+    PairwiseStressWrapper(std::string stressName, BasicPairwiseForce basicForce) :
+        basicForce(basicForce),
+        stressName(stressName)
     {    }
 
     void setup(LocalParticleVector* lpv1, LocalParticleVector* lpv2, CellList* cl1, CellList* cl2, float t)
     {
         basicForce.setup(lpv1, lpv2, cl1, cl2, t);
 
-        pv1Stress = lpv1->extraPerParticle.getData<Stress>("stress")->devPtr();
-        pv2Stress = lpv2->extraPerParticle.getData<Stress>("stress")->devPtr();
+        pv1Stress = lpv1->extraPerParticle.getData<Stress>(stressName)->devPtr();
+        pv2Stress = lpv2->extraPerParticle.getData<Stress>(stressName)->devPtr();
     }
 
     __device__ inline float3 operator()(const Particle dst, int dstId, const Particle src, int srcId) const
@@ -57,6 +59,8 @@ public:
 
 private:
 
+    std::string stressName;
+    
     Stress *pv1Stress, *pv2Stress;
 
     BasicPairwiseForce basicForce;

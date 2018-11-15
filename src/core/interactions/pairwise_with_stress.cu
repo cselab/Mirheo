@@ -81,12 +81,13 @@ void InteractionPair_withStress<PairwiseInteraction>::setPrerequisites(ParticleV
 
 template<class PairwiseInteraction>
 InteractionPair_withStress<PairwiseInteraction>::InteractionPair_withStress(
-        std::string name, float rc, float stressPeriod, PairwiseInteraction pair) :
+    std::string name, std::string stressName, float rc, float stressPeriod, PairwiseInteraction pair) :
 
     Interaction(name, rc),
+    stressName(stressName),
     stressPeriod(stressPeriod),
     interaction(name, rc, pair),
-    interactionWithStress(name, rc, pair)
+    interactionWithStress(name, rc, PairwiseStressWrapper<PairwiseInteraction>(stressName, pair))
 { }
 
 template<class PairwiseInteraction>
@@ -94,7 +95,7 @@ void InteractionPair_withStress<PairwiseInteraction>::setSpecificPair(
         std::string pv1name, std::string pv2name, PairwiseInteraction pair)
 {
     interaction.          setSpecificPair(pv1name, pv2name, pair);
-    interactionWithStress.setSpecificPair(pv1name, pv2name, PairwiseStressWrapper<PairwiseInteraction>(pair));
+    interactionWithStress.setSpecificPair(pv1name, pv2name, PairwiseStressWrapper<PairwiseInteraction>(stressName, pair));
 }
 
 

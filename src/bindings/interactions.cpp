@@ -66,10 +66,11 @@ void exportInteractions(py::module& m)
         wrapper of :any:`DPD` with, in addition, stress computation
     )");
 
-    pyIntDPDWithStress.def(py::init<std::string, float, float, float, float, float, float, float>(),
-                           "name"_a, "rc"_a, "a"_a, "gamma"_a, "kbt"_a, "dt"_a, "power"_a, "stressPeriod"_a, R"(  
+    pyIntDPDWithStress.def(py::init<std::string, std::string, float, float, float, float, float, float, float>(),
+                           "name"_a, "stressName"_a, "rc"_a, "a"_a, "gamma"_a, "kbt"_a, "dt"_a, "power"_a, "stressPeriod"_a, R"(  
             Args:
-            name: name of the interaction
+                name: name of the interaction
+                stressName: name of the stress entry
                 rc: interaction cut-off (no forces between particles further than **rc** apart)
                 a: :math:`a`
                 gamma: :math:`\gamma`
@@ -111,11 +112,12 @@ void exportInteractions(py::module& m)
         wrapper of :any:`LJ` with, in addition, stress computation
     )");
 
-    pyIntLJWithStress.def(py::init<std::string, float, float, float, float, bool, float>(),
-                          "name"_a, "rc"_a, "epsilon"_a, "sigma"_a, "max_force"_a=1000.0,
+    pyIntLJWithStress.def(py::init<std::string, std::string, float, float, float, float, bool, float>(),
+                          "name"_a, "stressName"_a, "rc"_a, "epsilon"_a, "sigma"_a, "max_force"_a=1000.0,
                           "object_aware"_a, "stressPeriod"_a, R"(
             Args:
                 name: name of the interaction
+                stressName: name of the stress entry
                 rc: interaction cut-off (no forces between particles further than **rc** apart)
                 epsilon: :math:`\varepsilon`
                 sigma: :math:`\sigma`

@@ -9,17 +9,18 @@
 #include <core/pvs/particle_vector.h>
 
 
-InteractionLJWithStress::InteractionLJWithStress(std::string name, float rc, float epsilon, float sigma, float maxForce, bool objectAware, float stressPeriod) :
+InteractionLJWithStress::InteractionLJWithStress(std::string name, std::string stressName,
+                                                 float rc, float epsilon, float sigma, float maxForce, bool objectAware, float stressPeriod) :
     InteractionLJ(name, rc, epsilon, sigma, maxForce, objectAware, false),
     stressPeriod(stressPeriod)
 {
     if (objectAware) {
         Pairwise_LJObjectAware lj(rc, epsilon, sigma, maxForce);
-        impl = std::make_unique<InteractionPair_withStress<Pairwise_LJObjectAware>> (name, rc, stressPeriod, lj);
+        impl = std::make_unique<InteractionPair_withStress<Pairwise_LJObjectAware>> (name, stressName, rc, stressPeriod, lj);
     }
     else {
         Pairwise_LJ lj(rc, epsilon, sigma, maxForce);
-        impl = std::make_unique<InteractionPair_withStress<Pairwise_LJ>> (name, rc, stressPeriod, lj);
+        impl = std::make_unique<InteractionPair_withStress<Pairwise_LJ>> (name, stressName, rc, stressPeriod, lj);
     }
 }
 

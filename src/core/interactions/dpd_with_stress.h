@@ -5,7 +5,7 @@
 class InteractionDPDWithStress : public InteractionDPD
 {
 public:
-    InteractionDPDWithStress(std::string name, float rc, float a, float gamma, float kbt, float dt, float power, float stressPeriod);
+    InteractionDPDWithStress(std::string name, std::string stressName, float rc, float a, float gamma, float kbt, float dt, float power, float stressPeriod);
 
     ~InteractionDPDWithStress();
 
