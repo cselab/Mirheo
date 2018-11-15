@@ -31,26 +31,26 @@ public:
         const float3 dr = dst.r - src.r;
         float3 f = basicForce(dst, dstId, src, srcId);
 
-        const float v0 = 0.5f * dr.x*f.x;
-        const float v1 = 0.5f * dr.x*f.y;
-        const float v2 = 0.5f * dr.x*f.z;
-        const float v3 = 0.5f * dr.y*f.y;
-        const float v4 = 0.5f * dr.y*f.z;
-        const float v5 = 0.5f * dr.z*f.z;
+        const float sxx = 0.5f * dr.x * f.x;
+        const float sxy = 0.5f * dr.x * f.y;
+        const float sxz = 0.5f * dr.x * f.z;
+        const float syy = 0.5f * dr.y * f.y;
+        const float syz = 0.5f * dr.y * f.z;
+        const float szz = 0.5f * dr.z * f.z;
 
-        atomicAdd(&pv1Stress[dstId].xx, v0);
-        atomicAdd(&pv1Stress[dstId].xy, v1);
-        atomicAdd(&pv1Stress[dstId].xz, v2);
-        atomicAdd(&pv1Stress[dstId].yy, v3);
-        atomicAdd(&pv1Stress[dstId].yz, v4);
-        atomicAdd(&pv1Stress[dstId].zz, v5);
+        atomicAdd(&pv1Stress[dstId].xx, sxx);
+        atomicAdd(&pv1Stress[dstId].xy, sxy);
+        atomicAdd(&pv1Stress[dstId].xz, sxz);
+        atomicAdd(&pv1Stress[dstId].yy, syy);
+        atomicAdd(&pv1Stress[dstId].yz, syz);
+        atomicAdd(&pv1Stress[dstId].zz, szz);
 
-        atomicAdd(&pv2Stress[srcId].xx, v0);
-        atomicAdd(&pv2Stress[srcId].xy, v1);
-        atomicAdd(&pv2Stress[srcId].xz, v2);
-        atomicAdd(&pv2Stress[srcId].yy, v3);
-        atomicAdd(&pv2Stress[srcId].yz, v4);
-        atomicAdd(&pv2Stress[srcId].zz, v5);
+        atomicAdd(&pv2Stress[srcId].xx, sxx);
+        atomicAdd(&pv2Stress[srcId].xy, sxy);
+        atomicAdd(&pv2Stress[srcId].xz, sxz);
+        atomicAdd(&pv2Stress[srcId].yy, syy);
+        atomicAdd(&pv2Stress[srcId].yz, syz);
+        atomicAdd(&pv2Stress[srcId].zz, szz);
 
         return f;
     }
