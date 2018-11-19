@@ -12,3 +12,4 @@ EXT=png
 ./tools/plot_strong.py --files $DATA/poiseuille/strong_*.txt --out $FIG/strong_solvent.$EXT
 ./tools/plot_strong.py --files $DATA/blood/strong_*.txt      --out $FIG/strong_blood.$EXT
 ./tools/plot_strong.py --files $DATA/walls/strong_*.txt      --out $FIG/strong_walls.$EXT
+./tools/plot_strong.py --files $DATA/rigids/strong_*.txt     --out $FIG/strong_rigids.$EXT

@@ -81,6 +81,12 @@ Rigid Objects suspension
 Periodic Poiseuille flow for rigid suspensions in a periodic domain.
 Timings are based on the average time-step wall time, measured from the :any:`SimulationStats` plugin.
 
+.. figure:: ../images/strong_rigids.png
+    :figclass: align-center
+
+    strong scaling for multiple domain sizes
+
+
 .. figure:: ../images/weak_rigids.png
     :figclass: align-center
 
