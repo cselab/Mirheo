@@ -2,7 +2,9 @@
 
 #include <core/interactions/interface.h>
 #include <core/interactions/dpd.h>
+#include <core/interactions/dpd_with_stress.h>
 #include <core/interactions/lj.h>
+#include <core/interactions/lj_with_stress.h>
 #include <core/interactions/membrane.h>
 
 #include "bindings.h"
@@ -12,9 +14,9 @@ using namespace pybind11::literals;
 
 void exportInteractions(py::module& m)
 {
-    py::handlers_class<Interaction> pyint(m, "Interaction", "Base interaction class");
+    py::handlers_class<Interaction> pyInt(m, "Interaction", "Base interaction class");
 
-    py::handlers_class<InteractionDPD>(m, "DPD", pyint, R"(
+    py::handlers_class<InteractionDPD> pyIntDPD(m, "DPD", pyInt, R"(
         Pairwise interaction with conservative part and dissipative + random part acting as a thermostat, see [Groot1997]_
     
         .. math::
@@ -38,27 +40,47 @@ void exportInteractions(py::module& m)
         .. [Groot1997] Groot, R. D., & Warren, P. B. (1997).
             Dissipative particle dynamics: Bridging the gap between atomistic and mesoscopic simulations.
             J. Chem. Phys., 107(11), 4423–4435. `doi <https://doi.org/10.1063/1.474784>`_
-    )")
-        .def(py::init<std::string, float, float, float, float, float, float>(),
-             "name"_a, "rc"_a, "a"_a, "gamma"_a, "kbt"_a, "dt"_a, "power"_a, R"(  
-                Args:
-                    name: name of the interaction
-                    rc: interaction cut-off (no forces between particles further than **rc** apart)
-                    a: :math:`a`
-                    gamma: :math:`\gamma`
-                    kbt: :math:`k_B T`
-                    dt: time-step, that for consistency has to be the same as the integration time-step for the corresponding particle vectors
-                    power: :math:`p` in the weight function
-        )")
-        .def("setSpecificPair", &InteractionDPD::setSpecificPair, 
-             "pv1"_a, "pv2"_a,
-             "a"_a=InteractionDPD::Default, "gamma"_a=InteractionDPD::Default,
-             "kbt"_a=InteractionDPD::Default, "dt"_a=InteractionDPD::Default, "power"_a=InteractionDPD::Default,
-             R"(
-                Override some of the interaction parameters for a specific pair of Particle Vectors
-             )");
+    )");
+
+    pyIntDPD.def(py::init<std::string, float, float, float, float, float, float>(),
+         "name"_a, "rc"_a, "a"_a, "gamma"_a, "kbt"_a, "dt"_a, "power"_a, R"(  
+            Args:
+            name: name of the interaction
+                rc: interaction cut-off (no forces between particles further than **rc** apart)
+                a: :math:`a`
+                gamma: :math:`\gamma`
+                kbt: :math:`k_B T`
+                dt: time-step, that for consistency has to be the same as the integration time-step for the corresponding particle vectors
+                power: :math:`p` in the weight function
+    )");
+
+    pyIntDPD.def("setSpecificPair", &InteractionDPD::setSpecificPair, 
+         "pv1"_a, "pv2"_a,
+         "a"_a=InteractionDPD::Default, "gamma"_a=InteractionDPD::Default,
+         "kbt"_a=InteractionDPD::Default, "dt"_a=InteractionDPD::Default, "power"_a=InteractionDPD::Default,
+         R"(
+            Override some of the interaction parameters for a specific pair of Particle Vectors
+         )");
         
-    py::handlers_class<InteractionLJ>(m, "LJ", pyint, R"(
+    py::handlers_class<InteractionDPDWithStress> pyIntDPDWithStress(m, "DPDWithStress", pyIntDPD, R"(
+        wrapper of :any:`DPD` with, in addition, stress computation
+    )");
+
+    pyIntDPDWithStress.def(py::init<std::string, std::string, float, float, float, float, float, float, float>(),
+                           "name"_a, "stressName"_a, "rc"_a, "a"_a, "gamma"_a, "kbt"_a, "dt"_a, "power"_a, "stressPeriod"_a, R"(  
+            Args:
+                name: name of the interaction
+                stressName: name of the stress entry
+                rc: interaction cut-off (no forces between particles further than **rc** apart)
+                a: :math:`a`
+                gamma: :math:`\gamma`
+                kbt: :math:`k_B T`
+                dt: time-step, that for consistency has to be the same as the integration time-step for the corresponding particle vectors
+                power: :math:`p` in the weight function
+                stressPeriod: compute the stresses every this period (in simulation time units)
+    )");
+
+    py::handlers_class<InteractionLJ> pyIntLJ (m, "LJ", pyInt, R"(
         Pairwise interaction according to the classical `Lennard-Jones potential <https://en.wikipedia.org/wiki/Lennard-Jones_potential>`_
         The force however is truncated such that it is *always repulsive*.
         
@@ -66,24 +88,45 @@ void exportInteractions(py::module& m)
         
             \mathbf{F}_{ij} = \max \left[ 0.0, 24 \epsilon \left( 2\left( \frac{\sigma}{r_{ij}} \right)^{14} - \left( \frac{\sigma}{r_{ij}} \right)^{8} \right) \right]
    
-    )")
-        .def(py::init<std::string, float, float, float, float, bool>(),
-             "name"_a, "rc"_a, "epsilon"_a, "sigma"_a, "max_force"_a=1000.0, "object_aware"_a, R"(
-                Args:
-                    name: name of the interaction
-                    rc: interaction cut-off (no forces between particles further than **rc** apart)
-                    epsilon: :math:`\varepsilon`
-                    sigma: :math:`\sigma`
-                    max_force: force magnitude will be capped not exceed **max_force**
-                    object_aware:
-                        if True, the particles belonging to the same object in an object vector do not interact with each other.
-                        That restriction only applies if both Particle Vectors in the interactions are the same and is actually an Object Vector. 
-        )")
-        .def("setSpecificPair", &InteractionLJ::setSpecificPair, 
-            "pv1"_a, "pv2"_a, "epsilon"_a, "sigma"_a, "max_force"_a, R"(
-                Override some of the interaction parameters for a specific pair of Particle Vectors
-            )");
+    )");
+
+    pyIntLJ.def(py::init<std::string, float, float, float, float, bool>(),
+         "name"_a, "rc"_a, "epsilon"_a, "sigma"_a, "max_force"_a=1000.0, "object_aware"_a, R"(
+            Args:
+                name: name of the interaction
+                rc: interaction cut-off (no forces between particles further than **rc** apart)
+                epsilon: :math:`\varepsilon`
+                sigma: :math:`\sigma`
+                max_force: force magnitude will be capped not exceed **max_force**
+                object_aware:
+                    if True, the particles belonging to the same object in an object vector do not interact with each other.
+                    That restriction only applies if both Particle Vectors in the interactions are the same and is actually an Object Vector. 
+    )");
+
+    pyIntLJ.def("setSpecificPair", &InteractionLJ::setSpecificPair, 
+        "pv1"_a, "pv2"_a, "epsilon"_a, "sigma"_a, "max_force"_a, R"(
+            Override some of the interaction parameters for a specific pair of Particle Vectors
+        )");
         
+    py::handlers_class<InteractionLJWithStress> pyIntLJWithStress (m, "LJWithStress", pyIntLJ, R"(
+        wrapper of :any:`LJ` with, in addition, stress computation
+    )");
+
+    pyIntLJWithStress.def(py::init<std::string, std::string, float, float, float, float, bool, float>(),
+                          "name"_a, "stressName"_a, "rc"_a, "epsilon"_a, "sigma"_a, "max_force"_a=1000.0,
+                          "object_aware"_a, "stressPeriod"_a, R"(
+            Args:
+                name: name of the interaction
+                stressName: name of the stress entry
+                rc: interaction cut-off (no forces between particles further than **rc** apart)
+                epsilon: :math:`\varepsilon`
+                sigma: :math:`\sigma`
+                max_force: force magnitude will be capped not exceed **max_force**
+                object_aware:
+                    if True, the particles belonging to the same object in an object vector do not interact with each other.
+                    That restriction only applies if both Particle Vectors in the interactions are the same and is actually an Object Vector. 
+                stressPeriod: compute the stresses every this period (in simulation time units)
+    )");
     
     //   x0, p, ka, kb, kd, kv, gammaC, gammaT, kbT, mpow, theta, totArea0, totVolume0;
     py::handlers_class<MembraneParameters>(m, "MembraneParameters", R"(
@@ -108,7 +151,7 @@ void exportInteractions(py::module& m)
         .def_readwrite("rnd",       &MembraneParameters::fluctuationForces)
         .def_readwrite("dt",        &MembraneParameters::dt);
         
-    py::handlers_class<InteractionMembrane>(m, "MembraneForces", pyint, R"(
+    py::handlers_class<InteractionMembrane>(m, "MembraneForces", pyInt, R"(
         Mesh-based forces acting on a membrane according to the model in [Fedosov2010]_
 
         The membrane interactions are composed of forces comming from:

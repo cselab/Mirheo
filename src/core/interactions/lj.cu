@@ -5,21 +5,26 @@
 #include "pairwise_interactions/lj_object_aware.h"
 
 
-InteractionLJ::InteractionLJ(std::string name, float rc,
-                             float epsilon, float sigma, float maxForce, bool objectAware) :
+InteractionLJ::InteractionLJ(std::string name, float rc, float epsilon, float sigma, float maxForce, bool objectAware, bool allocate) :
     Interaction(name, rc), objectAware(objectAware)
 {
-    if (objectAware)
-    {
+    if (!allocate) return;
+
+    if (objectAware) {
         Pairwise_LJObjectAware lj(rc, epsilon, sigma, maxForce);
         impl = std::make_unique<InteractionPair<Pairwise_LJObjectAware>> (name, rc, lj);
     }
-    else
-    {
+    else {
         Pairwise_LJ lj(rc, epsilon, sigma, maxForce);
         impl = std::make_unique<InteractionPair<Pairwise_LJ>> (name, rc, lj);
     }
 }
+
+InteractionLJ::InteractionLJ(std::string name, float rc, float epsilon, float sigma, float maxForce, bool objectAware) :
+    InteractionLJ(name, rc, epsilon, sigma, maxForce, objectAware, true)
+{}
+
+InteractionLJ::~InteractionLJ() = default;
 
 void InteractionLJ::setPrerequisites(ParticleVector* pv1, ParticleVector* pv2)
 {
@@ -41,21 +46,17 @@ void InteractionLJ::halo   (ParticleVector* pv1, ParticleVector* pv2,
 }
 
 void InteractionLJ::setSpecificPair(ParticleVector* pv1, ParticleVector* pv2, 
-        float epsilon, float sigma, float maxForce)
+                                    float epsilon, float sigma, float maxForce)
 {
-    if (objectAware)
-    {
+    if (objectAware) {
         Pairwise_LJObjectAware lj(rc, epsilon, sigma, maxForce);
         auto ptr = static_cast< InteractionPair<Pairwise_LJObjectAware>* >(impl.get());
         ptr->setSpecificPair(pv1->name, pv2->name, lj);
     }
-    else
-    {
+    else {
         Pairwise_LJ lj(rc, epsilon, sigma, maxForce);
         auto ptr = static_cast< InteractionPair<Pairwise_LJ>* >(impl.get());
         ptr->setSpecificPair(pv1->name, pv2->name, lj);
     }
 }
-
-InteractionLJ::~InteractionLJ() = default;
 

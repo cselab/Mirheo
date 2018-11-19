@@ -7,13 +7,21 @@
 #include <core/pvs/particle_vector.h>
 
 
-InteractionDPD::InteractionDPD(std::string name, float rc, float a, float gamma, float kbt, float dt, float power) :
+InteractionDPD::InteractionDPD(std::string name, float rc, float a, float gamma, float kbt, float dt, float power, bool allocateImpl) :
     Interaction(name, rc),
     a(a), gamma(gamma), kbt(kbt), dt(dt), power(power)
 {
-    Pairwise_DPD dpd(rc, a, gamma, kbt, dt, power);
-    impl = std::make_unique<InteractionPair<Pairwise_DPD>> (name, rc, dpd);
+    if (allocateImpl) {
+        Pairwise_DPD dpd(rc, a, gamma, kbt, dt, power);
+        impl = std::make_unique<InteractionPair<Pairwise_DPD>> (name, rc, dpd);
+    }
 }
+
+InteractionDPD::InteractionDPD(std::string name, float rc, float a, float gamma, float kbt, float dt, float power) :
+    InteractionDPD(name, rc, a, gamma, kbt, dt, power, true)
+{}
+
+InteractionDPD::~InteractionDPD() = default;
 
 void InteractionDPD::setPrerequisites(ParticleVector* pv1, ParticleVector* pv2)
 {
@@ -49,5 +57,4 @@ void InteractionDPD::setSpecificPair(ParticleVector* pv1, ParticleVector* pv2,
     ptr->setSpecificPair(pv1->name, pv2->name, dpd);
 }
 
-InteractionDPD::~InteractionDPD() = default;
 

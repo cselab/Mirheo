@@ -47,15 +47,15 @@ class DPD(Interaction):
         r"""__init__(name: str, rc: float, a: float, gamma: float, kbt: float, dt: float, power: float) -> None
 
   
-                Args:
-                    name: name of the interaction
-                    rc: interaction cut-off (no forces between particles further than **rc** apart)
-                    a: :math:`a`
-                    gamma: :math:`\gamma`
-                    kbt: :math:`k_B T`
-                    dt: time-step, that for consistency has to be the same as the integration time-step for the corresponding particle vectors
-                    power: :math:`p` in the weight function
-        
+            Args:
+            name: name of the interaction
+                rc: interaction cut-off (no forces between particles further than **rc** apart)
+                a: :math:`a`
+                gamma: :math:`\gamma`
+                kbt: :math:`k_B T`
+                dt: time-step, that for consistency has to be the same as the integration time-step for the corresponding particle vectors
+                power: :math:`p` in the weight function
+    
 
         """
         pass
@@ -64,8 +64,8 @@ class DPD(Interaction):
         r"""setSpecificPair(pv1: ParticleVectors.ParticleVector, pv2: ParticleVectors.ParticleVector, a: float = inf, gamma: float = inf, kbt: float = inf, dt: float = inf, power: float = inf) -> None
 
 
-                Override some of the interaction parameters for a specific pair of Particle Vectors
-             
+            Override some of the interaction parameters for a specific pair of Particle Vectors
+         
 
         """
         pass
@@ -85,16 +85,16 @@ class LJ(Interaction):
         r"""__init__(name: str, rc: float, epsilon: float, sigma: float, max_force: float = 1000.0, object_aware: bool) -> None
 
 
-                Args:
-                    name: name of the interaction
-                    rc: interaction cut-off (no forces between particles further than **rc** apart)
-                    epsilon: :math:`\varepsilon`
-                    sigma: :math:`\sigma`
-                    max_force: force magnitude will be capped not exceed **max_force**
-                    object_aware:
-                        if True, the particles belonging to the same object in an object vector do not interact with each other.
-                        That restriction only applies if both Particle Vectors in the interactions are the same and is actually an Object Vector. 
-        
+            Args:
+                name: name of the interaction
+                rc: interaction cut-off (no forces between particles further than **rc** apart)
+                epsilon: :math:`\varepsilon`
+                sigma: :math:`\sigma`
+                max_force: force magnitude will be capped not exceed **max_force**
+                object_aware:
+                    if True, the particles belonging to the same object in an object vector do not interact with each other.
+                    That restriction only applies if both Particle Vectors in the interactions are the same and is actually an Object Vector. 
+    
 
         """
         pass
@@ -103,8 +103,8 @@ class LJ(Interaction):
         r"""setSpecificPair(pv1: ParticleVectors.ParticleVector, pv2: ParticleVectors.ParticleVector, epsilon: float, sigma: float, max_force: float) -> None
 
 
-                Override some of the interaction parameters for a specific pair of Particle Vectors
-            
+            Override some of the interaction parameters for a specific pair of Particle Vectors
+        
 
         """
         pass
@@ -151,6 +151,75 @@ class MembraneForces(Interaction):
                      grow_until: time to grow the cell at initialization stage; 
                                  the size increases linearly in time from half of the provided mesh to its full size after that time
                                  the parameters are scaled accordingly with time
+        
+
+        """
+        pass
+
+class DPDWithStress(DPD):
+    r"""
+        wrapper of :any:`DPD` with, in addition, stress computation
+    
+    """
+    def __init__():
+        r"""__init__(name: str, stressName: str, rc: float, a: float, gamma: float, kbt: float, dt: float, power: float, stressPeriod: float) -> None
+
+  
+            Args:
+                name: name of the interaction
+                stressName: name of the stress entry
+                rc: interaction cut-off (no forces between particles further than **rc** apart)
+                a: :math:`a`
+                gamma: :math:`\gamma`
+                kbt: :math:`k_B T`
+                dt: time-step, that for consistency has to be the same as the integration time-step for the corresponding particle vectors
+                power: :math:`p` in the weight function
+                stressPeriod: compute the stresses every this period (in simulation time units)
+    
+
+        """
+        pass
+
+    def setSpecificPair():
+        r"""setSpecificPair(pv1: ParticleVectors.ParticleVector, pv2: ParticleVectors.ParticleVector, a: float = inf, gamma: float = inf, kbt: float = inf, dt: float = inf, power: float = inf) -> None
+
+
+            Override some of the interaction parameters for a specific pair of Particle Vectors
+         
+
+        """
+        pass
+
+class LJWithStress(LJ):
+    r"""
+        wrapper of :any:`LJ` with, in addition, stress computation
+    
+    """
+    def __init__():
+        r"""__init__(name: str, stressName: str, rc: float, epsilon: float, sigma: float, max_force: float = 1000.0, object_aware: bool, stressPeriod: float) -> None
+
+
+            Args:
+                name: name of the interaction
+                stressName: name of the stress entry
+                rc: interaction cut-off (no forces between particles further than **rc** apart)
+                epsilon: :math:`\varepsilon`
+                sigma: :math:`\sigma`
+                max_force: force magnitude will be capped not exceed **max_force**
+                object_aware:
+                    if True, the particles belonging to the same object in an object vector do not interact with each other.
+                    That restriction only applies if both Particle Vectors in the interactions are the same and is actually an Object Vector. 
+                stressPeriod: compute the stresses every this period (in simulation time units)
+    
+
+        """
+        pass
+
+    def setSpecificPair():
+        r"""setSpecificPair(pv1: ParticleVectors.ParticleVector, pv2: ParticleVectors.ParticleVector, epsilon: float, sigma: float, max_force: float) -> None
+
+
+            Override some of the interaction parameters for a specific pair of Particle Vectors
         
 
         """
