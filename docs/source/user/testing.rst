@@ -40,8 +40,22 @@ All tests can be run by typing:
      $ cd tests
      $ make test
 
+  .. note::
+
+     You need to install the tools before running the tests
 
 Units tests
 ***********
 
-TODO
+Unit tests are compiled together with the `google-test framework <>`_.
+The library must be built in the ``build`` folder (see :ref:`user-install`).
+
+  .. code-block:: console
+
+     $ cd units
+     $ udx.make
+     $ udx.make test
+
+  .. note::
+
+     You need to install the tools before running the tests
