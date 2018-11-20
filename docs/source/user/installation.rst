@@ -136,4 +136,4 @@ The installation can be tested by calling
         
       $ make test
 
-The above command the  `atest <https://gitlab.ethz.ch/mavt-cse/atest.git>`_ framework (see user-testing_).
+The above command the  `atest <https://gitlab.ethz.ch/mavt-cse/atest.git>`_ framework (see :ref: `user-testing`).
