@@ -22,7 +22,7 @@ launch() (
 
     name=${tot}
     
-    baseDir=$SCRATCH/benchmarks/$scaling/periodic_blood/$subdomain/
+    baseDir=$SCRATCH/benchmarks/$scaling/membranes_suspensions/$subdomain/
     runDir=$baseDir/$name
     
     mkdir -p $runDir
@@ -52,12 +52,6 @@ if [ $tot -gt 1 ]; then
     export MPICH_RANK_REORDER_DISPLAY=1
     export MPICH_RANK_REORDER_METHOD=3
 fi
-
-srun -u --ntasks-per-node 2 $genScript \
-     --domain $LX $LY $LZ \
-     --nranks $NX $NY $NZ \
-     --resource-folder $resources \
-     $@
 
 srun -u --ntasks-per-node 2 $script \
      --domain $LX $LY $LZ \

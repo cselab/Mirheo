@@ -2,8 +2,38 @@
 
 import argparse, sys, pickle, math
 import udevicex as udx
+import numpy as np
 from membrane_parameters import set_parameters, params2dict
 from scipy.optimize import fsolve
+
+def gen_ic(domain, cell_volume, hematocrit, extent=(7,7,3)):
+    assert(0.0 < hematocrit and hematocrit < 0.7)
+    
+    norm_extent = np.array(extent) / ((extent[0]*extent[1]*extent[2])**(1/3.0))
+    
+    domain_vol = domain[0]*domain[1]*domain[2]
+    ncells = domain_vol*hematocrit / cell_volume
+    
+    gap = domain_vol**(1/3.0) / (ncells**(1/3.0) + 1)
+    
+    nx, ny, nz = [ int(domain[i] / (gap*norm_extent[i])) for i in range(3) ]
+    real_ht = nx*ny*nz * cell_volume / domain_vol
+    h = [ domain[0]/nx, domain[1]/ny, domain[2]/nz ]
+    
+    com_q = []
+    for i in range(nx):
+        for j in range(ny):
+            for k in range(nz):
+                com_q.append( [i*h[0], j*h[1], k*h[2],  1, 0, 0, 0] )
+                    
+    return real_ht, (nx, ny, nz), com_q
+    
+
+def get_rbc_params(udx, gamma_in, eta_in, rho):
+    prms = udx.Interactions.MembraneParameters()
+    set_parameters(prms, gamma_in, eta_in, rho)
+
+    return prms
 
 class Viscosity_getter:
     def __init__(self, folder, a, power):
@@ -39,6 +69,9 @@ parser.add_argument('--domain', help='Domain size', type=float, nargs=3, default
 parser.add_argument('--nranks', help='MPI ranks',   type=int,   nargs=3, default=[1,1,1])
 
 parser.add_argument('--with-dumps', help='Enable data-dumps', action='store_true')
+
+parser.add_argument('--ht',  help='Hematocrit level', default=0.2, type=float)
+parser.add_argument('--vol', help='Volume of a single cell', default=94.0, type=float)
 
 parser.add_argument('--dry-run', help="Don't run the simulation, just report the parameters", action='store_true')
 
@@ -97,9 +130,14 @@ vv = udx.Integrators.VelocityVerlet('vv', dt=args.dt)
 u.registerIntegrator(vv)
 
 # RBCs
+
+real_ht, ncells, rbcs_ic = gen_ic(args.domain, args.vol, args.ht)
+
+np.savetxt("rbcs-ic.txt", rbcs_ic)
+
 mesh_rbc = udx.ParticleVectors.MembraneMesh(args.resource_folder + 'rbc_mesh.off')
 rbcs = udx.ParticleVectors.MembraneVector('rbc', mass=1.0, mesh=mesh_rbc)
-u.registerParticleVector(pv=rbcs, ic=udx.InitialConditions.Restart('generated/'))
+u.registerParticleVector(pv=rbcs, ic=udx.InitialConditions.Membrane(rbcs_ic, global_scale=1.0))
 
 
 # Stitching things with each other
