@@ -110,6 +110,9 @@ void exportIntegrators(py::module& m)
                     dt:   integration time-step
                     force: force magnitude, :math:`F_{Poiseuille}`
                     direction: Valid values: \"x\", \"y\", \"z\". Defines the direction of the pushing force
+                               if direction is \"x\", the sign changes along \"y\".
+                               if direction is \"y\", the sign changes along \"z\".
+                               if direction is \"z\", the sign changes along \"x\".
             )");
 
     py::handlers_class<IntegratorSubStepMembrane>
