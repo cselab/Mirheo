@@ -6,12 +6,12 @@
 Testing
 #######
 
-uDeviceX can be tested with a set of regression tests (located in `tests`) and unit tests (located in `units`).
+uDeviceX can be tested with a set of regression tests (located in ``tests``) and unit tests (located in ``units``).
 
 Regression tests
 ****************
 
-Regression testing makes use of the `atest <https://gitlab.ethz.ch/mavt-cse/atest.git>` framework.
+Regression testing makes use of the `atest <https://gitlab.ethz.ch/mavt-cse/atest.git>`_ framework.
 This can be installed as follows:
 
   .. code-block:: console
@@ -22,8 +22,8 @@ This can be installed as follows:
 
   .. note::
 
-     By default, this will install the atest executables in `$HOME/bin` folder.
-     This location should be in your `PATH` variable
+     By default, this will install the atest executables in ``$HOME/bin`` folder.
+     This location should be in your ``PATH`` variable
 
 The regression tests are a set of python scripts.
 They make use of additional dependencies:
@@ -32,7 +32,7 @@ They make use of additional dependencies:
 - trimesh
 - mpi4py
 
-Which can all be installed via `pip`.
+Which can all be installed via ``pip``.
 All tests can be run by typing:
 
   .. code-block:: console
