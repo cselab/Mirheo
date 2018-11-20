@@ -133,7 +133,8 @@ u.registerIntegrator(vv)
 
 real_ht, ncells, rbcs_ic = gen_ic(args.domain, args.vol, args.ht)
 
-np.savetxt("rbcs-ic.txt", rbcs_ic)
+if u.isMasterTask():
+    np.savetxt("rbcs-ic.txt", rbcs_ic)
 
 mesh_rbc = udx.ParticleVectors.MembraneMesh(args.resource_folder + 'rbc_mesh.off')
 rbcs = udx.ParticleVectors.MembraneVector('rbc', mass=1.0, mesh=mesh_rbc)

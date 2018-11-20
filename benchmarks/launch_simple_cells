@@ -15,7 +15,6 @@ launch() (
     subdomain=$1; shift
 
     resources=`pwd`/cases/resources/
-    genScript=`pwd`/cases/generate_cells.py
     script=`pwd`/cases/simple_membranes.py
 
     tot=`aei "$NX * $NY * $NZ"`
