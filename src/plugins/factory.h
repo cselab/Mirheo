@@ -8,25 +8,26 @@
 #include <core/pvs/object_vector.h>
 #include <core/walls/interface.h>
 
+#include <plugins/add_force.h>
+#include <plugins/add_torque.h>
 #include <plugins/average_flow.h>
 #include <plugins/average_relative_flow.h>
 #include <plugins/channel_dumper.h>
 #include <plugins/dumpxyz.h>
 #include <plugins/dump_mesh.h>
-#include <plugins/stats.h>
-#include <plugins/temperaturize.h>
 #include <plugins/dump_obj_position.h>
 #include <plugins/dump_particles.h>
 #include <plugins/dump_particles_with_mesh.h>
 #include <plugins/exchange_pvs_flux_plane.h>
 #include <plugins/impose_velocity.h>
 #include <plugins/impose_profile.h>
+#include <plugins/magnetic_orientation.h>
 #include <plugins/membrane_extra_force.h>
 #include <plugins/pin_object.h>
-#include <plugins/add_force.h>
-#include <plugins/add_torque.h>
-#include <plugins/wall_repulsion.h>
+#include <plugins/stats.h>
+#include <plugins/temperaturize.h>
 #include <plugins/velocity_control.h>
+#include <plugins/wall_repulsion.h>
 
 namespace PluginFactory
 {
@@ -218,6 +219,16 @@ namespace PluginFactory
                                         name, pvNames, make_float3(low), make_float3(high), make_float3(velocity), every) :
                                     nullptr;
                                     
+        return { simPl, nullptr };
+    }
+
+    static std::pair< MagneticOrientationPlugin*, PostprocessPlugin* >
+    createMagneticOrientationPlugin(bool computeTask, std::string name, RigidObjectVector *rov, float3 moment,
+                                    MagneticOrientationPlugin::UniformMagneticFunc magneticFunction)
+    {
+        auto simPl = computeTask ?
+            new MagneticOrientationPlugin(name, rov->name, moment, magneticFunction) : nullptr;
+
         return { simPl, nullptr };
     }
 
