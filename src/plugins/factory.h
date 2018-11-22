@@ -223,11 +223,15 @@ namespace PluginFactory
     }
 
     static std::pair< MagneticOrientationPlugin*, PostprocessPlugin* >
-    createMagneticOrientationPlugin(bool computeTask, std::string name, RigidObjectVector *rov, float3 moment,
-                                    MagneticOrientationPlugin::UniformMagneticFunc magneticFunction)
+    createMagneticOrientationPlugin(bool computeTask, std::string name, RigidObjectVector *rov, PyTypes::float3 moment,
+                                    std::function<PyTypes::float3(float)> magneticFunction)
+                                    //MagneticOrientationPlugin::UniformMagneticFunc magneticFunction)
     {
         auto simPl = computeTask ?
-            new MagneticOrientationPlugin(name, rov->name, moment, magneticFunction) : nullptr;
+            new MagneticOrientationPlugin(name, rov->name, make_float3(moment),
+                                          [magneticFunction](float t)
+                                          {return make_float3(magneticFunction(t));})
+            : nullptr;
 
         return { simPl, nullptr };
     }

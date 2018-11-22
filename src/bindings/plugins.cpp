@@ -1,5 +1,6 @@
 #include <extern/pybind11/include/pybind11/stl.h>
 #include <extern/pybind11/include/pybind11/numpy.h>
+#include <extern/pybind11/include/pybind11/functional.h>
 
 #include <plugins/factory.h>
 #include <core/xdmf/channel.h>
@@ -94,6 +95,10 @@ void exportPlugins(py::module& m)
         .def("set_target_velocity", &ImposeVelocityPlugin::setTargetVelocity);
 
     
+    py::handlers_class<MagneticOrientationPlugin>(m, "MagneticOrientation", pysim, R"(
+        TODO
+    )");
+
     py::handlers_class<MembraneExtraForcePlugin>(m, "MembraneExtraForce", pysim, R"(
         This plugin adds a given external force to a given membrane. 
         The force is defined vertex wise and does not depend on position.
@@ -422,6 +427,17 @@ void exportPlugins(py::module& m)
             low: the lower corner of the domain
             high: the higher corner of the domain
             velocity: target velocity
+    )");
+
+    m.def("__createMagneticOrientation", &PluginFactory::createMagneticOrientationPlugin,
+          "compute_task"_a, "name"_a, "rov"_a, "moment"_a, "magneticFunction"_a, R"(
+        Create :any:`MagneticOrientation` plugin
+        
+        Args:
+            name: name of the plugin
+            rov: :class:`RigidObjectVector` with which the magnetic field will interact
+            moment: magnetic moment per object
+            magneticFunction: a function that depends on time and returns a uniform (float3) magnetic field
     )");
 
     m.def("__createMembraneExtraForce", &PluginFactory::createMembraneExtraForcePlugin,
