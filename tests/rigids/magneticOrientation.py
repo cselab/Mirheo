@@ -8,6 +8,8 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--axes', dest='axes', type=float, nargs=3)
 parser.add_argument('--coords', dest='coords', type=str)
 parser.add_argument('--withMesh', action='store_true')
+parser.add_argument('--omega', type=float, default=0)
+parser.add_argument('--phi', type=float, default=0)
 parser.set_defaults(withMesh=False)
 args = parser.parse_args()
 
@@ -45,7 +47,10 @@ u.registerPlugins(ovStats)
 M = (0.1, 0., 0.)
 
 def magneticField(t):
-    return (0., 0.1, 0.)
+    magn = 0.1
+    arg = args.phi + args.omega * t
+    return (magn * np.cos(arg), magn * np.sin(arg), 0.)
+
 
 magneticPlugin = udx.Plugins.createMagneticOrientation("externalB", pvEllipsoid, moment=M, magneticFunction=magneticField)
 u.registerPlugins(magneticPlugin)
@@ -57,12 +62,22 @@ if args.withMesh:
 u.run(10000)
 
 
-# nTEST: rigids.magneticOrientation
+# nTEST: rigids.magneticOrientation.Static
 # set -eu
 # cd rigids
 # rm -rf stats rigid.out.txt
 # f="pos.txt"
 # common_args="--axes 2.0 1.0 1.0"
-# udx.run --runargs "-n 2"  ./createEllipsoid.py $common_args --density 8 --out $f --niter 1000  > /dev/null
-# udx.run --runargs "-n 2" ./magneticOrientation.py $common_args --coords $f > /dev/null
+# udx.run --runargs "-n 2"  ./createEllipsoid.py $common_args --density 8 --out $f --niter 1000 > /dev/null
+# udx.run --runargs "-n 2" ./magneticOrientation.py $common_args --coords $f --phi 0.7853981634 > /dev/null
+# cat stats/ellipsoid.txt | awk '{print $2, $10, $3}' > rigid.out.txt
+
+# nTEST: rigids.magneticOrientation.Time
+# set -eu
+# cd rigids
+# rm -rf stats rigid.out.txt
+# f="pos.txt"
+# common_args="--axes 2.0 1.0 1.0"
+# udx.run --runargs "-n 2"  ./createEllipsoid.py $common_args --density 8 --out $f --niter 1000       > /dev/null
+# udx.run --runargs "-n 2" ./magneticOrientation.py $common_args --coords $f --omega 0.005 > /dev/null
 # cat stats/ellipsoid.txt | awk '{print $2, $10, $3}' > rigid.out.txt
