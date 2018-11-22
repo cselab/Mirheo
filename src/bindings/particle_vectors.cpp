@@ -116,11 +116,12 @@ void exportParticleVectors(py::module& m)
                 mesh: :any:`MembraneMesh` object                
         )");
         
-    py::handlers_class<RigidObjectVector> (m, "RigidObjectVector", pyov, R"(
+    py::handlers_class<RigidObjectVector> pyrov(m, "RigidObjectVector", pyov, R"(
         Rigid Object is an Object Vector representing objects that move as rigid bodies, with no relative displacement against each other in an object.
         It must have a triangular mesh associated with it that defines the shape of the object.
-    )")
-        .def(py::init<std::string, float, PyTypes::float3, int, std::shared_ptr<Mesh>>(),
+    )");
+
+    pyrov.def(py::init<std::string, float, PyTypes::float3, int, std::shared_ptr<Mesh>>(),
              "name"_a, "mass"_a, "inertia"_a, "object_size"_a, "mesh"_a, R"( 
                 Args:
                     name: name of the created PV 
@@ -130,7 +131,7 @@ void exportParticleVectors(py::module& m)
                     mesh: :any:`MembraneMesh` object         
         )");
         
-    py::handlers_class<RigidEllipsoidObjectVector> (m, "RigidEllipsoidVector", pyov, R"(
+    py::handlers_class<RigidEllipsoidObjectVector> (m, "RigidEllipsoidVector", pyrov, R"(
         Rigid Ellipsoid is the same as the Rigid Object except that it can only represent ellipsoidal shapes.
         The advantage is that it doesn't need mesh and moment of inertia define, as those can be computed analytically.
     )")

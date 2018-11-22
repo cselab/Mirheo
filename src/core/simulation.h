@@ -92,6 +92,7 @@ public:
     MPI_Comm getCartComm() const;
     
     float getCurrentDt() const;
+    float getCurrentTime() const;
     
     void saveDependencyGraph_GraphML(std::string fname) const;
 

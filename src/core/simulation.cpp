@@ -136,6 +136,11 @@ float Simulation::getCurrentDt() const
     return dt;
 }
 
+float Simulation::getCurrentTime() const
+{
+    return currentTime;
+}
+
 void Simulation::saveDependencyGraph_GraphML(std::string fname) const
 {
     if (rank == 0)

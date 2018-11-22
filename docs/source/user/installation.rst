@@ -6,6 +6,9 @@
 Installation
 ############
 
+uDeviceX
+********
+
 uDeviceX requires at least Kepler-generation NVIDIA GPU and depends on a few external tools and libraries:
 
 - Unix-based OS
@@ -89,5 +92,48 @@ With all the prerequisites installed, you can take the following steps to run uD
         
       import udevicex
    
-   In order to test your installation, you need to intall an `atest <https://gitlab.ethz.ch/mavt-cse/atest.git>`_
-   script. Then run :console:`make test` from the root folder of uDeviceX
+
+
+Tools
+*****
+
+Additional helper tools can be installed for convenience.
+They are required for testing the code.
+
+   .. code-block:: console
+        
+      $ cd tools/
+      $ ./configure
+      $ make install
+
+ 
+   .. note::
+      By default, the tools are installed in your ``$HOME/bin`` directory.
+      It is possible to choose another location by setting the ``--bin-prefix`` option:
+      
+      .. code-block:: console
+      
+	 $ ./configure --bin-prefix <my-custom-tools-location>
+
+
+   .. note::
+      In order to run on a cluster with a job scheduler (e.g. slurm), the ``--exec-cmd`` option should be set to the right command, such as ``srun``:
+      
+      .. code-block:: console
+      
+	 $ ./configure --exec-cmd <my-custom-command>
+
+      The default value is ``mpiexec``
+
+
+The tools will automatically load modules for installing, running and testing the code.
+The modules and CMAKE flags can be customised by adding corresponding files in ``tools/config`` (see available examples).
+The ``__default`` files can be modified accordingly to your system.
+
+The installation can be tested by calling
+
+   .. code-block:: console
+        
+      $ make test
+
+The above command requires the  `atest <https://gitlab.ethz.ch/mavt-cse/atest.git>`_ framework (see :ref:`user-testing`).

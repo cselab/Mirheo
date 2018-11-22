@@ -374,35 +374,22 @@ class MembraneVector(ObjectVector):
         """
         pass
 
-class RigidEllipsoidVector(ObjectVector):
+class RigidObjectVector(ObjectVector):
     r"""
-        Rigid Ellipsoid is the same as the Rigid Object except that it can only represent ellipsoidal shapes.
-        The advantage is that it doesn't need mesh and moment of inertia define, as those can be computed analytically.
+        Rigid Object is an Object Vector representing objects that move as rigid bodies, with no relative displacement against each other in an object.
+        It must have a triangular mesh associated with it that defines the shape of the object.
     
     """
     def __init__():
-        r"""__init__(*args, **kwargs)
-Overloaded function.
+        r"""__init__(name: str, mass: float, inertia: Tuple[float, float, float], object_size: int, mesh: ParticleVectors.Mesh) -> None
 
-1. __init__(name: str, mass: float, object_size: int, semi_axes: Tuple[float, float, float]) -> None
-
-
+ 
                 Args:
                     name: name of the created PV 
                     mass: mass of a single particle
+                    inertia: moment of inertia of the body in its principal axes. The principal axes of the mesh are assumed to be aligned with the default global *OXYZ* axes
                     object_size: number of particles per membrane, must be the same as the number of vertices of the mesh
-                    semi_axes: ellipsoid principal semi-axes
-        
-
-2. __init__(name: str, mass: float, object_size: int, semi_axes: Tuple[float, float, float], mesh: ParticleVectors.Mesh) -> None
-
-
-                Args:
-                    name: name of the created PV 
-                    mass: mass of a single particle
-                    object_size: number of particles per membrane, must be the same as the number of vertices of the mesh
-                    semi_axes: ellipsoid principal semi-axes
-                    mesh: mesh representing the shape of the ellipsoid. This is used for dump only.
+                    mesh: :any:`MembraneMesh` object         
         
 
         """
@@ -485,22 +472,35 @@ Overloaded function.
         """
         pass
 
-class RigidObjectVector(ObjectVector):
+class RigidEllipsoidVector(RigidObjectVector):
     r"""
-        Rigid Object is an Object Vector representing objects that move as rigid bodies, with no relative displacement against each other in an object.
-        It must have a triangular mesh associated with it that defines the shape of the object.
+        Rigid Ellipsoid is the same as the Rigid Object except that it can only represent ellipsoidal shapes.
+        The advantage is that it doesn't need mesh and moment of inertia define, as those can be computed analytically.
     
     """
     def __init__():
-        r"""__init__(name: str, mass: float, inertia: Tuple[float, float, float], object_size: int, mesh: ParticleVectors.Mesh) -> None
+        r"""__init__(*args, **kwargs)
+Overloaded function.
 
- 
+1. __init__(name: str, mass: float, object_size: int, semi_axes: Tuple[float, float, float]) -> None
+
+
                 Args:
                     name: name of the created PV 
                     mass: mass of a single particle
-                    inertia: moment of inertia of the body in its principal axes. The principal axes of the mesh are assumed to be aligned with the default global *OXYZ* axes
                     object_size: number of particles per membrane, must be the same as the number of vertices of the mesh
-                    mesh: :any:`MembraneMesh` object         
+                    semi_axes: ellipsoid principal semi-axes
+        
+
+2. __init__(name: str, mass: float, object_size: int, semi_axes: Tuple[float, float, float], mesh: ParticleVectors.Mesh) -> None
+
+
+                Args:
+                    name: name of the created PV 
+                    mass: mass of a single particle
+                    object_size: number of particles per membrane, must be the same as the number of vertices of the mesh
+                    semi_axes: ellipsoid principal semi-axes
+                    mesh: mesh representing the shape of the ellipsoid. This is used for dump only.
         
 
         """

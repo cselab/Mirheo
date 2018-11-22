@@ -71,6 +71,19 @@ class ImposeVelocity(SimulationPlugin):
         """
         pass
 
+class MagneticOrientation(SimulationPlugin):
+    r"""
+        This plugin gives a magnetic moment :math:`\mathbf{M}` to every rigid objects in a given :any:`RigidObjectVector`.
+        It also models a uniform magnetic field :math:`\mathbf{B}` (varying in time) and adds the induced torque to the objects according to:
+
+        .. math::
+
+            \mathbf{T} = \mathbf{M} \times \mathbf{B}   
+
+        The magnetic field is passed as a function from python.
+        The function must take a float (time) as input and output a tuple of three floats (magnetic field).
+    
+    """
 class MembraneExtraForce(SimulationPlugin):
     r"""
         This plugin adds a given external force to a given membrane. 
@@ -468,6 +481,22 @@ def createImposeVelocity():
             low: the lower corner of the domain
             high: the higher corner of the domain
             velocity: target velocity
+    
+
+    """
+    pass
+
+def createMagneticOrientation():
+    r"""createMagneticOrientation(name: str, rov: ParticleVectors.RigidObjectVector, moment: Tuple[float, float, float], magneticFunction: Callable[[float], Tuple[float, float, float]]) -> Tuple[Plugins.MagneticOrientation, Plugins.PostprocessPlugin]
+
+
+        Create :any:`MagneticOrientation` plugin
+        
+        Args:
+            name: name of the plugin
+            rov: :class:`RigidObjectVector` with which the magnetic field will interact
+            moment: magnetic moment per object
+            magneticFunction: a function that depends on time and returns a uniform (float3) magnetic field
     
 
     """
