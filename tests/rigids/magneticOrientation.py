@@ -11,7 +11,7 @@ parser.add_argument('--withMesh', action='store_true')
 parser.set_defaults(withMesh=False)
 args = parser.parse_args()
 
-dt   = 0.001
+dt   = 0.01
 axes = tuple(args.axes)
 
 ranks  = (1, 1, 1)
@@ -42,10 +42,12 @@ u.setIntegrator(vvEllipsoid, pvEllipsoid)
 ovStats = udx.Plugins.createDumpObjectStats("objStats", ov=pvEllipsoid, dump_every=500, path="stats")
 u.registerPlugins(ovStats)
 
-def magneticField(t):
-    return (1.0, 2.0, 3.0)
+M = (0.1, 0., 0.)
 
-magneticPlugin = udx.Plugins.createMagneticOrientation("externalB", pvEllipsoid, moment=(1., 0., 0.), magneticFunction=magneticField)
+def magneticField(t):
+    return (0., 0.1, 0.)
+
+magneticPlugin = udx.Plugins.createMagneticOrientation("externalB", pvEllipsoid, moment=M, magneticFunction=magneticField)
 u.registerPlugins(magneticPlugin)
 
 if args.withMesh:
