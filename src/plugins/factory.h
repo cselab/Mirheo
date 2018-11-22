@@ -52,111 +52,37 @@ namespace PluginFactory
             pvNames.push_back(pv->name);
     }
 
-    static std::pair< ImposeVelocityPlugin*, PostprocessPlugin* >
-        createImposeVelocityPlugin(bool computeTask, 
-            std::string name, std::vector<ParticleVector*> pvs, int every,
-            PyTypes::float3 low, PyTypes::float3 high, PyTypes::float3 velocity)
+    static void extractChannelInfos(const std::vector< std::pair<std::string, std::string> >& channels,
+                                    std::vector<std::string>& names, std::vector<ParticleSenderPlugin::ChannelType>& types)
     {
-        std::vector<std::string> pvNames;
-        if (computeTask) extractPVsNames(pvs, pvNames);
-            
-        auto simPl = computeTask ? new ImposeVelocityPlugin(
-                                        name, pvNames, make_float3(low), make_float3(high), make_float3(velocity), every) :
-                                    nullptr;
-                                    
-        return { simPl, nullptr };
+        for (auto& p : channels) {
+            names.push_back(p.first);
+            std::string typeStr = p.second;
+
+            if      (typeStr == "scalar")    types.push_back(ParticleSenderPlugin::ChannelType::Scalar);
+            else if (typeStr == "vector")    types.push_back(ParticleSenderPlugin::ChannelType::Vector);
+            else if (typeStr == "tensor6")   types.push_back(ParticleSenderPlugin::ChannelType::Tensor6);
+            else die("Unable to get parse channel type '%s'", typeStr.c_str());
+        }
     }
 
-    static std::pair< TemperaturizePlugin*, PostprocessPlugin* >
-        createTemperaturizePlugin(bool computeTask, std::string name, ParticleVector* pv, float kbt, bool keepVelocity)
-    {
-        auto simPl = computeTask ? new TemperaturizePlugin(name, pv->name, kbt, keepVelocity) : nullptr;
-        return { simPl, nullptr };
-    }
+    
 
+    
     static std::pair< AddForcePlugin*, PostprocessPlugin* >
-        createAddForcePlugin(bool computeTask, std::string name, ParticleVector* pv, PyTypes::float3 force)
+    createAddForcePlugin(bool computeTask, std::string name, ParticleVector* pv, PyTypes::float3 force)
     {
         auto simPl = computeTask ? new AddForcePlugin(name, pv->name, make_float3(force)) : nullptr;
         return { simPl, nullptr };
     }
 
     static std::pair< AddTorquePlugin*, PostprocessPlugin* >
-        createAddTorquePlugin(bool computeTask, std::string name, ParticleVector* pv, PyTypes::float3 torque)
+    createAddTorquePlugin(bool computeTask, std::string name, ParticleVector* pv, PyTypes::float3 torque)
     {
         auto simPl = computeTask ? new AddTorquePlugin(name, pv->name, make_float3(torque)) : nullptr;
         return { simPl, nullptr };
     }
 
-    static std::pair< ImposeProfilePlugin*, PostprocessPlugin* >
-        createImposeProfilePlugin(bool computeTask,  std::string name, ParticleVector* pv, 
-                                   PyTypes::float3 low, PyTypes::float3 high, PyTypes::float3 velocity, float kbt)
-    {
-        auto simPl = computeTask ? new ImposeProfilePlugin(
-                                    name, pv->name, make_float3(low), make_float3(high), make_float3(velocity), kbt) : nullptr;
-            
-        return { simPl, nullptr };
-    }
-
-    static std::pair< SimulationVelocityControl*, PostprocessVelocityControl* >
-    createSimulationVelocityControlPlugin(bool computeTask, std::string name, std::string filename, std::vector<ParticleVector*> pvs,
-                                          PyTypes::float3 low, PyTypes::float3 high,
-                                          int sampleEvery, int tuneEvery, int dumpEvery,
-                                          PyTypes::float3 targetVel, float Kp, float Ki, float Kd)
-    {
-        std::vector<std::string> pvNames;
-        if (computeTask) extractPVsNames(pvs, pvNames);
-        
-        auto simPl = computeTask ?
-            new SimulationVelocityControl(name, pvNames, make_float3(low), make_float3(high),
-                                          sampleEvery, tuneEvery, dumpEvery,
-                                          make_float3(targetVel), Kp, Ki, Kd) :
-            nullptr;
-
-        auto postPl = computeTask ?
-            nullptr :
-            new PostprocessVelocityControl(name, filename);
-
-        return { simPl, postPl };
-    }
-
-    static std::pair< ExchangePVSFluxPlanePlugin*, PostprocessPlugin* >
-    createExchangePVSFluxPlanePlugin(bool computeTask, std::string name, ParticleVector *pv1, ParticleVector *pv2, PyTypes::float4 plane)
-    {
-        auto simPl = computeTask ?
-            new ExchangePVSFluxPlanePlugin(name, pv1->name, pv2->name, make_float4(plane)) : nullptr;
-        
-        return { simPl, nullptr };    
-    }
-
-    static std::pair< MembraneExtraForcePlugin*, PostprocessPlugin* >
-    createMembraneExtraForcePlugin(bool computeTask, std::string name, ParticleVector *pv, PyTypes::VectorOfFloat3 forces)
-    {
-        auto simPl = computeTask ?
-            new MembraneExtraForcePlugin(name, pv->name, forces) : nullptr;
-
-        return { simPl, nullptr };
-    }
-
-    static std::pair< WallRepulsionPlugin*, PostprocessPlugin* >
-        createWallRepulsionPlugin(bool computeTask, std::string name, ParticleVector* pv, Wall* wall,
-                                  float C, float h, float maxForce)
-    {
-        auto simPl = computeTask ? new WallRepulsionPlugin(name, pv->name, wall->name, C, h, maxForce) : nullptr;
-        return { simPl, nullptr };
-    }
-
-
-
-    static std::pair< SimulationStats*, PostprocessStats* >
-        createStatsPlugin(bool computeTask, std::string name, std::string filename, int every)
-    {
-        auto simPl  = computeTask ? new SimulationStats(name, every) : nullptr;
-        auto postPl = computeTask ? nullptr :new PostprocessStats(name, filename);
-
-        return { simPl, postPl };
-    }
-    
     static std::pair< Average3D*, UniformCartesianDumper* >
     createDumpAveragePlugin(bool computeTask, std::string name, std::vector<ParticleVector*> pvs,
                             int sampleEvery, int dumpEvery, PyTypes::float3 binSize,
@@ -171,8 +97,8 @@ namespace PluginFactory
         if (computeTask) extractPVsNames(pvs, pvNames);
         
         auto simPl  = computeTask ?
-                new Average3D(name, pvNames, names, types, sampleEvery, dumpEvery, make_float3(binSize)) :
-                nullptr;
+            new Average3D(name, pvNames, names, types, sampleEvery, dumpEvery, make_float3(binSize)) :
+            nullptr;
 
         auto postPl = computeTask ? nullptr : new UniformCartesianDumper(name, path);
 
@@ -194,30 +120,25 @@ namespace PluginFactory
         if (computeTask) extractPVsNames(pvs, pvNames);
     
         auto simPl  = computeTask ?
-                new AverageRelative3D(name, pvNames,
-                                      names, types, sampleEvery, dumpEvery,
-                                      make_float3(binSize), relativeToOV->name, relativeToId) :
-                nullptr;
+            new AverageRelative3D(name, pvNames,
+                                  names, types, sampleEvery, dumpEvery,
+                                  make_float3(binSize), relativeToOV->name, relativeToId) :
+            nullptr;
 
         auto postPl = computeTask ? nullptr : new UniformCartesianDumper(name, path);
 
         return { simPl, postPl };
     }
 
-    static void extractChannelInfos(const std::vector< std::pair<std::string, std::string> >& channels,
-                                    std::vector<std::string>& names, std::vector<ParticleSenderPlugin::ChannelType>& types)
+    static std::pair< MeshPlugin*, MeshDumper* >
+    createDumpMeshPlugin(bool computeTask, std::string name, ObjectVector* ov, int dumpEvery, std::string path)
     {
-        for (auto& p : channels) {
-            names.push_back(p.first);
-            std::string typeStr = p.second;
+        auto simPl  = computeTask ? new MeshPlugin(name, ov->name, dumpEvery) : nullptr;
+        auto postPl = computeTask ? nullptr : new MeshDumper(name, path);
 
-            if      (typeStr == "scalar")    types.push_back(ParticleSenderPlugin::ChannelType::Scalar);
-            else if (typeStr == "vector")    types.push_back(ParticleSenderPlugin::ChannelType::Vector);
-            else if (typeStr == "tensor6")   types.push_back(ParticleSenderPlugin::ChannelType::Tensor6);
-            else die("Unable to get parse channel type '%s'", typeStr.c_str());
-        }
+        return { simPl, postPl };
     }
-    
+
     static std::pair< ParticleSenderPlugin*, ParticleDumperPlugin* >
     createDumpParticlesPlugin(bool computeTask, std::string name, ParticleVector *pv, int dumpEvery,
                               std::vector< std::pair<std::string, std::string> > channels, std::string path)
@@ -257,15 +178,6 @@ namespace PluginFactory
         return { simPl, postPl };
     }
 
-    static std::pair< MeshPlugin*, MeshDumper* >
-        createDumpMeshPlugin(bool computeTask, std::string name, ObjectVector* ov, int dumpEvery, std::string path)
-    {
-        auto simPl  = computeTask ? new MeshPlugin(name, ov->name, dumpEvery) : nullptr;
-        auto postPl = computeTask ? nullptr : new MeshDumper(name, path);
-
-        return { simPl, postPl };
-    }
-
     static std::pair< ObjPositionsPlugin*, ObjPositionsDumper* >
         createDumpObjPosition(bool computeTask, std::string name, ObjectVector* ov, int dumpEvery, std::string path)
     {
@@ -275,17 +187,106 @@ namespace PluginFactory
         return { simPl, postPl };
     }
 
+    static std::pair< ExchangePVSFluxPlanePlugin*, PostprocessPlugin* >
+    createExchangePVSFluxPlanePlugin(bool computeTask, std::string name, ParticleVector *pv1, ParticleVector *pv2, PyTypes::float4 plane)
+    {
+        auto simPl = computeTask ?
+            new ExchangePVSFluxPlanePlugin(name, pv1->name, pv2->name, make_float4(plane)) : nullptr;
+        
+        return { simPl, nullptr };    
+    }
+
+    static std::pair< ImposeProfilePlugin*, PostprocessPlugin* >
+    createImposeProfilePlugin(bool computeTask,  std::string name, ParticleVector* pv, 
+                              PyTypes::float3 low, PyTypes::float3 high, PyTypes::float3 velocity, float kbt)
+    {
+        auto simPl = computeTask ? new ImposeProfilePlugin(
+                                                           name, pv->name, make_float3(low), make_float3(high), make_float3(velocity), kbt) : nullptr;
+            
+        return { simPl, nullptr };
+    }
+
+    static std::pair< ImposeVelocityPlugin*, PostprocessPlugin* >
+    createImposeVelocityPlugin(bool computeTask, 
+                               std::string name, std::vector<ParticleVector*> pvs, int every,
+                               PyTypes::float3 low, PyTypes::float3 high, PyTypes::float3 velocity)
+    {
+        std::vector<std::string> pvNames;
+        if (computeTask) extractPVsNames(pvs, pvNames);
+            
+        auto simPl = computeTask ? new ImposeVelocityPlugin(
+                                        name, pvNames, make_float3(low), make_float3(high), make_float3(velocity), every) :
+                                    nullptr;
+                                    
+        return { simPl, nullptr };
+    }
+
+    static std::pair< MembraneExtraForcePlugin*, PostprocessPlugin* >
+    createMembraneExtraForcePlugin(bool computeTask, std::string name, ParticleVector *pv, PyTypes::VectorOfFloat3 forces)
+    {
+        auto simPl = computeTask ?
+            new MembraneExtraForcePlugin(name, pv->name, forces) : nullptr;
+
+        return { simPl, nullptr };
+    }
+
     static std::pair< PinObjectPlugin*, ReportPinObjectPlugin* >
-        createPinObjPlugin(bool computeTask, std::string name, ObjectVector* ov,
-                           int dumpEvery, std::string path,
-                           PyTypes::float3 velocity, PyTypes::float3 omega)
+    createPinObjPlugin(bool computeTask, std::string name, ObjectVector* ov,
+                       int dumpEvery, std::string path,
+                       PyTypes::float3 velocity, PyTypes::float3 omega)
     {
         auto simPl  = computeTask ? new PinObjectPlugin(name, ov->name,
                                                         make_float3(velocity), make_float3(omega),
                                                         dumpEvery) : 
-                                    nullptr;
+            nullptr;
         auto postPl = computeTask ? nullptr : new ReportPinObjectPlugin(name, path);
 
         return { simPl, postPl };
+    }
+
+    static std::pair< SimulationVelocityControl*, PostprocessVelocityControl* >
+    createSimulationVelocityControlPlugin(bool computeTask, std::string name, std::string filename, std::vector<ParticleVector*> pvs,
+                                          PyTypes::float3 low, PyTypes::float3 high,
+                                          int sampleEvery, int tuneEvery, int dumpEvery,
+                                          PyTypes::float3 targetVel, float Kp, float Ki, float Kd)
+    {
+        std::vector<std::string> pvNames;
+        if (computeTask) extractPVsNames(pvs, pvNames);
+        
+        auto simPl = computeTask ?
+            new SimulationVelocityControl(name, pvNames, make_float3(low), make_float3(high),
+                                          sampleEvery, tuneEvery, dumpEvery,
+                                          make_float3(targetVel), Kp, Ki, Kd) :
+            nullptr;
+
+        auto postPl = computeTask ?
+            nullptr :
+            new PostprocessVelocityControl(name, filename);
+
+        return { simPl, postPl };
+    }
+
+    static std::pair< SimulationStats*, PostprocessStats* >
+    createStatsPlugin(bool computeTask, std::string name, std::string filename, int every)
+    {
+        auto simPl  = computeTask ? new SimulationStats(name, every) : nullptr;
+        auto postPl = computeTask ? nullptr :new PostprocessStats(name, filename);
+
+        return { simPl, postPl };
+    }
+
+    static std::pair< TemperaturizePlugin*, PostprocessPlugin* >
+    createTemperaturizePlugin(bool computeTask, std::string name, ParticleVector* pv, float kbt, bool keepVelocity)
+    {
+        auto simPl = computeTask ? new TemperaturizePlugin(name, pv->name, kbt, keepVelocity) : nullptr;
+        return { simPl, nullptr };
+    }
+
+    static std::pair< WallRepulsionPlugin*, PostprocessPlugin* >
+    createWallRepulsionPlugin(bool computeTask, std::string name, ParticleVector* pv, Wall* wall,
+                              float C, float h, float maxForce)
+    {
+        auto simPl = computeTask ? new WallRepulsionPlugin(name, pv->name, wall->name, C, h, maxForce) : nullptr;
+        return { simPl, nullptr };
     }
 };
