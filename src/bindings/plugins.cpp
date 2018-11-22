@@ -96,7 +96,15 @@ void exportPlugins(py::module& m)
 
     
     py::handlers_class<MagneticOrientationPlugin>(m, "MagneticOrientation", pysim, R"(
-        TODO
+        This plugin gives a magnetic moment :math:`\mathbf{M}` to every rigid objects in a given :any:`RigidObjectVector`.
+        It also models a uniform magnetic field :math:`\mathbf{B}` (varying in time) and adds the induced torque to the objects according to:
+
+        .. math::
+
+            \mathbf{T} = \mathbf{M} \times \mathbf{B}   
+
+        The magnetic field is passed as a function from python.
+        The function must take a float (time) as input and output a tuple of three floats (magnetic field).
     )");
 
     py::handlers_class<MembraneExtraForcePlugin>(m, "MembraneExtraForce", pysim, R"(
