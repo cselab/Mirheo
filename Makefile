@@ -11,13 +11,13 @@ install: build
 	$(PIP) install . --user --upgrade
 
 uninstall:
-	$(PIP) uninstall udevicex
+	$(PIP) uninstall ymero
 
 docs:
 	make -C docs/
 
 test: install
-	(cd tests; udx.make test)
+	(cd tests; ymr.make test)
 
 clean:; rm -rf build
 
