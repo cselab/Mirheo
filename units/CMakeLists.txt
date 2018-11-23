@@ -4,7 +4,7 @@ if(POLICY CMP0060)
     cmake_policy(SET CMP0060 NEW)
 endif()
 
-project(UDX_UnitTests LANGUAGES C CXX CUDA)
+project(YMR_UnitTests LANGUAGES C CXX CUDA)
 enable_testing()
 
 set(BUILD_GMOCK OFF)
@@ -51,7 +51,7 @@ function (add_test_executable dirName)
   
   add_executable(${EXEC_NAME} ${SOURCES})
   target_link_libraries(${EXEC_NAME} PRIVATE ${CUDA_LIBRARIES})
-  target_link_libraries(${EXEC_NAME} PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/../build/libudevicex_main.so")
+  target_link_libraries(${EXEC_NAME} PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/../build/libymero_main.so")
   target_link_libraries(${EXEC_NAME} PRIVATE gtest)
   add_test(${EXEC_NAME} ${EXEC_NAME})
 endfunction()
