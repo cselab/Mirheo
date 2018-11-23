@@ -2,7 +2,7 @@
 
 
 SimulationPlugin::SimulationPlugin(std::string name) :
-    Plugin<UdxSimulationObject>(name), sizeReq(MPI_REQUEST_NULL), dataReq(MPI_REQUEST_NULL)
+    Plugin<YmrSimulationObject>(name), sizeReq(MPI_REQUEST_NULL), dataReq(MPI_REQUEST_NULL)
 {}
 
 void SimulationPlugin::beforeForces               (cudaStream_t stream) {};
@@ -65,7 +65,7 @@ void SimulationPlugin::send(const void* data, int sizeInBytes)
 // PostprocessPlugin
 
 PostprocessPlugin::PostprocessPlugin(std::string name) :
-    Plugin<UdxObject>(name)
+    Plugin<YmrObject>(name)
 {}
 
 MPI_Request PostprocessPlugin::waitData()

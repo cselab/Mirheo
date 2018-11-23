@@ -19,7 +19,7 @@ class ParticleVector;
  *    So all the integration for now is done in stage2()
  * \endrst
  */
-class Integrator : public UdxSimulationObject
+class Integrator : public YmrSimulationObject
 {
 public:
     float dt;
@@ -48,5 +48,5 @@ public:
     virtual void setPrerequisites(ParticleVector* pv) {}
 
     /// Set the name of the integrator and its time-step
-    Integrator(std::string name, float dt) : UdxSimulationObject(name), dt(dt) {}
+    Integrator(std::string name, float dt) : YmrSimulationObject(name), dt(dt) {}
 };

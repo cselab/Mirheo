@@ -1,4 +1,4 @@
 
-udx_version = "@UDX_VERSION@"
+ymr_version = "@YMR_VERSION@"
 git_sha1    = "@GIT_SHA1@"
         

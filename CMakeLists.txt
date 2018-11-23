@@ -13,7 +13,7 @@ set(UDX_MAIN "udevicex_main")
 execute_process(COMMAND
   git describe --abbrev=0
   WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
-  OUTPUT_VARIABLE UDX_VERSION
+  OUTPUT_VARIABLE YMR_VERSION
   ERROR_QUIET OUTPUT_STRIP_TRAILING_WHITESPACE)
 
 # the commit's SHA1, and whether the building workspace was dirty or not

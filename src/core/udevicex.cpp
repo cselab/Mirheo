@@ -397,7 +397,7 @@ void uDeviceX::sayHello()
     
     static const int max_length_version =  9;
     static const int max_length_sha1    = 46;
-    std::string version = Version::udx_version;
+    std::string version = Version::ymr_version;
     std::string sha1    = Version::git_SHA1;
 
     int missing_spaces = max(0, max_length_version - (int) version.size());

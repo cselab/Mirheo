@@ -1,4 +1,4 @@
 #include "version.h"
 
-const std::string Version::udx_version = "@UDX_VERSION@";
+const std::string Version::ymr_version = "@YMR_VERSION@";
 const std::string Version::git_SHA1    = "@GIT_SHA1@";

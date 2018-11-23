@@ -13,7 +13,7 @@ class ObjectVector;
 /**
  * Interface for a class implementing bouncing from objects
  */
-class Bouncer : public UdxSimulationObject
+class Bouncer : public YmrSimulationObject
 {
 protected:
     ObjectVector* ov;  /// Particles will be bounced against that ObjectVector
@@ -38,7 +38,7 @@ protected:
     virtual void exec (ParticleVector* pv, CellList* cl, float dt, bool local, cudaStream_t stream) = 0;
 
 public:
-    Bouncer(std::string name) : UdxSimulationObject(name) {};
+    Bouncer(std::string name) : YmrSimulationObject(name) {};
 
     /**
      * Second step of initialization, called from the \c Simulation

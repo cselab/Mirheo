@@ -38,7 +38,7 @@ protected:
 };
 
 
-class ParticleVector : public UdxSimulationObject
+class ParticleVector : public YmrSimulationObject
 {
 protected:
 

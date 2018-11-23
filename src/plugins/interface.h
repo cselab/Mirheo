@@ -41,7 +41,7 @@ protected:
     }
 };
 
-class SimulationPlugin : public Plugin<UdxSimulationObject>
+class SimulationPlugin : public Plugin<YmrSimulationObject>
 {
 public:
     SimulationPlugin(std::string name);
@@ -76,7 +76,7 @@ protected:
 
 
 
-class PostprocessPlugin : public Plugin<UdxObject>
+class PostprocessPlugin : public Plugin<YmrObject>
 {
 public:
     PostprocessPlugin(std::string name);

@@ -10,16 +10,16 @@ class Simulation;
  * Only stores name and provides interface for
  * checkpoint / restart mechanism
  */
-class UdxObject
+class YmrObject
 {
 public:
-    UdxObject(std::string name) : name(name) {};
+    YmrObject(std::string name) : name(name) {};
     const std::string name;
 
     virtual void checkpoint(MPI_Comm comm, std::string path) {}  /// Save handler state
     virtual void restart   (MPI_Comm comm, std::string path) {}  /// Restore handler state
     
-    virtual ~UdxObject() = default;
+    virtual ~YmrObject() = default;
 };
 
 /**
@@ -28,10 +28,10 @@ public:
  * Since the objects may be used within different Simulations,
  * need to be able to change the pointer accordingly.
  */
-class UdxSimulationObject : public UdxObject
+class YmrSimulationObject : public YmrObject
 {
 public:
-    UdxSimulationObject(std::string name) : UdxObject(name) {};
+    YmrSimulationObject(std::string name) : YmrObject(name) {};
     
     void setSimulation(Simulation* simulation) { this->simulation = simulation; }
     

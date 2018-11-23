@@ -12,10 +12,10 @@ class ParticleVector;
 class CellList;
 class GPUcontainer;
 
-class Wall : public UdxSimulationObject
+class Wall : public YmrSimulationObject
 {
 public:
-    Wall(std::string name) : UdxSimulationObject(name) {};
+    Wall(std::string name) : YmrSimulationObject(name) {};
 
     virtual void setup(MPI_Comm& comm, float t, DomainInfo domain) = 0;
     virtual void attachFrozen(ParticleVector* pv) = 0;

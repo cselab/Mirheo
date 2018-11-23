@@ -16,13 +16,13 @@ class ParticleVector;
  * The cut-off raduis has to be removed later from the interface,
  * such that only certain interactions require cell-lists.
  */
-class Interaction : public UdxSimulationObject
+class Interaction : public YmrSimulationObject
 {
 public:
     /// Cut-off raduis
     float rc;
 
-    Interaction(std::string name, float rc) : UdxSimulationObject(name), rc(rc) {}
+    Interaction(std::string name, float rc) : YmrSimulationObject(name), rc(rc) {}
 
     /**
      * Ask ParticleVectors which the class will be working with to have specific properties

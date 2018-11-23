@@ -36,7 +36,7 @@ class CopyLibrary(build_ext):
 
 setup(
     name='uDeviceX',
-    version=version.udx_version,
+    version=version.ymr_version,
     author='Dmitry Alexeev',
     author_email='alexeedm@ethz.ch',
     description='The in-silico lab-on-a-chip',

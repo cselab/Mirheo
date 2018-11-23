@@ -4,6 +4,6 @@
 
 struct Version
 {
-    static const std::string udx_version;
+    static const std::string ymr_version;
     static const std::string git_SHA1;
 };
