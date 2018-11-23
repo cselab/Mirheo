@@ -2,7 +2,7 @@
 
 #include <pybind11/stl.h>
 
-#include <core/udevicex.h>
+#include <core/ymero.h>
 #include <core/integrators/interface.h>
 #include <core/interactions/interface.h>
 #include <core/walls/interface.h>
@@ -16,9 +16,9 @@
 #include "bindings.h"
 using namespace pybind11::literals;
 
-void exportUdevicex(py::module& m)
+void exportYmero(py::module& m)
 {
-    py::class_<YMeRo>(m, "udevicex", R"(
+    py::class_<YMeRo>(m, "ymero", R"(
         Main coordination class, should only be one instance at a time
     )")
         .def(py::init< PyTypes::int3, PyTypes::float3, std::string, int, int, std::string, bool, bool >(),
@@ -75,7 +75,7 @@ void exportUdevicex(py::module& m)
             
             Args:
                 pv: :any:`ParticleVector`
-                ic: :class:`~libudevicex.InitialConditions.InitialConditions` that will generate the initial distibution of the particles
+                ic: :class:`~libymero.InitialConditions.InitialConditions` that will generate the initial distibution of the particles
                 checkpoint_every:
                     every that many timesteps the state of the Particle Vector across all the MPI processes will be saved to disk  into the ./restart/ folder. The checkpoint files may be used to restart the whole simulation or only some individual PVs from the saved states. Default value of 0 means no checkpoint.
         )")

@@ -3,7 +3,7 @@
 #include <cuda_runtime.h>
 #include <mpi.h>
 
-#include "core/udevicex_object.h"
+#include "core/ymero_object.h"
 
 class ParticleVector;
 

@@ -4,9 +4,9 @@
 
 Logger logger;
 
-PYBIND11_MODULE(libudevicex, m)
+PYBIND11_MODULE(libymero, m)
 {
-    exportUdevicex(m);
+    exportYmero(m);
     
     auto ic = m.def_submodule("InitialConditions");
     exportInitialConditions(ic);

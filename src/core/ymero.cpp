@@ -1,4 +1,4 @@
-#include "udevicex.h"
+#include "ymero.h"
 
 #include <mpi.h>
 #include <cuda_runtime.h>

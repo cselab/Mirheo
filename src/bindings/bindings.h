@@ -4,7 +4,7 @@
 
 namespace py = pybind11;
 
-void exportUdevicex(py::module& m);
+void exportYmero(py::module& m);
 void exportInitialConditions(py::module& m);
 void exportParticleVectors(py::module& m);
 void exportInteractions(py::module& m);

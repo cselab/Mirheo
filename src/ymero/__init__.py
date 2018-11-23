@@ -12,12 +12,12 @@ import weakref
 import re
 
 
-from libudevicex import *
+from libymero import *
 
 __all__ = ["version", "tools"]
 
 
-# Global variable for the udevicex coordination class
+# Global variable for the ymero coordination class
 # Used in decorators to access compute task status
 # This variable made a weak reference to not prevent
 # cleanup of the simulation
@@ -97,11 +97,11 @@ def __init__():
     classes = {}
     submodules =  inspect.getmembers(sys.modules[__name__],
                                     lambda member: inspect.ismodule(member)
-                                    and 'udevicex' in member.__name__ )
+                                    and 'ymero' in member.__name__ )
     for m in submodules:
         classes[m[0]] = inspect.getmembers(sys.modules[m[1].__name__],
                                         lambda member: inspect.isclass(member)
-                                        and 'udevicex' in member.__module__ )
+                                        and 'ymero' in member.__module__ )
 
     for module in classes.keys():
         if module != 'Plugins':
@@ -116,7 +116,7 @@ def __init__():
         if m[0] == 'Plugins':
             funcs = inspect.getmembers(sys.modules[m[1].__name__],
                                         lambda member: inspect.isbuiltin(member)
-                                        and 'udevicex' in member.__module__)
+                                        and 'ymero' in member.__module__)
             
             
             for f in funcs:
@@ -127,11 +127,11 @@ def __init__():
                     getattr(m[1], newname).__doc__ = re.sub('compute_task: bool, ', '', getattr(m[1], newname).__doc__)
                     
 
-    # Wrap initialization of the udevicex coordinator
-    udevicex.__init__ = decorate_coordinator(udevicex.__init__)
+    # Wrap initialization of the ymero coordinator
+    ymero.__init__ = decorate_coordinator(ymero.__init__)
     
     # Wrap registration of the plugins
-    udevicex.registerPlugins = decorate_register_plugins(udevicex.registerPlugins)
+    ymero.registerPlugins = decorate_register_plugins(ymero.registerPlugins)
 
 
 __init__()
