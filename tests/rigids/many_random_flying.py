@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import udevicex as ymr
+import ymero as ymr
 import numpy as np
 import argparse
 
@@ -17,7 +17,7 @@ axes = (1, 2, 3)
 ranks  = tuple(args.nranks)
 domain = (31, 18, 59)
 
-u = ymr.udevicex(ranks, domain, debug_level=3, log_filename='log')
+u = ymr.ymero(ranks, domain, debug_level=3, log_filename='log')
 
 np.random.seed(84)
 com_q = np.random.rand(args.nobjects, 7)

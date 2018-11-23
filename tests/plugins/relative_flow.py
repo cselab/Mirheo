@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import udevicex as ymr
+import ymero as ymr
 import numpy as np
 import argparse
 
@@ -10,7 +10,7 @@ axes = (1, 2, 3)
 ranks  = (1, 1, 1)
 domain = (8, 16, 24)
 
-u = ymr.udevicex(ranks, domain, debug_level=3, log_filename='log')
+u = ymr.ymero(ranks, domain, debug_level=3, log_filename='log')
 
 com_q = [[domain[0]/2.0, domain[1]/2.0, domain[2]/2.0,  1., 0, 0, 0]]
 coords = np.loadtxt('sphere123.txt').tolist()

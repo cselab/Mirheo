@@ -2,7 +2,7 @@
 
 import sys, trimesh, argparse
 import numpy as np
-import udevicex as ymr
+import ymero as ymr
 sys.path.append("..")
 from common.membrane_params import set_lina
 
@@ -15,7 +15,7 @@ dt = 0.001
 ranks  = (1, 1, 1)
 domain = (12, 8, 10)
 
-u = ymr.udevicex(ranks, domain, debug_level=3, log_filename='log')
+u = ymr.ymero(ranks, domain, debug_level=3, log_filename='log')
 
 mesh = trimesh.load_mesh(args.mesh)
 

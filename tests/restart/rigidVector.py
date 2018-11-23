@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import udevicex as ymr
+import ymero as ymr
 import numpy as np
 import argparse
 import trimesh
@@ -14,9 +14,9 @@ ranks  = args.ranks
 domain = (16, 16, 16)
 
 if args.restart:
-    u = ymr.udevicex(ranks, domain, debug_level=8, log_filename='log', checkpoint_every=0)
+    u = ymr.ymero(ranks, domain, debug_level=8, log_filename='log', checkpoint_every=0)
 else:
-    u = ymr.udevicex(ranks, domain, debug_level=8, log_filename='log', checkpoint_every=5)
+    u = ymr.ymero(ranks, domain, debug_level=8, log_filename='log', checkpoint_every=5)
 
     
 mesh = trimesh.creation.icosphere(subdivisions=1, radius = 0.1)

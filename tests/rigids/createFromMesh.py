@@ -4,7 +4,7 @@ import numpy as np
 
 def createFromMesh(density, vertices, triangles, inertia, niter):
 
-    import udevicex as ymr
+    import ymero as ymr
 
     def recenter(coords, com):
         coords = [[r[0]-com[0], r[1]-com[1], r[2]-com[2]] for r in coords]
@@ -25,7 +25,7 @@ def createFromMesh(density, vertices, triangles, inertia, niter):
 
     ranks  = (1, 1, 1)
     
-    u = ymr.udevicex(ranks, domain, debug_level=3, log_filename='log')
+    u = ymr.ymero(ranks, domain, debug_level=3, log_filename='log')
     
     dpd = ymr.Interactions.DPD('dpd', 1.0, a=10.0, gamma=10.0, kbt=0.5, dt=dt, power=0.5)
     vv = ymr.Integrators.VelocityVerlet('vv', dt=dt)

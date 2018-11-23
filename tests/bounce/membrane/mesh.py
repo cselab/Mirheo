@@ -3,7 +3,7 @@
 import sys
 import numpy as np
 
-import udevicex as ymr
+import ymero as ymr
 
 import sys, argparse
 sys.path.append("../..")
@@ -23,7 +23,7 @@ if args.subStep:
 ranks  = (1, 1, 1)
 domain = (8, 8, 8)
 
-u = ymr.udevicex(ranks, domain, debug_level=3, log_filename='log')
+u = ymr.ymero(ranks, domain, debug_level=3, log_filename='log')
 
 nparts = 1000
 pos = np.random.normal(loc   = [0.5, 0.5 * domain[1] + 1.0, 0.5 * domain[2]],

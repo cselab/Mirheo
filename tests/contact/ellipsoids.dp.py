@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import udevicex as ymr
+import ymero as ymr
 import numpy as np
 import argparse
 
@@ -20,7 +20,7 @@ density = args.density
 ranks  = (1, 1, 1)
 domain = (16, 8, 8)
 
-u = ymr.udevicex(ranks, domain, debug_level=3, log_filename='log')
+u = ymr.ymero(ranks, domain, debug_level=3, log_filename='log')
 
 pvSolvent = ymr.ParticleVectors.ParticleVector('solvent', mass = 1)
 icSolvent = ymr.InitialConditions.Uniform(density)

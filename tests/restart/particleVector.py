@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import udevicex as ymr
+import ymero as ymr
 import numpy as np
 import argparse
 
@@ -17,9 +17,9 @@ domain = (4, 6, 8)
 comm = MPI.COMM_WORLD
 
 if args.restart:
-    u = ymr.udevicex(MPI._addressof(comm), ranks, domain, debug_level=3, log_filename='log', checkpoint_every=0)
+    u = ymr.ymero(MPI._addressof(comm), ranks, domain, debug_level=3, log_filename='log', checkpoint_every=0)
 else:
-    u = ymr.udevicex(MPI._addressof(comm), ranks, domain, debug_level=3, log_filename='log', checkpoint_every=5)
+    u = ymr.ymero(MPI._addressof(comm), ranks, domain, debug_level=3, log_filename='log', checkpoint_every=5)
 
 pv = ymr.ParticleVectors.ParticleVector('pv', mass = 1)
 

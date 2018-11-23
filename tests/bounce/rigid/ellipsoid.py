@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 import numpy as np
-import udevicex as ymr
+import ymero as ymr
 import argparse
 
 parser = argparse.ArgumentParser()
@@ -15,7 +15,7 @@ domain = [8., 8., 8.]
 
 dt   = 0.001
 
-u = ymr.udevicex(ranks, tuple(domain), debug_level=3, log_filename='log')
+u = ymr.ymero(ranks, tuple(domain), debug_level=3, log_filename='log')
 
 nparts = 100
 pos = np.random.normal(loc   = [0.5, 0.5 * domain[1] + 1.0, 0.5 * domain[2]],

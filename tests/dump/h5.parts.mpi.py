@@ -1,12 +1,12 @@
 #!/usr/bin/env python
 
-import udevicex as ymr
+import ymero as ymr
 import argparse
 
 ranks  = (2, 1, 1)
 domain = (4, 2, 2)
 
-u = ymr.udevicex(ranks, domain, debug_level=3, log_filename='log')
+u = ymr.ymero(ranks, domain, debug_level=3, log_filename='log')
 
 pos = [[1., 0.25, 0.5],
        [1., 0.50, 0.5],

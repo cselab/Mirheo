@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-import udevicex as ymr
+import ymero as ymr
 
 # Simulation time-step
 dt = 0.001
@@ -13,8 +13,8 @@ domain = (8, 16, 30)
 # Applied extra force for periodic poiseuille flow
 f = 1
 
-# Create the coordinator, this should precede any other setup from udevicex package
-u = ymr.udevicex(ranks, domain, debug_level=2, log_filename='log')
+# Create the coordinator, this should precede any other setup from ymero package
+u = ymr.ymero(ranks, domain, debug_level=2, log_filename='log')
 
 pv = ymr.ParticleVectors.ParticleVector('pv', mass = 1)   # Create a simple particle vector
 ic = ymr.InitialConditions.Uniform(density=8)             # Specify uniform random initial conditions

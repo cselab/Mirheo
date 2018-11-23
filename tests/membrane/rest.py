@@ -3,7 +3,7 @@
 import sys
 import numpy as np
 
-import udevicex as ymr
+import ymero as ymr
 
 import sys, argparse
 sys.path.append("..")
@@ -21,7 +21,7 @@ dt = 0.001
 ranks  = (1, 1, 1)
 domain = (12, 8, 10)
 
-u = ymr.udevicex(ranks, domain, debug_level=3, log_filename='log')
+u = ymr.ymero(ranks, domain, debug_level=3, log_filename='log')
 
 mesh_rbc = ymr.ParticleVectors.MembraneMesh("rbc_mesh.off")
 pv_rbc   = ymr.ParticleVectors.MembraneVector("rbc", mass=1.0, mesh=mesh_rbc)

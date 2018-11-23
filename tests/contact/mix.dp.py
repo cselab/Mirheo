@@ -2,7 +2,7 @@
 
 import sys, argparse
 import numpy as np
-import udevicex as ymr
+import ymero as ymr
 
 sys.path.append("..")
 from common.membrane_params import set_lina
@@ -28,7 +28,7 @@ if args.substep:
 ranks  = (1, 1, 1)
 domain = (12, 8, 10)
 
-u = ymr.udevicex(ranks, domain, debug_level=3, log_filename='log')
+u = ymr.ymero(ranks, domain, debug_level=3, log_filename='log')
 
 pv_flu = ymr.ParticleVectors.ParticleVector('solvent', mass = 1)
 ic_flu = ymr.InitialConditions.Uniform(density=args.density)

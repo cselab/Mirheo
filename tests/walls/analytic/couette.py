@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 import argparse
-import udevicex as ymr
+import ymero as ymr
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--type", choices=["stationary", 'oscillating'])
@@ -19,7 +19,7 @@ gdot    = 0.5 # shear rate
 T       = 3.0 # period for oscillating plate case
 tend    = 10.1
 
-u = ymr.udevicex(ranks, domain, debug_level=8, log_filename='log')
+u = ymr.ymero(ranks, domain, debug_level=8, log_filename='log')
 
 pv = ymr.ParticleVectors.ParticleVector('pv', mass = 1)
 ic = ymr.InitialConditions.Uniform(density=density)

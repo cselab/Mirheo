@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import udevicex as ymr
+import ymero as ymr
 
 dt = 0.001
 density = 10
@@ -9,7 +9,7 @@ ranks  = (1, 1, 1)
 domain = (16, 16, 16)
 a = 1
 
-u = ymr.udevicex(ranks, domain, debug_level=3, log_filename='log')
+u = ymr.ymero(ranks, domain, debug_level=3, log_filename='log')
 
 pv1 = ymr.ParticleVectors.ParticleVector('pv1', mass = 1)
 pv2 = ymr.ParticleVectors.ParticleVector('pv2', mass = 1)

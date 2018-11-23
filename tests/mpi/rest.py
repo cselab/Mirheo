@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import udevicex as ymr
+import ymero as ymr
 from mpi4py import MPI
 
 def run(niter, statsFname, commAddress):
@@ -9,7 +9,7 @@ def run(niter, statsFname, commAddress):
     ranks  = (2, 1, 1)
     domain = (12, 8, 10)
     
-    u = ymr.udevicex(commAddress, ranks, domain, debug_level=8, log_filename='log')
+    u = ymr.ymero(commAddress, ranks, domain, debug_level=8, log_filename='log')
     
     pv = ymr.ParticleVectors.ParticleVector('pv', mass = 1)
     ic = ymr.InitialConditions.Uniform(density=2)

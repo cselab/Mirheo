@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import udevicex as ymr
+import ymero as ymr
 
 import argparse
 
@@ -18,7 +18,7 @@ force = (1.0, 0, 0)
 density = 4
 rc = 1.0
 
-u = ymr.udevicex(ranks, domain, debug_level=3, log_filename='stdout')
+u = ymr.ymero(ranks, domain, debug_level=3, log_filename='stdout')
 
 pv = ymr.ParticleVectors.ParticleVector('pv', mass = 1)
 ic = ymr.InitialConditions.Uniform(density=density)

@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 import argparse
-import udevicex as ymr
+import ymero as ymr
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--type", choices=["cylinder", 'sphere'])
@@ -16,7 +16,7 @@ force = (1.0, 0, 0)
 
 density = 4
 
-u = ymr.udevicex(ranks, domain, debug_level=3, log_filename='stdout')
+u = ymr.ymero(ranks, domain, debug_level=3, log_filename='stdout')
 
 pv = ymr.ParticleVectors.ParticleVector('pv', mass = 1)
 ic = ymr.InitialConditions.Uniform(density=density)

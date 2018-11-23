@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 import argparse
-import udevicex as ymr
+import ymero as ymr
 
 dt = 0.001
 
@@ -14,7 +14,7 @@ rc      = 1.0
 omega   = 0.5 # angular velocity of outer cylinder; inner is fixed
 tend    = 10.1
 
-u = ymr.udevicex(ranks, domain, debug_level=3, log_filename='log')
+u = ymr.ymero(ranks, domain, debug_level=3, log_filename='log')
 
 pv = ymr.ParticleVectors.ParticleVector('pv', mass = 1)
 ic = ymr.InitialConditions.Uniform(density=density)
