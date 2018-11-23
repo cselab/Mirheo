@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 import numpy as np
-import udevicex as udx
+import udevicex as ymr
 import argparse, trimesh
 
 parser = argparse.ArgumentParser()
@@ -14,7 +14,7 @@ domain = [8., 8., 8.]
 
 dt   = 0.001
 
-u = udx.udevicex(ranks, tuple(domain), debug_level=3, log_filename='log')
+u = ymr.udevicex(ranks, tuple(domain), debug_level=3, log_filename='log')
 
 nparts = 100
 pos = np.random.normal(loc   = [0.5, 0.5 * domain[1] + 1.0, 0.5 * domain[2]],
@@ -26,9 +26,9 @@ vel = np.random.normal(loc   = [1.0, 0., 0.],
                        size  = (nparts, 3))
 
 
-pvSolvent = udx.ParticleVectors.ParticleVector('pv', mass = 1)
-icSolvent = udx.InitialConditions.FromArray(pos=pos.tolist(), vel=vel.tolist())
-vvSolvent = udx.Integrators.VelocityVerlet('vv', dt=dt)
+pvSolvent = ymr.ParticleVectors.ParticleVector('pv', mass = 1)
+icSolvent = ymr.InitialConditions.FromArray(pos=pos.tolist(), vel=vel.tolist())
+vvSolvent = ymr.Integrators.VelocityVerlet('vv', dt=dt)
 u.registerParticleVector(pvSolvent, icSolvent)
 u.registerIntegrator(vvSolvent)
 u.setIntegrator(vvSolvent, pvSolvent)
@@ -41,31 +41,31 @@ coords = [[-2., -2., -2.],
 m = trimesh.load(args.file);
 inertia = [row[i] for i, row in enumerate(m.moment_inertia)]
 
-mesh    = udx.ParticleVectors.Mesh(m.vertices.tolist(), m.faces.tolist())
-pvRigid = udx.ParticleVectors.RigidObjectVector('rigid', mass=100, inertia=inertia, object_size=len(coords), mesh=mesh)
+mesh    = ymr.ParticleVectors.Mesh(m.vertices.tolist(), m.faces.tolist())
+pvRigid = ymr.ParticleVectors.RigidObjectVector('rigid', mass=100, inertia=inertia, object_size=len(coords), mesh=mesh)
 
 
-icRigid = udx.InitialConditions.Rigid(com_q=com_q, coords=coords)
-vvRigid = udx.Integrators.RigidVelocityVerlet("vvRigid", dt)
+icRigid = ymr.InitialConditions.Rigid(com_q=com_q, coords=coords)
+vvRigid = ymr.Integrators.RigidVelocityVerlet("vvRigid", dt)
 u.registerParticleVector(pv=pvRigid, ic=icRigid)
 u.registerIntegrator(vvRigid)
 u.setIntegrator(vvRigid, pvRigid)
 
-bb = udx.Bouncers.Mesh("bounceRigid", kbt=0.0)
+bb = ymr.Bouncers.Mesh("bounceRigid", kbt=0.0)
 u.registerBouncer(bb)
 u.setBouncer(bb, pvRigid, pvSolvent)
 
 dumpEvery=500
 
 if args.vis:
-    solventDump = udx.Plugins.createDumpParticles('partDump', pvSolvent, dumpEvery, [], 'h5/solvent-')
+    solventDump = ymr.Plugins.createDumpParticles('partDump', pvSolvent, dumpEvery, [], 'h5/solvent-')
     u.registerPlugins(solventDump)
 
-    mdump = udx.Plugins.createDumpMesh("mesh_dump", pvRigid, dumpEvery, path="ply/")
+    mdump = ymr.Plugins.createDumpMesh("mesh_dump", pvRigid, dumpEvery, path="ply/")
     u.registerPlugins(mdump)
 
 
-rigStats = udx.Plugins.createDumpObjectStats("rigStats", ov=pvRigid, dump_every=dumpEvery, path="stats")
+rigStats = ymr.Plugins.createDumpObjectStats("rigStats", ov=pvRigid, dump_every=dumpEvery, path="stats")
 u.registerPlugins(rigStats)
 
 u.run(5000)
@@ -77,5 +77,5 @@ u.run(5000)
 # rm -rf stats rigid.out.txt
 # f="../../../data/rbc_mesh.off"
 # rm -rf pos*.txt vel*.txt
-# udx.run --runargs "-n 2" ./mesh.py --file $f > /dev/null
+# ymr.run --runargs "-n 2" ./mesh.py --file $f > /dev/null
 # cat stats/rigid.txt | awk '{print $2, $15, $9}' > rigid.out.txt

@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 import argparse
-import udevicex as udx
+import udevicex as ymr
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--sdf_file", type=str)
@@ -18,21 +18,21 @@ domain = args.domain
 
 density = 8
 
-u = udx.udevicex(ranks, domain, debug_level=3, log_filename='log')
+u = ymr.udevicex(ranks, domain, debug_level=3, log_filename='log')
 
-pv = udx.ParticleVectors.ParticleVector('pv', mass = 1)
-ic = udx.InitialConditions.Uniform(density=density)
+pv = ymr.ParticleVectors.ParticleVector('pv', mass = 1)
+ic = ymr.InitialConditions.Uniform(density=density)
 u.registerParticleVector(pv=pv, ic=ic)
     
-dpd = udx.Interactions.DPD('dpd', 1.0, a=10.0, gamma=50.0, kbt=0.01, dt=dt, power=0.5)
+dpd = ymr.Interactions.DPD('dpd', 1.0, a=10.0, gamma=50.0, kbt=0.01, dt=dt, power=0.5)
 u.registerInteraction(dpd)
 
-wall = udx.Walls.SDF("sdf", args.sdf_file)
+wall = ymr.Walls.SDF("sdf", args.sdf_file)
 u.registerWall(wall, 100)
 u.dumpWalls2XDMF([wall], (0.5, 0.5, 0.5), filename='h5/wall')
 
 
-vv = udx.Integrators.VelocityVerlet("vv", dt)
+vv = ymr.Integrators.VelocityVerlet("vv", dt)
 frozen_wall = u.makeFrozenWallParticles(pvName="sdf", walls=[wall], interaction=dpd, integrator=vv, density=density)
 
 u.setWall(wall, pv)
@@ -49,14 +49,14 @@ Ki = 1.0 * factor
 Kd = 8.0 * factor
 vtarget = (args.vtarget, 0, 0)
 
-vc = udx.Plugins.createVelocityControl("vc", "vcont.txt", [pv], (0, 0, 0), domain, 5, 5, 50, vtarget, Kp, Ki, Kd)
+vc = ymr.Plugins.createVelocityControl("vc", "vcont.txt", [pv], (0, 0, 0), domain, 5, 5, 50, vtarget, Kp, Ki, Kd)
 u.registerPlugins(vc)
 
 sampleEvery = 2
 dumpEvery   = 1000
 binSize     = (1., 1., 1.0)
 
-field = udx.Plugins.createDumpAverage('field', [pv], sampleEvery, dumpEvery, binSize, [("velocity", "vector_from_float8")], 'h5/solvent-')
+field = ymr.Plugins.createDumpAverage('field', [pv], sampleEvery, dumpEvery, binSize, [("velocity", "vector_from_float8")], 'h5/solvent-')
 u.registerPlugins(field)
 
 u.run(args.niters)
@@ -66,21 +66,21 @@ u.run(args.niters)
 # rm -rf h5
 # f=../../../data/pachinko_one_post_sdf.dat
 # domain=`head -n 1 $f`
-# udx.run --runargs "-n 2" ./fromFile.py --sdf_file $f --domain $domain > /dev/null
-# udx.avgh5 z velocity h5/solvent-0000[4-7].h5 > profile.out.txt
+# ymr.run --runargs "-n 2" ./fromFile.py --sdf_file $f --domain $domain > /dev/null
+# ymr.avgh5 z velocity h5/solvent-0000[4-7].h5 > profile.out.txt
 
 # nTEST: walls.sdf.fromFile.sdf
 # cd walls/sdf
 # rm -rf h5
 # f=../../../data/pachinko_one_post_sdf.dat
 # domain=`head -n 1 $f`
-# udx.run --runargs "-n 2" ./fromFile.py --sdf_file $f --domain $domain --niters=0 > /dev/null
-# udx.avgh5 z sdf h5/wall.h5 > sdf.out.txt
+# ymr.run --runargs "-n 2" ./fromFile.py --sdf_file $f --domain $domain --niters=0 > /dev/null
+# ymr.avgh5 z sdf h5/wall.h5 > sdf.out.txt
 
 # nTEST: walls.sdf.fromFile.particles
 # cd walls/sdf
 # rm -rf h5
 # f=../../../data/pachinko_one_post_sdf.dat
 # domain=`head -n 1 $f`
-# udx.run --runargs "-n 2" ./fromFile.py --sdf_file $f --domain $domain --niters=5002 --vtarget=5 > /dev/null
+# ymr.run --runargs "-n 2" ./fromFile.py --sdf_file $f --domain $domain --niters=5002 --vtarget=5 > /dev/null
 # grep "inside the wall" log_00000.log | awk '{print $6 / 100.0;}' > particles.out.txt

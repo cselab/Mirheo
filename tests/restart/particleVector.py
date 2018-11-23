@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import udevicex as udx
+import udevicex as ymr
 import numpy as np
 import argparse
 
@@ -17,16 +17,16 @@ domain = (4, 6, 8)
 comm = MPI.COMM_WORLD
 
 if args.restart:
-    u = udx.udevicex(MPI._addressof(comm), ranks, domain, debug_level=3, log_filename='log', checkpoint_every=0)
+    u = ymr.udevicex(MPI._addressof(comm), ranks, domain, debug_level=3, log_filename='log', checkpoint_every=0)
 else:
-    u = udx.udevicex(MPI._addressof(comm), ranks, domain, debug_level=3, log_filename='log', checkpoint_every=5)
+    u = ymr.udevicex(MPI._addressof(comm), ranks, domain, debug_level=3, log_filename='log', checkpoint_every=5)
 
-pv = udx.ParticleVectors.ParticleVector('pv', mass = 1)
+pv = ymr.ParticleVectors.ParticleVector('pv', mass = 1)
 
 if args.restart:
-    ic = udx.InitialConditions.Restart("restart/")
+    ic = ymr.InitialConditions.Restart("restart/")
 else:
-    ic = udx.InitialConditions.Uniform(density=2)
+    ic = ymr.InitialConditions.Uniform(density=2)
 
 u.registerParticleVector(pv=pv, ic=ic)
 
@@ -57,14 +57,14 @@ if args.restart and pv:
 # TEST: restart.particleVector
 # cd restart
 # rm -rf restart parts.out.txt parts.txt
-# udx.run --runargs "-n 1" ./particleVector.py --ranks 1 1 1           > /dev/null
-# udx.run --runargs "-n 1" ./particleVector.py --ranks 1 1 1 --restart > /dev/null
+# ymr.run --runargs "-n 1" ./particleVector.py --ranks 1 1 1           > /dev/null
+# ymr.run --runargs "-n 1" ./particleVector.py --ranks 1 1 1 --restart > /dev/null
 # cat parts.txt | sort > parts.out.txt
 
 # TEST: restart.particleVector.mpi
 # cd restart
 # rm -rf restart parts.out.txt parts.txt
-# udx.run --runargs "-n 4" ./particleVector.py --ranks 1 2 2           > /dev/null
-# udx.run --runargs "-n 4" ./particleVector.py --ranks 1 2 2 --restart > /dev/null
+# ymr.run --runargs "-n 4" ./particleVector.py --ranks 1 2 2           > /dev/null
+# ymr.run --runargs "-n 4" ./particleVector.py --ranks 1 2 2 --restart > /dev/null
 # cat parts.txt | sort > parts.out.txt
 

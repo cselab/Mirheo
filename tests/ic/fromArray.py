@@ -1,23 +1,23 @@
 #!/usr/bin/env python
 
 import numpy as np
-import udevicex as udx
+import udevicex as ymr
 
 ranks  = (1, 1, 1)
 domain = [4., 6., 8.]
 
-u = udx.udevicex(ranks, tuple(domain), debug_level=3, log_filename='log')
+u = ymr.udevicex(ranks, tuple(domain), debug_level=3, log_filename='log')
 
-pv = udx.ParticleVectors.ParticleVector('pv', mass = 1)
+pv = ymr.ParticleVectors.ParticleVector('pv', mass = 1)
 
 pos = [[a*domain[0], a*domain[1], a*domain[2]] for a in [0.1, 0.5, 0.8, 1.5]] # one particle is outside
 v=[1., 2., 3.]
 vel = [[a*v[0], a*v[1], a*v[2]] for a in [0.1, 0.5, 0.8, 1.5]]
 
-ic = udx.InitialConditions.FromArray(pos=pos, vel=vel)
+ic = ymr.InitialConditions.FromArray(pos=pos, vel=vel)
 u.registerParticleVector(pv=pv, ic=ic)
 
-# xyz = udx.Plugins.createDumpXYZ('xyz', pv, 1, "xyz/")
+# xyz = ymr.Plugins.createDumpXYZ('xyz', pv, 1, "xyz/")
 # u.registerPlugins(xyz)
 
 u.run(2)
@@ -32,5 +32,5 @@ if pv:
 # TEST: ic.fromArray
 # cd ic
 # rm -rf pos*.txt vel*.txt
-# udx.run --runargs "-n 2" ./fromArray.py > /dev/null
+# ymr.run --runargs "-n 2" ./fromArray.py > /dev/null
 # paste pos.ic.txt vel.ic.txt | sort > ic.out.txt

@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import udevicex as udx
+import udevicex as ymr
 import numpy as np
 import argparse
 
@@ -10,17 +10,17 @@ args = parser.parse_args()
 
 domain = (8, 16, 4)
 
-u = udx.udevicex(args.ranks, domain, debug_level=8, log_filename='log')
+u = ymr.udevicex(args.ranks, domain, debug_level=8, log_filename='log')
 
-pv = udx.ParticleVectors.ParticleVector('pv', mass = 1)
-ic = udx.InitialConditions.Uniform(density=3)
+pv = ymr.ParticleVectors.ParticleVector('pv', mass = 1)
+ic = ymr.InitialConditions.Uniform(density=3)
 u.registerParticleVector(pv=pv, ic=ic)
 
 sampleEvery = 1
 dumpEvery   = 1
 binSize     = (1., 1., 1.)
 
-field = udx.Plugins.createDumpAverage('field', [pv], sampleEvery, dumpEvery, binSize, [("velocity", "vector_from_float8")], 'h5/solvent-')
+field = ymr.Plugins.createDumpAverage('field', [pv], sampleEvery, dumpEvery, binSize, [("velocity", "vector_from_float8")], 'h5/solvent-')
 u.registerPlugins(field)
 
 u.run(3)
@@ -28,11 +28,11 @@ u.run(3)
 # TEST: dump.h5
 # cd dump
 # rm -rf h5
-# udx.run --runargs "-n 2" ./h5.py --ranks 1 1 1 > /dev/null
-# udx.avgh5 xz density h5/solvent-00000.h5 > profile.out.txt
+# ymr.run --runargs "-n 2" ./h5.py --ranks 1 1 1 > /dev/null
+# ymr.avgh5 xz density h5/solvent-00000.h5 > profile.out.txt
 
 # TEST: dump.h5.mpi
 # cd dump
 # rm -rf h5
-# udx.run --runargs "-n 4" ./h5.py --ranks 1 2 1 > /dev/null
-# udx.avgh5 xz density h5/solvent-00000.h5 > profile.out.txt
+# ymr.run --runargs "-n 4" ./h5.py --ranks 1 2 1 > /dev/null
+# ymr.avgh5 xz density h5/solvent-00000.h5 > profile.out.txt

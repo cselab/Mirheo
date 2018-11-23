@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 def createEllipsoid(density, axes, niter):
-    import udevicex as udx
+    import udevicex as ymr
     
     def recenter(coords, com):
         coords = [[r[0]-com[0], r[1]-com[1], r[2]-com[2]] for r in coords]
@@ -14,18 +14,18 @@ def createEllipsoid(density, axes, niter):
     fact = 3
     domain = (fact*axes[0], fact*axes[1], fact*axes[2])
     
-    u = udx.udevicex(ranks, domain, debug_level=3, log_filename='log')
+    u = ymr.udevicex(ranks, domain, debug_level=3, log_filename='log')
     
-    dpd = udx.Interactions.DPD('dpd', 1.0, a=10.0, gamma=10.0, kbt=0.5, dt=dt, power=0.5)
-    vv = udx.Integrators.VelocityVerlet('vv', dt=dt)
+    dpd = ymr.Interactions.DPD('dpd', 1.0, a=10.0, gamma=10.0, kbt=0.5, dt=dt, power=0.5)
+    vv = ymr.Integrators.VelocityVerlet('vv', dt=dt)
     
     coords = [[-axes[0], -axes[1], -axes[2]],
               [ axes[0],  axes[1],  axes[2]]]
     com_q = [[0.5 * domain[0], 0.5 * domain[1], 0.5 * domain[2],   1., 0, 0, 0]]
     
-    fakeOV = udx.ParticleVectors.RigidEllipsoidVector('OV', mass=1, object_size=len(coords), semi_axes=axes)
-    fakeIc = udx.InitialConditions.Rigid(com_q=com_q, coords=coords)
-    belongingChecker = udx.BelongingCheckers.Ellipsoid("ellipsoidChecker")
+    fakeOV = ymr.ParticleVectors.RigidEllipsoidVector('OV', mass=1, object_size=len(coords), semi_axes=axes)
+    fakeIc = ymr.InitialConditions.Rigid(com_q=com_q, coords=coords)
+    belongingChecker = ymr.BelongingCheckers.Ellipsoid("ellipsoidChecker")
     
     pvEllipsoid = u.makeFrozenRigidParticles(belongingChecker, fakeOV, fakeIc, dpd, vv, density, niter)
     
@@ -62,6 +62,6 @@ if __name__ == '__main__':
 # cd rigids
 # rm -rf pos.txt pos.out.txt
 # pfile=pos.txt
-# udx.run --runargs "-n 2"  ./createEllipsoid.py --axes 2.0 3.0 4.0 --density 8 --niter 1 --out $pfile > /dev/null
+# ymr.run --runargs "-n 2"  ./createEllipsoid.py --axes 2.0 3.0 4.0 --density 8 --niter 1 --out $pfile > /dev/null
 # cat $pfile | sort > pos.out.txt
 

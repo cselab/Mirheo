@@ -3,7 +3,7 @@
 import sys
 import numpy as np
 
-import udevicex as udx
+import udevicex as ymr
 
 import sys, argparse
 sys.path.append("../..")
@@ -23,7 +23,7 @@ if args.subStep:
 ranks  = (1, 1, 1)
 domain = (8, 8, 8)
 
-u = udx.udevicex(ranks, domain, debug_level=3, log_filename='log')
+u = ymr.udevicex(ranks, domain, debug_level=3, log_filename='log')
 
 nparts = 1000
 pos = np.random.normal(loc   = [0.5, 0.5 * domain[1] + 1.0, 0.5 * domain[2]],
@@ -35,32 +35,32 @@ vel = np.random.normal(loc   = [1.0, 0., 0.],
                        size  = (nparts, 3))
 
 
-pvSolvent = udx.ParticleVectors.ParticleVector('pv', mass = 1)
-icSolvent = udx.InitialConditions.FromArray(pos=pos.tolist(), vel=vel.tolist())
-vv        = udx.Integrators.VelocityVerlet('vv', dt=dt)
+pvSolvent = ymr.ParticleVectors.ParticleVector('pv', mass = 1)
+icSolvent = ymr.InitialConditions.FromArray(pos=pos.tolist(), vel=vel.tolist())
+vv        = ymr.Integrators.VelocityVerlet('vv', dt=dt)
 u.registerParticleVector(pvSolvent, icSolvent)
 u.registerIntegrator(vv)
 u.setIntegrator(vv, pvSolvent)
 
 
-meshRbc = udx.ParticleVectors.MembraneMesh("rbc_mesh.off")
-pvRbc   = udx.ParticleVectors.MembraneVector("rbc", mass=1.0, mesh=meshRbc)
-icRbc   = udx.InitialConditions.Membrane(
+meshRbc = ymr.ParticleVectors.MembraneMesh("rbc_mesh.off")
+pvRbc   = ymr.ParticleVectors.MembraneVector("rbc", mass=1.0, mesh=meshRbc)
+icRbc   = ymr.InitialConditions.Membrane(
     [[0.5 * domain[0], 0.5 * domain[1], 0.5 * domain[2],   0.7071, 0.0, 0.7071, 0.0]]
 )
 
 u.registerParticleVector(pvRbc, icRbc)
 
-prmRbc = udx.Interactions.MembraneParameters()
+prmRbc = ymr.Interactions.MembraneParameters()
 
 if prmRbc:
     set_lina(1.0, prmRbc)
     prmRbc.dt = dt
     
-intRbc = udx.Interactions.MembraneForces("int_rbc", prmRbc, stressFree=True)
+intRbc = ymr.Interactions.MembraneForces("int_rbc", prmRbc, stressFree=True)
 
 if args.subStep:
-    integrator = udx.Integrators.SubStepMembrane('substep_membrane', dt, substeps, intRbc)
+    integrator = ymr.Integrators.SubStepMembrane('substep_membrane', dt, substeps, intRbc)
     u.registerIntegrator(integrator)
     u.setIntegrator(integrator, pvRbc)
 else:
@@ -69,7 +69,7 @@ else:
     u.setInteraction(intRbc, pvRbc, pvRbc)
 
 
-bb = udx.Bouncers.Mesh("bounceRbc", kbt=0.0)
+bb = ymr.Bouncers.Mesh("bounceRbc", kbt=0.0)
 u.registerBouncer(bb)
 u.setBouncer(bb, pvRbc, pvSolvent)
 
@@ -77,10 +77,10 @@ u.setBouncer(bb, pvRbc, pvSolvent)
 if args.vis:
     dumpEvery = int(0.1 / dt)
     
-    solventDump = udx.Plugins.createDumpParticles('partDump', pvSolvent, dumpEvery, [], 'h5/solvent-')
+    solventDump = ymr.Plugins.createDumpParticles('partDump', pvSolvent, dumpEvery, [], 'h5/solvent-')
     u.registerPlugins(solventDump)
 
-    mdump = udx.Plugins.createDumpMesh("mesh_dump", pvRbc, dumpEvery, path="ply/")
+    mdump = ymr.Plugins.createDumpMesh("mesh_dump", pvRbc, dumpEvery, path="ply/")
     u.registerPlugins(mdump)
 
 
@@ -98,7 +98,7 @@ if pvRbc is not None:
 # cd bounce/membrane
 # rm -rf pos.rbc.txt pos.rbc.out.txt 
 # cp ../../../data/rbc_mesh.off .
-# udx.run --runargs "-n 2" ./mesh.py > /dev/null
+# ymr.run --runargs "-n 2" ./mesh.py > /dev/null
 # mv pos.rbc.txt pos.rbc.out.txt 
 
 # nTEST: bounce.membrane.mesh.substep
@@ -106,5 +106,5 @@ if pvRbc is not None:
 # cd bounce/membrane
 # rm -rf pos.rbc.txt pos.rbc.out.txt 
 # cp ../../../data/rbc_mesh.off .
-# udx.run --runargs "-n 2" ./mesh.py --subStep > /dev/null
+# ymr.run --runargs "-n 2" ./mesh.py --subStep > /dev/null
 # mv pos.rbc.txt pos.rbc.out.txt 

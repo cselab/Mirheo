@@ -3,7 +3,7 @@
 import sys
 import numpy as np
 
-import udevicex as udx
+import udevicex as ymr
 
 import sys, argparse
 sys.path.append("..")
@@ -25,37 +25,37 @@ if args.substep:
 ranks  = (1, 1, 1)
 domain = (12, 8, 10)
 
-u = udx.udevicex(ranks, domain, debug_level=3, log_filename='log')
+u = ymr.udevicex(ranks, domain, debug_level=3, log_filename='log')
 
-pv_flu = udx.ParticleVectors.ParticleVector('solvent', mass = 1)
-ic_flu = udx.InitialConditions.Uniform(density=8)
+pv_flu = ymr.ParticleVectors.ParticleVector('solvent', mass = 1)
+ic_flu = ymr.InitialConditions.Uniform(density=8)
 u.registerParticleVector(pv=pv_flu, ic=ic_flu)
 
 
-mesh_rbc = udx.ParticleVectors.MembraneMesh("rbc_mesh.off")
-pv_rbc   = udx.ParticleVectors.MembraneVector("rbc", mass=1.0, mesh=mesh_rbc)
-ic_rbc   = udx.InitialConditions.Membrane([[8.0, 4.0, 5.0,   1.0, 0.0, 0.0, 0.0]])
+mesh_rbc = ymr.ParticleVectors.MembraneMesh("rbc_mesh.off")
+pv_rbc   = ymr.ParticleVectors.MembraneVector("rbc", mass=1.0, mesh=mesh_rbc)
+ic_rbc   = ymr.InitialConditions.Membrane([[8.0, 4.0, 5.0,   1.0, 0.0, 0.0, 0.0]])
 u.registerParticleVector(pv_rbc, ic_rbc)
 
-dpd = udx.Interactions.DPD('dpd', 1.0, a=10.0, gamma=10.0, kbt=0.01, dt=dt, power=0.25)
+dpd = ymr.Interactions.DPD('dpd', 1.0, a=10.0, gamma=10.0, kbt=0.01, dt=dt, power=0.25)
 
-prm_rbc = udx.Interactions.MembraneParameters()
+prm_rbc = ymr.Interactions.MembraneParameters()
 
 if prm_rbc:
     set_lina(1.0, prm_rbc)
     prm_rbc.rnd = False
     prm_rbc.dt = dt
     
-int_rbc = udx.Interactions.MembraneForces("int_rbc", prm_rbc, stressFree=True)
+int_rbc = ymr.Interactions.MembraneForces("int_rbc", prm_rbc, stressFree=True)
 
 u.registerInteraction(dpd)
 
 if args.substep:
-    integrator = udx.Integrators.SubStepMembrane('substep_membrane', dt, substeps, int_rbc)
+    integrator = ymr.Integrators.SubStepMembrane('substep_membrane', dt, substeps, int_rbc)
     u.registerIntegrator(integrator)
     u.setIntegrator(integrator, pv_rbc)
 else:
-    vv = udx.Integrators.VelocityVerlet('vv', dt)
+    vv = ymr.Integrators.VelocityVerlet('vv', dt)
     u.registerInteraction(int_rbc)
     u.setInteraction(int_rbc, pv_rbc, pv_rbc)
     u.registerIntegrator(vv)
@@ -66,12 +66,12 @@ u.setInteraction(dpd, pv_flu, pv_rbc)
 
 
 
-vv_dp = udx.Integrators.VelocityVerlet_withPeriodicForce('vv_dp', dt=dt, force=a, direction='x')
+vv_dp = ymr.Integrators.VelocityVerlet_withPeriodicForce('vv_dp', dt=dt, force=a, direction='x')
 u.registerIntegrator(vv_dp)
 u.setIntegrator(vv_dp, pv_flu)
 
 
-# dump_mesh = udx.Plugins.createDumpMesh("mesh_dump", pv_rbc, (int)(0.15/dt), "ply/")
+# dump_mesh = ymr.Plugins.createDumpMesh("mesh_dump", pv_rbc, (int)(0.15/dt), "ply/")
 # u.registerPlugins(dump_mesh)
 
 
@@ -87,12 +87,12 @@ if pv_rbc is not None:
 # cd fsi
 # rm -rf pos.rbc.out.txt pos.rbc.txt
 # cp ../../data/rbc_mesh.off .
-# udx.run --runargs "-n 2" ./membrane.dp.py > /dev/null
+# ymr.run --runargs "-n 2" ./membrane.dp.py > /dev/null
 # mv pos.rbc.txt pos.rbc.out.txt 
 
 # nTEST: fsi.membrane.dp.substep
 # cd fsi
 # rm -rf pos.rbc.out.txt pos.rbc.txt
 # cp ../../data/rbc_mesh.off .
-# udx.run --runargs "-n 2" ./membrane.dp.py --substep > /dev/null
+# ymr.run --runargs "-n 2" ./membrane.dp.py --substep > /dev/null
 # mv pos.rbc.txt pos.rbc.out.txt 

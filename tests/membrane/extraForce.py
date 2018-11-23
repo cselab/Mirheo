@@ -2,7 +2,7 @@
 
 import sys, trimesh, argparse
 import numpy as np
-import udevicex as udx
+import udevicex as ymr
 sys.path.append("..")
 from common.membrane_params import set_lina
 
@@ -15,24 +15,24 @@ dt = 0.001
 ranks  = (1, 1, 1)
 domain = (12, 8, 10)
 
-u = udx.udevicex(ranks, domain, debug_level=3, log_filename='log')
+u = ymr.udevicex(ranks, domain, debug_level=3, log_filename='log')
 
 mesh = trimesh.load_mesh(args.mesh)
 
-mesh_rbc = udx.ParticleVectors.MembraneMesh(mesh.vertices.tolist(), mesh.faces.tolist())
-pv_rbc   = udx.ParticleVectors.MembraneVector("rbc", mass=1.0, mesh=mesh_rbc)
-ic_rbc   = udx.InitialConditions.Membrane([[8.0, 4.0, 5.0,   1.0, 0.0, 0.0, 0.0]])
+mesh_rbc = ymr.ParticleVectors.MembraneMesh(mesh.vertices.tolist(), mesh.faces.tolist())
+pv_rbc   = ymr.ParticleVectors.MembraneVector("rbc", mass=1.0, mesh=mesh_rbc)
+ic_rbc   = ymr.InitialConditions.Membrane([[8.0, 4.0, 5.0,   1.0, 0.0, 0.0, 0.0]])
 u.registerParticleVector(pv_rbc, ic_rbc)
 
-prm_rbc = udx.Interactions.MembraneParameters()
+prm_rbc = ymr.Interactions.MembraneParameters()
 
 if prm_rbc:
     set_lina(1.0, prm_rbc)
     prm_rbc.rnd = False
     prm_rbc.dt = dt
     
-int_rbc = udx.Interactions.MembraneForces("int_rbc", prm_rbc, stressFree=False)
-vv = udx.Integrators.VelocityVerlet('vv', dt)
+int_rbc = ymr.Interactions.MembraneForces("int_rbc", prm_rbc, stressFree=False)
+vv = ymr.Integrators.VelocityVerlet('vv', dt)
 u.registerIntegrator(vv)
 u.setIntegrator(vv, pv_rbc)
 u.registerInteraction(int_rbc)
@@ -45,10 +45,10 @@ force_magn = 500.0
 forces[id_min][0] = - force_magn
 forces[id_max][0] = + force_magn
 
-extraForces = udx.Plugins.createMembraneExtraForce("extraRbcForce", pv_rbc, forces.tolist())
+extraForces = ymr.Plugins.createMembraneExtraForce("extraRbcForce", pv_rbc, forces.tolist())
 u.registerPlugins(extraForces)
 
-dump_mesh = udx.Plugins.createDumpMesh("mesh_dump", pv_rbc, 500, "ply/")
+dump_mesh = ymr.Plugins.createDumpMesh("mesh_dump", pv_rbc, 500, "ply/")
 u.registerPlugins(dump_mesh)
 
 u.run(5000)
@@ -61,5 +61,5 @@ if pv_rbc is not None:
 # nTEST: membrane.extraForce
 # cd membrane
 # mesh="../../data/rbc_mesh.off"
-# udx.run --runargs "-n 2" ./extraForce.py --mesh $mesh > /dev/null
+# ymr.run --runargs "-n 2" ./extraForce.py --mesh $mesh > /dev/null
 # mv pos.rbc.txt pos.rbc.out.txt 

@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import udevicex as udx
+import udevicex as ymr
 import numpy as np
 import trimesh, argparse
 
@@ -16,19 +16,19 @@ off    = "rbc_mesh.off"
 ranks  = (1, 1, 1)
 domain = (12, 8, 10)
 
-u = udx.udevicex(ranks, domain, debug_level=3, log_filename='log')
+u = ymr.udevicex(ranks, domain, debug_level=3, log_filename='log')
 
 if args.readFrom == "off":
-    mesh = udx.ParticleVectors.MembraneMesh(off)
+    mesh = ymr.ParticleVectors.MembraneMesh(off)
 elif args.readFrom == "trimesh":
     m = trimesh.load(off);
-    mesh = udx.ParticleVectors.MembraneMesh(m.vertices.tolist(), m.faces.tolist())
+    mesh = ymr.ParticleVectors.MembraneMesh(m.vertices.tolist(), m.faces.tolist())
 
-rbc  = udx.ParticleVectors.MembraneVector(pvname, mass=1.0, mesh=mesh)
-icrbc = udx.InitialConditions.Membrane([[6.0, 4.0, 5.0,   1.0, 0.0, 0.0, 0.0]])
+rbc  = ymr.ParticleVectors.MembraneVector(pvname, mass=1.0, mesh=mesh)
+icrbc = ymr.InitialConditions.Membrane([[6.0, 4.0, 5.0,   1.0, 0.0, 0.0, 0.0]])
 u.registerParticleVector(pv=rbc, ic=icrbc)
 
-mdump = udx.Plugins.createDumpMesh("mesh_dump", rbc, 1, path)
+mdump = ymr.Plugins.createDumpMesh("mesh_dump", rbc, 1, path)
 u.registerPlugins(mdump)
 
 u.run(3)
@@ -42,12 +42,12 @@ if u.isMasterTask():
 # cd dump
 # rm -rf ply/ vertices.txt faces.txt mesh.out.txt 
 # cp ../../data/rbc_mesh.off .
-# udx.run --runargs "-n 2" ./mesh.py --readFrom off > /dev/null
+# ymr.run --runargs "-n 2" ./mesh.py --readFrom off > /dev/null
 # cat vertices.txt faces.txt > mesh.out.txt
 
 # TEST: dump.mesh.fromTrimesh
 # cd dump
 # rm -rf ply/ vertices.txt faces.txt mesh.out.txt 
 # cp ../../data/rbc_mesh.off .
-# udx.run --runargs "-n 2" ./mesh.py --readFrom trimesh > /dev/null
+# ymr.run --runargs "-n 2" ./mesh.py --readFrom trimesh > /dev/null
 # cat vertices.txt faces.txt > mesh.out.txt

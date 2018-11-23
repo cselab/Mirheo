@@ -2,7 +2,7 @@
 
 import sys, argparse
 import numpy as np
-import udevicex as udx
+import udevicex as ymr
 
 sys.path.append("..")
 from common.membrane_params import set_lina
@@ -28,40 +28,40 @@ if args.substep:
 ranks  = (1, 1, 1)
 domain = (12, 8, 10)
 
-u = udx.udevicex(ranks, domain, debug_level=3, log_filename='log')
+u = ymr.udevicex(ranks, domain, debug_level=3, log_filename='log')
 
-pv_flu = udx.ParticleVectors.ParticleVector('solvent', mass = 1)
-ic_flu = udx.InitialConditions.Uniform(density=args.density)
+pv_flu = ymr.ParticleVectors.ParticleVector('solvent', mass = 1)
+ic_flu = ymr.InitialConditions.Uniform(density=args.density)
 u.registerParticleVector(pv=pv_flu, ic=ic_flu)
 
 
-mesh_rbc = udx.ParticleVectors.MembraneMesh("rbc_mesh.off")
-pv_rbc   = udx.ParticleVectors.MembraneVector("rbc", mass=1.0, mesh=mesh_rbc)
+mesh_rbc = ymr.ParticleVectors.MembraneMesh("rbc_mesh.off")
+pv_rbc   = ymr.ParticleVectors.MembraneVector("rbc", mass=1.0, mesh=mesh_rbc)
 
 com_q_rbc = [[2.0, 5.0, 5.0,   1.0, np.pi/2, np.pi/3, 0.0],
              [6.0, 3.0, 5.0,   1.0, np.pi/2, np.pi/3, 0.0]]
 
 com_q_rig = [[4.0, 4.0, 5.0,   1.0, np.pi/2, np.pi/3, 0.0]]
 
-ic_rbc   = udx.InitialConditions.Membrane(com_q_rbc)
+ic_rbc   = ymr.InitialConditions.Membrane(com_q_rbc)
 u.registerParticleVector(pv_rbc, ic_rbc)
 
-dpd = udx.Interactions.DPD('dpd', 1.0, a=10.0, gamma=10.0, kbt=0.01, dt=dt, power=0.25)
-cnt = udx.Interactions.LJ('cnt', 1.0, epsilon=0.8, sigma=0.35, max_force=400.0, object_aware=False)
+dpd = ymr.Interactions.DPD('dpd', 1.0, a=10.0, gamma=10.0, kbt=0.01, dt=dt, power=0.25)
+cnt = ymr.Interactions.LJ('cnt', 1.0, epsilon=0.8, sigma=0.35, max_force=400.0, object_aware=False)
 
-prm_rbc = udx.Interactions.MembraneParameters()
+prm_rbc = ymr.Interactions.MembraneParameters()
 
 if prm_rbc:
     set_lina(1.0, prm_rbc)
     prm_rbc.rnd = False
     prm_rbc.dt = dt
     
-int_rbc = udx.Interactions.MembraneForces("int_rbc", prm_rbc, stressFree=True)
+int_rbc = ymr.Interactions.MembraneForces("int_rbc", prm_rbc, stressFree=True)
 
 coords = np.loadtxt(args.coords).tolist()
-pv_ell = udx.ParticleVectors.RigidEllipsoidVector('ellipsoid', mass=1, object_size=len(coords), semi_axes=args.axes)
-ic_ell = udx.InitialConditions.Rigid(com_q=com_q_rig, coords=coords)
-vv_ell = udx.Integrators.RigidVelocityVerlet("ellvv", dt)
+pv_ell = ymr.ParticleVectors.RigidEllipsoidVector('ellipsoid', mass=1, object_size=len(coords), semi_axes=args.axes)
+ic_ell = ymr.InitialConditions.Rigid(com_q=com_q_rig, coords=coords)
+vv_ell = ymr.Integrators.RigidVelocityVerlet("ellvv", dt)
 
 u.registerParticleVector(pv=pv_ell, ic=ic_ell)
 u.registerIntegrator(vv_ell)
@@ -71,11 +71,11 @@ u.registerInteraction(dpd)
 u.registerInteraction(cnt)
 
 if args.substep:
-    integrator = udx.Integrators.SubStepMembrane('substep_membrane', dt, substeps, int_rbc)
+    integrator = ymr.Integrators.SubStepMembrane('substep_membrane', dt, substeps, int_rbc)
     u.registerIntegrator(integrator)
     u.setIntegrator(integrator, pv_rbc)
 else:
-    vv = udx.Integrators.VelocityVerlet('vv', dt)
+    vv = ymr.Integrators.VelocityVerlet('vv', dt)
     u.registerInteraction(int_rbc)
     u.setInteraction(int_rbc, pv_rbc, pv_rbc)
     u.registerIntegrator(vv)
@@ -88,17 +88,17 @@ u.setInteraction(cnt, pv_rbc, pv_rbc)
 u.setInteraction(cnt, pv_rbc, pv_ell)
 u.setInteraction(cnt, pv_ell, pv_ell)
 
-vv_dp = udx.Integrators.VelocityVerlet_withPeriodicForce('vv_dp', dt=dt, force=a, direction='x')
+vv_dp = ymr.Integrators.VelocityVerlet_withPeriodicForce('vv_dp', dt=dt, force=a, direction='x')
 u.registerIntegrator(vv_dp)
 u.setIntegrator(vv_dp, pv_flu)
 
-belongingChecker = udx.BelongingCheckers.Ellipsoid("ellipsoidChecker")
+belongingChecker = ymr.BelongingCheckers.Ellipsoid("ellipsoidChecker")
 
 u.registerObjectBelongingChecker(belongingChecker, pv_ell)
 u.applyObjectBelongingChecker(belongingChecker, pv=pv_flu, correct_every=0, inside="none", outside="")
 
 if args.bounceBack:
-    bb = udx.Bouncers.Ellipsoid("bounceEllipsoid")
+    bb = ymr.Bouncers.Ellipsoid("bounceEllipsoid")
     u.registerBouncer(bb)
     u.setBouncer(bb, pv_ell, pv_flu)
 
@@ -107,13 +107,13 @@ debug = 0
 if debug:
     dump_every=(int)(0.15/dt)
 
-    dump_mesh = udx.Plugins.createDumpMesh("mesh_dump", pv_rbc, dump_every, "ply/")
+    dump_mesh = ymr.Plugins.createDumpMesh("mesh_dump", pv_rbc, dump_every, "ply/")
     u.registerPlugins(dump_mesh)
 
-    ovStats = udx.Plugins.createDumpObjectStats("objStats", ov=pv_ell, dump_every=dump_every, path="stats")
+    ovStats = ymr.Plugins.createDumpObjectStats("objStats", ov=pv_ell, dump_every=dump_every, path="stats")
     u.registerPlugins(ovStats)
 
-    xyz = udx.Plugins.createDumpXYZ('xyz', pv_ell, dump_every, "xyz/")
+    xyz = ymr.Plugins.createDumpXYZ('xyz', pv_ell, dump_every, "xyz/")
     u.registerPlugins(xyz)
 
 
@@ -130,7 +130,7 @@ if pv_rbc is not None:
 # rm -rf pos.rbc.out.txt pos.rbc.txt
 # f="pos.txt"
 # common_args="--density 8 --axes 2.0 1.0 1.0"
-# udx.run --runargs "-n 2" ../rigids/createEllipsoid.py $common_args --out $f --niter 1000  > /dev/null
+# ymr.run --runargs "-n 2" ../rigids/createEllipsoid.py $common_args --out $f --niter 1000  > /dev/null
 # cp ../../data/rbc_mesh.off .
-# udx.run --runargs "-n 2" ./mix.dp.py $common_args --coords $f > /dev/null
+# ymr.run --runargs "-n 2" ./mix.dp.py $common_args --coords $f > /dev/null
 # mv pos.rbc.txt pos.rbc.out.txt 
