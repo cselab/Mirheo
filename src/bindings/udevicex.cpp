@@ -18,7 +18,7 @@ using namespace pybind11::literals;
 
 void exportUdevicex(py::module& m)
 {
-    py::class_<uDeviceX>(m, "udevicex", R"(
+    py::class_<YMeRo>(m, "udevicex", R"(
         Main coordination class, should only be one instance at a time
     )")
         .def(py::init< PyTypes::int3, PyTypes::float3, std::string, int, int, std::string, bool, bool >(),
@@ -69,7 +69,7 @@ void exportUdevicex(py::module& m)
                 commPtr: pointer to communicator
         )")
         
-        .def("registerParticleVector", &uDeviceX::registerParticleVector,
+        .def("registerParticleVector", &YMeRo::registerParticleVector,
             "pv"_a, "ic"_a=nullptr, "checkpoint_every"_a=0, R"(
             Register particle vector
             
@@ -79,9 +79,9 @@ void exportUdevicex(py::module& m)
                 checkpoint_every:
                     every that many timesteps the state of the Particle Vector across all the MPI processes will be saved to disk  into the ./restart/ folder. The checkpoint files may be used to restart the whole simulation or only some individual PVs from the saved states. Default value of 0 means no checkpoint.
         )")
-        .def("registerIntegrator",             &uDeviceX::registerIntegrator,             "Register Integrator")
-        .def("registerInteraction",            &uDeviceX::registerInteraction,            "Register Interaction")
-        .def("registerObjectBelongingChecker", &uDeviceX::registerObjectBelongingChecker,
+        .def("registerIntegrator",             &YMeRo::registerIntegrator,             "Register Integrator")
+        .def("registerInteraction",            &YMeRo::registerInteraction,            "Register Interaction")
+        .def("registerObjectBelongingChecker", &YMeRo::registerObjectBelongingChecker,
              "checker"_a, "ov"_a, R"(
                 Register Object Belonging Checker
                 
@@ -90,19 +90,19 @@ void exportUdevicex(py::module& m)
                     ov: :any:`ObjectVector` belonging to which the **checker** will check
         )")
         
-        .def("registerBouncer",  &uDeviceX::registerBouncer, "Register Object Bouncer")
-        .def("registerWall",     &uDeviceX::registerWall, "wall"_a, "check_every"_a=0, "Register Wall")
-        .def("registerPlugins",  &uDeviceX::registerPlugins, "Register Plugins")
+        .def("registerBouncer",  &YMeRo::registerBouncer, "Register Object Bouncer")
+        .def("registerWall",     &YMeRo::registerWall, "wall"_a, "check_every"_a=0, "Register Wall")
+        .def("registerPlugins",  &YMeRo::registerPlugins, "Register Plugins")
 
-        .def("setIntegrator",  &uDeviceX::setIntegrator,  "Set Integrator")
-        .def("setInteraction", &uDeviceX::setInteraction,
+        .def("setIntegrator",  &YMeRo::setIntegrator,  "Set Integrator")
+        .def("setInteraction", &YMeRo::setInteraction,
              "interaction"_a, "pv1"_a, "pv2"_a, R"(
                 Forces between two Particle Vectors (they can be the same) *name1* and *name2* will be computed according to the defined interaction.
         )")
-        .def("setBouncer",     &uDeviceX::setBouncer,     "Set Bouncer")
-        .def("setWall",        &uDeviceX::setWallBounce,  "Set Wall")
+        .def("setBouncer",     &YMeRo::setBouncer,     "Set Bouncer")
+        .def("setWall",        &YMeRo::setWallBounce,  "Set Wall")
         
-        .def("dumpWalls2XDMF",    &uDeviceX::dumpWalls2XDMF,
+        .def("dumpWalls2XDMF",    &YMeRo::dumpWalls2XDMF,
             "walls"_a, "h"_a, "filename"_a="xdmf/wall", R"(
                 Write Signed Distance Function for the intersection of the provided walls (negative values are the 'inside' of the simulation)
                 
@@ -110,7 +110,7 @@ void exportUdevicex(py::module& m)
                     h: cell-size of the resulting grid                    
         )")        
 
-        .def("computeVolumeInsideWalls", &uDeviceX::computeVolumeInsideWalls,
+        .def("computeVolumeInsideWalls", &YMeRo::computeVolumeInsideWalls,
             "walls"_a, "nSamplesPerRank"_a=100000, R"(
                 Compute the volume inside the given walls in the whole domain (negative values are the 'inside' of the simulation).
                 The computation is made via simple Monte-Carlo.
@@ -120,7 +120,7 @@ void exportUdevicex(py::module& m)
                     nSamplesPerRank: number of Monte-Carlo samples used per rank
         )")        
         
-        .def("applyObjectBelongingChecker",    &uDeviceX::applyObjectBelongingChecker,
+        .def("applyObjectBelongingChecker",    &YMeRo::applyObjectBelongingChecker,
             "checker"_a, "pv"_a, "correct_every"_a=0, "inside"_a="", "outside"_a="", "checkpoint_every"_a=0, R"(
                 Apply the **checker** to the given particle vector.
                 One and only one of the options **inside** or **outside** has to be specified.
@@ -144,7 +144,7 @@ void exportUdevicex(py::module& m)
                     
         )")
         
-        .def("makeFrozenWallParticles", &uDeviceX::makeFrozenWallParticles,
+        .def("makeFrozenWallParticles", &YMeRo::makeFrozenWallParticles,
              "pvName"_a, "walls"_a, "interaction"_a, "integrator"_a, "density"_a, "nsteps"_a=1000, R"(
                 Create particles frozen inside the walls.
                 
@@ -165,7 +165,7 @@ void exportUdevicex(py::module& m)
                     
         )")
 
-        .def("makeFrozenRigidParticles", &uDeviceX::makeFrozenRigidParticles,
+        .def("makeFrozenRigidParticles", &YMeRo::makeFrozenRigidParticles,
              "checker"_a, "shape"_a, "icShape"_a, "interaction"_a, "integrator"_a, "density"_a, "nsteps"_a=1000, R"(
                 Create particles frozen inside object.
                 
@@ -187,12 +187,12 @@ void exportUdevicex(py::module& m)
                     
         )")
         
-        .def("restart", &uDeviceX::restart, "Restart the simulation")
-        .def("isComputeTask", &uDeviceX::isComputeTask, "Returns whether current rank will do compute or postrprocess")
-        .def("isMasterTask",  &uDeviceX::isMasterTask,  "Returns whether current task is the very first one")
-        .def("start_profiler", &uDeviceX::startProfiler, "Tells nvprof to start recording timeline")
-        .def("stop_profiler",  &uDeviceX::stopProfiler,  "Tells nvprof to stop recording timeline")
-        .def("save_dependency_graph_graphml",  &uDeviceX::saveDependencyGraph_GraphML,  R"(
+        .def("restart", &YMeRo::restart, "Restart the simulation")
+        .def("isComputeTask", &YMeRo::isComputeTask, "Returns whether current rank will do compute or postrprocess")
+        .def("isMasterTask",  &YMeRo::isMasterTask,  "Returns whether current task is the very first one")
+        .def("start_profiler", &YMeRo::startProfiler, "Tells nvprof to start recording timeline")
+        .def("stop_profiler",  &YMeRo::stopProfiler,  "Tells nvprof to stop recording timeline")
+        .def("save_dependency_graph_graphml",  &YMeRo::saveDependencyGraph_GraphML,  R"(
             Exports `GraphML <http://graphml.graphdrawing.org/>`_ file with task graph for the current simulation time-step)")
-        .def("run", &uDeviceX::run, "Run the simulation");
+        .def("run", &YMeRo::run, "Run the simulation");
 }

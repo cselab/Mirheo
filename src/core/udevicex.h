@@ -21,18 +21,18 @@ class Wall;
 class SimulationPlugin;
 class PostprocessPlugin;
 
-class uDeviceX
+class YMeRo
 {
 public:
-    uDeviceX(PyTypes::int3 nranks3D, PyTypes::float3 globalDomainSize,
+    YMeRo(PyTypes::int3 nranks3D, PyTypes::float3 globalDomainSize,
              std::string logFileName, int verbosity, int checkpointEvery=0,
              std::string checkpointFolder="restart/", bool gpuAwareMPI=false, bool noSplash=false);
 
-    uDeviceX(long commAddress, PyTypes::int3 nranks3D, PyTypes::float3 globalDomainSize,
+    YMeRo(long commAddress, PyTypes::int3 nranks3D, PyTypes::float3 globalDomainSize,
              std::string logFileName, int verbosity, int checkpointEvery=0,
              std::string checkpointFolder="restart/", bool gpuAwareMPI=false, bool noSplash=false);
 
-    uDeviceX(MPI_Comm comm, PyTypes::int3 nranks3D, PyTypes::float3 globalDomainSize,
+    YMeRo(MPI_Comm comm, PyTypes::int3 nranks3D, PyTypes::float3 globalDomainSize,
              std::string logFileName, int verbosity, int checkpointEvery=0,
              std::string checkpointFolder="restart/", bool gpuAwareMPI=false, bool noSplash=false);
 
@@ -86,7 +86,7 @@ public:
                                                                 std::string outside = "",
                                                                 int checkpointEvery=0);    
     
-    ~uDeviceX();
+    ~YMeRo();
 
 private:
     std::unique_ptr<Simulation> sim;

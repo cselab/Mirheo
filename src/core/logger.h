@@ -205,7 +205,7 @@ public:
         fclose(fout);
         fout = nullptr;
 
-        throw std::runtime_error("uDeviceX has encountered a fatal error and will quit now.\n"
+        throw std::runtime_error("YMeRo has encountered a fatal error and will quit now.\n"
                                  "The error message follows, and more details can be found in the log\n"
                                  "***************************************\n"
                                  "\t" + makeSimpleErrString(args...) + "\n"

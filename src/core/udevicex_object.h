@@ -6,7 +6,7 @@
 class Simulation;
 
 /**
- * Base class for all the objects of uDeviceX
+ * Base class for all the objects of YMeRo
  * Only stores name and provides interface for
  * checkpoint / restart mechanism
  */
@@ -23,7 +23,7 @@ public:
 };
 
 /**
- * Base class for the objects of uDeviceX simulation task
+ * Base class for the objects of YMeRo simulation task
  * Additionally stores pointer to the managing Simulation
  * Since the objects may be used within different Simulations,
  * need to be able to change the pointer accordingly.

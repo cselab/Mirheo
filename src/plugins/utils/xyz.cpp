@@ -19,7 +19,7 @@ void writeXYZ(MPI_Comm comm, std::string fname, const Particle *particles, int n
 
     if (rank == 0) {
         ss <<  n << "\n";
-        ss << "# created by uDeviceX" << "\n";
+        ss << "# created by YMeRo" << "\n";
 
         info("xyz dump to %s: total number of particles: %d", fname.c_str(), n);
     }

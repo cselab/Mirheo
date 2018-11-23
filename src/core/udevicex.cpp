@@ -29,7 +29,7 @@
 
 #include "version.h"
 
-void uDeviceX::init(int3 nranks3D, float3 globalDomainSize, std::string logFileName, int verbosity,
+void YMeRo::init(int3 nranks3D, float3 globalDomainSize, std::string logFileName, int verbosity,
                     int checkpointEvery, std::string checkpointFolder, bool gpuAwareMPI)
 {
     int nranks;
@@ -86,14 +86,14 @@ void uDeviceX::init(int3 nranks3D, float3 globalDomainSize, std::string logFileN
     }
 }
 
-void uDeviceX::initLogger(MPI_Comm comm, std::string logFileName, int verbosity)
+void YMeRo::initLogger(MPI_Comm comm, std::string logFileName, int verbosity)
 {
     if      (logFileName == "stdout")  logger.init(comm, stdout,             verbosity);
     else if (logFileName == "stderr")  logger.init(comm, stderr,             verbosity);
     else                               logger.init(comm, logFileName+".log", verbosity);
 }
 
-uDeviceX::uDeviceX(PyTypes::int3 nranks3D, PyTypes::float3 globalDomainSize,
+YMeRo::YMeRo(PyTypes::int3 nranks3D, PyTypes::float3 globalDomainSize,
                    std::string logFileName, int verbosity, int checkpointEvery,
                    std::string checkpointFolder, bool gpuAwareMPI, bool noSplash) :
                    noSplash(noSplash)
@@ -105,7 +105,7 @@ uDeviceX::uDeviceX(PyTypes::int3 nranks3D, PyTypes::float3 globalDomainSize,
     init( make_int3(nranks3D), make_float3(globalDomainSize), logFileName, verbosity, checkpointEvery, checkpointFolder, gpuAwareMPI);
 }
 
-uDeviceX::uDeviceX(long commAdress, PyTypes::int3 nranks3D, PyTypes::float3 globalDomainSize,
+YMeRo::YMeRo(long commAdress, PyTypes::int3 nranks3D, PyTypes::float3 globalDomainSize,
                    std::string logFileName, int verbosity, int checkpointEvery, 
                    std::string checkpointFolder, bool gpuAwareMPI, bool noSplash) :
                    noSplash(noSplash)
@@ -116,7 +116,7 @@ uDeviceX::uDeviceX(long commAdress, PyTypes::int3 nranks3D, PyTypes::float3 glob
     init( make_int3(nranks3D), make_float3(globalDomainSize), logFileName, verbosity, checkpointEvery, checkpointFolder, gpuAwareMPI);    
 }
 
-uDeviceX::uDeviceX(MPI_Comm comm, PyTypes::int3 nranks3D, PyTypes::float3 globalDomainSize,
+YMeRo::YMeRo(MPI_Comm comm, PyTypes::int3 nranks3D, PyTypes::float3 globalDomainSize,
                    std::string logFileName, int verbosity, int checkpointEvery,
                    std::string checkpointFolder, bool gpuAwareMPI, bool noSplash) :
                    noSplash(noSplash)
@@ -125,9 +125,9 @@ uDeviceX::uDeviceX(MPI_Comm comm, PyTypes::int3 nranks3D, PyTypes::float3 global
     init( make_int3(nranks3D), make_float3(globalDomainSize), logFileName, verbosity, checkpointEvery, checkpointFolder, gpuAwareMPI);
 }
 
-uDeviceX::~uDeviceX()
+YMeRo::~YMeRo()
 {
-    debug("uDeviceX coordinator is destroyed");
+    debug("YMeRo coordinator is destroyed");
     
     sim.reset();
     post.reset();
@@ -138,32 +138,32 @@ uDeviceX::~uDeviceX()
 
 
 
-void uDeviceX::registerParticleVector(const std::shared_ptr<ParticleVector>& pv, const std::shared_ptr<InitialConditions>& ic, int checkpointEvery)
+void YMeRo::registerParticleVector(const std::shared_ptr<ParticleVector>& pv, const std::shared_ptr<InitialConditions>& ic, int checkpointEvery)
 {
     if (isComputeTask())
         sim->registerParticleVector(pv, ic, checkpointEvery);
 }
-void uDeviceX::registerIntegrator(const std::shared_ptr<Integrator>& integrator)
+void YMeRo::registerIntegrator(const std::shared_ptr<Integrator>& integrator)
 {
     if (isComputeTask())
         sim->registerIntegrator(integrator);
 }
-void uDeviceX::registerInteraction(const std::shared_ptr<Interaction>& interaction)
+void YMeRo::registerInteraction(const std::shared_ptr<Interaction>& interaction)
 {
     if (isComputeTask())
         sim->registerInteraction(interaction);
 }
-void uDeviceX::registerWall(const std::shared_ptr<Wall>& wall, int checkEvery)
+void YMeRo::registerWall(const std::shared_ptr<Wall>& wall, int checkEvery)
 {
     if (isComputeTask())
         sim->registerWall(wall, checkEvery);
 }
-void uDeviceX::registerBouncer(const std::shared_ptr<Bouncer>& bouncer)
+void YMeRo::registerBouncer(const std::shared_ptr<Bouncer>& bouncer)
 {
     if (isComputeTask())
         sim->registerBouncer(bouncer);
 }
-void uDeviceX::registerObjectBelongingChecker (const std::shared_ptr<ObjectBelongingChecker>& checker, ObjectVector* ov)
+void YMeRo::registerObjectBelongingChecker (const std::shared_ptr<ObjectBelongingChecker>& checker, ObjectVector* ov)
 {
     if (isComputeTask())
     {
@@ -171,7 +171,7 @@ void uDeviceX::registerObjectBelongingChecker (const std::shared_ptr<ObjectBelon
         sim->setObjectBelongingChecker(checker->name, ov->name);
     }
 }
-void uDeviceX::registerPlugins(const std::shared_ptr<SimulationPlugin>& simPlugin, const std::shared_ptr<PostprocessPlugin>& postPlugin)
+void YMeRo::registerPlugins(const std::shared_ptr<SimulationPlugin>& simPlugin, const std::shared_ptr<PostprocessPlugin>& postPlugin)
 {
     if (isComputeTask())
     {
@@ -185,28 +185,28 @@ void uDeviceX::registerPlugins(const std::shared_ptr<SimulationPlugin>& simPlugi
     }
 }
 
-void uDeviceX::setIntegrator(Integrator* integrator, ParticleVector* pv)
+void YMeRo::setIntegrator(Integrator* integrator, ParticleVector* pv)
 {
     if (isComputeTask())
         sim->setIntegrator(integrator->name, pv->name);
 }
-void uDeviceX::setInteraction(Interaction* interaction, ParticleVector* pv1, ParticleVector* pv2)
+void YMeRo::setInteraction(Interaction* interaction, ParticleVector* pv1, ParticleVector* pv2)
 {
     if (isComputeTask())
         sim->setInteraction(interaction->name, pv1->name, pv2->name);
 }
-void uDeviceX::setBouncer(Bouncer* bouncer, ObjectVector* ov, ParticleVector* pv)
+void YMeRo::setBouncer(Bouncer* bouncer, ObjectVector* ov, ParticleVector* pv)
 {
     if (isComputeTask())
         sim->setBouncer(bouncer->name, ov->name, pv->name);
 }
-void uDeviceX::setWallBounce(Wall* wall, ParticleVector* pv)
+void YMeRo::setWallBounce(Wall* wall, ParticleVector* pv)
 {
     if (isComputeTask())
         sim->setWallBounce(wall->name, pv->name);
 }
 
-void uDeviceX::dumpWalls2XDMF(std::vector<std::shared_ptr<Wall>> walls, PyTypes::float3 h, std::string filename)
+void YMeRo::dumpWalls2XDMF(std::vector<std::shared_ptr<Wall>> walls, PyTypes::float3 h, std::string filename)
 {
     if (!isComputeTask()) return;
 
@@ -231,7 +231,7 @@ void uDeviceX::dumpWalls2XDMF(std::vector<std::shared_ptr<Wall>> walls, PyTypes:
     ::dumpWalls2XDMF(sdfWalls, make_float3(h), sim->domain, filename, sim->cartComm);
 }
 
-double uDeviceX::computeVolumeInsideWalls(std::vector<std::shared_ptr<Wall>> walls, long nSamplesPerRank)
+double YMeRo::computeVolumeInsideWalls(std::vector<std::shared_ptr<Wall>> walls, long nSamplesPerRank)
 {
     if (!isComputeTask()) return 0;
 
@@ -253,7 +253,7 @@ double uDeviceX::computeVolumeInsideWalls(std::vector<std::shared_ptr<Wall>> wal
     return volumeInsideWalls(sdfWalls, sim->domain, sim->cartComm, nSamplesPerRank);
 }
 
-std::shared_ptr<ParticleVector> uDeviceX::makeFrozenWallParticles(std::string pvName,
+std::shared_ptr<ParticleVector> YMeRo::makeFrozenWallParticles(std::string pvName,
                                                                   std::vector<std::shared_ptr<Wall>> walls,
                                                                   std::shared_ptr<Interaction> interaction,
                                                                   std::shared_ptr<Integrator>   integrator,
@@ -312,7 +312,7 @@ std::shared_ptr<ParticleVector> uDeviceX::makeFrozenWallParticles(std::string pv
     return pv;
 }
 
-std::shared_ptr<ParticleVector> uDeviceX::makeFrozenRigidParticles(std::shared_ptr<ObjectBelongingChecker> checker,
+std::shared_ptr<ParticleVector> YMeRo::makeFrozenRigidParticles(std::shared_ptr<ObjectBelongingChecker> checker,
                                                                    std::shared_ptr<ObjectVector> shape,
                                                                    std::shared_ptr<InitialConditions> icShape,
                                                                    std::shared_ptr<Interaction> interaction,
@@ -361,7 +361,7 @@ std::shared_ptr<ParticleVector> uDeviceX::makeFrozenRigidParticles(std::shared_p
 }
 
 
-std::shared_ptr<ParticleVector> uDeviceX::applyObjectBelongingChecker(ObjectBelongingChecker* checker,
+std::shared_ptr<ParticleVector> YMeRo::applyObjectBelongingChecker(ObjectBelongingChecker* checker,
                                                                       ParticleVector* pv,
                                                                       int checkEvery,
                                                                       std::string inside,
@@ -391,7 +391,7 @@ std::shared_ptr<ParticleVector> uDeviceX::applyObjectBelongingChecker(ObjectBelo
     return sim->getSharedPVbyName(newPVname);
 }
 
-void uDeviceX::sayHello()
+void YMeRo::sayHello()
 {
     if (noSplash) return;
     
@@ -408,48 +408,48 @@ void uDeviceX::sayHello()
     
     printf("\n");
     printf("**************************************************\n");
-    printf("*              uDeviceX %s                *\n", version.c_str());
+    printf("*              YMeRo %s                *\n", version.c_str());
     printf("* %s *\n", sha1.c_str());
     printf("**************************************************\n");
     printf("\n");
 }
 
-void uDeviceX::restart(std::string folder)
+void YMeRo::restart(std::string folder)
 {
     if (isComputeTask())
         sim->restart(folder);
 }
 
 
-bool uDeviceX::isComputeTask() const
+bool YMeRo::isComputeTask() const
 {
     return (computeTask == 0);
 }
 
-bool uDeviceX::isMasterTask() const
+bool YMeRo::isMasterTask() const
 {
     return (rank == 0 && isComputeTask());
 }
 
-void uDeviceX::saveDependencyGraph_GraphML(std::string fname) const
+void YMeRo::saveDependencyGraph_GraphML(std::string fname) const
 {
     if (isComputeTask())
         sim->saveDependencyGraph_GraphML(fname);
 }
 
-void uDeviceX::startProfiler()
+void YMeRo::startProfiler()
 {
     if (isComputeTask())
         sim->startProfiler();
 }
 
-void uDeviceX::stopProfiler()
+void YMeRo::stopProfiler()
 {
     if (isComputeTask())
         sim->stopProfiler();
 }
 
-void uDeviceX::run(int nsteps)
+void YMeRo::run(int nsteps)
 {
     if (isComputeTask())
     {
