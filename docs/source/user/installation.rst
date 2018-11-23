@@ -6,10 +6,10 @@
 Installation
 ############
 
-uDeviceX
+YMeRo
 ********
 
-uDeviceX requires at least Kepler-generation NVIDIA GPU and depends on a few external tools and libraries:
+YMeRo requires at least Kepler-generation NVIDIA GPU and depends on a few external tools and libraries:
 
 - Unix-based OS
 - NVIDIA CUDA toolkit version >= 8.0
@@ -20,25 +20,25 @@ uDeviceX requires at least Kepler-generation NVIDIA GPU and depends on a few ext
 - HDF5 parallel library
 - libbfd for pretty debug information in case of an error
 
-With all the prerequisites installed, you can take the following steps to run uDeviceX:
+With all the prerequisites installed, you can take the following steps to run YMeRo:
 
 #. Get the up-to-date version of the code:
 
    .. code-block:: console
       
-      $ git clone --recursive https://github.com/cselab/uDeviceX.git udevicex
+      $ git clone --recursive https://github.com/cselab/YMeRo.git ymero
       
 #. In most cases automatic installation will work correctly, you should try it in the first place.
    Navigate to the folder with the code and run the installation command:
    
    .. code-block:: console
       
-      $ cd udevicex
+      $ cd ymero
       $ make install
     
    In case of any issues, check the prerequisites or try a more "manual" way:
     
-   #. From the udevicex folder, create a build folder and run CMake:
+   #. From the ymero folder, create a build folder and run CMake:
    
       .. code-block:: console
          
@@ -67,7 +67,7 @@ With all the prerequisites installed, you can take the following steps to run uD
          
             $ cmake -DCUDA_ARCH_NAME=6.0 ../
             
-         Note that in case you don't specify any capability, uDeviceX will be compiled for all supported architectures, which increases
+         Note that in case you don't specify any capability, YMeRo will be compiled for all supported architectures, which increases
          compilation time and slightly increases application startup. Performance, however, should not be affected.
       
    #. Now you can compile the code:
@@ -78,7 +78,7 @@ With all the prerequisites installed, you can take the following steps to run uD
       
       The library will be generated in the current build folder.
       
-   #. A simple way to use uDeviceX after compilation is to install it with pip. Navigate to the root folder of uDeviceX
+   #. A simple way to use YMeRo after compilation is to install it with pip. Navigate to the root folder of YMeRo
       and run the following command:
       
       .. code-block:: console
@@ -86,11 +86,11 @@ With all the prerequisites installed, you can take the following steps to run uD
          $ pip install --user --upgrade .
          
          
-#. Now you should be able to use the uDeviceX in your Python scripts:
+#. Now you should be able to use the YMeRo in your Python scripts:
       
    .. code-block:: python
         
-      import udevicex
+      import ymero
    
 
 

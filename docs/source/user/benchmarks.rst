@@ -3,7 +3,7 @@
 Benchmarks
 ###########
 
-The following benchmarks represent typical use cases of *uDeviceX*.
+The following benchmarks represent typical use cases of *YMeRo*.
 They were performed on the `Piz-Daint <https://www.cscs.ch/computers/piz-daint/>`_ supercomputer for both strong and weak scaling.
 See in `benchmarks/cases/` for more informations about the run scripts.
 

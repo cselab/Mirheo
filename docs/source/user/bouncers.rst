@@ -14,11 +14,11 @@ Note that particle velocities are also altered, which means that objects experie
 
 Summary
 ========
-.. automodsumm:: _udevicex.Bouncers
+.. automodsumm:: _ymero.Bouncers
 
 Details
 ========
-.. automodule:: _udevicex.Bouncers
+.. automodule:: _ymero.Bouncers
    :members:
    :show-inheritance:
    :undoc-members:

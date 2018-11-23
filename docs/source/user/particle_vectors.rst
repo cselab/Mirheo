@@ -24,14 +24,14 @@ MPI process. OV can be used in most of the places where a regular PV can be used
 
 Summary
 ========
-.. automodsumm:: _udevicex.ParticleVectors
+.. automodsumm:: _ymero.ParticleVectors
 
-.. automod-diagram:: _udevicex.ParticleVectors
+.. automod-diagram:: _ymero.ParticleVectors
     :skip: Mesh, MembraneMesh
 
 Details
 ========
-.. automodule:: _udevicex.ParticleVectors
+.. automodule:: _ymero.ParticleVectors
    :members:
    :show-inheritance:
    :undoc-members:

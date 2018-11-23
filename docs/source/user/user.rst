@@ -9,9 +9,9 @@
 Overview
 ##########
 
-This section describes the uDeviceX interface and introduces the reader to installing and running the code.
+This section describes the YMeRo interface and introduces the reader to installing and running the code.
 
-The uDeviceX code is designed as a classical molecular dynamics code adapted for inclusion of rigid bodies and cells.
+The YMeRo code is designed as a classical molecular dynamics code adapted for inclusion of rigid bodies and cells.
 The simulation consists of multiple time-steps during which the particles and bodies will be displaces following laws of mechanics and hydrodynamics.
 One time-step roughly consists of the following steps:
 
@@ -32,14 +32,14 @@ The setup script usually starts with importing the module, e.g.:
 
 .. code-block:: python
 
-    import udevicex as udx
+    import ymero as ymr
 
 .. warning:: 
     Loading the module will set the :python:`sys.exepthook` to invoke :cpp:`MPI_Abort`.
     Otherwise single failed MPI process will not trigger shutdown, and a deadlock will happen.
 
     
-The coordinator class, :any:`udevicex`, and several submodules will be available after that:
+The coordinator class, :any:`ymero`, and several submodules will be available after that:
 
 * :ref:`ParticleVectors <user-pv>`.
     Consists of classes that store the collections of particles or objects
@@ -86,13 +86,13 @@ A simple script may look this way:
 Running the simulation
 **********************
 
-uDeviceX is intended to be executed within MPI environments, e.g.:
+YMeRo is intended to be executed within MPI environments, e.g.:
 
 .. code-block:: bash
 
     mpirun -np 12 python3 script.py
 
-The code employs simple domain decomposition strategy (see :any:`udevicex`) with the work
+The code employs simple domain decomposition strategy (see :any:`ymero`) with the work
 mapping fixed in the beginning of the simulation.
 
 .. warning:: 
@@ -110,6 +110,6 @@ mapping fixed in the beginning of the simulation.
     the postprocessing will be disabled. All the plugins that use the postprocessing will not work
     (all the plugins that write anything, for example). This execution mode is mainly aimed at debugging.
 
-The running code will produce several log files (one per MPI task): see :any:`udevicex`.
+The running code will produce several log files (one per MPI task): see :any:`ymero`.
 Most errors in the simulation setup (like setting a negative particle mass) will be reported to the log.
 In case the code finishes unexpectedly, the user is advised to take a look at the log.

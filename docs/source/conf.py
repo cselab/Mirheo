@@ -25,7 +25,7 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = 'uDeviceX'
+project = 'YMeRo'
 copyright = 'ETH Zurich'
 author = 'Dmitry Alexeev'
 
@@ -36,7 +36,7 @@ html_theme = 'sphinx_rtd_theme'
 html_theme_path = ["_themes",]
 import sphinx_rtd_theme
 html_theme_path = [sphinx_rtd_theme.get_html_theme_path()]
-html_title = "uDeviceX"
+html_title = "YMeRo"
 
 
 # If false, no module index is generated.
@@ -59,8 +59,8 @@ html_show_copyright = True
 
 
 # Setup breathe and exhale
-breathe_projects = { 'udevicex': '../xml' }
-breathe_default_project = 'udevicex'
+breathe_projects = { 'ymero': '../xml' }
+breathe_default_project = 'ymero'
 breathe_domain_by_extension = { "h" : "cpp", "cu" : "cpp" }
 
 cpp_id_attributes = ['__device__', '__global__', '__host__']
@@ -80,7 +80,7 @@ exhale_args = {
     # TIP: if using the sphinx-bootstrap-theme, you need
     # "treeViewIsBootstrap": True,
     "exhaleExecutesDoxygen": True,
-    "exhaleDoxygenStdin":    r'''   PROJECT_NAME      = "udevicex"
+    "exhaleDoxygenStdin":    r'''   PROJECT_NAME      = "ymero"
                                     XML_OUTPUT        = xml
 
                                     INPUT             = ../../src/core ../../src/plugins

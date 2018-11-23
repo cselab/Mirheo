@@ -5,17 +5,17 @@ import pathlib
 import inspect
 import re
 
-import udevicex
+import ymero
 
-mock_name = '_udevicex'
+mock_name = '_ymero'
 
 def simplify_docstring(docstr):
     if docstr is None:
         return None
     
-    strip_self = re.sub('self:\s+libudevicex[^\s\)]+\s+', '', docstr)
-    strip_libudx = re.sub('libudevicex\.', '', strip_self)
-    return strip_libudx
+    strip_self = re.sub('self:\s+libymero[^\s\)]+\s+', '', docstr)
+    strip_libymr = re.sub('libymero\.', '', strip_self)
+    return strip_libymr
 
 def class_members(cls):
     return inspect.getmembers(cls, lambda x : inspect.isfunction(x) or
@@ -63,15 +63,15 @@ def genmodule(name, fname, needfuncs):
     fout.close()
 
 pathlib.Path(mock_name).mkdir(parents=True, exist_ok=True)
-genmodule('udevicex', mock_name + '/__init__.py', False)
+genmodule('ymero', mock_name + '/__init__.py', False)
 
 
-submodules = inspect.getmembers(sys.modules['udevicex'],
+submodules = inspect.getmembers(sys.modules['ymero'],
                                 lambda member: inspect.ismodule(member)
-                                and 'udevicex' in member.__name__ )
+                                and 'ymero' in member.__name__ )
 
 for mname, m in submodules:
     subpath = mock_name + '/' + mname
     pathlib.Path(subpath).mkdir(parents=True, exist_ok=True)
-    genmodule('libudevicex.' + mname, subpath + '/__init__.py', True)
+    genmodule('libymero.' + mname, subpath + '/__init__.py', True)
 

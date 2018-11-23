@@ -1,6 +1,6 @@
-.. _user-udevicex:
+.. _user-ymero:
 
-uDeviceX coordinator
+YMeRo coordinator
 ######################
 
 The coordinator class stitches together data containers, :ref:`user-pv`, and all the handlers,
@@ -20,14 +20,14 @@ One and only one instance of this class should be created in the beginning of an
         from mpi4py import MPI
 
         
-.. autoclass:: _udevicex.udevicex
+.. autoclass:: _ymero.ymero
    :members:
    :undoc-members:
    :special-members: __init__
 
     .. rubric:: Methods
 
-    .. autoautosummary:: _udevicex.udevicex
+    .. autoautosummary:: _ymero.ymero
         :methods:
 
  

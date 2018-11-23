@@ -1,4 +1,4 @@
-uDeviceX
+YMeRo
 ########
 
 Mesoscale flow solver for biological and medical applications
@@ -6,7 +6,7 @@ Mesoscale flow solver for biological and medical applications
 Introduction
 ************
 
-The **uDeviceX** code is designed as a classical molecular dynamics code adapted for inclusion of large (consisting of thousands of particles) rigid bodies and cells.
+The **YMeRo** code is designed as a classical molecular dynamics code adapted for inclusion of large (consisting of thousands of particles) rigid bodies and cells.
 Main features of the code include:
 
 * fluids represented as free particles interacting with different pairwise potentials (i.e. DPD or Lennard-Jones),

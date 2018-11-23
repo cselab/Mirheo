@@ -1,4 +1,4 @@
-class udevicex:
+class ymero:
     r"""
         Main coordination class, should only be one instance at a time
     
@@ -114,7 +114,7 @@ Overloaded function.
         pass
 
     def isComputeTask():
-        r"""isComputeTask(self: udevicex) -> bool
+        r"""isComputeTask(self: ymero) -> bool
 
 Returns whether current rank will do compute or postrprocess
 
@@ -122,7 +122,7 @@ Returns whether current rank will do compute or postrprocess
         pass
 
     def isMasterTask():
-        r"""isMasterTask(self: udevicex) -> bool
+        r"""isMasterTask(self: ymero) -> bool
 
 Returns whether current task is the very first one
 
@@ -312,7 +312,7 @@ Set Wall
         pass
 
     def start_profiler():
-        r"""start_profiler(self: udevicex) -> None
+        r"""start_profiler(self: ymero) -> None
 
 Tells nvprof to start recording timeline
 
@@ -320,7 +320,7 @@ Tells nvprof to start recording timeline
         pass
 
     def stop_profiler():
-        r"""stop_profiler(self: udevicex) -> None
+        r"""stop_profiler(self: ymero) -> None
 
 Tells nvprof to stop recording timeline
 
