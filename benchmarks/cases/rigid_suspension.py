@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
-import udevicex as udx
-import udevicex.tools
+import ymero as ymr
+import ymero.tools
 import argparse
 import generate_rigids
 import numpy as np
@@ -34,15 +34,15 @@ adpd = 20.0
 gdpd = 20.0
 dpdPower = 0.25
 
-u = udx.udevicex(ranks, domain, debug_level=3, log_filename='log')
+u = ymr.ymero(ranks, domain, debug_level=3, log_filename='log')
 
-pvSolvent = udx.ParticleVectors.ParticleVector('solvent', mass)
-icSolvent = udx.InitialConditions.Uniform(density)
+pvSolvent = ymr.ParticleVectors.ParticleVector('solvent', mass)
+icSolvent = ymr.InitialConditions.Uniform(density)
 
-dpd = udx.Interactions.DPD('dpd', rc, adpd, gdpd, kBT, dt, dpdPower)
-cnt = udx.Interactions.LJ('contact', rc=1.0, epsilon=1.0, sigma=0.9, object_aware=True, max_force=750)
+dpd = ymr.Interactions.DPD('dpd', rc, adpd, gdpd, kBT, dt, dpdPower)
+cnt = ymr.Interactions.LJ('contact', rc=1.0, epsilon=1.0, sigma=0.9, object_aware=True, max_force=750)
 
-vv = udx.Integrators.VelocityVerlet_withPeriodicForce('vv', dt, args.f, direction='x')
+vv = ymr.Integrators.VelocityVerlet_withPeriodicForce('vv', dt, args.f, direction='x')
 
 u.registerParticleVector(pvSolvent, icSolvent)
 u.registerInteraction(dpd)
@@ -60,19 +60,19 @@ if args.withMesh:
     ell = trimesh.creation.icosphere(subdivisions=2, radius = 1.0)
     for i in range(3):
         ell.vertices[:,i] *= axes[i]
-    mesh = udx.ParticleVectors.Mesh(ell.vertices.tolist(), ell.faces.tolist())
-    pvEllipsoids = udx.ParticleVectors.RigidEllipsoidVector('ellipsoids', mass=1, object_size=len(coords), semi_axes=axes, mesh=mesh)
+    mesh = ymr.ParticleVectors.Mesh(ell.vertices.tolist(), ell.faces.tolist())
+    pvEllipsoids = ymr.ParticleVectors.RigidEllipsoidVector('ellipsoids', mass=1, object_size=len(coords), semi_axes=axes, mesh=mesh)
 else:
-    pvEllipsoids = udx.ParticleVectors.RigidEllipsoidVector('ellipsoids', mass=1, object_size=len(coords), semi_axes=axes)
+    pvEllipsoids = ymr.ParticleVectors.RigidEllipsoidVector('ellipsoids', mass=1, object_size=len(coords), semi_axes=axes)
 
-q = udevicex.tools.eulerToQuaternion(0., np.pi/2, 0.)
+q = ymero.tools.eulerToQuaternion(0., np.pi/2, 0.)
 (n, com_q) = generate_rigids.ellipsoids(domain, axes, rigids_numdensity, q)
-icEllipsoids = udx.InitialConditions.Rigid(com_q=com_q, coords=coords)
-vvEllipsoids = udx.Integrators.RigidVelocityVerlet("vvRigids", dt)
+icEllipsoids = ymr.InitialConditions.Rigid(com_q=com_q, coords=coords)
+vvEllipsoids = ymr.Integrators.RigidVelocityVerlet("vvRigids", dt)
 
 u.registerParticleVector(pvEllipsoids, icEllipsoids)
 
-belongingChecker = udx.BelongingCheckers.Ellipsoid("ellipsoidChecker")
+belongingChecker = ymr.BelongingCheckers.Ellipsoid("ellipsoidChecker")
 
 u.registerObjectBelongingChecker(belongingChecker, pvEllipsoids)
 u.applyObjectBelongingChecker(belongingChecker, pv=pvSolvent, correct_every=0, inside="none")
@@ -86,7 +86,7 @@ u.registerIntegrator(vvEllipsoids)
 u.setIntegrator(vv, pvSolvent)
 u.setIntegrator(vvEllipsoids, pvEllipsoids)
 
-bb = udx.Bouncers.Ellipsoid("bounceEllipsoid")
+bb = ymr.Bouncers.Ellipsoid("bounceEllipsoid")
 u.registerBouncer(bb)
 u.setBouncer(bb, pvEllipsoids, pvSolvent)
 
@@ -94,18 +94,18 @@ u.setBouncer(bb, pvEllipsoids, pvSolvent)
 dumpEvery = int(tDumpEvery / dt)
 
 if args.withMesh:
-    mdump = udx.Plugins.createDumpMesh("meshDump", pvEllipsoids, dumpEvery, path="ply/")
+    mdump = ymr.Plugins.createDumpMesh("meshDump", pvEllipsoids, dumpEvery, path="ply/")
     u.registerPlugins(mdump)
 
 
-stats = udx.Plugins.createStats('stats', "stats.txt", dumpEvery)
+stats = ymr.Plugins.createStats('stats', "stats.txt", dumpEvery)
 u.registerPlugins(stats)
 
 if 0:
     sampleEvery = 2
     binSize     = (1., 1., 1.)
     
-    field = udx.Plugins.createDumpAverage('field', [pvSolvent, pvEllipsoids], sampleEvery, dumpEvery, binSize, [("velocity", "vector_from_float8")], 'h5/field-')
+    field = ymr.Plugins.createDumpAverage('field', [pvSolvent, pvEllipsoids], sampleEvery, dumpEvery, binSize, [("velocity", "vector_from_float8")], 'h5/field-')
     u.registerPlugins(field)
 
 niter = int(tend/dt)

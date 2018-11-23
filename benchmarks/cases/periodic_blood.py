@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import udevicex as udx
+import ymero as ymr
 import argparse
 import sys
 from membrane_parameters import set_parameters, params2dict
@@ -16,8 +16,8 @@ class Viscosity_getter:
     def predict(self, gamma):
         return self.s(gamma)
 
-def get_rbc_params(udx, gamma_in, eta_in, rho):
-    prms = udx.Interactions.MembraneParameters()
+def get_rbc_params(ymr, gamma_in, eta_in, rho):
+    prms = ymr.Interactions.MembraneParameters()
     set_parameters(prms, gamma_in, eta_in, rho)
 
     return prms
@@ -73,7 +73,7 @@ args.inner_fsi_gamma = get_fsi_gamma(mu_inner, args.power, args.rho)
 args.gamma = None
 
 # RBC parameters
-rbc_params = get_rbc_params(udx, args.inner_gamma, mu_inner, args.rho)
+rbc_params = get_rbc_params(ymr, args.inner_gamma, mu_inner, args.rho)
 
 #====================================================================================
 #====================================================================================
@@ -91,7 +91,7 @@ if args.dry_run:
     report()
     quit()
 
-u = udx.udevicex(tuple(args.nranks), tuple(args.domain), debug_level=args.debug_lvl, log_filename='log')
+u = ymr.ymero(tuple(args.nranks), tuple(args.domain), debug_level=args.debug_lvl, log_filename='log')
 
 if u.isMasterTask():
     report()
@@ -99,41 +99,41 @@ if u.isMasterTask():
 #====================================================================================
 #====================================================================================
 
-outer = udx.ParticleVectors.ParticleVector('outer', mass = 1.0)
-ic = udx.InitialConditions.Uniform(density=args.rho)
+outer = ymr.ParticleVectors.ParticleVector('outer', mass = 1.0)
+ic = ymr.InitialConditions.Uniform(density=args.rho)
 u.registerParticleVector(pv=outer, ic=ic)
 
 # Interactions:
 #   DPD
-dpd = udx.Interactions.DPD('dpd', rc=1.0, a=args.a, gamma=args.outer_gamma, kbt=args.kbt, dt=args.dt, power=args.power)
+dpd = ymr.Interactions.DPD('dpd', rc=1.0, a=args.a, gamma=args.outer_gamma, kbt=args.kbt, dt=args.dt, power=args.power)
 u.registerInteraction(dpd)
 #   Contact (LJ)
-contact = udx.Interactions.LJ('contact', rc=1.0, epsilon=1.0, sigma=0.9, object_aware=True, max_force=750)
+contact = ymr.Interactions.LJ('contact', rc=1.0, epsilon=1.0, sigma=0.9, object_aware=True, max_force=750)
 u.registerInteraction(contact)
 #   Membrane
-membrane_int = udx.Interactions.MembraneForces('int_rbc', rbc_params, stressFree=True)
+membrane_int = ymr.Interactions.MembraneForces('int_rbc', rbc_params, stressFree=True)
 u.registerInteraction(membrane_int)
 
 # Integrator
-vv = udx.Integrators.VelocityVerlet_withPeriodicForce('vv', dt=args.dt, force=args.f, direction='x')
+vv = ymr.Integrators.VelocityVerlet_withPeriodicForce('vv', dt=args.dt, force=args.f, direction='x')
 u.registerIntegrator(vv)
 
 if args.nsubsteps > 1:
-    subvv = udx.Integrators.SubStepMembrane('subvv', args.dt, args.nsubsteps, membrane_int)
+    subvv = ymr.Integrators.SubStepMembrane('subvv', args.dt, args.nsubsteps, membrane_int)
     u.registerIntegrator(subvv)
 
 
 # RBCs
-mesh_rbc = udx.ParticleVectors.MembraneMesh(args.resource_folder + 'rbc_mesh.off')
-rbcs = udx.ParticleVectors.MembraneVector('rbc', mass=1.0, mesh=mesh_rbc)
-u.registerParticleVector(pv=rbcs, ic=udx.InitialConditions.Restart('generated/'))
+mesh_rbc = ymr.ParticleVectors.MembraneMesh(args.resource_folder + 'rbc_mesh.off')
+rbcs = ymr.ParticleVectors.MembraneVector('rbc', mass=1.0, mesh=mesh_rbc)
+u.registerParticleVector(pv=rbcs, ic=ymr.InitialConditions.Restart('generated/'))
 
-checker = udx.BelongingCheckers.Mesh('checker')
+checker = ymr.BelongingCheckers.Mesh('checker')
 u.registerObjectBelongingChecker(checker, rbcs)
 inner = u.applyObjectBelongingChecker(checker, outer, inside='inner', correct_every=0)
 
 # Bouncer
-bouncer = udx.Bouncers.Mesh('bouncer')
+bouncer = ymr.Bouncers.Mesh('bouncer')
 u.registerBouncer(bouncer)
 
 
@@ -177,16 +177,16 @@ u.setBouncer(bouncer, rbcs, outer)
 #====================================================================================
 
 statsEvery=20
-u.registerPlugins(udx.Plugins.createStats('stats', "stats.txt", statsEvery))
+u.registerPlugins(ymr.Plugins.createStats('stats', "stats.txt", statsEvery))
 
 if args.with_dumps:
     sample_every = 5
     dump_every   = 1000
     bin_size     = (1., 1., 1.)
 
-    field = udx.Plugins.createDumpAverage('field', [outer, inner], sample_every, dump_every, bin_size, [("velocity", "vector_from_float8")], 'h5/solvent-')
+    field = ymr.Plugins.createDumpAverage('field', [outer, inner], sample_every, dump_every, bin_size, [("velocity", "vector_from_float8")], 'h5/solvent-')
     u.registerPlugins(field)
     
-    u.registerPlugins(udx.Plugins.createDumpMesh('mesh', ov=rbcs, dump_every=dump_every, path='ply/'))
+    u.registerPlugins(ymr.Plugins.createDumpMesh('mesh', ov=rbcs, dump_every=dump_every, path='ply/'))
 
 u.run(args.niters)

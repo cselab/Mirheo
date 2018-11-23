@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import udevicex as udx
+import ymero as ymr
 import argparse
 import sys
 
@@ -42,7 +42,7 @@ if args.dry_run:
     report()
     quit()
 
-u = udx.udevicex(tuple(args.nranks), tuple(args.domain), debug_level=args.debug_lvl, log_filename='log')
+u = ymr.ymero(tuple(args.nranks), tuple(args.domain), debug_level=args.debug_lvl, log_filename='log')
 
 if u.isMasterTask():
     report()
@@ -50,26 +50,26 @@ if u.isMasterTask():
 #====================================================================================
 #====================================================================================
 
-pv = udx.ParticleVectors.ParticleVector('pv', mass = 1)
-ic = udx.InitialConditions.Uniform(density=args.rho)
+pv = ymr.ParticleVectors.ParticleVector('pv', mass = 1)
+ic = ymr.InitialConditions.Uniform(density=args.rho)
 u.registerParticleVector(pv=pv, ic=ic)
     
-dpd = udx.Interactions.DPD('dpd', 1.0, a=args.a, gamma=args.gamma, kbt=args.kbt, dt=args.dt, power=args.power)
+dpd = ymr.Interactions.DPD('dpd', 1.0, a=args.a, gamma=args.gamma, kbt=args.kbt, dt=args.dt, power=args.power)
 u.registerInteraction(dpd)
 u.setInteraction(dpd, pv, pv)
 
-vv = udx.Integrators.VelocityVerlet_withPeriodicForce('vv', dt=args.dt, force=args.f, direction='x')
+vv = ymr.Integrators.VelocityVerlet_withPeriodicForce('vv', dt=args.dt, force=args.f, direction='x')
 u.registerIntegrator(vv)
 u.setIntegrator(vv, pv)
 
-u.registerPlugins(udx.Plugins.createStats('stats', "stats.txt", every=1000))
+u.registerPlugins(ymr.Plugins.createStats('stats', "stats.txt", every=1000))
 
 if args.with_dumps:
     sampleEvery = 5
     dumpEvery   = 1000
     binSize     = (1., 1., 1.)
 
-    field = udx.Plugins.createDumpAverage('field', [pv], sampleEvery, dumpEvery, binSize, [("velocity", "vector_from_float8")], 'h5/solvent-')
+    field = ymr.Plugins.createDumpAverage('field', [pv], sampleEvery, dumpEvery, binSize, [("velocity", "vector_from_float8")], 'h5/solvent-')
     u.registerPlugins(field)
 
 u.run(args.niters)
@@ -88,4 +88,4 @@ if u.isComputeTask():
     if args.with_dumps:
         del field
     
-    udx.destroyCudaContext()
+    ymr.destroyCudaContext()

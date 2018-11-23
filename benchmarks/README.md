@@ -1,3 +1,3 @@
 # Benchmarks
 
-scripts for computing weak and strong scaling of `uDeviceX`
+scripts for computing weak and strong scaling of `YMeRo`

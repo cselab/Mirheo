@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import udevicex as udx
+import ymero as ymr
 import argparse
 import sys
 
@@ -46,7 +46,7 @@ if args.dry_run:
 domain = args.domain
 rc     = args.rc
     
-u = udx.udevicex(tuple(args.nranks), tuple(domain), debug_level=args.debug_lvl, log_filename='log')
+u = ymr.ymero(tuple(args.nranks), tuple(domain), debug_level=args.debug_lvl, log_filename='log')
 
 if u.isMasterTask():
     report()
@@ -54,19 +54,19 @@ if u.isMasterTask():
 #====================================================================================
 #====================================================================================
 
-pv = udx.ParticleVectors.ParticleVector('pv', mass = 1)
-ic = udx.InitialConditions.Uniform(density=args.rho)
+pv = ymr.ParticleVectors.ParticleVector('pv', mass = 1)
+ic = ymr.InitialConditions.Uniform(density=args.rho)
 u.registerParticleVector(pv=pv, ic=ic)
     
-dpd = udx.Interactions.DPD('dpd', rc, args.a, args.gamma, args.kbt, args.dt, args.power)
+dpd = ymr.Interactions.DPD('dpd', rc, args.a, args.gamma, args.kbt, args.dt, args.power)
 u.registerInteraction(dpd)
 
-vveq = udx.Integrators.VelocityVerlet('vveq', args.dt)
-vv   = udx.Integrators.VelocityVerlet_withConstForce('vv', args.dt, force=[args.f, 0, 0])
+vveq = ymr.Integrators.VelocityVerlet('vveq', args.dt)
+vv   = ymr.Integrators.VelocityVerlet_withConstForce('vv', args.dt, force=[args.f, 0, 0])
 
 lo = ( -domain[0],  -domain[1],           rc)
 hi = (2*domain[0], 2*domain[1], domain[2]-rc)
-wall = udx.Walls.Box("plates", low=lo, high=hi, inside=True)
+wall = ymr.Walls.Box("plates", low=lo, high=hi, inside=True)
 u.registerWall(wall, 0)
 
 frozen = u.makeFrozenWallParticles(pvName="plates", walls=[wall], interaction=dpd, integrator=vveq, density=args.rho)
@@ -77,14 +77,14 @@ u.setIntegrator(vv, pv)
 u.setInteraction(dpd, pv, pv)
 u.setInteraction(dpd, frozen, pv)
 
-u.registerPlugins(udx.Plugins.createStats('stats', "stats.txt", every=1000))
+u.registerPlugins(ymr.Plugins.createStats('stats', "stats.txt", every=1000))
 
 if args.with_dumps:
     sampleEvery = 5
     dumpEvery   = 1000
     binSize     = (1., 1., 1.)
 
-    field = udx.Plugins.createDumpAverage('field', [pv], sampleEvery, dumpEvery, binSize, [("velocity", "vector_from_float8")], 'h5/solvent-')
+    field = ymr.Plugins.createDumpAverage('field', [pv], sampleEvery, dumpEvery, binSize, [("velocity", "vector_from_float8")], 'h5/solvent-')
     u.registerPlugins(field)
 
 u.run(args.niters)

@@ -4,7 +4,7 @@ import argparse
 import numpy as np
 import sys
 import pickle
-import udevicex as udx
+import ymero as ymr
 from membrane_parameters import set_parameters, params2dict
 
 def gen_ic(domain, cell_volume, hematocrit, extent=(7,7,3)):
@@ -30,8 +30,8 @@ def gen_ic(domain, cell_volume, hematocrit, extent=(7,7,3)):
     return real_ht, (nx, ny, nz), com_q
     
 
-def get_rbc_params(udx, gamma_in, eta_in, rho):
-    prms = udx.Interactions.MembraneParameters()
+def get_rbc_params(ymr, gamma_in, eta_in, rho):
+    prms = ymr.Interactions.MembraneParameters()
     set_parameters(prms, gamma_in, eta_in, rho)
 
     return prms
@@ -82,7 +82,7 @@ niters = int(args.final_time / args.dt)
 visc_getter = Viscosity_getter(args.resource_folder, args.a, args.power)
 mu_outer = visc_getter.predict(args.gamma)
 mu_inner = mu_outer * args.lbd
-params = get_rbc_params(udx, args.gamma * args.lbd, mu_inner, args.rho)
+params = get_rbc_params(ymr, args.gamma * args.lbd, mu_inner, args.rho)
 params.gammaC = 2.0
 
 #====================================================================================
@@ -103,7 +103,7 @@ if args.dry_run:
     report()
     quit()
 
-u = udx.udevicex(args.nranks, args.domain, debug_level=args.debug_lvl, log_filename='generate', restart_folder="generated/")
+u = ymr.ymero(args.nranks, args.domain, debug_level=args.debug_lvl, log_filename='generate', restart_folder="generated/")
 
 if u.isMasterTask():
     report()
@@ -113,24 +113,24 @@ if u.isMasterTask():
 
 # Interactions:
 #   DPD
-dpd = udx.Interactions.DPD('dpd', rc=1.0, a=args.a, gamma=args.gamma, kbt=args.kbt, dt=args.dt, power=args.power)
+dpd = ymr.Interactions.DPD('dpd', rc=1.0, a=args.a, gamma=args.gamma, kbt=args.kbt, dt=args.dt, power=args.power)
 u.registerInteraction(dpd)
 #   Contact (LJ)
-contact = udx.Interactions.LJ('contact', rc=1.0, epsilon=10, sigma=1.0, object_aware=True, max_force=2000)
+contact = ymr.Interactions.LJ('contact', rc=1.0, epsilon=10, sigma=1.0, object_aware=True, max_force=2000)
 u.registerInteraction(contact)
 
 #   Membrane
-membrane_int = udx.Interactions.MembraneForces('int_rbc', params, stressFree=False, grow_until=args.final_time*0.5)
+membrane_int = ymr.Interactions.MembraneForces('int_rbc', params, stressFree=False, grow_until=args.final_time*0.5)
 u.registerInteraction(membrane_int)
 
 # Integrator
-vv = udx.Integrators.VelocityVerlet('vv', args.dt)
+vv = ymr.Integrators.VelocityVerlet('vv', args.dt)
 u.registerIntegrator(vv)
 
 # RBCs
-mesh_rbc = udx.ParticleVectors.MembraneMesh(args.resource_folder + 'rbc_mesh.off')
-rbcs = udx.ParticleVectors.MembraneVector('rbc', mass=1.0, mesh=mesh_rbc)
-u.registerParticleVector(pv=rbcs, ic=udx.InitialConditions.Membrane(rbcs_ic, global_scale=0.5), checkpoint_every = niters-5)
+mesh_rbc = ymr.ParticleVectors.MembraneMesh(args.resource_folder + 'rbc_mesh.off')
+rbcs = ymr.ParticleVectors.MembraneVector('rbc', mass=1.0, mesh=mesh_rbc)
+u.registerParticleVector(pv=rbcs, ic=ymr.InitialConditions.Membrane(rbcs_ic, global_scale=0.5), checkpoint_every = niters-5)
 
 # Stitching things with each other
 #   contact
@@ -144,7 +144,7 @@ u.setIntegrator(vv, rbcs)
 #====================================================================================
 #====================================================================================
 
-u.registerPlugins(udx.Plugins.createStats('stats', every=1000))
+u.registerPlugins(ymr.Plugins.createStats('stats', every=1000))
 
 
 u.run(niters)
