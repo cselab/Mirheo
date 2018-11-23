@@ -12,7 +12,7 @@ RUN_CMD=@RUN_CMD@
 
 usage() {
     cat <<EOF
-wrapper for udevicex executable.
+wrapper for ymero executable.
 automatically loads the required modules.
 
 usage: $EXE_PREFIX.run [--runargs RUNARGS] <executable> [ARGS]
@@ -31,11 +31,11 @@ env variable
 
 example:
 
-    DRYRUN= MEM=  $EXE_PREFIX.run --runargs "-n 2" ./udevicex
+    DRYRUN= MEM=  $EXE_PREFIX.run --runargs "-n 2" ./ymero
 
 will print
    
-   $RUN_CMD -n 2 $EXE_CUDA_MEMCHECK ./udevicex
+   $RUN_CMD -n 2 $EXE_CUDA_MEMCHECK ./ymero
 
 EOF
     exit 1

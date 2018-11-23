@@ -1,4 +1,4 @@
 #! /bin/sh
 
-udx.run pip install trimesh --user
-udx.run pip install mpi4py --user
+ymr.run pip install trimesh --user
+ymr.run pip install mpi4py --user

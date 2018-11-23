@@ -4,7 +4,7 @@ EXE_PREFIX=@EXE_PREFIX@
 
 usage() {
     cat <<EOF
-wrapper for udevicex postprocessing.
+wrapper for ymero postprocessing.
 automatically loads the required modules.
 Note: this is meant for one node only tools!
 use ${EXE_PREFIX}.run for multy node instead.

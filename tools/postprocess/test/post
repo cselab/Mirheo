@@ -1,2 +1,2 @@
 # TEST: post.echo
-udx.post echo 1 > echo.out.txt
+ymr.post echo 1 > echo.out.txt

@@ -1,6 +1,6 @@
 #!/bin/sh
 
-P=udx
+P=ymr
 prefix=${HOME}/bin
 runcmd=mpiexec
 
@@ -12,7 +12,7 @@ Options:
 
   --bin-prefix <prefix>      set tools installation prefix;
   	   		     default: ${prefix}
-  --exec-cmd   <cmd>         set run command for udevicex;
+  --exec-cmd   <cmd>         set run command for ymero;
   	   		     default: ${runcmd}
   --help                     print help message
 

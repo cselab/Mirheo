@@ -1,6 +1,6 @@
 # TEST: run.echo
-udx.run echo 1 > echo.out.txt
+ymr.run echo 1 > echo.out.txt
 
 # TEST: run.echo.2
-udx.run -n 2 echo 1 > echo.out.txt
+ymr.run -n 2 echo 1 > echo.out.txt
 
