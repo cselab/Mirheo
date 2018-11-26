@@ -408,7 +408,7 @@ void YMeRo::sayHello()
     
     printf("\n");
     printf("**************************************************\n");
-    printf("*              YMeRo %s                *\n", version.c_str());
+    printf("*                YMeRo %s                 *\n", version.c_str());
     printf("* %s *\n", sha1.c_str());
     printf("**************************************************\n");
     printf("\n");
