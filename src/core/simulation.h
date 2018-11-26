@@ -197,6 +197,9 @@ private:
     void prepareInteractions();
     void prepareBouncers();
     void prepareWalls();
+    void preparePlugins();
+    void prepareEngines();
+    
     void execSplitters();
     
     void assemble();

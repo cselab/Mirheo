@@ -589,43 +589,19 @@ void Simulation::prepareWalls()
     }
 }
 
-void Simulation::execSplitters()
+void Simulation::preparePlugins()
 {
-    info("Splitting particle vectors with respect to object belonging");
-
-    for (auto& prototype : splitterPrototypes)
-    {
-        auto checker = prototype.checker;
-        auto src     = prototype.pvSrc;
-        auto inside  = prototype.pvIn;
-        auto outside = prototype.pvOut;
-
-        checker->splitByBelonging(src, inside, outside, 0);
-    }
-}
-
-void Simulation::init()
-{
-    info("Simulation initiated");
-
-    prepareCellLists();
-
-    prepareInteractions();
-    prepareBouncers();
-    prepareWalls();
-
-    CUDA_Check( cudaDeviceSynchronize() );
-
     info("Preparing plugins");
-    for (auto& pl : plugins)
-    {
+    for (auto& pl : plugins) {
         debug("Setup and handshake of plugin %s", pl->name.c_str());
         pl->setup(this, cartComm, interComm);
         pl->handshake();
     }
     info("done Preparing plugins");
-    
+}
 
+void Simulation::prepareEngines()
+{
     auto redistImp    = std::make_unique<ParticleRedistributor>();
     auto haloImp      = std::make_unique<ParticleHaloExchanger>();
     auto objRedistImp = std::make_unique<ObjectRedistributor>();
@@ -674,7 +650,37 @@ void Simulation::init()
     objRedistibutor = makeEngine(std::move(objRedistImp));
     objHalo         = makeEngine(std::move(objHaloImp));
     objHaloForces   = makeEngine(std::move(objForcesImp));
+}
 
+void Simulation::execSplitters()
+{
+    info("Splitting particle vectors with respect to object belonging");
+
+    for (auto& prototype : splitterPrototypes)
+    {
+        auto checker = prototype.checker;
+        auto src     = prototype.pvSrc;
+        auto inside  = prototype.pvIn;
+        auto outside = prototype.pvOut;
+
+        checker->splitByBelonging(src, inside, outside, 0);
+    }
+}
+
+void Simulation::init()
+{
+    info("Simulation initiated");
+
+    prepareCellLists();
+
+    prepareInteractions();
+    prepareBouncers();
+    prepareWalls();
+
+    CUDA_Check( cudaDeviceSynchronize() );
+
+    preparePlugins();
+    prepareEngines();
 
     assemble();
     
@@ -963,9 +969,6 @@ void Simulation::assemble()
     scheduler->setHighPriority(task_objLocalBounce);
     
     scheduler->compile();
-
-//     if (rank == 0)
-//         scheduler->saveDependencyGraph_GraphML("simulation.graphml");
 }
 
 void Simulation::run(int nsteps)
@@ -982,8 +985,6 @@ void Simulation::run(int nsteps)
 
         scheduler->run();
         
-//        MPI_Check( MPI_Barrier(cartComm) );
-
         currentTime += dt;
     }
 
