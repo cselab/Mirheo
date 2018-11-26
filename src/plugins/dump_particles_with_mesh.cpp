@@ -27,6 +27,7 @@ void ParticleWithMeshSenderPlugin::handshake()
     auto& mesh = static_cast<ObjectVector*>(pv)->mesh;
 
     waitPrevSend();
+    debug("handshake for plugin '%s': sending %d triangles for a %d vertices mesh", name.c_str(), mesh->getNtriangles(), mesh->getNvertices());
     SimpleSerializer::serialize(sendBuffer, mesh->getNvertices(), mesh->triangles);
     send(sendBuffer);
 }
@@ -47,6 +48,7 @@ void ParticleWithMeshDumperPlugin::handshake()
     recv();
 
     SimpleSerializer::deserialize(data, nvertices, triangles);
+    debug("handshake for plugin '%s': received %d triangles for a %d vertices mesh", name.c_str(), triangles.size(), nvertices);
 }
 
 void ParticleWithMeshDumperPlugin::_prepareConnectivity(int totNVertices)
