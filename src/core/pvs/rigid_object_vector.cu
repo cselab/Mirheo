@@ -20,6 +20,9 @@ RigidObjectVector::RigidObjectVector(std::string name, float partMass,
     if (length(J) < 1e-5)
         die("Wrong momentum of inertia: [%f %f %f]", J.x, J.y, J.z);
 
+    if (J.x < 0 || J.y < 0 || J.z < 0)
+        die("Inertia tensor must be positive; got [%f %f %f]", J.x, J.y, J.z);
+
     // rigid motion must be exchanged and shifted
     requireDataPerObject<RigidMotion>("motions", true, sizeof(RigidReal));
     requireDataPerObject<RigidMotion>("old_motions", false);
