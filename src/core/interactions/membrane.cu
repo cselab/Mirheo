@@ -6,7 +6,7 @@
 #include <core/pvs/membrane_vector.h>
 #include <core/pvs/views/ov.h>
 
-#include <core/membrane_kernels/interactions.h>
+#include "membrane/interactions_kernels.h"
 
 #include <cmath>
 #include <random>
