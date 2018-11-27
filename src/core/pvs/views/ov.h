@@ -45,6 +45,19 @@ struct OVviewWithAreaVolume : public OVview
     }
 };
 
+struct OVviewWithJuelicherQuants : public OVview
+{
+    float *vertexAreas = nullptr;
+
+    OVviewWithJuelicherQuants(ObjectVector* ov = nullptr, LocalObjectVector* lov = nullptr) :
+        OVview(ov, lov)
+    {
+        if (ov == nullptr || lov == nullptr) return;
+
+        vertexAreas = lov->extraPerObject.getData<float>("vertexAreas")->devPtr();
+    }
+};
+
 struct OVviewWithOldPartilces : public OVview
 {
     float4* old_particles = nullptr;
