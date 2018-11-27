@@ -45,3 +45,8 @@ void IntegratorSubStepMembrane::stage2(ParticleVector *pv, float t, cudaStream_t
     pv->redistValid = false;
     pv->cellListStamp++;
 }
+
+void IntegratorSubStepMembrane::setPrerequisites(ParticleVector* pv)
+{
+    fastForces->setPrerequisites(pv, pv);
+}
