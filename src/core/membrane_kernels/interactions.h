@@ -154,7 +154,12 @@ __device__ float3 bondTriangleForce(
 
 // **************************************************************************************************
 
-template<int update>
+enum class DihedralUpdate {
+    FromMiddle,
+    FromEnd
+};
+
+template<DihedralUpdate update>
 __device__  inline  float3 _fdihedral(float3 v1, float3 v2, float3 v3, float3 v4, GPU_RBCparameters parameters)
 {
     const float3 ksi   = cross(v1 - v2, v1 - v3);
@@ -174,9 +179,9 @@ __device__  inline  float3 _fdihedral(float3 v1, float3 v2, float3 v3, float3 v4
     float b12 =  beta *             overIksiI   * overIdzetaI;
     float b22 = -beta * cosTheta *  overIdzetaI * overIdzetaI;
 
-    if (update == 1)
+    if      (update == DihedralUpdate::FromEnd)
         return cross(ksi, v3 - v2)*b11 + cross(dzeta, v3 - v2)*b12;
-    else if (update == 2)
+    else if (update == DihedralUpdate::FromMiddle)
         return cross(ksi, v1 - v3)*b11 + ( cross(ksi, v3 - v4) + cross(dzeta, v1 - v3) )*b12 + cross(dzeta, v3 - v4)*b22;
     else return make_float3(0.0f);
 }
@@ -221,8 +226,8 @@ __device__ float3 dihedralForce(
         r3 = Float3_int(view.particles[shift + 2*idv3]).v;
         r4 = Float3_int(view.particles[shift + 2*idv4]).v;
 
-        f += _fdihedral<1>(r0, r2, r1, r4, parameters);
-        f += _fdihedral<2>(r1, r0, r2, r3, parameters);
+        f += _fdihedral<DihedralUpdate::FromEnd>   (r0, r2, r1, r4, parameters);
+        f += _fdihedral<DihedralUpdate::FromMiddle>(r1, r0, r2, r3, parameters);
 
         r1 = r2;
         r2 = r3;
