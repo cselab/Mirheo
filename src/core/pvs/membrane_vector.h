@@ -13,7 +13,6 @@ public:
                       new LocalObjectVector(this, mptr->getNvertices(), 0) )
     {
         mesh = std::move(mptr);
-        requireDataPerObject<float2>("area_volumes", false);
     }
 
     virtual ~MembraneVector() = default;
