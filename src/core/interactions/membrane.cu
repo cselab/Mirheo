@@ -7,6 +7,7 @@
 #include <core/pvs/views/ov.h>
 
 #include "membrane/interactions_kernels.h"
+#include "membrane/bending_juelicher.h"
 
 #include <cmath>
 #include <random>

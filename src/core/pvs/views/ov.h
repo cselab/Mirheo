@@ -47,14 +47,16 @@ struct OVviewWithAreaVolume : public OVview
 
 struct OVviewWithJuelicherQuants : public OVview
 {
-    float *vertexAreas = nullptr;
+    float *vertexAreas     = nullptr;
+    float *vertexLenThetas = nullptr;
 
     OVviewWithJuelicherQuants(ObjectVector* ov = nullptr, LocalObjectVector* lov = nullptr) :
         OVview(ov, lov)
     {
         if (ov == nullptr || lov == nullptr) return;
 
-        vertexAreas = lov->extraPerObject.getData<float>("vertexAreas")->devPtr();
+        vertexAreas     = lov->extraPerObject.getData<float>("vertexAreas"   )->devPtr();
+        vertexLenThetas = lov->extraPerObject.getData<float>("vertexLenThetas")->devPtr();
     }
 };
 
