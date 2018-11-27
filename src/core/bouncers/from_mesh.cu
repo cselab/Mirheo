@@ -6,7 +6,7 @@
 #include <core/pvs/object_vector.h>
 #include <core/pvs/views/ov.h>
 
-#include <core/membrane_kernels/bounce.h>
+#include "mesh/bounce_kernels.h"
 #include <extern/cub/cub/device/device_radix_sort.cuh>
 
 #include <core/rigid_kernels/integration.h>
