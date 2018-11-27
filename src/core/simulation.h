@@ -117,12 +117,11 @@ private:
     std::unique_ptr<TaskScheduler> scheduler;
 
     bool gpuAwareMPI;
-    std::unique_ptr<ExchangeEngine> halo;
-    std::unique_ptr<ExchangeEngine> redistributor;
 
-    std::unique_ptr<ExchangeEngine> objHalo;
-    std::unique_ptr<ExchangeEngine> objRedistibutor;
-    std::unique_ptr<ExchangeEngine> objHaloForces;
+    using ExchangeEngineUniquePtr = std::unique_ptr<ExchangeEngine>;
+
+    ExchangeEngineUniquePtr halo, redistributor;
+    ExchangeEngineUniquePtr objHalo, objRedistibutor, objHaloForces;
 
     std::map<std::string, int> pvIdMap;
     std::vector< std::shared_ptr<ParticleVector> > particleVectors;

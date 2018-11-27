@@ -25,16 +25,16 @@ class YMeRo
 {
 public:
     YMeRo(PyTypes::int3 nranks3D, PyTypes::float3 globalDomainSize,
-             std::string logFileName, int verbosity, int checkpointEvery=0,
-             std::string checkpointFolder="restart/", bool gpuAwareMPI=false, bool noSplash=false);
+          std::string logFileName, int verbosity, int checkpointEvery=0,
+          std::string checkpointFolder="restart/", bool gpuAwareMPI=false, bool noSplash=false);
 
     YMeRo(long commAddress, PyTypes::int3 nranks3D, PyTypes::float3 globalDomainSize,
-             std::string logFileName, int verbosity, int checkpointEvery=0,
-             std::string checkpointFolder="restart/", bool gpuAwareMPI=false, bool noSplash=false);
+          std::string logFileName, int verbosity, int checkpointEvery=0,
+          std::string checkpointFolder="restart/", bool gpuAwareMPI=false, bool noSplash=false);
 
     YMeRo(MPI_Comm comm, PyTypes::int3 nranks3D, PyTypes::float3 globalDomainSize,
-             std::string logFileName, int verbosity, int checkpointEvery=0,
-             std::string checkpointFolder="restart/", bool gpuAwareMPI=false, bool noSplash=false);
+          std::string logFileName, int verbosity, int checkpointEvery=0,
+          std::string checkpointFolder="restart/", bool gpuAwareMPI=false, bool noSplash=false);
 
     void restart(std::string folder="restart/");
     bool isComputeTask() const;
