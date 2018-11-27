@@ -191,6 +191,9 @@ private:
     std::vector<std::function<void(float, cudaStream_t)>> integratorsStage1, integratorsStage2;
     std::vector<std::function<void(float, cudaStream_t)>> regularBouncers, haloBouncers;
 
+    std::map<std::string, std::string> pvsIntegratorMap;
+    
+private:
     
     void prepareCellLists();
     void prepareInteractions();

@@ -312,6 +312,12 @@ void Simulation::setIntegrator(std::string integratorName, std::string pvName)
 
     auto pv = getPVbyNameOrDie(pvName);
 
+    if (pvsIntegratorMap.find(pvName) != pvsIntegratorMap.end())
+        die("particle vector '%s' already set to integrator '%s'",
+            pvName.c_str(), pvsIntegratorMap[pvName].c_str());
+
+    pvsIntegratorMap[pvName] = integratorName;
+    
     integrator->setPrerequisites(pv);
 
     integratorsStage1.push_back([integrator, pv] (float t, cudaStream_t stream) {
@@ -543,6 +549,10 @@ void Simulation::prepareBouncers()
         auto bouncer = prototype.bouncer;
         auto pv      = prototype.pv;
 
+        if (pvsIntegratorMap.find(pv->name) == pvsIntegratorMap.end())
+            die("Setting bouncer '%s': particle vector '%s' has no integrator, required for bounce back",
+                bouncer->name.c_str(), pv->name.c_str());
+        
         auto& clVec = cellListMap[pv];
 
         if (clVec.empty()) continue;
