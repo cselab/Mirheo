@@ -1,10 +1,6 @@
 #pragma once
 
-#include <core/utils/cuda_common.h>
-#include <core/utils/cuda_rng.h>
-#include <core/pvs/object_vector.h>
-#include <core/pvs/views/ov.h>
-#include <core/mesh.h>
+#include "common.h"
 
 struct GPU_RBCparameters
 {
@@ -20,27 +16,25 @@ struct GPU_RBCparameters
 
 __global__ void computeAreaAndVolume(OVviewWithAreaVolume view, MeshView mesh)
 {
-    const int objId = blockIdx.x;
+    int objId = blockIdx.x;
+    int offset = objId * mesh.nvertices;
     float2 a_v = make_float2(0.0f);
 
-    for(int i = threadIdx.x; i < mesh.ntriangles; i += blockDim.x)
-    {
+    for(int i = threadIdx.x; i < mesh.ntriangles; i += blockDim.x) {        
         int3 ids = mesh.triangles[i];
 
-        float3 v0 = f4tof3( view.particles[ 2 * (ids.x+objId*mesh.nvertices) ] );
-        float3 v1 = f4tof3( view.particles[ 2 * (ids.y+objId*mesh.nvertices) ] );
-        float3 v2 = f4tof3( view.particles[ 2 * (ids.z+objId*mesh.nvertices) ] );
+        float3 v0 = f4tof3( view.particles[ 2 * (offset + ids.x) ] );
+        float3 v1 = f4tof3( view.particles[ 2 * (offset + ids.y) ] );
+        float3 v2 = f4tof3( view.particles[ 2 * (offset + ids.z) ] );
 
-        a_v.x += 0.5f * length(cross(v1 - v0, v2 - v0));
-        a_v.y += 0.1666666667f * (- v0.z*v1.y*v2.x + v0.z*v1.x*v2.y + v0.y*v1.z*v2.x
-                - v0.x*v1.z*v2.y - v0.y*v1.x*v2.z + v0.x*v1.y*v2.z);
+        a_v.x += triangleArea(v0, v1, v2);
+        a_v.y += triangleSignedVolume(v0, v1, v2);
     }
 
     a_v = warpReduce( a_v, [] (float a, float b) { return a+b; } );
-    if ((threadIdx.x & (warpSize - 1)) == 0)
-    {
+
+    if (__laneid() == 0)
         atomicAdd(&view.area_volumes[objId], a_v);
-    }
 }
 
 
