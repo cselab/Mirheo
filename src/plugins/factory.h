@@ -19,6 +19,7 @@
 #include <plugins/dump_particles.h>
 #include <plugins/dump_particles_with_mesh.h>
 #include <plugins/exchange_pvs_flux_plane.h>
+#include <plugins/force_saver.h>
 #include <plugins/impose_velocity.h>
 #include <plugins/impose_profile.h>
 #include <plugins/magnetic_orientation.h>
@@ -195,6 +196,13 @@ namespace PluginFactory
             new ExchangePVSFluxPlanePlugin(name, pv1->name, pv2->name, make_float4(plane)) : nullptr;
         
         return { simPl, nullptr };    
+    }
+
+    static std::pair< ForceSaverPlugin*, PostprocessPlugin* >
+    createForceSaverPlugin(bool computeTask,  std::string name, ParticleVector *pv)
+    {
+        auto simPl = computeTask ? new ForceSaverPlugin(name, pv->name) : nullptr;
+        return { simPl, nullptr };
     }
 
     static std::pair< ImposeProfilePlugin*, PostprocessPlugin* >
