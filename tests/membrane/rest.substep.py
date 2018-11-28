@@ -1,13 +1,12 @@
 #!/usr/bin/env python
 
-import sys
 import numpy as np
-
 import ymero as ymr
 
 import sys, argparse
 sys.path.append("..")
 from common.membrane_params import set_lina
+from common.membrane_params import set_lina_bending
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--stressFree', dest='stressFree', action='store_true')
@@ -29,14 +28,17 @@ pv_rbc   = ymr.ParticleVectors.MembraneVector("rbc", mass=1.0, mesh=mesh_rbc)
 ic_rbc   = ymr.InitialConditions.Membrane([[8.0, 4.0, 5.0,   1.0, 0.0, 0.0, 0.0]])
 u.registerParticleVector(pv_rbc, ic_rbc)
 
-prm_rbc = ymr.Interactions.MembraneParameters()
+prm_rbc         = ymr.Interactions.MembraneParameters()
+prm_bending_rbc = ymr.Interactions.KantorBendingParameters()
 
 if prm_rbc:
     set_lina(1.0, prm_rbc)
-    prm_rbc.rnd = args.rnd
+    prm_rbc.rnd = False
     prm_rbc.dt = dt
+if prm_bending_rbc:
+    set_lina_bending(1.0, prm_bending_rbc)
     
-int_rbc = ymr.Interactions.MembraneForces("int_rbc", prm_rbc, stressFree=args.stressFree)
+int_rbc = ymr.Interactions.MembraneForcesKantor("int_rbc", prm_rbc, prm_bending_rbc, stressFree=args.stressFree)
 integrator = ymr.Integrators.SubStepMembrane('substep_membrane', dt, substeps, int_rbc)
 u.registerIntegrator(integrator)
 u.setIntegrator(integrator, pv_rbc)

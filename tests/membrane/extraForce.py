@@ -5,6 +5,7 @@ import numpy as np
 import ymero as ymr
 sys.path.append("..")
 from common.membrane_params import set_lina
+from common.membrane_params import set_lina_bending
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--mesh', type=str)
@@ -24,14 +25,17 @@ pv_rbc   = ymr.ParticleVectors.MembraneVector("rbc", mass=1.0, mesh=mesh_rbc)
 ic_rbc   = ymr.InitialConditions.Membrane([[8.0, 4.0, 5.0,   1.0, 0.0, 0.0, 0.0]])
 u.registerParticleVector(pv_rbc, ic_rbc)
 
-prm_rbc = ymr.Interactions.MembraneParameters()
+prm_rbc         = ymr.Interactions.MembraneParameters()
+prm_bending_rbc = ymr.Interactions.KantorBendingParameters()
 
 if prm_rbc:
     set_lina(1.0, prm_rbc)
     prm_rbc.rnd = False
     prm_rbc.dt = dt
+if prm_bending_rbc:
+    set_lina_bending(1.0, prm_bending_rbc)
     
-int_rbc = ymr.Interactions.MembraneForces("int_rbc", prm_rbc, stressFree=False)
+int_rbc = ymr.Interactions.MembraneForcesKantor("int_rbc", prm_rbc, prm_bending_rbc, stressFree=False)
 vv = ymr.Integrators.VelocityVerlet('vv', dt)
 u.registerIntegrator(vv)
 u.setIntegrator(vv, pv_rbc)

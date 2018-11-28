@@ -8,6 +8,7 @@ import ymero as ymr
 import sys, argparse
 sys.path.append("../..")
 from common.membrane_params import set_lina
+from common.membrane_params import set_lina_bending
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--subStep', action='store_true', default=False)
@@ -51,22 +52,25 @@ icRbc   = ymr.InitialConditions.Membrane(
 
 u.registerParticleVector(pvRbc, icRbc)
 
-prmRbc = ymr.Interactions.MembraneParameters()
+prm_rbc         = ymr.Interactions.MembraneParameters()
+prm_bending_rbc = ymr.Interactions.KantorBendingParameters()
 
-if prmRbc:
-    set_lina(1.0, prmRbc)
-    prmRbc.dt = dt
+if prm_rbc:
+    set_lina(1.0, prm_rbc)
+    prm_rbc.dt = dt
+if prm_bending_rbc:
+    set_lina_bending(1.0, prm_bending_rbc)
     
-intRbc = ymr.Interactions.MembraneForces("int_rbc", prmRbc, stressFree=True)
+int_rbc = ymr.Interactions.MembraneForcesKantor("int_rbc", prm_rbc, prm_bending_rbc, stressFree=True)
 
 if args.subStep:
-    integrator = ymr.Integrators.SubStepMembrane('substep_membrane', dt, substeps, intRbc)
+    integrator = ymr.Integrators.SubStepMembrane('substep_membrane', dt, substeps, int_rbc)
     u.registerIntegrator(integrator)
     u.setIntegrator(integrator, pvRbc)
 else:
     u.setIntegrator(vv, pvRbc)
-    u.registerInteraction(intRbc)
-    u.setInteraction(intRbc, pvRbc, pvRbc)
+    u.registerInteraction(int_rbc)
+    u.setInteraction(int_rbc, pvRbc, pvRbc)
 
 
 bb = ymr.Bouncers.Mesh("bounceRbc", kbt=0.0)
