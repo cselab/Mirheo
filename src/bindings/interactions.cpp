@@ -146,12 +146,13 @@ void exportInteractions(py::module& m)
         .def_readwrite("kbT",       &MembraneParameters::kbT)
         .def_readwrite("mpow",      &MembraneParameters::mpow)
         .def_readwrite("theta",     &MembraneParameters::theta)
+        .def_readwrite("C0",        &MembraneParameters::C0)
         .def_readwrite("totArea",   &MembraneParameters::totArea0)
         .def_readwrite("totVolume", &MembraneParameters::totVolume0)
         .def_readwrite("rnd",       &MembraneParameters::fluctuationForces)
         .def_readwrite("dt",        &MembraneParameters::dt);
         
-    py::handlers_class<InteractionMembrane>(m, "MembraneForces", pyInt, R"(
+    py::handlers_class<InteractionMembrane> pyMembraneForces(m, "MembraneForces", pyInt, R"(
         Mesh-based forces acting on a membrane according to the model in [Fedosov2010]_
 
         The membrane interactions are composed of forces comming from:
@@ -179,16 +180,24 @@ void exportInteractions(py::module& m)
                              A multiscale red blood cell model with accurate mechanics, rheology, and dynamics 
                              Biophysical journal, Elsevier, 2010, 98, 2215-2225
 
-    )")
-        .def(py::init<std::string, MembraneParameters, bool, float>(),
-             "name"_a, "params"_a, "stressFree"_a, "grow_until"_a=0, R"( 
-                 Args:
-                     name: name of the interaction
-                     params: instance of :any: `MembraneParameters`
-                     stressFree: equilibrium bond length and areas are taken from the initial mesh
-                     grow_until: time to grow the cell at initialization stage; 
-                                 the size increases linearly in time from half of the provided mesh to its full size after that time
-                                 the parameters are scaled accordingly with time
-        )");
+    )");
+
+    py::enum_<InteractionMembrane::BendingType>(pyMembraneForces, "BendingType")
+        .value("Kantor",    InteractionMembrane::BendingType::Kantor)
+        .value("Juelicher", InteractionMembrane::BendingType::Juelicher)
+        .export_values();
+
+    pyMembraneForces.def(py::init<std::string, MembraneParameters, bool, float, InteractionMembrane::BendingType>(),
+         "name"_a, "params"_a, "stressFree"_a, "grow_until"_a=0,
+         "bendingType"_a=InteractionMembrane::BendingType::Kantor, R"( 
+             Args:
+                 name: name of the interaction
+                 params: instance of :any: `MembraneParameters`
+                 stressFree: equilibrium bond length and areas are taken from the initial mesh
+                 grow_until: time to grow the cell at initialization stage; 
+                             the size increases linearly in time from half of the provided mesh to its full size after that time
+                             the parameters are scaled accordingly with time
+                 bendingType: bending model: either Kantor or Juelicher
+    )");
 }
 

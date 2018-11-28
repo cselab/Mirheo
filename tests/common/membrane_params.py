@@ -11,6 +11,7 @@ def set_lina(lscale, prms):
     prms.kbT       = 0.0444 * lscale**2
     prms.mpow      = 2.0
     prms.theta     = 6.97
+    prms.C0        = 0
     prms.totArea   = 62.2242 * lscale**2
     prms.totVolume = 26.6649 * lscale**3
     prms.ks        = prms.kbT / p

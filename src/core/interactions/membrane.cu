@@ -17,9 +17,6 @@
  * Provide mapping from the model parameters to the parameters
  * used on GPU to compute the forces.
  *
- * Scaling accorging to the Mesh properties is performed, and some
- * thing are pre-computed.
- *
  * @param p model parameters
  * @param m RBC membrane mesh
  * @return parameters to be passed to GPU kernels
@@ -72,15 +69,16 @@ static bendingJuelicher::GPU_BendingParams setJuelicherBendingParams(MembranePar
     bendingJuelicher::GPU_BendingParams devP;
 
     devP.kb = p.kb;
-    devP.H0 = 0.0; // TODO
+    devP.H0 = p.C0 / 2;
 
     return devP;
 }
 
-InteractionMembrane::InteractionMembrane(
-        std::string name, MembraneParameters parameters, bool stressFree, float growUntil ) :
+InteractionMembrane::InteractionMembrane(std::string name, MembraneParameters parameters,
+                                         bool stressFree, float growUntil, BendingType bendingType) :
     Interaction(name, 1.0f), parameters(parameters), stressFree(stressFree),
-    scaleFromTime( [growUntil] (float t) { return min(1.0f, 0.5f + 0.5f * (t / growUntil)); } )
+    scaleFromTime( [growUntil] (float t) { return min(1.0f, 0.5f + 0.5f * (t / growUntil)); } ),
+    bendingType(bendingType)
 {}
 
 InteractionMembrane::~InteractionMembrane() = default;

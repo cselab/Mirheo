@@ -5,14 +5,10 @@
 class MembraneMeshView;
 class MembraneVector;
 
-enum class BendingType {
-    Kantor, Juelicher
-};
-
 /// Structure keeping all the parameters of the RBC model
 struct MembraneParameters
 {
-    float x0, ks, ka, kb, kd, kv, gammaC, gammaT, kbT, mpow, theta, totArea0, totVolume0;
+    float x0, ks, ka, kb, kd, kv, gammaC, gammaT, kbT, mpow, theta, totArea0, totVolume0, C0;
 
     bool fluctuationForces;
     float dt;
@@ -25,7 +21,11 @@ class InteractionMembrane : public Interaction
 {
 public:
 
-    InteractionMembrane(std::string name, MembraneParameters parameters, bool stressFree, float growUntil);
+    enum class BendingType {
+        Kantor, Juelicher
+    };
+    
+    InteractionMembrane(std::string name, MembraneParameters parameters, bool stressFree, float growUntil, BendingType bendingType);
 
     void setPrerequisites(ParticleVector* pv1, ParticleVector* pv2) override;
 
@@ -43,5 +43,5 @@ private:
     void bendingKantor   (MembraneParameters parameters, MembraneVector *ov, MembraneMeshView mesh, cudaStream_t stream);
     void bendingJuelicher(MembraneParameters parameters, MembraneVector *ov, MembraneMeshView mesh, cudaStream_t stream);
 
-    BendingType bendingType {BendingType::Kantor};
+    BendingType bendingType;
 };
