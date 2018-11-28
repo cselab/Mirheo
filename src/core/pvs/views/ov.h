@@ -45,7 +45,7 @@ struct OVviewWithAreaVolume : public OVview
     }
 };
 
-struct OVviewWithJuelicherQuants : public OVview
+struct OVviewWithJuelicherQuants : public OVviewWithAreaVolume
 {
     float *vertexAreas          = nullptr;
     float *vertexMeanCurvatures = nullptr;
@@ -53,7 +53,7 @@ struct OVviewWithJuelicherQuants : public OVview
     float *lenThetaTot = nullptr;
 
     OVviewWithJuelicherQuants(ObjectVector* ov = nullptr, LocalObjectVector* lov = nullptr) :
-        OVview(ov, lov)
+        OVviewWithAreaVolume(ov, lov)
     {
         if (ov == nullptr || lov == nullptr) return;
 

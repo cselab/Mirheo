@@ -6,7 +6,7 @@ namespace bendingJuelicher
 {
     struct GPU_BendingParams
     {
-        float kb, H0;
+        float kb, H0, DA0, kad;
     };
 
     __device__ inline float supplementaryDihedralAngle(float3 v0, float3 v1, float3 v2, float3 v3)
@@ -84,13 +84,14 @@ namespace bendingJuelicher
             atomicAdd(&view.lenThetaTot[rbcId], lenThetaTot);
     }
 
-    __device__ inline float3 force_len(float H0, float theta, float3 v0, float3 v2, float Hv0, float Hv2)
+    __device__ inline float3 force_len(const GPU_BendingParams& p, float theta,
+                                       float3 v0, float3 v2, float Hv0, float Hv2)
     {
         float3 d = normalize(v0 - v2);
-        return (Hv0 + Hv2 - 2 * H0) * theta * d;
+        return p.kb * (Hv0 + Hv2 - 2 * p.H0) * theta * d;
     }
 
-    __device__ inline float3 force_theta(float H0, float3 v0, float3 v1, float3 v2, float3 v3, float Hv0, float Hv2, float3 &f1)
+    __device__ inline float3 force_theta(const GPU_BendingParams& p, float3 v0, float3 v1, float3 v2, float3 v3, float Hv0, float Hv2, float3 &f1)
     {
         float3 n, k, v20, v21, v23;
 
@@ -112,15 +113,15 @@ namespace bendingJuelicher
             (cotangent2n * inv_lenn) * n +
             (cotangent2k * inv_lenk) * k;
 
-        float coef = (Hv0 + Hv2 - 2*H0);
+        float coef = p.kb * (Hv0 + Hv2 - 2*p.H0);
 
         f1 = coef * d1;
         return coef * d0;
     }
 
-    __device__ inline float3 force_area(float H0, float3 v0, float3 v1, float3 v2, float Hv0, float Hv1, float Hv2)
+    __device__ inline float3 force_area(const GPU_BendingParams& p, float3 v0, float3 v1, float3 v2, float Hv0, float Hv1, float Hv2)
     {
-        float coef = -0.333333f * (Hv0 * Hv0 + Hv1 * Hv1 + Hv2 * Hv2 - 3 * H0 * H0);
+        float coef = -0.333333f * p.kb * (Hv0 * Hv0 + Hv1 * Hv1 + Hv2 * Hv2 - 3 * p.H0 * p.H0);
 
         float3 n  = normalize(cross(v1-v0, v2-v0));
         float3 d0 = cross(n, v2 - v1);
@@ -128,7 +129,16 @@ namespace bendingJuelicher
         return coef * d0;
     }
 
+    __device__ inline float getScurv(const OVviewWithJuelicherQuants& view,
+                                     const GPU_BendingParams& parameters,
+                                     int rbcId)
+    {
+        float totArea     = view.area_volumes[rbcId].x;
+        float totLenTheta = view.lenThetaTot [rbcId];
 
+        return (0.5f * totLenTheta - parameters.DA0) / totArea;
+    }
+    
     __global__ void computeBendingForces(OVviewWithJuelicherQuants view,
                                          MembraneMeshView mesh,
                                          GPU_BendingParams parameters)
@@ -154,6 +164,8 @@ namespace bendingJuelicher
         float Hv1 = view.vertexMeanCurvatures[offset + idv1];
         float Hv2 = view.vertexMeanCurvatures[offset + idv2];
 
+        auto scurv = getScurv(view, parameters, rbcId);
+        
         float3 f0 = make_float3(0.f, 0.f, 0.f);
     
 #pragma unroll 2
@@ -166,17 +178,17 @@ namespace bendingJuelicher
 
             float theta = supplementaryDihedralAngle(v0, v1, v2, v3);        
 
-            f0 += force_len(parameters.H0, theta, v0, v2, Hv0, Hv2);
-            f0 += force_theta(parameters.H0, v0, v1, v2, v3, Hv0, Hv2, f1);
-            f0 += force_area(parameters.H0, v0, v1, v2, Hv0, Hv1, Hv2);
+            f0 += force_len(parameters, theta, v0, v2, Hv0, Hv2);
+            f0 += force_theta(parameters, v0, v1, v2, v3, Hv0, Hv2, f1);
+            f0 += force_area(parameters, v0, v1, v2, Hv0, Hv1, Hv2);
 
-            atomicAdd(view.forces + offset + idv1, parameters.kb * f1);
+            atomicAdd(view.forces + offset + idv1, f1);
         
             v1   = v2;   v2   = v3;
             Hv1  = Hv2;  Hv2  = Hv3;        
             idv1 = idv2; idv2 = idv3;        
         }
 
-        atomicAdd(view.forces + pid, parameters.kb * f0);
+        atomicAdd(view.forces + pid, f0);
     }
 }
