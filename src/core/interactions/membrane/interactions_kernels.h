@@ -146,95 +146,7 @@ __device__ float3 bondTriangleForce(
     return f;
 }
 
-// **************************************************************************************************
-
-enum class DihedralUpdate {
-    FromMiddle,
-    FromEnd
-};
-
-template<DihedralUpdate update>
-__device__  inline  float3 _fdihedral(float3 v1, float3 v2, float3 v3, float3 v4, GPU_RBCparameters parameters)
-{
-    const float3 ksi   = cross(v1 - v2, v1 - v3);
-    const float3 dzeta = cross(v3 - v4, v2 - v4);
-
-    const float overIksiI   = rsqrtf(dot(ksi, ksi));
-    const float overIdzetaI = rsqrtf(dot(dzeta, dzeta));
-
-    const float cosTheta = dot(ksi, dzeta) * overIksiI * overIdzetaI;
-    const float IsinThetaI2 = 1.0f - cosTheta*cosTheta;
-
-    const float rawST_1 = rsqrtf(max(IsinThetaI2, 1.0e-6f));
-    const float sinTheta_1 = copysignf( rawST_1, dot(ksi - dzeta, v4 - v1) ); // because the normals look inside
-    const float beta = parameters.cost0kb - cosTheta * parameters.sint0kb * sinTheta_1;
-
-    float b11 = -beta * cosTheta *  overIksiI   * overIksiI;
-    float b12 =  beta *             overIksiI   * overIdzetaI;
-    float b22 = -beta * cosTheta *  overIdzetaI * overIdzetaI;
-
-    if      (update == DihedralUpdate::FromEnd)
-        return cross(ksi, v3 - v2)*b11 + cross(dzeta, v3 - v2)*b12;
-    else if (update == DihedralUpdate::FromMiddle)
-        return cross(ksi, v1 - v3)*b11 + ( cross(ksi, v3 - v4) + cross(dzeta, v1 - v3) )*b12 + cross(dzeta, v3 - v4)*b22;
-    else return make_float3(0.0f);
-}
-
-__device__ float3 dihedralForce(
-        Particle p, int locId, int rbcId,
-        const OVviewWithAreaVolume& view,
-        const MembraneMeshView& mesh,
-        const GPU_RBCparameters& parameters)
-{
-    const int shift = 2*rbcId*mesh.nvertices;
-    const float3 r0 = p.r;
-
-    const int startId = mesh.maxDegree * locId;
-    const int degree = mesh.degrees[locId];
-
-    int idv1 = mesh.adjacent[startId];
-    int idv2 = mesh.adjacent[startId+1];
-
-    float3 r1 = Float3_int(view.particles[shift + 2*idv1]).v;
-    float3 r2 = Float3_int(view.particles[shift + 2*idv2]).v;
-
-    float3 f = make_float3(0.0f);
-
-    //       v4
-    //     /   \
-    //   v1 --> v2 --> v3
-    //     \   /
-    //       V
-    //       v0
-
-    // dihedrals: 0124, 0123
-
-
-#pragma unroll 2
-    for (int i=0; i<degree; i++)
-    {
-        int idv3 = mesh.adjacent       [startId + (i+2) % degree];
-        int idv4 = mesh.adjacent_second[startId + i];
-
-        float3 r3, r4;
-        r3 = Float3_int(view.particles[shift + 2*idv3]).v;
-        r4 = Float3_int(view.particles[shift + 2*idv4]).v;
-
-        f += _fdihedral<DihedralUpdate::FromEnd>   (r0, r2, r1, r4, parameters);
-        f += _fdihedral<DihedralUpdate::FromMiddle>(r1, r0, r2, r3, parameters);
-
-        r1 = r2;
-        r2 = r3;
-
-        idv1 = idv2;
-        idv2 = idv3;
-    }
-
-    return f;
-}
-
 template <bool stressFree>
-//__launch_bounds__(128, 12)
 __global__ void computeMembraneForces(
         OVviewWithAreaVolume view,
         MembraneMeshView mesh,
@@ -249,13 +161,9 @@ __global__ void computeMembraneForces(
 
     if (pid >= view.nObjects * mesh.nvertices) return;
 
-//    if (locId == 0)
-//        printf("%d: area %f  volume %f\n", rbcId, view.area_volumes[rbcId].x, view.area_volumes[rbcId].y);
-
     Particle p(view.particles, pid);
 
-    float3 f = bondTriangleForce<stressFree>(p, locId, rbcId, view, mesh, parameters)
-             + dihedralForce                (p, locId, rbcId, view, mesh, parameters);
+    float3 f = bondTriangleForce<stressFree>(p, locId, rbcId, view, mesh, parameters);
 
     atomicAdd(view.forces + pid, f);
 }

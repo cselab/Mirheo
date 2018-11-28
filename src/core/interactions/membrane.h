@@ -2,6 +2,13 @@
 #include "interface.h"
 #include <functional>
 
+class MembraneMeshView;
+class MembraneVector;
+
+enum class BendingType {
+    Kantor, Juelicher
+};
+
 /// Structure keeping all the parameters of the RBC model
 struct MembraneParameters
 {
@@ -32,4 +39,9 @@ private:
     bool stressFree;
     std::function< float(float) > scaleFromTime;
     MembraneParameters parameters;
+
+    void bendingKantor   (MembraneParameters parameters, MembraneVector *ov, MembraneMeshView mesh, cudaStream_t stream);
+    void bendingJuelicher(MembraneParameters parameters, MembraneVector *ov, MembraneMeshView mesh, cudaStream_t stream);
+
+    BendingType bendingType {BendingType::Kantor};
 };
