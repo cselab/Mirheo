@@ -38,7 +38,7 @@ if prm_rbc:
     prm_rbc.dt = dt
 
 if prm_bending_rbc:
-    prm_bending_rbc.kb  = 1.0
+    prm_bending_rbc.kb  = 1000.0
     prm_bending_rbc.theta  = 0.0
     
 int_rbc = ymr.Interactions.MembraneForcesKantor("int_rbc", prm_rbc, prm_bending_rbc, stressFree=False)
@@ -62,4 +62,4 @@ u.run(2)
 # cd membrane
 # cp ../../data/rbc_mesh.off .
 # ymr.run --runargs "-n 2" ./kantor.py > /dev/null
-# ymr.post ./utils/post.bending.py --file h5/rbc-00000.h5 --out forcs.out.txt
+# ymr.post ./utils/post.bending.py --file h5/rbc-00000.h5 --out forces.out.txt

@@ -65,7 +65,7 @@ u.registerPlugins(ymr.Plugins.createDumpParticlesWithMesh("meshdump",
 
 u.run(2)
 
-# cTEST: membrane.bending.juelicher
+# nTEST: membrane.bending.juelicher
 # cd membrane
 # cp ../../data/rbc_mesh.off .
 # ymr.run --runargs "-n 2" ./juelicher.py > /dev/null
