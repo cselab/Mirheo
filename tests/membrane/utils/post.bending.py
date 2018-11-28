@@ -23,7 +23,6 @@ args = parser.parse_args()
 f = fopen(args.file)
 pos = f["position"]
 forces = f["forces"].value
-areas  = f["areas"].value
 (n, dim) = pos.shape
 
 pos = pos.value
@@ -36,4 +35,4 @@ fmagn = np.sqrt(forces[:,0]**2 + forces[:,1]**2 + forces[:,2]**2)
 r = r.reshape((n,1))
 fmagn = fmagn.reshape((n,1))
 
-np.savetxt(args.out, np.hstack((r,fmagn)))
+np.savetxt(args.out, np.hstack((r, fmagn, forces)))
