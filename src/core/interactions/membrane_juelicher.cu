@@ -26,7 +26,6 @@ void InteractionMembraneJuelicher::setPrerequisites(ParticleVector* pv1, Particl
     ov->requireDataPerObject<float>("lenThetaTot", false);
 
     ov->requireDataPerParticle<float>("areas", false);
-    ov->requireDataPerParticle<float>("lenThetas", false);
     ov->requireDataPerParticle<float>("meanCurvatures", false);    
 }
 
@@ -45,21 +44,13 @@ void InteractionMembraneJuelicher::bendingForces(float scale, MembraneVector *ov
 {
     ov->local()->extraPerObject.getData<float>("lenThetaTot")->clearDevice(stream);
 
-    ov->local()->extraPerParticle.getData<float>("areas")->clearDevice(stream);
-    ov->local()->extraPerParticle.getData<float>("lenThetas")->clearDevice(stream);
-
     OVviewWithJuelicherQuants view(ov, ov->local());
     
     const int nthreads = 128;
     const int blocks = getNblocks(view.size, nthreads);
     
     SAFE_KERNEL_LAUNCH(
-            bendingJuelicher::lenThetaPerVertex,
-            blocks, nthreads, 0, stream,
-            view, mesh );
-
-    SAFE_KERNEL_LAUNCH(
-            bendingJuelicher::computeLocalAndGlobalCurvatures,
+            bendingJuelicher::computeAreasAndCurvatures,
             view.nObjects, nthreads, 0, stream,
             view, mesh );
     

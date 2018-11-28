@@ -59,7 +59,6 @@ u.registerPlugins(ymr.Plugins.createDumpParticlesWithMesh("meshdump",
                                                           dump_every,
                                                           [["areas", "scalar"],
                                                            ["meanCurvatures", "scalar"],
-                                                           ["lenThetas", "scalar"],
                                                            ["forces", "vector"]],
                                                           "h5/rbc-"))
 

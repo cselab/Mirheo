@@ -37,58 +37,43 @@ namespace bendingJuelicher
         return len * theta;
     }
 
-    __global__ void lenThetaPerVertex(OVviewWithJuelicherQuants view, MembraneMeshView mesh)
+    __global__ void computeAreasAndCurvatures(OVviewWithJuelicherQuants view, MembraneMeshView mesh)
     {
-        assert(view.objSize == mesh.nvertices);
-
-        int pid = threadIdx.x + blockDim.x * blockIdx.x;
-        int locId = pid % mesh.nvertices;
-        int rbcId = pid / mesh.nvertices;
+        int rbcId = blockIdx.x;
         int offset = rbcId * mesh.nvertices;
 
-        if (pid >= view.nObjects * mesh.nvertices) return;
-
-        int startId = mesh.maxDegree * locId;
-        int degree = mesh.degrees[locId];
-
-        int idv1 = mesh.adjacent[startId];
-        int idv2 = mesh.adjacent[startId+1];
-
-        float3 v0 = fetchVertex(view, pid);
-        float3 v1 = fetchVertex(view, offset + idv1);
-        float3 v2 = fetchVertex(view, offset + idv2);
-
-        float area = 0;
-        float lenTheta = 0;
-        
-#pragma unroll 2
-        for (int i = 0; i < degree; i++) {
-
-            int idv3 = mesh.adjacent[startId + (i+2) % degree];
-            float3 v3 = fetchVertex(view, offset + idv3);
-
-            area     += 0.3333333f * triangleArea(v0, v1, v2);
-            lenTheta += compute_lenTheta(v0, v1, v2, v3);
-
-            v1 = v2;
-            v2 = v3;
-        }
-
-        view.vertexAreas     [pid] = area;
-        view.vertexLenThetas [pid] = lenTheta;        
-    }
-
-    __global__ void computeLocalAndGlobalCurvatures(OVviewWithJuelicherQuants view, MembraneMeshView mesh)
-    {
-        int objId = blockIdx.x;
-        int offset = objId * mesh.nvertices;
         float lenThetaTot = 0.0f;
 
-        for (int i = threadIdx.x; i < mesh.nvertices; i += blockDim.x) {
-            float lenTheta = view.vertexLenThetas[offset + i];
-            float A        = view.vertexAreas    [offset + i];
+        for (int idv0 = threadIdx.x; idv0 < mesh.nvertices; idv0 += blockDim.x) {
 
-            view.vertexMeanCurvatures[offset + i] = lenTheta / (4 * A);
+            int startId = mesh.maxDegree * idv0;
+            int degree = mesh.degrees[idv0];
+
+            int idv1 = mesh.adjacent[startId];
+            int idv2 = mesh.adjacent[startId+1];
+
+            float3 v0 = fetchVertex(view, offset + idv0);
+            float3 v1 = fetchVertex(view, offset + idv1);
+            float3 v2 = fetchVertex(view, offset + idv2);
+
+            float area = 0;
+            float lenTheta = 0;
+        
+            #pragma unroll 2
+            for (int i = 0; i < degree; i++) {
+
+                int idv3 = mesh.adjacent[startId + (i+2) % degree];
+                float3 v3 = fetchVertex(view, offset + idv3);
+
+                area     += 0.3333333f * triangleArea(v0, v1, v2);
+                lenTheta += compute_lenTheta(v0, v1, v2, v3);
+
+                v1 = v2;
+                v2 = v3;
+            }
+
+            view.vertexAreas          [offset + idv0] = area;
+            view.vertexMeanCurvatures [offset + idv0] = lenTheta / (4 * area);
         
             lenThetaTot += lenTheta;
         }
@@ -96,7 +81,7 @@ namespace bendingJuelicher
         lenThetaTot = warpReduce( lenThetaTot, [] (float a, float b) { return a+b; } );
 
         if (__laneid() == 0)
-            atomicAdd(&view.lenThetaTot[objId], lenThetaTot);
+            atomicAdd(&view.lenThetaTot[rbcId], lenThetaTot);
     }
 
     __device__ inline float3 force_len(float H0, float theta, float3 v0, float3 v2, float Hv0, float Hv2)
