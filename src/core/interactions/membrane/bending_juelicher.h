@@ -108,7 +108,7 @@ __device__ inline float3 force_theta(float H0, float3 v0, float3 v1, float3 v2, 
 
 __device__ inline float3 force_area(float H0, float3 v0, float3 v1, float3 v2, float Hv0, float Hv1, float Hv2)
 {
-    float coef = -0.6666667f * (Hv0 * Hv0 + Hv1 * Hv1 + Hv2 * Hv2 - 3 * H0 * H0);
+    float coef = -2 * (Hv0 * Hv0 + Hv1 * Hv1 + Hv2 * Hv2 - 3 * H0 * H0);
 
     float3 n  = normalize(cross(v1-v0, v2-v0));
     float3 d0 = 0.5 * cross(n, v2 - v1);
@@ -158,12 +158,12 @@ __global__ void bendingForcesJuelicher(float kb, float H0, OVviewWithJuelicherQu
         f0 += force_theta(H0, v0, v1, v2, v3, Hv0, Hv2, f1);
         f0 += force_area(H0, v0, v1, v2, Hv0, Hv1, Hv2);
 
-        atomicAdd(view.forces + offset + idv1, f1);
+        atomicAdd(view.forces + offset + idv1, kb * f1);
         
         v1   = v2;   v2   = v3;
         Hv1  = Hv2;  Hv2  = Hv3;        
         idv1 = idv2; idv2 = idv3;        
     }
 
-    atomicAdd(view.forces + pid, f0);
+    atomicAdd(view.forces + pid, kb * f0);
 }
