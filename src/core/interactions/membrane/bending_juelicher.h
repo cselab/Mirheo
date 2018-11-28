@@ -101,16 +101,16 @@ namespace bendingJuelicher
         n = cross(v21, v20);
         k = cross(v20, v23);
 
-        float lenn = length(n);
-        float lenk = length(k);
+        float inv_lenn = rsqrt(dot(n,n));
+        float inv_lenk = rsqrt(dot(k,k));
 
-        float cotangent2n = dot(v20, v21) / lenn;
-        float cotangent2k = dot(v23, v20) / lenk;
+        float cotangent2n = dot(v20, v21) * inv_lenn;
+        float cotangent2k = dot(v23, v20) * inv_lenk;
     
-        float3 d1 = (-dot(v20, v20) / (lenn*lenn)) * n;
+        float3 d1 = (-dot(v20, v20)  * inv_lenn*inv_lenn) * n;
         float3 d0 =
-            (cotangent2n / lenn) * n +
-            (cotangent2k / lenk) * k;
+            (cotangent2n * inv_lenn) * n +
+            (cotangent2k * inv_lenk) * k;
 
         float coef = (Hv0 + Hv2 - 2*H0);
 
