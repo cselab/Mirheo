@@ -4,11 +4,6 @@ import numpy as np
 import ymero as ymr
 import sys, argparse
 
-parser = argparse.ArgumentParser()
-parser.add_argument('--stressFree', dest='stressFree', action='store_true')
-parser.set_defaults(stressFree=False)
-args = parser.parse_args()
-
 dt = 0.001
 
 ranks  = (1, 1, 1)
@@ -43,7 +38,7 @@ if prm_rbc:
     prm_rbc.dt = dt
 
 if prm_bending_rbc:
-    prm_bending_rbc.kb  = 1.0
+    prm_bending_rbc.kb  = 1000.0
     prm_bending_rbc.C0  = 0.0    
     
 int_rbc = ymr.Interactions.MembraneForcesJuelicher("int_rbc", prm_rbc, prm_bending_rbc, stressFree=False)
@@ -70,8 +65,8 @@ u.registerPlugins(ymr.Plugins.createDumpParticlesWithMesh("meshdump",
 
 u.run(2)
 
-# snTEST: membrane.bending.juelicher
+# cTEST: membrane.bending.juelicher
 # cd membrane
 # cp ../../data/rbc_mesh.off .
 # ymr.run --runargs "-n 2" ./juelicher.py > /dev/null
-# mv pos.rbc.txt pos.rbc.out.txt 
+# ymr.post ./utils/post.bending.py --file h5/rbc-00000.h5 --out forces.out.txt

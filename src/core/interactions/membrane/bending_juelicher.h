@@ -8,7 +8,28 @@ namespace bendingJuelicher
     {
         float kb, H0;
     };
-    
+
+    __device__ inline float supplementaryDihedralAngle(float3 v0, float3 v1, float3 v2, float3 v3)
+    {
+        //       v3
+        //     /   \
+        //   v2 --- v0
+        //     \   /
+        //       V
+        //       v1
+
+        // dihedral: 0123    
+
+        float3 n, k, nk;
+        n  = cross(v1 - v0, v2 - v0);
+        k  = cross(v2 - v0, v3 - v0);
+        nk = cross(n, k);
+
+        float theta = atan2(length(nk), dot(n, k));
+        theta = dot(v2-v0, nk) < 0 ? -theta : theta;
+        return theta;
+    }
+
     __device__ inline float compute_lenTheta(float3 v0, float3 v1, float3 v2, float3 v3)
     {
         float len = length(v2 - v0);
@@ -37,18 +58,24 @@ namespace bendingJuelicher
         float3 v1 = fetchVertex(view, offset + idv1);
         float3 v2 = fetchVertex(view, offset + idv2);
 
+        float area = 0;
+        float lenTheta = 0;
+        
 #pragma unroll 2
         for (int i = 0; i < degree; i++) {
 
             int idv3 = mesh.adjacent[startId + (i+2) % degree];
             float3 v3 = fetchVertex(view, offset + idv3);
 
-            view.vertexAreas     [pid] += 0.3333333f * triangleArea(v0, v1, v2);
-            view.vertexLenThetas [pid] += compute_lenTheta(v0, v1, v2, v3);
+            area     += 0.3333333f * triangleArea(v0, v1, v2);
+            lenTheta += compute_lenTheta(v0, v1, v2, v3);
 
             v1 = v2;
             v2 = v3;
-        }    
+        }
+
+        view.vertexAreas     [pid] = area;
+        view.vertexLenThetas [pid] = lenTheta;        
     }
 
     __global__ void computeLocalAndGlobalCurvatures(OVviewWithJuelicherQuants view, MembraneMeshView mesh)
@@ -86,22 +113,21 @@ namespace bendingJuelicher
         v21 = v1 - v2;
         v23 = v3 - v2;
     
-        n = cross(v20, v21);
-        k = cross(v23, v20);
+        n = cross(v21, v20);
+        k = cross(v20, v23);
 
-        float lenedge = length(v20);
         float lenn = length(n);
         float lenk = length(k);
 
         float cotangent2n = dot(v20, v21) / lenn;
         float cotangent2k = dot(v23, v20) / lenk;
     
-        float3 d1 = (-lenedge / (lenn*lenn)) * n;
+        float3 d1 = (-dot(v20, v20) / (lenn*lenn)) * n;
         float3 d0 =
-            cotangent2n / (lenedge * lenn) * n +
-            cotangent2k / (lenedge * lenk) * k;
+            (cotangent2n / lenn) * n +
+            (cotangent2k / lenk) * k;
 
-        float coef = (Hv0 + Hv2 - 2*H0) * lenedge;
+        float coef = (Hv0 + Hv2 - 2*H0);
 
         f1 = coef * d1;
         return coef * d0;
@@ -109,10 +135,10 @@ namespace bendingJuelicher
 
     __device__ inline float3 force_area(float H0, float3 v0, float3 v1, float3 v2, float Hv0, float Hv1, float Hv2)
     {
-        float coef = -2 * (Hv0 * Hv0 + Hv1 * Hv1 + Hv2 * Hv2 - 3 * H0 * H0);
+        float coef = -0.333333f * (Hv0 * Hv0 + Hv1 * Hv1 + Hv2 * Hv2 - 3 * H0 * H0);
 
         float3 n  = normalize(cross(v1-v0, v2-v0));
-        float3 d0 = 0.5 * cross(n, v2 - v1);
+        float3 d0 = cross(n, v2 - v1);
 
         return coef * d0;
     }
