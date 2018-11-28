@@ -2,13 +2,10 @@
 
 #include <core/utils/cuda_common.h>
 #include <core/utils/kernel_launch.h>
-#include <core/celllist.h>
 #include <core/pvs/membrane_vector.h>
 #include <core/pvs/views/ov.h>
 
 #include "membrane/interactions_kernels.h"
-#include "membrane/bending_juelicher.h"
-#include "membrane/bending_kantor.h"
 
 #include <cmath>
 #include <random>
@@ -54,31 +51,11 @@ static GPU_RBCparameters setParams(MembraneParameters& p, Mesh *m, float t)
     return devP;
 }
 
-static bendingKantor::GPU_BendingParams setKantorBendingParams(MembraneParameters& p)
-{
-    bendingKantor::GPU_BendingParams devP;
-    
-    devP.cost0kb = cos(p.theta / 180.0 * M_PI) * p.kb;
-    devP.sint0kb = sin(p.theta / 180.0 * M_PI) * p.kb;
-
-    return devP;
-}
-
-static bendingJuelicher::GPU_BendingParams setJuelicherBendingParams(MembraneParameters& p)
-{
-    bendingJuelicher::GPU_BendingParams devP;
-
-    devP.kb = p.kb;
-    devP.H0 = p.C0 / 2;
-
-    return devP;
-}
 
 InteractionMembrane::InteractionMembrane(std::string name, MembraneParameters parameters,
-                                         bool stressFree, float growUntil, BendingType bendingType) :
+                                         bool stressFree, float growUntil) :
     Interaction(name, 1.0f), parameters(parameters), stressFree(stressFree),
-    scaleFromTime( [growUntil] (float t) { return min(1.0f, 0.5f + 0.5f * (t / growUntil)); } ),
-    bendingType(bendingType)
+    scaleFromTime( [growUntil] (float t) { return min(1.0f, 0.5f + 0.5f * (t / growUntil)); } )
 {}
 
 InteractionMembrane::~InteractionMembrane() = default;
@@ -97,61 +74,6 @@ void InteractionMembrane::setPrerequisites(ParticleVector* pv1, ParticleVector* 
         die("Internal RBC forces can only be computed with RBCs");
 
     ov->requireDataPerObject<float2>("area_volumes", false);
-
-
-    if (bendingType == BendingType::Juelicher) {
-        ov->requireDataPerObject<float>("lenThetaTot", false);
-
-        ov->requireDataPerParticle<float>("areas", false);
-        ov->requireDataPerParticle<float>("lenThetas", false);
-        ov->requireDataPerParticle<float>("meanCurvatures", false);
-    }
-}
-
-void InteractionMembrane::bendingKantor(MembraneParameters parameters, MembraneVector *ov, MembraneMeshView mesh, cudaStream_t stream)
-{
-    OVview view(ov, ov->local());
-
-    const int nthreads = 128;
-    const int blocks = getNblocks(view.size, nthreads);
-
-    auto devParams = setKantorBendingParams(parameters);
-
-    SAFE_KERNEL_LAUNCH(
-            bendingKantor::computeBendingForces,
-            blocks, nthreads, 0, stream,
-            view, mesh, devParams );
-}
-
-void InteractionMembrane::bendingJuelicher(MembraneParameters parameters, MembraneVector *ov, MembraneMeshView mesh, cudaStream_t stream)
-{
-    ov->local()->extraPerObject.getData<float>("lenThetaTot")->clearDevice(stream);
-
-    ov->local()->extraPerParticle.getData<float>("areas")->clearDevice(stream);
-    ov->local()->extraPerParticle.getData<float>("lenThetas")->clearDevice(stream);
-
-    OVviewWithJuelicherQuants view(ov, ov->local());
-    
-    const int nthreads = 128;
-    const int blocks = getNblocks(view.size, nthreads);
-    
-    SAFE_KERNEL_LAUNCH(
-            bendingJuelicher::lenThetaPerVertex,
-            blocks, nthreads, 0, stream,
-            view, mesh );
-
-    SAFE_KERNEL_LAUNCH(
-            bendingJuelicher::computeLocalAndGlobalCurvatures,
-            view.nObjects, nthreads, 0, stream,
-            view, mesh );
-    
-
-    auto devParams = setJuelicherBendingParams(parameters);
-    
-    SAFE_KERNEL_LAUNCH(
-            bendingJuelicher::computeBendingForces,
-            blocks, nthreads, 0, stream,
-            view, mesh, devParams );
 }
 
 /**
@@ -177,7 +99,6 @@ void InteractionMembrane::regular(ParticleVector* pv1, ParticleVector* pv2, Cell
     currentParams.totArea0   *= scale*scale;
     currentParams.totVolume0 *= scale*scale*scale;
     currentParams.kbT *= scale*scale;
-    currentParams.kb  *= scale*scale;
     currentParams.ks  *= scale*scale;
 
     currentParams.gammaC *= scale;
@@ -209,13 +130,10 @@ void InteractionMembrane::regular(ParticleVector* pv1, ParticleVector* pv2, Cell
                 blocks, nthreads, 0, stream,
                 view, mesh, devParams );
 
-    if (bendingType == BendingType::Kantor)
-        bendingKantor(currentParams, ov, mesh, stream);
-    else if (bendingType == BendingType::Juelicher)
-        bendingJuelicher(currentParams, ov, mesh, stream);
+    bendingForces(scale, ov, mesh, stream);
 }
 
-void InteractionMembrane::halo   (ParticleVector* pv1, ParticleVector* pv2, CellList* cl1, CellList* cl2, const float t, cudaStream_t stream)
+void InteractionMembrane::halo(ParticleVector* pv1, ParticleVector* pv2, CellList* cl1, CellList* cl2, const float t, cudaStream_t stream)
 {
     debug("Not computing internal RBC forces between local and halo RBCs of '%s'", pv1->name.c_str());
 }

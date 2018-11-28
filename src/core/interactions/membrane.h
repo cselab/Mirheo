@@ -5,10 +5,10 @@
 class MembraneMeshView;
 class MembraneVector;
 
-/// Structure keeping all the parameters of the RBC model
+/// Structure keeping elastic parameters of the RBC model
 struct MembraneParameters
 {
-    float x0, ks, ka, kb, kd, kv, gammaC, gammaT, kbT, mpow, theta, totArea0, totVolume0, C0;
+    float x0, ks, ka, kd, kv, gammaC, gammaT, kbT, mpow, totArea0, totVolume0;
 
     bool fluctuationForces;
     float dt;
@@ -21,27 +21,19 @@ class InteractionMembrane : public Interaction
 {
 public:
 
-    enum class BendingType {
-        Kantor, Juelicher
-    };
+    InteractionMembrane(std::string name, MembraneParameters parameters, bool stressFree, float growUntil);
+    ~InteractionMembrane();
     
-    InteractionMembrane(std::string name, MembraneParameters parameters, bool stressFree, float growUntil, BendingType bendingType);
-
     void setPrerequisites(ParticleVector* pv1, ParticleVector* pv2) override;
 
     void regular(ParticleVector* pv1, ParticleVector* pv2, CellList* cl1, CellList* cl2, const float t, cudaStream_t stream) override;
-    void halo   (ParticleVector* pv1, ParticleVector* pv2, CellList* cl1, CellList* cl2, const float t, cudaStream_t stream) override;
+    void halo   (ParticleVector* pv1, ParticleVector* pv2, CellList* cl1, CellList* cl2, const float t, cudaStream_t stream) override;    
 
-    ~InteractionMembrane();
-
-private:
+protected:
 
     bool stressFree;
     std::function< float(float) > scaleFromTime;
     MembraneParameters parameters;
 
-    void bendingKantor   (MembraneParameters parameters, MembraneVector *ov, MembraneMeshView mesh, cudaStream_t stream);
-    void bendingJuelicher(MembraneParameters parameters, MembraneVector *ov, MembraneMeshView mesh, cudaStream_t stream);
-
-    BendingType bendingType;
+    virtual void bendingForces(float scale, MembraneVector *ov, MembraneMeshView mesh, cudaStream_t stream) = 0;
 };
