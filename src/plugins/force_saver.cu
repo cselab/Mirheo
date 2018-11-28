@@ -11,7 +11,8 @@ ForceSaverPlugin::ForceSaverPlugin(std::string name, std::string pvName) :
 
 void ForceSaverPlugin::beforeIntegration(cudaStream_t stream)
 {
-    pv->local()->extraPerParticle.getData<Force>(fieldName);
+    auto forces = pv->local()->extraPerParticle.getData<Force>(fieldName);
+    forces->copy(pv->local()->forces, stream);
 }
     
 bool ForceSaverPlugin::needPostproc()

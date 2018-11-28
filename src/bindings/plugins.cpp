@@ -82,6 +82,11 @@ void exportPlugins(py::module& m)
         stored in the 'plane' variable
     )");
 
+    py::handlers_class<ForceSaverPlugin>(m, "ForceSaver", pysim, R"(
+        This plugin creates an extra channel per particle inside the given particle vector named 'forces'.
+        It copies the total forces at each time step and make it accessible by other plugins.
+        The forces are stored in a float4 structure.
+    )");
     
     py::handlers_class<ImposeProfilePlugin>(m, "ImposeProfile", pysim, R"(
         This plugin will set the velocity of each particle inside a given domain to a target velocity with an additive term 
@@ -409,6 +414,15 @@ void exportPlugins(py::module& m)
             pv1: :class:`ParticleVector` source
             pv2: :class:`ParticleVector` destination
             plane: 4 coefficients for the plane equation ax + by + cz + d >= 0
+    )");
+
+    m.def("__createForceSaver", &PluginFactory::createForceSaverPlugin, 
+          "compute_task"_a, "name"_a, "pv"_a, R"(
+        Create :any:`ForceSaver` plugin
+        
+        Args:
+            name: name of the plugin
+            pv: :any:`ParticleVector` that we'll work with
     )");
 
     m.def("__createImposeProfile", &PluginFactory::createImposeProfilePlugin, 
