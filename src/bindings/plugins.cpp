@@ -85,7 +85,7 @@ void exportPlugins(py::module& m)
     py::handlers_class<ForceSaverPlugin>(m, "ForceSaver", pysim, R"(
         This plugin creates an extra channel per particle inside the given particle vector named 'forces'.
         It copies the total forces at each time step and make it accessible by other plugins.
-        The forces are stored in a float4 structure.
+        The forces are stored in an array of float3.
     )");
     
     py::handlers_class<ImposeProfilePlugin>(m, "ImposeProfile", pysim, R"(
