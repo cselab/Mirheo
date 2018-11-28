@@ -7,7 +7,6 @@ struct GPU_RBCparameters
     float gammaC, gammaT;
     float mpow, l0, x0, ks;
     float area0, totArea0, totVolume0;
-    float cost0kb, sint0kb;
     float ka0, kv0, kd0;
 
     bool fluctuationForces;
