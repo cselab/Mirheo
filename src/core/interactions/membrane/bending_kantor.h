@@ -14,8 +14,7 @@ namespace bendingKantor
         FromEnd
     };
 
-    template<DihedralUpdate update>
-    __device__  inline  float3 _fdihedral(float3 v1, float3 v2, float3 v3, float3 v4, GPU_BendingParams parameters)
+    __device__  inline  float3 _fdihedral(float3 v1, float3 v2, float3 v3, float3 v4, GPU_BendingParams parameters, float3& f1)
     {
         const float3 ksi   = cross(v1 - v2, v1 - v3);
         const float3 dzeta = cross(v3 - v4, v2 - v4);
@@ -34,17 +33,15 @@ namespace bendingKantor
         float b12 =  beta *             overIksiI   * overIdzetaI;
         float b22 = -beta * cosTheta *  overIdzetaI * overIdzetaI;
 
-        if      (update == DihedralUpdate::FromEnd)
-            return cross(ksi, v3 - v2)*b11 + cross(dzeta, v3 - v2)*b12;
-        else if (update == DihedralUpdate::FromMiddle)
-            return cross(ksi, v1 - v3)*b11 + ( cross(ksi, v3 - v4) + cross(dzeta, v1 - v3) )*b12 + cross(dzeta, v3 - v4)*b22;
-        else return make_float3(0.0f);
+        f1 = cross(ksi, v3 - v2)*b11 + cross(dzeta, v3 - v2)*b12;
+        
+        return cross(ksi, v1 - v3)*b11 + ( cross(ksi, v3 - v4) + cross(dzeta, v1 - v3) )*b12 + cross(dzeta, v3 - v4)*b22;
     }
 
-    __device__ float3 dihedralForce(float3 r0, int locId, int rbcId,
-                                    const OVview& view,
-                                    const MembraneMeshView& mesh,
-                                    const GPU_BendingParams& parameters)
+    __device__ void dihedralForce(float3 v0, int locId, int rbcId,
+                                  const OVview& view,
+                                  const MembraneMeshView& mesh,
+                                  const GPU_BendingParams& parameters)
     {
         const int offset = rbcId * mesh.nvertices;
 
@@ -54,44 +51,41 @@ namespace bendingKantor
         int idv1 = mesh.adjacent[startId];
         int idv2 = mesh.adjacent[startId+1];
 
-        float3 r1 = fetchVertex(view, offset + idv1);
-        float3 r2 = fetchVertex(view, offset + idv2);
+        float3 v1 = fetchVertex(view, offset + idv1);
+        float3 v2 = fetchVertex(view, offset + idv2);
 
         float3 f = make_float3(0.0f);
 
-        //       v4
+        //       v3
         //     /   \
-        //   v1 --> v2 --> v3
+        //   v2 --> v0
         //     \   /
         //       V
-        //       v0
+        //       v1
 
-        // dihedrals: 0124, 0123
-
+        float3 f0 = make_float3(0,0,0);
 
         #pragma unroll 2
         for (int i = 0; i < degree; i++)
         {
             int idv3 = mesh.adjacent       [startId + (i+2) % degree];
-            int idv4 = mesh.adjacent_second[startId + i];
 
-            float3 r3, r4;
-            r3 = fetchVertex(view, offset + idv3);
-            r4 = fetchVertex(view, offset + idv4);
+            float3 v3, f1;
+            v3 = fetchVertex(view, offset + idv3);
 
-            f += _fdihedral<DihedralUpdate::FromEnd>   (r0, r2, r1, r4, parameters);
-            f += _fdihedral<DihedralUpdate::FromMiddle>(r1, r0, r2, r3, parameters);
+            f0 += _fdihedral(v1, v0, v2, v3, parameters, f1);
 
-            r1 = r2;
-            r2 = r3;
+            atomicAdd(view.forces + offset + idv1, f1);
+            
+            v1 = v2;
+            v2 = v3;
 
             idv1 = idv2;
             idv2 = idv3;
         }
-
-        return f;
+        atomicAdd(view.forces + offset + locId, f0);
     }
-
+    
     __global__ void computeBendingForces(OVview view,
                                          MembraneMeshView mesh,
                                          GPU_BendingParams parameters)
@@ -104,8 +98,6 @@ namespace bendingKantor
 
         float3 r0 = fetchVertex(view, pid);
 
-        float3 f = dihedralForce (r0, locId, rbcId, view, mesh, parameters);
-
-        atomicAdd(view.forces + pid, f);
+        dihedralForce(r0, locId, rbcId, view, mesh, parameters);
     }
 }
