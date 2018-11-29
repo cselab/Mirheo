@@ -84,14 +84,15 @@ namespace bendingJuelicher
             atomicAdd(&view.lenThetaTot[rbcId], lenThetaTot);
     }
 
-    __device__ inline float3 force_len(const GPU_BendingParams& p, float theta,
+    __device__ inline float3 force_len(const GPU_BendingParams& p, float scurv, float theta,
                                        float3 v0, float3 v2, float Hv0, float Hv2)
     {
         float3 d = normalize(v0 - v2);
-        return p.kb * (Hv0 + Hv2 - 2 * p.H0) * theta * d;
+        return ( p.kb * (Hv0 + Hv2 - 2 * p.H0) + p.kad * scurv ) * theta * d;
     }
 
-    __device__ inline float3 force_theta(const GPU_BendingParams& p, float3 v0, float3 v1, float3 v2, float3 v3, float Hv0, float Hv2, float3 &f1)
+    __device__ inline float3 force_theta(const GPU_BendingParams& p, float scurv,
+                                         float3 v0, float3 v1, float3 v2, float3 v3, float Hv0, float Hv2, float3 &f1)
     {
         float3 n, k, v20, v21, v23;
 
@@ -113,18 +114,20 @@ namespace bendingJuelicher
             (cotangent2n * inv_lenn) * n +
             (cotangent2k * inv_lenk) * k;
 
-        float coef = p.kb * (Hv0 + Hv2 - 2*p.H0);
+        float coef = p.kb * (Hv0 + Hv2 - 2*p.H0)  +  p.kad * scurv;
 
         f1 = coef * d1;
         return coef * d0;
     }
 
-    __device__ inline float3 force_area(const GPU_BendingParams& p, float3 v0, float3 v1, float3 v2, float Hv0, float Hv1, float Hv2)
+    __device__ inline float3 force_area(const GPU_BendingParams& p, float scurv,
+                                        float3 v0, float3 v1, float3 v2, float Hv0, float Hv1, float Hv2)
     {
-        float coef = -0.333333f * p.kb * (Hv0 * Hv0 + Hv1 * Hv1 + Hv2 * Hv2 - 3 * p.H0 * p.H0);
+        float coef = -0.6666667f * p.kb * (Hv0 * Hv0 + Hv1 * Hv1 + Hv2 * Hv2 - 3 * p.H0 * p.H0)
+            - 0.5f * p.kad * scurv * scurv;
 
         float3 n  = normalize(cross(v1-v0, v2-v0));
-        float3 d0 = cross(n, v2 - v1);
+        float3 d0 = 0.5f * cross(n, v2 - v1);
 
         return coef * d0;
     }
@@ -178,9 +181,9 @@ namespace bendingJuelicher
 
             float theta = supplementaryDihedralAngle(v0, v1, v2, v3);        
 
-            f0 += force_len(parameters, theta, v0, v2, Hv0, Hv2);
-            f0 += force_theta(parameters, v0, v1, v2, v3, Hv0, Hv2, f1);
-            f0 += force_area(parameters, v0, v1, v2, Hv0, Hv1, Hv2);
+            f0 += force_len   (parameters, scurv, theta, v0,     v2,     Hv0,      Hv2);
+            f0 += force_theta (parameters, scurv,        v0, v1, v2, v3, Hv0,      Hv2, f1);
+            f0 += force_area  (parameters, scurv,        v0, v1, v2,     Hv0, Hv1, Hv2);
 
             atomicAdd(view.forces + offset + idv1, f1);
         

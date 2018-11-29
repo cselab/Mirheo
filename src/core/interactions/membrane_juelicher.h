@@ -4,7 +4,7 @@
 
 struct JuelicherBendingParameters
 {
-    float kb, C0;
+    float kb, C0, kad, DA0;
 };
 
 class InteractionMembraneJuelicher : public InteractionMembrane

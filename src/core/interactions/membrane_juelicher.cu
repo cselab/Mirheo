@@ -34,8 +34,11 @@ static bendingJuelicher::GPU_BendingParams setJuelicherBendingParams(float scale
 {
     bendingJuelicher::GPU_BendingParams devP;
 
-    devP.kb = p.kb * scale*scale;
-    devP.H0 = p.C0 / 2;
+    devP.kb  = p.kb  * scale*scale;
+    devP.kad = p.kad * scale*scale;
+
+    devP.H0  = p.C0 / (2 * scale);
+    devP.DA0 = p.DA0 * scale*scale;
 
     return devP;
 }
