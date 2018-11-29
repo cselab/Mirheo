@@ -6,7 +6,7 @@ namespace bendingJuelicher
 {
     struct GPU_BendingParams
     {
-        float kb, H0, DA0, kad;
+        float kb, H0, DA0, kad_pi;
     };
 
     __device__ inline float supplementaryDihedralAngle(float3 v0, float3 v1, float3 v2, float3 v3)
@@ -26,7 +26,7 @@ namespace bendingJuelicher
         nk = cross(n, k);
 
         float theta = atan2(length(nk), dot(n, k));
-        theta = dot(v2-v0, nk) < 0 ? -theta : theta;
+        theta = dot(v2-v0, nk) < 0 ? theta : -theta;
         return theta;
     }
 
@@ -88,7 +88,7 @@ namespace bendingJuelicher
                                        float3 v0, float3 v2, float Hv0, float Hv2)
     {
         float3 d = normalize(v0 - v2);
-        return ( p.kb * (Hv0 + Hv2 - 2 * p.H0) + p.kad * scurv ) * theta * d;
+        return ( p.kb * (Hv0 + Hv2 - 2 * p.H0) + p.kad_pi * scurv ) * theta * d;
     }
 
     __device__ inline float3 force_theta(const GPU_BendingParams& p, float scurv,
@@ -109,12 +109,12 @@ namespace bendingJuelicher
         float cotangent2n = dot(v20, v21) * inv_lenn;
         float cotangent2k = dot(v23, v20) * inv_lenk;
     
-        float3 d1 = (-dot(v20, v20)  * inv_lenn*inv_lenn) * n;
+        float3 d1 = (dot(v20, v20)  * inv_lenn*inv_lenn) * n;
         float3 d0 =
-            (cotangent2n * inv_lenn) * n +
-            (cotangent2k * inv_lenk) * k;
+            (-cotangent2n * inv_lenn) * n +
+            (-cotangent2k * inv_lenk) * k;
 
-        float coef = p.kb * (Hv0 + Hv2 - 2*p.H0)  +  p.kad * scurv;
+        float coef = p.kb * (Hv0 + Hv2 - 2*p.H0)  +  p.kad_pi * scurv;
 
         f1 = coef * d1;
         return coef * d0;
@@ -124,7 +124,7 @@ namespace bendingJuelicher
                                         float3 v0, float3 v1, float3 v2, float Hv0, float Hv1, float Hv2)
     {
         float coef = -0.6666667f * p.kb * (Hv0 * Hv0 + Hv1 * Hv1 + Hv2 * Hv2 - 3 * p.H0 * p.H0)
-            - 0.5f * p.kad * scurv * scurv;
+            - 0.5f * p.kad_pi * scurv * scurv;
 
         float3 n  = normalize(cross(v1-v0, v2-v0));
         float3 d0 = 0.5f * cross(n, v2 - v1);
