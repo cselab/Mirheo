@@ -9,6 +9,7 @@ parser.add_argument('--kb', type=float, default=0.0)
 parser.add_argument('--C0', type=float, default=0.0)
 parser.add_argument('--kad', type=float, default=0.0)
 parser.add_argument('--DA0', type=float, default=0.0)
+parser.add_argument('--ncells', type=int, default=1)
 args = parser.parse_args()
 
 dt = 0.001
@@ -20,7 +21,7 @@ u = ymr.ymero(ranks, domain, debug_level=3, log_filename='log')
 
 mesh_rbc = ymr.ParticleVectors.MembraneMesh("rbc_mesh.off")
 pv_rbc   = ymr.ParticleVectors.MembraneVector("rbc", mass=1.0, mesh=mesh_rbc)
-ic_rbc   = ymr.InitialConditions.Membrane([[8.0, 4.0, 5.0,   1.0, 0.0, 0.0, 0.0]])
+ic_rbc   = ymr.InitialConditions.Membrane([[8.0, 4.0, 5.0,   1.0, 0.0, 0.0, 0.0]]*args.ncells)
 u.registerParticleVector(pv_rbc, ic_rbc)
 
 prm_rbc         = ymr.Interactions.MembraneParameters()
@@ -84,4 +85,10 @@ u.run(2)
 # cd membrane
 # cp ../../data/rbc_mesh.off .
 # ymr.run --runargs "-n 2" ./juelicher.py --kad 1000.0 --DA0 1.0 > /dev/null
+# ymr.post ./utils/post.bending.py --file h5/rbc-00000.h5 --out forces.out.txt
+
+# nTEST: membrane.bending.juelicher.multiple
+# cd membrane
+# cp ../../data/rbc_mesh.off .
+# ymr.run --runargs "-n 2" ./juelicher.py --kb 1000.0 --C0 1.0 --kad 1000.0 --DA0 1.0 --ncells 4 > /dev/null
 # ymr.post ./utils/post.bending.py --file h5/rbc-00000.h5 --out forces.out.txt
