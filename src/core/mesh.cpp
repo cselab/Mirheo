@@ -189,62 +189,6 @@ static void findNearestNeighbours(const EdgeMapPerVertex& adjacentPairs, int max
     }
 }
 
-static void findSecondNeighbours(const PinnedBuffer<int3>& triangles, const PinnedBuffer<int>& adjacent, const PinnedBuffer<int>& degrees,
-                          int maxDegree, PinnedBuffer<int>& adjacent_second)
-{
-    int nvertices = degrees.size();
-    
-    adjacent_second.resize_anew(nvertices * maxDegree);
-    std::fill(adjacent_second.begin(), adjacent_second.end(), NOT_SET);
-
-    // So that gcc doesn't confuse initializer list with constructor
-    using _2int = std::tuple<int, int>;
-    std::map< _2int, int > edge2oppositeVertex;
-    for (const auto& t : triangles) {
-        edge2oppositeVertex [_2int{t.x, t.y}] = t.z;
-        edge2oppositeVertex [_2int{t.y, t.z}] = t.x;
-        edge2oppositeVertex [_2int{t.z, t.x}] = t.y;
-    }
-    
-    // Return a vertex, adjacent to edge v1-v2, but not vorig
-    auto fetchNotMe = [&edge2oppositeVertex] (int vorig, int v1, int v2) -> int {
-        
-        auto ptr1 = edge2oppositeVertex.find(_2int{v1, v2});
-        auto ptr2 = edge2oppositeVertex.find(_2int{v2, v1}); // Mind the gap and note the difference
-        assert(ptr1 != edge2oppositeVertex.end());
-        assert(ptr2 != edge2oppositeVertex.end());
-        
-        return (ptr1->second == vorig) ? ptr2->second : ptr1->second;
-    };
-
-    for (int v = 0; v < nvertices; ++v) {
-        auto myadjacent        = &adjacent        [maxDegree*v];
-        auto myadjacent_second = &adjacent_second [maxDegree*v];
-
-        for (int nid = 0; nid < degrees[v]; ++nid) {
-            int cur  = myadjacent[nid];
-            int next = myadjacent[ (nid+1) % degrees[v] ];
-            
-            myadjacent_second[nid] = fetchNotMe(v, cur, next);
-        }
-    }
-}
-
-
-static void closeLoops(PinnedBuffer<int>& adj, int maxDegree)
-{
-    int nvertices = adj.size() / maxDegree;
-    for (int v = 0; v < nvertices; ++v)
-    {
-        for (int i=0; i<maxDegree; i++)
-            if (adj[v*maxDegree + i] == NOT_SET)
-            {
-                adj[v*maxDegree + i] = adj[v*maxDegree];
-                break;
-            }
-    }
-}
-
 void MembraneMesh::findAdjacent()
 {
     // For every vertex: map from neigbouring vertex to a neigbour of both of vertices
@@ -266,13 +210,8 @@ void MembraneMesh::findAdjacent()
 
     findDegrees(adjacentPairs, degrees);
     findNearestNeighbours(adjacentPairs, maxDegree, adjacent);
-    findSecondNeighbours(triangles, adjacent, degrees, maxDegree, adjacent_second);
-    
-    // closeLoops(adjacent, maxDegree);
-    // closeLoops(adjacent_second, maxDegree);
     
     adjacent.uploadToDevice(0);
-    adjacent_second.uploadToDevice(0);
     degrees.uploadToDevice(0);
 }
 

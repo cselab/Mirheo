@@ -9,11 +9,6 @@ namespace bendingKantor
         float cost0kb, sint0kb;
     };
     
-    enum class DihedralUpdate {
-        FromMiddle,
-        FromEnd
-    };
-
     __device__  inline  float3 _fdihedral(float3 v1, float3 v2, float3 v3, float3 v4, GPU_BendingParams parameters, float3& f1)
     {
         const float3 ksi   = cross(v1 - v2, v1 - v3);
