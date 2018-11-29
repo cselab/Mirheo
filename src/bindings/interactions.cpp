@@ -186,8 +186,8 @@ void exportInteractions(py::module& m)
         .def(py::init<>(), R"(
             Structure keeping parameters of the bending membrane interaction
         )")
-        .def_readwrite("kb",        &KantorBendingParameters::kb)
-        .def_readwrite("theta",     &KantorBendingParameters::theta);
+        .def_readwrite("kb",    &KantorBendingParameters::kb)
+        .def_readwrite("theta", &KantorBendingParameters::theta);
 
     py::handlers_class<JuelicherBendingParameters>(m, "JuelicherBendingParameters", R"(
         Bending parameters for Juelicher model
@@ -195,8 +195,10 @@ void exportInteractions(py::module& m)
         .def(py::init<>(), R"(
             Structure keeping parameters of the bending membrane interaction
         )")
-        .def_readwrite("kb",   &JuelicherBendingParameters::kb)
-        .def_readwrite("C0",   &JuelicherBendingParameters::C0);
+        .def_readwrite("kb",  &JuelicherBendingParameters::kb)
+        .def_readwrite("C0",  &JuelicherBendingParameters::C0)
+        .def_readwrite("kad", &JuelicherBendingParameters::kad)
+        .def_readwrite("DA0", &JuelicherBendingParameters::DA0);
 
 
     py::handlers_class<InteractionMembraneKantor> (m, "MembraneForcesKantor", pyInt, R"(

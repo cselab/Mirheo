@@ -4,6 +4,13 @@ import numpy as np
 import ymero as ymr
 import sys, argparse
 
+parser = argparse.ArgumentParser()
+parser.add_argument('--kb', type=float, default=0.0)
+parser.add_argument('--C0', type=float, default=0.0)
+parser.add_argument('--kad', type=float, default=0.0)
+parser.add_argument('--DA0', type=float, default=0.0)
+args = parser.parse_args()
+
 dt = 0.001
 
 ranks  = (1, 1, 1)
@@ -38,17 +45,14 @@ if prm_rbc:
     prm_rbc.dt = dt
 
 if prm_bending_rbc:
-    prm_bending_rbc.kb  = 1000.0
-    prm_bending_rbc.C0  = 0.0    
+    prm_bending_rbc.kb   = args.kb
+    prm_bending_rbc.C0   = args.C0
+    prm_bending_rbc.kad  = args.kad
+    prm_bending_rbc.DA0  = args.DA0
     
 int_rbc = ymr.Interactions.MembraneForcesJuelicher("int_rbc", prm_rbc, prm_bending_rbc, stressFree=False)
 u.registerInteraction(int_rbc)
 u.setInteraction(int_rbc, pv_rbc, pv_rbc)
-
-if 0:
-    vv = ymr.Integrators.VelocityVerlet('vv', dt)
-    u.registerIntegrator(vv)
-    u.setIntegrator(vv, pv_rbc)
 
 dump_every = 1
 
@@ -67,5 +71,5 @@ u.run(2)
 # nTEST: membrane.bending.juelicher
 # cd membrane
 # cp ../../data/rbc_mesh.off .
-# ymr.run --runargs "-n 2" ./juelicher.py > /dev/null
+# ymr.run --runargs "-n 2" ./juelicher.py --kb 1000.0 > /dev/null
 # ymr.post ./utils/post.bending.py --file h5/rbc-00000.h5 --out forces.out.txt
