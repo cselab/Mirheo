@@ -1,10 +1,40 @@
 class Interaction:
     r"""Base interaction class
     """
+class JuelicherBendingParameters:
+    r"""
+        Bending parameters for Juelicher model
+    
+    """
+    def __init__():
+        r"""__init__(self: Interactions.JuelicherBendingParameters) -> None
+
+
+            Structure keeping parameters of the bending membrane interaction
+        
+
+        """
+        pass
+
+class KantorBendingParameters:
+    r"""
+        Bending parameters for Kantor model
+    
+    """
+    def __init__():
+        r"""__init__(self: Interactions.KantorBendingParameters) -> None
+
+
+            Structure keeping parameters of the bending membrane interaction
+        
+
+        """
+        pass
+
 class MembraneParameters:
     r"""
-        Membrane parameters
-
+        Common membrane parameters
+    
     """
     def __init__():
         r"""__init__(self: Interactions.MembraneParameters) -> None
@@ -111,6 +141,7 @@ class LJ(Interaction):
 
 class MembraneForces(Interaction):
     r"""
+        Abstract class for membrane interactions.
         Mesh-based forces acting on a membrane according to the model in [Fedosov2010]_
 
         The membrane interactions are composed of forces comming from:
@@ -140,18 +171,72 @@ class MembraneForces(Interaction):
 
     
     """
+class MembraneForcesJuelicher(Interaction):
+    r"""
+        Mesh-based forces acting on a membrane according to the model in [Fedosov2010]_ with Juelicher bending model.
+
+        The bending potential :math:`U_b` is defined as: TODO
+
+
+        See [Juelicher1996]_ for more explanations.
+        The viscous and dissipation forces are central forces and are the same as DPD interactions with :math:`w(r) = 1` 
+        (no cutoff radius, applied to each bond).
+
+        .. [Juelicher1996] Juelicher, Frank, and Reinhard Lipowsky. 
+                           Shape transformations of vesicles with intramembrane domains.
+                           Physical Review E 53.3 (1996): 2670.
+    
+    """
     def __init__():
-        r"""__init__(name: str, params: Interactions.MembraneParameters, stressFree: bool, grow_until: float = 0) -> None
+        r"""__init__(name: str, params: Interactions.MembraneParameters, params_bending: Interactions.JuelicherBendingParameters, stressFree: bool, grow_until: float = 0) -> None
 
  
-                 Args:
-                     name: name of the interaction
-                     params: instance of :any: `MembraneParameters`
-                     stressFree: equilibrium bond length and areas are taken from the initial mesh
-                     grow_until: time to grow the cell at initialization stage; 
-                                 the size increases linearly in time from half of the provided mesh to its full size after that time
-                                 the parameters are scaled accordingly with time
-        
+             Args:
+                 name: name of the interaction
+                 params: instance of :any: `MembraneParameters`
+                 params_bending: instance of :any: `JuelicherBendingParameters`
+                 stressFree: equilibrium bond length and areas are taken from the initial mesh
+                 grow_until: time to grow the cell at initialization stage; 
+                             the size increases linearly in time from half of the provided mesh to its full size after that time
+                             the parameters are scaled accordingly with time
+    
+
+        """
+        pass
+
+class MembraneForcesKantor(Interaction):
+    r"""
+        Mesh-based forces acting on a membrane according to the model in [Fedosov2010]_
+
+         The bending potential :math:`U_b` is defined as:
+
+        .. math::
+
+            U_b = \sum_{j \in {1 ... N_s}} k_b \left[  1-\cos(\theta_j - \theta_0) \right], \\
+
+        See [Fedosov2010]_ for more explanations.
+        The viscous and dissipation forces are central forces and are the same as DPD interactions with :math:`w(r) = 1` 
+        (no cutoff radius, applied to each bond).
+
+        .. [Fedosov2010] Fedosov, D. A.; Caswell, B. & Karniadakis, G. E. 
+                             A multiscale red blood cell model with accurate mechanics, rheology, and dynamics 
+                             Biophysical journal, Elsevier, 2010, 98, 2215-2225
+
+    
+    """
+    def __init__():
+        r"""__init__(name: str, params: Interactions.MembraneParameters, params_bending: Interactions.KantorBendingParameters, stressFree: bool, grow_until: float = 0) -> None
+
+ 
+             Args:
+                 name: name of the interaction
+                 params: instance of :any: `MembraneParameters`
+                 params_bending: instance of :any: `KantorBendingParameters`
+                 stressFree: equilibrium bond length and areas are taken from the initial mesh
+                 grow_until: time to grow the cell at initialization stage; 
+                             the size increases linearly in time from half of the provided mesh to its full size after that time
+                             the parameters are scaled accordingly with time
+    
 
         """
         pass

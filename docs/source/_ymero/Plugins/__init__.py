@@ -54,6 +54,13 @@ class ExchangePVSFluxPlane(SimulationPlugin):
         stored in the 'plane' variable
     
     """
+class ForceSaver(SimulationPlugin):
+    r"""
+        This plugin creates an extra channel per particle inside the given particle vector named 'forces'.
+        It copies the total forces at each time step and make it accessible by other plugins.
+        The forces are stored in an array of float3.
+    
+    """
 class ImposeProfile(SimulationPlugin):
     r"""
         This plugin will set the velocity of each particle inside a given domain to a target velocity with an additive term 
@@ -445,6 +452,20 @@ def createExchangePVSFluxPlane():
             pv1: :class:`ParticleVector` source
             pv2: :class:`ParticleVector` destination
             plane: 4 coefficients for the plane equation ax + by + cz + d >= 0
+    
+
+    """
+    pass
+
+def createForceSaver():
+    r"""createForceSaver(name: str, pv: ParticleVectors.ParticleVector) -> Tuple[Plugins.ForceSaver, Plugins.PostprocessPlugin]
+
+
+        Create :any:`ForceSaver` plugin
+        
+        Args:
+            name: name of the plugin
+            pv: :any:`ParticleVector` that we'll work with
     
 
     """
