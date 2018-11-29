@@ -49,19 +49,26 @@ void InteractionMembraneJuelicher::bendingForces(float scale, MembraneVector *ov
 
     OVviewWithJuelicherQuants view(ov, ov->local());
     
-    const int nthreads = 128;
-    const int blocks = getNblocks(view.size, nthreads);
-    
-    SAFE_KERNEL_LAUNCH(
-            bendingJuelicher::computeAreasAndCurvatures,
-            view.nObjects, nthreads, 0, stream,
-            view, mesh );
-    
+    const int nthreads = 128;    
 
-    auto devParams = setJuelicherBendingParams(scale, bendingParameters);
+    {
+        dim3 threads(nthreads, 1);
+        dim3 blocks(getNblocks(mesh.nvertices, nthreads), view.nObjects);
+        
+        SAFE_KERNEL_LAUNCH(
+            bendingJuelicher::computeAreasAndCurvatures,
+            blocks, threads, 0, stream,
+            view, mesh );
+    }
+
+    {
+        auto devParams = setJuelicherBendingParams(scale, bendingParameters);
+        
+        const int blocks = getNblocks(view.size, nthreads);
     
-    SAFE_KERNEL_LAUNCH(
+        SAFE_KERNEL_LAUNCH(
             bendingJuelicher::computeBendingForces,
             blocks, nthreads, 0, stream,
             view, mesh, devParams );
+    }
 }
