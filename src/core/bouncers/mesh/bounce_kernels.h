@@ -61,12 +61,12 @@ __device__ inline bool segmentTriangleQuickCheck(
         float3 v1t = v1 + t*dv1;
         float3 v2t = v2 + t*dv2;
 
-        float3 nt = cross(v1t-v0t, v2t-v0t);
+        float3 nt = normalize(cross(v1t-v0t, v2t-v0t));
         float3 xt = x + t*dx;
         return  dot( xt - v0t, nt );
     };
 
-    // d / dt (Distance)
+    // d / dt (non normalized Distance)
     auto F_prime = [=] (float t) {
         float3 v0t = v0 + t*dv0;
         float3 v1t = v1 + t*dv1;
@@ -78,8 +78,16 @@ __device__ inline bool segmentTriangleQuickCheck(
         return dot(dx-dv0, nt) + dot(xt-v0t, cross(dv1-dv0, v2t-v0t) + cross(v1t-v0t, dv2-dv0));
     };
 
+    auto F0 = F(0.0f);
+    auto F1 = F(1.0f);
 
-    if (F(0.0f)*F(1.0f) < 0.0f)
+    // assume that particles don t move more than this distance every time step
+    const float tolDistance = 0.1;
+    
+    if (fabs(F0) > tolDistance && fabs(F1) > tolDistance)
+        return false;
+    
+    if (F0 * F1 < 0.0f)
         return true;
 
     // XXX: This is not always correct
