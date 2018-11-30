@@ -55,14 +55,15 @@ __device__ inline bool segmentTriangleQuickCheck(
     const float3 dv1 = tr.v1 - v1;
     const float3 dv2 = tr.v2 - v2;
 
-    // Distance to a triangle
+    // Distance to the triangle plane
     auto F = [=] (float t) {
         float3 v0t = v0 + t*dv0;
         float3 v1t = v1 + t*dv1;
         float3 v2t = v2 + t*dv2;
 
+        float3 nt = cross(v1t-v0t, v2t-v0t);
         float3 xt = x + t*dx;
-        return  dot( xt - v0t, cross(v1t-v0t, v2t-v0t) );
+        return  dot( xt - v0t, nt );
     };
 
     // d / dt (Distance)
