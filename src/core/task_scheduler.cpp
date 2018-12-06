@@ -3,6 +3,8 @@
 #include <sstream>
 #include <fstream>
 
+#include <extern/pugixml/src/pugixml.hpp>
+
 #include <core/task_scheduler.h>
 #include <core/logger.h>
 #include <core/utils/make_unique.h>
@@ -343,45 +345,57 @@ void TaskScheduler::run()
     CUDA_Check( cudaDeviceSynchronize() );
 }
 
-// TODO: use pugixml
+
+static void add_node(pugi::xml_node& graph, int id, std::string label)
+{
+    auto node = graph.append_child("node");
+    node.append_attribute("id") = std::to_string(id).c_str();
+
+    auto data = node.append_child("data");
+    data.append_attribute("key") = "label";
+    data.text()                  = label.c_str();
+}
+
+static void add_edge(pugi::xml_node& graph, int sourceId, int targetId)
+{
+    auto edge = graph.append_child("edge");
+    edge.append_attribute("source") = std::to_string(sourceId).c_str();
+    edge.append_attribute("target") = std::to_string(targetId).c_str();
+}
+
 void TaskScheduler::saveDependencyGraph_GraphML(std::string fname) const
 {
-    std::ofstream fout(fname + ".graphml");
+    pugi::xml_document doc;
+    auto root = doc.append_child("graphml");
 
-    // Header
-    fout << R"(<?xml version="1.0" encoding="UTF-8"?>
-<graphml xmlns="http://graphml.graphdrawing.org/xmlns"  
-    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-    xsi:schemaLocation="http://graphml.graphdrawing.org/xmlns 
-     http://graphml.graphdrawing.org/xmlns/1.0/graphml.xsd">)" << "\n" << "\n";
+    root.append_attribute("xmlns")              = "http://graphml.graphdrawing.org/xmlns";
+    root.append_attribute("xmlns:xsi")          = "http://www.w3.org/2001/XMLSchema-instance";
+    root.append_attribute("xsi:schemaLocation") = "http://graphml.graphdrawing.org/xmlns "
+                                                  "http://graphml.graphdrawing.org/xmlns/1.0/graphml.xsd";
 
-    fout << R"(    <key id="label" for="node" attr.name="label" attr.type="string"/>)" << "\n" << "\n";
+    auto key = root.append_child("key");
+    key.append_attribute("id")        = "label";
+    key.append_attribute("for")       = "node";
+    key.append_attribute("attr.name") = "label";
+    key.append_attribute("attr.type") = "string";
 
-    fout << R"(    <graph id="Task graph" edgedefault="directed">)" << "\n";
+    auto graph = root.append_child("graph");
+    graph.append_attribute("id")          = "Task graph";
+    graph.append_attribute("edgedefault") = "directed";
 
     // Nodes
     for (const auto& t : tasks)
-    {
-        fout << "        <node id=\"" << t.id << "\" >\n";
-        fout << "            <data key=\"label\"> " << t.label << "</data>\n";
-        fout << "        </node>\n";
-    }
+        add_node(graph, t.id, t.label);
 
     // Edges
-    for (const auto& n : nodes)
-    {
-
+    for (const auto& n : nodes) {
         for (auto dep : n->to)
-            fout << "        <edge source=\"" << n->id << "\" target=\"" << dep->id << "\" />\n";
+            add_edge(graph, n->id, dep->id);
 
         for (auto dep : n->from_backup)
-            fout << "        <edge source=\"" << dep->id << "\" target=\"" << n->id << "\" />\n";
+            add_edge(graph, dep->id, n->id);
     }
 
-    // Footer
-    fout << R"(    </graph>
-</graphml>)" << "\n";
+    auto filename = fname + ".graphml";    
+    doc.save_file(filename.c_str());
 }
-
-
-
