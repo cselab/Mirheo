@@ -208,7 +208,7 @@ void exportInteractions(py::module& m)
 
         .. math::
 
-            U_b = \sum_{j \in {1 ... N_s}} k_b \left[  1-\cos(\theta_j - \theta_0) \right], \\
+            U_b = \sum_{j \in {1 ... N_s}} k_b \left[  1-\cos(\theta_j - \theta_0) \right]
 
         See [Fedosov2010]_ for more explanations.
         The viscous and dissipation forces are central forces and are the same as DPD interactions with :math:`w(r) = 1` 
@@ -234,8 +234,12 @@ void exportInteractions(py::module& m)
     py::handlers_class<InteractionMembraneJuelicher> (m, "MembraneForcesJuelicher", pyInt, R"(
         Mesh-based forces acting on a membrane according to the model in [Fedosov2010]_ with Juelicher bending model.
 
-        The bending potential :math:`U_b` is defined as: TODO
+        The bending potential :math:`U_b` is defined as:
 
+        .. math::
+
+            U_b = \sum_{\alpha \in {1 ... N_v}} k_b M_{\alpha}, \\
+            M_{\alpha} = \frac 1 4 \sum_{<i,j>}^{(\alpha)} l_{ij} \theta_{ij}.
 
         See [Juelicher1996]_ for more explanations.
         The viscous and dissipation forces are central forces and are the same as DPD interactions with :math:`w(r) = 1` 
