@@ -238,10 +238,10 @@ void exportInteractions(py::module& m)
 
         .. math::
 
-            U_b = \sum_{\alpha \in {1 ... N_v}} k_b M_{\alpha}, \\
+            U_b = 2 k_b \sum_{\alpha = 1}^{N_v} \frac {\left( M_{\alpha} - C_0\right^2}{A_\alpha}, \\
             M_{\alpha} = \frac 1 4 \sum_{<i,j>}^{(\alpha)} l_{ij} \theta_{ij}.
 
-        See [Juelicher1996]_ for more explanations.
+        See [Juelicher1996]_ for more explanations. Note that the current model is an extended version of the original form.
         The viscous and dissipation forces are central forces and are the same as DPD interactions with :math:`w(r) = 1` 
         (no cutoff radius, applied to each bond).
 
