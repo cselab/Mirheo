@@ -179,7 +179,7 @@ class MembraneForcesJuelicher(Interaction):
 
         .. math::
 
-            U_b = 2 k_b \sum_{\alpha = 1}^{N_v} \frac {\left( M_{\alpha} - C_0\right^2}{A_\alpha}, \\
+            U_b = 2 k_b \sum_{\alpha = 1}^{N_v} \frac {\left( M_{\alpha} - C_0\right)^2}{A_\alpha}, \\
             M_{\alpha} = \frac 1 4 \sum_{<i,j>}^{(\alpha)} l_{ij} \theta_{ij}.
 
         See [Juelicher1996]_ for more explanations. Note that the current model is an extended version of the original form.
