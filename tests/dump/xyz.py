@@ -20,5 +20,5 @@ u.run(2)
 # cd dump
 # rm -rf xyz
 # ymr.run --runargs "-n 2" ./xyz.py > /dev/null
-# tail -n +3 xyz/pv_00000.xyz | sort > xyz.out.txt
+# tail -n +3 xyz/pv_00000.xyz | LC_ALL=en_US.utf8 sort > xyz.out.txt
 

@@ -31,4 +31,4 @@ u.run(2)
 # rm -rf h5
 # mesh="../../data/rbc_mesh.off"
 # ymr.run --runargs "-n 2" ./h5.mesh.py --mesh $mesh > /dev/null
-# ymr.post h5dump -d position h5/rbc-00000.h5 | awk '{print $2, $3, $4}' | sort > h5.mesh.out.txt
+# ymr.post h5dump -d position h5/rbc-00000.h5 | awk '{print $2, $3, $4}' | LC_ALL=en_US.utf8 sort > h5.mesh.out.txt

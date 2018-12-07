@@ -55,12 +55,12 @@ u.run(7)
 # rm -rf restart stats stats.rigid*txt
 # ymr.run --runargs "-n 1" ./rigidVector.py --ranks 1 1 1           > /dev/null
 # ymr.run --runargs "-n 2" ./rigidVector.py --ranks 1 1 1 --restart > /dev/null
-# cat stats/pv.txt | sort > stats.rigid.out.txt
+# cat stats/pv.txt | LC_ALL=en_US.utf8 sort > stats.rigid.out.txt
 
 # TEST: restart.rigidVector.mpi
 # cd restart
 # rm -rf restart stats stats.rigid*txt
 # ymr.run --runargs "-n 2" ./rigidVector.py --ranks 1 1 2           > /dev/null
 # ymr.run --runargs "-n 4" ./rigidVector.py --ranks 1 1 2 --restart > /dev/null
-# cat stats/pv.txt | sort > stats.rigid.out.txt
+# cat stats/pv.txt | LC_ALL=en_US.utf8 sort > stats.rigid.out.txt
 

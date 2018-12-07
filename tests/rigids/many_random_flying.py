@@ -46,7 +46,7 @@ u.run(1000)
 # rm -rf stats freefly.out.txt $f
 # ymr.run --runargs "-n 2"  ./createEllipsoid.py --axes 1.0 2.0 3.0 --density 4 --out $f --niter 1000  > /dev/null
 # ymr.run --runargs "-n 2" ./many_random_flying.py --nranks 1 1 1 --nobjects 55  $f > /dev/null
-# sort -g -k1 -k2 stats/ellipsoid.txt > freefly.out.txt
+# LC_ALL=en_US.utf8 sort -g -k1 -k2 stats/ellipsoid.txt > freefly.out.txt
 
 # nTEST: freefly.manyranks
 # set -eu
@@ -55,4 +55,4 @@ u.run(1000)
 # rm -rf stats freefly.out.txt $f
 # ymr.run --runargs "-n 2"  ./createEllipsoid.py --axes 1.0 2.0 3.0 --density 4 --out $f --niter 1000  > /dev/null
 # ymr.run --runargs "-n 12" ./many_random_flying.py --nranks 1 2 3 --nobjects 123  $f > /dev/null
-# sort -g -k1 -k2 stats/ellipsoid.txt > freefly.out.txt
+# LC_ALL=en_US.utf8 sort -g -k1 -k2 stats/ellipsoid.txt > freefly.out.txt

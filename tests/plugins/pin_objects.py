@@ -57,21 +57,21 @@ u.run(2010)
 # cd plugins
 # rm -rf force/
 # ymr.run --runargs "-n 2" python pin_objects.py --velocity 1 0 0 --omega 0 1 0  > /dev/null
-# cat stats/*.txt | awk 'NF{NF-=6};1' | sort -n > plugins.out.txt
-# cat force/*.txt | sort -n >> plugins.out.txt
+# cat stats/*.txt | awk 'NF{NF-=6};1' | LC_ALL=en_US.utf8 sort -n > plugins.out.txt
+# cat force/*.txt | LC_ALL=en_US.utf8 sort -n >> plugins.out.txt
 
 # nTEST: plugins.restrictObjects.2
 # set -eu
 # cd plugins
 # rm -rf force/
 # ymr.run --runargs "-n 2" python pin_objects.py --velocity 1 0.1 0 --omega 0.1 1 0 --solvent  > /dev/null
-# cat stats/*.txt | awk 'NF{NF-=6};1' | sort -n > plugins.out.txt
-# cat force/*.txt | sort -n >> plugins.out.txt
+# cat stats/*.txt | awk 'NF{NF-=6};1' | LC_ALL=en_US.utf8 sort -n > plugins.out.txt
+# cat force/*.txt | LC_ALL=en_US.utf8 sort -n >> plugins.out.txt
 
 # nTEST: plugins.restrictObjects.3
 # set -eu
 # cd plugins
 # rm -rf force/
 # ymr.run --runargs "-n 2" python pin_objects.py --velocity 1e10 1e10 0 --omega 1 1e10 1e10 --solvent  > /dev/null
-# cat stats/*.txt | awk 'NF{NF-=6};1' | sort -n > plugins.out.txt
-# cat force/*.txt | sort -n >> plugins.out.txt
+# cat stats/*.txt | awk 'NF{NF-=6};1' | LC_ALL=en_US.utf8 sort -n > plugins.out.txt
+# cat force/*.txt | LC_ALL=en_US.utf8 sort -n >> plugins.out.txt

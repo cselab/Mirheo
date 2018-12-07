@@ -33,4 +33,4 @@ if pv:
 # cd ic
 # rm -rf pos*.txt vel*.txt
 # ymr.run --runargs "-n 2" ./fromArray.py > /dev/null
-# paste pos.ic.txt vel.ic.txt | sort > ic.out.txt
+# paste pos.ic.txt vel.ic.txt | LC_ALL=en_US.utf8 sort > ic.out.txt

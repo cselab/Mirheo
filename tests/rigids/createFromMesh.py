@@ -85,4 +85,4 @@ if __name__ == '__main__':
 # cp ../../data/rbc_mesh.off .
 # pfile="pos.txt"
 # ymr.run --runargs "-n 2" ./createFromMesh.py --density 8 --fname rbc_mesh.off --niter 1 --out $pfile > /dev/null
-# cat $pfile | sort > pos.out.txt 
+# cat $pfile | LC_ALL=en_US.utf8 sort > pos.out.txt 

@@ -63,5 +63,5 @@ if __name__ == '__main__':
 # rm -rf pos.txt pos.out.txt
 # pfile=pos.txt
 # ymr.run --runargs "-n 2"  ./createEllipsoid.py --axes 2.0 3.0 4.0 --density 8 --niter 1 --out $pfile > /dev/null
-# cat $pfile | sort > pos.out.txt
+# cat $pfile | LC_ALL=en_US.utf8 sort > pos.out.txt
 

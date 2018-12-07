@@ -66,12 +66,12 @@ if args.restart and pv:
 # rm -rf restart parts.out.txt parts.txt
 # ymr.run --runargs "-n 1" ./objectVector.py --ranks 1 1 1           > /dev/null
 # ymr.run --runargs "-n 1" ./objectVector.py --ranks 1 1 1 --restart > /dev/null
-# cat parts.txt | sort > parts.out.txt
+# cat parts.txt | LC_ALL=en_US.utf8 sort > parts.out.txt
 
 # TEST: restart.objectVector.mpi
 # cd restart
 # rm -rf restart parts.out.txt parts.txt
 # ymr.run --runargs "-n 2" ./objectVector.py --ranks 1 1 2           > /dev/null
 # ymr.run --runargs "-n 2" ./objectVector.py --ranks 1 1 2 --restart > /dev/null
-# cat parts.txt | sort > parts.out.txt
+# cat parts.txt | LC_ALL=en_US.utf8 sort > parts.out.txt
 
