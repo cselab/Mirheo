@@ -144,7 +144,7 @@ void MPIExchangeEngine::postRecv(ExchangeHelper* helper)
     debug("Waiting for sizes of '%s' took %f ms", pvName.c_str(), tm.elapsed());
 
     // Prepare offsets and resize
-    helper->makeRecvOffsets();
+    helper->computeRecvOffsets();
     int totalRecvd = rOffsets[nBuffers];
     helper->resizeRecvBuf();
 

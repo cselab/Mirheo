@@ -147,7 +147,7 @@ void ParticleHaloExchanger::prepareSizes(int id, cudaStream_t stream)
                 nblocks, nthreads, 0, stream,
                 cl->cellInfo(), packer, helper->wrapSendData() );
 
-        helper->makeSendOffsets_Dev2Dev(stream);
+        helper->computeSendOffsets_Dev2Dev(stream);
     }
 }
 

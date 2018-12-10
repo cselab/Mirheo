@@ -123,7 +123,7 @@ void ObjectForcesReverseExchanger::prepareData(int id, cudaStream_t stream)
 
     debug2("Preparing '%s' forces to sending back", ov->name.c_str());
 
-    helper->makeSendOffsets();
+    helper->computeSendOffsets();
     helper->resizeSendBuf();
 
     auto rov = dynamic_cast<RigidObjectVector*>(ov);

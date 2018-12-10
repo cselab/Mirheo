@@ -119,7 +119,7 @@ void ObjectRedistributor::prepareSizes(int id, cudaStream_t stream)
                 ovView.nObjects, nthreads, 0, stream,
                 ov->domain, ovView, packer, helper->wrapSendData() );
 
-        helper->makeSendOffsets_Dev2Dev(stream);
+        helper->computeSendOffsets_Dev2Dev(stream);
     }
 
     int nObjs = helper->sendSizes[13];
@@ -129,7 +129,7 @@ void ObjectRedistributor::prepareSizes(int id, cudaStream_t stream)
     if (nObjs == ovView.nObjects)
     {
         helper->sendSizes[13] = 0;
-        helper->makeSendOffsets();
+        helper->computeSendOffsets();
         helper->resizeSendBuf();
     }
 }
@@ -193,7 +193,7 @@ void ObjectRedistributor::prepareData(int id, cudaStream_t stream)
                                  copySize, cudaMemcpyDeviceToDevice, stream ) );
                                  
     helper->sendSizes[13] = 0;
-    helper->makeSendOffsets();
+    helper->computeSendOffsets();
     helper->resizeSendBuf();
 
     // simple workaround when # of remaining >= # of leaving

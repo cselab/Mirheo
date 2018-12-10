@@ -154,7 +154,7 @@ void ObjectHaloExchanger::prepareSizes(int id, cudaStream_t stream)
                 ovView.nObjects, nthreads, 0, stream,
                 ov->domain, ovView, packer, rc, helper->wrapSendData() );
 
-        helper->makeSendOffsets_Dev2Dev(stream);
+        helper->computeSendOffsets_Dev2Dev(stream);
     }
 }
 
