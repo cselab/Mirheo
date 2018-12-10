@@ -1,4 +1,5 @@
 #include "mpi_engine.h"
+#include "fragments_mapping.h"
 
 #include <core/utils/timer.h>
 #include <core/logger.h>
@@ -15,9 +16,11 @@ MPIExchangeEngine::MPIExchangeEngine(std::unique_ptr<ParticleExchanger> exchange
     MPI_Check( MPI_Cart_get (haloComm, 3, dims, periods, coords) );
     MPI_Check( MPI_Comm_rank(haloComm, &myrank));
 
-    for(int i = 0; i < 27; ++i)
+    for (int i = 0; i < FragmentMapping::numFragments; ++i)
     {
-        int d[3] = { i%3 - 1, (i/3) % 3 - 1, i/9 - 1 };
+        int d[3] = { FragmentMapping::getDirx(i),
+                     FragmentMapping::getDiry(i),
+                     FragmentMapping::getDirz(i) };
 
         int coordsNeigh[3];
         for(int c = 0; c < 3; ++c)
@@ -26,11 +29,7 @@ MPIExchangeEngine::MPIExchangeEngine(std::unique_ptr<ParticleExchanger> exchange
         MPI_Check( MPI_Cart_rank(haloComm, coordsNeigh, dir2rank + i) );
 
         dir2sendTag[i] = i;
-
-        int cx = -d[0] + 1;
-        int cy = -d[1] + 1;
-        int cz = -d[2] + 1;
-        dir2recvTag[i] = (cz*3 + cy)*3 + cx;
+        dir2recvTag[i] = FragmentMapping::getId(-d[0], -d[1], -d[2]);
     }
 }
 
@@ -84,7 +83,7 @@ int MPIExchangeEngine::tagByName(std::string name)
 {
     // TODO: better tagging policy (unique id?)
     static std::hash<std::string> nameHash;
-    return (int)( nameHash(name) % (32767 / 27) );
+    return (int)( nameHash(name) % (32767 / FragmentMapping::numFragments) );
 }
 
 
@@ -189,7 +188,7 @@ void MPIExchangeEngine::wait(ExchangeHelper* helper, cudaStream_t stream)
 
     auto rSizes   = helper->recvSizes.  hostPtr();
     auto rOffsets = helper->recvOffsets.hostPtr();
-    bool singleCopy = helper->recvOffsets[27]*helper->datumSize < singleCopyThreshold;
+    bool singleCopy = helper->recvOffsets[FragmentMapping::numFragments] * helper->datumSize < singleCopyThreshold;
     
     debug("Waiting to receive '%s' entities, single copy is %s, GPU aware MPI is %s",
         pvName.c_str(), singleCopy ? "on" : "off", gpuAwareMPI ? "on" : "off");
@@ -256,7 +255,7 @@ void MPIExchangeEngine::send(ExchangeHelper* helper, cudaStream_t stream)
         if (i != bulkId && dir2rank[i] >= 0)
         {
             debug3("Sending %s entities to rank %d in dircode %d [%2d %2d %2d], %d entities",
-                    pvName.c_str(), dir2rank[i], i, i%3 - 1, (i/3)%3 - 1, i/9 - 1, sSizes[i]);
+                   pvName.c_str(), dir2rank[i], i, FragmentMapping::getDirx(i), FragmentMapping::getDiry(i), FragmentMapping::getDirz(i), sSizes[i]);
 
             const int tag = nBuffers * tagByName(pvName) + dir2sendTag[i];
 

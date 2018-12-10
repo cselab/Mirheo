@@ -1,5 +1,6 @@
 #include "particle_redistributor.h"
 #include "exchange_helpers.h"
+#include "fragments_mapping.h"
 
 #include <core/utils/kernel_launch.h>
 #include <core/celllist.h>
@@ -11,9 +12,9 @@
 #include <core/mpi/valid_cell.h>
 
 static __device__ int encodeCellId1d(int cid, int ncells) {
-    if (cid < 0)            return 0;
-    else if (cid >= ncells) return 2;
-    else                    return 1;
+    if (cid < 0)            return -1;
+    else if (cid >= ncells) return 1;
+    else                    return 0;
 }
 
 static __device__ int3 encodeCellId(int3 cid, int3 ncells) {
@@ -23,8 +24,8 @@ static __device__ int3 encodeCellId(int3 cid, int3 ncells) {
     return cid;
 }
 
-static __device__ bool hasToLeave(int3 code) {
-    return code.x*code.y*code.z != 1;
+static __device__ bool hasToLeave(int3 dir) {
+    return dir.x != 0 || dir.y != 0 || dir.z != 0;
 }
 
 template<bool QUERY=false>
@@ -32,10 +33,10 @@ __global__ void getExitingParticles(const CellListInfo cinfo, ParticlePacker pac
 {
     const int gid = blockIdx.x*blockDim.x + threadIdx.x;
     int cid;
-    int cx, cy, cz;
+    int dx, dy, dz;
     const int3 ncells = cinfo.ncells;
 
-    bool valid = isValidCell(cid, cx, cy, cz, gid, blockIdx.y, cinfo);
+    bool valid = isValidCell(cid, dx, dy, dz, gid, blockIdx.y, cinfo);
 
     if (!valid) return;
 
@@ -52,17 +53,17 @@ __global__ void getExitingParticles(const CellListInfo cinfo, ParticlePacker pac
         const int srcId = pstart + i;
         Particle p(cinfo.particles, srcId);
 
-        int3 code = cinfo.getCellIdAlongAxes<CellListsProjection::NoClamp>(make_float3(p.r));
+        int3 dir = cinfo.getCellIdAlongAxes<CellListsProjection::NoClamp>(make_float3(p.r));
 
-        code = encodeCellId(code, ncells);
+        dir = encodeCellId(dir, ncells);
 
         if (p.isMarked()) continue;
         
-        if (hasToLeave(code)) {
-            const int bufId = (code.z*3 + code.y)*3 + code.x;
-            const float3 shift{ cinfo.localDomainSize.x*(code.x-1),
-                                cinfo.localDomainSize.y*(code.y-1),
-                                cinfo.localDomainSize.z*(code.z-1) };
+        if (hasToLeave(dir)) {
+            const int bufId = FragmentMapping::getId(dir);
+            const float3 shift{ cinfo.localDomainSize.x * dir.x,
+                                cinfo.localDomainSize.y * dir.y,
+                                cinfo.localDomainSize.z * dir.z };
 
             int myid = atomicAdd(dataWrap.sizes + bufId, 1);
 
@@ -146,7 +147,8 @@ void ParticleRedistributor::prepareData(int id, cudaStream_t stream)
     auto cl = cellLists[id];
     auto helper = helpers[id];
 
-    debug2("Downloading %d leaving particles of '%s'", helper->sendOffsets[27], pv->name.c_str());
+    debug2("Downloading %d leaving particles of '%s'",
+           helper->sendOffsets[FragmentMapping::numFragments], pv->name.c_str());
 
     if (pv->local()->size() > 0)
     {

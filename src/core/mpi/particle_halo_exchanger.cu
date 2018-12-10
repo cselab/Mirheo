@@ -1,5 +1,6 @@
 #include "particle_halo_exchanger.h"
 #include "exchange_helpers.h"
+#include "fragments_mapping.h"
 
 #include <core/utils/kernel_launch.h>
 #include <core/pvs/particle_vector.h>
@@ -25,9 +26,9 @@ __global__ void getHalos(const CellListInfo cinfo, const ParticlePacker packer, 
     const int gid = blockIdx.x*blockDim.x + threadIdx.x;
     const int tid = threadIdx.x;
     int cid;
-    int cx, cy, cz;
+    int dx, dy, dz;
 
-    bool valid = isValidCell(cid, cx, cy, cz, gid, blockIdx.y, cinfo);
+    bool valid = isValidCell(cid, dx, dy, dz, gid, blockIdx.y, cinfo);
 
     int pstart = valid ? cinfo.cellStarts[cid]   : 0;
     int pend   = valid ? cinfo.cellStarts[cid+1] : 0;
@@ -40,18 +41,18 @@ __global__ void getHalos(const CellListInfo cinfo, const ParticlePacker packer, 
     int current = 0;
 
     // Total number of elements written to halos by this block
-    __shared__ int blockSum[27];
-    if (tid < 27) blockSum[tid] = 0;
+    __shared__ int blockSum[FragmentMapping::numFragments];
+    if (tid < FragmentMapping::numFragments) blockSum[tid] = 0;
 
     __syncthreads();
 
-    for (int ix = min(cx, 1); ix <= max(cx, 1); ix++)
-        for (int iy = min(cy, 1); iy <= max(cy, 1); iy++)
-            for (int iz = min(cz, 1); iz <= max(cz, 1); iz++)
+    for (int ix = min(dx, 0); ix <= max(dx, 0); ix++)
+        for (int iy = min(dy, 0); iy <= max(dy, 0); iy++)
+            for (int iz = min(dz, 0); iz <= max(dz, 0); iz++)
             {
-                if (ix == 1 && iy == 1 && iz == 1) continue;
+                if (ix == 0 && iy == 0 && iz == 0) continue;
 
-                const int bufId = (iz*3 + iy)*3 + ix;
+                const int bufId = FragmentMapping::getId(ix, iy, iz);
                 validHalos[current] = bufId;
                 haloOffset[current] = atomicAdd(blockSum + bufId, pend-pstart);
                 current++;
@@ -59,7 +60,7 @@ __global__ void getHalos(const CellListInfo cinfo, const ParticlePacker packer, 
 
     __syncthreads();
 
-    if (tid < 27 && blockSum[tid] > 0)
+    if (tid < FragmentMapping::numFragments && blockSum[tid] > 0)
         blockSum[tid] = atomicAdd(dataWrap.sizes + tid, blockSum[tid]);
 
     if (QUERY) {
@@ -74,12 +75,11 @@ __global__ void getHalos(const CellListInfo cinfo, const ParticlePacker packer, 
             const int bufId = validHalos[i];
             const int myid  = blockSum[bufId] + haloOffset[i];
 
-            const int ix = bufId % 3;
-            const int iy = (bufId / 3) % 3;
-            const int iz = bufId / 9;
-            const float3 shift{ cinfo.localDomainSize.x*(ix-1),
-                                cinfo.localDomainSize.y*(iy-1),
-                                cinfo.localDomainSize.z*(iz-1) };
+            const int3 dir = FragmentMapping::getDir(bufId);
+
+            const float3 shift{ cinfo.localDomainSize.x * dir.x,
+                                cinfo.localDomainSize.y * dir.y,
+                                cinfo.localDomainSize.z * dir.z };
 
 #pragma unroll 3
             for (int i = 0; i < pend-pstart; i++)
@@ -157,7 +157,8 @@ void ParticleHaloExchanger::prepareData(int id, cudaStream_t stream)
     auto cl = cellLists[id];
     auto helper = helpers[id];
 
-    debug2("Downloading %d halo particles of '%s'", helper->sendOffsets[27], pv->name.c_str());
+    debug2("Downloading %d halo particles of '%s'",
+           helper->sendOffsets[FragmentMapping::numFragments], pv->name.c_str());
 
     if (pv->local()->size() > 0)
     {

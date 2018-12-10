@@ -36,7 +36,9 @@ public:
 private:
     std::unique_ptr<ParticleExchanger> exchanger;
     
-    int dir2rank[27], dir2sendTag[27], dir2recvTag[27];    
+    int dir2rank[FragmentMapping::numFragments];
+    int dir2sendTag[FragmentMapping::numFragments];
+    int dir2recvTag[FragmentMapping::numFragments];    
     int nActiveNeighbours;
 
     int myrank;

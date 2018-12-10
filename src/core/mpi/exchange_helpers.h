@@ -1,5 +1,7 @@
 #pragma once
 
+#include "fragments_mapping.h"
+
 #include <mpi.h>
 #include <core/containers.h>
 #include <string>
@@ -24,8 +26,8 @@ class ExchangeHelper
 {
 public:
     int datumSize;             ///< size in bytes on a single datum in a message, e.g. Particle size or size of packed object
-    const int nBuffers = 27;   ///< equal to number of neighbours + 1, for now fixed
-    const int bulkId   = 13;
+    const int nBuffers = FragmentMapping::numFragments;   ///< equal to number of neighbours + 1, for now fixed
+    const int bulkId   = FragmentMapping::bulkId;
 
     std::string name;  ///< corresponding ParticleVector name
 

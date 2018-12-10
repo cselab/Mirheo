@@ -1,5 +1,6 @@
 #include "object_halo_exchanger.h"
 #include "exchange_helpers.h"
+#include "fragments_mapping.h"
 
 #include <core/utils/kernel_launch.h>
 #include <core/pvs/particle_vector.h>
@@ -23,22 +24,22 @@ __global__ void getObjectHalos(const DomainInfo domain, const OVview view, const
     {
         // Find to which halos this object should go
         auto prop = view.comAndExtents[objId];
-        int cx = 1, cy = 1, cz = 1;
+        int dx = 0, dy = 0, dz = 0;
 
-        if (prop.low.x  < -0.5f*domain.localSize.x + rc) cx = 0;
-        if (prop.low.y  < -0.5f*domain.localSize.y + rc) cy = 0;
-        if (prop.low.z  < -0.5f*domain.localSize.z + rc) cz = 0;
+        if (prop.low.x  < -0.5f*domain.localSize.x + rc) dx = -1;
+        if (prop.low.y  < -0.5f*domain.localSize.y + rc) dy = -1;
+        if (prop.low.z  < -0.5f*domain.localSize.z + rc) dz = -1;
 
-        if (prop.high.x >  0.5f*domain.localSize.x - rc) cx = 2;
-        if (prop.high.y >  0.5f*domain.localSize.y - rc) cy = 2;
-        if (prop.high.z >  0.5f*domain.localSize.z - rc) cz = 2;
+        if (prop.high.x >  0.5f*domain.localSize.x - rc) dx = 1;
+        if (prop.high.y >  0.5f*domain.localSize.y - rc) dy = 1;
+        if (prop.high.z >  0.5f*domain.localSize.z - rc) dz = 1;
 
-        for (int ix = min(cx, 1); ix <= max(cx, 1); ix++)
-            for (int iy = min(cy, 1); iy <= max(cy, 1); iy++)
-                for (int iz = min(cz, 1); iz <= max(cz, 1); iz++)
+        for (int ix = min(dx, 0); ix <= max(dx, 0); ix++)
+            for (int iy = min(dy, 0); iy <= max(dy, 0); iy++)
+                for (int iz = min(dz, 0); iz <= max(dz, 0); iz++)
                 {
-                    if (ix == 1 && iy == 1 && iz == 1) continue;
-                    const int bufId = (iz*3 + iy)*3 + ix;
+                    if (ix == 0 && iy == 0 && iz == 0) continue;
+                    const int bufId = FragmentMapping::getId(ix, iy, iz);
                     validHalos[nHalos] = bufId;
                     nHalos++;
                 }
@@ -51,12 +52,11 @@ __global__ void getObjectHalos(const DomainInfo domain, const OVview view, const
     {
         const int bufId = validHalos[i];
 
-        const int ix = bufId % 3;
-        const int iy = (bufId / 3) % 3;
-        const int iz = bufId / 9;
-        const float3 shift{ domain.localSize.x*(ix-1),
-                            domain.localSize.y*(iy-1),
-                            domain.localSize.z*(iz-1) };
+        const int3 dir = FragmentMapping::getDir(bufId);
+        
+        const float3 shift{ domain.localSize.x * dir.x,
+                            domain.localSize.y * dir.y,
+                            domain.localSize.z * dir.z };
 
         __syncthreads();
         if (tid == 0)
@@ -165,7 +165,8 @@ void ObjectHaloExchanger::prepareData(int id, cudaStream_t stream)
     auto helper = helpers[id];
     auto origin = origins[id];
 
-    debug2("Downloading %d halo objects of '%s'", helper->sendOffsets[27], ov->name.c_str());
+    debug2("Downloading %d halo objects of '%s'",
+           helper->sendOffsets[FragmentMapping::numFragments], ov->name.c_str());
 
     OVview ovView(ov, ov->local());
     ObjectPacker packer(ov, ov->local(), stream);
