@@ -23,3 +23,4 @@ data/
 __pycache__/
 *.kdev4
 build/
+.tramp_history
