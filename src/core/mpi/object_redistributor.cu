@@ -100,7 +100,8 @@ void ObjectRedistributor::prepareSizes(int id, cudaStream_t stream)
     auto ov  = objects[id];
     auto lov = ov->local();
     auto helper = helpers[id];
-
+    auto bulkId = helper->bulkId;
+    
     ov->findExtentAndCOM(stream, ParticleVectorType::Local);
 
     OVview ovView(ov, ov->local());
@@ -122,13 +123,13 @@ void ObjectRedistributor::prepareSizes(int id, cudaStream_t stream)
         helper->computeSendOffsets_Dev2Dev(stream);
     }
 
-    int nObjs = helper->sendSizes[13];
+    int nObjs = helper->sendSizes[bulkId];
     debug2("%d objects of '%s' will leave", ovView.nObjects - nObjs, ov->name.c_str());
 
     // Early termination support
     if (nObjs == ovView.nObjects)
     {
-        helper->sendSizes[13] = 0;
+        helper->sendSizes[bulkId] = 0;
         helper->computeSendOffsets();
         helper->resizeSendBuf();
     }
@@ -139,13 +140,14 @@ void ObjectRedistributor::prepareData(int id, cudaStream_t stream)
     auto ov  = objects[id];
     auto lov = ov->local();
     auto helper = helpers[id];
+    auto bulkId = helper->bulkId;
 
     OVview ovView(ov, ov->local());
     ObjectPacker packer(ov, ov->local(), stream);
     helper->setDatumSize(packer.totalPackedSize_byte);
 
     const int nthreads = 256;
-    int nObjs = helper->sendSizes[13];
+    int nObjs = helper->sendSizes[bulkId];
 
     // Early termination - no redistribution
     if (helper->sendOffsets[27] == 0)
@@ -174,7 +176,7 @@ void ObjectRedistributor::prepareData(int id, cudaStream_t stream)
     SAFE_KERNEL_LAUNCH(
             unpackObject,
             nObjs, nthreads, 0, stream,
-            helper->sendBuf.devPtr() + helper->sendOffsets[13] * packer.totalPackedSize_byte, 0, ovView, packer );
+            helper->sendBuf.devPtr() + helper->sendOffsets[bulkId] * packer.totalPackedSize_byte, 0, ovView, packer );
 
 
     // Finally need to compact the buffers
@@ -188,11 +190,11 @@ void ObjectRedistributor::prepareData(int id, cudaStream_t stream)
                                  helper->sendBuf.devPtr() + helper->sendOffsets[14]*helper->datumSize,
                                  copySize, cudaMemcpyDeviceToDevice, stream ) );
     
-    CUDA_Check( cudaMemcpyAsync( helper->sendBuf.devPtr() + helper->sendOffsets[13]*helper->datumSize,
+    CUDA_Check( cudaMemcpyAsync( helper->sendBuf.devPtr() + helper->sendOffsets[bulkId]*helper->datumSize,
                                  temp.devPtr(),
                                  copySize, cudaMemcpyDeviceToDevice, stream ) );
                                  
-    helper->sendSizes[13] = 0;
+    helper->sendSizes[bulkId] = 0;
     helper->computeSendOffsets();
     helper->resizeSendBuf();
 

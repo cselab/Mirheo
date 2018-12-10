@@ -39,7 +39,9 @@ void SingleNodeEngine::finalize(cudaStream_t stream)
 
 void SingleNodeEngine::copySend2Recv(ExchangeHelper *helper, cudaStream_t stream)
 {
-    if (helper->sendSizes[13] != 0)
+    auto bulkId = helper->bulkId;
+    
+    if (helper->sendSizes[bulkId] != 0)
         error("Non-empty message to itself detected, this may fail with the Single node engine, "
             "working with particle vector '%s'", helper->name.c_str());
         

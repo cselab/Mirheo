@@ -93,6 +93,7 @@ void MPIExchangeEngine::postRecvSize(ExchangeHelper* helper)
     std::string pvName = helper->name;
 
     auto nBuffers = helper->nBuffers;
+    auto bulkId   = helper->bulkId;
     auto rSizes   = helper->recvSizes.  hostPtr();
     auto rOffsets = helper->recvOffsets.hostPtr();
 
@@ -101,7 +102,7 @@ void MPIExchangeEngine::postRecvSize(ExchangeHelper* helper)
     helper->recvSizes.clearHost();
 
     for (int i=0; i < nBuffers; i++)
-        if (i != 13 && dir2rank[i] >= 0)
+        if (i != bulkId && dir2rank[i] >= 0)
         {
             MPI_Request req;
             const int tag = nBuffers * tagByName(pvName) + dir2recvTag[i];
@@ -119,11 +120,12 @@ void MPIExchangeEngine::sendSizes(ExchangeHelper* helper)
     std::string pvName = helper->name;
 
     auto nBuffers = helper->nBuffers;
+    auto bulkId   = helper->bulkId;
     auto sSizes   = helper->sendSizes.hostPtr();
 
     // Do blocking send in hope that it will be immediate due to small size
     for (int i=0; i < nBuffers; i++)
-        if (i != 13 && dir2rank[i] >= 0)
+        if (i != bulkId && dir2rank[i] >= 0)
         {
             const int tag = nBuffers * tagByName(pvName) + dir2sendTag[i];
             MPI_Check( MPI_Send(sSizes+i, 1, MPI_INT, dir2rank[i], tag, haloComm) );
@@ -135,6 +137,7 @@ void MPIExchangeEngine::postRecv(ExchangeHelper* helper)
     std::string pvName = helper->name;
 
     auto nBuffers = helper->nBuffers;
+    auto bulkId   = helper->bulkId;
     auto rSizes   = helper->recvSizes.  hostPtr();
     auto rOffsets = helper->recvOffsets.hostPtr();
 
@@ -152,7 +155,7 @@ void MPIExchangeEngine::postRecv(ExchangeHelper* helper)
     helper->requests.clear();
     helper->reqIndex.clear();
     for (int i=0; i < nBuffers; i++)
-        if (i != 13 && dir2rank[i] >= 0)
+        if (i != bulkId && dir2rank[i] >= 0)
         {
             MPI_Request req;
             const int tag = nBuffers * tagByName(pvName) + dir2recvTag[i];
@@ -236,6 +239,7 @@ void MPIExchangeEngine::send(ExchangeHelper* helper, cudaStream_t stream)
     std::string pvName = helper->name;
 
     auto nBuffers = helper->nBuffers;
+    auto bulkId   = helper->bulkId;
     auto sSizes   = helper->sendSizes.  hostPtr();
     auto sOffsets = helper->sendOffsets.hostPtr();
     bool singleCopy = helper->sendBuf.size() < singleCopyThreshold;
@@ -249,7 +253,7 @@ void MPIExchangeEngine::send(ExchangeHelper* helper, cudaStream_t stream)
     MPI_Request req;
     int totSent = 0;
     for (int i=0; i < nBuffers; i++)
-        if (i != 13 && dir2rank[i] >= 0)
+        if (i != bulkId && dir2rank[i] >= 0)
         {
             debug3("Sending %s entities to rank %d in dircode %d [%2d %2d %2d], %d entities",
                     pvName.c_str(), dir2rank[i], i, i%3 - 1, (i/3)%3 - 1, i/9 - 1, sSizes[i]);
