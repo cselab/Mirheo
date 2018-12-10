@@ -27,9 +27,9 @@ MPIExchangeEngine::MPIExchangeEngine(std::unique_ptr<ParticleExchanger> exchange
 
         dir2sendTag[i] = i;
 
-        int cx = -( i%3 - 1 ) + 1;
-        int cy = -( (i/3)%3 - 1 ) + 1;
-        int cz = -( i/9 - 1 ) + 1;
+        int cx = -d[0] + 1;
+        int cy = -d[1] + 1;
+        int cz = -d[2] + 1;
         dir2recvTag[i] = (cz*3 + cy)*3 + cx;
     }
 }
