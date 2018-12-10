@@ -68,19 +68,13 @@ public:
         channelMap[name].container = std::move(ptr);
 
         sortedChannels.push_back({name, &channelMap[name]});
-        std::sort(sortedChannels.begin(), sortedChannels.end(), [] (NamedChannelDesc ch1, NamedChannelDesc ch2) {
-            return ch1.second->container->datatype_size() > ch2.second->container->datatype_size();
-        });
+        sortChannels();
     }
 
     /**
      * Make buffer be communicated by MPI
      */
-    void requireExchange(const std::string& name)
-    {
-        auto& desc = getChannelDescOrDie(name);
-        desc.needExchange = true;
-    }
+    void requireExchange(const std::string& name);
 
     /**
      * @brief Make buffer elements be shifted when migrating to another MPI rank
@@ -106,23 +100,7 @@ public:
      * @param datatypeSize treat coordinates as \c float (== 4) or as \c double (== 8)
      * Other values are not allowed
      */
-    void requireShift(const std::string& name, int datatypeSize)
-    {
-        if (datatypeSize != sizeof(float) && datatypeSize != sizeof(double))
-            die("Can only shift float3 or double3 data for MPI communications");
-
-        auto& desc = getChannelDescOrDie(name);
-
-        if ( (desc.container->datatype_size() % sizeof(float4)) != 0)
-            die("Incorrect alignment of channel '%s' elements. Size (now %d) should be divisible by 16",
-                    name.c_str(), desc.container->datatype_size());
-
-        if (desc.container->datatype_size() < 3*datatypeSize)
-            die("Size of an element of the channel '%s' (%d) is too small to apply shift, need to be at least %d",
-                    name.c_str(), desc.container->datatype_size(), 4*datatypeSize);
-
-        desc.shiftTypeSize = datatypeSize;
-    }
+    void requireShift(const std::string& name, int datatypeSize);
 
     /**
      * Get gpu buffer by name
@@ -130,12 +108,7 @@ public:
      * @param name buffer name
      * @return pointer to \c GPUcontainer corresponding to the given name
      */
-    GPUcontainer* getGenericData(const std::string& name)
-    {
-        auto& desc = getChannelDescOrDie(name);
-        return desc.container.get();
-    }
-    
+    GPUcontainer* getGenericData(const std::string& name);    
     
     /**
      * Get buffer by name
@@ -156,63 +129,35 @@ public:
      * @param name buffer name
      * @return pointer to device data held by the corresponding \c PinnedBuffer
      */
-    void* getGenericPtr(const std::string& name)
-    {
-        auto& desc = getChannelDescOrDie(name);
-        return desc.container->genericDevPtr();
-    }
+    void* getGenericPtr(const std::string& name);
 
     /**
      * \c true if channel with given \c name exists, \c false otherwise
      */
-    bool checkChannelExists(const std::string& name) const
-    {
-        return channelMap.find(name) != channelMap.end();
-    }
+    bool checkChannelExists(const std::string& name) const;
 
     /**
      * @return vector of channels sorted (descending) by size of their elements
      */
-    const std::vector<NamedChannelDesc>& getSortedChannels() const
-    {
-        return sortedChannels;
-    }
+    const std::vector<NamedChannelDesc>& getSortedChannels() const;
 
     /**
      * Returns true if the channel has to be exchanged by MPI
      */
-    bool checkNeedExchange(const std::string& name) const
-    {
-        auto& desc = getChannelDescOrDie(name);
-        return desc.needExchange;
-    }
+    bool checkNeedExchange(const std::string& name) const;
 
     /**
      * Returns 0 if no shift needed, 4 if shift with floats needed, 8 -- if shift with doubles
      */
-    int shiftTypeSize(const std::string& name) const
-    {
-        auto& desc = getChannelDescOrDie(name);
-        return desc.shiftTypeSize;
-    }
-
+    int shiftTypeSize(const std::string& name) const;
 
     /// Resize all the channels, keep their data
-    void resize(int n, cudaStream_t stream)
-    {
-        for (auto& kv : channelMap)
-            kv.second.container->resize(n, stream);
-    }
+    void resize(int n, cudaStream_t stream);
 
     /// Resize all the channels, don't care about existing data
-    void resize_anew(int n)
-    {
-        for (auto& kv : channelMap)
-            kv.second.container->resize_anew(n);
-    }
+    void resize_anew(int n);
 
-private:
-
+private:    
 
     /// Map of name --> data
     using ChannelMap = std::map< std::string, ChannelDescription >;
@@ -235,23 +180,11 @@ private:
     friend class ParticlePacker;
     friend class ObjectExtraPacker;
 
-    /// Get entry from channelMap or die if it is not found
-    ChannelDescription& getChannelDescOrDie(const std::string& name)
-    {
-        auto it = channelMap.find(name);
-        if (it == channelMap.end())
-            die("No such channel: '%s'", name.c_str());
+    void sortChannels();
 
-        return it->second;
-    }
+    /// Get entry from channelMap or die if it is not found
+    ChannelDescription& getChannelDescOrDie(const std::string& name);
 
     /// Get constant entry from channelMap or die if it is not found
-    const ChannelDescription& getChannelDescOrDie(const std::string& name) const
-    {
-        auto it = channelMap.find(name);
-        if (it == channelMap.end())
-            die("No such channel: '%s'", name.c_str());
-
-        return it->second;
-    }
+    const ChannelDescription& getChannelDescOrDie(const std::string& name) const;
 };
