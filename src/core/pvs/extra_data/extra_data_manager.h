@@ -108,7 +108,7 @@ public:
      */
     void requireShift(const std::string& name, int datatypeSize)
     {
-        if (datatypeSize != 4 && datatypeSize != 8)
+        if (datatypeSize != sizeof(float) && datatypeSize != sizeof(double))
             die("Can only shift float3 or double3 data for MPI communications");
 
         auto& desc = getChannelDescOrDie(name);
