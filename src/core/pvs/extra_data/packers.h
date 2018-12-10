@@ -4,7 +4,6 @@
 #include <core/pvs/particle_vector.h>
 #include <core/pvs/object_vector.h>
 
-
 /**
  * Class that packs nChannels of arbitrary data into a chunk of contiguous memory
  * or unpacks it in the same manner
@@ -24,7 +23,7 @@ struct DevicePacker
      */
     inline __device__ void pack(int srcId, char* dstAddr) const
     {
-        _packShift<false> (srcId, dstAddr, make_float3(0));
+        _packShift<ShiftMode::NoShift> (srcId, dstAddr, make_float3(0));
     }
 
     /**
@@ -33,7 +32,7 @@ struct DevicePacker
      */
     inline __device__ void packShift(int srcId, char* dstAddr, float3 shift) const
     {
-        _packShift<true>  (srcId, dstAddr, shift);
+        _packShift<ShiftMode::NeedShift>  (srcId, dstAddr, shift);
     }
 
     /**
@@ -49,6 +48,11 @@ struct DevicePacker
     }
 
 private:
+
+    enum class ShiftMode
+    {
+        NeedShift, NoShift
+    };
 
     /**
      * Copy nchunks*sizeof(T) bytes \c from from to \c to
@@ -85,7 +89,7 @@ private:
      * Packing implementation
      * Template parameter NEEDSHIFT governs shifting
      */
-    template <bool NEEDSHIFT>
+    template <ShiftMode shiftmode>
     inline __device__ void _packShift(int srcId, char* dstAddr, float3 shift) const
     {
         for (int i = 0; i < nChannels; i++)
@@ -93,9 +97,9 @@ private:
             const int size = channelSizes[i];
             int done = 0;
 
-            if (NEEDSHIFT)
+            if (shiftmode == ShiftMode::NeedShift)
             {
-                if (channelShiftTypes[i] == 4)
+                if (channelShiftTypes[i] == sizeof(float))
                 {
                     float4 val = *((float4*) ( channelData[i] + size*srcId ));
                     val.x += shift.x;
@@ -105,7 +109,7 @@ private:
 
                     done = sizeof(float4);
                 }
-                else if (channelShiftTypes[i] == 8)
+                else if (channelShiftTypes[i] == sizeof(double))
                 {
                     double4 val = *((double4*) ( channelData[i] + size*srcId ));
                     val.x += shift.x;
@@ -299,13 +303,4 @@ struct ObjectPacker
         totalPackedSize_byte = part.packedSize_byte * ov->objSize + obj.packedSize_byte;
     }
 };
-
-
-
-
-
-
-
-
-
 
