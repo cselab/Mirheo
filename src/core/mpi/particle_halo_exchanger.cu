@@ -14,13 +14,18 @@
 
 #include "valid_cell.h"
 
+enum class PackMode
+{
+    Querry, Pack
+};
+
 /**
  * Get halos
  * @param cinfo
  * @param packer
  * @param dataWrap
  */
-template<bool QUERY=false>
+template <PackMode packMode>
 __global__ void getHalos(const CellListInfo cinfo, const ParticlePacker packer, BufferOffsetsSizesWrap dataWrap)
 {
     const int gid = blockIdx.x*blockDim.x + threadIdx.x;
@@ -63,7 +68,7 @@ __global__ void getHalos(const CellListInfo cinfo, const ParticlePacker packer, 
     if (tid < FragmentMapping::numFragments && blockSum[tid] > 0)
         blockSum[tid] = atomicAdd(dataWrap.sizes + tid, blockSum[tid]);
 
-    if (QUERY) {
+    if (packMode == PackMode::Querry) {
         return;
     }
     else {
@@ -143,7 +148,7 @@ void ParticleHaloExchanger::prepareSizes(int id, cudaStream_t stream)
         helper->setDatumSize(packer.packedSize_byte);
 
         SAFE_KERNEL_LAUNCH(
-                getHalos<true>,
+                getHalos<PackMode::Querry>,
                 nblocks, nthreads, 0, stream,
                 cl->cellInfo(), packer, helper->wrapSendData() );
 
@@ -171,7 +176,7 @@ void ParticleHaloExchanger::prepareData(int id, cudaStream_t stream)
         helper->resizeSendBuf();
         helper->sendSizes.clearDevice(stream);
         SAFE_KERNEL_LAUNCH(
-                getHalos<false>,
+                getHalos<PackMode::Pack>,
                 nblocks, nthreads, 0, stream,
                 cl->cellInfo(), packer, helper->wrapSendData() );
     }

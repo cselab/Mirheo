@@ -28,7 +28,12 @@ static __device__ bool hasToLeave(int3 dir) {
     return dir.x != 0 || dir.y != 0 || dir.z != 0;
 }
 
-template<bool QUERY=false>
+enum class PackMode
+{
+    Querry, Pack
+};
+
+template <PackMode packMode>
 __global__ void getExitingParticles(const CellListInfo cinfo, ParticlePacker packer, BufferOffsetsSizesWrap dataWrap)
 {
     const int gid = blockIdx.x*blockDim.x + threadIdx.x;
@@ -67,7 +72,7 @@ __global__ void getExitingParticles(const CellListInfo cinfo, ParticlePacker pac
 
             int myid = atomicAdd(dataWrap.sizes + bufId, 1);
 
-            if (QUERY) {
+            if (packMode == PackMode::Querry) {
                 continue;
             }
             else {
@@ -133,7 +138,7 @@ void ParticleRedistributor::prepareSizes(int id, cudaStream_t stream)
         helper->setDatumSize(packer.packedSize_byte);
 
         SAFE_KERNEL_LAUNCH(
-                getExitingParticles<true>,
+                getExitingParticles<PackMode::Querry>,
                 nblocks, nthreads, 0, stream,
                 cl->cellInfo(), packer, helper->wrapSendData() );
 
@@ -162,7 +167,7 @@ void ParticleRedistributor::prepareData(int id, cudaStream_t stream)
         // Sizes will still remain on host, no need to download again
         helper->sendSizes.clearDevice(stream);
         SAFE_KERNEL_LAUNCH(
-                getExitingParticles<false>,
+                getExitingParticles<PackMode::Pack>,
                 nblocks, nthreads, 0, stream,
                 cl->cellInfo(), packer, helper->wrapSendData() );
     }

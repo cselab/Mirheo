@@ -10,7 +10,12 @@
 #include <core/logger.h>
 #include <core/utils/cuda_common.h>
 
-template<bool QUERY>
+enum class PackMode
+{
+    Querry, Pack
+};
+
+template <PackMode packMode>
 __global__ void getExitingObjects(const DomainInfo domain, OVview view, const ObjectPacker packer, BufferOffsetsSizesWrap dataWrap)
 {
     const int objId = blockIdx.x;
@@ -42,7 +47,7 @@ __global__ void getExitingObjects(const DomainInfo domain, OVview view, const Ob
     if (tid == 0)
         shDstObjId = atomicAdd(dataWrap.sizes + bufId, 1);
 
-    if (QUERY) {
+    if (packMode == PackMode::Querry) {
         return;
     }
     else {
@@ -117,7 +122,7 @@ void ObjectRedistributor::prepareSizes(int id, cudaStream_t stream)
     if (ovView.nObjects > 0)
     {
         SAFE_KERNEL_LAUNCH(
-                getExitingObjects<true>,
+                getExitingObjects<PackMode::Querry>,
                 ovView.nObjects, nthreads, 0, stream,
                 ov->domain, ovView, packer, helper->wrapSendData() );
 
@@ -163,7 +168,7 @@ void ObjectRedistributor::prepareData(int id, cudaStream_t stream)
     helper->resizeSendBuf();
     helper->sendSizes.clearDevice(stream);
     SAFE_KERNEL_LAUNCH(
-            getExitingObjects<false>,
+            getExitingObjects<PackMode::Pack>,
             lov->nObjects, nthreads, 0, stream,
             ov->domain, ovView, packer, helper->wrapSendData() );
 

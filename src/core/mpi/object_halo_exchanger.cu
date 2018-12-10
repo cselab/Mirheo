@@ -10,7 +10,12 @@
 #include <core/logger.h>
 #include <core/utils/cuda_common.h>
 
-template<bool QUERY=false>
+enum class PackMode
+{
+    Querry, Pack
+};
+
+template <PackMode packMode>
 __global__ void getObjectHalos(const DomainInfo domain, const OVview view, const ObjectPacker packer,
         const float rc, BufferOffsetsSizesWrap dataWrap, int* haloParticleIds = nullptr)
 {
@@ -62,7 +67,7 @@ __global__ void getObjectHalos(const DomainInfo domain, const OVview view, const
         if (tid == 0)
             shDstObjId = atomicAdd(dataWrap.sizes + bufId, 1);
 
-        if (QUERY) {
+        if (packMode == PackMode::Querry) {
             continue;
         }
         else {
@@ -150,7 +155,7 @@ void ObjectHaloExchanger::prepareSizes(int id, cudaStream_t stream)
         const int nthreads = 256;
 
         SAFE_KERNEL_LAUNCH(
-                getObjectHalos<true>,
+                getObjectHalos<PackMode::Querry>,
                 ovView.nObjects, nthreads, 0, stream,
                 ov->domain, ovView, packer, rc, helper->wrapSendData() );
 
@@ -182,7 +187,7 @@ void ObjectHaloExchanger::prepareData(int id, cudaStream_t stream)
         helper->resizeSendBuf();
         helper->sendSizes.clearDevice(stream);
         SAFE_KERNEL_LAUNCH(
-                getObjectHalos<false>,
+                getObjectHalos<PackMode::Pack>,
                 ovView.nObjects, nthreads, 0, stream,
                 ov->domain, ovView, packer, rc, helper->wrapSendData(), origin->devPtr() );
     }
