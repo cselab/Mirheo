@@ -4,28 +4,47 @@
     OP(float)                                    \
     OP(double)                                   \
     OP(int)                                      \
-    OP(float4)
+    OP(float3)
 
-#define TOKENIFY(ctype) _##ctype##_
+#define TOKENIZE(ctype) _##ctype##_
 
 
 
 
 enum class DataType
 {
-#define MAKE_ENUM(ctype) TOKENIFY(ctype),
+#define MAKE_ENUM(ctype) TOKENIZE(ctype),
     TYPE_TABLE(MAKE_ENUM)
 #undef MAKE_ENUM
+    None
 };
 
 
 
 
-template<typename T> DataType typeTokenify();
+template<typename T> DataType typeTokenize() { return DataType::None; }
 
-#define MAKE_TOKENIFY_FUNCTIONS(ctype) \
-    template<> inline DataType typeTokenify<ctype>() {return DataType::TOKENIFY(ctype);}
+#define MAKE_TOKENIZE_FUNCTIONS(ctype) \
+    template<> inline DataType typeTokenize<ctype>() {return DataType::TOKENIZE(ctype);}
 
-TYPE_TABLE(MAKE_TOKENIFY_FUNCTIONS)
+TYPE_TABLE(MAKE_TOKENIZE_FUNCTIONS)
 
-#undef MAKE_TOKENIFY_FUNCTIONS
+#undef MAKE_TOKENIZE_FUNCTIONS
+
+
+
+/* usage:
+
+DataType dataType = ...;
+
+switch(dataType) {
+#define SWITCH_ENTRY(ctype)                     \
+    case DataType::TOKENIZE(ctype):             \
+        CALL_TEMPLATED_FUNCTION<ctype>();       \
+        break;                                  \
+
+    TYPE_TABLE(SWITCH_ENTRY)
+        
+#undef SWITCH_ENTRY
+};
+*/
