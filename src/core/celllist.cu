@@ -128,39 +128,52 @@ CellList::CellList(ParticleVector* pv, int3 resolution, float3 localDomainSize) 
     debug("Initialized %s cell-list with %dx%dx%d cells and cut-off %f", pv->name.c_str(), ncells.x, ncells.y, ncells.z, this->rc);
 }
 
-void CellList::_build(cudaStream_t stream)
+
+void CellList::_computeCellSizes(cudaStream_t stream)
 {
-    // Compute cell sizes
     debug2("Computing cell sizes for %d %s particles", pv->local()->size(), pv->name.c_str());
     cellSizes.clear(stream);
 
     PVview view(pv, pv->local());
 
-    int nthreads = 128;
+    const int nthreads = 128;
     SAFE_KERNEL_LAUNCH(
             computeCellSizes,
             getNblocks(view.size, nthreads), nthreads, 0, stream,
             view, cellInfo() );
+}
 
-    // Scan to get cell starts
+void CellList::_computeCellStarts(cudaStream_t stream)
+{
     size_t bufSize;
     cub::DeviceScan::ExclusiveSum(nullptr, bufSize, cellSizes.devPtr(), cellStarts.devPtr(), totcells+1, stream);
-    // Allocate temporary storage
     scanBuffer.resize_anew(bufSize);
-    // Run exclusive prefix sum
     cub::DeviceScan::ExclusiveSum(scanBuffer.devPtr(), bufSize, cellSizes.devPtr(), cellStarts.devPtr(), totcells+1, stream);
+}
 
-    // Reorder the data
+void CellList::_reorderData(cudaStream_t stream)
+{
     debug2("Reordering %d %s particles", pv->local()->size(), pv->name.c_str());
+
+    PVview view(pv, pv->local());
+
     order.resize_anew(view.size);
     particlesContainer.resize_anew(view.size);
     cellSizes.clear(stream);
 
+    const int nthreads = 128;
     SAFE_KERNEL_LAUNCH(
-            reorderParticles,
-            getNblocks(2*view.size, nthreads), nthreads, 0, stream,
-            view, cellInfo(), (float4*)particlesContainer.devPtr() );
-
+                       reorderParticles,
+                       getNblocks(2*view.size, nthreads), nthreads, 0, stream,
+                       view, cellInfo(), (float4*)particlesContainer.devPtr() );
+}
+    
+void CellList::_build(cudaStream_t stream)
+{
+    _computeCellSizes(stream);
+    _computeCellStarts(stream);
+    _reorderData(stream);
+    
     changedStamp = pv->cellListStamp;
 }
 

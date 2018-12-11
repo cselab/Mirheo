@@ -92,19 +92,23 @@ protected:
     int changedStamp{-1};
 
     DeviceBuffer<char> scanBuffer;
+    DeviceBuffer<int> cellStarts, cellSizes, order;
+    
     PinnedBuffer<Particle> particlesContainer = {};
     DeviceBuffer<Force>    forcesContainer = {};
 
     ParticleVector* pv;
 
+    void _computeCellSizes(cudaStream_t stream);
+    void _computeCellStarts(cudaStream_t stream);
+    void _reorderData(cudaStream_t stream);
+    
     void _build(cudaStream_t stream);
 
     PinnedBuffer<Particle>* particles;
     DeviceBuffer<Force>*    forces;
 
-public:
-
-    DeviceBuffer<int> cellStarts, cellSizes, order;
+public:    
 
     CellList(ParticleVector* pv, float rc, float3 localDomainSize);
     CellList(ParticleVector* pv, int3 resolution, float3 localDomainSize);
