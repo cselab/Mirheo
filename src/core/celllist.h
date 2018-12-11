@@ -8,6 +8,7 @@
 #include <core/utils/cuda_common.h>
 
 class ParticleVector;
+struct PVview;
 
 enum class CellListsProjection
 {
@@ -98,13 +99,12 @@ protected:
 
     void _build(cudaStream_t stream);
 
+    PinnedBuffer<Particle>* particles;
+    DeviceBuffer<Force>*    forces;
+
 public:
 
     DeviceBuffer<int> cellStarts, cellSizes, order;
-
-    // TODO: hide this?
-    PinnedBuffer<Particle>* particles;
-    DeviceBuffer<Force>*    forces;
 
     CellList(ParticleVector* pv, float rc, float3 localDomainSize);
     CellList(ParticleVector* pv, int3 resolution, float3 localDomainSize);
@@ -113,6 +113,9 @@ public:
 
     virtual void build(cudaStream_t stream);
     virtual void addForces(cudaStream_t stream);
+    void clearForces(cudaStream_t stream);
+
+    void setViewPtrs(PVview& view);
 
     virtual ~CellList() = default;
 };

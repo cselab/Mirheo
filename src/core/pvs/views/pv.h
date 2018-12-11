@@ -25,16 +25,6 @@ struct PVview
         mass = pv->mass;
         invMass = 1.0 / mass;
     }
-
-//    PVview(ParticleVector* pv, CellList* cl)
-//    {
-//        size = pv->local()->size();
-//        particles = reinterpret_cast<float4*>(cl->particles->devPtr());
-//        forces    = reinterpret_cast<float4*>(cl->forces->devPtr());
-//
-//        mass = pv->mass;
-//        invMass = 1.0 / mass;
-//    }
 };
 
 

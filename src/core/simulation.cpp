@@ -755,7 +755,7 @@ void Simulation::assemble()
         for (auto& cl : cellListMap[pv.get()])
         {
             auto clPtr = cl.get();
-            scheduler->addTask(task_clearForces, [clPtr] (cudaStream_t stream) { clPtr->forces->clear(stream); } );
+            scheduler->addTask(task_clearForces, [clPtr] (cudaStream_t stream) { clPtr->clearForces(stream); } );
         }
 
     for (auto& pl : plugins)
@@ -851,7 +851,7 @@ void Simulation::assemble()
         {
             auto clPtr = cl.get();
             scheduler->addTask(task_clearObjLocalForces, [clPtr] (cudaStream_t stream) {
-                clPtr->forces->clear(stream);
+                clPtr->clearForces(stream);
             });
         }
     }

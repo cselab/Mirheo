@@ -205,6 +205,17 @@ void CellList::addForces(cudaStream_t stream)
             view, cellInfo() );
 }
 
+void CellList::clearForces(cudaStream_t stream)
+{
+    forces->clear(stream);
+}
+
+void CellList::setViewPtrs(PVview& view)
+{
+    view.particles = (float4*) particles->devPtr();
+    view.forces    = (float4*) forces->devPtr();
+}
+
 //=================================================================================
 // Primary cell-lists
 //=================================================================================
@@ -258,16 +269,4 @@ void PrimaryCellList::build(cudaStream_t stream)
     std::swap(pv->local()->coosvels, particlesContainer);
     pv->local()->resize(newSize, stream);
 }
-
-
-
-
-
-
-
-
-
-
-
-
 
