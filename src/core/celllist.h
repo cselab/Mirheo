@@ -8,6 +8,7 @@
 #include <core/utils/cuda_common.h>
 
 class ParticleVector;
+class LocalParticleVector;
 struct PVview;
 
 enum class CellListsProjection
@@ -93,20 +94,17 @@ protected:
 
     DeviceBuffer<char> scanBuffer;
     DeviceBuffer<int> cellStarts, cellSizes, order;
-    
-    PinnedBuffer<Particle> particlesContainer = {};
-    DeviceBuffer<Force>    forcesContainer = {};
 
+    std::unique_ptr<LocalParticleVector> particlesDataContainer;
+    LocalParticleVector *localPV; // will point to particlesDataContainer or pv->local() if Primary
+    
     ParticleVector* pv;
 
     void _computeCellSizes(cudaStream_t stream);
     void _computeCellStarts(cudaStream_t stream);
     void _reorderData(cudaStream_t stream);
     
-    void _build(cudaStream_t stream);
-
-    PinnedBuffer<Particle>* particles;
-    DeviceBuffer<Force>*    forces;
+    void _build(cudaStream_t stream);    
 
 public:    
 

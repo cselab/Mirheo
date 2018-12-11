@@ -100,9 +100,10 @@ CellListInfo::CellListInfo(float3 h, float3 localDomainSize) :
 
 CellList::CellList(ParticleVector* pv, float rc, float3 localDomainSize) :
         CellListInfo(rc, localDomainSize), pv(pv),
-        particles(&particlesContainer),
-        forces(&forcesContainer)
+        particlesDataContainer(new LocalParticleVector(nullptr))
 {
+    localPV = particlesDataContainer.get();
+    
     cellSizes. resize_anew(totcells + 1);
     cellStarts.resize_anew(totcells + 1);
 
@@ -115,9 +116,10 @@ CellList::CellList(ParticleVector* pv, float rc, float3 localDomainSize) :
 
 CellList::CellList(ParticleVector* pv, int3 resolution, float3 localDomainSize) :
         CellListInfo(localDomainSize / make_float3(resolution), localDomainSize), pv(pv),
-        particles(&particlesContainer),
-        forces(&forcesContainer)
+        particlesDataContainer(new LocalParticleVector(nullptr))
 {
+    localPV = particlesDataContainer.get();
+    
     cellSizes. resize_anew(totcells + 1);
     cellStarts.resize_anew(totcells + 1);
 
@@ -158,14 +160,14 @@ void CellList::_reorderData(cudaStream_t stream)
     PVview view(pv, pv->local());
 
     order.resize_anew(view.size);
-    particlesContainer.resize_anew(view.size);
+    particlesDataContainer->resize_anew(view.size);
     cellSizes.clear(stream);
 
     const int nthreads = 128;
     SAFE_KERNEL_LAUNCH(
                        reorderParticles,
                        getNblocks(2*view.size, nthreads), nthreads, 0, stream,
-                       view, cellInfo(), (float4*)particlesContainer.devPtr() );
+                       view, cellInfo(), (float4*)particlesDataContainer->coosvels.devPtr() );
 }
     
 void CellList::_build(cudaStream_t stream)
@@ -179,8 +181,8 @@ void CellList::_build(cudaStream_t stream)
 
 CellListInfo CellList::cellInfo()
 {
-    CellListInfo::particles  = reinterpret_cast<float4*>(particles->devPtr());
-    CellListInfo::forces     = reinterpret_cast<float4*>(forces->devPtr());
+    CellListInfo::particles  = reinterpret_cast<float4*>(localPV->coosvels.devPtr());
+    CellListInfo::forces     = reinterpret_cast<float4*>(localPV->forces.devPtr());
     CellListInfo::cellSizes  = cellSizes.devPtr();
     CellListInfo::cellStarts = cellStarts.devPtr();
     CellListInfo::order      = order.devPtr();
@@ -203,8 +205,6 @@ void CellList::build(cudaStream_t stream)
     }
 
     _build(stream);
-
-    forcesContainer.resize_anew(pv->local()->size());
 }
 
 void CellList::addForces(cudaStream_t stream)
@@ -220,13 +220,13 @@ void CellList::addForces(cudaStream_t stream)
 
 void CellList::clearForces(cudaStream_t stream)
 {
-    forces->clear(stream);
+    localPV->forces.clear(stream);
 }
 
 void CellList::setViewPtrs(PVview& view)
 {
-    view.particles = (float4*) particles->devPtr();
-    view.forces    = (float4*) forces->devPtr();
+    view.particles = (float4*) localPV->coosvels.devPtr();
+    view.forces    = (float4*) localPV->forces.devPtr();
 }
 
 //=================================================================================
@@ -236,8 +236,7 @@ void CellList::setViewPtrs(PVview& view)
 PrimaryCellList::PrimaryCellList(ParticleVector* pv, float rc, float3 localDomainSize) :
         CellList(pv, rc, localDomainSize)
 {
-    particles = &pv->local()->coosvels;
-    forces    = &pv->local()->forces;
+    localPV = pv->local();
 
     if (dynamic_cast<ObjectVector*>(pv) != nullptr)
         error("Using primary cell-lists with objects is STRONGLY discouraged. This will very likely result in an error");
@@ -246,8 +245,7 @@ PrimaryCellList::PrimaryCellList(ParticleVector* pv, float rc, float3 localDomai
 PrimaryCellList::PrimaryCellList(ParticleVector* pv, int3 resolution, float3 localDomainSize) :
         CellList(pv, resolution, localDomainSize)
 {
-    particles = &pv->local()->coosvels;
-    forces    = &pv->local()->forces;
+    localPV = pv->local();
 
     if (dynamic_cast<ObjectVector*>(pv) != nullptr)
         error("Using primary cell-lists with objects is STRONGLY discouraged. This will very likely result in an error");
@@ -278,8 +276,8 @@ void PrimaryCellList::build(cudaStream_t stream)
 
     debug2("Reordering completed, new size of %s particle vector is %d", pv->name.c_str(), newSize);
 
-    particlesContainer.resize(newSize, stream);
-    std::swap(pv->local()->coosvels, particlesContainer);
+    particlesDataContainer->resize(newSize, stream);
+    std::swap(pv->local()->coosvels, particlesDataContainer->coosvels);
     pv->local()->resize(newSize, stream);
 }
 
