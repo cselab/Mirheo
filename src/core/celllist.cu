@@ -255,19 +255,7 @@ void PrimaryCellList::build(cudaStream_t stream)
 {
     //warn("Reordering extra data is not yet implemented in cell-lists");
 
-    if (changedStamp == pv->cellListStamp)
-    {
-        debug2("Cell-list for %s is already up-to-date, building skipped", pv->name.c_str());
-        return;
-    }
-
-    if (pv->local()->size() == 0)
-    {
-        debug2("%s consists of no particles, cell-list building skipped", pv->name.c_str());
-        return;
-    }
-
-    _build(stream);
+    CellList::build(stream);
 
     // Now we need the new size of particles array.
     int newSize;
