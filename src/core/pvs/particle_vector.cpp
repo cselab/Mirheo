@@ -5,7 +5,6 @@
 #include "particle_vector.h"
 #include "restart_helpers.h"
 
-// Local coordinate system; (0,0,0) is center of the local domain
 LocalParticleVector::LocalParticleVector(ParticleVector* pv, int n) : pv(pv)
 {
     resize_anew(n);
@@ -14,10 +13,6 @@ LocalParticleVector::LocalParticleVector(ParticleVector* pv, int n) : pv(pv)
 void LocalParticleVector::resize(const int n, cudaStream_t stream)
 {
     if (n < 0) die("Tried to resize PV to %d < 0 particles", n);
-    
-    //debug4("Resizing PV '%s' (%s) from %d particles to %d particles",
-    //        pv->name.c_str(), this == pv->local() ? "local" : "halo",
-    //        np, n);
     
     coosvels.        resize(n, stream);
     forces.          resize(n, stream);

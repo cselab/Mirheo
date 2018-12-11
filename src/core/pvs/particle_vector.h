@@ -24,7 +24,6 @@ public:
     DeviceBuffer<Force> forces;
     ExtraDataManager extraPerParticle;
 
-    // Local coordinate system; (0,0,0) is center of the local domain
     LocalParticleVector(ParticleVector* pv, int n=0);
 
     int size() { return np; }
@@ -49,7 +48,6 @@ public:
     DomainInfo domain;    
 
     float mass;
-    // Local coordinate system; (0,0,0) is center of the local domain
 
     bool haloValid = false;
     bool redistValid = false;
