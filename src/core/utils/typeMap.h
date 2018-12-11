@@ -1,10 +1,13 @@
 #pragma once
 
+#include <core/datatypes.h>
+
 #define TYPE_TABLE(OP)                           \
     OP(float)                                    \
     OP(double)                                   \
     OP(int)                                      \
-    OP(float3)
+    OP(float3)                                   \
+    OP(Particle)
 
 #define TOKENIZE(ctype) _##ctype##_
 
