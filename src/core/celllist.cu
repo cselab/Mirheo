@@ -26,7 +26,6 @@ __global__ void computeCellSizes(PVview view, CellListInfo cinfo)
         atomicAdd(cinfo.cellSizes + cid, 1);
 }
 
-// TODO: use old_particles as buffer
 __global__ void reorderParticles(PVview view, CellListInfo cinfo, float4* outParticles)
 {
     const int gid = blockIdx.x * blockDim.x + threadIdx.x;
