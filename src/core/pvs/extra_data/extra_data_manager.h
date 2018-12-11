@@ -34,6 +34,7 @@ public:
     {
         std::unique_ptr<GPUcontainer> container;
         bool needExchange = false;
+        bool stickToParticles = false;
         int shiftTypeSize = 0;
         DataType dataType;
     };
@@ -68,7 +69,7 @@ public:
 
         auto ptr = std::make_unique< PinnedBuffer<T> >(size);
         channelMap[name].container = std::move(ptr);
-        channelMap[name].dataType  = typeTokenify<T>();
+        channelMap[name].dataType  = typeTokenize<T>();
 
         sortedChannels.push_back({name, &channelMap[name]});
         sortChannels();
