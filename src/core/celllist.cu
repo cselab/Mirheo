@@ -164,6 +164,17 @@ void CellList::_build(cudaStream_t stream)
     changedStamp = pv->cellListStamp;
 }
 
+CellListInfo CellList::cellInfo()
+{
+    CellListInfo::particles  = reinterpret_cast<float4*>(particles->devPtr());
+    CellListInfo::forces     = reinterpret_cast<float4*>(forces->devPtr());
+    CellListInfo::cellSizes  = cellSizes.devPtr();
+    CellListInfo::cellStarts = cellStarts.devPtr();
+    CellListInfo::order      = order.devPtr();
+
+    return *((CellListInfo*)this);
+}
+
 void CellList::build(cudaStream_t stream)
 {
     if (changedStamp == pv->cellListStamp)

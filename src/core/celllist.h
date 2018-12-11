@@ -109,16 +109,7 @@ public:
     CellList(ParticleVector* pv, float rc, float3 localDomainSize);
     CellList(ParticleVector* pv, int3 resolution, float3 localDomainSize);
 
-    inline CellListInfo cellInfo()
-    {
-        CellListInfo::particles  = reinterpret_cast<float4*>(particles->devPtr());
-        CellListInfo::forces     = reinterpret_cast<float4*>(forces->devPtr());
-        CellListInfo::cellSizes  = cellSizes.devPtr();
-        CellListInfo::cellStarts = cellStarts.devPtr();
-        CellListInfo::order      = order.devPtr();
-
-        return *((CellListInfo*)this);
-    }
+    CellListInfo cellInfo();
 
     virtual void build(cudaStream_t stream);
     virtual void addForces(cudaStream_t stream);
