@@ -175,9 +175,9 @@ void CellList::_reorderData(cudaStream_t stream)
 
     const int nthreads = 128;
     SAFE_KERNEL_LAUNCH(
-                       reorderParticles,
-                       getNblocks(2*view.size, nthreads), nthreads, 0, stream,
-                       view, cellInfo(), (float4*)particlesDataContainer->coosvels.devPtr() );
+        reorderParticles,
+        getNblocks(2*view.size, nthreads), nthreads, 0, stream,
+        view, cellInfo(), (float4*)particlesDataContainer->coosvels.devPtr() );
 }
 
 template <typename T>
@@ -320,8 +320,6 @@ PrimaryCellList::PrimaryCellList(ParticleVector* pv, int3 resolution, float3 loc
 
 void PrimaryCellList::build(cudaStream_t stream)
 {
-    //warn("Reordering extra data is not yet implemented in cell-lists");
-
     CellList::build(stream);
 
     // Now we need the new size of particles array.
