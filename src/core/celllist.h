@@ -103,6 +103,7 @@ protected:
     void _computeCellSizes(cudaStream_t stream);
     void _computeCellStarts(cudaStream_t stream);
     void _reorderData(cudaStream_t stream);
+    void _reorderExtraData(cudaStream_t stream);
     
     void _build(cudaStream_t stream);    
 

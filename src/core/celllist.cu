@@ -4,6 +4,7 @@
 #include <core/celllist.h>
 #include <core/utils/cuda_common.h>
 #include <core/utils/kernel_launch.h>
+#include <core/utils/typeMap.h>
 #include <core/logger.h>
 
 #include <extern/cub/cub/device/device_scan.cuh>
@@ -178,12 +179,69 @@ void CellList::_reorderData(cudaStream_t stream)
                        getNblocks(2*view.size, nthreads), nthreads, 0, stream,
                        view, cellInfo(), (float4*)particlesDataContainer->coosvels.devPtr() );
 }
+
+template <typename T>
+static void reorderExtraData(int np, CellListInfo cinfo, ExtraDataManager *dstExtraData,
+                             const ExtraDataManager::ChannelDescription *channel, const std::string& channelName,
+                             cudaStream_t stream)
+{
+    if (!dstExtraData->checkChannelExists(channelName))
+        dstExtraData->createData<T>(channelName, np);
+
+    T      *outExtraData = dstExtraData->getData<T>(channelName)->devPtr();
+    const T *inExtraData = (const T*) channel->container->genericDevPtr();
+
+    const int nthreads = 128;
+
+    SAFE_KERNEL_LAUNCH(
+        reorderExtraDataPerParticle<T>,
+        getNblocks(np, nthreads), nthreads, 0, stream,
+        np, inExtraData, cinfo, outExtraData );
+}
+
+void CellList::_reorderExtraData(cudaStream_t stream)
+{
+    auto srcExtraData = &pv->local()->extraPerParticle;
+    auto dstExtraData = &particlesDataContainer->extraPerParticle;
+
+    int np = pv->local()->size();
     
+    for (auto& namedChannel : srcExtraData->getSortedChannels())
+    {
+        auto channelName = namedChannel.first;
+        auto channelDesc = namedChannel.second;
+
+        if (channelDesc->stickToParticles) {
+            debug2("Reordering %d `%s` particles extra data `%s`",
+                   pv->local()->size(), pv->name.c_str(), channelName.c_str());
+
+            switch (channelDesc->dataType)
+            {
+
+#define SWITCH_ENTRY(ctype)                                             \
+                case DataType::TOKENIZE(ctype):                         \
+                    reorderExtraData<ctype>                             \
+                        (np, cellInfo(), dstExtraData,                  \
+                         channelDesc, channelName, stream);             \
+                    break;
+
+                TYPE_TABLE(SWITCH_ENTRY);
+
+#undef SWITCH_ENTRY
+
+            default:
+                die("Channel '%s' has None type", channelName.c_str());
+            };
+        }
+    }
+}
+
 void CellList::_build(cudaStream_t stream)
 {
     _computeCellSizes(stream);
     _computeCellStarts(stream);
     _reorderData(stream);
+    _reorderExtraData(stream);
     
     changedStamp = pv->cellListStamp;
 }
