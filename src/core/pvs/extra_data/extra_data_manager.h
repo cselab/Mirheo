@@ -6,6 +6,7 @@
 #include <core/logger.h>
 #include <core/containers.h>
 #include <core/utils/make_unique.h>
+#include <core/utils/typeMap.h>
 
 #include <cuda_runtime.h>
 
@@ -34,6 +35,7 @@ public:
         std::unique_ptr<GPUcontainer> container;
         bool needExchange = false;
         int shiftTypeSize = 0;
+        DataType dataType;
     };
 
     using NamedChannelDesc = std::pair< std::string, const ChannelDescription* >;
@@ -66,6 +68,7 @@ public:
 
         auto ptr = std::make_unique< PinnedBuffer<T> >(size);
         channelMap[name].container = std::move(ptr);
+        channelMap[name].dataType  = typeTokenify<T>();
 
         sortedChannels.push_back({name, &channelMap[name]});
         sortChannels();
