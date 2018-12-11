@@ -62,6 +62,16 @@ __global__ void reorderParticles(PVview view, CellListInfo cinfo, float4* outPar
     }
 }
 
+template <typename T>
+__global__ void reorderExtraDataPerParticle(int n, const T *inExtraData, CellListInfo cinfo, T *outExtraData)
+{
+    const int srcId = blockIdx.x * blockDim.x + threadIdx.x;
+    if (srcId >= n) return;
+
+    const int dstId = cinfo.order[srcId];
+    outExtraData[dstId] = inExtraData[srcId];
+}
+
 __global__ void addForcesKernel(PVview view, CellListInfo cinfo)
 {
     const int pid = blockIdx.x * blockDim.x + threadIdx.x;
