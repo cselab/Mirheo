@@ -130,7 +130,8 @@ void ObjectHaloExchanger::attach(ObjectVector* ov, float rc)
     auto helper = std::make_unique<ExchangeHelper>(ov->name);
     helpers.push_back(std::move(helper));
 
-    origins.push_back(new PinnedBuffer<int>(ov->local()->size()));
+    auto origin = std::make_unique<PinnedBuffer<int>>(ov->local()->size());    
+    origins.push_back(std::move(origin));
 
     info("Object vector %s (rc %f) was attached to halo exchanger", ov->name.c_str(), rc);
 }
@@ -140,7 +141,7 @@ void ObjectHaloExchanger::prepareSizes(int id, cudaStream_t stream)
     auto ov  = objects[id];
     auto rc  = rcs[id];
     auto helper = helpers[id].get();
-    auto origin = origins[id];
+    auto origin = origins[id].get();
 
     ov->findExtentAndCOM(stream, ParticleVectorType::Local);
 
@@ -169,7 +170,7 @@ void ObjectHaloExchanger::prepareData(int id, cudaStream_t stream)
     auto ov  = objects[id];
     auto rc  = rcs[id];
     auto helper = helpers[id].get();
-    auto origin = origins[id];
+    auto origin = origins[id].get();
 
     debug2("Downloading %d halo objects of '%s'",
            helper->sendOffsets[FragmentMapping::numFragments], ov->name.c_str());
@@ -222,6 +223,7 @@ PinnedBuffer<int>& ObjectHaloExchanger::getOrigins(int id)
     return *origins[id];
 }
 
+ObjectHaloExchanger::~ObjectHaloExchanger() = default;
 
 
 

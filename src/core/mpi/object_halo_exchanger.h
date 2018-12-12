@@ -1,8 +1,11 @@
 #pragma once
 
-#include "exchanger_interfaces.h"
+#include <memory>
 
 #include <core/containers.h>
+
+#include "exchanger_interfaces.h"
+
 
 class ObjectVector;
 
@@ -12,7 +15,7 @@ protected:
     std::vector<float> rcs;
     std::vector<ObjectVector*> objects;
 
-    std::vector<PinnedBuffer<int>*> origins;
+    std::vector<std::unique_ptr<PinnedBuffer<int>>> origins;
 
     void prepareSizes(int id, cudaStream_t stream) override;
     void prepareData (int id, cudaStream_t stream) override;
@@ -25,5 +28,5 @@ public:
     PinnedBuffer<int>& getRecvOffsets(int id);
     PinnedBuffer<int>& getOrigins    (int id);
 
-    virtual ~ObjectHaloExchanger() = default;
+    virtual ~ObjectHaloExchanger();
 };
