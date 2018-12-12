@@ -189,11 +189,6 @@ void ParticleRedistributor::combineAndUploadData(int id, cudaStream_t stream)
                 unpackParticles,
                 getNblocks(totalRecvd, nthreads), nthreads, 0, stream,
                 ParticlePacker(pv, pv->local(), stream), oldsize, helper->recvBuf.devPtr(), totalRecvd );
-
-//        CUDA_Check( cudaMemcpyAsync(
-//                pv->local()->coosvels.devPtr() + oldsize,
-//                helper->recvBuf.devPtr(),
-//                helper->recvBuf.size(), cudaMemcpyDeviceToDevice, stream) );
     }
 
     pv->redistValid = true;
