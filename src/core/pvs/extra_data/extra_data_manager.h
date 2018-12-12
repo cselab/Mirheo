@@ -28,7 +28,7 @@ public:
 
     enum class CommunicationMode
     {
-        None, Exchange
+        None, NeedExchange
     };
 
     enum class PersistenceMode
@@ -43,7 +43,7 @@ public:
     struct ChannelDescription
     {
         std::unique_ptr<GPUcontainer> container;
-        bool needExchange = false;
+        CommunicationMode communication = CommunicationMode::None;
         PersistenceMode persistence = PersistenceMode::None;
         int shiftTypeSize = 0;
         DataType dataType;
@@ -89,6 +89,11 @@ public:
      * Make buffer be communicated by MPI
      */
     void requireExchange(const std::string& name);
+
+    /**
+     * Make the buffer to be persistent (will also turn on communication via MPI)
+     */
+    void requirePersistent(const std::string& name);
 
     /**
      * @brief Make buffer elements be shifted when migrating to another MPI rank
@@ -159,6 +164,11 @@ public:
      * Returns true if the channel has to be exchanged by MPI
      */
     bool checkNeedExchange(const std::string& name) const;
+
+    /**
+     * Returns true if the channel is persistent
+     */
+    bool checkPersistence(const std::string& name) const;
 
     /**
      * Returns 0 if no shift needed, 4 if shift with floats needed, 8 -- if shift with doubles

@@ -40,7 +40,7 @@ ParticlePacker::ParticlePacker(ParticleVector* pv, LocalParticleVector* lpv, cud
     {
         auto desc = name_desc.second;
 
-        if (desc->needExchange)
+        if (desc->communication == ExtraDataManager::CommunicationMode::NeedExchange)
         {
             int sz = desc->container->datatype_size();
 
@@ -109,7 +109,7 @@ ObjectExtraPacker::ObjectExtraPacker(ObjectVector* ov, LocalObjectVector* lov, c
     {
         auto desc = name_desc.second;
 
-        if (desc->needExchange)
+        if (desc->communication == ExtraDataManager::CommunicationMode::NeedExchange)
         {
             int sz = desc->container->datatype_size();
 

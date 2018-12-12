@@ -3,7 +3,14 @@
 void ExtraDataManager::requireExchange(const std::string& name)
 {
     auto& desc = getChannelDescOrDie(name);
-    desc.needExchange = true;
+    desc.communication = CommunicationMode::NeedExchange;
+}
+
+void ExtraDataManager::requirePersistent(const std::string& name)
+{    
+    auto& desc = getChannelDescOrDie(name);
+    desc.persistence = PersistenceMode::Persistent;
+    requireExchange(name);
 }
 
 void ExtraDataManager::requireShift(const std::string& name, int datatypeSize)
@@ -49,7 +56,13 @@ const std::vector<ExtraDataManager::NamedChannelDesc>& ExtraDataManager::getSort
 bool ExtraDataManager::checkNeedExchange(const std::string& name) const
 {
     auto& desc = getChannelDescOrDie(name);
-    return desc.needExchange;
+    return desc.communication == CommunicationMode::NeedExchange;
+}
+
+bool ExtraDataManager::checkPersistence(const std::string& name) const
+{
+    auto& desc = getChannelDescOrDie(name);
+    return desc.persistence == PersistenceMode::Persistent;
 }
 
 int ExtraDataManager::shiftTypeSize(const std::string& name) const
