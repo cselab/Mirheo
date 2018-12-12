@@ -123,8 +123,8 @@ void ParticleHaloExchanger::attach(ParticleVector* pv, CellList* cl)
     particles.push_back(pv);
     cellLists.push_back(cl);
 
-    auto helper = new ExchangeHelper(pv->name, sizeof(Particle));
-    helpers.push_back(helper);
+    auto helper = std::make_unique<ExchangeHelper> (pv->name, sizeof(Particle));
+    helpers.push_back(std::move(helper));
 
     info("Particle halo exchanger takes pv '%s'", pv->name.c_str());
 }
@@ -133,7 +133,7 @@ void ParticleHaloExchanger::prepareSizes(int id, cudaStream_t stream)
 {
     auto pv = particles[id];
     auto cl = cellLists[id];
-    auto helper = helpers[id];
+    auto helper = helpers[id].get();
 
     debug2("Counting halo particles of '%s'", pv->name.c_str());
 
@@ -160,7 +160,7 @@ void ParticleHaloExchanger::prepareData(int id, cudaStream_t stream)
 {
     auto pv = particles[id];
     auto cl = cellLists[id];
-    auto helper = helpers[id];
+    auto helper = helpers[id].get();
 
     debug2("Downloading %d halo particles of '%s'",
            helper->sendOffsets[FragmentMapping::numFragments], pv->name.c_str());
@@ -185,7 +185,7 @@ void ParticleHaloExchanger::prepareData(int id, cudaStream_t stream)
 void ParticleHaloExchanger::combineAndUploadData(int id, cudaStream_t stream)
 {
     auto pv = particles[id];
-    auto helper = helpers[id];
+    auto helper = helpers[id].get();
 
     int totalRecvd = helper->recvOffsets[helper->nBuffers];
     pv->halo()->resize_anew(totalRecvd);

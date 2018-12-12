@@ -5,6 +5,7 @@
 #include <mpi.h>
 #include <core/containers.h>
 #include <string>
+#include <vector>
 
 
 /// Structure with information about exchange buffers,
@@ -51,6 +52,8 @@ public:
         sendSizes.  resize_anew(nBuffers);
         sendOffsets.resize_anew(nBuffers+1);
     }
+
+    ~ExchangeHelper() = default;
 
     /**
      * Set the #datumSize. This is made as a separate function

@@ -126,8 +126,9 @@ void ObjectHaloExchanger::attach(ObjectVector* ov, float rc)
 {
     objects.push_back(ov);
     rcs.push_back(rc);
-    ExchangeHelper* helper = new ExchangeHelper(ov->name);
-    helpers.push_back(helper);
+
+    auto helper = std::make_unique<ExchangeHelper>(ov->name);
+    helpers.push_back(std::move(helper));
 
     origins.push_back(new PinnedBuffer<int>(ov->local()->size()));
 
@@ -138,7 +139,7 @@ void ObjectHaloExchanger::prepareSizes(int id, cudaStream_t stream)
 {
     auto ov  = objects[id];
     auto rc  = rcs[id];
-    auto helper = helpers[id];
+    auto helper = helpers[id].get();
     auto origin = origins[id];
 
     ov->findExtentAndCOM(stream, ParticleVectorType::Local);
@@ -167,7 +168,7 @@ void ObjectHaloExchanger::prepareData(int id, cudaStream_t stream)
 {
     auto ov  = objects[id];
     auto rc  = rcs[id];
-    auto helper = helpers[id];
+    auto helper = helpers[id].get();
     auto origin = origins[id];
 
     debug2("Downloading %d halo objects of '%s'",
@@ -196,7 +197,7 @@ void ObjectHaloExchanger::prepareData(int id, cudaStream_t stream)
 void ObjectHaloExchanger::combineAndUploadData(int id, cudaStream_t stream)
 {
     auto ov = objects[id];
-    auto helper = helpers[id];
+    auto helper = helpers[id].get();
 
     int totalRecvd = helper->recvOffsets[helper->nBuffers];
 

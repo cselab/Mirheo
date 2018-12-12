@@ -1,6 +1,7 @@
 #pragma once
 
 #include <vector>
+#include <memory>
 #include <cuda_runtime.h>
 
 class ExchangeHelper;
@@ -21,13 +22,13 @@ class ParticleExchanger
 {
 public:
 
-    virtual ~ParticleExchanger() = default;
+    virtual ~ParticleExchanger();
 
     /**
      * Vector of helpers, that have buffers for data exchange
      * and other required information, see :any:`ExchangeHelper`
      */ 
-    std::vector<ExchangeHelper*> helpers;
+    std::vector<std::unique_ptr<ExchangeHelper>> helpers;
 
     /**
      * This function has to provide sizes of the data to be communicated in
@@ -79,5 +80,5 @@ class ExchangeEngine
 public:
     virtual void init(cudaStream_t stream)     = 0;
     virtual void finalize(cudaStream_t stream) = 0;
-    virtual ~ExchangeEngine() = default;
+    virtual ~ExchangeEngine();
 };

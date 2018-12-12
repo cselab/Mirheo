@@ -42,7 +42,7 @@ void MPIExchangeEngine::init(cudaStream_t stream)
     
     // Post irecv for sizes
     for (int i=0; i<helpers.size(); i++)
-        if (exchanger->needExchange(i)) postRecvSize(helpers[i]);
+        if (exchanger->needExchange(i)) postRecvSize(helpers[i].get());
 
     // Derived class determines what to send
     for (int i=0; i<helpers.size(); i++)
@@ -50,7 +50,7 @@ void MPIExchangeEngine::init(cudaStream_t stream)
 
     // Send sizes
     for (int i=0; i<helpers.size(); i++)
-        if (exchanger->needExchange(i)) sendSizes(helpers[i]);
+        if (exchanger->needExchange(i)) sendSizes(helpers[i].get());
 
     // Derived class determines what to send
     for (int i=0; i<helpers.size(); i++)
@@ -58,11 +58,11 @@ void MPIExchangeEngine::init(cudaStream_t stream)
 
     // Post big data irecv (after prepereData cause it waits for the sizes)
     for (int i=0; i<helpers.size(); i++)
-        if (exchanger->needExchange(i)) postRecv(helpers[i]);
+        if (exchanger->needExchange(i)) postRecv(helpers[i].get());
 
     // Send
     for (int i=0; i<helpers.size(); i++)
-        if (exchanger->needExchange(i)) send(helpers[i], stream);
+        if (exchanger->needExchange(i)) send(helpers[i].get(), stream);
 }
 
 void MPIExchangeEngine::finalize(cudaStream_t stream)
@@ -71,7 +71,7 @@ void MPIExchangeEngine::finalize(cudaStream_t stream)
 
     // Wait for the irecvs to finish
     for (int i=0; i<helpers.size(); i++)
-        if (exchanger->needExchange(i)) wait(helpers[i], stream);
+        if (exchanger->needExchange(i)) wait(helpers[i].get(), stream);
 
     // Derived class unpack implementation
     for (int i=0; i<helpers.size(); i++)

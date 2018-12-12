@@ -30,7 +30,7 @@ void SingleNodeEngine::finalize(cudaStream_t stream)
     auto& helpers = exchanger->helpers;
 
     for (int i=0; i<helpers.size(); i++)
-        if (exchanger->needExchange(i)) copySend2Recv(helpers[i], stream);
+        if (exchanger->needExchange(i)) copySend2Recv(helpers[i].get(), stream);
         
     for (int i=0; i<helpers.size(); i++)
         if (exchanger->needExchange(i)) exchanger->combineAndUploadData(i, stream);

@@ -95,8 +95,10 @@ bool ObjectRedistributor::needExchange(int id)
 void ObjectRedistributor::attach(ObjectVector* ov, float rc)
 {
     objects.push_back(ov);
-    ExchangeHelper* helper = new ExchangeHelper(ov->name);
-    helpers.push_back(helper);
+
+    auto helper = std::make_unique<ExchangeHelper>(ov->name);
+    helpers.push_back(std::move(helper));
+
     info("The Object vector '%s' was attached", ov->name.c_str());
 }
 
@@ -105,7 +107,7 @@ void ObjectRedistributor::prepareSizes(int id, cudaStream_t stream)
 {
     auto ov  = objects[id];
     auto lov = ov->local();
-    auto helper = helpers[id];
+    auto helper = helpers[id].get();
     auto bulkId = helper->bulkId;
     
     ov->findExtentAndCOM(stream, ParticleVectorType::Local);
@@ -145,7 +147,7 @@ void ObjectRedistributor::prepareData(int id, cudaStream_t stream)
 {
     auto ov  = objects[id];
     auto lov = ov->local();
-    auto helper = helpers[id];
+    auto helper = helpers[id].get();
     auto bulkId = helper->bulkId;
 
     OVview ovView(ov, ov->local());
@@ -192,7 +194,7 @@ void ObjectRedistributor::prepareData(int id, cudaStream_t stream)
 void ObjectRedistributor::combineAndUploadData(int id, cudaStream_t stream)
 {
     auto ov = objects[id];
-    auto helper = helpers[id];
+    auto helper = helpers[id].get();
 
     int oldNObjs = ov->local()->nObjects;
     int objSize = ov->objSize;

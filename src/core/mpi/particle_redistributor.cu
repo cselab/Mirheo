@@ -113,8 +113,8 @@ void ParticleRedistributor::attach(ParticleVector* pv, CellList* cl)
     if (dynamic_cast<PrimaryCellList*>(cl) == nullptr)
         die("Redistributor (for %s) should be used with the primary cell-lists only!", pv->name.c_str());
 
-    auto helper = new ExchangeHelper(pv->name, sizeof(Particle));
-    helpers.push_back(helper);
+    auto helper = std::make_unique<ExchangeHelper>(pv->name, sizeof(Particle));
+    helpers.push_back(std::move(helper));
 
     info("Particle redistributor takes pv '%s'", pv->name.c_str());
 }
@@ -123,7 +123,7 @@ void ParticleRedistributor::prepareSizes(int id, cudaStream_t stream)
 {
     auto pv = particles[id];
     auto cl = cellLists[id];
-    auto helper = helpers[id];
+    auto helper = helpers[id].get();
 
     debug2("Counting leaving particles of '%s'", pv->name.c_str());
 
@@ -150,7 +150,7 @@ void ParticleRedistributor::prepareData(int id, cudaStream_t stream)
 {
     auto pv = particles[id];
     auto cl = cellLists[id];
-    auto helper = helpers[id];
+    auto helper = helpers[id].get();
 
     debug2("Downloading %d leaving particles of '%s'",
            helper->sendOffsets[FragmentMapping::numFragments], pv->name.c_str());
@@ -176,7 +176,7 @@ void ParticleRedistributor::prepareData(int id, cudaStream_t stream)
 void ParticleRedistributor::combineAndUploadData(int id, cudaStream_t stream)
 {
     auto pv = particles[id];
-    auto helper = helpers[id];
+    auto helper = helpers[id].get();
 
     int oldsize = pv->local()->size();
     int totalRecvd = helper->recvOffsets[helper->nBuffers];
