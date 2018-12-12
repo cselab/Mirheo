@@ -39,6 +39,19 @@ namespace XDMF
         return n;
     }
 
+    static void combineIntoParticles(int n, const float3 *pos, const float3 *vel, const int *ids, Particle *particles)
+    {
+        for (int i = 0; i < n; ++i) {
+            Particle p;
+            p.r = pos[i];
+            p.u = vel[i];
+            p.i1 = ids[i];
+            p.i2 = 0;
+
+            particles[i] = p;
+        }    
+    }
+    
     static void gatherFromChannels(std::vector<Channel> &channels, std::vector<float> &positions, ParticleVector *pv)
     {
         int n = positions.size() / 3;
@@ -63,16 +76,8 @@ namespace XDMF
             die("Channel 'ids' is required to read XDMF into a particle vector");
 
         pos = (const float3*) positions.data();
-        
-        for (int i = 0; i < n; ++i)
-        {
-            Particle p;
-            p.r = pos[i];
-            p.u = vel[i];
-            p.i1 = ids[i];
-            
-            coosvels.hostPtr()[i] = p;
-        }
+
+        combineIntoParticles(n, pos, vel, ids, coosvels.data());
 
         coosvels.uploadToDevice(0);
 
@@ -107,6 +112,24 @@ namespace XDMF
         // TODO extra data
     }
 
+    static void combineIntoRigidMotions(int n, const float3 *pos, const RigidReal4 *quaternion,
+                                        const RigidReal3 *vel, const RigidReal3 *omega,
+                                        const RigidReal3 *force, const RigidReal3 *torque,
+                                        RigidMotion *motions)
+    {
+        for (int i = 0; i < n; ++i) {
+            RigidMotion m;
+            m.r      = make_rigidReal3(pos[i]);
+            m.q      = quaternion[i];
+            m.vel    = vel[i];
+            m.omega  = omega[i];
+            m.force  = force[i];
+            m.torque = torque[i];
+            
+            motions[i] = m;
+        }
+    }
+    
     static void gatherFromChannels(std::vector<Channel> &channels, std::vector<float> &positions, RigidObjectVector *rov)
     {
         int n = positions.size() / 3;
@@ -144,18 +167,8 @@ namespace XDMF
             check("torque",     torque);
         }
 
-        for (int i = 0; i < n; ++i) {
-            RigidMotion m;
-            m.r      = make_rigidReal3(pos[i]);
-            m.q      = quaternion[i];
-            m.vel    = vel[i];
-            m.omega  = omega[i];
-            m.force  = force[i];
-            m.torque = torque[i];
-            
-            (*ids)[i] = ids_data[i];
-            (*motions)[i] = m;
-        }
+        combineIntoRigidMotions(n, pos, quaternion, vel, omega, force, torque, motions->data());        
+        for (int i = 0; i < n; ++i) (*ids)[i] = ids_data[i];
 
         ids->uploadToDevice(0);
         motions->uploadToDevice(0);
