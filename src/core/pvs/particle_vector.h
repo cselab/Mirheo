@@ -8,6 +8,8 @@
 
 #include "extra_data/extra_data_manager.h"
 
+namespace XDMF {struct Channel;}
+
 class ParticleVector;
 
 enum class ParticleVectorType {
@@ -98,6 +100,8 @@ protected:
                    LocalParticleVector *local, LocalParticleVector *halo );
 
     virtual void _getRestartExchangeMap(MPI_Comm comm, const std::vector<Particle> &parts, std::vector<int>& map);
+
+    void _extractPersistentExtraData(std::vector<XDMF::Channel>& channels);
     
     virtual void _checkpointParticleData(MPI_Comm comm, std::string path);
     virtual std::vector<int> _restartParticleData(MPI_Comm comm, std::string path);    

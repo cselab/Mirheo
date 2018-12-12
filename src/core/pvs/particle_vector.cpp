@@ -1,7 +1,9 @@
 #include <mpi.h>
 
-#include "core/utils/folders.h"
-#include "core/xdmf/xdmf.h"
+#include <core/xdmf/typeMap.h>
+#include <core/utils/folders.h>
+#include <core/xdmf/xdmf.h>
+
 #include "particle_vector.h"
 #include "restart_helpers.h"
 
@@ -227,6 +229,38 @@ static void splitPV(DomainInfo domain, LocalParticleVector *local,
         pos[i] = domain.local2global(p.r);
         vel[i] = p.u;
         ids[i] = p.i1;
+    }
+}
+
+void ParticleVector::_extractPersistentExtraData(std::vector<XDMF::Channel>& channels)
+{
+    auto& extraData = local()->extraPerParticle;
+    
+    for (auto& namedChannelDesc : extraData.getSortedChannels())
+    {
+        auto channelName = namedChannelDesc.first;
+        auto channelDesc = namedChannelDesc.second;
+
+        if (channelDesc->persistence != ExtraDataManager::PersistenceMode::Persistent)
+            continue;
+
+        switch(channelDesc->dataType) {
+
+#define SWITCH_ENTRY(ctype)                                             \
+            case DataType::TOKENIZE(ctype):                             \
+            {                                                           \
+                auto buffer   = extraData.getData<ctype>(channelName);  \
+                buffer->downloadFromDevice(0, ContainersSynch::Synch);  \
+                auto type     = XDMF::getType<ctype>();                 \
+                auto datatype = XDMF::getDatatype<ctype>();             \
+                channels.push_back(XDMF::Channel(channelName, buffer->data(), type, datatype )); \
+            }                                                           \
+            break;
+
+            TYPE_TABLE(SWITCH_ENTRY);
+
+#undef SWITCH_ENTRY
+        };
     }
 }
 
