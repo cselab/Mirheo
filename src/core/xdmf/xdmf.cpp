@@ -39,7 +39,7 @@ namespace XDMF
         return n;
     }
 
-    static void gatherChannels(std::vector<Channel> &channels, std::vector<float> &positions, ParticleVector *pv)
+    static void gatherFromChannels(std::vector<Channel> &channels, std::vector<float> &positions, ParticleVector *pv)
     {
         int n = positions.size() / 3;
         const float3 *pos, *vel = nullptr;
@@ -79,7 +79,7 @@ namespace XDMF
         // TODO extra data
     }
     
-    static void gatherChannels(std::vector<Channel> &channels, std::vector<float> &positions, ObjectVector *ov)
+    static void gatherFromChannels(std::vector<Channel> &channels, std::vector<float> &positions, ObjectVector *ov)
     {
         int n = positions.size() / 3;
         const int *ids_data = nullptr;
@@ -107,7 +107,7 @@ namespace XDMF
         // TODO extra data
     }
 
-    static void gatherChannels(std::vector<Channel> &channels, std::vector<float> &positions, RigidObjectVector *rov)
+    static void gatherFromChannels(std::vector<Channel> &channels, std::vector<float> &positions, RigidObjectVector *rov)
     {
         int n = positions.size() / 3;
         const int *ids_data = nullptr;
@@ -123,7 +123,7 @@ namespace XDMF
 
         for (auto& ch : channels)
         {
-            if (ch.name == "ids")        ids_data   = (const int*)          ch.data;
+            if (ch.name == "ids")        ids_data   = (const int*)        ch.data;
             if (ch.name == "quaternion") quaternion = (const RigidReal4*) ch.data; 
             if (ch.name == "velocity")          vel = (const RigidReal3*) ch.data;
             if (ch.name == "omega")           omega = (const RigidReal3*) ch.data;
@@ -194,7 +194,7 @@ namespace XDMF
         HDF5::read(h5filename, comm, &grid, channels);
         info("Reading took %f ms", timer.elapsed());
 
-        gatherChannels(channels, *positions, pv);
+        gatherFromChannels(channels, *positions, pv);
 
     }
 
