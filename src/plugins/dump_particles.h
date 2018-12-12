@@ -65,6 +65,7 @@ protected:
 
     std::vector<Particle> particles;
     std::vector<float> velocities;
+    std::vector<int> ids;
     std::shared_ptr<std::vector<float>> positions;
 
     std::vector<XDMF::Channel> channels;

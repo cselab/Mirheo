@@ -91,15 +91,16 @@ void ParticleDumperPlugin::handshake()
     std::vector<std::string> names;
     SimpleSerializer::deserialize(data, sizes, names);
     
-    auto init_channel = [] (XDMF::Channel::Type type, int sz, const std::string& str) {
-        return XDMF::Channel(str, nullptr, type);
+    auto init_channel = [] (XDMF::Channel::Type type, int sz, const std::string& str, XDMF::Channel::Datatype datatype = XDMF::Channel::Datatype::Float) {
+        return XDMF::Channel(str, nullptr, type, datatype);
     };
 
-    // Velocity is a special channel which is always present
-    std::string allNames = "velocity";
+    // Velocity and id are special channels which are always present
+    std::string allNames = "velocity, id";
     channels.push_back(init_channel(XDMF::Channel::Type::Vector, 3, "velocity"));
+    channels.push_back(init_channel(XDMF::Channel::Type::Scalar, 1, "id", XDMF::Channel::Datatype::Int));
 
-    for (int i=0; i<sizes.size(); i++)
+    for (int i = 0; i<sizes.size(); i++)
     {
         allNames += ", " + names[i];
         switch (sizes[i])
@@ -119,11 +120,13 @@ void ParticleDumperPlugin::handshake()
     debug2("Plugin '%s' was set up to dump channels %s. Path is %s", name.c_str(), allNames.c_str(), path.c_str());
 }
 
-static void unpack_particles(const std::vector<Particle> &particles, std::vector<float> &pos, std::vector<float> &vel)
+static void unpack_particles(const std::vector<Particle> &particles, std::vector<float> &pos,
+                             std::vector<float> &vel, std::vector<int> &ids)
 {
     int n = particles.size();
     pos.resize(3 * n);
     vel.resize(3 * n);
+    ids.resize(n);
 
     for (int i = 0; i < n; ++i) {
         auto p = particles[i];
@@ -134,19 +137,24 @@ static void unpack_particles(const std::vector<Particle> &particles, std::vector
         vel[3*i + 0] = p.u.x;
         vel[3*i + 1] = p.u.y;
         vel[3*i + 2] = p.u.z;
+
+        ids[i] = p.i1;
     }
 }
 
 float ParticleDumperPlugin::_recvAndUnpack()
 {
     float t;
+    int c = 0;
     SimpleSerializer::deserialize(data, t, particles, channelData);
         
-    unpack_particles(particles, *positions, velocities);
+    unpack_particles(particles, *positions, velocities, ids);
+
+    channels[c++].data = velocities.data();
+    channels[c++].data = ids.data();
     
-    channels[0].data = velocities.data();
     for (int i = 0; i < channelData.size(); i++)
-        channels[i+1].data = channelData[i].data();    
+        channels[c++].data = channelData[i].data();    
 }
 
 void ParticleDumperPlugin::deserialize(MPI_Status& stat)
