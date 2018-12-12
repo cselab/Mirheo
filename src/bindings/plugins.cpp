@@ -362,7 +362,7 @@ void exportPlugins(py::module& m)
             path: Path and filename prefix for the dumps. For every dump two files will be created: <path>_NNNNN.xmf and <path>_NNNNN.h5
             channels: list of pairs name - type.
                 Name is the channel (per particle) name.
-                The "velocity" channel is always activated by default.
+                The "velocity" and "id" channels are always activated.
                 Type is to provide the type of quantity to extract from the channel.                                            
                 Available types are:                                                                             
                                                                                                                 
@@ -384,7 +384,7 @@ void exportPlugins(py::module& m)
             path: Path and filename prefix for the dumps. For every dump two files will be created: <path>_NNNNN.xmf and <path>_NNNNN.h5
             channels: list of pairs name - type.
                 Name is the channel (per particle) name.
-                The "velocity" channel is always activated by default.
+                The "velocity" and "id" channels are always activated.
                 Type is to provide the type of quantity to extract from the channel.                                            
                 Available types are:                                                                             
                                                                                                                 
