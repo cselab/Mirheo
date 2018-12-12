@@ -636,7 +636,7 @@ void Simulation::prepareEngines()
                 auto cl = cellListMap[pvPtr][0].get();
                 auto ov = dynamic_cast<ObjectVector*>(pvPtr);
 
-                objRedistImp->attach(ov, cl->rc);
+                objRedistImp->attach(ov);
                 objHaloImp  ->attach(ov, cl->rc);
                 objForcesImp->attach(ov);
             }

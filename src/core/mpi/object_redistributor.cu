@@ -92,7 +92,7 @@ bool ObjectRedistributor::needExchange(int id)
     return !objects[id]->redistValid;
 }
 
-void ObjectRedistributor::attach(ObjectVector* ov, float rc)
+void ObjectRedistributor::attach(ObjectVector* ov)
 {
     objects.push_back(ov);
 

@@ -15,7 +15,7 @@ RigidEllipsoidObjectVector::RigidEllipsoidObjectVector(
     RigidObjectVector(name, mass,
                       inertia_tensor(mass, objSize, make_float3(axes)),
                       objSize,
-                      std::make_shared<Mesh>(), // TODO: need to generate ellipsoid mesh
+                      std::make_shared<Mesh>(),
                       nObjects),
     axes(make_float3(axes))
 { }

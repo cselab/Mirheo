@@ -8,7 +8,7 @@ class ObjectVector;
 class ObjectRedistributor : public ParticleExchanger
 {
 public:
-    void attach(ObjectVector* ov, float rc);
+    void attach(ObjectVector* ov);
 
     virtual ~ObjectRedistributor() = default;
     
