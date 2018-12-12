@@ -26,6 +26,16 @@ class ExtraDataManager
 {
 public:
 
+    enum class CommunicationMode
+    {
+        None, Exchange
+    };
+
+    enum class PersistenceMode
+    {
+        None, Persistent
+    };
+    
     /**
      * Struct that contains of data itself (as a unique_ptr to \c GPUcontainer)
      * and its properties: needExchange (for MPI) and shiftTypeSize (for shift)
@@ -34,7 +44,7 @@ public:
     {
         std::unique_ptr<GPUcontainer> container;
         bool needExchange = false;
-        bool stickToParticles = false;
+        PersistenceMode persistence = PersistenceMode::None;
         int shiftTypeSize = 0;
         DataType dataType;
     };

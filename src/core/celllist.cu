@@ -211,7 +211,7 @@ void CellList::_reorderExtraData(cudaStream_t stream)
         auto channelName = namedChannel.first;
         auto channelDesc = namedChannel.second;
 
-        if (channelDesc->stickToParticles) {
+        if (channelDesc->persistence == ExtraDataManager::PersistenceMode::Persistent) {
             debug2("Reordering %d `%s` particles extra data `%s`",
                    pv->local()->size(), pv->name.c_str(), channelName.c_str());
 
