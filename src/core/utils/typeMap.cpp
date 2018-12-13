@@ -2,16 +2,14 @@
 
 std::string dataTypeToString(DataType dataType)
 {
-    switch (dataType) {
-
 #define SWITCH_ENTRY(ctype) case DataType::TOKENIZE(ctype): return #ctype;
 
+    switch (dataType) {
         TYPE_TABLE(SWITCH_ENTRY);
+        default: return #DATATYPE_NONE;
+    };
 
 #undef SWITCH_ENTRY
-
-    default: return #DATATYPE_NONE;
-    };
 }
 
 DataType stringToDataType(std::string str)
@@ -20,7 +18,7 @@ DataType stringToDataType(std::string str)
 
     TYPE_TABLE(IF_ENTRY);
 
-#undef SWITCH_ENTRY
+#undef IF_ENTRY
 
     return DataType::DATATYPE_NONE;
 }
