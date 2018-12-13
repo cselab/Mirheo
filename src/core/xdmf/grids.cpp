@@ -138,7 +138,8 @@ namespace XDMF
 
     void VertexGrid::write_to_HDF5(hid_t file_id, MPI_Comm comm) const
     {
-        Channel posCh(positionChannelName, (void*) positions->data(), Channel::DataForm::Vector);
+        Channel posCh(positionChannelName, (void*) positions->data(),
+                      Channel::DataForm::Vector, Channel::NumberType::Float, typeTokenize<float>());
         
         HDF5::writeDataSet(file_id, getGridDims(), posCh);
     }
@@ -215,7 +216,8 @@ namespace XDMF
     void VertexGrid::read_from_HDF5(hid_t file_id, MPI_Comm comm)
     {
         positions->resize(dims.nlocal * 3);
-        Channel posCh(positionChannelName, (void*) positions->data(), Channel::DataForm::Vector);
+        Channel posCh(positionChannelName, (void*) positions->data(),
+                      Channel::DataForm::Vector, Channel::NumberType::Float, typeTokenize<float>());
         
         HDF5::readDataSet(file_id, getGridDims(), posCh);
     }
@@ -243,7 +245,8 @@ namespace XDMF
     {
         VertexGrid::write_to_HDF5(file_id, comm);
 
-        Channel triCh(triangleChannelName, (void*) triangles->data(), Channel::DataForm::Triangle, Channel::NumberType::Int);        
+        Channel triCh(triangleChannelName, (void*) triangles->data(),
+                      Channel::DataForm::Triangle, Channel::NumberType::Int, typeTokenize<int>());        
 
         HDF5::writeDataSet(file_id, &dimsTriangles, triCh);
     }

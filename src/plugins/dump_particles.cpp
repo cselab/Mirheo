@@ -91,14 +91,15 @@ void ParticleDumperPlugin::handshake()
     std::vector<std::string> names;
     SimpleSerializer::deserialize(data, sizes, names);
     
-    auto init_channel = [] (XDMF::Channel::DataForm dataForm, int sz, const std::string& str, XDMF::Channel::NumberType numberType = XDMF::Channel::NumberType::Float) {
-        return XDMF::Channel(str, nullptr, dataForm, numberType);
+    auto init_channel = [] (XDMF::Channel::DataForm dataForm, int sz, const std::string& str,
+                            XDMF::Channel::NumberType numberType = XDMF::Channel::NumberType::Float, DataType datatype = typeTokenize<float>()) {
+        return XDMF::Channel(str, nullptr, dataForm, numberType, datatype);
     };
 
     // Velocity and id are special channels which are always present
     std::string allNames = "velocity, id";
-    channels.push_back(init_channel(XDMF::Channel::DataForm::Vector, 3, "velocity"));
-    channels.push_back(init_channel(XDMF::Channel::DataForm::Scalar, 1, "id", XDMF::Channel::NumberType::Int));
+    channels.push_back(init_channel(XDMF::Channel::DataForm::Vector, 3, "velocity", XDMF::Channel::NumberType::Float, typeTokenize<float>()));
+    channels.push_back(init_channel(XDMF::Channel::DataForm::Scalar, 1, "id", XDMF::Channel::NumberType::Int, typeTokenize<int>()));
 
     for (int i = 0; i<sizes.size(); i++)
     {

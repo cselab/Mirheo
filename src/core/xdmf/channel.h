@@ -24,7 +24,7 @@ namespace XDMF
 
         DataType dataType;
         
-        Channel(std::string name, void *data, DataForm dataForm, NumberType numberType = NumberType::Float, DataType dataType = typeTokenize<float>());
+        Channel(std::string name, void *data, DataForm dataForm, NumberType numberType, DataType dataType);
         int nComponents() const;
         int precision() const;
     };
