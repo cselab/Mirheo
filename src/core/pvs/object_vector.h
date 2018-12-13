@@ -127,6 +127,8 @@ protected:
     void _getRestartExchangeMap(MPI_Comm comm, const std::vector<Particle> &parts, std::vector<int>& map) override;
     std::vector<int> _restartParticleData(MPI_Comm comm, std::string path) override;
 
+    void _extractPersistentExtraObjectData(std::vector<XDMF::Channel>& channels);
+    
     virtual void _checkpointObjectData(MPI_Comm comm, std::string path);
     virtual void _restartObjectData(MPI_Comm comm, std::string path, const std::vector<int>& map);
     

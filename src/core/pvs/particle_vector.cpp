@@ -232,10 +232,8 @@ static void splitPV(DomainInfo domain, LocalParticleVector *local,
     }
 }
 
-void ParticleVector::_extractPersistentExtraData(std::vector<XDMF::Channel>& channels)
+void ParticleVector::_extractPersistentExtraData(ExtraDataManager& extraData, std::vector<XDMF::Channel>& channels)
 {
-    auto& extraData = local()->extraPerParticle;
-    
     for (auto& namedChannelDesc : extraData.getSortedChannels())
     {
         auto channelName = namedChannelDesc.first;
@@ -265,6 +263,12 @@ void ParticleVector::_extractPersistentExtraData(std::vector<XDMF::Channel>& cha
     }
 }
 
+void ParticleVector::_extractPersistentExtraParticleData(std::vector<XDMF::Channel>& channels)
+{
+    auto& extraData = local()->extraPerParticle;
+    _extractPersistentExtraData(extraData, channels);
+}
+
 void ParticleVector::_checkpointParticleData(MPI_Comm comm, std::string path)
 {
     CUDA_Check( cudaDeviceSynchronize() );
@@ -288,7 +292,7 @@ void ParticleVector::_checkpointParticleData(MPI_Comm comm, std::string path)
                                      XDMF::Channel::DataForm::Scalar, XDMF::Channel::NumberType::Int, typeTokenize<int>() ));
 
     // TODO activate once restart is implemented
-    //_extractPersistentExtraData(channels);
+    //_extractPersistentExtraParticleData(channels);
     
     XDMF::write(filename, &grid, channels, comm);
 

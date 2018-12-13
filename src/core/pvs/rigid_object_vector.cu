@@ -141,6 +141,9 @@ void RigidObjectVector::_checkpointObjectData(MPI_Comm comm, std::string path)
         XDMF::Channel( "force",      force      .data(), XDMF::Channel::DataForm::Vector,     rigidType, typeTokenize<RigidReal3>() ),
         XDMF::Channel( "torque",     torque     .data(), XDMF::Channel::DataForm::Vector,     rigidType, typeTokenize<RigidReal3>() )
     };         
+
+    // TODO once restart is coded
+    // _extractPersistentExtraObjectData(channels);
     
     XDMF::write(filename, &grid, channels, comm);
 
