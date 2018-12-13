@@ -3,6 +3,8 @@
 #include <string>
 #include <hdf5.h>
 
+#include <core/utils/typeMap.h>
+
 namespace XDMF
 {
     struct Channel
@@ -19,8 +21,10 @@ namespace XDMF
         {
             Float, Int, Double
         } numberType;
+
+        DataType dataType;
         
-        Channel(std::string name, void *data, DataForm dataForm, NumberType numberType = NumberType::Float);
+        Channel(std::string name, void *data, DataForm dataForm, NumberType numberType = NumberType::Float, DataType dataType = typeTokenize<float>());
         int nComponents() const;
         int precision() const;
     };
