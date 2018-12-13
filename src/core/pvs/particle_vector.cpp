@@ -232,14 +232,18 @@ static void splitPV(DomainInfo domain, LocalParticleVector *local,
     }
 }
 
-void ParticleVector::_extractPersistentExtraData(ExtraDataManager& extraData, std::vector<XDMF::Channel>& channels)
+void ParticleVector::_extractPersistentExtraData(ExtraDataManager& extraData, std::vector<XDMF::Channel>& channels,
+                                                 const std::set<std::string>& blackList)
 {
     for (auto& namedChannelDesc : extraData.getSortedChannels())
-    {
+    {        
         auto channelName = namedChannelDesc.first;
-        auto channelDesc = namedChannelDesc.second;
-
+        auto channelDesc = namedChannelDesc.second;        
+        
         if (channelDesc->persistence != ExtraDataManager::PersistenceMode::Persistent)
+            continue;
+
+        if (blackList.find(channelName) != blackList.end())
             continue;
 
         switch(channelDesc->dataType) {
@@ -263,10 +267,10 @@ void ParticleVector::_extractPersistentExtraData(ExtraDataManager& extraData, st
     }
 }
 
-void ParticleVector::_extractPersistentExtraParticleData(std::vector<XDMF::Channel>& channels)
+void ParticleVector::_extractPersistentExtraParticleData(std::vector<XDMF::Channel>& channels, const std::set<std::string>& blackList)
 {
     auto& extraData = local()->extraPerParticle;
-    _extractPersistentExtraData(extraData, channels);
+    _extractPersistentExtraData(extraData, channels, blackList);
 }
 
 void ParticleVector::_checkpointParticleData(MPI_Comm comm, std::string path)

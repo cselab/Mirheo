@@ -1,5 +1,8 @@
 #pragma once
 
+#include <set>
+#include <string>
+
 #include "core/ymero_object.h"
 #include "core/datatypes.h"
 #include "core/containers.h"
@@ -101,8 +104,8 @@ protected:
 
     virtual void _getRestartExchangeMap(MPI_Comm comm, const std::vector<Particle> &parts, std::vector<int>& map);
 
-    void _extractPersistentExtraData(ExtraDataManager& extraData, std::vector<XDMF::Channel>& channels);
-    void _extractPersistentExtraParticleData(std::vector<XDMF::Channel>& channels);
+    void _extractPersistentExtraData(ExtraDataManager& extraData, std::vector<XDMF::Channel>& channels, const std::set<std::string>& blackList);
+    void _extractPersistentExtraParticleData(std::vector<XDMF::Channel>& channels, const std::set<std::string>& blackList = {});
     
     virtual void _checkpointParticleData(MPI_Comm comm, std::string path);
     virtual std::vector<int> _restartParticleData(MPI_Comm comm, std::string path);    

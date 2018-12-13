@@ -25,9 +25,16 @@ RigidObjectVector::RigidObjectVector(std::string name, float partMass,
     if (J.x < 0 || J.y < 0 || J.z < 0)
         die("Inertia tensor must be positive; got [%f %f %f]", J.x, J.y, J.z);
 
+
     // rigid motion must be exchanged and shifted
-    requireDataPerObject<RigidMotion>("motions", ExtraDataManager::CommunicationMode::NeedExchange, ExtraDataManager::PersistenceMode::None, sizeof(RigidReal));
-    requireDataPerObject<RigidMotion>("old_motions", ExtraDataManager::CommunicationMode::None, ExtraDataManager::PersistenceMode::None);
+    requireDataPerObject<RigidMotion>("motions",
+                                      ExtraDataManager::CommunicationMode::NeedExchange,
+                                      ExtraDataManager::PersistenceMode::Persistent,
+                                      sizeof(RigidReal));
+
+    requireDataPerObject<RigidMotion>("old_motions",
+                                      ExtraDataManager::CommunicationMode::None,
+                                      ExtraDataManager::PersistenceMode::None);
 }
 
 RigidObjectVector::RigidObjectVector(std::string name, float partMass,
@@ -139,7 +146,7 @@ void RigidObjectVector::_checkpointObjectData(MPI_Comm comm, std::string path)
         XDMF::Channel( "torque",     torque     .data(), XDMF::Channel::DataForm::Vector,     rigidType, typeTokenize<RigidReal3>() )
     };         
 
-    _extractPersistentExtraObjectData(channels);
+    _extractPersistentExtraObjectData(channels, /* blacklist */ {"motions"} );
     
     XDMF::write(filename, &grid, channels, comm);
 

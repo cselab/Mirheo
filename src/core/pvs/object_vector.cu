@@ -136,10 +136,10 @@ static void splitCom(DomainInfo domain, const PinnedBuffer<LocalObjectVector::CO
     }
 }
 
-void ObjectVector::_extractPersistentExtraObjectData(std::vector<XDMF::Channel>& channels)
+void ObjectVector::_extractPersistentExtraObjectData(std::vector<XDMF::Channel>& channels, const std::set<std::string>& blackList)
 {
     auto& extraData = local()->extraPerObject;
-    _extractPersistentExtraData(extraData, channels);
+    _extractPersistentExtraData(extraData, channels, blackList);
 }
 
 void ObjectVector::_checkpointObjectData(MPI_Comm comm, std::string path)
