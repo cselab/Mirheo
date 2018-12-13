@@ -117,11 +117,9 @@ void RigidObjectVector::_checkpointObjectData(MPI_Comm comm, std::string path)
     std::string filename = path + "/" + name + ".obj-" + getStrZeroPadded(restartIdx);
     info("Checkpoint for rigid object vector '%s', writing to file %s", name.c_str(), filename.c_str());
 
-    auto ids          = local()->extraPerObject.getData<int>("ids");
-    auto motions      = local()->extraPerObject.getData<RigidMotion>("motions");
+    auto motions = local()->extraPerObject.getData<RigidMotion>("motions");
 
-    ids         ->downloadFromDevice(0, ContainersSynch::Asynch);
-    motions     ->downloadFromDevice(0, ContainersSynch::Synch);
+    motions->downloadFromDevice(0, ContainersSynch::Synch);
     
     auto positions = std::make_shared<std::vector<float>>();
     std::vector<RigidReal4> quaternion;
@@ -134,7 +132,6 @@ void RigidObjectVector::_checkpointObjectData(MPI_Comm comm, std::string path)
     auto rigidType = XDMF::getNumberType<RigidReal>();
 
     std::vector<XDMF::Channel> channels = {
-        XDMF::Channel( "ids",        ids       ->data(), XDMF::Channel::DataForm::Scalar,     XDMF::Channel::NumberType::Int, typeTokenize<int>() ),
         XDMF::Channel( "quaternion", quaternion .data(), XDMF::Channel::DataForm::Quaternion, rigidType, typeTokenize<RigidReal4>() ),
         XDMF::Channel( "velocity",   vel        .data(), XDMF::Channel::DataForm::Vector,     rigidType, typeTokenize<RigidReal3>() ),
         XDMF::Channel( "omega",      omega      .data(), XDMF::Channel::DataForm::Vector,     rigidType, typeTokenize<RigidReal3>() ),

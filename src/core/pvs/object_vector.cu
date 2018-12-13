@@ -150,11 +150,8 @@ void ObjectVector::_checkpointObjectData(MPI_Comm comm, std::string path)
     info("Checkpoint for object vector '%s', writing to file %s", name.c_str(), filename.c_str());
 
     auto coms_extents = local()->extraPerObject.getData<LocalObjectVector::COMandExtent>("com_extents");
-    auto ids          = local()->extraPerObject.getData<int>("ids");
 
     coms_extents->downloadFromDevice(0, ContainersSynch::Synch);
-    ids         ->downloadFromDevice(0, ContainersSynch::Synch);
-
     
     auto positions = std::make_shared<std::vector<float>>();
 
@@ -163,8 +160,6 @@ void ObjectVector::_checkpointObjectData(MPI_Comm comm, std::string path)
     XDMF::VertexGrid grid(positions, comm);
 
     std::vector<XDMF::Channel> channels;
-    channels.push_back(XDMF::Channel("ids", ids->data(),
-                                     XDMF::Channel::DataForm::Scalar, XDMF::Channel::NumberType::Int, typeTokenize<int>() ));
 
     _extractPersistentExtraObjectData(channels);
     
