@@ -291,8 +291,7 @@ void ParticleVector::_checkpointParticleData(MPI_Comm comm, std::string path)
     channels.push_back(XDMF::Channel("ids", ids.data(),
                                      XDMF::Channel::DataForm::Scalar, XDMF::Channel::NumberType::Int, typeTokenize<int>() ));
 
-    // TODO activate once restart is implemented
-    //_extractPersistentExtraParticleData(channels);
+    _extractPersistentExtraParticleData(channels);
     
     XDMF::write(filename, &grid, channels, comm);
 

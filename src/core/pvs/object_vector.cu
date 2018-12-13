@@ -166,8 +166,7 @@ void ObjectVector::_checkpointObjectData(MPI_Comm comm, std::string path)
     channels.push_back(XDMF::Channel("ids", ids->data(),
                                      XDMF::Channel::DataForm::Scalar, XDMF::Channel::NumberType::Int, typeTokenize<int>() ));
 
-    // TODO once restart is coded
-    // _extractPersistentExtraObjectData(channels);
+    _extractPersistentExtraObjectData(channels);
     
     XDMF::write(filename, &grid, channels, comm);
 
