@@ -210,7 +210,7 @@ ParticleVector::ParticleVector( std::string name, float mass, LocalParticleVecto
     YmrSimulationObject(name), mass(mass), _local(local), _halo(halo)
 {
     // usually old positions and velocities don't need to exchanged
-    requireDataPerParticle<Particle> ("old_particles", false);
+    requireDataPerParticle<Particle> ("old_particles", ExtraDataManager::CommunicationMode::None, ExtraDataManager::PersistenceMode::None);
 }
 
 static void splitPV(DomainInfo domain, LocalParticleVector *local,

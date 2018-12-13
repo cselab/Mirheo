@@ -86,14 +86,17 @@ public:
     }
 
     /**
-     * Make buffer be communicated by MPI
+     * set communication mode; allows to enable MPI
+     * can only add communication; does nothing otherwise
      */
-    void requireExchange(const std::string& name);
+    void setExchangeMode(const std::string& name, CommunicationMode communication);
 
     /**
-     * Make the buffer to be persistent (will also turn on communication via MPI)
+     * set persistence of the data: the data will stick to the particles/objects
+     * note that this will enable communication if set to persistent
+     * can only add persistence; does nothing otherwise
      */
-    void requirePersistent(const std::string& name);
+    void setPersistenceMode(const std::string& name, PersistenceMode persistence);
 
     /**
      * @brief Make buffer elements be shifted when migrating to another MPI rank
@@ -119,7 +122,7 @@ public:
      * @param datatypeSize treat coordinates as \c float (== 4) or as \c double (== 8)
      * Other values are not allowed
      */
-    void requireShift(const std::string& name, int datatypeSize);
+    void requireShift(const std::string& name, size_t datatypeSize);
 
     /**
      * Get gpu buffer by name

@@ -72,8 +72,8 @@ void InteractionPair_withStress<PairwiseInteraction>::setPrerequisites(ParticleV
     info("Interaction '%s' requires channel 'stress' from PVs '%s' and '%s'",
          name.c_str(), pv1->name.c_str(), pv2->name.c_str());
 
-    pv1->requireDataPerParticle<Stress>(stressName, false);
-    pv2->requireDataPerParticle<Stress>(stressName, false);
+    pv1->requireDataPerParticle<Stress>(stressName, ExtraDataManager::CommunicationMode::None, ExtraDataManager::PersistenceMode::None);
+    pv2->requireDataPerParticle<Stress>(stressName, ExtraDataManager::CommunicationMode::None, ExtraDataManager::PersistenceMode::None);
 
     pv2lastStressTime[pv1] = -1;
     pv2lastStressTime[pv2] = -1;

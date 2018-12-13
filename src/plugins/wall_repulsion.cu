@@ -35,8 +35,8 @@ void WallRepulsionPlugin::setup(Simulation* simulation, const MPI_Comm& comm, co
     pv = simulation->getPVbyNameOrDie(pvName);
     wall = dynamic_cast<SDF_basedWall*>(simulation->getWallByNameOrDie(wallName));
     
-    pv->requireDataPerParticle<float>("sdf", false);
-    pv->requireDataPerParticle<float3>("grad_sdf", false);
+    pv->requireDataPerParticle<float>("sdf", ExtraDataManager::CommunicationMode::None, ExtraDataManager::PersistenceMode::None);
+    pv->requireDataPerParticle<float3>("grad_sdf", ExtraDataManager::CommunicationMode::None, ExtraDataManager::PersistenceMode::None);
 
     if (wall == nullptr)
         die("Wall repulsion plugin '%s' can only work with SDF-based walls, but got wall '%s'",

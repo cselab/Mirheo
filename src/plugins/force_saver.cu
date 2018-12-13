@@ -43,7 +43,7 @@ void ForceSaverPlugin::setup(Simulation* simulation, const MPI_Comm& comm, const
 
     pv = simulation->getPVbyNameOrDie(pvName);
 
-    pv->requireDataPerParticle<float3>(fieldName, false);
+    pv->requireDataPerParticle<float3>(fieldName, ExtraDataManager::CommunicationMode::None, ExtraDataManager::PersistenceMode::None);
 }
 
     

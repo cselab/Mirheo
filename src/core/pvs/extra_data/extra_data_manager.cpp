@@ -1,19 +1,21 @@
 #include "extra_data_manager.h"
 
-void ExtraDataManager::requireExchange(const std::string& name)
+void ExtraDataManager::setExchangeMode(const std::string& name, ExtraDataManager::CommunicationMode communication)
 {
+    if (communication == CommunicationMode::None) return;
     auto& desc = getChannelDescOrDie(name);
-    desc.communication = CommunicationMode::NeedExchange;
+    desc.communication = communication;
 }
 
-void ExtraDataManager::requirePersistent(const std::string& name)
-{    
-    auto& desc = getChannelDescOrDie(name);
-    desc.persistence = PersistenceMode::Persistent;
-    requireExchange(name);
+void ExtraDataManager::setPersistenceMode(const std::string& name, ExtraDataManager::PersistenceMode persistence)
+{
+    if (persistence == PersistenceMode::None) return;
+    auto& desc = getChannelDescOrDie(name);    
+    desc.persistence = persistence;
+    setExchangeMode(name, CommunicationMode::NeedExchange);
 }
 
-void ExtraDataManager::requireShift(const std::string& name, int datatypeSize)
+void ExtraDataManager::requireShift(const std::string& name, size_t datatypeSize)
 {
     if (datatypeSize != sizeof(float) && datatypeSize != sizeof(double))
         die("Can only shift float3 or double3 data for MPI communications");

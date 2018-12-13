@@ -83,10 +83,10 @@ protected:
     {
         // center of mass and extents are not to be sent around
         // it's cheaper to compute them on site
-        requireDataPerObject<LocalObjectVector::COMandExtent>("com_extents", false);
+        requireDataPerObject<LocalObjectVector::COMandExtent>("com_extents", ExtraDataManager::CommunicationMode::None, ExtraDataManager::PersistenceMode::None);
 
         // object ids must always follow objects
-        requireDataPerObject<int>("ids", true);
+        requireDataPerObject<int>("ids", ExtraDataManager::CommunicationMode::NeedExchange, ExtraDataManager::PersistenceMode::Persistent);
     }
 
 public:
@@ -108,16 +108,16 @@ public:
     void restart    (MPI_Comm comm, std::string path) override;
 
     template<typename T>
-    void requireDataPerObject(std::string name, bool needExchange)
+    void requireDataPerObject(std::string name, ExtraDataManager::CommunicationMode communication, ExtraDataManager::PersistenceMode persistence)
     {
-        requireDataPerObject<T>(name, needExchange, 0);
+        requireDataPerObject<T>(name, communication, persistence, 0);
     }
 
     template<typename T>
-    void requireDataPerObject(std::string name, bool needExchange, int shiftDataType)
+    void requireDataPerObject(std::string name, ExtraDataManager::CommunicationMode communication, ExtraDataManager::PersistenceMode persistence, size_t shiftDataSize)
     {
-        requireDataPerObject<T>(local(), name, needExchange, shiftDataType);
-        requireDataPerObject<T>(halo(),  name, needExchange, shiftDataType);
+        requireDataPerObject<T>(local(), name, communication, persistence, shiftDataSize);
+        requireDataPerObject<T>(halo(),  name, communication, persistence, shiftDataSize);
     }
 
     virtual ~ObjectVector() = default;
@@ -134,11 +134,14 @@ protected:
     
 private:
     template<typename T>
-    void requireDataPerObject(LocalObjectVector* lov, std::string name, bool needExchange, int shiftDataType)
+    void requireDataPerObject(LocalObjectVector* lov, std::string name, ExtraDataManager::CommunicationMode communication,
+                              ExtraDataManager::PersistenceMode persistence, size_t shiftDataSize)
     {
         lov->extraPerObject.createData<T> (name, lov->nObjects);
-        if (needExchange) lov->extraPerObject.requireExchange(name);
-        if (shiftDataType != 0) lov->extraPerObject.requireShift(name, shiftDataType);
+        lov->extraPerObject.setExchangeMode(name, communication);
+        lov->extraPerObject.setPersistenceMode(name, persistence);
+        if (shiftDataSize != 0) lov->extraPerObject.requireShift(name, shiftDataSize);
+
     }
 };
 

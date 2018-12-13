@@ -23,10 +23,10 @@ void InteractionMembraneJuelicher::setPrerequisites(ParticleVector* pv1, Particl
 
     auto ov = dynamic_cast<MembraneVector*>(pv1);
     
-    ov->requireDataPerObject<float>("lenThetaTot", false);
+    ov->requireDataPerObject<float>("lenThetaTot", ExtraDataManager::CommunicationMode::None, ExtraDataManager::PersistenceMode::None);
 
-    ov->requireDataPerParticle<float>("areas", false);
-    ov->requireDataPerParticle<float>("meanCurvatures", false);    
+    ov->requireDataPerParticle<float>("areas", ExtraDataManager::CommunicationMode::None, ExtraDataManager::PersistenceMode::None);
+    ov->requireDataPerParticle<float>("meanCurvatures", ExtraDataManager::CommunicationMode::None, ExtraDataManager::PersistenceMode::None);
 }
 
 

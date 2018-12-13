@@ -73,7 +73,7 @@ void InteractionMembrane::setPrerequisites(ParticleVector* pv1, ParticleVector* 
     if (ov == nullptr)
         die("Internal RBC forces can only be computed with RBCs");
 
-    ov->requireDataPerObject<float2>("area_volumes", false);
+    ov->requireDataPerObject<float2>("area_volumes", ExtraDataManager::CommunicationMode::None, ExtraDataManager::PersistenceMode::None);
 }
 
 /**

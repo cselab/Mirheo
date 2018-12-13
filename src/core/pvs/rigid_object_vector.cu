@@ -26,8 +26,8 @@ RigidObjectVector::RigidObjectVector(std::string name, float partMass,
         die("Inertia tensor must be positive; got [%f %f %f]", J.x, J.y, J.z);
 
     // rigid motion must be exchanged and shifted
-    requireDataPerObject<RigidMotion>("motions", true, sizeof(RigidReal));
-    requireDataPerObject<RigidMotion>("old_motions", false);
+    requireDataPerObject<RigidMotion>("motions", ExtraDataManager::CommunicationMode::NeedExchange, ExtraDataManager::PersistenceMode::None, sizeof(RigidReal));
+    requireDataPerObject<RigidMotion>("old_motions", ExtraDataManager::CommunicationMode::None, ExtraDataManager::PersistenceMode::None);
 }
 
 RigidObjectVector::RigidObjectVector(std::string name, float partMass,
