@@ -79,12 +79,12 @@ namespace XDMF
             localSize .push_back(channel.nComponents());
             globalSize.push_back(channel.nComponents());
             
-            // Float or Int
-            auto datatype = datatypeToHDF5type(channel.datatype);
+            // Float, Double, Int...
+            auto numberType = numberTypeToHDF5type(channel.numberType);
             
             hid_t filespace_simple = H5Screate_simple(ndims, globalSize.data(), nullptr);
 
-            hid_t dset_id = H5Dcreate(file_id, channel.name.c_str(), datatype, filespace_simple, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+            hid_t dset_id = H5Dcreate(file_id, channel.name.c_str(), numberType, filespace_simple, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
             hid_t xfer_plist_id = H5Pcreate(H5P_DATASET_XFER);
 
             H5Pset_dxpl_mpio(xfer_plist_id, H5FD_MPIO_COLLECTIVE);
@@ -100,7 +100,7 @@ namespace XDMF
             hid_t mspace_id = H5Screate_simple(ndims, localSize.data(), nullptr);
 
             if (!gridDims->globalEmpty())
-                H5Dwrite(dset_id, datatype, mspace_id, dspace_id, xfer_plist_id, channel.data);
+                H5Dwrite(dset_id, numberType, mspace_id, dspace_id, xfer_plist_id, channel.data);
 
             H5Sclose(mspace_id);
             H5Sclose(dspace_id);
@@ -143,7 +143,7 @@ namespace XDMF
             hid_t mspace_id = H5Screate_simple(ndims, localSize.data(), nullptr);
 
             if (!gridDims->globalEmpty())
-                H5Dread(dset_id, datatypeToHDF5type(channel.datatype), mspace_id, dspace_id, xfer_plist_id, channel.data);
+                H5Dread(dset_id, numberTypeToHDF5type(channel.numberType), mspace_id, dspace_id, xfer_plist_id, channel.data);
 
             H5Sclose(mspace_id);
             H5Sclose(dspace_id);

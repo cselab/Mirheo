@@ -4,8 +4,8 @@
 
 namespace XDMF
 {
-    Channel::Channel(std::string name, void* data, DataForm dataForm, Datatype datatype) :
-        name(name), data(data), dataForm(dataForm), datatype(datatype)
+    Channel::Channel(std::string name, void* data, DataForm dataForm, NumberType numberType) :
+        name(name), data(data), dataForm(dataForm), numberType(numberType)
     {}
 
     int Channel::nComponents() const
@@ -15,7 +15,7 @@ namespace XDMF
 
     int Channel::precision() const
     {
-        return datatypeToPrecision(datatype);
+        return numberTypeToPrecision(numberType);
     }
     
     std::string dataFormToXDMFAttribute(Channel::DataForm dataForm)
@@ -71,41 +71,41 @@ namespace XDMF
         return Channel::DataForm::Other;
     }
     
-    decltype (H5T_NATIVE_FLOAT) datatypeToHDF5type(Channel::Datatype dt)
+    decltype (H5T_NATIVE_FLOAT) numberTypeToHDF5type(Channel::NumberType dt)
     {
         switch (dt)
         {
-            case Channel::Datatype::Float  : return H5T_NATIVE_FLOAT;
-            case Channel::Datatype::Double : return H5T_NATIVE_DOUBLE;
-            case Channel::Datatype::Int    : return H5T_NATIVE_INT;
+            case Channel::NumberType::Float  : return H5T_NATIVE_FLOAT;
+            case Channel::NumberType::Double : return H5T_NATIVE_DOUBLE;
+            case Channel::NumberType::Int    : return H5T_NATIVE_INT;
         }
     }
     
-    std::string datatypeToString(Channel::Datatype dt)
+    std::string numberTypeToString(Channel::NumberType dt)
     {
         switch (dt)
         {
-            case Channel::Datatype::Float  : return "Float";
-            case Channel::Datatype::Double : return "Float";
-            case Channel::Datatype::Int    : return "Int";
+            case Channel::NumberType::Float  : return "Float";
+            case Channel::NumberType::Double : return "Float";
+            case Channel::NumberType::Int    : return "Int";
         }
     }
 
-    int datatypeToPrecision(Channel::Datatype dt)
+    int numberTypeToPrecision(Channel::NumberType dt)
     {
         switch (dt)
         {
-            case Channel::Datatype::Float  : return sizeof(float);
-            case Channel::Datatype::Double : return sizeof(double);
-            case Channel::Datatype::Int    : return sizeof(int);
+            case Channel::NumberType::Float  : return sizeof(float);
+            case Channel::NumberType::Double : return sizeof(double);
+            case Channel::NumberType::Int    : return sizeof(int);
         }
     }
     
-    Channel::Datatype infoToDatatype(std::string str, int precision)
+    Channel::NumberType infoToNumberType(std::string str, int precision)
     {
-        if (precision == sizeof(float)  && str == "Float") return Channel::Datatype::Float;
-        if (precision == sizeof(double) && str == "Float") return Channel::Datatype::Double;
-        if (precision == sizeof(int)    && str == "Int")   return Channel::Datatype::Int;
-        die("Datatype '%s' with precision %d is not supported for reading", str.c_str(), precision);
+        if (precision == sizeof(float)  && str == "Float") return Channel::NumberType::Float;
+        if (precision == sizeof(double) && str == "Float") return Channel::NumberType::Double;
+        if (precision == sizeof(int)    && str == "Int")   return Channel::NumberType::Int;
+        die("NumberType '%s' with precision %d is not supported for reading", str.c_str(), precision);
     }
 }

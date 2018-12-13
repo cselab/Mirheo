@@ -130,13 +130,13 @@ void RigidObjectVector::_checkpointObjectData(MPI_Comm comm, std::string path)
     XDMF::VertexGrid grid(positions, comm);    
 
 #ifdef RIGID_MOTIONS_DOUBLE
-    auto rigidType = XDMF::Channel::Datatype::Double;
+    auto rigidType = XDMF::Channel::NumberType::Double;
 #else
-    auto rigidType = XDMF::Channel::Datatype::Float;
+    auto rigidType = XDMF::Channel::NumberType::Float;
 #endif
 
     std::vector<XDMF::Channel> channels = {
-        XDMF::Channel( "ids",        ids       ->data(), XDMF::Channel::DataForm::Scalar,     XDMF::Channel::Datatype::Int ),
+        XDMF::Channel( "ids",        ids       ->data(), XDMF::Channel::DataForm::Scalar,     XDMF::Channel::NumberType::Int ),
         XDMF::Channel( "quaternion", quaternion .data(), XDMF::Channel::DataForm::Quaternion, rigidType ),
         XDMF::Channel( "velocity",   vel        .data(), XDMF::Channel::DataForm::Vector,     rigidType ),
         XDMF::Channel( "omega",      omega      .data(), XDMF::Channel::DataForm::Vector,     rigidType ),

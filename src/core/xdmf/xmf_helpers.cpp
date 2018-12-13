@@ -25,8 +25,8 @@ namespace XDMF
             
             auto dataNode = attrNode.append_child("DataItem");
             dataNode.append_attribute("Dimensions") = ::to_string(globalSize).c_str();
-            dataNode.append_attribute("NumberType") = datatypeToString(channel.datatype).c_str();
-            dataNode.append_attribute("Precision") = std::to_string(datatypeToPrecision(channel.datatype)).c_str();
+            dataNode.append_attribute("NumberType") = numberTypeToString(channel.numberType).c_str();
+            dataNode.append_attribute("Precision") = std::to_string(numberTypeToPrecision(channel.numberType)).c_str();
             dataNode.append_attribute("Format") = "HDF";
             dataNode.text() = (h5filename + ":/" + channel.name).c_str();
         }
@@ -73,14 +73,14 @@ namespace XDMF
 
             auto dataForm = descriptionToDataForm(typeDescription);
 
-            std::string channelDatatype = dataNode.attribute("NumberType").value();
+            std::string channelNumberType = dataNode.attribute("NumberType").value();
             int precision = dataNode.attribute("Precision").as_int();
-            auto datatype = infoToDatatype(channelDatatype, precision);
+            auto numberType = infoToNumberType(channelNumberType, precision);
 
             if (dataForm == Channel::DataForm::Other)
                 die("Unrecognised type %s", typeDescription.c_str());
             
-            return Channel(name, nullptr, dataForm, datatype);
+            return Channel(name, nullptr, dataForm, numberType);
         }
         
         static void readData(pugi::xml_node node, std::vector<Channel>& channels)

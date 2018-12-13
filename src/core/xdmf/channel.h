@@ -15,12 +15,12 @@ namespace XDMF
             Scalar, Vector, Tensor6, Tensor9, Quaternion, Triangle, Other
         } dataForm;
         
-        enum class Datatype
+        enum class NumberType
         {
             Float, Int, Double
-        } datatype;
+        } numberType;
         
-        Channel(std::string name, void *data, DataForm dataForm, Datatype datatype = Datatype::Float);
+        Channel(std::string name, void *data, DataForm dataForm, NumberType numberType = NumberType::Float);
         int nComponents() const;
         int precision() const;
     };
@@ -32,9 +32,9 @@ namespace XDMF
     Channel::DataForm descriptionToDataForm(std::string str);
     
 
-    decltype (H5T_NATIVE_FLOAT) datatypeToHDF5type  (Channel::Datatype dt);
-    std::string                 datatypeToString    (Channel::Datatype dt);
-    int                         datatypeToPrecision (Channel::Datatype dt);
+    decltype (H5T_NATIVE_FLOAT) numberTypeToHDF5type  (Channel::NumberType dt);
+    std::string                 numberTypeToString    (Channel::NumberType dt);
+    int                         numberTypeToPrecision (Channel::NumberType dt);
 
-    Channel::Datatype infoToDatatype(std::string str, int precision);
+    Channel::NumberType infoToNumberType(std::string str, int precision);
 }

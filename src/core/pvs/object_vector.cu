@@ -157,7 +157,7 @@ void ObjectVector::_checkpointObjectData(MPI_Comm comm, std::string path)
     XDMF::VertexGrid grid(positions, comm);
 
     std::vector<XDMF::Channel> channels;
-    channels.push_back(XDMF::Channel( "ids", ids->data(), XDMF::Channel::DataForm::Scalar, XDMF::Channel::Datatype::Int ));
+    channels.push_back(XDMF::Channel( "ids", ids->data(), XDMF::Channel::DataForm::Scalar, XDMF::Channel::NumberType::Int ));
     
     XDMF::write(filename, &grid, channels, comm);
 

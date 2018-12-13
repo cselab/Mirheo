@@ -69,8 +69,8 @@ void exportPlugins(py::module& m)
                 resolution.push_back(ch.nComponents());
             
                 pybind11::dtype dt;
-                if (ch.datatype == XDMF::Channel::Datatype::Float) dt = pybind11::dtype::of<float>();
-                if (ch.datatype == XDMF::Channel::Datatype::Int)   dt = pybind11::dtype::of<int>();
+                if (ch.numberType == XDMF::Channel::NumberType::Float) dt = pybind11::dtype::of<float>();
+                if (ch.numberType == XDMF::Channel::NumberType::Int)   dt = pybind11::dtype::of<int>();
             
                 return py::array(dt, resolution, (float*)ch.data, py::cast(dumper));
             });

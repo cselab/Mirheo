@@ -75,8 +75,8 @@ namespace XDMF
             const std::array< std::pair<std::string, std::string>, 5 > name_vals = {{
                 { "Name", nodeName },
                 { "Dimensions", "3" },
-                { "NumberType", datatypeToString(Channel::Datatype::Float) },
-                { "Precision", std::to_string(datatypeToPrecision(Channel::Datatype::Float)) },
+                { "NumberType", numberTypeToString(Channel::NumberType::Float) },
+                { "Precision", std::to_string(numberTypeToPrecision(Channel::NumberType::Float)) },
                 { "Format", "XML" }
             }};
            
@@ -157,8 +157,8 @@ namespace XDMF
         
         auto partNode = geomNode.append_child("DataItem");
         partNode.append_attribute("Dimensions") = (std::to_string(dims.nglobal) + " 3").c_str();
-        partNode.append_attribute("NumberType") = datatypeToString(Channel::Datatype::Float).c_str();
-        partNode.append_attribute("Precision") = std::to_string(datatypeToPrecision(Channel::Datatype::Float)).c_str();
+        partNode.append_attribute("NumberType") = numberTypeToString(Channel::NumberType::Float).c_str();
+        partNode.append_attribute("Precision") = std::to_string(numberTypeToPrecision(Channel::NumberType::Float)).c_str();
         partNode.append_attribute("Format") = "HDF";
         partNode.text() = (h5filename + ":/" + positionChannelName).c_str();
         
@@ -243,7 +243,7 @@ namespace XDMF
     {
         VertexGrid::write_to_HDF5(file_id, comm);
 
-        Channel triCh(triangleChannelName, (void*) triangles->data(), Channel::DataForm::Triangle, Channel::Datatype::Int);        
+        Channel triCh(triangleChannelName, (void*) triangles->data(), Channel::DataForm::Triangle, Channel::NumberType::Int);        
 
         HDF5::writeDataSet(file_id, &dimsTriangles, triCh);
     }
@@ -264,8 +264,8 @@ namespace XDMF
         auto triangleNode = topoNode.append_child("DataItem");
 
         triangleNode.append_attribute("Dimensions") = (std::to_string(dimsTriangles.nglobal) + " 3").c_str();
-        triangleNode.append_attribute("NumberType") = datatypeToString(Channel::Datatype::Int).c_str();
-        triangleNode.append_attribute("Precision") = std::to_string(datatypeToPrecision(Channel::Datatype::Int)).c_str();
+        triangleNode.append_attribute("NumberType") = numberTypeToString(Channel::NumberType::Int).c_str();
+        triangleNode.append_attribute("Precision") = std::to_string(numberTypeToPrecision(Channel::NumberType::Int)).c_str();
         triangleNode.append_attribute("Format") = "HDF";
         triangleNode.text() = (h5filename + ":/" + triangleChannelName).c_str();
 

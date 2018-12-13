@@ -251,8 +251,8 @@ void ParticleVector::_extractPersistentExtraData(std::vector<XDMF::Channel>& cha
             {                                                           \
                 auto buffer   = extraData.getData<ctype>(channelName);  \
                 buffer->downloadFromDevice(0, ContainersSynch::Synch);  \
-                auto type     = XDMF::getType<ctype>();                 \
-                auto datatype = XDMF::getDatatype<ctype>();             \
+                auto type     = XDMF::getDataForm<ctype>();             \
+                auto datatype = XDMF::getNumberType<ctype>();             \
                 channels.push_back(XDMF::Channel(channelName, buffer->data(), type, datatype )); \
             }                                                           \
             break;
@@ -282,7 +282,7 @@ void ParticleVector::_checkpointParticleData(MPI_Comm comm, std::string path)
 
     std::vector<XDMF::Channel> channels;
     channels.push_back(XDMF::Channel("velocity", velocities.data(), XDMF::Channel::DataForm::Vector));
-    channels.push_back(XDMF::Channel( "ids", ids.data(), XDMF::Channel::DataForm::Scalar, XDMF::Channel::Datatype::Int ));
+    channels.push_back(XDMF::Channel( "ids", ids.data(), XDMF::Channel::DataForm::Scalar, XDMF::Channel::NumberType::Int ));
 
     // TODO activate once restart is implemented
     //_extractPersistentExtraData(channels);
