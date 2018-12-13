@@ -3,13 +3,15 @@
 std::string dataTypeToString(DataType dataType)
 {
 #define SWITCH_ENTRY(ctype) case DataType::TOKENIZE(ctype): return #ctype;
-
+#define GET_STR(a) #a
+    
     switch (dataType) {
         TYPE_TABLE(SWITCH_ENTRY);
-        default: return #DATATYPE_NONE;
+    default: return GET_STR(DATATYPE_NONE);
     };
 
 #undef SWITCH_ENTRY
+#undef GET_STR
 }
 
 DataType stringToDataType(std::string str)
