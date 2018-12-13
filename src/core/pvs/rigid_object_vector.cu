@@ -136,12 +136,12 @@ void RigidObjectVector::_checkpointObjectData(MPI_Comm comm, std::string path)
 #endif
 
     std::vector<XDMF::Channel> channels = {
-        XDMF::Channel( "ids",        ids       ->data(), XDMF::Channel::Type::Scalar,     XDMF::Channel::Datatype::Int ),
-        XDMF::Channel( "quaternion", quaternion .data(), XDMF::Channel::Type::Quaternion, rigidType ),
-        XDMF::Channel( "velocity",   vel        .data(), XDMF::Channel::Type::Vector,     rigidType ),
-        XDMF::Channel( "omega",      omega      .data(), XDMF::Channel::Type::Vector,     rigidType ),
-        XDMF::Channel( "force",      force      .data(), XDMF::Channel::Type::Vector,     rigidType ),
-        XDMF::Channel( "torque",     torque     .data(), XDMF::Channel::Type::Vector,     rigidType )
+        XDMF::Channel( "ids",        ids       ->data(), XDMF::Channel::DataForm::Scalar,     XDMF::Channel::Datatype::Int ),
+        XDMF::Channel( "quaternion", quaternion .data(), XDMF::Channel::DataForm::Quaternion, rigidType ),
+        XDMF::Channel( "velocity",   vel        .data(), XDMF::Channel::DataForm::Vector,     rigidType ),
+        XDMF::Channel( "omega",      omega      .data(), XDMF::Channel::DataForm::Vector,     rigidType ),
+        XDMF::Channel( "force",      force      .data(), XDMF::Channel::DataForm::Vector,     rigidType ),
+        XDMF::Channel( "torque",     torque     .data(), XDMF::Channel::DataForm::Vector,     rigidType )
     };         
     
     XDMF::write(filename, &grid, channels, comm);

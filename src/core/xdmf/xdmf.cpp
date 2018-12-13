@@ -146,7 +146,7 @@ namespace XDMF
 
         for (auto& ch : channels)
         {
-            if (ch.name == "ids")        ids_data   = (const int*)        ch.data;
+            if (ch.name == "ids")          ids_data = (const int*)        ch.data;
             if (ch.name == "quaternion") quaternion = (const RigidReal4*) ch.data; 
             if (ch.name == "velocity")          vel = (const RigidReal3*) ch.data;
             if (ch.name == "omega")           omega = (const RigidReal3*) ch.data;

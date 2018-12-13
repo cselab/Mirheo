@@ -4,13 +4,13 @@
 
 namespace XDMF
 {
-    Channel::Channel(std::string name, void* data, Type type, Datatype datatype) :
-        name(name), data(data), type(type), datatype(datatype)
+    Channel::Channel(std::string name, void* data, DataForm dataForm, Datatype datatype) :
+        name(name), data(data), dataForm(dataForm), datatype(datatype)
     {}
 
     int Channel::nComponents() const
     {
-        return typeToNcomponents(type);
+        return dataFormToNcomponents(dataForm);
     }
 
     int Channel::precision() const
@@ -18,57 +18,57 @@ namespace XDMF
         return datatypeToPrecision(datatype);
     }
     
-    std::string typeToXDMFAttribute(Channel::Type type)
+    std::string dataFormToXDMFAttribute(Channel::DataForm dataForm)
     {
-        switch (type)
+        switch (dataForm)
         {
-            case Channel::Type::Scalar:     return "Scalar";
-            case Channel::Type::Vector:     return "Vector";
-            case Channel::Type::Tensor6:    return "Tensor6";
-            case Channel::Type::Tensor9:    return "Tensor";
-            case Channel::Type::Quaternion: return "Matrix";
-            case Channel::Type::Triangle:   return "Matrix";
-            case Channel::Type::Other:      return "Scalar";
+            case Channel::DataForm::Scalar:     return "Scalar";
+            case Channel::DataForm::Vector:     return "Vector";
+            case Channel::DataForm::Tensor6:    return "Tensor6";
+            case Channel::DataForm::Tensor9:    return "Tensor";
+            case Channel::DataForm::Quaternion: return "Matrix";
+            case Channel::DataForm::Triangle:   return "Matrix";
+            case Channel::DataForm::Other:      return "Scalar";
         }
     }
 
-    int typeToNcomponents(Channel::Type type)
+    int dataFormToNcomponents(Channel::DataForm dataForm)
     {
-        switch (type)
+        switch (dataForm)
         {
-            case Channel::Type::Scalar:     return 1;
-            case Channel::Type::Vector:     return 3;
-            case Channel::Type::Tensor6:    return 6;
-            case Channel::Type::Tensor9:    return 9;
-            case Channel::Type::Quaternion: return 4;
-            case Channel::Type::Triangle:   return 3;
-            case Channel::Type::Other:      return 1;
+            case Channel::DataForm::Scalar:     return 1;
+            case Channel::DataForm::Vector:     return 3;
+            case Channel::DataForm::Tensor6:    return 6;
+            case Channel::DataForm::Tensor9:    return 9;
+            case Channel::DataForm::Quaternion: return 4;
+            case Channel::DataForm::Triangle:   return 3;
+            case Channel::DataForm::Other:      return 1;
         }
     }
 
-    std::string typeToDescription(Channel::Type type)
+    std::string dataFormToDescription(Channel::DataForm dataForm)
     {
-        switch (type)
+        switch (dataForm)
         {
-            case Channel::Type::Scalar:     return "Scalar";
-            case Channel::Type::Vector:     return "Vector";
-            case Channel::Type::Tensor6:    return "Tensor6";
-            case Channel::Type::Tensor9:    return "Tensor";
-            case Channel::Type::Quaternion: return "Quaternion";
-            case Channel::Type::Triangle:   return "Triangle";
-            case Channel::Type::Other:      return "Other";
+            case Channel::DataForm::Scalar:     return "Scalar";
+            case Channel::DataForm::Vector:     return "Vector";
+            case Channel::DataForm::Tensor6:    return "Tensor6";
+            case Channel::DataForm::Tensor9:    return "Tensor";
+            case Channel::DataForm::Quaternion: return "Quaternion";
+            case Channel::DataForm::Triangle:   return "Triangle";
+            case Channel::DataForm::Other:      return "Other";
         }
     }
         
-    Channel::Type descriptionToType(std::string str)
+    Channel::DataForm descriptionToDataForm(std::string str)
     {
-        if (str == "Scalar")      return Channel::Type::Scalar;
-        if (str == "Vector")      return Channel::Type::Vector;
-        if (str == "Tensor6")     return Channel::Type::Tensor6;
-        if (str == "Tensor")      return Channel::Type::Tensor9;
-        if (str == "Quaternion")  return Channel::Type::Quaternion;
-        if (str == "Trianle")     return Channel::Type::Triangle;
-        return Channel::Type::Other;
+        if (str == "Scalar")      return Channel::DataForm::Scalar;
+        if (str == "Vector")      return Channel::DataForm::Vector;
+        if (str == "Tensor6")     return Channel::DataForm::Tensor6;
+        if (str == "Tensor")      return Channel::DataForm::Tensor9;
+        if (str == "Quaternion")  return Channel::DataForm::Quaternion;
+        if (str == "Trianle")     return Channel::DataForm::Triangle;
+        return Channel::DataForm::Other;
     }
     
     decltype (H5T_NATIVE_FLOAT) datatypeToHDF5type(Channel::Datatype dt)

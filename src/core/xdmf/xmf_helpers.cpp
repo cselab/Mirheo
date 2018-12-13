@@ -11,13 +11,13 @@ namespace XDMF
         {            
             auto attrNode = node.append_child("Attribute");
             attrNode.append_attribute("Name") = channel.name.c_str();
-            attrNode.append_attribute("AttributeType") = typeToXDMFAttribute(channel.type).c_str();
+            attrNode.append_attribute("AttributeType") = dataFormToXDMFAttribute(channel.dataForm).c_str();
             attrNode.append_attribute("Center") = grid->getCentering().c_str();
             
             // Write type information
             auto infoNode = attrNode.append_child("Information");
             infoNode.append_attribute("Name") = "Typeinfo";
-            infoNode.append_attribute("Value") = typeToDescription(channel.type).c_str();
+            infoNode.append_attribute("Value") = dataFormToDescription(channel.dataForm).c_str();
             
             // Add one more dimension: number of floats per data item
             auto globalSize = grid->getGridDims()->getGlobalSize();
@@ -71,16 +71,16 @@ namespace XDMF
             std::string name            = node.attribute("Name").value();
             std::string typeDescription = infoNode.attribute("Value").value();
 
-            auto type = descriptionToType(typeDescription);
+            auto dataForm = descriptionToDataForm(typeDescription);
 
             std::string channelDatatype = dataNode.attribute("NumberType").value();
             int precision = dataNode.attribute("Precision").as_int();
             auto datatype = infoToDatatype(channelDatatype, precision);
 
-            if (type == Channel::Type::Other)
+            if (dataForm == Channel::DataForm::Other)
                 die("Unrecognised type %s", typeDescription.c_str());
             
-            return Channel(name, nullptr, type, datatype);
+            return Channel(name, nullptr, dataForm, datatype);
         }
         
         static void readData(pugi::xml_node node, std::vector<Channel>& channels)

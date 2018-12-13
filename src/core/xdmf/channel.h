@@ -10,26 +10,26 @@ namespace XDMF
         std::string name;
         void *data;
         
-        enum class Type
+        enum class DataForm
         {
             Scalar, Vector, Tensor6, Tensor9, Quaternion, Triangle, Other
-        } type;
+        } dataForm;
         
         enum class Datatype
         {
             Float, Int, Double
         } datatype;
         
-        Channel(std::string name, void *data, Type type, Datatype datatype = Datatype::Float);
+        Channel(std::string name, void *data, DataForm dataForm, Datatype datatype = Datatype::Float);
         int nComponents() const;
         int precision() const;
     };
     
-    std::string typeToXDMFAttribute (Channel::Type type);
-    int         typeToNcomponents   (Channel::Type type);
-    std::string typeToDescription   (Channel::Type type);
+    std::string dataFormToXDMFAttribute (Channel::DataForm dataForm);
+    int         dataFormToNcomponents   (Channel::DataForm dataForm);
+    std::string dataFormToDescription   (Channel::DataForm dataForm);
 
-    Channel::Type descriptionToType(std::string str);
+    Channel::DataForm descriptionToDataForm(std::string str);
     
 
     decltype (H5T_NATIVE_FLOAT) datatypeToHDF5type  (Channel::Datatype dt);

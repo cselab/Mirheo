@@ -91,23 +91,23 @@ void ParticleDumperPlugin::handshake()
     std::vector<std::string> names;
     SimpleSerializer::deserialize(data, sizes, names);
     
-    auto init_channel = [] (XDMF::Channel::Type type, int sz, const std::string& str, XDMF::Channel::Datatype datatype = XDMF::Channel::Datatype::Float) {
-        return XDMF::Channel(str, nullptr, type, datatype);
+    auto init_channel = [] (XDMF::Channel::DataForm dataForm, int sz, const std::string& str, XDMF::Channel::Datatype datatype = XDMF::Channel::Datatype::Float) {
+        return XDMF::Channel(str, nullptr, dataForm, datatype);
     };
 
     // Velocity and id are special channels which are always present
     std::string allNames = "velocity, id";
-    channels.push_back(init_channel(XDMF::Channel::Type::Vector, 3, "velocity"));
-    channels.push_back(init_channel(XDMF::Channel::Type::Scalar, 1, "id", XDMF::Channel::Datatype::Int));
+    channels.push_back(init_channel(XDMF::Channel::DataForm::Vector, 3, "velocity"));
+    channels.push_back(init_channel(XDMF::Channel::DataForm::Scalar, 1, "id", XDMF::Channel::Datatype::Int));
 
     for (int i = 0; i<sizes.size(); i++)
     {
         allNames += ", " + names[i];
         switch (sizes[i])
         {
-            case 1: channels.push_back(init_channel(XDMF::Channel::Type::Scalar,  sizes[i], names[i])); break;
-            case 3: channels.push_back(init_channel(XDMF::Channel::Type::Vector,  sizes[i], names[i])); break;
-            case 6: channels.push_back(init_channel(XDMF::Channel::Type::Tensor6, sizes[i], names[i])); break;
+            case 1: channels.push_back(init_channel(XDMF::Channel::DataForm::Scalar,  sizes[i], names[i])); break;
+            case 3: channels.push_back(init_channel(XDMF::Channel::DataForm::Vector,  sizes[i], names[i])); break;
+            case 6: channels.push_back(init_channel(XDMF::Channel::DataForm::Tensor6, sizes[i], names[i])); break;
 
             default:
                 die("Plugin '%s' got %d as a channel '%s' size, expected 1, 3 or 6", name.c_str(), sizes[i], names[i].c_str());
