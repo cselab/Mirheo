@@ -8,6 +8,9 @@
     OP(double)                                   \
     OP(int)                                      \
     OP(float3)                                   \
+    OP(float4)                                   \
+    OP(double3)                                  \
+    OP(double4)                                  \
     OP(Particle)
 
 #define DATATYPE_NONE None

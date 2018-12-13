@@ -28,7 +28,7 @@ namespace XDMF
     }
     
     void write(std::string filename, const Grid* grid, const std::vector<Channel>& channels, MPI_Comm comm)
-    {        
+    {
         write(filename, grid, channels, -1, comm);
     }
 

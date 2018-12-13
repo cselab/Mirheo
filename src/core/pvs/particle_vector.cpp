@@ -251,9 +251,10 @@ void ParticleVector::_extractPersistentExtraData(std::vector<XDMF::Channel>& cha
             {                                                           \
                 auto buffer   = extraData.getData<ctype>(channelName);  \
                 buffer->downloadFromDevice(0, ContainersSynch::Synch);  \
-                auto type     = XDMF::getDataForm<ctype>();             \
-                auto datatype = XDMF::getNumberType<ctype>();             \
-                channels.push_back(XDMF::Channel(channelName, buffer->data(), type, datatype )); \
+                auto type       = XDMF::getDataForm<ctype>();           \
+                auto numbertype = XDMF::getNumberType<ctype>();         \
+                auto datatype   = typeTokenize<ctype>();                \
+                channels.push_back(XDMF::Channel(channelName, buffer->data(), type, numbertype, datatype )); \
             }                                                           \
             break;
 
@@ -281,8 +282,10 @@ void ParticleVector::_checkpointParticleData(MPI_Comm comm, std::string path)
     XDMF::VertexGrid grid(positions, comm);
 
     std::vector<XDMF::Channel> channels;
-    channels.push_back(XDMF::Channel("velocity", velocities.data(), XDMF::Channel::DataForm::Vector));
-    channels.push_back(XDMF::Channel( "ids", ids.data(), XDMF::Channel::DataForm::Scalar, XDMF::Channel::NumberType::Int ));
+    channels.push_back(XDMF::Channel("velocity", velocities.data(),
+                                     XDMF::Channel::DataForm::Vector, XDMF::Channel::NumberType::Float, typeTokenize<float>() ));
+    channels.push_back(XDMF::Channel("ids", ids.data(),
+                                     XDMF::Channel::DataForm::Scalar, XDMF::Channel::NumberType::Int, typeTokenize<int>() ));
 
     // TODO activate once restart is implemented
     //_extractPersistentExtraData(channels);

@@ -5,6 +5,8 @@
 #include <core/utils/folders.h>
 #include <core/rigid_kernels/integration.h>
 #include <core/xdmf/xdmf.h>
+#include <core/xdmf/typeMap.h>
+
 #include "restart_helpers.h"
 
 RigidObjectVector::RigidObjectVector(std::string name, float partMass,
@@ -129,19 +131,15 @@ void RigidObjectVector::_checkpointObjectData(MPI_Comm comm, std::string path)
 
     XDMF::VertexGrid grid(positions, comm);    
 
-#ifdef RIGID_MOTIONS_DOUBLE
-    auto rigidType = XDMF::Channel::NumberType::Double;
-#else
-    auto rigidType = XDMF::Channel::NumberType::Float;
-#endif
+    auto rigidType = XDMF::getNumberType<RigidReal>();
 
     std::vector<XDMF::Channel> channels = {
-        XDMF::Channel( "ids",        ids       ->data(), XDMF::Channel::DataForm::Scalar,     XDMF::Channel::NumberType::Int ),
-        XDMF::Channel( "quaternion", quaternion .data(), XDMF::Channel::DataForm::Quaternion, rigidType ),
-        XDMF::Channel( "velocity",   vel        .data(), XDMF::Channel::DataForm::Vector,     rigidType ),
-        XDMF::Channel( "omega",      omega      .data(), XDMF::Channel::DataForm::Vector,     rigidType ),
-        XDMF::Channel( "force",      force      .data(), XDMF::Channel::DataForm::Vector,     rigidType ),
-        XDMF::Channel( "torque",     torque     .data(), XDMF::Channel::DataForm::Vector,     rigidType )
+        XDMF::Channel( "ids",        ids       ->data(), XDMF::Channel::DataForm::Scalar,     XDMF::Channel::NumberType::Int, typeTokenize<int>() ),
+        XDMF::Channel( "quaternion", quaternion .data(), XDMF::Channel::DataForm::Quaternion, rigidType, typeTokenize<RigidReal4>() ),
+        XDMF::Channel( "velocity",   vel        .data(), XDMF::Channel::DataForm::Vector,     rigidType, typeTokenize<RigidReal3>() ),
+        XDMF::Channel( "omega",      omega      .data(), XDMF::Channel::DataForm::Vector,     rigidType, typeTokenize<RigidReal3>() ),
+        XDMF::Channel( "force",      force      .data(), XDMF::Channel::DataForm::Vector,     rigidType, typeTokenize<RigidReal3>() ),
+        XDMF::Channel( "torque",     torque     .data(), XDMF::Channel::DataForm::Vector,     rigidType, typeTokenize<RigidReal3>() )
     };         
     
     XDMF::write(filename, &grid, channels, comm);
