@@ -51,6 +51,34 @@ namespace XDMF
             particles[i] = p;
         }    
     }
+
+    static void addPersistentExtraDataPerParticle(int n, const Channel& channel, ParticleVector *pv)
+    {
+        switch (channel.dataType) {
+
+#define SWITCH_ENTRY(ctype)                                             \
+            case DataType::TOKENIZE(ctype):                             \
+            {                                                           \
+                pv->requireDataPerParticle<ctype>                       \
+                    (channel.name,                                      \
+                     ExtraDataManager::CommunicationMode::NeedExchange, \
+                     ExtraDataManager::PersistenceMode::Persistent);    \
+                auto buffer = pv->local()->extraPerParticle.getData<ctype>(channel.name); \
+                buffer->resize_anew(n);                                 \
+                memcpy(buffer->data(), channel.data, n * sizeof(ctype)); \
+                buffer->uploadToDevice(0);                              \
+            }                                                           \
+            break;
+
+            TYPE_TABLE(SWITCH_ENTRY);
+
+        default:
+            die("Could not create particle extra data for channel `%s` in pv `%s`",
+                channel.name.c_str(), pv->name.c_str());
+
+#undef SWITCH_ENTRY
+        };
+    }
     
     static void gatherFromChannels(std::vector<Channel> &channels, std::vector<float> &positions, ParticleVector *pv)
     {
@@ -63,11 +91,9 @@ namespace XDMF
 
         for (auto& ch : channels)
         {
-            if (ch.name == "velocity")
-                vel = (const float3*) ch.data;
-            
-            if (ch.name == "ids")
-                ids = (const int*) ch.data;
+            if      (ch.name == "velocity") vel = (const float3*) ch.data;            
+            else if (ch.name == "ids"     ) ids = (const int*) ch.data;
+            else addPersistentExtraDataPerParticle(n, ch, pv);
         }
 
         if (n > 0 && vel == nullptr)
@@ -80,8 +106,34 @@ namespace XDMF
         combineIntoParticles(n, pos, vel, ids, coosvels.data());
 
         coosvels.uploadToDevice(0);
+    }
 
-        // TODO extra data
+    static void addPersistentExtraDataPerObject(int n, const Channel& channel, ObjectVector *ov)
+    {
+        switch (channel.dataType) {
+
+#define SWITCH_ENTRY(ctype)                                             \
+            case DataType::TOKENIZE(ctype):                             \
+            {                                                           \
+                ov->requireDataPerObject<ctype>                         \
+                    (channel.name,                                      \
+                     ExtraDataManager::CommunicationMode::NeedExchange, \
+                     ExtraDataManager::PersistenceMode::Persistent);    \
+                auto buffer = ov->local()->extraPerObject.getData<ctype>(channel.name); \
+                buffer->resize_anew(n);                                 \
+                memcpy(buffer->data(), channel.data, n * sizeof(ctype)); \
+                buffer->uploadToDevice(0);                              \
+            }                                                           \
+            break;
+
+            TYPE_TABLE(SWITCH_ENTRY);
+
+        default:
+            die("Could not create object extra data for channel `%s` in ov `%s`",
+                channel.name.c_str(), ov->name.c_str());
+
+#undef SWITCH_ENTRY
+        };
     }
     
     static void gatherFromChannels(std::vector<Channel> &channels, std::vector<float> &positions, ObjectVector *ov)
@@ -95,8 +147,8 @@ namespace XDMF
 
         for (auto& ch : channels)
         {
-            if (ch.name == "ids")
-                ids_data = (const int*) ch.data;
+            if (ch.name == "ids") ids_data = (const int*) ch.data;
+            else addPersistentExtraDataPerObject(n, ch, ov);
         }
 
         if (n > 0 && ids_data == nullptr)
@@ -108,8 +160,6 @@ namespace XDMF
         }
 
         ids->uploadToDevice(0);
-
-        // TODO extra data
     }
 
     static void combineIntoRigidMotions(int n, const float3 *pos, const RigidReal4 *quaternion,
@@ -146,12 +196,13 @@ namespace XDMF
 
         for (auto& ch : channels)
         {
-            if (ch.name == "ids")          ids_data = (const int*)        ch.data;
-            if (ch.name == "quaternion") quaternion = (const RigidReal4*) ch.data; 
-            if (ch.name == "velocity")          vel = (const RigidReal3*) ch.data;
-            if (ch.name == "omega")           omega = (const RigidReal3*) ch.data;
-            if (ch.name == "force")           force = (const RigidReal3*) ch.data;
-            if (ch.name == "torque")         torque = (const RigidReal3*) ch.data; 
+            if      (ch.name == "ids")          ids_data = (const int*)        ch.data;
+            else if (ch.name == "quaternion") quaternion = (const RigidReal4*) ch.data; 
+            else if (ch.name == "velocity")          vel = (const RigidReal3*) ch.data;
+            else if (ch.name == "omega")           omega = (const RigidReal3*) ch.data;
+            else if (ch.name == "force")           force = (const RigidReal3*) ch.data;
+            else if (ch.name == "torque")         torque = (const RigidReal3*) ch.data;
+            else addPersistentExtraDataPerObject(n, ch, rov);
         }
 
         if (n > 0) {
@@ -172,8 +223,6 @@ namespace XDMF
 
         ids->uploadToDevice(0);
         motions->uploadToDevice(0);
-
-        // TODO extra data
     }
     
     template <typename PV>
