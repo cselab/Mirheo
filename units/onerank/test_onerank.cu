@@ -16,7 +16,7 @@
 Logger logger;
 
 const float dt = 0.0025;
-const float kBT = 1.0;
+const float kBT = 0.0; // to get rid of rng
 const float gammadpd = 20;
 const float adpd = 50;
 const float powerdpd = 1.0;
@@ -260,8 +260,8 @@ int main(int argc, char ** argv)
     
     CUDA_Check( cudaStreamSynchronize(defStream) );
 
-    const int niters = 200;    
-
+    const int niters = 5;
+    
     printf("GPU execution\n");
 
     Timer tm;
@@ -297,72 +297,81 @@ int main(int argc, char ** argv)
     printf("Finished in %f s, 1 step took %f ms\n", elapsed, elapsed / niters * 1000.0);
 
 
-    // if (argc < 2) return 0;
+    //if (argc < 2) return 0;
 
-    // cells.build(defStream);
+    cells.build(defStream);
 
-    // int np = particles.size();
-    // int totcells = cells.totcells;
+    int np = particles.size();
+    int totcells = cells.totcells;
 
-    // HostBuffer<Particle> buffer(np);
-    // HostBuffer<Force> accs(np);
-    // HostBuffer<int>   cellsStartSize(totcells+1), cellsSize(totcells+1);
+    HostBuffer<Particle> buffer(np);
+    HostBuffer<Force> accs(np);
+    HostBuffer<int>   cellsStartSize(totcells+1), cellsSize(totcells+1);
 
-    // printf("CPU execution\n");
+    DomainInfo domainInfo;
+    domainInfo.localSize = length;
+    domainInfo.globalStart.x = -0.5f * length.x;
+    domainInfo.globalStart.y = -0.5f * length.y;
+    domainInfo.globalStart.z = -0.5f * length.z;
+    
+    printf("CPU execution\n");
+    
+    for (int i = 0; i < niters; i++)
+    {
+        printf("%d...", i);
+        fflush(stdout);
+        makeCells(particles.hostptr, buffer.hostptr, cellsStartSize.hostptr, cellsSize.hostptr, np, cells.cellInfo());
+        forces(particles.hostptr, accs.hostptr, cellsStartSize.hostptr, cellsSize.hostptr, cells.cellInfo(), domainInfo);
+        integrate(particles.hostptr, accs.hostptr, np, dt, cells.cellInfo(), domainInfo);
+    }
 
-    // for (int i=0; i<niters; i++)
-    // {
-    //     printf("%d...", i);
-    //     fflush(stdout);
-    //     makeCells(particles.data(), buffer.data(), cellsStartSize.data(), cellsSize.data(), np, cells.cellInfo());
-    //     forces(particles.data(), accs.data(), cellsStartSize.data(), cellsSize.data(), cells.cellInfo());
-    //     integrate(particles.hostdata, accs.hostdata, np, dt, cells.cellInfo());
-    // }
-
-    // printf("\nDone, checking\n");
-    // printf("NP:  %d,  ref  %d\n", pv.local()->size(), np);
-
-
-    // pv.local()->coosvels.synchronize(synchronizeHost);
-
-    // std::vector<int> gpuid(np), cpuid(np);
-    // for (int i=0; i<np; i++)
-    // {
-    //     gpuid[pv.local()->coosvels[i].i1] = i;
-    //     cpuid[particles[i].i1] = i;
-    // }
+    printf("\nDone, checking\n");
+    printf("NP:  %d,  ref  %d\n", pv.local()->size(), np);
 
 
-    // double l2 = 0, linf = -1;
+    pv.local()->coosvels.downloadFromDevice(defStream, ContainersSynch::Synch);
 
-    // for (int i=0; i<np; i++)
-    // {
-    //     Particle cpuP = particles[cpuid[i]];
-    //     Particle gpuP = pv.local()->coosvels[gpuid[i]];
+    std::vector<int> gpuid(np), cpuid(np);
+    for (int i=0; i<np; i++)
+    {
+        gpuid[pv.local()->coosvels[i].i1] = i;
+        cpuid[particles[i].i1] = i;
+    }
 
-    //     double perr = -1;
-    //     for (int c=0; c<3; c++)
-    //     {
-    //         const double err = fabs(cpuP.x[c] - gpuP.x[c]) + fabs(cpuP.u[c] - gpuP.u[c]);
-    //         linf = max(linf, err);
-    //         perr = max(perr, err);
-    //         l2 += err * err;
-    //     }
 
-    //     if (argc > 2 && perr > 0.01)
-    //     {
-    //         printf("id %8d diff %8e  [%12f %12f %12f  %8d] [%12f %12f %12f]\n"
-    //                "                           ref [%12f %12f %12f  %8d] [%12f %12f %12f] \n\n", i, perr,
-    //                gpuP.r.x, gpuP.r.y, gpuP.r.z, gpuP.i1,
-    //                gpuP.u.x, gpuP.u.y, gpuP.u.z,
-    //                cpuP.r.x, cpuP.r.y, cpuP.r.z, cpuP.i1,
-    //                cpuP.u.x, cpuP.u.y, cpuP.u.z);
-    //     }
-    // }
+    double l2 = 0, linf = -1;
 
-    // l2 = sqrt(l2 / pv.local()->size());
-    // printf("L2   norm: %f\n", l2);
-    // printf("Linf norm: %f\n", linf);
+    for (int i = 0; i < np; i++)
+    {
+        Particle cpuP = particles[cpuid[i]];
+        Particle gpuP = pv.local()->coosvels[gpuid[i]];
+
+        double perr = -1;
+
+
+        double3 err = {
+            fabs(cpuP.r.x - gpuP.r.x) + fabs(cpuP.u.x - gpuP.u.x),
+            fabs(cpuP.r.y - gpuP.r.y) + fabs(cpuP.u.y - gpuP.u.y),
+            fabs(cpuP.r.z - gpuP.r.z) + fabs(cpuP.u.z - gpuP.u.z)};
+            
+        linf = max(linf, max(err.x, max(err.y, err.z)));
+        perr = max(perr, max(err.x, max(err.y, err.z)));
+        l2 += err.x * err.x + err.y * err.y + err.z * err.z;
+
+        if (argc > 2 && perr > 0.01)
+        {
+            printf("id %8d diff %8e  [%12f %12f %12f  %8d] [%12f %12f %12f]\n"
+                   "                           ref [%12f %12f %12f  %8d] [%12f %12f %12f] \n\n", i, perr,
+                   gpuP.r.x, gpuP.r.y, gpuP.r.z, gpuP.i1,
+                   gpuP.u.x, gpuP.u.y, gpuP.u.z,
+                   cpuP.r.x, cpuP.r.y, cpuP.r.z, cpuP.i1,
+                   cpuP.u.x, cpuP.u.y, cpuP.u.z);
+        }
+    }
+
+    l2 = sqrt(l2 / pv.local()->size());
+    printf("L2   norm: %f\n", l2);
+    printf("Linf norm: %f\n", linf);
 
     return 0;
 }
