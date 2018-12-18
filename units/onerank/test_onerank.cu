@@ -1,6 +1,8 @@
 // Yo ho ho ho
 #define private public
 
+#include <gtest/gtest.h>
+
 #include <core/utils/make_unique.h>
 #include <core/pvs/particle_vector.h>
 #include <core/celllist.h>
@@ -177,33 +179,13 @@ void forces(const Particle* __restrict__ coos, Force* __restrict__ accs, const i
             }
 }
 
-int main(int argc, char ** argv)
+void execute(float3 length, int niters, double& l2, double& linf)
 {
-    int nranks, rank;
-    int ranks[] = {1, 1, 1};
-    int periods[] = {1, 1, 1};
-    MPI_Comm cartComm;
-
-    int provided, required = MPI_THREAD_FUNNELED;
-    MPI_Init_thread(&argc, &argv, required, &provided);
-
-    if (provided < required) {
-        printf("ERROR: The MPI library does not have required thread support\n");
-        MPI_Abort(MPI_COMM_WORLD, 1);
-    }
-
-    logger.init(MPI_COMM_WORLD, "onerank.log", 9);
-
-    MPI_Check( MPI_Comm_size(MPI_COMM_WORLD, &nranks) );
-    MPI_Check( MPI_Comm_rank(MPI_COMM_WORLD, &rank) );
-    MPI_Check( MPI_Cart_create(MPI_COMM_WORLD, 3, ranks, periods, 0, &cartComm) );
-
     cudaStream_t defStream;
     CUDA_Check( cudaStreamCreateWithPriority(&defStream, cudaStreamNonBlocking, 10) );
     
     // Initial cells
-
-    float3 length{64, 64, 64};
+    
     float3 domainStart = -length / 2.0f;
     const float rc = 1.0f;
     const float mass = 1.0f;
@@ -260,8 +242,6 @@ int main(int argc, char ** argv)
     
     CUDA_Check( cudaStreamSynchronize(defStream) );
 
-    const int niters = 5;
-    
     printf("GPU execution\n");
 
     Timer tm;
@@ -295,9 +275,6 @@ int main(int argc, char ** argv)
     double elapsed = tm.elapsed() * 1e-9;
 
     printf("Finished in %f s, 1 step took %f ms\n", elapsed, elapsed / niters * 1000.0);
-
-
-    //if (argc < 2) return 0;
 
     cells.build(defStream);
 
@@ -339,7 +316,8 @@ int main(int argc, char ** argv)
     }
 
 
-    double l2 = 0, linf = -1;
+    l2 = 0;
+    linf = -1;
 
     for (int i = 0; i < np; i++)
     {
@@ -358,7 +336,7 @@ int main(int argc, char ** argv)
         perr = max(perr, max(err.x, max(err.y, err.z)));
         l2 += err.x * err.x + err.y * err.y + err.z * err.z;
 
-        if (argc > 2 && perr > 0.01)
+        if (perr > 0.01)
         {
             printf("id %8d diff %8e  [%12f %12f %12f  %8d] [%12f %12f %12f]\n"
                    "                           ref [%12f %12f %12f  %8d] [%12f %12f %12f] \n\n", i, perr,
@@ -372,6 +350,49 @@ int main(int argc, char ** argv)
     l2 = sqrt(l2 / pv.local()->size());
     printf("L2   norm: %f\n", l2);
     printf("Linf norm: %f\n", linf);
+}
 
-    return 0;
+TEST (ONE_RANK, small)
+{
+    double l2, linf, tol;
+    int niters = 500;
+    float3 length{8, 8, 8};
+    tol = 0.001;
+    
+    execute(length, niters, l2, linf);
+
+    ASSERT_LE(l2,   tol);
+    ASSERT_LE(linf, tol);
+}
+
+TEST (ONE_RANK, big)
+{
+    double l2, linf, tol;
+    int niters = 5;
+    float3 length{32, 32, 32};
+    tol = 0.00002;
+    
+    execute(length, niters, l2, linf);
+
+    ASSERT_LE(l2,   tol);
+    ASSERT_LE(linf, tol);
+}
+
+int main(int argc, char ** argv)
+{
+    int provided, required = MPI_THREAD_FUNNELED;
+    MPI_Init_thread(&argc, &argv, required, &provided);
+
+    if (provided < required) {
+        printf("ERROR: The MPI library does not have required thread support\n");
+        MPI_Abort(MPI_COMM_WORLD, 1);
+    }
+
+    logger.init(MPI_COMM_WORLD, "onerank.log", 9);
+
+    testing::InitGoogleTest(&argc, argv);
+    auto retval = RUN_ALL_TESTS();
+    
+    MPI_Finalize();
+    return retval;
 }
