@@ -1,17 +1,29 @@
 // Yo ho ho ho
 #define private public
 
+#include <core/utils/make_unique.h>
 #include <core/pvs/particle_vector.h>
 #include <core/celllist.h>
 #include <core/domain.h>
 #include <core/mpi/api.h>
 #include <core/logger.h>
 #include <core/integrators/factory.h>
+#include <core/interactions/dpd.h>
 
 #include "../timer.h"
 #include <unistd.h>
 
 Logger logger;
+
+const float dt = 0.0025;
+const float kBT = 1.0;
+const float gammadpd = 20;
+const float adpd = 50;
+const float powerdpd = 1.0;
+
+const float sigma = sqrt(2 * gammadpd * kBT);
+const float sigmaf = sigma / sqrt(dt);
+
 
 void makeCells(Particle*& __restrict__ coos, Particle*& __restrict__ buffer, int* __restrict__ cellsStartSize, int* __restrict__ cellsSize,
                int np, CellListInfo cinfo)
@@ -42,6 +54,9 @@ void makeCells(Particle*& __restrict__ coos, Particle*& __restrict__ buffer, int
 void integrate(Particle* __restrict__ coos, Force* __restrict__ accs, int np, float dt,
                CellListInfo cinfo, DomainInfo dinfo)
 {
+    float3 dstart = dinfo.globalStart;
+    float3 dlength = dinfo.localSize;
+    
     for (int i = 0; i < np; i++)
     {            
         coos[i].u.x += accs[i].f.x * dt;
@@ -51,15 +66,15 @@ void integrate(Particle* __restrict__ coos, Force* __restrict__ accs, int np, fl
         coos[i].r.x += coos[i].u.x * dt;
         coos[i].r.y += coos[i].u.y * dt;
         coos[i].r.z += coos[i].u.z * dt;
+        
+        if (coos[i].r.x >  dstart.x+dlength.x) coos[i].r.x -= dlength.x;
+        if (coos[i].r.x <= dstart.x)				coos[i].r.x += dlength.x;
 
-        if (coos[i].r.x >  cinfo.domainStart.x+cinfo.length.x) coos[i].r.x -= cinfo.length.x;
-        if (coos[i].r.x <= cinfo.domainStart.x)				coos[i].r.x += cinfo.length.x;
+        if (coos[i].r.y >  dstart.y+dlength.y) coos[i].r.y -= dlength.y;
+        if (coos[i].r.y <= dstart.y)				coos[i].r.y += dlength.y;
 
-        if (coos[i].r.y >  cinfo.domainStart.y+cinfo.length.y) coos[i].r.y -= cinfo.length.y;
-        if (coos[i].r.y <= cinfo.domainStart.y)				coos[i].r.y += cinfo.length.y;
-
-        if (coos[i].r.z >  cinfo.domainStart.z+cinfo.length.z) coos[i].r.z -= cinfo.length.z;
-        if (coos[i].r.z <= cinfo.domainStart.z)				coos[i].r.z += cinfo.length.z;
+        if (coos[i].r.z >  dstart.z+dlength.z) coos[i].r.z -= dlength.z;
+        if (coos[i].r.z <= dstart.z)				coos[i].r.z += dlength.z;
     }
 }
 
@@ -79,25 +94,19 @@ T minabs(T arg, Args... other)
 
 
 void forces(const Particle* __restrict__ coos, Force* __restrict__ accs, const int* __restrict__ cellsStartSize, const int* __restrict__ cellsSize,
-            CellListInfo cinfo)
+            CellListInfo cinfo, DomainInfo dinfo)
 {
-
-    const float dt = 0.0025;
-    const float kBT = 1.0;
-    const float gammadpd = 20;
-    const float sigma = sqrt(2 * gammadpd * kBT);
-    const float sigmaf = sigma / sqrt(dt);
-    const float aij = 50;
-
+    float3 dlength = dinfo.localSize;
+    
     auto addForce = [=] (int dstId, int srcId, Force& a)
     {
         float _xr = coos[dstId].r.x - coos[srcId].r.x;
         float _yr = coos[dstId].r.y - coos[srcId].r.y;
         float _zr = coos[dstId].r.z - coos[srcId].r.z;
 
-        _xr = minabs(_xr, _xr - cinfo.length.x, _xr + cinfo.length.x);
-        _yr = minabs(_yr, _yr - cinfo.length.y, _yr + cinfo.length.y);
-        _zr = minabs(_zr, _zr - cinfo.length.z, _zr + cinfo.length.z);
+        _xr = minabs(_xr, _xr - dlength.x, _xr + dlength.x);
+        _yr = minabs(_yr, _yr - dlength.y, _yr + dlength.y);
+        _zr = minabs(_zr, _zr - dlength.z, _zr + dlength.z);
 
         const float rij2 = _xr * _xr + _yr * _yr + _zr * _zr;
 
@@ -107,7 +116,7 @@ void forces(const Particle* __restrict__ coos, Force* __restrict__ accs, const i
         const float invrij = 1.0f / sqrt(rij2);
         const float rij = rij2 * invrij;
         const float argwr = 1.0f - rij;
-        const float wr = argwr;
+        const float wr = pow(argwr, powerdpd);
 
         const float xr = _xr * invrij;
         const float yr = _yr * invrij;
@@ -120,7 +129,7 @@ void forces(const Particle* __restrict__ coos, Force* __restrict__ accs, const i
 
         const float myrandnr = 0;//Logistic::mean0var1(1, min(srcId, dstId), max(srcId, dstId));
 
-        const float strength = aij * argwr - (gammadpd * wr * rdotv + sigmaf * myrandnr) * wr;
+        const float strength = adpd * argwr - (gammadpd * wr * rdotv + sigmaf * myrandnr) * wr;
 
         a.f.x += strength * xr;
         a.f.y += strength * yr;
@@ -170,41 +179,44 @@ void forces(const Particle* __restrict__ coos, Force* __restrict__ accs, const i
 
 int main(int argc, char ** argv)
 {
-    // Init
-
     int nranks, rank;
     int ranks[] = {1, 1, 1};
     int periods[] = {1, 1, 1};
     MPI_Comm cartComm;
 
-    int provided;
-    MPI_Init_thread(&argc, &argv, MPI_THREAD_MULTIPLE, &provided);
-    if (provided < MPI_THREAD_MULTIPLE)
-    {
-        printf("ERROR: The MPI library does not have full thread support\n");
+    int provided, required = MPI_THREAD_FUNNELED;
+    MPI_Init_thread(&argc, &argv, required, &provided);
+
+    if (provided < required) {
+        printf("ERROR: The MPI library does not have required thread support\n");
         MPI_Abort(MPI_COMM_WORLD, 1);
     }
 
     logger.init(MPI_COMM_WORLD, "onerank.log", 9);
-    IniParser config("tests.cfg");
 
     MPI_Check( MPI_Comm_size(MPI_COMM_WORLD, &nranks) );
     MPI_Check( MPI_Comm_rank(MPI_COMM_WORLD, &rank) );
     MPI_Check( MPI_Cart_create(MPI_COMM_WORLD, 3, ranks, periods, 0, &cartComm) );
 
+    cudaStream_t defStream;
+    CUDA_Check( cudaStreamCreateWithPriority(&defStream, cudaStreamNonBlocking, 10) );
+    
     // Initial cells
 
     float3 length{64, 64, 64};
     float3 domainStart = -length / 2.0f;
     const float rc = 1.0f;
-    ParticleVector dpds(domainStart, length);
-    CellList cells(&dpds, rc, domainStart, length);
+    const float mass = 1.0f;
+
+    ParticleVector pv("pv", mass);
+    PrimaryCellList cells(&pv, rc, length);
     const int3 ncells = cells.ncells;
 
     const int ndens = 8;
-    dpds.resize(ncells.x*ncells.y*ncells.z * ndens);
+    pv.local()->resize(ncells.x*ncells.y*ncells.z * ndens, defStream);
 
     srand48(0);
+    
 
     printf("initializing...\n");
 
@@ -214,59 +226,68 @@ int main(int argc, char ** argv)
             for (int k=0; k<ncells.z; k++)
                 for (int p=0; p<ndens; p++)
                 {
-                    dpds.local()->coosvels[c].r.x = i + drand48() + domainStart.x;
-                    dpds.local()->coosvels[c].r.y = j + drand48() + domainStart.y;
-                    dpds.local()->coosvels[c].r.z = k + drand48() + domainStart.z;
-                    dpds.local()->coosvels[c].i1 = c;
+                    pv.local()->coosvels[c].r.x = i + drand48() + domainStart.x;
+                    pv.local()->coosvels[c].r.y = j + drand48() + domainStart.y;
+                    pv.local()->coosvels[c].r.z = k + drand48() + domainStart.z;
+                    pv.local()->coosvels[c].i1 = c;
 
-                    dpds.local()->coosvels[c].u.x = 0*(drand48() - 0.5);
-                    dpds.local()->coosvels[c].u.y = 0*(drand48() - 0.5);
-                    dpds.local()->coosvels[c].u.z = 0*(drand48() - 0.5);
+                    pv.local()->coosvels[c].u.x = 0*(drand48() - 0.5);
+                    pv.local()->coosvels[c].u.y = 0*(drand48() - 0.5);
+                    pv.local()->coosvels[c].u.z = 0*(drand48() - 0.5);
                     c++;
                 }
 
 
-    dpds.resize(c);
-    dpds.local()->coosvels.synchronize(synchronizeDevice);
-    dpd.local()->forces.clear();
+    pv.local()->resize(c, defStream);
+    pv.local()->coosvels.uploadToDevice(defStream);
+    pv.local()->forces.clear(defStream);
 
-    HostBuffer<Particle> particles(dpds.local()->size());
-    for (int i=0; i<dpds.local()->size(); i++)
-        particles[i] = dpds.local()->coosvels[i];
+    HostBuffer<Particle> particles(pv.local()->size());
+    for (int i = 0; i < pv.local()->size(); i++)
+        particles[i] = pv.local()->coosvels[i];
 
-    cudaStream_t defStream;
-    CUDA_Check( cudaStreamCreateWithPriority(&defStream, cudaStreamNonBlocking, 10) );
+    auto haloExchanger = std::make_unique<ParticleHaloExchanger>();
+    haloExchanger->attach(&pv, &cells);
+    SingleNodeEngine haloEngine(std::move(haloExchanger));
 
-    HaloExchanger halo(cartComm);
-    halo->attach(&dpds, &cells, ndens);
-    Redistributor redist(cartComm, config);
-    redist.attach(&dpds, &cells, ndens);
+    auto redistributor = std::make_unique<ParticleRedistributor>();
+    redistributor->attach(&pv, &cells);
+    SingleNodeEngine redistEngine(std::move(redistributor));
 
+    InteractionDPD dpd("dpd", rc, adpd, gammadpd, kBT, dt, powerdpd);
+
+    std::unique_ptr<IntegratorVV<Forcing_None>> integrator(IntegratorFactory::createVV("vv", dt));
+    
     CUDA_Check( cudaStreamSynchronize(defStream) );
 
-    const float dt = 0.005;
-    const int niters = 200;
+    const int niters = 200;    
 
     printf("GPU execution\n");
 
     Timer tm;
     tm.start();
 
-    for (int i=0; i<niters; i++)
+    for (int i = 0; i < niters; i++)
     {
-        dpd.local()->forces.clear(defStream);
+        pv.local()->forces.clear(defStream);
         cells.build(defStream);
-        computeInternalDPD(dpds, cells, defStream);
 
-        halo->init();
-        halo->finalize();
+        haloEngine.init(defStream);
+        
+        dpd.setPrerequisites(&pv, &pv);
+        dpd.regular(&pv, &pv, &cells, &cells, i*dt, defStream);
 
-        computeHaloDPD(dpds, cells, defStream);
+        haloEngine.finalize(defStream);
 
-        integrateNoFlow(dpds, dt, 1.0f, defStream);
+        dpd.halo(&pv, &pv, &cells, &cells, i*dt, defStream);
+
+        integrator->setPrerequisites(&pv);
+        integrator->stage2(&pv, i*dt, defStream);
+        
         CUDA_Check( cudaStreamSynchronize(defStream) );
 
-        redist.redistribute();
+        redistEngine.init(defStream);
+        redistEngine.finalize(defStream);
 
         CUDA_Check( cudaStreamSynchronize(defStream) );
     }
@@ -276,72 +297,72 @@ int main(int argc, char ** argv)
     printf("Finished in %f s, 1 step took %f ms\n", elapsed, elapsed / niters * 1000.0);
 
 
-    if (argc < 2) return 0;
+    // if (argc < 2) return 0;
 
-    cells.build(defStream);
+    // cells.build(defStream);
 
-    int np = particles.size;
-    int totcells = cells.totcells;
+    // int np = particles.size();
+    // int totcells = cells.totcells;
 
-    HostBuffer<Particle> buffer(np);
-    HostBuffer<Force> accs(np);
-    HostBuffer<int>   cellsStartSize(totcells+1), cellsSize(totcells+1);
+    // HostBuffer<Particle> buffer(np);
+    // HostBuffer<Force> accs(np);
+    // HostBuffer<int>   cellsStartSize(totcells+1), cellsSize(totcells+1);
 
-    printf("CPU execution\n");
+    // printf("CPU execution\n");
 
-    for (int i=0; i<niters; i++)
-    {
-        printf("%d...", i);
-        fflush(stdout);
-        makeCells(particles.hostdata, buffer.hostdata, cellsStartSize.hostdata, cellsSize.hostdata, np, cells.cellInfo());
-        forces(particles.hostdata, accs.hostdata, cellsStartSize.hostdata, cellsSize.hostdata, cells.cellInfo());
-        integrate(particles.hostdata, accs.hostdata, np, dt, cells.cellInfo());
-    }
+    // for (int i=0; i<niters; i++)
+    // {
+    //     printf("%d...", i);
+    //     fflush(stdout);
+    //     makeCells(particles.data(), buffer.data(), cellsStartSize.data(), cellsSize.data(), np, cells.cellInfo());
+    //     forces(particles.data(), accs.data(), cellsStartSize.data(), cellsSize.data(), cells.cellInfo());
+    //     integrate(particles.hostdata, accs.hostdata, np, dt, cells.cellInfo());
+    // }
 
-    printf("\nDone, checking\n");
-    printf("NP:  %d,  ref  %d\n", dpds.local()->size(), np);
-
-
-    dpds.local()->coosvels.synchronize(synchronizeHost);
-
-    std::vector<int> gpuid(np), cpuid(np);
-    for (int i=0; i<np; i++)
-    {
-        gpuid[dpds.local()->coosvels[i].i1] = i;
-        cpuid[particles[i].i1] = i;
-    }
+    // printf("\nDone, checking\n");
+    // printf("NP:  %d,  ref  %d\n", pv.local()->size(), np);
 
 
-    double l2 = 0, linf = -1;
+    // pv.local()->coosvels.synchronize(synchronizeHost);
 
-    for (int i=0; i<np; i++)
-    {
-        Particle cpuP = particles[cpuid[i]];
-        Particle gpuP = dpds.local()->coosvels[gpuid[i]];
+    // std::vector<int> gpuid(np), cpuid(np);
+    // for (int i=0; i<np; i++)
+    // {
+    //     gpuid[pv.local()->coosvels[i].i1] = i;
+    //     cpuid[particles[i].i1] = i;
+    // }
 
-        double perr = -1;
-        for (int c=0; c<3; c++)
-        {
-            const double err = fabs(cpuP.x[c] - gpuP.x[c]) + fabs(cpuP.u[c] - gpuP.u[c]);
-            linf = max(linf, err);
-            perr = max(perr, err);
-            l2 += err * err;
-        }
 
-        if (argc > 2 && perr > 0.01)
-        {
-            printf("id %8d diff %8e  [%12f %12f %12f  %8d] [%12f %12f %12f]\n"
-                   "                           ref [%12f %12f %12f  %8d] [%12f %12f %12f] \n\n", i, perr,
-                   gpuP.r.x, gpuP.r.y, gpuP.r.z, gpuP.i1,
-                   gpuP.u.x, gpuP.u.y, gpuP.u.z,
-                   cpuP.r.x, cpuP.r.y, cpuP.r.z, cpuP.i1,
-                   cpuP.u.x, cpuP.u.y, cpuP.u.z);
-        }
-    }
+    // double l2 = 0, linf = -1;
 
-    l2 = sqrt(l2 / dpds.local()->size());
-    printf("L2   norm: %f\n", l2);
-    printf("Linf norm: %f\n", linf);
+    // for (int i=0; i<np; i++)
+    // {
+    //     Particle cpuP = particles[cpuid[i]];
+    //     Particle gpuP = pv.local()->coosvels[gpuid[i]];
+
+    //     double perr = -1;
+    //     for (int c=0; c<3; c++)
+    //     {
+    //         const double err = fabs(cpuP.x[c] - gpuP.x[c]) + fabs(cpuP.u[c] - gpuP.u[c]);
+    //         linf = max(linf, err);
+    //         perr = max(perr, err);
+    //         l2 += err * err;
+    //     }
+
+    //     if (argc > 2 && perr > 0.01)
+    //     {
+    //         printf("id %8d diff %8e  [%12f %12f %12f  %8d] [%12f %12f %12f]\n"
+    //                "                           ref [%12f %12f %12f  %8d] [%12f %12f %12f] \n\n", i, perr,
+    //                gpuP.r.x, gpuP.r.y, gpuP.r.z, gpuP.i1,
+    //                gpuP.u.x, gpuP.u.y, gpuP.u.z,
+    //                cpuP.r.x, cpuP.r.y, cpuP.r.z, cpuP.i1,
+    //                cpuP.u.x, cpuP.u.y, cpuP.u.z);
+    //     }
+    // }
+
+    // l2 = sqrt(l2 / pv.local()->size());
+    // printf("L2   norm: %f\n", l2);
+    // printf("Linf norm: %f\n", linf);
 
     return 0;
 }
