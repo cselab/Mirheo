@@ -16,7 +16,7 @@ static void run_gpu(Integrator *integrator, ParticleVector *pv, int nsteps, floa
         integrator->stage2(pv, i * dt, defaultStream);
     }
 
-    CUDA_Check(cudaStreamSynchronize(defaultStream));
+    pv->local()->coosvels.downloadFromDevice(defaultStream, ContainersSynch::Synch);
 }
 
 static void run_cpu(std::vector<Particle>& particles, std::vector<Force>& forces, int nsteps, float dt, float mass)
@@ -69,9 +69,9 @@ static void initializeForces(ParticleVector *pv, std::vector<Force>& hostForces)
         f.f.z = drand48();
     }    
 
-    CUDA_Check( cudaMemcpy(hostForces.data(), forces.devPtr(),
-                           forces.size() * sizeof(Particle),
-                           cudaMemcpyHostToDevice) );
+    CUDA_Check( cudaMemcpyAsync(forces.devPtr(), hostForces.data(),
+                                forces.size() * sizeof(Force),
+                                cudaMemcpyHostToDevice, defaultStream) );
 }
 
 static void computeError(int n, const Particle *parts1, const Particle *parts2,
@@ -103,16 +103,15 @@ static void computeError(int n, const Particle *parts1, const Particle *parts2,
         linf = std::max(linf, dv);
         linf = std::max(linf, dw);
     }
+    l2 = std::sqrt(l2);
 }
 
-TEST(Integration, velocityVerlet)
+static void testVelocityVerlet(float dt, float mass, int nparticles, int nsteps, double tolerance)
 {
-    float dt = 0.1, mass = 1.0;
-    int n = 10000, nsteps = 100;
     double l2, linf;
     
     Integrator *vv = IntegratorFactory::createVV("vv", dt);
-    ParticleVector pv("pv", mass, n);
+    ParticleVector pv("pv", mass, nparticles);
 
     std::vector<Particle> hostParticles;
     std::vector<Force> hostForces;
@@ -125,12 +124,21 @@ TEST(Integration, velocityVerlet)
 
     computeError(pv.local()->size(), pv.local()->coosvels.data(),
                  hostParticles.data(), l2, linf);
-
-    double tolerance = 1e-5;
+    
     ASSERT_LE(l2, tolerance);
     ASSERT_LE(linf, tolerance);
     
     delete vv;
+}
+
+TEST(Integration, velocityVerlet1)
+{
+    testVelocityVerlet(0.1, 1.0, 1000, 100, 5e-4);
+}
+
+TEST(Integration, velocityVerletMass)
+{
+    testVelocityVerlet(0.1, 0.1, 1000, 100, 5e-3);
 }
 
 int main(int argc, char **argv)
