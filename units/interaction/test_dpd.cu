@@ -288,5 +288,7 @@ int main(int argc, char ** argv)
     logger.init(MPI_COMM_WORLD, "dpd.log", 9);
 
     testing::InitGoogleTest(&argc, argv);
-    return RUN_ALL_TESTS();
+    auto ret = RUN_ALL_TESTS();
+    MPI_Finalize();
+    return ret;
 }
