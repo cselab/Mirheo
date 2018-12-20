@@ -11,7 +11,7 @@ static void run_gpu(Integrator *integrator, ParticleVector *pv, int nsteps, floa
 {
     integrator->setPrerequisites(pv);
     
-    for (int i = 0; i < nsteps; ++i) {        
+    for (int i = 0; i < nsteps; ++i) {
         integrator->stage1(pv, i * dt, defaultStream);
         integrator->stage2(pv, i * dt, defaultStream);
     }
@@ -136,9 +136,14 @@ TEST(Integration, velocityVerlet1)
     testVelocityVerlet(0.1, 1.0, 1000, 100, 5e-4);
 }
 
-TEST(Integration, velocityVerletMass)
+TEST(Integration, velocityVerletSmallMass)
 {
     testVelocityVerlet(0.1, 0.1, 1000, 100, 5e-3);
+}
+
+TEST(Integration, velocityVerletLargeMass)
+{
+    testVelocityVerlet(0.1, 10000.0, 1, 10000, 5e-5);
 }
 
 int main(int argc, char **argv)
