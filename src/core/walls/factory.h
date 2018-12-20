@@ -1,22 +1,22 @@
 #pragma once
 
+#include <memory>
+
+#include <core/utils/make_unique.h>
+#include <core/utils/pytypes.h>
+
 #include "interface.h"
 
 #include "simple_stationary_wall.h"
-#include "wall_with_velocity.h"
-
-#include "stationary_walls/sdf.h"
-#include "stationary_walls/sphere.h"
+#include "stationary_walls/box.h"
 #include "stationary_walls/cylinder.h"
 #include "stationary_walls/plane.h"
-#include "stationary_walls/box.h"
-
+#include "stationary_walls/sdf.h"
+#include "stationary_walls/sphere.h"
+#include "velocity_field/oscillate.h"
 #include "velocity_field/rotate.h"
 #include "velocity_field/translate.h"
-#include "velocity_field/oscillate.h"
-
-#include <core/utils/pytypes.h>
-#include <core/utils/make_unique.h>
+#include "wall_with_velocity.h"
 
 class ParticleVector;
 class CellList;
@@ -24,22 +24,22 @@ class CellList;
 
 namespace WallFactory
 {
-    static SimpleStationaryWall<StationaryWall_Sphere>*
-        createSphereWall(std::string name, PyTypes::float3 center, float radius, bool inside)
+    static std::shared_ptr<SimpleStationaryWall<StationaryWall_Sphere>>
+    createSphereWall(std::string name, PyTypes::float3 center, float radius, bool inside)
     {
         StationaryWall_Sphere sphere(make_float3(center), radius, inside);
-        return new SimpleStationaryWall<StationaryWall_Sphere> (name, std::move(sphere));
+        return std::make_shared<SimpleStationaryWall<StationaryWall_Sphere>> (name, std::move(sphere));
     }
 
-    static SimpleStationaryWall<StationaryWall_Box>*
-        createBoxWall(std::string name, PyTypes::float3 low, PyTypes::float3 high, bool inside)
+    static std::shared_ptr<SimpleStationaryWall<StationaryWall_Box>>
+    createBoxWall(std::string name, PyTypes::float3 low, PyTypes::float3 high, bool inside)
     {
         StationaryWall_Box box(make_float3(low), make_float3(high), inside);
-        return new SimpleStationaryWall<StationaryWall_Box> (name, std::move(box));
+        return std::make_shared<SimpleStationaryWall<StationaryWall_Box>> (name, std::move(box));
     }
 
-    static SimpleStationaryWall<StationaryWall_Cylinder>*
-        createCylinderWall(std::string name, PyTypes::float2 center, float radius, std::string axis, bool inside)
+    static std::shared_ptr<SimpleStationaryWall<StationaryWall_Cylinder>>
+    createCylinderWall(std::string name, PyTypes::float2 center, float radius, std::string axis, bool inside)
     {
         StationaryWall_Cylinder::Direction dir;
         if (axis == "x") dir = StationaryWall_Cylinder::Direction::x;
@@ -47,27 +47,27 @@ namespace WallFactory
         if (axis == "z") dir = StationaryWall_Cylinder::Direction::z;
 
         StationaryWall_Cylinder cylinder(make_float2(center), radius, dir, inside);
-        return new SimpleStationaryWall<StationaryWall_Cylinder> (name, std::move(cylinder));
+        return std::make_shared<SimpleStationaryWall<StationaryWall_Cylinder>> (name, std::move(cylinder));
     }
 
-    static SimpleStationaryWall<StationaryWall_Plane>* 
-        createPlaneWall(std::string name, PyTypes::float3 normal, PyTypes::float3 pointThrough)
+    static std::shared_ptr<SimpleStationaryWall<StationaryWall_Plane>>
+    createPlaneWall(std::string name, PyTypes::float3 normal, PyTypes::float3 pointThrough)
     {
         StationaryWall_Plane plane(normalize(make_float3(normal)), make_float3(pointThrough));
-        return new SimpleStationaryWall<StationaryWall_Plane> (name, std::move(plane));
+        return std::make_shared<SimpleStationaryWall<StationaryWall_Plane>> (name, std::move(plane));
     }
 
-    static SimpleStationaryWall<StationaryWall_SDF>*
-        createSDFWall(std::string name, std::string sdfFilename, PyTypes::float3 h)
+    static std::shared_ptr<SimpleStationaryWall<StationaryWall_SDF>>
+    createSDFWall(std::string name, std::string sdfFilename, PyTypes::float3 h)
     {
         StationaryWall_SDF sdf(sdfFilename, make_float3(h));
-        return new SimpleStationaryWall<StationaryWall_SDF> (name, std::move(sdf));
+        return std::make_shared<SimpleStationaryWall<StationaryWall_SDF>> (name, std::move(sdf));
     }
 
     // Moving walls
 
-    static WallWithVelocity<StationaryWall_Cylinder, VelocityField_Rotate>*
-        createMovingCylinderWall(std::string name, PyTypes::float2 _center, float radius, std::string axis, float omega, bool inside)
+    static std::shared_ptr<WallWithVelocity<StationaryWall_Cylinder, VelocityField_Rotate>>
+    createMovingCylinderWall(std::string name, PyTypes::float2 _center, float radius, std::string axis, float omega, bool inside)
     {
         float2 center = make_float2(_center);
         
@@ -97,23 +97,23 @@ namespace WallFactory
         }
         VelocityField_Rotate rotate(omega3, center3);
 
-        return new WallWithVelocity<StationaryWall_Cylinder, VelocityField_Rotate> (name, std::move(cylinder), std::move(rotate));
+        return std::make_shared<WallWithVelocity<StationaryWall_Cylinder, VelocityField_Rotate>> (name, std::move(cylinder), std::move(rotate));
     }
 
-    static WallWithVelocity<StationaryWall_Plane, VelocityField_Translate>*
-        createMovingPlaneWall(std::string name, PyTypes::float3 normal, PyTypes::float3 pointThrough, PyTypes::float3 velocity)
+    static std::shared_ptr<WallWithVelocity<StationaryWall_Plane, VelocityField_Translate>>
+    createMovingPlaneWall(std::string name, PyTypes::float3 normal, PyTypes::float3 pointThrough, PyTypes::float3 velocity)
     {
         StationaryWall_Plane plane(normalize(make_float3(normal)), make_float3(pointThrough));
         VelocityField_Translate translate(make_float3(velocity));
-        return new WallWithVelocity<StationaryWall_Plane, VelocityField_Translate> (name, std::move(plane), std::move(translate));
+        return std::make_shared<WallWithVelocity<StationaryWall_Plane, VelocityField_Translate>> (name, std::move(plane), std::move(translate));
     }
 
-    static WallWithVelocity<StationaryWall_Plane, VelocityField_Oscillate>*
-        createOscillatingPlaneWall(std::string name, PyTypes::float3 normal, PyTypes::float3 pointThrough, PyTypes::float3 velocity, float period)
+    static std::shared_ptr<WallWithVelocity<StationaryWall_Plane, VelocityField_Oscillate>>
+    createOscillatingPlaneWall(std::string name, PyTypes::float3 normal, PyTypes::float3 pointThrough, PyTypes::float3 velocity, float period)
     {
         StationaryWall_Plane plane(normalize(make_float3(normal)), make_float3(pointThrough));
         VelocityField_Oscillate osc(make_float3(velocity), period);
-        return new WallWithVelocity<StationaryWall_Plane, VelocityField_Oscillate> (name, std::move(plane), std::move(osc));
+        return std::make_shared<WallWithVelocity<StationaryWall_Plane, VelocityField_Oscillate>> (name, std::move(plane), std::move(osc));
     }
 };
 
