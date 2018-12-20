@@ -174,7 +174,6 @@ void Simulation::registerParticleVector(std::shared_ptr<ParticleVector> pv, std:
     if (pvIdMap.find(name) != pvIdMap.end())
         die("More than one particle vector is called %s", name.c_str());
 
-    pv->setSimulation(this);
     pv->domain = domain;
 
     if (restartStatus != RestartStatus::Anew)
@@ -220,7 +219,6 @@ void Simulation::registerWall(std::shared_ptr<Wall> wall, int every)
 
     // Let the wall know the particle vector associated with it
     float t = 0;
-    wall->setSimulation(this);
     wall->setup(cartComm, t, domain);
     if (restartStatus != RestartStatus::Anew)
         wall->restart(cartComm, restartFolder);
@@ -236,7 +234,6 @@ void Simulation::registerInteraction(std::shared_ptr<Interaction> interaction)
     if (interactionMap.find(name) != interactionMap.end())
         die("More than one interaction is called %s", name.c_str());
 
-    interaction->setSimulation(this);
     if (restartStatus != RestartStatus::Anew)
         interaction->restart(cartComm, restartFolder);
 
@@ -249,7 +246,6 @@ void Simulation::registerIntegrator(std::shared_ptr<Integrator> integrator)
     if (integratorMap.find(name) != integratorMap.end())
         die("More than one integrator is called %s", name.c_str());
 
-    integrator->setSimulation(this);
     if (restartStatus != RestartStatus::Anew)
         integrator->restart(cartComm, restartFolder);
     
@@ -262,7 +258,6 @@ void Simulation::registerBouncer(std::shared_ptr<Bouncer> bouncer)
     if (bouncerMap.find(name) != bouncerMap.end())
         die("More than one bouncer is called %s", name.c_str());
 
-    bouncer->setSimulation(this);
     if (restartStatus != RestartStatus::Anew)
         bouncer->restart(cartComm, restartFolder);
     
@@ -275,7 +270,6 @@ void Simulation::registerObjectBelongingChecker(std::shared_ptr<ObjectBelongingC
     if (belongingCheckerMap.find(name) != belongingCheckerMap.end())
         die("More than one splitter is called %s", name.c_str());
 
-    checker->setSimulation(this);
     if (restartStatus != RestartStatus::Anew)
         checker->restart(cartComm, restartFolder);
     
@@ -293,7 +287,6 @@ void Simulation::registerPlugin(std::shared_ptr<SimulationPlugin> plugin)
     if (found)
         die("More than one plugin is called %s", name.c_str());
 
-    plugin->setSimulation(this);
     if (restartStatus != RestartStatus::Anew)
         plugin->restart(cartComm, restartFolder);
     

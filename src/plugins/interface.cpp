@@ -21,7 +21,6 @@ void SimulationPlugin::setTime(float t, int tstep)
 
 void SimulationPlugin::setup(Simulation* simulation, const MPI_Comm& comm, const MPI_Comm& interComm)
 {
-    setSimulation(simulation);
     debug("Setting up simulation plugin '%s', MPI tag is %d", name.c_str(), _tag());
     this->simulation = simulation;
     _setup(comm, interComm);

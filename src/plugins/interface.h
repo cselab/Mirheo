@@ -64,6 +64,7 @@ public:
 protected:
     int localSendSize;
     MPI_Request sizeReq, dataReq;
+    Simulation *simulation;
 
     float currentTime;
     int currentTimeStep;
