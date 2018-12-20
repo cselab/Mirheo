@@ -1,15 +1,15 @@
-#include "membrane_ic.h"
-
-#include <random>
 #include <fstream>
+#include <random>
 
-#include <core/pvs/particle_vector.h>
 #include <core/pvs/membrane_vector.h>
+#include <core/pvs/particle_vector.h>
 #include <core/rigid_kernels/quaternion.h>
+
+#include "membrane_ic.h"
 
 MembraneIC::MembraneIC(PyTypes::VectorOfFloat7 com_q, float globalScale) :
     com_q(com_q), globalScale(globalScale)
-{    }
+{}
 
 MembraneIC::~MembraneIC() = default;
 
@@ -51,9 +51,9 @@ void MembraneIC::exec(const MPI_Comm& comm, ParticleVector* pv, DomainInfo domai
 
         q = normalize(q);
 
-        if (ov->domain.globalStart.x <= com.x && com.x < ov->domain.globalStart.x + ov->domain.localSize.x &&
-            ov->domain.globalStart.y <= com.y && com.y < ov->domain.globalStart.y + ov->domain.localSize.y &&
-            ov->domain.globalStart.z <= com.z && com.z < ov->domain.globalStart.z + ov->domain.localSize.z)
+        if (domain.globalStart.x <= com.x && com.x < domain.globalStart.x + domain.localSize.x &&
+            domain.globalStart.y <= com.y && com.y < domain.globalStart.y + domain.localSize.y &&
+            domain.globalStart.z <= com.z && com.z < domain.globalStart.z + domain.localSize.z)
         {
             com = domain.global2local(com);
             int oldSize = ov->local()->size();

@@ -8,7 +8,7 @@
 ObjPositionsPlugin::ObjPositionsPlugin(std::string name, std::string ovName, int dumpEvery) :
     SimulationPlugin(name), ovName(ovName),
     dumpEvery(dumpEvery)
-{    }
+{}
 
 void ObjPositionsPlugin::setup(Simulation* simulation, const MPI_Comm& comm, const MPI_Comm& interComm)
 {

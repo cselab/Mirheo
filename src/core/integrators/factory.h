@@ -1,19 +1,19 @@
 #pragma once
 
+#include <memory>
+
 #include <core/utils/make_unique.h>
-
-#include <core/integrators/vv.h>
-#include <core/integrators/const_omega.h>
-#include <core/integrators/oscillate.h>
-#include <core/integrators/translate.h>
-#include <core/integrators/rigid_vv.h>
-#include <core/integrators/sub_step_membrane.h>
-
-#include <core/integrators/forcing_terms/none.h>
-#include <core/integrators/forcing_terms/const_dp.h>
-#include <core/integrators/forcing_terms/periodic_poiseuille.h>
-
 #include <core/utils/pytypes.h>
+
+#include "const_omega.h"
+#include "forcing_terms/const_dp.h"
+#include "forcing_terms/none."
+#include "forcing_terms/periodic_poiseuille.h"
+#include "oscillate.h"
+#include "rigid_vv.h"
+#include "sub_step_membrane.h"
+#include "translate.h"
+#include "vv.h"
 
 namespace IntegratorFactory
 {

@@ -3,11 +3,11 @@
 #include <set>
 #include <string>
 
-#include "core/ymero_object.h"
-#include "core/datatypes.h"
-#include "core/containers.h"
-#include "core/domain.h"
-#include "core/utils/pytypes.h"
+#include <core/containers.h>
+#include <core/datatypes.h>
+#include <core/domain.h>
+#include <core/utils/pytypes.h>
+#include <core/ymero_object.h>
 
 #include "extra_data/extra_data_manager.h"
 
@@ -50,7 +50,7 @@ protected:
     
 public:
     
-    DomainInfo domain;    
+    DomainInfo domain;
 
     float mass;
 
