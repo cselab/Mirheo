@@ -110,7 +110,7 @@ static void testVelocityVerlet(float dt, float mass, int nparticles, int nsteps,
 {
     double l2, linf;
     
-    Integrator *vv = IntegratorFactory::createVV("vv", dt);
+    auto vv = IntegratorFactory::createVV("vv", dt);
     ParticleVector pv("pv", mass, nparticles);
 
     std::vector<Particle> hostParticles;
@@ -119,7 +119,7 @@ static void testVelocityVerlet(float dt, float mass, int nparticles, int nsteps,
     initializeParticles(&pv, hostParticles);
     initializeForces(&pv, hostForces);
     
-    run_gpu(vv, &pv, nsteps, dt);
+    run_gpu(vv.get(), &pv, nsteps, dt);
     run_cpu(hostParticles, hostForces, nsteps, dt, mass);
 
     computeError(pv.local()->size(), pv.local()->coosvels.data(),
@@ -127,8 +127,6 @@ static void testVelocityVerlet(float dt, float mass, int nparticles, int nsteps,
     
     ASSERT_LE(l2, tolerance);
     ASSERT_LE(linf, tolerance);
-    
-    delete vv;
 }
 
 TEST(Integration, velocityVerlet1)

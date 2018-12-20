@@ -238,7 +238,7 @@ void execute(float3 length, int niters, double& l2, double& linf)
 
     InteractionDPD dpd("dpd", rc, adpd, gammadpd, kBT, dt, powerdpd);
 
-    std::unique_ptr<IntegratorVV<Forcing_None>> integrator(IntegratorFactory::createVV("vv", dt));
+    auto integrator = IntegratorFactory::createVV("vv", dt);
     
     CUDA_Check( cudaStreamSynchronize(defStream) );
 
