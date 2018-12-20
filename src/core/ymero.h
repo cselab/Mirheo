@@ -6,9 +6,10 @@
 #include <memory>
 #include <mpi.h>
 
+class YmrState;
+
 class Simulation;
 class Postprocess;
-
 
 class ParticleVector;
 class ObjectVector;
@@ -36,6 +37,8 @@ public:
           std::string logFileName, int verbosity, int checkpointEvery=0,
           std::string checkpointFolder="restart/", bool gpuAwareMPI=false, bool noSplash=false);
 
+    ~YMeRo();
+    
     void restart(std::string folder="restart/");
     bool isComputeTask() const;
     bool isMasterTask() const;
@@ -61,7 +64,9 @@ public:
     void setInteraction (Interaction* interaction, ParticleVector* pv1, ParticleVector* pv2);
     void setBouncer     (Bouncer* bouncer, ObjectVector* ov, ParticleVector* pv);
     void setWallBounce  (Wall* wall, ParticleVector* pv);
-    
+
+    YmrState* getState();
+    const YmrState* getState() const;
 
     void dumpWalls2XDMF(std::vector<std::shared_ptr<Wall>> walls, PyTypes::float3 h, std::string filename);
     double computeVolumeInsideWalls(std::vector<std::shared_ptr<Wall>> walls, long nSamplesPerRank = 100000);
@@ -86,11 +91,10 @@ public:
                                                                 std::string outside = "",
                                                                 int checkpointEvery=0);    
     
-    ~YMeRo();
-
 private:
     std::unique_ptr<Simulation> sim;
     std::unique_ptr<Postprocess> post;
+    std::unique_ptr<YmrState> state;
     
     int rank;
     int computeTask;

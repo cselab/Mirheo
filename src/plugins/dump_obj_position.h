@@ -13,7 +13,7 @@
 class ObjPositionsPlugin : public SimulationPlugin
 {
 public:
-    ObjPositionsPlugin(std::string name, std::string ovName, int dumpEvery);
+    ObjPositionsPlugin(std::string name, const YmrState *state, std::string ovName, int dumpEvery);
 
     void setup(Simulation* simulation, const MPI_Comm& comm, const MPI_Comm& interComm) override;
 

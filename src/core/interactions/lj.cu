@@ -5,23 +5,23 @@
 #include "pairwise_interactions/lj_object_aware.h"
 
 
-InteractionLJ::InteractionLJ(std::string name, float rc, float epsilon, float sigma, float maxForce, bool objectAware, bool allocate) :
-    Interaction(name, rc), objectAware(objectAware)
+InteractionLJ::InteractionLJ(std::string name, const YmrState *state, float rc, float epsilon, float sigma, float maxForce, bool objectAware, bool allocate) :
+    Interaction(name, state, rc), objectAware(objectAware)
 {
     if (!allocate) return;
 
     if (objectAware) {
         Pairwise_LJObjectAware lj(rc, epsilon, sigma, maxForce);
-        impl = std::make_unique<InteractionPair<Pairwise_LJObjectAware>> (name, rc, lj);
+        impl = std::make_unique<InteractionPair<Pairwise_LJObjectAware>> (name, state, rc, lj);
     }
     else {
         Pairwise_LJ lj(rc, epsilon, sigma, maxForce);
-        impl = std::make_unique<InteractionPair<Pairwise_LJ>> (name, rc, lj);
+        impl = std::make_unique<InteractionPair<Pairwise_LJ>> (name, state, rc, lj);
     }
 }
 
-InteractionLJ::InteractionLJ(std::string name, float rc, float epsilon, float sigma, float maxForce, bool objectAware) :
-    InteractionLJ(name, rc, epsilon, sigma, maxForce, objectAware, true)
+InteractionLJ::InteractionLJ(std::string name, const YmrState *state, float rc, float epsilon, float sigma, float maxForce, bool objectAware) :
+    InteractionLJ(name, state, rc, epsilon, sigma, maxForce, objectAware, true)
 {}
 
 InteractionLJ::~InteractionLJ() = default;

@@ -14,12 +14,13 @@ class InteractionMembrane;
 class IntegratorSubStepMembrane : Integrator
 {
 public:
+    IntegratorSubStepMembrane(std::string name, const YmrState *state, int substeps, Interaction *fastForces);
+    ~IntegratorSubStepMembrane();
+    
     void stage1(ParticleVector *pv, float t, cudaStream_t stream) override;
     void stage2(ParticleVector *pv, float t, cudaStream_t stream) override;
 
-    void setPrerequisites(ParticleVector* pv) override;
-    
-    IntegratorSubStepMembrane(std::string name, float dt, int substeps, Interaction *fastForces);
+    void setPrerequisites(ParticleVector* pv) override;        
 
 private:
 

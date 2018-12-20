@@ -35,8 +35,9 @@ __global__ void totalMomentumEnergy(PVview view, ReductionType* momentum, Reduct
     }
 }
 
-SimulationStats::SimulationStats(std::string name, int fetchEvery) :
-        SimulationPlugin(name), fetchEvery(fetchEvery)
+SimulationStats::SimulationStats(std::string name, const YmrState *state, int fetchEvery) :
+    SimulationPlugin(name, state),
+    fetchEvery(fetchEvery)
 {
     timer.start();
 }

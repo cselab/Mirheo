@@ -1,62 +1,63 @@
-#include "simulation.h"
-
-#include <core/celllist.h>
-#include <core/pvs/particle_vector.h>
-#include <core/pvs/object_vector.h>
+#include <algorithm>
+#include <cuda_profiler_api.h>
 
 #include <core/bouncers/interface.h>
+#include <core/celllist.h>
 #include <core/initial_conditions/interface.h>
 #include <core/integrators/interface.h>
 #include <core/interactions/interface.h>
-#include <core/walls/interface.h>
-#include <core/object_belonging/interface.h>
-#include <plugins/interface.h>
-
-#include <core/task_scheduler.h>
 #include <core/mpi/api.h>
-
+#include <core/object_belonging/interface.h>
+#include <core/pvs/object_vector.h>
+#include <core/pvs/particle_vector.h>
+#include <core/task_scheduler.h>
 #include <core/utils/folders.h>
 #include <core/utils/make_unique.h>
 #include <core/utils/restart_helpers.h>
+#include <core/walls/interface.h>
+#include <core/ymero_state.h>
+#include <plugins/interface.h>
 
-#include <algorithm>
+#include "simulation.h"
 
-#include <cuda_profiler_api.h>
-
-
-Simulation::Simulation(int3 nranks3D, float3 globalDomainSize,
-                       const MPI_Comm& comm, const MPI_Comm& interComm,
-                       int globalCheckpointEvery, std::string checkpointFolder, bool gpuAwareMPI) :
-nranks3D(nranks3D), interComm(interComm),
-globalCheckpointEvery(globalCheckpointEvery), checkpointFolder(checkpointFolder), gpuAwareMPI(gpuAwareMPI)
+Simulation::Simulation(int3 nranks3D, float3 globalDomainSize, YmrState *state,
+                       const MPI_Comm &comm, const MPI_Comm &interComm,
+                       int globalCheckpointEvery, std::string checkpointFolder,
+                       bool gpuAwareMPI)
+    : nranks3D(nranks3D), interComm(interComm), state(state),
+      globalCheckpointEvery(globalCheckpointEvery),
+      checkpointFolder(checkpointFolder), gpuAwareMPI(gpuAwareMPI)
 {
     int ranksArr[] = {nranks3D.x, nranks3D.y, nranks3D.z};
     int periods[] = {1, 1, 1};
     int coords[3];
 
-    MPI_Check( MPI_Cart_create(comm, 3, ranksArr, periods, 1, &cartComm) );
-    MPI_Check( MPI_Cart_get(cartComm, 3, ranksArr, periods, coords) );
-    MPI_Check( MPI_Comm_rank(comm, &rank) );
-    
+    MPI_Check(MPI_Cart_create(comm, 3, ranksArr, periods, 1, &cartComm));
+    MPI_Check(MPI_Cart_get(cartComm, 3, ranksArr, periods, coords));
+    MPI_Check(MPI_Comm_rank(comm, &rank));
+
     rank3D = {coords[0], coords[1], coords[2]};
 
     domain.globalSize = globalDomainSize;
     domain.localSize = domain.globalSize / make_float3(nranks3D);
-    domain.globalStart = {domain.localSize.x * coords[0], domain.localSize.y * coords[1], domain.localSize.z * coords[2]};
+    domain.globalStart = {domain.localSize.x * coords[0],
+                          domain.localSize.y * coords[1],
+                          domain.localSize.z * coords[2]};
 
     createFoldersCollective(cartComm, checkpointFolder);
 
-    info("Simulation initialized, subdomain size is [%f %f %f], subdomain starts at [%f %f %f]",
-            domain.localSize.x,  domain.localSize.y,  domain.localSize.z,
-            domain.globalStart.x, domain.globalStart.y, domain.globalStart.z);
+    info("Simulation initialized, subdomain size is [%f %f %f], subdomain starts "
+         "at [%f %f %f]",
+         domain.localSize.x, domain.localSize.y, domain.localSize.z,
+         domain.globalStart.x, domain.globalStart.y, domain.globalStart.z);
 
     scheduler = std::make_unique<TaskScheduler>();
     auto task_checkpoint = scheduler->createTask("Checkpoint");
-    
+
     if (globalCheckpointEvery > 0)
-        scheduler->addTask( task_checkpoint, [this] (cudaStream_t stream) {
-            this->checkpoint();
-        }, globalCheckpointEvery );
+        scheduler->addTask(task_checkpoint,
+                           [this](cudaStream_t stream) { this->checkpoint(); },
+                           globalCheckpointEvery);
 }
 
 Simulation::~Simulation() = default;
@@ -416,13 +417,13 @@ void Simulation::applyObjectBelongingChecker(std::string checkerName,
 
     if (inside != "none" && getPVbyName(inside) == nullptr)
     {
-        pvInside = std::make_shared<ParticleVector>(inside, pvSource->mass);
+        pvInside = std::make_shared<ParticleVector>(inside, state, pvSource->mass);
         registerParticleVector(pvInside, nullptr, checkpointEvery);
     }
 
     if (outside != "none" && getPVbyName(outside) == nullptr)
     {
-        pvOutside = std::make_shared<ParticleVector>(outside, pvSource->mass);
+        pvOutside = std::make_shared<ParticleVector>(outside, state, pvSource->mass);
         registerParticleVector(pvOutside, nullptr, checkpointEvery);
     }
 

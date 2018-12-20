@@ -12,9 +12,9 @@ class SDF_basedWall;
 class WallRepulsionPlugin : public SimulationPlugin
 {
 public:
-    WallRepulsionPlugin(std::string name, std::string pvName, std::string wallName, float C, float h, float maxForce = 1e3f) :
-        SimulationPlugin(name), pvName(pvName), wallName(wallName), C(C), h(h), maxForce(maxForce)
-    {    }
+    WallRepulsionPlugin(std::string name, const YmrState *state, std::string pvName, std::string wallName, float C, float h, float maxForce = 1e3f) :
+        SimulationPlugin(name, state), pvName(pvName), wallName(wallName), C(C), h(h), maxForce(maxForce)
+    {}
 
     void setup(Simulation* simulation, const MPI_Comm& comm, const MPI_Comm& interComm) override;
     void beforeIntegration(cudaStream_t stream) override;

@@ -7,10 +7,10 @@
 #include "utils/xyz.h"
 
 
-XYZPlugin::XYZPlugin(std::string name, std::string pvName, int dumpEvery) :
-    SimulationPlugin(name), pvName(pvName),
+XYZPlugin::XYZPlugin(std::string name, const YmrState *state, std::string pvName, int dumpEvery) :
+    SimulationPlugin(name, state), pvName(pvName),
     dumpEvery(dumpEvery)
-{ }
+{}
 
 void XYZPlugin::setup(Simulation* simulation, const MPI_Comm& comm, const MPI_Comm& interComm)
 {

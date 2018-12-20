@@ -13,6 +13,15 @@
 
 
 template<class ForcingTerm>
+IntegratorVV<ForcingTerm>::IntegratorVV(std::string name, const YmrState *state, ForcingTerm forcingTerm) :
+    Integrator(name, state), forcingTerm(forcingTerm)
+{}
+
+template<class ForcingTerm>
+IntegratorVV<ForcingTerm>::~IntegratorVV() = default;
+
+
+template<class ForcingTerm>
 void IntegratorVV<ForcingTerm>::stage1(ParticleVector* pv, float t, cudaStream_t stream)
 {}
 
@@ -77,9 +86,6 @@ void IntegratorVV<ForcingTerm>::stage2(ParticleVector* pv, float t, cudaStream_t
     pv->redistValid = false;
     pv->cellListStamp++;
 }
-
-template<class ForcingTerm>
-IntegratorVV<ForcingTerm>::~IntegratorVV() = default;
 
 template class IntegratorVV<Forcing_None>;
 template class IntegratorVV<Forcing_ConstDP>;

@@ -6,14 +6,19 @@
 #include <core/interactions/membrane.h>
 
 
-IntegratorSubStepMembrane::IntegratorSubStepMembrane(std::string name, float dt, int substeps, Interaction *fastForces) :
-    Integrator(name, dt), substeps(substeps),
-    subIntegrator(new IntegratorVV<Forcing_None>(name + "_sub", dt/substeps, Forcing_None()))
+IntegratorSubStepMembrane::IntegratorSubStepMembrane(std::string name, const YmrState *state, int substeps, Interaction *fastForces) :
+    Integrator(name, state), substeps(substeps),
+    subIntegrator(new IntegratorVV<Forcing_None>(name + "_sub", state, Forcing_None()))
 {
-    if ( !(this->fastForces = dynamic_cast<InteractionMembrane*>(fastForces)) )
-        die("IntegratorSubStepMembrane expects an interaction of type <InteractionMembrane>.");
-}
+    this->fastForces = dynamic_cast<InteractionMembrane*>(fastForces);
     
+    if ( this->fastForces == nullptr )
+        die("IntegratorSubStepMembrane expects an interaction of type <InteractionMembrane>.");
+
+    subIntegrator->dt = dt / substeps;
+}
+
+IntegratorSubStepMembrane::~IntegratorSubStepMembrane() = default;
 
 void IntegratorSubStepMembrane::stage1(ParticleVector *pv, float t, cudaStream_t stream)
 {}
@@ -33,7 +38,7 @@ void IntegratorSubStepMembrane::stage2(ParticleVector *pv, float t, cudaStream_t
             pv->local()->forces.copy(slowForces, stream);
 
         fastForces->regular(pv, pv, nullptr, nullptr, t + substep * dt / substeps, stream);
-
+        
         subIntegrator->stage2(pv, t, stream);
     }
     

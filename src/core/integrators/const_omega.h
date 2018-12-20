@@ -12,12 +12,12 @@ class IntegratorConstOmega : public Integrator
 {
 public:
 
-    void stage1(ParticleVector* pv, float t, cudaStream_t stream) override;
-    void stage2(ParticleVector* pv, float t, cudaStream_t stream) override;
-
-    IntegratorConstOmega(std::string name, float dt, float3 center, float3 omega);
+    IntegratorConstOmega(std::string name, const YmrState *state, float3 center, float3 omega);
 
     ~IntegratorConstOmega();
+
+    void stage1(ParticleVector* pv, float t, cudaStream_t stream) override;
+    void stage2(ParticleVector* pv, float t, cudaStream_t stream) override;
 
 private:
 

@@ -50,11 +50,11 @@ __global__ void sumVelocity(PVview view, DomainInfo domain, float3 low, float3 h
 
 }
 
-SimulationVelocityControl::SimulationVelocityControl(std::string name, std::vector<std::string> pvNames,
+SimulationVelocityControl::SimulationVelocityControl(std::string name, const YmrState *state, std::vector<std::string> pvNames,
                                                      float3 low, float3 high,
                                                      int sampleEvery, int tuneEvery, int dumpEvery,
                                                      float3 targetVel, float Kp, float Ki, float Kd) :
-    SimulationPlugin(name), pvNames(pvNames), low(low), high(high),
+    SimulationPlugin(name, state), pvNames(pvNames), low(low), high(high),
     currentVel(make_float3(0,0,0)), targetVel(targetVel),
     sampleEvery(sampleEvery), tuneEvery(tuneEvery), dumpEvery(dumpEvery), 
     force(make_float3(0, 0, 0)),

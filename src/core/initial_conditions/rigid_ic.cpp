@@ -130,7 +130,8 @@ void RigidIC::exec(const MPI_Comm& comm, ParticleVector* pv, DomainInfo domain, 
 
     // Do the initial rotation    
     ov->local()->forces.clear(stream);
-    IntegratorVVRigid integrator("dummy", 0.0f);
+    YmrState state(domain, 0.f);
+    IntegratorVVRigid integrator("dummy", &state);
     integrator.stage2(pv, 0, stream);
 }
 

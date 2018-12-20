@@ -8,18 +8,14 @@
 
 class Simulation;
 
-template<class Base>
-class Plugin : public Base
+class Plugin
 {    
 public:
-    Plugin(std::string name) : Base(name) {};
+    Plugin();
+    virtual ~Plugin();
     
-    using Base::name;
-    
-    virtual void handshake() {};
-    virtual void talk() {};
-
-    virtual ~Plugin() = default;
+    virtual void handshake();
+    virtual void talk();
 
 protected:
     MPI_Comm comm, interComm;
@@ -30,21 +26,15 @@ protected:
     // limitation by CrayMPI (wtf Cray???)
     static const int MaxTag = 16767;
 
-    int  _tag() { return (int)( nameHash(name) % MaxTag ); }
-    void _setup(const MPI_Comm& comm, const MPI_Comm& interComm)
-    {
-        MPI_Check( MPI_Comm_dup(comm, &this->comm) );
-        this->interComm = interComm;
-        
-        MPI_Check( MPI_Comm_rank(this->comm, &rank) );
-        MPI_Check( MPI_Comm_size(this->comm, &nranks) );
-    }
+    int _tag(const std::string& name);
+    void _setup(const MPI_Comm& comm, const MPI_Comm& interComm);
 };
 
-class SimulationPlugin : public Plugin<YmrSimulationObject>
+class SimulationPlugin : public Plugin, public YmrSimulationObject
 {
 public:
-    SimulationPlugin(std::string name);
+    SimulationPlugin(std::string name, const YmrState *state);
+    virtual ~SimulationPlugin();
 
     virtual void beforeForces               (cudaStream_t stream);
     virtual void beforeIntegration          (cudaStream_t stream);
@@ -57,9 +47,7 @@ public:
 
     void setTime(float t, int tstep);
     virtual void setup(Simulation* simulation, const MPI_Comm& comm, const MPI_Comm& interComm);
-    virtual void finalize();
-
-    virtual ~SimulationPlugin() = default;
+    virtual void finalize();    
 
 protected:
     int localSendSize;
@@ -69,6 +57,8 @@ protected:
     float currentTime;
     int currentTimeStep;
 
+    int _tag();
+    
     void waitPrevSend();
     void send(const std::vector<char>& data);
     void send(const void* data, int sizeInBytes);
@@ -77,21 +67,23 @@ protected:
 
 
 
-class PostprocessPlugin : public Plugin<YmrObject>
+class PostprocessPlugin : public Plugin, public YmrObject
 {
 public:
     PostprocessPlugin(std::string name);
+    virtual ~PostprocessPlugin();
 
     MPI_Request waitData();
     void recv();
     
     virtual void deserialize(MPI_Status& stat);
 
-    virtual void setup(const MPI_Comm& comm, const MPI_Comm& interComm);
-
-    virtual ~PostprocessPlugin() = default;
+    virtual void setup(const MPI_Comm& comm, const MPI_Comm& interComm);    
 
 protected:
+
+    int _tag();
+    
     std::vector<char> data;
     int size;    
 };

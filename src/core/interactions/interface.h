@@ -22,7 +22,9 @@ public:
     /// Cut-off raduis
     float rc;
 
-    Interaction(std::string name, float rc) : YmrSimulationObject(name), rc(rc) {}
+    Interaction(std::string name, const YmrState *state, float rc) :
+        YmrSimulationObject(name, state), rc(rc)
+    {}
 
     /**
      * Ask ParticleVectors which the class will be working with to have specific properties

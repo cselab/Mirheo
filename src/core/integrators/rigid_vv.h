@@ -13,8 +13,8 @@ public:
 
     void setPrerequisites(ParticleVector* pv) override;
 
-    IntegratorVVRigid(std::string name, float dt) :
-        Integrator(name, dt)
+    IntegratorVVRigid(std::string name, const YmrState *state) :
+        Integrator(name, state)
     {}
 
     ~IntegratorVVRigid() = default;

@@ -7,10 +7,10 @@
 #include <core/pvs/views/pv.h>
 
 
-IntegratorConstOmega::IntegratorConstOmega(std::string name, float dt, float3 center, float3 omega) :
-    Integrator(name, dt),
+IntegratorConstOmega::IntegratorConstOmega(std::string name, const YmrState *state, float3 center, float3 omega) :
+    Integrator(name, state),
     center(center), omega(omega)
-{   }
+{}
 
 IntegratorConstOmega::~IntegratorConstOmega() = default;
 

@@ -11,7 +11,8 @@ class InteractionMembraneJuelicher : public InteractionMembrane
 {
 public:
 
-    InteractionMembraneJuelicher(std::string name, MembraneParameters parameters, JuelicherBendingParameters bendingParameters, bool stressFree, float growUntil);
+    InteractionMembraneJuelicher(std::string name, const YmrState *state, MembraneParameters parameters,
+                                 JuelicherBendingParameters bendingParameters, bool stressFree, float growUntil);
     ~InteractionMembraneJuelicher();
     
     void setPrerequisites(ParticleVector* pv1, ParticleVector* pv2) override;

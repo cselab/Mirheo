@@ -59,7 +59,7 @@ public:
 
     int cellListStamp{0};
 
-    ParticleVector(std::string name, float mass, int n=0);
+    ParticleVector(std::string name, const YmrState *state, float mass, int n=0);
 
     LocalParticleVector* local() { return _local; }
     LocalParticleVector* halo()  { return _halo;  }
@@ -99,7 +99,7 @@ public:
     }
 
 protected:
-    ParticleVector(std::string name, float mass,
+    ParticleVector(std::string name, const YmrState *state, float mass,
                    LocalParticleVector *local, LocalParticleVector *halo );
 
     virtual void _getRestartExchangeMap(MPI_Comm comm, const std::vector<Particle> &parts, std::vector<int>& map);

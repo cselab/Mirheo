@@ -15,6 +15,30 @@ class ObjectVector;
  */
 class Bouncer : public YmrSimulationObject
 {
+public:
+    Bouncer(std::string name, const YmrState *state) :
+        YmrSimulationObject(name, state)
+    {}
+
+    /**
+     * Second step of initialization, called from the \c Simulation
+     * All the preparation for bouncing must be done here
+     */
+    virtual void setup(ObjectVector* ov) = 0;
+
+    /**
+     * Ask \c ParticleVector which the class will be working with to have specific properties
+     * Default: ask nothing
+     * Called from \c Simulation right after setup
+     */
+    virtual void setPrerequisites(ParticleVector* pv) {}
+
+    /// Interface to the private exec function for local objects
+    void bounceLocal(ParticleVector* pv, CellList* cl, float dt, cudaStream_t stream) { exec (pv, cl, dt, true,  stream); }
+
+    /// Interface to the private exec function for halo objects
+    void bounceHalo (ParticleVector* pv, CellList* cl, float dt, cudaStream_t stream) { exec (pv, cl, dt, false, stream); }
+
 protected:
     ObjectVector* ov;  /// Particles will be bounced against that ObjectVector
 
@@ -36,26 +60,4 @@ protected:
      * @param stream cuda stream on which to execute
      */
     virtual void exec (ParticleVector* pv, CellList* cl, float dt, bool local, cudaStream_t stream) = 0;
-
-public:
-    Bouncer(std::string name) : YmrSimulationObject(name) {};
-
-    /**
-     * Second step of initialization, called from the \c Simulation
-     * All the preparation for bouncing must be done here
-     */
-    virtual void setup(ObjectVector* ov) = 0;
-
-    /**
-     * Ask \c ParticleVector which the class will be working with to have specific properties
-     * Default: ask nothing
-     * Called from \c Simulation right after setup
-     */
-    virtual void setPrerequisites(ParticleVector* pv) {}
-
-    /// Interface to the private exec function for local objects
-    void bounceLocal(ParticleVector* pv, CellList* cl, float dt, cudaStream_t stream) { exec (pv, cl, dt, true,  stream); }
-
-    /// Interface to the private exec function for halo objects
-    void bounceHalo (ParticleVector* pv, CellList* cl, float dt, cudaStream_t stream) { exec (pv, cl, dt, false, stream); }
 };

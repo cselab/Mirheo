@@ -10,10 +10,10 @@
 
 #include <regex>
 
-MeshPlugin::MeshPlugin(std::string name, std::string ovName, int dumpEvery) :
-SimulationPlugin(name), ovName(ovName),
-dumpEvery(dumpEvery)
-{ }
+MeshPlugin::MeshPlugin(std::string name, const YmrState *state, std::string ovName, int dumpEvery) :
+    SimulationPlugin(name, state), ovName(ovName),
+    dumpEvery(dumpEvery)
+{}
 
 void MeshPlugin::setup(Simulation* simulation, const MPI_Comm& comm, const MPI_Comm& interComm)
 {

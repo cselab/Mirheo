@@ -38,13 +38,13 @@ __global__ void sampleRelative(
 }
 
 AverageRelative3D::AverageRelative3D(
-        std::string name,
+        std::string name, const YmrState *state,
         std::vector<std::string> pvNames,
         std::vector<std::string> channelNames, std::vector<Average3D::ChannelType> channelTypes,
         int sampleEvery, int dumpEvery, float3 binSize,
         std::string relativeOVname, int relativeID) :
 
-        Average3D(name, pvNames, channelNames, channelTypes, sampleEvery, dumpEvery, binSize),
+    Average3D(name, state, pvNames, channelNames, channelTypes, sampleEvery, dumpEvery, binSize),
         relativeOVname(relativeOVname), relativeID(relativeID)
 
 {    }

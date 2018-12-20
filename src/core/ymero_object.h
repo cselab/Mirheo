@@ -3,6 +3,8 @@
 #include <string>
 #include <mpi.h>
 
+#include "ymero_state.h"
+
 /**
  * Base class for all the objects of YMeRo
  * Only stores name and provides interface for
@@ -27,5 +29,9 @@ public:
 class YmrSimulationObject : public YmrObject
 {
 public:
-    YmrSimulationObject(std::string name) : YmrObject(name) {};
+    YmrSimulationObject(std::string name, const YmrState *state) :
+        YmrObject(name), state(state)
+    {}
+
+    const YmrState *state;
 };

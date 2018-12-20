@@ -26,7 +26,7 @@ public:
         std::vector<DeviceBuffer<float>> average;
     };
 
-    Average3D(std::string name,
+    Average3D(std::string name, const YmrState *state,
               std::vector<std::string> pvNames,
               std::vector<std::string> channelNames, std::vector<Average3D::ChannelType> channelTypes,
               int sampleEvery, int dumpEvery, float3 binSize);

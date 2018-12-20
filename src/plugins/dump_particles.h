@@ -20,7 +20,7 @@ public:
         Scalar, Vector, Tensor6
     };
     
-    ParticleSenderPlugin(std::string name, std::string pvName, int dumpEvery,
+    ParticleSenderPlugin(std::string name, const YmrState *state, std::string pvName, int dumpEvery,
                          std::vector<std::string> channelNames,
                          std::vector<ChannelType> channelTypes);
 

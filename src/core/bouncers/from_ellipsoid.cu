@@ -21,8 +21,11 @@
  * Create the bouncer
  * @param name unique bouncer name
  */
-BounceFromRigidEllipsoid::BounceFromRigidEllipsoid(std::string name) : Bouncer(name)
-{    }
+BounceFromRigidEllipsoid::BounceFromRigidEllipsoid(std::string name, const YmrState *state) :
+    Bouncer(name, state)
+{}
+
+BounceFromRigidEllipsoid::~BounceFromRigidEllipsoid() = default;
 
 /**
  * @param ov will need an 'old_motions' channel with the rigid motion

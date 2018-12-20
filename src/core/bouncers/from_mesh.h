@@ -14,9 +14,9 @@ class RigidObjectVector;
 class BounceFromMesh : public Bouncer
 {
 public:
-    BounceFromMesh(std::string name, float kbT);
 
-    ~BounceFromMesh() = default;
+    BounceFromMesh(std::string name, const YmrState *state, float kbT);
+    ~BounceFromMesh();
 
 private:
     template<typename T>

@@ -16,7 +16,7 @@ class AverageRelative3D : public Average3D
 {
 public:
     AverageRelative3D(
-            std::string name,
+            std::string name, const YmrState *state,
             std::vector<std::string> pvNames,
             std::vector<std::string> channelNames, std::vector<Average3D::ChannelType> channelTypes,
             int sampleEvery, int dumpEvery, float3 binSize,

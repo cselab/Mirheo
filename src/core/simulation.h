@@ -15,6 +15,7 @@
 #include <memory>
 
 // Some forward declarations
+class YmrState;
 class ParticleVector;
 class ObjectVector;
 class CellList;
@@ -39,8 +40,9 @@ public:
     MPI_Comm interComm;
 
     DomainInfo domain;
+    YmrState *state;
 
-    Simulation(int3 nranks3D, float3 globalDomainSize,
+    Simulation(int3 nranks3D, float3 globalDomainSize, YmrState *state,
                const MPI_Comm& comm, const MPI_Comm& interComm,
                int globalCheckpointEvery = 0,
                std::string restartFolder = "restart/", bool gpuAwareMPI = false);
@@ -206,9 +208,4 @@ private:
     
     void assemble();
 };
-
-
-
-
-
 

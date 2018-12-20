@@ -15,7 +15,9 @@ class GPUcontainer;
 class Wall : public YmrSimulationObject
 {
 public:
-    Wall(std::string name) : YmrSimulationObject(name) {};
+    Wall(std::string name, const YmrState *state) :
+        YmrSimulationObject(name, state)
+    {}
 
     virtual void setup(MPI_Comm& comm, float t, DomainInfo domain) = 0;
     virtual void attachFrozen(ParticleVector* pv) = 0;

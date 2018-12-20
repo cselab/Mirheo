@@ -22,8 +22,8 @@ __global__ void addForce(OVview view, const Force *forces)
 
 }
 
-MembraneExtraForcePlugin::MembraneExtraForcePlugin(std::string name, std::string pvName, const PyTypes::VectorOfFloat3 &forces) :
-    SimulationPlugin(name), pvName(pvName), forces(forces.size())
+MembraneExtraForcePlugin::MembraneExtraForcePlugin(std::string name, const YmrState *state, std::string pvName, const PyTypes::VectorOfFloat3 &forces) :
+    SimulationPlugin(name, state), pvName(pvName), forces(forces.size())
 {
     HostBuffer<Force> hostForces(forces.size());
 

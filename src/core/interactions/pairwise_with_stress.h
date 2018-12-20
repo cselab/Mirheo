@@ -19,7 +19,7 @@ public:
     void halo   (ParticleVector* pv1, ParticleVector* pv2, CellList* cl1, CellList* cl2, const float t, cudaStream_t stream) override;
     void setPrerequisites(ParticleVector* pv1, ParticleVector* pv2);
 
-    InteractionPair_withStress(std::string name, std::string stressName, float rc, float stressPeriod, PairwiseInteraction pair);
+    InteractionPair_withStress(std::string name, const YmrState *state, std::string stressName, float rc, float stressPeriod, PairwiseInteraction pair);
 
     void setSpecificPair(std::string pv1name, std::string pv2name, PairwiseInteraction pair);
 

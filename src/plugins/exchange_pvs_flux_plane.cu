@@ -50,9 +50,9 @@ __global__ void moveParticles(DomainInfo domain, PVview view1, PVview view2, flo
 }
 
 
-ExchangePVSFluxPlanePlugin::ExchangePVSFluxPlanePlugin(std::string name, std::string pv1Name, std::string pv2Name, float4 plane) :
-    SimulationPlugin(name), pv1Name(pv1Name), pv2Name(pv2Name), plane(plane), numberCrossedParticles(1)
-{ }
+ExchangePVSFluxPlanePlugin::ExchangePVSFluxPlanePlugin(std::string name, const YmrState *state, std::string pv1Name, std::string pv2Name, float4 plane) :
+    SimulationPlugin(name, state), pv1Name(pv1Name), pv2Name(pv2Name), plane(plane), numberCrossedParticles(1)
+{}
 
 
 void ExchangePVSFluxPlanePlugin::setup(Simulation* simulation, const MPI_Comm& comm, const MPI_Comm& interComm)

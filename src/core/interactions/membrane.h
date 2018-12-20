@@ -21,7 +21,7 @@ class InteractionMembrane : public Interaction
 {
 public:
 
-    InteractionMembrane(std::string name, MembraneParameters parameters, bool stressFree, float growUntil);
+    InteractionMembrane(std::string name, const YmrState *state, MembraneParameters parameters, bool stressFree, float growUntil);
     ~InteractionMembrane();
     
     void setPrerequisites(ParticleVector* pv1, ParticleVector* pv2) override;

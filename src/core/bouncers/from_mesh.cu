@@ -17,10 +17,11 @@
  * @param kbT temperature which will be used to create a particle
  * velocity after the bounce, @see performBouncing()
  */
-BounceFromMesh::BounceFromMesh(std::string name, float kbT) :
-    Bouncer(name), kbT(kbT)
-{    }
+BounceFromMesh::BounceFromMesh(std::string name, const YmrState *state, float kbT) :
+    Bouncer(name, state), kbT(kbT)
+{}
 
+BounceFromMesh::~BounceFromMesh() = default;
 
 /**
  * @param ov will need an 'old_particles' per PARTICLE channel keeping positions

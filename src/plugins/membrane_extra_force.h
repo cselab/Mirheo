@@ -15,7 +15,7 @@ class MembraneExtraForcePlugin : public SimulationPlugin
 {
 public:
 
-    MembraneExtraForcePlugin(std::string name, std::string pvName, const PyTypes::VectorOfFloat3 &forces);
+    MembraneExtraForcePlugin(std::string name, const YmrState *state, std::string pvName, const PyTypes::VectorOfFloat3 &forces);
 
     void setup(Simulation* simulation, const MPI_Comm& comm, const MPI_Comm& interComm) override;
     void beforeForces(cudaStream_t stream) override;

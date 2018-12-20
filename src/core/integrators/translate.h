@@ -11,12 +11,11 @@ class IntegratorTranslate : public Integrator
 {
 public:
 
+    IntegratorTranslate(std::string name, const YmrState *state, float3 vel);
+    ~IntegratorTranslate();
+
     void stage1(ParticleVector* pv, float t, cudaStream_t stream) override {};
     void stage2(ParticleVector* pv, float t, cudaStream_t stream) override;
-
-    IntegratorTranslate(std::string name, float dt, float3 vel);
-
-    ~IntegratorTranslate() = default;
 
 private:
 

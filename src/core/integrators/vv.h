@@ -10,12 +10,9 @@ struct IntegratorVV : Integrator
 {
     ForcingTerm forcingTerm;
 
+    IntegratorVV(std::string name, const YmrState *state, ForcingTerm forcingTerm);
+    ~IntegratorVV();
+
     void stage1(ParticleVector* pv, float t, cudaStream_t stream) override;
     void stage2(ParticleVector* pv, float t, cudaStream_t stream) override;
-
-    IntegratorVV(std::string name, float dt, ForcingTerm forcingTerm) :
-        Integrator(name, dt), forcingTerm(forcingTerm)
-    {}
-
-    ~IntegratorVV();
 };

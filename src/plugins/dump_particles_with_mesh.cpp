@@ -5,10 +5,10 @@
 
 #include "dump_particles_with_mesh.h"
 
-ParticleWithMeshSenderPlugin::ParticleWithMeshSenderPlugin(std::string name, std::string pvName, int dumpEvery,
+ParticleWithMeshSenderPlugin::ParticleWithMeshSenderPlugin(std::string name, const YmrState *state, std::string pvName, int dumpEvery,
                                                            std::vector<std::string> channelNames,
                                                            std::vector<ChannelType> channelTypes) :
-    ParticleSenderPlugin(name, pvName, dumpEvery, channelNames, channelTypes)
+    ParticleSenderPlugin(name, state, pvName, dumpEvery, channelNames, channelTypes)
 {}
 
 void ParticleWithMeshSenderPlugin::setup(Simulation *simulation, const MPI_Comm& comm, const MPI_Comm& interComm)

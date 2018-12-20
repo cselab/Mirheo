@@ -9,13 +9,13 @@
 
 #include "restart_helpers.h"
 
-RigidObjectVector::RigidObjectVector(std::string name, float partMass,
+RigidObjectVector::RigidObjectVector(std::string name, const YmrState *state, float partMass,
                                      float3 J, const int objSize,
                                      std::shared_ptr<Mesh> mesh, const int nObjects) :
-        ObjectVector( name, partMass, objSize,
-                      new LocalRigidObjectVector(this, objSize, nObjects),
-                      new LocalRigidObjectVector(this, objSize, 0) ),
-        J(J)
+    ObjectVector( name, state, partMass, objSize,
+                  new LocalRigidObjectVector(this, objSize, nObjects),
+                  new LocalRigidObjectVector(this, objSize, 0) ),
+    J(J)
 {
     this->mesh = std::move(mesh);
 
@@ -37,10 +37,10 @@ RigidObjectVector::RigidObjectVector(std::string name, float partMass,
                                       ExtraDataManager::PersistenceMode::None);
 }
 
-RigidObjectVector::RigidObjectVector(std::string name, float partMass,
+RigidObjectVector::RigidObjectVector(std::string name, const YmrState *state, float partMass,
                                      PyTypes::float3 J, const int objSize,
                                      std::shared_ptr<Mesh> mesh, const int nObjects) :
-        RigidObjectVector( name, partMass, make_float3(J), objSize, mesh, nObjects )
+    RigidObjectVector( name, state, partMass, make_float3(J), objSize, mesh, nObjects )
 {}
 
 PinnedBuffer<Particle>* LocalRigidObjectVector::getMeshVertices(cudaStream_t stream)

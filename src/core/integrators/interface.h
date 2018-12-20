@@ -22,7 +22,12 @@ class ParticleVector;
 class Integrator : public YmrSimulationObject
 {
 public:
-    float dt;
+    
+    /// Set the name of the integrator and state
+    Integrator(std::string name, const YmrState *state) :
+        YmrSimulationObject(name, state),
+        dt(state->dt)
+    {}
 
     /**
      * First integration stage, to be called before the forces are computed
@@ -47,6 +52,6 @@ public:
      */
     virtual void setPrerequisites(ParticleVector* pv) {}
 
-    /// Set the name of the integrator and its time-step
-    Integrator(std::string name, float dt) : YmrSimulationObject(name), dt(dt) {}
+public:
+    float dt; /// allow to get different timestep than global timestep found in state
 };

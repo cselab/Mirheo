@@ -78,8 +78,8 @@ public:
 class ObjectVector : public ParticleVector
 {
 protected:
-    ObjectVector( std::string name, float mass, int objSize, LocalObjectVector *local, LocalObjectVector *halo ) :
-        ParticleVector(name, mass, local, halo), objSize(objSize)
+    ObjectVector( std::string name, const YmrState *state, float mass, int objSize, LocalObjectVector *local, LocalObjectVector *halo ) :
+        ParticleVector(name, state, mass, local, halo), objSize(objSize)
     {
         // center of mass and extents are not to be sent around
         // it's cheaper to compute them on site
@@ -93,11 +93,11 @@ public:
     int objSize;
     std::shared_ptr<Mesh> mesh;
 
-    ObjectVector(std::string name, float mass, const int objSize, const int nObjects = 0) :
-        ObjectVector( name, mass, objSize,
+    ObjectVector(std::string name, const YmrState *state, float mass, const int objSize, const int nObjects = 0) :
+        ObjectVector( name, state, mass, objSize,
                       new LocalObjectVector(this, objSize, nObjects),
                       new LocalObjectVector(this, objSize, 0) )
-    {    }
+    {}
 
     void findExtentAndCOM(cudaStream_t stream, ParticleVectorType type);
 
