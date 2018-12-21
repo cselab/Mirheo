@@ -22,16 +22,16 @@ public:
     /// Cut-off raduis
     float rc;
 
-    Interaction(std::string name, const YmrState *state, float rc) :
-        YmrSimulationObject(name, state), rc(rc)
-    {}
+    Interaction(const YmrState *state, std::string name, float rc);
+
+    virtual ~Interaction();
 
     /**
      * Ask ParticleVectors which the class will be working with to have specific properties
      * Default: ask nothing
      * Called from Simulation right after setup
      */
-    virtual void setPrerequisites(ParticleVector* pv1, ParticleVector* pv2) {}
+    virtual void setPrerequisites(ParticleVector* pv1, ParticleVector* pv2);
 
     /**
      * Interface to compute local interactions.

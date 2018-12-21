@@ -23,7 +23,7 @@ void exportWalls(py::module& m)
 
     )")
         .def(py::init(&WallFactory::createBoxWall),
-             "name"_a, "state"_a, "low"_a, "high"_a, "inside"_a = false, R"(
+             "state"_a, "name"_a, "low"_a, "high"_a, "inside"_a = false, R"(
             Args:
                 name: name of the wall
                 low: lower corner of the box
@@ -36,7 +36,7 @@ void exportWalls(py::module& m)
 
     )")
         .def(py::init(&WallFactory::createSphereWall),
-            "name"_a, "state"_a, "center"_a, "radius"_a, "inside"_a = false, R"(
+            "state"_a, "name"_a, "center"_a, "radius"_a, "inside"_a = false, R"(
             Args:
                 name: name of the wall
                 center: sphere center
@@ -49,7 +49,7 @@ void exportWalls(py::module& m)
 
     )")
         .def(py::init(&WallFactory::createPlaneWall),
-            "name"_a, "state"_a, "normal"_a, "pointThrough"_a, R"(
+            "state"_a, "name"_a, "normal"_a, "pointThrough"_a, R"(
             Args:
                 name: name of the wall
                 normal: wall normal, pointing *inside* the wall
@@ -60,7 +60,7 @@ void exportWalls(py::module& m)
         Cylindrical infinitely stretching wall, the main axis is aligned along OX or OY or OZ
     )")
         .def(py::init(&WallFactory::createCylinderWall),
-            "name"_a, "state"_a, "center"_a, "radius"_a, "axis"_a, "inside"_a = false, R"(
+            "state"_a, "name"_a, "center"_a, "radius"_a, "axis"_a, "inside"_a = false, R"(
             Args:
                 name: name of the wall
                 center: point that belongs to the cylinder axis projected along that axis
@@ -81,7 +81,7 @@ void exportWalls(py::module& m)
         Therefore the boundary is defined by the zero-level isosurface.
     )")
         .def(py::init(&WallFactory::createSDFWall),
-            "name"_a, "state"_a, "sdfFilename"_a, "h"_a = PyTypes::float3{0.25, 0.25, 0.25}, R"(
+            "state"_a, "name"_a, "sdfFilename"_a, "h"_a = PyTypes::float3{0.25, 0.25, 0.25}, R"(
             Args:
                 name: name of the wall
                 sdfFilename: lower corner of the box
@@ -92,7 +92,7 @@ void exportWalls(py::module& m)
         Cylindrical wall rotating with constant angular velocity along its axis.
     )")
         .def(py::init(&WallFactory::createMovingCylinderWall),
-            "name"_a, "state"_a, "center"_a, "radius"_a, "axis"_a, "omega"_a, "inside"_a = false, R"(
+            "state"_a, "name"_a, "center"_a, "radius"_a, "axis"_a, "omega"_a, "inside"_a = false, R"(
             Args:
                 name: name of the wall
                 center: point that belongs to the cylinder axis projected along that axis
@@ -108,7 +108,7 @@ void exportWalls(py::module& m)
         The boundary conditions on such wall are no-through and constant velocity (specified).
     )")
         .def(py::init(&WallFactory::createMovingPlaneWall),
-            "name"_a, "state"_a, "normal"_a, "pointThrough"_a, "velocity"_a, R"(
+            "state"_a, "name"_a, "normal"_a, "pointThrough"_a, "velocity"_a, R"(
             Args:
                 name: name of the wall
                 normal: wall normal, pointing *inside* the wall
@@ -123,7 +123,7 @@ void exportWalls(py::module& m)
             \mathbf{u}(t) = cos(2*\pi * t / T); 
     )")
         .def(py::init(&WallFactory::createOscillatingPlaneWall),
-            "name"_a, "state"_a, "normal"_a, "pointThrough"_a, "velocity"_a, "period"_a,  R"(
+            "state"_a, "name"_a, "normal"_a, "pointThrough"_a, "velocity"_a, "period"_a,  R"(
             Args:
                 name: name of the wall
                 normal: wall normal, pointing *inside* the wall

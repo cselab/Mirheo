@@ -6,9 +6,9 @@
 #include <core/interactions/membrane.h>
 
 
-IntegratorSubStepMembrane::IntegratorSubStepMembrane(std::string name, const YmrState *state, int substeps, Interaction *fastForces) :
-    Integrator(name, state), substeps(substeps),
-    subIntegrator(new IntegratorVV<Forcing_None>(name + "_sub", state, Forcing_None()))
+IntegratorSubStepMembrane::IntegratorSubStepMembrane(const YmrState *state, std::string name, int substeps, Interaction *fastForces) :
+    Integrator(state, name), substeps(substeps),
+    subIntegrator(new IntegratorVV<Forcing_None>(state, name + "_sub", Forcing_None()))
 {
     this->fastForces = dynamic_cast<InteractionMembrane*>(fastForces);
     

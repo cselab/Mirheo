@@ -18,7 +18,7 @@ class PinObjectPlugin : public SimulationPlugin
 public:
     constexpr static float Unrestricted = std::numeric_limits<float>::infinity();
     
-    PinObjectPlugin(std::string name, const YmrState *state, std::string ovName, float3 translation, float3 rotation, int reportEvery);
+    PinObjectPlugin(const YmrState *state, std::string name, std::string ovName, float3 translation, float3 rotation, int reportEvery);
 
     void setup(Simulation* simulation, const MPI_Comm& comm, const MPI_Comm& interComm) override;
     void beforeIntegration(cudaStream_t stream) override;

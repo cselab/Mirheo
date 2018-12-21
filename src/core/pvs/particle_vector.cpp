@@ -41,8 +41,8 @@ LocalParticleVector::~LocalParticleVector() = default;
 // Particle Vector
 //============================================================================
 
-ParticleVector::ParticleVector(std::string name, const YmrState *state, float mass, int n) :
-    ParticleVector(name, state, mass,
+ParticleVector::ParticleVector(const YmrState *state, std::string name, float mass, int n) :
+    ParticleVector(state, name, mass,
                    new LocalParticleVector(this, n),
                    new LocalParticleVector(this, 0) )
 {}
@@ -205,8 +205,11 @@ ParticleVector::~ParticleVector()
     
 }
 
-ParticleVector::ParticleVector( std::string name, const YmrState *state, float mass, LocalParticleVector *local, LocalParticleVector *halo ) :
-    YmrSimulationObject(name, state), mass(mass), _local(local), _halo(halo)
+ParticleVector::ParticleVector(const YmrState *state, std::string name,  float mass, LocalParticleVector *local, LocalParticleVector *halo) :
+    YmrSimulationObject(state, name),
+    mass(mass),
+    _local(local),
+    _halo(halo)
 {
     // usually old positions and velocities don't need to exchanged
     requireDataPerParticle<Particle> ("old_particles", ExtraDataManager::CommunicationMode::None, ExtraDataManager::PersistenceMode::None);

@@ -20,8 +20,8 @@ void exportObjectBelongingCheckers(py::module& m)
             Checking if particles are inside or outside the mesh is a computationally expensive task,
             so it's best to perform checks at most every 1'000 - 10'000 time-steps.
     )")
-        .def(py::init<std::string, const YmrState*>(),
-             "name"_a, "state"_a, R"(
+        .def(py::init<const YmrState*, std::string>(),
+             "state"_a, "name"_a, R"(
             Args:
                 name: name of the checker
         )");
@@ -29,8 +29,8 @@ void exportObjectBelongingCheckers(py::module& m)
     py::handlers_class<EllipsoidBelongingChecker>(m, "Ellipsoid", pycheck, R"(
         This checker will use the analytical representation of the ellipsoid to detect *inside*-*outside* status.
     )")
-        .def(py::init<std::string, const YmrState*>(),
-             "name"_a, "state"_a, R"(
+        .def(py::init<const YmrState*, std::string>(),
+             "state"_a, "name"_a, R"(
             Args:
                 name: name of the checker
             )");

@@ -15,6 +15,10 @@ __global__ void addTorque(ROVview view, float3 torque)
     view.motions[gid].torque += torque;
 }
 
+AddTorquePlugin::AddTorquePlugin(const YmrState *state, std::string name, std::string rovName, float3 torque) :
+    SimulationPlugin(state, name), rovName(rovName), torque(torque)
+{}
+
 void AddTorquePlugin::setup(Simulation* simulation, const MPI_Comm& comm, const MPI_Comm& interComm)
 {
     SimulationPlugin::setup(simulation, comm, interComm);

@@ -10,8 +10,9 @@
 /**
  * @param vel Move with this velocity
  */
-IntegratorTranslate::IntegratorTranslate(std::string name, const YmrState *state, float3 vel) :
-    Integrator(name, state), vel(vel)
+IntegratorTranslate::IntegratorTranslate(const YmrState *state, std::string name, float3 vel) :
+    Integrator(state, name),
+    vel(vel)
 {}
 
 IntegratorTranslate::~IntegratorTranslate() = default;

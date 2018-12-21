@@ -7,8 +7,8 @@
 #include "utils/xyz.h"
 
 
-XYZPlugin::XYZPlugin(std::string name, const YmrState *state, std::string pvName, int dumpEvery) :
-    SimulationPlugin(name, state), pvName(pvName),
+XYZPlugin::XYZPlugin(const YmrState *state, std::string name, std::string pvName, int dumpEvery) :
+    SimulationPlugin(state, name), pvName(pvName),
     dumpEvery(dumpEvery)
 {}
 

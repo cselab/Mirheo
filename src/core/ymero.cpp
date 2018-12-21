@@ -307,7 +307,7 @@ std::shared_ptr<ParticleVector> YMeRo::makeFrozenWallParticles(std::string pvNam
     Simulation wallsim(sim->cartComm, MPI_COMM_NULL, getState(), false);
 
     float mass = 1.0;
-    auto pv = std::make_shared<ParticleVector>(pvName, getState(), mass);
+    auto pv = std::make_shared<ParticleVector>(getState(), pvName, mass);
     auto ic = std::make_shared<UniformIC>(density);
     
     wallsim.registerParticleVector(pv, ic, 0);
@@ -333,11 +333,11 @@ std::shared_ptr<ParticleVector> YMeRo::makeFrozenWallParticles(std::string pvNam
 }
 
 std::shared_ptr<ParticleVector> YMeRo::makeFrozenRigidParticles(std::shared_ptr<ObjectBelongingChecker> checker,
-                                                                   std::shared_ptr<ObjectVector> shape,
-                                                                   std::shared_ptr<InitialConditions> icShape,
-                                                                   std::shared_ptr<Interaction> interaction,
-                                                                   std::shared_ptr<Integrator>   integrator,
-                                                                   float density, int nsteps)
+                                                                std::shared_ptr<ObjectVector> shape,
+                                                                std::shared_ptr<InitialConditions> icShape,
+                                                                std::shared_ptr<Interaction> interaction,
+                                                                std::shared_ptr<Integrator>   integrator,
+                                                                float density, int nsteps)
 {
     if (!isComputeTask()) return nullptr;
 
@@ -350,7 +350,7 @@ std::shared_ptr<ParticleVector> YMeRo::makeFrozenRigidParticles(std::shared_ptr<
     
 
     float mass = 1.0;
-    auto pv = std::make_shared<ParticleVector>("outside__" + shape->name, getState(), mass);
+    auto pv = std::make_shared<ParticleVector>(getState(), "outside__" + shape->name, mass);
     auto ic = std::make_shared<UniformIC>(density);
 
     {

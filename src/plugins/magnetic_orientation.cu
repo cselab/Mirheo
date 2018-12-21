@@ -24,8 +24,12 @@ __global__ void applyMagneticField(ROVview view, float3 B, float3 M)
 }
 
 
-MagneticOrientationPlugin::MagneticOrientationPlugin(std::string name, const YmrState *state, std::string rovName, float3 moment, UniformMagneticFunc magneticFunction) :
-    SimulationPlugin(name, state), rovName(rovName), moment(moment), magneticFunction(magneticFunction)
+MagneticOrientationPlugin::MagneticOrientationPlugin(const YmrState *state, std::string name, std::string rovName,
+                                                     float3 moment, UniformMagneticFunc magneticFunction) :
+    SimulationPlugin(state, name),
+    rovName(rovName),
+    moment(moment),
+    magneticFunction(magneticFunction)
 {}
 
 void MagneticOrientationPlugin::setup(Simulation *simulation, const MPI_Comm& comm, const MPI_Comm& interComm)

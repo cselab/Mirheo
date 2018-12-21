@@ -28,6 +28,17 @@ __global__ void forceFromSDF(PVview view, float* sdfs, float3* gradients, float 
 }
 
 
+WallRepulsionPlugin::WallRepulsionPlugin(const YmrState *state, std::string name,
+                                         std::string pvName, std::string wallName,
+                                         float C, float h, float maxForce) :
+    SimulationPlugin(state, name),
+    pvName(pvName),
+    wallName(wallName),
+    C(C),
+    h(h),
+    maxForce(maxForce)
+{}
+
 void WallRepulsionPlugin::setup(Simulation* simulation, const MPI_Comm& comm, const MPI_Comm& interComm)
 {
     SimulationPlugin::setup(simulation, comm, interComm);

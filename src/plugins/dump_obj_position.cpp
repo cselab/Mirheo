@@ -5,8 +5,8 @@
 #include <core/simulation.h>
 #include <core/pvs/rigid_object_vector.h>
 
-ObjPositionsPlugin::ObjPositionsPlugin(std::string name, const YmrState *state, std::string ovName, int dumpEvery) :
-    SimulationPlugin(name, state), ovName(ovName),
+ObjPositionsPlugin::ObjPositionsPlugin(const YmrState *state, std::string name, std::string ovName, int dumpEvery) :
+    SimulationPlugin(state, name), ovName(ovName),
     dumpEvery(dumpEvery)
 {}
 

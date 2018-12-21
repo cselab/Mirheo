@@ -26,6 +26,13 @@ __global__ void applyTemperature(PVview view, float kbT, float seed1, float seed
     view.particles[2*gid+1] = u.toFloat4();
 }
 
+TemperaturizePlugin::TemperaturizePlugin(const YmrState *state, std::string name, std::string pvName, float kbT, bool keepVelocity) :
+    SimulationPlugin(state, name),
+    pvName(pvName),
+    kbT(kbT),
+    keepVelocity(keepVelocity)
+{}
+
 
 void TemperaturizePlugin::setup(Simulation* simulation, const MPI_Comm& comm, const MPI_Comm& interComm)
 {

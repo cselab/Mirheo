@@ -13,7 +13,8 @@ class SimpleStationaryWall : public SDF_basedWall
 {
 public:
     SimpleStationaryWall(std::string name, const YmrState *state, InsideWallChecker&& insideWallChecker) :
-        SDF_basedWall(name, state), insideWallChecker(std::move(insideWallChecker))
+        SDF_basedWall(state, name),
+        insideWallChecker(std::move(insideWallChecker))
     {}
 
     void setup(MPI_Comm& comm, float t, DomainInfo domain) override;

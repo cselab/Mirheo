@@ -15,7 +15,7 @@ class BounceFromMesh : public Bouncer
 {
 public:
 
-    BounceFromMesh(std::string name, const YmrState *state, float kbT);
+    BounceFromMesh(const YmrState *state, std::string name, float kbT);
     ~BounceFromMesh();
 
 private:

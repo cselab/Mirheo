@@ -65,6 +65,10 @@ __global__ void getRelevantCells(
     }
 }
 
+ImposeProfilePlugin::ImposeProfilePlugin(const YmrState *state, std::string name, std::string pvName,
+                                         float3 low, float3 high, float3 targetVel, float kbT) :
+    SimulationPlugin(state, name), pvName(pvName), low(low), high(high), targetVel(targetVel), kbT(kbT)
+{}
 
 void ImposeProfilePlugin::setup(Simulation* simulation, const MPI_Comm& comm, const MPI_Comm& interComm)
 {

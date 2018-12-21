@@ -15,18 +15,19 @@ class CellList;
 class AverageRelative3D : public Average3D
 {
 public:
-    AverageRelative3D(
-            std::string name, const YmrState *state,
-            std::vector<std::string> pvNames,
-            std::vector<std::string> channelNames, std::vector<Average3D::ChannelType> channelTypes,
-            int sampleEvery, int dumpEvery, float3 binSize,
-            std::string relativeOVname, int relativeID);
+    AverageRelative3D(const YmrState *state, std::string name,
+                      std::vector<std::string> pvNames,
+                      std::vector<std::string> channelNames,
+                      std::vector<Average3D::ChannelType> channelTypes,
+                      int sampleEvery, int dumpEvery, float3 binSize,
+                      std::string relativeOVname, int relativeID);
 
-    void setup(Simulation* simulation, const MPI_Comm& comm, const MPI_Comm& interComm) override;
-    void afterIntegration(cudaStream_t stream) override;
-    void serializeAndSend(cudaStream_t stream) override;
+  void setup(Simulation *simulation, const MPI_Comm &comm,
+             const MPI_Comm &interComm) override;
+  void afterIntegration(cudaStream_t stream) override;
+  void serializeAndSend(cudaStream_t stream) override;
 
-    bool needPostproc() override { return true; }
+  bool needPostproc() override { return true; }
 
 private:
     ObjectVector* relativeOV{nullptr};

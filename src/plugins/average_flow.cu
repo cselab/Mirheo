@@ -39,11 +39,11 @@ int Average3D::getNcomponents(Average3D::ChannelType type) const
     return components;
 }
 
-Average3D::Average3D(std::string name, const YmrState *state,
-        std::vector<std::string> pvNames,
-        std::vector<std::string> channelNames, std::vector<Average3D::ChannelType> channelTypes,
-        int sampleEvery, int dumpEvery, float3 binSize) :
-    SimulationPlugin(name, state), pvNames(pvNames),
+Average3D::Average3D(const YmrState *state, std::string name,
+                     std::vector<std::string> pvNames,
+                     std::vector<std::string> channelNames, std::vector<Average3D::ChannelType> channelTypes,
+                     int sampleEvery, int dumpEvery, float3 binSize) :
+    SimulationPlugin(state, name), pvNames(pvNames),
     sampleEvery(sampleEvery), dumpEvery(dumpEvery), binSize(binSize),
     nSamples(0)
 {

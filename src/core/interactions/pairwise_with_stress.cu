@@ -81,13 +81,13 @@ void InteractionPair_withStress<PairwiseInteraction>::setPrerequisites(ParticleV
 
 template<class PairwiseInteraction>
 InteractionPair_withStress<PairwiseInteraction>::InteractionPair_withStress(
-    std::string name, const YmrState *state, std::string stressName, float rc, float stressPeriod, PairwiseInteraction pair) :
+    const YmrState *state, std::string name, std::string stressName, float rc, float stressPeriod, PairwiseInteraction pair) :
 
-    Interaction(name, state, rc),
+    Interaction(state, name, rc),
     stressName(stressName),
     stressPeriod(stressPeriod),
-    interaction(name, state, rc, pair),
-    interactionWithStress(name, state, rc, PairwiseStressWrapper<PairwiseInteraction>(stressName, pair))
+    interaction(state, name, rc, pair),
+    interactionWithStress(state, name, rc, PairwiseStressWrapper<PairwiseInteraction>(stressName, pair))
 { }
 
 template<class PairwiseInteraction>

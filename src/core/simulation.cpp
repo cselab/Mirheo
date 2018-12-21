@@ -407,13 +407,13 @@ void Simulation::applyObjectBelongingChecker(std::string checkerName,
 
     if (inside != "none" && getPVbyName(inside) == nullptr)
     {
-        pvInside = std::make_shared<ParticleVector>(inside, state, pvSource->mass);
+        pvInside = std::make_shared<ParticleVector> (state, inside, pvSource->mass);
         registerParticleVector(pvInside, nullptr, checkpointEvery);
     }
 
     if (outside != "none" && getPVbyName(outside) == nullptr)
     {
-        pvOutside = std::make_shared<ParticleVector>(outside, state, pvSource->mass);
+        pvOutside = std::make_shared<ParticleVector> (state, outside, pvSource->mass);
         registerParticleVector(pvOutside, nullptr, checkpointEvery);
     }
 

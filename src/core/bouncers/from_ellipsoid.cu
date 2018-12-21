@@ -21,8 +21,8 @@
  * Create the bouncer
  * @param name unique bouncer name
  */
-BounceFromRigidEllipsoid::BounceFromRigidEllipsoid(std::string name, const YmrState *state) :
-    Bouncer(name, state)
+BounceFromRigidEllipsoid::BounceFromRigidEllipsoid(const YmrState *state, std::string name) :
+    Bouncer(state, name)
 {}
 
 BounceFromRigidEllipsoid::~BounceFromRigidEllipsoid() = default;

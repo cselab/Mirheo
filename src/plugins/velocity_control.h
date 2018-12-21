@@ -13,7 +13,7 @@ class CellList;
 class SimulationVelocityControl : public SimulationPlugin
 {
 public:
-    SimulationVelocityControl(std::string name, const YmrState *state, std::vector<std::string> pvNames,
+    SimulationVelocityControl(const YmrState *state, std::string name, std::vector<std::string> pvNames,
                               float3 low, float3 high,
                               int sampleEvery, int tuneEvery, int dumpEvery,
                               float3 targetVel, float Kp, float Ki, float Kd);

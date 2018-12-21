@@ -10,6 +10,11 @@
 
 #include <core/rigid_kernels/integration.h>
 
+IntegratorVVRigid::IntegratorVVRigid(const YmrState *state, std::string name) :
+    Integrator(state, name)
+{}
+
+IntegratorVVRigid::~IntegratorVVRigid() = default;
 
 /**
  * Can only be applied to RigidObjectVector and requires it to have

@@ -6,11 +6,11 @@
 #include "membrane_juelicher.h"
 #include "membrane/bending_juelicher.h"
 
-InteractionMembraneJuelicher::InteractionMembraneJuelicher(std::string name, const YmrState *state,
+InteractionMembraneJuelicher::InteractionMembraneJuelicher(const YmrState *state, std::string name,
                                                            MembraneParameters parameters,
                                                            JuelicherBendingParameters bendingParameters,
                                                            bool stressFree, float growUntil) :
-    InteractionMembrane(name, state, parameters, stressFree, growUntil),
+    InteractionMembrane(state, name, parameters, stressFree, growUntil),
     bendingParameters(bendingParameters)
 {}
 

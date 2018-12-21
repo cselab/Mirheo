@@ -22,9 +22,9 @@ void Plugin::_setup(const MPI_Comm& comm, const MPI_Comm& interComm)
 
 
 
-SimulationPlugin::SimulationPlugin(std::string name, const YmrState *state) :
+SimulationPlugin::SimulationPlugin(const YmrState *state, std::string name) :
     Plugin(),
-    YmrSimulationObject(name, state),
+    YmrSimulationObject(state, name),
     sizeReq(MPI_REQUEST_NULL),
     dataReq(MPI_REQUEST_NULL)
 {}

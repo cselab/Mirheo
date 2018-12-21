@@ -21,8 +21,8 @@ void exportParticleVectors(py::module& m)
         Basic particle vector, consists of identical disconnected particles.
     )");
     
-    pypv.def(py::init<std::string, const YmrState*, float>(), py::return_value_policy::move,
-             "name"_a, "state"_a, "mass"_a, R"(
+    pypv.def(py::init<const YmrState*, std::string, float>(), py::return_value_policy::move,
+             "state"_a, "name"_a, "mass"_a, R"(
             Args:
                 name: name of the created PV 
                 mass: mass of a single particle
@@ -109,8 +109,8 @@ void exportParticleVectors(py::module& m)
         Membrane is an Object Vector representing cell membranes.
         It must have a triangular mesh associated with it such that each particle is mapped directly onto single mesh vertex.
     )")
-        .def(py::init<std::string, const YmrState*, float, std::shared_ptr<MembraneMesh>>(),
-             "name"_a, "state"_a, "mass"_a, "mesh"_a, R"(
+        .def(py::init<const YmrState*, std::string, float, std::shared_ptr<MembraneMesh>>(),
+             "state"_a, "name"_a, "mass"_a, "mesh"_a, R"(
             Args:
                 name: name of the created PV 
                 mass: mass of a single particle
@@ -122,8 +122,8 @@ void exportParticleVectors(py::module& m)
         It must have a triangular mesh associated with it that defines the shape of the object.
     )");
 
-    pyrov.def(py::init<std::string, const YmrState*, float, PyTypes::float3, int, std::shared_ptr<Mesh>>(),
-              "name"_a, "state"_a, "mass"_a, "inertia"_a, "object_size"_a, "mesh"_a, R"( 
+    pyrov.def(py::init<const YmrState*, std::string, float, PyTypes::float3, int, std::shared_ptr<Mesh>>(),
+              "state"_a, "name"_a, "mass"_a, "inertia"_a, "object_size"_a, "mesh"_a, R"( 
                 Args:
                     name: name of the created PV 
                     mass: mass of a single particle
@@ -136,16 +136,16 @@ void exportParticleVectors(py::module& m)
         Rigid Ellipsoid is the same as the Rigid Object except that it can only represent ellipsoidal shapes.
         The advantage is that it doesn't need mesh and moment of inertia define, as those can be computed analytically.
     )")
-        .def(py::init<std::string, const YmrState*, float, int, PyTypes::float3>(),
-             "name"_a, "state"_a, "mass"_a, "object_size"_a, "semi_axes"_a, R"(
+        .def(py::init<const YmrState*, std::string, float, int, PyTypes::float3>(),
+             "state"_a, "name"_a, "mass"_a, "object_size"_a, "semi_axes"_a, R"(
                 Args:
                     name: name of the created PV 
                     mass: mass of a single particle
                     object_size: number of particles per membrane, must be the same as the number of vertices of the mesh
                     semi_axes: ellipsoid principal semi-axes
         )")
-        .def(py::init<std::string, const YmrState*, float, int, PyTypes::float3, std::shared_ptr<Mesh>>(),
-             "name"_a, "state"_a, "mass"_a, "object_size"_a, "semi_axes"_a, "mesh"_a, R"(
+        .def(py::init<const YmrState*, std::string, float, int, PyTypes::float3, std::shared_ptr<Mesh>>(),
+             "state"_a, "name"_a, "mass"_a, "object_size"_a, "semi_axes"_a, "mesh"_a, R"(
                 Args:
                     name: name of the created PV 
                     mass: mass of a single particle

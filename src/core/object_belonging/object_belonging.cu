@@ -32,6 +32,13 @@ __global__ void copyInOut(
     }
 }
 
+ObjectBelongingChecker_Common::ObjectBelongingChecker_Common(const YmrState *state, std::string name) :
+    ObjectBelongingChecker(state, name)
+{}
+
+ObjectBelongingChecker_Common::~ObjectBelongingChecker_Common() = default;
+
+
 void ObjectBelongingChecker_Common::splitByBelonging(ParticleVector* src, ParticleVector* pvIn, ParticleVector* pvOut, cudaStream_t stream)
 {
     if (dynamic_cast<ObjectVector*>(src) != nullptr)

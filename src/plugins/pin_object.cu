@@ -128,9 +128,11 @@ __global__ void restrictRigidMotion(ROVviewWithOldMotion view, float3 targetVelo
 }
 
 
-PinObjectPlugin::PinObjectPlugin(std::string name, const YmrState *state, std::string ovName, float3 translation, float3 rotation, int reportEvery) :
-    SimulationPlugin(name, state), ovName(ovName),
-    translation(translation), rotation(rotation),
+PinObjectPlugin::PinObjectPlugin(const YmrState *state, std::string name, std::string ovName, float3 translation, float3 rotation, int reportEvery) :
+    SimulationPlugin(state, name),
+    ovName(ovName),
+    translation(translation),
+    rotation(rotation),
     reportEvery(reportEvery)
 {}
 

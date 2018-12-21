@@ -16,9 +16,8 @@ class ObjectVector;
 class Bouncer : public YmrSimulationObject
 {
 public:
-    Bouncer(std::string name, const YmrState *state) :
-        YmrSimulationObject(name, state)
-    {}
+    Bouncer(const YmrState *state, std::string name);
+    virtual ~Bouncer();
 
     /**
      * Second step of initialization, called from the \c Simulation
@@ -31,13 +30,13 @@ public:
      * Default: ask nothing
      * Called from \c Simulation right after setup
      */
-    virtual void setPrerequisites(ParticleVector* pv) {}
+    virtual void setPrerequisites(ParticleVector* pv);
 
     /// Interface to the private exec function for local objects
-    void bounceLocal(ParticleVector* pv, CellList* cl, float dt, cudaStream_t stream) { exec (pv, cl, dt, true,  stream); }
+    void bounceLocal(ParticleVector* pv, CellList* cl, float dt, cudaStream_t stream);
 
     /// Interface to the private exec function for halo objects
-    void bounceHalo (ParticleVector* pv, CellList* cl, float dt, cudaStream_t stream) { exec (pv, cl, dt, false, stream); }
+    void bounceHalo (ParticleVector* pv, CellList* cl, float dt, cudaStream_t stream);
 
 protected:
     ObjectVector* ov;  /// Particles will be bounced against that ObjectVector

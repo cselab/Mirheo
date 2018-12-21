@@ -14,7 +14,7 @@ public:
 
     using UniformMagneticFunc = std::function<float3(float)>;
     
-    MagneticOrientationPlugin(std::string name, const YmrState *state, std::string rovName, float3 moment, UniformMagneticFunc magneticFunction);
+    MagneticOrientationPlugin(const YmrState *state, std::string name, std::string rovName, float3 moment, UniformMagneticFunc magneticFunction);
 
     void setup(Simulation* simulation, const MPI_Comm& comm, const MPI_Comm& interComm) override;
     void beforeForces(cudaStream_t stream) override;

@@ -13,9 +13,8 @@ class ParticleVector;
 class ImposeVelocityPlugin : public SimulationPlugin
 {
 public:
-    ImposeVelocityPlugin(std::string name, const YmrState *state, std::vector<std::string> pvNames, float3 low, float3 high, float3 targetVel, int every) :
-        SimulationPlugin(name, state), pvNames(pvNames), low(low), high(high), targetVel(targetVel), every(every)
-    {}
+    ImposeVelocityPlugin(const YmrState *state, std::string name, std::vector<std::string> pvNames,
+                         float3 low, float3 high, float3 targetVel, int every);
 
     void setup(Simulation* simulation, const MPI_Comm& comm, const MPI_Comm& interComm) override;
     void afterIntegration(cudaStream_t stream) override;

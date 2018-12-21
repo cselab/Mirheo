@@ -22,7 +22,7 @@ private:
     HostBuffer<Particle> downloaded;
 
 public:
-    XYZPlugin(std::string name, const YmrState *state, std::string pvNames, int dumpEvery);
+    XYZPlugin(const YmrState *state, std::string name, std::string pvNames, int dumpEvery);
 
     void setup(Simulation* simulation, const MPI_Comm& comm, const MPI_Comm& interComm) override;
 

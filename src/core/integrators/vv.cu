@@ -13,8 +13,8 @@
 
 
 template<class ForcingTerm>
-IntegratorVV<ForcingTerm>::IntegratorVV(std::string name, const YmrState *state, ForcingTerm forcingTerm) :
-    Integrator(name, state), forcingTerm(forcingTerm)
+IntegratorVV<ForcingTerm>::IntegratorVV(const YmrState *state, std::string name, ForcingTerm forcingTerm) :
+    Integrator(state, name), forcingTerm(forcingTerm)
 {}
 
 template<class ForcingTerm>

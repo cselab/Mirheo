@@ -7,18 +7,18 @@
 #include <core/pvs/particle_vector.h>
 
 
-InteractionDPD::InteractionDPD(std::string name, const YmrState *state, float rc, float a, float gamma, float kbt, float dt, float power, bool allocateImpl) :
-    Interaction(name, state, rc),
+InteractionDPD::InteractionDPD(const YmrState *state, std::string name, float rc, float a, float gamma, float kbt, float dt, float power, bool allocateImpl) :
+    Interaction(state, name, rc),
     a(a), gamma(gamma), kbt(kbt), dt(dt), power(power)
 {
     if (allocateImpl) {
         Pairwise_DPD dpd(rc, a, gamma, kbt, dt, power);
-        impl = std::make_unique<InteractionPair<Pairwise_DPD>> (name, state, rc, dpd);
+        impl = std::make_unique<InteractionPair<Pairwise_DPD>> (state, name, rc, dpd);
     }
 }
 
-InteractionDPD::InteractionDPD(std::string name, const YmrState *state, float rc, float a, float gamma, float kbt, float dt, float power) :
-    InteractionDPD(name, state, rc, a, gamma, kbt, dt, power, true)
+InteractionDPD::InteractionDPD(const YmrState *state, std::string name, float rc, float a, float gamma, float kbt, float dt, float power) :
+    InteractionDPD(state, name, rc, a, gamma, kbt, dt, power, true)
 {}
 
 InteractionDPD::~InteractionDPD() = default;

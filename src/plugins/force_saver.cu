@@ -16,8 +16,8 @@ __global__ void copyForces(PVview view, float3 *savedForces)
     savedForces[pid] = f;
 }
 
-ForceSaverPlugin::ForceSaverPlugin(std::string name, const YmrState *state, std::string pvName) :
-    SimulationPlugin(name, state), pvName(pvName), pv(nullptr)
+ForceSaverPlugin::ForceSaverPlugin(const YmrState *state, std::string name, std::string pvName) :
+    SimulationPlugin(state, name), pvName(pvName), pv(nullptr)
 {}
 
 void ForceSaverPlugin::beforeIntegration(cudaStream_t stream)

@@ -11,9 +11,7 @@ class RigidObjectVector;
 class AddTorquePlugin : public SimulationPlugin
 {
 public:
-    AddTorquePlugin(std::string name, const YmrState *state, std::string rovName, float3 torque) :
-        SimulationPlugin(name, state), rovName(rovName), torque(torque)
-    {}
+    AddTorquePlugin(const YmrState *state, std::string name, std::string rovName, float3 torque);
 
     void setup(Simulation* simulation, const MPI_Comm& comm, const MPI_Comm& interComm) override;
     void beforeForces(cudaStream_t stream) override;

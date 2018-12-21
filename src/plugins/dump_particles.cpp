@@ -6,10 +6,10 @@
 #include "simple_serializer.h"
 
 
-ParticleSenderPlugin::ParticleSenderPlugin(std::string name, const YmrState *state, std::string pvName, int dumpEvery,
+ParticleSenderPlugin::ParticleSenderPlugin(const YmrState *state, std::string name, std::string pvName, int dumpEvery,
                                            std::vector<std::string> channelNames,
                                            std::vector<ChannelType> channelTypes) :
-    SimulationPlugin(name, state), pvName(pvName),
+    SimulationPlugin(state, name), pvName(pvName),
     dumpEvery(dumpEvery), channelNames(channelNames), channelTypes(channelTypes)
 {
     channelData.resize(channelNames.size());

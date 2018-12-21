@@ -33,7 +33,7 @@ protected:
 class SimulationPlugin : public Plugin, public YmrSimulationObject
 {
 public:
-    SimulationPlugin(std::string name, const YmrState *state);
+    SimulationPlugin(const YmrState *state, std::string name);
     virtual ~SimulationPlugin();
 
     virtual void beforeForces               (cudaStream_t stream);

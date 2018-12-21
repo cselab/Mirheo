@@ -29,7 +29,7 @@ public:
 class YmrSimulationObject : public YmrObject
 {
 public:
-    YmrSimulationObject(std::string name, const YmrState *state) :
+    YmrSimulationObject(const YmrState *state, std::string name) :
         YmrObject(name), state(state)
     {}
 

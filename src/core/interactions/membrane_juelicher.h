@@ -11,7 +11,7 @@ class InteractionMembraneJuelicher : public InteractionMembrane
 {
 public:
 
-    InteractionMembraneJuelicher(std::string name, const YmrState *state, MembraneParameters parameters,
+    InteractionMembraneJuelicher(const YmrState *state, std::string name, MembraneParameters parameters,
                                  JuelicherBendingParameters bendingParameters, bool stressFree, float growUntil);
     ~InteractionMembraneJuelicher();
     

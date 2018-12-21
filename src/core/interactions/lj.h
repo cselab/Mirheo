@@ -5,7 +5,7 @@
 
 struct InteractionLJ : public Interaction
 {        
-    InteractionLJ(std::string name, const YmrState *state, float rc, float epsilon, float sigma, float maxForce, bool objectAware);
+    InteractionLJ(const YmrState *state, std::string name, float rc, float epsilon, float sigma, float maxForce, bool objectAware);
 
     ~InteractionLJ();
 
@@ -17,7 +17,7 @@ struct InteractionLJ : public Interaction
                                  float epsilon, float sigma, float maxForce);
 
 protected:
-    InteractionLJ(std::string name, const YmrState *state, float rc, float epsilon, float sigma, float maxForce, bool objectAware, bool allocate);
+    InteractionLJ(const YmrState *state, std::string name, float rc, float epsilon, float sigma, float maxForce, bool objectAware, bool allocate);
     
     std::unique_ptr<Interaction> impl;
     bool objectAware;

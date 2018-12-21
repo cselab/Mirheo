@@ -16,7 +16,7 @@ void exportIntegrators(py::module& m)
         Rotate particles around the specified point in space with a constant angular velocity :math:`\mathbf{\Omega}`
     )")
         .def(py::init(&IntegratorFactory::createConstOmega),
-             "name"_a, "state"_a, "center"_a, "omega"_a, R"(
+             "state"_a, "name"_a, "center"_a, "omega"_a, R"(
                 Args:
                     name: name of the integrator
                     center: point around which to rotate
@@ -28,7 +28,7 @@ void exportIntegrators(py::module& m)
         :math:`\mathbf{u}(t) = \cos(2 \pi \, t / T) \mathbf{u}_0`
     )")
         .def(py::init(&IntegratorFactory::createOscillating),
-             "name"_a, "state"_a, "velocity"_a, "period"_a, R"(
+             "state"_a, "name"_a, "velocity"_a, "period"_a, R"(
                 Args:
                     name: name of the integrator
                     velocity: :math:`\mathbf{u}_0`
@@ -40,7 +40,7 @@ void exportIntegrators(py::module& m)
         Can only applied to :any:`RigidObjectVector` or :any:`RigidEllipsoidVector`.
     )")
         .def(py::init(&IntegratorFactory::createRigidVV),
-             "name"_a, "state"_a, R"(
+             "state"_a, "name"_a, R"(
                 Args:
                     name: name of the integrator
             )");
@@ -49,7 +49,7 @@ void exportIntegrators(py::module& m)
         Translate particles with a constant velocity :math:`\mathbf{u}` regardless forces acting on them.
     )")
         .def(py::init(&IntegratorFactory::createTranslate),
-             "name"_a, "state"_a, "velocity"_a, R"(
+             "state"_a, "name"_a, "velocity"_a, R"(
                 Args:
                     name: name of the integrator
                     velocity: translational velocity :math:`\mathbf{\Omega}`
@@ -69,7 +69,7 @@ void exportIntegrators(py::module& m)
             where bold symbol means a vector, :math:`m` is a particle mass, and superscripts denote the time: :math:`\mathbf{x}^{k} = \mathbf{x}(k \, \Delta t)`
         )")
         .def(py::init(&IntegratorFactory::createVV),
-             "name"_a, "state"_a, R"(
+             "state"_a, "name"_a, R"(
                 Args:
                     name: name of the integrator
             )");
@@ -83,7 +83,7 @@ void exportIntegrators(py::module& m)
                 \mathbf{a}^{n} &= \frac{1}{m} \left( \mathbf{F}(\mathbf{x}^{n}, \mathbf{v}^{n-1/2}) + \mathbf{F}_{extra} \right) \\
         )")
         .def(py::init(&IntegratorFactory::createVV_constDP),
-             "name"_a, "state"_a, "force"_a, R"(
+             "state"_a, "name"_a, "force"_a, R"(
 
                 Args:
                     name: name of the integrator
@@ -98,7 +98,7 @@ void exportIntegrators(py::module& m)
             with force :math:`-F_{Poiseuille}`    
         )")
         .def(py::init(&IntegratorFactory::createVV_PeriodicPoiseuille),
-             "name"_a, "state"_a, "force"_a, "direction"_a, R"(                
+             "state"_a, "name"_a, "force"_a, "direction"_a, R"(                
                 Args:
                     name: name of the integrator
                     force: force magnitude, :math:`F_{Poiseuille}`
@@ -116,7 +116,7 @@ void exportIntegrators(py::module& m)
             Positions and velocity are updated using an internal velocity verlet integrator.
         )")
         .def(py::init(&IntegratorFactory::createSubStepMembrane),
-             "name"_a, "state"_a, "substeps"_a, "fastForces"_a, R"(
+             "state"_a, "name"_a, "substeps"_a, "fastForces"_a, R"(
                 Args:
                     name: name of the integrator
                     substeps: number of sub steps

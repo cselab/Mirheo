@@ -7,8 +7,8 @@
 #include <core/pvs/views/pv.h>
 
 
-IntegratorConstOmega::IntegratorConstOmega(std::string name, const YmrState *state, float3 center, float3 omega) :
-    Integrator(name, state),
+IntegratorConstOmega::IntegratorConstOmega(const YmrState *state, std::string name, float3 center, float3 omega) :
+    Integrator(state, name),
     center(center), omega(omega)
 {}
 

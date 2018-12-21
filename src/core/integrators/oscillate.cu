@@ -11,13 +11,15 @@
  * @param vel Velocity magnitude
  * @param period Sine wave period
  */
-IntegratorOscillate::IntegratorOscillate(std::string name, const YmrState *state, float3 vel, float period) :
-    Integrator(name, state),
+IntegratorOscillate::IntegratorOscillate(const YmrState *state, std::string name, float3 vel, float period) :
+    Integrator(state, name),
     vel(vel), period(period)
 {
     if (period <= 0)
         die("Oscillating period should be strictly positive");
 }
+
+IntegratorOscillate::~IntegratorOscillate() = default;
 
 /**
  * Oscillate with cos wave in time, regardless force

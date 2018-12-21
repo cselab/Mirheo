@@ -9,7 +9,7 @@ class BounceFromRigidEllipsoid : public Bouncer
 {
 public:
 
-    BounceFromRigidEllipsoid(std::string name, const YmrState *state);
+    BounceFromRigidEllipsoid(const YmrState *state, std::string name);
     ~BounceFromRigidEllipsoid();
 
     void setup(ObjectVector* ov) override;

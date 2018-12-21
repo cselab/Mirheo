@@ -11,9 +11,9 @@ class IntegratorOscillate : public Integrator
 {
 public:
 
-    IntegratorOscillate(std::string name, const YmrState *state, float3 vel, float period);
+    IntegratorOscillate(const YmrState *state, std::string name, float3 vel, float period);
 
-    ~IntegratorOscillate() = default;
+    ~IntegratorOscillate();
 
     void stage1(ParticleVector* pv, float t, cudaStream_t stream) override {};
     void stage2(ParticleVector* pv, float t, cudaStream_t stream) override;

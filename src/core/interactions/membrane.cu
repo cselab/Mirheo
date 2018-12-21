@@ -52,9 +52,9 @@ static GPU_RBCparameters setParams(MembraneParameters& p, Mesh *m, float t)
 }
 
 
-InteractionMembrane::InteractionMembrane(std::string name, const YmrState *state, MembraneParameters parameters,
+InteractionMembrane::InteractionMembrane(const YmrState *state, std::string name, MembraneParameters parameters,
                                          bool stressFree, float growUntil) :
-    Interaction(name, state, 1.0f), parameters(parameters), stressFree(stressFree),
+    Interaction(state, name, 1.0f), parameters(parameters), stressFree(stressFree),
     scaleFromTime( [growUntil] (float t) { return min(1.0f, 0.5f + 0.5f * (t / growUntil)); } )
 {}
 

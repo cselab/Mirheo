@@ -24,7 +24,7 @@ private:
     mTimer timer;
 
 public:
-    SimulationStats(std::string name, const YmrState *state, int fetchEvery);
+    SimulationStats(const YmrState *state, std::string name, int fetchEvery);
 
     void afterIntegration(cudaStream_t stream) override;
     void serializeAndSend(cudaStream_t stream) override;

@@ -15,6 +15,10 @@ __global__ void addForce(PVview view, float3 force)
     view.forces[gid] += make_float4(force, 0.0f);
 }
 
+AddForcePlugin::AddForcePlugin(const YmrState *state, std::string name, std::string pvName, float3 force) :
+    SimulationPlugin(state, name), pvName(pvName), force(force)
+{}
+
 void AddForcePlugin::setup(Simulation* simulation, const MPI_Comm& comm, const MPI_Comm& interComm)
 {
     SimulationPlugin::setup(simulation, comm, interComm);
