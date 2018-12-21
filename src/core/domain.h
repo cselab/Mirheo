@@ -1,7 +1,9 @@
 #pragma once
 
+#include <mpi.h>
 #include <cuda_runtime.h>
 #include <vector_types.h>
+
 #include <core/utils/helper_math.h>
 #include <core/utils/cpu_gpu_defines.h>
 
@@ -26,3 +28,5 @@ struct DomainInfo
             && (globalStart.z <= xg.z) && (xg.z < (globalStart.z + localSize.z));
     }    
 };
+
+DomainInfo createDomainInfo(MPI_Comm cartComm, float3 globalSize);
