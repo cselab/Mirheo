@@ -77,7 +77,7 @@ void ObjectVector::_getRestartExchangeMap(MPI_Comm comm, const std::vector<Parti
 
         com /= objSize;
 
-        int3 procId3 = make_int3(floorf(com / domain.localSize));
+        int3 procId3 = make_int3(floorf(com / state->domain.localSize));
 
         if (procId3.x >= dims[0] || procId3.y >= dims[1] || procId3.z >= dims[2]) {
             map[i] = -1;
@@ -105,7 +105,7 @@ std::vector<int> ObjectVector::_restartParticleData(MPI_Comm comm, std::string p
     
     _getRestartExchangeMap(comm, parts, map);
     restart_helpers::exchangeData(comm, map, parts, objSize);    
-    restart_helpers::copyShiftCoordinates(domain, parts, local());
+    restart_helpers::copyShiftCoordinates(state->domain, parts, local());
 
     local()->coosvels.uploadToDevice(0);
     
@@ -155,7 +155,7 @@ void ObjectVector::_checkpointObjectData(MPI_Comm comm, std::string path)
     
     auto positions = std::make_shared<std::vector<float>>();
 
-    splitCom(domain, *coms_extents, *positions);
+    splitCom(state->domain, *coms_extents, *positions);
 
     XDMF::VertexGrid grid(positions, comm);
 

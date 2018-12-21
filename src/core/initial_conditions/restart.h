@@ -14,7 +14,7 @@ class RestartIC : public InitialConditions
 public:
     RestartIC(std::string path);
 
-    void exec(const MPI_Comm& comm, ParticleVector* pv, DomainInfo domain, cudaStream_t stream) override;
+    void exec(const MPI_Comm& comm, ParticleVector* pv, cudaStream_t stream) override;
 
     ~RestartIC();
     

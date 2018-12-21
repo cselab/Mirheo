@@ -32,9 +32,9 @@ UniformIC::~UniformIC() = default;
  *    Currently ids are only 32-bit wide
  * \endrst
  */
-void UniformIC::exec(const MPI_Comm& comm, ParticleVector* pv, DomainInfo domain, cudaStream_t stream)
+void UniformIC::exec(const MPI_Comm& comm, ParticleVector* pv, cudaStream_t stream)
 {
-    pv->domain = domain;
+    auto domain = pv->state->domain;
 
     int3 ncells = make_int3( ceilf(domain.localSize) );
     float3 h = domain.localSize / make_float3(ncells);

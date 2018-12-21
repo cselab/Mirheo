@@ -65,10 +65,9 @@ void Average3D::setup(Simulation* simulation, const MPI_Comm& comm, const MPI_Co
 {
     SimulationPlugin::setup(simulation, comm, interComm);
 
-    domain = simulation->domain;
     // TODO: this should be reworked if the domains are allowed to have different size
-    resolution = make_int3( floorf(domain.localSize / binSize) );
-    binSize = domain.localSize / make_float3(resolution);
+    resolution = make_int3( floorf(state->domain.localSize / binSize) );
+    binSize = state->domain.localSize / make_float3(resolution);
 
     const int total = resolution.x * resolution.y * resolution.z;
 
@@ -107,7 +106,7 @@ void Average3D::setup(Simulation* simulation, const MPI_Comm& comm, const MPI_Co
 
 void Average3D::sampleOnePv(ParticleVector *pv, cudaStream_t stream)
 {
-    CellListInfo cinfo(binSize, pv->domain.localSize);
+    CellListInfo cinfo(binSize, state->domain.localSize);
     PVview pvView(pv, pv->local());
     ChannelsInfo gpuInfo(channelsInfo, pv, stream);
 

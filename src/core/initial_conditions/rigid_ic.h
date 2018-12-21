@@ -16,7 +16,7 @@ public:
     RigidIC(PyTypes::VectorOfFloat7 com_q, const PyTypes::VectorOfFloat3& coords);
     RigidIC(PyTypes::VectorOfFloat7 com_q, const PyTypes::VectorOfFloat3& coords, const PyTypes::VectorOfFloat3& comVelocities);
 
-    void exec(const MPI_Comm& comm, ParticleVector* pv, DomainInfo domain, cudaStream_t stream) override;
+    void exec(const MPI_Comm& comm, ParticleVector* pv, cudaStream_t stream) override;
 
     ~RigidIC();
 };

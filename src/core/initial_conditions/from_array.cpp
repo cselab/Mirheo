@@ -11,11 +11,10 @@ FromArrayIC::FromArrayIC(const PyTypes::VectorOfFloat3 &pos, const PyTypes::Vect
         die("pos and vel arrays must have the same size");
 }
 
-void FromArrayIC::exec(const MPI_Comm& comm, ParticleVector *pv, DomainInfo domain, cudaStream_t stream)
+void FromArrayIC::exec(const MPI_Comm& comm, ParticleVector *pv, cudaStream_t stream)
 {
-    pv->domain = domain;
-
     std::vector<Particle> localParticles;
+    auto domain = pv->state->domain;
 
     int localCount = 0;
     for (int i = 0; i < pos.size(); ++i) {

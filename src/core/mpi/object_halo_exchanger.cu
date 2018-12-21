@@ -159,7 +159,7 @@ void ObjectHaloExchanger::prepareSizes(int id, cudaStream_t stream)
         SAFE_KERNEL_LAUNCH(
                 getObjectHalos<PackMode::Querry>,
                 ovView.nObjects, nthreads, 0, stream,
-                ov->domain, ovView, packer, rc, helper->wrapSendData() );
+                ov->state->domain, ovView, packer, rc, helper->wrapSendData() );
 
         helper->computeSendOffsets_Dev2Dev(stream);
     }
@@ -191,7 +191,7 @@ void ObjectHaloExchanger::prepareData(int id, cudaStream_t stream)
         SAFE_KERNEL_LAUNCH(
                 getObjectHalos<PackMode::Pack>,
                 ovView.nObjects, nthreads, 0, stream,
-                ov->domain, ovView, packer, rc, helper->wrapSendData(), origin->devPtr() );
+                ov->state->domain, ovView, packer, rc, helper->wrapSendData(), origin->devPtr() );
     }
 }
 

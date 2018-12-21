@@ -54,8 +54,6 @@ protected:
     HostChannelsInfo channelsInfo;
     std::vector<PinnedBuffer<double>> accumulated_average;
     
-    DomainInfo domain;
-
     int getNcomponents(ChannelType type) const;
     void accumulateSampledAndClear(cudaStream_t stream);
     void scaleSampled(cudaStream_t stream);

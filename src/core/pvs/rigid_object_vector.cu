@@ -132,7 +132,7 @@ void RigidObjectVector::_checkpointObjectData(MPI_Comm comm, std::string path)
     std::vector<RigidReal4> quaternion;
     std::vector<RigidReal3> vel, omega, force, torque;
     
-    splitMotions(domain, *motions, *positions, quaternion, vel, omega, force, torque);
+    splitMotions(state->domain, *motions, *positions, quaternion, vel, omega, force, torque);
 
     XDMF::VertexGrid grid(positions, comm);    
 
@@ -179,7 +179,7 @@ void RigidObjectVector::_restartObjectData(MPI_Comm comm, std::string path, cons
     restart_helpers::exchangeData(comm, map, ids, 1);
     restart_helpers::exchangeData(comm, map, motions, 1);
 
-    shiftCoordinates(domain, motions);
+    shiftCoordinates(state->domain, motions);
     
     loc_ids->resize_anew(ids.size());
     loc_motions->resize_anew(motions.size());

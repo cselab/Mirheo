@@ -39,7 +39,6 @@ public:
     MPI_Comm cartComm;
     MPI_Comm interComm;
 
-    DomainInfo domain;
     YmrState *state;
 
     Simulation(const MPI_Comm &cartComm, const MPI_Comm &interComm, YmrState *state,

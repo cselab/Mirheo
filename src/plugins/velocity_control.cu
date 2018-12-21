@@ -81,7 +81,7 @@ void SimulationVelocityControl::beforeForces(cudaStream_t stream)
         SAFE_KERNEL_LAUNCH
             (velocity_control_kernels::addForce,
              getNblocks(view.size, nthreads), nthreads, 0, stream,
-             view, pv->domain, low, high, force );
+             view, state->domain, low, high, force );
     }
 }
 
@@ -92,7 +92,7 @@ void SimulationVelocityControl::sampleOnePv(ParticleVector *pv, cudaStream_t str
     SAFE_KERNEL_LAUNCH
         (velocity_control_kernels::sumVelocity,
          getNblocks(pvView.size, nthreads), nthreads, 0, stream,
-         pvView, pv->domain, low, high, totVel.devPtr(), nSamples.devPtr());
+         pvView, state->domain, low, high, totVel.devPtr(), nSamples.devPtr());
 }
 
 void SimulationVelocityControl::afterIntegration(cudaStream_t stream)

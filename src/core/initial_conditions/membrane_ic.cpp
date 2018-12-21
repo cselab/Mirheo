@@ -33,13 +33,13 @@ MembraneIC::~MembraneIC() = default;
  * Set unique id to all the particles and also write unique cell ids into
  * 'ids' per-object channel
  */
-void MembraneIC::exec(const MPI_Comm& comm, ParticleVector* pv, DomainInfo domain, cudaStream_t stream)
+void MembraneIC::exec(const MPI_Comm& comm, ParticleVector* pv, cudaStream_t stream)
 {
     auto ov = dynamic_cast<MembraneVector*>(pv);
+    auto domain = pv->state->domain;
+    
     if (ov == nullptr)
         die("RBCs can only be generated out of rbc object vectors");
-
-    pv->domain = domain;
 
     // Local number of objects
     int nObjs=0;

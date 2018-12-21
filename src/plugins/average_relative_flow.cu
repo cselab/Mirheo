@@ -61,8 +61,6 @@ void AverageRelative3D::setup(Simulation* simulation, const MPI_Comm& comm, cons
     accumulated_density.resize_anew(global_size);
     density.clear(0);
 
-    domain = simulation->domain;
-
     localChannels.resize(channelsInfo.n);
 
     for (int i = 0; i < channelsInfo.n; i++) {
@@ -96,7 +94,7 @@ void AverageRelative3D::setup(Simulation* simulation, const MPI_Comm& comm, cons
 
 void AverageRelative3D::sampleOnePv(float3 relativeParam, ParticleVector *pv, cudaStream_t stream)
 {
-    CellListInfo cinfo(binSize, domain.globalSize);
+    CellListInfo cinfo(binSize, state->domain.globalSize);
     PVview pvView(pv, pv->local());
     ChannelsInfo gpuInfo(channelsInfo, pv, stream);
 
@@ -135,7 +133,7 @@ void AverageRelative3D::afterIntegration(cudaStream_t stream)
             float3 params[2] = { make_float3( (*motions)[i].r   ),
                                  make_float3( (*motions)[i].vel ) };
 
-            params[0] = domain.local2global(params[0]);
+            params[0] = state->domain.local2global(params[0]);
 
             for (int r = 0; r < nranks; r++)
                 MPI_Send(&params, NCOMPONENTS, MPI_FLOAT, r, TAG, comm);
@@ -146,7 +144,7 @@ void AverageRelative3D::afterIntegration(cudaStream_t stream)
 
     MPI_Check( MPI_Wait(&req, MPI_STATUS_IGNORE) );
 
-    relativeParams[0] = domain.global2local(relativeParams[0]);
+    relativeParams[0] = state->domain.global2local(relativeParams[0]);
 
     for (auto& pv : pvs) sampleOnePv(relativeParams[0], pv, stream);
 

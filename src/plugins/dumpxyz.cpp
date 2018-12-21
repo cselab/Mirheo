@@ -35,7 +35,7 @@ void XYZPlugin::serializeAndSend(cudaStream_t stream)
     debug2("Plugin %s is sending now data", name.c_str());
 
     for (auto& p : downloaded)
-        p.r = simulation->domain.local2global(p.r);
+        p.r = state->domain.local2global(p.r);
 
     waitPrevSend();
     SimpleSerializer::serialize(data, pv->name, downloaded);

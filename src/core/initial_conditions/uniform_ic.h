@@ -13,7 +13,7 @@ private:
 public:
     UniformIC(float density);
 
-    void exec(const MPI_Comm& comm, ParticleVector* pv, DomainInfo domain, cudaStream_t stream) override;
+    void exec(const MPI_Comm& comm, ParticleVector* pv, cudaStream_t stream) override;
 
     ~UniformIC();
 };

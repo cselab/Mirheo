@@ -19,7 +19,7 @@ void IntegratorConstOmega::stage1(ParticleVector* pv, float t, cudaStream_t stre
 
 void IntegratorConstOmega::stage2(ParticleVector* pv, float t, cudaStream_t stream)
 {
-    const auto domain = pv->domain;
+    const auto domain = state->domain;
     const auto _center = center;
     const auto _omega = omega;
 

@@ -126,7 +126,7 @@ void ObjectRedistributor::prepareSizes(int id, cudaStream_t stream)
         SAFE_KERNEL_LAUNCH(
                 getExitingObjects<PackMode::Querry>,
                 ovView.nObjects, nthreads, 0, stream,
-                ov->domain, ovView, packer, helper->wrapSendData() );
+                ov->state->domain, ovView, packer, helper->wrapSendData() );
 
         helper->computeSendOffsets_Dev2Dev(stream);
     }
@@ -172,7 +172,7 @@ void ObjectRedistributor::prepareData(int id, cudaStream_t stream)
     SAFE_KERNEL_LAUNCH(
             getExitingObjects<PackMode::Pack>,
             lov->nObjects, nthreads, 0, stream,
-            ov->domain, ovView, packer, helper->wrapSendData() );
+            ov->state->domain, ovView, packer, helper->wrapSendData() );
 
 
     // Unpack the central buffer into the object vector itself

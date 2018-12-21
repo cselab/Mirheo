@@ -48,7 +48,7 @@ void ObjPositionsPlugin::serializeAndSend(cudaStream_t stream)
     debug2("Plugin %s is sending now data", name.c_str());
 
     waitPrevSend();
-    SimpleSerializer::serialize(sendBuffer, savedTime, ov->domain, ids, coms, motions);
+    SimpleSerializer::serialize(sendBuffer, savedTime, state->domain, ids, coms, motions);
     send(sendBuffer);
     
     needToSend=false;

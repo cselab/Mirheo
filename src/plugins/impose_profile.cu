@@ -81,8 +81,8 @@ void ImposeProfilePlugin::setup(Simulation* simulation, const MPI_Comm& comm, co
           name.c_str(), targetVel.x, targetVel.y, targetVel.z, kbT,
           low.x, low.y, low.z, high.x, high.y, high.z, pv->name.c_str());
 
-    low  = pv->domain.global2local(low);
-    high = pv->domain.global2local(high);
+    low  = state->domain.global2local(low);
+    high = state->domain.global2local(high);
 
     const int nthreads = 128;
 

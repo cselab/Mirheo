@@ -4,9 +4,8 @@
 RestartIC::RestartIC(std::string path) : path(path)
 {   }
 
-void RestartIC::exec(const MPI_Comm& comm, ParticleVector* pv, DomainInfo domain, cudaStream_t stream)
+void RestartIC::exec(const MPI_Comm& comm, ParticleVector* pv, cudaStream_t stream)
 {
-    pv->domain = domain;
     pv->restart(comm, path);
 }
 

@@ -66,7 +66,7 @@ void ParticleSenderPlugin::serializeAndSend(cudaStream_t stream)
     debug2("Plugin %s is sending now data", name.c_str());
     
     for (auto& p : particles)
-        p.r = simulation->domain.local2global(p.r);
+        p.r = state->domain.local2global(p.r);
 
     debug2("Plugin %s is packing now data consisting of %d particles", name.c_str(), particles.size());
     waitPrevSend();

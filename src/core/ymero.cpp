@@ -243,7 +243,7 @@ void YMeRo::dumpWalls2XDMF(std::vector<std::shared_ptr<Wall>> walls, PyTypes::fl
     auto path = parentPath(filename);
     if (path != filename)
         createFoldersCollective(sim->cartComm, path);
-    ::dumpWalls2XDMF(sdfWalls, make_float3(h), sim->domain, filename, sim->cartComm);
+    ::dumpWalls2XDMF(sdfWalls, make_float3(h), state->domain, filename, sim->cartComm);
 }
 
 double YMeRo::computeVolumeInsideWalls(std::vector<std::shared_ptr<Wall>> walls, long nSamplesPerRank)
@@ -265,7 +265,7 @@ double YMeRo::computeVolumeInsideWalls(std::vector<std::shared_ptr<Wall>> walls,
         sim->getWallByNameOrDie(wall->name);
     }
 
-    return volumeInsideWalls(sdfWalls, sim->domain, sim->cartComm, nSamplesPerRank);
+    return volumeInsideWalls(sdfWalls, state->domain, sim->cartComm, nSamplesPerRank);
 }
 
 std::shared_ptr<ParticleVector> YMeRo::makeFrozenWallParticles(std::string pvName,

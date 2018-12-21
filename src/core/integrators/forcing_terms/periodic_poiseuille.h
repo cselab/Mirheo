@@ -35,7 +35,7 @@ public:
 
     void setup(ParticleVector* pv, float t)
     {
-        domain = pv->domain;
+        domain = pv->state->domain;
     }
 
     /**

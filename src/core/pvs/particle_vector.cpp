@@ -68,7 +68,7 @@ PyTypes::VectorOfFloat3 ParticleVector::getCoordinates_vector()
     PyTypes::VectorOfFloat3 res(coosvels.size());
     for (int i = 0; i < coosvels.size(); i++)
     {
-        float3 r = domain.local2global(coosvels[i].r);
+        float3 r = state->domain.local2global(coosvels[i].r);
         res[i] = { r.x, r.y, r.z };
     }
     
@@ -155,7 +155,7 @@ void ParticleVector::setCoordinates_vector(PyTypes::VectorOfFloat3& coordinates)
     for (int i = 0; i < coordinates.size(); i++)
     {
         auto& r = coordinates[i];
-        coosvels[i].r = domain.global2local( float3{ r[0], r[1], r[2] } );
+        coosvels[i].r = state->domain.global2local( float3{ r[0], r[1], r[2] } );
     }
     
     coosvels.uploadToDevice(0);
@@ -284,7 +284,7 @@ void ParticleVector::_checkpointParticleData(MPI_Comm comm, std::string path)
     auto positions = std::make_shared<std::vector<float>>();
     std::vector<float> velocities;
     std::vector<int> ids;
-    splitPV(domain, local(), *positions, velocities, ids);
+    splitPV(state->domain, local(), *positions, velocities, ids);
 
     XDMF::VertexGrid grid(positions, comm);
 
@@ -312,7 +312,7 @@ void ParticleVector::_getRestartExchangeMap(MPI_Comm comm, const std::vector<Par
     
     for (int i = 0; i < parts.size(); ++i) {
         const auto& p = parts[i];
-        int3 procId3 = make_int3(floorf(p.r / domain.localSize));
+        int3 procId3 = make_int3(floorf(p.r / state->domain.localSize));
 
         if (procId3.x >= dims[0] || procId3.y >= dims[1] || procId3.z >= dims[2]) {
             map[i] = -1;
@@ -339,7 +339,7 @@ std::vector<int> ParticleVector::_restartParticleData(MPI_Comm comm, std::string
     
     _getRestartExchangeMap(comm, parts, map);
     restart_helpers::exchangeData(comm, map, parts, 1);    
-    restart_helpers::copyShiftCoordinates(domain, parts, local());
+    restart_helpers::copyShiftCoordinates(state->domain, parts, local());
 
     local()->coosvels.uploadToDevice(0);
     CUDA_Check( cudaDeviceSynchronize() );

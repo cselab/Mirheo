@@ -167,14 +167,12 @@ void Simulation::registerParticleVector(std::shared_ptr<ParticleVector> pv, std:
     if (pvIdMap.find(name) != pvIdMap.end())
         die("More than one particle vector is called %s", name.c_str());
 
-    pv->domain = domain;
-
     if (restartStatus != RestartStatus::Anew)
         pv->restart(cartComm, restartFolder);
     else
     {
         if (ic != nullptr)
-            ic->exec(cartComm, pv.get(), domain, 0);
+            ic->exec(cartComm, pv.get(), 0);
     }
 
     auto task_checkpoint = scheduler->getTaskId("Checkpoint");
@@ -212,7 +210,7 @@ void Simulation::registerWall(std::shared_ptr<Wall> wall, int every)
 
     // Let the wall know the particle vector associated with it
     float t = 0;
-    wall->setup(cartComm, t, domain);
+    wall->setup(cartComm, t, state->domain);
     if (restartStatus != RestartStatus::Anew)
         wall->restart(cartComm, restartFolder);
 
@@ -455,8 +453,8 @@ void Simulation::prepareCellLists()
         for (auto rc : cutoffs.second)
         {
             cellListMap[cutoffs.first].push_back(primary ?
-                    std::make_unique<PrimaryCellList>(cutoffs.first, rc, domain.localSize) :
-                    std::make_unique<CellList>       (cutoffs.first, rc, domain.localSize));
+                    std::make_unique<PrimaryCellList>(cutoffs.first, rc, state->domain.localSize) :
+                    std::make_unique<CellList>       (cutoffs.first, rc, state->domain.localSize));
             primary = false;
         }
     }
@@ -475,8 +473,8 @@ void Simulation::prepareCellLists()
 
             cellListMap[pvptr].push_back
                 (primary ?
-                 std::make_unique<PrimaryCellList>(pvptr, defaultRc, domain.localSize) :
-                 std::make_unique<CellList>       (pvptr, defaultRc, domain.localSize));
+                 std::make_unique<PrimaryCellList>(pvptr, defaultRc, state->domain.localSize) :
+                 std::make_unique<CellList>       (pvptr, defaultRc, state->domain.localSize));
             
         }
     }

@@ -1,7 +1,6 @@
 #pragma once
 
 #include <mpi.h>
-#include <core/domain.h>
 #include <cuda_runtime.h>
 
 class ParticleVector;
@@ -16,7 +15,7 @@ class ParticleVector;
 class InitialConditions
 {
 public:
-    virtual void exec(const MPI_Comm& comm, ParticleVector* pv, DomainInfo domain, cudaStream_t stream) = 0;
+    virtual void exec(const MPI_Comm& comm, ParticleVector* pv, cudaStream_t stream) = 0;
 
     virtual ~InitialConditions() = default;
 };

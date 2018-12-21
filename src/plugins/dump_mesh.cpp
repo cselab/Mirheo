@@ -42,7 +42,7 @@ void MeshPlugin::serializeAndSend(cudaStream_t stream)
     vertices.reserve(srcVerts->size());
 
     for (auto& p : *srcVerts)
-        vertices.push_back(ov->domain.local2global(p.r));
+        vertices.push_back(state->domain.local2global(p.r));
 
     auto& mesh = ov->mesh;
 

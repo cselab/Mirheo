@@ -50,8 +50,6 @@ protected:
     
 public:
     
-    DomainInfo domain;
-
     float mass;
 
     bool haloValid = false;
