@@ -103,6 +103,8 @@ void exportYmero(py::module& m)
         )")
         .def("setBouncer",     &YMeRo::setBouncer,     "Set Bouncer")
         .def("setWall",        &YMeRo::setWallBounce,  "Set Wall")
+
+        .def("getState",       (YmrState* (YMeRo::*)()) &YMeRo::getState, "Return ymero state")
         
         .def("dumpWalls2XDMF",    &YMeRo::dumpWalls2XDMF,
             "walls"_a, "h"_a, "filename"_a="xdmf/wall", R"(
