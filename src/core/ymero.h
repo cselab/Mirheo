@@ -67,6 +67,7 @@ public:
 
     YmrState* getState();
     const YmrState* getState() const;
+    std::shared_ptr<YmrState> getYmrState();
 
     void dumpWalls2XDMF(std::vector<std::shared_ptr<Wall>> walls, PyTypes::float3 h, std::string filename);
     double computeVolumeInsideWalls(std::vector<std::shared_ptr<Wall>> walls, long nSamplesPerRank = 100000);
@@ -94,7 +95,7 @@ public:
 private:
     std::unique_ptr<Simulation> sim;
     std::unique_ptr<Postprocess> post;
-    std::unique_ptr<YmrState> state;
+    std::shared_ptr<YmrState> state;
     
     int rank;
     int computeTask;

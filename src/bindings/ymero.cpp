@@ -18,6 +18,10 @@ using namespace pybind11::literals;
 
 void exportYmero(py::module& m)
 {
+    py::class_<YmrState>(m, "YmrState", R"(
+        state of the simulation shared by all simulation objects.
+    )");
+    
     py::class_<YMeRo>(m, "ymero", R"(
         Main coordination class, should only be one instance at a time
     )")
@@ -104,7 +108,7 @@ void exportYmero(py::module& m)
         .def("setBouncer",     &YMeRo::setBouncer,     "Set Bouncer")
         .def("setWall",        &YMeRo::setWallBounce,  "Set Wall")
 
-        .def("getState",       (YmrState* (YMeRo::*)()) &YMeRo::getState, "Return ymero state")
+        .def("getState",       &YMeRo::getYmrState,    "Return ymero state")
         
         .def("dumpWalls2XDMF",    &YMeRo::dumpWalls2XDMF,
             "walls"_a, "h"_a, "filename"_a="xdmf/wall", R"(

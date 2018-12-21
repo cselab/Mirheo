@@ -56,7 +56,7 @@ void YMeRo::init(int3 nranks3D, float3 globalDomainSize, float dt, std::string l
         warn("No postprocess will be started now, use this mode for debugging. All the joint plugins will be turned off too.");
 
         createCartComm(comm, nranks3D, &cartComm);
-        state = std::make_unique<YmrState> (createDomainInfo(cartComm, globalDomainSize), dt);
+        state = std::make_shared<YmrState> (createDomainInfo(cartComm, globalDomainSize), dt);
         sim = std::make_unique<Simulation> (cartComm, MPI_COMM_NULL, getState(),
                                             checkpointEvery, checkpointFolder, gpuAwareMPI);
         computeTask = 0;
@@ -76,7 +76,7 @@ void YMeRo::init(int3 nranks3D, float3 globalDomainSize, float dt, std::string l
         MPI_Check( MPI_Comm_rank(compComm, &rank) );
 
         createCartComm(compComm, nranks3D, &cartComm);
-        state = std::make_unique<YmrState> (createDomainInfo(cartComm, globalDomainSize), dt);
+        state = std::make_shared<YmrState> (createDomainInfo(cartComm, globalDomainSize), dt);
         sim = std::make_unique<Simulation> (compComm, interComm, getState(),
                                             checkpointEvery, checkpointFolder, gpuAwareMPI);
     }
@@ -219,6 +219,11 @@ YmrState* YMeRo::getState()
 const YmrState* YMeRo::getState() const
 {
     return state.get();
+}
+
+std::shared_ptr<YmrState> YMeRo::getYmrState()
+{
+    return state;
 }
 
 void YMeRo::dumpWalls2XDMF(std::vector<std::shared_ptr<Wall>> walls, PyTypes::float3 h, std::string filename)
