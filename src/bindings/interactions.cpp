@@ -43,8 +43,8 @@ void exportInteractions(py::module& m)
             J. Chem. Phys., 107(11), 4423–4435. `doi <https://doi.org/10.1063/1.474784>`_
     )");
 
-    pyIntDPD.def(py::init<std::string, float, float, float, float, float, float>(),
-         "name"_a, "rc"_a, "a"_a, "gamma"_a, "kbt"_a, "dt"_a, "power"_a, R"(  
+    pyIntDPD.def(py::init<std::string, const YmrState*, float, float, float, float, float, float>(),
+                 "name"_a, "state"_a, "rc"_a, "a"_a, "gamma"_a, "kbt"_a, "dt"_a, "power"_a, R"(  
             Args:
             name: name of the interaction
                 rc: interaction cut-off (no forces between particles further than **rc** apart)
@@ -67,8 +67,8 @@ void exportInteractions(py::module& m)
         wrapper of :any:`DPD` with, in addition, stress computation
     )");
 
-    pyIntDPDWithStress.def(py::init<std::string, std::string, float, float, float, float, float, float, float>(),
-                           "name"_a, "stressName"_a, "rc"_a, "a"_a, "gamma"_a, "kbt"_a, "dt"_a, "power"_a, "stressPeriod"_a, R"(  
+    pyIntDPDWithStress.def(py::init<std::string, const YmrState*, std::string, float, float, float, float, float, float, float>(),
+                           "name"_a, "state"_a, "stressName"_a, "rc"_a, "a"_a, "gamma"_a, "kbt"_a, "dt"_a, "power"_a, "stressPeriod"_a, R"(  
             Args:
                 name: name of the interaction
                 stressName: name of the stress entry
@@ -91,8 +91,8 @@ void exportInteractions(py::module& m)
    
     )");
 
-    pyIntLJ.def(py::init<std::string, float, float, float, float, bool>(),
-         "name"_a, "rc"_a, "epsilon"_a, "sigma"_a, "max_force"_a=1000.0, "object_aware"_a, R"(
+    pyIntLJ.def(py::init<std::string, const YmrState*, float, float, float, float, bool>(),
+                "name"_a, "state"_a, "rc"_a, "epsilon"_a, "sigma"_a, "max_force"_a=1000.0, "object_aware"_a, R"(
             Args:
                 name: name of the interaction
                 rc: interaction cut-off (no forces between particles further than **rc** apart)
@@ -113,8 +113,8 @@ void exportInteractions(py::module& m)
         wrapper of :any:`LJ` with, in addition, stress computation
     )");
 
-    pyIntLJWithStress.def(py::init<std::string, std::string, float, float, float, float, bool, float>(),
-                          "name"_a, "stressName"_a, "rc"_a, "epsilon"_a, "sigma"_a, "max_force"_a=1000.0,
+    pyIntLJWithStress.def(py::init<std::string, const YmrState*, std::string, float, float, float, float, bool, float>(),
+                          "name"_a, "state"_a, "stressName"_a, "rc"_a, "epsilon"_a, "sigma"_a, "max_force"_a=1000.0,
                           "object_aware"_a, "stressPeriod"_a, R"(
             Args:
                 name: name of the interaction
@@ -219,8 +219,8 @@ void exportInteractions(py::module& m)
                              Biophysical journal, Elsevier, 2010, 98, 2215-2225
 
     )")
-        .def(py::init<std::string, MembraneParameters, KantorBendingParameters, bool, float>(),
-             "name"_a, "params"_a, "params_bending"_a, "stressFree"_a, "grow_until"_a=0, R"( 
+        .def(py::init<std::string, const YmrState*, MembraneParameters, KantorBendingParameters, bool, float>(),
+             "name"_a, "state"_a, "params"_a, "params_bending"_a, "stressFree"_a, "grow_until"_a=0, R"( 
              Args:
                  name: name of the interaction
                  params: instance of :any: `MembraneParameters`
@@ -249,8 +249,8 @@ void exportInteractions(py::module& m)
                            Shape transformations of vesicles with intramembrane domains.
                            Physical Review E 53.3 (1996): 2670.
     )")
-        .def(py::init<std::string, MembraneParameters, JuelicherBendingParameters, bool, float>(),
-             "name"_a, "params"_a, "params_bending"_a, "stressFree"_a, "grow_until"_a=0, R"( 
+        .def(py::init<std::string, const YmrState*, MembraneParameters, JuelicherBendingParameters, bool, float>(),
+             "name"_a, "state"_a, "params"_a, "params_bending"_a, "stressFree"_a, "grow_until"_a=0, R"( 
              Args:
                  name: name of the interaction
                  params: instance of :any: `MembraneParameters`

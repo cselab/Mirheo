@@ -259,7 +259,7 @@ void exportPlugins(py::module& m)
     
     
     m.def("__createAddForce", &PluginFactory::createAddForcePlugin,
-         "compute_task"_a, "name"_a, "pv"_a, "force"_a, R"(
+          "compute_task"_a, "name"_a, "state"_a, "pv"_a, "force"_a, R"(
         Create :any:`AddForce` plugin
         
         Args:
@@ -269,7 +269,7 @@ void exportPlugins(py::module& m)
     )");
 
     m.def("__createAddTorque", &PluginFactory::createAddTorquePlugin, 
-          "compute_task"_a, "name"_a, "ov"_a, "torque"_a, R"(
+          "compute_task"_a, "name"_a, "state"_a, "ov"_a, "torque"_a, R"(
         Create :any:`AddTorque` plugin
         
         Args:
@@ -279,7 +279,7 @@ void exportPlugins(py::module& m)
     )");
 
     m.def("__createDumpAverage", &PluginFactory::createDumpAveragePlugin, 
-          "compute_task"_a, "name"_a, "pvs"_a, "sample_every"_a, "dump_every"_a,
+          "compute_task"_a, "name"_a, "state"_a, "pvs"_a, "sample_every"_a, "dump_every"_a,
           "bin_size"_a = PyTypes::float3{1.0, 1.0, 1.0}, "channels"_a, "path"_a = "xdmf/", R"(
         Create :any:`Average3D` plugin
         
@@ -313,7 +313,7 @@ void exportPlugins(py::module& m)
     )");
 
     m.def("__createDumpAverageRelative", &PluginFactory::createDumpAverageRelativePlugin, 
-          "compute_task"_a, "name"_a, "pvs"_a,
+          "compute_task"_a, "name"_a, "state"_a, "pvs"_a,
           "relative_to_ov"_a, "relative_to_id"_a,
           "sample_every"_a, "dump_every"_a,
           "bin_size"_a = PyTypes::float3{1.0, 1.0, 1.0}, "channels"_a, "path"_a = "xdmf/",
@@ -329,7 +329,7 @@ void exportPlugins(py::module& m)
     )");
 
     m.def("__createDumpMesh", &PluginFactory::createDumpMeshPlugin, 
-          "compute_task"_a, "name"_a, "ov"_a, "dump_every"_a, "path"_a, R"(
+          "compute_task"_a, "name"_a, "state"_a, "ov"_a, "dump_every"_a, "path"_a, R"(
         Create :any:`MeshPlugin` plugin
         
         Args:
@@ -340,7 +340,7 @@ void exportPlugins(py::module& m)
     )");
 
     m.def("__createDumpObjectStats", &PluginFactory::createDumpObjPosition, 
-          "compute_task"_a, "name"_a, "ov"_a, "dump_every"_a, "path"_a, R"(
+          "compute_task"_a, "name"_a, "state"_a, "ov"_a, "dump_every"_a, "path"_a, R"(
         Create :any:`ObjPositions` plugin
         
         Args:
@@ -351,7 +351,7 @@ void exportPlugins(py::module& m)
     )");
 
     m.def("__createDumpParticles", &PluginFactory::createDumpParticlesPlugin, 
-          "compute_task"_a, "name"_a, "pv"_a, "dump_every"_a,
+          "compute_task"_a, "name"_a, "state"_a, "pv"_a, "dump_every"_a,
           "channels"_a, "path"_a, R"(
         Create :any:`ParticleSenderPlugin` plugin
         
@@ -373,7 +373,7 @@ void exportPlugins(py::module& m)
     )");
     
     m.def("__createDumpParticlesWithMesh", &PluginFactory::createDumpParticlesWithMeshPlugin, 
-          "compute_task"_a, "name"_a, "ov"_a, "dump_every"_a,
+          "compute_task"_a, "name"_a, "state"_a, "ov"_a, "dump_every"_a,
           "channels"_a, "path"_a, R"(
         Create :any:`ParticleWithMeshSenderPlugin` plugin
         
@@ -395,7 +395,7 @@ void exportPlugins(py::module& m)
     )");
     
     m.def("__createDumpXYZ", &PluginFactory::createDumpXYZPlugin, 
-          "compute_task"_a, "name"_a, "pv"_a, "dump_every"_a, "path"_a, R"(
+          "compute_task"_a, "name"_a, "state"_a, "pv"_a, "dump_every"_a, "path"_a, R"(
         Create :any:`XYZPlugin` plugin
         
         Args:
@@ -406,7 +406,7 @@ void exportPlugins(py::module& m)
     )");
 
     m.def("__createExchangePVSFluxPlane", &PluginFactory::createExchangePVSFluxPlanePlugin,
-          "compute_task"_a, "name"_a, "pv1"_a, "pv2"_a, "plane"_a, R"(
+          "compute_task"_a, "name"_a, "state"_a, "pv1"_a, "pv2"_a, "plane"_a, R"(
         Create :any:`ExchangePVSFluxPlane` plugin
         
         Args:
@@ -417,7 +417,7 @@ void exportPlugins(py::module& m)
     )");
 
     m.def("__createForceSaver", &PluginFactory::createForceSaverPlugin, 
-          "compute_task"_a, "name"_a, "pv"_a, R"(
+          "compute_task"_a, "name"_a, "state"_a, "pv"_a, R"(
         Create :any:`ForceSaver` plugin
         
         Args:
@@ -426,7 +426,7 @@ void exportPlugins(py::module& m)
     )");
 
     m.def("__createImposeProfile", &PluginFactory::createImposeProfilePlugin, 
-          "compute_task"_a, "name"_a, "pv"_a, "low"_a, "high"_a, "velocity"_a, "kbt"_a, R"(
+          "compute_task"_a, "name"_a, "state"_a, "pv"_a, "low"_a, "high"_a, "velocity"_a, "kbt"_a, R"(
         Create :any:`ImposeProfile` plugin
         
         Args:
@@ -439,7 +439,7 @@ void exportPlugins(py::module& m)
     )");
 
     m.def("__createImposeVelocity", &PluginFactory::createImposeVelocityPlugin,
-        "compute_task"_a, "name"_a, "pvs"_a, "every"_a, "low"_a, "high"_a, "velocity"_a, R"(
+        "compute_task"_a, "name"_a, "state"_a, "pvs"_a, "every"_a, "low"_a, "high"_a, "velocity"_a, R"(
         Create :any:`ImposeVelocity` plugin
         
         Args:
@@ -452,7 +452,7 @@ void exportPlugins(py::module& m)
     )");
 
     m.def("__createMagneticOrientation", &PluginFactory::createMagneticOrientationPlugin,
-          "compute_task"_a, "name"_a, "rov"_a, "moment"_a, "magneticFunction"_a, R"(
+          "compute_task"_a, "name"_a, "state"_a, "rov"_a, "moment"_a, "magneticFunction"_a, R"(
         Create :any:`MagneticOrientation` plugin
         
         Args:
@@ -463,7 +463,7 @@ void exportPlugins(py::module& m)
     )");
 
     m.def("__createMembraneExtraForce", &PluginFactory::createMembraneExtraForcePlugin,
-          "compute_task"_a, "name"_a, "pv"_a, "forces"_a, R"(
+          "compute_task"_a, "name"_a, "state"_a, "pv"_a, "forces"_a, R"(
         Create :any:`MembraneExtraForce` plugin
         
         Args:
@@ -473,7 +473,7 @@ void exportPlugins(py::module& m)
     )");
 
     m.def("__createPinObject", &PluginFactory::createPinObjPlugin, 
-          "compute_task"_a, "name"_a, "ov"_a, "dump_every"_a, "path"_a, "velocity"_a, "angular_velocity"_a, R"(
+          "compute_task"_a, "name"_a, "state"_a, "ov"_a, "dump_every"_a, "path"_a, "velocity"_a, "angular_velocity"_a, R"(
         Create :any:`PinObject` plugin
         
         Args:
@@ -488,7 +488,7 @@ void exportPlugins(py::module& m)
     )");
 
     m.def("__createStats", &PluginFactory::createStatsPlugin,
-          "compute_task"_a, "name"_a, "filename"_a="", "every"_a, R"(
+          "compute_task"_a, "name"_a, "state"_a, "filename"_a="", "every"_a, R"(
         Create :any:`SimulationStats` plugin
         
         Args:
@@ -498,7 +498,7 @@ void exportPlugins(py::module& m)
     )");
 
     m.def("__createTemperaturize", &PluginFactory::createTemperaturizePlugin,
-          "compute_task"_a, "name"_a, "pv"_a, "kbt"_a, "keepVelocity"_a, R"(
+          "compute_task"_a, "name"_a, "state"_a, "pv"_a, "kbt"_a, "keepVelocity"_a, R"(
         Create :any:`Temperaturize` plugin
 
         Args:
@@ -509,7 +509,7 @@ void exportPlugins(py::module& m)
     )");
 
     m.def("__createVelocityControl", &PluginFactory::createSimulationVelocityControlPlugin,
-          "compute_task"_a, "name"_a, "filename"_a, "pvs"_a, "low"_a, "high"_a,
+          "compute_task"_a, "name"_a, "state"_a, "filename"_a, "pvs"_a, "low"_a, "high"_a,
           "sample_every"_a, "tune_every"_a, "dump_every"_a, "target_vel"_a, "Kp"_a, "Ki"_a, "Kd"_a, R"(
         Create :any:`VelocityControl` plugin
         
@@ -526,7 +526,7 @@ void exportPlugins(py::module& m)
     )");
 
     m.def("__createWallRepulsion", &PluginFactory::createWallRepulsionPlugin, 
-          "compute_task"_a, "name"_a, "pv"_a, "wall"_a, "C"_a, "h"_a, "max_force"_a, R"(
+          "compute_task"_a, "name"_a, "state"_a, "pv"_a, "wall"_a, "C"_a, "h"_a, "max_force"_a, R"(
         Create :any:`WallRepulsion` plugin
         
         Args:

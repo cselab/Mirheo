@@ -76,21 +76,21 @@ namespace PluginFactory
 
     
     static pair_shared< AddForcePlugin, PostprocessPlugin >
-    createAddForcePlugin(bool computeTask, std::string name, ParticleVector* pv, PyTypes::float3 force)
+    createAddForcePlugin(bool computeTask, std::string name, const YmrState *state, ParticleVector* pv, PyTypes::float3 force)
     {
-        auto simPl = computeTask ? std::make_shared<AddForcePlugin> (name, pv->name, make_float3(force)) : nullptr;
+        auto simPl = computeTask ? std::make_shared<AddForcePlugin> (name, state, pv->name, make_float3(force)) : nullptr;
         return { simPl, nullptr };
     }
 
     static pair_shared< AddTorquePlugin, PostprocessPlugin >
-    createAddTorquePlugin(bool computeTask, std::string name, ParticleVector* pv, PyTypes::float3 torque)
+    createAddTorquePlugin(bool computeTask, std::string name, const YmrState *state, ParticleVector* pv, PyTypes::float3 torque)
     {
-        auto simPl = computeTask ? std::make_shared<AddTorquePlugin> (name, pv->name, make_float3(torque)) : nullptr;
+        auto simPl = computeTask ? std::make_shared<AddTorquePlugin> (name, state, pv->name, make_float3(torque)) : nullptr;
         return { simPl, nullptr };
     }
 
     static pair_shared< Average3D, UniformCartesianDumper >
-    createDumpAveragePlugin(bool computeTask, std::string name, std::vector<ParticleVector*> pvs,
+    createDumpAveragePlugin(bool computeTask, std::string name, const YmrState *state, std::vector<ParticleVector*> pvs,
                             int sampleEvery, int dumpEvery, PyTypes::float3 binSize,
                             std::vector< std::pair<std::string, std::string> > channels,
                             std::string path)
@@ -103,7 +103,7 @@ namespace PluginFactory
         if (computeTask) extractPVsNames(pvs, pvNames);
         
         auto simPl  = computeTask ?
-            std::make_shared<Average3D> (name, pvNames, names, types, sampleEvery, dumpEvery, make_float3(binSize)) :
+            std::make_shared<Average3D> (name, state, pvNames, names, types, sampleEvery, dumpEvery, make_float3(binSize)) :
             nullptr;
 
         auto postPl = computeTask ? nullptr : std::make_shared<UniformCartesianDumper> (name, path);
@@ -112,7 +112,7 @@ namespace PluginFactory
     }
 
     static pair_shared< AverageRelative3D, UniformCartesianDumper >
-    createDumpAverageRelativePlugin(bool computeTask, std::string name, std::vector<ParticleVector*> pvs,
+    createDumpAverageRelativePlugin(bool computeTask, std::string name, const YmrState *state, std::vector<ParticleVector*> pvs,
                                     ObjectVector* relativeToOV, int relativeToId,
                                     int sampleEvery, int dumpEvery, PyTypes::float3 binSize,
                                     std::vector< std::pair<std::string, std::string> > channels,
@@ -126,7 +126,7 @@ namespace PluginFactory
         if (computeTask) extractPVsNames(pvs, pvNames);
     
         auto simPl  = computeTask ?
-            std::make_shared<AverageRelative3D> (name, pvNames,
+            std::make_shared<AverageRelative3D> (name, state, pvNames,
                                                  names, types, sampleEvery, dumpEvery,
                                                  make_float3(binSize), relativeToOV->name, relativeToId) :
             nullptr;
@@ -137,16 +137,16 @@ namespace PluginFactory
     }
 
     static pair_shared< MeshPlugin, MeshDumper >
-    createDumpMeshPlugin(bool computeTask, std::string name, ObjectVector* ov, int dumpEvery, std::string path)
+    createDumpMeshPlugin(bool computeTask, std::string name, const YmrState *state, ObjectVector* ov, int dumpEvery, std::string path)
     {
-        auto simPl  = computeTask ? std::make_shared<MeshPlugin> (name, ov->name, dumpEvery) : nullptr;
+        auto simPl  = computeTask ? std::make_shared<MeshPlugin> (name, state, ov->name, dumpEvery) : nullptr;
         auto postPl = computeTask ? nullptr : std::make_shared<MeshDumper> (name, path);
 
         return { simPl, postPl };
     }
 
     static pair_shared< ParticleSenderPlugin, ParticleDumperPlugin >
-    createDumpParticlesPlugin(bool computeTask, std::string name, ParticleVector *pv, int dumpEvery,
+    createDumpParticlesPlugin(bool computeTask, std::string name, const YmrState *state, ParticleVector *pv, int dumpEvery,
                               std::vector< std::pair<std::string, std::string> > channels, std::string path)
     {
         std::vector<std::string> names;
@@ -154,14 +154,14 @@ namespace PluginFactory
 
         extractChannelInfos(channels, names, types);
         
-        auto simPl  = computeTask ? std::make_shared<ParticleSenderPlugin> (name, pv->name, dumpEvery, names, types) : nullptr;
+        auto simPl  = computeTask ? std::make_shared<ParticleSenderPlugin> (name, state, pv->name, dumpEvery, names, types) : nullptr;
         auto postPl = computeTask ? nullptr : std::make_shared<ParticleDumperPlugin> (name, path);
 
         return { simPl, postPl };
     }
 
     static pair_shared< ParticleWithMeshSenderPlugin, ParticleWithMeshDumperPlugin >
-    createDumpParticlesWithMeshPlugin(bool computeTask, std::string name, ObjectVector *ov, int dumpEvery,
+    createDumpParticlesWithMeshPlugin(bool computeTask, std::string name, const YmrState *state, ObjectVector *ov, int dumpEvery,
                                       std::vector< std::pair<std::string, std::string> > channels, std::string path)
     {
         std::vector<std::string> names;
@@ -169,79 +169,78 @@ namespace PluginFactory
 
         extractChannelInfos(channels, names, types);
         
-        auto simPl  = computeTask ? std::make_shared<ParticleWithMeshSenderPlugin> (name, ov->name, dumpEvery, names, types) : nullptr;
+        auto simPl  = computeTask ? std::make_shared<ParticleWithMeshSenderPlugin> (name, state, ov->name, dumpEvery, names, types) : nullptr;
         auto postPl = computeTask ? nullptr : std::make_shared<ParticleWithMeshDumperPlugin> (name, path);
 
         return { simPl, postPl };
     }
 
     static pair_shared< XYZPlugin, XYZDumper >
-        createDumpXYZPlugin(bool computeTask, std::string name, ParticleVector* pv, int dumpEvery, std::string path)
+    createDumpXYZPlugin(bool computeTask, std::string name, const YmrState *state, ParticleVector* pv, int dumpEvery, std::string path)
     {
-        auto simPl  = computeTask ? std::make_shared<XYZPlugin> (name, pv->name, dumpEvery) : nullptr;
+        auto simPl  = computeTask ? std::make_shared<XYZPlugin> (name, state, pv->name, dumpEvery) : nullptr;
         auto postPl = computeTask ? nullptr : std::make_shared<XYZDumper> (name, path);
 
         return { simPl, postPl };
     }
 
     static pair_shared< ObjPositionsPlugin, ObjPositionsDumper >
-        createDumpObjPosition(bool computeTask, std::string name, ObjectVector* ov, int dumpEvery, std::string path)
+    createDumpObjPosition(bool computeTask, std::string name, const YmrState *state, ObjectVector* ov, int dumpEvery, std::string path)
     {
-        auto simPl  = computeTask ? std::make_shared<ObjPositionsPlugin> (name, ov->name, dumpEvery) : nullptr;
+        auto simPl  = computeTask ? std::make_shared<ObjPositionsPlugin> (name, state, ov->name, dumpEvery) : nullptr;
         auto postPl = computeTask ? nullptr : std::make_shared<ObjPositionsDumper> (name, path);
 
         return { simPl, postPl };
     }
 
     static pair_shared< ExchangePVSFluxPlanePlugin, PostprocessPlugin >
-    createExchangePVSFluxPlanePlugin(bool computeTask, std::string name, ParticleVector *pv1, ParticleVector *pv2, PyTypes::float4 plane)
+    createExchangePVSFluxPlanePlugin(bool computeTask, std::string name, const YmrState *state, ParticleVector *pv1, ParticleVector *pv2, PyTypes::float4 plane)
     {
         auto simPl = computeTask ?
-            std::make_shared<ExchangePVSFluxPlanePlugin> (name, pv1->name, pv2->name, make_float4(plane)) : nullptr;
+            std::make_shared<ExchangePVSFluxPlanePlugin> (name, state, pv1->name, pv2->name, make_float4(plane)) : nullptr;
         
         return { simPl, nullptr };    
     }
 
     static pair_shared< ForceSaverPlugin, PostprocessPlugin >
-    createForceSaverPlugin(bool computeTask,  std::string name, ParticleVector *pv)
+    createForceSaverPlugin(bool computeTask,  std::string name, const YmrState *state, ParticleVector *pv)
     {
-        auto simPl = computeTask ? std::make_shared<ForceSaverPlugin> (name, pv->name) : nullptr;
+        auto simPl = computeTask ? std::make_shared<ForceSaverPlugin> (name, state, pv->name) : nullptr;
         return { simPl, nullptr };
     }
 
     static pair_shared< ImposeProfilePlugin, PostprocessPlugin >
-    createImposeProfilePlugin(bool computeTask,  std::string name, ParticleVector* pv, 
+    createImposeProfilePlugin(bool computeTask,  std::string name, const YmrState *state, ParticleVector* pv, 
                               PyTypes::float3 low, PyTypes::float3 high, PyTypes::float3 velocity, float kbt)
     {
         auto simPl = computeTask ?
-            std::make_shared<ImposeProfilePlugin> (name, pv->name, make_float3(low), make_float3(high), make_float3(velocity), kbt) :
+            std::make_shared<ImposeProfilePlugin> (name, state, pv->name, make_float3(low), make_float3(high), make_float3(velocity), kbt) :
             nullptr;
             
         return { simPl, nullptr };
     }
 
     static pair_shared< ImposeVelocityPlugin, PostprocessPlugin >
-    createImposeVelocityPlugin(bool computeTask, 
-                               std::string name, std::vector<ParticleVector*> pvs, int every,
+    createImposeVelocityPlugin(bool computeTask,  std::string name, const YmrState *state,
+                               std::vector<ParticleVector*> pvs, int every,
                                PyTypes::float3 low, PyTypes::float3 high, PyTypes::float3 velocity)
     {
         std::vector<std::string> pvNames;
         if (computeTask) extractPVsNames(pvs, pvNames);
             
         auto simPl = computeTask ?
-            std::make_shared<ImposeVelocityPlugin> (name, pvNames, make_float3(low), make_float3(high), make_float3(velocity), every) :
+            std::make_shared<ImposeVelocityPlugin> (name, state, pvNames, make_float3(low), make_float3(high), make_float3(velocity), every) :
             nullptr;
                                     
         return { simPl, nullptr };
     }
 
     static pair_shared< MagneticOrientationPlugin, PostprocessPlugin >
-    createMagneticOrientationPlugin(bool computeTask, std::string name, RigidObjectVector *rov, PyTypes::float3 moment,
+    createMagneticOrientationPlugin(bool computeTask, std::string name, const YmrState *state, RigidObjectVector *rov, PyTypes::float3 moment,
                                     std::function<PyTypes::float3(float)> magneticFunction)
-                                    //MagneticOrientationPlugin::UniformMagneticFunc magneticFunction)
     {
         auto simPl = computeTask ?
-            std::make_shared<MagneticOrientationPlugin>(name, rov->name, make_float3(moment),
+            std::make_shared<MagneticOrientationPlugin>(name, state, rov->name, make_float3(moment),
                                                         [magneticFunction](float t)
                                                         {return make_float3(magneticFunction(t));})
             : nullptr;
@@ -250,20 +249,20 @@ namespace PluginFactory
     }
 
     static pair_shared< MembraneExtraForcePlugin, PostprocessPlugin >
-    createMembraneExtraForcePlugin(bool computeTask, std::string name, ParticleVector *pv, PyTypes::VectorOfFloat3 forces)
+    createMembraneExtraForcePlugin(bool computeTask, std::string name, const YmrState *state, ParticleVector *pv, PyTypes::VectorOfFloat3 forces)
     {
         auto simPl = computeTask ?
-            std::make_shared<MembraneExtraForcePlugin> (name, pv->name, forces) : nullptr;
+            std::make_shared<MembraneExtraForcePlugin> (name, state, pv->name, forces) : nullptr;
 
         return { simPl, nullptr };
     }
 
     static pair_shared< PinObjectPlugin, ReportPinObjectPlugin >
-    createPinObjPlugin(bool computeTask, std::string name, ObjectVector* ov,
+    createPinObjPlugin(bool computeTask, std::string name, const YmrState *state, ObjectVector* ov,
                        int dumpEvery, std::string path,
                        PyTypes::float3 velocity, PyTypes::float3 omega)
     {
-        auto simPl  = computeTask ? std::make_shared<PinObjectPlugin> (name, ov->name,
+        auto simPl  = computeTask ? std::make_shared<PinObjectPlugin> (name, state, ov->name,
                                                                        make_float3(velocity), make_float3(omega),
                                                                        dumpEvery) : 
             nullptr;
@@ -273,7 +272,7 @@ namespace PluginFactory
     }
 
     static pair_shared< SimulationVelocityControl, PostprocessVelocityControl >
-    createSimulationVelocityControlPlugin(bool computeTask, std::string name, std::string filename, std::vector<ParticleVector*> pvs,
+    createSimulationVelocityControlPlugin(bool computeTask, std::string name, const YmrState *state, std::string filename, std::vector<ParticleVector*> pvs,
                                           PyTypes::float3 low, PyTypes::float3 high,
                                           int sampleEvery, int tuneEvery, int dumpEvery,
                                           PyTypes::float3 targetVel, float Kp, float Ki, float Kd)
@@ -282,7 +281,7 @@ namespace PluginFactory
         if (computeTask) extractPVsNames(pvs, pvNames);
         
         auto simPl = computeTask ?
-            std::make_shared<SimulationVelocityControl>(name, pvNames, make_float3(low), make_float3(high),
+            std::make_shared<SimulationVelocityControl>(name, state, pvNames, make_float3(low), make_float3(high),
                                                         sampleEvery, tuneEvery, dumpEvery,
                                                         make_float3(targetVel), Kp, Ki, Kd) :
             nullptr;
@@ -295,26 +294,26 @@ namespace PluginFactory
     }
 
     static pair_shared< SimulationStats, PostprocessStats >
-    createStatsPlugin(bool computeTask, std::string name, std::string filename, int every)
+    createStatsPlugin(bool computeTask, std::string name, const YmrState *state, std::string filename, int every)
     {
-        auto simPl  = computeTask ? std::make_shared<SimulationStats> (name, every) : nullptr;
+        auto simPl  = computeTask ? std::make_shared<SimulationStats> (name, state, every) : nullptr;
         auto postPl = computeTask ? nullptr : std::make_shared<PostprocessStats> (name, filename);
 
         return { simPl, postPl };
     }
 
     static pair_shared< TemperaturizePlugin, PostprocessPlugin >
-    createTemperaturizePlugin(bool computeTask, std::string name, ParticleVector* pv, float kbt, bool keepVelocity)
+    createTemperaturizePlugin(bool computeTask, std::string name, const YmrState *state, ParticleVector* pv, float kbt, bool keepVelocity)
     {
-        auto simPl = computeTask ? std::make_shared<TemperaturizePlugin> (name, pv->name, kbt, keepVelocity) : nullptr;
+        auto simPl = computeTask ? std::make_shared<TemperaturizePlugin> (name, state, pv->name, kbt, keepVelocity) : nullptr;
         return { simPl, nullptr };
     }
 
     static pair_shared< WallRepulsionPlugin, PostprocessPlugin >
-    createWallRepulsionPlugin(bool computeTask, std::string name, ParticleVector* pv, Wall* wall,
+    createWallRepulsionPlugin(bool computeTask, std::string name, const YmrState *state, ParticleVector* pv, Wall* wall,
                               float C, float h, float maxForce)
     {
-        auto simPl = computeTask ? std::make_shared<WallRepulsionPlugin> (name, pv->name, wall->name, C, h, maxForce) : nullptr;
+        auto simPl = computeTask ? std::make_shared<WallRepulsionPlugin> (name, state, pv->name, wall->name, C, h, maxForce) : nullptr;
         return { simPl, nullptr };
     }
 };

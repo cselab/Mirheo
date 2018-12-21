@@ -1,6 +1,6 @@
-#include <core/bouncers/interface.h>
 #include <core/bouncers/from_ellipsoid.h>
 #include <core/bouncers/from_mesh.h>
+#include <core/bouncers/interface.h>
 
 #include "bindings.h"
 #include "class_wrapper.h"
@@ -25,7 +25,7 @@ void exportBouncers(py::module& m)
             the new velocity of the bounced particles will be a random vector drawn from the Maxwell distibution of given temperature
             and added to the velocity of the mesh triangle at the collision point.
     )")
-        .def(py::init<std::string, float>(), "name"_a, "kbt"_a=0.5, R"(
+        .def(py::init<std::string, const YmrState*, float>(), "name"_a, "state"_a, "kbt"_a=0.5, R"(
             Args:
                 name: name of the bouncer
                 kbt:  Maxwell distribution temperature defining post-collision velocity
@@ -36,8 +36,8 @@ void exportBouncers(py::module& m)
         No additional correction from the Object Belonging Checker is usually required.
         The velocity of the particles bounced from the ellipsoid is reversed with respect to the boundary velocity at the contact point.
     )")
-        .def(py::init<std::string>(),
-             "name"_a, R"(
+        .def(py::init<std::string, const YmrState*>(),
+             "name"_a, "state"_a, R"(
             Args:
                 name: name of the checker
             
