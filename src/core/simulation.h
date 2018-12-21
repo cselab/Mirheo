@@ -42,10 +42,10 @@ public:
     DomainInfo domain;
     YmrState *state;
 
-    Simulation(int3 nranks3D, float3 globalDomainSize, YmrState *state,
-               const MPI_Comm& comm, const MPI_Comm& interComm,
-               int globalCheckpointEvery = 0,
-               std::string restartFolder = "restart/", bool gpuAwareMPI = false);
+    Simulation(const MPI_Comm &cartComm, const MPI_Comm &interComm, YmrState *state,
+               int globalCheckpointEvery = 0, std::string checkpointFolder = "restart/",
+               bool gpuAwareMPI = false);
+
     ~Simulation();
     
     void restart(std::string folder);

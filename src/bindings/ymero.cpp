@@ -21,9 +21,9 @@ void exportYmero(py::module& m)
     py::class_<YMeRo>(m, "ymero", R"(
         Main coordination class, should only be one instance at a time
     )")
-        .def(py::init< PyTypes::int3, PyTypes::float3, std::string, int, int, std::string, bool, bool >(),
+        .def(py::init< PyTypes::int3, PyTypes::float3, float, std::string, int, int, std::string, bool, bool >(),
              py::return_value_policy::take_ownership,
-             "nranks"_a, "domain"_a, "log_filename"_a="log", "debug_level"_a=3, "checkpoint_every"_a=0, 
+             "nranks"_a, "domain"_a, "dt"_a, "log_filename"_a="log", "debug_level"_a=3, "checkpoint_every"_a=0, 
              "restart_folder"_a="restart/", "cuda_aware_mpi"_a=false, "no_splash"_a=false, R"(
             Args:
                 nranks:
@@ -33,6 +33,8 @@ void exportYmero(py::module& m)
                     The domain will be split in equal chunks between the MPI ranks.
                     The largest chunk size that a single MPI rank can have depends on the total number of particles,
                     handlers and hardware, and is typically about :math:`120^3 - 200^3`.
+                dt:
+                    timestep of the simulation
                 log_filename:
                     prefix of the log files that will be created. 
                     Logging is implemented in the form of one file per MPI rank, so in the simulation folder NP files with names log_00000.log, log_00001.log, ... will be created, where NP is the total number of MPI ranks. 
@@ -61,9 +63,9 @@ void exportYmero(py::module& m)
                 
         )")
 
-        .def(py::init< long, PyTypes::int3, PyTypes::float3, std::string, int, int, std::string, bool >(),
+        .def(py::init< long, PyTypes::int3, PyTypes::float3, float, std::string, int, int, std::string, bool >(),
              py::return_value_policy::take_ownership,
-             "commPtr"_a, "nranks"_a, "domain"_a, "log_filename"_a="log", "debug_level"_a=3, 
+             "commPtr"_a, "nranks"_a, "domain"_a, "dt"_a, "log_filename"_a="log", "debug_level"_a=3, 
              "checkpoint_every"_a=0, "restart_folder"_a="restart/", "cuda_aware_mpi"_a=false, R"(
             Args:
                 commPtr: pointer to communicator

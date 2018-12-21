@@ -25,15 +25,15 @@ class PostprocessPlugin;
 class YMeRo
 {
 public:
-    YMeRo(PyTypes::int3 nranks3D, PyTypes::float3 globalDomainSize,
+    YMeRo(PyTypes::int3 nranks3D, PyTypes::float3 globalDomainSize, float dt,
           std::string logFileName, int verbosity, int checkpointEvery=0,
           std::string checkpointFolder="restart/", bool gpuAwareMPI=false, bool noSplash=false);
 
-    YMeRo(long commAddress, PyTypes::int3 nranks3D, PyTypes::float3 globalDomainSize,
+    YMeRo(long commAddress, PyTypes::int3 nranks3D, PyTypes::float3 globalDomainSize, float dt,
           std::string logFileName, int verbosity, int checkpointEvery=0,
           std::string checkpointFolder="restart/", bool gpuAwareMPI=false, bool noSplash=false);
 
-    YMeRo(MPI_Comm comm, PyTypes::int3 nranks3D, PyTypes::float3 globalDomainSize,
+    YMeRo(MPI_Comm comm, PyTypes::int3 nranks3D, PyTypes::float3 globalDomainSize, float dt,
           std::string logFileName, int verbosity, int checkpointEvery=0,
           std::string checkpointFolder="restart/", bool gpuAwareMPI=false, bool noSplash=false);
 
@@ -106,7 +106,7 @@ private:
 
     MPI_Comm comm;
 
-    void init(int3 nranks3D, float3 globalDomainSize, std::string logFileName, int verbosity,
+    void init(int3 nranks3D, float3 globalDomainSize, float dt, std::string logFileName, int verbosity,
               int checkpointEvery, std::string restartFolder, bool gpuAwareMPI);
     void initLogger(MPI_Comm comm, std::string logFileName, int verbosity);
     void sayHello();

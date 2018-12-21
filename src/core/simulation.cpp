@@ -20,36 +20,28 @@
 
 #include "simulation.h"
 
-Simulation::Simulation(int3 nranks3D, float3 globalDomainSize, YmrState *state,
-                       const MPI_Comm &comm, const MPI_Comm &interComm,
+Simulation::Simulation(const MPI_Comm &cartComm, const MPI_Comm &interComm, YmrState *state,
                        int globalCheckpointEvery, std::string checkpointFolder,
                        bool gpuAwareMPI)
     : nranks3D(nranks3D), interComm(interComm), state(state),
       globalCheckpointEvery(globalCheckpointEvery),
       checkpointFolder(checkpointFolder), gpuAwareMPI(gpuAwareMPI)
 {
-    int ranksArr[] = {nranks3D.x, nranks3D.y, nranks3D.z};
-    int periods[] = {1, 1, 1};
-    int coords[3];
+    int nranks[3], periods[3], coords[3];
 
-    MPI_Check(MPI_Cart_create(comm, 3, ranksArr, periods, 1, &cartComm));
-    MPI_Check(MPI_Cart_get(cartComm, 3, ranksArr, periods, coords));
-    MPI_Check(MPI_Comm_rank(comm, &rank));
+    MPI_Check(MPI_Comm_dup(cartComm, &this->cartComm));
+    MPI_Check(MPI_Cart_get(cartComm, 3, nranks, periods, coords));
+    MPI_Check(MPI_Comm_rank(cartComm, &rank));
 
-    rank3D = {coords[0], coords[1], coords[2]};
-
-    domain.globalSize = globalDomainSize;
-    domain.localSize = domain.globalSize / make_float3(nranks3D);
-    domain.globalStart = {domain.localSize.x * coords[0],
-                          domain.localSize.y * coords[1],
-                          domain.localSize.z * coords[2]};
+    nranks3D = {nranks[0], nranks[1], nranks[2]};
+    rank3D   = {coords[0], coords[1], coords[2]};
 
     createFoldersCollective(cartComm, checkpointFolder);
 
     info("Simulation initialized, subdomain size is [%f %f %f], subdomain starts "
          "at [%f %f %f]",
-         domain.localSize.x, domain.localSize.y, domain.localSize.z,
-         domain.globalStart.x, domain.globalStart.y, domain.globalStart.z);
+         state->domain.localSize.x, state->domain.localSize.y, state->domain.localSize.z,
+         state->domain.globalStart.x, state->domain.globalStart.y, state->domain.globalStart.z);
 
     scheduler = std::make_unique<TaskScheduler>();
     auto task_checkpoint = scheduler->createTask("Checkpoint");
