@@ -4,7 +4,7 @@ Bouncer::Bouncer(const YmrState *state, std::string name) :
     YmrSimulationObject(state, name)
 {}
 
-virtual Bouncer::~Bouncer() = default;
+Bouncer::~Bouncer() = default;
 
 void Bouncer::setPrerequisites(ParticleVector* pv)
 {}
