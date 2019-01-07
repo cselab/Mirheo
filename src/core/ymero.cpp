@@ -77,7 +77,7 @@ void YMeRo::init(int3 nranks3D, float3 globalDomainSize, float dt, std::string l
 
         createCartComm(compComm, nranks3D, &cartComm);
         state = std::make_shared<YmrState> (createDomainInfo(cartComm, globalDomainSize), dt);
-        sim = std::make_unique<Simulation> (compComm, interComm, getState(),
+        sim = std::make_unique<Simulation> (cartComm, interComm, getState(),
                                             checkpointEvery, checkpointFolder, gpuAwareMPI);
     }
     else
