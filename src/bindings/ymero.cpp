@@ -14,11 +14,13 @@
 #include <core/pvs/object_vector.h>
 
 #include "bindings.h"
+#include "class_wrapper.h"
+
 using namespace pybind11::literals;
 
 void exportYmero(py::module& m)
 {
-    py::class_<YmrState>(m, "YmrState", R"(
+    py::handlers_class<YmrState>(m, "YmrState", R"(
         state of the simulation shared by all simulation objects.
     )");
     
