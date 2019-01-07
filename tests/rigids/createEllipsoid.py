@@ -14,10 +14,10 @@ def createEllipsoid(density, axes, niter):
     fact = 3
     domain = (fact*axes[0], fact*axes[1], fact*axes[2])
     
-    u = ymr.ymero(ranks, domain, debug_level=3, log_filename='log')
+    u = ymr.ymero(ranks, domain, dt, debug_level=3, log_filename='log')
     
-    dpd = ymr.Interactions.DPD('dpd', 1.0, a=10.0, gamma=10.0, kbt=0.5, dt=dt, power=0.5)
-    vv = ymr.Integrators.VelocityVerlet('vv', dt=dt)
+    dpd = ymr.Interactions.DPD('dpd', 1.0, a=10.0, gamma=10.0, kbt=0.5, power=0.5)
+    vv = ymr.Integrators.VelocityVerlet('vv')
     
     coords = [[-axes[0], -axes[1], -axes[2]],
               [ axes[0],  axes[1],  axes[2]]]

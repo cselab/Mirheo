@@ -11,7 +11,7 @@ args = parser.parse_args()
 ranks  = (1, 1, 1)
 domain = (8, 16, 8)
 
-u = ymr.ymero(ranks, domain, debug_level=3, log_filename='log')
+u = ymr.ymero(ranks, domain, dt=0, debug_level=3, log_filename='log')
 
 plate_lo = ymr.Walls.Plane("plate_lo", normal=(0, 0, -1), pointThrough=(0, 0,              args.D))
 plate_hi = ymr.Walls.Plane("plate_hi", normal=(0, 0,  1), pointThrough=(0, 0,  domain[2] - args.D))

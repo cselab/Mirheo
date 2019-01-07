@@ -7,7 +7,7 @@ import ymero as ymr
 ranks  = (1, 1, 1)
 domain = (16, 16, 8)
 
-u = ymr.ymero(ranks, domain, debug_level=3, log_filename='log')
+u = ymr.ymero(ranks, domain, dt=0, debug_level=3, log_filename='log')
 
 center=(domain[0]*0.5, domain[1]*0.5)
 wall = ymr.Walls.Cylinder("cylinder", center=center, radius=domain[1]*0.4, axis="z", inside=True)

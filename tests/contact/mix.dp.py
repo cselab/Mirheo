@@ -29,7 +29,7 @@ if args.substep:
 ranks  = (1, 1, 1)
 domain = (12, 8, 10)
 
-u = ymr.ymero(ranks, domain, debug_level=3, log_filename='log')
+u = ymr.ymero(ranks, domain, dt, debug_level=3, log_filename='log')
 
 pv_flu = ymr.ParticleVectors.ParticleVector('solvent', mass = 1)
 ic_flu = ymr.InitialConditions.Uniform(density=args.density)
@@ -47,7 +47,7 @@ com_q_rig = [[4.0, 4.0, 5.0,   1.0, np.pi/2, np.pi/3, 0.0]]
 ic_rbc   = ymr.InitialConditions.Membrane(com_q_rbc)
 u.registerParticleVector(pv_rbc, ic_rbc)
 
-dpd = ymr.Interactions.DPD('dpd', 1.0, a=10.0, gamma=10.0, kbt=0.01, dt=dt, power=0.25)
+dpd = ymr.Interactions.DPD('dpd', 1.0, a=10.0, gamma=10.0, kbt=0.01, power=0.25)
 cnt = ymr.Interactions.LJ('cnt', 1.0, epsilon=0.8, sigma=0.35, max_force=400.0, object_aware=False)
 
 prm_rbc         = ymr.Interactions.MembraneParameters()
@@ -56,7 +56,6 @@ prm_bending_rbc = ymr.Interactions.KantorBendingParameters()
 if prm_rbc:
     set_lina(1.0, prm_rbc)
     prm_rbc.rnd = False
-    prm_rbc.dt = dt
 if prm_bending_rbc:
     set_lina_bending(1.0, prm_bending_rbc)
     
@@ -65,7 +64,7 @@ int_rbc = ymr.Interactions.MembraneForcesKantor("int_rbc", prm_rbc, prm_bending_
 coords = np.loadtxt(args.coords).tolist()
 pv_ell = ymr.ParticleVectors.RigidEllipsoidVector('ellipsoid', mass=1, object_size=len(coords), semi_axes=args.axes)
 ic_ell = ymr.InitialConditions.Rigid(com_q=com_q_rig, coords=coords)
-vv_ell = ymr.Integrators.RigidVelocityVerlet("ellvv", dt)
+vv_ell = ymr.Integrators.RigidVelocityVerlet("ellvv")
 
 u.registerParticleVector(pv=pv_ell, ic=ic_ell)
 u.registerIntegrator(vv_ell)
@@ -75,11 +74,11 @@ u.registerInteraction(dpd)
 u.registerInteraction(cnt)
 
 if args.substep:
-    integrator = ymr.Integrators.SubStepMembrane('substep_membrane', dt, substeps, int_rbc)
+    integrator = ymr.Integrators.SubStepMembrane('substep_membrane', substeps, int_rbc)
     u.registerIntegrator(integrator)
     u.setIntegrator(integrator, pv_rbc)
 else:
-    vv = ymr.Integrators.VelocityVerlet('vv', dt)
+    vv = ymr.Integrators.VelocityVerlet('vv')
     u.registerInteraction(int_rbc)
     u.setInteraction(int_rbc, pv_rbc, pv_rbc)
     u.registerIntegrator(vv)
@@ -92,7 +91,7 @@ u.setInteraction(cnt, pv_rbc, pv_rbc)
 u.setInteraction(cnt, pv_rbc, pv_ell)
 u.setInteraction(cnt, pv_ell, pv_ell)
 
-vv_dp = ymr.Integrators.VelocityVerlet_withPeriodicForce('vv_dp', dt=dt, force=a, direction='x')
+vv_dp = ymr.Integrators.VelocityVerlet_withPeriodicForce('vv_dp', force=a, direction='x')
 u.registerIntegrator(vv_dp)
 u.setIntegrator(vv_dp, pv_flu)
 

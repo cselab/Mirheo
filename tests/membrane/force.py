@@ -10,7 +10,7 @@ dt = 0.001
 ranks  = (1, 1, 1)
 domain = (12, 8, 10)
 
-u = ymr.ymero(ranks, domain, debug_level=3, log_filename='log')
+u = ymr.ymero(ranks, domain, dt, debug_level=3, log_filename='log')
 
 mesh_rbc = ymr.ParticleVectors.MembraneMesh("rbc_mesh.off")
 pv_rbc   = ymr.ParticleVectors.MembraneVector("rbc", mass=1.0, object_size=498, mesh=mesh_rbc)
@@ -26,7 +26,7 @@ if prm_bending_rbc:
     set_lina_bending(1.0, prm_bending_rbc)
 
 int_rbc = ymr.Interactions.MembraneForcesKantor("int_rbc", prm_rbc, prm_bending_rbc, stressFree=False)
-vv = ymr.Integrators.VelocityVerlet('vv', dt)
+vv = ymr.Integrators.VelocityVerlet('vv')
 u.registerIntegrator(vv)
 u.setIntegrator(vv, pv_rbc)
 u.registerInteraction(int_rbc)

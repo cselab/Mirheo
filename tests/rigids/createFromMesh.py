@@ -25,10 +25,10 @@ def createFromMesh(density, vertices, triangles, inertia, niter):
 
     ranks  = (1, 1, 1)
     
-    u = ymr.ymero(ranks, domain, debug_level=3, log_filename='log')
+    u = ymr.ymero(ranks, domain, dt, debug_level=3, log_filename='log')
     
-    dpd = ymr.Interactions.DPD('dpd', 1.0, a=10.0, gamma=10.0, kbt=0.5, dt=dt, power=0.5)
-    vv = ymr.Integrators.VelocityVerlet('vv', dt=dt)
+    dpd = ymr.Interactions.DPD('dpd', 1.0, a=10.0, gamma=10.0, kbt=0.5, power=0.5)
+    vv = ymr.Integrators.VelocityVerlet('vv')
     
     coords = [bb_lo, bb_hi]
     com_q  = [[0.5 * domain[0], 0.5 * domain[1], 0.5 * domain[2],   1., 0, 0, 0]]

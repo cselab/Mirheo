@@ -13,13 +13,14 @@ args = parser.parse_args()
 
 ranks  = args.ranks
 domain = (4, 6, 8)
+dt = 0
 
 comm = MPI.COMM_WORLD
 
 if args.restart:
-    u = ymr.ymero(MPI._addressof(comm), ranks, domain, debug_level=3, log_filename='log', checkpoint_every=0)
+    u = ymr.ymero(MPI._addressof(comm), ranks, domain, dt, debug_level=3, log_filename='log', checkpoint_every=0)
 else:
-    u = ymr.ymero(MPI._addressof(comm), ranks, domain, debug_level=3, log_filename='log', checkpoint_every=5)
+    u = ymr.ymero(MPI._addressof(comm), ranks, domain, dt, debug_level=3, log_filename='log', checkpoint_every=5)
 
 pv = ymr.ParticleVectors.ParticleVector('pv', mass = 1)
 

@@ -6,7 +6,7 @@ import ymero as ymr
 ranks  = (1, 1, 1)
 domain = [4., 6., 8.]
 
-u = ymr.ymero(ranks, tuple(domain), debug_level=3, log_filename='log')
+u = ymr.ymero(ranks, tuple(domain), dt=0, debug_level=3, log_filename='log')
 
 pv = ymr.ParticleVectors.ParticleVector('pv', mass = 1)
 

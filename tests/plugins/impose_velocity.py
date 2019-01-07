@@ -10,7 +10,7 @@ axes = (1, 2, 3)
 ranks  = (1, 1, 1)
 domain = (8, 32, 24)
 
-u = ymr.ymero(ranks, domain, debug_level=3, log_filename='log')
+u = ymr.ymero(ranks, domain, dt, debug_level=3, log_filename='log')
 
 pv1 = ymr.ParticleVectors.ParticleVector('pv1', mass = 1)
 u.registerParticleVector(pv1, ymr.InitialConditions.Uniform(density=4))
@@ -18,14 +18,14 @@ u.registerParticleVector(pv1, ymr.InitialConditions.Uniform(density=4))
 pv2 = ymr.ParticleVectors.ParticleVector('pv2', mass = 1)
 u.registerParticleVector(pv2, ymr.InitialConditions.Uniform(density=4))
     
-dpd = ymr.Interactions.DPD('dpd', 1.0, a=2.0, gamma=1.0, kbt=0.1, dt=dt, power=0.5)
+dpd = ymr.Interactions.DPD('dpd', 1.0, a=2.0, gamma=1.0, kbt=0.1, power=0.5)
 u.registerInteraction(dpd)
 
 u.setInteraction(dpd, pv1, pv1)
 u.setInteraction(dpd, pv1, pv2)
 u.setInteraction(dpd, pv2, pv2)
     
-vv = ymr.Integrators.VelocityVerlet_withPeriodicForce('vv', dt=dt, force=1.0, direction='x')
+vv = ymr.Integrators.VelocityVerlet_withPeriodicForce('vv', force=1.0, direction='x')
 u.registerIntegrator(vv)
 u.setIntegrator(vv, pv1)
 u.setIntegrator(vv, pv2)

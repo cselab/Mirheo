@@ -20,14 +20,14 @@ density = args.density
 ranks  = (1, 1, 1)
 domain = (16, 8, 8)
 
-u = ymr.ymero(ranks, domain, debug_level=3, log_filename='log')
+u = ymr.ymero(ranks, domain, dt, debug_level=3, log_filename='log')
 
 pvSolvent = ymr.ParticleVectors.ParticleVector('solvent', mass = 1)
 icSolvent = ymr.InitialConditions.Uniform(density)
 
-dpd = ymr.Interactions.DPD('dpd', 1.0, a=10.0, gamma=10.0, kbt=0.01, dt=dt, power=0.5)
+dpd = ymr.Interactions.DPD('dpd', 1.0, a=10.0, gamma=10.0, kbt=0.01, power=0.5)
 cnt = ymr.Interactions.LJ('cnt', 1.0, epsilon=0.8, sigma=0.35, max_force=400.0, object_aware=False)
-vv = ymr.Integrators.VelocityVerlet_withPeriodicForce('vv', dt=dt, force=a, direction="x")
+vv = ymr.Integrators.VelocityVerlet_withPeriodicForce('vv', force=a, direction="x")
 
 com_q = [[2.0, 5.0, 5.0,   1.0, np.pi/2, np.pi/3, 0.0],
          [4.0, 4.0, 5.0,   1.0, np.pi/2, np.pi/3, 0.0],
@@ -36,7 +36,7 @@ com_q = [[2.0, 5.0, 5.0,   1.0, np.pi/2, np.pi/3, 0.0],
 coords = np.loadtxt(args.coords).tolist()
 pvEllipsoid = ymr.ParticleVectors.RigidEllipsoidVector('ellipsoid', mass=1, object_size=len(coords), semi_axes=axes)
 icEllipsoid = ymr.InitialConditions.Rigid(com_q=com_q, coords=coords)
-vvEllipsoid = ymr.Integrators.RigidVelocityVerlet("ellvv", dt)
+vvEllipsoid = ymr.Integrators.RigidVelocityVerlet("ellvv")
 
 u.registerParticleVector(pv=pvSolvent, ic=icSolvent)
 u.registerIntegrator(vv)

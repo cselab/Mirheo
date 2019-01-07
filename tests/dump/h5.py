@@ -10,7 +10,7 @@ args = parser.parse_args()
 
 domain = (8, 16, 4)
 
-u = ymr.ymero(args.ranks, domain, debug_level=8, log_filename='log')
+u = ymr.ymero(args.ranks, domain, dt=0, debug_level=8, log_filename='log')
 
 pv = ymr.ParticleVectors.ParticleVector('pv', mass = 1)
 ic = ymr.InitialConditions.Uniform(density=3)

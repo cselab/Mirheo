@@ -12,18 +12,18 @@ sampleEvery = 2
 dumpEvery   = 1000
 binSize     = (1., 1., 1.)
 
-u = ymr.ymero(ranks, domain, debug_level=3, log_filename='log')
+u = ymr.ymero(ranks, domain, dt, debug_level=3, log_filename='log')
 
 pv = ymr.ParticleVectors.ParticleVector('pv', mass = 1)
 ic = ymr.InitialConditions.Uniform(density=4)
 u.registerParticleVector(pv=pv, ic=ic)
 
 stressName = "stressDPD"
-dpd = ymr.Interactions.DPDWithStress('dpd', stressName, 1.0, a=10.0, gamma=10.0, kbt=1.0, dt=dt, power=0.5, stressPeriod=sampleEvery*dt)
+dpd = ymr.Interactions.DPDWithStress('dpd', stressName, 1.0, a=10.0, gamma=10.0, kbt=1.0, power=0.5, stressPeriod=sampleEvery*dt)
 u.registerInteraction(dpd)
 u.setInteraction(dpd, pv, pv)
 
-vv = ymr.Integrators.VelocityVerlet_withPeriodicForce('vv', dt=dt, force=a, direction='x')
+vv = ymr.Integrators.VelocityVerlet_withPeriodicForce('vv', force=a, direction='x')
 u.registerIntegrator(vv)
 u.setIntegrator(vv, pv)
 

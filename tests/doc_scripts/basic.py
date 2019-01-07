@@ -14,21 +14,21 @@ domain = (8, 16, 30)
 f = 1
 
 # Create the coordinator, this should precede any other setup from ymero package
-u = ymr.ymero(ranks, domain, debug_level=2, log_filename='log')
+u = ymr.ymero(ranks, domain, dt, debug_level=2, log_filename='log')
 
 pv = ymr.ParticleVectors.ParticleVector('pv', mass = 1)   # Create a simple particle vector
 ic = ymr.InitialConditions.Uniform(density=8)             # Specify uniform random initial conditions
 u.registerParticleVector(pv=pv, ic=ic)                    # Register the PV and initialize its particles
 
 # Create and register DPD interaction with specific parameters
-dpd = ymr.Interactions.DPD('dpd', 1.0, a=10.0, gamma=10.0, kbt=1.0, dt=dt, power=0.5)
+dpd = ymr.Interactions.DPD('dpd', 1.0, a=10.0, gamma=10.0, kbt=1.0, power=0.5)
 u.registerInteraction(dpd)
 
 # Tell the simulation that the particles of pv interact with dpd interaction
 u.setInteraction(dpd, pv, pv)
 
 # Create and register Velocity-Verlet integrator with extra force
-vv = ymr.Integrators.VelocityVerlet_withPeriodicForce('vv', dt=dt, force=f, direction='x')
+vv = ymr.Integrators.VelocityVerlet_withPeriodicForce('vv', force=f, direction='x')
 u.registerIntegrator(vv)
 
 # This integrator will be used to advance pv particles

@@ -10,13 +10,13 @@ vtarget = (1.0, 0, 0)
 
 density = 10
 
-u = ymr.ymero(ranks, domain, debug_level=3, log_filename='stdout')
+u = ymr.ymero(ranks, domain, dt, debug_level=3, log_filename='stdout')
 
 pv = ymr.ParticleVectors.ParticleVector('pv', mass = 1)
 ic = ymr.InitialConditions.Uniform(density=density)
 u.registerParticleVector(pv=pv, ic=ic)
     
-dpd = ymr.Interactions.DPD('dpd', rc=1.0, a=10.0, gamma=50.0, kbt=0.1, dt=dt, power=0.25)
+dpd = ymr.Interactions.DPD('dpd', rc=1.0, a=10.0, gamma=50.0, kbt=0.1, power=0.25)
 u.registerInteraction(dpd)
 
 plate_lo = ymr.Walls.Plane("plate_lo", (0, 0, -1), (0, 0,              1))
@@ -24,7 +24,7 @@ plate_hi = ymr.Walls.Plane("plate_hi", (0, 0,  1), (0, 0,  domain[2] - 1))
 u.registerWall(plate_lo, 0)
 u.registerWall(plate_hi, 0)
 
-vv = ymr.Integrators.VelocityVerlet("vv", dt)
+vv = ymr.Integrators.VelocityVerlet("vv")
 frozen = u.makeFrozenWallParticles(pvName="frozen", walls=[plate_lo, plate_hi], interaction=dpd, integrator=vv, density=density)
 
 u.setWall(plate_lo, pv)

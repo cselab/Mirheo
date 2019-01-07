@@ -19,13 +19,13 @@ gdot    = 0.5 # shear rate
 T       = 3.0 # period for oscillating plate case
 tend    = 10.1
 
-u = ymr.ymero(ranks, domain, debug_level=8, log_filename='log')
+u = ymr.ymero(ranks, domain, dt, debug_level=8, log_filename='log')
 
 pv = ymr.ParticleVectors.ParticleVector('pv', mass = 1)
 ic = ymr.InitialConditions.Uniform(density=density)
 u.registerParticleVector(pv=pv, ic=ic)
     
-dpd = ymr.Interactions.DPD('dpd', rc=rc, a=10.0, gamma=20.0, kbt=1.0, dt=dt, power=0.125)
+dpd = ymr.Interactions.DPD('dpd', rc=rc, a=10.0, gamma=20.0, kbt=1.0, power=0.125)
 u.registerInteraction(dpd)
 
 vx = gdot*(domain[2] - 2*rc)
@@ -39,7 +39,7 @@ else:
 u.registerWall(plate_lo, 1000)
 u.registerWall(plate_hi, 1000)
 
-vv = ymr.Integrators.VelocityVerlet("vv", dt)
+vv = ymr.Integrators.VelocityVerlet("vv", )
 frozen_lo = u.makeFrozenWallParticles(pvName="plate_lo", walls=[plate_lo], interaction=dpd, integrator=vv, density=density)
 frozen_hi = u.makeFrozenWallParticles(pvName="plate_hi", walls=[plate_hi], interaction=dpd, integrator=vv, density=density)
 
@@ -53,9 +53,9 @@ u.registerIntegrator(vv)
 u.setIntegrator(vv, pv)
 
 if args.type == 'oscillating':
-    move = ymr.Integrators.Oscillate('osc', dt, velocity=(vx, 0, 0), period=T)
+    move = ymr.Integrators.Oscillate('osc', velocity=(vx, 0, 0), period=T)
 else:
-    move = ymr.Integrators.Translate('move', dt=dt, velocity=(vx, 0, 0))
+    move = ymr.Integrators.Translate('move', velocity=(vx, 0, 0))
 u.registerIntegrator(move)
 u.setIntegrator(move, frozen_hi)
 

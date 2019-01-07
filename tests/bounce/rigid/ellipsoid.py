@@ -15,7 +15,7 @@ domain = [8., 8., 8.]
 
 dt   = 0.001
 
-u = ymr.ymero(ranks, tuple(domain), debug_level=3, log_filename='log')
+u = ymr.ymero(ranks, tuple(domain), dt, debug_level=3, log_filename='log')
 
 nparts = 100
 pos = np.random.normal(loc   = [0.5, 0.5 * domain[1] + 1.0, 0.5 * domain[2]],
@@ -29,7 +29,7 @@ vel = np.random.normal(loc   = [1.0, 0., 0.],
 
 pvSolvent = ymr.ParticleVectors.ParticleVector('pv', mass = 1)
 icSolvent = ymr.InitialConditions.FromArray(pos=pos.tolist(), vel=vel.tolist())
-vvSolvent = ymr.Integrators.VelocityVerlet('vv', dt=dt)
+vvSolvent = ymr.Integrators.VelocityVerlet('vv')
 u.registerParticleVector(pvSolvent, icSolvent)
 u.registerIntegrator(vvSolvent)
 u.setIntegrator(vvSolvent, pvSolvent)
@@ -49,7 +49,7 @@ else:
     pvEllipsoid = ymr.ParticleVectors.RigidEllipsoidVector('ellipsoid', mass=1, object_size=len(coords), semi_axes=args.axes)
 
 icEllipsoid = ymr.InitialConditions.Rigid(com_q=com_q, coords=coords)
-vvEllipsoid = ymr.Integrators.RigidVelocityVerlet("ellvv", dt)
+vvEllipsoid = ymr.Integrators.RigidVelocityVerlet("ellvv")
 u.registerParticleVector(pv=pvEllipsoid, ic=icEllipsoid)
 u.registerIntegrator(vvEllipsoid)
 u.setIntegrator(vvEllipsoid, pvEllipsoid)

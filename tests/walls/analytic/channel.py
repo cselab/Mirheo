@@ -18,13 +18,13 @@ force = (1.0, 0, 0)
 density = 4
 rc = 1.0
 
-u = ymr.ymero(ranks, domain, debug_level=3, log_filename='stdout')
+u = ymr.ymero(ranks, domain, dt, debug_level=3, log_filename='stdout')
 
 pv = ymr.ParticleVectors.ParticleVector('pv', mass = 1)
 ic = ymr.InitialConditions.Uniform(density=density)
 u.registerParticleVector(pv=pv, ic=ic)
     
-dpd = ymr.Interactions.DPD('dpd', rc=rc, a=10.0, gamma=50.0, kbt=0.01, dt=dt, power=0.5)
+dpd = ymr.Interactions.DPD('dpd', rc=rc, a=10.0, gamma=50.0, kbt=0.01, power=0.5)
 u.registerInteraction(dpd)
 
 if   args.type == "cylinderPipe":
@@ -38,7 +38,7 @@ elif args.type == "squarePipe":
 
 u.registerWall(wall, 0)
 
-vv = ymr.Integrators.VelocityVerlet("vv", dt)
+vv = ymr.Integrators.VelocityVerlet("vv")
 frozen_wall = u.makeFrozenWallParticles(pvName="wall", walls=[wall], interaction=dpd, integrator=vv, density=density)
 
 u.setWall(wall, pv)

@@ -11,7 +11,7 @@ args = parser.parse_args()
 ranks  = (1, 1, 1)
 domain = (12, 8, 10)
 
-u = ymr.ymero(ranks, domain, debug_level=8, log_filename='log')
+u = ymr.ymero(ranks, domain, dt=0, debug_level=8, log_filename='log')
 
 m = trimesh.load(args.mesh);
 mesh = ymr.ParticleVectors.MembraneMesh(m.vertices.tolist(), m.faces.tolist())

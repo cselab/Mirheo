@@ -24,7 +24,7 @@ if args.substep:
 ranks  = (1, 1, 1)
 domain = (12, 8, 10)
 
-u = ymr.ymero(ranks, domain, debug_level=3, log_filename='log')
+u = ymr.ymero(ranks, domain, dt, debug_level=3, log_filename='log')
 
 pv_flu = ymr.ParticleVectors.ParticleVector('solvent', mass = 1)
 ic_flu = ymr.InitialConditions.Uniform(density=8)
@@ -36,7 +36,7 @@ pv_rbc   = ymr.ParticleVectors.MembraneVector("rbc", mass=1.0, mesh=mesh_rbc)
 ic_rbc   = ymr.InitialConditions.Membrane([[8.0, 4.0, 5.0,   1.0, 0.0, 0.0, 0.0]])
 u.registerParticleVector(pv_rbc, ic_rbc)
 
-dpd = ymr.Interactions.DPD('dpd', 1.0, a=10.0, gamma=10.0, kbt=0.01, dt=dt, power=0.25)
+dpd = ymr.Interactions.DPD('dpd', 1.0, a=10.0, gamma=10.0, kbt=0.01, power=0.25)
 
 prm_rbc         = ymr.Interactions.MembraneParameters()
 prm_bending_rbc = ymr.Interactions.KantorBendingParameters()
@@ -44,7 +44,6 @@ prm_bending_rbc = ymr.Interactions.KantorBendingParameters()
 if prm_rbc:
     set_lina(1.0, prm_rbc)
     prm_rbc.rnd = False
-    prm_rbc.dt = dt
 if prm_bending_rbc:
     set_lina_bending(1.0, prm_bending_rbc)
     
@@ -53,11 +52,11 @@ int_rbc = ymr.Interactions.MembraneForcesKantor("int_rbc", prm_rbc, prm_bending_
 u.registerInteraction(dpd)
 
 if args.substep:
-    integrator = ymr.Integrators.SubStepMembrane('substep_membrane', dt, substeps, int_rbc)
+    integrator = ymr.Integrators.SubStepMembrane('substep_membrane', substeps, int_rbc)
     u.registerIntegrator(integrator)
     u.setIntegrator(integrator, pv_rbc)
 else:
-    vv = ymr.Integrators.VelocityVerlet('vv', dt)
+    vv = ymr.Integrators.VelocityVerlet('vv')
     u.registerInteraction(int_rbc)
     u.setInteraction(int_rbc, pv_rbc, pv_rbc)
     u.registerIntegrator(vv)
@@ -68,7 +67,7 @@ u.setInteraction(dpd, pv_flu, pv_rbc)
 
 
 
-vv_dp = ymr.Integrators.VelocityVerlet_withPeriodicForce('vv_dp', dt=dt, force=a, direction='x')
+vv_dp = ymr.Integrators.VelocityVerlet_withPeriodicForce('vv_dp', force=a, direction='x')
 u.registerIntegrator(vv_dp)
 u.setIntegrator(vv_dp, pv_flu)
 
