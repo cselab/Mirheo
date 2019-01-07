@@ -18,7 +18,7 @@
  * @param m RBC membrane mesh
  * @return parameters to be passed to GPU kernels
  */
-static GPU_RBCparameters setParams(MembraneParameters& p, Mesh *m, float t)
+static GPU_RBCparameters setParams(MembraneParameters& p, Mesh *m, float dt, float t)
 {
     GPU_RBCparameters devP;
 
@@ -45,7 +45,7 @@ static GPU_RBCparameters setParams(MembraneParameters& p, Mesh *m, float t)
         std::mt19937 gen(v);
         std::uniform_real_distribution<float> udistr(0.001, 1);
         devP.seed = udistr(gen);
-        devP.sigma_rnd = sqrt(2 * p.kbT * p.gammaC / p.dt);
+        devP.sigma_rnd = sqrt(2 * p.kbT * p.gammaC / dt);
     }
     
     return devP;
@@ -117,7 +117,7 @@ void InteractionMembrane::regular(ParticleVector* pv1, ParticleVector* pv2, Cell
 
     const int blocks = getNblocks(view.size, nthreads);
 
-    auto devParams = setParams(currentParams, ov->mesh.get(), t);
+    auto devParams = setParams(currentParams, ov->mesh.get(), state->dt, t);
     
     if (stressFree)
         SAFE_KERNEL_LAUNCH(

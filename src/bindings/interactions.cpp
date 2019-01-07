@@ -144,8 +144,7 @@ void exportInteractions(py::module& m)
         .def_readwrite("mpow",      &MembraneParameters::mpow)
         .def_readwrite("totArea",   &MembraneParameters::totArea0)
         .def_readwrite("totVolume", &MembraneParameters::totVolume0)
-        .def_readwrite("rnd",       &MembraneParameters::fluctuationForces)
-        .def_readwrite("dt",        &MembraneParameters::dt);
+        .def_readwrite("rnd",       &MembraneParameters::fluctuationForces);
         
     py::handlers_class<InteractionMembrane> pyMembraneForces(m, "MembraneForces", pyInt, R"(
         Abstract class for membrane interactions.

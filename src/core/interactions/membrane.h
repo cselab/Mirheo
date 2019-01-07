@@ -9,9 +9,7 @@ class MembraneVector;
 struct MembraneParameters
 {
     float x0, ks, ka, kd, kv, gammaC, gammaT, kbT, mpow, totArea0, totVolume0;
-
     bool fluctuationForces;
-    float dt;
 };
 
 /**
