@@ -23,18 +23,22 @@ __all__ = ["version", "tools"]
 # cleanup of the simulation
 __coordinator = None
 
-# Wrap the creation of all the simulation handlers
-# and particle vectors.
+
+# Wrap the __init__ or __new__ method of all the simulation handlers and particle vectors
 # If we are not a compute task, just return None
-def decorate_none_if_postprocess(f):
+# pass the state if needState is True
+def decorate_with_state(f, needState = True):
     @functools.wraps(f)
-    def wrapper(*args, **kwargs):
+    def wrapper(self, *args, **kwargs):
         global __coordinator
         if __coordinator is None:
             raise Exception('No coordinator created yet!')
         
         if __coordinator().isComputeTask():
-            return f(*args, **kwargs)
+            if needState:
+                return f(self, __coordinator().getState(), *args, **kwargs)
+            else:
+                return f(self, *args, **kwargs)
         else:
             return None
     return wrapper
@@ -66,16 +70,20 @@ def decorate_register_plugins(f):
 
 # Wrap the creation of plugins
 # Pass the compute task status into the creation function
+# Pass the common global state associated to the coordinator
 def decorate_plugins(f):
     @functools.wraps(f)
     def wrapper(*args, **kwargs):
         global __coordinator
         if __coordinator is None:
             raise Exception('No coordinator created yet!')
-        
-        return f(__coordinator().isComputeTask(), *args, **kwargs)
+
+        return f(__coordinator().isComputeTask(),
+                 __coordinator().getState(),
+                 *args, **kwargs)
 
     return wrapper
+
 
 # Make MPI abort the program if an exception occurs
 # https://groups.google.com/forum/#!topic/mpi4py/RovYzJ8qkbc
@@ -92,7 +100,9 @@ def __init__():
     
     # Wrap everything except for plugins and non-GPU stuff
     # Make the __init__ functions return None if we are not a compute task
-    nonGPU_names = ['MembraneParameters']
+    nonGPU_names  = ['MembraneParameters']
+    needing_state = ['Plugins', 'Integrators', 'ParticleVectors',
+                     'Interactions', 'BelongingCheckers', 'Bouncers', 'Walls']
     
     classes = {}
     submodules =  inspect.getmembers(sys.modules[__name__],
@@ -105,9 +115,12 @@ def __init__():
 
     for module in classes.keys():
         if module != 'Plugins':
+            need_state = module in needing_state
             for cls in classes[module]:
                 if cls[0] not in nonGPU_names:
-                    setattr(cls[1], '__new__', decorate_none_if_postprocess(cls[1].__new__))
+                    setattr(cls[1], '__init__', decorate_with_state(cls[1].__init__, need_state))
+                    setattr(cls[1], '__new__', decorate_with_state(cls[1].__new__, need_state))
+                    #getattr(cls[1], '__init__').__doc__ = re.sub('state: YmrState, ', '', getattr(cls[1], '__init__').__doc__)
 
     # Now wrap plugins creation
     # Also change the names of the function
