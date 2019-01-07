@@ -79,7 +79,7 @@ class DPD(Interaction):
     
     """
     def __init__():
-        r"""__init__(state: YmrState, name: str, rc: float, a: float, gamma: float, kbt: float, dt: float, power: float) -> None
+        r"""__init__(state: YmrState, name: str, rc: float, a: float, gamma: float, kbt: float, power: float) -> None
 
   
             Args:
@@ -88,7 +88,6 @@ class DPD(Interaction):
                 a: :math:`a`
                 gamma: :math:`\gamma`
                 kbt: :math:`k_B T`
-                dt: time-step, that for consistency has to be the same as the integration time-step for the corresponding particle vectors
                 power: :math:`p` in the weight function
     
 
@@ -96,7 +95,7 @@ class DPD(Interaction):
         pass
 
     def setSpecificPair():
-        r"""setSpecificPair(pv1: ParticleVectors.ParticleVector, pv2: ParticleVectors.ParticleVector, a: float = inf, gamma: float = inf, kbt: float = inf, dt: float = inf, power: float = inf) -> None
+        r"""setSpecificPair(pv1: ParticleVectors.ParticleVector, pv2: ParticleVectors.ParticleVector, a: float = inf, gamma: float = inf, kbt: float = inf, power: float = inf) -> None
 
 
             Override some of the interaction parameters for a specific pair of Particle Vectors
@@ -261,7 +260,7 @@ class DPDWithStress(DPD):
     
     """
     def __init__():
-        r"""__init__(state: YmrState, name: str, stressName: str, rc: float, a: float, gamma: float, kbt: float, dt: float, power: float, stressPeriod: float) -> None
+        r"""__init__(state: YmrState, name: str, stressName: str, rc: float, a: float, gamma: float, kbt: float, power: float, stressPeriod: float) -> None
 
   
             Args:
@@ -271,7 +270,6 @@ class DPDWithStress(DPD):
                 a: :math:`a`
                 gamma: :math:`\gamma`
                 kbt: :math:`k_B T`
-                dt: time-step, that for consistency has to be the same as the integration time-step for the corresponding particle vectors
                 power: :math:`p` in the weight function
                 stressPeriod: compute the stresses every this period (in simulation time units)
     
@@ -280,7 +278,7 @@ class DPDWithStress(DPD):
         pass
 
     def setSpecificPair():
-        r"""setSpecificPair(pv1: ParticleVectors.ParticleVector, pv2: ParticleVectors.ParticleVector, a: float = inf, gamma: float = inf, kbt: float = inf, dt: float = inf, power: float = inf) -> None
+        r"""setSpecificPair(pv1: ParticleVectors.ParticleVector, pv2: ParticleVectors.ParticleVector, a: float = inf, gamma: float = inf, kbt: float = inf, power: float = inf) -> None
 
 
             Override some of the interaction parameters for a specific pair of Particle Vectors
