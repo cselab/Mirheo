@@ -109,9 +109,11 @@ static void computeError(int n, const Particle *parts1, const Particle *parts2,
 static void testVelocityVerlet(float dt, float mass, int nparticles, int nsteps, double tolerance)
 {
     double l2, linf;
+    DomainInfo domain; // dummy domain
+    YmrState state(domain, dt);
     
-    auto vv = IntegratorFactory::createVV("vv", dt);
-    ParticleVector pv("pv", mass, nparticles);
+    auto vv = IntegratorFactory::createVV(&state, "vv");
+    ParticleVector pv(&state, "pv", mass, nparticles);
 
     std::vector<Particle> hostParticles;
     std::vector<Force> hostForces;

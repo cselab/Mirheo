@@ -23,12 +23,14 @@ void test_domain(float3 length, float rc, float density)
     bool success = true;
     float3 domainStart = -length / 2.0f;
     DomainInfo domain{length, {0,0,0}, length};
+    float dt = 0; // dummy dt
+    YmrState state(domain, dt);
 
-    ParticleVector dpds("dpd", 1.0f);
+    ParticleVector dpds(&state, "dpd", 1.0f);
     CellList *cells = new PrimaryCellList(&dpds, rc, length);
 
     UniformIC ic(density);
-    ic.exec(MPI_COMM_WORLD, &dpds, domain, 0);
+    ic.exec(MPI_COMM_WORLD, &dpds, 0);
 
     const int np = dpds.local()->size();
     HostBuffer<Particle> initial(np);

@@ -190,7 +190,15 @@ void execute(float3 length, int niters, double& l2, double& linf)
     const float rc = 1.0f;
     const float mass = 1.0f;
 
-    ParticleVector pv("pv", mass);
+    DomainInfo domainInfo;
+    domainInfo.localSize = length;
+    domainInfo.globalStart.x = -0.5f * length.x;
+    domainInfo.globalStart.y = -0.5f * length.y;
+    domainInfo.globalStart.z = -0.5f * length.z;
+
+    YmrState state(domainInfo, dt);
+    
+    ParticleVector pv(&state, "pv", mass);
     PrimaryCellList cells(&pv, rc, length);
     const int3 ncells = cells.ncells;
 
@@ -236,9 +244,9 @@ void execute(float3 length, int niters, double& l2, double& linf)
     redistributor->attach(&pv, &cells);
     SingleNodeEngine redistEngine(std::move(redistributor));
 
-    InteractionDPD dpd("dpd", rc, adpd, gammadpd, kBT, dt, powerdpd);
+    InteractionDPD dpd(&state, "dpd", rc, adpd, gammadpd, kBT, dt, powerdpd);
 
-    auto integrator = IntegratorFactory::createVV("vv", dt);
+    auto integrator = IntegratorFactory::createVV(&state, "vv");
     
     CUDA_Check( cudaStreamSynchronize(defStream) );
 
@@ -284,12 +292,6 @@ void execute(float3 length, int niters, double& l2, double& linf)
     HostBuffer<Particle> buffer(np);
     HostBuffer<Force> accs(np);
     HostBuffer<int>   cellsStartSize(totcells+1), cellsSize(totcells+1);
-
-    DomainInfo domainInfo;
-    domainInfo.localSize = length;
-    domainInfo.globalStart.x = -0.5f * length.x;
-    domainInfo.globalStart.y = -0.5f * length.y;
-    domainInfo.globalStart.z = -0.5f * length.z;
     
     printf("CPU execution\n");
     

@@ -46,15 +46,18 @@ void makeCells(const Particle* __restrict__ input, Particle* __restrict__ output
 void execute(MPI_Comm comm, float3 length)
 {
     DomainInfo domain{length, {0,0,0}, length};
+    const float dt = 0.002;
+    
+    YmrState state(domain, dt);
 
     const float rc = 1.0f;
-    ParticleVector dpds1("dpd1", 1.0f);
-    ParticleVector dpds2("dpd2", 1.0f);
+    ParticleVector dpds1(&state, "dpd1", 1.0f);
+    ParticleVector dpds2(&state, "dpd2", 1.0f);
 
     UniformIC ic1(4.5);
     UniformIC ic2(3.5);
-    ic1.exec(comm, &dpds1, domain, 0);
-    ic2.exec(comm, &dpds2, domain, 0);
+    ic1.exec(comm, &dpds1, 0);
+    ic2.exec(comm, &dpds2, 0);
 
     cudaDeviceSynchronize();
 
@@ -93,8 +96,7 @@ void execute(MPI_Comm comm, float3 length)
             dpds2.local()->coosvels[i - dpds1.local()->size()];
     }
 
-    const float k = 1;
-    const float dt = 0.002;
+    const float k = 1;    
     const float kbT = 1.0f;
     const float gammadpd = 20;
     const float sigmadpd = sqrt(2 * gammadpd * kbT);
@@ -102,7 +104,7 @@ void execute(MPI_Comm comm, float3 length)
     const float adpd = 50;
 
     Pairwise_Norandom_DPD dpdInt(rc, adpd, gammadpd, kbT, dt, k);
-    Interaction *inter = new InteractionPair<Pairwise_Norandom_DPD>("dpd", rc, dpdInt);
+    Interaction *inter = new InteractionPair<Pairwise_Norandom_DPD>(&state, "dpd", rc, dpdInt);
 
     PinnedBuffer<int> counter(1);
 
