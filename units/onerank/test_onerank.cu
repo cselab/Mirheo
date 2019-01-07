@@ -244,7 +244,7 @@ void execute(float3 length, int niters, double& l2, double& linf)
     redistributor->attach(&pv, &cells);
     SingleNodeEngine redistEngine(std::move(redistributor));
 
-    InteractionDPD dpd(&state, "dpd", rc, adpd, gammadpd, kBT, dt, powerdpd);
+    InteractionDPD dpd(&state, "dpd", rc, adpd, gammadpd, kBT, powerdpd);
 
     auto integrator = IntegratorFactory::createVV(&state, "vv");
     
