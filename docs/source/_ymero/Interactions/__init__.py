@@ -79,7 +79,7 @@ class DPD(Interaction):
     
     """
     def __init__():
-        r"""__init__(state: YmrState, name: str, rc: float, a: float, gamma: float, kbt: float, power: float) -> None
+        r"""__init__(name: str, rc: float, a: float, gamma: float, kbt: float, power: float) -> None
 
   
             Args:
@@ -116,7 +116,7 @@ class LJ(Interaction):
     
     """
     def __init__():
-        r"""__init__(state: YmrState, name: str, rc: float, epsilon: float, sigma: float, max_force: float = 1000.0, object_aware: bool) -> None
+        r"""__init__(name: str, rc: float, epsilon: float, sigma: float, max_force: float = 1000.0, object_aware: bool) -> None
 
 
             Args:
@@ -201,7 +201,7 @@ class MembraneForcesJuelicher(Interaction):
     
     """
     def __init__():
-        r"""__init__(state: YmrState, name: str, params: Interactions.MembraneParameters, params_bending: Interactions.JuelicherBendingParameters, stressFree: bool, grow_until: float = 0) -> None
+        r"""__init__(name: str, params: Interactions.MembraneParameters, params_bending: Interactions.JuelicherBendingParameters, stressFree: bool, grow_until: float = 0) -> None
 
  
              Args:
@@ -238,7 +238,7 @@ class MembraneForcesKantor(Interaction):
     
     """
     def __init__():
-        r"""__init__(state: YmrState, name: str, params: Interactions.MembraneParameters, params_bending: Interactions.KantorBendingParameters, stressFree: bool, grow_until: float = 0) -> None
+        r"""__init__(name: str, params: Interactions.MembraneParameters, params_bending: Interactions.KantorBendingParameters, stressFree: bool, grow_until: float = 0) -> None
 
  
              Args:
@@ -260,7 +260,7 @@ class DPDWithStress(DPD):
     
     """
     def __init__():
-        r"""__init__(state: YmrState, name: str, stressName: str, rc: float, a: float, gamma: float, kbt: float, power: float, stressPeriod: float) -> None
+        r"""__init__(name: str, stressName: str, rc: float, a: float, gamma: float, kbt: float, power: float, stressPeriod: float) -> None
 
   
             Args:
@@ -293,7 +293,7 @@ class LJWithStress(LJ):
     
     """
     def __init__():
-        r"""__init__(state: YmrState, name: str, stressName: str, rc: float, epsilon: float, sigma: float, max_force: float = 1000.0, object_aware: bool, stressPeriod: float) -> None
+        r"""__init__(name: str, stressName: str, rc: float, epsilon: float, sigma: float, max_force: float = 1000.0, object_aware: bool, stressPeriod: float) -> None
 
 
             Args:

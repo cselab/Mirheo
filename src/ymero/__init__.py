@@ -125,7 +125,7 @@ def __init__():
                 if [module, cls[0]] not in nonGPU_names:
                     setattr(cls[1], '__init__', decorate_with_state(cls[1].__init__, need_state))
                     setattr(cls[1], '__new__', decorate_with_state(cls[1].__new__, need_state))
-                    getattr(cls[1], '__init__').__doc__ = re.sub('state: YmrState, ', '', getattr(cls[1], '__init__').__doc__)
+                    getattr(cls[1], '__init__').__doc__ = re.sub('state: libymero.YmrState, ', '', getattr(cls[1], '__init__').__doc__)
 
     # Now wrap plugins creation
     # Also change the names of the function

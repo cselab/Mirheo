@@ -15,7 +15,7 @@ class Oscillate(Integrator):
     
     """
     def __init__():
-        r"""__init__(state: YmrState, name: str, velocity: Tuple[float, float, float], period: float) -> None
+        r"""__init__(name: str, velocity: Tuple[float, float, float], period: float) -> None
 
 
                 Args:
@@ -34,7 +34,7 @@ class RigidVelocityVerlet(Integrator):
     
     """
     def __init__():
-        r"""__init__(state: YmrState, name: str) -> None
+        r"""__init__(name: str) -> None
 
 
                 Args:
@@ -50,7 +50,7 @@ class Rotate(Integrator):
     
     """
     def __init__():
-        r"""__init__(state: YmrState, name: str, center: Tuple[float, float, float], omega: Tuple[float, float, float]) -> None
+        r"""__init__(name: str, center: Tuple[float, float, float], omega: Tuple[float, float, float]) -> None
 
 
                 Args:
@@ -71,7 +71,7 @@ class SubStepMembrane(Integrator):
         
     """
     def __init__():
-        r"""__init__(state: YmrState, name: str, substeps: int, fastForces: Interactions.Interaction) -> None
+        r"""__init__(name: str, substeps: int, fastForces: Interactions.Interaction) -> None
 
 
                 Args:
@@ -89,7 +89,7 @@ class Translate(Integrator):
     
     """
     def __init__():
-        r"""__init__(state: YmrState, name: str, velocity: Tuple[float, float, float]) -> None
+        r"""__init__(name: str, velocity: Tuple[float, float, float]) -> None
 
 
                 Args:
@@ -115,7 +115,7 @@ class VelocityVerlet(Integrator):
         
     """
     def __init__():
-        r"""__init__(state: YmrState, name: str) -> None
+        r"""__init__(name: str) -> None
 
 
                 Args:
@@ -135,7 +135,7 @@ class VelocityVerlet_withConstForce(Integrator):
         
     """
     def __init__():
-        r"""__init__(state: YmrState, name: str, force: Tuple[float, float, float]) -> None
+        r"""__init__(name: str, force: Tuple[float, float, float]) -> None
 
 
 
@@ -156,7 +156,7 @@ class VelocityVerlet_withPeriodicForce(Integrator):
         
     """
     def __init__():
-        r"""__init__(state: YmrState, name: str, force: float, direction: str) -> None
+        r"""__init__(name: str, force: float, direction: str) -> None
 
                 
                 Args:

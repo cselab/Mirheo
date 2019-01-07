@@ -16,7 +16,7 @@ class Ellipsoid(Bouncer):
     
     """
     def __init__():
-        r"""__init__(state: YmrState, name: str) -> None
+        r"""__init__(name: str) -> None
 
 
             Args:
@@ -41,7 +41,7 @@ class Mesh(Bouncer):
     
     """
     def __init__():
-        r"""__init__(state: YmrState, name: str, kbt: float = 0.5) -> None
+        r"""__init__(name: str, kbt: float = 0.5) -> None
 
 
             Args:

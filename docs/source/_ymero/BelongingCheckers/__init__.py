@@ -14,7 +14,7 @@ class Ellipsoid(BelongingChecker):
     
     """
     def __init__():
-        r"""__init__(state: YmrState, name: str) -> None
+        r"""__init__(name: str) -> None
 
 
             Args:
@@ -34,7 +34,7 @@ class Mesh(BelongingChecker):
     
     """
     def __init__():
-        r"""__init__(state: YmrState, name: str) -> None
+        r"""__init__(name: str) -> None
 
 
             Args:
