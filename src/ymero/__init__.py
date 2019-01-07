@@ -100,7 +100,12 @@ def __init__():
     
     # Wrap everything except for plugins and non-GPU stuff
     # Make the __init__ functions return None if we are not a compute task
-    nonGPU_names  = ['MembraneParameters']
+    nonGPU_names  = [['Interactions', 'MembraneParameters'],
+                     ['Interactions', 'KantorBendingParameters'],
+                     ['Interactions', 'JuelicherBendingParameters'],
+                     ['ParticleVectors', 'Mesh'],
+                     ['ParticleVectors', 'MembraneMesh']]
+    
     needing_state = ['Plugins', 'Integrators', 'ParticleVectors',
                      'Interactions', 'BelongingCheckers', 'Bouncers', 'Walls']
     
@@ -117,10 +122,10 @@ def __init__():
         if module != 'Plugins':
             need_state = module in needing_state
             for cls in classes[module]:
-                if cls[0] not in nonGPU_names:
+                if [module, cls[0]] not in nonGPU_names:
                     setattr(cls[1], '__init__', decorate_with_state(cls[1].__init__, need_state))
                     setattr(cls[1], '__new__', decorate_with_state(cls[1].__new__, need_state))
-                    #getattr(cls[1], '__init__').__doc__ = re.sub('state: YmrState, ', '', getattr(cls[1], '__init__').__doc__)
+                    getattr(cls[1], '__init__').__doc__ = re.sub('state: YmrState, ', '', getattr(cls[1], '__init__').__doc__)
 
     # Now wrap plugins creation
     # Also change the names of the function
