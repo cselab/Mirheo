@@ -43,22 +43,21 @@ void exportInteractions(py::module& m)
             J. Chem. Phys., 107(11), 4423–4435. `doi <https://doi.org/10.1063/1.474784>`_
     )");
 
-    pyIntDPD.def(py::init<const YmrState*, std::string, float, float, float, float, float, float>(),
-                 "state"_a, "name"_a, "rc"_a, "a"_a, "gamma"_a, "kbt"_a, "dt"_a, "power"_a, R"(  
+    pyIntDPD.def(py::init<const YmrState*, std::string, float, float, float, float, float>(),
+                 "state"_a, "name"_a, "rc"_a, "a"_a, "gamma"_a, "kbt"_a, "power"_a, R"(  
             Args:
             name: name of the interaction
                 rc: interaction cut-off (no forces between particles further than **rc** apart)
                 a: :math:`a`
                 gamma: :math:`\gamma`
                 kbt: :math:`k_B T`
-                dt: time-step, that for consistency has to be the same as the integration time-step for the corresponding particle vectors
                 power: :math:`p` in the weight function
     )");
 
     pyIntDPD.def("setSpecificPair", &InteractionDPD::setSpecificPair, 
          "pv1"_a, "pv2"_a,
          "a"_a=InteractionDPD::Default, "gamma"_a=InteractionDPD::Default,
-         "kbt"_a=InteractionDPD::Default, "dt"_a=InteractionDPD::Default, "power"_a=InteractionDPD::Default,
+         "kbt"_a=InteractionDPD::Default, "power"_a=InteractionDPD::Default,
          R"(
             Override some of the interaction parameters for a specific pair of Particle Vectors
          )");
@@ -67,8 +66,8 @@ void exportInteractions(py::module& m)
         wrapper of :any:`DPD` with, in addition, stress computation
     )");
 
-    pyIntDPDWithStress.def(py::init<const YmrState*, std::string, std::string, float, float, float, float, float, float, float>(),
-                           "state"_a, "name"_a, "stressName"_a, "rc"_a, "a"_a, "gamma"_a, "kbt"_a, "dt"_a, "power"_a, "stressPeriod"_a, R"(  
+    pyIntDPDWithStress.def(py::init<const YmrState*, std::string, std::string, float, float, float, float, float, float>(),
+                           "state"_a, "name"_a, "stressName"_a, "rc"_a, "a"_a, "gamma"_a, "kbt"_a, "power"_a, "stressPeriod"_a, R"(  
             Args:
                 name: name of the interaction
                 stressName: name of the stress entry
@@ -76,7 +75,6 @@ void exportInteractions(py::module& m)
                 a: :math:`a`
                 gamma: :math:`\gamma`
                 kbt: :math:`k_B T`
-                dt: time-step, that for consistency has to be the same as the integration time-step for the corresponding particle vectors
                 power: :math:`p` in the weight function
                 stressPeriod: compute the stresses every this period (in simulation time units)
     )");
