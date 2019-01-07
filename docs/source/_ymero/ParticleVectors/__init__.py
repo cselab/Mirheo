@@ -56,7 +56,7 @@ class ParticleVector:
     
     """
     def __init__():
-        r"""__init__(name: str, mass: float) -> None
+        r"""__init__(state: YmrState, name: str, mass: float) -> None
 
 
             Args:
@@ -201,6 +201,11 @@ class ObjectVector(ParticleVector):
         Basic Object Vector
     
     """
+    def __init__():
+        r"""Initialize self.  See help(type(self)) for accurate signature.
+        """
+        pass
+
     def getCoordinates():
         r"""getCoordinates(self: ParticleVectors.ParticleVector) -> List[List[float[3]]]
 
@@ -285,7 +290,7 @@ class MembraneVector(ObjectVector):
     
     """
     def __init__():
-        r"""__init__(name: str, mass: float, mesh: ParticleVectors.MembraneMesh) -> None
+        r"""__init__(state: YmrState, name: str, mass: float, mesh: ParticleVectors.MembraneMesh) -> None
 
 
             Args:
@@ -381,7 +386,7 @@ class RigidObjectVector(ObjectVector):
     
     """
     def __init__():
-        r"""__init__(name: str, mass: float, inertia: Tuple[float, float, float], object_size: int, mesh: ParticleVectors.Mesh) -> None
+        r"""__init__(state: YmrState, name: str, mass: float, inertia: Tuple[float, float, float], object_size: int, mesh: ParticleVectors.Mesh) -> None
 
  
                 Args:
@@ -482,7 +487,7 @@ class RigidEllipsoidVector(RigidObjectVector):
         r"""__init__(*args, **kwargs)
 Overloaded function.
 
-1. __init__(name: str, mass: float, object_size: int, semi_axes: Tuple[float, float, float]) -> None
+1. __init__(state: YmrState, name: str, mass: float, object_size: int, semi_axes: Tuple[float, float, float]) -> None
 
 
                 Args:
@@ -492,7 +497,7 @@ Overloaded function.
                     semi_axes: ellipsoid principal semi-axes
         
 
-2. __init__(name: str, mass: float, object_size: int, semi_axes: Tuple[float, float, float], mesh: ParticleVectors.Mesh) -> None
+2. __init__(state: YmrState, name: str, mass: float, object_size: int, semi_axes: Tuple[float, float, float], mesh: ParticleVectors.Mesh) -> None
 
 
                 Args:

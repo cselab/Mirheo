@@ -3,6 +3,11 @@ class Integrator:
         Base integration class
     
     """
+    def __init__():
+        r"""Initialize self.  See help(type(self)) for accurate signature.
+        """
+        pass
+
 class Oscillate(Integrator):
     r"""
         Move particles with the periodically changing velocity
@@ -10,12 +15,11 @@ class Oscillate(Integrator):
     
     """
     def __init__():
-        r"""__init__(name: str, dt: float, velocity: Tuple[float, float, float], period: float) -> None
+        r"""__init__(state: YmrState, name: str, velocity: Tuple[float, float, float], period: float) -> None
 
 
                 Args:
                     name: name of the integrator
-                    dt:   integration time-step
                     velocity: :math:`\mathbf{u}_0`
                     period: oscillation period :math:`T`
             
@@ -30,12 +34,11 @@ class RigidVelocityVerlet(Integrator):
     
     """
     def __init__():
-        r"""__init__(name: str, dt: float) -> None
+        r"""__init__(state: YmrState, name: str) -> None
 
 
                 Args:
                     name: name of the integrator
-                    dt:   integration time-step
             
 
         """
@@ -47,12 +50,11 @@ class Rotate(Integrator):
     
     """
     def __init__():
-        r"""__init__(name: str, dt: float, center: Tuple[float, float, float], omega: Tuple[float, float, float]) -> None
+        r"""__init__(state: YmrState, name: str, center: Tuple[float, float, float], omega: Tuple[float, float, float]) -> None
 
 
                 Args:
                     name: name of the integrator
-                    dt:   integration time-step
                     center: point around which to rotate
                     omega: angular velocity :math:`\mathbf{\Omega}`
             
@@ -69,12 +71,11 @@ class SubStepMembrane(Integrator):
         
     """
     def __init__():
-        r"""__init__(name: str, dt: float, substeps: int, fastForces: Interactions.Interaction) -> None
+        r"""__init__(state: YmrState, name: str, substeps: int, fastForces: Interactions.Interaction) -> None
 
 
                 Args:
                     name: name of the integrator
-                    dt:   integration time-step
                     substeps: number of sub steps
                     fastForces: the fast interaction module. Only accepts `InteractionMembrane`!
             
@@ -88,12 +89,11 @@ class Translate(Integrator):
     
     """
     def __init__():
-        r"""__init__(name: str, dt: float, velocity: Tuple[float, float, float]) -> None
+        r"""__init__(state: YmrState, name: str, velocity: Tuple[float, float, float]) -> None
 
 
                 Args:
                     name: name of the integrator
-                    dt:   integration time-step
                     velocity: translational velocity :math:`\mathbf{\Omega}`
             
 
@@ -115,12 +115,11 @@ class VelocityVerlet(Integrator):
         
     """
     def __init__():
-        r"""__init__(name: str, dt: float) -> None
+        r"""__init__(state: YmrState, name: str) -> None
 
 
                 Args:
                     name: name of the integrator
-                    dt:   integration time-step
             
 
         """
@@ -136,13 +135,12 @@ class VelocityVerlet_withConstForce(Integrator):
         
     """
     def __init__():
-        r"""__init__(name: str, dt: float, force: Tuple[float, float, float]) -> None
+        r"""__init__(state: YmrState, name: str, force: Tuple[float, float, float]) -> None
 
 
 
                 Args:
                     name: name of the integrator
-                    dt:   integration time-step
                     force: :math:`\mathbf{F}_{extra}`
             
 
@@ -158,12 +156,11 @@ class VelocityVerlet_withPeriodicForce(Integrator):
         
     """
     def __init__():
-        r"""__init__(name: str, dt: float, force: float, direction: str) -> None
+        r"""__init__(state: YmrState, name: str, force: float, direction: str) -> None
 
                 
                 Args:
                     name: name of the integrator
-                    dt:   integration time-step
                     force: force magnitude, :math:`F_{Poiseuille}`
                     direction: Valid values: \"x\", \"y\", \"z\". Defines the direction of the pushing force
                                if direction is \"x\", the sign changes along \"y\".

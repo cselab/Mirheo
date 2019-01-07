@@ -1,3 +1,8 @@
+class YmrState:
+    r"""
+        state of the simulation shared by all simulation objects.
+    
+    """
 class ymero:
     r"""
         Main coordination class, should only be one instance at a time
@@ -7,7 +12,7 @@ class ymero:
         r"""__init__(*args, **kwargs)
 Overloaded function.
 
-1. __init__(nranks: Tuple[int, int, int], domain: Tuple[float, float, float], log_filename: str = 'log', debug_level: int = 3, checkpoint_every: int = 0, restart_folder: str = 'restart/', cuda_aware_mpi: bool = False, no_splash: bool = False) -> None
+1. __init__(nranks: Tuple[int, int, int], domain: Tuple[float, float, float], dt: float, log_filename: str = 'log', debug_level: int = 3, checkpoint_every: int = 0, restart_folder: str = 'restart/', cuda_aware_mpi: bool = False, no_splash: bool = False) -> None
 
 
             Args:
@@ -18,6 +23,8 @@ Overloaded function.
                     The domain will be split in equal chunks between the MPI ranks.
                     The largest chunk size that a single MPI rank can have depends on the total number of particles,
                     handlers and hardware, and is typically about :math:`120^3 - 200^3`.
+                dt:
+                    timestep of the simulation
                 log_filename:
                     prefix of the log files that will be created. 
                     Logging is implemented in the form of one file per MPI rank, so in the simulation folder NP files with names log_00000.log, log_00001.log, ... will be created, where NP is the total number of MPI ranks. 
@@ -46,7 +53,7 @@ Overloaded function.
                 
         
 
-2. __init__(commPtr: int, nranks: Tuple[int, int, int], domain: Tuple[float, float, float], log_filename: str = 'log', debug_level: int = 3, checkpoint_every: int = 0, restart_folder: str = 'restart/', cuda_aware_mpi: bool = False) -> None
+2. __init__(commPtr: int, nranks: Tuple[int, int, int], domain: Tuple[float, float, float], dt: float, log_filename: str = 'log', debug_level: int = 3, checkpoint_every: int = 0, restart_folder: str = 'restart/', cuda_aware_mpi: bool = False) -> None
 
 
             Args:
@@ -109,6 +116,14 @@ Overloaded function.
                 Args:
                     h: cell-size of the resulting grid                    
         
+
+        """
+        pass
+
+    def getState():
+        r"""getState(self: ymero) -> YmrState
+
+Return ymero state
 
         """
         pass

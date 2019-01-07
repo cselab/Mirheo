@@ -3,6 +3,11 @@ class InitialConditions:
             Base class for initial conditions
         
     """
+    def __init__():
+        r"""Initialize self.  See help(type(self)) for accurate signature.
+        """
+        pass
+
 class FromArray(InitialConditions):
     r"""
         Set particles according to given position and velocity arrays.
