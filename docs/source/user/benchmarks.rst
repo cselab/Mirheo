@@ -91,3 +91,18 @@ Timings are based on the average time-step wall time, measured from the :any:`Si
     :figclass: align-center
 
     weak scaling efficiency for multiple subdomain sizes
+
+
+
+I/O overlap with computation
+============================
+
+Data dump every 100 steps for the periodic Poiseuille flow benchmark.
+Computation timings are based on the average time-step wall time, measured from the :any:`SimulationStats` plugin when no I/O is performed.
+The I/O timings are extracted from the log files.
+The total timings are based on the average time-step wall time when I/O is active.
+
+.. figure:: ../images/datadump.pdf
+    :figclass: align-center
+
+    Overlap of data dump and computation
