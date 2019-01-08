@@ -102,7 +102,7 @@ Computation timings are based on the average time-step wall time, measured from 
 The I/O timings are extracted from the log files.
 The total timings are based on the average time-step wall time when I/O is active.
 
-.. figure:: ../images/datadump.pdf
+.. figure:: ../images/datadump.png
     :figclass: align-center
 
     Overlap of data dump and computation
