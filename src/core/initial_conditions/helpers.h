@@ -1,5 +1,8 @@
 #include <random>
 
+#include <core/pvs/particle_vector.h>
+#include <core/logger.h>
+
 static long genSeed(const MPI_Comm& comm, std::string name)
 {
     int rank;
@@ -54,7 +57,7 @@ static void addUniformParticles(float density, const MPI_Comm& comm, ParticleVec
                     auto part = genParticle(h, i, j, k, domain, udistr, gen);
                     part.i1 = mycount;
 
-                    if (filterOut(part)) continue;
+                    if (filterOut(domain, part)) continue;
 
                     pv->local()->resize(mycount+1,  stream);
                     auto cooPtr = pv->local()->coosvels.hostPtr();

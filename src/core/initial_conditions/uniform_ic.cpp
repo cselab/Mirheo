@@ -1,6 +1,3 @@
-#include <core/pvs/particle_vector.h>
-#include <core/logger.h>
-
 #include "uniform_ic.h"
 #include "helpers.h"
 
@@ -33,5 +30,9 @@ UniformIC::~UniformIC() = default;
  */
 void UniformIC::exec(const MPI_Comm& comm, ParticleVector *pv, cudaStream_t stream)
 {
-    addUniformParticles(density, comm, pv, [](const Particle& part){return false;}, stream);
+    auto filterOutNoParticles = [](const DomainInfo& domain, const Particle& part) {
+        return false;
+    };
+    
+    addUniformParticles(density, comm, pv, filterOutNoParticles, stream);
 }
