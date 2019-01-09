@@ -64,6 +64,8 @@ void VirialPressurePlugin::afterIntegration(cudaStream_t stream)
         VirialPressure::totalPressure,
         getNblocks(n, 128), 128, 0, stream,
         n, stress, localVirialPressure.devPtr() );
+
+    localVirialPressure.downloadFromDevice(stream, ContainersSynch::Synch);
     
     savedTime = currentTime;
     needToSend = true;
