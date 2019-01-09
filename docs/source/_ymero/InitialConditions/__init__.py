@@ -154,4 +154,25 @@ class Uniform(InitialConditions):
         """
         pass
 
+class UniformSphere(InitialConditions):
+    r"""
+        The particles will be generated with the desired number density uniformly at random insideo or outside a given sphere.
+        These IC may be used with any Particle Vector, but only make sense for regular PV.
+            
+    
+    """
+    def __init__():
+        r"""__init__(density: float, center: Tuple[float, float, float], radius: float, inside: bool) -> None
+
+
+            Args:
+                density: target density
+                center: center of the sphere
+                radius: radius of the sphere
+                inside: whether the particles should be inside or outside the sphere
+        
+
+        """
+        pass
+
 
