@@ -16,6 +16,10 @@ UniformSphereIC::UniformSphereIC(float density, float3 center, float radius, boo
     inside(inside)
 {}
 
+UniformSphereIC::UniformSphereIC(float density, PyTypes::float3 center, float radius, bool inside) :
+    UniformSphereIC(density, make_float3(center), radius, inside)
+{}
+
 UniformSphereIC::~UniformSphereIC() = default;
     
 void UniformSphereIC::exec(const MPI_Comm& comm, ParticleVector* pv, cudaStream_t stream)
@@ -24,8 +28,8 @@ void UniformSphereIC::exec(const MPI_Comm& comm, ParticleVector* pv, cudaStream_
         float3 r = domain.local2global(part.r) - center;
         bool is_inside = length(r) <= radius;
         
-        if (inside) return  is_inside;
-        else        return !is_inside;
+        if (inside) return !is_inside;
+        else        return  is_inside;
     };
     
     addUniformParticles(density, comm, pv, filterOutParticles, stream);

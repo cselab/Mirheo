@@ -2,6 +2,8 @@
 
 #include "interface.h"
 
+#include <core/utils/pytypes.h>
+
 /**
  * Initialize particles uniformly inside or outside a sphere with the given density
  */
@@ -15,6 +17,7 @@ private:
 
 public:
     UniformSphereIC(float density, float3 center, float radius, bool inside);
+    UniformSphereIC(float density, PyTypes::float3 center, float radius, bool inside);
     ~UniformSphereIC();
     
     void exec(const MPI_Comm& comm, ParticleVector* pv, cudaStream_t stream) override;    
