@@ -251,5 +251,7 @@ struct __align__(16) Force
     }
 };
 
-
-
+struct Stress
+{
+    float xx, xy, xz, yy, yz, zz;
+};

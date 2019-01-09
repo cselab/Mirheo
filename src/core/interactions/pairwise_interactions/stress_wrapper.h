@@ -6,11 +6,6 @@
 class ParticleVector;
 class CellList;
 
-struct Stress
-{
-    float xx, xy, xz, yy, yz, zz;
-};
-
 template<typename BasicPairwiseForce>
 class PairwiseStressWrapper
 {
