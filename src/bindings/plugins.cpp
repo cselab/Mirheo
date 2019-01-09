@@ -223,6 +223,15 @@ void exportPlugins(py::module& m)
         `keepVelocity = False`, in which case it sets the velocity to a term drawn from a Maxwell distribution.
     )");
 
+    py::handlers_class<VirialPressurePlugin>(m, "VirialPressure", pysim, R"(
+        This plugin compute the virial pressure from a given :any:`ParticleVector`.
+        Note that the stress computation must be enabled with the corresponding stressName.
+    )");
+
+    py::handlers_class<VirialPressureDumper>(m, "VirialPressureDumper", pypost, R"(
+        Postprocess side plugin of :any:`VirialPressure`.
+        Responsible for performing the I/O.
+    )");
     
     py::handlers_class<WallRepulsionPlugin>(m, "WallRepulsion", pysim, R"(
         This plugin will add force on all the particles that are nearby a specified wall. The motivation of this plugin is as follows.
@@ -523,6 +532,18 @@ void exportPlugins(py::module& m)
             dump_every: write files every this many time-steps
             target_vel: the target mean velocity of the particles in the domain of interest
             Kp, Ki, Kd: PID controller coefficients
+    )");
+
+    m.def("__createVirialPressurePlugin", &PluginFactory::createVirialPressurePlugin,
+          "compute_task"_a, "state"_a, "name"_a, "pv"_a, "stress_mame"_a, "dump_every"_a, "path"_a, R"(
+        Create :any:`VirialPressure` plugin
+        
+        Args:
+            name: name of the plugin
+            pv: concerned :class:`ParticleVector`
+            stress_name: the extraData entry name of the stress per particle
+            dump_every: report total pressure every this many time-steps
+            path: the folder name in which the file will be dumped
     )");
 
     m.def("__createWallRepulsion", &PluginFactory::createWallRepulsionPlugin, 

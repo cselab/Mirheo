@@ -140,5 +140,3 @@ void VirialPressureDumper::deserialize(MPI_Status& stat)
     fprintf(fdump, "%g %g\n", curTime, totalPressure);
 }
 
-
-

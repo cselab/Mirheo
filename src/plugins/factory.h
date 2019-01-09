@@ -29,6 +29,7 @@
 #include "stats.h"
 #include "temperaturize.h"
 #include "velocity_control.h"
+#include "virial_pressure.h"
 #include "wall_repulsion.h"
 
 namespace PluginFactory
@@ -309,6 +310,15 @@ namespace PluginFactory
         return { simPl, nullptr };
     }
 
+    static pair_shared< VirialPressurePlugin, VirialPressureDumper >
+    createVirialPressurePlugin(bool computeTask, const YmrState *state, std::string name, ParticleVector *pv,
+                               std::string stressName, int dumpEvery, std::string path)
+    {
+        auto simPl  = computeTask ? std::make_shared<VirialPressurePlugin> (state, name, pv->name, stressName, dumpEvery) : nullptr;
+        auto postPl = computeTask ? nullptr : std::make_shared<VirialPressureDumper> (name, path);
+        return { simPl, postPl };
+    }
+    
     static pair_shared< WallRepulsionPlugin, PostprocessPlugin >
     createWallRepulsionPlugin(bool computeTask, const YmrState *state, std::string name, ParticleVector* pv, Wall* wall,
                               float C, float h, float maxForce)
