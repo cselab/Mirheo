@@ -8,7 +8,9 @@
 class ParticleVector;
 class CellList;
 
+namespace Stats {
 using ReductionType = double;
+}
 
 class SimulationStats : public SimulationPlugin
 {
@@ -17,7 +19,7 @@ private:
     bool needToDump{false};
 
     int nparticles;
-    PinnedBuffer<ReductionType> momentum{3}, energy{1};
+    PinnedBuffer<Stats::ReductionType> momentum{3}, energy{1};
     PinnedBuffer<float> maxvel{1};
     std::vector<char> sendBuffer;
 

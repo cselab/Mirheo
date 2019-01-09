@@ -7,8 +7,9 @@
 #include <core/utils/cuda_common.h>
 #include <core/utils/kernel_launch.h>
 
-
-__global__ void totalMomentumEnergy(PVview view, ReductionType* momentum, ReductionType* energy, float* maxvel)
+namespace Stats
+{
+__global__ void totalMomentumEnergy(PVview view, ReductionType *momentum, ReductionType *energy, float* maxvel)
 {
     const int tid = blockIdx.x * blockDim.x + threadIdx.x;
     const int wid = tid % warpSize;
@@ -34,7 +35,8 @@ __global__ void totalMomentumEnergy(PVview view, ReductionType* momentum, Reduct
         atomicMax((int*)maxvel, __float_as_int(myMaxIvelI));
     }
 }
-
+}
+    
 SimulationStats::SimulationStats(const YmrState *state, std::string name, int fetchEvery) :
     SimulationPlugin(state, name),
     fetchEvery(fetchEvery)
@@ -58,7 +60,7 @@ void SimulationStats::afterIntegration(cudaStream_t stream)
         PVview view(pv, pv->local());
 
         SAFE_KERNEL_LAUNCH(
-                totalMomentumEnergy,
+                Stats::totalMomentumEnergy,
                 getNblocks(view.size, 128), 128, 0, stream,
                 view, momentum.devPtr(), energy.devPtr(), maxvel.devPtr() );
 
@@ -87,9 +89,9 @@ void SimulationStats::serializeAndSend(cudaStream_t stream)
 PostprocessStats::PostprocessStats(std::string name, std::string filename) :
         PostprocessPlugin(name)
 {
-    if (std::is_same<ReductionType, float>::value)
+    if (std::is_same<Stats::ReductionType, float>::value)
         mpiReductionType = MPI_FLOAT;
-    else if (std::is_same<ReductionType, double>::value)
+    else if (std::is_same<Stats::ReductionType, double>::value)
         mpiReductionType = MPI_DOUBLE;
     else
         die("Incompatible type");
@@ -113,7 +115,7 @@ void PostprocessStats::deserialize(MPI_Status& stat)
     int nparticles, currentTimeStep;
     int maxNparticles, minNparticles;
 
-    std::vector<ReductionType> momentum, energy;
+    std::vector<Stats::ReductionType> momentum, energy;
     std::vector<float> maxvel;
 
     SimpleSerializer::deserialize(data, realTime, currentTime, currentTimeStep, nparticles, momentum, energy, maxvel);
@@ -134,7 +136,7 @@ void PostprocessStats::deserialize(MPI_Status& stat)
         momentum[0] /= (double)nparticles;
         momentum[1] /= (double)nparticles;
         momentum[2] /= (double)nparticles;
-        const ReductionType temperature = energy[0] / ( (3/2.0)*nparticles );
+        const Stats::ReductionType temperature = energy[0] / ( (3/2.0)*nparticles );
 
         printf("Stats at timestep %d (simulation time %f):\n", currentTimeStep, currentTime);
         printf("\tOne timestep takes %.2f ms", realTime);
