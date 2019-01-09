@@ -221,6 +221,20 @@ class VelocityControl(SimulationPlugin):
         The force is adapted bvia a PID controller such that the velocity average of the particles matches the target average velocity.
     
     """
+class VirialPressure(SimulationPlugin):
+    r"""
+        This plugin compute the virial pressure from a given :any:`ParticleVector`.
+        Note that the stress computation must be enabled with the corresponding stressName.
+        This returns the total internal virial part only (no temperature term).
+        Note that the volume is not devided in the result, the user is responsible to properly scale the output.
+    
+    """
+class VirialPressureDumper(PostprocessPlugin):
+    r"""
+        Postprocess side plugin of :any:`VirialPressure`.
+        Responsible for performing the I/O.
+    
+    """
 class WallRepulsion(SimulationPlugin):
     r"""
         This plugin will add force on all the particles that are nearby a specified wall. The motivation of this plugin is as follows.
@@ -605,6 +619,23 @@ def createVelocityControl():
             dump_every: write files every this many time-steps
             target_vel: the target mean velocity of the particles in the domain of interest
             Kp, Ki, Kd: PID controller coefficients
+    
+
+    """
+    pass
+
+def createVirialPressurePlugin():
+    r"""createVirialPressurePlugin(state: YmrState, name: str, pv: ParticleVectors.ParticleVector, stress_mame: str, dump_every: int, path: str) -> Tuple[Plugins.VirialPressure, Plugins.VirialPressureDumper]
+
+
+        Create :any:`VirialPressure` plugin
+        
+        Args:
+            name: name of the plugin
+            pv: concerned :class:`ParticleVector`
+            stress_name: the extraData entry name of the stress per particle
+            dump_every: report total pressure every this many time-steps
+            path: the folder name in which the file will be dumped
     
 
     """

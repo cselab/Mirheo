@@ -226,6 +226,8 @@ void exportPlugins(py::module& m)
     py::handlers_class<VirialPressurePlugin>(m, "VirialPressure", pysim, R"(
         This plugin compute the virial pressure from a given :any:`ParticleVector`.
         Note that the stress computation must be enabled with the corresponding stressName.
+        This returns the total internal virial part only (no temperature term).
+        Note that the volume is not devided in the result, the user is responsible to properly scale the output.
     )");
 
     py::handlers_class<VirialPressureDumper>(m, "VirialPressureDumper", pypost, R"(
