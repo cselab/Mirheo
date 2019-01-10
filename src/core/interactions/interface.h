@@ -34,6 +34,13 @@ public:
     virtual void setPrerequisites(ParticleVector *pv1, ParticleVector *pv2);
 
     /**
+     * Init fields in particle vectors reuired before interaction
+     * Default: do nothing
+     * Called from Simulation at every step
+     */
+    virtual void initStep(ParticleVector *pv1, ParticleVector *pv2, cudaStream_t stream);
+
+    /**
      * Interface to compute local interactions.
      * For now order of \e pv1 and \e pv2 is important for computational reasons,
      * this may be changed later on so that the best order is chosen automatically.

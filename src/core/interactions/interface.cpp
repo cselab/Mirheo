@@ -9,3 +9,6 @@ Interaction::~Interaction() = default;
 
 void Interaction::setPrerequisites(ParticleVector *pv1, ParticleVector *pv2)
 {}
+
+void Interaction::initStep(ParticleVector *pv1, ParticleVector *pv2, cudaStream_t stream)
+{}

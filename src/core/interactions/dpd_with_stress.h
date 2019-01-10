@@ -8,8 +8,8 @@ public:
     InteractionDPDWithStress(const YmrState *state, std::string name, std::string stressName,
                              float rc, float a, float gamma, float kbt, float power, float stressPeriod);
 
-    ~InteractionDPDWithStress();
-
+    ~InteractionDPDWithStress();    
+    
     void setSpecificPair(ParticleVector* pv1, ParticleVector* pv2, 
                          float a=Default, float gamma=Default,
                          float kbt=Default, float power=Default) override;

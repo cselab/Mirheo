@@ -33,6 +33,22 @@ void InteractionPair_withStress<PairwiseInteraction>::setPrerequisites(ParticleV
 }
 
 template<class PairwiseInteraction>
+void InteractionPair_withStress<PairwiseInteraction>::initStep(ParticleVector *pv1, ParticleVector *pv2, cudaStream_t stream)
+{
+    float t = state->currentTime;    
+
+    if (lastStressTime+stressPeriod <= t || lastStressTime == t) {
+        
+        if (pv2lastStressTime[pv1] != t)
+            pv1->local()->extraPerParticle.getData<Stress>(stressName)->clear(stream);
+
+        if (pv2lastStressTime[pv2] != t)
+            pv2->local()->extraPerParticle.getData<Stress>(stressName)->clear(stream);
+    }
+}
+
+
+template<class PairwiseInteraction>
 void InteractionPair_withStress<PairwiseInteraction>::regular(
         ParticleVector* pv1, ParticleVector* pv2,
         CellList* cl1, CellList* cl2, cudaStream_t stream)
@@ -44,16 +60,10 @@ void InteractionPair_withStress<PairwiseInteraction>::regular(
         debug("Executing interaction '%s' with stress", name.c_str());
 
         if (pv2lastStressTime[pv1] != t)
-        {
-            pv1->local()->extraPerParticle.getData<Stress>(stressName)->clear(0);
             pv2lastStressTime[pv1] = t;
-        }
 
         if (pv2lastStressTime[pv2] != t)
-        {
-            pv2->local()->extraPerParticle.getData<Stress>(stressName)->clear(0);
             pv2lastStressTime[pv2] = t;
-        }
 
         interactionWithStress.regular(pv1, pv2, cl1, cl2, stream);
         lastStressTime = t;
@@ -75,16 +85,10 @@ void InteractionPair_withStress<PairwiseInteraction>::halo   (
         debug("Executing interaction '%s' with stress", name.c_str());
 
         if (pv2lastStressTime[pv1] != t)
-        {
-            pv1->local()->extraPerParticle.getData<Stress>(stressName)->clear(0);
             pv2lastStressTime[pv1] = t;
-        }
 
         if (pv2lastStressTime[pv2] != t)
-        {
-            pv2->local()->extraPerParticle.getData<Stress>(stressName)->clear(0);
             pv2lastStressTime[pv2] = t;
-        }
 
         interactionWithStress.halo(pv1, pv2, cl1, cl2, stream);
         lastStressTime = t;
