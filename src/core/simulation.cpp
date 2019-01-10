@@ -23,9 +23,13 @@
 Simulation::Simulation(const MPI_Comm &cartComm, const MPI_Comm &interComm, YmrState *state,
                        int globalCheckpointEvery, std::string checkpointFolder,
                        bool gpuAwareMPI)
-    : nranks3D(nranks3D), interComm(interComm), state(state),
+    : nranks3D(nranks3D),
+      interComm(interComm),
+      state(state),
       globalCheckpointEvery(globalCheckpointEvery),
-      checkpointFolder(checkpointFolder), gpuAwareMPI(gpuAwareMPI)
+      checkpointFolder(checkpointFolder),
+      gpuAwareMPI(gpuAwareMPI),
+      scheduler(new TaskScheduler())
 {
     int nranks[3], periods[3], coords[3];
 
@@ -41,9 +45,7 @@ Simulation::Simulation(const MPI_Comm &cartComm, const MPI_Comm &interComm, YmrS
     info("Simulation initialized, subdomain size is [%f %f %f], subdomain starts "
          "at [%f %f %f]",
          state->domain.localSize.x, state->domain.localSize.y, state->domain.localSize.z,
-         state->domain.globalStart.x, state->domain.globalStart.y, state->domain.globalStart.z);
-
-    scheduler = std::make_unique<TaskScheduler>();
+         state->domain.globalStart.x, state->domain.globalStart.y, state->domain.globalStart.z);    
 }
 
 Simulation::~Simulation() = default;
