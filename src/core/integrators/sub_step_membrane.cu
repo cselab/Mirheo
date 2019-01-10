@@ -20,10 +20,10 @@ IntegratorSubStepMembrane::IntegratorSubStepMembrane(const YmrState *state, std:
 
 IntegratorSubStepMembrane::~IntegratorSubStepMembrane() = default;
 
-void IntegratorSubStepMembrane::stage1(ParticleVector *pv, float t, cudaStream_t stream)
+void IntegratorSubStepMembrane::stage1(ParticleVector *pv, cudaStream_t stream)
 {}
 
-void IntegratorSubStepMembrane::stage2(ParticleVector *pv, float t, cudaStream_t stream)
+void IntegratorSubStepMembrane::stage2(ParticleVector *pv, cudaStream_t stream)
 {
     // save "slow forces"
     slowForces.copy(pv->local()->forces, stream);
@@ -40,7 +40,7 @@ void IntegratorSubStepMembrane::stage2(ParticleVector *pv, float t, cudaStream_t
         // TODO was , t + substep * dt / substeps
         fastForces->regular(pv, pv, nullptr, nullptr, stream);
         
-        subIntegrator->stage2(pv, t, stream);
+        subIntegrator->stage2(pv, stream);
     }
     
     // restore previous positions into old_particles channel

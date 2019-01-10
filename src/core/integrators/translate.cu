@@ -17,7 +17,7 @@ IntegratorTranslate::IntegratorTranslate(const YmrState *state, std::string name
 
 IntegratorTranslate::~IntegratorTranslate() = default;
 
-void IntegratorTranslate::stage2(ParticleVector* pv, float t, cudaStream_t stream)
+void IntegratorTranslate::stage2(ParticleVector *pv, cudaStream_t stream)
 {
     const auto _vel = vel;
 

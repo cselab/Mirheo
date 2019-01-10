@@ -24,8 +24,10 @@ IntegratorOscillate::~IntegratorOscillate() = default;
 /**
  * Oscillate with cos wave in time, regardless force
  */
-void IntegratorOscillate::stage2(ParticleVector* pv, float t, cudaStream_t stream)
+void IntegratorOscillate::stage2(ParticleVector *pv, cudaStream_t stream)
 {
+    float t = state->currentTime;
+    
     const auto _vel = vel;
     float cosOmega = cos(2*M_PI * t / period);
 

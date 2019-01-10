@@ -14,10 +14,10 @@ public:
     IntegratorTranslate(const YmrState *state, std::string name, float3 vel);
     ~IntegratorTranslate();
 
-    void stage1(ParticleVector* pv, float t, cudaStream_t stream) override {};
-    void stage2(ParticleVector* pv, float t, cudaStream_t stream) override;
+    void stage1(ParticleVector *pv, cudaStream_t stream) override {};
+    void stage2(ParticleVector *pv, cudaStream_t stream) override;
 
-private:
+  private:
 
     float3 vel;   ///< Velocity
 };

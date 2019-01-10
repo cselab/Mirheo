@@ -32,17 +32,15 @@ public:
      * First integration stage, to be called before the forces are computed
      *
      * @param pv ParticleVector to be integrated
-     * @param t current simulation time
      */
-    virtual void stage1(ParticleVector *pv, float t, cudaStream_t stream) = 0;
+    virtual void stage1(ParticleVector *pv, cudaStream_t stream) = 0;
 
     /**
      * Second integration stage, to be called after the forces are computed
      *
      * @param pv ParticleVector to be integrated
-     * @param t current simulation time
      */
-    virtual void stage2(ParticleVector *pv, float t, cudaStream_t stream) = 0;
+    virtual void stage2(ParticleVector *pv, cudaStream_t stream) = 0;
 
     /**
      * Ask ParticleVectors which the class will be working with to have specific properties

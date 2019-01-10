@@ -14,10 +14,10 @@ IntegratorConstOmega::IntegratorConstOmega(const YmrState *state, std::string na
 
 IntegratorConstOmega::~IntegratorConstOmega() = default;
 
-void IntegratorConstOmega::stage1(ParticleVector* pv, float t, cudaStream_t stream)
-{   }
+void IntegratorConstOmega::stage1(ParticleVector *pv, cudaStream_t stream)
+{}
 
-void IntegratorConstOmega::stage2(ParticleVector* pv, float t, cudaStream_t stream)
+void IntegratorConstOmega::stage2(ParticleVector *pv, cudaStream_t stream)
 {
     const auto domain = state->domain;
     const auto _center = center;
