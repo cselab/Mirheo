@@ -83,9 +83,11 @@ void InteractionMembrane::setPrerequisites(ParticleVector* pv1, ParticleVector* 
  * and volume of each cell, then use these data to calculate the
  * forces themselves by calling computeMembraneForces() kernel
  */
-void InteractionMembrane::regular(ParticleVector* pv1, ParticleVector* pv2, CellList* cl1, CellList* cl2, const float t, cudaStream_t stream)
+void InteractionMembrane::regular(ParticleVector *pv1, ParticleVector *pv2,
+                                  CellList *cl1, CellList *cl2,
+                                  cudaStream_t stream)
 {
-    auto ov = dynamic_cast<MembraneVector*>(pv1);
+    auto ov = dynamic_cast<MembraneVector *>(pv1);
 
     if (ov->objSize != ov->mesh->getNvertices())
         die("Object size of '%s' (%d) and number of vertices (%d) mismatch",
@@ -95,48 +97,45 @@ void InteractionMembrane::regular(ParticleVector* pv1, ParticleVector* pv2, Cell
           ov->local()->nObjects, ov->name.c_str());
 
     auto currentParams = parameters;
-    float scale = scaleFromTime(t);
-    currentParams.totArea0   *= scale*scale;
-    currentParams.totVolume0 *= scale*scale*scale;
-    currentParams.kbT *= scale*scale;
-    currentParams.ks  *= scale*scale;
+    float scale = scaleFromTime(state->currentTime);
+    currentParams.totArea0 *= scale * scale;
+    currentParams.totVolume0 *= scale * scale * scale;
+    currentParams.kbT *= scale * scale;
+    currentParams.ks *= scale * scale;
 
     currentParams.gammaC *= scale;
     currentParams.gammaT *= scale;
 
     OVviewWithAreaVolume view(ov, ov->local());
-    MembraneMeshView mesh(static_cast<MembraneMesh*>(ov->mesh.get()));
-    ov->local()->extraPerObject.getData<float2>("area_volumes")->clearDevice(stream);
-    
-    const int nthreads = 128;
-    SAFE_KERNEL_LAUNCH(
-            computeAreaAndVolume,
-            view.nObjects, nthreads, 0, stream,
-            view, mesh );
+    MembraneMeshView mesh(static_cast<MembraneMesh *>(ov->mesh.get()));
+    ov->local()
+        ->extraPerObject.getData<float2>("area_volumes")
+        ->clearDevice(stream);
 
+    const int nthreads = 128;
+    SAFE_KERNEL_LAUNCH(computeAreaAndVolume, view.nObjects, nthreads, 0, stream,
+                       view, mesh);
 
     const int blocks = getNblocks(view.size, nthreads);
 
-    auto devParams = setParams(currentParams, ov->mesh.get(), state->dt, t);
-    
+    auto devParams = setParams(currentParams, ov->mesh.get(), state->dt, state->currentTime);
+
     if (stressFree)
-        SAFE_KERNEL_LAUNCH(
-                computeMembraneForces<true>,
-                blocks, nthreads, 0, stream,
-                view, mesh, devParams );
+        SAFE_KERNEL_LAUNCH(computeMembraneForces<true>,
+                           blocks, nthreads, 0, stream,
+                           view, mesh, devParams);
     else
-        SAFE_KERNEL_LAUNCH(
-                computeMembraneForces<false>,
-                blocks, nthreads, 0, stream,
-                view, mesh, devParams );
+        SAFE_KERNEL_LAUNCH(computeMembraneForces<false>,
+                           blocks, nthreads, 0,
+                           stream, view, mesh, devParams);
 
     bendingForces(scale, ov, mesh, stream);
 }
 
-void InteractionMembrane::halo(ParticleVector* pv1, ParticleVector* pv2, CellList* cl1, CellList* cl2, const float t, cudaStream_t stream)
+void InteractionMembrane::halo(ParticleVector *pv1, ParticleVector *pv2,
+                               CellList *cl1, CellList *cl2,
+                               cudaStream_t stream)
 {
-    debug("Not computing internal RBC forces between local and halo RBCs of '%s'", pv1->name.c_str());
+    debug("Not computing internal RBC forces between local and halo RBCs of '%s'",
+          pv1->name.c_str());
 }
-
-
-

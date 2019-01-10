@@ -24,10 +24,10 @@ public:
     
     void setPrerequisites(ParticleVector* pv1, ParticleVector* pv2) override;
 
-    void regular(ParticleVector* pv1, ParticleVector* pv2, CellList* cl1, CellList* cl2, const float t, cudaStream_t stream) override;
-    void halo   (ParticleVector* pv1, ParticleVector* pv2, CellList* cl1, CellList* cl2, const float t, cudaStream_t stream) override;    
+    void regular(ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2, cudaStream_t stream) override;
+    void halo   (ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2, cudaStream_t stream) override;
 
-protected:
+  protected:
 
     bool stressFree;
     std::function< float(float) > scaleFromTime;

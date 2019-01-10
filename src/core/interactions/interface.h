@@ -31,7 +31,7 @@ public:
      * Default: ask nothing
      * Called from Simulation right after setup
      */
-    virtual void setPrerequisites(ParticleVector* pv1, ParticleVector* pv2);
+    virtual void setPrerequisites(ParticleVector *pv1, ParticleVector *pv2);
 
     /**
      * Interface to compute local interactions.
@@ -43,9 +43,9 @@ public:
      *            the \p pv1, self interactions will be computed
      * @param cl1 cell-list built for the appropriate cut-off raduis #rc for \p pv1
      * @param cl2 cell-list built for the appropriate cut-off raduis #rc for \p pv2
-     * @param t current simulation time
      */
-    virtual void regular(ParticleVector* pv1, ParticleVector* pv2, CellList* cl1, CellList* cl2, const float t, cudaStream_t stream) = 0;
+    virtual void regular(ParticleVector *pv1, ParticleVector *pv2,
+                         CellList *cl1, CellList *cl2, cudaStream_t stream) = 0;
 
     /**
      * Interface to compute halo interactions. It principle it has to compute
@@ -56,7 +56,7 @@ public:
      * @param pv2 second interacting ParticleVector
      * @param cl1 cell-list built for the appropriate cut-off raduis #rc for \p pv1
      * @param cl2 cell-list built for the appropriate cut-off raduis #rc for \p pv2
-     * @param t current simulation time
      */
-    virtual void halo   (ParticleVector* pv1, ParticleVector* pv2, CellList* cl1, CellList* cl2, const float t, cudaStream_t stream) = 0;
+    virtual void halo(ParticleVector *pv1, ParticleVector *pv2, CellList *cl1,
+                      CellList *cl2, cudaStream_t stream) = 0;
 };

@@ -37,7 +37,8 @@ void IntegratorSubStepMembrane::stage2(ParticleVector *pv, float t, cudaStream_t
         if (substep != 0)
             pv->local()->forces.copy(slowForces, stream);
 
-        fastForces->regular(pv, pv, nullptr, nullptr, t + substep * dt / substeps, stream);
+        // TODO was , t + substep * dt / substeps
+        fastForces->regular(pv, pv, nullptr, nullptr, stream);
         
         subIntegrator->stage2(pv, t, stream);
     }

@@ -11,9 +11,10 @@
 template<class PairwiseInteraction>
 void InteractionPair_withStress<PairwiseInteraction>::regular(
         ParticleVector* pv1, ParticleVector* pv2,
-        CellList* cl1, CellList* cl2,
-        const float t, cudaStream_t stream)
+        CellList* cl1, CellList* cl2, cudaStream_t stream)
 {
+    float t = state->currentTime;
+    
     if (lastStressTime+stressPeriod <= t || lastStressTime == t)
     {
         debug("Executing interaction '%s' with stress", name.c_str());
@@ -30,19 +31,21 @@ void InteractionPair_withStress<PairwiseInteraction>::regular(
             pv2lastStressTime[pv2] = t;
         }
 
-        interactionWithStress.regular(pv1, pv2, cl1, cl2, t, stream);
+        interactionWithStress.regular(pv1, pv2, cl1, cl2, stream);
         lastStressTime = t;
     }
     else
-        interaction.regular(pv1, pv2, cl1, cl2, t, stream);
+        interaction.regular(pv1, pv2, cl1, cl2, stream);
 }
 
 template<class PairwiseInteraction>
 void InteractionPair_withStress<PairwiseInteraction>::halo   (
-        ParticleVector* pv1, ParticleVector* pv2,
-        CellList* cl1, CellList* cl2,
-        const float t, cudaStream_t stream)
+        ParticleVector *pv1, ParticleVector *pv2,
+        CellList *cl1, CellList *cl2,
+        cudaStream_t stream)
 {
+    float t = state->currentTime;
+    
     if (lastStressTime+stressPeriod <= t || lastStressTime == t)
     {
         debug("Executing interaction '%s' with stress", name.c_str());
@@ -59,11 +62,11 @@ void InteractionPair_withStress<PairwiseInteraction>::halo   (
             pv2lastStressTime[pv2] = t;
         }
 
-        interactionWithStress.halo(pv1, pv2, cl1, cl2, t, stream);
+        interactionWithStress.halo(pv1, pv2, cl1, cl2, stream);
         lastStressTime = t;
     }
     else
-        interaction.halo(pv1, pv2, cl1, cl2, t, stream);
+        interaction.halo(pv1, pv2, cl1, cl2, stream);
 }
 
 template<class PairwiseInteraction>

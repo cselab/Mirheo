@@ -15,9 +15,9 @@ class InteractionPair_withStress : public Interaction
 public:
     enum class InteractionType { Regular, Halo };
 
-    void regular(ParticleVector* pv1, ParticleVector* pv2, CellList* cl1, CellList* cl2, const float t, cudaStream_t stream) override;
-    void halo   (ParticleVector* pv1, ParticleVector* pv2, CellList* cl1, CellList* cl2, const float t, cudaStream_t stream) override;
-    void setPrerequisites(ParticleVector* pv1, ParticleVector* pv2);
+    void regular(ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2, cudaStream_t stream) override;
+    void halo   (ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2, cudaStream_t stream) override;
+    void setPrerequisites(ParticleVector *pv1, ParticleVector *pv2);
 
     InteractionPair_withStress(const YmrState *state, std::string name, std::string stressName, float rc, float stressPeriod, PairwiseInteraction pair);
 

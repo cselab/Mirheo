@@ -504,11 +504,11 @@ void Simulation::prepareInteractions()
         auto inter = prototype.interaction;
 
         regularInteractions.push_back([inter, pv1, pv2, cl1, cl2] (float t, cudaStream_t stream) {
-            inter->regular(pv1, pv2, cl1, cl2, t, stream);
+            inter->regular(pv1, pv2, cl1, cl2, stream);
         });
 
         haloInteractions.push_back([inter, pv1, pv2, cl1, cl2] (float t, cudaStream_t stream) {
-            inter->halo(pv1, pv2, cl1, cl2, t, stream);
+            inter->halo(pv1, pv2, cl1, cl2, stream);
         });
     }
 }
