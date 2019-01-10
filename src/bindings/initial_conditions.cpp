@@ -6,6 +6,7 @@
 #include <core/initial_conditions/restart.h>
 #include <core/initial_conditions/rigid_ic.h>
 #include <core/initial_conditions/uniform_ic.h>
+#include <core/initial_conditions/uniform_filtered_ic.h>
 #include <core/initial_conditions/uniform_sphere_ic.h>
 
 #include <core/utils/pytypes.h>
@@ -122,8 +123,19 @@ void exportInitialConditions(py::module& m)
                 density: target density
         )");
 
+    py::handlers_class<UniformFilteredIC>(m, "UniformFiltered", pyic, R"(
+        The particles will be generated with the desired number density uniformly at random in all the domain and then filtered out by the given filter.
+        These IC may be used with any Particle Vector, but only make sense for regular PV.            
+    )")
+        .def(py::init<float, std::function<bool(PyTypes::float3)>>(),
+             "density"_a, "filter"_a R"(
+            Args:
+                density: target density
+                filter: given position, returns True if the particle should NOT be kept 
+        )");
+
     py::handlers_class<UniformSphereIC>(m, "UniformSphere", pyic, R"(
-        The particles will be generated with the desired number density uniformly at random insideo or outside a given sphere.
+        The particles will be generated with the desired number density uniformly at random inside or outside a given sphere.
         These IC may be used with any Particle Vector, but only make sense for regular PV.
             
     )")

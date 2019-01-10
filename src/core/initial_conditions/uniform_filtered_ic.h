@@ -16,6 +16,7 @@ private:
 
 public:
     UniformFilteredIC(float density, PositionFilter filter);
+    UniformFilteredIC(float density, std::function<bool(PyTypes::float3)> filter);
     ~UniformFilteredIC();
     
     void exec(const MPI_Comm& comm, ParticleVector *pv, cudaStream_t stream) override;    
