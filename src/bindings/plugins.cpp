@@ -1,6 +1,6 @@
-#include <extern/pybind11/include/pybind11/stl.h>
-#include <extern/pybind11/include/pybind11/numpy.h>
-#include <extern/pybind11/include/pybind11/functional.h>
+#include <pybind11/stl.h>
+#include <pybind11/numpy.h>
+#include <pybind11/functional.h>
 
 #include <plugins/factory.h>
 #include <core/xdmf/channel.h>

@@ -12,6 +12,10 @@ For more information, please refer to the online documentation: http://ymero.rea
 
 ## Changelog
 
+### v0.9.2
+
+* add filtered initial conditions: allows custom regions in space to initialise uniform density particles
+
 ### v0.9.1
 
 * add sphere initial condition
