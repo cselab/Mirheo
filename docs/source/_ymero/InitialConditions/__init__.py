@@ -166,7 +166,7 @@ class UniformFiltered(InitialConditions):
 
             Args:
                 density: target density
-                filter: given position, returns True if the particle should NOT be kept 
+                filter: given position, returns True if the particle should be kept 
         
 
         """

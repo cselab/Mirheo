@@ -12,6 +12,11 @@ For more information, please refer to the online documentation: http://ymero.rea
 
 ## Changelog
 
+### v0.9.3
+
+* fix: the stress entries are now cleared before forces; could be cleared more by other interaction handlers
+* use ymero state inside the simulation objects; do not have current time, step and dt separate in simulation
+
 ### v0.9.2
 
 * add filtered initial conditions: allows custom regions in space to initialise uniform density particles
