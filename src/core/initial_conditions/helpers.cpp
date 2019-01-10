@@ -32,7 +32,7 @@ static Particle genParticle(float3 h, int i, int j, int k, const DomainInfo& dom
     return p;
 }
 
-void addUniformParticles(float density, const MPI_Comm& comm, ParticleVector *pv, PositionFilter filterOut, cudaStream_t stream)
+void addUniformParticles(float density, const MPI_Comm& comm, ParticleVector *pv, PositionFilter filterIn, cudaStream_t stream)
 {
     auto domain = pv->state->domain;
 
@@ -61,7 +61,7 @@ void addUniformParticles(float density, const MPI_Comm& comm, ParticleVector *pv
                     auto part = genParticle(h, i, j, k, domain, udistr, gen);
                     part.i1 = mycount;
 
-                    if (filterOut(domain.local2global(part.r)))
+                    if (! filterIn(domain.local2global(part.r)))
                         continue;
 
                     pv->local()->resize(mycount+1,  stream);

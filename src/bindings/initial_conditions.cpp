@@ -132,7 +132,7 @@ void exportInitialConditions(py::module& m)
              "density"_a, "filter"_a, R"(
             Args:
                 density: target density
-                filter: given position, returns True if the particle should NOT be kept 
+                filter: given position, returns True if the particle should be kept 
         )");
 
     py::handlers_class<UniformSphereIC>(m, "UniformSphere", pyic, R"(

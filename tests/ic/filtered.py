@@ -16,10 +16,10 @@ u = ymr.ymero(ranks, tuple(domain), dt=0, debug_level=3, log_filename='log')
 
 if args.filter == "half":
     def my_filter(r):
-        return r[0] >= domain[0] / 2
+        return r[0] < domain[0] / 2
 elif args.filter == "quarter":
     def my_filter(r):
-        return r[0] >= domain[0] / 2 or r[1] >= domain[1] / 2
+        return r[0] < domain[0] / 2 and r[1] < domain[1] / 2
 else:
     exit(1)
 

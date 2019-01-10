@@ -18,14 +18,14 @@ UniformSphereIC::~UniformSphereIC() = default;
     
 void UniformSphereIC::exec(const MPI_Comm& comm, ParticleVector* pv, cudaStream_t stream)
 {
-    auto filterOutParticles = [this](float3 r) {
+    auto filterSphere = [this](float3 r) {
         r -= center;
         bool is_inside = length(r) <= radius;
         
-        if (inside) return !is_inside;
-        else        return  is_inside;
+        if (inside) return  is_inside;
+        else        return !is_inside;
     };
     
-    addUniformParticles(density, comm, pv, filterOutParticles, stream);
+    addUniformParticles(density, comm, pv, filterSphere, stream);
 }
 
