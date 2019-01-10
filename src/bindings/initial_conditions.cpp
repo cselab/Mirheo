@@ -1,4 +1,5 @@
 #include <pybind11/stl.h>
+#include <pybind11/functional.h>
 
 #include <core/initial_conditions/from_array.h>
 #include <core/initial_conditions/interface.h>
@@ -128,7 +129,7 @@ void exportInitialConditions(py::module& m)
         These IC may be used with any Particle Vector, but only make sense for regular PV.            
     )")
         .def(py::init<float, std::function<bool(PyTypes::float3)>>(),
-             "density"_a, "filter"_a R"(
+             "density"_a, "filter"_a, R"(
             Args:
                 density: target density
                 filter: given position, returns True if the particle should NOT be kept 
