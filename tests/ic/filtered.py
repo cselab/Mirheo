@@ -5,7 +5,7 @@ import ymero as ymr
 import argparse
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--filter", choices=["half"])
+parser.add_argument("--filter", choices=["half", "quarter"])
 args = parser.parse_args()
 
 ranks  = (1, 1, 1)
@@ -16,7 +16,10 @@ u = ymr.ymero(ranks, tuple(domain), dt=0, debug_level=3, log_filename='log')
 
 if args.filter == "half":
     def my_filter(r):
-        return r[0] >= domain[0] / 2    
+        return r[0] >= domain[0] / 2
+elif args.filter == "quarter":
+    def my_filter(r):
+        return r[0] >= domain[0] / 2 or r[1] >= domain[1] / 2
 else:
     exit(1)
 
@@ -33,8 +36,14 @@ if pv:
     np.savetxt("vel.ic.txt", icvel)
     
 
-# cTEST: ic.uniform.filtered.half
+# TEST: ic.uniform.filtered.half
 # cd ic
 # rm -rf pos*.txt vel*.txt
 # ymr.run --runargs "-n 2" ./filtered.py --filter half > /dev/null
+# paste pos.ic.txt vel.ic.txt | LC_ALL=en_US.utf8 sort > ic.out.txt
+
+# TEST: ic.uniform.filtered.quarter
+# cd ic
+# rm -rf pos*.txt vel*.txt
+# ymr.run --runargs "-n 2" ./filtered.py --filter quarter > /dev/null
 # paste pos.ic.txt vel.ic.txt | LC_ALL=en_US.utf8 sort > ic.out.txt
