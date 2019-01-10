@@ -503,11 +503,11 @@ void Simulation::prepareInteractions()
 
         auto inter = prototype.interaction;
 
-        regularInteractions.push_back([inter, pv1, pv2, cl1, cl2] (float t, cudaStream_t stream) {
+        regularInteractions.push_back([inter, pv1, pv2, cl1, cl2] (cudaStream_t stream) {
             inter->regular(pv1, pv2, cl1, cl2, stream);
         });
 
-        haloInteractions.push_back([inter, pv1, pv2, cl1, cl2] (float t, cudaStream_t stream) {
+        haloInteractions.push_back([inter, pv1, pv2, cl1, cl2] (cudaStream_t stream) {
             inter->halo(pv1, pv2, cl1, cl2, stream);
         });
     }
@@ -792,13 +792,13 @@ void Simulation::assemble()
 
     for (auto& inter : regularInteractions)
         scheduler->addTask(task_localForces, [inter, this] (cudaStream_t stream) {
-            inter(state->currentTime, stream);
+            inter(stream);
         });
 
 
     for (auto& inter : haloInteractions)
         scheduler->addTask(task_haloForces, [inter, this] (cudaStream_t stream) {
-            inter(state->currentTime, stream);
+            inter(stream);
         });
 
     for (auto& clVec : cellListMap)

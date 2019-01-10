@@ -190,7 +190,7 @@ private:
     std::vector<SplitterPrototype>            splitterPrototypes;
     std::vector<PvsCheckPointPrototype>       pvsCheckPointPrototype;
 
-    std::vector<std::function<void(float, cudaStream_t)>> regularInteractions, haloInteractions;
+    std::vector<std::function<void(cudaStream_t)>> regularInteractions, haloInteractions;
     std::vector<std::function<void(float, cudaStream_t)>> integratorsStage1, integratorsStage2;
     std::vector<std::function<void(float, cudaStream_t)>> regularBouncers, haloBouncers;
 
