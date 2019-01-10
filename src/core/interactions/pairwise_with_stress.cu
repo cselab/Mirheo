@@ -4,9 +4,33 @@
 #include "pairwise_interactions/lj.h"
 #include "pairwise_interactions/lj_object_aware.h"
 
-/**
- * Implementation of short-range symmetric pairwise interactions
- */
+
+template<class PairwiseInteraction>
+InteractionPair_withStress<PairwiseInteraction>::InteractionPair_withStress(
+    const YmrState *state, std::string name, std::string stressName, float rc, float stressPeriod, PairwiseInteraction pair) :
+
+    Interaction(state, name, rc),
+    stressName(stressName),
+    stressPeriod(stressPeriod),
+    interaction(state, name, rc, pair),
+    interactionWithStress(state, name, rc, PairwiseStressWrapper<PairwiseInteraction>(stressName, pair))
+{}
+
+template<class PairwiseInteraction>
+InteractionPair_withStress<PairwiseInteraction>::~InteractionPair_withStress() = default;
+
+template<class PairwiseInteraction>
+void InteractionPair_withStress<PairwiseInteraction>::setPrerequisites(ParticleVector* pv1, ParticleVector* pv2)
+{
+    info("Interaction '%s' requires channel 'stress' from PVs '%s' and '%s'",
+         name.c_str(), pv1->name.c_str(), pv2->name.c_str());
+
+    pv1->requireDataPerParticle<Stress>(stressName, ExtraDataManager::CommunicationMode::None, ExtraDataManager::PersistenceMode::None);
+    pv2->requireDataPerParticle<Stress>(stressName, ExtraDataManager::CommunicationMode::None, ExtraDataManager::PersistenceMode::None);
+
+    pv2lastStressTime[pv1] = -1;
+    pv2lastStressTime[pv2] = -1;
+}
 
 template<class PairwiseInteraction>
 void InteractionPair_withStress<PairwiseInteraction>::regular(
@@ -68,30 +92,6 @@ void InteractionPair_withStress<PairwiseInteraction>::halo   (
     else
         interaction.halo(pv1, pv2, cl1, cl2, stream);
 }
-
-template<class PairwiseInteraction>
-void InteractionPair_withStress<PairwiseInteraction>::setPrerequisites(ParticleVector* pv1, ParticleVector* pv2)
-{
-    info("Interaction '%s' requires channel 'stress' from PVs '%s' and '%s'",
-         name.c_str(), pv1->name.c_str(), pv2->name.c_str());
-
-    pv1->requireDataPerParticle<Stress>(stressName, ExtraDataManager::CommunicationMode::None, ExtraDataManager::PersistenceMode::None);
-    pv2->requireDataPerParticle<Stress>(stressName, ExtraDataManager::CommunicationMode::None, ExtraDataManager::PersistenceMode::None);
-
-    pv2lastStressTime[pv1] = -1;
-    pv2lastStressTime[pv2] = -1;
-}
-
-template<class PairwiseInteraction>
-InteractionPair_withStress<PairwiseInteraction>::InteractionPair_withStress(
-    const YmrState *state, std::string name, std::string stressName, float rc, float stressPeriod, PairwiseInteraction pair) :
-
-    Interaction(state, name, rc),
-    stressName(stressName),
-    stressPeriod(stressPeriod),
-    interaction(state, name, rc, pair),
-    interactionWithStress(state, name, rc, PairwiseStressWrapper<PairwiseInteraction>(stressName, pair))
-{ }
 
 template<class PairwiseInteraction>
 void InteractionPair_withStress<PairwiseInteraction>::setSpecificPair(
