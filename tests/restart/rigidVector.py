@@ -12,7 +12,7 @@ args = parser.parse_args()
 
 ranks  = args.ranks
 domain = (16, 16, 16)
-dt = 0
+dt = 0.01
 
 if args.restart:
     u = ymr.ymero(ranks, domain, dt, debug_level=3, log_filename='log', checkpoint_every=0)
