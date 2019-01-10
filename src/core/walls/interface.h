@@ -24,7 +24,7 @@ public:
 
     virtual void removeInner(ParticleVector* pv) = 0;
     virtual void attach(ParticleVector* pv, CellList* cl) = 0;
-    virtual void bounce(float t, float dt, cudaStream_t stream) = 0;
+    virtual void bounce(cudaStream_t stream) = 0;
 
     /**
      * Ask ParticleVectors which the class will be working with to have specific properties

@@ -447,9 +447,11 @@ void SimpleStationaryWall<InsideWallChecker>::removeInner(ParticleVector* pv)
 }
 
 template<class InsideWallChecker>
-void SimpleStationaryWall<InsideWallChecker>::bounce(float t, float dt, cudaStream_t stream)
+void SimpleStationaryWall<InsideWallChecker>::bounce(cudaStream_t stream)
 {
-    for (int i=0; i<particleVectors.size(); i++)
+    float dt = this->state->dt;
+    
+    for (int i = 0; i < particleVectors.size(); i++)
     {
         auto pv = particleVectors[i];
         auto cl = cellLists[i];

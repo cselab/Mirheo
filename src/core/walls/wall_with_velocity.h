@@ -22,7 +22,7 @@ public:
     void setup(MPI_Comm& comm, float t, DomainInfo domain) override;
     void attachFrozen(ParticleVector* pv) override;
 
-    void bounce(float t, float dt, cudaStream_t stream) override;
+    void bounce(cudaStream_t stream) override;
 
 protected:
     VelocityField velField;

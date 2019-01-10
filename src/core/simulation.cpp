@@ -897,7 +897,7 @@ void Simulation::assemble()
     {
         auto wallPtr = wall.second.get();
         scheduler->addTask(task_wallBounce, [wallPtr, this] (cudaStream_t stream) {    
-            wallPtr->bounce(state->currentTime, state->dt, stream);
+            wallPtr->bounce(stream);
         });
     }
 

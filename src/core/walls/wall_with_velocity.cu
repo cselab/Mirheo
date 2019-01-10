@@ -138,8 +138,11 @@ void WallWithVelocity<InsideWallChecker, VelocityField>::attachFrozen(ParticleVe
 }
 
 template<class InsideWallChecker, class VelocityField>
-void WallWithVelocity<InsideWallChecker, VelocityField>::bounce(float t, float dt, cudaStream_t stream)
+void WallWithVelocity<InsideWallChecker, VelocityField>::bounce(cudaStream_t stream)
 {
+    float t  = this->state->currentTime;
+    float dt = this->state->dt;
+    
     velField.setup(this->wallComm, t, domain);
 
     for (int i=0; i < this->particleVectors.size(); i++)

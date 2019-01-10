@@ -22,7 +22,7 @@ public:
 
     void removeInner(ParticleVector* pv) override;
     void attach(ParticleVector* pv, CellList* cl) override;
-    void bounce(float t, float dt, cudaStream_t stream) override;
+    void bounce(cudaStream_t stream) override;
     void check(cudaStream_t stream) override;
 
     void sdfPerParticle(LocalParticleVector* pv,
