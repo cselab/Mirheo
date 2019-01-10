@@ -19,7 +19,7 @@ gdot    = 0.5 # shear rate
 T       = 3.0 # period for oscillating plate case
 tend    = 10.1
 
-u = ymr.ymero(ranks, domain, dt, debug_level=8, log_filename='log')
+u = ymr.ymero(ranks, domain, dt, debug_level=3, log_filename='log')
 
 pv = ymr.ParticleVectors.ParticleVector('pv', mass = 1)
 ic = ymr.InitialConditions.Uniform(density=density)

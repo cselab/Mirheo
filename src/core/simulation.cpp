@@ -122,12 +122,12 @@ MPI_Comm Simulation::getCartComm() const
 
 float Simulation::getCurrentDt() const
 {
-    return dt;
+    return state->dt;
 }
 
 float Simulation::getCurrentTime() const
 {
-    return currentTime;
+    return state->currentTime;
 }
 
 void Simulation::saveDependencyGraph_GraphML(std::string fname) const
@@ -675,13 +675,8 @@ void Simulation::init()
 }
 
 void Simulation::assemble()
-{
-    // XXX: different dt not implemented
-    dt = 1.0;
-    for (auto& integr : integratorMap)
-        dt = std::min(dt, integr.second->dt);
-    
-    info("Time-step is set to %f", dt);
+{    
+    info("Time-step is set to %f", getCurrentDt());
 
     auto task_checkpoint                          = scheduler->createTask("Checkpoint");
     auto task_cellLists                           = scheduler->createTask("Build cell-lists");
@@ -750,7 +745,7 @@ void Simulation::assemble()
         auto plPtr = pl.get();
 
         scheduler->addTask(task_pluginsBeforeForces, [plPtr, this] (cudaStream_t stream) {
-            plPtr->setTime(currentTime, currentStep);
+            plPtr->setTime(state->currentTime, state->currentStep);
             plPtr->beforeForces(stream);
         });
 
@@ -795,13 +790,13 @@ void Simulation::assemble()
 
     for (auto& inter : regularInteractions)
         scheduler->addTask(task_localForces, [inter, this] (cudaStream_t stream) {
-            inter(currentTime, stream);
+            inter(state->currentTime, stream);
         });
 
 
     for (auto& inter : haloInteractions)
         scheduler->addTask(task_haloForces, [inter, this] (cudaStream_t stream) {
-            inter(currentTime, stream);
+            inter(state->currentTime, stream);
         });
 
     for (auto& clVec : cellListMap)
@@ -816,7 +811,7 @@ void Simulation::assemble()
 
     for (auto& integrator : integratorsStage2)
         scheduler->addTask(task_integration, [integrator, this] (cudaStream_t stream) {
-            integrator(currentTime, stream);
+            integrator(state->currentTime, stream);
         });
 
 
@@ -845,12 +840,12 @@ void Simulation::assemble()
 
     for (auto& bouncer : regularBouncers)
         scheduler->addTask(task_objLocalBounce, [bouncer, this] (cudaStream_t stream) {
-            bouncer(dt, stream);
+            bouncer(state->dt, stream);
     });
 
     for (auto& bouncer : haloBouncers)
         scheduler->addTask(task_objHaloBounce, [bouncer, this] (cudaStream_t stream) {
-            bouncer(dt, stream);
+            bouncer(state->dt, stream);
     });
 
     for (auto& prototype : belongingCorrectionPrototypes)
@@ -900,7 +895,7 @@ void Simulation::assemble()
     {
         auto wallPtr = wall.second.get();
         scheduler->addTask(task_wallBounce, [wallPtr, this] (cudaStream_t stream) {    
-            wallPtr->bounce(currentTime, dt, stream);
+            wallPtr->bounce(state->currentTime, state->dt, stream);
         });
     }
 
@@ -970,19 +965,19 @@ void Simulation::assemble()
 
 void Simulation::run(int nsteps)
 {
-    int begin = currentStep, end = currentStep + nsteps;
+    int begin = state->currentStep, end = state->currentStep + nsteps;
 
     info("Will run %d iterations now", nsteps);
 
 
-    for (currentStep = begin; currentStep < end; currentStep++)
+    for (state->currentStep = begin; state->currentStep < end; state->currentStep++)
     {
         debug("===============================================================================\n"
-                "Timestep: %d, simulation time: %f", currentStep, currentTime);
+                "Timestep: %d, simulation time: %f", state->currentStep, state->currentTime);
 
         scheduler->run();
         
-        currentTime += dt;
+        state->currentTime += state->dt;
     }
 
     // Finish the redistribution by rebuilding the cell-lists
@@ -1021,13 +1016,13 @@ void Simulation::restart(std::string folder)
     restartStatus = RestartStatus::RestartStrict;
     restartFolder = folder;
     
-    TextIO::read(folder + "_simulation.state", currentTime, currentStep);
+    TextIO::read(folder + "_simulation.state", state->currentTime, state->currentStep);
 }
 
 void Simulation::checkpoint()
 {
     if (rank == 0)
-        TextIO::write(checkpointFolder + "_simulation.state", currentTime, currentStep);
+        TextIO::write(checkpointFolder + "_simulation.state", state->currentTime, state->currentStep);
 
     CUDA_Check( cudaDeviceSynchronize() );
     

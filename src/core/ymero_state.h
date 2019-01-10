@@ -22,7 +22,7 @@ public:
     DomainInfo domain;
 
     float dt;
-    double currentTime{0.0};
-    int currentStep{0};
+    double currentTime;
+    int currentStep;
 };
 

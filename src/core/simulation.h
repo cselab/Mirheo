@@ -109,11 +109,7 @@ private:
     std::string restartFolder, checkpointFolder;
     int globalCheckpointEvery;
 
-    float dt;
     int rank;
-
-    double currentTime{0};
-    int currentStep{0};
 
     std::unique_ptr<TaskScheduler> scheduler;
 
