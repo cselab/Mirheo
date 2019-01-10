@@ -257,20 +257,23 @@ void execute(float3 length, int niters, double& l2, double& linf)
 
     for (int i = 0; i < niters; i++)
     {
+        state.currentStep = i;
+        state.currentTime = i * dt;
+        
         pv.local()->forces.clear(defStream);
         cells.build(defStream);
 
         haloEngine.init(defStream);
         
         dpd.setPrerequisites(&pv, &pv);
-        dpd.regular(&pv, &pv, &cells, &cells, i*dt, defStream);
+        dpd.regular(&pv, &pv, &cells, &cells, defStream);
 
         haloEngine.finalize(defStream);
 
-        dpd.halo(&pv, &pv, &cells, &cells, i*dt, defStream);
+        dpd.halo(&pv, &pv, &cells, &cells, defStream);
 
         integrator->setPrerequisites(&pv);
-        integrator->stage2(&pv, i*dt, defStream);
+        integrator->stage2(&pv, defStream);
         
         CUDA_Check( cudaStreamSynchronize(defStream) );
 

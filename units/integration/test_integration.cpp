@@ -7,13 +7,16 @@
 Logger logger;
 cudaStream_t defaultStream = 0;
 
-static void run_gpu(Integrator *integrator, ParticleVector *pv, int nsteps, float dt)
+static void run_gpu(Integrator *integrator, ParticleVector *pv, int nsteps, YmrState *state)
 {
     integrator->setPrerequisites(pv);
     
     for (int i = 0; i < nsteps; ++i) {
-        integrator->stage1(pv, i * dt, defaultStream);
-        integrator->stage2(pv, i * dt, defaultStream);
+        state->currentStep = i;
+        state->currentTime = i * state->dt;
+        
+        integrator->stage1(pv, defaultStream);
+        integrator->stage2(pv, defaultStream);
     }
 
     pv->local()->coosvels.downloadFromDevice(defaultStream, ContainersSynch::Synch);
@@ -121,7 +124,7 @@ static void testVelocityVerlet(float dt, float mass, int nparticles, int nsteps,
     initializeParticles(&pv, hostParticles);
     initializeForces(&pv, hostForces);
     
-    run_gpu(vv.get(), &pv, nsteps, dt);
+    run_gpu(vv.get(), &pv, nsteps, &state);
     run_cpu(hostParticles, hostForces, nsteps, dt, mass);
 
     computeError(pv.local()->size(), pv.local()->coosvels.data(),
