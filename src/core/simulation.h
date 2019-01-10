@@ -179,6 +179,12 @@ private:
         ObjectBelongingChecker *checker;
         ParticleVector *pvSrc, *pvIn, *pvOut;
     };
+
+    struct PvsCheckPointPrototype
+    {
+        ParticleVector *pv;
+        int checkpointEvery;
+    };
     
     std::vector<InteractionPrototype>         interactionPrototypes;
     std::vector<WallPrototype>                wallPrototypes;
@@ -186,7 +192,7 @@ private:
     std::vector<BouncerPrototype>             bouncerPrototypes;
     std::vector<BelongingCorrectionPrototype> belongingCorrectionPrototypes;
     std::vector<SplitterPrototype>            splitterPrototypes;
-
+    std::vector<PvsCheckPointPrototype>       pvsCheckPointPrototype;
 
     std::vector<std::function<void(float, cudaStream_t)>> regularInteractions, haloInteractions;
     std::vector<std::function<void(float, cudaStream_t)>> integratorsStage1, integratorsStage2;

@@ -44,12 +44,6 @@ Simulation::Simulation(const MPI_Comm &cartComm, const MPI_Comm &interComm, YmrS
          state->domain.globalStart.x, state->domain.globalStart.y, state->domain.globalStart.z);
 
     scheduler = std::make_unique<TaskScheduler>();
-    auto task_checkpoint = scheduler->createTask("Checkpoint");
-
-    if (globalCheckpointEvery > 0)
-        scheduler->addTask(task_checkpoint,
-                           [this](cudaStream_t stream) { this->checkpoint(); },
-                           globalCheckpointEvery);
 }
 
 Simulation::~Simulation() = default;
@@ -175,16 +169,7 @@ void Simulation::registerParticleVector(std::shared_ptr<ParticleVector> pv, std:
             ic->exec(cartComm, pv.get(), 0);
     }
 
-    auto task_checkpoint = scheduler->getTaskId("Checkpoint");
-    if (checkpointEvery > 0 && globalCheckpointEvery == 0)
-    {
-        info("Will save checkpoint of particle vector '%s' every %d timesteps", name.c_str(), checkpointEvery);
-
-        auto pvPtr = pv.get();
-        scheduler->addTask( task_checkpoint, [pvPtr, this] (cudaStream_t stream) {
-            pvPtr->checkpoint(cartComm, checkpointFolder);
-        }, checkpointEvery );
-    }
+    pvsCheckPointPrototype.push_back({pv.get(), checkpointEvery});
 
     auto ov = dynamic_cast<ObjectVector*>(pv.get());
     if(ov != nullptr)
@@ -696,6 +681,7 @@ void Simulation::assemble()
     
     info("Time-step is set to %f", dt);
 
+    auto task_checkpoint                          = scheduler->createTask("Checkpoint");
     auto task_cellLists                           = scheduler->createTask("Build cell-lists");
     auto task_clearForces                         = scheduler->createTask("Clear forces");
     auto task_pluginsBeforeForces                 = scheduler->createTask("Plugins: before forces");
@@ -724,7 +710,22 @@ void Simulation::assemble()
     auto task_redistributeFinalize                = scheduler->createTask("Redistribute finalize");
     auto task_objRedistInit                       = scheduler->createTask("Object redistribute init");
     auto task_objRedistFinalize                   = scheduler->createTask("Object redistribute finalize");
-    
+
+
+    if (globalCheckpointEvery > 0)
+        scheduler->addTask(task_checkpoint,
+                           [this](cudaStream_t stream) { this->checkpoint(); },
+                           globalCheckpointEvery);
+
+    for (auto prototype : pvsCheckPointPrototype)
+        if (prototype.checkpointEvery > 0 && globalCheckpointEvery == 0) {
+            info("Will save checkpoint of particle vector '%s' every %d timesteps",
+                 prototype.pv->name.c_str(), prototype.checkpointEvery);
+
+            scheduler->addTask( task_checkpoint, [prototype, this] (cudaStream_t stream) {
+                prototype.pv->checkpoint(cartComm, checkpointFolder);
+            }, prototype.checkpointEvery );
+        }
 
 
     for (auto& clVec : cellListMap)
@@ -911,7 +912,7 @@ void Simulation::assemble()
     }
 
 
-    scheduler->addDependency(scheduler->getTaskId("Checkpoint"), { task_clearForces }, { task_cellLists });
+    scheduler->addDependency(task_checkpoint, { task_clearForces }, { task_cellLists });
 
     scheduler->addDependency(task_correctObjBelonging, { task_cellLists }, {});
 
