@@ -1,3 +1,5 @@
+#include <core/pvs/particle_vector.h>
+
 #include "uniform_sphere_ic.h"
 #include "helpers.h"
 
