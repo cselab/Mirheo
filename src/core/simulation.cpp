@@ -42,6 +42,8 @@ Simulation::Simulation(const MPI_Comm &cartComm, const MPI_Comm &interComm, YmrS
 
     createFoldersCollective(cartComm, checkpointFolder);
 
+    state->reinitTime();
+    
     info("Simulation initialized, subdomain size is [%f %f %f], subdomain starts "
          "at [%f %f %f]",
          state->domain.localSize.x, state->domain.localSize.y, state->domain.localSize.z,

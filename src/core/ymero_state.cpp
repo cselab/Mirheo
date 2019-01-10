@@ -21,6 +21,12 @@ static bool isMasterRank(MPI_Comm comm)
     return rank == 0;
 }
 
+void YmrState::reinitTime()
+{
+    currentTime = 0;
+    currentStep = 0;
+}
+
 void YmrState::checkpoint(MPI_Comm comm, std::string folder)
 {
     if (!isMasterRank(comm))

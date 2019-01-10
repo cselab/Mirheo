@@ -6,7 +6,8 @@
 #include <core/pvs/rigid_object_vector.h>
 
 ObjPositionsPlugin::ObjPositionsPlugin(const YmrState *state, std::string name, std::string ovName, int dumpEvery) :
-    SimulationPlugin(state, name), ovName(ovName),
+    SimulationPlugin(state, name),
+    ovName(ovName),
     dumpEvery(dumpEvery)
 {}
 
@@ -128,8 +129,9 @@ void writePositions(MPI_Comm comm, DomainInfo domain, MPI_File& fout, float curT
 
 
 ObjPositionsDumper::ObjPositionsDumper(std::string name, std::string path) :
-        PostprocessPlugin(name), path(path)
-{    }
+    PostprocessPlugin(name),
+    path(path)
+{}
 
 void ObjPositionsDumper::setup(const MPI_Comm& comm, const MPI_Comm& interComm)
 {
