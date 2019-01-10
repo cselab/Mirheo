@@ -3,14 +3,6 @@
 #include "uniform_sphere_ic.h"
 #include "helpers.h"
 
-/**
- * Initialize particles uniformly inside or outside a sphere with the given density
- */
-    float density;
-    float3 center;
-    float radius;
-    bool inside;
-
 UniformSphereIC::UniformSphereIC(float density, float3 center, float radius, bool inside) :
     density(density),
     center(center),
