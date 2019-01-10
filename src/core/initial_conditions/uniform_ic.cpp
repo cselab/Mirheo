@@ -30,7 +30,7 @@ UniformIC::~UniformIC() = default;
  */
 void UniformIC::exec(const MPI_Comm& comm, ParticleVector *pv, cudaStream_t stream)
 {
-    auto filterOutNoParticles = [](const DomainInfo& domain, const Particle& part) {
+    auto filterOutNoParticles = [](float3) {
         return false;
     };
     

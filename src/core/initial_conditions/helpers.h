@@ -1,7 +1,10 @@
+#include <functional>
 #include <random>
 
 #include <core/pvs/particle_vector.h>
 #include <core/logger.h>
+
+using PositionFilter = std::function<bool(float3)>;
 
 static long genSeed(const MPI_Comm& comm, std::string name)
 {
@@ -27,8 +30,7 @@ static Particle genParticle(float3 h, int i, int j, int k, const DomainInfo& dom
     return p;
 }
 
-template <typename Filter>
-static void addUniformParticles(float density, const MPI_Comm& comm, ParticleVector *pv, Filter filterOut, cudaStream_t stream)
+static void addUniformParticles(float density, const MPI_Comm& comm, ParticleVector *pv, PositionFilter filterOut, cudaStream_t stream)
 {
     auto domain = pv->state->domain;
 
@@ -57,7 +59,8 @@ static void addUniformParticles(float density, const MPI_Comm& comm, ParticleVec
                     auto part = genParticle(h, i, j, k, domain, udistr, gen);
                     part.i1 = mycount;
 
-                    if (filterOut(domain, part)) continue;
+                    if (filterOut(domain.local2global(part.r)))
+                        continue;
 
                     pv->local()->resize(mycount+1,  stream);
                     auto cooPtr = pv->local()->coosvels.hostPtr();

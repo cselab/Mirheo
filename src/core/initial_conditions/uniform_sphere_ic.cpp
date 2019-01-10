@@ -24,8 +24,8 @@ UniformSphereIC::~UniformSphereIC() = default;
     
 void UniformSphereIC::exec(const MPI_Comm& comm, ParticleVector* pv, cudaStream_t stream)
 {
-    auto filterOutParticles = [this](const DomainInfo& domain, const Particle& part) {
-        float3 r = domain.local2global(part.r) - center;
+    auto filterOutParticles = [this](float3 r) {
+        r -= center;
         bool is_inside = length(r) <= radius;
         
         if (inside) return !is_inside;
