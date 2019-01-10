@@ -53,7 +53,7 @@ void BounceFromMesh::setup(ObjectVector* ov)
 /**
  * Bounce particles from objects with meshes
  */
-void BounceFromMesh::exec(ParticleVector* pv, CellList* cl, float dt, bool local, cudaStream_t stream)
+void BounceFromMesh::exec(ParticleVector *pv, CellList *cl, bool local, cudaStream_t stream)
 {
     auto activeOV = local ? ov->local() : ov->halo();
 
@@ -135,7 +135,7 @@ void BounceFromMesh::exec(ParticleVector* pv, CellList* cl, float dt, bool local
             getNblocks(fineTable.nCollisions[0], nthreads), nthreads, 0, stream,
             vertexView, pvView, ov->mesh.get(),
             fineTable.nCollisions[0], devFineTable.indices, collisionTimes.devPtr(),
-            dt, kbT, drand48(), drand48() );
+            state->dt, kbT, drand48(), drand48() );
 
     if (rov != nullptr)
     {

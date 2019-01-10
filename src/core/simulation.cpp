@@ -532,12 +532,12 @@ void Simulation::prepareBouncers()
 
         CellList *cl = clVec[0].get();
 
-        regularBouncers.push_back([bouncer, pv, cl] (float dt, cudaStream_t stream) {
-            bouncer->bounceLocal(pv, cl, dt, stream);
+        regularBouncers.push_back([bouncer, pv, cl] (cudaStream_t stream) {
+            bouncer->bounceLocal(pv, cl, stream);
         });
 
-        haloBouncers.   push_back([bouncer, pv, cl] (float dt, cudaStream_t stream) {
-            bouncer->bounceHalo (pv, cl, dt, stream);
+        haloBouncers.   push_back([bouncer, pv, cl] (cudaStream_t stream) {
+            bouncer->bounceHalo (pv, cl, stream);
         });
     }
 }
@@ -842,12 +842,12 @@ void Simulation::assemble()
 
     for (auto& bouncer : regularBouncers)
         scheduler->addTask(task_objLocalBounce, [bouncer, this] (cudaStream_t stream) {
-            bouncer(state->dt, stream);
+            bouncer(stream);
     });
 
     for (auto& bouncer : haloBouncers)
         scheduler->addTask(task_objHaloBounce, [bouncer, this] (cudaStream_t stream) {
-            bouncer(state->dt, stream);
+            bouncer(stream);
     });
 
     for (auto& prototype : belongingCorrectionPrototypes)

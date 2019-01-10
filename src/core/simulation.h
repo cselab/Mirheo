@@ -192,7 +192,7 @@ private:
 
     std::vector<std::function<void(cudaStream_t)>> regularInteractions, haloInteractions;
     std::vector<std::function<void(cudaStream_t)>> integratorsStage1, integratorsStage2;
-    std::vector<std::function<void(float, cudaStream_t)>> regularBouncers, haloBouncers;
+    std::vector<std::function<void(cudaStream_t)>> regularBouncers, haloBouncers;
 
     std::map<std::string, std::string> pvsIntegratorMap;
     

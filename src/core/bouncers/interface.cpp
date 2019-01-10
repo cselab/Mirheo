@@ -6,15 +6,15 @@ Bouncer::Bouncer(const YmrState *state, std::string name) :
 
 Bouncer::~Bouncer() = default;
 
-void Bouncer::setPrerequisites(ParticleVector* pv)
+void Bouncer::setPrerequisites(ParticleVector *pv)
 {}
 
-void Bouncer::bounceLocal(ParticleVector* pv, CellList* cl, float dt, cudaStream_t stream)
+void Bouncer::bounceLocal(ParticleVector *pv, CellList *cl, cudaStream_t stream)
 {
-    exec(pv, cl, dt, true,  stream);
+    exec(pv, cl, true,  stream);
 }
 
-void Bouncer::bounceHalo(ParticleVector* pv, CellList* cl, float dt, cudaStream_t stream)
+void Bouncer::bounceHalo(ParticleVector *pv, CellList *cl, cudaStream_t stream)
 {
-    exec(pv, cl, dt, false, stream);
+    exec(pv, cl, false, stream);
 }

@@ -43,7 +43,7 @@ void BounceFromRigidEllipsoid::setup(ObjectVector* ov)
  * Calls ObjectVector::findExtentAndCOM and then calls
  * bounceEllipsoid() function
  */
-void BounceFromRigidEllipsoid::exec(ParticleVector* pv, CellList* cl, float dt, bool local, cudaStream_t stream)
+void BounceFromRigidEllipsoid::exec(ParticleVector *pv, CellList *cl, bool local, cudaStream_t stream)
 {
     auto reov = dynamic_cast<RigidEllipsoidObjectVector*>(ov);
     if (reov == nullptr)
@@ -71,7 +71,7 @@ void BounceFromRigidEllipsoid::exec(ParticleVector* pv, CellList* cl, float dt, 
     SAFE_KERNEL_LAUNCH(
             bounceEllipsoid,
             ovView.nObjects, nthreads, 2*nthreads*sizeof(int), stream,
-            ovView, pvView, cl->cellInfo(), dt );
+            ovView, pvView, cl->cellInfo(), state->dt );
 }
 
 

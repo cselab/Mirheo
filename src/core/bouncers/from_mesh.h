@@ -38,8 +38,8 @@ private:
 
     float kbT;
 
-    RigidObjectVector* rov;
+    RigidObjectVector *rov;
 
-    void exec(ParticleVector* pv, CellList* cl, float dt, bool local, cudaStream_t stream) override;
-    void setup(ObjectVector* ov) override;
+    void exec(ParticleVector *pv, CellList *cl, bool local, cudaStream_t stream) override;
+    void setup(ObjectVector *ov) override;
 };
