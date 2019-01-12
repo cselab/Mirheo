@@ -4,6 +4,7 @@
 
 struct GPU_RBCparameters
 {
+    float scale; /* hack for stress free TODO? */
     float gammaC, gammaT;
     float mpow, l0, x0, ks;
     float area0, totArea0, totVolume0;
@@ -129,10 +130,14 @@ __device__ float3 bondTriangleForce(
 
         Particle p2(view.particles, idv2);
 
-        const float l0 = stressFree ? mesh.initialLengths[startId + i-1] : parameters.l0;
-        const float a0 = stressFree ? mesh.initialAreas  [startId + i-1] : parameters.area0;
-        
+        float l0 = stressFree ? mesh.initialLengths[startId + i-1] : parameters.l0;
+        float a0 = stressFree ? mesh.initialAreas  [startId + i-1] : parameters.area0;
 
+        if (stressFree) {
+            l0 *= parameters.scale;
+            a0 *= parameters.scale * parameters.scale;
+        }
+        
         f +=  _fangle(p.r, p1.r, p2.r, a0, view.area_volumes[rbcId].x, view.area_volumes[rbcId].y, parameters)
             + _fbond (p.r, p1.r, l0, parameters)
             + _fvisc (p,   p1,       parameters)
