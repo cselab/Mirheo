@@ -12,7 +12,23 @@ YmrState::YmrState(DomainInfo domain, float dt) :
     currentStep(0)
 {}
 
+YmrState::YmrState(const YmrState&) = default;
+
+YmrState& YmrState::operator=(YmrState other)
+{
+    swap(other);
+    return *this;
+}
+
 YmrState::~YmrState() = default;
+
+void YmrState::swap(YmrState& other)
+{
+    std::swap(domain,      other.domain);
+    std::swap(dt,          other.dt);
+    std::swap(currentTime, other.currentTime);
+    std::swap(currentStep, other.currentStep);
+}
 
 static bool isMasterRank(MPI_Comm comm)
 {
