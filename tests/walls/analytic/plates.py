@@ -10,7 +10,7 @@ force = (1.0, 0, 0)
 
 density = 4
 
-u = ymr.ymero(ranks, domain, dt, debug_level=3, log_filename='stdout')
+u = ymr.ymero(ranks, domain, dt, debug_level=3, log_filename='log')
 
 pv = ymr.ParticleVectors.ParticleVector('pv', mass = 1)
 ic = ymr.InitialConditions.Uniform(density=density)
@@ -45,6 +45,8 @@ binSize     = (1., 1., 0.5)
 
 field = ymr.Plugins.createDumpAverage('field', [pv], sampleEvery, dumpEvery, binSize, [("velocity", "vector_from_float8")], 'h5/solvent-')
 u.registerPlugins(field)
+
+#u.registerPlugins(ymr.Plugins.createStats('stats', "stats.txt", 1000))
 
 u.run(7002)
 

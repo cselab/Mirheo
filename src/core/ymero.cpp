@@ -303,6 +303,8 @@ std::shared_ptr<ParticleVector> YMeRo::makeFrozenWallParticles(std::string pvNam
 
         info("Working with wall '%s'", wall->name.c_str());   
     }
+
+    YmrState stateCpy = *getState();
     
     Simulation wallsim(sim->cartComm, MPI_COMM_NULL, getState(), false);
 
@@ -328,6 +330,9 @@ std::shared_ptr<ParticleVector> YMeRo::makeFrozenWallParticles(std::string pvNam
 
     for (auto &wall : walls)
         wall->attachFrozen(pv.get());
+
+    // go back to initial state
+    *state = stateCpy;
     
     return pv;
 }
@@ -353,6 +358,8 @@ std::shared_ptr<ParticleVector> YMeRo::makeFrozenRigidParticles(std::shared_ptr<
     auto pv = std::make_shared<ParticleVector>(getState(), "outside__" + shape->name, mass);
     auto ic = std::make_shared<UniformIC>(density);
 
+    YmrState stateCpy = *getState();
+
     {
         Simulation eqsim(sim->cartComm, MPI_COMM_NULL, getState(), false);
     
@@ -366,7 +373,7 @@ std::shared_ptr<ParticleVector> YMeRo::makeFrozenRigidParticles(std::shared_ptr<
         eqsim.init();
         eqsim.run(nsteps);
     }
-    
+
     Simulation freezesim(sim->cartComm, MPI_COMM_NULL, getState(), false);
 
     freezesim.registerParticleVector(pv, nullptr, 0);
@@ -377,6 +384,9 @@ std::shared_ptr<ParticleVector> YMeRo::makeFrozenRigidParticles(std::shared_ptr<
 
     freezesim.init();
     freezesim.run(1);
+
+    // go back to initial state
+    *state = stateCpy;
 
     return freezesim.getSharedPVbyName(insideName);
 }
