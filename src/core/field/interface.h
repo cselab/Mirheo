@@ -77,8 +77,7 @@ private:
     int3 resolution;
     
     cudaArray *fieldArray;
-    DeviceBuffer<float> fieldRawData; // TODO: this can be free'd after creation
-
+    
     const float3 margin3{5, 5, 5};
 
     std::string fieldFileName;

@@ -273,23 +273,23 @@ void Field::setup(MPI_Comm& comm, DomainInfo domain)
 
     int3 resolutionBeforeInterpolation;
     float3 offset;
-    PinnedBuffer<float> localSdfData;
+    PinnedBuffer<float> localData;
     prepareRelevantSdfPiece(rank, fullSdfData.data(), domain.globalStart - margin3, initialSdfH, initialSdfResolution,
-            resolutionBeforeInterpolation, offset, localSdfData);
+            resolutionBeforeInterpolation, offset, localData);
 
     // Interpolate
-    fieldRawData.resize(resolution.x * resolution.y * resolution.z, 0);
+    DeviceBuffer<float> fieldRawData (resolution.x * resolution.y * resolution.z);
 
     dim3 threads(8, 8, 8);
     dim3 blocks((resolution.x+threads.x-1) / threads.x,
                 (resolution.y+threads.y-1) / threads.y,
                 (resolution.z+threads.z-1) / threads.z);
 
-    localSdfData.uploadToDevice(0);
+    localData.uploadToDevice(0);
     SAFE_KERNEL_LAUNCH(
             InterpolateKernels::cubicInterpolate3D,
             blocks, threads, 0, 0,
-            localSdfData.devPtr(), resolutionBeforeInterpolation, initialSdfH,
+            localData.devPtr(), resolutionBeforeInterpolation, initialSdfH,
             fieldRawData.devPtr(), resolution, h, offset, lenScalingFactor );
 
 
