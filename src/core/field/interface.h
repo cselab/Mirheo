@@ -68,9 +68,8 @@ public:
     void setup(MPI_Comm& comm, DomainInfo domain);
     Field(std::string fieldFileName, float3 h);
 
-
-    Field(Field&&) = default;
-    const FieldDeviceHandler& handler() const { return *(FieldDeviceHandler*)this; }
+    Field(Field&&);
+    const FieldDeviceHandler& handler() const;
 
 private:
 

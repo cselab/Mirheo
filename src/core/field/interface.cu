@@ -145,6 +145,13 @@ Field::Field(std::string fieldFileName, float3 h) :
     this->h = h;
 }
 
+Field::Field(Field&&) = default;
+
+const FieldDeviceHandler& Field::handler() const
+{
+    return *(FieldDeviceHandler*)this;
+}
+
 void Field::readHeader(MPI_Comm& comm,
         int3& sdfResolution, float3& sdfExtent, int64_t& fullSdfSize_byte, int64_t& endHeader_byte, int rank)
 {
