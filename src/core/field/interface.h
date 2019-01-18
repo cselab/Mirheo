@@ -64,13 +64,16 @@ protected:
 
 class Field : public FieldDeviceHandler
 {
-public:
-    void setup(MPI_Comm& comm, DomainInfo domain);
-    Field(std::string fieldFileName, float3 h);
+public:    
+    Field(std::string fieldFileName, float3 h);    
+    ~Field();
 
     Field(Field&&);
+    
     const FieldDeviceHandler& handler() const;
 
+    void setup(MPI_Comm& comm, DomainInfo domain);
+    
 private:
 
     int3 resolution;

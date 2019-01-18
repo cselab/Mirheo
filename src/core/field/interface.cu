@@ -140,9 +140,18 @@ __global__ void inverseDistanceWeightedInterpolation(const float* in, int3 inDim
  * We only set a few params here
  */
 Field::Field(std::string fieldFileName, float3 h) :
-    fieldFileName(fieldFileName)
+    fieldFileName(fieldFileName),
+    fieldArray(nullptr)
 {
     this->h = h;
+}
+
+Field::~Field()
+{
+    if (fieldArray) {
+        CUDA_Check( cudaFreeArray(fieldArray) );
+        CUDA_Check( cudaDestroyTextureObject(fieldTex) );
+    }
 }
 
 Field::Field(Field&&) = default;
