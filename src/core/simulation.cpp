@@ -50,7 +50,10 @@ Simulation::Simulation(const MPI_Comm &cartComm, const MPI_Comm &interComm, YmrS
          state->domain.globalStart.x, state->domain.globalStart.y, state->domain.globalStart.z);    
 }
 
-Simulation::~Simulation() = default;
+Simulation::~Simulation()
+{
+    MPI_Check( MPI_Comm_free(&cartComm) );
+}
 
 
 //================================================================================================

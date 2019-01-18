@@ -103,11 +103,12 @@ def __init__():
     nonGPU_names  = [['Interactions', 'MembraneParameters'],
                      ['Interactions', 'KantorBendingParameters'],
                      ['Interactions', 'JuelicherBendingParameters'],
-                     ['ParticleVectors', 'Mesh'],
-                     ['ParticleVectors', 'MembraneMesh']]
+                     ['ParticleVectors', 'Mesh']]
     
     needing_state = ['Plugins', 'Integrators', 'ParticleVectors',
                      'Interactions', 'BelongingCheckers', 'Bouncers', 'Walls']
+
+    not_needing_state = [['ParticleVectors', 'MembraneMesh']]
     
     classes = {}
     submodules =  inspect.getmembers(sys.modules[__name__],
@@ -119,10 +120,12 @@ def __init__():
                                         and 'ymero' in member.__module__ )
 
     for module in classes.keys():
-        if module != 'Plugins':
-            need_state = module in needing_state
-            for cls in classes[module]:
+        if module != 'Plugins':            
+            for cls in classes[module]:                
                 if [module, cls[0]] not in nonGPU_names:
+                    need_state = module in needing_state
+                    if [module, cls[0]] in not_needing_state:
+                        need_state = False
                     setattr(cls[1], '__init__', decorate_with_state(cls[1].__init__, need_state))
                     setattr(cls[1], '__new__', decorate_with_state(cls[1].__new__, need_state))
                     getattr(cls[1], '__init__').__doc__ = re.sub('state: libymero.YmrState, ', '', getattr(cls[1], '__init__').__doc__)

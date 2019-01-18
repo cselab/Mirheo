@@ -120,6 +120,8 @@ void InteractionMembrane::regular(ParticleVector *pv1, ParticleVector *pv2,
 
     auto devParams = setParams(currentParams, ov->mesh.get(), state->dt, state->currentTime);
 
+    devParams.scale = scale;
+
     if (stressFree)
         SAFE_KERNEL_LAUNCH(computeMembraneForces<true>,
                            blocks, nthreads, 0, stream,

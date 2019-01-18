@@ -13,8 +13,13 @@ class YmrState
 {
 public:
     YmrState(DomainInfo domain, float dt);
+    YmrState(const YmrState&);
+    YmrState& operator=(YmrState other);
+
     virtual ~YmrState();
 
+    void swap(YmrState& other);
+    
     void reinitTime();
     
     void checkpoint(MPI_Comm comm, std::string path);  /// Save state to file

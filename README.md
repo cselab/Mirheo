@@ -12,6 +12,11 @@ For more information, please refer to the online documentation: http://ymero.rea
 
 ## Changelog
 
+### v0.9.4
+
+* fix: stress free state can be used when the cell is grown
+* fix: MembraneMesh wrapper needs GPU
+
 ### v0.9.3
 
 * fix: the stress entries are now cleared before forces; could be cleared more by other interaction handlers
