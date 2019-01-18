@@ -74,7 +74,7 @@ public:
 
     void setup(MPI_Comm& comm, DomainInfo domain);
     
-private:
+protected:
 
     int3 resolution;
     
@@ -82,6 +82,8 @@ private:
     
     const float3 margin3{5, 5, 5};
 
+    void setupArrayTexture(const float *fieldDevPtr);
+    
     std::string fieldFileName;
 
     void readSdf(MPI_Comm& comm, int64_t fullSdfSize_byte, int64_t endHeader_byte, int nranks, int rank, std::vector<float>& fullSdfData);

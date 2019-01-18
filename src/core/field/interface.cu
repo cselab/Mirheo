@@ -308,13 +308,17 @@ void Field::setup(MPI_Comm& comm, DomainInfo domain)
             localData.devPtr(), resolutionBeforeInterpolation, initialSdfH,
             fieldRawData.devPtr(), resolution, h, offset, lenScalingFactor );
 
+    setupArrayTexture(fieldRawData.devPtr());
+}
 
+void Field::setupArrayTexture(const float *fieldDevPtr)
+{
     // Prepare array to be transformed into texture
     auto chDesc = cudaCreateChannelDesc<float>();
     CUDA_Check( cudaMalloc3DArray(&fieldArray, &chDesc, make_cudaExtent(resolution.x, resolution.y, resolution.z)) );
 
     cudaMemcpy3DParms copyParams = {};
-    copyParams.srcPtr   = make_cudaPitchedPtr((void*)fieldRawData.devPtr(), resolution.x*sizeof(float), resolution.x, resolution.y);
+    copyParams.srcPtr   = make_cudaPitchedPtr((void*)fieldDevPtr, resolution.x*sizeof(float), resolution.x, resolution.y);
     copyParams.dstArray = fieldArray;
     copyParams.extent   = make_cudaExtent(resolution.x, resolution.y, resolution.z);
     copyParams.kind     = cudaMemcpyDeviceToDevice;
