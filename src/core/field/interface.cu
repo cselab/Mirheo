@@ -161,12 +161,11 @@ const FieldDeviceHandler& Field::handler() const
     return *(FieldDeviceHandler*)this;
 }
 
-void Field::readHeader(MPI_Comm& comm,
-        int3& sdfResolution, float3& sdfExtent, int64_t& fullSdfSize_byte, int64_t& endHeader_byte, int rank)
+static void readHeader(const std::string fileName, const MPI_Comm& comm, int3& sdfResolution, float3& sdfExtent, int64_t& fullSdfSize_byte, int64_t& endHeader_byte, int rank)
 {
     if (rank == 0)
     {
-        std::ifstream file(fieldFileName);
+        std::ifstream file(fileName);
         if (!file.good())
             die("File not found or not accessible");
 
@@ -176,7 +175,7 @@ void Field::readHeader(MPI_Comm& comm,
             sdfResolution.x >> sdfResolution.y >> sdfResolution.z;
         fullSdfSize_byte = (int64_t)sdfResolution.x * sdfResolution.y * sdfResolution.z * sizeof(float);
 
-        info("Using field file '%s' of size %.2fx%.2fx%.2f and resolution %dx%dx%d", fieldFileName.c_str(),
+        info("Using field file '%s' of size %.2fx%.2fx%.2f and resolution %dx%dx%d", fileName.c_str(),
                 sdfExtent.x, sdfExtent.y, sdfExtent.z,
                 sdfResolution.x, sdfResolution.y, sdfResolution.z);
 
@@ -194,8 +193,7 @@ void Field::readHeader(MPI_Comm& comm,
     MPI_Check( MPI_Bcast(&endHeader_byte,   1, MPI_INT64_T,   0, comm) );
 }
 
-void Field::readSdf(MPI_Comm& comm,
-        int64_t fullSdfSize_byte, int64_t endHeader_byte, int nranks, int rank, std::vector<float>& fullSdfData)
+static void readSdf(const std::string fileName, const MPI_Comm& comm, int64_t fullSdfSize_byte, int64_t endHeader_byte, int nranks, int rank, std::vector<float>& fullSdfData)
 {
     // Read part and allgather
     const int64_t readPerProc_byte = (fullSdfSize_byte + nranks - 1) / (int64_t)nranks;
@@ -207,7 +205,7 @@ void Field::readSdf(MPI_Comm& comm,
 
     MPI_File fh;
     MPI_Status status;
-    MPI_Check( MPI_File_open(comm, fieldFileName.c_str(), MPI_MODE_RDONLY, MPI_INFO_NULL, &fh) );  // TODO: MPI_Info
+    MPI_Check( MPI_File_open(comm, fileName.c_str(), MPI_MODE_RDONLY, MPI_INFO_NULL, &fh) );  // TODO: MPI_Info
     MPI_Check( MPI_File_read_at_all(fh, readStart, readBuffer.data(), readEnd - readStart, MPI_BYTE, &status) );
     // TODO: check that we read just what we asked
     // MPI_Get_count only return int though
@@ -268,12 +266,12 @@ void Field::setup(MPI_Comm& comm, DomainInfo domain)
     int64_t endHeader_byte;
 
     // Read header
-    readHeader(comm, initialSdfResolution, initialSdfExtent, fullSdfSize_byte, endHeader_byte, rank);
+    readHeader(fieldFileName, comm, initialSdfResolution, initialSdfExtent, fullSdfSize_byte, endHeader_byte, rank);
     float3 initialSdfH = domain.globalSize / make_float3(initialSdfResolution-1);
 
     // Read heavy data
     std::vector<float> fullSdfData;
-    readSdf(comm, fullSdfSize_byte, endHeader_byte, nranks, rank, fullSdfData);
+    readSdf(fieldFileName, comm, fullSdfSize_byte, endHeader_byte, nranks, rank, fullSdfData);
 
     // We'll make sdf a bit bigger, so that particles that flew away
     // would also be correctly bounced back
