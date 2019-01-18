@@ -139,9 +139,10 @@ __global__ void inverseDistanceWeightedInterpolation(const float* in, int3 inDim
 /*
  * We only set a few params here
  */
-Field::Field(std::string sdfFileName, float3 sdfH) : sdfFileName(sdfFileName)
+Field::Field(std::string fieldFileName, float3 h) :
+    fieldFileName(fieldFileName)
 {
-    h = sdfH;
+    this->h = h;
 }
 
 void Field::readHeader(MPI_Comm& comm,
@@ -149,8 +150,7 @@ void Field::readHeader(MPI_Comm& comm,
 {
     if (rank == 0)
     {
-        //printf("'%s'\n", sdfFileName.c_str());
-        std::ifstream file(sdfFileName);
+        std::ifstream file(fieldFileName);
         if (!file.good())
             die("File not found or not accessible");
 
@@ -160,7 +160,7 @@ void Field::readHeader(MPI_Comm& comm,
             sdfResolution.x >> sdfResolution.y >> sdfResolution.z;
         fullSdfSize_byte = (int64_t)sdfResolution.x * sdfResolution.y * sdfResolution.z * sizeof(float);
 
-        info("Using wall file '%s' of size %.2fx%.2fx%.2f and resolution %dx%dx%d", sdfFileName.c_str(),
+        info("Using field file '%s' of size %.2fx%.2fx%.2f and resolution %dx%dx%d", fieldFileName.c_str(),
                 sdfExtent.x, sdfExtent.y, sdfExtent.z,
                 sdfResolution.x, sdfResolution.y, sdfResolution.z);
 
@@ -191,7 +191,7 @@ void Field::readSdf(MPI_Comm& comm,
 
     MPI_File fh;
     MPI_Status status;
-    MPI_Check( MPI_File_open(comm, sdfFileName.c_str(), MPI_MODE_RDONLY, MPI_INFO_NULL, &fh) );  // TODO: MPI_Info
+    MPI_Check( MPI_File_open(comm, fieldFileName.c_str(), MPI_MODE_RDONLY, MPI_INFO_NULL, &fh) );  // TODO: MPI_Info
     MPI_Check( MPI_File_read_at_all(fh, readStart, readBuffer.data(), readEnd - readStart, MPI_BYTE, &status) );
     // TODO: check that we read just what we asked
     // MPI_Get_count only return int though
@@ -234,7 +234,7 @@ void Field::prepareRelevantSdfPiece(int rank,
 
 void Field::setup(MPI_Comm& comm, DomainInfo domain)
 {
-    info("Setting up sdf from %s", sdfFileName.c_str());
+    info("Setting up field from %s", fieldFileName.c_str());
 
     CUDA_Check( cudaDeviceSynchronize() );
     MPI_Check( MPI_Comm_dup(comm, &comm) );
@@ -278,7 +278,7 @@ void Field::setup(MPI_Comm& comm, DomainInfo domain)
             resolutionBeforeInterpolation, offset, localSdfData);
 
     // Interpolate
-    sdfRawData.resize(resolution.x * resolution.y * resolution.z, 0);
+    fieldRawData.resize(resolution.x * resolution.y * resolution.z, 0);
 
     dim3 threads(8, 8, 8);
     dim3 blocks((resolution.x+threads.x-1) / threads.x,
@@ -290,25 +290,25 @@ void Field::setup(MPI_Comm& comm, DomainInfo domain)
             InterpolateKernels::cubicInterpolate3D,
             blocks, threads, 0, 0,
             localSdfData.devPtr(), resolutionBeforeInterpolation, initialSdfH,
-            sdfRawData.devPtr(), resolution, h, offset, lenScalingFactor );
+            fieldRawData.devPtr(), resolution, h, offset, lenScalingFactor );
 
 
     // Prepare array to be transformed into texture
     auto chDesc = cudaCreateChannelDesc<float>();
-    CUDA_Check( cudaMalloc3DArray(&sdfArray, &chDesc, make_cudaExtent(resolution.x, resolution.y, resolution.z)) );
+    CUDA_Check( cudaMalloc3DArray(&fieldArray, &chDesc, make_cudaExtent(resolution.x, resolution.y, resolution.z)) );
 
     cudaMemcpy3DParms copyParams = {};
-    copyParams.srcPtr = make_cudaPitchedPtr((void*)sdfRawData.devPtr(), resolution.x*sizeof(float), resolution.x, resolution.y);
-    copyParams.dstArray = sdfArray;
-    copyParams.extent = make_cudaExtent(resolution.x, resolution.y, resolution.z);
-    copyParams.kind = cudaMemcpyDeviceToDevice;
+    copyParams.srcPtr   = make_cudaPitchedPtr((void*)fieldRawData.devPtr(), resolution.x*sizeof(float), resolution.x, resolution.y);
+    copyParams.dstArray = fieldArray;
+    copyParams.extent   = make_cudaExtent(resolution.x, resolution.y, resolution.z);
+    copyParams.kind     = cudaMemcpyDeviceToDevice;
 
     CUDA_Check( cudaMemcpy3D(&copyParams) );
 
     // Create texture
     cudaResourceDesc resDesc = {};
-    resDesc.resType = cudaResourceTypeArray;
-    resDesc.res.array.array = sdfArray;
+    resDesc.resType         = cudaResourceTypeArray;
+    resDesc.res.array.array = fieldArray;
 
     cudaTextureDesc texDesc = {};
     texDesc.addressMode[0]   = cudaAddressModeWrap;
@@ -318,7 +318,7 @@ void Field::setup(MPI_Comm& comm, DomainInfo domain)
     texDesc.readMode         = cudaReadModeElementType;
     texDesc.normalizedCoords = 0;
 
-    CUDA_Check( cudaCreateTextureObject(&sdfTex, &resDesc, &texDesc, nullptr) );
+    CUDA_Check( cudaCreateTextureObject(&fieldTex, &resDesc, &texDesc, nullptr) );
 
     CUDA_Check( cudaDeviceSynchronize() );
 }

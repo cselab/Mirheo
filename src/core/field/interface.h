@@ -29,7 +29,7 @@ public:
         float3 lambda = (x - (texcoord * h - extendedDomainSize*0.5f)) * invh;
         
         auto access = [this, &texcoord] (int dx, int dy, int dz) {
-            return tex3D<float>(sdfTex, texcoord.x + dx, texcoord.y + dy, texcoord.z + dz);
+            return tex3D<float>(fieldTex, texcoord.x + dx, texcoord.y + dy, texcoord.z + dz);
         };
         
         s000 = access(0, 0, 0);
@@ -57,9 +57,8 @@ public:
 
 protected:
 
-    cudaTextureObject_t sdfTex;
-    float3 h, invh, extendedDomainSize;
-    int3 resolution;
+    cudaTextureObject_t fieldTex;
+    float3 h, invh, extendedDomainSize;    
 };
 
 
@@ -67,7 +66,7 @@ class Field : public FieldDeviceHandler
 {
 public:
     void setup(MPI_Comm& comm, DomainInfo domain);
-    Field(std::string sdfFileName, float3 sdfH);
+    Field(std::string fieldFileName, float3 h);
 
 
     Field(Field&&) = default;
@@ -75,12 +74,14 @@ public:
 
 private:
 
-    cudaArray *sdfArray;
-    DeviceBuffer<float> sdfRawData; // TODO: this can be free'd after creation
+    int3 resolution;
+    
+    cudaArray *fieldArray;
+    DeviceBuffer<float> fieldRawData; // TODO: this can be free'd after creation
 
     const float3 margin3{5, 5, 5};
 
-    std::string sdfFileName;
+    std::string fieldFileName;
 
     void readSdf(MPI_Comm& comm, int64_t fullSdfSize_byte, int64_t endHeader_byte, int nranks, int rank, std::vector<float>& fullSdfData);
     void readHeader(MPI_Comm& comm, int3& sdfResolution, float3& sdfExtent, int64_t& fullSdfSize_byte, int64_t& endHeader_byte, int rank);
