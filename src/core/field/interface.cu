@@ -214,23 +214,10 @@ void Field::prepareRelevantSdfPiece(int rank,
     float3 startInLocalCoord = make_float3(startId)*initialSdfH - (extendedDomainStart + 0.5*extendedDomainSize);
     offset = -0.5*extendedDomainSize - startInLocalCoord;
 
-//    printf("%d:  SDstart [%f %f %f]  sdfH [%f %f %f] startId [%d %d %d], endId [%d %d %d], localstart [%f %f %f]\n",
-//                rank,
-//                extendedDomainStart.x, extendedDomainStart.y, extendedDomainStart.z,
-//                initialSdfH.x, initialSdfH.y, initialSdfH.z,
-//                startId.x, startId.y, startId.z,
-//                endId.x, endId.y, endId.z,
-//                startInLocalCoord.x, startInLocalCoord.y, startInLocalCoord.z);
-
     resolution = endId - startId;
 
     localSdfData.resize( resolution.x * resolution.y * resolution.z, 0 );
     auto locSdfDataPtr = localSdfData.hostPtr();
-
-//    printf("%d:  input [%d %d %d], initial [%d %d %d], start [%d %d %d]\n",
-//            rank, resolution.x, resolution.y, resolution.z,
-//            initialSdfResolution.x, initialSdfResolution.y, initialSdfResolution.z,
-//            startId.x, startId.y, startId.z);
 
     for (int k = 0; k < resolution.z; k++)
         for (int j = 0; j < resolution.y; j++)
