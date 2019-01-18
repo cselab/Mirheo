@@ -2,10 +2,11 @@
 
 #include <core/domain.h>
 #include <core/containers.h>
-#include <core/pvs/particle_vector.h>
 
 #include <core/utils/cpu_gpu_defines.h>
 #include <core/utils/helper_math.h>
+
+#include <vector>
 
 #ifndef __NVCC__
 template<typename T>
