@@ -1,7 +1,7 @@
 #include "sdf.h"
 
 StationaryWall_SDF::StationaryWall_SDF(const YmrState *state, std::string sdfFileName, float3 sdfH) :
-    impl(new FieldFromFile(state, sdfFileName, sdfH))
+    impl(new FieldFromFile(state, "field_"+sdfFileName, sdfFileName, sdfH))
 {}
 
 StationaryWall_SDF::StationaryWall_SDF(StationaryWall_SDF&&) = default;

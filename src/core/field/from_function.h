@@ -7,7 +7,7 @@ using FieldFunction = std::function<float(float3)>;
 class FieldFromFunction : public Field
 {
 public:    
-    FieldFromFunction(const YmrState *state, FieldFunction func, float3 h);
+    FieldFromFunction(const YmrState *state, std::string name, FieldFunction func, float3 h);
     ~FieldFromFunction();
 
     FieldFromFunction(FieldFromFunction&&);

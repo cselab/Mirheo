@@ -4,8 +4,8 @@
 #include <core/utils/cuda_common.h>
 
 
-Field::Field(const YmrState *state, float3 hField) :
-    YmrSimulationObject(state, ""),
+Field::Field(const YmrState *state, std::string name, float3 hField) :
+    YmrSimulationObject(state, name),
     fieldArray(nullptr)
 {
     // We'll make sdf a bit bigger, so that particles that flew away
@@ -33,6 +33,8 @@ const FieldDeviceHandler& Field::handler() const
 
 void Field::setupArrayTexture(const float *fieldDevPtr)
 {
+    debug("setting up cuda array and texture object for field '%s'", name.c_str());
+    
     // Prepare array to be transformed into texture
     auto chDesc = cudaCreateChannelDesc<float>();
     CUDA_Check( cudaMalloc3DArray(&fieldArray, &chDesc, make_cudaExtent(resolution.x, resolution.y, resolution.z)) );

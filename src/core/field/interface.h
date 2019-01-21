@@ -66,7 +66,7 @@ protected:
 class Field : public FieldDeviceHandler, public YmrSimulationObject
 {
 public:    
-    Field(const YmrState *state, float3 h);
+    Field(const YmrState *state, std::string name, float3 h);
     virtual ~Field();
 
     Field(Field&&);

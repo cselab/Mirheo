@@ -40,7 +40,7 @@ VirialPressurePlugin::VirialPressurePlugin(const YmrState *state, std::string na
     pvName(pvName),
     stressName(stressName),
     dumpEvery(dumpEvery),
-    region(state, func, h)
+    region(state, "field_"+name, func, h)
 {}
 
 VirialPressurePlugin::~VirialPressurePlugin() = default;

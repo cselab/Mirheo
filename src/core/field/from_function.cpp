@@ -1,7 +1,7 @@
 #include "from_function.h"
 
-FieldFromFunction::FieldFromFunction(const YmrState *state, FieldFunction func, float3 h) :
-    Field(state, h),
+FieldFromFunction::FieldFromFunction(const YmrState *state, std::string name, FieldFunction func, float3 h) :
+    Field(state, name, h),
     func(func)
 {}
 
@@ -26,7 +26,7 @@ inline float3 make_periodic(float3 r, float3 L)
 
 void FieldFromFunction::setup(const MPI_Comm& comm)
 {
-    info("Setting up field");
+    info("Setting up field '%s'", name.c_str());
 
     const auto domain = state->domain;
     
