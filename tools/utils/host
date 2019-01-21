@@ -18,6 +18,9 @@ case `hostname` in
     falcon*|panda*)
         echo falcon
 	;;
+    barry*)
+	echo barry
+	;;
     daint*)
 	echo daint
 	;;
