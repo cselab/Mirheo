@@ -2,6 +2,7 @@
 
 #include <core/domain.h>
 #include <core/containers.h>
+#include <core/ymero_object.h>
 
 #include <core/utils/cpu_gpu_defines.h>
 #include <core/utils/helper_math.h>
@@ -62,17 +63,17 @@ protected:
 };
 
 
-class Field : public FieldDeviceHandler
+class Field : public FieldDeviceHandler, public YmrSimulationObject
 {
 public:    
-    Field(std::string fieldFileName, float3 h);    
-    ~Field();
+    Field(const YmrState *state, float3 h);
+    virtual ~Field();
 
     Field(Field&&);
     
     const FieldDeviceHandler& handler() const;
 
-    void setup(MPI_Comm& comm, DomainInfo domain);
+    virtual void setup(MPI_Comm& comm) = 0;
     
 protected:
 
@@ -83,6 +84,4 @@ protected:
     const float3 margin3{5, 5, 5};
 
     void setupArrayTexture(const float *fieldDevPtr);
-    
-    std::string fieldFileName;
 };
