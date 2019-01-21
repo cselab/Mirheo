@@ -214,9 +214,9 @@ static void readSdf(const std::string fileName, const MPI_Comm& comm, int64_t fu
     MPI_Check( MPI_Allgather(readBuffer.data(), readPerProc_byte, MPI_BYTE, fullSdfData.data(), readPerProc_byte, MPI_BYTE, comm) );
 }
 
-void prepareRelevantSdfPiece(const float* fullSdfData, float3 extendedDomainStart, float3 extendedDomainSize,
-                             float3 initialSdfH, int3 initialSdfResolution,
-                             int3& resolution, float3& offset, PinnedBuffer<float>& localSdfData)
+static void prepareRelevantSdfPiece(const float* fullSdfData, float3 extendedDomainStart, float3 extendedDomainSize,
+                                    float3 initialSdfH, int3 initialSdfResolution,
+                                    int3& resolution, float3& offset, PinnedBuffer<float>& localSdfData)
 {
     // Find your relevant chunk of data
     // We cannot send big sdf files directly, so we'll carve a piece now
