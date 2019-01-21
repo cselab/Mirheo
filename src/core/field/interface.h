@@ -85,7 +85,4 @@ protected:
     void setupArrayTexture(const float *fieldDevPtr);
     
     std::string fieldFileName;
-
-    void prepareRelevantSdfPiece(int rank, const float* fullSdfData, float3 extendedDomainStart, float3 initialSdfH, int3 initialSdfResolution,
-            int3& resolution, float3& offset, PinnedBuffer<float>& localSdfData);
 };
