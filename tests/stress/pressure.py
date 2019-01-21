@@ -24,7 +24,12 @@ vv = ymr.Integrators.VelocityVerlet('vv')
 u.registerIntegrator(vv)
 u.setIntegrator(vv, pv)
 
-u.registerPlugins(ymr.Plugins.createVirialPressurePlugin('Pressure', pv, stressName, dumpEvery, "pressure"))
+def predicate_all_domain(r):
+    return 1.0
+
+h = (1.0, 1.0, 1.0)
+
+u.registerPlugins(ymr.Plugins.createVirialPressurePlugin('Pressure', pv, stressName, predicate_all_domain, h, dumpEvery, "pressure"))
 
 u.run(1001)
 
