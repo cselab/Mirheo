@@ -12,7 +12,7 @@ public:
 
     FieldFromFunction(FieldFromFunction&&);
     
-    void setup(MPI_Comm& comm) override;
+    void setup(const MPI_Comm& comm) override;
     
 protected:
     

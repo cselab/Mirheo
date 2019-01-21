@@ -73,7 +73,7 @@ public:
     
     const FieldDeviceHandler& handler() const;
 
-    virtual void setup(MPI_Comm& comm) = 0;
+    virtual void setup(const MPI_Comm& comm) = 0;
     
 protected:
 

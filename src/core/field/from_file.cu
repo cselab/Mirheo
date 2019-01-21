@@ -225,14 +225,13 @@ FieldFromFile::~FieldFromFile() = default;
 
 FieldFromFile::FieldFromFile(FieldFromFile&&) = default;
 
-void FieldFromFile::setup(MPI_Comm& comm)
+void FieldFromFile::setup(const MPI_Comm& comm)
 {
     info("Setting up field from %s", fieldFileName.c_str());
 
     const auto domain = state->domain;
     
     CUDA_Check( cudaDeviceSynchronize() );
-    MPI_Check( MPI_Comm_dup(comm, &comm) );
 
     int nranks, rank;
     int ranks[3], periods[3], coords[3];

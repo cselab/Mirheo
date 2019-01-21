@@ -24,7 +24,7 @@ inline float3 make_periodic(float3 r, float3 L)
             make_perioidc(r.z, L.z)};
 }
 
-void FieldFromFunction::setup(MPI_Comm& comm)
+void FieldFromFunction::setup(const MPI_Comm& comm)
 {
     info("Setting up field");
 
