@@ -59,7 +59,7 @@ public:
 protected:
 
     cudaTextureObject_t fieldTex;
-    float3 h, invh, extendedDomainSize;    
+    float3 h, invh, extendedDomainSize;
 };
 
 
