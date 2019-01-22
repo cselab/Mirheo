@@ -12,7 +12,7 @@
 
 enum class PackMode
 {
-    Querry, Pack
+    Query, Pack
 };
 
 template <PackMode packMode>
@@ -67,7 +67,7 @@ __global__ void getObjectHalos(const DomainInfo domain, const OVview view, const
         if (tid == 0)
             shDstObjId = atomicAdd(dataWrap.sizes + bufId, 1);
 
-        if (packMode == PackMode::Querry) {
+        if (packMode == PackMode::Query) {
             continue;
         }
         else {
@@ -157,7 +157,7 @@ void ObjectHaloExchanger::prepareSizes(int id, cudaStream_t stream)
         const int nthreads = 256;
 
         SAFE_KERNEL_LAUNCH(
-                getObjectHalos<PackMode::Querry>,
+                getObjectHalos<PackMode::Query>,
                 ovView.nObjects, nthreads, 0, stream,
                 ov->state->domain, ovView, packer, rc, helper->wrapSendData() );
 

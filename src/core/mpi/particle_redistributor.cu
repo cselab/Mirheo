@@ -30,7 +30,7 @@ static __device__ bool hasToLeave(int3 dir) {
 
 enum class PackMode
 {
-    Querry, Pack
+    Query, Pack
 };
 
 template <PackMode packMode>
@@ -72,7 +72,7 @@ __global__ void getExitingParticles(const CellListInfo cinfo, ParticlePacker pac
 
             int myid = atomicAdd(dataWrap.sizes + bufId, 1);
 
-            if (packMode == PackMode::Querry) {
+            if (packMode == PackMode::Query) {
                 continue;
             }
             else {
@@ -138,7 +138,7 @@ void ParticleRedistributor::prepareSizes(int id, cudaStream_t stream)
         helper->setDatumSize(packer.packedSize_byte);
 
         SAFE_KERNEL_LAUNCH(
-                getExitingParticles<PackMode::Querry>,
+                getExitingParticles<PackMode::Query>,
                 nblocks, nthreads, 0, stream,
                 cl->cellInfo(), packer, helper->wrapSendData() );
 

@@ -16,7 +16,7 @@
 
 enum class PackMode
 {
-    Querry, Pack
+    Query, Pack
 };
 
 /**
@@ -68,7 +68,7 @@ __global__ void getHalos(const CellListInfo cinfo, const ParticlePacker packer, 
     if (tid < FragmentMapping::numFragments && blockSum[tid] > 0)
         blockSum[tid] = atomicAdd(dataWrap.sizes + tid, blockSum[tid]);
 
-    if (packMode == PackMode::Querry) {
+    if (packMode == PackMode::Query) {
         return;
     }
     else {
@@ -148,7 +148,7 @@ void ParticleHaloExchanger::prepareSizes(int id, cudaStream_t stream)
         helper->setDatumSize(packer.packedSize_byte);
 
         SAFE_KERNEL_LAUNCH(
-                getHalos<PackMode::Querry>,
+                getHalos<PackMode::Query>,
                 nblocks, nthreads, 0, stream,
                 cl->cellInfo(), packer, helper->wrapSendData() );
 

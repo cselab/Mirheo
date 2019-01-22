@@ -12,7 +12,7 @@
 
 enum class PackMode
 {
-    Querry, Pack
+    Query, Pack
 };
 
 template <PackMode packMode>
@@ -47,7 +47,7 @@ __global__ void getExitingObjects(const DomainInfo domain, OVview view, const Ob
     if (tid == 0)
         shDstObjId = atomicAdd(dataWrap.sizes + bufId, 1);
 
-    if (packMode == PackMode::Querry) {
+    if (packMode == PackMode::Query) {
         return;
     }
     else {
@@ -124,7 +124,7 @@ void ObjectRedistributor::prepareSizes(int id, cudaStream_t stream)
     if (ovView.nObjects > 0)
     {
         SAFE_KERNEL_LAUNCH(
-                getExitingObjects<PackMode::Querry>,
+                getExitingObjects<PackMode::Query>,
                 ovView.nObjects, nthreads, 0, stream,
                 ov->state->domain, ovView, packer, helper->wrapSendData() );
 
