@@ -48,7 +48,7 @@ ic_rbc   = ymr.InitialConditions.Membrane(com_q_rbc)
 u.registerParticleVector(pv_rbc, ic_rbc)
 
 dpd = ymr.Interactions.DPD('dpd', 1.0, a=10.0, gamma=10.0, kbt=0.01, power=0.25)
-cnt = ymr.Interactions.LJ('cnt', 1.0, epsilon=0.8, sigma=0.35, max_force=400.0, object_aware=False)
+cnt = ymr.Interactions.LJ('cnt', 1.0, epsilon=0.35, sigma=0.8, max_force=400.0, object_aware=False)
 
 prm_rbc         = ymr.Interactions.MembraneParameters()
 prm_bending_rbc = ymr.Interactions.KantorBendingParameters()

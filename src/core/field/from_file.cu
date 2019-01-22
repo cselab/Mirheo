@@ -1,18 +1,12 @@
-#include "sdf.h"
+#include "from_file.h"
 
 #include <fstream>
-#include <cmath>
 #include <texture_types.h>
-#include <cassert>
-
 #include <core/utils/kernel_launch.h>
 #include <core/utils/cuda_common.h>
-#include <core/pvs/particle_vector.h>
 
-//===============================================================================================
-// Interpolation kernels
-//===============================================================================================
-
+namespace InterpolateKernels
+{
 __device__ inline float cubicInterpolate1D(float y[4], float mu)
 {
     // mu == 0 at y[1], mu == 1 at y[2]
@@ -135,24 +129,13 @@ __global__ void inverseDistanceWeightedInterpolation(const float* in, int3 inDim
 
     out[ (iz*outDims.y + iy) * outDims.x + ix ] = scalingFactor * nominator / denominator;
 }
+} // InterpolateKernels
 
-
-
-/*
- * We only set a few params here
- */
-StationaryWall_SDF::StationaryWall_SDF(std::string sdfFileName, float3 sdfH) : sdfFileName(sdfFileName)
-{
-    h = sdfH;
-}
-
-void StationaryWall_SDF::readHeader(MPI_Comm& comm,
-        int3& sdfResolution, float3& sdfExtent, int64_t& fullSdfSize_byte, int64_t& endHeader_byte, int rank)
+static void readHeader(const std::string fileName, const MPI_Comm& comm, int3& sdfResolution, float3& sdfExtent, int64_t& fullSdfSize_byte, int64_t& endHeader_byte, int rank)
 {
     if (rank == 0)
     {
-        //printf("'%s'\n", sdfFileName.c_str());
-        std::ifstream file(sdfFileName);
+        std::ifstream file(fileName);
         if (!file.good())
             die("File not found or not accessible");
 
@@ -162,7 +145,7 @@ void StationaryWall_SDF::readHeader(MPI_Comm& comm,
             sdfResolution.x >> sdfResolution.y >> sdfResolution.z;
         fullSdfSize_byte = (int64_t)sdfResolution.x * sdfResolution.y * sdfResolution.z * sizeof(float);
 
-        info("Using wall file '%s' of size %.2fx%.2fx%.2f and resolution %dx%dx%d", sdfFileName.c_str(),
+        info("Using field file '%s' of size %.2fx%.2fx%.2f and resolution %dx%dx%d", fileName.c_str(),
                 sdfExtent.x, sdfExtent.y, sdfExtent.z,
                 sdfResolution.x, sdfResolution.y, sdfResolution.z);
 
@@ -180,8 +163,7 @@ void StationaryWall_SDF::readHeader(MPI_Comm& comm,
     MPI_Check( MPI_Bcast(&endHeader_byte,   1, MPI_INT64_T,   0, comm) );
 }
 
-void StationaryWall_SDF::readSdf(MPI_Comm& comm,
-        int64_t fullSdfSize_byte, int64_t endHeader_byte, int nranks, int rank, std::vector<float>& fullSdfData)
+static void readSdf(const std::string fileName, const MPI_Comm& comm, int64_t fullSdfSize_byte, int64_t endHeader_byte, int nranks, int rank, std::vector<float>& fullSdfData)
 {
     // Read part and allgather
     const int64_t readPerProc_byte = (fullSdfSize_byte + nranks - 1) / (int64_t)nranks;
@@ -193,7 +175,7 @@ void StationaryWall_SDF::readSdf(MPI_Comm& comm,
 
     MPI_File fh;
     MPI_Status status;
-    MPI_Check( MPI_File_open(comm, sdfFileName.c_str(), MPI_MODE_RDONLY, MPI_INFO_NULL, &fh) );  // TODO: MPI_Info
+    MPI_Check( MPI_File_open(comm, fileName.c_str(), MPI_MODE_RDONLY, MPI_INFO_NULL, &fh) );  // TODO: MPI_Info
     MPI_Check( MPI_File_read_at_all(fh, readStart, readBuffer.data(), readEnd - readStart, MPI_BYTE, &status) );
     // TODO: check that we read just what we asked
     // MPI_Get_count only return int though
@@ -202,9 +184,9 @@ void StationaryWall_SDF::readSdf(MPI_Comm& comm,
     MPI_Check( MPI_Allgather(readBuffer.data(), readPerProc_byte, MPI_BYTE, fullSdfData.data(), readPerProc_byte, MPI_BYTE, comm) );
 }
 
-void StationaryWall_SDF::prepareRelevantSdfPiece(int rank,
-        const float* fullSdfData, float3 extendedDomainStart, float3 initialSdfH, int3 initialSdfResolution,
-        int3& resolution, float3& offset, PinnedBuffer<float>& localSdfData)
+static void prepareRelevantSdfPiece(const float* fullSdfData, float3 extendedDomainStart, float3 extendedDomainSize,
+                                    float3 initialSdfH, int3 initialSdfResolution,
+                                    int3& resolution, float3& offset, PinnedBuffer<float>& localSdfData)
 {
     // Find your relevant chunk of data
     // We cannot send big sdf files directly, so we'll carve a piece now
@@ -216,23 +198,10 @@ void StationaryWall_SDF::prepareRelevantSdfPiece(int rank,
     float3 startInLocalCoord = make_float3(startId)*initialSdfH - (extendedDomainStart + 0.5*extendedDomainSize);
     offset = -0.5*extendedDomainSize - startInLocalCoord;
 
-//    printf("%d:  SDstart [%f %f %f]  sdfH [%f %f %f] startId [%d %d %d], endId [%d %d %d], localstart [%f %f %f]\n",
-//                rank,
-//                extendedDomainStart.x, extendedDomainStart.y, extendedDomainStart.z,
-//                initialSdfH.x, initialSdfH.y, initialSdfH.z,
-//                startId.x, startId.y, startId.z,
-//                endId.x, endId.y, endId.z,
-//                startInLocalCoord.x, startInLocalCoord.y, startInLocalCoord.z);
-
     resolution = endId - startId;
 
     localSdfData.resize( resolution.x * resolution.y * resolution.z, 0 );
     auto locSdfDataPtr = localSdfData.hostPtr();
-
-//    printf("%d:  input [%d %d %d], initial [%d %d %d], start [%d %d %d]\n",
-//            rank, resolution.x, resolution.y, resolution.z,
-//            initialSdfResolution.x, initialSdfResolution.y, initialSdfResolution.z,
-//            startId.x, startId.y, startId.z);
 
     for (int k = 0; k < resolution.z; k++)
         for (int j = 0; j < resolution.y; j++)
@@ -247,12 +216,22 @@ void StationaryWall_SDF::prepareRelevantSdfPiece(int rank,
             }
 }
 
-void StationaryWall_SDF::setup(MPI_Comm& comm, DomainInfo domain)
-{
-    info("Setting up sdf from %s", sdfFileName.c_str());
+FieldFromFile::FieldFromFile(const YmrState *state, std::string name, std::string fieldFileName, float3 h) :
+    Field(state, name, h),
+    fieldFileName(fieldFileName)
+{}
 
+FieldFromFile::~FieldFromFile() = default;
+
+FieldFromFile::FieldFromFile(FieldFromFile&&) = default;
+
+void FieldFromFile::setup(const MPI_Comm& comm)
+{
+    info("Setting up field from %s", fieldFileName.c_str());
+
+    const auto domain = state->domain;
+    
     CUDA_Check( cudaDeviceSynchronize() );
-    MPI_Check( MPI_Comm_dup(comm, &comm) );
 
     int nranks, rank;
     int ranks[3], periods[3], coords[3];
@@ -267,19 +246,12 @@ void StationaryWall_SDF::setup(MPI_Comm& comm, DomainInfo domain)
     int64_t endHeader_byte;
 
     // Read header
-    readHeader(comm, initialSdfResolution, initialSdfExtent, fullSdfSize_byte, endHeader_byte, rank);
+    readHeader(fieldFileName, comm, initialSdfResolution, initialSdfExtent, fullSdfSize_byte, endHeader_byte, rank);
     float3 initialSdfH = domain.globalSize / make_float3(initialSdfResolution-1);
 
     // Read heavy data
     std::vector<float> fullSdfData;
-    readSdf(comm, fullSdfSize_byte, endHeader_byte, nranks, rank, fullSdfData);
-
-    // We'll make sdf a bit bigger, so that particles that flew away
-    // would also be correctly bounced back
-    extendedDomainSize = domain.localSize + 2.0f*margin3;
-    resolution         = make_int3( ceilf(extendedDomainSize / h) );
-    h                  = extendedDomainSize / make_float3(resolution-1);
-    invh               = 1.0f / h;
+    readSdf(fieldFileName, comm, fullSdfSize_byte, endHeader_byte, nranks, rank, fullSdfData);
 
     const float3 scale3 = domain.globalSize / initialSdfExtent;
     if ( fabs(scale3.x - scale3.y) > 1e-5 || fabs(scale3.x - scale3.z) > 1e-5 )
@@ -288,58 +260,25 @@ void StationaryWall_SDF::setup(MPI_Comm& comm, DomainInfo domain)
 
     int3 resolutionBeforeInterpolation;
     float3 offset;
-    PinnedBuffer<float> localSdfData;
-    prepareRelevantSdfPiece(rank, fullSdfData.data(), domain.globalStart - margin3, initialSdfH, initialSdfResolution,
-            resolutionBeforeInterpolation, offset, localSdfData);
+    PinnedBuffer<float> localData;
+    prepareRelevantSdfPiece(fullSdfData.data(), domain.globalStart - margin3, extendedDomainSize,
+                            initialSdfH, initialSdfResolution,
+                            resolutionBeforeInterpolation, offset, localData);
 
     // Interpolate
-    sdfRawData.resize(resolution.x * resolution.y * resolution.z, 0);
+    DeviceBuffer<float> fieldRawData (resolution.x * resolution.y * resolution.z);
 
     dim3 threads(8, 8, 8);
     dim3 blocks((resolution.x+threads.x-1) / threads.x,
                 (resolution.y+threads.y-1) / threads.y,
                 (resolution.z+threads.z-1) / threads.z);
 
-    localSdfData.uploadToDevice(0);
+    localData.uploadToDevice(0);
     SAFE_KERNEL_LAUNCH(
-            cubicInterpolate3D,
+            InterpolateKernels::cubicInterpolate3D,
             blocks, threads, 0, 0,
-            localSdfData.devPtr(), resolutionBeforeInterpolation, initialSdfH,
-            sdfRawData.devPtr(), resolution, h, offset, lenScalingFactor );
+            localData.devPtr(), resolutionBeforeInterpolation, initialSdfH,
+            fieldRawData.devPtr(), resolution, h, offset, lenScalingFactor );
 
-
-    // Prepare array to be transformed into texture
-    auto chDesc = cudaCreateChannelDesc<float>();
-    CUDA_Check( cudaMalloc3DArray(&sdfArray, &chDesc, make_cudaExtent(resolution.x, resolution.y, resolution.z)) );
-
-    cudaMemcpy3DParms copyParams = {};
-    copyParams.srcPtr = make_cudaPitchedPtr((void*)sdfRawData.devPtr(), resolution.x*sizeof(float), resolution.x, resolution.y);
-    copyParams.dstArray = sdfArray;
-    copyParams.extent = make_cudaExtent(resolution.x, resolution.y, resolution.z);
-    copyParams.kind = cudaMemcpyDeviceToDevice;
-
-    CUDA_Check( cudaMemcpy3D(&copyParams) );
-
-    // Create texture
-    cudaResourceDesc resDesc = {};
-    resDesc.resType = cudaResourceTypeArray;
-    resDesc.res.array.array = sdfArray;
-
-    cudaTextureDesc texDesc = {};
-    texDesc.addressMode[0]   = cudaAddressModeWrap;
-    texDesc.addressMode[1]   = cudaAddressModeWrap;
-    texDesc.addressMode[2]   = cudaAddressModeWrap;
-    texDesc.filterMode       = cudaFilterModePoint;
-    texDesc.readMode         = cudaReadModeElementType;
-    texDesc.normalizedCoords = 0;
-
-    CUDA_Check( cudaCreateTextureObject(&sdfTex, &resDesc, &texDesc, nullptr) );
-
-    CUDA_Check( cudaDeviceSynchronize() );
+    setupArrayTexture(fieldRawData.devPtr());
 }
-
-
-
-
-
-

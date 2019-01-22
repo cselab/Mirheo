@@ -60,7 +60,7 @@ namespace WallFactory
     static std::shared_ptr<SimpleStationaryWall<StationaryWall_SDF>>
     createSDFWall(const YmrState *state, std::string name, std::string sdfFilename, PyTypes::float3 h)
     {
-        StationaryWall_SDF sdf(sdfFilename, make_float3(h));
+        StationaryWall_SDF sdf(state, sdfFilename, make_float3(h));
         return std::make_shared<SimpleStationaryWall<StationaryWall_SDF>> (name, state, std::move(sdf));
     }
 

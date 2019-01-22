@@ -4,11 +4,10 @@
 #include <vector>
 #include <cuda_runtime.h>
 #include <core/domain.h>
+#include <core/pvs/particle_vector.h>
 
 #include "core/ymero_object.h"
 
-class LocalParticleVector;
-class ParticleVector;
 class CellList;
 class GPUcontainer;
 

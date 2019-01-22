@@ -12,6 +12,16 @@ For more information, please refer to the online documentation: http://ymero.rea
 
 ## Changelog
 
+### v0.9.6
+
+* bug fix: LJ potential had swapped epsilon and sigma
+
+### v0.9.5
+
+* separate sdf grid implementation into more general core/field
+* field can be initialized from std::function
+* pressure plugin uses region
+
 ### v0.9.4
 
 * fix: stress free state can be used when the cell is grown

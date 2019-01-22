@@ -625,7 +625,7 @@ def createVelocityControl():
     pass
 
 def createVirialPressurePlugin():
-    r"""createVirialPressurePlugin(state: YmrState, name: str, pv: ParticleVectors.ParticleVector, stress_mame: str, dump_every: int, path: str) -> Tuple[Plugins.VirialPressure, Plugins.VirialPressureDumper]
+    r"""createVirialPressurePlugin(state: YmrState, name: str, pv: ParticleVectors.ParticleVector, stress_mame: str, regionFunc: Callable[[Tuple[float, float, float]], float], h: Tuple[float, float, float], dump_every: int, path: str) -> Tuple[Plugins.VirialPressure, Plugins.VirialPressureDumper]
 
 
         Create :any:`VirialPressure` plugin
@@ -634,6 +634,8 @@ def createVirialPressurePlugin():
             name: name of the plugin
             pv: concerned :class:`ParticleVector`
             stress_name: the extraData entry name of the stress per particle
+            regionFunc: predicate for the concerned region; positive inside the region and negative outside
+            h: grid size for representing the predicate onto a grid
             dump_every: report total pressure every this many time-steps
             path: the folder name in which the file will be dumped
     
