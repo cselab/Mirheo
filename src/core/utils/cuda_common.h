@@ -282,6 +282,8 @@ __device__ inline uint getLaneId<3>()
     return (threadIdx.z * (blockDim.x * blockDim.y) + (threadIdx.y * blockDim.x) + threadIdx.x) & 31;
 }
 
+#if __CUDA_ARCH__ < 700
+
 template<int DIMS=1>
 __device__ inline int atomicAggInc(int *ctr)
 {
@@ -299,6 +301,29 @@ __device__ inline int atomicAggInc(int *ctr)
     // each thread computes its own value
     return res + __popc(mask & ((1 << lane_id) - 1));
 }
+
+#else
+
+#include <cooperative_groups.h>
+namespace cg = cooperative_groups;
+
+__device__ inline int atomicAggInc(int *ptr)
+{
+    cg::coalesced_group g = cg::coalesced_threads();
+    int prev;
+
+    // elect the first active thread to perform atomic add
+    if (g.thread_rank() == 0) {
+        prev = atomicAdd(ptr, g.size());
+    }
+
+    // broadcast previous value within the warp
+    // and add each active thread’s rank to it
+    prev = g.thread_rank() + g.shfl(prev, 0);
+    return prev;
+}
+
+#endif
 
 
 
