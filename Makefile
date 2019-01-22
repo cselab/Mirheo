@@ -1,4 +1,4 @@
-PIP ?= pip
+PIP ?= python -m pip
 CMAKE_FLAGS ?= ""
 
 build:
