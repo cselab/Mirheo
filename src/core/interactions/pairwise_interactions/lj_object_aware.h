@@ -11,9 +11,9 @@
 class Pairwise_LJObjectAware
 {
 public:
-    Pairwise_LJObjectAware(float rc, float sigma, float epsilon, float maxForce) :
-        lj(rc, sigma, epsilon, maxForce)
-    {    }
+    Pairwise_LJObjectAware(float rc, float epsilon, float sigma, float maxForce) :
+        lj(rc, epsilon, sigma, maxForce)
+    {}
 
     void setup(LocalParticleVector* lpv1, LocalParticleVector* lpv2, CellList* cl1, CellList* cl2, float t)
     {
