@@ -46,7 +46,7 @@ SimulationStats::SimulationStats(const YmrState *state, std::string name, int fe
 
 void SimulationStats::afterIntegration(cudaStream_t stream)
 {
-    if (currentTimeStep % fetchEvery != 0) return;
+    if (state->currentStep % fetchEvery != 0) return;
 
     auto pvs = simulation->getParticleVectors();
 
@@ -78,9 +78,9 @@ void SimulationStats::serializeAndSend(cudaStream_t stream)
 {
     if (needToDump)
     {
-        float tm = timer.elapsedAndReset() / (currentTimeStep < fetchEvery ? 1.0f : fetchEvery);
+        float tm = timer.elapsedAndReset() / (state->currentStep < fetchEvery ? 1.0f : fetchEvery);
         waitPrevSend();
-        SimpleSerializer::serialize(sendBuffer, tm, currentTime, currentTimeStep, nparticles, momentum, energy, maxvel);
+        SimpleSerializer::serialize(sendBuffer, tm, state->currentTime, state->currentStep, nparticles, momentum, energy, maxvel);
         send(sendBuffer);
         needToDump = false;
     }
@@ -111,7 +111,8 @@ PostprocessStats::~PostprocessStats()
 
 void PostprocessStats::deserialize(MPI_Status& stat)
 {
-    float currentTime, realTime;
+    TimeType currentTime;
+    float realTime;
     int nparticles, currentTimeStep;
     int maxNparticles, minNparticles;
 

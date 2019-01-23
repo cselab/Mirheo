@@ -755,7 +755,6 @@ void Simulation::assemble()
         auto plPtr = pl.get();
 
         scheduler->addTask(task_pluginsBeforeForces, [plPtr, this] (cudaStream_t stream) {
-            plPtr->setTime(state->currentTime, state->currentStep);
             plPtr->beforeForces(stream);
         });
 

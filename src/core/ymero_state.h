@@ -6,6 +6,8 @@
 
 #include "domain.h"
 
+using TimeType = double;
+
 /**
  * Global quantities accessible by all simulation objects in YMeRo
  */
@@ -29,7 +31,7 @@ public:
     DomainInfo domain;
 
     float dt;
-    double currentTime;
+    TimeType currentTime;
     int currentStep;
 };
 

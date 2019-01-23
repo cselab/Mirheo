@@ -48,7 +48,7 @@ void ParticleSenderPlugin::handshake()
 
 void ParticleSenderPlugin::beforeForces(cudaStream_t stream)
 {
-    if (currentTimeStep % dumpEvery != 0 || currentTimeStep == 0) return;
+    if (state->currentStep % dumpEvery != 0 || state->currentStep == 0) return;
 
     particles.genericCopy(&pv->local()->coosvels, stream);
 
@@ -61,7 +61,7 @@ void ParticleSenderPlugin::beforeForces(cudaStream_t stream)
 
 void ParticleSenderPlugin::serializeAndSend(cudaStream_t stream)
 {
-    if (currentTimeStep % dumpEvery != 0 || currentTimeStep == 0) return;
+    if (state->currentStep % dumpEvery != 0 || state->currentStep == 0) return;
 
     debug2("Plugin %s is sending now data", name.c_str());
     
@@ -70,7 +70,7 @@ void ParticleSenderPlugin::serializeAndSend(cudaStream_t stream)
 
     debug2("Plugin %s is packing now data consisting of %d particles", name.c_str(), particles.size());
     waitPrevSend();
-    SimpleSerializer::serialize(sendBuffer, currentTime, particles, channelData);
+    SimpleSerializer::serialize(sendBuffer, state->currentTime, particles, channelData);
     send(sendBuffer);
 }
 
@@ -145,7 +145,7 @@ static void unpack_particles(const std::vector<Particle> &particles, std::vector
 
 float ParticleDumperPlugin::_recvAndUnpack()
 {
-    float t;
+    TimeType t;
     int c = 0;
     SimpleSerializer::deserialize(data, t, particles, channelData);
         

@@ -30,7 +30,7 @@ void ObjPositionsPlugin::handshake()
 
 void ObjPositionsPlugin::afterIntegration(cudaStream_t stream)
 {
-    if (currentTimeStep % dumpEvery != 0 || currentTimeStep == 0) return;
+    if (state->currentStep % dumpEvery != 0 || state->currentStep == 0) return;
 
     ids.copy(  *ov->local()->extraPerObject.getData<int>("ids"), stream);
     coms.copy( *ov->local()->extraPerObject.getData<LocalObjectVector::COMandExtent>("com_extents"), stream);
@@ -38,8 +38,8 @@ void ObjPositionsPlugin::afterIntegration(cudaStream_t stream)
     if (ov->local()->extraPerObject.checkChannelExists("old_motions"))
         motions.copy( *ov->local()->extraPerObject.getData<RigidMotion> ("old_motions"), stream);
     
-    savedTime = currentTime;
-    needToSend=true;
+    savedTime = state->currentTime;
+    needToSend = true;
 }
 
 void ObjPositionsPlugin::serializeAndSend(cudaStream_t stream)
@@ -160,7 +160,7 @@ void ObjPositionsDumper::handshake()
 
 void ObjPositionsDumper::deserialize(MPI_Status& stat)
 {
-    float curTime;
+    TimeType curTime;
     DomainInfo domain;
     std::vector<int> ids;
     std::vector<LocalObjectVector::COMandExtent> coms;

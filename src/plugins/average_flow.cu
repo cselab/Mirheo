@@ -149,7 +149,7 @@ void Average3D::accumulateSampledAndClear(cudaStream_t stream)
 
 void Average3D::afterIntegration(cudaStream_t stream)
 {
-    if (currentTimeStep % sampleEvery != 0 || currentTimeStep == 0) return;
+    if (state->currentStep % sampleEvery != 0 || state->currentStep == 0) return;
 
     debug2("Plugin %s is sampling now", name.c_str());
 
@@ -193,14 +193,14 @@ void Average3D::scaleSampled(cudaStream_t stream)
 
 void Average3D::serializeAndSend(cudaStream_t stream)
 {
-    if (currentTimeStep % dumpEvery != 0 || currentTimeStep == 0) return;
+    if (state->currentStep % dumpEvery != 0 || state->currentStep == 0) return;
     if (nSamples == 0) return;
     
     scaleSampled(stream);
 
     debug2("Plugin '%s' is now packing the data", name.c_str());
     waitPrevSend();
-    SimpleSerializer::serialize(sendBuffer, currentTime, accumulated_density, accumulated_average);
+    SimpleSerializer::serialize(sendBuffer, state->currentTime, accumulated_density, accumulated_average);
     send(sendBuffer);
 }
 

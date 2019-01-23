@@ -219,7 +219,7 @@ void PinObjectPlugin::serializeAndSend(cudaStream_t stream)
         torques.downloadFromDevice(stream);
 
     waitPrevSend();
-    SimpleSerializer::serialize(sendBuffer, currentTime, reportEvery, forces, torques);
+    SimpleSerializer::serialize(sendBuffer, state->currentTime, reportEvery, forces, torques);
     send(sendBuffer);
 
     forces.clearDevice(stream);
@@ -252,7 +252,7 @@ void ReportPinObjectPlugin::handshake()
 void ReportPinObjectPlugin::deserialize(MPI_Status& stat)
 {
     std::vector<float4> forces, torques;
-    float currentTime;
+    TimeType currentTime;
     int nsamples;
 
     SimpleSerializer::deserialize(data, currentTime, nsamples, forces, torques);

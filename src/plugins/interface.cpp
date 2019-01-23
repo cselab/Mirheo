@@ -39,12 +39,6 @@ void SimulationPlugin::beforeParticleDistribution (cudaStream_t stream) {};
 void SimulationPlugin::serializeAndSend (cudaStream_t stream) {};
 
 
-void SimulationPlugin::setTime(float t, int tstep)
-{
-    currentTime = t;
-    currentTimeStep = tstep;
-}
-
 void SimulationPlugin::setup(Simulation* simulation, const MPI_Comm& comm, const MPI_Comm& interComm)
 {
     debug("Setting up simulation plugin '%s', MPI tag is %d", name.c_str(), _tag());

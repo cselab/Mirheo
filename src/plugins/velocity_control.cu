@@ -103,7 +103,7 @@ void SimulationVelocityControl::sampleOnePv(ParticleVector *pv, cudaStream_t str
 
 void SimulationVelocityControl::afterIntegration(cudaStream_t stream)
 {
-    if (currentTimeStep % sampleEvery == 0 && currentTimeStep != 0)
+    if (state->currentStep % sampleEvery == 0 && state->currentStep != 0)
     {
         debug2("Velocity control %s is sampling now", name.c_str());
 
@@ -115,7 +115,7 @@ void SimulationVelocityControl::afterIntegration(cudaStream_t stream)
         accumulatedTotVel.z += totVel[0].z;
     }
     
-    if (currentTimeStep % tuneEvery != 0 || currentTimeStep == 0) return;
+    if (state->currentStep % tuneEvery != 0 || state->currentStep == 0) return;
     
     nSamples.downloadFromDevice(stream);
     nSamples.clearDevice(stream);
@@ -135,10 +135,10 @@ void SimulationVelocityControl::afterIntegration(cudaStream_t stream)
 
 void SimulationVelocityControl::serializeAndSend(cudaStream_t stream)
 {
-    if (currentTimeStep % dumpEvery != 0 || currentTimeStep == 0) return;
+    if (state->currentStep % dumpEvery != 0 || state->currentStep == 0) return;
 
     waitPrevSend();
-    SimpleSerializer::serialize(sendBuffer, currentTime, currentTimeStep, currentVel, force);
+    SimpleSerializer::serialize(sendBuffer, state->currentTime, state->currentStep, currentVel, force);
     send(sendBuffer);
 }
 
@@ -161,7 +161,7 @@ PostprocessVelocityControl::~PostprocessVelocityControl()
 void PostprocessVelocityControl::deserialize(MPI_Status& stat)
 {
     int currentTimeStep;
-    float currentTime;
+    TimeType currentTime;
     float3 vel, force;
 
     SimpleSerializer::deserialize(data, currentTime, currentTimeStep, vel, force);

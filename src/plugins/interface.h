@@ -45,7 +45,6 @@ public:
 
     virtual bool needPostproc() = 0;
 
-    void setTime(float t, int tstep);
     virtual void setup(Simulation* simulation, const MPI_Comm& comm, const MPI_Comm& interComm);
     virtual void finalize();    
 
@@ -53,9 +52,6 @@ protected:
     int localSendSize;
     MPI_Request sizeReq, dataReq;
     Simulation *simulation;
-
-    float currentTime;
-    int currentTimeStep;
 
     int _tag();
     

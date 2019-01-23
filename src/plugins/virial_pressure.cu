@@ -64,7 +64,7 @@ void VirialPressurePlugin::handshake()
 
 void VirialPressurePlugin::afterIntegration(cudaStream_t stream)
 {
-    if (currentTimeStep % dumpEvery != 0 || currentTimeStep == 0) return;
+    if (state->currentStep % dumpEvery != 0 || state->currentStep == 0) return;
 
     PVview view(pv, pv->local());
     const Stress *stress = pv->local()->extraPerParticle.getData<Stress>(stressName)->devPtr();
@@ -78,7 +78,7 @@ void VirialPressurePlugin::afterIntegration(cudaStream_t stream)
 
     localVirialPressure.downloadFromDevice(stream, ContainersSynch::Synch);
     
-    savedTime = currentTime;
+    savedTime = state->currentTime;
     needToSend = true;
 }
 
@@ -141,7 +141,7 @@ void VirialPressureDumper::handshake()
 
 void VirialPressureDumper::deserialize(MPI_Status& stat)
 {
-    float curTime;
+    TimeType curTime;
     VirialPressure::ReductionType localPressure, totalPressure;
 
     SimpleSerializer::deserialize(data, curTime, localPressure);

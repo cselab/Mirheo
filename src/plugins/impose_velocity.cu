@@ -75,7 +75,7 @@ void ImposeVelocityPlugin::setup(Simulation* simulation, const MPI_Comm& comm, c
 
 void ImposeVelocityPlugin::afterIntegration(cudaStream_t stream)
 {
-    if (currentTimeStep % every == 0)
+    if (state->currentStep % every == 0)
     {
         const int nthreads = 128;
 
