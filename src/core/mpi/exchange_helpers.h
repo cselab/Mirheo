@@ -27,7 +27,7 @@ class ExchangeHelper
 {
 public:
     
-    ExchangeHelper(std::string name);
+    ExchangeHelper(std::string name, int uniqueId);
 
     ~ExchangeHelper();
 
@@ -62,6 +62,8 @@ public:
     void resizeSendBuf();
     void resizeRecvBuf();
 
+    int getUniqueId() const;
+    
     /**
      * Wrap GPU data from #sendBuf, #sendSizes and #sendOffsets
      * as well as nBuffers into a BufferOffsetsSizesWrap struct

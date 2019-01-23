@@ -94,9 +94,10 @@ bool ObjectRedistributor::needExchange(int id)
 
 void ObjectRedistributor::attach(ObjectVector* ov)
 {
+    int id = objects.size();
     objects.push_back(ov);
 
-    auto helper = std::make_unique<ExchangeHelper>(ov->name);
+    auto helper = std::make_unique<ExchangeHelper>(ov->name, id);
     helpers.push_back(std::move(helper));
 
     info("The Object vector '%s' was attached", ov->name.c_str());

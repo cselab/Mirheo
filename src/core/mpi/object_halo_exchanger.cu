@@ -124,10 +124,11 @@ bool ObjectHaloExchanger::needExchange(int id)
 
 void ObjectHaloExchanger::attach(ObjectVector* ov, float rc)
 {
+    int id = objects.size();
     objects.push_back(ov);
     rcs.push_back(rc);
 
-    auto helper = std::make_unique<ExchangeHelper>(ov->name);
+    auto helper = std::make_unique<ExchangeHelper>(ov->name, id);
     helpers.push_back(std::move(helper));
 
     auto origin = std::make_unique<PinnedBuffer<int>>(ov->local()->size());    

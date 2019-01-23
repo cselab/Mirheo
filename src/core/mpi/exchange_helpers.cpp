@@ -1,8 +1,9 @@
 #include "exchange_helpers.h"
 
-ExchangeHelper::ExchangeHelper(std::string name) :
+ExchangeHelper::ExchangeHelper(std::string name, int uniqueId) :
     name(name),
-    datumSize(0)
+    datumSize(0),
+    uniqueId(uniqueId)
 {
     recvSizes.  resize_anew(nBuffers);
     recvOffsets.resize_anew(nBuffers+1);
@@ -45,6 +46,10 @@ void ExchangeHelper::resizeRecvBuf()
     recvBuf.resize_anew(recvOffsets[nBuffers] * datumSize);
 }
 
+int ExchangeHelper::getUniqueId() const
+{
+    return uniqueId;
+}
 
 BufferOffsetsSizesWrap ExchangeHelper::wrapSendData()
 {

@@ -107,13 +107,14 @@ bool ParticleRedistributor::needExchange(int id)
 
 void ParticleRedistributor::attach(ParticleVector* pv, CellList* cl)
 {
+    int id = particles.size();
     particles.push_back(pv);
     cellLists.push_back(cl);
 
     if (dynamic_cast<PrimaryCellList*>(cl) == nullptr)
         die("Redistributor (for %s) should be used with the primary cell-lists only!", pv->name.c_str());
 
-    auto helper = std::make_unique<ExchangeHelper>(pv->name);
+    auto helper = std::make_unique<ExchangeHelper>(pv->name, id);
     helper->setDatumSize(sizeof(Particle));
     
     helpers.push_back(std::move(helper));

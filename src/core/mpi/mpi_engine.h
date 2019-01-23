@@ -46,8 +46,6 @@ private:
     bool gpuAwareMPI;
     int singleCopyThreshold = 4000000;
 
-    int tagByName(std::string);
-
     void postRecvSize(ExchangeHelper* helper);
     void sendSizes(ExchangeHelper* helper);
     void postRecv(ExchangeHelper* helper);

@@ -96,13 +96,14 @@ bool ObjectForcesReverseExchanger::needExchange(int id)
 
 void ObjectForcesReverseExchanger::attach(ObjectVector* ov)
 {
+    int id = objects.size();
     objects.push_back(ov);
 
     int psize = ov->objSize;
     if (dynamic_cast<RigidObjectVector*>(ov) != 0)
         psize += 2 * sizeof(RigidReal) / sizeof(float);
 
-    auto helper = std::make_unique<ExchangeHelper>(ov->name);
+    auto helper = std::make_unique<ExchangeHelper>(ov->name, id);
     helper->setDatumSize(psize*sizeof(float4));
         
     helpers.push_back(std::move(helper));
