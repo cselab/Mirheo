@@ -306,7 +306,7 @@ std::shared_ptr<ParticleVector> YMeRo::makeFrozenWallParticles(std::string pvNam
 
     YmrState stateCpy = *getState();
     
-    Simulation wallsim(sim->cartComm, MPI_COMM_NULL, getState(), false);
+    Simulation wallsim(sim->cartComm, MPI_COMM_NULL, getState());
 
     float mass = 1.0;
     auto pv = std::make_shared<ParticleVector>(getState(), pvName, mass);
@@ -361,7 +361,7 @@ std::shared_ptr<ParticleVector> YMeRo::makeFrozenRigidParticles(std::shared_ptr<
     YmrState stateCpy = *getState();
 
     {
-        Simulation eqsim(sim->cartComm, MPI_COMM_NULL, getState(), false);
+        Simulation eqsim(sim->cartComm, MPI_COMM_NULL, getState());
     
         eqsim.registerParticleVector(pv, ic, 0);
         eqsim.registerInteraction(interaction);
@@ -374,7 +374,7 @@ std::shared_ptr<ParticleVector> YMeRo::makeFrozenRigidParticles(std::shared_ptr<
         eqsim.run(nsteps);
     }
 
-    Simulation freezesim(sim->cartComm, MPI_COMM_NULL, getState(), false);
+    Simulation freezesim(sim->cartComm, MPI_COMM_NULL, getState());
 
     freezesim.registerParticleVector(pv, nullptr, 0);
     freezesim.registerParticleVector(shape, icShape, 0);
