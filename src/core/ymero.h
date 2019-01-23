@@ -105,7 +105,11 @@ private:
     bool initialized = false;
     bool initializedMpi = false;
 
-    MPI_Comm comm;
+    MPI_Comm comm      {MPI_COMM_NULL}; ///< base communicator (world)
+    MPI_Comm cartComm  {MPI_COMM_NULL}; ///< cartesian communicator for simulation part; might be from comm if no postprocess
+    MPI_Comm ioComm    {MPI_COMM_NULL}; ///< postprocess communicator
+    MPI_Comm compComm  {MPI_COMM_NULL}; ///< simulation communicator
+    MPI_Comm interComm {MPI_COMM_NULL}; ///< intercommunicator between postprocess and simulation
 
     void init(int3 nranks3D, float3 globalDomainSize, float dt, std::string logFileName, int verbosity,
               int checkpointEvery, std::string restartFolder, bool gpuAwareMPI);
