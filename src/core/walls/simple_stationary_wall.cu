@@ -321,14 +321,13 @@ template<class InsideWallChecker>
 SimpleStationaryWall<InsideWallChecker>::~SimpleStationaryWall() = default;
 
 template<class InsideWallChecker>
-void SimpleStationaryWall<InsideWallChecker>::setup(MPI_Comm& comm, float t, DomainInfo domain)
+void SimpleStationaryWall<InsideWallChecker>::setup(MPI_Comm& comm)
 {
     info("Setting up wall %s", name.c_str());
 
     CUDA_Check( cudaDeviceSynchronize() );
 
-    insideWallChecker.setup(comm, domain);
-    this->domain = domain;
+    insideWallChecker.setup(comm, state->domain);
 
     CUDA_Check( cudaDeviceSynchronize() );
 }
@@ -561,7 +560,7 @@ void SimpleStationaryWall<InsideWallChecker>::sdfOnGrid(float3 h, GPUcontainer* 
         die("Incompatible datatype size of container for SDF values: %d (sampling sdf on a grid)",
             sdfs->datatype_size());
         
-    CellListInfo gridInfo(h, domain.localSize);
+    CellListInfo gridInfo(h, state->domain.localSize);
     sdfs->resize_anew(gridInfo.totcells);
 
     const int nthreads = 128;

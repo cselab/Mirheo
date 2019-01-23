@@ -16,7 +16,7 @@ public:
     SimpleStationaryWall(std::string name, const YmrState *state, InsideWallChecker&& insideWallChecker);
     ~SimpleStationaryWall();
 
-    void setup(MPI_Comm& comm, float t, DomainInfo domain) override;
+    void setup(MPI_Comm& comm) override;
     void attachFrozen(ParticleVector* pv) override;
 
     void removeInner(ParticleVector* pv) override;
@@ -34,8 +34,6 @@ public:
     InsideWallChecker& getChecker() { return insideWallChecker; }
 
 protected:
-
-    DomainInfo domain;
 
     InsideWallChecker insideWallChecker;
 

@@ -18,7 +18,7 @@ public:
     
     virtual ~Wall();
 
-    virtual void setup(MPI_Comm& comm, float t, DomainInfo domain) = 0;
+    virtual void setup(MPI_Comm& comm) = 0;
     virtual void attachFrozen(ParticleVector* pv) = 0;
 
     virtual void removeInner(ParticleVector* pv) = 0;

@@ -201,8 +201,7 @@ void Simulation::registerWall(std::shared_ptr<Wall> wall, int every)
     checkWallPrototypes.push_back({wall.get(), every});
 
     // Let the wall know the particle vector associated with it
-    float t = 0;
-    wall->setup(cartComm, t, state->domain);
+    wall->setup(cartComm);
     if (restartStatus != RestartStatus::Anew)
         wall->restart(cartComm, restartFolder);
 

@@ -108,15 +108,22 @@ __global__ void imposeVelField(PVview view, const VelocityField velField)
 //===============================================================================================
 
 template<class InsideWallChecker, class VelocityField>
-void WallWithVelocity<InsideWallChecker, VelocityField>::setup(MPI_Comm& comm, float t, DomainInfo domain)
+WallWithVelocity<InsideWallChecker, VelocityField>::WallWithVelocity
+(std::string name, const YmrState *state, InsideWallChecker&& insideWallChecker, VelocityField&& velField) :
+    SimpleStationaryWall<InsideWallChecker>(name, state, std::move(insideWallChecker)),
+    velField(std::move(velField))
+{}
+
+
+template<class InsideWallChecker, class VelocityField>
+void WallWithVelocity<InsideWallChecker, VelocityField>::setup(MPI_Comm& comm)
 {
     info("Setting up wall %s", this->name.c_str());
-    this->domain = domain;
 
     CUDA_Check( cudaDeviceSynchronize() );
 
-    this->insideWallChecker.setup(comm, domain);
-    velField.setup(t, domain);
+    this->insideWallChecker.setup(comm, this->state->domain);
+    velField.setup(this->state->currentTime, this->state->domain);
 
     CUDA_Check( cudaDeviceSynchronize() );
 }
@@ -142,7 +149,7 @@ void WallWithVelocity<InsideWallChecker, VelocityField>::bounce(cudaStream_t str
     float t  = this->state->currentTime;
     float dt = this->state->dt;
     
-    velField.setup(t, domain);
+    velField.setup(t, this->state->domain);
 
     for (int i=0; i < this->particleVectors.size(); i++)
     {
