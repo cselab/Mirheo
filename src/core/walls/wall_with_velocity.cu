@@ -114,10 +114,9 @@ void WallWithVelocity<InsideWallChecker, VelocityField>::setup(MPI_Comm& comm, f
     this->domain = domain;
 
     CUDA_Check( cudaDeviceSynchronize() );
-    MPI_Check( MPI_Comm_dup(comm, &this->wallComm) );
 
-    this->insideWallChecker.setup(this->wallComm, domain);
-    velField.setup(this->wallComm, t, domain);
+    this->insideWallChecker.setup(comm, domain);
+    velField.setup(t, domain);
 
     CUDA_Check( cudaDeviceSynchronize() );
 }
@@ -143,7 +142,7 @@ void WallWithVelocity<InsideWallChecker, VelocityField>::bounce(cudaStream_t str
     float t  = this->state->currentTime;
     float dt = this->state->dt;
     
-    velField.setup(this->wallComm, t, domain);
+    velField.setup(t, domain);
 
     for (int i=0; i < this->particleVectors.size(); i++)
     {

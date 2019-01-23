@@ -312,14 +312,22 @@ __global__ void computeSdfOnGrid(CellListInfo gridInfo, float* sdfs, InsideWallC
 //===============================================================================================
 
 template<class InsideWallChecker>
+SimpleStationaryWall<InsideWallChecker>::SimpleStationaryWall(std::string name, const YmrState *state, InsideWallChecker&& insideWallChecker) :
+    SDF_basedWall(state, name),
+    insideWallChecker(std::move(insideWallChecker))
+{}
+
+template<class InsideWallChecker>
+SimpleStationaryWall<InsideWallChecker>::~SimpleStationaryWall() = default;
+
+template<class InsideWallChecker>
 void SimpleStationaryWall<InsideWallChecker>::setup(MPI_Comm& comm, float t, DomainInfo domain)
 {
     info("Setting up wall %s", name.c_str());
 
     CUDA_Check( cudaDeviceSynchronize() );
-    MPI_Check( MPI_Comm_dup(comm, &wallComm) );
 
-    insideWallChecker.setup(wallComm, domain);
+    insideWallChecker.setup(comm, domain);
     this->domain = domain;
 
     CUDA_Check( cudaDeviceSynchronize() );

@@ -13,9 +13,9 @@ class VelocityField_Rotate
 public:
     VelocityField_Rotate(float3 omega, float3 center) :
         omega(omega), center(center)
-    {    }
+    {}
 
-    void setup(MPI_Comm& comm, float t, DomainInfo domain) { this->domain = domain; }
+    void setup(float t, DomainInfo domain) { this->domain = domain; }
 
     const VelocityField_Rotate& handler() const { return *this; }
 

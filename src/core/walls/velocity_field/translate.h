@@ -13,9 +13,9 @@ class VelocityField_Translate
 public:
     VelocityField_Translate(float3 vel) :
         vel(vel)
-    {    }
+    {}
 
-    void setup(MPI_Comm& comm, float t, DomainInfo domain) { }
+    void setup(float t, DomainInfo domain) { }
 
     const VelocityField_Translate& handler() const { return *this; }
 
