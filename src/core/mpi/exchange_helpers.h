@@ -27,7 +27,7 @@ class ExchangeHelper
 {
 public:
     
-    ExchangeHelper(std::string name, int datumSize = 0);
+    ExchangeHelper(std::string name);
 
     ~ExchangeHelper();
 
@@ -70,12 +70,13 @@ public:
     BufferOffsetsSizesWrap wrapSendData();
 
 public:
-
-    int datumSize;             ///< size in bytes on a single datum in a message, e.g. Particle size or size of packed object
     const int nBuffers = FragmentMapping::numFragments;   ///< equal to number of neighbours + 1, for now fixed
     const int bulkId   = FragmentMapping::bulkId;
 
-    std::string name;  ///< corresponding ParticleVector name
+    int datumSize;                   ///< size in bytes on a single datum in a message, e.g. Particle size or size of packed object
+
+    std::string name;                ///< corresponding ParticleVector name
+    int uniqueId;                    ///< a unique exchange id: used for tags
 
     PinnedBuffer<int>  recvSizes;    ///< Number of received elements per each neighbour
     PinnedBuffer<int>  recvOffsets;  ///< Starting indices for i-th neighbour

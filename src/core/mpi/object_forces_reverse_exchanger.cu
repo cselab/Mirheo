@@ -102,7 +102,9 @@ void ObjectForcesReverseExchanger::attach(ObjectVector* ov)
     if (dynamic_cast<RigidObjectVector*>(ov) != 0)
         psize += 2 * sizeof(RigidReal) / sizeof(float);
 
-    auto helper = std::make_unique<ExchangeHelper>(ov->name, psize*sizeof(float4));
+    auto helper = std::make_unique<ExchangeHelper>(ov->name);
+    helper->setDatumSize(psize*sizeof(float4));
+        
     helpers.push_back(std::move(helper));
 }
 

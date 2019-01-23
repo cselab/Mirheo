@@ -123,7 +123,9 @@ void ParticleHaloExchanger::attach(ParticleVector* pv, CellList* cl)
     particles.push_back(pv);
     cellLists.push_back(cl);
 
-    auto helper = std::make_unique<ExchangeHelper> (pv->name, sizeof(Particle));
+    auto helper = std::make_unique<ExchangeHelper> (pv->name);
+    helper->setDatumSize(sizeof(Particle));
+
     helpers.push_back(std::move(helper));
 
     info("Particle halo exchanger takes pv '%s'", pv->name.c_str());

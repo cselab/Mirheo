@@ -113,7 +113,9 @@ void ParticleRedistributor::attach(ParticleVector* pv, CellList* cl)
     if (dynamic_cast<PrimaryCellList*>(cl) == nullptr)
         die("Redistributor (for %s) should be used with the primary cell-lists only!", pv->name.c_str());
 
-    auto helper = std::make_unique<ExchangeHelper>(pv->name, sizeof(Particle));
+    auto helper = std::make_unique<ExchangeHelper>(pv->name);
+    helper->setDatumSize(sizeof(Particle));
+    
     helpers.push_back(std::move(helper));
 
     info("Particle redistributor takes pv '%s'", pv->name.c_str());

@@ -1,8 +1,8 @@
 #include "exchange_helpers.h"
 
-ExchangeHelper::ExchangeHelper(std::string name, int datumSize) :
+ExchangeHelper::ExchangeHelper(std::string name) :
     name(name),
-    datumSize(datumSize)
+    datumSize(0)
 {
     recvSizes.  resize_anew(nBuffers);
     recvOffsets.resize_anew(nBuffers+1);
