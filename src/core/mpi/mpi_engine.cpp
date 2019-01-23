@@ -34,7 +34,10 @@ MPIExchangeEngine::MPIExchangeEngine(std::unique_ptr<ParticleExchanger> exchange
     }
 }
 
-MPIExchangeEngine::~MPIExchangeEngine() = default;
+MPIExchangeEngine::~MPIExchangeEngine()
+{
+    MPI_Check( MPI_Comm_free(&haloComm) );
+}
 
 void MPIExchangeEngine::init(cudaStream_t stream)
 {
