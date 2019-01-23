@@ -7,8 +7,9 @@
 
 MPIExchangeEngine::MPIExchangeEngine(std::unique_ptr<ParticleExchanger> exchanger,
                                      MPI_Comm comm, bool gpuAwareMPI) :
-        nActiveNeighbours(26), gpuAwareMPI(gpuAwareMPI),
-        exchanger(std::move(exchanger))
+    nActiveNeighbours(FragmentMapping::numFragments - 1),
+    gpuAwareMPI(gpuAwareMPI),
+    exchanger(std::move(exchanger))
 {
     MPI_Check( MPI_Comm_dup(comm, &haloComm) );
 
@@ -32,6 +33,8 @@ MPIExchangeEngine::MPIExchangeEngine(std::unique_ptr<ParticleExchanger> exchange
         dir2recvTag[i] = FragmentMapping::getId(-d[0], -d[1], -d[2]);
     }
 }
+
+MPIExchangeEngine::~MPIExchangeEngine() = default;
 
 void MPIExchangeEngine::init(cudaStream_t stream)
 {
