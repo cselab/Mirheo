@@ -12,6 +12,10 @@ For more information, please refer to the online documentation: http://ymero.rea
 
 ## Changelog
 
+### unreleased 
+
+* support for VOLTA architecture
+
 ### v0.9.6
 
 * bug fix: LJ potential had swapped epsilon and sigma
