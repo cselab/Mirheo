@@ -13,6 +13,9 @@ class CellList;
 class Pairwise_LJ
 {
 public:
+
+    using ViewType = PVview;
+    
     Pairwise_LJ(float rc, float epsilon, float sigma, float maxForce) :
         rc(rc), epsilon(epsilon), sigma(sigma), maxForce(maxForce)
     {

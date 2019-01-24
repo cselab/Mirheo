@@ -124,6 +124,7 @@ void InteractionPair<PairwiseInteraction>::_compute(InteractionType type,
         ParticleVector* pv1, ParticleVector* pv2, CellList* cl1, CellList* cl2, const float t, cudaStream_t stream)
 {
     auto& pair = getPairwiseInteraction(pv1->name, pv2->name);
+    using ViewType = typename PairwiseInteraction::ViewType;
 
     if (type == InteractionType::Regular)
     {
@@ -132,7 +133,7 @@ void InteractionPair<PairwiseInteraction>::_compute(InteractionType type,
         /*  Self interaction */
         if (pv1 == pv2)
         {
-            auto view = cl1->getView<PVview>();
+            auto view = cl1->getView<ViewType>();
             const int np = view.size;
             debug("Computing internal forces for %s (%d particles)", pv1->name.c_str(), np);
 
@@ -150,8 +151,8 @@ void InteractionPair<PairwiseInteraction>::_compute(InteractionType type,
             const int np2 = pv2->local()->size();
             debug("Computing external forces for %s - %s (%d - %d particles)", pv1->name.c_str(), pv2->name.c_str(), np1, np2);
 
-            auto dstView = cl1->getView<PVview>();
-            auto srcView = cl2->getView<PVview>();
+            auto dstView = cl1->getView<ViewType>();
+            auto srcView = cl2->getView<ViewType>();
 
             const int nth = 128;
             if (np1 > 0 && np2 > 0)
@@ -168,8 +169,8 @@ void InteractionPair<PairwiseInteraction>::_compute(InteractionType type,
         const int np2 = pv2->local()->size();
         debug("Computing halo forces for %s(halo) - %s (%d - %d particles)", pv1->name.c_str(), pv2->name.c_str(), np1, np2);
 
-        PVview dstView(pv1, pv1->halo());
-        auto srcView = cl2->getView<PVview>();
+        ViewType dstView(pv1, pv1->halo());
+        auto srcView = cl2->getView<ViewType>();
         
         const int nth = 128;
         if (np1 > 0 && np2 > 0)

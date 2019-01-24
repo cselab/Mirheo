@@ -11,10 +11,13 @@ template<typename BasicPairwiseForce>
 class PairwiseStressWrapper
 {
 public:
+
+    using ViewType = PVview;
+    
     PairwiseStressWrapper(std::string stressName, BasicPairwiseForce basicForce) :
         basicForce(basicForce),
         stressName(stressName)
-    {    }
+    {}
 
     void setup(LocalParticleVector* lpv1, LocalParticleVector* lpv2, CellList* cl1, CellList* cl2, float t)
     {

@@ -15,6 +15,9 @@ class CellList;
 class Pairwise_Norandom_DPD
 {
 public:
+
+    using ViewType = PVview;
+    
     Pairwise_Norandom_DPD(float rc, float a, float gamma, float kbT, float dt, float power) :
         rc(rc), a(a), gamma(gamma), power(power)
     {

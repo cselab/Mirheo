@@ -10,6 +10,9 @@
 class Pairwise_LJObjectAware
 {
 public:
+
+    using ViewType = PVview;
+    
     Pairwise_LJObjectAware(float rc, float epsilon, float sigma, float maxForce) :
         lj(rc, epsilon, sigma, maxForce)
     {}

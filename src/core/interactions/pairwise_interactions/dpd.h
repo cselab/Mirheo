@@ -12,7 +12,7 @@ class CellList;
 class LocalParticleVector;
 
 #ifndef __NVCC__
-float fastPower(float x, float a)
+static float fastPower(float x, float a)
 {
     return pow(x, a);
 }
@@ -24,6 +24,9 @@ float fastPower(float x, float a)
 class Pairwise_DPD
 {
 public:
+
+    using ViewType = PVview;
+    
     Pairwise_DPD(float rc, float a, float gamma, float kbT, float dt, float power) :
         rc(rc), a(a), gamma(gamma), power(power)
     {

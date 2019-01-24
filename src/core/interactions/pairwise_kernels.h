@@ -151,7 +151,7 @@ __global__ void computeSelfInteractions(
                         (pstart, pend, dstP, dstId, view, rc2, interaction, accumulator);
             }
 
-    accumulator.atomicAddToDst(accumulator.get(), view,dstId);
+    accumulator.atomicAddToDst(accumulator.get(), view, dstId);
 }
 
 
