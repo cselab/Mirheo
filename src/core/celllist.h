@@ -112,15 +112,19 @@ public:
     CellList(ParticleVector* pv, float rc, float3 localDomainSize);
     CellList(ParticleVector* pv, int3 resolution, float3 localDomainSize);
 
+    virtual ~CellList();
+    
     CellListInfo cellInfo();
 
     virtual void build(cudaStream_t stream);
     virtual void addForces(cudaStream_t stream);
     void clearForces(cudaStream_t stream);
 
-    void setViewPtrs(PVview& view);
-
-    virtual ~CellList() = default;
+    template <typename ViewType>
+    ViewType getView() const
+    {
+        return ViewType(pv, localPV);
+    }
 };
 
 class PrimaryCellList : public CellList
@@ -130,10 +134,10 @@ public:
     PrimaryCellList(ParticleVector* pv, float rc, float3 localDomainSize);
     PrimaryCellList(ParticleVector* pv, int3 resolution, float3 localDomainSize);
 
+    ~PrimaryCellList();
+    
     void build(cudaStream_t stream);
-    void addForces(cudaStream_t stream) {};
-
-    ~PrimaryCellList() = default;
+    void addForces(cudaStream_t stream) {};    
 };
 
 

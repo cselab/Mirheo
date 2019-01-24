@@ -140,6 +140,7 @@ CellList::CellList(ParticleVector* pv, int3 resolution, float3 localDomainSize) 
     debug("Initialized %s cell-list with %dx%dx%d cells and cut-off %f", pv->name.c_str(), ncells.x, ncells.y, ncells.z, this->rc);
 }
 
+CellList::~CellList() = default;
 
 void CellList::_computeCellSizes(cudaStream_t stream)
 {
@@ -290,12 +291,6 @@ void CellList::clearForces(cudaStream_t stream)
     localPV->forces.clear(stream);
 }
 
-void CellList::setViewPtrs(PVview& view)
-{
-    view.particles = (float4*) localPV->coosvels.devPtr();
-    view.forces    = (float4*) localPV->forces.devPtr();
-}
-
 //=================================================================================
 // Primary cell-lists
 //=================================================================================
@@ -317,6 +312,8 @@ PrimaryCellList::PrimaryCellList(ParticleVector* pv, int3 resolution, float3 loc
     if (dynamic_cast<ObjectVector*>(pv) != nullptr)
         error("Using primary cell-lists with objects is STRONGLY discouraged. This will very likely result in an error");
 }
+
+PrimaryCellList::~PrimaryCellList() = default;
 
 void PrimaryCellList::build(cudaStream_t stream)
 {
