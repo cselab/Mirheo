@@ -73,12 +73,12 @@ __global__ void reorderExtraDataPerParticle(int n, const T *inExtraData, CellLis
     outExtraData[dstId] = inExtraData[srcId];
 }
 
-__global__ void addForcesKernel(PVview view, CellListInfo cinfo)
+__global__ void addForcesKernel(PVview dstView, CellListInfo cinfo, PVview srcView)
 {
     const int pid = blockIdx.x * blockDim.x + threadIdx.x;
-    if (pid >= view.size) return;
+    if (pid >= dstView.size) return;
 
-    view.forces[pid] += cinfo.forces[cinfo.order[pid]];
+    dstView.forces[pid] += srcView.forces[cinfo.order[pid]];
 }
 
 //=================================================================================
@@ -277,13 +277,13 @@ void CellList::build(cudaStream_t stream)
 
 void CellList::addForces(cudaStream_t stream)
 {
-    PVview view(pv, pv->local());
+    PVview dstView(pv, pv->local());
     int nthreads = 128;
 
     SAFE_KERNEL_LAUNCH(
             addForcesKernel,
-            getNblocks(view.size, nthreads), nthreads, 0, stream,
-            view, cellInfo() );
+            getNblocks(dstView.size, nthreads), nthreads, 0, stream,
+            dstView, cellInfo(), getView<PVview>() );
 }
 
 void CellList::clearForces(cudaStream_t stream)
