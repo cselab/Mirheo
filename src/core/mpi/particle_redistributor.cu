@@ -1,15 +1,14 @@
-#include "particle_redistributor.h"
 #include "exchange_helpers.h"
 #include "fragments_mapping.h"
+#include "particle_redistributor.h"
 
-#include <core/utils/kernel_launch.h>
 #include <core/celllist.h>
-#include <core/pvs/particle_vector.h>
-#include <core/pvs/extra_data/packers.h>
-#include <core/utils/cuda_common.h>
-#include <core/pvs/extra_data/packers.h>
-
 #include <core/mpi/valid_cell.h>
+#include <core/pvs/extra_data/packers.h>
+#include <core/pvs/particle_vector.h>
+#include <core/pvs/views/pv.h>
+#include <core/utils/cuda_common.h>
+#include <core/utils/kernel_launch.h>
 
 static __device__ int encodeCellId1d(int cid, int ncells) {
     if (cid < 0)            return -1;
@@ -34,7 +33,7 @@ enum class PackMode
 };
 
 template <PackMode packMode>
-__global__ void getExitingParticles(const CellListInfo cinfo, ParticlePacker packer, BufferOffsetsSizesWrap dataWrap)
+__global__ void getExitingParticles(CellListInfo cinfo, PVview view, ParticlePacker packer, BufferOffsetsSizesWrap dataWrap)
 {
     const int gid = blockIdx.x*blockDim.x + threadIdx.x;
     int cid;
@@ -56,7 +55,7 @@ __global__ void getExitingParticles(const CellListInfo cinfo, ParticlePacker pac
     for (int i = 0; i < pend-pstart; i++)
     {
         const int srcId = pstart + i;
-        Particle p(cinfo.particles, srcId);
+        Particle p(view.particles, srcId);
 
         int3 dir = cinfo.getCellIdAlongAxes<CellListsProjection::NoClamp>(make_float3(p.r));
 
@@ -82,7 +81,7 @@ __global__ void getExitingParticles(const CellListInfo cinfo, ParticlePacker pac
                 // mark the particle as exited to assist cell-list building
                 Float3_int pos = p.r2Float3_int();
                 pos.mark();
-                cinfo.particles[2*srcId] = pos.toFloat4();
+                view.particles[2*srcId] = pos.toFloat4();
             }
         }
     }
@@ -143,7 +142,7 @@ void ParticleRedistributor::prepareSizes(int id, cudaStream_t stream)
         SAFE_KERNEL_LAUNCH(
                 getExitingParticles<PackMode::Query>,
                 nblocks, nthreads, 0, stream,
-                cl->cellInfo(), packer, helper->wrapSendData() );
+                cl->cellInfo(), cl->getView<PVview>(), packer, helper->wrapSendData() );
 
         helper->computeSendOffsets_Dev2Dev(stream);
     }
@@ -172,7 +171,7 @@ void ParticleRedistributor::prepareData(int id, cudaStream_t stream)
         SAFE_KERNEL_LAUNCH(
                 getExitingParticles<PackMode::Pack>,
                 nblocks, nthreads, 0, stream,
-                cl->cellInfo(), packer, helper->wrapSendData() );
+                cl->cellInfo(), cl->getView<PVview>(), packer, helper->wrapSendData() );
     }
 }
 

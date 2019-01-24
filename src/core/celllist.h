@@ -27,7 +27,6 @@ public:
     float rc;
 
     int *cellSizes, *cellStarts, *order;
-    float4 *particles, *forces;
 
     CellListInfo(float3 h, float3 localDomainSize);
     CellListInfo(float rc, float3 localDomainSize);

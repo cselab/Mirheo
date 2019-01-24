@@ -86,7 +86,7 @@ __global__ void bounceWithVelocity(
         float3 uWall = velField(p.r);
         p.u = uWall - (p.u - uWall);
 
-        p.write2Float4(cinfo.particles, pid);
+        p.write2Float4(view.particles, pid);
     }
 }
 
@@ -156,7 +156,7 @@ void WallWithVelocity<InsideWallChecker, VelocityField>::bounce(cudaStream_t str
         auto pv = this->particleVectors[i];
         auto cl = this->cellLists[i];
         auto bc = this->boundaryCells[i];
-        PVviewWithOldParticles view(pv, pv->local());
+        auto view = cl->CellList::getView<PVviewWithOldParticles>();
 
         debug2("Bouncing %d %s particles with wall velocity, %d boundary cells",
                pv->local()->size(), pv->name.c_str(), bc->size());

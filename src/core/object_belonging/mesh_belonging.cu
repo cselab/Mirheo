@@ -99,7 +99,7 @@ __device__ BelongingTags oneParticleInsideMesh(int pid, float3 r, int objId, con
  * @param cinfo is the cell-list sync'd with the target ParticleVector data
  */
 template<int WARPS_PER_OBJ>
-__global__ void insideMesh(const OVview view, const MeshView mesh, float4* vertices, CellListInfo cinfo, BelongingTags* tags)
+__global__ void insideMesh(const OVview ovView, const MeshView mesh, float4* vertices, CellListInfo cinfo, PVview pvView, BelongingTags* tags)
 {
     const int gid = blockIdx.x*blockDim.x + threadIdx.x;
     const int wid = gid / warpSize;
@@ -107,10 +107,10 @@ __global__ void insideMesh(const OVview view, const MeshView mesh, float4* verti
 
     const int locWid = wid % WARPS_PER_OBJ;
 
-    if (objId >= view.nObjects) return;
+    if (objId >= ovView.nObjects) return;
 
-    const int3 cidLow  = cinfo.getCellIdAlongAxes(view.comAndExtents[objId].low  - 0.5f);
-    const int3 cidHigh = cinfo.getCellIdAlongAxes(view.comAndExtents[objId].high + 0.5f);
+    const int3 cidLow  = cinfo.getCellIdAlongAxes(ovView.comAndExtents[objId].low  - 0.5f);
+    const int3 cidHigh = cinfo.getCellIdAlongAxes(ovView.comAndExtents[objId].high + 0.5f);
 
     const int3 span = cidHigh - cidLow + make_int3(1,1,1);
     const int totCells = span.x * span.y * span.z;
@@ -127,9 +127,9 @@ __global__ void insideMesh(const OVview view, const MeshView mesh, float4* verti
 #pragma unroll 3
         for (int pid = pstart; pid < pend; pid++)
         {
-            const Particle p(cinfo.particles, pid);
+            const Particle p(pvView.particles, pid);
 
-            auto tag = oneParticleInsideMesh(pid, p.r, objId, view.comAndExtents[objId].com, mesh, vertices);
+            auto tag = oneParticleInsideMesh(pid, p.r, objId, ovView.comAndExtents[objId].com, mesh, vertices);
 
             // Only tag particles inside, default is outside anyways
             if (__laneid() == 0 && tag != BelongingTags::Outside)
@@ -163,7 +163,7 @@ void MeshBelongingChecker::tagInner(ParticleVector* pv, CellList* cl, cudaStream
     SAFE_KERNEL_LAUNCH(
             insideMesh<warpsPerObject>,
             getNblocks(warpsPerObject*32*view.nObjects, nthreads), nthreads, 0, stream,
-            view, meshView, (float4*)vertices->devPtr(), cl->cellInfo(), tags.devPtr());
+            view, meshView, (float4*)vertices->devPtr(), cl->cellInfo(), cl->getView<PVview>(), tags.devPtr());
 
     // Halo
     lov = ov->halo();       // Note ->halo() here
@@ -177,7 +177,7 @@ void MeshBelongingChecker::tagInner(ParticleVector* pv, CellList* cl, cudaStream
     SAFE_KERNEL_LAUNCH(
             insideMesh<warpsPerObject>,
             getNblocks(warpsPerObject*32*view.nObjects, nthreads), nthreads, 0, stream,
-            view, meshView, (float4*)vertices->devPtr(), cl->cellInfo(), tags.devPtr());
+            view, meshView, (float4*)vertices->devPtr(), cl->cellInfo(), cl->getView<PVview>(), tags.devPtr());
 }
 
 

@@ -222,7 +222,7 @@ __global__ void bounceKernel(
         p.r = candidate;
         p.u = -p.u;
 
-        p.write2Float4(cinfo.particles, pid);
+        p.write2Float4(view.particles, pid);
     }
 }
 
@@ -463,7 +463,7 @@ void SimpleStationaryWall<InsideWallChecker>::bounce(cudaStream_t stream)
         auto pv = particleVectors[i];
         auto cl = cellLists[i];
         auto bc = boundaryCells[i];
-        PVviewWithOldParticles view(pv, pv->local());
+        auto view = cl->getView<PVviewWithOldParticles>();
 
         debug2("Bouncing %d %s particles, %d boundary cells",
                pv->local()->size(), pv->name.c_str(), bc->size());

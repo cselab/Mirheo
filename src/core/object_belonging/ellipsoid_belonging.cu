@@ -15,16 +15,16 @@ __device__ inline float ellipsoidF(const float3 r, const float3 invAxes)
     return sqr(r.x * invAxes.x) + sqr(r.y * invAxes.y) + sqr(r.z * invAxes.z) - 1.0f;
 }
 
-__global__ void insideEllipsoid(REOVview view, CellListInfo cinfo, BelongingTags* tags)
+__global__ void insideEllipsoid(REOVview reView, CellListInfo cinfo, PVview pvView, BelongingTags* tags)
 {
     const float tolerance = 5e-6f;
 
     const int objId = blockIdx.x;
     const int tid = threadIdx.x;
-    if (objId >= view.nObjects) return;
+    if (objId >= reView.nObjects) return;
 
-    const int3 cidLow  = cinfo.getCellIdAlongAxes(view.comAndExtents[objId].low  - 1.5f);
-    const int3 cidHigh = cinfo.getCellIdAlongAxes(view.comAndExtents[objId].high + 2.5f);
+    const int3 cidLow  = cinfo.getCellIdAlongAxes(reView.comAndExtents[objId].low  - 1.5f);
+    const int3 cidHigh = cinfo.getCellIdAlongAxes(reView.comAndExtents[objId].high + 2.5f);
 
     const int3 span = cidHigh - cidLow + make_int3(1,1,1);
     const int totCells = span.x * span.y * span.z;
@@ -40,12 +40,12 @@ __global__ void insideEllipsoid(REOVview view, CellListInfo cinfo, BelongingTags
 
         for (int pid = pstart; pid < pend; pid++)
         {
-            const Particle p(cinfo.particles, pid);
-            auto motion = toSingleMotion(view.motions[objId]);
+            const Particle p(pvView.particles, pid);
+            auto motion = toSingleMotion(reView.motions[objId]);
 
             float3 coo = rotate(p.r - motion.r, invQ(motion.q));
 
-            float v = ellipsoidF(coo, view.invAxes);
+            float v = ellipsoidF(coo, reView.invAxes);
 
 //            if (fabs(v) <= tolerance)
 //                tags[pid] = BelongingTags::Boundary;
@@ -77,7 +77,7 @@ void EllipsoidBelongingChecker::tagInner(ParticleVector* pv, CellList* cl, cudaS
     SAFE_KERNEL_LAUNCH(
             insideEllipsoid,
             view.nObjects, nthreads, 0, stream,
-            view, cl->cellInfo(), tags.devPtr());
+            view, cl->cellInfo(), cl->getView<PVview>(), tags.devPtr());
 
     view = REOVview(reov, reov->halo());
     debug("Computing inside/outside tags for %d halo ellipsoids '%s' and %d '%s' particles",
@@ -86,7 +86,7 @@ void EllipsoidBelongingChecker::tagInner(ParticleVector* pv, CellList* cl, cudaS
     SAFE_KERNEL_LAUNCH(
             insideEllipsoid,
             view.nObjects, nthreads, 0, stream,
-            view, cl->cellInfo(), tags.devPtr());
+            view, cl->cellInfo(), cl->getView<PVview>(), tags.devPtr());
 }
 
 

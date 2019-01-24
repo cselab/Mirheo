@@ -149,7 +149,7 @@ __global__ void computeSelfInteractions(
                     computeCell<InteractionOut::NeedAcc, InteractionOut::NeedAcc, InteractionWith::Other> (pstart, pend, dstP, dstId, dstFrc, view, rc2, interaction);
             }
 
-    atomicAdd(cinfo.forces + dstId, dstFrc);
+    atomicAdd(view.forces + dstId, dstFrc);
 }
 
 
