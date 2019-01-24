@@ -35,9 +35,20 @@ struct PVviewWithOldParticles : public PVview
     PVviewWithOldParticles(ParticleVector* pv = nullptr, LocalParticleVector* lpv = nullptr) :
         PVview(pv, lpv)
     {
-        // Setup extra fields
         if (lpv != nullptr)
             old_particles = reinterpret_cast<float4*>( lpv->extraPerParticle.getData<Particle>("old_particles")->devPtr() );
+    }
+};
+
+struct PVviewWithDensities : public PVview
+{
+    float *densities = nullptr;
+
+    PVviewWithDensities(ParticleVector* pv = nullptr, LocalParticleVector* lpv = nullptr) :
+        PVview(pv, lpv)
+    {
+        if (lpv != nullptr)
+            densities = reinterpret_cast<float*>( lpv->extraPerParticle.getData<Particle>("densities")->devPtr() );
     }
 };
 
