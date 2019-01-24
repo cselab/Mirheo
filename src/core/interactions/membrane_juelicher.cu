@@ -23,10 +23,10 @@ void InteractionMembraneJuelicher::setPrerequisites(ParticleVector* pv1, Particl
 
     auto ov = dynamic_cast<MembraneVector*>(pv1);
     
-    ov->requireDataPerObject<float>("lenThetaTot", ExtraDataManager::CommunicationMode::None, ExtraDataManager::PersistenceMode::None);
+    ov->requireDataPerObject<float>(ChannelNames::lenThetaTot, ExtraDataManager::CommunicationMode::None, ExtraDataManager::PersistenceMode::None);
 
-    ov->requireDataPerParticle<float>("areas", ExtraDataManager::CommunicationMode::None, ExtraDataManager::PersistenceMode::None);
-    ov->requireDataPerParticle<float>("meanCurvatures", ExtraDataManager::CommunicationMode::None, ExtraDataManager::PersistenceMode::None);
+    ov->requireDataPerParticle<float>(ChannelNames::areas, ExtraDataManager::CommunicationMode::None, ExtraDataManager::PersistenceMode::None);
+    ov->requireDataPerParticle<float>(ChannelNames::meanCurvatures, ExtraDataManager::CommunicationMode::None, ExtraDataManager::PersistenceMode::None);
 }
 
 
@@ -45,7 +45,7 @@ static bendingJuelicher::GPU_BendingParams setJuelicherBendingParams(float scale
 
 void InteractionMembraneJuelicher::bendingForces(float scale, MembraneVector *ov, MembraneMeshView mesh, cudaStream_t stream)
 {
-    ov->local()->extraPerObject.getData<float>("lenThetaTot")->clearDevice(stream);
+    ov->local()->extraPerObject.getData<float>(ChannelNames::lenThetaTot)->clearDevice(stream);
 
     OVviewWithJuelicherQuants view(ov, ov->local());
     

@@ -73,7 +73,7 @@ void InteractionMembrane::setPrerequisites(ParticleVector* pv1, ParticleVector* 
     if (ov == nullptr)
         die("Internal RBC forces can only be computed with RBCs");
 
-    ov->requireDataPerObject<float2>("area_volumes", ExtraDataManager::CommunicationMode::None, ExtraDataManager::PersistenceMode::None);
+    ov->requireDataPerObject<float2>(ChannelNames::areaVolumes, ExtraDataManager::CommunicationMode::None, ExtraDataManager::PersistenceMode::None);
 }
 
 /**
@@ -109,7 +109,7 @@ void InteractionMembrane::regular(ParticleVector *pv1, ParticleVector *pv2,
     OVviewWithAreaVolume view(ov, ov->local());
     MembraneMeshView mesh(static_cast<MembraneMesh *>(ov->mesh.get()));
     ov->local()
-        ->extraPerObject.getData<float2>("area_volumes")
+        ->extraPerObject.getData<float2>(ChannelNames::areaVolumes)
         ->clearDevice(stream);
 
     const int nthreads = 128;

@@ -41,7 +41,7 @@ struct OVviewWithAreaVolume : public OVview
     {
         if (ov == nullptr || lov == nullptr) return;
 
-        area_volumes = lov->extraPerObject.getData<float2>("area_volumes")->devPtr();
+        area_volumes = lov->extraPerObject.getData<float2>(ChannelNames::areaVolumes)->devPtr();
     }
 };
 
@@ -57,10 +57,10 @@ struct OVviewWithJuelicherQuants : public OVviewWithAreaVolume
     {
         if (ov == nullptr || lov == nullptr) return;
 
-        vertexAreas          = lov->extraPerParticle.getData<float>("areas")->devPtr();
-        vertexMeanCurvatures = lov->extraPerParticle.getData<float>("meanCurvatures")->devPtr();
+        vertexAreas          = lov->extraPerParticle.getData<float>(ChannelNames::areas)->devPtr();
+        vertexMeanCurvatures = lov->extraPerParticle.getData<float>(ChannelNames::meanCurvatures)->devPtr();
 
-        lenThetaTot = lov->extraPerObject.getData<float>("lenThetaTot")->devPtr();
+        lenThetaTot = lov->extraPerObject.getData<float>(ChannelNames::lenThetaTot)->devPtr();
     }
 };
 
