@@ -65,10 +65,10 @@ __device__ inline float distance2(const Ta a, const Tb b)
  * based on particle ids
  */
 template<InteractionOut NeedDstAcc, InteractionOut NeedSrcAcc, InteractionWith InteractWith,
-         typename Interaction, typename Accumulator>
+         typename Interaction, typename Accumulator, typename ViewType>
 __device__ inline void computeCell(
         int pstart, int pend,
-        Particle dstP, int dstId, PVview srcView, float rc2,
+        Particle dstP, int dstId, ViewType srcView, float rc2,
         Interaction& interaction, Accumulator& accumulator)
 {
     for (int srcId = pstart; srcId < pend; srcId++)
@@ -116,7 +116,7 @@ __device__ inline void computeCell(
 template<typename Interaction>
 __launch_bounds__(128, 16)
 __global__ void computeSelfInteractions(
-        CellListInfo cinfo, PVview view,
+        CellListInfo cinfo, typename Interaction::ViewType view,
         const float rc2, Interaction interaction)
 {
     const int dstId = blockIdx.x*blockDim.x + threadIdx.x;
@@ -185,7 +185,8 @@ __global__ void computeSelfInteractions(
 template<InteractionOut NeedDstAcc, InteractionOut NeedSrcAcc, InteractionMode Variant, typename Interaction>
 __launch_bounds__(128, 16)
 __global__ void computeExternalInteractions_1tpp(
-        PVview dstView, CellListInfo srcCinfo, PVview srcView,
+        typename Interaction::ViewType dstView, CellListInfo srcCinfo,
+        typename Interaction::ViewType srcView,
         const float rc2, Interaction interaction)
 {
     static_assert(NeedDstAcc == InteractionOut::NeedAcc || NeedSrcAcc == InteractionOut::NeedAcc,
@@ -248,7 +249,8 @@ __global__ void computeExternalInteractions_1tpp(
 template<InteractionOut NeedDstAcc, InteractionOut NeedSrcAcc, InteractionMode Variant, typename Interaction>
 __launch_bounds__(128, 16)
 __global__ void computeExternalInteractions_3tpp(
-        PVview dstView, CellListInfo srcCinfo, PVview srcView,
+        typename Interaction::ViewType dstView, CellListInfo srcCinfo,
+        typename Interaction::ViewType srcView,
         const float rc2, Interaction interaction)
 {
     static_assert(NeedDstAcc == InteractionOut::NeedAcc || NeedSrcAcc == InteractionOut::NeedAcc,
@@ -316,7 +318,8 @@ __global__ void computeExternalInteractions_3tpp(
 template<InteractionOut NeedDstAcc, InteractionOut NeedSrcAcc, InteractionMode Variant, typename Interaction>
 __launch_bounds__(128, 16)
 __global__ void computeExternalInteractions_9tpp(
-        PVview dstView, CellListInfo srcCinfo, PVview srcView,
+        typename Interaction::ViewType dstView, CellListInfo srcCinfo,
+        typename Interaction::ViewType srcView,
         const float rc2, Interaction interaction)
 {
     static_assert(NeedDstAcc == InteractionOut::NeedAcc || NeedSrcAcc == InteractionOut::NeedAcc,
@@ -384,7 +387,8 @@ __global__ void computeExternalInteractions_9tpp(
 template<InteractionOut NeedDstAcc, InteractionOut NeedSrcAcc, InteractionMode Variant, typename Interaction>
 __launch_bounds__(128, 16)
 __global__ void computeExternalInteractions_27tpp(
-        PVview dstView, CellListInfo srcCinfo, PVview srcView,
+        typename Interaction::ViewType dstView, CellListInfo srcCinfo,
+        typename Interaction::ViewType srcView,
         const float rc2, Interaction interaction)
 {
     static_assert(NeedDstAcc == InteractionOut::NeedAcc || NeedSrcAcc == InteractionOut::NeedAcc,

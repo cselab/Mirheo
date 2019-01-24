@@ -13,6 +13,7 @@
 #include "pairwise_interactions/lj.h"
 #include "pairwise_interactions/lj_object_aware.h"
 #include "pairwise_interactions/norandom_dpd.h"
+#include "pairwise_interactions/density.h"
 
 /**
  * Convenience macro wrapper
@@ -208,6 +209,7 @@ template class InteractionPair<Pairwise_Norandom_DPD>;
 template class InteractionPair<Pairwise_DPD>;
 template class InteractionPair<Pairwise_LJ>;
 template class InteractionPair<Pairwise_LJObjectAware>;
+template class InteractionPair<Pairwise_density>;
 
 template class InteractionPair<PairwiseStressWrapper<Pairwise_DPD>>;
 template class InteractionPair<PairwiseStressWrapper<Pairwise_LJ>>;
