@@ -27,12 +27,12 @@ RigidObjectVector::RigidObjectVector(const YmrState *state, std::string name, fl
 
 
     // rigid motion must be exchanged and shifted
-    requireDataPerObject<RigidMotion>("motions",
+    requireDataPerObject<RigidMotion>(ChannelNames::motions,
                                       ExtraDataManager::CommunicationMode::NeedExchange,
                                       ExtraDataManager::PersistenceMode::Persistent,
                                       sizeof(RigidReal));
 
-    requireDataPerObject<RigidMotion>("old_motions",
+    requireDataPerObject<RigidMotion>(ChannelNames::oldMotions,
                                       ExtraDataManager::CommunicationMode::None,
                                       ExtraDataManager::PersistenceMode::None);
 }
@@ -74,7 +74,7 @@ PinnedBuffer<Particle>* LocalRigidObjectVector::getOldMeshVertices(cudaStream_t 
     fakeView.objSize = mesh->getNvertices();
     fakeView.size = mesh->getNvertices() * nObjects;
     fakeView.particles = reinterpret_cast<float4*>(meshOldVertices.devPtr());
-    fakeView.motions = extraPerObject.getData<RigidMotion>("old_motions")->devPtr();
+    fakeView.motions = extraPerObject.getData<RigidMotion>(ChannelNames::oldMotions)->devPtr();
 
     SAFE_KERNEL_LAUNCH(
             applyRigidMotion,
@@ -124,7 +124,7 @@ void RigidObjectVector::_checkpointObjectData(MPI_Comm comm, std::string path)
     std::string filename = path + "/" + name + ".obj-" + getStrZeroPadded(restartIdx);
     info("Checkpoint for rigid object vector '%s', writing to file %s", name.c_str(), filename.c_str());
 
-    auto motions = local()->extraPerObject.getData<RigidMotion>("motions");
+    auto motions = local()->extraPerObject.getData<RigidMotion>(ChannelNames::motions);
 
     motions->downloadFromDevice(0, ContainersSynch::Synch);
     
@@ -146,7 +146,7 @@ void RigidObjectVector::_checkpointObjectData(MPI_Comm comm, std::string path)
         XDMF::Channel( "torque",     torque     .data(), XDMF::Channel::DataForm::Vector,     rigidType, typeTokenize<RigidReal3>() )
     };         
 
-    _extractPersistentExtraObjectData(channels, /* blacklist */ {"motions"} );
+    _extractPersistentExtraObjectData(channels, /* blacklist */ {ChannelNames::motions} );
     
     XDMF::write(filename, &grid, channels, comm);
 
@@ -170,8 +170,8 @@ void RigidObjectVector::_restartObjectData(MPI_Comm comm, std::string path, cons
 
     XDMF::readRigidObjectData(filename, comm, this);
 
-    auto loc_ids     = local()->extraPerObject.getData<int>("ids");
-    auto loc_motions = local()->extraPerObject.getData<RigidMotion>("motions");
+    auto loc_ids     = local()->extraPerObject.getData<int>(ChannelNames::globalIds);
+    auto loc_motions = local()->extraPerObject.getData<RigidMotion>(ChannelNames::motions);
     
     std::vector<int>             ids(loc_ids    ->begin(), loc_ids    ->end());
     std::vector<RigidMotion> motions(loc_motions->begin(), loc_motions->end());

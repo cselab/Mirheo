@@ -27,8 +27,8 @@ struct OVview : public PVview
         invObjMass = 1.0 / objMass;
 
         // Required data per object
-        comAndExtents = lov->extraPerObject.getData<LocalObjectVector::COMandExtent>("com_extents")->devPtr();
-        ids           = lov->extraPerObject.getData<int>("ids")->devPtr();
+        comAndExtents = lov->extraPerObject.getData<LocalObjectVector::COMandExtent>(ChannelNames::comExtents)->devPtr();
+        ids           = lov->extraPerObject.getData<int>(ChannelNames::globalIds)->devPtr();
     }
 };
 

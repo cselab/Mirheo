@@ -111,7 +111,7 @@ std::vector<int> ObjectVector::_restartParticleData(MPI_Comm comm, std::string p
     
     // Do the ids
     // That's a kinda hack, will be properly fixed in the hdf5 per object restarts
-    auto ids = local()->extraPerObject.getData<int>("ids");
+    auto ids = local()->extraPerObject.getData<int>(ChannelNames::globalIds);
     for (int i = 0; i < local()->nObjects; i++)
         (*ids)[i] = local()->coosvels[i*objSize].i1 / objSize;
     ids->uploadToDevice(0);
@@ -149,7 +149,7 @@ void ObjectVector::_checkpointObjectData(MPI_Comm comm, std::string path)
     std::string filename = path + "/" + name + ".obj-" + getStrZeroPadded(restartIdx);
     info("Checkpoint for object vector '%s', writing to file %s", name.c_str(), filename.c_str());
 
-    auto coms_extents = local()->extraPerObject.getData<LocalObjectVector::COMandExtent>("com_extents");
+    auto coms_extents = local()->extraPerObject.getData<LocalObjectVector::COMandExtent>(ChannelNames::comExtents);
 
     coms_extents->downloadFromDevice(0, ContainersSynch::Synch);
     
@@ -179,7 +179,7 @@ void ObjectVector::_restartObjectData(MPI_Comm comm, std::string path, const std
 
     XDMF::readObjectData(filename, comm, this);
 
-    auto loc_ids = local()->extraPerObject.getData<int>("ids");
+    auto loc_ids = local()->extraPerObject.getData<int>(ChannelNames::globalIds);
     
     std::vector<int> ids(loc_ids->begin(), loc_ids->end());
     

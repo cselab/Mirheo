@@ -91,8 +91,8 @@ namespace XDMF
 
         for (auto& ch : channels)
         {
-            if      (ch.name == "velocity") vel = (const float3*) ch.data;            
-            else if (ch.name == "ids"     ) ids = (const int*) ch.data;
+            if      (ch.name == "velocity"              ) vel = (const float3*) ch.data;            
+            else if (ch.name == ChannelNames::globalIds ) ids = (const int*) ch.data;
             else addPersistentExtraDataPerParticle(n, ch, pv);
         }
 
@@ -141,18 +141,18 @@ namespace XDMF
         int n = positions.size() / 3;
         const int *ids_data = nullptr;
 
-        auto ids = ov->local()->extraPerObject.getData<int>("ids");
+        auto ids = ov->local()->extraPerObject.getData<int>(ChannelNames::globalIds);
 
         ids->resize_anew(n);
 
         for (auto& ch : channels)
         {
-            if (ch.name == "ids") ids_data = (const int*) ch.data;
+            if (ch.name == ChannelNames::globalIds) ids_data = (const int*) ch.data;
             else addPersistentExtraDataPerObject(n, ch, ov);
         }
 
         if (n > 0 && ids_data == nullptr)
-            die("Channel 'ids' is required to read XDMF into an object vector");
+            die("Channel '%s' is required to read XDMF into an object vector", ChannelNames::globalIds.c_str());
 
         for (int i = 0; i < n; ++i)
         {
@@ -188,15 +188,15 @@ namespace XDMF
         const RigidReal4 *quaternion;
         const RigidReal3 *vel, *omega, *force, *torque;
 
-        auto ids     = rov->local()->extraPerObject.getData<int>("ids");
-        auto motions = rov->local()->extraPerObject.getData<RigidMotion>("motions");
+        auto ids     = rov->local()->extraPerObject.getData<int>(ChannelNames::globalIds);
+        auto motions = rov->local()->extraPerObject.getData<RigidMotion>(ChannelNames::motions);
 
         ids    ->resize_anew(n);
         motions->resize_anew(n);
 
         for (auto& ch : channels)
         {
-            if      (ch.name == "ids")          ids_data = (const int*)        ch.data;
+            if      (ch.name == ChannelNames::globalIds)  ids_data = (const int*)        ch.data;
             else if (ch.name == "quaternion") quaternion = (const RigidReal4*) ch.data; 
             else if (ch.name == "velocity")          vel = (const RigidReal3*) ch.data;
             else if (ch.name == "omega")           omega = (const RigidReal3*) ch.data;
@@ -210,7 +210,7 @@ namespace XDMF
                 if (ptr == nullptr)
                     die("Channel '%s' is required to read XDMF into an object vector", name.c_str());
             };
-            check("ids",        ids_data);
+            check(ChannelNames::globalIds,        ids_data);
             check("quaternion", quaternion);
             check("velocity",   vel);
             check("omega",      omega);

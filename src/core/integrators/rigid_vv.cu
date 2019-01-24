@@ -26,7 +26,7 @@ void IntegratorVVRigid::setPrerequisites(ParticleVector* pv)
     if (ov == nullptr)
         die("Rigid integration only works with rigid objects, can't work with %s", pv->name.c_str());
 
-    ov->requireDataPerObject<RigidMotion>("old_motions", ExtraDataManager::CommunicationMode::None, ExtraDataManager::PersistenceMode::None);
+    ov->requireDataPerObject<RigidMotion>(ChannelNames::oldMotions, ExtraDataManager::CommunicationMode::None, ExtraDataManager::PersistenceMode::None);
     warn("Only objects with diagonal inertia tensors are supported now for rigid integration");
 }
 

@@ -84,10 +84,10 @@ protected:
     {
         // center of mass and extents are not to be sent around
         // it's cheaper to compute them on site
-        requireDataPerObject<LocalObjectVector::COMandExtent>("com_extents", ExtraDataManager::CommunicationMode::None, ExtraDataManager::PersistenceMode::None);
+        requireDataPerObject<LocalObjectVector::COMandExtent>(ChannelNames::comExtents, ExtraDataManager::CommunicationMode::None, ExtraDataManager::PersistenceMode::None);
 
         // object ids must always follow objects
-        requireDataPerObject<int>("ids", ExtraDataManager::CommunicationMode::NeedExchange, ExtraDataManager::PersistenceMode::Persistent);
+        requireDataPerObject<int>(ChannelNames::globalIds, ExtraDataManager::CommunicationMode::NeedExchange, ExtraDataManager::PersistenceMode::Persistent);
     }
 
 public:

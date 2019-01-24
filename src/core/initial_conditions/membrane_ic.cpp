@@ -78,7 +78,7 @@ void MembraneIC::exec(const MPI_Comm& comm, ParticleVector* pv, cudaStream_t str
     int totalCount=0; // TODO: int64!
     MPI_Check( MPI_Exscan(&nObjs, &totalCount, 1, MPI_INT, MPI_SUM, comm) );
 
-    auto ids = ov->local()->extraPerObject.getData<int>("ids");
+    auto ids = ov->local()->extraPerObject.getData<int>(ChannelNames::globalIds);
     for (int i=0; i<nObjs; i++)
         (*ids)[i] = totalCount + i;
 

@@ -35,7 +35,7 @@ void BounceFromRigidEllipsoid::setup(ObjectVector* ov)
 {
     this->ov = ov;
 
-    ov->requireDataPerObject<RigidMotion> ("old_motions", ExtraDataManager::CommunicationMode::NeedExchange,
+    ov->requireDataPerObject<RigidMotion> (ChannelNames::oldMotions, ExtraDataManager::CommunicationMode::NeedExchange,
                                            ExtraDataManager::PersistenceMode::None, sizeof(RigidReal));
 }
 
