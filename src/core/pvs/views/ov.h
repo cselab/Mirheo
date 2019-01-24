@@ -73,7 +73,7 @@ struct OVviewWithOldPartilces : public OVview
     {
         if (ov == nullptr || lov == nullptr) return;
 
-        old_particles = reinterpret_cast<float4*>( lov->extraPerParticle.getData<Particle>("old_particles")->devPtr() );
+        old_particles = reinterpret_cast<float4*>( lov->extraPerParticle.getData<Particle>(ChannelNames::oldParts)->devPtr() );
     }
 };
 

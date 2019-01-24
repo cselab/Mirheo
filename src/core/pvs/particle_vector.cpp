@@ -212,7 +212,7 @@ ParticleVector::ParticleVector(const YmrState *state, std::string name,  float m
     _halo(halo)
 {
     // usually old positions and velocities don't need to exchanged
-    requireDataPerParticle<Particle> ("old_particles", ExtraDataManager::CommunicationMode::None, ExtraDataManager::PersistenceMode::None);
+    requireDataPerParticle<Particle> (ChannelNames::oldParts, ExtraDataManager::CommunicationMode::None, ExtraDataManager::PersistenceMode::None);
 }
 
 static void splitPV(DomainInfo domain, LocalParticleVector *local,

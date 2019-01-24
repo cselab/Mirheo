@@ -1,10 +1,10 @@
 #include "sub_step_membrane.h"
 
-#include <core/utils/kernel_launch.h>
+#include <core/interactions/membrane.h>
 #include <core/logger.h>
 #include <core/pvs/particle_vector.h>
-#include <core/interactions/membrane.h>
-
+#include <core/utils/common.h>
+#include <core/utils/kernel_launch.h>
 
 IntegratorSubStepMembrane::IntegratorSubStepMembrane(const YmrState *state, std::string name, int substeps, Interaction *fastForces) :
     Integrator(state, name), substeps(substeps),
@@ -44,7 +44,7 @@ void IntegratorSubStepMembrane::stage2(ParticleVector *pv, cudaStream_t stream)
     }
     
     // restore previous positions into old_particles channel
-    pv->local()->extraPerParticle.getData<Particle>("old_particles")->copy(previousPositions, stream);
+    pv->local()->extraPerParticle.getData<Particle>(ChannelNames::oldParts)->copy(previousPositions, stream);
 
     // PV may have changed, invalidate all
     pv->haloValid = false;

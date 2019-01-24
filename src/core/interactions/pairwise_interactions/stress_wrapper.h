@@ -1,8 +1,9 @@
 #pragma once
 
 #include <core/datatypes.h>
-#include <core/pvs/particle_vector.h>
 #include <core/interactions/accumulators/force.h>
+#include <core/pvs/particle_vector.h>
+#include <core/utils/common.h>
 
 class ParticleVector;
 class CellList;
@@ -22,8 +23,8 @@ public:
     {
         basicForce.setup(lpv1, lpv2, cl1, cl2, t);
 
-        pv1Stress = lpv1->extraPerParticle.getData<Stress>("stresses")->devPtr();
-        pv2Stress = lpv2->extraPerParticle.getData<Stress>("stresses")->devPtr();
+        pv1Stress = lpv1->extraPerParticle.getData<Stress>(ChannelNames::stresses)->devPtr();
+        pv2Stress = lpv2->extraPerParticle.getData<Stress>(ChannelNames::stresses)->devPtr();
     }
 
     __device__ inline float3 operator()(const Particle dst, int dstId, const Particle src, int srcId) const

@@ -1,8 +1,9 @@
 #include <functional>
 #include <random>
 
-#include <core/pvs/particle_vector.h>
 #include <core/logger.h>
+#include <core/pvs/particle_vector.h>
+#include <core/utils/common.h>
 
 #include "helpers.h"
 
@@ -97,7 +98,7 @@ void addUniformParticles(float density, const MPI_Comm& comm, ParticleVector *pv
         part.i1 += totalCount;
 
     pv->local()->coosvels.uploadToDevice(stream);
-    pv->local()->extraPerParticle.getData<Particle>("old_particles")->copy(pv->local()->coosvels, stream);
+    pv->local()->extraPerParticle.getData<Particle>(ChannelNames::oldParts)->copy(pv->local()->coosvels, stream);
 
     debug2("Generated %d %s particles", pv->local()->size(), pv->name.c_str());
 }

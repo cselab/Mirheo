@@ -1,9 +1,9 @@
 #include "pairwise_with_stress.h"
-
 #include "pairwise_interactions/dpd.h"
 #include "pairwise_interactions/lj.h"
 #include "pairwise_interactions/lj_object_aware.h"
 
+#include <core/utils/common.h>
 
 template<class PairwiseInteraction>
 InteractionPair_withStress<PairwiseInteraction>::InteractionPair_withStress(
@@ -24,8 +24,8 @@ void InteractionPair_withStress<PairwiseInteraction>::setPrerequisites(ParticleV
     info("Interaction '%s' requires channel 'stress' from PVs '%s' and '%s'",
          name.c_str(), pv1->name.c_str(), pv2->name.c_str());
 
-    pv1->requireDataPerParticle<Stress>("stresses", ExtraDataManager::CommunicationMode::None, ExtraDataManager::PersistenceMode::None);
-    pv2->requireDataPerParticle<Stress>("stresses", ExtraDataManager::CommunicationMode::None, ExtraDataManager::PersistenceMode::None);
+    pv1->requireDataPerParticle<Stress>(ChannelNames::stresses, ExtraDataManager::CommunicationMode::None, ExtraDataManager::PersistenceMode::None);
+    pv2->requireDataPerParticle<Stress>(ChannelNames::stresses, ExtraDataManager::CommunicationMode::None, ExtraDataManager::PersistenceMode::None);
 
     pv2lastStressTime[pv1] = -1;
     pv2lastStressTime[pv2] = -1;
@@ -39,10 +39,10 @@ void InteractionPair_withStress<PairwiseInteraction>::initStep(ParticleVector *p
     if (lastStressTime+stressPeriod <= t || lastStressTime == t) {
         
         if (pv2lastStressTime[pv1] != t)
-            pv1->local()->extraPerParticle.getData<Stress>("stresses")->clear(stream);
+            pv1->local()->extraPerParticle.getData<Stress>(ChannelNames::stresses)->clear(stream);
 
         if (pv2lastStressTime[pv2] != t)
-            pv2->local()->extraPerParticle.getData<Stress>("stresses")->clear(stream);
+            pv2->local()->extraPerParticle.getData<Stress>(ChannelNames::stresses)->clear(stream);
     }
 }
 

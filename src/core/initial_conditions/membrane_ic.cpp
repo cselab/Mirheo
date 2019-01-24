@@ -88,7 +88,7 @@ void MembraneIC::exec(const MPI_Comm& comm, ParticleVector* pv, cudaStream_t str
 
     ids->uploadToDevice(stream);
     ov->local()->coosvels.uploadToDevice(stream);
-    ov->local()->extraPerParticle.getData<Particle>("old_particles")->copy(ov->local()->coosvels, stream);
+    ov->local()->extraPerParticle.getData<Particle>(ChannelNames::oldParts)->copy(ov->local()->coosvels, stream);
 
     info("Initialized %d '%s' membranes", nObjs, ov->name.c_str());
 }

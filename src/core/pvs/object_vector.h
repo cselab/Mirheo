@@ -5,6 +5,7 @@
 #include <core/containers.h>
 #include <core/logger.h>
 #include <core/mesh.h>
+#include <core/utils/common.h>
 
 class LocalObjectVector: public LocalParticleVector
 {
@@ -62,7 +63,7 @@ public:
 
     virtual PinnedBuffer<Particle>* getOldMeshVertices(cudaStream_t stream)
     {
-        return extraPerParticle.getData<Particle>("old_particles");
+        return extraPerParticle.getData<Particle>(ChannelNames::oldParts);
     }
 
     virtual DeviceBuffer<Force>* getMeshForces(cudaStream_t stream)

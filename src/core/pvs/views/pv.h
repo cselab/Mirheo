@@ -1,7 +1,9 @@
 #pragma once
 
-#include <core/utils/cuda_common.h>
 #include "../particle_vector.h"
+
+#include <core/utils/common.h>
+#include <core/utils/cuda_common.h>
 
 /**
  * GPU-compatible struct of all the relevant data
@@ -36,7 +38,7 @@ struct PVviewWithOldParticles : public PVview
         PVview(pv, lpv)
     {
         if (lpv != nullptr)
-            old_particles = reinterpret_cast<float4*>( lpv->extraPerParticle.getData<Particle>("old_particles")->devPtr() );
+            old_particles = reinterpret_cast<float4*>( lpv->extraPerParticle.getData<Particle>(ChannelNames::oldParts)->devPtr() );
     }
 };
 
@@ -48,7 +50,7 @@ struct PVviewWithStresses : public PVview
         PVview(pv, lpv)
     {
         if (lpv != nullptr)
-            stresses = reinterpret_cast<Stress*>( lpv->extraPerParticle.getData<Particle>("stresses")->devPtr() );
+            stresses = reinterpret_cast<Stress*>( lpv->extraPerParticle.getData<Particle>(ChannelNames::stresses)->devPtr() );
     }
 };
 
@@ -60,7 +62,7 @@ struct PVviewWithDensities : public PVview
         PVview(pv, lpv)
     {
         if (lpv != nullptr)
-            densities = reinterpret_cast<float*>( lpv->extraPerParticle.getData<Particle>("densities")->devPtr() );
+            densities = reinterpret_cast<float*>( lpv->extraPerParticle.getData<Particle>(ChannelNames::densities)->devPtr() );
     }
 };
 
