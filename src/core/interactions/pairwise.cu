@@ -28,7 +28,7 @@ do{ debug2("Dispatched to "#TPP" thread(s) per particle variant");              
     SAFE_KERNEL_LAUNCH(                                                         \
             computeExternalInteractions_##TPP##tpp<P1 COMMA P2 COMMA P3>,       \
             getNblocks(TPP*dstView.size, nth), nth, 0, stream,                  \
-            dstView, cl2->cellInfo(), rc*rc, INTERACTION_FUNCTION); } while (0)
+            dstView, cl2->cellInfo(), srcView, rc*rc, INTERACTION_FUNCTION); } while (0)
 
 #define CHOOSE_EXTERNAL(P1, P2, P3, INTERACTION_FUNCTION)                                              \
 do{  if (dstView.size < 1000  ) { DISPATCH_EXTERNAL(P1, P2, P3, 27, INTERACTION_FUNCTION); }           \
@@ -135,7 +135,8 @@ void InteractionPair<PairwiseInteraction>::_compute(InteractionType type,
         /*  Self interaction */
         if (pv1 == pv2)
         {
-            const int np = pv1->local()->size();
+            auto view = cl1->getView<PVview>();
+            const int np = view.size;
             debug("Computing internal forces for %s (%d particles)", pv1->name.c_str(), np);
 
             const int nth = 128;
@@ -144,7 +145,7 @@ void InteractionPair<PairwiseInteraction>::_compute(InteractionType type,
             SAFE_KERNEL_LAUNCH(
                     computeSelfInteractions,
                     getNblocks(np, nth), nth, 0, stream,
-                    np, cinfo, rc*rc, pair);
+                    cinfo, view, rc*rc, pair);
         }
         else /*  External interaction */
         {
@@ -153,6 +154,7 @@ void InteractionPair<PairwiseInteraction>::_compute(InteractionType type,
             debug("Computing external forces for %s - %s (%d - %d particles)", pv1->name.c_str(), pv2->name.c_str(), np1, np2);
 
             auto dstView = cl1->getView<PVview>();
+            auto srcView = cl2->getView<PVview>();
 
             const int nth = 128;
             if (np1 > 0 && np2 > 0)
@@ -170,6 +172,8 @@ void InteractionPair<PairwiseInteraction>::_compute(InteractionType type,
         debug("Computing halo forces for %s(halo) - %s (%d - %d particles)", pv1->name.c_str(), pv2->name.c_str(), np1, np2);
 
         PVview dstView(pv1, pv1->halo());
+        auto srcView = cl2->getView<PVview>();
+        
         const int nth = 128;
         if (np1 > 0 && np2 > 0)
             if (dynamic_cast<ObjectVector*>(pv1) == nullptr) // don't need forces for pure particle halo
