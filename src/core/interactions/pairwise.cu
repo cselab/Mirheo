@@ -126,14 +126,7 @@ template<class PairwiseInteraction>
 void InteractionPair<PairwiseInteraction>::_compute(InteractionType type,
         ParticleVector* pv1, ParticleVector* pv2, CellList* cl1, CellList* cl2, const float t, cudaStream_t stream)
 {
-    auto it = intMap.find({pv1->name, pv2->name});
-    if (it != intMap.end())
-        debug("Using SPECIFIC parameters for PV pair '%s' -- '%s'", pv1->name.c_str(), pv2->name.c_str());
-    else
-        debug("Using default parameters for PV pair '%s' -- '%s'", pv1->name.c_str(), pv2->name.c_str());
-
-
-    auto& pair = (it == intMap.end()) ? defaultPair : it->second;
+    auto& pair = getPairwiseInteraction(pv1->name, pv2->name);
 
     if (type == InteractionType::Regular)
     {
@@ -191,6 +184,20 @@ void InteractionPair<PairwiseInteraction>::setSpecificPair(std::string pv1name, 
 {
     intMap.insert({{pv1name, pv2name}, pair});
     intMap.insert({{pv2name, pv1name}, pair});
+}
+
+template<class PairwiseInteraction>
+PairwiseInteraction& InteractionPair<PairwiseInteraction>::getPairwiseInteraction(std::string pv1name, std::string pv2name)
+{
+    auto it = intMap.find({pv1name, pv2name});
+    if (it != intMap.end()) {
+        debug("Using SPECIFIC parameters for PV pair '%s' -- '%s'", pv1name.c_str(), pv2name.c_str());
+        return it->second;
+    }
+    else {
+        debug("Using default parameters for PV pair '%s' -- '%s'", pv1name.c_str(), pv2name.c_str());
+        return defaultPair;
+    }
 }
 
 // for testing purpose

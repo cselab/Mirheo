@@ -28,4 +28,6 @@ public:
 private:
     PairwiseInteraction defaultPair;
     std::map< std::pair<std::string, std::string>, PairwiseInteraction > intMap;
+
+    PairwiseInteraction& getPairwiseInteraction(std::string pv1name, std::string pv2name);
 };
