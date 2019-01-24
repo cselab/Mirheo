@@ -109,8 +109,8 @@ protected:
 
 public:    
 
-    CellList(ParticleVector* pv, float rc, float3 localDomainSize);
-    CellList(ParticleVector* pv, int3 resolution, float3 localDomainSize);
+    CellList(ParticleVector *pv, float rc, float3 localDomainSize);
+    CellList(ParticleVector *pv, int3 resolution, float3 localDomainSize);
 
     virtual ~CellList();
     
@@ -131,8 +131,8 @@ class PrimaryCellList : public CellList
 {
 public:
 
-    PrimaryCellList(ParticleVector* pv, float rc, float3 localDomainSize);
-    PrimaryCellList(ParticleVector* pv, int3 resolution, float3 localDomainSize);
+    PrimaryCellList(ParticleVector *pv, float rc, float3 localDomainSize);
+    PrimaryCellList(ParticleVector *pv, int3 resolution, float3 localDomainSize);
 
     ~PrimaryCellList();
     

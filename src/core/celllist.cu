@@ -27,7 +27,7 @@ __global__ void computeCellSizes(PVview view, CellListInfo cinfo)
         atomicAdd(cinfo.cellSizes + cid, 1);
 }
 
-__global__ void reorderParticles(PVview view, CellListInfo cinfo, float4* outParticles)
+__global__ void reorderParticles(PVview view, CellListInfo cinfo, float4 *outParticles)
 {
     const int gid = blockIdx.x * blockDim.x + threadIdx.x;
     const int pid = gid / 2;
@@ -108,7 +108,7 @@ CellListInfo::CellListInfo(float3 h, float3 localDomainSize) :
 // Basic cell-lists
 //=================================================================================
 
-CellList::CellList(ParticleVector* pv, float rc, float3 localDomainSize) :
+CellList::CellList(ParticleVector *pv, float rc, float3 localDomainSize) :
         CellListInfo(rc, localDomainSize), pv(pv),
         particlesDataContainer(new LocalParticleVector(nullptr))
 {
@@ -124,7 +124,7 @@ CellList::CellList(ParticleVector* pv, float rc, float3 localDomainSize) :
     debug("Initialized %s cell-list with %dx%dx%d cells and cut-off %f", pv->name.c_str(), ncells.x, ncells.y, ncells.z, this->rc);
 }
 
-CellList::CellList(ParticleVector* pv, int3 resolution, float3 localDomainSize) :
+CellList::CellList(ParticleVector *pv, int3 resolution, float3 localDomainSize) :
         CellListInfo(localDomainSize / make_float3(resolution), localDomainSize), pv(pv),
         particlesDataContainer(new LocalParticleVector(nullptr))
 {
@@ -295,7 +295,7 @@ void CellList::clearForces(cudaStream_t stream)
 // Primary cell-lists
 //=================================================================================
 
-PrimaryCellList::PrimaryCellList(ParticleVector* pv, float rc, float3 localDomainSize) :
+PrimaryCellList::PrimaryCellList(ParticleVector *pv, float rc, float3 localDomainSize) :
         CellList(pv, rc, localDomainSize)
 {
     localPV = pv->local();
@@ -304,7 +304,7 @@ PrimaryCellList::PrimaryCellList(ParticleVector* pv, float rc, float3 localDomai
         error("Using primary cell-lists with objects is STRONGLY discouraged. This will very likely result in an error");
 }
 
-PrimaryCellList::PrimaryCellList(ParticleVector* pv, int3 resolution, float3 localDomainSize) :
+PrimaryCellList::PrimaryCellList(ParticleVector *pv, int3 resolution, float3 localDomainSize) :
         CellList(pv, resolution, localDomainSize)
 {
     localPV = pv->local();
