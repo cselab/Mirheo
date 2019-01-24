@@ -1,6 +1,7 @@
 #pragma once
 
 #include <core/datatypes.h>
+#include <core/pvs/views/pv.h>
 #include <core/utils/cpu_gpu_defines.h>
 #include <core/utils/helper_math.h>
 

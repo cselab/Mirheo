@@ -1,12 +1,11 @@
 #pragma once
 
 #include <core/datatypes.h>
-#include <core/pvs/particle_vector.h>
+#include <core/interactions/accumulators/force.h>
 #include <core/pvs/object_vector.h>
-
+#include <core/pvs/particle_vector.h>
 #include <core/utils/cpu_gpu_defines.h>
 #include <core/utils/helper_math.h>
-
 
 class Pairwise_LJObjectAware
 {
@@ -43,6 +42,7 @@ public:
         return f;
     }
 
+    __D__ inline ForceAccumulator getZeroedAccumulator() const {return ForceAccumulator();}
 
 private:
 

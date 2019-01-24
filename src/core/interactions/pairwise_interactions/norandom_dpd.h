@@ -1,9 +1,9 @@
 #pragma once
 
 #include <core/datatypes.h>
-#include <core/utils/cuda_rng.h>
-
+#include <core/interactions/accumulators/force.h>
 #include <core/utils/cpu_gpu_defines.h>
+#include <core/utils/cuda_rng.h>
 #include <core/utils/helper_math.h>
 
 #include <random>
@@ -48,6 +48,8 @@ public:
         return dr_r * strength;
     }
 
+    __D__ inline ForceAccumulator getZeroedAccumulator() const {return ForceAccumulator();}
+    
 protected:
 
     float a, gamma, sigma, power, rc;

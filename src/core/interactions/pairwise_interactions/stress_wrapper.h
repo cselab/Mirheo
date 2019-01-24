@@ -2,6 +2,7 @@
 
 #include <core/datatypes.h>
 #include <core/pvs/particle_vector.h>
+#include <core/interactions/accumulators/force.h>
 
 class ParticleVector;
 class CellList;
@@ -51,6 +52,8 @@ public:
 
         return f;
     }
+
+    __D__ inline ForceAccumulator getZeroedAccumulator() const {return ForceAccumulator();}
 
 private:
 

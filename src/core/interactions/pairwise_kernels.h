@@ -1,5 +1,3 @@
-#include "accumulators/force.h"
-
 #include <cassert>
 #include <type_traits>
 
@@ -126,7 +124,7 @@ __global__ void computeSelfInteractions(
 
     const Particle dstP(view.particles, dstId);
 
-    ForceAccumulator accumulator;
+    auto accumulator = interaction.getZeroedAccumulator();
 
     const int3 cell0 = cinfo.getCellIdAlongAxes(dstP.r);
 
@@ -200,7 +198,7 @@ __global__ void computeExternalInteractions_1tpp(
             readNoCache(dstView.particles+2*dstId),
             readNoCache(dstView.particles+2*dstId+1) );
 
-    ForceAccumulator accumulator;
+    auto accumulator = interaction.getZeroedAccumulator();
 
     const int3 cell0 = srcCinfo.getCellIdAlongAxes<CellListsProjection::NoClamp>(dstP.r);
 
@@ -267,7 +265,7 @@ __global__ void computeExternalInteractions_3tpp(
             readNoCache(dstView.particles+2*dstId),
             readNoCache(dstView.particles+2*dstId+1) );
 
-    ForceAccumulator accumulator;
+    auto accumulator = interaction.getZeroedAccumulator();
 
     const int3 cell0 = srcCinfo.getCellIdAlongAxes<CellListsProjection::NoClamp>(dstP.r);
 
@@ -335,7 +333,7 @@ __global__ void computeExternalInteractions_9tpp(
             readNoCache(dstView.particles+2*dstId),
             readNoCache(dstView.particles+2*dstId+1) );
 
-    ForceAccumulator accumulator;
+    auto accumulator = interaction.getZeroedAccumulator();
 
     const int3 cell0 = srcCinfo.getCellIdAlongAxes<CellListsProjection::NoClamp>(dstP.r);
 
@@ -403,7 +401,7 @@ __global__ void computeExternalInteractions_27tpp(
             readNoCache(dstView.particles+2*dstId),
             readNoCache(dstView.particles+2*dstId+1) );
 
-    ForceAccumulator accumulator;
+    auto accumulator = interaction.getZeroedAccumulator();
 
     const int3 cell0 = srcCinfo.getCellIdAlongAxes<CellListsProjection::NoClamp>(dstP.r);
 

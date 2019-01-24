@@ -1,9 +1,9 @@
 #pragma once
 
 #include <core/datatypes.h>
-#include <core/utils/cuda_common.h>
-
+#include <core/interactions/accumulators/force.h>
 #include <core/utils/cpu_gpu_defines.h>
+#include <core/utils/cuda_common.h>
 #include <core/utils/helper_math.h>
 
 class LocalParticleVector;
@@ -40,6 +40,8 @@ public:
         return dr * min(max(IfI, 0.0f), maxForce);
     }
 
+    __D__ inline ForceAccumulator getZeroedAccumulator() const {return ForceAccumulator();}
+    
 private:
 
     float rc, epsilon, sigma, maxForce;
