@@ -1,9 +1,10 @@
+#include "accumulators/force.h"
+
 #include <cassert>
 #include <type_traits>
 
 #include <core/celllist.h>
 #include <core/utils/cuda_common.h>
-
 #include <core/pvs/views/pv.h>
 
 enum class InteractionWith
@@ -65,12 +66,12 @@ __device__ inline float distance2(const Ta a, const Tb b)
  * forces, such that either p1 \<-\> p2 or p2 \<-\> p1 is ignored
  * based on particle ids
  */
-template<InteractionOut NeedDstAcc, InteractionOut NeedSrcAcc, InteractionWith InteractWith, typename Interaction>
+template<InteractionOut NeedDstAcc, InteractionOut NeedSrcAcc, InteractionWith InteractWith,
+         typename Interaction, typename Accumulator>
 __device__ inline void computeCell(
         int pstart, int pend,
-        Particle dstP, int dstId, float3& dstFrc,
-        PVview srcView,
-        float rc2, Interaction& interaction)
+        Particle dstP, int dstId, PVview srcView, float rc2,
+        Interaction& interaction, Accumulator& accumulator)
 {
     for (int srcId = pstart; srcId < pend; srcId++)
     {
@@ -86,13 +87,13 @@ __device__ inline void computeCell(
         {
             srcP.readVelocity(srcView.particles, srcId);
 
-            float3 frc = interaction(dstP, dstId, srcP, srcId);
+            auto val = interaction(dstP, dstId, srcP, srcId);
 
             if (NeedDstAcc == InteractionOut::NeedAcc)
-                dstFrc += frc;
+                accumulator.add(val);
 
             if (NeedSrcAcc == InteractionOut::NeedAcc)
-                atomicAdd(srcView.forces + srcId, -frc);
+                accumulator.atomicAddToSrc(val, srcView, srcId);
         }
     }
 }
@@ -124,7 +125,8 @@ __global__ void computeSelfInteractions(
     if (dstId >= view.size) return;
 
     const Particle dstP(view.particles, dstId);
-    float3 dstFrc = make_float3(0.0f);
+
+    ForceAccumulator accumulator;
 
     const int3 cell0 = cinfo.getCellIdAlongAxes(dstP.r);
 
@@ -144,12 +146,14 @@ __global__ void computeSelfInteractions(
                 const int pend   = cinfo.cellStarts[rowEnd];
 
                 if (cellY == cell0.y && cellZ == cell0.z)
-                    computeCell<InteractionOut::NeedAcc, InteractionOut::NeedAcc, InteractionWith::Self>  (pstart, pend, dstP, dstId, dstFrc, view, rc2, interaction);
+                    computeCell<InteractionOut::NeedAcc, InteractionOut::NeedAcc, InteractionWith::Self>
+                        (pstart, pend, dstP, dstId, view, rc2, interaction, accumulator);
                 else
-                    computeCell<InteractionOut::NeedAcc, InteractionOut::NeedAcc, InteractionWith::Other> (pstart, pend, dstP, dstId, dstFrc, view, rc2, interaction);
+                    computeCell<InteractionOut::NeedAcc, InteractionOut::NeedAcc, InteractionWith::Other>
+                        (pstart, pend, dstP, dstId, view, rc2, interaction, accumulator);
             }
 
-    atomicAdd(view.forces + dstId, dstFrc);
+    accumulator.atomicAddToDst(accumulator.get(), view,dstId);
 }
 
 
@@ -196,7 +200,7 @@ __global__ void computeExternalInteractions_1tpp(
             readNoCache(dstView.particles+2*dstId),
             readNoCache(dstView.particles+2*dstId+1) );
 
-    float3 dstFrc = make_float3(0.0f);
+    ForceAccumulator accumulator;
 
     const int3 cell0 = srcCinfo.getCellIdAlongAxes<CellListsProjection::NoClamp>(dstP.r);
 
@@ -215,7 +219,8 @@ __global__ void computeExternalInteractions_1tpp(
                 const int pstart = srcCinfo.cellStarts[rowStart];
                 const int pend   = srcCinfo.cellStarts[rowEnd];
 
-                computeCell<NeedDstAcc, NeedSrcAcc, InteractionWith::Other> (pstart, pend, dstP, dstId, dstFrc, srcView, rc2, interaction);
+                computeCell<NeedDstAcc, NeedSrcAcc, InteractionWith::Other>
+                    (pstart, pend, dstP, dstId, srcView, rc2, interaction, accumulator);
             }
             else
             {
@@ -227,12 +232,13 @@ __global__ void computeExternalInteractions_1tpp(
                     const int pstart = srcCinfo.cellStarts[cid];
                     const int pend   = srcCinfo.cellStarts[cid+1];
 
-                    computeCell<NeedDstAcc, NeedSrcAcc, InteractionWith::Other> (pstart, pend, dstP, dstId, dstFrc, srcView, rc2, interaction);
+                    computeCell<NeedDstAcc, NeedSrcAcc, InteractionWith::Other>
+                        (pstart, pend, dstP, dstId, srcView, rc2, interaction, accumulator);
                 }
             }
 
     if (NeedDstAcc == InteractionOut::NeedAcc)
-        atomicAdd(dstView.forces + dstId, dstFrc);
+        accumulator.atomicAddToDst(accumulator.get(), dstView, dstId);
 }
 
 /**
@@ -261,7 +267,7 @@ __global__ void computeExternalInteractions_3tpp(
             readNoCache(dstView.particles+2*dstId),
             readNoCache(dstView.particles+2*dstId+1) );
 
-    float3 dstFrc = make_float3(0.0f);
+    ForceAccumulator accumulator;
 
     const int3 cell0 = srcCinfo.getCellIdAlongAxes<CellListsProjection::NoClamp>(dstP.r);
 
@@ -281,7 +287,8 @@ __global__ void computeExternalInteractions_3tpp(
             const int pstart = srcCinfo.cellStarts[rowStart];
             const int pend   = srcCinfo.cellStarts[rowEnd];
 
-            computeCell<NeedDstAcc, NeedSrcAcc, InteractionWith::Other> (pstart, pend, dstP, dstId, dstFrc, srcView, rc2, interaction);
+            computeCell<NeedDstAcc, NeedSrcAcc, InteractionWith::Other>
+                (pstart, pend, dstP, dstId, srcView, rc2, interaction, accumulator);
         }
         else
         {
@@ -293,12 +300,13 @@ __global__ void computeExternalInteractions_3tpp(
                 const int pstart = srcCinfo.cellStarts[cid];
                 const int pend   = srcCinfo.cellStarts[cid+1];
 
-                computeCell<NeedDstAcc, NeedSrcAcc, InteractionWith::Other> (pstart, pend, dstP, dstId, dstFrc, srcView, rc2, interaction);
+                computeCell<NeedDstAcc, NeedSrcAcc, InteractionWith::Other>
+                    (pstart, pend, dstP, dstId, srcView, rc2, interaction, accumulator);
             }
         }
 
     if (NeedDstAcc == InteractionOut::NeedAcc)
-        atomicAdd(dstView.forces + dstId, dstFrc);
+        accumulator.atomicAddToDst(accumulator.get(), dstView, dstId);
 }
 
 /**
@@ -327,7 +335,7 @@ __global__ void computeExternalInteractions_9tpp(
             readNoCache(dstView.particles+2*dstId),
             readNoCache(dstView.particles+2*dstId+1) );
 
-    float3 dstFrc = make_float3(0.0f);
+    ForceAccumulator accumulator;
 
     const int3 cell0 = srcCinfo.getCellIdAlongAxes<CellListsProjection::NoClamp>(dstP.r);
 
@@ -347,7 +355,8 @@ __global__ void computeExternalInteractions_9tpp(
         const int pstart = srcCinfo.cellStarts[rowStart];
         const int pend   = srcCinfo.cellStarts[rowEnd];
 
-        computeCell<NeedDstAcc, NeedSrcAcc, InteractionWith::Other> (pstart, pend, dstP, dstId, dstFrc, srcView, rc2, interaction);
+        computeCell<NeedDstAcc, NeedSrcAcc, InteractionWith::Other>
+            (pstart, pend, dstP, dstId, srcView, rc2, interaction, accumulator);
     }
     else
     {
@@ -359,12 +368,13 @@ __global__ void computeExternalInteractions_9tpp(
             const int pstart = srcCinfo.cellStarts[cid];
             const int pend   = srcCinfo.cellStarts[cid+1];
 
-            computeCell<NeedDstAcc, NeedSrcAcc, InteractionWith::Other> (pstart, pend, dstP, dstId, dstFrc, srcView, rc2, interaction);
+            computeCell<NeedDstAcc, NeedSrcAcc, InteractionWith::Other>
+                (pstart, pend, dstP, dstId, srcView, rc2, interaction, accumulator);
         }
     }
 
     if (NeedDstAcc == InteractionOut::NeedAcc)
-        atomicAdd(dstView.forces + dstId, dstFrc);
+        accumulator.atomicAddToDst(accumulator.get(), dstView, dstId);
 }
 
 /**
@@ -385,15 +395,15 @@ __global__ void computeExternalInteractions_27tpp(
     const int gid = blockIdx.x*blockDim.x + threadIdx.x;
 
     const int dstId = gid / 27;
-    const int dircode = gid % 27;
-
+    const int dircode = gid % 27;    
+    
     if (dstId >= dstView.size) return;
 
     const Particle dstP(
             readNoCache(dstView.particles+2*dstId),
             readNoCache(dstView.particles+2*dstId+1) );
 
-    float3 dstFrc = make_float3(0.0f);
+    ForceAccumulator accumulator;
 
     const int3 cell0 = srcCinfo.getCellIdAlongAxes<CellListsProjection::NoClamp>(dstP.r);
 
@@ -409,8 +419,9 @@ __global__ void computeExternalInteractions_27tpp(
     const int pstart = srcCinfo.cellStarts[cid];
     const int pend   = srcCinfo.cellStarts[cid+1];
 
-    computeCell<NeedDstAcc, NeedSrcAcc, InteractionWith::Other> (pstart, pend, dstP, dstId, dstFrc, srcView, rc2, interaction);
+    computeCell<NeedDstAcc, NeedSrcAcc, InteractionWith::Other>
+        (pstart, pend, dstP, dstId, srcView, rc2, interaction, accumulator);
 
     if (NeedDstAcc == InteractionOut::NeedAcc)
-        atomicAdd(dstView.forces + dstId, dstFrc);
+        accumulator.atomicAddToDst(accumulator.get(), dstView, dstId);
 }

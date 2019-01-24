@@ -8,14 +8,11 @@
 #include <core/logger.h>
 
 #include "pairwise_kernels.h"
-
 #include "pairwise_interactions/stress_wrapper.h"
 #include "pairwise_interactions/dpd.h"
 #include "pairwise_interactions/lj.h"
 #include "pairwise_interactions/lj_object_aware.h"
-
 #include "pairwise_interactions/norandom_dpd.h"
-
 
 /**
  * Convenience macro wrapper
