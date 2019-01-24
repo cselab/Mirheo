@@ -40,6 +40,18 @@ struct PVviewWithOldParticles : public PVview
     }
 };
 
+struct PVviewWithStresses : public PVview
+{
+    Stress *stresses = nullptr;
+
+    PVviewWithStresses(ParticleVector* pv = nullptr, LocalParticleVector* lpv = nullptr) :
+        PVview(pv, lpv)
+    {
+        if (lpv != nullptr)
+            stresses = reinterpret_cast<Stress*>( lpv->extraPerParticle.getData<Particle>("stresses")->devPtr() );
+    }
+};
+
 struct PVviewWithDensities : public PVview
 {
     float *densities = nullptr;
