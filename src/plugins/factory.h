@@ -312,13 +312,13 @@ namespace PluginFactory
 
     static pair_shared< VirialPressurePlugin, VirialPressureDumper >
     createVirialPressurePlugin(bool computeTask, const YmrState *state, std::string name, ParticleVector *pv,
-                               std::string stressName, std::function<float(PyTypes::float3)> region, PyTypes::float3 h,
+                               std::function<float(PyTypes::float3)> region, PyTypes::float3 h,
                                int dumpEvery, std::string path)
     {
         auto regionFunc = [region](float3 r) {
             return region(PyTypes::float3(r.x, r.y, r.z));
         };
-        auto simPl  = computeTask ? std::make_shared<VirialPressurePlugin> (state, name, pv->name, stressName,
+        auto simPl  = computeTask ? std::make_shared<VirialPressurePlugin> (state, name, pv->name,
                                                                             regionFunc, make_float3(h), dumpEvery)
             : nullptr;
         auto postPl = computeTask ? nullptr : std::make_shared<VirialPressureDumper> (name, path);

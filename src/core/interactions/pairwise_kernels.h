@@ -65,10 +65,10 @@ __device__ inline float distance2(const Ta a, const Tb b)
  * based on particle ids
  */
 template<InteractionOut NeedDstAcc, InteractionOut NeedSrcAcc, InteractionWith InteractWith,
-         typename Interaction, typename Accumulator, typename ViewType>
+         typename Interaction, typename Accumulator>
 __device__ inline void computeCell(
         int pstart, int pend,
-        Particle dstP, int dstId, ViewType srcView, float rc2,
+        Particle dstP, int dstId, typename Interaction::ViewType srcView, float rc2,
         Interaction& interaction, Accumulator& accumulator)
 {
     for (int srcId = pstart; srcId < pend; srcId++)

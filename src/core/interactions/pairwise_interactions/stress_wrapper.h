@@ -14,17 +14,16 @@ public:
 
     using ViewType = PVview;
     
-    PairwiseStressWrapper(std::string stressName, BasicPairwiseForce basicForce) :
-        basicForce(basicForce),
-        stressName(stressName)
+    PairwiseStressWrapper(BasicPairwiseForce basicForce) :
+        basicForce(basicForce)
     {}
 
     void setup(LocalParticleVector* lpv1, LocalParticleVector* lpv2, CellList* cl1, CellList* cl2, float t)
     {
         basicForce.setup(lpv1, lpv2, cl1, cl2, t);
 
-        pv1Stress = lpv1->extraPerParticle.getData<Stress>(stressName)->devPtr();
-        pv2Stress = lpv2->extraPerParticle.getData<Stress>(stressName)->devPtr();
+        pv1Stress = lpv1->extraPerParticle.getData<Stress>("stresses")->devPtr();
+        pv2Stress = lpv2->extraPerParticle.getData<Stress>("stresses")->devPtr();
     }
 
     __device__ inline float3 operator()(const Particle dst, int dstId, const Particle src, int srcId) const
@@ -59,8 +58,6 @@ public:
     __D__ inline ForceAccumulator getZeroedAccumulator() const {return ForceAccumulator();}
 
 private:
-
-    std::string stressName;
     
     Stress *pv1Stress, *pv2Stress;
 

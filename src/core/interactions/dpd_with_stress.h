@@ -5,7 +5,7 @@
 class InteractionDPDWithStress : public InteractionDPD
 {
 public:
-    InteractionDPDWithStress(const YmrState *state, std::string name, std::string stressName,
+    InteractionDPDWithStress(const YmrState *state, std::string name,
                              float rc, float a, float gamma, float kbt, float power, float stressPeriod);
 
     ~InteractionDPDWithStress();    

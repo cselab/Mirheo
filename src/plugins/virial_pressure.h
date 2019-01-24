@@ -14,7 +14,7 @@ using ReductionType = double;
 class VirialPressurePlugin : public SimulationPlugin
 {
 public:
-    VirialPressurePlugin(const YmrState *state, std::string name, std::string pvName, std::string stressName,
+    VirialPressurePlugin(const YmrState *state, std::string name, std::string pvName,
                          FieldFunction func, float3 h, int dumpEvery);
 
     ~VirialPressurePlugin();
@@ -28,7 +28,7 @@ public:
     bool needPostproc() override { return true; }
 
 private:
-    std::string pvName, stressName;
+    std::string pvName;
     int dumpEvery;
     bool needToSend = false;
 

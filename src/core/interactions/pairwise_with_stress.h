@@ -12,7 +12,7 @@ class InteractionPair_withStress : public Interaction
 public:
     enum class InteractionType { Regular, Halo };
 
-    InteractionPair_withStress(const YmrState *state, std::string name, std::string stressName, float rc, float stressPeriod, PairwiseInteraction pair);
+    InteractionPair_withStress(const YmrState *state, std::string name, float rc, float stressPeriod, PairwiseInteraction pair);
     ~InteractionPair_withStress();
     
     void setPrerequisites(ParticleVector *pv1, ParticleVector *pv2) override;
@@ -28,7 +28,6 @@ private:
     float lastStressTime{-1e6};
 
     std::map<ParticleVector*, float> pv2lastStressTime;
-    std::string stressName; 
 
     InteractionPair<PairwiseInteraction> interaction;
     InteractionPair<PairwiseStressWrapper<PairwiseInteraction>> interactionWithStress;

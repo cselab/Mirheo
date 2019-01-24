@@ -7,13 +7,12 @@
 
 template<class PairwiseInteraction>
 InteractionPair_withStress<PairwiseInteraction>::InteractionPair_withStress(
-    const YmrState *state, std::string name, std::string stressName, float rc, float stressPeriod, PairwiseInteraction pair) :
+    const YmrState *state, std::string name, float rc, float stressPeriod, PairwiseInteraction pair) :
 
     Interaction(state, name, rc),
-    stressName(stressName),
     stressPeriod(stressPeriod),
     interaction(state, name, rc, pair),
-    interactionWithStress(state, name, rc, PairwiseStressWrapper<PairwiseInteraction>(stressName, pair))
+    interactionWithStress(state, name, rc, PairwiseStressWrapper<PairwiseInteraction>(pair))
 {}
 
 template<class PairwiseInteraction>
@@ -25,8 +24,8 @@ void InteractionPair_withStress<PairwiseInteraction>::setPrerequisites(ParticleV
     info("Interaction '%s' requires channel 'stress' from PVs '%s' and '%s'",
          name.c_str(), pv1->name.c_str(), pv2->name.c_str());
 
-    pv1->requireDataPerParticle<Stress>(stressName, ExtraDataManager::CommunicationMode::None, ExtraDataManager::PersistenceMode::None);
-    pv2->requireDataPerParticle<Stress>(stressName, ExtraDataManager::CommunicationMode::None, ExtraDataManager::PersistenceMode::None);
+    pv1->requireDataPerParticle<Stress>("stresses", ExtraDataManager::CommunicationMode::None, ExtraDataManager::PersistenceMode::None);
+    pv2->requireDataPerParticle<Stress>("stresses", ExtraDataManager::CommunicationMode::None, ExtraDataManager::PersistenceMode::None);
 
     pv2lastStressTime[pv1] = -1;
     pv2lastStressTime[pv2] = -1;
@@ -40,10 +39,10 @@ void InteractionPair_withStress<PairwiseInteraction>::initStep(ParticleVector *p
     if (lastStressTime+stressPeriod <= t || lastStressTime == t) {
         
         if (pv2lastStressTime[pv1] != t)
-            pv1->local()->extraPerParticle.getData<Stress>(stressName)->clear(stream);
+            pv1->local()->extraPerParticle.getData<Stress>("stresses")->clear(stream);
 
         if (pv2lastStressTime[pv2] != t)
-            pv2->local()->extraPerParticle.getData<Stress>(stressName)->clear(stream);
+            pv2->local()->extraPerParticle.getData<Stress>("stresses")->clear(stream);
     }
 }
 
@@ -102,7 +101,7 @@ void InteractionPair_withStress<PairwiseInteraction>::setSpecificPair(
         std::string pv1name, std::string pv2name, PairwiseInteraction pair)
 {
     interaction.          setSpecificPair(pv1name, pv2name, pair);
-    interactionWithStress.setSpecificPair(pv1name, pv2name, PairwiseStressWrapper<PairwiseInteraction>(stressName, pair));
+    interactionWithStress.setSpecificPair(pv1name, pv2name, PairwiseStressWrapper<PairwiseInteraction>(pair));
 }
 
 

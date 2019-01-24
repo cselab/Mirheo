@@ -537,13 +537,12 @@ void exportPlugins(py::module& m)
     )");
 
     m.def("__createVirialPressurePlugin", &PluginFactory::createVirialPressurePlugin,
-          "compute_task"_a, "state"_a, "name"_a, "pv"_a, "stress_mame"_a, "regionFunc"_a, "h"_a, "dump_every"_a, "path"_a, R"(
+          "compute_task"_a, "state"_a, "name"_a, "pv"_a, "regionFunc"_a, "h"_a, "dump_every"_a, "path"_a, R"(
         Create :any:`VirialPressure` plugin
         
         Args:
             name: name of the plugin
             pv: concerned :class:`ParticleVector`
-            stress_name: the extraData entry name of the stress per particle
             regionFunc: predicate for the concerned region; positive inside the region and negative outside
             h: grid size for representing the predicate onto a grid
             dump_every: report total pressure every this many time-steps
