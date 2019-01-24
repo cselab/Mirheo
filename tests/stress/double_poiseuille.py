@@ -18,8 +18,7 @@ pv = ymr.ParticleVectors.ParticleVector('pv', mass = 1)
 ic = ymr.InitialConditions.Uniform(density=4)
 u.registerParticleVector(pv=pv, ic=ic)
 
-stressName = "stressDPD"
-dpd = ymr.Interactions.DPDWithStress('dpd', stressName, 1.0, a=10.0, gamma=10.0, kbt=1.0, power=0.5, stressPeriod=sampleEvery*dt)
+dpd = ymr.Interactions.DPDWithStress('dpd', 1.0, a=10.0, gamma=10.0, kbt=1.0, power=0.5, stressPeriod=sampleEvery*dt)
 u.registerInteraction(dpd)
 u.setInteraction(dpd, pv, pv)
 
@@ -28,7 +27,7 @@ u.registerIntegrator(vv)
 u.setIntegrator(vv, pv)
 
 field = ymr.Plugins.createDumpAverage('field', [pv], sampleEvery, dumpEvery, binSize,
-                                      [("velocity", "vector_from_float8"), (stressName, "tensor6")], 'h5/solvent-')
+                                      [("velocity", "vector_from_float8"), ("stresses", "tensor6")], 'h5/solvent-')
 u.registerPlugins(field)
 
 u.run(5002)
@@ -37,4 +36,4 @@ u.run(5002)
 # cd stress
 # rm -rf h5
 # ymr.run --runargs "-n 2" ./double_poiseuille.py > /dev/null
-# ymr.avgh5 xz stressDPD h5/solvent-0000[2-4].h5 | awk '{print $2}' > stress.out.txt
+# ymr.avgh5 xz stresses h5/solvent-0000[2-4].h5 | awk '{print $2}' > stress.out.txt
