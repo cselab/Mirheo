@@ -15,42 +15,31 @@
 #include "pairwise_interactions/norandom_dpd.h"
 #include "pairwise_interactions/density.h"
 
-/**
- * Convenience macro wrapper
- *
- * Select one of the available kernels for external interaction depending
- * on the number of particles involved, report it and call
- */
-#define DISPATCH_EXTERNAL(P1, P2, P3, TPP, INTERACTION_FUNCTION)                \
-do{ debug2("Dispatched to "#TPP" thread(s) per particle variant");              \
-    SAFE_KERNEL_LAUNCH(                                                         \
-            computeExternalInteractions_##TPP##tpp<P1 COMMA P2 COMMA P3>,       \
-            getNblocks(TPP*dstView.size, nth), nth, 0, stream,                  \
-            dstView, cl2->cellInfo(), srcView, rc*rc, INTERACTION_FUNCTION); } while (0)
+template <class PairwiseInteraction>
+InteractionPair<PairwiseInteraction>::InteractionPair(const YmrState *state, std::string name, float rc, PairwiseInteraction pair) :
+    Interaction(state, name, rc), defaultPair(pair)
+{}
 
-#define CHOOSE_EXTERNAL(P1, P2, P3, INTERACTION_FUNCTION)                                              \
-do{  if (dstView.size < 1000  ) { DISPATCH_EXTERNAL(P1, P2, P3, 27, INTERACTION_FUNCTION); }           \
-else if (dstView.size < 10000 ) { DISPATCH_EXTERNAL(P1, P2, P3, 9,  INTERACTION_FUNCTION); }           \
-else if (dstView.size < 400000) { DISPATCH_EXTERNAL(P1, P2, P3, 3,  INTERACTION_FUNCTION); }           \
-else                            { DISPATCH_EXTERNAL(P1, P2, P3, 1,  INTERACTION_FUNCTION); } } while(0)
+template <class PairwiseInteraction>
+InteractionPair<PairwiseInteraction>::~InteractionPair() = default;
 
 /**
- * Interface to _compute() with local interactions.
+ * Interface to computeLocal().
  */
-template <class PariwiseInteraction>
-void InteractionPair<PariwiseInteraction>::regular(ParticleVector *pv1,
+template <class PairwiseInteraction>
+void InteractionPair<PairwiseInteraction>::regular(ParticleVector *pv1,
                                                    ParticleVector *pv2,
                                                    CellList *cl1, CellList *cl2,
                                                    cudaStream_t stream)
 {
     // if (pv1->local()->size() < pv2->local()->size())
-    _compute(InteractionType::Regular, pv1, pv2, cl1, cl2, state->currentTime, stream);
+    computeLocal(pv1, pv2, cl1, cl2, state->currentTime, stream);
     // else
-    //    _compute(InteractionType::Regular, pv2, pv1, cl2, cl1, state->currentTime, stream);
+    //    computeLocal(pv2, pv1, cl2, cl1, state->currentTime, stream);
 }
 
 /**
- * Interface to _compute() with halo interactions.
+ * Interface to computeHalo().
  *
  * The following cases exist:
  * - If one of \p pv1 or \p pv2 is ObjectVector, then only call to the _compute()
@@ -75,28 +64,59 @@ void InteractionPair<PairwiseInteraction>::halo(ParticleVector *pv1,
     
     // Two object vectors. Compute just one interaction, doesn't matter which
     if (isov1 && isov2) {
-        _compute(InteractionType::Halo, pv1, pv2, cl1, cl2, t, stream);
+        computeHalo(pv1, pv2, cl1, cl2, t, stream);
         return;
     }
 
     // One object vector. Compute just one interaction, with OV as the first
     // argument
     if (isov1) {
-        _compute(InteractionType::Halo, pv1, pv2, cl1, cl2, t, stream);
+        computeHalo(pv1, pv2, cl1, cl2, t, stream);
         return;
     }
 
     if (isov2) {
-        _compute(InteractionType::Halo, pv2, pv1, cl2, cl1, t, stream);
+        computeHalo(pv2, pv1, cl2, cl1, t, stream);
         return;
     }
 
     // Both are particle vectors. Compute one interaction if pv1 == pv2 and two
     // otherwise
-    _compute(InteractionType::Halo, pv1, pv2, cl1, cl2, t, stream);
+    computeHalo(pv1, pv2, cl1, cl2, t, stream);
     if (pv1 != pv2)
-        _compute(InteractionType::Halo, pv2, pv1, cl2, cl1, t, stream);
+        computeHalo(pv2, pv1, cl2, cl1, t, stream);
 }
+
+template<class PairwiseInteraction>
+void InteractionPair<PairwiseInteraction>::setSpecificPair(std::string pv1name, std::string pv2name, PairwiseInteraction pair)
+{
+    intMap.insert({{pv1name, pv2name}, pair});
+    intMap.insert({{pv2name, pv1name}, pair});
+}
+
+
+
+
+
+/**
+ * Convenience macro wrapper
+ *
+ * Select one of the available kernels for external interaction depending
+ * on the number of particles involved, report it and call
+ */
+#define DISPATCH_EXTERNAL(P1, P2, P3, TPP, INTERACTION_FUNCTION)                \
+do{ debug2("Dispatched to "#TPP" thread(s) per particle variant");              \
+    SAFE_KERNEL_LAUNCH(                                                         \
+            computeExternalInteractions_##TPP##tpp<P1 COMMA P2 COMMA P3>,       \
+            getNblocks(TPP*dstView.size, nth), nth, 0, stream,                  \
+            dstView, cl2->cellInfo(), srcView, rc*rc, INTERACTION_FUNCTION); } while (0)
+
+#define CHOOSE_EXTERNAL(P1, P2, P3, INTERACTION_FUNCTION)                                              \
+do{  if (dstView.size < 1000  ) { DISPATCH_EXTERNAL(P1, P2, P3, 27, INTERACTION_FUNCTION); }           \
+else if (dstView.size < 10000 ) { DISPATCH_EXTERNAL(P1, P2, P3, 9,  INTERACTION_FUNCTION); }           \
+else if (dstView.size < 400000) { DISPATCH_EXTERNAL(P1, P2, P3, 3,  INTERACTION_FUNCTION); }           \
+else                            { DISPATCH_EXTERNAL(P1, P2, P3, 1,  INTERACTION_FUNCTION); } } while(0)
+
 
 /**
  * Compute forces between all the pairs of particles that are closer
@@ -121,72 +141,73 @@ void InteractionPair<PairwiseInteraction>::halo(ParticleVector *pv1,
  *   force acting on the second one is just opposite.
  */
 template<class PairwiseInteraction>
-void InteractionPair<PairwiseInteraction>::_compute(InteractionType type,
-        ParticleVector* pv1, ParticleVector* pv2, CellList* cl1, CellList* cl2, const float t, cudaStream_t stream)
+void InteractionPair<PairwiseInteraction>::computeLocal(
+        ParticleVector* pv1, ParticleVector* pv2,
+        CellList* cl1, CellList* cl2,
+        const float t, cudaStream_t stream)
 {
     auto& pair = getPairwiseInteraction(pv1->name, pv2->name);
     using ViewType = typename PairwiseInteraction::ViewType;
 
-    if (type == InteractionType::Regular)
+    pair.setup(pv1->local(), pv2->local(), cl1, cl2, t);
+
+    /*  Self interaction */
+    if (pv1 == pv2)
     {
-        pair.setup(pv1->local(), pv2->local(), cl1, cl2, t);
+        auto view = cl1->getView<ViewType>();
+        const int np = view.size;
+        debug("Computing internal forces for %s (%d particles)", pv1->name.c_str(), np);
 
-        /*  Self interaction */
-        if (pv1 == pv2)
-        {
-            auto view = cl1->getView<ViewType>();
-            const int np = view.size;
-            debug("Computing internal forces for %s (%d particles)", pv1->name.c_str(), np);
+        const int nth = 128;
 
-            const int nth = 128;
-
-            auto cinfo = cl1->cellInfo();
-            SAFE_KERNEL_LAUNCH(
-                    computeSelfInteractions,
-                    getNblocks(np, nth), nth, 0, stream,
-                    cinfo, view, rc*rc, pair);
-        }
-        else /*  External interaction */
-        {
-            const int np1 = pv1->local()->size();
-            const int np2 = pv2->local()->size();
-            debug("Computing external forces for %s - %s (%d - %d particles)", pv1->name.c_str(), pv2->name.c_str(), np1, np2);
-
-            auto dstView = cl1->getView<ViewType>();
-            auto srcView = cl2->getView<ViewType>();
-
-            const int nth = 128;
-            if (np1 > 0 && np2 > 0)
-                CHOOSE_EXTERNAL(InteractionOut::NeedAcc, InteractionOut::NeedAcc, InteractionMode::RowWise, pair);
-        }
+        auto cinfo = cl1->cellInfo();
+        SAFE_KERNEL_LAUNCH(
+                           computeSelfInteractions,
+                           getNblocks(np, nth), nth, 0, stream,
+                           cinfo, view, rc*rc, pair);
     }
-
-    /*  Halo interaction */
-    if (type == InteractionType::Halo)
+    else /*  External interaction */
     {
-        pair.setup(pv1->halo(), pv2->local(), cl1, cl2, t);
-
-        const int np1 = pv1->halo()->size();  // note halo here
+        const int np1 = pv1->local()->size();
         const int np2 = pv2->local()->size();
-        debug("Computing halo forces for %s(halo) - %s (%d - %d particles)", pv1->name.c_str(), pv2->name.c_str(), np1, np2);
+        debug("Computing external forces for %s - %s (%d - %d particles)", pv1->name.c_str(), pv2->name.c_str(), np1, np2);
 
-        ViewType dstView(pv1, pv1->halo());
+        auto dstView = cl1->getView<ViewType>();
         auto srcView = cl2->getView<ViewType>();
-        
+
         const int nth = 128;
         if (np1 > 0 && np2 > 0)
-            if (dynamic_cast<ObjectVector*>(pv1) == nullptr) // don't need forces for pure particle halo
-                CHOOSE_EXTERNAL(InteractionOut::NoAcc,   InteractionOut::NeedAcc, InteractionMode::Dilute, pair );
-            else
-                CHOOSE_EXTERNAL(InteractionOut::NeedAcc, InteractionOut::NeedAcc, InteractionMode::Dilute, pair );
+            CHOOSE_EXTERNAL(InteractionOut::NeedAcc, InteractionOut::NeedAcc, InteractionMode::RowWise, pair);
     }
 }
 
+/**
+ * Compute halo forces
+ */
 template<class PairwiseInteraction>
-void InteractionPair<PairwiseInteraction>::setSpecificPair(std::string pv1name, std::string pv2name, PairwiseInteraction pair)
+void InteractionPair<PairwiseInteraction>::computeHalo(
+        ParticleVector* pv1, ParticleVector* pv2,
+        CellList* cl1, CellList* cl2,
+        const float t, cudaStream_t stream)
 {
-    intMap.insert({{pv1name, pv2name}, pair});
-    intMap.insert({{pv2name, pv1name}, pair});
+    auto& pair = getPairwiseInteraction(pv1->name, pv2->name);
+    using ViewType = typename PairwiseInteraction::ViewType;
+
+    pair.setup(pv1->halo(), pv2->local(), cl1, cl2, t);
+
+    const int np1 = pv1->halo()->size();  // note halo here
+    const int np2 = pv2->local()->size();
+    debug("Computing halo forces for %s(halo) - %s (%d - %d particles)", pv1->name.c_str(), pv2->name.c_str(), np1, np2);
+
+    ViewType dstView(pv1, pv1->halo());
+    auto srcView = cl2->getView<ViewType>();
+        
+    const int nth = 128;
+    if (np1 > 0 && np2 > 0)
+        if (dynamic_cast<ObjectVector*>(pv1) == nullptr) // don't need forces for pure particle halo
+            CHOOSE_EXTERNAL(InteractionOut::NoAcc,   InteractionOut::NeedAcc, InteractionMode::Dilute, pair );
+        else
+            CHOOSE_EXTERNAL(InteractionOut::NeedAcc, InteractionOut::NeedAcc, InteractionMode::Dilute, pair );
 }
 
 template<class PairwiseInteraction>
@@ -203,9 +224,6 @@ PairwiseInteraction& InteractionPair<PairwiseInteraction>::getPairwiseInteractio
     }
 }
 
-// for testing purpose
-template class InteractionPair<Pairwise_Norandom_DPD>;
-
 template class InteractionPair<Pairwise_DPD>;
 template class InteractionPair<Pairwise_LJ>;
 template class InteractionPair<Pairwise_LJObjectAware>;
@@ -214,5 +232,8 @@ template class InteractionPair<Pairwise_density>;
 template class InteractionPair<PairwiseStressWrapper<Pairwise_DPD>>;
 template class InteractionPair<PairwiseStressWrapper<Pairwise_LJ>>;
 template class InteractionPair<PairwiseStressWrapper<Pairwise_LJObjectAware>>;
+
+// for testing purpose
+template class InteractionPair<Pairwise_Norandom_DPD>;
 
 
