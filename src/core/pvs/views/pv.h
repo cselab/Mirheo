@@ -50,7 +50,7 @@ struct PVviewWithStresses : public PVview
         PVview(pv, lpv)
     {
         if (lpv != nullptr)
-            stresses = reinterpret_cast<Stress*>( lpv->extraPerParticle.getData<Particle>(ChannelNames::stresses)->devPtr() );
+            stresses = lpv->extraPerParticle.getData<Stress>(ChannelNames::stresses)->devPtr();            
     }
 };
 
@@ -62,7 +62,7 @@ struct PVviewWithDensities : public PVview
         PVview(pv, lpv)
     {
         if (lpv != nullptr)
-            densities = reinterpret_cast<float*>( lpv->extraPerParticle.getData<Particle>(ChannelNames::densities)->devPtr() );
+            densities = lpv->extraPerParticle.getData<float>(ChannelNames::densities)->devPtr();
     }
 };
 

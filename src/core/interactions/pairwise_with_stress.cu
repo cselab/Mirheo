@@ -21,8 +21,8 @@ InteractionPair_withStress<PairwiseInteraction>::~InteractionPair_withStress() =
 template<class PairwiseInteraction>
 void InteractionPair_withStress<PairwiseInteraction>::setPrerequisites(ParticleVector* pv1, ParticleVector* pv2)
 {
-    info("Interaction '%s' requires channel 'stress' from PVs '%s' and '%s'",
-         name.c_str(), pv1->name.c_str(), pv2->name.c_str());
+    info("Interaction '%s' requires channel '%s' from PVs '%s' and '%s'",
+         name.c_str(), ChannelNames::stresses.c_str(), pv1->name.c_str(), pv2->name.c_str());
 
     pv1->requireDataPerParticle<Stress>(ChannelNames::stresses, ExtraDataManager::CommunicationMode::None, ExtraDataManager::PersistenceMode::None);
     pv2->requireDataPerParticle<Stress>(ChannelNames::stresses, ExtraDataManager::CommunicationMode::None, ExtraDataManager::PersistenceMode::None);

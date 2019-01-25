@@ -284,6 +284,7 @@ void CellList::addForces(cudaStream_t stream)
             dstView, cellInfo(), getView<PVview>() );
 }
 
+
 void CellList::clearForces(cudaStream_t stream)
 {
     localPV->forces.clear(stream);
@@ -329,3 +330,5 @@ void PrimaryCellList::build(cudaStream_t stream)
     pv->local()->resize(newSize, stream);
 }
 
+void PrimaryCellList::addForces(cudaStream_t stream)
+{}    

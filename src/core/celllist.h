@@ -117,6 +117,7 @@ public:
 
     virtual void build(cudaStream_t stream);
     virtual void addForces(cudaStream_t stream);
+    
     void clearForces(cudaStream_t stream);
 
     template <typename ViewType>
@@ -136,7 +137,7 @@ public:
     ~PrimaryCellList();
     
     void build(cudaStream_t stream);
-    void addForces(cudaStream_t stream) {};    
+    void addForces(cudaStream_t stream) override;
 };
 
 
