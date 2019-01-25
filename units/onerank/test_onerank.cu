@@ -266,7 +266,7 @@ void execute(float3 length, int niters, double& l2, double& linf)
         haloEngine.init(defStream);
         
         dpd.setPrerequisites(&pv, &pv);
-        dpd.regular(&pv, &pv, &cells, &cells, defStream);
+        dpd.local(&pv, &pv, &cells, &cells, defStream);
 
         haloEngine.finalize(defStream);
 

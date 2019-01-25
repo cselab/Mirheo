@@ -113,9 +113,9 @@ void execute(MPI_Comm comm, float3 length)
         dpds1.local()->forces.clear(0);
         dpds2.local()->forces.clear(0);
 
-        inter->regular(&dpds1, &dpds1, cells1, cells1, 0);
-        inter->regular(&dpds2, &dpds2, cells2, cells2, 0);
-        inter->regular(&dpds2, &dpds1, cells2, cells1, 0);
+        inter->local(&dpds1, &dpds1, cells1, cells1, 0);
+        inter->local(&dpds2, &dpds2, cells2, cells2, 0);
+        inter->local(&dpds2, &dpds1, cells2, cells1, 0);
 
         cudaDeviceSynchronize();
     }
