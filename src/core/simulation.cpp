@@ -478,7 +478,6 @@ void Simulation::prepareCellLists()
                 (primary ?
                  std::make_unique<PrimaryCellList>(pvptr, defaultRc, state->domain.localSize) :
                  std::make_unique<CellList>       (pvptr, defaultRc, state->domain.localSize));
-            
         }
     }
 }
@@ -616,23 +615,20 @@ void Simulation::prepareEngines()
     {
         auto pvPtr = pv.get();
 
-        if (cellListMap[pvPtr].size() > 0)
-            if (dynamic_cast<ObjectVector*>(pvPtr) == nullptr)
-            {
-                auto cl = cellListMap[pvPtr][0].get();
-
+        if (cellListMap[pvPtr].size() > 0) {
+            auto cl = cellListMap[pvPtr][0].get();
+            auto ov = dynamic_cast<ObjectVector*>(pvPtr);
+            
+            if (ov == nullptr) {
                 haloImp  ->attach(pvPtr, cl);
                 redistImp->attach(pvPtr, cl);
             }
-            else
-            {
-                auto cl = cellListMap[pvPtr][0].get();
-                auto ov = dynamic_cast<ObjectVector*>(pvPtr);
-
+            else {
                 objRedistImp->attach(ov);
                 objHaloImp  ->attach(ov, cl->rc);
                 objForcesImp->attach(ov);
             }
+        }
     }
     
     std::function< std::unique_ptr<ExchangeEngine>(std::unique_ptr<ParticleExchanger>) > makeEngine;
