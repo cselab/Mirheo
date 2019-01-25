@@ -32,9 +32,9 @@ void InteractionLJ::setPrerequisites(ParticleVector* pv1, ParticleVector* pv2)
     impl->setPrerequisites(pv1, pv2);
 }
 
-void InteractionLJ::initStep(ParticleVector *pv1, ParticleVector *pv2, cudaStream_t stream)
+void InteractionLJ::initStep(ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2, cudaStream_t stream)
 {
-    impl->initStep(pv1, pv2, stream);
+    impl->initStep(pv1, pv2, cl1, cl2, stream);
 }
 
 void InteractionLJ::local(ParticleVector *pv1, ParticleVector *pv2,

@@ -518,8 +518,8 @@ void Simulation::prepareInteractions()
         
         auto inter = prototype.interaction;
 
-        initInteractions.push_back([inter, pv1, pv2] (cudaStream_t stream) {
-            inter->initStep(pv1, pv2, stream);
+        initInteractions.push_back([inter, pv1, pv2, cl1, cl2] (cudaStream_t stream) {
+            inter->initStep(pv1, pv2, cl1, cl2, stream);
         });
         
         regularInteractions.push_back([inter, pv1, pv2, cl1, cl2] (cudaStream_t stream) {

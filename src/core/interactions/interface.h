@@ -38,7 +38,8 @@ public:
      * Default: do nothing
      * Called from Simulation at every step
      */
-    virtual void initStep(ParticleVector *pv1, ParticleVector *pv2, cudaStream_t stream);
+    virtual void initStep(ParticleVector *pv1, ParticleVector *pv2,
+                          CellList *cl1, CellList *cl2, cudaStream_t stream);
 
     /**
      * Interface to compute local interactions.
