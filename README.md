@@ -15,6 +15,11 @@ For more information, please refer to the online documentation: http://ymero.rea
 ### unreleased 
 
 * support for VOLTA architecture
+* internal changes
+  * generic pairwise interaction output: accumulators
+  * generic pairwise_interaction: pass views
+  * cell lists produce views; cellinfos don not know about particles and forces
+  * less magic numbers
 
 ### v0.9.6
 
