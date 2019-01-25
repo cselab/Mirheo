@@ -16,11 +16,11 @@ Default constructor which initialise the local variable
 
 Atomic accumulator from local value to destination view`
 
-	__D__ inline void atomicAddToDst(LType, ViewType&, int id);
+	__D__ inline void atomicAddToDst(LType, ViewType&, int id) const;
 
 Atomic accumulator from local value to source view
 
-	__D__ inline void atomicAddToSrc(LType, ViewType&, int id);
+	__D__ inline void atomicAddToSrc(LType, ViewType&, int id) const;
 
 Accessor ofaccumulated value
 

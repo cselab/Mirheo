@@ -13,12 +13,12 @@ public:
         frc({0.f, 0.f, 0.f})
     {}
     
-    __D__ inline void atomicAddToDst(float3 f, PVview& view, int id)
+    __D__ inline void atomicAddToDst(float3 f, PVview& view, int id) const
     {
         atomicAdd(view.forces + id, f);
     }
 
-    __D__ inline void atomicAddToSrc(float3 f, PVview& view, int id)
+    __D__ inline void atomicAddToSrc(float3 f, PVview& view, int id) const
     {
         atomicAdd(view.forces + id, -f);
     }

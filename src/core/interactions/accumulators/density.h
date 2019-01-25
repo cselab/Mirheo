@@ -11,12 +11,12 @@ public:
         den(0.f)
     {}
     
-    __D__ inline void atomicAddToDst(float d, PVviewWithDensities& view, int id)
+    __D__ inline void atomicAddToDst(float d, PVviewWithDensities& view, int id) const
     {
         atomicAdd(view.densities + id, d);
     }
 
-    __D__ inline void atomicAddToSrc(float d, PVviewWithDensities& view, int id)
+    __D__ inline void atomicAddToSrc(float d, PVviewWithDensities& view, int id) const
     {
         atomicAdd(view.densities + id, d);
     }
