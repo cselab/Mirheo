@@ -75,7 +75,7 @@ __global__ void getHalos(const CellListInfo cinfo, const ParticlePacker packer, 
         __syncthreads();
 
 #pragma unroll 2
-        for (int i=0; i<current; i++)
+        for (int i = 0; i < current; i++)
         {
             const int bufId = validHalos[i];
             const int myid  = blockSum[bufId] + haloOffset[i];
@@ -113,10 +113,7 @@ __global__ static void unpackParticles(ParticlePacker packer, int startDstId, ch
 // Member functions
 //===============================================================================================
 
-bool ParticleHaloExchanger::needExchange(int id)
-{
-    return !particles[id]->haloValid;
-}
+ParticleHaloExchanger::~ParticleHaloExchanger() = default;
 
 void ParticleHaloExchanger::attach(ParticleVector* pv, CellList* cl)
 {
@@ -201,6 +198,11 @@ void ParticleHaloExchanger::combineAndUploadData(int id, cudaStream_t stream)
             ParticlePacker(pv, pv->halo(), stream), 0, helper->recvBuf.devPtr(), totalRecvd );
 
     pv->haloValid = true;
+}
+
+bool ParticleHaloExchanger::needExchange(int id)
+{
+    return !particles[id]->haloValid;
 }
 
 

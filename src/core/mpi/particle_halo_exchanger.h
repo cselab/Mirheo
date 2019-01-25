@@ -17,7 +17,8 @@ private:
     bool needExchange(int id) override;
 
 public:
-    void attach(ParticleVector* pv, CellList* cl);
 
-    ~ParticleHaloExchanger() = default;
+    ~ParticleHaloExchanger();
+    
+    void attach(ParticleVector* pv, CellList* cl);    
 };
