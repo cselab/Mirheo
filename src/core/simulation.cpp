@@ -483,6 +483,22 @@ void Simulation::prepareCellLists()
     }
 }
 
+// Choose a CL with smallest but bigger than rc cell
+static CellList* selectBestClist(std::vector<std::unique_ptr<CellList>>& cellLists, float rc, float tolerance)
+{
+    float minDiff = 1e6;
+    CellList* best = nullptr;
+    
+    for (auto& cl : cellLists) {
+        float diff = cl->rc - rc;
+        if (diff > -tolerance && diff < minDiff) {
+            best    = cl.get();
+            minDiff = diff;
+        }
+    }
+    return best;
+}
+
 void Simulation::prepareInteractions()
 {
     info("Preparing interactions");
@@ -498,23 +514,9 @@ void Simulation::prepareInteractions()
 
         CellList *cl1, *cl2;
 
-        // Choose a CL with smallest but bigger than rc cell
-        float mindiff = 10;
-        for (auto& cl : clVec1)
-            if (cl->rc - rc > -rcTolerance && cl->rc - rc < mindiff)
-            {
-                cl1 = cl.get();
-                mindiff = cl->rc - rc;
-            }
-
-        mindiff = 10;
-        for (auto& cl : clVec2)
-            if (cl->rc - rc > -rcTolerance && cl->rc - rc < mindiff)
-            {
-                cl2 = cl.get();
-                mindiff = cl->rc - rc;
-            }
-
+        cl1 = selectBestClist(clVec1, rc, rcTolerance);
+        cl2 = selectBestClist(clVec2, rc, rcTolerance);
+        
         auto inter = prototype.interaction;
 
         initInteractions.push_back([inter, pv1, pv2] (cudaStream_t stream) {
