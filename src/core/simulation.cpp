@@ -413,6 +413,18 @@ void Simulation::applyObjectBelongingChecker(std::string checkerName,
     belongingCorrectionPrototypes.push_back({checker, getPVbyName(inside), getPVbyName(outside), checkEvery});
 }
 
+static void sortDescendingOrder(std::vector<float>& v)
+{
+    std::sort(v.begin(), v.end(), [] (float a, float b) { return a > b; });
+}
+
+static void removeDuplicatedElements(std::vector<float>& v, float tolerance)
+{
+    sortDescendingOrder(v);
+
+    auto it = std::unique(v.begin(), v.end(), [=] (float a, float b) { return fabs(a - b) < tolerance; });
+    v.resize( std::distance(v.begin(), it) );    
+}
 
 void Simulation::prepareCellLists()
 {
@@ -428,24 +440,24 @@ void Simulation::prepareCellLists()
         cutOffMap[prototype.pv2].push_back(rc);
     }
 
-    for (auto& cutoffs : cutOffMap)
+    for (auto& cutoffPair : cutOffMap)
     {
-        std::sort(cutoffs.second.begin(), cutoffs.second.end(), [] (float a, float b) { return a > b; });
+        auto& pv      = cutoffPair.first;
+        auto& cutoffs = cutoffPair.second;
 
-        auto it = std::unique(cutoffs.second.begin(), cutoffs.second.end(), [=] (float a, float b) { return fabs(a - b) < rcTolerance; });
-        cutoffs.second.resize( std::distance(cutoffs.second.begin(), it) );
+        removeDuplicatedElements(cutoffs, rcTolerance);
 
         bool primary = true;
 
         // Don't use primary cell-lists with ObjectVectors
-        if (dynamic_cast<ObjectVector*>(cutoffs.first) != nullptr)
+        if (dynamic_cast<ObjectVector*>(pv) != nullptr)
             primary = false;
 
-        for (auto rc : cutoffs.second)
+        for (auto rc : cutoffs)
         {
-            cellListMap[cutoffs.first].push_back(primary ?
-                    std::make_unique<PrimaryCellList>(cutoffs.first, rc, state->domain.localSize) :
-                    std::make_unique<CellList>       (cutoffs.first, rc, state->domain.localSize));
+            cellListMap[pv].push_back(primary ?
+                    std::make_unique<PrimaryCellList>(pv, rc, state->domain.localSize) :
+                    std::make_unique<CellList>       (pv, rc, state->domain.localSize));
             primary = false;
         }
     }
