@@ -13,15 +13,15 @@ struct DevicePacker
     int packedSize_byte = 0;
 
     int nChannels = 0;                    ///< number of data channels to pack / unpack
-    int* channelSizes        = nullptr;   ///< size if bytes of each channel entry, e.g. sizeof(Particle)
-    int* channelShiftTypes   = nullptr;   ///< if type is 4, then treat data to shift as float3, if it is 8 -- as double3
-    char** channelData       = nullptr;   ///< device pointers of the packed data
+    int *channelSizes        = nullptr;   ///< size if bytes of each channel entry, e.g. sizeof(Particle)
+    int *channelShiftTypes   = nullptr;   ///< if type is 4, then treat data to shift as float3, if it is 8 -- as double3
+    char **channelData       = nullptr;   ///< device pointers of the packed data
 
     /**
      * Pack entity with id srcId into memory starting with dstAddr
      * Don't apply no shifts
      */
-    inline __device__ void pack(int srcId, char* dstAddr) const
+    inline __device__ void pack(int srcId, char *dstAddr) const
     {
         _packShift<ShiftMode::NoShift> (srcId, dstAddr, make_float3(0));
     }
@@ -30,7 +30,7 @@ struct DevicePacker
      * Pack entity with id srcId into memory starting with dstAddr
      * Apply shifts where needed
      */
-    inline __device__ void packShift(int srcId, char* dstAddr, float3 shift) const
+    inline __device__ void packShift(int srcId, char *dstAddr, float3 shift) const
     {
         _packShift<ShiftMode::NeedShift>  (srcId, dstAddr, shift);
     }
@@ -38,7 +38,7 @@ struct DevicePacker
     /**
      * Unpack entity from memory by srcAddr to the channels to id dstId
      */
-    inline __device__ void unpack(const char* srcAddr, int dstId) const
+    inline __device__ void unpack(const char *srcAddr, int dstId) const
     {
         for (int i = 0; i < nChannels; i++)
         {
@@ -55,34 +55,34 @@ private:
     };
 
     /**
-     * Copy nchunks*sizeof(T) bytes \c from from to \c to
+     * Copy nchunks*sizeof(T) bytes from \c from to \c to
      */
     template<typename T>
-    inline __device__ void _copy(char* to, const char* from, int nchunks) const
+    inline __device__ void _copy(char *to, const char *from, int nchunks) const
     {
         auto _to   = (T*)to;
         auto _from = (const T*)from;
 
 #pragma unroll 2
-        for (int i=0; i<nchunks; i++)
+        for (int i = 0; i < nchunks; i++)
             _to[i] = _from[i];
     }
 
     /**
-     * Copy size_bytes bytes from from to to
+     * Copy size_bytes bytes from \c from to \c to
      * Speed up copying by choosing the widest possible data type
      * and calling the appropriate _copy function
      */
-    inline __device__ void copy(char* to, const char* from, int size_bytes) const
+    inline __device__ void copy(char *to, const char *from, int size_bytes) const
     {
-        assert(size_bytes % 4 == 0);
+        assert(size_bytes % sizeof(int) == 0);
 
-        if (size_bytes % 16 == 0)
-            _copy<int4>(to, from, size_bytes / 16);
-        else if (size_bytes % 8 == 0)
-            _copy<int2>(to, from, size_bytes / 8);
+        if (size_bytes % sizeof(int4) == 0)
+            _copy<int4>(to, from, size_bytes / sizeof(int4));
+        else if (size_bytes % sizeof(int2) == 0)
+            _copy<int2>(to, from, size_bytes / sizeof(int2));
         else
-            _copy<int> (to, from, size_bytes / 4);
+            _copy<int> (to, from, size_bytes / sizeof(int));
     }
 
     /**
