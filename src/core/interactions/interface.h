@@ -51,8 +51,8 @@ public:
      * @param cl1 cell-list built for the appropriate cut-off raduis #rc for \p pv1
      * @param cl2 cell-list built for the appropriate cut-off raduis #rc for \p pv2
      */
-    virtual void regular(ParticleVector *pv1, ParticleVector *pv2,
-                         CellList *cl1, CellList *cl2, cudaStream_t stream) = 0;
+    virtual void local(ParticleVector *pv1, ParticleVector *pv2,
+                       CellList *cl1, CellList *cl2, cudaStream_t stream) = 0;
 
     /**
      * Interface to compute halo interactions. It principle it has to compute

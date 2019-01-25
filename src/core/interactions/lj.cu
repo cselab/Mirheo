@@ -37,11 +37,11 @@ void InteractionLJ::initStep(ParticleVector *pv1, ParticleVector *pv2, cudaStrea
     impl->initStep(pv1, pv2, stream);
 }
 
-void InteractionLJ::regular(ParticleVector *pv1, ParticleVector *pv2,
-                            CellList *cl1, CellList *cl2,
-                            cudaStream_t stream)
+void InteractionLJ::local(ParticleVector *pv1, ParticleVector *pv2,
+                          CellList *cl1, CellList *cl2,
+                          cudaStream_t stream)
 {
-    impl->regular(pv1, pv2, cl1, cl2, stream);
+    impl->local(pv1, pv2, cl1, cl2, stream);
 }
 
 void InteractionLJ::halo(ParticleVector *pv1, ParticleVector *pv2,

@@ -523,7 +523,7 @@ void Simulation::prepareInteractions()
         });
         
         regularInteractions.push_back([inter, pv1, pv2, cl1, cl2] (cudaStream_t stream) {
-            inter->regular(pv1, pv2, cl1, cl2, stream);
+            inter->local(pv1, pv2, cl1, cl2, stream);
         });
 
         haloInteractions.push_back([inter, pv1, pv2, cl1, cl2] (cudaStream_t stream) {

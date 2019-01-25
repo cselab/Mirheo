@@ -48,7 +48,7 @@ void InteractionPair_withStress<PairwiseInteraction>::initStep(ParticleVector *p
 
 
 template<class PairwiseInteraction>
-void InteractionPair_withStress<PairwiseInteraction>::regular(
+void InteractionPair_withStress<PairwiseInteraction>::local(
         ParticleVector* pv1, ParticleVector* pv2,
         CellList* cl1, CellList* cl2, cudaStream_t stream)
 {
@@ -64,11 +64,11 @@ void InteractionPair_withStress<PairwiseInteraction>::regular(
         if (pv2lastStressTime[pv2] != t)
             pv2lastStressTime[pv2] = t;
 
-        interactionWithStress.regular(pv1, pv2, cl1, cl2, stream);
+        interactionWithStress.local(pv1, pv2, cl1, cl2, stream);
         lastStressTime = t;
     }
     else
-        interaction.regular(pv1, pv2, cl1, cl2, stream);
+        interaction.local(pv1, pv2, cl1, cl2, stream);
 }
 
 template<class PairwiseInteraction>

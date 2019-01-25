@@ -12,8 +12,8 @@ struct InteractionLJ : public Interaction
     void setPrerequisites(ParticleVector* pv1, ParticleVector* pv2) override;
     void initStep(ParticleVector *pv1, ParticleVector *pv2, cudaStream_t stream) override;
     
-    void regular(ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2, cudaStream_t stream) override;
-    void halo   (ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2, cudaStream_t stream) override;
+    void local (ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2, cudaStream_t stream) override;
+    void halo  (ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2, cudaStream_t stream) override;
 
     virtual void setSpecificPair(ParticleVector* pv1, ParticleVector* pv2, 
                                  float epsilon, float sigma, float maxForce);

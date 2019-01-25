@@ -27,10 +27,10 @@ InteractionPair<PairwiseInteraction>::~InteractionPair() = default;
  * Interface to computeLocal().
  */
 template <class PairwiseInteraction>
-void InteractionPair<PairwiseInteraction>::regular(ParticleVector *pv1,
-                                                   ParticleVector *pv2,
-                                                   CellList *cl1, CellList *cl2,
-                                                   cudaStream_t stream)
+void InteractionPair<PairwiseInteraction>::local(ParticleVector *pv1,
+                                                 ParticleVector *pv2,
+                                                 CellList *cl1, CellList *cl2,
+                                                 cudaStream_t stream)
 {
     // if (pv1->local()->size() < pv2->local()->size())
     computeLocal(pv1, pv2, cl1, cl2, state->currentTime, stream);

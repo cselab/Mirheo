@@ -33,11 +33,11 @@ void InteractionDPD::initStep(ParticleVector *pv1, ParticleVector *pv2, cudaStre
     impl->initStep(pv1, pv2, stream);
 }
 
-void InteractionDPD::regular(ParticleVector *pv1, ParticleVector *pv2,
-                             CellList *cl1, CellList *cl2,
-                             cudaStream_t stream)
+void InteractionDPD::local(ParticleVector *pv1, ParticleVector *pv2,
+                           CellList *cl1, CellList *cl2,
+                           cudaStream_t stream)
 {
-    impl->regular(pv1, pv2, cl1, cl2, stream);
+    impl->local(pv1, pv2, cl1, cl2, stream);
 }
 
 void InteractionDPD::halo(ParticleVector *pv1, ParticleVector *pv2,

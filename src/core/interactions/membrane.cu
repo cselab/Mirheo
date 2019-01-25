@@ -83,9 +83,9 @@ void InteractionMembrane::setPrerequisites(ParticleVector* pv1, ParticleVector* 
  * and volume of each cell, then use these data to calculate the
  * forces themselves by calling computeMembraneForces() kernel
  */
-void InteractionMembrane::regular(ParticleVector *pv1, ParticleVector *pv2,
-                                  CellList *cl1, CellList *cl2,
-                                  cudaStream_t stream)
+void InteractionMembrane::local(ParticleVector *pv1, ParticleVector *pv2,
+                                CellList *cl1, CellList *cl2,
+                                cudaStream_t stream)
 {
     auto ov = dynamic_cast<MembraneVector *>(pv1);
 
