@@ -14,6 +14,8 @@ For more information, please refer to the online documentation: http://ymero.rea
 
 ### unreleased 
 
+### v0.9.7
+
 * support for VOLTA architecture
 * internal changes
   * generic pairwise interaction output: accumulators
