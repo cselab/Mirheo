@@ -90,7 +90,7 @@ private:
      * Template parameter NEEDSHIFT governs shifting
      */
     template <ShiftMode shiftmode>
-    inline __device__ void _packShift(int srcId, char* dstAddr, float3 shift) const
+    inline __device__ void _packShift(int srcId, char *dstAddr, float3 shift) const
     {
         for (int i = 0; i < nChannels; i++)
         {
@@ -125,6 +125,12 @@ private:
             dstAddr += size;
         }
     }
+
+protected:
+
+    void registerChannel (ExtraDataManager& manager, int sz, char *ptr, int typesize, bool& needUpload, cudaStream_t stream);
+    void registerChannels(ExtraDataManager& manager, const std::string& pvName, bool& needUpload, cudaStream_t stream);
+    void setAndUploadData(ExtraDataManager& manager, bool needUpload, cudaStream_t stream);
 };
 
 
@@ -133,7 +139,7 @@ private:
  */
 struct ParticlePacker : public DevicePacker
 {
-    ParticlePacker(ParticleVector* pv, LocalParticleVector* lpv, cudaStream_t stream);
+    ParticlePacker(ParticleVector *pv, LocalParticleVector *lpv, cudaStream_t stream);
 };
 
 
@@ -142,7 +148,7 @@ struct ParticlePacker : public DevicePacker
  */
 struct ObjectExtraPacker : public DevicePacker
 {
-    ObjectExtraPacker(ObjectVector* ov, LocalObjectVector* lov, cudaStream_t stream);
+    ObjectExtraPacker(ObjectVector *ov, LocalObjectVector *lov, cudaStream_t stream);
 };
 
 
@@ -156,6 +162,6 @@ struct ObjectPacker
     ObjectExtraPacker obj;
     int totalPackedSize_byte = 0;
 
-    ObjectPacker(ObjectVector* ov = nullptr, LocalObjectVector* lov = nullptr, cudaStream_t stream = 0);
+    ObjectPacker(ObjectVector *ov = nullptr, LocalObjectVector *lov = nullptr, cudaStream_t stream = 0);
 };
 

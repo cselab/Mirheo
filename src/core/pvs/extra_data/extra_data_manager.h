@@ -204,8 +204,9 @@ private:
     /// Helper buffer, used by a Packer
     PinnedBuffer<char*> channelPtrs;
 
+    friend class DevicePacker;
     friend class ParticlePacker;
-    friend class ObjectExtraPacker;
+    friend class ObjectExtraPacker;    
 
     void sortChannels();
 
