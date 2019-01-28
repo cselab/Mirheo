@@ -48,26 +48,6 @@ void InteractionPair_withStress<PairwiseInteraction>::setPrerequisites(ParticleV
 }
 
 template<class PairwiseInteraction>
-void InteractionPair_withStress<PairwiseInteraction>::initStep(ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2, cudaStream_t stream)
-{
-    // float t = state->currentTime;
-
-    // if (lastStressTime+stressPeriod <= t || lastStressTime == t) {
-        
-    //     if (pv2lastStressTime[pv1] != t) {
-    //         pv1->local()->extraPerParticle.getData<Stress>(ChannelNames::stresses)->clear(stream);
-    //         cl1->clearExtraDataPerParticle(ChannelNames::stresses, stream);
-    //     }
-
-    //     if (pv2lastStressTime[pv2] != t) {
-    //         pv2->local()->extraPerParticle.getData<Stress>(ChannelNames::stresses)->clear(stream);
-    //         cl2->clearExtraDataPerParticle(ChannelNames::stresses, stream);
-    //     }
-    // }    
-}
-
-
-template<class PairwiseInteraction>
 void InteractionPair_withStress<PairwiseInteraction>::local(
         ParticleVector* pv1, ParticleVector* pv2,
         CellList* cl1, CellList* cl2, cudaStream_t stream)
