@@ -343,11 +343,19 @@ void CellList::gatherInteractionIntermediate(cudaStream_t stream)
     }
 }
 
-void CellList::clearForces(cudaStream_t stream)
+void CellList::clearInteractionOutput(cudaStream_t stream)
 {
     localPV->forces.clear(stream);
 
     for (auto& channel : interactionOutputChannels) {
+        if (!channel.active()) continue;
+        localPV->extraPerParticle.getGenericData(channel.name)->clear(stream);
+    }
+}
+
+void CellList::clearInteractionIntermediate(cudaStream_t stream)
+{
+    for (auto& channel : interactionIntermediateChannels) {
         if (!channel.active()) continue;
         localPV->extraPerParticle.getGenericData(channel.name)->clear(stream);
     }

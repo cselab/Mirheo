@@ -104,7 +104,8 @@ public:
 
     virtual void gatherInteractionIntermediate(cudaStream_t stream);
     
-    void clearForces(cudaStream_t stream);
+    void clearInteractionOutput(cudaStream_t stream);
+    void clearInteractionIntermediate(cudaStream_t stream);
     
     template <typename ViewType>
     ViewType getView() const
