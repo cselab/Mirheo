@@ -2,14 +2,12 @@
 
 #include <cstdint>
 
-#include <core/datatypes.h>
 #include <core/containers.h>
+#include <core/datatypes.h>
 #include <core/logger.h>
+#include <core/pvs/particle_vector.h>
+#include <core/pvs/views/pv.h>
 #include <core/utils/cuda_common.h>
-
-class ParticleVector;
-class LocalParticleVector;
-struct PVview;
 
 enum class CellListsProjection
 {
@@ -88,6 +86,33 @@ public:
 
 class CellList : public CellListInfo
 {
+public:    
+
+    CellList(ParticleVector *pv, float rc, float3 localDomainSize);
+    CellList(ParticleVector *pv, int3 resolution, float3 localDomainSize);
+
+    virtual ~CellList();
+    
+    CellListInfo cellInfo();
+
+    virtual void build(cudaStream_t stream);
+    virtual void addForces(cudaStream_t stream);
+    
+    void clearForces(cudaStream_t stream);
+    void clearExtraDataPerParticle(const std::string& name, cudaStream_t stream);
+    
+    template <typename ViewType>
+    ViewType getView() const
+    {
+        return ViewType(pv, localPV);
+    }
+
+    template <typename T>
+    void requireExtraDataPerParticle(const std::string& name)
+    {
+        localPV->extraPerParticle.createData<T>(name);
+    }
+    
 protected:
     int changedStamp{-1};
 
@@ -105,26 +130,6 @@ protected:
     void _reorderExtraData(cudaStream_t stream);
     
     void _build(cudaStream_t stream);    
-
-public:    
-
-    CellList(ParticleVector *pv, float rc, float3 localDomainSize);
-    CellList(ParticleVector *pv, int3 resolution, float3 localDomainSize);
-
-    virtual ~CellList();
-    
-    CellListInfo cellInfo();
-
-    virtual void build(cudaStream_t stream);
-    virtual void addForces(cudaStream_t stream);
-    
-    void clearForces(cudaStream_t stream);
-
-    template <typename ViewType>
-    ViewType getView() const
-    {
-        return ViewType(pv, localPV);
-    }
 };
 
 class PrimaryCellList : public CellList

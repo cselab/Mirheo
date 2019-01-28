@@ -290,6 +290,11 @@ void CellList::clearForces(cudaStream_t stream)
     localPV->forces.clear(stream);
 }
 
+void CellList::clearExtraDataPerParticle(const std::string& name, cudaStream_t stream)
+{
+    localPV->extraPerParticle.getGenericData(name)->clear(stream);
+}
+
 //=================================================================================
 // Primary cell-lists
 //=================================================================================
