@@ -126,6 +126,10 @@ void ParticleHaloExchanger::attach(ParticleVector* pv, CellList* cl)
 
     helpers.push_back(std::move(helper));
 
+    packPredicates.push_back([](const ExtraDataManager::ChannelDescription& desc) {
+        return desc.communication == ExtraDataManager::CommunicationMode::NeedExchange;
+    });
+    
     info("Particle halo exchanger takes pv '%s'", pv->name.c_str());
 }
 
@@ -144,7 +148,7 @@ void ParticleHaloExchanger::prepareSizes(int id, cudaStream_t stream)
         const int nthreads = 64;
         const dim3 nblocks = dim3(getNblocks(maxdim*maxdim, nthreads), 6, 1);
 
-        auto packer = ParticlePacker(pv, pv->local(), stream);
+        auto packer = ParticlePacker(pv, pv->local(), packPredicates[id], stream);
         helper->setDatumSize(packer.packedSize_byte);
 
         SAFE_KERNEL_LAUNCH(
@@ -171,7 +175,7 @@ void ParticleHaloExchanger::prepareData(int id, cudaStream_t stream)
         const int nthreads = 64;
         const dim3 nblocks = dim3(getNblocks(maxdim*maxdim, nthreads), 6, 1);
 
-        auto packer = ParticlePacker(pv, pv->local(), stream);
+        auto packer = ParticlePacker(pv, pv->local(), packPredicates[id], stream);
 
         helper->resizeSendBuf();
         helper->sendSizes.clearDevice(stream);
@@ -195,7 +199,7 @@ void ParticleHaloExchanger::combineAndUploadData(int id, cudaStream_t stream)
     SAFE_KERNEL_LAUNCH(
             unpackParticles,
             getNblocks(totalRecvd, nthreads), nthreads, 0, stream,
-            ParticlePacker(pv, pv->halo(), stream), 0, helper->recvBuf.devPtr(), totalRecvd );
+            ParticlePacker(pv, pv->halo(), packPredicates[id], stream), 0, helper->recvBuf.devPtr(), totalRecvd );
 
     pv->haloValid = true;
 }

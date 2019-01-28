@@ -420,9 +420,13 @@ void SimpleStationaryWall<InsideWallChecker>::removeInner(ParticleVector* pv)
     }
     else
     {
+        PackPredicate packPredicate = [](const ExtraDataManager::ChannelDescription& desc) {
+            return desc.communication == ExtraDataManager::CommunicationMode::NeedExchange;
+        };
+        
         // Prepare temp storage for extra object data
         OVview ovView(ov, ov->local());
-        ObjectPacker packer(ov, ov->local(), 0);
+        ObjectPacker packer(ov, ov->local(), packPredicate, 0);
 
         DeviceBuffer<char> tmp(ovView.nObjects * packer.totalPackedSize_byte);
 
@@ -435,7 +439,7 @@ void SimpleStationaryWall<InsideWallChecker>::removeInner(ParticleVector* pv)
         nRemaining.downloadFromDevice(0);
         ov->local()->resize_anew(nRemaining[0] * ov->objSize);
         ovView = OVview(ov, ov->local());
-        packer = ObjectPacker(ov, ov->local(), 0);
+        packer = ObjectPacker(ov, ov->local(), packPredicate, 0);
 
         SAFE_KERNEL_LAUNCH(
                 unpackRemainingObjects,

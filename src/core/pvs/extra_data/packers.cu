@@ -22,29 +22,28 @@ void DevicePacker::registerChannel(ExtraDataManager& manager, int sz, char *ptr,
     ++nChannels;
 }
 
-void DevicePacker::registerChannels(ExtraDataManager& manager, const std::string& pvName, bool& needUpload, cudaStream_t stream)
+void DevicePacker::registerChannels(PackPredicate predicate, ExtraDataManager& manager, const std::string& pvName, bool& needUpload, cudaStream_t stream)
 {
     for (const auto& name_desc : manager.getSortedChannels())
     {
         auto desc = name_desc.second;
+        
+        if (!predicate(*desc)) continue;
 
-        if (desc->communication == ExtraDataManager::CommunicationMode::NeedExchange)
-        {
-            int sz = desc->container->datatype_size();
+        int sz = desc->container->datatype_size();
 
-            if (sz % sizeof(int) != 0)
-                die("Size of extra data per particle should be divisible by 4 bytes (PV '%s', data entry '%s')",
-                    pvName.c_str(), name_desc.first.c_str());
+        if (sz % sizeof(int) != 0)
+            die("Size of extra data per particle should be divisible by 4 bytes (PV '%s', data entry '%s')",
+                pvName.c_str(), name_desc.first.c_str());
 
-            if ( sz % sizeof(float4) && (desc->shiftTypeSize == 4 || desc->shiftTypeSize == 8) )
-                die("Size of extra data per particle should be divisible by 16 bytes"
-                    "when shifting is required (PV '%s', data entry '%s')",
-                    pvName.c_str(), name_desc.first.c_str());
+        if ( sz % sizeof(float4) && (desc->shiftTypeSize == 4 || desc->shiftTypeSize == 8) )
+            die("Size of extra data per particle should be divisible by 16 bytes"
+                "when shifting is required (PV '%s', data entry '%s')",
+                pvName.c_str(), name_desc.first.c_str());
 
-            registerChannel(manager, sz,
-                            reinterpret_cast<char*>(desc->container->genericDevPtr()),
-                            desc->shiftTypeSize, needUpload, stream);
-        }
+        registerChannel(manager, sz,
+                        reinterpret_cast<char*>(desc->container->genericDevPtr()),
+                        desc->shiftTypeSize, needUpload, stream);
     }
 }
 
@@ -64,7 +63,7 @@ void DevicePacker::setAndUploadData(ExtraDataManager& manager, bool needUpload, 
     channelShiftTypes   = manager.channelShiftTypes.  devPtr();
 }
 
-ParticlePacker::ParticlePacker(ParticleVector *pv, LocalParticleVector *lpv, cudaStream_t stream)
+ParticlePacker::ParticlePacker(ParticleVector *pv, LocalParticleVector *lpv, PackPredicate predicate, cudaStream_t stream)
 {
     if (pv == nullptr || lpv == nullptr) return;
 
@@ -77,25 +76,25 @@ ParticlePacker::ParticlePacker(ParticleVector *pv, LocalParticleVector *lpv, cud
                     sizeof(float), needUpload, stream);
 
 
-    registerChannels(manager, pv->name, needUpload, stream);
-    setAndUploadData(manager,           needUpload, stream);
+    registerChannels(predicate, manager, pv->name, needUpload, stream);
+    setAndUploadData(           manager,           needUpload, stream);
 }
 
-ObjectExtraPacker::ObjectExtraPacker(ObjectVector* ov, LocalObjectVector* lov, cudaStream_t stream)
+ObjectExtraPacker::ObjectExtraPacker(ObjectVector* ov, LocalObjectVector* lov, PackPredicate predicate, cudaStream_t stream)
 {
     if (ov == nullptr || lov == nullptr) return;
 
     auto& manager = lov->extraPerObject;
 
     bool needUpload = false;
-    registerChannels(manager, ov->name, needUpload, stream);
-    setAndUploadData(manager,           needUpload, stream);
+    registerChannels(predicate, manager, ov->name, needUpload, stream);
+    setAndUploadData(           manager,           needUpload, stream);
 }
 
 
-ObjectPacker::ObjectPacker(ObjectVector* ov, LocalObjectVector* lov, cudaStream_t stream) :
-    part(ov, lov, stream),
-    obj (ov, lov, stream)
+ObjectPacker::ObjectPacker(ObjectVector* ov, LocalObjectVector* lov, PackPredicate predicate, cudaStream_t stream) :
+    part(ov, lov, predicate, stream),
+    obj (ov, lov, predicate, stream)
 {
     if (ov == nullptr || lov == nullptr) return;
     totalPackedSize_byte = part.packedSize_byte * ov->objSize + obj.packedSize_byte;

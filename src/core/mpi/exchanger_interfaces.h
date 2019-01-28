@@ -1,5 +1,7 @@
 #pragma once
 
+#include <core/pvs/extra_data/packers.h>
+
 #include <vector>
 #include <memory>
 #include <cuda_runtime.h>
@@ -71,6 +73,10 @@ public:
      * @return true if exchange is required, false - if not
      */
     virtual bool needExchange(int id) = 0;
+
+protected:
+
+    std::vector<PackPredicate> packPredicates;
 };
 
 

@@ -104,7 +104,7 @@ bool ParticleRedistributor::needExchange(int id)
     return !particles[id]->redistValid;
 }
 
-void ParticleRedistributor::attach(ParticleVector* pv, CellList* cl)
+void ParticleRedistributor::attach(ParticleVector *pv, CellList *cl)
 {
     int id = particles.size();
     particles.push_back(pv);
@@ -117,6 +117,10 @@ void ParticleRedistributor::attach(ParticleVector* pv, CellList* cl)
     helper->setDatumSize(sizeof(Particle));
     
     helpers.push_back(std::move(helper));
+
+    packPredicates.push_back([](const ExtraDataManager::ChannelDescription& desc) {
+        return desc.communication == ExtraDataManager::CommunicationMode::NeedExchange;
+    });
 
     info("Particle redistributor takes pv '%s'", pv->name.c_str());
 }
@@ -136,7 +140,7 @@ void ParticleRedistributor::prepareSizes(int id, cudaStream_t stream)
         const int nthreads = 64;
         const dim3 nblocks = dim3(getNblocks(maxdim*maxdim, nthreads), 6, 1);
 
-        auto packer = ParticlePacker(pv, pv->local(), stream);
+        auto packer = ParticlePacker(pv, pv->local(), packPredicates[id], stream);
         helper->setDatumSize(packer.packedSize_byte);
 
         SAFE_KERNEL_LAUNCH(
@@ -163,7 +167,7 @@ void ParticleRedistributor::prepareData(int id, cudaStream_t stream)
         const int nthreads = 64;
         const dim3 nblocks = dim3(getNblocks(maxdim*maxdim, nthreads), 6, 1);
 
-        auto packer = ParticlePacker(pv, pv->local(), stream);
+        auto packer = ParticlePacker(pv, pv->local(), packPredicates[id], stream);
 
         helper->resizeSendBuf();
         // Sizes will still remain on host, no need to download again
@@ -190,7 +194,7 @@ void ParticleRedistributor::combineAndUploadData(int id, cudaStream_t stream)
         SAFE_KERNEL_LAUNCH(
                 unpackParticles,
                 getNblocks(totalRecvd, nthreads), nthreads, 0, stream,
-                ParticlePacker(pv, pv->local(), stream), oldsize, helper->recvBuf.devPtr(), totalRecvd );
+                ParticlePacker(pv, pv->local(), packPredicates[id], stream), oldsize, helper->recvBuf.devPtr(), totalRecvd );
     }
 
     pv->redistValid = true;

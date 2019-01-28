@@ -100,6 +100,10 @@ void ObjectRedistributor::attach(ObjectVector* ov)
     auto helper = std::make_unique<ExchangeHelper>(ov->name, id);
     helpers.push_back(std::move(helper));
 
+    packPredicates.push_back([](const ExtraDataManager::ChannelDescription& desc) {
+        return desc.communication == ExtraDataManager::CommunicationMode::NeedExchange;
+    });
+
     info("The Object vector '%s' was attached", ov->name.c_str());
 }
 
@@ -112,9 +116,9 @@ void ObjectRedistributor::prepareSizes(int id, cudaStream_t stream)
     auto bulkId = helper->bulkId;
     
     ov->findExtentAndCOM(stream, ParticleVectorType::Local);
-
+    
     OVview ovView(ov, ov->local());
-    ObjectPacker packer(ov, ov->local(), stream);
+    ObjectPacker packer(ov, ov->local(), packPredicates[id], stream);
     helper->setDatumSize(packer.totalPackedSize_byte);
 
     debug2("Counting exiting objects of '%s'", ov->name.c_str());
@@ -152,7 +156,7 @@ void ObjectRedistributor::prepareData(int id, cudaStream_t stream)
     auto bulkId = helper->bulkId;
 
     OVview ovView(ov, ov->local());
-    ObjectPacker packer(ov, ov->local(), stream);
+    ObjectPacker packer(ov, ov->local(), packPredicates[id], stream);
     helper->setDatumSize(packer.totalPackedSize_byte);
 
     const int nthreads = 256;
@@ -180,7 +184,7 @@ void ObjectRedistributor::prepareData(int id, cudaStream_t stream)
     // Renew view and packer, as the ObjectVector may have resized
     lov->resize_anew(nObjs*ov->objSize);
     ovView = OVview(ov, ov->local());
-    packer = ObjectPacker(ov, ov->local(), stream);
+    packer = ObjectPacker(ov, ov->local(), packPredicates[id], stream);
 
     SAFE_KERNEL_LAUNCH(
             unpackObject,
@@ -204,7 +208,7 @@ void ObjectRedistributor::combineAndUploadData(int id, cudaStream_t stream)
 
     ov->local()->resize(ov->local()->size() + totalRecvd * objSize, stream);
     OVview ovView(ov, ov->local());
-    ObjectPacker packer(ov, ov->local(), stream);
+    ObjectPacker packer(ov, ov->local(), packPredicates[id], stream);
 
     const int nthreads = 64;
     SAFE_KERNEL_LAUNCH(

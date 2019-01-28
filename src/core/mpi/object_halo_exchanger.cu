@@ -134,6 +134,10 @@ void ObjectHaloExchanger::attach(ObjectVector* ov, float rc)
     auto origin = std::make_unique<PinnedBuffer<int>>(ov->local()->size());    
     origins.push_back(std::move(origin));
 
+    packPredicates.push_back([](const ExtraDataManager::ChannelDescription& desc) {
+        return desc.communication == ExtraDataManager::CommunicationMode::NeedExchange;
+    });
+    
     info("Object vector %s (rc %f) was attached to halo exchanger", ov->name.c_str(), rc);
 }
 
@@ -149,7 +153,7 @@ void ObjectHaloExchanger::prepareSizes(int id, cudaStream_t stream)
     debug2("Counting halo objects of '%s'", ov->name.c_str());
 
     OVview ovView(ov, ov->local());
-    ObjectPacker packer(ov, ov->local(), stream);
+    ObjectPacker packer(ov, ov->local(), packPredicates[id], stream);
     helper->setDatumSize(packer.totalPackedSize_byte);
 
     helper->sendSizes.clear(stream);
@@ -177,7 +181,7 @@ void ObjectHaloExchanger::prepareData(int id, cudaStream_t stream)
            helper->sendOffsets[FragmentMapping::numFragments], ov->name.c_str());
 
     OVview ovView(ov, ov->local());
-    ObjectPacker packer(ov, ov->local(), stream);
+    ObjectPacker packer(ov, ov->local(), packPredicates[id], stream);
     helper->setDatumSize(packer.totalPackedSize_byte);
 
     if (ovView.nObjects > 0)
@@ -205,7 +209,7 @@ void ObjectHaloExchanger::combineAndUploadData(int id, cudaStream_t stream)
 
     ov->halo()->resize_anew(totalRecvd * ov->objSize);
     OVview ovView(ov, ov->halo());
-    ObjectPacker packer(ov, ov->halo(), stream);
+    ObjectPacker packer(ov, ov->halo(), packPredicates[id], stream);
 
     const int nthreads = 128;
     SAFE_KERNEL_LAUNCH(

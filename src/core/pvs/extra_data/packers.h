@@ -4,6 +4,8 @@
 #include <core/pvs/particle_vector.h>
 #include <core/pvs/object_vector.h>
 
+using PackPredicate = std::function< bool (const ExtraDataManager::ChannelDescription&) >;
+
 /**
  * Class that packs nChannels of arbitrary data into a chunk of contiguous memory
  * or unpacks it in the same manner
@@ -129,17 +131,17 @@ private:
 protected:
 
     void registerChannel (ExtraDataManager& manager, int sz, char *ptr, int typesize, bool& needUpload, cudaStream_t stream);
-    void registerChannels(ExtraDataManager& manager, const std::string& pvName, bool& needUpload, cudaStream_t stream);
+    void registerChannels(PackPredicate predicate,
+                          ExtraDataManager& manager, const std::string& pvName, bool& needUpload, cudaStream_t stream);
     void setAndUploadData(ExtraDataManager& manager, bool needUpload, cudaStream_t stream);
 };
-
 
 /**
  * Class that uses DevicePacker to pack a single particle entity
  */
 struct ParticlePacker : public DevicePacker
 {
-    ParticlePacker(ParticleVector *pv, LocalParticleVector *lpv, cudaStream_t stream);
+    ParticlePacker(ParticleVector *pv, LocalParticleVector *lpv, PackPredicate predicate, cudaStream_t stream);
 };
 
 
@@ -148,7 +150,7 @@ struct ParticlePacker : public DevicePacker
  */
 struct ObjectExtraPacker : public DevicePacker
 {
-    ObjectExtraPacker(ObjectVector *ov, LocalObjectVector *lov, cudaStream_t stream);
+    ObjectExtraPacker(ObjectVector *ov, LocalObjectVector *lov, PackPredicate predicate, cudaStream_t stream);
 };
 
 
@@ -162,6 +164,6 @@ struct ObjectPacker
     ObjectExtraPacker obj;
     int totalPackedSize_byte = 0;
 
-    ObjectPacker(ObjectVector *ov = nullptr, LocalObjectVector *lov = nullptr, cudaStream_t stream = 0);
+    ObjectPacker(ObjectVector *ov, LocalObjectVector *lov, PackPredicate predicate, cudaStream_t stream);
 };
 
