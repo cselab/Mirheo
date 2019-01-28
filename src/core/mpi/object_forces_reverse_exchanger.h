@@ -25,7 +25,7 @@ protected:
 public:
     ObjectForcesReverseExchanger(ObjectHaloExchanger* entangledHaloExchanger) :
         entangledHaloExchanger(entangledHaloExchanger)
-    { }
+    {}
 
     void attach(ObjectVector* ov);
 

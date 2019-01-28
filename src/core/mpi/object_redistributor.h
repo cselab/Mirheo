@@ -1,7 +1,9 @@
 #pragma once
 
 #include "exchanger_interfaces.h"
+
 #include <core/containers.h>
+#include <core/pvs/extra_data/packers.h>
 
 class ObjectVector;
 
@@ -14,6 +16,7 @@ public:
     
 private:
     std::vector<ObjectVector*> objects;
+    std::vector<PackPredicate> packPredicates;
     
     void prepareSizes(int id, cudaStream_t stream) override;
     void prepareData (int id, cudaStream_t stream) override;

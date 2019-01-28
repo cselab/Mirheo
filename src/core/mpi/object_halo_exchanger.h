@@ -3,6 +3,7 @@
 #include <memory>
 
 #include <core/containers.h>
+#include <core/pvs/extra_data/packers.h>
 
 #include "exchanger_interfaces.h"
 
@@ -14,6 +15,7 @@ class ObjectHaloExchanger : public ParticleExchanger
 protected:
     std::vector<float> rcs;
     std::vector<ObjectVector*> objects;
+    std::vector<PackPredicate> packPredicates;
 
     std::vector<std::unique_ptr<PinnedBuffer<int>>> origins;
 
