@@ -81,9 +81,6 @@ __global__ void addForcesKernel(PVview dstView, CellListInfo cinfo, PVview srcVi
     dstView.forces[pid] += srcView.forces[cinfo.order[pid]];
 }
 
-// just a hack because of xmacro
-__device__ void operator+=(Particle& p1, const Particle& p2) {}
-
 template <typename T>
 __global__ void accumulateKernel(int n, T *dst, CellListInfo cinfo, const T *src)
 {
@@ -308,7 +305,11 @@ void CellList::_accumulateExtraData(std::vector<ChannelActivity>& channels, cuda
             }                                                           \
             break;
 
-            TYPE_TABLE(SWITCH_ENTRY);
+            TYPE_TABLE_ADDITIONABLE(SWITCH_ENTRY);
+
+        default:
+            die("Cannot accumulate entry '%s' in pv '%s': type not supported",
+                entry.name.c_str(), pv->name.c_str());
 
 #undef SWITCH_ENTRY
         };        
