@@ -92,7 +92,7 @@ bool ObjectRedistributor::needExchange(int id)
     return !objects[id]->redistValid;
 }
 
-void ObjectRedistributor::attach(ObjectVector* ov)
+void ObjectRedistributor::attach(ObjectVector *ov)
 {
     int id = objects.size();
     objects.push_back(ov);
@@ -101,7 +101,7 @@ void ObjectRedistributor::attach(ObjectVector* ov)
     helpers.push_back(std::move(helper));
 
     packPredicates.push_back([](const ExtraDataManager::ChannelDescription& desc) {
-        return desc.communication == ExtraDataManager::CommunicationMode::NeedExchange;
+        return desc.persistence == ExtraDataManager::PersistenceMode::Persistent;
     });
 
     info("The Object vector '%s' was attached", ov->name.c_str());

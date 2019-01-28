@@ -119,7 +119,7 @@ void ParticleRedistributor::attach(ParticleVector *pv, CellList *cl)
     helpers.push_back(std::move(helper));
 
     packPredicates.push_back([](const ExtraDataManager::ChannelDescription& desc) {
-        return desc.communication == ExtraDataManager::CommunicationMode::NeedExchange;
+        return desc.persistence == ExtraDataManager::PersistenceMode::Persistent;
     });
 
     info("Particle redistributor takes pv '%s'", pv->name.c_str());
