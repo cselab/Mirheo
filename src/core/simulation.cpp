@@ -611,19 +611,19 @@ void Simulation::prepareEngines()
     {
         auto pvPtr = pv.get();
 
-        if (cellListMap[pvPtr].size() > 0) {
-            auto cl = cellListMap[pvPtr][0].get();
-            auto ov = dynamic_cast<ObjectVector*>(pvPtr);
+        if (cellListMap[pvPtr].size() == 0) continue;
+
+        auto cl = cellListMap[pvPtr][0].get();
+        auto ov = dynamic_cast<ObjectVector*>(pvPtr);
             
-            if (ov == nullptr) {
-                haloImp  ->attach(pvPtr, cl);
-                redistImp->attach(pvPtr, cl);
-            }
-            else {
-                objRedistImp->attach(ov);
-                objHaloImp  ->attach(ov, cl->rc);
-                objForcesImp->attach(ov);
-            }
+        if (ov == nullptr) {
+            haloImp  ->attach(pvPtr, cl);
+            redistImp->attach(pvPtr, cl);
+        }
+        else {
+            objRedistImp->attach(ov);
+            objHaloImp  ->attach(ov, cl->rc);
+            objForcesImp->attach(ov);
         }
     }
     
