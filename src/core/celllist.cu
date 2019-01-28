@@ -361,6 +361,22 @@ void CellList::clearInteractionIntermediate(cudaStream_t stream)
     }
 }
 
+std::vector<std::string> CellList::getInteractionOutputNames() const
+{
+    std::vector<std::string> names;
+    for (const auto& entry : interactionOutputChannels)
+        names.push_back(entry.name);
+    return names;
+}
+
+std::vector<std::string> CellList::getInteractionIntermediateNames() const
+{
+    std::vector<std::string> names;
+    for (const auto& entry : interactionIntermediateChannels)
+        names.push_back(entry.name);
+    return names;
+}
+
 //=================================================================================
 // Primary cell-lists
 //=================================================================================

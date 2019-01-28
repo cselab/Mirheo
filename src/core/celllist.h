@@ -128,6 +128,9 @@ public:
         else if (kind == InteractionOutput::Final)
             interactionOutputChannels.push_back({name, pred});
     }
+
+    std::vector<std::string> getInteractionOutputNames() const;
+    std::vector<std::string> getInteractionIntermediateNames() const;
     
 protected:
     int changedStamp{-1};
