@@ -518,10 +518,6 @@ void Simulation::prepareInteractions()
 
         inter->setPrerequisites(pv1, pv2, cl1, cl2);
 
-        initInteractions.push_back([inter, pv1, pv2, cl1, cl2] (cudaStream_t stream) {
-            inter->initStep(pv1, pv2, cl1, cl2, stream);
-        });
-        
         regularInteractions.push_back([inter, pv1, pv2, cl1, cl2] (cudaStream_t stream) {
             inter->local(pv1, pv2, cl1, cl2, stream);
         });
@@ -701,7 +697,6 @@ void Simulation::assemble()
     auto task_clearForces                         = scheduler->createTask("Clear forces");
     auto task_pluginsBeforeForces                 = scheduler->createTask("Plugins: before forces");
     auto task_haloInit                            = scheduler->createTask("Halo init");
-    auto task_initInteractions                    = scheduler->createTask("Init interactions");
     auto task_localForces                         = scheduler->createTask("Local forces");
     auto task_pluginsSerializeSend                = scheduler->createTask("Plugins: serialize and send");
     auto task_haloFinalize                        = scheduler->createTask("Halo finalize");
@@ -810,12 +805,6 @@ void Simulation::assemble()
         scheduler->addTask(task_localForces, [inter, this] (cudaStream_t stream) {
             inter(stream);
         });
-
-    for (auto& inter : initInteractions)
-        scheduler->addTask(task_initInteractions, [inter, this] (cudaStream_t stream) {
-            inter(stream);
-        });
-
 
     for (auto& inter : haloInteractions)
         scheduler->addTask(task_haloForces, [inter, this] (cudaStream_t stream) {
@@ -939,7 +928,6 @@ void Simulation::assemble()
     scheduler->addDependency(task_cellLists, {task_clearForces}, {});
 
     
-    scheduler->addDependency(task_initInteractions, {task_localForces, task_haloForces}, {task_pluginsBeforeForces, task_haloInit});
     scheduler->addDependency(task_pluginsBeforeForces, {task_localForces, task_haloForces}, {task_clearForces});
     scheduler->addDependency(task_pluginsSerializeSend, {task_pluginsBeforeIntegration, task_pluginsAfterIntegration}, {task_pluginsBeforeForces});
 
