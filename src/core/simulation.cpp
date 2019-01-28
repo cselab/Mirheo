@@ -706,7 +706,7 @@ void Simulation::assemble()
     auto task_pluginsSerializeSend                = scheduler->createTask("Plugins: serialize and send");
     auto task_haloFinalize                        = scheduler->createTask("Halo finalize");
     auto task_haloForces                          = scheduler->createTask("Halo forces");
-    auto task_accumulateForces                    = scheduler->createTask("Accumulate forces");
+    auto task_accumulateInteractionOutput         = scheduler->createTask("Accumulate forces");
     auto task_pluginsBeforeIntegration            = scheduler->createTask("Plugins: before integration");
     auto task_objHaloInit                         = scheduler->createTask("Object halo init");
     auto task_objHaloFinalize                     = scheduler->createTask("Object halo finalize");
@@ -826,8 +826,8 @@ void Simulation::assemble()
         for (auto& cl : clVec.second)
         {
             auto clPtr = cl.get();
-            scheduler->addTask(task_accumulateForces, [clPtr] (cudaStream_t stream) {
-                clPtr->addForces(stream);
+            scheduler->addTask(task_accumulateInteractionOutput, [clPtr] (cudaStream_t stream) {
+                clPtr->accumulateInteractionOutput(stream);
             });
         }
 
@@ -948,14 +948,14 @@ void Simulation::assemble()
     scheduler->addDependency(task_clearObjHaloForces, {task_objHaloBounce}, {task_objHaloFinalize});
 
     scheduler->addDependency(task_objForcesInit, {}, {task_haloForces});
-    scheduler->addDependency(task_objForcesFinalize, {task_accumulateForces}, {task_objForcesInit});
+    scheduler->addDependency(task_objForcesFinalize, {task_accumulateInteractionOutput}, {task_objForcesInit});
 
     scheduler->addDependency(task_haloInit, {}, {task_pluginsBeforeForces});
     scheduler->addDependency(task_haloFinalize, {}, {task_haloInit});
     scheduler->addDependency(task_haloForces, {}, {task_haloFinalize});
 
-    scheduler->addDependency(task_accumulateForces, {task_integration}, {task_haloForces, task_localForces});
-    scheduler->addDependency(task_pluginsBeforeIntegration, {task_integration}, {task_accumulateForces});
+    scheduler->addDependency(task_accumulateInteractionOutput, {task_integration}, {task_haloForces, task_localForces});
+    scheduler->addDependency(task_pluginsBeforeIntegration, {task_integration}, {task_accumulateInteractionOutput});
     scheduler->addDependency(task_wallBounce, {}, {task_integration});
     scheduler->addDependency(task_wallCheck, {task_redistributeInit}, {task_wallBounce});
 

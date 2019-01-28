@@ -88,6 +88,9 @@ class CellList : public CellListInfo
 {
 public:    
 
+    enum class InteractionOutput {Intermediate, Final, None};
+    using ActivePredicate = std::function<bool()>;
+    
     CellList(ParticleVector *pv, float rc, float3 localDomainSize);
     CellList(ParticleVector *pv, int3 resolution, float3 localDomainSize);
 
@@ -96,10 +99,10 @@ public:
     CellListInfo cellInfo();
 
     virtual void build(cudaStream_t stream);
-    virtual void addForces(cudaStream_t stream);
+    virtual void accumulateInteractionOutput(cudaStream_t stream);
+    virtual void accumulateInteractionIntermediate(cudaStream_t stream);
     
     void clearForces(cudaStream_t stream);
-    void clearExtraDataPerParticle(const std::string& name, cudaStream_t stream);
     
     template <typename ViewType>
     ViewType getView() const
@@ -107,10 +110,20 @@ public:
         return ViewType(pv, localPV);
     }
 
+    /**
+     * add extra channel to the cell-list.
+     * depending on \c kind, the channel will be cleared, accumulated and scattered at different times
+     * 
+     */
     template <typename T>
-    void requireExtraDataPerParticle(const std::string& name)
+    void requireExtraDataPerParticle(const std::string& name, InteractionOutput kind, ActivePredicate pred = [](){return true;})
     {
         localPV->extraPerParticle.createData<T>(name);
+
+        if (kind == InteractionOutput::Intermediate)
+            interactionIntermediateChannels.push_back({name, pred});
+        else if (kind == InteractionOutput::Final)
+            interactionOutputChannels.push_back({name, pred});
     }
     
 protected:
@@ -129,7 +142,19 @@ protected:
     void _reorderData(cudaStream_t stream);
     void _reorderExtraData(cudaStream_t stream);
     
-    void _build(cudaStream_t stream);    
+    void _build(cudaStream_t stream);
+
+    /**
+     *  structure to describe which channels are to be reordered, cleared and accumulated
+     */
+    struct ChannelActivity
+    {
+        std::string name;
+        ActivePredicate active;
+    };
+    
+    std::vector<ChannelActivity> interactionOutputChannels;       ///< channels which are final output of interactions, e.g. forces, stresses 
+    std::vector<ChannelActivity> interactionIntermediateChannels; ///< channels which are intermediate output of interactions, e.g. forces, stresses 
 };
 
 class PrimaryCellList : public CellList
@@ -142,7 +167,8 @@ public:
     ~PrimaryCellList();
     
     void build(cudaStream_t stream);
-    void addForces(cudaStream_t stream) override;
+    void accumulateInteractionOutput(cudaStream_t stream) override;
+    void accumulateInteractionIntermediate(cudaStream_t stream) override;
 };
 
 

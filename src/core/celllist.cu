@@ -81,6 +81,22 @@ __global__ void addForcesKernel(PVview dstView, CellListInfo cinfo, PVview srcVi
     dstView.forces[pid] += srcView.forces[cinfo.order[pid]];
 }
 
+__global__ void addStressesKernel(PVviewWithStresses dstView, CellListInfo cinfo, PVviewWithStresses srcView)
+{
+    const int pid = blockIdx.x * blockDim.x + threadIdx.x;
+    if (pid >= dstView.size) return;
+
+    dstView.stresses[pid] += srcView.stresses[cinfo.order[pid]];
+}
+
+__global__ void addDensitiesKernel(PVviewWithDensities dstView, CellListInfo cinfo, PVviewWithDensities srcView)
+{
+    const int pid = blockIdx.x * blockDim.x + threadIdx.x;
+    if (pid >= dstView.size) return;
+
+    dstView.densities[pid] += srcView.densities[cinfo.order[pid]];
+}
+
 //=================================================================================
 // Info
 //=================================================================================
@@ -273,7 +289,7 @@ void CellList::build(cudaStream_t stream)
     _build(stream);
 }
 
-void CellList::addForces(cudaStream_t stream)
+void CellList::accumulateInteractionOutput(cudaStream_t stream)
 {
     PVview dstView(pv, pv->local());
     int nthreads = 128;
@@ -282,17 +298,26 @@ void CellList::addForces(cudaStream_t stream)
             addForcesKernel,
             getNblocks(dstView.size, nthreads), nthreads, 0, stream,
             dstView, cellInfo(), getView<PVview>() );
+
+    // for (auto& activity : interactionOutputChannels) {
+    // TODO
+    // }
+}
+
+void CellList::accumulateInteractionIntermediate(cudaStream_t stream)
+{
+    // TODO densities...
 }
 
 
 void CellList::clearForces(cudaStream_t stream)
 {
     localPV->forces.clear(stream);
-}
 
-void CellList::clearExtraDataPerParticle(const std::string& name, cudaStream_t stream)
-{
-    localPV->extraPerParticle.getGenericData(name)->clear(stream);
+    for (auto& channel : interactionOutputChannels) {
+        if (!channel.active()) continue;
+        localPV->extraPerParticle.getGenericData(channel.name)->clear(stream);
+    }
 }
 
 //=================================================================================
@@ -335,5 +360,8 @@ void PrimaryCellList::build(cudaStream_t stream)
     pv->local()->resize(newSize, stream);
 }
 
-void PrimaryCellList::addForces(cudaStream_t stream)
+void PrimaryCellList::accumulateInteractionOutput(cudaStream_t stream)
+{}
+
+void PrimaryCellList::accumulateInteractionIntermediate(cudaStream_t stream)
 {}    

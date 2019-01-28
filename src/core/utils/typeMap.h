@@ -11,7 +11,8 @@
     OP(float4)                                   \
     OP(double3)                                  \
     OP(double4)                                  \
-    OP(Particle)
+    OP(Particle)                                 \
+    OP(Stress)
 
 #define DATATYPE_NONE None
 
