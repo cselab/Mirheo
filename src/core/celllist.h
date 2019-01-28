@@ -101,6 +101,8 @@ public:
     virtual void build(cudaStream_t stream);
     virtual void accumulateInteractionOutput(cudaStream_t stream);
     virtual void accumulateInteractionIntermediate(cudaStream_t stream);
+
+    virtual void gatherInteractionIntermediate(cudaStream_t stream);
     
     void clearForces(cudaStream_t stream);
     
@@ -157,6 +159,10 @@ protected:
     std::vector<ChannelActivity> interactionIntermediateChannels; ///< channels which are intermediate output of interactions, e.g. forces, stresses
 
     void _accumulateExtraData(std::vector<ChannelActivity>& channels, cudaStream_t stream);
+    void _reorderExtraDataEntry(const std::string& channelName,
+                                const ExtraDataManager::ChannelDescription *channelDesc,
+                                cudaStream_t stream);
+
 };
 
 class PrimaryCellList : public CellList
@@ -171,6 +177,7 @@ public:
     void build(cudaStream_t stream);
     void accumulateInteractionOutput(cudaStream_t stream) override;
     void accumulateInteractionIntermediate(cudaStream_t stream) override;
+    void gatherInteractionIntermediate(cudaStream_t stream) override;
 };
 
 

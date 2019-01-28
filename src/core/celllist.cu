@@ -192,9 +192,9 @@ void CellList::_reorderData(cudaStream_t stream)
 }
 
 template <typename T>
-static void reorderExtraData(int np, CellListInfo cinfo, ExtraDataManager *dstExtraData,
-                             const ExtraDataManager::ChannelDescription *channel, const std::string& channelName,
-                             cudaStream_t stream)
+static void reorderExtraDataEntry(int np, CellListInfo cinfo, ExtraDataManager *dstExtraData,
+                                  const ExtraDataManager::ChannelDescription *channel, const std::string& channelName,
+                                  cudaStream_t stream)
 {
     if (!dstExtraData->checkChannelExists(channelName))
         dstExtraData->createData<T>(channelName, np);
@@ -210,41 +210,40 @@ static void reorderExtraData(int np, CellListInfo cinfo, ExtraDataManager *dstEx
         np, inExtraData, cinfo, outExtraData );
 }
 
-void CellList::_reorderExtraData(cudaStream_t stream)
+void CellList::_reorderExtraDataEntry(const std::string& channelName,
+                                      const ExtraDataManager::ChannelDescription *channelDesc,
+                                      cudaStream_t stream)
 {
-    auto srcExtraData = &pv->local()->extraPerParticle;
     auto dstExtraData = &particlesDataContainer->extraPerParticle;
-
     int np = pv->local()->size();
     
-    for (auto& namedChannel : srcExtraData->getSortedChannels())
+    switch (channelDesc->dataType)
     {
-        auto channelName = namedChannel.first;
-        auto channelDesc = namedChannel.second;
 
-        if (channelDesc->persistence == ExtraDataManager::PersistenceMode::Persistent) {
-            debug2("Reordering %d `%s` particles extra data `%s`",
-                   pv->local()->size(), pv->name.c_str(), channelName.c_str());
+#define SWITCH_ENTRY(ctype)                             \
+        case DataType::TOKENIZE(ctype):                 \
+            reorderExtraDataEntry<ctype>                \
+                (np, cellInfo(), dstExtraData,          \
+                 channelDesc, channelName, stream);     \
+            break;
 
-            switch (channelDesc->dataType)
-            {
-
-#define SWITCH_ENTRY(ctype)                                             \
-                case DataType::TOKENIZE(ctype):                         \
-                    reorderExtraData<ctype>                             \
-                        (np, cellInfo(), dstExtraData,                  \
-                         channelDesc, channelName, stream);             \
-                    break;
-
-                TYPE_TABLE(SWITCH_ENTRY);
+        TYPE_TABLE(SWITCH_ENTRY);
 
 #undef SWITCH_ENTRY
 
-            default:
-                die("Channel '%s' has None type", channelName.c_str());
-            };
-        }
-    }
+    default:
+        die("Cannot reorder data: channel '%s' of pv '%s' has None type",
+            channelName.c_str(), pv->name.c_str());
+    };
+
+}
+
+void CellList::_reorderExtraData(cudaStream_t stream)
+{
+    auto srcExtraData = &pv->local()->extraPerParticle;
+    
+    for (auto& namedChannel : srcExtraData->getSortedChannels())
+        _reorderExtraDataEntry(namedChannel.first, namedChannel.second, stream);
 }
 
 void CellList::_build(cudaStream_t stream)
@@ -334,6 +333,15 @@ void CellList::accumulateInteractionIntermediate(cudaStream_t stream)
     _accumulateExtraData(interactionIntermediateChannels, stream);
 }
 
+void CellList::gatherInteractionIntermediate(cudaStream_t stream)
+{
+    for (auto& entry : interactionIntermediateChannels) {
+        if (!entry.active()) continue;
+
+        auto& desc = localPV->extraPerParticle.getChannelDescOrDie(entry.name);
+        _reorderExtraDataEntry(entry.name, &desc, stream);
+    }
+}
 
 void CellList::clearForces(cudaStream_t stream)
 {
@@ -390,3 +398,7 @@ void PrimaryCellList::accumulateInteractionOutput(cudaStream_t stream)
 
 void PrimaryCellList::accumulateInteractionIntermediate(cudaStream_t stream)
 {}    
+
+void PrimaryCellList::gatherInteractionIntermediate(cudaStream_t stream)
+{}
+
