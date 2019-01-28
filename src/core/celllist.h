@@ -143,7 +143,7 @@ protected:
     void _reorderExtraData(cudaStream_t stream);
     
     void _build(cudaStream_t stream);
-
+    
     /**
      *  structure to describe which channels are to be reordered, cleared and accumulated
      */
@@ -154,7 +154,9 @@ protected:
     };
     
     std::vector<ChannelActivity> interactionOutputChannels;       ///< channels which are final output of interactions, e.g. forces, stresses 
-    std::vector<ChannelActivity> interactionIntermediateChannels; ///< channels which are intermediate output of interactions, e.g. forces, stresses 
+    std::vector<ChannelActivity> interactionIntermediateChannels; ///< channels which are intermediate output of interactions, e.g. forces, stresses
+
+    void _accumulateExtraData(std::vector<ChannelActivity>& channels, cudaStream_t stream);
 };
 
 class PrimaryCellList : public CellList

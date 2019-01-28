@@ -40,7 +40,7 @@ public:
      * Struct that contains of data itself (as a unique_ptr to \c GPUcontainer)
      * and its properties: needExchange (for MPI) and shiftTypeSize (for shift)
      */
-    struct ChannelDescription
+    struct ChannelDescription 
     {
         std::unique_ptr<GPUcontainer> container;
         CommunicationMode communication = CommunicationMode::None;
@@ -184,6 +184,12 @@ public:
     /// Resize all the channels, don't care about existing data
     void resize_anew(int n);
 
+    /// Get entry from channelMap or die if it is not found
+    ChannelDescription& getChannelDescOrDie(const std::string& name);
+
+    /// Get constant entry from channelMap or die if it is not found
+    const ChannelDescription& getChannelDescOrDie(const std::string& name) const;
+
 private:    
 
     /// Map of name --> data
@@ -209,10 +215,4 @@ private:
     friend class ObjectExtraPacker;    
 
     void sortChannels();
-
-    /// Get entry from channelMap or die if it is not found
-    ChannelDescription& getChannelDescOrDie(const std::string& name);
-
-    /// Get constant entry from channelMap or die if it is not found
-    const ChannelDescription& getChannelDescOrDie(const std::string& name) const;
 };

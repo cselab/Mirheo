@@ -81,21 +81,18 @@ __global__ void addForcesKernel(PVview dstView, CellListInfo cinfo, PVview srcVi
     dstView.forces[pid] += srcView.forces[cinfo.order[pid]];
 }
 
-__global__ void addStressesKernel(PVviewWithStresses dstView, CellListInfo cinfo, PVviewWithStresses srcView)
-{
-    const int pid = blockIdx.x * blockDim.x + threadIdx.x;
-    if (pid >= dstView.size) return;
+// just a hack because of xmacro
+__device__ void operator+=(Particle& p1, const Particle& p2) {}
 
-    dstView.stresses[pid] += srcView.stresses[cinfo.order[pid]];
+template <typename T>
+__global__ void accumulateKernel(int n, T *dst, CellListInfo cinfo, const T *src)
+{
+    int pid = blockIdx.x * blockDim.x + threadIdx.x;
+    if (pid >= n) return;
+
+    dst[pid] += src[cinfo.order[pid]];
 }
 
-__global__ void addDensitiesKernel(PVviewWithDensities dstView, CellListInfo cinfo, PVviewWithDensities srcView)
-{
-    const int pid = blockIdx.x * blockDim.x + threadIdx.x;
-    if (pid >= dstView.size) return;
-
-    dstView.densities[pid] += srcView.densities[cinfo.order[pid]];
-}
 
 //=================================================================================
 // Info
@@ -289,6 +286,35 @@ void CellList::build(cudaStream_t stream)
     _build(stream);
 }
 
+void CellList::_accumulateExtraData(std::vector<ChannelActivity>& channels, cudaStream_t stream)
+{
+    const int nthreads = 128;
+    
+    for (auto& entry : channels) {
+        if (!entry.active()) continue;
+
+        switch(localPV->extraPerParticle.getChannelDescOrDie(entry.name).dataType) {
+
+#define SWITCH_ENTRY(ctype)                                             \
+            case DataType::TOKENIZE(ctype):                             \
+            {                                                           \
+                auto src = pv->local()->extraPerParticle.getData<ctype>(entry.name); \
+                auto dst = localPV    ->extraPerParticle.getData<ctype>(entry.name); \
+                int n = pv->local()->size();                            \
+                SAFE_KERNEL_LAUNCH(                                     \
+                    accumulateKernel<ctype>,                            \
+                    getNblocks(n, nthreads), nthreads, 0, stream,       \
+                    n, dst->devPtr(), cellInfo(), src->devPtr() );      \
+            }                                                           \
+            break;
+
+            TYPE_TABLE(SWITCH_ENTRY);
+
+#undef SWITCH_ENTRY
+        };        
+    }    
+}
+
 void CellList::accumulateInteractionOutput(cudaStream_t stream)
 {
     PVview dstView(pv, pv->local());
@@ -299,14 +325,12 @@ void CellList::accumulateInteractionOutput(cudaStream_t stream)
             getNblocks(dstView.size, nthreads), nthreads, 0, stream,
             dstView, cellInfo(), getView<PVview>() );
 
-    // for (auto& activity : interactionOutputChannels) {
-    // TODO
-    // }
+    _accumulateExtraData(interactionOutputChannels, stream);
 }
 
 void CellList::accumulateInteractionIntermediate(cudaStream_t stream)
 {
-    // TODO densities...
+    _accumulateExtraData(interactionIntermediateChannels, stream);
 }
 
 
