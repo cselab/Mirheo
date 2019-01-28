@@ -1,8 +1,9 @@
-#include "pairwise_with_stress.h"
 #include "pairwise_interactions/dpd.h"
 #include "pairwise_interactions/lj.h"
 #include "pairwise_interactions/lj_object_aware.h"
+#include "pairwise_with_stress.h"
 
+#include <core/celllist.h>
 #include <core/utils/common.h>
 
 template<class PairwiseInteraction>
@@ -24,9 +25,12 @@ void InteractionPair_withStress<PairwiseInteraction>::setPrerequisites(ParticleV
     info("Interaction '%s' requires channel '%s' from PVs '%s' and '%s'",
          name.c_str(), ChannelNames::stresses.c_str(), pv1->name.c_str(), pv2->name.c_str());
 
-    pv1->requireDataPerParticle<Stress>(ChannelNames::stresses, ExtraDataManager::CommunicationMode::None, ExtraDataManager::PersistenceMode::None);
-    pv2->requireDataPerParticle<Stress>(ChannelNames::stresses, ExtraDataManager::CommunicationMode::None, ExtraDataManager::PersistenceMode::None);
+    pv1->requireDataPerParticle <Stress> (ChannelNames::stresses, ExtraDataManager::CommunicationMode::None, ExtraDataManager::PersistenceMode::None);
+    pv2->requireDataPerParticle <Stress> (ChannelNames::stresses, ExtraDataManager::CommunicationMode::None, ExtraDataManager::PersistenceMode::None);
 
+    cl1->requireExtraDataPerParticle <Stress> (ChannelNames::stresses);
+    cl2->requireExtraDataPerParticle <Stress> (ChannelNames::stresses);
+    
     pv2lastStressTime[pv1] = -1;
     pv2lastStressTime[pv2] = -1;
 }
@@ -34,15 +38,19 @@ void InteractionPair_withStress<PairwiseInteraction>::setPrerequisites(ParticleV
 template<class PairwiseInteraction>
 void InteractionPair_withStress<PairwiseInteraction>::initStep(ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2, cudaStream_t stream)
 {
-    float t = state->currentTime;    
+    float t = state->currentTime;
 
     if (lastStressTime+stressPeriod <= t || lastStressTime == t) {
         
-        if (pv2lastStressTime[pv1] != t)
+        if (pv2lastStressTime[pv1] != t) {
             pv1->local()->extraPerParticle.getData<Stress>(ChannelNames::stresses)->clear(stream);
+            cl1->clearExtraDataPerParticle(ChannelNames::stresses, stream);
+        }
 
-        if (pv2lastStressTime[pv2] != t)
+        if (pv2lastStressTime[pv2] != t) {
             pv2->local()->extraPerParticle.getData<Stress>(ChannelNames::stresses)->clear(stream);
+            cl2->clearExtraDataPerParticle(ChannelNames::stresses, stream);
+        }
     }
 }
 
