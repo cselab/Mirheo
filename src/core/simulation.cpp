@@ -311,9 +311,7 @@ void Simulation::setInteraction(std::string interactionName, std::string pv1Name
 
     if (interactionMap.find(interactionName) == interactionMap.end())
         die("No such interaction: %s", interactionName.c_str());
-    auto interaction = interactionMap[interactionName].get();
-
-    interaction->setPrerequisites(pv1, pv2);
+    auto interaction = interactionMap[interactionName].get();    
 
     float rc = interaction->rc;
     interactionPrototypes.push_back({rc, pv1, pv2, interaction});
@@ -517,6 +515,8 @@ void Simulation::prepareInteractions()
         cl2 = selectBestClist(clVec2, rc, rcTolerance);
         
         auto inter = prototype.interaction;
+
+        inter->setPrerequisites(pv1, pv2, cl1, cl2);
 
         initInteractions.push_back([inter, pv1, pv2, cl1, cl2] (cudaStream_t stream) {
             inter->initStep(pv1, pv2, cl1, cl2, stream);

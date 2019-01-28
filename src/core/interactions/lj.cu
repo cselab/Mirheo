@@ -27,9 +27,9 @@ InteractionLJ::InteractionLJ(const YmrState *state, std::string name, float rc, 
 
 InteractionLJ::~InteractionLJ() = default;
 
-void InteractionLJ::setPrerequisites(ParticleVector* pv1, ParticleVector* pv2)
+void InteractionLJ::setPrerequisites(ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2)
 {
-    impl->setPrerequisites(pv1, pv2);
+    impl->setPrerequisites(pv1, pv2, cl1, cl2);
 }
 
 void InteractionLJ::initStep(ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2, cudaStream_t stream)

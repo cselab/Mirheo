@@ -31,7 +31,7 @@ public:
      * Default: ask nothing
      * Called from Simulation right after setup
      */
-    virtual void setPrerequisites(ParticleVector *pv1, ParticleVector *pv2);
+    virtual void setPrerequisites(ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2);
 
     /**
      * Init fields in particle vectors reuired before interaction

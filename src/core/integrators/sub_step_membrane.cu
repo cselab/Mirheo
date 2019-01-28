@@ -52,7 +52,8 @@ void IntegratorSubStepMembrane::stage2(ParticleVector *pv, cudaStream_t stream)
     pv->cellListStamp++;
 }
 
-void IntegratorSubStepMembrane::setPrerequisites(ParticleVector* pv)
+void IntegratorSubStepMembrane::setPrerequisites(ParticleVector *pv)
 {
-    fastForces->setPrerequisites(pv, pv);
+    // luckily do not need cell lists for membrane interactions
+    fastForces->setPrerequisites(pv, pv, nullptr, nullptr);
 }

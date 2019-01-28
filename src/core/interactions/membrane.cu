@@ -64,7 +64,7 @@ InteractionMembrane::~InteractionMembrane() = default;
  * Require that \p pv1 and \p pv2 are the same and are instances
  * of MembraneVector
  */
-void InteractionMembrane::setPrerequisites(ParticleVector* pv1, ParticleVector* pv2)
+void InteractionMembrane::setPrerequisites(ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2)
 {
     if (pv1 != pv2)
         die("Internal RBC forces can't be computed between two different particle vectors");

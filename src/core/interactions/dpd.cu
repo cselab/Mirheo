@@ -23,9 +23,9 @@ InteractionDPD::InteractionDPD(const YmrState *state, std::string name, float rc
 
 InteractionDPD::~InteractionDPD() = default;
 
-void InteractionDPD::setPrerequisites(ParticleVector* pv1, ParticleVector* pv2)
+void InteractionDPD::setPrerequisites(ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2)
 {
-    impl->setPrerequisites(pv1, pv2);
+    impl->setPrerequisites(pv1, pv2, cl1, cl2);
 }
 
 void InteractionDPD::initStep(ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2, cudaStream_t stream)

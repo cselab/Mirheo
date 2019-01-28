@@ -17,9 +17,9 @@ InteractionMembraneJuelicher::InteractionMembraneJuelicher(const YmrState *state
 
 InteractionMembraneJuelicher::~InteractionMembraneJuelicher() = default;
     
-void InteractionMembraneJuelicher::setPrerequisites(ParticleVector* pv1, ParticleVector* pv2)
+void InteractionMembraneJuelicher::setPrerequisites(ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2)
 {
-    InteractionMembrane::setPrerequisites(pv1, pv2);
+    InteractionMembrane::setPrerequisites(pv1, pv2, cl1, cl2);
 
     auto ov = dynamic_cast<MembraneVector*>(pv1);
     
