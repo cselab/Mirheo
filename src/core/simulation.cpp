@@ -598,10 +598,17 @@ void Simulation::preparePlugins()
     info("done Preparing plugins");
 }
 
-static CellList* getLargestNeedingOutput(const std::vector<std::unique_ptr<CellList>>& cellListVec)
+static CellList* getLargestNeededForOutput(const std::vector<std::unique_ptr<CellList>>& cellListVec)
 {
     for (const auto& cl : cellListVec)
         if (cl->isNeededForOutput()) return cl.get();
+    return nullptr;
+}
+
+static CellList* getLargestNeededForIntermediate(const std::vector<std::unique_ptr<CellList>>& cellListVec)
+{
+    for (const auto& cl : cellListVec)
+        if (cl->isNeededForIntermediate()) return cl.get();
     return nullptr;
 }
 
@@ -610,6 +617,19 @@ static void removeDuplicates(std::vector<std::string>& v)
     std::sort(v.begin(), v.end());
     auto it = std::unique(v.begin(), v.end());
     v.resize( std::distance(v.begin(), it) );    
+}
+
+static std::vector<std::string> getExtraIntermediateChannels(const std::vector<std::unique_ptr<CellList>>& cellListVec)
+{
+    std::vector<std::string> outputs;
+    for (const auto& cl : cellListVec) {
+        auto clOutputs = cl->getInteractionIntermediateNames();
+        outputs.insert(outputs.end(),
+                       std::make_move_iterator(clOutputs.begin()),
+                       std::make_move_iterator(clOutputs.end()));
+    }
+    removeDuplicates(outputs);
+    return outputs;
 }
 
 static std::vector<std::string> getExtraOutputChannels(const std::vector<std::unique_ptr<CellList>>& cellListVec)
@@ -622,6 +642,7 @@ static std::vector<std::string> getExtraOutputChannels(const std::vector<std::un
                        std::make_move_iterator(clOutputs.end()));
     }
     removeDuplicates(outputs);
+    return outputs;
 }
 
 void Simulation::prepareEngines()
@@ -640,20 +661,23 @@ void Simulation::prepareEngines()
 
         if (cellListVec.size() == 0) continue;
 
-        CellList *clOut = getLargestNeedingOutput(cellListVec);
-        auto extraOutputs = getExtraOutputChannels(cellListVec);
+        CellList *clInt = getLargestNeededForIntermediate(cellListVec);
+        CellList *clOut = getLargestNeededForOutput(cellListVec);
+
+        auto extraInt = getExtraIntermediateChannels(cellListVec);
+        auto extraOut = getExtraOutputChannels(cellListVec);
 
         auto cl = cellListVec[0].get();
         auto ov = dynamic_cast<ObjectVector*>(pvPtr);
-            
+        
         if (ov == nullptr) {
             if (clOut != nullptr)
-                haloImp->attach(pvPtr, clOut, extraOutputs);
+                haloImp->attach(pvPtr, clOut, extraInt);
             redistImp->attach(pvPtr, cl);
         }
         else {
             objRedistImp->attach(ov);
-            objHaloImp  ->attach(ov, cl->rc);
+            objHaloImp  ->attach(ov, cl->rc, extraInt); // always because of bounce back; TODO: check if bounce back is needed
             objForcesImp->attach(ov);
         }
     }
