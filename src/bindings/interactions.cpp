@@ -3,6 +3,7 @@
 #include <core/interactions/interface.h>
 #include <core/interactions/dpd.h>
 #include <core/interactions/dpd_with_stress.h>
+#include <core/interactions/mdpd.h>
 #include <core/interactions/lj.h>
 #include <core/interactions/lj_with_stress.h>
 #include <core/interactions/membrane_kantor.h>
@@ -88,6 +89,36 @@ void exportInteractions(py::module& m)
    
     )");
 
+    py::handlers_class<InteractionDensity> pyIntDensity(m, "Density", pyInt, R"(
+        TODO 
+    )");
+    
+    pyIntDensity.def(py::init<const YmrState*, std::string, float>(),
+                     "state"_a, "name"_a, "rc"_a, R"(  
+            Args:
+                name: name of the interaction
+                rc: interaction cut-off
+    )");
+
+    py::handlers_class<InteractionMDPD> pyIntMDPD(m, "MDPD", pyInt, R"(
+        TODO 
+        must be used together with :any:`Density` interaction
+    )");
+
+    pyIntMDPD.def(py::init<const YmrState*, std::string, float, float, float, float, float, float, float>(),
+                  "state"_a, "name"_a, "rc"_a, "rd"_a, "a"_a, "b"_a, "gamma"_a, "kbt"_a, "power"_a, R"(  
+            Args:
+            name: name of the interaction
+                rc: interaction cut-off (no forces between particles further than **rc** apart)
+                rd: density cutoff, assumed rd < rc
+                a: :math:`a`
+                b: :math:`b`
+                gamma: :math:`\gamma`
+                kbt: :math:`k_B T`
+                power: :math:`p` in the weight function
+    )");
+
+    
     pyIntLJ.def(py::init<const YmrState*, std::string, float, float, float, float, bool>(),
                 "state"_a, "name"_a, "rc"_a, "epsilon"_a, "sigma"_a, "max_force"_a=1000.0, "object_aware"_a, R"(
             Args:
