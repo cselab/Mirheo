@@ -382,7 +382,27 @@ void CellList::setNeededForIntermediate() {neededForIntermediate = true;}
 
 bool CellList::isNeededForOutput() const {return neededForOutput;}
 bool CellList::isNeededForIntermediate() const {return neededForIntermediate;}
+
+void CellList::_addIfNameNoIn(const std::string& name, CellList::ActivePredicate pred, std::vector<CellList::ChannelActivity>& vec) const
+{
+    bool alreadyIn = false;
+    for (const auto& entry : vec)
+        if (entry.name == name)
+            alreadyIn = true;
+
+    if (alreadyIn) {
+        debug("channel '%s' already added, skip it.", name.c_str());
+        return;
+    }
     
+    vec.push_back({name, pred});
+}
+
+void CellList::_addToChannel(const std::string& name, InteractionOutput kind, CellList::ActivePredicate pred)
+{    
+    if      (kind == InteractionOutput::Intermediate) _addIfNameNoIn(name, pred, interactionIntermediateChannels);
+    else if (kind == InteractionOutput::Final)        _addIfNameNoIn(name, pred, interactionOutputChannels);
+}
 
 //=================================================================================
 // Primary cell-lists

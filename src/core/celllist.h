@@ -123,10 +123,7 @@ public:
     {
         localPV->extraPerParticle.createData<T>(name);
 
-        if (kind == InteractionOutput::Intermediate)
-            interactionIntermediateChannels.push_back({name, pred});
-        else if (kind == InteractionOutput::Final)
-            interactionOutputChannels.push_back({name, pred});
+        _addToChannel(name, kind, pred);
     }
 
     std::vector<std::string> getInteractionOutputNames() const;
@@ -167,6 +164,9 @@ protected:
     
     std::vector<ChannelActivity> interactionOutputChannels;       ///< channels which are final output of interactions, e.g. forces, stresses 
     std::vector<ChannelActivity> interactionIntermediateChannels; ///< channels which are intermediate output of interactions, e.g. forces, stresses
+
+    void _addIfNameNoIn(const std::string& name, CellList::ActivePredicate pred, std::vector<ChannelActivity>& vec) const;
+    void _addToChannel(const std::string& name, InteractionOutput kind, ActivePredicate pred);
 
     bool neededForOutput {false};
     bool neededForIntermediate {false};
