@@ -1,12 +1,51 @@
 #include "mdpd.h"
 #include "pairwise.h"
+#include "pairwise_interactions/density.h"
 #include "pairwise_interactions/mdpd.h"
 
 #include <core/celllist.h>
+#include <core/utils/common.h>
 #include <core/utils/make_unique.h>
 #include <core/pvs/particle_vector.h>
 
 #include <memory>
+
+
+
+InteractionDensity::InteractionDensity(const YmrState *state, std::string name, float rc) :
+    Interaction(state, name, rc)
+{
+    Pairwise_density density(rc);
+    impl = std::make_unique<InteractionPair<Pairwise_density>> (state, name, rc, density);
+}
+
+InteractionDensity::~InteractionDensity() = default;
+
+void InteractionDensity::setPrerequisites(ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2)
+{
+    impl->setPrerequisites(pv1, pv2, cl1, cl2);
+
+    cl1->requireExtraDataPerParticle<float>(ChannelNames::densities, CellList::InteractionOutput::Intermediate);
+    cl2->requireExtraDataPerParticle<float>(ChannelNames::densities, CellList::InteractionOutput::Intermediate);
+    
+    cl1->setNeededForIntermediate();
+    cl2->setNeededForIntermediate();
+}
+
+void InteractionDensity::local(ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2, cudaStream_t stream)
+{
+    impl->local(pv1, pv2, cl1, cl2, stream);
+}
+
+void InteractionDensity::halo (ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2, cudaStream_t stream)
+{
+    impl->halo(pv1, pv2, cl1, cl2, stream);
+}
+
+
+
+
+
 
 InteractionMDPD::InteractionMDPD(const YmrState *state, std::string name, float rc, float rd, float a, float b, float gamma, float kbt, float power, bool allocateImpl) :
     Interaction(state, name, rc),
@@ -27,9 +66,6 @@ InteractionMDPD::~InteractionMDPD() = default;
 void InteractionMDPD::setPrerequisites(ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2)
 {
     impl->setPrerequisites(pv1, pv2, cl1, cl2);
-
-    // cl1->requireExtraDataPerParticle(ChannelNames::densities, Celllist::InteractionOutput::Intermediate);
-    // cl2->requireExtraDataPerParticle(ChannelNames::densities, Celllist::InteractionOutput::Intermediate);
     
     cl1->setNeededForOutput();
     cl2->setNeededForOutput();
