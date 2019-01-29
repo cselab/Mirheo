@@ -29,6 +29,7 @@ public:
     __D__ inline void readCoordinates(ParticleType& p, const ViewType& view, int id) const { basicForce.readCoordinates(p, view, id); }
     __D__ inline void readExtraData  (ParticleType& p, const ViewType& view, int id) const { basicForce.readExtraData  (p, view, id); }
     __D__ inline bool withinCutoff(const ParticleType& src, const ParticleType& dst) const { return basicForce.withinCutoff(src, dst);}
+    __D__ inline float3 getPosition(const ParticleType& p) const {return basicForce.getPosition(p);}
     
     __device__ inline ForceStress operator()(const ParticleType dst, int dstId, const ParticleType src, int srcId) const
     {        

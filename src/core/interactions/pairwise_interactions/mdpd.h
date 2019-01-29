@@ -55,7 +55,7 @@ public:
         const float invrij = rsqrtf(rij2);
         const float rij = rij2 * invrij;
         const float argwr = 1.0f - rij * invrc;
-        const float argwd = max(1.0f - rij * invrd, 0);
+        const float argwd = max(1.0f - rij * invrd, 0.f);
 
         const float wr = fastPower(argwr, power);
 
@@ -63,7 +63,7 @@ public:
         const float3 du = dst.p.u - src.p.u;
         const float rdotv = dot(dr_r, du);
 
-        const float myrandnr = Logistic::mean0var1(seed, min(src.i1, dst.i1), max(src.i1, dst.i1));
+        const float myrandnr = Logistic::mean0var1(seed, min(src.p.i1, dst.p.i1), max(src.p.i1, dst.p.i1));
 
         const float strength = a * argwr + b * argwd * (src.d + dst.d) - (gamma * wr * rdotv + sigma * myrandnr) * wr;
 

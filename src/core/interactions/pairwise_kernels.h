@@ -116,7 +116,7 @@ __global__ void computeSelfInteractions(
 
     auto accumulator = interaction.getZeroedAccumulator();
 
-    const int3 cell0 = cinfo.getCellIdAlongAxes(dstP.r);
+    const int3 cell0 = cinfo.getCellIdAlongAxes(interaction.getPosition(dstP));
 
     for (int cellZ = cell0.z-1; cellZ <= cell0.z+1; cellZ++)
         for (int cellY = cell0.y-1; cellY <= cell0.y; cellY++)
@@ -189,7 +189,7 @@ __global__ void computeExternalInteractions_1tpp(
 
     auto accumulator = interaction.getZeroedAccumulator();
 
-    const int3 cell0 = srcCinfo.getCellIdAlongAxes<CellListsProjection::NoClamp>(dstP.r);
+    const int3 cell0 = srcCinfo.getCellIdAlongAxes<CellListsProjection::NoClamp>(interaction.getPosition(dstP));
 
     for (int cellZ = cell0.z-1; cellZ <= cell0.z+1; cellZ++)
         for (int cellY = cell0.y-1; cellY <= cell0.y+1; cellY++)
@@ -255,7 +255,7 @@ __global__ void computeExternalInteractions_3tpp(
 
     auto accumulator = interaction.getZeroedAccumulator();
 
-    const int3 cell0 = srcCinfo.getCellIdAlongAxes<CellListsProjection::NoClamp>(dstP.r);
+    const int3 cell0 = srcCinfo.getCellIdAlongAxes<CellListsProjection::NoClamp>(interaction.getPosition(dstP));
 
     int cellZ = cell0.z + dircode;
 
@@ -322,7 +322,7 @@ __global__ void computeExternalInteractions_9tpp(
 
     auto accumulator = interaction.getZeroedAccumulator();
 
-    const int3 cell0 = srcCinfo.getCellIdAlongAxes<CellListsProjection::NoClamp>(dstP.r);
+    const int3 cell0 = srcCinfo.getCellIdAlongAxes<CellListsProjection::NoClamp>(interaction.getPosition(dstP));
 
     int cellZ = cell0.z + dircode / 3 - 1;
     int cellY = cell0.y + dircode % 3 - 1;
@@ -389,7 +389,7 @@ __global__ void computeExternalInteractions_27tpp(
 
     auto accumulator = interaction.getZeroedAccumulator();
 
-    const int3 cell0 = srcCinfo.getCellIdAlongAxes<CellListsProjection::NoClamp>(dstP.r);
+    const int3 cell0 = srcCinfo.getCellIdAlongAxes<CellListsProjection::NoClamp>(interaction.getPosition(dstP));
 
     int cellZ = cell0.z +  dircode / 9      - 1;
     int cellY = cell0.y + (dircode / 3) % 3 - 1;

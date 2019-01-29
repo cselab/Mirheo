@@ -14,6 +14,7 @@
 #include "pairwise_interactions/lj_object_aware.h"
 #include "pairwise_interactions/norandom_dpd.h"
 #include "pairwise_interactions/density.h"
+#include "pairwise_interactions/mdpd.h"
 
 template <class PairwiseInteraction>
 InteractionPair<PairwiseInteraction>::InteractionPair(const YmrState *state, std::string name, float rc, PairwiseInteraction pair) :
@@ -228,6 +229,7 @@ template class InteractionPair<Pairwise_DPD>;
 template class InteractionPair<Pairwise_LJ>;
 template class InteractionPair<Pairwise_LJObjectAware>;
 template class InteractionPair<Pairwise_density>;
+template class InteractionPair<Pairwise_MDPD>;
 
 template class InteractionPair<PairwiseStressWrapper<Pairwise_DPD>>;
 template class InteractionPair<PairwiseStressWrapper<Pairwise_LJ>>;

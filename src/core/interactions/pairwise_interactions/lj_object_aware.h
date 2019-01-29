@@ -37,6 +37,7 @@ public:
     __D__ inline void readExtraData  (ParticleType& p, const ViewType& view, int id) const { lj.readExtraData  (p, view, id); }
 
     __D__ inline bool withinCutoff(const ParticleType& src, const ParticleType& dst) const { return lj.withinCutoff(src, dst); }
+    __D__ inline float3 getPosition(const ParticleType& p) const {return lj.getPosition(p);}
 
     __D__ inline float3 operator()(ParticleType dst, int dstId, ParticleType src, int srcId) const
     {

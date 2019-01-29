@@ -50,6 +50,8 @@ public:
     {
         return distance2(src.r, dst.r) < rc2;
     }
+
+    __D__ inline float3 getPosition(const ParticleType& p) const {return p.r;}
     
 protected:
 
@@ -125,4 +127,6 @@ public:
     {
         return ParticleFetcherWithVelocity::withinCutoff(src.p, dst.p);
     }
+
+    __D__ inline float3 getPosition(const ParticleType& p) const {return p.p.r;}
 };
