@@ -416,10 +416,9 @@ static void sortDescendingOrder(std::vector<float>& v)
     std::sort(v.begin(), v.end(), [] (float a, float b) { return a > b; });
 }
 
+// assume sorted array (ascending or descending)
 static void removeDuplicatedElements(std::vector<float>& v, float tolerance)
 {
-    sortDescendingOrder(v);
-
     auto it = std::unique(v.begin(), v.end(), [=] (float a, float b) { return fabs(a - b) < tolerance; });
     v.resize( std::distance(v.begin(), it) );    
 }
@@ -443,6 +442,7 @@ void Simulation::prepareCellLists()
         auto& pv      = cutoffPair.first;
         auto& cutoffs = cutoffPair.second;
 
+        sortDescendingOrder(cutoffs);
         removeDuplicatedElements(cutoffs, rcTolerance);
 
         bool primary = true;
