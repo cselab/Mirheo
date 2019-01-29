@@ -8,11 +8,10 @@
 
 IntegratorSubStepMembrane::IntegratorSubStepMembrane(const YmrState *state, std::string name, int substeps, Interaction *fastForces) :
     Integrator(state, name), substeps(substeps),
-    subIntegrator(new IntegratorVV<Forcing_None>(state, name + "_sub", Forcing_None()))
-{
-    this->fastForces = dynamic_cast<InteractionMembrane*>(fastForces);
-    
-    if ( this->fastForces == nullptr )
+    subIntegrator(new IntegratorVV<Forcing_None>(state, name + "_sub", Forcing_None())),
+    fastForces(fastForces)
+{    
+    if ( dynamic_cast<InteractionMembrane*>(fastForces) == nullptr )
         die("IntegratorSubStepMembrane '%s': expects an interaction of type <InteractionMembrane>.",
             name.c_str());
 
