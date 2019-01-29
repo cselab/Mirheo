@@ -25,6 +25,9 @@ void InteractionDensity::setPrerequisites(ParticleVector *pv1, ParticleVector *p
 {
     impl->setPrerequisites(pv1, pv2, cl1, cl2);
 
+    pv1->requireDataPerParticle<float>(ChannelNames::densities, ExtraDataManager::CommunicationMode::None, ExtraDataManager::PersistenceMode::None);
+    pv2->requireDataPerParticle<float>(ChannelNames::densities, ExtraDataManager::CommunicationMode::None, ExtraDataManager::PersistenceMode::None);
+    
     cl1->requireExtraDataPerParticle<float>(ChannelNames::densities, CellList::InteractionOutput::Intermediate);
     cl2->requireExtraDataPerParticle<float>(ChannelNames::densities, CellList::InteractionOutput::Intermediate);
     
