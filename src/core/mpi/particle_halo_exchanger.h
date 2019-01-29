@@ -23,5 +23,5 @@ public:
 
     ~ParticleHaloExchanger();
     
-    void attach(ParticleVector* pv, CellList* cl);    
+    void attach(ParticleVector *pv, CellList *cl, const std::vector<std::string>& extraChannelNames);
 };

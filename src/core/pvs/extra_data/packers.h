@@ -4,7 +4,7 @@
 #include <core/pvs/particle_vector.h>
 #include <core/pvs/object_vector.h>
 
-using PackPredicate = std::function< bool (const ExtraDataManager::ChannelDescription&) >;
+using PackPredicate = std::function< bool (const ExtraDataManager::NamedChannelDesc&) >;
 
 /**
  * Class that packs nChannels of arbitrary data into a chunk of contiguous memory

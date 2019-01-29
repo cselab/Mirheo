@@ -28,7 +28,7 @@ void DevicePacker::registerChannels(PackPredicate predicate, ExtraDataManager& m
     {
         auto desc = name_desc.second;
         
-        if (!predicate(*desc)) continue;
+        if (!predicate(name_desc)) continue;
 
         int sz = desc->container->datatype_size();
 

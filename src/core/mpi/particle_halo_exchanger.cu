@@ -115,7 +115,7 @@ __global__ static void unpackParticles(ParticlePacker packer, int startDstId, ch
 
 ParticleHaloExchanger::~ParticleHaloExchanger() = default;
 
-void ParticleHaloExchanger::attach(ParticleVector* pv, CellList* cl)
+void ParticleHaloExchanger::attach(ParticleVector *pv, CellList *cl, const std::vector<std::string>& extraChannelNames)
 {
     int id = particles.size();
     particles.push_back(pv);
@@ -126,8 +126,10 @@ void ParticleHaloExchanger::attach(ParticleVector* pv, CellList* cl)
 
     helpers.push_back(std::move(helper));
 
-    packPredicates.push_back([](const ExtraDataManager::ChannelDescription& desc) {
-        return desc.communication == ExtraDataManager::CommunicationMode::NeedExchange;
+    packPredicates.push_back([extraChannelNames](const ExtraDataManager::NamedChannelDesc& namedDesc) {
+        bool needExchange = namedDesc.second->communication == ExtraDataManager::CommunicationMode::NeedExchange;
+        bool isRequired   = std::find(extraChannelNames.begin(), extraChannelNames.end(), namedDesc.first) != extraChannelNames.end();
+        return needExchange || isRequired;
     });
     
     info("Particle halo exchanger takes pv '%s'", pv->name.c_str());

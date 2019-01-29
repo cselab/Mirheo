@@ -617,7 +617,7 @@ void Simulation::prepareEngines()
         auto ov = dynamic_cast<ObjectVector*>(pvPtr);
             
         if (ov == nullptr) {
-            haloImp  ->attach(pvPtr, cl);
+            haloImp  ->attach(pvPtr, cl, cl->getInteractionOutputNames());
             redistImp->attach(pvPtr, cl);
         }
         else {

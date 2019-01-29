@@ -420,8 +420,8 @@ void SimpleStationaryWall<InsideWallChecker>::removeInner(ParticleVector* pv)
     }
     else
     {
-        PackPredicate packPredicate = [](const ExtraDataManager::ChannelDescription& desc) {
-            return desc.communication == ExtraDataManager::CommunicationMode::NeedExchange;
+        PackPredicate packPredicate = [](const ExtraDataManager::NamedChannelDesc& namedDesc) {
+            return namedDesc.second->communication == ExtraDataManager::CommunicationMode::NeedExchange;
         };
         
         // Prepare temp storage for extra object data

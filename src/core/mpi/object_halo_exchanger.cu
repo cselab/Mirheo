@@ -134,8 +134,8 @@ void ObjectHaloExchanger::attach(ObjectVector* ov, float rc)
     auto origin = std::make_unique<PinnedBuffer<int>>(ov->local()->size());    
     origins.push_back(std::move(origin));
 
-    packPredicates.push_back([](const ExtraDataManager::ChannelDescription& desc) {
-        return desc.communication == ExtraDataManager::CommunicationMode::NeedExchange;
+    packPredicates.push_back([](const ExtraDataManager::NamedChannelDesc& namedDesc) {
+        return namedDesc.second->communication == ExtraDataManager::CommunicationMode::NeedExchange;
     });
     
     info("Object vector %s (rc %f) was attached to halo exchanger", ov->name.c_str(), rc);
