@@ -131,6 +131,12 @@ public:
 
     std::vector<std::string> getInteractionOutputNames() const;
     std::vector<std::string> getInteractionIntermediateNames() const;
+
+    void setNeededForOutput();
+    void setNeededForIntermediate();
+    
+    bool isNeededForOutput() const;
+    bool isNeededForIntermediate() const;    
     
 protected:
     int changedStamp{-1};
@@ -162,6 +168,9 @@ protected:
     std::vector<ChannelActivity> interactionOutputChannels;       ///< channels which are final output of interactions, e.g. forces, stresses 
     std::vector<ChannelActivity> interactionIntermediateChannels; ///< channels which are intermediate output of interactions, e.g. forces, stresses
 
+    bool neededForOutput {false};
+    bool neededForIntermediate {false};
+    
     void _accumulateExtraData(std::vector<ChannelActivity>& channels, cudaStream_t stream);
     void _reorderExtraDataEntry(const std::string& channelName,
                                 const ExtraDataManager::ChannelDescription *channelDesc,

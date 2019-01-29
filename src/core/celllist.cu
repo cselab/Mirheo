@@ -377,6 +377,13 @@ std::vector<std::string> CellList::getInteractionIntermediateNames() const
     return names;
 }
 
+void CellList::setNeededForOutput() {neededForOutput = true;}
+void CellList::setNeededForIntermediate() {neededForIntermediate = true;}
+
+bool CellList::isNeededForOutput() const {return neededForOutput;}
+bool CellList::isNeededForIntermediate() const {return neededForIntermediate;}
+    
+
 //=================================================================================
 // Primary cell-lists
 //=================================================================================
