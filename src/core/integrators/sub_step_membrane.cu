@@ -13,8 +13,12 @@ IntegratorSubStepMembrane::IntegratorSubStepMembrane(const YmrState *state, std:
     this->fastForces = dynamic_cast<InteractionMembrane*>(fastForces);
     
     if ( this->fastForces == nullptr )
-        die("IntegratorSubStepMembrane expects an interaction of type <InteractionMembrane>.");
+        die("IntegratorSubStepMembrane '%s': expects an interaction of type <InteractionMembrane>.",
+            name.c_str());
 
+    debug("setup substep integrator '%s' for %d substeps with sub integrator '%s' and fast forces '%s'",
+          name.c_str(), substeps, subIntegrator->name.c_str(), fastForces->name.c_str());
+    
     subIntegrator->dt = dt / substeps;
 }
 

@@ -34,14 +34,6 @@ public:
     virtual void setPrerequisites(ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2);
 
     /**
-     * Init fields in particle vectors reuired before interaction
-     * Default: do nothing
-     * Called from Simulation at every step
-     */
-    virtual void initStep(ParticleVector *pv1, ParticleVector *pv2,
-                          CellList *cl1, CellList *cl2, cudaStream_t stream);
-
-    /**
      * states wether the interaction outputs forces or not
      * useful to know if it is an "intermediate" interaction 
      * default: returns true
