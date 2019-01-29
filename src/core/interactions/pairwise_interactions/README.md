@@ -34,3 +34,7 @@ Fetch functions (see in `fetchers.h`):
 Interacting checker to discard pairs not within cutoff:
 
 	__D__ inline bool withinCutoff(const ParticleType& src, const ParticleType& dst) const;
+	
+Position getter from generic particle type:
+	
+	__D__ inline float3 getPosition(const ParticleType& p) const;
