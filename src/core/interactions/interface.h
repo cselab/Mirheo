@@ -42,6 +42,13 @@ public:
                           CellList *cl1, CellList *cl2, cudaStream_t stream);
 
     /**
+     * states wether the interaction outputs forces or not
+     * useful to know if it is an "intermediate" interaction 
+     * default: returns true
+     */
+    virtual bool outputsForces() const;
+    
+    /**
      * Interface to compute local interactions.
      * For now order of \e pv1 and \e pv2 is important for computational reasons,
      * this may be changed later on so that the best order is chosen automatically.

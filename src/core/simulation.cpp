@@ -518,13 +518,30 @@ void Simulation::prepareInteractions()
 
         inter->setPrerequisites(pv1, pv2, cl1, cl2);
 
-        regularInteractions.push_back([inter, pv1, pv2, cl1, cl2] (cudaStream_t stream) {
-            inter->local(pv1, pv2, cl1, cl2, stream);
-        });
+        if (inter->outputsForces())
+        {
+            regularInteractions.push_back(
+                [inter, pv1, pv2, cl1, cl2] (cudaStream_t stream) {
+                    inter->local(pv1, pv2, cl1, cl2, stream);
+                });
 
-        haloInteractions.push_back([inter, pv1, pv2, cl1, cl2] (cudaStream_t stream) {
-            inter->halo(pv1, pv2, cl1, cl2, stream);
-        });
+            haloInteractions.push_back(
+                [inter, pv1, pv2, cl1, cl2] (cudaStream_t stream) {
+                    inter->halo(pv1, pv2, cl1, cl2, stream);
+                });
+        }
+        else
+        {
+            regularInteractionsIntermediate.push_back(
+                [inter, pv1, pv2, cl1, cl2] (cudaStream_t stream) {
+                    inter->local(pv1, pv2, cl1, cl2, stream);
+                });
+
+            haloInteractionsIntermediate.push_back(
+                [inter, pv1, pv2, cl1, cl2] (cudaStream_t stream) {
+                    inter->halo(pv1, pv2, cl1, cl2, stream);
+                });
+        }
     }
 }
 
@@ -647,11 +664,13 @@ static std::vector<std::string> getExtraOutputChannels(const std::vector<std::un
 
 void Simulation::prepareEngines()
 {
-    auto redistImp    = std::make_unique<ParticleRedistributor>();
-    auto haloImp      = std::make_unique<ParticleHaloExchanger>();
-    auto objRedistImp = std::make_unique<ObjectRedistributor>();
-    auto objHaloImp   = std::make_unique<ObjectHaloExchanger>();
-    auto objForcesImp = std::make_unique<ObjectForcesReverseExchanger>(objHaloImp.get());
+    auto redistImp              = std::make_unique<ParticleRedistributor>();
+    auto haloImp                = std::make_unique<ParticleHaloExchanger>();
+    auto haloIntermediateImp    = std::make_unique<ParticleHaloExchanger>();
+    auto objRedistImp           = std::make_unique<ObjectRedistributor>();
+    auto objHaloImp             = std::make_unique<ObjectHaloExchanger>();
+    auto objHaloIntermediateImp = std::make_unique<ObjectHaloExchanger>();
+    auto objForcesImp           = std::make_unique<ObjectForcesReverseExchanger>(objHaloImp.get());
 
     debug("Attaching particle vectors to halo exchanger and redistributor");
     for (auto& pv : particleVectors)
@@ -665,18 +684,26 @@ void Simulation::prepareEngines()
         CellList *clOut = getLargestNeededForOutput(cellListVec);
 
         auto extraInt = getExtraIntermediateChannels(cellListVec);
-        auto extraOut = getExtraOutputChannels(cellListVec);
+        // auto extraOut = getExtraOutputChannels(cellListVec); // TODO: for reverse exchanger
 
         auto cl = cellListVec[0].get();
         auto ov = dynamic_cast<ObjectVector*>(pvPtr);
         
         if (ov == nullptr) {
-            if (clOut != nullptr)
-                haloImp->attach(pvPtr, clOut, extraInt);
             redistImp->attach(pvPtr, cl);
+            
+            if (clInt != nullptr)
+                haloIntermediateImp->attach(pvPtr, clInt, {});
+
+            if (clOut != nullptr)
+                haloImp->attach(pvPtr, clOut, extraInt);            
         }
         else {
             objRedistImp->attach(ov);
+
+            if (clInt != nullptr)
+                objHaloIntermediateImp->attach(ov, clInt->rc, {});
+            
             objHaloImp  ->attach(ov, cl->rc, extraInt); // always active because of bounce back; TODO: check if bounce back is active
             objForcesImp->attach(ov);
         }
@@ -695,11 +722,13 @@ void Simulation::prepareEngines()
             return std::make_unique<MPIExchangeEngine> (std::move(exch), cartComm, gpuAwareMPI);
         };
     
-    redistributor   = makeEngine(std::move(redistImp));
-    halo            = makeEngine(std::move(haloImp));
-    objRedistibutor = makeEngine(std::move(objRedistImp));
-    objHalo         = makeEngine(std::move(objHaloImp));
-    objHaloForces   = makeEngine(std::move(objForcesImp));
+    redistributor       = makeEngine(std::move(redistImp));
+    halo                = makeEngine(std::move(haloImp));
+    haloIntermediate    = makeEngine(std::move(haloIntermediateImp));
+    objRedistibutor     = makeEngine(std::move(objRedistImp));
+    objHalo             = makeEngine(std::move(objHaloImp));
+    objHaloIntermediate = makeEngine(std::move(objHaloIntermediateImp));
+    objHaloForces       = makeEngine(std::move(objForcesImp));
 }
 
 void Simulation::execSplitters()
@@ -749,33 +778,47 @@ void Simulation::assemble()
 
     auto task_checkpoint                          = scheduler->createTask("Checkpoint");
     auto task_cellLists                           = scheduler->createTask("Build cell-lists");
+    auto task_integration                         = scheduler->createTask("Integration");
+
+    auto task_clearIntermediate                   = scheduler->createTask("Clear intermediate");
+    auto task_haloIntermediateInit                = scheduler->createTask("Halo intermediate init");
+    auto task_haloIntermediateFinalize            = scheduler->createTask("Halo intermediate finalize");
+    auto task_localIntermediate                   = scheduler->createTask("Local intermediate");
+    auto task_haloIntermediate                    = scheduler->createTask("Halo intermediate");
+    auto task_accumulateInteractionIntermediate   = scheduler->createTask("Accumulate intermediate");
+    auto task_gatherInteractionIntermediate       = scheduler->createTask("Gather intermediate");
+
     auto task_clearForces                         = scheduler->createTask("Clear forces");
-    auto task_pluginsBeforeForces                 = scheduler->createTask("Plugins: before forces");
     auto task_haloInit                            = scheduler->createTask("Halo init");
-    auto task_localForces                         = scheduler->createTask("Local forces");
-    auto task_pluginsSerializeSend                = scheduler->createTask("Plugins: serialize and send");
     auto task_haloFinalize                        = scheduler->createTask("Halo finalize");
+    auto task_localForces                         = scheduler->createTask("Local forces");
     auto task_haloForces                          = scheduler->createTask("Halo forces");
     auto task_accumulateInteractionOutput         = scheduler->createTask("Accumulate forces");
-    auto task_pluginsBeforeIntegration            = scheduler->createTask("Plugins: before integration");
+
     auto task_objHaloInit                         = scheduler->createTask("Object halo init");
     auto task_objHaloFinalize                     = scheduler->createTask("Object halo finalize");
+    auto task_objForcesInit                       = scheduler->createTask("Object forces exchange: init");
+    auto task_objForcesFinalize                   = scheduler->createTask("Object forces exchange: finalize");
     auto task_clearObjHaloForces                  = scheduler->createTask("Clear object halo forces");
     auto task_clearObjLocalForces                 = scheduler->createTask("Clear object local forces");
+
     auto task_objLocalBounce                      = scheduler->createTask("Local object bounce");
     auto task_objHaloBounce                       = scheduler->createTask("Halo object bounce");
     auto task_correctObjBelonging                 = scheduler->createTask("Correct object belonging");
-    auto task_objForcesInit                       = scheduler->createTask("Object forces exchange: init");
-    auto task_objForcesFinalize                   = scheduler->createTask("Object forces exchange: finalize");
+
     auto task_wallBounce                          = scheduler->createTask("Wall bounce");
-    auto task_wallCheck                           = scheduler->createTask("Wall check");
-    auto task_pluginsAfterIntegration             = scheduler->createTask("Plugins: after integration");
-    auto task_pluginsBeforeParticlesDistribution  = scheduler->createTask("Plugins: before particles distribution");
-    auto task_integration                         = scheduler->createTask("Integration");
+    auto task_wallCheck                           = scheduler->createTask("Wall check");    
+
     auto task_redistributeInit                    = scheduler->createTask("Redistribute init");
     auto task_redistributeFinalize                = scheduler->createTask("Redistribute finalize");
     auto task_objRedistInit                       = scheduler->createTask("Object redistribute init");
     auto task_objRedistFinalize                   = scheduler->createTask("Object redistribute finalize");
+
+    auto task_pluginsBeforeForces                 = scheduler->createTask("Plugins: before forces");
+    auto task_pluginsSerializeSend                = scheduler->createTask("Plugins: serialize and send");
+    auto task_pluginsBeforeIntegration            = scheduler->createTask("Plugins: before integration");
+    auto task_pluginsAfterIntegration             = scheduler->createTask("Plugins: after integration");
+    auto task_pluginsBeforeParticlesDistribution  = scheduler->createTask("Plugins: before particles distribution");
 
 
     if (globalCheckpointEvery > 0)
@@ -806,7 +849,8 @@ void Simulation::assemble()
         for (auto& cl : cellListMap[pv.get()])
         {
             auto clPtr = cl.get();
-            scheduler->addTask(task_clearForces, [clPtr] (cudaStream_t stream) { clPtr->clearInteractionOutput(stream); } );
+            scheduler->addTask(task_clearForces,       [clPtr] (cudaStream_t stream) { clPtr->clearInteractionOutput(stream); } );
+            scheduler->addTask(task_clearIntermediate, [clPtr] (cudaStream_t stream) { clPtr->clearInteractionIntermediate(stream); } );
         }
 
     for (auto& pl : plugins)
@@ -838,6 +882,14 @@ void Simulation::assemble()
     // If we have any non-object vectors
     if (particleVectors.size() != objectVectors.size())
     {
+        scheduler->addTask(task_haloIntermediateInit, [this] (cudaStream_t stream) {
+            haloIntermediate->init(stream);
+        });
+
+        scheduler->addTask(task_haloIntermediateFinalize, [this] (cudaStream_t stream) {
+            haloIntermediate->finalize(stream);
+        });
+
         scheduler->addTask(task_haloInit, [this] (cudaStream_t stream) {
             halo->init(stream);
         });
@@ -856,6 +908,16 @@ void Simulation::assemble()
     }
 
 
+    for (auto& inter : regularInteractionsIntermediate)
+        scheduler->addTask(task_localIntermediate, [inter, this] (cudaStream_t stream) {
+            inter(stream);
+        });
+
+    for (auto& inter : haloInteractionsIntermediate)
+        scheduler->addTask(task_haloIntermediate, [inter, this] (cudaStream_t stream) {
+            inter(stream);
+        });
+
     for (auto& inter : regularInteractions)
         scheduler->addTask(task_localForces, [inter, this] (cudaStream_t stream) {
             inter(stream);
@@ -870,6 +932,15 @@ void Simulation::assemble()
         for (auto& cl : clVec.second)
         {
             auto clPtr = cl.get();
+
+            scheduler->addTask(task_accumulateInteractionIntermediate, [clPtr] (cudaStream_t stream) {
+                clPtr->accumulateInteractionIntermediate(stream);
+            });
+
+            scheduler->addTask(task_gatherInteractionIntermediate, [clPtr] (cudaStream_t stream) {
+                clPtr->gatherInteractionIntermediate(stream);
+            });            
+            
             scheduler->addTask(task_accumulateInteractionOutput, [clPtr] (cudaStream_t stream) {
                 clPtr->accumulateInteractionOutput(stream);
             });
@@ -980,24 +1051,30 @@ void Simulation::assemble()
 
     scheduler->addDependency(task_correctObjBelonging, { task_cellLists }, {});
 
-    scheduler->addDependency(task_cellLists, {task_clearForces}, {});
+    scheduler->addDependency(task_cellLists, {task_clearForces, task_clearIntermediate}, {});
 
     
     scheduler->addDependency(task_pluginsBeforeForces, {task_localForces, task_haloForces}, {task_clearForces});
     scheduler->addDependency(task_pluginsSerializeSend, {task_pluginsBeforeIntegration, task_pluginsAfterIntegration}, {task_pluginsBeforeForces});
-
-    scheduler->addDependency(task_localForces, {}, {task_pluginsBeforeForces});
 
     scheduler->addDependency(task_clearObjHaloForces, {task_objHaloBounce}, {task_objHaloFinalize});
 
     scheduler->addDependency(task_objForcesInit, {}, {task_haloForces});
     scheduler->addDependency(task_objForcesFinalize, {task_accumulateInteractionOutput}, {task_objForcesInit});
 
-    scheduler->addDependency(task_haloInit, {}, {task_pluginsBeforeForces});
+    scheduler->addDependency(task_localIntermediate, {}, {task_clearIntermediate});
+    scheduler->addDependency(task_haloIntermediateInit, {}, {task_clearIntermediate});
+    scheduler->addDependency(task_haloIntermediateFinalize, {}, {task_haloIntermediateInit});
+    scheduler->addDependency(task_haloIntermediate, {}, {task_haloIntermediateFinalize});
+    scheduler->addDependency(task_accumulateInteractionIntermediate, {}, {task_localIntermediate, task_haloIntermediate});
+    scheduler->addDependency(task_gatherInteractionIntermediate, {}, {task_accumulateInteractionIntermediate});
+
+    scheduler->addDependency(task_localForces, {}, {task_gatherInteractionIntermediate});
+    scheduler->addDependency(task_haloInit, {}, {task_pluginsBeforeForces, task_gatherInteractionIntermediate});
     scheduler->addDependency(task_haloFinalize, {}, {task_haloInit});
     scheduler->addDependency(task_haloForces, {}, {task_haloFinalize});
-
     scheduler->addDependency(task_accumulateInteractionOutput, {task_integration}, {task_haloForces, task_localForces});
+
     scheduler->addDependency(task_pluginsBeforeIntegration, {task_integration}, {task_accumulateInteractionOutput});
     scheduler->addDependency(task_wallBounce, {}, {task_integration});
     scheduler->addDependency(task_wallCheck, {task_redistributeInit}, {task_wallBounce});

@@ -117,8 +117,8 @@ private:
 
     using ExchangeEngineUniquePtr = std::unique_ptr<ExchangeEngine>;
 
-    ExchangeEngineUniquePtr halo, redistributor;
-    ExchangeEngineUniquePtr objHalo, objRedistibutor, objHaloForces;
+    ExchangeEngineUniquePtr haloIntermediate, halo, redistributor;
+    ExchangeEngineUniquePtr objHaloIntermediate, objHalo, objRedistibutor, objHaloForces;
 
     std::map<std::string, int> pvIdMap;
     std::vector< std::shared_ptr<ParticleVector> > particleVectors;
@@ -190,6 +190,7 @@ private:
     std::vector<SplitterPrototype>            splitterPrototypes;
     std::vector<PvsCheckPointPrototype>       pvsCheckPointPrototype;
 
+    std::vector<std::function<void(cudaStream_t)>> regularInteractionsIntermediate, haloInteractionsIntermediate;
     std::vector<std::function<void(cudaStream_t)>> regularInteractions, haloInteractions;
     std::vector<std::function<void(cudaStream_t)>> integratorsStage1, integratorsStage2;
     std::vector<std::function<void(cudaStream_t)>> regularBouncers, haloBouncers;
