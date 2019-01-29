@@ -1,9 +1,11 @@
 #include "lj.h"
-#include <memory>
 #include "pairwise.h"
 #include "pairwise_interactions/lj.h"
 #include "pairwise_interactions/lj_object_aware.h"
 
+#include <core/celllist.h>
+
+#include <memory>
 
 InteractionLJ::InteractionLJ(const YmrState *state, std::string name, float rc, float epsilon, float sigma, float maxForce, bool objectAware, bool allocate) :
     Interaction(state, name, rc),
@@ -30,6 +32,9 @@ InteractionLJ::~InteractionLJ() = default;
 void InteractionLJ::setPrerequisites(ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2)
 {
     impl->setPrerequisites(pv1, pv2, cl1, cl2);
+
+    cl1->setNeededForOutput();
+    cl2->setNeededForOutput();
 }
 
 void InteractionLJ::local(ParticleVector *pv1, ParticleVector *pv2,

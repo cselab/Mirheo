@@ -42,7 +42,10 @@ void InteractionPair_withStress<PairwiseInteraction>::setPrerequisites(ParticleV
     
     cl1->requireExtraDataPerParticle <Stress> (ChannelNames::stresses, CellList::InteractionOutput::Final, activePredicate1);
     cl2->requireExtraDataPerParticle <Stress> (ChannelNames::stresses, CellList::InteractionOutput::Final, activePredicate2);
-    
+
+    cl1->setNeededForOutput();
+    cl2->setNeededForOutput();
+
     pv2lastStressTime[pv1] = -1;
     pv2lastStressTime[pv2] = -1;
 }

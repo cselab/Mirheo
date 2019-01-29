@@ -1,11 +1,12 @@
 #include "dpd.h"
-#include <memory>
 #include "pairwise.h"
 #include "pairwise_interactions/dpd.h"
 
+#include <core/celllist.h>
 #include <core/utils/make_unique.h>
 #include <core/pvs/particle_vector.h>
 
+#include <memory>
 
 InteractionDPD::InteractionDPD(const YmrState *state, std::string name, float rc, float a, float gamma, float kbt, float power, bool allocateImpl) :
     Interaction(state, name, rc),
@@ -26,6 +27,9 @@ InteractionDPD::~InteractionDPD() = default;
 void InteractionDPD::setPrerequisites(ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2)
 {
     impl->setPrerequisites(pv1, pv2, cl1, cl2);
+
+    cl1->setNeededForOutput();
+    cl2->setNeededForOutput();
 }
 
 void InteractionDPD::local(ParticleVector *pv1, ParticleVector *pv2,
