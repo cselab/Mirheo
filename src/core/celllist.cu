@@ -391,7 +391,8 @@ void CellList::_addIfNameNoIn(const std::string& name, CellList::ActivePredicate
             alreadyIn = true;
 
     if (alreadyIn) {
-        debug("channel '%s' already added, skip it.", name.c_str());
+        debug("channel '%s' already added, skip it. Make sure that the activity predicate is the same", name.c_str());
+        // We could also make pred = old_pred || pred; leave it as it is for now
         return;
     }
     
