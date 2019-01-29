@@ -122,7 +122,7 @@ bool ObjectHaloExchanger::needExchange(int id)
     return !objects[id]->haloValid;
 }
 
-void ObjectHaloExchanger::attach(ObjectVector* ov, float rc)
+void ObjectHaloExchanger::attach(ObjectVector* ov, float rc, const std::vector<std::string>& extraChannelNames)
 {
     int id = objects.size();
     objects.push_back(ov);
@@ -134,8 +134,10 @@ void ObjectHaloExchanger::attach(ObjectVector* ov, float rc)
     auto origin = std::make_unique<PinnedBuffer<int>>(ov->local()->size());    
     origins.push_back(std::move(origin));
 
-    packPredicates.push_back([](const ExtraDataManager::NamedChannelDesc& namedDesc) {
-        return namedDesc.second->communication == ExtraDataManager::CommunicationMode::NeedExchange;
+    packPredicates.push_back([extraChannelNames](const ExtraDataManager::NamedChannelDesc& namedDesc) {
+        bool needExchange = namedDesc.second->communication == ExtraDataManager::CommunicationMode::NeedExchange;
+        bool isRequired   = std::find(extraChannelNames.begin(), extraChannelNames.end(), namedDesc.first) != extraChannelNames.end();
+        return needExchange || isRequired;
     });
     
     info("Object vector %s (rc %f) was attached to halo exchanger", ov->name.c_str(), rc);

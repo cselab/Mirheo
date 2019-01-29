@@ -25,7 +25,7 @@ protected:
     bool needExchange(int id) override;
 
 public:
-    void attach(ObjectVector* ov, float rc);
+    void attach(ObjectVector* ov, float rc, const std::vector<std::string>& extraChannelNames);
 
     PinnedBuffer<int>& getRecvOffsets(int id);
     PinnedBuffer<int>& getOrigins    (int id);
