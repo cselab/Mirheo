@@ -598,6 +598,32 @@ void Simulation::preparePlugins()
     info("done Preparing plugins");
 }
 
+static CellList* getLargestNeedingOutput(const std::vector<std::unique_ptr<CellList>>& cellListVec)
+{
+    for (const auto& cl : cellListVec)
+        if (cl->isNeededForOutput()) return cl.get();
+    return nullptr;
+}
+
+static void removeDuplicates(std::vector<std::string>& v)
+{
+    std::sort(v.begin(), v.end());
+    auto it = std::unique(v.begin(), v.end());
+    v.resize( std::distance(v.begin(), it) );    
+}
+
+static std::vector<std::string> getExtraOutputChannels(const std::vector<std::unique_ptr<CellList>>& cellListVec)
+{
+    std::vector<std::string> outputs;
+    for (const auto& cl : cellListVec) {
+        auto clOutputs = cl->getInteractionOutputNames();
+        outputs.insert(outputs.end(),
+                       std::make_move_iterator(clOutputs.begin()),
+                       std::make_move_iterator(clOutputs.end()));
+    }
+    removeDuplicates(outputs);
+}
+
 void Simulation::prepareEngines()
 {
     auto redistImp    = std::make_unique<ParticleRedistributor>();
@@ -609,15 +635,20 @@ void Simulation::prepareEngines()
     debug("Attaching particle vectors to halo exchanger and redistributor");
     for (auto& pv : particleVectors)
     {
-        auto pvPtr = pv.get();
+        auto  pvPtr       = pv.get();
+        auto& cellListVec = cellListMap[pvPtr];        
 
-        if (cellListMap[pvPtr].size() == 0) continue;
+        if (cellListVec.size() == 0) continue;
 
-        auto cl = cellListMap[pvPtr][0].get();
+        CellList *clOut = getLargestNeedingOutput(cellListVec);
+        auto extraOutputs = getExtraOutputChannels(cellListVec);
+
+        auto cl = cellListVec[0].get();
         auto ov = dynamic_cast<ObjectVector*>(pvPtr);
             
         if (ov == nullptr) {
-            haloImp  ->attach(pvPtr, cl, cl->getInteractionOutputNames());
+            if (clOut != nullptr)
+                haloImp->attach(pvPtr, clOut, extraOutputs);
             redistImp->attach(pvPtr, cl);
         }
         else {
