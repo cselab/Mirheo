@@ -677,7 +677,7 @@ void Simulation::prepareEngines()
         }
         else {
             objRedistImp->attach(ov);
-            objHaloImp  ->attach(ov, cl->rc, extraInt); // always because of bounce back; TODO: check if bounce back is needed
+            objHaloImp  ->attach(ov, cl->rc, extraInt); // always active because of bounce back; TODO: check if bounce back is active
             objForcesImp->attach(ov);
         }
     }
