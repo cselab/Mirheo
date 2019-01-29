@@ -4,9 +4,11 @@ A set of pairwise interaction kernel classes that can be passed to pairwise_kern
 
 ## interface requirements
 
-Need to define a view type to be passed (example: PVview, PVviewWithStresses...)
+Need to define a view type to be passed (example: PVview, PVviewWithStresses...) as well as a particle type to be fetched
 
 	using ViewType = <particle vector view type>
+	using ParticleType = <particle type>
+
 
 Setup function (on Host)
 
@@ -14,10 +16,21 @@ Setup function (on Host)
 	
 Interaction function (output must match with accumulator, see below) (on GPU)
 
-	__D__ inline <OutputType> operator()(const Particle dst, int dstId, const Particle src, int srcId) const;
+	__D__ inline <OutputType> operator()(const ParticleType dst, int dstId, const ParticleType src, int srcId) const;
 
 Accumulator initializer (on GPU)
 
 	__D__ inline <Accumulator> getZeroedAccumulator() const;
 
 
+Fetch functions (see in `fetchers.h`):
+
+	__D__ inline ParticleType read(const ViewType& view, int id) const;
+	__D__ inline ParticleType readNoCache(const ViewType& view, int id) const;
+	
+	__D__ inline void readCoordinates(ParticleType& p, const ViewType& view, int id) const;
+	__D__ inline void readExtraData(ParticleType& p, const ViewType& view, int id) const;
+
+Interacting checker to discard pairs not within cutoff:
+
+	__D__ inline bool withinCutoff(const ParticleType& src, const ParticleType& dst) const;

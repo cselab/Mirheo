@@ -11,7 +11,8 @@ class Pairwise_LJObjectAware
 {
 public:
 
-    using ViewType = PVview;
+    using ViewType     = PVview;
+    using ParticleType = Particle;
     
     Pairwise_LJObjectAware(float rc, float epsilon, float sigma, float maxForce) :
         lj(rc, epsilon, sigma, maxForce)
@@ -30,7 +31,14 @@ public:
         }
     }
 
-    __D__ inline float3 operator()(Particle dst, int dstId, Particle src, int srcId) const
+    __D__ inline ParticleType read(const ViewType& view, int id) const                     { return        lj.read(view, id); }
+    __D__ inline ParticleType readNoCache(const ViewType& view, int id) const              { return lj.readNoCache(view, id); }
+    __D__ inline void readCoordinates(ParticleType& p, const ViewType& view, int id) const { lj.readCoordinates(p, view, id); }
+    __D__ inline void readExtraData  (ParticleType& p, const ViewType& view, int id) const { lj.readExtraData  (p, view, id); }
+
+    __D__ inline bool withinCutoff(const ParticleType& src, const ParticleType& dst) const { return lj.withinCutoff(src, dst); }
+
+    __D__ inline float3 operator()(ParticleType dst, int dstId, ParticleType src, int srcId) const
     {
         if (self)
         {

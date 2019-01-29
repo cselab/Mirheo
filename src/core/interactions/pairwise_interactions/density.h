@@ -1,10 +1,8 @@
 #pragma once
 
-#include <core/datatypes.h>
+#include "fetchers.h"
+
 #include <core/interactions/accumulators/density.h>
-#include <core/utils/cpu_gpu_defines.h>
-#include <core/utils/helper_math.h>
-#include <core/pvs/views/pv.h>
 
 class CellList;
 class LocalParticleVector;
@@ -19,24 +17,24 @@ static float fastPower(float x, float a)
 #endif
 
 
-class Pairwise_density
+class Pairwise_density : public ParticleFetcher
 {
 public:
 
-    using ViewType = PVviewWithDensities;
+    using ViewType     = PVviewWithDensities;
+    using ParticleType = Particle;
     
     Pairwise_density(float rc) :
-        rc(rc)
+        ParticleFetcher(rc)
     {
-        rc2 = rc*rc;
         invrc = 1.0 / rc;
         fact = 15.0 / (2 * M_PI * rc2 * rc);
     }
 
-    void setup(LocalParticleVector* lpv1, LocalParticleVector* lpv2, CellList* cl1, CellList* cl2, float t)
+    void setup(LocalParticleVector *lpv1, LocalParticleVector *lpv2, CellList *cl1, CellList *cl2, float t)
     {}
 
-    __D__ inline float operator()(const Particle dst, int dstId, const Particle src, int srcId) const
+    __D__ inline float operator()(const ParticleType dst, int dstId, const ParticleType src, int srcId) const
     {
         float3 dr = dst.r - src.r;
         float rij2 = dot(dr, dr);
@@ -52,6 +50,5 @@ public:
 
 protected:
 
-    float rc;
-    float invrc, rc2, fact;
+    float invrc, fact;
 };

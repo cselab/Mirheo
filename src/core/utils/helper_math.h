@@ -1611,6 +1611,15 @@ inline __host__ __device__ double length(double4 v)
     return sqrtf(dot(v, v));
 }
 
+
+
+inline __host__ __device__ float distance2(float3 a, float3 b)
+{
+    auto sqr = [] (float x) { return x*x; };
+    return sqr(a.x - b.x) + sqr(a.y - b.y) + sqr(a.z - b.z);
+}
+
+
 ////////////////////////////////////////////////////////////////////////////////
 // normalize
 ////////////////////////////////////////////////////////////////////////////////

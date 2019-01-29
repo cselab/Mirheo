@@ -20,16 +20,6 @@ enum class InteractionMode
     RowWise, Dilute
 };
 
-/// Squared distance between vectors with components
-/// (\p a.x, \p a.y, \p a.z) and (\p b.x, \p b.y, \p b.z)
-template<typename Ta, typename Tb>
-__device__ inline float distance2(const Ta a, const Tb b)
-{
-    auto sqr = [] (float x) { return x*x; };
-    return sqr(a.x - b.x) + sqr(a.y - b.y) + sqr(a.z - b.z);
-}
-
-
 /**
  * Compute interactions between one destination particle and
  * all source particles in a given cell, defined by range of ids:
@@ -68,22 +58,22 @@ template<InteractionOut NeedDstAcc, InteractionOut NeedSrcAcc, InteractionWith I
          typename Interaction, typename Accumulator>
 __device__ inline void computeCell(
         int pstart, int pend,
-        Particle dstP, int dstId, typename Interaction::ViewType srcView, float rc2,
+        typename Interaction::ParticleType dstP, int dstId, typename Interaction::ViewType srcView, float rc2,
         Interaction& interaction, Accumulator& accumulator)
 {
     for (int srcId = pstart; srcId < pend; srcId++)
     {
-        Particle srcP;
-        srcP.readCoordinate(srcView.particles, srcId);
+        typename Interaction::ParticleType srcP;
+        interaction.readCoordinates(srcP, srcView, srcId);
 
-        bool interacting = distance2(srcP.r, dstP.r) < rc2;
+        bool interacting = interaction.withinCutoff(srcP, dstP);
 
         if (InteractWith == InteractionWith::Self)
             if (dstId <= srcId) interacting = false;
 
         if (interacting)
         {
-            srcP.readVelocity(srcView.particles, srcId);
+            interaction.readExtraData(srcP, srcView, srcId);
 
             auto val = interaction(dstP, dstId, srcP, srcId);
 
@@ -122,7 +112,7 @@ __global__ void computeSelfInteractions(
     const int dstId = blockIdx.x*blockDim.x + threadIdx.x;
     if (dstId >= view.size) return;
 
-    const Particle dstP(view.particles, dstId);
+    const auto dstP = interaction.read(view, dstId);
 
     auto accumulator = interaction.getZeroedAccumulator();
 
@@ -195,9 +185,7 @@ __global__ void computeExternalInteractions_1tpp(
     const int dstId = blockIdx.x*blockDim.x + threadIdx.x;
     if (dstId >= dstView.size) return;
 
-    const Particle dstP(
-            readNoCache(dstView.particles+2*dstId),
-            readNoCache(dstView.particles+2*dstId+1) );
+    const auto dstP = interaction.readNoCache(dstView, dstId);
 
     auto accumulator = interaction.getZeroedAccumulator();
 
@@ -263,9 +251,7 @@ __global__ void computeExternalInteractions_3tpp(
 
     if (dstId >= dstView.size) return;
 
-    const Particle dstP(
-            readNoCache(dstView.particles+2*dstId),
-            readNoCache(dstView.particles+2*dstId+1) );
+    const auto dstP = interaction.readNoCache(dstView, dstId);
 
     auto accumulator = interaction.getZeroedAccumulator();
 
@@ -332,9 +318,7 @@ __global__ void computeExternalInteractions_9tpp(
 
     if (dstId >= dstView.size) return;
 
-    const Particle dstP(
-            readNoCache(dstView.particles+2*dstId),
-            readNoCache(dstView.particles+2*dstId+1) );
+    const auto dstP = interaction.readNoCache(dstView, dstId);
 
     auto accumulator = interaction.getZeroedAccumulator();
 
@@ -401,9 +385,7 @@ __global__ void computeExternalInteractions_27tpp(
     
     if (dstId >= dstView.size) return;
 
-    const Particle dstP(
-            readNoCache(dstView.particles+2*dstId),
-            readNoCache(dstView.particles+2*dstId+1) );
+    const auto dstP = interaction.readNoCache(dstView, dstId);
 
     auto accumulator = interaction.getZeroedAccumulator();
 

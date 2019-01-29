@@ -1,32 +1,32 @@
 #pragma once
 
-#include <core/datatypes.h>
+#include "fetchers.h"
+
 #include <core/interactions/accumulators/force.h>
-#include <core/utils/cpu_gpu_defines.h>
-#include <core/utils/cuda_common.h>
-#include <core/utils/helper_math.h>
 
 class LocalParticleVector;
 class CellList;
 
 
-class Pairwise_LJ
+class Pairwise_LJ : public ParticleFetcher
 {
 public:
 
-    using ViewType = PVview;
+    using ViewType     = PVview;
+    using ParticleType = Particle;
     
     Pairwise_LJ(float rc, float epsilon, float sigma, float maxForce) :
-        rc(rc), epsilon(epsilon), sigma(sigma), maxForce(maxForce)
+        ParticleFetcher(rc),
+        epsilon(epsilon), sigma(sigma), maxForce(maxForce)
     {
         epsx24_sigma = 24.0*epsilon/sigma;
         rc2 = rc*rc;
     }
 
     void setup(LocalParticleVector* pv1, LocalParticleVector* pv2, CellList* cl1, CellList* cl2, float t)
-    {    }
+    {}
 
-    __D__ inline float3 operator()(Particle dst, int dstId, Particle src, int srcId) const
+    __D__ inline float3 operator()(ParticleType dst, int dstId, ParticleType src, int srcId) const
     {
         const float3 dr = dst.r - src.r;
         const float rij2 = dot(dr, dr);
@@ -47,6 +47,6 @@ public:
     
 private:
 
-    float rc, epsilon, sigma, maxForce;
-    float epsx24_sigma, rc2;
+    float epsilon, sigma, maxForce;
+    float epsx24_sigma;
 };

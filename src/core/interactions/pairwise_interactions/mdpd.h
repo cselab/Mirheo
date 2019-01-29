@@ -1,10 +1,8 @@
 #pragma once
 
-#include <core/datatypes.h>
+#include "fetchers.h"
+
 #include <core/interactions/accumulators/force.h>
-#include <core/utils/cpu_gpu_defines.h>
-#include <core/utils/cuda_rng.h>
-#include <core/utils/helper_math.h>
 
 #include <random>
 
@@ -20,13 +18,7 @@ static float fastPower(float x, float a)
 #include <core/utils/cuda_common.h>
 #endif
 
-struct ParticleWithDensity
-{
-    Particle p;
-    float d;
-};
-
-class Pairwise_MDPD
+class Pairwise_MDPD : public ParticleFetcherWithVelocityAndDensity
 {
 public:
 
@@ -34,10 +26,10 @@ public:
     using ParticleType = ParticleWithDensity;
     
     Pairwise_MDPD(float rc, float rd, float a, float b, float gamma, float kbT, float dt, float power) :
-        rc(rc), rd(rd), a(a), b(b), gamma(gamma), power(power)
+        ParticleFetcherWithVelocityAndDensity(rc),
+        rd(rd), a(a), b(b), gamma(gamma), power(power)
     {
         sigma = sqrt(2 * gamma * kbT / dt);
-        rc2 = rc*rc;
         invrc = 1.0 / rc;
         invrd = 1.0 / rd;
     }
@@ -54,22 +46,6 @@ public:
         seed = udistr(gen);
     }
 
-    __D__ inline ParticleType read(const ViewType& view, int id)
-    {
-        return {Particle(view.particles, id), view,densities[id]};
-    }
-    
-    __D__ inline void readCoordinates(ParticleType& p, const ViewType& view, int id)
-    {
-        p.p.readCoordinate(view.particles, srcId);
-    }
-
-    __D__ inline void readExtraData(ParticleType& p, const ViewType& view, int id)
-    {
-        p.p.readVelocity(view.particles, srcId);
-        p.d = view.densities[id];
-    }
-    
     __D__ inline float3 operator()(const ParticleType dst, int dstId, const ParticleType src, int srcId) const
     {
         const float3 dr = dst.p.r - src.p.r;
@@ -98,7 +74,7 @@ public:
 
 protected:
 
-    float a, b, gamma, sigma, power, rc, rd;
-    float invrc, invrd, rc2;
+    float a, b, gamma, sigma, power, rd;
+    float invrc, invrd;
     float seed;
 };
