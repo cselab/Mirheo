@@ -89,6 +89,12 @@ __global__ void packRigidForces(ROVview view, float4* output, int packedObjSize)
 // Member functions
 //===============================================================================================
 
+ObjectForcesReverseExchanger::ObjectForcesReverseExchanger(ObjectHaloExchanger* entangledHaloExchanger) :
+    entangledHaloExchanger(entangledHaloExchanger)
+{}
+
+ObjectForcesReverseExchanger::~ObjectForcesReverseExchanger() = default;
+
 bool ObjectForcesReverseExchanger::needExchange(int id)
 {
     return true;
@@ -115,7 +121,7 @@ void ObjectForcesReverseExchanger::prepareSizes(int id, cudaStream_t stream)
     auto helper = helpers[id].get();
     auto& offsets = entangledHaloExchanger->getRecvOffsets(id);
 
-    for (int i=0; i < helper->nBuffers; i++)
+    for (int i = 0; i < helper->nBuffers; i++)
         helper->sendSizes[i] = offsets[i+1] - offsets[i];
 }
 

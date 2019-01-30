@@ -23,11 +23,8 @@ protected:
     bool needExchange(int id) override;
 
 public:
-    ObjectForcesReverseExchanger(ObjectHaloExchanger* entangledHaloExchanger) :
-        entangledHaloExchanger(entangledHaloExchanger)
-    {}
-
-    void attach(ObjectVector* ov);
-
-    virtual ~ObjectForcesReverseExchanger() = default;
+    ObjectForcesReverseExchanger(ObjectHaloExchanger* entangledHaloExchanger);
+    virtual ~ObjectForcesReverseExchanger();
+    
+    void attach(ObjectVector* ov);    
 };
