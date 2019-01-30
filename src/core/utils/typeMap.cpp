@@ -25,3 +25,14 @@ DataType stringToDataType(std::string str)
     return DataType::DATATYPE_NONE;
 }
 
+size_t dataTypeToByteSize(DataType dataType)
+{
+#define SWITCH_ENTRY(ctype) case DataType::TOKENIZE(ctype): return sizeof(ctype);
+
+    switch (dataType) {
+        TYPE_TABLE(SWITCH_ENTRY);
+    default: return 0;
+    };
+
+#undef SWITCH_ENTRY
+}
