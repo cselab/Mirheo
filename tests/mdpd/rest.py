@@ -28,7 +28,7 @@ u.registerIntegrator(vv)
 u.setIntegrator(vv, pv)
 
 u.registerPlugins(ymr.Plugins.createStats('stats', "stats.txt", 1000))
-u.registerPlugins(ymr.Plugins.createDumpParticles('partDump', pv, 1000, [], 'h5/solvent_particles-'))
+#u.registerPlugins(ymr.Plugins.createDumpParticles('partDump', pv, 1000, [], 'h5/solvent_particles-'))
 
 u.run(5001)
 
