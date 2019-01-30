@@ -1097,6 +1097,8 @@ void Simulation::assemble()
     scheduler->addDependency(task_clearObjLocalForces, {task_objLocalBounce}, {task_integration, task_objRedistFinalize});
 
     scheduler->setHighPriority(task_objForcesInit);
+    scheduler->setHighPriority(task_haloIntermediateInit);
+    scheduler->setHighPriority(task_haloIntermediateFinalize);
     scheduler->setHighPriority(task_haloInit);
     scheduler->setHighPriority(task_haloFinalize);
     scheduler->setHighPriority(task_haloForces);
