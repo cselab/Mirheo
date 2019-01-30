@@ -939,7 +939,7 @@ void Simulation::assemble()
 
             scheduler->addTask(task_gatherInteractionIntermediate, [clPtr] (cudaStream_t stream) {
                 clPtr->gatherInteractionIntermediate(stream);
-            });            
+            });
             
             scheduler->addTask(task_accumulateInteractionOutput, [clPtr] (cudaStream_t stream) {
                 clPtr->accumulateInteractionOutput(stream);
