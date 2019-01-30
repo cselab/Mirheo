@@ -25,7 +25,7 @@ u.run(1)
 
 u.save_dependency_graph_graphml("tasks")
 
-# nTEST: dump.graph
+# snTEST: dump.graph
 # cd dump
 # rm -rf tasks.graphml
 # ymr.run --runargs "-n 1" ./graph.py > /dev/null
