@@ -19,6 +19,7 @@ struct DevicePacker
     int *channelShiftTypes   = nullptr;   ///< if type is 4, then treat data to shift as float3, if it is 8 -- as double3
     char **channelData       = nullptr;   ///< device pointers of the packed data
 
+#ifdef __CUDACC__
     /**
      * Pack entity with id srcId into memory starting with dstAddr
      * Don't apply no shifts
@@ -44,11 +45,38 @@ struct DevicePacker
     {
         for (int i = 0; i < nChannels; i++)
         {
-            copy(channelData[i] + channelSizes[i]*dstId, srcAddr, channelSizes[i]);
-            srcAddr += channelSizes[i];
+            const int size = channelSizes[i];
+            char *dstAddr = channelData[i] + size * dstId;
+            copy(dstAddr, srcAddr, size);
+            srcAddr += size;
         }
     }
 
+    /**
+     * atomicly add entity from memory by srcAddr to the channels to id dstId; assumes floating points
+     */
+    inline __device__ void unpackAdd(const char *srcAddr, int dstId) const
+    {
+        const float tolerance = 1e-7;
+        
+        for (int i = 0; i < nChannels; i++)
+        {
+            const int size = channelSizes[i];
+            char *dstAddr = channelData[i] + size * dstId;                        
+            const float *src = (const float*) srcAddr;
+            float       *dst = (      float*) dstAddr;
+                
+            for (int j = 0; j < size / sizeof(float); ++j) {
+                float val = src[j];
+                if (fabs(val) < tolerance)
+                    atomicAdd(&dst[j], val);
+            }
+            srcAddr += size;
+        }
+    }
+
+#endif /* __CUDACC__ */
+    
 private:
 
     enum class ShiftMode
@@ -56,6 +84,12 @@ private:
         NeedShift, NoShift
     };
 
+    enum class AddMode
+    {
+        Add, Copy
+    };
+
+#ifdef __CUDACC__
     /**
      * Copy nchunks*sizeof(T) bytes from \c from to \c to
      */
@@ -89,7 +123,7 @@ private:
 
     /**
      * Packing implementation
-     * Template parameter NEEDSHIFT governs shifting
+     * Template parameter shiftmode governs shifting
      */
     template <ShiftMode shiftmode>
     inline __device__ void _packShift(int srcId, char *dstAddr, float3 shift) const
@@ -127,7 +161,8 @@ private:
             dstAddr += size;
         }
     }
-
+#endif /* __CUDACC__ */
+    
 protected:
 
     void registerChannel (ExtraDataManager& manager, int sz, char *ptr, int typesize, bool& needUpload, cudaStream_t stream);
@@ -137,11 +172,19 @@ protected:
 };
 
 /**
- * Class that uses DevicePacker to pack a single particle entity
+ * Class that uses DevicePacker to pack a single particle entity; always pack coordinates and velocities
  */
 struct ParticlePacker : public DevicePacker
 {
     ParticlePacker(ParticleVector *pv, LocalParticleVector *lpv, PackPredicate predicate, cudaStream_t stream);
+};
+
+/**
+ * Class that uses DevicePacker to pack a single particle entity; do not pack coordinates and velocities
+ */
+struct ParticleExtraPacker : public DevicePacker
+{
+    ParticleExtraPacker(ParticleVector *pv, LocalParticleVector *lpv, PackPredicate predicate, cudaStream_t stream);
 };
 
 

@@ -80,6 +80,18 @@ ParticlePacker::ParticlePacker(ParticleVector *pv, LocalParticleVector *lpv, Pac
     setAndUploadData(           manager,           needUpload, stream);
 }
 
+ParticleExtraPacker::ParticleExtraPacker(ParticleVector *pv, LocalParticleVector *lpv, PackPredicate predicate, cudaStream_t stream)
+{
+    if (pv == nullptr || lpv == nullptr) return;
+
+    auto& manager = lpv->extraPerParticle;
+
+    bool needUpload = false;
+    registerChannels(predicate, manager, pv->name, needUpload, stream);
+    setAndUploadData(           manager,           needUpload, stream);
+}
+
+
 ObjectExtraPacker::ObjectExtraPacker(ObjectVector* ov, LocalObjectVector* lov, PackPredicate predicate, cudaStream_t stream)
 {
     if (ov == nullptr || lov == nullptr) return;
