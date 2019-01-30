@@ -88,7 +88,7 @@ class CellList : public CellListInfo
 {
 public:    
 
-    enum class InteractionOutput {Intermediate, Final, None};
+    enum class ExtraChannelRole {IntermediateOutput, IntermediateInput, FinalOutput, None};
     using ActivePredicate = std::function<bool()>;
     
     CellList(ParticleVector *pv, float rc, float3 localDomainSize);
@@ -102,7 +102,7 @@ public:
     virtual void accumulateInteractionOutput(cudaStream_t stream);
     virtual void accumulateInteractionIntermediate(cudaStream_t stream);
 
-    virtual void gatherInteractionIntermediate(cudaStream_t stream);
+    void gatherInteractionIntermediate(cudaStream_t stream);
     
     void clearInteractionOutput(cudaStream_t stream);
     void clearInteractionIntermediate(cudaStream_t stream);
@@ -119,7 +119,7 @@ public:
      * 
      */
     template <typename T>
-    void requireExtraDataPerParticle(const std::string& name, InteractionOutput kind, ActivePredicate pred = [](){return true;})
+    void requireExtraDataPerParticle(const std::string& name, ExtraChannelRole kind, ActivePredicate pred = [](){return true;})
     {
         localPV->extraPerParticle.createData<T>(name);
 
@@ -162,11 +162,12 @@ protected:
         ActivePredicate active;
     };
     
-    std::vector<ChannelActivity> interactionOutputChannels;       ///< channels which are final output of interactions, e.g. forces, stresses 
-    std::vector<ChannelActivity> interactionIntermediateChannels; ///< channels which are intermediate output of interactions, e.g. forces, stresses
+    std::vector<ChannelActivity> finaleOutputChannels;       ///< channels which are final output of interactions, e.g. forces, stresses for dpd kernel
+    std::vector<ChannelActivity> intermediateOutputChannels; ///< channels which are intermediate output of interactions, e.g. densities for density kernel
+    std::vector<ChannelActivity> intermediateInputChannels;  ///< channels which are intermediate input for interactions, e.g. densities for mdpd kernel
 
     void _addIfNameNoIn(const std::string& name, CellList::ActivePredicate pred, std::vector<ChannelActivity>& vec) const;
-    void _addToChannel(const std::string& name, InteractionOutput kind, ActivePredicate pred);
+    void _addToChannel(const std::string& name, ExtraChannelRole kind, ActivePredicate pred);
 
     bool neededForOutput {false};
     bool neededForIntermediate {false};
@@ -190,7 +191,6 @@ public:
     void build(cudaStream_t stream);
     void accumulateInteractionOutput(cudaStream_t stream) override;
     void accumulateInteractionIntermediate(cudaStream_t stream) override;
-    void gatherInteractionIntermediate(cudaStream_t stream) override;
 };
 
 

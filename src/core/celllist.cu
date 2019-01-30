@@ -289,13 +289,16 @@ void CellList::_accumulateExtraData(std::vector<ChannelActivity>& channels, cuda
     for (auto& entry : channels) {
         if (!entry.active()) continue;
 
+        debug("accumulating channel '%s' of pv '%s' from cell list (rc = %g)",
+              entry.name.c_str(), pv->name.c_str(), rc);
+
         switch(localPV->extraPerParticle.getChannelDescOrDie(entry.name).dataType) {
 
 #define SWITCH_ENTRY(ctype)                                             \
             case DataType::TOKENIZE(ctype):                             \
             {                                                           \
-                auto src = pv->local()->extraPerParticle.getData<ctype>(entry.name); \
-                auto dst = localPV    ->extraPerParticle.getData<ctype>(entry.name); \
+                auto src = localPV    ->extraPerParticle.getData<ctype>(entry.name); \
+                auto dst = pv->local()->extraPerParticle.getData<ctype>(entry.name); \
                 int n = pv->local()->size();                            \
                 SAFE_KERNEL_LAUNCH(                                     \
                     accumulateKernel<ctype>,                            \
@@ -325,19 +328,22 @@ void CellList::accumulateInteractionOutput(cudaStream_t stream)
             getNblocks(dstView.size, nthreads), nthreads, 0, stream,
             dstView, cellInfo(), getView<PVview>() );
 
-    _accumulateExtraData(interactionOutputChannels, stream);
+    _accumulateExtraData(finaleOutputChannels, stream);
 }
 
 void CellList::accumulateInteractionIntermediate(cudaStream_t stream)
 {
-    _accumulateExtraData(interactionIntermediateChannels, stream);
+    _accumulateExtraData(intermediateOutputChannels, stream);
 }
 
 void CellList::gatherInteractionIntermediate(cudaStream_t stream)
 {
-    for (auto& entry : interactionIntermediateChannels) {
+    for (auto& entry : intermediateInputChannels) {
         if (!entry.active()) continue;
 
+        debug("gathering intermediate channel '%s' from pv '%s' to cell list (rc = %g)",
+              entry.name.c_str(), pv->name.c_str(), rc);
+        
         auto& desc = localPV->extraPerParticle.getChannelDescOrDie(entry.name);
         _reorderExtraDataEntry(entry.name, &desc, stream);
     }
@@ -347,7 +353,7 @@ void CellList::clearInteractionOutput(cudaStream_t stream)
 {
     localPV->forces.clear(stream);
 
-    for (auto& channel : interactionOutputChannels) {
+    for (auto& channel : finaleOutputChannels) {
         if (!channel.active()) continue;
         localPV->extraPerParticle.getGenericData(channel.name)->clear(stream);
     }
@@ -355,7 +361,7 @@ void CellList::clearInteractionOutput(cudaStream_t stream)
 
 void CellList::clearInteractionIntermediate(cudaStream_t stream)
 {
-    for (auto& channel : interactionIntermediateChannels) {
+    for (auto& channel : intermediateOutputChannels) {
         if (!channel.active()) continue;
         localPV->extraPerParticle.getGenericData(channel.name)->clear(stream);
     }
@@ -364,7 +370,7 @@ void CellList::clearInteractionIntermediate(cudaStream_t stream)
 std::vector<std::string> CellList::getInteractionOutputNames() const
 {
     std::vector<std::string> names;
-    for (const auto& entry : interactionOutputChannels)
+    for (const auto& entry : finaleOutputChannels)
         names.push_back(entry.name);
     return names;
 }
@@ -372,7 +378,7 @@ std::vector<std::string> CellList::getInteractionOutputNames() const
 std::vector<std::string> CellList::getInteractionIntermediateNames() const
 {
     std::vector<std::string> names;
-    for (const auto& entry : interactionIntermediateChannels)
+    for (const auto& entry : intermediateOutputChannels)
         names.push_back(entry.name);
     return names;
 }
@@ -399,10 +405,11 @@ void CellList::_addIfNameNoIn(const std::string& name, CellList::ActivePredicate
     vec.push_back({name, pred});
 }
 
-void CellList::_addToChannel(const std::string& name, InteractionOutput kind, CellList::ActivePredicate pred)
+void CellList::_addToChannel(const std::string& name, ExtraChannelRole kind, CellList::ActivePredicate pred)
 {    
-    if      (kind == InteractionOutput::Intermediate) _addIfNameNoIn(name, pred, interactionIntermediateChannels);
-    else if (kind == InteractionOutput::Final)        _addIfNameNoIn(name, pred, interactionOutputChannels);
+    if      (kind == ExtraChannelRole::IntermediateOutput) _addIfNameNoIn(name, pred, intermediateOutputChannels);
+    else if (kind == ExtraChannelRole::IntermediateInput)  _addIfNameNoIn(name, pred, intermediateInputChannels);
+    else if (kind == ExtraChannelRole::FinalOutput)        _addIfNameNoIn(name, pred, finaleOutputChannels);
 }
 
 //=================================================================================
@@ -450,7 +457,4 @@ void PrimaryCellList::accumulateInteractionOutput(cudaStream_t stream)
 
 void PrimaryCellList::accumulateInteractionIntermediate(cudaStream_t stream)
 {}    
-
-void PrimaryCellList::gatherInteractionIntermediate(cudaStream_t stream)
-{}
 
