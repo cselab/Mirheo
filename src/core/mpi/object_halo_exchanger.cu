@@ -98,7 +98,7 @@ __global__ void getObjectHalos(const DomainInfo domain, const OVview view, const
     }
 }
 
-__global__ static void unpackObject(const char* from, const int startDstObjId, OVview view, ObjectPacker packer)
+__global__ static void unpackObject(const char *from, OVview view, ObjectPacker packer)
 {
     const int objId = blockIdx.x;
     const int tid = threadIdx.x;
@@ -107,12 +107,12 @@ __global__ static void unpackObject(const char* from, const int startDstObjId, O
 
     for (int pid = tid; pid < view.objSize; pid += blockDim.x)
     {
-        const int dstId = (startDstObjId+objId)*view.objSize + pid;
+        const int dstId = objId * view.objSize + pid;
         packer.part.unpack(srcAddr + pid*packer.part.packedSize_byte, dstId);
     }
 
     srcAddr += view.objSize * packer.part.packedSize_byte;
-    if (tid == 0) packer.obj.unpack(srcAddr, startDstObjId+objId);
+    if (tid == 0) packer.obj.unpack(srcAddr, objId);
 }
 }
 
@@ -151,7 +151,6 @@ void ObjectHaloExchanger::prepareSizes(int id, cudaStream_t stream)
     auto ov  = objects[id];
     auto rc  = rcs[id];
     auto helper = helpers[id].get();
-    auto origin = origins[id].get();
 
     ov->findExtentAndCOM(stream, ParticleVectorType::Local);
 
@@ -220,7 +219,7 @@ void ObjectHaloExchanger::combineAndUploadData(int id, cudaStream_t stream)
     SAFE_KERNEL_LAUNCH(
             ObjectHaloExchangeKernels::unpackObject,
             totalRecvd, nthreads, 0, stream,
-            helper->recvBuf.devPtr(), 0, ovView, packer );
+            helper->recvBuf.devPtr(), ovView, packer );
 }
 
 PinnedBuffer<int>& ObjectHaloExchanger::getRecvOffsets(int id)
