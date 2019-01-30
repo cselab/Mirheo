@@ -10,7 +10,7 @@
 #include <core/logger.h>
 #include <core/utils/cuda_common.h>
 
-namespace ObjectReverseExchangeKernels
+namespace ObjectForcesReverseExchangeKernels
 {
 __device__ inline void atomicAddNonZero(float4* dest, float3 v)
 {
@@ -142,7 +142,7 @@ void ObjectForcesReverseExchanger::prepareData(int id, cudaStream_t stream)
 
         const int nthreads = 128;
         SAFE_KERNEL_LAUNCH(
-                ObjectReverseExchangeKernels::packRigidForces,
+                ObjectForcesReverseExchangeKernels::packRigidForces,
                 view.nObjects, nthreads, 0, stream,
                 view, (float4*)helper->sendBuf.devPtr(), psize);
 
@@ -173,7 +173,7 @@ void ObjectForcesReverseExchanger::combineAndUploadData(int id, cudaStream_t str
 
     const int nthreads = 128;
     SAFE_KERNEL_LAUNCH(
-            ObjectReverseExchangeKernels::addHaloForces,
+            ObjectForcesReverseExchangeKernels::addHaloForces,
             totalRecvd, nthreads, 0, stream,
             (const float4*)helper->recvBuf.devPtr(),     /* source */
             (const int*)origins.devPtr(),                /* destination ids here */
@@ -184,7 +184,7 @@ void ObjectForcesReverseExchanger::combineAndUploadData(int id, cudaStream_t str
     {
         ROVview view(rov, rov->local());
         SAFE_KERNEL_LAUNCH(
-                ObjectReverseExchangeKernels::addRigidForces,
+                ObjectForcesReverseExchangeKernels::addRigidForces,
                 getNblocks(totalRecvd, nthreads), nthreads, 0, stream,
                 (const float4*)helper->recvBuf.devPtr(),     /* source */
                 totalRecvd,
