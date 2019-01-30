@@ -346,6 +346,9 @@ void CellList::gatherInteractionIntermediate(cudaStream_t stream)
         
         auto& desc = localPV->extraPerParticle.getChannelDescOrDie(entry.name);
         _reorderExtraDataEntry(entry.name, &desc, stream);
+
+        // invalidate particle vector halo if any entry is active
+        pv->haloValid = false;
     }
 }
 
@@ -361,6 +364,10 @@ void CellList::clearInteractionOutput(cudaStream_t stream)
 
 void CellList::clearInteractionIntermediate(cudaStream_t stream)
 {
+    for (auto& channel : intermediateInputChannels) {
+        if (!channel.active()) continue;
+        localPV->extraPerParticle.getGenericData(channel.name)->clear(stream);
+    }
     for (auto& channel : intermediateOutputChannels) {
         if (!channel.active()) continue;
         localPV->extraPerParticle.getGenericData(channel.name)->clear(stream);
