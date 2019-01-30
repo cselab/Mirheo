@@ -15,6 +15,8 @@ enum class PackMode
     Query, Pack
 };
 
+namespace ObjecRedistributorKernels
+{
 template <PackMode packMode>
 __global__ void getExitingObjects(const DomainInfo domain, OVview view, const ObjectPacker packer, BufferOffsetsSizesWrap dataWrap)
 {
@@ -82,6 +84,7 @@ __global__ static void unpackObject(const char* from, const int startDstObjId, O
     srcAddr += view.objSize * packer.part.packedSize_byte;
     if (tid == 0) packer.obj.unpack(srcAddr, startDstObjId+objId);
 }
+}
 
 //===============================================================================================
 // Member functions
@@ -129,7 +132,7 @@ void ObjectRedistributor::prepareSizes(int id, cudaStream_t stream)
     if (ovView.nObjects > 0)
     {
         SAFE_KERNEL_LAUNCH(
-                getExitingObjects<PackMode::Query>,
+                ObjecRedistributorKernels::getExitingObjects<PackMode::Query>,
                 ovView.nObjects, nthreads, 0, stream,
                 ov->state->domain, ovView, packer, helper->wrapSendData() );
 
@@ -175,7 +178,7 @@ void ObjectRedistributor::prepareData(int id, cudaStream_t stream)
     helper->resizeSendBuf();
     helper->sendSizes.clearDevice(stream);
     SAFE_KERNEL_LAUNCH(
-            getExitingObjects<PackMode::Pack>,
+            ObjecRedistributorKernels::getExitingObjects<PackMode::Pack>,
             lov->nObjects, nthreads, 0, stream,
             ov->state->domain, ovView, packer, helper->wrapSendData() );
 
@@ -187,7 +190,7 @@ void ObjectRedistributor::prepareData(int id, cudaStream_t stream)
     packer = ObjectPacker(ov, ov->local(), packPredicates[id], stream);
 
     SAFE_KERNEL_LAUNCH(
-            unpackObject,
+            ObjecRedistributorKernels::unpackObject,
             nObjs, nthreads, 0, stream,
             helper->sendBuf.devPtr() + helper->sendOffsets[bulkId] * packer.totalPackedSize_byte, 0, ovView, packer );
                                      
@@ -212,7 +215,7 @@ void ObjectRedistributor::combineAndUploadData(int id, cudaStream_t stream)
 
     const int nthreads = 64;
     SAFE_KERNEL_LAUNCH(
-            unpackObject,
+            ObjecRedistributorKernels::unpackObject,
             totalRecvd, nthreads, 0, stream,
             helper->recvBuf.devPtr(), oldNObjs, ovView, packer );
 

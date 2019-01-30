@@ -10,27 +10,29 @@
 #include <core/utils/cuda_common.h>
 #include <core/utils/kernel_launch.h>
 
-static __device__ int encodeCellId1d(int cid, int ncells) {
+enum class PackMode
+{
+    Query, Pack
+};
+
+namespace ParticleRedistributorKernels
+{
+inline __device__ int encodeCellId1d(int cid, int ncells) {
     if (cid < 0)            return -1;
     else if (cid >= ncells) return 1;
     else                    return 0;
 }
 
-static __device__ int3 encodeCellId(int3 cid, int3 ncells) {
+inline __device__ int3 encodeCellId(int3 cid, int3 ncells) {
     cid.x = encodeCellId1d(cid.x, ncells.x);
     cid.y = encodeCellId1d(cid.y, ncells.y);
     cid.z = encodeCellId1d(cid.z, ncells.z);
     return cid;
 }
 
-static __device__ bool hasToLeave(int3 dir) {
+inline __device__ bool hasToLeave(int3 dir) {
     return dir.x != 0 || dir.y != 0 || dir.z != 0;
 }
-
-enum class PackMode
-{
-    Query, Pack
-};
 
 template <PackMode packMode>
 __global__ void getExitingParticles(CellListInfo cinfo, PVview view, ParticlePacker packer, BufferOffsetsSizesWrap dataWrap)
@@ -94,6 +96,7 @@ __global__ static void unpackParticles(ParticlePacker packer, int startDstId, ch
 
     packer.unpack(buffer + pid*packer.packedSize_byte, pid+startDstId);
 }
+}
 
 //===============================================================================================
 // Member functions
@@ -144,7 +147,7 @@ void ParticleRedistributor::prepareSizes(int id, cudaStream_t stream)
         helper->setDatumSize(packer.packedSize_byte);
 
         SAFE_KERNEL_LAUNCH(
-                getExitingParticles<PackMode::Query>,
+                ParticleRedistributorKernels::getExitingParticles<PackMode::Query>,
                 nblocks, nthreads, 0, stream,
                 cl->cellInfo(), cl->getView<PVview>(), packer, helper->wrapSendData() );
 
@@ -173,7 +176,7 @@ void ParticleRedistributor::prepareData(int id, cudaStream_t stream)
         // Sizes will still remain on host, no need to download again
         helper->sendSizes.clearDevice(stream);
         SAFE_KERNEL_LAUNCH(
-                getExitingParticles<PackMode::Pack>,
+                ParticleRedistributorKernels::getExitingParticles<PackMode::Pack>,
                 nblocks, nthreads, 0, stream,
                 cl->cellInfo(), cl->getView<PVview>(), packer, helper->wrapSendData() );
     }
@@ -192,7 +195,7 @@ void ParticleRedistributor::combineAndUploadData(int id, cudaStream_t stream)
     {
         int nthreads = 64;
         SAFE_KERNEL_LAUNCH(
-                unpackParticles,
+                ParticleRedistributorKernels::unpackParticles,
                 getNblocks(totalRecvd, nthreads), nthreads, 0, stream,
                 ParticlePacker(pv, pv->local(), packPredicates[id], stream), oldsize, helper->recvBuf.devPtr(), totalRecvd );
     }

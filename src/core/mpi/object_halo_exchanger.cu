@@ -15,9 +15,11 @@ enum class PackMode
     Query, Pack
 };
 
+namespace ObjectHaloExchangeKernels
+{
 template <PackMode packMode>
 __global__ void getObjectHalos(const DomainInfo domain, const OVview view, const ObjectPacker packer,
-        const float rc, BufferOffsetsSizesWrap dataWrap, int* haloParticleIds = nullptr)
+        const float rc, BufferOffsetsSizesWrap dataWrap, int *haloParticleIds = nullptr)
 {
     const int objId = blockIdx.x;
     const int tid = threadIdx.x;
@@ -112,6 +114,7 @@ __global__ static void unpackObject(const char* from, const int startDstObjId, O
     srcAddr += view.objSize * packer.part.packedSize_byte;
     if (tid == 0) packer.obj.unpack(srcAddr, startDstObjId+objId);
 }
+}
 
 //===============================================================================================
 // Member functions
@@ -122,7 +125,7 @@ bool ObjectHaloExchanger::needExchange(int id)
     return !objects[id]->haloValid;
 }
 
-void ObjectHaloExchanger::attach(ObjectVector* ov, float rc, const std::vector<std::string>& extraChannelNames)
+void ObjectHaloExchanger::attach(ObjectVector *ov, float rc, const std::vector<std::string>& extraChannelNames)
 {
     int id = objects.size();
     objects.push_back(ov);
@@ -164,7 +167,7 @@ void ObjectHaloExchanger::prepareSizes(int id, cudaStream_t stream)
         const int nthreads = 256;
 
         SAFE_KERNEL_LAUNCH(
-                getObjectHalos<PackMode::Query>,
+                ObjectHaloExchangeKernels::getObjectHalos<PackMode::Query>,
                 ovView.nObjects, nthreads, 0, stream,
                 ov->state->domain, ovView, packer, rc, helper->wrapSendData() );
 
@@ -196,7 +199,7 @@ void ObjectHaloExchanger::prepareData(int id, cudaStream_t stream)
         helper->resizeSendBuf();
         helper->sendSizes.clearDevice(stream);
         SAFE_KERNEL_LAUNCH(
-                getObjectHalos<PackMode::Pack>,
+                ObjectHaloExchangeKernels::getObjectHalos<PackMode::Pack>,
                 ovView.nObjects, nthreads, 0, stream,
                 ov->state->domain, ovView, packer, rc, helper->wrapSendData(), origin->devPtr() );
     }
@@ -215,7 +218,7 @@ void ObjectHaloExchanger::combineAndUploadData(int id, cudaStream_t stream)
 
     const int nthreads = 128;
     SAFE_KERNEL_LAUNCH(
-            unpackObject,
+            ObjectHaloExchangeKernels::unpackObject,
             totalRecvd, nthreads, 0, stream,
             helper->recvBuf.devPtr(), 0, ovView, packer );
 }

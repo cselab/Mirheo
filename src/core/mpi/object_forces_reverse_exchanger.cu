@@ -10,7 +10,8 @@
 #include <core/logger.h>
 #include <core/utils/cuda_common.h>
 
-
+namespace ObjectReverseExchangeKernels
+{
 __device__ inline void atomicAddNonZero(float4* dest, float3 v)
 {
     const float tol = 1e-7;
@@ -21,9 +22,8 @@ __device__ inline void atomicAddNonZero(float4* dest, float3 v)
     if (fabs(v.z) > tol) atomicAdd(fdest + 2, v.z);
 }
 
-__global__ void addHaloForces(
-        const float4* recvForces, const int* origins,
-        float4* forces, int objSize, int packedObjSize)
+__global__ void addHaloForces(const float4 *recvForces, const int *origins,
+                              float4 *forces, int objSize, int packedObjSize)
 {
     const int objId = blockIdx.x;
 
@@ -36,9 +36,8 @@ __global__ void addHaloForces(
     }
 }
 
-__global__ void addRigidForces(
-        const float4* recvForces, const int nrecvd, const int* origins,
-        ROVview view, int packedObjSize)
+__global__ void addRigidForces(const float4 *recvForces, int nrecvd, const int *origins,
+                               ROVview view, int packedObjSize)
 {
     const int gid = threadIdx.x + blockIdx.x*blockDim.x;
     const int objId = gid / 2;
@@ -47,7 +46,7 @@ __global__ void addRigidForces(
 
     const int dstObjId = origins[objId*view.objSize] / view.objSize;
 
-    const float4* addr = recvForces + objId*packedObjSize + view.objSize;
+    const float4 *addr = recvForces + objId*packedObjSize + view.objSize;
     auto typedAddr = (const RigidReal4*) addr;
 
     RigidReal4 v = typedAddr[variant];
@@ -83,7 +82,7 @@ __global__ void packRigidForces(ROVview view, float4 *output, int packedObjSize)
         typedAddr[1] = {t.x, t.y, t.z, (RigidReal)0};
     }
 }
-
+}
 
 //===============================================================================================
 // Member functions
@@ -143,7 +142,7 @@ void ObjectForcesReverseExchanger::prepareData(int id, cudaStream_t stream)
 
         const int nthreads = 128;
         SAFE_KERNEL_LAUNCH(
-                packRigidForces,
+                ObjectReverseExchangeKernels::packRigidForces,
                 view.nObjects, nthreads, 0, stream,
                 view, (float4*)helper->sendBuf.devPtr(), psize);
 
@@ -174,7 +173,7 @@ void ObjectForcesReverseExchanger::combineAndUploadData(int id, cudaStream_t str
 
     const int nthreads = 128;
     SAFE_KERNEL_LAUNCH(
-            addHaloForces,
+            ObjectReverseExchangeKernels::addHaloForces,
             totalRecvd, nthreads, 0, stream,
             (const float4*)helper->recvBuf.devPtr(),     /* source */
             (const int*)origins.devPtr(),                /* destination ids here */
@@ -185,7 +184,7 @@ void ObjectForcesReverseExchanger::combineAndUploadData(int id, cudaStream_t str
     {
         ROVview view(rov, rov->local());
         SAFE_KERNEL_LAUNCH(
-                addRigidForces,
+                ObjectReverseExchangeKernels::addRigidForces,
                 getNblocks(totalRecvd, nthreads), nthreads, 0, stream,
                 (const float4*)helper->recvBuf.devPtr(),     /* source */
                 totalRecvd,
