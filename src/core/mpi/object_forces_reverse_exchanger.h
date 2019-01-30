@@ -11,7 +11,7 @@ class ObjectForcesReverseExchanger : public ParticleExchanger
 {
 protected:
     std::vector<ObjectVector*> objects;
-    ObjectHaloExchanger* entangledHaloExchanger;
+    ObjectHaloExchanger *entangledHaloExchanger;
 
     DeviceBuffer<char>   sortBuffer;
     DeviceBuffer<float4> sortedForces;
@@ -23,8 +23,8 @@ protected:
     bool needExchange(int id) override;
 
 public:
-    ObjectForcesReverseExchanger(ObjectHaloExchanger* entangledHaloExchanger);
+    ObjectForcesReverseExchanger(ObjectHaloExchanger *entangledHaloExchanger);
     virtual ~ObjectForcesReverseExchanger();
     
-    void attach(ObjectVector* ov);    
+    void attach(ObjectVector *ov);
 };

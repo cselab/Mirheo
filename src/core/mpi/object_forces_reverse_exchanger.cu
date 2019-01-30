@@ -59,7 +59,7 @@ __global__ void addRigidForces(
         atomicAdd(&view.motions[dstObjId].torque, {v.x, v.y, v.z});
 }
 
-__global__ void packRigidForces(ROVview view, float4* output, int packedObjSize)
+__global__ void packRigidForces(ROVview view, float4 *output, int packedObjSize)
 {
     const int objId = blockIdx.x;
 
@@ -89,32 +89,32 @@ __global__ void packRigidForces(ROVview view, float4* output, int packedObjSize)
 // Member functions
 //===============================================================================================
 
-ObjectForcesReverseExchanger::ObjectForcesReverseExchanger(ObjectHaloExchanger* entangledHaloExchanger) :
+ObjectForcesReverseExchanger::ObjectForcesReverseExchanger(ObjectHaloExchanger *entangledHaloExchanger) :
     entangledHaloExchanger(entangledHaloExchanger)
 {}
 
 ObjectForcesReverseExchanger::~ObjectForcesReverseExchanger() = default;
 
-bool ObjectForcesReverseExchanger::needExchange(int id)
-{
-    return true;
-}
-
-void ObjectForcesReverseExchanger::attach(ObjectVector* ov)
+void ObjectForcesReverseExchanger::attach(ObjectVector *ov)
 {
     int id = objects.size();
     objects.push_back(ov);
 
-    int psize = ov->objSize;
-    if (dynamic_cast<RigidObjectVector*>(ov) != 0)
-        psize += 2 * sizeof(RigidReal) / sizeof(float);
+    int size = ov->objSize * sizeof(float4); // forces per particle
+    
+    if (dynamic_cast<RigidObjectVector*>(ov) != nullptr)
+        size += 2 * sizeof(RigidReal4); // force and torque per object
 
     auto helper = std::make_unique<ExchangeHelper>(ov->name, id);
-    helper->setDatumSize(psize*sizeof(float4));
+    helper->setDatumSize(size);
         
     helpers.push_back(std::move(helper));
 }
 
+bool ObjectForcesReverseExchanger::needExchange(int id)
+{
+    return true;
+}
 
 void ObjectForcesReverseExchanger::prepareSizes(int id, cudaStream_t stream)
 {
