@@ -234,6 +234,7 @@ template class InteractionPair<Pairwise_MDPD>;
 template class InteractionPair<PairwiseStressWrapper<Pairwise_DPD>>;
 template class InteractionPair<PairwiseStressWrapper<Pairwise_LJ>>;
 template class InteractionPair<PairwiseStressWrapper<Pairwise_LJObjectAware>>;
+template class InteractionPair<PairwiseStressWrapper<Pairwise_MDPD>>;
 
 // for testing purpose
 template class InteractionPair<Pairwise_Norandom_DPD>;

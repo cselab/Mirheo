@@ -16,7 +16,7 @@ struct PVview
 
     float mass = 0, invMass = 0;
 
-    PVview(ParticleVector* pv = nullptr, LocalParticleVector* lpv = nullptr)
+    PVview(ParticleVector *pv = nullptr, LocalParticleVector *lpv = nullptr)
     {
         if (lpv == nullptr) return;
 
@@ -34,7 +34,7 @@ struct PVviewWithOldParticles : public PVview
 {
     float4 *old_particles = nullptr;
 
-    PVviewWithOldParticles(ParticleVector* pv = nullptr, LocalParticleVector* lpv = nullptr) :
+    PVviewWithOldParticles(ParticleVector *pv = nullptr, LocalParticleVector *lpv = nullptr) :
         PVview(pv, lpv)
     {
         if (lpv != nullptr)
@@ -42,27 +42,28 @@ struct PVviewWithOldParticles : public PVview
     }
 };
 
-struct PVviewWithStresses : public PVview
-{
-    Stress *stresses = nullptr;
-
-    PVviewWithStresses(ParticleVector* pv = nullptr, LocalParticleVector* lpv = nullptr) :
-        PVview(pv, lpv)
-    {
-        if (lpv != nullptr)
-            stresses = lpv->extraPerParticle.getData<Stress>(ChannelNames::stresses)->devPtr();            
-    }
-};
-
 struct PVviewWithDensities : public PVview
 {
     float *densities = nullptr;
 
-    PVviewWithDensities(ParticleVector* pv = nullptr, LocalParticleVector* lpv = nullptr) :
+    PVviewWithDensities(ParticleVector *pv = nullptr, LocalParticleVector *lpv = nullptr) :
         PVview(pv, lpv)
     {
         if (lpv != nullptr)
             densities = lpv->extraPerParticle.getData<float>(ChannelNames::densities)->devPtr();
+    }
+};
+
+template <typename BasicView> 
+struct PVviewWithStresses : public BasicView
+{
+    Stress *stresses = nullptr;
+
+    PVviewWithStresses(ParticleVector *pv = nullptr, LocalParticleVector *lpv = nullptr) :
+        BasicView(pv, lpv)
+    {
+        if (lpv != nullptr)
+            stresses = lpv->extraPerParticle.getData<Stress>(ChannelNames::stresses)->devPtr();            
     }
 };
 

@@ -12,6 +12,7 @@ struct ForceStress
     Stress stress;
 };
 
+template <typename BasicView>
 class ForceStressAccumulator
 {
 public:
@@ -21,15 +22,15 @@ public:
                    {0.f, 0.f, 0.f, 0.f, 0.f, 0.f}})
     {}
     
-    __D__ inline void atomicAddToDst(const ForceStress& fs, PVviewWithStresses& view, int id) const
+    __D__ inline void atomicAddToDst(const ForceStress& fs, PVviewWithStresses<BasicView>& view, int id) const
     {
-        atomicAdd(view.forces   + id, fs.force );
+        atomicAdd(      view.forces   + id, fs.force );
         atomicAddStress(view.stresses + id, fs.stress);
     }
 
-    __D__ inline void atomicAddToSrc(const ForceStress& fs, PVviewWithStresses& view, int id) const
+    __D__ inline void atomicAddToSrc(const ForceStress& fs, PVviewWithStresses<BasicView>& view, int id) const
     {
-        atomicAdd(view.forces   + id, -fs.force );
+        atomicAdd(      view.forces   + id, -fs.force );
         atomicAddStress(view.stresses + id,  fs.stress);
     }
 

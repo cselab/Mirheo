@@ -12,8 +12,9 @@ class PairwiseStressWrapper
 {
 public:
 
-    using ViewType     = PVviewWithStresses;
-    using ParticleType = typename BasicPairwiseForce::ParticleType;
+    using BasicViewType = typename BasicPairwiseForce::ViewType;
+    using ViewType      = PVviewWithStresses<BasicViewType>;
+    using ParticleType  = typename BasicPairwiseForce::ParticleType;
     
     PairwiseStressWrapper(BasicPairwiseForce basicForce) :
         basicForce(basicForce)
@@ -33,8 +34,8 @@ public:
     
     __device__ inline ForceStress operator()(const ParticleType dst, int dstId, const ParticleType src, int srcId) const
     {        
-        float3 dr = dst.r - src.r;
-        float3 f = basicForce(dst, dstId, src, srcId);
+        float3 dr = getPosition(dst) - getPosition(src);
+        float3 f  = basicForce(dst, dstId, src, srcId);
         Stress s;
         
         s.xx = 0.5f * dr.x * f.x;
@@ -47,7 +48,7 @@ public:
         return {f, s};
     }
 
-    __D__ inline ForceStressAccumulator getZeroedAccumulator() const {return ForceStressAccumulator();}
+    __D__ inline ForceStressAccumulator<BasicViewType> getZeroedAccumulator() const {return ForceStressAccumulator<BasicViewType>();}
 
 private:
     
