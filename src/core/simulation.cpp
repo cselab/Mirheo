@@ -1099,6 +1099,7 @@ void Simulation::assemble()
     scheduler->setHighPriority(task_objForcesInit);
     scheduler->setHighPriority(task_haloIntermediateInit);
     scheduler->setHighPriority(task_haloIntermediateFinalize);
+    scheduler->setHighPriority(task_haloIntermediate);
     scheduler->setHighPriority(task_haloInit);
     scheduler->setHighPriority(task_haloFinalize);
     scheduler->setHighPriority(task_haloForces);

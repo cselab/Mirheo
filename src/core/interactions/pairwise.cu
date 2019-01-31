@@ -198,7 +198,7 @@ void InteractionPair<PairwiseInteraction>::computeHalo(
 
     const int np1 = pv1->halo()->size();  // note halo here
     const int np2 = pv2->local()->size();
-    debug("Computing halo forces for %s(halo) - %s (%d - %d particles)", pv1->name.c_str(), pv2->name.c_str(), np1, np2);
+    debug("Computing halo forces for %s(halo) - %s (%d - %d particles) with rc = %g", pv1->name.c_str(), pv2->name.c_str(), np1, np2, cl2->rc);
 
     ViewType dstView(pv1, pv1->halo());
     auto srcView = cl2->getView<ViewType>();
