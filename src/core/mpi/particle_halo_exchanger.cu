@@ -150,14 +150,18 @@ void ParticleHaloExchanger::prepareSizes(int id, cudaStream_t stream)
 
     debug2("Counting halo particles of '%s'", pv->name.c_str());
 
+    // LocalParticleVector *lpv = cl->getLocalParticleVector();
+    LocalParticleVector *lpv = pv->local();
+    
     helper->sendSizes.clear(stream);
-    if (pv->local()->size() > 0)
+    if (lpv->size() > 0)
     {
         const int maxdim = std::max({cl->ncells.x, cl->ncells.y, cl->ncells.z});
         const int nthreads = 64;
         const dim3 nblocks = dim3(getNblocks(maxdim*maxdim, nthreads), 6, 1);
 
-        ParticlePacker packer(pv, pv->local(), packPredicates[id], stream);
+        ParticlePacker packer(pv, lpv, packPredicates[id], stream);
+
         helper->setDatumSize(packer.packedSize_byte);
 
         SAFE_KERNEL_LAUNCH(
@@ -178,13 +182,16 @@ void ParticleHaloExchanger::prepareData(int id, cudaStream_t stream)
     debug2("Downloading %d halo particles of '%s'",
            helper->sendOffsets[FragmentMapping::numFragments], pv->name.c_str());
 
-    if (pv->local()->size() > 0)
+    // LocalParticleVector *lpv = cl->getLocalParticleVector();
+    LocalParticleVector *lpv = pv->local();
+
+    if (lpv->size() > 0)
     {
         const int maxdim = std::max({cl->ncells.x, cl->ncells.y, cl->ncells.z});
         const int nthreads = 64;
         const dim3 nblocks = dim3(getNblocks(maxdim*maxdim, nthreads), 6, 1);
 
-        ParticlePacker packer(pv, pv->local(), packPredicates[id], stream);
+        ParticlePacker packer(pv, lpv, packPredicates[id], stream);
 
         helper->resizeSendBuf();
         helper->sendSizes.clearDevice(stream);
@@ -219,9 +226,3 @@ bool ParticleHaloExchanger::needExchange(int id)
 {
     return !particles[id]->haloValid;
 }
-
-
-
-
-
-
