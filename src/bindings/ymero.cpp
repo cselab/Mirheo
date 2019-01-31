@@ -155,7 +155,7 @@ void exportYmero(py::module& m)
         )")
         
         .def("makeFrozenWallParticles", &YMeRo::makeFrozenWallParticles,
-             "pvName"_a, "walls"_a, "interaction"_a, "integrator"_a, "density"_a, "nsteps"_a=1000, R"(
+             "pvName"_a, "walls"_a, "interactions"_a, "integrator"_a, "density"_a, "nsteps"_a=1000, R"(
                 Create particles frozen inside the walls.
                 
                 .. note::
@@ -165,7 +165,7 @@ void exportYmero(py::module& m)
                 Args:
                     pvName: name of the created particle vector
                     walls: array of instances of :any:`Wall` for which the frozen particles will be generated
-                    interaction: this :any:`Interaction` will be used to construct the equilibrium particles distribution
+                    interactions: list of :any:`Interaction` that will be used to construct the equilibrium particles distribution
                     integrator: this :any:`Integrator` will be used to construct the equilibrium particles distribution
                     density: target particle density
                     nsteps: run this many steps to achieve equilibrium
@@ -176,7 +176,7 @@ void exportYmero(py::module& m)
         )")
 
         .def("makeFrozenRigidParticles", &YMeRo::makeFrozenRigidParticles,
-             "checker"_a, "shape"_a, "icShape"_a, "interaction"_a, "integrator"_a, "density"_a, "nsteps"_a=1000, R"(
+             "checker"_a, "shape"_a, "icShape"_a, "interactions"_a, "integrator"_a, "density"_a, "nsteps"_a=1000, R"(
                 Create particles frozen inside object.
                 
                 .. note::
@@ -187,7 +187,7 @@ void exportYmero(py::module& m)
                     checker: object belonging checker
                     shape: object vector describing the shape of the rigid object
                     icShape: initial conditions for shape
-                    interaction: this :any:`Interaction` will be used to construct the equilibrium particles distribution
+                    interactions: list of :any:`Interaction` that will be used to construct the equilibrium particles distribution
                     integrator: this :any:`Integrator` will be used to construct the equilibrium particles distribution
                     density: target particle density
                     nsteps: run this many steps to achieve equilibrium

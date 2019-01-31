@@ -288,8 +288,8 @@ double YMeRo::computeVolumeInsideWalls(std::vector<std::shared_ptr<Wall>> walls,
 
 std::shared_ptr<ParticleVector> YMeRo::makeFrozenWallParticles(std::string pvName,
                                                                std::vector<std::shared_ptr<Wall>> walls,
-                                                               std::shared_ptr<Interaction> interaction,
-                                                               std::shared_ptr<Integrator>   integrator,
+                                                               std::vector<std::shared_ptr<Interaction>> interactions,
+                                                               std::shared_ptr<Integrator> integrator,
                                                                float density, int nsteps)
 {
     if (!isComputeTask()) return nullptr;
@@ -326,17 +326,23 @@ std::shared_ptr<ParticleVector> YMeRo::makeFrozenWallParticles(std::string pvNam
     auto ic = std::make_shared<UniformIC>(density);
     
     wallsim.registerParticleVector(pv, ic, 0);
-    wallsim.registerInteraction(interaction);
-
-    wallsim.registerIntegrator(integrator);
     
-    wallsim.setInteraction(interaction->name, pv->name, pv->name);
+    wallsim.registerIntegrator(integrator);
+
+    float maxrc = 1.0;
+    
+    for (auto& interaction : interactions) {
+        wallsim.registerInteraction(interaction);
+        wallsim.setInteraction(interaction->name, pv->name, pv->name);
+        maxrc = std::max(maxrc, interaction->rc);
+    }
+        
     wallsim.setIntegrator (integrator->name,  pv->name);
     
     wallsim.init();
     wallsim.run(nsteps);
     
-    freezeParticlesInWalls(sdfWalls, pv.get(), 0.0f, interaction->rc + 0.2f);
+    freezeParticlesInWalls(sdfWalls, pv.get(), 0.0f, maxrc + 0.2f);
     info("\n");
 
     sim->registerParticleVector(pv, nullptr);
@@ -353,7 +359,7 @@ std::shared_ptr<ParticleVector> YMeRo::makeFrozenWallParticles(std::string pvNam
 std::shared_ptr<ParticleVector> YMeRo::makeFrozenRigidParticles(std::shared_ptr<ObjectBelongingChecker> checker,
                                                                 std::shared_ptr<ObjectVector> shape,
                                                                 std::shared_ptr<InitialConditions> icShape,
-                                                                std::shared_ptr<Interaction> interaction,
+                                                                std::vector<std::shared_ptr<Interaction>> interactions,
                                                                 std::shared_ptr<Integrator>   integrator,
                                                                 float density, int nsteps)
 {
@@ -377,11 +383,14 @@ std::shared_ptr<ParticleVector> YMeRo::makeFrozenRigidParticles(std::shared_ptr<
         Simulation eqsim(sim->cartComm, MPI_COMM_NULL, getState());
     
         eqsim.registerParticleVector(pv, ic, 0);
-        eqsim.registerInteraction(interaction);
+
         eqsim.registerIntegrator(integrator);
-    
-        eqsim.setInteraction(interaction->name, pv->name, pv->name);
         eqsim.setIntegrator (integrator->name,  pv->name);
+        
+        for (auto& interaction : interactions) {
+            eqsim.registerInteraction(interaction);        
+            eqsim.setInteraction(interaction->name, pv->name, pv->name);
+        }               
     
         eqsim.init();
         eqsim.run(nsteps);
