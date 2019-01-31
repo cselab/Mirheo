@@ -4,6 +4,7 @@
 #include <core/interactions/dpd.h>
 #include <core/interactions/dpd_with_stress.h>
 #include <core/interactions/mdpd.h>
+#include <core/interactions/mdpd_with_stress.h>
 #include <core/interactions/lj.h>
 #include <core/interactions/lj_with_stress.h>
 #include <core/interactions/membrane_kantor.h>
@@ -79,16 +80,6 @@ void exportInteractions(py::module& m)
                 stressPeriod: compute the stresses every this period (in simulation time units)
     )");
 
-    py::handlers_class<InteractionLJ> pyIntLJ (m, "LJ", pyInt, R"(
-        Pairwise interaction according to the classical `Lennard-Jones potential <https://en.wikipedia.org/wiki/Lennard-Jones_potential>`_
-        The force however is truncated such that it is *always repulsive*.
-        
-        .. math::
-        
-            \mathbf{F}_{ij} = \max \left[ 0.0, 24 \epsilon \left( 2\left( \frac{\sigma}{r_{ij}} \right)^{14} - \left( \frac{\sigma}{r_{ij}} \right)^{8} \right) \right]
-   
-    )");
-
     py::handlers_class<InteractionDensity> pyIntDensity(m, "Density", pyInt, R"(
         TODO 
     )");
@@ -104,7 +95,7 @@ void exportInteractions(py::module& m)
         TODO 
         must be used together with :any:`Density` interaction
     )");
-
+    
     pyIntMDPD.def(py::init<const YmrState*, std::string, float, float, float, float, float, float, float>(),
                   "state"_a, "name"_a, "rc"_a, "rd"_a, "a"_a, "b"_a, "gamma"_a, "kbt"_a, "power"_a, R"(  
             Args:
@@ -116,6 +107,35 @@ void exportInteractions(py::module& m)
                 gamma: :math:`\gamma`
                 kbt: :math:`k_B T`
                 power: :math:`p` in the weight function
+    )");
+
+    py::handlers_class<InteractionMDPDWithStress> pyIntMDPDWithStress(m, "MDPDWithStress", pyIntMDPD, R"(
+        wrapper of :any:`MDPD` with, in addition, stress computation
+    )");
+
+    pyIntMDPDWithStress.def(py::init<const YmrState*, std::string, float, float, float, float, float, float, float, float>(),
+                            "state"_a, "name"_a, "rc"_a, "rd"_a, "a"_a, "b"_a, "gamma"_a, "kbt"_a, "power"_a, "stressPeriod"_a, R"(  
+            Args:
+                name: name of the interaction
+                rc: interaction cut-off (no forces between particles further than **rc** apart)
+                rd: density cut-off, assumed rd < rc
+                a: :math:`a`
+                b: :math:`b`
+                gamma: :math:`\gamma`
+                kbt: :math:`k_B T`
+                power: :math:`p` in the weight function
+                stressPeriod: compute the stresses every this period (in simulation time units)
+    )");
+
+
+    py::handlers_class<InteractionLJ> pyIntLJ (m, "LJ", pyInt, R"(
+        Pairwise interaction according to the classical `Lennard-Jones potential <https://en.wikipedia.org/wiki/Lennard-Jones_potential>`_
+        The force however is truncated such that it is *always repulsive*.
+        
+        .. math::
+        
+            \mathbf{F}_{ij} = \max \left[ 0.0, 24 \epsilon \left( 2\left( \frac{\sigma}{r_{ij}} \right)^{14} - \left( \frac{\sigma}{r_{ij}} \right)^{8} \right) \right]
+   
     )");
 
     
