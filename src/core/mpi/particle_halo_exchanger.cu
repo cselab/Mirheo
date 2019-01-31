@@ -150,7 +150,7 @@ void ParticleHaloExchanger::prepareSizes(int id, cudaStream_t stream)
         const int nthreads = 64;
         const dim3 nblocks = dim3(getNblocks(maxdim*maxdim, nthreads), 6, 1);
 
-        auto packer = ParticlePacker(pv, pv->local(), packPredicates[id], stream);
+        ParticlePacker packer(pv, pv->local(), packPredicates[id], stream);
         helper->setDatumSize(packer.packedSize_byte);
 
         SAFE_KERNEL_LAUNCH(
@@ -177,7 +177,7 @@ void ParticleHaloExchanger::prepareData(int id, cudaStream_t stream)
         const int nthreads = 64;
         const dim3 nblocks = dim3(getNblocks(maxdim*maxdim, nthreads), 6, 1);
 
-        auto packer = ParticlePacker(pv, pv->local(), packPredicates[id], stream);
+        ParticlePacker packer(pv, pv->local(), packPredicates[id], stream);
 
         helper->resizeSendBuf();
         helper->sendSizes.clearDevice(stream);
@@ -196,12 +196,14 @@ void ParticleHaloExchanger::combineAndUploadData(int id, cudaStream_t stream)
     int totalRecvd = helper->recvOffsets[helper->nBuffers];
     pv->halo()->resize_anew(totalRecvd);
 
-    int nthreads = 128;
+    ParticlePacker packer(pv, pv->halo(), packPredicates[id], stream);
+    
+    const int nthreads = 128;
 
     SAFE_KERNEL_LAUNCH(
             unpackParticles,
             getNblocks(totalRecvd, nthreads), nthreads, 0, stream,
-            ParticlePacker(pv, pv->halo(), packPredicates[id], stream), 0, helper->recvBuf.devPtr(), totalRecvd );
+            packer, 0, helper->recvBuf.devPtr(), totalRecvd );
 
     pv->haloValid = true;
 }
