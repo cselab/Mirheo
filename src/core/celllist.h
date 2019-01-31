@@ -162,7 +162,7 @@ protected:
         ActivePredicate active;
     };
     
-    std::vector<ChannelActivity> finaleOutputChannels;       ///< channels which are final output of interactions, e.g. forces, stresses for dpd kernel
+    std::vector<ChannelActivity> finalOutputChannels;        ///< channels which are final output of interactions, e.g. forces, stresses for dpd kernel
     std::vector<ChannelActivity> intermediateOutputChannels; ///< channels which are intermediate output of interactions, e.g. densities for density kernel
     std::vector<ChannelActivity> intermediateInputChannels;  ///< channels which are intermediate input for interactions, e.g. densities for mdpd kernel
 

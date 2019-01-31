@@ -332,7 +332,7 @@ void CellList::accumulateInteractionOutput(cudaStream_t stream)
             getNblocks(dstView.size, nthreads), nthreads, 0, stream,
             dstView, cellInfo(), getView<PVview>() );
 
-    _accumulateExtraData(finaleOutputChannels, stream);
+    _accumulateExtraData(finalOutputChannels, stream);
 }
 
 void CellList::accumulateInteractionIntermediate(cudaStream_t stream)
@@ -360,7 +360,7 @@ void CellList::clearInteractionOutput(cudaStream_t stream)
 {
     localPV->forces.clear(stream);
 
-    for (auto& channel : finaleOutputChannels) {
+    for (auto& channel : finalOutputChannels) {
         if (!channel.active()) continue;
         localPV->extraPerParticle.getGenericData(channel.name)->clearDevice(stream);
     }
@@ -381,7 +381,7 @@ void CellList::clearInteractionIntermediate(cudaStream_t stream)
 std::vector<std::string> CellList::getInteractionOutputNames() const
 {
     std::vector<std::string> names;
-    for (const auto& entry : finaleOutputChannels)
+    for (const auto& entry : finalOutputChannels)
         names.push_back(entry.name);
     return names;
 }
@@ -420,7 +420,7 @@ void CellList::_addToChannel(const std::string& name, ExtraChannelRole kind, Cel
 {    
     if      (kind == ExtraChannelRole::IntermediateOutput) _addIfNameNoIn(name, pred, intermediateOutputChannels);
     else if (kind == ExtraChannelRole::IntermediateInput)  _addIfNameNoIn(name, pred, intermediateInputChannels);
-    else if (kind == ExtraChannelRole::FinalOutput)        _addIfNameNoIn(name, pred, finaleOutputChannels);
+    else if (kind == ExtraChannelRole::FinalOutput)        _addIfNameNoIn(name, pred, finalOutputChannels);
 }
 
 //=================================================================================
