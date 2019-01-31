@@ -39,7 +39,7 @@ def createFromMesh(density, vertices, triangles, inertia, niter):
     fakeIc = ymr.InitialConditions.Rigid(com_q=com_q, coords=coords)
     belongingChecker = ymr.BelongingCheckers.Mesh("meshChecker")
     
-    pvMesh = u.makeFrozenRigidParticles(belongingChecker, fakeOV, fakeIc, dpd, vv, density, niter)
+    pvMesh = u.makeFrozenRigidParticles(belongingChecker, fakeOV, fakeIc, [dpd], vv, density, niter)
 
     if pvMesh:
         frozenCoords = pvMesh.getCoordinates()
