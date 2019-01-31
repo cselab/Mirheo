@@ -100,12 +100,12 @@ __global__ void getHalos(const CellListInfo cinfo, const ParticlePacker packer, 
     }
 }
 
-__global__ static void unpackParticles(ParticlePacker packer, int startDstId, char* buffer, int np)
+__global__ static void unpackParticles(ParticlePacker packer, const char *buffer, int np)
 {
     const int pid = blockIdx.x*blockDim.x + threadIdx.x;
     if (pid >= np) return;
 
-    packer.unpack(buffer + pid*packer.packedSize_byte, pid+startDstId);
+    packer.unpack(buffer + pid*packer.packedSize_byte, pid);
 }
 
 
@@ -203,7 +203,7 @@ void ParticleHaloExchanger::combineAndUploadData(int id, cudaStream_t stream)
     SAFE_KERNEL_LAUNCH(
             unpackParticles,
             getNblocks(totalRecvd, nthreads), nthreads, 0, stream,
-            packer, 0, helper->recvBuf.devPtr(), totalRecvd );
+            packer, helper->recvBuf.devPtr(), totalRecvd );
 
     pv->haloValid = true;
 }
