@@ -104,6 +104,23 @@ class DPD(Interaction):
         """
         pass
 
+class Density(Interaction):
+    r"""
+        TODO 
+    
+    """
+    def __init__():
+        r"""__init__(name: str, rc: float) -> None
+
+  
+            Args:
+                name: name of the interaction
+                rc: interaction cut-off
+    
+
+        """
+        pass
+
 class LJ(Interaction):
     r"""
         Pairwise interaction according to the classical `Lennard-Jones potential <https://en.wikipedia.org/wiki/Lennard-Jones_potential>`_
@@ -139,6 +156,30 @@ class LJ(Interaction):
 
             Override some of the interaction parameters for a specific pair of Particle Vectors
         
+
+        """
+        pass
+
+class MDPD(Interaction):
+    r"""
+        TODO 
+        must be used together with :any:`Density` interaction
+    
+    """
+    def __init__():
+        r"""__init__(name: str, rc: float, rd: float, a: float, b: float, gamma: float, kbt: float, power: float) -> None
+
+  
+            Args:
+            name: name of the interaction
+                rc: interaction cut-off (no forces between particles further than **rc** apart)
+                rd: density cutoff, assumed rd < rc
+                a: :math:`a`
+                b: :math:`b`
+                gamma: :math:`\gamma`
+                kbt: :math:`k_B T`
+                power: :math:`p` in the weight function
+    
 
         """
         pass
@@ -260,12 +301,11 @@ class DPDWithStress(DPD):
     
     """
     def __init__():
-        r"""__init__(name: str, stressName: str, rc: float, a: float, gamma: float, kbt: float, power: float, stressPeriod: float) -> None
+        r"""__init__(name: str, rc: float, a: float, gamma: float, kbt: float, power: float, stressPeriod: float) -> None
 
   
             Args:
                 name: name of the interaction
-                stressName: name of the stress entry
                 rc: interaction cut-off (no forces between particles further than **rc** apart)
                 a: :math:`a`
                 gamma: :math:`\gamma`
@@ -293,12 +333,11 @@ class LJWithStress(LJ):
     
     """
     def __init__():
-        r"""__init__(name: str, stressName: str, rc: float, epsilon: float, sigma: float, max_force: float = 1000.0, object_aware: bool, stressPeriod: float) -> None
+        r"""__init__(name: str, rc: float, epsilon: float, sigma: float, max_force: float = 1000.0, object_aware: bool, stressPeriod: float) -> None
 
 
             Args:
                 name: name of the interaction
-                stressName: name of the stress entry
                 rc: interaction cut-off (no forces between particles further than **rc** apart)
                 epsilon: :math:`\varepsilon`
                 sigma: :math:`\sigma`
@@ -318,6 +357,30 @@ class LJWithStress(LJ):
 
             Override some of the interaction parameters for a specific pair of Particle Vectors
         
+
+        """
+        pass
+
+class MDPDWithStress(MDPD):
+    r"""
+        wrapper of :any:`MDPD` with, in addition, stress computation
+    
+    """
+    def __init__():
+        r"""__init__(name: str, rc: float, rd: float, a: float, b: float, gamma: float, kbt: float, power: float, stressPeriod: float) -> None
+
+  
+            Args:
+                name: name of the interaction
+                rc: interaction cut-off (no forces between particles further than **rc** apart)
+                rd: density cut-off, assumed rd < rc
+                a: :math:`a`
+                b: :math:`b`
+                gamma: :math:`\gamma`
+                kbt: :math:`k_B T`
+                power: :math:`p` in the weight function
+                stressPeriod: compute the stresses every this period (in simulation time units)
+    
 
         """
         pass
