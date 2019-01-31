@@ -102,7 +102,7 @@ public:
     virtual void accumulateInteractionOutput(cudaStream_t stream);
     virtual void accumulateInteractionIntermediate(cudaStream_t stream);
 
-    void gatherInteractionIntermediate(cudaStream_t stream);
+    virtual void gatherInteractionIntermediate(cudaStream_t stream);
     
     void clearInteractionOutput(cudaStream_t stream);
     void clearInteractionIntermediate(cudaStream_t stream);
@@ -133,7 +133,9 @@ public:
     void setNeededForIntermediate();
     
     bool isNeededForOutput() const;
-    bool isNeededForIntermediate() const;    
+    bool isNeededForIntermediate() const;
+
+    LocalParticleVector* getLocalParticleVector();
     
 protected:
     int changedStamp{-1};
@@ -191,6 +193,8 @@ public:
     void build(cudaStream_t stream);
     void accumulateInteractionOutput(cudaStream_t stream) override;
     void accumulateInteractionIntermediate(cudaStream_t stream) override;
+
+    void gatherInteractionIntermediate(cudaStream_t stream) override;
 };
 
 

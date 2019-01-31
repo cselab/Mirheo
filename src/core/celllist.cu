@@ -400,6 +400,8 @@ void CellList::setNeededForIntermediate() {neededForIntermediate = true;}
 bool CellList::isNeededForOutput() const {return neededForOutput;}
 bool CellList::isNeededForIntermediate() const {return neededForIntermediate;}
 
+LocalParticleVector* CellList::getLocalParticleVector() {return localPV;}
+
 void CellList::_addIfNameNoIn(const std::string& name, CellList::ActivePredicate pred, std::vector<CellList::ChannelActivity>& vec) const
 {
     bool alreadyIn = false;
@@ -469,3 +471,11 @@ void PrimaryCellList::accumulateInteractionOutput(cudaStream_t stream)
 void PrimaryCellList::accumulateInteractionIntermediate(cudaStream_t stream)
 {}    
 
+void PrimaryCellList::gatherInteractionIntermediate(cudaStream_t stream)
+{
+    // do not need to reorder data, but still invalidate halo
+    for (auto& entry : intermediateInputChannels) {
+        if (!entry.active()) continue;
+        pv->haloValid = false;
+    }
+}
