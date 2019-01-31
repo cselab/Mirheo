@@ -131,8 +131,15 @@ void ParticleHaloExchanger::attach(ParticleVector *pv, CellList *cl, const std::
         bool isRequired   = std::find(extraChannelNames.begin(), extraChannelNames.end(), namedDesc.first) != extraChannelNames.end();
         return needExchange || isRequired;
     });
+
+    std::string msg_channels = extraChannelNames.empty() ?
+        "no extra channels." :
+        "with extra channels: ";
+    for (const auto& ch : extraChannelNames)
+        msg_channels += "'" + ch + "' ";
     
-    info("Particle halo exchanger takes pv '%s'", pv->name.c_str());
+    info("Particle halo exchanger takes pv '%s' with celllist of rc = %g, %s",
+         pv->name.c_str(), cl->rc, msg_channels.c_str());
 }
 
 void ParticleHaloExchanger::prepareSizes(int id, cudaStream_t stream)
