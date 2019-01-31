@@ -1,6 +1,7 @@
 #include "pairwise_interactions/dpd.h"
 #include "pairwise_interactions/lj.h"
 #include "pairwise_interactions/lj_object_aware.h"
+#include "pairwise_interactions/mdpd.h"
 #include "pairwise_with_stress.h"
 
 #include <core/celllist.h>
@@ -111,3 +112,4 @@ void InteractionPair_withStress<PairwiseInteraction>::setSpecificPair(
 template class InteractionPair_withStress<Pairwise_DPD>;
 template class InteractionPair_withStress<Pairwise_LJ>;
 template class InteractionPair_withStress<Pairwise_LJObjectAware>;
+template class InteractionPair_withStress<Pairwise_MDPD>;
