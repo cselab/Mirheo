@@ -14,14 +14,16 @@ For more information, please refer to the online documentation: http://ymero.rea
 
 ### unreleased 
 
-* **interface change**: make frozen walls takes a list of interactions
-* **interface change**: make frozen rigid takes a list of interactions
+### v0.10.0
+
 * Add _MDPD_ interaction (**walls and solvent fully supported only**)
 * internal changes:
   * generic pairwise interaction fetching
   * 2-steps interaction support: extended task dependency graph
   * cell lists are aware of which channels to clear, accumulate and reorder
-  * wip: more general object reverse exchangers 
+  * wip: more general object reverse exchangers
+* **interface change**: make frozen walls takes a list of interactions
+* **interface change**: make frozen rigid takes a list of interactions
 
 ### v0.9.7
 
