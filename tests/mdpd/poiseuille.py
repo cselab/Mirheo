@@ -19,29 +19,27 @@ u.registerParticleVector(pv=pv, ic=ic)
 rc = 1.0
 rd = 0.75
 
-# TODO use mdp for wall creation
-dpd = ymr.Interactions.DPD('dpd', rc, a=10.0, gamma=50.0, kbt=0.1, power=0.25)
-
 plate_lo = ymr.Walls.Plane("plate_lo", (0, 0, -1), (0, 0,              1))
 plate_hi = ymr.Walls.Plane("plate_hi", (0, 0,  1), (0, 0,  domain[2] - 1))
 u.registerWall(plate_lo, 0)
 u.registerWall(plate_hi, 0)
 
+den = ymr.Interactions.Density('density', rd)
+mdpd = ymr.Interactions.MDPD('mdpd', rc, rd, a=10.0, b=10.0, gamma=50.0, kbt=0.1, power=0.25)
+
 vv = ymr.Integrators.VelocityVerlet("vv")
-frozen = u.makeFrozenWallParticles(pvName="frozen", walls=[plate_lo, plate_hi], interactions=[dpd], integrator=vv, density=density)
+frozen = u.makeFrozenWallParticles(pvName="frozen", walls=[plate_lo, plate_hi], interactions=[den, mdpd], integrator=vv, density=density, nsteps=1000)
 
 u.setWall(plate_lo, pv)
 u.setWall(plate_hi, pv)
 
-den = ymr.Interactions.Density('density', rd)
-mdpd = ymr.Interactions.MDPD('mdpd', rc, rd, a=10.0, b=10.0, gamma=50.0, kbt=0.1, power=0.25)
 u.registerInteraction(den)
 u.registerInteraction(mdpd)
 
-for p in (pv, frozen):
+for p in [pv, frozen]:
     u.setInteraction(den, p, pv)
     u.setInteraction(mdpd, p, pv)
-
+u.setInteraction(den, frozen, frozen)
 
 u.registerIntegrator(vv)
 u.setIntegrator(vv, pv)
@@ -68,6 +66,7 @@ vc = ymr.Plugins.createVelocityControl("vc", "vcont.txt", [pv], (0, 0, 0), domai
 u.registerPlugins(vc)
 
 #u.registerPlugins(ymr.Plugins.createDumpParticles('partDump', pv, 1000, [], 'h5/solvent_particles-'))
+#u.registerPlugins(ymr.Plugins.createDumpParticles('wallDump', frozen, 1000, [], 'h5/wall_particles-'))
 
 u.run(20002)
 
