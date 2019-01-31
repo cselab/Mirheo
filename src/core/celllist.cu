@@ -238,12 +238,16 @@ void CellList::_reorderExtraDataEntry(const std::string& channelName,
 
 }
 
-void CellList::_reorderExtraData(cudaStream_t stream)
+void CellList::_reorderPersistentData(cudaStream_t stream)
 {
     auto srcExtraData = &pv->local()->extraPerParticle;
     
-    for (auto& namedChannel : srcExtraData->getSortedChannels())
-        _reorderExtraDataEntry(namedChannel.first, namedChannel.second, stream);
+    for (const auto& namedChannel : srcExtraData->getSortedChannels()) {
+        const auto& name = namedChannel.first;
+        const auto& desc = namedChannel.second;
+        if (desc->persistence != ExtraDataManager::PersistenceMode::Persistent) continue;
+        _reorderExtraDataEntry(name, desc, stream);
+    }
 }
 
 void CellList::_build(cudaStream_t stream)
@@ -251,7 +255,7 @@ void CellList::_build(cudaStream_t stream)
     _computeCellSizes(stream);
     _computeCellStarts(stream);
     _reorderData(stream);
-    _reorderExtraData(stream);
+    _reorderPersistentData(stream);
     
     changedStamp = pv->cellListStamp;
 }
