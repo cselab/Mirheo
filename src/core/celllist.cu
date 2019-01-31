@@ -358,19 +358,19 @@ void CellList::clearInteractionOutput(cudaStream_t stream)
 
     for (auto& channel : finaleOutputChannels) {
         if (!channel.active()) continue;
-        localPV->extraPerParticle.getGenericData(channel.name)->clear(stream);
+        localPV->extraPerParticle.getGenericData(channel.name)->clearDevice(stream);
     }
 }
 
 void CellList::clearInteractionIntermediate(cudaStream_t stream)
 {
-    for (auto& channel : intermediateInputChannels) {
+    for (const auto& channel : intermediateInputChannels) {
         if (!channel.active()) continue;
-        localPV->extraPerParticle.getGenericData(channel.name)->clear(stream);
+        localPV->extraPerParticle.getGenericData(channel.name)->clearDevice(stream);
     }
-    for (auto& channel : intermediateOutputChannels) {
+    for (const auto& channel : intermediateOutputChannels) {
         if (!channel.active()) continue;
-        localPV->extraPerParticle.getGenericData(channel.name)->clear(stream);
+        localPV->extraPerParticle.getGenericData(channel.name)->clearDevice(stream);
     }
 }
 

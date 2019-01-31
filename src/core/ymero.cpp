@@ -287,10 +287,10 @@ double YMeRo::computeVolumeInsideWalls(std::vector<std::shared_ptr<Wall>> walls,
 }
 
 std::shared_ptr<ParticleVector> YMeRo::makeFrozenWallParticles(std::string pvName,
-                                                                  std::vector<std::shared_ptr<Wall>> walls,
-                                                                  std::shared_ptr<Interaction> interaction,
-                                                                  std::shared_ptr<Integrator>   integrator,
-                                                                  float density, int nsteps)
+                                                               std::vector<std::shared_ptr<Wall>> walls,
+                                                               std::shared_ptr<Interaction> interaction,
+                                                               std::shared_ptr<Integrator>   integrator,
+                                                               float density, int nsteps)
 {
     if (!isComputeTask()) return nullptr;
 

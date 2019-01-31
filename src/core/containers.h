@@ -37,7 +37,7 @@ public:
                                                                        ///< @param n new size, must be >= 0
                                                                        ///< @param stream data will be copied on that CUDA stream
 
-    virtual void clear(cudaStream_t stream) = 0;
+    virtual void clearDevice(cudaStream_t stream) = 0;
     
     virtual GPUcontainer* produce() const = 0;                         ///< Create a new instance of the concrete container implementation
 
@@ -152,9 +152,13 @@ public:
     inline T* devPtr() const { return devptr; }
 
     /// Set all the bytes to 0
-    inline void clear(cudaStream_t stream) override
+    inline void clearDevice(cudaStream_t stream) override
     {
         if (_size > 0) CUDA_Check( cudaMemsetAsync(devptr, 0, sizeof(T) * _size, stream) );
+    }
+    
+    inline void clear(cudaStream_t stream) {
+        clearDevice(stream);
     }
 
     /**
@@ -515,7 +519,7 @@ public:
     }
 
     /// Set all the bytes to 0 on device only
-    inline void clearDevice(cudaStream_t stream)
+    inline void clearDevice(cudaStream_t stream) override
     {
         if (_size > 0) CUDA_Check( cudaMemsetAsync(devptr, 0, sizeof(T) * _size, stream) );
     }
