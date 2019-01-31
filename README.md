@@ -14,9 +14,9 @@ For more information, please refer to the online documentation: http://ymero.rea
 
 ### unreleased 
 
-* *interface change*: make frozen walls takes a list of interactions
-* *interface change*: make frozen rigid takes a list of interactions
-* Add MDPD interaction (*walls and solvent fully supported only*)
+* **interface change**: make frozen walls takes a list of interactions
+* **interface change**: make frozen rigid takes a list of interactions
+* Add _MDPD_ interaction (**walls and solvent fully supported only**)
 * internal changes:
   * generic pairwise interaction fetching
   * 2-steps interaction support: extended task dependency graph
@@ -34,7 +34,7 @@ For more information, please refer to the online documentation: http://ymero.rea
 
 ### v0.9.6
 
-* bug fix: LJ potential had swapped epsilon and sigma
+* **fix**: LJ potential had swapped epsilon and sigma
 
 ### v0.9.5
 
@@ -44,12 +44,12 @@ For more information, please refer to the online documentation: http://ymero.rea
 
 ### v0.9.4
 
-* fix: stress free state can be used when the cell is grown
-* fix: MembraneMesh wrapper needs GPU
+* **fix**: stress free state can be used when the cell is grown
+* **fix**: MembraneMesh wrapper needs GPU
 
 ### v0.9.3
 
-* fix: the stress entries are now cleared before forces; could be cleared more by other interaction handlers
+* **fix**: the stress entries are now cleared before forces; could be cleared more by other interaction handlers
 * use ymero state inside the simulation objects; do not have current time, step and dt separate in simulation
 
 ### v0.9.2
@@ -63,10 +63,10 @@ For more information, please refer to the online documentation: http://ymero.rea
 
 ### v0.9.0
 
-Add common YmrState object.
-This changes the interface only slightly due to the python wrapping:
-* the time step is now passed to the coordinator constructor
-* the time step is not passed to any other object
+* Add common YmrState object.
+* **interface change**:
+  * the time step is now passed to the coordinator constructor
+  * the time step is not passed to any other object
 
 ### v0.8.0
 
@@ -111,7 +111,7 @@ This changes the interface only slightly due to the python wrapping:
 
 ### v0.4.1
 
-* change interface for wall oscillation: period is in dpd units now
+* **interface change**: wall oscillation: period is in dpd units now
 
 ### v0.4.0
 
