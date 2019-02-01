@@ -1,13 +1,15 @@
 #pragma once
 
-#include <cstdint>
-
 #include <core/containers.h>
 #include <core/datatypes.h>
 #include <core/logger.h>
 #include <core/pvs/particle_vector.h>
 #include <core/pvs/views/pv.h>
 #include <core/utils/cuda_common.h>
+
+#include <cstdint>
+#include <functional>
+
 
 enum class CellListsProjection
 {
@@ -121,7 +123,7 @@ public:
     template <typename T>
     void requireExtraDataPerParticle(const std::string& name, ExtraChannelRole kind, ActivePredicate pred = [](){return true;})
     {
-        localPV->extraPerParticle.createData<T>(name);
+        particlesDataContainer->extraPerParticle.createData<T>(name);
 
         _addToChannel(name, kind, pred);
     }
@@ -179,6 +181,7 @@ protected:
                                 const ExtraDataManager::ChannelDescription *channelDesc,
                                 cudaStream_t stream);
 
+    virtual std::string makeName() const;
 };
 
 class PrimaryCellList : public CellList
@@ -199,6 +202,7 @@ public:
 protected:
 
     void _swapPersistentExtraData();
+    std::string makeName() const override;
 };
 
 

@@ -154,7 +154,7 @@ CellList::~CellList() = default;
 
 void CellList::_computeCellSizes(cudaStream_t stream)
 {
-    debug2("Computing cell sizes for %d %s particles", pv->local()->size(), pv->name.c_str());
+    debug2("%s : Computing cell sizes for %d particles", makeName().c_str(), pv->local()->size());
     cellSizes.clear(stream);
 
     PVview view(pv, pv->local());
@@ -232,8 +232,8 @@ void CellList::_reorderExtraDataEntry(const std::string& channelName,
 #undef SWITCH_ENTRY
 
     default:
-        die("Cannot reorder data: channel '%s' of pv '%s' has None type",
-            channelName.c_str(), pv->name.c_str());
+        die("%s : cannot reorder data: channel '%s' has None type",
+            makeName().c_str(), channelName.c_str());
     };
 
 }
@@ -283,7 +283,7 @@ void CellList::build(cudaStream_t stream)
         return;
     }
 
-    debug("building cell list of '%s' (with rc = %g)", pv->name.c_str(), rc);
+    debug("building %s", makeName().c_str());
     
     _build(stream);
 }
@@ -295,8 +295,8 @@ void CellList::_accumulateExtraData(std::vector<ChannelActivity>& channels, cuda
     for (auto& entry : channels) {
         if (!entry.active()) continue;
 
-        debug("accumulating channel '%s' of pv '%s' from cell list (rc = %g)",
-              entry.name.c_str(), pv->name.c_str(), rc);
+        debug("%s : accumulating channel '%s'",
+              makeName().c_str(), entry.name.c_str(), pv->name.c_str(), rc);
 
         switch(localPV->extraPerParticle.getChannelDescOrDie(entry.name).dataType) {
 
@@ -316,8 +316,8 @@ void CellList::_accumulateExtraData(std::vector<ChannelActivity>& channels, cuda
             TYPE_TABLE_ADDITIONABLE(SWITCH_ENTRY);
 
         default:
-            die("Cannot accumulate entry '%s' in pv '%s': type not supported",
-                entry.name.c_str(), pv->name.c_str());
+            die("%s : cannot accumulate entry '%s': type not supported",
+                makeName().c_str(), entry.name.c_str());
 
 #undef SWITCH_ENTRY
         };        
@@ -347,8 +347,8 @@ void CellList::gatherInteractionIntermediate(cudaStream_t stream)
     for (auto& entry : intermediateInputChannels) {
         if (!entry.active()) continue;
 
-        debug("gathering intermediate channel '%s' from pv '%s' to cell list (rc = %g)",
-              entry.name.c_str(), pv->name.c_str(), rc);
+        debug("%s : gathering intermediate channel '%s'",
+              makeName().c_str(), entry.name.c_str());
         
         auto& desc = localPV->extraPerParticle.getChannelDescOrDie(entry.name);
         _reorderExtraDataEntry(entry.name, &desc, stream);
@@ -372,10 +372,12 @@ void CellList::clearInteractionIntermediate(cudaStream_t stream)
 {
     for (const auto& channel : intermediateInputChannels) {
         if (!channel.active()) continue;
+        debug2("%s : clear channel '%s'", makeName().c_str(), channel.name.c_str());
         localPV->extraPerParticle.getGenericData(channel.name)->clearDevice(stream);
     }
     for (const auto& channel : intermediateOutputChannels) {
         if (!channel.active()) continue;
+        debug2("%s : clear channel '%s'", makeName().c_str(), channel.name.c_str());
         localPV->extraPerParticle.getGenericData(channel.name)->clearDevice(stream);
     }
 }
@@ -412,7 +414,8 @@ void CellList::_addIfNameNoIn(const std::string& name, CellList::ActivePredicate
             alreadyIn = true;
 
     if (alreadyIn) {
-        debug("channel '%s' already added, skip it. Make sure that the activity predicate is the same", name.c_str());
+        debug("%s : channel '%s' already added, skip it. Make sure that the activity predicate is the same",
+              makeName().c_str(), name.c_str());
         // We could also make pred = old_pred || pred; leave it as it is for now
         return;
     }
@@ -426,6 +429,12 @@ void CellList::_addToChannel(const std::string& name, ExtraChannelRole kind, Cel
     else if (kind == ExtraChannelRole::IntermediateInput)  _addIfNameNoIn(name, pred, intermediateInputChannels);
     else if (kind == ExtraChannelRole::FinalOutput)        _addIfNameNoIn(name, pred, finalOutputChannels);
 }
+
+std::string CellList::makeName() const
+{
+    return "Cell List '" + pv->name + "' (rc " + std::to_string(rc) + ")";
+}
+
 
 //=================================================================================
 // Primary cell-lists
@@ -460,7 +469,8 @@ void PrimaryCellList::build(cudaStream_t stream)
     CUDA_Check( cudaMemcpyAsync(&newSize, cellStarts.devPtr() + totcells, sizeof(int), cudaMemcpyDeviceToHost, stream) );
     CUDA_Check( cudaStreamSynchronize(stream) );
 
-    debug2("Reordering completed, new size of %s particle vector is %d", pv->name.c_str(), newSize);
+    debug2("%s : reordering completed, new size of %s particle vector is %d",
+           makeName().c_str(), pv->name.c_str(), newSize);
 
     particlesDataContainer->resize(newSize, stream);
 
@@ -478,10 +488,10 @@ void PrimaryCellList::accumulateInteractionIntermediate(cudaStream_t stream)
 
 void PrimaryCellList::gatherInteractionIntermediate(cudaStream_t stream)
 {
+    pv->haloValid = false;
     // do not need to reorder data, but still invalidate halo
     for (auto& entry : intermediateInputChannels) {
         if (!entry.active()) continue;
-        pv->haloValid = false;
     }
 }
 
@@ -504,10 +514,15 @@ void PrimaryCellList::_swapPersistentExtraData()
         switch(desc->dataType) {
             TYPE_TABLE(SWITCH_ENTRY);
         default:
-            die("cannot swap data: channel '%s' of pv '%s' has None type.",
-                name.c_str(), pv->name.c_str());
+            die("cannot swap data: %s has None type.",
+                makeName().c_str());
         }
 
 #undef SWITCH_ENTRY        
     }
+}
+
+std::string PrimaryCellList::makeName() const
+{
+    return "Primary " + CellList::makeName();
 }
