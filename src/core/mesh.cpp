@@ -1,59 +1,14 @@
 #include "mesh.h"
 
-#include <fstream>
-#include <unordered_map>
-#include <map>
-#include <vector>
-
 #include <core/utils/cuda_common.h>
 
-void Mesh::_check() const
-{
-    auto check = [this] (int tr) {
-        if (tr < 0 || tr >= nvertices)
-            die("Bad triangle indices");
-    };
+#include <fstream>
+#include <map>
+#include <unordered_map>
+#include <vector>
 
-    for (int i = 0; i < getNtriangles(); ++i) {
-        check(triangles[i].x);
-        check(triangles[i].y);
-        check(triangles[i].z);
-    }
-}
-
-void Mesh::_readOff(std::string fname)
-{
-   std::ifstream fin(fname);
-    if (!fin.good())
-        die("Mesh file '%s' not found", fname.c_str());
-
-    debug("Reading mesh from file '%s'", fname.c_str());
-
-    std::string line;
-    std::getline(fin, line); // OFF header
-
-    int nedges;
-    fin >> nvertices >> ntriangles >> nedges;
-    std::getline(fin, line); // Finish with this line
-
-    // Read the vertex coordinates
-    vertexCoordinates.resize_anew(nvertices);
-    for (int i=0; i<nvertices; i++)
-        fin >> vertexCoordinates[i].x >> vertexCoordinates[i].y >> vertexCoordinates[i].z;
-
-    // Read the connectivity data
-    triangles.resize_anew(ntriangles);
-    for (int i=0; i<ntriangles; i++)
-    {
-        int number;
-        fin >> number;
-        if (number != 3)
-            die("Bad mesh file '%s' on line %d, number of face vertices is %d instead of 3",
-                    fname.c_str(), 3 /* header */ + nvertices + i, number);
-
-        fin >> triangles[i].x >> triangles[i].y >> triangles[i].z;
-    }
-}
+Mesh::Mesh()
+{}
 
 Mesh::Mesh(std::string fname)
 {
@@ -87,6 +42,12 @@ Mesh::Mesh(const PyTypes::VectorOfFloat3& vertices, const PyTypes::VectorOfInt3&
 
     _computeMaxDegree();
 }
+
+Mesh::Mesh(Mesh&&) = default;
+
+Mesh& Mesh::operator=(Mesh&&) = default;
+
+Mesh::~Mesh() = default;
 
 const int& Mesh::getNtriangles() const {return ntriangles;}
 const int& Mesh::getNvertices()  const {return nvertices;}
@@ -139,6 +100,57 @@ void Mesh::_computeMaxDegree()
     debug("max degree is %d", maxDegree);
 }
 
+void Mesh::_check() const
+{
+    auto check = [this] (int tr) {
+        if (tr < 0 || tr >= nvertices)
+            die("Bad triangle indices");
+    };
+
+    for (int i = 0; i < getNtriangles(); ++i) {
+        check(triangles[i].x);
+        check(triangles[i].y);
+        check(triangles[i].z);
+    }
+}
+
+void Mesh::_readOff(std::string fname)
+{
+   std::ifstream fin(fname);
+    if (!fin.good())
+        die("Mesh file '%s' not found", fname.c_str());
+
+    debug("Reading mesh from file '%s'", fname.c_str());
+
+    std::string line;
+    std::getline(fin, line); // OFF header
+
+    int nedges;
+    fin >> nvertices >> ntriangles >> nedges;
+    std::getline(fin, line); // Finish with this line
+
+    // Read the vertex coordinates
+    vertexCoordinates.resize_anew(nvertices);
+    for (int i=0; i<nvertices; i++)
+        fin >> vertexCoordinates[i].x >> vertexCoordinates[i].y >> vertexCoordinates[i].z;
+
+    // Read the connectivity data
+    triangles.resize_anew(ntriangles);
+    for (int i=0; i<ntriangles; i++)
+    {
+        int number;
+        fin >> number;
+        if (number != 3)
+            die("Bad mesh file '%s' on line %d, number of face vertices is %d instead of 3",
+                    fname.c_str(), 3 /* header */ + nvertices + i, number);
+
+        fin >> triangles[i].x >> triangles[i].y >> triangles[i].z;
+    }
+}
+
+MembraneMesh::MembraneMesh()
+{}
+
 MembraneMesh::MembraneMesh(std::string fname) : Mesh(fname)
 {
     findAdjacent();
@@ -152,6 +164,11 @@ MembraneMesh::MembraneMesh(const PyTypes::VectorOfFloat3& vertices, const PyType
     computeInitialLengths();
     computeInitialAreas();
 }
+
+MembraneMesh::MembraneMesh(MembraneMesh&&) = default;
+MembraneMesh& MembraneMesh::operator=(MembraneMesh&&) = default;
+
+MembraneMesh::~MembraneMesh() = default;
 
 using EdgeMapPerVertex = std::vector< std::map<int, int> >;
 static const int NOT_SET = -1;

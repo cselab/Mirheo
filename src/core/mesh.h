@@ -14,12 +14,14 @@ public:
 
     PinnedBuffer<float4> vertexCoordinates;
 
-    Mesh() {};
+    Mesh();
     Mesh(std::string);
     Mesh(const PyTypes::VectorOfFloat3& vertices, const PyTypes::VectorOfInt3& faces);
 
-    Mesh(Mesh&&) = default;
-    Mesh& operator=(Mesh&&) = default;
+    Mesh(Mesh&&);
+    Mesh& operator=(Mesh&&);
+
+    virtual ~Mesh();
 
     const int& getNtriangles() const;
     const int& getNvertices() const;
@@ -42,12 +44,14 @@ public:
     PinnedBuffer<int> adjacent, degrees;
     PinnedBuffer<float> initialLengths, initialAreas;
 
-    MembraneMesh() {};
-    MembraneMesh(std::string);
+    MembraneMesh();
+    MembraneMesh(std::string fname);
     MembraneMesh(const PyTypes::VectorOfFloat3& vertices, const PyTypes::VectorOfInt3& faces);
 
-    MembraneMesh(MembraneMesh&&) = default;
-    MembraneMesh& operator=(MembraneMesh&&) = default;
+    MembraneMesh(MembraneMesh&&);
+    MembraneMesh& operator=(MembraneMesh&&);
+
+    ~MembraneMesh();
 
 protected:
     void findAdjacent();
@@ -60,9 +64,9 @@ protected:
 struct MeshView
 {
     int nvertices, ntriangles;
-    int3* triangles;
+    int3 *triangles;
 
-    MeshView(const Mesh* m)
+    MeshView(const Mesh *m)
     {
         nvertices = m->getNvertices();
         ntriangles = m->getNtriangles();
@@ -78,7 +82,7 @@ struct MembraneMeshView : public MeshView
     int *adjacent, *degrees;
     float *initialLengths, *initialAreas;
 
-    MembraneMeshView(const MembraneMesh* m) : MeshView(m)
+    MembraneMeshView(const MembraneMesh *m) : MeshView(m)
     {
         maxDegree = m->getMaxDegree();
 
