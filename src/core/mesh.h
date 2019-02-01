@@ -45,8 +45,16 @@ public:
     PinnedBuffer<float> initialLengths, initialAreas;
 
     MembraneMesh();
-    MembraneMesh(std::string fname);
-    MembraneMesh(const PyTypes::VectorOfFloat3& vertices, const PyTypes::VectorOfInt3& faces);
+
+    MembraneMesh(std::string initialMesh);
+    MembraneMesh(std::string initialMesh, std::string stressFreeMesh);
+
+    MembraneMesh(const PyTypes::VectorOfFloat3& vertices,
+                 const PyTypes::VectorOfInt3& faces);
+    
+    MembraneMesh(const PyTypes::VectorOfFloat3& vertices,
+                 const PyTypes::VectorOfFloat3& stressFreeVertices,
+                 const PyTypes::VectorOfInt3& faces);
 
     MembraneMesh(MembraneMesh&&);
     MembraneMesh& operator=(MembraneMesh&&);
@@ -55,8 +63,8 @@ public:
 
 protected:
     void findAdjacent();
-    void computeInitialLengths();
-    void computeInitialAreas();
+    void computeInitialLengths(const PinnedBuffer<float4>& vertices);
+    void computeInitialAreas(const PinnedBuffer<float4>& vertices);
 };
 
 
