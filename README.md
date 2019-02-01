@@ -12,7 +12,9 @@ For more information, please refer to the online documentation: http://ymero.rea
 
 ## Changelog
 
-### unreleased 
+<!-- ### unreleased  -->
+
+### v 0.10.1
 
 * add plugin to save a channel of extra particle data (useful for intermediate quantities such as densities in MDPD)
 * **fix** reordering of persistent extra channels in primary cell lists
