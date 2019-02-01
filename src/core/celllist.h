@@ -195,6 +195,10 @@ public:
     void accumulateInteractionIntermediate(cudaStream_t stream) override;
 
     void gatherInteractionIntermediate(cudaStream_t stream) override;
+
+protected:
+
+    void _swapPersistentExtraData();
 };
 
 

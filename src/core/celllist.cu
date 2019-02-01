@@ -283,6 +283,8 @@ void CellList::build(cudaStream_t stream)
         return;
     }
 
+    debug("building cell list of '%s' (with rc = %g)", pv->name.c_str(), rc);
+    
     _build(stream);
 }
 
@@ -461,7 +463,10 @@ void PrimaryCellList::build(cudaStream_t stream)
     debug2("Reordering completed, new size of %s particle vector is %d", pv->name.c_str(), newSize);
 
     particlesDataContainer->resize(newSize, stream);
+
     std::swap(pv->local()->coosvels, particlesDataContainer->coosvels);
+    _swapPersistentExtraData();
+    
     pv->local()->resize(newSize, stream);
 }
 
@@ -477,5 +482,32 @@ void PrimaryCellList::gatherInteractionIntermediate(cudaStream_t stream)
     for (auto& entry : intermediateInputChannels) {
         if (!entry.active()) continue;
         pv->haloValid = false;
+    }
+}
+
+void PrimaryCellList::_swapPersistentExtraData()
+{
+    auto pvManager        = &pv->local()->extraPerParticle;
+    auto containerManager = &particlesDataContainer->extraPerParticle;
+    
+    for (const auto& namedChannel : pvManager->getSortedChannels()) {
+        const auto& name = namedChannel.first;
+        const auto& desc = namedChannel.second;
+        if (desc->persistence != ExtraDataManager::PersistenceMode::Persistent) continue;
+
+#define SWITCH_ENTRY(ctype)                                             \
+        case DataType::TOKENIZE(ctype):                                 \
+            std::swap(*pvManager       ->getData<ctype>(name),          \
+                      *containerManager->getData<ctype>(name));         \
+                break;
+
+        switch(desc->dataType) {
+            TYPE_TABLE(SWITCH_ENTRY);
+        default:
+            die("cannot swap data: channel '%s' of pv '%s' has None type.",
+                name.c_str(), pv->name.c_str());
+        }
+
+#undef SWITCH_ENTRY        
     }
 }
