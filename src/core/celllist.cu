@@ -488,11 +488,11 @@ void PrimaryCellList::accumulateInteractionIntermediate(cudaStream_t stream)
 {}    
 
 void PrimaryCellList::gatherInteractionIntermediate(cudaStream_t stream)
-{
-    pv->haloValid = false;
+{    
     // do not need to reorder data, but still invalidate halo
     for (auto& entry : intermediateInputChannels) {
         if (!entry.active()) continue;
+        pv->haloValid = false;
     }
 }
 
