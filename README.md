@@ -14,6 +14,10 @@ For more information, please refer to the online documentation: http://ymero.rea
 
 ### unreleased 
 
+* add plugin to save a channel of extra particle data (useful for intermediate quantities such as densities in MDPD)
+* **fix** reordering of persistent extra channels in primary cell lists
+* **fix** use local cell lists instead of primary ones in halo exchanger
+
 ### v0.10.0
 
 * Add _MDPD_ interaction (**walls and solvent fully supported only**)
