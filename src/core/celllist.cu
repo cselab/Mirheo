@@ -424,7 +424,8 @@ void CellList::_addIfNameNoIn(const std::string& name, CellList::ActivePredicate
 }
 
 void CellList::_addToChannel(const std::string& name, ExtraChannelRole kind, CellList::ActivePredicate pred)
-{    
+{
+    debug("%s : adding channel %s", makeName().c_str(), name.c_str());
     if      (kind == ExtraChannelRole::IntermediateOutput) _addIfNameNoIn(name, pred, intermediateOutputChannels);
     else if (kind == ExtraChannelRole::IntermediateInput)  _addIfNameNoIn(name, pred, intermediateInputChannels);
     else if (kind == ExtraChannelRole::FinalOutput)        _addIfNameNoIn(name, pred, finalOutputChannels);
