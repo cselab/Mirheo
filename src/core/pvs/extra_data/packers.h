@@ -84,11 +84,6 @@ private:
         NeedShift, NoShift
     };
 
-    enum class AddMode
-    {
-        Add, Copy
-    };
-
 #ifdef __CUDACC__
     /**
      * Copy nchunks*sizeof(T) bytes from \c from to \c to

@@ -127,9 +127,7 @@ void ParticleHaloExchanger::attach(ParticleVector *pv, CellList *cl, const std::
     helpers.push_back(std::move(helper));
 
     packPredicates.push_back([extraChannelNames](const ExtraDataManager::NamedChannelDesc& namedDesc) {
-        bool needExchange = namedDesc.second->communication == ExtraDataManager::CommunicationMode::NeedExchange;
-        bool isRequired   = std::find(extraChannelNames.begin(), extraChannelNames.end(), namedDesc.first) != extraChannelNames.end();
-        return needExchange || isRequired;
+        return std::find(extraChannelNames.begin(), extraChannelNames.end(), namedDesc.first) != extraChannelNames.end();
     });
 
     std::string msg_channels = extraChannelNames.empty() ?
@@ -150,13 +148,14 @@ void ParticleHaloExchanger::prepareSizes(int id, cudaStream_t stream)
 
     debug2("Counting halo particles of '%s'", pv->name.c_str());
 
-    // LocalParticleVector *lpv = cl->getLocalParticleVector();
-    LocalParticleVector *lpv = pv->local();
+    LocalParticleVector *lpv = cl->getLocalParticleVector();
+    // LocalParticleVector *lpv = pv->local();
     
     helper->sendSizes.clear(stream);
     if (lpv->size() > 0)
     {
         const int maxdim = std::max({cl->ncells.x, cl->ncells.y, cl->ncells.z});
+
         const int nthreads = 64;
         const dim3 nblocks = dim3(getNblocks(maxdim*maxdim, nthreads), 6, 1);
 
@@ -182,8 +181,8 @@ void ParticleHaloExchanger::prepareData(int id, cudaStream_t stream)
     debug2("Downloading %d halo particles of '%s'",
            helper->sendOffsets[FragmentMapping::numFragments], pv->name.c_str());
 
-    // LocalParticleVector *lpv = cl->getLocalParticleVector();
-    LocalParticleVector *lpv = pv->local();
+    LocalParticleVector *lpv = cl->getLocalParticleVector();
+    // LocalParticleVector *lpv = pv->local();
 
     if (lpv->size() > 0)
     {
@@ -209,6 +208,8 @@ void ParticleHaloExchanger::combineAndUploadData(int id, cudaStream_t stream)
 
     int totalRecvd = helper->recvOffsets[helper->nBuffers];
     pv->halo()->resize_anew(totalRecvd);
+
+    debug2("received %d particles from halo exchange", totalRecvd);
 
     ParticlePacker packer(pv, pv->halo(), packPredicates[id], stream);
     
