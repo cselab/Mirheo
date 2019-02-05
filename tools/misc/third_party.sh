@@ -1,4 +1,4 @@
-#! /bin/sh
+#! /bin/bash
 
 ymr.run pip install trimesh --user
 ymr.run pip install mpi4py --user

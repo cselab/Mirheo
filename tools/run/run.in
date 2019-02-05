@@ -1,4 +1,4 @@
-#! /bin/sh
+#! /bin/bash
 
 EXE_PREFIX=@EXE_PREFIX@
 RUN_CMD=@RUN_CMD@

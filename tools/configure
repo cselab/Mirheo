@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 P=ymr
 prefix=${HOME}/bin
