@@ -31,6 +31,6 @@ struct REOVviewWithOldMotion : public REOVview
     {
         if (reov == nullptr || lrov == nullptr) return;
 
-        old_motions = lrov->extraPerObject.getData<RigidMotion>("old_motions")->devPtr();
+        old_motions = lrov->extraPerObject.getData<RigidMotion>(ChannelNames::oldMotions)->devPtr();
     }
 };

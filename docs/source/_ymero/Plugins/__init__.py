@@ -134,6 +134,12 @@ class ObjPositionsDumper(PostprocessPlugin):
         Responsible for performing the I/O.
     
     """
+class ParticleChannelSaver(SimulationPlugin):
+    r"""
+        This plugin creates an extra channel per particle inside the given particle vector with a given name.
+        It copies the content of an extra channel of pv at each time step and make it accessible by other plugins.
+    
+    """
 class ParticleDumperPlugin(PostprocessPlugin):
     r"""
         Postprocess side plugin of :any:`ParticleSenderPlugin`.
@@ -552,6 +558,22 @@ def createMembraneExtraForce():
     """
     pass
 
+def createParticleChannelSaver():
+    r"""createParticleChannelSaver(state: YmrState, name: str, pv: ParticleVectors.ParticleVector, channelName: str, savedName: str) -> Tuple[Plugins.ParticleChannelSaver, Plugins.PostprocessPlugin]
+
+
+        Create :any:`ParticleChannelSaver` plugin
+        
+        Args:
+            name: name of the plugin
+            pv: :any:`ParticleVector` that we'll work with
+            channelName: the name of the source channel
+            savedName: name of the extra channel
+    
+
+    """
+    pass
+
 def createPinObject():
     r"""createPinObject(state: YmrState, name: str, ov: ParticleVectors.ObjectVector, dump_every: int, path: str, velocity: Tuple[float, float, float], angular_velocity: Tuple[float, float, float]) -> Tuple[Plugins.PinObject, Plugins.ReportPinObject]
 
@@ -625,7 +647,7 @@ def createVelocityControl():
     pass
 
 def createVirialPressurePlugin():
-    r"""createVirialPressurePlugin(state: YmrState, name: str, pv: ParticleVectors.ParticleVector, stress_mame: str, regionFunc: Callable[[Tuple[float, float, float]], float], h: Tuple[float, float, float], dump_every: int, path: str) -> Tuple[Plugins.VirialPressure, Plugins.VirialPressureDumper]
+    r"""createVirialPressurePlugin(state: YmrState, name: str, pv: ParticleVectors.ParticleVector, regionFunc: Callable[[Tuple[float, float, float]], float], h: Tuple[float, float, float], dump_every: int, path: str) -> Tuple[Plugins.VirialPressure, Plugins.VirialPressureDumper]
 
 
         Create :any:`VirialPressure` plugin
@@ -633,7 +655,6 @@ def createVirialPressurePlugin():
         Args:
             name: name of the plugin
             pv: concerned :class:`ParticleVector`
-            stress_name: the extraData entry name of the stress per particle
             regionFunc: predicate for the concerned region; positive inside the region and negative outside
             h: grid size for representing the predicate onto a grid
             dump_every: report total pressure every this many time-steps

@@ -28,10 +28,10 @@ class MPIExchangeEngine : public ExchangeEngine
 {
 public:
     MPIExchangeEngine(std::unique_ptr<ParticleExchanger> exchanger, MPI_Comm comm, bool gpuAwareMPI);
+    ~MPIExchangeEngine();
+    
     void init(cudaStream_t stream)     override;
     void finalize(cudaStream_t stream) override;
-    
-    ~MPIExchangeEngine() = default;
 
 private:
     std::unique_ptr<ParticleExchanger> exchanger;
@@ -45,8 +45,6 @@ private:
     MPI_Comm haloComm;
     bool gpuAwareMPI;
     int singleCopyThreshold = 4000000;
-
-    int tagByName(std::string);
 
     void postRecvSize(ExchangeHelper* helper);
     void sendSizes(ExchangeHelper* helper);

@@ -145,7 +145,7 @@ Returns whether current task is the very first one
         pass
 
     def makeFrozenRigidParticles():
-        r"""makeFrozenRigidParticles(checker: ObjectBelongingChecker, shape: ObjectVector, icShape: InitialConditions, interaction: Interaction, integrator: Integrator, density: float, nsteps: int = 1000) -> ParticleVector
+        r"""makeFrozenRigidParticles(checker: ObjectBelongingChecker, shape: ObjectVector, icShape: InitialConditions, interactions: List[Interaction], integrator: Integrator, density: float, nsteps: int = 1000) -> ParticleVector
 
 
                 Create particles frozen inside object.
@@ -158,7 +158,7 @@ Returns whether current task is the very first one
                     checker: object belonging checker
                     shape: object vector describing the shape of the rigid object
                     icShape: initial conditions for shape
-                    interaction: this :any:`Interaction` will be used to construct the equilibrium particles distribution
+                    interactions: list of :any:`Interaction` that will be used to construct the equilibrium particles distribution
                     integrator: this :any:`Integrator` will be used to construct the equilibrium particles distribution
                     density: target particle density
                     nsteps: run this many steps to achieve equilibrium
@@ -172,7 +172,7 @@ Returns whether current task is the very first one
         pass
 
     def makeFrozenWallParticles():
-        r"""makeFrozenWallParticles(pvName: str, walls: List[Wall], interaction: Interaction, integrator: Integrator, density: float, nsteps: int = 1000) -> ParticleVector
+        r"""makeFrozenWallParticles(pvName: str, walls: List[Wall], interactions: List[Interaction], integrator: Integrator, density: float, nsteps: int = 1000) -> ParticleVector
 
 
                 Create particles frozen inside the walls.
@@ -184,7 +184,7 @@ Returns whether current task is the very first one
                 Args:
                     pvName: name of the created particle vector
                     walls: array of instances of :any:`Wall` for which the frozen particles will be generated
-                    interaction: this :any:`Interaction` will be used to construct the equilibrium particles distribution
+                    interactions: list of :any:`Interaction` that will be used to construct the equilibrium particles distribution
                     integrator: this :any:`Integrator` will be used to construct the equilibrium particles distribution
                     density: target particle density
                     nsteps: run this many steps to achieve equilibrium

@@ -3,7 +3,6 @@
 
 #include <core/celllist.h>
 #include <core/utils/cuda_common.h>
-
 #include <core/pvs/views/pv.h>
 
 enum class InteractionWith
@@ -20,16 +19,6 @@ enum class InteractionMode
 {
     RowWise, Dilute
 };
-
-/// Squared distance between vectors with components
-/// (\p a.x, \p a.y, \p a.z) and (\p b.x, \p b.y, \p b.z)
-template<typename Ta, typename Tb>
-__device__ inline float distance2(const Ta a, const Tb b)
-{
-    auto sqr = [] (float x) { return x*x; };
-    return sqr(a.x - b.x) + sqr(a.y - b.y) + sqr(a.z - b.z);
-}
-
 
 /**
  * Compute interactions between one destination particle and
@@ -65,34 +54,34 @@ __device__ inline float distance2(const Ta a, const Tb b)
  * forces, such that either p1 \<-\> p2 or p2 \<-\> p1 is ignored
  * based on particle ids
  */
-template<InteractionOut NeedDstAcc, InteractionOut NeedSrcAcc, InteractionWith InteractWith, typename Interaction>
+template<InteractionOut NeedDstAcc, InteractionOut NeedSrcAcc, InteractionWith InteractWith,
+         typename Interaction, typename Accumulator>
 __device__ inline void computeCell(
         int pstart, int pend,
-        Particle dstP, int dstId, float3& dstFrc,
-        CellListInfo cinfo,
-        float rc2, Interaction& interaction)
+        typename Interaction::ParticleType dstP, int dstId, typename Interaction::ViewType srcView, float rc2,
+        Interaction& interaction, Accumulator& accumulator)
 {
     for (int srcId = pstart; srcId < pend; srcId++)
     {
-        Particle srcP;
-        srcP.readCoordinate(cinfo.particles, srcId);
+        typename Interaction::ParticleType srcP;
+        interaction.readCoordinates(srcP, srcView, srcId);
 
-        bool interacting = distance2(srcP.r, dstP.r) < rc2;
+        bool interacting = interaction.withinCutoff(srcP, dstP);
 
         if (InteractWith == InteractionWith::Self)
             if (dstId <= srcId) interacting = false;
 
         if (interacting)
         {
-            srcP.readVelocity(cinfo.particles, srcId);
+            interaction.readExtraData(srcP, srcView, srcId);
 
-            float3 frc = interaction(dstP, dstId, srcP, srcId);
+            auto val = interaction(dstP, dstId, srcP, srcId);
 
             if (NeedDstAcc == InteractionOut::NeedAcc)
-                dstFrc += frc;
+                accumulator.add(val);
 
             if (NeedSrcAcc == InteractionOut::NeedAcc)
-                atomicAdd(cinfo.forces + srcId, -frc);
+                accumulator.atomicAddToSrc(val, srcView, srcId);
         }
     }
 }
@@ -117,16 +106,17 @@ __device__ inline void computeCell(
 template<typename Interaction>
 __launch_bounds__(128, 16)
 __global__ void computeSelfInteractions(
-        const int np, CellListInfo cinfo,
+        CellListInfo cinfo, typename Interaction::ViewType view,
         const float rc2, Interaction interaction)
 {
     const int dstId = blockIdx.x*blockDim.x + threadIdx.x;
-    if (dstId >= np) return;
+    if (dstId >= view.size) return;
 
-    const Particle dstP(cinfo.particles, dstId);
-    float3 dstFrc = make_float3(0.0f);
+    const auto dstP = interaction.read(view, dstId);
 
-    const int3 cell0 = cinfo.getCellIdAlongAxes(dstP.r);
+    auto accumulator = interaction.getZeroedAccumulator();
+
+    const int3 cell0 = cinfo.getCellIdAlongAxes(interaction.getPosition(dstP));
 
     for (int cellZ = cell0.z-1; cellZ <= cell0.z+1; cellZ++)
         for (int cellY = cell0.y-1; cellY <= cell0.y; cellY++)
@@ -144,12 +134,14 @@ __global__ void computeSelfInteractions(
                 const int pend   = cinfo.cellStarts[rowEnd];
 
                 if (cellY == cell0.y && cellZ == cell0.z)
-                    computeCell<InteractionOut::NeedAcc, InteractionOut::NeedAcc, InteractionWith::Self>  (pstart, pend, dstP, dstId, dstFrc, cinfo, rc2, interaction);
+                    computeCell<InteractionOut::NeedAcc, InteractionOut::NeedAcc, InteractionWith::Self>
+                        (pstart, pend, dstP, dstId, view, rc2, interaction, accumulator);
                 else
-                    computeCell<InteractionOut::NeedAcc, InteractionOut::NeedAcc, InteractionWith::Other> (pstart, pend, dstP, dstId, dstFrc, cinfo, rc2, interaction);
+                    computeCell<InteractionOut::NeedAcc, InteractionOut::NeedAcc, InteractionWith::Other>
+                        (pstart, pend, dstP, dstId, view, rc2, interaction, accumulator);
             }
 
-    atomicAdd(cinfo.forces + dstId, dstFrc);
+    accumulator.atomicAddToDst(accumulator.get(), view, dstId);
 }
 
 
@@ -183,7 +175,8 @@ __global__ void computeSelfInteractions(
 template<InteractionOut NeedDstAcc, InteractionOut NeedSrcAcc, InteractionMode Variant, typename Interaction>
 __launch_bounds__(128, 16)
 __global__ void computeExternalInteractions_1tpp(
-        PVview dstView, CellListInfo srcCinfo,
+        typename Interaction::ViewType dstView, CellListInfo srcCinfo,
+        typename Interaction::ViewType srcView,
         const float rc2, Interaction interaction)
 {
     static_assert(NeedDstAcc == InteractionOut::NeedAcc || NeedSrcAcc == InteractionOut::NeedAcc,
@@ -192,13 +185,11 @@ __global__ void computeExternalInteractions_1tpp(
     const int dstId = blockIdx.x*blockDim.x + threadIdx.x;
     if (dstId >= dstView.size) return;
 
-    const Particle dstP(
-            readNoCache(dstView.particles+2*dstId),
-            readNoCache(dstView.particles+2*dstId+1) );
+    const auto dstP = interaction.readNoCache(dstView, dstId);
 
-    float3 dstFrc = make_float3(0.0f);
+    auto accumulator = interaction.getZeroedAccumulator();
 
-    const int3 cell0 = srcCinfo.getCellIdAlongAxes<CellListsProjection::NoClamp>(dstP.r);
+    const int3 cell0 = srcCinfo.getCellIdAlongAxes<CellListsProjection::NoClamp>(interaction.getPosition(dstP));
 
     for (int cellZ = cell0.z-1; cellZ <= cell0.z+1; cellZ++)
         for (int cellY = cell0.y-1; cellY <= cell0.y+1; cellY++)
@@ -215,7 +206,8 @@ __global__ void computeExternalInteractions_1tpp(
                 const int pstart = srcCinfo.cellStarts[rowStart];
                 const int pend   = srcCinfo.cellStarts[rowEnd];
 
-                computeCell<NeedDstAcc, NeedSrcAcc, InteractionWith::Other> (pstart, pend, dstP, dstId, dstFrc, srcCinfo, rc2, interaction);
+                computeCell<NeedDstAcc, NeedSrcAcc, InteractionWith::Other>
+                    (pstart, pend, dstP, dstId, srcView, rc2, interaction, accumulator);
             }
             else
             {
@@ -227,12 +219,13 @@ __global__ void computeExternalInteractions_1tpp(
                     const int pstart = srcCinfo.cellStarts[cid];
                     const int pend   = srcCinfo.cellStarts[cid+1];
 
-                    computeCell<NeedDstAcc, NeedSrcAcc, InteractionWith::Other> (pstart, pend, dstP, dstId, dstFrc, srcCinfo, rc2, interaction);
+                    computeCell<NeedDstAcc, NeedSrcAcc, InteractionWith::Other>
+                        (pstart, pend, dstP, dstId, srcView, rc2, interaction, accumulator);
                 }
             }
 
     if (NeedDstAcc == InteractionOut::NeedAcc)
-        atomicAdd(dstView.forces + dstId, dstFrc);
+        accumulator.atomicAddToDst(accumulator.get(), dstView, dstId);
 }
 
 /**
@@ -244,7 +237,8 @@ __global__ void computeExternalInteractions_1tpp(
 template<InteractionOut NeedDstAcc, InteractionOut NeedSrcAcc, InteractionMode Variant, typename Interaction>
 __launch_bounds__(128, 16)
 __global__ void computeExternalInteractions_3tpp(
-        PVview dstView, CellListInfo srcCinfo,
+        typename Interaction::ViewType dstView, CellListInfo srcCinfo,
+        typename Interaction::ViewType srcView,
         const float rc2, Interaction interaction)
 {
     static_assert(NeedDstAcc == InteractionOut::NeedAcc || NeedSrcAcc == InteractionOut::NeedAcc,
@@ -257,13 +251,11 @@ __global__ void computeExternalInteractions_3tpp(
 
     if (dstId >= dstView.size) return;
 
-    const Particle dstP(
-            readNoCache(dstView.particles+2*dstId),
-            readNoCache(dstView.particles+2*dstId+1) );
+    const auto dstP = interaction.readNoCache(dstView, dstId);
 
-    float3 dstFrc = make_float3(0.0f);
+    auto accumulator = interaction.getZeroedAccumulator();
 
-    const int3 cell0 = srcCinfo.getCellIdAlongAxes<CellListsProjection::NoClamp>(dstP.r);
+    const int3 cell0 = srcCinfo.getCellIdAlongAxes<CellListsProjection::NoClamp>(interaction.getPosition(dstP));
 
     int cellZ = cell0.z + dircode;
 
@@ -281,7 +273,8 @@ __global__ void computeExternalInteractions_3tpp(
             const int pstart = srcCinfo.cellStarts[rowStart];
             const int pend   = srcCinfo.cellStarts[rowEnd];
 
-            computeCell<NeedDstAcc, NeedSrcAcc, InteractionWith::Other> (pstart, pend, dstP, dstId, dstFrc, srcCinfo, rc2, interaction);
+            computeCell<NeedDstAcc, NeedSrcAcc, InteractionWith::Other>
+                (pstart, pend, dstP, dstId, srcView, rc2, interaction, accumulator);
         }
         else
         {
@@ -293,12 +286,13 @@ __global__ void computeExternalInteractions_3tpp(
                 const int pstart = srcCinfo.cellStarts[cid];
                 const int pend   = srcCinfo.cellStarts[cid+1];
 
-                computeCell<NeedDstAcc, NeedSrcAcc, InteractionWith::Other> (pstart, pend, dstP, dstId, dstFrc, srcCinfo, rc2, interaction);
+                computeCell<NeedDstAcc, NeedSrcAcc, InteractionWith::Other>
+                    (pstart, pend, dstP, dstId, srcView, rc2, interaction, accumulator);
             }
         }
 
     if (NeedDstAcc == InteractionOut::NeedAcc)
-        atomicAdd(dstView.forces + dstId, dstFrc);
+        accumulator.atomicAddToDst(accumulator.get(), dstView, dstId);
 }
 
 /**
@@ -310,7 +304,8 @@ __global__ void computeExternalInteractions_3tpp(
 template<InteractionOut NeedDstAcc, InteractionOut NeedSrcAcc, InteractionMode Variant, typename Interaction>
 __launch_bounds__(128, 16)
 __global__ void computeExternalInteractions_9tpp(
-        PVview dstView, CellListInfo srcCinfo,
+        typename Interaction::ViewType dstView, CellListInfo srcCinfo,
+        typename Interaction::ViewType srcView,
         const float rc2, Interaction interaction)
 {
     static_assert(NeedDstAcc == InteractionOut::NeedAcc || NeedSrcAcc == InteractionOut::NeedAcc,
@@ -323,13 +318,11 @@ __global__ void computeExternalInteractions_9tpp(
 
     if (dstId >= dstView.size) return;
 
-    const Particle dstP(
-            readNoCache(dstView.particles+2*dstId),
-            readNoCache(dstView.particles+2*dstId+1) );
+    const auto dstP = interaction.readNoCache(dstView, dstId);
 
-    float3 dstFrc = make_float3(0.0f);
+    auto accumulator = interaction.getZeroedAccumulator();
 
-    const int3 cell0 = srcCinfo.getCellIdAlongAxes<CellListsProjection::NoClamp>(dstP.r);
+    const int3 cell0 = srcCinfo.getCellIdAlongAxes<CellListsProjection::NoClamp>(interaction.getPosition(dstP));
 
     int cellZ = cell0.z + dircode / 3 - 1;
     int cellY = cell0.y + dircode % 3 - 1;
@@ -347,7 +340,8 @@ __global__ void computeExternalInteractions_9tpp(
         const int pstart = srcCinfo.cellStarts[rowStart];
         const int pend   = srcCinfo.cellStarts[rowEnd];
 
-        computeCell<NeedDstAcc, NeedSrcAcc, InteractionWith::Other> (pstart, pend, dstP, dstId, dstFrc, srcCinfo, rc2, interaction);
+        computeCell<NeedDstAcc, NeedSrcAcc, InteractionWith::Other>
+            (pstart, pend, dstP, dstId, srcView, rc2, interaction, accumulator);
     }
     else
     {
@@ -359,12 +353,13 @@ __global__ void computeExternalInteractions_9tpp(
             const int pstart = srcCinfo.cellStarts[cid];
             const int pend   = srcCinfo.cellStarts[cid+1];
 
-            computeCell<NeedDstAcc, NeedSrcAcc, InteractionWith::Other> (pstart, pend, dstP, dstId, dstFrc, srcCinfo, rc2, interaction);
+            computeCell<NeedDstAcc, NeedSrcAcc, InteractionWith::Other>
+                (pstart, pend, dstP, dstId, srcView, rc2, interaction, accumulator);
         }
     }
 
     if (NeedDstAcc == InteractionOut::NeedAcc)
-        atomicAdd(dstView.forces + dstId, dstFrc);
+        accumulator.atomicAddToDst(accumulator.get(), dstView, dstId);
 }
 
 /**
@@ -376,7 +371,8 @@ __global__ void computeExternalInteractions_9tpp(
 template<InteractionOut NeedDstAcc, InteractionOut NeedSrcAcc, InteractionMode Variant, typename Interaction>
 __launch_bounds__(128, 16)
 __global__ void computeExternalInteractions_27tpp(
-        PVview dstView, CellListInfo srcCinfo,
+        typename Interaction::ViewType dstView, CellListInfo srcCinfo,
+        typename Interaction::ViewType srcView,
         const float rc2, Interaction interaction)
 {
     static_assert(NeedDstAcc == InteractionOut::NeedAcc || NeedSrcAcc == InteractionOut::NeedAcc,
@@ -385,17 +381,15 @@ __global__ void computeExternalInteractions_27tpp(
     const int gid = blockIdx.x*blockDim.x + threadIdx.x;
 
     const int dstId = gid / 27;
-    const int dircode = gid % 27;
-
+    const int dircode = gid % 27;    
+    
     if (dstId >= dstView.size) return;
 
-    const Particle dstP(
-            readNoCache(dstView.particles+2*dstId),
-            readNoCache(dstView.particles+2*dstId+1) );
+    const auto dstP = interaction.readNoCache(dstView, dstId);
 
-    float3 dstFrc = make_float3(0.0f);
+    auto accumulator = interaction.getZeroedAccumulator();
 
-    const int3 cell0 = srcCinfo.getCellIdAlongAxes<CellListsProjection::NoClamp>(dstP.r);
+    const int3 cell0 = srcCinfo.getCellIdAlongAxes<CellListsProjection::NoClamp>(interaction.getPosition(dstP));
 
     int cellZ = cell0.z +  dircode / 9      - 1;
     int cellY = cell0.y + (dircode / 3) % 3 - 1;
@@ -409,8 +403,9 @@ __global__ void computeExternalInteractions_27tpp(
     const int pstart = srcCinfo.cellStarts[cid];
     const int pend   = srcCinfo.cellStarts[cid+1];
 
-    computeCell<NeedDstAcc, NeedSrcAcc, InteractionWith::Other> (pstart, pend, dstP, dstId, dstFrc, srcCinfo, rc2, interaction);
+    computeCell<NeedDstAcc, NeedSrcAcc, InteractionWith::Other>
+        (pstart, pend, dstP, dstId, srcView, rc2, interaction, accumulator);
 
     if (NeedDstAcc == InteractionOut::NeedAcc)
-        atomicAdd(dstView.forces + dstId, dstFrc);
+        accumulator.atomicAddToDst(accumulator.get(), dstView, dstId);
 }

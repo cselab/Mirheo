@@ -15,9 +15,11 @@ enum class PackMode
     Query, Pack
 };
 
+namespace ObjectHaloExchangeKernels
+{
 template <PackMode packMode>
 __global__ void getObjectHalos(const DomainInfo domain, const OVview view, const ObjectPacker packer,
-        const float rc, BufferOffsetsSizesWrap dataWrap, int* haloParticleIds = nullptr)
+        const float rc, BufferOffsetsSizesWrap dataWrap, int *haloParticleIds = nullptr)
 {
     const int objId = blockIdx.x;
     const int tid = threadIdx.x;
@@ -96,7 +98,7 @@ __global__ void getObjectHalos(const DomainInfo domain, const OVview view, const
     }
 }
 
-__global__ static void unpackObject(const char* from, const int startDstObjId, OVview view, ObjectPacker packer)
+__global__ static void unpackObject(const char *from, OVview view, ObjectPacker packer)
 {
     const int objId = blockIdx.x;
     const int tid = threadIdx.x;
@@ -105,12 +107,13 @@ __global__ static void unpackObject(const char* from, const int startDstObjId, O
 
     for (int pid = tid; pid < view.objSize; pid += blockDim.x)
     {
-        const int dstId = (startDstObjId+objId)*view.objSize + pid;
+        const int dstId = objId * view.objSize + pid;
         packer.part.unpack(srcAddr + pid*packer.part.packedSize_byte, dstId);
     }
 
     srcAddr += view.objSize * packer.part.packedSize_byte;
-    if (tid == 0) packer.obj.unpack(srcAddr, startDstObjId+objId);
+    if (tid == 0) packer.obj.unpack(srcAddr, objId);
+}
 }
 
 //===============================================================================================
@@ -122,17 +125,24 @@ bool ObjectHaloExchanger::needExchange(int id)
     return !objects[id]->haloValid;
 }
 
-void ObjectHaloExchanger::attach(ObjectVector* ov, float rc)
+void ObjectHaloExchanger::attach(ObjectVector *ov, float rc, const std::vector<std::string>& extraChannelNames)
 {
+    int id = objects.size();
     objects.push_back(ov);
     rcs.push_back(rc);
 
-    auto helper = std::make_unique<ExchangeHelper>(ov->name);
+    auto helper = std::make_unique<ExchangeHelper>(ov->name, id);
     helpers.push_back(std::move(helper));
 
     auto origin = std::make_unique<PinnedBuffer<int>>(ov->local()->size());    
     origins.push_back(std::move(origin));
 
+    packPredicates.push_back([extraChannelNames](const ExtraDataManager::NamedChannelDesc& namedDesc) {
+        bool needExchange = namedDesc.second->communication == ExtraDataManager::CommunicationMode::NeedExchange;
+        bool isRequired   = std::find(extraChannelNames.begin(), extraChannelNames.end(), namedDesc.first) != extraChannelNames.end();
+        return needExchange || isRequired;
+    });
+    
     info("Object vector %s (rc %f) was attached to halo exchanger", ov->name.c_str(), rc);
 }
 
@@ -141,14 +151,13 @@ void ObjectHaloExchanger::prepareSizes(int id, cudaStream_t stream)
     auto ov  = objects[id];
     auto rc  = rcs[id];
     auto helper = helpers[id].get();
-    auto origin = origins[id].get();
 
     ov->findExtentAndCOM(stream, ParticleVectorType::Local);
 
     debug2("Counting halo objects of '%s'", ov->name.c_str());
 
     OVview ovView(ov, ov->local());
-    ObjectPacker packer(ov, ov->local(), stream);
+    ObjectPacker packer(ov, ov->local(), packPredicates[id], stream);
     helper->setDatumSize(packer.totalPackedSize_byte);
 
     helper->sendSizes.clear(stream);
@@ -157,7 +166,7 @@ void ObjectHaloExchanger::prepareSizes(int id, cudaStream_t stream)
         const int nthreads = 256;
 
         SAFE_KERNEL_LAUNCH(
-                getObjectHalos<PackMode::Query>,
+                ObjectHaloExchangeKernels::getObjectHalos<PackMode::Query>,
                 ovView.nObjects, nthreads, 0, stream,
                 ov->state->domain, ovView, packer, rc, helper->wrapSendData() );
 
@@ -176,7 +185,7 @@ void ObjectHaloExchanger::prepareData(int id, cudaStream_t stream)
            helper->sendOffsets[FragmentMapping::numFragments], ov->name.c_str());
 
     OVview ovView(ov, ov->local());
-    ObjectPacker packer(ov, ov->local(), stream);
+    ObjectPacker packer(ov, ov->local(), packPredicates[id], stream);
     helper->setDatumSize(packer.totalPackedSize_byte);
 
     if (ovView.nObjects > 0)
@@ -189,7 +198,7 @@ void ObjectHaloExchanger::prepareData(int id, cudaStream_t stream)
         helper->resizeSendBuf();
         helper->sendSizes.clearDevice(stream);
         SAFE_KERNEL_LAUNCH(
-                getObjectHalos<PackMode::Pack>,
+                ObjectHaloExchangeKernels::getObjectHalos<PackMode::Pack>,
                 ovView.nObjects, nthreads, 0, stream,
                 ov->state->domain, ovView, packer, rc, helper->wrapSendData(), origin->devPtr() );
     }
@@ -204,13 +213,13 @@ void ObjectHaloExchanger::combineAndUploadData(int id, cudaStream_t stream)
 
     ov->halo()->resize_anew(totalRecvd * ov->objSize);
     OVview ovView(ov, ov->halo());
-    ObjectPacker packer(ov, ov->halo(), stream);
+    ObjectPacker packer(ov, ov->halo(), packPredicates[id], stream);
 
     const int nthreads = 128;
     SAFE_KERNEL_LAUNCH(
-            unpackObject,
+            ObjectHaloExchangeKernels::unpackObject,
             totalRecvd, nthreads, 0, stream,
-            helper->recvBuf.devPtr(), 0, ovView, packer );
+            helper->recvBuf.devPtr(), ovView, packer );
 }
 
 PinnedBuffer<int>& ObjectHaloExchanger::getRecvOffsets(int id)

@@ -64,7 +64,7 @@ InteractionMembrane::~InteractionMembrane() = default;
  * Require that \p pv1 and \p pv2 are the same and are instances
  * of MembraneVector
  */
-void InteractionMembrane::setPrerequisites(ParticleVector* pv1, ParticleVector* pv2)
+void InteractionMembrane::setPrerequisites(ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2)
 {
     if (pv1 != pv2)
         die("Internal RBC forces can't be computed between two different particle vectors");
@@ -73,7 +73,7 @@ void InteractionMembrane::setPrerequisites(ParticleVector* pv1, ParticleVector* 
     if (ov == nullptr)
         die("Internal RBC forces can only be computed with RBCs");
 
-    ov->requireDataPerObject<float2>("area_volumes", ExtraDataManager::CommunicationMode::None, ExtraDataManager::PersistenceMode::None);
+    ov->requireDataPerObject<float2>(ChannelNames::areaVolumes, ExtraDataManager::CommunicationMode::None, ExtraDataManager::PersistenceMode::None);
 }
 
 /**
@@ -83,9 +83,9 @@ void InteractionMembrane::setPrerequisites(ParticleVector* pv1, ParticleVector* 
  * and volume of each cell, then use these data to calculate the
  * forces themselves by calling computeMembraneForces() kernel
  */
-void InteractionMembrane::regular(ParticleVector *pv1, ParticleVector *pv2,
-                                  CellList *cl1, CellList *cl2,
-                                  cudaStream_t stream)
+void InteractionMembrane::local(ParticleVector *pv1, ParticleVector *pv2,
+                                CellList *cl1, CellList *cl2,
+                                cudaStream_t stream)
 {
     auto ov = dynamic_cast<MembraneVector *>(pv1);
 
@@ -109,7 +109,7 @@ void InteractionMembrane::regular(ParticleVector *pv1, ParticleVector *pv2,
     OVviewWithAreaVolume view(ov, ov->local());
     MembraneMeshView mesh(static_cast<MembraneMesh *>(ov->mesh.get()));
     ov->local()
-        ->extraPerObject.getData<float2>("area_volumes")
+        ->extraPerObject.getData<float2>(ChannelNames::areaVolumes)
         ->clearDevice(stream);
 
     const int nthreads = 128;

@@ -27,7 +27,7 @@ def createEllipsoid(density, axes, niter):
     fakeIc = ymr.InitialConditions.Rigid(com_q=com_q, coords=coords)
     belongingChecker = ymr.BelongingCheckers.Ellipsoid("ellipsoidChecker")
     
-    pvEllipsoid = u.makeFrozenRigidParticles(belongingChecker, fakeOV, fakeIc, dpd, vv, density, niter)
+    pvEllipsoid = u.makeFrozenRigidParticles(belongingChecker, fakeOV, fakeIc, [dpd], vv, density, niter)
     
     if pvEllipsoid:
         frozenCoords = pvEllipsoid.getCoordinates()

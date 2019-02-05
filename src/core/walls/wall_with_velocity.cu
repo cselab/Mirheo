@@ -1,30 +1,28 @@
 #include "wall_with_velocity.h"
 
-#include <fstream>
-#include <cmath>
-#include <texture_types.h>
-#include <cassert>
-
-#include <core/logger.h>
-#include <core/utils/kernel_launch.h>
-#include <core/utils/cuda_common.h>
-#include <core/celllist.h>
-#include <core/pvs/particle_vector.h>
-#include <core/pvs/views/pv.h>
-#include <core/pvs/object_vector.h>
-#include <core/bounce_solver.h>
-
-#include <core/utils/cuda_rng.h>
-
+#include "stationary_walls/box.h"
 #include "stationary_walls/cylinder.h"
+#include "stationary_walls/plane.h"
 #include "stationary_walls/sdf.h"
 #include "stationary_walls/sphere.h"
-#include "stationary_walls/plane.h"
-#include "stationary_walls/box.h"
-
+#include "velocity_field/oscillate.h"
 #include "velocity_field/rotate.h"
 #include "velocity_field/translate.h"
-#include "velocity_field/oscillate.h"
+
+#include <core/bounce_solver.h>
+#include <core/celllist.h>
+#include <core/logger.h>
+#include <core/pvs/object_vector.h>
+#include <core/pvs/particle_vector.h>
+#include <core/pvs/views/pv.h>
+#include <core/utils/cuda_common.h>
+#include <core/utils/cuda_rng.h>
+#include <core/utils/kernel_launch.h>
+
+#include <cassert>
+#include <cmath>
+#include <fstream>
+#include <texture_types.h>
 
 //===============================================================================================
 // SDF bouncing kernel
@@ -86,7 +84,7 @@ __global__ void bounceWithVelocity(
         float3 uWall = velField(p.r);
         p.u = uWall - (p.u - uWall);
 
-        p.write2Float4(cinfo.particles, pid);
+        p.write2Float4(view.particles, pid);
     }
 }
 
@@ -108,16 +106,22 @@ __global__ void imposeVelField(PVview view, const VelocityField velField)
 //===============================================================================================
 
 template<class InsideWallChecker, class VelocityField>
-void WallWithVelocity<InsideWallChecker, VelocityField>::setup(MPI_Comm& comm, float t, DomainInfo domain)
+WallWithVelocity<InsideWallChecker, VelocityField>::WallWithVelocity
+(std::string name, const YmrState *state, InsideWallChecker&& insideWallChecker, VelocityField&& velField) :
+    SimpleStationaryWall<InsideWallChecker>(name, state, std::move(insideWallChecker)),
+    velField(std::move(velField))
+{}
+
+
+template<class InsideWallChecker, class VelocityField>
+void WallWithVelocity<InsideWallChecker, VelocityField>::setup(MPI_Comm& comm)
 {
     info("Setting up wall %s", this->name.c_str());
-    this->domain = domain;
 
     CUDA_Check( cudaDeviceSynchronize() );
-    MPI_Check( MPI_Comm_dup(comm, &this->wallComm) );
 
-    this->insideWallChecker.setup(this->wallComm, domain);
-    velField.setup(this->wallComm, t, domain);
+    this->insideWallChecker.setup(comm, this->state->domain);
+    velField.setup(this->state->currentTime, this->state->domain);
 
     CUDA_Check( cudaDeviceSynchronize() );
 }
@@ -143,14 +147,14 @@ void WallWithVelocity<InsideWallChecker, VelocityField>::bounce(cudaStream_t str
     float t  = this->state->currentTime;
     float dt = this->state->dt;
     
-    velField.setup(this->wallComm, t, domain);
+    velField.setup(t, this->state->domain);
 
     for (int i=0; i < this->particleVectors.size(); i++)
     {
         auto pv = this->particleVectors[i];
         auto cl = this->cellLists[i];
         auto bc = this->boundaryCells[i];
-        PVviewWithOldParticles view(pv, pv->local());
+        auto view = cl->CellList::getView<PVviewWithOldParticles>();
 
         debug2("Bouncing %d %s particles with wall velocity, %d boundary cells",
                pv->local()->size(), pv->name.c_str(), bc->size());

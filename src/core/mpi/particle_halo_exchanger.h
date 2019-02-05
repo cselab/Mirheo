@@ -2,6 +2,8 @@
 
 #include "exchanger_interfaces.h"
 
+#include <core/pvs/extra_data/packers.h>
+
 class ParticleVector;
 class CellList;
 
@@ -10,6 +12,7 @@ class ParticleHaloExchanger : public ParticleExchanger
 private:
     std::vector<CellList*> cellLists;
     std::vector<ParticleVector*> particles;
+    std::vector<PackPredicate> packPredicates;
 
     void prepareSizes(int id, cudaStream_t stream) override;
     void prepareData (int id, cudaStream_t stream) override;
@@ -17,7 +20,8 @@ private:
     bool needExchange(int id) override;
 
 public:
-    void attach(ParticleVector* pv, CellList* cl);
 
-    ~ParticleHaloExchanger() = default;
+    ~ParticleHaloExchanger();
+    
+    void attach(ParticleVector *pv, CellList *cl, const std::vector<std::string>& extraChannelNames);
 };

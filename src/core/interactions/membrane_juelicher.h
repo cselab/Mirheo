@@ -15,7 +15,7 @@ public:
                                  JuelicherBendingParameters bendingParameters, bool stressFree, float growUntil);
     ~InteractionMembraneJuelicher();
     
-    void setPrerequisites(ParticleVector* pv1, ParticleVector* pv2) override;
+    void setPrerequisites(ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2) override;
 
 protected:
 

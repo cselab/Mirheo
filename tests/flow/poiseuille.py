@@ -25,7 +25,7 @@ u.registerWall(plate_lo, 0)
 u.registerWall(plate_hi, 0)
 
 vv = ymr.Integrators.VelocityVerlet("vv")
-frozen = u.makeFrozenWallParticles(pvName="frozen", walls=[plate_lo, plate_hi], interaction=dpd, integrator=vv, density=density)
+frozen = u.makeFrozenWallParticles(pvName="frozen", walls=[plate_lo, plate_hi], interactions=[dpd], integrator=vv, density=density)
 
 u.setWall(plate_lo, pv)
 u.setWall(plate_hi, pv)

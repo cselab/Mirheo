@@ -9,7 +9,6 @@
 #include "vv.h"
 
 class Interaction;
-class InteractionMembrane;
 
 class IntegratorSubStepMembrane : Integrator
 {
@@ -24,7 +23,7 @@ public:
 
 private:
 
-    InteractionMembrane *fastForces; /* interactions (self) called `substeps` times per time step */
+    Interaction *fastForces; /* interactions (self) called `substeps` times per time step */
     int substeps; /* number of substeps */
     DeviceBuffer<Force> slowForces;
     DeviceBuffer<Particle> previousPositions;

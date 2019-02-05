@@ -152,6 +152,10 @@ void exportPlugins(py::module& m)
         Responsible for performing the I/O.
     )");
 
+    py::handlers_class<ParticleChannelSaverPlugin>(m, "ParticleChannelSaver", pysim, R"(
+        This plugin creates an extra channel per particle inside the given particle vector with a given name.
+        It copies the content of an extra channel of pv at each time step and make it accessible by other plugins.
+    )");
     
     py::handlers_class<ParticleSenderPlugin>(m, "ParticleSenderPlugin", pysim, R"(
         This plugin will dump positions, velocities and optional attached data of all the particles of the specified Particle Vector.
@@ -483,6 +487,17 @@ void exportPlugins(py::module& m)
             forces: array of forces, one force (3 floats) per vertex in a single mesh
     )");
 
+    m.def("__createParticleChannelSaver", &PluginFactory::createParticleChannelSaverPlugin, 
+          "compute_task"_a, "state"_a, "name"_a, "pv"_a, "channelName"_a, "savedName"_a, R"(
+        Create :any:`ParticleChannelSaver` plugin
+        
+        Args:
+            name: name of the plugin
+            pv: :any:`ParticleVector` that we'll work with
+            channelName: the name of the source channel
+            savedName: name of the extra channel
+    )");
+
     m.def("__createPinObject", &PluginFactory::createPinObjPlugin, 
           "compute_task"_a, "state"_a, "name"_a, "ov"_a, "dump_every"_a, "path"_a, "velocity"_a, "angular_velocity"_a, R"(
         Create :any:`PinObject` plugin
@@ -537,13 +552,12 @@ void exportPlugins(py::module& m)
     )");
 
     m.def("__createVirialPressurePlugin", &PluginFactory::createVirialPressurePlugin,
-          "compute_task"_a, "state"_a, "name"_a, "pv"_a, "stress_mame"_a, "regionFunc"_a, "h"_a, "dump_every"_a, "path"_a, R"(
+          "compute_task"_a, "state"_a, "name"_a, "pv"_a, "regionFunc"_a, "h"_a, "dump_every"_a, "path"_a, R"(
         Create :any:`VirialPressure` plugin
         
         Args:
             name: name of the plugin
             pv: concerned :class:`ParticleVector`
-            stress_name: the extraData entry name of the stress per particle
             regionFunc: predicate for the concerned region; positive inside the region and negative outside
             h: grid size for representing the predicate onto a grid
             dump_every: report total pressure every this many time-steps

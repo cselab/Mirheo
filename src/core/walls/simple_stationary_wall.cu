@@ -1,27 +1,26 @@
 #include "simple_stationary_wall.h"
 
-#include <fstream>
-#include <cmath>
-#include <texture_types.h>
-#include <cassert>
-
-#include <core/logger.h>
-#include <core/utils/kernel_launch.h>
-#include <core/utils/cuda_common.h>
-#include <core/celllist.h>
-#include <core/pvs/particle_vector.h>
-#include <core/pvs/object_vector.h>
-#include <core/pvs/views/ov.h>
-#include <core/pvs/extra_data/packers.h>
-#include <core/bounce_solver.h>
-
-#include <core/utils/cuda_rng.h>
-
+#include "stationary_walls/box.h"
 #include "stationary_walls/cylinder.h"
+#include "stationary_walls/plane.h"
 #include "stationary_walls/sdf.h"
 #include "stationary_walls/sphere.h"
-#include "stationary_walls/plane.h"
-#include "stationary_walls/box.h"
+
+#include <core/bounce_solver.h>
+#include <core/celllist.h>
+#include <core/logger.h>
+#include <core/pvs/extra_data/packers.h>
+#include <core/pvs/object_vector.h>
+#include <core/pvs/particle_vector.h>
+#include <core/pvs/views/ov.h>
+#include <core/utils/cuda_common.h>
+#include <core/utils/cuda_rng.h>
+#include <core/utils/kernel_launch.h>
+
+#include <cassert>
+#include <cmath>
+#include <fstream>
+#include <texture_types.h>
 
 //===============================================================================================
 // Removing kernels
@@ -222,7 +221,7 @@ __global__ void bounceKernel(
         p.r = candidate;
         p.u = -p.u;
 
-        p.write2Float4(cinfo.particles, pid);
+        p.write2Float4(view.particles, pid);
     }
 }
 
@@ -312,15 +311,22 @@ __global__ void computeSdfOnGrid(CellListInfo gridInfo, float* sdfs, InsideWallC
 //===============================================================================================
 
 template<class InsideWallChecker>
-void SimpleStationaryWall<InsideWallChecker>::setup(MPI_Comm& comm, float t, DomainInfo domain)
+SimpleStationaryWall<InsideWallChecker>::SimpleStationaryWall(std::string name, const YmrState *state, InsideWallChecker&& insideWallChecker) :
+    SDF_basedWall(state, name),
+    insideWallChecker(std::move(insideWallChecker))
+{}
+
+template<class InsideWallChecker>
+SimpleStationaryWall<InsideWallChecker>::~SimpleStationaryWall() = default;
+
+template<class InsideWallChecker>
+void SimpleStationaryWall<InsideWallChecker>::setup(MPI_Comm& comm)
 {
     info("Setting up wall %s", name.c_str());
 
     CUDA_Check( cudaDeviceSynchronize() );
-    MPI_Check( MPI_Comm_dup(comm, &wallComm) );
 
-    insideWallChecker.setup(wallComm, domain);
-    this->domain = domain;
+    insideWallChecker.setup(comm, state->domain);
 
     CUDA_Check( cudaDeviceSynchronize() );
 }
@@ -413,9 +419,13 @@ void SimpleStationaryWall<InsideWallChecker>::removeInner(ParticleVector* pv)
     }
     else
     {
+        PackPredicate packPredicate = [](const ExtraDataManager::NamedChannelDesc& namedDesc) {
+            return namedDesc.second->communication == ExtraDataManager::CommunicationMode::NeedExchange;
+        };
+        
         // Prepare temp storage for extra object data
         OVview ovView(ov, ov->local());
-        ObjectPacker packer(ov, ov->local(), 0);
+        ObjectPacker packer(ov, ov->local(), packPredicate, 0);
 
         DeviceBuffer<char> tmp(ovView.nObjects * packer.totalPackedSize_byte);
 
@@ -428,7 +438,7 @@ void SimpleStationaryWall<InsideWallChecker>::removeInner(ParticleVector* pv)
         nRemaining.downloadFromDevice(0);
         ov->local()->resize_anew(nRemaining[0] * ov->objSize);
         ovView = OVview(ov, ov->local());
-        packer = ObjectPacker(ov, ov->local(), 0);
+        packer = ObjectPacker(ov, ov->local(), packPredicate, 0);
 
         SAFE_KERNEL_LAUNCH(
                 unpackRemainingObjects,
@@ -456,7 +466,7 @@ void SimpleStationaryWall<InsideWallChecker>::bounce(cudaStream_t stream)
         auto pv = particleVectors[i];
         auto cl = cellLists[i];
         auto bc = boundaryCells[i];
-        PVviewWithOldParticles view(pv, pv->local());
+        auto view = cl->getView<PVviewWithOldParticles>();
 
         debug2("Bouncing %d %s particles, %d boundary cells",
                pv->local()->size(), pv->name.c_str(), bc->size());
@@ -553,7 +563,7 @@ void SimpleStationaryWall<InsideWallChecker>::sdfOnGrid(float3 h, GPUcontainer* 
         die("Incompatible datatype size of container for SDF values: %d (sampling sdf on a grid)",
             sdfs->datatype_size());
         
-    CellListInfo gridInfo(h, domain.localSize);
+    CellListInfo gridInfo(h, state->domain.localSize);
     sdfs->resize_anew(gridInfo.totcells);
 
     const int nthreads = 128;

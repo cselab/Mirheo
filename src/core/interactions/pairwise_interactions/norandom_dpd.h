@@ -1,10 +1,8 @@
 #pragma once
 
-#include <core/datatypes.h>
-#include <core/utils/cuda_rng.h>
+#include "fetchers.h"
 
-#include <core/utils/cpu_gpu_defines.h>
-#include <core/utils/helper_math.h>
+#include <core/interactions/accumulators/force.h>
 
 #include <random>
 
@@ -12,21 +10,25 @@ class LocalParticleVector;
 class CellList;
 
 
-class Pairwise_Norandom_DPD
+class Pairwise_Norandom_DPD : public ParticleFetcherWithVelocity
 {
 public:
+
+    using ViewType     = PVview;
+    using ParticleType = Particle;
+    
     Pairwise_Norandom_DPD(float rc, float a, float gamma, float kbT, float dt, float power) :
-        rc(rc), a(a), gamma(gamma), power(power)
+        ParticleFetcherWithVelocity(rc),
+        a(a), gamma(gamma), power(power)
     {
         sigma = sqrt(2 * gamma * kbT / dt);
-        rc2 = rc*rc;
         invrc = 1.0 / rc;
     }
 
     void setup(LocalParticleVector* lpv1, LocalParticleVector* lpv2, CellList* cl1, CellList* cl2, float t)
-    {    }
+    {}
 
-    __D__ inline float3 operator()(const Particle dst, int dstId, const Particle src, int srcId) const
+    __D__ inline float3 operator()(const ParticleType dst, int dstId, const ParticleType src, int srcId) const
     {
         const float3 dr = dst.r - src.r;
         const float rij2 = dot(dr, dr);
@@ -48,8 +50,10 @@ public:
         return dr_r * strength;
     }
 
+    __D__ inline ForceAccumulator getZeroedAccumulator() const {return ForceAccumulator();}
+    
 protected:
 
-    float a, gamma, sigma, power, rc;
-    float invrc, rc2;
+    float a, gamma, sigma, power;
+    float invrc;
 };

@@ -7,8 +7,9 @@
 
 MPIExchangeEngine::MPIExchangeEngine(std::unique_ptr<ParticleExchanger> exchanger,
                                      MPI_Comm comm, bool gpuAwareMPI) :
-        nActiveNeighbours(26), gpuAwareMPI(gpuAwareMPI),
-        exchanger(std::move(exchanger))
+    nActiveNeighbours(FragmentMapping::numFragments - 1),
+    gpuAwareMPI(gpuAwareMPI),
+    exchanger(std::move(exchanger))
 {
     MPI_Check( MPI_Comm_dup(comm, &haloComm) );
 
@@ -31,6 +32,11 @@ MPIExchangeEngine::MPIExchangeEngine(std::unique_ptr<ParticleExchanger> exchange
         dir2sendTag[i] = i;
         dir2recvTag[i] = FragmentMapping::getId(-d[0], -d[1], -d[2]);
     }
+}
+
+MPIExchangeEngine::~MPIExchangeEngine()
+{
+    MPI_Check( MPI_Comm_free(&haloComm) );
 }
 
 void MPIExchangeEngine::init(cudaStream_t stream)
@@ -78,15 +84,6 @@ void MPIExchangeEngine::finalize(cudaStream_t stream)
         if (exchanger->needExchange(i)) exchanger->combineAndUploadData(i, stream);
 }
 
-
-int MPIExchangeEngine::tagByName(std::string name)
-{
-    // TODO: better tagging policy (unique id?)
-    static std::hash<std::string> nameHash;
-    return (int)( nameHash(name) % (32767 / FragmentMapping::numFragments) );
-}
-
-
 void MPIExchangeEngine::postRecvSize(ExchangeHelper* helper)
 {
     std::string pvName = helper->name;
@@ -104,7 +101,7 @@ void MPIExchangeEngine::postRecvSize(ExchangeHelper* helper)
         if (i != bulkId && dir2rank[i] >= 0)
         {
             MPI_Request req;
-            const int tag = nBuffers * tagByName(pvName) + dir2recvTag[i];
+            const int tag = nBuffers * helper->getUniqueId() + dir2recvTag[i];
 
             MPI_Check( MPI_Irecv(rSizes + i, 1, MPI_INT, dir2rank[i], tag, haloComm, &req) );
             helper->requests.push_back(req);
@@ -126,7 +123,7 @@ void MPIExchangeEngine::sendSizes(ExchangeHelper* helper)
     for (int i=0; i < nBuffers; i++)
         if (i != bulkId && dir2rank[i] >= 0)
         {
-            const int tag = nBuffers * tagByName(pvName) + dir2sendTag[i];
+            const int tag = nBuffers * helper->getUniqueId() + dir2sendTag[i];
             MPI_Check( MPI_Send(sSizes+i, 1, MPI_INT, dir2rank[i], tag, haloComm) );
         }
 }
@@ -157,7 +154,7 @@ void MPIExchangeEngine::postRecv(ExchangeHelper* helper)
         if (i != bulkId && dir2rank[i] >= 0)
         {
             MPI_Request req;
-            const int tag = nBuffers * tagByName(pvName) + dir2recvTag[i];
+            const int tag = nBuffers * helper->getUniqueId() + dir2recvTag[i];
 
             debug3("Receiving %s entities from rank %d, %d entities (buffer %d)",
                     pvName.c_str(), dir2rank[i], rSizes[i], i);
@@ -257,7 +254,7 @@ void MPIExchangeEngine::send(ExchangeHelper* helper, cudaStream_t stream)
             debug3("Sending %s entities to rank %d in dircode %d [%2d %2d %2d], %d entities",
                    pvName.c_str(), dir2rank[i], i, FragmentMapping::getDirx(i), FragmentMapping::getDiry(i), FragmentMapping::getDirz(i), sSizes[i]);
 
-            const int tag = nBuffers * tagByName(pvName) + dir2sendTag[i];
+            const int tag = nBuffers * helper->getUniqueId() + dir2sendTag[i];
 
             // Send actual data
             if (sSizes[i] > 0)

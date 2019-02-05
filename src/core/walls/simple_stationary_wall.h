@@ -12,12 +12,11 @@ template<class InsideWallChecker>
 class SimpleStationaryWall : public SDF_basedWall
 {
 public:
-    SimpleStationaryWall(std::string name, const YmrState *state, InsideWallChecker&& insideWallChecker) :
-        SDF_basedWall(state, name),
-        insideWallChecker(std::move(insideWallChecker))
-    {}
 
-    void setup(MPI_Comm& comm, float t, DomainInfo domain) override;
+    SimpleStationaryWall(std::string name, const YmrState *state, InsideWallChecker&& insideWallChecker);
+    ~SimpleStationaryWall();
+
+    void setup(MPI_Comm& comm) override;
     void attachFrozen(ParticleVector* pv) override;
 
     void removeInner(ParticleVector* pv) override;
@@ -34,11 +33,7 @@ public:
 
     InsideWallChecker& getChecker() { return insideWallChecker; }
 
-    ~SimpleStationaryWall() = default;
-
 protected:
-    MPI_Comm wallComm;
-    DomainInfo domain;
 
     InsideWallChecker insideWallChecker;
 

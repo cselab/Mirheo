@@ -255,3 +255,15 @@ struct Stress
 {
     float xx, xy, xz, yy, yz, zz;
 };
+
+__HD__ void inline operator+=(Stress& a, const Stress& b)
+{
+    a.xx += b.xx; a.xy += b.xy; a.xz += b.xz;
+    a.yy += b.yy; a.yz += b.yz; a.zz += b.zz;
+}    
+
+__HD__ Stress inline operator+(Stress a, const Stress& b)
+{
+    a += b;
+    return a;
+}

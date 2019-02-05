@@ -31,15 +31,15 @@ public:
      * Default: ask nothing
      * Called from Simulation right after setup
      */
-    virtual void setPrerequisites(ParticleVector *pv1, ParticleVector *pv2);
+    virtual void setPrerequisites(ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2);
 
     /**
-     * Init fields in particle vectors reuired before interaction
-     * Default: do nothing
-     * Called from Simulation at every step
+     * states wether the interaction outputs forces or not
+     * useful to know if it is an "intermediate" interaction 
+     * default: returns true
      */
-    virtual void initStep(ParticleVector *pv1, ParticleVector *pv2, cudaStream_t stream);
-
+    virtual bool outputsForces() const;
+    
     /**
      * Interface to compute local interactions.
      * For now order of \e pv1 and \e pv2 is important for computational reasons,
@@ -51,8 +51,8 @@ public:
      * @param cl1 cell-list built for the appropriate cut-off raduis #rc for \p pv1
      * @param cl2 cell-list built for the appropriate cut-off raduis #rc for \p pv2
      */
-    virtual void regular(ParticleVector *pv1, ParticleVector *pv2,
-                         CellList *cl1, CellList *cl2, cudaStream_t stream) = 0;
+    virtual void local(ParticleVector *pv1, ParticleVector *pv2,
+                       CellList *cl1, CellList *cl2, cudaStream_t stream) = 0;
 
     /**
      * Interface to compute halo interactions. It principle it has to compute

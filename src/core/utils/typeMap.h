@@ -3,7 +3,8 @@
 #include <string>
 #include <core/datatypes.h>
 
-#define TYPE_TABLE(OP)                           \
+
+#define TYPE_TABLE_ADDITIONABLE(OP)              \
     OP(float)                                    \
     OP(double)                                   \
     OP(int)                                      \
@@ -11,6 +12,10 @@
     OP(float4)                                   \
     OP(double3)                                  \
     OP(double4)                                  \
+    OP(Stress)
+
+#define TYPE_TABLE(OP)                           \
+    TYPE_TABLE_ADDITIONABLE(OP)                  \
     OP(Particle)
 
 #define DATATYPE_NONE None
@@ -30,6 +35,7 @@ enum class DataType
 std::string dataTypeToString(DataType dataType);
 DataType stringToDataType(std::string str);
 
+size_t dataTypeToByteSize(DataType dataType);
 
 template<typename T> DataType inline typeTokenize() { return DataType::DATATYPE_NONE; }
 

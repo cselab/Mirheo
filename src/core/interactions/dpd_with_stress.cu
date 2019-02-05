@@ -8,13 +8,13 @@
 #include <core/pvs/particle_vector.h>
 
 
-InteractionDPDWithStress::InteractionDPDWithStress(const YmrState *state, std::string name, std::string stressName,
+InteractionDPDWithStress::InteractionDPDWithStress(const YmrState *state, std::string name,
                                                    float rc, float a, float gamma, float kbt, float power, float stressPeriod) :
     InteractionDPD(state, name, rc, a, gamma, kbt, power, false),
     stressPeriod(stressPeriod)
 {
     Pairwise_DPD dpd(rc, a, gamma, kbt, state->dt, power);
-    impl = std::make_unique<InteractionPair_withStress<Pairwise_DPD>> (state, name, stressName, rc, stressPeriod, dpd);
+    impl = std::make_unique<InteractionPair_withStress<Pairwise_DPD>> (state, name, rc, stressPeriod, dpd);
 }
 
 InteractionDPDWithStress::~InteractionDPDWithStress() = default;

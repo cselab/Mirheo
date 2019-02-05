@@ -104,6 +104,37 @@ class DPD(Interaction):
         """
         pass
 
+class Density(Interaction):
+    r"""
+        Compute MDPD density of particles, see [Warren2003]_
+    
+        .. math::
+        
+            \rho_i = \sum\limits_{j \neq i} w_\rho (r_{ij})
+
+        where the summation goes over the neighbours of particle :math:`i` within a cutoff range of :math:`r_c`, and
+
+        .. math::
+            
+            w_\rho(r) = \begin{cases} \frac{15}{2\pi r_d^3}\left(1-\frac{r}{r_d}\right)^2, & r < r_d \\ 0, & r \geqslant r_d \end{cases}
+            
+        .. [Warren2003] Warren, P. B. 
+           "Vapor-liquid coexistence in many-body dissipative particle dynamics."
+           Physical Review E 68.6 (2003): 066702.`_
+    
+    """
+    def __init__():
+        r"""__init__(name: str, rc: float) -> None
+
+  
+            Args:
+                name: name of the interaction
+                rc: interaction cut-off
+    
+
+        """
+        pass
+
 class LJ(Interaction):
     r"""
         Pairwise interaction according to the classical `Lennard-Jones potential <https://en.wikipedia.org/wiki/Lennard-Jones_potential>`_
@@ -139,6 +170,48 @@ class LJ(Interaction):
 
             Override some of the interaction parameters for a specific pair of Particle Vectors
         
+
+        """
+        pass
+
+class MDPD(Interaction):
+    r"""
+        Compute MDPD interaction as described in [Warren2003].
+        Must be used together with :any:`Density` interaction.
+
+        The interaction forces are the same as described in :any:`DPD` with the modified conservative term
+
+        .. math::
+
+            F^C_{ij} = a w_c(r_{ij}) + b (\rho_i + \rho_j) w_d(r_{ij}),
+ 
+        where :math:`\rho_i` is computed from :any:`Density` and
+
+        .. math::
+
+            w_c(r) = \begin{cases} (1-\frac{r}{r_c}), & r < r_c \\ 0, & r \geqslant r_c \end{cases} \\
+            w_d(r) = \begin{cases} (1-\frac{r}{r_d}), & r < r_d \\ 0, & r \geqslant r_d \end{cases}.
+
+
+        .. [Warren2003] Warren, P. B. 
+           "Vapor-liquid coexistence in many-body dissipative particle dynamics."
+           Physical Review E 68.6 (2003): 066702.`_
+    
+    """
+    def __init__():
+        r"""__init__(name: str, rc: float, rd: float, a: float, b: float, gamma: float, kbt: float, power: float) -> None
+
+  
+            Args:
+            name: name of the interaction
+                rc: interaction cut-off (no forces between particles further than **rc** apart)
+                rd: density cutoff, assumed rd <= rc
+                a: :math:`a`
+                b: :math:`b`
+                gamma: :math:`\gamma`
+                kbt: :math:`k_B T`
+                power: :math:`p` in the weight function
+    
 
         """
         pass
@@ -260,12 +333,11 @@ class DPDWithStress(DPD):
     
     """
     def __init__():
-        r"""__init__(name: str, stressName: str, rc: float, a: float, gamma: float, kbt: float, power: float, stressPeriod: float) -> None
+        r"""__init__(name: str, rc: float, a: float, gamma: float, kbt: float, power: float, stressPeriod: float) -> None
 
   
             Args:
                 name: name of the interaction
-                stressName: name of the stress entry
                 rc: interaction cut-off (no forces between particles further than **rc** apart)
                 a: :math:`a`
                 gamma: :math:`\gamma`
@@ -293,12 +365,11 @@ class LJWithStress(LJ):
     
     """
     def __init__():
-        r"""__init__(name: str, stressName: str, rc: float, epsilon: float, sigma: float, max_force: float = 1000.0, object_aware: bool, stressPeriod: float) -> None
+        r"""__init__(name: str, rc: float, epsilon: float, sigma: float, max_force: float = 1000.0, object_aware: bool, stressPeriod: float) -> None
 
 
             Args:
                 name: name of the interaction
-                stressName: name of the stress entry
                 rc: interaction cut-off (no forces between particles further than **rc** apart)
                 epsilon: :math:`\varepsilon`
                 sigma: :math:`\sigma`
@@ -318,6 +389,30 @@ class LJWithStress(LJ):
 
             Override some of the interaction parameters for a specific pair of Particle Vectors
         
+
+        """
+        pass
+
+class MDPDWithStress(MDPD):
+    r"""
+        wrapper of :any:`MDPD` with, in addition, stress computation
+    
+    """
+    def __init__():
+        r"""__init__(name: str, rc: float, rd: float, a: float, b: float, gamma: float, kbt: float, power: float, stressPeriod: float) -> None
+
+  
+            Args:
+                name: name of the interaction
+                rc: interaction cut-off (no forces between particles further than **rc** apart)
+                rd: density cut-off, assumed rd < rc
+                a: :math:`a`
+                b: :math:`b`
+                gamma: :math:`\gamma`
+                kbt: :math:`k_B T`
+                power: :math:`p` in the weight function
+                stressPeriod: compute the stresses every this period (in simulation time units)
+    
 
         """
         pass

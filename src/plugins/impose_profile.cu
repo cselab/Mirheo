@@ -1,12 +1,12 @@
 #include "impose_profile.h"
 
-#include <core/utils/kernel_launch.h>
-#include <core/pvs/particle_vector.h>
 #include <core/celllist.h>
+#include <core/pvs/particle_vector.h>
+#include <core/pvs/views/pv.h>
 #include <core/simulation.h>
-
 #include <core/utils/cuda_common.h>
 #include <core/utils/cuda_rng.h>
+#include <core/utils/kernel_launch.h>
 
 __device__ inline bool all_lt(float3 a, float3 b)
 {
@@ -14,7 +14,7 @@ __device__ inline bool all_lt(float3 a, float3 b)
 }
 
 __global__ void applyProfile(
-        CellListInfo cinfo,
+        CellListInfo cinfo, PVview view,
         const int* relevantCells, const int nRelevantCells,
         float3 low, float3 high,
         float3 targetVel,
@@ -29,7 +29,7 @@ __global__ void applyProfile(
 #pragma unroll 3
     for (int pid = pstart; pid < pend; pid++)
     {
-        Particle p(cinfo.particles, pid);
+        Particle p(view.particles, pid);
 
         if (all_lt(low, p.r) && all_lt(p.r, high))
         {
@@ -37,7 +37,7 @@ __global__ void applyProfile(
             float2 rand2 = Saru::normal2(seed2 + pid, threadIdx.x, blockIdx.x);
 
             p.u = targetVel + sqrtf(kbT * invMass) * make_float3(rand1.x, rand1.y, rand2.x);
-            p.write2Float4(cinfo.particles, pid);
+            p.write2Float4(view.particles, pid);
         }
     }
 }
@@ -117,7 +117,7 @@ void ImposeProfilePlugin::afterIntegration(cudaStream_t stream)
             applyProfile,
             getNblocks(nRelevantCells[0], nthreads), nthreads, 0, stream,
 
-            cl->cellInfo(), relevantCells.devPtr(), nRelevantCells[0], low, high, targetVel,
+            cl->cellInfo(), cl->getView<PVview>(), relevantCells.devPtr(), nRelevantCells[0], low, high, targetVel,
             kbT, 1.0f / pv->mass, drand48(), drand48() );
 }
 

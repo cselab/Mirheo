@@ -1,9 +1,11 @@
 #include "lj.h"
-#include <memory>
 #include "pairwise.h"
 #include "pairwise_interactions/lj.h"
 #include "pairwise_interactions/lj_object_aware.h"
 
+#include <core/celllist.h>
+
+#include <memory>
 
 InteractionLJ::InteractionLJ(const YmrState *state, std::string name, float rc, float epsilon, float sigma, float maxForce, bool objectAware, bool allocate) :
     Interaction(state, name, rc),
@@ -27,21 +29,19 @@ InteractionLJ::InteractionLJ(const YmrState *state, std::string name, float rc, 
 
 InteractionLJ::~InteractionLJ() = default;
 
-void InteractionLJ::setPrerequisites(ParticleVector* pv1, ParticleVector* pv2)
+void InteractionLJ::setPrerequisites(ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2)
 {
-    impl->setPrerequisites(pv1, pv2);
+    impl->setPrerequisites(pv1, pv2, cl1, cl2);
+
+    cl1->setNeededForOutput();
+    cl2->setNeededForOutput();
 }
 
-void InteractionLJ::initStep(ParticleVector *pv1, ParticleVector *pv2, cudaStream_t stream)
+void InteractionLJ::local(ParticleVector *pv1, ParticleVector *pv2,
+                          CellList *cl1, CellList *cl2,
+                          cudaStream_t stream)
 {
-    impl->initStep(pv1, pv2, stream);
-}
-
-void InteractionLJ::regular(ParticleVector *pv1, ParticleVector *pv2,
-                            CellList *cl1, CellList *cl2,
-                            cudaStream_t stream)
-{
-    impl->regular(pv1, pv2, cl1, cl2, stream);
+    impl->local(pv1, pv2, cl1, cl2, stream);
 }
 
 void InteractionLJ::halo(ParticleVector *pv1, ParticleVector *pv2,

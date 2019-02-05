@@ -25,6 +25,7 @@
 #include "impose_velocity.h"
 #include "magnetic_orientation.h"
 #include "membrane_extra_force.h"
+#include "particle_channel_saver.h"
 #include "pin_object.h"
 #include "stats.h"
 #include "temperaturize.h"
@@ -258,6 +259,14 @@ namespace PluginFactory
         return { simPl, nullptr };
     }
 
+    static pair_shared< ParticleChannelSaverPlugin, PostprocessPlugin >
+    createParticleChannelSaverPlugin(bool computeTask,  const YmrState *state, std::string name, ParticleVector *pv,
+                                     std::string channelName, std::string savedName)
+    {
+        auto simPl = computeTask ? std::make_shared<ParticleChannelSaverPlugin> (state, name, pv->name, channelName, savedName) : nullptr;
+        return { simPl, nullptr };
+    }
+
     static pair_shared< PinObjectPlugin, ReportPinObjectPlugin >
     createPinObjPlugin(bool computeTask, const YmrState *state, std::string name, ObjectVector* ov,
                        int dumpEvery, std::string path,
@@ -312,13 +321,13 @@ namespace PluginFactory
 
     static pair_shared< VirialPressurePlugin, VirialPressureDumper >
     createVirialPressurePlugin(bool computeTask, const YmrState *state, std::string name, ParticleVector *pv,
-                               std::string stressName, std::function<float(PyTypes::float3)> region, PyTypes::float3 h,
+                               std::function<float(PyTypes::float3)> region, PyTypes::float3 h,
                                int dumpEvery, std::string path)
     {
         auto regionFunc = [region](float3 r) {
             return region(PyTypes::float3(r.x, r.y, r.z));
         };
-        auto simPl  = computeTask ? std::make_shared<VirialPressurePlugin> (state, name, pv->name, stressName,
+        auto simPl  = computeTask ? std::make_shared<VirialPressurePlugin> (state, name, pv->name,
                                                                             regionFunc, make_float3(h), dumpEvery)
             : nullptr;
         auto postPl = computeTask ? nullptr : std::make_shared<VirialPressureDumper> (name, path);

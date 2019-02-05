@@ -201,8 +201,7 @@ void Simulation::registerWall(std::shared_ptr<Wall> wall, int every)
     checkWallPrototypes.push_back({wall.get(), every});
 
     // Let the wall know the particle vector associated with it
-    float t = 0;
-    wall->setup(cartComm, t, state->domain);
+    wall->setup(cartComm);
     if (restartStatus != RestartStatus::Anew)
         wall->restart(cartComm, restartFolder);
 
@@ -312,9 +311,7 @@ void Simulation::setInteraction(std::string interactionName, std::string pv1Name
 
     if (interactionMap.find(interactionName) == interactionMap.end())
         die("No such interaction: %s", interactionName.c_str());
-    auto interaction = interactionMap[interactionName].get();
-
-    interaction->setPrerequisites(pv1, pv2);
+    auto interaction = interactionMap[interactionName].get();    
 
     float rc = interaction->rc;
     interactionPrototypes.push_back({rc, pv1, pv2, interaction});
@@ -414,6 +411,17 @@ void Simulation::applyObjectBelongingChecker(std::string checkerName,
     belongingCorrectionPrototypes.push_back({checker, getPVbyName(inside), getPVbyName(outside), checkEvery});
 }
 
+static void sortDescendingOrder(std::vector<float>& v)
+{
+    std::sort(v.begin(), v.end(), [] (float a, float b) { return a > b; });
+}
+
+// assume sorted array (ascending or descending)
+static void removeDuplicatedElements(std::vector<float>& v, float tolerance)
+{
+    auto it = std::unique(v.begin(), v.end(), [=] (float a, float b) { return fabs(a - b) < tolerance; });
+    v.resize( std::distance(v.begin(), it) );    
+}
 
 void Simulation::prepareCellLists()
 {
@@ -429,24 +437,25 @@ void Simulation::prepareCellLists()
         cutOffMap[prototype.pv2].push_back(rc);
     }
 
-    for (auto& cutoffs : cutOffMap)
+    for (auto& cutoffPair : cutOffMap)
     {
-        std::sort(cutoffs.second.begin(), cutoffs.second.end(), [] (float a, float b) { return a > b; });
+        auto& pv      = cutoffPair.first;
+        auto& cutoffs = cutoffPair.second;
 
-        auto it = std::unique(cutoffs.second.begin(), cutoffs.second.end(), [=] (float a, float b) { return fabs(a - b) < rcTolerance; });
-        cutoffs.second.resize( std::distance(cutoffs.second.begin(), it) );
+        sortDescendingOrder(cutoffs);
+        removeDuplicatedElements(cutoffs, rcTolerance);
 
         bool primary = true;
 
         // Don't use primary cell-lists with ObjectVectors
-        if (dynamic_cast<ObjectVector*>(cutoffs.first) != nullptr)
+        if (dynamic_cast<ObjectVector*>(pv) != nullptr)
             primary = false;
 
-        for (auto rc : cutoffs.second)
+        for (auto rc : cutoffs)
         {
-            cellListMap[cutoffs.first].push_back(primary ?
-                    std::make_unique<PrimaryCellList>(cutoffs.first, rc, state->domain.localSize) :
-                    std::make_unique<CellList>       (cutoffs.first, rc, state->domain.localSize));
+            cellListMap[pv].push_back(primary ?
+                    std::make_unique<PrimaryCellList>(pv, rc, state->domain.localSize) :
+                    std::make_unique<CellList>       (pv, rc, state->domain.localSize));
             primary = false;
         }
     }
@@ -467,9 +476,24 @@ void Simulation::prepareCellLists()
                 (primary ?
                  std::make_unique<PrimaryCellList>(pvptr, defaultRc, state->domain.localSize) :
                  std::make_unique<CellList>       (pvptr, defaultRc, state->domain.localSize));
-            
         }
     }
+}
+
+// Choose a CL with smallest but bigger than rc cell
+static CellList* selectBestClist(std::vector<std::unique_ptr<CellList>>& cellLists, float rc, float tolerance)
+{
+    float minDiff = 1e6;
+    CellList* best = nullptr;
+    
+    for (auto& cl : cellLists) {
+        float diff = cl->rc - rc;
+        if (diff > -tolerance && diff < minDiff) {
+            best    = cl.get();
+            minDiff = diff;
+        }
+    }
+    return best;
 }
 
 void Simulation::prepareInteractions()
@@ -487,36 +511,37 @@ void Simulation::prepareInteractions()
 
         CellList *cl1, *cl2;
 
-        // Choose a CL with smallest but bigger than rc cell
-        float mindiff = 10;
-        for (auto& cl : clVec1)
-            if (cl->rc - rc > -rcTolerance && cl->rc - rc < mindiff)
-            {
-                cl1 = cl.get();
-                mindiff = cl->rc - rc;
-            }
-
-        mindiff = 10;
-        for (auto& cl : clVec2)
-            if (cl->rc - rc > -rcTolerance && cl->rc - rc < mindiff)
-            {
-                cl2 = cl.get();
-                mindiff = cl->rc - rc;
-            }
-
+        cl1 = selectBestClist(clVec1, rc, rcTolerance);
+        cl2 = selectBestClist(clVec2, rc, rcTolerance);
+        
         auto inter = prototype.interaction;
 
-        initInteractions.push_back([inter, pv1, pv2] (cudaStream_t stream) {
-            inter->initStep(pv1, pv2, stream);
-        });
-        
-        regularInteractions.push_back([inter, pv1, pv2, cl1, cl2] (cudaStream_t stream) {
-            inter->regular(pv1, pv2, cl1, cl2, stream);
-        });
+        inter->setPrerequisites(pv1, pv2, cl1, cl2);
 
-        haloInteractions.push_back([inter, pv1, pv2, cl1, cl2] (cudaStream_t stream) {
-            inter->halo(pv1, pv2, cl1, cl2, stream);
-        });
+        if (inter->outputsForces())
+        {
+            regularInteractions.push_back(
+                [inter, pv1, pv2, cl1, cl2] (cudaStream_t stream) {
+                    inter->local(pv1, pv2, cl1, cl2, stream);
+                });
+
+            haloInteractions.push_back(
+                [inter, pv1, pv2, cl1, cl2] (cudaStream_t stream) {
+                    inter->halo(pv1, pv2, cl1, cl2, stream);
+                });
+        }
+        else
+        {
+            regularInteractionsIntermediate.push_back(
+                [inter, pv1, pv2, cl1, cl2] (cudaStream_t stream) {
+                    inter->local(pv1, pv2, cl1, cl2, stream);
+                });
+
+            haloInteractionsIntermediate.push_back(
+                [inter, pv1, pv2, cl1, cl2] (cudaStream_t stream) {
+                    inter->halo(pv1, pv2, cl1, cl2, stream);
+                });
+        }
     }
 }
 
@@ -590,36 +615,98 @@ void Simulation::preparePlugins()
     info("done Preparing plugins");
 }
 
+static CellList* getLargestNeededForOutput(const std::vector<std::unique_ptr<CellList>>& cellListVec)
+{
+    for (const auto& cl : cellListVec)
+        if (cl->isNeededForOutput()) return cl.get();
+    return nullptr;
+}
+
+static CellList* getLargestNeededForIntermediate(const std::vector<std::unique_ptr<CellList>>& cellListVec)
+{
+    for (const auto& cl : cellListVec)
+        if (cl->isNeededForIntermediate()) return cl.get();
+    return nullptr;
+}
+
+static void removeDuplicates(std::vector<std::string>& v)
+{
+    std::sort(v.begin(), v.end());
+    auto it = std::unique(v.begin(), v.end());
+    v.resize( std::distance(v.begin(), it) );    
+}
+
+static std::vector<std::string> getExtraIntermediateChannels(const std::vector<std::unique_ptr<CellList>>& cellListVec)
+{
+    std::vector<std::string> outputs;
+    for (const auto& cl : cellListVec) {
+        auto clOutputs = cl->getInteractionIntermediateNames();
+        outputs.insert(outputs.end(),
+                       std::make_move_iterator(clOutputs.begin()),
+                       std::make_move_iterator(clOutputs.end()));
+    }
+    removeDuplicates(outputs);
+    return outputs;
+}
+
+static std::vector<std::string> getExtraOutputChannels(const std::vector<std::unique_ptr<CellList>>& cellListVec)
+{
+    std::vector<std::string> outputs;
+    for (const auto& cl : cellListVec) {
+        auto clOutputs = cl->getInteractionOutputNames();
+        outputs.insert(outputs.end(),
+                       std::make_move_iterator(clOutputs.begin()),
+                       std::make_move_iterator(clOutputs.end()));
+    }
+    removeDuplicates(outputs);
+    return outputs;
+}
+
 void Simulation::prepareEngines()
 {
-    auto redistImp    = std::make_unique<ParticleRedistributor>();
-    auto haloImp      = std::make_unique<ParticleHaloExchanger>();
-    auto objRedistImp = std::make_unique<ObjectRedistributor>();
-    auto objHaloImp   = std::make_unique<ObjectHaloExchanger>();
-    auto objForcesImp = std::make_unique<ObjectForcesReverseExchanger>(objHaloImp.get());
+    auto redistImp              = std::make_unique<ParticleRedistributor>();
+    auto haloImp                = std::make_unique<ParticleHaloExchanger>();
+    auto haloIntermediateImp    = std::make_unique<ParticleHaloExchanger>();
+    auto objRedistImp           = std::make_unique<ObjectRedistributor>();
+    auto objHaloImp             = std::make_unique<ObjectHaloExchanger>();
+    auto objHaloIntermediateImp = std::make_unique<ObjectHaloExchanger>();
+    auto objForcesImp           = std::make_unique<ObjectForcesReverseExchanger>(objHaloImp.get());
 
     debug("Attaching particle vectors to halo exchanger and redistributor");
     for (auto& pv : particleVectors)
     {
-        auto pvPtr = pv.get();
+        auto  pvPtr       = pv.get();
+        auto& cellListVec = cellListMap[pvPtr];        
 
-        if (cellListMap[pvPtr].size() > 0)
-            if (dynamic_cast<ObjectVector*>(pvPtr) == nullptr)
-            {
-                auto cl = cellListMap[pvPtr][0].get();
+        if (cellListVec.size() == 0) continue;
 
-                haloImp  ->attach(pvPtr, cl);
-                redistImp->attach(pvPtr, cl);
-            }
-            else
-            {
-                auto cl = cellListMap[pvPtr][0].get();
-                auto ov = dynamic_cast<ObjectVector*>(pvPtr);
+        CellList *clInt = getLargestNeededForIntermediate(cellListVec);
+        CellList *clOut = getLargestNeededForOutput(cellListVec);
 
-                objRedistImp->attach(ov);
-                objHaloImp  ->attach(ov, cl->rc);
-                objForcesImp->attach(ov);
-            }
+        auto extraInt = getExtraIntermediateChannels(cellListVec);
+        // auto extraOut = getExtraOutputChannels(cellListVec); // TODO: for reverse exchanger
+
+        auto cl = cellListVec[0].get();
+        auto ov = dynamic_cast<ObjectVector*>(pvPtr);
+        
+        if (ov == nullptr) {
+            redistImp->attach(pvPtr, cl);
+            
+            if (clInt != nullptr)
+                haloIntermediateImp->attach(pvPtr, clInt, {});
+
+            if (clOut != nullptr)
+                haloImp->attach(pvPtr, clOut, extraInt);            
+        }
+        else {
+            objRedistImp->attach(ov);
+
+            if (clInt != nullptr)
+                objHaloIntermediateImp->attach(ov, clInt->rc, {});
+            
+            objHaloImp  ->attach(ov, cl->rc, extraInt); // always active because of bounce back; TODO: check if bounce back is active
+            objForcesImp->attach(ov);
+        }
     }
     
     std::function< std::unique_ptr<ExchangeEngine>(std::unique_ptr<ParticleExchanger>) > makeEngine;
@@ -635,11 +722,13 @@ void Simulation::prepareEngines()
             return std::make_unique<MPIExchangeEngine> (std::move(exch), cartComm, gpuAwareMPI);
         };
     
-    redistributor   = makeEngine(std::move(redistImp));
-    halo            = makeEngine(std::move(haloImp));
-    objRedistibutor = makeEngine(std::move(objRedistImp));
-    objHalo         = makeEngine(std::move(objHaloImp));
-    objHaloForces   = makeEngine(std::move(objForcesImp));
+    redistributor       = makeEngine(std::move(redistImp));
+    halo                = makeEngine(std::move(haloImp));
+    haloIntermediate    = makeEngine(std::move(haloIntermediateImp));
+    objRedistibutor     = makeEngine(std::move(objRedistImp));
+    objHalo             = makeEngine(std::move(objHaloImp));
+    objHaloIntermediate = makeEngine(std::move(objHaloIntermediateImp));
+    objHaloForces       = makeEngine(std::move(objForcesImp));
 }
 
 void Simulation::execSplitters()
@@ -689,34 +778,47 @@ void Simulation::assemble()
 
     auto task_checkpoint                          = scheduler->createTask("Checkpoint");
     auto task_cellLists                           = scheduler->createTask("Build cell-lists");
+    auto task_integration                         = scheduler->createTask("Integration");
+
+    auto task_clearIntermediate                   = scheduler->createTask("Clear intermediate");
+    auto task_haloIntermediateInit                = scheduler->createTask("Halo intermediate init");
+    auto task_haloIntermediateFinalize            = scheduler->createTask("Halo intermediate finalize");
+    auto task_localIntermediate                   = scheduler->createTask("Local intermediate");
+    auto task_haloIntermediate                    = scheduler->createTask("Halo intermediate");
+    auto task_accumulateInteractionIntermediate   = scheduler->createTask("Accumulate intermediate");
+    auto task_gatherInteractionIntermediate       = scheduler->createTask("Gather intermediate");
+
     auto task_clearForces                         = scheduler->createTask("Clear forces");
-    auto task_pluginsBeforeForces                 = scheduler->createTask("Plugins: before forces");
     auto task_haloInit                            = scheduler->createTask("Halo init");
-    auto task_initInteractions                    = scheduler->createTask("Init interactions");
-    auto task_localForces                         = scheduler->createTask("Local forces");
-    auto task_pluginsSerializeSend                = scheduler->createTask("Plugins: serialize and send");
     auto task_haloFinalize                        = scheduler->createTask("Halo finalize");
+    auto task_localForces                         = scheduler->createTask("Local forces");
     auto task_haloForces                          = scheduler->createTask("Halo forces");
-    auto task_accumulateForces                    = scheduler->createTask("Accumulate forces");
-    auto task_pluginsBeforeIntegration            = scheduler->createTask("Plugins: before integration");
+    auto task_accumulateInteractionOutput         = scheduler->createTask("Accumulate forces");
+
     auto task_objHaloInit                         = scheduler->createTask("Object halo init");
     auto task_objHaloFinalize                     = scheduler->createTask("Object halo finalize");
+    auto task_objForcesInit                       = scheduler->createTask("Object forces exchange: init");
+    auto task_objForcesFinalize                   = scheduler->createTask("Object forces exchange: finalize");
     auto task_clearObjHaloForces                  = scheduler->createTask("Clear object halo forces");
     auto task_clearObjLocalForces                 = scheduler->createTask("Clear object local forces");
+
     auto task_objLocalBounce                      = scheduler->createTask("Local object bounce");
     auto task_objHaloBounce                       = scheduler->createTask("Halo object bounce");
     auto task_correctObjBelonging                 = scheduler->createTask("Correct object belonging");
-    auto task_objForcesInit                       = scheduler->createTask("Object forces exchange: init");
-    auto task_objForcesFinalize                   = scheduler->createTask("Object forces exchange: finalize");
+
     auto task_wallBounce                          = scheduler->createTask("Wall bounce");
-    auto task_wallCheck                           = scheduler->createTask("Wall check");
-    auto task_pluginsAfterIntegration             = scheduler->createTask("Plugins: after integration");
-    auto task_pluginsBeforeParticlesDistribution  = scheduler->createTask("Plugins: before particles distribution");
-    auto task_integration                         = scheduler->createTask("Integration");
+    auto task_wallCheck                           = scheduler->createTask("Wall check");    
+
     auto task_redistributeInit                    = scheduler->createTask("Redistribute init");
     auto task_redistributeFinalize                = scheduler->createTask("Redistribute finalize");
     auto task_objRedistInit                       = scheduler->createTask("Object redistribute init");
     auto task_objRedistFinalize                   = scheduler->createTask("Object redistribute finalize");
+
+    auto task_pluginsBeforeForces                 = scheduler->createTask("Plugins: before forces");
+    auto task_pluginsSerializeSend                = scheduler->createTask("Plugins: serialize and send");
+    auto task_pluginsBeforeIntegration            = scheduler->createTask("Plugins: before integration");
+    auto task_pluginsAfterIntegration             = scheduler->createTask("Plugins: after integration");
+    auto task_pluginsBeforeParticlesDistribution  = scheduler->createTask("Plugins: before particles distribution");
 
 
     if (globalCheckpointEvery > 0)
@@ -747,7 +849,8 @@ void Simulation::assemble()
         for (auto& cl : cellListMap[pv.get()])
         {
             auto clPtr = cl.get();
-            scheduler->addTask(task_clearForces, [clPtr] (cudaStream_t stream) { clPtr->clearForces(stream); } );
+            scheduler->addTask(task_clearForces,       [clPtr] (cudaStream_t stream) { clPtr->clearInteractionOutput(stream); } );
+            scheduler->addTask(task_clearIntermediate, [clPtr] (cudaStream_t stream) { clPtr->clearInteractionIntermediate(stream); } );
         }
 
     for (auto& pl : plugins)
@@ -779,6 +882,14 @@ void Simulation::assemble()
     // If we have any non-object vectors
     if (particleVectors.size() != objectVectors.size())
     {
+        scheduler->addTask(task_haloIntermediateInit, [this] (cudaStream_t stream) {
+            haloIntermediate->init(stream);
+        });
+
+        scheduler->addTask(task_haloIntermediateFinalize, [this] (cudaStream_t stream) {
+            haloIntermediate->finalize(stream);
+        });
+
         scheduler->addTask(task_haloInit, [this] (cudaStream_t stream) {
             halo->init(stream);
         });
@@ -797,16 +908,20 @@ void Simulation::assemble()
     }
 
 
+    for (auto& inter : regularInteractionsIntermediate)
+        scheduler->addTask(task_localIntermediate, [inter, this] (cudaStream_t stream) {
+            inter(stream);
+        });
+
+    for (auto& inter : haloInteractionsIntermediate)
+        scheduler->addTask(task_haloIntermediate, [inter, this] (cudaStream_t stream) {
+            inter(stream);
+        });
+
     for (auto& inter : regularInteractions)
         scheduler->addTask(task_localForces, [inter, this] (cudaStream_t stream) {
             inter(stream);
         });
-
-    for (auto& inter : initInteractions)
-        scheduler->addTask(task_initInteractions, [inter, this] (cudaStream_t stream) {
-            inter(stream);
-        });
-
 
     for (auto& inter : haloInteractions)
         scheduler->addTask(task_haloForces, [inter, this] (cudaStream_t stream) {
@@ -817,8 +932,17 @@ void Simulation::assemble()
         for (auto& cl : clVec.second)
         {
             auto clPtr = cl.get();
-            scheduler->addTask(task_accumulateForces, [clPtr] (cudaStream_t stream) {
-                clPtr->addForces(stream);
+
+            scheduler->addTask(task_accumulateInteractionIntermediate, [clPtr] (cudaStream_t stream) {
+                clPtr->accumulateInteractionIntermediate(stream);
+            });
+
+            scheduler->addTask(task_gatherInteractionIntermediate, [clPtr] (cudaStream_t stream) {
+                clPtr->gatherInteractionIntermediate(stream);
+            });
+            
+            scheduler->addTask(task_accumulateInteractionOutput, [clPtr] (cudaStream_t stream) {
+                clPtr->accumulateInteractionOutput(stream);
             });
         }
 
@@ -847,7 +971,7 @@ void Simulation::assemble()
         {
             auto clPtr = cl.get();
             scheduler->addTask(task_clearObjLocalForces, [clPtr] (cudaStream_t stream) {
-                clPtr->clearForces(stream);
+                clPtr->clearInteractionOutput(stream);
             });
         }
     }
@@ -927,26 +1051,31 @@ void Simulation::assemble()
 
     scheduler->addDependency(task_correctObjBelonging, { task_cellLists }, {});
 
-    scheduler->addDependency(task_cellLists, {task_clearForces}, {});
+    scheduler->addDependency(task_cellLists, {task_clearForces, task_clearIntermediate}, {});
 
     
-    scheduler->addDependency(task_initInteractions, {task_localForces, task_haloForces}, {task_pluginsBeforeForces, task_haloInit});
     scheduler->addDependency(task_pluginsBeforeForces, {task_localForces, task_haloForces}, {task_clearForces});
     scheduler->addDependency(task_pluginsSerializeSend, {task_pluginsBeforeIntegration, task_pluginsAfterIntegration}, {task_pluginsBeforeForces});
-
-    scheduler->addDependency(task_localForces, {}, {task_pluginsBeforeForces});
 
     scheduler->addDependency(task_clearObjHaloForces, {task_objHaloBounce}, {task_objHaloFinalize});
 
     scheduler->addDependency(task_objForcesInit, {}, {task_haloForces});
-    scheduler->addDependency(task_objForcesFinalize, {task_accumulateForces}, {task_objForcesInit});
+    scheduler->addDependency(task_objForcesFinalize, {task_accumulateInteractionOutput}, {task_objForcesInit});
 
-    scheduler->addDependency(task_haloInit, {}, {task_pluginsBeforeForces});
+    scheduler->addDependency(task_localIntermediate, {}, {task_clearIntermediate});
+    scheduler->addDependency(task_haloIntermediateInit, {}, {task_clearIntermediate});
+    scheduler->addDependency(task_haloIntermediateFinalize, {}, {task_haloIntermediateInit});
+    scheduler->addDependency(task_haloIntermediate, {}, {task_haloIntermediateFinalize});
+    scheduler->addDependency(task_accumulateInteractionIntermediate, {}, {task_localIntermediate, task_haloIntermediate});
+    scheduler->addDependency(task_gatherInteractionIntermediate, {}, {task_accumulateInteractionIntermediate});
+
+    scheduler->addDependency(task_localForces, {}, {task_gatherInteractionIntermediate});
+    scheduler->addDependency(task_haloInit, {}, {task_pluginsBeforeForces, task_gatherInteractionIntermediate});
     scheduler->addDependency(task_haloFinalize, {}, {task_haloInit});
     scheduler->addDependency(task_haloForces, {}, {task_haloFinalize});
+    scheduler->addDependency(task_accumulateInteractionOutput, {task_integration}, {task_haloForces, task_localForces});
 
-    scheduler->addDependency(task_accumulateForces, {task_integration}, {task_haloForces, task_localForces});
-    scheduler->addDependency(task_pluginsBeforeIntegration, {task_integration}, {task_accumulateForces});
+    scheduler->addDependency(task_pluginsBeforeIntegration, {task_integration}, {task_accumulateInteractionOutput});
     scheduler->addDependency(task_wallBounce, {}, {task_integration});
     scheduler->addDependency(task_wallCheck, {task_redistributeInit}, {task_wallBounce});
 
@@ -968,6 +1097,9 @@ void Simulation::assemble()
     scheduler->addDependency(task_clearObjLocalForces, {task_objLocalBounce}, {task_integration, task_objRedistFinalize});
 
     scheduler->setHighPriority(task_objForcesInit);
+    scheduler->setHighPriority(task_haloIntermediateInit);
+    scheduler->setHighPriority(task_haloIntermediateFinalize);
+    scheduler->setHighPriority(task_haloIntermediate);
     scheduler->setHighPriority(task_haloInit);
     scheduler->setHighPriority(task_haloFinalize);
     scheduler->setHighPriority(task_haloForces);

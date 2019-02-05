@@ -3,6 +3,8 @@
 #include <core/interactions/interface.h>
 #include <core/interactions/dpd.h>
 #include <core/interactions/dpd_with_stress.h>
+#include <core/interactions/mdpd.h>
+#include <core/interactions/mdpd_with_stress.h>
 #include <core/interactions/lj.h>
 #include <core/interactions/lj_with_stress.h>
 #include <core/interactions/membrane_kantor.h>
@@ -66,11 +68,10 @@ void exportInteractions(py::module& m)
         wrapper of :any:`DPD` with, in addition, stress computation
     )");
 
-    pyIntDPDWithStress.def(py::init<const YmrState*, std::string, std::string, float, float, float, float, float, float>(),
-                           "state"_a, "name"_a, "stressName"_a, "rc"_a, "a"_a, "gamma"_a, "kbt"_a, "power"_a, "stressPeriod"_a, R"(  
+    pyIntDPDWithStress.def(py::init<const YmrState*, std::string, float, float, float, float, float, float>(),
+                           "state"_a, "name"_a, "rc"_a, "a"_a, "gamma"_a, "kbt"_a, "power"_a, "stressPeriod"_a, R"(  
             Args:
                 name: name of the interaction
-                stressName: name of the stress entry
                 rc: interaction cut-off (no forces between particles further than **rc** apart)
                 a: :math:`a`
                 gamma: :math:`\gamma`
@@ -78,6 +79,86 @@ void exportInteractions(py::module& m)
                 power: :math:`p` in the weight function
                 stressPeriod: compute the stresses every this period (in simulation time units)
     )");
+
+    py::handlers_class<InteractionDensity> pyIntDensity(m, "Density", pyInt, R"(
+        Compute MDPD density of particles, see [Warren2003]_
+    
+        .. math::
+        
+            \rho_i = \sum\limits_{j \neq i} w_\rho (r_{ij})
+
+        where the summation goes over the neighbours of particle :math:`i` within a cutoff range of :math:`r_c`, and
+
+        .. math::
+            
+            w_\rho(r) = \begin{cases} \frac{15}{2\pi r_d^3}\left(1-\frac{r}{r_d}\right)^2, & r < r_d \\ 0, & r \geqslant r_d \end{cases}
+            
+        .. [Warren2003] Warren, P. B. 
+           "Vapor-liquid coexistence in many-body dissipative particle dynamics."
+           Physical Review E 68.6 (2003): 066702.`_
+    )");
+    
+    pyIntDensity.def(py::init<const YmrState*, std::string, float>(),
+                     "state"_a, "name"_a, "rc"_a, R"(  
+            Args:
+                name: name of the interaction
+                rc: interaction cut-off
+    )");
+
+    py::handlers_class<InteractionMDPD> pyIntMDPD(m, "MDPD", pyInt, R"(
+        Compute MDPD interaction as described in [Warren2003].
+        Must be used together with :any:`Density` interaction.
+
+        The interaction forces are the same as described in :any:`DPD` with the modified conservative term
+
+        .. math::
+
+            F^C_{ij} = a w_c(r_{ij}) + b (\rho_i + \rho_j) w_d(r_{ij}),
+ 
+        where :math:`\rho_i` is computed from :any:`Density` and
+
+        .. math::
+
+            w_c(r) = \begin{cases} (1-\frac{r}{r_c}), & r < r_c \\ 0, & r \geqslant r_c \end{cases} \\
+            w_d(r) = \begin{cases} (1-\frac{r}{r_d}), & r < r_d \\ 0, & r \geqslant r_d \end{cases}.
+
+
+        .. [Warren2003] Warren, P. B. 
+           "Vapor-liquid coexistence in many-body dissipative particle dynamics."
+           Physical Review E 68.6 (2003): 066702.`_
+    )");
+    
+    pyIntMDPD.def(py::init<const YmrState*, std::string, float, float, float, float, float, float, float>(),
+                  "state"_a, "name"_a, "rc"_a, "rd"_a, "a"_a, "b"_a, "gamma"_a, "kbt"_a, "power"_a, R"(  
+            Args:
+            name: name of the interaction
+                rc: interaction cut-off (no forces between particles further than **rc** apart)
+                rd: density cutoff, assumed rd <= rc
+                a: :math:`a`
+                b: :math:`b`
+                gamma: :math:`\gamma`
+                kbt: :math:`k_B T`
+                power: :math:`p` in the weight function
+    )");
+
+    py::handlers_class<InteractionMDPDWithStress> pyIntMDPDWithStress(m, "MDPDWithStress", pyIntMDPD, R"(
+        wrapper of :any:`MDPD` with, in addition, stress computation
+    )");
+
+    pyIntMDPDWithStress.def(py::init<const YmrState*, std::string, float, float, float, float, float, float, float, float>(),
+                            "state"_a, "name"_a, "rc"_a, "rd"_a, "a"_a, "b"_a, "gamma"_a, "kbt"_a, "power"_a, "stressPeriod"_a, R"(  
+            Args:
+                name: name of the interaction
+                rc: interaction cut-off (no forces between particles further than **rc** apart)
+                rd: density cut-off, assumed rd < rc
+                a: :math:`a`
+                b: :math:`b`
+                gamma: :math:`\gamma`
+                kbt: :math:`k_B T`
+                power: :math:`p` in the weight function
+                stressPeriod: compute the stresses every this period (in simulation time units)
+    )");
+
 
     py::handlers_class<InteractionLJ> pyIntLJ (m, "LJ", pyInt, R"(
         Pairwise interaction according to the classical `Lennard-Jones potential <https://en.wikipedia.org/wiki/Lennard-Jones_potential>`_
@@ -89,6 +170,7 @@ void exportInteractions(py::module& m)
    
     )");
 
+    
     pyIntLJ.def(py::init<const YmrState*, std::string, float, float, float, float, bool>(),
                 "state"_a, "name"_a, "rc"_a, "epsilon"_a, "sigma"_a, "max_force"_a=1000.0, "object_aware"_a, R"(
             Args:
@@ -111,12 +193,11 @@ void exportInteractions(py::module& m)
         wrapper of :any:`LJ` with, in addition, stress computation
     )");
 
-    pyIntLJWithStress.def(py::init<const YmrState*, std::string, std::string, float, float, float, float, bool, float>(),
-                          "state"_a, "name"_a, "stressName"_a, "rc"_a, "epsilon"_a, "sigma"_a, "max_force"_a=1000.0,
+    pyIntLJWithStress.def(py::init<const YmrState*, std::string, float, float, float, float, bool, float>(),
+                          "state"_a, "name"_a, "rc"_a, "epsilon"_a, "sigma"_a, "max_force"_a=1000.0,
                           "object_aware"_a, "stressPeriod"_a, R"(
             Args:
                 name: name of the interaction
-                stressName: name of the stress entry
                 rc: interaction cut-off (no forces between particles further than **rc** apart)
                 epsilon: :math:`\varepsilon`
                 sigma: :math:`\sigma`

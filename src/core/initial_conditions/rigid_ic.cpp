@@ -99,7 +99,7 @@ void RigidIC::exec(const MPI_Comm& comm, ParticleVector* pv, cudaStream_t stream
 
     ov->local()->resize_anew(nObjs * ov->objSize);
 
-    auto ovMotions = ov->local()->extraPerObject.getData<RigidMotion>("motions");
+    auto ovMotions = ov->local()->extraPerObject.getData<RigidMotion>(ChannelNames::motions);
     ovMotions->copy(motions);
     ovMotions->uploadToDevice(stream);
 
@@ -108,7 +108,7 @@ void RigidIC::exec(const MPI_Comm& comm, ParticleVector* pv, cudaStream_t stream
     int totalCount=0; // TODO: int64!
     MPI_Check( MPI_Exscan(&nObjs, &totalCount, 1, MPI_INT, MPI_SUM, comm) );
 
-    auto ids = ov->local()->extraPerObject.getData<int>("ids");
+    auto ids = ov->local()->extraPerObject.getData<int>(ChannelNames::globalIds);
     for (int i=0; i<nObjs; i++)
         (*ids)[i] = totalCount + i;
 
@@ -122,7 +122,7 @@ void RigidIC::exec(const MPI_Comm& comm, ParticleVector* pv, cudaStream_t stream
 
     ids->uploadToDevice(stream);
     ov->local()->coosvels.uploadToDevice(stream);
-    ov->local()->extraPerParticle.getData<Particle>("old_particles")->copy(ov->local()->coosvels, stream);
+    ov->local()->extraPerParticle.getData<Particle>(ChannelNames::oldParts)->copy(ov->local()->coosvels, stream);
 
     info("Read %d %s objects", nObjs, ov->name.c_str());
 

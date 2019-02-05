@@ -212,7 +212,7 @@ ParticleVector::ParticleVector(const YmrState *state, std::string name,  float m
     _halo(halo)
 {
     // usually old positions and velocities don't need to exchanged
-    requireDataPerParticle<Particle> ("old_particles", ExtraDataManager::CommunicationMode::None, ExtraDataManager::PersistenceMode::None);
+    requireDataPerParticle<Particle> (ChannelNames::oldParts, ExtraDataManager::CommunicationMode::None, ExtraDataManager::PersistenceMode::None);
 }
 
 static void splitPV(DomainInfo domain, LocalParticleVector *local,
@@ -294,7 +294,7 @@ void ParticleVector::_checkpointParticleData(MPI_Comm comm, std::string path)
     std::vector<XDMF::Channel> channels;
     channels.push_back(XDMF::Channel("velocity", velocities.data(),
                                      XDMF::Channel::DataForm::Vector, XDMF::Channel::NumberType::Float, typeTokenize<float>() ));
-    channels.push_back(XDMF::Channel("ids", ids.data(),
+    channels.push_back(XDMF::Channel(ChannelNames::globalIds, ids.data(),
                                      XDMF::Channel::DataForm::Scalar, XDMF::Channel::NumberType::Int, typeTokenize<int>() ));
 
     _extractPersistentExtraParticleData(channels);

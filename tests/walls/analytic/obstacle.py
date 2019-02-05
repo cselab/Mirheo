@@ -36,7 +36,7 @@ elif args.type == "sphere":
 u.registerWall(wall, 0)
 
 vv = ymr.Integrators.VelocityVerlet("vv")
-frozen_wall = u.makeFrozenWallParticles(pvName="wall", walls=[wall], interaction=dpd, integrator=vv, density=density)
+frozen_wall = u.makeFrozenWallParticles(pvName="wall", walls=[wall], interactions=[dpd], integrator=vv, density=density)
 
 u.setWall(wall, pv)
 

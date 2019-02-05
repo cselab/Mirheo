@@ -4,7 +4,7 @@
 
 struct InteractionLJWithStress : public InteractionLJ
 {        
-    InteractionLJWithStress(const YmrState *state, std::string name, std::string stressName,
+    InteractionLJWithStress(const YmrState *state, std::string name,
                             float rc, float epsilon, float sigma, float maxForce, bool objectAware, float stressPeriod);
 
     ~InteractionLJWithStress();

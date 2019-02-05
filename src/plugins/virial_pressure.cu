@@ -3,6 +3,7 @@
 #include <core/pvs/views/pv.h>
 #include <core/simulation.h>
 #include <core/utils/folders.h>
+#include <core/utils/common.h>
 #include <core/utils/cuda_common.h>
 #include <core/utils/kernel_launch.h>
 
@@ -34,11 +35,10 @@ __global__ void totalPressure(PVview view, const Stress *stress, FieldDeviceHand
 }
 }
 
-VirialPressurePlugin::VirialPressurePlugin(const YmrState *state, std::string name, std::string pvName, std::string stressName,
+VirialPressurePlugin::VirialPressurePlugin(const YmrState *state, std::string name, std::string pvName,
                                            FieldFunction func, float3 h, int dumpEvery) :
     SimulationPlugin(state, name),
     pvName(pvName),
-    stressName(stressName),
     dumpEvery(dumpEvery),
     region(state, "field_"+name, func, h)
 {}
@@ -67,7 +67,7 @@ void VirialPressurePlugin::afterIntegration(cudaStream_t stream)
     if (state->currentStep % dumpEvery != 0 || state->currentStep == 0) return;
 
     PVview view(pv, pv->local());
-    const Stress *stress = pv->local()->extraPerParticle.getData<Stress>(stressName)->devPtr();
+    const Stress *stress = pv->local()->extraPerParticle.getData<Stress>(ChannelNames::stresses)->devPtr();
 
     localVirialPressure.clear(stream);
     

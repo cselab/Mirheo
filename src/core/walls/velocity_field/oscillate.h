@@ -18,7 +18,7 @@ public:
             die("Oscillating period should be strictly positive");
     }
 
-    void setup(MPI_Comm& comm, float t, DomainInfo domain)
+    void setup(float t, DomainInfo domain)
     {
         cosOmega = cos(2*M_PI * t / period);
     }

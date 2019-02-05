@@ -61,7 +61,6 @@ void YMeRo::init(int3 nranks3D, float3 globalDomainSize, float dt, std::string l
                  int checkpointEvery, std::string checkpointFolder, bool gpuAwareMPI)
 {
     int nranks;
-    MPI_Comm cartComm;
     
     initLogger(comm, logFileName, verbosity);   
 
@@ -74,9 +73,7 @@ void YMeRo::init(int3 nranks3D, float3 globalDomainSize, float dt, std::string l
     else if (nranks3D.x * nranks3D.y * nranks3D.z * 2 == nranks) noPostprocess = false;
     else die("Asked for %d x %d x %d processes, but provided %d", nranks3D.x, nranks3D.y, nranks3D.z, nranks);
 
-    if (rank == 0) sayHello();
-
-    MPI_Comm ioComm, compComm, interComm, splitComm;
+    if (rank == 0) sayHello();    
 
     if (noPostprocess) {
         warn("No postprocess will be started now, use this mode for debugging. All the joint plugins will be turned off too.");
@@ -93,6 +90,8 @@ void YMeRo::init(int3 nranks3D, float3 globalDomainSize, float dt, std::string l
 
     info("Program started, splitting communicator");
 
+    MPI_Comm splitComm;
+    
     computeTask = rank % 2;
     MPI_Check( MPI_Comm_split(comm, computeTask, rank, &splitComm) );
 
@@ -118,6 +117,8 @@ void YMeRo::init(int3 nranks3D, float3 globalDomainSize, float dt, std::string l
 
         post = std::make_unique<Postprocess> (ioComm, interComm);
     }
+
+    MPI_Check( MPI_Comm_free(&splitComm) );
 }
 
 void YMeRo::initLogger(MPI_Comm comm, std::string logFileName, int verbosity)
@@ -159,6 +160,12 @@ YMeRo::YMeRo(MPI_Comm comm, PyTypes::int3 nranks3D, PyTypes::float3 globalDomain
     init( make_int3(nranks3D), make_float3(globalDomainSize), dt, logFileName, verbosity, checkpointEvery, checkpointFolder, gpuAwareMPI);
 }
 
+static void safeCommFree(MPI_Comm *comm)
+{
+    if (*comm != MPI_COMM_NULL)
+        MPI_Check( MPI_Comm_free(comm) );
+}
+
 YMeRo::~YMeRo()
 {
     debug("YMeRo coordinator is destroyed");
@@ -166,6 +173,12 @@ YMeRo::~YMeRo()
     sim.reset();
     post.reset();
 
+    safeCommFree(&comm);
+    safeCommFree(&cartComm);
+    safeCommFree(&ioComm);
+    safeCommFree(&compComm);
+    safeCommFree(&interComm);
+    
     if (initializedMpi)
         MPI_Finalize();
 }
@@ -303,10 +316,10 @@ double YMeRo::computeVolumeInsideWalls(std::vector<std::shared_ptr<Wall>> walls,
 }
 
 std::shared_ptr<ParticleVector> YMeRo::makeFrozenWallParticles(std::string pvName,
-                                                                  std::vector<std::shared_ptr<Wall>> walls,
-                                                                  std::shared_ptr<Interaction> interaction,
-                                                                  std::shared_ptr<Integrator>   integrator,
-                                                                  float density, int nsteps)
+                                                               std::vector<std::shared_ptr<Wall>> walls,
+                                                               std::vector<std::shared_ptr<Interaction>> interactions,
+                                                               std::shared_ptr<Integrator> integrator,
+                                                               float density, int nsteps)
 {
     if (!isComputeTask()) return nullptr;
 
@@ -342,17 +355,23 @@ std::shared_ptr<ParticleVector> YMeRo::makeFrozenWallParticles(std::string pvNam
     auto ic = std::make_shared<UniformIC>(density);
     
     wallsim.registerParticleVector(pv, ic, 0);
-    wallsim.registerInteraction(interaction);
-
-    wallsim.registerIntegrator(integrator);
     
-    wallsim.setInteraction(interaction->name, pv->name, pv->name);
+    wallsim.registerIntegrator(integrator);
+
+    float maxrc = 1.0;
+    
+    for (auto& interaction : interactions) {
+        wallsim.registerInteraction(interaction);
+        wallsim.setInteraction(interaction->name, pv->name, pv->name);
+        maxrc = std::max(maxrc, interaction->rc);
+    }
+        
     wallsim.setIntegrator (integrator->name,  pv->name);
     
     wallsim.init();
     wallsim.run(nsteps);
     
-    freezeParticlesInWalls(sdfWalls, pv.get(), 0.0f, interaction->rc + 0.2f);
+    freezeParticlesInWalls(sdfWalls, pv.get(), 0.0f, maxrc + 0.2f);
     info("\n");
 
     sim->registerParticleVector(pv, nullptr);
@@ -369,7 +388,7 @@ std::shared_ptr<ParticleVector> YMeRo::makeFrozenWallParticles(std::string pvNam
 std::shared_ptr<ParticleVector> YMeRo::makeFrozenRigidParticles(std::shared_ptr<ObjectBelongingChecker> checker,
                                                                 std::shared_ptr<ObjectVector> shape,
                                                                 std::shared_ptr<InitialConditions> icShape,
-                                                                std::shared_ptr<Interaction> interaction,
+                                                                std::vector<std::shared_ptr<Interaction>> interactions,
                                                                 std::shared_ptr<Integrator>   integrator,
                                                                 float density, int nsteps)
 {
@@ -393,11 +412,14 @@ std::shared_ptr<ParticleVector> YMeRo::makeFrozenRigidParticles(std::shared_ptr<
         Simulation eqsim(sim->cartComm, MPI_COMM_NULL, getState());
     
         eqsim.registerParticleVector(pv, ic, 0);
-        eqsim.registerInteraction(interaction);
+
         eqsim.registerIntegrator(integrator);
-    
-        eqsim.setInteraction(interaction->name, pv->name, pv->name);
         eqsim.setIntegrator (integrator->name,  pv->name);
+        
+        for (auto& interaction : interactions) {
+            eqsim.registerInteraction(interaction);        
+            eqsim.setInteraction(interaction->name, pv->name, pv->name);
+        }               
     
         eqsim.init();
         eqsim.run(nsteps);

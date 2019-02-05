@@ -70,7 +70,7 @@ public:
      * @param id of the ParticleVector and associated ExchangeHelper
      * @return true if exchange is required, false - if not
      */
-    virtual bool needExchange(int id) = 0;
+    virtual bool needExchange(int id) = 0;    
 };
 
 
