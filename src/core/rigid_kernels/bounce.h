@@ -163,7 +163,7 @@ __global__ void bounceEllipsoid(REOVviewWithOldMotion ovView, PVviewWithOldParti
 //                motion.omega.x,  motion.omega.y,  motion.omega.z);
 //    }
 
-    for (int i=tid; i<totCells + blockDim.x-1; i+=blockDim.x)
+    for (int i=tid; i-tid < totCells; i+=blockDim.x)
     {
         const int3 cid3 = make_int3( i % span.x, (i/span.x) % span.y, i / (span.x*span.y) ) + cidLow;
         const int cid = cinfo.encode(cid3);
