@@ -106,7 +106,21 @@ class DPD(Interaction):
 
 class Density(Interaction):
     r"""
-        TODO 
+        Compute MDPD density of particles, see [Warren2003]_
+    
+        .. math::
+        
+            \rho_i &= \sum\limits_{j\neq i} w_\rho (r_{ij})
+
+        where the summation goes over the neighbours of particle :math:`i` within a cutoff range of :math:`r_c`, and
+
+        .. math::
+            
+            w_\rho(r) = \begin{cases} \frac{15}{2\pi r_d^3}\left(1-\frac{r}{r_d}\right)^2, & r < r_d \\ 0, & r \geqslant r_d \end{cases}
+            
+        .. [Warren2003] Warren, P. B. 
+           "Vapor-liquid coexistence in many-body dissipative particle dynamics."
+           Physical Review E 68.6 (2003): 066702.`_
     
     """
     def __init__():
@@ -162,8 +176,26 @@ class LJ(Interaction):
 
 class MDPD(Interaction):
     r"""
-        TODO 
-        must be used together with :any:`Density` interaction
+        Compute MDPD interaction as described in [Warren2003].
+        Must be used together with :any:`Density` interaction.
+
+        The interaction forces are the same as described in :any:`DPD` with the modified conservative term
+
+        .. math::
+
+            F^C_{ij} = a w_c(r_{ij}) + b (\rho_i + \rho_j) w_d(r_{ij}),
+ 
+        where
+
+        .. math::
+
+            w_c(r) = \begin{cases} (1-\frac{r}{r_c}), & r < r_c \\ 0, & r \geqslant r_c \end{cases} \\
+            w_d(r) = \begin{cases} (1-\frac{r}{r_d}), & r < r_d \\ 0, & r \geqslant r_d \end{cases}.
+
+
+        .. [Warren2003] Warren, P. B. 
+           "Vapor-liquid coexistence in many-body dissipative particle dynamics."
+           Physical Review E 68.6 (2003): 066702.`_
     
     """
     def __init__():
@@ -173,7 +205,7 @@ class MDPD(Interaction):
             Args:
             name: name of the interaction
                 rc: interaction cut-off (no forces between particles further than **rc** apart)
-                rd: density cutoff, assumed rd < rc
+                rd: density cutoff, assumed rd <= rc
                 a: :math:`a`
                 b: :math:`b`
                 gamma: :math:`\gamma`
