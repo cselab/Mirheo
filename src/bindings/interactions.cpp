@@ -85,7 +85,7 @@ void exportInteractions(py::module& m)
     
         .. math::
         
-            \rho_i &= \sum\limits_{j\neq i} w_\rho (r_{ij})
+            \rho_i = \sum\limits_{j \neq i} w_\rho (r_{ij})
 
         where the summation goes over the neighbours of particle :math:`i` within a cutoff range of :math:`r_c`, and
 
@@ -115,7 +115,7 @@ void exportInteractions(py::module& m)
 
             F^C_{ij} = a w_c(r_{ij}) + b (\rho_i + \rho_j) w_d(r_{ij}),
  
-        where
+        where :math:`\rho_i` is computed from :any:`Density` and
 
         .. math::
 
