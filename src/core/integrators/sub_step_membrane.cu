@@ -22,7 +22,6 @@ IntegratorSubStepMembrane::IntegratorSubStepMembrane(const YmrState *state, std:
 
     updateSubState();
     
-    fastForces   ->state = &subState;
     subIntegrator->state = &subState;
 }
 
@@ -42,6 +41,10 @@ void IntegratorSubStepMembrane::stage2(ParticleVector *pv, cudaStream_t stream)
     // advance with internal vv integrator
 
     updateSubState();
+
+    // save fastForces state and reset it afterwards
+    auto *savedStatePtr = fastForces->state;
+    fastForces->state = &subState;
     
     for (int substep = 0; substep < substeps; ++ substep) {
 
@@ -58,6 +61,9 @@ void IntegratorSubStepMembrane::stage2(ParticleVector *pv, cudaStream_t stream)
     // restore previous positions into old_particles channel
     pv->local()->extraPerParticle.getData<Particle>(ChannelNames::oldParts)->copy(previousPositions, stream);
 
+    // restore state of fastForces
+    fastForces->state = savedStatePtr;
+    
     // PV may have changed, invalidate all
     pv->haloValid = false;
     pv->redistValid = false;
