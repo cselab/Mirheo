@@ -1,6 +1,6 @@
 # TEST: run.echo
-ymr.run echo 1 > echo.out.txt
+ymr.run --runargs "-n 1" echo 1 > echo.out.txt
 
 # TEST: run.echo.2
-ymr.run -n 2 echo 1 > echo.out.txt
+ymr.run --runargs "-n 2" echo 1 > echo.out.txt
 
