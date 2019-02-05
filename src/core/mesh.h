@@ -14,12 +14,14 @@ public:
 
     PinnedBuffer<float4> vertexCoordinates;
 
-    Mesh() {};
+    Mesh();
     Mesh(std::string);
     Mesh(const PyTypes::VectorOfFloat3& vertices, const PyTypes::VectorOfInt3& faces);
 
-    Mesh(Mesh&&) = default;
-    Mesh& operator=(Mesh&&) = default;
+    Mesh(Mesh&&);
+    Mesh& operator=(Mesh&&);
+
+    virtual ~Mesh();
 
     const int& getNtriangles() const;
     const int& getNvertices() const;
@@ -42,17 +44,27 @@ public:
     PinnedBuffer<int> adjacent, degrees;
     PinnedBuffer<float> initialLengths, initialAreas;
 
-    MembraneMesh() {};
-    MembraneMesh(std::string);
-    MembraneMesh(const PyTypes::VectorOfFloat3& vertices, const PyTypes::VectorOfInt3& faces);
+    MembraneMesh();
 
-    MembraneMesh(MembraneMesh&&) = default;
-    MembraneMesh& operator=(MembraneMesh&&) = default;
+    MembraneMesh(std::string initialMesh);
+    MembraneMesh(std::string initialMesh, std::string stressFreeMesh);
+
+    MembraneMesh(const PyTypes::VectorOfFloat3& vertices,
+                 const PyTypes::VectorOfInt3& faces);
+    
+    MembraneMesh(const PyTypes::VectorOfFloat3& vertices,
+                 const PyTypes::VectorOfFloat3& stressFreeVertices,
+                 const PyTypes::VectorOfInt3& faces);
+
+    MembraneMesh(MembraneMesh&&);
+    MembraneMesh& operator=(MembraneMesh&&);
+
+    ~MembraneMesh();
 
 protected:
     void findAdjacent();
-    void computeInitialLengths();
-    void computeInitialAreas();
+    void computeInitialLengths(const PinnedBuffer<float4>& vertices);
+    void computeInitialAreas(const PinnedBuffer<float4>& vertices);
 };
 
 
@@ -60,9 +72,9 @@ protected:
 struct MeshView
 {
     int nvertices, ntriangles;
-    int3* triangles;
+    int3 *triangles;
 
-    MeshView(const Mesh* m)
+    MeshView(const Mesh *m)
     {
         nvertices = m->getNvertices();
         ntriangles = m->getNtriangles();
@@ -78,7 +90,7 @@ struct MembraneMeshView : public MeshView
     int *adjacent, *degrees;
     float *initialLengths, *initialAreas;
 
-    MembraneMeshView(const MembraneMesh* m) : MeshView(m)
+    MembraneMeshView(const MembraneMesh *m) : MeshView(m)
     {
         maxDegree = m->getMaxDegree();
 

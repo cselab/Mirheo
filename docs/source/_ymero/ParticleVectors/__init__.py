@@ -147,7 +147,8 @@ class ParticleVector:
 class MembraneMesh(Mesh):
     r"""
         Internally used class for desctibing a triangular mesh that can be used with the Membrane Interactions.
-        In contrast with the simple :any:`Mesh`, this class precomputes some required quantities on the mesh
+        In contrast with the simple :any:`Mesh`, this class precomputes some required quantities on the mesh, 
+        including connectivity structures and stress-free quantities.        
     
     """
     def __init__():
@@ -157,19 +158,41 @@ Overloaded function.
 1. __init__(off_filename: str) -> None
 
 
-            Create a mesh by reading the OFF file
+            Create a mesh by reading the OFF file.
+            The stress free shape is the input initial mesh
             
             Args:
                 off_filename: path of the OFF file
         
 
-2. __init__(vertices: List[List[float[3]]], faces: List[List[int[3]]]) -> None
+2. __init__(off_initial_mesh: str, off_stress_free_mesh: str) -> None
+
+
+            Create a mesh by reading the OFF file, with a different stress free shape.
+            
+            Args:
+                off_initial_mesh: path of the OFF file : initial mesh
+                off_stress_free_mesh: path of the OFF file : stress-free mesh)
+        
+
+3. __init__(vertices: List[List[float[3]]], faces: List[List[int[3]]]) -> None
 
 
         Create a mesh by giving coordinates and connectivity
         
         Args:
             vertices: vertex coordinates
+            faces:    connectivity: one triangle per entry, each integer corresponding to the vertex indices
+        
+
+4. __init__(vertices: List[List[float[3]]], stress_free_vertices: List[List[float[3]]], faces: List[List[int[3]]]) -> None
+
+
+        Create a mesh by giving coordinates and connectivity, with a different stress-free shape.
+        
+        Args:
+            vertices: vertex coordinates
+            stress_free_vertices: vertex coordinates of the stress-free shape
             faces:    connectivity: one triangle per entry, each integer corresponding to the vertex indices
     
 

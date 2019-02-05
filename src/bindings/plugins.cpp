@@ -152,6 +152,10 @@ void exportPlugins(py::module& m)
         Responsible for performing the I/O.
     )");
 
+    py::handlers_class<ParticleChannelSaverPlugin>(m, "ParticleChannelSaver", pysim, R"(
+        This plugin creates an extra channel per particle inside the given particle vector with a given name.
+        It copies the content of an extra channel of pv at each time step and make it accessible by other plugins.
+    )");
     
     py::handlers_class<ParticleSenderPlugin>(m, "ParticleSenderPlugin", pysim, R"(
         This plugin will dump positions, velocities and optional attached data of all the particles of the specified Particle Vector.
@@ -481,6 +485,17 @@ void exportPlugins(py::module& m)
             name: name of the plugin
             pv: :class:`ParticleVector` to which the force should be added
             forces: array of forces, one force (3 floats) per vertex in a single mesh
+    )");
+
+    m.def("__createParticleChannelSaver", &PluginFactory::createParticleChannelSaverPlugin, 
+          "compute_task"_a, "state"_a, "name"_a, "pv"_a, "channelName"_a, "savedName"_a, R"(
+        Create :any:`ParticleChannelSaver` plugin
+        
+        Args:
+            name: name of the plugin
+            pv: :any:`ParticleVector` that we'll work with
+            channelName: the name of the source channel
+            savedName: name of the extra channel
     )");
 
     m.def("__createPinObject", &PluginFactory::createPinObjPlugin, 

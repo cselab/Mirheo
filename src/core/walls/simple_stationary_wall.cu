@@ -1,27 +1,26 @@
 #include "simple_stationary_wall.h"
 
-#include <fstream>
-#include <cmath>
-#include <texture_types.h>
-#include <cassert>
-
-#include <core/logger.h>
-#include <core/utils/kernel_launch.h>
-#include <core/utils/cuda_common.h>
-#include <core/celllist.h>
-#include <core/pvs/particle_vector.h>
-#include <core/pvs/object_vector.h>
-#include <core/pvs/views/ov.h>
-#include <core/pvs/extra_data/packers.h>
-#include <core/bounce_solver.h>
-
-#include <core/utils/cuda_rng.h>
-
+#include "stationary_walls/box.h"
 #include "stationary_walls/cylinder.h"
+#include "stationary_walls/plane.h"
 #include "stationary_walls/sdf.h"
 #include "stationary_walls/sphere.h"
-#include "stationary_walls/plane.h"
-#include "stationary_walls/box.h"
+
+#include <core/bounce_solver.h>
+#include <core/celllist.h>
+#include <core/logger.h>
+#include <core/pvs/extra_data/packers.h>
+#include <core/pvs/object_vector.h>
+#include <core/pvs/particle_vector.h>
+#include <core/pvs/views/ov.h>
+#include <core/utils/cuda_common.h>
+#include <core/utils/cuda_rng.h>
+#include <core/utils/kernel_launch.h>
+
+#include <cassert>
+#include <cmath>
+#include <fstream>
+#include <texture_types.h>
 
 //===============================================================================================
 // Removing kernels

@@ -1,14 +1,15 @@
 #pragma once
 
-#include <cstdint>
-#include <functional>
-
 #include <core/containers.h>
 #include <core/datatypes.h>
 #include <core/logger.h>
 #include <core/pvs/particle_vector.h>
 #include <core/pvs/views/pv.h>
 #include <core/utils/cuda_common.h>
+
+#include <cstdint>
+#include <functional>
+
 
 enum class CellListsProjection
 {
@@ -103,7 +104,7 @@ public:
     virtual void accumulateInteractionOutput(cudaStream_t stream);
     virtual void accumulateInteractionIntermediate(cudaStream_t stream);
 
-    void gatherInteractionIntermediate(cudaStream_t stream);
+    virtual void gatherInteractionIntermediate(cudaStream_t stream);
     
     void clearInteractionOutput(cudaStream_t stream);
     void clearInteractionIntermediate(cudaStream_t stream);
@@ -122,7 +123,7 @@ public:
     template <typename T>
     void requireExtraDataPerParticle(const std::string& name, ExtraChannelRole kind, ActivePredicate pred = [](){return true;})
     {
-        localPV->extraPerParticle.createData<T>(name);
+        particlesDataContainer->extraPerParticle.createData<T>(name);
 
         _addToChannel(name, kind, pred);
     }
@@ -134,7 +135,9 @@ public:
     void setNeededForIntermediate();
     
     bool isNeededForOutput() const;
-    bool isNeededForIntermediate() const;    
+    bool isNeededForIntermediate() const;
+
+    LocalParticleVector* getLocalParticleVector();
     
 protected:
     int changedStamp{-1};
@@ -163,7 +166,7 @@ protected:
         ActivePredicate active;
     };
     
-    std::vector<ChannelActivity> finaleOutputChannels;       ///< channels which are final output of interactions, e.g. forces, stresses for dpd kernel
+    std::vector<ChannelActivity> finalOutputChannels;        ///< channels which are final output of interactions, e.g. forces, stresses for dpd kernel
     std::vector<ChannelActivity> intermediateOutputChannels; ///< channels which are intermediate output of interactions, e.g. densities for density kernel
     std::vector<ChannelActivity> intermediateInputChannels;  ///< channels which are intermediate input for interactions, e.g. densities for mdpd kernel
 
@@ -178,6 +181,7 @@ protected:
                                 const ExtraDataManager::ChannelDescription *channelDesc,
                                 cudaStream_t stream);
 
+    virtual std::string makeName() const;
 };
 
 class PrimaryCellList : public CellList
@@ -192,6 +196,13 @@ public:
     void build(cudaStream_t stream);
     void accumulateInteractionOutput(cudaStream_t stream) override;
     void accumulateInteractionIntermediate(cudaStream_t stream) override;
+
+    void gatherInteractionIntermediate(cudaStream_t stream) override;
+
+protected:
+
+    void _swapPersistentExtraData();
+    std::string makeName() const override;
 };
 
 

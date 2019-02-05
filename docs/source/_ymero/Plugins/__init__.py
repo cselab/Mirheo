@@ -134,6 +134,12 @@ class ObjPositionsDumper(PostprocessPlugin):
         Responsible for performing the I/O.
     
     """
+class ParticleChannelSaver(SimulationPlugin):
+    r"""
+        This plugin creates an extra channel per particle inside the given particle vector with a given name.
+        It copies the content of an extra channel of pv at each time step and make it accessible by other plugins.
+    
+    """
 class ParticleDumperPlugin(PostprocessPlugin):
     r"""
         Postprocess side plugin of :any:`ParticleSenderPlugin`.
@@ -547,6 +553,22 @@ def createMembraneExtraForce():
             name: name of the plugin
             pv: :class:`ParticleVector` to which the force should be added
             forces: array of forces, one force (3 floats) per vertex in a single mesh
+    
+
+    """
+    pass
+
+def createParticleChannelSaver():
+    r"""createParticleChannelSaver(state: YmrState, name: str, pv: ParticleVectors.ParticleVector, channelName: str, savedName: str) -> Tuple[Plugins.ParticleChannelSaver, Plugins.PostprocessPlugin]
+
+
+        Create :any:`ParticleChannelSaver` plugin
+        
+        Args:
+            name: name of the plugin
+            pv: :any:`ParticleVector` that we'll work with
+            channelName: the name of the source channel
+            savedName: name of the extra channel
     
 
     """

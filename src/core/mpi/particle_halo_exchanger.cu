@@ -100,12 +100,12 @@ __global__ void getHalos(const CellListInfo cinfo, const ParticlePacker packer, 
     }
 }
 
-__global__ static void unpackParticles(ParticlePacker packer, int startDstId, char* buffer, int np)
+__global__ static void unpackParticles(ParticlePacker packer, const char *buffer, int np)
 {
     const int pid = blockIdx.x*blockDim.x + threadIdx.x;
     if (pid >= np) return;
 
-    packer.unpack(buffer + pid*packer.packedSize_byte, pid+startDstId);
+    packer.unpack(buffer + pid*packer.packedSize_byte, pid);
 }
 
 
@@ -127,12 +127,17 @@ void ParticleHaloExchanger::attach(ParticleVector *pv, CellList *cl, const std::
     helpers.push_back(std::move(helper));
 
     packPredicates.push_back([extraChannelNames](const ExtraDataManager::NamedChannelDesc& namedDesc) {
-        bool needExchange = namedDesc.second->communication == ExtraDataManager::CommunicationMode::NeedExchange;
-        bool isRequired   = std::find(extraChannelNames.begin(), extraChannelNames.end(), namedDesc.first) != extraChannelNames.end();
-        return needExchange || isRequired;
+        return std::find(extraChannelNames.begin(), extraChannelNames.end(), namedDesc.first) != extraChannelNames.end();
     });
+
+    std::string msg_channels = extraChannelNames.empty() ?
+        "no extra channels." :
+        "with extra channels: ";
+    for (const auto& ch : extraChannelNames)
+        msg_channels += "'" + ch + "' ";
     
-    info("Particle halo exchanger takes pv '%s'", pv->name.c_str());
+    info("Particle halo exchanger takes pv '%s' with celllist of rc = %g, %s",
+         pv->name.c_str(), cl->rc, msg_channels.c_str());
 }
 
 void ParticleHaloExchanger::prepareSizes(int id, cudaStream_t stream)
@@ -143,14 +148,19 @@ void ParticleHaloExchanger::prepareSizes(int id, cudaStream_t stream)
 
     debug2("Counting halo particles of '%s'", pv->name.c_str());
 
+    LocalParticleVector *lpv = cl->getLocalParticleVector();
+    // LocalParticleVector *lpv = pv->local();
+    
     helper->sendSizes.clear(stream);
-    if (pv->local()->size() > 0)
+    if (lpv->size() > 0)
     {
         const int maxdim = std::max({cl->ncells.x, cl->ncells.y, cl->ncells.z});
+
         const int nthreads = 64;
         const dim3 nblocks = dim3(getNblocks(maxdim*maxdim, nthreads), 6, 1);
 
-        auto packer = ParticlePacker(pv, pv->local(), packPredicates[id], stream);
+        ParticlePacker packer(pv, lpv, packPredicates[id], stream);
+
         helper->setDatumSize(packer.packedSize_byte);
 
         SAFE_KERNEL_LAUNCH(
@@ -171,13 +181,16 @@ void ParticleHaloExchanger::prepareData(int id, cudaStream_t stream)
     debug2("Downloading %d halo particles of '%s'",
            helper->sendOffsets[FragmentMapping::numFragments], pv->name.c_str());
 
-    if (pv->local()->size() > 0)
+    LocalParticleVector *lpv = cl->getLocalParticleVector();
+    // LocalParticleVector *lpv = pv->local();
+
+    if (lpv->size() > 0)
     {
         const int maxdim = std::max({cl->ncells.x, cl->ncells.y, cl->ncells.z});
         const int nthreads = 64;
         const dim3 nblocks = dim3(getNblocks(maxdim*maxdim, nthreads), 6, 1);
 
-        auto packer = ParticlePacker(pv, pv->local(), packPredicates[id], stream);
+        ParticlePacker packer(pv, lpv, packPredicates[id], stream);
 
         helper->resizeSendBuf();
         helper->sendSizes.clearDevice(stream);
@@ -196,12 +209,16 @@ void ParticleHaloExchanger::combineAndUploadData(int id, cudaStream_t stream)
     int totalRecvd = helper->recvOffsets[helper->nBuffers];
     pv->halo()->resize_anew(totalRecvd);
 
-    int nthreads = 128;
+    debug2("received %d particles from halo exchange", totalRecvd);
+
+    ParticlePacker packer(pv, pv->halo(), packPredicates[id], stream);
+    
+    const int nthreads = 128;
 
     SAFE_KERNEL_LAUNCH(
             unpackParticles,
             getNblocks(totalRecvd, nthreads), nthreads, 0, stream,
-            ParticlePacker(pv, pv->halo(), packPredicates[id], stream), 0, helper->recvBuf.devPtr(), totalRecvd );
+            packer, helper->recvBuf.devPtr(), totalRecvd );
 
     pv->haloValid = true;
 }
@@ -210,9 +227,3 @@ bool ParticleHaloExchanger::needExchange(int id)
 {
     return !particles[id]->haloValid;
 }
-
-
-
-
-
-

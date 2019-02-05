@@ -1,59 +1,14 @@
 #include "mesh.h"
 
-#include <fstream>
-#include <unordered_map>
-#include <map>
-#include <vector>
-
 #include <core/utils/cuda_common.h>
 
-void Mesh::_check() const
-{
-    auto check = [this] (int tr) {
-        if (tr < 0 || tr >= nvertices)
-            die("Bad triangle indices");
-    };
+#include <fstream>
+#include <map>
+#include <unordered_map>
+#include <vector>
 
-    for (int i = 0; i < getNtriangles(); ++i) {
-        check(triangles[i].x);
-        check(triangles[i].y);
-        check(triangles[i].z);
-    }
-}
-
-void Mesh::_readOff(std::string fname)
-{
-   std::ifstream fin(fname);
-    if (!fin.good())
-        die("Mesh file '%s' not found", fname.c_str());
-
-    debug("Reading mesh from file '%s'", fname.c_str());
-
-    std::string line;
-    std::getline(fin, line); // OFF header
-
-    int nedges;
-    fin >> nvertices >> ntriangles >> nedges;
-    std::getline(fin, line); // Finish with this line
-
-    // Read the vertex coordinates
-    vertexCoordinates.resize_anew(nvertices);
-    for (int i=0; i<nvertices; i++)
-        fin >> vertexCoordinates[i].x >> vertexCoordinates[i].y >> vertexCoordinates[i].z;
-
-    // Read the connectivity data
-    triangles.resize_anew(ntriangles);
-    for (int i=0; i<ntriangles; i++)
-    {
-        int number;
-        fin >> number;
-        if (number != 3)
-            die("Bad mesh file '%s' on line %d, number of face vertices is %d instead of 3",
-                    fname.c_str(), 3 /* header */ + nvertices + i, number);
-
-        fin >> triangles[i].x >> triangles[i].y >> triangles[i].z;
-    }
-}
+Mesh::Mesh()
+{}
 
 Mesh::Mesh(std::string fname)
 {
@@ -87,6 +42,12 @@ Mesh::Mesh(const PyTypes::VectorOfFloat3& vertices, const PyTypes::VectorOfInt3&
 
     _computeMaxDegree();
 }
+
+Mesh::Mesh(Mesh&&) = default;
+
+Mesh& Mesh::operator=(Mesh&&) = default;
+
+Mesh::~Mesh() = default;
 
 const int& Mesh::getNtriangles() const {return ntriangles;}
 const int& Mesh::getNvertices()  const {return nvertices;}
@@ -139,19 +100,127 @@ void Mesh::_computeMaxDegree()
     debug("max degree is %d", maxDegree);
 }
 
-MembraneMesh::MembraneMesh(std::string fname) : Mesh(fname)
+void Mesh::_check() const
 {
-    findAdjacent();
-    computeInitialLengths();
-    computeInitialAreas();
+    auto check = [this] (int tr) {
+        if (tr < 0 || tr >= nvertices)
+            die("Bad triangle indices");
+    };
+
+    for (int i = 0; i < getNtriangles(); ++i) {
+        check(triangles[i].x);
+        check(triangles[i].y);
+        check(triangles[i].z);
+    }
 }
 
-MembraneMesh::MembraneMesh(const PyTypes::VectorOfFloat3& vertices, const PyTypes::VectorOfInt3& faces) : Mesh(vertices, faces)
+void Mesh::_readOff(std::string fname)
+{
+   std::ifstream fin(fname);
+    if (!fin.good())
+        die("Mesh file '%s' not found", fname.c_str());
+
+    debug("Reading mesh from file '%s'", fname.c_str());
+
+    std::string line;
+    std::getline(fin, line); // OFF header
+
+    int nedges;
+    fin >> nvertices >> ntriangles >> nedges;
+    std::getline(fin, line); // Finish with this line
+
+    // Read the vertex coordinates
+    vertexCoordinates.resize_anew(nvertices);
+    for (int i=0; i<nvertices; i++)
+        fin >> vertexCoordinates[i].x >> vertexCoordinates[i].y >> vertexCoordinates[i].z;
+
+    // Read the connectivity data
+    triangles.resize_anew(ntriangles);
+    for (int i=0; i<ntriangles; i++)
+    {
+        int number;
+        fin >> number;
+        if (number != 3)
+            die("Bad mesh file '%s' on line %d, number of face vertices is %d instead of 3",
+                    fname.c_str(), 3 /* header */ + nvertices + i, number);
+
+        fin >> triangles[i].x >> triangles[i].y >> triangles[i].z;
+    }
+}
+
+MembraneMesh::MembraneMesh()
+{}
+
+MembraneMesh::MembraneMesh(std::string initialMesh) :
+    Mesh(initialMesh)
 {
     findAdjacent();
-    computeInitialLengths();
-    computeInitialAreas();
+    computeInitialLengths(vertexCoordinates);
+    computeInitialAreas(vertexCoordinates);
 }
+
+static bool sameFaces(const PinnedBuffer<int3>& facesA, const PinnedBuffer<int3>& facesB)
+{
+    if (facesA.size() != facesB.size())
+        return false;
+    
+    for (int i = 0; i < facesA.size(); ++i) {
+        int3 a = facesA[i];
+        int3 b = facesB[i];
+
+        if (a.x != b.x ||
+            a.y != b.y ||
+            a.z != b.z)
+            return false;
+    }
+
+    return true;
+}
+
+MembraneMesh::MembraneMesh(std::string initialMesh, std::string stressFreeMesh) :
+    Mesh(initialMesh)
+{
+    Mesh stressFree(stressFreeMesh);
+
+    if (!sameFaces(triangles, stressFree.triangles))
+        die("Must pass meshes with same connectivity for initial positions and stressFree vertices");
+    
+    if (vertexCoordinates.size() != stressFree.vertexCoordinates.size())
+        die("Must pass same number of vertices for initial positions and stressFree vertices");
+    
+    findAdjacent();
+    computeInitialLengths (stressFree.vertexCoordinates);
+    computeInitialAreas   (stressFree.vertexCoordinates);
+}
+
+MembraneMesh::MembraneMesh(const PyTypes::VectorOfFloat3& vertices,
+                           const PyTypes::VectorOfInt3& faces) :
+    Mesh(vertices, faces)
+{
+    findAdjacent();
+    computeInitialLengths(vertexCoordinates);
+    computeInitialAreas(vertexCoordinates);
+}
+
+MembraneMesh::MembraneMesh(const PyTypes::VectorOfFloat3& vertices,
+                           const PyTypes::VectorOfFloat3& stressFreeVertices,
+                           const PyTypes::VectorOfInt3& faces) :
+    Mesh(vertices, faces)
+{
+    if (vertices.size() != stressFreeVertices.size())
+        die("Must pass same number of vertices for initial positions and stressFree vertices");
+    
+    Mesh stressFreeMesh(stressFreeVertices, faces);
+    findAdjacent();
+    computeInitialLengths(stressFreeMesh.vertexCoordinates);
+    computeInitialAreas  (stressFreeMesh.vertexCoordinates);
+}
+
+
+MembraneMesh::MembraneMesh(MembraneMesh&&) = default;
+MembraneMesh& MembraneMesh::operator=(MembraneMesh&&) = default;
+
+MembraneMesh::~MembraneMesh() = default;
 
 using EdgeMapPerVertex = std::vector< std::map<int, int> >;
 static const int NOT_SET = -1;
@@ -215,13 +284,13 @@ void MembraneMesh::findAdjacent()
     degrees.uploadToDevice(0);
 }
 
-void MembraneMesh::computeInitialLengths()
+void MembraneMesh::computeInitialLengths(const PinnedBuffer<float4>& vertices)
 {
     initialLengths.resize_anew(nvertices * maxDegree);
 
     for (int i = 0; i < nvertices * maxDegree; i++) {
         if (adjacent[i] != NOT_SET)
-            initialLengths[i] = length(vertexCoordinates[i / maxDegree] - vertexCoordinates[adjacent[i]]);
+            initialLengths[i] = length(vertices[i / maxDegree] - vertices[adjacent[i]]);
     }
 
     initialLengths.uploadToDevice(0);
@@ -231,7 +300,7 @@ static float computeArea(float3 v0, float3 v1, float3 v2) {
     return 0.5f * length(cross(v1 - v0, v2 - v0));
 }
 
-void MembraneMesh::computeInitialAreas()
+void MembraneMesh::computeInitialAreas(const PinnedBuffer<float4>& vertices)
 {
     initialAreas.resize_anew(nvertices * maxDegree);
 
@@ -240,7 +309,7 @@ void MembraneMesh::computeInitialAreas()
     for (int id0 = 0; id0 < nvertices; ++id0) {
         int degree = degrees[id0];
         int startId = id0 * maxDegree;
-        v0 = f4tof3(vertexCoordinates[id0]);
+        v0 = f4tof3(vertices[id0]);
         
         for (int j = 0; j < degree; ++j) {
             int id1 = adjacent[startId + j];
@@ -248,8 +317,8 @@ void MembraneMesh::computeInitialAreas()
 
             assert(id2 != NOT_SET);
 
-            v1 = f4tof3(vertexCoordinates[id1]);
-            v2 = f4tof3(vertexCoordinates[id2]);
+            v1 = f4tof3(vertices[id1]);
+            v2 = f4tof3(vertices[id2]);
 
             initialAreas[startId + j] = computeArea(v0, v1, v2);
         }

@@ -1,30 +1,28 @@
 #include "wall_with_velocity.h"
 
-#include <fstream>
-#include <cmath>
-#include <texture_types.h>
-#include <cassert>
-
-#include <core/logger.h>
-#include <core/utils/kernel_launch.h>
-#include <core/utils/cuda_common.h>
-#include <core/celllist.h>
-#include <core/pvs/particle_vector.h>
-#include <core/pvs/views/pv.h>
-#include <core/pvs/object_vector.h>
-#include <core/bounce_solver.h>
-
-#include <core/utils/cuda_rng.h>
-
+#include "stationary_walls/box.h"
 #include "stationary_walls/cylinder.h"
+#include "stationary_walls/plane.h"
 #include "stationary_walls/sdf.h"
 #include "stationary_walls/sphere.h"
-#include "stationary_walls/plane.h"
-#include "stationary_walls/box.h"
-
+#include "velocity_field/oscillate.h"
 #include "velocity_field/rotate.h"
 #include "velocity_field/translate.h"
-#include "velocity_field/oscillate.h"
+
+#include <core/bounce_solver.h>
+#include <core/celllist.h>
+#include <core/logger.h>
+#include <core/pvs/object_vector.h>
+#include <core/pvs/particle_vector.h>
+#include <core/pvs/views/pv.h>
+#include <core/utils/cuda_common.h>
+#include <core/utils/cuda_rng.h>
+#include <core/utils/kernel_launch.h>
+
+#include <cassert>
+#include <cmath>
+#include <fstream>
+#include <texture_types.h>
 
 //===============================================================================================
 // SDF bouncing kernel

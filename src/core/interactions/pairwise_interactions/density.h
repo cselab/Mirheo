@@ -7,16 +7,6 @@
 class CellList;
 class LocalParticleVector;
 
-#ifndef __NVCC__
-static float fastPower(float x, float a)
-{
-    return pow(x, a);
-}
-#else
-#include <core/utils/cuda_common.h>
-#endif
-
-
 class Pairwise_density : public ParticleFetcher
 {
 public:
