@@ -151,19 +151,19 @@ void WallWithVelocity<InsideWallChecker, VelocityField>::bounce(cudaStream_t str
 
     for (int i=0; i < this->particleVectors.size(); i++)
     {
-        auto pv = this->particleVectors[i];
-        auto cl = this->cellLists[i];
-        auto bc = this->boundaryCells[i];
+        auto  pv = this->particleVectors[i];
+        auto  cl = this->cellLists[i];
+        auto& bc = this->boundaryCells[i];
         auto view = cl->CellList::getView<PVviewWithOldParticles>();
 
         debug2("Bouncing %d %s particles with wall velocity, %d boundary cells",
-               pv->local()->size(), pv->name.c_str(), bc->size());
+               pv->local()->size(), pv->name.c_str(), bc.size());
 
         const int nthreads = 64;
         SAFE_KERNEL_LAUNCH(
                 bounceWithVelocity,
-                getNblocks(bc->size(), nthreads), nthreads, 0, stream,
-                view, cl->cellInfo(), bc->devPtr(), bc->size(), dt,
+                getNblocks(bc.size(), nthreads), nthreads, 0, stream,
+                view, cl->cellInfo(), bc.devPtr(), bc.size(), dt,
                 this->insideWallChecker.handler(),
                 velField.handler() );
 

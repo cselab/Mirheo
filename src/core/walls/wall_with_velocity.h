@@ -23,5 +23,4 @@ public:
 
 protected:
     VelocityField velField;
-    DomainInfo domain;
 };

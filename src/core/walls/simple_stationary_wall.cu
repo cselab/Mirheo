@@ -27,7 +27,7 @@
 //===============================================================================================
 
 template<typename InsideWallChecker>
-__global__ void collectRemaining(PVview view, float4* remaining, int* nRemaining, InsideWallChecker checker)
+__global__ void collectRemaining(PVview view, float4 *remaining, int *nRemaining, InsideWallChecker checker)
 {
     const float tolerance = 1e-6f;
 
@@ -46,7 +46,7 @@ __global__ void collectRemaining(PVview view, float4* remaining, int* nRemaining
 }
 
 template<typename InsideWallChecker>
-__global__ void packRemainingObjects(OVview view, ObjectPacker packer, char* output, int* nRemaining, InsideWallChecker checker)
+__global__ void packRemainingObjects(OVview view, ObjectPacker packer, char *output, int *nRemaining, InsideWallChecker checker)
 {
     const float tolerance = 1e-6f;
 
@@ -87,7 +87,7 @@ __global__ void packRemainingObjects(OVview view, ObjectPacker packer, char* out
     if (tid == 0) packer.obj.pack(objId, dstAddr);
 }
 
-__global__ static void unpackRemainingObjects(const char* from, OVview view, ObjectPacker packer)
+__global__ static void unpackRemainingObjects(const char *from, OVview view, ObjectPacker packer)
 {
     const int objId = blockIdx.x;
     const int tid = threadIdx.x;
@@ -176,7 +176,7 @@ __device__ float3 rescue(float3 candidate, float dt, float tol, int id, const In
 template<typename InsideWallChecker>
 __global__ void bounceKernel(
         PVviewWithOldParticles view, CellListInfo cinfo,
-        const int* wallCells, const int nWallCells, const float dt, const InsideWallChecker checker)
+        const int *wallCells, const int nWallCells, const float dt, const InsideWallChecker checker)
 {
     const float insideTolerance = 2e-6f;
 
@@ -230,7 +230,7 @@ __global__ void bounceKernel(
 //===============================================================================================
 
 template<typename InsideWallChecker>
-__global__ void checkInside(PVview view, int* nInside, const InsideWallChecker checker)
+__global__ void checkInside(PVview view, int *nInside, const InsideWallChecker checker)
 {
 	const float checkTolerance = 1e-4f;
 
@@ -249,7 +249,7 @@ __global__ void checkInside(PVview view, int* nInside, const InsideWallChecker c
 //===============================================================================================
 
 template<typename InsideWallChecker>
-__global__ void computeSdfPerParticle(PVview view, float gradientThreshold, float* sdfs, float3* gradients, InsideWallChecker checker)
+__global__ void computeSdfPerParticle(PVview view, float gradientThreshold, float *sdfs, float3 *gradients, InsideWallChecker checker)
 {
     const float h = 0.25f;
     const float zeroTolerance = 1e-10f;
@@ -283,7 +283,7 @@ __global__ void computeSdfPerParticle(PVview view, float gradientThreshold, floa
 
 
 template<typename InsideWallChecker>
-__global__ void computeSdfPerPosition(int n, const float3 *positions, float* sdfs, InsideWallChecker checker)
+__global__ void computeSdfPerPosition(int n, const float3 *positions, float *sdfs, InsideWallChecker checker)
 {
     int pid = blockIdx.x * blockDim.x + threadIdx.x;
     if (pid >= n) return;
@@ -294,7 +294,7 @@ __global__ void computeSdfPerPosition(int n, const float3 *positions, float* sdf
 }
 
 template<typename InsideWallChecker>
-__global__ void computeSdfOnGrid(CellListInfo gridInfo, float* sdfs, InsideWallChecker checker)
+__global__ void computeSdfOnGrid(CellListInfo gridInfo, float *sdfs, InsideWallChecker checker)
 {
     const int nid = blockIdx.x * blockDim.x + threadIdx.x;
     
@@ -332,14 +332,14 @@ void SimpleStationaryWall<InsideWallChecker>::setup(MPI_Comm& comm)
 }
 
 template<class InsideWallChecker>
-void SimpleStationaryWall<InsideWallChecker>::attachFrozen(ParticleVector* pv)
+void SimpleStationaryWall<InsideWallChecker>::attachFrozen(ParticleVector *pv)
 {
     frozen = pv;
     info("Wall '%s' will treat particle vector '%s' as frozen", name.c_str(), pv->name.c_str());
 }
 
 template<class InsideWallChecker>
-void SimpleStationaryWall<InsideWallChecker>::attach(ParticleVector* pv, CellList* cl)
+void SimpleStationaryWall<InsideWallChecker>::attach(ParticleVector *pv, CellList *cl)
 {
     if (pv == frozen)
     {
@@ -368,15 +368,15 @@ void SimpleStationaryWall<InsideWallChecker>::attach(ParticleVector* pv, CellLis
     nBoundaryCells.downloadFromDevice(0);
 
     debug("Found %d boundary cells", nBoundaryCells[0]);
-    auto bc = new DeviceBuffer<int>(nBoundaryCells[0]);
+    DeviceBuffer<int> bc(nBoundaryCells[0]);
 
     nBoundaryCells.clear(0);
     SAFE_KERNEL_LAUNCH(
             getBoundaryCells<false>,
             (cl->totcells + 127) / 128, 128, 0, 0,
-            view, cl->cellInfo(), nBoundaryCells.devPtr(), bc->devPtr(), insideWallChecker.handler() );
+            view, cl->cellInfo(), nBoundaryCells.devPtr(), bc.devPtr(), insideWallChecker.handler() );
 
-    boundaryCells.push_back(bc);
+    boundaryCells.push_back(std::move(bc));
     CUDA_Check( cudaDeviceSynchronize() );
 }
 
@@ -463,19 +463,19 @@ void SimpleStationaryWall<InsideWallChecker>::bounce(cudaStream_t stream)
     
     for (int i = 0; i < particleVectors.size(); i++)
     {
-        auto pv = particleVectors[i];
-        auto cl = cellLists[i];
-        auto bc = boundaryCells[i];
-        auto view = cl->getView<PVviewWithOldParticles>();
+        auto  pv = particleVectors[i];
+        auto  cl = cellLists[i];
+        auto& bc = boundaryCells[i];
+        auto  view = cl->getView<PVviewWithOldParticles>();
 
         debug2("Bouncing %d %s particles, %d boundary cells",
-               pv->local()->size(), pv->name.c_str(), bc->size());
+               pv->local()->size(), pv->name.c_str(), bc.size());
 
         const int nthreads = 64;
         SAFE_KERNEL_LAUNCH(
                 bounceKernel,
-                getNblocks(bc->size(), nthreads), nthreads, 0, stream,
-                view, cl->cellInfo(), bc->devPtr(), bc->size(), dt, insideWallChecker.handler() );
+                getNblocks(bc.size(), nthreads), nthreads, 0, stream,
+                view, cl->cellInfo(), bc.devPtr(), bc.size(), dt, insideWallChecker.handler() );
 
         CUDA_Check( cudaPeekAtLastError() );
         nBounceCalls[i]++;
