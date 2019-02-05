@@ -22,10 +22,10 @@ args = parser.parse_args()
 
 f = fopen(args.file)
 pos = f["position"]
-forces = f["forces"].value
+forces = f["forces"][()]
 (n, dim) = pos.shape
 
-pos = pos.value
+pos = pos[()]
 
 pos = pos - (np.sum(pos, axis=0)/n)
 
