@@ -78,7 +78,7 @@ void YMeRo::init(int3 nranks3D, float3 globalDomainSize, float dt, std::string l
     if (noPostprocess) {
         warn("No postprocess will be started now, use this mode for debugging. All the joint plugins will be turned off too.");
         
-        selectIntraNodeGPU(MPI_COMM_WORLD);
+        selectIntraNodeGPU(comm);
 
         createCartComm(comm, nranks3D, &cartComm);
         state = std::make_shared<YmrState> (createDomainInfo(cartComm, globalDomainSize), dt);
