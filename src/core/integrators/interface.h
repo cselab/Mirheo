@@ -48,7 +48,4 @@ public:
      * Called from Simulation right after setup
      */
     virtual void setPrerequisites(ParticleVector *pv);
-
-public:
-    float dt; /// allow to get different timestep than global timestep found in state
 };

@@ -50,6 +50,7 @@ void IntegratorVVRigid::stage1(ParticleVector *pv, cudaStream_t stream)
  */
 void IntegratorVVRigid::stage2(ParticleVector *pv, cudaStream_t stream)
 {
+    float dt = state->dt;
     auto ov = dynamic_cast<RigidObjectVector*> (pv);
 
     debug("Integrating %d rigid objects %s (total %d particles), timestep is %f",

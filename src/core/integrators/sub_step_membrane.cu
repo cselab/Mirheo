@@ -7,9 +7,11 @@
 #include <core/utils/kernel_launch.h>
 
 IntegratorSubStepMembrane::IntegratorSubStepMembrane(const YmrState *state, std::string name, int substeps, Interaction *fastForces) :
-    Integrator(state, name), substeps(substeps),
+    Integrator(state, name),
+    substeps(substeps),
     subIntegrator(new IntegratorVV<Forcing_None>(state, name + "_sub", Forcing_None())),
-    fastForces(fastForces)
+    fastForces(fastForces),
+    subState(*state)
 {    
     if ( dynamic_cast<InteractionMembrane*>(fastForces) == nullptr )
         die("IntegratorSubStepMembrane '%s': expects an interaction of type <InteractionMembrane>.",
@@ -17,8 +19,11 @@ IntegratorSubStepMembrane::IntegratorSubStepMembrane(const YmrState *state, std:
 
     debug("setup substep integrator '%s' for %d substeps with sub integrator '%s' and fast forces '%s'",
           name.c_str(), substeps, subIntegrator->name.c_str(), fastForces->name.c_str());
+
+    updateSubState();
     
-    subIntegrator->dt = dt / substeps;
+    fastForces   ->state = &subState;
+    subIntegrator->state = &subState;
 }
 
 IntegratorSubStepMembrane::~IntegratorSubStepMembrane() = default;
@@ -35,15 +40,19 @@ void IntegratorSubStepMembrane::stage2(ParticleVector *pv, cudaStream_t stream)
     previousPositions.copyFromDevice(pv->local()->coosvels, stream);
 
     // advance with internal vv integrator
+
+    updateSubState();
+    
     for (int substep = 0; substep < substeps; ++ substep) {
 
         if (substep != 0)
-            pv->local()->forces.copy(slowForces, stream);
+            pv->local()->forces.copy(slowForces, stream);        
 
-        // TODO was , t + substep * dt / substeps
         fastForces->local(pv, pv, nullptr, nullptr, stream);
         
         subIntegrator->stage2(pv, stream);
+
+        subState.currentTime += subState.dt;
     }
     
     // restore previous positions into old_particles channel
@@ -59,4 +68,10 @@ void IntegratorSubStepMembrane::setPrerequisites(ParticleVector *pv)
 {
     // luckily do not need cell lists for membrane interactions
     fastForces->setPrerequisites(pv, pv, nullptr, nullptr);
+}
+
+void IntegratorSubStepMembrane::updateSubState()
+{
+    subState = *state;
+    subState.dt = state->dt / substeps;
 }

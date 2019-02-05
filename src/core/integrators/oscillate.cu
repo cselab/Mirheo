@@ -45,7 +45,7 @@ void IntegratorOscillate::stage2(ParticleVector *pv, cudaStream_t stream)
     SAFE_KERNEL_LAUNCH(
             integrationKernel,
             getNblocks(2*pvView.size, nthreads), nthreads, 0, stream,
-            pvView, dt, oscillate );
+            pvView, state->dt, oscillate );
 
     // PV may have changed, invalidate all
     pv->haloValid = false;

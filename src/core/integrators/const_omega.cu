@@ -43,7 +43,7 @@ void IntegratorConstOmega::stage2(ParticleVector *pv, cudaStream_t stream)
     SAFE_KERNEL_LAUNCH(
             integrationKernel,
             getNblocks(2*pvView.size, nthreads), nthreads, 0, stream,
-            pvView, dt, rotate );
+            pvView, state->dt, rotate );
 
     // PV may have changed, invalidate all
     pv->haloValid = false;

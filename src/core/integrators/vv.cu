@@ -54,6 +54,7 @@ template<class ForcingTerm>
 void IntegratorVV<ForcingTerm>::stage2(ParticleVector *pv, cudaStream_t stream)
 {
     float t = state->currentTime;
+    float dt = state->dt;
     static_assert(std::is_same<decltype(forcingTerm.setup(pv, t)), void>::value,
             "Forcing term functor must provide member"
             "void setup(ParticleVector*, float)");

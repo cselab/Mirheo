@@ -1,8 +1,7 @@
 #include "interface.h"
 
 Integrator::Integrator(const YmrState *state, std::string name) :
-    YmrSimulationObject(state, name),
-    dt(state->dt)
+    YmrSimulationObject(state, name)
 {}
 
 Integrator::~Integrator() = default;
