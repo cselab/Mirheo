@@ -57,11 +57,8 @@ void MeshPlugin::serializeAndSend(cudaStream_t stream)
 //=================================================================================
 
 template<typename T>
-void writeToMPI(const std::vector<T> data, MPI_File f, MPI_Comm comm)
-{
-    MPI_Offset base;
-    MPI_Check( MPI_File_get_position(f, &base));
-
+static MPI_Offset writeToMPI(const std::vector<T>& data, MPI_File f, MPI_Offset base, MPI_Comm comm)
+{    
     MPI_Offset offset = 0, nbytes = data.size()*sizeof(T);
     MPI_Check( MPI_Exscan(&nbytes, &offset, 1, MPI_OFFSET, MPI_SUM, comm));
 
@@ -70,16 +67,16 @@ void writeToMPI(const std::vector<T> data, MPI_File f, MPI_Comm comm)
     MPI_Offset ntotal = 0;
     MPI_Check( MPI_Allreduce(&nbytes, &ntotal, 1, MPI_OFFSET, MPI_SUM, comm) );
 
-    MPI_Check( MPI_File_seek(f, ntotal, MPI_SEEK_CUR));
+    return ntotal;
 }
 
-void writePLY(
+static void writePLY(
         MPI_Comm comm, std::string fname,
         int nvertices, int nverticesPerObject,
         int ntriangles, int ntrianglesPerObject,
         int nObjects,
-        std::vector<int3>& mesh,
-        std::vector<float3>& vertices)
+        const std::vector<int3>& mesh,
+        const std::vector<float3>& vertices)
 {
     int rank;
     MPI_Check( MPI_Comm_rank(comm, &rank) );
@@ -95,7 +92,8 @@ void writePLY(
     MPI_Check( MPI_File_close(&f) );
     MPI_Check( MPI_File_open(comm, fname.c_str(), MPI_MODE_WRONLY | MPI_MODE_CREATE, MPI_INFO_NULL, &f) );
 
-    int headerSize;
+    int headerSize = 0;
+    MPI_Offset fileOffset = 0;
 
     if (rank == 0)
     {
@@ -112,14 +110,14 @@ void writePLY(
 
         std::string content = ss.str();
         headerSize = content.length();
-        MPI_Check( MPI_File_write_at(f, 0, content.c_str(), headerSize, MPI_CHAR, MPI_STATUS_IGNORE) );
+        MPI_Check( MPI_File_write_at(f, fileOffset, content.c_str(), headerSize, MPI_CHAR, MPI_STATUS_IGNORE) );
     }
 
     MPI_Check( MPI_Bcast(&headerSize, 1, MPI_INT, 0, comm) );
-    MPI_Check( MPI_File_seek(f, headerSize, MPI_SEEK_CUR));
 
-
-    writeToMPI(vertices, f, comm);
+    fileOffset += headerSize;
+    
+    fileOffset += writeToMPI(vertices, f, fileOffset, comm);
 
     int verticesOffset = 0;
     MPI_Check( MPI_Exscan(&nvertices, &verticesOffset, 1, MPI_INT, MPI_SUM, comm));
@@ -132,7 +130,7 @@ void writePLY(
             connectivity.push_back({3, vertIds.x, vertIds.y, vertIds.z});
         }
 
-    writeToMPI(connectivity, f, comm);
+    fileOffset += writeToMPI(connectivity, f, fileOffset, comm);
 
     MPI_Check( MPI_File_close(&f));
 }
