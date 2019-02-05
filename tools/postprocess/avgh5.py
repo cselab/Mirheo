@@ -49,7 +49,7 @@ for sample in all_fname:
     nn = [nz, ny, nx]
     fact = 1.0
     for i in rdir: fact = fact / nn[i]
-    val = field.value
+    val = field[()]
     val_reduced = np.sum(val, tuple(rdir)) * fact
 
     if (first):
