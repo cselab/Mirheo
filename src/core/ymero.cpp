@@ -31,6 +31,32 @@ static void createCartComm(MPI_Comm comm, int3 nranks3D, MPI_Comm *cartComm)
     MPI_Check(MPI_Cart_create(comm, 3, ranksArr, periods, reorder, cartComm));
 }
 
+/// Map intro-node ranks to different GPUs
+/// https://stackoverflow.com/a/40122688/3535276
+static void selectIntraNodeGPU(const MPI_Comm& source)
+{
+    MPI_Comm shmcomm;
+    MPI_Check( MPI_Comm_split_type(source, MPI_COMM_TYPE_SHARED, 0, MPI_INFO_NULL, &shmcomm) );
+    
+    int shmrank, shmsize;
+    MPI_Check( MPI_Comm_rank(shmcomm, &shmrank) );
+    MPI_Check( MPI_Comm_size(shmcomm, &shmsize) );
+
+    info("Detected %d ranks per node, my intra-node ID will be %d", shmsize, shmrank);
+
+    int ngpus;
+    CUDA_Check( cudaGetDeviceCount(&ngpus) );
+    
+    int mygpu = shmrank % ngpus;
+
+    info("Found %d GPUs per node, will use GPU %d", ngpus, mygpu);
+
+    CUDA_Check( cudaSetDevice(mygpu) );
+    CUDA_Check( cudaDeviceReset() );
+
+    MPI_Check( MPI_Comm_free(&shmcomm) );
+}
+
 void YMeRo::init(int3 nranks3D, float3 globalDomainSize, float dt, std::string logFileName, int verbosity,
                  int checkpointEvery, std::string checkpointFolder, bool gpuAwareMPI)
 {
@@ -54,6 +80,8 @@ void YMeRo::init(int3 nranks3D, float3 globalDomainSize, float dt, std::string l
 
     if (noPostprocess) {
         warn("No postprocess will be started now, use this mode for debugging. All the joint plugins will be turned off too.");
+        
+        selectIntraNodeGPU(MPI_COMM_WORLD);
 
         createCartComm(comm, nranks3D, &cartComm);
         state = std::make_shared<YmrState> (createDomainInfo(cartComm, globalDomainSize), dt);
@@ -74,6 +102,7 @@ void YMeRo::init(int3 nranks3D, float3 globalDomainSize, float dt, std::string l
         MPI_Check( MPI_Intercomm_create(compComm, 0, comm, 1, 0, &interComm) );
 
         MPI_Check( MPI_Comm_rank(compComm, &rank) );
+        selectIntraNodeGPU(compComm);
 
         createCartComm(compComm, nranks3D, &cartComm);
         state = std::make_shared<YmrState> (createDomainInfo(cartComm, globalDomainSize), dt);
