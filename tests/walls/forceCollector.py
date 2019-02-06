@@ -19,7 +19,7 @@ gdpd = 11.0
 
 u = ymr.ymero(ranks, domain, dt, debug_level=3, log_filename='log')
 
-pv = ymr.ParticleVectors.ParticleVector('pv', mass = 1)
+pv = ymr.ParticleVectors.ParticleVector('pv', mass = 1.0)
 ic = ymr.InitialConditions.Uniform(density=density)
 u.registerParticleVector(pv=pv, ic=ic)
     
@@ -77,5 +77,5 @@ if u.isComputeTask():
 # nTEST: walls.forceCollector.couette
 # cd walls/
 # rm -rf wallForce*txt
-# ymr.run --runargs "-n 2" ./forceCollector.py > /dev/null
-# cat wallForceHi.txt | awk '{print $1, $2 / 5000.0, $3 / 5000.0, $4 / 5000.0}' > wallForce.out.txt
+# ymr.run --runargs "-n 2" ./forceCollector.py  > /dev/null
+# cat wallForceHi.txt | awk '{print $1, $2 / 10000.0, $3 / 10000.0, $4 / 10000.0}' > wallForce.out.txt
