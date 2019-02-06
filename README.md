@@ -12,11 +12,15 @@ For more information, please refer to the online documentation: http://ymero.rea
 
 ## Changelog
 
-<!-- ### unreleased  -->
+### unreleased
 
-### v0.10.2
+* automated support of multiple GPUs on single nodes
+* **fix** in bounce
+* remove deprecate warings for python 3.7
 
-* add support for different stress free shape than original mesh
+### V0.10.2
+
+* Adds support for different stress free shape than original mesh
 
 ### v0.10.1
 
