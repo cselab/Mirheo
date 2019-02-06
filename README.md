@@ -14,6 +14,7 @@ For more information, please refer to the online documentation: http://ymero.rea
 
 ### unreleased
 
+* add wall force collector plugin
 * automated support of multiple GPUs on single nodes
 * **fix** in bounce
 * remove deprecate warings for python 3.7

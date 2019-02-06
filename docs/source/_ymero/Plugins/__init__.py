@@ -241,6 +241,20 @@ class VirialPressureDumper(PostprocessPlugin):
         Responsible for performing the I/O.
     
     """
+class WallForceCollector(SimulationPlugin):
+    r"""
+        This plugin collects and average the total force exerted on a given wall.
+        The result has 2 components:
+            - bounce back: force necessary to the momentum change
+            - frozen particles: total interaction force exerted on the frozen particles
+    
+    """
+class WallForceDumper(PostprocessPlugin):
+    r"""
+        Postprocess side plugin of :any:`WallForceCollector`.
+        Responsible for the I/O part.
+    
+    """
 class WallRepulsion(SimulationPlugin):
     r"""
         This plugin will add force on all the particles that are nearby a specified wall. The motivation of this plugin is as follows.
@@ -659,6 +673,24 @@ def createVirialPressurePlugin():
             h: grid size for representing the predicate onto a grid
             dump_every: report total pressure every this many time-steps
             path: the folder name in which the file will be dumped
+    
+
+    """
+    pass
+
+def createWallForceCollector():
+    r"""createWallForceCollector(state: YmrState, name: str, wall: Walls.Wall, pvFrozen: ParticleVectors.ParticleVector, sample_every: int, dump_every: int, filename: str) -> Tuple[Plugins.WallForceCollector, Plugins.WallForceDumper]
+
+
+        Create :any:`WallForceCollector` plugin
+        
+        Args:
+            name: name of the plugin            
+            wall: :any:`Wall` that we ll work with
+            pvFrozen: corresponding frozen :any:`ParticleVector`
+            sample_every: sample every this number of time steps
+            dump_every: dump every this amount of timesteps
+            filename: output filename
     
 
     """
