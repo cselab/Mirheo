@@ -77,7 +77,7 @@ void WallForceCollectorPlugin::afterIntegration(cudaStream_t stream)
         ++nsamples;
     }
     
-    needToDump = (state->currentStep % dumpEvery != 0 && nsamples > 0);
+    needToDump = (state->currentStep % dumpEvery == 0 && nsamples > 0);
 }
 
 void WallForceCollectorPlugin::serializeAndSend(cudaStream_t stream)

@@ -67,7 +67,7 @@ __global__ void sdfBounce(PVviewWithOldParticles view, CellListInfo cinfo,
             float3 uWall = velField(p.r);
             float3 unew = 2*uWall - p.u;
 
-            localForce += (unew - p.u) / dt;
+            localForce += (p.u - unew) / dt; // force exerted by the particle on the wall
 
             p.r = candidate;
             p.u = unew;
