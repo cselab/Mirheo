@@ -1,10 +1,12 @@
 #include "simple_stationary_wall.h"
 
+#include "common_kernels.h"
 #include "stationary_walls/box.h"
 #include "stationary_walls/cylinder.h"
 #include "stationary_walls/plane.h"
 #include "stationary_walls/sdf.h"
 #include "stationary_walls/sphere.h"
+#include "velocity_field/none.h"
 
 #include <core/bounce_solver.h>
 #include <core/celllist.h>
@@ -14,7 +16,6 @@
 #include <core/pvs/particle_vector.h>
 #include <core/pvs/views/ov.h>
 #include <core/utils/cuda_common.h>
-#include <core/utils/cuda_rng.h>
 #include <core/utils/kernel_launch.h>
 
 #include <cassert>
@@ -143,85 +144,6 @@ __global__ void getBoundaryCells(PVview view, CellListInfo cinfo, int* nBoundary
     {
         int id = atomicAggInc(nBoundaryCells);
         if (!QUERY) boundaryCells[id] = cid;
-    }
-}
-
-//===============================================================================================
-// SDF bouncing kernel
-//===============================================================================================
-
-template<typename InsideWallChecker>
-__device__ float3 rescue(float3 candidate, float dt, float tol, int id, const InsideWallChecker& checker)
-{
-    const int maxIters = 100;
-    const float factor = 5.0f*dt;
-    
-    for (int i=0; i<maxIters; i++)
-    {
-        float v = checker(candidate);
-        if (v < -tol) break;
-        
-        float3 rndShift;
-        rndShift.x = Saru::mean0var1(candidate.x - floorf(candidate.x), id+i, id*id);
-        rndShift.y = Saru::mean0var1(rndShift.x,                        id+i, id*id);
-        rndShift.z = Saru::mean0var1(rndShift.y,                        id+i, id*id);
-
-        if (checker(candidate + factor*rndShift) < v)
-            candidate += factor*rndShift;
-    }
-
-    return candidate;
-}
-
-template<typename InsideWallChecker>
-__global__ void bounceKernel(
-        PVviewWithOldParticles view, CellListInfo cinfo,
-        const int *wallCells, const int nWallCells, const float dt, const InsideWallChecker checker)
-{
-    const float insideTolerance = 2e-6f;
-
-    const int tid = blockIdx.x * blockDim.x + threadIdx.x;
-    if (tid >= nWallCells) return;
-    const int cid = wallCells[tid];
-    const int pstart = cinfo.cellStarts[cid];
-    const int pend   = cinfo.cellStarts[cid+1];
-
-    for (int pid = pstart; pid < pend; pid++)
-    {
-        Particle p(view.particles, pid);
-        
-        const float val = checker(p.r);        
-        if (val < 0.0f) continue;
-
-        float3 candidate;
-        Particle pOld(view.old_particles, pid);
-        const float oldVal = checker(pOld.r);
-        
-        // If for whatever reason the previous position was bad, try to rescue
-        if (oldVal >= 0.0f) candidate = rescue(pOld.r, dt, insideTolerance, p.i1, checker);
-        
-        // If the previous position was very close to the surface,
-        // remain there and simply reverse the velocity
-        else if (oldVal > -insideTolerance) candidate = pOld.r;
-        else
-        {
-            // Otherwise go to the point where sdf = 2*insideTolerance
-            float3 dr = p.r - pOld.r;
-
-            const float2 alpha_val = solveLinSearch_verbose([=] (float lambda) {
-                return checker(pOld.r + dr*lambda) + insideTolerance;
-            });
-            
-            if (alpha_val.x >= 0.0f && alpha_val.y < 0.0f)
-                candidate = pOld.r + dr*alpha_val.x;
-            else
-                candidate = pOld.r;
-        }
-
-        p.r = candidate;
-        p.u = -p.u;
-
-        p.write2Float4(view.particles, pid);
     }
 }
 
@@ -473,9 +395,9 @@ void SimpleStationaryWall<InsideWallChecker>::bounce(cudaStream_t stream)
 
         const int nthreads = 64;
         SAFE_KERNEL_LAUNCH(
-                bounceKernel,
+                bounceKernels::sdfBounce,
                 getNblocks(bc.size(), nthreads), nthreads, 0, stream,
-                view, cl->cellInfo(), bc.devPtr(), bc.size(), dt, insideWallChecker.handler() );
+                view, cl->cellInfo(), bc.devPtr(), bc.size(), dt, insideWallChecker.handler(), VelocityField_None() );
 
         CUDA_Check( cudaPeekAtLastError() );
         nBounceCalls[i]++;
