@@ -1,12 +1,5 @@
 #pragma once
 
-#include <memory>
-
-#include <core/pvs/object_vector.h>
-#include <core/pvs/particle_vector.h>
-#include <core/utils/pytypes.h>
-#include <core/walls/interface.h>
-
 #include "interface.h"
 
 #include "add_force.h"
@@ -31,7 +24,15 @@
 #include "temperaturize.h"
 #include "velocity_control.h"
 #include "virial_pressure.h"
+#include "wall_force_collector.h"
 #include "wall_repulsion.h"
+
+#include <core/pvs/object_vector.h>
+#include <core/pvs/particle_vector.h>
+#include <core/utils/pytypes.h>
+#include <core/walls/interface.h>
+
+#include <memory>
 
 namespace PluginFactory
 {
@@ -340,5 +341,20 @@ namespace PluginFactory
     {
         auto simPl = computeTask ? std::make_shared<WallRepulsionPlugin> (state, name, pv->name, wall->name, C, h, maxForce) : nullptr;
         return { simPl, nullptr };
+    }
+
+    static pair_shared< WallForceCollectorPlugin, WallForceDumperPlugin >
+    createWallForceCollectorPlugin(bool computeTask, const YmrState *state, std::string name, Wall *wall, ParticleVector* pvFrozen,
+                                   int sampleEvery, int dumpEvery, std::string filename)
+    {
+        auto simPl = computeTask ?
+            std::make_shared<WallForceCollectorPlugin> (state, name, wall->name, pvFrozen->name, sampleEvery, dumpEvery) :
+            nullptr;
+
+        auto postPl = computeTask ?
+            nullptr :
+            std::make_shared<WallForceDumperPlugin> (name, filename);
+        
+        return { simPl, postPl };
     }
 };
