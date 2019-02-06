@@ -130,8 +130,13 @@ __device__ inline bool isCellOnBoundary(PVview view, float3 cornerCoo, float3 le
     return (pos != 8 && neg != 8);
 }
 
-template<bool QUERY, typename InsideWallChecker>
-__global__ void getBoundaryCells(PVview view, CellListInfo cinfo, int* nBoundaryCells, int* boundaryCells, InsideWallChecker checker)
+enum class QueryMode {
+   Query,
+   Collect    
+};
+
+template<QueryMode queryMode, typename InsideWallChecker>
+__global__ void getBoundaryCells(PVview view, CellListInfo cinfo, int *nBoundaryCells, int *boundaryCells, InsideWallChecker checker)
 {
     const int cid = blockIdx.x * blockDim.x + threadIdx.x;
     if (cid >= cinfo.totcells) return;
@@ -143,7 +148,8 @@ __global__ void getBoundaryCells(PVview view, CellListInfo cinfo, int* nBoundary
     if (isCellOnBoundary(view, cornerCoo, cinfo.h, checker))
     {
         int id = atomicAggInc(nBoundaryCells);
-        if (!QUERY) boundaryCells[id] = cid;
+        if (queryMode == QueryMode::Collect)
+            boundaryCells[id] = cid;
     }
 }
 
@@ -277,13 +283,15 @@ void SimpleStationaryWall<InsideWallChecker>::attach(ParticleVector *pv, CellLis
     CUDA_Check( cudaDeviceSynchronize() );
     particleVectors.push_back(pv);
     cellLists.push_back(cl);
+
+    const int nthreads = 128;
     
     PVview view(pv, pv->local());
     PinnedBuffer<int> nBoundaryCells(1);
     nBoundaryCells.clear(0);
     SAFE_KERNEL_LAUNCH(
-            getBoundaryCells<true>,
-            (cl->totcells + 127) / 128, 128, 0, 0,
+            getBoundaryCells<QueryMode::Query>,
+            getNblocks(cl->totcells, nthreads), nthreads, 0, 0,
             view, cl->cellInfo(), nBoundaryCells.devPtr(), nullptr, insideWallChecker.handler() );
 
     nBoundaryCells.downloadFromDevice(0);
@@ -293,8 +301,8 @@ void SimpleStationaryWall<InsideWallChecker>::attach(ParticleVector *pv, CellLis
 
     nBoundaryCells.clear(0);
     SAFE_KERNEL_LAUNCH(
-            getBoundaryCells<false>,
-            (cl->totcells + 127) / 128, 128, 0, 0,
+            getBoundaryCells<QueryMode::Collect>,
+            getNblocks(cl->totcells, nthreads), nthreads, 0, 0,
             view, cl->cellInfo(), nBoundaryCells.devPtr(), bc.devPtr(), insideWallChecker.handler() );
 
     boundaryCells.push_back(std::move(bc));
