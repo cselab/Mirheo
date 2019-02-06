@@ -242,7 +242,9 @@ template<class InsideWallChecker>
 SimpleStationaryWall<InsideWallChecker>::SimpleStationaryWall(std::string name, const YmrState *state, InsideWallChecker&& insideWallChecker) :
     SDF_basedWall(state, name),
     insideWallChecker(std::move(insideWallChecker))
-{}
+{
+    bounceForce.clear(0);
+}
 
 template<class InsideWallChecker>
 SimpleStationaryWall<InsideWallChecker>::~SimpleStationaryWall() = default;
@@ -505,6 +507,12 @@ void SimpleStationaryWall<InsideWallChecker>::sdfOnGrid(float3 h, GPUcontainer* 
             computeSdfOnGrid,
             getNblocks(gridInfo.totcells, nthreads), nthreads, 0, stream,
             gridInfo, (float*)sdfs->genericDevPtr(), insideWallChecker.handler() );
+}
+
+template<class InsideWallChecker>
+PinnedBuffer<double3>* SimpleStationaryWall<InsideWallChecker>::getCurrentBounceForce()
+{
+    return &bounceForce;
 }
 
 template class SimpleStationaryWall<StationaryWall_Sphere>;

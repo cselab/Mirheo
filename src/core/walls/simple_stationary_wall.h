@@ -33,6 +33,8 @@ public:
 
     InsideWallChecker& getChecker() { return insideWallChecker; }
 
+    PinnedBuffer<double3>* getCurrentBounceForce() override;
+
 protected:
 
     InsideWallChecker insideWallChecker;

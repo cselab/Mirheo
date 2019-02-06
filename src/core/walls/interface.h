@@ -1,12 +1,13 @@
 #pragma once
 
-#include <mpi.h>
-#include <vector>
-#include <cuda_runtime.h>
+#include "core/ymero_object.h"
+#include <core/containers.h>
 #include <core/domain.h>
 #include <core/pvs/particle_vector.h>
 
-#include "core/ymero_object.h"
+#include <mpi.h>
+#include <vector>
+#include <cuda_runtime.h>
 
 class CellList;
 class GPUcontainer;
@@ -46,7 +47,7 @@ public:
             float gradientThreshold, cudaStream_t stream) = 0;
     virtual void sdfPerPosition(GPUcontainer *positions, GPUcontainer* sdfs, cudaStream_t stream) = 0;
     virtual void sdfOnGrid(float3 gridH, GPUcontainer* sdfs, cudaStream_t stream) = 0;
-
+    virtual PinnedBuffer<double3>* getCurrentBounceForce() = 0;
 
     ~SDF_basedWall();
 };
