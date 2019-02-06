@@ -277,8 +277,7 @@ void SimpleStationaryWall<InsideWallChecker>::attach(ParticleVector *pv, CellLis
     CUDA_Check( cudaDeviceSynchronize() );
     particleVectors.push_back(pv);
     cellLists.push_back(cl);
-    nBounceCalls.push_back(0);
-
+    
     PVview view(pv, pv->local());
     PinnedBuffer<int> nBoundaryCells(1);
     nBoundaryCells.clear(0);
@@ -400,7 +399,6 @@ void SimpleStationaryWall<InsideWallChecker>::bounce(cudaStream_t stream)
                 view, cl->cellInfo(), bc.devPtr(), bc.size(), dt, insideWallChecker.handler(), VelocityField_None() );
 
         CUDA_Check( cudaPeekAtLastError() );
-        nBounceCalls[i]++;
     }
 }
 

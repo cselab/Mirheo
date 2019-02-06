@@ -41,8 +41,6 @@ protected:
     std::vector<ParticleVector*> particleVectors;
     std::vector<CellList*> cellLists;
 
-    std::vector<int> nBounceCalls;
-
     std::vector<DeviceBuffer<int>> boundaryCells;
     PinnedBuffer<int> nInside{1};
 };

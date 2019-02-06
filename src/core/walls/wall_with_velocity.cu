@@ -105,7 +105,6 @@ void WallWithVelocity<InsideWallChecker, VelocityField>::bounce(cudaStream_t str
                 velField.handler() );
 
         CUDA_Check( cudaPeekAtLastError() );
-        this->nBounceCalls[i]++;
     }
 }
 
