@@ -85,6 +85,7 @@ void WallWithVelocity<InsideWallChecker, VelocityField>::bounce(cudaStream_t str
     float dt = this->state->dt;
     
     velField.setup(t, this->state->domain);
+    this->bounceForce.clear(stream);
 
     for (int i=0; i < this->particleVectors.size(); i++)
     {
@@ -102,7 +103,8 @@ void WallWithVelocity<InsideWallChecker, VelocityField>::bounce(cudaStream_t str
                 getNblocks(bc.size(), nthreads), nthreads, 0, stream,
                 view, cl->cellInfo(), bc.devPtr(), bc.size(), dt,
                 this->insideWallChecker.handler(),
-                velField.handler() );
+                velField.handler(),
+                this->bounceForce.devPtr());
 
         CUDA_Check( cudaPeekAtLastError() );
     }

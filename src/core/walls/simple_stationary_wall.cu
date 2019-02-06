@@ -389,6 +389,8 @@ template<class InsideWallChecker>
 void SimpleStationaryWall<InsideWallChecker>::bounce(cudaStream_t stream)
 {
     float dt = this->state->dt;
+
+    bounceForce.clear(stream);
     
     for (int i = 0; i < particleVectors.size(); i++)
     {
@@ -404,7 +406,11 @@ void SimpleStationaryWall<InsideWallChecker>::bounce(cudaStream_t stream)
         SAFE_KERNEL_LAUNCH(
                 bounceKernels::sdfBounce,
                 getNblocks(bc.size(), nthreads), nthreads, 0, stream,
-                view, cl->cellInfo(), bc.devPtr(), bc.size(), dt, insideWallChecker.handler(), VelocityField_None() );
+                view, cl->cellInfo(),
+                bc.devPtr(), bc.size(), dt,
+                insideWallChecker.handler(),
+                VelocityField_None(),
+                bounceForce.devPtr());
 
         CUDA_Check( cudaPeekAtLastError() );
     }

@@ -43,4 +43,5 @@ protected:
 
     std::vector<DeviceBuffer<int>> boundaryCells;
     PinnedBuffer<int> nInside{1};
+    PinnedBuffer<double3> bounceForce{1};
 };
