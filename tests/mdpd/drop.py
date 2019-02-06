@@ -42,8 +42,9 @@ dumpEvery = 5000
 binSize = (0.5, 0.5, 0.5)
 u.registerPlugins(ymr.Plugins.createDumpAverage('field', [pv], sampleEvery, dumpEvery, binSize, [], 'h5/solvent-'))
 
-
 u.run(5001)
+
+del(u)
 
 # nTEST: mdpd.drop
 # cd mdpd

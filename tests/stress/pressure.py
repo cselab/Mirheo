@@ -32,6 +32,8 @@ u.registerPlugins(ymr.Plugins.createVirialPressurePlugin('Pressure', pv, predica
 
 u.run(1001)
 
+del(u)
+
 # nTEST: stress.pressure
 # cd stress
 # rm -rf pressure

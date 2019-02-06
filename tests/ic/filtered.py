@@ -34,7 +34,10 @@ if pv:
     icvel = pv.getVelocities()
     np.savetxt("pos.ic.txt", icpos)
     np.savetxt("vel.ic.txt", icvel)
-    
+
+
+del(u)
+
 
 # TEST: ic.uniform.filtered.half
 # cd ic

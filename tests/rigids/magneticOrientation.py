@@ -61,6 +61,8 @@ if args.withMesh:
 
 u.run(10000)
 
+del(u)
+
 
 # nTEST: rigids.magneticOrientation.Static
 # cd rigids
