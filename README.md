@@ -12,7 +12,9 @@ For more information, please refer to the online documentation: http://ymero.rea
 
 ## Changelog
 
-### unreleased
+<!-- ### unreleased -->
+
+### V0.10.3
 
 * add wall force collector plugin
 * automated support of multiple GPUs on single nodes
