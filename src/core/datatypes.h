@@ -1,19 +1,16 @@
 #pragma once
 
-#include <cuda.h>
-#include <cstdlib>
-#include <cstdint>
-#include <cassert>
-#include <type_traits>
-#include <utility>
-#include <stack>
-#include <algorithm>
-
 #include <core/logger.h>
 #include <core/utils/cpu_gpu_defines.h>
 
+#include <algorithm>
+#include <cassert>
+#include <cstdint>
+#include <cstdlib>
+#include <cuda.h>
 #include <cuda_runtime.h>
-
+#include <type_traits>
+#include <utility>
 
 //==================================================================================================================
 // Basic types

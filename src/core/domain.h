@@ -1,11 +1,11 @@
 #pragma once
 
+#include <core/utils/helper_math.h>
+#include <core/utils/cpu_gpu_defines.h>
+
 #include <mpi.h>
 #include <cuda_runtime.h>
 #include <vector_types.h>
-
-#include <core/utils/helper_math.h>
-#include <core/utils/cpu_gpu_defines.h>
 
 struct DomainInfo
 {
