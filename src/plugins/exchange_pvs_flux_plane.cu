@@ -43,7 +43,7 @@ __global__ void moveParticles(DomainInfo domain, PVview view1, PVview view2, flo
         p.write2Float4(view2.particles, dst);
 
         p.mark();
-        p.write2Float4(view1.particles, pid);        
+        p.write2Float4(view1.particles, pid);
     }
 }
 
