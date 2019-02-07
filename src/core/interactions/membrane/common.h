@@ -4,7 +4,7 @@
 #include <core/utils/cuda_rng.h>
 #include <core/pvs/object_vector.h>
 #include <core/pvs/views/ov.h>
-#include <core/mesh.h>
+#include <core/mesh/membrane.h>
 
 template <typename View>
 __device__ inline float3 fetchVertex(View view, int i)

@@ -1,16 +1,16 @@
-#include <pybind11/stl.h>
-
-#include <core/pvs/particle_vector.h>
-#include <core/pvs/object_vector.h>
-#include <core/mesh.h>
-#include <core/pvs/rigid_object_vector.h>
-#include <core/pvs/rigid_ellipsoid_object_vector.h>
-#include <core/pvs/membrane_vector.h>
-
-#include <core/utils/pytypes.h>
-
 #include "bindings.h"
 #include "class_wrapper.h"
+
+#include <core/mesh/membrane.h>
+#include <core/mesh/mesh.h>
+#include <core/pvs/membrane_vector.h>
+#include <core/pvs/object_vector.h>
+#include <core/pvs/particle_vector.h>
+#include <core/pvs/rigid_ellipsoid_object_vector.h>
+#include <core/pvs/rigid_object_vector.h>
+#include <core/utils/pytypes.h>
+
+#include <pybind11/stl.h>
 
 namespace py = pybind11;
 using namespace pybind11::literals;

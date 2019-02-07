@@ -4,7 +4,7 @@
 
 #include <core/containers.h>
 #include <core/logger.h>
-#include <core/mesh.h>
+#include <core/mesh/mesh.h>
 #include <core/utils/common.h>
 
 class LocalObjectVector: public LocalParticleVector

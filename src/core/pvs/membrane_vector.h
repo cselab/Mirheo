@@ -1,8 +1,10 @@
 #pragma once
 
+#include "object_vector.h"
+
 #include <core/containers.h>
 #include <core/datatypes.h>
-#include "object_vector.h"
+#include <core/mesh/membrane.h>
 
 class MembraneVector: public ObjectVector
 {
