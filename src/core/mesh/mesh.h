@@ -44,13 +44,7 @@ struct MeshView
     int nvertices, ntriangles;
     int3 *triangles;
 
-    MeshView(const Mesh *m)
-    {
-        nvertices = m->getNvertices();
-        ntriangles = m->getNtriangles();
-
-        triangles = m->triangles.devPtr();
-    }
+    MeshView(const Mesh *m);
 };
 
 

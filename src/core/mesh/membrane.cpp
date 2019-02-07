@@ -186,3 +186,13 @@ void MembraneMesh::computeInitialAreas(const PinnedBuffer<float4>& vertices)
 
     initialAreas.uploadToDevice(0);
 }
+
+
+MembraneMeshView::MembraneMeshView(const MembraneMesh *m) :
+    MeshView(m),
+    maxDegree      (m->getMaxDegree()),
+    adjacent       (m->adjacent.devPtr()),
+    degrees        (m->degrees.devPtr()),
+    initialLengths (m->initialLengths.devPtr()),
+    initialAreas   (m->initialAreas.devPtr())
+{}

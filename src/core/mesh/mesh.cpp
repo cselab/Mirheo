@@ -143,3 +143,10 @@ void Mesh::_readOff(std::string fname)
         fin >> triangles[i].x >> triangles[i].y >> triangles[i].z;
     }
 }
+
+
+MeshView::MeshView(const Mesh *m) :
+    nvertices  (m->getNvertices()),
+    ntriangles (m->getNtriangles()),
+    triangles  (m->triangles.devPtr())   
+{}

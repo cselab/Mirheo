@@ -41,14 +41,6 @@ struct MembraneMeshView : public MeshView
     int *adjacent, *degrees;
     float *initialLengths, *initialAreas;
 
-    MembraneMeshView(const MembraneMesh *m) : MeshView(m)
-    {
-        maxDegree = m->getMaxDegree();
-
-        adjacent        = m->adjacent.devPtr();
-        degrees         = m->degrees.devPtr();
-        initialLengths  = m->initialLengths.devPtr();
-        initialAreas    = m->initialAreas.devPtr();
-    }
+    MembraneMeshView(const MembraneMesh *m);
 };
 
