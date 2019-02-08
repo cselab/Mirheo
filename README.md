@@ -12,20 +12,22 @@ For more information, please refer to the online documentation: http://ymero.rea
 
 ## Changelog
 
-### unreleased
+<!-- ### unreleased -->
+
+### v0.10.4
 
 * add velocity inlet plugin
 * add very simple CPU marching cubes implementation in core
 * clean up units
 
-### V0.10.3
+### v0.10.3
 
 * add wall force collector plugin
 * automated support of multiple GPUs on single nodes
 * **fix** in bounce
 * remove deprecate warings for python 3.7
 
-### V0.10.2
+### v0.10.2
 
 * Adds support for different stress free shape than original mesh
 
