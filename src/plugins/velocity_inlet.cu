@@ -160,8 +160,10 @@ void VelocityInletPlugin::setup(Simulation *simulation, const MPI_Comm& comm, co
         surfaceTriangles[i++] = t.c;
     }
 
-    for (i = 0; i < surfaceTriangles.size(); ++i)
-        surfaceVelocity[i] = velocityField(surfaceTriangles[i]);        
+    for (i = 0; i < surfaceTriangles.size(); ++i) {
+        float3 r = state->domain.local2global(surfaceTriangles[i]);
+        surfaceVelocity[i] = velocityField(r);
+    }
 
     surfaceTriangles.uploadToDevice(0);
     surfaceVelocity .uploadToDevice(0);

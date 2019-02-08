@@ -4,6 +4,10 @@ import ymero as ymr
 import numpy as np
 import argparse
 
+parser = argparse.ArgumentParser()
+parser.add_argument("--geometry", choices=["sphere", 'cylinder'])
+args = parser.parse_args()
+
 dt  = 0.001
 kBT = 0.0
 
@@ -30,16 +34,37 @@ radius = 4.0
 vel = 10.0
 inlet_density = 10
 
-def inlet_surface(r):
-    R = np.sqrt((r[0] - center[0])**2 +
-                (r[1] - center[1])**2 +
-                (r[2] - center[2])**2)
-    return R - radius
+if args.geometry == "sphere":
+    def inlet_surface(r):
+        R = np.sqrt((r[0] - center[0])**2 +
+                    (r[1] - center[1])**2 +
+                    (r[2] - center[2])**2)
+        return R - radius
 
-def inlet_velocity(r):
-    factor = vel / radius
-    return (factor * r[0], factor * r[1], factor * r[2])
+    def inlet_velocity(r):
+        factor = vel / radius
+        return (factor * (r[0] - center[0]),
+                factor * (r[1] - center[1]),
+                factor * (r[2] - center[2]))
 
+elif args.geometry == "cylinder":
+    def inlet_surface(r):
+        R = np.sqrt((r[0] - center[0])**2 +
+                    (r[1] - center[1])**2)
+        return R - radius
+
+    def inlet_velocity(r):
+        factor = vel / radius
+        x = r[0] - center[0]
+        y = r[1] - center[1]
+        z = r[2] - center[2]
+        factor *= 1 - (z/5.)**2
+        factor = max([factor, 0.])
+        return (factor * x, factor * y, 0)
+
+else:
+    exit(1)
+    
 u.registerPlugins(ymr.Plugins.createVelocityInlet('inlet', pv, inlet_surface, inlet_velocity, resolution, inlet_density, kBT))
 
 #dump_every   = 100
@@ -54,8 +79,14 @@ u.run(1010)
 
 del (u)
 
-# nTEST: plugins.velocityInlet
+# nTEST: plugins.velocityInlet.sphere
 # cd plugins
 # rm -rf h5
-# ymr.run --runargs "-n 2" ./velocity_inlet.py  > /dev/null
+# ymr.run --runargs "-n 2" ./velocity_inlet.py --geometry sphere  > /dev/null
+# ymr.avgh5 yz density h5/solvent-0000*.h5 > profile.out.txt
+
+# nTEST: plugins.velocityInlet.cylinder
+# cd plugins
+# rm -rf h5
+# ymr.run --runargs "-n 2" ./velocity_inlet.py --geometry cylinder  > /dev/null
 # ymr.avgh5 yz density h5/solvent-0000*.h5 > profile.out.txt
