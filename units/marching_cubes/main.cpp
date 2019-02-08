@@ -61,9 +61,9 @@ TEST (MARCHING_CUBES, Sphere)
     
     for (auto& t : triangles) {
         float va, vb, vc;
-        va = sphereSurface(t.a);
-        vb = sphereSurface(t.b);
-        vc = sphereSurface(t.c);
+        va = sphereSurface( domain.local2global(t.a) );
+        vb = sphereSurface( domain.local2global(t.b) );
+        vc = sphereSurface( domain.local2global(t.c) );
 
         maxVal = std::max(std::abs(va), maxVal);
         maxVal = std::max(std::abs(vb), maxVal);

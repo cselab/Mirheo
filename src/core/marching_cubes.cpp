@@ -177,9 +177,9 @@ void computeTriangles(DomainInfo domain, float3 resolution,
 
     for (int i = 0; i < indices.size(); i += 3) {
         Triangle t;
-        t.a = vertices[indices[i+0]];
-        t.b = vertices[indices[i+1]];
-        t.c = vertices[indices[i+2]];
+        t.a = domain.global2local(vertices[indices[i+0]]);
+        t.b = domain.global2local(vertices[indices[i+1]]);
+        t.c = domain.global2local(vertices[indices[i+2]]);
         triangles.push_back(t);
     }
 }
