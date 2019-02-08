@@ -168,6 +168,23 @@ __device__ inline  int warpReduce(int val, Operation op)
 }
 
 //=======================================================================================
+// per warp inclusive prefix sum
+//=======================================================================================
+
+__device__ inline int warpInclusiveScan(int val) {
+    int tid;
+    tid = threadIdx.x % warpSize;
+    for (int L = 1; L < warpSize; L <<= 1)
+        val += (tid >= L) * warpShflUp(val, L);
+    return val;
+}
+
+__device__ inline int warpExclusiveScan(int val) {
+    return warpInclusiveScan(val) - val;
+}
+
+
+//=======================================================================================
 // Atomics for vector types
 //=======================================================================================
 
