@@ -227,6 +227,13 @@ class VelocityControl(SimulationPlugin):
         The force is adapted bvia a PID controller such that the velocity average of the particles matches the target average velocity.
     
     """
+class VelocityInlet(SimulationPlugin):
+    r"""
+        This plugin inserts particles in a given :any:`ParticleVector`.
+        The particles are inserted on a given surface with given velocity inlet. 
+        The rate of insertion is governed by the velocity and the given number density.
+    
+    """
 class VirialPressure(SimulationPlugin):
     r"""
         This plugin compute the virial pressure from a given :any:`ParticleVector`.
@@ -655,6 +662,25 @@ def createVelocityControl():
             dump_every: write files every this many time-steps
             target_vel: the target mean velocity of the particles in the domain of interest
             Kp, Ki, Kd: PID controller coefficients
+    
+
+    """
+    pass
+
+def createVelocityInlet():
+    r"""createVelocityInlet(state: YmrState, name: str, pv: ParticleVectors.ParticleVector, implicit_surface_func: Callable[[Tuple[float, float, float]], float], velocity_field: Callable[[Tuple[float, float, float]], Tuple[float, float, float]], resolution: Tuple[float, float, float], number_density: float, kBT: float) -> Tuple[Plugins.VelocityInlet, Plugins.PostprocessPlugin]
+
+
+        Create :any:`VelocityInlet` plugin
+        
+        Args:
+            name: name of the plugin
+            pv: the :any:`ParticleVector` that we ll work with 
+            implicit_surface_func: a scalar field function that has the required surface as zero level set
+            velocity_field: vector field that describes the velocity on the inlet (will be evaluated on the surface only)
+            resolution: grid size used to discretize the surface
+            number_density: number density of the inserted solvent
+            kBT: temperature of the inserted solvent
     
 
     """
