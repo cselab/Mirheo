@@ -56,7 +56,6 @@ function (add_test_executable dirName)
   add_test(${EXEC_NAME} ${EXEC_NAME})
 endfunction()
 
-#add_test_executable(bounce)
 add_test_executable(celllists)
 # add_test_executable(flagella)
 add_test_executable(integration)
