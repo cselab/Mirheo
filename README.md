@@ -12,7 +12,11 @@ For more information, please refer to the online documentation: http://ymero.rea
 
 ## Changelog
 
-<!-- ### unreleased -->
+### unreleased
+
+* add velocity inlet plugin
+* add very simple CPU marching cubes implementation in core
+* clean up units
 
 ### V0.10.3
 
