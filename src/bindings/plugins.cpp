@@ -227,6 +227,14 @@ void exportPlugins(py::module& m)
         `keepVelocity = False`, in which case it sets the velocity to a term drawn from a Maxwell distribution.
     )");
 
+
+    py::handlers_class<VelocityInletPlugin>(m, "VelocityInlet", pysim, R"(
+        This plugin inserts particles in a given :any:`ParticleVector`.
+        The particles are inserted on a given surface with given velocity inlet. 
+        The rate of insertion is governed by the velocity and the given number density.
+    )");
+    
+    
     py::handlers_class<VirialPressurePlugin>(m, "VirialPressure", pysim, R"(
         This plugin compute the virial pressure from a given :any:`ParticleVector`.
         Note that the stress computation must be enabled with the corresponding stressName.
@@ -561,6 +569,21 @@ void exportPlugins(py::module& m)
             dump_every: write files every this many time-steps
             target_vel: the target mean velocity of the particles in the domain of interest
             Kp, Ki, Kd: PID controller coefficients
+    )");
+
+    m.def("__createVelocityInlet", &PluginFactory::createVelocityInletPlugin,
+          "compute_task"_a, "state"_a, "name"_a, "pv"_a,
+          "implicit_surface_func"_a, "velocity_field"_a, "resolution"_a, "number_density"_a, "kBT"_a, R"(
+        Create :any:`VelocityInlet` plugin
+        
+        Args:
+            name: name of the plugin
+            pv: the :any:`ParticleVector` that we ll work with 
+            implicit_surface_func: a scalar field function that has the required surface as zero level set
+            velocity_field: vector field that describes the velocity on the inlet (will be evaluated on the surface only)
+            resolution: grid size used to discretize the surface
+            number_density: number density of the inserted solvent
+            kBT: temperature of the inserted solvent
     )");
 
     m.def("__createVirialPressurePlugin", &PluginFactory::createVirialPressurePlugin,

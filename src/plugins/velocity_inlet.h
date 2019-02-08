@@ -5,9 +5,9 @@
 #include <core/containers.h>
 
 #include <functional>
-#include <vector>
+#include <random>
 #include <string>
-
+#include <vector>
 
 class ParticleVector;
 
@@ -20,7 +20,7 @@ public:
     
     VelocityInletPlugin(const YmrState *state, std::string name, std::string pvName,
                         ImplicitSurfaceFunc implicitSurface, VelocityFieldFunc velocityField,
-                        float3 resolution);
+                        float3 resolution, float numberDensity, float kBT);
 
     ~VelocityInletPlugin();
 
@@ -36,14 +36,14 @@ private:
     ImplicitSurfaceFunc implicitSurface;
     VelocityFieldFunc velocityField;
     float3 resolution;
+    float numberDensity, kBT;
 
     PinnedBuffer<float3> surfaceTriangles;
     PinnedBuffer<float3> surfaceVelocity;
-    DeviceBuffer<float> cummulativeSum;
+    DeviceBuffer<float> cumulativeFluxes, localFluxes;
+    PinnedBuffer<int> nNewParticles {1};
+    DeviceBuffer<int> workQueue; // contains id of triangle per new particle
+
+    std::mt19937 gen {42};
+    std::uniform_real_distribution<float> dist {0.f, 1.f};
 };
-
-
-
-
-
-

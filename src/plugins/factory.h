@@ -335,6 +335,32 @@ createVirialPressurePlugin(bool computeTask, const YmrState *state, std::string 
     auto postPl = computeTask ? nullptr : std::make_shared<VirialPressureDumper> (name, path);
     return { simPl, postPl };
 }
+
+static pair_shared< VelocityInletPlugin, PostprocessPlugin >
+createVelocityInletPlugin(bool computeTask, const YmrState *state, std::string name, ParticleVector *pv,
+                          std::function<          float(PyTypes::float3)> implicitSurface,
+                          std::function<PyTypes::float3(PyTypes::float3)> velocityField,
+                          PyTypes::float3 resolution, float numberDensity, float kBT)
+{
+    auto surfaceFunc = [implicitSurface](float3 r) -> float
+    {
+        return implicitSurface(PyTypes::float3(r.x, r.y, r.z));
+    };
+
+    auto velocityFunc = [velocityField](float3 r) -> float3
+    {
+        return make_float3(velocityField(PyTypes::float3(r.x, r.y, r.z)));
+    };
+    
+    auto simPl  = computeTask ?
+        std::make_shared<VelocityInletPlugin> (state, name, pv->name,
+                                               surfaceFunc, velocityFunc,
+                                               make_float3(resolution),
+                                               numberDensity, kBT)
+        : nullptr;
+
+    return { simPl, nullptr };
+}
     
 static pair_shared< WallRepulsionPlugin, PostprocessPlugin >
 createWallRepulsionPlugin(bool computeTask, const YmrState *state, std::string name, ParticleVector* pv, Wall* wall,
