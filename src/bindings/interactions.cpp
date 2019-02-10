@@ -42,7 +42,7 @@ void exportInteractions(py::module& m)
             
         .. [Groot1997] Groot, R. D., & Warren, P. B. (1997).
             Dissipative particle dynamics: Bridging the gap between atomistic and mesoscopic simulations.
-            J. Chem. Phys., 107(11), 4423–4435. `doi <https://doi.org/10.1063/1.474784>`_
+            J. Chem. Phys., 107(11), 4423-4435. `doi <https://doi.org/10.1063/1.474784>`_
     )");
 
     pyIntDPD.def(py::init<const YmrState*, std::string, float, float, float, float, float>(),
