@@ -1,14 +1,14 @@
 #pragma once
 
-#include <plugins/interface.h>
-#include <plugins/pid.h>
+#include "interface.h"
+#include "pid.h"
+
 #include <core/containers.h>
 #include <core/datatypes.h>
 
 #include <vector>
 
 class ParticleVector;
-class CellList;
 
 class SimulationVelocityControl : public SimulationPlugin
 {
@@ -48,13 +48,12 @@ private:
 
 class PostprocessVelocityControl : public PostprocessPlugin
 {
-private:
-    MPI_Datatype mpiReductionType;
-    FILE *fdump;
-
 public:
     PostprocessVelocityControl(std::string name, std::string filename);
     ~PostprocessVelocityControl();
 
     void deserialize(MPI_Status& stat) override;
+
+private:
+    FILE *fdump;
 };

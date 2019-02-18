@@ -7,9 +7,9 @@
 #include <core/utils/cuda_common.h>
 #include <core/utils/kernel_launch.h>
 
-namespace velocity_control_kernels {
+namespace VelocityControlKernels {
 
-static __device__ bool is_inside(float3 r, float3 low, float3 high)
+inline __device__ bool is_inside(float3 r, float3 low, float3 high)
 {
     return
         low.x <= r.x && r.x <= high.x &&
@@ -48,7 +48,7 @@ __global__ void sumVelocity(PVview view, DomainInfo domain, float3 low, float3 h
         atomicAdd(totVel, u);
 }
 
-}
+} // namespace VelocityControlKernels
 
 SimulationVelocityControl::SimulationVelocityControl(const YmrState *state, std::string name, std::vector<std::string> pvNames,
                                                      float3 low, float3 high,
@@ -85,7 +85,7 @@ void SimulationVelocityControl::beforeForces(cudaStream_t stream)
         const int nthreads = 128;
 
         SAFE_KERNEL_LAUNCH
-            (velocity_control_kernels::addForce,
+            (VelocityControlKernels::addForce,
              getNblocks(view.size, nthreads), nthreads, 0, stream,
              view, state->domain, low, high, force );
     }
@@ -96,7 +96,7 @@ void SimulationVelocityControl::sampleOnePv(ParticleVector *pv, cudaStream_t str
     const int nthreads = 128;
  
     SAFE_KERNEL_LAUNCH
-        (velocity_control_kernels::sumVelocity,
+        (VelocityControlKernels::sumVelocity,
          getNblocks(pvView.size, nthreads), nthreads, 0, stream,
          pvView, state->domain, low, high, totVel.devPtr(), nSamples.devPtr());
 }
