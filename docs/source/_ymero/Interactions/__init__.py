@@ -21,6 +21,30 @@ class JuelicherBendingParameters:
         """
         pass
 
+    @property
+    def C0():
+        r"""
+        """
+        pass
+
+    @property
+    def DA0():
+        r"""
+        """
+        pass
+
+    @property
+    def kad():
+        r"""
+        """
+        pass
+
+    @property
+    def kb():
+        r"""
+        """
+        pass
+
 class KantorBendingParameters:
     r"""
         Bending parameters for Kantor model
@@ -36,6 +60,18 @@ class KantorBendingParameters:
         """
         pass
 
+    @property
+    def kb():
+        r"""
+        """
+        pass
+
+    @property
+    def theta():
+        r"""
+        """
+        pass
+
 class MembraneParameters:
     r"""
         Common membrane parameters
@@ -48,6 +84,78 @@ class MembraneParameters:
             Structure keeping parameters of the membrane interaction
         
 
+        """
+        pass
+
+    @property
+    def gammaC():
+        r"""
+        """
+        pass
+
+    @property
+    def gammaT():
+        r"""
+        """
+        pass
+
+    @property
+    def ka():
+        r"""
+        """
+        pass
+
+    @property
+    def kbT():
+        r"""
+        """
+        pass
+
+    @property
+    def kd():
+        r"""
+        """
+        pass
+
+    @property
+    def ks():
+        r"""
+        """
+        pass
+
+    @property
+    def kv():
+        r"""
+        """
+        pass
+
+    @property
+    def mpow():
+        r"""
+        """
+        pass
+
+    @property
+    def rnd():
+        r"""
+        """
+        pass
+
+    @property
+    def totArea():
+        r"""
+        """
+        pass
+
+    @property
+    def totVolume():
+        r"""
+        """
+        pass
+
+    @property
+    def x0():
+        r"""x0
         """
         pass
 
@@ -75,7 +183,7 @@ class DPD(Interaction):
             
         .. [Groot1997] Groot, R. D., & Warren, P. B. (1997).
             Dissipative particle dynamics: Bridging the gap between atomistic and mesoscopic simulations.
-            J. Chem. Phys., 107(11), 4423–4435. `doi <https://doi.org/10.1063/1.474784>`_
+            J. Chem. Phys., 107(11), 4423-4435. `doi <https://doi.org/10.1063/1.474784>`_
     
     """
     def __init__():

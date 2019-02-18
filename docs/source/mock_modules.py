@@ -22,6 +22,11 @@ def class_members(cls):
                                               ( hasattr(x, '__name__') and hasattr(cls, x.__name__) and
                                                 type(getattr(cls, x.__name__)).__name__ == 'instancemethod') )
 
+def class_properties(cls):
+    return inspect.getmembers(cls, lambda x : x.__class__.__name__ == 'property')
+
+
+   
 def genmodule(name, fname, needfuncs):
     classes = inspect.getmembers(sys.modules[name], inspect.isclass)
     classes = sorted(classes, key = lambda cls: len(cls[1].mro()))
@@ -45,6 +50,13 @@ def genmodule(name, fname, needfuncs):
                 print('    def %s():' % mname, file=fout)
                 print('        r"""%s\n        """' % simplify_docstring(m.__doc__), file=fout)
                 print('        pass\n', file=fout)
+
+        for pname, p in class_properties(cls):
+            print('    @property', file=fout)
+            print('    def %s():' % pname, file=fout)
+            print('        r"""%s\n        """' % simplify_docstring(p.__doc__), file=fout)
+            print('        pass\n', file=fout)
+
                 
     if needfuncs:
         funcs = inspect.getmembers(sys.modules[name], inspect.isfunction)
