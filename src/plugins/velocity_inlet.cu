@@ -12,7 +12,8 @@ enum {
     MAX_NEW_PARTICLE_PER_TRIANGLE = 5
 };
 
-namespace velocityInletKernels {
+namespace velocityInletKernels
+{
 
 __global__ void initCumulativeFluxes(float seed, int n, float *cumulativeFluxes)
 {
@@ -122,7 +123,7 @@ __global__ void generateParticles(float seed, float kBT, int nNewParticles, int 
     view.particles[2*dstId+1] = u.toFloat4();
 }
 
-}
+} // namespace velocityInletKernels
 
 
 VelocityInletPlugin::VelocityInletPlugin(const YmrState *state, std::string name, std::string pvName,
