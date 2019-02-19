@@ -16,7 +16,7 @@ private:
     std::string ovName;
     int dumpEvery;
 
-    std::vector<char> data;
+    std::vector<char> sendBuffer;
     std::vector<float3> vertices;
     PinnedBuffer<Particle>* srcVerts;
 
