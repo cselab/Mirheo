@@ -12,7 +12,10 @@ For more information, please refer to the online documentation: http://ymero.rea
 
 ## Changelog
 
-<!-- ### unreleased -->
+### unreleased
+
+
+* radial velocity control
 
 ### v0.10.4
 
