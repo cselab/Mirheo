@@ -23,7 +23,7 @@ struct DevicePacker
 #ifdef __CUDACC__
     /**
      * Pack entity with id srcId into memory starting with dstAddr
-     * Don't apply no shifts
+     * with no shift
      */
     inline __device__ void pack(int srcId, char *dstAddr) const
     {
@@ -39,6 +39,28 @@ struct DevicePacker
         _packShift<ShiftMode::NeedShift>  (srcId, dstAddr, shift);
     }
 
+    /**
+     * Pack entity with id srcId into another packer at id dstId
+     * with no shift
+     * Assumes that the 2 packers contain the same channels
+     */
+    inline __device__ void pack(int srcId, DevicePacker& dst, int dstId) const
+    {
+        _packShift<ShiftMode::NoShift> (srcId, dst, dstId, make_float3(0.f, 0.f, 0.f));
+    }
+
+    /**
+     * Pack entity with id srcId into another packer at id dstId
+     * Apply shifts where needed
+     * Assumes that the 2 packers contain the same channels
+     */
+    inline __device__ void packShift(int srcId, DevicePacker& dst, int dstId, float3 shift) const
+    {
+        _packShift<ShiftMode::NeedShift>  (srcId, dst, dstId, shift);
+    }
+
+    
+    
     /**
      * Unpack entity from memory by srcAddr to the channels to id dstId
      */
@@ -118,7 +140,7 @@ private:
     }
 
     /**
-     * Packing implementation
+     * Pack from channels to memory chunk (implementation)
      * Template parameter shiftmode governs shifting
      */
     template <ShiftMode shiftmode>
@@ -127,36 +149,65 @@ private:
         for (int i = 0; i < nChannels; i++)
         {
             const int size = channelSizes[i];
-            int done = 0;
+            const char *srcAddr = channelData[i] + size * srcId;
 
-            if (shiftmode == ShiftMode::NeedShift)
-            {
-                if (channelShiftTypes[i] == sizeof(float))
-                {
-                    float4 val = *((float4*) ( channelData[i] + size*srcId ));
-                    val.x += shift.x;
-                    val.y += shift.y;
-                    val.z += shift.z;
-                    *((float4*) dstAddr) = val;
-
-                    done = sizeof(float4);
-                }
-                else if (channelShiftTypes[i] == sizeof(double))
-                {
-                    double4 val = *((double4*) ( channelData[i] + size*srcId ));
-                    val.x += shift.x;
-                    val.y += shift.y;
-                    val.z += shift.z;
-                    *((double4*) dstAddr) = val;
-
-                    done = sizeof(double4);
-                }
-            }
-
-            copy(dstAddr + done, channelData[i] + size*srcId + done, size - done);
+            _packShiftOneChannel<shiftmode>(srcAddr, dstAddr, size, i, shift);
+            
             dstAddr += size;
         }
     }
+    
+    /**
+     * Pack from local channels to dst channels (implementation)
+     * Template parameter shiftmode governs shifting
+     */
+    template <ShiftMode shiftmode>
+    inline __device__ void _packShift(int srcId, DevicePacker& dst, int dstId, float3 shift) const
+    {
+        assert (nChannels == dst.nChannels);
+        
+        for (int i = 0; i < nChannels; i++)
+        {            
+            const int size = channelSizes[i];
+            const char *srcAddr =     channelData[i] + size * srcId;
+            char       *dstAddr = dst.channelData[i] + size * dstId;
+
+            _packShiftOneChannel<shiftmode>(srcAddr, dstAddr, size, i, shift);
+        }
+    }
+
+    template <ShiftMode shiftmode>
+    inline __device__ void _packShiftOneChannel(const char *srcAddr, char *dstAddr, int size, int channelId, float3 shift) const
+    {
+        int done = 0;
+
+        if (shiftmode == ShiftMode::NeedShift)
+        {
+            if (channelShiftTypes[channelId] == sizeof(float))
+            {
+                float4 val = *((float4*) ( srcAddr ));
+                val.x += shift.x;
+                val.y += shift.y;
+                val.z += shift.z;
+                *((float4*) dstAddr) = val;
+
+                done = sizeof(float4);
+            }
+            else if (channelShiftTypes[channelId] == sizeof(double))
+            {
+                double4 val = *((double4*) ( srcAddr ));
+                val.x += shift.x;
+                val.y += shift.y;
+                val.z += shift.z;
+                *((double4*) dstAddr) = val;
+
+                done = sizeof(double4);
+            }
+        }
+
+        copy(dstAddr + done, srcAddr + done, size - done);
+    }
+    
 #endif /* __CUDACC__ */
     
 protected:
