@@ -45,7 +45,7 @@ public:
 
     virtual bool needPostproc() = 0;
 
-    virtual void setup(Simulation* simulation, const MPI_Comm& comm, const MPI_Comm& interComm);
+    virtual void setup(Simulation *simulation, const MPI_Comm& comm, const MPI_Comm& interComm);
     virtual void finalize();    
 
 protected:

@@ -55,7 +55,11 @@ __global__ void moveParticles(DomainInfo domain, PVview view1, PVview view2,
 
 
 ExchangePVSFluxPlanePlugin::ExchangePVSFluxPlanePlugin(const YmrState *state, std::string name, std::string pv1Name, std::string pv2Name, float4 plane) :
-    SimulationPlugin(state, name), pv1Name(pv1Name), pv2Name(pv2Name), plane(plane), numberCrossedParticles(1)
+    SimulationPlugin(state, name),
+    pv1Name(pv1Name),
+    pv2Name(pv2Name),
+    plane(plane),
+    numberCrossedParticles(1)
 {}
 
 
