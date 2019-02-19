@@ -7,7 +7,7 @@
 
 #include <core/utils/cuda_common.h>
 
-namespace exchange_pvs_flux_plane_kernels {
+namespace ExchangePvsFluxPlaneKernels {
 
 __device__ inline bool hasCrossedPlane(DomainInfo domain, float3 pos, float4 plane)
 {
@@ -47,7 +47,7 @@ __global__ void moveParticles(DomainInfo domain, PVview view1, PVview view2, flo
     }
 }
 
-}
+} // namespace ExchangePvsFluxPlaneKernels
 
 
 ExchangePVSFluxPlanePlugin::ExchangePVSFluxPlanePlugin(const YmrState *state, std::string name, std::string pv1Name, std::string pv2Name, float4 plane) :
@@ -73,7 +73,7 @@ void ExchangePVSFluxPlanePlugin::beforeParticleDistribution(cudaStream_t stream)
     numberCrossedParticles.clear(stream);
     
     SAFE_KERNEL_LAUNCH(
-            exchange_pvs_flux_plane_kernels::countParticles,
+            ExchangePvsFluxPlaneKernels::countParticles,
             getNblocks(view1.size, nthreads), nthreads, 0, stream,
             domain, view1, plane, numberCrossedParticles.devPtr() );
 
@@ -88,9 +88,9 @@ void ExchangePVSFluxPlanePlugin::beforeParticleDistribution(cudaStream_t stream)
     view2 = PVview(pv2, pv2->local());
 
     SAFE_KERNEL_LAUNCH(
-                       exchange_pvs_flux_plane_kernels::moveParticles,
-                       getNblocks(view1.size, nthreads), nthreads, 0, stream,
-                       domain, view1, view2, plane, old_size2, numberCrossedParticles.devPtr() );
+            ExchangePvsFluxPlaneKernels::moveParticles,
+            getNblocks(view1.size, nthreads), nthreads, 0, stream,
+            domain, view1, view2, plane, old_size2, numberCrossedParticles.devPtr() );
 
 }
 

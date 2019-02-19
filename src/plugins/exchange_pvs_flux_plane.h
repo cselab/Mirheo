@@ -1,8 +1,9 @@
 #pragma once
 
-#include <plugins/interface.h>
+#include "interface.h"
+
 #include <core/containers.h>
-#include <vector>
+
 #include <string>
 
 class ParticleVector;
