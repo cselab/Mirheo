@@ -7,7 +7,7 @@
 
 namespace ParticleDisplacementPluginKernels {
 
-__global__ void extractPositions(PVview view, float3 *positions)
+__global__ void extractPositions(PVview view, float4 *positions)
 {
     int i = threadIdx.x + blockIdx.x * blockDim.x;
 
@@ -15,10 +15,10 @@ __global__ void extractPositions(PVview view, float3 *positions)
     
     Particle p;
     p.readCoordinate(view.particles, i);
-    positions[i] = p.r;
+    positions[i] = p.r2Float4();
 }
 
-__global__ void computeDisplacementsAndSavePositions(PVview view, float3 *positions, float3 *displacements)
+__global__ void computeDisplacementsAndSavePositions(PVview view, float4 *positions, float3 *displacements)
 {
     int i = threadIdx.x + blockIdx.x * blockDim.x;
 
@@ -27,8 +27,10 @@ __global__ void computeDisplacementsAndSavePositions(PVview view, float3 *positi
     Particle p;
     p.readCoordinate(view.particles, i);
 
-    displacements[i] = p.r - positions[i];
-    positions[i]     = p.r;
+    Float3_int oldPos(positions[i]);
+    
+    displacements[i] = p.r - oldPos.v;
+    positions[i]     = p.r2Float4();
 }
 
 } // namespace DisplacementKernels
@@ -49,21 +51,20 @@ void ParticleDisplacementPlugin::setup(Simulation *simulation, const MPI_Comm& c
 
     pv = simulation->getPVbyNameOrDie(pvName);
 
-    size_t shiftMode = sizeof(Particle::r.x);
     pv->requireDataPerParticle<float3>(displacementChannelName,
-                                       ExtraDataManager::CommunicationMode::None,
+                                       ExtraDataManager::CommunicationMode::NeedExchange,
                                        ExtraDataManager::PersistenceMode::Persistent);
 
-    pv->requireDataPerParticle<float3>(savedPositionChannelName,
-                                       ExtraDataManager::CommunicationMode::None,
+    pv->requireDataPerParticle<float4>(savedPositionChannelName,
+                                       ExtraDataManager::CommunicationMode::NeedExchange,
                                        ExtraDataManager::PersistenceMode::Persistent,
-                                       shiftMode);
+                                       sizeof(float4::x));
 
     PVview view(pv, pv->local());
     const int nthreads = 128;    
 
     auto& manager      = pv->local()->extraPerParticle;
-    auto positions     = manager.getData<float3>(savedPositionChannelName);
+    auto positions     = manager.getData<float4>(savedPositionChannelName);
     auto displacements = manager.getData<float3>(displacementChannelName);
 
     displacements->clear(defaultStream);
@@ -74,14 +75,14 @@ void ParticleDisplacementPlugin::setup(Simulation *simulation, const MPI_Comm& c
             view, positions->devPtr());
 }
 
-void ParticleDisplacementPlugin::beforeIntegration(cudaStream_t stream)
+void ParticleDisplacementPlugin::afterIntegration(cudaStream_t stream)
 {
     if (state->currentStep % updateEvery != 0)
         return;
 
     auto& manager = pv->local()->extraPerParticle;
     
-    auto positions     = manager.getData<float3>(savedPositionChannelName);
+    auto positions     = manager.getData<float4>(savedPositionChannelName);
     auto displacements = manager.getData<float3>( displacementChannelName);
 
     PVview view(pv, pv->local());

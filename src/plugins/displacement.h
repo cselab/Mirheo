@@ -12,7 +12,7 @@ public:
     ParticleDisplacementPlugin(const YmrState *state, std::string name, std::string pvName, int updateEvery);
     ~ParticleDisplacementPlugin();
 
-    void beforeIntegration(cudaStream_t stream) override;
+    void afterIntegration(cudaStream_t stream) override;
     
     void setup(Simulation *simulation, const MPI_Comm& comm, const MPI_Comm& interComm) override;
 
