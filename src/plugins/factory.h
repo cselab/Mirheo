@@ -7,6 +7,7 @@
 #include "average_flow.h"
 #include "average_relative_flow.h"
 #include "channel_dumper.h"
+#include "displacement.h"
 #include "dump_mesh.h"
 #include "dump_obj_position.h"
 #include "dump_particles.h"
@@ -263,10 +264,19 @@ createMembraneExtraForcePlugin(bool computeTask, const YmrState *state, std::str
 }
 
 static pair_shared< ParticleChannelSaverPlugin, PostprocessPlugin >
-createParticleChannelSaverPlugin(bool computeTask,  const YmrState *state, std::string name, ParticleVector *pv,
+createParticleChannelSaverPlugin(bool computeTask, const YmrState *state, std::string name, ParticleVector *pv,
                                  std::string channelName, std::string savedName)
 {
     auto simPl = computeTask ? std::make_shared<ParticleChannelSaverPlugin> (state, name, pv->name, channelName, savedName) : nullptr;
+    return { simPl, nullptr };
+}
+
+static pair_shared< ParticleDisplacementPlugin, PostprocessPlugin >
+createParticleDisplacementPlugin(bool computeTask, const YmrState *state, std::string name, ParticleVector *pv, int updateEvery)
+{
+    auto simPl = computeTask ?
+        std::make_shared<ParticleDisplacementPlugin> (state, name, pv->name, updateEvery) :
+        nullptr;
     return { simPl, nullptr };
 }
 

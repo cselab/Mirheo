@@ -5,7 +5,7 @@
 #include <core/pvs/views/pv.h>
 #include <core/utils/kernel_launch.h>
 
-namespace DisplacementKernels {
+namespace ParticleDisplacementPluginKernels {
 
 __global__ void extractPositions(PVview view, float3 *positions)
 {
@@ -33,7 +33,7 @@ __global__ void computeDisplacementsAndSavePositions(PVview view, float3 *positi
 
 } // namespace DisplacementKernels
 
-ParticleDisplacement::ParticleDisplacement(const YmrState *state, std::string name, std::string pvName, int updateEvery) :
+ParticleDisplacementPlugin::ParticleDisplacementPlugin(const YmrState *state, std::string name, std::string pvName, int updateEvery) :
     SimulationPlugin(state, name),
     pvName(pvName),
     pv(nullptr),
@@ -41,9 +41,9 @@ ParticleDisplacement::ParticleDisplacement(const YmrState *state, std::string na
     savedPositionChannelName("saved_position_"+name)
 {}
 
-ParticleDisplacement::~ParticleDisplacement() = default;
+ParticleDisplacementPlugin::~ParticleDisplacementPlugin() = default;
 
-void ParticleDisplacement::setup(Simulation *simulation, const MPI_Comm& comm, const MPI_Comm& interComm)
+void ParticleDisplacementPlugin::setup(Simulation *simulation, const MPI_Comm& comm, const MPI_Comm& interComm)
 {
     SimulationPlugin::setup(simulation, comm, interComm);
 
@@ -62,16 +62,19 @@ void ParticleDisplacement::setup(Simulation *simulation, const MPI_Comm& comm, c
     PVview view(pv, pv->local());
     const int nthreads = 128;    
 
-    auto& manager  = pv->local()->extraPerParticle;
-    auto positions = manager.getData<float3>(savedPositionChannelName);
+    auto& manager      = pv->local()->extraPerParticle;
+    auto positions     = manager.getData<float3>(savedPositionChannelName);
+    auto displacements = manager.getData<float3>(displacementChannelName);
+
+    displacements->clear(defaultStream);
     
     SAFE_KERNEL_LAUNCH(
-            DisplacementKernels::extractPositions,
+            ParticleDisplacementPluginKernels::extractPositions,
             getNblocks(view.size, nthreads), nthreads, 0, defaultStream,
             view, positions->devPtr());
 }
 
-void ParticleDisplacement::beforeIntegration(cudaStream_t stream)
+void ParticleDisplacementPlugin::beforeIntegration(cudaStream_t stream)
 {
     if (state->currentStep % updateEvery != 0)
         return;
@@ -85,7 +88,7 @@ void ParticleDisplacement::beforeIntegration(cudaStream_t stream)
     const int nthreads = 128;
 
     SAFE_KERNEL_LAUNCH(
-            DisplacementKernels::computeDisplacementsAndSavePositions,
+            ParticleDisplacementPluginKernels::computeDisplacementsAndSavePositions,
             getNblocks(view.size, nthreads), nthreads, 0, stream,
             view, positions->devPtr(), displacements->devPtr());    
 }

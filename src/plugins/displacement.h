@@ -6,11 +6,11 @@
 
 class ParticleVector;
 
-class ParticleDisplacement : public SimulationPlugin
+class ParticleDisplacementPlugin : public SimulationPlugin
 {
 public:
-    ParticleDisplacement(const YmrState *state, std::string name, std::string pvName, int updateEvery);
-    ~ParticleDisplacement();
+    ParticleDisplacementPlugin(const YmrState *state, std::string name, std::string pvName, int updateEvery);
+    ~ParticleDisplacementPlugin();
 
     void beforeIntegration(cudaStream_t stream) override;
     
@@ -24,6 +24,6 @@ private:
     ParticleVector *pv;
     int updateEvery;
 
-    const std::string displacementChannelName = "displacement";
+    const std::string displacementChannelName = "displacements";
     const std::string savedPositionChannelName;
 };

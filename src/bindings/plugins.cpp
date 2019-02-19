@@ -162,6 +162,13 @@ void exportPlugins(py::module& m)
         The data is dumped into hdf5 format. An additional xdfm file is dumped to describe the data and make it readable by visualization tools. 
     )");
 
+
+    py::handlers_class<ParticleDisplacementPlugin>(m, "ParticleDisplacementPlugin", pysim, R"(
+        This plugin computes and save the displacement of the particles within a given particle vector.
+        The result is stored inside the extra channel "displacements" as an array of float3.
+    )");
+
+    
     py::handlers_class<ParticleDumperPlugin>(m, "ParticleDumperPlugin", pypost, R"(
         Postprocess side plugin of :any:`ParticleSenderPlugin`.
         Responsible for performing the I/O.
@@ -528,6 +535,16 @@ void exportPlugins(py::module& m)
             pv: :any:`ParticleVector` that we'll work with
             channelName: the name of the source channel
             savedName: name of the extra channel
+    )");
+
+    m.def("__createParticleDisplacement", &PluginFactory::createParticleDisplacementPlugin, 
+          "compute_task"_a, "state"_a, "name"_a, "pv"_a, "update_every"_a, R"(
+        Create :any:`ParticleDisplacement` plugin
+        
+        Args:
+            name: name of the plugin
+            pv: :any:`ParticleVector` that we'll work with
+            update_every: displacements are computed between positions separated by this amount of timesteps
     )");
 
     m.def("__createPinObject", &PluginFactory::createPinObjPlugin, 
