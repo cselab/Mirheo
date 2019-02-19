@@ -65,6 +65,9 @@ void Average3D::setup(Simulation* simulation, const MPI_Comm& comm, const MPI_Co
 {
     SimulationPlugin::setup(simulation, comm, interComm);
 
+    rank3D   = simulation->rank3D;
+    nranks3D = simulation->nranks3D;
+    
     // TODO: this should be reworked if the domains are allowed to have different size
     resolution = make_int3( floorf(state->domain.localSize / binSize) );
     binSize = state->domain.localSize / make_float3(resolution);
@@ -212,7 +215,7 @@ void Average3D::handshake()
     for (auto t : channelsInfo.types)
         sizes.push_back(getNcomponents(t));
     
-    SimpleSerializer::serialize(data, simulation->nranks3D, simulation->rank3D, resolution, binSize, sizes, channelsInfo.names);
+    SimpleSerializer::serialize(data, nranks3D, rank3D, resolution, binSize, sizes, channelsInfo.names);
     send(data);
 }
 

@@ -164,8 +164,7 @@ void AverageRelative3D::extractLocalBlock()
 
         int ncomponents = this->getNcomponents(type);
 
-        int3 globalResolution = resolution * simulation->nranks3D;
-        int3 rank3D = simulation->rank3D;
+        int3 globalResolution = resolution * nranks3D;
 
         double factor;
         int dstId = 0;

@@ -44,6 +44,7 @@ protected:
     int sampleEvery, dumpEvery;
     int3 resolution;
     float3 binSize;
+    int3 rank3D, nranks3D;
 
     DeviceBuffer<float>   density;
     PinnedBuffer<double>  accumulated_density;

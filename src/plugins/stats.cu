@@ -7,8 +7,10 @@
 #include <core/utils/cuda_common.h>
 #include <core/utils/kernel_launch.h>
 
-namespace Stats
+namespace StatsKernels
 {
+using Stats::ReductionType;
+
 __global__ void totalMomentumEnergy(PVview view, ReductionType *momentum, ReductionType *energy, float* maxvel)
 {
     const int tid = blockIdx.x * blockDim.x + threadIdx.x;
@@ -35,7 +37,7 @@ __global__ void totalMomentumEnergy(PVview view, ReductionType *momentum, Reduct
         atomicMax((int*)maxvel, __float_as_int(myMaxIvelI));
     }
 }
-}
+} // namespace StatsKernels
     
 SimulationStats::SimulationStats(const YmrState *state, std::string name, int fetchEvery) :
     SimulationPlugin(state, name),
@@ -44,11 +46,17 @@ SimulationStats::SimulationStats(const YmrState *state, std::string name, int fe
     timer.start();
 }
 
+SimulationStats::~SimulationStats() = default;
+
+void SimulationStats::setup(Simulation *simulation, const MPI_Comm& comm, const MPI_Comm& interComm)
+{
+    SimulationPlugin::setup(simulation, comm, interComm);
+    pvs = simulation->getParticleVectors();
+}
+
 void SimulationStats::afterIntegration(cudaStream_t stream)
 {
     if (state->currentStep % fetchEvery != 0) return;
-
-    auto pvs = simulation->getParticleVectors();
 
     momentum.clear(stream);
     energy  .clear(stream);
@@ -60,7 +68,7 @@ void SimulationStats::afterIntegration(cudaStream_t stream)
         PVview view(pv, pv->local());
 
         SAFE_KERNEL_LAUNCH(
-                Stats::totalMomentumEnergy,
+                StatsKernels::totalMomentumEnergy,
                 getNblocks(view.size, 128), 128, 0, stream,
                 view, momentum.devPtr(), energy.devPtr(), maxvel.devPtr() );
 

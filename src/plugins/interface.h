@@ -51,7 +51,6 @@ public:
 protected:
     int localSendSize;
     MPI_Request sizeReq, dataReq;
-    Simulation *simulation;
 
     int _tag();
     

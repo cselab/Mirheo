@@ -47,7 +47,7 @@ void MagneticOrientationPlugin::beforeForces(cudaStream_t stream)
     ROVview view(rov, rov->local());
     const int nthreads = 128;
 
-    auto t = simulation->getCurrentTime();
+    auto t = state->currentTime;
     float3 B = magneticFunction(t);
     
     SAFE_KERNEL_LAUNCH(
