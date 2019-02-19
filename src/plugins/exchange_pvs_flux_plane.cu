@@ -1,11 +1,11 @@
 #include "exchange_pvs_flux_plane.h"
 
-#include <core/utils/kernel_launch.h>
+#include <core/pvs/extra_data/packers.h>
 #include <core/pvs/particle_vector.h>
 #include <core/pvs/views/pv.h>
 #include <core/simulation.h>
-
 #include <core/utils/cuda_common.h>
+#include <core/utils/kernel_launch.h>
 
 namespace ExchangePvsFluxPlaneKernels {
 
@@ -27,7 +27,9 @@ __global__ void countParticles(DomainInfo domain, PVview view1, float4 plane, in
         atomicAdd(numberCrossed, 1);
 }
 
-__global__ void moveParticles(DomainInfo domain, PVview view1, PVview view2, float4 plane, int oldsize2, int *numberCrossed)
+__global__ void moveParticles(DomainInfo domain, PVview view1, PVview view2,
+                              float4 plane, int oldsize2, int *numberCrossed,
+                              ParticleExtraPacker extra1, ParticleExtraPacker extra2)
 {
     int pid = blockIdx.x * blockDim.x + threadIdx.x;
     if (pid >= view1.size) return;
@@ -44,6 +46,8 @@ __global__ void moveParticles(DomainInfo domain, PVview view1, PVview view2, flo
 
         p.mark();
         p.write2Float4(view1.particles, pid);
+
+        extra1.pack(pid, extra2, dst);
     }
 }
 
@@ -87,10 +91,17 @@ void ExchangePVSFluxPlanePlugin::beforeParticleDistribution(cudaStream_t stream)
 
     view2 = PVview(pv2, pv2->local());
 
+    auto packPredicate = [](const ExtraDataManager::NamedChannelDesc& namedDesc) {
+        return namedDesc.second->persistence == ExtraDataManager::PersistenceMode::Persistent;
+    };
+    
+    ParticleExtraPacker extra1(pv1, pv1->local(), packPredicate, stream);
+    ParticleExtraPacker extra2(pv2, pv2->local(), packPredicate, stream);
+
     SAFE_KERNEL_LAUNCH(
             ExchangePvsFluxPlaneKernels::moveParticles,
             getNblocks(view1.size, nthreads), nthreads, 0, stream,
-            domain, view1, view2, plane, old_size2, numberCrossedParticles.devPtr() );
+            domain, view1, view2, plane, old_size2, numberCrossedParticles.devPtr(), extra1, extra2 );
 
 }
 
