@@ -20,6 +20,7 @@
 #include "membrane_extra_force.h"
 #include "particle_channel_saver.h"
 #include "pin_object.h"
+#include "radial_velocity_control.h"
 #include "stats.h"
 #include "temperaturize.h"
 #include "velocity_control.h"
@@ -284,10 +285,10 @@ createPinObjPlugin(bool computeTask, const YmrState *state, std::string name, Ob
 }
 
 static pair_shared< SimulationVelocityControl, PostprocessVelocityControl >
-createSimulationVelocityControlPlugin(bool computeTask, const YmrState *state, std::string name, std::string filename, std::vector<ParticleVector*> pvs,
-                                      PyTypes::float3 low, PyTypes::float3 high,
-                                      int sampleEvery, int tuneEvery, int dumpEvery,
-                                      PyTypes::float3 targetVel, float Kp, float Ki, float Kd)
+createVelocityControlPlugin(bool computeTask, const YmrState *state, std::string name, std::string filename, std::vector<ParticleVector*> pvs,
+                            PyTypes::float3 low, PyTypes::float3 high,
+                            int sampleEvery, int tuneEvery, int dumpEvery,
+                            PyTypes::float3 targetVel, float Kp, float Ki, float Kd)
 {
     std::vector<std::string> pvNames;
     if (computeTask) extractPVsNames(pvs, pvNames);
@@ -301,6 +302,27 @@ createSimulationVelocityControlPlugin(bool computeTask, const YmrState *state, s
     auto postPl = computeTask ?
         nullptr :
         std::make_shared<PostprocessVelocityControl> (name, filename);
+
+    return { simPl, postPl };
+}
+
+static pair_shared< SimulationRadialVelocityControl, PostprocessRadialVelocityControl >
+createRadialVelocityControlPlugin(bool computeTask, const YmrState *state, std::string name, std::string filename, std::vector<ParticleVector*> pvs,
+                                  float minRadius, float maxRadius, int sampleEvery, int tuneEvery, int dumpEvery,
+                                  PyTypes::float3 center, float targetVel, float Kp, float Ki, float Kd)
+{
+    std::vector<std::string> pvNames;
+    if (computeTask) extractPVsNames(pvs, pvNames);
+        
+    auto simPl = computeTask ?
+        std::make_shared<SimulationRadialVelocityControl>(state, name, pvNames, minRadius, maxRadius, 
+                                                          sampleEvery, tuneEvery, dumpEvery,
+                                                          make_float3(center), targetVel, Kp, Ki, Kd) :
+        nullptr;
+
+    auto postPl = computeTask ?
+        nullptr :
+        std::make_shared<PostprocessRadialVelocityControl> (name, filename);
 
     return { simPl, postPl };
 }

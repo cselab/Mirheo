@@ -1,3 +1,5 @@
+#pragma once
+
 template <typename ControlType>
 class PidControl {
 public:
