@@ -1,13 +1,13 @@
 #pragma once
 
-#include <plugins/interface.h>
+#include "interface.h"
+
 #include <core/containers.h>
 #include <core/domain.h>
 
 #include <vector>
 
 class ParticleVector;
-class CellList;
 
 class Average3D : public SimulationPlugin
 {

@@ -1,14 +1,14 @@
 #include "average_flow.h"
 
-#include <core/utils/kernel_launch.h>
-#include <core/simulation.h>
+#include "sampling_helpers.h"
+#include "simple_serializer.h"
+
+#include <core/celllist.h>
 #include <core/pvs/particle_vector.h>
 #include <core/pvs/views/pv.h>
-#include <core/celllist.h>
+#include <core/simulation.h>
 #include <core/utils/cuda_common.h>
-
-#include "simple_serializer.h"
-#include "sampling_helpers.h"
+#include <core/utils/kernel_launch.h>
 
 namespace AverageFlowKernels {
 

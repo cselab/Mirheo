@@ -1,13 +1,13 @@
 #include "magnetic_orientation.h"
 
-#include <core/utils/kernel_launch.h>
 #include <core/pvs/rigid_object_vector.h>
 #include <core/pvs/views/rov.h>
-#include <core/simulation.h>
-
-
-#include <core/utils/cuda_common.h>
 #include <core/rigid_kernels/quaternion.h>
+#include <core/simulation.h>
+#include <core/utils/cuda_common.h>
+#include <core/utils/kernel_launch.h>
+
+namespace MagneticOrientationPluginKernels {
 
 __global__ void applyMagneticField(ROVview view, float3 B, float3 M)
 {
@@ -23,6 +23,7 @@ __global__ void applyMagneticField(ROVview view, float3 B, float3 M)
     view.motions[gid].torque += T;
 }
 
+} // namespace MagneticOrientationPluginKernels
 
 MagneticOrientationPlugin::MagneticOrientationPlugin(const YmrState *state, std::string name, std::string rovName,
                                                      float3 moment, UniformMagneticFunc magneticFunction) :
@@ -51,7 +52,7 @@ void MagneticOrientationPlugin::beforeForces(cudaStream_t stream)
     float3 B = magneticFunction(t);
     
     SAFE_KERNEL_LAUNCH(
-            applyMagneticField,
+            MagneticOrientationPluginKernels::applyMagneticField,
             getNblocks(view.size, nthreads), nthreads, 0, stream,
             view, B, moment);
 }
