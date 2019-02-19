@@ -1,18 +1,18 @@
 #include "average_relative_flow.h"
 
-#include <core/utils/kernel_launch.h>
-#include <core/simulation.h>
+#include "sampling_helpers.h"
+#include "simple_serializer.h"
+
+#include <core/celllist.h>
+#include <core/pvs/object_vector.h>
 #include <core/pvs/particle_vector.h>
 #include <core/pvs/views/pv.h>
 #include <core/rigid_kernels/rigid_motion.h>
-#include <core/pvs/object_vector.h>
-#include <core/celllist.h>
+#include <core/simulation.h>
 #include <core/utils/cuda_common.h>
+#include <core/utils/kernel_launch.h>
 
-#include "simple_serializer.h"
-#include "sampling_helpers.h"
-
-namespace average_relative_flow_kernels {
+namespace AverageRelativeFlowKernels {
 
 __global__ void sampleRelative(
         PVview pvView, CellListInfo cinfo,
@@ -32,10 +32,10 @@ __global__ void sampleRelative(
 
     atomicAdd(avgDensity + cid, 1);
 
-    sampling_helpers_kernels::sampleChannels(pid, cid, channelsInfo);
+    SamplingHelpersKernels::sampleChannels(pid, cid, channelsInfo);
 }
 
-}
+} // namespace AverageRelativeFlowKernels
 
 AverageRelative3D::AverageRelative3D(
     const YmrState *state, std::string name, std::vector<std::string> pvNames,
@@ -98,7 +98,7 @@ void AverageRelative3D::sampleOnePv(float3 relativeParam, ParticleVector *pv, cu
 
     const int nthreads = 128;
     SAFE_KERNEL_LAUNCH
-        (average_relative_flow_kernels::sampleRelative,
+        (AverageRelativeFlowKernels::sampleRelative,
          getNblocks(pvView.size, nthreads), nthreads, 0, stream,
          pvView, cinfo, density.devPtr(), gpuInfo, relativeParam);
 }
@@ -203,7 +203,7 @@ void AverageRelative3D::serializeAndSend(cudaStream_t stream)
             const int nthreads = 128;
 
             SAFE_KERNEL_LAUNCH
-                (sampling_helpers_kernels::correctVelocity,
+                (SamplingHelpersKernels::correctVelocity,
                  getNblocks(data.size() / 3, nthreads), nthreads, 0, stream,
                  data.size() / 3, (double3*)data.devPtr(), accumulated_density.devPtr(), averageRelativeVelocity / (float) nSamples);
 

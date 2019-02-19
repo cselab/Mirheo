@@ -1,5 +1,7 @@
 #pragma once
 
+#include <core/utils/cuda_common.h>
+
 struct ChannelsInfo
 {
     int n;
@@ -25,7 +27,7 @@ struct ChannelsInfo
 };
 
 
-namespace sampling_helpers_kernels {
+namespace SamplingHelpersKernels {
 
 __device__ inline void sampleChannels(int pid, int cid, ChannelsInfo channelsInfo)
 {
@@ -86,4 +88,4 @@ __global__ static void accumulate(int n, int fieldComponents, const float *src, 
         dst[id] += src[id];
 }
 
-}
+} // namespace SamplingHelpersKernels

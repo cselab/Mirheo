@@ -10,7 +10,7 @@
 #include "simple_serializer.h"
 #include "sampling_helpers.h"
 
-namespace average_flow_kernels {
+namespace AverageFlowKernels {
 
 __global__ void sample(
         PVview pvView, CellListInfo cinfo,
@@ -26,10 +26,10 @@ __global__ void sample(
 
     atomicAdd(avgDensity + cid, 1);
 
-    sampling_helpers_kernels::sampleChannels(pid, cid, channelsInfo);
+    SamplingHelpersKernels::sampleChannels(pid, cid, channelsInfo);
 }
 
-}
+} // namespace AverageFlowKernels
 
 int Average3D::getNcomponents(Average3D::ChannelType type) const
 {
@@ -115,7 +115,7 @@ void Average3D::sampleOnePv(ParticleVector *pv, cudaStream_t stream)
 
     const int nthreads = 128;
     SAFE_KERNEL_LAUNCH
-        (average_flow_kernels::sample,
+        (AverageFlowKernels::sample,
          getNblocks(pvView.size, nthreads), nthreads, 0, stream,
          pvView, cinfo, density.devPtr(), gpuInfo);
 }
@@ -124,7 +124,7 @@ static void accumulateOneArray(int n, int components, const float *src, double *
 {
     const int nthreads = 128;
     SAFE_KERNEL_LAUNCH
-        (sampling_helpers_kernels::accumulate,
+        (SamplingHelpersKernels::accumulate,
          getNblocks(n * components, nthreads), nthreads, 0, stream,
          n, components, src, dst);
 }
@@ -175,7 +175,7 @@ void Average3D::scaleSampled(cudaStream_t stream)
         int components = getNcomponents(channelsInfo.types[i]);
 
         SAFE_KERNEL_LAUNCH
-            (sampling_helpers_kernels::scaleVec,
+            (SamplingHelpersKernels::scaleVec,
              getNblocks(ncells, nthreads), nthreads, 0, stream,
              ncells, components, data.devPtr(), accumulated_density.devPtr() );
 
@@ -184,7 +184,7 @@ void Average3D::scaleSampled(cudaStream_t stream)
     }
 
     SAFE_KERNEL_LAUNCH(
-            sampling_helpers_kernels::scaleDensity,
+            SamplingHelpersKernels::scaleDensity,
             getNblocks(ncells, nthreads), nthreads, 0, stream,
             ncells, accumulated_density.devPtr(), 1.0 / (nSamples * binSize.x*binSize.y*binSize.z) );
 
