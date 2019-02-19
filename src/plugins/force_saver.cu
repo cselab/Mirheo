@@ -7,6 +7,8 @@
 
 const std::string ForceSaverPlugin::fieldName = "forces";
 
+namespace ForceSaverKernels {
+
 __global__ void copyForces(PVview view, float3 *savedForces)
 {
     int pid = blockIdx.x * blockDim.x + threadIdx.x;
@@ -15,6 +17,8 @@ __global__ void copyForces(PVview view, float3 *savedForces)
     float3 f = Float3_int(view.forces[pid]).v;
     savedForces[pid] = f;
 }
+
+} // namespace ForceSaverKernels
 
 ForceSaverPlugin::ForceSaverPlugin(const YmrState *state, std::string name, std::string pvName) :
     SimulationPlugin(state, name), pvName(pvName), pv(nullptr)
@@ -27,7 +31,7 @@ void ForceSaverPlugin::beforeIntegration(cudaStream_t stream)
     const int nthreads = 128;
 
     SAFE_KERNEL_LAUNCH(
-            copyForces,
+            ForceSaverKernels::copyForces,
             getNblocks(view.size, nthreads), nthreads, 0, stream,
             view, savedForces->devPtr() );
 }
