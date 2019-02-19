@@ -91,11 +91,7 @@ void exportInteractions(py::module& m)
 
         .. math::
             
-            w_\rho(r) = \begin{cases} \frac{15}{2\pi r_d^3}\left(1-\frac{r}{r_d}\right)^2, & r < r_d \\ 0, & r \geqslant r_d \end{cases}
-            
-        .. [Warren2003] Warren, P. B. 
-           "Vapor-liquid coexistence in many-body dissipative particle dynamics."
-           Physical Review E 68.6 (2003): 066702.`_
+            w_\rho(r) = \begin{cases} \frac{15}{2\pi r_d^3}\left(1-\frac{r}{r_d}\right)^2, & r < r_d \\ 0, & r \geqslant r_d \end{cases}            
     )");
     
     pyIntDensity.def(py::init<const YmrState*, std::string, float>(),
@@ -120,7 +116,7 @@ void exportInteractions(py::module& m)
         .. math::
 
             w_c(r) = \begin{cases} (1-\frac{r}{r_c}), & r < r_c \\ 0, & r \geqslant r_c \end{cases} \\
-            w_d(r) = \begin{cases} (1-\frac{r}{r_d}), & r < r_d \\ 0, & r \geqslant r_d \end{cases}.
+            w_d(r) = \begin{cases} (1-\frac{r}{r_d}), & r < r_d \\ 0, & r \geqslant r_d \end{cases}
 
 
         .. [Warren2003] Warren, P. B. 

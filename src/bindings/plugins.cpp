@@ -162,6 +162,13 @@ void exportPlugins(py::module& m)
         The data is dumped into hdf5 format. An additional xdfm file is dumped to describe the data and make it readable by visualization tools. 
     )");
 
+
+    py::handlers_class<ParticleDisplacementPlugin>(m, "ParticleDisplacementPlugin", pysim, R"(
+        This plugin computes and save the displacement of the particles within a given particle vector.
+        The result is stored inside the extra channel "displacements" as an array of float3.
+    )");
+
+    
     py::handlers_class<ParticleDumperPlugin>(m, "ParticleDumperPlugin", pypost, R"(
         Postprocess side plugin of :any:`ParticleSenderPlugin`.
         Responsible for performing the I/O.
@@ -195,6 +202,18 @@ void exportPlugins(py::module& m)
         Responsible for performing the I/O.
     )");
     
+
+    py::handlers_class<SimulationRadialVelocityControl>(m, "RadialVelocityControl", pysim, R"(
+        This plugin applies a radial force (decreasing as :math:`r^3`) to all the particles of the target PVS.
+        The force is adapted via a PID controller such that the average of the velocity times radial position of the particles matches a target value.
+    )");
+
+    py::handlers_class<PostprocessRadialVelocityControl>(m, "PostprocessRadialVelocityControl", pypost, R"(
+        Postprocess side plugin of :any:`RadialVelocityControl`.
+        Responsible for performing the I/O.
+    )");
+
+
     py::handlers_class<SimulationStats>(m, "SimulationStats", pysim, R"(
         This plugin will report aggregate quantities of all the particles in the simulation:
         total number of particles in the simulation, average temperature and momentum, maximum velocity magnutide of a particle
@@ -518,6 +537,16 @@ void exportPlugins(py::module& m)
             savedName: name of the extra channel
     )");
 
+    m.def("__createParticleDisplacement", &PluginFactory::createParticleDisplacementPlugin, 
+          "compute_task"_a, "state"_a, "name"_a, "pv"_a, "update_every"_a, R"(
+        Create :any:`ParticleDisplacement` plugin
+        
+        Args:
+            name: name of the plugin
+            pv: :any:`ParticleVector` that we'll work with
+            update_every: displacements are computed between positions separated by this amount of timesteps
+    )");
+
     m.def("__createPinObject", &PluginFactory::createPinObjPlugin, 
           "compute_task"_a, "state"_a, "name"_a, "ov"_a, "dump_every"_a, "path"_a, "velocity"_a, "angular_velocity"_a, R"(
         Create :any:`PinObject` plugin
@@ -531,6 +560,24 @@ void exportPlugins(py::module& m)
                 If the corresponding component should not be restricted, set this value to :python:`PinObject::Unrestricted`
             angular_velocity: 3 floats, each component is the desired object angular velocity.
                 If the corresponding component should not be restricted, set this value to :python:`PinObject::Unrestricted`
+    )");
+
+    m.def("__createRadialVelocityControl", &PluginFactory::createRadialVelocityControlPlugin,
+          "compute_task"_a, "state"_a, "name"_a, "filename"_a, "pvs"_a, "minRadius"_a, "maxRadius"_a, 
+          "sample_every"_a, "tune_every"_a, "dump_every"_a, "center"_a, "target_vel"_a, "Kp"_a, "Ki"_a, "Kd"_a, R"(
+        Create :any:`VelocityControl` plugin
+        
+        Args:
+            name: name of the plugin
+            filename: dump file name 
+            pvs: list of concerned :class:`ParticleVector`
+            minRadius, maxRadius: only particles within this distance are considered 
+            sample_every: sample velocity every this many time-steps
+            tune_every: adapt the force every this many time-steps
+            dump_every: write files every this many time-steps
+            center: center of the radial coordinates
+            target_vel: the target mean velocity of the particles at :math:`r=1`
+            Kp, Ki, Kd: PID controller coefficients
     )");
 
     m.def("__createStats", &PluginFactory::createStatsPlugin,
@@ -554,7 +601,7 @@ void exportPlugins(py::module& m)
             keepVelocity: True for adding Maxwell distribution to the previous velocity; False to set the velocity to a Maxwell distribution.
     )");
 
-    m.def("__createVelocityControl", &PluginFactory::createSimulationVelocityControlPlugin,
+    m.def("__createVelocityControl", &PluginFactory::createVelocityControlPlugin,
           "compute_task"_a, "state"_a, "name"_a, "filename"_a, "pvs"_a, "low"_a, "high"_a,
           "sample_every"_a, "tune_every"_a, "dump_every"_a, "target_vel"_a, "Kp"_a, "Ki"_a, "Kd"_a, R"(
         Create :any:`VelocityControl` plugin

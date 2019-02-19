@@ -5,7 +5,7 @@ import numpy as np
 import argparse
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--geometry", choices=["sphere", 'cylinder'])
+parser.add_argument("--geometry", choices=["sphere", 'cylinder', 'plane'])
 args = parser.parse_args()
 
 dt  = 0.001
@@ -62,6 +62,19 @@ elif args.geometry == "cylinder":
         factor = max([factor, 0.])
         return (factor * x, factor * y, 0)
 
+elif args.geometry == "plane":
+    # plane perpendicular to y direction with velocity in circular patch or radius R
+    def inlet_surface(r):
+        return r[1] - center[1]
+    
+    def inlet_velocity(r):
+        x = r[0] - center[0]
+        z = r[2] - center[2]
+        R = 2.0
+        U = 1 - (x**2 + z**2) / R**2
+        U = vel * max([U, 0.])
+        return (0, U, 0)
+
 else:
     exit(1)
     
@@ -90,3 +103,9 @@ del (u)
 # rm -rf h5
 # ymr.run --runargs "-n 2" ./velocity_inlet.py --geometry cylinder  > /dev/null
 # ymr.avgh5 yz density h5/solvent-0000*.h5 > profile.out.txt
+
+# nTEST: plugins.velocityInlet.plane
+# cd plugins
+# rm -rf h5
+# ymr.run --runargs "-n 2" ./velocity_inlet.py --geometry plane  > /dev/null
+# ymr.avgh5 xz density h5/solvent-0000*.h5 > profile.out.txt

@@ -14,6 +14,18 @@ For more information, please refer to the online documentation: http://ymero.rea
 
 <!-- ### unreleased -->
 
+### v0.10.5
+
+* add displacement plugin
+* add radial velocity control plugin 
+* **fix** reordering of extra data in celllists
+* **fix** pvsExchanger plugin also copies persistent channels
+* add test for pvsExchanger
+* add test for displacement plugin
+* internal changes:
+  * packers can copy to another packer
+  * defaultStream in `core/utils/cuda_common.h`
+
 ### v0.10.4
 
 * add velocity inlet plugin

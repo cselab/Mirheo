@@ -19,8 +19,7 @@ u.registerParticleVector(pv=pv, ic=ic)
 
 dumpEvery   = 1
 
-pvDump = ymr.Plugins.createDumpParticles('partDump', pv, dumpEvery, [], 'h5/solvent_particles-')
-u.registerPlugins(pvDump)
+u.registerPlugins(ymr.Plugins.createDumpParticles('partDump', pv, dumpEvery, [], 'h5/solvent_particles-'))
 
 u.run(2)
 

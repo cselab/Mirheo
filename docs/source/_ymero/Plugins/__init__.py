@@ -140,6 +140,12 @@ class ParticleChannelSaver(SimulationPlugin):
         It copies the content of an extra channel of pv at each time step and make it accessible by other plugins.
     
     """
+class ParticleDisplacementPlugin(SimulationPlugin):
+    r"""
+        This plugin computes and save the displacement of the particles within a given particle vector.
+        The result is stored inside the extra channel "displacements" as an array of float3.
+    
+    """
 class ParticleDumperPlugin(PostprocessPlugin):
     r"""
         Postprocess side plugin of :any:`ParticleSenderPlugin`.
@@ -174,6 +180,12 @@ class PinObject(SimulationPlugin):
             This plugin is inactive if postprocess is disabled
     
     """
+class PostprocessRadialVelocityControl(PostprocessPlugin):
+    r"""
+        Postprocess side plugin of :any:`RadialVelocityControl`.
+        Responsible for performing the I/O.
+    
+    """
 class PostprocessStats(PostprocessPlugin):
     r"""
         Postprocess side plugin of :any:`SimulationStats`.
@@ -184,6 +196,12 @@ class PostprocessVelocityControl(PostprocessPlugin):
     r"""
         Postprocess side plugin of :any:`VelocityControl`.
         Responsible for performing the I/O.
+    
+    """
+class RadialVelocityControl(SimulationPlugin):
+    r"""
+        This plugin applies a radial force (decreasing as :math:`r^3`) to all the particles of the target PVS.
+        The force is adapted via a PID controller such that the average of the velocity times radial position of the particles matches a target value.
     
     """
 class ReportPinObject(PostprocessPlugin):
@@ -595,6 +613,21 @@ def createParticleChannelSaver():
     """
     pass
 
+def createParticleDisplacement():
+    r"""createParticleDisplacement(state: YmrState, name: str, pv: ParticleVectors.ParticleVector, update_every: int) -> Tuple[Plugins.ParticleDisplacementPlugin, Plugins.PostprocessPlugin]
+
+
+        Create :any:`ParticleDisplacement` plugin
+        
+        Args:
+            name: name of the plugin
+            pv: :any:`ParticleVector` that we'll work with
+            update_every: displacements are computed between positions separated by this amount of timesteps
+    
+
+    """
+    pass
+
 def createPinObject():
     r"""createPinObject(state: YmrState, name: str, ov: ParticleVectors.ObjectVector, dump_every: int, path: str, velocity: Tuple[float, float, float], angular_velocity: Tuple[float, float, float]) -> Tuple[Plugins.PinObject, Plugins.ReportPinObject]
 
@@ -610,6 +643,28 @@ def createPinObject():
                 If the corresponding component should not be restricted, set this value to :python:`PinObject::Unrestricted`
             angular_velocity: 3 floats, each component is the desired object angular velocity.
                 If the corresponding component should not be restricted, set this value to :python:`PinObject::Unrestricted`
+    
+
+    """
+    pass
+
+def createRadialVelocityControl():
+    r"""createRadialVelocityControl(state: YmrState, name: str, filename: str, pvs: List[ParticleVectors.ParticleVector], minRadius: float, maxRadius: float, sample_every: int, tune_every: int, dump_every: int, center: Tuple[float, float, float], target_vel: float, Kp: float, Ki: float, Kd: float) -> Tuple[Plugins.RadialVelocityControl, Plugins.PostprocessRadialVelocityControl]
+
+
+        Create :any:`VelocityControl` plugin
+        
+        Args:
+            name: name of the plugin
+            filename: dump file name 
+            pvs: list of concerned :class:`ParticleVector`
+            minRadius, maxRadius: only particles within this distance are considered 
+            sample_every: sample velocity every this many time-steps
+            tune_every: adapt the force every this many time-steps
+            dump_every: write files every this many time-steps
+            center: center of the radial coordinates
+            target_vel: the target mean velocity of the particles at :math:`r=1`
+            Kp, Ki, Kd: PID controller coefficients
     
 
     """

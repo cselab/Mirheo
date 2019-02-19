@@ -3,6 +3,8 @@
 #include <tuple>
 #include "helper_math.h"
 
+static const cudaStream_t defaultStream = 0;
+
 // shuffle instructions wrappers
 #if __CUDACC_VER_MAJOR__ >= 9
 

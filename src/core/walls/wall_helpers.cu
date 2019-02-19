@@ -1,18 +1,15 @@
-#include <curand_kernel.h>
-
 #include "wall_helpers.h"
 
+#include <core/celllist.h>
 #include <core/logger.h>
 #include <core/pvs/particle_vector.h>
 #include <core/pvs/views/pv.h>
 #include <core/utils/cuda_common.h>
-#include <core/celllist.h>
 #include <core/utils/kernel_launch.h>
+#include <core/walls/simple_stationary_wall.h>
 #include <core/xdmf/xdmf.h>
 
-#include <core/walls/simple_stationary_wall.h>
-
-static const cudaStream_t default_stream = 0;
+#include <curand_kernel.h>
 
 namespace wall_helpers_kernels
 {
@@ -89,25 +86,25 @@ static void extract_particles(ParticleVector *pv, const float *sdfs, float minVa
     const int nthreads = 128;
     const int nblocks = getNblocks(view.size, nthreads);
 
-    nFrozen.clear(default_stream);
+    nFrozen.clear(defaultStream);
 
     SAFE_KERNEL_LAUNCH
         (wall_helpers_kernels::collectFrozen<true>,
-         nblocks, nthreads, 0, default_stream,
+         nblocks, nthreads, 0, defaultStream,
          view, sdfs, minVal, maxVal, nullptr, nFrozen.devPtr());
 
-    nFrozen.downloadFromDevice(default_stream);
+    nFrozen.downloadFromDevice(defaultStream);
 
     PinnedBuffer<Particle> frozen(nFrozen[0]);
     info("Freezing %d particles", nFrozen[0]);
 
-    pv->local()->resize(nFrozen[0], default_stream);
+    pv->local()->resize(nFrozen[0], defaultStream);
 
-    nFrozen.clear(default_stream);
+    nFrozen.clear(defaultStream);
     
     SAFE_KERNEL_LAUNCH
         (wall_helpers_kernels::collectFrozen<false>,
-         nblocks, nthreads, 0, default_stream,
+         nblocks, nthreads, 0, defaultStream,
          view, sdfs, minVal, maxVal, (float4*)frozen.devPtr(), nFrozen.devPtr());
 
     CUDA_Check( cudaDeviceSynchronize() );
@@ -120,7 +117,7 @@ void freezeParticlesInWall(SDF_basedWall *wall, ParticleVector *pv, float minVal
 
     DeviceBuffer<float> sdfs(pv->local()->size());
     
-    wall->sdfPerParticle(pv->local(), &sdfs, nullptr, 0, default_stream);
+    wall->sdfPerParticle(pv->local(), &sdfs, nullptr, 0, defaultStream);
 
     extract_particles(pv, sdfs.devPtr(), minVal, maxVal);
 }
@@ -139,16 +136,16 @@ void freezeParticlesInWalls(std::vector<SDF_basedWall*> walls, ParticleVector *p
 
     SAFE_KERNEL_LAUNCH
         (wall_helpers_kernels::init_sdf,
-         nblocks, nthreads, 0, default_stream,
+         nblocks, nthreads, 0, defaultStream,
          n, sdfs_merged.devPtr(), minVal - safety);
     
     
     for (auto& wall : walls) {
-        wall->sdfPerParticle(pv->local(), &sdfs, nullptr, 0, default_stream);
+        wall->sdfPerParticle(pv->local(), &sdfs, nullptr, 0, defaultStream);
 
         SAFE_KERNEL_LAUNCH
             (wall_helpers_kernels::merge_sdfs,
-             nblocks, nthreads, 0, default_stream,
+             nblocks, nthreads, 0, defaultStream,
              n, sdfs.devPtr(), sdfs_merged.devPtr());
     }
 
@@ -171,7 +168,7 @@ void dumpWalls2XDMF(std::vector<SDF_basedWall*> walls, float3 gridH, DomainInfo 
 
     SAFE_KERNEL_LAUNCH
         (wall_helpers_kernels::init_sdf,
-         nblocks, nthreads, 0, default_stream,
+         nblocks, nthreads, 0, defaultStream,
          n, sdfs_merged.devPtr(), initial);
     
     for (auto& wall : walls)
@@ -180,7 +177,7 @@ void dumpWalls2XDMF(std::vector<SDF_basedWall*> walls, float3 gridH, DomainInfo 
 
         SAFE_KERNEL_LAUNCH
             (wall_helpers_kernels::merge_sdfs,
-             nblocks, nthreads, 0, default_stream,
+             nblocks, nthreads, 0, defaultStream,
              n, sdfs.devPtr(), sdfs_merged.devPtr());
     }
 
@@ -205,31 +202,31 @@ double volumeInsideWalls(std::vector<SDF_basedWall*> walls, DomainInfo domain, M
 
     SAFE_KERNEL_LAUNCH
         (wall_helpers_kernels::initRandomPositions,
-         nblocks, nthreads, 0, default_stream,
+         nblocks, nthreads, 0, defaultStream,
          n, positions.devPtr(), 424242, domain.localSize);
 
     SAFE_KERNEL_LAUNCH
         (wall_helpers_kernels::init_sdf,
-         nblocks, nthreads, 0, default_stream,
+         nblocks, nthreads, 0, defaultStream,
          n, sdfs_merged.devPtr(), initial);
         
     for (auto& wall : walls) {
-        wall->sdfPerPosition(&positions, &sdfs, default_stream);
+        wall->sdfPerPosition(&positions, &sdfs, defaultStream);
 
         SAFE_KERNEL_LAUNCH
             (wall_helpers_kernels::merge_sdfs,
-             nblocks, nthreads, 0, default_stream,
+             nblocks, nthreads, 0, defaultStream,
              n, sdfs.devPtr(), sdfs_merged.devPtr());
     }
 
-    nInside.clear(default_stream);
+    nInside.clear(defaultStream);
     
     SAFE_KERNEL_LAUNCH
         (wall_helpers_kernels::countInside,
-         nblocks, nthreads, 0, default_stream,
+         nblocks, nthreads, 0, defaultStream,
          n, sdfs_merged.devPtr(), nInside.devPtr());
 
-    nInside.downloadFromDevice(default_stream, ContainersSynch::Synch);
+    nInside.downloadFromDevice(defaultStream, ContainersSynch::Synch);
 
     float3 localSize = domain.localSize;
     double subDomainVolume = localSize.x * localSize.y * localSize.z;
