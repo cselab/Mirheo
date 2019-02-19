@@ -14,8 +14,11 @@ For more information, please refer to the online documentation: http://ymero.rea
 
 ### unreleased
 
-
 * radial velocity control
+* **fix** pvsExchanger plugin also copies persistent channels
+* add test for pvsExchanger
+* internal changes:
+  * packers can copy to another packer
 
 ### v0.10.4
 
