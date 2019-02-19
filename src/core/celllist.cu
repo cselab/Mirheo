@@ -9,7 +9,11 @@
 
 #include <extern/cub/cub/device/device_scan.cuh>
 
-static __device__ bool outgoingParticle(float4 pos)
+namespace CellListKernels {
+
+enum {INVALID = -1};
+
+inline __device__ bool outgoingParticle(float4 pos)
 {
     return Float3_int(pos).isMarked();
 }
@@ -61,24 +65,30 @@ __global__ void reorderParticles(PVview view, CellListInfo cinfo, float4 *outPar
         writeNoCache(outParticles + 2*dstId+sh, val);
         if (sh == 0) cinfo.order[pid] = dstId;
     }
+    else if (sh == 0)
+        cinfo.order[pid] = INVALID;
 }
 
 template <typename T>
 __global__ void reorderExtraDataPerParticle(int n, const T *inExtraData, CellListInfo cinfo, T *outExtraData)
 {
-    const int srcId = blockIdx.x * blockDim.x + threadIdx.x;
+    int srcId = blockIdx.x * blockDim.x + threadIdx.x;
     if (srcId >= n) return;
 
-    const int dstId = cinfo.order[srcId];
-    outExtraData[dstId] = inExtraData[srcId];
+    int dstId = cinfo.order[srcId];
+    if (dstId != INVALID)
+        outExtraData[dstId] = inExtraData[srcId];
 }
 
 __global__ void addForcesKernel(PVview dstView, CellListInfo cinfo, PVview srcView)
 {
-    const int pid = blockIdx.x * blockDim.x + threadIdx.x;
+    int pid = blockIdx.x * blockDim.x + threadIdx.x;
     if (pid >= dstView.size) return;
 
-    dstView.forces[pid] += srcView.forces[cinfo.order[pid]];
+    int srcId = cinfo.order[pid];
+
+    if (srcId != INVALID)
+        dstView.forces[pid] += srcView.forces[srcId];
 }
 
 template <typename T>
@@ -87,9 +97,13 @@ __global__ void accumulateKernel(int n, T *dst, CellListInfo cinfo, const T *src
     int pid = blockIdx.x * blockDim.x + threadIdx.x;
     if (pid >= n) return;
 
-    dst[pid] += src[cinfo.order[pid]];
+    int srcId = cinfo.order[pid];
+
+    if (srcId != INVALID)
+        dst[pid] += src[srcId];
 }
 
+} // namespace CellListKernels
 
 //=================================================================================
 // Info
@@ -161,7 +175,7 @@ void CellList::_computeCellSizes(cudaStream_t stream)
 
     const int nthreads = 128;
     SAFE_KERNEL_LAUNCH(
-            computeCellSizes,
+            CellListKernels::computeCellSizes,
             getNblocks(view.size, nthreads), nthreads, 0, stream,
             view, cellInfo() );
 }
@@ -186,7 +200,7 @@ void CellList::_reorderData(cudaStream_t stream)
 
     const int nthreads = 128;
     SAFE_KERNEL_LAUNCH(
-        reorderParticles,
+        CellListKernels::reorderParticles,
         getNblocks(2*view.size, nthreads), nthreads, 0, stream,
         view, cellInfo(), (float4*)particlesDataContainer->coosvels.devPtr() );
 }
@@ -205,7 +219,7 @@ static void reorderExtraDataEntry(int np, CellListInfo cinfo, ExtraDataManager *
     const int nthreads = 128;
 
     SAFE_KERNEL_LAUNCH(
-        reorderExtraDataPerParticle<T>,
+        CellListKernels::reorderExtraDataPerParticle<T>,
         getNblocks(np, nthreads), nthreads, 0, stream,
         np, inExtraData, cinfo, outExtraData );
 }
@@ -307,7 +321,7 @@ void CellList::_accumulateExtraData(std::vector<ChannelActivity>& channels, cuda
                 auto dst = pv->local()->extraPerParticle.getData<ctype>(entry.name); \
                 int n = pv->local()->size();                            \
                 SAFE_KERNEL_LAUNCH(                                     \
-                    accumulateKernel<ctype>,                            \
+                    CellListKernels::accumulateKernel<ctype>,                            \
                     getNblocks(n, nthreads), nthreads, 0, stream,       \
                     n, dst->devPtr(), cellInfo(), src->devPtr() );      \
             }                                                           \
@@ -330,7 +344,7 @@ void CellList::accumulateInteractionOutput(cudaStream_t stream)
     int nthreads = 128;
 
     SAFE_KERNEL_LAUNCH(
-            addForcesKernel,
+            CellListKernels::addForcesKernel,
             getNblocks(dstView.size, nthreads), nthreads, 0, stream,
             dstView, cellInfo(), getView<PVview>() );
 
