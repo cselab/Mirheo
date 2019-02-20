@@ -191,10 +191,10 @@ void MPIExchangeEngine::wait(ExchangeHelper* helper, cudaStream_t stream)
         pvName.c_str(), singleCopy ? "on" : "off", gpuAwareMPI ? "on" : "off");
     
     double waitTime = 0;
+    mTimer tm;
     // Wait for all if we want to copy all at once
     if (singleCopy || gpuAwareMPI)
     {
-        mTimer tm;
         tm.start();
         MPI_Check( MPI_Waitall(helper->requests.size(), helper->requests.data(), MPI_STATUSES_IGNORE) );
         waitTime = tm.elapsed();
@@ -203,9 +203,8 @@ void MPIExchangeEngine::wait(ExchangeHelper* helper, cudaStream_t stream)
     }
     else
     {
-        mTimer tm;
         // Wait and upload one by one
-        for (int i=0; i<helper->requests.size(); i++)    
+        for (int i = 0; i < helper->requests.size(); i++)
         {
             int idx;
             tm.start();
