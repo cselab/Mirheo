@@ -31,12 +31,13 @@ SimulationPlugin::SimulationPlugin(const YmrState *state, std::string name) :
 
 SimulationPlugin::~SimulationPlugin() = default;
 
-void SimulationPlugin::beforeForces               (cudaStream_t stream) {};
-void SimulationPlugin::beforeIntegration          (cudaStream_t stream) {};
-void SimulationPlugin::afterIntegration           (cudaStream_t stream) {};
-void SimulationPlugin::beforeParticleDistribution (cudaStream_t stream) {};
+void SimulationPlugin::beforeCellLists            (cudaStream_t stream) {}
+void SimulationPlugin::beforeForces               (cudaStream_t stream) {}
+void SimulationPlugin::beforeIntegration          (cudaStream_t stream) {}
+void SimulationPlugin::afterIntegration           (cudaStream_t stream) {}
+void SimulationPlugin::beforeParticleDistribution (cudaStream_t stream) {}
 
-void SimulationPlugin::serializeAndSend (cudaStream_t stream) {};
+void SimulationPlugin::serializeAndSend (cudaStream_t stream) {}
 
 
 void SimulationPlugin::setup(Simulation* simulation, const MPI_Comm& comm, const MPI_Comm& interComm)

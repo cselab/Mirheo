@@ -36,6 +36,7 @@ public:
     SimulationPlugin(const YmrState *state, std::string name);
     virtual ~SimulationPlugin();
 
+    virtual void beforeCellLists            (cudaStream_t stream);
     virtual void beforeForces               (cudaStream_t stream);
     virtual void beforeIntegration          (cudaStream_t stream);
     virtual void afterIntegration           (cudaStream_t stream);

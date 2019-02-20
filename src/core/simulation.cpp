@@ -814,6 +814,7 @@ void Simulation::assemble()
     auto task_objRedistInit                       = scheduler->createTask("Object redistribute init");
     auto task_objRedistFinalize                   = scheduler->createTask("Object redistribute finalize");
 
+    auto task_pluginsBeforeCellLists              = scheduler->createTask("Plugins: before cell lists");
     auto task_pluginsBeforeForces                 = scheduler->createTask("Plugins: before forces");
     auto task_pluginsSerializeSend                = scheduler->createTask("Plugins: serialize and send");
     auto task_pluginsBeforeIntegration            = scheduler->createTask("Plugins: before integration");
@@ -856,6 +857,10 @@ void Simulation::assemble()
     for (auto& pl : plugins)
     {
         auto plPtr = pl.get();
+
+        scheduler->addTask(task_pluginsBeforeCellLists, [plPtr, this] (cudaStream_t stream) {
+            plPtr->beforeCellLists(stream);
+        });
 
         scheduler->addTask(task_pluginsBeforeForces, [plPtr, this] (cudaStream_t stream) {
             plPtr->beforeForces(stream);
@@ -1045,8 +1050,9 @@ void Simulation::assemble()
         if (every > 0)
             scheduler->addTask(task_wallCheck, [this, wall] (cudaStream_t stream) { wall->check(stream); }, every);
     }
-
-
+    
+    scheduler->addDependency(task_pluginsBeforeCellLists, { task_cellLists }, {});
+    
     scheduler->addDependency(task_checkpoint, { task_clearForces }, { task_cellLists });
 
     scheduler->addDependency(task_correctObjBelonging, { task_cellLists }, {});
