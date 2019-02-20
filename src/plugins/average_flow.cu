@@ -209,13 +209,12 @@ void Average3D::serializeAndSend(cudaStream_t stream)
 
 void Average3D::handshake()
 {
-    std::vector<char> data;
     std::vector<int> sizes;
 
     for (auto t : channelsInfo.types)
         sizes.push_back(getNcomponents(t));
     
-    SimpleSerializer::serialize(data, nranks3D, rank3D, resolution, binSize, sizes, channelsInfo.names);
-    send(data);
+    SimpleSerializer::serialize(sendBuffer, nranks3D, rank3D, resolution, binSize, sizes, channelsInfo.names);
+    send(sendBuffer);
 }
 

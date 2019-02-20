@@ -15,7 +15,7 @@ private:
     std::string pvName;
     int dumpEvery;
 
-    std::vector<char> data;
+    std::vector<char> sendBuffer;
 
     ParticleVector* pv;
     

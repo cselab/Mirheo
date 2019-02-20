@@ -38,8 +38,8 @@ void XYZPlugin::serializeAndSend(cudaStream_t stream)
         p.r = state->domain.local2global(p.r);
 
     waitPrevSend();
-    SimpleSerializer::serialize(data, pv->name, downloaded);
-    send(data);
+    SimpleSerializer::serialize(sendBuffer, pv->name, downloaded);
+    send(sendBuffer);
 }
 
 //=================================================================================
