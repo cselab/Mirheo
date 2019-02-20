@@ -166,6 +166,23 @@ CellList::CellList(ParticleVector *pv, int3 resolution, float3 localDomainSize) 
 
 CellList::~CellList() = default;
 
+bool CellList::_checkNeedBuild() const
+{
+    if (changedStamp == pv->cellListStamp)
+    {
+        debug2("%s is already up-to-date, building skipped", makeName().c_str());
+        return false;
+    }
+
+    if (pv->local()->size() == 0)
+    {
+        debug2("%s consists of no particles, building skipped", makeName().c_str());
+        return false;
+    }
+
+    return true;
+}
+
 void CellList::_computeCellSizes(cudaStream_t stream)
 {
     debug2("%s : Computing cell sizes for %d particles", makeName().c_str(), pv->local()->size());
@@ -285,18 +302,8 @@ CellListInfo CellList::cellInfo()
 
 void CellList::build(cudaStream_t stream)
 {
-    if (changedStamp == pv->cellListStamp)
-    {
-        debug2("Cell-list for %s is already up-to-date, building skipped", pv->name.c_str());
-        return;
-    }
-
-    if (pv->local()->size() == 0)
-    {
-        debug2("%s consists of no particles, cell-list building skipped", pv->name.c_str());
-        return;
-    }
-
+    if (!_checkNeedBuild()) return;
+    
     debug("building %s", makeName().c_str());
     
     _build(stream);
@@ -479,6 +486,12 @@ void PrimaryCellList::build(cudaStream_t stream)
 {
     CellList::build(stream);
 
+    if (pv->local()->size() == 0)
+    {
+        debug2("%s consists of no particles, cell-list building skipped", pv->name.c_str());
+        return;
+    }
+    
     // Now we need the new size of particles array.
     int newSize;
     CUDA_Check( cudaMemcpyAsync(&newSize, cellStarts.devPtr() + totcells, sizeof(int), cudaMemcpyDeviceToHost, stream) );
@@ -510,27 +523,36 @@ void PrimaryCellList::gatherInteractionIntermediate(cudaStream_t stream)
     }
 }
 
+template <typename T>
+static void swap(const std::string& channelName, ExtraDataManager& pvManager, ExtraDataManager& containerManager)
+{
+    if (!containerManager.checkChannelExists(channelName))
+        containerManager.createData<T>(channelName);
+
+    std::swap(*pvManager       .getData<T>(channelName),
+              *containerManager.getData<T>(channelName));
+}
+
 void PrimaryCellList::_swapPersistentExtraData()
 {
-    auto pvManager        = &pv->local()->extraPerParticle;
-    auto containerManager = &particlesDataContainer->extraPerParticle;
+    auto& pvManager        = pv->local()->extraPerParticle;
+    auto& containerManager = particlesDataContainer->extraPerParticle;
     
-    for (const auto& namedChannel : pvManager->getSortedChannels()) {
+    for (const auto& namedChannel : pvManager.getSortedChannels()) {
         const auto& name = namedChannel.first;
         const auto& desc = namedChannel.second;
         if (desc->persistence != ExtraDataManager::PersistenceMode::Persistent) continue;
 
 #define SWITCH_ENTRY(ctype)                                             \
         case DataType::TOKENIZE(ctype):                                 \
-            std::swap(*pvManager       ->getData<ctype>(name),          \
-                      *containerManager->getData<ctype>(name));         \
-                break;
+            swap<ctype>(name, pvManager, containerManager);             \
+            break;
 
         switch(desc->dataType) {
             TYPE_TABLE(SWITCH_ENTRY);
         default:
-            die("cannot swap data: %s has None type.",
-                makeName().c_str());
+            die("%s: cannot swap data: %s has None type.",
+                makeName().c_str(), name.c_str());
         }
 
 #undef SWITCH_ENTRY        
