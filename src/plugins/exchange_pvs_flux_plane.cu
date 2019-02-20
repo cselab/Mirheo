@@ -9,35 +9,47 @@
 
 namespace ExchangePvsFluxPlaneKernels {
 
-__device__ inline bool hasCrossedPlane(DomainInfo domain, float3 pos, float4 plane)
+__device__ inline bool sidePlane(float4 plane, float3 r)
 {
-    pos = domain.local2global(pos);
-    return plane.x * pos.x + plane.y * pos.y + plane.z * pos.z + plane.w >= 0.f;
+    return plane.x * r.x + plane.y * r.y + plane.z * r.z + plane.w >= 0.f;
 }
 
-// TODO use cell lists
-__global__ void countParticles(DomainInfo domain, PVview view1, float4 plane, int *numberCrossed)
+__device__ inline bool hasCrossedPlane(DomainInfo domain, float3 pos, float3 oldPos, float4 plane)
+{
+    pos    = domain.local2global(pos);
+    oldPos = domain.local2global(oldPos);
+    return sidePlane(plane, pos) && !sidePlane(plane, oldPos);
+}
+
+__global__ void countParticles(DomainInfo domain, PVviewWithOldParticles view1, float4 plane, int *numberCrossed)
 {
     int pid = blockIdx.x * blockDim.x + threadIdx.x;
     if (pid >= view1.size) return;
 
-    Particle p;
-    p.readCoordinate(view1.particles, pid);
-    if (hasCrossedPlane(domain, p.r, plane))
+    Particle p, pold;
+    p   .readCoordinate(view1.particles,     pid);
+    pold.readCoordinate(view1.old_particles, pid);
+
+    if (p.isMarked()) return;
+
+    if (hasCrossedPlane(domain, p.r, pold.r, plane))
         atomicAdd(numberCrossed, 1);
 }
 
-__global__ void moveParticles(DomainInfo domain, PVview view1, PVview view2,
+__global__ void moveParticles(DomainInfo domain, PVviewWithOldParticles view1, PVview view2,
                               float4 plane, int oldsize2, int *numberCrossed,
                               ParticleExtraPacker extra1, ParticleExtraPacker extra2)
 {
     int pid = blockIdx.x * blockDim.x + threadIdx.x;
     if (pid >= view1.size) return;
 
-    Particle p;
-    p.readCoordinate(view1.particles, pid);
+    Particle p, pold;
+    p   .readCoordinate(view1.particles,     pid);
+    pold.readCoordinate(view1.old_particles, pid);    
 
-    if (hasCrossedPlane(domain, p.r, plane)) {
+    if (p.isMarked()) return;
+    
+    if (hasCrossedPlane(domain, p.r, pold.r, plane)) {
         p.readVelocity(view1.particles, pid);
         int dst = atomicAdd(numberCrossed, 1);
         dst += oldsize2;
@@ -69,13 +81,16 @@ void ExchangePVSFluxPlanePlugin::setup(Simulation* simulation, const MPI_Comm& c
 
     pv1 = simulation->getPVbyNameOrDie(pv1Name);
     pv2 = simulation->getPVbyNameOrDie(pv2Name);
+
+    pv1->requireDataPerParticle<Particle> (ChannelNames::oldParts, ExtraDataManager::CommunicationMode::None, ExtraDataManager::PersistenceMode::Persistent, sizeof(float));
+    pv2->requireDataPerParticle<Particle> (ChannelNames::oldParts, ExtraDataManager::CommunicationMode::None, ExtraDataManager::PersistenceMode::Persistent, sizeof(float));
 }
 
-void ExchangePVSFluxPlanePlugin::beforeParticleDistribution(cudaStream_t stream)
+void ExchangePVSFluxPlanePlugin::beforeCellLists(cudaStream_t stream)
 {
     DomainInfo domain = state->domain;
-    PVview view1(pv1, pv1->local());
-    PVview view2(pv2, pv2->local());
+    PVviewWithOldParticles view1(pv1, pv1->local());
+    PVview                 view2(pv2, pv2->local());
     const int nthreads = 128;
 
     numberCrossedParticles.clear(stream);
