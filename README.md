@@ -12,7 +12,12 @@ For more information, please refer to the online documentation: http://ymero.rea
 
 ## Changelog
 
-<!-- ### unreleased -->
+### unreleased
+
+* internal change: add before cell list plugin task
+* **fix**: pvs exchanger plugin: new particles are now correctly redistributed
+* **fix**: velocity inlet plugin: new particles are now correctly redistributed
+* **fix**: communication of persistent data to empty pvs
 
 ### v0.10.5
 
