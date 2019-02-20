@@ -151,6 +151,7 @@ protected:
     ParticleVector* pv;
 
     bool _checkNeedBuild() const;
+    void _updateExtraDataChannels(cudaStream_t stream);
     void _computeCellSizes(cudaStream_t stream);
     void _computeCellStarts(cudaStream_t stream);
     void _reorderData(cudaStream_t stream);

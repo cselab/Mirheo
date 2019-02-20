@@ -87,8 +87,8 @@ __global__ void addForcesKernel(PVview dstView, CellListInfo cinfo, PVview srcVi
 
     int srcId = cinfo.order[pid];
 
-    if (srcId != INVALID)
-        dstView.forces[pid] += srcView.forces[srcId];
+    assert(srcId != INVALID);
+    dstView.forces[pid] += srcView.forces[srcId];
 }
 
 template <typename T>
@@ -99,8 +99,8 @@ __global__ void accumulateKernel(int n, T *dst, CellListInfo cinfo, const T *src
 
     int srcId = cinfo.order[pid];
 
-    if (srcId != INVALID)
-        dst[pid] += src[srcId];
+    assert(srcId != INVALID);
+    dst[pid] += src[srcId];
 }
 
 } // namespace CellListKernels
@@ -183,6 +183,40 @@ bool CellList::_checkNeedBuild() const
     return true;
 }
 
+template <typename T>
+static void requireData(const std::string& channelName, int np, ExtraDataManager& containerManager)
+{
+    if (!containerManager.checkChannelExists(channelName))
+        containerManager.createData<T>(channelName, np);
+}
+
+
+void CellList::_updateExtraDataChannels(cudaStream_t stream)
+{
+    auto& pvManager        = pv->local()->extraPerParticle;
+    auto& containerManager = particlesDataContainer->extraPerParticle;
+    int np = pv->local()->size();
+
+    for (const auto& namedChannel : pvManager.getSortedChannels()) {
+        const auto& name = namedChannel.first;
+        const auto& desc = namedChannel.second;
+        if (desc->persistence != ExtraDataManager::PersistenceMode::Persistent) continue;
+
+#define SWITCH_ENTRY(ctype)                                             \
+        case DataType::TOKENIZE(ctype):                                 \
+            requireData<ctype>(name, np, containerManager);             \
+            break;
+
+        switch(desc->dataType) {
+            TYPE_TABLE(SWITCH_ENTRY);
+        default:
+            die("%s: cannot require extra data: %s has None type.", makeName().c_str(), name.c_str());
+        }
+
+#undef SWITCH_ENTRY        
+    }
+}
+
 void CellList::_computeCellSizes(cudaStream_t stream)
 {
     debug2("%s : Computing cell sizes for %d particles", makeName().c_str(), pv->local()->size());
@@ -227,9 +261,6 @@ static void reorderExtraDataEntry(int np, CellListInfo cinfo, ExtraDataManager *
                                   const ExtraDataManager::ChannelDescription *channel, const std::string& channelName,
                                   cudaStream_t stream)
 {
-    if (!dstExtraData->checkChannelExists(channelName))
-        dstExtraData->createData<T>(channelName, np);
-
     T      *outExtraData = dstExtraData->getData<T>(channelName)->devPtr();
     const T *inExtraData = (const T*) channel->container->genericDevPtr();
 
@@ -302,6 +333,8 @@ CellListInfo CellList::cellInfo()
 
 void CellList::build(cudaStream_t stream)
 {
+    _updateExtraDataChannels(stream);
+        
     if (!_checkNeedBuild()) return;
     
     debug("building %s", makeName().c_str());
@@ -526,9 +559,6 @@ void PrimaryCellList::gatherInteractionIntermediate(cudaStream_t stream)
 template <typename T>
 static void swap(const std::string& channelName, ExtraDataManager& pvManager, ExtraDataManager& containerManager)
 {
-    if (!containerManager.checkChannelExists(channelName))
-        containerManager.createData<T>(channelName);
-
     std::swap(*pvManager       .getData<T>(channelName),
               *containerManager.getData<T>(channelName));
 }
