@@ -166,8 +166,8 @@ void VelocityInletPlugin::setup(Simulation *simulation, const MPI_Comm& comm, co
         surfaceVelocity[i] = velocityField(r);
     }
 
-    surfaceTriangles.uploadToDevice(0);
-    surfaceVelocity .uploadToDevice(0);
+    surfaceTriangles.uploadToDevice(defaultStream);
+    surfaceVelocity .uploadToDevice(defaultStream);
 
     cumulativeFluxes.resize_anew(nTriangles);
     localFluxes     .resize_anew(nTriangles);
@@ -178,19 +178,19 @@ void VelocityInletPlugin::setup(Simulation *simulation, const MPI_Comm& comm, co
     
     SAFE_KERNEL_LAUNCH(
         velocityInletKernels::initCumulativeFluxes,
-        getNblocks(nTriangles, nthreads), nthreads, 0, 0,
+        getNblocks(nTriangles, nthreads), nthreads, 0, defaultStream,
         seed, nTriangles, cumulativeFluxes.devPtr() );
 
     SAFE_KERNEL_LAUNCH(
         velocityInletKernels::initLocalFluxes,
-        getNblocks(nTriangles, nthreads), nthreads, 0, 0,
+        getNblocks(nTriangles, nthreads), nthreads, 0, defaultStream,
         nTriangles,
         surfaceTriangles.devPtr(),
         surfaceVelocity.devPtr(),
         localFluxes.devPtr() );
 }
 
-void VelocityInletPlugin::beforeParticleDistribution(cudaStream_t stream)
+void VelocityInletPlugin::beforeCellLists(cudaStream_t stream)
 {
     PVview view(pv, pv->local());
     int nTriangles = surfaceTriangles.size() / 3;
