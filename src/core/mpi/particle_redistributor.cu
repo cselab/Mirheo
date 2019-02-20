@@ -137,14 +137,15 @@ void ParticleRedistributor::prepareSizes(int id, cudaStream_t stream)
     debug2("Counting leaving particles of '%s'", pv->name.c_str());
 
     helper->sendSizes.clear(stream);
+
+    auto packer = ParticlePacker(pv, pv->local(), packPredicates[id], stream);
+    helper->setDatumSize(packer.packedSize_byte);
+
     if (pv->local()->size() > 0)
     {
         const int maxdim = std::max({cl->ncells.x, cl->ncells.y, cl->ncells.z});
         const int nthreads = 64;
         const dim3 nblocks = dim3(getNblocks(maxdim*maxdim, nthreads), 6, 1);
-
-        auto packer = ParticlePacker(pv, pv->local(), packPredicates[id], stream);
-        helper->setDatumSize(packer.packedSize_byte);
 
         SAFE_KERNEL_LAUNCH(
                 ParticleRedistributorKernels::getExitingParticles<PackMode::Query>,
