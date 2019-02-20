@@ -176,6 +176,26 @@ void MPIExchangeEngine::postRecv(ExchangeHelper* helper)
     debug("Posted receive for %d %s entities", totalRecvd, pvName.c_str());
 }
 
+static void SafeWaitAll(int count, MPI_Request array_of_requests[])
+{
+    std::vector<MPI_Status> statuses(count);
+    int code = MPI_Waitall(count, array_of_requests, statuses.data());
+
+    if (code != MPI_SUCCESS) {
+        std::string allErrors;
+        char buf[MPI_MAX_ERROR_STRING];
+        int nchar;
+        MPI_Error_string(code, buf, &nchar);
+        allErrors += std::string(buf) + "\n";
+        for (int i = 0; i < count; ++i) {            
+            MPI_Error_string(statuses[i].MPI_ERROR, buf, &nchar);
+            allErrors += std::string(buf) + "\n";
+        }
+
+        die("Waitall errors:\n%s", allErrors.c_str());
+    }
+}
+
 /**
  * helper->recvBuf will contain all the data, ON DEVICE already
  */
@@ -196,7 +216,8 @@ void MPIExchangeEngine::wait(ExchangeHelper* helper, cudaStream_t stream)
     if (singleCopy || gpuAwareMPI)
     {
         tm.start();
-        MPI_Check( MPI_Waitall(helper->requests.size(), helper->requests.data(), MPI_STATUSES_IGNORE) );
+        // MPI_Check( MPI_Waitall(helper->requests.size(), helper->requests.data(), MPI_STATUSES_IGNORE) );
+        SafeWaitAll(helper->requests.size(), helper->requests.data());
         waitTime = tm.elapsed();
         if (!gpuAwareMPI)
             helper->recvBuf.uploadToDevice(stream);
