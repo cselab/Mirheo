@@ -39,8 +39,7 @@ ParticleDisplacementPlugin::ParticleDisplacementPlugin(const YmrState *state, st
     SimulationPlugin(state, name),
     pvName(pvName),
     pv(nullptr),
-    updateEvery(updateEvery),
-    savedPositionChannelName("saved_position_"+name)
+    updateEvery(updateEvery)
 {}
 
 ParticleDisplacementPlugin::~ParticleDisplacementPlugin() = default;

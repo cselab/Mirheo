@@ -25,5 +25,5 @@ private:
     int updateEvery;
 
     const std::string displacementChannelName = "displacements";
-    const std::string savedPositionChannelName;
+    const std::string savedPositionChannelName = "saved_positions_displacements";
 };

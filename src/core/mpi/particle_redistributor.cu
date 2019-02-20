@@ -96,7 +96,7 @@ __global__ static void unpackParticles(ParticlePacker packer, int startDstId, ch
 
     packer.unpack(buffer + pid*packer.packedSize_byte, pid+startDstId);
 }
-}
+} // namespace ParticleRedistributorKernels
 
 //===============================================================================================
 // Member functions

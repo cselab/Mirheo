@@ -88,7 +88,7 @@ void ExchangePVSFluxPlanePlugin::beforeParticleDistribution(cudaStream_t stream)
     numberCrossedParticles.downloadFromDevice(stream, ContainersSynch::Synch);
 
     const int old_size2 = view2.size;
-    const int new_size2 = old_size2 + numberCrossedParticles.hostPtr()[0];
+    const int new_size2 = old_size2 + numberCrossedParticles[0];
 
     pv2->local()->resize(new_size2, stream);
     numberCrossedParticles.clear(stream);
