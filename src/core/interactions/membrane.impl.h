@@ -63,12 +63,12 @@ class InteractionMembrane : public Interaction
 public:
 
     InteractionMembrane(const YmrState *state, std::string name, MembraneParameters parameters,
-                        DihedralInteraction dihedralInteraction, bool stressFree, float growUntil) :
+                        typename DihedralInteraction::ParametersType dihedralParams, bool stressFree, float growUntil) :
         Interaction(state, name, 1.0f),
         parameters(parameters),
         stressFree(stressFree),
         scaleFromTime( [growUntil] (float t) { return min(1.0f, 0.5f + 0.5f * (t / growUntil)); } ),
-        dihedralInteraction(dihedralInteraction)
+        dihedralParams(dihedralParams)
     {}
 
     ~InteractionMembrane() = default;
@@ -102,12 +102,13 @@ public:
         const int nblocks  = getNblocks(view.size, nthreads);
 
         auto devParams = setParams(currentParams, ov->mesh.get(), state->dt, state->currentTime);
+        DihedralInteraction dihedralInteraction(dihedralParams, scale);
 
         devParams.scale = scale;
 
         SAFE_KERNEL_LAUNCH(MembraneForcesKernels::computeMembraneForces,
                            nblocks, nthreads, 0, stream,
-                           stressFree, this->dihedralInteraction, dihedralView,
+                           stressFree, dihedralInteraction, dihedralView,
                            view, mesh, devParams);
 
     }
@@ -119,5 +120,5 @@ protected:
     bool stressFree;
     std::function< float(float) > scaleFromTime;
     MembraneParameters parameters;
-    DihedralInteraction dihedralInteraction;
+    typename DihedralInteraction::ParametersType dihedralParams;
 };

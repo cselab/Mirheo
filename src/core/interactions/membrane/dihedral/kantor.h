@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../fetchers.h"
+#include "../parameters.h"
 
 #include <core/utils/cpu_gpu_defines.h>
 #include <core/utils/helper_math.h>
@@ -10,11 +11,16 @@
 class DihedralKantor : public VertexFetcher
 {
 public:    
+
+    using ParametersType = KantorBendingParameters;
     
-    DihedralKantor(float kb, float theta0) :
-        cost0kb(cos(theta0 / 180.0 * M_PI) * kb),
-        sint0kb(sin(theta0 / 180.0 * M_PI) * kb)
-    {}
+    DihedralKantor(ParametersType p, float lscale)        
+    {
+        float theta0 = p.theta / 180.0 * M_PI;
+        
+        cost0kb = cos(theta0) * p.kb * lscale * lscale;
+        sint0kb = sin(theta0) * p.kb * lscale * lscale;
+    }
 
     __D__ inline void computeCommon(const ViewType& view, int rbcId)
     {}

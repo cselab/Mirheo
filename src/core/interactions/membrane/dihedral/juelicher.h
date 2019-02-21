@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../fetchers.h"
+#include "../parameters.h"
 
 #include <core/utils/cpu_gpu_defines.h>
 #include <core/utils/helper_math.h>
@@ -10,14 +11,18 @@
 class DihedralJuelicher : public VertexFetcherWithMeanCurvatures
 {
 public:    
+
+    using ParametersType = JuelicherBendingParameters;
     
-    DihedralJuelicher(float kb, float C0, float kad, float DA0) :
-        kb(kb),
-        H0(C0/2),
-        kad_pi(kad * M_PI),
-        DA0(DA0),
+    DihedralJuelicher(ParametersType p, float lscale) :
         scurv(0)
-    {}
+    {
+        kb     = p.kb         * lscale*lscale;
+        kad_pi = p.kad * M_PI * lscale*lscale;
+
+        H0  = p.C0 / (2*lscale);        
+        DA0 = p.DA0 / (lscale*lscale);
+    }
 
     __D__ inline void computeCommon(const ViewType& view, int rbcId)
     {

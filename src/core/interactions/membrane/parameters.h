@@ -7,3 +7,12 @@ struct MembraneParameters
     bool fluctuationForces;
 };
 
+struct KantorBendingParameters
+{
+    float kb, theta;
+};
+
+struct JuelicherBendingParameters
+{
+    float kb, C0, kad, DA0;
+};
