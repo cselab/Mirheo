@@ -1,7 +1,7 @@
 #include "average_relative_flow.h"
 
-#include "sampling_helpers.h"
-#include "simple_serializer.h"
+#include "utils/sampling_helpers.h"
+#include "utils/simple_serializer.h"
 
 #include <core/celllist.h>
 #include <core/pvs/object_vector.h>

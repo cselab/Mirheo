@@ -1,5 +1,6 @@
 #include "stats.h"
-#include <plugins/simple_serializer.h>
+#include "utils/simple_serializer.h"
+
 #include <core/datatypes.h>
 #include <core/pvs/particle_vector.h>
 #include <core/pvs/views/pv.h>

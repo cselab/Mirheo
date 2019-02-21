@@ -1,17 +1,14 @@
 #include "pin_object.h"
+#include "utils/simple_serializer.h"
 
-#include <core/utils/kernel_launch.h>
 #include <core/pvs/object_vector.h>
 #include <core/pvs/rigid_object_vector.h>
 #include <core/pvs/views/rov.h>
+#include <core/rigid_kernels/quaternion.h>
 #include <core/simulation.h>
-
 #include <core/utils/cuda_common.h>
 #include <core/utils/cuda_rng.h>
-#include <core/rigid_kernels/quaternion.h>
-
-#include "simple_serializer.h"
-#include "pin_object.h"
+#include <core/utils/kernel_launch.h>
 
 __global__ void restrictVelocities(OVview view, float3 targetVelocity, float4* totForces)
 {

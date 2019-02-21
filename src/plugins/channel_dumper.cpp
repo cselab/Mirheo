@@ -1,11 +1,11 @@
-#include <string>
-
 #include "channel_dumper.h"
-#include "simple_serializer.h"
+#include "utils/simple_serializer.h"
+
+#include <core/simulation.h>
 #include <core/utils/folders.h>
 #include <core/utils/make_unique.h>
-#include <core/simulation.h>
 
+#include <string>
 
 UniformCartesianDumper::UniformCartesianDumper(std::string name, std::string path) :
         PostprocessPlugin(name), path(path)

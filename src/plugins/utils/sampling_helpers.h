@@ -1,6 +1,6 @@
 #pragma once
 
-#include "average_flow.h"
+#include "../average_flow.h"
 
 #include <core/utils/cuda_common.h>
 #include <core/pvs/particle_vector.h>

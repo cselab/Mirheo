@@ -1,11 +1,12 @@
 #include "radial_velocity_control.h"
+#include "utils/simple_serializer.h"
+
 #include <core/datatypes.h>
 #include <core/pvs/particle_vector.h>
 #include <core/pvs/views/pv.h>
 #include <core/simulation.h>
 #include <core/utils/cuda_common.h>
 #include <core/utils/kernel_launch.h>
-#include <plugins/simple_serializer.h>
 
 namespace RadialVelocityControlKernels {
 

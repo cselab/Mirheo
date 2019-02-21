@@ -1,11 +1,10 @@
 #include "dumpxyz.h"
-#include "simple_serializer.h"
-#include <core/utils/folders.h>
-
-#include <core/simulation.h>
-#include <core/pvs/particle_vector.h>
+#include "utils/simple_serializer.h"
 #include "utils/xyz.h"
 
+#include <core/pvs/particle_vector.h>
+#include <core/simulation.h>
+#include <core/utils/folders.h>
 
 XYZPlugin::XYZPlugin(const YmrState *state, std::string name, std::string pvName, int dumpEvery) :
     SimulationPlugin(state, name), pvName(pvName),

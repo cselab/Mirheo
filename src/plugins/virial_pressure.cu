@@ -1,3 +1,6 @@
+#include "virial_pressure.h"
+#include "utils/simple_serializer.h"
+
 #include <core/datatypes.h>
 #include <core/pvs/particle_vector.h>
 #include <core/pvs/views/pv.h>
@@ -6,9 +9,6 @@
 #include <core/utils/common.h>
 #include <core/utils/cuda_common.h>
 #include <core/utils/kernel_launch.h>
-
-#include "virial_pressure.h"
-#include "simple_serializer.h"
 
 namespace VirialPressure
 {

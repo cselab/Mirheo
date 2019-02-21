@@ -1,9 +1,8 @@
+#include "dump_particles_with_mesh.h"
+#include "utils/simple_serializer.h"
+
 #include <core/simulation.h>
 #include <core/utils/folders.h>
-#include "simple_serializer.h"
-
-
-#include "dump_particles_with_mesh.h"
 
 ParticleWithMeshSenderPlugin::ParticleWithMeshSenderPlugin(const YmrState *state, std::string name, std::string pvName, int dumpEvery,
                                                            std::vector<std::string> channelNames,

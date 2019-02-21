@@ -1,10 +1,9 @@
-#include <core/simulation.h>
-#include <core/pvs/particle_vector.h>
-#include <core/utils/folders.h>
-
 #include "dump_particles.h"
-#include "simple_serializer.h"
+#include "utils/simple_serializer.h"
 
+#include <core/pvs/particle_vector.h>
+#include <core/simulation.h>
+#include <core/utils/folders.h>
 
 ParticleSenderPlugin::ParticleSenderPlugin(const YmrState *state, std::string name, std::string pvName, int dumpEvery,
                                            std::vector<std::string> channelNames,
