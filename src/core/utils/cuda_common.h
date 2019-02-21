@@ -170,7 +170,7 @@ __device__ inline  int warpReduce(int val, Operation op)
 }
 
 //=======================================================================================
-// per warp inclusive prefix sum
+// per warp prefix sum
 //=======================================================================================
 
 __device__ inline int warpInclusiveScan(int val) {
@@ -286,19 +286,19 @@ __device__ inline uint getLaneId();
 template<>
 __device__ inline uint getLaneId<1>()
 {
-    return threadIdx.x & 31;
+    return threadIdx.x & (warpSize-1);
 }
 
 template<>
 __device__ inline uint getLaneId<2>()
 {
-    return ((threadIdx.y * blockDim.x) + threadIdx.x) & 31;
+    return ((threadIdx.y * blockDim.x) + threadIdx.x) & (warpSize-1);
 }
 
 template<>
 __device__ inline uint getLaneId<3>()
 {
-    return (threadIdx.z * (blockDim.x * blockDim.y) + (threadIdx.y * blockDim.x) + threadIdx.x) & 31;
+    return (threadIdx.z * (blockDim.x * blockDim.y) + (threadIdx.y * blockDim.x) + threadIdx.x) & (warpSize-1);
 }
 
 #if __CUDA_ARCH__ < 700

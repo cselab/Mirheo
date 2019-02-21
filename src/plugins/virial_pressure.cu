@@ -10,13 +10,13 @@
 #include <core/utils/cuda_common.h>
 #include <core/utils/kernel_launch.h>
 
-namespace VirialPressure
+namespace VirialPressureKernels
 {
-__global__ void totalPressure(PVview view, const Stress *stress, FieldDeviceHandler region, ReductionType *pressure)
+__global__ void totalPressure(PVview view, const Stress *stress, FieldDeviceHandler region, VirialPressure::ReductionType *pressure)
 {
     int tid = blockIdx.x * blockDim.x + threadIdx.x;
 
-    ReductionType P = 0;
+    VirialPressure::ReductionType P = 0;
     Particle p;
 
     if (tid < view.size) {
@@ -27,12 +27,12 @@ __global__ void totalPressure(PVview view, const Stress *stress, FieldDeviceHand
             P = (s.xx + s.yy + s.zz) / 3.0;
     }
     
-    P = warpReduce(P, [](ReductionType a, ReductionType b) { return a+b; });
+    P = warpReduce(P, [](VirialPressure::ReductionType a, VirialPressure::ReductionType b) { return a+b; });
 
     if (__laneid() == 0)
         atomicAdd(pressure, P);
 }
-} // namespace VirialPressure
+} // namespace VirialPressureKernels
 
 VirialPressurePlugin::VirialPressurePlugin(const YmrState *state, std::string name, std::string pvName,
                                            FieldFunction func, float3 h, int dumpEvery) :
@@ -71,7 +71,7 @@ void VirialPressurePlugin::afterIntegration(cudaStream_t stream)
     localVirialPressure.clear(stream);
     
     SAFE_KERNEL_LAUNCH(
-        VirialPressure::totalPressure,
+        VirialPressureKernels::totalPressure,
         getNblocks(view.size, 128), 128, 0, stream,
         view, stress, region.handler(), localVirialPressure.devPtr() );
 

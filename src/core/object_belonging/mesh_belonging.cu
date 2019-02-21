@@ -60,8 +60,8 @@ __device__ BelongingTags oneParticleInsideMesh(int pid, float3 r, int objId, con
     r = r - com;
 
     // shoot 3 rays in different directions, count intersections
-    const int nRays = 3;
-    float3 rays[nRays] = { {0,1,0}, {0,1,0}, {0,1,0} };
+    constexpr int nRays = 3;
+    constexpr float3 rays[nRays] = { {0,1,0}, {0,1,0}, {0,1,0} };
     int counters[nRays] = {0, 0, 0};
 
     for (int i = __laneid(); i < mesh.ntriangles; i += warpSize)
@@ -75,8 +75,9 @@ __device__ BelongingTags oneParticleInsideMesh(int pid, float3 r, int objId, con
 //        if (threadIdx.x == 0 && blockIdx.x == 0)
 //            printf("%d  %f %f %f\n", trid, v0.x, v0.y, v0.z);
 
-        for (int c=0; c<nRays; c++)
-            if (doesRayIntersectTriangle(r, rays[c], v0, v1, v2)) counters[c]++;
+        for (int c = 0; c < nRays; c++)
+            if (doesRayIntersectTriangle(r, rays[c], v0, v1, v2))
+                counters[c]++;
     }
 
     // counter is odd if the particle is inside

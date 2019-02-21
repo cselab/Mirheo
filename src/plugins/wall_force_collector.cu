@@ -22,7 +22,7 @@ __global__ void totalForce(PVview view, double3 *totalForce)
 
     f = warpReduce(f, [](float a, float b) { return a + b; });
 
-    if (tid % warpSize == 0)
+    if (__laneid() == 0)
         atomicAdd(totalForce, make_double3(f));
 }
 } //namespace WallForceCollector
