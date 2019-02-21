@@ -1,7 +1,7 @@
-#include <plugins/simple_serializer.h>
 #include <core/containers.h>
-#include <core/logger.h>
 #include <core/datatypes.h>
+#include <core/logger.h>
+#include <plugins/utils/simple_serializer.h>
 
 #include <vector>
 #include <string>
