@@ -127,7 +127,7 @@ __device__ inline float3 bondTriangleForce(
     Particle p1(view.particles, idv1);
 
 #pragma unroll 2
-    for (int i=1; i<=degree; i++)
+    for (int i = 1; i <= degree; i++)
     {
         int idv2 = rbcId * mesh.nvertices + mesh.adjacent[startId + (i % degree)];
 

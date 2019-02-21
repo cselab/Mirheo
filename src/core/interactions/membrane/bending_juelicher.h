@@ -140,28 +140,23 @@ __device__ inline float getScurv(const OVviewWithJuelicherQuants& view,
     return (0.5f * totLenTheta - parameters.DA0) / totArea;
 }
     
-__global__ void computeBendingForces(OVviewWithJuelicherQuants view,
-                                     MembraneMeshView mesh,
-                                     GPU_BendingParams parameters)
+__device__ inline void dihedralForce(float3 v0, int locId, int rbcId,
+                                     const OVviewWithJuelicherQuants& view,
+                                     const MembraneMeshView& mesh,
+                                     const GPU_BendingParams& parameters)
 {
-    int pid = threadIdx.x + blockDim.x * blockIdx.x;
-    int locId = pid % mesh.nvertices;
-    int rbcId = pid / mesh.nvertices;
     int offset = rbcId * mesh.nvertices;
-
-    if (pid >= view.nObjects * mesh.nvertices) return;
 
     int startId = mesh.maxDegree * locId;
     int degree = mesh.degrees[locId];
 
     int idv1 = mesh.adjacent[startId];
     int idv2 = mesh.adjacent[startId+1];
-
-    float3 v0 = fetchVertex(view, pid);
+    
     float3 v1 = fetchVertex(view, offset + idv1);
     float3 v2 = fetchVertex(view, offset + idv2);
 
-    float Hv0 = view.vertexMeanCurvatures[pid];
+    float Hv0 = view.vertexMeanCurvatures[offset + locId];
     float Hv1 = view.vertexMeanCurvatures[offset + idv1];
     float Hv2 = view.vertexMeanCurvatures[offset + idv2];
 
@@ -190,6 +185,22 @@ __global__ void computeBendingForces(OVviewWithJuelicherQuants view,
         idv1 = idv2; idv2 = idv3;        
     }
 
-    atomicAdd(view.forces + pid, f0);
+    atomicAdd(view.forces + offset + locId, f0);
+}
+
+
+__global__ void computeBendingForces(OVviewWithJuelicherQuants view,
+                                     MembraneMeshView mesh,
+                                     GPU_BendingParams parameters)
+{
+    int pid = threadIdx.x + blockDim.x * blockIdx.x;
+    int locId = pid % mesh.nvertices;
+    int rbcId = pid / mesh.nvertices;    
+    
+    if (pid >= view.nObjects * mesh.nvertices) return;
+
+    float3 v0 = fetchVertex(view, pid);    
+
+    dihedralForce(v0, locId, rbcId, view, mesh, parameters);
 }
 } // namespace BendingJuelicherKernels

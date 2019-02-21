@@ -33,10 +33,10 @@ __device__  inline  float3 _fdihedral(float3 v1, float3 v2, float3 v3, float3 v4
     return cross(ksi, v1 - v3)*b11 + ( cross(ksi, v3 - v4) + cross(dzeta, v1 - v3) )*b12 + cross(dzeta, v3 - v4)*b22;
 }
 
-__device__ void dihedralForce(float3 v0, int locId, int rbcId,
-                              const OVview& view,
-                              const MembraneMeshView& mesh,
-                              const GPU_BendingParams& parameters)
+__device__ inline void dihedralForce(float3 v0, int locId, int rbcId,
+                                     const OVview& view,
+                                     const MembraneMeshView& mesh,
+                                     const GPU_BendingParams& parameters)
 {
     const int offset = rbcId * mesh.nvertices;
 
@@ -63,7 +63,7 @@ __device__ void dihedralForce(float3 v0, int locId, int rbcId,
 #pragma unroll 2
     for (int i = 0; i < degree; i++)
     {
-        int idv3 = mesh.adjacent       [startId + (i+2) % degree];
+        int idv3 = mesh.adjacent[startId + (i+2) % degree];
 
         float3 v3, f1;
         v3 = fetchVertex(view, offset + idv3);
