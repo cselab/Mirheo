@@ -35,18 +35,23 @@ __global__ void addForce(PVview view, DomainInfo domain, float3 low, float3 high
 __global__ void sumVelocity(PVview view, DomainInfo domain, float3 low, float3 high, float3 *totVel, int *nSamples)
 {
     int gid = blockIdx.x * blockDim.x + threadIdx.x;
-    if (gid >= view.size) return;
+    Particle p;
+    
+    p.u = make_float3(0.0f);
 
-    Particle p(view.particles, gid);
-    float3 gr = domain.local2global(p.r);
+    if (gid < view.size) {
 
-    if (is_inside(gr, low, high))
-        atomicAggInc(nSamples);
-    else
-        p.u = make_float3(0.0f);
+        p.read(view.particles, gid);
+        float3 gr = domain.local2global(p.r);
+
+        if (is_inside(gr, low, high))
+            atomicAggInc(nSamples);
+        else
+            p.u = make_float3(0.0f);
+    }
 
     float3 u = warpReduce(p.u, [](float a, float b) { return a+b; });
-    if (threadIdx.x % warpSize == 0 && dot(u, u) > 1e-8)
+    if (__laneid() == 0 && dot(u, u) > 1e-8)
         atomicAdd(totVel, u);
 }
 

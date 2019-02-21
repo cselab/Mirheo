@@ -55,7 +55,7 @@ PinnedBuffer<Particle>* LocalRigidObjectVector::getMeshVertices(cudaStream_t str
     fakeView.particles = reinterpret_cast<float4*>(meshVertices.devPtr());
 
     SAFE_KERNEL_LAUNCH(
-            applyRigidMotion,
+            RigidIntegrationKernels::applyRigidMotion,
             getNblocks(fakeView.size, 128), 128, 0, stream,
             fakeView, ov->mesh->vertexCoordinates.devPtr() );
 
@@ -77,7 +77,7 @@ PinnedBuffer<Particle>* LocalRigidObjectVector::getOldMeshVertices(cudaStream_t 
     fakeView.motions = extraPerObject.getData<RigidMotion>(ChannelNames::oldMotions)->devPtr();
 
     SAFE_KERNEL_LAUNCH(
-            applyRigidMotion,
+            RigidIntegrationKernels::applyRigidMotion,
             getNblocks(fakeView.size, 128), 128, 0, stream,
             fakeView, ov->mesh->vertexCoordinates.devPtr() );
 

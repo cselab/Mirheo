@@ -14,8 +14,7 @@ namespace VirialPressure
 {
 __global__ void totalPressure(PVview view, const Stress *stress, FieldDeviceHandler region, ReductionType *pressure)
 {
-    const int tid = blockIdx.x * blockDim.x + threadIdx.x;
-    const int wid = tid % warpSize;
+    int tid = blockIdx.x * blockDim.x + threadIdx.x;
 
     ReductionType P = 0;
     Particle p;
@@ -30,10 +29,10 @@ __global__ void totalPressure(PVview view, const Stress *stress, FieldDeviceHand
     
     P = warpReduce(P, [](ReductionType a, ReductionType b) { return a+b; });
 
-    if (wid == 0)
+    if (__laneid() == 0)
         atomicAdd(pressure, P);
 }
-}
+} // namespace VirialPressure
 
 VirialPressurePlugin::VirialPressurePlugin(const YmrState *state, std::string name, std::string pvName,
                                            FieldFunction func, float3 h, int dumpEvery) :

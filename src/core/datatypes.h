@@ -132,15 +132,25 @@ struct __align__(16) Particle
      * Particle(addr[2*pid], addr[2*pid+1]);
      * @endcode
      *
-     * @param addr must have at least \e 2*pid entries
+     * @param addr must have at least \e 2*(pid+1) entries
      * @param pid  particle id
      */
-    __HD__ inline Particle(const float4* addr, int pid)
+    __HD__ inline Particle(const float4 *addr, int pid)
+    {
+        read(addr, pid);
+    }
+
+    /**
+     * Read coordinate and velocity from the given \e addr
+     *
+     * @param addr must have at least \e 2*(pid+1) entries
+     * @param pid  particle id
+     */
+    __HD__ inline void read(const float4 *addr, int pid)
     {
         readCoordinate(addr, pid);
         readVelocity  (addr, pid);
     }
-
 
     /**
      * Only read coordinates from the given \e addr
@@ -148,7 +158,7 @@ struct __align__(16) Particle
      * @param addr must have at least \e 2*pid entries
      * @param pid  particle id
      */
-    __HD__ inline void readCoordinate(const float4* addr, const int pid)
+    __HD__ inline void readCoordinate(const float4 *addr, const int pid)
     {
         const Float3_int tmp = addr[2*pid];
         r  = tmp.v;
@@ -161,7 +171,7 @@ struct __align__(16) Particle
      * @param addr must have at least \e 2*pid entries
      * @param pid  particle id
      */
-    __HD__ inline void readVelocity(const float4* addr, const int pid)
+    __HD__ inline void readVelocity(const float4 *addr, const int pid)
     {
         const Float3_int tmp = addr[2*pid+1];
         u  = tmp.v;

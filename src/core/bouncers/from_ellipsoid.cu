@@ -63,7 +63,7 @@ void BounceFromRigidEllipsoid::exec(ParticleVector *pv, CellList *cl, bool local
     if (!local)
     {
         SAFE_KERNEL_LAUNCH(
-                clearRigidForces,
+                RigidIntegrationKernels::clearRigidForces,
                 getNblocks(ovView.nObjects, nthreads), nthreads, 0, stream,
                 ovView );
     }

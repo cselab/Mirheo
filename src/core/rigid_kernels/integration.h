@@ -3,8 +3,11 @@
 #include <core/pvs/object_vector.h>
 #include <core/pvs/rigid_object_vector.h>
 #include <core/pvs/views/rov.h>
-#include <core/utils/cuda_common.h>
 #include <core/rigid_kernels/quaternion.h>
+#include <core/utils/cuda_common.h>
+
+namespace RigidIntegrationKernels
+{
 
 /**
  * Find total force and torque on objects, write it to motions
@@ -35,7 +38,7 @@ static __global__ void collectRigidForces(ROVview ovView)
     force  = warpReduce( force,  [] (RigidReal a, RigidReal b) { return a+b; } );
     torque = warpReduce( torque, [] (RigidReal a, RigidReal b) { return a+b; } );
 
-    if ( (tid % warpSize) == 0 )
+    if ( __laneid() == 0 )
     {
         atomicAdd(&ovView.motions[objId].force,  force);
         atomicAdd(&ovView.motions[objId].torque, torque);
@@ -110,7 +113,6 @@ static __global__ void integrateRigidMotion(ROVviewWithOldMotion ovView, const f
 //            L.x, L.y, L.z);
 }
 
-
 /**
  * Rotates and translates the initial sample according to new position and orientation
  */
@@ -143,5 +145,6 @@ static __global__ void clearRigidForces(ROVview ovView)
     ovView.motions[objId].torque = {0,0,0};
 }
 
+} // namespace RigidIntegrationKernels
 
 

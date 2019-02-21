@@ -1,14 +1,14 @@
 #include "impose_velocity.h"
 
-#include <core/utils/kernel_launch.h>
 #include <core/pvs/particle_vector.h>
 #include <core/pvs/views/pv.h>
 #include <core/simulation.h>
-
 #include <core/utils/cuda_common.h>
 #include <core/utils/cuda_rng.h>
+#include <core/utils/kernel_launch.h>
 
-
+namespace ImposeVelocityKernels
+{
 __global__ void addVelocity(PVview view, DomainInfo domain, float3 low, float3 high, float3 extraVel)
 {
     int gid = blockIdx.x * blockDim.x + threadIdx.x;
@@ -26,34 +26,39 @@ __global__ void addVelocity(PVview view, DomainInfo domain, float3 low, float3 h
     }
 }
 
-
 __global__ void averageVelocity(PVview view, DomainInfo domain, float3 low, float3 high, double3* totVel, int* nSamples)
 {
     int gid = blockIdx.x * blockDim.x + threadIdx.x;
-    if (gid >= view.size) return;
+    Particle p;
 
-    Particle p(view.particles, gid);
-    float3 gr = domain.local2global(p.r);
+    p.u = make_float3(0.f);
 
-    if (low.x <= gr.x && gr.x <= high.x &&
-        low.y <= gr.y && gr.y <= high.y &&
-        low.z <= gr.z && gr.z <= high.z)
-    {
-        atomicAggInc(nSamples);
+    if (gid < view.size) {
+
+        p.read(view.particles, gid);
+        float3 gr = domain.local2global(p.r);
+
+        if (low.x <= gr.x && gr.x <= high.x &&
+            low.y <= gr.y && gr.y <= high.y &&
+            low.z <= gr.z && gr.z <= high.z)
+        {
+            atomicAggInc(nSamples);
+        }
+        else
+        {
+            p.u = make_float3(0.0f);
+        }
     }
-    else
-    {
-        p.u = make_float3(0.0f);
-    }
-
+    
     float3 u = warpReduce(p.u, [](float a, float b) { return a+b; });
-    if (threadIdx.x % 32 == 0 && dot(u, u) > 1e-8f)
+    if (__laneid() == 0 && dot(u, u) > 1e-8f)
     {
         atomicAdd(&totVel[0].x, (double)u.x);
         atomicAdd(&totVel[0].y, (double)u.y);
         atomicAdd(&totVel[0].z, (double)u.z);
     }
 }
+} // namespace ImposeVelocityKernels
 
 ImposeVelocityPlugin::ImposeVelocityPlugin(const YmrState *state, std::string name, std::vector<std::string> pvNames,
                                            float3 low, float3 high, float3 targetVel, int every) :
@@ -84,7 +89,7 @@ void ImposeVelocityPlugin::afterIntegration(cudaStream_t stream)
         
         for (auto& pv : pvs)
             SAFE_KERNEL_LAUNCH(
-                    averageVelocity,
+                    ImposeVelocityKernels::averageVelocity,
                     getNblocks(pv->local()->size(), nthreads), nthreads, 0, stream,
                     PVview(pv, pv->local()), state->domain, low, high, totVel.devPtr(), nSamples.devPtr() );
 
@@ -98,7 +103,7 @@ void ImposeVelocityPlugin::afterIntegration(cudaStream_t stream)
 
         for (auto& pv : pvs)
             SAFE_KERNEL_LAUNCH(
-                    addVelocity,
+                    ImposeVelocityKernels::addVelocity,
                     getNblocks(pv->local()->size(), nthreads), nthreads, 0, stream,
                     PVview(pv, pv->local()), state->domain, low, high, targetVel - avgVel);
     }

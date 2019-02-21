@@ -8,7 +8,10 @@
 
 #include "restart_helpers.h"
 
-__global__ void min_max_com(OVview ovView)
+namespace ObjectVectorKernels
+{
+
+__global__ void minMaxCom(OVview ovView)
 {
     const int gid = threadIdx.x + blockDim.x * blockIdx.x;
     const int objId = gid >> 5;
@@ -39,6 +42,8 @@ __global__ void min_max_com(OVview ovView)
         ovView.comAndExtents[objId] = {mycom / ovView.objSize, mymin, mymax};
 }
 
+} // namespace ObjectVectorKernels
+
 void ObjectVector::findExtentAndCOM(cudaStream_t stream, ParticleVectorType type)
 {
     bool isLocal = (type == ParticleVectorType::Local);
@@ -56,7 +61,7 @@ void ObjectVector::findExtentAndCOM(cudaStream_t stream, ParticleVectorType type
     const int nthreads = 128;
     OVview ovView(this, lov);
     SAFE_KERNEL_LAUNCH(
-            min_max_com,
+            ObjectVectorKernels::minMaxCom,
             (ovView.nObjects*32 + nthreads-1)/nthreads, nthreads, 0, stream,
             ovView );
 }

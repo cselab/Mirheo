@@ -73,7 +73,7 @@ __global__ void countInside(int n, const float *sdf, int *nInside, float thresho
 
     myval = warpReduce(myval, [] (int a, int b) {return a + b;});
 
-    if (threadIdx.x % warpSize == 0)
+    if (__laneid() == 0)
         atomicAdd(nInside, myval);
 }
 } // namespace WallHelpersKernels

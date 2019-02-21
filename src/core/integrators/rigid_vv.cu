@@ -59,22 +59,22 @@ void IntegratorVVRigid::stage2(ParticleVector *pv, cudaStream_t stream)
     ROVviewWithOldMotion ovView(ov, ov->local());
 
     SAFE_KERNEL_LAUNCH(
-            collectRigidForces,
+            RigidIntegrationKernels::collectRigidForces,
             getNblocks(2*ovView.size, 128), 128, 0, stream,
             ovView );
 
     SAFE_KERNEL_LAUNCH(
-            integrateRigidMotion,
+            RigidIntegrationKernels::integrateRigidMotion,
             getNblocks(ovView.nObjects, 64), 64, 0, stream,
             ovView, dt );
 
     SAFE_KERNEL_LAUNCH(
-            applyRigidMotion,
+            RigidIntegrationKernels::applyRigidMotion,
             getNblocks(ovView.size, 128), 128, 0, stream,
             ovView, ov->initialPositions.devPtr() );
 
     SAFE_KERNEL_LAUNCH(
-            clearRigidForces,
+            RigidIntegrationKernels::clearRigidForces,
             getNblocks(ovView.nObjects, 64), 64, 0, stream,
             ovView );
 

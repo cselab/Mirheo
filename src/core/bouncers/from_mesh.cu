@@ -149,7 +149,7 @@ void BounceFromMesh::exec(ParticleVector *pv, CellList *cl, bool local, cudaStre
         view.forces = vertexView.vertexForces;
 
         SAFE_KERNEL_LAUNCH(
-                collectRigidForces,
+                RigidIntegrationKernels::collectRigidForces,
                 getNblocks(view.size, 128), 128, 0, stream,
                 view );
     }

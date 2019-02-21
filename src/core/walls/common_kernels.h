@@ -7,6 +7,7 @@
 
 namespace BounceKernels
 {
+
 template <typename InsideWallChecker>
 __device__ inline float3 rescue(float3 candidate, float dt, float tol, int id, const InsideWallChecker& checker)
 {
@@ -72,13 +73,14 @@ __global__ void sdfBounce(PVviewWithOldParticles view, CellListInfo cinfo,
             p.u = unew;
                            
             p.write2Float4(view.particles, pid);
-        }
-
-        localForce = warpReduce(localForce, [](float a, float b){return a+b;});
-
-        if ((threadIdx.x % warpSize == 0) &&
-            (length(localForce) > 1e-6f))
-            atomicAdd(totalForce, make_double3(localForce));
+        }        
     }
+
+    localForce = warpReduce(localForce, [](float a, float b){return a+b;});
+    
+    if ((__laneid() == 0) && (length(localForce) > 1e-8f))
+        atomicAdd(totalForce, make_double3(localForce));
+
 }
+
 } // namespace BounceKernels

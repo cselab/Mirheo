@@ -14,21 +14,25 @@ using Stats::ReductionType;
 
 __global__ void totalMomentumEnergy(PVview view, ReductionType *momentum, ReductionType *energy, float* maxvel)
 {
-    const int tid = blockIdx.x * blockDim.x + threadIdx.x;
-    const int wid = tid % warpSize;
-    if (tid >= view.size) return;
+    int tid = blockIdx.x * blockDim.x + threadIdx.x;
 
-    const float3 vel = make_float3(view.particles[2*tid+1]);
+    float3 vel, myMomentum;
+    float myEnergy = 0.f, myMaxIvelI;
+    vel = myMomentum = make_float3(0.f);
 
-    float3 myMomentum = vel * view.mass;
-    float myEnergy = dot(vel, vel) * view.mass*0.5f;
-
+    if (tid < view.size)
+    {
+        vel        = make_float3(view.particles[2*tid+1]);
+        myMomentum = vel * view.mass;
+        myEnergy   = dot(vel, vel) * view.mass * 0.5f;
+    }
+    
     myMomentum = warpReduce(myMomentum, [](float a, float b) { return a+b; });
     myEnergy   = warpReduce(myEnergy,   [](float a, float b) { return a+b; });
+    
+    myMaxIvelI = warpReduce(length(vel), [](float a, float b) { return max(a, b); });
 
-    float myMaxIvelI = warpReduce(length(vel), [](float a, float b) { return max(a, b); });
-
-    if (wid == 0)
+    if (__laneid() == 0)
     {
         atomicAdd(momentum+0, (ReductionType)myMomentum.x);
         atomicAdd(momentum+1, (ReductionType)myMomentum.y);
