@@ -24,12 +24,12 @@ public:
         scurv = getScurv(view, rbcId);
     }
     
-    __D__ inline float3 operator()(VertexType v1, VertexType v2, VertexType v3, VertexType v4, float3 &f1) const
+    __D__ inline float3 operator()(VertexType v0, VertexType v1, VertexType v2, VertexType v3, float3 &f1) const
     {
         float3 f0;
         float theta = supplementaryDihedralAngle(v0.r, v1.r, v2.r, v3.r);
         
-        f0  = force_len   (theta, v0,     v2,       );
+        f0  = force_len   (theta, v0,     v2        );
         f0 += force_theta (       v0, v1, v2, v3, f1);
         f0 += force_area  (       v0, v1, v2        );
 
@@ -38,13 +38,13 @@ public:
 
 private:
 
-    __D__ inline float3 force_len(float theta, VertexType v0, VertexType v2)
+    __D__ inline float3 force_len(float theta, VertexType v0, VertexType v2) const
     {
         float3 d = normalize(v0.r - v2.r);
         return ( kb * (v0.H + v2.H - 2 * H0) + kad_pi * scurv ) * theta * d;
     }
 
-    __D__ inline float3 force_theta(VertexType v0, VertexType v1, VertexType v2, VertexType v3, float3 &f1)
+    __D__ inline float3 force_theta(VertexType v0, VertexType v1, VertexType v2, VertexType v3, float3 &f1) const
     {
         float3 n, k, v20, v21, v23;
 
@@ -72,7 +72,7 @@ private:
         return coef * d0;
     }
 
-    __D__ inline float3 force_area(VertexType v0, VertexType v1, VertexType v2)
+    __D__ inline float3 force_area(VertexType v0, VertexType v1, VertexType v2) const
     {
         float coef = -0.6666667f * kb *
             (v0.H * v0.H + v1.H * v1.H + v2.H * v2.H - 3 * H0 * H0)
@@ -84,7 +84,7 @@ private:
         return coef * d0;
     }
 
-    __D__ inline float getScurv(const ViewType& view, int rbcId)
+    __D__ inline float getScurv(const ViewType& view, int rbcId) const
     {
         float totArea     = view.area_volumes[rbcId].x;
         float totLenTheta = view.lenThetaTot [rbcId];

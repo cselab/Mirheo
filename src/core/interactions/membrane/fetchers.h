@@ -8,7 +8,7 @@ public:
     using VertexType = float3;
     using ViewType   = OVview;
 
-    __D__ inline VertexType fetchVertex(ViewType view, int i)
+    __D__ inline VertexType fetchVertex(const ViewType& view, int i) const
     {
         // 2 because of float4
         return Float3_int(view.particles[2 * i]).v;
@@ -28,7 +28,7 @@ public:
     using VertexType = VertexWithMeanCurvature;
     using ViewType   = OVviewWithJuelicherQuants;
 
-    __D__ inline VertexType fetchVertex(ViewType view, int i)
+    __D__ inline VertexType fetchVertex(const ViewType& view, int i) const
     {
         return {Float3_int(view.particles[2 * i]).v,
                 view.vertexMeanCurvatures[i]};

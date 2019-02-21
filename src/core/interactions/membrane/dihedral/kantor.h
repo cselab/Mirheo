@@ -19,7 +19,14 @@ public:
     __D__ inline void computeCommon(const ViewType& view, int rbcId)
     {}
     
-    __D__ inline float3 operator()(VertexType v1, VertexType v2, VertexType v3, VertexType v4, float3 &f1) const
+    __D__ inline float3 operator()(VertexType v0, VertexType v1, VertexType v2, VertexType v3, float3 &f1) const
+    {
+        return kantor(v1, v0, v2, v3, f1);
+    }
+    
+private:
+
+    __D__ inline float3 kantor(VertexType v1, VertexType v2, VertexType v3, VertexType v4, float3 &f1) const
     {
         float3 ksi   = cross(v1 - v2, v1 - v3);
         float3 dzeta = cross(v3 - v4, v2 - v4);
@@ -42,8 +49,6 @@ public:
         
         return cross(ksi, v1 - v3)*b11 + ( cross(ksi, v3 - v4) + cross(dzeta, v1 - v3) )*b12 + cross(dzeta, v3 - v4)*b22;
     }
-    
-private:
 
     float cost0kb, sint0kb;
 };
