@@ -17,34 +17,6 @@ struct GPU_RBCparameters
     float seed, sigma_rnd;
 };
 
-__global__ void computeAreaAndVolume(OVviewWithAreaVolume view, MeshView mesh)
-{
-    int objId = blockIdx.x;
-    int offset = objId * mesh.nvertices;
-    float2 a_v = make_float2(0.0f);
-
-    for(int i = threadIdx.x; i < mesh.ntriangles; i += blockDim.x) {        
-        int3 ids = mesh.triangles[i];
-
-        float3 v0 = f4tof3( view.particles[ 2 * (offset + ids.x) ] );
-        float3 v1 = f4tof3( view.particles[ 2 * (offset + ids.y) ] );
-        float3 v2 = f4tof3( view.particles[ 2 * (offset + ids.z) ] );
-
-        a_v.x += triangleArea(v0, v1, v2);
-        a_v.y += triangleSignedVolume(v0, v1, v2);
-    }
-
-    a_v = warpReduce( a_v, [] (float a, float b) { return a+b; } );
-
-    if (__laneid() == 0)
-        atomicAdd(&view.area_volumes[objId], a_v);
-}
-
-
-// **************************************************************************************************
-// **************************************************************************************************
-
-
 __device__ inline float3 _fangle(const float3 v1, const float3 v2, const float3 v3,
                                  const float area0, const float totArea, const float totVolume,
                                  GPU_RBCparameters parameters)

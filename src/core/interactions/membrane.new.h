@@ -1,40 +1,23 @@
 #pragma once
 
 #include "interface.h"
+#include <memory>
 
-#include <functional>
-
-class MembraneMeshView;
-class MembraneVector;
-
-/// Structure keeping elastic parameters of the RBC model
-struct MembraneParameters
-{
-    float x0, ks, ka, kd, kv, gammaC, gammaT, kbT, mpow, totArea0, totVolume0;
-    bool fluctuationForces;
-};
-
-/**
- * Implementation of RBC membrane forces
- */
-template <class DihedralInteraction>
-class InteractionMembrane : public Interaction
+class InteractionMembraneNew : public Interaction
 {
 public:
 
-    InteractionMembrane(const YmrState *state, std::string name, MembraneParameters parameters,
-                        DihedralInteraction dihedralInteraction, bool stressFree, float growUntil);
-    ~InteractionMembrane();
+    InteractionMembraneNew(const YmrState *state, std::string name);
+    ~InteractionMembraneNew();
     
     void setPrerequisites(ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2) override;
 
-    void local (ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2, cudaStream_t stream) override;
-    void halo  (ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2, cudaStream_t stream) override;
+    void local (ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2, cudaStream_t stream) final;
+    void halo  (ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2, cudaStream_t stream) final;
 
 protected:
 
-    bool stressFree;
-    std::function< float(float) > scaleFromTime;
-    MembraneParameters parameters;
-    DihedralInteraction dihedralInteraction;
+    virtual void precomputeQuantities(ParticleVector *pv1, cudaStream_t stream);
+    
+    std::unique_ptr<Interaction> impl; // concrete implementation of forces
 };
