@@ -12,11 +12,15 @@ For more information, please refer to the online documentation: http://ymero.rea
 
 ## Changelog
 
-<!-- ### unreleased -->
+### unreleased
 
-### v0.10.6
+* **fix** warp reductions: all threads participate
+* internal changes:
+  * cosmetic changes: more consistent namespace style
 
-* internal change: add before cell list plugin task
+### V0.10.6
+
+* Internal change: add before cell list plugin task
 * **fix**: pvs exchanger plugin: new particles are now correctly redistributed
 * **fix**: velocity inlet plugin: new particles are now correctly redistributed
 * **fix**: communication of persistent data to empty pvs
