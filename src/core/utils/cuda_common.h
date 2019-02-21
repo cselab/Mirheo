@@ -1,7 +1,8 @@
 #pragma once
 
-#include <tuple>
 #include "helper_math.h"
+
+#include <tuple>
 
 static const cudaStream_t defaultStream = 0;
 
