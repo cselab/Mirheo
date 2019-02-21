@@ -104,8 +104,8 @@ std::vector<int> ObjectVector::_restartParticleData(MPI_Comm comm, std::string p
     std::vector<int> map;
     
     _getRestartExchangeMap(comm, parts, map);
-    restart_helpers::exchangeData(comm, map, parts, objSize);    
-    restart_helpers::copyShiftCoordinates(state->domain, parts, local());
+    RestartHelpers::exchangeData(comm, map, parts, objSize);    
+    RestartHelpers::copyShiftCoordinates(state->domain, parts, local());
 
     local()->coosvels.uploadToDevice(0);
     
@@ -165,7 +165,7 @@ void ObjectVector::_checkpointObjectData(MPI_Comm comm, std::string path)
     
     XDMF::write(filename, &grid, channels, comm);
 
-    restart_helpers::make_symlink(comm, path, name + ".obj", filename);
+    RestartHelpers::make_symlink(comm, path, name + ".obj", filename);
 
     debug("Checkpoint for object vector '%s' successfully written", name.c_str());
 }
@@ -183,7 +183,7 @@ void ObjectVector::_restartObjectData(MPI_Comm comm, std::string path, const std
     
     std::vector<int> ids(loc_ids->begin(), loc_ids->end());
     
-    restart_helpers::exchangeData(comm, map, ids, 1);
+    RestartHelpers::exchangeData(comm, map, ids, 1);
 
     loc_ids->resize_anew(ids.size());
     std::copy(ids.begin(), ids.end(), loc_ids->begin());

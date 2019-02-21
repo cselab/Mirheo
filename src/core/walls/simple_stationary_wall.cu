@@ -406,7 +406,7 @@ void SimpleStationaryWall<InsideWallChecker>::bounce(cudaStream_t stream)
 
         const int nthreads = 64;
         SAFE_KERNEL_LAUNCH(
-                bounceKernels::sdfBounce,
+                BounceKernels::sdfBounce,
                 getNblocks(bc.size(), nthreads), nthreads, 0, stream,
                 view, cl->cellInfo(),
                 bc.devPtr(), bc.size(), dt,

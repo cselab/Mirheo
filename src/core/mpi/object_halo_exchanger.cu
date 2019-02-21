@@ -114,7 +114,7 @@ __global__ static void unpackObject(const char *from, OVview view, ObjectPacker 
     srcAddr += view.objSize * packer.part.packedSize_byte;
     if (tid == 0) packer.obj.unpack(srcAddr, objId);
 }
-}
+} // namespace ObjectHaloExchangeKernels
 
 //===============================================================================================
 // Member functions

@@ -43,7 +43,7 @@ __global__ void unpackAndAdd(int objSize, const int *origins, const char *srcBuf
         packer.unpackAdd(srcAddr + pid * packer.packedSize_byte, dstId);
     }
 }
-}
+} // namespace ObjectReverseExchangerKernels
 
 ObjectReverseExchanger::ObjectReverseExchanger(ObjectHaloExchanger *entangledHaloExchanger) :
     entangledHaloExchanger(entangledHaloExchanger)

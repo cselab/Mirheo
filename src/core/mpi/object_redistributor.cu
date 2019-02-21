@@ -84,7 +84,7 @@ __global__ static void unpackObject(const char* from, const int startDstObjId, O
     srcAddr += view.objSize * packer.part.packedSize_byte;
     if (tid == 0) packer.obj.unpack(srcAddr, startDstObjId+objId);
 }
-}
+} // namespace ObjecRedistributorKernels
 
 //===============================================================================================
 // Member functions

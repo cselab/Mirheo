@@ -17,9 +17,9 @@ InteractionMembraneKantor::InteractionMembraneKantor(const YmrState *state, std:
 
 InteractionMembraneKantor::~InteractionMembraneKantor() = default;
 
-static bendingKantor::GPU_BendingParams setKantorBendingParams(float scale, KantorBendingParameters& p)
+static BendingKantorKernels::GPU_BendingParams setKantorBendingParams(float scale, KantorBendingParameters& p)
 {
-    bendingKantor::GPU_BendingParams devP;
+    BendingKantorKernels::GPU_BendingParams devP;
     
     devP.cost0kb = cos(p.theta / 180.0 * M_PI) * p.kb * scale*scale;
     devP.sint0kb = sin(p.theta / 180.0 * M_PI) * p.kb * scale*scale;
@@ -37,7 +37,7 @@ void InteractionMembraneKantor::bendingForces(float scale, MembraneVector *ov, M
     auto devParams = setKantorBendingParams(scale, bendingParameters);
 
     SAFE_KERNEL_LAUNCH(
-            bendingKantor::computeBendingForces,
+            BendingKantorKernels::computeBendingForces,
             blocks, nthreads, 0, stream,
             view, mesh, devParams );    
 }

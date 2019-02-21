@@ -18,4 +18,4 @@ void computeTriangles(DomainInfo domain, float3 resolution,
                       const ImplicitSurfaceFunction& surface,
                       std::vector<Triangle>& triangles);
 
-}
+} // namespace MarchingCubes

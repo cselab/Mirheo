@@ -7,38 +7,39 @@
 
 namespace XDMF
 {
-    struct Channel
-    {
-        std::string name;
-        void *data;
+struct Channel
+{
+    std::string name;
+    void *data;
         
-        enum class DataForm
+    enum class DataForm
         {
-            Scalar, Vector, Tensor6, Tensor9, Quaternion, Triangle, Other
+         Scalar, Vector, Tensor6, Tensor9, Quaternion, Triangle, Other
         } dataForm;
         
-        enum class NumberType
+    enum class NumberType
         {
-            Float, Int, Double
+         Float, Int, Double
         } numberType;
 
-        DataType dataType;
+    DataType dataType;
         
-        Channel(std::string name, void *data, DataForm dataForm, NumberType numberType, DataType dataType);
-        int nComponents() const;
-        int precision() const;
-    };
+    Channel(std::string name, void *data, DataForm dataForm, NumberType numberType, DataType dataType);
+    int nComponents() const;
+    int precision() const;
+};
     
-    std::string dataFormToXDMFAttribute (Channel::DataForm dataForm);
-    int         dataFormToNcomponents   (Channel::DataForm dataForm);
-    std::string dataFormToDescription   (Channel::DataForm dataForm);
+std::string dataFormToXDMFAttribute (Channel::DataForm dataForm);
+int         dataFormToNcomponents   (Channel::DataForm dataForm);
+std::string dataFormToDescription   (Channel::DataForm dataForm);
 
-    Channel::DataForm descriptionToDataForm(std::string str);
+Channel::DataForm descriptionToDataForm(std::string str);
     
 
-    decltype (H5T_NATIVE_FLOAT) numberTypeToHDF5type  (Channel::NumberType dt);
-    std::string                 numberTypeToString    (Channel::NumberType dt);
-    int                         numberTypeToPrecision (Channel::NumberType dt);
+decltype (H5T_NATIVE_FLOAT) numberTypeToHDF5type  (Channel::NumberType dt);
+std::string                 numberTypeToString    (Channel::NumberType dt);
+int                         numberTypeToPrecision (Channel::NumberType dt);
 
-    Channel::NumberType infoToNumberType(std::string str, int precision);
-}
+Channel::NumberType infoToNumberType(std::string str, int precision);
+
+} // namespace XDMF

@@ -82,7 +82,7 @@ __global__ void packRigidForces(ROVview view, float4 *output, int packedObjSize)
         typedAddr[1] = {t.x, t.y, t.z, (RigidReal)0};
     }
 }
-}
+} // namespace ObjectForcesReverseExchangeKernels
 
 //===============================================================================================
 // Member functions

@@ -150,7 +150,7 @@ void RigidObjectVector::_checkpointObjectData(MPI_Comm comm, std::string path)
     
     XDMF::write(filename, &grid, channels, comm);
 
-    restart_helpers::make_symlink(comm, path, name + ".obj", filename);
+    RestartHelpers::make_symlink(comm, path, name + ".obj", filename);
 
     debug("Checkpoint for object vector '%s' successfully written", name.c_str());
 }
@@ -176,8 +176,8 @@ void RigidObjectVector::_restartObjectData(MPI_Comm comm, std::string path, cons
     std::vector<int>             ids(loc_ids    ->begin(), loc_ids    ->end());
     std::vector<RigidMotion> motions(loc_motions->begin(), loc_motions->end());
     
-    restart_helpers::exchangeData(comm, map, ids, 1);
-    restart_helpers::exchangeData(comm, map, motions, 1);
+    RestartHelpers::exchangeData(comm, map, ids, 1);
+    RestartHelpers::exchangeData(comm, map, motions, 1);
 
     shiftCoordinates(state->domain, motions);
     

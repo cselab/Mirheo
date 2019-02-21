@@ -9,7 +9,8 @@
 
 #include <extern/cub/cub/device/device_scan.cuh>
 
-namespace CellListKernels {
+namespace CellListKernels
+{
 
 enum {INVALID = -1};
 

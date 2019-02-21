@@ -5,9 +5,8 @@
 #include <core/utils/cuda_common.h>
 #include <core/utils/cuda_rng.h>
 
-namespace bounceKernels
+namespace BounceKernels
 {
-
 template <typename InsideWallChecker>
 __device__ inline float3 rescue(float3 candidate, float dt, float tol, int id, const InsideWallChecker& checker)
 {
@@ -82,5 +81,4 @@ __global__ void sdfBounce(PVviewWithOldParticles view, CellListInfo cinfo,
             atomicAdd(totalForce, make_double3(localForce));
     }
 }
-
-} // namespace bounceKernels
+} // namespace BounceKernels

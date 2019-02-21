@@ -30,9 +30,9 @@ void InteractionMembraneJuelicher::setPrerequisites(ParticleVector *pv1, Particl
 }
 
 
-static bendingJuelicher::GPU_BendingParams setJuelicherBendingParams(float scale, JuelicherBendingParameters& p)
+static BendingJuelicherKernels::GPU_BendingParams setJuelicherBendingParams(float scale, JuelicherBendingParameters& p)
 {
-    bendingJuelicher::GPU_BendingParams devP;
+    BendingJuelicherKernels::GPU_BendingParams devP;
 
     devP.kb     = p.kb  * scale*scale;
     devP.kad_pi = p.kad * M_PI * scale*scale;
@@ -56,7 +56,7 @@ void InteractionMembraneJuelicher::bendingForces(float scale, MembraneVector *ov
         dim3 blocks(getNblocks(mesh.nvertices, nthreads), view.nObjects);
         
         SAFE_KERNEL_LAUNCH(
-            bendingJuelicher::computeAreasAndCurvatures,
+            BendingJuelicherKernels::computeAreasAndCurvatures,
             blocks, threads, 0, stream,
             view, mesh );
     }
@@ -67,7 +67,7 @@ void InteractionMembraneJuelicher::bendingForces(float scale, MembraneVector *ov
         const int blocks = getNblocks(view.size, nthreads);
     
         SAFE_KERNEL_LAUNCH(
-            bendingJuelicher::computeBendingForces,
+            BendingJuelicherKernels::computeBendingForces,
             blocks, nthreads, 0, stream,
             view, mesh, devParams );
     }
