@@ -7,8 +7,8 @@
 #include <core/utils/cuda_common.h>
 #include <core/utils/kernel_launch.h>
 
-namespace MagneticOrientationPluginKernels {
-
+namespace MagneticOrientationPluginKernels
+{
 __global__ void applyMagneticField(ROVview view, float3 B, float3 M)
 {
     int gid = blockIdx.x * blockDim.x + threadIdx.x;
@@ -22,7 +22,6 @@ __global__ void applyMagneticField(ROVview view, float3 B, float3 M)
     
     view.motions[gid].torque += T;
 }
-
 } // namespace MagneticOrientationPluginKernels
 
 MagneticOrientationPlugin::MagneticOrientationPlugin(const YmrState *state, std::string name, std::string rovName,

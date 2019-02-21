@@ -7,7 +7,8 @@
 
 const std::string ForceSaverPlugin::fieldName = "forces";
 
-namespace ForceSaverKernels {
+namespace ForceSaverKernels
+{
 
 __global__ void copyForces(PVview view, float3 *savedForces)
 {

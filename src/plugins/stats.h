@@ -7,7 +7,8 @@
 
 class ParticleVector;
 
-namespace Stats {
+namespace Stats
+{
 using ReductionType = double;
 }
 

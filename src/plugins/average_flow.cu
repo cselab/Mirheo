@@ -10,7 +10,8 @@
 #include <core/utils/cuda_common.h>
 #include <core/utils/kernel_launch.h>
 
-namespace AverageFlowKernels {
+namespace AverageFlowKernels
+{
 
 __global__ void sample(
         PVview pvView, CellListInfo cinfo,

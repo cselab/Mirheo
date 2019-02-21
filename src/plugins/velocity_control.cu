@@ -8,7 +8,8 @@
 #include <core/utils/cuda_common.h>
 #include <core/utils/kernel_launch.h>
 
-namespace VelocityControlKernels {
+namespace VelocityControlKernels
+{
 
 inline __device__ bool is_inside(float3 r, float3 low, float3 high)
 {

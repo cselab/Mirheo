@@ -30,7 +30,8 @@ struct ChannelsInfo
 };
 
 
-namespace SamplingHelpersKernels {
+namespace SamplingHelpersKernels
+{
 
 __device__ inline void sampleChannels(int pid, int cid, ChannelsInfo channelsInfo)
 {

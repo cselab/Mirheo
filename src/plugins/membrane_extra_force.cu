@@ -7,9 +7,8 @@
 
 #include <core/utils/cuda_common.h>
 
-namespace membrane_extra_forces_kernels
+namespace MembraneExtraForcesKernels
 {
-
 __global__ void addForce(OVview view, const Force *forces)
 {
     int gid = blockIdx.x * blockDim.x + threadIdx.x;
@@ -19,8 +18,7 @@ __global__ void addForce(OVview view, const Force *forces)
 
     view.forces[gid] += forces[locId].toFloat4();
 }
-
-}
+} // namespace MembraneExtraForcesKernels
 
 MembraneExtraForcePlugin::MembraneExtraForcePlugin(const YmrState *state, std::string name, std::string pvName, const PyTypes::VectorOfFloat3 &forces) :
     SimulationPlugin(state, name),
@@ -51,9 +49,9 @@ void MembraneExtraForcePlugin::beforeForces(cudaStream_t stream)
     OVview view(pv, pv->local());
     const int nthreads = 128;
 
-    SAFE_KERNEL_LAUNCH
-        (membrane_extra_forces_kernels::addForce,
-         getNblocks(view.size, nthreads), nthreads, 0, stream,
-         view, forces.devPtr() );
+    SAFE_KERNEL_LAUNCH(
+        MembraneExtraForcesKernels::addForce,
+        getNblocks(view.size, nthreads), nthreads, 0, stream,
+        view, forces.devPtr() );
 }
 

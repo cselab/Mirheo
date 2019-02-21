@@ -7,7 +7,8 @@
 #include <core/utils/cuda_common.h>
 #include <core/utils/kernel_launch.h>
 
-namespace ExchangePvsFluxPlaneKernels {
+namespace ExchangePvsFluxPlaneKernels
+{
 
 __device__ inline bool sidePlane(float4 plane, float3 r)
 {

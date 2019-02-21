@@ -12,8 +12,8 @@
 #include <core/utils/cuda_common.h>
 #include <core/utils/kernel_launch.h>
 
-namespace AverageRelativeFlowKernels {
-
+namespace AverageRelativeFlowKernels
+{
 __global__ void sampleRelative(
         PVview pvView, CellListInfo cinfo,
         float* avgDensity,
@@ -34,7 +34,6 @@ __global__ void sampleRelative(
 
     SamplingHelpersKernels::sampleChannels(pid, cid, channelsInfo);
 }
-
 } // namespace AverageRelativeFlowKernels
 
 AverageRelative3D::AverageRelative3D(

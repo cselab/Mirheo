@@ -7,7 +7,8 @@
 
 class ParticleVector;
 
-namespace VirialPressure {
+namespace VirialPressure
+{
 using ReductionType = double;
 }
 

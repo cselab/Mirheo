@@ -5,7 +5,8 @@
 #include <core/pvs/views/pv.h>
 #include <core/utils/kernel_launch.h>
 
-namespace ParticleDisplacementPluginKernels {
+namespace ParticleDisplacementPluginKernels
+{
 
 __global__ void extractPositions(PVview view, float4 *positions)
 {

@@ -8,7 +8,8 @@
 #include <core/utils/cuda_common.h>
 #include <core/utils/kernel_launch.h>
 
-namespace RadialVelocityControlKernels {
+namespace RadialVelocityControlKernels
+{
 
 __device__ inline bool validRadius(float r2, float minR2, float maxR2)
 {
