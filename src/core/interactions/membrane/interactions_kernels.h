@@ -2,6 +2,9 @@
 
 #include "common.h"
 
+namespace MembraneInteractionKernels
+{
+
 struct GPU_RBCparameters
 {
     float scale; /* hack for stress free TODO? */
@@ -109,7 +112,7 @@ __device__ inline float3 _ffluct(float3 v1, float3 v2, int i1, int i2, GPU_RBCpa
 }
 
 template <bool stressFree>
-__device__ float3 bondTriangleForce(
+__device__ inline float3 bondTriangleForce(
         Particle p, int locId, int rbcId,
         const OVviewWithAreaVolume& view,
         const MembraneMeshView& mesh,
@@ -172,3 +175,4 @@ __global__ void computeMembraneForces(
     atomicAdd(view.forces + pid, f);
 }
 
+} // namespace MembraneInteractionKernels

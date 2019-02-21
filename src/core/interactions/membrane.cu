@@ -18,9 +18,9 @@
  * @param m RBC membrane mesh
  * @return parameters to be passed to GPU kernels
  */
-static GPU_RBCparameters setParams(MembraneParameters& p, Mesh *m, float dt, float t)
+static MembraneInteractionKernels::GPU_RBCparameters setParams(MembraneParameters& p, Mesh *m, float dt, float t)
 {
-    GPU_RBCparameters devP;
+    MembraneInteractionKernels::GPU_RBCparameters devP;
 
     devP.gammaC = p.gammaC;
     devP.gammaT = p.gammaT;
@@ -67,13 +67,15 @@ InteractionMembrane::~InteractionMembrane() = default;
 void InteractionMembrane::setPrerequisites(ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2)
 {
     if (pv1 != pv2)
-        die("Internal RBC forces can't be computed between two different particle vectors");
+        die("Internal membrane forces can't be computed between two different particle vectors");
 
     auto ov = dynamic_cast<MembraneVector*>(pv1);
     if (ov == nullptr)
-        die("Internal RBC forces can only be computed with RBCs");
+        die("Internal membrane forces can only be computed with a MembraneVector");
 
-    ov->requireDataPerObject<float2>(ChannelNames::areaVolumes, ExtraDataManager::CommunicationMode::None, ExtraDataManager::PersistenceMode::None);
+    ov->requireDataPerObject<float2>(ChannelNames::areaVolumes,
+                                     ExtraDataManager::CommunicationMode::None,
+                                     ExtraDataManager::PersistenceMode::None);
 }
 
 /**
@@ -113,8 +115,10 @@ void InteractionMembrane::local(ParticleVector *pv1, ParticleVector *pv2,
         ->clearDevice(stream);
 
     const int nthreads = 128;
-    SAFE_KERNEL_LAUNCH(computeAreaAndVolume, view.nObjects, nthreads, 0, stream,
-                       view, mesh);
+    SAFE_KERNEL_LAUNCH(
+        MembraneInteractionKernels::computeAreaAndVolume,
+        view.nObjects, nthreads, 0, stream,
+        view, mesh);
 
     const int blocks = getNblocks(view.size, nthreads);
 
@@ -123,13 +127,15 @@ void InteractionMembrane::local(ParticleVector *pv1, ParticleVector *pv2,
     devParams.scale = scale;
 
     if (stressFree)
-        SAFE_KERNEL_LAUNCH(computeMembraneForces<true>,
-                           blocks, nthreads, 0, stream,
-                           view, mesh, devParams);
+        SAFE_KERNEL_LAUNCH(
+            MembraneInteractionKernels::computeMembraneForces<true>,
+            blocks, nthreads, 0, stream,
+            view, mesh, devParams);
     else
-        SAFE_KERNEL_LAUNCH(computeMembraneForces<false>,
-                           blocks, nthreads, 0,
-                           stream, view, mesh, devParams);
+        SAFE_KERNEL_LAUNCH(
+            MembraneInteractionKernels::computeMembraneForces<false>,
+            blocks, nthreads, 0,
+            stream, view, mesh, devParams);
 
     bendingForces(scale, ov, mesh, stream);
 }
