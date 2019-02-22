@@ -61,4 +61,4 @@ u.run(2)
 # cd membrane
 # cp ../../data/rbc_mesh.off .
 # ymr.run --runargs "-n 2" ./kantor.py > /dev/null
-# ymr.post ./utils/post.bending.py --file h5/rbc-00000.h5 --out forces.out.txt
+# ymr.post ./utils/post.forces.py --file h5/rbc-00000.h5 --out forces.out.txt

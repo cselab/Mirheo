@@ -72,22 +72,22 @@ u.run(2)
 # cd membrane
 # cp ../../data/rbc_mesh.off .
 # ymr.run --runargs "-n 2" ./juelicher.py --kb 1000.0 > /dev/null
-# ymr.post ./utils/post.bending.py --file h5/rbc-00000.h5 --out forces.out.txt
+# ymr.post ./utils/post.forces.py --file h5/rbc-00000.h5 --out forces.out.txt
 
 # nTEST: membrane.bending.juelicher.C0
 # cd membrane
 # cp ../../data/rbc_mesh.off .
 # ymr.run --runargs "-n 2" ./juelicher.py --kb 1000.0 --C0 0.5 > /dev/null
-# ymr.post ./utils/post.bending.py --file h5/rbc-00000.h5 --out forces.out.txt
+# ymr.post ./utils/post.forces.py --file h5/rbc-00000.h5 --out forces.out.txt
 
 # nTEST: membrane.bending.juelicher.AD
 # cd membrane
 # cp ../../data/rbc_mesh.off .
 # ymr.run --runargs "-n 2" ./juelicher.py --kad 1000.0 --DA0 1.0 > /dev/null
-# ymr.post ./utils/post.bending.py --file h5/rbc-00000.h5 --out forces.out.txt
+# ymr.post ./utils/post.forces.py --file h5/rbc-00000.h5 --out forces.out.txt
 
 # nTEST: membrane.bending.juelicher.multiple
 # cd membrane
 # cp ../../data/rbc_mesh.off .
 # ymr.run --runargs "-n 2" ./juelicher.py --kb 1000.0 --C0 1.0 --kad 1000.0 --DA0 1.0 --ncells 4 > /dev/null
-# ymr.post ./utils/post.bending.py --file h5/rbc-00000.h5 --out forces.out.txt
+# ymr.post ./utils/post.forces.py --file h5/rbc-00000.h5 --out forces.out.txt

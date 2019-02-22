@@ -29,10 +29,10 @@ pos = pos[()]
 
 pos = pos - (np.sum(pos, axis=0)/n)
 
-r = np.sqrt(pos[:,0]**2 + pos[:,1]**2)
+r     = np.sqrt(pos[:,0]**2 + pos[:,1]**2)
 fmagn = np.sqrt(forces[:,0]**2 + forces[:,1]**2 + forces[:,2]**2)
 
-r = r.reshape((n,1))
+r     = r.reshape((n,1))
 fmagn = fmagn.reshape((n,1))
 
 np.savetxt(args.out, np.hstack((r, fmagn, forces)))
