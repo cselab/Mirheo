@@ -12,18 +12,18 @@ class TriangleForce
 public:    
 
     TriangleForce(float ka, float kd, float totArea0, float lscale) :
-        ka(ka * lscale * lscale),
-        kd(kd * lscale * lscale),
-        totArea0(totArea0 / (lscale*lscale))
+        ka      (ka       * lscale * lscale),
+        kd      (kd       * lscale * lscale),
+        totArea0(totArea0 * lscale * lscale)
     {}
 
-    __D__ inline float3 bondForce(VertexType v0, VertexType v1, float l0) const
+    __D__ inline float3 bondForce(float3 v0, float3 v1, float3 l0) const
     {
         return make_float3(0.f);
     }
 
-    __D__ inline float3 areaForce(const float3 v1, const float3 v2, const float3 v3,
-                                  const float area0, const float totArea) const
+    __D__ inline float3 areaForce(float3 v1, float3 v2, float3 v3,
+                                  float area0, float totArea) const
     {
         float3 x21 = v2 - v1;
         float3 x32 = v3 - v2;

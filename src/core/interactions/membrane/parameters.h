@@ -11,6 +11,7 @@ struct MembraneParameters
 struct WLCParameters
 {
     float x0, ks, mpow;
+    float ka, kd, totArea0;
 };
 
 /// structure containing Kanto bending parameters
