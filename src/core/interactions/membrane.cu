@@ -16,7 +16,7 @@ __global__ void computeAreaAndVolume(OVviewWithAreaVolume view, MeshView mesh)
     int offset = objId * mesh.nvertices;
     float2 a_v = make_float2(0.0f);
 
-    for(int i = threadIdx.x; i < mesh.ntriangles; i += blockDim.x) {        
+    for (int i = threadIdx.x; i < mesh.ntriangles; i += blockDim.x) {
         int3 ids = mesh.triangles[i];
 
         float3 v0 = f4tof3( view.particles[ 2 * (offset + ids.x) ] );
@@ -57,6 +57,9 @@ void InteractionMembrane::setPrerequisites(ParticleVector *pv1, ParticleVector *
 
 void InteractionMembrane::local(ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2, cudaStream_t stream)
 {
+    if (impl.get() == nullptr)
+        die("%s needs a concrete implementation, none was provided", name.c_str());
+
     precomputeQuantities(pv1, stream);
     impl->local(pv1, pv2, cl1, cl2, stream);
 }

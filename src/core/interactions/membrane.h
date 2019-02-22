@@ -3,6 +3,10 @@
 #include "interface.h"
 #include <memory>
 
+/**
+ * parent class for membrane interactions.
+ * any derived class must allocate a concrete implementation for the forces @ref impl
+ */
 class InteractionMembrane : public Interaction
 {
 public:
@@ -17,7 +21,12 @@ public:
 
 protected:
 
+    /**
+     * compute quantities used by the force kernels.
+     * this is called before every force kernel (see implementation of @ref local)
+     * default: compute area and volume of each cell
+     */
     virtual void precomputeQuantities(ParticleVector *pv1, cudaStream_t stream);
     
-    std::unique_ptr<Interaction> impl; // concrete implementation of forces
+    std::unique_ptr<Interaction> impl; ///< concrete implementation of forces
 };
