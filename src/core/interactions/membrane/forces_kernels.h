@@ -5,6 +5,8 @@
 namespace MembraneForcesKernels
 {
 
+static constexpr float forceCap = 1500.f;
+
 struct GPU_RBCparameters
 {
     float scale; /* hack for stress free TODO? */
@@ -17,32 +19,34 @@ struct GPU_RBCparameters
     float seed, sigma_rnd;
 };
 
-__device__ inline float3 _fangle(const float3 v1, const float3 v2, const float3 v3,
-                                 const float area0, const float totArea, const float totVolume,
-                                 GPU_RBCparameters parameters)
+__device__ inline float3 _ftriangle(const float3 v1, const float3 v2, const float3 v3,
+                                    const float area0, const float totArea, GPU_RBCparameters parameters)
 {
-    const float3 x21 = v2 - v1;
-    const float3 x32 = v3 - v2;
-    const float3 x31 = v3 - v1;
+    float3 x21 = v2 - v1;
+    float3 x32 = v3 - v2;
+    float3 x31 = v3 - v1;
 
-    const float3 normal = cross(x21, x31);
+    float3 normal = cross(x21, x31);
 
-    const float area = 0.5f * length(normal);
-    const float area_1 = 1.0f / area;
+    float area = 0.5f * length(normal);
+    float area_1 = 1.0f / area;
 
     // TODO: optimize computations here
-    const float coefArea = -0.25f * (
+    float coefArea = -0.25f * (
             parameters.ka0 * (totArea - parameters.totArea0) * area_1
-            + parameters.kd0 * (area - area0) / (area * area0) );
+          + parameters.kd0 * (area - area0) / (area * area0) );
 
-    const float coeffVol = parameters.kv0 * (totVolume - parameters.totVolume0);
-    const float3 fArea = coefArea * cross(normal, x32);
-    const float3 fVolume = coeffVol * cross(v3, v2);
+    float3 fArea = coefArea * cross(normal, x32);
 
-    return fArea + fVolume;
+    return fArea;
 }
 
-static const float forceCap = 1500.f;
+__device__ inline float3 _fvolume(float3 v1, float3 v2, float3 v3, float totVolume, GPU_RBCparameters parameters)
+{
+    float coeff = parameters.kv0 * (totVolume - parameters.totVolume0);
+    return coeff * cross(v3, v2);
+}
+
 
 __device__ inline float3 _fbond(const float3 v1, const float3 v2, const float l0, GPU_RBCparameters parameters)
 {
@@ -112,11 +116,15 @@ __device__ inline float3 bondTriangleForce(
             l0 *= parameters.scale;
             a0 *= parameters.scale * parameters.scale;
         }
+
+        float totArea   = view.area_volumes[rbcId].x;
+        float totVolume = view.area_volumes[rbcId].y;
         
-        f +=  _fangle(p.r, p1.r, p2.r, a0, view.area_volumes[rbcId].x, view.area_volumes[rbcId].y, parameters)
-            + _fbond (p.r, p1.r, l0, parameters)
-            + _fvisc (p,   p1,       parameters)
-            + _ffluct(p.r, p1.r, idv0, idv1, parameters);
+        f +=  _ftriangle (p.r, p1.r, p2.r, a0, totArea, parameters)
+            + _fvolume   (p.r, p1.r, p2.r, totVolume, parameters)
+            + _fbond     (p.r, p1.r, l0, parameters)
+            + _fvisc     (p,   p1,       parameters)
+            + _ffluct    (p.r, p1.r, idv0, idv1, parameters);
 
         idv1 = idv2;
         p1 = p2;

@@ -8,10 +8,11 @@
 #include <core/utils/cuda_rng.h>
 
 template <typename View>
-__D__ inline float3 fetchVertex(View view, int i)
+__D__ inline float3 fetchPosition(View view, int i)
 {
-    // 2 because of float4
-    return Float3_int(view.particles[2 * i]).v;
+    Particle p;
+    p.readCoordinate(view.particles, i);
+    return p.r;
 }
 
 __D__ inline float triangleArea(float3 v0, float3 v1, float3 v2)

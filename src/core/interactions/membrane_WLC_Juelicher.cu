@@ -1,5 +1,6 @@
 #include "membrane_WLC_Juelicher.h"
 #include "membrane.impl.h"
+#include "membrane/common.h"
 #include "membrane/dihedral/juelicher.h"
 
 #include <core/utils/make_unique.h>
@@ -29,9 +30,9 @@ __global__ void computeAreasAndCurvatures(OVviewWithJuelicherQuants view, Membra
         int idv1 = mesh.adjacent[startId];
         int idv2 = mesh.adjacent[startId+1];
         
-        float3 v0 = fetchVertex(view, offset + idv0);
-        float3 v1 = fetchVertex(view, offset + idv1);
-        float3 v2 = fetchVertex(view, offset + idv2);
+        float3 v0 = fetchPosition(view, offset + idv0);
+        float3 v1 = fetchPosition(view, offset + idv1);
+        float3 v2 = fetchPosition(view, offset + idv2);
         
         float area = 0;    
         
@@ -39,7 +40,7 @@ __global__ void computeAreasAndCurvatures(OVviewWithJuelicherQuants view, Membra
         for (int i = 0; i < degree; i++) {
             
             int idv3 = mesh.adjacent[startId + (i+2) % degree];
-            float3 v3 = fetchVertex(view, offset + idv3);
+            float3 v3 = fetchPosition(view, offset + idv3);
             
             area     += 0.3333333f * triangleArea(v0, v1, v2);
             lenTheta += compute_lenTheta(v0, v1, v2, v3);

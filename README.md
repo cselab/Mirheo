@@ -17,6 +17,8 @@ For more information, please refer to the online documentation: http://ymero.rea
 * **fix** warp reductions: all threads participate
 * internal changes:
   * cosmetic changes: more consistent namespace style
+  * membrane interaction takes a functor for dihedral computations
+  * refactor membrane interactions
 
 ### V0.10.6
 
