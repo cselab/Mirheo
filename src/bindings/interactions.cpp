@@ -7,8 +7,10 @@
 #include <core/interactions/mdpd_with_stress.h>
 #include <core/interactions/lj.h>
 #include <core/interactions/lj_with_stress.h>
-#include <core/interactions/membrane_kantor.h>
-#include <core/interactions/membrane_juelicher.h>
+//#include <core/interactions/membrane_kantor.h>
+//#include <core/interactions/membrane_juelicher.h>
+#include <core/interactions/membrane_WLC_Kantor.h>
+#include <core/interactions/membrane_WLC_Juelicher.h>
 
 #include "bindings.h"
 #include "class_wrapper.h"
@@ -223,7 +225,7 @@ void exportInteractions(py::module& m)
         .def_readwrite("totVolume", &MembraneParameters::totVolume0)
         .def_readwrite("rnd",       &MembraneParameters::fluctuationForces);
         
-    py::handlers_class<InteractionMembrane> pyMembraneForces(m, "MembraneForces", pyInt, R"(
+    py::handlers_class<InteractionMembraneNew> pyMembraneForces(m, "MembraneForces", pyInt, R"(
         Abstract class for membrane interactions.
         Mesh-based forces acting on a membrane according to the model in [Fedosov2010]_
 
@@ -275,7 +277,7 @@ void exportInteractions(py::module& m)
         .def_readwrite("DA0", &JuelicherBendingParameters::DA0);
 
 
-    py::handlers_class<InteractionMembraneKantor> (m, "MembraneForcesKantor", pyInt, R"(
+    py::handlers_class<MembraneWLCKantor> (m, "MembraneForcesKantor", pyInt, R"(
         Mesh-based forces acting on a membrane according to the model in [Fedosov2010]_
 
          The bending potential :math:`U_b` is defined as:
@@ -305,7 +307,7 @@ void exportInteractions(py::module& m)
                              the parameters are scaled accordingly with time
     )");
 
-    py::handlers_class<InteractionMembraneJuelicher> (m, "MembraneForcesJuelicher", pyInt, R"(
+    py::handlers_class<MembraneWLCJuelicher> (m, "MembraneForcesJuelicher", pyInt, R"(
         Mesh-based forces acting on a membrane according to the model in [Fedosov2010]_ with Juelicher bending model.
 
         The bending potential :math:`U_b` is defined as:

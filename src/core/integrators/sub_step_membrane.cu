@@ -1,6 +1,6 @@
 #include "sub_step_membrane.h"
 
-#include <core/interactions/membrane.h>
+#include <core/interactions/membrane.new.h>
 #include <core/logger.h>
 #include <core/pvs/particle_vector.h>
 #include <core/utils/common.h>
@@ -13,7 +13,7 @@ IntegratorSubStepMembrane::IntegratorSubStepMembrane(const YmrState *state, std:
     fastForces(fastForces),
     subState(*state)
 {    
-    if ( dynamic_cast<InteractionMembrane*>(fastForces) == nullptr )
+    if ( dynamic_cast<InteractionMembraneNew*>(fastForces) == nullptr )
         die("IntegratorSubStepMembrane '%s': expects an interaction of type <InteractionMembrane>.",
             name.c_str());
 
