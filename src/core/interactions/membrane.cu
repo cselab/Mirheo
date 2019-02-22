@@ -1,4 +1,4 @@
-#include "membrane.new.h"
+#include "membrane.h"
 
 #include "membrane/common.h"
 
@@ -8,7 +8,7 @@
 #include <core/utils/kernel_launch.h>
 
 
-namespace MembraneKernels
+namespace InteractionMembraneKernels
 {
 __global__ void computeAreaAndVolume(OVviewWithAreaVolume view, MeshView mesh)
 {
@@ -32,16 +32,16 @@ __global__ void computeAreaAndVolume(OVviewWithAreaVolume view, MeshView mesh)
     if (__laneid() == 0)
         atomicAdd(&view.area_volumes[objId], a_v);
 }
-} // namespace MembraneKernels
+} // namespace InteractionMembraneKernels
 
-InteractionMembraneNew::InteractionMembraneNew(const YmrState *state, std::string name) :
+InteractionMembrane::InteractionMembrane(const YmrState *state, std::string name) :
     Interaction(state, name, /* default cutoff rc */ 1.0),
     impl(nullptr)
 {}
 
-InteractionMembraneNew::~InteractionMembraneNew() = default;
+InteractionMembrane::~InteractionMembrane() = default;
 
-void InteractionMembraneNew::setPrerequisites(ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2)
+void InteractionMembrane::setPrerequisites(ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2)
 {
     if (pv1 != pv2)
         die("Internal membrane forces can't be computed between two different particle vectors");
@@ -55,19 +55,19 @@ void InteractionMembraneNew::setPrerequisites(ParticleVector *pv1, ParticleVecto
                                      ExtraDataManager::PersistenceMode::None);
 }
 
-void InteractionMembraneNew::local(ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2, cudaStream_t stream)
+void InteractionMembrane::local(ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2, cudaStream_t stream)
 {
     precomputeQuantities(pv1, stream);
     impl->local(pv1, pv2, cl1, cl2, stream);
 }
 
-void InteractionMembraneNew::halo(ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2, cudaStream_t stream)
+void InteractionMembrane::halo(ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2, cudaStream_t stream)
 {
     debug("Not computing internal membrane forces between local and halo membranes of '%s'",
           pv1->name.c_str());
 }
     
-void InteractionMembraneNew::precomputeQuantities(ParticleVector *pv1, cudaStream_t stream)
+void InteractionMembrane::precomputeQuantities(ParticleVector *pv1, cudaStream_t stream)
 {
     auto ov = dynamic_cast<MembraneVector *>(pv1);
 
@@ -87,7 +87,7 @@ void InteractionMembraneNew::precomputeQuantities(ParticleVector *pv1, cudaStrea
         ->clearDevice(stream);
     
     const int nthreads = 128;
-    SAFE_KERNEL_LAUNCH(MembraneKernels::computeAreaAndVolume,
+    SAFE_KERNEL_LAUNCH(InteractionMembraneKernels::computeAreaAndVolume,
                        view.nObjects, nthreads, 0, stream,
                        view, mesh);
 }

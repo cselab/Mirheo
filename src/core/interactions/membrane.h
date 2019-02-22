@@ -3,12 +3,12 @@
 #include "interface.h"
 #include <memory>
 
-class InteractionMembraneNew : public Interaction
+class InteractionMembrane : public Interaction
 {
 public:
 
-    InteractionMembraneNew(const YmrState *state, std::string name);
-    ~InteractionMembraneNew();
+    InteractionMembrane(const YmrState *state, std::string name);
+    ~InteractionMembrane();
     
     void setPrerequisites(ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2) override;
 

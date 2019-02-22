@@ -1,17 +1,17 @@
 #pragma once
 
-#include "membrane.new.h"
+#include "membrane.h"
 #include "membrane/parameters.h"
 
 #include <memory>
 
-class MembraneWLCJuelicher : public InteractionMembraneNew
+class InteractionMembraneWLCJuelicher : public InteractionMembrane
 {
 public:
-    MembraneWLCJuelicher(const YmrState *state, std::string name,
-                         MembraneParameters parameters, JuelicherBendingParameters juelicherParams,
-                         bool stressFree, float growUntil);
-    ~MembraneWLCJuelicher();
+    InteractionMembraneWLCJuelicher(const YmrState *state, std::string name,
+                                    MembraneParameters parameters, JuelicherBendingParameters juelicherParams,
+                                    bool stressFree, float growUntil);
+    ~InteractionMembraneWLCJuelicher();
 
     void setPrerequisites(ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2) override;
     

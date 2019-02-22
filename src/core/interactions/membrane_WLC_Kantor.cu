@@ -4,13 +4,13 @@
 
 #include <core/utils/make_unique.h>
 
-MembraneWLCKantor::MembraneWLCKantor(const YmrState *state, std::string name,
-                                     MembraneParameters parameters, KantorBendingParameters kantorParams,
-                                     bool stressFree, float growUntil) :
-    InteractionMembraneNew(state, name)
+InteractionMembraneWLCKantor::InteractionMembraneWLCKantor(const YmrState *state, std::string name,
+                                                           MembraneParameters parameters, KantorBendingParameters kantorParams,
+                                                           bool stressFree, float growUntil) :
+    InteractionMembrane(state, name)
 {
-    impl = std::make_unique<InteractionMembrane<DihedralKantor>>(state, name, parameters, kantorParams, stressFree, growUntil);
+    impl = std::make_unique<InteractionMembraneImpl<DihedralKantor>>(state, name, parameters, kantorParams, stressFree, growUntil);
 }
 
-MembraneWLCKantor::~MembraneWLCKantor() = default;
+InteractionMembraneWLCKantor::~InteractionMembraneWLCKantor() = default;
 

@@ -58,12 +58,12 @@ static MembraneForcesKernels::GPU_RBCparameters setParams(MembraneParameters& p,
  * Generic mplementation of RBC membrane forces
  */
 template <class DihedralInteraction>
-class InteractionMembrane : public Interaction
+class InteractionMembraneImpl : public Interaction
 {
 public:
 
-    InteractionMembrane(const YmrState *state, std::string name, MembraneParameters parameters,
-                        typename DihedralInteraction::ParametersType dihedralParams, bool stressFree, float growUntil) :
+    InteractionMembraneImpl(const YmrState *state, std::string name, MembraneParameters parameters,
+                            typename DihedralInteraction::ParametersType dihedralParams, bool stressFree, float growUntil) :
         Interaction(state, name, 1.0f),
         parameters(parameters),
         stressFree(stressFree),
@@ -71,7 +71,7 @@ public:
         dihedralParams(dihedralParams)
     {}
 
-    ~InteractionMembrane() = default;
+    ~InteractionMembraneImpl() = default;
     
     void local (ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2, cudaStream_t stream) override
     {

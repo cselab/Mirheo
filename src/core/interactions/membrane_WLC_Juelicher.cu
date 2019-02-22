@@ -4,7 +4,7 @@
 
 #include <core/utils/make_unique.h>
 
-namespace MembraneJuelicherKernels
+namespace InteractionMembraneJuelicherKernels
 {
 __device__ inline float compute_lenTheta(float3 v0, float3 v1, float3 v2, float3 v3)
 {
@@ -57,21 +57,21 @@ __global__ void computeAreasAndCurvatures(OVviewWithJuelicherQuants view, Membra
     if (__laneid() == 0)
         atomicAdd(&view.lenThetaTot[rbcId], lenTheta);
 }
-} // namespace MembraneJuelicherKernels
+} // namespace InteractionMembraneJuelicherKernels
 
-MembraneWLCJuelicher::MembraneWLCJuelicher(const YmrState *state, std::string name,
-                                           MembraneParameters parameters, JuelicherBendingParameters juelicherParams,
-                                           bool stressFree, float growUntil) :
-    InteractionMembraneNew(state, name)
+InteractionMembraneWLCJuelicher::InteractionMembraneWLCJuelicher(const YmrState *state, std::string name,
+                                                                 MembraneParameters parameters, JuelicherBendingParameters juelicherParams,
+                                                                 bool stressFree, float growUntil) :
+    InteractionMembrane(state, name)
 {
-    impl = std::make_unique<InteractionMembrane<DihedralJuelicher>>(state, name, parameters, juelicherParams, stressFree, growUntil);
+    impl = std::make_unique<InteractionMembraneImpl<DihedralJuelicher>>(state, name, parameters, juelicherParams, stressFree, growUntil);
 }
 
-MembraneWLCJuelicher::~MembraneWLCJuelicher() = default;
+InteractionMembraneWLCJuelicher::~InteractionMembraneWLCJuelicher() = default;
 
-void MembraneWLCJuelicher::setPrerequisites(ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2)
+void InteractionMembraneWLCJuelicher::setPrerequisites(ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2)
 {
-    InteractionMembraneNew::setPrerequisites(pv1, pv2, cl1, cl2);
+    InteractionMembrane::setPrerequisites(pv1, pv2, cl1, cl2);
 
     auto ov = dynamic_cast<MembraneVector*>(pv1);
     
@@ -81,7 +81,7 @@ void MembraneWLCJuelicher::setPrerequisites(ParticleVector *pv1, ParticleVector 
     ov->requireDataPerParticle<float>(ChannelNames::meanCurvatures, ExtraDataManager::CommunicationMode::None, ExtraDataManager::PersistenceMode::None);
 }
 
-void MembraneWLCJuelicher::precomputeQuantities(ParticleVector *pv1, cudaStream_t stream)
+void InteractionMembraneWLCJuelicher::precomputeQuantities(ParticleVector *pv1, cudaStream_t stream)
 {
     auto ov = dynamic_cast<MembraneVector *>(pv1);
 
@@ -98,7 +98,7 @@ void MembraneWLCJuelicher::precomputeQuantities(ParticleVector *pv1, cudaStream_
     dim3 blocks(getNblocks(mesh.nvertices, nthreads), view.nObjects);
         
     SAFE_KERNEL_LAUNCH(
-        MembraneJuelicherKernels::computeAreasAndCurvatures,
+        InteractionMembraneJuelicherKernels::computeAreasAndCurvatures,
         blocks, threads, 0, stream,
         view, mesh );
 }
