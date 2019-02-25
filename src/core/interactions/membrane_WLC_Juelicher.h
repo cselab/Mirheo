@@ -11,6 +11,13 @@ public:
     InteractionMembraneWLCJuelicher(const YmrState *state, std::string name,
                                     MembraneParameters parameters, JuelicherBendingParameters juelicherParams,
                                     bool stressFree, float growUntil);
+
+    InteractionMembraneWLCJuelicher(const YmrState *state, std::string name,
+                                    MembraneParameters parameters,
+                                    WLCParameters wlcParams,
+                                    JuelicherBendingParameters juelicherParams,
+                                    bool stressFree, float growUntil);
+    
     ~InteractionMembraneWLCJuelicher();
 
     void setPrerequisites(ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2) override;

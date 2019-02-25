@@ -82,6 +82,22 @@ InteractionMembraneWLCJuelicher::InteractionMembraneWLCJuelicher(const YmrState 
             (state, name, parameters, wlc, juelicherParams, growUntil);
 }
 
+InteractionMembraneWLCJuelicher::InteractionMembraneWLCJuelicher(const YmrState *state, std::string name,
+                                                                 MembraneParameters parameters,
+                                                                 WLCParameters wlcParams,
+                                                                 JuelicherBendingParameters juelicherParams,
+                                                                 bool stressFree, float growUntil) :
+    InteractionMembrane(state, name)
+{
+    if (stressFree)
+        impl = std::make_unique<InteractionMembraneImpl<TriangleWLCForce<StressFreeState::Active>, DihedralJuelicher>>
+            (state, name, parameters, wlcParams, juelicherParams, growUntil);
+    else
+        impl = std::make_unique<InteractionMembraneImpl<TriangleWLCForce<StressFreeState::Inactive>, DihedralJuelicher>>
+            (state, name, parameters, wlcParams, juelicherParams, growUntil);
+}
+
+
 InteractionMembraneWLCJuelicher::~InteractionMembraneWLCJuelicher() = default;
 
 void InteractionMembraneWLCJuelicher::setPrerequisites(ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2)
