@@ -52,7 +52,6 @@ static void rescaleParameters(MembraneParameters& p, float scale)
     p.totArea0   *= scale * scale;
     p.totVolume0 *= scale * scale * scale;
     p.kBT        *= scale * scale;
-    p.ks         *= scale * scale;
 
     p.gammaC *= scale;
     p.gammaT *= scale;

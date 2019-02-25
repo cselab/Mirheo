@@ -62,27 +62,6 @@ __global__ void computeAreasAndCurvatures(OVviewWithJuelicherQuants view, Membra
 } // namespace InteractionMembraneJuelicherKernels
 
 InteractionMembraneWLCJuelicher::InteractionMembraneWLCJuelicher(const YmrState *state, std::string name,
-                                                                 MembraneParameters parameters, JuelicherBendingParameters juelicherParams,
-                                                                 bool stressFree, float growUntil) :
-    InteractionMembrane(state, name)
-{
-    // TODO
-    WLCParameters wlc;
-    wlc.x0       = parameters.x0;
-    wlc.ks       = parameters.ks;
-    wlc.mpow     = parameters.mpow;
-    wlc.kd       = parameters.kd;
-    wlc.totArea0 = parameters.totArea0;
-
-    if (stressFree)
-        impl = std::make_unique<InteractionMembraneImpl<TriangleWLCForce<StressFreeState::Active>, DihedralJuelicher>>
-            (state, name, parameters, wlc, juelicherParams, growUntil);
-    else
-        impl = std::make_unique<InteractionMembraneImpl<TriangleWLCForce<StressFreeState::Inactive>, DihedralJuelicher>>
-            (state, name, parameters, wlc, juelicherParams, growUntil);
-}
-
-InteractionMembraneWLCJuelicher::InteractionMembraneWLCJuelicher(const YmrState *state, std::string name,
                                                                  MembraneParameters parameters,
                                                                  WLCParameters wlcParams,
                                                                  JuelicherBendingParameters juelicherParams,

@@ -9,10 +9,8 @@ class InteractionMembraneWLCKantor : public InteractionMembrane
 {
 public:
     InteractionMembraneWLCKantor(const YmrState *state, std::string name,
-                                 MembraneParameters parameters, KantorBendingParameters kantorParams,
-                                 bool stressFree, float growUntil);
-    InteractionMembraneWLCKantor(const YmrState *state, std::string name,
                                  MembraneParameters parameters, WLCParameters wlcParams, KantorBendingParameters kantorParams,
                                  bool stressFree, float growUntil);
+    
     ~InteractionMembraneWLCKantor();
 };
