@@ -12,14 +12,16 @@ For more information, please refer to the online documentation: http://ymero.rea
 
 ## Changelog
 
-### unreleased
+<!-- ### unreleased -->
+
+### V0.10.7
 
 * **interface change** membrane interactions take only one constructor (see docs)
 * **fix** warp reductions: all threads participate
 * internal changes:
   * cosmetic changes: more consistent namespace style
   * membrane interaction takes a functor for dihedral computations
-  * refactor membrane interactions
+  * refactor membrane interactions: take functors for shear and bending forces
 
 ### V0.10.6
 
