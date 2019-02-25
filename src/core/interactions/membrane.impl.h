@@ -39,7 +39,6 @@ static MembraneForcesKernels::GPU_RBCparameters setParams(MembraneParameters& p,
 
     devP.ka0 = p.ka / p.totArea0;
     devP.kv0 = p.kv / (6.0*p.totVolume0);
-    devP.kd0 = p.kd;
 
     devP.fluctuationForces = p.fluctuationForces;
 
