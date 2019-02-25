@@ -14,6 +14,7 @@ For more information, please refer to the online documentation: http://ymero.rea
 
 ### unreleased
 
+* **interface change** membrane interactions take only one constructor (see docs)
 * **fix** warp reductions: all threads participate
 * internal changes:
   * cosmetic changes: more consistent namespace style
