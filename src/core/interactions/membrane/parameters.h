@@ -15,6 +15,16 @@ struct WLCParameters
     float totArea0;     ///< equilibrium totalarea (not used for stress free case, used to compute eq length and local areas)
 };
 
+/// structure containing Lim shear energy parameters
+struct LimParameters
+{
+    float ka;
+    float a3, a4;
+    float mu;
+    float b1, b2;
+    float totArea0;     ///< equilibrium totalarea (not used for stress free case, used to compute eq length and local areas)
+};
+
 /// structure containing Kanto bending parameters
 struct KantorBendingParameters
 {

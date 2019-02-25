@@ -1,5 +1,6 @@
 #pragma once
 
+#include "common.h"
 #include "../parameters.h"
 
 #include <core/utils/cpu_gpu_defines.h>
@@ -8,21 +9,14 @@
 
 #include <cmath>
 
-
-enum class StressFreeState
-{
-    Active,
-    Inactive
-};
-
-
 template <StressFreeState stressFreeState>
 class TriangleWLCForce
 {
 public:    
     struct LengthArea
     {
-        float l0, a0;
+        float l; // eq. edge length
+        float a; // eq. triangle area
     };
 
     using EquilibriumTriangleDesc = LengthArea;
@@ -41,28 +35,28 @@ public:
         length0 = sqrt(area0 * 4.0 / sqrt(3.0));
     }
 
-    __D__ inline void initEquilibriumDesc(const MembraneMeshView& mesh, int startId) const
+    __D__ inline void initEquilibriumDesc(const MembraneMeshView& mesh, int i0)
     {}
     
-    __D__ inline EquilibriumTriangleDesc getEquilibriumDesc(const MembraneMeshView& mesh, int i) const
+    __D__ inline EquilibriumTriangleDesc getEquilibriumDesc(const MembraneMeshView& mesh, int i0, int i1)
     {
         LengthArea eq;
         if (stressFreeState == StressFreeState::Active)
         {
-            eq.l0 = mesh.initialLengths[i] * lscale;
-            eq.a0 = mesh.initialAreas  [i] * lscale;
+            eq.l = mesh.initialLengths[i0] * lscale;
+            eq.a = mesh.initialAreas  [i0] * lscale;
         }
         else
         {
-            eq.l0 = this->length0;
-            eq.a0 = this->area0;
+            eq.l = this->length0;
+            eq.a = this->area0;
         }
         return eq;
     }
 
     __D__ inline float3 operator()(float3 v1, float3 v2, float3 v3, EquilibriumTriangleDesc eq) const
     {
-        return areaForce(v1, v2, v3, eq.a0) + bondForce(v1, v2, eq.l0);
+        return areaForce(v1, v2, v3, eq.a) + bondForce(v1, v2, eq.l);
     }
         
 private:
