@@ -21,7 +21,7 @@
  * @param m RBC membrane mesh
  * @return parameters to be passed to GPU kernels
  */
-static MembraneForcesKernels::GPU_RBCparameters setParams(MembraneParameters& p, Mesh *m, float dt, float t)
+static MembraneForcesKernels::GPU_RBCparameters setParams(const MembraneParameters& p, const Mesh *m, float dt, float t)
 {
     MembraneForcesKernels::GPU_RBCparameters devP;
 
@@ -98,15 +98,16 @@ public:
 
         OVviewWithAreaVolume view(ov, ov->local());
         typename DihedralInteraction::ViewType dihedralView(ov, ov->local());
-        MembraneMeshView mesh(static_cast<MembraneMesh *>(ov->mesh.get()));
+        auto mesh = static_cast<MembraneMesh *>(ov->mesh.get());
+        MembraneMeshView meshView(mesh);
 
         const int nthreads = 128;
         const int nblocks  = getNblocks(view.size, nthreads);
 
-        auto devParams = setParams(currentParams, ov->mesh.get(), state->dt, state->currentTime);
+        auto devParams = setParams(currentParams, mesh, state->dt, state->currentTime);
 
         DihedralInteraction dihedralInteraction(dihedralParams, scale);
-        TriangleInteraction triangleInteraction(triangleParams, scale);
+        TriangleInteraction triangleInteraction(triangleParams, mesh, scale);
 
         devParams.scale = scale;
 
@@ -114,7 +115,7 @@ public:
                            nblocks, nthreads, 0, stream,
                            stressFree, triangleInteraction,
                            dihedralInteraction, dihedralView,
-                           view, mesh, devParams);
+                           view, meshView, devParams);
 
     }
 

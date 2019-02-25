@@ -12,6 +12,7 @@ struct WLCParameters
 {
     float x0, ks, mpow; ///< bond parameters
     float kd;           ///< local area energy
+    float totArea0;     ///< equilibrium totalarea (not used for stress free case, used to compute eq length and local areas)
 };
 
 /// structure containing Kanto bending parameters

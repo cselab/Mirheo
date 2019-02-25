@@ -77,6 +77,8 @@ __device__ inline float3 bondTriangleForce(
     int idv1 = rbcId * mesh.nvertices + mesh.adjacent[startId];
     Particle p1(view.particles, idv1);
 
+    triangleInteraction.initEquilibriumDesc(mesh, startId);
+    
 #pragma unroll 2
     for (int i = 1; i <= degree; i++)
     {
@@ -84,18 +86,12 @@ __device__ inline float3 bondTriangleForce(
 
         Particle p2(view.particles, idv2);
 
-        float l0 = stressFree ? mesh.initialLengths[startId + i-1] : parameters.l0;
-        float a0 = stressFree ? mesh.initialAreas  [startId + i-1] : parameters.area0;
-
-        if (stressFree) {
-            l0 *= parameters.scale;
-            a0 *= parameters.scale * parameters.scale;
-        }
+        auto eq = triangleInteraction.getEquilibriumDesc(mesh, startId + i-1);
 
         float totArea   = view.area_volumes[rbcId].x;
         float totVolume = view.area_volumes[rbcId].y;
         
-        f += triangleInteraction (p.r, p1.r, p2.r, l0, a0)
+        f += triangleInteraction (p.r, p1.r, p2.r, eq)
             + _fconstrainArea    (p.r, p1.r, p2.r, totArea,   parameters)
             + _fconstrainVolume  (p.r, p1.r, p2.r, totVolume, parameters)
             + _fvisc     (p,   p1,               parameters)

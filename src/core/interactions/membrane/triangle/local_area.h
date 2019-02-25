@@ -14,12 +14,7 @@ public:
     LocalAreaForce(float kd, float lscale) :
         kd (kd * lscale * lscale)
     {}
-
-    __D__ inline float3 operator()(float3 v1, float3 v2, float3 v3, float l0, float a0) const
-    {
-        return areaForce(v1, v2, v3, a0);
-    }
-
+    
 protected:
 
     __D__ inline float3 areaForce(float3 v1, float3 v2, float3 v3, float area0) const

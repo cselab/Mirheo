@@ -2,23 +2,54 @@
 
 #include "local_area.h"
 
+#include <core/mesh/membrane.h>
+
+template <bool StressFree>
 class TriangleWLCForce : public LocalAreaForce
 {
 public:    
+    struct LengthArea
+    {
+        float l0, a0;
+    };
 
-    using ParametersType = WLCParameters;
+    using EquilibriumTriangleDesc = LengthArea;
+    using ParametersType          = WLCParameters;
     
-    TriangleWLCForce(ParametersType p, float lscale) :
-        LocalAreaForce(p.kd, lscale)
+    TriangleWLCForce(ParametersType p, const Mesh *mesh, float lscale) :
+        LocalAreaForce(p.kd, lscale),
+        lscale(lscale)
     {
         x0   = p.x0;
         ks   = p.ks * lscale * lscale;
         mpow = p.mpow;
+
+        area0   = p.totArea0 * lscale * lscale / mesh->getNtriangles();
+        length0 = sqrt(area0 * 4.0 / sqrt(3.0));
     }
 
-    __D__ inline float3 operator()(float3 v1, float3 v2, float3 v3, float l0, float a0) const
+    __D__ inline void initEquilibriumDesc(const MembraneMeshView& mesh, int startId) const
+    {}
+    
+    __D__ inline EquilibriumTriangleDesc getEquilibriumDesc(const MembraneMeshView& mesh, int i) const
     {
-        return LocalAreaForce::areaForce(v1, v2, v3, a0) + bondForce(v1, v2, l0);
+        LengthArea eq;
+        if (StressFree)
+        {
+            eq.l0 = mesh.initialLengths[i] * lscale;
+            eq.a0 = mesh.initialAreas  [i] * lscale;
+        }
+        else
+        {
+            eq.l0 = this->length0;
+            eq.a0 = this->area0;
+        }
+        return eq;
+    }
+
+    __D__ inline float3 operator()(float3 v1, float3 v2, float3 v3, EquilibriumTriangleDesc eq) const
+    {
+        return LocalAreaForce::areaForce(v1, v2, v3, eq.a0) + bondForce(v1, v2, eq.l0);
     }
         
 private:
@@ -46,4 +77,7 @@ private:
 
     static constexpr float forceCap = 1500.f;
     float x0, ks, mpow;
+
+    float length0, area0; ///< only useful when StressFree is false
+    float lscale;
 };
