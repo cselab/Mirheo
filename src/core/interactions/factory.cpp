@@ -77,7 +77,7 @@ static KantorBendingParameters readKantorParameters(const std::map<std::string, 
     KantorBendingParameters p;
 
     p.kb    = readFloat(desc, "kb");
-    p.theta = readFloat(desc, "ks");
+    p.theta = readFloat(desc, "theta");
     
     return p;
 }

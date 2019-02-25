@@ -234,25 +234,6 @@ void exportInteractions(py::module& m)
                 stressPeriod: compute the stresses every this period (in simulation time units)
     )");
     
-    py::handlers_class<MembraneParameters>(m, "MembraneParameters", R"(
-        Common membrane parameters
-    )")
-        .def(py::init<>(), R"(
-            Structure keeping parameters of the membrane interaction
-        )")
-        .def_readwrite("x0",        &MembraneParameters::x0)
-        .def_readwrite("ks",        &MembraneParameters::ks)
-        .def_readwrite("ka",        &MembraneParameters::ka)
-        .def_readwrite("kd",        &MembraneParameters::kd)
-        .def_readwrite("kv",        &MembraneParameters::kv)
-        .def_readwrite("gammaC",    &MembraneParameters::gammaC)
-        .def_readwrite("gammaT",    &MembraneParameters::gammaT)
-        .def_readwrite("kbT",       &MembraneParameters::kBT)
-        .def_readwrite("mpow",      &MembraneParameters::mpow)
-        .def_readwrite("totArea",   &MembraneParameters::totArea0)
-        .def_readwrite("totVolume", &MembraneParameters::totVolume0)
-        .def_readwrite("rnd",       &MembraneParameters::fluctuationForces);
-        
     py::handlers_class<InteractionMembrane> pyMembraneForces(m, "MembraneForces", pyInt, R"(
         Abstract class for membrane interactions.
         Mesh-based forces acting on a membrane according to the model in [Fedosov2010]_
