@@ -21,21 +21,15 @@
  * @param m RBC membrane mesh
  * @return parameters to be passed to GPU kernels
  */
-static MembraneForcesKernels::GPU_RBCparameters setParams(const MembraneParameters& p, const Mesh *m, float dt, float t)
+static MembraneForcesKernels::GPU_RBCparameters setParams(const MembraneParameters& p, float dt, float t)
 {
     MembraneForcesKernels::GPU_RBCparameters devP;
 
     devP.gammaC = p.gammaC;
     devP.gammaT = p.gammaT;
 
-    devP.area0 = p.totArea0 / m->getNtriangles();
-    devP.totArea0 = p.totArea0;
+    devP.totArea0   = p.totArea0;
     devP.totVolume0 = p.totVolume0;
-
-    devP.x0   = p.x0;
-    devP.ks   = p.ks;
-    devP.mpow = p.mpow;
-    devP.l0 = sqrt(devP.area0 * 4.0 / sqrt(3.0));    
 
     devP.ka0 = p.ka / p.totArea0;
     devP.kv0 = p.kv / (6.0*p.totVolume0);
@@ -64,10 +58,9 @@ public:
     InteractionMembraneImpl(const YmrState *state, std::string name, MembraneParameters parameters,
                             typename TriangleInteraction::ParametersType triangleParams,
                             typename DihedralInteraction::ParametersType dihedralParams,
-                            bool stressFree, float growUntil) :
+                            float growUntil) :
         Interaction(state, name, 1.0f),
         parameters(parameters),
-        stressFree(stressFree),
         scaleFromTime( [growUntil] (float t) { return min(1.0f, 0.5f + 0.5f * (t / growUntil)); } ),
         dihedralParams(dihedralParams),
         triangleParams(triangleParams)
@@ -104,7 +97,7 @@ public:
         const int nthreads = 128;
         const int nblocks  = getNblocks(view.size, nthreads);
 
-        auto devParams = setParams(currentParams, mesh, state->dt, state->currentTime);
+        auto devParams = setParams(currentParams, state->dt, state->currentTime);
 
         DihedralInteraction dihedralInteraction(dihedralParams, scale);
         TriangleInteraction triangleInteraction(triangleParams, mesh, scale);
@@ -113,7 +106,7 @@ public:
 
         SAFE_KERNEL_LAUNCH(MembraneForcesKernels::computeMembraneForces,
                            nblocks, nthreads, 0, stream,
-                           stressFree, triangleInteraction,
+                           triangleInteraction,
                            dihedralInteraction, dihedralView,
                            view, meshView, devParams);
 
@@ -123,7 +116,6 @@ public:
     
 protected:
 
-    bool stressFree;
     std::function< float(float) > scaleFromTime;
     MembraneParameters parameters;
     typename DihedralInteraction::ParametersType dihedralParams;

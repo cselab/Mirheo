@@ -11,8 +11,7 @@ struct GPU_RBCparameters
 {
     float scale; /* hack for stress free TODO? */
     float gammaC, gammaT;
-    float mpow, l0, x0, ks;
-    float area0, totArea0, totVolume0;
+    float totArea0, totVolume0;
     float ka0, kv0;
 
     bool fluctuationForces;
@@ -63,7 +62,7 @@ __device__ inline float3 _ffluct(float3 v1, float3 v2, int i1, int i2, GPU_RBCpa
 
 template <class TriangleInteraction>
 __device__ inline float3 bondTriangleForce(
-        bool stressFree, const TriangleInteraction& triangleInteraction,
+        const TriangleInteraction& triangleInteraction,
         Particle p, int locId, int rbcId,
         const OVviewWithAreaVolume& view,
         const MembraneMeshView& mesh,
@@ -153,8 +152,7 @@ __device__ inline float3 dihedralForce(int locId, int rbcId,
 }
 
 template <class TriangleInteraction, class DihedralInteraction>
-__global__ void computeMembraneForces(bool stressFree,
-                                      TriangleInteraction triangleInteraction,
+__global__ void computeMembraneForces(TriangleInteraction triangleInteraction,
                                       DihedralInteraction dihedralInteraction,
                                       typename DihedralInteraction::ViewType dihedralView,
                                       OVviewWithAreaVolume view,
@@ -173,7 +171,7 @@ __global__ void computeMembraneForces(bool stressFree,
     Particle p(view.particles, pid);
 
     float3 f;
-    f  = bondTriangleForce(stressFree, triangleInteraction, p, locId, rbcId, view, mesh, parameters);
+    f  = bondTriangleForce(triangleInteraction, p, locId, rbcId, view, mesh, parameters);
     f += dihedralForce(locId, rbcId, dihedralView, dihedralInteraction, mesh);
 
     atomicAdd(view.forces + pid, f);

@@ -76,10 +76,10 @@ InteractionMembraneWLCJuelicher::InteractionMembraneWLCJuelicher(const YmrState 
 
     if (stressFree)
         impl = std::make_unique<InteractionMembraneImpl<TriangleWLCForce<true>, DihedralJuelicher>>
-            (state, name, parameters, wlc, juelicherParams, stressFree, growUntil);
+            (state, name, parameters, wlc, juelicherParams, growUntil);
     else
         impl = std::make_unique<InteractionMembraneImpl<TriangleWLCForce<false>, DihedralJuelicher>>
-            (state, name, parameters, wlc, juelicherParams, stressFree, growUntil);
+            (state, name, parameters, wlc, juelicherParams, growUntil);
 }
 
 InteractionMembraneWLCJuelicher::~InteractionMembraneWLCJuelicher() = default;
