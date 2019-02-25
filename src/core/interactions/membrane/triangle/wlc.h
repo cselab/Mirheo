@@ -4,7 +4,14 @@
 
 #include <core/mesh/membrane.h>
 
-template <bool StressFree>
+enum class StressFreeState
+{
+    Active,
+    Inactive
+};
+
+
+template <StressFreeState stressFreeState>
 class TriangleWLCForce : public LocalAreaForce
 {
 public:    
@@ -34,7 +41,7 @@ public:
     __D__ inline EquilibriumTriangleDesc getEquilibriumDesc(const MembraneMeshView& mesh, int i) const
     {
         LengthArea eq;
-        if (StressFree)
+        if (stressFreeState == StressFreeState::Active)
         {
             eq.l0 = mesh.initialLengths[i] * lscale;
             eq.a0 = mesh.initialAreas  [i] * lscale;

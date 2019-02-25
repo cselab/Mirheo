@@ -19,10 +19,10 @@ InteractionMembraneWLCKantor::InteractionMembraneWLCKantor(const YmrState *state
     wlc.totArea0 = parameters.totArea0;
 
     if (stressFree)
-        impl = std::make_unique<InteractionMembraneImpl<TriangleWLCForce<true>, DihedralKantor>>
+        impl = std::make_unique<InteractionMembraneImpl<TriangleWLCForce<StressFreeState::Active>, DihedralKantor>>
             (state, name, parameters, wlc, kantorParams, growUntil);
     else
-        impl = std::make_unique<InteractionMembraneImpl<TriangleWLCForce<false>, DihedralKantor>>
+        impl = std::make_unique<InteractionMembraneImpl<TriangleWLCForce<StressFreeState::Inactive>, DihedralKantor>>
             (state, name, parameters, wlc, kantorParams, growUntil);
 
 }
