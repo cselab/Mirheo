@@ -256,7 +256,7 @@ void exportInteractions(py::module& m)
         The viscous and dissipation forces are central forces and are the same as DPD interactions with :math:`w(r) = 1` 
         (no cutoff radius, applied to each bond).
 
-        Several bending models are implemented. First, the Kantor enrgy reads ():
+        Several bending models are implemented. First, the Kantor enrgy reads (see [kantor1987]_):
 
         .. math::
 
@@ -278,8 +278,12 @@ void exportInteractions(py::module& m)
             U_s = \sum_{j \in {1 ... N_s}} \left[ \frac {k_s l_m \left( 3x_j^2 - 2x_j^3 \right)}{4(1-x_j)} + \frac{k_p}{l_0} \right].
 
         .. [Fedosov2010] Fedosov, D. A.; Caswell, B. & Karniadakis, G. E. 
-                             A multiscale red blood cell model with accurate mechanics, rheology, and dynamics 
-                             Biophysical journal, Elsevier, 2010, 98, 2215-2225
+                         A multiscale red blood cell model with accurate mechanics, rheology, and dynamics 
+                         Biophysical journal, Elsevier, 2010, 98, 2215-2225
+
+        .. [kantor1987] Kantor, Y. & Nelson, D. R. 
+                        Phase transitions in flexible polymeric surfaces 
+                        Physical Review A, APS, 1987, 36, 4020
 
         .. [Juelicher1996] Juelicher, Frank, and Reinhard Lipowsky. 
                            Shape transformations of vesicles with intramembrane domains.
