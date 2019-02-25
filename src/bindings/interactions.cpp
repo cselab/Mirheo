@@ -7,15 +7,43 @@
 #include <core/interactions/mdpd_with_stress.h>
 #include <core/interactions/lj.h>
 #include <core/interactions/lj_with_stress.h>
-//#include <core/interactions/membrane_kantor.h>
-//#include <core/interactions/membrane_juelicher.h>
 #include <core/interactions/membrane_WLC_Kantor.h>
 #include <core/interactions/membrane_WLC_Juelicher.h>
+#include <core/interactions/factory.h>
 
 #include "bindings.h"
 #include "class_wrapper.h"
 
 using namespace pybind11::literals;
+
+static std::shared_ptr<InteractionMembrane>
+createInteractionMembrane(const YmrState *state, std::string name,
+                          std::string shearDesc, std::string bendingDesc,
+                          py::kwargs kwargs)
+{
+    bool stressFree = false;
+    float growUntil = 0.f;
+    std::map<std::string, float> parameters;
+
+    for (const auto& item : kwargs) {
+        auto key = py::cast<std::string>(item.first);
+
+        if (key == "stress_free") {
+            stressFree = py::cast<bool>(item.second);
+        }
+        else if (key == "grow_until") {
+            growUntil = py::cast<float>(item.second);
+        }
+        else {
+            auto value = py::cast<float>(item.second);
+            parameters[key] = value;
+        }
+    }    
+    
+    return InteractionFactory::createInteractionMembrane
+        (state, name, shearDesc, bendingDesc, parameters, stressFree, growUntil);
+}
+
 
 void exportInteractions(py::module& m)
 {
@@ -335,6 +363,14 @@ void exportInteractions(py::module& m)
                  grow_until: time to grow the cell at initialization stage; 
                              the size increases linearly in time from half of the provided mesh to its full size after that time
                              the parameters are scaled accordingly with time
+    )");
+
+    pyMembraneForces.def(py::init(&createInteractionMembrane),
+          "state"_a, "name"_a, "shearDesc"_a, "bendingDesc"_a, R"( 
+             Args:
+                 name: name of the interaction
+                 shearDesc: a string describing what shear force is used
+                 bendingDesc: a string describing what bending force is used
     )");
 }
 

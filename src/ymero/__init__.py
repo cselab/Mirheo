@@ -111,7 +111,7 @@ def __init__():
     not_needing_state = [['ParticleVectors', 'MembraneMesh']]
     
     classes = {}
-    submodules =  inspect.getmembers(sys.modules[__name__],
+    submodules = inspect.getmembers(sys.modules[__name__],
                                     lambda member: inspect.ismodule(member)
                                     and 'ymero' in member.__name__ )
     for m in submodules:
