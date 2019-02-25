@@ -265,104 +265,44 @@ void exportInteractions(py::module& m)
             - membrane viscosity, pairwise force :math:`\mathbf{F}^v`
             - membrane fluctuations, pairwise force :math:`\mathbf{F}^R`
 
-        The form of these potentials is given by:
+        The form of the constrain potentials are given by (see [Fedosov2010]_ for more explanations):
 
         .. math::
 
-            U_b = \sum_{j \in {1 ... N_s}} k_b \left[  1-\cos(\theta_j - \theta_0) \right], \\
-            U_s = \sum_{j \in {1 ... N_s}} \left[ \frac {k_s l_m \left( 3x_j^2 - 2x_j^3 \right)}{4(1-x_j)} + \frac{k_p}{l_0} \right], \\
             U_A = \frac{k_a (A_{tot} - A^0_{tot})^2}{2 A^0_{tot}} + \sum_{j \in {1 ... N_t}} \frac{k_d (A_j-A_0)^2}{2A_0}, \\
             U_V = \frac{k_v (V-V^0_{tot})^2}{2 V^0_{tot}}.
 
-        See [Fedosov2010]_ for more explanations.
         The viscous and dissipation forces are central forces and are the same as DPD interactions with :math:`w(r) = 1` 
         (no cutoff radius, applied to each bond).
 
-        .. [Fedosov2010] Fedosov, D. A.; Caswell, B. & Karniadakis, G. E. 
-                             A multiscale red blood cell model with accurate mechanics, rheology, and dynamics 
-                             Biophysical journal, Elsevier, 2010, 98, 2215-2225
-
-    )");
-
-    py::handlers_class<KantorBendingParameters>(m, "KantorBendingParameters", R"(
-        Bending parameters for Kantor model
-    )")
-        .def(py::init<>(), R"(
-            Structure keeping parameters of the bending membrane interaction
-        )")
-        .def_readwrite("kb",    &KantorBendingParameters::kb)
-        .def_readwrite("theta", &KantorBendingParameters::theta);
-
-    py::handlers_class<JuelicherBendingParameters>(m, "JuelicherBendingParameters", R"(
-        Bending parameters for Juelicher model
-    )")
-        .def(py::init<>(), R"(
-            Structure keeping parameters of the bending membrane interaction
-        )")
-        .def_readwrite("kb",  &JuelicherBendingParameters::kb)
-        .def_readwrite("C0",  &JuelicherBendingParameters::C0)
-        .def_readwrite("kad", &JuelicherBendingParameters::kad)
-        .def_readwrite("DA0", &JuelicherBendingParameters::DA0);
-
-
-    py::handlers_class<InteractionMembraneWLCKantor> (m, "MembraneForcesKantor", pyInt, R"(
-        Mesh-based forces acting on a membrane according to the model in [Fedosov2010]_
-
-         The bending potential :math:`U_b` is defined as:
+        Several bending models are implemented. First, the Kantor enrgy reads ():
 
         .. math::
 
-            U_b = \sum_{j \in {1 ... N_s}} k_b \left[  1-\cos(\theta_j - \theta_0) \right]
+            U_b = \sum_{j \in {1 ... N_s}} k_b \left[  1-\cos(\theta_j - \theta_0) \right].
 
-        See [Fedosov2010]_ for more explanations.
-        The viscous and dissipation forces are central forces and are the same as DPD interactions with :math:`w(r) = 1` 
-        (no cutoff radius, applied to each bond).
-
-        .. [Fedosov2010] Fedosov, D. A.; Caswell, B. & Karniadakis, G. E. 
-                             A multiscale red blood cell model with accurate mechanics, rheology, and dynamics 
-                             Biophysical journal, Elsevier, 2010, 98, 2215-2225
-
-    )")
-        .def(py::init<const YmrState*, std::string, MembraneParameters, KantorBendingParameters, bool, float>(),
-             "state"_a, "name"_a, "params"_a, "params_bending"_a, "stressFree"_a, "grow_until"_a=0, R"( 
-             Args:
-                 name: name of the interaction
-                 params: instance of :any: `MembraneParameters`
-                 params_bending: instance of :any: `KantorBendingParameters`
-                 stressFree: equilibrium bond length and areas are taken from the initial mesh
-                 grow_until: time to grow the cell at initialization stage; 
-                             the size increases linearly in time from half of the provided mesh to its full size after that time
-                             the parameters are scaled accordingly with time
-    )");
-
-    py::handlers_class<InteractionMembraneWLCJuelicher> (m, "MembraneForcesJuelicher", pyInt, R"(
-        Mesh-based forces acting on a membrane according to the model in [Fedosov2010]_ with Juelicher bending model.
-
-        The bending potential :math:`U_b` is defined as:
+        The Juelicher energy is (see [Juelicher1996]_):
 
         .. math::
 
             U_b = 2 k_b \sum_{\alpha = 1}^{N_v} \frac {\left( M_{\alpha} - C_0\right)^2}{A_\alpha}, \\
             M_{\alpha} = \frac 1 4 \sum_{<i,j>}^{(\alpha)} l_{ij} \theta_{ij}.
 
-        See [Juelicher1996]_ for more explanations. Note that the current model is an extended version of the original form.
-        The viscous and dissipation forces are central forces and are the same as DPD interactions with :math:`w(r) = 1` 
-        (no cutoff radius, applied to each bond).
+        It is improve with ADE model (TODO: ref).
+
+        The shear energy is modeled with WLC model:
+
+        .. math::
+
+            U_s = \sum_{j \in {1 ... N_s}} \left[ \frac {k_s l_m \left( 3x_j^2 - 2x_j^3 \right)}{4(1-x_j)} + \frac{k_p}{l_0} \right].
+
+        .. [Fedosov2010] Fedosov, D. A.; Caswell, B. & Karniadakis, G. E. 
+                             A multiscale red blood cell model with accurate mechanics, rheology, and dynamics 
+                             Biophysical journal, Elsevier, 2010, 98, 2215-2225
 
         .. [Juelicher1996] Juelicher, Frank, and Reinhard Lipowsky. 
                            Shape transformations of vesicles with intramembrane domains.
                            Physical Review E 53.3 (1996): 2670.
-    )")
-        .def(py::init<const YmrState*, std::string, MembraneParameters, JuelicherBendingParameters, bool, float>(),
-             "state"_a, "name"_a, "params"_a, "params_bending"_a, "stressFree"_a, "grow_until"_a=0, R"( 
-             Args:
-                 name: name of the interaction
-                 params: instance of :any: `MembraneParameters`
-                 params_bending: instance of :any: `JuelicherBendingParameters`
-                 stressFree: equilibrium bond length and areas are taken from the initial mesh
-                 grow_until: time to grow the cell at initialization stage; 
-                             the size increases linearly in time from half of the provided mesh to its full size after that time
-                             the parameters are scaled accordingly with time
     )");
 
     pyMembraneForces.def(py::init(&createInteractionMembrane),
@@ -371,6 +311,37 @@ void exportInteractions(py::module& m)
                  name: name of the interaction
                  shearDesc: a string describing what shear force is used
                  bendingDesc: a string describing what bending force is used
+
+             parameters are passed in a "kwargs" manner.
+
+             Common Parameters:
+                 graow_until (float, default: 0.0) the size increases linearly in time from half of the provided mesh 
+                                                   to its full size after that time the parameters are scaled accordingly with time
+                 stress_free (bool, default: False) if True, stress Free shape is used for the shear parameters
+                 tot_area:   total area of the membrane at equilibrium
+                 tot_volume: total volume of the membrane at equilibrium
+                 ka_tot:     constrain energy for total area
+                 kv_tot:     constrain energy for total volume
+                 kBT:        fluctuation temperature (set to zero will switch off fluctuation forces)
+                 gammaC:     central component of dissipative forces
+                 gammaT:     tangential component of dissipative forces (warning: if non zero, the interaction will NOT conserve angular momentum)
+
+             Shear Parameters, warm like chain model (set shearDesc = 'wlc'):
+                 x0:
+                 ks:   energy magnitude for bonds
+                 mpow:
+                 ka:
+
+             Bending Parameters, Kantor model (set bendingDesc = 'Kantor'):
+                 kb:    local bending energy magnitude
+                 theta: spontaneous angle
+
+             Bending Parameters, Juelicher model (set bendingDesc = 'Juelicher'):
+                 kb:  local bending energy magnitude
+                 C0:  spontaneous curvature
+                 kad: area difference energy magnitude
+                 DA0: spontaneous area difference
+
     )");
 }
 
