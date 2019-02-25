@@ -17,18 +17,18 @@ ic_rbc   = ymr.InitialConditions.Membrane([[8.0, 4.0, 5.0,   1.0, 0.0, 0.0, 0.0]
 u.registerParticleVector(pv_rbc, ic_rbc)
 
 prm_rbc = {
-    "x0" : 0.457,
+    "x0"     : 0.457,
     "ka_tot" : 0.0,
     "kv_tot" : 0.0,
-    "ka" : 0.0,
-    "ks" : 0.0,
-    "mpow" : 2,
+    "ka"     : 0.0,
+    "ks"     : 0.0,
+    "mpow"   : 2,
     "gammaC" : 0.0,
     "gammaT" : 0.0,
-    "kBT" : 0.0,
+    "kBT"    : 0.0,
     "tot_area"   : 62.2242,
     "tot_volume" : 26.6649,
-    "kb"  : 1000.0,
+    "kb"     : 1000.0,
     "theta"  : 0.0
 }
     

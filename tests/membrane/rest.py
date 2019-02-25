@@ -5,8 +5,7 @@ import ymero as ymr
 import sys, argparse
 
 sys.path.append("..")
-from common.membrane_params import set_lina
-from common.membrane_params import set_lina_bending
+from common.membrane_params import lina_parameters
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--stressFree', action='store_true', default=False)
@@ -30,23 +29,16 @@ pv_rbc   = ymr.ParticleVectors.MembraneVector("rbc", mass=1.0, mesh=mesh_rbc)
 ic_rbc   = ymr.InitialConditions.Membrane([[8.0, 4.0, 5.0,   1.0, 0.0, 0.0, 0.0]])
 u.registerParticleVector(pv_rbc, ic_rbc)
 
-prm_rbc         = ymr.Interactions.MembraneParameters()
-prm_bending_rbc = ymr.Interactions.KantorBendingParameters()
+prm_rbc = lina_parameters(1.0, args.fluctuations)    
+int_rbc = ymr.Interactions.MembraneForces("int_rbc", "wlc", "Kantor", **prm_rbc, stress_free=args.stressFree)
 
-if prm_rbc:
-    set_lina(1.0, prm_rbc)
-    prm_rbc.rnd = args.fluctuations
-if prm_bending_rbc:
-    set_lina_bending(1.0, prm_bending_rbc)
-    
-int_rbc = ymr.Interactions.MembraneForcesKantor("int_rbc", prm_rbc, prm_bending_rbc, stressFree=args.stressFree)
 vv = ymr.Integrators.VelocityVerlet('vv')
 u.registerIntegrator(vv)
 u.setIntegrator(vv, pv_rbc)
 u.registerInteraction(int_rbc)
 u.setInteraction(int_rbc, pv_rbc, pv_rbc)
 
-#u.registerPlugins(ymr.Plugins.createDumpMesh("mesh_dump", pv_rbc, 150, "ply/"))
+u.registerPlugins(ymr.Plugins.createDumpMesh("mesh_dump", pv_rbc, 150, "ply/"))
 
 u.run(5000)
 

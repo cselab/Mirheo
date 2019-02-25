@@ -7,8 +7,7 @@ import ymero as ymr
 
 import sys, argparse
 sys.path.append("..")
-from common.membrane_params import set_lina
-from common.membrane_params import set_lina_bending
+from common.membrane_params import lina_parameters
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--substep', dest='substep', action='store_true')
@@ -46,16 +45,8 @@ u.registerParticleVector(pv_rbc, ic_rbc)
 dpd = ymr.Interactions.DPD('dpd', 1.0, a=10.0, gamma=10.0, kbt=0.01, power=0.25)
 cnt = ymr.Interactions.LJ('cnt', 1.0, epsilon=0.35, sigma=0.4, max_force=400.0, object_aware=False)
 
-prm_rbc         = ymr.Interactions.MembraneParameters()
-prm_bending_rbc = ymr.Interactions.KantorBendingParameters()
-
-if prm_rbc:
-    set_lina(1.0, prm_rbc)
-    prm_rbc.rnd = False
-if prm_bending_rbc:
-    set_lina_bending(1.0, prm_bending_rbc)
-    
-int_rbc = ymr.Interactions.MembraneForcesKantor("int_rbc", prm_rbc, prm_bending_rbc, stressFree=True)
+prm_rbc = lina_parameters(1.0)
+int_rbc = ymr.Interactions.MembraneForces("int_rbc", "wlc", "Kantor", **prm_rbc, stress_free=True)
 
 u.registerInteraction(dpd)
 u.registerInteraction(cnt)
