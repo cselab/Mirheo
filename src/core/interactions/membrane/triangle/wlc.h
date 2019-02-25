@@ -88,13 +88,13 @@ private:
         float3 x32 = v3 - v2;
         float3 x31 = v3 - v1;
 
-        float3 normal = cross(x21, x31);
+        float3 normalArea2 = cross(x21, x31);
 
-        float area = 0.5f * length(normal);
+        float area = 0.5f * length(normalArea2);
 
         float coef = kd * (area - area0) / (area * area0);
 
-        return -0.25f * coef * cross(normal, x32);
+        return -0.25f * coef * cross(normalArea2, x32);
     }
 
 

@@ -41,7 +41,7 @@ static MembraneForcesKernels::GPU_RBCparameters setParams(const MembraneParamete
         std::mt19937 gen(v);
         std::uniform_real_distribution<float> udistr(0.001, 1);
         devP.seed = udistr(gen);
-        devP.sigma_rnd = sqrt(2 * p.kbT * p.gammaC / dt);
+        devP.sigma_rnd = sqrt(2 * p.kBT * p.gammaC / dt);
     }
     
     return devP;
@@ -51,7 +51,7 @@ static void rescaleParameters(MembraneParameters& p, float scale)
 {
     p.totArea0   *= scale * scale;
     p.totVolume0 *= scale * scale * scale;
-    p.kbT        *= scale * scale;
+    p.kBT        *= scale * scale;
     p.ks         *= scale * scale;
 
     p.gammaC *= scale;
