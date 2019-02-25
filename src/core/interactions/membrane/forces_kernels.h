@@ -87,8 +87,9 @@ __device__ inline float3 _ffluct(float3 v1, float3 v2, int i1, int i2, GPU_RBCpa
     return (rnd.x * parameters.sigma_rnd / length(x21)) * x21;
 }
 
+template <class TriangleInteraction>
 __device__ inline float3 bondTriangleForce(
-        bool stressFree,
+        bool stressFree, const TriangleInteraction& triangleInteraction,
         Particle p, int locId, int rbcId,
         const OVviewWithAreaVolume& view,
         const MembraneMeshView& mesh,
@@ -120,9 +121,9 @@ __device__ inline float3 bondTriangleForce(
         float totArea   = view.area_volumes[rbcId].x;
         float totVolume = view.area_volumes[rbcId].y;
         
-        f +=  _ftriangle (p.r, p1.r, p2.r, a0, totArea, parameters)
+        f +=  triangleInteraction.areaForce(p.r, p1.r, p2.r, a0, totArea)
             + _fvolume   (p.r, p1.r, p2.r, totVolume, parameters)
-            + _fbond     (p.r, p1.r, l0, parameters)
+            + triangleInteraction.bondForce(p.r, p1.r, l0)
             + _fvisc     (p,   p1,       parameters)
             + _ffluct    (p.r, p1.r, idv0, idv1, parameters);
 
@@ -181,8 +182,10 @@ __device__ inline float3 dihedralForce(int locId, int rbcId,
     return f0;
 }
 
-template <class DihedralInteraction>
-__global__ void computeMembraneForces(bool stressFree, DihedralInteraction dihedralInteraction,
+template <class TriangleInteraction, class DihedralInteraction>
+__global__ void computeMembraneForces(bool stressFree,
+                                      TriangleInteraction triangleInteraction,
+                                      DihedralInteraction dihedralInteraction,
                                       typename DihedralInteraction::ViewType dihedralView,
                                       OVviewWithAreaVolume view,
                                       MembraneMeshView mesh,
@@ -200,7 +203,7 @@ __global__ void computeMembraneForces(bool stressFree, DihedralInteraction dihed
     Particle p(view.particles, pid);
 
     float3 f;
-    f  = bondTriangleForce(stressFree, p, locId, rbcId, view, mesh, parameters);
+    f  = bondTriangleForce(stressFree, triangleInteraction, p, locId, rbcId, view, mesh, parameters);
     f += dihedralForce(locId, rbcId, dihedralView, dihedralInteraction, mesh);
 
     atomicAdd(view.forces + pid, f);

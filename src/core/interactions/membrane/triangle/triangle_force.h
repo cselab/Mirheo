@@ -12,12 +12,12 @@ class TriangleForce
 public:    
 
     TriangleForce(float ka, float kd, float totArea0, float lscale) :
-        ka      (ka       * lscale * lscale),
+        ka0     (ka / totArea0),
         kd      (kd       * lscale * lscale),
         totArea0(totArea0 * lscale * lscale)
     {}
 
-    __D__ inline float3 bondForce(float3 v0, float3 v1, float3 l0) const
+    __D__ inline float3 bondForce(float3 v0, float3 v1, float l0) const
     {
         return make_float3(0.f);
     }
@@ -34,13 +34,15 @@ public:
         float area = 0.5f * length(normal);
         float inv_area = 1.0f / area;
 
-        float coefArea = ka * (totArea - totArea0) * inv_area
-                       + kd * (area - area0) / (area * area0);
+        float coefArea = ka0 * (totArea - totArea0) * inv_area
+                       + kd  * (area - area0) / (area * area0);
 
         return -0.25f * coefArea * cross(normal, x32);
     }
 
 protected:
     
-    float ka, kd, totArea0;
+    float ka0; ///< ka / totArea0
+    float kd;
+    float totArea0;
 };

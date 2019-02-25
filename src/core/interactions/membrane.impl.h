@@ -57,18 +57,21 @@ static MembraneForcesKernels::GPU_RBCparameters setParams(MembraneParameters& p,
 /**
  * Generic mplementation of RBC membrane forces
  */
-template <class DihedralInteraction>
+template <class TriangleInteraction, class DihedralInteraction>
 class InteractionMembraneImpl : public Interaction
 {
 public:
 
     InteractionMembraneImpl(const YmrState *state, std::string name, MembraneParameters parameters,
-                            typename DihedralInteraction::ParametersType dihedralParams, bool stressFree, float growUntil) :
+                            typename TriangleInteraction::ParametersType triangleParams,
+                            typename DihedralInteraction::ParametersType dihedralParams,
+                            bool stressFree, float growUntil) :
         Interaction(state, name, 1.0f),
         parameters(parameters),
         stressFree(stressFree),
         scaleFromTime( [growUntil] (float t) { return min(1.0f, 0.5f + 0.5f * (t / growUntil)); } ),
-        dihedralParams(dihedralParams)
+        dihedralParams(dihedralParams),
+        triangleParams(triangleParams)
     {}
 
     ~InteractionMembraneImpl() = default;
@@ -102,13 +105,16 @@ public:
         const int nblocks  = getNblocks(view.size, nthreads);
 
         auto devParams = setParams(currentParams, ov->mesh.get(), state->dt, state->currentTime);
+
         DihedralInteraction dihedralInteraction(dihedralParams, scale);
+        TriangleInteraction triangleInteraction(triangleParams, scale);
 
         devParams.scale = scale;
 
         SAFE_KERNEL_LAUNCH(MembraneForcesKernels::computeMembraneForces,
                            nblocks, nthreads, 0, stream,
-                           stressFree, dihedralInteraction, dihedralView,
+                           stressFree, triangleInteraction,
+                           dihedralInteraction, dihedralView,
                            view, mesh, devParams);
 
     }
@@ -121,4 +127,5 @@ protected:
     std::function< float(float) > scaleFromTime;
     MembraneParameters parameters;
     typename DihedralInteraction::ParametersType dihedralParams;
+    typename TriangleInteraction::ParametersType triangleParams;
 };

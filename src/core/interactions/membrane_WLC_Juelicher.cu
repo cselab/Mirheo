@@ -2,6 +2,7 @@
 #include "membrane.impl.h"
 #include "membrane/common.h"
 #include "membrane/dihedral/juelicher.h"
+#include "membrane/triangle/wlc.h"
 
 #include <core/utils/make_unique.h>
 
@@ -65,7 +66,17 @@ InteractionMembraneWLCJuelicher::InteractionMembraneWLCJuelicher(const YmrState 
                                                                  bool stressFree, float growUntil) :
     InteractionMembrane(state, name)
 {
-    impl = std::make_unique<InteractionMembraneImpl<DihedralJuelicher>>(state, name, parameters, juelicherParams, stressFree, growUntil);
+    // TODO
+    WLCParameters wlc;
+    wlc.x0       = parameters.x0;
+    wlc.ks       = parameters.ks;
+    wlc.mpow     = parameters.mpow;
+    wlc.ka       = parameters.ka;
+    wlc.kd       = parameters.kd;
+    wlc.totArea0 = parameters.totArea0;
+
+    impl = std::make_unique<InteractionMembraneImpl<TriangleWLC, DihedralJuelicher>>
+        (state, name, parameters, wlc, juelicherParams, stressFree, growUntil);
 }
 
 InteractionMembraneWLCJuelicher::~InteractionMembraneWLCJuelicher() = default;
