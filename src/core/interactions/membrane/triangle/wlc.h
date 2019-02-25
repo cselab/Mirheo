@@ -1,20 +1,27 @@
 #pragma once
 
-#include "triangle_force.h"
+#include "local_area.h"
 
-class TriangleWLC : public TriangleForce
+class TriangleWLCForce : public LocalAreaForce
 {
 public:    
 
     using ParametersType = WLCParameters;
     
-    TriangleWLC(ParametersType p, float lscale) :
-        TriangleForce(p.ka, p.kd, p.totArea0, lscale)
+    TriangleWLCForce(ParametersType p, float lscale) :
+        LocalAreaForce(p.kd, lscale)
     {
         x0   = p.x0;
         ks   = p.ks * lscale * lscale;
         mpow = p.mpow;
     }
+
+    __D__ inline float3 operator()(float3 v1, float3 v2, float3 v3, float l0, float a0) const
+    {
+        return LocalAreaForce::areaForce(v1, v2, v3, a0) + bondForce(v1, v2, l0);
+    }
+        
+private:
 
     __D__ inline float3 bondForce(float3 v1, float3 v2, float l0) const
     {
@@ -36,10 +43,6 @@ public:
 
         return IfI * (v2 - v1);
     }
-
-    using TriangleForce::areaForce;
-        
-private:
 
     static constexpr float forceCap = 1500.f;
     float x0, ks, mpow;

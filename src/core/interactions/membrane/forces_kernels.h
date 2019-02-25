@@ -19,8 +19,8 @@ struct GPU_RBCparameters
     float seed, sigma_rnd;
 };
 
-__device__ inline float3 _ftriangle(const float3 v1, const float3 v2, const float3 v3,
-                                    const float area0, const float totArea, GPU_RBCparameters parameters)
+__device__ inline float3 _fconstrainArea(float3 v1, float3 v2, float3 v3,
+                                         float totArea, GPU_RBCparameters parameters)
 {
     float3 x21 = v2 - v1;
     float3 x32 = v3 - v2;
@@ -31,43 +31,17 @@ __device__ inline float3 _ftriangle(const float3 v1, const float3 v2, const floa
     float area = 0.5f * length(normal);
     float area_1 = 1.0f / area;
 
-    // TODO: optimize computations here
-    float coefArea = -0.25f * (
-            parameters.ka0 * (totArea - parameters.totArea0) * area_1
-          + parameters.kd0 * (area - area0) / (area * area0) );
+    float coef = -0.25f * parameters.ka0 * (totArea - parameters.totArea0) * area_1;
 
-    float3 fArea = coefArea * cross(normal, x32);
-
-    return fArea;
+    return coef * cross(normal, x32);;
 }
 
-__device__ inline float3 _fvolume(float3 v1, float3 v2, float3 v3, float totVolume, GPU_RBCparameters parameters)
+__device__ inline float3 _fconstrainVolume(float3 v1, float3 v2, float3 v3, float totVolume, GPU_RBCparameters parameters)
 {
     float coeff = parameters.kv0 * (totVolume - parameters.totVolume0);
     return coeff * cross(v3, v2);
 }
 
-
-__device__ inline float3 _fbond(const float3 v1, const float3 v2, const float l0, GPU_RBCparameters parameters)
-{
-    float r = max(length(v2 - v1), 1e-5f);
-    float lmax     = l0 / parameters.x0;
-    float inv_lmax = parameters.x0 / l0;
-
-    auto wlc = [parameters, inv_lmax] (float x) {
-        return parameters.ks * inv_lmax * (4.0f*x*x - 9.0f*x + 6.0f) / ( 4.0f*sqr(1.0f - x) );
-    };
-
-    const float IbforceI_wlc = wlc( min(lmax - 1e-6f, r) * inv_lmax );
-
-    const float kp = wlc( l0 * inv_lmax ) * fastPower(l0, parameters.mpow+1);
-
-    const float IbforceI_pow = -kp / (fastPower(r, parameters.mpow+1));
-
-    const float IfI = min(forceCap, max(-forceCap, IbforceI_wlc + IbforceI_pow));
-
-    return IfI * (v2 - v1);
-}
 
 __device__ inline float3 _fvisc(Particle p1, Particle p2, GPU_RBCparameters parameters)
 {
@@ -121,10 +95,10 @@ __device__ inline float3 bondTriangleForce(
         float totArea   = view.area_volumes[rbcId].x;
         float totVolume = view.area_volumes[rbcId].y;
         
-        f +=  triangleInteraction.areaForce(p.r, p1.r, p2.r, a0, totArea)
-            + _fvolume   (p.r, p1.r, p2.r, totVolume, parameters)
-            + triangleInteraction.bondForce(p.r, p1.r, l0)
-            + _fvisc     (p,   p1,       parameters)
+        f += triangleInteraction (p.r, p1.r, p2.r, l0, a0)
+            + _fconstrainArea    (p.r, p1.r, p2.r, totArea,   parameters)
+            + _fconstrainVolume  (p.r, p1.r, p2.r, totVolume, parameters)
+            + _fvisc     (p,   p1,               parameters)
             + _ffluct    (p.r, p1.r, idv0, idv1, parameters);
 
         idv1 = idv2;

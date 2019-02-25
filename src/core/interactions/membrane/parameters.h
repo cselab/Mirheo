@@ -10,8 +10,8 @@ struct MembraneParameters
 /// structure containing WLC bond + local area energy parameters
 struct WLCParameters
 {
-    float x0, ks, mpow;
-    float ka, kd, totArea0;
+    float x0, ks, mpow; ///< bond parameters
+    float kd;           ///< local area energy
 };
 
 /// structure containing Kanto bending parameters
