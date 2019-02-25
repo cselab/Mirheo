@@ -5,11 +5,8 @@
 namespace MembraneForcesKernels
 {
 
-static constexpr float forceCap = 1500.f;
-
 struct GPU_RBCparameters
 {
-    float scale; /* hack for stress free TODO? */
     float gammaC, gammaT;
     float totArea0, totVolume0;
     float ka0, kv0;

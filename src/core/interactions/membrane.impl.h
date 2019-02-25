@@ -47,6 +47,17 @@ static MembraneForcesKernels::GPU_RBCparameters setParams(const MembraneParamete
     return devP;
 }
 
+static void rescaleParameters(MembraneParameters& p, float scale)
+{
+    p.totArea0   *= scale * scale;
+    p.totVolume0 *= scale * scale * scale;
+    p.kbT        *= scale * scale;
+    p.ks         *= scale * scale;
+
+    p.gammaC *= scale;
+    p.gammaT *= scale;
+}
+
 /**
  * Generic mplementation of RBC membrane forces
  */
@@ -81,13 +92,7 @@ public:
 
         auto currentParams = parameters;
         float scale = scaleFromTime(state->currentTime);
-        currentParams.totArea0 *= scale * scale;
-        currentParams.totVolume0 *= scale * scale * scale;
-        currentParams.kbT *= scale * scale;
-        currentParams.ks *= scale * scale;
-
-        currentParams.gammaC *= scale;
-        currentParams.gammaT *= scale;
+        rescaleParameters(currentParams, scale);
 
         OVviewWithAreaVolume view(ov, ov->local());
         typename DihedralInteraction::ViewType dihedralView(ov, ov->local());
@@ -101,8 +106,6 @@ public:
 
         DihedralInteraction dihedralInteraction(dihedralParams, scale);
         TriangleInteraction triangleInteraction(triangleParams, mesh, scale);
-
-        devParams.scale = scale;
 
         SAFE_KERNEL_LAUNCH(MembraneForcesKernels::computeMembraneForces,
                            nblocks, nthreads, 0, stream,
