@@ -38,21 +38,14 @@ public:
         length0 = sqrt(area0 * 4.0 / sqrt(3.0));
     }
 
-    __D__ inline void initEquilibriumDesc(const MembraneMeshView& mesh, int i1)
-    {
-        if (stressFreeState == StressFreeState::Active)
-            lPrev = mesh.initialLengths[i1] * lscale;
-    }
-    
-    __D__ inline EquilibriumTriangleDesc getEquilibriumDesc(const MembraneMeshView& mesh, int i0, int i1)
+    __D__ inline EquilibriumTriangleDesc getEquilibriumDesc(const MembraneMeshView& mesh, int i0, int i1) const
     {
         EquilibriumTriangleDesc eq;
         if (stressFreeState == StressFreeState::Active)
         {
-            eq.l0 = lPrev;
+            eq.l0 = mesh.initialLengths[i0] * lscale;
             eq.l1 = mesh.initialLengths[i1] * lscale;
             eq.a  = mesh.initialAreas  [i0] * lscale;
-            lPrev = eq.l1;
         }
         else
         {
@@ -77,7 +70,7 @@ public:
         float3 derArea  = (0.25f * area_inv) * cross(normalArea2, x23);
 
         float alpha = area * area0_inv - 1;
-        float coeffAlpha = 0.5f * ka * alpha * (1 + alpha * (3 * a3 + alpha * 4 * a4)) * area0_inv;
+        float coeffAlpha = - 0.5f * ka * alpha * (2 + alpha * (3 * a3 + alpha * 4 * a4));
 
         float3 fArea = coeffAlpha * derArea;
 
@@ -116,6 +109,4 @@ private:
 
     float length0, area0; ///< only useful when StressFree is false
     float lscale;
-
-    float lPrev; ///< this is used to fetch only once the eq. lengths when looping over neighboring triangles
 };

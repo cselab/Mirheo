@@ -4,6 +4,7 @@
 
 #include "membrane_WLC_Kantor.h"
 #include "membrane_WLC_Juelicher.h"
+#include "membrane_Lim_Kantor.h"
 
 #include <core/logger.h>
 
@@ -143,6 +144,18 @@ InteractionFactory::createInteractionMembrane(const YmrState *state, std::string
         }            
     }
 
+    if (isLim(shearDesc))
+    {
+        auto shPrms = readLimParameters(parameters);
+
+        if (isKantor(bendingDesc))
+        {
+            auto bePrms = readKantorParameters(parameters);
+            return std::make_shared<InteractionMembraneLimKantor>
+                (state, name, commonPrms, shPrms, bePrms, stressFree, growUntil);
+        }
+    }
+    
     die("argument combination of shearDesc = '%s' and bendingDesc = '%s' is incorrect",
         shearDesc.c_str(), bendingDesc.c_str());
 

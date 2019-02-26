@@ -59,7 +59,7 @@ __device__ inline float3 _ffluct(float3 v1, float3 v2, int i1, int i2, GPU_RBCpa
 
 template <class TriangleInteraction>
 __device__ inline float3 bondTriangleForce(
-        TriangleInteraction& triangleInteraction,
+        const TriangleInteraction& triangleInteraction,
         Particle p, int locId, int rbcId,
         const OVviewWithAreaVolume& view,
         const MembraneMeshView& mesh,
@@ -72,14 +72,12 @@ __device__ inline float3 bondTriangleForce(
     int idv0 = rbcId * mesh.nvertices + locId;
     int idv1 = rbcId * mesh.nvertices + mesh.adjacent[startId];
     Particle p1(view.particles, idv1);
-
-    triangleInteraction.initEquilibriumDesc(mesh, startId+1);
     
 #pragma unroll 2
-    for (int i = 1; i <= degree; i++)
+    for (int i = 0; i < degree; i++)
     {
-        int i0 = startId + (i-1);
-        int i1 = startId + (i % degree);
+        int i0 = startId + i;
+        int i1 = startId + ((i+1) % degree);
         
         int idv2 = rbcId * mesh.nvertices + mesh.adjacent[i1];
 

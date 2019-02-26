@@ -35,10 +35,7 @@ public:
         length0 = sqrt(area0 * 4.0 / sqrt(3.0));
     }
 
-    __D__ inline void initEquilibriumDesc(const MembraneMeshView& mesh, int i0)
-    {}
-    
-    __D__ inline EquilibriumTriangleDesc getEquilibriumDesc(const MembraneMeshView& mesh, int i0, int i1)
+    __D__ inline EquilibriumTriangleDesc getEquilibriumDesc(const MembraneMeshView& mesh, int i0, int i1) const
     {
         LengthArea eq;
         if (stressFreeState == StressFreeState::Active)
