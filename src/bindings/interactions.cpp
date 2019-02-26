@@ -260,11 +260,21 @@ void exportInteractions(py::module& m)
 
         It is improve with ADE model (TODO: ref).
 
-        The shear energy is modeled with WLC model:
+        Currently, the stretching and shear energiy models are:
+        WLC model:
 
         .. math::
 
             U_s = \sum_{j \in {1 ... N_s}} \left[ \frac {k_s l_m \left( 3x_j^2 - 2x_j^3 \right)}{4(1-x_j)} + \frac{k_p}{l_0} \right].
+
+        Lin model, which is an extension of the Skalak shear energy (see [Lim2008]_).
+
+        .. math::
+        
+            U_{Lin} =& \sum_{i=1}^{N_{t}}\left(A_{0}\right)_{i}\left(\frac{k_a}{2}\left(\alpha_{i}^{2}+a_{3} \alpha_{i}^{3}+a_{4} \alpha_{i}^{4}\right)\right.\\
+                     & +\mu\left(\beta_{i}+b_{1} \alpha_{i} \beta_{i}+b_{2} \beta_{i}^{2}\right) ),
+
+        where :math:`\alpha` and :math:`\beta` are the invariants of the strains.
 
         .. [Fedosov2010] Fedosov, D. A.; Caswell, B. & Karniadakis, G. E. 
                          A multiscale red blood cell model with accurate mechanics, rheology, and dynamics 
@@ -277,6 +287,10 @@ void exportInteractions(py::module& m)
         .. [Juelicher1996] Juelicher, Frank, and Reinhard Lipowsky. 
                            Shape transformations of vesicles with intramembrane domains.
                            Physical Review E 53.3 (1996): 2670.
+
+        .. [Lim2008] Lim HW, Gerald, Michael Wortis, and Ranjan Mukhopadhyay. 
+                     Red blood cell shapes and shape transformations: newtonian mechanics of a composite membrane: sections 2.1–2.4.
+                     Soft Matter: Lipid Bilayers and Red Blood Cells 4 (2008): 83-139.
     )");
 
     pyMembraneForces.def(py::init(&createInteractionMembrane),
@@ -300,19 +314,28 @@ void exportInteractions(py::module& m)
                  * **gammaC**:     central component of dissipative forces
                  * **gammaT**:     tangential component of dissipative forces (warning: if non zero, the interaction will NOT conserve angular momentum)
 
-             Shear Parameters, warm like chain model (set shearDesc = 'wlc'):
+             Shear Parameters, warm like chain model (set **shear_desc** = 'wlc'):
 
                  * **x0**:   :math:`x_0`
                  * **ks**:   energy magnitude for bonds
                  * **mpow**: :math:`m`
                  * **ka**:   energy magnitude for local area
 
-             Bending Parameters, Kantor model (set bendingDesc = 'Kantor'):
+             Shear Parameters, Lim model (set **shear_desc** = 'Lim'):
+
+                 * **ka**: :math:`k_a`, magnitude of stretching force
+                 * **mu**: :math:`\mu`, magnitude of shear force
+                 * **a3**: :math:`a_3`, non linear part for stretching 
+                 * **a4**: :math:`a_4`, non linear part for stretching 
+                 * **b1**: :math:`b_1`, non linear part for shear
+                 * **b2**: :math:`b_2`, non linear part for shear
+
+             Bending Parameters, Kantor model (set **bending_desc** = 'Kantor'):
 
                  * **kb**:    local bending energy magnitude
                  * **theta**: spontaneous angle
 
-             Bending Parameters, Juelicher model (set bendingDesc = 'Juelicher'):
+             Bending Parameters, Juelicher model (set **bending_desc** = 'Juelicher'):
 
                  * **kb**:  local bending energy magnitude
                  * **C0**:  spontaneous curvature
