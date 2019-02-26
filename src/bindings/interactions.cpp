@@ -267,11 +267,11 @@ void exportInteractions(py::module& m)
 
             U_s = \sum_{j \in {1 ... N_s}} \left[ \frac {k_s l_m \left( 3x_j^2 - 2x_j^3 \right)}{4(1-x_j)} + \frac{k_p}{l_0} \right].
 
-        Lin model, which is an extension of the Skalak shear energy (see [Lim2008]_).
+        Lim model, which is an extension of the Skalak shear energy (see [Lim2008]_).
 
         .. math::
         
-            U_{Lin} =& \sum_{i=1}^{N_{t}}\left(A_{0}\right)_{i}\left(\frac{k_a}{2}\left(\alpha_{i}^{2}+a_{3} \alpha_{i}^{3}+a_{4} \alpha_{i}^{4}\right)\right.\\
+            U_{Lim} =& \sum_{i=1}^{N_{t}}\left(A_{0}\right)_{i}\left(\frac{k_a}{2}\left(\alpha_{i}^{2}+a_{3} \alpha_{i}^{3}+a_{4} \alpha_{i}^{4}\right)\right.\\
                      & +\mu\left(\beta_{i}+b_{1} \alpha_{i} \beta_{i}+b_{2} \beta_{i}^{2}\right) ),
 
         where :math:`\alpha` and :math:`\beta` are the invariants of the strains.
@@ -298,11 +298,11 @@ void exportInteractions(py::module& m)
                          "stress_free"_a=false, "grow_until"_a=0.f, R"( 
              Args:
                  name: name of the interaction
-                 shearDesc: a string describing what shear force is used
-                 bendingDesc: a string describing what bending force is used
+                 shear_desc: a string describing what shear force is used
+                 bending_desc: a string describing what bending force is used
                  stress_free: if True, stress Free shape is used for the shear parameters
                  grow_until: the size increases linearly in time from half of the provided mesh 
-                             to its full size after that time the parameters are scaled accordingly with time
+                             to its full size after that time; the parameters are scaled accordingly with time
 
              kwargs:
 
