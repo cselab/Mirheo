@@ -14,6 +14,11 @@ For more information, please refer to the online documentation: http://ymero.rea
 
 <!-- ### unreleased -->
 
+### V0.11.1
+
+* **fix** bounce back on multiple nodes for objects
+* minor fixes in documentation
+
 ### V0.11.0
 
 * add Lim model for shear forces on membranes
