@@ -19,25 +19,14 @@ using namespace pybind11::literals;
 static std::shared_ptr<InteractionMembrane>
 createInteractionMembrane(const YmrState *state, std::string name,
                           std::string shearDesc, std::string bendingDesc,
-                          py::kwargs kwargs)
+                          bool stressFree, float growUntil, py::kwargs kwargs)
 {
-    bool stressFree = false;
-    float growUntil = 0.f;
     std::map<std::string, float> parameters;
 
     for (const auto& item : kwargs) {
-        auto key = py::cast<std::string>(item.first);
-
-        if (key == "stress_free") {
-            stressFree = py::cast<bool>(item.second);
-        }
-        else if (key == "grow_until") {
-            growUntil = py::cast<float>(item.second);
-        }
-        else {
-            auto value = py::cast<float>(item.second);
-            parameters[key] = value;
-        }
+        auto key   = py::cast<std::string>(item.first);
+        auto value = py::cast<float>(item.second);
+        parameters[key] = value;
     }    
     
     return InteractionFactory::createInteractionMembrane
@@ -291,46 +280,44 @@ void exportInteractions(py::module& m)
     )");
 
     pyMembraneForces.def(py::init(&createInteractionMembrane),
-          "state"_a, "name"_a, "shearDesc"_a, "bendingDesc"_a, R"( 
+                         "state"_a, "name"_a, "shear_desc"_a, "bending_desc"_a,
+                         "stress_free"_a=false, "grow_until"_a=0.f, R"( 
              Args:
                  name: name of the interaction
                  shearDesc: a string describing what shear force is used
                  bendingDesc: a string describing what bending force is used
+                 stress_free: if True, stress Free shape is used for the shear parameters
+                 grow_until: the size increases linearly in time from half of the provided mesh 
+                             to its full size after that time the parameters are scaled accordingly with time
 
              kwargs:
 
-             Common Parameters:
-
-                 grow_until (float, default: 0.0) the size increases linearly in time from half of the provided mesh 
-                                                   to its full size after that time the parameters are scaled accordingly with time
-                 stress_free (bool, default: False) if True, stress Free shape is used for the shear parameters
-                 tot_area:   total area of the membrane at equilibrium
-                 tot_volume: total volume of the membrane at equilibrium
-                 ka_tot:     constrain energy for total area
-                 kv_tot:     constrain energy for total volume
-                 kBT:        fluctuation temperature (set to zero will switch off fluctuation forces)
-                 gammaC:     central component of dissipative forces
-                 gammaT:     tangential component of dissipative forces (warning: if non zero, the interaction will NOT conserve angular momentum)
+                 * **tot_area**:   total area of the membrane at equilibrium
+                 * **tot_volume**: total volume of the membrane at equilibrium
+                 * **ka_tot**:     constrain energy for total area
+                 * **kv_tot**:     constrain energy for total volume
+                 * **kBT**:        fluctuation temperature (set to zero will switch off fluctuation forces)
+                 * **gammaC**:     central component of dissipative forces
+                 * **gammaT**:     tangential component of dissipative forces (warning: if non zero, the interaction will NOT conserve angular momentum)
 
              Shear Parameters, warm like chain model (set shearDesc = 'wlc'):
 
-                 * *x0*:   :math:`x_0`
-                 * *ks*:   energy magnitude for bonds
-                 * *mpow*: :math:`m`
-                 * *ka*:   energy magnitude for local area
+                 * **x0**:   :math:`x_0`
+                 * **ks**:   energy magnitude for bonds
+                 * **mpow**: :math:`m`
+                 * **ka**:   energy magnitude for local area
 
              Bending Parameters, Kantor model (set bendingDesc = 'Kantor'):
 
-                 kb:    local bending energy magnitude
-                 theta: spontaneous angle
+                 * **kb**:    local bending energy magnitude
+                 * **theta**: spontaneous angle
 
              Bending Parameters, Juelicher model (set bendingDesc = 'Juelicher'):
 
-                 kb:  local bending energy magnitude
-                 C0:  spontaneous curvature
-                 kad: area difference energy magnitude
-                 DA0: spontaneous area difference
-
+                 * **kb**:  local bending energy magnitude
+                 * **C0**:  spontaneous curvature
+                 * **kad**: area difference energy magnitude
+                 * **DA0**: spontaneous area difference
     )");
 }
 
