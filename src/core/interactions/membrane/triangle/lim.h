@@ -94,8 +94,8 @@ public:
         float3 derBeta  = derBeta0 * der_e0sq_A + derBeta1 * der_e1sq_A;
         float3 derAlpha = area0_inv * derArea;
             
-        float coefAlpha = mu * b1 * beta;
-        float coefBeta  = mu * (2*b2*beta + alpha * b1 + 1);
+        float coefAlpha = - eq.a * mu * b1 * beta;
+        float coefBeta  = - eq.a * mu * (2*b2*beta + alpha * b1 + 1);
 
         float3 fShear = coefAlpha * derAlpha + coefBeta * derBeta;
         
