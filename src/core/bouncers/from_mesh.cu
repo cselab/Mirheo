@@ -46,10 +46,10 @@ void BounceFromMesh::setup(ObjectVector* ov)
 
     if (rov == nullptr)
         ov->requireDataPerParticle<Particle> (ChannelNames::oldParts, ExtraDataManager::CommunicationMode::NeedExchange,
-                                              ExtraDataManager::PersistenceMode::None, sizeof(float));
+                                              ExtraDataManager::PersistenceMode::Persistent, sizeof(float));
     else
         ov->requireDataPerObject<RigidMotion> (ChannelNames::oldMotions, ExtraDataManager::CommunicationMode::NeedExchange,
-                                               ExtraDataManager::PersistenceMode::None, sizeof(RigidReal));
+                                               ExtraDataManager::PersistenceMode::Persistent, sizeof(RigidReal));
 }
 
 /**
