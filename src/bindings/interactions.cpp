@@ -300,7 +300,8 @@ void exportInteractions(py::module& m)
              parameters are passed in a "kwargs" manner.
 
              Common Parameters:
-                 graow_until (float, default: 0.0) the size increases linearly in time from half of the provided mesh 
+
+                 grow_until (float, default: 0.0) the size increases linearly in time from half of the provided mesh 
                                                    to its full size after that time the parameters are scaled accordingly with time
                  stress_free (bool, default: False) if True, stress Free shape is used for the shear parameters
                  tot_area:   total area of the membrane at equilibrium
@@ -312,16 +313,19 @@ void exportInteractions(py::module& m)
                  gammaT:     tangential component of dissipative forces (warning: if non zero, the interaction will NOT conserve angular momentum)
 
              Shear Parameters, warm like chain model (set shearDesc = 'wlc'):
-                 x0:
+
+                 x0:   :math:`x_0`
                  ks:   energy magnitude for bonds
-                 mpow:
-                 ka:
+                 mpow: :math:`m`
+                 ka:   energy magnitude for local area
 
              Bending Parameters, Kantor model (set bendingDesc = 'Kantor'):
+
                  kb:    local bending energy magnitude
                  theta: spontaneous angle
 
              Bending Parameters, Juelicher model (set bendingDesc = 'Juelicher'):
+
                  kb:  local bending energy magnitude
                  C0:  spontaneous curvature
                  kad: area difference energy magnitude
