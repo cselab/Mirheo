@@ -14,6 +14,11 @@ For more information, please refer to the online documentation: http://ymero.rea
 
 <!-- ### unreleased -->
 
+### V0.11.0
+
+* add Lim model for shear forces on membranes
+* add corresponding tests
+
 ### V0.10.7
 
 * **interface change** membrane interactions take only one constructor (see docs)
