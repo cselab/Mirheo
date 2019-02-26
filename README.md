@@ -14,17 +14,17 @@ For more information, please refer to the online documentation: http://ymero.rea
 
 <!-- ### unreleased -->
 
-### V0.11.1
+### v0.11.1
 
 * **fix** bounce back on multiple nodes for objects
 * minor fixes in documentation
 
-### V0.11.0
+### v0.11.0
 
 * add Lim model for shear forces on membranes
 * add corresponding tests
 
-### V0.10.7
+### v0.10.7
 
 * **interface change** membrane interactions take only one constructor (see docs)
 * **fix** warp reductions: all threads participate
@@ -33,7 +33,7 @@ For more information, please refer to the online documentation: http://ymero.rea
   * membrane interaction takes a functor for dihedral computations
   * refactor membrane interactions: take functors for shear and bending forces
 
-### V0.10.6
+### v0.10.6
 
 * Internal change: add before cell list plugin task
 * **fix**: pvs exchanger plugin: new particles are now correctly redistributed
