@@ -297,7 +297,7 @@ void exportInteractions(py::module& m)
                  shearDesc: a string describing what shear force is used
                  bendingDesc: a string describing what bending force is used
 
-             parameters are passed in a "kwargs" manner.
+             kwargs:
 
              Common Parameters:
 
@@ -314,10 +314,10 @@ void exportInteractions(py::module& m)
 
              Shear Parameters, warm like chain model (set shearDesc = 'wlc'):
 
-                 x0:   :math:`x_0`
-                 ks:   energy magnitude for bonds
-                 mpow: :math:`m`
-                 ka:   energy magnitude for local area
+                 * *x0*:   :math:`x_0`
+                 * *ks*:   energy magnitude for bonds
+                 * *mpow*: :math:`m`
+                 * *ka*:   energy magnitude for local area
 
              Bending Parameters, Kantor model (set bendingDesc = 'Kantor'):
 
