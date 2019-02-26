@@ -5,6 +5,7 @@
 #include "membrane_WLC_Kantor.h"
 #include "membrane_WLC_Juelicher.h"
 #include "membrane_Lim_Kantor.h"
+#include "membrane_Lim_Juelicher.h"
 
 #include <core/logger.h>
 
@@ -152,6 +153,13 @@ InteractionFactory::createInteractionMembrane(const YmrState *state, std::string
         {
             auto bePrms = readKantorParameters(parameters);
             return std::make_shared<InteractionMembraneLimKantor>
+                (state, name, commonPrms, shPrms, bePrms, stressFree, growUntil);
+        }
+
+        if (isJuelicher(bendingDesc))
+        {
+            auto bePrms = readJuelicherParameters(parameters);
+            return std::make_shared<InteractionMembraneLimJuelicher>
                 (state, name, commonPrms, shPrms, bePrms, stressFree, growUntil);
         }
     }
