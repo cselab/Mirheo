@@ -1,11 +1,11 @@
-#include <algorithm>
-#include <cuda_profiler_api.h>
+#include "simulation.h"
 
 #include <core/bouncers/interface.h>
 #include <core/celllist.h>
 #include <core/initial_conditions/interface.h>
 #include <core/integrators/interface.h>
 #include <core/interactions/interface.h>
+#include <core/managers/interactions.h>
 #include <core/mpi/api.h>
 #include <core/object_belonging/interface.h>
 #include <core/pvs/object_vector.h>
@@ -18,7 +18,8 @@
 #include <core/ymero_state.h>
 #include <plugins/interface.h>
 
-#include "simulation.h"
+#include <algorithm>
+#include <cuda_profiler_api.h>
 
 Simulation::Simulation(const MPI_Comm &cartComm, const MPI_Comm &interComm, YmrState *state,
                        int globalCheckpointEvery, std::string checkpointFolder,
@@ -29,7 +30,8 @@ Simulation::Simulation(const MPI_Comm &cartComm, const MPI_Comm &interComm, YmrS
       globalCheckpointEvery(globalCheckpointEvery),
       checkpointFolder(checkpointFolder),
       gpuAwareMPI(gpuAwareMPI),
-      scheduler(new TaskScheduler())
+      scheduler(new TaskScheduler()),
+      interactionManager(new InteractionManager())
 {
     int nranks[3], periods[3], coords[3];
 
@@ -518,30 +520,7 @@ void Simulation::prepareInteractions()
 
         inter->setPrerequisites(pv1, pv2, cl1, cl2);
 
-        if (inter->outputsForces())
-        {
-            regularInteractions.push_back(
-                [inter, pv1, pv2, cl1, cl2] (cudaStream_t stream) {
-                    inter->local(pv1, pv2, cl1, cl2, stream);
-                });
-
-            haloInteractions.push_back(
-                [inter, pv1, pv2, cl1, cl2] (cudaStream_t stream) {
-                    inter->halo(pv1, pv2, cl1, cl2, stream);
-                });
-        }
-        else
-        {
-            regularInteractionsIntermediate.push_back(
-                [inter, pv1, pv2, cl1, cl2] (cudaStream_t stream) {
-                    inter->local(pv1, pv2, cl1, cl2, stream);
-                });
-
-            haloInteractionsIntermediate.push_back(
-                [inter, pv1, pv2, cl1, cl2] (cudaStream_t stream) {
-                    inter->halo(pv1, pv2, cl1, cl2, stream);
-                });
-        }
+        interactionManager->add(inter, pv1, pv2, cl1, cl2);
     }
 }
 
@@ -913,25 +892,25 @@ void Simulation::assemble()
     }
 
 
-    for (auto& inter : regularInteractionsIntermediate)
-        scheduler->addTask(task_localIntermediate, [inter, this] (cudaStream_t stream) {
-            inter(stream);
-        });
+    scheduler->addTask(task_localIntermediate,
+                       [this] (cudaStream_t stream) {
+                           interactionManager->executeLocalIntermediate(stream);
+                       });
 
-    for (auto& inter : haloInteractionsIntermediate)
-        scheduler->addTask(task_haloIntermediate, [inter, this] (cudaStream_t stream) {
-            inter(stream);
-        });
+    scheduler->addTask(task_haloIntermediate,
+                       [this] (cudaStream_t stream) {
+                           interactionManager->executeHaloIntermediate(stream);
+                       });
 
-    for (auto& inter : regularInteractions)
-        scheduler->addTask(task_localForces, [inter, this] (cudaStream_t stream) {
-            inter(stream);
-        });
+    scheduler->addTask(task_localForces,
+                       [this] (cudaStream_t stream) {
+                           interactionManager->executeLocalFinal(stream);
+                       });
 
-    for (auto& inter : haloInteractions)
-        scheduler->addTask(task_haloForces, [inter, this] (cudaStream_t stream) {
-            inter(stream);
-        });
+    scheduler->addTask(task_haloForces,
+                       [this] (cudaStream_t stream) {
+                           interactionManager->executeHaloFinal(stream);
+                       });
 
     for (auto& clVec : cellListMap)
         for (auto& cl : clVec.second)
