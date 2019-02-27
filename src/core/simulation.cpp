@@ -594,52 +594,6 @@ void Simulation::preparePlugins()
     info("done Preparing plugins");
 }
 
-static CellList* getLargestNeededForOutput(const std::vector<std::unique_ptr<CellList>>& cellListVec)
-{
-    for (const auto& cl : cellListVec)
-        if (cl->isNeededForOutput()) return cl.get();
-    return nullptr;
-}
-
-static CellList* getLargestNeededForIntermediate(const std::vector<std::unique_ptr<CellList>>& cellListVec)
-{
-    for (const auto& cl : cellListVec)
-        if (cl->isNeededForIntermediate()) return cl.get();
-    return nullptr;
-}
-
-static void removeDuplicates(std::vector<std::string>& v)
-{
-    std::sort(v.begin(), v.end());
-    auto it = std::unique(v.begin(), v.end());
-    v.resize( std::distance(v.begin(), it) );    
-}
-
-static std::vector<std::string> getExtraIntermediateChannels(const std::vector<std::unique_ptr<CellList>>& cellListVec)
-{
-    std::vector<std::string> outputs;
-    for (const auto& cl : cellListVec) {
-        auto clOutputs = cl->getInteractionIntermediateNames();
-        outputs.insert(outputs.end(),
-                       std::make_move_iterator(clOutputs.begin()),
-                       std::make_move_iterator(clOutputs.end()));
-    }
-    removeDuplicates(outputs);
-    return outputs;
-}
-
-static std::vector<std::string> getExtraOutputChannels(const std::vector<std::unique_ptr<CellList>>& cellListVec)
-{
-    std::vector<std::string> outputs;
-    for (const auto& cl : cellListVec) {
-        auto clOutputs = cl->getInteractionOutputNames();
-        outputs.insert(outputs.end(),
-                       std::make_move_iterator(clOutputs.begin()),
-                       std::make_move_iterator(clOutputs.end()));
-    }
-    removeDuplicates(outputs);
-    return outputs;
-}
 
 void Simulation::prepareEngines()
 {
@@ -659,11 +613,11 @@ void Simulation::prepareEngines()
 
         if (cellListVec.size() == 0) continue;
 
-        CellList *clInt = getLargestNeededForIntermediate(cellListVec);
-        CellList *clOut = getLargestNeededForOutput(cellListVec);
+        CellList *clInt = interactionManager->getLargestCellListNeededForIntermediate(cellListVec);
+        CellList *clOut = interactionManager->getLargestCellListNeededForFinal(cellListVec);
 
-        auto extraInt = getExtraIntermediateChannels(cellListVec);
-        // auto extraOut = getExtraOutputChannels(cellListVec); // TODO: for reverse exchanger
+        auto extraInt = interactionManager->getExtraIntermediateChannels(cellListVec);
+        // auto extraOut = interactionManager->getExtraFinalChannels(cellListVec); // TODO: for reverse exchanger
 
         auto cl = cellListVec[0].get();
         auto ov = dynamic_cast<ObjectVector*>(pvPtr);
