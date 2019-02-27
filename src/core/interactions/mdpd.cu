@@ -28,11 +28,8 @@ void InteractionDensity::setPrerequisites(ParticleVector *pv1, ParticleVector *p
     pv1->requireDataPerParticle<float>(ChannelNames::densities, ExtraDataManager::CommunicationMode::None, ExtraDataManager::PersistenceMode::None);
     pv2->requireDataPerParticle<float>(ChannelNames::densities, ExtraDataManager::CommunicationMode::None, ExtraDataManager::PersistenceMode::None);
     
-    cl1->requireExtraDataPerParticle<float>(ChannelNames::densities, CellList::ExtraChannelRole::IntermediateOutput);
-    cl2->requireExtraDataPerParticle<float>(ChannelNames::densities, CellList::ExtraChannelRole::IntermediateOutput);
-    
-    cl1->setNeededForIntermediate();
-    cl2->setNeededForIntermediate();
+    cl1->requireExtraDataPerParticle<float>(ChannelNames::densities);
+    cl2->requireExtraDataPerParticle<float>(ChannelNames::densities);
 }
 
 std::vector<Interaction::InteractionChannel> InteractionDensity::getIntermediateOutputChannels() const
@@ -87,11 +84,8 @@ void InteractionMDPD::setPrerequisites(ParticleVector *pv1, ParticleVector *pv2,
     pv1->requireDataPerParticle<float>(ChannelNames::densities, ExtraDataManager::CommunicationMode::None, ExtraDataManager::PersistenceMode::None);
     pv2->requireDataPerParticle<float>(ChannelNames::densities, ExtraDataManager::CommunicationMode::None, ExtraDataManager::PersistenceMode::None);
     
-    cl1->requireExtraDataPerParticle<float>(ChannelNames::densities, CellList::ExtraChannelRole::IntermediateInput);
-    cl2->requireExtraDataPerParticle<float>(ChannelNames::densities, CellList::ExtraChannelRole::IntermediateInput);
-
-    cl1->setNeededForOutput();
-    cl2->setNeededForOutput();
+    cl1->requireExtraDataPerParticle<float>(ChannelNames::densities);
+    cl2->requireExtraDataPerParticle<float>(ChannelNames::densities);
 }
 
 std::vector<Interaction::InteractionChannel> InteractionMDPD::getIntermediateInputChannels() const

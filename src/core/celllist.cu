@@ -420,54 +420,7 @@ void CellList::clearChannels(const std::vector<std::string>& channelNames, cudaS
     }
 }
 
-std::vector<std::string> CellList::getInteractionOutputNames() const
-{
-    std::vector<std::string> names;
-    for (const auto& entry : finalOutputChannels)
-        names.push_back(entry.name);
-    return names;
-}
-
-std::vector<std::string> CellList::getInteractionIntermediateNames() const
-{
-    std::vector<std::string> names;
-    for (const auto& entry : intermediateOutputChannels)
-        names.push_back(entry.name);
-    return names;
-}
-
-void CellList::setNeededForOutput() {neededForOutput = true;}
-void CellList::setNeededForIntermediate() {neededForIntermediate = true;}
-
-bool CellList::isNeededForOutput() const {return neededForOutput;}
-bool CellList::isNeededForIntermediate() const {return neededForIntermediate;}
-
 LocalParticleVector* CellList::getLocalParticleVector() {return localPV;}
-
-void CellList::_addIfNameNoIn(const std::string& name, CellList::ActivePredicate pred, std::vector<CellList::ChannelActivity>& vec) const
-{
-    bool alreadyIn = false;
-    for (const auto& entry : vec)
-        if (entry.name == name)
-            alreadyIn = true;
-
-    if (alreadyIn) {
-        debug("%s : channel '%s' already added, skip it. Make sure that the activity predicate is the same",
-              makeName().c_str(), name.c_str());
-        // We could also make pred = old_pred || pred; leave it as it is for now
-        return;
-    }
-    
-    vec.push_back({name, pred});
-}
-
-void CellList::_addToChannel(const std::string& name, ExtraChannelRole kind, CellList::ActivePredicate pred)
-{
-    debug("%s : adding channel %s", makeName().c_str(), name.c_str());
-    if      (kind == ExtraChannelRole::IntermediateOutput) _addIfNameNoIn(name, pred, intermediateOutputChannels);
-    else if (kind == ExtraChannelRole::IntermediateInput)  _addIfNameNoIn(name, pred, intermediateInputChannels);
-    else if (kind == ExtraChannelRole::FinalOutput)        _addIfNameNoIn(name, pred, finalOutputChannels);
-}
 
 std::string CellList::makeName() const
 {
