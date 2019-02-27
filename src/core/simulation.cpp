@@ -30,8 +30,8 @@ Simulation::Simulation(const MPI_Comm &cartComm, const MPI_Comm &interComm, YmrS
       globalCheckpointEvery(globalCheckpointEvery),
       checkpointFolder(checkpointFolder),
       gpuAwareMPI(gpuAwareMPI),
-      scheduler(new TaskScheduler()),
-      interactionManager(new InteractionManager())
+      scheduler(std::make_unique<TaskScheduler>()),
+      interactionManager(std::make_unique<InteractionManager>())
 {
     int nranks[3], periods[3], coords[3];
 
