@@ -2,8 +2,6 @@
 
 #include <core/celllist.h>
 
-
-
 void InteractionManager::add(Interaction *interaction, ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2)
 {
     auto intermediateOutput = interaction->getIntermediateOutputChannels();

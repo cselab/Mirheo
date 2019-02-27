@@ -9,6 +9,16 @@
 class ParticleVector;
 class CellList;
 
+/**
+ * Interaction manager.
+ *
+ * There are two kinds of interactions:
+ * - 'Final' interactions, responsible to output final quantities, e.g.  forces, stresses
+ * - 'Intermediate' interactions, which compute intermediate quantities required by final interactions, e.g. particle densities
+ *
+ * This class is a managing clearing, gathering and accumulating the channels of the different cell lists.
+ * It also wraps the execution of the interactions 
+ */
 class InteractionManager
 {
 public:
