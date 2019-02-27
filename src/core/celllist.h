@@ -101,13 +101,6 @@ public:
     CellListInfo cellInfo();
 
     virtual void build(cudaStream_t stream);
-    virtual void accumulateInteractionOutput(cudaStream_t stream);
-    virtual void accumulateInteractionIntermediate(cudaStream_t stream);
-
-    virtual void gatherInteractionIntermediate(cudaStream_t stream);
-    
-    void clearInteractionOutput(cudaStream_t stream);
-    void clearInteractionIntermediate(cudaStream_t stream);
 
     virtual void accumulateChannels(const std::vector<std::string>& channelNames, cudaStream_t stream);
     virtual void gatherChannels(const std::vector<std::string>& channelNames, cudaStream_t stream);
@@ -184,7 +177,6 @@ protected:
     bool neededForOutput {false};
     bool neededForIntermediate {false};
     
-    void _accumulateExtraData(std::vector<ChannelActivity>& channels, cudaStream_t stream);
     void _accumulateForces(cudaStream_t stream);
     void _accumulateExtraData(const std::string& channelName, cudaStream_t stream);
     
@@ -205,10 +197,6 @@ public:
     ~PrimaryCellList();
     
     void build(cudaStream_t stream);
-    void accumulateInteractionOutput(cudaStream_t stream) override;
-    void accumulateInteractionIntermediate(cudaStream_t stream) override;
-
-    void gatherInteractionIntermediate(cudaStream_t stream) override;
 
     void accumulateChannels(const std::vector<std::string>& channelNames, cudaStream_t stream) override;
     void gatherChannels(const std::vector<std::string>& channelNames, cudaStream_t stream) override;

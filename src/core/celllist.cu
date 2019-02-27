@@ -382,69 +382,6 @@ void CellList::_accumulateExtraData(const std::string& channelName, cudaStream_t
     };        
 }
 
-void CellList::_accumulateExtraData(std::vector<ChannelActivity>& channels, cudaStream_t stream)
-{   
-    for (auto& entry : channels) {
-        if (!entry.active()) continue;
-
-        debug("%s : accumulating channel '%s'",
-              makeName().c_str(), entry.name.c_str(), pv->name.c_str(), rc);
-
-        _accumulateExtraData(entry.name, stream);
-    }    
-}
-
-void CellList::accumulateInteractionOutput(cudaStream_t stream)
-{
-    _accumulateForces(stream);
-    _accumulateExtraData(finalOutputChannels, stream);
-}
-
-void CellList::accumulateInteractionIntermediate(cudaStream_t stream)
-{
-    _accumulateExtraData(intermediateOutputChannels, stream);
-}
-
-void CellList::gatherInteractionIntermediate(cudaStream_t stream)
-{
-    for (auto& entry : intermediateInputChannels) {
-        if (!entry.active()) continue;
-
-        debug("%s : gathering intermediate channel '%s'",
-              makeName().c_str(), entry.name.c_str());
-        
-        auto& desc = localPV->extraPerParticle.getChannelDescOrDie(entry.name);
-        _reorderExtraDataEntry(entry.name, &desc, stream);
-
-        // invalidate particle vector halo if any entry is active
-        pv->haloValid = false;
-    }
-}
-
-void CellList::clearInteractionOutput(cudaStream_t stream)
-{
-    localPV->forces.clear(stream);
-
-    for (auto& channel : finalOutputChannels) {
-        if (!channel.active()) continue;
-        localPV->extraPerParticle.getGenericData(channel.name)->clearDevice(stream);
-    }
-}
-
-void CellList::clearInteractionIntermediate(cudaStream_t stream)
-{
-    for (const auto& channel : intermediateInputChannels) {
-        if (!channel.active()) continue;
-        debug2("%s : clear channel '%s'", makeName().c_str(), channel.name.c_str());
-        localPV->extraPerParticle.getGenericData(channel.name)->clearDevice(stream);
-    }
-    for (const auto& channel : intermediateOutputChannels) {
-        if (!channel.active()) continue;
-        debug2("%s : clear channel '%s'", makeName().c_str(), channel.name.c_str());
-        localPV->extraPerParticle.getGenericData(channel.name)->clearDevice(stream);
-    }
-}
-
 void CellList::accumulateChannels(const std::vector<std::string>& channelNames, cudaStream_t stream)
 {
     for (const auto& channelName : channelNames) {
@@ -586,21 +523,6 @@ void PrimaryCellList::build(cudaStream_t stream)
     _swapPersistentExtraData();
     
     pv->local()->resize(newSize, stream);
-}
-
-void PrimaryCellList::accumulateInteractionOutput(cudaStream_t stream)
-{}
-
-void PrimaryCellList::accumulateInteractionIntermediate(cudaStream_t stream)
-{}    
-
-void PrimaryCellList::gatherInteractionIntermediate(cudaStream_t stream)
-{    
-    // do not need to reorder data, but still invalidate halo
-    for (auto& entry : intermediateInputChannels) {
-        if (!entry.active()) continue;
-        pv->haloValid = false;
-    }
 }
 
 void PrimaryCellList::accumulateChannels(const std::vector<std::string>& channelNames, cudaStream_t stream)
