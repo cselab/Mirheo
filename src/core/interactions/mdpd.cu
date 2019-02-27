@@ -35,6 +35,15 @@ void InteractionDensity::setPrerequisites(ParticleVector *pv1, ParticleVector *p
     cl2->setNeededForIntermediate();
 }
 
+std::vector<Interaction::InteractionChannel> InteractionDensity::getIntermediateOutputChannels() const
+{
+    return {{ChannelNames::densities, Interaction::alwaysActive}};
+}
+std::vector<Interaction::InteractionChannel> InteractionDensity::getFinalOutputChannels() const
+{
+    return {};
+}
+
 bool InteractionDensity::outputsForces() const
 {
     return false;
@@ -83,6 +92,16 @@ void InteractionMDPD::setPrerequisites(ParticleVector *pv1, ParticleVector *pv2,
 
     cl1->setNeededForOutput();
     cl2->setNeededForOutput();
+}
+
+std::vector<Interaction::InteractionChannel> InteractionMDPD::getIntermediateInputChannels() const
+{
+    return {{ChannelNames::densities, Interaction::alwaysActive}};
+}
+
+std::vector<Interaction::InteractionChannel> InteractionMDPD::getFinalOutputChannels() const
+{
+    return impl->getFinalOutputChannels();
 }
 
 void InteractionMDPD::local(ParticleVector *pv1, ParticleVector *pv2,

@@ -37,6 +37,11 @@ void InteractionLJ::setPrerequisites(ParticleVector *pv1, ParticleVector *pv2, C
     cl2->setNeededForOutput();
 }
 
+std::vector<Interaction::InteractionChannel> InteractionLJ::getFinalOutputChannels() const
+{
+    return impl->getFinalOutputChannels();
+}
+
 void InteractionLJ::local(ParticleVector *pv1, ParticleVector *pv2,
                           CellList *cl1, CellList *cl2,
                           cudaStream_t stream)

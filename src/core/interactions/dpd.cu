@@ -32,6 +32,11 @@ void InteractionDPD::setPrerequisites(ParticleVector *pv1, ParticleVector *pv2, 
     cl2->setNeededForOutput();
 }
 
+std::vector<Interaction::InteractionChannel> InteractionDPD::getFinalOutputChannels() const
+{
+    return impl->getFinalOutputChannels();
+}
+
 void InteractionDPD::local(ParticleVector *pv1, ParticleVector *pv2,
                            CellList *cl1, CellList *cl2,
                            cudaStream_t stream)

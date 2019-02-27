@@ -52,6 +52,18 @@ void InteractionPair_withStress<PairwiseInteraction>::setPrerequisites(ParticleV
 }
 
 template<class PairwiseInteraction>
+std::vector<Interaction::InteractionChannel> InteractionPair_withStress<PairwiseInteraction>::getFinalOutputChannels() const
+{
+    auto activePredicateStress = [this]() {
+       float t = state->currentTime;
+       return (lastStressTime+stressPeriod <= t) || (lastStressTime == t);
+    };
+
+    return {{ChannelNames::forces, Interaction::alwaysActive},
+            {ChannelNames::stresses, activePredicateStress}};
+}
+
+template<class PairwiseInteraction>
 void InteractionPair_withStress<PairwiseInteraction>::local(
         ParticleVector* pv1, ParticleVector* pv2,
         CellList* cl1, CellList* cl2, cudaStream_t stream)
