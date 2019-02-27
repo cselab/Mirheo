@@ -57,6 +57,13 @@ void InteractionManager::check() const
     }
 }
 
+float InteractionManager::getMaxEffectiveCutoff() const
+{
+    float rcIntermediate = _getMaxCutoff(cellIntermediateOutputChannels);
+    float rcFinal        = _getMaxCutoff(cellFinalChannels);
+    return rcIntermediate + rcFinal;
+}
+
 CellList* InteractionManager::getLargestCellListNeededForIntermediate(const std::vector<std::unique_ptr<CellList>>& cellListVec) const
 {
     return _getLargestCellListNeeded(cellIntermediateOutputChannels, cellListVec);
@@ -143,6 +150,17 @@ void InteractionManager::_addChannels(const std::vector<Interaction::Interaction
         else
             dst[srcEntry.name] = srcEntry.active;
     }
+}
+
+float InteractionManager::_getMaxCutoff(const std::map<CellList*, ChannelActivityMap>& cellChannels) const
+{
+    float rc = 0.f;
+    for (const auto& entry : cellChannels) {
+        if (entry.second.empty())
+            continue;
+        rc = std::max(rc, entry.first->rc);
+    }
+    return rc;
 }
 
 static void checkCellListsAreSorted(const std::vector<std::unique_ptr<CellList>>& cellListVec)

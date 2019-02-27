@@ -25,12 +25,13 @@ public:
     void add(Interaction *interaction, ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2);
     void check() const;
 
+    float getMaxEffectiveCutoff() const;
+    
     CellList* getLargestCellListNeededForIntermediate(const std::vector<std::unique_ptr<CellList>>& cellListVec) const;
     CellList* getLargestCellListNeededForFinal       (const std::vector<std::unique_ptr<CellList>>& cellListVec) const;
 
     std::vector<std::string> getExtraIntermediateChannels(const std::vector<std::unique_ptr<CellList>>& cellListVec) const;
-    std::vector<std::string> getExtraFinalChannels(const std::vector<std::unique_ptr<CellList>>& cellListVec) const;
-    
+    std::vector<std::string> getExtraFinalChannels(const std::vector<std::unique_ptr<CellList>>& cellListVec) const;    
     
     void clearIntermediates (CellList *cl, cudaStream_t stream);
     void clearFinal         (CellList *cl, cudaStream_t stream);
@@ -69,6 +70,8 @@ private:
     void _addChannels(const std::vector<Interaction::InteractionChannel>& src,
                       std::map<std::string, Interaction::ActivePredicate>& dst) const;
 
+    float _getMaxCutoff(const std::map<CellList*, ChannelActivityMap>& cellChannels) const;
+    
     CellList* _getLargestCellListNeeded(const std::map<CellList*, ChannelActivityMap>& cellChannels,
                                         const std::vector<std::unique_ptr<CellList>>& cellListVec) const;
 

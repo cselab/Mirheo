@@ -137,6 +137,11 @@ float Simulation::getCurrentTime() const
     return state->currentTime;
 }
 
+float Simulation::getMaxEffectiveCutoff() const
+{
+    return interactionManager->getMaxEffectiveCutoff();
+}
+
 void Simulation::saveDependencyGraph_GraphML(std::string fname) const
 {
     if (rank == 0)

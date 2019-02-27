@@ -94,6 +94,8 @@ public:
     
     float getCurrentDt() const;
     float getCurrentTime() const;
+
+    float getMaxEffectiveCutoff() const;
     
     void saveDependencyGraph_GraphML(std::string fname) const;
 
