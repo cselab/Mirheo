@@ -2,6 +2,8 @@
 
 #include <core/celllist.h>
 
+#include <set>
+
 void InteractionManager::add(Interaction *interaction, ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2)
 {
     auto intermediateOutput = interaction->getIntermediateOutputChannels();
@@ -35,6 +37,27 @@ void InteractionManager::add(Interaction *interaction, ParticleVector *pv1, Part
     if (!finalOutput.empty())
         finalInteractions.push_back(prototype);
 }
+
+CellList* InteractionManager::getLargestCellListNeededForIntermediate(const std::vector<std::unique_ptr<CellList>>& cellListVec) const
+{
+    return _getLargestCellListNeeded(cellIntermediateOutputChannels, cellListVec);
+}
+
+CellList* InteractionManager::getLargestCellListNeededForFinal(const std::vector<std::unique_ptr<CellList>>& cellListVec) const
+{
+    return _getLargestCellListNeeded(cellFinalChannels, cellListVec);
+}
+
+std::vector<std::string> InteractionManager::getExtraIntermediateChannels(const std::vector<std::unique_ptr<CellList>>& cellListVec) const
+{
+    return _getExtraChannels(cellIntermediateOutputChannels, cellListVec);
+}
+
+std::vector<std::string> InteractionManager::getExtraFinalChannels(const std::vector<std::unique_ptr<CellList>>& cellListVec) const
+{
+    return _getExtraChannels(cellFinalChannels, cellListVec);
+}
+
 
 void InteractionManager::clearIntermediates(cudaStream_t stream)
 {
@@ -102,6 +125,50 @@ void InteractionManager::_addChannels(const std::vector<Interaction::Interaction
             dst[srcEntry.name] = srcEntry.active;
     }
 }
+
+static void checkCellListsAreSorted(const std::vector<std::unique_ptr<CellList>>& cellListVec)
+{
+    for (int i = 1; i < cellListVec.size(); ++i)
+        if (cellListVec[i]->rc > cellListVec[i-1]->rc)
+            die("Expected sorted cell lists (with decreasing cutoff radius)");
+}
+
+CellList* InteractionManager::_getLargestCellListNeeded(const std::map<CellList*, ChannelActivityMap>& cellChannels,
+                                                        const std::vector<std::unique_ptr<CellList>>& cellListVec) const
+{
+    checkCellListsAreSorted(cellListVec);
+    
+    for (const auto& cl : cellListVec)
+    {
+        auto clPtr = cl.get();
+        if (cellChannels.find(clPtr) != cellChannels.end())
+            return clPtr;
+    }
+    return nullptr;
+}
+
+std::vector<std::string> InteractionManager::_getExtraChannels(const std::map<CellList*, ChannelActivityMap>& cellChannels,
+                                                               const std::vector<std::unique_ptr<CellList>>& cellListVec) const
+{
+    std::set<std::string> channels;
+    
+    for (const auto& cl : cellListVec)
+    {
+        auto it = cellChannels.find(cl.get());
+        
+        if (it != cellChannels.end())
+        {
+            for (const auto& entry : it->second)
+            {
+                std::string name = entry.first;
+                if (name != ChannelNames::forces)
+                    channels.insert(name);
+            }
+        }
+    }
+    return {channels.begin(), channels.end()};
+}
+
 
 void InteractionManager::_executeLocal(std::vector<InteractionPrototype>& interactions, cudaStream_t stream)
 {
