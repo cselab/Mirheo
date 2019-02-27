@@ -31,8 +31,8 @@ public:
     std::vector<std::string> getExtraFinalChannels(const std::vector<std::unique_ptr<CellList>>& cellListVec) const;
     
     
-    void clearIntermediates(cudaStream_t stream);
-    void clearFinal(cudaStream_t stream);
+    void clearIntermediates (CellList *cl, cudaStream_t stream);
+    void clearFinal         (CellList *cl, cudaStream_t stream);
 
     void accumulateIntermediates(cudaStream_t stream);
     void accumulateFinal(cudaStream_t stream);
@@ -79,7 +79,7 @@ private:
 
     std::vector<std::string> _extractActiveChannels(const ChannelActivityMap& activityMap) const;
 
-    void _clearChannels     (const std::map<CellList*, ChannelActivityMap>& cellChannels, cudaStream_t stream) const;
+    void _clearChannels     (CellList *cl, const std::map<CellList*, ChannelActivityMap>& cellChannels, cudaStream_t stream) const;
     void _accumulateChannels(const std::map<CellList*, ChannelActivityMap>& cellChannels, cudaStream_t stream) const;
     void _gatherChannels    (const std::map<CellList*, ChannelActivityMap>& cellChannels, cudaStream_t stream) const;
 };

@@ -767,12 +767,12 @@ void Simulation::assemble()
     auto task_accumulateInteractionIntermediate   = scheduler->createTask("Accumulate intermediate");
     auto task_gatherInteractionIntermediate       = scheduler->createTask("Gather intermediate");
 
-    auto task_clearForces                         = scheduler->createTask("Clear forces");
+    auto task_clearFinalOutput                    = scheduler->createTask("Clear forces");
     auto task_haloInit                            = scheduler->createTask("Halo init");
     auto task_haloFinalize                        = scheduler->createTask("Halo finalize");
     auto task_localForces                         = scheduler->createTask("Local forces");
     auto task_haloForces                          = scheduler->createTask("Halo forces");
-    auto task_accumulateInteractionOutput         = scheduler->createTask("Accumulate forces");
+    auto task_accumulateInteractionFinal          = scheduler->createTask("Accumulate forces");
 
     auto task_objHaloInit                         = scheduler->createTask("Object halo init");
     auto task_objHaloFinalize                     = scheduler->createTask("Object halo finalize");
@@ -829,8 +829,10 @@ void Simulation::assemble()
         for (auto& cl : cellListMap[pv.get()])
         {
             auto clPtr = cl.get();
-            scheduler->addTask(task_clearForces,       [clPtr] (cudaStream_t stream) { clPtr->clearInteractionOutput(stream); } );
-            scheduler->addTask(task_clearIntermediate, [clPtr] (cudaStream_t stream) { clPtr->clearInteractionIntermediate(stream); } );
+            scheduler->addTask(task_clearFinalOutput,
+                               [this, clPtr] (cudaStream_t stream) { interactionManager->clearIntermediates(clPtr, stream); } );
+            scheduler->addTask(task_clearIntermediate,
+                               [this, clPtr] (cudaStream_t stream) { interactionManager->clearFinal(clPtr, stream); } );
         }
 
     for (auto& pl : plugins)
@@ -911,24 +913,22 @@ void Simulation::assemble()
                        [this] (cudaStream_t stream) {
                            interactionManager->executeHaloFinal(stream);
                        });
+    
 
-    for (auto& clVec : cellListMap)
-        for (auto& cl : clVec.second)
-        {
-            auto clPtr = cl.get();
+    scheduler->addTask(task_gatherInteractionIntermediate,
+                       [this] (cudaStream_t stream) {
+                           interactionManager->gatherIntermediate(stream);
+                       });
 
-            scheduler->addTask(task_accumulateInteractionIntermediate, [clPtr] (cudaStream_t stream) {
-                clPtr->accumulateInteractionIntermediate(stream);
-            });
-
-            scheduler->addTask(task_gatherInteractionIntermediate, [clPtr] (cudaStream_t stream) {
-                clPtr->gatherInteractionIntermediate(stream);
-            });
+    scheduler->addTask(task_accumulateInteractionIntermediate,
+                       [this] (cudaStream_t stream) {
+                           interactionManager->accumulateIntermediates(stream);
+                       });
             
-            scheduler->addTask(task_accumulateInteractionOutput, [clPtr] (cudaStream_t stream) {
-                clPtr->accumulateInteractionOutput(stream);
-            });
-        }
+    scheduler->addTask(task_accumulateInteractionFinal,
+                       [this] (cudaStream_t stream) {
+                           interactionManager->accumulateFinal(stream);
+                       });
 
 
     for (auto& integrator : integratorsStage2)
@@ -954,9 +954,10 @@ void Simulation::assemble()
         for (auto& cl : clVec)
         {
             auto clPtr = cl.get();
-            scheduler->addTask(task_clearObjLocalForces, [clPtr] (cudaStream_t stream) {
-                clPtr->clearInteractionOutput(stream);
-            });
+            scheduler->addTask(task_clearObjLocalForces,
+                               [this, clPtr] (cudaStream_t stream) {
+                                   interactionManager->clearFinal(clPtr, stream);
+                               });
         }
     }
 
@@ -1032,20 +1033,20 @@ void Simulation::assemble()
     
     scheduler->addDependency(task_pluginsBeforeCellLists, { task_cellLists }, {});
     
-    scheduler->addDependency(task_checkpoint, { task_clearForces }, { task_cellLists });
+    scheduler->addDependency(task_checkpoint, { task_clearFinalOutput }, { task_cellLists });
 
     scheduler->addDependency(task_correctObjBelonging, { task_cellLists }, {});
 
-    scheduler->addDependency(task_cellLists, {task_clearForces, task_clearIntermediate}, {});
+    scheduler->addDependency(task_cellLists, {task_clearFinalOutput, task_clearIntermediate}, {});
 
     
-    scheduler->addDependency(task_pluginsBeforeForces, {task_localForces, task_haloForces}, {task_clearForces});
+    scheduler->addDependency(task_pluginsBeforeForces, {task_localForces, task_haloForces}, {task_clearFinalOutput});
     scheduler->addDependency(task_pluginsSerializeSend, {task_pluginsBeforeIntegration, task_pluginsAfterIntegration}, {task_pluginsBeforeForces});
 
     scheduler->addDependency(task_clearObjHaloForces, {task_objHaloBounce}, {task_objHaloFinalize});
 
     scheduler->addDependency(task_objForcesInit, {}, {task_haloForces});
-    scheduler->addDependency(task_objForcesFinalize, {task_accumulateInteractionOutput}, {task_objForcesInit});
+    scheduler->addDependency(task_objForcesFinalize, {task_accumulateInteractionFinal}, {task_objForcesInit});
 
     scheduler->addDependency(task_localIntermediate, {}, {task_clearIntermediate});
     scheduler->addDependency(task_haloIntermediateInit, {}, {task_clearIntermediate});
@@ -1058,9 +1059,9 @@ void Simulation::assemble()
     scheduler->addDependency(task_haloInit, {}, {task_pluginsBeforeForces, task_gatherInteractionIntermediate});
     scheduler->addDependency(task_haloFinalize, {}, {task_haloInit});
     scheduler->addDependency(task_haloForces, {}, {task_haloFinalize});
-    scheduler->addDependency(task_accumulateInteractionOutput, {task_integration}, {task_haloForces, task_localForces});
+    scheduler->addDependency(task_accumulateInteractionFinal, {task_integration}, {task_haloForces, task_localForces});
 
-    scheduler->addDependency(task_pluginsBeforeIntegration, {task_integration}, {task_accumulateInteractionOutput});
+    scheduler->addDependency(task_pluginsBeforeIntegration, {task_integration}, {task_accumulateInteractionFinal});
     scheduler->addDependency(task_wallBounce, {}, {task_integration});
     scheduler->addDependency(task_wallCheck, {task_redistributeInit}, {task_wallBounce});
 

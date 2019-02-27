@@ -59,15 +59,15 @@ std::vector<std::string> InteractionManager::getExtraFinalChannels(const std::ve
 }
 
 
-void InteractionManager::clearIntermediates(cudaStream_t stream)
+void InteractionManager::clearIntermediates(CellList *cl, cudaStream_t stream)
 {
-    _clearChannels(cellIntermediateOutputChannels, stream);
-    _clearChannels(cellIntermediateInputChannels, stream);
+    _clearChannels(cl, cellIntermediateOutputChannels, stream);
+    _clearChannels(cl, cellIntermediateInputChannels, stream);
 }
 
-void InteractionManager::clearFinal(cudaStream_t stream)
+void InteractionManager::clearFinal(CellList *cl, cudaStream_t stream)
 {
-    _clearChannels(cellFinalChannels, stream);
+    _clearChannels(cl, cellFinalChannels, stream);
 }
 
 void InteractionManager::accumulateIntermediates(cudaStream_t stream)
@@ -193,12 +193,12 @@ std::vector<std::string> InteractionManager::_extractActiveChannels(const Channe
     return activeChannels;
 }
 
-void InteractionManager::_clearChannels(const std::map<CellList*, ChannelActivityMap>& cellChannels, cudaStream_t stream) const
+void InteractionManager::_clearChannels(CellList *cl, const std::map<CellList*, ChannelActivityMap>& cellChannels, cudaStream_t stream) const
 {
-    for (const auto& entry : cellChannels)
-    {
-        auto cl = entry.first;
-        auto activeChannels = _extractActiveChannels(entry.second);
+    auto it = cellChannels.find(cl);
+
+    if (it != cellChannels.end()) {
+        auto activeChannels = _extractActiveChannels(it->second);
         cl->clearChannels(activeChannels, stream);
     }
 }
