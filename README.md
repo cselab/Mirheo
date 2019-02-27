@@ -14,6 +14,13 @@ For more information, please refer to the online documentation: http://ymero.rea
 
 <!-- ### unreleased -->
 
+### v0.11.2
+
+* **fix** wall thickness is larger when using MDPD
+* internal changes:
+  * cell lists do not know about special channels
+  * add interaction manager to manage interaction channels
+
 ### v0.11.1
 
 * **fix** bounce back on multiple nodes for objects

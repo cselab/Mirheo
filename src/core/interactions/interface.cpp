@@ -1,5 +1,7 @@
 #include "interface.h"
 
+#include <core/utils/common.h>
+
 Interaction::Interaction(const YmrState *state, std::string name, float rc) :
     YmrSimulationObject(state, name),
     rc(rc)
@@ -14,3 +16,20 @@ bool Interaction::outputsForces() const
 {
     return true;
 }
+
+std::vector<Interaction::InteractionChannel> Interaction::getIntermediateOutputChannels() const
+{
+    return {};
+}
+
+std::vector<Interaction::InteractionChannel> Interaction::getIntermediateInputChannels() const
+{
+    return {};
+}
+
+std::vector<Interaction::InteractionChannel> Interaction::getFinalOutputChannels() const
+{
+    return {{ChannelNames::forces, alwaysActive}};
+}
+
+const Interaction::ActivePredicate Interaction::alwaysActive = [](){return true;};

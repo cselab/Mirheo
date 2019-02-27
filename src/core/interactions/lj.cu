@@ -32,9 +32,11 @@ InteractionLJ::~InteractionLJ() = default;
 void InteractionLJ::setPrerequisites(ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2)
 {
     impl->setPrerequisites(pv1, pv2, cl1, cl2);
+}
 
-    cl1->setNeededForOutput();
-    cl2->setNeededForOutput();
+std::vector<Interaction::InteractionChannel> InteractionLJ::getFinalOutputChannels() const
+{
+    return impl->getFinalOutputChannels();
 }
 
 void InteractionLJ::local(ParticleVector *pv1, ParticleVector *pv2,

@@ -89,9 +89,6 @@ public:
 class CellList : public CellListInfo
 {
 public:    
-
-    enum class ExtraChannelRole {IntermediateOutput, IntermediateInput, FinalOutput, None};
-    using ActivePredicate = std::function<bool()>;
     
     CellList(ParticleVector *pv, float rc, float3 localDomainSize);
     CellList(ParticleVector *pv, int3 resolution, float3 localDomainSize);
@@ -101,13 +98,12 @@ public:
     CellListInfo cellInfo();
 
     virtual void build(cudaStream_t stream);
-    virtual void accumulateInteractionOutput(cudaStream_t stream);
-    virtual void accumulateInteractionIntermediate(cudaStream_t stream);
 
-    virtual void gatherInteractionIntermediate(cudaStream_t stream);
+    virtual void accumulateChannels(const std::vector<std::string>& channelNames, cudaStream_t stream);
+    virtual void gatherChannels(const std::vector<std::string>& channelNames, cudaStream_t stream);
+    void clearChannels(const std::vector<std::string>& channelNames, cudaStream_t stream);
+
     
-    void clearInteractionOutput(cudaStream_t stream);
-    void clearInteractionIntermediate(cudaStream_t stream);
     
     template <typename ViewType>
     ViewType getView() const
@@ -121,22 +117,11 @@ public:
      * 
      */
     template <typename T>
-    void requireExtraDataPerParticle(const std::string& name, ExtraChannelRole kind, ActivePredicate pred = [](){return true;})
+    void requireExtraDataPerParticle(const std::string& name)
     {
         particlesDataContainer->extraPerParticle.createData<T>(name);
-
-        _addToChannel(name, kind, pred);
     }
-
-    std::vector<std::string> getInteractionOutputNames() const;
-    std::vector<std::string> getInteractionIntermediateNames() const;
-
-    void setNeededForOutput();
-    void setNeededForIntermediate();
     
-    bool isNeededForOutput() const;
-    bool isNeededForIntermediate() const;
-
     LocalParticleVector* getLocalParticleVector();
     
 protected:
@@ -158,27 +143,10 @@ protected:
     void _reorderPersistentData(cudaStream_t stream);
     
     void _build(cudaStream_t stream);
+        
+    void _accumulateForces(cudaStream_t stream);
+    void _accumulateExtraData(const std::string& channelName, cudaStream_t stream);
     
-    /**
-     *  structure to describe which channels are to be reordered, cleared and accumulated
-     */
-    struct ChannelActivity
-    {
-        std::string name;
-        ActivePredicate active;
-    };
-    
-    std::vector<ChannelActivity> finalOutputChannels;        ///< channels which are final output of interactions, e.g. forces, stresses for dpd kernel
-    std::vector<ChannelActivity> intermediateOutputChannels; ///< channels which are intermediate output of interactions, e.g. densities for density kernel
-    std::vector<ChannelActivity> intermediateInputChannels;  ///< channels which are intermediate input for interactions, e.g. densities for mdpd kernel
-
-    void _addIfNameNoIn(const std::string& name, CellList::ActivePredicate pred, std::vector<ChannelActivity>& vec) const;
-    void _addToChannel(const std::string& name, ExtraChannelRole kind, ActivePredicate pred);
-
-    bool neededForOutput {false};
-    bool neededForIntermediate {false};
-    
-    void _accumulateExtraData(std::vector<ChannelActivity>& channels, cudaStream_t stream);
     void _reorderExtraDataEntry(const std::string& channelName,
                                 const ExtraDataManager::ChannelDescription *channelDesc,
                                 cudaStream_t stream);
@@ -196,10 +164,9 @@ public:
     ~PrimaryCellList();
     
     void build(cudaStream_t stream);
-    void accumulateInteractionOutput(cudaStream_t stream) override;
-    void accumulateInteractionIntermediate(cudaStream_t stream) override;
 
-    void gatherInteractionIntermediate(cudaStream_t stream) override;
+    void accumulateChannels(const std::vector<std::string>& channelNames, cudaStream_t stream) override;
+    void gatherChannels(const std::vector<std::string>& channelNames, cudaStream_t stream) override;
 
 protected:
 

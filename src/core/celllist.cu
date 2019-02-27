@@ -343,43 +343,7 @@ void CellList::build(cudaStream_t stream)
     _build(stream);
 }
 
-void CellList::_accumulateExtraData(std::vector<ChannelActivity>& channels, cudaStream_t stream)
-{
-    const int nthreads = 128;
-    
-    for (auto& entry : channels) {
-        if (!entry.active()) continue;
-
-        debug("%s : accumulating channel '%s'",
-              makeName().c_str(), entry.name.c_str(), pv->name.c_str(), rc);
-
-        switch(localPV->extraPerParticle.getChannelDescOrDie(entry.name).dataType) {
-
-#define SWITCH_ENTRY(ctype)                                             \
-            case DataType::TOKENIZE(ctype):                             \
-            {                                                           \
-                auto src = localPV    ->extraPerParticle.getData<ctype>(entry.name); \
-                auto dst = pv->local()->extraPerParticle.getData<ctype>(entry.name); \
-                int n = pv->local()->size();                            \
-                SAFE_KERNEL_LAUNCH(                                     \
-                    CellListKernels::accumulateKernel<ctype>,                            \
-                    getNblocks(n, nthreads), nthreads, 0, stream,       \
-                    n, dst->devPtr(), cellInfo(), src->devPtr() );      \
-            }                                                           \
-            break;
-
-            TYPE_TABLE_ADDITIONABLE(SWITCH_ENTRY);
-
-        default:
-            die("%s : cannot accumulate entry '%s': type not supported",
-                makeName().c_str(), entry.name.c_str());
-
-#undef SWITCH_ENTRY
-        };        
-    }    
-}
-
-void CellList::accumulateInteractionOutput(cudaStream_t stream)
+void CellList::_accumulateForces(cudaStream_t stream)
 {
     PVview dstView(pv, pv->local());
     int nthreads = 128;
@@ -388,103 +352,75 @@ void CellList::accumulateInteractionOutput(cudaStream_t stream)
             CellListKernels::addForcesKernel,
             getNblocks(dstView.size, nthreads), nthreads, 0, stream,
             dstView, cellInfo(), getView<PVview>() );
-
-    _accumulateExtraData(finalOutputChannels, stream);
 }
 
-void CellList::accumulateInteractionIntermediate(cudaStream_t stream)
+void CellList::_accumulateExtraData(const std::string& channelName, cudaStream_t stream)
 {
-    _accumulateExtraData(intermediateOutputChannels, stream);
+    const int nthreads = 128;
+    switch(localPV->extraPerParticle.getChannelDescOrDie(channelName).dataType) {
+
+#define SWITCH_ENTRY(ctype)                                             \
+        case DataType::TOKENIZE(ctype):                                 \
+        {                                                               \
+            auto src = localPV    ->extraPerParticle.getData<ctype>(channelName); \
+            auto dst = pv->local()->extraPerParticle.getData<ctype>(channelName); \
+            int n = pv->local()->size();                                \
+            SAFE_KERNEL_LAUNCH(                                         \
+                CellListKernels::accumulateKernel<ctype>,               \
+                getNblocks(n, nthreads), nthreads, 0, stream,           \
+                n, dst->devPtr(), cellInfo(), src->devPtr() );          \
+            }                                                           \
+            break;
+
+        TYPE_TABLE_ADDITIONABLE(SWITCH_ENTRY);
+
+    default:
+        die("%s : cannot accumulate entry '%s': type not supported",
+            makeName().c_str(), channelName.c_str());
+
+#undef SWITCH_ENTRY
+    };        
 }
 
-void CellList::gatherInteractionIntermediate(cudaStream_t stream)
+void CellList::accumulateChannels(const std::vector<std::string>& channelNames, cudaStream_t stream)
 {
-    for (auto& entry : intermediateInputChannels) {
-        if (!entry.active()) continue;
+    for (const auto& channelName : channelNames) {
+        debug2("%s : accumulating channel '%s'", makeName().c_str(), channelName.c_str());
 
-        debug("%s : gathering intermediate channel '%s'",
-              makeName().c_str(), entry.name.c_str());
+        if (channelName == ChannelNames::forces)
+            _accumulateForces(stream);
+        else
+            _accumulateExtraData(channelName, stream);
+    }
+}
+
+void CellList::gatherChannels(const std::vector<std::string>& channelNames, cudaStream_t stream)
+{
+    for (auto& channelName : channelNames) {
+
+        debug("%s : gathering channel '%s'", makeName().c_str(), channelName.c_str());
         
-        auto& desc = localPV->extraPerParticle.getChannelDescOrDie(entry.name);
-        _reorderExtraDataEntry(entry.name, &desc, stream);
+        auto& desc = localPV->extraPerParticle.getChannelDescOrDie(channelName);
+        _reorderExtraDataEntry(channelName, &desc, stream);
 
         // invalidate particle vector halo if any entry is active
         pv->haloValid = false;
     }
 }
 
-void CellList::clearInteractionOutput(cudaStream_t stream)
+void CellList::clearChannels(const std::vector<std::string>& channelNames, cudaStream_t stream)
 {
-    localPV->forces.clear(stream);
+    for (const auto& channelName : channelNames) {
+        debug2("%s : clearing channel '%s'", makeName().c_str(), channelName.c_str());
 
-    for (auto& channel : finalOutputChannels) {
-        if (!channel.active()) continue;
-        localPV->extraPerParticle.getGenericData(channel.name)->clearDevice(stream);
+        if (channelName == ChannelNames::forces)
+            localPV->forces.clear(stream);
+        else
+            localPV->extraPerParticle.getGenericData(channelName)->clearDevice(stream);
     }
 }
-
-void CellList::clearInteractionIntermediate(cudaStream_t stream)
-{
-    for (const auto& channel : intermediateInputChannels) {
-        if (!channel.active()) continue;
-        debug2("%s : clear channel '%s'", makeName().c_str(), channel.name.c_str());
-        localPV->extraPerParticle.getGenericData(channel.name)->clearDevice(stream);
-    }
-    for (const auto& channel : intermediateOutputChannels) {
-        if (!channel.active()) continue;
-        debug2("%s : clear channel '%s'", makeName().c_str(), channel.name.c_str());
-        localPV->extraPerParticle.getGenericData(channel.name)->clearDevice(stream);
-    }
-}
-
-std::vector<std::string> CellList::getInteractionOutputNames() const
-{
-    std::vector<std::string> names;
-    for (const auto& entry : finalOutputChannels)
-        names.push_back(entry.name);
-    return names;
-}
-
-std::vector<std::string> CellList::getInteractionIntermediateNames() const
-{
-    std::vector<std::string> names;
-    for (const auto& entry : intermediateOutputChannels)
-        names.push_back(entry.name);
-    return names;
-}
-
-void CellList::setNeededForOutput() {neededForOutput = true;}
-void CellList::setNeededForIntermediate() {neededForIntermediate = true;}
-
-bool CellList::isNeededForOutput() const {return neededForOutput;}
-bool CellList::isNeededForIntermediate() const {return neededForIntermediate;}
 
 LocalParticleVector* CellList::getLocalParticleVector() {return localPV;}
-
-void CellList::_addIfNameNoIn(const std::string& name, CellList::ActivePredicate pred, std::vector<CellList::ChannelActivity>& vec) const
-{
-    bool alreadyIn = false;
-    for (const auto& entry : vec)
-        if (entry.name == name)
-            alreadyIn = true;
-
-    if (alreadyIn) {
-        debug("%s : channel '%s' already added, skip it. Make sure that the activity predicate is the same",
-              makeName().c_str(), name.c_str());
-        // We could also make pred = old_pred || pred; leave it as it is for now
-        return;
-    }
-    
-    vec.push_back({name, pred});
-}
-
-void CellList::_addToChannel(const std::string& name, ExtraChannelRole kind, CellList::ActivePredicate pred)
-{
-    debug("%s : adding channel %s", makeName().c_str(), name.c_str());
-    if      (kind == ExtraChannelRole::IntermediateOutput) _addIfNameNoIn(name, pred, intermediateOutputChannels);
-    else if (kind == ExtraChannelRole::IntermediateInput)  _addIfNameNoIn(name, pred, intermediateInputChannels);
-    else if (kind == ExtraChannelRole::FinalOutput)        _addIfNameNoIn(name, pred, finalOutputChannels);
-}
 
 std::string CellList::makeName() const
 {
@@ -542,20 +478,16 @@ void PrimaryCellList::build(cudaStream_t stream)
     pv->local()->resize(newSize, stream);
 }
 
-void PrimaryCellList::accumulateInteractionOutput(cudaStream_t stream)
+void PrimaryCellList::accumulateChannels(const std::vector<std::string>& channelNames, cudaStream_t stream)
 {}
 
-void PrimaryCellList::accumulateInteractionIntermediate(cudaStream_t stream)
-{}    
-
-void PrimaryCellList::gatherInteractionIntermediate(cudaStream_t stream)
-{    
+void PrimaryCellList::gatherChannels(const std::vector<std::string>& channelNames, cudaStream_t stream)
+{
     // do not need to reorder data, but still invalidate halo
-    for (auto& entry : intermediateInputChannels) {
-        if (!entry.active()) continue;
+    if (!channelNames.empty())
         pv->haloValid = false;
-    }
 }
+
 
 template <typename T>
 static void swap(const std::string& channelName, ExtraDataManager& pvManager, ExtraDataManager& containerManager)

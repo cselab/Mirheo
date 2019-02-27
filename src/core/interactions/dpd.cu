@@ -27,9 +27,11 @@ InteractionDPD::~InteractionDPD() = default;
 void InteractionDPD::setPrerequisites(ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2)
 {
     impl->setPrerequisites(pv1, pv2, cl1, cl2);
+}
 
-    cl1->setNeededForOutput();
-    cl2->setNeededForOutput();
+std::vector<Interaction::InteractionChannel> InteractionDPD::getFinalOutputChannels() const
+{
+    return impl->getFinalOutputChannels();
 }
 
 void InteractionDPD::local(ParticleVector *pv1, ParticleVector *pv2,

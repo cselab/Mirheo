@@ -22,11 +22,11 @@ public:
 
     void setSpecificPair(std::string pv1name, std::string pv2name, PairwiseInteraction pair);
 
+    std::vector<InteractionChannel> getFinalOutputChannels() const override;
+    
 private:
     float stressPeriod;
     float lastStressTime{-1e6};
-
-    std::map<ParticleVector*, float> pv2lastStressTime;
 
     InteractionPair<PairwiseInteraction> interaction;
     InteractionPair<PairwiseStressWrapper<PairwiseInteraction>> interactionWithStress;
