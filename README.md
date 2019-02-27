@@ -12,7 +12,11 @@ For more information, please refer to the online documentation: http://ymero.rea
 
 ## Changelog
 
-<!-- ### unreleased -->
+### unreleased
+
+* internal changes:
+  * cell lists do not know about special channels
+  * add interaction manager to manage interaction channels
 
 ### v0.11.1
 
