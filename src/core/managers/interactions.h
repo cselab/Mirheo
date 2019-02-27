@@ -20,7 +20,7 @@ public:
     void accumulateIntermediates(cudaStream_t stream);
     void accumulateFinal(cudaStream_t stream);
 
-    void scatterIntermediate(cudaStream_t stream);
+    void gatherIntermediate(cudaStream_t stream);
 
     void executeLocalIntermediate(cudaStream_t stream);
     void executeLocalFinal(cudaStream_t stream);
@@ -54,4 +54,9 @@ private:
     void _executeLocal(std::vector<InteractionPrototype>& interactions, cudaStream_t stream);
     void _executeHalo(std::vector<InteractionPrototype>& interactions, cudaStream_t stream);
 
+    std::vector<std::string> _extractActiveChannels(const ChannelActivityMap& activityMap) const;
+
+    void _clearChannels     (const std::map<CellList*, ChannelActivityMap>& cellChannels, cudaStream_t stream) const;
+    void _accumulateChannels(const std::map<CellList*, ChannelActivityMap>& cellChannels, cudaStream_t stream) const;
+    void _gatherChannels    (const std::map<CellList*, ChannelActivityMap>& cellChannels, cudaStream_t stream) const;
 };

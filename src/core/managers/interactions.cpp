@@ -38,18 +38,31 @@ void InteractionManager::add(Interaction *interaction, ParticleVector *pv1, Part
         finalInteractions.push_back(prototype);
 }
 
+void InteractionManager::clearIntermediates(cudaStream_t stream)
+{
+    _clearChannels(cellIntermediateOutputChannels, stream);
+    _clearChannels(cellIntermediateInputChannels, stream);
+}
 
-// void InteractionManager::clearIntermediates(cudaStream_t stream)
-// {
+void InteractionManager::clearFinal(cudaStream_t stream)
+{
+    _clearChannels(cellFinalChannels, stream);
+}
 
-// }
+void InteractionManager::accumulateIntermediates(cudaStream_t stream)
+{
+    _accumulateChannels(cellIntermediateOutputChannels, stream);
+}
 
-// void InteractionManager::clearFinal(cudaStream_t stream);
+void InteractionManager::accumulateFinal(cudaStream_t stream)
+{
+    _accumulateChannels(cellFinalChannels, stream);
+}
 
-// void InteractionManager::accumulateIntermediates(cudaStream_t stream);
-// void InteractionManager::accumulateFinal(cudaStream_t stream);
-
-// void InteractionManager::scatterIntermediate(cudaStream_t stream);
+void InteractionManager::gatherIntermediate(cudaStream_t stream)
+{
+    _gatherChannels(cellIntermediateInputChannels, stream);
+}
 
 
 void InteractionManager::executeLocalIntermediate(cudaStream_t stream)
@@ -102,4 +115,48 @@ void InteractionManager::_executeHalo(std::vector<InteractionPrototype>& interac
 {
     for (auto& p : interactions)
         p.interaction->halo(p.pv1, p.pv2, p.cl1, p.cl2, stream);
+}
+
+std::vector<std::string> InteractionManager::_extractActiveChannels(const ChannelActivityMap& activityMap) const
+{
+    std::vector<std::string> activeChannels;
+
+    for (auto& entry : activityMap)
+        if (entry.second())
+            activeChannels.push_back(entry.first);
+    
+    return std::move(activeChannels);
+}
+
+void InteractionManager::_clearChannels(const std::map<CellList*, ChannelActivityMap>& cellChannels, cudaStream_t stream) const
+{
+    for (const auto& entry : cellChannels)
+    {
+        auto cl = entry.first;
+        auto activeChannels = _extractActiveChannels(entry.second);
+        // TODO
+        //cl->clearChannels(activeChannels, stream);
+    }
+}
+
+void InteractionManager::_accumulateChannels(const std::map<CellList*, ChannelActivityMap>& cellChannels, cudaStream_t stream) const
+{
+    for (const auto& entry : cellChannels)
+    {
+        auto cl = entry.first;
+        auto activeChannels = _extractActiveChannels(entry.second);
+        // TODO
+        //cl->accumulateChannels(activeChannels, stream);
+    }    
+}
+
+void InteractionManager::_gatherChannels(const std::map<CellList*, ChannelActivityMap>& cellChannels, cudaStream_t stream) const
+{
+    for (const auto& entry : cellChannels)
+    {
+        auto cl = entry.first;
+        auto activeChannels = _extractActiveChannels(entry.second);
+        // TODO
+        //cl->gatherChannels(activeChannels, stream);
+    }
 }
