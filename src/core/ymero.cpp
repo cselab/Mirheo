@@ -365,13 +365,16 @@ std::shared_ptr<ParticleVector> YMeRo::makeFrozenWallParticles(std::string pvNam
         wallsim.setInteraction(interaction->name, pv->name, pv->name);
         maxrc = std::max(maxrc, interaction->rc);
     }
-        
+
+    const float wallThicknessTolerance = 0.2f;
+    const float wallLevelSet = 0.0f;
+    
     wallsim.setIntegrator (integrator->name,  pv->name);
     
     wallsim.init();
     wallsim.run(nsteps);
     
-    freezeParticlesInWalls(sdfWalls, pv.get(), 0.0f, maxrc + 0.2f);
+    freezeParticlesInWalls(sdfWalls, pv.get(), wallLevelSet, maxrc + wallThicknessTolerance);
     info("\n");
 
     sim->registerParticleVector(pv, nullptr);
