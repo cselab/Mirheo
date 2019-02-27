@@ -108,6 +108,12 @@ public:
     
     void clearInteractionOutput(cudaStream_t stream);
     void clearInteractionIntermediate(cudaStream_t stream);
+
+    virtual void accumulateChannels(const std::vector<std::string>& channelNames, cudaStream_t stream);
+    virtual void gatherChannels(const std::vector<std::string>& channelNames, cudaStream_t stream);
+    void clearChannels(const std::vector<std::string>& channelNames, cudaStream_t stream);
+
+    
     
     template <typename ViewType>
     ViewType getView() const
@@ -179,6 +185,9 @@ protected:
     bool neededForIntermediate {false};
     
     void _accumulateExtraData(std::vector<ChannelActivity>& channels, cudaStream_t stream);
+    void _accumulateForces(cudaStream_t stream);
+    void _accumulateExtraData(const std::string& channelName, cudaStream_t stream);
+    
     void _reorderExtraDataEntry(const std::string& channelName,
                                 const ExtraDataManager::ChannelDescription *channelDesc,
                                 cudaStream_t stream);
@@ -200,6 +209,9 @@ public:
     void accumulateInteractionIntermediate(cudaStream_t stream) override;
 
     void gatherInteractionIntermediate(cudaStream_t stream) override;
+
+    void accumulateChannels(const std::vector<std::string>& channelNames, cudaStream_t stream) override;
+    void gatherChannels(const std::vector<std::string>& channelNames, cudaStream_t stream) override;
 
 protected:
 

@@ -32,4 +32,4 @@ std::vector<Interaction::InteractionChannel> Interaction::getFinalOutputChannels
     return {{ChannelNames::forces, alwaysActive}};
 }
 
-static const Interaction::ActivePredicate alwaysActive = [](){return true;};
+const Interaction::ActivePredicate Interaction::alwaysActive = [](){return true;};

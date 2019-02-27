@@ -125,7 +125,7 @@ std::vector<std::string> InteractionManager::_extractActiveChannels(const Channe
         if (entry.second())
             activeChannels.push_back(entry.first);
     
-    return std::move(activeChannels);
+    return activeChannels;
 }
 
 void InteractionManager::_clearChannels(const std::map<CellList*, ChannelActivityMap>& cellChannels, cudaStream_t stream) const
@@ -134,8 +134,7 @@ void InteractionManager::_clearChannels(const std::map<CellList*, ChannelActivit
     {
         auto cl = entry.first;
         auto activeChannels = _extractActiveChannels(entry.second);
-        // TODO
-        //cl->clearChannels(activeChannels, stream);
+        cl->clearChannels(activeChannels, stream);
     }
 }
 
@@ -145,8 +144,7 @@ void InteractionManager::_accumulateChannels(const std::map<CellList*, ChannelAc
     {
         auto cl = entry.first;
         auto activeChannels = _extractActiveChannels(entry.second);
-        // TODO
-        //cl->accumulateChannels(activeChannels, stream);
+        cl->accumulateChannels(activeChannels, stream);
     }    
 }
 
@@ -156,7 +154,6 @@ void InteractionManager::_gatherChannels(const std::map<CellList*, ChannelActivi
     {
         auto cl = entry.first;
         auto activeChannels = _extractActiveChannels(entry.second);
-        // TODO
-        //cl->gatherChannels(activeChannels, stream);
+        cl->gatherChannels(activeChannels, stream);
     }
 }
