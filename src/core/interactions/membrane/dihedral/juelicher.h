@@ -94,6 +94,9 @@ private:
         float totArea     = view.area_volumes[rbcId].x;
         float totLenTheta = view.lenThetaTot [rbcId];
 
+        if (threadIdx.x == 0)
+            printf("%g\n", totArea);
+        
         return (0.5f * totLenTheta - DA0) / totArea;
     }
 

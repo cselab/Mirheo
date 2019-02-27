@@ -56,6 +56,11 @@ public:
         return eq;
     }
 
+    __D__ inline float safeSqrt(float a) const
+    {
+        return a > 0.f ? sqrtf(a) : 0.f;
+    }
+    
     __D__ inline float3 operator()(float3 v1, float3 v2, float3 v3, EquilibriumTriangleDesc eq) const
     {
         float3 x21 = v2 - v1;
@@ -83,10 +88,10 @@ public:
         float e0sq_A0 = eq.l0*eq.l0 * area0_inv;
         float e1sq_A0 = eq.l1*eq.l1 * area0_inv;
 
-        float beta = 0.125f * (e0sq_A0*e1sq_A + e1sq_A0*e0sq_A - 2 * sqrt((e0sq_A0 * e1sq_A0 - 4) * (e0sq_A * e1sq_A - 4)) - 8);
+        float beta = 0.125f * (e0sq_A0*e1sq_A + e1sq_A0*e0sq_A - 2 * safeSqrt((e0sq_A0 * e1sq_A0 - 4) * (e0sq_A * e1sq_A - 4)) - 8);
         
-        float derBeta0 = 0.125f * (e1sq_A0 - sqrt((e0sq_A0*e1sq_A0-4) / (e0sq_A*e1sq_A-4)) * e1sq_A);
-        float derBeta1 = 0.125f * (e0sq_A0 - sqrt((e0sq_A0*e1sq_A0-4) / (e0sq_A*e1sq_A-4)) * e0sq_A);
+        float derBeta0 = 0.125f * (e1sq_A0 - safeSqrt((e0sq_A0*e1sq_A0-4) / (e0sq_A*e1sq_A-4)) * e1sq_A);
+        float derBeta1 = 0.125f * (e0sq_A0 - safeSqrt((e0sq_A0*e1sq_A0-4) / (e0sq_A*e1sq_A-4)) * e0sq_A);
 
         float3 der_e0sq_A = 2 * area_inv * x21 - e0sq_A * area_inv * derArea;
         float3 der_e1sq_A = 2 * area_inv * x31 - e1sq_A * area_inv * derArea;

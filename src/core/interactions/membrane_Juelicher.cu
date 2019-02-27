@@ -78,6 +78,8 @@ void InteractionMembraneJuelicher::setPrerequisites(ParticleVector *pv1, Particl
 
 void InteractionMembraneJuelicher::precomputeQuantities(ParticleVector *pv1, cudaStream_t stream)
 {
+    InteractionMembrane::precomputeQuantities(pv1, stream);
+    
     auto ov = dynamic_cast<MembraneVector *>(pv1);
 
     debug("Computing vertex areas and curvatures for %d cells of '%s'",
