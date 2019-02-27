@@ -38,6 +38,25 @@ void InteractionManager::add(Interaction *interaction, ParticleVector *pv1, Part
         finalInteractions.push_back(prototype);
 }
 
+void InteractionManager::check() const
+{
+    auto outputs = _extractAllChannels(cellIntermediateOutputChannels);
+    auto  inputs = _extractAllChannels( cellIntermediateInputChannels);
+    std::vector<std::string> difference;
+
+    std::set_difference(inputs.begin(), inputs.end(),
+                        outputs.begin(), outputs.end(),
+                        std::inserter(difference, difference.begin()));
+
+    if (!difference.empty())
+    {
+        std::string allChannels;
+        for (const auto& ch : difference)
+            allChannels += " " + ch;
+        die("The following channels are required but not computed by interactions: %s", allChannels.c_str());
+    }
+}
+
 CellList* InteractionManager::getLargestCellListNeededForIntermediate(const std::vector<std::unique_ptr<CellList>>& cellListVec) const
 {
     return _getLargestCellListNeeded(cellIntermediateOutputChannels, cellListVec);
@@ -145,6 +164,18 @@ CellList* InteractionManager::_getLargestCellListNeeded(const std::map<CellList*
             return clPtr;
     }
     return nullptr;
+}
+
+std::vector<std::string> InteractionManager::_extractAllChannels(const std::map<CellList*, ChannelActivityMap>& cellChannels) const
+{
+    std::set<std::string> channels;
+    for (const auto& cellMap : cellChannels)
+        for (const auto& entry : cellMap.second)
+        {
+            std::string name = entry.first;
+            channels.insert(name);
+        }
+    return {channels.begin(), channels.end()};
 }
 
 std::vector<std::string> InteractionManager::_getExtraChannels(const std::map<CellList*, ChannelActivityMap>& cellChannels,

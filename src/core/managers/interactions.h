@@ -23,6 +23,7 @@ class InteractionManager
 {
 public:
     void add(Interaction *interaction, ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2);
+    void check() const;
 
     CellList* getLargestCellListNeededForIntermediate(const std::vector<std::unique_ptr<CellList>>& cellListVec) const;
     CellList* getLargestCellListNeededForFinal       (const std::vector<std::unique_ptr<CellList>>& cellListVec) const;
@@ -44,7 +45,7 @@ public:
 
     void executeHaloIntermediate(cudaStream_t stream);
     void executeHaloFinal(cudaStream_t stream);
-    
+
 private:
 
     using ChannelActivityMap = std::map<std::string, Interaction::ActivePredicate>;
@@ -78,7 +79,8 @@ private:
     void _executeHalo(std::vector<InteractionPrototype>& interactions, cudaStream_t stream);
 
     std::vector<std::string> _extractActiveChannels(const ChannelActivityMap& activityMap) const;
-
+    std::vector<std::string> _extractAllChannels(const std::map<CellList*, ChannelActivityMap>& cellChannels) const;
+    
     void _clearChannels     (CellList *cl, const std::map<CellList*, ChannelActivityMap>& cellChannels, cudaStream_t stream) const;
     void _accumulateChannels(const std::map<CellList*, ChannelActivityMap>& cellChannels, cudaStream_t stream) const;
     void _gatherChannels    (const std::map<CellList*, ChannelActivityMap>& cellChannels, cudaStream_t stream) const;

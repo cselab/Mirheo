@@ -689,6 +689,8 @@ void Simulation::init()
     prepareBouncers();
     prepareWalls();
 
+    interactionManager->check();
+
     CUDA_Check( cudaDeviceSynchronize() );
 
     preparePlugins();
