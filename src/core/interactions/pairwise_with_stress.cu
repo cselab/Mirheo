@@ -29,23 +29,8 @@ void InteractionPair_withStress<PairwiseInteraction>::setPrerequisites(ParticleV
     pv1->requireDataPerParticle <Stress> (ChannelNames::stresses, ExtraDataManager::CommunicationMode::None, ExtraDataManager::PersistenceMode::None);
     pv2->requireDataPerParticle <Stress> (ChannelNames::stresses, ExtraDataManager::CommunicationMode::None, ExtraDataManager::PersistenceMode::None);
 
-    auto activePredicate1 = [this, pv1]() {
-       float t = state->currentTime;
-       return (lastStressTime+stressPeriod <= t || lastStressTime == t)
-           && (pv2lastStressTime[pv1] != t);
-    };
-
-    auto activePredicate2 = [this, pv2]() {
-       float t = state->currentTime;
-       return (lastStressTime+stressPeriod <= t || lastStressTime == t)
-           && (pv2lastStressTime[pv2] != t);
-    };
-    
     cl1->requireExtraDataPerParticle <Stress> (ChannelNames::stresses);
     cl2->requireExtraDataPerParticle <Stress> (ChannelNames::stresses);
-
-    pv2lastStressTime[pv1] = -1;
-    pv2lastStressTime[pv2] = -1;
 }
 
 template<class PairwiseInteraction>
@@ -71,12 +56,6 @@ void InteractionPair_withStress<PairwiseInteraction>::local(
     {
         debug("Executing interaction '%s' with stress", name.c_str());
 
-        if (pv2lastStressTime[pv1] != t)
-            pv2lastStressTime[pv1] = t;
-
-        if (pv2lastStressTime[pv2] != t)
-            pv2lastStressTime[pv2] = t;
-
         interactionWithStress.local(pv1, pv2, cl1, cl2, stream);
         lastStressTime = t;
     }
@@ -95,12 +74,6 @@ void InteractionPair_withStress<PairwiseInteraction>::halo   (
     if (lastStressTime+stressPeriod <= t || lastStressTime == t)
     {
         debug("Executing interaction '%s' with stress", name.c_str());
-
-        if (pv2lastStressTime[pv1] != t)
-            pv2lastStressTime[pv1] = t;
-
-        if (pv2lastStressTime[pv2] != t)
-            pv2lastStressTime[pv2] = t;
 
         interactionWithStress.halo(pv1, pv2, cl1, cl2, stream);
         lastStressTime = t;

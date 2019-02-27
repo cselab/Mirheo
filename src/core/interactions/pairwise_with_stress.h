@@ -28,8 +28,6 @@ private:
     float stressPeriod;
     float lastStressTime{-1e6};
 
-    std::map<ParticleVector*, float> pv2lastStressTime;
-
     InteractionPair<PairwiseInteraction> interaction;
     InteractionPair<PairwiseStressWrapper<PairwiseInteraction>> interactionWithStress;
 };
