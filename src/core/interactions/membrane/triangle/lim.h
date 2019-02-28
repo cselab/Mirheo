@@ -75,7 +75,7 @@ public:
         real3 derArea  = (0.25_r * area_inv) * cross(normalArea2, x23);
 
         real alpha = area * area0_inv - 1;
-        real coeffAlpha = - 0.5_r * ka * alpha * (2 + alpha * (3 * a3 + alpha * 4 * a4));
+        real coeffAlpha = 0.5_r * ka * alpha * (2 + alpha * (3 * a3 + alpha * 4 * a4));
 
         real3 fArea = coeffAlpha * derArea;
 
@@ -99,8 +99,8 @@ public:
         real3 derBeta  = derBeta0 * der_e0sq_A + derBeta1 * der_e1sq_A;
         real3 derAlpha = area0_inv * derArea;
             
-        real coefAlpha = - eq.a * mu * b1 * beta;
-        real coefBeta  = - eq.a * mu * (2*b2*beta + alpha * b1 + 1);
+        real coefAlpha = eq.a * mu * b1 * beta;
+        real coefBeta  = eq.a * mu * (2*b2*beta + alpha * b1 + 1);
 
         real3 fShear = coefAlpha * derAlpha + coefBeta * derBeta;
         

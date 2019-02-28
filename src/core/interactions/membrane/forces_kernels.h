@@ -29,7 +29,7 @@ __device__ inline real3 _fconstrainArea(real3 v1, real3 v2, real3 v3,
 
     real coef = -0.25_r * parameters.ka0 * (totArea - parameters.totArea0) * area_1;
 
-    return coef * cross(normal, x32);;
+    return coef * cross(normal, x32);
 }
 
 __device__ inline real3 _fconstrainVolume(real3 v1, real3 v2, real3 v3, real totVolume, GPU_RBCparameters parameters)
@@ -65,7 +65,7 @@ __device__ inline real3 bondTriangleForce(
         const MembraneMeshView& mesh,
         const GPU_RBCparameters& parameters)
 {
-    real3 f = make_real3(0.0_r);
+    real3 f0 = make_real3(0.0_r);
     const int startId = mesh.maxDegree * locId;
     const int degree = mesh.degrees[locId];
 
@@ -88,17 +88,17 @@ __device__ inline real3 bondTriangleForce(
         real totArea   = view.area_volumes[rbcId].x;
         real totVolume = view.area_volumes[rbcId].y;
         
-        f += triangleInteraction (p.r, p1.r, p2.r, eq)
-            + _fconstrainArea    (p.r, p1.r, p2.r, totArea,   parameters)
-            + _fconstrainVolume  (p.r, p1.r, p2.r, totVolume, parameters)
-            + _fvisc     (p,   p1,               parameters)
-            + _ffluct    (p.r, p1.r, idv0, idv1, parameters);
+        f0 += triangleInteraction (p.r, p1.r, p2.r, eq)
+            + _fconstrainArea     (p.r, p1.r, p2.r, totArea,   parameters)
+            + _fconstrainVolume   (p.r, p1.r, p2.r, totVolume, parameters)
+            + _fvisc              (p,   p1,                    parameters)
+            + _ffluct             (p.r, p1.r, idv0, idv1,      parameters);
 
         idv1 = idv2;
-        p1 = p2;
+        p1   = p2;
     }
 
-    return f;
+    return f0;
 }
 
 template <class DihedralInteraction>
@@ -134,8 +134,8 @@ __device__ inline real3 dihedralForce(int locId, int rbcId,
 #pragma unroll 2
     for (int i = 0; i < degree; i++)
     {
-        real3 f1;
-        int idv3 = offset + mesh.adjacent[startId + (i+2) % degree];        
+        real3 f1 = make_real3(0.0_r);
+        int idv3 = offset + mesh.adjacent[startId + (i+2) % degree];
 
         auto v3 = dihedralInteraction.fetchVertex(view, idv3);
 
