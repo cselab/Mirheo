@@ -12,7 +12,9 @@ For more information, please refer to the online documentation: http://ymero.rea
 
 ## Changelog
 
-<!-- ### unreleased -->
+### unreleased
+
+* **fix** Lim shear forces bug: triangle invariant
 
 ### v0.11.3
 

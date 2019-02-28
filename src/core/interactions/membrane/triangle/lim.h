@@ -89,14 +89,16 @@ public:
         real e1sq_A0 = eq.l1*eq.l1 * area0_inv;
 
         real dotp = dot(x12, x13);
-        real sign = dotp * eq.dotp > 0.0_r ? 1.0_r : -1.0_r;
-
+        real sign = (dotp * eq.dotp) >= 0.0_r ? 1.0_r : -1.0_r;
+        
         real beta = 0.125_r * (e0sq_A0*e1sq_A + e1sq_A0*e0sq_A
                                - 2._r * sign * safeSqrt((e0sq_A0 * e1sq_A0 - 4._r) * (e0sq_A * e1sq_A - 4._r))
                                - 8._r);
-        
-        real derBeta0 = 0.125_r * (e1sq_A0 - sign * safeSqrt((e0sq_A0*e1sq_A0-4) / (e0sq_A*e1sq_A-4)) * e1sq_A);
-        real derBeta1 = 0.125_r * (e0sq_A0 - sign * safeSqrt((e0sq_A0*e1sq_A0-4) / (e0sq_A*e1sq_A-4)) * e0sq_A);
+
+        real dsqrt = safeSqrt((e0sq_A0*e1sq_A0-4) / (e0sq_A*e1sq_A-4));
+            
+        real derBeta0 = 0.125_r * (e1sq_A0 - sign * dsqrt * e1sq_A);
+        real derBeta1 = 0.125_r * (e0sq_A0 - sign * dsqrt * e0sq_A);
 
         real3 der_e0sq_A = 2 * area_inv * x12 - e0sq_A * area_inv * derArea;
         real3 der_e1sq_A = 2 * area_inv * x13 - e1sq_A * area_inv * derArea;

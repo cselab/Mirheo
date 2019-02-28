@@ -2,7 +2,7 @@
 
 #include <core/datatypes.h>
 
-//#define RBC_FORCES_DOUBLE
+// #define RBC_FORCES_DOUBLE
 
 #ifdef RBC_FORCES_DOUBLE
 using real  = double;
