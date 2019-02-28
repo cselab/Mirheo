@@ -46,7 +46,7 @@ private:
     __D__ inline real3 force_len(real theta, VertexType v0, VertexType v2) const
     {
         real3 d = normalize(v0.r - v2.r);
-        return ( kb * (v0.H + v2.H - 2 * H0) + kad_pi * scurv ) * theta * d;
+        return - ( kb * (v0.H + v2.H - 2 * H0) + kad_pi * scurv ) * theta * d;
     }
 
     __D__ inline real3 force_theta(VertexType v0, VertexType v1, VertexType v2, VertexType v3, real3 &f1) const
@@ -73,15 +73,15 @@ private:
 
         real coef = kb * (v0.H + v2.H - 2*H0)  +  kad_pi * scurv;
 
-        f1 = coef * d1;
-        return coef * d0;
+        f1 = -coef * d1;
+        return -coef * d0;
     }
 
     __D__ inline real3 force_area(VertexType v0, VertexType v1, VertexType v2) const
     {
-        real coef = -0.6666667_r * kb *
-            (v0.H * v0.H + v1.H * v1.H + v2.H * v2.H - 3 * H0 * H0)
-            - 0.5_r * kad_pi * scurv * scurv;
+        real coef =
+            0.6666667_r * kb     * (v0.H * v0.H + v1.H * v1.H + v2.H * v2.H - 3 * H0 * H0)
+            + 0.5_r     * kad_pi * scurv * scurv;
 
         real3 n  = normalize(cross(v1.r-v0.r, v2.r-v0.r));
         real3 d0 = 0.5_r * cross(n, v2.r - v1.r);
