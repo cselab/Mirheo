@@ -72,21 +72,21 @@ __device__ inline real3 bondTriangleForce(
     int idv0 = rbcId * mesh.nvertices + locId;
     int idv1 = rbcId * mesh.nvertices + mesh.adjacent[startId];
     auto p1 = fetchParticle(view, idv1);
-    
+
+    real totArea   = view.area_volumes[rbcId].x;
+    real totVolume = view.area_volumes[rbcId].y;
+
 #pragma unroll 2
     for (int i = 0; i < degree; i++)
     {
-        int i0 = startId + i;
-        int i1 = startId + ((i+1) % degree);
+        int i1 = startId + i;
+        int i2 = startId + ((i+1) % degree);
         
-        int idv2 = rbcId * mesh.nvertices + mesh.adjacent[i1];
+        int idv2 = rbcId * mesh.nvertices + mesh.adjacent[i2];
 
         auto p2 = fetchParticle(view, idv2);
 
-        auto eq = triangleInteraction.getEquilibriumDesc(mesh, i0, i1);
-
-        real totArea   = view.area_volumes[rbcId].x;
-        real totVolume = view.area_volumes[rbcId].y;
+        auto eq = triangleInteraction.getEquilibriumDesc(mesh, i1, i2);
         
         f0 += triangleInteraction (p.r, p1.r, p2.r, eq)
             + _fconstrainArea     (p.r, p1.r, p2.r, totArea,   parameters)

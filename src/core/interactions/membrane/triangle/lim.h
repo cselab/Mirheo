@@ -63,38 +63,37 @@ public:
     
     __D__ inline real3 operator()(real3 v1, real3 v2, real3 v3, EquilibriumTriangleDesc eq) const
     {
-        real3 x21 = v2 - v1;
-        real3 x31 = v3 - v1;
-        real3 x23 = v2 - v3;
+        real3 x12 = v2 - v1;
+        real3 x13 = v3 - v1;
+        real3 x32 = v2 - v3;
 
-        real3 normalArea2 = cross(x21, x31);
+        real3 normalArea2 = cross(x12, x13);
         real area = 0.5_r * length(normalArea2);
         real area_inv = 1.0_r / area;
         real area0_inv = 1.0_r / eq.a;
 
-        real3 derArea  = (0.25_r * area_inv) * cross(normalArea2, x23);
+        real3 derArea  = (0.25_r * area_inv) * cross(normalArea2, x32);
 
         real alpha = area * area0_inv - 1;
         real coeffAlpha = 0.5_r * ka * alpha * (2 + alpha * (3 * a3 + alpha * 4 * a4));
 
         real3 fArea = coeffAlpha * derArea;
-
-        real e0_sq = dot(x21, x21);
-        real e1_sq = dot(x31, x31);
         
-        real e0sq_A = e0_sq * area_inv;
-        real e1sq_A = e1_sq * area_inv;
+        real e0sq_A = dot(x12, x12) * area_inv;
+        real e1sq_A = dot(x13, x13) * area_inv;
 
         real e0sq_A0 = eq.l0*eq.l0 * area0_inv;
         real e1sq_A0 = eq.l1*eq.l1 * area0_inv;
 
-        real beta = 0.125_r * (e0sq_A0*e1sq_A + e1sq_A0*e0sq_A - 2 * safeSqrt((e0sq_A0 * e1sq_A0 - 4) * (e0sq_A * e1sq_A - 4)) - 8);
+        real beta = 0.125_r * (e0sq_A0*e1sq_A + e1sq_A0*e0sq_A
+                               - 2._r * safeSqrt((e0sq_A0 * e1sq_A0 - 4._r) * (e0sq_A * e1sq_A - 4._r))
+                               - 8._r);
         
         real derBeta0 = 0.125_r * (e1sq_A0 - safeSqrt((e0sq_A0*e1sq_A0-4) / (e0sq_A*e1sq_A-4)) * e1sq_A);
         real derBeta1 = 0.125_r * (e0sq_A0 - safeSqrt((e0sq_A0*e1sq_A0-4) / (e0sq_A*e1sq_A-4)) * e0sq_A);
 
-        real3 der_e0sq_A = 2 * area_inv * x21 - e0sq_A * area_inv * derArea;
-        real3 der_e1sq_A = 2 * area_inv * x31 - e1sq_A * area_inv * derArea;
+        real3 der_e0sq_A = 2 * area_inv * x12 - e0sq_A * area_inv * derArea;
+        real3 der_e1sq_A = 2 * area_inv * x13 - e1sq_A * area_inv * derArea;
         
         real3 derBeta  = derBeta0 * der_e0sq_A + derBeta1 * der_e1sq_A;
         real3 derAlpha = area0_inv * derArea;
@@ -103,12 +102,12 @@ public:
         real coefBeta  = eq.a * mu * (2*b2*beta + alpha * b1 + 1);
 
         real3 fShear = coefAlpha * derAlpha + coefBeta * derBeta;
-        
+
         return fArea + fShear;
     }
         
 private:
-
+    
     real ka, mu;
     real a3, a4, b1, b2;
 
