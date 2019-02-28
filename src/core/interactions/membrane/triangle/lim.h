@@ -15,9 +15,10 @@ class TriangleLimForce
 public:    
     struct LengthsArea
     {
-        real l0;  // first  eq edge length
-        real l1; // second eq edge length
-        real a;   // eq triangle area
+        real l0;   // first  eq edge length
+        real l1;   // second eq edge length
+        real a;    // eq triangle area
+        real dotp; // dot product of 2 above edges
     };
 
     using EquilibriumTriangleDesc = LengthsArea;
@@ -43,15 +44,17 @@ public:
         EquilibriumTriangleDesc eq;
         if (stressFreeState == StressFreeState::Active)
         {
-            eq.l0 = mesh.initialLengths[i0] * lscale;
-            eq.l1 = mesh.initialLengths[i1] * lscale;
-            eq.a  = mesh.initialAreas  [i0] * lscale;
+            eq.l0   = mesh.initialLengths    [i0] * lscale;
+            eq.l1   = mesh.initialLengths    [i1] * lscale;
+            eq.a    = mesh.initialAreas      [i0] * lscale * lscale;
+            eq.dotp = mesh.initialDotProducts[i0] * lscale * lscale;
         }
         else
         {
-            eq.l0 = this->length0;
-            eq.l1 = this->length0;
-            eq.a = this->area0;
+            eq.l0   = this->length0;
+            eq.l1   = this->length0;
+            eq.a    = this->area0;
+            eq.dotp = this->length0 * 0.5_r;
         }
         return eq;
     }
@@ -85,12 +88,15 @@ public:
         real e0sq_A0 = eq.l0*eq.l0 * area0_inv;
         real e1sq_A0 = eq.l1*eq.l1 * area0_inv;
 
+        real dotp = dot(x12, x13);
+        real sign = dotp * eq.dotp > 0.0_r ? 1.0_r : -1.0_r;
+
         real beta = 0.125_r * (e0sq_A0*e1sq_A + e1sq_A0*e0sq_A
-                               - 2._r * safeSqrt((e0sq_A0 * e1sq_A0 - 4._r) * (e0sq_A * e1sq_A - 4._r))
+                               - 2._r * sign * safeSqrt((e0sq_A0 * e1sq_A0 - 4._r) * (e0sq_A * e1sq_A - 4._r))
                                - 8._r);
         
-        real derBeta0 = 0.125_r * (e1sq_A0 - safeSqrt((e0sq_A0*e1sq_A0-4) / (e0sq_A*e1sq_A-4)) * e1sq_A);
-        real derBeta1 = 0.125_r * (e0sq_A0 - safeSqrt((e0sq_A0*e1sq_A0-4) / (e0sq_A*e1sq_A-4)) * e0sq_A);
+        real derBeta0 = 0.125_r * (e1sq_A0 - sign * safeSqrt((e0sq_A0*e1sq_A0-4) / (e0sq_A*e1sq_A-4)) * e1sq_A);
+        real derBeta1 = 0.125_r * (e0sq_A0 - sign * safeSqrt((e0sq_A0*e1sq_A0-4) / (e0sq_A*e1sq_A-4)) * e0sq_A);
 
         real3 der_e0sq_A = 2 * area_inv * x12 - e0sq_A * area_inv * derArea;
         real3 der_e1sq_A = 2 * area_inv * x13 - e1sq_A * area_inv * derArea;
