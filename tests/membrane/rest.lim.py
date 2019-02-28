@@ -46,7 +46,7 @@ u.setIntegrator(vv, pv_rbc)
 u.registerInteraction(int_rbc)
 u.setInteraction(int_rbc, pv_rbc, pv_rbc)
 
-dump_every = 100
+dump_every = 500
 
 u.registerPlugins(ymr.Plugins.createForceSaver("forceSaver", pv_rbc))
 
@@ -55,6 +55,9 @@ u.registerPlugins(ymr.Plugins.createDumpParticlesWithMesh("meshdump",
                                                           dump_every,
                                                           [["forces", "vector"]],
                                                           "h5/rbc-"))
+
+u.registerPlugins(ymr.Plugins.createStats('stats', "stats.txt", dump_every))
+
 u.run(5000)
 
 if pv_rbc is not None:
