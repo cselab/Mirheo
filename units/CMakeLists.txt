@@ -65,6 +65,7 @@ add_test_executable(onerank)
 add_test_executable(pid)
 add_test_executable(scheduler)
 add_test_executable(serializer)
+add_test_executable(triangle_invariants)
 add_test_executable(warpScan)
 
 
