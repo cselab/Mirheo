@@ -14,6 +14,12 @@ For more information, please refer to the online documentation: http://ymero.rea
 
 <!-- ### unreleased -->
 
+### v0.11.3
+
+* **fix** Juelicher bending  forces sign
+* **fix** Lim shear forces sign
+* add possibility to compute membrane forces in double perecision
+
 ### v0.11.2
 
 * **fix** wall thickness is larger when using MDPD
