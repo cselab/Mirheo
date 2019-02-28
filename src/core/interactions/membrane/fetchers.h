@@ -1,17 +1,18 @@
 #pragma once
 
+#include "real.h"
 #include <core/utils/cpu_gpu_defines.h>
 
 class VertexFetcher
 {
 public:
-    using VertexType = float3;
+    using VertexType = real3;
     using ViewType   = OVview;
 
     __D__ inline VertexType fetchVertex(const ViewType& view, int i) const
     {
         // 2 because of float4
-        return Float3_int(view.particles[2 * i]).v;
+        return make_real3(Float3_int(view.particles[2 * i]).v);
     }
 };
 
@@ -21,8 +22,8 @@ public:
 
     struct VertexWithMeanCurvature
     {
-        float3 r;
-        float H;
+        real3 r;
+        real H;
     };
     
     using VertexType = VertexWithMeanCurvature;
@@ -30,7 +31,7 @@ public:
 
     __D__ inline VertexType fetchVertex(const ViewType& view, int i) const
     {
-        return {Float3_int(view.particles[2 * i]).v,
-                view.vertexMeanCurvatures[i]};
+        return {make_real3(Float3_int(view.particles[2 * i]).v),
+                real(view.vertexMeanCurvatures[i])};
     }
 };

@@ -15,15 +15,15 @@ class TriangleLimForce
 public:    
     struct LengthsArea
     {
-        float l0;  // first  eq edge length
-        float l1; // second eq edge length
-        float a;   // eq triangle area
+        real l0;  // first  eq edge length
+        real l1; // second eq edge length
+        real a;   // eq triangle area
     };
 
     using EquilibriumTriangleDesc = LengthsArea;
     using ParametersType          = LimParameters;
     
-    TriangleLimForce(ParametersType p, const Mesh *mesh, float lscale) :
+    TriangleLimForce(ParametersType p, const Mesh *mesh, real lscale) :
         lscale(lscale)
     {
         a3 = p.a3;
@@ -56,62 +56,62 @@ public:
         return eq;
     }
 
-    __D__ inline float safeSqrt(float a) const
+    __D__ inline real safeSqrt(real a) const
     {
-        return a > 0.f ? sqrtf(a) : 0.f;
+        return a > 0.0_r ? sqrt(a) : 0.0_r;
     }
     
-    __D__ inline float3 operator()(float3 v1, float3 v2, float3 v3, EquilibriumTriangleDesc eq) const
+    __D__ inline real3 operator()(real3 v1, real3 v2, real3 v3, EquilibriumTriangleDesc eq) const
     {
-        float3 x21 = v2 - v1;
-        float3 x31 = v3 - v1;
-        float3 x23 = v2 - v3;
+        real3 x21 = v2 - v1;
+        real3 x31 = v3 - v1;
+        real3 x23 = v2 - v3;
 
-        float3 normalArea2 = cross(x21, x31);
-        float area = 0.5f * length(normalArea2);
-        float area_inv = 1.0 / area;
-        float area0_inv = 1.0 / eq.a;
+        real3 normalArea2 = cross(x21, x31);
+        real area = 0.5_r * length(normalArea2);
+        real area_inv = 1.0_r / area;
+        real area0_inv = 1.0_r / eq.a;
 
-        float3 derArea  = (0.25f * area_inv) * cross(normalArea2, x23);
+        real3 derArea  = (0.25_r * area_inv) * cross(normalArea2, x23);
 
-        float alpha = area * area0_inv - 1;
-        float coeffAlpha = - 0.5f * ka * alpha * (2 + alpha * (3 * a3 + alpha * 4 * a4));
+        real alpha = area * area0_inv - 1;
+        real coeffAlpha = - 0.5_r * ka * alpha * (2 + alpha * (3 * a3 + alpha * 4 * a4));
 
-        float3 fArea = coeffAlpha * derArea;
+        real3 fArea = coeffAlpha * derArea;
 
-        float e0_sq = dot(x21, x21);
-        float e1_sq = dot(x31, x31);
+        real e0_sq = dot(x21, x21);
+        real e1_sq = dot(x31, x31);
         
-        float e0sq_A = e0_sq * area_inv;
-        float e1sq_A = e1_sq * area_inv;
+        real e0sq_A = e0_sq * area_inv;
+        real e1sq_A = e1_sq * area_inv;
 
-        float e0sq_A0 = eq.l0*eq.l0 * area0_inv;
-        float e1sq_A0 = eq.l1*eq.l1 * area0_inv;
+        real e0sq_A0 = eq.l0*eq.l0 * area0_inv;
+        real e1sq_A0 = eq.l1*eq.l1 * area0_inv;
 
-        float beta = 0.125f * (e0sq_A0*e1sq_A + e1sq_A0*e0sq_A - 2 * safeSqrt((e0sq_A0 * e1sq_A0 - 4) * (e0sq_A * e1sq_A - 4)) - 8);
+        real beta = 0.125_r * (e0sq_A0*e1sq_A + e1sq_A0*e0sq_A - 2 * safeSqrt((e0sq_A0 * e1sq_A0 - 4) * (e0sq_A * e1sq_A - 4)) - 8);
         
-        float derBeta0 = 0.125f * (e1sq_A0 - safeSqrt((e0sq_A0*e1sq_A0-4) / (e0sq_A*e1sq_A-4)) * e1sq_A);
-        float derBeta1 = 0.125f * (e0sq_A0 - safeSqrt((e0sq_A0*e1sq_A0-4) / (e0sq_A*e1sq_A-4)) * e0sq_A);
+        real derBeta0 = 0.125_r * (e1sq_A0 - safeSqrt((e0sq_A0*e1sq_A0-4) / (e0sq_A*e1sq_A-4)) * e1sq_A);
+        real derBeta1 = 0.125_r * (e0sq_A0 - safeSqrt((e0sq_A0*e1sq_A0-4) / (e0sq_A*e1sq_A-4)) * e0sq_A);
 
-        float3 der_e0sq_A = 2 * area_inv * x21 - e0sq_A * area_inv * derArea;
-        float3 der_e1sq_A = 2 * area_inv * x31 - e1sq_A * area_inv * derArea;
+        real3 der_e0sq_A = 2 * area_inv * x21 - e0sq_A * area_inv * derArea;
+        real3 der_e1sq_A = 2 * area_inv * x31 - e1sq_A * area_inv * derArea;
         
-        float3 derBeta  = derBeta0 * der_e0sq_A + derBeta1 * der_e1sq_A;
-        float3 derAlpha = area0_inv * derArea;
+        real3 derBeta  = derBeta0 * der_e0sq_A + derBeta1 * der_e1sq_A;
+        real3 derAlpha = area0_inv * derArea;
             
-        float coefAlpha = - eq.a * mu * b1 * beta;
-        float coefBeta  = - eq.a * mu * (2*b2*beta + alpha * b1 + 1);
+        real coefAlpha = - eq.a * mu * b1 * beta;
+        real coefBeta  = - eq.a * mu * (2*b2*beta + alpha * b1 + 1);
 
-        float3 fShear = coefAlpha * derAlpha + coefBeta * derBeta;
+        real3 fShear = coefAlpha * derAlpha + coefBeta * derBeta;
         
         return fArea + fShear;
     }
         
 private:
 
-    float ka, mu;
-    float a3, a4, b1, b2;
+    real ka, mu;
+    real a3, a4, b1, b2;
 
-    float length0, area0; ///< only useful when StressFree is false
-    float lscale;
+    real length0, area0; ///< only useful when StressFree is false
+    real lscale;
 };

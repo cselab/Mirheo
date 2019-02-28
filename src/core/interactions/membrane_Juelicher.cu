@@ -4,10 +4,10 @@
 
 namespace InteractionMembraneJuelicherKernels
 {
-__device__ inline float compute_lenTheta(float3 v0, float3 v1, float3 v2, float3 v3)
+__device__ inline real compute_lenTheta(real3 v0, real3 v1, real3 v2, real3 v3)
 {
-    float len = length(v2 - v0);
-    float theta = supplementaryDihedralAngle(v0, v1, v2, v3);
+    real len = length(v2 - v0);
+    real theta = supplementaryDihedralAngle(v0, v1, v2, v3);
     return len * theta;
 }
 
@@ -17,7 +17,7 @@ __global__ void computeAreasAndCurvatures(OVviewWithJuelicherQuants view, Membra
     int idv0  = blockIdx.x * blockDim.x + threadIdx.x;
     int offset = rbcId * mesh.nvertices;
 
-    float lenTheta = 0;
+    real lenTheta = 0;
     
     if (idv0 < mesh.nvertices)
     {        
@@ -27,17 +27,17 @@ __global__ void computeAreasAndCurvatures(OVviewWithJuelicherQuants view, Membra
         int idv1 = mesh.adjacent[startId];
         int idv2 = mesh.adjacent[startId+1];
         
-        float3 v0 = fetchPosition(view, offset + idv0);
-        float3 v1 = fetchPosition(view, offset + idv1);
-        float3 v2 = fetchPosition(view, offset + idv2);
+        real3 v0 = fetchPosition(view, offset + idv0);
+        real3 v1 = fetchPosition(view, offset + idv1);
+        real3 v2 = fetchPosition(view, offset + idv2);
         
-        float area = 0;    
+        real area = 0;    
         
 #pragma unroll 2
         for (int i = 0; i < degree; i++) {
             
             int idv3 = mesh.adjacent[startId + (i+2) % degree];
-            float3 v3 = fetchPosition(view, offset + idv3);
+            real3 v3 = fetchPosition(view, offset + idv3);
             
             area     += 0.3333333f * triangleArea(v0, v1, v2);
             lenTheta += compute_lenTheta(v0, v1, v2, v3);
@@ -50,10 +50,10 @@ __global__ void computeAreasAndCurvatures(OVviewWithJuelicherQuants view, Membra
         view.vertexMeanCurvatures [offset + idv0] = lenTheta / (4 * area);
     }
     
-    lenTheta = warpReduce( lenTheta, [] (float a, float b) { return a+b; } );
+    lenTheta = warpReduce( lenTheta, [] (real a, real b) { return a+b; } );
 
     if (__laneid() == 0)
-        atomicAdd(&view.lenThetaTot[rbcId], lenTheta);
+        atomicAdd(&view.lenThetaTot[rbcId], (float) lenTheta);
 }
 } // namespace InteractionMembraneJuelicherKernels
 

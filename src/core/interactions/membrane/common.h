@@ -1,5 +1,7 @@
 #pragma once
 
+#include "real.h"
+
 #include <core/mesh/membrane.h>
 #include <core/pvs/object_vector.h>
 #include <core/pvs/views/ov.h>
@@ -7,27 +9,19 @@
 #include <core/utils/cuda_common.h>
 #include <core/utils/cuda_rng.h>
 
-template <typename View>
-__D__ inline float3 fetchPosition(View view, int i)
+__D__ inline real triangleArea(real3 v0, real3 v1, real3 v2)
 {
-    Particle p;
-    p.readCoordinate(view.particles, i);
-    return p.r;
+    return 0.5_r * length(cross(v1 - v0, v2 - v0));
 }
 
-__D__ inline float triangleArea(float3 v0, float3 v1, float3 v2)
+__D__ inline real triangleSignedVolume(real3 v0, real3 v1, real3 v2)
 {
-    return 0.5f * length(cross(v1 - v0, v2 - v0));
-}
-
-__D__ inline float triangleSignedVolume(float3 v0, float3 v1, float3 v2)
-{
-    return 0.1666666667f *
+    return 0.1666666667_r *
         (- v0.z*v1.y*v2.x + v0.z*v1.x*v2.y + v0.y*v1.z*v2.x
          - v0.x*v1.z*v2.y - v0.y*v1.x*v2.z + v0.x*v1.y*v2.z);
 }
 
-__D__ inline float supplementaryDihedralAngle(float3 v0, float3 v1, float3 v2, float3 v3)
+__D__ inline real supplementaryDihedralAngle(real3 v0, real3 v1, real3 v2, real3 v3)
 {
     //       v3
     //     /   \
@@ -38,12 +32,12 @@ __D__ inline float supplementaryDihedralAngle(float3 v0, float3 v1, float3 v2, f
 
     // dihedral: 0123    
 
-    float3 n, k, nk;
+    real3 n, k, nk;
     n  = cross(v1 - v0, v2 - v0);
     k  = cross(v2 - v0, v3 - v0);
     nk = cross(n, k);
 
-    float theta = atan2(length(nk), dot(n, k));
+    real theta = atan2(length(nk), dot(n, k));
     theta = dot(v2-v0, nk) < 0 ? theta : -theta;
     return theta;
 }
