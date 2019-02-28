@@ -9,7 +9,7 @@ class MembraneMesh : public Mesh
 {
 public:
     PinnedBuffer<int> adjacent, degrees;
-    PinnedBuffer<float> initialLengths, initialAreas;
+    PinnedBuffer<float> initialLengths, initialAreas, initialDotProducts;
 
     MembraneMesh();
 
@@ -30,8 +30,11 @@ public:
 
 protected:
     void findAdjacent();
-    void computeInitialLengths(const PinnedBuffer<float4>& vertices);
-    void computeInitialAreas(const PinnedBuffer<float4>& vertices);
+
+    void _computeInitialQuantities(const PinnedBuffer<float4>& vertices);
+    void _computeInitialLengths(const PinnedBuffer<float4>& vertices);
+    void _computeInitialAreas(const PinnedBuffer<float4>& vertices);
+    void _computeInitialDotProducts(const PinnedBuffer<float4>& vertices); /// used in Lim to determine if cos(phi) < 0
 };
 
 struct MembraneMeshView : public MeshView
@@ -39,7 +42,7 @@ struct MembraneMeshView : public MeshView
     int maxDegree;
 
     int *adjacent, *degrees;
-    float *initialLengths, *initialAreas;
+    float *initialLengths, *initialAreas, *initialDotProducts;
 
     MembraneMeshView(const MembraneMesh *m);
 };

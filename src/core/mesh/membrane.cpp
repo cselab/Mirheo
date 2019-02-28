@@ -15,8 +15,7 @@ MembraneMesh::MembraneMesh(std::string initialMesh) :
     Mesh(initialMesh)
 {
     findAdjacent();
-    computeInitialLengths(vertexCoordinates);
-    computeInitialAreas(vertexCoordinates);
+    _computeInitialQuantities(vertexCoordinates);
 }
 
 static bool sameFaces(const PinnedBuffer<int3>& facesA, const PinnedBuffer<int3>& facesB)
@@ -49,8 +48,7 @@ MembraneMesh::MembraneMesh(std::string initialMesh, std::string stressFreeMesh) 
         die("Must pass same number of vertices for initial positions and stressFree vertices");
     
     findAdjacent();
-    computeInitialLengths (stressFree.vertexCoordinates);
-    computeInitialAreas   (stressFree.vertexCoordinates);
+    _computeInitialQuantities(stressFree.vertexCoordinates);
 }
 
 MembraneMesh::MembraneMesh(const PyTypes::VectorOfFloat3& vertices,
@@ -58,8 +56,7 @@ MembraneMesh::MembraneMesh(const PyTypes::VectorOfFloat3& vertices,
     Mesh(vertices, faces)
 {
     findAdjacent();
-    computeInitialLengths(vertexCoordinates);
-    computeInitialAreas(vertexCoordinates);
+    _computeInitialQuantities(vertexCoordinates);
 }
 
 MembraneMesh::MembraneMesh(const PyTypes::VectorOfFloat3& vertices,
@@ -72,8 +69,7 @@ MembraneMesh::MembraneMesh(const PyTypes::VectorOfFloat3& vertices,
     
     Mesh stressFreeMesh(stressFreeVertices, faces);
     findAdjacent();
-    computeInitialLengths(stressFreeMesh.vertexCoordinates);
-    computeInitialAreas  (stressFreeMesh.vertexCoordinates);
+    _computeInitialQuantities(stressFreeMesh.vertexCoordinates);
 }
 
 
@@ -140,11 +136,18 @@ void MembraneMesh::findAdjacent()
     findDegrees(adjacentPairs, degrees);
     findNearestNeighbours(adjacentPairs, maxDegree, adjacent);
     
-    adjacent.uploadToDevice(0);
-    degrees.uploadToDevice(0);
+    adjacent.uploadToDevice(defaultStream);
+    degrees.uploadToDevice(defaultStream);
 }
 
-void MembraneMesh::computeInitialLengths(const PinnedBuffer<float4>& vertices)
+void MembraneMesh::_computeInitialQuantities(const PinnedBuffer<float4>& vertices)
+{
+    _computeInitialLengths(vertices);
+    _computeInitialAreas(vertices);
+    _computeInitialDotProducts(vertices);
+}
+
+void MembraneMesh::_computeInitialLengths(const PinnedBuffer<float4>& vertices)
 {
     initialLengths.resize_anew(nvertices * maxDegree);
 
@@ -153,14 +156,14 @@ void MembraneMesh::computeInitialLengths(const PinnedBuffer<float4>& vertices)
             initialLengths[i] = length(vertices[i / maxDegree] - vertices[adjacent[i]]);
     }
 
-    initialLengths.uploadToDevice(0);
+    initialLengths.uploadToDevice(defaultStream);
 }
 
 static float computeArea(float3 v0, float3 v1, float3 v2) {
     return 0.5f * length(cross(v1 - v0, v2 - v0));
 }
 
-void MembraneMesh::computeInitialAreas(const PinnedBuffer<float4>& vertices)
+void MembraneMesh::_computeInitialAreas(const PinnedBuffer<float4>& vertices)
 {
     initialAreas.resize_anew(nvertices * maxDegree);
 
@@ -184,15 +187,43 @@ void MembraneMesh::computeInitialAreas(const PinnedBuffer<float4>& vertices)
         }
     }
 
-    initialAreas.uploadToDevice(0);
+    initialAreas.uploadToDevice(defaultStream);
+}
+
+void MembraneMesh::_computeInitialDotProducts(const PinnedBuffer<float4>& vertices)
+{
+    initialDotProducts.resize_anew(nvertices * maxDegree);
+
+    float3 v0, v1, v2;
+
+    for (int id0 = 0; id0 < nvertices; ++id0) {
+        int degree = degrees[id0];
+        int startId = id0 * maxDegree;
+        v0 = f4tof3(vertices[id0]);
+        
+        for (int j = 0; j < degree; ++j) {
+            int id1 = adjacent[startId + j];
+            int id2 = adjacent[startId + (j + 1) % degree];
+
+            assert(id2 != NOT_SET);
+
+            v1 = f4tof3(vertices[id1]);
+            v2 = f4tof3(vertices[id2]);
+
+            initialDotProducts[startId + j] = dot(v1 - v0, v2 - v0);
+        }
+    }
+
+    initialDotProducts.uploadToDevice(defaultStream);
 }
 
 
 MembraneMeshView::MembraneMeshView(const MembraneMesh *m) :
     MeshView(m),
-    maxDegree      (m->getMaxDegree()),
-    adjacent       (m->adjacent.devPtr()),
-    degrees        (m->degrees.devPtr()),
-    initialLengths (m->initialLengths.devPtr()),
-    initialAreas   (m->initialAreas.devPtr())
+    maxDegree          (m->getMaxDegree()),
+    adjacent           (m->adjacent.devPtr()),
+    degrees            (m->degrees.devPtr()),
+    initialLengths     (m->initialLengths.devPtr()),
+    initialAreas       (m->initialAreas.devPtr()),
+    initialDotProducts (m->initialDotProducts.devPtr())
 {}
