@@ -85,6 +85,8 @@ void InteractionMembraneJuelicher::precomputeQuantities(ParticleVector *pv1, cud
     debug("Computing vertex areas and curvatures for %d cells of '%s'",
           ov->local()->nObjects, ov->name.c_str());
 
+    ov->local()->extraPerObject.getData<float>(ChannelNames::lenThetaTot)->clear(stream);
+
     OVviewWithJuelicherQuants view(ov, ov->local());
 
     MembraneMeshView mesh(static_cast<MembraneMesh*>(ov->mesh.get()));
