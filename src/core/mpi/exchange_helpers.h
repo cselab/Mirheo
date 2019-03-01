@@ -88,8 +88,8 @@ public:
     PinnedBuffer<int>  sendOffsets;  ///< Starting indices for i-th neighbour
     PinnedBuffer<char> sendBuf;      ///< Buffer keeping all the data needs to be sent
 
-    std::vector<MPI_Request> requests;
-    std::vector<int> reqIndex;
+    std::vector<MPI_Request> recvRequests, sendRequests;
+    std::vector<int> recvRequestIdxs;
 
 private:
     void computeOffsets(const PinnedBuffer<int>& sz, PinnedBuffer<int>& of);
