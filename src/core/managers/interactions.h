@@ -67,8 +67,9 @@ private:
 
 private:
 
-    void _addChannels(const std::vector<Interaction::InteractionChannel>& src,
-                      std::map<std::string, Interaction::ActivePredicate>& dst) const;
+    void _addChannels(const std::vector<Interaction::InteractionChannel>& channels,
+    				  std::map<CellList*, ChannelActivityMap>& dst,
+                      CellList* cl) const;
 
     float _getMaxCutoff(const std::map<CellList*, ChannelActivityMap>& cellChannels) const;
     

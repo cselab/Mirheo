@@ -20,9 +20,9 @@ void InteractionManager::add(Interaction *interaction, ParticleVector *pv1, Part
         die("Interaction '%s' has no output at all", interaction->name.c_str());
     
     auto addChannels = [&](CellList *cl) {
-                           _addChannels(intermediateOutput, cellIntermediateOutputChannels[cl]);
-                           _addChannels(intermediateInput,  cellIntermediateInputChannels[cl]);
-                           _addChannels(finalOutput, cellFinalChannels[cl]);
+                           _addChannels(intermediateOutput, cellIntermediateOutputChannels, cl);
+                           _addChannels(intermediateInput,  cellIntermediateInputChannels, cl);
+                           _addChannels(finalOutput, cellFinalChannels, cl);
                        };
 
     addChannels(cl1);
@@ -88,7 +88,7 @@ std::vector<std::string> InteractionManager::getExtraFinalChannels(const std::ve
 void InteractionManager::clearIntermediates(CellList *cl, cudaStream_t stream)
 {
     _clearChannels(cl, cellIntermediateOutputChannels, stream);
-    _clearChannels(cl, cellIntermediateInputChannels, stream);
+    _clearChannels(cl, cellIntermediateInputChannels, stream);  // TODO: needed?
 }
 
 void InteractionManager::clearFinal(CellList *cl, cudaStream_t stream)
@@ -138,17 +138,20 @@ static Interaction::ActivePredicate predicateOr(Interaction::ActivePredicate p1,
     return [p1, p2]() {return p1() || p2();};
 }
 
-void InteractionManager::_addChannels(const std::vector<Interaction::InteractionChannel>& src,
-                                      std::map<std::string, Interaction::ActivePredicate>& dst) const
+void InteractionManager::_addChannels(const std::vector<Interaction::InteractionChannel>& channels,
+									  std::map<CellList*, ChannelActivityMap>& dst,
+                                      CellList* cl) const
 {
-    for (const auto& srcEntry : src)
-    {
-        auto it = dst.find(srcEntry.name);
+	if (channels.empty()) return;
 
-        if (it != dst.end())
+    for (const auto& srcEntry : channels)
+    {
+        auto it = dst[cl].find(srcEntry.name);
+
+        if (it != dst[cl].end())
             it->second = predicateOr(it->second, srcEntry.active);
         else
-            dst[srcEntry.name] = srcEntry.active;
+            dst[cl][srcEntry.name] = srcEntry.active;
     }
 }
 
@@ -181,6 +184,7 @@ CellList* InteractionManager::_getLargestCellListNeeded(const std::map<CellList*
         if (cellChannels.find(clPtr) != cellChannels.end())
             return clPtr;
     }
+
     return nullptr;
 }
 

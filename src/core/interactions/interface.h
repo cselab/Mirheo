@@ -31,13 +31,6 @@ public:
      * Called from Simulation right after setup
      */
     virtual void setPrerequisites(ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2);
-
-    /**
-     * states wether the interaction outputs forces or not
-     * useful to know if it is an "intermediate" interaction 
-     * default: returns true
-     */
-    virtual bool outputsForces() const;
     
     /**
      * Interface to compute local interactions.

@@ -12,11 +12,6 @@ Interaction::~Interaction() = default;
 void Interaction::setPrerequisites(ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2)
 {}
 
-bool Interaction::outputsForces() const
-{
-    return true;
-}
-
 std::vector<Interaction::InteractionChannel> Interaction::getIntermediateOutputChannels() const
 {
     return {};

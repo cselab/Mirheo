@@ -13,7 +13,6 @@ public:
     ~InteractionDensity();
 
     void setPrerequisites(ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2) override;
-    bool outputsForces() const override;
     
     std::vector<InteractionChannel> getIntermediateOutputChannels() const override;
     std::vector<InteractionChannel> getFinalOutputChannels() const override;

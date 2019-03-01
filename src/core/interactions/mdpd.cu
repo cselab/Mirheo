@@ -41,11 +41,6 @@ std::vector<Interaction::InteractionChannel> InteractionDensity::getFinalOutputC
     return {};
 }
 
-bool InteractionDensity::outputsForces() const
-{
-    return false;
-}
-
 void InteractionDensity::local(ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2, cudaStream_t stream)
 {
     impl->local(pv1, pv2, cl1, cl2, stream);
