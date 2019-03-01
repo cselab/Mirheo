@@ -32,6 +32,9 @@ execute_process(COMMAND
 add_subdirectory(src/extern/pybind11)
 
 # CUDA
+# Dynamic linking should allegedly improve UCX-based MPI,
+# but it seriously affects other code aspects (maybe stream polling?)
+#set(CUDA_USE_STATIC_CUDA_RUNTIME OFF)
 find_package(CUDA REQUIRED)
 include_directories(${CUDA_INCLUDE_DIRS})
 
