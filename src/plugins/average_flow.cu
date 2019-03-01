@@ -73,6 +73,10 @@ void Average3D::setup(Simulation* simulation, const MPI_Comm& comm, const MPI_Co
     resolution = make_int3( floorf(state->domain.localSize / binSize) );
     binSize = state->domain.localSize / make_float3(resolution);
 
+    if (resolution.x <= 0 || resolution.y <= 0 || resolution.z <= 0)
+    	die("Plugin '%s' has to have at least 1 cell per rank per dimension, got %dx%dx%d."
+    			"Please decrease the bin size", resolution.x, resolution.y, resolution.z);
+
     const int total = resolution.x * resolution.y * resolution.z;
 
     density.resize_anew(total);
