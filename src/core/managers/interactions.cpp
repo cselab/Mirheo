@@ -88,7 +88,7 @@ std::vector<std::string> InteractionManager::getExtraFinalChannels(const std::ve
 void InteractionManager::clearIntermediates(CellList *cl, cudaStream_t stream)
 {
     _clearChannels(cl, cellIntermediateOutputChannels, stream);
-    _clearChannels(cl, cellIntermediateInputChannels, stream);  // TODO: needed?
+    _clearChannels(cl, cellIntermediateInputChannels, stream);
 }
 
 void InteractionManager::clearFinal(CellList *cl, cudaStream_t stream)
