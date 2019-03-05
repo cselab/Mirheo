@@ -618,11 +618,11 @@ void Simulation::prepareEngines()
 
         if (cellListVec.size() == 0) continue;
 
-        CellList *clInt = interactionManager->getLargestCellListNeededForIntermediate(cellListVec);
-        CellList *clOut = interactionManager->getLargestCellListNeededForFinal(cellListVec);
+        CellList *clInt = interactionManager->getLargestCellListNeededForIntermediate(pvPtr);
+        CellList *clOut = interactionManager->getLargestCellListNeededForFinal(pvPtr);
 
-        auto extraInt = interactionManager->getExtraIntermediateChannels(cellListVec);
-        // auto extraOut = interactionManager->getExtraFinalChannels(cellListVec); // TODO: for reverse exchanger
+        auto extraInt = interactionManager->getExtraIntermediateChannels(pvPtr);
+        // auto extraOut = interactionManager->getExtraFinalChannels(pvPtr); // TODO: for reverse exchanger
 
         auto cl = cellListVec[0].get();
         auto ov = dynamic_cast<ObjectVector*>(pvPtr);

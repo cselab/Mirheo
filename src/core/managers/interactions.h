@@ -27,11 +27,11 @@ public:
 
     float getMaxEffectiveCutoff() const;
     
-    CellList* getLargestCellListNeededForIntermediate(const std::vector<std::unique_ptr<CellList>>& cellListVec) const;
-    CellList* getLargestCellListNeededForFinal       (const std::vector<std::unique_ptr<CellList>>& cellListVec) const;
+    CellList* getLargestCellListNeededForIntermediate(ParticleVector *pv) const;
+    CellList* getLargestCellListNeededForFinal       (ParticleVector *pv) const;
 
-    std::vector<std::string> getExtraIntermediateChannels(const std::vector<std::unique_ptr<CellList>>& cellListVec) const;
-    std::vector<std::string> getExtraFinalChannels(const std::vector<std::unique_ptr<CellList>>& cellListVec) const;    
+    std::vector<std::string> getExtraIntermediateChannels(ParticleVector *pv) const;
+    std::vector<std::string> getExtraFinalChannels(ParticleVector *pv) const;    
     
     void clearIntermediates (CellList *cl, cudaStream_t stream);
     void clearFinal         (CellList *cl, cudaStream_t stream);
@@ -74,11 +74,9 @@ private:
 
     float _getMaxCutoff(const std::map<CellList*, ChannelActivityList>& cellChannels) const;
     
-    CellList* _getLargestCellListNeeded(const std::map<CellList*, ChannelActivityList>& cellChannels,
-                                        const std::vector<std::unique_ptr<CellList>>& cellListVec) const;
+    CellList* _getLargestCellListNeeded(ParticleVector *pv, const std::map<CellList*, ChannelActivityList>& cellChannels) const;
 
-    std::vector<std::string> _getExtraChannels(const std::map<CellList*, ChannelActivityList>& cellChannels,
-                                               const std::vector<std::unique_ptr<CellList>>& cellListVec) const;
+    std::vector<std::string> _getExtraChannels(ParticleVector *pv, const std::map<CellList*, ChannelActivityList>& cellChannels) const;
     
     void _executeLocal(std::vector<InteractionPrototype>& interactions, cudaStream_t stream);
     void _executeHalo(std::vector<InteractionPrototype>& interactions, cudaStream_t stream);
