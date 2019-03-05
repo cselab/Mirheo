@@ -31,10 +31,10 @@ public:
     CellList* getLargestCellListNeededForFinal       (ParticleVector *pv) const;
 
     std::vector<std::string> getExtraIntermediateChannels(ParticleVector *pv) const;
-    std::vector<std::string> getExtraFinalChannels(ParticleVector *pv) const;    
+    std::vector<std::string> getExtraFinalChannels       (ParticleVector *pv) const;    
     
-    void clearIntermediates (CellList *cl, cudaStream_t stream);
-    void clearFinal         (CellList *cl, cudaStream_t stream);
+    void clearIntermediates (ParticleVector *pv, cudaStream_t stream);
+    void clearFinal         (ParticleVector *pv, cudaStream_t stream);
 
     void accumulateIntermediates(cudaStream_t stream);
     void accumulateFinal(cudaStream_t stream);
@@ -84,7 +84,7 @@ private:
     std::vector<std::string> _extractActiveChannels(const ChannelActivityList& activityMap) const;
     std::vector<std::string> _extractAllChannels(const std::map<CellList*, ChannelActivityList>& cellChannels) const;
     
-    void _clearChannels     (CellList *cl, const std::map<CellList*, ChannelActivityList>& cellChannels, cudaStream_t stream) const;
-    void _accumulateChannels(const std::map<CellList*, ChannelActivityList>& cellChannels, cudaStream_t stream) const;
-    void _gatherChannels    (const std::map<CellList*, ChannelActivityList>& cellChannels, cudaStream_t stream) const;
+    void _clearChannels     (ParticleVector *pv, const std::map<CellList*, ChannelActivityList>& cellChannels, cudaStream_t stream) const;
+    void _accumulateChannels(                    const std::map<CellList*, ChannelActivityList>& cellChannels, cudaStream_t stream) const;
+    void _gatherChannels    (                    const std::map<CellList*, ChannelActivityList>& cellChannels, cudaStream_t stream) const;
 };
