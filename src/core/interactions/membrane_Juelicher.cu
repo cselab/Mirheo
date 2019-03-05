@@ -39,7 +39,7 @@ __global__ void computeAreasAndCurvatures(OVviewWithJuelicherQuants view, Membra
             int idv3 = mesh.adjacent[startId + (i+2) % degree];
             real3 v3 = fetchPosition(view, offset + idv3);
             
-            area     += 0.3333333f * triangleArea(v0, v1, v2);
+            area     += 0.3333333_r * triangleArea(v0, v1, v2);
             lenTheta += compute_lenTheta(v0, v1, v2, v3);
             
             v1 = v2;
