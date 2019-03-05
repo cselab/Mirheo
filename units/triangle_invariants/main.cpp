@@ -64,6 +64,7 @@ inline real safeSqrt(real a)
     return a > 0.0 ? sqrt(a) : 0.0;
 }
 
+// old version of beta, unstable for phi ~ pi/2 (not used anymore)
 static real beta(Triangle t, Triangle tref)
 {
     real3 v12 = t.b - t.a;
