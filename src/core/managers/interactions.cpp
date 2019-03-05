@@ -4,6 +4,14 @@
 
 #include <set>
 
+static void insertClist(CellList *cl, std::vector<CellList*>& clists)
+{
+    auto it = std::find(clists.begin(), clists.end(), cl);
+
+    if (it == clists.end())
+        clists.push_back(cl);
+}
+
 void InteractionManager::add(Interaction *interaction, ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2)
 {
     auto intermediateOutput = interaction->getIntermediateOutputChannels();
@@ -28,6 +36,9 @@ void InteractionManager::add(Interaction *interaction, ParticleVector *pv1, Part
     addChannels(cl1);
     if (cl1 != cl2)
         addChannels(cl2);
+
+    insertClist(cl1, cellListMap[pv1]);
+    insertClist(cl2, cellListMap[pv2]);
 
     InteractionPrototype prototype {interaction, pv1, pv2, cl1, cl2};
     

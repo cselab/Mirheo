@@ -54,6 +54,7 @@ private:
     std::map<CellList*, ChannelActivityList> cellIntermediateOutputChannels;
     std::map<CellList*, ChannelActivityList> cellIntermediateInputChannels;
     std::map<CellList*, ChannelActivityList> cellFinalChannels;
+    std::map<ParticleVector*, std::vector<CellList*>> cellListMap;
     
     struct InteractionPrototype
     {
