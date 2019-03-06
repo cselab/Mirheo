@@ -14,12 +14,12 @@ InteractionLJ::InteractionLJ(const YmrState *state, std::string name, float rc, 
     if (!allocate) return;
 
     if (objectAware) {
-        Pairwise_LJObjectAware lj(rc, epsilon, sigma, maxForce);
-        impl = std::make_unique<InteractionPair<Pairwise_LJObjectAware>> (state, name, rc, lj);
+        PairwiseLJObjectAware lj(rc, epsilon, sigma, maxForce);
+        impl = std::make_unique<InteractionPair<PairwiseLJObjectAware>> (state, name, rc, lj);
     }
     else {
-        Pairwise_LJ lj(rc, epsilon, sigma, maxForce);
-        impl = std::make_unique<InteractionPair<Pairwise_LJ>> (state, name, rc, lj);
+        PairwiseLJ lj(rc, epsilon, sigma, maxForce);
+        impl = std::make_unique<InteractionPair<PairwiseLJ>> (state, name, rc, lj);
     }
 }
 
@@ -57,13 +57,13 @@ void InteractionLJ::setSpecificPair(ParticleVector* pv1, ParticleVector* pv2,
                                     float epsilon, float sigma, float maxForce)
 {
     if (objectAware) {
-        Pairwise_LJObjectAware lj(rc, epsilon, sigma, maxForce);
-        auto ptr = static_cast< InteractionPair<Pairwise_LJObjectAware>* >(impl.get());
+        PairwiseLJObjectAware lj(rc, epsilon, sigma, maxForce);
+        auto ptr = static_cast< InteractionPair<PairwiseLJObjectAware>* >(impl.get());
         ptr->setSpecificPair(pv1->name, pv2->name, lj);
     }
     else {
-        Pairwise_LJ lj(rc, epsilon, sigma, maxForce);
-        auto ptr = static_cast< InteractionPair<Pairwise_LJ>* >(impl.get());
+        PairwiseLJ lj(rc, epsilon, sigma, maxForce);
+        auto ptr = static_cast< InteractionPair<PairwiseLJ>* >(impl.get());
         ptr->setSpecificPair(pv1->name, pv2->name, lj);
     }
 }

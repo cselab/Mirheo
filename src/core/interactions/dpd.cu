@@ -13,8 +13,8 @@ InteractionDPD::InteractionDPD(const YmrState *state, std::string name, float rc
     a(a), gamma(gamma), kbt(kbt), power(power)
 {
     if (allocateImpl) {
-        Pairwise_DPD dpd(rc, a, gamma, kbt, state->dt, power);
-        impl = std::make_unique<InteractionPair<Pairwise_DPD>> (state, name, rc, dpd);
+        PairwiseDPD dpd(rc, a, gamma, kbt, state->dt, power);
+        impl = std::make_unique<InteractionPair<PairwiseDPD>> (state, name, rc, dpd);
     }
 }
 
@@ -56,8 +56,8 @@ void InteractionDPD::setSpecificPair(ParticleVector* pv1, ParticleVector* pv2,
     if (kbt   == Default) kbt   = this->kbt;
     if (power == Default) power = this->power;
 
-    Pairwise_DPD dpd(this->rc, a, gamma, kbt, state->dt, power);
-    auto ptr = static_cast< InteractionPair<Pairwise_DPD>* >(impl.get());
+    PairwiseDPD dpd(this->rc, a, gamma, kbt, state->dt, power);
+    auto ptr = static_cast< InteractionPair<PairwiseDPD>* >(impl.get());
     
     ptr->setSpecificPair(pv1->name, pv2->name, dpd);
 }

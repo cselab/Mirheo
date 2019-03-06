@@ -5,38 +5,40 @@
 #include <core/utils/common.h>
 #include <core/ymero_state.h>
 
+#include <type_traits>
+
 class LocalParticleVector;
 class CellList;
 
-template<typename BasicPairwiseForce>
-class PairwiseStressWrapper
+template<typename BasicPairwiseForceHandler>
+class PairwiseStressWrapperHandler
 {
 public:
 
-    using BasicViewType = typename BasicPairwiseForce::ViewType;
+    using BasicViewType = typename BasicPairwiseForceHandler::ViewType;
     using ViewType      = PVviewWithStresses<BasicViewType>;
-    using ParticleType  = typename BasicPairwiseForce::ParticleType;
+    using ParticleType  = typename BasicPairwiseForceHandler::ParticleType;
     
-    PairwiseStressWrapper(BasicPairwiseForce basicForce) :
-        basicForce(basicForce)
+    PairwiseStressWrapperHandler(BasicPairwiseForceHandler basicForceHandler) :
+        basicForceHandler(basicForceHandler)
     {}
 
     void setup(LocalParticleVector *lpv1, LocalParticleVector *lpv2, CellList *cl1, CellList *cl2, const YmrState *state)
     {
-        basicForce.setup(lpv1, lpv2, cl1, cl2, state);
+        basicForceHandler.setup(lpv1, lpv2, cl1, cl2, state);
     }
 
-    __D__ inline ParticleType read(const ViewType& view, int id) const                     { return        basicForce.read(view, id); }
-    __D__ inline ParticleType readNoCache(const ViewType& view, int id) const              { return basicForce.readNoCache(view, id); }
-    __D__ inline void readCoordinates(ParticleType& p, const ViewType& view, int id) const { basicForce.readCoordinates(p, view, id); }
-    __D__ inline void readExtraData  (ParticleType& p, const ViewType& view, int id) const { basicForce.readExtraData  (p, view, id); }
-    __D__ inline bool withinCutoff(const ParticleType& src, const ParticleType& dst) const { return basicForce.withinCutoff(src, dst);}
-    __D__ inline float3 getPosition(const ParticleType& p) const {return basicForce.getPosition(p);}
+    __D__ inline ParticleType read(const ViewType& view, int id) const                     { return        basicForceHandler.read(view, id); }
+    __D__ inline ParticleType readNoCache(const ViewType& view, int id) const              { return basicForceHandler.readNoCache(view, id); }
+    __D__ inline void readCoordinates(ParticleType& p, const ViewType& view, int id) const { basicForceHandler.readCoordinates(p, view, id); }
+    __D__ inline void readExtraData  (ParticleType& p, const ViewType& view, int id) const { basicForceHandler.readExtraData  (p, view, id); }
+    __D__ inline bool withinCutoff(const ParticleType& src, const ParticleType& dst) const { return basicForceHandler.withinCutoff(src, dst);}
+    __D__ inline float3 getPosition(const ParticleType& p) const {return basicForceHandler.getPosition(p);}
     
     __device__ inline ForceStress operator()(const ParticleType dst, int dstId, const ParticleType src, int srcId) const
     {        
         float3 dr = getPosition(dst) - getPosition(src);
-        float3 f  = basicForce(dst, dstId, src, srcId);
+        float3 f  = basicForceHandler(dst, dstId, src, srcId);
         Stress s;
         
         s.xx = 0.5f * dr.x * f.x;
@@ -53,5 +55,34 @@ public:
 
 private:
     
+    BasicPairwiseForceHandler basicForceHandler;
+};
+
+template<typename BasicPairwiseForce>
+class PairwiseStressWrapper
+{
+public:
+
+    using ViewType     = typename BasicPairwiseForce::ViewType;
+    using ParticleType = typename BasicPairwiseForce::ParticleType;
+    
+    PairwiseStressWrapper(BasicPairwiseForce basicForce) :
+        basicForce(basicForce),
+        basicForceHandler(basicForce.handler())
+    {}
+
+    void setup(LocalParticleVector *lpv1, LocalParticleVector *lpv2, CellList *cl1, CellList *cl2, const YmrState *state)
+    {
+        basicForce.setup(lpv1, lpv2, cl1, cl2, state);
+        basicForceHandler = basicForce.handler();
+    }
+
+    const typename BasicPairwiseForce::HandlerType& handler() const
+    {
+        return basicForceHandler;
+    }
+    
+protected:
     BasicPairwiseForce basicForce;
+    typename BasicPairwiseForce::HandlerType basicForceHandler;
 };

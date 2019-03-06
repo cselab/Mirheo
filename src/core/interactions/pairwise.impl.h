@@ -157,7 +157,7 @@ private:
             SAFE_KERNEL_LAUNCH(
                                computeSelfInteractions,
                                getNblocks(np, nth), nth, 0, stream,
-                               cinfo, view, rc*rc, pair);
+                               cinfo, view, rc*rc, pair.handler());
         }
         else /*  External interaction */
         {
@@ -170,7 +170,7 @@ private:
 
             const int nth = 128;
             if (np1 > 0 && np2 > 0)
-                CHOOSE_EXTERNAL(InteractionOut::NeedAcc, InteractionOut::NeedAcc, InteractionMode::RowWise, pair);
+                CHOOSE_EXTERNAL(InteractionOut::NeedAcc, InteractionOut::NeedAcc, InteractionMode::RowWise, pair.handler());
         }
     }
 
@@ -194,9 +194,9 @@ private:
         const int nth = 128;
         if (np1 > 0 && np2 > 0)
             if (dynamic_cast<ObjectVector*>(pv1) == nullptr) // don't need forces for pure particle halo
-                CHOOSE_EXTERNAL(InteractionOut::NoAcc,   InteractionOut::NeedAcc, InteractionMode::Dilute, pair );
+                CHOOSE_EXTERNAL(InteractionOut::NoAcc,   InteractionOut::NeedAcc, InteractionMode::Dilute, pair.handler() );
             else
-                CHOOSE_EXTERNAL(InteractionOut::NeedAcc, InteractionOut::NeedAcc, InteractionMode::Dilute, pair );
+                CHOOSE_EXTERNAL(InteractionOut::NeedAcc, InteractionOut::NeedAcc, InteractionMode::Dilute, pair.handler() );
     }
 
     PairwiseInteraction& getPairwiseInteraction(std::string pv1name, std::string pv2name)

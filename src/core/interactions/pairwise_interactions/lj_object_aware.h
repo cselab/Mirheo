@@ -8,29 +8,16 @@
 #include <core/utils/helper_math.h>
 #include <core/ymero_state.h>
 
-class Pairwise_LJObjectAware
+class PairwiseLJObjectAwareHandler
 {
 public:
 
     using ViewType     = PVview;
     using ParticleType = Particle;
     
-    Pairwise_LJObjectAware(float rc, float epsilon, float sigma, float maxForce) :
+    PairwiseLJObjectAwareHandler(float rc, float epsilon, float sigma, float maxForce) :
         lj(rc, epsilon, sigma, maxForce)
     {}
-
-    void setup(LocalParticleVector* lpv1, LocalParticleVector* lpv2, CellList* cl1, CellList* cl2, const YmrState *state)
-    {
-        auto ov1 = dynamic_cast<ObjectVector*>(lpv1->pv);
-        auto ov2 = dynamic_cast<ObjectVector*>(lpv2->pv);
-
-        self = false;
-        if (ov1 != nullptr && ov2 != nullptr && lpv1 == lpv2)
-        {
-            self = true;
-            objSize = ov1->objSize;
-        }
-    }
 
     __D__ inline ParticleType read(const ViewType& view, int id) const                     { return        lj.read(view, id); }
     __D__ inline ParticleType readNoCache(const ViewType& view, int id) const              { return lj.readNoCache(view, id); }
@@ -57,11 +44,40 @@ public:
 
     __D__ inline ForceAccumulator getZeroedAccumulator() const {return ForceAccumulator();}
 
-private:
+protected:
 
     bool self;
 
     int objSize;
 
-    Pairwise_LJ lj;
+    PairwiseLJHandler lj;
+};
+
+class PairwiseLJObjectAware : public PairwiseLJObjectAwareHandler
+{
+public:
+
+    using HandlerType = PairwiseLJObjectAwareHandler;
+
+    PairwiseLJObjectAware(float rc, float epsilon, float sigma, float maxForce) :
+        PairwiseLJObjectAwareHandler(rc, epsilon, sigma, maxForce)
+    {}
+
+    const HandlerType& handler() const
+    {
+        return (const HandlerType&) (*this);
+    }
+    
+    void setup(LocalParticleVector* lpv1, LocalParticleVector* lpv2, CellList* cl1, CellList* cl2, const YmrState *state)
+    {
+        auto ov1 = dynamic_cast<ObjectVector*>(lpv1->pv);
+        auto ov2 = dynamic_cast<ObjectVector*>(lpv2->pv);
+
+        self = false;
+        if (ov1 != nullptr && ov2 != nullptr && lpv1 == lpv2)
+        {
+            self = true;
+            objSize = ov1->objSize;
+        }
+    }
 };

@@ -8,14 +8,14 @@
 class CellList;
 class LocalParticleVector;
 
-class Pairwise_density : public ParticleFetcher
+class PairwiseDensityHandler : public ParticleFetcher
 {
 public:
 
     using ViewType     = PVviewWithDensities;
     using ParticleType = Particle;
     
-    Pairwise_density(float rc) :
+    PairwiseDensityHandler(float rc) :
         ParticleFetcher(rc)
     {
         invrc = 1.0 / rc;
@@ -42,4 +42,23 @@ public:
 protected:
 
     float invrc, fact;
+};
+
+class PairwiseDensity : public PairwiseDensityHandler
+{
+public:
+
+    using HandlerType = PairwiseDensityHandler;
+    
+    PairwiseDensity(float rc) :
+        PairwiseDensityHandler(rc)
+    {}
+
+    const HandlerType& handler() const
+    {
+        return (const HandlerType&) (*this);
+    }
+    
+    void setup(LocalParticleVector *lpv1, LocalParticleVector *lpv2, CellList *cl1, CellList *cl2, const YmrState *state)
+    {}   
 };

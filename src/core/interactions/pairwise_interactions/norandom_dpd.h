@@ -11,23 +11,20 @@ class LocalParticleVector;
 class CellList;
 
 
-class Pairwise_Norandom_DPD : public ParticleFetcherWithVelocity
+class PairwiseNorandomDPDHandler : public ParticleFetcherWithVelocity
 {
 public:
 
     using ViewType     = PVview;
     using ParticleType = Particle;
     
-    Pairwise_Norandom_DPD(float rc, float a, float gamma, float kbT, float dt, float power) :
+    PairwiseNorandomDPDHandler(float rc, float a, float gamma, float kbT, float dt, float power) :
         ParticleFetcherWithVelocity(rc),
         a(a), gamma(gamma), power(power)
     {
         sigma = sqrt(2 * gamma * kbT / dt);
         invrc = 1.0 / rc;
     }
-
-    void setup(LocalParticleVector* lpv1, LocalParticleVector* lpv2, CellList* cl1, CellList* cl2, const YmrState *state)
-    {}
 
     __D__ inline float3 operator()(const ParticleType dst, int dstId, const ParticleType src, int srcId) const
     {
@@ -57,4 +54,23 @@ protected:
 
     float a, gamma, sigma, power;
     float invrc;
+};
+
+class PairwiseNorandomDPD : public PairwiseNorandomDPDHandler
+{
+public:
+
+    using HandlerType = PairwiseNorandomDPDHandler;
+    
+    PairwiseNorandomDPD(float rc, float a, float gamma, float kbT, float dt, float power) :
+        PairwiseNorandomDPDHandler(rc, a, gamma, kbT, dt, power)
+    {}
+    
+    const HandlerType& handler() const
+    {
+        return (const HandlerType&) (*this);
+    }
+    
+    void setup(LocalParticleVector* lpv1, LocalParticleVector* lpv2, CellList* cl1, CellList* cl2, const YmrState *state)
+    {}
 };
