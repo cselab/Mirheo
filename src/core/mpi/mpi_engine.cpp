@@ -66,6 +66,9 @@ void MPIExchangeEngine::init(cudaStream_t stream)
     for (int i=0; i<helpers.size(); i++)
         if (exchanger->needExchange(i)) postRecv(helpers[i].get());
 
+    // CUDA-aware MPI will work in a separate stream, need to synchro
+    if (gpuAwareMPI) cudaStreamSynchronize(stream);
+
     // Send
     for (int i=0; i<helpers.size(); i++)
         if (exchanger->needExchange(i)) send(helpers[i].get(), stream);
