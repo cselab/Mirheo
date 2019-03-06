@@ -618,11 +618,11 @@ void Simulation::prepareEngines()
 
         if (cellListVec.size() == 0) continue;
 
-        CellList *clInt = interactionManager->getLargestCellListNeededForIntermediate(cellListVec);
-        CellList *clOut = interactionManager->getLargestCellListNeededForFinal(cellListVec);
+        CellList *clInt = interactionManager->getLargestCellListNeededForIntermediate(pvPtr);
+        CellList *clOut = interactionManager->getLargestCellListNeededForFinal(pvPtr);
 
-        auto extraInt = interactionManager->getExtraIntermediateChannels(cellListVec);
-        // auto extraOut = interactionManager->getExtraFinalChannels(cellListVec); // TODO: for reverse exchanger
+        auto extraInt = interactionManager->getExtraIntermediateChannels(pvPtr);
+        // auto extraOut = interactionManager->getExtraFinalChannels(pvPtr); // TODO: for reverse exchanger
 
         auto cl = cellListVec[0].get();
         auto ov = dynamic_cast<ObjectVector*>(pvPtr);
@@ -787,14 +787,13 @@ void Simulation::assemble()
 
     // Only particle forces, not object ones here
     for (auto& pv : particleVectors)
-        for (auto& cl : cellListMap[pv.get()])
-        {
-            auto clPtr = cl.get();
-            scheduler->addTask(task_clearFinalOutput,
-                               [this, clPtr] (cudaStream_t stream) { interactionManager->clearIntermediates(clPtr, stream); } );
-            scheduler->addTask(task_clearIntermediate,
-                               [this, clPtr] (cudaStream_t stream) { interactionManager->clearFinal(clPtr, stream); } );
-        }
+    {
+        auto pvPtr = pv.get();
+        scheduler->addTask(task_clearFinalOutput,
+                           [this, pvPtr] (cudaStream_t stream) { interactionManager->clearIntermediates(pvPtr, stream); } );
+        scheduler->addTask(task_clearIntermediate,
+                           [this, pvPtr] (cudaStream_t stream) { interactionManager->clearFinal(pvPtr, stream); } );
+    }
 
     for (auto& pl : plugins)
     {
@@ -905,21 +904,16 @@ void Simulation::assemble()
 
     // As there are no primary cell-lists for objects
     // we need to separately clear real obj forces and forces in the cell-lists
-    for (auto ov : objectVectors)
+    for (auto ovPtr : objectVectors)
     {
-        scheduler->addTask(task_clearObjLocalForces, [ov] (cudaStream_t stream) {
-            ov->local()->forces.clear(stream);
+        scheduler->addTask(task_clearObjLocalForces, [ovPtr] (cudaStream_t stream) {
+            ovPtr->local()->forces.clear(stream);
         });
 
-        auto& clVec = cellListMap[ov];
-        for (auto& cl : clVec)
-        {
-            auto clPtr = cl.get();
-            scheduler->addTask(task_clearObjLocalForces,
-                               [this, clPtr] (cudaStream_t stream) {
-                                   interactionManager->clearFinal(clPtr, stream);
-                               });
-        }
+        scheduler->addTask(task_clearObjLocalForces,
+                           [this, ovPtr] (cudaStream_t stream) {
+                               interactionManager->clearFinal(ovPtr, stream);
+                           });
     }
 
     for (auto& bouncer : regularBouncers)
