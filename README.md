@@ -14,7 +14,13 @@ For more information, please refer to the online documentation: http://ymero.rea
 
 ### unreleased
 
+* more robust computation of Lim forces
+
+### v0.11.4
+
 * **fix** Lim shear forces bug: triangle invariant
+* **fix** reset accumulated quantities in Juelicher ADE model
+* **fix** check MPI send requests
 
 ### v0.11.3
 

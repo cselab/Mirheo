@@ -1,5 +1,8 @@
 #include "sub_step_membrane.h"
 
+#include "forcing_terms/none.h"
+#include "vv.h"
+
 #include <core/interactions/membrane.h>
 #include <core/logger.h>
 #include <core/pvs/particle_vector.h>

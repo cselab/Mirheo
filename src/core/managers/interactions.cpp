@@ -88,7 +88,7 @@ std::vector<std::string> InteractionManager::getExtraFinalChannels(const std::ve
 void InteractionManager::clearIntermediates(CellList *cl, cudaStream_t stream)
 {
     _clearChannels(cl, cellIntermediateOutputChannels, stream);
-    _clearChannels(cl, cellIntermediateInputChannels, stream);  // TODO: needed?
+    _clearChannels(cl, cellIntermediateInputChannels, stream);
 }
 
 void InteractionManager::clearFinal(CellList *cl, cudaStream_t stream)
@@ -139,23 +139,27 @@ static Interaction::ActivePredicate predicateOr(Interaction::ActivePredicate p1,
 }
 
 void InteractionManager::_addChannels(const std::vector<Interaction::InteractionChannel>& channels,
-									  std::map<CellList*, ChannelActivityMap>& dst,
+                                      std::map<CellList*, ChannelActivityList>& dst,
                                       CellList* cl) const
 {
-	if (channels.empty()) return;
-
+    if (channels.empty()) return;
+    
     for (const auto& srcEntry : channels)
     {
-        auto it = dst[cl].find(srcEntry.name);
+        auto it = dst[cl].begin();
+
+        for (; it != dst[cl].end(); ++it)
+            if (it->first == srcEntry.name)
+                break;
 
         if (it != dst[cl].end())
             it->second = predicateOr(it->second, srcEntry.active);
         else
-            dst[cl][srcEntry.name] = srcEntry.active;
+            dst[cl].push_back( { srcEntry.name, srcEntry.active } );
     }
 }
 
-float InteractionManager::_getMaxCutoff(const std::map<CellList*, ChannelActivityMap>& cellChannels) const
+float InteractionManager::_getMaxCutoff(const std::map<CellList*, ChannelActivityList>& cellChannels) const
 {
     float rc = 0.f;
     for (const auto& entry : cellChannels) {
@@ -173,7 +177,7 @@ static void checkCellListsAreSorted(const std::vector<std::unique_ptr<CellList>>
             die("Expected sorted cell lists (with decreasing cutoff radius)");
 }
 
-CellList* InteractionManager::_getLargestCellListNeeded(const std::map<CellList*, ChannelActivityMap>& cellChannels,
+CellList* InteractionManager::_getLargestCellListNeeded(const std::map<CellList*, ChannelActivityList>& cellChannels,
                                                         const std::vector<std::unique_ptr<CellList>>& cellListVec) const
 {
     checkCellListsAreSorted(cellListVec);
@@ -188,7 +192,7 @@ CellList* InteractionManager::_getLargestCellListNeeded(const std::map<CellList*
     return nullptr;
 }
 
-std::vector<std::string> InteractionManager::_extractAllChannels(const std::map<CellList*, ChannelActivityMap>& cellChannels) const
+std::vector<std::string> InteractionManager::_extractAllChannels(const std::map<CellList*, ChannelActivityList>& cellChannels) const
 {
     std::set<std::string> channels;
     for (const auto& cellMap : cellChannels)
@@ -200,7 +204,7 @@ std::vector<std::string> InteractionManager::_extractAllChannels(const std::map<
     return {channels.begin(), channels.end()};
 }
 
-std::vector<std::string> InteractionManager::_getExtraChannels(const std::map<CellList*, ChannelActivityMap>& cellChannels,
+std::vector<std::string> InteractionManager::_getExtraChannels(const std::map<CellList*, ChannelActivityList>& cellChannels,
                                                                const std::vector<std::unique_ptr<CellList>>& cellListVec) const
 {
     std::set<std::string> channels;
@@ -235,7 +239,7 @@ void InteractionManager::_executeHalo(std::vector<InteractionPrototype>& interac
         p.interaction->halo(p.pv1, p.pv2, p.cl1, p.cl2, stream);
 }
 
-std::vector<std::string> InteractionManager::_extractActiveChannels(const ChannelActivityMap& activityMap) const
+std::vector<std::string> InteractionManager::_extractActiveChannels(const ChannelActivityList& activityMap) const
 {
     std::vector<std::string> activeChannels;
 
@@ -246,7 +250,7 @@ std::vector<std::string> InteractionManager::_extractActiveChannels(const Channe
     return activeChannels;
 }
 
-void InteractionManager::_clearChannels(CellList *cl, const std::map<CellList*, ChannelActivityMap>& cellChannels, cudaStream_t stream) const
+void InteractionManager::_clearChannels(CellList *cl, const std::map<CellList*, ChannelActivityList>& cellChannels, cudaStream_t stream) const
 {
     auto it = cellChannels.find(cl);
 
@@ -256,7 +260,7 @@ void InteractionManager::_clearChannels(CellList *cl, const std::map<CellList*, 
     }
 }
 
-void InteractionManager::_accumulateChannels(const std::map<CellList*, ChannelActivityMap>& cellChannels, cudaStream_t stream) const
+void InteractionManager::_accumulateChannels(const std::map<CellList*, ChannelActivityList>& cellChannels, cudaStream_t stream) const
 {
     for (const auto& entry : cellChannels)
     {
@@ -266,7 +270,7 @@ void InteractionManager::_accumulateChannels(const std::map<CellList*, ChannelAc
     }    
 }
 
-void InteractionManager::_gatherChannels(const std::map<CellList*, ChannelActivityMap>& cellChannels, cudaStream_t stream) const
+void InteractionManager::_gatherChannels(const std::map<CellList*, ChannelActivityList>& cellChannels, cudaStream_t stream) const
 {
     for (const auto& entry : cellChannels)
     {

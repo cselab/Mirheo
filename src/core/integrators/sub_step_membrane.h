@@ -5,9 +5,6 @@
 #include <core/containers.h>
 #include <core/datatypes.h>
 
-#include "forcing_terms/none.h"
-#include "vv.h"
-
 class Interaction;
 
 class IntegratorSubStepMembrane : Integrator
@@ -24,7 +21,7 @@ public:
 private:
 
     Interaction *fastForces; /* interactions (self) called `substeps` times per time step */
-    std::unique_ptr<IntegratorVV<Forcing_None>> subIntegrator;
+    std::unique_ptr<Integrator> subIntegrator;
     YmrState subState;
     
     int substeps; /* number of substeps */

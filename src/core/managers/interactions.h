@@ -49,11 +49,11 @@ public:
 
 private:
 
-    using ChannelActivityMap = std::map<std::string, Interaction::ActivePredicate>;
+    using ChannelActivityList = std::vector<std::pair<std::string, Interaction::ActivePredicate>>;
     
-    std::map<CellList*, ChannelActivityMap> cellIntermediateOutputChannels;
-    std::map<CellList*, ChannelActivityMap> cellIntermediateInputChannels;
-    std::map<CellList*, ChannelActivityMap> cellFinalChannels;
+    std::map<CellList*, ChannelActivityList> cellIntermediateOutputChannels;
+    std::map<CellList*, ChannelActivityList> cellIntermediateInputChannels;
+    std::map<CellList*, ChannelActivityList> cellFinalChannels;
     
     struct InteractionPrototype
     {
@@ -68,24 +68,24 @@ private:
 private:
 
     void _addChannels(const std::vector<Interaction::InteractionChannel>& channels,
-    				  std::map<CellList*, ChannelActivityMap>& dst,
+    				  std::map<CellList*, ChannelActivityList>& dst,
                       CellList* cl) const;
 
-    float _getMaxCutoff(const std::map<CellList*, ChannelActivityMap>& cellChannels) const;
+    float _getMaxCutoff(const std::map<CellList*, ChannelActivityList>& cellChannels) const;
     
-    CellList* _getLargestCellListNeeded(const std::map<CellList*, ChannelActivityMap>& cellChannels,
+    CellList* _getLargestCellListNeeded(const std::map<CellList*, ChannelActivityList>& cellChannels,
                                         const std::vector<std::unique_ptr<CellList>>& cellListVec) const;
 
-    std::vector<std::string> _getExtraChannels(const std::map<CellList*, ChannelActivityMap>& cellChannels,
+    std::vector<std::string> _getExtraChannels(const std::map<CellList*, ChannelActivityList>& cellChannels,
                                                const std::vector<std::unique_ptr<CellList>>& cellListVec) const;
     
     void _executeLocal(std::vector<InteractionPrototype>& interactions, cudaStream_t stream);
     void _executeHalo(std::vector<InteractionPrototype>& interactions, cudaStream_t stream);
 
-    std::vector<std::string> _extractActiveChannels(const ChannelActivityMap& activityMap) const;
-    std::vector<std::string> _extractAllChannels(const std::map<CellList*, ChannelActivityMap>& cellChannels) const;
+    std::vector<std::string> _extractActiveChannels(const ChannelActivityList& activityMap) const;
+    std::vector<std::string> _extractAllChannels(const std::map<CellList*, ChannelActivityList>& cellChannels) const;
     
-    void _clearChannels     (CellList *cl, const std::map<CellList*, ChannelActivityMap>& cellChannels, cudaStream_t stream) const;
-    void _accumulateChannels(const std::map<CellList*, ChannelActivityMap>& cellChannels, cudaStream_t stream) const;
-    void _gatherChannels    (const std::map<CellList*, ChannelActivityMap>& cellChannels, cudaStream_t stream) const;
+    void _clearChannels     (CellList *cl, const std::map<CellList*, ChannelActivityList>& cellChannels, cudaStream_t stream) const;
+    void _accumulateChannels(const std::map<CellList*, ChannelActivityList>& cellChannels, cudaStream_t stream) const;
+    void _gatherChannels    (const std::map<CellList*, ChannelActivityList>& cellChannels, cudaStream_t stream) const;
 };
