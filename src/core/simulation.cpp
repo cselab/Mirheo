@@ -1004,7 +1004,7 @@ void Simulation::assemble()
     scheduler->addDependency(task_pluginsBeforeForces, {task_localForces, task_haloForces}, {task_clearFinalOutput});
     scheduler->addDependency(task_pluginsSerializeSend, {task_pluginsBeforeIntegration, task_pluginsAfterIntegration}, {task_pluginsBeforeForces});
 
-    scheduler->addDependency(task_clearObjHaloForces, {task_objHaloBounce}, {task_objForcesFinalize});
+    scheduler->addDependency(task_clearObjHaloForces, {task_objHaloBounce}, {task_objHaloFinalize});
 
     scheduler->addDependency(task_objForcesInit, {}, {task_haloForces});
     scheduler->addDependency(task_objForcesFinalize, {task_accumulateInteractionFinal}, {task_objForcesInit});
