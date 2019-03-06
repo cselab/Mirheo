@@ -68,7 +68,7 @@ public:
         }
     }
 
-    void setSpecificPair(std::string pv1name, std::string pv2name, PairwiseInteraction pair);
+    void setSpecificPair(std::string pv1name, std::string pv2name, PairwiseInteraction pair)
     {
         interaction.          setSpecificPair(pv1name, pv2name, pair);
         interactionWithStress.setSpecificPair(pv1name, pv2name, PairwiseStressWrapper<PairwiseInteraction>(pair));

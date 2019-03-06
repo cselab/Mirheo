@@ -1,5 +1,6 @@
 #include "mdpd.h"
-#include "pairwise.h"
+
+#include "pairwise.impl.h"
 #include "pairwise_interactions/density.h"
 #include "pairwise_interactions/mdpd.h"
 

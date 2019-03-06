@@ -2,6 +2,15 @@
 
 #include "interface.h"
 
+#include "pairwise_kernels.h"
+
+#include <core/celllist.h>
+#include <core/pvs/object_vector.h>
+#include <core/pvs/particle_vector.h>
+#include <core/pvs/views/pv.h>
+#include <core/utils/cuda_common.h>
+#include <core/utils/kernel_launch.h>
+
 #include <map>
 
 /**

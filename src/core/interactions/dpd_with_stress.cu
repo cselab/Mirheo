@@ -1,7 +1,7 @@
 #include <memory>
 
 #include "dpd_with_stress.h"
-#include "pairwise_with_stress.h"
+#include "pairwise_with_stress.impl.h"
 #include "pairwise_interactions/dpd.h"
 
 #include <core/utils/make_unique.h>
