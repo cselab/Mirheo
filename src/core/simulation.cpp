@@ -710,6 +710,8 @@ void Simulation::init()
     scheduler->forceExec( scheduler->getTaskId("Clear object local forces"), 0 );
 
     execSplitters();
+
+    CUDA_Check( cudaDeviceSynchronize() );
 }
 
 void Simulation::assemble()
@@ -1004,20 +1006,20 @@ void Simulation::assemble()
     scheduler->addDependency(task_pluginsBeforeForces, {task_localForces, task_haloForces}, {task_clearFinalOutput});
     scheduler->addDependency(task_pluginsSerializeSend, {task_pluginsBeforeIntegration, task_pluginsAfterIntegration}, {task_pluginsBeforeForces});
 
-    scheduler->addDependency(task_clearObjHaloForces, {task_objHaloBounce}, {task_objHaloFinalize});
+    scheduler->addDependency(task_clearObjHaloForces, {task_objHaloBounce}, {task_objForcesFinalize});
 
     scheduler->addDependency(task_objForcesInit, {}, {task_haloForces});
     scheduler->addDependency(task_objForcesFinalize, {task_accumulateInteractionFinal}, {task_objForcesInit});
 
     scheduler->addDependency(task_localIntermediate, {}, {task_clearIntermediate});
-    scheduler->addDependency(task_haloIntermediateInit, {}, {task_clearIntermediate});
+    scheduler->addDependency(task_haloIntermediateInit, {}, {task_clearIntermediate, task_cellLists});
     scheduler->addDependency(task_haloIntermediateFinalize, {}, {task_haloIntermediateInit});
     scheduler->addDependency(task_haloIntermediate, {}, {task_haloIntermediateFinalize});
     scheduler->addDependency(task_accumulateInteractionIntermediate, {}, {task_localIntermediate, task_haloIntermediate});
     scheduler->addDependency(task_gatherInteractionIntermediate, {}, {task_accumulateInteractionIntermediate});
 
     scheduler->addDependency(task_localForces, {}, {task_gatherInteractionIntermediate});
-    scheduler->addDependency(task_haloInit, {}, {task_pluginsBeforeForces, task_gatherInteractionIntermediate});
+    scheduler->addDependency(task_haloInit, {}, {task_pluginsBeforeForces, task_gatherInteractionIntermediate, task_cellLists});
     scheduler->addDependency(task_haloFinalize, {}, {task_haloInit});
     scheduler->addDependency(task_haloForces, {}, {task_haloFinalize});
     scheduler->addDependency(task_accumulateInteractionFinal, {task_integration}, {task_haloForces, task_localForces});
