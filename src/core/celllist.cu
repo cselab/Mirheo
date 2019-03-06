@@ -234,10 +234,17 @@ void CellList::_computeCellSizes(cudaStream_t stream)
 
 void CellList::_computeCellStarts(cudaStream_t stream)
 {
-    size_t bufSize;
-    cub::DeviceScan::ExclusiveSum(nullptr, bufSize, cellSizes.devPtr(), cellStarts.devPtr(), totcells+1, stream);
-    scanBuffer.resize_anew(bufSize);
-    cub::DeviceScan::ExclusiveSum(scanBuffer.devPtr(), bufSize, cellSizes.devPtr(), cellStarts.devPtr(), totcells+1, stream);
+	// Scan is always working with the same number of cells
+	// Memory requirements can't change
+	size_t bufSize = scanBuffer.size();
+
+	if (bufSize == 0)
+	{
+		cub::DeviceScan::ExclusiveSum(nullptr, bufSize, cellSizes.devPtr(), cellStarts.devPtr(), totcells+1, stream);
+		scanBuffer.resize_anew(bufSize);
+	}
+    cub::DeviceScan::ExclusiveSum(scanBuffer.devPtr(), bufSize,
+    							  cellSizes.devPtr(), cellStarts.devPtr(), totcells+1, stream);
 }
 
 void CellList::_reorderData(cudaStream_t stream)
@@ -454,6 +461,9 @@ PrimaryCellList::~PrimaryCellList() = default;
 
 void PrimaryCellList::build(cudaStream_t stream)
 {
+	// Reqired here to avoid ptr swap if building didn't actually happen
+    if (!_checkNeedBuild()) return;
+
     CellList::build(stream);
 
     if (pv->local()->size() == 0)
