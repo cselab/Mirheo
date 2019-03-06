@@ -93,6 +93,7 @@ void ObjectBelongingChecker_Common::splitByBelonging(ParticleVector* src, Partic
 
 
         info("New size of inner PV %s is %d", pvIn->name.c_str(), pvIn->local()->size());
+        pvIn->cellListStamp++;
     }
 
     if (pvOut != nullptr)
@@ -108,6 +109,7 @@ void ObjectBelongingChecker_Common::splitByBelonging(ParticleVector* src, Partic
 
 
         info("New size of outer PV %s is %d", pvOut->name.c_str(), pvOut->local()->size());
+        pvOut->cellListStamp++;
     }
 }
 
