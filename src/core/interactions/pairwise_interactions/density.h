@@ -3,6 +3,7 @@
 #include "fetchers.h"
 
 #include <core/interactions/accumulators/density.h>
+#include <core/ymero_state.h>
 
 class CellList;
 class LocalParticleVector;
@@ -21,7 +22,7 @@ public:
         fact = 15.0 / (2 * M_PI * rc2 * rc);
     }
 
-    void setup(LocalParticleVector *lpv1, LocalParticleVector *lpv2, CellList *cl1, CellList *cl2, float t)
+    void setup(LocalParticleVector *lpv1, LocalParticleVector *lpv2, CellList *cl1, CellList *cl2, const YmrState *state)
     {}
 
     __D__ inline float operator()(const ParticleType dst, int dstId, const ParticleType src, int srcId) const

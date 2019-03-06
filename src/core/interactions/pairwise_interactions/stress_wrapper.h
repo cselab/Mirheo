@@ -3,6 +3,7 @@
 #include <core/datatypes.h>
 #include <core/interactions/accumulators/forceStress.h>
 #include <core/utils/common.h>
+#include <core/ymero_state.h>
 
 class LocalParticleVector;
 class CellList;
@@ -20,9 +21,9 @@ public:
         basicForce(basicForce)
     {}
 
-    void setup(LocalParticleVector *lpv1, LocalParticleVector *lpv2, CellList *cl1, CellList *cl2, float t)
+    void setup(LocalParticleVector *lpv1, LocalParticleVector *lpv2, CellList *cl1, CellList *cl2, const YmrState *state)
     {
-        basicForce.setup(lpv1, lpv2, cl1, cl2, t);
+        basicForce.setup(lpv1, lpv2, cl1, cl2, state);
     }
 
     __D__ inline ParticleType read(const ViewType& view, int id) const                     { return        basicForce.read(view, id); }

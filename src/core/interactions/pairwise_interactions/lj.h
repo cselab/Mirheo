@@ -3,6 +3,7 @@
 #include "fetchers.h"
 
 #include <core/interactions/accumulators/force.h>
+#include <core/ymero_state.h>
 
 class LocalParticleVector;
 class CellList;
@@ -23,7 +24,7 @@ public:
         rc2 = rc*rc;
     }
 
-    void setup(LocalParticleVector* pv1, LocalParticleVector* pv2, CellList* cl1, CellList* cl2, float t)
+    void setup(LocalParticleVector* pv1, LocalParticleVector* pv2, CellList* cl1, CellList* cl2, const YmrState *state)
     {}
 
     __D__ inline float3 operator()(ParticleType dst, int dstId, ParticleType src, int srcId) const

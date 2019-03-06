@@ -31,10 +31,10 @@ public:
     /**
      * Interface to computeLocal().
      */
-    void local (ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2, cudaStream_t stream) override
+    void local(ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2, cudaStream_t stream) override
     {
         // if (pv1->local()->size() < pv2->local()->size())
-        computeLocal(pv1, pv2, cl1, cl2, state->currentTime, stream);
+        computeLocal(pv1, pv2, cl1, cl2, stream);
         // else
         //    computeLocal(pv2, pv1, cl2, cl1, state->currentTime, stream);
     }
@@ -57,31 +57,29 @@ public:
         auto isov1 = dynamic_cast<ObjectVector *>(pv1) != nullptr;
         auto isov2 = dynamic_cast<ObjectVector *>(pv2) != nullptr;
 
-        float t = state->currentTime;
-    
         // Two object vectors. Compute just one interaction, doesn't matter which
         if (isov1 && isov2) {
-            computeHalo(pv1, pv2, cl1, cl2, t, stream);
+            computeHalo(pv1, pv2, cl1, cl2, stream);
             return;
         }
 
         // One object vector. Compute just one interaction, with OV as the first
         // argument
         if (isov1) {
-            computeHalo(pv1, pv2, cl1, cl2, t, stream);
+            computeHalo(pv1, pv2, cl1, cl2, stream);
             return;
         }
 
         if (isov2) {
-            computeHalo(pv2, pv1, cl2, cl1, t, stream);
+            computeHalo(pv2, pv1, cl2, cl1, stream);
             return;
         }
 
         // Both are particle vectors. Compute one interaction if pv1 == pv2 and two
         // otherwise
-        computeHalo(pv1, pv2, cl1, cl2, t, stream);
+        computeHalo(pv1, pv2, cl1, cl2, stream);
         if (pv1 != pv2)
-            computeHalo(pv2, pv1, cl2, cl1, t, stream);
+            computeHalo(pv2, pv1, cl2, cl1, stream);
     }
     
     void setSpecificPair(std::string pv1name, std::string pv2name, PairwiseInteraction pair)
@@ -139,12 +137,12 @@ private:
      *   Return value of that call is force acting on the first particle,
      *   force acting on the second one is just opposite.
      */
-    void computeLocal(ParticleVector* pv1, ParticleVector* pv2, CellList* cl1, CellList* cl2, const float t, cudaStream_t stream)
+    void computeLocal(ParticleVector* pv1, ParticleVector* pv2, CellList* cl1, CellList* cl2, cudaStream_t stream)
     {
         auto& pair = getPairwiseInteraction(pv1->name, pv2->name);
         using ViewType = typename PairwiseInteraction::ViewType;
 
-        pair.setup(pv1->local(), pv2->local(), cl1, cl2, t);
+        pair.setup(pv1->local(), pv2->local(), cl1, cl2, state);
 
         /*  Self interaction */
         if (pv1 == pv2)
@@ -179,12 +177,12 @@ private:
     /**
      * Compute halo forces
      */
-    void computeHalo (ParticleVector* pv1, ParticleVector* pv2, CellList* cl1, CellList* cl2, const float t, cudaStream_t stream)
+    void computeHalo(ParticleVector* pv1, ParticleVector* pv2, CellList* cl1, CellList* cl2, cudaStream_t stream)
     {
         auto& pair = getPairwiseInteraction(pv1->name, pv2->name);
         using ViewType = typename PairwiseInteraction::ViewType;
 
-        pair.setup(pv1->halo(), pv2->local(), cl1, cl2, t);
+        pair.setup(pv1->halo(), pv2->local(), cl1, cl2, state);
 
         const int np1 = pv1->halo()->size();  // note halo here
         const int np2 = pv2->local()->size();

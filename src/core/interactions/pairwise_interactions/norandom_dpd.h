@@ -3,6 +3,7 @@
 #include "fetchers.h"
 
 #include <core/interactions/accumulators/force.h>
+#include <core/ymero_state.h>
 
 #include <random>
 
@@ -25,7 +26,7 @@ public:
         invrc = 1.0 / rc;
     }
 
-    void setup(LocalParticleVector* lpv1, LocalParticleVector* lpv2, CellList* cl1, CellList* cl2, float t)
+    void setup(LocalParticleVector* lpv1, LocalParticleVector* lpv2, CellList* cl1, CellList* cl2, const YmrState *state)
     {}
 
     __D__ inline float3 operator()(const ParticleType dst, int dstId, const ParticleType src, int srcId) const

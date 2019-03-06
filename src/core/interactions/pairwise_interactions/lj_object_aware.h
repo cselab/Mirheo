@@ -6,6 +6,7 @@
 #include <core/pvs/particle_vector.h>
 #include <core/utils/cpu_gpu_defines.h>
 #include <core/utils/helper_math.h>
+#include <core/ymero_state.h>
 
 class Pairwise_LJObjectAware
 {
@@ -18,7 +19,7 @@ public:
         lj(rc, epsilon, sigma, maxForce)
     {}
 
-    void setup(LocalParticleVector* lpv1, LocalParticleVector* lpv2, CellList* cl1, CellList* cl2, float t)
+    void setup(LocalParticleVector* lpv1, LocalParticleVector* lpv2, CellList* cl1, CellList* cl2, const YmrState *state)
     {
         auto ov1 = dynamic_cast<ObjectVector*>(lpv1->pv);
         auto ov2 = dynamic_cast<ObjectVector*>(lpv2->pv);
