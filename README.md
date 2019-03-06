@@ -14,6 +14,7 @@ For more information, please refer to the online documentation: http://ymero.rea
 
 ### unreleased
 
+* support for RDMA communication
 * more robust computation of Lim forces
 * internal changes: simplify interface of interaction manager
 
