@@ -290,13 +290,14 @@ void SimpleStationaryWall<InsideWallChecker>::attach(ParticleVector *pv, CellLis
     
     PVview view(pv, pv->local());
     PinnedBuffer<int> nBoundaryCells(1);
-    nBoundaryCells.clear(0);
+    nBoundaryCells.clear(defaultStream);
+
     SAFE_KERNEL_LAUNCH(
             getBoundaryCells<QueryMode::Query>,
-            getNblocks(cl->totcells, nthreads), nthreads, 0, 0,
+            getNblocks(cl->totcells, nthreads), nthreads, 0, defaultStream,
             view, cl->cellInfo(), nBoundaryCells.devPtr(), nullptr, insideWallChecker.handler() );
 
-    nBoundaryCells.downloadFromDevice(0);
+    nBoundaryCells.downloadFromDevice(defaultStream);
 
     debug("Found %d boundary cells", nBoundaryCells[0]);
     DeviceBuffer<int> bc(nBoundaryCells[0]);
@@ -304,7 +305,7 @@ void SimpleStationaryWall<InsideWallChecker>::attach(ParticleVector *pv, CellLis
     nBoundaryCells.clear(0);
     SAFE_KERNEL_LAUNCH(
             getBoundaryCells<QueryMode::Collect>,
-            getNblocks(cl->totcells, nthreads), nthreads, 0, 0,
+            getNblocks(cl->totcells, nthreads), nthreads, 0, defaultStream,
             view, cl->cellInfo(), nBoundaryCells.devPtr(), bc.devPtr(), insideWallChecker.handler() );
 
     boundaryCells.push_back(std::move(bc));
@@ -326,7 +327,7 @@ void SimpleStationaryWall<InsideWallChecker>::removeInner(ParticleVector* pv)
     CUDA_Check( cudaDeviceSynchronize() );
 
     PinnedBuffer<int> nRemaining(1);
-    nRemaining.clear(0);
+    nRemaining.clear(defaultStream);
 
     int oldSize = pv->local()->size();
     if (oldSize == 0) return;
@@ -341,12 +342,12 @@ void SimpleStationaryWall<InsideWallChecker>::removeInner(ParticleVector* pv)
 
         SAFE_KERNEL_LAUNCH(
                 collectRemaining,
-                getNblocks(view.size, nthreads), nthreads, 0, 0,
+                getNblocks(view.size, nthreads), nthreads, 0, defaultStream,
                 view, (float4*)tmp.devPtr(), nRemaining.devPtr(), insideWallChecker.handler() );
 
-        nRemaining.downloadFromDevice(0);
+        nRemaining.downloadFromDevice(defaultStream);
         std::swap(pv->local()->coosvels, tmp);
-        pv->local()->resize(nRemaining[0], 0);
+        pv->local()->resize(nRemaining[0], defaultStream);
     }
     else
     {
@@ -362,18 +363,18 @@ void SimpleStationaryWall<InsideWallChecker>::removeInner(ParticleVector* pv)
 
         SAFE_KERNEL_LAUNCH(
                 packRemainingObjects,
-                getNblocks(ovView.nObjects*32, nthreads), nthreads, 0, 0,
+                getNblocks(ovView.nObjects*32, nthreads), nthreads, 0, defaultStream,
                 ovView,    packer, tmp.devPtr(), nRemaining.devPtr(), insideWallChecker.handler() );
 
         // Copy temporary buffers back
-        nRemaining.downloadFromDevice(0);
+        nRemaining.downloadFromDevice(defaultStream);
         ov->local()->resize_anew(nRemaining[0] * ov->objSize);
         ovView = OVview(ov, ov->local());
-        packer = ObjectPacker(ov, ov->local(), packPredicate, 0);
+        packer = ObjectPacker(ov, ov->local(), packPredicate, defaultStream);
 
         SAFE_KERNEL_LAUNCH(
                 unpackRemainingObjects,
-                ovView.nObjects, nthreads, 0, 0,
+                ovView.nObjects, nthreads, 0, defaultStream,
                 tmp.devPtr(), ovView, packer  );
     }
 
