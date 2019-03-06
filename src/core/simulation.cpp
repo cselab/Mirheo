@@ -710,8 +710,6 @@ void Simulation::init()
     scheduler->forceExec( scheduler->getTaskId("Clear object local forces"), 0 );
 
     execSplitters();
-
-    CUDA_Check( cudaDeviceSynchronize() );
 }
 
 void Simulation::assemble()
