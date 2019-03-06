@@ -501,6 +501,9 @@ public:
     {
         // TODO: check if we really need to do that
         // maybe everything is already downloaded
+    	debug4("GPU -> CPU (D2H) transfer of PinnedBuffer<%s>, size %d x %d",
+    	                typeid(T).name(), _size, datatype_size());
+
         if (_size > 0) CUDA_Check( cudaMemcpyAsync(hostptr, devptr, sizeof(T) * _size, cudaMemcpyDeviceToHost, stream) );
         if (synch == ContainersSynch::Synch) CUDA_Check( cudaStreamSynchronize(stream) );
     }
@@ -508,6 +511,9 @@ public:
     /// Copy data from host to device
     inline void uploadToDevice(cudaStream_t stream)
     {
+    	debug4("CPU -> GPU (H2D) transfer of PinnedBuffer<%s>, size %d x %d",
+    	                typeid(T).name(), _size, datatype_size());
+
         if (_size > 0) CUDA_Check(cudaMemcpyAsync(devptr, hostptr, sizeof(T) * _size, cudaMemcpyHostToDevice, stream));
     }
 
@@ -521,12 +527,18 @@ public:
     /// Set all the bytes to 0 on device only
     inline void clearDevice(cudaStream_t stream) override
     {
+    	debug4("Clearing device memory of PinnedBuffer<%s>, size %d x %d",
+    	                typeid(T).name(), _size, datatype_size());
+
         if (_size > 0) CUDA_Check( cudaMemsetAsync(devptr, 0, sizeof(T) * _size, stream) );
     }
 
     /// Set all the bytes to 0 on host only
     inline void clearHost()
     {
+    	debug4("Clearing host memory of PinnedBuffer<%s>, size %d x %d",
+    	                typeid(T).name(), _size, datatype_size());
+
         if (_size > 0) memset(hostptr, 0, sizeof(T) * _size);
     }
 
