@@ -641,8 +641,21 @@ void Simulation::prepareEngines()
 
             if (clInt != nullptr)
                 objHaloIntermediateImp->attach(ov, clInt->rc, {});
+
+            auto extraToExchange = extraInt;
             
-            objHaloImp  ->attach(ov, cl->rc, extraInt); // always active because of bounce back; TODO: check if bounce back is active
+            for (auto& entry : bouncerMap)
+            {
+                auto& bouncer = entry.second;
+                if (bouncer->getObjectVector() == ov)
+                {
+                    auto extraChannels = bouncer->getChannelsToBeExchanged();
+                    std::copy(extraChannels.begin(), extraChannels.end(),
+                              std::back_inserter(extraToExchange));
+                }
+            }
+
+            objHaloImp  ->attach(ov, cl->rc, extraToExchange); // always active because of bounce back; TODO: check if bounce back is active
             objForcesImp->attach(ov);
         }
     }
