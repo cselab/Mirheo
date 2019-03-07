@@ -91,7 +91,7 @@ public:
 private:
 
     PairwiseInteraction defaultPair;
-    std::map< std::pair<std::string, std::string>, PairwiseInteraction > intMap;    
+    std::map< std::pair<std::string, std::string>, PairwiseInteraction > intMap;
 
 private:
 
@@ -177,7 +177,7 @@ private:
     /**
      * Compute halo forces
      */
-    void computeHalo(ParticleVector* pv1, ParticleVector* pv2, CellList* cl1, CellList* cl2, cudaStream_t stream)
+    void computeHalo(ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2, cudaStream_t stream)
     {
         auto& pair = getPairwiseInteraction(pv1->name, pv2->name);
         using ViewType = typename PairwiseInteraction::ViewType;
