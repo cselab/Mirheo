@@ -9,16 +9,19 @@ class LocalParticleVector;
 class CellList;
 
 
-class PairwiseLJHandler : public ParticleFetcher
+class PairwiseLJ : public ParticleFetcher
 {
 public:
 
     using ViewType     = PVview;
     using ParticleType = Particle;
+    using HandlerType  = PairwiseLJ;
     
-    PairwiseLJHandler(float rc, float epsilon, float sigma, float maxForce) :
+    PairwiseLJ(float rc, float epsilon, float sigma, float maxForce) :
         ParticleFetcher(rc),
-        epsilon(epsilon), sigma(sigma), maxForce(maxForce)
+        epsilon(epsilon),
+        sigma(sigma),
+        maxForce(maxForce)
     {
         epsx24_sigma = 24.0*epsilon/sigma;
         rc2 = rc*rc;
@@ -42,22 +45,6 @@ public:
     }
 
     __D__ inline ForceAccumulator getZeroedAccumulator() const {return ForceAccumulator();}
-    
-private:
-
-    float epsilon, sigma, maxForce;
-    float epsx24_sigma;
-};
-
-class PairwiseLJ : public PairwiseLJHandler
-{
-public:
-
-    using HandlerType = PairwiseLJHandler;
-    
-    PairwiseLJ(float rc, float epsilon, float sigma, float maxForce) :
-        PairwiseLJHandler(rc, epsilon, sigma, maxForce)
-    {}
 
     const HandlerType& handler() const
     {
@@ -66,4 +53,9 @@ public:
     
     void setup(LocalParticleVector* pv1, LocalParticleVector* pv2, CellList* cl1, CellList* cl2, const YmrState *state)
     {}
+
+private:
+
+    float epsilon, sigma, maxForce;
+    float epsx24_sigma;
 };

@@ -1,5 +1,7 @@
 #pragma once
 
+#include "lj.h"
+
 #include <core/datatypes.h>
 #include <core/interactions/accumulators/force.h>
 #include <core/pvs/object_vector.h>
@@ -8,24 +10,17 @@
 #include <core/utils/helper_math.h>
 #include <core/ymero_state.h>
 
-class PairwiseLJObjectAwareHandler
+class PairwiseLJObjectAware : public PairwiseLJ
 {
 public:
 
     using ViewType     = PVview;
     using ParticleType = Particle;
+    using HandlerType  = PairwiseLJObjectAware;
     
-    PairwiseLJObjectAwareHandler(float rc, float epsilon, float sigma, float maxForce) :
-        lj(rc, epsilon, sigma, maxForce)
+    PairwiseLJObjectAware(float rc, float epsilon, float sigma, float maxForce) :
+        PairwiseLJ(rc, epsilon, sigma, maxForce)
     {}
-
-    __D__ inline ParticleType read(const ViewType& view, int id) const                     { return        lj.read(view, id); }
-    __D__ inline ParticleType readNoCache(const ViewType& view, int id) const              { return lj.readNoCache(view, id); }
-    __D__ inline void readCoordinates(ParticleType& p, const ViewType& view, int id) const { lj.readCoordinates(p, view, id); }
-    __D__ inline void readExtraData  (ParticleType& p, const ViewType& view, int id) const { lj.readExtraData  (p, view, id); }
-
-    __D__ inline bool withinCutoff(const ParticleType& src, const ParticleType& dst) const { return lj.withinCutoff(src, dst); }
-    __D__ inline float3 getPosition(const ParticleType& p) const {return lj.getPosition(p);}
 
     __D__ inline float3 operator()(ParticleType dst, int dstId, ParticleType src, int srcId) const
     {
@@ -37,31 +32,8 @@ public:
             if (dstObjId == srcObjId) return make_float3(0.0f);
         }
 
-        float3 f = lj(dst, dstId, src, srcId);
-
-        return f;
+        return PairwiseLJ::operator() (dst, dstId, src, srcId);
     }
-
-    __D__ inline ForceAccumulator getZeroedAccumulator() const {return ForceAccumulator();}
-
-protected:
-
-    bool self;
-
-    int objSize;
-
-    PairwiseLJHandler lj;
-};
-
-class PairwiseLJObjectAware : public PairwiseLJObjectAwareHandler
-{
-public:
-
-    using HandlerType = PairwiseLJObjectAwareHandler;
-
-    PairwiseLJObjectAware(float rc, float epsilon, float sigma, float maxForce) :
-        PairwiseLJObjectAwareHandler(rc, epsilon, sigma, maxForce)
-    {}
 
     const HandlerType& handler() const
     {
@@ -80,4 +52,11 @@ public:
             objSize = ov1->objSize;
         }
     }
+
+protected:
+
+    bool self;
+
+    int objSize;
 };
+

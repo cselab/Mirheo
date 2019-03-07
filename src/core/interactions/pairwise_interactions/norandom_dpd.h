@@ -11,16 +11,19 @@ class LocalParticleVector;
 class CellList;
 
 
-class PairwiseNorandomDPDHandler : public ParticleFetcherWithVelocity
+class PairwiseNorandomDPD : public ParticleFetcherWithVelocity
 {
 public:
 
     using ViewType     = PVview;
     using ParticleType = Particle;
+    using HandlerType  = PairwiseNorandomDPD;
     
-    PairwiseNorandomDPDHandler(float rc, float a, float gamma, float kbT, float dt, float power) :
+    PairwiseNorandomDPD(float rc, float a, float gamma, float kbT, float dt, float power) :
         ParticleFetcherWithVelocity(rc),
-        a(a), gamma(gamma), power(power)
+        a(a),
+        gamma(gamma),
+        power(power)
     {
         sigma = sqrt(2 * gamma * kbT / dt);
         invrc = 1.0 / rc;
@@ -49,23 +52,7 @@ public:
     }
 
     __D__ inline ForceAccumulator getZeroedAccumulator() const {return ForceAccumulator();}
-    
-protected:
 
-    float a, gamma, sigma, power;
-    float invrc;
-};
-
-class PairwiseNorandomDPD : public PairwiseNorandomDPDHandler
-{
-public:
-
-    using HandlerType = PairwiseNorandomDPDHandler;
-    
-    PairwiseNorandomDPD(float rc, float a, float gamma, float kbT, float dt, float power) :
-        PairwiseNorandomDPDHandler(rc, a, gamma, kbT, dt, power)
-    {}
-    
     const HandlerType& handler() const
     {
         return (const HandlerType&) (*this);
@@ -73,4 +60,10 @@ public:
     
     void setup(LocalParticleVector* lpv1, LocalParticleVector* lpv2, CellList* cl1, CellList* cl2, const YmrState *state)
     {}
+
+protected:
+
+    float a, gamma, sigma, power;
+    float invrc;
 };
+

@@ -103,8 +103,8 @@ void execute(MPI_Comm comm, float3 length)
     const float sigma_dt = sigmadpd / sqrt(dt);
     const float adpd = 50;
 
-    Pairwise_Norandom_DPD dpdInt(rc, adpd, gammadpd, kbT, dt, k);
-    Interaction *inter = new InteractionPair<Pairwise_Norandom_DPD>(&state, "dpd", rc, dpdInt);
+    PairwiseNorandomDPD dpdInt(rc, adpd, gammadpd, kbT, dt, k);
+    Interaction *inter = new InteractionPair<PairwiseNorandomDPD>(&state, "dpd", rc, dpdInt);
 
     PinnedBuffer<int> counter(1);
 

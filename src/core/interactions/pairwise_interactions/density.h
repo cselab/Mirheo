@@ -8,22 +8,20 @@
 class CellList;
 class LocalParticleVector;
 
-class PairwiseDensityHandler : public ParticleFetcher
+class PairwiseDensity : public ParticleFetcher
 {
 public:
 
     using ViewType     = PVviewWithDensities;
     using ParticleType = Particle;
+    using HandlerType = PairwiseDensity;
     
-    PairwiseDensityHandler(float rc) :
+    PairwiseDensity(float rc) :
         ParticleFetcher(rc)
     {
         invrc = 1.0 / rc;
         fact = 15.0 / (2 * M_PI * rc2 * rc);
     }
-
-    void setup(LocalParticleVector *lpv1, LocalParticleVector *lpv2, CellList *cl1, CellList *cl2, const YmrState *state)
-    {}
 
     __D__ inline float operator()(const ParticleType dst, int dstId, const ParticleType src, int srcId) const
     {
@@ -39,20 +37,6 @@ public:
 
     __D__ inline DensityAccumulator getZeroedAccumulator() const {return DensityAccumulator();}
 
-protected:
-
-    float invrc, fact;
-};
-
-class PairwiseDensity : public PairwiseDensityHandler
-{
-public:
-
-    using HandlerType = PairwiseDensityHandler;
-    
-    PairwiseDensity(float rc) :
-        PairwiseDensityHandler(rc)
-    {}
 
     const HandlerType& handler() const
     {
@@ -61,4 +45,8 @@ public:
     
     void setup(LocalParticleVector *lpv1, LocalParticleVector *lpv2, CellList *cl1, CellList *cl2, const YmrState *state)
     {}   
+
+protected:
+
+    float invrc, fact;
 };
