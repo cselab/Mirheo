@@ -1,7 +1,7 @@
 #pragma once
 
 /// Structure keeping common parameters of the RBC model
-struct MembraneParameters
+struct CommonMembraneParameters
 {
     float ka, kv, gammaC, gammaT, kBT, totArea0, totVolume0;
     bool fluctuationForces;

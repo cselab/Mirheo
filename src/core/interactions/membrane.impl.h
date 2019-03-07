@@ -22,9 +22,9 @@
  * @param m RBC membrane mesh
  * @return parameters to be passed to GPU kernels
  */
-static MembraneForcesKernels::GPU_RBCparameters setParams(const MembraneParameters& p, StepRandomGen& stepGen, const YmrState *state)
+static MembraneForcesKernels::GPU_CommonMembraneParameters setParams(const CommonMembraneParameters& p, StepRandomGen& stepGen, const YmrState *state)
 {
-    MembraneForcesKernels::GPU_RBCparameters devP;
+    MembraneForcesKernels::GPU_CommonMembraneParameters devP;
 
     devP.gammaC = p.gammaC;
     devP.gammaT = p.gammaT;
@@ -46,7 +46,7 @@ static MembraneForcesKernels::GPU_RBCparameters setParams(const MembraneParamete
     return devP;
 }
 
-static void rescaleParameters(MembraneParameters& p, float scale)
+static void rescaleParameters(CommonMembraneParameters& p, float scale)
 {
     p.totArea0   *= scale * scale;
     p.totVolume0 *= scale * scale * scale;
@@ -64,7 +64,7 @@ class InteractionMembraneImpl : public Interaction
 {
 public:
 
-    InteractionMembraneImpl(const YmrState *state, std::string name, MembraneParameters parameters,
+    InteractionMembraneImpl(const YmrState *state, std::string name, CommonMembraneParameters parameters,
                             typename TriangleInteraction::ParametersType triangleParams,
                             typename DihedralInteraction::ParametersType dihedralParams,
                             float growUntil, long seed = 42424242) :
@@ -119,7 +119,7 @@ public:
 protected:
 
     std::function< float(float) > scaleFromTime;
-    MembraneParameters parameters;
+    CommonMembraneParameters parameters;
     typename DihedralInteraction::ParametersType dihedralParams;
     typename TriangleInteraction::ParametersType triangleParams;
     StepRandomGen stepGen;
