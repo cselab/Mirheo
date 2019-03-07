@@ -52,9 +52,13 @@ __device__ inline real3 _ffluct(real3 v1, real3 v2, int i1, int i2, GPU_RBCparam
     if (!parameters.fluctuationForces)
         return make_real3(0.0_r);
 
-    float2 rnd = Saru::normal2(parameters.seed, min(i1, i2), max(i1, i2));
+    // real mean0var1 = Saru::normal2(parameters.seed, min(i1, i2), max(i1, i2)).x;
+
+    constexpr real sqrt_12 = 3.4641016151_r;
+    real mean0var1 = sqrt_12 * (Saru::uniform01(parameters.seed, min(i1, i2), max(i1, i2)) - 0.5_r);
+
     real3 x21 = v2 - v1;
-    return (rnd.x * parameters.sigma_rnd / length(x21)) * x21;
+    return (mean0var1 * parameters.sigma_rnd / length(x21)) * x21;
 }
 
 template <class TriangleInteraction>
