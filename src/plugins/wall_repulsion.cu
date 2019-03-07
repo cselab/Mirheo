@@ -9,7 +9,14 @@
 #include <core/utils/cuda_common.h>
 #include <core/utils/cuda_rng.h>
 
+namespace ChannelNames
+{
+static const std::string      sdf =      "sdf";
+static const std::string grad_sdf = "grad_sdf";
+} // namespace ChannelNames
 
+namespace WallRepulsionPluginKernels
+{
 __global__ void forceFromSDF(PVview view, float* sdfs, float3* gradients, float C, float h, float maxForce)
 {
     int pid = blockIdx.x * blockDim.x + threadIdx.x;
@@ -26,7 +33,7 @@ __global__ void forceFromSDF(PVview view, float* sdfs, float3* gradients, float 
         atomicAdd(view.forces + pid, f);
     }
 }
-
+} // WallRepulsionPluginKernels
 
 WallRepulsionPlugin::WallRepulsionPlugin(const YmrState *state, std::string name,
                                          std::string pvName, std::string wallName,
@@ -46,8 +53,8 @@ void WallRepulsionPlugin::setup(Simulation* simulation, const MPI_Comm& comm, co
     pv = simulation->getPVbyNameOrDie(pvName);
     wall = dynamic_cast<SDF_basedWall*>(simulation->getWallByNameOrDie(wallName));
     
-    pv->requireDataPerParticle<float>("sdf", ExtraDataManager::PersistenceMode::None);
-    pv->requireDataPerParticle<float3>("grad_sdf", ExtraDataManager::PersistenceMode::None);
+    pv->requireDataPerParticle<float>(ChannelNames::sdf, ExtraDataManager::PersistenceMode::None);
+    pv->requireDataPerParticle<float3>(ChannelNames::grad_sdf, ExtraDataManager::PersistenceMode::None);
 
     if (wall == nullptr)
         die("Wall repulsion plugin '%s' can only work with SDF-based walls, but got wall '%s'",
@@ -61,14 +68,14 @@ void WallRepulsionPlugin::beforeIntegration(cudaStream_t stream)
 {
     PVview view(pv, pv->local());
     
-    auto sdfs      = pv->local()->extraPerParticle.getData<float>("sdf");
-    auto gradients = pv->local()->extraPerParticle.getData<float3>("grad_sdf");
+    auto sdfs      = pv->local()->extraPerParticle.getData<float>(ChannelNames::sdf);
+    auto gradients = pv->local()->extraPerParticle.getData<float3>(ChannelNames::grad_sdf);
 
     wall->sdfPerParticle(pv->local(), sdfs, gradients, h+0.1f, stream);
 
     const int nthreads = 128;
     SAFE_KERNEL_LAUNCH(
-            forceFromSDF,
+            WallRepulsionPluginKernels::forceFromSDF,
             getNblocks(view.size, nthreads), nthreads, 0, stream,
             view, sdfs->devPtr(), gradients->devPtr(), C, h, maxForce );
 }
