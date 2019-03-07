@@ -23,11 +23,6 @@ public:
         basicForceHandler(basicForceHandler)
     {}
 
-    void setup(LocalParticleVector *lpv1, LocalParticleVector *lpv2, CellList *cl1, CellList *cl2, const YmrState *state)
-    {
-        basicForceHandler.setup(lpv1, lpv2, cl1, cl2, state);
-    }
-
     __D__ inline ParticleType read(const ViewType& view, int id) const                     { return        basicForceHandler.read(view, id); }
     __D__ inline ParticleType readNoCache(const ViewType& view, int id) const              { return basicForceHandler.readNoCache(view, id); }
     __D__ inline void readCoordinates(ParticleType& p, const ViewType& view, int id) const { basicForceHandler.readCoordinates(p, view, id); }
@@ -63,26 +58,29 @@ class PairwiseStressWrapper
 {
 public:
 
-    using ViewType     = typename BasicPairwiseForce::ViewType;
-    using ParticleType = typename BasicPairwiseForce::ParticleType;
-    
+    using BasicHandlerType = typename BasicPairwiseForce::HandlerType;
+    using HandlerType  = PairwiseStressWrapperHandler< BasicHandlerType >;
+
+    using ViewType     = typename HandlerType::ViewType;
+    using ParticleType = typename HandlerType::ParticleType;
+
     PairwiseStressWrapper(BasicPairwiseForce basicForce) :
         basicForce(basicForce),
-        basicForceHandler(basicForce.handler())
+        basicForceWrapperHandler(basicForce.handler())
     {}
 
     void setup(LocalParticleVector *lpv1, LocalParticleVector *lpv2, CellList *cl1, CellList *cl2, const YmrState *state)
     {
         basicForce.setup(lpv1, lpv2, cl1, cl2, state);
-        basicForceHandler = basicForce.handler();
+        basicForceWrapperHandler = HandlerType(basicForce.handler());
     }
 
-    const typename BasicPairwiseForce::HandlerType& handler() const
+    const HandlerType& handler() const
     {
-        return basicForceHandler;
+        return basicForceWrapperHandler;
     }
     
 protected:
     BasicPairwiseForce basicForce;
-    typename BasicPairwiseForce::HandlerType basicForceHandler;
+    HandlerType basicForceWrapperHandler;
 };
