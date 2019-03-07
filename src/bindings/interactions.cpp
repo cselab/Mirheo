@@ -24,9 +24,15 @@ createInteractionMembrane(const YmrState *state, std::string name,
     std::map<std::string, float> parameters;
 
     for (const auto& item : kwargs) {
-        auto key   = py::cast<std::string>(item.first);
-        auto value = py::cast<float>(item.second);
-        parameters[key] = value;
+        try {
+            auto key   = py::cast<std::string>(item.first);
+            auto value = py::cast<float>(item.second);
+            parameters[key] = value;
+        }
+        catch (const py::cast_error& e)
+        {
+            die("Could not cast one of the arguments in membrane interactions");
+        }        
     }    
     
     return InteractionFactory::createInteractionMembrane
