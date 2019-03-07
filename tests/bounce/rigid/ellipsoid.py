@@ -84,6 +84,6 @@ u.run(5000)
 # f="pos.txt"
 # rho=8.0; ax=1.0; ay=2.0; az=1.0
 # rm -rf pos*.txt vel*.txt
-# cp ../../data/ellipsoid_coords_${rho}_${ax}_${ay}_${az}.txt $f
+# cp ../../../data/ellipsoid_coords_${rho}_${ax}_${ay}_${az}.txt $f
 # ymr.run --runargs "-n 2" ./ellipsoid.py --axes $ax $ay $az --coords $f > /dev/null
 # cat stats/ellipsoid.txt | awk '{print $2, $15, $9}' > rigid.out.txt
