@@ -83,8 +83,7 @@ u.run(5000)
 # rm -rf stats rigid.out.txt
 # f="pos.txt"
 # rho=8.0; ax=1.0; ay=2.0; az=1.0
-# common_args="--axes $ax $ay $az"
 # rm -rf pos*.txt vel*.txt
-# ymr.run --runargs "-n 2"  ../../rigids/createEllipsoid.py $common_args --density $rho --out $f --niter 1000 > /dev/null
-# ymr.run --runargs "-n 2" ./ellipsoid.py $common_args --coords $f > /dev/null
+# cp ../../data/ellipsoid_coords_${rho}_${ax}_${ay}_${az}.txt $f
+# ymr.run --runargs "-n 2" ./ellipsoid.py --axes $ax $ay $az --coords $f > /dev/null
 # cat stats/ellipsoid.txt | awk '{print $2, $15, $9}' > rigid.out.txt
