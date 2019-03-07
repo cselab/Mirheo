@@ -83,8 +83,8 @@ void ExchangePVSFluxPlanePlugin::setup(Simulation* simulation, const MPI_Comm& c
     pv1 = simulation->getPVbyNameOrDie(pv1Name);
     pv2 = simulation->getPVbyNameOrDie(pv2Name);
 
-    pv1->requireDataPerParticle<Particle> (ChannelNames::oldParts, ExtraDataManager::CommunicationMode::None, ExtraDataManager::PersistenceMode::Persistent, sizeof(float));
-    pv2->requireDataPerParticle<Particle> (ChannelNames::oldParts, ExtraDataManager::CommunicationMode::None, ExtraDataManager::PersistenceMode::Persistent, sizeof(float));
+    pv1->requireDataPerParticle<Particle> (ChannelNames::oldParts, ExtraDataManager::PersistenceMode::Persistent, sizeof(float));
+    pv2->requireDataPerParticle<Particle> (ChannelNames::oldParts, ExtraDataManager::PersistenceMode::Persistent, sizeof(float));
 }
 
 void ExchangePVSFluxPlanePlugin::beforeCellLists(cudaStream_t stream)

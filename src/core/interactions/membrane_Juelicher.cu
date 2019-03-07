@@ -70,10 +70,10 @@ void InteractionMembraneJuelicher::setPrerequisites(ParticleVector *pv1, Particl
 
     auto ov = dynamic_cast<MembraneVector*>(pv1);
     
-    ov->requireDataPerObject<float>(ChannelNames::lenThetaTot, ExtraDataManager::CommunicationMode::None, ExtraDataManager::PersistenceMode::None);
+    ov->requireDataPerObject<float>(ChannelNames::lenThetaTot, ExtraDataManager::PersistenceMode::None);
 
-    ov->requireDataPerParticle<float>(ChannelNames::areas, ExtraDataManager::CommunicationMode::None, ExtraDataManager::PersistenceMode::None);
-    ov->requireDataPerParticle<float>(ChannelNames::meanCurvatures, ExtraDataManager::CommunicationMode::None, ExtraDataManager::PersistenceMode::None);
+    ov->requireDataPerParticle<float>(ChannelNames::areas, ExtraDataManager::PersistenceMode::None);
+    ov->requireDataPerParticle<float>(ChannelNames::meanCurvatures, ExtraDataManager::PersistenceMode::None);
 }
 
 void InteractionMembraneJuelicher::precomputeQuantities(ParticleVector *pv1, cudaStream_t stream)

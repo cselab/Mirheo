@@ -50,9 +50,7 @@ void InteractionMembrane::setPrerequisites(ParticleVector *pv1, ParticleVector *
     if (ov == nullptr)
         die("Internal membrane forces can only be computed with a MembraneVector");
 
-    ov->requireDataPerObject<float2>(ChannelNames::areaVolumes,
-                                     ExtraDataManager::CommunicationMode::None,
-                                     ExtraDataManager::PersistenceMode::None);
+    ov->requireDataPerObject<float2>(ChannelNames::areaVolumes, ExtraDataManager::PersistenceMode::None);
 }
 
 void InteractionMembrane::local(ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2, cudaStream_t stream)

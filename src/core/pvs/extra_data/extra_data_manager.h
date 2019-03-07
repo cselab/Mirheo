@@ -26,11 +26,6 @@ class ExtraDataManager
 {
 public:
 
-    enum class CommunicationMode
-    {
-        None, NeedExchange
-    };
-
     enum class PersistenceMode
     {
         None, Persistent
@@ -43,7 +38,6 @@ public:
     struct ChannelDescription 
     {
         std::unique_ptr<GPUcontainer> container;
-        CommunicationMode communication = CommunicationMode::None;
         PersistenceMode persistence = PersistenceMode::None;
         int shiftTypeSize = 0;
         DataType dataType;
@@ -86,14 +80,7 @@ public:
     }
 
     /**
-     * set communication mode; allows to enable MPI
-     * can only add communication; does nothing otherwise
-     */
-    void setExchangeMode(const std::string& name, CommunicationMode communication);
-
-    /**
      * set persistence of the data: the data will stick to the particles/objects
-     * note that this will enable communication if set to persistent
      * can only add persistence; does nothing otherwise
      */
     void setPersistenceMode(const std::string& name, PersistenceMode persistence);
@@ -162,11 +149,6 @@ public:
      * @return vector of channels sorted (descending) by size of their elements
      */
     const std::vector<NamedChannelDesc>& getSortedChannels() const;
-
-    /**
-     * Returns true if the channel has to be exchanged by MPI
-     */
-    bool checkNeedExchange(const std::string& name) const;
 
     /**
      * Returns true if the channel is persistent

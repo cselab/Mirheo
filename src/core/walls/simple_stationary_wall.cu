@@ -315,7 +315,7 @@ void SimpleStationaryWall<InsideWallChecker>::attach(ParticleVector *pv, CellLis
 
 
 template<class InsideWallChecker>
-void SimpleStationaryWall<InsideWallChecker>::removeInner(ParticleVector* pv)
+void SimpleStationaryWall<InsideWallChecker>::removeInner(ParticleVector *pv)
 {
     if (pv == frozen)
     {
@@ -352,12 +352,12 @@ void SimpleStationaryWall<InsideWallChecker>::removeInner(ParticleVector* pv)
     else
     {
         PackPredicate packPredicate = [](const ExtraDataManager::NamedChannelDesc& namedDesc) {
-            return namedDesc.second->communication == ExtraDataManager::CommunicationMode::NeedExchange;
+            return namedDesc.second->persistence == ExtraDataManager::PersistenceMode::Persistent;
         };
         
         // Prepare temp storage for extra object data
         OVview ovView(ov, ov->local());
-        ObjectPacker packer(ov, ov->local(), packPredicate, 0);
+        ObjectPacker packer(ov, ov->local(), packPredicate, defaultStream);
 
         DeviceBuffer<char> tmp(ovView.nObjects * packer.totalPackedSize_byte);
 

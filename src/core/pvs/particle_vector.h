@@ -84,16 +84,16 @@ public:
     ~ParticleVector() override;
     
     template<typename T>
-    void requireDataPerParticle(std::string name, ExtraDataManager::CommunicationMode communication, ExtraDataManager::PersistenceMode persistence)
+    void requireDataPerParticle(std::string name, ExtraDataManager::PersistenceMode persistence)
     {
-        requireDataPerParticle<T>(name, communication, persistence, 0);
+        requireDataPerParticle<T>(name, persistence, 0);
     }
     
     template<typename T>
-    void requireDataPerParticle(std::string name, ExtraDataManager::CommunicationMode communication, ExtraDataManager::PersistenceMode persistence, size_t shiftDataSize)
+    void requireDataPerParticle(std::string name, ExtraDataManager::PersistenceMode persistence, size_t shiftDataSize)
     {
-        requireDataPerParticle<T>(local(), name, communication, persistence, shiftDataSize);
-        requireDataPerParticle<T>(halo(),  name, communication, persistence, shiftDataSize);
+        requireDataPerParticle<T>(local(), name, persistence, shiftDataSize);
+        requireDataPerParticle<T>(halo(),  name, persistence, shiftDataSize);
     }
 
 protected:
@@ -114,11 +114,9 @@ protected:
 private:
 
     template<typename T>
-    void requireDataPerParticle(LocalParticleVector* lpv, std::string name, ExtraDataManager::CommunicationMode communication,
-                                ExtraDataManager::PersistenceMode persistence, size_t shiftDataSize)
+    void requireDataPerParticle(LocalParticleVector *lpv, std::string name, ExtraDataManager::PersistenceMode persistence, size_t shiftDataSize)
     {
         lpv->extraPerParticle.createData<T> (name, lpv->size());
-        lpv->extraPerParticle.setExchangeMode(name, communication);
         lpv->extraPerParticle.setPersistenceMode(name, persistence);
         if (shiftDataSize != 0) lpv->extraPerParticle.requireShift(name, shiftDataSize);
     }

@@ -28,12 +28,10 @@ RigidObjectVector::RigidObjectVector(const YmrState *state, std::string name, fl
 
     // rigid motion must be exchanged and shifted
     requireDataPerObject<RigidMotion>(ChannelNames::motions,
-                                      ExtraDataManager::CommunicationMode::NeedExchange,
                                       ExtraDataManager::PersistenceMode::Persistent,
                                       sizeof(RigidReal));
 
     requireDataPerObject<RigidMotion>(ChannelNames::oldMotions,
-                                      ExtraDataManager::CommunicationMode::None,
                                       ExtraDataManager::PersistenceMode::None);
 }
 

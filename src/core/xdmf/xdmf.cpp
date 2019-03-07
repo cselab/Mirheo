@@ -61,7 +61,6 @@ static void addPersistentExtraDataPerParticle(int n, const Channel& channel, Par
             {                                                           \
                 pv->requireDataPerParticle<ctype>                       \
                     (channel.name,                                      \
-                     ExtraDataManager::CommunicationMode::NeedExchange, \
                      ExtraDataManager::PersistenceMode::Persistent);    \
                 auto buffer = pv->local()->extraPerParticle.getData<ctype>(channel.name); \
                 buffer->resize_anew(n);                                 \
@@ -117,7 +116,6 @@ static void addPersistentExtraDataPerObject(int n, const Channel& channel, Objec
             {                                                           \
                 ov->requireDataPerObject<ctype>                         \
                     (channel.name,                                      \
-                     ExtraDataManager::CommunicationMode::NeedExchange, \
                      ExtraDataManager::PersistenceMode::Persistent);    \
                 auto buffer = ov->local()->extraPerObject.getData<ctype>(channel.name); \
                 buffer->resize_anew(n);                                 \

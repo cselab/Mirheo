@@ -27,8 +27,8 @@ public:
         info("Interaction '%s' requires channel '%s' from PVs '%s' and '%s'",
               name.c_str(), ChannelNames::stresses.c_str(), pv1->name.c_str(), pv2->name.c_str());
 
-        pv1->requireDataPerParticle <Stress> (ChannelNames::stresses, ExtraDataManager::CommunicationMode::None, ExtraDataManager::PersistenceMode::None);
-        pv2->requireDataPerParticle <Stress> (ChannelNames::stresses, ExtraDataManager::CommunicationMode::None, ExtraDataManager::PersistenceMode::None);
+        pv1->requireDataPerParticle <Stress> (ChannelNames::stresses, ExtraDataManager::PersistenceMode::None);
+        pv2->requireDataPerParticle <Stress> (ChannelNames::stresses, ExtraDataManager::PersistenceMode::None);
 
         cl1->requireExtraDataPerParticle <Stress> (ChannelNames::stresses);
         cl2->requireExtraDataPerParticle <Stress> (ChannelNames::stresses);

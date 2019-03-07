@@ -26,13 +26,12 @@ void BounceFromRigidEllipsoid::setup(ObjectVector *ov)
 {
     Bouncer::setup(ov);
 
-    ov->requireDataPerObject<RigidMotion> (ChannelNames::oldMotions, ExtraDataManager::CommunicationMode::NeedExchange,
-                                           ExtraDataManager::PersistenceMode::Persistent, sizeof(RigidReal));
+    ov->requireDataPerObject<RigidMotion> (ChannelNames::oldMotions, ExtraDataManager::PersistenceMode::Persistent, sizeof(RigidReal));
 }
 
 std::vector<std::string> BounceFromRigidEllipsoid::getChannelsToBeExchanged() const
 {
-    return {ChannelNames::oldMotions};
+    return {ChannelNames::motions, ChannelNames::oldMotions};
 }
 
 /**

@@ -52,11 +52,9 @@ void ParticleDisplacementPlugin::setup(Simulation *simulation, const MPI_Comm& c
     pv = simulation->getPVbyNameOrDie(pvName);
 
     pv->requireDataPerParticle<float3>(displacementChannelName,
-                                       ExtraDataManager::CommunicationMode::NeedExchange,
                                        ExtraDataManager::PersistenceMode::Persistent);
 
     pv->requireDataPerParticle<float4>(savedPositionChannelName,
-                                       ExtraDataManager::CommunicationMode::NeedExchange,
                                        ExtraDataManager::PersistenceMode::Persistent,
                                        sizeof(float4::x));
 
