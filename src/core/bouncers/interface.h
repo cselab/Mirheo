@@ -23,8 +23,13 @@ public:
      * Second step of initialization, called from the \c Simulation
      * All the preparation for bouncing must be done here
      */
-    virtual void setup(ObjectVector *ov) = 0;
+    virtual void setup(ObjectVector *ov);
 
+    /**
+     * return which object vector the bounce is performed against
+     */
+    ObjectVector* getObjectVector();
+    
     /**
      * Ask \c ParticleVector which the class will be working with to have specific properties
      * Default: ask nothing

@@ -31,9 +31,9 @@ BounceFromRigidEllipsoid::~BounceFromRigidEllipsoid() = default;
  * @param ov will need an 'old_motions' channel with the rigid motion
  * from the previous timestep, to be used in bounceEllipsoid()
  */
-void BounceFromRigidEllipsoid::setup(ObjectVector* ov)
+void BounceFromRigidEllipsoid::setup(ObjectVector *ov)
 {
-    this->ov = ov;
+    Bouncer::setup(ov);
 
     ov->requireDataPerObject<RigidMotion> (ChannelNames::oldMotions, ExtraDataManager::CommunicationMode::NeedExchange,
                                            ExtraDataManager::PersistenceMode::Persistent, sizeof(RigidReal));

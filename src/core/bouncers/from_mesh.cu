@@ -29,9 +29,9 @@ BounceFromMesh::~BounceFromMesh() = default;
  * from the previous timestep.
  * This channel has to be communicated with the objects
  */
-void BounceFromMesh::setup(ObjectVector* ov)
+void BounceFromMesh::setup(ObjectVector *ov)
 {
-    this->ov = ov;
+    Bouncer::setup(ov);
 
     // If the object is rigid, we need to collect the forces into the RigidMotion
     rov = dynamic_cast<RigidObjectVector*> (ov);

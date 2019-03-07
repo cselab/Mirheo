@@ -12,7 +12,7 @@
 
 namespace ObjectForcesReverseExchangerKernels
 {
-__device__ inline void atomicAddNonZero(float4* dest, float3 v)
+__device__ inline void atomicAddNonZero(float4 *dest, float3 v)
 {
     const float tol = 1e-7;
 
