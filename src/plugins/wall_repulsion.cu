@@ -1,13 +1,12 @@
 #include "wall_repulsion.h"
 
-#include <core/utils/kernel_launch.h>
 #include <core/pvs/particle_vector.h>
 #include <core/pvs/views/pv.h>
-#include <core/walls/simple_stationary_wall.h>
 #include <core/simulation.h>
-
 #include <core/utils/cuda_common.h>
 #include <core/utils/cuda_rng.h>
+#include <core/utils/kernel_launch.h>
+#include <core/walls/simple_stationary_wall.h>
 
 namespace ChannelNames
 {
@@ -71,7 +70,9 @@ void WallRepulsionPlugin::beforeIntegration(cudaStream_t stream)
     auto sdfs      = pv->local()->extraPerParticle.getData<float>(ChannelNames::sdf);
     auto gradients = pv->local()->extraPerParticle.getData<float3>(ChannelNames::grad_sdf);
 
-    wall->sdfPerParticle(pv->local(), sdfs, gradients, h+0.1f, stream);
+    float gradientThreshold = h + 0.1f;
+    
+    wall->sdfPerParticle(pv->local(), sdfs, gradients, gradientThreshold, stream);
 
     const int nthreads = 128;
     SAFE_KERNEL_LAUNCH(
