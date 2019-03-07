@@ -12,7 +12,9 @@ For more information, please refer to the online documentation: http://ymero.rea
 
 ## Changelog
 
-### unreleased
+<!-- ### unreleased -->
+
+### v0.11.5
 
 * support for RDMA communication
 * membrane fluctuation forces: use uniform distribution instead of gaussian so that it is bounded
