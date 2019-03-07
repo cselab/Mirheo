@@ -123,7 +123,8 @@ if pv_rbc is not None:
 # cd contact
 # rm -rf pos.rbc.out.txt pos.rbc.txt
 # f="pos.txt"
-# common_args="--density 8 --axes 2.0 1.0 1.0"
+# rho=8.0; ax=2.0; ay=1.0; az=1.0
+# common_args="--density $rho --axes $ax $ay $az"
 # ymr.run --runargs "-n 2" ../rigids/createEllipsoid.py $common_args --out $f --niter 1000  > /dev/null
 # cp ../../data/rbc_mesh.off .
 # ymr.run --runargs "-n 2" ./mix.dp.py $common_args --coords $f > /dev/null

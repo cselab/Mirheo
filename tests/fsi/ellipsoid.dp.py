@@ -71,7 +71,8 @@ u.run(10000)
 # cd fsi
 # rm -rf stats rigid.out.txt
 # f="pos.txt"
-# common_args="--density 8 --axes 2.0 1.0 1.0"
+# rho=8.0; ax=2.0; ay=1.0; az=1.0
+# common_args="--density $rho --axes $ax $ay $az"
 # ymr.run --runargs "-n 2"  ../rigids/createEllipsoid.py $common_args --out $f --niter 1000  > /dev/null
 # ymr.run --runargs "-n 2" ./ellipsoid.dp.py $common_args --coords $f > /dev/null
 # cat stats/ellipsoid.txt | awk '{print $2, $6, $7, $8, $9}' > rigid.out.txt
@@ -81,7 +82,8 @@ u.run(10000)
 # cd fsi
 # rm -rf stats rigid.out.txt
 # f="pos.txt"
-# common_args="--density 8 --axes 2.0 1.0 1.0"
+# rho=8.0; ax=2.0; ay=1.0; az=1.0
+# common_args="--density $rho --axes $ax $ay $az"
 # ymr.run --runargs "-n 2"  ../rigids/createEllipsoid.py $common_args --out $f --niter 1000  > /dev/null
 # ymr.run --runargs "-n 2" ./ellipsoid.dp.py $common_args --coords $f --bounceBack > /dev/null
 # cat stats/ellipsoid.txt | awk '{print $2, $6, $7, $8, $9}' > rigid.out.txt
