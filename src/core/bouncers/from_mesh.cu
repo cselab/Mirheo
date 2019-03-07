@@ -1,15 +1,12 @@
 #include "from_mesh.h"
-
-#include <core/utils/kernel_launch.h>
-#include <core/celllist.h>
-#include <core/pvs/particle_vector.h>
-#include <core/pvs/object_vector.h>
-#include <core/pvs/views/ov.h>
-
 #include "mesh/bounce_kernels.h"
-#include <extern/cub/cub/device/device_radix_sort.cuh>
 
+#include <core/celllist.h>
+#include <core/pvs/object_vector.h>
+#include <core/pvs/particle_vector.h>
+#include <core/pvs/views/ov.h>
 #include <core/rigid_kernels/integration.h>
+#include <core/utils/kernel_launch.h>
 
 /**
  * Create the bouncer
@@ -50,6 +47,14 @@ void BounceFromMesh::setup(ObjectVector *ov)
     else
         ov->requireDataPerObject<RigidMotion> (ChannelNames::oldMotions, ExtraDataManager::CommunicationMode::NeedExchange,
                                                ExtraDataManager::PersistenceMode::Persistent, sizeof(RigidReal));
+}
+
+std::vector<std::string> BounceFromMesh::getChannelsToBeExchanged() const
+{
+    if (rov)
+        return {ChannelNames::oldMotions};
+    else
+        return {ChannelNames::oldParts};
 }
 
 /**

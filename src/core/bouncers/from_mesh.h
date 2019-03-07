@@ -18,6 +18,8 @@ public:
     BounceFromMesh(const YmrState *state, std::string name, float kbT);
     ~BounceFromMesh();
 
+    std::vector<std::string> getChannelsToBeExchanged() const override;
+    
 private:
     template<typename T>
     struct CollisionTableWrapper

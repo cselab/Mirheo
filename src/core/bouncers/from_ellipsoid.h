@@ -14,6 +14,8 @@ public:
 
     void setup(ObjectVector *ov) override;
 
+    std::vector<std::string> getChannelsToBeExchanged() const override;
+    
 protected:
 
     void exec(ParticleVector *pv, CellList *cl, bool local, cudaStream_t stream) override;

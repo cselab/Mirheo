@@ -1,21 +1,12 @@
-/*
- * bounce.cu
- *
- *  Created on: Jul 20, 2017
- *      Author: alexeedm
- */
-
 #include "from_ellipsoid.h"
 
-#include <core/utils/kernel_launch.h>
 #include <core/celllist.h>
 #include <core/pvs/particle_vector.h>
 #include <core/pvs/rigid_ellipsoid_object_vector.h>
 #include <core/pvs/views/reov.h>
-
 #include <core/rigid_kernels/bounce.h>
 #include <core/rigid_kernels/integration.h>
-
+#include <core/utils/kernel_launch.h>
 
 /**
  * Create the bouncer
@@ -37,6 +28,11 @@ void BounceFromRigidEllipsoid::setup(ObjectVector *ov)
 
     ov->requireDataPerObject<RigidMotion> (ChannelNames::oldMotions, ExtraDataManager::CommunicationMode::NeedExchange,
                                            ExtraDataManager::PersistenceMode::Persistent, sizeof(RigidReal));
+}
+
+std::vector<std::string> BounceFromRigidEllipsoid::getChannelsToBeExchanged() const
+{
+    return {ChannelNames::oldMotions};
 }
 
 /**
