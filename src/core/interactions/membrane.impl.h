@@ -38,13 +38,8 @@ static MembraneForcesKernels::GPU_RBCparameters setParams(const MembraneParamete
     devP.fluctuationForces = p.fluctuationForces;
 
     if (devP.fluctuationForces) {
-        float t = state->currentTime;
         float dt = state->dt;
-        
-        int v = *((int*)&t);
-        std::mt19937 gen(v);
-        std::uniform_real_distribution<float> udistr(0.001, 1);
-        devP.seed = udistr(gen);
+        devP.seed = stepGen.generate(state);
         devP.sigma_rnd = sqrt(2 * p.kBT * p.gammaC / dt);
     }
     
