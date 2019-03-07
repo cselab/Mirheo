@@ -11,7 +11,7 @@ class LocalParticleVector;
 class CellList;
 
 template<typename BasicPairwiseForceHandler>
-class PairwiseStressWrapperHandler
+class PairwiseStressWrapperHandler : public BasicPairwiseForceHandler
 {
 public:
 
@@ -20,20 +20,13 @@ public:
     using ParticleType  = typename BasicPairwiseForceHandler::ParticleType;
     
     PairwiseStressWrapperHandler(BasicPairwiseForceHandler basicForceHandler) :
-        basicForceHandler(basicForceHandler)
+        BasicPairwiseForceHandler(basicForceHandler)
     {}
-
-    __D__ inline ParticleType read(const ViewType& view, int id) const                     { return        basicForceHandler.read(view, id); }
-    __D__ inline ParticleType readNoCache(const ViewType& view, int id) const              { return basicForceHandler.readNoCache(view, id); }
-    __D__ inline void readCoordinates(ParticleType& p, const ViewType& view, int id) const { basicForceHandler.readCoordinates(p, view, id); }
-    __D__ inline void readExtraData  (ParticleType& p, const ViewType& view, int id) const { basicForceHandler.readExtraData  (p, view, id); }
-    __D__ inline bool withinCutoff(const ParticleType& src, const ParticleType& dst) const { return basicForceHandler.withinCutoff(src, dst);}
-    __D__ inline float3 getPosition(const ParticleType& p) const {return basicForceHandler.getPosition(p);}
     
     __device__ inline ForceStress operator()(const ParticleType dst, int dstId, const ParticleType src, int srcId) const
     {        
         float3 dr = getPosition(dst) - getPosition(src);
-        float3 f  = basicForceHandler(dst, dstId, src, srcId);
+        float3 f  = BasicPairwiseForceHandler::operator()(dst, dstId, src, srcId);
         Stress s;
         
         s.xx = 0.5f * dr.x * f.x;
@@ -47,14 +40,10 @@ public:
     }
 
     __D__ inline ForceStressAccumulator<BasicViewType> getZeroedAccumulator() const {return ForceStressAccumulator<BasicViewType>();}
-
-private:
-    
-    BasicPairwiseForceHandler basicForceHandler;
 };
 
 template<typename BasicPairwiseForce>
-class PairwiseStressWrapper
+class PairwiseStressWrapper : public BasicPairwiseForce
 {
 public:
 
@@ -65,14 +54,14 @@ public:
     using ParticleType = typename HandlerType::ParticleType;
 
     PairwiseStressWrapper(BasicPairwiseForce basicForce) :
-        basicForce(basicForce),
+        BasicPairwiseForce(basicForce),
         basicForceWrapperHandler(basicForce.handler())
     {}
 
     void setup(LocalParticleVector *lpv1, LocalParticleVector *lpv2, CellList *cl1, CellList *cl2, const YmrState *state)
     {
-        basicForce.setup(lpv1, lpv2, cl1, cl2, state);
-        basicForceWrapperHandler = HandlerType(basicForce.handler());
+        BasicPairwiseForce::setup(lpv1, lpv2, cl1, cl2, state);
+        basicForceWrapperHandler = HandlerType(BasicPairwiseForce::handler());
     }
 
     const HandlerType& handler() const
@@ -81,6 +70,5 @@ public:
     }
     
 protected:
-    BasicPairwiseForce basicForce;
     HandlerType basicForceWrapperHandler;
 };
