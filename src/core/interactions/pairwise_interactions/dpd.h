@@ -75,8 +75,9 @@ public:
 
     using HandlerType = PairwiseDPDHandler;
     
-    PairwiseDPD(float rc, float a, float gamma, float kbT, float dt, float power) :
-        PairwiseDPDHandler(rc, a, gamma, kbT, dt, power)
+    PairwiseDPD(float rc, float a, float gamma, float kbT, float dt, float power, long seed=42424242) :
+        PairwiseDPDHandler(rc, a, gamma, kbT, dt, power),
+        stepGen(seed)
     {}
 
     const HandlerType& handler() const
@@ -90,10 +91,17 @@ public:
         // better use random seed (time-based) instead of time
         // time-based is IMPORTANT for momentum conservation!!
         // t is float, use it's bit representation as int to seed RNG
+
         float t = state->currentTime;
         int v = *((int*)&t);
         std::mt19937 gen(v);
         std::uniform_real_distribution<float> udistr(0.001, 1);
         seed = udistr(gen);
+
+        // seed = stepGen.generate(state);
     }
+
+protected:
+
+    StepRandomGen stepGen;
 };

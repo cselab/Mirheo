@@ -3,6 +3,7 @@
 #include "fetchers.h"
 
 #include <core/interactions/accumulators/force.h>
+#include <core/interactions/utils/step_random_gen.h>
 #include <core/ymero_state.h>
 
 #include <random>
@@ -74,8 +75,9 @@ public:
 
     using HandlerType = PairwiseMDPDHandler;
     
-    PairwiseMDPD(float rc, float rd, float a, float b, float gamma, float kbT, float dt, float power) :
-        PairwiseMDPDHandler(rc, rd, a, b, gamma, kbT, dt, power)
+    PairwiseMDPD(float rc, float rd, float a, float b, float gamma, float kbT, float dt, float power, long seed = 42424242) :
+        PairwiseMDPDHandler(rc, rd, a, b, gamma, kbT, dt, power),
+        stepGen(seed)
     {}
 
     const HandlerType& handler() const
@@ -94,5 +96,11 @@ public:
         std::mt19937 gen(v);
         std::uniform_real_distribution<float> udistr(0.001, 1);
         seed = udistr(gen);
+
+        // seed = stepGen.generate(state);
     }
+
+protected:
+
+    StepRandomGen stepGen;
 };
