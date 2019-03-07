@@ -15,8 +15,12 @@ For more information, please refer to the online documentation: http://ymero.rea
 ### unreleased
 
 * support for RDMA communication
-* more robust computation of Lim forces
-* internal changes: simplify interface of interaction manager
+* membrane fluctuation forces: use uniform distribution instead of gaussian so that it is bounded
+* membrane forces: more robust computation of Lim forces
+* internal changes: 
+  * simplify interface of interaction manager
+  * pairwise forces can contain only host memory variable and pass a separate handle to gpu
+  * pairwise interaction: compiled separately when template instances are created
 
 ### v0.11.4
 
