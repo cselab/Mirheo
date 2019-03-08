@@ -47,7 +47,6 @@ u.setInteraction(dpd, pv, pv_frozen)
 # pv_frozen do not move, only pv needs an integrator in this case
 u.setIntegrator(vv, pv)
 
-
 u.registerPlugins(ymr.Plugins.createStats('stats', every=500))
 dump_every = 500
 u.registerPlugins(ymr.Plugins.createDumpParticles('part_dump', pv, dump_every, [], 'h5/solvent_particles-'))

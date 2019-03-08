@@ -86,7 +86,7 @@ Additionally, the particle positions and velocities are dumped in the ``h5`` fol
     Visualisation made in `visit <https://wci.llnl.gov/simulation/computer-codes/visit>`_.
 
 
-Adding walls
+Adding Walls
 ************
 
 We extend the previous example by introducing :py:mod:`Walls <_ymero.Walls>` in the simulation.
@@ -126,4 +126,18 @@ Additionally, frozen and solvent particles, as well as the walls SDF are dumped 
     The white particles represent the solvent, the blue particles are the frozen wall particles and the surface is the 0 level set of the SDF file.
 
 
+Membranes
+*********
 
+TODO
+    
+Creating Cells with Different inner and outer liquids
+*****************************************************
+
+TODO
+
+
+Creating Rigid Objects
+**********************
+
+TODO
