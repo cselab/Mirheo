@@ -90,7 +90,7 @@ YMeRo is intended to be executed within MPI environments, e.g.:
 
 .. code-block:: bash
 
-    mpirun -np 12 python3 script.py
+    mpirun -np 2 python3 script.py
 
 The code employs simple domain decomposition strategy (see :any:`ymero`) with the work
 mapping fixed in the beginning of the simulation.
