@@ -131,6 +131,8 @@ Membranes
 
 :py:class:`Membranes <_ymero.ParticleVectors.MembraneVector>` are a set of particles connected into a triangle mesh.
 They can interact as normal :py:class:`PVs <_ymero.ParticleVectors.ParticleVector>` but have additional *internal* interactions, which we will use in this example.
+Here we simulate one membrane with a given initial mesh "rbc_mesh.py" which can be taken from the ``data/`` folder of the repository.
+The membrane is subjected to shear, bending, viscous and constraint forces and evolves over time thanks to a :any:`VelocityVerlet` integrator.
 
 .. literalinclude:: ../../../tests/doc_scripts/membrane.py
    :name: membrane-py
@@ -145,14 +147,36 @@ They can interact as normal :py:class:`PVs <_ymero.ParticleVectors.ParticleVecto
     :figclass: align-center
     :width: 25%
 
-    Sequence data dumped by executing the :ref:`membrane-py` script.    
+    Sequence data dumped by executing the :ref:`membrane-py` script.
 
     
 Creating Cells with Different inner and outer liquids
 *****************************************************
 
-TODO
+It is easy to extend the above simple examples into quite complicated simulation setups.
+In this example we simulate a suspension of a few membranes inside a solvent.
+We also show here how to split inside from outside solvents into 2 :any:`ParticleVectors <ParticleVector>`.
+This is useful when the 2 solvents do not have the same properties (such as viscosity).
+The example also demonstrates how to avoid penetration of the solvents through the membranes thanks to :py:mod:`_ymero.Bouncers`.
 
+Note that in this example, we also show that it is easy to add many different interactions between given particle vectors.
+
+.. literalinclude:: ../../../tests/doc_scripts/membranes_solvents.py
+   :name: membranes-solvents-py
+   :caption: `membranes_solvents.py`
+
+
+.. note::
+   A :any:`ParticleVector` returned by :any:`applyObjectBelongingChecker` is automatically registered in the coordinator.
+   There is therefore no need to provide any :py:class:`InitialConditions` object.
+
+.. figure:: ../images/docs/membranes_solvent.gif
+    :figclass: align-center
+    :width: 50%
+
+    Snapshot of the output files from :ref:`membranes-solvents-py`.
+    White particles are the outer solvent, blue particles are inner.
+    Two of the four membranes are cut for visualization purpose.
 
 Creating Rigid Objects
 **********************

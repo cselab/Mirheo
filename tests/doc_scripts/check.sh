@@ -30,3 +30,10 @@ cp ../../data/rbc_mesh.off .
 rm -f exit.out.txt
 ymr.run --runargs "-n 2" python membrane.py > /dev/null
 echo $? > exit.out.txt
+
+# TEST: docs.membrane.solvents
+cd doc_scripts/
+cp ../../data/rbc_mesh.off .
+rm -f exit.out.txt
+ymr.run --runargs "-n 2" python membranes_solvents.py > /dev/null
+echo $? > exit.out.txt

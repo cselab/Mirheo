@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 
-import numpy as np
 import ymero as ymr
 
 dt = 0.001
