@@ -23,3 +23,10 @@ cd doc_scripts/
 rm -f exit.out.txt
 ymr.run --runargs "-n 2" python walls.py > /dev/null
 echo $? > exit.out.txt
+
+# TEST: docs.membrane
+cd doc_scripts/
+cp ../../data/rbc_mesh.off .
+rm -f exit.out.txt
+ymr.run --runargs "-n 2" python membrane.py > /dev/null
+echo $? > exit.out.txt
