@@ -107,6 +107,10 @@ Two components are required to form walls:
    :name: walls-py
    :caption: `walls.py`
 
+.. note::
+   A :any:`ParticleVector` returned by :any:`makeFrozenWallParticles` is automatically registered in the coordinator.
+   There is therefore no need to provide any :py:class:`InitialConditions` object.
+
 This example demonstrates how to construct walls:
 
 #. **Create** :py:mod:`Walls <_ymero.Walls>` representation
@@ -174,7 +178,7 @@ Note that in this example, we also show that it is easy to add many different in
     :figclass: align-center
     :width: 50%
 
-    Snapshot of the output files from :ref:`membranes-solvents-py`.
+    Snapshots of the output files from :ref:`membranes-solvents-py`.
     White particles are the outer solvent, blue particles are inner.
     Two of the four membranes are cut for visualization purpose.
 
