@@ -5,28 +5,30 @@
 
 .. role:: bash(code)
    :language: bash
+
+.. |ymr| replace:: **YMeRo**
    
 Tutorials
 ##########
 
-This section introduces more in details the **YMeRo** interface to the user step by step with examples.
+This section will guide you in the |ymr| interface step by step with examples.
 
 
 Hello World: run YMeRo
 **********************
 
-We start with a very minimal script running **YMeRo**.
+We start with a very minimal script running |ymr|.
 
 .. literalinclude:: ../../../tests/doc_scripts/hello.py
    :name: hello.py
 
 The time step of the simulation and the domain size are common to all objects in the simulation,
-hence it has to be passed to the coordinator.
+hence it has to be passed to the coordinator (see its :py:meth:`constructor <_ymero.ymero.__init__>`).
 We do not add anything more before running the simulation (last line).
 
 .. note::
     We also specified the number of ranks in **each** direction.
-    Together with the domain size, this tells **YMeRo** how the simulation domain will be splitted accross MPI ranks.
+    Together with the domain size, this tells |ymr| how the simulation domain will be splitted accross MPI ranks.
     The number of simulation tasks must correspond to this variable.
 
 The above script can be run as:
@@ -35,14 +37,41 @@ The above script can be run as:
 
     mpirun -np 1 python3 hello.py
 
-Running `hello.py` will only print the "hello world" message of **YMeRo**, which consists of the version and git SHA1 of the code.
-Furthermore, **YMeRo** will dump log files (one per MPI rank) which name is specified when creating the coordinator.
-Depending on the `debug_level` variable, the log files will provide information on the simulation progress.
+Running ``hello.py`` will only print the "hello world" message of |ymr|, which consists of the version and git SHA1 of the code.
+Furthermore, |ymr| will dump log files (one per MPI rank) which name is specified when creating the coordinator.
+Depending on the ``debug_level`` variable, the log files will provide information on the simulation progress.
 
 
 DPD solvent at rest
 *******************
 
+We will now run a simulation of particles in a periodic box interacting with :any:`DPD` forces.
+We use a :any:`VelocityVerlet` integrator to advance particles in time.
+The initial conditions are :any:`Uniform` randomly placed particles in the domain with a given density.
+
 .. literalinclude:: ../../../tests/doc_scripts/rest.py
    :name: rest.py
+   
+
+This example demonstrates how to build a simulation:
+
+#. **Create** the :py:class:`coordinator <_ymero.ymero>`
+#. **Create** the simulation objects (particle vectors, initial conditions...)
+#. **Register** the above objects into the :py:class:`coordinator <_ymero.ymero>` (see ``register*`` functions)
+#. **link** the registered objects together in the :py:class:`coordinator <_ymero.ymero>` (see ``set*`` functions)
+
+The above script can be run as:
+
+.. code-block:: bash
+
+    mpirun -np 2 python3 hello.py
+
+
+.. note::
+   The ``rest.py`` script contains the plugin :py:class:`Stats <_ymero.Plugins.SimulationStats>`,
+   which needs a **postprocess** rank additionally to the **simulation** rank in order to be active.
+   The simulation is then launched with 2 ranks.
+
+   
+The execution should output the `stats.txt` file as well as information output in the console.
 
