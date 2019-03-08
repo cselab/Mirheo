@@ -16,12 +16,14 @@ Timings are based on the average time-step wall time, measured from the :any:`Si
 
 .. figure:: ../images/strong_solvent.png
     :figclass: align-center
+    :scale: 50%
 
     strong scaling for multiple domain sizes
 
 
 .. figure:: ../images/weak_solvent.png
     :figclass: align-center
+    :scale: 50%
 
     weak scaling efficiency for multiple subdomain sizes
 
@@ -37,12 +39,14 @@ Timings are based on the average time-step wall time, measured from the :any:`Si
 
 .. figure:: ../images/strong_blood.png
     :figclass: align-center
+    :scale: 50%
 
     strong scaling for multiple domain sizes
 
 
 .. figure:: ../images/weak_blood.png
     :figclass: align-center
+    :scale: 50%
 
     weak scaling efficiency for multiple subdomain sizes
 
@@ -64,12 +68,14 @@ Timings are based on the average time-step wall time, measured from the :any:`Si
 
 .. figure:: ../images/strong_walls.png
     :figclass: align-center
+    :scale: 50%
 
     strong scaling for multiple domain sizes
 
 
 .. figure:: ../images/weak_walls.png
     :figclass: align-center
+    :scale: 50%
 
     weak scaling efficiency for multiple subdomain sizes
 
@@ -83,12 +89,14 @@ Timings are based on the average time-step wall time, measured from the :any:`Si
 
 .. figure:: ../images/strong_rigids.png
     :figclass: align-center
+    :scale: 50%
 
     strong scaling for multiple domain sizes
 
 
 .. figure:: ../images/weak_rigids.png
     :figclass: align-center
+    :scale: 50%
 
     weak scaling efficiency for multiple subdomain sizes
 
@@ -104,5 +112,6 @@ The total timings are based on the average time-step wall time when I/O is activ
 
 .. figure:: ../images/datadump.png
     :figclass: align-center
+    :scale: 70%
 
     Overlap of data dump and computation
