@@ -4,7 +4,7 @@ import ymero as ymr
 
 dt = 0.001
 ranks  = (1, 1, 1)
-domain = (32.0, 16.0, 16.0)
+domain = (16.0, 16.0, 16.0)
 
 u = ymr.ymero(ranks, domain, dt, debug_level=3, log_filename='log')
 
@@ -28,5 +28,9 @@ u.setIntegrator(vv, pv)
 
 # Write some simulation statistics on the screen every 500 time steps
 u.registerPlugins(ymr.Plugins.createStats('stats', every=500))
+
+# Dump particle data
+dump_every = 500
+u.registerPlugins(ymr.Plugins.createDumpParticles('part_dump', pv, dump_every, [], 'h5/solvent_particles-'))
 
 u.run(5002)

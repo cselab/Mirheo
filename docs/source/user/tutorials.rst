@@ -20,7 +20,8 @@ Hello World: run YMeRo
 We start with a very minimal script running |ymr|.
 
 .. literalinclude:: ../../../tests/doc_scripts/hello.py
-   :name: hello.py
+   :name: hello-py
+   :caption: `hello.py`
 
 The time step of the simulation and the domain size are common to all objects in the simulation,
 hence it has to be passed to the coordinator (see its :py:meth:`constructor <_ymero.ymero.__init__>`).
@@ -37,7 +38,7 @@ The above script can be run as:
 
     mpirun -np 1 python3 hello.py
 
-Running ``hello.py`` will only print the "hello world" message of |ymr|, which consists of the version and git SHA1 of the code.
+Running :ref:`hello-py` will only print the "hello world" message of |ymr|, which consists of the version and git SHA1 of the code.
 Furthermore, |ymr| will dump log files (one per MPI rank) which name is specified when creating the coordinator.
 Depending on the ``debug_level`` variable, the log files will provide information on the simulation progress.
 
@@ -50,8 +51,8 @@ We use a :any:`VelocityVerlet` integrator to advance particles in time.
 The initial conditions are :any:`Uniform` randomly placed particles in the domain with a given density.
 
 .. literalinclude:: ../../../tests/doc_scripts/rest.py
-   :name: rest.py
-   
+   :name: rest-py
+   :caption: `rest.py`
 
 This example demonstrates how to build a simulation:
 
@@ -68,10 +69,18 @@ The above script can be run as:
 
 
 .. note::
-   The ``rest.py`` script contains the plugin :py:class:`Stats <_ymero.Plugins.SimulationStats>`,
+   The :ref:`rest-py` script contains plugins of type :py:class:`Stats <_ymero.Plugins.SimulationStats>`
+   and  :py:class:`ParticleDumper <_ymero.Plugins. ParticleDumperPlugin>`,
    which needs a **postprocess** rank additionally to the **simulation** rank in order to be active.
    The simulation is then launched with 2 ranks.
 
    
 The execution should output the `stats.txt` file as well as information output in the console.
+Additionally, the particle positions and velocities are dumped in the ``h5`` folder.
 
+.. figure:: ../images/docs/rest.jpeg
+    :figclass: align-center
+    :width: 50%
+
+    Snapshot of the particles dumped by executing the :ref:`rest-py` script.
+    Visualisation made in `visit <https://wci.llnl.gov/simulation/computer-codes/visit>`_.
