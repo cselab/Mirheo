@@ -84,3 +84,46 @@ Additionally, the particle positions and velocities are dumped in the ``h5`` fol
 
     Snapshot of the particles dumped by executing the :ref:`rest-py` script.
     Visualisation made in `visit <https://wci.llnl.gov/simulation/computer-codes/visit>`_.
+
+
+Adding walls
+************
+
+We extend the previous example by introducing :py:mod:`Walls <_ymero.Walls>` in the simulation.
+Two components are required to form walls:
+
+* a geometry representation of the wall surface.
+  In |ymr|, wall surfaces are represented as zero level set of a Signed Distance Function (SDF).
+  This is used to decide which particles are kept at the beginning of the simulation,
+  but also to prevent penetrability of the walls by solvent particles.
+
+* frozen particles, a layer of particles outside of the wall geometry which interact with the inside
+  particles to prevent density fluctuations in the vicinity of the walls.
+
+.. note::
+   The user has to set the interactions with the frozen particles explicitly
+
+.. literalinclude:: ../../../tests/doc_scripts/walls.py
+   :name: walls-py
+   :caption: `walls.py`
+
+This example demonstrates how to construct walls:
+
+#. **Create** :py:mod:`Walls <_ymero.Walls>` representation
+#. **Create** :py:mod:`Interactions <_ymero.Interactions>` and an :py:mod:`Integrator <_ymero.Integrators>` to equilibrate frozen particles
+#. **Create** the frozen particles with :py:meth:`_ymero.ymero.makeFrozenWallParticles`
+#. **Set** walls to given PVs with :py:meth:`_ymero.ymero.setWall`
+#. **Set** interactions with the frozen particles as normal PVs
+   
+The execution of :ref:`walls-py` should output the `stats.txt` file as well as information output in the console.
+Additionally, frozen and solvent particles, as well as the walls SDF are dumped in the ``h5`` folder.
+
+.. figure:: ../images/docs/walls.png
+    :figclass: align-center
+    :width: 50%
+
+    Snapshot of the data dumped by executing the :ref:`walls-py` script.
+    The white particles represent the solvent, the blue particles are the frozen wall particles and the surface is the 0 level set of the SDF file.
+
+
+
