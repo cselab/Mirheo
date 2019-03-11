@@ -87,18 +87,7 @@ public:
 
     void setup(LocalParticleVector* lpv1, LocalParticleVector* lpv2, CellList* cl1, CellList* cl2, const YmrState *state)
     {
-        // seed = t;
-        // better use random seed (time-based) instead of time
-        // time-based is IMPORTANT for momentum conservation!!
-        // t is float, use it's bit representation as int to seed RNG
-
-        float t = state->currentTime;
-        int v = *((int*)&t);
-        std::mt19937 gen(v);
-        std::uniform_real_distribution<float> udistr(0.001, 1);
-        seed = udistr(gen);
-
-        // seed = stepGen.generate(state);
+        seed = stepGen.generate(state);
     }
 
 protected:
