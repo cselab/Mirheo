@@ -12,7 +12,13 @@ For more information, please refer to the online documentation: http://ymero.rea
 
 ## Changelog
 
-<!-- ### unreleased -->
+### unreleased
+
+* **docs**: add tutorials
+* **docs**: minor fixes
+* **internal**:
+  * tests are more robust to DPD noise
+  * proper rng per time step in DPD/MDPD 
 
 ### v0.11.5
 
