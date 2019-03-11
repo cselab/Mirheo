@@ -38,12 +38,12 @@ class DPD(Interaction):
 
   
             Args:
-            name: name of the interaction
-                rc: interaction cut-off (no forces between particles further than **rc** apart)
-                a: :math:`a`
-                gamma: :math:`\gamma`
-                kbt: :math:`k_B T`
-                power: :math:`p` in the weight function
+                name: name of the interaction
+                    rc: interaction cut-off (no forces between particles further than **rc** apart)
+                    a: :math:`a`
+                    gamma: :math:`\gamma`
+                    kbt: :math:`k_B T`
+                    power: :math:`p` in the weight function
     
 
         """
@@ -154,14 +154,14 @@ class MDPD(Interaction):
 
   
             Args:
-            name: name of the interaction
-                rc: interaction cut-off (no forces between particles further than **rc** apart)
-                rd: density cutoff, assumed rd <= rc
-                a: :math:`a`
-                b: :math:`b`
-                gamma: :math:`\gamma`
-                kbt: :math:`k_B T`
-                power: :math:`p` in the weight function
+                name: name of the interaction
+                    rc: interaction cut-off (no forces between particles further than **rc** apart)
+                    rd: density cutoff, assumed rd <= rc
+                    a: :math:`a`
+                    b: :math:`b`
+                    gamma: :math:`\gamma`
+                    kbt: :math:`k_B T`
+                    power: :math:`p` in the weight function
     
 
         """
