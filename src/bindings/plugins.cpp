@@ -75,6 +75,9 @@ void exportPlugins(py::module& m)
                 return py::array(dt, resolution, (float*)ch.data, py::cast(dumper));
             });
 
+    py::handlers_class<DensityOutletPlugin>(m, "DensityOutletPlugin", pysim, R"(
+        This plugin removes particles from a set of :any:`ParticleVector` in a given region if the number density is larger than a given target.
+    )");
     
     py::handlers_class<ExchangePVSFluxPlanePlugin>(m, "ExchangePVSFluxPlane", pysim, R"(
         This plugin exchanges particles from a particle vector crossing a given plane to another particle vector.
@@ -333,6 +336,20 @@ void exportPlugins(py::module& m)
             torque: extra torque (per object)
     )");
 
+    m.def("__createDensityOutlet", &PluginFactory::createDensityOutletPlugin, 
+          "compute_task"_a, "state"_a, "name"_a, "pvs"_a, "number_density"_a,
+          "region"_a, "resolution"_a, R"(
+        Create :any:`DensityOutlet` plugin
+        
+        Args:
+            name: name of the plugin
+            pvs: list of :any:`ParticleVector` that we'll work with
+            number_density: maximum number_density in the region
+            region: a function that is negative in the concerned region and positive outside
+            resolution: grid resolution to represent the region field
+        
+    )");
+    
     m.def("__createDumpAverage", &PluginFactory::createDumpAveragePlugin, 
           "compute_task"_a, "state"_a, "name"_a, "pvs"_a, "sample_every"_a, "dump_every"_a,
           "bin_size"_a = PyTypes::float3{1.0, 1.0, 1.0}, "channels"_a, "path"_a = "xdmf/", R"(
