@@ -120,7 +120,12 @@ void exportIntegrators(py::module& m)
                 Args:
                     name: name of the integrator
                     substeps: number of sub steps
-                    fastForces: the fast interaction module. Only accepts `InteractionMembrane`!
+                    fastForces: the fast interaction module. Only accepts :any:`MembraneForces`
+                
+                .. warning::
+                    The fastForces :any:`MembraneForces` does not need to be set for the :any:`MembraneVector` explicitely.
+                    The interaction will be set when setting this integrator to the :any:`MembraneVector`.
+                
             )");
 }
 
