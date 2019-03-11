@@ -53,5 +53,6 @@ del(u)
 # nTEST: stress.pressure
 # cd stress
 # rm -rf pressure
-# ymr.run --runargs "-n 2" ./pressure.py --out pressure.out.txt > /dev/null
+# ymr.run --runargs "-n 2" ./pressure.py --out pressure.txt > /dev/null
+# cat pressure.txt | uscale 0.1 > pressure.out.txt
 

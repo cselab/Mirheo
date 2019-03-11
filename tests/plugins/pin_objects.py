@@ -21,6 +21,7 @@ u = ymr.ymero(ranks, domain, dt, debug_level=3, log_filename='log')
 
 com_q = [[1, 2, 3,   1., 0, 0, 0],
          [5, 10, 15, 1,  1, 1, 1]]
+
 coords = np.loadtxt('sphere123.txt').tolist()
 pvEllipsoid = ymr.ParticleVectors.RigidEllipsoidVector('object', mass=1, object_size=len(coords), semi_axes=axes)
 icEllipsoid = ymr.InitialConditions.Rigid(com_q=com_q, coords=coords)
@@ -34,7 +35,7 @@ if args.solvent:
     pv = ymr.ParticleVectors.ParticleVector('pv', mass = 1)
     u.registerParticleVector(pv, ymr.InitialConditions.Uniform(density=8))
     
-    dpd = ymr.Interactions.DPD('dpd', 1.0, a=2.0, gamma=10.0, kbt=0.1, power=0.5)
+    dpd = ymr.Interactions.DPD('dpd', 1.0, a=10.0, gamma=10.0, kbt=0.001, power=0.5)
     u.registerInteraction(dpd)
     u.setInteraction(dpd, pv, pv)
     u.setInteraction(dpd, pvEllipsoid, pv)
@@ -46,8 +47,10 @@ if args.solvent:
 velocity = tuple( [x if np.abs(x) < 1e3 else ymr.Plugins.PinObject.Unrestricted for x in args.velocity] )
 omega    = tuple( [x if np.abs(x) < 1e3 else ymr.Plugins.PinObject.Unrestricted for x in args.omega] )
 
-u.registerPlugins( ymr.Plugins.createPinObject('pin', ov=pvEllipsoid, dump_every=500, path='force/', velocity=velocity, angular_velocity=omega) )
-u.registerPlugins( ymr.Plugins.createDumpObjectStats("objStats", ov=pvEllipsoid, dump_every=50, path="stats/") )
+dump_every=50
+
+u.registerPlugins( ymr.Plugins.createPinObject('pin', ov=pvEllipsoid, dump_every=dump_every, path='force/', velocity=velocity, angular_velocity=omega) )
+u.registerPlugins( ymr.Plugins.createDumpObjectStats("objStats", ov=pvEllipsoid, dump_every=dump_every, path="stats/") )
 
 u.run(2010)
 
@@ -65,13 +68,13 @@ u.run(2010)
 # cd plugins
 # rm -rf force/
 # ymr.run --runargs "-n 2" python pin_objects.py --velocity 1 0.1 0 --omega 0.1 1 0 --solvent  > /dev/null
-# cat stats/*.txt | awk 'NF{NF-=6};1' | LC_ALL=en_US.utf8 sort -n > plugins.out.txt
-# cat force/*.txt | LC_ALL=en_US.utf8 sort -n >> plugins.out.txt
+# cat stats/*.txt | awk 'NF{NF-=6};1' | LC_ALL=en_US.utf8 sort -n                                                 > plugins.out.txt
+# cat force/*.txt | LC_ALL=en_US.utf8 sort -n | awk '{ print $3/500, $4/500, $5/500, $6/5000, $7/5000, $8/5000}' >> plugins.out.txt
 
 # nTEST: plugins.restrictObjects.3
 # set -eu
 # cd plugins
 # rm -rf force/
 # ymr.run --runargs "-n 2" python pin_objects.py --velocity 1e10 1e10 0 --omega 1 1e10 1e10 --solvent  > /dev/null
-# cat stats/*.txt | awk 'NF{NF-=6};1' | LC_ALL=en_US.utf8 sort -n > plugins.out.txt
-# cat force/*.txt | LC_ALL=en_US.utf8 sort -n >> plugins.out.txt
+# cat stats/*.txt | awk 'NF{NF-=6};1' | LC_ALL=en_US.utf8 sort -n               > plugins.out.txt
+# cat force/*.txt | LC_ALL=en_US.utf8 sort -n | awk '{ print $5/500, $6/5000}' >> plugins.out.txt

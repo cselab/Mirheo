@@ -25,7 +25,7 @@ u = ymr.ymero(ranks, domain, dt, debug_level=3, log_filename='log')
 pvSolvent = ymr.ParticleVectors.ParticleVector('solvent', mass = 1)
 icSolvent = ymr.InitialConditions.Uniform(density)
 
-dpd = ymr.Interactions.DPD('dpd', 1.0, a=10.0, gamma=10.0, kbt=0.01, power=0.5)
+dpd = ymr.Interactions.DPD('dpd', 1.0, a=10.0, gamma=10.0, kbt=0.001, power=0.5)
 vv = ymr.Integrators.VelocityVerlet_withPeriodicForce('vv', force=a, direction="x")
 
 com_q = [[0.5 * domain[0], 0.5 * domain[1], 0.5 * domain[2],   1., 0, 0, 0]]

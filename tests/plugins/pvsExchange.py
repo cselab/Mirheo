@@ -29,7 +29,7 @@ ic2 = ymr.InitialConditions.UniformFiltered(density, loHalf)
 u.registerParticleVector(pv1, ic1)
 u.registerParticleVector(pv2, ic2)
     
-dpd = ymr.Interactions.DPD('dpd', 1.0, a=10.0, gamma=10.0, kbt=1.0, power=0.5)
+dpd = ymr.Interactions.DPD('dpd', 1.0, a=10.0, gamma=10.0, kbt=0.1, power=0.5)
 u.registerInteraction(dpd)
 u.setInteraction(dpd, pv1, pv1)
 u.setInteraction(dpd, pv1, pv2)
