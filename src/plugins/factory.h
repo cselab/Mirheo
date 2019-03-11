@@ -7,6 +7,7 @@
 #include "average_flow.h"
 #include "average_relative_flow.h"
 #include "channel_dumper.h"
+#include "density_outlet.h"
 #include "displacement.h"
 #include "dump_mesh.h"
 #include "dump_obj_position.h"
@@ -92,6 +93,22 @@ static pair_shared< AddTorquePlugin, PostprocessPlugin >
 createAddTorquePlugin(bool computeTask, const YmrState *state, std::string name, ParticleVector* pv, PyTypes::float3 torque)
 {
     auto simPl = computeTask ? std::make_shared<AddTorquePlugin> (state, name, pv->name, make_float3(torque)) : nullptr;
+    return { simPl, nullptr };
+}
+
+static pair_shared< DensityOutletPlugin, PostprocessPlugin >
+createDensityOutletPlugin(bool computeTask, const YmrState *state, std::string name, std::vector<ParticleVector*> pvs,
+                          float numberDensity, std::function<float(PyTypes::float3)> region, PyTypes::float3 resolution)
+{
+    std::vector<std::string> pvNames;
+
+    if (computeTask) extractPVsNames(pvs, pvNames);
+    
+    auto simPl = computeTask ?
+        std::make_shared<DensityOutletPlugin> (state, name, pvNames, numberDensity,
+                                               [region](float3 r) {return region({r.x, r.y, r.z});},
+                                               make_float3(resolution) )
+        : nullptr;
     return { simPl, nullptr };
 }
 
