@@ -78,6 +78,10 @@ void exportPlugins(py::module& m)
     py::handlers_class<DensityOutletPlugin>(m, "DensityOutletPlugin", pysim, R"(
         This plugin removes particles from a set of :any:`ParticleVector` in a given region if the number density is larger than a given target.
     )");
+
+    py::handlers_class<RateOutletPlugin>(m, "RateOutletPlugin", pysim, R"(
+        This plugin removes particles from a set of :any:`ParticleVector` in a given region at a given mass rate.
+    )");
     
     py::handlers_class<ExchangePVSFluxPlanePlugin>(m, "ExchangePVSFluxPlane", pysim, R"(
         This plugin exchanges particles from a particle vector crossing a given plane to another particle vector.
@@ -345,6 +349,20 @@ void exportPlugins(py::module& m)
             name: name of the plugin
             pvs: list of :any:`ParticleVector` that we'll work with
             number_density: maximum number_density in the region
+            region: a function that is negative in the concerned region and positive outside
+            resolution: grid resolution to represent the region field
+        
+    )");
+    
+    m.def("__createRateOutlet", &PluginFactory::createRateOutletPlugin, 
+          "compute_task"_a, "state"_a, "name"_a, "pvs"_a, "mass_rate"_a,
+          "region"_a, "resolution"_a, R"(
+        Create :any:`RateOutlet` plugin
+        
+        Args:
+            name: name of the plugin
+            pvs: list of :any:`ParticleVector` that we'll work with
+            mass_rate: total outlet mass rate in the region
             region: a function that is negative in the concerned region and positive outside
             resolution: grid resolution to represent the region field
         

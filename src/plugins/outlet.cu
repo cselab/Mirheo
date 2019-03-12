@@ -144,7 +144,7 @@ __global__ void killParticles(PVview view, FieldDeviceHandler field, const int *
 
     int n = *nInside;
 
-    float prob = (n - rhoTimesVolume) / n;
+    float prob = n > 0 ? (n - rhoTimesVolume) / n : 0.f;
 
     if (Saru::uniform01(seed, p.i1, i) >= prob) return;
 
@@ -157,7 +157,7 @@ __global__ void killParticles(PVview view, FieldDeviceHandler field, const int *
 } // namespace DensityOutletPluginKernels
 
 DensityOutletPlugin::DensityOutletPlugin(const YmrState *state, std::string name, std::vector<std::string> pvNames,
-                                         float numberDensity, RegionFunc region, float3 resolution) :
+                                         float rate, RegionFunc region, float3 resolution) :
     RegionOutletPlugin(state, name, pvNames, region, resolution),
     numberDensity(numberDensity)
 {}
@@ -181,6 +181,63 @@ void DensityOutletPlugin::beforeCellLists(cudaStream_t stream)
             DensityOutletPluginKernels::killParticles,
             getNblocks(view.size, nthreads), nthreads, 0, stream,
             view, outletRegion->handler(), nParticlesInside.devPtr(), seed, rhoTimesVolume);        
-    }    
+    }
 }
 
+
+
+namespace RateOutletPluginKernels
+{
+using namespace RegionOutletPluginKernels;
+
+__global__ void killParticles(PVview view, FieldDeviceHandler field, const int *nInside, float seed, float QTimesdt)
+{
+    int i = threadIdx.x + blockIdx.x * blockDim.x;
+    if (i >= view.size) return;
+
+    Particle p;
+    p.readCoordinate(view.particles, i);
+        
+    if (p.isMarked() || !isInsideRegion(field, p.r)) return;
+
+    int n = *nInside;
+
+    float prob = n > 0 ? QTimesdt / n : 0.f;
+
+    if (Saru::uniform01(seed, p.i1, i) >= prob) return;
+
+    p.mark();
+    // this will also write (wrong) velocity, but the particle will be killed by the cellLists
+    // so we can avoid reading the velocity above
+    p.write2Float4(view.particles, i); 
+}
+
+} // namespace RateOutletPluginKernels
+
+RateOutletPlugin::RateOutletPlugin(const YmrState *state, std::string name, std::vector<std::string> pvNames,
+                                   float rate, RegionFunc region, float3 resolution) :
+    RegionOutletPlugin(state, name, pvNames, region, resolution),
+    rate(rate)
+{}
+
+RateOutletPlugin::~RateOutletPlugin() = default;
+
+void RateOutletPlugin::beforeCellLists(cudaStream_t stream)
+{
+    countInsideParticles(stream);
+
+    const int  nthreads = 128;
+    
+    for (auto pv : pvs)
+    {
+        PVview view(pv, pv->local());
+
+        float seed = udistr(gen);
+        float QTimesdt = rate * state->dt * view.invMass;
+
+        SAFE_KERNEL_LAUNCH(
+            RateOutletPluginKernels::killParticles,
+            getNblocks(view.size, nthreads), nthreads, 0, stream,
+            view, outletRegion->handler(), nParticlesInside.devPtr(), seed, QTimesdt);
+    }
+}

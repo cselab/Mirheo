@@ -65,3 +65,21 @@ protected:
     
     float numberDensity;
 };
+
+class RateOutletPlugin : public RegionOutletPlugin
+{
+public:
+    
+    RateOutletPlugin(const YmrState *state, std::string name, std::vector<std::string> pvNames,
+                     float rate, RegionFunc region, float3 resolution);
+
+    ~RateOutletPlugin();
+
+    void beforeCellLists(cudaStream_t stream) override;
+
+    bool needPostproc() override { return false; }
+    
+protected:
+    
+    float rate;
+};

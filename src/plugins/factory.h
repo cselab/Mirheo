@@ -112,6 +112,22 @@ createDensityOutletPlugin(bool computeTask, const YmrState *state, std::string n
     return { simPl, nullptr };
 }
 
+static pair_shared< RateOutletPlugin, PostprocessPlugin >
+createRateOutletPlugin(bool computeTask, const YmrState *state, std::string name, std::vector<ParticleVector*> pvs,
+                       float rate, std::function<float(PyTypes::float3)> region, PyTypes::float3 resolution)
+{
+    std::vector<std::string> pvNames;
+
+    if (computeTask) extractPVsNames(pvs, pvNames);
+    
+    auto simPl = computeTask ?
+        std::make_shared<RateOutletPlugin> (state, name, pvNames, rate,
+                                            [region](float3 r) {return region({r.x, r.y, r.z});},
+                                            make_float3(resolution) )
+        : nullptr;
+    return { simPl, nullptr };
+}
+
 static pair_shared< Average3D, UniformCartesianDumper >
 createDumpAveragePlugin(bool computeTask, const YmrState *state, std::string name, std::vector<ParticleVector*> pvs,
                         int sampleEvery, int dumpEvery, PyTypes::float3 binSize,
