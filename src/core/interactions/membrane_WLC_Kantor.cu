@@ -6,7 +6,7 @@
 #include <core/utils/make_unique.h>
 
 InteractionMembraneWLCKantor::InteractionMembraneWLCKantor(const YmrState *state, std::string name,
-                                                           MembraneParameters parameters,
+                                                           CommonMembraneParameters parameters,
                                                            WLCParameters wlcParams,
                                                            KantorBendingParameters kantorParams,
                                                            bool stressFree, float growUntil) :

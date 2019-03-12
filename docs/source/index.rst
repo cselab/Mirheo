@@ -31,6 +31,7 @@ as well as exposing code internals for the developers wishing to contribute to t
    user/user
    user/installation
    user/testing
+   user/tutorials
    user/benchmarks
    user/coordinator
    user/particle_vectors

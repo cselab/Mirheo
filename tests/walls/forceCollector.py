@@ -78,4 +78,4 @@ if u.isComputeTask():
 # cd walls/
 # rm -rf wallForce*txt
 # ymr.run --runargs "-n 2" ./forceCollector.py  > /dev/null
-# cat wallForceHi.txt | awk '{print $1, $2 / 10000.0, $3 / 10000.0, $4 / 10000.0}' > wallForce.out.txt
+# cat wallForceHi.txt | awk 'NR>1 {print $1, $2 / 10000.0, $3 / 10000.0, $4 / 10000.0}' > wallForce.out.txt

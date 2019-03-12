@@ -299,8 +299,9 @@ void exportPlugins(py::module& m)
     py::handlers_class<WallForceCollectorPlugin>(m, "WallForceCollector", pysim, R"(
         This plugin collects and average the total force exerted on a given wall.
         The result has 2 components:
-            - bounce back: force necessary to the momentum change
-            - frozen particles: total interaction force exerted on the frozen particles
+        
+            * bounce back: force necessary to the momentum change
+            * frozen particles: total interaction force exerted on the frozen particles
     )");
 
     py::handlers_class<WallForceDumperPlugin>(m, "WallForceDumper", pypost, R"(
@@ -539,7 +540,7 @@ void exportPlugins(py::module& m)
 
     m.def("__createParticleDisplacement", &PluginFactory::createParticleDisplacementPlugin, 
           "compute_task"_a, "state"_a, "name"_a, "pv"_a, "update_every"_a, R"(
-        Create :any:`ParticleDisplacement` plugin
+        Create :any:`ParticleDisplacementPlugin`
         
         Args:
             name: name of the plugin

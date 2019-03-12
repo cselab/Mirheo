@@ -25,7 +25,7 @@ u = ymr.ymero(ranks, domain, dt, debug_level=3, log_filename='log')
 pvSolvent = ymr.ParticleVectors.ParticleVector('solvent', mass = 1)
 icSolvent = ymr.InitialConditions.Uniform(density)
 
-dpd = ymr.Interactions.DPD('dpd', 1.0, a=10.0, gamma=10.0, kbt=0.01, power=0.5)
+dpd = ymr.Interactions.DPD('dpd', 1.0, a=10.0, gamma=10.0, kbt=0.001, power=0.5)
 vv = ymr.Integrators.VelocityVerlet_withPeriodicForce('vv', force=a, direction="x")
 
 com_q = [[0.5 * domain[0], 0.5 * domain[1], 0.5 * domain[2],   1., 0, 0, 0]]
@@ -71,9 +71,9 @@ u.run(10000)
 # cd fsi
 # rm -rf stats rigid.out.txt
 # f="pos.txt"
-# common_args="--density 8 --axes 2.0 1.0 1.0"
-# ymr.run --runargs "-n 2"  ../rigids/createEllipsoid.py $common_args --out $f --niter 1000  > /dev/null
-# ymr.run --runargs "-n 2" ./ellipsoid.dp.py $common_args --coords $f > /dev/null
+# rho=8.0; ax=2.0; ay=1.0; az=1.0
+# cp ../../data/ellipsoid_coords_${rho}_${ax}_${ay}_${az}.txt $f
+# ymr.run --runargs "-n 2" ./ellipsoid.dp.py --density $rho --axes $ax $ay $az --coords $f > /dev/null
 # cat stats/ellipsoid.txt | awk '{print $2, $6, $7, $8, $9}' > rigid.out.txt
 
 # nTEST: fsi.rigid.ellipsoid.bounce
@@ -81,8 +81,8 @@ u.run(10000)
 # cd fsi
 # rm -rf stats rigid.out.txt
 # f="pos.txt"
-# common_args="--density 8 --axes 2.0 1.0 1.0"
-# ymr.run --runargs "-n 2"  ../rigids/createEllipsoid.py $common_args --out $f --niter 1000  > /dev/null
-# ymr.run --runargs "-n 2" ./ellipsoid.dp.py $common_args --coords $f --bounceBack > /dev/null
+# rho=8.0; ax=2.0; ay=1.0; az=1.0
+# cp ../../data/ellipsoid_coords_${rho}_${ax}_${ay}_${az}.txt $f
+# ymr.run --runargs "-n 2" ./ellipsoid.dp.py --density $rho --axes $ax $ay $az --coords $f --bounceBack > /dev/null
 # cat stats/ellipsoid.txt | awk '{print $2, $6, $7, $8, $9}' > rigid.out.txt
 

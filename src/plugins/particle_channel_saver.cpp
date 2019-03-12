@@ -50,7 +50,6 @@ void ParticleChannelSaverPlugin::setup(Simulation *simulation, const MPI_Comm& c
 
 #define SWITCH_ENTRY(ctype) case DataType::TOKENIZE(ctype):             \
     pv->requireDataPerParticle<ctype>(savedName,                        \
-                                      ExtraDataManager::CommunicationMode::None, \
                                       ExtraDataManager::PersistenceMode::Persistent); \
     break;
     

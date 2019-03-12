@@ -3,26 +3,25 @@
 #include "fetchers.h"
 
 #include <core/interactions/accumulators/density.h>
+#include <core/ymero_state.h>
 
 class CellList;
 class LocalParticleVector;
 
-class Pairwise_density : public ParticleFetcher
+class PairwiseDensity : public ParticleFetcher
 {
 public:
 
     using ViewType     = PVviewWithDensities;
     using ParticleType = Particle;
+    using HandlerType = PairwiseDensity;
     
-    Pairwise_density(float rc) :
+    PairwiseDensity(float rc) :
         ParticleFetcher(rc)
     {
         invrc = 1.0 / rc;
         fact = 15.0 / (2 * M_PI * rc2 * rc);
     }
-
-    void setup(LocalParticleVector *lpv1, LocalParticleVector *lpv2, CellList *cl1, CellList *cl2, float t)
-    {}
 
     __D__ inline float operator()(const ParticleType dst, int dstId, const ParticleType src, int srcId) const
     {
@@ -37,6 +36,15 @@ public:
     }
 
     __D__ inline DensityAccumulator getZeroedAccumulator() const {return DensityAccumulator();}
+
+
+    const HandlerType& handler() const
+    {
+        return (const HandlerType&) (*this);
+    }
+    
+    void setup(LocalParticleVector *lpv1, LocalParticleVector *lpv2, CellList *cl1, CellList *cl2, const YmrState *state)
+    {}   
 
 protected:
 

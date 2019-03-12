@@ -10,9 +10,9 @@
 #include <core/logger.h>
 #include <core/utils/cuda_common.h>
 
-namespace ObjectForcesReverseExchangeKernels
+namespace ObjectForcesReverseExchangerKernels
 {
-__device__ inline void atomicAddNonZero(float4* dest, float3 v)
+__device__ inline void atomicAddNonZero(float4 *dest, float3 v)
 {
     const float tol = 1e-7;
 
@@ -82,7 +82,7 @@ __global__ void packRigidForces(ROVview view, float4 *output, int packedObjSize)
         typedAddr[1] = {t.x, t.y, t.z, (RigidReal)0};
     }
 }
-} // namespace ObjectForcesReverseExchangeKernels
+} // namespace ObjectForcesReverseExchangerKernels
 
 //===============================================================================================
 // Member functions
@@ -142,7 +142,7 @@ void ObjectForcesReverseExchanger::prepareData(int id, cudaStream_t stream)
 
         const int nthreads = 128;
         SAFE_KERNEL_LAUNCH(
-                ObjectForcesReverseExchangeKernels::packRigidForces,
+                ObjectForcesReverseExchangerKernels::packRigidForces,
                 view.nObjects, nthreads, 0, stream,
                 view, (float4*)helper->sendBuf.devPtr(), psize);
 
@@ -173,7 +173,7 @@ void ObjectForcesReverseExchanger::combineAndUploadData(int id, cudaStream_t str
 
     const int nthreads = 128;
     SAFE_KERNEL_LAUNCH(
-            ObjectForcesReverseExchangeKernels::addHaloForces,
+            ObjectForcesReverseExchangerKernels::addHaloForces,
             totalRecvd, nthreads, 0, stream,
             (const float4*)helper->recvBuf.devPtr(),     /* source */
             (const int*)origins.devPtr(),                /* destination ids here */
@@ -184,7 +184,7 @@ void ObjectForcesReverseExchanger::combineAndUploadData(int id, cudaStream_t str
     {
         ROVview view(rov, rov->local());
         SAFE_KERNEL_LAUNCH(
-                ObjectForcesReverseExchangeKernels::addRigidForces,
+                ObjectForcesReverseExchangerKernels::addRigidForces,
                 getNblocks(totalRecvd, nthreads), nthreads, 0, stream,
                 (const float4*)helper->recvBuf.devPtr(),     /* source */
                 totalRecvd,

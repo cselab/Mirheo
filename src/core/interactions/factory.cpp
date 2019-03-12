@@ -24,9 +24,9 @@ static float readFloat(const std::map<std::string, float>& desc, const std::stri
     return it->second;
 }
 
-static MembraneParameters readCommonParameters(const std::map<std::string, float>& desc)
+static CommonMembraneParameters readCommonParameters(const std::map<std::string, float>& desc)
 {
-    MembraneParameters p;
+    CommonMembraneParameters p;
 
     p.totArea0    = readFloat(desc, "tot_area");
     p.totVolume0  = readFloat(desc, "tot_volume");

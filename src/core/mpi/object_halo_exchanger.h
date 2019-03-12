@@ -12,6 +12,14 @@ class ObjectVector;
 
 class ObjectHaloExchanger : public ParticleExchanger
 {
+public:
+    void attach(ObjectVector *ov, float rc, const std::vector<std::string>& extraChannelNames);
+
+    PinnedBuffer<int>& getRecvOffsets(int id);
+    PinnedBuffer<int>& getOrigins    (int id);
+
+    virtual ~ObjectHaloExchanger();
+
 protected:
     std::vector<float> rcs;
     std::vector<ObjectVector*> objects;
@@ -23,12 +31,4 @@ protected:
     void prepareData (int id, cudaStream_t stream) override;
     void combineAndUploadData(int id, cudaStream_t stream) override;
     bool needExchange(int id) override;
-
-public:
-    void attach(ObjectVector* ov, float rc, const std::vector<std::string>& extraChannelNames);
-
-    PinnedBuffer<int>& getRecvOffsets(int id);
-    PinnedBuffer<int>& getOrigins    (int id);
-
-    virtual ~ObjectHaloExchanger();
 };

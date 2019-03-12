@@ -7,7 +7,7 @@
 #include <core/utils/make_unique.h>
 
 InteractionMembraneWLCJuelicher::InteractionMembraneWLCJuelicher(const YmrState *state, std::string name,
-                                                                 MembraneParameters parameters,
+                                                                 CommonMembraneParameters parameters,
                                                                  WLCParameters wlcParams,
                                                                  JuelicherBendingParameters juelicherParams,
                                                                  bool stressFree, float growUntil) :

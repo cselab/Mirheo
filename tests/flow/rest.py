@@ -21,8 +21,7 @@ vv = ymr.Integrators.VelocityVerlet('vv')
 u.registerIntegrator(vv)
 u.setIntegrator(vv, pv)
 
-stats = ymr.Plugins.createStats('stats', "stats.txt", 1000)
-u.registerPlugins(stats)
+u.registerPlugins(ymr.Plugins.createStats('stats', "stats.txt", 1000))
 
 u.run(5001)
 

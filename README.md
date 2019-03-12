@@ -14,7 +14,21 @@ For more information, please refer to the online documentation: http://ymero.rea
 
 ### unreleased
 
-* more robust computation of Lim forces
+* **docs**: add tutorials
+* **docs**: minor fixes
+* **internal**:
+  * tests are more robust to DPD noise
+  * proper rng per time step in DPD/MDPD 
+
+### v0.11.5
+
+* support for RDMA communication
+* membrane fluctuation forces: use uniform distribution instead of gaussian so that it is bounded
+* membrane forces: more robust computation of Lim forces
+* internal changes: 
+  * simplify interface of interaction manager
+  * pairwise forces can contain only host memory variable and pass a separate handle to gpu
+  * pairwise interaction: compiled separately when template instances are created
 
 ### v0.11.4
 

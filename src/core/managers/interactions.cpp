@@ -4,6 +4,14 @@
 
 #include <set>
 
+static void insertClist(CellList *cl, std::vector<CellList*>& clists)
+{
+    auto it = std::find(clists.begin(), clists.end(), cl);
+
+    if (it == clists.end())
+        clists.push_back(cl);
+}
+
 void InteractionManager::add(Interaction *interaction, ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2)
 {
     auto intermediateOutput = interaction->getIntermediateOutputChannels();
@@ -28,6 +36,9 @@ void InteractionManager::add(Interaction *interaction, ParticleVector *pv1, Part
     addChannels(cl1);
     if (cl1 != cl2)
         addChannels(cl2);
+
+    insertClist(cl1, cellListMap[pv1]);
+    insertClist(cl2, cellListMap[pv2]);
 
     InteractionPrototype prototype {interaction, pv1, pv2, cl1, cl2};
     
@@ -64,36 +75,36 @@ float InteractionManager::getMaxEffectiveCutoff() const
     return rcIntermediate + rcFinal;
 }
 
-CellList* InteractionManager::getLargestCellListNeededForIntermediate(const std::vector<std::unique_ptr<CellList>>& cellListVec) const
+CellList* InteractionManager::getLargestCellListNeededForIntermediate(ParticleVector *pv) const
 {
-    return _getLargestCellListNeeded(cellIntermediateOutputChannels, cellListVec);
+    return _getLargestCellListNeeded(pv, cellIntermediateOutputChannels);
 }
 
-CellList* InteractionManager::getLargestCellListNeededForFinal(const std::vector<std::unique_ptr<CellList>>& cellListVec) const
+CellList* InteractionManager::getLargestCellListNeededForFinal(ParticleVector *pv) const
 {
-    return _getLargestCellListNeeded(cellFinalChannels, cellListVec);
+    return _getLargestCellListNeeded(pv, cellFinalChannels);
 }
 
-std::vector<std::string> InteractionManager::getExtraIntermediateChannels(const std::vector<std::unique_ptr<CellList>>& cellListVec) const
+std::vector<std::string> InteractionManager::getExtraIntermediateChannels(ParticleVector *pv) const
 {
-    return _getExtraChannels(cellIntermediateOutputChannels, cellListVec);
+    return _getExtraChannels(pv, cellIntermediateOutputChannels);
 }
 
-std::vector<std::string> InteractionManager::getExtraFinalChannels(const std::vector<std::unique_ptr<CellList>>& cellListVec) const
+std::vector<std::string> InteractionManager::getExtraFinalChannels(ParticleVector *pv) const
 {
-    return _getExtraChannels(cellFinalChannels, cellListVec);
+    return _getExtraChannels(pv, cellFinalChannels);
 }
 
 
-void InteractionManager::clearIntermediates(CellList *cl, cudaStream_t stream)
+void InteractionManager::clearIntermediates(ParticleVector *pv, cudaStream_t stream)
 {
-    _clearChannels(cl, cellIntermediateOutputChannels, stream);
-    _clearChannels(cl, cellIntermediateInputChannels, stream);
+    _clearChannels(pv, cellIntermediateOutputChannels, stream);
+    _clearChannels(pv, cellIntermediateInputChannels, stream);
 }
 
-void InteractionManager::clearFinal(CellList *cl, cudaStream_t stream)
+void InteractionManager::clearFinal(ParticleVector *pv, cudaStream_t stream)
 {
-    _clearChannels(cl, cellFinalChannels, stream);
+    _clearChannels(pv, cellFinalChannels, stream);
 }
 
 void InteractionManager::accumulateIntermediates(cudaStream_t stream)
@@ -170,26 +181,25 @@ float InteractionManager::_getMaxCutoff(const std::map<CellList*, ChannelActivit
     return rc;
 }
 
-static void checkCellListsAreSorted(const std::vector<std::unique_ptr<CellList>>& cellListVec)
+CellList* InteractionManager::_getLargestCellListNeeded(ParticleVector *pv, const std::map<CellList*, ChannelActivityList>& cellChannels) const
 {
-    for (int i = 1; i < cellListVec.size(); ++i)
-        if (cellListVec[i]->rc > cellListVec[i-1]->rc)
-            die("Expected sorted cell lists (with decreasing cutoff radius)");
-}
-
-CellList* InteractionManager::_getLargestCellListNeeded(const std::map<CellList*, ChannelActivityList>& cellChannels,
-                                                        const std::vector<std::unique_ptr<CellList>>& cellListVec) const
-{
-    checkCellListsAreSorted(cellListVec);
+    CellList *clMax = nullptr;
     
-    for (const auto& cl : cellListVec)
+    auto clList = cellListMap.find(pv);
+
+    if (clList == cellListMap.end())
+        return nullptr;
+    
+    for (const auto& cl : clList->second)
     {
-        auto clPtr = cl.get();
-        if (cellChannels.find(clPtr) != cellChannels.end())
-            return clPtr;
+        if (cellChannels.find(cl) != cellChannels.end())
+        {
+            if (clMax == nullptr || cl->rc > clMax->rc)
+                clMax = cl;
+        }
     }
 
-    return nullptr;
+    return clMax;
 }
 
 std::vector<std::string> InteractionManager::_extractAllChannels(const std::map<CellList*, ChannelActivityList>& cellChannels) const
@@ -204,14 +214,18 @@ std::vector<std::string> InteractionManager::_extractAllChannels(const std::map<
     return {channels.begin(), channels.end()};
 }
 
-std::vector<std::string> InteractionManager::_getExtraChannels(const std::map<CellList*, ChannelActivityList>& cellChannels,
-                                                               const std::vector<std::unique_ptr<CellList>>& cellListVec) const
+std::vector<std::string> InteractionManager::_getExtraChannels(ParticleVector *pv, const std::map<CellList*, ChannelActivityList>& cellChannels) const
 {
     std::set<std::string> channels;
-    
-    for (const auto& cl : cellListVec)
+
+    auto clList = cellListMap.find(pv);
+
+    if (clList == cellListMap.end())
+        return {};
+
+    for (const auto& cl : clList->second)
     {
-        auto it = cellChannels.find(cl.get());
+        auto it = cellChannels.find(cl);
         
         if (it != cellChannels.end())
         {
@@ -250,13 +264,21 @@ std::vector<std::string> InteractionManager::_extractActiveChannels(const Channe
     return activeChannels;
 }
 
-void InteractionManager::_clearChannels(CellList *cl, const std::map<CellList*, ChannelActivityList>& cellChannels, cudaStream_t stream) const
+void InteractionManager::_clearChannels(ParticleVector *pv, const std::map<CellList*, ChannelActivityList>& cellChannels, cudaStream_t stream) const
 {
-    auto it = cellChannels.find(cl);
+    auto clList = cellListMap.find(pv);
 
-    if (it != cellChannels.end()) {
-        auto activeChannels = _extractActiveChannels(it->second);
-        cl->clearChannels(activeChannels, stream);
+    if (clList == cellListMap.end())
+        return;
+
+    for (auto cl : clList->second)
+    {
+        auto it = cellChannels.find(cl);
+        
+        if (it != cellChannels.end()) {
+            auto activeChannels = _extractActiveChannels(it->second);
+            cl->clearChannels(activeChannels, stream);
+        }
     }
 }
 

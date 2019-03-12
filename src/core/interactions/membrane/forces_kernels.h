@@ -5,7 +5,7 @@
 namespace MembraneForcesKernels
 {
 
-struct GPU_RBCparameters
+struct GPU_CommonMembraneParameters
 {
     real gammaC, gammaT;
     real totArea0, totVolume0;
@@ -15,8 +15,8 @@ struct GPU_RBCparameters
     real seed, sigma_rnd;
 };
 
-__device__ inline real3 _fconstrainArea(real3 v1, real3 v2, real3 v3,
-                                        real totArea, GPU_RBCparameters parameters)
+__device__ inline real3 _fconstrainArea(real3 v1, real3 v2, real3 v3, real totArea,
+                                        const GPU_CommonMembraneParameters& parameters)
 {
     real3 x21 = v2 - v1;
     real3 x32 = v3 - v2;
@@ -32,14 +32,16 @@ __device__ inline real3 _fconstrainArea(real3 v1, real3 v2, real3 v3,
     return coef * cross(normal, x32);
 }
 
-__device__ inline real3 _fconstrainVolume(real3 v1, real3 v2, real3 v3, real totVolume, GPU_RBCparameters parameters)
+__device__ inline real3 _fconstrainVolume(real3 v1, real3 v2, real3 v3, real totVolume,
+                                          const GPU_CommonMembraneParameters& parameters)
 {
     real coeff = parameters.kv0 * (totVolume - parameters.totVolume0);
     return coeff * cross(v3, v2);
 }
 
 
-__device__ inline real3 _fvisc(ParticleReal p1, ParticleReal p2, GPU_RBCparameters parameters)
+__device__ inline real3 _fvisc(ParticleReal p1, ParticleReal p2,
+                               const GPU_CommonMembraneParameters& parameters)
 {
     const real3 du = p2.u - p1.u;
     const real3 dr = p1.r - p2.r;
@@ -47,14 +49,19 @@ __device__ inline real3 _fvisc(ParticleReal p1, ParticleReal p2, GPU_RBCparamete
     return du*parameters.gammaT + dr * parameters.gammaC*dot(du, dr) / dot(dr, dr);
 }
 
-__device__ inline real3 _ffluct(real3 v1, real3 v2, int i1, int i2, GPU_RBCparameters parameters)
+__device__ inline real3 _ffluct(real3 v1, real3 v2, int i1, int i2,
+                                const GPU_CommonMembraneParameters& parameters)
 {
     if (!parameters.fluctuationForces)
         return make_real3(0.0_r);
 
-    float2 rnd = Saru::normal2(parameters.seed, min(i1, i2), max(i1, i2));
+    // real mean0var1 = Saru::normal2(parameters.seed, min(i1, i2), max(i1, i2)).x;
+
+    constexpr real sqrt_12 = 3.4641016151_r;
+    real mean0var1 = sqrt_12 * (Saru::uniform01(parameters.seed, min(i1, i2), max(i1, i2)) - 0.5_r);
+
     real3 x21 = v2 - v1;
-    return (rnd.x * parameters.sigma_rnd / length(x21)) * x21;
+    return (mean0var1 * parameters.sigma_rnd / length(x21)) * x21;
 }
 
 template <class TriangleInteraction>
@@ -63,7 +70,7 @@ __device__ inline real3 bondTriangleForce(
         ParticleReal p, int locId, int rbcId,
         const OVviewWithAreaVolume& view,
         const MembraneMeshView& mesh,
-        const GPU_RBCparameters& parameters)
+        const GPU_CommonMembraneParameters& parameters)
 {
     real3 f0 = make_real3(0.0_r);
     const int startId = mesh.maxDegree * locId;
@@ -155,7 +162,7 @@ __global__ void computeMembraneForces(TriangleInteraction triangleInteraction,
                                       typename DihedralInteraction::ViewType dihedralView,
                                       OVviewWithAreaVolume view,
                                       MembraneMeshView mesh,
-                                      GPU_RBCparameters parameters)
+                                      GPU_CommonMembraneParameters parameters)
 {
     // RBC particles are at the same time mesh vertices
     assert(view.objSize == mesh.nvertices);

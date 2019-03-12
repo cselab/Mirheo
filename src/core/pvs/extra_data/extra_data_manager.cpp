@@ -1,18 +1,10 @@
 #include "extra_data_manager.h"
 
-void ExtraDataManager::setExchangeMode(const std::string& name, ExtraDataManager::CommunicationMode communication)
-{
-    if (communication == CommunicationMode::None) return;
-    auto& desc = getChannelDescOrDie(name);
-    desc.communication = communication;
-}
-
 void ExtraDataManager::setPersistenceMode(const std::string& name, ExtraDataManager::PersistenceMode persistence)
 {
     if (persistence == PersistenceMode::None) return;
     auto& desc = getChannelDescOrDie(name);    
     desc.persistence = persistence;
-    setExchangeMode(name, CommunicationMode::NeedExchange);
 }
 
 void ExtraDataManager::requireShift(const std::string& name, size_t datatypeSize)
@@ -53,12 +45,6 @@ bool ExtraDataManager::checkChannelExists(const std::string& name) const
 const std::vector<ExtraDataManager::NamedChannelDesc>& ExtraDataManager::getSortedChannels() const
 {
     return sortedChannels;
-}
-
-bool ExtraDataManager::checkNeedExchange(const std::string& name) const
-{
-    auto& desc = getChannelDescOrDie(name);
-    return desc.communication == CommunicationMode::NeedExchange;
 }
 
 bool ExtraDataManager::checkPersistence(const std::string& name) const

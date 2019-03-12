@@ -9,7 +9,7 @@ class InteractionMembraneWLCJuelicher : public InteractionMembraneJuelicher
 {
 public:
     InteractionMembraneWLCJuelicher(const YmrState *state, std::string name,
-                                    MembraneParameters parameters,
+                                    CommonMembraneParameters parameters,
                                     WLCParameters wlcParams,
                                     JuelicherBendingParameters juelicherParams,
                                     bool stressFree, float growUntil);

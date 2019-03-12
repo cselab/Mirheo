@@ -57,11 +57,11 @@ if __name__ == '__main__':
     if coords is not None:
         np.savetxt(args.out, coords)
     
-# nTEST: rigids.createEllipsoid
+# TEST: rigids.createEllipsoid
 # set -eu
 # cd rigids
 # rm -rf pos.txt pos.out.txt
 # pfile=pos.txt
-# ymr.run --runargs "-n 2"  ./createEllipsoid.py --axes 2.0 3.0 4.0 --density 8 --niter 1 --out $pfile > /dev/null
+# ymr.run --runargs "-n 2"  ./createEllipsoid.py --axes 2.0 3.0 4.0 --density 8 --niter 0 --out $pfile > /dev/null
 # cat $pfile | LC_ALL=en_US.utf8 sort > pos.out.txt
 

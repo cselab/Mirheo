@@ -1,14 +1,15 @@
 #pragma once
 
+#include "core/ymero_object.h"
+
 #include <cuda_runtime.h>
 #include <mpi.h>
-
-#include "core/ymero_object.h"
+#include <string>
+#include <vector>
 
 class CellList;
 class ParticleVector;
 class ObjectVector;
-
 
 /**
  * Interface for a class implementing bouncing from objects
@@ -23,8 +24,13 @@ public:
      * Second step of initialization, called from the \c Simulation
      * All the preparation for bouncing must be done here
      */
-    virtual void setup(ObjectVector *ov) = 0;
+    virtual void setup(ObjectVector *ov);
 
+    /**
+     * return which object vector the bounce is performed against
+     */
+    ObjectVector* getObjectVector();
+    
     /**
      * Ask \c ParticleVector which the class will be working with to have specific properties
      * Default: ask nothing
@@ -37,6 +43,9 @@ public:
 
     /// Interface to the private exec function for halo objects
     void bounceHalo (ParticleVector *pv, CellList *cl, cudaStream_t stream);
+
+    /// return list of extra channel names to be exchanged
+    virtual std::vector<std::string> getChannelsToBeExchanged() const = 0;
 
 protected:
     ObjectVector *ov;  /// Particles will be bounced against that ObjectVector

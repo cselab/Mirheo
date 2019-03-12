@@ -1,7 +1,7 @@
 #include <memory>
 
 #include "mdpd_with_stress.h"
-#include "pairwise_with_stress.h"
+#include "pairwise_with_stress.impl.h"
 #include "pairwise_interactions/mdpd.h"
 
 #include <core/utils/make_unique.h>
@@ -14,8 +14,8 @@ InteractionMDPDWithStress::InteractionMDPDWithStress(const YmrState *state, std:
     InteractionMDPD(state, name, rc, rd, a, b, gamma, kbt, power, false),
     stressPeriod(stressPeriod)
 {
-    Pairwise_MDPD mdpd(rc, rd, a, b, gamma, kbt, state->dt, power);
-    impl = std::make_unique<InteractionPair_withStress<Pairwise_MDPD>> (state, name, rc, stressPeriod, mdpd);
+    PairwiseMDPD mdpd(rc, rd, a, b, gamma, kbt, state->dt, power);
+    impl = std::make_unique<InteractionPair_withStress<PairwiseMDPD>> (state, name, rc, stressPeriod, mdpd);
 }
 
 InteractionMDPDWithStress::~InteractionMDPDWithStress() = default;
@@ -29,8 +29,8 @@ void InteractionMDPDWithStress::setSpecificPair(ParticleVector *pv1, ParticleVec
     if (kbt   == Default) kbt   = this->kbt;
     if (power == Default) power = this->power;
 
-    Pairwise_MDPD mdpd(this->rc, this->rd, a, b, gamma, kbt, state->dt, power);
-    auto ptr = static_cast< InteractionPair_withStress<Pairwise_MDPD>* >(impl.get());
+    PairwiseMDPD mdpd(this->rc, this->rd, a, b, gamma, kbt, state->dt, power);
+    auto ptr = static_cast< InteractionPair_withStress<PairwiseMDPD>* >(impl.get());
     
     ptr->setSpecificPair(pv1->name, pv2->name, mdpd);
 }

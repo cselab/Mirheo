@@ -68,16 +68,16 @@ del(u)
 # cd rigids
 # rm -rf stats rigid.out.txt
 # f="pos.txt"
-# common_args="--axes 2.0 1.0 1.0"
-# ymr.run --runargs "-n 2"  ./createEllipsoid.py $common_args --density 8 --out $f --niter 1000 > /dev/null
-# ymr.run --runargs "-n 2" ./magneticOrientation.py $common_args --coords $f --phi 0.7853981634 > /dev/null
+# rho=8.0; ax=2.0; ay=1.0; az=1.0
+# cp ../../data/ellipsoid_coords_${rho}_${ax}_${ay}_${az}.txt $f
+# ymr.run --runargs "-n 2" ./magneticOrientation.py --axes $ax $ay $az --coords $f --phi 0.7853981634 > /dev/null
 # cat stats/ellipsoid.txt | awk '{print $2, $10, $3}' > rigid.out.txt
 
 # nTEST: rigids.magneticOrientation.Time
 # cd rigids
 # rm -rf stats rigid.out.txt
 # f="pos.txt"
-# common_args="--axes 2.0 1.0 1.0"
-# ymr.run --runargs "-n 2"  ./createEllipsoid.py $common_args --density 8 --out $f --niter 1000       > /dev/null
-# ymr.run --runargs "-n 2" ./magneticOrientation.py $common_args --coords $f --omega 0.005 > /dev/null
+# rho=8.0; ax=2.0; ay=1.0; az=1.0
+# cp ../../data/ellipsoid_coords_${rho}_${ax}_${ay}_${az}.txt $f
+# ymr.run --runargs "-n 2" ./magneticOrientation.py --axes $ax $ay $az --coords $f --omega 0.005 > /dev/null
 # cat stats/ellipsoid.txt | awk '{print $2, $10, $3}' > rigid.out.txt

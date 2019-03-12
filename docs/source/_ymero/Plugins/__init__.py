@@ -270,8 +270,9 @@ class WallForceCollector(SimulationPlugin):
     r"""
         This plugin collects and average the total force exerted on a given wall.
         The result has 2 components:
-            - bounce back: force necessary to the momentum change
-            - frozen particles: total interaction force exerted on the frozen particles
+        
+            * bounce back: force necessary to the momentum change
+            * frozen particles: total interaction force exerted on the frozen particles
     
     """
 class WallForceDumper(PostprocessPlugin):
@@ -617,7 +618,7 @@ def createParticleDisplacement():
     r"""createParticleDisplacement(state: YmrState, name: str, pv: ParticleVectors.ParticleVector, update_every: int) -> Tuple[Plugins.ParticleDisplacementPlugin, Plugins.PostprocessPlugin]
 
 
-        Create :any:`ParticleDisplacement` plugin
+        Create :any:`ParticleDisplacementPlugin`
         
         Args:
             name: name of the plugin

@@ -68,9 +68,9 @@ u.run(10000)
 # cd rigids
 # rm -rf stats rigid.out.txt
 # f="pos.txt"
-# common_args="--axes 2.0 1.0 1.0"
-# ymr.run --runargs "-n 2"  ./createEllipsoid.py $common_args --density 8 --out $f --niter 1000  > /dev/null
-# ymr.run --runargs "-n 2" ./forceTorque.py $common_args --coords $f --constForce > /dev/null
+# rho=8.0; ax=2.0; ay=1.0; az=1.0
+# cp ../../data/ellipsoid_coords_${rho}_${ax}_${ay}_${az}.txt $f
+# ymr.run --runargs "-n 2" ./forceTorque.py --axes $ax $ay $az --coords $f --constForce > /dev/null
 # cat stats/ellipsoid.txt | awk '{print $2, $10, $3}' > rigid.out.txt
 
 # nTEST: rigids.constTorque
@@ -78,9 +78,9 @@ u.run(10000)
 # cd rigids
 # rm -rf stats rigid.out.txt
 # f="pos.txt"
-# common_args="--axes 2.0 1.0 1.0"
-# ymr.run --runargs "-n 2"  ./createEllipsoid.py $common_args --density 8 --out $f --niter 1000  > /dev/null
-# ymr.run --runargs "-n 2" ./forceTorque.py $common_args --coords $f --constTorque > /dev/null
+# rho=8.0; ax=2.0; ay=1.0; az=1.0
+# cp ../../data/ellipsoid_coords_${rho}_${ax}_${ay}_${az}.txt $f
+# ymr.run --runargs "-n 2" ./forceTorque.py --axes $ax $ay $az --coords $f --constTorque > /dev/null
 # cat stats/ellipsoid.txt | awk '{print $2, $15, $9}' > rigid.out.txt
 
 # sTEST: rigids.constTorque.withMesh
@@ -88,7 +88,7 @@ u.run(10000)
 # cd rigids
 # rm -rf stats rigid.out.txt
 # f="pos.txt"
-# common_args="--axes 2.0 1.0 1.0"
-# ymr.run --runargs "-n 2"  ./createEllipsoid.py $common_args --density 8 --out $f --niter 1000  > /dev/null
-# ymr.run --runargs "-n 2" ./forceTorque.py $common_args --coords $f --constTorque --withMesh > /dev/null
+# rho=8.0; ax=2.0; ay=1.0; az=1.0
+# cp ../../data/ellipsoid_coords_${rho}_${ax}_${ay}_${az}.txt $f
+# ymr.run --runargs "-n 2" ./forceTorque.py --axes $ax $ay $az --coords $f --constTorque --withMesh > /dev/null
 # cat stats/ellipsoid.txt | awk '{print $2, $15, $9}' > rigid.out.txt

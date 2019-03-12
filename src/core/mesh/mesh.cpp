@@ -1,5 +1,7 @@
 #include "mesh.h"
 
+#include <core/utils/cuda_common.h>
+
 #include <fstream>
 #include <vector>
 
@@ -11,8 +13,8 @@ Mesh::Mesh(std::string fname)
     _readOff(fname);
     _check();
 
-    vertexCoordinates.uploadToDevice(0);
-    triangles.uploadToDevice(0);
+    vertexCoordinates.uploadToDevice(defaultStream);
+    triangles.uploadToDevice(defaultStream);
 
     _computeMaxDegree();
 }
@@ -33,8 +35,8 @@ Mesh::Mesh(const PyTypes::VectorOfFloat3& vertices, const PyTypes::VectorOfInt3&
 
     _check();
     
-    vertexCoordinates.uploadToDevice(0);
-    triangles.uploadToDevice(0);
+    vertexCoordinates.uploadToDevice(defaultStream);
+    triangles.uploadToDevice(defaultStream);
 
     _computeMaxDegree();
 }
@@ -55,7 +57,7 @@ const int& Mesh::getMaxDegree() const {
 
 PyTypes::VectorOfFloat3 Mesh::getVertices()
 {
-    vertexCoordinates.downloadFromDevice(0, ContainersSynch::Synch);
+    vertexCoordinates.downloadFromDevice(defaultStream, ContainersSynch::Synch);
     PyTypes::VectorOfFloat3 ret(getNvertices());
 
     for (int i = 0; i < getNvertices(); ++i) {
@@ -69,7 +71,7 @@ PyTypes::VectorOfFloat3 Mesh::getVertices()
 
 PyTypes::VectorOfInt3 Mesh::getTriangles()
 {
-    triangles.downloadFromDevice(0, ContainersSynch::Synch);
+    triangles.downloadFromDevice(defaultStream, ContainersSynch::Synch);
     PyTypes::VectorOfInt3 ret(getNtriangles());
 
     for (int i = 0; i < getNtriangles(); ++i) {
@@ -127,12 +129,12 @@ void Mesh::_readOff(std::string fname)
 
     // Read the vertex coordinates
     vertexCoordinates.resize_anew(nvertices);
-    for (int i=0; i<nvertices; i++)
+    for (int i = 0; i < nvertices; i++)
         fin >> vertexCoordinates[i].x >> vertexCoordinates[i].y >> vertexCoordinates[i].z;
 
     // Read the connectivity data
     triangles.resize_anew(ntriangles);
-    for (int i=0; i<ntriangles; i++)
+    for (int i = 0; i < ntriangles; i++)
     {
         int number;
         fin >> number;

@@ -3,6 +3,7 @@
 #include "fetchers.h"
 
 #include <core/interactions/accumulators/force.h>
+#include <core/ymero_state.h>
 
 #include <random>
 
@@ -10,23 +11,23 @@ class LocalParticleVector;
 class CellList;
 
 
-class Pairwise_Norandom_DPD : public ParticleFetcherWithVelocity
+class PairwiseNorandomDPD : public ParticleFetcherWithVelocity
 {
 public:
 
     using ViewType     = PVview;
     using ParticleType = Particle;
+    using HandlerType  = PairwiseNorandomDPD;
     
-    Pairwise_Norandom_DPD(float rc, float a, float gamma, float kbT, float dt, float power) :
+    PairwiseNorandomDPD(float rc, float a, float gamma, float kbT, float dt, float power) :
         ParticleFetcherWithVelocity(rc),
-        a(a), gamma(gamma), power(power)
+        a(a),
+        gamma(gamma),
+        power(power)
     {
         sigma = sqrt(2 * gamma * kbT / dt);
         invrc = 1.0 / rc;
     }
-
-    void setup(LocalParticleVector* lpv1, LocalParticleVector* lpv2, CellList* cl1, CellList* cl2, float t)
-    {}
 
     __D__ inline float3 operator()(const ParticleType dst, int dstId, const ParticleType src, int srcId) const
     {
@@ -51,9 +52,18 @@ public:
     }
 
     __D__ inline ForceAccumulator getZeroedAccumulator() const {return ForceAccumulator();}
+
+    const HandlerType& handler() const
+    {
+        return (const HandlerType&) (*this);
+    }
     
+    void setup(LocalParticleVector* lpv1, LocalParticleVector* lpv2, CellList* cl1, CellList* cl2, const YmrState *state)
+    {}
+
 protected:
 
     float a, gamma, sigma, power;
     float invrc;
 };
+

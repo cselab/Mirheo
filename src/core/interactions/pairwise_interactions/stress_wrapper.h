@@ -3,39 +3,30 @@
 #include <core/datatypes.h>
 #include <core/interactions/accumulators/forceStress.h>
 #include <core/utils/common.h>
+#include <core/ymero_state.h>
+
+#include <type_traits>
 
 class LocalParticleVector;
 class CellList;
 
-template<typename BasicPairwiseForce>
-class PairwiseStressWrapper
+template<typename BasicPairwiseForceHandler>
+class PairwiseStressWrapperHandler : public BasicPairwiseForceHandler
 {
 public:
 
-    using BasicViewType = typename BasicPairwiseForce::ViewType;
+    using BasicViewType = typename BasicPairwiseForceHandler::ViewType;
     using ViewType      = PVviewWithStresses<BasicViewType>;
-    using ParticleType  = typename BasicPairwiseForce::ParticleType;
+    using ParticleType  = typename BasicPairwiseForceHandler::ParticleType;
     
-    PairwiseStressWrapper(BasicPairwiseForce basicForce) :
-        basicForce(basicForce)
+    PairwiseStressWrapperHandler(BasicPairwiseForceHandler basicForceHandler) :
+        BasicPairwiseForceHandler(basicForceHandler)
     {}
-
-    void setup(LocalParticleVector *lpv1, LocalParticleVector *lpv2, CellList *cl1, CellList *cl2, float t)
-    {
-        basicForce.setup(lpv1, lpv2, cl1, cl2, t);
-    }
-
-    __D__ inline ParticleType read(const ViewType& view, int id) const                     { return        basicForce.read(view, id); }
-    __D__ inline ParticleType readNoCache(const ViewType& view, int id) const              { return basicForce.readNoCache(view, id); }
-    __D__ inline void readCoordinates(ParticleType& p, const ViewType& view, int id) const { basicForce.readCoordinates(p, view, id); }
-    __D__ inline void readExtraData  (ParticleType& p, const ViewType& view, int id) const { basicForce.readExtraData  (p, view, id); }
-    __D__ inline bool withinCutoff(const ParticleType& src, const ParticleType& dst) const { return basicForce.withinCutoff(src, dst);}
-    __D__ inline float3 getPosition(const ParticleType& p) const {return basicForce.getPosition(p);}
     
     __device__ inline ForceStress operator()(const ParticleType dst, int dstId, const ParticleType src, int srcId) const
     {        
         float3 dr = getPosition(dst) - getPosition(src);
-        float3 f  = basicForce(dst, dstId, src, srcId);
+        float3 f  = BasicPairwiseForceHandler::operator()(dst, dstId, src, srcId);
         Stress s;
         
         s.xx = 0.5f * dr.x * f.x;
@@ -49,8 +40,35 @@ public:
     }
 
     __D__ inline ForceStressAccumulator<BasicViewType> getZeroedAccumulator() const {return ForceStressAccumulator<BasicViewType>();}
+};
 
-private:
+template<typename BasicPairwiseForce>
+class PairwiseStressWrapper : public BasicPairwiseForce
+{
+public:
+
+    using BasicHandlerType = typename BasicPairwiseForce::HandlerType;
+    using HandlerType  = PairwiseStressWrapperHandler< BasicHandlerType >;
+
+    using ViewType     = typename HandlerType::ViewType;
+    using ParticleType = typename HandlerType::ParticleType;
+
+    PairwiseStressWrapper(BasicPairwiseForce basicForce) :
+        BasicPairwiseForce(basicForce),
+        basicForceWrapperHandler(basicForce.handler())
+    {}
+
+    void setup(LocalParticleVector *lpv1, LocalParticleVector *lpv2, CellList *cl1, CellList *cl2, const YmrState *state)
+    {
+        BasicPairwiseForce::setup(lpv1, lpv2, cl1, cl2, state);
+        basicForceWrapperHandler = HandlerType(BasicPairwiseForce::handler());
+    }
+
+    const HandlerType& handler() const
+    {
+        return basicForceWrapperHandler;
+    }
     
-    BasicPairwiseForce basicForce;
+protected:
+    HandlerType basicForceWrapperHandler;
 };

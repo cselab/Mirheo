@@ -1,7 +1,7 @@
 #include <memory>
 
 #include "lj_with_stress.h"
-#include "pairwise_with_stress.h"
+#include "pairwise_with_stress.impl.h"
 #include "pairwise_interactions/lj.h"
 #include "pairwise_interactions/lj_object_aware.h"
 
@@ -15,12 +15,12 @@ InteractionLJWithStress::InteractionLJWithStress(const YmrState *state, std::str
     stressPeriod(stressPeriod)
 {
     if (objectAware) {
-        Pairwise_LJObjectAware lj(rc, epsilon, sigma, maxForce);
-        impl = std::make_unique<InteractionPair_withStress<Pairwise_LJObjectAware>> (state, name, rc, stressPeriod, lj);
+        PairwiseLJObjectAware lj(rc, epsilon, sigma, maxForce);
+        impl = std::make_unique<InteractionPair_withStress<PairwiseLJObjectAware>> (state, name, rc, stressPeriod, lj);
     }
     else {
-        Pairwise_LJ lj(rc, epsilon, sigma, maxForce);
-        impl = std::make_unique<InteractionPair_withStress<Pairwise_LJ>> (state, name, rc, stressPeriod, lj);
+        PairwiseLJ lj(rc, epsilon, sigma, maxForce);
+        impl = std::make_unique<InteractionPair_withStress<PairwiseLJ>> (state, name, rc, stressPeriod, lj);
     }
 }
 
@@ -30,13 +30,13 @@ void InteractionLJWithStress::setSpecificPair(ParticleVector* pv1, ParticleVecto
                                               float epsilon, float sigma, float maxForce)
 {
     if (objectAware) {
-        Pairwise_LJObjectAware lj(rc, epsilon, sigma, maxForce);
-        auto ptr = static_cast< InteractionPair_withStress<Pairwise_LJObjectAware>* >(impl.get());
+        PairwiseLJObjectAware lj(rc, epsilon, sigma, maxForce);
+        auto ptr = static_cast< InteractionPair_withStress<PairwiseLJObjectAware>* >(impl.get());
         ptr->setSpecificPair(pv1->name, pv2->name, lj);
     }
     else {
-        Pairwise_LJ lj(rc, epsilon, sigma, maxForce);
-        auto ptr = static_cast< InteractionPair_withStress<Pairwise_LJ>* >(impl.get());
+        PairwiseLJ lj(rc, epsilon, sigma, maxForce);
+        auto ptr = static_cast< InteractionPair_withStress<PairwiseLJ>* >(impl.get());
         ptr->setSpecificPair(pv1->name, pv2->name, lj);
     }
 }

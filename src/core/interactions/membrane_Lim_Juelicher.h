@@ -9,7 +9,7 @@ class InteractionMembraneLimJuelicher : public InteractionMembraneJuelicher
 {
 public:
     InteractionMembraneLimJuelicher(const YmrState *state, std::string name,
-                                    MembraneParameters parameters,
+                                    CommonMembraneParameters parameters,
                                     LimParameters limParams,
                                     JuelicherBendingParameters juelicherParams,
                                     bool stressFree, float growUntil);

@@ -138,9 +138,7 @@ void ObjectHaloExchanger::attach(ObjectVector *ov, float rc, const std::vector<s
     origins.push_back(std::move(origin));
 
     packPredicates.push_back([extraChannelNames](const ExtraDataManager::NamedChannelDesc& namedDesc) {
-        bool needExchange = namedDesc.second->communication == ExtraDataManager::CommunicationMode::NeedExchange;
-        bool isRequired   = std::find(extraChannelNames.begin(), extraChannelNames.end(), namedDesc.first) != extraChannelNames.end();
-        return needExchange || isRequired;
+        return std::find(extraChannelNames.begin(), extraChannelNames.end(), namedDesc.first) != extraChannelNames.end();
     });
     
     info("Object vector %s (rc %f) was attached to halo exchanger", ov->name.c_str(), rc);

@@ -24,9 +24,15 @@ createInteractionMembrane(const YmrState *state, std::string name,
     std::map<std::string, float> parameters;
 
     for (const auto& item : kwargs) {
-        auto key   = py::cast<std::string>(item.first);
-        auto value = py::cast<float>(item.second);
-        parameters[key] = value;
+        try {
+            auto key   = py::cast<std::string>(item.first);
+            auto value = py::cast<float>(item.second);
+            parameters[key] = value;
+        }
+        catch (const py::cast_error& e)
+        {
+            die("Could not cast one of the arguments in membrane interactions");
+        }        
     }    
     
     return InteractionFactory::createInteractionMembrane
@@ -67,12 +73,12 @@ void exportInteractions(py::module& m)
     pyIntDPD.def(py::init<const YmrState*, std::string, float, float, float, float, float>(),
                  "state"_a, "name"_a, "rc"_a, "a"_a, "gamma"_a, "kbt"_a, "power"_a, R"(  
             Args:
-            name: name of the interaction
-                rc: interaction cut-off (no forces between particles further than **rc** apart)
-                a: :math:`a`
-                gamma: :math:`\gamma`
-                kbt: :math:`k_B T`
-                power: :math:`p` in the weight function
+                name: name of the interaction
+                    rc: interaction cut-off (no forces between particles further than **rc** apart)
+                    a: :math:`a`
+                    gamma: :math:`\gamma`
+                    kbt: :math:`k_B T`
+                    power: :math:`p` in the weight function
     )");
 
     pyIntDPD.def("setSpecificPair", &InteractionDPD::setSpecificPair, 
@@ -146,14 +152,14 @@ void exportInteractions(py::module& m)
     pyIntMDPD.def(py::init<const YmrState*, std::string, float, float, float, float, float, float, float>(),
                   "state"_a, "name"_a, "rc"_a, "rd"_a, "a"_a, "b"_a, "gamma"_a, "kbt"_a, "power"_a, R"(  
             Args:
-            name: name of the interaction
-                rc: interaction cut-off (no forces between particles further than **rc** apart)
-                rd: density cutoff, assumed rd <= rc
-                a: :math:`a`
-                b: :math:`b`
-                gamma: :math:`\gamma`
-                kbt: :math:`k_B T`
-                power: :math:`p` in the weight function
+                name: name of the interaction
+                    rc: interaction cut-off (no forces between particles further than **rc** apart)
+                    rd: density cutoff, assumed rd <= rc
+                    a: :math:`a`
+                    b: :math:`b`
+                    gamma: :math:`\gamma`
+                    kbt: :math:`k_B T`
+                    power: :math:`p` in the weight function
     )");
 
     py::handlers_class<InteractionMDPDWithStress> pyIntMDPDWithStress(m, "MDPDWithStress", pyIntMDPD, R"(

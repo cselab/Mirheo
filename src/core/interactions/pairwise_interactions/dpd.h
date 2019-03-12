@@ -3,6 +3,8 @@
 #include "fetchers.h"
 
 #include <core/interactions/accumulators/force.h>
+#include <core/interactions/utils/step_random_gen.h>
+#include <core/ymero_state.h>
 
 #include <random>
 
@@ -19,31 +21,21 @@ static float fastPower(float x, float a)
 #endif
 
 
-class Pairwise_DPD : public ParticleFetcherWithVelocity
+class PairwiseDPDHandler : public ParticleFetcherWithVelocity
 {
 public:
 
     using ViewType     = PVview;
     using ParticleType = Particle;
     
-    Pairwise_DPD(float rc, float a, float gamma, float kbT, float dt, float power) :
+    PairwiseDPDHandler(float rc, float a, float gamma, float kbT, float dt, float power) :
         ParticleFetcherWithVelocity(rc),
-        a(a), gamma(gamma), power(power)
+        a(a),
+        gamma(gamma),
+        power(power)
     {
         sigma = sqrt(2 * gamma * kbT / dt);
         invrc = 1.0 / rc;
-    }
-
-    void setup(LocalParticleVector* lpv1, LocalParticleVector* lpv2, CellList* cl1, CellList* cl2, float t)
-    {
-        // seed = t;
-        // better use random seed (time-based) instead of time
-        // time-based is IMPORTANT for momentum conservation!!
-        // t is float, use it's bit representation as int to seed RNG
-        int v = *((int*)&t);
-        std::mt19937 gen(v);
-        std::uniform_real_distribution<float> udistr(0.001, 1);
-        seed = udistr(gen);
     }
     
     __D__ inline float3 operator()(const ParticleType dst, int dstId, const ParticleType src, int srcId) const
@@ -75,4 +67,30 @@ protected:
     float a, gamma, sigma, power;
     float invrc;
     float seed;
+};
+
+class PairwiseDPD : public PairwiseDPDHandler
+{
+public:
+
+    using HandlerType = PairwiseDPDHandler;
+    
+    PairwiseDPD(float rc, float a, float gamma, float kbT, float dt, float power, long seed=42424242) :
+        PairwiseDPDHandler(rc, a, gamma, kbT, dt, power),
+        stepGen(seed)
+    {}
+
+    const HandlerType& handler() const
+    {
+        return (const HandlerType&)(*this);
+    }
+
+    void setup(LocalParticleVector* lpv1, LocalParticleVector* lpv2, CellList* cl1, CellList* cl2, const YmrState *state)
+    {
+        seed = stepGen.generate(state);
+    }
+
+protected:
+
+    StepRandomGen stepGen;
 };

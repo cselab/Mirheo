@@ -79,10 +79,10 @@ if __name__ == '__main__':
     
 
 
-# nTEST: rigids.createFromMesh
+# TEST: rigids.createFromMesh
 # set -eu
 # cd rigids
 # cp ../../data/rbc_mesh.off .
 # pfile="pos.txt"
-# ymr.run --runargs "-n 2" ./createFromMesh.py --density 8 --fname rbc_mesh.off --niter 1 --out $pfile > /dev/null
+# ymr.run --runargs "-n 2" ./createFromMesh.py --density 8 --fname rbc_mesh.off --niter 0 --out $pfile > /dev/null
 # cat $pfile | LC_ALL=en_US.utf8 sort > pos.out.txt 

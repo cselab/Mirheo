@@ -47,7 +47,7 @@ All tests can be run by typing:
 Units tests
 ***********
 
-Unit tests are compiled together with the `google-test framework <>`_.
+Unit tests are compiled together with the `google-test framework <https://github.com/google/googletest>`_.
 The library must be built in the ``build`` folder (see :ref:`user-install`).
 
   .. code-block:: console

@@ -9,7 +9,7 @@ class InteractionMembraneLimKantor : public InteractionMembrane
 {
 public:
     InteractionMembraneLimKantor(const YmrState *state, std::string name,
-                                 MembraneParameters parameters,
+                                 CommonMembraneParameters parameters,
                                  LimParameters limParams,
                                  KantorBendingParameters kantorParams,
                                  bool stressFree, float growUntil);

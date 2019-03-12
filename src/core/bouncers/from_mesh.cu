@@ -1,15 +1,12 @@
 #include "from_mesh.h"
-
-#include <core/utils/kernel_launch.h>
-#include <core/celllist.h>
-#include <core/pvs/particle_vector.h>
-#include <core/pvs/object_vector.h>
-#include <core/pvs/views/ov.h>
-
 #include "mesh/bounce_kernels.h"
-#include <extern/cub/cub/device/device_radix_sort.cuh>
 
+#include <core/celllist.h>
+#include <core/pvs/object_vector.h>
+#include <core/pvs/particle_vector.h>
+#include <core/pvs/views/ov.h>
 #include <core/rigid_kernels/integration.h>
+#include <core/utils/kernel_launch.h>
 
 /**
  * Create the bouncer
@@ -29,9 +26,9 @@ BounceFromMesh::~BounceFromMesh() = default;
  * from the previous timestep.
  * This channel has to be communicated with the objects
  */
-void BounceFromMesh::setup(ObjectVector* ov)
+void BounceFromMesh::setup(ObjectVector *ov)
 {
-    this->ov = ov;
+    Bouncer::setup(ov);
 
     // If the object is rigid, we need to collect the forces into the RigidMotion
     rov = dynamic_cast<RigidObjectVector*> (ov);
@@ -45,11 +42,17 @@ void BounceFromMesh::setup(ObjectVector* ov)
     // old motions HAVE to be there and communicated and shifted
 
     if (rov == nullptr)
-        ov->requireDataPerParticle<Particle> (ChannelNames::oldParts, ExtraDataManager::CommunicationMode::NeedExchange,
-                                              ExtraDataManager::PersistenceMode::Persistent, sizeof(float));
+        ov->requireDataPerParticle<Particle> (ChannelNames::oldParts, ExtraDataManager::PersistenceMode::Persistent, sizeof(float));
     else
-        ov->requireDataPerObject<RigidMotion> (ChannelNames::oldMotions, ExtraDataManager::CommunicationMode::NeedExchange,
-                                               ExtraDataManager::PersistenceMode::Persistent, sizeof(RigidReal));
+        ov->requireDataPerObject<RigidMotion> (ChannelNames::oldMotions, ExtraDataManager::PersistenceMode::Persistent, sizeof(RigidReal));
+}
+
+std::vector<std::string> BounceFromMesh::getChannelsToBeExchanged() const
+{
+    if (rov)
+        return {ChannelNames::motions, ChannelNames::oldMotions};
+    else
+        return {ChannelNames::oldParts};
 }
 
 /**

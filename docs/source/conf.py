@@ -157,7 +157,6 @@ from sphinx.ext.autosummary import Autosummary
 from sphinx.ext.autosummary import get_documenter
 from docutils.parsers.rst import directives
 from sphinx.util.inspect import safe_getattr
-import re
 
 class AutoAutoSummary(Autosummary):
 
@@ -175,7 +174,7 @@ class AutoAutoSummary(Autosummary):
         items = []
         for name in dir(obj):
             try:
-                documenter = get_documenter(safe_getattr(obj, name), obj)
+                documenter = get_documenter(self.app, safe_getattr(obj, name), obj)
             except AttributeError:
                 continue
             if documenter.objtype == typ:

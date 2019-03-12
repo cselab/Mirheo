@@ -43,12 +43,14 @@ void exportYmero(py::module& m)
                     timestep of the simulation
                 log_filename:
                     prefix of the log files that will be created. 
-                    Logging is implemented in the form of one file per MPI rank, so in the simulation folder NP files with names log_00000.log, log_00001.log, ... will be created, where NP is the total number of MPI ranks. 
-                    Each MPI task (including postprocess) writes messages about itself into his own log file, and the combined log may be created by merging all the individual ones and sorting with respect to time.
-                    If this parameter is set to 'stdout' or 'stderr' standard output or standard error streams will be used instead of the file, however, there is no guarantee that messages from different ranks are synchronized
+                    Logging is implemented in the form of one file per MPI rank, so in the simulation folder NP files with names log_00000.log, log_00001.log, ... 
+                    will be created, where NP is the total number of MPI ranks. 
+                    Each MPI task (including postprocess) writes messages about itself into his own log file, and the combined log may be created by merging all
+                    the individual ones and sorting with respect to time.
+                    If this parameter is set to 'stdout' or 'stderr' standard output or standard error streams will be used instead of the file, however, 
+                    there is no guarantee that messages from different ranks are synchronized
                 debug_level:
                     Debug level varies from 1 to 8:
-                    
                        #. only report fatal errors
                        #. report serious errors
                        #. report warnings (this is the default level)
@@ -57,15 +59,19 @@ void exportYmero(py::module& m)
                        #. report more debug
                        #. report all the debug
                        #. force flushing to the file after each message
+
+                    .. warning::
+                        Debug levels above 4 or 5 may significanlty increase the runtime, they are only recommended to debug errors.
+                        Flushing increases the runtime yet more, but it is required in order not to lose any messages in case of abnormal program abort.
                     
-                    Debug levels above 4 or 5 may significanlty increase the runtime, they are only recommended to debug errors.
-                    Flushing increases the runtime yet more, but it is required in order not to lose any messages in case of abnormal program abort.
                 checkpoint_every:
                     save state of the simulation components (particle vectors and handlers like integrators, plugins, etc.)
                 restart_folder:
                     folder where the checkpoint files will reside
-                cuda_aware_mpi: enable CUDA Aware MPI (GPU RDMA). As of now it may crash, or may yield slower execution.
-                no_splash: Don't display the splash screen when at the start-up.
+                cuda_aware_mpi: 
+                    enable CUDA Aware MPI (GPU RDMA). As of now it may crash, or may yield slower execution.
+                no_splash: 
+                    Don't display the splash screen when at the start-up.
                 
         )")
 
@@ -85,7 +91,9 @@ void exportYmero(py::module& m)
                 pv: :any:`ParticleVector`
                 ic: :class:`~libymero.InitialConditions.InitialConditions` that will generate the initial distibution of the particles
                 checkpoint_every:
-                    every that many timesteps the state of the Particle Vector across all the MPI processes will be saved to disk  into the ./restart/ folder. The checkpoint files may be used to restart the whole simulation or only some individual PVs from the saved states. Default value of 0 means no checkpoint.
+                    every that many timesteps the state of the Particle Vector across all the MPI processes will be saved to disk  into the ./restart/ folder. 
+                    The checkpoint files may be used to restart the whole simulation or only some individual PVs from the saved states. 
+                    Default value of 0 means no checkpoint.
         )")
         .def("registerIntegrator",             &YMeRo::registerIntegrator,             "Register Integrator")
         .def("registerInteraction",            &YMeRo::registerInteraction,            "Register Interaction")
