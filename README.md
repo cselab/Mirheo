@@ -19,6 +19,7 @@ For more information, please refer to the online documentation: http://ymero.rea
 * **internal**:
   * tests are more robust to DPD noise
   * proper rng per time step in DPD/MDPD 
+* add density outlet plugin
 
 ### v0.11.5
 

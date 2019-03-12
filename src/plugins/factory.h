@@ -7,7 +7,7 @@
 #include "average_flow.h"
 #include "average_relative_flow.h"
 #include "channel_dumper.h"
-#include "density_outlet.h"
+#include "outlet.h"
 #include "displacement.h"
 #include "dump_mesh.h"
 #include "dump_obj_position.h"
