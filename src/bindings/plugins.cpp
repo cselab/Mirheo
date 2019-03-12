@@ -75,6 +75,10 @@ void exportPlugins(py::module& m)
                 return py::array(dt, resolution, (float*)ch.data, py::cast(dumper));
             });
 
+    py::handlers_class<DensityControlPlugin>(m, "DensityControlPlugin", pysim, R"(
+        This plugin applies forces to a set of particle vectors in order to get a constant density.
+    )");
+
     py::handlers_class<DensityOutletPlugin>(m, "DensityOutletPlugin", pysim, R"(
         This plugin removes particles from a set of :any:`ParticleVector` in a given region if the number density is larger than a given target.
     )");
@@ -340,6 +344,27 @@ void exportPlugins(py::module& m)
             torque: extra torque (per object)
     )");
 
+    m.def("__createDensityControl", &PluginFactory::createDensityControlPlugin, 
+          "compute_task"_a, "state"_a, "name"_a, "pvs"_a, "target_density"_a,
+          "region"_a, "resolution"_a, "level_lo"_a, "level_hi"_a, "level_space"_a,
+          "Kp"_a, "Ki"_a, "Kd"_a, "tune_every"_a, "sample_every"_a, R"(
+        Create :any:`DensityControl` plugin
+        
+        Args:
+            name: name of the plugin
+            pvs: list of :any:`ParticleVector` that we'll work with
+            target_density: target number density (used only at boundaries of level sets)
+            region: a scalar field which describes how to subdivide the domain. 
+                    It must be continuous and differentiable, as the forces are in the gradient direction of this field
+            resolution: grid resolution to represent the region field
+            level_lo: lower level set to apply the controller on
+            level_hi: highest level set to apply the controller on
+            level_space: the size of one subregion in terms of level sets
+            Kp, Ki, Kd: pid control parameters
+            tune_every: update the forces every this amount of time steps
+            sample_every: sample to average densities every this amount of time steps
+    )");
+
     m.def("__createDensityOutlet", &PluginFactory::createDensityOutletPlugin, 
           "compute_task"_a, "state"_a, "name"_a, "pvs"_a, "number_density"_a,
           "region"_a, "resolution"_a, R"(
@@ -353,7 +378,7 @@ void exportPlugins(py::module& m)
             resolution: grid resolution to represent the region field
         
     )");
-    
+
     m.def("__createRateOutlet", &PluginFactory::createRateOutletPlugin, 
           "compute_task"_a, "state"_a, "name"_a, "pvs"_a, "mass_rate"_a,
           "region"_a, "resolution"_a, R"(

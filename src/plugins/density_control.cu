@@ -129,14 +129,14 @@ __global__ void applyForces(PVview view, FieldDeviceHandler field, DensityContro
 } // namespace DensityControlPluginKernels
 
 DensityControlPlugin::DensityControlPlugin(const YmrState *state, std::string name,
-                                           std::vector<std::string> pvNames, float target_density,
+                                           std::vector<std::string> pvNames, float targetDensity,
                                            RegionFunc region, float3 resolution,
                                            float levelLo, float levelHi, float levelSpace,
                                            float Kp, float Ki, float Kd,
                                            int tuneEvery, int sampleEvery) :
     SimulationPlugin(state, name),
     pvNames(pvNames),
-    target_density(target_density),
+    targetDensity(targetDensity),
     spaceDecompositionField(std::make_unique<FieldFromFunction>
                             (state, name + "_decomposition", region, resolution)),
     levelBounds({levelLo, levelHi, levelSpace}),
@@ -268,7 +268,7 @@ void DensityControlPlugin::updatePids(cudaStream_t stream)
     SAFE_KERNEL_LAUNCH(
         DensityControlPluginKernels::updateForces,
         getNblocks(densities.size(), nthreads), nthreads, 0, stream,
-        densities.size(), target_density, levelBounds.space, densities.devPtr(),
+        densities.size(), targetDensity, levelBounds.space, densities.devPtr(),
         controllers.devPtr(), forces.devPtr());
 
     nInsides.clearDevice(stream);
