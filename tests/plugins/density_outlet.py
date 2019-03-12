@@ -47,9 +47,3 @@ del (u)
 # ymr.run --runargs "-n 2" ./density_outlet.py --max_density 0.0  > /dev/null
 # ymr.avgh5 yz density h5/solvent-00009.h5 > profile.out.txt
 
-# nTEST: plugins.densityOutlet.killHalf
-# cd plugins
-# rm -rf h5
-# ymr.run --runargs "-n 2" ./density_outlet.py --max_density 4.0  > /dev/null
-# ymr.avgh5 yz density h5/solvent-00009.h5 | uscale 0.1 > profile.out.txt
-

@@ -3,7 +3,6 @@
 #include "interface.h"
 
 #include <core/containers.h>
-#include <core/field/interface.h>
 
 #include <functional>
 #include <memory>
@@ -13,6 +12,7 @@
 
 class ParticleVector;
 class CellList;
+class Field;
 
 class RegionOutletPlugin : public SimulationPlugin
 {
