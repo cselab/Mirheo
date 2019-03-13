@@ -7,6 +7,8 @@
 #include "average_flow.h"
 #include "average_relative_flow.h"
 #include "channel_dumper.h"
+#include "outlet.h"
+#include "density_control.h"
 #include "displacement.h"
 #include "dump_mesh.h"
 #include "dump_obj_position.h"
@@ -92,6 +94,62 @@ static pair_shared< AddTorquePlugin, PostprocessPlugin >
 createAddTorquePlugin(bool computeTask, const YmrState *state, std::string name, ParticleVector* pv, PyTypes::float3 torque)
 {
     auto simPl = computeTask ? std::make_shared<AddTorquePlugin> (state, name, pv->name, make_float3(torque)) : nullptr;
+    return { simPl, nullptr };
+}
+
+static pair_shared< DensityControlPlugin, PostprocessDensityControl >
+createDensityControlPlugin(bool computeTask, const YmrState *state, std::string name, std::string fname, std::vector<ParticleVector*> pvs,
+                           float targetDensity, std::function<float(PyTypes::float3)> region, PyTypes::float3 resolution,
+                           float levelLo, float levelHi, float levelSpace, float Kp, float Ki, float Kd,
+                           int tuneEvery, int dumpEvery, int sampleEvery)
+{
+    std::vector<std::string> pvNames;
+
+    if (computeTask) extractPVsNames(pvs, pvNames);
+    
+    auto simPl = computeTask ?
+        std::make_shared<DensityControlPlugin> (state, name, pvNames, targetDensity,
+                                                [region](float3 r) {return region({r.x, r.y, r.z});},
+                                                make_float3(resolution), levelLo, levelHi, levelSpace,
+                                                Kp, Ki, Kd, tuneEvery, dumpEvery, sampleEvery) :
+        nullptr;
+
+    auto postPl = computeTask ?
+        nullptr :
+        std::make_shared<PostprocessDensityControl> (name, fname);
+    
+    return { simPl, postPl };
+}
+
+static pair_shared< DensityOutletPlugin, PostprocessPlugin >
+createDensityOutletPlugin(bool computeTask, const YmrState *state, std::string name, std::vector<ParticleVector*> pvs,
+                          float numberDensity, std::function<float(PyTypes::float3)> region, PyTypes::float3 resolution)
+{
+    std::vector<std::string> pvNames;
+
+    if (computeTask) extractPVsNames(pvs, pvNames);
+    
+    auto simPl = computeTask ?
+        std::make_shared<DensityOutletPlugin> (state, name, pvNames, numberDensity,
+                                               [region](float3 r) {return region({r.x, r.y, r.z});},
+                                               make_float3(resolution) )
+        : nullptr;
+    return { simPl, nullptr };
+}
+
+static pair_shared< RateOutletPlugin, PostprocessPlugin >
+createRateOutletPlugin(bool computeTask, const YmrState *state, std::string name, std::vector<ParticleVector*> pvs,
+                       float rate, std::function<float(PyTypes::float3)> region, PyTypes::float3 resolution)
+{
+    std::vector<std::string> pvNames;
+
+    if (computeTask) extractPVsNames(pvs, pvNames);
+    
+    auto simPl = computeTask ?
+        std::make_shared<RateOutletPlugin> (state, name, pvNames, rate,
+                                            [region](float3 r) {return region({r.x, r.y, r.z});},
+                                            make_float3(resolution) )
+        : nullptr;
     return { simPl, nullptr };
 }
 
