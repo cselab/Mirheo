@@ -292,10 +292,18 @@ Run the simulation
         pass
 
     def save_dependency_graph_graphml():
-        r"""save_dependency_graph_graphml(arg0: str) -> None
+        r"""save_dependency_graph_graphml(fname: str, current: bool = True) -> None
 
 
-            Exports `GraphML <http://graphml.graphdrawing.org/>`_ file with task graph for the current simulation time-step
+             Exports `GraphML <http://graphml.graphdrawing.org/>`_ file with task graph for the current simulation time-step
+             
+             Args:
+                 fname: the output filename (without extension)
+                 current: if True, save the current non empty tasks; else, save all tasks that can exist in a simulation
+             
+             .. warning::
+                 if current is set to True, this must be called **after** :py:meth:`_ymero.ymero.run`.
+         
 
         """
         pass

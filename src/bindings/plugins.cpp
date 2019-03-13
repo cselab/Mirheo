@@ -352,7 +352,7 @@ void exportPlugins(py::module& m)
           "compute_task"_a, "state"_a, "name"_a, "file_name"_a, "pvs"_a, "target_density"_a,
           "region"_a, "resolution"_a, "level_lo"_a, "level_hi"_a, "level_space"_a,
           "Kp"_a, "Ki"_a, "Kd"_a, "tune_every"_a, "dump_every"_a, "sample_every"_a, R"(
-        Create :any:`DensityControl` plugin
+        Create :any:`DensityControlPlugin`
         
         Args:
             name: name of the plugin
@@ -374,7 +374,7 @@ void exportPlugins(py::module& m)
     m.def("__createDensityOutlet", &PluginFactory::createDensityOutletPlugin, 
           "compute_task"_a, "state"_a, "name"_a, "pvs"_a, "number_density"_a,
           "region"_a, "resolution"_a, R"(
-        Create :any:`DensityOutlet` plugin
+        Create :any:`DensityOutletPlugin`
         
         Args:
             name: name of the plugin
@@ -388,7 +388,7 @@ void exportPlugins(py::module& m)
     m.def("__createRateOutlet", &PluginFactory::createRateOutletPlugin, 
           "compute_task"_a, "state"_a, "name"_a, "pvs"_a, "mass_rate"_a,
           "region"_a, "resolution"_a, R"(
-        Create :any:`RateOutlet` plugin
+        Create :any:`RateOutletPlugin`
         
         Args:
             name: name of the plugin

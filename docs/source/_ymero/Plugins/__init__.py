@@ -47,6 +47,16 @@ class AverageRelative3D(SimulationPlugin):
             This plugin is inactive if postprocess is disabled
     
     """
+class DensityControlPlugin(SimulationPlugin):
+    r"""
+        This plugin applies forces to a set of particle vectors in order to get a constant density.
+    
+    """
+class DensityOutletPlugin(SimulationPlugin):
+    r"""
+        This plugin removes particles from a set of :any:`ParticleVector` in a given region if the number density is larger than a given target.
+    
+    """
 class ExchangePVSFluxPlane(SimulationPlugin):
     r"""
         This plugin exchanges particles from a particle vector crossing a given plane to another particle vector.
@@ -180,6 +190,11 @@ class PinObject(SimulationPlugin):
             This plugin is inactive if postprocess is disabled
     
     """
+class PostprocessDensityControl(PostprocessPlugin):
+    r"""
+        Dumps info from :any:`DensityControlPlugin`.
+    
+    """
 class PostprocessRadialVelocityControl(PostprocessPlugin):
     r"""
         Postprocess side plugin of :any:`RadialVelocityControl`.
@@ -202,6 +217,11 @@ class RadialVelocityControl(SimulationPlugin):
     r"""
         This plugin applies a radial force (decreasing as :math:`r^3`) to all the particles of the target PVS.
         The force is adapted via a PID controller such that the average of the velocity times radial position of the particles matches a target value.
+    
+    """
+class RateOutletPlugin(SimulationPlugin):
+    r"""
+        This plugin removes particles from a set of :any:`ParticleVector` in a given region at a given mass rate.
     
     """
 class ReportPinObject(PostprocessPlugin):
@@ -341,6 +361,50 @@ def createAddTorque():
             name: name of the plugin
             ov: :any:`ObjectVector` that we'll work with
             torque: extra torque (per object)
+    
+
+    """
+    pass
+
+def createDensityControl():
+    r"""createDensityControl(state: YmrState, name: str, file_name: str, pvs: List[ParticleVectors.ParticleVector], target_density: float, region: Callable[[Tuple[float, float, float]], float], resolution: Tuple[float, float, float], level_lo: float, level_hi: float, level_space: float, Kp: float, Ki: float, Kd: float, tune_every: int, dump_every: int, sample_every: int) -> Tuple[Plugins.DensityControlPlugin, Plugins.PostprocessDensityControl]
+
+
+        Create :any:`DensityControlPlugin`
+        
+        Args:
+            name: name of the plugin
+            file_name: output filename 
+            pvs: list of :any:`ParticleVector` that we'll work with
+            target_density: target number density (used only at boundaries of level sets)
+            region: a scalar field which describes how to subdivide the domain. 
+                    It must be continuous and differentiable, as the forces are in the gradient direction of this field
+            resolution: grid resolution to represent the region field
+            level_lo: lower level set to apply the controller on
+            level_hi: highest level set to apply the controller on
+            level_space: the size of one subregion in terms of level sets
+            Kp, Ki, Kd: pid control parameters
+            tune_every: update the forces every this amount of time steps
+            dump_every: dump densities and forces in file ``filename``
+            sample_every: sample to average densities every this amount of time steps
+    
+
+    """
+    pass
+
+def createDensityOutlet():
+    r"""createDensityOutlet(state: YmrState, name: str, pvs: List[ParticleVectors.ParticleVector], number_density: float, region: Callable[[Tuple[float, float, float]], float], resolution: Tuple[float, float, float]) -> Tuple[Plugins.DensityOutletPlugin, Plugins.PostprocessPlugin]
+
+
+        Create :any:`DensityOutletPlugin`
+        
+        Args:
+            name: name of the plugin
+            pvs: list of :any:`ParticleVector` that we'll work with
+            number_density: maximum number_density in the region
+            region: a function that is negative in the concerned region and positive outside
+            resolution: grid resolution to represent the region field
+        
     
 
     """
@@ -666,6 +730,24 @@ def createRadialVelocityControl():
             center: center of the radial coordinates
             target_vel: the target mean velocity of the particles at :math:`r=1`
             Kp, Ki, Kd: PID controller coefficients
+    
+
+    """
+    pass
+
+def createRateOutlet():
+    r"""createRateOutlet(state: YmrState, name: str, pvs: List[ParticleVectors.ParticleVector], mass_rate: float, region: Callable[[Tuple[float, float, float]], float], resolution: Tuple[float, float, float]) -> Tuple[Plugins.RateOutletPlugin, Plugins.PostprocessPlugin]
+
+
+        Create :any:`RateOutletPlugin`
+        
+        Args:
+            name: name of the plugin
+            pvs: list of :any:`ParticleVector` that we'll work with
+            mass_rate: total outlet mass rate in the region
+            region: a function that is negative in the concerned region and positive outside
+            resolution: grid resolution to represent the region field
+        
     
 
     """
