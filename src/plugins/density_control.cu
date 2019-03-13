@@ -134,7 +134,7 @@ void DensityControlPlugin::setup(Simulation *simulation, const MPI_Comm& comm, c
 
     volumes   .resize(nLevelSets);
     densities .resize(nLevelSets);
-    densities .clear();
+    densities .assign(nLevelSets, 0.0f);
     
     computeVolumes(defaultStream, 1000000);
 
@@ -157,7 +157,7 @@ void DensityControlPlugin::beforeForces(cudaStream_t stream)
 void DensityControlPlugin::computeVolumes(cudaStream_t stream, int MCnSamples)
 {
     const int nthreads = 128;
-    float seed = 0.42424242f;
+    float seed = 0.42424242f + rank * 17;
     auto domain = state->domain;    
     int nLevelSets = nInsides.size();
 
@@ -182,6 +182,7 @@ void DensityControlPlugin::computeVolumes(cudaStream_t stream, int MCnSamples)
         subdomainVolume, localVolumes.devPtr());
 
     volumes.resize(nLevelSets);
+    volumes.assign(nLevelSets, 0.0);
     
     localVolumes.downloadFromDevice(stream);
     
