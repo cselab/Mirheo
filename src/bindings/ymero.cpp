@@ -210,7 +210,16 @@ void exportYmero(py::module& m)
         .def("isMasterTask",  &YMeRo::isMasterTask,  "Returns whether current task is the very first one")
         .def("start_profiler", &YMeRo::startProfiler, "Tells nvprof to start recording timeline")
         .def("stop_profiler",  &YMeRo::stopProfiler,  "Tells nvprof to stop recording timeline")
-        .def("save_dependency_graph_graphml",  &YMeRo::saveDependencyGraph_GraphML,  R"(
-            Exports `GraphML <http://graphml.graphdrawing.org/>`_ file with task graph for the current simulation time-step)")
+        .def("save_dependency_graph_graphml",  &YMeRo::saveDependencyGraph_GraphML,
+             "fname"_a, "current"_a = true, R"(
+             Exports `GraphML <http://graphml.graphdrawing.org/>`_ file with task graph for the current simulation time-step
+             
+             Args:
+                 fname: the output filename (without extension)
+                 current: if True, save the current non empty tasks; else, save all tasks that can exist in a simulation
+             
+             .. warning::
+                 if current is set to True, this must be called **after** :py:meth:`_ymero.ymero.run`.
+         )")
         .def("run", &YMeRo::run, "Run the simulation");
 }

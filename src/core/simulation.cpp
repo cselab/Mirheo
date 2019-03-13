@@ -192,12 +192,6 @@ float Simulation::getMaxEffectiveCutoff() const
     return interactionManager->getMaxEffectiveCutoff();
 }
 
-void Simulation::saveDependencyGraph_GraphML(std::string fname) const
-{
-    if (rank == 0)
-        scheduler->saveDependencyGraph_GraphML(fname);
-}
-
 void Simulation::startProfiler() const
 {
     CUDA_Check( cudaProfilerStart() );
@@ -747,37 +741,6 @@ void Simulation::execSplitters()
     }
 }
 
-void Simulation::init()
-{
-    info("Simulation initiated");
-
-    prepareCellLists();
-
-    prepareInteractions();
-    prepareBouncers();
-    prepareWalls();
-
-    interactionManager->check();
-
-    CUDA_Check( cudaDeviceSynchronize() );
-
-    preparePlugins();
-    prepareEngines();
-
-    info("Time-step is set to %f", getCurrentDt());
-    
-    createTasks();
-    buildDependencies();
-    
-    // Initial preparation
-    scheduler->forceExec( tasks->objHaloInit,         defaultStream );
-    scheduler->forceExec( tasks->objHaloFinalize,     defaultStream );
-    scheduler->forceExec( tasks->clearObjHaloForces,  defaultStream );
-    scheduler->forceExec( tasks->clearObjLocalForces, defaultStream );
-
-    execSplitters();
-}
-
 void Simulation::createTasks()
 {
 #define INIT(NAME, DESC) tasks -> NAME = scheduler->createTask(DESC);
@@ -1009,7 +972,19 @@ void Simulation::createTasks()
     }
 }
 
-void Simulation::buildDependencies()
+static void createTasksDummy(TaskScheduler *scheduler, SimulationTasks *tasks)
+{
+#define INIT(NAME, DESC) tasks -> NAME = scheduler->createTask(DESC);
+#define DUMMY_TASK(NAME, DESC) scheduler->addTask(tasks->NAME, [](cudaStream_t) {info("executing " DESC);});
+
+    TASK_LIST(INIT);
+    TASK_LIST(DUMMY_TASK);
+
+#undef INIT
+#undef DUMMY_TASK
+}
+
+static void buildDependencies(TaskScheduler *scheduler, SimulationTasks *tasks)
 {
     scheduler->addDependency(tasks->pluginsBeforeCellLists, { tasks->cellLists }, {});
     
@@ -1076,6 +1051,38 @@ void Simulation::buildDependencies()
     
     scheduler->compile();
 }
+
+void Simulation::init()
+{
+    info("Simulation initiated");
+
+    prepareCellLists();
+
+    prepareInteractions();
+    prepareBouncers();
+    prepareWalls();
+
+    interactionManager->check();
+
+    CUDA_Check( cudaDeviceSynchronize() );
+
+    preparePlugins();
+    prepareEngines();
+
+    info("Time-step is set to %f", getCurrentDt());
+    
+    createTasks();
+    buildDependencies(scheduler.get(), tasks.get());
+    
+    // Initial preparation
+    scheduler->forceExec( tasks->objHaloInit,         defaultStream );
+    scheduler->forceExec( tasks->objHaloFinalize,     defaultStream );
+    scheduler->forceExec( tasks->clearObjHaloForces,  defaultStream );
+    scheduler->forceExec( tasks->clearObjLocalForces, defaultStream );
+
+    execSplitters();
+}
+
 
 void Simulation::run(int nsteps)
 {
@@ -1196,7 +1203,22 @@ void Simulation::checkpoint()
     CUDA_Check( cudaDeviceSynchronize() );
 }
 
+void Simulation::saveDependencyGraph_GraphML(std::string fname, bool current) const
+{
+    if (rank != 0) return;
 
+    if (current)
+    {
+        scheduler->saveDependencyGraph_GraphML(fname);
+    }
+    else
+    {
+        TaskScheduler s;
+        SimulationTasks t;
+        
+        createTasksDummy(&s, &t);
+        buildDependencies(&s, &t);
 
-
-
+        s.saveDependencyGraph_GraphML(fname);
+    }
+}
