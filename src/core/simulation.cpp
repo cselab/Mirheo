@@ -764,7 +764,10 @@ void Simulation::init()
     preparePlugins();
     prepareEngines();
 
-    assemble();
+    info("Time-step is set to %f", getCurrentDt());
+    
+    createTasks();
+    buildDependencies();
     
     // Initial preparation
     scheduler->forceExec( tasks->objHaloInit,         defaultStream );
@@ -775,10 +778,8 @@ void Simulation::init()
     execSplitters();
 }
 
-void Simulation::assemble()
-{    
-    info("Time-step is set to %f", getCurrentDt());
-
+void Simulation::createTasks()
+{
 #define INIT(NAME, DESC) tasks -> NAME = scheduler->createTask(DESC);
     TASK_LIST(INIT);
 #undef INIT
@@ -1006,7 +1007,10 @@ void Simulation::assemble()
         if (every > 0)
             scheduler->addTask(tasks->wallCheck, [this, wall] (cudaStream_t stream) { wall->check(stream); }, every);
     }
-    
+}
+
+void Simulation::buildDependencies()
+{
     scheduler->addDependency(tasks->pluginsBeforeCellLists, { tasks->cellLists }, {});
     
     scheduler->addDependency(tasks->checkpoint, { tasks->clearFinalOutput }, { tasks->cellLists });

@@ -213,7 +213,8 @@ private:
     void prepareEngines();
     
     void execSplitters();
-    
-    void assemble();
+
+    void createTasks();
+    void buildDependencies();
 };
 
