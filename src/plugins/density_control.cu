@@ -200,6 +200,7 @@ void DensityControlPlugin::computeVolumes(cudaStream_t stream, int MCnSamples)
     localVolumes.downloadFromDevice(stream);
     
     MPI_Check( MPI_Allreduce(localVolumes.hostPtr(), volumes.data(), volumes.size(), MPI_DOUBLE, MPI_SUM, comm) );
+    // std::copy(localVolumes.begin(), localVolumes.end(), volumes.begin());
 }
 
 void DensityControlPlugin::sample(cudaStream_t stream)
