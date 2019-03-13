@@ -25,15 +25,14 @@ public:
                          RegionFunc region, float3 resolution,
                          float levelLo, float levelHi, float levelSpace,
                          float Kp, float Ki, float Kd,
-                         int tuneEvery, int sampleEvery);
+                         int tuneEvery, int dumpEvery, int sampleEvery);
     
     ~DensityControlPlugin();
 
     void setup(Simulation *simulation, const MPI_Comm& comm, const MPI_Comm& interComm) override;
-
     void beforeForces(cudaStream_t stream) override;
-
-    bool needPostproc() override { return false; }
+    void serializeAndSend(cudaStream_t stream) override;
+    bool needPostproc() override { return true; }
 
     struct LevelBounds
     {
@@ -42,7 +41,7 @@ public:
     
 private:
 
-    int sampleEvery, tuneEvery;
+    int sampleEvery, dumpEvery, tuneEvery;
     std::vector<std::string> pvNames;
     std::vector<ParticleVector*> pvs;
 
@@ -60,7 +59,8 @@ private:
     
     std::vector<PidControl<float>> controllers;
     float Kp, Ki, Kd;
-    
+
+    std::vector<char> sendBuffer;
 private:
 
     void computeVolumes(cudaStream_t stream, int MCnSamples);
@@ -70,3 +70,16 @@ private:
 };
 
 
+
+
+class PostprocessDensityControl : public PostprocessPlugin
+{
+public:
+    PostprocessDensityControl(std::string name, std::string filename);
+    ~PostprocessDensityControl();
+
+    void deserialize(MPI_Status& stat) override;
+
+private:
+    FILE *fdump;
+};

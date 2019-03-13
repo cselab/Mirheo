@@ -79,6 +79,10 @@ void exportPlugins(py::module& m)
         This plugin applies forces to a set of particle vectors in order to get a constant density.
     )");
 
+    py::handlers_class<PostprocessDensityControl>(m, "PostprocessDensityControl", pypost, R"(
+        Dumps info from :any:`DensityControlPlugin`.
+    )");
+
     py::handlers_class<DensityOutletPlugin>(m, "DensityOutletPlugin", pysim, R"(
         This plugin removes particles from a set of :any:`ParticleVector` in a given region if the number density is larger than a given target.
     )");
@@ -345,13 +349,14 @@ void exportPlugins(py::module& m)
     )");
 
     m.def("__createDensityControl", &PluginFactory::createDensityControlPlugin, 
-          "compute_task"_a, "state"_a, "name"_a, "pvs"_a, "target_density"_a,
+          "compute_task"_a, "state"_a, "name"_a, "file_name"_a, "pvs"_a, "target_density"_a,
           "region"_a, "resolution"_a, "level_lo"_a, "level_hi"_a, "level_space"_a,
-          "Kp"_a, "Ki"_a, "Kd"_a, "tune_every"_a, "sample_every"_a, R"(
+          "Kp"_a, "Ki"_a, "Kd"_a, "tune_every"_a, "dump_every"_a, "sample_every"_a, R"(
         Create :any:`DensityControl` plugin
         
         Args:
             name: name of the plugin
+            file_name: output filename 
             pvs: list of :any:`ParticleVector` that we'll work with
             target_density: target number density (used only at boundaries of level sets)
             region: a scalar field which describes how to subdivide the domain. 
@@ -362,6 +367,7 @@ void exportPlugins(py::module& m)
             level_space: the size of one subregion in terms of level sets
             Kp, Ki, Kd: pid control parameters
             tune_every: update the forces every this amount of time steps
+            dump_every: dump densities and forces in file ``filename``
             sample_every: sample to average densities every this amount of time steps
     )");
 

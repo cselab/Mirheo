@@ -1,4 +1,5 @@
 #include "density_control.h"
+#include "utils/simple_serializer.h"
 
 #include <core/field/from_function.h>
 #include <core/field/utils.h>
@@ -99,7 +100,7 @@ DensityControlPlugin::DensityControlPlugin(const YmrState *state, std::string na
                                            RegionFunc region, float3 resolution,
                                            float levelLo, float levelHi, float levelSpace,
                                            float Kp, float Ki, float Kd,
-                                           int tuneEvery, int sampleEvery) :
+                                           int tuneEvery, int dumpEvery, int sampleEvery) :
     SimulationPlugin(state, name),
     pvNames(pvNames),
     targetDensity(targetDensity),
@@ -108,6 +109,7 @@ DensityControlPlugin::DensityControlPlugin(const YmrState *state, std::string na
     levelBounds({levelLo, levelHi, levelSpace}),
     Kp(Kp), Ki(Ki), Kd(Kd),
     tuneEvery(tuneEvery),
+    dumpEvery(dumpEvery),
     sampleEvery(sampleEvery),
     nSamples(0)
 {}
@@ -140,12 +142,13 @@ void DensityControlPlugin::setup(Simulation *simulation, const MPI_Comm& comm, c
 
     nInsides  .clearDevice(defaultStream);    
     forces    .clearDevice(defaultStream);
+    nSamples = 0;
 }
 
 
 void DensityControlPlugin::beforeForces(cudaStream_t stream)
 {
-    if (state->currentStep % tuneEvery == 0)
+    if (state->currentStep % tuneEvery == 0 && state->currentStep != 0)
         updatePids(stream);
 
     if (state->currentStep % sampleEvery == 0)
@@ -153,6 +156,16 @@ void DensityControlPlugin::beforeForces(cudaStream_t stream)
 
     applyForces(stream);
 }
+
+void DensityControlPlugin::serializeAndSend(cudaStream_t stream)
+{
+    if (state->currentStep % dumpEvery != 0) return;
+
+    waitPrevSend();
+    SimpleSerializer::serialize(sendBuffer, state->currentTime, state->currentStep, densities, forces);
+    send(sendBuffer);
+}
+
 
 void DensityControlPlugin::computeVolumes(cudaStream_t stream, int MCnSamples)
 {
@@ -225,10 +238,7 @@ void DensityControlPlugin::updatePids(cudaStream_t stream)
 
     for (int i = 0; i < densities.size(); ++i)
     {
-        float rhom = i > 0 ? densities[i-1] : targetDensity;
-        float rho  = densities[i];
-        float error = (rho - rhom) / levelBounds.space;
-        
+        float error = densities[i] - targetDensity;        
         forces[i] = controllers[i].update(error);
     }
 
@@ -254,3 +264,36 @@ void DensityControlPlugin::applyForces(cudaStream_t stream)
     }    
 }
 
+
+
+
+PostprocessDensityControl::PostprocessDensityControl(std::string name, std::string filename) :
+    PostprocessPlugin(name)
+{
+    fdump = fopen(filename.c_str(), "w");
+    if (!fdump)
+        die("Could not open file '%s'", filename.c_str());
+}
+
+PostprocessDensityControl::~PostprocessDensityControl()
+{
+    fclose(fdump);
+}
+
+void PostprocessDensityControl::deserialize(MPI_Status& stat)
+{
+    int currentTimeStep;
+    TimeType currentTime;
+    std::vector<float> densities, forces;
+
+    SimpleSerializer::deserialize(data, currentTime, currentTimeStep, densities, forces);
+
+    if (rank == 0) {
+        fprintf(fdump, "%g %d ", currentTime, currentTimeStep);
+        for (auto d : densities) fprintf(fdump, "%g ", d);
+        for (auto f : forces)    fprintf(fdump, "%g ", f);
+        fprintf(fdump, "\n");
+        
+        fflush(fdump);
+    }
+}
