@@ -33,7 +33,7 @@ public:
 
     void beforeForces(cudaStream_t stream) override;
 
-    bool needPostproc() override { return false; }    
+    bool needPostproc() override { return false; }
 
     struct LevelBounds
     {
@@ -55,10 +55,10 @@ private:
     PinnedBuffer<unsigned long long int> nInsides;  /// number of samples per subregion
     std::vector<double> volumes;                    /// volume of each subregion
 
-    PinnedBuffer<float> densities;
-    DeviceBuffer<float> forces;
+    std::vector<float> densities;
+    PinnedBuffer<float> forces;
     
-    DeviceBuffer<PidControl<float>> controllers;
+    std::vector<PidControl<float>> controllers;
     float Kp, Ki, Kd;
     
 private:

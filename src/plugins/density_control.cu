@@ -24,16 +24,6 @@ __device__ int getLevelId(const FieldDeviceHandler& field, const float3& r,
         INVALID_LEVEL;
 }
 
-__global__ void initPIDs(int n, float Kp, float Ki, float Kd, PidControl<float> *controllers)
-{
-    int i = threadIdx.x + blockIdx.x * blockDim.x;
-
-    if (i >= n) return;
-
-    const float initError = 0;
-    controllers[i] = PidControl<float>(initError, Kp, Ki, Kd);
-}
-
 __global__ void countInsideRegions(int nSamples, DomainInfo domain, FieldDeviceHandler field, DensityControlPlugin::LevelBounds lb,
                                    float seed, unsigned long long int *nInsides)
 {
@@ -62,8 +52,6 @@ __global__ void computeVolumes(int nLevels, int nSamples, const unsigned long lo
     volumes[i] = v;
 }
 
-
-
 __global__ void collectSamples(PVview view, FieldDeviceHandler field, DensityControlPlugin::LevelBounds lb, unsigned long long int *nInsides)
 {
     int i = threadIdx.x + blockIdx.x * blockDim.x;
@@ -76,28 +64,6 @@ __global__ void collectSamples(PVview view, FieldDeviceHandler field, DensityCon
 
     if (levelId != INVALID_LEVEL)
         atomicAdd(&nInsides[levelId], 1);
-}
-
-__global__ void addDensity(int n, const unsigned long long int *nInsides, const float *volumes, float *densities)
-{
-    int i = threadIdx.x + blockIdx.x * blockDim.x;
-    if (i >= n) return;
-
-    densities[i] += nInsides[i] / volumes[i];
-}
-
-
-__global__ void updateForces(int n, float targetDensity, float h, const float *densities, PidControl<float> *controllers, float *forces)
-{
-    int i = threadIdx.x + blockIdx.x * blockDim.x;
-    if (i >= n) return;
-
-    float rho_m = i > 0     ? densities[i-1] : targetDensity;
-    float rho_p = i < n - 1 ? densities[i+1] : targetDensity;
-
-    float error = (rho_p - rho_m) / (2.f*h);
-    
-    forces[i] = controllers[i].update(error);
 }
 
 __global__ void applyForces(PVview view, FieldDeviceHandler field, DensityControlPlugin::LevelBounds lb, const float *forces)
@@ -159,25 +125,20 @@ void DensityControlPlugin::setup(Simulation *simulation, const MPI_Comm& comm, c
 
     int nLevelSets = (levelBounds.hi - levelBounds.lo) / levelBounds.space;
     levelBounds.space = (levelBounds.hi - levelBounds.lo) / nLevelSets;
-
-    controllers  .resize_anew(nLevelSets);
+    
     nInsides     .resize_anew(nLevelSets);    
-    densities    .resize_anew(nLevelSets);
     forces       .resize_anew(nLevelSets);
 
-    volumes.resize(nLevelSets);
+    const float initError = 0;
+    controllers.assign(nLevelSets, PidControl<float>(initError, Kp, Ki, Kd));
+
+    volumes   .resize(nLevelSets);
+    densities .resize(nLevelSets);
+    densities .clear();
     
     computeVolumes(defaultStream, 1000000);
 
-    int nthreads = 128;
-    
-    SAFE_KERNEL_LAUNCH(
-        DensityControlPluginKernels::initPIDs,
-        getNblocks(nLevelSets, nthreads), nthreads, 0, defaultStream,
-        nLevelSets, Kp, Ki, Kd, controllers.devPtr());    
-
-    nInsides  .clearDevice(defaultStream);
-    densities .clearDevice(defaultStream);
+    nInsides  .clearDevice(defaultStream);    
     forces    .clearDevice(defaultStream);
 }
 
@@ -247,8 +208,6 @@ void DensityControlPlugin::sample(cudaStream_t stream)
 
 void DensityControlPlugin::updatePids(cudaStream_t stream)
 {
-    const int nthreads = 128;
-    
     nInsides.downloadFromDevice(stream);    
     
     MPI_Check( MPI_Allreduce(MPI_IN_PLACE, nInsides.hostPtr(), nInsides.size(),
@@ -261,16 +220,19 @@ void DensityControlPlugin::updatePids(cudaStream_t stream)
         densities[i] = (denom > 1e-6) ? 
             nInsides[i] / denom :
             0.0;
+    }       
+
+    for (int i = 0; i < densities.size(); ++i)
+    {
+        float rhom = i > 0 ? densities[i-1] : targetDensity;
+        float rho  = densities[i];
+        float error = (rho - rhom) / levelBounds.space;
+        
+        forces[i] = controllers[i].update(error);
     }
+
+    forces.uploadToDevice(stream);
     
-    densities.uploadToDevice(stream);
-
-    SAFE_KERNEL_LAUNCH(
-        DensityControlPluginKernels::updateForces,
-        getNblocks(densities.size(), nthreads), nthreads, 0, stream,
-        densities.size(), targetDensity, levelBounds.space, densities.devPtr(),
-        controllers.devPtr(), forces.devPtr());
-
     nInsides.clearDevice(stream);
     nSamples = 0;
 }
