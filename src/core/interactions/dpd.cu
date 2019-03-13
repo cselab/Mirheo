@@ -48,8 +48,8 @@ void InteractionDPD::halo(ParticleVector *pv1, ParticleVector *pv2,
     impl->halo(pv1, pv2, cl1, cl2, stream);
 }
 
-void InteractionDPD::setSpecificPair(ParticleVector* pv1, ParticleVector* pv2, 
-        float a, float gamma, float kbt, float power)
+void InteractionDPD::setSpecificPair(ParticleVector *pv1, ParticleVector *pv2, 
+                                     float a, float gamma, float kbt, float power)
 {
     if (a     == Default) a     = this->a;
     if (gamma == Default) gamma = this->gamma;

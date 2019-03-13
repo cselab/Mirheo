@@ -19,7 +19,7 @@ InteractionDPDWithStress::InteractionDPDWithStress(const YmrState *state, std::s
 
 InteractionDPDWithStress::~InteractionDPDWithStress() = default;
 
-void InteractionDPDWithStress::setSpecificPair(ParticleVector* pv1, ParticleVector* pv2, 
+void InteractionDPDWithStress::setSpecificPair(ParticleVector *pv1, ParticleVector *pv2, 
                                                float a, float gamma, float kbt, float power)
 {
     if (a     == Default) a     = this->a;
