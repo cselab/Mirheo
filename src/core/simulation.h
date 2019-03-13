@@ -29,6 +29,7 @@ class Bouncer;
 class ObjectBelongingChecker;
 class SimulationPlugin;
 
+struct SimulationTasks;
 
 class Simulation
 {
@@ -114,6 +115,7 @@ private:
     int rank;
 
     std::unique_ptr<TaskScheduler> scheduler;
+    std::unique_ptr<SimulationTasks> tasks;
 
     std::unique_ptr<InteractionManager> interactionManager;
 
