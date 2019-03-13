@@ -21,44 +21,44 @@
 #include <algorithm>
 #include <cuda_profiler_api.h>
 
-#define TASK_LIST(OP)                                                   \
-    OP(checkpoint                          , "Checkpoint")              \
-    OP(cellLists                           , "Build cell-lists")        \
-    OP(integration                         , "Integration")             \
-    OP(clearIntermediate                   , "Clear intermediate")      \
-    OP(haloIntermediateInit                , "Halo intermediate init")  \
-    OP(haloIntermediateFinalize            , "Halo intermediate finalize") \
-    OP(localIntermediate                   , "Local intermediate")      \
-    OP(haloIntermediate                    , "Halo intermediate")       \
-    OP(accumulateInteractionIntermediate   , "Accumulate intermediate") \
-    OP(gatherInteractionIntermediate       , "Gather intermediate")     \
-    OP(clearFinalOutput                    , "Clear forces")            \
-    OP(haloInit                            , "Halo init")               \
-    OP(haloFinalize                        , "Halo finalize")           \
-    OP(localForces                         , "Local forces")            \
-    OP(haloForces                          , "Halo forces")             \
-    OP(accumulateInteractionFinal          , "Accumulate forces")       \
-    OP(objHaloInit                         , "Object halo init")        \
-    OP(objHaloFinalize                     , "Object halo finalize")    \
-    OP(objForcesInit                       , "Object forces exchange: init") \
-    OP(objForcesFinalize                   , "Object forces exchange: finalize") \
-    OP(clearObjHaloForces                  , "Clear object halo forces") \
-    OP(clearObjLocalForces                 , "Clear object local forces") \
-    OP(objLocalBounce                      , "Local object bounce")     \
-    OP(objHaloBounce                       , "Halo object bounce")      \
-    OP(correctObjBelonging                 , "Correct object belonging") \
-    OP(wallBounce                          , "Wall bounce")             \
-    OP(wallCheck                           , "Wall check")              \
-    OP(redistributeInit                    , "Redistribute init")       \
-    OP(redistributeFinalize                , "Redistribute finalize")   \
-    OP(objRedistInit                       , "Object redistribute init") \
-    OP(objRedistFinalize                   , "Object redistribute finalize") \
-    OP(pluginsBeforeCellLists              , "Plugins: before cell lists") \
-    OP(pluginsBeforeForces                 , "Plugins: before forces")  \
-    OP(pluginsSerializeSend                , "Plugins: serialize and send") \
-    OP(pluginsBeforeIntegration            , "Plugins: before integration") \
-    OP(pluginsAfterIntegration             , "Plugins: after integration") \
-    OP(pluginsBeforeParticlesDistribution  , "Plugins: before particles distribution")
+#define TASK_LIST(_)                                                   \
+    _( checkpoint                          , "Checkpoint")              \
+    _( cellLists                           , "Build cell-lists")        \
+    _( integration                         , "Integration")             \
+    _( clearIntermediate                   , "Clear intermediate")      \
+    _( haloIntermediateInit                , "Halo intermediate init")  \
+    _( haloIntermediateFinalize            , "Halo intermediate finalize") \
+    _( localIntermediate                   , "Local intermediate")      \
+    _( haloIntermediate                    , "Halo intermediate")       \
+    _( accumulateInteractionIntermediate   , "Accumulate intermediate") \
+    _( gatherInteractionIntermediate       , "Gather intermediate")     \
+    _( clearFinalOutput                    , "Clear forces")            \
+    _( haloInit                            , "Halo init")               \
+    _( haloFinalize                        , "Halo finalize")           \
+    _( localForces                         , "Local forces")            \
+    _( haloForces                          , "Halo forces")             \
+    _( accumulateInteractionFinal          , "Accumulate forces")       \
+    _( objHaloInit                         , "Object halo init")        \
+    _( objHaloFinalize                     , "Object halo finalize")    \
+    _( objForcesInit                       , "Object forces exchange: init") \
+    _( objForcesFinalize                   , "Object forces exchange: finalize") \
+    _( clearObjHaloForces                  , "Clear object halo forces") \
+    _( clearObjLocalForces                 , "Clear object local forces") \
+    _( objLocalBounce                      , "Local object bounce")     \
+    _( objHaloBounce                       , "Halo object bounce")      \
+    _( correctObjBelonging                 , "Correct object belonging") \
+    _( wallBounce                          , "Wall bounce")             \
+    _( wallCheck                           , "Wall check")              \
+    _( redistributeInit                    , "Redistribute init")       \
+    _( redistributeFinalize                , "Redistribute finalize")   \
+    _( objRedistInit                       , "Object redistribute init") \
+    _( objRedistFinalize                   , "Object redistribute finalize") \
+    _( pluginsBeforeCellLists              , "Plugins: before cell lists") \
+    _( pluginsBeforeForces                 , "Plugins: before forces")  \
+    _( pluginsSerializeSend                , "Plugins: serialize and send") \
+    _( pluginsBeforeIntegration            , "Plugins: before integration") \
+    _( pluginsAfterIntegration             , "Plugins: after integration") \
+    _( pluginsBeforeParticlesDistribution  , "Plugins: before particles distribution")
 
 
 struct SimulationTasks
@@ -767,10 +767,10 @@ void Simulation::init()
     assemble();
     
     // Initial preparation
-    scheduler->forceExec( tasks->objHaloInit, 0 );
-    scheduler->forceExec( tasks->objHaloFinalize, 0 );
-    scheduler->forceExec( tasks->clearObjHaloForces, 0 );
-    scheduler->forceExec( tasks->clearObjLocalForces, 0 );
+    scheduler->forceExec( tasks->objHaloInit,         defaultStream );
+    scheduler->forceExec( tasks->objHaloFinalize,     defaultStream );
+    scheduler->forceExec( tasks->clearObjHaloForces,  defaultStream );
+    scheduler->forceExec( tasks->clearObjLocalForces, defaultStream );
 
     execSplitters();
 }
@@ -1091,7 +1091,7 @@ void Simulation::run(int nsteps)
     }
 
     // Finish the redistribution by rebuilding the cell-lists
-    scheduler->forceExec( tasks->cellLists, 0 );
+    scheduler->forceExec( tasks->cellLists, defaultStream );
 
     info("Finished with %d iterations", nsteps);
     MPI_Check( MPI_Barrier(cartComm) );
