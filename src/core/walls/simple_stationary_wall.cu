@@ -10,6 +10,7 @@
 
 #include <core/bounce_solver.h>
 #include <core/celllist.h>
+#include <core/field/utils.h>
 #include <core/logger.h>
 #include <core/pvs/extra_data/packers.h>
 #include <core/pvs/object_vector.h>
@@ -193,14 +194,7 @@ __global__ void computeSdfPerParticle(PVview view, float gradientThreshold, floa
 
     if (gradients != nullptr && sdf > -gradientThreshold)
     {
-        float sdf_mx = checker(p.r + make_float3(-h,  0,  0));
-        float sdf_px = checker(p.r + make_float3( h,  0,  0));
-        float sdf_my = checker(p.r + make_float3( 0, -h,  0));
-        float sdf_py = checker(p.r + make_float3( 0,  h,  0));
-        float sdf_mz = checker(p.r + make_float3( 0,  0, -h));
-        float sdf_pz = checker(p.r + make_float3( 0,  0,  h));
-
-        float3 grad = make_float3( sdf_px - sdf_mx, sdf_py - sdf_my, sdf_pz - sdf_mz ) * (1.0f / (2.0f*h));
+        float3 grad = computeGradient(checker, p.r, h);
 
         if (dot(grad, grad) < zeroTolerance)
             gradients[pid] = make_float3(0, 0, 0);

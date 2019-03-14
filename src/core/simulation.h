@@ -28,7 +28,7 @@ class InitialConditions;
 class Bouncer;
 class ObjectBelongingChecker;
 class SimulationPlugin;
-
+struct SimulationTasks;
 
 class Simulation
 {
@@ -97,7 +97,7 @@ public:
 
     float getMaxEffectiveCutoff() const;
     
-    void saveDependencyGraph_GraphML(std::string fname) const;
+    void saveDependencyGraph_GraphML(std::string fname, bool current) const;
 
 
 private:    
@@ -114,6 +114,7 @@ private:
     int rank;
 
     std::unique_ptr<TaskScheduler> scheduler;
+    std::unique_ptr<SimulationTasks> tasks;
 
     std::unique_ptr<InteractionManager> interactionManager;
 
@@ -211,7 +212,7 @@ private:
     void prepareEngines();
     
     void execSplitters();
-    
-    void assemble();
+
+    void createTasks();
 };
 

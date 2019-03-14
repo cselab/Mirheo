@@ -518,10 +518,10 @@ bool YMeRo::isMasterTask() const
     return (rank == 0 && isComputeTask());
 }
 
-void YMeRo::saveDependencyGraph_GraphML(std::string fname) const
+void YMeRo::saveDependencyGraph_GraphML(std::string fname, bool current) const
 {
     if (isComputeTask())
-        sim->saveDependencyGraph_GraphML(fname);
+        sim->saveDependencyGraph_GraphML(fname, current);
 }
 
 void YMeRo::startProfiler()
