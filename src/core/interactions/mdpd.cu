@@ -16,8 +16,10 @@
 InteractionDensity::InteractionDensity(const YmrState *state, std::string name, float rc) :
     Interaction(state, name, rc)
 {
-    PairwiseDensity density(rc);
-    impl = std::make_unique<InteractionPair<PairwiseDensity>> (state, name, rc, density);
+    using PairwiseDensityType = PairwiseDensity<SimpleMPDPDDendityKernel>;
+    
+    PairwiseDensityType density(rc, SimpleMPDPDDendityKernel());
+    impl = std::make_unique<InteractionPair<PairwiseDensityType>> (state, name, rc, density);
 }
 
 InteractionDensity::~InteractionDensity() = default;

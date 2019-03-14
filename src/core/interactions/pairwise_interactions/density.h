@@ -1,5 +1,6 @@
 #pragma once
 
+#include "density_kernels.h"
 #include "fetchers.h"
 
 #include <core/interactions/accumulators/density.h>
@@ -8,6 +9,7 @@
 class CellList;
 class LocalParticleVector;
 
+template <typename DensityKernel>
 class PairwiseDensity : public ParticleFetcher
 {
 public:
@@ -16,11 +18,11 @@ public:
     using ParticleType = Particle;
     using HandlerType = PairwiseDensity;
     
-    PairwiseDensity(float rc) :
-        ParticleFetcher(rc)
+    PairwiseDensity(float rc, DensityKernel densityKernel) :
+        ParticleFetcher(rc),
+        densityKernel(densityKernel)
     {
         invrc = 1.0 / rc;
-        fact = 15.0 / (2 * M_PI * rc2 * rc);
     }
 
     __D__ inline float operator()(const ParticleType dst, int dstId, const ParticleType src, int srcId) const
@@ -30,9 +32,8 @@ public:
         if (rij2 > rc2) return 0.0f;
 
         float rij = sqrtf(rij2);
-        float argwr = 1.0f - rij * invrc;
 
-        return fact * argwr * argwr;
+        return densityKernel(rij, invrc);
     }
 
     __D__ inline DensityAccumulator getZeroedAccumulator() const {return DensityAccumulator();}
@@ -44,9 +45,10 @@ public:
     }
     
     void setup(LocalParticleVector *lpv1, LocalParticleVector *lpv2, CellList *cl1, CellList *cl2, const YmrState *state)
-    {}   
+    {}
 
 protected:
 
-    float invrc, fact;
+    float invrc;
+    DensityKernel densityKernel;
 };
