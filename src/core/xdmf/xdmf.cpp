@@ -246,6 +246,8 @@ static void readData(std::string filename, MPI_Comm comm, PV *pv, int chunk_size
     long nElements = getLocalNumElements(grid.getGridDims());
     channelData.resize(channels.size());        
 
+    debug("Got %d channels with %d items each", channels.size(), nElements);
+
     for (int i = 0; i < channels.size(); ++i) {
         channelData[i].resize(nElements * channels[i].nComponents() * channels[i].precision());
         channels[i].data = channelData[i].data();

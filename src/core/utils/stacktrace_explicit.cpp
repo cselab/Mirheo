@@ -15,3 +15,8 @@ void pretty_stacktrace(std::ostream& stream)
     p.address = true;
     p.print(st, stream);
 }
+
+void register_signals()
+{
+    backward::SignalHandling sh;
+}

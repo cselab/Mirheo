@@ -113,7 +113,13 @@ void exportYmero(py::module& m)
         .def("setIntegrator",  &YMeRo::setIntegrator,  "Set Integrator")
         .def("setInteraction", &YMeRo::setInteraction,
              "interaction"_a, "pv1"_a, "pv2"_a, R"(
-                Forces between two Particle Vectors (they can be the same) *name1* and *name2* will be computed according to the defined interaction.
+                Forces between two :any:`ParticleVector`s (they can be the same) will be computed according to the defined interaction.
+
+                Args:
+                    interaction: :any:`Interaction` to apply
+                    pv1: first :any:`ParticleVector`
+                    pv2: second :any:`ParticleVector`
+
         )")
         .def("setBouncer",     &YMeRo::setBouncer,     "Set Bouncer")
         .def("setWall",        &YMeRo::setWallBounce,  "Set Wall")
@@ -205,7 +211,20 @@ void exportYmero(py::module& m)
                     
         )")
         
-        .def("restart", &YMeRo::restart, "Restart the simulation")
+        .def("restart", &YMeRo::restart,
+             "folder"_a="restart/", R"(
+               Restart the simulation. This function should typically be called just before running the simulation.
+               It will read the state of all previously registered :any:`ParticleVector`s, :any:`Interaction`s, etc.
+               If the folder contains no checkpoint file required for one of those, an error occur.
+               
+               .. warning::
+                  Certain :any:`Plugin`s may not implement restarting mechanism and will not restart correctly.
+                  Please check the documentation for the plugins.
+
+               Args:
+                   folder: folder with the checkpoint files
+        )")
+
         .def("isComputeTask", &YMeRo::isComputeTask, "Returns whether current rank will do compute or postrprocess")
         .def("isMasterTask",  &YMeRo::isMasterTask,  "Returns whether current task is the very first one")
         .def("start_profiler", &YMeRo::startProfiler, "Tells nvprof to start recording timeline")

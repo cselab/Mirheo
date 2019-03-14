@@ -86,6 +86,8 @@ public:
         fout = fopen( (start+"_"+rankStr+end).c_str(), "w");
 
         setDebugLvl(debugLvl);
+
+        register_signals();
     }
 
     /**

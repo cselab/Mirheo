@@ -325,6 +325,9 @@ void ParticleVector::_getRestartExchangeMap(MPI_Comm comm, const std::vector<Par
         int procId;
         MPI_Check( MPI_Cart_rank(comm, (int*)&procId3, &procId) );
         map[i] = procId;
+
+        int rank;
+        MPI_Comm_rank(comm, &rank);
     }
 }
 
@@ -337,7 +340,9 @@ std::vector<int> ParticleVector::_restartParticleData(MPI_Comm comm, std::string
 
     XDMF::readParticleData(filename, comm, this);
 
-    std::vector<Particle> parts(local()->coosvels.begin(), local()->coosvels.end());
+    std::vector<Particle> parts(local()->size());
+    std::copy(local()->coosvels.begin(), local()->coosvels.end(), parts.begin());
+
     std::vector<int> map;
     
     _getRestartExchangeMap(comm, parts, map);
