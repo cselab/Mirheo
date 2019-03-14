@@ -18,7 +18,7 @@ public:
 class WendlandC2DensityKernel
 {
 public:
-    static constexpr float normalization = 21 / (2 * M_PI);
+    static constexpr float normalization = 21.0 / (2.0 * M_PI);
 
     __D__ inline float operator()(float r, float inv_rc) const
     {
@@ -33,6 +33,6 @@ public:
     {
         float r_ = r * inv_rc;
         float rm = r_ - 1.f;
-        return normalization * 4 * r_ * rm*rm*rm * inv_rc;
+        return normalization * 20 * r_ * rm*rm*rm * inv_rc;
     }
 };

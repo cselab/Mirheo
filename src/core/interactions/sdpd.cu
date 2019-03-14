@@ -15,7 +15,8 @@ BasicInteractionSDPD::BasicInteractionSDPD(const YmrState *state, std::string na
                                            float viscosity, float kBT) :
     Interaction(state, name, rc),
     viscosity(viscosity),
-    kBT(kBT)
+    kBT(kBT),
+    impl(nullptr)
 {}
 
 BasicInteractionSDPD::~BasicInteractionSDPD() = default;
@@ -26,7 +27,7 @@ void BasicInteractionSDPD::setPrerequisites(ParticleVector *pv1, ParticleVector 
 
     pv1->requireDataPerParticle<float>(ChannelNames::densities, ExtraDataManager::PersistenceMode::None);
     pv2->requireDataPerParticle<float>(ChannelNames::densities, ExtraDataManager::PersistenceMode::None);
-    
+
     cl1->requireExtraDataPerParticle<float>(ChannelNames::densities);
     cl2->requireExtraDataPerParticle<float>(ChannelNames::densities);
 }
@@ -69,7 +70,6 @@ InteractionSDPD<PressureEOS, DensityKernel>::InteractionSDPD(const YmrState *sta
 {
     if (allocateImpl) {
         using pairwiseType = PairwiseSDPD<PressureEOS, DensityKernel>;
-        
         pairwiseType sdpd(rc, pressure, densityKernel, viscosity, kBT, state->dt);
         impl = std::make_unique<InteractionPair<pairwiseType>> (state, name, rc, sdpd);
     }

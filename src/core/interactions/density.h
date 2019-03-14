@@ -6,9 +6,8 @@
 class BasicInteractionDensity : public Interaction
 {
 public:
-    BasicInteractionDensity(const YmrState *state, std::string name, float rc);
     ~BasicInteractionDensity();
-
+    
     void setPrerequisites(ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2) override;
     
     std::vector<InteractionChannel> getIntermediateOutputChannels() const override;
@@ -18,6 +17,7 @@ public:
     void halo  (ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2, cudaStream_t stream) override;
         
 protected:
+    BasicInteractionDensity(const YmrState *state, std::string name, float rc);
 
     std::unique_ptr<Interaction> impl;
 };

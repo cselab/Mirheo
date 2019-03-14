@@ -27,8 +27,8 @@ public:
         ParticleFetcherWithVelocityAndDensity(rc),
         pressure(pressure),
         densityKernel(densityKernel),
-        eta(viscosity),
-        fRfact(sqrt(2 * zeta * viscosity * kBT / dt))
+        fRfact(sqrt(2 * zeta * viscosity * kBT / dt)),
+        fDfact(viscosity * zeta)
     {
         inv_rc = 1.0 / rc;
     }
@@ -38,12 +38,15 @@ public:
         float3 dr = dst.p.r - src.p.r;
         float rij2 = dot(dr, dr);
         if (rij2 > rc2) return make_float3(0.0f);
+        
+        float di = dst.d + densityKernel(0.f, inv_rc); // add self contribution
+        float dj = src.d + densityKernel(0.f, inv_rc);
+        
+        float pi = pressure(di);
+        float pj = pressure(dj);
 
-        float pi = pressure(dst.d);
-        float pj = pressure(src.d);
-
-        float inv_disq = 1.f / (dst.d * dst.d);
-        float inv_djsq = 1.f / (src.d * src.d);
+        float inv_disq = 1.f / (di * di);
+        float inv_djsq = 1.f / (dj * dj);
 
         float inv_rij = rsqrtf(rij2);
         float rij = rij2 * inv_rij;
@@ -56,9 +59,9 @@ public:
         float myrandnr = Logistic::mean0var1(seed, min(src.p.i1, dst.p.i1), max(src.p.i1, dst.p.i1));
 
         float Aij = (inv_disq + inv_djsq) * dWdr;
-        float fC = (inv_disq * pi + inv_djsq * pj) * dWdr;
-        float fD = eta * Aij * zeta * inv_rij * erdotdu;
-        float fR = fRfact * sqrt(Aij * inv_rij) * myrandnr;
+        float fC = - (inv_disq * pi + inv_djsq * pj) * dWdr;
+        float fD = fDfact *        Aij * inv_rij  * erdotdu;
+        float fR = fRfact * sqrtf(-Aij * inv_rij) * myrandnr;
         
         return (fC + fD + fR) * er;
     }
@@ -71,7 +74,7 @@ protected:
     float seed;
     PressureEOS pressure;
     DensityKernel densityKernel;
-    float eta, fRfact;
+    float fDfact, fRfact;
 };
 
 template <typename PressureEOS, typename DensityKernel>
