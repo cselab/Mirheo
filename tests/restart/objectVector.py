@@ -18,9 +18,9 @@ domain = (16, 16, 16)
 dt = 0
 
 if args.restart:
-    u = ymr.ymero(MPI._addressof(comm), ranks, domain, dt, debug_level=8, log_filename='log', checkpoint_every=0)
+    u = ymr.ymero(ranks, domain, dt, comm_ptr=MPI._addressof(comm), debug_level=8, log_filename='log', checkpoint_every=0)
 else:
-    u = ymr.ymero(MPI._addressof(comm), ranks, domain, dt, debug_level=8, log_filename='log', checkpoint_every=5)
+    u = ymr.ymero(ranks, domain, dt, comm_ptr=MPI._addressof(comm), debug_level=8, log_filename='log', checkpoint_every=5)
 
     
 mesh = trimesh.creation.icosphere(subdivisions=1, radius = 0.1)

@@ -3,13 +3,13 @@
 import ymero as ymr
 from mpi4py import MPI
 
-def run(niter, statsFname, commAddress):
+def run(niter, statsFname, comm_address):
     dt = 0.001
 
     ranks  = (2, 1, 1)
     domain = (12, 8, 10)
     
-    u = ymr.ymero(commAddress, ranks, domain, dt, debug_level=8, log_filename='log')
+    u = ymr.ymero(ranks, domain, dt, debug_level=8, log_filename='log', comm_ptr=comm_address)
     
     pv = ymr.ParticleVectors.ParticleVector('pv', mass = 1)
     ic = ymr.InitialConditions.Uniform(density=2)

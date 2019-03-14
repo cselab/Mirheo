@@ -9,61 +9,45 @@ class ymero:
     
     """
     def __init__():
-        r"""__init__(*args, **kwargs)
-Overloaded function.
-
-1. __init__(nranks: Tuple[int, int, int], domain: Tuple[float, float, float], dt: float, log_filename: str = 'log', debug_level: int = 3, checkpoint_every: int = 0, restart_folder: str = 'restart/', cuda_aware_mpi: bool = False, no_splash: bool = False) -> None
+        r"""__init__(nranks: Tuple[int, int, int], domain: Tuple[float, float, float], dt: float, log_filename: str = 'log', debug_level: int = 3, checkpoint_every: int = 0, restart_folder: str = 'restart/', cuda_aware_mpi: bool = False, no_splash: bool = False, comm_ptr: int = 0) -> None
 
 
-            Args:
-                nranks:
-                    number of MPI simulation tasks per axis: x,y,z. If postprocess is enabled, the same number of the postprocess tasks will be running
-                domain:
-                    size of the simulation domain in x,y,z. Periodic boundary conditions are applied at the domain boundaries.
-                    The domain will be split in equal chunks between the MPI ranks.
-                    The largest chunk size that a single MPI rank can have depends on the total number of particles,
-                    handlers and hardware, and is typically about :math:`120^3 - 200^3`.
-                dt:
-                    timestep of the simulation
-                log_filename:
-                    prefix of the log files that will be created. 
-                    Logging is implemented in the form of one file per MPI rank, so in the simulation folder NP files with names log_00000.log, log_00001.log, ... 
-                    will be created, where NP is the total number of MPI ranks. 
-                    Each MPI task (including postprocess) writes messages about itself into his own log file, and the combined log may be created by merging all
-                    the individual ones and sorting with respect to time.
-                    If this parameter is set to 'stdout' or 'stderr' standard output or standard error streams will be used instead of the file, however, 
-                    there is no guarantee that messages from different ranks are synchronized
-                debug_level:
-                    Debug level varies from 1 to 8:
-                       #. only report fatal errors
-                       #. report serious errors
-                       #. report warnings (this is the default level)
-                       #. report not critical information
-                       #. report some debug information
-                       #. report more debug
-                       #. report all the debug
-                       #. force flushing to the file after each message
-
-                    .. warning::
-                        Debug levels above 4 or 5 may significanlty increase the runtime, they are only recommended to debug errors.
-                        Flushing increases the runtime yet more, but it is required in order not to lose any messages in case of abnormal program abort.
-                    
-                checkpoint_every:
-                    save state of the simulation components (particle vectors and handlers like integrators, plugins, etc.)
-                restart_folder:
-                    folder where the checkpoint files will reside
-                cuda_aware_mpi: 
-                    enable CUDA Aware MPI (GPU RDMA). As of now it may crash, or may yield slower execution.
-                no_splash: 
-                    Don't display the splash screen when at the start-up.
+                Create the YMeRo coordinator.
                 
-        
+                .. warning::
+                    Debug level determines the amount of output produced by each of the simulation processes:
 
-2. __init__(commPtr: int, nranks: Tuple[int, int, int], domain: Tuple[float, float, float], dt: float, log_filename: str = 'log', debug_level: int = 3, checkpoint_every: int = 0, restart_folder: str = 'restart/', cuda_aware_mpi: bool = False) -> None
-
-
-            Args:
-                commPtr: pointer to communicator
+					#. only report fatal errors
+					#. report serious errors
+					#. report warnings (this is the default level)
+					#. report not critical information
+					#. report some debug information
+					#. report more debug
+					#. report all the debug
+					#. force flushing to the file after each message
+                    
+                    Debug levels above 4 or 5 may significanlty increase the runtime, they are only recommended to debug errors.
+                    Flushing increases the runtime yet more, but it is required in order not to lose any messages in case of abnormal program abort.
+                
+                Args:
+                    nranks: number of MPI simulation tasks per axis: x,y,z. If postprocess is enabled, the same number of the postprocess tasks will be running
+                    domain: size of the simulation domain in x,y,z. Periodic boundary conditions are applied at the domain boundaries. The domain will be split in equal chunks between the MPI ranks.
+                        The largest chunk size that a single MPI rank can have depends on the total number of particles,
+                        handlers and hardware, and is typically about :math:`120^3 - 200^3`.
+                    dt: timestep of the simulation
+                    log_filename: prefix of the log files that will be created. 
+                        Logging is implemented in the form of one file per MPI rank, so in the simulation folder NP files with names log_00000.log, log_00001.log, ... 
+                        will be created, where NP is the total number of MPI ranks. 
+                        Each MPI task (including postprocess) writes messages about itself into his own log file, and the combined log may be created by merging all
+                        the individual ones and sorting with respect to time.
+                        If this parameter is set to 'stdout' or 'stderr' standard output or standard error streams will be used instead of the file, however, 
+                        there is no guarantee that messages from different ranks are synchronized
+                    debug_level: Debug level from 1 to 8, see above.
+                    checkpoint_every: save state of the simulation components (particle vectors and handlers like integrators, plugins, etc.)
+                    restart_folder: folder where the checkpoint files will reside
+                    cuda_aware_mpi: enable CUDA Aware MPI. The MPI library must support that feature, otherwise it may fail.
+                    no_splash: don't display the splash screen when at the start-up.
+                    comm_ptr: pointer to communicator. By default MPI_COMM_WORLD will be used
         
 
         """
@@ -79,16 +63,12 @@ Overloaded function.
                 Args:
                     checker: instance of :any:`BelongingChecker`
                     pv: :any:`ParticleVector` that will be split (source PV) 
-                    inside:
-                        if specified and not "none", a new :any:`ParticleVector` with name **inside** will be returned, that will keep the inner particles of the source PV. If set to "none", None object will be returned. In any case, the source PV will only contain the outer particles
-                    outside:
-                        if specified and not "none", a new :any:`ParticleVector` with name **outside** will be returned, that will keep the outer particles of the source PV. If set to "none", None object will be returned. In any case, the source PV will only contain the inner particles
-                    correct_every:
-                        If greater than zero, perform correction every this many time-steps.                        
+                    inside: if specified and not "none", a new :any:`ParticleVector` with name **inside** will be returned, that will keep the inner particles of the source PV. If set to "none", None object will be returned. In any case, the source PV will only contain the outer particles
+                    outside: if specified and not "none", a new :any:`ParticleVector` with name **outside** will be returned, that will keep the outer particles of the source PV. If set to "none", None object will be returned. In any case, the source PV will only contain the inner particles
+                    correct_every: If greater than zero, perform correction every this many time-steps.                        
                         Correction will move e.g. *inner* particles of outer PV to the :inner PV
                         and viceversa. If one of the PVs was defined as "none", the 'wrong' particles will be just removed.
-                    checkpoint_every:
-                        every that many timesteps the state of the newly created :any:`ParticleVector` (if any) will be saved to disk into the ./restart/ folder. Default value of 0 means no checkpoint.
+                    checkpoint_every: every that many timesteps the state of the newly created :any:`ParticleVector` (if any) will be saved to disk into the ./restart/ folder. Default value of 0 means no checkpoint.
                             
                 Returns:
                     New :any:`ParticleVector` or None depending on **inside** and **outside** options
@@ -280,11 +260,11 @@ Register Wall
 
 
                Restart the simulation. This function should typically be called just before running the simulation.
-               It will read the state of all previously registered :any:`ParticleVector`s, :any:`Interaction`s, etc.
+               It will read the state of all previously registered instances of :any:`ParticleVector`, :any:`Interaction`, etc.
                If the folder contains no checkpoint file required for one of those, an error occur.
                
                .. warning::
-                  Certain :any:`Plugin`s may not implement restarting mechanism and will not restart correctly.
+                  Certain :any:`Plugins` may not implement restarting mechanism and will not restart correctly.
                   Please check the documentation for the plugins.
 
                Args:
@@ -339,7 +319,7 @@ Set Integrator
         r"""setInteraction(interaction: Interaction, pv1: ParticleVector, pv2: ParticleVector) -> None
 
 
-                Forces between two :any:`ParticleVector`s (they can be the same) will be computed according to the defined interaction.
+                Forces between two instances of :any:`ParticleVector` (they can be the same) will be computed according to the defined interaction.
 
                 Args:
                     interaction: :any:`Interaction` to apply
