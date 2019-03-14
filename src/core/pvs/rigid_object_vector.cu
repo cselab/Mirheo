@@ -171,8 +171,11 @@ void RigidObjectVector::_restartObjectData(MPI_Comm comm, std::string path, cons
     auto loc_ids     = local()->extraPerObject.getData<int>(ChannelNames::globalIds);
     auto loc_motions = local()->extraPerObject.getData<RigidMotion>(ChannelNames::motions);
     
-    std::vector<int>             ids(loc_ids    ->begin(), loc_ids    ->end());
-    std::vector<RigidMotion> motions(loc_motions->begin(), loc_motions->end());
+    std::vector<int>             ids(loc_ids->size());
+    std::vector<RigidMotion> motions(loc_motions->size());
+    
+    std::copy(loc_ids    ->begin(), loc_ids    ->end(), ids.begin());
+    std::copy(loc_motions->begin(), loc_motions->end(), motions.begin());
     
     RestartHelpers::exchangeData(comm, map, ids, 1);
     RestartHelpers::exchangeData(comm, map, motions, 1);

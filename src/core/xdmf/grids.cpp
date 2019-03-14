@@ -195,22 +195,24 @@ void VertexGrid::read_from_XMF(const pugi::xml_node &node, std::string &h5filena
 void VertexGrid::split_read_access(MPI_Comm comm, int chunk_size)
 {
     int size, rank;
-    int chunk_global, chunk_local, chunk_offset;
     MPI_Check( MPI_Comm_rank(comm, &rank) );
     MPI_Check( MPI_Comm_size(comm, &size) );
 
-    chunk_global = dims.nglobal / chunk_size;
-    if (chunk_global * chunk_size != dims.nglobal)
+    int64_t nchunks_global = dims.nglobal / chunk_size;
+    if (nchunks_global * chunk_size != dims.nglobal)
         die("incompatible chunk size");
 
-    chunk_local  = (chunk_global + size - 1) / size;
-    chunk_offset = chunk_local * rank;
+    int64_t nchunks_local  = (nchunks_global + size - 1) / size;
+    int64_t chunks_offset = nchunks_local * rank;
 
-    if (chunk_offset + chunk_local > chunk_global)
-        chunk_local = chunk_global - chunk_offset;
+    // Don't read past the file size
+    chunks_offset = std::min(chunks_offset, nchunks_global);
 
-    dims.nlocal = chunk_local  * chunk_size;
-    dims.offset = chunk_offset * chunk_size;
+    if (chunks_offset + nchunks_local > nchunks_global)
+        nchunks_local = std::max(nchunks_global - chunks_offset, 0l);
+
+    dims.nlocal = nchunks_local * chunk_size;
+    dims.offset = chunks_offset * chunk_size;
 }
     
 void VertexGrid::read_from_HDF5(hid_t file_id, MPI_Comm comm)

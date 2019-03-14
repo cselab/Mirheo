@@ -95,6 +95,8 @@ static void readData(pugi::xml_node node, std::vector<Channel>& channels)
         
 void read(std::string filename, MPI_Comm comm, std::string &h5filename, Grid *grid, std::vector<Channel> &channels)
 {
+    debug2("Reading XMF header");
+    
     pugi::xml_document doc;
     auto parseResult = doc.load_file(filename.c_str());
 
@@ -109,6 +111,8 @@ void read(std::string filename, MPI_Comm comm, std::string &h5filename, Grid *gr
     readData(gridNode, channels);
 
     MPI_Check( MPI_Barrier(comm) );
+
+    debug2("Done with the XMF header");
 }
 
 } // namespace XMF

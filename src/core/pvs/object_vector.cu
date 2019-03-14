@@ -105,7 +105,8 @@ std::vector<int> ObjectVector::_restartParticleData(MPI_Comm comm, std::string p
 
     XDMF::readParticleData(filename, comm, this, objSize);
 
-    std::vector<Particle> parts(local()->coosvels.begin(), local()->coosvels.end());
+    std::vector<Particle> parts(local()->size());
+    std::copy(local()->coosvels.begin(), local()->coosvels.end(), parts.begin());
     std::vector<int> map;
     
     _getRestartExchangeMap(comm, parts, map);
@@ -186,7 +187,8 @@ void ObjectVector::_restartObjectData(MPI_Comm comm, std::string path, const std
 
     auto loc_ids = local()->extraPerObject.getData<int>(ChannelNames::globalIds);
     
-    std::vector<int> ids(loc_ids->begin(), loc_ids->end());
+    std::vector<int> ids(loc_ids->size());
+    std::copy(loc_ids->begin(), loc_ids->end(), ids.begin());
     
     RestartHelpers::exchangeData(comm, map, ids, 1);
 
