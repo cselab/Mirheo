@@ -8,12 +8,8 @@
 class BasicInteractionSDPD : public Interaction
 {
 public:
-    
-    BasicInteractionSDPD(const YmrState *state, std::string name, float rc,
-                         float viscosity, float kBT);
-
     ~BasicInteractionSDPD();
-
+    
     void setPrerequisites(ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2) override;
 
     std::vector<InteractionChannel> getIntermediateInputChannels() const override;
@@ -23,6 +19,9 @@ public:
     void halo  (ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2, cudaStream_t stream) override;
         
 protected:
+    
+    BasicInteractionSDPD(const YmrState *state, std::string name, float rc,
+                         float viscosity, float kBT);
 
     std::unique_ptr<Interaction> impl;
 
@@ -46,8 +45,6 @@ protected:
                     PressureEOS pressure, DensityKernel densityKernel,
                     float viscosity, float kBT, bool allocateImpl);
     
-    std::unique_ptr<Interaction> impl;
-
     PressureEOS pressure;
     DensityKernel densityKernel;
 };
