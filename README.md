@@ -14,7 +14,9 @@ For more information, please refer to the online documentation: http://ymero.rea
 
 ### unreleased
 
-* **interface change** Density interaction becomes MDPDDensity
+* **interface change** Density interaction need a density kernel
+* add first version of SDPD
+* add more density kernels
 * **docs**: add tutorials
 * **docs**: minor fixes
 * **internal**:
