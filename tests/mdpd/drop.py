@@ -23,7 +23,7 @@ u.registerParticleVector(pv=pv, ic=ic)
 rc = 1.0
 rd = 0.75
 
-den  = ymr.Interactions.Density('den', rd)
+den  = ymr.Interactions.Density('den', rd, kernel="MDPD")
 mdpd = ymr.Interactions.MDPD('mdpd', rc, rd, a=-40.0, b=40.0, gamma=10.0, kbt=0.5, power=0.5)
 u.registerInteraction(den)
 u.registerInteraction(mdpd)

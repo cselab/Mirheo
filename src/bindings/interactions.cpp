@@ -31,12 +31,36 @@ createInteractionMembrane(const YmrState *state, std::string name,
         }
         catch (const py::cast_error& e)
         {
-            die("Could not cast one of the arguments in membrane interactions");
+            die("Could not cast one of the arguments in membrane interactions '%s'", name.c_str());
         }        
     }    
     
     return InteractionFactory::createInteractionMembrane
         (state, name, shearDesc, bendingDesc, parameters, stressFree, growUntil);
+}
+
+
+static std::shared_ptr<BasicInteractionSDPD>
+createInteractionPairwiseSDPD(const YmrState *state, std::string name,
+                              float rc, float viscosity, float kBT,
+                              std::string EOS, std::string density, py::kwargs kwargs)
+{
+    std::map<std::string, float> parameters;
+
+    for (const auto& item : kwargs) {
+        try {
+            auto key   = py::cast<std::string>(item.first);
+            auto value = py::cast<float>(item.second);
+            parameters[key] = value;
+        }
+        catch (const py::cast_error& e)
+        {
+            die("Could not cast one of the arguments in pairwise DPD interactions '%s'", name.c_str());
+        }        
+    }    
+    
+    return InteractionFactory::createPairwiseSDPD
+        (state, name, rc, viscosity, kBT, EOS, density, parameters);
 }
 
 
@@ -105,30 +129,44 @@ void exportInteractions(py::module& m)
                 stressPeriod: compute the stresses every this period (in simulation time units)
     )");
 
-    py::handlers_class<InteractionDensity> pyIntDensity(m, "Density", pyInt, R"(
-        Compute MDPD density of particles, see [Warren2003]_
+    py::handlers_class<BasicInteractionDensity> pyIntDensity(m, "Density", pyInt, R"(
+        Compute density of particles with a given kernel. 
     
         .. math::
         
             \rho_i = \sum\limits_{j \neq i} w_\rho (r_{ij})
 
-        where the summation goes over the neighbours of particle :math:`i` within a cutoff range of :math:`r_c`, and
+        where the summation goes over the neighbours of particle :math:`i` within a cutoff range of :math:`r_c`.
+        The implemented densities are listed below:
 
-        .. math::
+
+        kernel "MDPD":
             
-            w_\rho(r) = \begin{cases} \frac{15}{2\pi r_d^3}\left(1-\frac{r}{r_d}\right)^2, & r < r_d \\ 0, & r \geqslant r_d \end{cases}            
+            see [Warren2003]_
+            
+            .. math::
+            
+                w_\rho(r) = \begin{cases} \frac{15}{2\pi r_d^3}\left(1-\frac{r}{r_d}\right)^2, & r < r_d \\ 0, & r \geqslant r_d \end{cases}
+        
+        kernel "WendlandC2":
+        
+            TODO
     )");
     
-    pyIntDensity.def(py::init<const YmrState*, std::string, float>(),
-                     "state"_a, "name"_a, "rc"_a, R"(  
-            Args:
-                name: name of the interaction
-                rc: interaction cut-off
+    pyIntDensity.def(py::init(&InteractionFactory::createPairwiseDensity),
+                     "state"_a, "name"_a, "rc"_a, "kernel"_a, R"(  
+        Args:
+            name: name of the interaction
+            rc: interaction cut-off
+            kernel: the density kernel to be used. possible choices are:
+            
+                * MDPD
+                * WendlandC2            
     )");
 
     py::handlers_class<InteractionMDPD> pyIntMDPD(m, "MDPD", pyInt, R"(
         Compute MDPD interaction as described in [Warren2003].
-        Must be used together with :any:`Density` interaction.
+        Must be used together with :any:`Density` interaction with kernel "MDPD".
 
         The interaction forces are the same as described in :any:`DPD` with the modified conservative term
 
@@ -162,6 +200,8 @@ void exportInteractions(py::module& m)
                     power: :math:`p` in the weight function
     )");
 
+    
+    
     py::handlers_class<InteractionMDPDWithStress> pyIntMDPDWithStress(m, "MDPDWithStress", pyIntMDPD, R"(
         wrapper of :any:`MDPD` with, in addition, stress computation
     )");
@@ -181,6 +221,51 @@ void exportInteractions(py::module& m)
     )");
 
 
+    py::handlers_class<BasicInteractionSDPD> pyIntSDPD(m, "SDPD", pyInt, R"(
+        Compute SDPD interaction as with angular momentum conservation.
+        Must be used together with :any:`Density` interaction with the same density kernel.
+
+        The available density kernels are listed in :any:`Density`.
+        The available equations of state (EOS) are:
+
+        Linear equation of state:
+
+            .. math::
+
+                p(\rho) = c^2 \rho
+ 
+            where :math:`c` is the speed of sound,
+
+        Quasi incompressible EOS:
+
+            .. math::
+
+                p(\rho) = p_0 \left[ \left( \frac {\rho}{\rho_r} \right)^\gamma - 1 \right],
+
+            where :math:`p_0`, :math:`\rho_r` and :math:`\gama = 7` are parameters to be fitted to the desired fluid.
+    )");
+    
+    pyIntSDPD.def(py::init(&createInteractionPairwiseSDPD),
+                  "state"_a, "name"_a, "rc"_a, "viscosity"_a, "kBT"_a, "EOS"_a, "density_kernel"_a, R"(  
+            Args:
+                name: name of the interaction
+                rc: interaction cut-off (no forces between particles further than **rc** apart)
+                viscosity: solvent viscosity
+                kBT: temperature (in :math:`k_B` units)
+                EOS: the desired equation of state 
+                density_kernel: the desired density kernel
+
+            linear EOS parameters:
+
+                * **sound_speed**: the speed of sound
+
+            quasi-incompressible EOS parameters:
+
+                * **p0**: :math:`p_0`
+                * **rho_r**: :math:`\rho_r`
+    )");
+
+    
     py::handlers_class<InteractionLJ> pyIntLJ (m, "LJ", pyInt, R"(
         Pairwise interaction according to the classical `Lennard-Jones potential <https://en.wikipedia.org/wiki/Lennard-Jones_potential>`_
         The force however is truncated such that it is *always repulsive*.

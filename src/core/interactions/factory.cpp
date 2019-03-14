@@ -7,6 +7,11 @@
 #include "membrane_Lim_Kantor.h"
 #include "membrane_Lim_Juelicher.h"
 
+#include "pairwise_interactions/density_kernels.h"
+#include "pairwise_interactions/pressure_EOS.h"
+
+#include "sdpd.h"
+
 #include <core/logger.h>
 
 static bool hasKey(const std::map<std::string, float>& desc, const std::string& key)
@@ -169,4 +174,91 @@ InteractionFactory::createInteractionMembrane(const YmrState *state, std::string
 
     return nullptr;
 }
+
+
+static bool isSimpleMDPDDensity(const std::string& desc)
+{
+    return desc == "MDPD";
+}
+
+
+static bool isWendlandC2Density(const std::string& desc)
+{
+    return desc == "WendlandC2";
+}
+
+std::shared_ptr<BasicInteractionDensity>
+InteractionFactory::createPairwiseDensity(const YmrState *state, std::string name, float rc,
+                                          const std::string& density)
+{
+    if (isSimpleMDPDDensity(density))
+    {
+        SimpleMDPDDensityKernel densityKernel;
+        return std::make_shared<InteractionDensity<SimpleMDPDDensityKernel>>
+                                (state, name, rc, densityKernel);
+    }
     
+    if (isWendlandC2Density(density))
+    {
+        WendlandC2DensityKernel densityKernel;
+        return std::make_shared<InteractionDensity<WendlandC2DensityKernel>>
+                                (state, name, rc, densityKernel);
+    }
+
+    die("Invalid density '%s'", density.c_str());
+    return nullptr;
+}
+
+
+static LinearPressureEOS readLinearPressureEOS(const std::map<std::string, float>& desc)
+{
+    float c = readFloat(desc, "sound_speed");
+    return LinearPressureEOS(c);
+}
+
+static QuasiIncompressiblePressureEOS readQuasiIncompressiblePressureEOS(const std::map<std::string, float>& desc)
+{
+    float p0   = readFloat(desc, "p0");
+    float rhor = readFloat(desc, "rho_r");
+    
+    return QuasiIncompressiblePressureEOS(p0, rhor);
+}
+
+static bool isLinearEOS(const std::string& desc)
+{
+    return desc == "Linear";
+}
+
+static bool isQuasiIncompressibleEOS(const std::string& desc)
+{
+    return desc == "QuasiIncompressible";
+}
+
+
+std::shared_ptr<BasicInteractionSDPD>
+InteractionFactory::createPairwiseSDPD(const YmrState *state, std::string name, float rc, float viscosity, float kBT,
+                                       const std::string& EOS, const std::string& density,
+                                       const std::map<std::string, float>& parameters)
+{
+    if (!isWendlandC2Density(density))
+        die("Invalid density '%s'", density.c_str());
+    
+    WendlandC2DensityKernel densityKernel;
+    
+    if (isLinearEOS(EOS))
+    {
+        auto pressure = readLinearPressureEOS(parameters);
+        return std::make_shared<InteractionSDPD<LinearPressureEOS, WendlandC2DensityKernel>>
+            (state, name, rc, pressure, densityKernel, viscosity, kBT);
+    }
+
+    if (isQuasiIncompressibleEOS(EOS))
+    {
+        auto pressure = readQuasiIncompressiblePressureEOS(parameters);
+        return std::make_shared<InteractionSDPD<QuasiIncompressiblePressureEOS, WendlandC2DensityKernel>>
+            (state, name, rc, pressure, densityKernel, viscosity, kBT);
+    }
+
+    die("Invalid pressure parameter: '%s'", EOS.c_str());
+    return nullptr;
+}

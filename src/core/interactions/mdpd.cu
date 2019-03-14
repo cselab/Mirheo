@@ -1,7 +1,6 @@
 #include "mdpd.h"
 
 #include "pairwise.impl.h"
-#include "pairwise_interactions/density.h"
 #include "pairwise_interactions/mdpd.h"
 
 #include <core/celllist.h>
@@ -10,51 +9,6 @@
 #include <core/pvs/particle_vector.h>
 
 #include <memory>
-
-
-
-InteractionDensity::InteractionDensity(const YmrState *state, std::string name, float rc) :
-    Interaction(state, name, rc)
-{
-    PairwiseDensity density(rc);
-    impl = std::make_unique<InteractionPair<PairwiseDensity>> (state, name, rc, density);
-}
-
-InteractionDensity::~InteractionDensity() = default;
-
-void InteractionDensity::setPrerequisites(ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2)
-{
-    impl->setPrerequisites(pv1, pv2, cl1, cl2);
-
-    pv1->requireDataPerParticle<float>(ChannelNames::densities, ExtraDataManager::PersistenceMode::None);
-    pv2->requireDataPerParticle<float>(ChannelNames::densities, ExtraDataManager::PersistenceMode::None);
-    
-    cl1->requireExtraDataPerParticle<float>(ChannelNames::densities);
-    cl2->requireExtraDataPerParticle<float>(ChannelNames::densities);
-}
-
-std::vector<Interaction::InteractionChannel> InteractionDensity::getIntermediateOutputChannels() const
-{
-    return {{ChannelNames::densities, Interaction::alwaysActive}};
-}
-std::vector<Interaction::InteractionChannel> InteractionDensity::getFinalOutputChannels() const
-{
-    return {};
-}
-
-void InteractionDensity::local(ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2, cudaStream_t stream)
-{
-    impl->local(pv1, pv2, cl1, cl2, stream);
-}
-
-void InteractionDensity::halo (ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2, cudaStream_t stream)
-{
-    impl->halo(pv1, pv2, cl1, cl2, stream);
-}
-
-
-
-
 
 
 InteractionMDPD::InteractionMDPD(const YmrState *state, std::string name, float rc, float rd, float a, float b, float gamma, float kbt, float power, bool allocateImpl) :
