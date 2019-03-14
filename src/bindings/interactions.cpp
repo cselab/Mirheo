@@ -221,6 +221,51 @@ void exportInteractions(py::module& m)
     )");
 
 
+    py::handlers_class<BasicInteractionSDPD> pyIntSDPD(m, "SDPD", pyInt, R"(
+        Compute SDPD interaction as with angular momentum conservation.
+        Must be used together with :any:`Density` interaction with the same density kernel.
+
+        The available density kernels are listed in :any:`Density`.
+        The available equations of state (EOS) are:
+
+        Linear equation of state:
+
+            .. math::
+
+                p(\rho) = c^2 \rho
+ 
+            where :math:`c` is the speed of sound,
+
+        Quasi incompressible EOS:
+
+            .. math::
+
+                p(\rho) = p_0 \left[ \left( \frac {\rho}{\rho_r} \right)^\gamma - 1 \right],
+
+            where :math:`p_0`, :math:`\rho_r` and :math:`\gama = 7` are parameters to be fitted to the desired fluid.
+    )");
+    
+    pyIntSDPD.def(py::init(&createInteractionPairwiseSDPD),
+                  "state"_a, "name"_a, "rc"_a, "viscosity"_a, "kBT"_a, "EOS"_a, "density_kernel"_a, R"(  
+            Args:
+                name: name of the interaction
+                rc: interaction cut-off (no forces between particles further than **rc** apart)
+                viscosity: solvent viscosity
+                kBT: temperature (in :math:`k_B` units)
+                EOS: the desired equation of state 
+                density_kernel: the desired density kernel
+
+            linear EOS parameters:
+
+                * **sound_speed**: the speed of sound
+
+            quasi-incompressible EOS parameters:
+
+                * **p0**: :math:`p_0`
+                * **rho_r**: :math:`\rho_r`
+    )");
+
+    
     py::handlers_class<InteractionLJ> pyIntLJ (m, "LJ", pyInt, R"(
         Pairwise interaction according to the classical `Lennard-Jones potential <https://en.wikipedia.org/wiki/Lennard-Jones_potential>`_
         The force however is truncated such that it is *always repulsive*.
