@@ -2,7 +2,7 @@
 
 #include <cmath>
 
-class SimpleMPDPDDendityKernel
+class SimpleMDPDDensityKernel
 {
 public:
     static constexpr float normalization = 15 / (2 * M_PI);
@@ -19,7 +19,7 @@ class WendlandC2DensityKernel
 {
 public:
     static constexpr float normalization = 21 / (2 * M_PI);
-    
+
     __D__ inline float operator()(float r, float inv_rc) const
     {
         float r_ = r * inv_rc;

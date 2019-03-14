@@ -31,7 +31,7 @@ createInteractionMembrane(const YmrState *state, std::string name,
         }
         catch (const py::cast_error& e)
         {
-            die("Could not cast one of the arguments in membrane interactions");
+            die("Could not cast one of the arguments in membrane interactions '%s'", name.c_str());
         }        
     }    
     
@@ -39,10 +39,11 @@ createInteractionMembrane(const YmrState *state, std::string name,
         (state, name, shearDesc, bendingDesc, parameters, stressFree, growUntil);
 }
 
-static std::shared_ptr<Interaction>
+
+static std::shared_ptr<BasicInteractionSDPD>
 createInteractionPairwiseSDPD(const YmrState *state, std::string name,
-                              float rc, float viscosity, float kBT, std::string EOS,
-                              py::kwargs kwargs)
+                              float rc, float viscosity, float kBT,
+                              std::string EOS, std::string density, py::kwargs kwargs)
 {
     std::map<std::string, float> parameters;
 
@@ -54,12 +55,12 @@ createInteractionPairwiseSDPD(const YmrState *state, std::string name,
         }
         catch (const py::cast_error& e)
         {
-            die("Could not cast one of the arguments in membrane interactions");
+            die("Could not cast one of the arguments in pairwise DPD interactions '%s'", name.c_str());
         }        
     }    
     
     return InteractionFactory::createPairwiseSDPD
-        (state, name, rc, viscosity, kBT, EOS, parameters);
+        (state, name, rc, viscosity, kBT, EOS, density, parameters);
 }
 
 
