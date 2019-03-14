@@ -24,7 +24,7 @@ plate_hi = ymr.Walls.Plane("plate_hi", (0, 0,  1), (0, 0,  domain[2] - 1))
 u.registerWall(plate_lo, 0)
 u.registerWall(plate_hi, 0)
 
-den = ymr.Interactions.MDPDDensity('density', rd)
+den = ymr.Interactions.Density('density', rd, kernel="MDPD")
 mdpd = ymr.Interactions.MDPD('mdpd', rc, rd, a=10.0, b=10.0, gamma=50.0, kbt=0.1, power=0.25)
 
 vv = ymr.Integrators.VelocityVerlet("vv")
