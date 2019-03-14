@@ -1,5 +1,7 @@
 #pragma once
 
+#include <core/utils/cpu_gpu_defines.h>
+
 class LinearPressureEOS
 {
 public:

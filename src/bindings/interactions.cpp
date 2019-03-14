@@ -39,6 +39,29 @@ createInteractionMembrane(const YmrState *state, std::string name,
         (state, name, shearDesc, bendingDesc, parameters, stressFree, growUntil);
 }
 
+static std::shared_ptr<Interaction>
+createInteractionPairwiseSDPD(const YmrState *state, std::string name,
+                              float rc, float viscosity, float kBT, std::string EOS,
+                              py::kwargs kwargs)
+{
+    std::map<std::string, float> parameters;
+
+    for (const auto& item : kwargs) {
+        try {
+            auto key   = py::cast<std::string>(item.first);
+            auto value = py::cast<float>(item.second);
+            parameters[key] = value;
+        }
+        catch (const py::cast_error& e)
+        {
+            die("Could not cast one of the arguments in membrane interactions");
+        }        
+    }    
+    
+    return InteractionFactory::createPairwiseSDPD
+        (state, name, rc, viscosity, kBT, EOS, parameters);
+}
+
 
 void exportInteractions(py::module& m)
 {
