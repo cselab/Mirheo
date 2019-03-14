@@ -105,7 +105,7 @@ void exportInteractions(py::module& m)
                 stressPeriod: compute the stresses every this period (in simulation time units)
     )");
 
-    py::handlers_class<InteractionDensity> pyIntDensity(m, "Density", pyInt, R"(
+    py::handlers_class<InteractionMDPDDensity> pyIntMDPDDensity(m, "MDPDDensity", pyInt, R"(
         Compute MDPD density of particles, see [Warren2003]_
     
         .. math::
@@ -119,7 +119,7 @@ void exportInteractions(py::module& m)
             w_\rho(r) = \begin{cases} \frac{15}{2\pi r_d^3}\left(1-\frac{r}{r_d}\right)^2, & r < r_d \\ 0, & r \geqslant r_d \end{cases}            
     )");
     
-    pyIntDensity.def(py::init<const YmrState*, std::string, float>(),
+    pyIntMDPDDensity.def(py::init<const YmrState*, std::string, float>(),
                      "state"_a, "name"_a, "rc"_a, R"(  
             Args:
                 name: name of the interaction
@@ -128,7 +128,7 @@ void exportInteractions(py::module& m)
 
     py::handlers_class<InteractionMDPD> pyIntMDPD(m, "MDPD", pyInt, R"(
         Compute MDPD interaction as described in [Warren2003].
-        Must be used together with :any:`Density` interaction.
+        Must be used together with :any:`MDPDDensity` interaction.
 
         The interaction forces are the same as described in :any:`DPD` with the modified conservative term
 

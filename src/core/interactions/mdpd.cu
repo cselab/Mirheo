@@ -13,7 +13,7 @@
 
 
 
-InteractionDensity::InteractionDensity(const YmrState *state, std::string name, float rc) :
+InteractionMDPDDensity::InteractionMDPDDensity(const YmrState *state, std::string name, float rc) :
     Interaction(state, name, rc)
 {
     using PairwiseDensityType = PairwiseDensity<SimpleMPDPDDendityKernel>;
@@ -22,9 +22,9 @@ InteractionDensity::InteractionDensity(const YmrState *state, std::string name, 
     impl = std::make_unique<InteractionPair<PairwiseDensityType>> (state, name, rc, density);
 }
 
-InteractionDensity::~InteractionDensity() = default;
+InteractionMDPDDensity::~InteractionMDPDDensity() = default;
 
-void InteractionDensity::setPrerequisites(ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2)
+void InteractionMDPDDensity::setPrerequisites(ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2)
 {
     impl->setPrerequisites(pv1, pv2, cl1, cl2);
 
@@ -35,21 +35,21 @@ void InteractionDensity::setPrerequisites(ParticleVector *pv1, ParticleVector *p
     cl2->requireExtraDataPerParticle<float>(ChannelNames::densities);
 }
 
-std::vector<Interaction::InteractionChannel> InteractionDensity::getIntermediateOutputChannels() const
+std::vector<Interaction::InteractionChannel> InteractionMDPDDensity::getIntermediateOutputChannels() const
 {
     return {{ChannelNames::densities, Interaction::alwaysActive}};
 }
-std::vector<Interaction::InteractionChannel> InteractionDensity::getFinalOutputChannels() const
+std::vector<Interaction::InteractionChannel> InteractionMDPDDensity::getFinalOutputChannels() const
 {
     return {};
 }
 
-void InteractionDensity::local(ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2, cudaStream_t stream)
+void InteractionMDPDDensity::local(ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2, cudaStream_t stream)
 {
     impl->local(pv1, pv2, cl1, cl2, stream);
 }
 
-void InteractionDensity::halo (ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2, cudaStream_t stream)
+void InteractionMDPDDensity::halo (ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2, cudaStream_t stream)
 {
     impl->halo(pv1, pv2, cl1, cl2, stream);
 }

@@ -16,7 +16,7 @@ public:
 
     using ViewType     = PVviewWithDensities;
     using ParticleType = Particle;
-    using HandlerType = PairwiseDensity;
+    using HandlerType  = PairwiseDensity;
     
     PairwiseDensity(float rc, DensityKernel densityKernel) :
         ParticleFetcher(rc),

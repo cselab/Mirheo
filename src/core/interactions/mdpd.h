@@ -5,12 +5,12 @@
 #include <limits>
 #include <core/utils/pytypes.h>
 
-class InteractionDensity : public Interaction
+class InteractionMDPDDensity : public Interaction
 {
 public:
-    InteractionDensity(const YmrState *state, std::string name, float rc);
+    InteractionMDPDDensity(const YmrState *state, std::string name, float rc);
 
-    ~InteractionDensity();
+    ~InteractionMDPDDensity();
 
     void setPrerequisites(ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2) override;
     
