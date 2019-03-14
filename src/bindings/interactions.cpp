@@ -150,7 +150,9 @@ void exportInteractions(py::module& m)
         
         kernel "WendlandC2":
         
-            TODO
+            .. math::
+
+                w_\rho(r) = \frac{21}{2\pi} \left( 1 - \frac{r}{r_c} \right)^4 \left( 1 + 4 \frac{r}{r_c} \right)
     )");
     
     pyIntDensity.def(py::init(&InteractionFactory::createPairwiseDensity),
@@ -242,7 +244,7 @@ void exportInteractions(py::module& m)
 
                 p(\rho) = p_0 \left[ \left( \frac {\rho}{\rho_r} \right)^\gamma - 1 \right],
 
-            where :math:`p_0`, :math:`\rho_r` and :math:`\gama = 7` are parameters to be fitted to the desired fluid.
+            where :math:`p_0`, :math:`\rho_r` and :math:`\gamma = 7` are parameters to be fitted to the desired fluid.
     )");
     
     pyIntSDPD.def(py::init(&createInteractionPairwiseSDPD),
